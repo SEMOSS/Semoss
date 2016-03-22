@@ -30,8 +30,12 @@ package prerna.poi.main;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.sql.Connection;
+import java.sql.DriverManager;
+import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Date;
+import java.util.Enumeration;
 import java.util.Hashtable;
 import java.util.StringTokenizer;
 import java.util.Vector;
@@ -42,6 +46,7 @@ import javax.swing.JOptionPane;
 import org.apache.log4j.Level;
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
+import org.apache.poi.ss.usermodel.Cell;
 import org.apache.poi.ss.usermodel.DateUtil;
 import org.apache.poi.xssf.usermodel.XSSFCell;
 import org.apache.poi.xssf.usermodel.XSSFRow;
@@ -52,6 +57,7 @@ import org.openrdf.sail.SailException;
 import prerna.engine.api.IEngine;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
+import prerna.util.OWLER;
 import prerna.util.Utility;
 
 /**
@@ -61,6 +67,13 @@ public class POIReader extends AbstractFileReader {
 
 	private static final Logger logger = LogManager.getLogger(POIReader.class.getName());
 
+	private Hashtable <String, Hashtable <String, String>> concepts = new Hashtable <String, Hashtable <String, String>>();
+	private Hashtable <String, Vector <String>> relations = new Hashtable <String, Vector<String>>();
+	private Hashtable <String, String> sheets = new Hashtable <String, String> ();
+	Connection conn = null;
+	OWLER owler = new OWLER();
+	
+	
 	/**
 	 * Load data into SEMOSS into an existing database
 	 * 
@@ -303,7 +316,525 @@ public class POIReader extends AbstractFileReader {
 			}
 		}
 	}
+	
+	
+	private void assimilateSheet(String sheetName, XSSFWorkbook workbook)
+	{
+		// really simple job here
+		// load the sheet
+		// if you find it
+		// get the first row
+		// if the row is present 
+		XSSFSheet lSheet = workbook.getSheet(sheetName);
+		
+		System.err.println("Processing Sheet..  " + sheetName);
+		
+		if(lSheet != null)
+		{
+			XSSFRow header = lSheet.getRow(0);
+			// I will come to you shortly
+			XSSFRow colPredictor = lSheet.getRow(1);
+			int colLength = header.getLastCellNum();	
+			int colcolLength = colPredictor.getLastCellNum();
+			
+			System.out.println(colLength + " <>" + colcolLength);
+			
+			if(header != null)
+			{
+				String type = header.getCell(0).getStringCellValue();
+				if(type.equalsIgnoreCase("Relation"))
+				{
+					// process it as relation
+					String fromName = header.getCell(1).getStringCellValue();
+					fromName = Utility.cleanString(fromName, true);
+					String toName = header.getCell(2).getStringCellValue();
+					toName = Utility.cleanString(toName, true);
+										
+					Vector <String> relatedTo = new Vector<String>();
+					if(relations.containsKey(fromName))
+						relatedTo = relations.get(fromName);
+					
+					relatedTo.addElement(toName);
+					relations.put(fromName, relatedTo);
+					
+					// if the concepts dont have relation key
+					if(!concepts.containsKey(fromName))
+					{
+						Hashtable <String, String> props = new Hashtable<String, String>();
+						props.put(fromName, "varchar(255)");
+						concepts.put(fromName, props);
+					}
 
+					// if the concepts dont have relation key
+					if(!concepts.containsKey(toName))
+					{
+						Hashtable <String, String> props = new Hashtable<String, String>();
+						props.put(toName, "varchar(255)");
+						concepts.put(toName, props);
+					}
+
+					sheets.put(fromName + "-" + toName, sheetName);
+				}
+				else
+				{
+				
+					// now predict the columns
+					String [] firstRowCells = getCells(colPredictor);
+					String [] headers = getCells(header);
+					String [] types = new String[headers.length];
+					String [] initTypes = predictRowTypes(firstRowCells);
+					
+					int delta = types.length - initTypes.length;
+					System.arraycopy(initTypes, 0, types, 0, initTypes.length);
+					
+					for(int deltaIndex = initTypes.length;deltaIndex < types.length;deltaIndex++)
+						types[deltaIndex] = "varchar(800)";
+					
+					String conceptName = headers[1];
+					
+					conceptName = Utility.cleanString(conceptName, true);
+									
+					sheets.put(conceptName, sheetName);
+					Hashtable <String, String> nodeProps= new Hashtable<String, String>();
+;
+					if(concepts.containsKey(conceptName))
+						nodeProps = concepts.get(conceptName);
+
+					/*else
+					{
+						nodeProps = new Hashtable<String, String>();
+						nodeProps.put(conceptName, types[1]); // will change the varchar shortly
+					}*/
+					// process it as a concept
+					for(int colIndex = 0;colIndex < types.length;colIndex++)
+					{
+						String thisName = headers[colIndex];
+						if(thisName != null)
+						{
+							thisName = Utility.cleanString(thisName, true);
+							nodeProps.put(thisName, types[colIndex]); // will change the varchar shortly
+						}
+					}
+					
+					concepts.put(conceptName, nodeProps);
+				}
+			}
+			
+		}
+		
+	}
+	
+	public String[] getCells(XSSFRow row)
+	{
+		int colLength = row.getLastCellNum();
+		return getCells(row, colLength);
+	}
+
+	
+	public String[] getCells(XSSFRow row, int totalCol)
+	{
+		int colLength = totalCol;
+		String [] cols = new String[colLength];
+		for(int colIndex = 1;colIndex < colLength;colIndex++)
+		{
+			XSSFCell thisCell = row.getCell(colIndex);
+			// get all of this into a string
+			if(thisCell != null && row.getCell(colIndex).getCellType() != Cell.CELL_TYPE_BLANK)
+			{
+				if(thisCell.getCellType() == Cell.CELL_TYPE_STRING)
+				{
+					cols[colIndex] = thisCell.getStringCellValue();
+					cols[colIndex] = Utility.cleanString(cols[colIndex], true);
+				}
+				if(thisCell.getCellType() == Cell.CELL_TYPE_NUMERIC)
+					cols[colIndex] = "" + thisCell.getNumericCellValue();
+			}
+			else
+			{
+				cols[colIndex] = "";
+			}
+		}	
+		
+		return cols;
+	}
+
+    public String[] predictRowTypes(String [] thisOutput)
+    {
+    	String [] types = new String[thisOutput.length];
+    	String [] values = new String[thisOutput.length];
+    	
+    	for(int outIndex = 0;outIndex < thisOutput.length;outIndex++)
+    	{
+    		String curOutput = thisOutput[outIndex];
+    		//if(headers != null)
+    		//	System.out.println("Cur Output...  " + headers[outIndex] + " >> " + curOutput );
+    		Object [] cast = Utility.findTypes(curOutput);
+    		if(cast == null)
+    		{
+    			cast = new Object[2];
+    			cast[0] = "varchar(255)";
+    			cast[1] = ""; // make it into an empty String
+    		}
+    		types[outIndex] = cast[0] + "";
+    		values[outIndex] = cast[1] + "";
+    		
+    		//System.out.println(curOutput + types[outIndex] + " <<>>" + values[outIndex]);
+    	}    	
+    	return types;
+    }
+
+	
+	/**
+	 * Load the excel workbook, determine which sheets to load in workbook from the Loader tab
+	 * @param fileName 					String containing the absolute path to the excel workbook to load
+	 * @throws FileNotFoundException
+	 * @throws IOException
+	 */
+	public void importFile2(String fileName) throws FileNotFoundException, IOException {
+
+		XSSFWorkbook workbook = null;
+		FileInputStream poiReader = null;
+		try {
+			poiReader = new FileInputStream(fileName);
+			workbook = new XSSFWorkbook(poiReader);
+			// load the Loader tab to determine which sheets to load
+			XSSFSheet lSheet = workbook.getSheet("Loader");
+			if (lSheet == null) {
+				throw new IOException("Could not find Loader Sheet in Excel file " + fileName);
+			}
+			// check if user is loading subclassing relationships
+			XSSFSheet subclassSheet = workbook.getSheet("Subclass");
+			if (subclassSheet != null) {
+				createSubClassing(subclassSheet);
+			}
+			// determine number of sheets to load
+			int lastRow = lSheet.getLastRowNum();
+			// first sheet name in second row
+			// step one is to go through every sheet and determine what are the concepts within these sheets
+			// along with their properties
+			// would be kind of cool to guess their type as well
+			
+			for(int sIndex = 1;sIndex <= lastRow;sIndex++)
+			{
+				XSSFRow row = lSheet.getRow(sIndex);
+				// check to make sure cell is not null
+				if (row != null) {
+					XSSFCell sheetNameCell = row.getCell(0);
+					XSSFCell sheetTypeCell = row.getCell(1);				
+					if (sheetNameCell != null && sheetTypeCell != null) {
+						// get the name of the sheet
+						String sheetToLoad = sheetNameCell.getStringCellValue();
+						// determine the type of load
+						String loadTypeName = sheetTypeCell.getStringCellValue();
+					
+						assimilateSheet(sheetToLoad, workbook);
+				
+				// assimilate this sheet and workbook
+				// I need to have 2 hashes
+				// hash 1 tells me
+				// Concept - and all the given properties of this concept
+				// hash 2 tells me
+				// given this concept what are its relationships as a vector	
+					}
+				}
+				
+			}
+			
+			
+			// the next thing is to look at relation ships and add the appropriate column that I want to the respective concepts
+
+			System.out.println("Lucky !!" + concepts + " <> " + relations);
+
+			System.out.println("Ok.. now what ?");
+			synchronizeRelations();
+			
+			// now I need to create the tables
+			Enumeration <String> conceptKeys = concepts.keys();
+			while(conceptKeys.hasMoreElements())
+			{
+				String thisConcept = conceptKeys.nextElement();
+				createTable(thisConcept);
+				processTable(thisConcept, workbook);
+			}
+			// I need to first create all the concepts
+			// then all the relationships
+			Enumeration <String> relationConcepts = relations.keys();
+			while(relationConcepts.hasMoreElements())
+			{
+				String thisConcept = relationConcepts.nextElement();
+				Vector <String> allRels = relations.get(thisConcept);
+				
+				for(int toIndex = 0;toIndex < allRels.size();toIndex++)
+				// now process each one of these things
+					createRelations(thisConcept, allRels.elementAt(toIndex), workbook);
+			}
+		} catch (FileNotFoundException e) {
+			e.printStackTrace();
+			if(e.getMessage()!= null && !e.getMessage().isEmpty()) {
+				throw new FileNotFoundException(e.getMessage());
+			} else {
+				throw new FileNotFoundException("Could not find Excel file located at " + fileName);
+			}
+		} catch (IOException e) {
+			e.printStackTrace();
+			if(e.getMessage()!= null && !e.getMessage().isEmpty()) {
+				throw new IOException(e.getMessage());
+			} else {
+				throw new IOException("Could not read Excel file located at " + fileName);
+			}
+		} catch (Exception e) {
+			e.printStackTrace();
+			if(e.getMessage()!= null && !e.getMessage().isEmpty()) {
+				throw new IOException(e.getMessage());
+			} else {
+				throw new IOException("File: " + fileName + " is not a valid Microsoft Excel (.xlsx, .xlsm) file");
+			}
+		} finally {
+			if(poiReader != null) {
+				try {
+					poiReader.close();
+				} catch (IOException e) {
+					e.printStackTrace();
+					throw new IOException("Could not close Excel file stream");
+				}
+			}
+		}
+	}
+	
+    private Connection getConnection()
+    {
+    	if(this.conn == null)
+    	{
+			try {
+				
+				Class.forName("org.h2.Driver");
+				//jdbc:h2:~/test
+				this.conn = DriverManager.
+				    getConnection("jdbc:h2:mem:test:LOG=0;CACHE_SIZE=65536;LOCK_MODE=0;UNDO_LOG=0", "sa", "");
+					//	getConnection("jdbc:h2:C:/Users/pkapaleeswaran/h2/test.db;LOG=0;CACHE_SIZE=65536;LOCK_MODE=0;UNDO_LOG=0", "sa", "");
+				
+				//Class.forName("nl.cwi.monetdb.jdbc.MonetDriver");
+				//conn = DriverManager.getConnection("jdbc:monetdb://localhost:50000/demo", "monetdb", "monetdb");
+				//ResultSet rs = conn.createStatement().executeQuery("Select count(*) from voyages");
+
+			} catch (ClassNotFoundException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			} catch (SQLException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+
+    	}
+    	return this.conn;
+    }
+
+
+	private void synchronizeRelations()
+	{
+		Enumeration <String> relationKeys = relations.keys();
+		
+		while(relationKeys.hasMoreElements())
+		{
+			String relKey = relationKeys.nextElement();
+			Vector <String> theseRelations = relations.get(relKey);
+			
+			Hashtable <String, String> prop1 = concepts.get(relKey);
+			//if(prop1 == null)
+			//	prop1 = new Hashtable<String, String>();
+			
+			for(int relIndex = 0;relIndex < theseRelations.size();relIndex++)
+			{
+				String thisConcept = theseRelations.elementAt(relIndex);
+				Hashtable <String, String> prop2 = concepts.get(thisConcept);
+				//if(prop2 == null)
+				//	prop2 = new Hashtable<String, String>();
+				
+				// affinity is used to which table to get when I get to this relation
+				String affinity = relKey + "-" + thisConcept + "AFF"; // <-- right.. that is some random shit.. the kind of stuff that gets me in trouble
+				// need to compare which one is bigger and if so add to the other one right now
+				// I have no idea what is the logic here
+				// I should be comparing the total number of records
+				// oh well.. !!
+				
+				// I also need to record who has this piece
+				// so when we get to the point of inserting I know what i am doing
+				if(prop1.size() > prop2.size())
+				{
+					prop2.put(relKey + "_FK", prop1.get(relKey));
+					concepts.put(thisConcept, prop2); // God am I ever sure of anything
+					sheets.put(affinity, thisConcept);
+				}
+				else
+				{
+					prop1.put(thisConcept+"_FK", prop2.get(thisConcept));
+					concepts.put(relKey, prop1); // God am I ever sure of anything
+					sheets.put(affinity, relKey);
+				}
+			}
+		}
+
+	}
+	
+	private void createTable(String thisConcept)
+	{
+		getConnection();
+
+			Hashtable <String, String> props = concepts.get(thisConcept);
+
+			String conceptType = props.get(thisConcept);
+			
+			// add it to OWL
+			//owler.addConcept(thisConcept);
+			
+			String createString = "CREATE TABLE " + thisConcept + " (";
+			createString = createString + " " + thisConcept + " " + conceptType;
+
+			//owler.addProp(thisConcept, thisConcept, conceptType);
+
+			props.remove(thisConcept);
+
+			// while for create it is fine
+			// I have to somehow figure out a way to get rid of most of the other stuff
+			Enumeration <String> fields = props.keys();
+
+			while(fields.hasMoreElements())
+			{
+				String fieldName = fields.nextElement();
+				String fieldType = props.get(fieldName);
+				createString = createString + " , " + fieldName + " " + fieldType; 
+				
+				// also add this to the OWLER
+				if(!fieldName.equalsIgnoreCase(thisConcept) && !fieldName.endsWith("_FK"))
+					owler.addProp(thisConcept, fieldName, fieldType);
+			}
+
+			props.put(thisConcept, conceptType);
+
+			createString = createString + ")";
+			System.out.println("Creator....  " + createString);
+			try {
+				conn.createStatement().execute(createString);
+			} catch (SQLException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+		// now I say process this table ?
+		
+	}
+	
+	private void processTable(String conceptName, XSSFWorkbook workbook)
+	{
+		// this is where the stuff kicks in
+		String sheetName = sheets.get(conceptName);
+		if(sheetName != null)
+		{
+			XSSFSheet lSheet = workbook.getSheet(sheetName);
+			XSSFRow thisRow = lSheet.getRow(0);
+			
+			String [] cells = getCells(thisRow);
+			int totalCols = cells.length;
+			String [] types = new String[cells.length];
+			
+			String inserter = "INSERT INTO " + conceptName + " ( ";
+			
+			for(int cellIndex = 1;cellIndex < cells.length;cellIndex++)
+			{
+				if(cellIndex == 1)
+					inserter = inserter + cells[cellIndex];
+				else
+					inserter = inserter + " , " + cells[cellIndex];
+				types[cellIndex] = concepts.get(conceptName).get(cells[cellIndex]);
+			}
+			inserter = inserter + ") VALUES ";
+			int lastRow = lSheet.getLastRowNum();
+			String values = "";
+			for(int rowIndex = 1;rowIndex < lastRow;rowIndex++)
+			{
+				thisRow = lSheet.getRow(rowIndex);
+				String [] uCells = getCells(thisRow, totalCols);
+				cells = Utility.castToTypes(uCells, types);
+				values = "( " + cells[1];
+				
+				for(int cellIndex = 2;cellIndex < cells.length;cellIndex++)
+					values = values + " , " + cells[cellIndex];
+				
+				values = values + ")";
+				try {
+					conn.createStatement().execute(inserter + values);
+				} catch (SQLException e) {
+					System.out.println("Insert query...  " + inserter + values);
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+					System.exit(0);
+				}
+				
+			}
+		}			
+	}
+	
+	
+	private void createRelations(String fromName, String toName, XSSFWorkbook workbook)
+	{
+		// now come the relations
+		// I need 
+		String sheetName = sheets.get(fromName + "-" + toName);
+		String tableToSet = sheets.get(fromName + "-" + toName + "AFF");
+		
+		
+		System.out.println("Affinity is " + tableToSet);
+		String tableToInsert = toName;
+		if(tableToSet.equalsIgnoreCase(tableToInsert))
+			tableToInsert = fromName;
+		owler.addRelation(tableToInsert, tableToSet, null);
+		// I have told folks not to do implicit reification so therefore I will ignore everything
+		// i.e. NOOOOOO properties on relations
+		
+		// the aff is the table where I need to insert
+		// which also means that is what I need to look up to insert
+		String updateString = "UPDATE " + tableToSet + " SET ";
+		
+		XSSFSheet lSheet = workbook.getSheet(sheetName);
+		int lastRow = lSheet.getLastRowNum();
+		
+		XSSFRow thisRow = lSheet.getRow(0);
+		String [] headers = getCells(thisRow);
+		// realistically it is only second and third
+		headers[1] = Utility.cleanString(headers[1], true);
+		headers[2] = Utility.cleanString(headers[2], true);
+		
+		int setter, inserter;
+		if(headers[1].equalsIgnoreCase(tableToSet))
+		{
+			setter = 1;
+			inserter = 2;
+		}
+		else
+		{
+			setter = 2;
+			inserter = 1;
+		}
+		String values = "";
+		for(int rowIndex = 1;rowIndex < lastRow;rowIndex++)
+		{
+			thisRow = lSheet.getRow(rowIndex);
+			String [] cells = getCells(thisRow);
+			//String [] cells = Utility.castToTypes(uCells, types);
+			values = "";
+			values = tableToSet + " = '" + cells[setter] + "' WHERE " + tableToInsert +  "_FK" + " = '" + cells[inserter] + "'";
+			try {
+				conn.createStatement().execute(updateString + values);
+			} catch (SQLException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+				System.out.println("update query...  " + updateString + values);
+				System.exit(1);
+			}
+		}
+		System.out.println("update query...  " + updateString + values);
+	}
+	
+	
 	/**
 	 * Load specific sheet in workbook
 	 * 
@@ -544,6 +1075,15 @@ public class POIReader extends AbstractFileReader {
 		} finally {
 			logger.info("Done processing: " + sheetToLoad);
 		}
+	}
+	
+	public static void main(String [] args) throws FileNotFoundException, IOException
+	{
+		POIReader reader = new POIReader();
+		String fileName = "C:\\Users\\pkapaleeswaran\\workspacej3\\datasets\\Medical_Devices_Data.xlsx";
+		//fileName = "C:\\Users\\pkapaleeswaran\\workspacej3\\datasets\\Movie.xlsx";
+		reader.importFile2(fileName);
+		reader.owler.getOwlAsString();
 	}
 
 }

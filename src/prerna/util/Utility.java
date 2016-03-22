@@ -65,6 +65,7 @@ import javax.swing.JFrame;
 import javax.swing.JList;
 import javax.swing.JOptionPane;
 
+import org.apache.commons.lang3.math.NumberUtils;
 import org.apache.http.HttpEntity;
 import org.apache.http.NameValuePair;
 import org.apache.http.client.entity.UrlEncodedFormEntity;
@@ -1722,6 +1723,7 @@ public class Utility {
 	public static Object getClassFromString(String className){
 		Object obj = null;
 		try {
+			System.out.println("Tinker name is " + className);
 			obj = Class.forName(className).getConstructor(null).newInstance(null);
 		} catch (ClassNotFoundException ex) {
 			ex.printStackTrace();
@@ -1826,5 +1828,150 @@ public class Utility {
 		}
 		return finalUri;
 	}
+	
+	
+	
+    public static Object[] findTypes(String input)
+    {
+    	//System.out.println("String that came in.. " + input);
+    	Object [] retObject = null;
+    	if(input != null)
+    	{
+	    	Object retO = null;
+	    	if(input.equalsIgnoreCase("1") || input.equalsIgnoreCase("0"))
+	    	{
+	    		retObject = new Object[2];
+	    		retObject[0] = "boolean";
+	    		retObject[1] = retO;
+	    		
+	    	}	    	
+	    	else if(NumberUtils.isDigits(input))
+	    	{
+	    		retO = Integer.parseInt(input);
+	    		retObject = new Object[2];
+	    		retObject[0] = "int";
+	    		retObject[1] = retO;
+	    	}
+	    	else if(NumberUtils.isNumber(input))
+	    	{
+	    		retO = Double.parseDouble(input);
+	    		retObject = new Object[2];
+	    		retObject[0] = "double";
+	    		retObject[1] = retO;
+	    	}
+	    	else if((retO = getDate(input)) != null )// try dates ? - yummy !!
+	    	{
+	    		retObject = new Object[2];
+	    		retObject[0] = "date";
+	    		retObject[1] = retO;
+	    		
+	    	}
+	    	else if((retO = getCurrency(input)) != null )
+	    	{
+	    		
+	    		retObject = new Object[2];
+	    		retObject[0] = "currency";
+	    		retObject[1] = retO;
+	    	}
+	    	else
+	    	{
+	    		retObject = new Object[2]; // need to do some more stuff to determine this
+	    		retObject[0] = "varchar(800)";
+	    		retObject[1] = input;
+	    	}
+    	}
+    	return retObject;
+    }
+    
+    public static String getDate(String input)
+    {
+    	String[] date_formats = {
+                //"dd/MM/yyyy",
+                "MM/dd/yyyy",
+                //"dd-MM-yyyy",
+                "yyyy-MM-dd",
+                "yyyy/MM/dd", 
+                "yyyy MMM dd",
+                "yyyy dd MMM",
+                "dd MMM yyyy",
+                "dd MMM",
+                "MMM dd",
+                "dd MMM yyyy",
+                "MMM yyyy"};
+
+				String output_date = null;
+				boolean itsDate = false;
+				for (String formatString : date_formats)
+				{
+				try
+				{    
+				 Date mydate = new SimpleDateFormat(formatString).parse(input);
+				 SimpleDateFormat outdate = new SimpleDateFormat("yyyy-MM-dd");
+				 output_date = outdate.format(mydate);
+				 itsDate = true;
+				 break;
+				}
+					catch (ParseException e) {
+						//System.out.println("Next!");
+					}
+				}
+				
+			return output_date;	
+    }
+    
+    public static Object getCurrency(String input)
+    {
+    	Number nm = null;
+    	NumberFormat nf = NumberFormat.getCurrencyInstance();
+    	try {
+    		nm = nf.parse(input);
+    		//System.out.println("Curr..  " + nm);
+    	}catch (Exception ex)
+    	{
+    		
+    	}
+    	return nm;
+    }
+
+    public static String[] castToTypes(String [] thisOutput, String [] types)
+    {
+    	String [] values = new String[thisOutput.length];
+    	
+    	//System.out.println("OUTPUT"  + thisOutput);
+    	//System.out.println("TYPES" +  types);
+    	
+    	
+    	for(int outIndex = 1;outIndex < thisOutput.length;outIndex++)
+    	{
+    		//System.out.println(" Data [" + thisOutput[outIndex] + "]  >> [" + types[outIndex] + "]");
+    		if(thisOutput[outIndex] != null && thisOutput[outIndex].length() > 0)
+    		{
+    			values[outIndex] = thisOutput[outIndex] + "";
+    		
+	    		if(thisOutput[outIndex] != null) // && castTargets.contains(outIndex + ""))
+	    		{
+	    			if(types[outIndex].equalsIgnoreCase("Date"))
+	    				values[outIndex] = getDate(thisOutput[outIndex]);
+	    			else if(types[outIndex].equalsIgnoreCase("Currency"))// this is a currency
+	    				values[outIndex] = getCurrency(thisOutput[outIndex]) + "";
+	    			else if(types[outIndex].equalsIgnoreCase("varchar(800)"))
+	    				values[outIndex] = "'" + thisOutput[outIndex] + "'";
+	    		}
+    		}
+    		else if(types[outIndex] != null)
+    		{
+	    		if(types[outIndex].equalsIgnoreCase("Double"))
+	    			values[outIndex] = "NULL";
+	    		else if(types[outIndex].equalsIgnoreCase("varchar(800)"))
+	    			values[outIndex] = "''";
+    		}
+    		else
+    		{
+    			values[outIndex] = "''";
+    		}
+    	}
+    	return values;
+    }
+
 	
 }

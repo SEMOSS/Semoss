@@ -1,6 +1,7 @@
 package prerna.poi.main;
 
 import java.io.IOException;
+import java.io.StringWriter;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.Calendar;
@@ -58,6 +59,12 @@ public class BaseDatabaseCreator {
 		baseDataHash.put(cleanPred, cleanPred);
 		baseDataHash.put(cleanObj, cleanObj);
 	}
+	
+	// set this as separate pieces as well
+	public void addToBaseEngine(String subject, String predicate, String object)
+	{
+		addToBaseEngine(new Object[]{subject, predicate, object, true});
+	}
 
 	/**
 	 * 
@@ -78,7 +85,26 @@ public class BaseDatabaseCreator {
 			throw new IOException("Error in writing base engine db as OWL file");
 		}
 	}
-	
+
+	public String exportBaseEngAsString(boolean addTimeStamp) throws IOException {
+		try {
+			//adding a time-stamp to the OWL file
+			StringWriter writer = new StringWriter();
+			if(addTimeStamp) {
+				DateFormat dateFormat = getFormatter();
+				Calendar cal = Calendar.getInstance();
+				String cleanObj = dateFormat.format(cal.getTime());
+				baseEng.doAction(IEngine.ACTION_TYPE.ADD_STATEMENT, new Object[]{TIME_URL, TIME_KEY, cleanObj, false});
+			}
+			this.baseEng.exportDB(writer);
+			writer.flush();
+			return writer.toString();
+		} catch (RepositoryException | RDFHandlerException | IOException e) {
+			e.printStackTrace();
+			throw new IOException("Error in writing base engine db as OWL file");
+		}
+	}
+
 	/**
 	 * Standardize the time formatter
 	 * @return
