@@ -2,8 +2,10 @@ package prerna.algorithm.impl;
 
 import java.util.ArrayList;
 import java.util.Iterator;
+import java.util.Set;
+import java.util.TreeSet;
 
-public class SumAlgorithm extends BaseReducer {
+public class CountAlgorithm extends BaseReducer {
 
 	public void set(Iterator inputIterator, String[] ids, String script) {
 		super.set(inputIterator, ids,script, null);
@@ -15,14 +17,18 @@ public class SumAlgorithm extends BaseReducer {
 
 	@Override
 	public Object reduce() {
-		double output = 0.0;
-		while(inputIterator.hasNext() && !errored) {
+		double count = 0;
+		Set<String> values = new TreeSet<String>();
+		while(inputIterator.hasNext() && !errored)
+		{
 			ArrayList dec = (ArrayList)getNextValue();
-			if(dec.get(0) instanceof Number) {
-				output += ((Number)dec.get(0)).doubleValue();
+			if (!values.contains(dec.get(0).toString())) {
+				count++;
+				values.add(dec.get(0).toString());
 			}
 		}
-		System.out.println(output);
-		return output;
+		System.out.println(count);
+		return count;
 	}
+
 }
