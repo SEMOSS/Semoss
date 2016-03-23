@@ -71,7 +71,7 @@ public interface IExplorable {
 	void setDreamer(String dreamer);
 	
 	// sets the ontology file
-	void setOntology(String ontologyFile);
+//	void setOntology(String ontologyFile);
 	
 	// sets the owl
 	void setOWL(String owl);

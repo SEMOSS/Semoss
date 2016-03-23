@@ -30,18 +30,12 @@ package prerna.poi.main;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
-import java.sql.Connection;
-import java.sql.DriverManager;
-import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.Enumeration;
 import java.util.Hashtable;
 import java.util.StringTokenizer;
 import java.util.Vector;
-
-import javax.swing.JFrame;
-import javax.swing.JOptionPane;
 
 import org.apache.log4j.Level;
 import org.apache.log4j.LogManager;
@@ -56,9 +50,8 @@ import org.openrdf.sail.SailException;
 
 import prerna.engine.api.IEngine;
 import prerna.util.Constants;
-import prerna.util.DIHelper;
-import prerna.util.OWLER;
 import prerna.util.Utility;
+import prerna.util.sql.SQLQueryUtil;
 
 /**
  * Loading data into SEMOSS using Microsoft Excel Loading Sheet files
@@ -70,10 +63,7 @@ public class POIReader extends AbstractFileReader {
 	private Hashtable <String, Hashtable <String, String>> concepts = new Hashtable <String, Hashtable <String, String>>();
 	private Hashtable <String, Vector <String>> relations = new Hashtable <String, Vector<String>>();
 	private Hashtable <String, String> sheets = new Hashtable <String, String> ();
-	Connection conn = null;
-	OWLER owler = new OWLER();
-	
-	
+
 	/**
 	 * Load data into SEMOSS into an existing database
 	 * 
@@ -92,16 +82,17 @@ public class POIReader extends AbstractFileReader {
 	 * @throws FileWriterException
 	 * @throws InvalidUploadFormatException
 	 */
-	public void importFileWithConnection(String engineName, String fileNames, String customBase, String customMap, String owlFile)
+	//	public void importFileWithConnection(String engineName, String fileNames, String customBase, String customMap, String owlFile)
+	public void importFileWithConnection(String engineName, String fileNames, String customBase, String owlFile)
 			throws FileNotFoundException, IOException {
 		logger.setLevel(Level.ERROR);
 		String[] files = prepareReader(fileNames, customBase, owlFile, engineName);
 		openEngineWithConnection(engineName);
 
 		// load map file for existing db
-		if (!customMap.isEmpty()) {
-			openProp(customMap);
-		}
+		//		if (!customMap.isEmpty()) {
+		//			openProp(customMap);
+		//		}
 		for (String fileName : files) {
 			importFile(fileName);
 		}
@@ -128,20 +119,41 @@ public class POIReader extends AbstractFileReader {
 	 * @throws FileWriterException
 	 * @throws InvalidUploadFormatException
 	 */
-	public void importFileWithOutConnection(String smssLocation, String engineName, String fileNames, String customBase, String customMap, String owlFile)
+	//	public void importFileWithOutConnection(String smssLocation, String engineName, String fileNames, String customBase, String customMap, String owlFile)
+	public void importFileWithOutConnection(String smssLocation, String engineName, String fileNames, String customBase, String owlFile)
 			throws FileNotFoundException, IOException {
 		String[] files = prepareReader(fileNames, customBase, owlFile, smssLocation);
 		try {
-			openEngineWithoutConnection(engineName);
+			openRdfEngineWithoutConnection(engineName);
 			// load map file for db if user wants to use specific URIs
-			if (!customMap.isEmpty()) {
-				openProp(customMap);
-			}
+			//			if (!customMap.isEmpty()) {
+			//				openProp(customMap);
+			//			}
 			// if user selected a map, load just as before--using the prop file to discover Excel->URI translation
 			for (String fileName : files) {
 				importFile(fileName);
 			}
 			createBaseRelations();
+		} finally {
+			closeDB();
+			closeOWL();
+		}
+	}
+
+	public void importFileWithOutConnectionRDBMS(String smssLocation, String engineName, String fileNames, String customBase, String owlFile, SQLQueryUtil.DB_TYPE dbType, boolean allowDuplicates)
+			throws FileNotFoundException, IOException {
+
+		queryUtil = SQLQueryUtil.initialize(dbType);
+		String[] files = prepareReader(fileNames, customBase, owlFile, smssLocation);
+		try {
+			openRdbmsEngineWithoutConnection(engineName);
+			// if user selected a map, load just as before--using the prop file to discover Excel->URI translation
+			for (String fileName : files) {
+				importFileRDBMS(fileName);
+			}
+			commitDB();
+			createBaseRelations();
+			RDBMSEngineCreationHelper.writeDefaultQuestionSheet(engine);
 		} finally {
 			closeDB();
 			closeOWL();
@@ -154,52 +166,46 @@ public class POIReader extends AbstractFileReader {
 	 * 
 	 * @param subclassSheet
 	 *            Excel sheet with the subclassing information
+	 * @throws IOException 
 	 * @throws EngineException
 	 * @throws SailException
 	 */
-	private void createSubClassing(XSSFSheet subclassSheet) {
-		//		try {
-		//			if (!scOWL.isActive() || !scOWL.isOpen()) {
-		//				scOWL.begin();
-		//			}
-		//		} catch (SailException e1) {
-		//			e1.printStackTrace();
-		//			throw new EngineException("Error opening connection to OWL file");
-		//		}
+	private void createSubClassing(XSSFSheet subclassSheet) throws IOException {
 		// URI for subclass
 		String pred = Constants.SUBCLASS_URI;
-		String semossNodeURI = semossURI + "/" + Constants.DEFAULT_NODE_CLASS;
 		// check parent and child nodes in correct position
 		XSSFRow row = subclassSheet.getRow(0);
 		String parentNode = row.getCell(0).toString().trim().toLowerCase();
 		String childNode = row.getCell(1).toString().trim().toLowerCase();
 		// check to make sure parent column is in the correct column
-		if (!parentNode.equals("parent")) {
-			JFrame playPane = (JFrame) DIHelper.getInstance().getLocalProp(Constants.MAIN_FRAME);
-			JOptionPane.showMessageDialog(playPane, "<html>Error with Subclass Sheet.<br>Error in parent node column.</html>");
+		if (!parentNode.equalsIgnoreCase("parent")) {
+			throw new IOException("Error with Subclass Sheet.\nError in parent node column.");
+			//			JFrame playPane = (JFrame) DIHelper.getInstance().getLocalProp(Constants.MAIN_FRAME);
+			//			JOptionPane.showMessageDialog(playPane, "<html>Error with Subclass Sheet.<br>Error in parent node column.</html>");
 		}
 		// check to make sure child column is in the correct column
-		if (!childNode.equals("child")) {
-			JFrame playPane = (JFrame) DIHelper.getInstance().getLocalProp(Constants.MAIN_FRAME);
-			JOptionPane.showMessageDialog(playPane, "<html>Error with Subclass Sheet.<br>Error in child node column.</html>");
+		if (!childNode.equalsIgnoreCase("child")) {
+			throw new IOException("Error with Subclass Sheet.\nError in child node column.");
+			//			JFrame playPane = (JFrame) DIHelper.getInstance().getLocalProp(Constants.MAIN_FRAME);
+			//			JOptionPane.showMessageDialog(playPane, "<html>Error with Subclass Sheet.<br>Error in child node column.</html>");
 		}
 		// loop through and create all the triples for subclassing
 		int lastRow = subclassSheet.getLastRowNum();
 		for (int i = 1; i <= lastRow; i++) {
 			row = subclassSheet.getRow(i);
-			parentNode = semossNodeURI + "/" + Utility.cleanString(row.getCell(0).toString(), true);
-			childNode = semossNodeURI + "/" + Utility.cleanString(row.getCell(1).toString(), true);
+			
+			String parentURI = owler.addConcept( Utility.cleanString(row.getCell(0).toString(), true) );
+			String childURI = owler.addConcept( Utility.cleanString(row.getCell(1).toString(), true) );
 			// add triples to engine
-			engine.doAction(IEngine.ACTION_TYPE.ADD_STATEMENT, new Object[]{childNode, pred, parentNode, true});
-			engine.doAction(IEngine.ACTION_TYPE.ADD_STATEMENT, new Object[]{childNode, pred, semossNodeURI, true});
-			engine.doAction(IEngine.ACTION_TYPE.ADD_STATEMENT, new Object[]{parentNode, pred, semossNodeURI, true});
+			engine.doAction(IEngine.ACTION_TYPE.ADD_STATEMENT, new Object[]{childURI, pred, parentURI, true});
 			// add triples to OWL
-			baseEngCreator.addToBaseEngine(new Object[]{childNode, pred, parentNode, true});
-			baseEngCreator.addToBaseEngine(new Object[]{childNode, pred, semossNodeURI, true});
-			baseEngCreator.addToBaseEngine(new Object[]{parentNode, pred, semossNodeURI, true});
+			owler.addSubclass(childNode, parentNode);
+			//			baseEngCreator.addToBaseEngine(new Object[]{childNode, pred, parentNode, true});
+			//			baseEngCreator.addToBaseEngine(new Object[]{childNode, pred, semossNodeURI, true});
+			//			baseEngCreator.addToBaseEngine(new Object[]{parentNode, pred, semossNodeURI, true});
 		}
 		engine.commit();
-		baseEngCreator.commit();
+		owler.commit();
 	}
 
 	/**
@@ -253,7 +259,7 @@ public class POIReader extends AbstractFileReader {
 					}
 				}
 			}
-			
+
 			//display names next
 			XSSFSheet displayNamesSheet = workbook.getSheet("DisplayNames");
 			if (displayNamesSheet != null) {
@@ -283,7 +289,7 @@ public class POIReader extends AbstractFileReader {
 					}
 				}
 			}
-			
+
 		} catch (FileNotFoundException e) {
 			e.printStackTrace();
 			if(e.getMessage()!= null && !e.getMessage().isEmpty()) {
@@ -316,8 +322,8 @@ public class POIReader extends AbstractFileReader {
 			}
 		}
 	}
-	
-	
+
+
 	private void assimilateSheet(String sheetName, XSSFWorkbook workbook)
 	{
 		// really simple job here
@@ -326,9 +332,9 @@ public class POIReader extends AbstractFileReader {
 		// get the first row
 		// if the row is present 
 		XSSFSheet lSheet = workbook.getSheet(sheetName);
-		
+
 		System.err.println("Processing Sheet..  " + sheetName);
-		
+
 		if(lSheet != null)
 		{
 			XSSFRow header = lSheet.getRow(0);
@@ -336,9 +342,9 @@ public class POIReader extends AbstractFileReader {
 			XSSFRow colPredictor = lSheet.getRow(1);
 			int colLength = header.getLastCellNum();	
 			int colcolLength = colPredictor.getLastCellNum();
-			
+
 			System.out.println(colLength + " <>" + colcolLength);
-			
+
 			if(header != null)
 			{
 				String type = header.getCell(0).getStringCellValue();
@@ -349,14 +355,14 @@ public class POIReader extends AbstractFileReader {
 					fromName = Utility.cleanString(fromName, true);
 					String toName = header.getCell(2).getStringCellValue();
 					toName = Utility.cleanString(toName, true);
-										
+
 					Vector <String> relatedTo = new Vector<String>();
 					if(relations.containsKey(fromName))
 						relatedTo = relations.get(fromName);
-					
+
 					relatedTo.addElement(toName);
 					relations.put(fromName, relatedTo);
-					
+
 					// if the concepts dont have relation key
 					if(!concepts.containsKey(fromName))
 					{
@@ -377,26 +383,25 @@ public class POIReader extends AbstractFileReader {
 				}
 				else
 				{
-				
 					// now predict the columns
 					String [] firstRowCells = getCells(colPredictor);
 					String [] headers = getCells(header);
 					String [] types = new String[headers.length];
 					String [] initTypes = predictRowTypes(firstRowCells);
-					
+
 					int delta = types.length - initTypes.length;
 					System.arraycopy(initTypes, 0, types, 0, initTypes.length);
-					
+
 					for(int deltaIndex = initTypes.length;deltaIndex < types.length;deltaIndex++)
 						types[deltaIndex] = "varchar(800)";
-					
+
 					String conceptName = headers[1];
-					
+
 					conceptName = Utility.cleanString(conceptName, true);
-									
+
 					sheets.put(conceptName, sheetName);
 					Hashtable <String, String> nodeProps= new Hashtable<String, String>();
-;
+
 					if(concepts.containsKey(conceptName))
 						nodeProps = concepts.get(conceptName);
 
@@ -415,22 +420,20 @@ public class POIReader extends AbstractFileReader {
 							nodeProps.put(thisName, types[colIndex]); // will change the varchar shortly
 						}
 					}
-					
+
 					concepts.put(conceptName, nodeProps);
 				}
 			}
-			
 		}
-		
 	}
-	
+
 	public String[] getCells(XSSFRow row)
 	{
 		int colLength = row.getLastCellNum();
 		return getCells(row, colLength);
 	}
 
-	
+
 	public String[] getCells(XSSFRow row, int totalCol)
 	{
 		int colLength = totalCol;
@@ -454,43 +457,43 @@ public class POIReader extends AbstractFileReader {
 				cols[colIndex] = "";
 			}
 		}	
-		
+
 		return cols;
 	}
 
-    public String[] predictRowTypes(String [] thisOutput)
-    {
-    	String [] types = new String[thisOutput.length];
-    	String [] values = new String[thisOutput.length];
-    	
-    	for(int outIndex = 0;outIndex < thisOutput.length;outIndex++)
-    	{
-    		String curOutput = thisOutput[outIndex];
-    		//if(headers != null)
-    		//	System.out.println("Cur Output...  " + headers[outIndex] + " >> " + curOutput );
-    		Object [] cast = Utility.findTypes(curOutput);
-    		if(cast == null)
-    		{
-    			cast = new Object[2];
-    			cast[0] = "varchar(255)";
-    			cast[1] = ""; // make it into an empty String
-    		}
-    		types[outIndex] = cast[0] + "";
-    		values[outIndex] = cast[1] + "";
-    		
-    		//System.out.println(curOutput + types[outIndex] + " <<>>" + values[outIndex]);
-    	}    	
-    	return types;
-    }
+	public String[] predictRowTypes(String [] thisOutput)
+	{
+		String [] types = new String[thisOutput.length];
+		String [] values = new String[thisOutput.length];
 
-	
+		for(int outIndex = 0;outIndex < thisOutput.length;outIndex++)
+		{
+			String curOutput = thisOutput[outIndex];
+			//if(headers != null)
+			//	System.out.println("Cur Output...  " + headers[outIndex] + " >> " + curOutput );
+			Object [] cast = Utility.findTypes(curOutput);
+			if(cast == null)
+			{
+				cast = new Object[2];
+				cast[0] = "varchar(255)";
+				cast[1] = ""; // make it into an empty String
+			}
+			types[outIndex] = cast[0] + "";
+			values[outIndex] = cast[1] + "";
+
+			//System.out.println(curOutput + types[outIndex] + " <<>>" + values[outIndex]);
+		}    	
+		return types;
+	}
+
+
 	/**
 	 * Load the excel workbook, determine which sheets to load in workbook from the Loader tab
 	 * @param fileName 					String containing the absolute path to the excel workbook to load
 	 * @throws FileNotFoundException
 	 * @throws IOException
 	 */
-	public void importFile2(String fileName) throws FileNotFoundException, IOException {
+	public void importFileRDBMS(String fileName) throws FileNotFoundException, IOException {
 
 		XSSFWorkbook workbook = null;
 		FileInputStream poiReader = null;
@@ -503,17 +506,17 @@ public class POIReader extends AbstractFileReader {
 				throw new IOException("Could not find Loader Sheet in Excel file " + fileName);
 			}
 			// check if user is loading subclassing relationships
-			XSSFSheet subclassSheet = workbook.getSheet("Subclass");
-			if (subclassSheet != null) {
-				createSubClassing(subclassSheet);
-			}
+			//			XSSFSheet subclassSheet = workbook.getSheet("Subclass");
+			//			if (subclassSheet != null) {
+			//				createSubClassing(subclassSheet);
+			//			}
 			// determine number of sheets to load
 			int lastRow = lSheet.getLastRowNum();
 			// first sheet name in second row
 			// step one is to go through every sheet and determine what are the concepts within these sheets
 			// along with their properties
 			// would be kind of cool to guess their type as well
-			
+
 			for(int sIndex = 1;sIndex <= lastRow;sIndex++)
 			{
 				XSSFRow row = lSheet.getRow(sIndex);
@@ -526,28 +529,25 @@ public class POIReader extends AbstractFileReader {
 						String sheetToLoad = sheetNameCell.getStringCellValue();
 						// determine the type of load
 						String loadTypeName = sheetTypeCell.getStringCellValue();
-					
+
 						assimilateSheet(sheetToLoad, workbook);
-				
-				// assimilate this sheet and workbook
-				// I need to have 2 hashes
-				// hash 1 tells me
-				// Concept - and all the given properties of this concept
-				// hash 2 tells me
-				// given this concept what are its relationships as a vector	
+
+						// assimilate this sheet and workbook
+						// I need to have 2 hashes
+						// hash 1 tells me
+						// Concept - and all the given properties of this concept
+						// hash 2 tells me
+						// given this concept what are its relationships as a vector	
 					}
 				}
-				
 			}
-			
-			
+
 			// the next thing is to look at relation ships and add the appropriate column that I want to the respective concepts
 
 			System.out.println("Lucky !!" + concepts + " <> " + relations);
-
 			System.out.println("Ok.. now what ?");
 			synchronizeRelations();
-			
+
 			// now I need to create the tables
 			Enumeration <String> conceptKeys = concepts.keys();
 			while(conceptKeys.hasMoreElements())
@@ -563,9 +563,9 @@ public class POIReader extends AbstractFileReader {
 			{
 				String thisConcept = relationConcepts.nextElement();
 				Vector <String> allRels = relations.get(thisConcept);
-				
+
 				for(int toIndex = 0;toIndex < allRels.size();toIndex++)
-				// now process each one of these things
+					// now process each one of these things
 					createRelations(thisConcept, allRels.elementAt(toIndex), workbook);
 			}
 		} catch (FileNotFoundException e) {
@@ -600,63 +600,34 @@ public class POIReader extends AbstractFileReader {
 			}
 		}
 	}
-	
-    private Connection getConnection()
-    {
-    	if(this.conn == null)
-    	{
-			try {
-				
-				Class.forName("org.h2.Driver");
-				//jdbc:h2:~/test
-				this.conn = DriverManager.
-				    getConnection("jdbc:h2:mem:test:LOG=0;CACHE_SIZE=65536;LOCK_MODE=0;UNDO_LOG=0", "sa", "");
-					//	getConnection("jdbc:h2:C:/Users/pkapaleeswaran/h2/test.db;LOG=0;CACHE_SIZE=65536;LOCK_MODE=0;UNDO_LOG=0", "sa", "");
-				
-				//Class.forName("nl.cwi.monetdb.jdbc.MonetDriver");
-				//conn = DriverManager.getConnection("jdbc:monetdb://localhost:50000/demo", "monetdb", "monetdb");
-				//ResultSet rs = conn.createStatement().executeQuery("Select count(*) from voyages");
-
-			} catch (ClassNotFoundException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
-			} catch (SQLException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
-			}
-
-    	}
-    	return this.conn;
-    }
-
 
 	private void synchronizeRelations()
 	{
 		Enumeration <String> relationKeys = relations.keys();
-		
+
 		while(relationKeys.hasMoreElements())
 		{
 			String relKey = relationKeys.nextElement();
 			Vector <String> theseRelations = relations.get(relKey);
-			
+
 			Hashtable <String, String> prop1 = concepts.get(relKey);
 			//if(prop1 == null)
 			//	prop1 = new Hashtable<String, String>();
-			
+
 			for(int relIndex = 0;relIndex < theseRelations.size();relIndex++)
 			{
 				String thisConcept = theseRelations.elementAt(relIndex);
 				Hashtable <String, String> prop2 = concepts.get(thisConcept);
 				//if(prop2 == null)
 				//	prop2 = new Hashtable<String, String>();
-				
+
 				// affinity is used to which table to get when I get to this relation
 				String affinity = relKey + "-" + thisConcept + "AFF"; // <-- right.. that is some random shit.. the kind of stuff that gets me in trouble
 				// need to compare which one is bigger and if so add to the other one right now
 				// I have no idea what is the logic here
 				// I should be comparing the total number of records
 				// oh well.. !!
-				
+
 				// I also need to record who has this piece
 				// so when we get to the point of inserting I know what i am doing
 				if(prop1.size() > prop2.size())
@@ -675,54 +646,52 @@ public class POIReader extends AbstractFileReader {
 		}
 
 	}
-	
+
 	private void createTable(String thisConcept)
 	{
-		getConnection();
+		Hashtable <String, String> props = concepts.get(thisConcept);
 
-			Hashtable <String, String> props = concepts.get(thisConcept);
+		String conceptType = props.get(thisConcept);
 
-			String conceptType = props.get(thisConcept);
-			
-			// add it to OWL
-			//owler.addConcept(thisConcept);
-			
-			String createString = "CREATE TABLE " + thisConcept + " (";
-			createString = createString + " " + thisConcept + " " + conceptType;
+		// add it to OWL
+		//owler.addConcept(thisConcept);
 
-			//owler.addProp(thisConcept, thisConcept, conceptType);
+		String createString = "CREATE TABLE " + thisConcept + " (";
+		createString = createString + " " + thisConcept + " " + conceptType;
 
-			props.remove(thisConcept);
+		//owler.addProp(thisConcept, thisConcept, conceptType);
 
-			// while for create it is fine
-			// I have to somehow figure out a way to get rid of most of the other stuff
-			Enumeration <String> fields = props.keys();
+		props.remove(thisConcept);
 
-			while(fields.hasMoreElements())
-			{
-				String fieldName = fields.nextElement();
-				String fieldType = props.get(fieldName);
-				createString = createString + " , " + fieldName + " " + fieldType; 
-				
-				// also add this to the OWLER
-				if(!fieldName.equalsIgnoreCase(thisConcept) && !fieldName.endsWith("_FK"))
-					owler.addProp(thisConcept, fieldName, fieldType);
-			}
+		// while for create it is fine
+		// I have to somehow figure out a way to get rid of most of the other stuff
+		Enumeration <String> fields = props.keys();
 
-			props.put(thisConcept, conceptType);
+		while(fields.hasMoreElements())
+		{
+			String fieldName = fields.nextElement();
+			String fieldType = props.get(fieldName);
+			createString = createString + " , " + fieldName + " " + fieldType; 
 
-			createString = createString + ")";
-			System.out.println("Creator....  " + createString);
-			try {
-				conn.createStatement().execute(createString);
-			} catch (SQLException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
-			}
+			// also add this to the OWLER
+			if(!fieldName.equalsIgnoreCase(thisConcept) && !fieldName.endsWith("_FK"))
+				owler.addProp(thisConcept, fieldName, fieldType);
+		}
+
+		props.put(thisConcept, conceptType);
+
+		createString = createString + ")";
+		System.out.println("Creator....  " + createString);
+		try {
+			engine.insertData(createString);
+		} catch (Exception e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
 		// now I say process this table ?
-		
+
 	}
-	
+
 	private void processTable(String conceptName, XSSFWorkbook workbook)
 	{
 		// this is where the stuff kicks in
@@ -731,13 +700,13 @@ public class POIReader extends AbstractFileReader {
 		{
 			XSSFSheet lSheet = workbook.getSheet(sheetName);
 			XSSFRow thisRow = lSheet.getRow(0);
-			
+
 			String [] cells = getCells(thisRow);
 			int totalCols = cells.length;
 			String [] types = new String[cells.length];
-			
+
 			String inserter = "INSERT INTO " + conceptName + " ( ";
-			
+
 			for(int cellIndex = 1;cellIndex < cells.length;cellIndex++)
 			{
 				if(cellIndex == 1)
@@ -749,39 +718,39 @@ public class POIReader extends AbstractFileReader {
 			inserter = inserter + ") VALUES ";
 			int lastRow = lSheet.getLastRowNum();
 			String values = "";
-			for(int rowIndex = 1;rowIndex < lastRow;rowIndex++)
+			for(int rowIndex = 1;rowIndex <= lastRow;rowIndex++)
 			{
 				thisRow = lSheet.getRow(rowIndex);
 				String [] uCells = getCells(thisRow, totalCols);
 				cells = Utility.castToTypes(uCells, types);
 				values = "( " + cells[1];
-				
+
 				for(int cellIndex = 2;cellIndex < cells.length;cellIndex++)
 					values = values + " , " + cells[cellIndex];
-				
+
 				values = values + ")";
 				try {
-					conn.createStatement().execute(inserter + values);
-				} catch (SQLException e) {
+					engine.insertData(inserter +  values);
+					//					conn.createStatement().execute(inserter + values);
+				} catch (Exception e) {
 					System.out.println("Insert query...  " + inserter + values);
 					// TODO Auto-generated catch block
 					e.printStackTrace();
 					System.exit(0);
 				}
-				
+
 			}
 		}			
 	}
-	
-	
+
 	private void createRelations(String fromName, String toName, XSSFWorkbook workbook)
 	{
 		// now come the relations
 		// I need 
 		String sheetName = sheets.get(fromName + "-" + toName);
 		String tableToSet = sheets.get(fromName + "-" + toName + "AFF");
-		
-		
+
+
 		System.out.println("Affinity is " + tableToSet);
 		String tableToInsert = toName;
 		if(tableToSet.equalsIgnoreCase(tableToInsert))
@@ -789,20 +758,36 @@ public class POIReader extends AbstractFileReader {
 		owler.addRelation(tableToInsert, tableToSet, null);
 		// I have told folks not to do implicit reification so therefore I will ignore everything
 		// i.e. NOOOOOO properties on relations
-		
+
 		// the aff is the table where I need to insert
 		// which also means that is what I need to look up to insert
-		String updateString = "UPDATE " + tableToSet + " SET ";
-		
+
+		// huge assumption here but
+		String updateString = "";
+		boolean update = false;
+		if(concepts.get(tableToSet).size() <= 2)
+		{
+			//updateString = "MERGE INTO  " + tableToSet + "  KEY(" + tableToSet +") VALUES "; // + ", " + tableToInsert + "_FK) VALUES "; //+ " SET ";
+			updateString = "INSERT INTO " + tableToSet + "(" + tableToSet + " ," +  tableToInsert + "_FK" + ") VALUES ";
+			// this is the case for insert really
+		}
+		else
+		{
+			// this is an update
+			updateString = "Update " + tableToSet + "  SET "; // + ", " + tableToInsert + "_FK) VALUES "; //+ " SET ";
+			update = true;
+		}
+
+
 		XSSFSheet lSheet = workbook.getSheet(sheetName);
 		int lastRow = lSheet.getLastRowNum();
-		
+
 		XSSFRow thisRow = lSheet.getRow(0);
 		String [] headers = getCells(thisRow);
 		// realistically it is only second and third
 		headers[1] = Utility.cleanString(headers[1], true);
 		headers[2] = Utility.cleanString(headers[2], true);
-		
+
 		int setter, inserter;
 		if(headers[1].equalsIgnoreCase(tableToSet))
 		{
@@ -815,16 +800,20 @@ public class POIReader extends AbstractFileReader {
 			inserter = 1;
 		}
 		String values = "";
-		for(int rowIndex = 1;rowIndex < lastRow;rowIndex++)
+		for(int rowIndex = 1;rowIndex <= lastRow;rowIndex++)
 		{
 			thisRow = lSheet.getRow(rowIndex);
 			String [] cells = getCells(thisRow);
 			//String [] cells = Utility.castToTypes(uCells, types);
 			values = "";
-			values = tableToSet + " = '" + cells[setter] + "' WHERE " + tableToInsert +  "_FK" + " = '" + cells[inserter] + "'";
+			//values = "" + tableToSet + "," +  tableToInsert + " VALUES ";
+			if(!update)
+				values = "( '" + cells[setter] + "' , '" + cells[inserter] + "')";
+			else
+				values = tableToSet + " = '" + cells[setter] + "' WHERE " + tableToInsert +  "_FK" + " = '" + cells[inserter] + "'";
 			try {
-				conn.createStatement().execute(updateString + values);
-			} catch (SQLException e) {
+				engine.insertData(updateString + values);
+			} catch (Exception e) {
 				// TODO Auto-generated catch block
 				e.printStackTrace();
 				System.out.println("update query...  " + updateString + values);
@@ -833,8 +822,7 @@ public class POIReader extends AbstractFileReader {
 		}
 		System.out.println("update query...  " + updateString + values);
 	}
-	
-	
+
 	/**
 	 * Load specific sheet in workbook
 	 * 
@@ -896,7 +884,15 @@ public class POIReader extends AbstractFileReader {
 
 			// get the name of the relationship
 			if (rowIndex == 1) {
-				relName = nextRow.getCell(0).getStringCellValue();
+				XSSFCell relCell = nextRow.getCell(0);
+				if(relCell != null && !relCell.getStringCellValue().isEmpty()) {
+					relName = nextRow.getCell(0).getStringCellValue();
+				} else {
+					if(sheetType.equalsIgnoreCase("Relation")) {
+						throw new IOException("Need to define the relationship on sheet " + sheetToLoad);
+					}
+					relName = "Ignore";
+				}
 			}
 
 			// set the name of the subject instance node to be a string
@@ -1076,13 +1072,13 @@ public class POIReader extends AbstractFileReader {
 			logger.info("Done processing: " + sheetToLoad);
 		}
 	}
-	
+
 	public static void main(String [] args) throws FileNotFoundException, IOException
 	{
 		POIReader reader = new POIReader();
 		String fileName = "C:\\Users\\pkapaleeswaran\\workspacej3\\datasets\\Medical_Devices_Data.xlsx";
 		//fileName = "C:\\Users\\pkapaleeswaran\\workspacej3\\datasets\\Movie.xlsx";
-		reader.importFile2(fileName);
+		reader.importFileRDBMS(fileName);
 		reader.owler.getOwlAsString();
 	}
 

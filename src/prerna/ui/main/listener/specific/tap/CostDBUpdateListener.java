@@ -45,7 +45,7 @@ import org.apache.poi.xssf.usermodel.XSSFSheet;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 
 import prerna.engine.api.IEngine;
-import prerna.poi.main.OntologyFileWriter;
+//import prerna.poi.main.OntologyFileWriter;
 import prerna.poi.main.POIReader;
 import prerna.ui.components.UpdateProcessor;
 import prerna.ui.components.specific.tap.GLItemGeneratorICDValidated;
@@ -77,7 +77,7 @@ public class CostDBUpdateListener extends AbstractListener {
 		JComboBox<String> costDBComboBox = (JComboBox<String>) DIHelper.getInstance().getLocalProp(Constants.COST_DB_COMBOBOX);
 		String costDB = (String) costDBComboBox.getSelectedItem();
 		String owlFile = (String) DIHelper.getInstance().getProperty(costDB + "_" + Constants.OWL);
-		String mapName = DIHelper.getInstance().getProperty(costDB + "_" + Constants.ONTOLOGY);
+//		String mapName = DIHelper.getInstance().getProperty(costDB + "_" + Constants.ONTOLOGY);
 		JTextField customBaseURIField = (JTextField) DIHelper.getInstance().getLocalProp(Constants.COST_DB_BASE_URI_FIELD);
 		String customBaseURI = customBaseURIField.getText();
 		
@@ -90,7 +90,8 @@ public class CostDBUpdateListener extends AbstractListener {
 			glGen.genList(CHANGED_DB.CORE);
 			this.fileName = filePath + Constants.GLITEM_CORE_LOADING_SHEET;
 		}
-		executeCostDBUpdate(costDB, this.fileName, customBaseURI, mapName, owlFile);
+//		executeCostDBUpdate(costDB, this.fileName, customBaseURI, mapName, owlFile);
+		executeCostDBUpdate(costDB, this.fileName, customBaseURI, owlFile);
 	}
 	
 	/**
@@ -103,7 +104,9 @@ public class CostDBUpdateListener extends AbstractListener {
 	 * @throws IOException 
 	 * @throws FileNotFoundException 
 	 */
-	public void executeCostDBUpdate(String costDB, String file, String customBaseURI, String mapName, String owlFile) {
+//	public void executeCostDBUpdate(String costDB, String file, String customBaseURI, String mapName, String owlFile) {
+	public void executeCostDBUpdate(String costDB, String file, String customBaseURI, String owlFile) {
+
 		POIReader reader = new POIReader();
 		FileInputStream fileIn = null;
 		try {
@@ -204,14 +207,15 @@ public class CostDBUpdateListener extends AbstractListener {
 				}
 
 				//run the reader
-				reader.importFileWithConnection(costDB, file, customBaseURI, mapName, owlFile);
+//				reader.importFileWithConnection(costDB, file, customBaseURI, mapName, owlFile);
+				reader.importFileWithConnection(costDB, file, customBaseURI, owlFile);
 
 				//run the ontology augmentor
 
-				OntologyFileWriter ontologyWriter = new OntologyFileWriter();
-				ontologyWriter.runAugment(mapName, reader.conceptURIHash, reader.baseConceptURIHash, 
-						reader.relationURIHash, reader.baseRelationURIHash,
-						reader.basePropURI);
+//				OntologyFileWriter ontologyWriter = new OntologyFileWriter();
+//				ontologyWriter.runAugment(mapName, reader.conceptURIHash, reader.baseConceptURIHash, 
+//						reader.relationURIHash, reader.baseRelationURIHash,
+//						reader.basePropURI);
 
 				Utility.showMessage("Your database has been successfully updated!");
 			}
