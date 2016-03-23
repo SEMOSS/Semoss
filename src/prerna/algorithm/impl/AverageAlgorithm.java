@@ -15,29 +15,29 @@ public class AverageAlgorithm extends BaseReducer {
 
 	@Override
 	public Object reduce() {
-		double [] output = null;
-		int[] counts = null;
+		double output = 0.0;
+		int count = 0;
 		while(inputIterator.hasNext() && !errored)
 		{
 			ArrayList dec = (ArrayList)getNextValue();
-			if(output == null) {
-				output = new double[dec.size()];
-			}
-			if(counts == null) {
-				counts = new int[dec.size()];
-			}
-			for(int outIndex = 0;outIndex < dec.size();outIndex++)
-			{	
-				if(dec.get(outIndex) instanceof Number) {
-					output[outIndex] += ((Number)dec.get(outIndex)).doubleValue();
-					counts[outIndex]++;
+//			if(output == null) {
+//				output = new double[dec.size()];
+//			}
+//			if(counts == null) {
+//				counts = new int[dec.size()];
+//			}
+//			for(int outIndex = 0;outIndex < dec.size();outIndex++)
+//			{	
+				if(dec.get(0) instanceof Number) {
+					output += ((Number)dec.get(0)).doubleValue();
+					count++;
 				}
-			}
+//			}
 		}
-		for (int i = 0; i < output.length; i++) {
-			output[i] = output[i]/counts[i];
-		}
-		System.out.println(output[0]);
+//		for (int i = 0; i < output.length; i++) {
+			output = output/count;
+//		}
+		System.out.println(output);
 		return output;
 	}
 	
