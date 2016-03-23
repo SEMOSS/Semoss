@@ -5,38 +5,38 @@ package prerna.sablecc.node;
 import prerna.sablecc.analysis.*;
 
 @SuppressWarnings("nls")
-public final class AFilterColumn extends PFilterColumn
+public final class ADataImport extends PDataImport
 {
-    private TColfilter _colfilter_;
+    private TDataimporttoken _dataimporttoken_;
     private TLPar _lPar_;
-    private PWhereClause _where_;
+    private PApiBlock _apiBlock_;
     private TComma _comma_;
-    private PIfBlock _ifBlock_;
+    private PRelationClause _joins_;
     private TRPar _rPar_;
 
-    public AFilterColumn()
+    public ADataImport()
     {
         // Constructor
     }
 
-    public AFilterColumn(
-        @SuppressWarnings("hiding") TColfilter _colfilter_,
+    public ADataImport(
+        @SuppressWarnings("hiding") TDataimporttoken _dataimporttoken_,
         @SuppressWarnings("hiding") TLPar _lPar_,
-        @SuppressWarnings("hiding") PWhereClause _where_,
+        @SuppressWarnings("hiding") PApiBlock _apiBlock_,
         @SuppressWarnings("hiding") TComma _comma_,
-        @SuppressWarnings("hiding") PIfBlock _ifBlock_,
+        @SuppressWarnings("hiding") PRelationClause _joins_,
         @SuppressWarnings("hiding") TRPar _rPar_)
     {
         // Constructor
-        setColfilter(_colfilter_);
+        setDataimporttoken(_dataimporttoken_);
 
         setLPar(_lPar_);
 
-        setWhere(_where_);
+        setApiBlock(_apiBlock_);
 
         setComma(_comma_);
 
-        setIfBlock(_ifBlock_);
+        setJoins(_joins_);
 
         setRPar(_rPar_);
 
@@ -45,31 +45,31 @@ public final class AFilterColumn extends PFilterColumn
     @Override
     public Object clone()
     {
-        return new AFilterColumn(
-            cloneNode(this._colfilter_),
+        return new ADataImport(
+            cloneNode(this._dataimporttoken_),
             cloneNode(this._lPar_),
-            cloneNode(this._where_),
+            cloneNode(this._apiBlock_),
             cloneNode(this._comma_),
-            cloneNode(this._ifBlock_),
+            cloneNode(this._joins_),
             cloneNode(this._rPar_));
     }
 
     @Override
     public void apply(Switch sw)
     {
-        ((Analysis) sw).caseAFilterColumn(this);
+        ((Analysis) sw).caseADataImport(this);
     }
 
-    public TColfilter getColfilter()
+    public TDataimporttoken getDataimporttoken()
     {
-        return this._colfilter_;
+        return this._dataimporttoken_;
     }
 
-    public void setColfilter(TColfilter node)
+    public void setDataimporttoken(TDataimporttoken node)
     {
-        if(this._colfilter_ != null)
+        if(this._dataimporttoken_ != null)
         {
-            this._colfilter_.parent(null);
+            this._dataimporttoken_.parent(null);
         }
 
         if(node != null)
@@ -82,7 +82,7 @@ public final class AFilterColumn extends PFilterColumn
             node.parent(this);
         }
 
-        this._colfilter_ = node;
+        this._dataimporttoken_ = node;
     }
 
     public TLPar getLPar()
@@ -110,16 +110,16 @@ public final class AFilterColumn extends PFilterColumn
         this._lPar_ = node;
     }
 
-    public PWhereClause getWhere()
+    public PApiBlock getApiBlock()
     {
-        return this._where_;
+        return this._apiBlock_;
     }
 
-    public void setWhere(PWhereClause node)
+    public void setApiBlock(PApiBlock node)
     {
-        if(this._where_ != null)
+        if(this._apiBlock_ != null)
         {
-            this._where_.parent(null);
+            this._apiBlock_.parent(null);
         }
 
         if(node != null)
@@ -132,7 +132,7 @@ public final class AFilterColumn extends PFilterColumn
             node.parent(this);
         }
 
-        this._where_ = node;
+        this._apiBlock_ = node;
     }
 
     public TComma getComma()
@@ -160,16 +160,16 @@ public final class AFilterColumn extends PFilterColumn
         this._comma_ = node;
     }
 
-    public PIfBlock getIfBlock()
+    public PRelationClause getJoins()
     {
-        return this._ifBlock_;
+        return this._joins_;
     }
 
-    public void setIfBlock(PIfBlock node)
+    public void setJoins(PRelationClause node)
     {
-        if(this._ifBlock_ != null)
+        if(this._joins_ != null)
         {
-            this._ifBlock_.parent(null);
+            this._joins_.parent(null);
         }
 
         if(node != null)
@@ -182,7 +182,7 @@ public final class AFilterColumn extends PFilterColumn
             node.parent(this);
         }
 
-        this._ifBlock_ = node;
+        this._joins_ = node;
     }
 
     public TRPar getRPar()
@@ -214,11 +214,11 @@ public final class AFilterColumn extends PFilterColumn
     public String toString()
     {
         return ""
-            + toString(this._colfilter_)
+            + toString(this._dataimporttoken_)
             + toString(this._lPar_)
-            + toString(this._where_)
+            + toString(this._apiBlock_)
             + toString(this._comma_)
-            + toString(this._ifBlock_)
+            + toString(this._joins_)
             + toString(this._rPar_);
     }
 
@@ -226,9 +226,9 @@ public final class AFilterColumn extends PFilterColumn
     void removeChild(@SuppressWarnings("unused") Node child)
     {
         // Remove child
-        if(this._colfilter_ == child)
+        if(this._dataimporttoken_ == child)
         {
-            this._colfilter_ = null;
+            this._dataimporttoken_ = null;
             return;
         }
 
@@ -238,9 +238,9 @@ public final class AFilterColumn extends PFilterColumn
             return;
         }
 
-        if(this._where_ == child)
+        if(this._apiBlock_ == child)
         {
-            this._where_ = null;
+            this._apiBlock_ = null;
             return;
         }
 
@@ -250,9 +250,9 @@ public final class AFilterColumn extends PFilterColumn
             return;
         }
 
-        if(this._ifBlock_ == child)
+        if(this._joins_ == child)
         {
-            this._ifBlock_ = null;
+            this._joins_ = null;
             return;
         }
 
@@ -269,9 +269,9 @@ public final class AFilterColumn extends PFilterColumn
     void replaceChild(@SuppressWarnings("unused") Node oldChild, @SuppressWarnings("unused") Node newChild)
     {
         // Replace child
-        if(this._colfilter_ == oldChild)
+        if(this._dataimporttoken_ == oldChild)
         {
-            setColfilter((TColfilter) newChild);
+            setDataimporttoken((TDataimporttoken) newChild);
             return;
         }
 
@@ -281,9 +281,9 @@ public final class AFilterColumn extends PFilterColumn
             return;
         }
 
-        if(this._where_ == oldChild)
+        if(this._apiBlock_ == oldChild)
         {
-            setWhere((PWhereClause) newChild);
+            setApiBlock((PApiBlock) newChild);
             return;
         }
 
@@ -293,9 +293,9 @@ public final class AFilterColumn extends PFilterColumn
             return;
         }
 
-        if(this._ifBlock_ == oldChild)
+        if(this._joins_ == oldChild)
         {
-            setIfBlock((PIfBlock) newChild);
+            setJoins((PRelationClause) newChild);
             return;
         }
 

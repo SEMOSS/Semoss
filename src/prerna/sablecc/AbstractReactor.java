@@ -130,8 +130,8 @@ public abstract class AbstractReactor implements IScriptReactor {
 
 	protected Iterator getTinkerData(Vector <String> columns, TinkerFrame frame)
 	{
-		if(columns != null && columns.size() <= 1)
-			columns.add(columns.get(0));
+//		if(columns != null && columns.size() <= 1)
+//			columns.add(columns.get(0));
 		// now I need to ask tinker to build me something for this
 		Iterator iterator = frame.getIterator(columns);
 		if(iterator.hasNext())
