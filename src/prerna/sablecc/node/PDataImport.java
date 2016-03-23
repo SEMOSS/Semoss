@@ -2,7 +2,7 @@
 
 package prerna.sablecc.node;
 
-public abstract class PJoinColumn extends Node
+public abstract class PDataImport extends Node
 {
     // Empty body
 }

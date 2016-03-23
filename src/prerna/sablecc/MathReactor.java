@@ -1,12 +1,11 @@
 package prerna.sablecc;
 
-import java.util.Hashtable;
 import java.util.Iterator;
 import java.util.Vector;
 
+import prerna.ds.ExpressionIterator;
 import prerna.ds.ExpressionReducer;
 import prerna.ds.TinkerFrame;
-import prerna.engine.api.IScriptReactor;
 
 public class MathReactor extends AbstractReactor {
 	
@@ -23,18 +22,25 @@ public class MathReactor extends AbstractReactor {
 	
 	Vector <String> replacers = new Vector<String>();
 	ExpressionReducer red = null;
+	ExpressionIterator it = null;
 	
-	public MathReactor()
-	{
+	public MathReactor() {
 		String [] thisReacts = {TokenEnum.EXPR_TERM, TokenEnum.DECIMAL, TokenEnum.NUMBER, TokenEnum.GROUP_BY, TokenEnum.COL_DEF};
 		super.whatIReactTo = thisReacts;
 		super.whoAmI = TokenEnum.MATH_FUN;
 	}
+	
+	public Vector<String> getColumns() {
+		if (myStore.containsKey(TokenEnum.COL_DEF)) {
+			return (Vector<String>)myStore.get(TokenEnum.COL_DEF);
+		}
+		else {
+			return new Vector<String>();
+		}
+	}
 
 	@Override
 	public Iterator process() {
-		// TODO Auto-generated method stub
-		
 		try {
 			modExpression();
 			System.out.println("Printing the myStore..  " + myStore);
@@ -42,11 +48,10 @@ public class MathReactor extends AbstractReactor {
 			String procedureName = (String)myStore.get(TokenEnum.PROC_NAME);
 			String procedureAlgo = "prerna.algorithm.impl." + procedureName + "Algorithm";
 			
-			red = (ExpressionReducer) Class.forName(
-					procedureAlgo).newInstance();
+			Object algorithm = Class.forName(procedureAlgo).newInstance();
 			
 			Vector <String> columns = (Vector <String>)myStore.get(TokenEnum.COL_DEF);
-			
+			String[] columnsArray = convertVectorToArray(columns);
 			// this call needs to go to tinker
 			// I need to find a way to do this - and I did
 			Iterator iterator = getTinkerData(columns, (TinkerFrame)myStore.get("G"));
@@ -56,15 +61,25 @@ public class MathReactor extends AbstractReactor {
 				System.out.println("Ok.. I am getting SOMETHING..");
 			}
 			
-			// and action ?
-			red.set(iterator, convertVectorToArray(columns), myStore.get("MOD_" + whoAmI) + "");
-			double [] finalValue = (double [])red.reduce();
-			
-			String nodeStr = (String)myStore.get(whoAmI);
-			
-			myStore.put(nodeStr, finalValue);
-			
-			System.out.println("Completed Funning Math.. ");
+			if(algorithm instanceof ExpressionReducer) {
+				red = (ExpressionReducer) algorithm;
+				// and action ?
+				red.set(iterator, columnsArray, myStore.get("MOD_" + whoAmI) + "");
+				double finalValue = (double)red.reduce();
+				
+				String nodeStr = (String)myStore.get(whoAmI);
+				
+				myStore.put(nodeStr, finalValue);
+				
+				System.out.println("Completed Funning Math.. ");
+				
+			} else if(algorithm instanceof ExpressionIterator) {
+				it = (ExpressionIterator) algorithm;
+				it.setData(iterator, columnsArray , myStore.get("MOD_" + whoAmI) + "");
+				String nodeStr = (String)myStore.get(whoAmI);
+				myStore.put(nodeStr, it);
+				System.out.println("Math Fun Iterator stored");
+			}
 			
 		} catch (InstantiationException e) {
 			// TODO Auto-generated catch block
