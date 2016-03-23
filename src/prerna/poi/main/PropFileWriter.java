@@ -56,7 +56,7 @@ public class PropFileWriter {
 	private String engineDirectoryName;
 	private String defaultDBPropName;
 	private String defaultQuestionProp;
-	private String defaultOntologyProp;
+//	private String defaultOntologyProp;
 	private String baseDirectory;
 
 	public String propFileName;
@@ -75,7 +75,7 @@ public class PropFileWriter {
 	public PropFileWriter() {
 		defaultDBPropName = "db/Default/Default.properties";
 		defaultQuestionProp = "db/Default/Default_Questions.properties";
-		defaultOntologyProp = "db/Default/Default_Custom_Map.prop";
+//		defaultOntologyProp = "db/Default/Default_Custom_Map.prop";
 	}
 
 	public void setDefaultQuestionSheet(String defaultQuestionSheet) {
@@ -145,11 +145,12 @@ public class PropFileWriter {
 			if ((questionFile == null || questionFile.equals(""))) {
 				questionFileName = defaultQuestionProp.replaceAll("Default", dbName);
 				// need to create XML file from scratch
-				if (dbType == ImportDataProcessor.DB_TYPE.RDF)
+				if (dbType == ImportDataProcessor.DB_TYPE.RDF) {
 					copyFile(baseDirectory + System.getProperty("file.separator") + questionFileName, baseDirectory
 							+ System.getProperty("file.separator") + defaultQuestionProp);
-				else if (dbType == ImportDataProcessor.DB_TYPE.RDBMS)
-					questionFileName = questionFileName.replace("XML", "properties");
+				} else if (dbType == ImportDataProcessor.DB_TYPE.RDBMS) {
+					// do nothing, question sheets are created during the creation of the engine
+				}
 				// this needs to be completed
 			}
 			// if it was specified, get it in the format for the map file and move the file to the new directory
@@ -162,32 +163,32 @@ public class PropFileWriter {
 			}
 
 			// if the map was not specified, copy default map. All augmentation of the map must be done after poi reader though
-			if (ontologyName == null || ontologyName.equals("")) {
-				ontologyFileName = defaultOntologyProp.replace("Default", dbName);
-				copyFile(baseDirectory + System.getProperty("file.separator") + ontologyFileName, baseDirectory
-						+ System.getProperty("file.separator") + defaultOntologyProp);
-			}
-			// if it was specified, don't copy default---will augment after running reader
-			else {
-				// if a default file was selected, just copy and replace default
-				if (ontologyName.contains("Default")) {
-					FileUtils.copyFileToDirectory(new File(ontologyName), engineDirectory, true);
-					String newOntologyFile = ontologyName.replace("Default", dbName);
-					ontologyFileName = engineDirectoryName + newOntologyFile.substring(ontologyName.lastIndexOf("\\"));
-					if (ontologyFileName.contains("\\")) {
-						ontologyFileName = ontologyFileName.replaceAll("\\\\", "/");
-					}
-					copyFile(ontologyFileName, ontologyName);
-				}
-				// if a truly custom map file was selected, just get in the format for rdf map
-				else {
-					FileUtils.copyFileToDirectory(new File(ontologyName), engineDirectory, true);
-					ontologyFileName = engineDirectoryName + ontologyName.substring(ontologyName.lastIndexOf("\\"));
-					if (ontologyFileName.contains("\\")) {
-						ontologyFileName = ontologyFileName.replaceAll("\\\\", "/");
-					}
-				}
-			}
+//			if (ontologyName == null || ontologyName.equals("")) {
+//				ontologyFileName = defaultOntologyProp.replace("Default", dbName);
+//				copyFile(baseDirectory + System.getProperty("file.separator") + ontologyFileName, baseDirectory
+//						+ System.getProperty("file.separator") + defaultOntologyProp);
+//			}
+//			// if it was specified, don't copy default---will augment after running reader
+//			else {
+//				// if a default file was selected, just copy and replace default
+//				if (ontologyName.contains("Default")) {
+//					FileUtils.copyFileToDirectory(new File(ontologyName), engineDirectory, true);
+//					String newOntologyFile = ontologyName.replace("Default", dbName);
+//					ontologyFileName = engineDirectoryName + newOntologyFile.substring(ontologyName.lastIndexOf("\\"));
+//					if (ontologyFileName.contains("\\")) {
+//						ontologyFileName = ontologyFileName.replaceAll("\\\\", "/");
+//					}
+//					copyFile(ontologyFileName, ontologyName);
+//				}
+//				// if a truly custom map file was selected, just get in the format for rdf map
+//				else {
+//					FileUtils.copyFileToDirectory(new File(ontologyName), engineDirectory, true);
+//					ontologyFileName = engineDirectoryName + ontologyName.substring(ontologyName.lastIndexOf("\\"));
+//					if (ontologyFileName.contains("\\")) {
+//						ontologyFileName = ontologyFileName.replaceAll("\\\\", "/");
+//					}
+//				}
+//			}
 
 			// Now we have all of the different file required for an engine taken care of, update the map file
 			if (dbPropFile == null || dbPropFile.equals("")) {
@@ -266,7 +267,7 @@ public class PropFileWriter {
 			File newFile = new File(propFileName);
 			pw = new FileWriter(newFile);
 			pw.write("Base Properties \n");
-			pw.write(Constants.ONTOLOGY + "\t" + ontologyFileName + "\n");
+//			pw.write(Constants.ONTOLOGY + "\t" + ontologyFileName + "\n");
 			pw.write(Constants.OWL + "\t" + owlFile + "\n");
 			// pw.write(name+"_PROP" + "\t"+ propFileName + "\n");
 			pw.write(Constants.ENGINE + "\t" + dbname + "\n");

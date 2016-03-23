@@ -40,7 +40,6 @@ import java.util.StringTokenizer;
 import org.apache.log4j.Level;
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
-import org.openrdf.model.vocabulary.RDF;
 import org.supercsv.cellprocessor.Optional;
 import org.supercsv.cellprocessor.ParseBool;
 import org.supercsv.cellprocessor.ParseDate;
@@ -52,7 +51,6 @@ import org.supercsv.io.CsvMapReader;
 import org.supercsv.io.ICsvMapReader;
 import org.supercsv.prefs.CsvPreference;
 
-import prerna.engine.api.IEngine;
 import prerna.util.Constants;
 import prerna.util.Utility;
 
@@ -99,7 +97,7 @@ public class CSVReader extends AbstractFileReader {
 		logger.setLevel(Level.WARN);
 		String[] files = prepareReader(fileNames, customBase, owlFile, smssLocation);
 		try {
-			openEngineWithoutConnection(engineName);
+			openRdfEngineWithoutConnection(engineName);
 			createTypes();
 			for(int i = 0; i<files.length;i++)
 			{
@@ -112,11 +110,13 @@ public class CSVReader extends AbstractFileReader {
 					} else {
 						rdfMap = rdfMapArr[i];
 					}
+					//TODO: same method used in other classes
+					parseMetadata();
 					// determine the type of data in each column of CSV file
 					createProcessors();
-					processConceptRelationURIs();
-					processNodePropURIs();
-					processRelationPropURIs();
+//					processConceptRelationURIs();
+//					processNodePropURIs();
+//					processRelationPropURIs();
 					processDisplayNames();
 					skipRows();
 					processRelationShips();
@@ -159,9 +159,10 @@ public class CSVReader extends AbstractFileReader {
 				}
 				// determine the type of data in each column of CSV file
 				createProcessors();
-				processConceptRelationURIs();
-				processNodePropURIs();
-				processRelationPropURIs();
+				parseMetadata();
+//				processConceptRelationURIs();
+//				processNodePropURIs();
+//				processRelationPropURIs();
 				processDisplayNames();
 				skipRows();
 				processRelationShips();
@@ -206,6 +207,63 @@ public class CSVReader extends AbstractFileReader {
 		//		typeHash.put("NUMBER_OPTIONAL", new Optional(new ParseInt()));
 		//		typeHash.put("INTEGER_OPTIONAL", new Optional(new ParseInt()));
 		typeHash.put("BOOLEAN_OPTIONAL", new Optional(new ParseBool()));
+	}
+	
+	public void parseMetadata() {
+		if(rdfMap.get("RELATION") != null)
+		{
+			String relationNames = rdfMap.get("RELATION");
+			StringTokenizer relationTokens = new StringTokenizer(relationNames, ";");
+			relationArrayList = new ArrayList<String>();
+			// process each relationship
+			while(relationTokens.hasMoreElements())
+			{
+				String relation = relationTokens.nextToken();
+				// just in case the end of the prop string is empty string or spaces
+				if(!relation.contains("@"))
+					continue;
+
+				relationArrayList.add(relation);
+			}
+		}
+		
+		if(rdfMap.get("NODE_PROP") != null)
+		{
+			String nodePropNames = rdfMap.get("NODE_PROP");
+			StringTokenizer nodePropTokens = new StringTokenizer(nodePropNames, ";");
+			nodePropArrayList = new ArrayList<String>();
+			if(basePropURI.equals("")){
+				basePropURI = semossURI + "/" + Constants.DEFAULT_RELATION_CLASS + "/" + CONTAINS;
+			}
+			while(nodePropTokens.hasMoreElements())
+			{
+				String relation = nodePropTokens.nextToken();
+				// in case the end of the prop string is empty string or spaces
+				if(!relation.contains("%"))
+					continue;
+
+				nodePropArrayList.add(relation);
+			}
+		}
+		
+		if(rdfMap.get("RELATION_PROP") != null)
+		{
+			String propNames = rdfMap.get("RELATION_PROP");
+			StringTokenizer propTokens = new StringTokenizer(propNames, ";");
+			relPropArrayList = new ArrayList<String>();
+			if(basePropURI.equals("")){
+				basePropURI = semossURI + "/" + Constants.DEFAULT_RELATION_CLASS + "/" + CONTAINS;
+			}
+			while(propTokens.hasMoreElements())
+			{
+				String relation = propTokens.nextToken();
+				//just in case the end of the prop string is empty string or spaces
+				if(!relation.contains("%"))
+					continue;
+
+				relPropArrayList.add(relation);
+			}
+		}
 	}
 
 	/**
@@ -470,381 +528,381 @@ public class CSVReader extends AbstractFileReader {
 	 * Create and store concept and relation URIs at the SEMOSS base and instance levels
 	 * @throws IOException 
 	 */
-	public void processConceptRelationURIs() throws IOException {
-		// get the list of relationships from the prop file
-		if(rdfMap.get("RELATION") != null)
-		{
-			String relationNames = rdfMap.get("RELATION");
-			StringTokenizer relationTokens = new StringTokenizer(relationNames, ";");
-			relationArrayList = new ArrayList<String>();
-			// process each relationship
-			while(relationTokens.hasMoreElements())
-			{
-				String relation = relationTokens.nextToken();
-				// just in case the end of the prop string is empty string or spaces
-				if(!relation.contains("@"))
-					break;
-
-				relationArrayList.add(relation);
-				logger.info("Loading relation " + relation);            	
-				String[] strSplit = relation.split("@");
-				// get the subject and object for triple (the two indexes)
-				String sub = strSplit[0];
-				String subject = "";
-				String predicate = strSplit[1];
-				String obj = strSplit[2];
-				String object = "";
-				// check if prop file entries are not in excel and if nodes are concatenations
-				// throw exception if prop file entries not in excel
-				boolean headException = true;
-				if(sub.contains("+"))
-				{
-					headException = isProperConcatHeader(sub);
-				}
-				else
-				{
-					if(!headerList.contains(sub))
-						headException = false;
-				}
-				if(headException == false) {
-					throw new IOException(sub + " cannot be found as a header");
-				}
-				if(obj.contains("+"))
-				{
-					headException = isProperConcatHeader(obj);
-				}
-				else
-				{
-					if(!headerList.contains(obj))
-						headException = false;
-				}
-				if(headException == false) {
-					throw new IOException(obj + " cannot be found as a header");
-				}
-				// create concept uris
-				String relURI = "";
-				String relBaseURI = "";
-				String idxBaseURI = "";
-				String idxURI = "";
-
-				// see if subject node SEMOSS base URI exist in prop file first
-				if(rdfMap.containsKey(sub+Constants.CLASS))
-				{
-					baseConceptURIHash.put(sub,rdfMap.get(sub+Constants.CLASS));
-				}
-				// if no user specific URI, use generic SEMOSS base URI
-				else
-				{
-					if(sub.contains("+"))
-					{
-						subject = processAutoConcat(sub);
-						idxBaseURI = semossURI + "/" + Constants.DEFAULT_NODE_CLASS +"/"+ subject;
-					}
-					else
-					{
-						subject = sub;
-						idxBaseURI = semossURI + "/" + Constants.DEFAULT_NODE_CLASS +"/"+ subject;
-					}
-					baseConceptURIHash.put(subject, idxBaseURI);
-				}
-				// see if subject node instance URI exists in prop file
-				if(rdfMap.containsKey(sub))
-				{
-					String userSub = rdfMap.get(sub).toString(); 
-					subject = userSub.substring(userSub.lastIndexOf("/"));
-					conceptURIHash.put(sub, userSub);
-				}
-				// if no user specified URI, use generic custombaseURI
-				else
-				{
-					if(sub.contains("+"))
-					{
-						subject = processAutoConcat(sub);
-						idxURI = customBaseURI + "/" + Constants.DEFAULT_NODE_CLASS +"/"+ subject;
-					}
-					else
-					{
-						subject = sub;
-						idxURI = customBaseURI + "/" + Constants.DEFAULT_NODE_CLASS +"/"+ subject;
-					}
-					conceptURIHash.put(subject, idxURI);
-				}
-				// see if object node SEMOSS base URI exists in prop file
-				if(rdfMap.containsKey(obj+Constants.CLASS))
-				{
-					baseConceptURIHash.put(obj,rdfMap.get(obj+Constants.CLASS));
-				}
-				// if no user specified URI, use generic SEMOSS base URI
-				else
-				{
-					if(obj.contains("+"))
-					{
-						object = processAutoConcat(obj);
-						idxBaseURI = semossURI + "/" + Constants.DEFAULT_NODE_CLASS +"/"+ object;
-					}
-					else
-					{
-						object = obj;
-						idxBaseURI = semossURI + "/" + Constants.DEFAULT_NODE_CLASS +"/"+ object;
-					}
-					baseConceptURIHash.put(object, idxBaseURI);
-				}
-				// see if object node instance URI exists in prop file
-				if(rdfMap.containsKey(obj))
-				{
-					String userObj = rdfMap.get(obj).toString(); 
-					object = userObj.substring(userObj.lastIndexOf("/")+1);
-					conceptURIHash.put(obj, userObj);
-				}
-				// if no user specified URI, use generic custombaseURI
-				else
-				{
-					if(obj.contains("+"))
-					{
-						object = processAutoConcat(obj);
-						idxURI = customBaseURI + "/" + Constants.DEFAULT_NODE_CLASS +"/"+ object;
-					}
-					else
-					{
-						object = obj;
-						idxURI = customBaseURI + "/" + Constants.DEFAULT_NODE_CLASS +"/"+ object;
-					}
-					conceptURIHash.put(object, idxURI);
-				}
-				// add relation uri into basehash and urihash
-				String relPropString = subject + "_"+ predicate + "_" + object; //this string concat shows up in prop file
-
-				// see if relationship SEMOSS base URI exists in prop file
-				if(rdfMap.containsKey(relPropString+Constants.CLASS)) {
-					baseRelationURIHash.put(relPropString+Constants.CLASS,rdfMap.get(relPropString+Constants.CLASS));
-				}
-				// if no user specified URI, use generic SEMOSS base URI
-				else
-				{
-					relBaseURI = semossURI + "/" + Constants.DEFAULT_RELATION_CLASS + "/" + predicate;
-					baseRelationURIHash.put(relPropString+Constants.CLASS, relBaseURI);
-				}
-				// see if relationship URI exists in prop file
-				if(rdfMap.containsKey(relPropString)) {
-					relationURIHash.put(relPropString,rdfMap.get(relPropString));
-				}
-				// if no user specified URI, use generic custombaseURI
-				else {
-					relURI = customBaseURI + "/" + Constants.DEFAULT_RELATION_CLASS + "/" + predicate;
-					relationURIHash.put(relPropString, relURI);
-				}
-			}
-		}
-	}
+//	public void processConceptRelationURIs() throws IOException {
+//		// get the list of relationships from the prop file
+//		if(rdfMap.get("RELATION") != null)
+//		{
+//			String relationNames = rdfMap.get("RELATION");
+//			StringTokenizer relationTokens = new StringTokenizer(relationNames, ";");
+//			relationArrayList = new ArrayList<String>();
+//			// process each relationship
+//			while(relationTokens.hasMoreElements())
+//			{
+//				String relation = relationTokens.nextToken();
+//				// just in case the end of the prop string is empty string or spaces
+//				if(!relation.contains("@"))
+//					break;
+//
+//				relationArrayList.add(relation);
+//				logger.info("Loading relation " + relation);            	
+//				String[] strSplit = relation.split("@");
+//				// get the subject and object for triple (the two indexes)
+//				String sub = strSplit[0];
+//				String subject = "";
+//				String predicate = strSplit[1];
+//				String obj = strSplit[2];
+//				String object = "";
+//				// check if prop file entries are not in excel and if nodes are concatenations
+//				// throw exception if prop file entries not in excel
+//				boolean headException = true;
+//				if(sub.contains("+"))
+//				{
+//					headException = isProperConcatHeader(sub);
+//				}
+//				else
+//				{
+//					if(!headerList.contains(sub))
+//						headException = false;
+//				}
+//				if(headException == false) {
+//					throw new IOException(sub + " cannot be found as a header");
+//				}
+//				if(obj.contains("+"))
+//				{
+//					headException = isProperConcatHeader(obj);
+//				}
+//				else
+//				{
+//					if(!headerList.contains(obj))
+//						headException = false;
+//				}
+//				if(headException == false) {
+//					throw new IOException(obj + " cannot be found as a header");
+//				}
+//				// create concept uris
+//				String relURI = "";
+//				String relBaseURI = "";
+//				String idxBaseURI = "";
+//				String idxURI = "";
+//
+//				// see if subject node SEMOSS base URI exist in prop file first
+//				if(rdfMap.containsKey(sub+Constants.CLASS))
+//				{
+//					baseConceptURIHash.put(sub,rdfMap.get(sub+Constants.CLASS));
+//				}
+//				// if no user specific URI, use generic SEMOSS base URI
+//				else
+//				{
+//					if(sub.contains("+"))
+//					{
+//						subject = processAutoConcat(sub);
+//						idxBaseURI = semossURI + "/" + Constants.DEFAULT_NODE_CLASS +"/"+ subject;
+//					}
+//					else
+//					{
+//						subject = sub;
+//						idxBaseURI = semossURI + "/" + Constants.DEFAULT_NODE_CLASS +"/"+ subject;
+//					}
+//					baseConceptURIHash.put(subject, idxBaseURI);
+//				}
+//				// see if subject node instance URI exists in prop file
+//				if(rdfMap.containsKey(sub))
+//				{
+//					String userSub = rdfMap.get(sub).toString(); 
+//					subject = userSub.substring(userSub.lastIndexOf("/"));
+//					conceptURIHash.put(sub, userSub);
+//				}
+//				// if no user specified URI, use generic custombaseURI
+//				else
+//				{
+//					if(sub.contains("+"))
+//					{
+//						subject = processAutoConcat(sub);
+//						idxURI = customBaseURI + "/" + Constants.DEFAULT_NODE_CLASS +"/"+ subject;
+//					}
+//					else
+//					{
+//						subject = sub;
+//						idxURI = customBaseURI + "/" + Constants.DEFAULT_NODE_CLASS +"/"+ subject;
+//					}
+//					conceptURIHash.put(subject, idxURI);
+//				}
+//				// see if object node SEMOSS base URI exists in prop file
+//				if(rdfMap.containsKey(obj+Constants.CLASS))
+//				{
+//					baseConceptURIHash.put(obj,rdfMap.get(obj+Constants.CLASS));
+//				}
+//				// if no user specified URI, use generic SEMOSS base URI
+//				else
+//				{
+//					if(obj.contains("+"))
+//					{
+//						object = processAutoConcat(obj);
+//						idxBaseURI = semossURI + "/" + Constants.DEFAULT_NODE_CLASS +"/"+ object;
+//					}
+//					else
+//					{
+//						object = obj;
+//						idxBaseURI = semossURI + "/" + Constants.DEFAULT_NODE_CLASS +"/"+ object;
+//					}
+//					baseConceptURIHash.put(object, idxBaseURI);
+//				}
+//				// see if object node instance URI exists in prop file
+//				if(rdfMap.containsKey(obj))
+//				{
+//					String userObj = rdfMap.get(obj).toString(); 
+//					object = userObj.substring(userObj.lastIndexOf("/")+1);
+//					conceptURIHash.put(obj, userObj);
+//				}
+//				// if no user specified URI, use generic custombaseURI
+//				else
+//				{
+//					if(obj.contains("+"))
+//					{
+//						object = processAutoConcat(obj);
+//						idxURI = customBaseURI + "/" + Constants.DEFAULT_NODE_CLASS +"/"+ object;
+//					}
+//					else
+//					{
+//						object = obj;
+//						idxURI = customBaseURI + "/" + Constants.DEFAULT_NODE_CLASS +"/"+ object;
+//					}
+//					conceptURIHash.put(object, idxURI);
+//				}
+//				// add relation uri into basehash and urihash
+//				String relPropString = subject + "_"+ predicate + "_" + object; //this string concat shows up in prop file
+//
+//				// see if relationship SEMOSS base URI exists in prop file
+//				if(rdfMap.containsKey(relPropString+Constants.CLASS)) {
+//					baseRelationURIHash.put(relPropString+Constants.CLASS,rdfMap.get(relPropString+Constants.CLASS));
+//				}
+//				// if no user specified URI, use generic SEMOSS base URI
+//				else
+//				{
+//					relBaseURI = semossURI + "/" + Constants.DEFAULT_RELATION_CLASS + "/" + predicate;
+//					baseRelationURIHash.put(relPropString+Constants.CLASS, relBaseURI);
+//				}
+//				// see if relationship URI exists in prop file
+//				if(rdfMap.containsKey(relPropString)) {
+//					relationURIHash.put(relPropString,rdfMap.get(relPropString));
+//				}
+//				// if no user specified URI, use generic custombaseURI
+//				else {
+//					relURI = customBaseURI + "/" + Constants.DEFAULT_RELATION_CLASS + "/" + predicate;
+//					relationURIHash.put(relPropString, relURI);
+//				}
+//			}
+//		}
+//	}
 
 	/**
 	 * Create and store node property URIs at the SEMOSS base and instance levels 
 	 * @throws IOException 
 	 */
-	public void processNodePropURIs() throws IOException 
-	{
-		if(rdfMap.get("NODE_PROP") != null)
-		{
-			String nodePropNames = rdfMap.get("NODE_PROP");
-			StringTokenizer nodePropTokens = new StringTokenizer(nodePropNames, ";");
-			nodePropArrayList = new ArrayList<String>();
-			if(basePropURI.equals("")){
-				basePropURI = semossURI + "/" + Constants.DEFAULT_RELATION_CLASS + "/" + CONTAINS;
-			}
-			engine.doAction(IEngine.ACTION_TYPE.ADD_STATEMENT, new Object[]{basePropURI, Constants.SUBPROPERTY_URI, basePropURI, true});
-//			createStatement(vf.createURI(basePropURI),vf.createURI(),vf.createURI(basePropURI));
-
-			while(nodePropTokens.hasMoreElements())
-			{
-				String relation = nodePropTokens.nextToken();
-				// in case the end of the prop string is empty string or spaces
-				if(!relation.contains("%"))
-					break;
-
-				nodePropArrayList.add(relation);
-				logger.info("Loading Node Prop " + relation);            	
-				String[] strSplit = relation.split("%");
-				// get the subject and object for triple (the two indexes)
-				String sub = strSplit[0];
-				String subject = "";
-				// loop through all properties on the node
-				for(int i = 1; i < strSplit.length; i++)
-				{
-					String prop = strSplit[i];
-					String idxBaseURI = "";
-					String idxURI = "";
-					String propURI = "";
-
-					boolean headException = true;
-					if(sub.contains("+"))
-					{
-						headException = isProperConcatHeader(sub);
-					}
-					else
-					{
-						if(!headerList.contains(sub))
-							headException = false;
-					}
-					if(headException == false) {
-						throw new IOException(sub + " cannot be found as a header");
-					}
-					if(prop.contains("+"))
-					{
-						headException = isProperConcatHeader(prop);
-					}
-					else
-					{
-						if(!headerList.contains(prop))
-							headException = false;
-					}
-					if(headException == false) {
-						throw new IOException(prop + " cannot be found as a header");
-					}
-					// see if subject node SEMOSS base URI exists in prop file
-					if(rdfMap.containsKey(sub+Constants.CLASS))
-					{
-						idxBaseURI = rdfMap.get(sub+Constants.CLASS);
-						baseConceptURIHash.put(sub,idxBaseURI);
-					}
-					// if no user specified URI, use generic SEMOSS base URI
-					else
-					{
-						if(sub.contains("+"))
-						{
-							subject = processAutoConcat(sub);
-							idxBaseURI = semossURI + "/" + Constants.DEFAULT_NODE_CLASS +"/"+ subject;						
-						}
-						else
-						{
-							subject = sub;
-							idxBaseURI = semossURI + "/" + Constants.DEFAULT_NODE_CLASS +"/"+ subject;						
-						}
-						baseConceptURIHash.put(subject, idxBaseURI);
-					}
-					// see if subject node instance URI exists in prop file
-					if(rdfMap.containsKey(sub))
-					{
-						subject = rdfMap.get(sub);
-						conceptURIHash.put(sub, rdfMap.get(sub));
-					}
-					// if no user specified URI, use generic custombaseURI
-					else
-					{
-						if(sub.contains("+"))
-						{
-							subject = processAutoConcat(sub);
-							idxURI = customBaseURI + "/" + Constants.DEFAULT_NODE_CLASS +"/"+ subject;						
-						}
-						else
-						{
-							subject = sub;
-							idxURI = customBaseURI + "/" + Constants.DEFAULT_NODE_CLASS +"/"+ subject;
-
-						}
-						conceptURIHash.put(subject, idxURI);	
-					}
-
-					String property = "";
-					// see if property node URI exists in prop file
-					if(rdfMap.containsKey(prop))
-					{
-						String userProp = rdfMap.get(prop).toString(); 
-						property = userProp.substring(userProp.lastIndexOf("/")+1);
-					}
-					// if no user specified URI, use generic URI
-					else
-					{
-						if(prop.contains("+"))
-						{
-							property = processAutoConcat(prop);
-						}
-						else
-						{
-							property = prop;
-						}
-					}
-
-					propURI = basePropURI+"/" + property;
-					engine.doAction(IEngine.ACTION_TYPE.ADD_STATEMENT, new Object[]{propURI, RDF.TYPE, Utility.cleanString(basePropURI, false), true});
-					// basePropURIHash.put(propURI,  propURI);
-					// basePropRelations.put(propURI,  idxBaseURI);
-				}
-			}
-		}
-	}
+//	public void processNodePropURIs() throws IOException 
+//	{
+//		if(rdfMap.get("NODE_PROP") != null)
+//		{
+//			String nodePropNames = rdfMap.get("NODE_PROP");
+//			StringTokenizer nodePropTokens = new StringTokenizer(nodePropNames, ";");
+//			nodePropArrayList = new ArrayList<String>();
+//			if(basePropURI.equals("")){
+//				basePropURI = semossURI + "/" + Constants.DEFAULT_RELATION_CLASS + "/" + CONTAINS;
+//			}
+//			engine.doAction(IEngine.ACTION_TYPE.ADD_STATEMENT, new Object[]{basePropURI, Constants.SUBPROPERTY_URI, basePropURI, true});
+////			createStatement(vf.createURI(basePropURI),vf.createURI(),vf.createURI(basePropURI));
+//
+//			while(nodePropTokens.hasMoreElements())
+//			{
+//				String relation = nodePropTokens.nextToken();
+//				// in case the end of the prop string is empty string or spaces
+//				if(!relation.contains("%"))
+//					break;
+//
+//				nodePropArrayList.add(relation);
+//				logger.info("Loading Node Prop " + relation);            	
+//				String[] strSplit = relation.split("%");
+//				// get the subject and object for triple (the two indexes)
+//				String sub = strSplit[0];
+//				String subject = "";
+//				// loop through all properties on the node
+//				for(int i = 1; i < strSplit.length; i++)
+//				{
+//					String prop = strSplit[i];
+//					String idxBaseURI = "";
+//					String idxURI = "";
+//					String propURI = "";
+//
+//					boolean headException = true;
+//					if(sub.contains("+"))
+//					{
+//						headException = isProperConcatHeader(sub);
+//					}
+//					else
+//					{
+//						if(!headerList.contains(sub))
+//							headException = false;
+//					}
+//					if(headException == false) {
+//						throw new IOException(sub + " cannot be found as a header");
+//					}
+//					if(prop.contains("+"))
+//					{
+//						headException = isProperConcatHeader(prop);
+//					}
+//					else
+//					{
+//						if(!headerList.contains(prop))
+//							headException = false;
+//					}
+//					if(headException == false) {
+//						throw new IOException(prop + " cannot be found as a header");
+//					}
+//					// see if subject node SEMOSS base URI exists in prop file
+//					if(rdfMap.containsKey(sub+Constants.CLASS))
+//					{
+//						idxBaseURI = rdfMap.get(sub+Constants.CLASS);
+//						baseConceptURIHash.put(sub,idxBaseURI);
+//					}
+//					// if no user specified URI, use generic SEMOSS base URI
+//					else
+//					{
+//						if(sub.contains("+"))
+//						{
+//							subject = processAutoConcat(sub);
+//							idxBaseURI = semossURI + "/" + Constants.DEFAULT_NODE_CLASS +"/"+ subject;						
+//						}
+//						else
+//						{
+//							subject = sub;
+//							idxBaseURI = semossURI + "/" + Constants.DEFAULT_NODE_CLASS +"/"+ subject;						
+//						}
+//						baseConceptURIHash.put(subject, idxBaseURI);
+//					}
+//					// see if subject node instance URI exists in prop file
+//					if(rdfMap.containsKey(sub))
+//					{
+//						subject = rdfMap.get(sub);
+//						conceptURIHash.put(sub, rdfMap.get(sub));
+//					}
+//					// if no user specified URI, use generic custombaseURI
+//					else
+//					{
+//						if(sub.contains("+"))
+//						{
+//							subject = processAutoConcat(sub);
+//							idxURI = customBaseURI + "/" + Constants.DEFAULT_NODE_CLASS +"/"+ subject;						
+//						}
+//						else
+//						{
+//							subject = sub;
+//							idxURI = customBaseURI + "/" + Constants.DEFAULT_NODE_CLASS +"/"+ subject;
+//
+//						}
+//						conceptURIHash.put(subject, idxURI);	
+//					}
+//
+//					String property = "";
+//					// see if property node URI exists in prop file
+//					if(rdfMap.containsKey(prop))
+//					{
+//						String userProp = rdfMap.get(prop).toString(); 
+//						property = userProp.substring(userProp.lastIndexOf("/")+1);
+//					}
+//					// if no user specified URI, use generic URI
+//					else
+//					{
+//						if(prop.contains("+"))
+//						{
+//							property = processAutoConcat(prop);
+//						}
+//						else
+//						{
+//							property = prop;
+//						}
+//					}
+//
+//					propURI = basePropURI+"/" + property;
+//					engine.doAction(IEngine.ACTION_TYPE.ADD_STATEMENT, new Object[]{propURI, RDF.TYPE, Utility.cleanString(basePropURI, false), true});
+//					// basePropURIHash.put(propURI,  propURI);
+//					// basePropRelations.put(propURI,  idxBaseURI);
+//				}
+//			}
+//		}
+//	}
 
 	/**
 	 * Create and store relationship property URIs at the SEMOSS base and instance levels 
 	 * @throws IOException 
 	 */
-	public void processRelationPropURIs() throws IOException
-	{
-		if(rdfMap.get("RELATION_PROP") != null)
-		{
-			String propNames = rdfMap.get("RELATION_PROP");
-			StringTokenizer propTokens = new StringTokenizer(propNames, ";");
-			relPropArrayList = new ArrayList<String>();
-			if(basePropURI.equals("")){
-				basePropURI = semossURI + "/" + Constants.DEFAULT_RELATION_CLASS + "/" + CONTAINS;
-			}
-			while(propTokens.hasMoreElements())
-			{
-
-				String relation = propTokens.nextToken();
-				//just in case the end of the prop string is empty string or spaces
-				if(!relation.contains("%"))
-					break;
-
-				relPropArrayList.add(relation);
-				logger.info("Loading relation prop " + relation);            	
-				String[] strSplit = relation.split("%");
-				// get the subject (index 0) and all objects for triple
-				// loop through all properties on the relationship
-				for(int i = 1; i < strSplit.length; i++)
-				{
-					String prop = strSplit[i];
-					boolean headException = true;
-					if(prop.contains("+"))
-					{
-						headException = isProperConcatHeader(prop);
-					}
-					else
-					{
-						if(!headerList.contains(prop))
-							headException = false;
-					}
-					if(headException == false) {
-						throw new IOException(prop + " cannot be found as a header");
-					}
-					String propURI = "";
-					String property = "";
-					// see if property node URI exists in prop file
-					if(rdfMap.containsKey(prop))
-					{
-						String userProp = rdfMap.get(prop).toString(); 
-						property = userProp.substring(userProp.lastIndexOf("/")+1);
-					}
-					// if no user specified URI, use generic URI
-					else
-					{
-						if(prop.contains("+"))
-						{
-							property = processAutoConcat(prop);
-						}
-						else
-						{
-							property = prop;
-						}
-					}
-
-					propURI = basePropURI+"/" + property;
-					engine.doAction(IEngine.ACTION_TYPE.ADD_STATEMENT, new Object[]{propURI, RDF.TYPE,  Utility.cleanString(basePropURI, false), true});
-					//basePropURIHash.put(propURI,  propURI);
-					//basePropRelations.put(propURI,  parentURI); // would need this if we were doing edge properties... but we are not any longer
-				}
-			}
-		}
-	}
+//	public void processRelationPropURIs() throws IOException
+//	{
+//		if(rdfMap.get("RELATION_PROP") != null)
+//		{
+//			String propNames = rdfMap.get("RELATION_PROP");
+//			StringTokenizer propTokens = new StringTokenizer(propNames, ";");
+//			relPropArrayList = new ArrayList<String>();
+//			if(basePropURI.equals("")){
+//				basePropURI = semossURI + "/" + Constants.DEFAULT_RELATION_CLASS + "/" + CONTAINS;
+//			}
+//			while(propTokens.hasMoreElements())
+//			{
+//
+//				String relation = propTokens.nextToken();
+//				//just in case the end of the prop string is empty string or spaces
+//				if(!relation.contains("%"))
+//					break;
+//
+//				relPropArrayList.add(relation);
+//				logger.info("Loading relation prop " + relation);            	
+//				String[] strSplit = relation.split("%");
+//				// get the subject (index 0) and all objects for triple
+//				// loop through all properties on the relationship
+//				for(int i = 1; i < strSplit.length; i++)
+//				{
+//					String prop = strSplit[i];
+//					boolean headException = true;
+//					if(prop.contains("+"))
+//					{
+//						headException = isProperConcatHeader(prop);
+//					}
+//					else
+//					{
+//						if(!headerList.contains(prop))
+//							headException = false;
+//					}
+//					if(headException == false) {
+//						throw new IOException(prop + " cannot be found as a header");
+//					}
+//					String propURI = "";
+//					String property = "";
+//					// see if property node URI exists in prop file
+//					if(rdfMap.containsKey(prop))
+//					{
+//						String userProp = rdfMap.get(prop).toString(); 
+//						property = userProp.substring(userProp.lastIndexOf("/")+1);
+//					}
+//					// if no user specified URI, use generic URI
+//					else
+//					{
+//						if(prop.contains("+"))
+//						{
+//							property = processAutoConcat(prop);
+//						}
+//						else
+//						{
+//							property = prop;
+//						}
+//					}
+//
+//					propURI = basePropURI+"/" + property;
+//					engine.doAction(IEngine.ACTION_TYPE.ADD_STATEMENT, new Object[]{propURI, RDF.TYPE,  Utility.cleanString(basePropURI, false), true});
+//					//basePropURIHash.put(propURI,  propURI);
+//					//basePropRelations.put(propURI,  parentURI); // would need this if we were doing edge properties... but we are not any longer
+//				}
+//			}
+//		}
+//	}
 
 	/**
 	 * Change the name of nodes that are concatenations of multiple CSV columns
