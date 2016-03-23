@@ -40,7 +40,7 @@ public class NLPReader extends AbstractFileReader {
 	public void importFileWithOutConnection(String smssLocation, String engineName,  String fileNames, String customBase, String customMap, String owlFile) 
 			throws FileNotFoundException, IOException {	
 		String[] files = prepareReader(fileNames, customBase, owlFile, smssLocation);
-		openEngineWithoutConnection(engineName);		
+		openRdfEngineWithoutConnection(engineName);		
 		try {
 			if(!customMap.equals("")) 
 			{

@@ -245,11 +245,11 @@ public abstract class AbstractEngine implements IEngine {
 					logger.info("Loading OWL: " + owlFile);
 					setOWL(baseFolder + "/" + owlFile);
 				}
-				String ontoFile = prop.getProperty(Constants.ONTOLOGY);
-				if (ontoFile != null) {
-					logger.info("Loading Ontology: " + ontoFile);
-					setOntology(baseFolder + "/" + ontoFile);
-				}
+//				String ontoFile = prop.getProperty(Constants.ONTOLOGY);
+//				if (ontoFile != null) {
+//					logger.info("Loading Ontology: " + ontoFile);
+//					setOntology(baseFolder + "/" + ontoFile);
+//				}
 				// load properties object for db
 				String genEngPropFile = prop.getProperty(Constants.ENGINE_PROPERTIES);
 				if (genEngPropFile != null) {
@@ -419,19 +419,19 @@ public abstract class AbstractEngine implements IEngine {
 	}
 
 	// sets the dreamer
-	public void setOntology(String ontology) {
-		logger.debug("Ontology file is " + ontology);
-		this.ontology = ontology;
-
-		if (ontoProp == null) {
-			ontoProp = new Properties();
-			try {
-				ontoProp = loadProp(ontology);
-			} catch (Exception e) {
-				e.printStackTrace();
-			}
-		}
-	}
+//	public void setOntology(String ontology) {
+//		logger.debug("Ontology file is " + ontology);
+//		this.ontology = ontology;
+//
+//		if (ontoProp == null) {
+//			ontoProp = new Properties();
+//			try {
+//				ontoProp = loadProp(ontology);
+//			} catch (Exception e) {
+//				e.printStackTrace();
+//			}
+//		}
+//	}
 
 	public void setOWL(String owl) {
 		this.owl = owl;
@@ -766,12 +766,12 @@ public abstract class AbstractEngine implements IEngine {
 				logger.debug("Deleting insight file " + insightLoc);
 				insightFile.delete();
 
-				String ontoLoc = baseFolder + "/" + this.getProperty(Constants.ONTOLOGY);
-				if(ontoLoc != null){
-					logger.debug("Deleting onto file " + ontoLoc);
-					File ontoFile = new File(ontoLoc);
-					ontoFile.delete();
-				}
+//				String ontoLoc = baseFolder + "/" + this.getProperty(Constants.ONTOLOGY);
+//				if(ontoLoc != null){
+//					logger.debug("Deleting onto file " + ontoLoc);
+//					File ontoFile = new File(ontoLoc);
+//					ontoFile.delete();
+//				}
 
 				String owlLoc = baseFolder + "/" + this.getProperty(Constants.OWL);
 				if(owlLoc != null){

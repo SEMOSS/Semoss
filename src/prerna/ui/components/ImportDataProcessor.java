@@ -46,12 +46,11 @@ import org.openrdf.sail.SailException;
 import prerna.engine.api.IEngine;
 import prerna.poi.main.CSVReader;
 import prerna.poi.main.NLPReader;
-import prerna.poi.main.OntologyFileWriter;
+//import prerna.poi.main.OntologyFileWriter;
 import prerna.poi.main.POIReader;
 import prerna.poi.main.PropFileWriter;
 import prerna.poi.main.RDBMSReader;
 import prerna.poi.main.RdfExcelTableReader;
-import prerna.rdf.main.ImportRDBMSProcessor;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
 import prerna.util.Utility;
@@ -105,21 +104,22 @@ public class ImportDataProcessor {
 			throws IOException, RepositoryException, SailException, Exception {
 		//get the engine information
 		//DB_TYPE dbType = DB_TYPE.RDF;// to be removed when enabling the csv wire
-		String mapPath = baseDirectory + "/" + DIHelper.getInstance().getProperty(dbName+"_"+Constants.ONTOLOGY);
+//		String mapPath = baseDirectory + "/" + DIHelper.getInstance().getProperty(dbName+"_"+Constants.ONTOLOGY);
 		String owlPath = baseDirectory + "/" + DIHelper.getInstance().getProperty(dbName+"_"+Constants.OWL);
 		if(importType == IMPORT_TYPE.EXCEL_POI)
 		{
 			POIReader reader = new POIReader();
 			//run the reader
 			try {
-				reader.importFileWithConnection(dbName, fileNames, customBaseURI, mapPath, owlPath);
+//				reader.importFileWithConnection(dbName, fileNames, customBaseURI, mapPath, owlPath);
+				reader.importFileWithConnection(dbName, fileNames, customBaseURI, owlPath);
 			} catch (IOException ex) {
 				ex.printStackTrace();
 				throw new IOException(ex.getMessage());
 			}
 			//run the ontology augmentor
-			OntologyFileWriter ontologyWriter = new OntologyFileWriter();
-			ontologyWriter.runAugment(mapPath, reader.conceptURIHash, reader.baseConceptURIHash, reader.relationURIHash,  reader.baseRelationURIHash, reader.basePropURI);
+//			OntologyFileWriter ontologyWriter = new OntologyFileWriter();
+//			ontologyWriter.runAugment(mapPath, reader.conceptURIHash, reader.baseConceptURIHash, reader.relationURIHash,  reader.baseRelationURIHash, reader.basePropURI);
 		}
 
 		else if (importType == IMPORT_TYPE.EXCEL && dbType == DB_TYPE.RDF)
@@ -137,8 +137,8 @@ public class ImportDataProcessor {
 				e.printStackTrace();
 			}
 			//run the ontology augmentor
-			OntologyFileWriter ontologyWriter = new OntologyFileWriter();
-			ontologyWriter.runAugment(mapPath, excelReader.conceptURIHash, excelReader.baseConceptURIHash, excelReader.relationURIHash,  excelReader.baseRelationURIHash, excelReader.basePropURI);
+//			OntologyFileWriter ontologyWriter = new OntologyFileWriter();
+//			ontologyWriter.runAugment(mapPath, excelReader.conceptURIHash, excelReader.baseConceptURIHash, excelReader.relationURIHash,  excelReader.baseRelationURIHash, excelReader.basePropURI);
 		}
 
 		else if (importType == IMPORT_TYPE.CSV && dbType == DB_TYPE.RDF)
@@ -152,16 +152,16 @@ public class ImportDataProcessor {
 			//run the reader
 			csvReader.importFileWithConnection(dbName, fileNames, customBaseURI, owlPath);
 			//run the ontology augmentor
-			OntologyFileWriter ontologyWriter = new OntologyFileWriter();
-			ontologyWriter.runAugment(mapPath, csvReader.conceptURIHash, csvReader.baseConceptURIHash, csvReader.relationURIHash,  csvReader.baseRelationURIHash, csvReader.basePropURI);
+//			OntologyFileWriter ontologyWriter = new OntologyFileWriter();
+//			ontologyWriter.runAugment(mapPath, csvReader.conceptURIHash, csvReader.baseConceptURIHash, csvReader.relationURIHash,  csvReader.baseRelationURIHash, csvReader.basePropURI);
 		}
 		
 		else if(importType == IMPORT_TYPE.NLP && dbType == DB_TYPE.RDF){
 			NLPReader reader = new NLPReader();
 			reader.importFileWithConnection(dbName, fileNames, customBaseURI, owlPath);
 			//run the ontology augmentor
-			OntologyFileWriter ontologyWriter = new OntologyFileWriter();
-			ontologyWriter.runAugment(mapPath, reader.conceptURIHash, reader.baseConceptURIHash, reader.relationURIHash,  reader.baseRelationURIHash, reader.basePropURI);
+//			OntologyFileWriter ontologyWriter = new OntologyFileWriter();
+//			ontologyWriter.runAugment(mapPath, reader.conceptURIHash, reader.baseConceptURIHash, reader.relationURIHash,  reader.baseRelationURIHash, reader.basePropURI);
 		}
 		
 		/* Code to be uncommented for RDBMS */
@@ -176,8 +176,8 @@ public class ImportDataProcessor {
 			//run the reader
 			csvReader.importFileWithConnection(dbName, fileNames, customBaseURI, owlPath, dbDriverType, allowDuplicates);
 			//run the ontology augmentor
-			OntologyFileWriter ontologyWriter = new OntologyFileWriter();
-			ontologyWriter.runAugment(mapPath, csvReader.conceptURIHash, csvReader.baseConceptURIHash, csvReader.relationURIHash,  csvReader.baseRelationURIHash, csvReader.basePropURI);
+//			OntologyFileWriter ontologyWriter = new OntologyFileWriter();
+//			ontologyWriter.runAugment(mapPath, csvReader.conceptURIHash, csvReader.baseConceptURIHash, csvReader.relationURIHash,  csvReader.baseRelationURIHash, csvReader.basePropURI);
 		} //*/
 
 		//addNewInstances to solr
@@ -192,30 +192,42 @@ public class ImportDataProcessor {
 		File propFile = null;
 		File newProp = null;
 		
-		Hashtable<String, String> newURIvalues = null;
-		Hashtable<String, String> newBaseURIvalues = null;
-		Hashtable<String, String> newRelURIvalues = null;
-		Hashtable<String, String> newBaseRelURIvalues = null;
-		String propURI = null;
+//		Hashtable<String, String> newURIvalues = null;
+//		Hashtable<String, String> newBaseURIvalues = null;
+//		Hashtable<String, String> newRelURIvalues = null;
+//		Hashtable<String, String> newBaseRelURIvalues = null;
+//		String propURI = null;
 		boolean error = false;
 		try {		
 			if(DIHelper.getInstance().getLocalProp(dbName) != null) {
 				throw new IOException("Database name already exists. \nPlease make the database name unique \nor consider import method to \"Add To Existing\".");
 			}
 			//first write the prop file for the new engine
+			//TODO:
+			//TODO:
+//			dbType = DB_TYPE.RDBMS;
 			PropFileWriter propWriter = runPropWriter(dbName, mapFile, dbPropFile, questionFile, importType, dbType, dbDriverType);
-			String ontoPath = baseDirectory + "/" + propWriter.ontologyFileName;
+//			String ontoPath = baseDirectory + "/" + propWriter.ontologyFileName;
 			String owlPath = baseDirectory + "/" + propWriter.owlFile;
 			//then process based on what type of file
 			if(importType == IMPORT_TYPE.EXCEL_POI && dbType == DB_TYPE.RDF) {
 				POIReader reader = new POIReader();
-				reader.importFileWithOutConnection(propWriter.propFileName, dbName, fileNames, customBaseURI, mapFile, owlPath);
-				newURIvalues = reader.conceptURIHash;
-				newBaseURIvalues = reader.baseConceptURIHash;
-				newRelURIvalues = reader.relationURIHash;
-				newBaseRelURIvalues = reader.baseRelationURIHash;
-				propURI = reader.basePropURI;
+				reader.importFileWithOutConnection(propWriter.propFileName, dbName, fileNames, customBaseURI, owlPath);
+//				newURIvalues = reader.conceptURIHash;
+//				newBaseURIvalues = reader.baseConceptURIHash;
+//				newRelURIvalues = reader.relationURIHash;
+//				newBaseRelURIvalues = reader.baseRelationURIHash;
+//				propURI = reader.basePropURI;
 
+			} else if(importType == IMPORT_TYPE.EXCEL_POI && dbType == DB_TYPE.RDBMS) {
+				POIReader reader = new POIReader();
+				reader.importFileWithOutConnectionRDBMS(propWriter.propFileName, dbName, fileNames, customBaseURI, owlPath, dbDriverType, allowDuplicates);
+//				newURIvalues = reader.conceptURIHash;
+//				newBaseURIvalues = reader.baseConceptURIHash;
+//				newRelURIvalues = reader.relationURIHash;
+//				newBaseRelURIvalues = reader.baseRelationURIHash;
+//				propURI = reader.basePropURI;
+				
 			} else if (importType == IMPORT_TYPE.EXCEL && dbType == DB_TYPE.RDF) {
 				RdfExcelTableReader reader = new RdfExcelTableReader();
 				//If propHash has not been set, we are coming from semoss and need to read the propFile
@@ -223,12 +235,12 @@ public class ImportDataProcessor {
 				if(propHashArr != null) {
 					reader.setRdfMapArr(propHashArr);
 				}
-				reader.importFileWithOutConnection(propWriter.propFileName, dbName,fileNames, customBaseURI, owlPath);
-				newURIvalues = reader.conceptURIHash;
-				newBaseURIvalues = reader.baseConceptURIHash;
-				newRelURIvalues = reader.relationURIHash;
-				newBaseRelURIvalues = reader.baseRelationURIHash;
-				propURI = reader.basePropURI;
+				reader.importFileWithOutConnection(propWriter.propFileName, dbName, fileNames, customBaseURI, owlPath);
+//				newURIvalues = reader.conceptURIHash;
+//				newBaseURIvalues = reader.baseConceptURIHash;
+//				newRelURIvalues = reader.relationURIHash;
+//				newBaseRelURIvalues = reader.baseRelationURIHash;
+//				propURI = reader.basePropURI;
 
 			} else if (importType == IMPORT_TYPE.CSV && dbType == DB_TYPE.RDF) {
 				CSVReader reader = new CSVReader();
@@ -238,20 +250,20 @@ public class ImportDataProcessor {
 					reader.setRdfMapArr(propHashArr);
 				}
 				reader.importFileWithOutConnection(propWriter.propFileName, dbName, fileNames, customBaseURI, owlPath);
-				newURIvalues = reader.conceptURIHash;
-				newBaseURIvalues = reader.baseConceptURIHash;
-				newRelURIvalues = reader.relationURIHash;
-				newBaseRelURIvalues = reader.baseRelationURIHash;
-				propURI = reader.basePropURI;
+//				newURIvalues = reader.conceptURIHash;
+//				newBaseURIvalues = reader.baseConceptURIHash;
+//				newRelURIvalues = reader.relationURIHash;
+//				newBaseRelURIvalues = reader.baseRelationURIHash;
+//				propURI = reader.basePropURI;
 
 			} else if(importType == IMPORT_TYPE.NLP && dbType == DB_TYPE.RDF){
 				NLPReader reader = new NLPReader();
 				reader.importFileWithOutConnection(propWriter.propFileName, dbName, fileNames, customBaseURI, mapFile, owlPath);
-				newURIvalues = reader.conceptURIHash;
-				newBaseURIvalues = reader.baseConceptURIHash;
-				newRelURIvalues = reader.relationURIHash;
-				newBaseRelURIvalues = reader.baseRelationURIHash;
-				propURI = reader.basePropURI;
+//				newURIvalues = reader.conceptURIHash;
+//				newBaseURIvalues = reader.baseConceptURIHash;
+//				newRelURIvalues = reader.relationURIHash;
+//				newBaseRelURIvalues = reader.baseRelationURIHash;
+//				propURI = reader.basePropURI;
 
 			} else if (importType == IMPORT_TYPE.CSV && dbType == DB_TYPE.RDBMS) {
 				RDBMSReader reader = new RDBMSReader();
@@ -259,14 +271,14 @@ public class ImportDataProcessor {
 					reader.setRdfMapArr(propHashArr);
 				}
 				reader.importFileWithOutConnection(propWriter.propFileName , fileNames, customBaseURI, owlPath, dbName, dbDriverType, allowDuplicates);
-				newURIvalues = reader.conceptURIHash;
-				newBaseURIvalues = reader.baseConceptURIHash;
-				newRelURIvalues = reader.relationURIHash;
-				newBaseRelURIvalues = reader.baseRelationURIHash;
-				propURI = reader.basePropURI;
+//				newURIvalues = reader.conceptURIHash;
+//				newBaseURIvalues = reader.baseConceptURIHash;
+//				newRelURIvalues = reader.relationURIHash;
+//				newBaseRelURIvalues = reader.baseRelationURIHash;
+//				propURI = reader.basePropURI;
 			}
-			OntologyFileWriter ontologyWriter = new OntologyFileWriter();
-			ontologyWriter.runAugment(ontoPath, newURIvalues, newBaseURIvalues,	newRelURIvalues, newBaseRelURIvalues, propURI);
+//			OntologyFileWriter ontologyWriter = new OntologyFileWriter();
+//			ontologyWriter.runAugment(ontoPath, newURIvalues, newBaseURIvalues,	newRelURIvalues, newBaseRelURIvalues, propURI);
 			propFile = new File(propWriter.propFileName);
 			newProp = new File(propWriter.propFileName.replace("temp", "smss"));
 			
@@ -281,14 +293,14 @@ public class ImportDataProcessor {
 			error = true;
 			e.printStackTrace();
 			throw new IOException(e.getMessage());
-		} catch(RepositoryException e) {
-			error = true;
-			e.printStackTrace();
-			throw new RepositoryException(e.getMessage());
-		} catch(SailException e) {
-			error = true;
-			e.printStackTrace();
-			throw new SailException(e.getMessage());
+//		} catch(RepositoryException e) {
+//			error = true;
+//			e.printStackTrace();
+//			throw new RepositoryException(e.getMessage());
+//		} catch(SailException e) {
+//			error = true;
+//			e.printStackTrace();
+//			throw new SailException(e.getMessage());
 		} catch(Exception e) {
 			error = true;
 			e.printStackTrace();
@@ -444,18 +456,18 @@ public class ImportDataProcessor {
 						}
 					}
 
-					String mapName = baseDirectory + "/" + DIHelper.getInstance().getProperty(repoName+"_"+Constants.ONTOLOGY);
+//					String mapName = baseDirectory + "/" + DIHelper.getInstance().getProperty(repoName+"_"+Constants.ONTOLOGY);
 					String owlFile = baseDirectory + "/" + DIHelper.getInstance().getProperty(repoName+"_"+Constants.OWL);
 					// run the reader
-					reader.importFileWithConnection(repoName, file, customBaseURI,
-							mapName, owlFile);
+//					reader.importFileWithConnection(repoName, file, customBaseURI, mapName, owlFile);
+					reader.importFileWithConnection(repoName, file, customBaseURI, owlFile);
 
 					// run the ontology augmentor
 
-					OntologyFileWriter ontologyWriter = new OntologyFileWriter();
-					ontologyWriter.runAugment(mapName, reader.conceptURIHash,
-							reader.baseConceptURIHash, reader.relationURIHash,
-							reader.baseRelationURIHash, reader.basePropURI);
+//					OntologyFileWriter ontologyWriter = new OntologyFileWriter();
+//					ontologyWriter.runAugment(mapName, reader.conceptURIHash,
+//							reader.baseConceptURIHash, reader.relationURIHash,
+//							reader.baseRelationURIHash, reader.basePropURI);
 				} catch (Exception ex) {
 					success = false;
 					ex.printStackTrace();
@@ -539,11 +551,11 @@ public class ImportDataProcessor {
 
 		//DB_TYPE dbType = DB_TYPE.RDF;
 
-		if(importType == IMPORT_TYPE.NLP)
+		if(importType == IMPORT_TYPE.NLP) {
 			propWriter.setDefaultQuestionSheet("db/Default/Default_NLP_Questions.properties");
-
+		}
 		// need to make provision for dbType
-		if(importType == IMPORT_TYPE.CSV && dbType == DB_TYPE.RDBMS) {
+		if(dbType == DB_TYPE.RDBMS) {
 
 		}
 
