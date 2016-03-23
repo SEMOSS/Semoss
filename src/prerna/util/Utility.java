@@ -1058,8 +1058,8 @@ public class Utility {
 			// set the core prop
 			if(prop.containsKey(Constants.DREAMER))
 				DIHelper.getInstance().getCoreProp().setProperty(engineName + "_" + Constants.DREAMER, prop.getProperty(Constants.DREAMER));
-			if(prop.containsKey(Constants.ONTOLOGY))
-				DIHelper.getInstance().getCoreProp().setProperty(engineName + "_" + Constants.ONTOLOGY, prop.getProperty(Constants.ONTOLOGY));
+//			if(prop.containsKey(Constants.ONTOLOGY))
+//				DIHelper.getInstance().getCoreProp().setProperty(engineName + "_" + Constants.ONTOLOGY, prop.getProperty(Constants.ONTOLOGY));
 			if(prop.containsKey(Constants.OWL)) {
 				DIHelper.getInstance().getCoreProp().setProperty(engineName + "_" + Constants.OWL, prop.getProperty(Constants.OWL));
 				//engine.setOWL(prop.getProperty(Constants.OWL));

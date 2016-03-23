@@ -354,7 +354,7 @@ public class Constants {
 	public static final String SOA_TRANSITION_ALL_BLU_QUERY = "SOA_TRANSITION_ALL_BLU_QUERY";
 
 	public static final String DREAMER = "DREAMER";
-	public static final String ONTOLOGY = "ONTOLOGY";
+//	public static final String ONTOLOGY = "ONTOLOGY";
 
 	public static final String PERSPECTIVE_SELECTOR = "perspectiveSelector";
 

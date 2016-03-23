@@ -12,7 +12,6 @@ import org.openrdf.query.MalformedQueryException;
 import org.openrdf.query.QueryEvaluationException;
 import org.openrdf.query.TupleQueryResult;
 
-import prerna.algorithm.api.ITableDataFrame;
 import prerna.ds.BTreeDataFrame;
 import prerna.engine.impl.rdf.BigDataEngine;
 import prerna.util.Constants;
@@ -68,13 +67,13 @@ public class BendersTools {
 				}
 				engine.openDB(engineLocation);
 				engine.setDreamer(prop.getProperty(Constants.DREAMER));
-				engine.setOntology(prop.getProperty(Constants.ONTOLOGY));
+//				engine.setOntology(prop.getProperty(Constants.ONTOLOGY));
 				
 				// set the core prop
 				if(prop.containsKey(Constants.DREAMER))
 					DIHelper.getInstance().getCoreProp().setProperty(engineName + "_" + Constants.DREAMER, prop.getProperty(Constants.DREAMER));
-				if(prop.containsKey(Constants.ONTOLOGY))
-					DIHelper.getInstance().getCoreProp().setProperty(engineName + "_" + Constants.ONTOLOGY, prop.getProperty(Constants.ONTOLOGY));
+//				if(prop.containsKey(Constants.ONTOLOGY))
+//					DIHelper.getInstance().getCoreProp().setProperty(engineName + "_" + Constants.ONTOLOGY, prop.getProperty(Constants.ONTOLOGY));
 				if(prop.containsKey(Constants.OWL)) {
 					DIHelper.getInstance().getCoreProp().setProperty(engineName + "_" + Constants.OWL, prop.getProperty(Constants.OWL));
 					engine.setOWL(prop.getProperty(Constants.OWL));

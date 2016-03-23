@@ -2,19 +2,19 @@ package prerna.util;
 
 import java.io.IOException;
 import java.util.Hashtable;
-import java.util.Iterator;
 
 import org.openrdf.model.vocabulary.RDF;
 import org.openrdf.model.vocabulary.RDFS;
 
+import com.hp.hpl.jena.vocabulary.OWL;
+
 import prerna.engine.api.IEngine;
 import prerna.poi.main.BaseDatabaseCreator;
-import prerna.poi.main.DisplayNamesProcessor;
-
-import com.hp.hpl.jena.vocabulary.OWL;
 
 public class OWLER {
 
+	private IEngine.ENGINE_TYPE type = null;
+	
 	public static String BASE_URI = "http://semoss.org/ontologies/";
 	public static final String DEFAULT_NODE_CLASS = "Concept";
 	public static final String DEFAULT_RELATION_CLASS = "Relation";
@@ -26,23 +26,26 @@ public class OWLER {
 	public static final String CLASS = "_CLASS";
 	public static final String TYPE_URI = "http://www.w3.org/1999/02/22-rdf-syntax-ns#type";
 	public static final String DEFAULT_PROPERTY_CLASS = "Relation/Contains";
-	
+
 	public static String CONCEPT_URI = BASE_URI + DEFAULT_NODE_CLASS + "/";
 	public static String RELATION_URI =  BASE_URI + DEFAULT_PROPERTY_CLASS + "/";
 	
 	// hashtable of concepts
 	private Hashtable<String, String> conceptHash = new Hashtable<String, String>();
-	
+	// hashtable of relationships
+	private Hashtable<String, String> relationHash = new Hashtable<String, String>();
+	// hashtable of properties
+	private Hashtable<String, String> propHash = new Hashtable<String, String>();
+
 	public boolean addBase = false;
 	protected BaseDatabaseCreator engine = null;
-	
-
 
 	// I need something here to add to the base relationship
 	// i.e. semoss/concept is a type of class
 	
-	public OWLER(String fileName)
-	{
+	public OWLER(String fileName, IEngine.ENGINE_TYPE type) {
+		this.type = type;
+		
 		engine = new BaseDatabaseCreator(fileName);
 		String baseSubject = BASE_URI + DEFAULT_NODE_CLASS ;
 		String predicate = RDF.TYPE.stringValue();
@@ -53,11 +56,29 @@ public class OWLER {
 		engine.addToBaseEngine(baseRelation, predicate, DEFAULT_PROPERTY_URI);
 	}
 	
-	public OWLER()
-	{
-		this("C:\\Users\\pkapaleeswaran\\workspacej3\\owler\\test.owl");
+	public OWLER(IEngine existingEngine, String fileName, IEngine.ENGINE_TYPE type) {
+		engine = new BaseDatabaseCreator(existingEngine, fileName);
 	}
 	
+	public void closeOwl() {
+		engine.closeBaseEng();
+	}
+	
+	public void commit() {
+		engine.commit();
+	}
+	
+	public void export() throws IOException {
+		engine.exportBaseEng(true);
+	}
+	
+	public BaseDatabaseCreator getEngine() {
+		return engine;
+	}
+
+	public void setEngine(BaseDatabaseCreator engine) {
+		this.engine = engine;
+	}
 	
 	// a class that has been LONG pending
 	// add concepts / tables
@@ -75,23 +96,24 @@ public class OWLER {
 	 and then concept is a type of class
 	 
 	 */
-	public String addConcept(String concept, String baseURI) // optional base URI
-	{
-		if(!conceptHash.containsKey(concept))
-		{
+	public String addConcept(String concept, String baseURI) {
+		if(!conceptHash.containsKey(concept)) {
 			// add this to the base URI
 			// make this as a type of semoss class
 			// make the class as a subclass of RDF Class
 			String object = baseURI + DEFAULT_NODE_CLASS ;
-			String subject = object + "/" + concept + "/" + concept;
+			String subject = object + "/" + concept;
+			if(type.equals(IEngine.ENGINE_TYPE.RDBMS)) {
+				subject += "/" + concept;
+			}
 			String predicate = RDFS.SUBCLASSOF.stringValue();
-	
+
 			// and I will store this statement
 			// STEP 1
 			engine.addToBaseEngine(subject, predicate, object);
-			
+
 			conceptHash.put(concept, subject);
-			
+
 			// STEP 2
 			// also add this as base
 			// I will handle this as a separate call at the end for now
@@ -99,8 +121,7 @@ public class OWLER {
 		return conceptHash.get(concept);
 	}
 	
-	public String addConcept(String concept)
-	{
+	public String addConcept(String concept) {
 		return addConcept(concept, SEMOSS_URI);
 	}
 	
@@ -116,35 +137,49 @@ public class OWLER {
 
 	 */
 	
-	public void addRelation(String fromConcept, String toConcept, String predicate)
+	public String addRelation(String fromConcept, String toConcept, String predicate)
 	{
-		// the from is always where the foreign key is if predicate is null
-		
-		// add to the base URI
-		// make this as subproperty of semoss relation
-		// make this relation subproperty of RDF Relation
-		String fromConceptURI = addConcept(fromConcept);
-		String toConceptURI = addConcept(toConcept);
-		
-		if(predicate == null)
-		{
-			// create predicate
-			// I will by default assume this is for SQL
-			// * sheesh *
-			predicate = fromConcept + "." + fromConcept + "." + toConcept + "." + fromConcept + "_FK";
+		if(!relationHash.containsKey(fromConcept + toConcept + predicate)) {
+			// the from is always where the foreign key is if predicate is null
+			
+			// add to the base URI
+			// make this as subproperty of semoss relation
+			// make this relation subproperty of RDF Relation
+			String fromConceptURI = addConcept(fromConcept);
+			String toConceptURI = addConcept(toConcept);
+			
+			if(predicate == null)
+			{
+				// create predicate
+				// I will by default assume this is for SQL
+				// * sheesh *
+				predicate = fromConcept + "." + fromConcept + "." + toConcept + "." + fromConcept + "_FK";
+			}
+			
+			String predicateObject = SEMOSS_URI + "Relation";
+			String predicateSubject = predicateObject + "/" + predicate;
+			String predicatePredicate = RDFS.SUBPROPERTYOF.stringValue();
+			
+			//STEP 1
+			engine.addToBaseEngine(predicateSubject, predicatePredicate, predicateObject);
+			
+			// STEP 2
+			engine.addToBaseEngine(fromConceptURI, predicateSubject, toConceptURI); // add the base relation as well
+			
+			relationHash.put(fromConcept + toConcept + predicate, predicateSubject);
 		}
 		
-		String predicateObject = SEMOSS_URI + "Relation";
-		String predicateSubject = predicateObject + "/" + predicate;
-		String predicatePredicate = RDFS.SUBPROPERTYOF.stringValue();
-		
-		//STEP 1
-		engine.addToBaseEngine(predicateSubject, predicatePredicate, predicateObject);
-		
-		// STEP 2
-		engine.addToBaseEngine(fromConceptURI, predicateSubject, toConceptURI); // add the base relation as well
-		
-
+		return relationHash.get(fromConcept + toConcept + predicate);
+	}
+	
+	public void addSubclass(String childType, String parentType) {
+		String childURI = addConcept(childType);
+		String parentURI = addConcept(parentType);
+		engine.addToBaseEngine(childURI, SUBCLASS_URI, parentURI);
+	}
+	
+	public void addCustomBaseURI(String customBaseURI) {
+		engine.addToBaseEngine("SEMOSS:ENGINE_METADATA", "CONTAINS:BASE_URI", customBaseURI+"/"+DEFAULT_NODE_CLASS+"/");
 	}
 	
 	public String getOwlAsString()
@@ -181,32 +216,38 @@ public class OWLER {
 	*
 	 * 
 	 */
-	public void addProp(String concept, String property, String type)
+	public String addProp(String concept, String property, String type)
 	{
-		// same as concepts
-		String propSubject = addConcept(concept);
+		if(!propHash.containsKey(concept + "%" + property)) {
+			// same as concepts
+			String propSubject = addConcept(concept);
+			
+			// STEP 1
+			String propMaster = SEMOSS_URI + "Relation/Contains";
+			String propPredicate = OWL.DatatypeProperty + "";
+			String propObject = propMaster + "/" + property;
+			
+			engine.addToBaseEngine(propObject, RDF.TYPE.stringValue(), propMaster);
+			
+			// STEP 2
+			engine.addToBaseEngine(propSubject, propPredicate, propObject);
+			
+			// STEP 3 ?
+			// I need some way to also add the types to this
+			String typePredicate = RDFS.CLASS.stringValue();
+			String typeObject = "TYPE:" + type;
+			
+			engine.addToBaseEngine(propObject, typePredicate, typeObject);
+			
+			propHash.put(concept + "%" + property, propObject);
+		}
 		
-		// STEP 1
-		String propMaster = SEMOSS_URI + "Relation/Contains";
-		String propPredicate = RDFS.DATATYPE.stringValue();
-		String propObject = propMaster + "/" + property;
-		
-		engine.addToBaseEngine(propObject, RDF.TYPE.stringValue(), propMaster);
-		
-		// STEP 2
-		engine.addToBaseEngine(propSubject, propPredicate, propObject);
-		
-		// STEP 3 ?
-		// I need some way to also add the types to this
-		String typePredicate = RDFS.CLASS.stringValue();
-		String typeObject = "TYPE:" + type;
-		
-		engine.addToBaseEngine(propObject, typePredicate, typeObject);
+		return propHash.get(concept + "%" + property);
 	}
 	
 	public static void main(String [] args)
 	{
-		OWLER owler = new OWLER();
+		OWLER owler = new OWLER("C:\\Users\\pkapaleeswaran\\workspacej3\\owler\\test.owl", IEngine.ENGINE_TYPE.RDBMS);
 		owler.addRelation("Studio", "Title", null);
 		owler.addProp("Title", "Budget", "Int");
 		owler.getOwlAsString();
