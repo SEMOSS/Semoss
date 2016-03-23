@@ -68,7 +68,7 @@ import prerna.om.SEMOSSVertex;
 import prerna.om.TinkerGraphDataModel;
 import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.rdf.query.builder.GremlinBuilder;
-import prerna.sablecc.Translation;
+import prerna.sablecc.Translation2;
 import prerna.sablecc.lexer.Lexer;
 import prerna.sablecc.lexer.LexerException;
 import prerna.sablecc.node.Start;
@@ -3024,7 +3024,7 @@ public class TinkerFrame implements ITableDataFrame {
 			try {
 				tree = p.parse();
 				   // Apply the translation.
-				   tree.apply(new Translation(this));
+				   tree.apply(new Translation2(this));
 			} catch (ParserException e) {
 				// TODO Auto-generated catch block
 				e.printStackTrace();
