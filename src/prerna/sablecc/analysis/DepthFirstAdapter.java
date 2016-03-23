@@ -554,16 +554,9 @@ public class DepthFirstAdapter extends AnalysisAdapter
         {
             node.getLPar().apply(this);
         }
-        if(node.getFirstcol() != null)
+        if(node.getWhere() != null)
         {
-            node.getFirstcol().apply(this);
-        }
-        {
-            List<PColGroup> copy = new ArrayList<PColGroup>(node.getColGroup());
-            for(PColGroup e : copy)
-            {
-                e.apply(this);
-            }
+            node.getWhere().apply(this);
         }
         if(node.getComma() != null)
         {
@@ -737,6 +730,47 @@ public class DepthFirstAdapter extends AnalysisAdapter
             node.getRp2().apply(this);
         }
         outAAliasColumn(node);
+    }
+
+    public void inADataImport(ADataImport node)
+    {
+        defaultIn(node);
+    }
+
+    public void outADataImport(ADataImport node)
+    {
+        defaultOut(node);
+    }
+
+    @Override
+    public void caseADataImport(ADataImport node)
+    {
+        inADataImport(node);
+        if(node.getDataimporttoken() != null)
+        {
+            node.getDataimporttoken().apply(this);
+        }
+        if(node.getLPar() != null)
+        {
+            node.getLPar().apply(this);
+        }
+        if(node.getApiBlock() != null)
+        {
+            node.getApiBlock().apply(this);
+        }
+        if(node.getComma() != null)
+        {
+            node.getComma().apply(this);
+        }
+        if(node.getJoins() != null)
+        {
+            node.getJoins().apply(this);
+        }
+        if(node.getRPar() != null)
+        {
+            node.getRPar().apply(this);
+        }
+        outADataImport(node);
     }
 
     public void inADecimal(ADecimal node)
@@ -2225,5 +2259,26 @@ public class DepthFirstAdapter extends AnalysisAdapter
             node.getNull().apply(this);
         }
         outATerm(node);
+    }
+
+    public void inAAlphaTerm(AAlphaTerm node)
+    {
+        defaultIn(node);
+    }
+
+    public void outAAlphaTerm(AAlphaTerm node)
+    {
+        defaultOut(node);
+    }
+
+    @Override
+    public void caseAAlphaTerm(AAlphaTerm node)
+    {
+        inAAlphaTerm(node);
+        if(node.getWord() != null)
+        {
+            node.getWord().apply(this);
+        }
+        outAAlphaTerm(node);
     }
 }

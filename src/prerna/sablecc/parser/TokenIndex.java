@@ -274,8 +274,20 @@ class TokenIndex extends AnalysisAdapter
     }
 
     @Override
-    public void caseEOF(@SuppressWarnings("unused") EOF node)
+    public void caseTDataimporttoken(@SuppressWarnings("unused") TDataimporttoken node)
     {
         this.index = 44;
+    }
+
+    @Override
+    public void caseTLiteral(@SuppressWarnings("unused") TLiteral node)
+    {
+        this.index = 45;
+    }
+
+    @Override
+    public void caseEOF(@SuppressWarnings("unused") EOF node)
+    {
+        this.index = 46;
     }
 }
