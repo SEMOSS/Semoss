@@ -53,7 +53,6 @@ import prerna.util.Constants;
  */
 public class IslandIdentifierProcessor implements IAlgorithm{
 
-	protected GraphDataModel gdm = new GraphDataModel();
 	ArrayList<SEMOSSVertex> selectedVerts = new ArrayList<SEMOSSVertex>();
 	GridFilterData gfd = new GridFilterData();
 	GraphPlaySheet playSheet;
@@ -61,6 +60,7 @@ public class IslandIdentifierProcessor implements IAlgorithm{
 	String selectedNodes="";
 	Vector<SEMOSSEdge> masterEdgeVector = new Vector();//keeps track of everything accounted for in the forest
 	Vector<SEMOSSVertex> masterVertexVector = new Vector();
+	Vector<SEMOSSVertex> originalVertexVector = new Vector();
 	Hashtable islandVerts = new Hashtable();
 	Hashtable islandEdges = new Hashtable();
 	String edgeHashKey = "EdgeHashKey";
@@ -98,7 +98,7 @@ public class IslandIdentifierProcessor implements IAlgorithm{
 		}
 		else{
 			selectedNodes = "All";
-			forestRoots = gdm.getVertStore().values();
+			forestRoots = originalVertexVector;
 			for(SEMOSSVertex forestVert : forestRoots){
 				if(masterVertexVector.contains(forestVert)){
 					masterVertexVector.remove(forestVert);
@@ -300,6 +300,7 @@ public class IslandIdentifierProcessor implements IAlgorithm{
 //		gdm = g;
 //		Collection<SEMOSSEdge> edges = edgeStore.values();
 //		Collection<SEMOSSVertex> v = vertStore.values();
+		originalVertexVector.addAll(v);
 		masterEdgeVector.addAll(edges);
 		masterVertexVector.addAll(v);
 	}
@@ -341,11 +342,5 @@ public class IslandIdentifierProcessor implements IAlgorithm{
 	public String getAlgoName() {
 		return "Island Identifier";
 	}
-
-	public void setGraphData(Map<String, SEMOSSVertex> vertStore, Map<String, SEMOSSEdge> edgeStore) {
-		// TODO Auto-generated method stub
-		
-	}
-
 
 }
