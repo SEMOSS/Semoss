@@ -13,17 +13,21 @@ import org.apache.tinkerpop.gremlin.structure.Vertex;
 
 import prerna.util.Constants;
 
-public class ExpressionIterator <Object> implements ExpressionMapper, Iterator {
+public class ExpressionIterator implements ExpressionMapper, Iterator {
 	
-	Iterator results = null;
-	String [] columnsUsed = null;
+	protected Iterator results = null;
+	protected String [] columnsUsed = null;
 	String script = null;
 	GremlinGroovyScriptEngine engine = new GremlinGroovyScriptEngine();
-	boolean errored = false;
-	java.lang.Object baseException = null;
-	Bindings otherBindings = engine.getBindings(ScriptContext.ENGINE_SCOPE);
-	CompiledScript cs = null;
-	String propToGet = Constants.NAME;
+	protected boolean errored = false;
+	protected Exception baseException = null;
+	protected Bindings otherBindings = engine.getBindings(ScriptContext.ENGINE_SCOPE);
+	protected CompiledScript cs = null;
+	protected String propToGet = Constants.NAME;
+	
+	protected ExpressionIterator() {
+		
+	}
 	
 	public ExpressionIterator(Iterator results, String [] columnsUsed, String script)
 	{
@@ -37,7 +41,7 @@ public class ExpressionIterator <Object> implements ExpressionMapper, Iterator {
 	}
 	
 	@Override
-	public java.lang.Object next() {
+	public Object next() {
 		// TODO Auto-generated method stub
 		// this is where we apply the calculation
 		// so I need to get the next on the map
@@ -46,60 +50,16 @@ public class ExpressionIterator <Object> implements ExpressionMapper, Iterator {
 		// run the calculation or whatever else
 		// give the result or exception
 		
-		java.lang.Object retObject = null;
+		Object retObject = null;
 		
 		if(results != null && !errored)
 		{
-			java.lang.Object daObject = results.next();
-			Map <Object, Object> row = null;
-			Vertex vert = null;
-			Double doubleValue = null;
-			if(daObject instanceof Map)
-				row = (Map<Object, Object>)daObject;
-			else if(daObject instanceof Vertex)
-				vert = (Vertex) daObject;
-			else if(daObject instanceof Double)
-				doubleValue = (Double)daObject;
-			// put things into the bindings first
-			
-			if(daObject != null && !errored)
-			{
-				// put things into the bindings first
-				if(row != null)
-				{
-					for(int colIndex = 0;colIndex < columnsUsed.length;colIndex++)
-					{
-						Vertex v = (Vertex)row.get(columnsUsed[colIndex]);
-						Object val = v.value(propToGet);
-						System.out.println("Values is " + val);
-						otherBindings.put(columnsUsed[colIndex], val);
-					}
-				}
-				else if(vert != null)
-				{
-					Object val = vert.value(propToGet);
-					System.out.println("Values is " + val);
-					otherBindings.put(columnsUsed[0], val);
-				}
-				else if(doubleValue != null)
-				{
-					Object val = (Object)new Double(doubleValue.doubleValue());
-					System.out.println("Values is " + val);
-					otherBindings.put(columnsUsed[0], val);
-				}
-			}		
-			
-//			for(int colIndex = 0;colIndex < columnsUsed.length;colIndex++)
-//				otherBindings.put(columnsUsed[colIndex], row.get(columnsUsed[colIndex]));
-			
+			setOtherBindings();
 			long nanoTime = System.nanoTime();
-			
 			try {
-				retObject = cs.eval();
+				retObject = (Object)cs.eval();
 				long now = System.nanoTime();
-				
 				System.out.println("Time Difference..  " + ((now - nanoTime)/1000000));
-
 			} catch (ScriptException e) {
 				// TODO Auto-generated catch block
 				retObject = e; // surprise !!
@@ -127,6 +87,45 @@ public class ExpressionIterator <Object> implements ExpressionMapper, Iterator {
 		} catch (ScriptException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
+		}
+	}
+	
+	protected void setOtherBindings() {
+		Object daObject = results.next();
+		Map <Object, Object> row = null;
+		Vertex vert = null;
+		Double doubleValue = null;
+		if(daObject instanceof Map)
+			row = (Map<Object, Object>)daObject;
+		else if(daObject instanceof Vertex)
+			vert = (Vertex) daObject;
+		else if(daObject instanceof Double)
+			doubleValue = (Double)daObject;
+		
+		if(daObject != null && !errored)
+		{
+			if(row != null)
+			{
+				for(int colIndex = 0;colIndex < columnsUsed.length;colIndex++)
+				{
+					Vertex v = (Vertex)row.get(columnsUsed[colIndex]);
+					Object val = v.value(propToGet);
+					System.out.println("Values is " + val);
+					otherBindings.put(columnsUsed[colIndex], val);
+				}
+			}
+			else if(vert != null)
+			{
+				Object val = vert.value(propToGet);
+				System.out.println("Values is " + val);
+				otherBindings.put(columnsUsed[0], val);
+			}
+			else if(doubleValue != null)
+			{
+				Object val = (Object)new Double(doubleValue.doubleValue());
+				System.out.println("Values is " + val);
+				otherBindings.put(columnsUsed[0], val);
+			}
 		}
 	}
 	
