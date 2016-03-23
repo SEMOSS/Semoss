@@ -1,19 +1,12 @@
 package prerna.sablecc;
 
 import java.util.Hashtable;
-import java.util.Iterator;
-import java.util.Stack;
 import java.util.Vector;
 
 import prerna.algorithm.api.IAction;
-import prerna.algorithm.impl.AddColumnOperator;
 import prerna.algorithm.impl.ImportAction;
-import prerna.ds.ExpressionReducer;
-import prerna.ds.QueryStruct;
 import prerna.ds.TinkerFrame;
-import prerna.engine.api.IApi;
 import prerna.engine.api.IScriptReactor;
-import prerna.engine.impl.rdbms.RDBMSQueryAPI;
 import prerna.sablecc.analysis.DepthFirstAdapter;
 import prerna.sablecc.node.AAddColumn;
 import prerna.sablecc.node.AApiBlock;
@@ -28,7 +21,6 @@ import prerna.sablecc.node.AExprGroup;
 import prerna.sablecc.node.AExprRow;
 import prerna.sablecc.node.AExprScript;
 import prerna.sablecc.node.AExprTerm;
-import prerna.sablecc.node.AGroupBy;
 import prerna.sablecc.node.AImportColumn;
 import prerna.sablecc.node.AMathFun;
 import prerna.sablecc.node.AMathFunExpr;
@@ -38,9 +30,7 @@ import prerna.sablecc.node.AMultFactor;
 import prerna.sablecc.node.ANumWordOrNum;
 import prerna.sablecc.node.ANumberTerm;
 import prerna.sablecc.node.APlusExpr;
-import prerna.sablecc.node.ARelationClause;
 import prerna.sablecc.node.ARelationDef;
-import prerna.sablecc.node.ASelector;
 import prerna.sablecc.node.ASetColumn;
 import prerna.sablecc.node.ATermFactor;
 import prerna.sablecc.node.AVarop;
@@ -87,6 +77,14 @@ public class Translation2 extends DepthFirstAdapter {
 		fillReactors();
 	}
 	
+	public Translation2(TinkerFrame frame)
+	{
+		// now get the data from tinker
+		this.frame = frame;
+		fillReactors();
+
+	}
+	
 	private void fillReactors()
 	{
 		reactorNames.put(TokenEnum.EXPR_TERM, "prerna.sablecc.ExprReactor");
@@ -100,13 +98,7 @@ public class Translation2 extends DepthFirstAdapter {
 		reactorNames.put(TokenEnum.COL_ADD, "prerna.sablecc.ColAddReactor");
 	}
 	
-	public Translation2(TinkerFrame frame)
-	{
-		// now get the data from tinker
-		this.frame = frame;
-		fillReactors();
 
-	}
 	
 
 	public void inAApiBlock(AApiBlock node) {
@@ -237,7 +229,16 @@ public class Translation2 extends DepthFirstAdapter {
 	}
 
 	public void inAExprTerm(AExprTerm node) {
-		
+		if(reactorNames.containsKey(TokenEnum.EXPR_TERM))
+		{
+				// get the appropriate reactor
+				
+				initReactor(TokenEnum.EXPR_TERM);
+				// get the name of reactor
+				String nodeStr = node.getExpr() + "";
+				curReactor.put("G", frame);
+				curReactor.put(TokenEnum.EXPR_TERM, nodeStr.trim());
+		}	
 		// I need to find if there is a parent to this
 		// which is also an expr term
 		// I need some way to see if the parent is the same
@@ -253,14 +254,15 @@ public class Translation2 extends DepthFirstAdapter {
 		// get the value of it
 		// I am not goiong to do anything here
 		System.out.println("Printing expression.. " + node.getExpr());
-		if(curReactor.getValue((node.getExpr() + "").trim()) != null )
-		{
-			Object value = curReactor.getValue((node.getExpr() + "").trim());
-			curReactor.removeReplacer((node.getExpr() + "").trim());
-			curReactor.addReplacer((node + "").trim(), value);
-		}
-		
+		Hashtable <String, Object> thisReactorHash = deinitReactor(TokenEnum.EXPR_TERM, node.getExpr().toString().trim(),  node.toString().trim());
 
+		if (thisReactorHash.get(TokenEnum.EXPR_TERM) instanceof ExprReactor) {
+			ExprReactor thisReactor = (ExprReactor)thisReactorHash.get(TokenEnum.EXPR_TERM);
+			String expr = (String)thisReactor.getValue(TokenEnum.EXPR_TERM);
+			curReactor.put("COL_DEF", thisReactor.getValue(TokenEnum.COL_DEF));
+			curReactor.addReplacer(expr, thisReactor.getValue(expr));
+			this.frame.setTempExpressionResult(thisReactor.getValue(expr));
+		}
 	}
 	
     public void inAEExprExpr(AEExprExpr node)
@@ -408,6 +410,10 @@ public class Translation2 extends DepthFirstAdapter {
     	curReactor.addReplacer(node.toString().trim(), Double.parseDouble(number));
 	}
     
+    public void inAWord(AWord node) {
+    	
+    }
+    
 
     public void outAWord(AWord node)
     {
@@ -471,7 +477,14 @@ public class Translation2 extends DepthFirstAdapter {
 		// I need to set some stuff
 		// like the tinker frame etc.. 
 		String procedureName = "MATH_FUN";
-		Hashtable <String, Object> thisReactorHash = deinitReactor(procedureName, (node.getExpr() + "").trim(),  (node + "").trim());
+		String expr = node.getExpr().toString().trim();
+		Hashtable <String, Object> thisReactorHash = deinitReactor(procedureName, expr,  (node + "").trim());
+		if (thisReactorHash.get(procedureName) instanceof MathReactor) {
+			MathReactor thisReactor = (MathReactor)thisReactorHash.get(procedureName);
+			curReactor.put("COL_DEF", thisReactor.getValue(TokenEnum.COL_DEF));
+			curReactor.addReplacer(expr, thisReactor.getValue(expr));
+			this.frame.setTempExpressionResult(thisReactor.getValue(expr));
+		}
 	}
 
 	public void outAMathFunExpr(AMathFunExpr node) {

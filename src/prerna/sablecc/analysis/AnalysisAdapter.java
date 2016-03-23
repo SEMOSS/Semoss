@@ -219,6 +219,12 @@ public class AnalysisAdapter implements Analysis
     }
 
     @Override
+    public void caseADataImport(ADataImport node)
+    {
+        defaultCase(node);
+    }
+
+    @Override
     public void caseADecimal(ADecimal node)
     {
         defaultCase(node);
@@ -537,6 +543,12 @@ public class AnalysisAdapter implements Analysis
     }
 
     @Override
+    public void caseAAlphaTerm(AAlphaTerm node)
+    {
+        defaultCase(node);
+    }
+
+    @Override
     public void caseTNumber(TNumber node)
     {
         defaultCase(node);
@@ -802,6 +814,18 @@ public class AnalysisAdapter implements Analysis
 
     @Override
     public void caseTRelType(TRelType node)
+    {
+        defaultCase(node);
+    }
+
+    @Override
+    public void caseTDataimporttoken(TDataimporttoken node)
+    {
+        defaultCase(node);
+    }
+
+    @Override
+    public void caseTLiteral(TLiteral node)
     {
         defaultCase(node);
     }

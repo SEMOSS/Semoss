@@ -3,6 +3,7 @@ package prerna.sablecc;
 import java.util.HashMap;
 import java.util.Hashtable;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Vector;
 
 import prerna.ds.ExpressionIterator;
@@ -33,6 +34,7 @@ public class ColAddReactor extends AbstractReactor {
 		// TODO Auto-generated method stub
 		// I need to take the col_def
 		// and put it into who am I
+		modExpression();
 		String nodeStr = (String)myStore.get(whoAmI);
 		System.out.println("My Store on COL CSV " + myStore);
 		
@@ -42,34 +44,34 @@ public class ColAddReactor extends AbstractReactor {
 		Iterator it = null;
 		String newCol = (String)myStore.get(TokenEnum.COL_DEF + "_1");
 		
-		if(myStore.containsKey(TokenEnum.API))
-		{
-			joinCols = (String [])myStore.get(TokenEnum.API + "_" + TokenEnum.COL_CSV);
-			it = (Iterator)myStore.get(TokenEnum.API);
-		}
-		else
-		{
-			// ok this came in as an expr term
-			// I need to do the iterator here
-			System.err.println(myStore.get(TokenEnum.EXPR_TERM));
-			
-			// ok.. so it would be definitely be cool to pass this to an expr script right now and do the op
-			// however I dont have this shit
-			String expr = (String) myStore.get(TokenEnum.EXPR_TERM);
-			
-			Vector <String> cols = (Vector <String>)myStore.get(TokenEnum.COL_DEF);
-			
-			
-			cols.remove(newCol);
-			it = getTinkerData(cols, frame);
-			joinCols = convertVectorToArray(cols);
+		// ok this came in as an expr term
+		// I need to do the iterator here
+		System.err.println(myStore.get(TokenEnum.EXPR_TERM));
+		
+		// ok.. so it would be definitely be cool to pass this to an expr script right now and do the op
+		// however I dont have this shit
+		String expr = (String) myStore.get(TokenEnum.EXPR_TERM);
+		Vector <String> cols = (Vector <String>)myStore.get(TokenEnum.COL_DEF);
+		it = getTinkerData(cols, frame);
+		joinCols = convertVectorToArray(cols);
+		Object value = myStore.get(expr);
+		
+		if (value instanceof Iterator) {
+			it = (Iterator)value;
+		} else {
+			it = new ExpressionIterator(it, joinCols, value.toString());
 		}
 
 		frame.connectTypes(joinCols[0], newCol);
 		
 		while(it.hasNext()) {
 			HashMap<String, Object> row = new HashMap<String, Object>();
-			row.put(newCol, it.next());
+			Object newVal = it.next();
+			if ((newVal instanceof List) && ((List)newVal).size() == 1)
+				row.put(newCol, ((List)newVal).get(0));
+			else {
+				row.put(newCol, newVal);
+			}
 			for(int i = 0; i < joinCols.length; i++) {
 				if (it instanceof ExpressionIterator) {
 					row.put(joinCols[i], ((ExpressionIterator)it).getOtherBindings().get(joinCols[i]));
