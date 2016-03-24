@@ -45,6 +45,7 @@ import org.apache.commons.io.FileUtils;
 import prerna.ui.components.ImportDataProcessor;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
+import prerna.util.sql.RDBMSUtility;
 import prerna.util.sql.SQLQueryUtil;
 
 /**
@@ -288,7 +289,11 @@ public class PropFileWriter {
 				// pw.write("TEMP"+ "\t" + "true" + "\n");
 				String baseFolder = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER).replace("\\", System.getProperty("file.separator"));
 				System.out.println("Base Folder...  " + baseFolder);
-				pw.write(Constants.CONNECTION_URL + "\t" + queryUtil.getConnectionURL(baseFolder,dbname) + "\n");
+				if(queryUtil.getDatabaseType().equals(SQLQueryUtil.DB_TYPE.H2_DB)) {
+					pw.write(Constants.CONNECTION_URL + "\t" + RDBMSUtility.getH2BaseConnectionURL() + "\n");			
+				} else {
+					pw.write(Constants.CONNECTION_URL + "\t" + queryUtil.getConnectionURL(baseFolder,dbname) + "\n");
+				}
 				//pw.write(Constants.RDBMS_QUERY_CLASS + "\t" +  H2QueryUtil.class.getCanonicalName() + "\n");
 				pw.write(Constants.USE_OUTER_JOINS + "\t" + queryUtil.getDefaultOuterJoins()+ "\n");
 				//commenting out this item below by default

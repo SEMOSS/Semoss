@@ -77,6 +77,7 @@ import prerna.ui.components.playsheets.datamakers.DataMakerComponent;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
 import prerna.util.Utility;
+import prerna.util.sql.RDBMSUtility;
 import prerna.util.sql.SQLQueryUtil;
 
 /**
@@ -206,12 +207,11 @@ public class RDBMSReader {
 		if(dbBaseFolder == null || dbBaseFolder.isEmpty()) {
 			getBaseFolder();
 		}
-		prop.put(Constants.CONNECTION_URL, queryUtil.getConnectionURL(dbBaseFolder,engineName));
-//		if(queryUtil.getTempConnectionURL() == null || queryUtil.getTempConnectionURL().isEmpty()) {
-//			prop.put(Constants.CONNECTION_URL, queryUtil.getConnectionURL(dbBaseFolder,engineName));
-//		} else {
-//			prop.put(Constants.CONNECTION_URL, queryUtil.getTempConnectionURL());
-//		}
+		if(queryUtil.getDatabaseType().equals(SQLQueryUtil.DB_TYPE.H2_DB)) {
+			prop.put(Constants.CONNECTION_URL, RDBMSUtility.getH2BaseConnectionURL());			
+		} else {
+			prop.put(Constants.CONNECTION_URL, queryUtil.getConnectionURL(dbBaseFolder,engineName));
+		}
 		prop.put(Constants.ENGINE, engineName);
 		prop.put(Constants.USERNAME, queryUtil.getDefaultDBUserName());
 		prop.put(Constants.PASSWORD, queryUtil.getDefaultDBPassword());
@@ -732,6 +732,7 @@ public class RDBMSReader {
 			//try to open the script file
 			openScriptFile(engineName);
 			scriptFile.println("-- ********* begin load process ********* ");
+			engine.setEngineName(engineName);
 			engine.openDB(null);//dont need to specify file name, data source should exist at this point so we should be 
 			//first find all indexes, drop current ones, store off those current ones to recreate them when the process completes
 			findIndexes(engineName);
@@ -1967,6 +1968,7 @@ public class RDBMSReader {
 			//Class.forName("org.h2.Driver");
 			String dbProp = writePropFile(engineName);
 			engine = new RDBMSNativeEngine();
+			engine.setEngineName(engineName);
 			engine.openDB(dbProp);
 			//conn = DriverManager.
 			//getConnection("jdbc:h2:" + dbFolder + "/" + dbName + "/database", "sa", "");
