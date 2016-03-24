@@ -294,7 +294,7 @@ public class Parser
                 push(goTo(2), list, false);
             }
             break;
-            case 16: /* reduce ADataImportColop */
+            case 16: /* reduce AImportDataColop */
             {
                 ArrayList<Object> list = new16();
                 push(goTo(2), list, false);
@@ -372,13 +372,13 @@ public class Parser
                 push(goTo(11), list, false);
             }
             break;
-            case 29: /* reduce AAdataimport1DataImport */
+            case 29: /* reduce AAimportdata1ImportData */
             {
                 ArrayList<Object> list = new29();
                 push(goTo(12), list, false);
             }
             break;
-            case 30: /* reduce AAdataimport2DataImport */
+            case 30: /* reduce AAimportdata2ImportData */
             {
                 ArrayList<Object> list = new30();
                 push(goTo(12), list, false);
@@ -1253,7 +1253,7 @@ public class Parser
 
 
     @SuppressWarnings({ "unchecked", "rawtypes" })
-    ArrayList<Object> new16() /* reduce ADataImportColop */
+    ArrayList<Object> new16() /* reduce AImportDataColop */
     {
         @SuppressWarnings("hiding") ArrayList<Object> nodeList = new ArrayList<Object>();
 
@@ -1261,10 +1261,10 @@ public class Parser
         PColop pcolopNode1;
         {
             // Block
-        PDataImport pdataimportNode2;
-        pdataimportNode2 = (PDataImport)nodeArrayList1.get(0);
+        PImportData pimportdataNode2;
+        pimportdataNode2 = (PImportData)nodeArrayList1.get(0);
 
-        pcolopNode1 = new ADataImportColop(pdataimportNode2);
+        pcolopNode1 = new AImportDataColop(pimportdataNode2);
         }
 	nodeList.add(pcolopNode1);
         return nodeList;
@@ -1705,7 +1705,7 @@ public class Parser
 
 
     @SuppressWarnings({ "unchecked", "rawtypes" })
-    ArrayList<Object> new29() /* reduce AAdataimport1DataImport */
+    ArrayList<Object> new29() /* reduce AAimportdata1ImportData */
     {
         @SuppressWarnings("hiding") ArrayList<Object> nodeList = new ArrayList<Object>();
 
@@ -1713,7 +1713,7 @@ public class Parser
         @SuppressWarnings("unused") ArrayList<Object> nodeArrayList3 = pop();
         @SuppressWarnings("unused") ArrayList<Object> nodeArrayList2 = pop();
         @SuppressWarnings("unused") ArrayList<Object> nodeArrayList1 = pop();
-        PDataImport pdataimportNode1;
+        PImportData pimportdataNode1;
         {
             // Block
         TDataimporttoken tdataimporttokenNode2;
@@ -1726,16 +1726,16 @@ public class Parser
         papiblockNode4 = (PApiBlock)nodeArrayList3.get(0);
         trparNode6 = (TRPar)nodeArrayList4.get(0);
 
-        pdataimportNode1 = new ADataImport(tdataimporttokenNode2, tlparNode3, papiblockNode4, null, trparNode6);
+        pimportdataNode1 = new AImportData(tdataimporttokenNode2, tlparNode3, papiblockNode4, null, trparNode6);
         }
-	nodeList.add(pdataimportNode1);
+	nodeList.add(pimportdataNode1);
         return nodeList;
     }
 
 
 
     @SuppressWarnings({ "unchecked", "rawtypes" })
-    ArrayList<Object> new30() /* reduce AAdataimport2DataImport */
+    ArrayList<Object> new30() /* reduce AAimportdata2ImportData */
     {
         @SuppressWarnings("hiding") ArrayList<Object> nodeList = new ArrayList<Object>();
 
@@ -1744,7 +1744,7 @@ public class Parser
         @SuppressWarnings("unused") ArrayList<Object> nodeArrayList3 = pop();
         @SuppressWarnings("unused") ArrayList<Object> nodeArrayList2 = pop();
         @SuppressWarnings("unused") ArrayList<Object> nodeArrayList1 = pop();
-        PDataImport pdataimportNode1;
+        PImportData pimportdataNode1;
         {
             // Block
         TDataimporttoken tdataimporttokenNode2;
@@ -1758,9 +1758,9 @@ public class Parser
         prelationclauseNode5 = (PRelationClause)nodeArrayList4.get(0);
         trparNode6 = (TRPar)nodeArrayList5.get(0);
 
-        pdataimportNode1 = new ADataImport(tdataimporttokenNode2, tlparNode3, papiblockNode4, prelationclauseNode5, trparNode6);
+        pimportdataNode1 = new AImportData(tdataimporttokenNode2, tlparNode3, papiblockNode4, prelationclauseNode5, trparNode6);
         }
-	nodeList.add(pdataimportNode1);
+	nodeList.add(pimportdataNode1);
         return nodeList;
     }
 

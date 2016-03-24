@@ -165,7 +165,7 @@ public class AnalysisAdapter implements Analysis
     }
 
     @Override
-    public void caseADataImportColop(ADataImportColop node)
+    public void caseAImportDataColop(AImportDataColop node)
     {
         defaultCase(node);
     }
@@ -225,7 +225,7 @@ public class AnalysisAdapter implements Analysis
     }
 
     @Override
-    public void caseADataImport(ADataImport node)
+    public void caseAImportData(AImportData node)
     {
         defaultCase(node);
     }
