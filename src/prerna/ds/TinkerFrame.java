@@ -2336,6 +2336,11 @@ public class TinkerFrame implements ITableDataFrame {
 
 	@Override
 	public void removeColumn(String columnHeader) {
+		// if column header doesn't exist, do nothing
+		if(!ArrayUtilityMethods.arrayContainsValue(this.headerNames, columnHeader)) {
+			return;
+		}
+		
 		// A couple of thoughts from Bill Sutton
 		// there are quite a few interesting scenarios here
 		// the first question is: do we want to maintain duplicate rows after a column is removed? I could see yes and no depending on the scenario
