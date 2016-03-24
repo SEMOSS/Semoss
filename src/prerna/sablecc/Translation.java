@@ -1,6 +1,5 @@
 package prerna.sablecc;
 
-import java.util.Arrays;
 import java.util.Hashtable;
 import java.util.Iterator;
 import java.util.Vector;
@@ -13,7 +12,7 @@ import prerna.ds.ExpressionReducer;
 import prerna.ds.QueryStruct;
 import prerna.ds.TinkerFrame;
 import prerna.engine.api.IApi;
-import prerna.engine.impl.rdbms.RDBMSQueryAPI;
+import prerna.engine.impl.rdf.QueryAPI;
 import prerna.sablecc.analysis.DepthFirstAdapter;
 import prerna.sablecc.node.AAddColumn;
 import prerna.sablecc.node.AApiBlock;
@@ -163,7 +162,7 @@ public class Translation extends DepthFirstAdapter {
 			
 			// I need to instantiate the engine here
 			// for now hard coding it
-			IApi qapi = new RDBMSQueryAPI();
+			IApi qapi = new QueryAPI();
 			qapi.set("ENGINE", engine);
 			
 			QueryStruct qs = new QueryStruct();

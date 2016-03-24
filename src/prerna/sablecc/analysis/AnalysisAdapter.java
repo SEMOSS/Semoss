@@ -165,6 +165,12 @@ public class AnalysisAdapter implements Analysis
     }
 
     @Override
+    public void caseADataImportColop(ADataImportColop node)
+    {
+        defaultCase(node);
+    }
+
+    @Override
     public void caseAAddColumn(AAddColumn node)
     {
         defaultCase(node);
