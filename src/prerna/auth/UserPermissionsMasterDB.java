@@ -294,20 +294,23 @@ public class UserPermissionsMasterDB {
 	
 	// USER TRACKING METHODS BEGIN HERE
 	
-	public boolean trackInsightExecution(String user, String db, String insightId, String session) {
+	public void trackInsightExecution(String user, String db, String insightId, String session) {
 		insightId = insightId.split(" ")[1];
 		String query = "SELECT Count FROM InsightExecution WHERE USER='" + user + "' AND DATABASE='" + db + "' AND INSIGHT='" + insightId + "' AND SESSION='" + session + "';";
-		ArrayList<String[]> ret = runQuery(query);
-		
-		if(ret != null && !ret.isEmpty()) {
-			query = "UPDATE InsightExecution SET Count=Count+1, LastExecuted=CURRENT_TIMESTAMP WHERE USER='" + user + "' AND DATABASE='" + db + "' AND INSIGHT='" + insightId + "' AND SESSION='" + session + "';";
-			securityDB.execUpdateAndRetrieveStatement(query, true);
-		} else {
-			query = "INSERT INTO InsightExecution (USER, DATABASE, INSIGHT, COUNT, LASTEXECUTED, SESSION) VALUES ('" + user + "', '" + db + "', '" + insightId + "', 1, CURRENT_TIMESTAMP, '" + session + "');";
-			securityDB.insertData(query);
+		try {
+			ArrayList<String[]> ret = runQuery(query);
+			
+			if(ret != null && !ret.isEmpty()) {
+				query = "UPDATE InsightExecution SET Count=Count+1, LastExecuted=CURRENT_TIMESTAMP WHERE USER='" + user + "' AND DATABASE='" + db + "' AND INSIGHT='" + insightId + "' AND SESSION='" + session + "';";
+				securityDB.execUpdateAndRetrieveStatement(query, true);
+			} else {
+				query = "INSERT INTO InsightExecution (USER, DATABASE, INSIGHT, COUNT, LASTEXECUTED, SESSION) VALUES ('" + user + "', '" + db + "', '" + insightId + "', 1, CURRENT_TIMESTAMP, '" + session + "');";
+				securityDB.insertData(query);
+			}
+			
+			securityDB.commit();
+		} catch(Exception e) {
+			e.printStackTrace();
 		}
-		
-		securityDB.commit();
-		return true;
 	}
 }
