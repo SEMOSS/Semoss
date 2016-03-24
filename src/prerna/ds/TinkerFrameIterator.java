@@ -1,10 +1,8 @@
 package prerna.ds;
 
-import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 
 import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.GraphTraversal;
 import org.apache.tinkerpop.gremlin.structure.Graph;
@@ -26,19 +24,32 @@ public class TinkerFrameIterator implements Iterator<Object[]> {
 	public TinkerFrameIterator(List<String> selectors, Graph g, boolean useRawData) {
 		this.selectors = selectors;
 		dataType = useRawData ? Constants.VALUE : Constants.NAME;
-		this.gt = openTraversal(selectors, g, -1, -1);
+		this.gt = openTraversal(selectors, g, -1, -1, null, null);
 	}
 	
 	public TinkerFrameIterator(List<String> selectors, Graph g, boolean useRawData, int start, int end) {
 		this.selectors = selectors;
 		dataType = useRawData ? Constants.VALUE : Constants.NAME;
-		this.gt = openTraversal(selectors, g, start, end);
+		this.gt = openTraversal(selectors, g, start, end, null, null);
 	}
 	
-	private GraphTraversal openTraversal(List<String> selectors, Graph g, int start, int end) {
+	public TinkerFrameIterator(List<String> selectors, Graph g, boolean useRawData, String sortColumn, GremlinBuilder.DIRECTION orderByDirection) {
+		this.selectors = selectors;
+		dataType = useRawData ? Constants.VALUE : Constants.NAME;
+		this.gt = openTraversal(selectors, g, -1, -1, sortColumn, orderByDirection);
+	}
+	
+	public TinkerFrameIterator(List<String> selectors, Graph g, boolean useRawData, int start, int end, String sortColumn, GremlinBuilder.DIRECTION orderByDirection) {
+		this.selectors = selectors;
+		dataType = useRawData ? Constants.VALUE : Constants.NAME;
+		this.gt = openTraversal(selectors, g, start, end, sortColumn, orderByDirection);
+	}
+	
+	private GraphTraversal openTraversal(List<String> selectors, Graph g, int start, int end, String sortColumn, GremlinBuilder.DIRECTION orderByDirection) {
 		this.selectors = selectors;
 		GremlinBuilder builder = GremlinBuilder.prepareGenericBuilder(selectors, g);
-		
+		builder.orderBySelector = sortColumn;
+		builder.orderByDirection = orderByDirection;
 		//finally execute it to get the executor
 		if(start != -1) {
 			builder.setRange(start, end);
