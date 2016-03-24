@@ -840,10 +840,10 @@ public class RDBMSReader {
 				logger.info("Loading relation " + relation);            	
 				String[] strSplit = relation.split("@");
 				// get the subject and object for triple (the two indexes)
-				String sub = strSplit[0]; //String sub = Utility.cleanVariableString(strSplit[0]);
+				String sub = strSplit[0].replace(" ", "_"); //String sub = Utility.cleanVariableString(strSplit[0]);
 				String subject = "";
-				String predicate =  strSplit[1];// this needs to be ignored //Utility.cleanVariableString(strSplit[1]);
-				String obj = strSplit[2]; //Utility.cleanVariableString(strSplit[2]); 
+				String predicate =  strSplit[1].replace(" ", "_");// this needs to be ignored //Utility.cleanVariableString(strSplit[1]);
+				String obj = strSplit[2].replace(" ", "_"); //Utility.cleanVariableString(strSplit[2]); 
 				String object = "";
 
 				//guide FK creation by grabbing where the asterisk is on the predicate if one exists
@@ -947,11 +947,11 @@ public class RDBMSReader {
 				logger.info("Loading Node Prop " + relation);            	
 				String[] strSplit = relation.split("%");
 				// get the subject and object for triple (the two indexes)
-				String sub = strSplit[0];//Utility.cleanVariableString(strSplit[0]);
+				String sub = strSplit[0].replace(" ", "_");//Utility.cleanVariableString(strSplit[0]);
 				// loop through all properties on the node
 				for(int i = 1; i < strSplit.length; i++)
 				{
-					String prop = strSplit[i];//Utility.cleanVariableString(strSplit[i]);
+					String prop = strSplit[i].replace(" ", "_");//Utility.cleanVariableString(strSplit[i]);
 
 					boolean headException = true;
 					if(sub.contains("+"))
@@ -1461,7 +1461,7 @@ public class RDBMSReader {
 			//if(!sqlHash.get(type).contains("FLOAT"))
 			//	value = realClean(value);
 			// escape SQL Values
-			if (type.contains("VARCHAR") || (sqlHash.get(type).contains("VARCHAR") || sqlHash.get(type).contains("DATE")))
+			if (type.contains("VARCHAR") || (sqlHash.get(type).contains("VARCHAR") || (sqlHash.get(type).contains("DATE") && value.length() > 0)))
 			{
 				if(value.replace("'", "").trim().length() != 0) {
 					emptyValues = false;
@@ -1512,11 +1512,13 @@ public class RDBMSReader {
 
 			boolean string = false;
 
-			if(sqlHash.get(type).contains("VARCHAR") && value.length() != 0) //check for value length != 0 here before you append the quotes 
+			if((sqlHash.get(type).contains("VARCHAR") || sqlHash.get(type).contains("DATE")) && value.length() != 0) //check for value length != 0 here before you append the quotes 
 			{
 				value = value.replaceAll("'", "''");
 				value = "'" + value + "'" ;
 				string = true;
+			} else if (sqlHash.get(type).contains("DATE") && value.length() == 0) {
+				value = "null";
 			}
 
 			String cleankey = realClean(key).toUpperCase();
@@ -1763,7 +1765,7 @@ public class RDBMSReader {
 
 	private void insertRecords() throws IOException
 	{
-		String [] insertTemplates = new String[tableHash.size()];
+		HashMap<String, String> insertTemplates = new HashMap<String, String>();
 		// the job here is to take the table hash and create tables
 		Enumeration <String> tableKeys = tableHash.keys();
 
@@ -1787,7 +1789,7 @@ public class RDBMSReader {
 			else
 				SQLINSERT = "UPDATE " + tableKey.toUpperCase() + " SET "; // the paranthesis seems to change between dialect to dialect //SQLINSERT = "MERGE INTO " + tableKey.toUpperCase();
 
-			insertTemplates[tableIndex] = SQLINSERT;
+			insertTemplates.put(tableKey, SQLINSERT);
 			tableIndex++;
 		}
 
@@ -1836,9 +1838,12 @@ public class RDBMSReader {
 					// OR if the table already exists but so do all of the columns so we are actually just inserting to the existing table
 					boolean tableAlreadyExists = availableTables.containsKey(tableKey.toUpperCase());
 					if( !tableAlreadyExists ){//|| ( tableAlreadyExists && ( (!hasNewTableKeys(tableKey) && !alteredTableHasOnlyPk(tableKey)) || allColumnsMatch(tableKey)) ) ){
+						if (tableKey.equalsIgnoreCase("Incident Number")) {
+							System.out.println("Incident Number");
+						}
 						String values = getInsertString(tableKey, upperJcrMap, allColumnsTableHash);
 						if (values.length() != 0) {
-							SQL = insertTemplates[index] + values;
+							SQL = insertTemplates.get(tableKey) + values;
 						} else {
 							SQL = "";
 						}
@@ -1846,7 +1851,7 @@ public class RDBMSReader {
 					else
 					{
 						//run query to see if you can just do an update statement, if so, run the generated update sql
-						SQL = getAlterString(tableKey, upperJcrMap, insertTemplates[index], allColumnsTableHash);
+						SQL = getAlterString(tableKey, upperJcrMap, insertTemplates.get(tableKey), allColumnsTableHash);
 					}
 
 					if(SQL.length() > 0 ){
@@ -2199,6 +2204,9 @@ public class RDBMSReader {
 	 */
 	public String createInstanceValue(String subject, Map <String, Object> jcrMap, String type, boolean property)
 	{
+		if(subject.equalsIgnoreCase("SCHEDULED END DATE GMT")) {
+			System.out.println("SCHEDULED_END_DATE_GMT");
+		}
 		String retString ="";
 		// if node is a concatenation
 		if(subject.contains("+")) 
@@ -2333,13 +2341,14 @@ public class RDBMSReader {
 					String singleHeader = Utility.cleanVariableString(header[j]);
 					header[j] = singleHeader;
 				}*/
-				headerList = Arrays.asList(header);
 				// last header in CSV file is the absolute path to the prop file
 				//propFile = header[header.length-1];
 				// also keep this in the index now
-				for(int headerIndex = 1;headerIndex <= header.length;headerIndex++)
+				for(int headerIndex = 1;headerIndex <= header.length;headerIndex++) {
+					header[headerIndex-1] = header[headerIndex-1].replace(" ", "_");
 					typeIndices.put(header[headerIndex-1], headerIndex+"");
-
+				}
+				headerList = Arrays.asList(header);
 			} catch (IOException e) {
 				e.printStackTrace();
 				throw new IOException("Could not close reader input stream for CSV file " + fileName);
