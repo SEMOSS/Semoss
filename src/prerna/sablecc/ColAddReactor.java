@@ -8,6 +8,7 @@ import java.util.Vector;
 
 import prerna.ds.ExpressionIterator;
 import prerna.ds.TinkerFrame;
+import prerna.engine.api.ISelectStatement;
 
 public class ColAddReactor extends AbstractReactor {
 	
@@ -55,6 +56,7 @@ public class ColAddReactor extends AbstractReactor {
 		it = getTinkerData(cols, frame);
 		joinCols = convertVectorToArray(cols);
 		Object value = myStore.get(expr);
+		if(value == null) value = myStore.get(TokenEnum.API);
 		
 		if (value instanceof Iterator) {
 			it = (Iterator)value;
@@ -77,6 +79,9 @@ public class ColAddReactor extends AbstractReactor {
 					row.put(joinCols[i], ((ExpressionIterator)it).getOtherBindings().get(joinCols[i]));
 				}
 			}
+			if (newVal instanceof ISelectStatement) {
+				System.out.println(((ISelectStatement)newVal).getPropHash());
+			}
 			frame.addRelationship(row, row);
 		}
 		// I have no idea what we are trying to do here 
@@ -89,7 +94,7 @@ public class ColAddReactor extends AbstractReactor {
 	// gets all the values to synchronize for this 
 	public String[] getValues2Sync(String input)
 	{
-		return null;
+		return values2SyncHash.get(input);
 	}
 
 

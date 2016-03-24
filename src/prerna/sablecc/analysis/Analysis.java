@@ -27,6 +27,7 @@ public interface Analysis extends Switch
     void caseAUnfocusColop(AUnfocusColop node);
     void caseAImportColop(AImportColop node);
     void caseAAliasColop(AAliasColop node);
+    void caseADataImportColop(ADataImportColop node);
     void caseAAddColumn(AAddColumn node);
     void caseARemColumn(ARemColumn node);
     void caseASetColumn(ASetColumn node);
