@@ -99,7 +99,9 @@ public class TinkerFrame implements ITableDataFrame {
 	
 	int startRange = -1;
 	int endRange = -1;
-
+	String sortColumn;
+	GremlinBuilder.DIRECTION orderByDirection;
+	
 	final public static String PRIM_KEY = "PRIM_KEY";
 	final public static String META = "META";
 	final public static String EMPTY = "_";
@@ -108,6 +110,7 @@ public class TinkerFrame implements ITableDataFrame {
 	private static final String primKeyDelimeter = ":::";
 	
 	private Object tempExpressionResult = "FAIL";
+
 
 	/**********************    TESTING PLAYGROUND  ******************************************/
 	
@@ -2065,9 +2068,36 @@ public class TinkerFrame implements ITableDataFrame {
 	public Iterator<Object[]> iterator(boolean getRawData) {
 		TinkerFrameIterator iterator;
 		if(startRange != -1) {
-			iterator =  new TinkerFrameIterator(getSelectors(), g, getRawData, this.startRange, this.endRange);
+			if(sortColumn != null && ArrayUtilityMethods.arrayContainsValue(this.headerNames, sortColumn)) {
+				iterator =  new TinkerFrameIterator(getSelectors(), g, getRawData, this.startRange, this.endRange, this.sortColumn, this.orderByDirection);
+			} else {
+				iterator =  new TinkerFrameIterator(getSelectors(), g, getRawData, this.startRange, this.endRange);
+			}
 		} else {
-			iterator =  new TinkerFrameIterator(getSelectors(), g, getRawData);
+			if(sortColumn != null && ArrayUtilityMethods.arrayContainsValue(this.headerNames, sortColumn)) {
+				iterator =  new TinkerFrameIterator(getSelectors(), g, getRawData, this.sortColumn, this.orderByDirection);
+			} else {
+				iterator =  new TinkerFrameIterator(getSelectors(), g, getRawData);
+			}
+		}
+		return iterator;
+	}
+	
+	@Override
+	public Iterator<Object[]> iterator(boolean getRawData, List<String> selectors) {
+		TinkerFrameIterator iterator;
+		if(startRange != -1) {
+			if(sortColumn != null && ArrayUtilityMethods.arrayContainsValue(this.headerNames, sortColumn)) {
+				iterator =  new TinkerFrameIterator(selectors, g, getRawData, this.startRange, this.endRange, this.sortColumn, this.orderByDirection);
+			} else {
+				iterator =  new TinkerFrameIterator(selectors, g, getRawData, this.startRange, this.endRange);
+			}
+		} else {
+			if(sortColumn != null && ArrayUtilityMethods.arrayContainsValue(this.headerNames, sortColumn)) {
+				iterator =  new TinkerFrameIterator(selectors, g, getRawData, this.sortColumn, this.orderByDirection);
+			} else {
+				iterator =  new TinkerFrameIterator(selectors, g, getRawData);
+			}
 		}
 		return iterator;
 	}
@@ -2657,7 +2687,14 @@ public class TinkerFrame implements ITableDataFrame {
 		this.endRange = endRange;
 	}
 
-
+	public void setSortColumn(String sortColumn, String orderByDirection) {
+		this.sortColumn = sortColumn;
+		if(orderByDirection.equalsIgnoreCase("desc")) {
+			this.orderByDirection = GremlinBuilder.DIRECTION.DECR;
+		} else {
+			this.orderByDirection = GremlinBuilder.DIRECTION.INCR;
+		}
+	}
 
 	public String[] getFilteredColumns() {
 		return new String[0];
