@@ -495,6 +495,8 @@ public class Constants {
 	//RDBMS specific
 	public static final String USE_OUTER_JOINS = "USE_OUTER_JOINS";// if present and true use outer joins instead of inner joins
 	public static final String USE_CONNECTION_POOLING = "USE_CONNECTION_POOLING";
+	public static final String H2_BASE_CONNECTION_URL = "jdbc:h2:@" + Constants.BASE_FOLDER + "@" + System.getProperty("file.separator") + "@ENGINE" + Constants.ENGINE + "@"
+			+ System.getProperty("file.separator") + "database;query_timeout=180000;early_filter=true;query_cache_size=24;cache_size=32768";
 	
 	//SOLR specific
 	public static final String SOLR_RELOAD = "SOLR_RELOAD";
