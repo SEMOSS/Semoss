@@ -29,6 +29,9 @@ package prerna.om;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.security.KeyManagementException;
+import java.security.KeyStoreException;
+import java.security.NoSuchAlgorithmException;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -45,6 +48,8 @@ import java.util.Vector;
 import org.apache.commons.io.IOUtils;
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
+import org.apache.solr.client.solrj.SolrServerException;
+import org.apache.solr.common.SolrDocumentList;
 import org.h2.jdbc.JdbcClob;
 import org.openrdf.model.Literal;
 import org.openrdf.repository.Repository;
@@ -71,6 +76,7 @@ import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.rdf.query.builder.QueryBuilderData;
 import prerna.rdf.query.builder.QueryBuilderHelper;
 import prerna.rdf.util.AbstractQueryParser;
+import prerna.solr.SolrIndexEngine;
 import prerna.ui.components.api.IPlaySheet;
 import prerna.ui.components.playsheets.datamakers.DataMakerComponent;
 import prerna.ui.components.playsheets.datamakers.FilterTransformation;
@@ -1284,6 +1290,25 @@ public class Insight {
 //			ISEMOSSTransformation trans = transToRedo.get(transIdx);
 			this.processPostTransformation(transToRedo, dataMaker);
 //		}
+	}
+	
+	public void loadDataFromSolr() {
+		try {
+			SolrDocumentList solrDocs = SolrIndexEngine.getInstance().getInsight(getDatabaseID());
+			if(solrDocs == null || solrDocs.size() == 0) {
+				return;
+			} else if(solrDocs.size() > 1) {
+				// not sure how this would happen or what to do
+			}
+			
+			Map<String, Object> insightMetaData = solrDocs.get(0).getFieldValueMap();
+			this.setInsightName(insightMetaData.get(SolrIndexEngine.STORAGE_NAME) + "");
+			this.setOutput(insightMetaData.get(SolrIndexEngine.LAYOUT) + "");
+			
+		} catch (KeyManagementException | NoSuchAlgorithmException | KeyStoreException | SolrServerException
+				| IOException e) {
+			e.printStackTrace();
+		}
 	}
 
 }
