@@ -1076,10 +1076,9 @@ public abstract class AbstractEngine implements IEngine {
 				// in = labelIdHash.get(label);
 				Insight in = new Insight(this, "Unknown", "Unknown");
 				in.setInsightID(id);
-				in.setRdbmsId(id);
-				in.setInsightName("DNE");
+				in.setDatabaseID(id);
 				in.setIsNonDbInsight(true);
-//				in.setMakeup("This will not work");
+				in.loadDataFromSolr();
 				insightV.insertElementAt(in, i);
 				logger.debug("Using Label ID Hash ");
 			}
