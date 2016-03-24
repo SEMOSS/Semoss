@@ -370,25 +370,25 @@ public class DepthFirstAdapter extends AnalysisAdapter
         outAAliasColop(node);
     }
 
-    public void inADataImportColop(ADataImportColop node)
+    public void inAImportDataColop(AImportDataColop node)
     {
         defaultIn(node);
     }
 
-    public void outADataImportColop(ADataImportColop node)
+    public void outAImportDataColop(AImportDataColop node)
     {
         defaultOut(node);
     }
 
     @Override
-    public void caseADataImportColop(ADataImportColop node)
+    public void caseAImportDataColop(AImportDataColop node)
     {
-        inADataImportColop(node);
-        if(node.getDataImport() != null)
+        inAImportDataColop(node);
+        if(node.getImportData() != null)
         {
-            node.getDataImport().apply(this);
+            node.getImportData().apply(this);
         }
-        outADataImportColop(node);
+        outAImportDataColop(node);
     }
 
     public void inAAddColumn(AAddColumn node)
@@ -753,20 +753,20 @@ public class DepthFirstAdapter extends AnalysisAdapter
         outAAliasColumn(node);
     }
 
-    public void inADataImport(ADataImport node)
+    public void inAImportData(AImportData node)
     {
         defaultIn(node);
     }
 
-    public void outADataImport(ADataImport node)
+    public void outAImportData(AImportData node)
     {
         defaultOut(node);
     }
 
     @Override
-    public void caseADataImport(ADataImport node)
+    public void caseAImportData(AImportData node)
     {
-        inADataImport(node);
+        inAImportData(node);
         if(node.getDataimporttoken() != null)
         {
             node.getDataimporttoken().apply(this);
@@ -775,9 +775,9 @@ public class DepthFirstAdapter extends AnalysisAdapter
         {
             node.getLp1().apply(this);
         }
-        if(node.getApiBlock() != null)
+        if(node.getApi() != null)
         {
-            node.getApiBlock().apply(this);
+            node.getApi().apply(this);
         }
         if(node.getJoins() != null)
         {
@@ -787,7 +787,7 @@ public class DepthFirstAdapter extends AnalysisAdapter
         {
             node.getRp2().apply(this);
         }
-        outADataImport(node);
+        outAImportData(node);
     }
 
     public void inADecimal(ADecimal node)
