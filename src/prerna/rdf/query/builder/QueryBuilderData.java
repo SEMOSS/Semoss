@@ -343,7 +343,7 @@ public class QueryBuilderData {
 			}
 		}
 		if(this.nodeProps != null && !this.nodeProps.isEmpty()) {
-			for(int i = 0; i < this.relTriples.size(); i++) {
+			for(int i = 0; i < this.nodeProps.size(); i++) {
 				Map<String, String> nodeMap = this.nodeProps.get(i);
 				// currently we add a bunch of stuff into the node props map
 				// but we really only want the uriKey
