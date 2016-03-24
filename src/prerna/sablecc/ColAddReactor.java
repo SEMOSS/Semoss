@@ -59,31 +59,56 @@ public class ColAddReactor extends AbstractReactor {
 		if(value == null) value = myStore.get(TokenEnum.API);
 		
 		if (value instanceof Iterator) {
-			it = (Iterator)value;
+			it = (ExpressionIterator)value;
 		} else {
 			it = new ExpressionIterator(it, joinCols, value.toString());
 		}
 
-		frame.connectTypes(joinCols[0], newCol);
-		
-		while(it.hasNext()) {
-			HashMap<String, Object> row = new HashMap<String, Object>();
-			Object newVal = it.next();
-			if ((newVal instanceof List) && ((List)newVal).size() == 1)
-				row.put(newCol, ((List)newVal).get(0));
-			else {
-				row.put(newCol, newVal);
-			}
-			for(int i = 0; i < joinCols.length; i++) {
-				if (it instanceof ExpressionIterator) {
-					row.put(joinCols[i], ((ExpressionIterator)it).getOtherBindings().get(joinCols[i]));
+		frame.connectTypes(joinCols, newCol);
+		if (joinCols.length > 1) { // multicolumn join
+			String primKeyName = frame.getPrimaryKey(joinCols);
+			while(it.hasNext()) {
+				HashMap<String, Object> row = new HashMap<String, Object>();
+				Object newVal = it.next();
+				Object[] values = new Object[joinCols.length];
+				if ((newVal instanceof List) && ((List)newVal).size() == 1)
+					row.put(newCol, ((List)newVal).get(0));
+				else {
+					row.put(newCol, newVal);
 				}
+				for(int i = 0; i < joinCols.length; i++) {
+					if (it instanceof ExpressionIterator) {
+						Object rowVal = ((ExpressionIterator)it).getOtherBindings().get(joinCols[i]);
+						row.put(joinCols[i], rowVal);
+						values[i] = rowVal;
+					}
+				}
+				row.put(primKeyName, frame.getPrimaryKey(values));
+				frame.addRelationship(row, row);
 			}
+		} else {
+			while(it.hasNext()) {
+				HashMap<String, Object> row = new HashMap<String, Object>();
+				Object newVal = it.next();
+				if ((newVal instanceof List) && ((List)newVal).size() == 1)
+					row.put(newCol, ((List)newVal).get(0));
+				else {
+					row.put(newCol, newVal);
+				}
+				for(int i = 0; i < joinCols.length; i++) {
+					if (it instanceof ExpressionIterator) {
+						row.put(joinCols[i], ((ExpressionIterator)it).getOtherBindings().get(joinCols[i]));
+					}
+				}
 			if (newVal instanceof ISelectStatement) {
 				System.out.println(((ISelectStatement)newVal).getPropHash());
 			}
-			frame.addRelationship(row, row);
+				frame.addRelationship(row, row);
+			}
 		}
+		
+		
+		
 		// I have no idea what we are trying to do here 
 		// need to ask kevin
 		frame.setTempExpressionResult("SUCCESS");
