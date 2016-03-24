@@ -370,6 +370,27 @@ public class DepthFirstAdapter extends AnalysisAdapter
         outAAliasColop(node);
     }
 
+    public void inADataImportColop(ADataImportColop node)
+    {
+        defaultIn(node);
+    }
+
+    public void outADataImportColop(ADataImportColop node)
+    {
+        defaultOut(node);
+    }
+
+    @Override
+    public void caseADataImportColop(ADataImportColop node)
+    {
+        inADataImportColop(node);
+        if(node.getDataImport() != null)
+        {
+            node.getDataImport().apply(this);
+        }
+        outADataImportColop(node);
+    }
+
     public void inAAddColumn(AAddColumn node)
     {
         defaultIn(node);
@@ -750,25 +771,21 @@ public class DepthFirstAdapter extends AnalysisAdapter
         {
             node.getDataimporttoken().apply(this);
         }
-        if(node.getLPar() != null)
+        if(node.getLp1() != null)
         {
-            node.getLPar().apply(this);
+            node.getLp1().apply(this);
         }
         if(node.getApiBlock() != null)
         {
             node.getApiBlock().apply(this);
         }
-        if(node.getComma() != null)
-        {
-            node.getComma().apply(this);
-        }
         if(node.getJoins() != null)
         {
             node.getJoins().apply(this);
         }
-        if(node.getRPar() != null)
+        if(node.getRp2() != null)
         {
-            node.getRPar().apply(this);
+            node.getRp2().apply(this);
         }
         outADataImport(node);
     }
