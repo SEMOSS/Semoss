@@ -31,7 +31,10 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.text.DateFormat;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.Hashtable;
 
 import prerna.engine.api.IEngine;
@@ -287,5 +290,24 @@ public class UserPermissionsMasterDB {
 		}
 		
 		return ret;
+	}
+	
+	// USER TRACKING METHODS BEGIN HERE
+	
+	public boolean trackInsightExecution(String user, String db, String insightId, String session) {
+		insightId = insightId.split(" ")[1];
+		String query = "SELECT Count FROM InsightExecution WHERE USER='" + user + "' AND DATABASE='" + db + "' AND INSIGHT='" + insightId + "' AND SESSION='" + session + "';";
+		ArrayList<String[]> ret = runQuery(query);
+		
+		if(ret != null && !ret.isEmpty()) {
+			query = "UPDATE InsightExecution SET Count=Count+1, LastExecuted=CURRENT_TIMESTAMP WHERE USER='" + user + "' AND DATABASE='" + db + "' AND INSIGHT='" + insightId + "' AND SESSION='" + session + "';";
+			securityDB.execUpdateAndRetrieveStatement(query, true);
+		} else {
+			query = "INSERT INTO InsightExecution (USER, DATABASE, INSIGHT, COUNT, LASTEXECUTED, SESSION) VALUES ('" + user + "', '" + db + "', '" + insightId + "', 1, CURRENT_TIMESTAMP, '" + session + "');";
+			securityDB.insertData(query);
+		}
+		
+		securityDB.commit();
+		return true;
 	}
 }
