@@ -5,23 +5,23 @@ package prerna.sablecc.node;
 import prerna.sablecc.analysis.*;
 
 @SuppressWarnings("nls")
-public final class ADataImport extends PDataImport
+public final class AImportData extends PImportData
 {
     private TDataimporttoken _dataimporttoken_;
     private TLPar _lp1_;
-    private PApiBlock _apiBlock_;
+    private PApiBlock _api_;
     private PRelationClause _joins_;
     private TRPar _rp2_;
 
-    public ADataImport()
+    public AImportData()
     {
         // Constructor
     }
 
-    public ADataImport(
+    public AImportData(
         @SuppressWarnings("hiding") TDataimporttoken _dataimporttoken_,
         @SuppressWarnings("hiding") TLPar _lp1_,
-        @SuppressWarnings("hiding") PApiBlock _apiBlock_,
+        @SuppressWarnings("hiding") PApiBlock _api_,
         @SuppressWarnings("hiding") PRelationClause _joins_,
         @SuppressWarnings("hiding") TRPar _rp2_)
     {
@@ -30,7 +30,7 @@ public final class ADataImport extends PDataImport
 
         setLp1(_lp1_);
 
-        setApiBlock(_apiBlock_);
+        setApi(_api_);
 
         setJoins(_joins_);
 
@@ -41,10 +41,10 @@ public final class ADataImport extends PDataImport
     @Override
     public Object clone()
     {
-        return new ADataImport(
+        return new AImportData(
             cloneNode(this._dataimporttoken_),
             cloneNode(this._lp1_),
-            cloneNode(this._apiBlock_),
+            cloneNode(this._api_),
             cloneNode(this._joins_),
             cloneNode(this._rp2_));
     }
@@ -52,7 +52,7 @@ public final class ADataImport extends PDataImport
     @Override
     public void apply(Switch sw)
     {
-        ((Analysis) sw).caseADataImport(this);
+        ((Analysis) sw).caseAImportData(this);
     }
 
     public TDataimporttoken getDataimporttoken()
@@ -105,16 +105,16 @@ public final class ADataImport extends PDataImport
         this._lp1_ = node;
     }
 
-    public PApiBlock getApiBlock()
+    public PApiBlock getApi()
     {
-        return this._apiBlock_;
+        return this._api_;
     }
 
-    public void setApiBlock(PApiBlock node)
+    public void setApi(PApiBlock node)
     {
-        if(this._apiBlock_ != null)
+        if(this._api_ != null)
         {
-            this._apiBlock_.parent(null);
+            this._api_.parent(null);
         }
 
         if(node != null)
@@ -127,7 +127,7 @@ public final class ADataImport extends PDataImport
             node.parent(this);
         }
 
-        this._apiBlock_ = node;
+        this._api_ = node;
     }
 
     public PRelationClause getJoins()
@@ -186,7 +186,7 @@ public final class ADataImport extends PDataImport
         return ""
             + toString(this._dataimporttoken_)
             + toString(this._lp1_)
-            + toString(this._apiBlock_)
+            + toString(this._api_)
             + toString(this._joins_)
             + toString(this._rp2_);
     }
@@ -207,9 +207,9 @@ public final class ADataImport extends PDataImport
             return;
         }
 
-        if(this._apiBlock_ == child)
+        if(this._api_ == child)
         {
-            this._apiBlock_ = null;
+            this._api_ = null;
             return;
         }
 
@@ -244,9 +244,9 @@ public final class ADataImport extends PDataImport
             return;
         }
 
-        if(this._apiBlock_ == oldChild)
+        if(this._api_ == oldChild)
         {
-            setApiBlock((PApiBlock) newChild);
+            setApi((PApiBlock) newChild);
             return;
         }
 
