@@ -89,7 +89,7 @@ colop = // colOp is usually of the form of joinColumn / addColumn / removeColumn
 		| {unfocus} unfocus
 		| {import} import_column
 		| {alias} alias_column
-		| {data_import} data_import
+		| {import_data} import_data
 		;
 
 		
@@ -126,8 +126,8 @@ import_column = // importing data - col.import(tree | flat, [c:col1, c:col2, c:c
 alias_column = // sets the column aliases
 		colalias [lp1]:l_par [cols]:col_csv [where]:where_clause [rp2]:r_par;
 		
-data_import = // imports from api query commands and other scripts
-		dataimporttoken [lp1]:l_par [api_block]:api_block [joins]:relation_clause? [rp2]:r_par;
+import_data = // imports from api query commands and other scripts
+		dataimporttoken [lp1]:l_par [api]:api_block [joins]:relation_clause? [rp2]:r_par;
 		
 		
 decimal = [whole]:number dot? [fraction]:number?;		
