@@ -228,17 +228,51 @@ public class SolrIndexEngine {
 		}
 	}
 
+	public SolrDocumentList getInsight(String uniqueID) throws SolrServerException, IOException {
+		SolrDocumentList results = null;
+		if(serverActive()) {
+			// delete document based on ID
+			LOGGER.info("Getting documents with id:  " + uniqueID);
+			SolrIndexEngineQueryBuilder queryBuilder = new SolrIndexEngineQueryBuilder();
+			queryBuilder.setSearchString(QUERY_ALL);
+			Map<String, List<String>> filterForId = new HashMap<String, List<String>>();
+			List<String> uniqueIDs = new ArrayList<String>();
+			uniqueIDs.add(uniqueID);
+			filterForId.put(ID, uniqueIDs);
+			queryBuilder.setFilterOptions(filterForId);
+			QueryResponse res = getQueryResponse(queryBuilder.getSolrQuery(), SOLR_PATHS.SOLR_INSIGHTS_PATH);
+			results = res.getResults();
+		}
+		return results;
+	}
+	
+	public SolrDocumentList getInsight(List<String> uniqueIDs) throws SolrServerException, IOException {
+		SolrDocumentList results = null;
+		if(serverActive()) {
+			// delete document based on ID
+			LOGGER.info("Getting documents with ids:  " + uniqueIDs);
+			SolrIndexEngineQueryBuilder queryBuilder = new SolrIndexEngineQueryBuilder();
+			queryBuilder.setSearchString(QUERY_ALL);
+			Map<String, List<String>> filterForId = new HashMap<String, List<String>>();
+			filterForId.put(ID, uniqueIDs);
+			queryBuilder.setFilterOptions(filterForId);
+			QueryResponse res = getQueryResponse(queryBuilder.getSolrQuery(), SOLR_PATHS.SOLR_INSIGHTS_PATH);
+			results = res.getResults();
+		}
+		return results;
+	}
+	
 	/**
 	 * Deletes the specified document based on its Unique ID
 	 * @param uniqueID              ID to be deleted
 	 */
-	public void removeInsight(List<String> uniqueID) throws SolrServerException, IOException {
+	public void removeInsight(List<String> uniqueIDs) throws SolrServerException, IOException {
 		if (serverActive()) {
 			// delete document based on ID
-			LOGGER.info("Deleting document:  " + uniqueID);
-			insightServer.deleteById(uniqueID);
+			LOGGER.info("Deleting documents with ids:  " + uniqueIDs);
+			insightServer.deleteById(uniqueIDs);
 			insightServer.commit();
-			LOGGER.info("UniqueID " + uniqueID + "'s doc has been deleted");
+			LOGGER.info("Documents with uniqueIDs: " + uniqueIDs + " have been deleted");
 			buildSuggester();
 		}
 	}
@@ -258,7 +292,10 @@ public class SolrIndexEngine {
 			filterForId.put(ID, idList);
 			queryBuilder.setFilterOptions(filterForId);
 			
-			SolrDocument origDoc = queryDocument(queryBuilder).get(0);
+//			SolrDocument origDoc = queryDocument(queryBuilder).get(0);
+			QueryResponse res = getQueryResponse(queryBuilder.getSolrQuery(), SOLR_PATHS.SOLR_INSIGHTS_PATH);
+			SolrDocument origDoc = res.getResults().get(0);
+			
 			Iterator<Entry<String, Object>> iterator = origDoc.iterator();
 			SolrInputDocument doc = new SolrInputDocument();
 			doc.get(uniqueID); // getting the doc set based on the id
@@ -964,12 +1001,16 @@ public class SolrIndexEngine {
 	}
 	
 	public static List<String> getSolrIdFromInsightEngineId(String engineName, List<String> engineIds) {
-		engineName = engineName + "_";
 		Vector<String> fixedQuestionIds = new Vector<String>();
 		for(String id : engineIds) {
-			fixedQuestionIds.add(engineName + id);
+			fixedQuestionIds.add(getSolrIdFromInsightEngineId(engineName, id));
 		}
 		
 		return fixedQuestionIds;
 	}
+	
+	public static String getSolrIdFromInsightEngineId(String engineName, String id) {
+		return engineName + "_" + id;
+	}
+	
 }
