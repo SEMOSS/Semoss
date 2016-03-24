@@ -5,46 +5,46 @@ package prerna.sablecc.node;
 import prerna.sablecc.analysis.*;
 
 @SuppressWarnings("nls")
-public final class ADataImportColop extends PColop
+public final class AImportDataColop extends PColop
 {
-    private PDataImport _dataImport_;
+    private PImportData _importData_;
 
-    public ADataImportColop()
+    public AImportDataColop()
     {
         // Constructor
     }
 
-    public ADataImportColop(
-        @SuppressWarnings("hiding") PDataImport _dataImport_)
+    public AImportDataColop(
+        @SuppressWarnings("hiding") PImportData _importData_)
     {
         // Constructor
-        setDataImport(_dataImport_);
+        setImportData(_importData_);
 
     }
 
     @Override
     public Object clone()
     {
-        return new ADataImportColop(
-            cloneNode(this._dataImport_));
+        return new AImportDataColop(
+            cloneNode(this._importData_));
     }
 
     @Override
     public void apply(Switch sw)
     {
-        ((Analysis) sw).caseADataImportColop(this);
+        ((Analysis) sw).caseAImportDataColop(this);
     }
 
-    public PDataImport getDataImport()
+    public PImportData getImportData()
     {
-        return this._dataImport_;
+        return this._importData_;
     }
 
-    public void setDataImport(PDataImport node)
+    public void setImportData(PImportData node)
     {
-        if(this._dataImport_ != null)
+        if(this._importData_ != null)
         {
-            this._dataImport_.parent(null);
+            this._importData_.parent(null);
         }
 
         if(node != null)
@@ -57,23 +57,23 @@ public final class ADataImportColop extends PColop
             node.parent(this);
         }
 
-        this._dataImport_ = node;
+        this._importData_ = node;
     }
 
     @Override
     public String toString()
     {
         return ""
-            + toString(this._dataImport_);
+            + toString(this._importData_);
     }
 
     @Override
     void removeChild(@SuppressWarnings("unused") Node child)
     {
         // Remove child
-        if(this._dataImport_ == child)
+        if(this._importData_ == child)
         {
-            this._dataImport_ = null;
+            this._importData_ = null;
             return;
         }
 
@@ -84,9 +84,9 @@ public final class ADataImportColop extends PColop
     void replaceChild(@SuppressWarnings("unused") Node oldChild, @SuppressWarnings("unused") Node newChild)
     {
         // Replace child
-        if(this._dataImport_ == oldChild)
+        if(this._importData_ == oldChild)
         {
-            setDataImport((PDataImport) newChild);
+            setImportData((PImportData) newChild);
             return;
         }
 

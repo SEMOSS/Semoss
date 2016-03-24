@@ -22,6 +22,7 @@ import prerna.sablecc.node.AExprRow;
 import prerna.sablecc.node.AExprScript;
 import prerna.sablecc.node.AExprTerm;
 import prerna.sablecc.node.AImportColumn;
+import prerna.sablecc.node.AImportData;
 import prerna.sablecc.node.AMathFun;
 import prerna.sablecc.node.AMathFunExpr;
 import prerna.sablecc.node.AMinusExpr;
@@ -96,6 +97,7 @@ public class Translation2 extends DepthFirstAdapter {
 		reactorNames.put(TokenEnum.WHERE, "prerna.sablecc.ColWhereReactor");
 		reactorNames.put(TokenEnum.REL_DEF, "prerna.sablecc.RelReactor");
 		reactorNames.put(TokenEnum.COL_ADD, "prerna.sablecc.ColAddReactor");
+		reactorNames.put(TokenEnum.IMPORT_DATA, "prerna.sablecc.ImportDataReactor");
 	}
 	
 
@@ -379,6 +381,23 @@ public class Translation2 extends DepthFirstAdapter {
 			curReactor.put(TokenEnum.COL_ADD, nodeStr.trim());
 		}		
 	}
+
+    public void inAImportData(AImportData node){
+		if(reactorNames.containsKey(TokenEnum.IMPORT_DATA))
+		{
+			// simplify baby simplify baby simplify
+			initReactor(TokenEnum.IMPORT_DATA);
+			String nodeStr = node + "";
+			curReactor.put(TokenEnum.IMPORT_DATA, nodeStr.trim());
+		}		
+    }
+    
+    public void outAImportData(AImportData node){
+		String nodeStr = node.getApi() + "";
+		nodeStr = nodeStr.trim();
+		curReactor.put(TokenEnum.EXPR_TERM, nodeStr);
+		Hashtable <String, Object> thisReactorHash = deinitReactor(TokenEnum.IMPORT_DATA, nodeStr, (node + "").trim());
+    }
 
 	public void outASetColumn(ASetColumn node) {
 		//System.out.println("Set.. [" + (node.getExpr() + "").trim() + "]");
