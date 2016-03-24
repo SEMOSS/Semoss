@@ -8,11 +8,10 @@ import prerna.sablecc.analysis.*;
 public final class ADataImport extends PDataImport
 {
     private TDataimporttoken _dataimporttoken_;
-    private TLPar _lPar_;
+    private TLPar _lp1_;
     private PApiBlock _apiBlock_;
-    private TComma _comma_;
     private PRelationClause _joins_;
-    private TRPar _rPar_;
+    private TRPar _rp2_;
 
     public ADataImport()
     {
@@ -21,24 +20,21 @@ public final class ADataImport extends PDataImport
 
     public ADataImport(
         @SuppressWarnings("hiding") TDataimporttoken _dataimporttoken_,
-        @SuppressWarnings("hiding") TLPar _lPar_,
+        @SuppressWarnings("hiding") TLPar _lp1_,
         @SuppressWarnings("hiding") PApiBlock _apiBlock_,
-        @SuppressWarnings("hiding") TComma _comma_,
         @SuppressWarnings("hiding") PRelationClause _joins_,
-        @SuppressWarnings("hiding") TRPar _rPar_)
+        @SuppressWarnings("hiding") TRPar _rp2_)
     {
         // Constructor
         setDataimporttoken(_dataimporttoken_);
 
-        setLPar(_lPar_);
+        setLp1(_lp1_);
 
         setApiBlock(_apiBlock_);
 
-        setComma(_comma_);
-
         setJoins(_joins_);
 
-        setRPar(_rPar_);
+        setRp2(_rp2_);
 
     }
 
@@ -47,11 +43,10 @@ public final class ADataImport extends PDataImport
     {
         return new ADataImport(
             cloneNode(this._dataimporttoken_),
-            cloneNode(this._lPar_),
+            cloneNode(this._lp1_),
             cloneNode(this._apiBlock_),
-            cloneNode(this._comma_),
             cloneNode(this._joins_),
-            cloneNode(this._rPar_));
+            cloneNode(this._rp2_));
     }
 
     @Override
@@ -85,16 +80,16 @@ public final class ADataImport extends PDataImport
         this._dataimporttoken_ = node;
     }
 
-    public TLPar getLPar()
+    public TLPar getLp1()
     {
-        return this._lPar_;
+        return this._lp1_;
     }
 
-    public void setLPar(TLPar node)
+    public void setLp1(TLPar node)
     {
-        if(this._lPar_ != null)
+        if(this._lp1_ != null)
         {
-            this._lPar_.parent(null);
+            this._lp1_.parent(null);
         }
 
         if(node != null)
@@ -107,7 +102,7 @@ public final class ADataImport extends PDataImport
             node.parent(this);
         }
 
-        this._lPar_ = node;
+        this._lp1_ = node;
     }
 
     public PApiBlock getApiBlock()
@@ -135,31 +130,6 @@ public final class ADataImport extends PDataImport
         this._apiBlock_ = node;
     }
 
-    public TComma getComma()
-    {
-        return this._comma_;
-    }
-
-    public void setComma(TComma node)
-    {
-        if(this._comma_ != null)
-        {
-            this._comma_.parent(null);
-        }
-
-        if(node != null)
-        {
-            if(node.parent() != null)
-            {
-                node.parent().removeChild(node);
-            }
-
-            node.parent(this);
-        }
-
-        this._comma_ = node;
-    }
-
     public PRelationClause getJoins()
     {
         return this._joins_;
@@ -185,16 +155,16 @@ public final class ADataImport extends PDataImport
         this._joins_ = node;
     }
 
-    public TRPar getRPar()
+    public TRPar getRp2()
     {
-        return this._rPar_;
+        return this._rp2_;
     }
 
-    public void setRPar(TRPar node)
+    public void setRp2(TRPar node)
     {
-        if(this._rPar_ != null)
+        if(this._rp2_ != null)
         {
-            this._rPar_.parent(null);
+            this._rp2_.parent(null);
         }
 
         if(node != null)
@@ -207,7 +177,7 @@ public final class ADataImport extends PDataImport
             node.parent(this);
         }
 
-        this._rPar_ = node;
+        this._rp2_ = node;
     }
 
     @Override
@@ -215,11 +185,10 @@ public final class ADataImport extends PDataImport
     {
         return ""
             + toString(this._dataimporttoken_)
-            + toString(this._lPar_)
+            + toString(this._lp1_)
             + toString(this._apiBlock_)
-            + toString(this._comma_)
             + toString(this._joins_)
-            + toString(this._rPar_);
+            + toString(this._rp2_);
     }
 
     @Override
@@ -232,9 +201,9 @@ public final class ADataImport extends PDataImport
             return;
         }
 
-        if(this._lPar_ == child)
+        if(this._lp1_ == child)
         {
-            this._lPar_ = null;
+            this._lp1_ = null;
             return;
         }
 
@@ -244,21 +213,15 @@ public final class ADataImport extends PDataImport
             return;
         }
 
-        if(this._comma_ == child)
-        {
-            this._comma_ = null;
-            return;
-        }
-
         if(this._joins_ == child)
         {
             this._joins_ = null;
             return;
         }
 
-        if(this._rPar_ == child)
+        if(this._rp2_ == child)
         {
-            this._rPar_ = null;
+            this._rp2_ = null;
             return;
         }
 
@@ -275,9 +238,9 @@ public final class ADataImport extends PDataImport
             return;
         }
 
-        if(this._lPar_ == oldChild)
+        if(this._lp1_ == oldChild)
         {
-            setLPar((TLPar) newChild);
+            setLp1((TLPar) newChild);
             return;
         }
 
@@ -287,21 +250,15 @@ public final class ADataImport extends PDataImport
             return;
         }
 
-        if(this._comma_ == oldChild)
-        {
-            setComma((TComma) newChild);
-            return;
-        }
-
         if(this._joins_ == oldChild)
         {
             setJoins((PRelationClause) newChild);
             return;
         }
 
-        if(this._rPar_ == oldChild)
+        if(this._rp2_ == oldChild)
         {
-            setRPar((TRPar) newChild);
+            setRp2((TRPar) newChild);
             return;
         }
 
