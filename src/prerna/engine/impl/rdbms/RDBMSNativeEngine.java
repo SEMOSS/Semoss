@@ -27,6 +27,7 @@
  *******************************************************************************/
 package prerna.engine.impl.rdbms;
 
+import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.sql.Connection;
@@ -59,6 +60,8 @@ import prerna.rdf.util.SQLQueryParser;
 import prerna.util.ConnectionUtils;
 import prerna.util.Constants;
 import prerna.util.Utility;
+import prerna.util.sql.H2QueryUtil;
+import prerna.util.sql.RDBMSUtility;
 import prerna.util.sql.SQLQueryUtil;
 
 public class RDBMSNativeEngine extends AbstractEngine {
@@ -107,7 +110,7 @@ public class RDBMSNativeEngine extends AbstractEngine {
 					logger.error("error in RDBMS openDB processing prop file", e1);
 				}
 			}
-			String connectionURL = prop.getProperty(Constants.CONNECTION_URL);
+			
 			String tempEngineName = prop.getProperty(Constants.ENGINE);
 			String tempConnectionURL = prop.getProperty(Constants.TEMP_CONNECTION_URL);
 			String userName = prop.getProperty(Constants.USERNAME);
@@ -117,6 +120,23 @@ public class RDBMSNativeEngine extends AbstractEngine {
 			dbType = SQLQueryUtil.DB_TYPE.H2_DB;
 			if (dbTypeString != null) {
 				dbType = (SQLQueryUtil.DB_TYPE.valueOf(dbTypeString));
+			}
+			String connectionURL = prop.getProperty(Constants.CONNECTION_URL);
+			if(dbType == SQLQueryUtil.DB_TYPE.H2_DB) {
+				if(engineName != null) {
+					connectionURL = RDBMSUtility.fillH2ConnectionURL(connectionURL, engineName);
+					try {
+						Class.forName(H2QueryUtil.DATABASE_DRIVER);
+						if(!(new File(RDBMSUtility.getH2ConnectionURLAbsolutePath(connectionURL)).exists()) || 
+								!RDBMSUtility.isValidConnection(DriverManager.getConnection(connectionURL, "sa" , ""))) {
+							connectionURL = resetH2ConnectionURL();System.out.println();
+						}
+					} catch (ClassNotFoundException | SQLException e) {
+						logger.error("H2 Connection Error: " + e.getMessage() + " for Connection URL: " + connectionURL);
+						connectionURL = resetH2ConnectionURL();
+					}
+				}
+				prop.setProperty(Constants.CONNECTION_URL, connectionURL);
 			}
 			if(prop.containsKey(Constants.PASSWORD))
 				password = prop.getProperty(Constants.PASSWORD);
@@ -572,5 +592,10 @@ public class RDBMSNativeEngine extends AbstractEngine {
 				e.printStackTrace();
 			}
 		}
+	}
+	
+	private String resetH2ConnectionURL() {
+		String baseH2URL = RDBMSUtility.getH2BaseConnectionURL();
+		return RDBMSUtility.fillH2ConnectionURL(baseH2URL, engineName);
 	}
 }
