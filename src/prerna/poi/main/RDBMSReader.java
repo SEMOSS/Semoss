@@ -32,6 +32,7 @@ import java.util.Arrays;
 import java.util.Date;
 //import java.util.Date;
 import java.util.Enumeration;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Hashtable;
 import java.util.Iterator;
@@ -1147,11 +1148,11 @@ public class RDBMSReader {
 				modString = getCreateString(tableKey);
 				tables.add(tableKey);
 			}
-			else if(!allColumnsMatch(tableKey))
+			else //if(!allColumnsMatch(tableKey))
 				modString = getAlterTable(tableKey);
-			else{
-				modifiedTable = false;
-			}
+//			else{
+//				modifiedTable = false;
+//			}
 
 			allTablesModified.add(tableKey);
 
@@ -1414,15 +1415,20 @@ public class RDBMSReader {
 		return SQLALTER;
 	}
 
-	private String getInsertString(String tableKey, Map <String, Object> jcrMap)
+	private String getInsertString(String tableKey, Map <String, Object> jcrMap, Hashtable<String, Hashtable<String, String>> allColumnsTableHash)
 	{
 		String VALUES = " (";		
-		Hashtable columns = tableHash.get(tableKey);
+		Hashtable columns = allColumnsTableHash.get(tableKey);
 		String type = (String) columns.get(tableKey);
 		boolean property = false;
 		String value = createInstanceValue(tableKey, jcrMap, type, property);
 		value = value.replaceAll("'", "''");	
 		value = "'" +  value + "'"; // would the value be always string ?
+		
+		boolean emptyValues = true; // used to check if all values are empty Strings or null
+		if(value.replace("'", "").trim().length() != 0) {
+			emptyValues = false;
+		}
 		VALUES = VALUES + value;
 		boolean key1 = true;
 		Enumeration <String> columnKeys = columns.keys();
@@ -1440,20 +1446,25 @@ public class RDBMSReader {
 			// determine if key is a property
 			String key = columnKeys.nextElement();
 			type = (String) columns.get(key);
-			if (type.contains("_FK") || type.contains("_PK")) {
+			if (key.contains("_FK") || key.contains("_PK")) {
 				property = false;
 			}
 			else {
 				property = true;
 			}
 			key = key.replace("_FK", "");
-			
+			if(tableKey.toUpperCase().equals(key.toUpperCase())) {
+				continue;
+			}
 			value = createInstanceValue(key, jcrMap, type, property);
 			//if(!sqlHash.get(type).contains("FLOAT"))
 			//	value = realClean(value);
 			// escape SQL Values
-			if ((sqlHash.get(type).contains("VARCHAR") || sqlHash.get(type).contains("DATE")) && value.length() != 0)
+			if (type.contains("VARCHAR") || (sqlHash.get(type).contains("VARCHAR") || sqlHash.get(type).contains("DATE")))
 			{
+				if(value.replace("'", "").trim().length() != 0) {
+					emptyValues = false;
+				}
 				value = value.replaceAll("'", "''");
 				value = "'" + value + "'" ;
 			} else if (value.length() == 0) { //for all other data types OR when varchar and value is blank
@@ -1466,6 +1477,9 @@ public class RDBMSReader {
 
 		}
 		String SQLINSERT = valuesBuffer.toString() + ")";
+		if (emptyValues) { // all insert values are empty Strings or null so append nothing to query
+			SQLINSERT = "";
+		}
 		return SQLINSERT;
 	}
 
@@ -1474,7 +1488,7 @@ public class RDBMSReader {
 	{
 		String VALUES = "";
 		String SQLALTER = "";
-		Hashtable columns = tableHash.get(tableKey);
+		Hashtable <String, String>columns = tableHash.get(tableKey);
 
 		Enumeration <String> columnKeys = columns.keys();
 		// generate the set portion first
@@ -1484,6 +1498,9 @@ public class RDBMSReader {
 
 		ArrayList<String> insertValsAliasClause = new ArrayList();
 		valuesBuffer.append(VALUES);//yes this append doesn't do anything, BUT if someone changes the value of the where variable we wont have problems
+		
+		// append values
+//		appendValues(columnKeys, valuesBuffer, SelectClauseWhereBuffer, InsertValsClauseBuffer, insertValsAliasClause);
 		while(columnKeys.hasMoreElements())
 		{
 			String key = columnKeys.nextElement();
@@ -1533,12 +1550,20 @@ public class RDBMSReader {
 		String where  = "";
 
 		Enumeration <String> whereKeys = whereHash.keys();
+		HashMap<String, String> whereValues = new HashMap<String, String>();
 		StringBuffer whereBuffer = new StringBuffer();
 		StringBuffer indexBuffer = new StringBuffer();
 		whereBuffer.append(where);//yes this append doesn't do anything, BUT if someone changes the value of the where variable we wont have problems
-		while(whereKeys.hasMoreElements())
+		outerloop:
+			while(whereKeys.hasMoreElements())
 		{
 			String key = whereKeys.nextElement();
+			for(String newKey : columns.keySet()) {
+				if(columns.keySet().contains(key)) {
+					continue outerloop;
+				}
+			}
+			
 			String type = (String) whereHash.get(key);
 			boolean property = false;
 			String value = createInstanceValue(key, jcrMap, type, property);
@@ -1555,6 +1580,7 @@ public class RDBMSReader {
 			if(whereBuffer.length() == 0)
 			{
 				if(string || (value != null && value.length() != 0)){
+					whereValues.put(key,  value);
 					whereBuffer.append( key + " = " + value );
 					indexBuffer.append( key );
 				}
@@ -1562,6 +1588,7 @@ public class RDBMSReader {
 			else
 			{
 				if(string || (value != null && value.length() != 0)){
+					whereValues.put(key,  value);
 					whereBuffer.append(" AND " + key + " = " + value ); //change to and instead of comma
 					indexBuffer.append( " , " + key );
 				}
@@ -1571,6 +1598,131 @@ public class RDBMSReader {
 		SQLALTER = SQLALTER + " ( " + whereBuffer.toString() + ") ";
 
 		//create indexes
+		createIndices(tableKey, indexBuffer);
+
+		//FIRST decide if you want to do an update or insert, run a select to figure out if you have any data where
+		//the new column you just added has any null values for the criteria that you are doing the update for
+		String whereclause = whereBuffer.toString();
+		if(selectClauseWhereBuffer.length()>0)
+			whereclause += " AND " + selectClauseWhereBuffer.toString();
+		boolean isInsert = false;
+
+		String getRowCount = queryUtil.getDialectSelectRowCountFrom(tableKey,whereclause);//"SELECT COUNT(1) AS ROWCOUNT FROM " + tableKey + " WHERE " + whereclause;
+		//execute query
+		ISelectWrapper wrapper = WrapperManager.getInstance().getSWrapper(engine, getRowCount);
+		if(wrapper.hasNext()){
+			ISelectStatement stmt = wrapper.next();
+			String rowcount = stmt.getVar(queryUtil.getResultSelectRowCountFromRowCount()) + "";
+			if(rowcount.equals("0")){
+				isInsert = true;
+			}
+		}
+
+		if(isInsert){
+			String SQLINSERT = "";
+			if(VALUES.length()==0) { //this is a true insert
+				String values = getInsertString(tableKey, jcrMap, allColumnsTableHash);
+				if (values.length() != 0) {
+					SQLINSERT = getInsertIntoClause(tableKey, allColumnsTableHash) + values;
+				}
+			} else {
+				//doing a distinct here, alternatively we can just let it create all the dups and then delete the 
+				//later anyway when we do the database clean up in the cleanUpDbTables method.
+				String allColumnsString = ""; 
+				ArrayList<String> columnList = new ArrayList<String>();
+				String insertIntoClause = "";
+				String insValsTmp[] = insertValsClauseBuffer.toString().split(",");
+
+				//list of columns that we were going to update but are going to be the varying value when it comes to the insert statement
+				for(String singleClause : insertValsAliasClause){
+					if(insertIntoClause.length()>0) insertIntoClause+=" , ";
+					insertIntoClause += singleClause;
+				}
+
+				//get all the columns you'll need for the insert statement
+				Hashtable tableCols = allColumnsTableHash.get(tableKey);
+				Enumeration<String> cols = tableCols.keys();
+
+				//we want to pull the value columns out of the insert clause columns so that you only have the columns that are being copied
+				// and not the ones we are setting the individual values for (so pulling out the the [xyz AS columnName]  columns)
+				while(cols.hasMoreElements()){
+					String colToAdd = cols.nextElement();
+					if(!insertValsAliasClause.contains(realClean(colToAdd.toUpperCase())) ){
+						if(!colToAdd.equalsIgnoreCase(tableKey)) {
+							allColumnsString += realClean(colToAdd) + ", ";
+							columnList.add(realClean(colToAdd));
+						}
+					} 
+				}
+				allColumnsString += tableKey;
+
+				//now add the columns that you pulled out of the allColumns string back in 
+				//(doing it this way because we can control the order of the insert and select clause) since the ORDER IS VERY IMPORTANT HERE
+				String insertIntoClauseValues = "";
+				if(allColumnsString.length() > 0) {
+					insertIntoClause = " , " + insertIntoClause; 
+				}
+				if(allColumnsString.length() > 0) {
+					insertIntoClauseValues = " , " + insertValsClauseBuffer.toString(); 
+				}
+				insertIntoClause = allColumnsString + insertIntoClause;
+				insertIntoClauseValues = allColumnsString + insertIntoClauseValues;
+
+				SQLINSERT = queryUtil.getDialectMergeStatement(tableKey, insertIntoClause, columnList, whereValues, insertValsClauseBuffer.toString(), whereBuffer.toString());
+			}
+			return SQLINSERT;
+		} else {
+
+			if(VALUES.length()==0) {
+				SQLALTER = "";
+			}
+			return SQLALTER;
+		}
+	}
+	
+//	private void appendValues(Enumeration<String> columnKeys, StringBuffer valuesBuffer, StringBuffer selectClauseWhereBuffer, StringBuffer insertValsClauseBuffer, ArrayList<String> insertValsAliasClause ) {
+//		while(columnKeys.hasMoreElements())
+//		{
+//			String key = columnKeys.nextElement();
+//			String tempkey = key.replace("_FK", "");
+//			String type = (String)columns.get(key);
+//			boolean property = false;
+//			String value = createInstanceValue(tempkey, jcrMap, type, property);
+//
+//			boolean string = false;
+//
+//			if(sqlHash.get(type).contains("VARCHAR") && value.length() != 0) //check for value length != 0 here before you append the quotes 
+//			{
+//				value = value.replaceAll("'", "''");
+//				value = "'" + value + "'" ;
+//				string = true;
+//			}
+//
+//			String cleankey = realClean(key).toUpperCase();
+//			if(valuesBuffer.toString().length() == 0)
+//			{
+//				if(string || (value != null && value.length() != 0)){
+//					valuesBuffer.append(cleankey + " = " +  value); 
+//					selectClauseWhereBuffer.append( cleankey + " IS NULL ");
+//					insertValsClauseBuffer.append(value + " AS " + cleankey);
+//					insertValsAliasClause.add(cleankey);
+//					//TODO append to index creation logic?
+//				}
+//			}
+//			else
+//			{
+//				if(string || (value != null && value.length() != 0)){
+//					valuesBuffer.append(" , " + cleankey + " = " +  value);
+//					selectClauseWhereBuffer.append( " AND " + cleankey + " IS NULL ");
+//					insertValsClauseBuffer.append(" , " + value + " AS " + cleankey);	
+//					insertValsAliasClause.add(cleankey);
+//					//TODO append to index creation logic?					
+//				}					
+//			}
+//		}
+//	}
+	
+	private void createIndices(String tableKey, StringBuffer indexBuffer) {
 		String indexOnTable =  tableKey + " ( " +  indexBuffer.toString() + " ) ";
 		String indexName = "INDX_" + tableKey + indexUniqueId;
 		String createIndex = "CREATE INDEX " + indexName + " ON " + indexOnTable;
@@ -1595,74 +1747,6 @@ public class RDBMSReader {
 				tempIndexArray.add(indexOnTable);
 				indexUniqueId++;
 			}
-		}
-
-		//FIRST decide if you want to do an update or insert, run a select to figure out if you have any data where
-		//the new column you just added has any null values for the criteria that you are doing the update for
-		String whereclause = whereBuffer.toString();
-		if(selectClauseWhereBuffer.length()>0)
-			whereclause += " AND " + selectClauseWhereBuffer.toString();
-		boolean isInsert = false;
-
-		String getRowCount = queryUtil.getDialectSelectRowCountFrom(tableKey,whereclause);//"SELECT COUNT(1) AS ROWCOUNT FROM " + tableKey + " WHERE " + whereclause;
-		//execute query
-		ISelectWrapper wrapper = WrapperManager.getInstance().getSWrapper(engine, getRowCount);
-		if(wrapper.hasNext()){
-			ISelectStatement stmt = wrapper.next();
-			String rowcount = stmt.getVar(queryUtil.getResultSelectRowCountFromRowCount()) + "";
-			if(rowcount.equals("0")){
-				isInsert = true;
-			}
-		}
-
-		if(isInsert){
-			String SQLINSERT = "";
-			if(VALUES.length()==0) { //this is a true insert
-				SQLINSERT = getInsertIntoClause(tableKey) + getInsertString(tableKey, jcrMap);
-			} else {
-				//doing a distinct here, alternatively we can just let it create all the dups and then delete the 
-				//later anyway when we do the database clean up in the cleanUpDbTables method.
-				String allColumns = ""; 
-				String insertIntoClause = "";
-				String insValsTmp[] = insertValsClauseBuffer.toString().split(",");
-
-				//list of columns that we were going to update but are going to be the varying value when it comes to the insert statement
-				for(String singleClause : insertValsAliasClause){
-					if(insertIntoClause.length()>0) insertIntoClause+=" , ";
-					insertIntoClause += singleClause;
-				}
-
-				//get all the columns you'll need for the insert statement
-				Hashtable tableCols = allColumnsTableHash.get(tableKey);
-				Enumeration<String> cols = tableCols.keys();
-
-				//we want to pull the value columns out of the insert clause columns so that you only have the columns that are being copied
-				// and not the ones we are setting the individual values for (so pulling out the the [xyz AS columnName]  columns)
-				while(cols.hasMoreElements()){
-					String colToAdd = cols.nextElement();
-					if(!insertValsAliasClause.contains(realClean(colToAdd.toUpperCase())) ){
-						if(allColumns.length() != 0) allColumns+= " , ";
-						allColumns += realClean(colToAdd);
-					} 
-				}
-
-				//now add the columns that you pulled out of the allColumns string back in 
-				//(doing it this way because we can control the order of the insert and select clause) since the ORDER IS VERY IMPORTANT HERE
-				String insertIntoClauseValues = "";
-				if(allColumns.length() > 0) insertIntoClause = " , " + insertIntoClause; 
-				if(allColumns.length() > 0) insertIntoClauseValues = " , " + insertValsClauseBuffer.toString(); 
-				insertIntoClause = allColumns + insertIntoClause;
-				insertIntoClauseValues = allColumns + insertIntoClauseValues;
-
-				SQLINSERT = queryUtil.getDialectMergeStatement(tableKey, insertIntoClause, allColumns+ ", " +insertValsClauseBuffer.toString(), whereBuffer.toString());
-			}
-			return SQLINSERT;
-		} else {
-
-			if(VALUES.length()==0) {
-				SQLALTER = "";
-			}
-			return SQLALTER;
 		}
 	}
 
@@ -1696,8 +1780,8 @@ public class RDBMSReader {
 			// if the table was just created 
 			// OR if the table already exists but so do all of the columns so we are actually just inserting to the existing table
 			boolean tableAlreadyExists = availableTables.containsKey(tableKey.toUpperCase());
-			if( !tableAlreadyExists || ( tableAlreadyExists && ( (!hasNewTableKeys(tableKey) && !alteredTableHasOnlyPk(tableKey)) || allColumnsMatch(tableKey) ) )){
-				SQLINSERT = getInsertIntoClause(tableKey);
+			if( !tableAlreadyExists) {// || ( tableAlreadyExists && ( (!hasNewTableKeys(tableKey) && !alteredTableHasOnlyPk(tableKey)) || allColumnsMatch(tableKey) ) )){
+				SQLINSERT = getInsertIntoClause(tableKey, allColumnsTableHash);
 			}
 			else
 				SQLINSERT = "UPDATE " + tableKey.toUpperCase() + " SET "; // the paranthesis seems to change between dialect to dialect //SQLINSERT = "MERGE INTO " + tableKey.toUpperCase();
@@ -1728,8 +1812,13 @@ public class RDBMSReader {
 		try {
 			while( (jcrMap = mapReader.read(header, processors)) != null && count<(maxRows))
 			{
+				Map<String, Object >upperJcrMap = new HashMap<String, Object>();
+				for(String key : jcrMap.keySet()) {
+					upperJcrMap.put(key.toUpperCase(), jcrMap.get(key));
+					upperJcrMap.put(key, jcrMap.get(key));
+				}
 				// for each template do the mapping
-				tableKeys = tableHash.keys();
+				tableKeys = allColumnsTableHash.keys();
 				int index = 0;
 
 				while(tableKeys.hasMoreElements()){
@@ -1745,13 +1834,18 @@ public class RDBMSReader {
 					// if the table was just created 
 					// OR if the table already exists but so do all of the columns so we are actually just inserting to the existing table
 					boolean tableAlreadyExists = availableTables.containsKey(tableKey.toUpperCase());
-					if( !tableAlreadyExists || ( tableAlreadyExists && ( (!hasNewTableKeys(tableKey) && !alteredTableHasOnlyPk(tableKey)) || allColumnsMatch(tableKey)) ) ){
-						SQL = insertTemplates[index] + getInsertString(tableKey, jcrMap);
+					if( !tableAlreadyExists ){//|| ( tableAlreadyExists && ( (!hasNewTableKeys(tableKey) && !alteredTableHasOnlyPk(tableKey)) || allColumnsMatch(tableKey)) ) ){
+						String values = getInsertString(tableKey, upperJcrMap, allColumnsTableHash);
+						if (values.length() != 0) {
+							SQL = insertTemplates[index] + values;
+						} else {
+							SQL = "";
+						}
 					}
 					else
 					{
 						//run query to see if you can just do an update statement, if so, run the generated update sql
-						SQL = getAlterString(tableKey, jcrMap, insertTemplates[index], allColumnsTableHash);
+						SQL = getAlterString(tableKey, upperJcrMap, insertTemplates[index], allColumnsTableHash);
 					}
 
 					if(SQL.length() > 0 ){
@@ -1787,23 +1881,18 @@ public class RDBMSReader {
 		}	
 	}
 
-	private String getInsertIntoClause(String tableKey){
+	private String getInsertIntoClause(String tableKey, Hashtable <String, Hashtable<String, String>> allColumns){
 		String SQLINSERT = "INSERT INTO   " + realClean(tableKey) +  "  (" + realClean(tableKey);
 
-		Hashtable columns = tableHash.get(tableKey);
+		Hashtable columns = allColumns.get(tableKey);
 		Enumeration <String> columnKeys = columns.keys();
-		boolean key1 = true;
-		while(columnKeys.hasMoreElements())
+		while(columnKeys.hasMoreElements ())
 		{	
-			if(key1)
-			{
-				SQLINSERT = SQLINSERT + " , ";
-				key1 = false;
+			String column = realClean(columnKeys.nextElement());
+
+			if(!column.equalsIgnoreCase(tableKey)) {
+				SQLINSERT = SQLINSERT + " , " + column;
 			}
-			String column = columnKeys.nextElement();
-			SQLINSERT = SQLINSERT + realClean(column);
-			if(columnKeys.hasMoreElements())
-				SQLINSERT = SQLINSERT + ",";
 		}
 		SQLINSERT = SQLINSERT + ") VALUES "; // append the text 'values' here
 		return SQLINSERT;
