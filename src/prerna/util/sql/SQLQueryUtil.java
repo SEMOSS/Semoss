@@ -28,6 +28,7 @@
 package prerna.util.sql;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 
 public abstract class SQLQueryUtil {
@@ -312,9 +313,27 @@ public abstract class SQLQueryUtil {
 	public String getDialectAlterTableName(String fromName, String toName){
 		return this.dialectAlterTable + fromName + " RENAME TO " + toName; //alterTableName = "ALTER TABLE " + tableName + "_TEMP RENAME TO " + tableName;
 	}
-	public String getDialectMergeStatement(String tableKey, String insertIntoClause, String insertValuesClause, String whereClause){
-		String query = "INSERT INTO " + tableKey + " ("+ insertIntoClause + ") SELECT DISTINCT " + insertValuesClause +
-				" FROM " + tableKey + " WHERE " + whereClause ;
+	
+	public String getDialectMergeStatement(String tableKey, String insertIntoClause, List<String> columnList, HashMap<String, String> whereValues, String fkVal, String whereClause){
+		ArrayList<String> subqueries = new ArrayList<String>();
+		String query = "INSERT INTO " + tableKey + " ("+ insertIntoClause + ") SELECT DISTINCT ";
+		for(String column : columnList) {
+			String tempColumnName = column + "TEMP";
+			String subquery = "(SELECT DISTINCT " + column + " FROM " + tableKey + " WHERE " + whereClause;
+			String tempquery = subquery + " union select null where not exists" + subquery + ")) AS " + tempColumnName;
+			subqueries.add(tempquery);
+			query += tempColumnName + "." + column + " AS " + column + ",";
+		}
+		for (String whereKey : whereValues.keySet()) {
+			query+= whereValues.get(whereKey) + " AS " + whereKey + ", ";
+		}
+		query += fkVal + " FROM " + tableKey;// + ", ";
+		for (int i = 0; i < subqueries.size(); i++) {
+			query += ", " + subqueries.get(i);
+//			if (i != subqueries.size() - 1) {
+//				query += ", ";
+//			}
+		}
 		return query;
 	}
 
