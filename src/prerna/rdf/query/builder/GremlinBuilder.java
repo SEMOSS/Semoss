@@ -1,6 +1,5 @@
 package prerna.rdf.query.builder;
 
-import java.util.ArrayList;
 import java.util.Hashtable;
 import java.util.List;
 import java.util.Vector;
@@ -9,7 +8,6 @@ import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 import org.apache.tinkerpop.gremlin.groovy.jsr223.GremlinGroovyScriptEngine;
 import org.apache.tinkerpop.gremlin.process.traversal.Order;
-import org.apache.tinkerpop.gremlin.process.traversal.P;
 import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.GraphTraversal;
 import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.__;
 import org.apache.tinkerpop.gremlin.structure.Graph;
@@ -34,7 +32,10 @@ public class GremlinBuilder {
 	int startRange = -1;
 	int endRange = -1;
 	public String groupBySelector;
+	
+	public enum DIRECTION {INCR, DECR};
 	public String orderBySelector;
+	public DIRECTION orderByDirection = DIRECTION.INCR;
 	
 	/**
 	 * Constructor for the GremlinBuilder class
@@ -331,7 +332,11 @@ public class GremlinBuilder {
 	
 	private void appendOrder() {
 		if(orderBySelector != null) {
-			gt = gt.order().by(__.select(orderBySelector).values(Constants.NAME), Order.incr);
+			if(DIRECTION.DECR.equals(orderByDirection)) {
+				gt = gt.order().by(__.select(orderBySelector).values(Constants.NAME), Order.decr);
+			} else {
+				gt = gt.order().by(__.select(orderBySelector).values(Constants.NAME), Order.incr);
+			}
 		}
 	}
 

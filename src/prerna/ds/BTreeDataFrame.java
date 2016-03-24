@@ -2175,4 +2175,10 @@ public class BTreeDataFrame implements ITableDataFrame {
 		}
 	}
 
+	@Override
+	public Iterator<Object[]> iterator(boolean getRawData, List<String> selectors) {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
 }
