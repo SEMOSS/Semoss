@@ -49,7 +49,9 @@ import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import org.openrdf.sail.SailException;
 
 import prerna.engine.api.IEngine;
+import prerna.test.TestUtilityMethods;
 import prerna.util.Constants;
+import prerna.util.DIHelper;
 import prerna.util.Utility;
 import prerna.util.sql.SQLQueryUtil;
 
@@ -1075,11 +1077,19 @@ public class POIReader extends AbstractFileReader {
 
 	public static void main(String [] args) throws FileNotFoundException, IOException
 	{
+		TestUtilityMethods.loadDIHelper();
+		
 		POIReader reader = new POIReader();
-		String fileName = "C:\\Users\\pkapaleeswaran\\workspacej3\\datasets\\Medical_Devices_Data.xlsx";
-		//fileName = "C:\\Users\\pkapaleeswaran\\workspacej3\\datasets\\Movie.xlsx";
-		reader.importFileRDBMS(fileName);
-		reader.owler.getOwlAsString();
+		// DATABASE WILL BE WRITTEN WHERE YOUR DB FOLDER IS IN A FOLDER WITH THE ENGINE NAME
+		// SMSS file will not be created at the moment.. will add shortly
+		String fileNames = "C:\\Users\\mahkhalil\\Desktop\\Medical_Devices_Data.xlsx";
+		String smssLocation = "";
+		String engineName = "test";
+		String customBase = "http://semoss.org/ontologies";
+		String owlFile = DIHelper.getInstance().getProperty("BaseFolder") + "\\db\\" + engineName + "\\" + engineName + "_OWL.OWL";
+		SQLQueryUtil.DB_TYPE dbType = SQLQueryUtil.DB_TYPE.H2_DB;
+		
+		reader.importFileWithOutConnectionRDBMS(smssLocation, engineName, fileNames, customBase, owlFile, dbType, false);
 	}
 
 }
