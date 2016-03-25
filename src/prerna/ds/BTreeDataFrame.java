@@ -2056,7 +2056,7 @@ public class BTreeDataFrame implements ITableDataFrame {
 	}
 
 	@Override
-	public Map getDataMakerOutput() {
+	public Map getDataMakerOutput(String... selectors) {
 		Hashtable retHash = new Hashtable();
 		retHash.put("data", this.getRawData());
 		retHash.put("headers", this.levelNames);
