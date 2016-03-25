@@ -71,7 +71,7 @@ public class WekaAprioriVizPlaySheet extends BrowserPlaySheet{
 	}
 	
 	@Override
-	public Hashtable getDataMakerOutput() {
+	public Hashtable getDataMakerOutput(String... selectors) {
 		//TODO: remove this from getData() to call the super method
 		dataHash.put("id", this.questionNum==null? "": this.questionNum);
 		String className = "";

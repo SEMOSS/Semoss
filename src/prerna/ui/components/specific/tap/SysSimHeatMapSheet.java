@@ -256,7 +256,7 @@ public class SysSimHeatMapSheet extends SimilarityHeatMapSheet{
 	}*/
 
 	@Override
-	public Hashtable getDataMakerOutput() {
+	public Hashtable getDataMakerOutput(String... selectors) {
 		ArrayList args = prepareOrderedVars();
 		Hashtable testHash = new Hashtable();
 		ArrayList<Hashtable<String, Hashtable<String, Double>>> list = calculateHash(args, testHash);

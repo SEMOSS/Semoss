@@ -222,7 +222,7 @@ public class NavyScoreboardPlaysheet extends BrowserPlaySheet {
 	
 	
 	@Override
-	public Hashtable getDataMakerOutput() {		
+	public Hashtable getDataMakerOutput(String... selectors) {		
 		return this.retHash;
 	}
 	

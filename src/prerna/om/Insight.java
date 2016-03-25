@@ -925,11 +925,16 @@ public class Insight {
 		retHash.put("insightID", getInsightID());
 		retHash.put("layout", getOutput());
 		retHash.put("title", getInsightName());
+		List<String> selectors = new ArrayList<String>();
 		if(dataTableAlign != null){ // some playsheets don't require data table align, like grid play sheet. Should probably change this so they all have data table align (like if i want to change the order of my columns)
 			retHash.put("dataTableAlign", dataTableAlign);
+			for(String label : dataTableAlign.keySet()) {
+				selectors.add(dataTableAlign.get(label));
+			}
 		}
 		// TODO: how do i get this outside of here? we need to return incremental stores during traversing but not when recreating insight
-		if(getDataMaker() instanceof GraphDataModel) {
+		IDataMaker dm = getDataMaker();
+		if(dm instanceof GraphDataModel) {
 			((GraphDataModel) getDataMaker()).setOverlay(false);
 		}
 		// this will return the data from the dataMaker
@@ -939,12 +944,16 @@ public class Insight {
 		// right now, assuming only one action is present
 		// TODO: should we update the interface to always return a map
 		// currently all actions return a map
-		if(getDataMaker().getActionOutput() != null && !getDataMaker().getActionOutput().isEmpty()) {
+		if(dm.getActionOutput() != null && !dm.getActionOutput().isEmpty()) {
 			retHash.putAll( (Map) getDataMaker().getActionOutput().get(0));
-		} else if (getOutput().equals("Graph") && getDataMaker() instanceof TinkerFrame){
+		} else if (dm.equals("Graph") && dm instanceof TinkerFrame){
 			retHash.putAll(((TinkerFrame)getDataMaker()).getGraphOutput());
 		} else {
-			retHash.putAll(getDataMaker().getDataMakerOutput());
+			if(dm instanceof TinkerFrame && !selectors.isEmpty()) {
+				retHash.putAll(dm.getDataMakerOutput(selectors.toArray(new String[]{})));
+			} else {
+				retHash.putAll(dm.getDataMakerOutput());
+			}
 		}
 		String uiOptions = getUiOptions();
 		if(!uiOptions.isEmpty()) {

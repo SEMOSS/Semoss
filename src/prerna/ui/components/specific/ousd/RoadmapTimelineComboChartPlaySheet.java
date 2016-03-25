@@ -119,7 +119,7 @@ public class RoadmapTimelineComboChartPlaySheet extends RoadmapTimelineStatsPlay
 	}
 
 	@Override
-	public Hashtable getDataMakerOutput(){
+	public Hashtable getDataMakerOutput(String... selectors){
 		Hashtable ret = OUSDPlaysheetHelper.getData(this.title, this.questionNum, this.dataFrame, PlaySheetRDFMapBasedEnum.getSheetName("Column"));
 		
 		ret.put("layout", "OUSDCombo");

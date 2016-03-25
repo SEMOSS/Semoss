@@ -31,7 +31,7 @@ public class SystemRiskScatterVisualizationPlaySheet extends GridScatterSheet{
 	}
 
 	@Override
-	public Hashtable getDataMakerOutput(){
+	public Hashtable getDataMakerOutput(String... selectors){
 		Hashtable ret = OUSDPlaysheetHelper.getData(this.title, this.questionNum, this.dataFrame, PlaySheetRDFMapBasedEnum.getSheetName("Scatter"));
 		return ret;
 	}

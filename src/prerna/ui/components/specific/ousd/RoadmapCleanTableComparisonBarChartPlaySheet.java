@@ -60,7 +60,7 @@ public class RoadmapCleanTableComparisonBarChartPlaySheet extends RoadmapCleanTa
 	}
 
 	@Override
-	public Hashtable getDataMakerOutput(){
+	public Hashtable getDataMakerOutput(String... selectors){
 		Hashtable ret = OUSDPlaysheetHelper.getData(this.title, this.questionNum, this.dataFrame, PlaySheetRDFMapBasedEnum.getSheetName("Column"));
 		return ret;
 	}

@@ -267,7 +267,7 @@ public class TablePlaySheet extends AbstractPlaySheet implements IDataMaker{
 	}
 	
 	@Override
-	public Map getDataMakerOutput() {
+	public Map getDataMakerOutput(String... selectors) {
 		if(this.dataFrame != null) {
 			return this.dataFrame.getDataMakerOutput();
 		} else {

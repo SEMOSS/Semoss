@@ -121,7 +121,7 @@ public class ActivitySystemGroupPlaySheet extends GridPlaySheet{
 	}
 	
 	@Override
-	public Hashtable getDataMakerOutput(){
+	public Hashtable getDataMakerOutput(String... selectors){
 		String playSheetClassName = PlaySheetRDFMapBasedEnum.getClassFromName("Grid");
 		GridPlaySheet playSheet = null;
 		try {

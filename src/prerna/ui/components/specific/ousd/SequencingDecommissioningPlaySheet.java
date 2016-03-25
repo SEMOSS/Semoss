@@ -478,7 +478,7 @@ public class SequencingDecommissioningPlaySheet extends GridPlaySheet {
 	}
 
 	@Override
-	public Hashtable getDataMakerOutput(){
+	public Hashtable getDataMakerOutput(String... selectors){
 		Hashtable returnHash = OUSDPlaysheetHelper.getData(this.title, this.questionNum, this.dataFrame, PlaySheetRDFMapBasedEnum.getSheetName("Grid"));
 		return returnHash;
 	}
