@@ -907,7 +907,7 @@ public class Insight {
 			ISEMOSSTransformation transToUndo = trans.get(indexToRemove);
 			transToUndo.setDataMakers(this.dataMaker);
 			transToUndo.undoTransformation();
-			trans.remove(indexToRemove);
+			trans.remove(indexToRemove.intValue());
 			if(transToUndo instanceof JoinTransformation){
 				removedJoin = true;
 			}
