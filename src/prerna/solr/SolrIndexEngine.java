@@ -66,9 +66,9 @@ public class SolrIndexEngine {
 
 	private static final String QUERY_RESPONSE = "queryResponse";
 	private static final String SPELLCHECK_RESPONSE = "spellcheckResponse";
-	private static final String NUM_FOUND = "numFound";
 	private static final String SOLR_INSIGHTS_PATH_NAME = "/insightCore";
 	private static final String SOLR_INSTANCES_PATH_NAME = "/instancesCore";
+	public static final String NUM_FOUND = "numFound";
 
 	public static final String QUERY_ALL = "*:*";
 	
