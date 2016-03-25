@@ -1257,7 +1257,7 @@ public class GraphDataModel implements IDataMaker {
 	}
 	
 	@Override
-	public Map getDataMakerOutput() {
+	public Map getDataMakerOutput(String... selectors) {
 		Hashtable retHash = new Hashtable();
 //		if(this.getOverlay()){ // removing this for now to keep aligned with tinker frame
 //			Map<String, SEMOSSVertex> props = this.getIncrementalVertPropStore();
