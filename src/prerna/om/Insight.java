@@ -946,7 +946,7 @@ public class Insight {
 		// currently all actions return a map
 		if(dm.getActionOutput() != null && !dm.getActionOutput().isEmpty()) {
 			retHash.putAll( (Map) getDataMaker().getActionOutput().get(0));
-		} else if (dm.equals("Graph") && dm instanceof TinkerFrame){
+		} else if (getOutput().equals("Graph") && dm instanceof TinkerFrame){
 			retHash.putAll(((TinkerFrame)getDataMaker()).getGraphOutput());
 		} else {
 			if(dm instanceof TinkerFrame && !selectors.isEmpty()) {
