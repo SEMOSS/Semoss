@@ -114,7 +114,7 @@ public class DualEngineGenericPlaySheet extends DualEngineGridPlaySheet {
 	}
 	
 	@Override
-	public Map getDataMakerOutput(){
+	public Map getDataMakerOutput(String... selectors){
 		String playSheetClassName = PlaySheetRDFMapBasedEnum.getClassFromName(playsheetName);
 		try {
 			playSheet = (BrowserPlaySheet) Class.forName(playSheetClassName).getConstructor(null).newInstance(null);

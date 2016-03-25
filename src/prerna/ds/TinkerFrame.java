@@ -975,10 +975,24 @@ public class TinkerFrame implements ITableDataFrame {
 	}
 
 	@Override
-	public Map<String, Object> getDataMakerOutput() {
+	public Map<String, Object> getDataMakerOutput(String... selectors) {
 		Hashtable retHash = new Hashtable();
-		retHash.put("data", this.getRawData());
-		retHash.put("headers", this.headerNames);
+		if(selectors.length == 0) {
+			retHash.put("data", this.getRawData());
+			retHash.put("headers", this.headerNames);
+		} else {
+			long startTime = System.currentTimeMillis();
+			
+			Vector<Object[]> retVector = new Vector<Object[]>();
+			TinkerFrameIterator iterator = new TinkerFrameIterator(Arrays.asList(selectors), g, true);
+			while(iterator.hasNext()) {
+				retVector.add(iterator.next());
+			}
+			retHash.put("data", retVector);
+			retHash.put("headers", selectors);
+
+			LOGGER.info("Collected Raw Data: "+(System.currentTimeMillis() - startTime));
+		}
 		return retHash;
 	}
 	

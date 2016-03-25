@@ -798,7 +798,7 @@ public class DHMSMDeploymentStrategyPlaySheet extends InputPanelPlaySheet {
 	}
 	
 	@Override
-	public Hashtable getDataMakerOutput() {
+	public Hashtable getDataMakerOutput(String... selectors) {
 //		Hashtable returnHash = (Hashtable) super.getData();
 		Hashtable returnHash = new Hashtable();
 		Hashtable dataHash = new Hashtable();

@@ -115,7 +115,7 @@ public class MashupPlaySheet extends AbstractPlaySheet implements IDataMaker {
 	}
 
 	@Override
-	public Map getDataMakerOutput() {
+	public Map getDataMakerOutput(String... selectors) {
 //		Hashtable returnHash = (Hashtable) super.getData();
 		Hashtable returnHash = new Hashtable();
 		returnHash.put("specificData", query);

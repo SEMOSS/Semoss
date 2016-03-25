@@ -145,7 +145,7 @@ public class GraphTimePlaySheet extends BrowserPlaySheet{
 	}
 	
 	@Override
-	public Hashtable getDataMakerOutput() {
+	public Hashtable getDataMakerOutput(String... selectors) {
 		Hashtable returnHash = (Hashtable) super.getDataMakerOutput();
 		returnHash.put("nodes", gdm.getVertStore());
 		returnHash.put("edges", gdm.getEdgeStore().values());

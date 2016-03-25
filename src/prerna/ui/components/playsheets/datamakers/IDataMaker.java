@@ -19,7 +19,7 @@ public interface IDataMaker {
 
 	void processPostTransformations(DataMakerComponent dmc, List<ISEMOSSTransformation> transforms, IDataMaker... dataFrame);
 
-	Map<String, Object> getDataMakerOutput();
+	Map<String, Object> getDataMakerOutput(String... selectors);
 
 	List<Object> processActions(DataMakerComponent dmc, List<ISEMOSSAction> actions, IDataMaker... dataMaker);
 	

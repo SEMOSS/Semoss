@@ -349,7 +349,7 @@ public class BrowserPlaySheet extends TablePlaySheet {
 	}
 	
 	@Override
-	public Map<String, Object> getDataMakerOutput(){
+	public Map<String, Object> getDataMakerOutput(String... selectors){
 		Map<String, Object> data = super.getDataMakerOutput();
 		if(this.dataHash != null && !this.dataHash.isEmpty()) {
 			data.put("specificData", this.dataHash);
