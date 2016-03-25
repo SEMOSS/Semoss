@@ -2283,7 +2283,7 @@ public class TinkerFrame implements ITableDataFrame {
 			selectors.add(columnHeader);
 			
 			List<Double> numericCol = new Vector<Double>();
-			Iterator<Object[]> it = iterator(false);
+			Iterator<Object[]> it = iterator(false, selectors);
 			while(it.hasNext()) {
 				Object[] row = it.next();
 				numericCol.add( ((Number) row[0]).doubleValue() );
