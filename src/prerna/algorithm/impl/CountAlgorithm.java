@@ -30,5 +30,15 @@ public class CountAlgorithm extends BaseReducer {
 		System.out.println(count);
 		return count;
 	}
+	
+	@Override
+	public void setData(Iterator inputIterator, String[] ids, String script) {
+		super.set(inputIterator, ids, script, null);
+	}
+
+	@Override
+	public Object execute() {
+		return reduce();
+	}
 
 }
