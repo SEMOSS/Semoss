@@ -262,7 +262,7 @@ public interface ITableDataFrame extends IDataMaker {
 	 * The iterator will return an Object[] corresponding to the data in a row of the data-frame
 	 * @return						The iterator to go through all the rows
 	 */
-	Iterator<Object[]> iterator(boolean getRawData, List<String> selectors);
+	Iterator<Object[]> iterator(boolean getRawData, Map<String, Object> options);
 	
 	/**
 	 * Iterator to go through all the rows in the data-frame and return all the values in unique-valued groups based on a specific column

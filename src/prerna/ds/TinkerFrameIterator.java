@@ -15,46 +15,60 @@ public class TinkerFrameIterator implements Iterator<Object[]> {
 
 	private String dataType; //the data property to be used from the table
 	private GraphTraversal gt; //the traversal on the graph
-	List<String> selectors; //the selectors on the table
+	private List<String> selectors; //the selectors on the table
 	
-	public TinkerFrameIterator(List<String> selectors, Graph g) {
-		this(selectors, g, false);
+	public TinkerFrameIterator(Graph g, Map<String, Object> options, boolean getRawData) {
+		dataType = getRawData ? Constants.VALUE : Constants.NAME;
+		
+		GremlinBuilder.DIRECTION dir = null;
+		if(options.containsKey(TinkerFrame.SORT_BY_DIRECTION)) {
+			String strDir = (String) options.get(TinkerFrame.SORT_BY_DIRECTION);
+			if(strDir == "desc") {
+				dir = GremlinBuilder.DIRECTION.DECR;
+			} else {
+				dir = GremlinBuilder.DIRECTION.INCR;
+			}
+		}
+//		Integer limit = (Integer) options.get(TinkerFrame.LIMIT);
+//		if(limit == null) {
+//			limit = -1;
+//		}
+//		Integer offset = (Integer) options.get(TinkerFrame.OFFSET);
+//		if(offset == null) {
+//			offset = -1;
+//		}
+		
+		Boolean dedup = false;
+		if(options.containsKey(TinkerFrame.DE_DUP)) {
+			dedup = (Boolean) options.get(TinkerFrame.DE_DUP);
+		}
+		
+		this.gt = openTraversal(
+				(List<String>) options.get(TinkerFrame.SELECTORS), 
+				g, 
+				(Integer) options.get(TinkerFrame.LIMIT), 
+				(Integer) options.get(TinkerFrame.OFFSET), 
+				(String) options.get(TinkerFrame.SORT_BY),
+				dir, 
+				dedup);
 	}
 	
-	public TinkerFrameIterator(List<String> selectors, Graph g, boolean useRawData) {
-		this.selectors = selectors;
-		dataType = useRawData ? Constants.VALUE : Constants.NAME;
-		this.gt = openTraversal(selectors, g, -1, -1, null, null);
-	}
-	
-	public TinkerFrameIterator(List<String> selectors, Graph g, boolean useRawData, int start, int end) {
-		this.selectors = selectors;
-		dataType = useRawData ? Constants.VALUE : Constants.NAME;
-		this.gt = openTraversal(selectors, g, start, end, null, null);
-	}
-	
-	public TinkerFrameIterator(List<String> selectors, Graph g, boolean useRawData, String sortColumn, GremlinBuilder.DIRECTION orderByDirection) {
-		this.selectors = selectors;
-		dataType = useRawData ? Constants.VALUE : Constants.NAME;
-		this.gt = openTraversal(selectors, g, -1, -1, sortColumn, orderByDirection);
-	}
-	
-	public TinkerFrameIterator(List<String> selectors, Graph g, boolean useRawData, int start, int end, String sortColumn, GremlinBuilder.DIRECTION orderByDirection) {
-		this.selectors = selectors;
-		dataType = useRawData ? Constants.VALUE : Constants.NAME;
-		this.gt = openTraversal(selectors, g, start, end, sortColumn, orderByDirection);
-	}
-	
-	private GraphTraversal openTraversal(List<String> selectors, Graph g, int start, int end, String sortColumn, GremlinBuilder.DIRECTION orderByDirection) {
+	private GraphTraversal openTraversal(List<String> selectors, Graph g, Integer start, Integer end, String sortColumn, GremlinBuilder.DIRECTION orderByDirection, Boolean dedup) {
 		this.selectors = selectors;
 		GremlinBuilder builder = GremlinBuilder.prepareGenericBuilder(selectors, g);
 		builder.orderBySelector = sortColumn;
 		builder.orderByDirection = orderByDirection;
 		//finally execute it to get the executor
-		if(start != -1) {
+		if(start != null && start != -1) {
 			builder.setRange(start, end);
 		}
-		GraphTraversal <Vertex, Map<String, Object>> gt = (GraphTraversal <Vertex, Map<String, Object>>)builder.executeScript();
+		
+		GraphTraversal gt = null;
+		if(dedup) {
+			gt = builder.executeScript().dedup();
+		} else {
+			gt = (GraphTraversal <Vertex, Map<String, Object>>) builder.executeScript();
+		}
 		return gt;
 	}
 	
