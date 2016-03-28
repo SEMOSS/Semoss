@@ -2069,7 +2069,7 @@ public class TinkerFrame implements ITableDataFrame {
 			while(gt.hasNext()){
 //				System.out.println(gt.next());
 				Vertex vert = gt.next();
-				System.out.println(vert.value(Constants.VALUE) + "");
+//				System.out.println(vert.value(Constants.VALUE) + "");
 				if(!vert.edges(Direction.IN, Constants.FILTER+edgeLabelDelimeter+vertType).hasNext()) {
 					vertsList.add(vert.value(Constants.VALUE));
 				}
@@ -2904,7 +2904,7 @@ public class TinkerFrame implements ITableDataFrame {
 				}
 				// must be string
 				colTypes[j] = STRING_KEY;
-				String cleanVal = "http://" + headers[j] + "/" + valStr;
+				String cleanVal = "http://" + headers[j] + "/" + Utility.cleanString(valStr + "", true, true, false);
 				rowMap.put(headers[j], cleanVal);
 				cleanMap.put(headers[j], Utility.cleanString(valStr + "", true, true, false));
 			}
@@ -2937,7 +2937,7 @@ public class TinkerFrame implements ITableDataFrame {
 				}
 				Object valObj = null;
 				if(colTypes[j].equals(STRING_KEY)) {
-					String cleanVal = "http://" + headers[j] + "/" + valStr;
+					String cleanVal = "http://" + headers[j] + "/" + Utility.cleanString(valStr + "", true, true, false);
 					rowMap.put(headers[j], cleanVal);
 					cleanMap.put(headers[j], Utility.cleanString(valStr + "", true, true, false));
 				} else if(colTypes[j].equals(NUMBER_KEY)) {
