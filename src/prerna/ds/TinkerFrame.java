@@ -97,14 +97,21 @@ public class TinkerFrame implements ITableDataFrame {
 	protected GremlinGroovyScriptEngine engine = new GremlinGroovyScriptEngine();
 	protected TinkerGraph g = null;
 	
-	int startRange = -1;
-	int endRange = -1;
-	String sortColumn;
-	GremlinBuilder.DIRECTION orderByDirection;
+//	int startRange = -1;
+//	int endRange = -1;
+//	String sortColumn;
+//	GremlinBuilder.DIRECTION orderByDirection;
 	
-	final public static String PRIM_KEY = "PRIM_KEY";
-	final public static String META = "META";
-	final public static String EMPTY = "_";
+	public static final String PRIM_KEY = "PRIM_KEY";
+	public static final String META = "META";
+	public static final String EMPTY = "_";
+
+	public static final String LIMIT = "limit";
+	public static final String OFFSET = "offset";
+	public static final String SELECTORS = "selectors";
+	public static final String SORT_BY = "sortColumn";
+	public static final String SORT_BY_DIRECTION = "sortDirection";
+	public static final String DE_DUP = "dedup";
 
 	public static final String edgeLabelDelimeter = "+++";
 	private static final String primKeyDelimeter = ":::";
@@ -984,7 +991,10 @@ public class TinkerFrame implements ITableDataFrame {
 			long startTime = System.currentTimeMillis();
 			
 			Vector<Object[]> retVector = new Vector<Object[]>();
-			TinkerFrameIterator iterator = new TinkerFrameIterator(Arrays.asList(selectors), g, true);
+			Map<String, Object> options = new HashMap<String, Object>();
+			options.put(TinkerFrame.SELECTORS, Arrays.asList(selectors));
+			options.put(TinkerFrame.DE_DUP, true);
+			Iterator<Object[]> iterator = this.iterator(true, options);
 			while(iterator.hasNext()) {
 				retVector.add(iterator.next());
 			}
@@ -2087,40 +2097,14 @@ public class TinkerFrame implements ITableDataFrame {
 	
 	@Override
 	public Iterator<Object[]> iterator(boolean getRawData) {
-		TinkerFrameIterator iterator;
-		if(startRange != -1) {
-			if(sortColumn != null && ArrayUtilityMethods.arrayContainsValue(this.headerNames, sortColumn)) {
-				iterator =  new TinkerFrameIterator(getSelectors(), g, getRawData, this.startRange, this.endRange, this.sortColumn, this.orderByDirection);
-			} else {
-				iterator =  new TinkerFrameIterator(getSelectors(), g, getRawData, this.startRange, this.endRange);
-			}
-		} else {
-			if(sortColumn != null && ArrayUtilityMethods.arrayContainsValue(this.headerNames, sortColumn)) {
-				iterator =  new TinkerFrameIterator(getSelectors(), g, getRawData, this.sortColumn, this.orderByDirection);
-			} else {
-				iterator =  new TinkerFrameIterator(getSelectors(), g, getRawData);
-			}
-		}
-		return iterator;
+		Map<String, Object> options = new HashMap<String, Object>();
+		options.put(TinkerFrame.SELECTORS, getSelectors());
+		return new TinkerFrameIterator(g, options, getRawData);
 	}
 	
 	@Override
-	public Iterator<Object[]> iterator(boolean getRawData, List<String> selectors) {
-		TinkerFrameIterator iterator;
-		if(startRange != -1) {
-			if(sortColumn != null && ArrayUtilityMethods.arrayContainsValue(this.headerNames, sortColumn)) {
-				iterator =  new TinkerFrameIterator(selectors, g, getRawData, this.startRange, this.endRange, this.sortColumn, this.orderByDirection);
-			} else {
-				iterator =  new TinkerFrameIterator(selectors, g, getRawData, this.startRange, this.endRange);
-			}
-		} else {
-			if(sortColumn != null && ArrayUtilityMethods.arrayContainsValue(this.headerNames, sortColumn)) {
-				iterator =  new TinkerFrameIterator(selectors, g, getRawData, this.sortColumn, this.orderByDirection);
-			} else {
-				iterator =  new TinkerFrameIterator(selectors, g, getRawData);
-			}
-		}
-		return iterator;
+	public Iterator<Object[]> iterator(boolean getRawData, Map<String, Object> options) {
+		return new TinkerFrameIterator(g, options, getRawData);
 	}
 
 	@Override
@@ -2302,9 +2286,10 @@ public class TinkerFrame implements ITableDataFrame {
 		if(isNumeric(columnHeader)) {
 			List<String> selectors = new Vector<String>();
 			selectors.add(columnHeader);
-			
+			Map<String, Object> options = new HashMap<String, Object>();
+			options.put(TinkerFrame.SELECTORS, selectors);
 			List<Double> numericCol = new Vector<Double>();
-			Iterator<Object[]> it = iterator(false, selectors);
+			Iterator<Object[]> it = iterator(false, options);
 			while(it.hasNext()) {
 				Object[] row = it.next();
 				numericCol.add( ((Number) row[0]).doubleValue() );
@@ -2702,20 +2687,20 @@ public class TinkerFrame implements ITableDataFrame {
 		headerNames = newLevelNames;	
 	}
 	
-	public void setRange(int startRange, int endRange)
-	{
-		this.startRange = startRange;
-		this.endRange = endRange;
-	}
-
-	public void setSortColumn(String sortColumn, String orderByDirection) {
-		this.sortColumn = sortColumn;
-		if(orderByDirection.equalsIgnoreCase("desc")) {
-			this.orderByDirection = GremlinBuilder.DIRECTION.DECR;
-		} else {
-			this.orderByDirection = GremlinBuilder.DIRECTION.INCR;
-		}
-	}
+//	public void setRange(int startRange, int endRange)
+//	{
+//		this.startRange = startRange;
+//		this.endRange = endRange;
+//	}
+//
+//	public void setSortColumn(String sortColumn, String orderByDirection) {
+//		this.sortColumn = sortColumn;
+//		if(orderByDirection.equalsIgnoreCase("desc")) {
+//			this.orderByDirection = GremlinBuilder.DIRECTION.DECR;
+//		} else {
+//			this.orderByDirection = GremlinBuilder.DIRECTION.INCR;
+//		}
+//	}
 
 	public String[] getFilteredColumns() {
 		return new String[0];
