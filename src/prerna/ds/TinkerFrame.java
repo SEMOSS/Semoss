@@ -2062,10 +2062,17 @@ public class TinkerFrame implements ITableDataFrame {
 		while(metaGt.hasNext()){
 			Vertex metaV = metaGt.next();
 			String vertType = metaV.value(Constants.NAME);
-			GraphTraversal<Vertex, Vertex> gt = g.traversal().V().has(Constants.TYPE, Constants.FILTER).out(Constants.FILTER+edgeLabelDelimeter+vertType).has(Constants.TYPE, vertType);
+//			GraphTraversal<Vertex, Vertex> gt = g.traversal().V().has(Constants.TYPE, Constants.FILTER).out(Constants.FILTER+edgeLabelDelimeter+vertType).has(Constants.TYPE, vertType);
+			GraphTraversal<Vertex, Vertex> gt = g.traversal().V().has(Constants.TYPE, vertType);
+
 			List<String> vertsList = new Vector<String>();
 			while(gt.hasNext()){
-				vertsList.add(gt.next().value(Constants.VALUE));
+//				System.out.println(gt.next());
+				Vertex vert = gt.next();
+				System.out.println(vert.value(Constants.VALUE) + "");
+				if(!vert.edges(Direction.IN, Constants.FILTER+edgeLabelDelimeter+vertType).hasNext()) {
+					vertsList.add(vert.value(Constants.VALUE));
+				}
 			}
 			retMap.put(vertType, vertsList.toArray());
 		}
