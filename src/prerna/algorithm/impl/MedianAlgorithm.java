@@ -39,4 +39,14 @@ public class MedianAlgorithm extends BaseReducer {
 		output = median;
 		return output;
 	}
+	
+	@Override
+	public void setData(Iterator inputIterator, String[] ids, String script) {
+		super.set(inputIterator, ids, script, null);
+	}
+
+	@Override
+	public Object execute() {
+		return reduce();
+	}
 }

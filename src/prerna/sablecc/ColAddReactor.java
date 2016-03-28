@@ -64,54 +64,60 @@ public class ColAddReactor extends AbstractReactor {
 			it = new ExpressionIterator(it, joinCols, value.toString());
 		}
 
-		frame.connectTypes(joinCols, newCol);
-		if (joinCols.length > 1) { // multicolumn join
-			String primKeyName = frame.getPrimaryKey(joinCols);
-			while(it.hasNext()) {
-				HashMap<String, Object> row = new HashMap<String, Object>();
-				Object newVal = it.next();
-				Object[] values = new Object[joinCols.length];
-				if ((newVal instanceof List) && ((List)newVal).size() == 1)
-					row.put(newCol, ((List)newVal).get(0));
-				else {
-					row.put(newCol, newVal);
-				}
-				for(int i = 0; i < joinCols.length; i++) {
-					if (it instanceof ExpressionIterator) {
-						Object rowVal = ((ExpressionIterator)it).getOtherBindings().get(joinCols[i]);
-						row.put(joinCols[i], rowVal);
-						values[i] = rowVal;
+		if(it.hasNext()) {
+			frame.connectTypes(joinCols, newCol);
+		
+			if (joinCols.length > 1) { // multicolumn join
+				String primKeyName = frame.getPrimaryKey(joinCols);
+				while(it.hasNext()) {
+					HashMap<String, Object> row = new HashMap<String, Object>();
+					Object newVal = it.next();
+					Object[] values = new Object[joinCols.length];
+					if ((newVal instanceof List) && ((List)newVal).size() == 1)
+						row.put(newCol, ((List)newVal).get(0));
+					else {
+						row.put(newCol, newVal);
 					}
+					for(int i = 0; i < joinCols.length; i++) {
+						if (it instanceof ExpressionIterator) {
+							Object rowVal = ((ExpressionIterator)it).getOtherBindings().get(joinCols[i]);
+							row.put(joinCols[i], rowVal);
+							values[i] = rowVal;
+						}
+					}
+					row.put(primKeyName, frame.getPrimaryKey(values));
+					frame.addRelationship(row, row);
 				}
-				row.put(primKeyName, frame.getPrimaryKey(values));
-				frame.addRelationship(row, row);
+				frame.setTempExpressionResult("SUCCESS");
+			} else {
+				while(it.hasNext()) {
+					HashMap<String, Object> row = new HashMap<String, Object>();
+					Object newVal = it.next();
+					if ((newVal instanceof List) && ((List)newVal).size() == 1)
+						row.put(newCol, ((List)newVal).get(0));
+					else {
+						row.put(newCol, newVal);
+					}
+					for(int i = 0; i < joinCols.length; i++) {
+						if (it instanceof ExpressionIterator) {
+							row.put(joinCols[i], ((ExpressionIterator)it).getOtherBindings().get(joinCols[i]));
+						}
+					}
+				if (newVal instanceof ISelectStatement) {
+					System.out.println(((ISelectStatement)newVal).getPropHash());
+				}
+					frame.addRelationship(row, row);
+				}
+				frame.setTempExpressionResult("SUCCESS");
 			}
 		} else {
-			while(it.hasNext()) {
-				HashMap<String, Object> row = new HashMap<String, Object>();
-				Object newVal = it.next();
-				if ((newVal instanceof List) && ((List)newVal).size() == 1)
-					row.put(newCol, ((List)newVal).get(0));
-				else {
-					row.put(newCol, newVal);
-				}
-				for(int i = 0; i < joinCols.length; i++) {
-					if (it instanceof ExpressionIterator) {
-						row.put(joinCols[i], ((ExpressionIterator)it).getOtherBindings().get(joinCols[i]));
-					}
-				}
-			if (newVal instanceof ISelectStatement) {
-				System.out.println(((ISelectStatement)newVal).getPropHash());
-			}
-				frame.addRelationship(row, row);
-			}
+			frame.setTempExpressionResult("FAIL");
 		}
 		
 		
 		
 		// I have no idea what we are trying to do here 
 		// need to ask kevin
-		frame.setTempExpressionResult("SUCCESS");
 		
 		return null;
 	}
