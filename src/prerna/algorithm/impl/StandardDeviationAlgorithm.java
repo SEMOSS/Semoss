@@ -33,4 +33,14 @@ public class StandardDeviationAlgorithm extends BaseReducer{
 		System.out.println(output);
 		return output;
 	}
+	
+	@Override
+	public void setData(Iterator inputIterator, String[] ids, String script) {
+		super.set(inputIterator, ids, script, null);
+	}
+
+	@Override
+	public Object execute() {
+		return reduce();
+	}
 }

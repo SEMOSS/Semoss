@@ -2,21 +2,30 @@ package prerna.algorithm.impl;
 
 import java.util.Iterator;
 
+import prerna.ds.AlgorithmStrategy;
 import prerna.ds.ExpressionIterator;
 
-public class ConcatAlgorithm extends ExpressionIterator{
+public class ConcatAlgorithm implements AlgorithmStrategy {
 	
-	public ConcatAlgorithm() {
-		
-	}
+	Iterator it = null;
+	String[] headers = null;
+	String script = null;
 	
-	public ConcatAlgorithm(Iterator results, String[] columnsUsed, String script) {
-		super(results, columnsUsed, script.replace(",", "+"));
-	}
+//	public ConcatAlgorithm(Iterator results, String[] columnsUsed, String script) {
+//		super(results, columnsUsed, script.replace(",", "+"));
+//	}
 
 	@Override
 	public void setData(Iterator results, String[] columnsUsed, String script) {
-		super.setData(results, columnsUsed, script.replace(",", "+"));
+		it = results;
+		headers = columnsUsed;
+		script = script;
+	}
+	
+	@Override
+	public Object execute() {
+		ExpressionIterator expIt = new ExpressionIterator(it, headers, script.replace(",", "+"));
+		return expIt;
 	}
 	
 //	@Override
