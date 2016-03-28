@@ -57,6 +57,7 @@ public class OWLER {
 	}
 	
 	public OWLER(IEngine existingEngine, String fileName, IEngine.ENGINE_TYPE type) {
+		this.type = type;
 		engine = new BaseDatabaseCreator(existingEngine, fileName);
 	}
 	
