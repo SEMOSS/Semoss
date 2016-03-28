@@ -18,6 +18,7 @@ public class OWLER {
 	public static String BASE_URI = "http://semoss.org/ontologies/";
 	public static final String DEFAULT_NODE_CLASS = "Concept";
 	public static final String DEFAULT_RELATION_CLASS = "Relation";
+	public static final String DEFAULT_PROP_CLASS = "Relation/Contains";
 	public static final String SUBPROPERTY_URI = "http://www.w3.org/2000/01/rdf-schema#subPropertyOf";
 	public static final String SUBCLASS_URI = "http://www.w3.org/2000/01/rdf-schema#subClassOf";
 	public static final String CLASS_URI = "http://www.w3.org/2000/01/rdf-schema#Class";
@@ -224,7 +225,7 @@ public class OWLER {
 			String propSubject = addConcept(concept);
 			
 			// STEP 1
-			String propMaster = SEMOSS_URI + "Relation/Contains";
+			String propMaster = SEMOSS_URI + DEFAULT_PROP_CLASS;
 			String propPredicate = OWL.DatatypeProperty + "";
 			String propObject = propMaster + "/" + property;
 			
@@ -244,6 +245,30 @@ public class OWLER {
 		}
 		
 		return propHash.get(concept + "%" + property);
+	}
+	
+	public Hashtable<String, String> getConceptHash() {
+		return conceptHash;
+	}
+
+	public void setConceptHash(Hashtable<String, String> conceptHash) {
+		this.conceptHash = conceptHash;
+	}
+
+	public Hashtable<String, String> getRelationHash() {
+		return relationHash;
+	}
+
+	public void setRelationHash(Hashtable<String, String> relationHash) {
+		this.relationHash = relationHash;
+	}
+
+	public Hashtable<String, String> getPropHash() {
+		return propHash;
+	}
+
+	public void setPropHash(Hashtable<String, String> propHash) {
+		this.propHash = propHash;
 	}
 	
 	public static void main(String [] args)
