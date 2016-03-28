@@ -147,10 +147,11 @@ public class FilterTransformation extends AbstractTransformation {
 				}
 			}
 		}
-		else { // all filter methods on the btree are set up to work without uris. Need to strip uris
-			for(Object o: filterValuesArr) {
-				values.add(Utility.getInstanceName(o+""));
-			}
+		else { 
+			values.addAll(filterValuesArr);
+//			for(Object o: filterValuesArr) {
+//				values.add(Utility.getInstanceName(o+""));
+//			}
 		}
 		
 		//get filter and unfilter methods from data maker
