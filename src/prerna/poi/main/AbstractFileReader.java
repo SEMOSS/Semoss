@@ -316,6 +316,24 @@ public abstract class AbstractFileReader {
 		}
 	}
 	
+	protected void loadMetadataIntoEngine() {
+		Hashtable<String, String> hash = owler.getConceptHash();
+		String object = OWLER.SEMOSS_URI + OWLER.DEFAULT_NODE_CLASS;
+		for(String concept : hash.keySet()) {
+			engine.doAction(IEngine.ACTION_TYPE.ADD_STATEMENT, new Object[]{hash.get(concept), RDFS.SUBCLASSOF + "", object, true});
+		}
+		hash = owler.getRelationHash();
+		object = OWLER.SEMOSS_URI + OWLER.DEFAULT_RELATION_CLASS;
+		for(String relation : hash.keySet()) {
+			engine.doAction(IEngine.ACTION_TYPE.ADD_STATEMENT, new Object[]{hash.get(relation), RDFS.SUBPROPERTYOF + "", object, true});
+		}
+		hash = owler.getPropHash();
+		object = OWLER.SEMOSS_URI + OWLER.DEFAULT_PROP_CLASS;
+		for(String prop : hash.keySet()) {
+			engine.doAction(IEngine.ACTION_TYPE.ADD_STATEMENT, new Object[]{hash.get(prop), RDF.TYPE + "", object, true});
+		}
+	}
+	
 	protected void processDisplayNames(){
 		displayNamesHash = DisplayNamesProcessor.generateDisplayNameMap(rdfMap, false);
 	}

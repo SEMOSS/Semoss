@@ -98,6 +98,7 @@ public class POIReader extends AbstractFileReader {
 		for (String fileName : files) {
 			importFile(fileName);
 		}
+		loadMetadataIntoEngine();
 		createBaseRelations();
 		commitDB();
 		engine.loadTransformedNodeNames();
@@ -135,6 +136,7 @@ public class POIReader extends AbstractFileReader {
 			for (String fileName : files) {
 				importFile(fileName);
 			}
+			loadMetadataIntoEngine();
 			createBaseRelations();
 		} finally {
 			closeDB();
