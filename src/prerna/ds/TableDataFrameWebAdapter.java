@@ -3,7 +3,9 @@ package prerna.ds;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 import org.apache.log4j.LogManager;
@@ -138,10 +140,16 @@ public class TableDataFrameWebAdapter {
 			return  nextData;
 		} else if(tableData instanceof TinkerFrame){
 			TinkerFrame table = (TinkerFrame) tableData; 
-            
-            table.setRange(startRow, endRow);
-            List<Object[]> rawData = table.getRawData();
-            table.setRange(-1, -1);
+			
+			Map<String, Object> options = new HashMap<String, Object>();
+			options.put(TinkerFrame.OFFSET, startRow);
+			options.put(TinkerFrame.LIMIT, endRow);
+
+            Iterator<Object[]> it = table.iterator(true, options);
+            List<Object[]> rawData = new ArrayList<Object[]>();
+            while(it.hasNext()) {
+            	rawData.add(it.next());
+            }
             
             String[] headers = table.getColumnHeaders();
             int length = headers.length;
