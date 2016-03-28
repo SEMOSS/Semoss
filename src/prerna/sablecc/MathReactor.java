@@ -3,8 +3,7 @@ package prerna.sablecc;
 import java.util.Iterator;
 import java.util.Vector;
 
-import prerna.ds.ExpressionIterator;
-import prerna.ds.ExpressionReducer;
+import prerna.ds.AlgorithmStrategy;
 import prerna.ds.TinkerFrame;
 
 public class MathReactor extends AbstractReactor {
@@ -21,8 +20,8 @@ public class MathReactor extends AbstractReactor {
 	// unless of course someone is trying to just sum the number
 	
 	Vector <String> replacers = new Vector<String>();
-	ExpressionReducer red = null;
-	ExpressionIterator it = null;
+	AlgorithmStrategy strategy = null;
+	
 	
 	public MathReactor() {
 		String [] thisReacts = {TokenEnum.EXPR_TERM, TokenEnum.DECIMAL, TokenEnum.NUMBER, TokenEnum.GROUP_BY, TokenEnum.COL_DEF};
@@ -61,25 +60,33 @@ public class MathReactor extends AbstractReactor {
 				System.out.println("Ok.. I am getting SOMETHING..");
 			}
 			
-			if(algorithm instanceof ExpressionReducer) {
-				red = (ExpressionReducer) algorithm;
-				// and action ?
-				red.set(iterator, columnsArray, myStore.get("MOD_" + whoAmI) + "");
-				double finalValue = (double)red.reduce();
-				
-				String nodeStr = (String)myStore.get(whoAmI);
-				
+			if (algorithm instanceof AlgorithmStrategy) {
+				strategy = (AlgorithmStrategy) algorithm;
+				strategy.setData(iterator, columnsArray, myStore.get("MOD_" + whoAmI).toString());
+				Object finalValue = strategy.execute();
+				String nodeStr = myStore.get(whoAmI).toString();
 				myStore.put(nodeStr, finalValue);
-				
-				System.out.println("Completed Funning Math.. ");
-				
-			} else if(algorithm instanceof ExpressionIterator) {
-				it = (ExpressionIterator) algorithm;
-				it.setData(iterator, columnsArray , myStore.get("MOD_" + whoAmI) + "");
-				String nodeStr = (String)myStore.get(whoAmI);
-				myStore.put(nodeStr, it);
-				System.out.println("Math Fun Iterator stored");
 			}
+			
+//			if(algorithm instanceof ExpressionReducer) {
+//				red = (ExpressionReducer) algorithm;
+//				// and action ?
+//				red.set(iterator, columnsArray, myStore.get("MOD_" + whoAmI) + "");
+//				double finalValue = (double)red.reduce();
+//				
+//				String nodeStr = (String)myStore.get(whoAmI);
+//				
+//				myStore.put(nodeStr, finalValue);
+//				
+//				System.out.println("Completed Funning Math.. ");
+//				
+//			} else if(algorithm instanceof ExpressionIterator) {
+//				it = (ExpressionIterator) algorithm;
+//				it.setData(iterator, columnsArray , myStore.get("MOD_" + whoAmI) + "");
+//				String nodeStr = (String)myStore.get(whoAmI);
+//				myStore.put(nodeStr, it);
+//				System.out.println("Math Fun Iterator stored");
+//			}
 			
 		} catch (InstantiationException e) {
 			// TODO Auto-generated catch block

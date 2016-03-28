@@ -11,10 +11,11 @@ import javax.script.ScriptException;
 import org.apache.tinkerpop.gremlin.groovy.jsr223.GremlinGroovyScriptEngine;
 import org.apache.tinkerpop.gremlin.structure.Vertex;
 
+import prerna.ds.AlgorithmStrategy;
 import prerna.ds.ExpressionReducer;
 import prerna.util.Constants;
 
-public abstract class BaseReducer implements ExpressionReducer {
+public abstract class BaseReducer implements ExpressionReducer, AlgorithmStrategy {
 	
 	protected Iterator inputIterator = null;
 	protected String [] ids = null;
@@ -26,7 +27,7 @@ public abstract class BaseReducer implements ExpressionReducer {
 	protected Bindings otherBindings = engine.getBindings(ScriptContext.ENGINE_SCOPE);
 	protected String propToGet = Constants.VALUE;
 
-
+	
 	public void set(Iterator inputIterator, String[] ids, String script, String prop ) {
 		// TODO Auto-generated method stub
 		this.inputIterator = inputIterator;
@@ -114,9 +115,5 @@ public abstract class BaseReducer implements ExpressionReducer {
 		
 		return retObject;
 	}
-
-
-	@Override
-	public abstract Object reduce() ;
 
 }
