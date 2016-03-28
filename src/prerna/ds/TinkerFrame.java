@@ -1950,7 +1950,7 @@ public class TinkerFrame implements ITableDataFrame {
 		unfilter(columnHeader);
 		
 		Set<Object> removeSet = new HashSet<Object>();
-		Iterator<Object> iterator = uniqueValueIterator(columnHeader, false, false);
+		Iterator<Object> iterator = uniqueValueIterator(columnHeader, true, false);
 		while(iterator.hasNext()) {
 			removeSet.add(iterator.next());
 		}
@@ -1965,7 +1965,7 @@ public class TinkerFrame implements ITableDataFrame {
 		Vertex filterVertex = upsertVertex(Constants.FILTER, Constants.FILTER, Constants.FILTER);
 
 		for(Object val : removeSet) {
-			String id = columnHeader +":"+ val;
+			String id = columnHeader +":"+ Utility.getInstanceName(val + "");
 
 			GraphTraversal<Vertex, Vertex> fgt = g.traversal().V().has(Constants.ID, id);
 			Vertex nextVertex = null;
