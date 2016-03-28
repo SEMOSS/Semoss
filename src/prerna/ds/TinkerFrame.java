@@ -104,7 +104,7 @@ public class TinkerFrame implements ITableDataFrame {
 	
 	public static final String PRIM_KEY = "PRIM_KEY";
 	public static final String META = "META";
-	public static final String EMPTY = "_";
+	public static final String EMPTY = "";
 
 	public static final String LIMIT = "limit";
 	public static final String OFFSET = "offset";
@@ -2836,7 +2836,7 @@ public class TinkerFrame implements ITableDataFrame {
 		for(; i < 5 && i < numRows; i++) {
 			String rowStr = rows[i];
 			if(rowStr.isEmpty()) {
-				continue;
+				rowStr = TinkerFrame.EMPTY;
 			}
 			String[] row = rowStr.split(delimeter + "{1}", headers.length);
 			if(row.length != numHeaders) {
@@ -2906,7 +2906,7 @@ public class TinkerFrame implements ITableDataFrame {
 		for(; i < numRows; i++) {
 			String rowStr = rows[i];
 			if(rowStr.isEmpty()) {
-				continue;
+				rowStr = TinkerFrame.EMPTY;
 			}
 			String[] row = rowStr.split(delimeter + "{1}", headers.length);
 			if(row.length != numHeaders) {
