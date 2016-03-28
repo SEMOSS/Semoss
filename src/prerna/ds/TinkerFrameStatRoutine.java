@@ -13,6 +13,7 @@ import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.__;
 
 import prerna.algorithm.api.IAnalyticTransformationRoutine;
 import prerna.algorithm.api.ITableDataFrame;
+import prerna.ds.H2.TinkerH2Frame;
 import prerna.om.SEMOSSParam;
 import prerna.rdf.query.builder.GremlinBuilder;
 import prerna.util.Constants;
@@ -70,7 +71,27 @@ public class TinkerFrameStatRoutine implements IAnalyticTransformationRoutine {
 		// TODO Auto-generated method stub
 		//grab first, cast to tinker
 		ITableDataFrame table = data[0];
-		if(table instanceof TinkerFrame) {
+		if(table instanceof TinkerH2Frame) {
+			TinkerH2Frame tinkerGraph = (TinkerH2Frame)table;
+			
+			//gather the necessary parameters
+			String valueColumn = this.functionMap.get("name").toString();
+			String mathType = this.functionMap.get("math").toString();
+			String newColumnHeader = this.functionMap.get("calcName").toString();
+			String[] columnHeaders = ((List<String>)this.functionMap.get("GroupBy")).toArray(new String[0]);
+			if(columnHeaders.length > 1) {
+				throw new UnsupportedOperationException("H2 currently does not support heat maps or multi column joins");
+			}
+			//calculate group by and add to tinker
+			try {
+				addStatColumnToTinker(tinkerGraph, columnHeaders[0], mathType, newColumnHeader, valueColumn);
+			} catch(ClassCastException e) {
+				throw new ClassCastException("Error with computation. Please make sure aggregation values are non-empty and numerical.");
+			}
+			this.newColumn = newColumnHeader;
+		}
+		
+		else if(table instanceof TinkerFrame) {
 			
 			TinkerFrame tinkerGraph = (TinkerFrame)table;
 			
@@ -103,57 +124,9 @@ public class TinkerFrameStatRoutine implements IAnalyticTransformationRoutine {
 	 * @param newColumnName - name of the new column
 	 * @param valueColumn - the column to do calculations on
 	 */
-	private void addStatColumnToTinker(TinkerFrame tinker, String columnHeader, String mathType, String newColumnName, String valueColumn) {
-				
-		GremlinBuilder builder = GremlinBuilder.prepareGenericBuilder(tinker.getSelectors(), tinker.g);
-		GraphTraversal statIterator = (GraphTraversal)builder.executeScript();
-		
-		statIterator = statIterator.group().by(__.select(columnHeader).values(Constants.NAME)).as(PRIMARY_SELECTOR);
-		switch(mathType.toUpperCase()) {
-			case AVERAGE : {
-				statIterator = statIterator.by(__.select(valueColumn).values(Constants.NAME).mean()).as(SECONDARY_SELECTOR).select(PRIMARY_SELECTOR); break;
-			}
-			case MIN : {
-				statIterator = statIterator.by(__.select(valueColumn).values(Constants.NAME).min()).as(SECONDARY_SELECTOR).select(PRIMARY_SELECTOR); break;
-			}
-			case MAX : {
-				statIterator = statIterator.by(__.select(valueColumn).values(Constants.NAME).max()).as(SECONDARY_SELECTOR).select(PRIMARY_SELECTOR); break;
-			}
-			case SUM : {
-				statIterator = statIterator.by(__.select(valueColumn).values(Constants.NAME).sum()).as(SECONDARY_SELECTOR).select(PRIMARY_SELECTOR); break;
-			}
-			case COUNT : {
-				statIterator = statIterator.by(__.count()); break;
-			}
-			default : {
-				statIterator = statIterator.by(__.select(valueColumn).values(Constants.NAME).mean()).as(SECONDARY_SELECTOR).select(PRIMARY_SELECTOR); break;
-			}
-		}
-		
-		if(statIterator.hasNext()) {
-			
-			//the result of the graph traversal
-			Map<Object, Object> groupByMap = (Map<Object, Object>)statIterator.next();
-			
-			//create the edgehash associated with the new result map
-			Map<String, Set<String>> newEdgeHash = new HashMap<String, Set<String>>(1);
-			Set<String> edgeSet = new HashSet<String>(1);
-			edgeSet.add(newColumnName);
-			
-			//merge the new edge hash with the existing one in tinker
-			newEdgeHash.put(columnHeader, edgeSet);			
-			tinker.mergeEdgeHash(newEdgeHash);
-			
-			//add that relationship to the tinker graph
-			for(Object key : groupByMap.keySet()) {
-			
-				Map<String, Object> newRow = new HashMap<String, Object>(2);
-				newRow.put(columnHeader, key);
-				newRow.put(newColumnName, groupByMap.get(key));
-				
-				tinker.addRelationship(newRow, newRow);
-			}			
-		}
+	private void addStatColumnToTinker(TinkerH2Frame tinker, String columnHeader, String mathType, String newColumnName, String valueColumn) {	
+		tinker.connectTypes(columnHeader, newColumnName);
+		tinker.applyGroupBy(columnHeader, newColumnName, valueColumn, mathType);
 	}
 	
 	/**
