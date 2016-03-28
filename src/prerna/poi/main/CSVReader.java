@@ -124,6 +124,7 @@ public class CSVReader extends AbstractFileReader {
 					closeCSVFile();
 				}
 			}
+			loadMetadataIntoEngine();
 			createBaseRelations();
 		} finally {
 			closeDB();
@@ -170,6 +171,7 @@ public class CSVReader extends AbstractFileReader {
 				closeCSVFile();
 			}
 		} 
+		loadMetadataIntoEngine();
 		createBaseRelations();
 		commitDB();
 		engine.loadTransformedNodeNames();
