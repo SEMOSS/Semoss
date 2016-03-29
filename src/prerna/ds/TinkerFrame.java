@@ -868,6 +868,7 @@ public class TinkerFrame implements ITableDataFrame {
 		g.createIndex(Constants.TYPE, Vertex.class);
 		g.createIndex(Constants.ID, Vertex.class);
 		g.createIndex(T.label.toString(), Edge.class);
+		g.createIndex(Constants.ID, Edge.class);
 		g.variables().set(Constants.HEADER_NAMES, headerNames);
 	}
 	
@@ -877,6 +878,7 @@ public class TinkerFrame implements ITableDataFrame {
 		g.createIndex(Constants.TYPE, Vertex.class);
 		g.createIndex(Constants.ID, Vertex.class);
 		g.createIndex(T.label.toString(), Edge.class);
+		g.createIndex(Constants.ID, Edge.class);
 		g.variables().set(Constants.HEADER_NAMES, headerNames);
 		mergeEdgeHash(edgeHash);
 	}			 
@@ -885,6 +887,7 @@ public class TinkerFrame implements ITableDataFrame {
 		g = TinkerGraph.open();
 		g.createIndex(Constants.TYPE, Vertex.class);
 		g.createIndex(Constants.ID, Vertex.class);
+		g.createIndex(Constants.ID, Edge.class);
 		g.createIndex(T.label.toString(), Edge.class);
 	}
 
@@ -1277,7 +1280,7 @@ public class TinkerFrame implements ITableDataFrame {
 		String type = fromVertex.value(Constants.TYPE) + edgeLabelDelimeter + toVertex.value(Constants.TYPE);
 		String edgeID = type + "/" + fromVertex.value(Constants.NAME) + ":" + toVertex.value(Constants.NAME);
 		// try to find the vertex
-		GraphTraversal<Edge, Edge> gt = g.traversal().E().hasLabel(type).has(Constants.ID, edgeID);
+		GraphTraversal<Edge, Edge> gt = g.traversal().E().has(Constants.ID, edgeID);
 		if(gt.hasNext()) {
 			retEdge = gt.next();
 			Integer count = (Integer)retEdge.value(Constants.COUNT);
