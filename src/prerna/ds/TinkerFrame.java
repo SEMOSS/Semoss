@@ -104,7 +104,7 @@ public class TinkerFrame implements ITableDataFrame {
 	
 	public static final String PRIM_KEY = "PRIM_KEY";
 	public static final String META = "META";
-	public static final String EMPTY = "";
+	public static final String EMPTY = "_";
 
 	public static final String LIMIT = "limit";
 	public static final String OFFSET = "offset";
@@ -2075,7 +2075,7 @@ public class TinkerFrame implements ITableDataFrame {
 //			GraphTraversal<Vertex, Vertex> gt = g.traversal().V().has(Constants.TYPE, Constants.FILTER).out(Constants.FILTER+edgeLabelDelimeter+vertType).has(Constants.TYPE, vertType);
 			GraphTraversal<Vertex, Vertex> gt = g.traversal().V().has(Constants.TYPE, vertType);
 
-			List<String> vertsList = new Vector<String>();
+			List<Object> vertsList = new Vector<Object>();
 			while(gt.hasNext()){
 //				System.out.println(gt.next());
 				Vertex vert = gt.next();
