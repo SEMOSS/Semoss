@@ -46,8 +46,8 @@ public class TinkerFrameIterator implements Iterator<Object[]> {
 		this.gt = openTraversal(
 				(List<String>) options.get(TinkerFrame.SELECTORS), 
 				g, 
-				(Integer) options.get(TinkerFrame.LIMIT), 
 				(Integer) options.get(TinkerFrame.OFFSET), 
+				(Integer) options.get(TinkerFrame.LIMIT), 
 				(String) options.get(TinkerFrame.SORT_BY),
 				dir, 
 				dedup);
