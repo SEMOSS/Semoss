@@ -36,6 +36,7 @@ import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 import org.stringtemplate.v4.ST;
 
+import prerna.ds.TinkerFrame;
 import prerna.engine.api.ISelectStatement;
 import prerna.engine.api.ISelectWrapper;
 import prerna.rdf.query.builder.GremlinBuilder;
@@ -75,7 +76,12 @@ public class H2Builder {
 	
 	/*************************** TEST **********************************************/
 	public static void main(String[] a) throws Exception {
-		new H2Builder().testMakeFilter();
+		
+		String testString = "0.27";
+		System.out.println(NumberUtils.isNumber(testString));
+		
+		
+//		new H2Builder().testMakeFilter();
 //    	H2Builder test = new H2Builder();
 //    	test.castToType("6/2/2015");
 //		String fileName = "C:/Users/rluthar/Desktop/datasets/Movie.csv";
@@ -319,9 +325,10 @@ public class H2Builder {
 	    		retObject[0] = "int";
 	    		retObject[1] = retO;
 	    	}
-	    	else if(NumberUtils.isNumber(input))
+//	    	else if(NumberUtils.isNumber(input))
+	    	else if((retO = getDouble(input)) != null )
 	    	{
-	    		retO = Double.parseDouble(input);
+//	    		retO = Double.parseDouble(input);
 	    		retObject = new Object[2];
 	    		retObject[0] = "double";
 	    		retObject[1] = retO;
@@ -335,9 +342,13 @@ public class H2Builder {
 	    	}
 	    	else if((retO = getCurrency(input)) != null )
 	    	{
-	    		
 	    		retObject = new Object[2];
-	    		retObject[0] = "currency";
+	    		
+	    		if(retO.toString().equalsIgnoreCase(input)) {
+	    			retObject[0] = "varchar(800)";
+	    		} else {
+	    			retObject[0] = "double";
+	    		}
 	    		retObject[1] = retO;
 	    	}
 	    	else
@@ -389,16 +400,32 @@ public class H2Builder {
 	    
     private Object getCurrency(String input)
     {
+    	if(input.indexOf("-") > 0)
+			return input;
+    	
     	Number nm = null;
     	NumberFormat nf = NumberFormat.getCurrencyInstance();
     	
-    	try {
-    		nm = nf.parse(input);
-    	} catch (Exception ex) {
- 
-    	}
+//    	if(input.indexOf("-") > 0) {
+    		try {
+	    		nm = nf.parse(input);
+	    	} catch (Exception ex) {
+	 
+	    	}
+//    	}
+    		// a simpler way to test is to see if the $ removed matches the value
+
     	
     	return nm;
+    }
+    
+    private Double getDouble(String input) {
+    	try {
+    		Double num = Double.parseDouble(input);
+    		return num;
+    	} catch(NumberFormatException e) {
+    		return null;
+    	}
     }
 
 
@@ -555,6 +582,80 @@ public class H2Builder {
     	return new ArrayList<Object[]>(0);
     }
     
+    public List<Object[]> getData(List<String> columnHeaders, String column, Object value) {
+        
+        List<Object[]> data;
+        column = cleanHeader(column);
+    	try {
+    		String selectQuery = makeSpecificSelect(tableName, columnHeaders, column, value);
+    		ResultSet rs = executeQuery(selectQuery);
+			
+			if(rs != null) {
+			
+				ResultSetMetaData rsmd = rs.getMetaData();
+		        int NumOfCol = rsmd.getColumnCount();
+		        data = new ArrayList<>(NumOfCol);
+		        while (rs.next()){
+		            Object[] row = new Object[NumOfCol];
+
+		            for(int i = 1; i <= NumOfCol; i++) {
+		                row[i-1] = rs.getObject(i);
+		            }
+		            data.add(row);
+		        }
+		        
+		        return data;
+			}
+			
+		} catch (SQLException e) {
+			e.printStackTrace();
+		}
+    	
+    	return new ArrayList<Object[]>(0);
+    }
+    
+    public Object[] getColumn(String columnHeader, boolean distinct) {
+    	ArrayList<Object> column = new ArrayList<>();
+    	
+    	columnHeader = cleanHeader(columnHeader);
+    	List<String> headers = new ArrayList<String>(1);
+    	headers.add(columnHeader);
+    	ResultSet rs;
+    	String selectQuery;
+    	if(distinct) {
+    		selectQuery = makeSelectDistinct(tableName, headers);
+    	} else {
+    		selectQuery = makeSelect(tableName, headers);
+    	}
+		try {
+			rs = executeQuery(selectQuery);
+			while(rs.next()) {
+	    		column.add(rs.getObject(1));
+	    	}
+		} catch (SQLException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+    	return column.toArray();
+    }
+    
+    public Double getStat(String columnHeader, String statType) {
+    	columnHeader = cleanHeader(columnHeader);
+    	ResultSet rs = executeQuery(makeFunction(columnHeader, statType, tableName));
+    	try {
+			if(rs.next()) {
+				return rs.getDouble(1);
+			}
+		} catch (SQLException e) {
+			e.printStackTrace();
+		}
+    	return null;
+    }
+    
+    public String[] getTypes() {
+    	return types;
+    }
+    
     /*************************** END READ ****************************************/
     
     
@@ -705,6 +806,21 @@ public class H2Builder {
     	}
     	
     	return null;
+    }
+    
+    public Iterator buildIterator(Map<String, Object> options) {
+    		
+		String sortDir = options.get(TinkerFrame.SORT_BY_DIRECTION).toString();
+		Boolean dedup = (Boolean) options.get(TinkerFrame.DE_DUP);
+		Integer limit = (Integer) options.get(TinkerFrame.LIMIT);
+		Integer offset = (Integer) options.get(TinkerFrame.OFFSET);
+		String sortBy = options.get(TinkerFrame.SORT_BY).toString();
+		List<String> selectors = (List<String>) options.get(TinkerFrame.SELECTORS);
+		
+		String selectQuery = makeSelect(tableName, selectors);
+		ResultSet rs = executeQuery(selectQuery);
+    	return new TinkerH2Iterator(rs);
+    	
     }
     
     private void processAlterData(String[][] data, String[] newHeaders)
@@ -1185,6 +1301,124 @@ public class H2Builder {
     	return selectStatement;
     }
     
+    private String makeSpecificSelect(String tableName, List<String> selectors, String columnHeader, Object value) {
+    	String selectStatement = "SELECT ";
+    	
+    	if(filterHash.size() > 1) {
+	    	for(int i = 0; i < selectors.size(); i++) {
+	    		String selector = selectors.get(i);
+	    		selector = cleanHeader(selector);
+	    		
+	    		if(i < selectors.size() - 1) {
+	    			selectStatement += selector + ",";
+	    		}
+	    		else {
+	    			selectStatement += selector;
+	    		}
+	    	}
+	    	
+	    	selectStatement += " FROM " + tableName +" ";
+	    	
+	    	String filterStatement = "";
+	    	List<String> filteredColumns = new ArrayList<String>(filterHash.keySet());
+	    	for(int x = 0; x < filteredColumns.size(); x++) {
+	    		
+	    		String header = filteredColumns.get(x);
+	    		List<Object> filterValues = filterHash.get(header);
+	    		String listString = getQueryStringList(filterValues);
+	    		
+	    		filterStatement += header+" in " + listString;
+	    		
+	    		//put appropriate ands
+	    		if(x < filteredColumns.size() - 1) {
+	    			filterStatement += " AND ";
+	    		}
+	    	}
+	    	
+	    	if(filterStatement.length() > 1) {
+	    		selectStatement += " WHERE " + filterStatement;
+	    		selectStatement += " AND " + columnHeader + " = " + "'"+value+"'";
+	    	} else {
+	    		selectStatement += " WHERE " + columnHeader + " = " + "'"+value+"'";
+	    	}
+    	} else {
+    		for(int i = 0; i < selectors.size(); i++) {
+	    		String selector = selectors.get(i);
+	    		selector = cleanHeader(selector);
+	    		
+	    		if(i < selectors.size() - 1) {
+	    			selectStatement += selector + ", ";
+	    		}
+	    		else {
+	    			selectStatement += selector;
+	    		}
+	    	}
+    		
+    		selectStatement += " FROM " + tableName;
+    		selectStatement += " WHERE " + columnHeader + " = " + "'"+value+"'";
+    	}
+    	
+    	return selectStatement;
+    }
+    
+    //make a select query
+    private String makeSelectDistinct(String tableName, List<String> selectors) {
+    	
+    	String selectStatement = "SELECT DISTINCT ";
+    	
+    	if(filterHash.size() > 1) {
+	    	for(int i = 0; i < selectors.size(); i++) {
+	    		String selector = selectors.get(i);
+	    		selector = cleanHeader(selector);
+	    		
+	    		if(i < selectors.size() - 1) {
+	    			selectStatement += selector + ",";
+	    		}
+	    		else {
+	    			selectStatement += selector;
+	    		}
+	    	}
+	    	
+	    	selectStatement += " FROM " + tableName +" ";
+	    	
+	    	String filterStatement = "";
+	    	List<String> filteredColumns = new ArrayList<String>(filterHash.keySet());
+	    	for(int x = 0; x < filteredColumns.size(); x++) {
+	    		
+	    		String header = filteredColumns.get(x);
+	    		List<Object> filterValues = filterHash.get(header);
+	    		String listString = getQueryStringList(filterValues);
+	    		
+	    		filterStatement += header+" in " + listString;
+	    		
+	    		//put appropriate ands
+	    		if(x < filteredColumns.size() - 1) {
+	    			filterStatement += " AND ";
+	    		}
+	    	}
+	    	
+	    	if(filterStatement.length() > 1) {
+	    		selectStatement += " WHERE " + filterStatement;
+	    	}
+    	} else {
+    		for(int i = 0; i < selectors.size(); i++) {
+	    		String selector = selectors.get(i);
+	    		selector = cleanHeader(selector);
+	    		
+	    		if(i < selectors.size() - 1) {
+	    			selectStatement += selector + ", ";
+	    		}
+	    		else {
+	    			selectStatement += selector;
+	    		}
+	    	}
+    		
+    		selectStatement += " FROM " + tableName;
+    	}
+    	
+    	return selectStatement;
+    }
+    
     private String makeNotSelect(String tableName, String selector) {
     	String selectStatement = "SELECT DISTINCT ";
     	
@@ -1314,6 +1548,23 @@ public class H2Builder {
     	
     	
     	return groupByStatement;
+    }
+    
+    private String makeFunction(String column, String function, String tableName) {
+    	
+    	String functionString = "SELECT ";
+    	switch(function.toUpperCase()) {
+    	case "COUNT": functionString += "COUNT("+column+")"; break;
+    	case "AVERAGE": functionString += "AVG("+column+")"; break;
+    	case "MIN": functionString += "MIN("+column+")"; break;
+    	case "MAX": functionString += "MAX("+column+")"; break;
+    	case "SUM": functionString += "SUM("+column+")"; break;
+    	default: functionString += column;
+    	}
+    	
+    	functionString += "FROM "+tableName;
+    	
+    	return functionString;
     }
     /*************************** END QUERY BUILDERS **************************************/
     
