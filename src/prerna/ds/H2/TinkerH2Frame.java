@@ -1,6 +1,7 @@
 package prerna.ds.H2;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -15,12 +16,15 @@ import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.GraphTraversal;
 import org.apache.tinkerpop.gremlin.structure.Vertex;
 
 import prerna.ds.TinkerFrame;
+import prerna.ds.TinkerFrameIterator;
+import prerna.ds.UniqueScaledTinkerFrameIterator;
 import prerna.engine.api.IEngine;
 import prerna.engine.api.ISelectStatement;
 import prerna.engine.api.ISelectWrapper;
 import prerna.om.TinkerGraphDataModel;
 import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.ui.components.playsheets.datamakers.DataMakerComponent;
+import prerna.util.ArrayUtilityMethods;
 import prerna.util.Constants;
 
 public class TinkerH2Frame extends TinkerFrame {
@@ -55,6 +59,15 @@ public class TinkerH2Frame extends TinkerFrame {
 	
 	public void addRow(String[] row) {
 		builder.addRow(row);
+	}
+	
+	public void addRelationship(Map<String, Object> row) {
+		//update the builder
+	}
+	
+	@Override
+	public void connectTypes(String outVert, String inVert) {
+	//add a new column to the h2 if needed	
 	}
 	
 	/************************** END AGGREGATION METHODS **********************/
@@ -231,6 +244,13 @@ public class TinkerH2Frame extends TinkerFrame {
 		return builder.buildIterator(getSelectors());
 	}
 	
+	@Override
+	public Iterator<Object[]> iterator(boolean getRawData, Map<String, Object> options) {
+		List<String> selectors = (List<String>) options.get(TinkerFrame.SELECTORS);
+		return builder.buildIterator(getSelectors());
+//		return builder.buildIterator(options);
+	}
+	
 	public void applyGroupBy(String column, String newColumnName, String valueColumn, String mathType) {
 		builder.processGroupBy(column, newColumnName, valueColumn, mathType);
 	}
@@ -244,5 +264,65 @@ public class TinkerH2Frame extends TinkerFrame {
 			iterator.next();
 		}
 		return count;
+	}
+	
+	@Override
+	public Object[] getColumn(String columnHeader) {
+		Object[] array = builder.getColumn(columnHeader, false);
+		return array;
+	}
+	
+	@Override
+	public Integer getUniqueInstanceCount(String columnHeader) {
+		return builder.getColumn(columnHeader, true).length;
+	}
+	
+	@Override
+	public Double getMin(String columnHeader) {
+		return builder.getStat(columnHeader, "MIN");
+	}
+	
+	@Override
+	public Double getMax(String columnHeader) {
+		return builder.getStat(columnHeader, "MAX");
+	}
+	
+	@Override 
+	public boolean isNumeric(String columnHeader) {
+		String[] types = builder.getTypes();
+		int index = ArrayUtilityMethods.arrayContainsValueAtIndex(headerNames, columnHeader);
+		boolean isNum = types[index].equalsIgnoreCase("int") || types[index].equalsIgnoreCase("double");
+		return isNum;
+	}
+	
+	@Override
+	public Iterator<List<Object[]>> scaledUniqueIterator(String columnHeader, boolean getRawData) {
+		return new ScaledUniqueH2FrameIterator(columnHeader, getRawData, getSelectors(), builder, getMax(), getMin());
+	}
+	
+	@Override
+	public Double[] getColumnAsNumeric(String columnHeader) {
+		if(isNumeric(columnHeader)) {
+			Object[] array = builder.getColumn(columnHeader, false);
+			
+			List<Double> numericCol = new ArrayList<Double>();
+			Iterator<Object> it = Arrays.asList(array).iterator();
+			while(it.hasNext()) {
+				Object row = it.next();
+				numericCol.add( ((Number) row).doubleValue() );
+			}
+			
+			return numericCol.toArray(new Double[]{});
+		}
+		
+		return null;
+	}
+	
+	@Override
+	public void addRelationship(Map<String, Object> cleanRow, Map<String, Object> rawRow) {
+		
+		
+		//find last column
+		//update values for last column
 	}
 }
