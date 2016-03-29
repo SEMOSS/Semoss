@@ -31,7 +31,13 @@ public class TableDataFrameFactory {
 	}
 	
 	public static TinkerFrame createPrimKeyTinkerFrame(String[] headers, String dataFrameType) {
-		TinkerFrame dataFrame = new TinkerH2Frame(headers);
+		
+		TinkerFrame dataFrame;
+		if(dataFrameType.equalsIgnoreCase("H2")) {
+			dataFrame = new TinkerH2Frame(headers);
+		} else {
+			dataFrame = new TinkerFrame(headers);
+		}
 		Map<String, Set<String>> primKeyEdgeHash = dataFrame.createPrimKeyEdgeHash(headers);
 		dataFrame.mergeEdgeHash(primKeyEdgeHash);		
 		return dataFrame;
