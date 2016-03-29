@@ -151,31 +151,31 @@ public class NameServerProcessor extends AbstractNameServer {
 //		AddToMasterDB masterDB = new AddToMasterDB(DIHelper.getInstance().getProperty(Constants.LOCAL_MASTER_DB_NAME));
 //		return masterDB.processInsightExecutionForUser(userId, insight);
 //	}
-	
-	public HashMap<String, Object> getTopInsights(String engine, String limit) {
-		SearchMasterDB masterDB = new SearchMasterDB(Constants.LOCAL_MASTER_DB_NAME);
-		return masterDB.getTopInsights(engine, limit);
-	}
-	
+//	
+//	public HashMap<String, Object> getTopInsights(String engine, String limit) {
+//		SearchMasterDB masterDB = new SearchMasterDB(Constants.LOCAL_MASTER_DB_NAME);
+//		return masterDB.getTopInsights(engine, limit);
+//	}
+//	
 //	public boolean publishInsightToFeed(String userId, Insight insight, String visibility) {
 //		AddToMasterDB masterDB = new AddToMasterDB(Constants.LOCAL_MASTER_DB_NAME);
 //		return masterDB.publishInsightToFeed(userId, insight, visibility);
 //	}
-	
-	public HashMap<String, Object> getFeedInsights(String userId, String visibility, String limit) {
-		SearchMasterDB masterDB = new SearchMasterDB(Constants.LOCAL_MASTER_DB_NAME);
-		return masterDB.getFeedInsights(userId, visibility, limit);
-	}
-	
-	public HashMap<String, Object> getAllInsights(String groupBy, String orderBy) {
-		SearchMasterDB masterDB = new SearchMasterDB(Constants.LOCAL_MASTER_DB_NAME);
-		return masterDB.getAllInsights(groupBy, orderBy);
-	}
-	
-	public HashMap<String, Object> getInsightDetails(String insight, String user) {
-		SearchMasterDB masterDB = new SearchMasterDB(Constants.LOCAL_MASTER_DB_NAME);
-		return masterDB.getInsightDetails(insight, user);
-	}
+//	
+//	public HashMap<String, Object> getFeedInsights(String userId, String visibility, String limit) {
+//		SearchMasterDB masterDB = new SearchMasterDB(Constants.LOCAL_MASTER_DB_NAME);
+//		return masterDB.getFeedInsights(userId, visibility, limit);
+//	}
+//	
+//	public HashMap<String, Object> getAllInsights(String groupBy, String orderBy) {
+//		SearchMasterDB masterDB = new SearchMasterDB(Constants.LOCAL_MASTER_DB_NAME);
+//		return masterDB.getAllInsights(groupBy, orderBy);
+//	}
+//	
+//	public HashMap<String, Object> getInsightDetails(String insight, String user) {
+//		SearchMasterDB masterDB = new SearchMasterDB(Constants.LOCAL_MASTER_DB_NAME);
+//		return masterDB.getInsightDetails(insight, user);
+//	}
 
 	@Override
 	public String findMostSimilarKeyword(String word) {
