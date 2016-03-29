@@ -346,4 +346,16 @@ public class TinkerH2Frame extends TinkerFrame {
 	public void removeColumn(String columnHeader) {
 		builder.dropColumn(columnHeader);
 	}
+	
+	@Override
+	public Iterator<Object> uniqueValueIterator(String columnHeader, boolean getRawData, boolean iterateAll) {
+
+//		Map<String, Object> options = new HashMap<String, Object>();
+//		options.put(DE_DUP, true);
+//		
+//		List<String> selectors = new ArrayList<String>();
+//		selectors.add(columnHeader);
+//		options.put(SELECTORS, selectors);
+		return Arrays.asList(builder.getColumn(columnHeader, true)).iterator();
+	}
 }
