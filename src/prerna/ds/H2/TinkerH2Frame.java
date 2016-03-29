@@ -2,6 +2,7 @@ package prerna.ds.H2;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -61,14 +62,9 @@ public class TinkerH2Frame extends TinkerFrame {
 		builder.addRow(row);
 	}
 	
-	public void addRelationship(Map<String, Object> row) {
-		//update the builder
-	}
-	
-	@Override
-	public void connectTypes(String outVert, String inVert) {
-	//add a new column to the h2 if needed	
-	}
+//	public void addRelationship(Map<String, Object> row) {
+//		//update the builder
+//	}
 	
 	/************************** END AGGREGATION METHODS **********************/
 	
@@ -246,8 +242,8 @@ public class TinkerH2Frame extends TinkerFrame {
 	
 	@Override
 	public Iterator<Object[]> iterator(boolean getRawData, Map<String, Object> options) {
-		List<String> selectors = (List<String>) options.get(TinkerFrame.SELECTORS);
-		return builder.buildIterator(getSelectors());
+//		List<String> selectors = (List<String>) options.get(TinkerFrame.SELECTORS);
+		return builder.buildIterator(options);
 //		return builder.buildIterator(options);
 	}
 	
@@ -320,9 +316,34 @@ public class TinkerH2Frame extends TinkerFrame {
 	
 	@Override
 	public void addRelationship(Map<String, Object> cleanRow, Map<String, Object> rawRow) {
+		int size = cleanRow.keySet().size();
+		Object[] values = new Object[size];
+		String[] columnHeaders = cleanRow.keySet().toArray(new String[]{});
 		
+
+		Arrays.sort(columnHeaders, new Comparator<String>() {
+
+			@Override
+			public int compare(String o1, String o2) {
+				int firstIndex = ArrayUtilityMethods.arrayContainsValueAtIndex(headerNames, o1);
+				int secondIndex = ArrayUtilityMethods.arrayContainsValueAtIndex(headerNames, o2);
+				if(firstIndex < secondIndex) return -1;
+				if(firstIndex == secondIndex) return 0;
+				else return 1;
+			}
+			
+		});
 		
+		for(int i = 0; i < columnHeaders.length; i++) {
+			values[i] = cleanRow.get(columnHeaders[i]);
+		}
+		builder.updateTable(values, columnHeaders);
 		//find last column
 		//update values for last column
+	}
+	
+	@Override
+	public void removeColumn(String columnHeader) {
+		builder.dropColumn(columnHeader);
 	}
 }
