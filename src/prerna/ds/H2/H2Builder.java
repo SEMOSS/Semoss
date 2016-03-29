@@ -40,6 +40,7 @@ import prerna.ds.TinkerFrame;
 import prerna.engine.api.ISelectStatement;
 import prerna.engine.api.ISelectWrapper;
 import prerna.rdf.query.builder.GremlinBuilder;
+import prerna.util.ArrayUtilityMethods;
 import cern.colt.Arrays;
 
 import com.univocity.parsers.csv.CsvParser;
@@ -530,6 +531,7 @@ public class H2Builder {
     	this.headers = headers;		
     }
 
+    //create a table with the data given the columnheaders with the tableName
     private void generateTable(String[][] data, String[] columnHeaders, String tableName) {
     	
     	predictRowTypes(data[0]);
@@ -549,14 +551,14 @@ public class H2Builder {
     
     /*************************** READ ********************************************/
     
+    //get all data from the table given the columnheaders as selectors
     public List<Object[]> getData(List<String> columnHeaders) {
         
         List<Object[]> data;
     	try {
-    		Statement stmt = getConnection().createStatement();
-//    		String selectQuery = makeSelect(tableName, columnHeaders);
-//    		ResultSet rs = stmt.executeQuery(selectQuery);
-			ResultSet rs = stmt.executeQuery("SELECT * FROM "+tableName);
+    		String selectQuery = makeSelect(tableName, columnHeaders);
+    		ResultSet rs = executeQuery(selectQuery);
+//			ResultSet rs = stmt.executeQuery("SELECT * FROM "+tableName);
 			
 			if(rs != null) {
 			
@@ -582,6 +584,7 @@ public class H2Builder {
     	return new ArrayList<Object[]>(0);
     }
     
+    //get all rows that have value = value in column header = column
     public List<Object[]> getData(List<String> columnHeaders, String column, Object value) {
         
         List<Object[]> data;
@@ -614,6 +617,45 @@ public class H2Builder {
     	return new ArrayList<Object[]>(0);
     }
     
+    //get scaled version of above method
+    public List<Object[]> getScaledData(List<String> columnHeaders, String column, Object value, Double[] maxArr, Double[] minArr) {
+        
+        List<Object[]> data;
+        column = cleanHeader(column);
+    	try {
+    		String selectQuery = makeSpecificSelect(tableName, columnHeaders, column, value);
+    		ResultSet rs = executeQuery(selectQuery);
+			
+			if(rs != null) {
+			
+				ResultSetMetaData rsmd = rs.getMetaData();
+		        int NumOfCol = rsmd.getColumnCount();
+		        data = new ArrayList<>(NumOfCol);
+		        while (rs.next()){
+		            Object[] row = new Object[NumOfCol];
+
+		            for(int i = 1; i <= NumOfCol; i++) {
+		                Object val = rs.getObject(i);
+		                if(types[i-1].equalsIgnoreCase("int") || types[i-1].equalsIgnoreCase("double")) {
+		                	row[i-1] = ( ((Number)val).doubleValue() - minArr[i-1])/(maxArr[i-1] - minArr[i-1]);
+		                } else {
+		                	row[i-1] = val;
+		                }
+		            }
+		            data.add(row);
+		        }
+		        
+		        return data;
+			}
+			
+		} catch (SQLException e) {
+			e.printStackTrace();
+		}
+    	
+    	return new ArrayList<Object[]>(0);
+    }
+    
+    //get the column from the table, distinct values - true or false
     public Object[] getColumn(String columnHeader, boolean distinct) {
     	ArrayList<Object> column = new ArrayList<>();
     	
@@ -639,6 +681,7 @@ public class H2Builder {
     	return column.toArray();
     }
     
+    //get the max/min/count/sum/avg of the column
     public Double getStat(String columnHeader, String statType) {
     	columnHeader = cleanHeader(columnHeader);
     	ResultSet rs = executeQuery(makeFunction(columnHeader, statType, tableName));
@@ -652,15 +695,71 @@ public class H2Builder {
     	return null;
     }
     
+    
     public String[] getTypes() {
     	return types;
     }
     
+    //drop the column from the table
+    public void dropColumn(String columnHeader) {
+    	columnHeader = cleanHeader(columnHeader);
+    	executeQuery(makeDropColumn(columnHeader, tableName));
+    }
+    
+    //only use this for analytics for now
+    public void updateTable(Object[] values, String[] columnHeaders) {
+    	if(columnHeaders.length != 2) {
+    		throw new UnsupportedOperationException("multi column join not implemented");
+    	}
+    	
+    	String joinColumn = cleanHeader(columnHeaders[0]);
+    	String newColumn = cleanHeader(columnHeaders[1]);
+    	
+    	Object joinValue = values[0];
+    	Object newValue = values[1];
+    	
+    	if(!ArrayUtilityMethods.arrayContainsValue(headers, newColumn)) {
+    		//alter the table
+    		
+    		//update the headers
+    		String[] updatedHeaders = new String[headers.length+1];
+    		updatedHeaders[updatedHeaders.length - 1] = newColumn;
+    		for(int i = 0; i < headers.length; i++) {
+    			updatedHeaders[i] = headers[i];
+			}
+    		this.headers = updatedHeaders;
+    		
+    		//update the types
+    		String[] newTypes = new String[types.length+1];
+    		for(int i = 0; i < types.length; i++) {
+				newTypes[i] = types[i];
+			}
+    		if(NumberUtils.isDigits(newValue.toString())) {
+    			newTypes[newTypes.length - 1] = "int";
+	    	}
+	    	else if(getDouble(newValue.toString()) != null ) {
+	    		newTypes[newTypes.length - 1] = "double";
+	    	}
+	    	else {
+	    		newTypes[newTypes.length - 1] = "varchar(800)";
+	    	}
+    		this.types = newTypes;
+    		
+    		
+    		String[] newHeaders = new String[]{newColumn};
+    		String alterQuery = makeAlter(newHeaders, tableName);
+    		runQuery(alterQuery);
+    	}
+    	
+    	String updateQuery = makeUpdate(tableName, joinColumn, newColumn, joinValue, newValue);
+    	runQuery(updateQuery);
+    }
     /*************************** END READ ****************************************/
     
     
     /*************************** UPDATE ******************************************/
    
+    //process the wrapper from processDataMakerComponent in TinkerH2Frame to generate a table then add that table
     public void processWrapper(ISelectWrapper wrapper) {
     	String[][] data = getData(wrapper);
     	String[] newHeaders = wrapper.getDisplayVariables();
@@ -671,6 +770,7 @@ public class H2Builder {
     		processAlterData(data, newHeaders);
     }
     
+    //process a group by - calculate then make a table then merge the table
     public void processGroupBy(String column, String newColumnName, String valueColumn, String mathType) {
     	ResultSet rs = executeQuery(makeGroupBy(column, valueColumn, mathType, this.tableName));
     	try {
@@ -697,6 +797,7 @@ public class H2Builder {
     	
     }
     
+    //turn the wrapper data to double array
     private String[][] getData(ISelectWrapper wrapper) {
     	List<String[]> data = new ArrayList<String[]>();
     	String[] colHeaders = wrapper.getDisplayVariables();
@@ -763,6 +864,7 @@ public class H2Builder {
     	filterHash.clear();
     }
     
+    //use this for the filtered half of filter model
     public Map<String, List<Object>> getFilteredValues(List<String> selectors) {
     	
     	Map<String, List<Object>> returnFilterMap = new HashMap<>();
@@ -795,6 +897,7 @@ public class H2Builder {
     	return returnFilterMap;
     }
  
+    //build an iterator with the selectors
     public Iterator buildIterator(List<String> selectors) {
     	try {
 	    	Statement stmt = getConnection().createStatement();
@@ -808,21 +911,46 @@ public class H2Builder {
     	return null;
     }
     
+    //build the new way to create iterator with all the options
     public Iterator buildIterator(Map<String, Object> options) {
     		
-		String sortDir = options.get(TinkerFrame.SORT_BY_DIRECTION).toString();
+		String sortDir = (String)options.get(TinkerFrame.SORT_BY_DIRECTION);
+		
 		Boolean dedup = (Boolean) options.get(TinkerFrame.DE_DUP);
+		if(dedup == null) dedup = false;
+		
 		Integer limit = (Integer) options.get(TinkerFrame.LIMIT);
 		Integer offset = (Integer) options.get(TinkerFrame.OFFSET);
-		String sortBy = options.get(TinkerFrame.SORT_BY).toString();
+		String sortBy = (String)options.get(TinkerFrame.SORT_BY);
 		List<String> selectors = (List<String>) options.get(TinkerFrame.SELECTORS);
 		
-		String selectQuery = makeSelect(tableName, selectors);
+		String selectQuery;
+		if(dedup) {
+			selectQuery = makeSelectDistinct(tableName, selectors);
+		} else {
+			selectQuery = makeSelect(tableName, selectors);
+		}
+		
+		if(sortBy != null) {
+			
+			selectQuery += " sort by " + sortBy;
+//			if(sortDir != null) {
+//				
+//			}
+		}
+		if(limit != null && limit > 0) {
+			selectQuery += " limit "+limit;
+		}
+		if(offset != null && offset > 0) {
+			selectQuery += " offset "+offset;
+		}
+		
 		ResultSet rs = executeQuery(selectQuery);
     	return new TinkerH2Iterator(rs);
     	
     }
     
+    //process to join the data and new headers to existing table
     private void processAlterData(String[][] data, String[] newHeaders)
     {
     	// this currently doesnt handle many to many joins and such
@@ -1223,7 +1351,8 @@ public class H2Builder {
     	  		    	
     	for(int headerIndex = 0;headerIndex < newHeaders.length;headerIndex++)
     	{
-    		int newIndex = Integer.parseInt(newHeaders[headerIndex]); // get the index you want
+//    		int newIndex = Integer.parseInt(newHeaders[headerIndex]); // get the index you want
+    		int newIndex = ArrayUtilityMethods.arrayContainsValueAtIndex(headers, newHeaders[headerIndex]);
     		String header = headers[newIndex]; // this is a new header - cool
     		
     		if(headerIndex == 0)
@@ -1239,7 +1368,7 @@ public class H2Builder {
     }
 
     //drop a table
-    private String makeDrop(String name) {
+    private String makeDropTable(String name) {
     	return "DROP TABLE " + name;
     }
     
@@ -1248,7 +1377,7 @@ public class H2Builder {
     	
     	String selectStatement = "SELECT ";
     	
-    	if(filterHash.size() > 1) {
+    	if(filterHash.keySet().size() > 0) {
 	    	for(int i = 0; i < selectors.size(); i++) {
 	    		String selector = selectors.get(i);
 	    		selector = cleanHeader(selector);
@@ -1366,7 +1495,7 @@ public class H2Builder {
     	
     	String selectStatement = "SELECT DISTINCT ";
     	
-    	if(filterHash.size() > 1) {
+    	if(filterHash.keySet().size() > 0) {
 	    	for(int i = 0; i < selectors.size(); i++) {
 	    		String selector = selectors.get(i);
 	    		selector = cleanHeader(selector);
@@ -1566,8 +1695,19 @@ public class H2Builder {
     	
     	return functionString;
     }
+    
+    private String makeDropColumn(String column, String tableName) {
+    	String dropColumnQuery = "ALTER TABLE "+tableName+" DROP COLUMN " + column;
+    	return dropColumnQuery;
+    }
+    
+    private String makeUpdate(String tableName, String joinColumn, String newColumn, Object joinValue, Object newValue) {
+    	String updateQuery = "UPDATE "+tableName+" SET "+newColumn+"="+"'"+newValue+"'"+" WHERE "+joinColumn+"="+"'"+joinValue+"'";
+    	return updateQuery;
+    }
     /*************************** END QUERY BUILDERS **************************************/
     
+    //use this when result set is not expected back
     private void runQuery(String query) {
     	try {
     		getConnection().createStatement().execute(query);
@@ -1576,6 +1716,7 @@ public class H2Builder {
     	}
     }
     
+    //use this when result set is expected
     private ResultSet executeQuery(String query) {
     	try {
     		return getConnection().createStatement().executeQuery(query);
@@ -1632,7 +1773,14 @@ public class H2Builder {
 			e.printStackTrace();
 		}
     	return retValue;
-    }  
+    }
+    
+    @Override
+	protected void finalize() {
+    	String finalQuery = makeDropTable(tableName);
+    	runQuery(finalQuery);
+    	System.out.println("DROPPED TABLE" + tableName);
+    }
 }
 
 
