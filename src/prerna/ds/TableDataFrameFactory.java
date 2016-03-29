@@ -134,10 +134,11 @@ public class TableDataFrameFactory {
 		}
 		
 		TinkerH2Frame dataFrame = (TinkerH2Frame)createPrimKeyTinkerFrame(headers, "H2");
-		CsvParser parser = getDefaultParser();
+//		CsvParser parser = getDefaultParser();
 		
 		for(int i = 1; i < rows.length; i++) {
-			String[] cells = parser.parseLine(rows[i]); 
+//			String[] cells = parser.parseLine(rows[i]);
+			String[] cells = rows[i].split(delimeter + "{1}");
 			dataFrame.addRow(cells);
 		}
 				
@@ -147,7 +148,7 @@ public class TableDataFrameFactory {
 	private static CsvParser getDefaultParser() {
 		CsvParserSettings settings = new CsvParserSettings();
     	settings.setNullValue("");
-
+    	
         settings.setEmptyValue(""); // for CSV only
         settings.setSkipEmptyLines(true);
 
