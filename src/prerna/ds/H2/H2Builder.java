@@ -312,7 +312,8 @@ public class H2Builder {
     	if(input != null)
     	{
 	    	Object retO = null;
-	    	if(input.equalsIgnoreCase("1") || input.equalsIgnoreCase("0"))
+//	    	if(input.equalsIgnoreCase("1") || input.equalsIgnoreCase("0"))
+	    	if(input.equalsIgnoreCase("true") || input.equalsIgnoreCase("false"))
 	    	{
 	    		retObject = new Object[2];
 	    		retObject[0] = "boolean";
