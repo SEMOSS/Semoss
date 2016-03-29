@@ -40,11 +40,15 @@ import org.apache.tinkerpop.gremlin.process.traversal.strategy.decoration.Subgra
 import org.apache.tinkerpop.gremlin.structure.Direction;
 import org.apache.tinkerpop.gremlin.structure.Edge;
 import org.apache.tinkerpop.gremlin.structure.Graph;
+import org.apache.tinkerpop.gremlin.structure.Graph.Variables;
 import org.apache.tinkerpop.gremlin.structure.T;
 import org.apache.tinkerpop.gremlin.structure.Vertex;
+import org.apache.tinkerpop.gremlin.structure.VertexProperty;
 import org.apache.tinkerpop.gremlin.structure.io.IoCore;
 import org.apache.tinkerpop.gremlin.tinkergraph.structure.TinkerFactory;
 import org.apache.tinkerpop.gremlin.tinkergraph.structure.TinkerGraph;
+
+import com.google.gson.Gson;
 
 import prerna.algorithm.api.IAnalyticActionRoutine;
 import prerna.algorithm.api.IAnalyticRoutine;
@@ -96,6 +100,7 @@ public class TinkerFrame implements ITableDataFrame {
 //	String sortColumn;
 //	GremlinBuilder.DIRECTION orderByDirection;
 	
+	private static final String ENVIRONMENT_VERTEX_KEY = "ENVIRONMENT_VERTEX_KEY";
 	public static final String PRIM_KEY = "PRIM_KEY";
 	public static final String META = "META";
 	public static final String EMPTY = "_";
@@ -3016,6 +3021,16 @@ public class TinkerFrame implements ITableDataFrame {
 		try {
 			long startTime = System.currentTimeMillis();
 			this.removeExtraneousNodes();
+			
+			// create special vertex to save the order of the headers
+			Vertex specialVert = this.upsertVertex(ENVIRONMENT_VERTEX_KEY, ENVIRONMENT_VERTEX_KEY, ENVIRONMENT_VERTEX_KEY);
+			
+			Gson gson = new Gson();
+			Map<String, Object> varMap = g.variables().asMap();
+			for(String key : varMap.keySet()) {
+				specialVert.property(key, gson.toJson(varMap.get(key)));
+			}
+			
 			this.g.io(IoCore.gryo()).writeGraph(fileName);
 			long endTime = System.currentTimeMillis();
 			LOGGER.info("Successfully saved TinkerFrame to file: "+fileName+ "("+(endTime - startTime)+" ms)");
@@ -3051,14 +3066,30 @@ public class TinkerFrame implements ITableDataFrame {
 		g.createIndex(Constants.ID, Edge.class);
 		tf.g = g;
 		
-		List<String> headersList = new Vector<String>();
-		GraphTraversal<Vertex, String> hTraversal = tf.g.traversal().V().has(Constants.TYPE, META).values(Constants.NAME);
-		while(hTraversal.hasNext()) {
-			headersList.add(hTraversal.next());
+		String[] headers = null;
+		GraphTraversal<Vertex, Vertex> gt = g.traversal().V().has(Constants.TYPE, ENVIRONMENT_VERTEX_KEY);
+		while(gt.hasNext()) {
+			Vertex specialVert = gt.next();
+			
+			// grab all environment properties from node
+			Object headerProp = specialVert.property(Constants.HEADER_NAMES).value();
+			headers = new Gson().fromJson(headerProp + "", new String[]{}.getClass());
+			
+			// delete the vertex
+			specialVert.remove();
 		}
 		
+		if(headers == null) {
+			LOGGER.info("Could not find the headers special vertex.  Will load headers from metadata with no guarantee of order.");
+			List<String> headersList = new Vector<String>();
+			GraphTraversal<Vertex, String> hTraversal = tf.g.traversal().V().has(Constants.TYPE, META).values(Constants.NAME);
+			while(hTraversal.hasNext()) {
+				headersList.add(hTraversal.next());
+			}
+			headers = headersList.toArray(new String[]{});
+		}
 		//gather header names
-		tf.headerNames = headersList.toArray(new String[]{});
+		tf.headerNames = headers;
 		g.variables().set(Constants.HEADER_NAMES, tf.headerNames);
 		
 		return tf;
