@@ -206,16 +206,20 @@ public class TinkerFrameStatRoutine implements IAnalyticTransformationRoutine {
 						
 						tinker.addRelationship(newRow, newRow);
 					}
+					
+					// add appropriate blanks
+					List<String> addedCols = new ArrayList<String>();
+					addedCols.add(newColumnName);
+					tinker.insertBlanks(columnHeader[0], addedCols);
 				} else {
 					
 					tinker.connectTypes(columnHeader, newColumnName);
 					
+					String primKeyName = tinker.getPrimaryKey(columnHeader);
 					for(Object key : groupByMap.keySet()) {
 						Map<String, Object> cleanRow = new HashMap<String, Object>(columnHeader.length+1);
 						Map<String, Object> rawRow = new HashMap<String, Object>(columnHeader.length+1);
 						Map<String, Object> mapKey = (Map<String, Object>)key;
-						
-						String primKeyName = tinker.getPrimaryKey(columnHeader);
 						
 						Object[] values = new Object[columnHeader.length];
 						for(int i = 0; i < columnHeader.length; i++) {
@@ -230,6 +234,17 @@ public class TinkerFrameStatRoutine implements IAnalyticTransformationRoutine {
 						rawRow.put(primKeyName, TinkerFrame.PRIM_KEY);
 						tinker.addRelationship(cleanRow, rawRow);
 					}
+					
+					// add appropriate blanks
+					List<String> addedCols = new ArrayList<String>();
+					addedCols.add(primKeyName);
+					for(String column : columnHeader) {
+						tinker.insertBlanks(column, addedCols);
+					}
+					addedCols.clear();
+					addedCols.add(newColumnName);
+					tinker.insertBlanks(primKeyName, addedCols);
+
 				}		
 			}
 		} catch(ClassCastException e) {
