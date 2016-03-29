@@ -555,6 +555,7 @@ public class H2Builder {
     //get all data from the table given the columnheaders as selectors
     public List<Object[]> getData(List<String> columnHeaders) {
         
+    	columnHeaders = cleanHeaders(columnHeaders);
         List<Object[]> data;
     	try {
     		String selectQuery = makeSelect(tableName, columnHeaders);
@@ -590,6 +591,7 @@ public class H2Builder {
         
         List<Object[]> data;
         column = cleanHeader(column);
+        columnHeaders = cleanHeaders(columnHeaders);
     	try {
     		String selectQuery = makeSpecificSelect(tableName, columnHeaders, column, value);
     		ResultSet rs = executeQuery(selectQuery);
@@ -623,6 +625,7 @@ public class H2Builder {
         
         List<Object[]> data;
         column = cleanHeader(column);
+        columnHeaders = cleanHeaders(columnHeaders);
     	try {
     		String selectQuery = makeSpecificSelect(tableName, columnHeaders, column, value);
     		ResultSet rs = executeQuery(selectQuery);
@@ -764,6 +767,7 @@ public class H2Builder {
     public void processWrapper(ISelectWrapper wrapper) {
     	String[][] data = getData(wrapper);
     	String[] newHeaders = wrapper.getDisplayVariables();
+    	newHeaders = cleanHeaders(newHeaders);
     	if(headers == null) {
     		this.headers = newHeaders;
     		generateTable(data, newHeaders, tableName);
@@ -773,6 +777,9 @@ public class H2Builder {
     
     //process a group by - calculate then make a table then merge the table
     public void processGroupBy(String column, String newColumnName, String valueColumn, String mathType) {
+    	column = cleanHeader(column);
+    	newColumnName = cleanHeader(newColumnName);
+    	valueColumn = cleanHeader(valueColumn);
     	ResultSet rs = executeQuery(makeGroupBy(column, valueColumn, mathType, this.tableName));
     	try {
     		ResultSetMetaData rsmd = rs.getMetaData();
@@ -802,6 +809,7 @@ public class H2Builder {
     private String[][] getData(ISelectWrapper wrapper) {
     	List<String[]> data = new ArrayList<String[]>();
     	String[] colHeaders = wrapper.getDisplayVariables();
+    	colHeaders = cleanHeaders(colHeaders);
     	int length = colHeaders.length;
     	while(wrapper.hasNext()) {
     		String[] rowData = new String[length];
@@ -845,6 +853,7 @@ public class H2Builder {
     
     //aggregate filters
     public void addFilters(String columnHeader, List<Object> values) {
+    	columnHeader = cleanHeader(columnHeader);
     	if(filterHash.get(columnHeader) == null) {
     		filterHash.put(columnHeader, values);
     	} else {
@@ -854,10 +863,12 @@ public class H2Builder {
     
     //overwrite previous filters with new list
     public void setFilters(String columnHeader, List<Object> values) {
+    	columnHeader = cleanHeader(columnHeader);
     	filterHash.put(columnHeader, values);
     }
     
     public void removeFilter(String columnHeader) {
+    	columnHeader = cleanHeader(columnHeader);
     	filterHash.remove(columnHeader);
     }
     
@@ -924,7 +935,7 @@ public class H2Builder {
 		Integer offset = (Integer) options.get(TinkerFrame.OFFSET);
 		String sortBy = (String)options.get(TinkerFrame.SORT_BY);
 		List<String> selectors = (List<String>) options.get(TinkerFrame.SELECTORS);
-		
+		selectors = cleanHeaders(selectors);
 		String selectQuery;
 		if(dedup) {
 			selectQuery = makeSelectDistinct(tableName, selectors);
@@ -934,6 +945,7 @@ public class H2Builder {
 		
 		if(sortBy != null) {
 			
+			sortBy = cleanHeader(sortBy);
 			selectQuery += " sort by " + sortBy;
 //			if(sortDir != null) {
 //				
@@ -1180,6 +1192,14 @@ public class H2Builder {
     		cleanHeaders[i] = cleanHeader(headers[i]);
     	}
     	return cleanHeaders;
+    }
+    
+    private List<String> cleanHeaders(List<String> headers) {
+    	List<String> cleanedHeaders = new ArrayList<>(headers.size());
+    	for(String header : headers) {
+    		cleanedHeaders.add(cleanHeader(header));
+    	}
+    	return cleanedHeaders;
     }
     
     private String cleanHeader(String header) {
