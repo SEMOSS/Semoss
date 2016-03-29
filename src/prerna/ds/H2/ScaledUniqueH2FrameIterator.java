@@ -56,7 +56,7 @@ public class ScaledUniqueH2FrameIterator implements Iterator<List<Object[]>> {
 		
 		if(hasNext()) {
 			Object nextVal = valueIterator.next();
-			List<Object[]> retData = builder.getData(selectors, columnName, nextVal);
+			List<Object[]> retData = builder.getScaledData(selectors, columnName, nextVal, maxArr, minArr);
 			return retData;
 		} else {
 			throw new NoSuchElementException("No more elements"); 
