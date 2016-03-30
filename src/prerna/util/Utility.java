@@ -1870,7 +1870,10 @@ public class Utility {
 	    	{
 	    		
 	    		retObject = new Object[2];
-	    		retObject[0] = "currency";
+	    		if(retObject[1] instanceof String)
+	    			retObject[0] = "varchar(800)";
+	    		else
+	    			retObject[0] = "double";
 	    		retObject[1] = retO;
 	    	}
 	    	else
@@ -1921,6 +1924,8 @@ public class Utility {
     
     public static Object getCurrency(String input)
     {
+    	if(input.indexOf("-") > 0)
+    		return input;
     	Number nm = null;
     	NumberFormat nf = NumberFormat.getCurrencyInstance();
     	try {
@@ -1951,18 +1956,22 @@ public class Utility {
 	    		if(thisOutput[outIndex] != null) // && castTargets.contains(outIndex + ""))
 	    		{
 	    			if(types[outIndex].equalsIgnoreCase("Date"))
-	    				values[outIndex] = getDate(thisOutput[outIndex]);
+	    				values[outIndex] = "'"+ getDate(thisOutput[outIndex]) + "'";
 	    			else if(types[outIndex].equalsIgnoreCase("Currency"))// this is a currency
 	    				values[outIndex] = getCurrency(thisOutput[outIndex]) + "";
 	    			else if(types[outIndex].equalsIgnoreCase("varchar(800)"))
+	    			{
+	    				if(thisOutput[outIndex].length() >= 800)
+	    					thisOutput[outIndex] = thisOutput[outIndex].substring(0,798);
 	    				values[outIndex] = "'" + thisOutput[outIndex] + "'";
+	    			}
 	    		}
     		}
     		else if(types[outIndex] != null)
     		{
 	    		if(types[outIndex].equalsIgnoreCase("Double"))
 	    			values[outIndex] = "NULL";
-	    		else if(types[outIndex].equalsIgnoreCase("varchar(800)"))
+	    		else if(types[outIndex].equalsIgnoreCase("varchar(800)")|| types[outIndex].equalsIgnoreCase("date"))
 	    			values[outIndex] = "''";
     		}
     		else
@@ -1988,18 +1997,22 @@ public class Utility {
 	    		if(thisOutput != null) // && castTargets.contains(outIndex + ""))
 	    		{
 	    			if(type.equalsIgnoreCase("Date"))
-	    				values = getDate(thisOutput);
+	    				values = "'" + getDate(thisOutput) + "'";
 	    			else if(type.equalsIgnoreCase("Currency"))// this is a currency
 	    				values = getCurrency(thisOutput) + "";
 	    			else if(type.equalsIgnoreCase("varchar(800)"))
+	    			{
+	    				if(thisOutput.length() >= 800)
+	    					thisOutput = thisOutput.substring(0,798);
 	    				values = "'" + thisOutput + "'";
+	    			}
 	    		}
     		}
     		else if(type != null)
     		{
 	    		if(type.equalsIgnoreCase("Double"))
 	    			values = "NULL";
-	    		else if(type.equalsIgnoreCase("varchar(800)"))
+	    		else if(type.equalsIgnoreCase("varchar(800)") || type.equalsIgnoreCase("date"))
 	    			values = "''";
     		}
     		else
