@@ -4,20 +4,15 @@ import java.text.DateFormat;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.HashMap;
-import java.util.Hashtable;
-import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import org.apache.commons.lang3.math.NumberUtils;
+import prerna.ds.H2.TinkerH2Frame;
+import prerna.poi.main.CSVFileHelper;
+import prerna.util.Utility;
 
-import com.google.gson.Gson;
-import com.google.gson.reflect.TypeToken;
 import com.univocity.parsers.csv.CsvParser;
 import com.univocity.parsers.csv.CsvParserSettings;
-
-import prerna.ds.H2.TinkerH2Frame;
-import prerna.util.Utility;
 
 public class TableDataFrameFactory {
 
@@ -120,6 +115,18 @@ public class TableDataFrameFactory {
 	}
 	
 	public static TinkerH2Frame generateH2FrameFromFile(String dataStr, String delimeter) {
+		
+		// the data string is no longer string but a file name
+		CSVFileHelper daHelper = new CSVFileHelper();
+		daHelper.parse(dataStr);
+		String [] headers = daHelper.allHeaders;
+		TinkerH2Frame dataFrame = (TinkerH2Frame)createPrimKeyTinkerFrame(headers, "H2");
+		String [] cells = null;
+		while((cells = daHelper.getRow()) != null)
+			dataFrame.addRow(cells);
+		
+		/*
+		
 		String[] rows = dataStr.split("\\n");
 		if(rows.length == 0) {
 			throw new IllegalArgumentException("No data has been inputted");
@@ -141,7 +148,7 @@ public class TableDataFrameFactory {
 			String[] cells = rows[i].split(delimeter + "{1}");
 			dataFrame.addRow(cells);
 		}
-				
+		*/		
 		return dataFrame;
 	}
 	
