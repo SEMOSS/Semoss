@@ -1973,5 +1973,41 @@ public class Utility {
     	return values;
     }
 
+    public static String castToTypes(String thisOutput, String type)
+    {
+    	String values = "";
+    	
+    	//System.out.println("OUTPUT"  + thisOutput);
+    	//System.out.println("TYPES" +  types);
+    	
+    	
+    		if(thisOutput != null && thisOutput.length() > 0)
+    		{
+    			values = thisOutput + "";
+    		
+	    		if(thisOutput != null) // && castTargets.contains(outIndex + ""))
+	    		{
+	    			if(type.equalsIgnoreCase("Date"))
+	    				values = getDate(thisOutput);
+	    			else if(type.equalsIgnoreCase("Currency"))// this is a currency
+	    				values = getCurrency(thisOutput) + "";
+	    			else if(type.equalsIgnoreCase("varchar(800)"))
+	    				values = "'" + thisOutput + "'";
+	    		}
+    		}
+    		else if(type != null)
+    		{
+	    		if(type.equalsIgnoreCase("Double"))
+	    			values = "NULL";
+	    		else if(type.equalsIgnoreCase("varchar(800)"))
+	    			values = "''";
+    		}
+    		else
+    		{
+    			values = "''";
+    		}
+    	return values;
+    }
+
 	
 }

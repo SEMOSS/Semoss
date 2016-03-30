@@ -1,16 +1,7 @@
 package prerna.ds.H2;
 
-import java.io.BufferedReader;
-import java.io.DataInput;
-import java.io.DataInputStream;
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileNotFoundException;
 import java.io.IOException;
-import java.io.InputStream;
-import java.io.InputStreamReader;
 import java.io.RandomAccessFile;
-import java.io.StringBufferInputStream;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.ResultSet;
@@ -39,9 +30,7 @@ import org.stringtemplate.v4.ST;
 import prerna.ds.TinkerFrame;
 import prerna.engine.api.ISelectStatement;
 import prerna.engine.api.ISelectWrapper;
-import prerna.rdf.query.builder.GremlinBuilder;
 import prerna.util.ArrayUtilityMethods;
-import cern.colt.Arrays;
 
 import com.univocity.parsers.csv.CsvParser;
 import com.univocity.parsers.csv.CsvParserSettings;
@@ -83,17 +72,17 @@ public class H2Builder {
 		
 		
 //		new H2Builder().testMakeFilter();
-//    	H2Builder test = new H2Builder();
+    	H2Builder test = new H2Builder();
 //    	test.castToType("6/2/2015");
-//		String fileName = "C:/Users/rluthar/Desktop/datasets/Movie.csv";
+		String fileName = "C:/Users/rluthar/Desktop/datasets/Movie.csv";
 //		long before, after;
-//		//fileName = "C:/Users/pkapaleeswaran/workspacej3/datasets/consumer_complaints.csv";
+		fileName = "C:/Users/pkapaleeswaran/workspacej3/datasets/Remedy Try.csv";
 //		//fileName = "C:/Users/pkapaleeswaran/workspacej3/datasets/Movie.csv";
 //
 //		/******* Used Primarily for Streaming *******/
 //		/**
 //		long before = System.nanoTime();
-//    	test.processFile(fileName);
+    	//test.processFile(fileName);
 //		long after = System.nanoTime();			
 //		System.out.println("Time Taken.. the usual way..  " + (after - before) / 1000000);
 //		**/
@@ -485,6 +474,10 @@ public class H2Builder {
 	    			else // this is a currency
 	    				values[outIndex] = getCurrency(thisOutput[outIndex]) + "";
 	    		}
+	    		else if(thisOutput[outIndex].length() > 800)
+	    		{
+	    			values[outIndex] = thisOutput[outIndex].substring(0, 798);
+	    		}
     		}
     		else values[outIndex] = "";
     	}
@@ -780,6 +773,16 @@ public class H2Builder {
     	column = cleanHeader(column);
     	newColumnName = cleanHeader(newColumnName);
     	valueColumn = cleanHeader(valueColumn);
+    	
+    	// 
+    	String inserter = makeGroupBy(column, valueColumn, mathType, newColumnName, this.tableName);
+
+    	processAlterAsNewTable(inserter);
+    	
+    	/*
+    	// create this table
+    	inserter = "CREATE TABLE TINKERTABLE" + getNextNumber() +" AS " + inserter;
+    	
     	ResultSet rs = executeQuery(makeGroupBy(column, valueColumn, mathType, this.tableName));
     	try {
     		ResultSetMetaData rsmd = rs.getMetaData();
@@ -798,10 +801,72 @@ public class H2Builder {
 	        String[] columnHeaders = new String[]{column, newColumnName};
 	        
 	        processAlterData(groupByData, columnHeaders);
-	        
+	     
 		} catch (SQLException e) {
 			e.printStackTrace();
+		}*/
+    	
+    }
+    
+    private void processAlterAsNewTable(String selectQuery)
+    {
+    	try {
+			// I need to get the names and types here
+			// and then do the same magic as before
+
+    		ResultSet rs = getConnection().createStatement().executeQuery(selectQuery);
+			
+			String [] oldHeaders = headers;
+			String [] oldTypes = types;
+			
+			
+			int numCols = rs.getMetaData().getColumnCount();
+			String [] newHeaders = new String[numCols];
+			String [] newTypes = new String[numCols];
+			
+			ResultSetMetaData rsmd = rs.getMetaData();	
+			for(int colIndex = 1;colIndex <= numCols;colIndex++)
+			{
+				// set the name and type
+				int arrIndex = colIndex - 1;
+				newHeaders[arrIndex] = rsmd.getColumnLabel(colIndex);
+				newTypes[arrIndex] = rsmd.getColumnTypeName(colIndex);
+			}
+			
+			Hashtable <Integer, Integer> matchers = new Hashtable <Integer, Integer>();
+			String oldTable = tableName;
+			String newTable = "TINKERTABLE" + getNextNumber() ;
+			// now I need a creator
+			String creator = "Create table " + newTable+ " AS "  + selectQuery;
+			getConnection().createStatement().execute(creator);
+			
+			// find the matchers
+    		// I need to find which ones are already there and which ones are new
+    		for(int hIndex = 0;hIndex < newHeaders.length;hIndex++)
+    		{
+    			String uheader = newHeaders[hIndex];
+    			uheader = cleanHeader(uheader);
+
+    			boolean old = false;
+    			for(int oIndex = 0;oIndex < headers.length;oIndex++)
+    			{
+    				if(headers[oIndex].equalsIgnoreCase(uheader))
+    				{
+    					old = true;
+    					matchers.put(hIndex, oIndex);
+    					break;
+    				}
+    			}
+    		}
+			
+			mergeTables(oldTable, newTable, matchers, oldHeaders, newHeaders, Join.INNER.getName());
+			
+		} catch (SQLException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
 		}
+    	
+    	
     	
     }
     
@@ -1166,7 +1231,7 @@ public class H2Builder {
 				//jdbc:h2:~/test
 				
 				//this will have to update
-				this.conn = DriverManager.getConnection("jdbc:h2:mem:test:LOG=0;CACHE_SIZE=65536;LOCK_MODE=0;UNDO_LOG=0", "sa", "");
+				this.conn = DriverManager.getConnection("jdbc:h2:mem:test:LOG=0;CACHE_SIZE=65536;LOCK_MODE=3;UNDO_LOG=0", "sa", "");
 				//	getConnection("jdbc:h2:C:/Users/pkapaleeswaran/h2/test.db;LOG=0;CACHE_SIZE=65536;LOCK_MODE=0;UNDO_LOG=0", "sa", "");
 				
 				//Class.forName("nl.cwi.monetdb.jdbc.MonetDriver");
@@ -1683,18 +1748,18 @@ public class H2Builder {
     	return template.toString();
     }
     
-    private String makeGroupBy(String column, String valueColumn, String mathType, String tableName) {
+    private String makeGroupBy(String column, String valueColumn, String mathType, String alias, String tableName) {
     	String functionString = "";
     	switch(mathType.toUpperCase()) {
-    	case "COUNT": functionString = "COUNT("+valueColumn+")"; break;
-    	case "AVERAGE": functionString = "AVG("+valueColumn+")"; break;
-    	case "MIN": functionString = "MIN("+valueColumn+")"; break;
-    	case "MAX": functionString = "MAX("+valueColumn+")"; break;
-    	case "SUM": functionString = "SUM("+valueColumn+")"; break;
-    	default: functionString = "COUNT("+valueColumn+")"; break;
+    	case "COUNT": {functionString = "COUNT("+valueColumn+")"; break; }
+    	case "AVERAGE": {functionString = "AVG("+valueColumn+")";  break; }
+    	case "MIN": {functionString = "MIN("+valueColumn+")";  break; }
+    	case "MAX": {functionString = "MAX("+valueColumn+")"; break; }
+    	case "SUM": {functionString = "SUM("+valueColumn+")"; break; }
+    	default: {functionString = "COUNT("+valueColumn+")"; break; }
     	}
     	
-    	String groupByStatement = "SELECT " + column+", "+functionString+" FROM "+tableName + " GROUP BY "+ column;
+    	String groupByStatement = "SELECT " + column+", "+functionString + " AS " + alias +" FROM "+tableName + " GROUP BY "+ column;
     	
     	
     	return groupByStatement;
