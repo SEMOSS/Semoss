@@ -1,20 +1,29 @@
 package prerna.rdf.query.builder;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Enumeration;
+import java.util.HashMap;
 import java.util.Hashtable;
 import java.util.List;
+import java.util.Map;
 import java.util.Vector;
 
+import org.openrdf.query.QueryEvaluationException;
+import org.openrdf.query.TupleQueryResult;
+
 import prerna.ds.QueryStruct;
+import prerna.engine.api.IEngine;
+import prerna.util.Utility;
 import prerna.util.sql.SQLQueryUtil;
 
-public class SQLInterpreter {
+public class SQLInterpreter implements IQueryInterpreter{
 	
 	// core class to convert the query struct into a sql query
 	QueryStruct qs = null;
 	private static Hashtable <String,String> aliases = new Hashtable<String,String>();
 	Hashtable <String, String> tableProcessed = new Hashtable<String, String>();
+	IEngine engine;
 	
 	// where the wheres are all kept
 	// key is always a combination of concept and comparator
@@ -28,24 +37,29 @@ public class SQLInterpreter {
 	List<String> rightJoinsArr = new ArrayList<String>();
 
 	private SQLQueryUtil queryUtil;
+	private transient Map<String, String> primaryKeyCache = new HashMap<String, String>();
 
 	String selectors = "";
 	String froms = "";
 	String curWhere = "";
 	String allWhere = "";
 	
-	public SQLInterpreter(QueryStruct qs)
+	public SQLInterpreter(IEngine engine)
 	{
+		this.engine = engine;
+	}
+	
+	@Override
+	public void setQueryStruct(QueryStruct qs) {
 		this.qs = qs;
-		
 	}
 	
 	public String composeQuery()
 	{
 		String query = null;
 		addSelectors();
-		addFilters();
 		addJoins();
+		addFilters();
 		
 		//System.out.println("Select ..  " + selectors);
 		//System.out.println("From ..  " + froms);
@@ -53,11 +67,26 @@ public class SQLInterpreter {
 		//System.out.println("With Join ..  " + relationHash);
 		
 		// the final step where the equation is balanced and the anamoly revealed
-		query = "SELECT  " + selectors + "  FROM " + froms + " WHERE ";
+		query = "SELECT  " + selectors + "  FROM " + froms;
 		boolean firstTime = true;
+
+		Enumeration joins = relationHash.keys();
+		while(joins.hasMoreElements())
+		{
+			String value = relationHash.get(joins.nextElement());
+
+			if(firstTime)
+			{
+				query = query + " " + value;
+				firstTime = false;
+			}
+			else
+				query = query + " " + value;
+		}
 		
 		// filters
 		Enumeration wheres = whereHash.keys();
+		firstTime = true;
 		while(wheres.hasMoreElements())
 		{
 			String value = whereHash.get(wheres.nextElement());
@@ -66,22 +95,7 @@ public class SQLInterpreter {
 			
 			if(firstTime)
 			{
-				query = query + " " + value;
-				firstTime = false;
-			}
-			else
-				query = query + " AND " + value;
-		}
-
-		Enumeration joins = relationHash.keys();
-		firstTime = true;
-		while(joins.hasMoreElements())
-		{
-			String value = relationHash.get(joins.nextElement());
-
-			if(firstTime)
-			{
-				query = query + " " + value;
+				query = query + " WHERE " + value;
 				firstTime = false;
 			}
 			else
@@ -116,15 +130,27 @@ public class SQLInterpreter {
 	public void addSelector(String table, String colName)
 	{
 		// the table can be null
+		String colName2Use = colName;
 		if(table != null) // this is a derived data
 		{
 			String tableAlias = getAlias(table);
-			colName = tableAlias + "." + colName;
+			
+			if(colName.equals(QueryStruct.PRIM_KEY_PLACEHOLDER)){
+				colName2Use = this.getPrimKey4Table(table);
+			}
+			// get the logical name for the column
+			String physUri = "http://semoss.org/ontologies/Concept/" + colName2Use + "/" + table;
+			String logicalName = engine.getTransformedNodeName(physUri, true);
+			if(physUri.equals(logicalName)){ // this means it didn't find the logical name. this means that its a property rather than a node
+				logicalName = engine.getTransformedNodeName("http://semoss.org/ontologies/Relation/Contains/" + colName2Use, true);
+			}
+			
+			colName2Use = tableAlias + "." + colName2Use + " AS " + Utility.getInstanceName(logicalName);
 		}
 		if(selectors.length() == 0)
-			selectors = colName;
+			selectors = colName2Use;
 		else
-			selectors = selectors + " , " + colName;
+			selectors = selectors + " , " + colName2Use;
 	}
 
 	
@@ -136,8 +162,35 @@ public class SQLInterpreter {
 			String tableName = selections.nextElement();
 			Vector <String> columns = qs.selectors.get(tableName);
 			
-			for(int colIndex = 0;colIndex < columns.size();addSelector(tableName, columns.get(colIndex)), addFrom(tableName), colIndex++); // adds the from as well
+			for(int colIndex = 0;colIndex < columns.size(); colIndex++)
+			{
+				addSelector(tableName, columns.get(colIndex));
+				// adds the from if it isn't part of a join
+				if(notUsedInJoin(tableName)){
+					addFrom(tableName);
+				}
+			}
 		}
+	}
+	
+	private boolean notUsedInJoin(String tableName){
+		Collection<Hashtable<String, Vector>> options = qs.relations.values();
+		for(Hashtable<String, Vector> opt : options){
+			Collection<Vector> collection = opt.values();
+			for(Vector vec : collection){
+				for(Object obj : vec){
+					String objString = obj + "";
+					
+					String[] conProp = getConceptProperty(objString);
+					String concept = conProp[0];
+					
+					if(concept.equals(tableName)){
+						return false;
+					}
+				}
+			}
+		}
+		return true;
 	}
 	
 	public void addFilters()
@@ -150,8 +203,9 @@ public class SQLInterpreter {
 			// inside this is a hashtable of all the comparators
 			Hashtable <String, Vector> compHash = qs.andfilters.get(concept_property);
 			Enumeration <String> comps = compHash.keys();
-			String concept = concept_property.substring(0, concept_property.indexOf("__"));
-			String property = concept_property.substring(concept_property.indexOf("__")+2);
+			String[] conProp = getConceptProperty(concept_property);
+			String concept = conProp[0];
+			String property = conProp[1];
 			
 			// the comparator between the concept is an and so block it that way
 			// I need to specify to it that I am doing something new here
@@ -187,8 +241,9 @@ public class SQLInterpreter {
 			if(object.indexOf("\"") >= 0) // ok this is a string
 			{
 				object = object.replace("\"", ""); // get rid of the space
+				object = object.replaceAll("'", "''");
 				object = object.trim();
-				object = "\"" + object + "\"";
+				object = "\'" + object + "\'";
 				//thisWhere = getAlias(concept) + "." + property + " " + thisComparator + " " + object;
 			}
 			thisWhere = getAlias(concept) + "." + property + " " + thisComparator + " " + object;		
@@ -200,8 +255,9 @@ public class SQLInterpreter {
 			if(object.indexOf("\"") >= 0) // ok this is a string
 			{
 				object = object.replaceAll("\"", ""); // get rid of the space
+				object = object.replaceAll("'", "''");
 				object = object.trim();
-				object = "\"" + object + "\"";
+				object = "\'" + object + "\'";
 				//thisWhere = getAlias(concept) + "." + property + " " + thisComparator + " " + object;
 			}
 			thisWhere = thisWhere + " OR " + getAlias(concept) + "." + property + " " + thisComparator + " " + object;						
@@ -221,8 +277,6 @@ public class SQLInterpreter {
 			// inside this is a hashtable of all the comparators
 			Hashtable <String, Vector> compHash = qs.relations.get(concept_property);
 			Enumeration <String> comps = compHash.keys();
-			String concept = concept_property.substring(0, concept_property.indexOf("__"));
-			String property = concept_property.substring(concept_property.indexOf("__")+2);
 			
 			// the comparator between the concept is an and so block it that way
 			// I need to specify to it that I am doing something new here
@@ -242,26 +296,30 @@ public class SQLInterpreter {
 				// usually these are or ?
 				// so I am saying if something is
 
-				for(int optIndex = 0;optIndex < options.size(); addJoin(concept, property, thisComparator, options.get(optIndex)), optIndex++);
+				for(int optIndex = 0;optIndex < options.size(); addJoin(concept_property, thisComparator, options.get(optIndex)), optIndex++);
 			}
 		}		
 	}
 	
-	private void addJoin(String concept, String property,
+	private void addJoin(String fromCol,
 			String thisComparator, String toCol) {
 		// TODO Auto-generated method stub
 		// this needs to be revamped pretty extensively
 		// I need to add this back to the from because I might not be projecting everything
 		String thisWhere = "";
-		String key = concept + property + thisComparator;
-		String toConcept = toCol.substring(0,toCol.indexOf("__"));
-		String toProperty = toCol.substring(toCol.indexOf("__")+2);
+		String[] relConProp = getRelationshipConceptProperties(fromCol, toCol);
+		String concept = relConProp[0];
+		String property = relConProp[1];
+		String toConcept = relConProp[2];
+		String toProperty = relConProp[3];
+		
+		String key = toConcept + toProperty + thisComparator;
 		addFrom(concept);
-		addFrom(toConcept);
+//		addFrom(toConcept);
 		if(!relationHash.containsKey(key))
 		{
 			String compName = thisComparator.replace(".", "  ");	
-			thisWhere = compName + "  " + toConcept + " ON " + getAlias(concept) + "." + property + " = " + getAlias(toConcept) + "." + toProperty;			
+			thisWhere = compName + "  " + toConcept+ " " + getAlias(toConcept) + " ON " + getAlias(concept) + "." + property + " = " + getAlias(toConcept) + "." + toProperty;			
 		}
 		else
 		{
@@ -297,5 +355,101 @@ public class SQLInterpreter {
 		return response;
 	}
 
+	/*
+	 * Gets the table uri
+	 * Parses uri for prim key
+	 */
+	private String getPrimKey4Table(String table){
+		if(primaryKeyCache.containsKey(table)){
+			return primaryKeyCache.get(table);
+		}
+		else {
+			String conceptUri = this.engine.getConceptUri4PhysicalName(table);
+			String pk = Utility.getPrimaryKeyFromURI(conceptUri);
+			primaryKeyCache.put(table, pk);
+			return pk;
+		}
+	}
+	
+	/*
+	 * Single method to handle the parsing of the strings for "__"
+	 * If string does not contain "__" we get the primary key
+	 */
+	private String[] getConceptProperty(String concept_property){
+		String concept = concept_property;
+		String property = null;
+		if(concept_property.contains("__")){
+			concept = concept_property.substring(0, concept_property.indexOf("__"));
+			property = concept_property.substring(concept_property.indexOf("__")+2);
+		}
+		else{
+			property = getPrimKey4Table(concept);
+		}
+		return new String[]{concept, property};
+	}
+	
+	private String[] getRelationshipConceptProperties(String fromString, String toString){
+		String fromTable = null;
+		String fromCol = null;
+		String toTable = null;
+		String toCol = null;
+		
+		if(fromString.contains("__")){
+			fromTable = fromString.substring(0, fromString.indexOf("__"));
+			fromCol = fromString.substring(fromString.indexOf("__")+2);
+		}
+		
+		if(toString.contains("__")){
+			toTable = toString.substring(0, toString.indexOf("__"));
+			toCol = toString.substring(toString.indexOf("__")+2);
+		}
+		
+		// if one has a property specified, all we can do is get prim key for the other
+		// if neither has a property specified, use owl to look up foreign key relationship
+		if(fromTable != null && toTable == null){
+			String[] toConProp = getConceptProperty(toString);
+			toTable = toConProp[0];
+			toCol = toConProp[1];
+		}
+		
+		else if(fromTable == null && toTable != null){
+			String[] fromConProp = getConceptProperty(fromString);
+			fromTable = fromConProp[0];
+			fromCol = fromConProp[1];
+		}
+		
+		else // in this case neither has a property specified. time to go to owl to get fk relationship
+		{
+			String fromURI = this.engine.getConceptUri4PhysicalName(fromString);
+			String toURI = this.engine.getConceptUri4PhysicalName(toString);
+			
+			// need to figure out what the predicate is from the owl
+			// also need to determine the direction of the relationship -- if it is forward or backward
+			String query = "SELECT ?relationship WHERE {<" + fromURI + "> ?relationship <" + toURI + "> } ORDER BY DESC(?relationship)";
+			TupleQueryResult res = (TupleQueryResult) this.engine.execOntoSelectQuery(query);
+			String predURI = " unable to get pred from owl for " + fromURI + " and " + toURI;
+			try {
+				if(res.hasNext()){
+					predURI = res.next().getBinding(res.getBindingNames().get(0)).getValue().toString();
+				}
+				else {
+					query = "SELECT ?relationship WHERE {<" + toURI + "> ?relationship <" + fromURI + "> } ORDER BY DESC(?relationship)";
+					res = (TupleQueryResult) this.engine.execOntoSelectQuery(query);
+					if(res.hasNext()){
+						predURI = res.next().getBinding(res.getBindingNames().get(0)).getValue().toString();
+					}
+				}
+			} catch (QueryEvaluationException e) {
+				System.out.println(predURI);
+			}
+			String[] predPieces = Utility.getInstanceName(predURI).split("[.]");
+			fromTable = predPieces[0];
+			fromCol = predPieces[1];
+			toTable = predPieces[2];
+			toCol = predPieces[3];
+		}
+		
+		return new String[]{fromTable, fromCol, toTable, toCol};
+	}
 
 }

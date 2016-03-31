@@ -27,6 +27,7 @@
  *******************************************************************************/
 package prerna.engine.impl;
 
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Hashtable;
@@ -39,12 +40,12 @@ import org.apache.log4j.Logger;
 
 import com.google.gson.Gson;
 
+import prerna.ds.QueryStruct;
 import prerna.engine.api.IEngine;
 import prerna.engine.api.ISelectWrapper;
 import prerna.om.Insight;
 import prerna.om.SEMOSSParam;
 import prerna.rdf.engine.wrappers.WrapperManager;
-import prerna.rdf.query.builder.QueryBuilderData;
 import prerna.ui.components.playsheets.datamakers.DataMakerComponent;
 import prerna.ui.components.playsheets.datamakers.FilterTransformation;
 import prerna.ui.components.playsheets.datamakers.ISEMOSSAction;
@@ -464,7 +465,7 @@ public class QuestionAdministrator {
 			
 			if(query == null) {
 				involvedParams = getInvolvedParams(dmc, parameters, paramsAccountedFor);
-				String jsonMetamodel = gson.toJson(dmc.getBuilderData());
+				String jsonMetamodel = gson.toJson(dmc.getQueryStruct());
 				LOGGER.info("Component " + i + " does NOT have query... instead saving metamodel::: " + jsonMetamodel);
 				jsonMetamodel = escapeForNTripleAndSQLStatement(jsonMetamodel);
 				builder.append("<http://semoss.org/ontologies/Concept/Component/" + i + "> <http://semoss.org/ontologies/Relation/Contains/Metamodel> \"" + jsonMetamodel + "\" .\n");
@@ -693,28 +694,47 @@ public class QuestionAdministrator {
 		PARAMS_FOR : for(SEMOSSParam param : params) {
 			if(!paramsAccountedFor.contains(param)){
 				String paramURI = param.getType();
-				QueryBuilderData builderData = dmc.getBuilderData();
+				String paramPhysName = Utility.getInstanceName(paramURI);
+				QueryStruct builderData = dmc.getQueryStruct();
 				if(builderData != null) {
-					List<List<String>> relTriples = builderData.getRelTriples();
-					List<Map<String, String>> nodeProps = builderData.getNodeProps();
+					Hashtable<String, Hashtable<String, Vector>> relTriples = builderData.getRelations();
 					boolean containsParam =  false;
 					if(relTriples != null) {
-						for(int j = 0; j < relTriples.size(); j++) {
-							List<String> triple = relTriples.get(j);
-							for(String uri : triple) {
-								if(uri.equals(paramURI)) {
-									involvedParams.add(param);
-									continue PARAMS_FOR;
+						for(String subject: relTriples.keySet()) {
+							// check the subject
+							String name = subject;
+							if(subject.contains("__")){
+								name = subject.substring(subject.indexOf("__") + 2);
+							}
+							if(name.equals(paramPhysName)) {
+								involvedParams.add(param);
+								continue PARAMS_FOR;
+							}
+							Collection<Vector> objectsC = relTriples.get(subject).values();
+							for(Vector objs : objectsC ){
+								for(Object obj : objs){
+									//check the objects
+									String checkName = obj +"";
+									if(checkName.contains("__")){
+										checkName = checkName.substring(checkName.indexOf("__") + 2);
+									}
+									if(checkName.equals(paramPhysName)) {
+										involvedParams.add(param);
+										continue PARAMS_FOR;
+									}
 								}
 							}
 						}
 					}
+					Hashtable<String, Vector<String>> nodeProps = builderData.getSelectors();
 					if(nodeProps != null && !containsParam) {
-						for(int j = 0; j < nodeProps.size(); j++) {
-							String uri = nodeProps.get(j).get("uriKey");
-							if(uri != null && uri.equals(paramURI)) {
-								involvedParams.add(param);
-								continue PARAMS_FOR;
+						for(String subject: nodeProps.keySet()) {
+							Vector<String> vector = nodeProps.get(subject);
+							for(String prop : vector){
+								if(prop.equals(paramPhysName)) {
+									involvedParams.add(param);
+									continue PARAMS_FOR;
+								}
 							}
 						}
 					}

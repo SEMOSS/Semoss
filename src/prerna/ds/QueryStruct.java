@@ -1,6 +1,11 @@
 package prerna.ds;
 
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Hashtable;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 import java.util.Vector;
 
 public class QueryStruct {
@@ -32,6 +37,8 @@ public class QueryStruct {
 	// Movie	 InnerJoin Studio, Genre
 	//			 OuterJoin Nominated
 	public Hashtable <String, Hashtable<String, Vector>> relations = new Hashtable<String, Hashtable<String, Vector>>();
+	
+	public static String PRIM_KEY_PLACEHOLDER = "PRIM_KEY_PLACEHOLDER";
 		
 	public void addCompoundSelector(String selector)
 	{
@@ -41,14 +48,14 @@ public class QueryStruct {
 	public void addSelector(String concept, String property)
 	{
 		if(property == null)
-			property = concept;
+			property = PRIM_KEY_PLACEHOLDER;
 		
 		addToHash(concept, property, selectors);
 		
 	}
 	
 	
-	public void addFilter(String fromCol, String comparator, Vector filterData)
+	public void addFilter(String fromCol, String comparator, List filterData)
 	{
 		// the filter data is typically of the format
 		// there could be more than one comparator
@@ -117,5 +124,104 @@ public class QueryStruct {
 		System.out.println("SELECTORS " + selectors);
 		System.out.println("FILTERS.. " + andfilters);
 		System.out.println("RELATIONS.. " + relations);
+	}
+	
+	public Hashtable<String, Hashtable<String, Vector>> getRelations(){
+		return this.relations;
+	}
+	
+	public Hashtable<String, Vector<String>> getSelectors(){
+		return this.selectors;
+	}
+
+	/**
+	 * This uses the selector list and relations lists to determine how everything is connected
+	 *
+	 * Will return like this:
+	 * Title --> [Title__Budget, Studio]
+	 * Studio --> [StudioOwner]
+	 * etc.
+	 * 
+	 * @return
+	 */
+	public Map<String, Set<String>> getReturnConnectionsHash() {
+
+		Map<String, Set<String>> edgeHash = new HashMap<String, Set<String>>();
+		// First need to iterate through properties
+		// These are the easiest to capture
+		// Need to make sure valid return value
+
+		for(String selectorKey: this.selectors.keySet()){
+			Vector<String> props = this.selectors.get(selectorKey);
+			Set<String> downNodeTypes = edgeHash.get(selectorKey);
+			if(downNodeTypes == null){
+				downNodeTypes = new HashSet<String>();
+				edgeHash.put(selectorKey, downNodeTypes);
+			}
+			props.remove(this.PRIM_KEY_PLACEHOLDER); // make sure we don't add a node to itself (e.g. Title__Title)
+			for(String prop : props){
+				downNodeTypes.add(selectorKey + "__" + prop); //mergeQSEdgeHash needs this... plus need to keep it consistent with relations
+			}
+		}
+		
+		if(this.relations != null){
+			for(String relationsKey : this.relations.keySet()){
+				// get the concept for the relation
+				String item = storeRelationsKey(relationsKey, edgeHash);
+				Set<String> downNodeTypes = edgeHash.get(item);
+				Map<String, Vector> relHash = this.relations.get(relationsKey);
+				
+				for(Vector<String> vec : relHash.values()){
+					// need to get the concept for each in the vector
+					for(String downString : vec){
+						String downItem = storeRelationsKey(downString, edgeHash);
+						downNodeTypes.add(downItem);
+					}
+				}
+
+			}
+		}
+
+		return edgeHash;
+	}
+	
+	private String storeRelationsKey(String relationsKey, Map<String, Set<String>> edgeHash){
+		String item = relationsKey;
+		if(!relationsKey.contains("__")){
+			Set<String> downNodeTypes = edgeHash.get(relationsKey);
+			if(downNodeTypes == null){
+				downNodeTypes = new HashSet<String>();
+			}
+			edgeHash.put(relationsKey, downNodeTypes);
+		}
+		else {
+			String relConcept = relationsKey.substring(0, relationsKey.indexOf("__"));
+			Set<String> downNodeTypes = edgeHash.get(relationsKey);
+			if(downNodeTypes == null){
+				downNodeTypes = new HashSet<String>();
+			}
+			edgeHash.put(relationsKey, downNodeTypes);
+			
+			// also store concept -> property
+			Set<String> downNodeTypes2 = edgeHash.get(relConcept);
+			if(downNodeTypes2 == null){
+				downNodeTypes2 = new HashSet<String>();
+			}
+			downNodeTypes2.add(relationsKey);
+			edgeHash.put(relConcept, downNodeTypes2);
+		}
+		return item;
+	}
+
+	/* 
+	 * Returns whether or not a filter already exists for this column
+	 */
+	public boolean hasFiltered(String column) {
+		if(this.andfilters.containsKey(column)){
+			return true;
+		}
+		else {
+			return false;
+		}
 	}
 }

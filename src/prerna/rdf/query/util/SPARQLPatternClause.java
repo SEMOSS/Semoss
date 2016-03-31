@@ -35,6 +35,7 @@ public class SPARQLPatternClause{
 	ArrayList<SPARQLBind> binds = new ArrayList<SPARQLBind>();
 	ArrayList<SPARQLFilter> filters = new ArrayList<SPARQLFilter>();
 	ArrayList<SEMOSSParameter> params = new ArrayList<SEMOSSParameter>();
+	Boolean optional = false;
 	String clauseString;
 	
 	public void addTriple(SPARQLTriple triple)
@@ -63,7 +64,14 @@ public class SPARQLPatternClause{
 		addAllBindsToClause();
 		addAllTriplesToClause();
 		addAllFiltersToClause();
+		if(optional){
+			clauseString = "OPTIONAL { " + clauseString + "}";
+		}
 		return clauseString;
+	}
+	
+	public void setOptional(Boolean optional){
+		this.optional = optional;
 	}
 	
 	private void addAllTriplesToClause()
@@ -108,5 +116,9 @@ public class SPARQLPatternClause{
 			String paramName = params.get(paramIndex).getParamName();
 			clauseString = clauseString + params.get(paramIndex).getParamString() + " ";
 		}
+	}
+
+	public boolean isOptional() {
+		return this.optional;
 	}
 }

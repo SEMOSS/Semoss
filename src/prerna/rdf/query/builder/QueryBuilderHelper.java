@@ -295,6 +295,9 @@ public class QueryBuilderHelper {
 				String subjectURI = prop.get(uriKey);
 				subjectURI = engine.getTransformedNodeName(subjectURI, false);
 				prop.put(uriKey, subjectURI);
+				String equivURI = prop.get("equivalentURI");
+				equivURI = engine.getTransformedNodeName(equivURI, false);
+				prop.put("equivalentURI", equivURI);
 			}
 		}
 		

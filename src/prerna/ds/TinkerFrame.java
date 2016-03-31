@@ -40,13 +40,19 @@ import org.apache.tinkerpop.gremlin.process.traversal.strategy.decoration.Subgra
 import org.apache.tinkerpop.gremlin.structure.Direction;
 import org.apache.tinkerpop.gremlin.structure.Edge;
 import org.apache.tinkerpop.gremlin.structure.Graph;
-import org.apache.tinkerpop.gremlin.structure.Graph.Variables;
 import org.apache.tinkerpop.gremlin.structure.T;
 import org.apache.tinkerpop.gremlin.structure.Vertex;
-import org.apache.tinkerpop.gremlin.structure.VertexProperty;
+import org.apache.tinkerpop.gremlin.structure.io.AbstractIoRegistry;
+import org.apache.tinkerpop.gremlin.structure.io.Io;
+import org.apache.tinkerpop.gremlin.structure.io.Io.Builder;
 import org.apache.tinkerpop.gremlin.structure.io.IoCore;
+import org.apache.tinkerpop.gremlin.structure.io.IoRegistry;
+import org.apache.tinkerpop.gremlin.structure.io.graphson.GraphSONIo;
+import org.apache.tinkerpop.gremlin.structure.io.gryo.GryoIo;
+import org.apache.tinkerpop.gremlin.structure.io.gryo.GryoMapper;
 import org.apache.tinkerpop.gremlin.tinkergraph.structure.TinkerFactory;
 import org.apache.tinkerpop.gremlin.tinkergraph.structure.TinkerGraph;
+import org.apache.tinkerpop.shaded.kryo.Kryo;
 
 import com.google.gson.Gson;
 
@@ -54,6 +60,7 @@ import prerna.algorithm.api.IAnalyticActionRoutine;
 import prerna.algorithm.api.IAnalyticRoutine;
 import prerna.algorithm.api.IAnalyticTransformationRoutine;
 import prerna.algorithm.api.IMatcher;
+import prerna.algorithm.api.IMetaData;
 import prerna.algorithm.api.ITableDataFrame;
 import prerna.engine.api.IConstructStatement;
 import prerna.engine.api.IEngine;
@@ -78,6 +85,7 @@ import prerna.ui.components.playsheets.datamakers.ISEMOSSAction;
 import prerna.ui.components.playsheets.datamakers.ISEMOSSTransformation;
 import prerna.util.ArrayUtilityMethods;
 import prerna.util.Constants;
+import prerna.util.MyGraphIoRegistry;
 import prerna.util.Utility;
 
 public class TinkerFrame implements ITableDataFrame {
@@ -94,11 +102,9 @@ public class TinkerFrame implements ITableDataFrame {
 	protected List<Object> algorithmOutput = new Vector<Object>();
 	protected GremlinGroovyScriptEngine engine = new GremlinGroovyScriptEngine();
 	protected TinkerGraph g = null;
-	
-//	int startRange = -1;
-//	int endRange = -1;
-//	String sortColumn;
-//	GremlinBuilder.DIRECTION orderByDirection;
+
+	// stores all of the metadata
+	private IMetaData metaData;
 	
 	private static final String ENVIRONMENT_VERTEX_KEY = "ENVIRONMENT_VERTEX_KEY";
 	public static final String PRIM_KEY = "PRIM_KEY";
@@ -869,6 +875,7 @@ public class TinkerFrame implements ITableDataFrame {
 		g.createIndex(T.label.toString(), Edge.class);
 		g.createIndex(Constants.ID, Edge.class);
 		g.variables().set(Constants.HEADER_NAMES, headerNames);
+		this.metaData = new TinkerMetaData(g);
 	}
 	
 	public TinkerFrame(String[] headerNames, Hashtable<String, Set<String>> edgeHash) {
@@ -880,6 +887,7 @@ public class TinkerFrame implements ITableDataFrame {
 		g.createIndex(Constants.ID, Edge.class);
 		g.variables().set(Constants.HEADER_NAMES, headerNames);
 		mergeEdgeHash(edgeHash);
+		this.metaData = new TinkerMetaData(g);
 	}			 
 
 	public TinkerFrame() {
@@ -888,6 +896,7 @@ public class TinkerFrame implements ITableDataFrame {
 		g.createIndex(Constants.ID, Vertex.class);
 		g.createIndex(Constants.ID, Edge.class);
 		g.createIndex(T.label.toString(), Edge.class);
+		this.metaData = new TinkerMetaData(g);
 	}
 
 	/*********************************  END CONSTRUCTORS  ********************************/
@@ -917,15 +926,15 @@ public class TinkerFrame implements ITableDataFrame {
            else{
         	   ISelectWrapper wrapper = WrapperManager.getInstance().getSWrapper(engine, query);
                //if component has data from which we can construct a meta model then construct it and merge it
-               boolean hasMetaModel = component.getBuilderData() != null;
+               boolean hasMetaModel = component.getQueryStruct() != null;
                if(hasMetaModel) {
             	   
-            	   Map<String, Set<String>> edgeHash = component.getBuilderData().getReturnConnectionsHash();
-            	   this.mergeEdgeHash(edgeHash);
+            	   Map<String, Set<String>> edgeHash = component.getQueryStruct().getReturnConnectionsHash();
+            	   Map<String, Set<String>> cleanedEdgeHash = this.mergeQSEdgeHash(edgeHash, engine);
             	   
             	   while(wrapper.hasNext()){
             		   ISelectStatement ss = wrapper.next();
-            		   this.addRelationship(ss.getPropHash(), ss.getRPropHash(), edgeHash);
+            		   this.addRelationship(ss.getPropHash(), ss.getRPropHash(), cleanedEdgeHash);
             	   }
                } 
                
@@ -1157,6 +1166,70 @@ public class TinkerFrame implements ITableDataFrame {
 		// need to make sure prim key is not added as header
 //		newLevels.remove(PRIM_KEY);
 		redoLevels(newLevels.toArray(new String[newLevels.size()]));
+	}
+	
+	public Map<String, Set<String>> mergeQSEdgeHash(Map<String, Set<String>> newEdgeHash, IEngine engine) {
+		Map<String, Set<String>> cleanedHash = new HashMap<String, Set<String>>();
+		Set<String> newLevels = new LinkedHashSet<String>();
+		for(String newNodeKey : newEdgeHash.keySet()) {
+			
+			//query struct only knows physical name but our tinker is built purely on logical names
+			//need to translate to logical to get the types
+			String outPhysicalUri = null;
+			String physicalName = newNodeKey;
+			String outConceptName = null;
+			if(newNodeKey.contains("__")){
+				outConceptName = newNodeKey.substring(0, newNodeKey.indexOf("__"));
+				physicalName = newNodeKey.substring(newNodeKey.indexOf("__")+2);
+				outPhysicalUri = Constants.PROPERTY_URI + physicalName;
+			}
+			else{
+				outPhysicalUri = engine.getConceptUri4PhysicalName(physicalName);
+			}
+			String newNode = Utility.getInstanceName(engine.getTransformedNodeName(outPhysicalUri, true));
+			Set<String> cleanSet = new HashSet<String>();
+			cleanedHash.put(newNode, cleanSet);
+			
+			//grab the edges
+			Set<String> edges = newEdgeHash.get(newNodeKey);
+			
+			//collect the column headers
+			newLevels.add(newNode);
+			
+			//grab/create the meta vertex associated with newNode
+			Vertex outVert = this.metaData.upsertVertex(META, newNode, newNode, physicalName, outPhysicalUri, engine.getEngineName(), outConceptName);
+			
+			//for each edge in corresponding with newNode create the connection within the META graph
+			for(String inVertS : edges){
+				//query struct doesn't know logical names at all but our tinker is built purely on logical
+				//need to translate to logical to get the types
+				String inPhysicalUri = null;
+				String inPhysicalName = inVertS;
+				String inConceptName = null;
+				if(inVertS.contains("__")){
+					inConceptName = inVertS.substring(0, inVertS.indexOf("__"));
+					inPhysicalName = inVertS.substring(inVertS.indexOf("__")+2);
+					inPhysicalUri = Constants.PROPERTY_URI + inPhysicalName;
+				}
+				else{
+					inPhysicalUri = engine.getConceptUri4PhysicalName(inPhysicalName);
+				}
+				String inVertString = Utility.getInstanceName(engine.getTransformedNodeName(inPhysicalUri, true));
+				
+				newLevels.add(inVertString);
+				cleanSet.add(inVertString);
+				
+				// now to insert the meta edge
+				Vertex inVert = this.metaData.upsertVertex(META, inVertString, inVertString, inPhysicalName, inPhysicalUri, engine.getEngineName(), inConceptName);
+//				Vertex inVert = upsertVertex(META, inVertString, inVertString);
+				
+				upsertEdge(outVert, inVert);
+			}
+		}
+		// need to make sure prim key is not added as header
+		newLevels.remove(PRIM_KEY);
+		redoLevels(newLevels.toArray(new String[newLevels.size()]));
+		return cleanedHash;
 	}
 	
 	/**
@@ -3030,8 +3103,14 @@ public class TinkerFrame implements ITableDataFrame {
 			for(String key : varMap.keySet()) {
 				specialVert.property(key, gson.toJson(varMap.get(key)));
 			}
+			Builder<GryoIo> builder = IoCore.gryo();
+			builder.graph(g);
+			IoRegistry kryo = new MyGraphIoRegistry();;
+			builder.registry(kryo);
+			GryoIo yes = builder.create();
+			yes.writeGraph(fileName);
+//			this.g.io(((Io.Builder)yes.writer())).writeGraph(fileName);
 			
-			this.g.io(IoCore.gryo()).writeGraph(fileName);
 			long endTime = System.currentTimeMillis();
 			LOGGER.info("Successfully saved TinkerFrame to file: "+fileName+ "("+(endTime - startTime)+" ms)");
 		} catch (IOException e) {
@@ -3050,8 +3129,13 @@ public class TinkerFrame implements ITableDataFrame {
 		TinkerGraph g = TinkerGraph.open();
 		try {
 			long startTime = System.currentTimeMillis();
-			
-			g.io(IoCore.gryo()).readGraph(fileName);
+
+			Builder<GryoIo> builder = IoCore.gryo();
+			builder.graph(g);
+			IoRegistry kryo = new MyGraphIoRegistry();
+			builder.registry(kryo);
+			GryoIo yes = builder.create();
+			yes.readGraph(fileName);
 			
 			long endTime = System.currentTimeMillis();
 			LOGGER.info("Successfully loaded TinkerFrame from file: "+fileName+ "("+(endTime - startTime)+" ms)");
@@ -3158,6 +3242,10 @@ public class TinkerFrame implements ITableDataFrame {
 			}
 		}
 		LOGGER.info("DONE inserting of blanks.......");
+	}
+
+	public IMetaData getMetaData() {
+		return this.metaData;
 	}
 	
 }

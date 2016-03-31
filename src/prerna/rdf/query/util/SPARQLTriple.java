@@ -31,6 +31,7 @@ public class SPARQLTriple {
 	String tripleString = "";
 	TriplePart subject, predicate, object;
 	boolean sbjURIBoo, predURIBoo, objURIBoo;
+	boolean optional = false;
 	
 	public SPARQLTriple(TriplePart subject, TriplePart predicate, TriplePart object)
 	{
@@ -44,7 +45,11 @@ public class SPARQLTriple {
 		String subjectString = SPARQLQueryHelper.createComponentString(subject);
 		String predicateString = SPARQLQueryHelper.createComponentString(predicate);
 		String objectString = SPARQLQueryHelper.createComponentString(object);
-		tripleString = "{" + subjectString + " " + predicateString + " " + objectString + "}";
+		String tripString = "{" + subjectString + " " + predicateString + " " + objectString + "}";
+		if(optional){
+			tripString = "OPTIONAL " + tripString;
+		}
+		tripleString = tripString;
 	}
 	
 	public String getTripleString()
@@ -66,6 +71,10 @@ public class SPARQLTriple {
 	public Object getObject()
 	{
 		return object;
+	}
+	
+	public void setOptional(Boolean optional){
+		this.optional = optional;
 	}
 	
 }

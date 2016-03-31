@@ -3,14 +3,14 @@ package prerna.sablecc;
 import java.util.HashMap;
 import java.util.Hashtable;
 import java.util.Iterator;
-import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.Vector;
 
-import prerna.ds.ExpressionIterator;
+import prerna.ds.QueryStruct;
 import prerna.ds.TinkerFrame;
+import prerna.engine.api.IEngine;
 import prerna.engine.api.ISelectStatement;
+import prerna.util.DIHelper;
 
 public class ImportDataReactor extends AbstractReactor {
 	
@@ -22,7 +22,7 @@ public class ImportDataReactor extends AbstractReactor {
 		super.whatIReactTo = thisReacts;
 		super.whoAmI = TokenEnum.IMPORT_DATA;
 
-		String [] dataFromApi = {TokenEnum.COL_CSV};
+		String [] dataFromApi = {TokenEnum.COL_CSV, "ENGINE", "QUERY_STRUCT"};
 		values2SyncHash.put(TokenEnum.API, dataFromApi);
 	}
 
@@ -39,13 +39,15 @@ public class ImportDataReactor extends AbstractReactor {
 		
 		it = (Iterator)value;
 
-//		frame.connectTypes(joinCols[0], newCol); 
-//		Map<String, Set<String>> edgeHash = component.getQueryStruct().getReturnConnectionsHash();
-//		Map<String, Set<String>> cleanedEdgeHash = this.mergeQSEdgeHash(edgeHash, engine);
+		IEngine engine = (IEngine) DIHelper.getInstance().getLocalProp((this.getValue(TokenEnum.API + "_ENGINE")+"").trim());
+		QueryStruct qs = (QueryStruct) this.getValue(TokenEnum.API + "_QUERY_STRUCT");
+		
+		Map<String, Set<String>> edgeHash = qs.getReturnConnectionsHash();
+		Map<String, Set<String>> cleanedEdgeHash = frame.mergeQSEdgeHash(edgeHash, engine);
 		while(it.hasNext()){
 			ISelectStatement ss = (ISelectStatement) it.next();
 			System.out.println(((ISelectStatement)ss).getPropHash());
-			frame.addRelationship(ss.getPropHash(), ss.getRPropHash(), new HashMap());
+			frame.addRelationship(ss.getPropHash(), ss.getRPropHash(), cleanedEdgeHash);
 		}
 		
 		// I have no idea what we are trying to do here 
