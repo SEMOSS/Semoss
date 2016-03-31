@@ -344,7 +344,22 @@ public class TinkerH2Frame extends TinkerFrame {
 	
 	@Override
 	public void removeColumn(String columnHeader) {
+		if(!ArrayUtilityMethods.arrayContainsValue(this.headerNames, columnHeader)) {
+			return;
+		}
+		
 		builder.dropColumn(columnHeader);
+		
+		String[] newHeaders = new String[this.headerNames.length-1];
+		int newHeaderIdx = 0;
+		for(int i = 0; i < this.headerNames.length; i++){
+			String name = this.headerNames[i];
+			if(!name.equals(columnHeader)){
+				newHeaders[newHeaderIdx] = name;
+				newHeaderIdx ++;
+			}
+		}
+		this.headerNames = newHeaders;
 	}
 	
 	@Override
