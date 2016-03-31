@@ -505,7 +505,7 @@ public class Insight {
 							metamodelData = new QueryBuilderData(dataHash);
 						}
 					}
-					if(qsData == null) qsData = metamodelData.getQueryStruct();
+					if(qsData == null) qsData = metamodelData.getQueryStruct(true);
 					dmc = new DataMakerComponent(engine, qsData); 
 					dmCompVec.add(dmc);
 				}

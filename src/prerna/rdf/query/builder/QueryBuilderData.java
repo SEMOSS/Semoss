@@ -361,7 +361,7 @@ public class QueryBuilderData {
 		return values;
 	}
 
-	public QueryStruct getQueryStruct(){
+	public QueryStruct getQueryStruct(boolean includeFilters){
 		QueryStruct qs = new QueryStruct();
 
 		// First need to iterate through properties
@@ -413,10 +413,12 @@ public class QueryBuilderData {
 			}
 		}
 		
-		if(this.filterData != null){
-			for(String col : this.filterData.keySet()){
-				List<Object> values = this.filterData.get(col);
-				qs.addFilter(col, "=", values);
+		if(includeFilters){
+			if(this.filterData != null){
+				for(String col : this.filterData.keySet()){
+					List<Object> values = this.filterData.get(col);
+					qs.addFilter(col, "=", values);
+				}
 			}
 		}
 		
