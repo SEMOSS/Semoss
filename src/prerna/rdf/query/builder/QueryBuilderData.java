@@ -39,6 +39,7 @@ import java.util.Vector;
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
+import prerna.ds.QueryStruct;
 import prerna.ui.components.playsheets.datamakers.JoinTransformation;
 import prerna.util.Utility;
 
@@ -360,5 +361,69 @@ public class QueryBuilderData {
 		return values;
 	}
 
+	public QueryStruct getQueryStruct(){
+		QueryStruct qs = new QueryStruct();
+
+		// First need to iterate through properties
+		// These are the easiest to capture
+		// Need to make sure valid return value
+
+		if(this.nodeProps != null){
+			for(Map<String, String> nodeProp: this.nodeProps){
+				String propVarName = nodeProp.get("uriKey");
+				LOGGER.info("checking if we need to add property to edgeHash::: " + propVarName);
+				if(!limitReturnToVarsList || this.returnVars.contains(propVarName)){
+					String nodeVarName = nodeProp.get("equivalentURI");
+					LOGGER.info("yes, adding now. " + propVarName + " is downstream of " + nodeVarName);
+					qs.addSelector(Utility.getInstanceName(nodeVarName), Utility.getInstanceName(propVarName));
+				}
+			}
+		}
+		
+		// Then iterate through triples (joins)
+		if(this.relTriples != null){
+			for(List<String> relTriple : this.relTriples){
+				if(relTriple.size() > 1){ // if this is a full triple... rather than just a single node
+					String physObj = relTriple.get(2);
+					String logicalObj = getLogicalNameFromPhysicalURI(physObj);
+					
+					String physSub = relTriple.get(0);
+					String logicalSub = getLogicalNameFromPhysicalURI(physSub);
+
+					LOGGER.info("checking if need need to add node to edgeHash:::: " + logicalObj);
+					if(!limitReturnToVarsList || this.returnVars.contains(logicalObj) ||  this.returnVars.contains(logicalSub)){
+						// yes it seems valid. need to get subject logical name
+						LOGGER.info("yes, adding now. " + logicalObj + " is downstream of " + logicalSub); // TODO: What if subject is not part of query return... ? what do we connect this property to?
+						
+						String physSubInst = Utility.getInstanceName(physSub);
+						String physObjInst = Utility.getInstanceName(physObj);
+						
+						qs.addRelation(physSubInst, physObjInst, "inner.join");
+						if (!limitReturnToVarsList || this.returnVars.contains(logicalSub)){
+							qs.addSelector(physSubInst, null);
+						}
+						if (!limitReturnToVarsList || this.returnVars.contains(logicalObj)){
+							qs.addSelector(physObjInst, null);
+						}
+					}
+				} else {
+					String physObj = relTriple.get(0);
+					qs.addSelector(Utility.getInstanceName(physObj), null);
+				}
+			}
+		}
+		
+		if(this.filterData != null){
+			for(String col : this.filterData.keySet()){
+				List<Object> values = this.filterData.get(col);
+				qs.addFilter(col, "=", values);
+			}
+		}
+		
+		// Finally do the filters
+		
+		qs.print();
+		return qs;
+	}
 
 }

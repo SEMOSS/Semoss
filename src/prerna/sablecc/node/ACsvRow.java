@@ -2,7 +2,6 @@
 
 package prerna.sablecc.node;
 
-import java.util.*;
 import prerna.sablecc.analysis.*;
 
 @SuppressWarnings("nls")
@@ -10,7 +9,7 @@ public final class ACsvRow extends PCsvRow
 {
     private TLBracket _lBracket_;
     private PWordOrNum _wordOrNum_;
-    private final LinkedList<PCsvGroup> _csvGroup_ = new LinkedList<PCsvGroup>();
+    private PCsvGroup _csvGroup_;
     private TRBracket _rBracket_;
 
     public ACsvRow()
@@ -21,7 +20,7 @@ public final class ACsvRow extends PCsvRow
     public ACsvRow(
         @SuppressWarnings("hiding") TLBracket _lBracket_,
         @SuppressWarnings("hiding") PWordOrNum _wordOrNum_,
-        @SuppressWarnings("hiding") List<?> _csvGroup_,
+        @SuppressWarnings("hiding") PCsvGroup _csvGroup_,
         @SuppressWarnings("hiding") TRBracket _rBracket_)
     {
         // Constructor
@@ -41,7 +40,7 @@ public final class ACsvRow extends PCsvRow
         return new ACsvRow(
             cloneNode(this._lBracket_),
             cloneNode(this._wordOrNum_),
-            cloneList(this._csvGroup_),
+            cloneNode(this._csvGroup_),
             cloneNode(this._rBracket_));
     }
 
@@ -101,30 +100,29 @@ public final class ACsvRow extends PCsvRow
         this._wordOrNum_ = node;
     }
 
-    public LinkedList<PCsvGroup> getCsvGroup()
+    public PCsvGroup getCsvGroup()
     {
         return this._csvGroup_;
     }
 
-    public void setCsvGroup(List<?> list)
+    public void setCsvGroup(PCsvGroup node)
     {
-        for(PCsvGroup e : this._csvGroup_)
+        if(this._csvGroup_ != null)
         {
-            e.parent(null);
+            this._csvGroup_.parent(null);
         }
-        this._csvGroup_.clear();
 
-        for(Object obj_e : list)
+        if(node != null)
         {
-            PCsvGroup e = (PCsvGroup) obj_e;
-            if(e.parent() != null)
+            if(node.parent() != null)
             {
-                e.parent().removeChild(e);
+                node.parent().removeChild(node);
             }
 
-            e.parent(this);
-            this._csvGroup_.add(e);
+            node.parent(this);
         }
+
+        this._csvGroup_ = node;
     }
 
     public TRBracket getRBracket()
@@ -178,8 +176,9 @@ public final class ACsvRow extends PCsvRow
             return;
         }
 
-        if(this._csvGroup_.remove(child))
+        if(this._csvGroup_ == child)
         {
+            this._csvGroup_ = null;
             return;
         }
 
@@ -208,22 +207,10 @@ public final class ACsvRow extends PCsvRow
             return;
         }
 
-        for(ListIterator<PCsvGroup> i = this._csvGroup_.listIterator(); i.hasNext();)
+        if(this._csvGroup_ == oldChild)
         {
-            if(i.next() == oldChild)
-            {
-                if(newChild != null)
-                {
-                    i.set((PCsvGroup) newChild);
-                    newChild.parent(this);
-                    oldChild.parent(null);
-                    return;
-                }
-
-                i.remove();
-                oldChild.parent(null);
-                return;
-            }
+            setCsvGroup((PCsvGroup) newChild);
+            return;
         }
 
         if(this._rBracket_ == oldChild)

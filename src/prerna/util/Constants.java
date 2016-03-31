@@ -125,7 +125,7 @@ public class Constants {
 	
 	public static String BASE_URI = "http://semoss.org/ontologies/";
 	public static String CONCEPT_URI = Constants.BASE_URI + Constants.DEFAULT_NODE_CLASS + "/";
-	public static String RELATION_URI =  Constants.BASE_URI + Constants.DEFAULT_PROPERTY_CLASS + "/";
+	public static String PROPERTY_URI =  Constants.BASE_URI + Constants.DEFAULT_PROPERTY_CLASS + "/";
 	public static String DISPLAY_URI =  Constants.BASE_URI + Constants.DEFAULT_DISPLAY_CLASS + "/";
 	
 	// layouts

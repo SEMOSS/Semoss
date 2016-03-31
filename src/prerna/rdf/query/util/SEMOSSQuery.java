@@ -293,7 +293,7 @@ public class SEMOSSQuery {
 		return postWhereString;
 	}
 	
-	public void addTriple(TriplePart subject, TriplePart predicate, TriplePart object)
+	public void addTriple(TriplePart subject, TriplePart predicate, TriplePart object, Boolean optional)
 	{
 		SPARQLPatternClause clause;
 		if(clauseHash.containsKey(main))
@@ -305,13 +305,14 @@ public class SEMOSSQuery {
 			clause = new SPARQLPatternClause();
 		}
 		SPARQLTriple newTriple = new SPARQLTriple(subject, predicate, object);
+		newTriple.setOptional(optional);
 		if(!this.hasTriple(newTriple))
 			clause.addTriple(newTriple);
 		
 		clauseHash.put(main,  clause);
 	}
 	
-	public void addTriple(TriplePart subject, TriplePart predicate, TriplePart object, String clauseName)
+	public void addTriple(TriplePart subject, TriplePart predicate, TriplePart object, Boolean optional, String clauseName)
 	{
 		SPARQLPatternClause clause;
 		if(clauseHash.containsKey(clauseName))
@@ -323,6 +324,7 @@ public class SEMOSSQuery {
 			clause = new SPARQLPatternClause();
 		}
 		SPARQLTriple newTriple = new SPARQLTriple(subject, predicate, object);
+		newTriple.setOptional(optional);
 		if(!this.hasTriple(newTriple))
 			clause.addTriple(newTriple);
 		
@@ -429,11 +431,11 @@ public class SEMOSSQuery {
 		addFilter(addToFilter, or, clauseName);
 	}
 	
-	public void addURIFilter(TriplePart var, List<TriplePart> filterData, boolean or) {
+	public void addURIFilter(TriplePart var, List<TriplePart> filterData, boolean or, String comparator) {
 		List<ISPARQLFilterInput> addToFilter = new ArrayList<ISPARQLFilterInput>();
 		for(TriplePart bindVar : filterData)
 		{
-			SPARQLFilterURIParam uriFilter = new SPARQLFilterURIParam(var, bindVar);
+			SPARQLFilterURIParam uriFilter = new SPARQLFilterURIParam(var, bindVar, comparator);
 			addToFilter.add(uriFilter);
 		}
 		addFilter(addToFilter, or);
@@ -506,6 +508,29 @@ public class SEMOSSQuery {
 		return retVars;
 	}
 	
+	public void setClauseOptional(String clauseName, Boolean optional){
+		SPARQLPatternClause clause;
+		if(clauseHash.containsKey(clauseName))
+		{
+			clause = clauseHash.get(clauseName);
+		}
+		else
+		{
+			clause = new SPARQLPatternClause();
+		}
+		clause.setOptional(optional);
+		clauseHash.put(clauseName,  clause);
+	}
+	
+	public boolean clauseIsOptional(String clauseName){
+		boolean ret = false;
+		if(clauseHash.containsKey(clauseName))
+		{
+			ret = clauseHash.get(clauseName).isOptional();
+		}
+		return ret;
+	}
+	
 	public void setReturnTripleArray(List<List<String>> tripleArray) {
 		this.returnTripleArray = tripleArray;
 	}
@@ -537,6 +562,10 @@ public class SEMOSSQuery {
 	public void setBindings(SPARQLBindings bindings)
 	{
 		this.bindings = bindings;
+	}
+	
+	public Boolean hasBindings(){
+		return !(this.bindings == null);
 	}
 
 	public void setLimit(Integer limit)

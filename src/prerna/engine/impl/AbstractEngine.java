@@ -60,6 +60,8 @@ import prerna.om.Insight;
 import prerna.om.SEMOSSParam;
 import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.rdf.query.builder.IQueryBuilder;
+import prerna.rdf.query.builder.IQueryInterpreter;
+import prerna.rdf.query.builder.SPARQLInterpreter;
 import prerna.rdf.query.builder.SPARQLQueryTableBuilder;
 import prerna.rdf.util.AbstractQueryParser;
 import prerna.rdf.util.SPARQLQueryParser;
@@ -105,6 +107,8 @@ public abstract class AbstractEngine implements IEngine {
 	private String ontology;
 	private String owl;
 	private String insightDatabaseLoc;
+
+	private transient Map<String, String> tableUriCache = new HashMap<String, String>();
 
 	private Hashtable<String, String> baseDataHash;
 	private Hashtable<String,String> transformedNodeNames = new Hashtable<String,String>();
@@ -529,6 +533,9 @@ public abstract class AbstractEngine implements IEngine {
 	public IQueryBuilder getQueryBuilder(){
 		return new SPARQLQueryTableBuilder(this);
 	}
+	public IQueryInterpreter getQueryInterpreter(){
+		return new SPARQLInterpreter(this);
+	}
 
 	/**
 	 * Commits the base data engine
@@ -543,6 +550,26 @@ public abstract class AbstractEngine implements IEngine {
 	public Vector<String> getConcepts() {
 		String query = "SELECT ?concept WHERE {?concept <http://www.w3.org/2000/01/rdf-schema#subClassOf> <http://semoss.org/ontologies/Concept> }";
 		return Utility.getVectorOfReturn(query, baseDataEngine, true);
+	}
+	
+	/**
+	 * Goes to the owl using a regex sparql query to get the physical uri
+	 * @param physicalName e.g. Studio
+	 * @return e.g. http://semoss.org/ontologies/Concept/Studio
+	 */
+	public String getConceptUri4PhysicalName(String physicalName){
+		if(tableUriCache.containsKey(physicalName)){
+			return tableUriCache.get(physicalName);
+		}
+		Vector<String> cons = this.getConcepts();
+		for(String checkUri : cons){
+			if(Utility.getInstanceName(checkUri).equals(physicalName)){
+				tableUriCache.put(physicalName, checkUri);
+				return checkUri;
+			}
+		}
+
+		return "unable to get table uri for " + physicalName;
 	}
 
 	public List<String> getProperties4Concept(String concept, Boolean logicalNames) {
@@ -581,7 +608,7 @@ public abstract class AbstractEngine implements IEngine {
 		}
 		
 		//for rdbms normalize the URI... for concepts and relation uris
-		if (nodeURI.startsWith(Constants.CONCEPT_URI) || nodeURI.startsWith(Constants.RELATION_URI) && this.getEngineType().equals(IEngine.ENGINE_TYPE.RDBMS)) {
+		if (nodeURI.startsWith(Constants.CONCEPT_URI) || nodeURI.startsWith(Constants.PROPERTY_URI) && this.getEngineType().equals(IEngine.ENGINE_TYPE.RDBMS)) {
 			for(String displayName: this.transformedNodeNames.keySet()){
 				String physicalName = this.transformedNodeNames.get(displayName);
 				if(physicalName.equalsIgnoreCase(nodeURI)){
@@ -596,12 +623,12 @@ public abstract class AbstractEngine implements IEngine {
 			return nodeURI;
 		}
 		//if you are trying to get a display name but you came in with out the physical URI component, exit out
-		if(getDisplayName && !(nodeURI.startsWith(Constants.CONCEPT_URI) || nodeURI.startsWith(Constants.RELATION_URI))){
+		if(getDisplayName && !(nodeURI.startsWith(Constants.CONCEPT_URI) || nodeURI.startsWith(Constants.PROPERTY_URI))){
 			return nodeURI;
 		}
 		
 		//if uri coming in is just a base URI...
-		if(nodeURI.equals(Constants.DISPLAY_URI) || nodeURI.equals(Constants.CONCEPT_URI) || nodeURI.equals(Constants.RELATION_URI)){
+		if(nodeURI.equals(Constants.DISPLAY_URI) || nodeURI.equals(Constants.CONCEPT_URI) || nodeURI.equals(Constants.PROPERTY_URI)){
 			return nodeURI;
 		}
 		

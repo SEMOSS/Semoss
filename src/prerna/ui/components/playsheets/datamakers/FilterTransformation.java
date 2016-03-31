@@ -5,23 +5,19 @@ import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.Hashtable;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
-import java.util.Stack;
 
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
-import com.google.gson.internal.StringMap;
 import com.google.gson.reflect.TypeToken;
 
 import prerna.algorithm.api.ITableDataFrame;
-import prerna.rdf.query.builder.AbstractQueryBuilder;
+import prerna.ds.QueryStruct;
 import prerna.rdf.query.builder.QueryBuilderData;
 import prerna.util.Utility;
 
@@ -68,7 +64,7 @@ public class FilterTransformation extends AbstractTransformation {
 		// if this is a pre-transformation
 		if(preTrans){
 			// if there is metamodel data, add this as a filter and let query builder do its thing
-			QueryBuilderData builderData = this.dmc.getBuilderData();
+			QueryStruct builderData = this.dmc.getQueryStruct();
 			if(builderData != null) {
 				addFilterToComponentData(colHeader, new ArrayList<>(values), builderData);
 			} else {
@@ -97,15 +93,16 @@ public class FilterTransformation extends AbstractTransformation {
 	 * @param values						The list of values for the filter
 	 * @param metamodelData					The metamodel data
 	 */
-	private void addFilterToComponentData(String colHeader, List<Object> values, QueryBuilderData builderData){
-        Map<String, List<Object>> stringMap;
-        if(builderData.getFilterData() != null && !builderData.getFilterData().isEmpty()) {
-               stringMap = builderData.getFilterData();
-        } else {
-               stringMap = new HashMap<String, List<Object>>();
-        }
-        stringMap.put(colHeader, values);
-        builderData.setFilterData(stringMap);
+	private void addFilterToComponentData(String colHeader, List<Object> values, QueryStruct builderData){
+//        Map<String, List<Object>> stringMap;
+//        if(builderData.getFilterData() != null && !builderData.getFilterData().isEmpty()) {
+//               stringMap = builderData.getFilterData();
+//        } else {
+//               stringMap = new HashMap<String, List<Object>>();
+//        }
+//        stringMap.put(colHeader, values);
+//        builderData.setFilterData(stringMap);
+		builderData.addFilter(colHeader, "=", values);
 	}
 		
 	/**
