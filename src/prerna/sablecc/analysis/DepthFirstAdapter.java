@@ -1396,12 +1396,9 @@ public class DepthFirstAdapter extends AnalysisAdapter
         {
             node.getWordOrNum().apply(this);
         }
+        if(node.getCsvGroup() != null)
         {
-            List<PCsvGroup> copy = new ArrayList<PCsvGroup>(node.getCsvGroup());
-            for(PCsvGroup e : copy)
-            {
-                e.apply(this);
-            }
+            node.getCsvGroup().apply(this);
         }
         if(node.getRBracket() != null)
         {

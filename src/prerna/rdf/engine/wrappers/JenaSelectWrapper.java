@@ -88,7 +88,7 @@ public class JenaSelectWrapper extends AbstractWrapper implements ISelectWrapper
 			String tableLabel = names.get(colIndex);
 			boolean columnIsProperty = false;
 			String tableLabelURI = Constants.CONCEPT_URI;
-			String columnLabelURI = Constants.RELATION_URI;
+			String columnLabelURI = Constants.PROPERTY_URI;
 			if(columnLabel.contains("__")){
 				columnIsProperty = true;
 				String[] splitColAndTable = columnLabel.split("__");

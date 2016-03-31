@@ -184,7 +184,7 @@ public class RDBMSSelectWrapper extends AbstractWrapper implements ISelectWrappe
 //					columnLabel = deriveTableName(columnLabel, columnLabel);
 //				}
 				
-				var[colIndex-1] = logName;
+				var[colIndex-1] = colName;
 				displayVar[colIndex-1] = logName;
 				
 				int type = rsmd.getColumnType(colIndex);

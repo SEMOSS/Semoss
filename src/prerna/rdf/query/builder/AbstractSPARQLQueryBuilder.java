@@ -65,7 +65,7 @@ public abstract class AbstractSPARQLQueryBuilder extends AbstractQueryBuilder{
 //			this.headerFilterHash.put(nodeName, headerQuery);
 //			SEMOSSQueryHelper.addConceptTypeTripleToQuery(nodeName, nodeURI, headerQuery);
 			
-			SEMOSSQueryHelper.addConceptTypeTripleToQuery(nodeName, nodeURI, semossQuery);
+			SEMOSSQueryHelper.addConceptTypeTripleToQuery(nodeName, nodeURI, false, semossQuery);
 			addReturnVar(nodeName, semossQuery);
 		}
 	}
@@ -96,7 +96,7 @@ public abstract class AbstractSPARQLQueryBuilder extends AbstractQueryBuilder{
 		for(Map<String, String> propHash : propV) {
 			String propName = propHash.get(QueryBuilderHelper.varKey);
 			String propURI = propHash.get(QueryBuilderHelper.uriKey);
-			SEMOSSQueryHelper.addGenericTriple(propHash.get("SubjectVar"), TriplePart.VARIABLE, propURI, TriplePart.URI, propName, TriplePart.VARIABLE, semossQuery);
+			SEMOSSQueryHelper.addGenericTriple(propHash.get("SubjectVar"), TriplePart.VARIABLE, propURI, TriplePart.URI, propName, TriplePart.VARIABLE, false, semossQuery);
 			addReturnVar(propName, semossQuery);
 		}
 	}
@@ -266,7 +266,7 @@ public abstract class AbstractSPARQLQueryBuilder extends AbstractQueryBuilder{
 			TriplePartConstant triplePartC;
 			if(filterValue.startsWith("http")) {
 				triplePartC = TriplePart.URI;
-				SEMOSSQueryHelper.addURIFilterPhrase(s, TriplePart.VARIABLE, filterOptions, triplePartC, true, semossQuery);
+				SEMOSSQueryHelper.addURIFilterPhrase(s, TriplePart.VARIABLE, filterOptions, triplePartC, " = ", true, semossQuery);
 			} else {
 				triplePartC = TriplePart.LITERAL;
 				caseSensitiveFilter = true;

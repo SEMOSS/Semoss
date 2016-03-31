@@ -149,64 +149,64 @@ public abstract class SEMOSSQueryHelper {
 		return modifier;
 	}
 
-	public static void addConceptTypeTripleToQuery(String variableName, String conceptURI, SEMOSSQuery seQuery)
+	public static void addConceptTypeTripleToQuery(String variableName, String conceptURI, Boolean optional, SEMOSSQuery seQuery)
 	{
 		TriplePart conceptVar = new TriplePart(variableName, TriplePart.VARIABLE);
 		TriplePart typeURI = new TriplePart(SPARQLConstants.TYPE_URI, TriplePart.URI);
 		TriplePart conceptTypeURI = new TriplePart(conceptURI, TriplePart.URI);
-		seQuery.addTriple(conceptVar, typeURI, conceptTypeURI);
+		seQuery.addTriple(conceptVar, typeURI, conceptTypeURI, optional);
 	}
 
-	public static void addConceptTypeTripleToQuery(String variableName, String conceptURI, SEMOSSQuery seQuery, String clauseName)
+	public static void addConceptTypeTripleToQuery(String variableName, String conceptURI, Boolean optional, SEMOSSQuery seQuery, String clauseName)
 	{
 		TriplePart conceptVar = new TriplePart(variableName, TriplePart.VARIABLE);
 		TriplePart typeURI = new TriplePart(SPARQLConstants.TYPE_URI, TriplePart.URI);
 		TriplePart conceptTypeURI = new TriplePart(conceptURI, TriplePart.URI);
-		seQuery.addTriple(conceptVar, typeURI, conceptTypeURI, clauseName);
+		seQuery.addTriple(conceptVar, typeURI, conceptTypeURI, optional, clauseName);
 	}
 
-	public static void addRelationTypeTripleToQuery(String variableName, String relationURI, SEMOSSQuery seQuery)
+	public static void addRelationTypeTripleToQuery(String variableName, String relationURI, Boolean optional, SEMOSSQuery seQuery)
 	{
 		TriplePart relationVar = new TriplePart(variableName, TriplePart.VARIABLE);
 		TriplePart subPropURI = new TriplePart(SPARQLConstants.SUBPROP_URI, TriplePart.URI);
 		TriplePart relationTypeURI = new TriplePart(relationURI, TriplePart.URI);
-		seQuery.addTriple(relationVar, subPropURI, relationTypeURI);
+		seQuery.addTriple(relationVar, subPropURI, relationTypeURI, optional);
 	}
 
-	public static void addRelationTypeTripleToQuery(String variableName, String relationURI, SEMOSSQuery seQuery, String clauseName)
+	public static void addRelationTypeTripleToQuery(String variableName, String relationURI, Boolean optional, SEMOSSQuery seQuery, String clauseName)
 	{
 		TriplePart relationVar = new TriplePart(variableName, TriplePart.VARIABLE);
 		TriplePart subPropURI = new TriplePart(SPARQLConstants.SUBPROP_URI, TriplePart.URI);
 		TriplePart relationTypeURI = new TriplePart(relationURI, TriplePart.URI);
-		seQuery.addTriple(relationVar, subPropURI, relationTypeURI, clauseName);
+		seQuery.addTriple(relationVar, subPropURI, relationTypeURI, optional, clauseName);
 	}
 
-	public static void addRelationshipVarTripleToQuery(String subject, String predicate, String object, SEMOSSQuery seQuery)
+	public static void addRelationshipVarTripleToQuery(String subject, String predicate, String object, Boolean optional, SEMOSSQuery seQuery)
 	{
 		TriplePart subjectVar = new TriplePart(subject, TriplePart.VARIABLE);
 		TriplePart predicateVar = new TriplePart(predicate, TriplePart.VARIABLE);
 		TriplePart objectVar = new TriplePart(object, TriplePart.VARIABLE);
-		seQuery.addTriple(subjectVar, predicateVar, objectVar);
+		seQuery.addTriple(subjectVar, predicateVar, objectVar, optional);
 	}
 
-	public static void addRelationshipVarTripleToQuery(String subject, String predicate, String object, SEMOSSQuery seQuery, String clauseName)
+	public static void addRelationshipVarTripleToQuery(String subject, String predicate, String object, Boolean optional, SEMOSSQuery seQuery, String clauseName)
 	{
 		TriplePart subjectVar = new TriplePart(subject, TriplePart.VARIABLE);
 		TriplePart predicateVar = new TriplePart(predicate, TriplePart.VARIABLE);
 		TriplePart objectVar = new TriplePart(object, TriplePart.VARIABLE);
-		seQuery.addTriple(subjectVar, predicateVar, objectVar, clauseName);
+		seQuery.addTriple(subjectVar, predicateVar, objectVar, optional, clauseName);
 	}
 
-	public static void addGenericTriple(String subject, TriplePartConstant subjectType, String predicate, TriplePartConstant predicateType, String object, TriplePartConstant objectType, SEMOSSQuery seQuery)
+	public static void addGenericTriple(String subject, TriplePartConstant subjectType, String predicate, TriplePartConstant predicateType, String object, TriplePartConstant objectType, Boolean optional, SEMOSSQuery seQuery)
 	{
 		if (subjectType.equals(TriplePart.LITERAL))
 			throw new IllegalArgumentException("Subject cannot be a literal");
 		else if (predicateType.equals(TriplePart.LITERAL))
 			throw new IllegalArgumentException("Predicate cannot be a literal");
-		addTriplesToQueryFromGenericCall(subject, subjectType, predicate, predicateType, object, objectType, seQuery);
+		addTriplesToQueryFromGenericCall(subject, subjectType, predicate, predicateType, object, objectType, optional, seQuery);
 	}
 
-	public static void addGenericTriple(String subject, TriplePartConstant subjectType, String predicate, TriplePartConstant predicateType, int object, TriplePartConstant objectType, SEMOSSQuery seQuery)
+	public static void addGenericTriple(String subject, TriplePartConstant subjectType, String predicate, TriplePartConstant predicateType, int object, TriplePartConstant objectType, Boolean optional, SEMOSSQuery seQuery)
 	{
 		if (subjectType.equals(TriplePart.LITERAL))
 			throw new IllegalArgumentException("Subject cannot be a literal");
@@ -214,10 +214,10 @@ public abstract class SEMOSSQueryHelper {
 			throw new IllegalArgumentException("Predicate cannot be a literal");
 		else if (objectType.equals(TriplePart.VARIABLE) || objectType.equals(TriplePart.URI))
 			throw new IllegalArgumentException("Cannot put integer as variable or URI, use String");
-		addTriplesToQueryFromGenericCall(subject, subjectType, predicate, predicateType, object, objectType, seQuery);
+		addTriplesToQueryFromGenericCall(subject, subjectType, predicate, predicateType, object, objectType, optional, seQuery);
 	}
 
-	public static void addGenericTriple(String subject, TriplePartConstant subjectType, String predicate, TriplePartConstant predicateType, double object, TriplePartConstant objectType, SEMOSSQuery seQuery)
+	public static void addGenericTriple(String subject, TriplePartConstant subjectType, String predicate, TriplePartConstant predicateType, double object, TriplePartConstant objectType, Boolean optional, SEMOSSQuery seQuery)
 	{
 		if (subjectType.equals(TriplePart.LITERAL))
 			throw new IllegalArgumentException("Subject cannot be a literal");
@@ -225,10 +225,10 @@ public abstract class SEMOSSQueryHelper {
 			throw new IllegalArgumentException("Predicate cannot be a literal");
 		else if (objectType.equals(TriplePart.VARIABLE) || objectType.equals(TriplePart.URI))
 			throw new IllegalArgumentException("Cannot put double as variable or URI, use String");
-		addTriplesToQueryFromGenericCall(subject, subjectType, predicate, predicateType, object, objectType, seQuery);
+		addTriplesToQueryFromGenericCall(subject, subjectType, predicate, predicateType, object, objectType, optional, seQuery);
 	}
 
-	public static void addGenericTriple(String subject, TriplePartConstant subjectType, String predicate, TriplePartConstant predicateType, Date object, TriplePartConstant objectType, SEMOSSQuery seQuery)
+	public static void addGenericTriple(String subject, TriplePartConstant subjectType, String predicate, TriplePartConstant predicateType, Date object, TriplePartConstant objectType, Boolean optional, SEMOSSQuery seQuery)
 	{
 		if (subjectType.equals(TriplePart.LITERAL))
 			throw new IllegalArgumentException("Subject cannot be a literal");
@@ -236,19 +236,19 @@ public abstract class SEMOSSQueryHelper {
 			throw new IllegalArgumentException("Predicate cannot be a literal");
 		else if (objectType.equals(TriplePart.VARIABLE) || objectType.equals(TriplePart.URI))
 			throw new IllegalArgumentException("Cannot put date as variable or URI, use String");
-		addTriplesToQueryFromGenericCall(subject, subjectType, predicate, predicateType, object, objectType, seQuery);
+		addTriplesToQueryFromGenericCall(subject, subjectType, predicate, predicateType, object, objectType, optional, seQuery);
 	}
 
-	public static void addGenericTriple(String subject, TriplePartConstant subjectType, String predicate, TriplePartConstant predicateType, String object, TriplePartConstant objectType, SEMOSSQuery seQuery, String clauseName)
+	public static void addGenericTriple(String subject, TriplePartConstant subjectType, String predicate, TriplePartConstant predicateType, String object, TriplePartConstant objectType, Boolean optional, SEMOSSQuery seQuery, String clauseName)
 	{
 		if (subjectType.equals(TriplePart.LITERAL))
 			throw new IllegalArgumentException("Subject cannot be a literal");
 		else if (predicateType.equals(TriplePart.LITERAL))
 			throw new IllegalArgumentException("Predicate cannot be a literal");
-		addTriplesToQueryFromGenericCall(subject, subjectType, predicate, predicateType, object, objectType, seQuery, clauseName);
+		addTriplesToQueryFromGenericCall(subject, subjectType, predicate, predicateType, object, objectType, optional, seQuery, clauseName);
 	}
 
-	public static void addGenericTriple(String subject, TriplePartConstant subjectType, String predicate, TriplePartConstant predicateType, int object, TriplePartConstant objectType, SEMOSSQuery seQuery, String clauseName)
+	public static void addGenericTriple(String subject, TriplePartConstant subjectType, String predicate, TriplePartConstant predicateType, int object, TriplePartConstant objectType, Boolean optional, SEMOSSQuery seQuery, String clauseName)
 	{
 		if (subjectType.equals(TriplePart.LITERAL))
 			throw new IllegalArgumentException("Subject cannot be a literal");
@@ -256,10 +256,10 @@ public abstract class SEMOSSQueryHelper {
 			throw new IllegalArgumentException("Predicate cannot be a literal");
 		else if (objectType.equals(TriplePart.VARIABLE) || objectType.equals(TriplePart.URI))
 			throw new IllegalArgumentException("Cannot put integer as variable or URI, use String");
-		addTriplesToQueryFromGenericCall(subject, subjectType, predicate, predicateType, object, objectType, seQuery, clauseName);
+		addTriplesToQueryFromGenericCall(subject, subjectType, predicate, predicateType, object, objectType, optional, seQuery, clauseName);
 	}
 
-	public static void addGenericTriple(String subject, TriplePartConstant subjectType, String predicate, TriplePartConstant predicateType, double object, TriplePartConstant objectType, SEMOSSQuery seQuery, String clauseName)
+	public static void addGenericTriple(String subject, TriplePartConstant subjectType, String predicate, TriplePartConstant predicateType, double object, TriplePartConstant objectType, Boolean optional, SEMOSSQuery seQuery, String clauseName)
 	{
 		if (subjectType.equals(TriplePart.LITERAL))
 			throw new IllegalArgumentException("Subject cannot be a literal");
@@ -267,10 +267,10 @@ public abstract class SEMOSSQueryHelper {
 			throw new IllegalArgumentException("Predicate cannot be a literal");
 		else if (objectType.equals(TriplePart.VARIABLE) || objectType.equals(TriplePart.URI))
 			throw new IllegalArgumentException("Cannot put double as variable or URI, use String");
-		addTriplesToQueryFromGenericCall(subject, subjectType, predicate, predicateType, object, objectType, seQuery, clauseName);
+		addTriplesToQueryFromGenericCall(subject, subjectType, predicate, predicateType, object, objectType, optional, seQuery, clauseName);
 	}
 
-	public static void addGenericTriple(String subject, TriplePartConstant subjectType, String predicate, TriplePartConstant predicateType, Date object, TriplePartConstant objectType, SEMOSSQuery seQuery, String clauseName)
+	public static void addGenericTriple(String subject, TriplePartConstant subjectType, String predicate, TriplePartConstant predicateType, Date object, TriplePartConstant objectType, Boolean optional, SEMOSSQuery seQuery, String clauseName)
 	{
 		if (subjectType.equals(TriplePart.LITERAL))
 			throw new IllegalArgumentException("Subject cannot be a literal");
@@ -278,24 +278,24 @@ public abstract class SEMOSSQueryHelper {
 			throw new IllegalArgumentException("Predicate cannot be a literal");
 		else if (objectType.equals(TriplePart.VARIABLE) || objectType.equals(TriplePart.URI))
 			throw new IllegalArgumentException("Cannot put date as variable or URI, use String");
-		addTriplesToQueryFromGenericCall(subject, subjectType, predicate, predicateType, object, objectType, seQuery, clauseName);
+		addTriplesToQueryFromGenericCall(subject, subjectType, predicate, predicateType, object, objectType, optional, seQuery, clauseName);
 	}
 
 
-	private static void addTriplesToQueryFromGenericCall(String subject, TriplePartConstant subjectType, String predicate, TriplePartConstant predicateType, Object object, TriplePartConstant objectType, SEMOSSQuery seQuery)
+	private static void addTriplesToQueryFromGenericCall(String subject, TriplePartConstant subjectType, String predicate, TriplePartConstant predicateType, Object object, TriplePartConstant objectType, Boolean optional, SEMOSSQuery seQuery)
 	{
 		TriplePart subjectPart = new TriplePart(subject, subjectType);
 		TriplePart predicatePart = new TriplePart(predicate, predicateType);
 		TriplePart objectPart = new TriplePart(object, objectType);
-		seQuery.addTriple(subjectPart, predicatePart, objectPart);
+		seQuery.addTriple(subjectPart, predicatePart, objectPart, optional);
 	}
 
-	private static void addTriplesToQueryFromGenericCall(String subject, TriplePartConstant subjectType, String predicate, TriplePartConstant predicateType, Object object, TriplePartConstant objectType, SEMOSSQuery seQuery, String clauseName)
+	private static void addTriplesToQueryFromGenericCall(String subject, TriplePartConstant subjectType, String predicate, TriplePartConstant predicateType, Object object, TriplePartConstant objectType, Boolean optional, SEMOSSQuery seQuery, String clauseName)
 	{
 		TriplePart subjectPart = new TriplePart(subject, subjectType);
 		TriplePart predicatePart = new TriplePart(predicate, predicateType);
 		TriplePart objectPart = new TriplePart(object, objectType);
-		seQuery.addTriple(subjectPart, predicatePart, objectPart, clauseName);
+		seQuery.addTriple(subjectPart, predicatePart, objectPart, optional, clauseName);
 	}
 	
 	public static void addBindPhrase(Object bindSubject, TriplePartConstant bindSubjectType, String bindObject, SEMOSSQuery seQuery)
@@ -376,7 +376,7 @@ public abstract class SEMOSSQueryHelper {
 		seQuery.addRegexFilter(varBindPart, filterDataPart, isValueString, or, isCaseSensitive);
 	}
 	
-	public static void addURIFilterPhrase(String var, TriplePartConstant varType, List<Object> filterData, TriplePartConstant filterDataType, boolean or, SEMOSSQuery seQuery)
+	public static void addURIFilterPhrase(String var, TriplePartConstant varType, List<Object> filterData, TriplePartConstant filterDataType, String comparator, boolean or, SEMOSSQuery seQuery)
 	{
 		TriplePart varBindPart = new TriplePart(var, varType);
 		List<TriplePart> filterDataPart = new ArrayList<TriplePart>();
@@ -385,7 +385,7 @@ public abstract class SEMOSSQueryHelper {
 			TriplePart filterElemPart = new TriplePart(filterElem, filterDataType);
 			filterDataPart.add(filterElemPart);
 		}
-		seQuery.addURIFilter(varBindPart, filterDataPart, or);
+		seQuery.addURIFilter(varBindPart, filterDataPart, or, comparator);
 	}
 
 	public static void addRegexFilterPhrase(String var, TriplePartConstant varType, List<Object> filterData, TriplePartConstant filterDataType, boolean isValueString, boolean or, SEMOSSQuery seQuery, String clauseName, boolean isCaseSensitive)
