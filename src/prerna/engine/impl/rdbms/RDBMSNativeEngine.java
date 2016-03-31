@@ -42,17 +42,17 @@ import java.util.Map;
 import java.util.Vector;
 
 import org.apache.commons.dbcp2.BasicDataSource;
+import org.apache.commons.io.FileUtils;
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
+import org.h2.tools.DeleteDbFiles;
 import org.openrdf.model.vocabulary.RDFS;
 import org.openrdf.query.BindingSet;
 import org.openrdf.query.QueryEvaluationException;
 import org.openrdf.query.TupleQueryResult;
-import org.openrdf.repository.RepositoryConnection;
 
 import prerna.engine.api.IEngine;
 import prerna.engine.impl.AbstractEngine;
-import prerna.om.SEMOSSParam;
 import prerna.rdf.query.builder.IQueryBuilder;
 import prerna.rdf.query.builder.SQLQueryTableBuilder;
 import prerna.rdf.util.AbstractQueryParser;
@@ -272,7 +272,7 @@ public class RDBMSNativeEngine extends AbstractEngine {
 				// TODO Auto-generated catch block
 				e.printStackTrace();
 			}
-        	query = "SELECT DISTINCT " + Utility.getInstanceName(type) + " FROM " + Utility.getClassName(conceptURI);
+        	query = "SELECT DISTINCT " + Utility.getInstanceName(type) + " FROM " + Utility.getInstanceName(conceptURI);
         }
         else if(type.contains(":")) {
             int tableStartIndex = type.indexOf("-") + 1;
@@ -578,6 +578,32 @@ public class RDBMSNativeEngine extends AbstractEngine {
 			String deleteText = SQLQueryUtil.initialize(dbType).getDialectDeleteDBSchema(this.engineName);
 			insertData(deleteText);
 		}
+		
+//		try {
+//			this.insightRDBMS.getConnection().close();
+//			closeDB();
+//			
+//			try {
+//				System.out.println("Conn obj closed: " + this.engineConn.isClosed());
+//			} catch (SQLException e) {
+//				e.printStackTrace();
+//			}
+//			System.out.println("Datasource: " + this.dataSource);
+//			
+//			DeleteDbFiles delete = new DeleteDbFiles();
+//			delete.execute(DIHelper.getInstance().getProperty(Constants.BASE_FOLDER) + "/db/" + this.engineName, "database", false);
+//			
+//			String location = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER) + "/db/" + this.engineName + "/database.mv.db";
+//			try {
+//				FileUtils.forceDelete(new File(location));
+//			} catch (IOException e) {
+//				e.printStackTrace();
+//			}
+//		} catch (SQLException e) {
+//			e.printStackTrace();
+//		}
+		
+		super.deleteDB();
 	}
 
 	public SQLQueryUtil.DB_TYPE getDbType() {
