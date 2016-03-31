@@ -134,6 +134,7 @@ public class TableDataFrameFactory {
 		
 		// the data string is no longer string but a file name
 		CSVFileHelper daHelper = new CSVFileHelper();
+		daHelper.setDelimiter(delimeter.charAt(0));
 		daHelper.parse(dataStr);
 		String [] headers = daHelper.allHeaders;
 		
