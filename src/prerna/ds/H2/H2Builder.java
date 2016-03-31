@@ -31,6 +31,7 @@ import prerna.ds.TinkerFrame;
 import prerna.engine.api.ISelectStatement;
 import prerna.engine.api.ISelectWrapper;
 import prerna.util.ArrayUtilityMethods;
+import prerna.util.Utility;
 
 import com.univocity.parsers.csv.CsvParser;
 import com.univocity.parsers.csv.CsvParserSettings;
@@ -459,6 +460,7 @@ public class H2Builder {
     
     public String[] castRowTypes(String [] thisOutput)
     {
+//    	return Utility.castToTypes(thisOutput, types);
     	String [] values = new String[thisOutput.length];
     	
     	for(int outIndex = 0;outIndex < thisOutput.length;outIndex++)
@@ -534,7 +536,8 @@ public class H2Builder {
     	
     	
     	for(String[] row : data) {
-    		String[] cells = castRowTypes(row);
+//    		String[] cells = castRowTypes(row);
+    		String[] cells = Utility.castToTypes(row, types);
     		String inserter = makeInsert(columnHeaders, types, cells, new Hashtable<String, String>(), tableName);
     		runQuery(inserter);
     	}
@@ -879,7 +882,8 @@ public class H2Builder {
     		runQuery(createTable);
     	}
     	
-    	cells = castRowTypes(cells);
+//    	cells = castRowTypes(cells);
+    	cells = Utility.castToTypes(cells, types);
 		String inserter = makeInsert(headers, types, cells, new Hashtable<String, String>(), tableName);
 		runQuery(inserter);
     }
@@ -1098,7 +1102,7 @@ public class H2Builder {
     	
     	// now create a third table
     	tableName = "TINKERTABLE"+getNextNumber();
-    	String newCreate = "CREATE TABLE " + tableName +" AS (";
+    	String newCreate = "CREATE VIEW " + tableName +" AS (";
     	
     	// now I need to create a join query
     	// first the froms
@@ -1290,6 +1294,7 @@ public class H2Builder {
     		}
     		else
     		{
+//    			if(value != null)
     			//comments will come in handy some day
     			//if(!defaultValues.containsKey(type))
     			String value = values[colIndex];
