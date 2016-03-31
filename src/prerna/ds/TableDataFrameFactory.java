@@ -8,6 +8,7 @@ import java.util.Map;
 import java.util.Set;
 
 import prerna.ds.H2.TinkerH2Frame;
+import prerna.ds.util.TinkerCastHelper;
 import prerna.poi.main.CSVFileHelper;
 import prerna.util.Utility;
 
@@ -125,31 +126,37 @@ public class TableDataFrameFactory {
 		String [] cells = null;
 		while((cells = daHelper.getRow()) != null)
 			dataFrame.addRow(cells);
+				
+		return dataFrame;
+	}
+	
+	public static TinkerFrame generateTinkerFrameFromFile(String dataStr, String delimeter) {
 		
-		/*
+		// the data string is no longer string but a file name
+		CSVFileHelper daHelper = new CSVFileHelper();
+		daHelper.parse(dataStr);
+		String [] headers = daHelper.allHeaders;
 		
-		String[] rows = dataStr.split("\\n");
-		if(rows.length == 0) {
-			throw new IllegalArgumentException("No data has been inputted");
-		} else if(rows.length == 1) {
-			throw new IllegalArgumentException("Only a header row has been inputted.  Need at least one row of values");
+		TinkerFrame dataFrame = (TinkerFrame)createPrimKeyTinkerFrame(headers, "TinkerFrame");
+		TinkerCastHelper caster = new TinkerCastHelper();
+		
+		String[] cells = null;
+		String[] types = null;
+		Object[] values = null;
+		while((cells = daHelper.getRow()) != null) {
+		
+			if(types == null) {
+				types = caster.guessTypes(cells);
+			}
+			
+			values = caster.castToTypes(cells, types);
+			Map<String, Object> row = new HashMap<>();
+			for(int i = 0; i < headers.length; i++) {
+				row.put(headers[i], values[i]);
+			}
+			dataFrame.addRow(row, row);
 		}
-		String headerStr = rows[0];
-		String[] headers = headerStr.split(delimeter + "{1}");
-		int numHeaders = headers.length;
-		for(int i = 0; i< numHeaders; i++){
-			headers[i] = Utility.cleanVariableString(headers[i]);
-		}
-		
-		TinkerH2Frame dataFrame = (TinkerH2Frame)createPrimKeyTinkerFrame(headers, "H2");
-//		CsvParser parser = getDefaultParser();
-		
-		for(int i = 1; i < rows.length; i++) {
-//			String[] cells = parser.parseLine(rows[i]);
-			String[] cells = rows[i].split(delimeter + "{1}");
-			dataFrame.addRow(cells);
-		}
-		*/		
+				
 		return dataFrame;
 	}
 	
@@ -164,176 +171,176 @@ public class TableDataFrameFactory {
     	return parser;
 	}
 	
-	public static TinkerFrame generateTinkerFrameFromFile(String dataStr, String delimeter) {
-		long sT = System.currentTimeMillis();
-		
-		final DateFormat DATE_DF = new SimpleDateFormat("yyyy/MM/dd hh:mm:ss.SSSSSS");
-		final DateFormat SIMPLE_DATE_DF = new SimpleDateFormat("yyyy/MM/dd");
-		final String DATE_KEY = "DATE";
-		final String SIMPLE_DATE_KEY = "SIMPLE_DATE_KEY";
-		final String NUMBER_KEY = "NUMBER";
-		final String STRING_KEY = "STRING";
-
-		String[] rows = dataStr.split("\\n");
-		if(rows.length == 0) {
-			throw new IllegalArgumentException("No data has been inputted");
-		}
-		if(rows.length == 1) {
-			throw new IllegalArgumentException("Only a header row has been inputted.  Need at least one row of values");
-		}
-		String headerStr = rows[0];
-		String[] headers = headerStr.split(delimeter + "{1}");
-		int numHeaders = headers.length;
-		for(int i = 0; i< numHeaders; i++){
-			headers[i] = Utility.cleanVariableString(headers[i]);
-		}
-		
-		TinkerFrame dataFrame = new TinkerFrame(headers);
-		Map<String, Set<String>> primKeyEdgeHash = dataFrame.createPrimKeyEdgeHash(headers);
-		dataFrame.mergeEdgeHash(primKeyEdgeHash); 
-		
-		int i = 1;
-		int numRows = rows.length;
-		
-		String[] colTypes = new String[headers.length];
-		// use top 5 rows to determine the type of the column
-		for(; i < 5 && i < numRows; i++) {
-			String rowStr = rows[i];
-			if(rowStr.isEmpty()) {
-				rowStr = TinkerFrame.EMPTY;
-			}
-			String[] row = rowStr.split(delimeter + "{1}", headers.length);
-			if(row.length != numHeaders) {
-				throw new IllegalArgumentException("Number of columns in row #" + (i+1) + " does not match the number of columns in the header.");
-			}
-			
-			Map<String, Object> rowMap = new HashMap<String, Object>();
-			Map<String, Object> cleanMap = new HashMap<String, Object>();
-			ROW_LOOP : for(int j = 0; j < numHeaders; j++) {
-				String valStr = row[j].trim();
-				if(valStr == null || valStr.isEmpty() ) {
-					rowMap.put(headers[j], "");
-				}
-				Object valObj = null;
-				// check if number
-				try {
-					valObj = Double.parseDouble(valStr);
-					rowMap.put(headers[j], valObj);
-					cleanMap.put(headers[j], valObj);
-					if(!STRING_KEY.equals(colTypes[j])) {
-						colTypes[j] = NUMBER_KEY;
-					}
-					continue ROW_LOOP;
-				} catch(NumberFormatException e) {
-					//do nothing
-				}
-				// check if simple date
-				try {
-					valObj = SIMPLE_DATE_DF.parse(valStr + "");
-					rowMap.put(headers[j], valObj);
-					cleanMap.put(headers[j], valObj);
-					if(!STRING_KEY.equals(colTypes[j])) {
-						colTypes[j] = SIMPLE_DATE_KEY;
-					}
-					continue ROW_LOOP;
-				}  catch (ParseException e) {
-					//do nothing
-				}
-				// check if more complex date
-				try {
-					valObj = DATE_DF.parse(valStr + "");
-					rowMap.put(headers[j], valObj);
-					cleanMap.put(headers[j], valObj);
-					if(!STRING_KEY.equals(colTypes[j])) {
-						colTypes[j] = DATE_KEY;
-					}
-					continue ROW_LOOP;
-				}  catch (ParseException e) {
-					//do nothing
-				}
-				// must be string
-				colTypes[j] = STRING_KEY;
-				String cleanVal = "http://" + headers[j] + "/" + Utility.cleanString(valStr + "", true, true, false);
-				rowMap.put(headers[j], cleanVal);
-				cleanMap.put(headers[j], Utility.cleanString(valStr + "", true, true, false));
-			}
-            dataFrame.addRow(cleanMap, rowMap);
-		}
-		
-		// in case the first 5 rows are empty
-		for(int k = 0; k < numHeaders; k++) {
-			if(colTypes[k] == null) {
-				colTypes[k] = STRING_KEY;
-			}
-		}
-		
-		for(; i < numRows; i++) {
-			String rowStr = rows[i];
-			if(rowStr.isEmpty()) {
-				rowStr = TinkerFrame.EMPTY;
-			}
-			String[] row = rowStr.split(delimeter + "{1}", headers.length);
-			if(row.length != numHeaders) {
-				throw new IllegalArgumentException("Number of columns in row #" + (i+1) + " does not match the number of columns in the header.");
-			}
-			
-			Map<String, Object> rowMap = new HashMap<String, Object>();
-			Map<String, Object> cleanMap = new HashMap<String, Object>();
-			for(int j = 0; j < numHeaders; j++) {
-				String valStr = row[j].trim();
-				if(valStr == null || valStr.isEmpty() ) {
-					rowMap.put(headers[j], "");
-				}
-				Object valObj = null;
-				if(colTypes[j].equals(STRING_KEY)) {
-					String cleanVal = "http://" + headers[j] + "/" + Utility.cleanString(valStr + "", true, true, false);
-					rowMap.put(headers[j], cleanVal);
-					cleanMap.put(headers[j], Utility.cleanString(valStr + "", true, true, false));
-				} else if(colTypes[j].equals(NUMBER_KEY)) {
-					try {
-						valObj = Double.parseDouble(valStr);
-						rowMap.put(headers[j], valObj);
-						cleanMap.put(headers[j], valObj);
-					} catch(NumberFormatException e) {
-						// just add as string
-						String cleanVal = "http://" + headers[j] + "/" + valStr;
-						rowMap.put(headers[j], cleanVal);
-						cleanMap.put(headers[j], Utility.cleanString(valStr + "", true, true, false));
-					}
-				} else if(colTypes[j].equals(SIMPLE_DATE_KEY)) {
-					// check if simple date
-					try {
-						valObj = SIMPLE_DATE_DF.parse(valStr + "");
-						rowMap.put(headers[j], valObj);
-						cleanMap.put(headers[j], valObj);
-					}  catch (ParseException e) {
-						// just add as string
-						String cleanVal = "http://" + headers[j] + "/" + valStr;
-						rowMap.put(headers[j], cleanVal);
-						cleanMap.put(headers[j], Utility.cleanString(valStr + "", true, true, false));
-					}
-				} else if(colTypes[j].equals(DATE_KEY)) {
-					// check if more complex date
-					try {
-						valObj = DATE_DF.parse(valStr + "");
-						rowMap.put(headers[j], valObj);
-						cleanMap.put(headers[j], valObj);
-					}  catch (ParseException e) {
-						// just add as string
-						String cleanVal = "http://" + headers[j] + "/" + valStr;
-						rowMap.put(headers[j], cleanVal);
-						cleanMap.put(headers[j], Utility.cleanString(valStr + "", true, true, false));
-					}
-				}
-			}
-            dataFrame.addRow(cleanMap, rowMap);
-		}
-		
-		
-		System.out.println("Time in sec = " + (System.currentTimeMillis() - sT)/1000);
-		
-		return dataFrame;
-	}
+//	public static TinkerFrame generateTinkerFrameFromFile(String dataStr, String delimeter) {
+//		long sT = System.currentTimeMillis();
+//		
+//		final DateFormat DATE_DF = new SimpleDateFormat("yyyy/MM/dd hh:mm:ss.SSSSSS");
+//		final DateFormat SIMPLE_DATE_DF = new SimpleDateFormat("yyyy/MM/dd");
+//		final String DATE_KEY = "DATE";
+//		final String SIMPLE_DATE_KEY = "SIMPLE_DATE_KEY";
+//		final String NUMBER_KEY = "NUMBER";
+//		final String STRING_KEY = "STRING";
+//
+//		String[] rows = dataStr.split("\\n");
+//		if(rows.length == 0) {
+//			throw new IllegalArgumentException("No data has been inputted");
+//		}
+//		if(rows.length == 1) {
+//			throw new IllegalArgumentException("Only a header row has been inputted.  Need at least one row of values");
+//		}
+//		String headerStr = rows[0];
+//		String[] headers = headerStr.split(delimeter + "{1}");
+//		int numHeaders = headers.length;
+//		for(int i = 0; i< numHeaders; i++){
+//			headers[i] = Utility.cleanVariableString(headers[i]);
+//		}
+//		
+//		TinkerFrame dataFrame = new TinkerFrame(headers);
+//		Map<String, Set<String>> primKeyEdgeHash = dataFrame.createPrimKeyEdgeHash(headers);
+//		dataFrame.mergeEdgeHash(primKeyEdgeHash); 
+//		
+//		int i = 1;
+//		int numRows = rows.length;
+//		
+//		String[] colTypes = new String[headers.length];
+//		// use top 5 rows to determine the type of the column
+//		for(; i < 5 && i < numRows; i++) {
+//			String rowStr = rows[i];
+//			if(rowStr.isEmpty()) {
+//				rowStr = TinkerFrame.EMPTY;
+//			}
+//			String[] row = rowStr.split(delimeter + "{1}", headers.length);
+//			if(row.length != numHeaders) {
+//				throw new IllegalArgumentException("Number of columns in row #" + (i+1) + " does not match the number of columns in the header.");
+//			}
+//			
+//			Map<String, Object> rowMap = new HashMap<String, Object>();
+//			Map<String, Object> cleanMap = new HashMap<String, Object>();
+//			ROW_LOOP : for(int j = 0; j < numHeaders; j++) {
+//				String valStr = row[j].trim();
+//				if(valStr == null || valStr.isEmpty() ) {
+//					rowMap.put(headers[j], "");
+//				}
+//				Object valObj = null;
+//				// check if number
+//				try {
+//					valObj = Double.parseDouble(valStr);
+//					rowMap.put(headers[j], valObj);
+//					cleanMap.put(headers[j], valObj);
+//					if(!STRING_KEY.equals(colTypes[j])) {
+//						colTypes[j] = NUMBER_KEY;
+//					}
+//					continue ROW_LOOP;
+//				} catch(NumberFormatException e) {
+//					//do nothing
+//				}
+//				// check if simple date
+//				try {
+//					valObj = SIMPLE_DATE_DF.parse(valStr + "");
+//					rowMap.put(headers[j], valObj);
+//					cleanMap.put(headers[j], valObj);
+//					if(!STRING_KEY.equals(colTypes[j])) {
+//						colTypes[j] = SIMPLE_DATE_KEY;
+//					}
+//					continue ROW_LOOP;
+//				}  catch (ParseException e) {
+//					//do nothing
+//				}
+//				// check if more complex date
+//				try {
+//					valObj = DATE_DF.parse(valStr + "");
+//					rowMap.put(headers[j], valObj);
+//					cleanMap.put(headers[j], valObj);
+//					if(!STRING_KEY.equals(colTypes[j])) {
+//						colTypes[j] = DATE_KEY;
+//					}
+//					continue ROW_LOOP;
+//				}  catch (ParseException e) {
+//					//do nothing
+//				}
+//				// must be string
+//				colTypes[j] = STRING_KEY;
+//				String cleanVal = "http://" + headers[j] + "/" + Utility.cleanString(valStr + "", true, true, false);
+//				rowMap.put(headers[j], cleanVal);
+//				cleanMap.put(headers[j], Utility.cleanString(valStr + "", true, true, false));
+//			}
+//            dataFrame.addRow(cleanMap, rowMap);
+//		}
+//		
+//		// in case the first 5 rows are empty
+//		for(int k = 0; k < numHeaders; k++) {
+//			if(colTypes[k] == null) {
+//				colTypes[k] = STRING_KEY;
+//			}
+//		}
+//		
+//		for(; i < numRows; i++) {
+//			String rowStr = rows[i];
+//			if(rowStr.isEmpty()) {
+//				rowStr = TinkerFrame.EMPTY;
+//			}
+//			String[] row = rowStr.split(delimeter + "{1}", headers.length);
+//			if(row.length != numHeaders) {
+//				throw new IllegalArgumentException("Number of columns in row #" + (i+1) + " does not match the number of columns in the header.");
+//			}
+//			
+//			Map<String, Object> rowMap = new HashMap<String, Object>();
+//			Map<String, Object> cleanMap = new HashMap<String, Object>();
+//			for(int j = 0; j < numHeaders; j++) {
+//				String valStr = row[j].trim();
+//				if(valStr == null || valStr.isEmpty() ) {
+//					rowMap.put(headers[j], "");
+//				}
+//				Object valObj = null;
+//				if(colTypes[j].equals(STRING_KEY)) {
+//					String cleanVal = "http://" + headers[j] + "/" + Utility.cleanString(valStr + "", true, true, false);
+//					rowMap.put(headers[j], cleanVal);
+//					cleanMap.put(headers[j], Utility.cleanString(valStr + "", true, true, false));
+//				} else if(colTypes[j].equals(NUMBER_KEY)) {
+//					try {
+//						valObj = Double.parseDouble(valStr);
+//						rowMap.put(headers[j], valObj);
+//						cleanMap.put(headers[j], valObj);
+//					} catch(NumberFormatException e) {
+//						// just add as string
+//						String cleanVal = "http://" + headers[j] + "/" + valStr;
+//						rowMap.put(headers[j], cleanVal);
+//						cleanMap.put(headers[j], Utility.cleanString(valStr + "", true, true, false));
+//					}
+//				} else if(colTypes[j].equals(SIMPLE_DATE_KEY)) {
+//					// check if simple date
+//					try {
+//						valObj = SIMPLE_DATE_DF.parse(valStr + "");
+//						rowMap.put(headers[j], valObj);
+//						cleanMap.put(headers[j], valObj);
+//					}  catch (ParseException e) {
+//						// just add as string
+//						String cleanVal = "http://" + headers[j] + "/" + valStr;
+//						rowMap.put(headers[j], cleanVal);
+//						cleanMap.put(headers[j], Utility.cleanString(valStr + "", true, true, false));
+//					}
+//				} else if(colTypes[j].equals(DATE_KEY)) {
+//					// check if more complex date
+//					try {
+//						valObj = DATE_DF.parse(valStr + "");
+//						rowMap.put(headers[j], valObj);
+//						cleanMap.put(headers[j], valObj);
+//					}  catch (ParseException e) {
+//						// just add as string
+//						String cleanVal = "http://" + headers[j] + "/" + valStr;
+//						rowMap.put(headers[j], cleanVal);
+//						cleanMap.put(headers[j], Utility.cleanString(valStr + "", true, true, false));
+//					}
+//				}
+//			}
+//            dataFrame.addRow(cleanMap, rowMap);
+//		}
+//		
+//		
+//		System.out.println("Time in sec = " + (System.currentTimeMillis() - sT)/1000);
+//		
+//		return dataFrame;
+//	}
 
 
 }
