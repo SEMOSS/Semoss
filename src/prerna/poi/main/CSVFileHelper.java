@@ -18,6 +18,7 @@ public class CSVFileHelper {
 	FileReader sourceFile = null;
 	String fileName = null;
 	public String [] allHeaders = null;
+	char delimiter = ',';
 	String [] curHeaders = null;
 	Hashtable <String, String> cleanDirtyMapper = new Hashtable<String, String>();
 	Hashtable <String, String> dirtyTypeMapper = new Hashtable<String, String>();
@@ -51,7 +52,7 @@ public class CSVFileHelper {
 	{
 		settings = new CsvParserSettings();
     	settings.setNullValue("");
-
+    	settings.getFormat().setDelimiter(delimiter);
         settings.setEmptyValue(""); // for CSV only
         settings.setSkipEmptyLines(true);
 	}
@@ -157,6 +158,12 @@ public class CSVFileHelper {
 			System.out.print("["+data[dataIndex] + "]");
 		
 		System.out.println("----");
+	}
+
+	public void setDelimiter(char charAt) {
+		// TODO Auto-generated method stub
+		this.delimiter = charAt;
+		
 	}
 	
 	
