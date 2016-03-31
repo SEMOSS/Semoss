@@ -152,8 +152,15 @@ public class TableDataFrameFactory {
 			
 			values = caster.castToTypes(cells, types);
 			Map<String, Object> row = new HashMap<>();
+			Map<String, Object> rawRow = new HashMap<>();
 			for(int i = 0; i < headers.length; i++) {
+				
+				String header = headers[i];
+				Object value = values[i];
+				String rawVal = "http://" + header + "/" + value;
+
 				row.put(headers[i], values[i]);
+				rawRow.put(header, rawVal);
 			}
 			dataFrame.addRow(row, row);
 		}
