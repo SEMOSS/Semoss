@@ -707,8 +707,7 @@ public class Utility {
 				List<Object> instances = null;
 				String newId = engineName + "_" + concept;
 				if(engineToAdd.getEngineType().equals(IEngine.ENGINE_TYPE.RDBMS)) {
-					String conceptName = Utility.getInstanceName(concept);
-					instances = engineToAdd.getEntityOfType(conceptName);
+					instances = engineToAdd.getEntityOfType(concept);
 					if(instances.isEmpty()) {
 						continue;
 					}
