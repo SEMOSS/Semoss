@@ -235,11 +235,11 @@ public class InsightsConverter {
 		if((allSheets.contains(layout) || layout.equals("prerna.ui.components.specific.tap.InterfaceGraphPlaySheet") || layout.equals("prerna.ui.components.playsheets.GridScatterSheet") )
 				&& !layout.equals("prerna.ui.components.specific.ousd.RoadmapTimelineComboChartPlaySheet")
 				&& !layout.equals("prerna.ui.components.specific.tap.SysSimHeatMapSheet")) {
-			if(layout.equals("prerna.ui.components.playsheets.GraphPlaySheet") || layout.equals("prerna.ui.components.specific.tap.InterfaceGraphPlaySheet") || layout.equals("Graph")) {
+//			if(layout.equals("prerna.ui.components.playsheets.GraphPlaySheet") || layout.equals("prerna.ui.components.specific.tap.InterfaceGraphPlaySheet") || layout.equals("Graph")) {
 				dataMaker = "TinkerFrame";
-			} else if(!layout.equals("prerna.ui.components.playsheets.DualEngineGenericPlaySheet")) {
-				dataMaker = "BTreeDataFrame";
-			}
+//			} else if(!layout.equals("prerna.ui.components.playsheets.DualEngineGenericPlaySheet")) {
+//				dataMaker = "BTreeDataFrame";
+//			}
 		} else if (layout.equals("prerna.ui.components.specific.ousd.RoadmapTimelineComboChartPlaySheet")
 				|| layout.equals("prerna.ui.components.specific.tap.SysSimHeatMapSheet")
 				|| layout.equals("prerna.ui.components.specific.tap.PeoEisSysSimHeatMapSheet")
