@@ -54,6 +54,8 @@ import org.openrdf.query.TupleQueryResult;
 import prerna.engine.api.IEngine;
 import prerna.engine.impl.AbstractEngine;
 import prerna.rdf.query.builder.IQueryBuilder;
+import prerna.rdf.query.builder.IQueryInterpreter;
+import prerna.rdf.query.builder.SQLInterpreter;
 import prerna.rdf.query.builder.SQLQueryTableBuilder;
 import prerna.rdf.util.AbstractQueryParser;
 import prerna.rdf.util.SQLQueryParser;
@@ -464,6 +466,10 @@ public class RDBMSNativeEngine extends AbstractEngine {
 	
 	public IQueryBuilder getQueryBuilder(){
 		return new SQLQueryTableBuilder(this);
+	}
+	
+	public IQueryInterpreter getQueryInterpreter(){
+		return new SQLInterpreter(this);
 	}
 	
 	public AbstractQueryParser getQueryParser() {

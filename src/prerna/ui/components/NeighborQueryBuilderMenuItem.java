@@ -27,9 +27,6 @@
  *******************************************************************************/
 package prerna.ui.components;
 
-import java.util.HashMap;
-import java.util.Map;
-
 import javax.swing.JList;
 import javax.swing.JMenuItem;
 
@@ -39,10 +36,8 @@ import org.apache.log4j.Logger;
 import prerna.engine.api.IEngine;
 import prerna.om.Insight;
 import prerna.om.InsightStore;
-import prerna.rdf.query.builder.QueryBuilderData;
 import prerna.ui.components.playsheets.GraphPlaySheet;
 import prerna.ui.components.playsheets.datamakers.DataMakerComponent;
-import prerna.ui.components.playsheets.datamakers.JoinTransformation;
 import prerna.ui.helpers.InsightOverlayRunner;
 import prerna.util.Constants;
 import prerna.util.DIHelper;

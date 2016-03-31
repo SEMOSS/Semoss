@@ -247,6 +247,7 @@ public class RDFEngineHelper {
 			String subject = sct.getSubject();
 			String predicate = sct.getPredicate();
 			Object obj = sct.getObject();
+			System.out.println("local node prop " + subject+ obj+ predicate);
 
 			// add the property
 			ps.addNodeProperty(subject, obj, predicate);
@@ -283,76 +284,76 @@ public class RDFEngineHelper {
 		while(sjsc.hasNext())
 		{
 			ISelectStatement sct = sjsc.next();
-
 			String edge = sct.getRawVar("edge") + "";
 			String prop = sct.getRawVar("prop") + "";
 			String inNode = sct.getRawVar("inNode") + "";
 			String outNode = sct.getRawVar("outNode") + "";
 			Object value = sct.getRawVar("value");
 
+			System.out.println("local edge prop " + edge+value+prop+ outNode+ inNode);
 			// add the property
 			ps.addEdgeProperty(edge, value, prop, outNode, inNode);
 
 		}
 	}
 
-	/**
-	 * Loads all of the labels from subjects.
-	 * @param fromEngine 	Engine where data is stored.
-	 * @param subjects 		String containing the subjects.
-	 * @param ps 			Graph playsheet where vertexes and edges are stored.
-	 */
-	public static void loadLabels(IEngine fromEngine, String subjects, GraphDataModel ps)
-	{
-		// loads all of the labels
-		// http://www.w3.org/2000/01/rdf-schema#label
-		String labelQuery = "";
-		if(fromEngine.getEngineType() == IEngine.ENGINE_TYPE.SESAME || fromEngine.getEngineType() == IEngine.ENGINE_TYPE.SEMOSS_SESAME_REMOTE)
-		{			
-			labelQuery = "SELECT DISTINCT ?Subject ?Label WHERE " +
-					"{" +
-					"{?Subject <http://www.w3.org/2000/01/rdf-schema#label> ?Label}" +
-					"} BINDINGS ?Subject { " + subjects + " } " +
-					"";
-		}
-		else if(fromEngine.getEngineType() == IEngine.ENGINE_TYPE.JENA)
-		{
-			labelQuery = "SELECT DISTINCT ?Subject ?Label WHERE " +
-					"{VALUES ?Subject {" + subjects + "}" +
-					"{?Subject <http://www.w3.org/2000/01/rdf-schema#label> ?Label}" +
-					"}";
-		}
-		System.err.println("Query is " + labelQuery);
-
-		ISelectWrapper sjsw = WrapperManager.getInstance().getSWrapper(fromEngine, labelQuery);
-
-		/*SesameJenaSelectWrapper sjsw = new SesameJenaSelectWrapper();
-		sjsw.setEngine(fromEngine);
-		sjsw.setQuery(labelQuery);
-		sjsw.executeQuery();
-		sjsw.getVariables();
-		*/
-		
-		Hashtable<String, SEMOSSVertex> vertStore = ps.getVertStore();
-		Hashtable<String, SEMOSSEdge> edgeStore = ps.getEdgeStore();
-		while(sjsw.hasNext())
-		{
-			ISelectStatement st = sjsw.next();
-			String subject = st.getRawVar("Subject") + "";
-			String label = st.getVar("Label") + "";
-
-			SEMOSSVertex vert = vertStore.get(subject);
-			if(vert != null)
-				vert.setProperty(Constants.VERTEX_NAME, label);
-			else
-			{
-				// may be an edge ?
-				SEMOSSEdge edge = edgeStore.get(subject);
-				if(edge != null)
-					edge.setProperty(Constants.EDGE_NAME, label);
-			}
-		}
-	}
+//	/**
+//	 * Loads all of the labels from subjects.
+//	 * @param fromEngine 	Engine where data is stored.
+//	 * @param subjects 		String containing the subjects.
+//	 * @param ps 			Graph playsheet where vertexes and edges are stored.
+//	 */
+//	public static void loadLabels(IEngine fromEngine, String subjects, GraphDataModel ps)
+//	{
+//		// loads all of the labels
+//		// http://www.w3.org/2000/01/rdf-schema#label
+//		String labelQuery = "";
+//		if(fromEngine.getEngineType() == IEngine.ENGINE_TYPE.SESAME || fromEngine.getEngineType() == IEngine.ENGINE_TYPE.SEMOSS_SESAME_REMOTE)
+//		{			
+//			labelQuery = "SELECT DISTINCT ?Subject ?Label WHERE " +
+//					"{" +
+//					"{?Subject <http://www.w3.org/2000/01/rdf-schema#label> ?Label}" +
+//					"} BINDINGS ?Subject { " + subjects + " } " +
+//					"";
+//		}
+//		else if(fromEngine.getEngineType() == IEngine.ENGINE_TYPE.JENA)
+//		{
+//			labelQuery = "SELECT DISTINCT ?Subject ?Label WHERE " +
+//					"{VALUES ?Subject {" + subjects + "}" +
+//					"{?Subject <http://www.w3.org/2000/01/rdf-schema#label> ?Label}" +
+//					"}";
+//		}
+//		System.err.println("Query is " + labelQuery);
+//
+//		ISelectWrapper sjsw = WrapperManager.getInstance().getSWrapper(fromEngine, labelQuery);
+//
+//		/*SesameJenaSelectWrapper sjsw = new SesameJenaSelectWrapper();
+//		sjsw.setEngine(fromEngine);
+//		sjsw.setQuery(labelQuery);
+//		sjsw.executeQuery();
+//		sjsw.getVariables();
+//		*/
+//		
+//		Hashtable<String, SEMOSSVertex> vertStore = ps.getVertStore();
+//		Hashtable<String, SEMOSSEdge> edgeStore = ps.getEdgeStore();
+//		while(sjsw.hasNext())
+//		{
+//			ISelectStatement st = sjsw.next();
+//			String subject = st.getRawVar("Subject") + "";
+//			String label = st.getVar("Label") + "";
+//
+//			SEMOSSVertex vert = vertStore.get(subject);
+//			if(vert != null)
+//				vert.setProperty(Constants.VERTEX_NAME, label);
+//			else
+//			{
+//				// may be an edge ?
+//				SEMOSSEdge edge = edgeStore.get(subject);
+//				if(edge != null)
+//					edge.setProperty(Constants.EDGE_NAME, label);
+//			}
+//		}
+//	}
 
 	/**
 	 * Add results from a query on an engine to the respository connection.
@@ -390,7 +391,19 @@ public class RDFEngineHelper {
 				"{?Subject ?Predicate ?Object} }" + 
 				"";
 
-		IConstructWrapper sjsc = WrapperManager.getInstance().getCWrapper(fromEngine, constructAllQuery);
+		addQueryData(fromEngine, toRC, constructAllQuery);
+	}
+	
+	public static void addQueryData(IEngine fromEngine, RepositoryConnection toRC, String query){
+		
+		if(query == null){
+			query = "CONSTRUCT { ?Subject ?Predicate ?Object} WHERE " +
+					"{" +
+					"{?Subject ?Predicate ?Object} }" + 
+					"BINDINGS ?Object {(<http://semoss.org/ontologies/Concept>)(<http://semoss.org/ontologies/Relation>)}";
+		}
+		
+		IConstructWrapper sjsc = WrapperManager.getInstance().getCWrapper(fromEngine, query);
 
 		
 		/*SesameJenaConstructWrapper sjsc = new SesameJenaConstructWrapper();

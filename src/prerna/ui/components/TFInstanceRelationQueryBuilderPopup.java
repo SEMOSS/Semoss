@@ -32,11 +32,9 @@ import java.awt.event.MouseListener;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
-import java.util.Hashtable;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.Vector;
 
 import javax.swing.JLabel;
 import javax.swing.JList;
@@ -45,16 +43,12 @@ import javax.swing.JMenu;
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
+import prerna.ds.QueryStruct;
 import prerna.engine.api.IEngine;
-import prerna.engine.api.ISelectStatement;
-import prerna.engine.api.ISelectWrapper;
-import prerna.engine.impl.rdbms.RDBMSNativeEngine;
 import prerna.nameserver.ConnectedConcepts;
 import prerna.nameserver.INameServer;
 import prerna.nameserver.NameServerProcessor;
 import prerna.om.SEMOSSVertex;
-import prerna.rdf.engine.wrappers.WrapperManager;
-import prerna.rdf.query.builder.QueryBuilderData;
 import prerna.ui.components.api.IPlaySheet;
 import prerna.ui.components.playsheets.datamakers.DataMakerComponent;
 import prerna.ui.components.playsheets.datamakers.JoinTransformation;
@@ -147,19 +141,13 @@ public class TFInstanceRelationQueryBuilderPopup extends JMenu implements MouseL
 					for(String upstreamRel: upstreamRels){
 						Set<String> specificNodes = (Set) ((Map<String, Object>) upstream).get(upstreamRel);
 						for(String node : specificNodes){
-							List<String> relTrip = new ArrayList<String>();
-							relTrip.add(0, node);
-							relTrip.add(1, upstreamRel);
-							relTrip.add(typeUri);
-							Map<String, List<Object>> filterData = new HashMap<String, List<Object>>();
 							List<Object> filterList = new ArrayList<Object>();
 							filterList.add(uri);
-							filterData.put(Utility.getInstanceName(typeUri), filterList);
 							
-							String instance = Utility.getInstanceName(Utility.getTransformedNodeName(engine, relTrip.get(0), true));
-							QueryBuilderData data = new QueryBuilderData();
-							data.addRelTriple(relTrip);
-							data.setFilterData(filterData);
+							String instance = Utility.getInstanceName(Utility.getTransformedNodeName(engine, node, true));
+							QueryStruct data = new QueryStruct();
+							data.addRelation(node, "inner.join", typeUri);
+							data.addFilter(Utility.getInstanceName(typeUri), "=", filterList);
 							DataMakerComponent dmc = new DataMakerComponent(engine, data);
 							addJoinTransformation(dmc, type, typeUri);
 							NeighborQueryBuilderMenuItem nItem = new NeighborQueryBuilderMenuItem(instance, dmc, engine);
@@ -176,19 +164,13 @@ public class TFInstanceRelationQueryBuilderPopup extends JMenu implements MouseL
 					for(String downstreamRel: downstreamRels){
 						Set<String> specificNodes = (Set) ((Map<String, Object>) downstream).get(downstreamRel);
 						for(String node : specificNodes){
-							List<String> relTrip = new ArrayList<String>();
-							relTrip.add(0, typeUri);
-							relTrip.add(1, downstreamRel);
-							relTrip.add(2, node);
-							Map<String, List<Object>> filterData = new HashMap<String, List<Object>>();
 							List<Object> filterList = new ArrayList<Object>();
 							filterList.add(uri);
-							filterData.put(Utility.getInstanceName(typeUri), filterList);
 							
-							String instance = Utility.getInstanceName(Utility.getTransformedNodeName(engine, relTrip.get(2), true));
-							QueryBuilderData data = new QueryBuilderData();
-							data.addRelTriple(relTrip);
-							data.setFilterData(filterData);
+							String instance = Utility.getInstanceName(Utility.getTransformedNodeName(engine, node, true));
+							QueryStruct data = new QueryStruct();
+							data.addRelation(typeUri, "inner.join", node);
+							data.addFilter(Utility.getInstanceName(typeUri), "=", filterList);
 							DataMakerComponent dmc = new DataMakerComponent(engine, data);
 							addJoinTransformation(dmc, type, typeUri);
 							NeighborQueryBuilderMenuItem nItem = new NeighborQueryBuilderMenuItem(instance, dmc, engine);

@@ -58,10 +58,10 @@ public class SEMOSSQueryTester {
 	
 			
 			//try just sys, data
-			sq.addTriple(systemVar, typeURI, systemTypeURI);
-			sq.addTriple(dataVar, typeURI, dataTypeURI);
-			sq.addTriple(predVar, subPropURI, predicateURI);
-			sq.addTriple(systemVar, predVar, dataVar);
+			sq.addTriple(systemVar, typeURI, systemTypeURI, false);
+			sq.addTriple(dataVar, typeURI, dataTypeURI, false);
+			sq.addTriple(predVar, subPropURI, predicateURI, false);
+			sq.addTriple(systemVar, predVar, dataVar, false);
 			sq.createQuery();
 			System.out.println(sq.getQuery());
 			
@@ -69,7 +69,7 @@ public class SEMOSSQueryTester {
 			TriplePart CRMPropURI = new TriplePart("http://semoss.org/ontologies/Relation/Contains/CRM", TriplePart.URI);
 			TriplePart crmVar = new TriplePart("crm", TriplePart.VARIABLE);
 			sq.addSingleReturnVariable(crmVar);
-			sq.addTriple(predVar, CRMPropURI, crmVar);
+			sq.addTriple(predVar, CRMPropURI, crmVar, false);
 			sq.createQuery();
 			System.out.println(sq.getQuery());
 			
@@ -81,14 +81,14 @@ public class SEMOSSQueryTester {
 			sq.addSingleReturnVariable(systemVar);
 			sq.addSingleReturnVariable(dataVar);
 			sq.addSingleReturnVariable(bluDataTypeVar);
-			sq.addTriple(systemVar, typeURI, systemTypeURI, "all");
-			sq.addTriple(predVar, subPropURI, predicateURI, "dataUnion");
-			sq.addTriple(dataVar, typeURI, dataTypeURI, "dataUnion");
-			sq.addTriple(systemVar, predVar, dataVar, "dataUnion");
+			sq.addTriple(systemVar, typeURI, systemTypeURI, false, "all");
+			sq.addTriple(predVar, subPropURI, predicateURI, false, "dataUnion");
+			sq.addTriple(dataVar, typeURI, dataTypeURI, false, "dataUnion");
+			sq.addTriple(systemVar, predVar, dataVar, false, "dataUnion");
 			sq.addBind(dataTypeURI, bluDataTypeVar, "dataUnion");
-			sq.addTriple(predVar2, subPropURI, predicateURI, "bluUnion");
-			sq.addTriple(dataVar, typeURI, bluTypeURI, "bluUnion"); //it's datavar here too because no coalesce in return, will use dataVar for both in separate Unions
-			sq.addTriple(systemVar, predVar2, dataVar, "bluUnion");
+			sq.addTriple(predVar2, subPropURI, predicateURI, false, "bluUnion");
+			sq.addTriple(dataVar, typeURI, bluTypeURI, false, "bluUnion"); //it's datavar here too because no coalesce in return, will use dataVar for both in separate Unions
+			sq.addTriple(systemVar, predVar2, dataVar, false, "bluUnion");
 			sq.addBind(bluTypeURI, bluDataTypeVar, "bluUnion");
 			sq.setCustomQueryStructure("all {dataUnion} UNION {bluUnion}");
 			sq.createQuery();
@@ -110,10 +110,10 @@ public class SEMOSSQueryTester {
 			SEMOSSQueryHelper.addSingleReturnVarToQuery(data, sq);
 			
 			//add in triples to query
-			SEMOSSQueryHelper.addConceptTypeTripleToQuery(system, systemURI, sq);
-			SEMOSSQueryHelper.addConceptTypeTripleToQuery(data, dataURI, sq);
-			SEMOSSQueryHelper.addRelationTypeTripleToQuery(provide, provideURI, sq);
-			SEMOSSQueryHelper.addRelationshipVarTripleToQuery(system, provide, data, sq);
+			SEMOSSQueryHelper.addConceptTypeTripleToQuery(system, systemURI, false, sq);
+			SEMOSSQueryHelper.addConceptTypeTripleToQuery(data, dataURI, false, sq);
+			SEMOSSQueryHelper.addRelationTypeTripleToQuery(provide, provideURI, false, sq);
+			SEMOSSQueryHelper.addRelationshipVarTripleToQuery(system, provide, data, false, sq);
 			
 			sq.createQuery();
 			System.out.println(sq.getQuery());
@@ -122,7 +122,7 @@ public class SEMOSSQueryTester {
 			String crm = "crm";
 			String crmURI = "http://semoss.org/ontologies/Relation/Contains/CRM";
 			SEMOSSQueryHelper.addSingleReturnVarToQuery(crm, sq);
-			SEMOSSQueryHelper.addGenericTriple(provide, TriplePart.VARIABLE, crmURI, TriplePart.URI, crm, TriplePart.VARIABLE, sq);
+			SEMOSSQueryHelper.addGenericTriple(provide, TriplePart.VARIABLE, crmURI, TriplePart.URI, crm, TriplePart.VARIABLE, false, sq);
 			sq.createQuery();
 			System.out.println(sq.getQuery());
 			
@@ -135,14 +135,14 @@ public class SEMOSSQueryTester {
 			SEMOSSQueryHelper.addSingleReturnVarToQuery(system, sq);
 			SEMOSSQueryHelper.addSingleReturnVarToQuery(data, sq);
 			//SEMOSSQueryHelper.addSingleReturnVarToQuery(bluDataType, sq);
-			SEMOSSQueryHelper.addConceptTypeTripleToQuery(system, systemURI, sq, "all");
-			SEMOSSQueryHelper.addConceptTypeTripleToQuery(data, dataURI, sq, "dataUnion");
-			SEMOSSQueryHelper.addRelationTypeTripleToQuery(provide, provideURI, sq, "dataUnion");
-			SEMOSSQueryHelper.addRelationshipVarTripleToQuery(system, provide, data, sq, "dataUnion");
+			SEMOSSQueryHelper.addConceptTypeTripleToQuery(system, systemURI, false, sq, "all");
+			SEMOSSQueryHelper.addConceptTypeTripleToQuery(data, dataURI, false, sq, "dataUnion");
+			SEMOSSQueryHelper.addRelationTypeTripleToQuery(provide, provideURI, false, sq, "dataUnion");
+			SEMOSSQueryHelper.addRelationshipVarTripleToQuery(system, provide, data, false, sq, "dataUnion");
 			//SEMOSSQueryHelper.addBindPhrase("Data", TriplePart.LITERAL, bluDataType, sq, "dataUnion");
-			SEMOSSQueryHelper.addConceptTypeTripleToQuery(data, bluURI, sq, "bluUnion");
-			SEMOSSQueryHelper.addRelationTypeTripleToQuery(provide+"2", provideURI, sq, "bluUnion");
-			SEMOSSQueryHelper.addRelationshipVarTripleToQuery(system, provide+"2", data, sq, "bluUnion");
+			SEMOSSQueryHelper.addConceptTypeTripleToQuery(data, bluURI, false, sq, "bluUnion");
+			SEMOSSQueryHelper.addRelationTypeTripleToQuery(provide+"2", provideURI, false, sq, "bluUnion");
+			SEMOSSQueryHelper.addRelationshipVarTripleToQuery(system, provide+"2", data, false, sq, "bluUnion");
 			SEMOSSQueryHelper.addBindPhrase("BLU", TriplePart.LITERAL, bluDataType, sq, "bluUnion");
 			//
 			sq.setCustomQueryStructure("all {dataUnion} UNION {bluUnion}");
@@ -182,19 +182,19 @@ public class SEMOSSQueryTester {
 			SEMOSSQueryHelper.addSingleReturnVarToQuery(weight3, sq);	
 			SEMOSSQueryHelper.addSingleReturnVarToQuery(data, sq);
 			
-			SEMOSSQueryHelper.addConceptTypeTripleToQuery(cap, capURI, sq);
-			SEMOSSQueryHelper.addConceptTypeTripleToQuery(bp, bpURI, sq);
-			SEMOSSQueryHelper.addConceptTypeTripleToQuery(act, actURI, sq);
-			SEMOSSQueryHelper.addConceptTypeTripleToQuery(data, dataURI, sq);
-			SEMOSSQueryHelper.addRelationTypeTripleToQuery(support, supportURI, sq);
-			SEMOSSQueryHelper.addRelationTypeTripleToQuery(consist, consistURI, sq);
-			SEMOSSQueryHelper.addRelationTypeTripleToQuery(need, needURI, sq);
-			SEMOSSQueryHelper.addRelationshipVarTripleToQuery(cap, support, bp, sq);
-			SEMOSSQueryHelper.addRelationshipVarTripleToQuery(bp, consist, act, sq);
-			SEMOSSQueryHelper.addRelationshipVarTripleToQuery(act, need, data, sq);
-			SEMOSSQueryHelper.addGenericTriple(support, TriplePart.VARIABLE, weightURI, TriplePart.URI, weight1, TriplePart.VARIABLE, sq);
-			SEMOSSQueryHelper.addGenericTriple(consist, TriplePart.VARIABLE, weightURI, TriplePart.URI, weight2, TriplePart.VARIABLE, sq);
-			SEMOSSQueryHelper.addGenericTriple(need, TriplePart.VARIABLE, weightURI, TriplePart.URI, weight3, TriplePart.VARIABLE, sq);
+			SEMOSSQueryHelper.addConceptTypeTripleToQuery(cap, capURI, false, sq);
+			SEMOSSQueryHelper.addConceptTypeTripleToQuery(bp, bpURI, false, sq);
+			SEMOSSQueryHelper.addConceptTypeTripleToQuery(act, actURI, false, sq);
+			SEMOSSQueryHelper.addConceptTypeTripleToQuery(data, dataURI, false, sq);
+			SEMOSSQueryHelper.addRelationTypeTripleToQuery(support, supportURI, false, sq);
+			SEMOSSQueryHelper.addRelationTypeTripleToQuery(consist, consistURI, false, sq);
+			SEMOSSQueryHelper.addRelationTypeTripleToQuery(need, needURI, false, sq);
+			SEMOSSQueryHelper.addRelationshipVarTripleToQuery(cap, support, bp, false, sq);
+			SEMOSSQueryHelper.addRelationshipVarTripleToQuery(bp, consist, act, false, sq);
+			SEMOSSQueryHelper.addRelationshipVarTripleToQuery(act, need, data, false, sq);
+			SEMOSSQueryHelper.addGenericTriple(support, TriplePart.VARIABLE, weightURI, TriplePart.URI, weight1, TriplePart.VARIABLE, false, sq);
+			SEMOSSQueryHelper.addGenericTriple(consist, TriplePart.VARIABLE, weightURI, TriplePart.URI, weight2, TriplePart.VARIABLE, false, sq);
+			SEMOSSQueryHelper.addGenericTriple(need, TriplePart.VARIABLE, weightURI, TriplePart.URI, weight3, TriplePart.VARIABLE, false, sq);
 
 			sq.createQuery();
 			System.out.println(sq.getQuery());
@@ -249,20 +249,20 @@ public class SEMOSSQueryTester {
 			mod = SEMOSSQueryHelper.createReturnModifier(list1, list2);
 			SEMOSSQueryHelper.addSingleReturnVarToQuery("weightOutput", mod, sq);
 
-			SEMOSSQueryHelper.addConceptTypeTripleToQuery(cap, capURI, sq);
-			SEMOSSQueryHelper.addConceptTypeTripleToQuery(cap, capURI, sq);
-			SEMOSSQueryHelper.addConceptTypeTripleToQuery(bp, bpURI, sq);
-			SEMOSSQueryHelper.addConceptTypeTripleToQuery(act, actURI, sq);
-			SEMOSSQueryHelper.addConceptTypeTripleToQuery(data, dataURI, sq);
-			SEMOSSQueryHelper.addRelationTypeTripleToQuery(support, supportURI, sq);
-			SEMOSSQueryHelper.addRelationTypeTripleToQuery(consist, consistURI, sq);
-			SEMOSSQueryHelper.addRelationTypeTripleToQuery(need, needURI, sq);
-			SEMOSSQueryHelper.addRelationshipVarTripleToQuery(cap, support, bp, sq);
-			SEMOSSQueryHelper.addRelationshipVarTripleToQuery(bp, consist, act, sq);
-			SEMOSSQueryHelper.addRelationshipVarTripleToQuery(act, need, data, sq);
-			SEMOSSQueryHelper.addGenericTriple(support, TriplePart.VARIABLE, weightURI, TriplePart.URI, weight1, TriplePart.VARIABLE, sq);
-			SEMOSSQueryHelper.addGenericTriple(consist, TriplePart.VARIABLE, weightURI, TriplePart.URI, weight2, TriplePart.VARIABLE, sq);
-			SEMOSSQueryHelper.addGenericTriple(need, TriplePart.VARIABLE, weightURI, TriplePart.URI, weight3, TriplePart.VARIABLE, sq);
+			SEMOSSQueryHelper.addConceptTypeTripleToQuery(cap, capURI, false, sq);
+			SEMOSSQueryHelper.addConceptTypeTripleToQuery(cap, capURI, false, sq);
+			SEMOSSQueryHelper.addConceptTypeTripleToQuery(bp, bpURI, false, sq);
+			SEMOSSQueryHelper.addConceptTypeTripleToQuery(act, actURI, false, sq);
+			SEMOSSQueryHelper.addConceptTypeTripleToQuery(data, dataURI, false, sq);
+			SEMOSSQueryHelper.addRelationTypeTripleToQuery(support, supportURI, false, sq);
+			SEMOSSQueryHelper.addRelationTypeTripleToQuery(consist, consistURI, false, sq);
+			SEMOSSQueryHelper.addRelationTypeTripleToQuery(need, needURI, false, sq);
+			SEMOSSQueryHelper.addRelationshipVarTripleToQuery(cap, support, bp, false, sq);
+			SEMOSSQueryHelper.addRelationshipVarTripleToQuery(bp, consist, act, false, sq);
+			SEMOSSQueryHelper.addRelationshipVarTripleToQuery(act, need, data, false, sq);
+			SEMOSSQueryHelper.addGenericTriple(support, TriplePart.VARIABLE, weightURI, TriplePart.URI, weight1, TriplePart.VARIABLE, false, sq);
+			SEMOSSQueryHelper.addGenericTriple(consist, TriplePart.VARIABLE, weightURI, TriplePart.URI, weight2, TriplePart.VARIABLE, false, sq);
+			SEMOSSQueryHelper.addGenericTriple(need, TriplePart.VARIABLE, weightURI, TriplePart.URI, weight3, TriplePart.VARIABLE, false, sq);
 
 			//add groupby at the end
 			ArrayList<String> groupList  = new ArrayList<String>();

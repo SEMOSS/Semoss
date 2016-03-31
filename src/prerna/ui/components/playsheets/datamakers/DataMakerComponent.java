@@ -10,10 +10,10 @@ import org.apache.log4j.Logger;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 
+import prerna.ds.QueryStruct;
 import prerna.engine.api.IEngine;
 import prerna.engine.impl.rdbms.RDBMSNativeEngine;
-import prerna.rdf.query.builder.IQueryBuilder;
-import prerna.rdf.query.builder.QueryBuilderData;
+import prerna.rdf.query.builder.IQueryInterpreter;
 import prerna.util.DIHelper;
 import prerna.util.Utility;
 
@@ -23,7 +23,7 @@ public class DataMakerComponent {
 	private String id;
 	private String query;
 	private String dataFrameLocation;
-	private QueryBuilderData builderData; // this is now a formal object! :)
+	private QueryStruct qs; // this is now a formal object! :)
 	private IEngine engine;
 	private List<ISEMOSSTransformation> preTrans = new ArrayList<ISEMOSSTransformation>();
 	private List<ISEMOSSTransformation> postTrans = new ArrayList<ISEMOSSTransformation>();
@@ -56,10 +56,10 @@ public class DataMakerComponent {
 	 * @param engine					The name of the engine
 	 * @param metamodelData				The map to build the query based on the OWL
 	 */
-	public DataMakerComponent(String engine, QueryBuilderData builderData){
+	public DataMakerComponent(String engine, QueryStruct qs){
 		IEngine theEngine = (IEngine) DIHelper.getInstance().getLocalProp(engine);
 		this.engine = theEngine;
-		this.builderData = builderData;
+		this.qs = qs;
 	}
 	
 	/**
@@ -67,9 +67,9 @@ public class DataMakerComponent {
 	 * @param engine					The engine object
 	 * @param metamodelData				The map to build the query based on the OWL
 	 */
-	public DataMakerComponent(IEngine engine, QueryBuilderData builderData){
+	public DataMakerComponent(IEngine engine, QueryStruct qs){
 		this.engine = engine;
-		this.builderData = builderData;
+		this.qs = qs;
 	}
 	
 	/**
@@ -100,16 +100,16 @@ public class DataMakerComponent {
 	 * Setter for the metamodel data of the component
 	 * @param builderData The query builder data needed to build the query for this component
 	 */
-	public void setBuilderData(QueryBuilderData builderData){
-		this.builderData = builderData;
+	public void setQueryStruct(QueryStruct qs){
+		this.qs = qs;
 	}
 
 	/**
 	 * Getter for the metamodel data of the component
 	 * @return
 	 */
-	public QueryBuilderData getBuilderData() {
-		return builderData;
+	public QueryStruct getQueryStruct() {
+		return qs;
 	}
 	
 	/**
@@ -230,10 +230,9 @@ public class DataMakerComponent {
 	 * @return
 	 */
 	private String buildQuery() {
-		IQueryBuilder builder = engine.getQueryBuilder();
-		builder.setBuilderData(builderData);;
-		builder.buildQuery();
-		return builder.getQuery();
+		IQueryInterpreter builder = engine.getQueryInterpreter();
+		builder.setQueryStruct(qs);
+		return builder.composeQuery();
 	}
 	
 	/**
@@ -262,11 +261,11 @@ public class DataMakerComponent {
 		copy.isProcessed = this.isProcessed;
 		
 		//use gson to make a copy of metamodel data
-		if(builderData != null) {
+		if(qs != null) {
 			Gson gson = new GsonBuilder().disableHtmlEscaping().serializeSpecialFloatingPointValues().setPrettyPrinting().create();
-			String metamodelCopy = gson.toJson(builderData);
-			QueryBuilderData newMetaModel = gson.fromJson(metamodelCopy, QueryBuilderData.class);
-			copy.setBuilderData(newMetaModel);
+			String metamodelCopy = gson.toJson(qs);
+			QueryStruct newMetaModel = gson.fromJson(metamodelCopy, QueryStruct.class);
+			copy.setQueryStruct(newMetaModel);
 		}
 		
 		for(ISEMOSSTransformation preTrans : this.preTrans) {

@@ -52,7 +52,7 @@ public class SPARQLQueryTableBuilder extends AbstractSPARQLQueryBuilder{
 			TriplePart relationVar = new TriplePart(predHash.get("SubjectVar"), TriplePart.VARIABLE);
 			TriplePart subPropURI = new TriplePart(predURI, TriplePart.URI);
 			TriplePart relationTypeURI = new TriplePart(predHash.get("ObjectVar"), TriplePart.VARIABLE);
-			semossQuery.addTriple(relationVar, subPropURI, relationTypeURI);
+			semossQuery.addTriple(relationVar, subPropURI, relationTypeURI, false);
 		}
 	}
 

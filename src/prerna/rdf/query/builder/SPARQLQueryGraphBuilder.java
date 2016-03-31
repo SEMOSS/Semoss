@@ -26,8 +26,8 @@ public class SPARQLQueryGraphBuilder extends AbstractSPARQLQueryBuilder {
 			String predName = predHash.get(QueryBuilderHelper.varKey);
 			String predURI = predHash.get(QueryBuilderHelper.uriKey);
 
-			SEMOSSQueryHelper.addRelationTypeTripleToQuery(predName, predURI, semossQuery);
-			SEMOSSQueryHelper.addRelationshipVarTripleToQuery(predHash.get("SubjectVar"), predName, predHash.get("ObjectVar"), semossQuery);
+			SEMOSSQueryHelper.addRelationTypeTripleToQuery(predName, predURI, false, semossQuery);
+			SEMOSSQueryHelper.addRelationshipVarTripleToQuery(predHash.get("SubjectVar"), predName, predHash.get("ObjectVar"), false, semossQuery);
 		}
 	}
 

@@ -34,6 +34,7 @@ import java.util.Vector;
 import prerna.om.Insight;
 import prerna.om.SEMOSSParam;
 import prerna.rdf.query.builder.IQueryBuilder;
+import prerna.rdf.query.builder.IQueryInterpreter;
 
 public interface IExplorable {
 	
@@ -92,7 +93,9 @@ public interface IExplorable {
 	Vector<Object> getParamOptions(String parameterURI);
 
 	// gets the query builder
+	@Deprecated
 	IQueryBuilder getQueryBuilder();
+	IQueryInterpreter getQueryInterpreter();
 	
 	// gets a vector of all concepts that exist
 	Vector<String> getConcepts();
@@ -126,4 +129,6 @@ public interface IExplorable {
 	Vector<String> executeInsightQuery(String sparqlQuery, boolean isDbQuery);
 	
 	String getNodeBaseUri();
+	
+	String getConceptUri4PhysicalName(String physicalName);
 }

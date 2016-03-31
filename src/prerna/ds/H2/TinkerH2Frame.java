@@ -92,10 +92,10 @@ public class TinkerH2Frame extends TinkerFrame {
         else{
      	   ISelectWrapper wrapper = WrapperManager.getInstance().getSWrapper(engine, query);
             //if component has data from which we can construct a meta model then construct it and merge it
-            boolean hasMetaModel = component.getBuilderData() != null;
+            boolean hasMetaModel = component.getQueryStruct() != null;
             if(hasMetaModel) {
          	   
-         	   Map<String, Set<String>> edgeHash = component.getBuilderData().getReturnConnectionsHash();
+         	   Map<String, Set<String>> edgeHash = component.getQueryStruct().getReturnConnectionsHash();
          	   this.mergeEdgeHash(edgeHash);
          	   
          	  builder.processWrapper(wrapper);

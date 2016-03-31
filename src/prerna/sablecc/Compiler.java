@@ -29,8 +29,12 @@ public class Compiler
     												//+ "(3 + 4, [c:bp, c:ab]);"
     												//+ "col.import([c:col1,c:col2], ([c:col1, inner.join, c:col2])) . [[\"a\",\"b\"][2,3]];"
     												//+ ";" //; , [[2,1.0][\"a hello world would work absolutely fine too __ ab\",\"b\"]]);"
-    												+ "col.add(c:newCol, (4 - c:Capability) + c:Activity); "
-    												//+ "col.add(c:newCol, api:TAP_CORE.query([c:Title__title, c:Title__movie_budget], (c:Title__Title =[\"a\",\"b\"], c:Title__Title > [\"c\", \"d\"]), ([c:Title__Title,  inner.join , c:Studio__Studio] ,[c:Title__Title,  outer.join , c:Studio__Studio_FK]) )); "
+//    												+ "col.add(c:newCol, (4 - c:Capability) + c:Activity); "
+//    												+ "api:Movie_DB.query([c:Title__Title, c:Title__MovieBudget, c:Studio__Studio], (c:Studio__Studio =[\"WB\",\"Fox\"]), ([c:Title__Title,  inner.join , c:Studio__Studio])); "
+//    												+ "col.add(c:test, api:UpdatedRDBMSMovies.query([c:Title__Title, c:Title__MovieBudget, c:Studio__Studio], (c:Studio__Studio =[\"WB\",\"Fox\"]), ([c:Title__Title,  right.outer.join , c:Studio__Title_FK])));"
+//    												+ "col.add(c:test, api:UpdatedRDBMSMovies.query([c:Title__Title, c:Title__MovieBudget, c:Studio__Studio], (c:Studio__Studio =[\"WB\",\"Fox\"]), ([c:Studio__Title_FK,  right.outer.join , c:Title__Title])));"
+    												+ "data.import(api:Movie_DB.query([c:Title, c:Title__MovieBudget, c:Studio], (c:Studio =[\"WB\",\"Fox\"]), ([c:Title,  inner.join , c:Studio])));"
+//    												+ "col.add(c:test, api:Movie_DB.query([c:Title__Title, c:Title__MovieBudget, c:Studio__Studio], (c:Studio__Studio =[\"WB\",\"Fox\"]), ([c:Studio__Studio,  right.outer.join , c:Title__Title])));"
     												//+ "api:TAP_CORE.query([c:Title__title, c:Title__movie_budget], (c:Title__Title =[\"a\",\"b\"], c:Title__Title > [\"c\", \"d\"]), ([c:Title__Title,  inner.join , c:Studio__Studio] ,[c:Title__Title,  outer.join , c:Studio__Studio_FK]) ); "    												//+ "(m:Sum([(2 * 3) * (c:Capability * c:Activity) + c:Activity], [c:bp, c:ab]));"
     												//+ "3 + (m:Sum([(2 * 3) * (c:Capability * c:Activity) + c:Activity], [c:bp, c:ab]));"
     												// m:Sum(X) >= m:Sum(Capability)
@@ -46,7 +50,7 @@ public class Compiler
     												
     												
     												
-    												+"(12 + (4 - 8)) * (15 / 5) + 5;"
+//    												+"(12 + (4 - 8)) * (15 / 5) + 5;"
    													//+ "v:abc = (c:col2 * (2 *4)); "
     												/*+ "set:(c:newCol, (2 * 3) + 4); "
    													+ "code:{System.out.println('yo');};"
