@@ -1102,7 +1102,7 @@ public class H2Builder {
     	
     	// now create a third table
     	tableName = "TINKERTABLE"+getNextNumber();
-    	String newCreate = "CREATE VIEW " + tableName +" AS (";
+    	String newCreate = "CREATE TABLE " + tableName +" AS (";
     	
     	// now I need to create a join query
     	// first the froms
