@@ -4,16 +4,25 @@ import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.HashSet;
+import java.util.Hashtable;
+import java.util.List;
+import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
 
 import prerna.engine.api.IEngine;
 import prerna.engine.api.ISelectStatement;
 import prerna.engine.api.ISelectWrapper;
+import prerna.engine.impl.AbstractEngine;
+import prerna.engine.impl.QuestionAdministrator;
 import prerna.rdf.engine.wrappers.WrapperManager;
+import prerna.ui.components.playsheets.datamakers.DataMakerComponent;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
+import prerna.util.sql.RDBMSUtility;
+import prerna.util.sql.SQLQueryUtil;
 
 public class RDBMSEngineCreationHelper {
 
@@ -21,22 +30,7 @@ public class RDBMSEngineCreationHelper {
 		
 	}
 	
-	public static void writeDefaultQuestionSheet(IEngine rdbmsEngine)
-	{		
-//		QuestionAdministrator questionAdmin = new QuestionAdministrator(((AbstractEngine)rdbmsEngine));
-		
-		String engineName = rdbmsEngine.getEngineName();
-		// get all the tables names in the database
-		String getAllTablesQuery = "SHOW TABLES FROM PUBLIC";
-		ISelectWrapper wrapper = WrapperManager.getInstance().getSWrapper(rdbmsEngine, getAllTablesQuery);
-		String[] names = wrapper.getVariables();
-		Set<String> tableNames = new HashSet<String>();
-		while(wrapper.hasNext()) {
-			ISelectStatement ss = wrapper.next();
-			String tableName = ss.getVar("TABLE_NAME") + "";
-			tableNames.add(tableName);
-		}
-		
+	public static void writeDefaultQuestionSheet(String engineName, Set<String> tables) {
 		// file location
 		String dbBaseFolder = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER).replace("\\", System.getProperty("file.separator"));
 		String fileName = dbBaseFolder + System.getProperty("file.separator") + "db" + System.getProperty("file.separator") + engineName + System.getProperty("file.separator") + engineName + "_Questions.properties";
@@ -54,7 +48,7 @@ public class RDBMSEngineCreationHelper {
 		String instanceParamQuery = "SELECT Distinct @Concept@ FROM @Concept@";
 		
 		prop.put("GQ0", questionName);
-		prop.put("GQ0" + "_LAYOUT", "Graph");
+		prop.put("GQ0" + "_LAYOUT", "prerna.ui.components.playsheets.GraphPlaySheet");
 		prop.put("GQ0" + "_QUERY", exploreQuery);
 		prop.put("GQ0_Instance_DEPEND", "Concept");
 		prop.put("GQ0_Concept_QUERY", conceptParamQuery);
@@ -81,8 +75,8 @@ public class RDBMSEngineCreationHelper {
 //		questionAdmin.addQuestion(questionName, "Generic-Perspective", dmcList, "Graph", "0", "GraphDataModel", true, null, params, null);
 		
 		int questionOrder = 1;
-		String layout = "Grid";
-		for(String tableName : tableNames)
+		String layout = "prerna.ui.components.playsheets.GridPlaySheet";
+		for(String tableName : tables)
 		{
 			genericQueries += ";" + "GQ" + questionOrder;			
 			questionName = "Show all from " + tableName;
@@ -120,4 +114,171 @@ public class RDBMSEngineCreationHelper {
 		}
 	}
 	
+	
+	public static void writeDefaultQuestionSheet(IEngine rdbmsEngine)
+	{		
+//		QuestionAdministrator questionAdmin = new QuestionAdministrator(((AbstractEngine)rdbmsEngine));
+		
+		String engineName = rdbmsEngine.getEngineName();
+		// get all the tables names in the database
+		String getAllTablesQuery = "SHOW TABLES FROM PUBLIC";
+		ISelectWrapper wrapper = WrapperManager.getInstance().getSWrapper(rdbmsEngine, getAllTablesQuery);
+		String[] names = wrapper.getVariables();
+		Set<String> tableNames = new HashSet<String>();
+		while(wrapper.hasNext()) {
+			ISelectStatement ss = wrapper.next();
+			String tableName = ss.getVar("TABLE_NAME") + "";
+			tableNames.add(tableName);
+		}
+		
+		writeDefaultQuestionSheet(engineName, tableNames);
+	}
+	
+	
+	public static void addToExistingQuestionFile(IEngine rdbmsEngine, Set<String> newTables) {
+		
+		QuestionAdministrator questionAdmin = new QuestionAdministrator(((AbstractEngine)rdbmsEngine));
+		// get all the tables names in the database
+		String getAllTablesQuery = "SHOW TABLES FROM PUBLIC";
+		ISelectWrapper wrapper = WrapperManager.getInstance().getSWrapper(rdbmsEngine, getAllTablesQuery);
+		String[] names = wrapper.getVariables();
+		Set<String> tableNames = new HashSet<String>();
+		while(wrapper.hasNext()) {
+			ISelectStatement ss = wrapper.next();
+			String tableName = ss.getVar("TABLE_NAME") + "";
+			tableNames.add(tableName);
+		}
+		
+		//determine the # where the new questions should start
+		int newTableSeq = tableNames.size() - newTables.size();
+		newTableSeq = newTableSeq + 1; //we need to add 1 to the question order to account for  the explore a concept question
+		String order = "";
+		String question = ""; 
+		String sql = ""; 
+		String layout = ""; 
+
+		try {
+			for(String newTable : newTables) {
+				order = Integer.toString(newTableSeq+1);
+				String cleanTableName = cleanTableName(newTable);
+				question = "Show all from " + cleanTableName;
+				layout = "Grid";
+				sql = "SELECT * FROM " + cleanTableName;
+				List<DataMakerComponent> dmcList = new ArrayList<DataMakerComponent>();
+				DataMakerComponent dmc = new DataMakerComponent(rdbmsEngine, sql);
+				dmcList.add(dmc);
+				questionAdmin.addQuestion(question, "Generic-Perspective", dmcList, layout, order, "TinkerFrame", true, null, null, null);
+			}
+		} catch(RuntimeException e) {
+			System.out.println("caught exception while adding question.................");
+			e.printStackTrace();
+		}
+	}
+	
+	public static Map<String, Map<String, String>> getExistingRDBMSStructure(IEngine rdbmsEngine) {
+		Map<String, Map<String, String>> retMap = new Hashtable<String, Map<String, String>>();
+
+		// get all the tables names in the H2 database
+		String getAllTablesQuery = "SHOW TABLES FROM PUBLIC";
+		ISelectWrapper wrapper = WrapperManager.getInstance().getSWrapper(rdbmsEngine, getAllTablesQuery);
+		String[] names = wrapper.getVariables();
+		Set<String> tableNames = new HashSet<String>();
+		while(wrapper.hasNext()) {
+			ISelectStatement ss = wrapper.next();
+			String tableName = ss.getVar("TABLE_NAME") + "";
+			tableNames.add(tableName);
+		}
+
+		// get all the columns and their types for each table name
+		String defaultColTypesQuery = "SHOW COLUMNS FROM ";
+		for(String tableName : tableNames) {
+			String getAllColTypesQuery = defaultColTypesQuery + tableName;
+			wrapper = WrapperManager.getInstance().getSWrapper(rdbmsEngine, getAllColTypesQuery);
+			names = wrapper.getVariables();
+			Map<String, String> colTypeHash = new Hashtable<String, String>();
+			while(wrapper.hasNext()) {
+				ISelectStatement ss = wrapper.next();
+				String colName = ss.getVar("COLUMN_NAME") + "";
+				String colType = ss.getVar("TYPE") + "";
+				colTypeHash.put(colName, colType);
+			}
+
+			// add the table name and column type for the table name
+			retMap.put(tableName, colTypeHash);
+		}
+
+		return retMap;
+	}
+
+	/**
+	 * Remove all non alpha-numeric underscores from form name
+	 * @param s
+	 * @return
+	 */
+	public static String cleanTableName(String s) {
+		s = s.trim();
+		while(s.contains("  ")){
+			s = s.replace("  ", " ");
+		}
+		s = s.replaceAll(" ", "_");
+		return s.replaceAll("[^a-zA-Z0-9\\_]", "");
+	}
+
+	public static String escapeForSQLStatement(String s) {
+		return s.replaceAll("'", "''");
+	}
+
+	public static boolean conceptExists(IEngine engine, String tableName, String colName, Object instanceValue) {
+		String query = "SELECT DISTINCT " + colName + " FROM " + tableName + " WHERE " + colName + "='" + RDBMSEngineCreationHelper.escapeForSQLStatement(instanceValue + "") + "'";
+		ISelectWrapper wrapper = WrapperManager.getInstance().getSWrapper(engine, query);
+		String[] names = wrapper.getVariables();
+		while(wrapper.hasNext()) {
+			return true;
+		}
+		return false;
+	}
+	
+	public static String writePropFile(String engineName, SQLQueryUtil queryUtil)
+	{
+		Properties prop = new Properties();
+		String dbBaseFolder = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER).replace("\\", System.getProperty("file.separator"));
+		
+		if(queryUtil.getDatabaseType().equals(SQLQueryUtil.DB_TYPE.H2_DB)) {
+			prop.put(Constants.CONNECTION_URL, RDBMSUtility.getH2BaseConnectionURL());			
+		} else {
+			prop.put(Constants.CONNECTION_URL, queryUtil.getConnectionURL(dbBaseFolder,engineName));
+		}
+		prop.put(Constants.ENGINE, engineName);
+		prop.put(Constants.USERNAME, queryUtil.getDefaultDBUserName());
+		prop.put(Constants.PASSWORD, queryUtil.getDefaultDBPassword());
+		prop.put(Constants.DRIVER,queryUtil.getDatabaseDriverClassName());
+		prop.put(Constants.TEMP_CONNECTION_URL, queryUtil.getTempConnectionURL());
+		prop.put(Constants.RDBMS_TYPE,queryUtil.getDatabaseType().toString());
+		prop.put("TEMP", "TRUE");
+
+		// write this to a file
+		String tempFile = dbBaseFolder + "/db/" + engineName + "/conn.prop";
+		File file = null;
+		FileOutputStream fo = null;
+		try {
+			file = new File(tempFile);
+			file.createNewFile();
+			fo = new FileOutputStream(file);
+			prop.store(fo, "Temporary Properties file for the RDBMS");
+		} catch (FileNotFoundException e) {
+			e.printStackTrace();
+		} catch (IOException e) {
+			e.printStackTrace();
+		} finally {
+			if(fo != null) {
+				try {
+					fo.close();
+				} catch (IOException e) {
+					e.printStackTrace();
+				}
+			}
+		}
+
+		return tempFile;
+	}
 }

@@ -28,6 +28,7 @@
 package prerna.poi.main;
 
 import java.io.FileInputStream;
+import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Hashtable;
@@ -80,6 +81,8 @@ public class RdfExcelTableReader extends AbstractFileReader {
 	 * @throws IOException 
 	 */
 	public void importFileWithOutConnection(String smssLocation, String engineName, String fileNames, String customBase, String owlFile) throws IOException {
+		boolean error = false;
+		
 		logger.setLevel(Level.WARN);
 		String[] files = prepareReader(fileNames, customBase, owlFile, smssLocation);
 		try {
@@ -119,8 +122,17 @@ public class RdfExcelTableReader extends AbstractFileReader {
 				}
 			}
 			createBaseRelations();
+		} catch(FileNotFoundException e) {
+			error = true;
+			throw new FileNotFoundException(e.getMessage());
+		} catch(IOException e) {
+			error = true;
+			throw new IOException(e.getMessage());
 		} finally {
-			closeDB();
+			if(error || autoLoad) {
+				closeDB();
+				closeOWL();
+			}
 		}
 	}
 

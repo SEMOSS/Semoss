@@ -125,6 +125,9 @@ public class POIReader extends AbstractFileReader {
 	//	public void importFileWithOutConnection(String smssLocation, String engineName, String fileNames, String customBase, String customMap, String owlFile)
 	public void importFileWithOutConnection(String smssLocation, String engineName, String fileNames, String customBase, String owlFile)
 			throws FileNotFoundException, IOException {
+		boolean error = false;
+		logger.setLevel(Level.WARN);
+		
 		String[] files = prepareReader(fileNames, customBase, owlFile, smssLocation);
 		try {
 			openRdfEngineWithoutConnection(engineName);
@@ -138,9 +141,17 @@ public class POIReader extends AbstractFileReader {
 			}
 			loadMetadataIntoEngine();
 			createBaseRelations();
+		}  catch(FileNotFoundException e) {
+			error = true;
+			throw new FileNotFoundException(e.getMessage());
+		} catch(IOException e) {
+			error = true;
+			throw new IOException(e.getMessage());
 		} finally {
-			closeDB();
-			closeOWL();
+			if(error || autoLoad) {
+				closeDB();
+				closeOWL();
+			}
 		}
 	}
 

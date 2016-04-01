@@ -78,7 +78,8 @@ public class ImportDataProcessor {
 	//This method will take in all possible required information
 	//After determining the desired import method and type, process with the subset of information that that processing requires.
 	public void runProcessor(IMPORT_METHOD importMethod, IMPORT_TYPE importType, String fileNames, String customBaseURI, 
-			String newDBname, String mapFile, String dbPropFile, String questionFile, String repoName, DB_TYPE dbType, SQLQueryUtil.DB_TYPE dbDriverType, boolean allowDuplicates) 
+			String newDBname, String mapFile, String dbPropFile, String questionFile, String repoName, DB_TYPE dbType, 
+			SQLQueryUtil.DB_TYPE dbDriverType, boolean allowDuplicates, boolean autoLoad) 
 					throws IOException, RepositoryException, SailException, Exception {
 		if(importMethod == null) {
 			String errorMessage = "Import method is not supported";
@@ -89,7 +90,7 @@ public class ImportDataProcessor {
 			throw new IOException(errorMessage);
 		}
 		if(importMethod == IMPORT_METHOD.CREATE_NEW) {
-			processCreateNew(importType, customBaseURI, fileNames, newDBname, mapFile, dbPropFile, questionFile, dbType, dbDriverType, allowDuplicates);
+			processCreateNew(importType, customBaseURI, fileNames, newDBname, mapFile, dbPropFile, questionFile, dbType, dbDriverType, allowDuplicates, autoLoad);
 		} else if(importMethod == IMPORT_METHOD.ADD_TO_EXISTING) {
 			processAddToExisting(importType, customBaseURI, fileNames, repoName, dbType, dbDriverType, allowDuplicates);
 		} else if(importMethod == IMPORT_METHOD.OVERRIDE) {
@@ -185,7 +186,8 @@ public class ImportDataProcessor {
 		Utility.addToSolrInstanceCore(engine);
 	}
 
-	public void processCreateNew(IMPORT_TYPE importType, String customBaseURI, String fileNames, String dbName, String mapFile, String dbPropFile, String questionFile, DB_TYPE dbType, SQLQueryUtil.DB_TYPE dbDriverType, boolean allowDuplicates) 
+	public void processCreateNew(IMPORT_TYPE importType, String customBaseURI, String fileNames, String dbName, String mapFile, 
+			String dbPropFile, String questionFile, DB_TYPE dbType, SQLQueryUtil.DB_TYPE dbDriverType, boolean allowDuplicates, boolean autoLoad) 
 			throws IOException, RepositoryException, SailException, Exception {
 		//Replace spaces in db name with underscores
 		//DB_TYPE dbType = DB_TYPE.RDF; // uncomment once wired
@@ -212,6 +214,7 @@ public class ImportDataProcessor {
 			//then process based on what type of file
 			if(importType == IMPORT_TYPE.EXCEL_POI && dbType == DB_TYPE.RDF) {
 				POIReader reader = new POIReader();
+				reader.setAutoLoad(autoLoad);
 				reader.importFileWithOutConnection(propWriter.propFileName, dbName, fileNames, customBaseURI, owlPath);
 //				newURIvalues = reader.conceptURIHash;
 //				newBaseURIvalues = reader.baseConceptURIHash;
@@ -221,6 +224,7 @@ public class ImportDataProcessor {
 
 			} else if(importType == IMPORT_TYPE.EXCEL_POI && dbType == DB_TYPE.RDBMS) {
 				POIReader reader = new POIReader();
+				reader.setAutoLoad(autoLoad);
 				reader.importFileWithOutConnectionRDBMS(propWriter.propFileName, dbName, fileNames, customBaseURI, owlPath, dbDriverType, allowDuplicates);
 //				newURIvalues = reader.conceptURIHash;
 //				newBaseURIvalues = reader.baseConceptURIHash;
@@ -230,6 +234,7 @@ public class ImportDataProcessor {
 				
 			} else if (importType == IMPORT_TYPE.EXCEL && dbType == DB_TYPE.RDF) {
 				RdfExcelTableReader reader = new RdfExcelTableReader();
+				reader.setAutoLoad(autoLoad);
 				//If propHash has not been set, we are coming from semoss and need to read the propFile
 				//If propHash has been set, we are coming from monolith and are pulling propHash from the metamodel builder
 				if(propHashArr != null) {
@@ -244,6 +249,7 @@ public class ImportDataProcessor {
 
 			} else if (importType == IMPORT_TYPE.CSV && dbType == DB_TYPE.RDF) {
 				CSVReader reader = new CSVReader();
+				reader.setAutoLoad(autoLoad);
 				//If propHash has not been set, we are coming from semoss and need to read the propFile
 				//If propHash has been set, we are coming from monolith and are pulling propHash from the metamodel builder
 				if(propHashArr != null) {
@@ -258,6 +264,7 @@ public class ImportDataProcessor {
 
 			} else if(importType == IMPORT_TYPE.NLP && dbType == DB_TYPE.RDF){
 				NLPReader reader = new NLPReader();
+				reader.setAutoLoad(autoLoad);
 				reader.importFileWithOutConnection(propWriter.propFileName, dbName, fileNames, customBaseURI, mapFile, owlPath);
 //				newURIvalues = reader.conceptURIHash;
 //				newBaseURIvalues = reader.baseConceptURIHash;
@@ -267,6 +274,7 @@ public class ImportDataProcessor {
 
 			} else if (importType == IMPORT_TYPE.CSV && dbType == DB_TYPE.RDBMS) {
 				RDBMSReader reader = new RDBMSReader();
+				reader.setAutoLoad(autoLoad);
 				if(propHashArr != null) {
 					reader.setRdfMapArr(propHashArr);
 				}
