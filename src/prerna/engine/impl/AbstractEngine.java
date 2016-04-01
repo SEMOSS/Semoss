@@ -215,34 +215,7 @@ public abstract class AbstractEngine implements IEngine {
 				} 
 				else { // RDBMS Question engine has not been made. Must do conversion
 					// set the necessary fun stuff
-					InsightsConverter converter = new InsightsConverter();
-					this.insightRDBMS = converter.generateNewInsightsRDBMS(this.engineName);
-					converter.setEngine(this);
-					converter.setEngineName(prop.getProperty(Constants.ENGINE));
-					converter.setSMSSLocation(propFile);
-					
-					// Use the xml if the prop file has that defined
-					if (prop.containsKey(Constants.INSIGHTS)){
-						logger.info("LOADING XML QUESTIONS FOR DB ::: " + this.getEngineName());
-						String xmlFilePath = prop.getProperty(Constants.INSIGHTS);
-						converter.loadQuestionsFromXML(baseFolder + "\\" + xmlFilePath); // this does questions and parameters now
-					}
-					// else we will use the prop file
-					else if (prop.containsKey(Constants.DREAMER)){
-						String dreamerLoc = baseFolder + "/" + prop.getProperty(Constants.DREAMER);
-						logger.info("LOADING PROP FILE QUESTIONS FOR DB ::: " + this.getEngineName());
-						logger.info("question prop file loc is " + dreamerLoc);
-						Properties dreamerProps = loadProp(dreamerLoc);
-						converter.loadQuestionsFromPropFile(dreamerProps);
-					}
-					else {
-						logger.fatal("NO QUESTION SHEET DEFINED ON SMSS");
-						logger.fatal("cannot start " + this.getEngineName() + " without question file");
-					}
-					//update smss location
-					if(!RECREATE_INSIGHTS) {
-						converter.updateSMSSFile();
-					}
+					createInsights(baseFolder);
 				}
 				// load the rdf owl db
 				String owlFile = prop.getProperty(Constants.OWL);
@@ -268,6 +241,37 @@ public abstract class AbstractEngine implements IEngine {
 			e.printStackTrace();
 		} catch (IOException e) {
 			e.printStackTrace();
+		}
+	}
+	
+	public void createInsights(String baseFolder) throws FileNotFoundException, IOException {
+		InsightsConverter converter = new InsightsConverter();
+		this.insightRDBMS = converter.generateNewInsightsRDBMS(this.engineName);
+		converter.setEngine(this);
+		converter.setEngineName(prop.getProperty(Constants.ENGINE));
+		converter.setSMSSLocation(propFile);
+		
+		// Use the xml if the prop file has that defined
+		if (prop.containsKey(Constants.INSIGHTS)){
+			logger.info("LOADING XML QUESTIONS FOR DB ::: " + this.getEngineName());
+			String xmlFilePath = prop.getProperty(Constants.INSIGHTS);
+			converter.loadQuestionsFromXML(baseFolder + "\\" + xmlFilePath); // this does questions and parameters now
+		}
+		// else we will use the prop file
+		else if (prop.containsKey(Constants.DREAMER)){
+			String dreamerLoc = baseFolder + "/" + prop.getProperty(Constants.DREAMER);
+			logger.info("LOADING PROP FILE QUESTIONS FOR DB ::: " + this.getEngineName());
+			logger.info("question prop file loc is " + dreamerLoc);
+			Properties dreamerProps = loadProp(dreamerLoc);
+			converter.loadQuestionsFromPropFile(dreamerProps);
+		}
+		else {
+			logger.fatal("NO QUESTION SHEET DEFINED ON SMSS");
+			logger.fatal("cannot start " + this.getEngineName() + " without question file");
+		}
+		//update smss location
+		if(!RECREATE_INSIGHTS) {
+			converter.updateSMSSFile();
 		}
 	}
 
@@ -514,6 +518,15 @@ public abstract class AbstractEngine implements IEngine {
 
 	public String getOWL() {
 		return this.owl;
+	}
+	
+	public String getPropFile() {
+		return propFile;
+	}
+
+	public void setPropFile(String propFile) throws FileNotFoundException, IOException {
+		this.propFile = propFile;
+		this.prop = loadProp(propFile);
 	}
 
 	public String getOWLDefinition()
@@ -1206,6 +1219,22 @@ public abstract class AbstractEngine implements IEngine {
 		}
 		
 		return baseUri;
+	}
+	
+	@Override
+	public String getDataTypes(String uri) {
+		String cleanUri = getTransformedNodeName(uri, false);
+		String query = "SELECT DISTINCT ?TYPE WHERE { {<" + cleanUri + "> <" + OWLER.DATATYPE_PREDICATE + "> ?TYPE} }";
+			
+		ISelectWrapper wrapper = WrapperManager.getInstance().getSWrapper(baseDataEngine, query);
+		String[] names = wrapper.getPhysicalVariables();
+		String type = null;
+		while(wrapper.hasNext()) {
+			ISelectStatement ss = wrapper.next();
+			type = ss.getVar(names[0]).toString();
+		}
+		
+		return type;
 	}
 	
 	@Override

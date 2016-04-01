@@ -380,6 +380,7 @@ public abstract class AbstractFileReader {
 		prop.put(Constants.DRIVER,queryUtil.getDatabaseDriverClassName());
 		prop.put(Constants.TEMP_CONNECTION_URL, queryUtil.getTempConnectionURL());
 		prop.put(Constants.RDBMS_TYPE,queryUtil.getDatabaseType().toString());
+		prop.put(Constants.DREAMER, "db" + System.getProperty("file.separator") + dbName + System.getProperty("file.separator") + dbName + "_Questions.properties");
 		prop.put("TEMP", "TRUE");
 		((AbstractEngine) engine).setProperties(prop);
 		engine.openDB(null);
