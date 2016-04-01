@@ -260,7 +260,7 @@ public class TinkerH2Frame extends TinkerFrame {
 //		return builder.buildIterator(options);
 	}
 	
-	public void applyGroupBy(String[] column, String newColumnName, String valueColumn, String mathType) {
+	public void applyGroupBy(String column, String newColumnName, String valueColumn, String mathType) {
 		builder.processGroupBy(column, newColumnName, valueColumn, mathType);
 	}
 	
