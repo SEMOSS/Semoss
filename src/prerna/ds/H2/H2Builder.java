@@ -764,8 +764,8 @@ public class H2Builder {
     }
     
     //process a group by - calculate then make a table then merge the table
-    public void processGroupBy(String[] column, String newColumnName, String valueColumn, String mathType) {
-//    	column = cleanHeader(column);
+    public void processGroupBy(String column, String newColumnName, String valueColumn, String mathType) {
+    	column = cleanHeader(column);
     	newColumnName = cleanHeader(newColumnName);
     	valueColumn = cleanHeader(valueColumn);
     	
