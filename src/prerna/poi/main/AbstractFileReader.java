@@ -69,7 +69,12 @@ public abstract class AbstractFileReader {
 	protected String semossURI;
 	protected final static String CONTAINS = "Contains";
 	
-//	public Hashtable<String,String> baseConceptURIHash = new Hashtable<String,String>(); 
+	// use this boolean to determine if we db should be turned off 
+	// after creation and loaded back through smss watcher
+	// or if process will handle load that portion
+	protected boolean autoLoad = true;
+	
+	//	public Hashtable<String,String> baseConceptURIHash = new Hashtable<String,String>(); 
 //	public Hashtable<String,String> conceptURIHash = new Hashtable<String,String>();
 //	public Hashtable<String,String> baseRelationURIHash = new Hashtable<String,String>(); 
 //	public Hashtable<String,String> relationURIHash = new Hashtable<String,String>();
@@ -637,6 +642,14 @@ public abstract class AbstractFileReader {
 		} catch (ParseException e) {
 			logger.error("ERROR: could not parse date: " + date);
 		}
+	}
+	
+	public boolean isAutoLoad() {
+		return autoLoad;
+	}
+
+	public void setAutoLoad(boolean autoLoad) {
+		this.autoLoad = autoLoad;
 	}
 
 }
