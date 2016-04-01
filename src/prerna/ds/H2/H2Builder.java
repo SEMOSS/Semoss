@@ -77,7 +77,7 @@ public class H2Builder {
 //    	test.castToType("6/2/2015");
 		String fileName = "C:/Users/rluthar/Desktop/datasets/Movie.csv";
 //		long before, after;
-		fileName = "C:/Users/pkapaleeswaran/workspacej3/datasets/Remedy Try.csv";
+		fileName = "C:/Users/pkapaleeswaran/workspacej3/datasets/Remedy New.csv";
 //		//fileName = "C:/Users/pkapaleeswaran/workspacej3/datasets/Movie.csv";
 //
 //		/******* Used Primarily for Streaming *******/
@@ -1099,7 +1099,7 @@ public class H2Builder {
     	
     	// now create a third table
     	tableName = "TINKERTABLE"+getNextNumber();
-    	String newCreate = "CREATE TABLE " + tableName +" AS (";
+    	String newCreate = "CREATE Table " + tableName +" AS (";
     	
     	// now I need to create a join query
     	// first the froms
@@ -1145,8 +1145,8 @@ public class H2Builder {
 			Statement stmt = conn.createStatement();
 			stmt.execute(finalQuery);
 			
-			stmt.execute("DROP TABLE " + tableName1);
-			stmt.execute("DROP TABLE " + tableName2);
+			//stmt.execute("DROP TABLE " + tableName1);
+			//stmt.execute("DROP TABLE " + tableName2);
 		} catch (SQLException e) {
 			e.printStackTrace();
 		}
@@ -1646,13 +1646,26 @@ public class H2Builder {
     	alias = cleanHeader(alias);
     	
     	String functionString = "";
+    	
+    	String type = getTypeOfColumn(column);
+    			
     	switch(mathType.toUpperCase()) {
-    	case "COUNT": {functionString = "COUNT("+valueColumn+")"; break; }
+    	case "COUNT": {
+    		String func = "COUNT(";
+    		if(type.startsWith("varchar"))
+    			func = "COUNT( DISTINCT ";
+    		functionString = func +valueColumn+")"; break; 
+    		}
     	case "AVERAGE": {functionString = "AVG("+valueColumn+")";  break; }
     	case "MIN": {functionString = "MIN("+valueColumn+")";  break; }
     	case "MAX": {functionString = "MAX("+valueColumn+")"; break; }
     	case "SUM": {functionString = "SUM("+valueColumn+")"; break; }
-    	default: {functionString = "COUNT("+valueColumn+")"; break; }
+    	default: {
+    		
+    		String func = "COUNT(";
+    		if(type.startsWith("varchar"))
+    			func = "COUNT( DISTINCT ";
+    		functionString = func +valueColumn+")"; break; }
     	}
     	
     	String filterSubQuery = makeFilterSubQuery();
@@ -1660,6 +1673,20 @@ public class H2Builder {
     	
     	
     	return groupByStatement;
+    }
+    
+    private String getTypeOfColumn(String column)
+    {
+    	int index = 0;
+    	for(int headIndex = 0;headIndex < headers.length;headIndex++)
+    	{
+    		if(headers[headIndex].equalsIgnoreCase(column))
+    		{
+    			index = headIndex;
+    			break;
+    		}
+    	}	
+    	return types[index];
     }
     
     private String makeFunction(String column, String function, String tableName) {
