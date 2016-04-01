@@ -1,5 +1,6 @@
 package prerna.ds.H2;
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Comparator;
@@ -14,7 +15,15 @@ import java.util.Vector;
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.GraphTraversal;
+import org.apache.tinkerpop.gremlin.structure.Edge;
 import org.apache.tinkerpop.gremlin.structure.Vertex;
+import org.apache.tinkerpop.gremlin.structure.io.IoCore;
+import org.apache.tinkerpop.gremlin.structure.io.IoRegistry;
+import org.apache.tinkerpop.gremlin.structure.io.Io.Builder;
+import org.apache.tinkerpop.gremlin.structure.io.gryo.GryoIo;
+import org.apache.tinkerpop.gremlin.tinkergraph.structure.TinkerGraph;
+
+import com.google.gson.Gson;
 
 import prerna.ds.TinkerFrame;
 import prerna.ds.TinkerFrameIterator;
@@ -27,10 +36,14 @@ import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.ui.components.playsheets.datamakers.DataMakerComponent;
 import prerna.util.ArrayUtilityMethods;
 import prerna.util.Constants;
+import prerna.util.MyGraphIoRegistry;
 
 public class TinkerH2Frame extends TinkerFrame {
 
+	
 	private static final Logger LOGGER = LogManager.getLogger(TinkerH2Frame.class.getName());
+	private static final String TYPES = "Table_Types";
+	
 	H2Builder builder;
 	
 	public TinkerH2Frame(String[] headers) {
@@ -96,7 +109,7 @@ public class TinkerH2Frame extends TinkerFrame {
             if(hasMetaModel) {
          	   
          	   Map<String, Set<String>> edgeHash = component.getQueryStruct().getReturnConnectionsHash();
-         	   this.mergeEdgeHash(edgeHash);
+         	   this.mergeQSEdgeHash(edgeHash, engine);
          	   
          	  builder.processWrapper(wrapper);
             } 
@@ -247,7 +260,7 @@ public class TinkerH2Frame extends TinkerFrame {
 //		return builder.buildIterator(options);
 	}
 	
-	public void applyGroupBy(String column, String newColumnName, String valueColumn, String mathType) {
+	public void applyGroupBy(String[] column, String newColumnName, String valueColumn, String mathType) {
 		builder.processGroupBy(column, newColumnName, valueColumn, mathType);
 	}
 	
@@ -372,5 +385,97 @@ public class TinkerH2Frame extends TinkerFrame {
 //		selectors.add(columnHeader);
 //		options.put(SELECTORS, selectors);
 		return Arrays.asList(builder.getColumn(columnHeader, true)).iterator();
+	}
+	
+	@Override
+	public void save(String fileName) {
+		try {
+			long startTime = System.currentTimeMillis();
+			g.variables().set(Constants.HEADER_NAMES, headerNames);
+			g.variables().set(TYPES, builder.types);
+			
+			// create special vertex to save the order of the headers
+			Vertex specialVert = this.upsertVertex(ENVIRONMENT_VERTEX_KEY, ENVIRONMENT_VERTEX_KEY, ENVIRONMENT_VERTEX_KEY);
+			
+			Gson gson = new Gson();
+			Map<String, Object> varMap = g.variables().asMap();
+			for(String key : varMap.keySet()) {
+				specialVert.property(key, gson.toJson(varMap.get(key)));
+			}
+			Builder<GryoIo> builder = IoCore.gryo();
+			builder.graph(g);
+			IoRegistry kryo = new MyGraphIoRegistry();;
+			builder.registry(kryo);
+			GryoIo yes = builder.create();
+			yes.writeGraph(fileName.substring(0, fileName.length() - 3) + "_META.tg");
+			
+			long endTime = System.currentTimeMillis();
+			LOGGER.info("Successfully saved TinkerFrame to file: "+fileName+ "("+(endTime - startTime)+" ms)");
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+//		fileName = fileName.substring(0, fileName.length() - 3) + ".gz";
+		builder.save(fileName);
+	}
+	
+	
+	synchronized public TinkerH2Frame open(String fileName) {
+		TinkerGraph g = TinkerGraph.open();
+		try {
+			long startTime = System.currentTimeMillis();
+
+			Builder<GryoIo> builder = IoCore.gryo();
+			builder.graph(g);
+			IoRegistry kryo = new MyGraphIoRegistry();
+			builder.registry(kryo);
+			GryoIo yes = builder.create();
+			yes.readGraph(fileName.substring(0, fileName.length() - 3) + "_META.tg");
+			
+			long endTime = System.currentTimeMillis();
+			LOGGER.info("Successfully loaded TinkerFrame from file: "+fileName+ "("+(endTime - startTime)+" ms)");
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+		
+		//create new tinker frame and set its tinkergraph
+		TinkerH2Frame tf = new TinkerH2Frame();
+		g.createIndex(Constants.TYPE, Vertex.class);
+		g.createIndex(Constants.ID, Vertex.class);
+		g.createIndex(Constants.ID, Edge.class);
+		tf.g = g;
+		
+		String[] headers = null;
+		String[] types = null;
+		GraphTraversal<Vertex, Vertex> gt = g.traversal().V().has(Constants.TYPE, ENVIRONMENT_VERTEX_KEY);
+		while(gt.hasNext()) {
+			Vertex specialVert = gt.next();
+			
+			// grab all environment properties from node
+			Object headerProp = specialVert.property(Constants.HEADER_NAMES).value();
+			Object typeProp = specialVert.property(TYPES).value();
+			headers = new Gson().fromJson(headerProp + "", new String[]{}.getClass());
+			types = new Gson().fromJson(typeProp + "", new String[]{}.getClass());
+			// delete the vertex
+			specialVert.remove();
+		}
+		
+		if(headers == null) {
+			LOGGER.info("Could not find the headers special vertex.  Will load headers from metadata with no guarantee of order.");
+			List<String> headersList = new Vector<String>();
+			GraphTraversal<Vertex, String> hTraversal = tf.g.traversal().V().has(Constants.TYPE, META).values(Constants.NAME);
+			while(hTraversal.hasNext()) {
+				headersList.add(hTraversal.next());
+			}
+			headers = headersList.toArray(new String[]{});
+		}
+		//gather header names
+		tf.headerNames = headers;
+		g.variables().set(Constants.HEADER_NAMES, headers);
+//		fileName = fileName.substring(0, fileName.length() - 3) + ".gz";
+		tf.builder = H2Builder.open(fileName);
+		tf.builder.setHeaders(headers);
+		tf.builder.types = types;
+		
+		return tf;
 	}
 }

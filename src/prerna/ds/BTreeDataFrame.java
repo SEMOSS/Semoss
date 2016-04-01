@@ -2181,4 +2181,16 @@ public class BTreeDataFrame implements ITableDataFrame {
 		return null;
 	}
 
+	@Override
+	public void save(String fileName) {
+		// TODO Auto-generated method stub
+		
+	}
+
+	@Override
+	public ITableDataFrame open(String fileName) {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
 }
