@@ -27,6 +27,7 @@
  *******************************************************************************/
 package prerna.engine.api;
 
+import java.util.Map;
 import java.util.Vector;
 
 /**
@@ -140,6 +141,14 @@ public interface IEngine extends IExplorable{
 	 * @return Object based on the type of action
 	 */
 	public Object doAction(IEngine.ACTION_TYPE actionType, Object[] args);
+	
+	/**
+	 * Get the datatypes for the uris from the associated owl file
+	 * If varargs param is empty, it will return all data types
+	 * @param uris
+	 * @return
+	 */
+	public Map<String, String> getDataTypes(String... uris);
 }
 
 
