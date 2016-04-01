@@ -29,7 +29,8 @@ public class TinkerMetaData implements IMetaData {
 	public static final String PHYSICAL_URI = "PHYSICAL_URI";
 	public static final String LOGICAL_NAME = "LOGICAL_NAME";
 	public static final String PARENT = "PARENT";
-
+	public static final String DATATYPE = "DATATYPE";
+	
 	public static final String PRIM_KEY = "PRIM_KEY";
 	public static final String META = "META";
 	public static final String EMPTY = "_";
@@ -87,7 +88,7 @@ public class TinkerMetaData implements IMetaData {
 
 
 	
-	public void addEngineMeta(Vertex vert, String engineName, String logicalName, String instancesType, String physicalUri) {
+	public void addEngineMeta(Vertex vert, String engineName, String logicalName, String instancesType, String physicalUri, String dataType) {
 		
 		// now add the meta object if it doesn't already exist
 		Map<Object, Object> metaData = null;
@@ -102,14 +103,19 @@ public class TinkerMetaData implements IMetaData {
 		metaData.put(IMetaData.NAME_TYPE.DB_LOGICAL, logicalName);
 		metaData.put(IMetaData.NAME_TYPE.DB_PHYSICAL_NAME, instancesType);
 		metaData.put(IMetaData.NAME_TYPE.DB_PHYSICAL_URI, physicalUri);
+		
+		if(dataType != null) {
+			metaData.put(DATATYPE, dataType);
+		}
 	}
 
 
-
-
 	@Override
-	public Vertex upsertVertex(String type, String uniqueName, String logicalName, String instancesType, String physicalUri, String engineName, String parentIfProperty) {
+	public Vertex upsertVertex(String type, String uniqueName, String logicalName, String instancesType, String physicalUri, String engineName, String dataType, String parentIfProperty) {
 		Vertex vert = upsertVertex(type, uniqueName, logicalName);
+		
+		// add data type
+		determineDataType(vert, dataType);
 		
 		// add aliases
 		String[] curAl = new String[]{instancesType, physicalUri};
@@ -122,7 +128,7 @@ public class TinkerMetaData implements IMetaData {
 		// add engine
 		addToMultiProperty(vert, DB, engineName);
 		
-		addEngineMeta(vert, engineName, logicalName, instancesType, physicalUri);
+		addEngineMeta(vert, engineName, logicalName, instancesType, physicalUri, dataType);
 		
 		// add parent if it is a property
 		if(parentIfProperty != null){
@@ -130,6 +136,57 @@ public class TinkerMetaData implements IMetaData {
 		}
 		
 		return vert;
+	}
+	
+	private void determineDataType(Vertex vert, String dataType) {
+		if(dataType == null || dataType.isEmpty()) {
+			return;
+		}
+		
+		dataType = dataType.toUpperCase();
+		
+		String currType = null;
+		if(vert.property(DATATYPE).isPresent()){
+			currType = vert.value(DATATYPE);
+		}
+		
+		if(currType == null) {
+			if(dataType.equals("TYPE:STRING") || dataType.equals("TYPE:TEXT") || dataType.contains("TYPE:VARCHAR")) {
+				vert.property(DATATYPE, "STRING");
+			} 
+			else if(dataType.contains("INT") || dataType.contains("DECIMAL") || dataType.contains("DOUBLE") || dataType.contains("FLOAT") || dataType.contains("LONG") || dataType.contains("BIGINT")
+					|| dataType.contains("TINYINT") || dataType.contains("SMALLINT")){
+				vert.property(DATATYPE, "NUMBER");
+			} 
+			else if(dataType.contains("DATE")) {
+				vert.property(DATATYPE, "DATE");
+			}
+		} else {
+			// if current is string or new col is string
+			// column must now be a string
+			if(currType.equals("STRING") || dataType.equals("TYPE:STRING") || dataType.equals("TYPE:TEXT") || dataType.contains("TYPE:VARCHAR")) {
+				vert.property(DATATYPE, "STRING");
+			}
+			// if current is a number and new is a number
+			// column is still number
+			else if(currType.equals("NUMBER") && ( dataType.contains("INT") || dataType.contains("DECIMAL") || dataType.contains("DOUBLE") || dataType.contains("FLOAT") || dataType.contains("LONG") || dataType.contains("BIGINT")
+					|| dataType.contains("TINYINT") || dataType.contains("SMALLINT") )){
+				// no change
+				// vert.property(DATATYPE, "NUMBER");
+			}
+			// if current is date and new is date
+			// column is still date
+			else if(currType.equals("DATE") && dataType.contains("DATE")) {
+				// no change
+				// vert.property(DATATYPE, "DATE");
+			}
+			// any other situation, you have mixed types or numbers and dates... declare it a string for now //TODO
+			else {
+				vert.property(DATATYPE, "STRING");
+			}
+			
+		}
+		
 	}
 	
 	private void addToMultiProperty(Vertex vert, String propKey, String newValue, String... newVal){
