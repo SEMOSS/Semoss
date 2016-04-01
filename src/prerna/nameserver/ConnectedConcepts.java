@@ -54,19 +54,20 @@ public class ConnectedConcepts {
 		}
 	}
 	
-	public void addData(String engine, String conceptURI, Map<String, Map<String, Set<String>>> connections) {
+	public void addData(String engine, String conceptURI, String physName, Map<String, Object> connections) {
 		if(data.containsKey(engine)) {
 			Map<String, Object> engineMap = (Map<String, Object>) data.get(engine);
 			// need to check if relationship name already exists
-			Map<String, Map<String, Map<String, Set<String>>>> conceptMap = (Map<String, Map<String, Map<String, Set<String>>>>) engineMap.get(EQUIVALENT_CONCEPT);
+			Map<String, Map<String, Object>> conceptMap = (Map<String, Map<String, Object>>) engineMap.get(EQUIVALENT_CONCEPT);
 			if(conceptMap.containsKey(conceptURI)) {
 				// need to check if already existing relationships
-				Map<String, Map<String, Set<String>>> currConnections = conceptMap.get(conceptURI);
+				Map<String, Object> currConnections = conceptMap.get(conceptURI);
 				for(String key : connections.keySet()) {
+					currConnections.put("physicalName", physName);
 					if(currConnections.containsKey(key)) {
-						Map<String, Set<String>> newRels = connections.get(key);
+						Map<String, Set<String>> newRels = (Map<String, Set<String>>) connections.get(key); // this is like "downstream" --> [displayName/Studio]
 						// if found, add to existing set of possible connections
-						Map<String, Set<String>> relMap = currConnections.get(key);
+						Map<String, Set<String>> relMap = (Map<String, Set<String>>) currConnections.get(key);
 						for(String relKey : newRels.keySet()) {
 							if(relMap.containsKey(relKey)) {
 								relMap.get(relKey).addAll(newRels.get(relKey));
@@ -80,11 +81,13 @@ public class ConnectedConcepts {
 					}
 				}
 			} else {
+				connections.put("physicalName", physName);
 				conceptMap.put(conceptURI, connections);
 			}
 		} else {
 			Map<String, Object> engineMap = new Hashtable<String, Object>();
 			Map<String, Object> innerMap = new Hashtable<String, Object>();
+			connections.put("physicalName", physName);
 			innerMap.put(conceptURI, connections);
 			engineMap.put(EQUIVALENT_CONCEPT, innerMap);
 			data.put(engine, engineMap);

@@ -78,8 +78,8 @@ public class TinkerMetaData implements IMetaData {
 		addToMultiProperty(vert, ALIAS, logicalName, curAl);
 		
 		addAliasMeta(vert, logicalName, NAME_TYPE.DB_LOGICAL, engineName);
-		addAliasMeta(vert, instancesType, NAME_TYPE.DB_LOGICAL, engineName);
-		addAliasMeta(vert, physicalUri, NAME_TYPE.DB_LOGICAL, engineName);
+		addAliasMeta(vert, instancesType, NAME_TYPE.DB_PHYSICAL_NAME, engineName);
+		addAliasMeta(vert, physicalUri, NAME_TYPE.DB_PHYSICAL_URI, engineName);
 		
 		// add engine
 		addToMultiProperty(vert, DB, engineName);
