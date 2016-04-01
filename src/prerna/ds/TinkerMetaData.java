@@ -34,7 +34,45 @@ public class TinkerMetaData implements IMetaData {
 	public static final String META = "META";
 	public static final String EMPTY = "_";
 	
-	
+	/**
+	 * CURRENT PROPERTY STRUCTURE::::::::::::::::::
+	 * 		Key	Value	Description
+			TYPE	META	Has type META to differentiate from instance nodes
+			NAME	System_1	What the unique name for this column is
+			VALUE	System	This aligns with the TYPE for the instance nodes
+			ALIAS	[System_1, System, Application, etc]	This is a list for all different aliases that have been given to this node (can be user defined, db physical name, db logical name, etc)
+			DERIVED	m:Sum(…)	String representing how to calc if it is derived (PKQL?) IF IT IS DERIVED
+			PROPERTY	Interface	States what node (unique name) this node is a property of (IF IT IS A PROPERTY)
+			System_1	"{
+				Type: DB Logical Name or DB Physical Name or User Defined, etc
+				DB: [TAP_Core, TAP_Site]
+				}"	Holds all meta data around that alias -- where did it come from etc.
+			System	"{
+				Type: DB Logical Name or DB Physical Name or User Defined, etc
+				DB: [TAP_Core, TAP_Site]
+				}"	
+			Application	"{
+				Type: DB Logical Name or DB Physical Name or User Defined, etc
+				DB: [TAP_Core, TAP_Site]
+				}"	
+			DATABASE	[TAP_Core, TAP_Site, etc]	List for all different databases that contributed to this column
+			TAP_Core	"{
+				Physical Name: System
+				Physical URI: http://semoss.org/ontologies/Concept/System
+				Logical Name: System
+				Query Struct: ???
+				Stringified OWL: ???
+				}"	Holds all meta data around that database
+			TAP_Site	"{
+				Physical Name: System
+				Physical URI: http://semoss.org/ontologies/Concept/System
+				Logical Name: System
+				Query Struct: ???
+				Stringified OWL: ???
+				}"	
+
+	 * @param g
+	 */
 	public TinkerMetaData(TinkerGraph g) {
 		this.g = g;
 	}
