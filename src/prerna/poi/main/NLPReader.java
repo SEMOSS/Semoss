@@ -39,6 +39,8 @@ public class NLPReader extends AbstractFileReader {
 
 	public void importFileWithOutConnection(String smssLocation, String engineName,  String fileNames, String customBase, String customMap, String owlFile) 
 			throws FileNotFoundException, IOException {	
+		boolean error = false;
+		
 		String[] files = prepareReader(fileNames, customBase, owlFile, smssLocation);
 		openRdfEngineWithoutConnection(engineName);		
 		try {
@@ -51,8 +53,17 @@ public class NLPReader extends AbstractFileReader {
 			triples = processor.generateTriples(files);
 			createNLPrelationships();
 			createBaseRelations();
+		} catch(FileNotFoundException e) {
+			error = true;
+			throw new FileNotFoundException(e.getMessage());
+		} catch(IOException e) {
+			error = true;
+			throw new IOException(e.getMessage());
 		} finally {
-			closeDB();
+			if(error || autoLoad) {
+				closeDB();
+				closeOWL();
+			}
 		}
 	}
 

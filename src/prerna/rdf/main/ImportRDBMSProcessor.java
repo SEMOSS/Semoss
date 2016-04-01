@@ -31,14 +31,12 @@ import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.sql.Connection;
-import java.sql.DatabaseMetaData;
 import java.sql.DriverManager;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.HashSet;
 
 import org.apache.commons.io.FileUtils;
 import org.apache.log4j.LogManager;
@@ -49,7 +47,7 @@ import com.hp.hpl.jena.vocabulary.OWL;
 
 import prerna.poi.main.BaseDatabaseCreator;
 import prerna.poi.main.PropFileWriter;
-import prerna.poi.main.RDBMSReader;
+import prerna.poi.main.RDBMSEngineCreationHelper;
 import prerna.ui.components.ImportDataProcessor;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
@@ -233,11 +231,12 @@ public class ImportRDBMSProcessor {
 		ArrayList<String[]> relationships = (ArrayList<String[]>) metamodel.get("relationships");
 		
 		SQLQueryUtil queryUtil = SQLQueryUtil.initialize(SQLQueryUtil.DB_TYPE.valueOf(type), host, port, schema, username, password);
-		RDBMSReader reader = new RDBMSReader();
-		reader.setQueryUtil(queryUtil);
+//		RDBMSReader reader = new RDBMSReader();
+//		reader.setQueryUtil(queryUtil);
 		File engineDir = new File(baseFolder + "/db/" + engineName);
 		engineDir.mkdir();
-		reader.writePropFile(engineName);
+		RDBMSEngineCreationHelper.writePropFile(engineName, queryUtil);
+//		reader.writePropFile(engineName);
 		
 		BaseDatabaseCreator bdc = new BaseDatabaseCreator(baseFolder + "/db/" + engineName + "/" + engineName + "_OWL.OWL");
 		String semossURI = "http://semoss.org/ontologies";
@@ -309,8 +308,9 @@ public class ImportRDBMSProcessor {
 			e.printStackTrace();
 		}
 		
-		reader.setTables(tables.keySet());
-		reader.writeDefaultQuestionSheet(engineName);
+		RDBMSEngineCreationHelper.writeDefaultQuestionSheet(engineName, tables.keySet());
+//		reader.setTables(tables.keySet());
+//		reader.writeDefaultQuestionSheet(engineName);
 		
 		PropFileWriter propWriter = new PropFileWriter();
 		propWriter.setBaseDir(baseFolder);

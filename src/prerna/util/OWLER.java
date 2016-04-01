@@ -27,7 +27,9 @@ public class OWLER {
 	public static final String CLASS = "_CLASS";
 	public static final String TYPE_URI = "http://www.w3.org/1999/02/22-rdf-syntax-ns#type";
 	public static final String DEFAULT_PROPERTY_CLASS = "Relation/Contains";
-
+	public static final String PROP_DATATYPE_PREDICATE = OWL.DatatypeProperty.toString();
+	public static final String DATATYPE_PREDICATE = RDFS.CLASS.toString();
+	
 	public static String CONCEPT_URI = BASE_URI + DEFAULT_NODE_CLASS + "/";
 	public static String RELATION_URI =  BASE_URI + DEFAULT_PROPERTY_CLASS + "/";
 	
@@ -98,7 +100,7 @@ public class OWLER {
 	 and then concept is a type of class
 	 
 	 */
-	public String addConcept(String concept, String baseURI) {
+	public String addConcept(String concept, String baseURI, String dataType) {
 		if(!conceptHash.containsKey(concept)) {
 			// add this to the base URI
 			// make this as a type of semoss class
@@ -107,11 +109,15 @@ public class OWLER {
 			String subject = object + "/" + concept;
 			if(type.equals(IEngine.ENGINE_TYPE.RDBMS)) {
 				subject += "/" + concept;
-			}
-			String predicate = RDFS.SUBCLASSOF.stringValue();
-
+			} 
+			
+			String typeObject = "TYPE:" + dataType;
+			// all concepts in a rdf database are strings as they are uri's
+			engine.addToBaseEngine(subject, DATATYPE_PREDICATE, typeObject);
+			
 			// and I will store this statement
 			// STEP 1
+			String predicate = RDFS.SUBCLASSOF.stringValue();
 			engine.addToBaseEngine(subject, predicate, object);
 
 			conceptHash.put(concept, subject);
@@ -123,8 +129,12 @@ public class OWLER {
 		return conceptHash.get(concept);
 	}
 	
+	public String addConcept(String concept, String dataType) {
+		return addConcept(concept, SEMOSS_URI, dataType);
+	}
+	
 	public String addConcept(String concept) {
-		return addConcept(concept, SEMOSS_URI);
+		return addConcept(concept, SEMOSS_URI, "TYPE:STRING");
 	}
 	
 	// creates a relation
@@ -226,20 +236,18 @@ public class OWLER {
 			
 			// STEP 1
 			String propMaster = SEMOSS_URI + DEFAULT_PROP_CLASS;
-			String propPredicate = OWL.DatatypeProperty + "";
 			String propObject = propMaster + "/" + property;
 			
 			engine.addToBaseEngine(propObject, RDF.TYPE.stringValue(), propMaster);
 			
 			// STEP 2
-			engine.addToBaseEngine(propSubject, propPredicate, propObject);
+			engine.addToBaseEngine(propSubject, PROP_DATATYPE_PREDICATE, propObject);
 			
 			// STEP 3 ?
 			// I need some way to also add the types to this
-			String typePredicate = RDFS.CLASS.stringValue();
 			String typeObject = "TYPE:" + type;
 			
-			engine.addToBaseEngine(propObject, typePredicate, typeObject);
+			engine.addToBaseEngine(propObject, DATATYPE_PREDICATE, typeObject);
 			
 			propHash.put(concept + "%" + property, propObject);
 		}

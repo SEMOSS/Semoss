@@ -162,7 +162,7 @@ public class ImportDataProcessorTest extends TestCase {
 		boolean allowDuplicates = true;
 
 		//Run Processor
-		processor.runProcessor(testMethod, testType, fileNameCSV, customBaseURI, newDBnameCSV, mapFileCSV, "", "", "", dbType, rdbmsType, allowDuplicates);
+		processor.runProcessor(testMethod, testType, fileNameCSV, customBaseURI, newDBnameCSV, mapFileCSV, "", "", "", dbType, rdbmsType, allowDuplicates, true);
 		System.out.println("	CSV Db proccesor ran successfully. CSV DB Created.");
 
 		//TESTING ASSERTIONS
@@ -213,7 +213,7 @@ public class ImportDataProcessorTest extends TestCase {
 		boolean allowDuplicates = true;//used by RDBMS
 
 		//Run Processor
-		processor.runProcessor(testMethod, testType, fileNameEXCEL, customBaseURI , newDBnameEXCEL, mapFileEXCEL, "", "", "", dbType, rdbmsType, allowDuplicates);
+		processor.runProcessor(testMethod, testType, fileNameEXCEL, customBaseURI , newDBnameEXCEL, mapFileEXCEL, "", "", "", dbType, rdbmsType, allowDuplicates, true);
 		System.out.println("	EXCEL Db proccesor ran successfully. Excel DB created.");
 
 		//TESTING ASSERTIONS
@@ -288,7 +288,7 @@ public class ImportDataProcessorTest extends TestCase {
 		BigDataEngine engine = loadEngine(CSVsmss);
 
 		//Run Processor
-		processor.runProcessor(testMethod, testType, replacementCSV, customBaseURI, "", "", "", "", newDBnameCSV, dbType, rdbmsType, allowDuplicates);
+		processor.runProcessor(testMethod, testType, replacementCSV, customBaseURI, "", "", "", "", newDBnameCSV, dbType, rdbmsType, allowDuplicates, true);
 		System.out.println("CSV Db proccesor ran successfully. CSV DB Altered.");
 		engine.commitOWL();
 		engine.commit();
@@ -332,7 +332,7 @@ public class ImportDataProcessorTest extends TestCase {
 		BigDataEngine engine = loadEngine(EXCELsmss);
 
 		//Run Processor
-		processor.runProcessor(testMethod, testType, replacementExcel, customBaseURI , "", "", "", "", newDBnameEXCEL, dbType, rdbmsType, allowDuplicates);
+		processor.runProcessor(testMethod, testType, replacementExcel, customBaseURI , "", "", "", "", newDBnameEXCEL, dbType, rdbmsType, allowDuplicates, true);
 		System.out.println("	EXCEL Db proccesor ran successfully. Excel DB created.");
 		engine.commitOWL();
 		engine.commit();
@@ -391,7 +391,7 @@ public class ImportDataProcessorTest extends TestCase {
 		}
 
 		//Run Processor
-		processor.runProcessor(testMethod, testType, replacementCSV, customBaseURI, "", "", "", "", newDBnameCSV, dbType, rdbmsType, allowDuplicates);
+		processor.runProcessor(testMethod, testType, replacementCSV, customBaseURI, "", "", "", "", newDBnameCSV, dbType, rdbmsType, allowDuplicates, true);
 		System.out.println("CSV Db proccesor ran successfully. CSV DB Replaced.");
 	}
 
@@ -444,7 +444,7 @@ public class ImportDataProcessorTest extends TestCase {
 		}
 
 		//Run Processor
-		processor.runProcessor(testMethod, testType, replacementExcel, customBaseURI , "", "", "", "", newDBnameEXCEL, dbType, rdbmsType, allowDuplicates);
+		processor.runProcessor(testMethod, testType, replacementExcel, customBaseURI , "", "", "", "", newDBnameEXCEL, dbType, rdbmsType, allowDuplicates, true);
 		System.out.println("	EXCEL Db proccesor ran successfully. Excel DB replaced.");
 		engine.closeDB();
 	}
@@ -464,7 +464,7 @@ public class ImportDataProcessorTest extends TestCase {
 		boolean allowDuplicates = true;
 
 		//Run Processor
-		processor.runProcessor(testMethod, testType, fileNameEXCEL, customBaseURI , newDBnameEXCEL, mapFileEXCEL, "", "", "", dbType, rdbmsType, allowDuplicates);
+		processor.runProcessor(testMethod, testType, fileNameEXCEL, customBaseURI , newDBnameEXCEL, mapFileEXCEL, "", "", "", dbType, rdbmsType, allowDuplicates, true);
 		System.out.println("	EXCEL Db proccesor ran successfully. Excel DB created.");
 	}
 
@@ -476,7 +476,7 @@ public class ImportDataProcessorTest extends TestCase {
 		boolean allowDuplicates = true;
 
 		//Run Processor
-		processor.runProcessor(testMethod, testType, fileNameCSV, customBaseURI, newDBnameCSV, mapFileCSV, "", "", "", dbType, rdbmsType, allowDuplicates);
+		processor.runProcessor(testMethod, testType, fileNameCSV, customBaseURI, newDBnameCSV, mapFileCSV, "", "", "", dbType, rdbmsType, allowDuplicates, true);
 		System.out.println("	CSV Db proccesor ran successfully. CSV DB Created.");
 	}
 
