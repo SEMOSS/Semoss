@@ -33,11 +33,13 @@ import java.util.ArrayList;
 import java.util.Hashtable;
 import java.util.List;
 
+import prerna.engine.api.IEngine;
+
 public class NLPReader extends AbstractFileReader {
 
 	private List<TripleWrapper> triples = new ArrayList<TripleWrapper>();
 
-	public void importFileWithOutConnection(String smssLocation, String engineName,  String fileNames, String customBase, String customMap, String owlFile) 
+	public IEngine importFileWithOutConnection(String smssLocation, String engineName,  String fileNames, String customBase, String customMap, String owlFile) 
 			throws FileNotFoundException, IOException {	
 		boolean error = false;
 		
@@ -65,6 +67,8 @@ public class NLPReader extends AbstractFileReader {
 				closeOWL();
 			}
 		}
+		
+		return engine;
 	}
 
 	public void importFileWithConnection(String engineName, String fileNames, String customBase, String owlFile) 
