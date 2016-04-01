@@ -76,6 +76,7 @@ public class RDBMSReader extends AbstractFileReader {
 
 	private Map<String, String> sqlHash = new Hashtable<String, String>();
 	private Map<String, String> types = new Hashtable<String, String>();
+	private Map<String, Map<String, String>> allConcepts = new LinkedHashMap<String, Map<String, String>>();
 	private Map<String, Map<String, String>> concepts = new LinkedHashMap<String, Map<String, String>>();
 	private Map<String, List<String>> relations = new LinkedHashMap <String, List<String>>();
 	private Map<String, Map<String, String>> existingRDBMSStructure = new Hashtable<String, Map<String, String>>();
@@ -93,6 +94,8 @@ public class RDBMSReader extends AbstractFileReader {
 	protected PrintWriter scriptFile = null;
 
 	private void clearTables() {
+		// keep track of all the concepts that were modified during the loading process
+		allConcepts.putAll(concepts);
 		concepts.clear();
 		relations.clear();
 		existingTableWithAllColsAccounted.clear();
@@ -162,6 +165,7 @@ public class RDBMSReader extends AbstractFileReader {
 					}
 				}
 			}
+			cleanUpDBTables(engineName, allowDuplicates);
 			createBaseRelations();
 			RDBMSEngineCreationHelper.writeDefaultQuestionSheet(engine);
 		} catch(FileNotFoundException e) {
@@ -192,6 +196,7 @@ public class RDBMSReader extends AbstractFileReader {
 		LOGGER.setLevel(Level.WARN);
 		try {
 			openEngineWithConnection(engineName);
+			openScriptFile(engineName);
 			createTypes();
 			createSQLTypes();
 			findIndexes(engine.getEngineName());
@@ -230,10 +235,9 @@ public class RDBMSReader extends AbstractFileReader {
 			}
 			createBaseRelations();
 			addOriginalIndices();
+			cleanUpDBTables(engineName, allowDuplicates);
 			RDBMSEngineCreationHelper.addToExistingQuestionFile(engine, addedTables);
 		} finally {
-			closeDB();
-			closeOWL();
 			if(scriptFile != null) {
 				scriptFile.println("-- ********* completed load process ********* ");
 				scriptFile.close();
@@ -671,6 +675,80 @@ public class RDBMSReader extends AbstractFileReader {
 		}
 	}
 
+	private void cleanUpDBTables(String engineName, boolean allowDuplicates){
+		//fill up the availableTables and availableTablesInfo maps
+		Map<String, Map<String, String>> existingStructure = RDBMSEngineCreationHelper.getExistingRDBMSStructure(engine);
+		Set<String> alteredTables = allConcepts.keySet();
+		
+		Set<String> allTables = existingStructure.keySet();
+		for(String tableName : allTables) {
+			List<String> createIndex = new ArrayList<String>();
+		
+			Map<String, String> tableStruc = existingStructure.get(tableName);
+			Set<String> columns = tableStruc.keySet();
+
+			StringBuilder colsBuilder = new StringBuilder();
+			colsBuilder.append(tableName);
+			int indexCount = 0;
+			for(String col : columns) {
+				if(!col.equals(tableName)) {
+					colsBuilder.append(", ").append(col);
+				}
+				//index should be created on each individual primary and foreign key column
+				if(col.equals(tableName) ||  col.endsWith(FK)){
+					createIndex.add(queryUtil.getDialectCreateIndex(tableName + "_INDX_"+indexCount, tableName, col));
+					indexCount++;
+				}
+			}
+
+			boolean tableAltered = false;
+			for(String altTable : alteredTables) {
+				if(tableName.equalsIgnoreCase(altTable)) {
+					tableAltered = true;
+					break;
+				}
+			}
+			
+			//do this duplicates removal for only the tables that were modified
+			if(tableAltered){
+				if(!allowDuplicates){
+					//create new temporary table that has ONLY distinct values, also make sure you are removing those null values from the PK column
+					String createTable = queryUtil.getDialectRemoveDuplicates(tableName, colsBuilder.toString());
+					insertData(createTable);
+				}
+
+				//check that the temp table was created before dropping the table.
+				String verifyTable = queryUtil.dialectVerifyTableExists(tableName + "_TEMP"); //query here would return a row count 
+				//if temp table wasnt successfully created, go to the next table.
+				ISelectWrapper wrapper = WrapperManager.getInstance().getSWrapper(engine, verifyTable);
+				while(wrapper.hasNext()){ 
+					ISelectStatement stmtTblCount = wrapper.next();
+					String numberOfRows = stmtTblCount.getVar(queryUtil.getResultSelectRowCountFromRowCount()) + "";
+					if(numberOfRows.equals(0)){
+						//This REALLY shouldnt happen, but its here just in case...
+						LOGGER.error("**** Error***** occurred during database clean up on table " + tableName);
+						continue;
+					}
+				}
+
+				if(!allowDuplicates){
+					//drop existing table
+					String dropTable = queryUtil.getDialectDropTable(tableName);//dropTable = "DROP TABLE " + tableName;
+					insertData(dropTable);
+	
+					//rename our temporary table to the new table name				
+					String alterTableName = queryUtil.getDialectAlterTableName(tableName+"_TEMP", tableName); //alterTableName = "ALTER TABLE " + tableName + "_TEMP RENAME TO " + tableName;
+					insertData(alterTableName);
+				}
+			}
+			
+			//create indexs for ALL tables since we deleted all indexes before
+			for(String singleIndex: createIndex){
+				insertData(singleIndex);
+			}
+		}
+	}
+	
 	private String createInsertStatement(String concept, String defaultInsertQuery, Map<String, Object> jcrMap) {
 
 		StringBuilder insertQuery = new StringBuilder(defaultInsertQuery);
