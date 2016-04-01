@@ -96,27 +96,27 @@ public class NameServerProcessor extends AbstractNameServer {
 					// need to change this since it is returning 
 					keyword = keyword.replace("/Keyword", "");
 					Map<String, Map<String, Set<String>>> connections = MasterDBHelper.getRelationshipsForConcept(masterEngine, keyword, engineURL);
-					
+					Map<String, Object> cleanedConnections = new HashMap<String, Object>();
 					if(!connections.isEmpty()) {
 						//iterate over the connections map and translate/transform all nodes
 						for(Map.Entry<String, Map<String, Set<String>>> eachMap: connections.entrySet()){
-							Map<String, Set<String>> newMap = new HashMap<String, Set<String>>();
+							Map<String, Map<String, String>> newMap = new HashMap<String, Map<String, String>>();
 							for(String eachRelationship: eachMap.getValue().keySet()){
 								Set<String> conceptsURI= eachMap.getValue().get(eachRelationship);
-								Set<String> newConceptsURI = new HashSet<String>();
+								Map<String, String> newConceptsURI = new HashMap<String, String>();
 								for(String singleURI: conceptsURI){
-									singleURI = engine.getTransformedNodeName(singleURI, true);
-									newConceptsURI.add(singleURI);
+									String logicalURI = engine.getTransformedNodeName(singleURI, true);
+									newConceptsURI.put(logicalURI, Utility.getInstanceName(singleURI));
 								}
 								newMap.put(eachRelationship, newConceptsURI);
 							}
 							if(newMap.size()>0){
-								connections.put(eachMap.getKey(), newMap);
+								cleanedConnections.put(eachMap.getKey(), newMap);
 							}
 						}
 						
 						String datakeyword = engine.getTransformedNodeName(keyword, true); //get the keywords display name
-						combineResults.addData(engineName, datakeyword, connections);
+						combineResults.addData(engineName, datakeyword, Utility.getInstanceName(keyword), cleanedConnections);
 						combineResults.addSimilarity(engineName, datakeyword, 1-simScore);
 						if(engineURLHash.containsKey(engineName)) {
 							combineResults.addAPI(engineName, engineURLHash.get(engineName));
