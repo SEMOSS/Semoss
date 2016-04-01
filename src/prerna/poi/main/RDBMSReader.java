@@ -39,6 +39,7 @@ import org.supercsv.io.CsvMapReader;
 import org.supercsv.io.ICsvMapReader;
 import org.supercsv.prefs.CsvPreference;
 
+import prerna.engine.api.IEngine;
 import prerna.engine.api.ISelectStatement;
 import prerna.engine.api.ISelectWrapper;
 import prerna.rdf.engine.wrappers.WrapperManager;
@@ -114,7 +115,7 @@ public class RDBMSReader extends AbstractFileReader {
 	 * @throws FileNotFoundException 
 	 * @throws SailException 
 	 */
-	public void importFileWithOutConnection(String smssLocation, String fileNames, String customBase, String owlFile, String engineName, SQLQueryUtil.DB_TYPE dbType, boolean allowDuplicates) 
+	public IEngine importFileWithOutConnection(String smssLocation, String fileNames, String customBase, String owlFile, String engineName, SQLQueryUtil.DB_TYPE dbType, boolean allowDuplicates) 
 			throws RepositoryException, FileNotFoundException, IOException, SailException, Exception {
 		long start = System.currentTimeMillis();
 
@@ -183,6 +184,8 @@ public class RDBMSReader extends AbstractFileReader {
 
 		long end = System.currentTimeMillis();
 		LOGGER.info((end - start)/1000 + " seconds to load...");
+		
+		return engine;
 	}
 
 	public void importFileWithConnection(String engineName, String fileNames, String customBase, String owlFile, SQLQueryUtil.DB_TYPE dbType, boolean allowDuplicates) 

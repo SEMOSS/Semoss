@@ -142,6 +142,14 @@ public interface IEngine extends IExplorable{
 	 */
 	public Object doAction(IEngine.ACTION_TYPE actionType, Object[] args);
 	
+	
+	/**
+	 * Get the datatypes for the uri from the associated owl file
+	 * @param uris
+	 * @return
+	 */
+	public String getDataTypes(String uri);
+	
 	/**
 	 * Get the datatypes for the uris from the associated owl file
 	 * If varargs param is empty, it will return all data types

@@ -78,9 +78,10 @@ public class RdfExcelTableReader extends AbstractFileReader {
 	 * @param customBase	String grabbed from the user interface that is used as the URI base for all instances 
 	 * @param customMap		
 	 * @param owlFile		String automatically generated within SEMOSS to determine the location of the OWL file that is produced
+	 * @return 
 	 * @throws IOException 
 	 */
-	public void importFileWithOutConnection(String smssLocation, String engineName, String fileNames, String customBase, String owlFile) throws IOException {
+	public IEngine importFileWithOutConnection(String smssLocation, String engineName, String fileNames, String customBase, String owlFile) throws IOException {
 		boolean error = false;
 		
 		logger.setLevel(Level.WARN);
@@ -134,6 +135,8 @@ public class RdfExcelTableReader extends AbstractFileReader {
 				closeOWL();
 			}
 		}
+		
+		return engine;
 	}
 
 	public void parseMetadata() {

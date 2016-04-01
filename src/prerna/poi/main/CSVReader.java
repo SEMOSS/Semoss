@@ -51,6 +51,7 @@ import org.supercsv.io.CsvMapReader;
 import org.supercsv.io.ICsvMapReader;
 import org.supercsv.prefs.CsvPreference;
 
+import prerna.engine.api.IEngine;
 import prerna.util.Constants;
 import prerna.util.Utility;
 
@@ -87,12 +88,13 @@ public class CSVReader extends AbstractFileReader {
 	 * @param customBase	String grabbed from the user interface that is used as the URI base for all instances 
 	 * @param customMap		
 	 * @param owlFile		String automatically generated within SEMOSS to determine the location of the OWL file that is produced
+	 * @return 
 	 * @throws EngineException 
 	 * @throws FileReaderException 
 	 * @throws FileWriterException 
 	 * @throws HeaderClassException 
 	 */
-	public void importFileWithOutConnection(String smssLocation, String engineName, String fileNames, String customBase, String owlFile) 
+	public IEngine importFileWithOutConnection(String smssLocation, String engineName, String fileNames, String customBase, String owlFile) 
 			throws FileNotFoundException, IOException {
 		boolean error = false;
 		logger.setLevel(Level.WARN);
@@ -139,6 +141,8 @@ public class CSVReader extends AbstractFileReader {
 				closeOWL();
 			}
 		}
+		
+		return engine;
 	}
 
 	/**
