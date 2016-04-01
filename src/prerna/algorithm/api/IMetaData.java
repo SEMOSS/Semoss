@@ -14,8 +14,8 @@ public interface IMetaData {
 	enum NAME_TYPE {USER_DEFINED, DB_PHYSICAL_NAME, DB_PHYSICAL_URI, DB_LOGICAL}
 
 	Vertex upsertVertex(String type, String uniqueName, String logicalName, String instancesType, String physicalUri,
-			String engineName, String parentIfProperty); // TODO: Rishi needs to remove this
-
+			String engineName, String dataType, String parentIfProperty);
+	
 	Map<String, String> getProperties();
 
 	String getPhysicalUriForNode(String string, String engineName);

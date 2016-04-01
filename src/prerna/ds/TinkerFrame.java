@@ -1197,7 +1197,7 @@ public class TinkerFrame implements ITableDataFrame {
 			newLevels.add(newNode);
 			
 			//grab/create the meta vertex associated with newNode
-			Vertex outVert = this.metaData.upsertVertex(META, newNode, newNode, physicalName, outPhysicalUri, engine.getEngineName(), outConceptName);
+			Vertex outVert = this.metaData.upsertVertex(META, newNode, newNode, physicalName, outPhysicalUri, engine.getEngineName(), engine.getDataTypes(outPhysicalUri), outConceptName);
 			
 			//for each edge in corresponding with newNode create the connection within the META graph
 			for(String inVertS : edges){
@@ -1220,7 +1220,7 @@ public class TinkerFrame implements ITableDataFrame {
 				cleanSet.add(inVertString);
 				
 				// now to insert the meta edge
-				Vertex inVert = this.metaData.upsertVertex(META, inVertString, inVertString, inPhysicalName, inPhysicalUri, engine.getEngineName(), inConceptName);
+				Vertex inVert = this.metaData.upsertVertex(META, inVertString, inVertString, inPhysicalName, inPhysicalUri, engine.getEngineName(), engine.getDataTypes(inPhysicalUri), inConceptName);
 //				Vertex inVert = upsertVertex(META, inVertString, inVertString);
 				
 				upsertEdge(outVert, inVert);
