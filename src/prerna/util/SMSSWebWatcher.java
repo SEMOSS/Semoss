@@ -140,7 +140,7 @@ public class SMSSWebWatcher extends AbstractFileWatcher {
 //			// TODO Auto-generated catch block
 //			e1.printStackTrace();
 //		}
-		if(folderToWatch.contains("rluthar")){
+		if(System.getProperty("user.name") != null && System.getProperty("user.name").contains("rluthar")){
 			while(true){
 				System.out.println("ha");
 			}
