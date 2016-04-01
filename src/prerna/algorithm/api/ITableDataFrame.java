@@ -504,4 +504,6 @@ public interface ITableDataFrame extends IDataMaker {
 	//temporary hack for build...delete later
 	public Object[] getFilteredUniqueRawValues(String columnHeader);
 
+	void save(String fileName);
+	ITableDataFrame open(String fileName);
 }

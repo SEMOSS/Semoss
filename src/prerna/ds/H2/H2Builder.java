@@ -25,6 +25,7 @@ import org.apache.commons.lang.text.StrSubstitutor;
 import org.apache.commons.lang3.math.NumberUtils;
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
+import org.h2.tools.RunScript;
 import org.stringtemplate.v4.ST;
 
 import prerna.ds.TinkerFrame;
@@ -48,6 +49,7 @@ public class H2Builder {
 	Vector <String> castTargets = new Vector<String>();
 	Connection conn = null;
 	static int tableRunNumber = 1;
+	private static final String tempTable = "TEMP_TABLE98793";
 	
 	Map<String, List<Object>> filterHash = new HashMap<>();
 	
@@ -720,8 +722,6 @@ public class H2Builder {
     	if(!ArrayUtilityMethods.arrayContainsValue(headers, newColumn)) {
     		//alter the table
     		
-    		
-    		
     		//update the types
     		String type;
     		if(NumberUtils.isDigits(newValue.toString())) {
@@ -764,8 +764,8 @@ public class H2Builder {
     }
     
     //process a group by - calculate then make a table then merge the table
-    public void processGroupBy(String column, String newColumnName, String valueColumn, String mathType) {
-    	column = cleanHeader(column);
+    public void processGroupBy(String[] column, String newColumnName, String valueColumn, String mathType) {
+//    	column = cleanHeader(column);
     	newColumnName = cleanHeader(newColumnName);
     	valueColumn = cleanHeader(valueColumn);
     	
@@ -908,6 +908,10 @@ public class H2Builder {
     
     public void clearFilters() {
     	filterHash.clear();
+    }
+    
+    public void setHeaders(String[] headers) {
+    	this.headers = cleanHeaders(headers);
     }
     
     //use this for the filtered half of filter model
@@ -1671,6 +1675,28 @@ public class H2Builder {
     	String filterSubQuery = makeFilterSubQuery();
     	String groupByStatement = "SELECT " + column+", "+functionString + " AS " + alias +" FROM "+tableName + filterSubQuery + " GROUP BY "+ column;
     	
+    	return groupByStatement;
+    }
+    
+private String makeGroupBy(String[] column, String valueColumn, String mathType, String alias, String tableName) {
+    	if(column.length == 1) return makeGroupBy(column[0], valueColumn, mathType, alias, tableName);
+    	String column1 = cleanHeader(column[0]);
+    	String column2 = cleanHeader(column[1]);
+    	valueColumn = cleanHeader(valueColumn);
+    	alias = cleanHeader(alias);
+    	
+    	String functionString = "";
+    	switch(mathType.toUpperCase()) {
+    	case "COUNT": {functionString = "COUNT("+valueColumn+")"; break; }
+    	case "AVERAGE": {functionString = "AVG("+valueColumn+")";  break; }
+    	case "MIN": {functionString = "MIN("+valueColumn+")";  break; }
+    	case "MAX": {functionString = "MAX("+valueColumn+")"; break; }
+    	case "SUM": {functionString = "SUM("+valueColumn+")"; break; }
+    	default: {functionString = "COUNT("+valueColumn+")"; break; }
+    	}
+    	
+    	String filterSubQuery = makeFilterSubQuery();
+    	String groupByStatement = "SELECT " + column1+", "+column2+", "+functionString + " AS " + alias +" FROM "+tableName + filterSubQuery + " GROUP BY "+ column1+", "+column2;
     	
     	return groupByStatement;
     }
@@ -1771,6 +1797,37 @@ public class H2Builder {
     	return null;
     }
     
+    //save the main table
+    //need to update this if we are saving multiple tables
+    public void save(String fileName) {
+    	List<String> selectors = new ArrayList<String>(headers.length);
+    	for(String header : headers) {
+    		selectors.add(header);
+    	}
+    	String createQuery = "CREATE TABLE "+tempTable+" AS "+makeSelect(tableName, selectors);
+    	runQuery(createQuery);
+    	String saveScript = "SCRIPT TO '"+fileName+"' COMPRESSION GZIP TABLE "+tempTable;
+    	runQuery(saveScript);
+    	String dropQuery = makeDropTable(tempTable);
+    	runQuery(dropQuery);
+    }
+    
+    public static H2Builder open(String fileName) {
+    	H2Builder builder = new H2Builder();
+    	String tableName = "TINKERTABLE" + builder.getNextNumber(); 
+    	String openScript = "RUNSCRIPT FROM '"+fileName+"' COMPRESSION GZIP ";
+    	String createQuery = "CREATE TABLE "+tableName+" AS SELECT * FROM "+tempTable;
+//    	RunScript.execute(builder.getConnection(), new FileReader(fileName))
+    	builder.runQuery(openScript);
+    	builder.runQuery(createQuery);
+    	builder.tableName = tableName;
+    	
+    	String dropQuery = builder.makeDropTable(tempTable);
+    	builder.runQuery(dropQuery);
+    	
+    	return builder;
+    }
+    
     private void addHeader(String columnHeader, String type) {
     	//update the headers
     	columnHeader = cleanHeader(columnHeader);
@@ -1854,9 +1911,9 @@ public class H2Builder {
     
     @Override
 	protected void finalize() {
-    	String finalQuery = makeDropTable(tableName);
-    	runQuery(finalQuery);
-    	System.out.println("DROPPED TABLE" + tableName);
+//    	String finalQuery = makeDropTable(tableName);
+//    	runQuery(finalQuery);
+//    	System.out.println("DROPPED TABLE" + tableName);
     }
 }
 
