@@ -123,7 +123,7 @@ public class POIReader extends AbstractFileReader {
 	 * @throws InvalidUploadFormatException
 	 */
 	//	public void importFileWithOutConnection(String smssLocation, String engineName, String fileNames, String customBase, String customMap, String owlFile)
-	public void importFileWithOutConnection(String smssLocation, String engineName, String fileNames, String customBase, String owlFile)
+	public IEngine importFileWithOutConnection(String smssLocation, String engineName, String fileNames, String customBase, String owlFile)
 			throws FileNotFoundException, IOException {
 		boolean error = false;
 		logger.setLevel(Level.WARN);
@@ -153,9 +153,11 @@ public class POIReader extends AbstractFileReader {
 				closeOWL();
 			}
 		}
+		
+		return engine;
 	}
 
-	public void importFileWithOutConnectionRDBMS(String smssLocation, String engineName, String fileNames, String customBase, String owlFile, SQLQueryUtil.DB_TYPE dbType, boolean allowDuplicates)
+	public IEngine importFileWithOutConnectionRDBMS(String smssLocation, String engineName, String fileNames, String customBase, String owlFile, SQLQueryUtil.DB_TYPE dbType, boolean allowDuplicates)
 			throws FileNotFoundException, IOException {
 
 		queryUtil = SQLQueryUtil.initialize(dbType);
@@ -173,6 +175,8 @@ public class POIReader extends AbstractFileReader {
 			closeDB();
 			closeOWL();
 		}
+		
+		return engine;
 	}
 
 	/**

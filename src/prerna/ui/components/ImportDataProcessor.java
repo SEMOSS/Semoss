@@ -44,6 +44,7 @@ import org.openrdf.repository.RepositoryException;
 import org.openrdf.sail.SailException;
 
 import prerna.engine.api.IEngine;
+import prerna.engine.impl.AbstractEngine;
 import prerna.poi.main.CSVReader;
 import prerna.poi.main.NLPReader;
 //import prerna.poi.main.OntologyFileWriter;
@@ -200,6 +201,7 @@ public class ImportDataProcessor {
 //		Hashtable<String, String> newBaseRelURIvalues = null;
 //		String propURI = null;
 		boolean error = false;
+		IEngine engine = null;
 		try {		
 			if(DIHelper.getInstance().getLocalProp(dbName) != null) {
 				throw new IOException("Database name already exists. \nPlease make the database name unique \nor consider import method to \"Add To Existing\".");
@@ -215,7 +217,7 @@ public class ImportDataProcessor {
 			if(importType == IMPORT_TYPE.EXCEL_POI && dbType == DB_TYPE.RDF) {
 				POIReader reader = new POIReader();
 				reader.setAutoLoad(autoLoad);
-				reader.importFileWithOutConnection(propWriter.propFileName, dbName, fileNames, customBaseURI, owlPath);
+				engine = reader.importFileWithOutConnection(propWriter.propFileName, dbName, fileNames, customBaseURI, owlPath);
 //				newURIvalues = reader.conceptURIHash;
 //				newBaseURIvalues = reader.baseConceptURIHash;
 //				newRelURIvalues = reader.relationURIHash;
@@ -225,7 +227,7 @@ public class ImportDataProcessor {
 			} else if(importType == IMPORT_TYPE.EXCEL_POI && dbType == DB_TYPE.RDBMS) {
 				POIReader reader = new POIReader();
 				reader.setAutoLoad(autoLoad);
-				reader.importFileWithOutConnectionRDBMS(propWriter.propFileName, dbName, fileNames, customBaseURI, owlPath, dbDriverType, allowDuplicates);
+				engine = reader.importFileWithOutConnectionRDBMS(propWriter.propFileName, dbName, fileNames, customBaseURI, owlPath, dbDriverType, allowDuplicates);
 //				newURIvalues = reader.conceptURIHash;
 //				newBaseURIvalues = reader.baseConceptURIHash;
 //				newRelURIvalues = reader.relationURIHash;
@@ -240,7 +242,7 @@ public class ImportDataProcessor {
 				if(propHashArr != null) {
 					reader.setRdfMapArr(propHashArr);
 				}
-				reader.importFileWithOutConnection(propWriter.propFileName, dbName, fileNames, customBaseURI, owlPath);
+				engine = reader.importFileWithOutConnection(propWriter.propFileName, dbName, fileNames, customBaseURI, owlPath);
 //				newURIvalues = reader.conceptURIHash;
 //				newBaseURIvalues = reader.baseConceptURIHash;
 //				newRelURIvalues = reader.relationURIHash;
@@ -255,7 +257,7 @@ public class ImportDataProcessor {
 				if(propHashArr != null) {
 					reader.setRdfMapArr(propHashArr);
 				}
-				reader.importFileWithOutConnection(propWriter.propFileName, dbName, fileNames, customBaseURI, owlPath);
+				engine = reader.importFileWithOutConnection(propWriter.propFileName, dbName, fileNames, customBaseURI, owlPath);
 //				newURIvalues = reader.conceptURIHash;
 //				newBaseURIvalues = reader.baseConceptURIHash;
 //				newRelURIvalues = reader.relationURIHash;
@@ -265,7 +267,7 @@ public class ImportDataProcessor {
 			} else if(importType == IMPORT_TYPE.NLP && dbType == DB_TYPE.RDF){
 				NLPReader reader = new NLPReader();
 				reader.setAutoLoad(autoLoad);
-				reader.importFileWithOutConnection(propWriter.propFileName, dbName, fileNames, customBaseURI, mapFile, owlPath);
+				engine = reader.importFileWithOutConnection(propWriter.propFileName, dbName, fileNames, customBaseURI, mapFile, owlPath);
 //				newURIvalues = reader.conceptURIHash;
 //				newBaseURIvalues = reader.baseConceptURIHash;
 //				newRelURIvalues = reader.relationURIHash;
@@ -278,7 +280,7 @@ public class ImportDataProcessor {
 				if(propHashArr != null) {
 					reader.setRdfMapArr(propHashArr);
 				}
-				reader.importFileWithOutConnection(propWriter.propFileName , fileNames, customBaseURI, owlPath, dbName, dbDriverType, allowDuplicates);
+				engine = reader.importFileWithOutConnection(propWriter.propFileName , fileNames, customBaseURI, owlPath, dbName, dbDriverType, allowDuplicates);
 //				newURIvalues = reader.conceptURIHash;
 //				newBaseURIvalues = reader.baseConceptURIHash;
 //				newRelURIvalues = reader.relationURIHash;
@@ -287,6 +289,23 @@ public class ImportDataProcessor {
 			}
 //			OntologyFileWriter ontologyWriter = new OntologyFileWriter();
 //			ontologyWriter.runAugment(ontoPath, newURIvalues, newBaseURIvalues,	newRelURIvalues, newBaseRelURIvalues, propURI);
+			
+			if(!autoLoad) {
+				engine.setOWL(owlPath);
+				engine.loadTransformedNodeNames();
+				if(dbType == DB_TYPE.RDBMS) {
+					((AbstractEngine) engine).setPropFile(propWriter.propFileName);
+					((AbstractEngine) engine).createInsights(baseDirectory);
+				}
+				DIHelper.getInstance().setLocalProperty(dbName, engine);
+				String engineNames = (String) DIHelper.getInstance().getLocalProp(Constants.ENGINES);
+				engineNames = engineNames + ";" + dbName;
+				DIHelper.getInstance().setLocalProperty(Constants.ENGINES, engineNames);
+				Utility.addToLocalMaster(engine);
+				Utility.addToSolrInsightCore(engine, propWriter.propFileName);
+				Utility.addToSolrInstanceCore(engine);
+			}
+			
 			propFile = new File(propWriter.propFileName);
 			newProp = new File(propWriter.propFileName.replace("temp", "smss"));
 			

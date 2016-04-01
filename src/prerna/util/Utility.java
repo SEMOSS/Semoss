@@ -1033,6 +1033,12 @@ public class Utility {
 //			boolean closeDB = false;
 			String engineName = prop.getProperty(Constants.ENGINE);
 			String engineClass = prop.getProperty(Constants.ENGINE_TYPE);
+			
+			if(engines.startsWith(engineName) || engines.contains(";"+engineName+";") || engines.endsWith(";"+engineName)) {
+				LOGGER.debug("DB " + engineName + "<> is already loaded...");
+				return (IEngine) DIHelper.getInstance().getLocalProp(engineName);
+			}
+			
 			//TEMPORARY
 			// TODO: remove this
 			if(engineClass.equals("prerna.rdf.engine.impl.RDBMSNativeEngine")){
