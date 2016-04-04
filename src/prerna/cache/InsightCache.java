@@ -88,14 +88,14 @@ public abstract class InsightCache implements ICache {
 	}
 	
 	public void cacheDataMaker(IDataMaker dm, String baseFile) {
-//		if(dm instanceof TinkerFrame) {
+		if(dm instanceof ITableDataFrame) {
 		String dataFrame = dm.getClass().getName();
 		String extension = extensionMap.get(dataFrame);
 			String dmFilePath = baseFile + extension;
-//			if(!(new File(dmFilePath).exists())) {
+			if(!(new File(dmFilePath).exists())) {
 				((ITableDataFrame)dm).save(dmFilePath);
-//			}
-//		}
+			}
+		}
 	}
 	
 	//needs to return either IDataMaker or ITableDataFrame
