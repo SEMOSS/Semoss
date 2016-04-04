@@ -1931,9 +1931,9 @@ public class Utility {
     {
     	// what is this check??? 
     	// this is messing up the types since it works based on if there is a null pointer
-//    	if(input.indexOf("-") > 0) {
-//    		return input;
-//    	}
+    	if(input.matches("\\Q$\\E(\\d+)\\Q.\\E?(\\d+)?\\Q-\\E\\Q$\\E(\\d+)\\Q.\\E?(\\d+)?")) {
+    		return input;
+    	}
     	Number nm = null;
     	NumberFormat nf = NumberFormat.getCurrencyInstance();
     	try {
