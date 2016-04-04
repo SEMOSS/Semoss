@@ -48,8 +48,11 @@ public class H2Builder {
 	String alterString = null;
 	Vector <String> castTargets = new Vector<String>();
 	Connection conn = null;
+	boolean create = false;
 	static int tableRunNumber = 1;
+	static int rowCount = 0;
 	private static final String tempTable = "TEMP_TABLE98793";
+	String brokenLines = "";
 	
 	Map<String, List<Object>> filterHash = new HashMap<>();
 	
@@ -530,19 +533,25 @@ public class H2Builder {
     }
 
     //create a table with the data given the columnheaders with the tableName
+    // I am not sure if we even use it now
     private void generateTable(String[][] data, String[] columnHeaders, String tableName) {
     	
-    	predictRowTypes(data[0]);
-    	String createTable = makeCreate(columnHeaders, tableName);
-    	runQuery(createTable);
-    	
-    	
-    	for(String[] row : data) {
+    	try {
+			predictRowTypes(data[0]);
+			String createTable = makeCreate(columnHeaders, tableName);
+			runQuery(createTable);
+			
+			
+			for(String[] row : data) {
 //    		String[] cells = castRowTypes(row);
-    		String[] cells = Utility.castToTypes(row, types);
-    		String inserter = makeInsert(columnHeaders, types, cells, new Hashtable<String, String>(), tableName);
-    		runQuery(inserter);
-    	}
+				String[] cells = Utility.castToTypes(row, types);
+				String inserter = makeInsert(columnHeaders, types, cells, new Hashtable<String, String>(), tableName);
+				runQuery(inserter);
+			}
+		} catch (Exception e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
     }
     
     /*************************** END CREATE **************************************/
@@ -703,8 +712,14 @@ public class H2Builder {
     
     //drop the column from the table
     public void dropColumn(String columnHeader) {
-    	runQuery(makeDropColumn(columnHeader, tableName));
-    	removeHeader(columnHeader);
+    	
+    	try {
+			runQuery(makeDropColumn(columnHeader, tableName));
+			removeHeader(columnHeader);
+		} catch (Exception e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
     }
     
     //only use this for analytics for now
@@ -713,37 +728,42 @@ public class H2Builder {
     		throw new UnsupportedOperationException("multi column join not implemented");
     	}
     	
-    	String joinColumn = columnHeaders[0];
-    	String newColumn = columnHeaders[1];
-    	
-    	Object joinValue = values[0];
-    	Object newValue = values[1];
-    	
-    	if(!ArrayUtilityMethods.arrayContainsValue(headers, newColumn)) {
-    		//alter the table
-    		
-    		//update the types
-    		String type;
-    		if(NumberUtils.isDigits(newValue.toString())) {
-    			type = "int";
-	    	}
-	    	else if(getDouble(newValue.toString()) != null ) {
-	    		type = "double";
-	    	}
-	    	else {
-	    		type = "varchar(800)";
-	    	}
-    		
-    		//update the headers
-    		addHeader(newColumn, type);
-    		
-    		String[] newHeaders = new String[]{newColumn};
-    		String alterQuery = makeAlter(newHeaders, tableName);
-    		runQuery(alterQuery);
-    	}
-    	
-    	String updateQuery = makeUpdate(tableName, joinColumn, newColumn, joinValue, newValue);
-    	runQuery(updateQuery);
+    	try {
+			String joinColumn = columnHeaders[0];
+			String newColumn = columnHeaders[1];
+			
+			Object joinValue = values[0];
+			Object newValue = values[1];
+			
+			if(!ArrayUtilityMethods.arrayContainsValue(headers, newColumn)) {
+				//alter the table
+				
+				//update the types
+				String type;
+				if(NumberUtils.isDigits(newValue.toString())) {
+					type = "int";
+				}
+				else if(getDouble(newValue.toString()) != null ) {
+					type = "double";
+				}
+				else {
+					type = "varchar(800)";
+				}
+				
+				//update the headers
+				addHeader(newColumn, type);
+				
+				String[] newHeaders = new String[]{newColumn};
+				String alterQuery = makeAlter(newHeaders, tableName);
+				runQuery(alterQuery);
+			}
+			
+			String updateQuery = makeUpdate(tableName, joinColumn, newColumn, joinValue, newValue);
+			runQuery(updateQuery);
+		} catch (Exception e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
     }
     
     /*************************** END READ ****************************************/
@@ -873,16 +893,33 @@ public class H2Builder {
     public void addRow(String[] cells) {
     	
     	//if first row being added to the table establish the types
-    	if(types == null) {
-    		predictRowTypes(cells);
-    		String createTable = makeCreate(headers, tableName);
-    		runQuery(createTable);
+    	try
+    	{
+	    	if(types == null) {
+	    		predictRowTypes(cells);
+	    		String createTable = makeCreate(headers, tableName);
+	    		runQuery(createTable);
+	    		create = true;
+	    	}
+    	}catch(Exception ex)
+    	{
+    		brokenLines = "Headers are not properly formatted - Discontinued processing";
     	}
-    	
-//    	cells = castRowTypes(cells);
-    	cells = Utility.castToTypes(cells, types);
-		String inserter = makeInsert(headers, types, cells, new Hashtable<String, String>(), tableName);
-		runQuery(inserter);
+	    
+    	try
+    	{
+	    	if(create)
+	    	{
+	    		rowCount++;
+		    	cells = Utility.castToTypes(cells, types);
+				String inserter = makeInsert(headers, types, cells, new Hashtable<String, String>(), tableName);
+				runQuery(inserter);
+	    	}
+    	}catch (Exception ex)
+    	{
+    		System.out.println("Errored.. nothing to do");
+    		brokenLines = brokenLines + " : " + rowCount;
+    	}
     }
     
     //aggregate filters
@@ -1241,10 +1278,15 @@ public class H2Builder {
     }
     
     private String cleanHeader(String header) {
-    	header = header.replaceAll(" ", "_");
+    	/*header = header.replaceAll(" ", "_");
     	header = header.replace("(", "_");
     	header = header.replace(")", "_");
     	header = header.replace("-", "_");
+    	header = header.replace("'", "");*/
+    	header = header.replaceAll("[#%!&()@#$'./_-]*", ""); // replace all the useless shit in one go
+    	header = header.replaceAll("\\s+","_"); 
+    	if(Character.isDigit(header.charAt(0)))
+    		header = "c_" + header;
     	return header;
     }
     
@@ -1779,12 +1821,8 @@ private String makeGroupBy(String[] column, String valueColumn, String mathType,
     /*************************** END QUERY BUILDERS **************************************/
     
     //use this when result set is not expected back
-    private void runQuery(String query) {
-    	try {
+    private void runQuery(String query) throws Exception{
     		getConnection().createStatement().execute(query);
-    	} catch(SQLException e) {
-    		e.printStackTrace();
-    	}
     }
     
     //use this when result set is expected
@@ -1804,12 +1842,17 @@ private String makeGroupBy(String[] column, String valueColumn, String mathType,
     	for(String header : headers) {
     		selectors.add(header);
     	}
-    	String createQuery = "CREATE TABLE "+tempTable+" AS "+makeSelect(tableName, selectors);
-    	runQuery(createQuery);
-    	String saveScript = "SCRIPT TO '"+fileName+"' COMPRESSION GZIP TABLE "+tempTable;
-    	runQuery(saveScript);
-    	String dropQuery = makeDropTable(tempTable);
-    	runQuery(dropQuery);
+    	try {
+			String createQuery = "CREATE TABLE "+tempTable+" AS "+makeSelect(tableName, selectors);
+			runQuery(createQuery);
+			String saveScript = "SCRIPT TO '"+fileName+"' COMPRESSION GZIP TABLE "+tempTable;
+			runQuery(saveScript);
+			String dropQuery = makeDropTable(tempTable);
+			runQuery(dropQuery);
+		} catch (Exception e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
     }
     
     public static H2Builder open(String fileName) {
@@ -1818,12 +1861,17 @@ private String makeGroupBy(String[] column, String valueColumn, String mathType,
     	String openScript = "RUNSCRIPT FROM '"+fileName+"' COMPRESSION GZIP ";
     	String createQuery = "CREATE TABLE "+tableName+" AS SELECT * FROM "+tempTable;
 //    	RunScript.execute(builder.getConnection(), new FileReader(fileName))
-    	builder.runQuery(openScript);
-    	builder.runQuery(createQuery);
-    	builder.tableName = tableName;
-    	
-    	String dropQuery = builder.makeDropTable(tempTable);
-    	builder.runQuery(dropQuery);
+    	try {
+			builder.runQuery(openScript);
+			builder.runQuery(createQuery);
+			builder.tableName = tableName;
+			
+			String dropQuery = builder.makeDropTable(tempTable);
+			builder.runQuery(dropQuery);
+		} catch (Exception e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
     	
     	return builder;
     }
