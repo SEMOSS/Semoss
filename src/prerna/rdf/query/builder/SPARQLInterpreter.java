@@ -189,7 +189,7 @@ public class SPARQLInterpreter implements IQueryInterpreter {
 		// 2. Using bindings at the end of the query is the same as putting filter within the clause for that concept
 		// 3. If the concept we are filtering on is optional, the filter must be outside of its clause (aka can't use bindings)
 		
-		if(objects.get(0).toString().indexOf("\"") >= 0 || objects.get(0).toString().indexOf(engine.getNodeBaseUri()) >= 0) // ok this is a string ------ must be " = " comparator ... currently not handling regex
+		if(objects.get(0) instanceof String) // ok this is a string ------ must be " = " comparator ... currently not handling regex
 		{
 			property = getVarName(property, false); // right now all strings are assumed to be nodes
 			List<Object> cleanedObjects = new Vector<Object>();
