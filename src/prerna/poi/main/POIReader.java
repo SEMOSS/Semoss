@@ -826,6 +826,7 @@ public class POIReader extends AbstractFileReader {
 					inserter = inserter + cells[cellIndex];
 				else
 					inserter = inserter + " , " + cells[cellIndex];
+				
 				types[cellIndex] = concepts.get(conceptName).get(cells[cellIndex]);
 			}
 			inserter = inserter + ") VALUES ";
@@ -836,10 +837,18 @@ public class POIReader extends AbstractFileReader {
 				thisRow = lSheet.getRow(rowIndex);
 				String [] uCells = getCells(thisRow, totalCols);
 				cells = Utility.castToTypes(uCells, types);
-				values = "( " + cells[1];
-
-				for(int cellIndex = 2;cellIndex < cells.length;cellIndex++)
-					values = values + " , " + cells[cellIndex];
+				if(types[1].equals("INT") || types[1].equals("DOUBLE")) {
+					values = "( " + cells[1];
+				} else {
+					values = "( '" + cells[1] + "'";
+				}
+				for(int cellIndex = 2;cellIndex < cells.length;cellIndex++) {
+					if(types[cellIndex].equals("INT") || types[cellIndex].equals("DOUBLE")) {
+						values = values + " , " + cells[cellIndex];
+					} else {
+						values = values + " , '" + cells[cellIndex] + "'";
+					}
+				}
 
 				values = values + ")";
 				try {
