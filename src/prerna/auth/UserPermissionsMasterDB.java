@@ -263,8 +263,11 @@ public class UserPermissionsMasterDB {
 	public Boolean deleteEngine(String user, String engineName) {
 		String query = "DELETE Engine, EnginePermission FROM Engine INNER JOIN EnginePermission ON Engine.ID=EnginePermission.ENGINE WHERE Engine.NAME='" + engineName 
 				+ "' AND EnginePermission.USER='" + user + "' AND EnginePermission.PERMISSION=" + EnginePermission.OWNER.getId() + ";";
-		
 		securityDB.execUpdateAndRetrieveStatement(query, true);
+		
+		query = "DELETE FROM InsightExecution WHERE InsightExecution.DATABASE='" + engineName + "';";
+		securityDB.execUpdateAndRetrieveStatement(query, true);
+		
 		securityDB.commit();
 		
 		return true;
