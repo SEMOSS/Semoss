@@ -151,6 +151,8 @@ public class POIReader extends AbstractFileReader {
 			if(error || autoLoad) {
 				closeDB();
 				closeOWL();
+			} else {
+				commitDB();
 			}
 		}
 		
@@ -386,7 +388,7 @@ public class POIReader extends AbstractFileReader {
 					if(!concepts.containsKey(fromName))
 					{
 						Hashtable <String, String> props = new Hashtable<String, String>();
-						props.put(fromName, "varchar(255)");
+						props.put(fromName, "varchar(800)");
 						concepts.put(fromName, props);
 					}
 
@@ -394,7 +396,7 @@ public class POIReader extends AbstractFileReader {
 					if(!concepts.containsKey(toName))
 					{
 						Hashtable <String, String> props = new Hashtable<String, String>();
-						props.put(toName, "varchar(255)");
+						props.put(toName, "varchar(800)");
 						concepts.put(toName, props);
 					}
 
