@@ -140,11 +140,7 @@ public class SMSSWebWatcher extends AbstractFileWatcher {
 //			// TODO Auto-generated catch block
 //			e1.printStackTrace();
 //		}
-		if(System.getProperty("user.name") != null && System.getProperty("user.name").contains("rluthar")){
-			while(true){
-				System.out.println("ha");
-			}
-		}
+
 		File dir = new File(folderToWatch);
 		String[] fileNames = dir.list(this);
 		String[] engineNames = new String[fileNames.length];
