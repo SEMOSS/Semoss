@@ -9,6 +9,8 @@ import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 import org.apache.tinkerpop.gremlin.groovy.jsr223.GremlinGroovyScriptEngine;
 import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.GraphTraversal;
+import org.apache.tinkerpop.gremlin.structure.Edge;
+import org.apache.tinkerpop.gremlin.structure.T;
 import org.apache.tinkerpop.gremlin.structure.Vertex;
 import org.apache.tinkerpop.gremlin.structure.VertexProperty;
 import org.apache.tinkerpop.gremlin.tinkergraph.structure.TinkerGraph;
@@ -78,7 +80,15 @@ public class TinkerMetaData implements IMetaData {
 	public TinkerMetaData(TinkerGraph g) {
 		this.g = g;
 	}
-
+	
+	public TinkerMetaData() {
+		TinkerGraph g = TinkerGraph.open();
+		g.createIndex(Constants.TYPE, Vertex.class);
+		g.createIndex(Constants.ID, Vertex.class);
+		g.createIndex(T.label.toString(), Edge.class);
+		g.createIndex(Constants.ID, Edge.class);
+		this.g = g;
+	}
 	
 	
 	
@@ -87,8 +97,15 @@ public class TinkerMetaData implements IMetaData {
 
 	}
 
-
-	
+	/**
+	 * 
+	 * @param vert
+	 * @param engineName
+	 * @param logicalName
+	 * @param instancesType
+	 * @param physicalUri
+	 * @param dataType
+	 */
 	public void addEngineMeta(Vertex vert, String engineName, String logicalName, String instancesType, String physicalUri, String dataType) {
 		
 		// now add the meta object if it doesn't already exist
@@ -112,6 +129,9 @@ public class TinkerMetaData implements IMetaData {
 
 
 	@Override
+	/**
+	 * 
+	 */
 	public Vertex upsertVertex(String type, String uniqueName, String logicalName, String instancesType, String physicalUri, String engineName, String dataType, String parentIfProperty) {
 		Vertex vert = upsertVertex(type, uniqueName, logicalName);
 		
@@ -138,6 +158,12 @@ public class TinkerMetaData implements IMetaData {
 		
 		return vert;
 	}
+	
+//	public void addAlias(String type, String uniqueName, String logicalName, String aliasProperty, String newAlias) {
+//		Vertex vert = upsertVertex(type, uniqueName, logicalName);
+//		addToMultiProperty(vert, ALIAS, logicalName, newAlias);
+//		addAliasMeta(vert, logicalName, );
+//	}
 	
 	private void determineDataType(Vertex vert, String dataType) {
 		if(dataType == null || dataType.isEmpty()) {
@@ -190,6 +216,13 @@ public class TinkerMetaData implements IMetaData {
 		
 	}
 	
+	/**
+	 * 
+	 * @param vert
+	 * @param propKey - property to add to
+	 * @param newValue - value to add to propkey
+	 * @param newVal - optional additional values to add to propKey
+	 */
 	private void addToMultiProperty(Vertex vert, String propKey, String newValue, String... newVal){
 		vert.property(VertexProperty.Cardinality.set, propKey, newValue);
 		for(String val : newVal){
@@ -197,6 +230,13 @@ public class TinkerMetaData implements IMetaData {
 		}
 	}
 	
+	/**
+	 * 
+	 * @param vert - meta vertex to modify
+	 * @param name - alias being added
+	 * @param type - how the alias is defined e.g. DB_LOGICAL
+	 * @param engineName - if db defined name, what db defined it
+	 */
 	private void addAliasMeta(Vertex vert, String name, NAME_TYPE type, String engineName){
 		// now add the meta object if it doesn't already exist
 		Map<String, Object> metaData = null;
@@ -218,9 +258,9 @@ public class TinkerMetaData implements IMetaData {
 	}
 
 	// create or add vertex
-	protected Vertex upsertVertex(String type, Object data, Object value)
+	protected Vertex upsertVertex(String type, Object name, Object value)
 	{
-		if(data == null) data = EMPTY;
+		if(name == null) name = EMPTY;
 		if(value == null) value = EMPTY;
 		// checks to see if the vertex is there already
 		// if so retrieves the vertex
@@ -228,17 +268,17 @@ public class TinkerMetaData implements IMetaData {
 		Vertex retVertex = null;
 		// try to find the vertex
 //		GraphTraversal<Vertex, Vertex> gt = g.traversal().V().has(Constants.TYPE, type).has(Constants.ID, type + ":" + data);
-		GraphTraversal<Vertex, Vertex> gt = g.traversal().V().has(Constants.ID, type + ":" + data);
+		GraphTraversal<Vertex, Vertex> gt = g.traversal().V().has(Constants.ID, type + ":" + name);
 		if(gt.hasNext()) {
 			retVertex = gt.next();
 		} else {
 			//retVertex = g.addVertex(Constants.ID, type + ":" + data, Constants.VALUE, value, Constants.TYPE, type, Constants.NAME, data, Constants.FILTER, false); //should we add a filter flag to each vertex?
-			if(data instanceof Number) {
+			if(name instanceof Number) {
 				// need to keep values as they are, not with XMLSchema tag
-				retVertex = g.addVertex(Constants.ID, type + ":" + data, Constants.VALUE, data, Constants.TYPE, type, Constants.NAME, data);// push the actual value as well who knows when you would need it
+				retVertex = g.addVertex(Constants.ID, type + ":" + name, Constants.VALUE, name, Constants.TYPE, type, Constants.NAME, name);// push the actual value as well who knows when you would need it
 			} else {
-				LOGGER.debug(" adding vertex ::: " + Constants.ID + " = " + type + ":" + data+ " & " + Constants.VALUE+ " = " + value+ " & " + Constants.TYPE+ " = " + type+ " & " + Constants.NAME+ " = " + data);
-				retVertex = g.addVertex(Constants.ID, type + ":" + data, Constants.VALUE, value, Constants.TYPE, type, Constants.NAME, data);// push the actual value as well who knows when you would need it
+				LOGGER.debug(" adding vertex ::: " + Constants.ID + " = " + type + ":" + name+ " & " + Constants.VALUE+ " = " + value+ " & " + Constants.TYPE+ " = " + type+ " & " + Constants.NAME+ " = " + name);
+				retVertex = g.addVertex(Constants.ID, type + ":" + name, Constants.VALUE, value, Constants.TYPE, type, Constants.NAME, name);// push the actual value as well who knows when you would need it
 			}
 			
 			if(META.equals(type)) {
