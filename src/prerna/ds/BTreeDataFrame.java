@@ -53,6 +53,7 @@ import prerna.algorithm.api.IAnalyticActionRoutine;
 import prerna.algorithm.api.IAnalyticRoutine;
 import prerna.algorithm.api.IAnalyticTransformationRoutine;
 import prerna.algorithm.api.IMatcher;
+import prerna.algorithm.api.IMetaData;
 import prerna.algorithm.api.ITableDataFrame;
 import prerna.engine.api.IEngine;
 import prerna.engine.api.ISelectStatement;
@@ -2189,6 +2190,12 @@ public class BTreeDataFrame implements ITableDataFrame {
 
 	@Override
 	public ITableDataFrame open(String fileName) {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+	@Override
+	public IMetaData getMetaData() {
 		// TODO Auto-generated method stub
 		return null;
 	}
