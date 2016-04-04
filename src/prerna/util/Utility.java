@@ -1929,8 +1929,11 @@ public class Utility {
     
     public static Object getCurrency(String input)
     {
-    	if(input.indexOf("-") > 0)
-    		return input;
+    	// what is this check??? 
+    	// this is messing up the types since it works based on if there is a null pointer
+//    	if(input.indexOf("-") > 0) {
+//    		return input;
+//    	}
     	Number nm = null;
     	NumberFormat nf = NumberFormat.getCurrencyInstance();
     	try {
@@ -1962,14 +1965,14 @@ public class Utility {
 	    		if(thisOutput[outIndex] != null) // && castTargets.contains(outIndex + ""))
 	    		{
 	    			if(types[outIndex].equalsIgnoreCase("Date"))
-	    				values[outIndex] = getDate(thisOutput[outIndex]);
+	    				values[outIndex] = "'" + getDate(thisOutput[outIndex]) + "'";
 	    			else if(types[outIndex].equalsIgnoreCase("Currency"))// this is a currency
 	    				values[outIndex] = getCurrency(thisOutput[outIndex])+"";
 	    			else if(types[outIndex].equalsIgnoreCase("varchar(800)"))
 	    			{
 	    				if(thisOutput[outIndex].length() >= 800)
 	    					thisOutput[outIndex] = thisOutput[outIndex].substring(0,798);
-	    				values[outIndex] = thisOutput[outIndex];
+	    				values[outIndex] = "'" + thisOutput[outIndex] + "'";
 	    			}
 	    		}
     		}
@@ -1978,11 +1981,11 @@ public class Utility {
 	    		if(types[outIndex].equalsIgnoreCase("Double"))
 	    			values[outIndex] = "NULL";
 	    		else if(types[outIndex].equalsIgnoreCase("varchar(800)")|| types[outIndex].equalsIgnoreCase("date"))
-	    			values[outIndex] = "";
+	    			values[outIndex] = "''";
     		}
     		else
     		{
-    			values[outIndex] = "";
+    			values[outIndex] = "''";
     		}
     	}
     	return values;
