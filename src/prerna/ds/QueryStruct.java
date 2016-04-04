@@ -1,5 +1,6 @@
 package prerna.ds;
 
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Hashtable;
@@ -7,6 +8,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.Vector;
+
+import com.google.gson.Gson;
 
 public class QueryStruct {
 
@@ -223,5 +226,19 @@ public class QueryStruct {
 		else {
 			return false;
 		}
+	}
+	
+	public static void main(String [] args) throws Exception
+	{
+		QueryStruct qs = new QueryStruct();
+		qs.addSelector("Title", null);
+		qs.addFilter("Title", "=", Arrays.asList(new String[]{"WB", "ABC"}));
+		qs.addRelation("Title", "Actor", "inner.join");
+		
+		Gson gson = new Gson();
+		System.out.println(gson.toJson(qs));
+		
+		
+		
 	}
 }
