@@ -141,16 +141,18 @@ public class TFRelationQueryBuilderPopup extends JMenu implements MouseListener{
 					addLabel("From:");
 					Collection<String> upstreamRels = upstream.keySet();
 					for(String upstreamRel: upstreamRels){
-						Set<String> specificNodes = (Set) ((Map<String, Object>) upstream).get(upstreamRel);
-						for(String node : specificNodes){
-							String instance = Utility.getInstanceName(Utility.getTransformedNodeName(engine, node, true));
+						Map<String, String> specificNodes = (Map<String, String>) ((Map<String, Object>) upstream).get(upstreamRel);
+						for(String logicalName : specificNodes.keySet()){
+//							String instance = Utility.getInstanceName(Utility.getTransformedNodeName(engine, node, true));
 							QueryStruct data = new QueryStruct();
-							data.addRelation(node, "inner.join", typeUri);
-							data.addFilter(Utility.getInstanceName(typeUri), "=", filterList);
+							data.addSelector(type, null);
+							data.addSelector(specificNodes.get(logicalName), null);
+							data.addRelation(specificNodes.get(logicalName), type, "inner.join");
+							data.addFilter(type, "=", filterList);
 							
 							DataMakerComponent dmc = new DataMakerComponent(engine, data);
-							addJoinTransformation(dmc, type, typeUri);
-							NeighborQueryBuilderMenuItem nItem = new NeighborQueryBuilderMenuItem(instance, dmc, engine);
+							addJoinTransformation(dmc, type, type);
+							NeighborQueryBuilderMenuItem nItem = new NeighborQueryBuilderMenuItem(Utility.getInstanceName(logicalName), dmc, engine);
 							nItem.addActionListener(NeighborMenuListener.getInstance());
 							add(nItem);
 						}
@@ -162,16 +164,18 @@ public class TFRelationQueryBuilderPopup extends JMenu implements MouseListener{
 					addLabel("To:");
 					Collection<String> downstreamRels = downstream.keySet();
 					for(String downstreamRel: downstreamRels){
-						Set<String> specificNodes = (Set) ((Map<String, Object>) downstream).get(downstreamRel);
-						for(String node : specificNodes){
-							String instance = Utility.getInstanceName(Utility.getTransformedNodeName(engine, node, true));
+						Map<String,String> specificNodes = (Map<String, String>) ((Map<String, Object>) downstream).get(downstreamRel);
+						for(String logicalName : specificNodes.keySet()){
+//							String instance = Utility.getInstanceName(Utility.getTransformedNodeName(engine, node, true));
 							QueryStruct data = new QueryStruct();
-							data.addRelation(typeUri, "inner.join", node);
-							data.addFilter(Utility.getInstanceName(typeUri), "=", filterList);
+							data.addSelector(type, null);
+							data.addSelector(specificNodes.get(logicalName), null);
+							data.addRelation(type, specificNodes.get(logicalName), "inner.join");
+							data.addFilter(type, "=", filterList);
 							
 							DataMakerComponent dmc = new DataMakerComponent(engine, data);
-							addJoinTransformation(dmc, type, typeUri);
-							NeighborQueryBuilderMenuItem nItem = new NeighborQueryBuilderMenuItem(instance, dmc, engine);
+							addJoinTransformation(dmc, type, type);
+							NeighborQueryBuilderMenuItem nItem = new NeighborQueryBuilderMenuItem(Utility.getInstanceName(logicalName), dmc, engine);
 							nItem.addActionListener(NeighborMenuListener.getInstance());
 							add(nItem);
 						}

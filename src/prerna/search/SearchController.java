@@ -141,14 +141,20 @@ public class SearchController implements KeyListener, FocusListener, ActionListe
 			}
 			if(tempState.getPicked().size()==0 && !resHash.isEmpty()){
 				Iterator resIt = resHash.keySet().iterator();
-				while(resIt.hasNext())
-					liveState.pick(vertStore.get(resIt.next()), true);
+				while(resIt.hasNext()){
+					Object next = resIt.next();
+					SEMOSSVertex vert = vertStore.get(next);
+					liveState.pick(vert, true);
+				}
 			}
 			//if there are vertices in the temp state, need to pick them in the live state and clear tempState
 			if(tempState.getPicked().size()>0){
 				Iterator resIt = tempState.getPicked().iterator();
-				while(resIt.hasNext())
-					liveState.pick(resIt.next(), true);
+				while(resIt.hasNext()){
+					Object next = resIt.next();
+					SEMOSSVertex vert = vertStore.get(next);
+					liveState.pick(vert, true);
+				}
 				tempState.clear();
 			}
 		}
