@@ -568,9 +568,9 @@ public class GraphDataModel implements IDataMaker {
 			//Model baseModel = ModelFactory.createOntologyModel(OntModelSpec.RDFS_MEM);
 			jenaModel = ModelFactory.createDefaultModel();
 		}
-		Resource subject = jenaModel.createResource(st.getSubject());
-		Property prop = jenaModel.createProperty(st.getPredicate());
-		Resource object = jenaModel.createResource(st.getObject()+"");
+		Resource subject = jenaModel.createResource(getDisplayName(st.getSubject()));
+		Property prop = jenaModel.createProperty(getDisplayName(st.getPredicate()));
+		Resource object = jenaModel.createResource(getDisplayName(st.getObject()+""));
 		com.hp.hpl.jena.rdf.model.Statement jenaSt = null;
 		//logger.warn("Adding Statement " + subject + "<>" + prop + "<>" + object);
 

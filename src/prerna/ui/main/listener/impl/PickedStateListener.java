@@ -103,9 +103,9 @@ public class PickedStateListener implements ItemListener {
 			vertHash=vlft.getVertHash();
 		}
 
-		for(int vertIndex = 0;it.hasNext();vertIndex++)
+		SEMOSSVertex v;
+		for(int vertIndex = 0;it.hasNext() && ( v = it.next()) != null;vertIndex++)
 		{
-			SEMOSSVertex v = it.next();
 			vertices[vertIndex] = v;
 			//add selected vertices
 			vertHash.put(v.getProperty(Constants.URI), v.getProperty(Constants.URI));
