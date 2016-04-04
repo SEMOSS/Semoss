@@ -1,6 +1,7 @@
 package prerna.ds;
 
 import java.util.HashMap;
+import java.util.Hashtable;
 import java.util.Map;
 import java.util.Vector;
 
@@ -249,7 +250,22 @@ public class TinkerMetaData implements IMetaData {
 		return retVertex;
 	}
 
-
+	public Map<String, String> getNodeTypesForUniqueAlias() {
+		GraphTraversal<Vertex, Vertex> gt = g.traversal().V().has(Constants.TYPE, META);
+		Map<String, String> retMap = new Hashtable<String, String>();
+		while(gt.hasNext()) {
+			Vertex vert = gt.next();
+			String uniqueName = vert.value(Constants.NAME);
+			if(vert.property(DATATYPE).isPresent()) {
+				String type = vert.value(DATATYPE);
+				retMap.put(uniqueName, type);
+			} else {
+				retMap.put(uniqueName, "TYPE NOT STORED IN OWL, NEED TO UPDATE DB");
+			}
+		}
+		
+		return retMap;
+	}
 
 
 	@Override
@@ -279,5 +295,7 @@ public class TinkerMetaData implements IMetaData {
 		}
 		else return null;
 	}
+	
+	
 
 }
