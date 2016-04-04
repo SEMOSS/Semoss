@@ -179,6 +179,8 @@ public class RDBMSReader extends AbstractFileReader {
 			if(error || autoLoad) {
 				closeDB();
 				closeOWL();
+			} else {
+				commitDB();
 			}
 		}
 
