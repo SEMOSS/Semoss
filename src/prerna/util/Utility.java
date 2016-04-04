@@ -1965,14 +1965,14 @@ public class Utility {
 	    		if(thisOutput[outIndex] != null) // && castTargets.contains(outIndex + ""))
 	    		{
 	    			if(types[outIndex].equalsIgnoreCase("Date"))
-	    				values[outIndex] = "'" + getDate(thisOutput[outIndex]) + "'";
+	    				values[outIndex] = getDate(thisOutput[outIndex]);
 	    			else if(types[outIndex].equalsIgnoreCase("Currency"))// this is a currency
 	    				values[outIndex] = getCurrency(thisOutput[outIndex])+"";
 	    			else if(types[outIndex].equalsIgnoreCase("varchar(800)"))
 	    			{
 	    				if(thisOutput[outIndex].length() >= 800)
 	    					thisOutput[outIndex] = thisOutput[outIndex].substring(0,798);
-	    				values[outIndex] = "'" + thisOutput[outIndex] + "'";
+	    				values[outIndex] = thisOutput[outIndex];
 	    			}
 	    		}
     		}
@@ -1981,11 +1981,11 @@ public class Utility {
 	    		if(types[outIndex].equalsIgnoreCase("Double"))
 	    			values[outIndex] = "NULL";
 	    		else if(types[outIndex].equalsIgnoreCase("varchar(800)")|| types[outIndex].equalsIgnoreCase("date"))
-	    			values[outIndex] = "''";
+	    			values[outIndex] = "";
     		}
     		else
     		{
-    			values[outIndex] = "''";
+    			values[outIndex] = "";
     		}
     	}
     	return values;
@@ -2006,14 +2006,14 @@ public class Utility {
 	    		if(thisOutput != null) // && castTargets.contains(outIndex + ""))
 	    		{
 	    			if(type.equalsIgnoreCase("Date"))
-	    				values = "'" + getDate(thisOutput) + "'";
+	    				values = getDate(thisOutput);
 	    			else if(type.equalsIgnoreCase("Currency"))// this is a currency
 	    				values = getCurrency(thisOutput) + "";
 	    			else if(type.equalsIgnoreCase("varchar(800)"))
 	    			{
 	    				if(thisOutput.length() >= 800)
 	    					thisOutput = thisOutput.substring(0,798);
-	    				values = "'" + thisOutput + "'";
+	    				values = thisOutput;
 	    			}
 	    		}
     		}
@@ -2022,11 +2022,11 @@ public class Utility {
 	    		if(type.equalsIgnoreCase("Double"))
 	    			values = "NULL";
 	    		else if(type.equalsIgnoreCase("varchar(800)") || type.equalsIgnoreCase("date"))
-	    			values = "''";
+	    			values = "";
     		}
     		else
     		{
-    			values = "''";
+    			values = "";
     		}
     	return values;
     }
