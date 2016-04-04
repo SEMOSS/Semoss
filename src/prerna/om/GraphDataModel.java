@@ -104,6 +104,7 @@ public class GraphDataModel implements IDataMaker {
 	StringBuffer objects = new StringBuffer("");
 
 	private boolean isPhysicalMetamodel = false;
+	private static final String PHYSICAL_NAME = "PhysicalName";
 	
 	boolean search, prop, sudowl;
 
@@ -611,11 +612,14 @@ public class GraphDataModel implements IDataMaker {
 			SEMOSSVertex vert1 = vertStore.get(displayNameSubject);
 			if (vert1 == null) {
 				vert1 = new SEMOSSVertex(displayNameSubject);
+				vert1.setProperty(this.PHYSICAL_NAME, Utility.getInstanceName(subject));
 			}
-			String subjectInstance = Utility.getInstanceName(subject);
 			//only set property and store vertex if the property does not already exist on the node
 			String propName = this.getDisplayName(predicate); //Utility.getInstanceName(this.getDisplayName(subjectInstance +"%"+ predicate));
 			if (vert1.getProperty(propName)==null) {
+				if(this.subclassCreate && object instanceof String && (object+"").isEmpty()){
+					object = predicate;
+				}
 				vert1.setProperty(propName, object);
 				storeVert(vert1);
 			}
@@ -624,9 +628,6 @@ public class GraphDataModel implements IDataMaker {
 	}
 
 	private void storeVert(SEMOSSVertex vert){
-		if(((String) vert.getProperty(Constants.URI)).contains("Concept")){
-			int i = 0;
-		}
 		if(method == CREATION_METHOD.OVERLAY && incrementalVertStore != null){
 			if(!vertStore.containsKey(vert.getProperty(Constants.URI) + "")){
 				incrementalVertStore.put(vert.getProperty(Constants.URI) + "", vert);
@@ -665,12 +666,14 @@ public class GraphDataModel implements IDataMaker {
 			SEMOSSVertex vert1 = vertStore.get(displayNameSubject);
 			if (vert1 == null) {
 				vert1 = new SEMOSSVertex(displayNameSubject);
+				vert1.setProperty(this.PHYSICAL_NAME, Utility.getInstanceName(outNode));
 				storeVert(vert1);
 			}
 			String displayNameObject = this.getDisplayName(inNode);
 			SEMOSSVertex vert2 = vertStore.get(displayNameObject);
 			if (vert2 == null) {
 				vert2 = new SEMOSSVertex(displayNameObject + "");
+				vert2.setProperty(PHYSICAL_NAME, Utility.getInstanceName(outNode));
 				storeVert(vert2);
 			}
 			edge = new SEMOSSEdge(vert1, vert2, edgeName);
@@ -828,7 +831,8 @@ public class GraphDataModel implements IDataMaker {
 				count++;
 
 				SesameJenaConstructStatement sct = sjsc.next();
-				String subject = this.getDisplayName(sct.getSubject());
+				String physName = sct.getSubject();
+				String subject = this.getDisplayName(physName);
 				
 				if(!baseFilterHash.containsKey(subject))// && !baseFilterHash.containsKey(sct.getPredicate()) && !baseFilterHash.containsKey(sct.getObject()+""))
 				{
@@ -836,6 +840,7 @@ public class GraphDataModel implements IDataMaker {
 					if(vert1 == null)
 					{
 						vert1 = new SEMOSSVertex(subject);
+						vert1.setProperty(this.PHYSICAL_NAME, Utility.getInstanceName(physName));
 						storeVert(vert1);
 					}
 					// add my friend
@@ -880,8 +885,10 @@ public class GraphDataModel implements IDataMaker {
 
 				SesameJenaConstructStatement sct = sjsc.next();
 				String predicateName = this.getDisplayName(sct.getPredicate());
-				String subjectName = this.getDisplayName(sct.getSubject());
-				String objectName = this.getDisplayName(sct.getObject()+"");
+				String subPhys = sct.getSubject();
+				String subjectName = this.getDisplayName(subPhys);
+				String objPhys = sct.getObject()+"";
+				String objectName = this.getDisplayName(objPhys);
 				
 				if(!baseFilterHash.containsKey(subjectName) && !baseFilterHash.containsKey(predicateName) && !baseFilterHash.containsKey(objectName))
 				{
@@ -891,6 +898,7 @@ public class GraphDataModel implements IDataMaker {
 					if(vert1 == null)
 					{
 						vert1 = new SEMOSSVertex(subjectName);
+						vert1.setProperty(this.PHYSICAL_NAME, Utility.getInstanceName(subPhys));
 						storeVert(vert1);
 					}
 					SEMOSSVertex vert2 = vertStore.get(objectName);
@@ -900,6 +908,7 @@ public class GraphDataModel implements IDataMaker {
 							vert2 = new SEMOSSVertex(objectName);
 						else // ok this is a literal
 							vert2 = new SEMOSSVertex(predicateName, sct.getObject());
+						vert2.setProperty(this.PHYSICAL_NAME, Utility.getInstanceName(objPhys));
 						storeVert(vert2);
 					}
 					// create the edge now
