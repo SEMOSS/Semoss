@@ -10,6 +10,12 @@ import prerna.ui.components.playsheets.datamakers.IDataMaker;
 public interface ITableDataFrame extends IDataMaker {
 
 	/**
+	 * Call to get the metadata from the data maker
+	 * @return
+	 */
+	IMetaData getMetaData();
+	
+	/**
 	 * Adds a row to the data-frame
 	 * @param statement				The query result to add to the data-frame
 	 */
