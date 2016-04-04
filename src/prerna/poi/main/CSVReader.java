@@ -139,6 +139,8 @@ public class CSVReader extends AbstractFileReader {
 			if(error || autoLoad) {
 				closeDB();
 				closeOWL();
+			} else {
+				commitDB();
 			}
 		}
 		
