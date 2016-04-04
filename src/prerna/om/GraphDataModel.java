@@ -36,6 +36,7 @@ import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 import org.openrdf.model.Literal;
 import org.openrdf.model.URI;
+import org.openrdf.model.impl.LiteralImpl;
 import org.openrdf.model.impl.URIImpl;
 import org.openrdf.query.MalformedQueryException;
 import org.openrdf.query.QueryLanguage;
@@ -612,13 +613,13 @@ public class GraphDataModel implements IDataMaker {
 			SEMOSSVertex vert1 = vertStore.get(displayNameSubject);
 			if (vert1 == null) {
 				vert1 = new SEMOSSVertex(displayNameSubject);
-				vert1.setProperty(this.PHYSICAL_NAME, Utility.getInstanceName(subject));
+				vert1.putProperty(this.PHYSICAL_NAME, Utility.getInstanceName(subject));
 			}
 			//only set property and store vertex if the property does not already exist on the node
 			String propName = this.getDisplayName(predicate); //Utility.getInstanceName(this.getDisplayName(subjectInstance +"%"+ predicate));
 			if (vert1.getProperty(propName)==null) {
-				if(this.subclassCreate && object instanceof String && (object+"").isEmpty()){
-					object = predicate;
+				if(this.subclassCreate && object instanceof LiteralImpl && ((LiteralImpl)object).getLabel().isEmpty()){
+					object = Utility.getInstanceName(predicate);
 				}
 				vert1.setProperty(propName, object);
 				storeVert(vert1);
@@ -666,14 +667,14 @@ public class GraphDataModel implements IDataMaker {
 			SEMOSSVertex vert1 = vertStore.get(displayNameSubject);
 			if (vert1 == null) {
 				vert1 = new SEMOSSVertex(displayNameSubject);
-				vert1.setProperty(this.PHYSICAL_NAME, Utility.getInstanceName(outNode));
+				vert1.putProperty(this.PHYSICAL_NAME, Utility.getInstanceName(outNode));
 				storeVert(vert1);
 			}
 			String displayNameObject = this.getDisplayName(inNode);
 			SEMOSSVertex vert2 = vertStore.get(displayNameObject);
 			if (vert2 == null) {
 				vert2 = new SEMOSSVertex(displayNameObject + "");
-				vert2.setProperty(PHYSICAL_NAME, Utility.getInstanceName(outNode));
+				vert2.putProperty(PHYSICAL_NAME, Utility.getInstanceName(outNode));
 				storeVert(vert2);
 			}
 			edge = new SEMOSSEdge(vert1, vert2, edgeName);
@@ -840,7 +841,7 @@ public class GraphDataModel implements IDataMaker {
 					if(vert1 == null)
 					{
 						vert1 = new SEMOSSVertex(subject);
-						vert1.setProperty(this.PHYSICAL_NAME, Utility.getInstanceName(physName));
+						vert1.putProperty(this.PHYSICAL_NAME, Utility.getInstanceName(physName));
 						storeVert(vert1);
 					}
 					// add my friend
@@ -898,7 +899,7 @@ public class GraphDataModel implements IDataMaker {
 					if(vert1 == null)
 					{
 						vert1 = new SEMOSSVertex(subjectName);
-						vert1.setProperty(this.PHYSICAL_NAME, Utility.getInstanceName(subPhys));
+						vert1.putProperty(this.PHYSICAL_NAME, Utility.getInstanceName(subPhys));
 						storeVert(vert1);
 					}
 					SEMOSSVertex vert2 = vertStore.get(objectName);
@@ -908,7 +909,7 @@ public class GraphDataModel implements IDataMaker {
 							vert2 = new SEMOSSVertex(objectName);
 						else // ok this is a literal
 							vert2 = new SEMOSSVertex(predicateName, sct.getObject());
-						vert2.setProperty(this.PHYSICAL_NAME, Utility.getInstanceName(objPhys));
+						vert2.putProperty(this.PHYSICAL_NAME, Utility.getInstanceName(objPhys));
 						storeVert(vert2);
 					}
 					// create the edge now
