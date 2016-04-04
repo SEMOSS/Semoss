@@ -162,6 +162,7 @@ public class POIReader extends AbstractFileReader {
 	public IEngine importFileWithOutConnectionRDBMS(String smssLocation, String engineName, String fileNames, String customBase, String owlFile, SQLQueryUtil.DB_TYPE dbType, boolean allowDuplicates)
 			throws FileNotFoundException, IOException {
 
+		boolean error = false;
 		queryUtil = SQLQueryUtil.initialize(dbType);
 		String[] files = prepareReader(fileNames, customBase, owlFile, smssLocation);
 		try {
@@ -173,9 +174,19 @@ public class POIReader extends AbstractFileReader {
 			commitDB();
 			createBaseRelations();
 			RDBMSEngineCreationHelper.writeDefaultQuestionSheet(engine);
+		} catch(FileNotFoundException e) {
+			error = true;
+			throw new FileNotFoundException(e.getMessage());
+		} catch(IOException e) {
+			error = true;
+			throw new IOException(e.getMessage());
 		} finally {
-			closeDB();
-			closeOWL();
+			if(error || autoLoad) {
+				closeDB();
+				closeOWL();
+			} else {
+				commitDB();
+			}
 		}
 		
 		return engine;
@@ -369,6 +380,12 @@ public class POIReader extends AbstractFileReader {
 			if(header != null)
 			{
 				String type = header.getCell(0).getStringCellValue();
+				
+				// we need to perform the correct type check regardless if it is a relationship or a node
+				// we shouldn't be assuming a relationship can only exist for something of type string
+				// as a note, this is however the case in rdf since relationships use URIs which are strings
+				String [] initTypes = predictRowTypes(lSheet);
+				
 				if(type.equalsIgnoreCase("Relation"))
 				{
 					// process it as relation
@@ -388,7 +405,7 @@ public class POIReader extends AbstractFileReader {
 					if(!concepts.containsKey(fromName))
 					{
 						Hashtable <String, String> props = new Hashtable<String, String>();
-						props.put(fromName, "varchar(800)");
+						props.put(fromName, initTypes[1]);
 						concepts.put(fromName, props);
 					}
 
@@ -396,7 +413,7 @@ public class POIReader extends AbstractFileReader {
 					if(!concepts.containsKey(toName))
 					{
 						Hashtable <String, String> props = new Hashtable<String, String>();
-						props.put(toName, "varchar(800)");
+						props.put(toName, initTypes[2]);
 						concepts.put(toName, props);
 					}
 
@@ -405,12 +422,11 @@ public class POIReader extends AbstractFileReader {
 				else
 				{
 					// now predict the columns
-					String [] firstRowCells = getCells(colPredictor);
+//					String [] firstRowCells = getCells(colPredictor);
 					String [] headers = getCells(header);
 					String [] types = new String[headers.length];
-					String [] initTypes = predictRowTypes(firstRowCells);
 
-					int delta = types.length - initTypes.length;
+//					int delta = types.length - initTypes.length;
 					System.arraycopy(initTypes, 0, types, 0, initTypes.length);
 
 					for(int deltaIndex = initTypes.length;deltaIndex < types.length;deltaIndex++)
@@ -454,7 +470,6 @@ public class POIReader extends AbstractFileReader {
 		return getCells(row, colLength);
 	}
 
-
 	public String[] getCells(XSSFRow row, int totalCol)
 	{
 		int colLength = totalCol;
@@ -481,7 +496,84 @@ public class POIReader extends AbstractFileReader {
 
 		return cols;
 	}
+	
+	public String getCell(XSSFCell thisCell) {
+		if(thisCell != null && thisCell.getCellType() != Cell.CELL_TYPE_BLANK)
+		{
+			if(thisCell.getCellType() == Cell.CELL_TYPE_STRING) {
+				return thisCell.getStringCellValue();
+			}
+			else if(thisCell.getCellType() == Cell.CELL_TYPE_NUMERIC) {
+				return thisCell.getNumericCellValue() + "";
+			}
+		}
+		return "";
+	}
 
+	public String[] predictRowTypes(XSSFSheet lSheet)
+	{
+		int numRows = lSheet.getLastRowNum();
+		
+		XSSFRow header = lSheet.getRow(0);
+		int numCells = header.getLastCellNum();
+		
+		String [] types = new String[numCells];
+		
+		// need to loop through and make sure types are good
+		// we know the first col is always null as it is not used
+		for(int i = 1; i < numCells; i++) {
+			String type = null;
+			ROW_LOOP : for(int j = 1; j < numRows; j++) {
+				XSSFRow row = lSheet.getRow(j);
+				if(row != null) {
+					XSSFCell cell = row.getCell(i);
+					if(cell != null) {
+						String val = getCell(cell);
+						if(val.isEmpty()) {
+							continue ROW_LOOP;
+						}
+						String newTypePred = (Utility.findTypes(val)[0] + "").toUpperCase();
+						if(newTypePred.contains("VARCHAR")) {
+							type = newTypePred;
+							break ROW_LOOP;
+						}
+						
+						// need to also add the type null check for the first row
+						if(!newTypePred.equals(type) && type != null) {
+							// this means there are multiple types in one column
+							// assume it is a string 
+							if( (type.equals("BOOLEAN") || type.equals("INT") || type.equals("DOUBLE")) && 
+									(newTypePred.equals("INT") || newTypePred.equals("INT") || newTypePred.equals("DOUBLE") ) ){
+								// for simplicity, make it a double and call it a day
+								// TODO: see if we want to impl the logic to choose the greater of the newest
+								// this would require more checks though
+								type = "DOUBLE";
+							} else {
+								// should only enter here when there are numbers and dates
+								// TODO: need to figure out what to handle this case
+								// for now, making assumption to put it as a string
+								type = "VARCHAR(800)";
+								break ROW_LOOP;
+							}
+						} else {
+							// type is the same as the new predicated type
+							// or type is null on first iteration
+							type = newTypePred;
+						}
+					}
+				}
+			}
+			if(type == null) {
+				// no data for column....
+				types[i] = "varchar(255)";
+			} else {
+				types[i] = type;
+			}
+		}
+		
+		return types;
+	}
+	
 	public String[] predictRowTypes(String [] thisOutput)
 	{
 		String [] types = new String[thisOutput.length];
