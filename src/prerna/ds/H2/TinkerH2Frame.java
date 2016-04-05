@@ -279,6 +279,9 @@ public class TinkerH2Frame extends TinkerFrame {
 	}
 	
 	public void applyGroupBy(String column, String newColumnName, String valueColumn, String mathType) {
+		column = H2HeaderMap.get(column);
+		valueColumn = H2HeaderMap.get(valueColumn);
+		newColumnName = H2HeaderMap.get(newColumnName);
 		builder.processGroupBy(column, newColumnName, valueColumn, mathType, getH2Headers());
 	}
 	
