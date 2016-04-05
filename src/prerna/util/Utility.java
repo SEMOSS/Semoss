@@ -1930,21 +1930,23 @@ public class Utility {
     
     public static Object getCurrency(String input)
     {
+    	//COMMENTING THIS OUT BECAUSE CAST TO TYPES BREAKS IN CASES WHERE THIS RETURNS, NEED TO UPDATE THAT BUT WILL KEEP IT AS STRING FOR NOW
     	// what is this check??? 
     	// this is messing up the types since it works based on if there is a null pointer
-    	if(input.matches("\\Q$\\E(\\d+)\\Q.\\E?(\\d+)?\\Q-\\E\\Q$\\E(\\d+)\\Q.\\E?(\\d+)?")) {
-    		return input;
-    	}
-    	Number nm = null;
-    	NumberFormat nf = NumberFormat.getCurrencyInstance();
-    	try {
-    		nm = nf.parse(input);
-    		//System.out.println("Curr..  " + nm);
-    	}catch (Exception ex)
-    	{
-    		
-    	}
-    	return nm;
+//    	if(input.matches("\\Q$\\E(\\d+)\\Q.\\E?(\\d+)?\\Q-\\E\\Q$\\E(\\d+)\\Q.\\E?(\\d+)?")) {
+//    		return input;
+//    	}
+//    	Number nm = null;
+//    	NumberFormat nf = NumberFormat.getCurrencyInstance();
+//    	try {
+//    		nm = nf.parse(input);
+//    		//System.out.println("Curr..  " + nm);
+//    	}catch (Exception ex)
+//    	{
+//    		
+//    	}
+//    	return nm;
+    	return null;
     }
 
     public static Double getDouble(String input) {
