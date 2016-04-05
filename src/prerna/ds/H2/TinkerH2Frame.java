@@ -144,12 +144,12 @@ public class TinkerH2Frame extends TinkerFrame {
 	
 	@Override
 	public List<Object[]> getData() {
-		return builder.getData(getSelectors());
+		return builder.getData(getH2Selectors());
 	}
 	
 	@Override
 	public List<Object[]> getRawData() {
-		return builder.getData(getSelectors());
+		return builder.getData(getH2Selectors());
 	}
 	
 	
