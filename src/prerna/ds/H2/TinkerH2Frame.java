@@ -125,7 +125,7 @@ public class TinkerH2Frame extends TinkerFrame {
                 displayNames = wrapper.getDisplayVariables();
          	   this.mergeEdgeHash(this.createPrimKeyEdgeHash(displayNames));
          	   while(wrapper.hasNext()){
-         		   this.addRow(wrapper.next());
+         		   this.addRow(wrapper.next().getPropHash());
          	   }
             }
         }
@@ -230,9 +230,18 @@ public class TinkerH2Frame extends TinkerFrame {
 			filteredValues.put(headerNames[i], new ArrayList<Object>());
 		}
 		
+		Map<String, List<Object>> h2filteredValues = builder.getFilteredValues(getH2Selectors());
+		for(String key : filteredValues.keySet()) {
+			String h2key = cleanHeader(key);
+			List<Object> values = h2filteredValues.get(h2key);
+			if(values != null) {
+				filteredValues.put(key, values);
+			} else {
+				filteredValues.put(key, new ArrayList<Object>());
+			}
+		}
 		
-		
-		return new Object[]{visibleValues, builder.getFilteredValues(getH2Selectors())};
+		return new Object[]{visibleValues, filteredValues};
 	}
 
 	public Map<String, Object[]> getFilterTransformationValues() {
@@ -258,11 +267,11 @@ public class TinkerH2Frame extends TinkerFrame {
 	
 	@Override
 	public Iterator<Object[]> iterator(boolean getRawData) {
-		List<String> h2selectors = new ArrayList<>();
-		for(String selector : getSelectors()) {
-			h2selectors.add(H2HeaderMap.get(selector));
-		}
-		return builder.buildIterator(h2selectors);
+//		List<String> h2selectors = new ArrayList<>();
+//		for(String selector : getSelectors()) {
+//			h2selectors.add(H2HeaderMap.get(selector));
+//		}
+		return builder.buildIterator(getH2Selectors());
 	}
 	
 	@Override
@@ -345,7 +354,12 @@ public class TinkerH2Frame extends TinkerFrame {
 			Iterator<Object> it = Arrays.asList(array).iterator();
 			while(it.hasNext()) {
 				Object row = it.next();
-				numericCol.add( ((Number) row).doubleValue() );
+				try {
+					Double dval = ((Number) row).doubleValue();
+					numericCol.add(dval);
+				} catch (NumberFormatException e) {
+					
+				}
 			}
 			
 			return numericCol.toArray(new Double[]{});
@@ -377,9 +391,12 @@ public class TinkerH2Frame extends TinkerFrame {
 		for(int i = 0; i < columnHeaders.length; i++) {
 			values[i] = cleanRow.get(columnHeaders[i]);
 		}
+		
+		for(int i = 0; i < columnHeaders.length; i++) {
+			columnHeaders[i] = cleanHeader(columnHeaders[i]);
+		}
 		builder.updateTable(getH2Headers(), values, columnHeaders);
-		//find last column
-		//update values for last column
+
 	}
 	
 	@Override
@@ -400,6 +417,7 @@ public class TinkerH2Frame extends TinkerFrame {
 			}
 		}
 		this.headerNames = newHeaders;
+		updateHeaderMap();
 	}
 	
 	@Override
@@ -565,7 +583,6 @@ public class TinkerH2Frame extends TinkerFrame {
 				
 				// now to insert the meta edge
 				Vertex inVert = this.metaData.upsertVertex(META, inVertString, inVertString, inPhysicalName, inPhysicalUri, engine.getEngineName(), engine.getDataTypes(inPhysicalUri), inConceptName);
-//				Vertex inVert = upsertVertex(META, inVertString, inVertString);
 				
 				upsertEdge(outVert, inVert);
 			}
@@ -606,6 +623,7 @@ public class TinkerH2Frame extends TinkerFrame {
 	}
 	
 	protected void updateHeaderMap() {
+		H2HeaderMap.clear();
 		for(String headerName : headerNames) {
 			H2HeaderMap.put(headerName, cleanHeader(headerName));
 		}
@@ -618,7 +636,8 @@ public class TinkerH2Frame extends TinkerFrame {
     	header = header.replace("-", "_");
     	header = header.replace("'", "");*/
     	header = header.replaceAll("[#%!&()@#$'./-]*", ""); // replace all the useless shit in one go
-    	header = header.replaceAll("\\s+","_"); 
+    	header = header.replaceAll("\\s+","_");
+    	header = header.replaceAll(",","_"); 
     	if(Character.isDigit(header.charAt(0)))
     		header = "c_" + header;
     	return header;
@@ -652,4 +671,11 @@ public class TinkerH2Frame extends TinkerFrame {
 		}
 		return h2Headers;
 	}
+	
+	public static void main(String[] args) {
+		Object o = "";
+		System.out.println(((Number) o).doubleValue());
+	}
+	
+	
 }
