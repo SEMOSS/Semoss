@@ -1850,14 +1850,15 @@ public class Utility {
 	    		retObject[0] = "boolean";
 	    		retObject[1] = retO;
 	    		
-	    	}	    	
-	    	else if(NumberUtils.isDigits(input))
-	    	{
-	    		retO = Integer.parseInt(input);
-	    		retObject = new Object[2];
-	    		retObject[0] = "int";
-	    		retObject[1] = retO;
 	    	}
+	    	//all numbers are 
+//	    	else if(NumberUtils.isDigits(input))
+//	    	{
+//	    		retO = Integer.parseInt(input);
+//	    		retObject = new Object[2];
+//	    		retObject[0] = "int";
+//	    		retObject[1] = retO;
+//	    	}
 	    	else if((retO = getDouble(input)) != null )
 	    	{
 	    		retObject = new Object[2];
@@ -1885,7 +1886,7 @@ public class Utility {
 	    	{
 	    		retObject = new Object[2]; // need to do some more stuff to determine this
 	    		retObject[0] = "varchar(800)";
-	    		retObject[1] = input; //should we clean the string here?
+	    		retObject[1] = input; 
 	    	}
     	}
     	return retObject;
@@ -2006,6 +2007,10 @@ public class Utility {
     	
 //    	for(int i = 0; i < values.length; i++) {
 //    		values[i] = UriEncoder.encode(values[i]);
+//    	}
+    	
+//    	for(int i = 0; i < values.length; i++) {
+//    		values[i] = Utility.cleanString(values[i], true, false, false);
 //    	}
     	return values;
     }
