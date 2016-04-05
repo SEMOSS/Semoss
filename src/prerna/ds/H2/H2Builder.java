@@ -77,6 +77,7 @@ public class H2Builder {
 		System.out.println(NumberUtils.isNumber(testString));
 		
 		
+		
 //		new H2Builder().testMakeFilter();
     	H2Builder test = new H2Builder();
 //    	test.castToType("6/2/2015");
@@ -287,211 +288,7 @@ public class H2Builder {
 			System.out.println("Count.. " + rs.getObject(2));
 		}*/
     }
-    /*************************** END TEST ******************************************/
     
-    /*************************** CONSTRUCTORS **************************************/
-    
-    public H2Builder() {
-    	//initialize a connection
-    	getConnection();
-    	tableName = "TINKERFRAME"+tableRunNumber;
-    	tableRunNumber++;
-    }
-    
-    /*************************** END CONSTRUCTORS **********************************/
-    
-    private Object[] castToType(String input)
-    {
-    	//System.out.println("String that came in.. " + input);
-    	Object [] retObject = null;
-    	if(input != null)
-    	{
-	    	Object retO = null;
-//	    	if(input.equalsIgnoreCase("1") || input.equalsIgnoreCase("0"))
-	    	if(input.equalsIgnoreCase("true") || input.equalsIgnoreCase("false"))
-	    	{
-	    		retObject = new Object[2];
-	    		retObject[0] = "boolean";
-	    		retObject[1] = retO;
-	    		
-	    	}	    	
-	    	else if(NumberUtils.isDigits(input))
-	    	{
-	    		retO = Integer.parseInt(input);
-	    		retObject = new Object[2];
-	    		retObject[0] = "int";
-	    		retObject[1] = retO;
-	    	}
-//	    	else if(NumberUtils.isNumber(input))
-	    	else if((retO = getDouble(input)) != null )
-	    	{
-//	    		retO = Double.parseDouble(input);
-	    		retObject = new Object[2];
-	    		retObject[0] = "double";
-	    		retObject[1] = retO;
-	    	}
-	    	else if((retO = getDate(input)) != null )// try dates ? - yummy !!
-	    	{
-	    		retObject = new Object[2];
-	    		retObject[0] = "date";
-	    		retObject[1] = retO;
-	    		
-	    	}
-	    	else if((retO = getCurrency(input)) != null )
-	    	{
-	    		retObject = new Object[2];
-	    		
-	    		if(retO.toString().equalsIgnoreCase(input)) {
-	    			retObject[0] = "varchar(800)";
-	    		} else {
-	    			retObject[0] = "double";
-	    		}
-	    		retObject[1] = retO;
-	    	}
-	    	else
-	    	{
-	    		retObject = new Object[2]; // need to do some more stuff to determine this
-	    		retObject[0] = "varchar(800)";
-	    		retObject[1] = input;
-	    	}
-    	}
-    	return retObject;
-    }
-	    
-    private String getDate(String input)
-    {
-    	String[] date_formats = {
-                //"dd/MM/yyyy",
-                "MM/dd/yyyy",
-                //"dd-MM-yyyy",
-                "yyyy-MM-dd",
-                "yyyy/MM/dd", 
-                "yyyy MMM dd",
-                "yyyy dd MMM",
-                "dd MMM yyyy",
-                "dd MMM",
-                "MMM dd",
-                "dd MMM yyyy",
-                "MMM yyyy"
-        };
-
-		String output_date = null;
-		boolean itsDate = false;
-		for (String formatString : date_formats)
-		{
-		try
-		{    
-		 Date mydate = new SimpleDateFormat(formatString).parse(input);
-		 SimpleDateFormat outdate = new SimpleDateFormat("yyyy-MM-dd");
-		 output_date = outdate.format(mydate);
-		 itsDate = true;
-		 break;
-		}
-			catch (ParseException e) {
-				//System.out.println("Next!");
-			}
-		}
-		
-		return output_date;	
-    }
-	    
-    private Object getCurrency(String input)
-    {
-    	if(input.indexOf("-") > 0)
-			return input;
-    	
-    	Number nm = null;
-    	NumberFormat nf = NumberFormat.getCurrencyInstance();
-    	
-//    	if(input.indexOf("-") > 0) {
-    		try {
-	    		nm = nf.parse(input);
-	    	} catch (Exception ex) {
-	 
-	    	}
-//    	}
-    		// a simpler way to test is to see if the $ removed matches the value
-
-    	
-    	return nm;
-    }
-    
-    private Double getDouble(String input) {
-    	try {
-    		Double num = Double.parseDouble(input);
-    		return num;
-    	} catch(NumberFormatException e) {
-    		return null;
-    	}
-    }
-
-
-    //build a query to insert values into a new table 
-   
-
-
-
-	    	    
-    public String[] predictRowTypes(String[] thisOutput)
-    {
-    	types = new String[thisOutput.length];
-    	String [] values = new String[thisOutput.length];
-    	
-    	for(int outIndex = 0;outIndex < thisOutput.length;outIndex++)
-    	{
-    		String curOutput = thisOutput[outIndex];
-    		//if(headers != null)
-    		//	System.out.println("Cur Output...  " + headers[outIndex] + " >> " + curOutput );
-    		Object [] cast = castToType(curOutput);
-    		if(cast == null)
-    		{
-    			cast = new Object[2];
-    			cast[0] = types[outIndex];
-    			cast[1] = ""; // make it into an empty String
-    		}
-    		if((cast[0] + "").equalsIgnoreCase("Date") || (cast[0] + "").equalsIgnoreCase("Currency"))
-    			castTargets.addElement(outIndex + "");
-    		types[outIndex] = cast[0] + "";
-    		values[outIndex] = cast[1] + "";
-    		
-    		//System.out.println(curOutput + types[outIndex] + " <<>>" + values[outIndex]);
-    	}
-    	
-    	//insertTemplate = makeTemplate(types, types, new Hashtable<String, String>());
-    	//System.out.println("The output is ..  " + thisOutput);
-    	
-    	return values;
-    }
-    
-    public String[] castRowTypes(String [] thisOutput)
-    {
-//    	return Utility.castToTypes(thisOutput, types);
-    	String [] values = new String[thisOutput.length];
-    	
-    	for(int outIndex = 0;outIndex < thisOutput.length;outIndex++)
-    	{
-    		if(thisOutput[outIndex] != null)
-    		{
-    			values[outIndex] = thisOutput[outIndex] + "";
-    		
-	    		if(thisOutput[outIndex] != null && castTargets.contains(outIndex + ""))
-	    		{
-	    			if(types[outIndex].equalsIgnoreCase("Date"))
-	    				values[outIndex] = getDate(thisOutput[outIndex]);
-	    			else // this is a currency
-	    				values[outIndex] = getCurrency(thisOutput[outIndex]) + "";
-	    		}
-	    		else if(thisOutput[outIndex].length() > 800)
-	    		{
-	    			values[outIndex] = thisOutput[outIndex].substring(0, 798);
-	    		}
-    		}
-    		else values[outIndex] = "";
-    	}
-    	return values;
-    }
-
-
     public void testMakeFilter() {
     	
     	List<Object> list1 = new ArrayList<>();
@@ -525,6 +322,55 @@ public class H2Builder {
     	System.out.println(makeQuery);
 
     }
+    /*************************** END TEST ******************************************/
+    
+    /*************************** CONSTRUCTORS **************************************/
+    
+    public H2Builder() {
+    	//initialize a connection
+    	getConnection();
+    	tableName = "TINKERFRAME"+tableRunNumber;
+    	tableRunNumber++;
+    }
+    
+    /*************************** END CONSTRUCTORS **********************************/
+    
+    private Object[] castToType(String input){
+    	return Utility.findTypes(input);
+    }
+	    
+    //build a query to insert values into a new table 	    	    
+    public String[] predictRowTypes(String[] thisOutput)
+    {
+    	types = new String[thisOutput.length];
+    	String [] values = new String[thisOutput.length];
+    	
+    	for(int outIndex = 0;outIndex < thisOutput.length;outIndex++)
+    	{
+    		String curOutput = thisOutput[outIndex];
+    		//if(headers != null)
+    		//	System.out.println("Cur Output...  " + headers[outIndex] + " >> " + curOutput );
+    		Object [] cast = castToType(curOutput);
+    		if(cast == null)
+    		{
+    			cast = new Object[2];
+    			cast[0] = types[outIndex];
+    			cast[1] = ""; // make it into an empty String
+    		}
+    		if((cast[0] + "").equalsIgnoreCase("Date") || (cast[0] + "").equalsIgnoreCase("Currency"))
+    			castTargets.addElement(outIndex + "");
+    		types[outIndex] = cast[0] + "";
+    		values[outIndex] = cast[1] + "";
+    		
+    		//System.out.println(curOutput + types[outIndex] + " <<>>" + values[outIndex]);
+    	}
+    	
+    	//insertTemplate = makeTemplate(types, types, new Hashtable<String, String>());
+    	//System.out.println("The output is ..  " + thisOutput);
+    	
+    	return values;
+    }
+    
     /*************************** CREATE ******************************************/
 	    
     //need safety checking for header names
@@ -543,13 +389,11 @@ public class H2Builder {
 			
 			
 			for(String[] row : data) {
-//    		String[] cells = castRowTypes(row);
 				String[] cells = Utility.castToTypes(row, types);
 				String inserter = makeInsert(columnHeaders, types, cells, new Hashtable<String, String>(), tableName);
 				runQuery(inserter);
 			}
 		} catch (Exception e) {
-			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
     }
@@ -745,7 +589,7 @@ public class H2Builder {
 				if(NumberUtils.isDigits(newValue.toString())) {
 					type = "int";
 				}
-				else if(getDouble(newValue.toString()) != null ) {
+				else if(Utility.getDouble(newValue.toString()) != null ) {
 					type = "double";
 				}
 				else {
@@ -788,9 +632,6 @@ public class H2Builder {
     
     //process a group by - calculate then make a table then merge the table
     public void processGroupBy(String column, String newColumnName, String valueColumn, String mathType, String[] headers) {
-//    	column = cleanHeader(column);
-//    	newColumnName = cleanHeader(newColumnName);
-//    	valueColumn = cleanHeader(valueColumn);
     	
     	String[] tableHeaders = getHeaders(tableName);
     	String inserter = makeGroupBy(column, valueColumn, mathType, newColumnName, this.tableName, headers);
@@ -1332,6 +1173,7 @@ public class H2Builder {
     	return cleanedHeaders;
     }
     
+    //TODO: this is done outside now, need to remove
     private String cleanHeader(String header) {
     	/*header = header.replaceAll(" ", "_");
     	header = header.replace("(", "_");
@@ -1877,7 +1719,7 @@ public class H2Builder {
     
     //use this when result set is not expected back
     private void runQuery(String query) throws Exception{
-    		getConnection().createStatement().execute(query);
+    	getConnection().createStatement().execute(query);
     }
     
     //use this when result set is expected
