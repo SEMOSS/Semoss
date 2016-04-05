@@ -17,24 +17,19 @@ import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.GraphTraversal;
 import org.apache.tinkerpop.gremlin.structure.Edge;
-import org.apache.tinkerpop.gremlin.structure.T;
 import org.apache.tinkerpop.gremlin.structure.Vertex;
+import org.apache.tinkerpop.gremlin.structure.io.Io.Builder;
 import org.apache.tinkerpop.gremlin.structure.io.IoCore;
 import org.apache.tinkerpop.gremlin.structure.io.IoRegistry;
-import org.apache.tinkerpop.gremlin.structure.io.Io.Builder;
 import org.apache.tinkerpop.gremlin.structure.io.gryo.GryoIo;
 import org.apache.tinkerpop.gremlin.tinkergraph.structure.TinkerGraph;
 
 import com.google.gson.Gson;
 
 import prerna.ds.TinkerFrame;
-import prerna.ds.TinkerFrameIterator;
 import prerna.ds.TinkerMetaData;
-import prerna.ds.UniqueScaledTinkerFrameIterator;
 import prerna.engine.api.IEngine;
-import prerna.engine.api.ISelectStatement;
 import prerna.engine.api.ISelectWrapper;
-import prerna.om.TinkerGraphDataModel;
 import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.ui.components.playsheets.datamakers.DataMakerComponent;
 import prerna.util.ArrayUtilityMethods;
@@ -441,6 +436,10 @@ public class TinkerH2Frame extends TinkerFrame {
 			
 			long endTime = System.currentTimeMillis();
 			LOGGER.info("Successfully saved TinkerFrame to file: "+fileName+ "("+(endTime - startTime)+" ms)");
+			
+			// now we need to remvoe the special vert after it is saved since the user might extend the viz even further
+			// we dont want it to continue to show up
+			specialVert.remove();
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
