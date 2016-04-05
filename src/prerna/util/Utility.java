@@ -94,6 +94,7 @@ import org.openrdf.rio.RDFHandlerException;
 import org.openrdf.rio.RDFParseException;
 import org.openrdf.sail.inferencer.fc.ForwardChainingRDFSInferencer;
 import org.openrdf.sail.memory.MemoryStore;
+import org.yaml.snakeyaml.util.UriEncoder;
 
 import com.ibm.icu.math.BigDecimal;
 import com.ibm.icu.text.DecimalFormat;
@@ -1843,7 +1844,7 @@ public class Utility {
     	if(input != null)
     	{
 	    	Object retO = null;
-	    	if(input.equalsIgnoreCase("1") || input.equalsIgnoreCase("0"))
+	    	if(input.equalsIgnoreCase("true") || input.equalsIgnoreCase("false"))
 	    	{
 	    		retObject = new Object[2];
 	    		retObject[0] = "boolean";
@@ -1857,9 +1858,8 @@ public class Utility {
 	    		retObject[0] = "int";
 	    		retObject[1] = retO;
 	    	}
-	    	else if(NumberUtils.isNumber(input))
+	    	else if((retO = getDouble(input)) != null )
 	    	{
-	    		retO = Double.parseDouble(input);
 	    		retObject = new Object[2];
 	    		retObject[0] = "double";
 	    		retObject[1] = retO;
@@ -1875,7 +1875,7 @@ public class Utility {
 	    	{
 	    		
 	    		retObject = new Object[2];
-	    		if(retObject[1] instanceof String)
+	    		if(retO instanceof String)
 	    			retObject[0] = "varchar(800)";
 	    		else
 	    			retObject[0] = "double";
@@ -1885,7 +1885,7 @@ public class Utility {
 	    	{
 	    		retObject = new Object[2]; // need to do some more stuff to determine this
 	    		retObject[0] = "varchar(800)";
-	    		retObject[1] = input;
+	    		retObject[1] = input; //should we clean the string here?
 	    	}
     	}
     	return retObject;
@@ -1946,6 +1946,21 @@ public class Utility {
     	return nm;
     }
 
+    public static Double getDouble(String input) {
+    	try {
+    		Double num = Double.parseDouble(input);
+    		return num;
+    	} catch(NumberFormatException e) {
+    		return null;
+    	}
+    }
+    
+    //this doesn't consider 1.2E8 etc.
+//    public static boolean isNumber(String input) {
+//    	//has digits, followed by optional period followed by digits
+//    	return input.matches("(\\d+)\\Q.\\E?(\\d+)?"); 
+//    }
+    
     public static String[] castToTypes(String [] thisOutput, String [] types)
     {
     	String [] values = new String[thisOutput.length];
@@ -1988,6 +2003,10 @@ public class Utility {
     			values[outIndex] = "";
     		}
     	}
+    	
+//    	for(int i = 0; i < values.length; i++) {
+//    		values[i] = UriEncoder.encode(values[i]);
+//    	}
     	return values;
     }
 
