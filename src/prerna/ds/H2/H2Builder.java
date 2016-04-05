@@ -586,10 +586,12 @@ public class H2Builder {
 				
 				//update the types
 				String type;
-				if(NumberUtils.isDigits(newValue.toString())) {
-					type = "int";
-				}
-				else if(Utility.getDouble(newValue.toString()) != null ) {
+//				Utility.findTypes(newValue.toString());
+//				if(NumberUtils.isDigits(newValue.toString())) {
+//					type = "int";
+//				}
+				//else 
+				if(Utility.getDouble(newValue.toString()) != null ) {
 					type = "double";
 				}
 				else {

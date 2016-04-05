@@ -201,6 +201,8 @@ public class SPARQLInterpreter implements IQueryInterpreter {
 			{
 				for(Object object : objects){
 					String myobject = (""+object).replace("\"", ""); // get rid of the space
+//					myobject = myobject.replaceAll("\\s+","_");
+					myobject = Utility.cleanString(myobject, true, true, false);
 					myobject = myobject.trim();
 					myobject = engine.getNodeBaseUri() + concept+"/"+ myobject;
 					cleanedObjects.add(myobject);
