@@ -238,7 +238,7 @@ public class SQLInterpreter implements IQueryInterpreter{
 		String key = concept + property + thisComparator;
 		if(!whereHash.containsKey(key))
 		{
-			if(object.indexOf("\"") >= 0) // ok this is a string
+			if(object instanceof String) // ok this is a string
 			{
 				object = object.replace("\"", ""); // get rid of the space
 				object = object.replaceAll("'", "''");
@@ -252,7 +252,7 @@ public class SQLInterpreter implements IQueryInterpreter{
 		else
 		{
 			thisWhere = whereHash.get(key);
-			if(object.indexOf("\"") >= 0) // ok this is a string
+			if(object instanceof String) // ok this is a string
 			{
 				object = object.replaceAll("\"", ""); // get rid of the space
 				object = object.replaceAll("'", "''");
