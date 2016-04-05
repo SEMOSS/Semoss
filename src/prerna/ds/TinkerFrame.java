@@ -42,17 +42,12 @@ import org.apache.tinkerpop.gremlin.structure.Edge;
 import org.apache.tinkerpop.gremlin.structure.Graph;
 import org.apache.tinkerpop.gremlin.structure.T;
 import org.apache.tinkerpop.gremlin.structure.Vertex;
-import org.apache.tinkerpop.gremlin.structure.io.AbstractIoRegistry;
-import org.apache.tinkerpop.gremlin.structure.io.Io;
 import org.apache.tinkerpop.gremlin.structure.io.Io.Builder;
 import org.apache.tinkerpop.gremlin.structure.io.IoCore;
 import org.apache.tinkerpop.gremlin.structure.io.IoRegistry;
-import org.apache.tinkerpop.gremlin.structure.io.graphson.GraphSONIo;
 import org.apache.tinkerpop.gremlin.structure.io.gryo.GryoIo;
-import org.apache.tinkerpop.gremlin.structure.io.gryo.GryoMapper;
 import org.apache.tinkerpop.gremlin.tinkergraph.structure.TinkerFactory;
 import org.apache.tinkerpop.gremlin.tinkergraph.structure.TinkerGraph;
-import org.apache.tinkerpop.shaded.kryo.Kryo;
 
 import com.google.gson.Gson;
 
@@ -2864,7 +2859,7 @@ public class TinkerFrame implements ITableDataFrame {
 			
 			// create special vertex to save the order of the headers
 			Vertex specialVert = this.upsertVertex(ENVIRONMENT_VERTEX_KEY, ENVIRONMENT_VERTEX_KEY, ENVIRONMENT_VERTEX_KEY);
-			
+
 			Gson gson = new Gson();
 			Map<String, Object> varMap = g.variables().asMap();
 			for(String key : varMap.keySet()) {
@@ -2880,6 +2875,10 @@ public class TinkerFrame implements ITableDataFrame {
 			
 			long endTime = System.currentTimeMillis();
 			LOGGER.info("Successfully saved TinkerFrame to file: "+fileName+ "("+(endTime - startTime)+" ms)");
+			
+			// now we need to remvoe the special vert after it is saved since the user might extend the viz even further
+			// we dont want it to continue to show up
+			specialVert.remove();
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
