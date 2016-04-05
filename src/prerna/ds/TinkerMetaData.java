@@ -110,7 +110,7 @@ public class TinkerMetaData implements IMetaData {
 		
 		// now add the meta object if it doesn't already exist
 		Map<Object, Object> metaData = null;
-		if(vert.property(DB).isPresent()){
+		if(vert.properties(DB).hasNext()){
 			metaData = new HashMap<Object, Object>();
 			vert.property(engineName, metaData);
 		}
