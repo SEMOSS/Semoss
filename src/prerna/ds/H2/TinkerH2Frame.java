@@ -232,7 +232,7 @@ public class TinkerH2Frame extends TinkerFrame {
 		
 		
 		
-		return new Object[]{visibleValues, builder.getFilteredValues(getSelectors())};
+		return new Object[]{visibleValues, builder.getFilteredValues(getH2Selectors())};
 	}
 
 	public Map<String, Object[]> getFilterTransformationValues() {
