@@ -119,7 +119,7 @@ public class TinkerFrame implements ITableDataFrame {
 	public static final String DE_DUP = "dedup";
 
 	public static final String edgeLabelDelimeter = "+++";
-	private static final String primKeyDelimeter = ":::";
+	protected static final String primKeyDelimeter = ":::";
 	
 	private Object tempExpressionResult = "FAIL";
 
