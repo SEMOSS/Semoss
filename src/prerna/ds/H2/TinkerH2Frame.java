@@ -526,7 +526,7 @@ public class TinkerH2Frame extends TinkerFrame {
 		tf.builder = H2Builder.open(fileName);
 //		tf.builder.setHeaders(headers);
 		tf.builder.types = types;
-		updateHeaderMap();
+		tf.updateHeaderMap();
 		
 		return tf;
 	}
@@ -624,6 +624,9 @@ public class TinkerH2Frame extends TinkerFrame {
 	}
 	
 	protected void updateHeaderMap() {
+		if(H2HeaderMap == null) {
+			H2HeaderMap = new HashMap<String, String>();
+		}
 		H2HeaderMap.clear();
 		for(String headerName : headerNames) {
 			H2HeaderMap.put(headerName, cleanHeader(headerName));
