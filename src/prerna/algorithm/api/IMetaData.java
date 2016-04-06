@@ -5,9 +5,6 @@ import java.util.Set;
 
 import org.apache.tinkerpop.gremlin.structure.Vertex;
 
-import prerna.algorithm.api.IMetaData.NAME_TYPE;
-import prerna.engine.api.IEngine;
-
 public interface IMetaData {
 
 	
@@ -19,5 +16,7 @@ public interface IMetaData {
 	Map<String, String> getProperties();
 
 	String getPhysicalUriForNode(String string, String engineName);
+
+	Set<String> getEnginesForUniqueName(String uniqueName);
 
 }
