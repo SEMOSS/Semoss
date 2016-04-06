@@ -1216,23 +1216,22 @@ public class Insight {
 				for(String sub: edgeHash.keySet()){
 					Map<String, Object> nodeObj = new HashMap<String, Object>();
 					nodeObj.put("uri", sub);
-					nodeObj.put("engineName", Constants.LOCAL_MASTER_DB_NAME);
-					nodeObj.put("engineType", IEngine.ENGINE_TYPE.SESAME);
+					nodeObj.put("engineName", tmd.getEnginesForUniqueName(sub));
 					if(props.containsKey(sub)){
 						nodeObj.put("prop", props.get(sub));
 					}
 					nodesHash.put(sub, nodeObj);
+					
 					Set<String> objs = edgeHash.get(sub);
 					for(String obj : objs){
 						Map<String, Object> nodeObj2 = new HashMap<String, Object>();
 						nodeObj2.put("uri", obj);
-						nodeObj2.put("engineName", Constants.LOCAL_MASTER_DB_NAME);
-						nodeObj2.put("engineType", IEngine.ENGINE_TYPE.SESAME);
+						nodeObj2.put("engineName", tmd.getEnginesForUniqueName(obj));
 						if(props.containsKey(obj)){
 							nodeObj2.put("prop", props.get(obj));
 						}
 						nodesHash.put(obj, nodeObj2);
-
+						
 						Map<String, String> nodeTriples = new Hashtable<String, String>();
 						nodeTriples.put("fromNode", sub);
 						nodeTriples.put("relationshipTriple", "fake");
