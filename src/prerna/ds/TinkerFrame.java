@@ -1250,6 +1250,13 @@ public class TinkerFrame implements ITableDataFrame {
 		redoLevels(newLevels.toArray(new String[newLevels.size()]));
 	}
 	
+	public void addMetaDataTypes(String[] names, String[] types) {
+		for(int i = 0; i < names.length; i++) {
+			Vertex vert = upsertVertex(META, names[i], names[i]);
+			metaData.addDataType(vert, types[i]);
+		}
+	}
+	
 	/**
 	 * 
 	 * @param outTypes
@@ -3013,5 +3020,4 @@ public class TinkerFrame implements ITableDataFrame {
 	public IMetaData getMetaData() {
 		return this.metaData;
 	}
-	
 }
