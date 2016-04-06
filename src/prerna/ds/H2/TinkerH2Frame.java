@@ -205,7 +205,8 @@ public class TinkerH2Frame extends TinkerFrame {
 		
 		Iterator<Object[]> iterator = this.iterator(true);
 		
-		int length = this.headerNames.length;
+		List<String> selectors = this.getSelectors();
+		int length = selectors.size();
 		
 		//initialize the objects
 		Map<String, List<Object>> filteredValues = new HashMap<String, List<Object>>(length);
@@ -226,8 +227,8 @@ public class TinkerH2Frame extends TinkerFrame {
 		
 		//put the visible collected values
 		for(int i = 0; i < length; i++) {
-			visibleValues.put(headerNames[i], new ArrayList<Object>(columnSets[i]));
-			filteredValues.put(headerNames[i], new ArrayList<Object>());
+			visibleValues.put(selectors.get(i), new ArrayList<Object>(columnSets[i]));
+			filteredValues.put(selectors.get(i), new ArrayList<Object>());
 		}
 		
 		Map<String, List<Object>> h2filteredValues = builder.getFilteredValues(getH2Selectors());
