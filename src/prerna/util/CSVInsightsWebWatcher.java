@@ -26,6 +26,9 @@ public class CSVInsightsWebWatcher extends AbstractFileWatcher{
 	@Override
 	public void process(String fileName) {
 		String solrInformationFile = folderToWatch + "\\" + fileName.substring(0, fileName.length()-3); // get rid of the .tg
+		if(solrInformationFile.endsWith("_META")) {
+			solrInformationFile = solrInformationFile.substring(0, solrInformationFile.length()-5);
+		}
 		solrInformationFile += "_Solr.txt";
 		try {
 			SolrImportUtility.processSolrTextDocument(solrInformationFile);
