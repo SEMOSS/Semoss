@@ -160,10 +160,6 @@ public class RDBMSReader extends AbstractFileReader {
 				} finally {
 					closeCSVFile();
 					clearTables();
-					if(scriptFile != null) {
-						scriptFile.println("-- ********* completed load process ********* ");
-						scriptFile.close();
-					}
 				}
 			}
 			cleanUpDBTables(engineName, allowDuplicates);
@@ -181,6 +177,10 @@ public class RDBMSReader extends AbstractFileReader {
 				closeOWL();
 			} else {
 				commitDB();
+			}
+			if(scriptFile != null) {
+				scriptFile.println("-- ********* completed load process ********* ");
+				scriptFile.close();
 			}
 		}
 
@@ -566,7 +566,7 @@ public class RDBMSReader extends AbstractFileReader {
 				Map<String, String> previousCols = existingRDBMSStructure.get(cleanConcept.toUpperCase());
 				cols.addAll(previousCols.keySet());
 
-				//we want to pull the value columns out of the insert clause columns so that you only have the columns that are being copied
+				// we want to pull the value columns out of the insert clause columns so that you only have the columns that are being copied
 				// and not the ones we are setting the individual values for (so pulling out the the [xyz AS columnName]  columns)
 				for(String colToAdd : cols) {
 					if(!insertValsAliasClause.contains(colToAdd)){

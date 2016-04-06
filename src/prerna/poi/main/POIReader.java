@@ -34,6 +34,7 @@ import java.util.ArrayList;
 import java.util.Date;
 import java.util.Enumeration;
 import java.util.Hashtable;
+import java.util.List;
 import java.util.StringTokenizer;
 import java.util.Vector;
 
@@ -49,6 +50,9 @@ import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import org.openrdf.sail.SailException;
 
 import prerna.engine.api.IEngine;
+import prerna.engine.api.ISelectStatement;
+import prerna.engine.api.ISelectWrapper;
+import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.test.TestUtilityMethods;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
@@ -65,7 +69,12 @@ public class POIReader extends AbstractFileReader {
 	private Hashtable <String, Hashtable <String, String>> concepts = new Hashtable <String, Hashtable <String, String>>();
 	private Hashtable <String, Vector <String>> relations = new Hashtable <String, Vector<String>>();
 	private Hashtable <String, String> sheets = new Hashtable <String, String> ();
-
+	
+	private int indexUniqueId = 1;
+//	private List<String> recreateIndexList = new Vector<String>(); 
+	private List<String> tempIndexAddedList = new Vector<String>();
+	private List<String> tempIndexDropList = new Vector<String>();	
+	
 	/**
 	 * Load data into SEMOSS into an existing database
 	 * 
@@ -618,12 +627,6 @@ public class POIReader extends AbstractFileReader {
 			if (lSheet == null) {
 				throw new IOException("Could not find Loader Sheet in Excel file " + fileName);
 			}
-			// check if user is loading subclassing relationships
-			//			XSSFSheet subclassSheet = workbook.getSheet("Subclass");
-			//			if (subclassSheet != null) {
-			//				createSubClassing(subclassSheet);
-			//			}
-			// determine number of sheets to load
 			int lastRow = lSheet.getLastRowNum();
 			// first sheet name in second row
 			// step one is to go through every sheet and determine what are the concepts within these sheets
@@ -676,10 +679,13 @@ public class POIReader extends AbstractFileReader {
 			{
 				String thisConcept = relationConcepts.nextElement();
 				Vector <String> allRels = relations.get(thisConcept);
-
-				for(int toIndex = 0;toIndex < allRels.size();toIndex++)
-					// now process each one of these things
-					createRelations(thisConcept, allRels.elementAt(toIndex), workbook);
+				if(!allRels.isEmpty()) {
+					createRelations(thisConcept, allRels, workbook);
+				}
+				
+//				for(int toIndex = 0;toIndex < allRels.size();toIndex++)
+//					// now process each one of these things
+//					createRelations(thisConcept, allRels.elementAt(toIndex), workbook);
 			}
 		} catch (FileNotFoundException e) {
 			e.printStackTrace();
@@ -743,18 +749,21 @@ public class POIReader extends AbstractFileReader {
 
 				// I also need to record who has this piece
 				// so when we get to the point of inserting I know what i am doing
-				if(prop1.size() > prop2.size())
-				{
-					prop2.put(relKey + "_FK", prop1.get(relKey));
-					concepts.put(thisConcept, prop2); // God am I ever sure of anything
-					sheets.put(affinity, thisConcept);
-				}
-				else
-				{
-					prop1.put(thisConcept+"_FK", prop2.get(thisConcept));
-					concepts.put(relKey, prop1); // God am I ever sure of anything
-					sheets.put(affinity, relKey);
-				}
+//				if(prop1.size() > prop2.size())
+//				{
+//					prop2.put(relKey + "_FK", prop1.get(relKey));
+//					concepts.put(thisConcept, prop2); // God am I ever sure of anything
+//					sheets.put(affinity, thisConcept);
+//				}
+//				else
+//				{
+				
+				// due to loops, can't use the previous logic to determine FK based on who has less props
+				// TODO: need to enable using the * to determine the FK position like in CSV files
+				prop1.put(thisConcept+"_FK", prop2.get(thisConcept));
+				concepts.put(relKey, prop1); // God am I ever sure of anything
+				sheets.put(affinity, relKey);
+//				}
 			}
 		}
 
@@ -865,85 +874,268 @@ public class POIReader extends AbstractFileReader {
 		}			
 	}
 
-	private void createRelations(String fromName, String toName, XSSFWorkbook workbook)
+	private void createRelations(String fromName, List<String> toNameList, XSSFWorkbook workbook)
 	{
-		// now come the relations
-		// I need 
-		String sheetName = sheets.get(fromName + "-" + toName);
-		String tableToSet = sheets.get(fromName + "-" + toName + "AFF");
+		int size = toNameList.size();
+		List<String> relsAdded = new ArrayList<String>();
 
+		for(int i = 0; i < size; i++) {
+			String toName = toNameList.get(i);
 
-		System.out.println("Affinity is " + tableToSet);
-		String tableToInsert = toName;
-		if(tableToSet.equalsIgnoreCase(tableToInsert))
-			tableToInsert = fromName;
-		owler.addRelation(tableToInsert, tableToSet, null);
-		// I have told folks not to do implicit reification so therefore I will ignore everything
-		// i.e. NOOOOOO properties on relations
+			String sheetName = sheets.get(fromName + "-" + toName);
+			XSSFSheet lSheet = workbook.getSheet(sheetName);
 
-		// the aff is the table where I need to insert
-		// which also means that is what I need to look up to insert
+			int lastRow = lSheet.getLastRowNum();
+			XSSFRow thisRow = lSheet.getRow(0);
+			String [] headers = getCells(thisRow);
+			// realistically it is only second and third
+			headers[1] = Utility.cleanString(headers[1], true);
+			headers[2] = Utility.cleanString(headers[2], true);
 
-		// huge assumption here but
-		String updateString = "";
-		boolean update = false;
-		if(concepts.get(tableToSet).size() <= 2)
-		{
-			//updateString = "MERGE INTO  " + tableToSet + "  KEY(" + tableToSet +") VALUES "; // + ", " + tableToInsert + "_FK) VALUES "; //+ " SET ";
-			updateString = "INSERT INTO " + tableToSet + "(" + tableToSet + " ," +  tableToInsert + "_FK" + ") VALUES ";
-			// this is the case for insert really
-		}
-		else
-		{
-			// this is an update
-			updateString = "Update " + tableToSet + "  SET "; // + ", " + tableToInsert + "_FK) VALUES "; //+ " SET ";
-			update = true;
-		}
+			String tableToSet = headers[1];
+			String tableToInsert = headers[2];
+			//			String tableToSet = sheets.get(fromName + "-" + toName + "AFF");
+			//
+			//			System.out.println("Affinity is " + tableToSet);
+			//			String tableToInsert = toName;
+			//
+			//			// TODO: what is this if statement for?
+			//			if(tableToSet.equalsIgnoreCase(tableToInsert)) {
+			//				tableToInsert = fromName;
+			//			}
+			owler.addRelation(tableToSet, tableToInsert, null);
 
-
-		XSSFSheet lSheet = workbook.getSheet(sheetName);
-		int lastRow = lSheet.getLastRowNum();
-
-		XSSFRow thisRow = lSheet.getRow(0);
-		String [] headers = getCells(thisRow);
-		// realistically it is only second and third
-		headers[1] = Utility.cleanString(headers[1], true);
-		headers[2] = Utility.cleanString(headers[2], true);
-
-		int setter, inserter;
-		if(headers[1].equalsIgnoreCase(tableToSet))
-		{
-			setter = 1;
-			inserter = 2;
-		}
-		else
-		{
-			setter = 2;
-			inserter = 1;
-		}
-		String values = "";
-		for(int rowIndex = 1;rowIndex <= lastRow;rowIndex++)
-		{
-			thisRow = lSheet.getRow(rowIndex);
-			String [] cells = getCells(thisRow);
-			//String [] cells = Utility.castToTypes(uCells, types);
-			values = "";
-			//values = "" + tableToSet + "," +  tableToInsert + " VALUES ";
-			if(!update)
-				values = "( '" + cells[setter] + "' , '" + cells[inserter] + "')";
+			int setter, inserter;
+			if(headers[1].equalsIgnoreCase(tableToSet))
+			{
+				setter = 1;
+				inserter = 2;
+			}
 			else
-				values = tableToSet + " = '" + cells[setter] + "' WHERE " + tableToInsert +  "_FK" + " = '" + cells[inserter] + "'";
-			try {
-				engine.insertData(updateString + values);
-			} catch (Exception e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
-				System.out.println("update query...  " + updateString + values);
-				System.exit(1);
+			{
+				setter = 2;
+				inserter = 1;
+			}
+
+			createIndices(tableToSet, tableToSet);
+
+			for(int rowIndex = 1;rowIndex <= lastRow;rowIndex++)
+			{
+				thisRow = lSheet.getRow(rowIndex);
+				String [] cells = getCells(thisRow);
+
+				if(cells[setter] == null || cells[setter].isEmpty() || cells[inserter] == null || cells[inserter].isEmpty()) {
+					continue; // why is there an empty in the excel sheet....
+				}
+
+				// need to determine if i am performing an update or an insert
+				String getRowCountQuery = "SELECT COUNT(*) as ROW_COUNT FROM " + tableToSet + " WHERE " + 
+									tableToSet + " = '" + cells[setter] + "' AND " + tableToInsert +  "_FK IS NULL";
+				boolean isInsert = false;
+				ISelectWrapper wrapper = WrapperManager.getInstance().getSWrapper(engine, getRowCountQuery);
+				if(wrapper.hasNext()){
+					ISelectStatement stmt = wrapper.next();
+					String rowcount = stmt.getVar(queryUtil.getResultSelectRowCountFromRowCount()) + "";
+					if(rowcount.equals("0")){
+						isInsert = true;
+					}
+				}
+
+				if(isInsert) {
+					// we want to pull all concept values from query
+					String colsToSelect = "";
+					List<String> cols = new ArrayList<String>();
+					Hashtable<String, String> propsToSelect = concepts.get(tableToSet);
+					for(String prop : propsToSelect.keySet()) {
+						if(prop.equalsIgnoreCase(tableToSet) || prop.endsWith("_FK")) {
+							continue;
+						}
+
+						cols.add(prop);
+						if(colsToSelect.isEmpty()) {
+							colsToSelect = prop;
+						} else {
+							colsToSelect = colsToSelect + ", " + prop;
+						}
+					}
+					// only need to be concerned with the relations that have been added
+					for(String rel : relsAdded) {
+						cols.add(rel);
+						colsToSelect = colsToSelect + ", " + rel;
+					}
+					// will always have rel and col
+					cols.add(tableToSet);
+					cols.add(tableToInsert +  "_FK");
+					colsToSelect = colsToSelect + ", " + tableToSet + ", " + tableToInsert +  "_FK";
+
+					// is it a straight insert since there are only two columns
+					if(cols.size() == 2) {
+						String insert = "INSERT INTO " + tableToSet + "(" + tableToSet + " ," +  tableToInsert + "_FK" + 
+										") VALUES ( '" + cells[setter] + "' , '" + cells[inserter] + "')";
+						engine.insertData(insert);
+					} else {
+						// need to generate query to pull all existing information
+						// then append the new relationship
+						// and insert all those cells
+
+						List<String> unknownColsList = new ArrayList<String>();
+						String unknownCols = "";
+						int numCols = cols.size();
+						for(int colNum = 0; colNum < numCols; colNum++) {
+							String col = cols.get(colNum);
+							if(col.equalsIgnoreCase(tableToSet) || col.equalsIgnoreCase(tableToInsert +  "_FK")) {
+								continue;
+							}
+
+							// plus 3 since last two in col should go into the if statement above
+							if(colNum + 3 == numCols) {
+								unknownCols += col + " ";
+								unknownColsList.add(col);
+							} else {
+								unknownColsList.add(col);
+								unknownCols += col + ", ";
+							}
+						}
+
+						String existingValues = "(SELECT DISTINCT " + unknownCols + " FROM " + tableToSet + 
+										" WHERE " + tableToSet + "='" + cells[setter] + "' ) AS TEMP_FK";
+						StringBuilder selectingValues = new StringBuilder();
+						selectingValues.append("SELECT DISTINCT ");
+
+						for(int colNum = 0; colNum < numCols; colNum++) {
+							String col = cols.get(colNum);
+							if(unknownColsList.contains(col)) {
+								selectingValues.append("TEMP_FK.").append(col).append(" AS ").append(col).append(", ");
+							}
+						}
+						selectingValues.append("'" + cells[setter] + "'").append(" AS ").append(tableToSet).append(", ");
+						selectingValues.append("'" + cells[inserter] + "'").append(" AS ").append(tableToInsert + "_FK").append(" ");
+						selectingValues.append(" FROM ").append(tableToSet).append(",");
+
+						String insert = "INSERT INTO " + tableToSet + "(" + colsToSelect + " ) " + selectingValues.toString() + existingValues;
+						engine.insertData(insert);
+					}
+				} else {
+					// this is a nice and simple insert
+					String updateString = "Update " + tableToSet + "  SET ";
+					String values = tableToInsert +  "_FK" + " = '" + cells[inserter] + "' WHERE " + tableToSet + " = '" + cells[setter] + "'";
+					engine.insertData(updateString + values);
+				}
+			}
+			relsAdded.add(tableToInsert +  "_FK");
+		}
+	}
+
+
+	private void createIndices(String cleanTableKey, String indexStr) {
+		String indexOnTable =  cleanTableKey + " ( " +  indexStr + " ) ";
+		String indexName = "INDX_" + cleanTableKey + indexUniqueId;
+		String createIndex = "CREATE INDEX " + indexName + " ON " + indexOnTable;
+		String dropIndex = queryUtil.getDialectDropIndex(indexName, cleanTableKey);//"DROP INDEX " + indexName;
+		if(tempIndexAddedList.size() == 0 ){
+			engine.insertData(createIndex);
+			tempIndexAddedList.add(indexOnTable);
+			tempIndexDropList.add(dropIndex);
+			indexUniqueId++;
+		} else {
+			boolean indexAlreadyExists = false; 
+			for(String index : tempIndexAddedList){
+				if(index.equals(indexOnTable)){//TODO check various order of keys since they are comma seperated
+					indexAlreadyExists = true;
+					break;
+				}
+
+			}
+			if(!indexAlreadyExists){
+				engine.insertData(createIndex);
+				tempIndexDropList.add(dropIndex);
+				tempIndexAddedList.add(indexOnTable);
+				indexUniqueId++;
 			}
 		}
-		System.out.println("update query...  " + updateString + values);
 	}
+
+
+//	private void createRelations(String fromName, String toName, XSSFWorkbook workbook)
+//	{
+//		// now come the relations
+//		// I need 
+//		String sheetName = sheets.get(fromName + "-" + toName);
+//		String tableToSet = sheets.get(fromName + "-" + toName + "AFF");
+//
+//
+//		System.out.println("Affinity is " + tableToSet);
+//		String tableToInsert = toName;
+//		if(tableToSet.equalsIgnoreCase(tableToInsert))
+//			tableToInsert = fromName;
+//		owler.addRelation(tableToInsert, tableToSet, null);
+//		// I have told folks not to do implicit reification so therefore I will ignore everything
+//		// i.e. NOOOOOO properties on relations
+//
+//		// the aff is the table where I need to insert
+//		// which also means that is what I need to look up to insert
+//
+//		// huge assumption here but
+//		String updateString = "";
+//		boolean update = false;
+//		if(concepts.get(tableToSet).size() <= 2)
+//		{
+//			//updateString = "MERGE INTO  " + tableToSet + "  KEY(" + tableToSet +") VALUES "; // + ", " + tableToInsert + "_FK) VALUES "; //+ " SET ";
+//			updateString = "INSERT INTO " + tableToSet + "(" + tableToSet + " ," +  tableToInsert + "_FK" + ") VALUES ";
+//			// this is the case for insert really
+//		}
+//		else
+//		{
+//			// this is an update
+//			updateString = "Update " + tableToSet + "  SET "; // + ", " + tableToInsert + "_FK) VALUES "; //+ " SET ";
+//			update = true;
+//		}
+//
+//
+//		XSSFSheet lSheet = workbook.getSheet(sheetName);
+//		int lastRow = lSheet.getLastRowNum();
+//
+//		XSSFRow thisRow = lSheet.getRow(0);
+//		String [] headers = getCells(thisRow);
+//		// realistically it is only second and third
+//		headers[1] = Utility.cleanString(headers[1], true);
+//		headers[2] = Utility.cleanString(headers[2], true);
+//
+//		int setter, inserter;
+//		if(headers[1].equalsIgnoreCase(tableToSet))
+//		{
+//			setter = 1;
+//			inserter = 2;
+//		}
+//		else
+//		{
+//			setter = 2;
+//			inserter = 1;
+//		}
+//		String values = "";
+//		for(int rowIndex = 1;rowIndex <= lastRow;rowIndex++)
+//		{
+//			thisRow = lSheet.getRow(rowIndex);
+//			String [] cells = getCells(thisRow);
+//			//String [] cells = Utility.castToTypes(uCells, types);
+//			values = "";
+//			//values = "" + tableToSet + "," +  tableToInsert + " VALUES ";
+//			if(!update) {
+//				values = "( '" + cells[setter] + "' , '" + cells[inserter] + "')";
+//			} else {
+//				values = tableToSet + " = '" + cells[setter] + "' WHERE " + tableToInsert +  "_FK" + " = '" + cells[inserter] + "'";
+//			}
+//			try {
+//				engine.insertData(updateString + values);
+//			} catch (Exception e) {
+//				// TODO Auto-generated catch block
+//				e.printStackTrace();
+//				System.out.println("update query...  " + updateString + values);
+//				System.exit(1);
+//			}
+//		}
+//		System.out.println("update query...  " + updateString + values);
+//	}
 
 	/**
 	 * Load specific sheet in workbook
