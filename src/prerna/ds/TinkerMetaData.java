@@ -1,8 +1,11 @@
 package prerna.ds;
 
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Hashtable;
+import java.util.Iterator;
 import java.util.Map;
+import java.util.Set;
 import java.util.Vector;
 
 import org.apache.log4j.LogManager;
@@ -26,7 +29,8 @@ public class TinkerMetaData implements IMetaData {
 	protected TinkerGraph g = null;
 
 	public static final String ALIAS = "ALIAS";
-	public static final String DB = "DB";
+	public static final String DB_NAME = "DB_NAME";
+//	public static final String DB_ARRAY = "DB_ARRAY";
 	public static final String ALIAS_TYPE = "ALIAS_TYPE";
 	public static final String PHYSICAL_NAME = "PHYSICAL_NAME";
 	public static final String PHYSICAL_URI = "PHYSICAL_URI";
@@ -110,7 +114,7 @@ public class TinkerMetaData implements IMetaData {
 		
 		// now add the meta object if it doesn't already exist
 		Map<Object, Object> metaData = null;
-		if(vert.properties(DB).hasNext()){
+		if(!vert.property(engineName).isPresent()){
 			metaData = new HashMap<Object, Object>();
 			vert.property(engineName, metaData);
 		}
@@ -147,7 +151,7 @@ public class TinkerMetaData implements IMetaData {
 		addAliasMeta(vert, physicalUri, NAME_TYPE.DB_PHYSICAL_URI, engineName);
 		
 		// add engine
-		addToMultiProperty(vert, DB, engineName);
+		addToMultiProperty(vert, DB_NAME, engineName);
 		
 		addEngineMeta(vert, engineName, logicalName, instancesType, physicalUri, dataType);
 		
@@ -224,10 +228,12 @@ public class TinkerMetaData implements IMetaData {
 	 * @param newVal - optional additional values to add to propKey
 	 */
 	private void addToMultiProperty(Vertex vert, String propKey, String newValue, String... newVal){
+//		printNode(vert);
 		vert.property(VertexProperty.Cardinality.set, propKey, newValue);
 		for(String val : newVal){
 			vert.property(VertexProperty.Cardinality.set, propKey, val);
 		}
+//		printNode(vert);
 	}
 	
 	/**
@@ -242,7 +248,7 @@ public class TinkerMetaData implements IMetaData {
 		Map<String, Object> metaData = null;
 		if(!vert.property(name).isPresent()){
 			metaData = new HashMap<String, Object>();
-			metaData.put(DB, new Vector<String>());
+			metaData.put(DB_NAME, new Vector<String>());
 			metaData.put(ALIAS_TYPE, new Vector<IMetaData.NAME_TYPE>());
 			vert.property(name, metaData);
 		}
@@ -251,7 +257,7 @@ public class TinkerMetaData implements IMetaData {
 		}
 		
 		if(engineName!=null){
-			((Vector<String>)metaData.get(DB)).add(engineName);
+			((Vector<String>)metaData.get(DB_NAME)).add(engineName);
 		}
 		
 		((Vector<IMetaData.NAME_TYPE>)metaData.get(ALIAS_TYPE)).add(type);
@@ -335,7 +341,33 @@ public class TinkerMetaData implements IMetaData {
 		}
 		else return null;
 	}
+
+	@Override
+	public Set<String> getEnginesForUniqueName(String nodeUniqueName) {
+		GraphTraversal<Vertex, Vertex> trav = g.traversal().V().has(Constants.TYPE, META).has(Constants.NAME, nodeUniqueName);
+		if(trav.hasNext()){
+			Vertex node = trav.next();
+			Iterator<VertexProperty<Object>> dbSet = node.properties(DB_NAME);
+			Set<String> engines = new HashSet<String>();
+			while(dbSet.hasNext()){
+				engines.add(dbSet.next().value().toString());
+			}
+			return engines;
+		}
+		else return null;
+	}
 	
 	
+	private void printNode(Vertex v){
+		System.out.println(v.toString());
+		Iterator<VertexProperty<Object>> props = v.properties();
+		while(props.hasNext()){
+			VertexProperty<Object> prop = props.next();
+			Iterator<Object> vals = prop.values();
+			while(vals.hasNext()){
+				System.out.println(vals.next());
+			}
+		}
+	}
 
 }
