@@ -134,7 +134,7 @@ public class OWLER {
 	}
 	
 	public String addConcept(String concept) {
-		return addConcept(concept, SEMOSS_URI, "TYPE:STRING");
+		return addConcept(concept, SEMOSS_URI, "STRING");
 	}
 	
 	// creates a relation
