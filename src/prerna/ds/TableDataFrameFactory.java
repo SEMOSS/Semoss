@@ -1,19 +1,16 @@
 package prerna.ds;
 
-import java.text.DateFormat;
-import java.text.ParseException;
-import java.text.SimpleDateFormat;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
 
+import com.univocity.parsers.csv.CsvParser;
+import com.univocity.parsers.csv.CsvParserSettings;
+
+import prerna.ds.H2.H2Builder;
 import prerna.ds.H2.TinkerH2Frame;
 import prerna.ds.util.TinkerCastHelper;
 import prerna.poi.main.CSVFileHelper;
-import prerna.util.Utility;
-
-import com.univocity.parsers.csv.CsvParser;
-import com.univocity.parsers.csv.CsvParserSettings;
 
 public class TableDataFrameFactory {
 
@@ -22,11 +19,11 @@ public class TableDataFrameFactory {
 	 * @param headers
 	 * @return
 	 */
-	public static TinkerFrame createPrimKeyTinkerFrame(String[] headers) {
-		return createPrimKeyTinkerFrame(headers, "tinkerFrame");
+	public static TinkerFrame createPrimKeyTinkerFrame(String[] headers, String[] types) {
+		return createPrimKeyTinkerFrame(headers, "tinkerFrame", types);
 	}
 	
-	public static TinkerFrame createPrimKeyTinkerFrame(String[] headers, String dataFrameType) {
+	public static TinkerFrame createPrimKeyTinkerFrame(String[] headers, String dataFrameType, String[] types) {
 		
 		TinkerFrame dataFrame;
 		if(dataFrameType.equalsIgnoreCase("H2")) {
@@ -35,7 +32,8 @@ public class TableDataFrameFactory {
 			dataFrame = new TinkerFrame(headers);
 		}
 		Map<String, Set<String>> primKeyEdgeHash = dataFrame.createPrimKeyEdgeHash(headers);
-		dataFrame.mergeEdgeHash(primKeyEdgeHash);		
+		dataFrame.mergeEdgeHash(primKeyEdgeHash);
+		dataFrame.addMetaDataTypes(headers, types);
 		return dataFrame;
 	}
 	
@@ -106,8 +104,6 @@ public class TableDataFrameFactory {
 	 * @return
 	 */
 	public static TinkerFrame generateDataFrameFromFile(String dataStr, String delimeter, String dataFrameType) {
-		long sT = System.currentTimeMillis();
-
 		if(dataFrameType.equalsIgnoreCase("H2")) {
 			return generateH2FrameFromFile(dataStr, delimeter);
 		} else {
@@ -122,10 +118,19 @@ public class TableDataFrameFactory {
 		daHelper.setDelimiter(delimeter.charAt(0));
 		daHelper.parse(dataStr);
 		String [] headers = daHelper.allHeaders;
-		TinkerH2Frame dataFrame = (TinkerH2Frame)createPrimKeyTinkerFrame(headers, "H2");
+		TinkerH2Frame dataFrame = null;
 		String [] cells = null;
-		while((cells = daHelper.getRow()) != null)
+		String [] types = null;
+		H2Builder builder = new H2Builder();
+		while((cells = daHelper.getRow()) != null) {
+			if(types == null) {
+				builder.predictRowTypes(cells);
+				types = builder.getTypes();
+				dataFrame = (TinkerH2Frame)createPrimKeyTinkerFrame(headers, "H2", types);
+			}
+			
 			dataFrame.addRow(cells);
+		}
 				
 		return dataFrame;
 	}
@@ -138,7 +143,7 @@ public class TableDataFrameFactory {
 		daHelper.parse(dataStr);
 		String [] headers = daHelper.allHeaders;
 		
-		TinkerFrame dataFrame = (TinkerFrame)createPrimKeyTinkerFrame(headers, "TinkerFrame");
+		TinkerFrame dataFrame = null;
 		TinkerCastHelper caster = new TinkerCastHelper();
 		
 		String[] cells = null;
@@ -148,6 +153,7 @@ public class TableDataFrameFactory {
 		
 			if(types == null) {
 				types = caster.guessTypes(cells);
+				dataFrame = (TinkerFrame)createPrimKeyTinkerFrame(headers, "TinkerFrame", types);
 			}
 			
 			values = caster.castToTypes(cells, types);

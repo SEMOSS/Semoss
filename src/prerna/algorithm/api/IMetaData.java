@@ -13,6 +13,8 @@ public interface IMetaData {
 	Vertex upsertVertex(String type, String uniqueName, String logicalName, String instancesType, String physicalUri,
 			String engineName, String dataType, String parentIfProperty);
 	
+	void addDataType(Vertex vert, String dataType);
+	
 	Map<String, String> getProperties();
 
 	String getPhysicalUriForNode(String string, String engineName);

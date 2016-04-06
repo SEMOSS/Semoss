@@ -140,7 +140,7 @@ public class TinkerMetaData implements IMetaData {
 		Vertex vert = upsertVertex(type, uniqueName, logicalName);
 		
 		// add data type
-		determineDataType(vert, dataType);
+		addDataType(vert, dataType);
 		
 		// add aliases
 		String[] curAl = new String[]{instancesType, physicalUri};
@@ -169,7 +169,7 @@ public class TinkerMetaData implements IMetaData {
 //		addAliasMeta(vert, logicalName, );
 //	}
 	
-	private void determineDataType(Vertex vert, String dataType) {
+	public void addDataType(Vertex vert, String dataType) {
 		if(dataType == null || dataType.isEmpty()) {
 			return;
 		}
@@ -182,11 +182,11 @@ public class TinkerMetaData implements IMetaData {
 		}
 		
 		if(currType == null) {
-			if(dataType.equals("TYPE:STRING") || dataType.equals("TYPE:TEXT") || dataType.contains("TYPE:VARCHAR")) {
+			if(dataType.contains("STRING") || dataType.contains("TEXT") || dataType.contains("VARCHAR")) {
 				vert.property(DATATYPE, "STRING");
 			} 
 			else if(dataType.contains("INT") || dataType.contains("DECIMAL") || dataType.contains("DOUBLE") || dataType.contains("FLOAT") || dataType.contains("LONG") || dataType.contains("BIGINT")
-					|| dataType.contains("TINYINT") || dataType.contains("SMALLINT")){
+					|| dataType.contains("TINYINT") || dataType.contains("SMALLINT") || dataType.contains("NUMBER")){
 				vert.property(DATATYPE, "NUMBER");
 			} 
 			else if(dataType.contains("DATE")) {
@@ -195,7 +195,7 @@ public class TinkerMetaData implements IMetaData {
 		} else {
 			// if current is string or new col is string
 			// column must now be a string
-			if(currType.equals("STRING") || dataType.equals("TYPE:STRING") || dataType.equals("TYPE:TEXT") || dataType.contains("TYPE:VARCHAR")) {
+			if(currType.contains("STRING") || dataType.contains("STRING") || dataType.contains("TEXT") || dataType.contains("VARCHAR")) {
 				vert.property(DATATYPE, "STRING");
 			}
 			// if current is a number and new is a number
