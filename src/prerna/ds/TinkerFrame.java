@@ -40,7 +40,6 @@ import org.apache.tinkerpop.gremlin.process.traversal.strategy.decoration.Subgra
 import org.apache.tinkerpop.gremlin.structure.Direction;
 import org.apache.tinkerpop.gremlin.structure.Edge;
 import org.apache.tinkerpop.gremlin.structure.Graph;
-import org.apache.tinkerpop.gremlin.structure.Graph.Variables;
 import org.apache.tinkerpop.gremlin.structure.T;
 import org.apache.tinkerpop.gremlin.structure.Vertex;
 import org.apache.tinkerpop.gremlin.structure.io.Io.Builder;
@@ -50,10 +49,6 @@ import org.apache.tinkerpop.gremlin.structure.io.gryo.GryoIo;
 import org.apache.tinkerpop.gremlin.tinkergraph.structure.TinkerFactory;
 import org.apache.tinkerpop.gremlin.tinkergraph.structure.TinkerGraph;
 
-import com.bigdata.bop.Constant;
-import com.google.gson.Gson;
-
-import edu.stanford.nlp.util.ArraySet;
 import prerna.algorithm.api.IAnalyticActionRoutine;
 import prerna.algorithm.api.IAnalyticRoutine;
 import prerna.algorithm.api.IAnalyticTransformationRoutine;
@@ -106,7 +101,7 @@ public class TinkerFrame implements ITableDataFrame {
 	private IMetaData metaData;
 	
 	protected static final String ENVIRONMENT_VERTEX_KEY = "ENVIRONMENT_VERTEX_KEY";
-	public static final String PRIM_KEY = "PRIM_KEY";
+	public static final String PRIM_KEY = "_GEN_PRIM_KEY";
 	public static final String META = "META";
 	public static final String EMPTY = "_";
 
@@ -1197,7 +1192,7 @@ public class TinkerFrame implements ITableDataFrame {
 			
 			//grab/create the meta vertex associated with newNode
 			Vertex outVert = upsertVertex(META, newNode, getMetaNodeValue(newNode));
-			if(newNode.equals(PRIM_KEY)) {
+			if(newNode.startsWith(PRIM_KEY)) {
 				outVert.property(PRIM_KEY, true);
 			} else {
 				//collect the column headers
@@ -1208,7 +1203,7 @@ public class TinkerFrame implements ITableDataFrame {
 			for(String inVertString : edges){
 				// now to insert the meta edge
 				Vertex inVert = upsertVertex(META, inVertString, getMetaNodeValue(inVertString));
-				if(inVertString.equals(PRIM_KEY)) {
+				if(inVertString.startsWith(PRIM_KEY)) {
 					inVert.property(PRIM_KEY, true);
 				} else {
 					newLevels.add(inVertString);
@@ -1285,7 +1280,12 @@ public class TinkerFrame implements ITableDataFrame {
 			}
 		}
 		// need to make sure prim key is not added as header
-		newLevels.remove(PRIM_KEY);
+		Iterator<String> newLevelsIt = newLevels.iterator();
+		while(newLevelsIt.hasNext()) {
+			if(newLevelsIt.next().startsWith(PRIM_KEY)) {
+				newLevelsIt.remove();
+			}
+		}
 		redoLevels(newLevels.toArray(new String[newLevels.size()]));
 		return cleanedHash;
 	}
