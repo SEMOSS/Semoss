@@ -1215,7 +1215,7 @@ public class Insight {
 				Map<String, String> props = tmd.getProperties();
 				for(String sub: edgeHash.keySet()){
 					Map<String, Object> nodeObj = new HashMap<String, Object>();
-					nodeObj.put("uri", sub);
+//					nodeObj.put("uri", sub);
 					nodeObj.put("engineName", tmd.getEnginesForUniqueName(sub));
 					if(props.containsKey(sub)){
 						nodeObj.put("prop", props.get(sub));
@@ -1225,7 +1225,7 @@ public class Insight {
 					Set<String> objs = edgeHash.get(sub);
 					for(String obj : objs){
 						Map<String, Object> nodeObj2 = new HashMap<String, Object>();
-						nodeObj2.put("uri", obj);
+//						nodeObj2.put("uri", obj);
 						nodeObj2.put("engineName", tmd.getEnginesForUniqueName(obj));
 						if(props.containsKey(obj)){
 							nodeObj2.put("prop", props.get(obj));

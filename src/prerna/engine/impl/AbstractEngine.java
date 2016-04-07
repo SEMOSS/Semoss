@@ -589,7 +589,7 @@ public abstract class AbstractEngine implements IEngine {
 	public List<String> getProperties4Concept(String concept, Boolean logicalNames) {
 		String uri = concept;
 		if(!uri.contains("http://")){
-			uri = Constants.CONCEPT_URI + uri;
+			uri = Constants.DISPLAY_URI + uri;
 		}
 		String query = "SELECT ?property WHERE { {?concept <http://www.w3.org/2000/01/rdf-schema#subClassOf> <http://semoss.org/ontologies/Concept> }"
 				+ "{?concept  <http://www.w3.org/2002/07/owl#DatatypeProperty> ?property}"
