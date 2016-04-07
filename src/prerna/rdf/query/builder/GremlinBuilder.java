@@ -99,15 +99,23 @@ public class GremlinBuilder {
 			// the purpose of this is to just get the start node for the traversal
 			// start with any meta node
 			startNode = metaT.next();
-			String startType = startNode.value(Constants.NAME);
 			
-			gt = gt.has(Constants.TYPE, startType).as(startType);
+			//Constants.NAME changes while Constants.VALUE stays constant
+			String nameType = startNode.property(Constants.NAME).value()+""; 
+			String valueType = startNode.property(Constants.VALUE).value()+""; 
+			
+			//remove prim_key when making a heatMap
+			if(valueType.equals(TinkerFrame.PRIM_KEY)){
+				valueType = startNode.property(Constants.NAME).value() + "";
+			}
+			
+			gt = gt.has(Constants.TYPE, valueType).as(nameType);
 			
 			// there is a boolean at the metamodel level if this type has any filters
-			Object filtered = startNode.value(Constants.FILTER);
+			Object filtered = startNode.value(Constants.FILTER); 
 			if((Boolean)filtered == true) {
 				// filtered edges have a type of filter
-				gt = gt.not(__.in(Constants.FILTER+TinkerFrame.edgeLabelDelimeter+startType).has(Constants.TYPE, Constants.FILTER));
+				gt = gt.not(__.in(Constants.FILTER + TinkerFrame.edgeLabelDelimeter + valueType).has(Constants.TYPE, Constants.FILTER));
 			}
 			// add the logic to traverse
 			traversals = visitNode(startNode, travelledEdges, traversals);
@@ -120,27 +128,46 @@ public class GremlinBuilder {
 	}
 
 	private List<GraphTraversal<Object, Vertex>> visitNode(Vertex orig, List<String> travelledEdges, List<GraphTraversal<Object, Vertex>> traversals) {
-		String origName = orig.value(Constants.NAME);
-		GraphTraversal<Vertex, Vertex> downstreamIt = g.traversal().V().has(Constants.TYPE, TinkerFrame.META).has(Constants.ID, orig.property(Constants.ID).value()).out(TinkerFrame.META+TinkerFrame.edgeLabelDelimeter+TinkerFrame.META);
+		
+		//Constants.NAME changes while Constants.VALUE stays constant
+		String origName = orig.value(Constants.NAME);  
+		String origValue = orig.value(Constants.VALUE);
+		
+		//remove prim_key when making a heatMap
+		if(origValue.equals(TinkerFrame.PRIM_KEY)){
+			origValue = orig.property(Constants.NAME).value() + "";
+		}
+		
+		// for each downstream node of this meta node
+		GraphTraversal<Vertex, Vertex> downstreamIt = g.traversal().V().has(Constants.TYPE, TinkerFrame.META).has(Constants.ID, orig.property(Constants.ID).value()).out(TinkerFrame.META + TinkerFrame.edgeLabelDelimeter + TinkerFrame.META);
 		while (downstreamIt.hasNext()) {
 			// for each downstream node of this meta node
 			Vertex nodeV = downstreamIt.next();
-			String node = nodeV.value(Constants.NAME);
 			
-			String edgeKey = origName + TinkerFrame.edgeLabelDelimeter + node;
-			if(!travelledEdges.contains(edgeKey)) {
-				LOGGER.info("travelling down to " + node);
-				
-//				String edgeType = origName + ":" + node;
-				GraphTraversal<Object, Vertex> twoStepT = __.as(origName).out(edgeKey).has(Constants.TYPE, node);
-						
+			//Constants.NAME changes while Constants.VALUE stays constant
+			String nameNode = nodeV.property(Constants.NAME).value() + "";
+			String valueNode = nodeV.property(Constants.VALUE).value() + "";
+			
+			//remove prim_key when making a heatMap
+			if(valueNode.equals(TinkerFrame.PRIM_KEY)){
+				valueNode = nodeV.property(Constants.NAME).value() + "";
+			}
+			
+			String edgeKey = origValue + TinkerFrame.edgeLabelDelimeter + valueNode;
+
+			if (!travelledEdges.contains(edgeKey)) {
+				LOGGER.info("travelling down to " + nameNode);
+
+				GraphTraversal<Object, Vertex> twoStepT = __.as(origName).out(edgeKey).has(Constants.TYPE, valueNode);
+
 				Object filtered = nodeV.value(Constants.FILTER);
-				if((Boolean)filtered == true) {
-					twoStepT = twoStepT.not(__.in(Constants.FILTER+TinkerFrame.edgeLabelDelimeter+node).has(Constants.TYPE, Constants.FILTER));
+				if ((Boolean) filtered == true) {
+					twoStepT = twoStepT.not(__.in(Constants.FILTER + TinkerFrame.edgeLabelDelimeter + valueNode).has(Constants.TYPE, Constants.FILTER));
 				}
 
-				twoStepT = twoStepT.as(node);
-				traversals.add(twoStepT); 
+				twoStepT = twoStepT.as(nameNode);
+				LOGGER.info("twoStepT downstream : " + twoStepT);
+				traversals.add(twoStepT);
 
 				travelledEdges.add(edgeKey);
 				// travel as far downstream as possible
@@ -151,24 +178,33 @@ public class GremlinBuilder {
 		GraphTraversal<Vertex, Vertex> upstreamIt = g.traversal().V().has(Constants.TYPE, TinkerFrame.META).has(Constants.ID, orig.property(Constants.ID).value()).in(TinkerFrame.META+TinkerFrame.edgeLabelDelimeter+TinkerFrame.META);
 		while(upstreamIt.hasNext()) {
 			Vertex nodeV = upstreamIt.next();
-			String node = nodeV.value(Constants.NAME);
 			
-			String edgeKey = node + TinkerFrame.edgeLabelDelimeter + origName;
-			if(!travelledEdges.contains(edgeKey)){
-				LOGGER.info("travelling up to " + node);
-				
-				GraphTraversal<Object, Vertex> twoStepT = __.as(origName).in(edgeKey).has(Constants.TYPE, node);
-						
+			//Constants.NAME changes while Constants.VALUE stays constant
+			String nameNode = nodeV.property(Constants.NAME).value() + "";
+			String valueNode = nodeV.property(Constants.VALUE).value() + "";
+			
+			//remove prim_key when making a heatMap
+			if(valueNode.equals(TinkerFrame.PRIM_KEY)){
+				valueNode = nodeV.property(Constants.NAME).value() + "";
+			}
+			
+			String edgeKey = valueNode + TinkerFrame.edgeLabelDelimeter + origValue;
+			if (!travelledEdges.contains(edgeKey)) {
+				LOGGER.info("travelling down to " + nameNode);
+
+				GraphTraversal<Object, Vertex> twoStepT = __.as(origName).in(edgeKey).has(Constants.TYPE, valueNode);
+
 				Object filtered = nodeV.value(Constants.FILTER);
-				if((Boolean)filtered == true) {
-					twoStepT = twoStepT.not(__.in(Constants.FILTER+TinkerFrame.edgeLabelDelimeter+node).has(Constants.TYPE, Constants.FILTER));
+				if ((Boolean) filtered == true) {
+					twoStepT = twoStepT.not(__.in(Constants.FILTER + TinkerFrame.edgeLabelDelimeter + valueNode).has(Constants.TYPE, Constants.FILTER));
 				}
 
-				twoStepT = twoStepT.as(node);
-				traversals.add(twoStepT); 
+				twoStepT = twoStepT.as(nameNode);
+				LOGGER.info("twoStepT upstream : " + twoStepT);
+				traversals.add(twoStepT);
 
 				travelledEdges.add(edgeKey);
-				// travel as far downstream as possible
+				// travel as far upstream as possible
 				traversals = visitNode(nodeV, travelledEdges, traversals);
 			}
 		}

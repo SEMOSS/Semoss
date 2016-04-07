@@ -32,10 +32,11 @@ import prerna.engine.api.IEngine;
 import prerna.engine.api.ISelectWrapper;
 import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.ui.components.playsheets.datamakers.DataMakerComponent;
+import prerna.ui.components.playsheets.datamakers.ISEMOSSTransformation;
+import prerna.ui.components.playsheets.datamakers.JoinTransformation;
 import prerna.util.ArrayUtilityMethods;
 import prerna.util.Constants;
 import prerna.util.MyGraphIoRegistry;
-import prerna.util.Utility;
 
 public class TinkerH2Frame extends TinkerFrame {
 
@@ -91,6 +92,18 @@ public class TinkerH2Frame extends TinkerFrame {
 	public void processDataMakerComponent(DataMakerComponent component) {
 		long startTime = System.currentTimeMillis();
         LOGGER.info("Processing Component..................................");
+        
+        
+        List<ISEMOSSTransformation>  preTrans = component.getPreTrans();
+        List<String> joinColList= new ArrayList<String> ();
+        for(ISEMOSSTransformation transformation: preTrans){
+     	   if(transformation instanceof JoinTransformation){
+     		  String joinCol = (String) ((JoinTransformation)transformation).getProperties().get(JoinTransformation.COLUMN_ONE_KEY);
+     		  joinColList.add(joinCol);
+     	   }  
+        }
+        
+        
         processPreTransformations(component, component.getPreTrans());
         long time1 = System.currentTimeMillis();
         LOGGER.info("	Processed Pretransformations: " +(time1 - startTime)+" ms");
@@ -114,7 +127,7 @@ public class TinkerH2Frame extends TinkerFrame {
             if(hasMetaModel) {
          	   String[] headers = getH2Headers();
          	   Map<String, Set<String>> edgeHash = component.getQueryStruct().getReturnConnectionsHash();
-         	   this.mergeQSEdgeHash(edgeHash, engine);
+         	   this.mergeQSEdgeHash(edgeHash, engine, joinColList);
          	   
          	   //send in new columns, not all
          	   builder.processWrapper(wrapper, headers);
@@ -125,7 +138,7 @@ public class TinkerH2Frame extends TinkerFrame {
                 displayNames = wrapper.getDisplayVariables();
          	   this.mergeEdgeHash(this.createPrimKeyEdgeHash(displayNames));
          	   while(wrapper.hasNext()){
-         		   this.addRow(wrapper.next().getPropHash());
+         		   this.addRow(wrapper.next());
          	   }
             }
         }
@@ -531,68 +544,68 @@ public class TinkerH2Frame extends TinkerFrame {
 		return tf;
 	}
 	
-	@Override
-	public Map<String, Set<String>> mergeQSEdgeHash(Map<String, Set<String>> newEdgeHash, IEngine engine) {
-		Map<String, Set<String>> cleanedHash = new HashMap<String, Set<String>>();
-		Set<String> newLevels = new LinkedHashSet<String>();
-		for(String newNodeKey : newEdgeHash.keySet()) {
-			
-			//query struct only knows physical name but our tinker is built purely on logical names
-			//need to translate to logical to get the types
-			String outPhysicalUri = null;
-			String physicalName = newNodeKey;
-			String outConceptName = null;
-			if(newNodeKey.contains("__")){
-				outConceptName = newNodeKey.substring(0, newNodeKey.indexOf("__"));
-				physicalName = newNodeKey.substring(newNodeKey.indexOf("__")+2);
-				outPhysicalUri = Constants.PROPERTY_URI + physicalName;
-			}
-			else{
-				outPhysicalUri = engine.getConceptUri4PhysicalName(physicalName);
-			}
-			String newNode = Utility.getInstanceName(engine.getTransformedNodeName(outPhysicalUri, true));
-			Set<String> cleanSet = new HashSet<String>();
-			cleanedHash.put(newNode, cleanSet);
-			
-			//grab the edges
-			Set<String> edges = newEdgeHash.get(newNodeKey);
-			
-			//collect the column headers
-			newLevels.add(newNode);
-			
-			//grab/create the meta vertex associated with newNode
-			Vertex outVert = this.metaData.upsertVertex(META, newNode, cleanHeader(newNode), physicalName, outPhysicalUri, engine.getEngineName(), engine.getDataTypes(outPhysicalUri), outConceptName);
-			//for each edge in corresponding with newNode create the connection within the META graph
-			for(String inVertS : edges){
-				//query struct doesn't know logical names at all but our tinker is built purely on logical
-				//need to translate to logical to get the types
-				String inPhysicalUri = null;
-				String inPhysicalName = inVertS;
-				String inConceptName = null;
-				if(inVertS.contains("__")){
-					inConceptName = inVertS.substring(0, inVertS.indexOf("__"));
-					inPhysicalName = inVertS.substring(inVertS.indexOf("__")+2);
-					inPhysicalUri = Constants.PROPERTY_URI + inPhysicalName;
-				}
-				else{
-					inPhysicalUri = engine.getConceptUri4PhysicalName(inPhysicalName);
-				}
-				String inVertString = Utility.getInstanceName(engine.getTransformedNodeName(inPhysicalUri, true));
-				
-				newLevels.add(inVertString);
-				cleanSet.add(inVertString);
-				
-				// now to insert the meta edge
-				Vertex inVert = this.metaData.upsertVertex(META, inVertString, inVertString, inPhysicalName, inPhysicalUri, engine.getEngineName(), engine.getDataTypes(inPhysicalUri), inConceptName);
-				
-				upsertEdge(outVert, inVert);
-			}
-		}
-		// need to make sure prim key is not added as header
-		newLevels.remove(PRIM_KEY);
-		redoLevels(newLevels.toArray(new String[newLevels.size()]));
-		return cleanedHash;
-	}
+//	@Override
+//	public Map<String, Set<String>> mergeQSEdgeHash(Map<String, Set<String>> newEdgeHash, IEngine engine) {
+//		Map<String, Set<String>> cleanedHash = new HashMap<String, Set<String>>();
+//		Set<String> newLevels = new LinkedHashSet<String>();
+//		for(String newNodeKey : newEdgeHash.keySet()) {
+//			
+//			//query struct only knows physical name but our tinker is built purely on logical names
+//			//need to translate to logical to get the types
+//			String outPhysicalUri = null;
+//			String physicalName = newNodeKey;
+//			String outConceptName = null;
+//			if(newNodeKey.contains("__")){
+//				outConceptName = newNodeKey.substring(0, newNodeKey.indexOf("__"));
+//				physicalName = newNodeKey.substring(newNodeKey.indexOf("__")+2);
+//				outPhysicalUri = Constants.PROPERTY_URI + physicalName;
+//			}
+//			else{
+//				outPhysicalUri = engine.getConceptUri4PhysicalName(physicalName);
+//			}
+//			String newNode = Utility.getInstanceName(engine.getTransformedNodeName(outPhysicalUri, true));
+//			Set<String> cleanSet = new HashSet<String>();
+//			cleanedHash.put(newNode, cleanSet);
+//			
+//			//grab the edges
+//			Set<String> edges = newEdgeHash.get(newNodeKey);
+//			
+//			//collect the column headers
+//			newLevels.add(newNode);
+//			
+//			//grab/create the meta vertex associated with newNode
+//			Vertex outVert = this.metaData.upsertVertex(META, newNode, cleanHeader(newNode), physicalName, outPhysicalUri, engine.getEngineName(), engine.getDataTypes(outPhysicalUri), outConceptName);
+//			//for each edge in corresponding with newNode create the connection within the META graph
+//			for(String inVertS : edges){
+//				//query struct doesn't know logical names at all but our tinker is built purely on logical
+//				//need to translate to logical to get the types
+//				String inPhysicalUri = null;
+//				String inPhysicalName = inVertS;
+//				String inConceptName = null;
+//				if(inVertS.contains("__")){
+//					inConceptName = inVertS.substring(0, inVertS.indexOf("__"));
+//					inPhysicalName = inVertS.substring(inVertS.indexOf("__")+2);
+//					inPhysicalUri = Constants.PROPERTY_URI + inPhysicalName;
+//				}
+//				else{
+//					inPhysicalUri = engine.getConceptUri4PhysicalName(inPhysicalName);
+//				}
+//				String inVertString = Utility.getInstanceName(engine.getTransformedNodeName(inPhysicalUri, true));
+//				
+//				newLevels.add(inVertString);
+//				cleanSet.add(inVertString);
+//				
+//				// now to insert the meta edge
+//				Vertex inVert = this.metaData.upsertVertex(META, inVertString, inVertString, inPhysicalName, inPhysicalUri, engine.getEngineName(), engine.getDataTypes(inPhysicalUri), inConceptName);
+//				
+//				upsertEdge(outVert, inVert);
+//			}
+//		}
+//		// need to make sure prim key is not added as header
+//		newLevels.remove(PRIM_KEY);
+//		redoLevels(newLevels.toArray(new String[newLevels.size()]));
+//		return cleanedHash;
+//	}
     
 	protected void redoLevels(String [] newLevels)
 	{
