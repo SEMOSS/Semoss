@@ -67,7 +67,6 @@ import prerna.algorithm.api.IMetaData;
 import prerna.algorithm.api.ITableDataFrame;
 import prerna.ds.QueryStruct;
 import prerna.ds.TinkerFrame;
-import prerna.ds.TinkerMetaData;
 import prerna.engine.api.IEngine;
 import prerna.engine.api.ISelectStatement;
 import prerna.engine.api.ISelectWrapper;
@@ -1216,7 +1215,13 @@ public class Insight {
 				for(String sub: edgeHash.keySet()){
 					Map<String, Object> nodeObj = new HashMap<String, Object>();
 //					nodeObj.put("uri", sub);
-					nodeObj.put("engineName", tmd.getEnginesForUniqueName(sub));
+					Set<String> subEngineNameSet = tmd.getEnginesForUniqueName(sub);
+					// this is for the FE s.t. it doesn't break when no engines are sent back
+					if(subEngineNameSet == null || subEngineNameSet.isEmpty()) {
+						subEngineNameSet = new HashSet<String>();
+						subEngineNameSet.add(Constants.LOCAL_MASTER_DB_NAME);
+					}
+					nodeObj.put("engineName", subEngineNameSet);
 					if(props.containsKey(sub)){
 						nodeObj.put("prop", props.get(sub));
 					}
@@ -1226,7 +1231,13 @@ public class Insight {
 					for(String obj : objs){
 						Map<String, Object> nodeObj2 = new HashMap<String, Object>();
 //						nodeObj2.put("uri", obj);
-						nodeObj2.put("engineName", tmd.getEnginesForUniqueName(obj));
+						Set<String> objEngineNameSet = tmd.getEnginesForUniqueName(obj);
+						// this is for the FE s.t. it doesn't break when no engines are sent back
+						if(objEngineNameSet == null || objEngineNameSet.isEmpty()) {
+							objEngineNameSet = new HashSet<String>();
+							objEngineNameSet.add(Constants.LOCAL_MASTER_DB_NAME);
+						}
+						nodeObj2.put("engineName", objEngineNameSet);
 						if(props.containsKey(obj)){
 							nodeObj2.put("prop", props.get(obj));
 						}
