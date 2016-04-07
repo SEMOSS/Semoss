@@ -128,6 +128,10 @@ public class MultiClusteringRoutine implements IAnalyticTransformationRoutine {
 
 				tf.addRelationship(clean, raw);
 			}
+			
+			String[] newHeaders = new String[]{clusterColName};
+			String[] newHeaderType = new String[]{"INT"};
+			tf.addMetaDataTypes(newHeaders, newHeaderType);
 		}
 		return null;
 	}
