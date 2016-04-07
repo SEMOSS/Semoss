@@ -44,7 +44,7 @@ public class RelReactor extends AbstractReactor {
 		// just for the sake of clarity..
 		// I should take the stuff out and get it set right
 		Hashtable <String, Object> finalHash = new Hashtable<String, Object>();
-		finalHash.put("FROM_COL", myStore.get(whatIReactTo[1]));
+		finalHash.put(TokenEnum.FROM_COL, myStore.get(whatIReactTo[1]));
 		if(myStore.containsKey(whatIReactTo[2]))
 			finalHash.put("TO_COL", myStore.get(whatIReactTo[2]));
 		finalHash.put(TokenEnum.REL_TYPE, myStore.get(TokenEnum.REL_TYPE));
