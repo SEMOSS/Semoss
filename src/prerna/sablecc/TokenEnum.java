@@ -7,6 +7,7 @@ public class TokenEnum {
 
 	public static final String COMPARATOR = "COMPARATOR";
 
+
 	public static String NUMBER = "NUMBER";
 	public static String DECIMAL = "DECIMAL";
 	public static String ALPHA = "ALPHA";
@@ -29,6 +30,7 @@ public class TokenEnum {
 	public static String REL_TYPE = "REL_TYPE";
 	public static String REL_DEF = "REL_DEF";
 	public static String JOINS = "JOINS";
+	public static String FROM_COL = "FROM_COL";
 	public static String COL_ADD = "COL_ADD";
 	public static String G = "G";
 //	public static String RELATION = "RELATION";
