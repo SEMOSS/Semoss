@@ -100,7 +100,24 @@ public class TinkerMetaData implements IMetaData {
 		// TODO Auto-generated method stub
 
 	}
+	
+	/*
+	 * Return's nodes Contrant.Value/Physical logical name from the inputted physical name
+	 */
+	public String getLogical4Physical (String metaNodeName) {
+		String metaNodeValue = metaNodeName;
+		// get metamodel info for metaModeName
+		GraphTraversal<Vertex, Vertex> metaT = g.traversal().V().has(Constants.TYPE, TinkerFrame.META).has(Constants.NAME, metaNodeName);
+		
+		// if metaT has metaNodeName then find the value else return metaNodeName
+		if (metaT.hasNext()) {
+			Vertex startNode = metaT.next();
+			metaNodeValue = startNode.property(Constants.VALUE).value() + "";
+		}
 
+		return metaNodeValue;
+	}
+	
 	/**
 	 * 
 	 * @param vert
