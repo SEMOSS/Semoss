@@ -134,6 +134,10 @@ public class ClusteringRoutine extends AbstractClusteringRoutine {
 					
 					tf.addRelationship(clean, raw);
 				}
+				
+				String[] newHeaders = new String[]{clusterColName};
+				String[] newHeaderType = new String[]{"INT"};
+				tf.addMetaDataTypes(newHeaders, newHeaderType);
 			}
 			return null;
 		}
