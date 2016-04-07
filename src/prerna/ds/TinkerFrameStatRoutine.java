@@ -208,7 +208,7 @@ public class TinkerFrameStatRoutine implements IAnalyticTransformationRoutine {
 						newRow.put(cHeader, key);
 						newRow.put(newColumnName, groupByMap.get(key));
 						
-						tinker.addRelationship(newRow, newRow);
+						tinker.addRelationship(newRow, newRow, newEdgeHash);
 					}
 					
 					// add appropriate blanks
