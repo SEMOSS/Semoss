@@ -4,8 +4,6 @@ import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.IOException;
-import java.util.Hashtable;
-import java.util.Map;
 
 import com.univocity.parsers.csv.CsvParser;
 import com.univocity.parsers.csv.CsvParserSettings;
@@ -91,8 +89,7 @@ public class CSVFileHelper {
 		makeSettings();
 		settings.selectFields(columns);
 		currHeaders = columns;
-		allHeaders = null;
-		reset();
+		reset(false);
 	}
 	
 	/**
@@ -106,9 +103,14 @@ public class CSVFileHelper {
 	/**
 	 * Reset to start the parser from the beginning of the file
 	 */
-	public void reset() {
+	public void reset(boolean removeCurrHeaders) {
 		clear();
 		createParser();
+		if(removeCurrHeaders) {
+			currHeaders = null;
+			settings.selectFields(allHeaders);
+			getNextRow(); // to skip the header row
+		}
 	}
 	
 	/**
@@ -149,10 +151,12 @@ public class CSVFileHelper {
 	 * Loop through all the data to see what the data types are for each column
 	 * @return
 	 */
-	public Map<String, String> predictTypes() {
-		Map<String, String> types = new Hashtable<String, String>();
+	public String[] predictTypes() {
+		String[] types = new String[allHeaders.length];
+		int counter = 0;
 		for(String col : allHeaders) {
 			parseColumns(new String[]{col});
+			getNextRow();
 			String type = null;
 			String[] row = null;
 			WHILE_LOOP : while( ( row = parser.parseNext()) != null) {
@@ -170,8 +174,8 @@ public class CSVFileHelper {
 				if(!newTypePred.equals(type) && type != null) {
 					// this means there are multiple types in one column
 					// assume it is a string 
-					if( (type.equals("BOOLEAN") || type.equals("INT") || type.equals("DOUBLE")) && 
-							(newTypePred.equals("INT") || newTypePred.equals("INT") || newTypePred.equals("DOUBLE") ) ){
+					if( (type.equals("INT") || type.equals("DOUBLE")) && (newTypePred.equals("INT") || 
+							newTypePred.equals("INT") || newTypePred.equals("DOUBLE") ) ){
 						// for simplicity, make it a double and call it a day
 						// TODO: see if we want to impl the logic to choose the greater of the newest
 						// this would require more checks though
@@ -189,9 +193,11 @@ public class CSVFileHelper {
 					type = newTypePred;
 				}
 			}
-			types.put(col, type);
+			types[counter] = type;
+			counter++;
 		}
 		
+		reset(true);
 		return types;
 	}
 	
@@ -212,7 +218,7 @@ public class CSVFileHelper {
 		test.printRow(test.getNextRow());
 		test.printRow(test.allHeaders);
 		test.allHeaders = null;
-		test.reset();
+		test.reset(false);
 		test.printRow(test.allHeaders);
 		System.out.println(test.countLines());
 		String [] columns = {"Title"};
@@ -221,7 +227,7 @@ public class CSVFileHelper {
 		test.printRow(test.getNextRow());
 		test.printRow(test.getNextRow());
 		System.out.println(test.countLines());
-		test.reset();
+		test.reset(false);
 		//test.printRow(test.getRow());
 		after = System.nanoTime();
 		System.out.println((after - before)/1000000);
