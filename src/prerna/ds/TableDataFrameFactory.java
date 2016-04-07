@@ -4,6 +4,7 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Hashtable;
+import java.util.Iterator;
 import java.util.Map;
 import java.util.Set;
 
@@ -46,6 +47,7 @@ public class TableDataFrameFactory {
 
 		for(int i = 0; i < tables.length; i++)
 		{
+			String primKeyHeader = null;
 			String sheetName = tables[i];
 			String[] headers = helper.getHeaders(sheetName);
 			String[] types = helper.predictRowTypes(sheetName);
@@ -57,13 +59,15 @@ public class TableDataFrameFactory {
 				// need to create a new prim_key vertex
 				Set<String> values = new HashSet<String>();
 				values.addAll(Arrays.asList(headers));
-				newEdgeHash.put(TinkerFrame.PRIM_KEY + "_" + i, values);
+				primKeyHeader = TinkerFrame.PRIM_KEY + "_" + i;
+				newEdgeHash.put(primKeyHeader, values);
 				tf.mergeEdgeHash(newEdgeHash);
 				tf.addMetaDataTypes(headers, types);
 			}
 			
 			Object[] values = null;	
 			String[] row = null;
+			helper.getNextRow(sheetName); // first row is header
 			while( ( row = helper.getNextRow(sheetName) ) != null) {
 				values = caster.castToTypes(row, types);
 				Map<String, Object> cleanRow = new HashMap<>();
@@ -74,10 +78,18 @@ public class TableDataFrameFactory {
 					Object value = values[j];
 					String rawVal = "http://" + header + "/" + value;
 
-					cleanRow.put(headers[i], values[i]);
+					cleanRow.put(headers[j], values[j]);
 					rawRow.put(header, rawVal);
 				}
-				tf.addRow(cleanRow, rawRow);
+				if(i == 0) {
+					tf.addRow(cleanRow, rawRow);
+				} else {
+					String primKeyVal = values.hashCode() + "";
+					cleanRow.put(primKeyHeader, primKeyVal);
+					rawRow.put(primKeyHeader, primKeyVal);
+					
+					tf.addRelationship(cleanRow, rawRow);
+				}
 			}
 		}
 		
