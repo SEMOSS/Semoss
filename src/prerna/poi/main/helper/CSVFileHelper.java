@@ -27,7 +27,7 @@ public class CSVFileHelper {
 	
 	/**
 	 * Parse the new file passed
-	 * @param fileName		The String location of the fileName
+	 * @param fileLocation		The String location of the fileName
 	 */
 	public void parse(String fileLocation) {
 		this.fileLocation = fileLocation;
