@@ -1,7 +1,7 @@
-package prerna.poi.main;
+package prerna.poi.main.helper;
 
 import java.io.FileInputStream;
-import java.io.FileReader;
+import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.util.Enumeration;
 import java.util.Hashtable;
@@ -15,57 +15,26 @@ import org.apache.poi.xssf.usermodel.XSSFRow;
 import org.apache.poi.xssf.usermodel.XSSFSheet;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 
-import prerna.engine.api.IEngine;
+import cern.colt.Arrays;
 import prerna.util.Utility;
-
 
 public class XLFileHelper {
 	
+	private static final Logger LOGGER = LogManager.getLogger(XLFileHelper.class.getName());
+
 	int colStarter = 0;
 	
-	FileInputStream sourceFile = null;
-	String fileName = null;
-	
-	char delimiter = ',';
-	String [] curHeaders = null;
-	Hashtable <String, String> cleanDirtyMapper = new Hashtable<String, String>();
-	Hashtable <String, String> dirtyTypeMapper = new Hashtable<String, String>();
-	IEngine engine = null;
+	private	XSSFWorkbook workbook = null;
+	private FileInputStream sourceFile = null;
+	private String fileName = null;
 
-	private static final Logger logger = LogManager.getLogger(POIReader.class.getName());
-		
 	private Hashtable <String, XSSFSheet> sheetNames = new Hashtable<String, XSSFSheet>();
 	private Hashtable <String, Integer> sheetCounter = new Hashtable<String, Integer>();
 	private Hashtable <String, Vector<String>> allProps = new Hashtable <String, Vector<String>> ();
-	private	XSSFWorkbook workbook = null;
 
-
-	public static void main(String [] args) throws Exception
-	{
-		String fileName = "C:/Users/pkapaleeswaran/workspacej3/datasets/Movie.csv";
-		long before, after;
-		//fileName = "C:/Users/pkapaleeswaran/workspacej3/datasets/consumer_complaints.csv";
-		//fileName = "C:/Users/pkapaleeswaran/workspacej3/datasets/Movie.csv";
-		fileName = "C:/Users/pkapaleeswaran/workspacej3/datasets/XLUploadTester.xlsx";
-		//fileName = "C:/Users/pkapaleeswaran/workspacej3/datasets/Medical_devices_data.xlsx";
-		before = System.nanoTime();
-		XLFileHelper test = new XLFileHelper();
-		test.parse(fileName);
-		String [] tables = test.getTables();
-		for(int tabIndex = 0;tabIndex < tables.length;tabIndex++)
-		{
-			test.printRow(test.getRow(tables[tabIndex]));
-		}
-		Vector <String> allRels = test.getRelations();
-		
-		for(int tabIndex = 0;tabIndex < allRels.size();tabIndex++)
-		{
-			System.out.println(allRels.elementAt(tabIndex));
-		}
-		
-		//test.printRow(test.getRow());
-		after = System.nanoTime();
-		System.out.println((after - before)/1000000);
+	public void parse(String fileName) {
+		this.fileName = fileName;
+		createParser();
 	}
 	
 	public String [] getTables()
@@ -165,89 +134,30 @@ public class XLFileHelper {
 		return "";
 	}
 
-	// FROM CSV Helper
-	
-	public void parse(String fileName)
-	{
-		this.fileName = fileName;
-		createParser();
-	}
-
 	private void createParser()
 	{
 		try {
 			sourceFile = new FileInputStream(fileName);
 			workbook = new XSSFWorkbook(sourceFile);
-			
+
 			// get all the sheets
 			int totalSheets = workbook.getNumberOfSheets();
-			
-			// I am not sure if I should assimilate the sheets
-			for(int sheetIndex = 0;sheetIndex < totalSheets;sheetIndex++)
-			{
+
+			// store all the sheets
+			for(int sheetIndex = 0;sheetIndex < totalSheets; sheetIndex++) {
 				String nameOfSheet = workbook.getSheetAt(sheetIndex).getSheetName();
 				sheetNames.put(nameOfSheet, workbook.getSheet(nameOfSheet));
 			}
-			/*
-				assimilateSheet(workbook.getSheetAt(sheetIndex).getSheetName(), workbook);
-			
-			// load the Loader tab to determine which sheets to load
-			// the next thing is to look at relation ships and add the appropriate column that I want to the respective concepts
-
-			System.out.println("Lucky !!" + concepts + " <> " + relations);
-			System.out.println("Properties" + allProps);
-			
-			// this call 
-			cleanProps();
-			
-			System.out.println("Ok.. now what ?");
-			synchronizeRelations();
-			// the next thing is to find
-			// which of these have fully formed tables vs. which of these are just reference data
-			// and then proceed to insert it appropriately
-			findRelations();
-			
-
-			// now I need to create the tables
-			Enumeration <String> conceptKeys = concepts.keys();
-			while(conceptKeys.hasMoreElements())
-			{
-				String thisConcept = conceptKeys.nextElement();
-				createTable(thisConcept);
-				processTable(thisConcept, workbook);
-			}
-			// before I process this.. I need to process all the interim tables
-			Enumeration <String> interimKeys = interimConcepts.keys();
-			while(interimKeys.hasMoreElements())
-			{
-				String thisConcept = interimKeys.nextElement();
-				processInterimTable(thisConcept, workbook);
-			}
-			
-			// I need to first create all the concepts
-			// then all the relationships
-			Enumeration <String> relationConcepts = relations.keys();
-			while(relationConcepts.hasMoreElements())
-			{
-				String thisConcept = relationConcepts.nextElement();
-				Vector <String> allRels = relations.get(thisConcept);
-
-				//for(int toIndex = 0;toIndex < allRels.size();toIndex++)
-					// now process each one of these things
-					//createRelations(thisConcept, allRels.elementAt(toIndex), workbook);
-			}
-
-			*/
-			
-		}catch(Exception ex)
-		{
-			
+		} catch (FileNotFoundException e) {
+			e.printStackTrace();
+		} catch (IOException e) {
+			e.printStackTrace();
 		}
 	}
-		
+
 	
 
-	public String[] getRow(String sheetName)
+	public String[] getNextRow(String sheetName)
 	{
 		XSSFSheet thisSheet = sheetNames.get(sheetName);
 		
@@ -288,22 +198,51 @@ public class XLFileHelper {
 		}
 	}
 	
-	
 	public void reset(boolean getHeader)
 	{
 		reset();
 	}
-		
-	public void printRow(String [] data)
+
+	public String[] getSheets() {
+		return null;
+	}
+	
+	
+	/**
+	 * Used for testing
+	 * @param args
+	 * @throws Exception
+	 */
+	public static void main(String [] args) throws Exception
 	{
-		for(int dataIndex = 0;dataIndex < data.length;dataIndex++)
-			System.out.print("["+data[dataIndex] + "]");
+		String fileName = "C:/Users/pkapaleeswaran/workspacej3/datasets/Movie.csv";
+		long before, after;
+		//fileName = "C:/Users/pkapaleeswaran/workspacej3/datasets/consumer_complaints.csv";
+		//fileName = "C:/Users/pkapaleeswaran/workspacej3/datasets/Movie.csv";
+		fileName = "C:/Users/pkapaleeswaran/workspacej3/datasets/XLUploadTester.xlsx";
+		//fileName = "C:/Users/pkapaleeswaran/workspacej3/datasets/Medical_devices_data.xlsx";
+		before = System.nanoTime();
+		XLFileHelper test = new XLFileHelper();
+		test.parse(fileName);
+		String [] tables = test.getTables();
+		for(int tabIndex = 0;tabIndex < tables.length;tabIndex++)
+		{
+			test.printRow(test.getNextRow(tables[tabIndex]));
+		}
+		Vector <String> allRels = test.getRelations();
 		
-		System.out.println("----");
+		for(int tabIndex = 0;tabIndex < allRels.size();tabIndex++)
+		{
+			System.out.println(allRels.elementAt(tabIndex));
+		}
+		
+		//test.printRow(test.getRow());
+		after = System.nanoTime();
+		System.out.println((after - before)/1000000);
 	}
 
-	public void setDelimiter(char charAt) {
-		// TODO Auto-generated method stub
-		this.delimiter = charAt;
+	private void printRow(String[] nextRow) {
+		System.out.println(Arrays.toString(nextRow));
 	}
+
 }
