@@ -230,6 +230,11 @@ public class LOF implements IAnalyticTransformationRoutine {
 				
 				tf.addRelationship(clean, raw);
 			}
+			
+			String[] newHeaders = new String[]{changedColumn};
+			String[] newHeaderType = new String[]{"DOUBLE"};
+			tf.addMetaDataTypes(newHeaders, newHeaderType);
+			
 			return null;
 		}
 	}
