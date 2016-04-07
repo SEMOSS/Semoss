@@ -15,6 +15,7 @@ import org.apache.poi.xssf.usermodel.XSSFSheet;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 
 import cern.colt.Arrays;
+import prerna.util.Utility;
 
 public class XLFileHelper {
 	
@@ -25,9 +26,11 @@ public class XLFileHelper {
 	private String fileLocation = null;
 
 	private Map <String, XSSFSheet> sheetNames = new Hashtable<String, XSSFSheet>();
+	private Map <String, String[]> headers = new Hashtable<String, String[]>();
 	private Map <String, Integer> sheetCounter = new Hashtable<String, Integer>();
 	private Map <String, Vector<String>> allProps = new Hashtable <String, Vector<String>> ();
 
+	
 	/**
 	 * Parse the new file passed
 	 * @param fileLocation		The String location of the fileLocation
@@ -52,14 +55,22 @@ public class XLFileHelper {
 
 			// store all the sheets
 			for(int sheetIndex = 0;sheetIndex < totalSheets; sheetIndex++) {
-				String nameOfSheet = workbook.getSheetAt(sheetIndex).getSheetName();
-				sheetNames.put(nameOfSheet, workbook.getSheet(nameOfSheet));
+				XSSFSheet sheet = workbook.getSheetAt(sheetIndex);
+				String nameOfSheet = sheet.getSheetName();
+				sheetNames.put(nameOfSheet, sheet);
+				
+				String[] sheetHeaders = getCells(sheet.getRow(0));
+				headers.put(nameOfSheet, sheetHeaders);
 			}
 		} catch (FileNotFoundException e) {
 			e.printStackTrace();
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
+	}
+	
+	public String[] getHeaders(String sheetName) {
+		return headers.get(sheetName);
 	}
 	
 	public String[] getNextRow(String sheetName) {
@@ -119,6 +130,69 @@ public class XLFileHelper {
 			}
 		}
 		return "";
+	}
+	
+	public String[] predictRowTypes(String sheetName) {
+		XSSFSheet lSheet = sheetNames.get(sheetName);
+		int numRows = lSheet.getLastRowNum();
+		
+		XSSFRow header = lSheet.getRow(0);
+		int numCells = header.getLastCellNum();
+		
+		String [] types = new String[numCells];
+		for(int i = colStarter; i < numCells; i++) {
+			String type = null;
+			ROW_LOOP : for(int j = 1; j < numRows; j++) {
+				XSSFRow row = lSheet.getRow(j);
+				if(row != null) {
+					XSSFCell cell = row.getCell(i);
+					if(cell != null) {
+						String val = getCell(cell);
+						if(val.isEmpty()) {
+							continue ROW_LOOP;
+						}
+						String newTypePred = (Utility.findTypes(val)[0] + "").toUpperCase();
+						if(newTypePred.contains("VARCHAR")) {
+							type = newTypePred;
+							break ROW_LOOP;
+						}
+						
+						// need to also add the type null check for the first row
+						if(!newTypePred.equals(type) && type != null) {
+							// this means there are multiple types in one column
+							// assume it is a string 
+							if( (type.equals("INT") || type.equals("DOUBLE")) && (newTypePred.equals("INT") || 
+									newTypePred.equals("INT") || newTypePred.equals("DOUBLE") ) ) {
+								// for simplicity, make it a double and call it a day
+								// TODO: see if we want to impl the logic to choose the greater of the newest
+								// this would require more checks though
+								type = "DOUBLE";
+							} else {
+								// should only enter here when there are numbers and dates
+								// TODO: need to figure out what to handle this case
+								// for now, making assumption to put it as a string
+								type = "VARCHAR(800)";
+								break ROW_LOOP;
+							}
+						} else {
+							// type is the same as the new predicated type
+							// or type is null on first iteration
+							type = newTypePred;
+						}
+					}
+				}
+			}
+			if(type == null) {
+				// no data for column....
+				types[i] = "varchar(255)";
+			} else {
+				types[i] = type;
+			}
+		}
+
+		// need to reset all the parses
+		reset();
+		return types;
 	}
 	
 	/**
