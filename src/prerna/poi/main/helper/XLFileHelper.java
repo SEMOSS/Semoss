@@ -202,7 +202,7 @@ public class XLFileHelper {
 	public String [] getTables() {
 		String[] sheets = new String[sheetNames.size()];
 		int counter = 0;
-		for(String sheet : sheets) {
+		for(String sheet : sheetNames.keySet()) {
 			sheets[counter] = sheet;
 			counter++;
 		}

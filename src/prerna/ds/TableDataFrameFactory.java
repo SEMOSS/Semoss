@@ -7,7 +7,6 @@ import java.util.Hashtable;
 import java.util.Map;
 import java.util.Set;
 
-import prerna.ds.H2.H2Builder;
 import prerna.ds.H2.TinkerH2Frame;
 import prerna.ds.util.TinkerCastHelper;
 import prerna.poi.main.helper.CSVFileHelper;
@@ -23,13 +22,13 @@ public class TableDataFrameFactory {
 	 */
 	public static TinkerFrame generateDataFrameFromFile(String fileLoc, String delimeter, String dataFrameType) {
 		if(dataFrameType.equalsIgnoreCase("H2")) {
-			if(fileLoc.endsWith(".xls")) {
+			if(fileLoc.endsWith(".xlsx") || fileLoc.endsWith(".xlsm")) {
 				return generateH2FrameFromExcel(fileLoc);
 			} else {
 				return generateH2FrameFromFile(fileLoc, delimeter);
 			}
 		} else {
-			if(fileLoc.endsWith(".xls")) {
+			if(fileLoc.endsWith(".xlsx") || fileLoc.endsWith(".xlsm")) {
 				return generateTinkerFrameFromExcel(fileLoc);
 			} else {
 				return generateTinkerFrameFromFile(fileLoc, delimeter);
@@ -60,6 +59,7 @@ public class TableDataFrameFactory {
 				values.addAll(Arrays.asList(headers));
 				newEdgeHash.put(TinkerFrame.PRIM_KEY + "_" + i, values);
 				tf.mergeEdgeHash(newEdgeHash);
+				tf.addMetaDataTypes(headers, types);
 			}
 			
 			Object[] values = null;	
