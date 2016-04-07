@@ -5,6 +5,7 @@ import java.util.Hashtable;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Set;
+import java.util.Vector;
 
 import prerna.ds.QueryStruct;
 import prerna.ds.TinkerFrame;
@@ -37,13 +38,21 @@ public class ImportDataReactor extends AbstractReactor {
 		Iterator it = null;
 		Object value = myStore.get(TokenEnum.API);
 		
+		// put the joins in a list to feed into merge edge hash
+		Vector<String> joinCols = new Vector<String>();
+		Vector<Map<String, String>> joins = (Vector<Map<String, String>>) myStore.get(TokenEnum.JOINS);
+		if(joins!=null){
+			for(Map<String,String> join : joins){
+				joinCols.add(join.get(TokenEnum.FROM_COL));
+			}
+		}
 		it = (Iterator)value;
 
 		IEngine engine = (IEngine) DIHelper.getInstance().getLocalProp((this.getValue(TokenEnum.API + "_ENGINE")+"").trim());
 		QueryStruct qs = (QueryStruct) this.getValue(TokenEnum.API + "_QUERY_STRUCT");
 		
 		Map<String, Set<String>> edgeHash = qs.getReturnConnectionsHash();
-		Map<String, Set<String>> cleanedEdgeHash = frame.mergeQSEdgeHash(edgeHash, engine);
+		Map<String, Set<String>> cleanedEdgeHash = frame.mergeQSEdgeHash(edgeHash, engine, joinCols);
 		while(it.hasNext()){
 			ISelectStatement ss = (ISelectStatement) it.next();
 			System.out.println(((ISelectStatement)ss).getPropHash());
