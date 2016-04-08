@@ -2094,7 +2094,7 @@ public class TinkerFrame implements ITableDataFrame {
 		unfilter(columnHeader);
 		
 		Set<Object> removeSet = new HashSet<Object>();
-		Iterator<Object> iterator = uniqueValueIterator(columnHeader, true, false);
+		Iterator<Object> iterator = uniqueValueIterator(columnHeader, false, false);
 		while(iterator.hasNext()) {
 			removeSet.add(iterator.next());
 		}
@@ -2109,7 +2109,7 @@ public class TinkerFrame implements ITableDataFrame {
 		Vertex filterVertex = upsertVertex(Constants.FILTER, Constants.FILTER, Constants.FILTER);
 
 		for(Object val : removeSet) {
-			String id = columnHeader +":"+ Utility.getInstanceName(val + "");
+			String id = valueNode +":"+ val.toString(); 
 
 			GraphTraversal<Vertex, Vertex> fgt = g.traversal().V().has(Constants.ID, id);
 			Vertex nextVertex = null;
@@ -2171,7 +2171,7 @@ public class TinkerFrame implements ITableDataFrame {
 	 */
 	public Object[] getFilterModel() {
 
-		Iterator<Object[]> iterator = this.iterator(true);
+		Iterator<Object[]> iterator = this.iterator(false);
 		
 		int length = this.headerNames.length;
 		
