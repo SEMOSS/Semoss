@@ -190,9 +190,6 @@ public class TinkerFrameStatRoutine implements IAnalyticTransformationRoutine {
 				Set<String> edgeSet = new HashSet<String>(1);
 				edgeSet.add(newColumnName);
 				
-				String[] newHeaders = new String[]{newColumnName};
-				String[] newHeaderType = new String[]{"NUMBER"};
-				tinker.addMetaDataTypes(newHeaders, newHeaderType);
 				
 				if(singleColumn) {
 					
@@ -249,7 +246,11 @@ public class TinkerFrameStatRoutine implements IAnalyticTransformationRoutine {
 					addedCols.add(newColumnName);
 					tinker.insertBlanks(primKeyName, addedCols);
 
-				}		
+				}	
+
+				String[] newHeaders = new String[]{newColumnName};
+				String[] newHeaderType = new String[]{"NUMBER"};
+				tinker.addMetaDataTypes(newHeaders, newHeaderType);
 			}
 		} catch(ClassCastException e) {
 			throw new ClassCastException(e.getMessage());

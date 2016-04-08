@@ -39,11 +39,13 @@ public class ImportDataReactor extends AbstractReactor {
 		Object value = myStore.get(TokenEnum.API);
 		
 		// put the joins in a list to feed into merge edge hash
-		Vector<String> joinCols = new Vector<String>();
+		Vector<Map<String,String>> joinCols = new Vector<Map<String,String>>();
 		Vector<Map<String, String>> joins = (Vector<Map<String, String>>) myStore.get(TokenEnum.JOINS);
 		if(joins!=null){
 			for(Map<String,String> join : joins){
-				joinCols.add(join.get(TokenEnum.FROM_COL));
+				Map<String,String> joinMap = new HashMap<String,String>();
+				joinMap.put(join.get(TokenEnum.TO_COL), join.get(TokenEnum.FROM_COL));
+				joinCols.add(joinMap);
 			}
 		}
 		it = (Iterator)value;

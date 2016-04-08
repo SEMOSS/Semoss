@@ -4,15 +4,15 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import org.apache.tinkerpop.gremlin.structure.Vertex;
+//import org.apache.tinkerpop.gremlin.structure.Vertex;
 
 public interface IMetaData {
 
-	@Deprecated
-	Vertex upsertVertex(String type, String uniqueName, String logicalName, String instancesType, String physicalUri,
-			String engineName, String dataType, String parentIfProperty);
-	@Deprecated
-	void addDataType(Vertex vert, String dataType);
+//	@Deprecated
+//	Vertex upsertVertex(String type, String uniqueName, String logicalName, String instancesType, String physicalUri,
+//			String engineName, String dataType, String parentIfProperty);
+//	@Deprecated
+//	void addDataType(Vertex vert, String dataType);
 	
 	/**
 	 * Keeps track of how a name came to be associated with a meta node
@@ -20,19 +20,19 @@ public interface IMetaData {
 	 * @author bisutton
 	 *
 	 */
-	enum NAME_TYPE {USER_DEFINED, DB_PHYSICAL_NAME, DB_PHYSICAL_URI, DB_LOGICAL_NAME}
+	enum NAME_TYPE {USER_DEFINED, DB_PHYSICAL_NAME, DB_PHYSICAL_URI, DB_LOGICAL_NAME, DB_QUERY_STRUCT_NAME}
 	
 
 //////////////////::::::::::::::::::::::: SETTER METHODS :::::::::::::::::::::::::::::::://////////////////////////////
-	/**
-	 * In RDBMS this is a table. In RDF/Tinker this is a node
-	 */
-	void storeVertex();
-	
-	/**
-	 * In RDBMS this is a column in a table. In RDF/Tinker this is a property on a node.
-	 */
-	void storeProperty();
+//	/**
+//	 * In RDBMS this is a table. In RDF/Tinker this is a node
+//	 */
+//	void storeVertex(Object uniqueName, Object howItsCalledInDataFrame);
+//	
+//	/**
+//	 * In RDBMS this is a column in a table. In RDF/Tinker this is a property on a node.
+//	 */
+//	void storeProperty(Object uniqueName, Object howItsCalledInDataFrame, Object parent);
 	
 	/**
 	 * In RDBMS this is a foreign key relationship. In RDF/Tinker this is a relationship.
@@ -60,7 +60,9 @@ public interface IMetaData {
 	 * @param engineName	name of the engine that helped populate
 	 * @param physicalUri	physical uri of the node in that engine
 	 */
-	void storeEngineDetails(String uniqueName, String engineName, String physicalUri);
+	void storeEngineDefinedVertex(String uniqueName, String uniqueParentNameIfProperty, String engineName, String DB_QUERY_STRUCT_NAME);
+	
+	void storeVertex(String uniqueName, String uniqueParentNameIfProperty);
 	
 	/**
 	 * Store the data type for a given node
@@ -74,8 +76,11 @@ public interface IMetaData {
 	void storeDataType(String uniqueName, String dataType);
 	
 	void setFiltered(String uniqueName, boolean filtered);
-
-	public void setPrimKey(String uniqueName, boolean primKey);
+	
+	void setPrimKey(String uniqueName, boolean primKey);
+	
+	void addDataType(String uniqueName, String dataType);
+	
 	
 //////////////////::::::::::::::::::::::: GETTER METHODS :::::::::::::::::::::::::::::::://////////////////////////////
 	/**
@@ -135,5 +140,9 @@ public interface IMetaData {
 	boolean isFiltered(String uniqueName);
 	
 	boolean isPrimKey(String uniqueName);
+	
+	Map<String, String[]> getPhysical2LogicalTranslations(Map<String,Set<String>> edgeHash, List<Map<String,String>> joins);
+
+	String getLogicalNameForUniqueName(String uniqueName, String engineName);
 
 }
