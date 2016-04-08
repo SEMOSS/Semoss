@@ -6,6 +6,8 @@ import java.util.Hashtable;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Set;
+import java.util.TreeMap;
+import java.util.TreeSet;
 import java.util.Vector;
 
 import org.apache.log4j.LogManager;
@@ -91,13 +93,6 @@ public class TinkerMetaData2 implements IMetaData {
 		g.createIndex(T.label.toString(), Edge.class);
 		g.createIndex(Constants.ID, Edge.class);
 		this.g = g;
-	}
-	
-	
-	
-	public static void main(String[] args) {
-		// TODO Auto-generated method stub
-
 	}
 	
 	/*
@@ -426,5 +421,88 @@ public class TinkerMetaData2 implements IMetaData {
 		// TODO Auto-generated method stub
 		
 	}
+	
+	
+	
+	
+//////////////////::::::::::::::::::::::: GETTER METHODS :::::::::::::::::::::::::::::::://////////////////////////////
+
+	@Override
+	public Set<String> getAlias(String uniqueName) {
+		Vertex vert = getExistingVertex(uniqueName);
+		if(vert.properties(ALIAS).hasNext()) {
+			Set<String> aliasSet = new TreeSet<String>();
+			Iterator<VertexProperty<Object>> props = vert.properties(ALIAS);
+			while(props.hasNext()) {
+				aliasSet.add(props.next().value() + "");
+			}
+			return aliasSet;
+		}
+		return null;
+	}
+
+	@Override
+	public Map<String, Map<String, Object>> getAliasMetaData(String uniqueName) {
+		Vertex vert = getExistingVertex(uniqueName);
+		if(vert.properties(ALIAS).hasNext()) {
+			Map<String, Map<String, Object>> aliasMetaData = new TreeMap<String, Map<String, Object>>();
+			Iterator<VertexProperty<Object>> props = vert.properties(ALIAS);
+			while(props.hasNext()) {
+				String prop = props.next().value() + "";
+				if(vert.property(prop).isPresent()) {
+					Map<String, Object> metaData = vert.value(prop);
+					aliasMetaData.put(prop, metaData);
+				}
+			}
+			return aliasMetaData;
+		}
+		return null;
+	}
+
+	@Override
+	public String getDataType(String uniqueName) {
+		Vertex vert = getExistingVertex(uniqueName);
+		if(vert.property(DATATYPE).isPresent()) {
+			return vert.value(DATATYPE);
+		}
+		return "STRING";
+	}
+
+	@Override
+	public boolean isFiltered(String uniqueName) {
+		Vertex vert = getExistingVertex(uniqueName);
+		if(vert.property(Constants.FILTER).isPresent()) {
+			return vert.value(Constants.FILTER);
+		}
+		return false;
+	}
+
+	@Override
+	public boolean isPrimKey(String uniqueName) {
+		Vertex vert = getExistingVertex(uniqueName);
+		if(vert.property(PRIM_KEY).isPresent()) {
+			return vert.value(PRIM_KEY);
+		}
+		return false;
+	}
+	
+	
+//////////////////::::::::::::::::::::::: TESTING :::::::::::::::::::::::::::::::://////////////////////////////
+
+	public static void main(String[] args) {
+		TinkerMetaData2 meta = new TinkerMetaData2();
+		meta.upsertVertex("type","uniqueName","logicalName","instanceType","physicalUri","engineName","double",null);
+		meta.upsertVertex("type2","uniqueName","logicalName2","instanceType2","physicalUri2","engineName2","int",null);
+		System.out.println(meta.getAlias("uniqueName"));
+		System.out.println(meta.isFiltered("uniqueName"));
+		System.out.println(meta.isPrimKey("uniqueName"));
+		System.out.println(meta.getDataType("uniqueName"));
+		Map<String, Map<String, Object>> map = meta.getAliasMetaData("uniqueName");
+		for(String key : map.keySet()) {
+			System.out.println("alias = " + key + ", metadata = " + map.get(key));
+		}
+		
+	}
+	
 
 }
