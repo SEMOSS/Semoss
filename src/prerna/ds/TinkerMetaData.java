@@ -139,7 +139,7 @@ public class TinkerMetaData implements IMetaData {
 			metaData = vert.value(engineName);
 		}
 		
-		metaData.put(IMetaData.NAME_TYPE.DB_LOGICAL, logicalName);
+		metaData.put(IMetaData.NAME_TYPE.DB_LOGICAL_NAME, logicalName);
 		metaData.put(IMetaData.NAME_TYPE.DB_PHYSICAL_NAME, instancesType);
 		metaData.put(IMetaData.NAME_TYPE.DB_PHYSICAL_URI, physicalUri);
 		
@@ -163,7 +163,7 @@ public class TinkerMetaData implements IMetaData {
 		String[] curAl = new String[]{instancesType, physicalUri};
 		addToMultiProperty(vert, ALIAS, logicalName, curAl);
 		
-		addAliasMeta(vert, logicalName, NAME_TYPE.DB_LOGICAL, engineName);
+		addAliasMeta(vert, logicalName, NAME_TYPE.DB_LOGICAL_NAME, engineName);
 		addAliasMeta(vert, instancesType, NAME_TYPE.DB_PHYSICAL_NAME, engineName);
 		addAliasMeta(vert, physicalUri, NAME_TYPE.DB_PHYSICAL_URI, engineName);
 		
@@ -385,6 +385,55 @@ public class TinkerMetaData implements IMetaData {
 				System.out.println(vals.next());
 			}
 		}
+	}
+
+	@Override
+	public void storeVertex() {
+		// TODO Auto-generated method stub
+		
+	}
+
+	@Override
+	public void storeProperty() {
+		// TODO Auto-generated method stub
+		
+	}
+
+	@Override
+	public void storeRelation(String uniqueName1, String uniqueName2) {
+		// TODO Auto-generated method stub
+		
+	}
+
+	@Override
+	public void storeEngineDetails(String uniqueName, String engineName, String logicalName, String physicalName,
+			String physicalUri) {
+		// TODO Auto-generated method stub
+		
+	}
+
+	@Override
+	public void storeDataType(String uniqueName, String dataType) {
+		// TODO Auto-generated method stub
+		
+	}
+
+	@Override
+	public void setFiltered(String uniqueName, boolean filtered) {
+		// TODO Auto-generated method stub
+		
+	}
+
+	@Override
+	public void setPrimKey(String uniqueName, boolean primKey) {
+		// TODO Auto-generated method stub
+		
+	}
+
+	@Override
+	public void storeUserDefinedAlias(String uniqueName, String aliasName) {
+		// TODO Auto-generated method stub
+		
 	}
 
 }
