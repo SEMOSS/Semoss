@@ -26,8 +26,9 @@ import org.apache.tinkerpop.gremlin.tinkergraph.structure.TinkerGraph;
 
 import com.google.gson.Gson;
 
+import prerna.algorithm.api.IMetaData;
 import prerna.ds.TinkerFrame;
-import prerna.ds.TinkerMetaData;
+import prerna.ds.TinkerMetaData2;
 import prerna.engine.api.IEngine;
 import prerna.engine.api.ISelectWrapper;
 import prerna.rdf.engine.wrappers.WrapperManager;
@@ -45,21 +46,21 @@ public class TinkerH2Frame extends TinkerFrame {
 	private static final String TYPES = "Table_Types";
 	
 	H2Builder builder;
-	TinkerMetaData metaData;
+	IMetaData metaData;
 	Map<String, String> H2HeaderMap;
 	
 	public TinkerH2Frame(String[] headers) {
 		this.headerNames = headers;
 		builder = new H2Builder();
 //		builder.create(headers);
-		this.metaData = new TinkerMetaData();
+		this.metaData = new TinkerMetaData2();
 		H2HeaderMap = new HashMap<String, String>();
 		updateHeaderMap();
 	}
 	
 	public TinkerH2Frame() {
 		builder = new H2Builder();
-		this.metaData = new TinkerMetaData();
+		this.metaData = new TinkerMetaData2();
 		H2HeaderMap = new HashMap<String, String>();
 	}
 	
@@ -95,11 +96,14 @@ public class TinkerH2Frame extends TinkerFrame {
         
         
         List<ISEMOSSTransformation>  preTrans = component.getPreTrans();
-        List<String> joinColList= new ArrayList<String> ();
+        List<Map<String,String>> joinColList= new ArrayList<Map<String,String>> ();
         for(ISEMOSSTransformation transformation: preTrans){
      	   if(transformation instanceof JoinTransformation){
-     		  String joinCol = (String) ((JoinTransformation)transformation).getProperties().get(JoinTransformation.COLUMN_ONE_KEY);
-     		  joinColList.add(joinCol);
+     		   Map<String, String> joinMap = new HashMap<String,String>();
+     		  String joinCol1 = (String) ((JoinTransformation)transformation).getProperties().get(JoinTransformation.COLUMN_ONE_KEY);
+     		  String joinCol2 = (String) ((JoinTransformation)transformation).getProperties().get(JoinTransformation.COLUMN_TWO_KEY);
+     		  joinMap.put(joinCol2, joinCol1); // physical in query struct ----> logical in existing data maker
+     		  joinColList.add(joinMap);
      	   }  
         }
         

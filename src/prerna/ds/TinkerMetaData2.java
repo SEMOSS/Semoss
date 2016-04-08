@@ -4,6 +4,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Hashtable;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.TreeMap;
@@ -21,7 +22,11 @@ import org.apache.tinkerpop.gremlin.structure.VertexProperty;
 import org.apache.tinkerpop.gremlin.tinkergraph.structure.TinkerGraph;
 
 import prerna.algorithm.api.IMetaData;
+import prerna.engine.api.IEngine;
+import prerna.util.ArrayUtilityMethods;
 import prerna.util.Constants;
+import prerna.util.DIHelper;
+import prerna.util.Utility;
 
 public class TinkerMetaData2 implements IMetaData {
 
@@ -41,7 +46,7 @@ public class TinkerMetaData2 implements IMetaData {
 	
 	public static final String PRIM_KEY = "PRIM_KEY";
 	public static final String META = "META";
-	public static final String EMPTY = "_";
+	public static final String edgeLabelDelimeter = "+++";
 	
 	/**
 	 * CURRENT PROPERTY STRUCTURE::::::::::::::::::
@@ -141,40 +146,10 @@ public class TinkerMetaData2 implements IMetaData {
 			metaData.put(DATATYPE, dataType);
 		}
 	}
-
-
-	@Override
-	/**
-	 * 
-	 */
-	public Vertex upsertVertex(String type, String uniqueName, String logicalName, String instancesType, String physicalUri, String engineName, String dataType, String parentIfProperty) {
-		Vertex vert = upsertVertex(uniqueName, logicalName);
-		
-		// add data type
-		addDataType(vert, dataType);
-		
-		// add aliases
-		String[] curAl = new String[]{instancesType, physicalUri};
-		addToMultiProperty(vert, ALIAS, logicalName, curAl);
-		
-		addAliasMeta(vert, logicalName, NAME_TYPE.DB_LOGICAL_NAME, engineName);
-		addAliasMeta(vert, instancesType, NAME_TYPE.DB_PHYSICAL_NAME, engineName);
-		addAliasMeta(vert, physicalUri, NAME_TYPE.DB_PHYSICAL_URI, engineName);
-		
-		// add engine
-		addToMultiProperty(vert, DB_NAME, engineName);
-		addEngineMeta(vert, engineName, logicalName, instancesType, physicalUri, dataType);
-		
-		// add parent if it is a property
-		if(parentIfProperty != null){
-			vert.property(PARENT, parentIfProperty);
-		}
-		
-		return vert;
-	}
 	
 	@Override
-	public void addDataType(Vertex vert, String dataType) {
+	public void addDataType(String uniqueName, String dataType) {
+		Vertex vert = getExistingVertex(uniqueName);
 		if(dataType == null || dataType.isEmpty()) {
 			return;
 		}
@@ -286,6 +261,23 @@ public class TinkerMetaData2 implements IMetaData {
 		}
 		return retVertex;
 	}
+
+	private Edge upsertEdge(Vertex fromVertex, Vertex toVertex)
+	{
+		Edge retEdge = null;
+		String type = META + edgeLabelDelimeter + META;
+		String edgeID = type + "/" + fromVertex.value(Constants.NAME) + ":" + toVertex.value(Constants.NAME);
+		// try to find the vertex
+		GraphTraversal<Edge, Edge> gt = g.traversal().E().has(Constants.ID, edgeID);
+		if(gt.hasNext()) {
+			retEdge = gt.next(); // COUNTS HAVE NO MEANING IN META. REMOVED.
+		}
+		else {
+			retEdge = fromVertex.addEdge(type, toVertex, Constants.ID, edgeID);
+		}
+
+		return retEdge;
+	}
 	
 	private Vertex getExistingVertex(Object uniqueName){
 		Vertex retVertex = null;
@@ -368,22 +360,22 @@ public class TinkerMetaData2 implements IMetaData {
 		}
 	}
 
-	@Override
-	public void storeVertex() {
-		// TODO Auto-generated method stub
-		
-	}
-
-	@Override
-	public void storeProperty() {
-		// TODO Auto-generated method stub
-		
-	}
+//	@Override
+//	public void storeVertex(Object uniqueName, Object howItsCalledInDataFrame){
+//		upsertVertex(uniqueName, howItsCalledInDataFrame);
+//	}
+//
+//	@Override
+//	public void storeProperty(Object uniqueName, Object howItsCalledInDataFrame, Object parentUniqueName){
+//		Vertex vert = upsertVertex(uniqueName, howItsCalledInDataFrame);
+//		vert.property(PARENT, parentUniqueName);
+//	}
 
 	@Override
 	public void storeRelation(String uniqueName1, String uniqueName2) {
-		// TODO Auto-generated method stub
-		
+		Vertex outVert = getExistingVertex(uniqueName1);
+		Vertex inVert = getExistingVertex(uniqueName2);
+		upsertEdge(outVert, inVert);
 	}
 
 	@Override
@@ -394,14 +386,44 @@ public class TinkerMetaData2 implements IMetaData {
 	}
 
 	@Override
-	public void storeEngineDetails(String uniqueName, String engineName, String physicalUri) {
-		Vertex vert = getExistingVertex(uniqueName);
-		addToMultiProperty(vert, DB_NAME, engineName);
+	public void storeEngineDefinedVertex(String uniqueName, String uniqueParentNameIfProperty, String engineName, String queryStructName) {
 		
 		//get the rest of the needed information off the owl
-//		String
-//		addEngineMeta(vert, engineName, logicalName, instancesType, physicalUri, dataType);
+		IEngine engine = (IEngine) DIHelper.getInstance().getLocalProp(engineName);
 		
+		String physicalName = queryStructName;
+		String physicalUri = null;
+		//check if property
+		if(physicalName.contains("__")){
+			physicalName = physicalName.substring(physicalName.indexOf("__")+2);
+			physicalUri = Constants.PROPERTY_URI + physicalName;
+		}
+		else{
+			physicalUri = engine.getConceptUri4PhysicalName(queryStructName);
+		}
+		
+		String logicalName = Utility.getInstanceName(engine.getTransformedNodeName(physicalUri, true));
+//		String physicalName = Utility.getInstanceName(physicalUri);
+		String dataType = engine.getDataTypes(physicalUri);
+
+		Vertex vert = upsertVertex(uniqueName, logicalName);
+		addToMultiProperty(vert, DB_NAME, engineName);
+		
+		//store it to the vertex
+		addEngineMeta(vert, engineName, logicalName, physicalName, physicalUri, dataType);
+		
+		// add all of that information in terms of aliases as well
+		String[] curAl = new String[]{physicalName, physicalUri};
+		addToMultiProperty(vert, ALIAS, logicalName, curAl);
+		
+		addAliasMeta(vert, logicalName, NAME_TYPE.DB_LOGICAL_NAME, engineName);
+		addAliasMeta(vert, physicalName, NAME_TYPE.DB_PHYSICAL_NAME, engineName);
+		addAliasMeta(vert, queryStructName, NAME_TYPE.DB_QUERY_STRUCT_NAME, engineName);
+		addAliasMeta(vert, physicalUri, NAME_TYPE.DB_PHYSICAL_URI, engineName);
+		
+		if(uniqueParentNameIfProperty != null){
+			vert.property(PARENT, uniqueParentNameIfProperty);
+		}
 	}
 
 	@Override
@@ -491,8 +513,8 @@ public class TinkerMetaData2 implements IMetaData {
 
 	public static void main(String[] args) {
 		TinkerMetaData2 meta = new TinkerMetaData2();
-		meta.upsertVertex("type","uniqueName","logicalName","instanceType","physicalUri","engineName","double",null);
-		meta.upsertVertex("type2","uniqueName","logicalName2","instanceType2","physicalUri2","engineName2","int",null);
+//		meta.upsertVertex("type","uniqueName","logicalName","instanceType","physicalUri","engineName","double",null);
+//		meta.upsertVertex("type2","uniqueName","logicalName2","instanceType2","physicalUri2","engineName2","int",null);
 		System.out.println(meta.getAlias("uniqueName"));
 		System.out.println(meta.isFiltered("uniqueName"));
 		System.out.println(meta.isPrimKey("uniqueName"));
@@ -501,6 +523,89 @@ public class TinkerMetaData2 implements IMetaData {
 		for(String key : map.keySet()) {
 			System.out.println("alias = " + key + ", metadata = " + map.get(key));
 		}
+		
+	}
+	
+	private List<String> getUniqueNames(){
+		List<String> uniqueList = new Vector<String>();
+		GraphTraversal<Vertex, Object> trav = g.traversal().V().has(Constants.TYPE, META).values(Constants.NAME);
+		while(trav.hasNext()){
+			uniqueList.add(trav.next().toString());
+		}
+		return uniqueList;
+	}
+
+	/**
+	 * edgeHash is all query struct names of things getting added this go
+	 * e.g.
+	 * {
+	 * 		Title -> [Title__Budget, Studio]
+	 * }
+	 * 
+	 * joins is list of all joins getting added this go
+	 * e.g.
+	 * {
+	 * 		Title -> Title
+	 * 		System -> System_1
+	 * }
+	 * 
+	 * return is the unique name and unique parent name (if property) to be associated with each physical name in edgeHash
+	 * e.g.
+	 * {
+	 * 		System -> [System_1, null]
+	 * 		Budget -> [MovieBudget, Title_1]
+	 * }
+	 */
+	@Override
+	public Map<String, String[]> getPhysical2LogicalTranslations(Map<String, Set<String>> edgeHash,
+			List<Map<String, String>> joins) {
+		Map<String, String[]> retMap = new HashMap<String, String[]>();
+		
+		List<String> uniqueNames = getUniqueNames();
+		
+		// create master set
+		// master set is all of the query struct names of the things getting added this go
+		Set<String> masterSet = new HashSet<String>();
+		masterSet.addAll(edgeHash.keySet());
+		for(Set<String> edgeHashSet : edgeHash.values()){
+			masterSet.addAll(edgeHashSet);
+		}
+		
+		// first go through just for the concepts
+		for(String key: masterSet){
+			String myParentsUniqueName = getUniqueName(key.contains("__")? key.substring(0, key.indexOf("__")): null, uniqueNames, joins);
+			String myUniqueName = getUniqueName(key.contains("__")? key.substring(key.indexOf("__")+2): key, uniqueNames, joins);
+            retMap.put(key, new String[]{myUniqueName, myParentsUniqueName});
+		}
+		return retMap;
+	}
+	
+	private String getUniqueName(String name, List<String> uniqueNames, List<Map<String, String>> joins){
+		if (name == null) return null;
+		for(Map<String, String> join: joins) {
+			if(join.containsKey(name)){
+				return join.get(name);
+			}
+		}
+		String correctName = name;
+		int counter = 1;
+        while (uniqueNames.contains(correctName)) {
+        	correctName = name + "_" + counter;
+            counter++;
+        }
+        return correctName;
+	}
+
+	@Override
+	public String getLogicalNameForUniqueName(String uniqueName, String engineName) {
+		Vertex vert = getExistingVertex(uniqueName);
+		Map<Object, Object> engineProps = (Map<Object, Object>) vert.property(engineName).value();
+		return engineProps.get(NAME_TYPE.DB_LOGICAL_NAME) + "";
+	}
+
+	@Override
+	public void storeVertex(String uniqueName, String uniqueParentNameIfProperty) {
+		// TODO Auto-generated method stub
 		
 	}
 	
