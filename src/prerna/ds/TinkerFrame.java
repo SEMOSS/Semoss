@@ -869,7 +869,7 @@ public class TinkerFrame implements ITableDataFrame {
 		g.createIndex(T.label.toString(), Edge.class);
 		g.createIndex(Constants.ID, Edge.class);
 		g.variables().set(Constants.HEADER_NAMES, headerNames);
-		this.metaData = new TinkerMetaData(g);
+		this.metaData = new TinkerMetaData2(g);
 	}
 	
 	public TinkerFrame(String[] headerNames, Hashtable<String, Set<String>> edgeHash) {
@@ -881,7 +881,7 @@ public class TinkerFrame implements ITableDataFrame {
 		g.createIndex(Constants.ID, Edge.class);
 		g.variables().set(Constants.HEADER_NAMES, headerNames);
 		mergeEdgeHash(edgeHash);
-		this.metaData = new TinkerMetaData(g);
+		this.metaData = new TinkerMetaData2(g);
 	}			 
 
 	public TinkerFrame() {
@@ -890,7 +890,7 @@ public class TinkerFrame implements ITableDataFrame {
 		g.createIndex(Constants.ID, Vertex.class);
 		g.createIndex(Constants.ID, Edge.class);
 		g.createIndex(T.label.toString(), Edge.class);
-		this.metaData = new TinkerMetaData(g);
+		this.metaData = new TinkerMetaData2(g);
 	}
 
 	/*********************************  END CONSTRUCTORS  ********************************/
@@ -904,11 +904,14 @@ public class TinkerFrame implements ITableDataFrame {
            LOGGER.info("Processing Component..................................");
           
            List<ISEMOSSTransformation>  preTrans = component.getPreTrans();
-           List<String> joinColList= new ArrayList<String> ();
+           List<Map<String,String>> joinColList= new ArrayList<Map<String,String>> ();
            for(ISEMOSSTransformation transformation: preTrans){
         	   if(transformation instanceof JoinTransformation){
-        		  String joinCol = (String) ((JoinTransformation)transformation).getProperties().get(JoinTransformation.COLUMN_ONE_KEY);
-        		  joinColList.add(joinCol);
+        		   Map<String, String> joinMap = new HashMap<String,String>();
+        		  String joinCol1 = (String) ((JoinTransformation)transformation).getProperties().get(JoinTransformation.COLUMN_ONE_KEY);
+        		  String joinCol2 = (String) ((JoinTransformation)transformation).getProperties().get(JoinTransformation.COLUMN_TWO_KEY);
+        		  joinMap.put(joinCol2, joinCol1); // physical in query struct ----> logical in existing data maker
+        		  joinColList.add(joinMap);
         	   }  
            }
            
@@ -1124,46 +1127,6 @@ public class TinkerFrame implements ITableDataFrame {
 		}
 		return retMap;
 	}
-	
-	/**
-	 * 
-	 * @param newEdgeHash
-	 * 
-	 * new EdgeHash in the form:
-	 * 		{
-	 * 			a : <b, c, d>,
-	 * 			b : <x, y, z>
-	 * 		}
-	 * where key is column name and set is the columns key links to
-	 * 
-	 * This method takes the parameter edge hash information and incorporates it into the META graph incorporated within the graph
-	 */
-	
-	
-	  private String getNodeName(String newNodeKey, List<String> joinColList, Map<String, String> namesThisGo){
-          String returnName = newNodeKey;
-          if(namesThisGo.containsKey(newNodeKey)){
-                returnName = namesThisGo.get(newNodeKey);
-          }
-          else{
-                if (joinColList != null && headerNames != null) {
-                      // if we are joining on this column, we don't want to change the name. otherwise we need to check if the name needs changing
-                      if (!joinColList.contains(newNodeKey)) {
-                            // if header names contains our column and we are not joining on that column, we need to make the name unique
-                            if (ArrayUtilityMethods.arrayContainsValue(headerNames, newNodeKey)) {
-                                  int counter = 1;
-                                  while (ArrayUtilityMethods.arrayContainsValue(headerNames, returnName)) {
-                                        returnName = newNodeKey + "_" + counter;
-                                        counter++;
-                                  }
-                            }
-                      }
-                }
-          }
-          // cache the changed name for any future times this go that we are looking at this node
-          namesThisGo.put(newNodeKey, returnName);
-          return returnName;
-	}
 
 	protected String getMetaNodeValue(String metaNodeName) {
 		String metaNodeValue = metaNodeName;
@@ -1179,10 +1142,19 @@ public class TinkerFrame implements ITableDataFrame {
 		return metaNodeValue;
 	}
 	
-
-
-
-
+	/**
+	 * 
+	 * @param newEdgeHash
+	 * 
+	 * new EdgeHash in the form:
+	 * 		{
+	 * 			a : <b, c, d>,
+	 * 			b : <x, y, z>
+	 * 		}
+	 * where key is column name and set is the columns key links to
+	 * 
+	 * This method takes the parameter edge hash information and incorporates it into the META graph incorporated within the graph
+	 */
 	protected void mergeEdgeHash(Map<String, Set<String>> newEdgeHash) {
 		Set<String> newLevels = new LinkedHashSet<String>();
 		for(String newNode : newEdgeHash.keySet()) {
@@ -1216,66 +1188,39 @@ public class TinkerFrame implements ITableDataFrame {
 		redoLevels(newLevels.toArray(new String[newLevels.size()]));
 	}
 	
-	public Map<String, Set<String>> mergeQSEdgeHash(Map<String, Set<String>> newEdgeHash, IEngine engine, List<String> joinColList) {
-		 Map<String, String> namesThisGo = new HashMap<String,String>();
+	public Map<String, Set<String>> mergeQSEdgeHash(Map<String, Set<String>> newEdgeHash, IEngine engine, List<Map<String,String>> joinColList) {
 		Map<String, Set<String>> cleanedHash = new HashMap<String, Set<String>>();
 		Set<String> newLevels = new LinkedHashSet<String>();
+		Map<String, String[]> physicalToLogical = this.metaData.getPhysical2LogicalTranslations(newEdgeHash, joinColList);
 		for(String newNodeKey : newEdgeHash.keySet()) {
 			
-			//query struct only knows physical name but our tinker is built purely on logical names
-			//need to translate to logical to get the types
-			String outPhysicalUri = null;
-			String physicalName = newNodeKey;
-			String outConceptName = null;
-			
-			//check if properties were added
-			if(newNodeKey.contains("__")){
-				outConceptName = newNodeKey.substring(0, newNodeKey.indexOf("__"));
-				physicalName = newNodeKey.substring(newNodeKey.indexOf("__")+2);
-				outPhysicalUri = Constants.PROPERTY_URI + physicalName;
-			}
-			else{
-				outPhysicalUri = engine.getConceptUri4PhysicalName(physicalName);
-			}
-			String newNode = Utility.getInstanceName(engine.getTransformedNodeName(outPhysicalUri, true));
-			Set<String> cleanSet = new HashSet<String>();
-			
-			String outUniqueName = getNodeName(newNode, joinColList, namesThisGo);
-			cleanedHash.put(newNode, cleanSet);
+			String outUniqueName = physicalToLogical.get(newNodeKey)[0];
+			String outConceptUniqueName = physicalToLogical.get(newNodeKey)[1];
 			//grab the edges
-			Set<String> edges = newEdgeHash.get(physicalName);
+			Set<String> edges = newEdgeHash.get(newNodeKey);
 			//collect the column headers
 			newLevels.add(outUniqueName);
 			
 			//grab/create the meta vertex associated with newNode
-			Vertex outVert = this.metaData.upsertVertex(META, outUniqueName, newNode, physicalName, outPhysicalUri, engine.getEngineName(), engine.getDataTypes(outPhysicalUri), outConceptName);
+			this.metaData.storeEngineDefinedVertex(outUniqueName, outConceptUniqueName, engine.getEngineName(), newNodeKey);
+			
+			Set<String> cleanSet = new HashSet<String>();
+			cleanedHash.put(this.metaData.getLogicalNameForUniqueName(outUniqueName, engine.getEngineName()), cleanSet);
 
 			// for each edge in corresponding with newNode create the connection within the META graph
 			if (edges != null && !edges.isEmpty()) {
 				for (String inVertS : edges) {
-					// query struct doesn't know logical names at all but our tinker is built purely on logical need to translate to logical to get the types
-					String inPhysicalUri = null;
-					String inPhysicalName = inVertS;
-					String inConceptName = null;
-					
-					//check if properties were added
-					if (inVertS.contains("__")) {
-						inConceptName = inVertS.substring(0, inVertS.indexOf("__"));
-						inPhysicalName = inVertS.substring(inVertS.indexOf("__") + 2);
-						inPhysicalUri = Constants.PROPERTY_URI + inPhysicalName;
-					} else {
-						inPhysicalUri = engine.getConceptUri4PhysicalName(inPhysicalName);
-					}
-					String inVertString = Utility.getInstanceName(engine.getTransformedNodeName(inPhysicalUri, true));
 
-					String inVertUniqueName = getNodeName(inVertString, joinColList, namesThisGo);
-					
-					newLevels.add(inVertUniqueName);
-					cleanSet.add(inVertString);
+					String inUniqueName = physicalToLogical.get(inVertS)[0];
+					String inConceptUniqueName = physicalToLogical.get(inVertS)[1];
+
+					newLevels.add(inUniqueName);
 
 					// now to insert the meta edge Vertex inVert = this.metaData.upsertVertex(META,
-					Vertex inVert = this.metaData.upsertVertex(META, inVertUniqueName, inVertString, inPhysicalName, inPhysicalUri, engine.getEngineName(), engine.getDataTypes(inPhysicalUri), inConceptName);
-					upsertEdge(outVert, inVert);
+					this.metaData.storeEngineDefinedVertex(inUniqueName, inConceptUniqueName, engine.getEngineName(), inVertS);
+					this.metaData.storeRelation(outUniqueName, inUniqueName);
+
+					cleanSet.add(this.metaData.getLogicalNameForUniqueName(inUniqueName, engine.getEngineName()));
 				}
 			}
 		}
@@ -1316,8 +1261,8 @@ public class TinkerFrame implements ITableDataFrame {
 	
 	public void addMetaDataTypes(String[] names, String[] types) {
 		for(int i = 0; i < names.length; i++) {
-			Vertex vert = upsertVertex(META, names[i], names[i]);
-			metaData.addDataType(vert, types[i]);
+//			Vertex vert = upsertVertex(META, names[i], names[i]);
+			metaData.addDataType(names[i], types[i]);
 		}
 	}
 	
