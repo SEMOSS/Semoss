@@ -52,14 +52,14 @@ public interface IMetaData {
 	
 	/**
 	 * Store an engine as in "this engine helped populate this node"
+	 * Uses physical Uri to get logical name, physical name, and data type for given node
+	 * Physical Uri must align with OWL
 	 * 
 	 * @param uniqueName	unique name of the node that got populated
 	 * @param engineName	name of the engine that helped populate
-	 * @param logicalName	logical name of the node in that engine
-	 * @param physicalName	physical name of the node in that engine
 	 * @param physicalUri	physical uri of the node in that engine
 	 */
-	void storeEngineDetails(String uniqueName, String engineName, String logicalName, String physicalName, String physicalUri);
+	void storeEngineDetails(String uniqueName, String engineName, String physicalUri);
 	
 	/**
 	 * Stores the data type of a given prop/node
