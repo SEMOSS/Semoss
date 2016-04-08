@@ -1,5 +1,6 @@
 package prerna.algorithm.api;
 
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
@@ -62,17 +63,19 @@ public interface IMetaData {
 	void storeEngineDetails(String uniqueName, String engineName, String physicalUri);
 	
 	/**
-	 * Stores the data type of a given prop/node
-	 * 
-	 * @param uniqueName	unique name of node that has datatype
-	 * @param dataType		datatype of that node. options include STRING, NUMBER, DATE
+	 * Store the data type for a given node
+	 * This setter will update the overall data type such that the least restrive data type
+	 * is used if multiple are present
+	 * @param uniqueName
+	 * 				The unique identifier
+	 * @param dataType
+	 * 				The data type to store
 	 */
 	void storeDataType(String uniqueName, String dataType);
 	
 	void setFiltered(String uniqueName, boolean filtered);
-	
-	void setPrimKey(String uniqueName, boolean primKey);
-	
+
+	public void setPrimKey(String uniqueName, boolean primKey);
 	
 //////////////////::::::::::::::::::::::: GETTER METHODS :::::::::::::::::::::::::::::::://////////////////////////////
 	/**
@@ -94,7 +97,7 @@ public interface IMetaData {
 	 * @param engineName	Engine for which you want the physical name
 	 * @return	Physical URI
 	 */
-	String getPhysicalUriForNode(String uniqueNodeName, String engineName);
+	String getPhysicalUriForNode(String uniqueName, String engineName);
 
 	/**
 	 * Uses the node unique name to get all engines associate with that node
@@ -103,5 +106,34 @@ public interface IMetaData {
 	 * @return	All engines that have been used to fill that column in the datamaker
 	 */
 	Set<String> getEnginesForUniqueName(String uniqueName);
+	
+	/**
+	 * Get all the aliases for the unique identifier
+	 * @param unqiueName
+	 * 				The unique identifier
+	 * @return
+	 */
+	Set<String> getAlias(String uniqueName);
+	
+	/**
+	 * Get all aliases for the unique identifier and the source they came from
+	 * @param uniqueName
+	 * 				The unique identifier
+	 * @return
+	 */
+	 Map<String, Map<String, Object>> getAliasMetaData(String uniqueName);
+	
+	/**
+	 * Get the overall data type for the unique identifier: string, number, or date
+	 * Least restrictive data type is used when there are multiple data types present	
+	 * @param uniqueName
+	 * 				The unique identifier
+	 * @return
+	 */
+	String getDataType(String uniqueName);
+	
+	boolean isFiltered(String uniqueName);
+	
+	boolean isPrimKey(String uniqueName);
 
 }
