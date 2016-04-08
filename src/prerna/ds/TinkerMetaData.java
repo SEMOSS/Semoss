@@ -435,4 +435,33 @@ public class TinkerMetaData implements IMetaData {
 		
 	}
 
+	@Override
+	public Set<String> getAlias(String unqiueName) {
+		return null;
+	}
+
+	@Override
+	public Map<String, Map<String, Object>> getAliasMetaData(String uniqueName) {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+	@Override
+	public String getDataType(String uniqueName) {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+	@Override
+	public boolean isFiltered(String uniqueName) {
+		// TODO Auto-generated method stub
+		return false;
+	}
+
+	@Override
+	public boolean isPrimKey(String uniqueName) {
+		// TODO Auto-generated method stub
+		return false;
+	}
+
 }
