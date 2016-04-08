@@ -21,16 +21,15 @@ import org.apache.tinkerpop.gremlin.tinkergraph.structure.TinkerGraph;
 import prerna.algorithm.api.IMetaData;
 import prerna.util.Constants;
 
-public class TinkerMetaData implements IMetaData {
+public class TinkerMetaData2 implements IMetaData {
 
-	private static final Logger LOGGER = LogManager.getLogger(TinkerMetaData.class.getName());
+	private static final Logger LOGGER = LogManager.getLogger(TinkerMetaData2.class.getName());
 
 	protected GremlinGroovyScriptEngine engine = new GremlinGroovyScriptEngine();
 	protected TinkerGraph g = null;
 
 	public static final String ALIAS = "ALIAS";
 	public static final String DB_NAME = "DB_NAME";
-//	public static final String DB_ARRAY = "DB_ARRAY";
 	public static final String ALIAS_TYPE = "ALIAS_TYPE";
 	public static final String PHYSICAL_NAME = "PHYSICAL_NAME";
 	public static final String PHYSICAL_URI = "PHYSICAL_URI";
@@ -81,11 +80,11 @@ public class TinkerMetaData implements IMetaData {
 
 	 * @param g
 	 */
-	public TinkerMetaData(TinkerGraph g) {
+	public TinkerMetaData2(TinkerGraph g) {
 		this.g = g;
 	}
 	
-	public TinkerMetaData() {
+	public TinkerMetaData2() {
 		TinkerGraph g = TinkerGraph.open();
 		g.createIndex(Constants.TYPE, Vertex.class);
 		g.createIndex(Constants.ID, Vertex.class);
@@ -154,7 +153,7 @@ public class TinkerMetaData implements IMetaData {
 	 * 
 	 */
 	public Vertex upsertVertex(String type, String uniqueName, String logicalName, String instancesType, String physicalUri, String engineName, String dataType, String parentIfProperty) {
-		Vertex vert = upsertVertex(type, uniqueName, logicalName);
+		Vertex vert = upsertVertex(uniqueName, logicalName);
 		
 		// add data type
 		addDataType(vert, dataType);
@@ -169,7 +168,6 @@ public class TinkerMetaData implements IMetaData {
 		
 		// add engine
 		addToMultiProperty(vert, DB_NAME, engineName);
-		
 		addEngineMeta(vert, engineName, logicalName, instancesType, physicalUri, dataType);
 		
 		// add parent if it is a property
@@ -180,12 +178,7 @@ public class TinkerMetaData implements IMetaData {
 		return vert;
 	}
 	
-//	public void addAlias(String type, String uniqueName, String logicalName, String aliasProperty, String newAlias) {
-//		Vertex vert = upsertVertex(type, uniqueName, logicalName);
-//		addToMultiProperty(vert, ALIAS, logicalName, newAlias);
-//		addAliasMeta(vert, logicalName, );
-//	}
-	
+	@Override
 	public void addDataType(Vertex vert, String dataType) {
 		if(dataType == null || dataType.isEmpty()) {
 			return;
@@ -281,34 +274,30 @@ public class TinkerMetaData implements IMetaData {
 	}
 
 	// create or add vertex
-	protected Vertex upsertVertex(String type, Object name, Object value)
+	private Vertex upsertVertex(Object uniqueName, Object howItsCalledInDataFrame)
 	{
-		if(name == null) name = EMPTY;
-		if(value == null) value = EMPTY;
+		String type = META;
 		// checks to see if the vertex is there already
 		// if so retrieves the vertex
 		// if not inserts the vertex and then returns that vertex
+		Vertex retVertex = getExistingVertex(uniqueName);
+		// if we were unable to get the existing vertex... time to create a new one
+		if (retVertex == null){
+			LOGGER.debug(" adding vertex ::: " + Constants.ID + " = " + type + ":" + uniqueName+ " & " + Constants.VALUE+ " = " + howItsCalledInDataFrame+ " & " + Constants.TYPE+ " = " + type+ " & " + Constants.NAME+ " = " + uniqueName);
+			retVertex = g.addVertex(Constants.ID, type + ":" + uniqueName, Constants.VALUE, howItsCalledInDataFrame, Constants.TYPE, type, Constants.NAME, uniqueName);// push the actual value as well who knows when you would need it
+			// all new meta nodes are defaulted as unfiltered and not prim keys
+			retVertex.property(Constants.FILTER, false);
+			retVertex.property(PRIM_KEY, false);
+		}
+		return retVertex;
+	}
+	
+	private Vertex getExistingVertex(Object uniqueName){
 		Vertex retVertex = null;
 		// try to find the vertex
-//		GraphTraversal<Vertex, Vertex> gt = g.traversal().V().has(Constants.TYPE, type).has(Constants.ID, type + ":" + data);
-		GraphTraversal<Vertex, Vertex> gt = g.traversal().V().has(Constants.ID, type + ":" + name);
+		GraphTraversal<Vertex, Vertex> gt = g.traversal().V().has(Constants.ID, META + ":" + uniqueName);
 		if(gt.hasNext()) {
 			retVertex = gt.next();
-		} else {
-			//retVertex = g.addVertex(Constants.ID, type + ":" + data, Constants.VALUE, value, Constants.TYPE, type, Constants.NAME, data, Constants.FILTER, false); //should we add a filter flag to each vertex?
-			if(name instanceof Number) {
-				// need to keep values as they are, not with XMLSchema tag
-				retVertex = g.addVertex(Constants.ID, type + ":" + name, Constants.VALUE, name, Constants.TYPE, type, Constants.NAME, name);// push the actual value as well who knows when you would need it
-			} else {
-				LOGGER.debug(" adding vertex ::: " + Constants.ID + " = " + type + ":" + name+ " & " + Constants.VALUE+ " = " + value+ " & " + Constants.TYPE+ " = " + type+ " & " + Constants.NAME+ " = " + name);
-				retVertex = g.addVertex(Constants.ID, type + ":" + name, Constants.VALUE, value, Constants.TYPE, type, Constants.NAME, name);// push the actual value as well who knows when you would need it
-			}
-			
-			if(META.equals(type)) {
-				// all new meta nodes are defaulted as unfiltered and not prim keys
-				retVertex.property(Constants.FILTER, false);
-				retVertex.property(PRIM_KEY, false);
-			}
 		}
 		return retVertex;
 	}
@@ -330,7 +319,6 @@ public class TinkerMetaData implements IMetaData {
 		return retMap;
 	}
 
-
 	@Override
 	public Map<String, String> getProperties() {
 		Map<String, String> retMap = new HashMap<String, String>();
@@ -343,8 +331,6 @@ public class TinkerMetaData implements IMetaData {
 		}
 		return retMap;
 	}
-
-
 
 
 	@Override
@@ -406,6 +392,24 @@ public class TinkerMetaData implements IMetaData {
 	}
 
 	@Override
+	public void storeUserDefinedAlias(String uniqueName, String aliasName) {
+		Vertex vert = getExistingVertex(uniqueName);
+		addToMultiProperty(vert, ALIAS, aliasName);
+		addAliasMeta(vert, aliasName, NAME_TYPE.USER_DEFINED, null);
+	}
+
+	@Override
+	public void storeEngineDetails(String uniqueName, String engineName, String physicalUri) {
+		Vertex vert = getExistingVertex(uniqueName);
+		addToMultiProperty(vert, DB_NAME, engineName);
+		
+		//get the rest of the needed information off the owl
+//		String
+//		addEngineMeta(vert, engineName, logicalName, instancesType, physicalUri, dataType);
+		
+	}
+
+	@Override
 	public void storeDataType(String uniqueName, String dataType) {
 		// TODO Auto-generated method stub
 		
@@ -419,18 +423,6 @@ public class TinkerMetaData implements IMetaData {
 
 	@Override
 	public void setPrimKey(String uniqueName, boolean primKey) {
-		// TODO Auto-generated method stub
-		
-	}
-
-	@Override
-	public void storeUserDefinedAlias(String uniqueName, String aliasName) {
-		// TODO Auto-generated method stub
-		
-	}
-
-	@Override
-	public void storeEngineDetails(String uniqueName, String engineName, String physicalUri) {
 		// TODO Auto-generated method stub
 		
 	}
