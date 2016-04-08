@@ -46,7 +46,7 @@ public class ColWhereReactor extends AbstractReactor {
 			Hashtable <String, Object> finalHash = new Hashtable<String, Object>();
 			finalHash.put(TokenEnum.FROM_COL, myStore.get(whatIReactTo[1]));
 			if(myStore.containsKey(whatIReactTo[2]))
-				finalHash.put("TO_COL", myStore.get(whatIReactTo[2]));
+				finalHash.put(TokenEnum.TO_COL, myStore.get(whatIReactTo[2]));
 			if(myStore.containsKey(whatIReactTo[3]))
 				finalHash.put("TO_DATA", myStore.get(whatIReactTo[3]));
 			finalHash.put("COMPARATOR", myStore.get("COMPARATOR"));
