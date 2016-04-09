@@ -4,8 +4,6 @@ import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.HashMap;
-import java.util.Hashtable;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -92,7 +90,7 @@ public class JoinTransformation extends AbstractTransformation {
 			
 			//if stringmap already contains the filters, then it is a hard filter
 			//otherwise, add based on what is currently in the tree
-			if(!qs.hasFiltered(props.get(COLUMN_TWO_KEY) + "")) {
+			if(qs != null && !qs.hasFiltered(props.get(COLUMN_TWO_KEY) + "")) {
 				Iterator<Object> rowIt = ((ITableDataFrame) dm).uniqueValueIterator((String) props.get(COLUMN_ONE_KEY), false, false);
 				List<Object> uris = new Vector<Object>();
 				while(rowIt.hasNext()){
