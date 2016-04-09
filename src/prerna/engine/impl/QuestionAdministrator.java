@@ -747,31 +747,33 @@ public class QuestionAdministrator {
 
 	private List<SEMOSSParam> getInvolvedParamsFromQuery(String query, List<SEMOSSParam> params, List<SEMOSSParam> paramsAccountedFor) {
 		List<SEMOSSParam> involvedParams = new Vector<SEMOSSParam>();
-		PARAMS_FOR : for(SEMOSSParam param : params) {
-			if(!paramsAccountedFor.contains(param)){
-				String paramURI = param.getType(); // this will either be the physical uri if coming from actions (e.g. ..Concept/Column/Table) or custom defined (e.g. Table:Column)
-				
-				if(paramURI==null){ // if paramURI is null this means it is a param with custom query or static options. in this case, it must be associated with the first component, so immediately add it
-					LOGGER.info("this param type is null. adding to first component! :)");
-					involvedParams.add(param);
-					continue PARAMS_FOR;
-				}
-				
-				LOGGER.info("is my param : " + paramURI + " involved in query " + query );
-				Map<String, String> paramsInQuery = Utility.getParams(query);
-				for(String paramInQuery : paramsInQuery.keySet()){
-					LOGGER.info("checking param in query : " + paramInQuery);
-					String[] split = paramInQuery.split("-"); // this will be label-type where type is custom defined (e.g. Table:Column)
-					if(paramURI.equals(split[1])){
-						LOGGER.info("this param is involved");
+		if(params != null) {
+			PARAMS_FOR : for(SEMOSSParam param : params) {
+				if(!paramsAccountedFor.contains(param)){
+					String paramURI = param.getType(); // this will either be the physical uri if coming from actions (e.g. ..Concept/Column/Table) or custom defined (e.g. Table:Column)
+					
+					if(paramURI==null){ // if paramURI is null this means it is a param with custom query or static options. in this case, it must be associated with the first component, so immediately add it
+						LOGGER.info("this param type is null. adding to first component! :)");
 						involvedParams.add(param);
 						continue PARAMS_FOR;
 					}
-					String rebuiltParamUri = Utility.getInstanceName(paramURI) + ":"+ Utility.getClassName(paramURI);
-					if(rebuiltParamUri.equals(split[1])){
-						LOGGER.info("this param is involved");
-						involvedParams.add(param);
-						continue PARAMS_FOR;
+					
+					LOGGER.info("is my param : " + paramURI + " involved in query " + query );
+					Map<String, String> paramsInQuery = Utility.getParams(query);
+					for(String paramInQuery : paramsInQuery.keySet()){
+						LOGGER.info("checking param in query : " + paramInQuery);
+						String[] split = paramInQuery.split("-"); // this will be label-type where type is custom defined (e.g. Table:Column)
+						if(paramURI.equals(split[1])){
+							LOGGER.info("this param is involved");
+							involvedParams.add(param);
+							continue PARAMS_FOR;
+						}
+						String rebuiltParamUri = Utility.getInstanceName(paramURI) + ":"+ Utility.getClassName(paramURI);
+						if(rebuiltParamUri.equals(split[1])){
+							LOGGER.info("this param is involved");
+							involvedParams.add(param);
+							continue PARAMS_FOR;
+						}
 					}
 				}
 			}
