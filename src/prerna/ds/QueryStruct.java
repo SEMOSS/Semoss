@@ -169,7 +169,7 @@ public class QueryStruct {
 				downNodeTypes = new HashSet<String>();
 				edgeHash.put(selectorKey, downNodeTypes);
 			}
-			props.remove(this.PRIM_KEY_PLACEHOLDER); // make sure we don't add a node to itself (e.g. Title__Title)
+			props.remove(PRIM_KEY_PLACEHOLDER); // make sure we don't add a node to itself (e.g. Title__Title)
 			for(String prop : props){
 				downNodeTypes.add(selectorKey + "__" + prop); //mergeQSEdgeHash needs this... plus need to keep it consistent with relations
 			}

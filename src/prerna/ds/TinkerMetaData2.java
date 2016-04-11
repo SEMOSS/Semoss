@@ -23,7 +23,6 @@ import org.apache.tinkerpop.gremlin.tinkergraph.structure.TinkerGraph;
 
 import prerna.algorithm.api.IMetaData;
 import prerna.engine.api.IEngine;
-import prerna.util.ArrayUtilityMethods;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
 import prerna.util.Utility;
@@ -103,7 +102,8 @@ public class TinkerMetaData2 implements IMetaData {
 	/*
 	 * Return's nodes Contrant.Value/Physical logical name from the inputted physical name
 	 */
-	public String getLogical4Physical (String metaNodeName) {
+	@Override
+	public String getValueForUniqueName (String metaNodeName) {
 		String metaNodeValue = metaNodeName;
 		// get metamodel info for metaModeName
 		GraphTraversal<Vertex, Vertex> metaT = g.traversal().V().has(Constants.TYPE, TinkerFrame.META).has(Constants.NAME, metaNodeName);

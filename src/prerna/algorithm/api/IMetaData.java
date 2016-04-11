@@ -120,6 +120,8 @@ public interface IMetaData {
 	 */
 	Set<String> getAlias(String uniqueName);
 	
+	String getValueForUniqueName(String uniqueName);
+	
 	/**
 	 * Get all aliases for the unique identifier and the source they came from
 	 * @param uniqueName
