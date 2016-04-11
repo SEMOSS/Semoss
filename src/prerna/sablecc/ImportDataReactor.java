@@ -54,11 +54,12 @@ public class ImportDataReactor extends AbstractReactor {
 		QueryStruct qs = (QueryStruct) this.getValue(TokenEnum.API + "_QUERY_STRUCT");
 		
 		Map<String, Set<String>> edgeHash = qs.getReturnConnectionsHash();
-		Map<String, Set<String>> cleanedEdgeHash = frame.mergeQSEdgeHash(edgeHash, engine, joinCols);
+		
+		Map[] mergedMaps = frame.mergeQSEdgeHash(edgeHash, engine, joinCols);
 		while(it.hasNext()){
 			ISelectStatement ss = (ISelectStatement) it.next();
 			System.out.println(((ISelectStatement)ss).getPropHash());
-			frame.addRelationship(ss.getPropHash(), ss.getRPropHash(), cleanedEdgeHash);
+			frame.addRelationship(ss.getPropHash(), ss.getRPropHash(), mergedMaps[0], mergedMaps[1]);
 		}
 		
 		// I have no idea what we are trying to do here 
