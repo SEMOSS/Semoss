@@ -1,15 +1,23 @@
 package prerna.ds;
 
+import java.io.FileInputStream;
+import java.io.IOException;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Hashtable;
 import java.util.List;
 import java.util.Map;
+import java.util.Properties;
 import java.util.Set;
 import java.util.Vector;
 
 import com.google.gson.Gson;
+
+import prerna.engine.api.IEngine;
+import prerna.rdf.query.builder.SPARQLInterpreter;
+import prerna.util.DIHelper;
+import prerna.util.Utility;
 
 public class QueryStruct {
 
@@ -231,14 +239,46 @@ public class QueryStruct {
 	public static void main(String [] args) throws Exception
 	{
 		QueryStruct qs = new QueryStruct();
-		qs.addSelector("Title", null);
-		qs.addFilter("Title", "=", Arrays.asList(new String[]{"WB", "ABC"}));
-		qs.addRelation("Title", "Actor", "inner.join");
+		qs.addSelector("Title", "Title");
+		qs.addFilter("Title__Title", "=", Arrays.asList(new String[]{"WB", "ABC"}));
+		qs.addRelation("Title__Title", "Actor__Title_FK", "inner.join");
 		
 		Gson gson = new Gson();
 		System.out.println(gson.toJson(qs));
 		
+		loadEngine4Test();
+		IEngine engine = (IEngine) DIHelper.getInstance().getLocalProp("Movie_DB"); 
+		SPARQLInterpreter in = new SPARQLInterpreter(engine);
 		
-		
+		in.setQueryStruct(qs);
+		String query = in.composeQuery();
+		System.out.println(query);
+	}
+
+	private static void loadEngine4Test(){
+		DIHelper.getInstance().loadCoreProp("C:\\Users\\bisutton\\workspace\\SEMOSSDev\\RDF_Map.prop");
+		FileInputStream fileIn = null;
+		try{
+			Properties prop = new Properties();
+			String fileName = "C:\\Users\\bisutton\\workspace\\SEMOSSDev\\db\\UpdatedRDBMSMovies.smss";
+			fileIn = new FileInputStream(fileName);
+			prop.load(fileIn);
+			System.err.println("Loading DB " + fileName);
+			Utility.loadEngine(fileName, prop);
+			fileName = "C:\\Users\\bisutton\\workspace\\SEMOSSDev\\db\\Movie_DB.smss";
+			fileIn = new FileInputStream(fileName);
+			prop.load(fileIn);
+			System.err.println("Loading DB " + fileName);
+			Utility.loadEngine(fileName, prop);
+		}catch(IOException e){
+			e.printStackTrace();
+		}finally{
+			try{
+				if(fileIn!=null)
+					fileIn.close();
+			}catch(IOException e) {
+				e.printStackTrace();
+			}
+		}
 	}
 }
