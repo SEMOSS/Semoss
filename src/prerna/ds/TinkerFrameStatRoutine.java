@@ -190,11 +190,14 @@ public class TinkerFrameStatRoutine implements IAnalyticTransformationRoutine {
 				Set<String> edgeSet = new HashSet<String>(1);
 				edgeSet.add(newColumnName);
 				
+				Map<String, String> logicalToUnique = new HashMap<String, String>();
+				logicalToUnique.put(newColumnName, newColumnName);
 				
 				if(singleColumn) {
 					
 					for(String column : columnHeader) {
-						newEdgeHash.put(column, edgeSet);			
+						newEdgeHash.put(column, edgeSet);	
+						logicalToUnique.put(column, column);
 					}
 					tinker.mergeEdgeHash(newEdgeHash);
 					
@@ -205,7 +208,7 @@ public class TinkerFrameStatRoutine implements IAnalyticTransformationRoutine {
 						newRow.put(cHeader, key);
 						newRow.put(newColumnName, groupByMap.get(key));
 						
-						tinker.addRelationship(newRow, newRow, newEdgeHash);
+						tinker.addRelationship(newRow, newRow, newEdgeHash, logicalToUnique);
 					}
 					
 					// add appropriate blanks
