@@ -1128,19 +1128,19 @@ public class TinkerFrame implements ITableDataFrame {
 		return retMap;
 	}
 
-	protected String getMetaNodeValue(String metaNodeName) {
-		String metaNodeValue = metaNodeName;
-		// get metamodel info for metaModeName
-		GraphTraversal<Vertex, Vertex> metaT = g.traversal().V().has(Constants.TYPE, TinkerFrame.META).has(Constants.NAME, metaNodeName);
-		
-		// if metaT has metaNodeName then find the value else return metaNodeName
-		if (metaT.hasNext()) {
-			Vertex startNode = metaT.next();
-			metaNodeValue = startNode.property(Constants.VALUE).value() + "";
-		}
-
-		return metaNodeValue;
-	}
+//	protected String getMetaNodeValue(String metaNodeName) {
+//		String metaNodeValue = metaNodeName;
+//		// get metamodel info for metaModeName
+//		GraphTraversal<Vertex, Vertex> metaT = g.traversal().V().has(Constants.TYPE, TinkerFrame.META).has(Constants.NAME, metaNodeName);
+//		
+//		// if metaT has metaNodeName then find the value else return metaNodeName
+//		if (metaT.hasNext()) {
+//			Vertex startNode = metaT.next();
+//			metaNodeValue = startNode.property(Constants.VALUE).value() + "";
+//		}
+//
+//		return metaNodeValue;
+//	}
 	
 	/**
 	 * 
@@ -1163,7 +1163,7 @@ public class TinkerFrame implements ITableDataFrame {
 			Set<String> edges = newEdgeHash.get(newNode);
 			
 			//grab/create the meta vertex associated with newNode
-			Vertex outVert = upsertVertex(META, newNode, getMetaNodeValue(newNode));
+			Vertex outVert = upsertVertex(META, newNode, this.metaData.getValueForUniqueName(newNode));
 			if(newNode.startsWith(PRIM_KEY)) {
 				outVert.property(PRIM_KEY, true);
 			} else {
@@ -1174,7 +1174,7 @@ public class TinkerFrame implements ITableDataFrame {
 			//for each edge in corresponding with newNode create the connection within the META graph
 			for(String inVertString : edges){
 				// now to insert the meta edge
-				Vertex inVert = upsertVertex(META, inVertString, getMetaNodeValue(inVertString));
+				Vertex inVert = upsertVertex(META, inVertString, this.metaData.getValueForUniqueName(inVertString));
 				if(inVertString.startsWith(PRIM_KEY)) {
 					inVert.property(PRIM_KEY, true);
 				} else {
@@ -1193,7 +1193,7 @@ public class TinkerFrame implements ITableDataFrame {
 		Set<String> newLevels = new LinkedHashSet<String>();
 		Map<String, String[]> physicalToLogical = this.metaData.getPhysical2LogicalTranslations(newEdgeHash, joinColList);
 		
-		Map<String, String> logicalToUniqueName = new HashMap<String, String>();
+		Map<String, String> logicalToValue = new HashMap<String, String>();
 		
 		for(String newNodeKey : newEdgeHash.keySet()) {
 			
@@ -1209,7 +1209,7 @@ public class TinkerFrame implements ITableDataFrame {
 			
 			Set<String> cleanSet = new HashSet<String>();
 			String logicalOutName = this.metaData.getLogicalNameForUniqueName(outUniqueName, engine.getEngineName());
-			logicalToUniqueName.put(logicalOutName, outUniqueName);
+			logicalToValue.put(logicalOutName, this.metaData.getValueForUniqueName(outUniqueName));
 
 			cleanedHash.put(logicalOutName, cleanSet);
 
@@ -1229,7 +1229,7 @@ public class TinkerFrame implements ITableDataFrame {
 					String logicalInName = this.metaData.getLogicalNameForUniqueName(inUniqueName, engine.getEngineName());
 					cleanSet.add(logicalInName);
 					
-					logicalToUniqueName.put(logicalInName, inUniqueName);
+					logicalToValue.put(logicalInName, this.metaData.getValueForUniqueName(inUniqueName));
 				}
 			}
 		}
@@ -1242,7 +1242,7 @@ public class TinkerFrame implements ITableDataFrame {
 		}
 		redoLevels(newLevels.toArray(new String[newLevels.size()]));
 		
-		Map[] retMap = new Map[]{cleanedHash, logicalToUniqueName};
+		Map[] retMap = new Map[]{cleanedHash, logicalToValue};
 		return retMap;
 	}
 	
@@ -1549,7 +1549,7 @@ public class TinkerFrame implements ITableDataFrame {
 		}
 	}
 	
-	public void addRelationship(Map<String, Object> rowCleanData, Map<String, Object> rowRawData, Map<String, Set<String>> edgeHash, Map<String, String> logicalToUnqiueMap) {
+	public void addRelationship(Map<String, Object> rowCleanData, Map<String, Object> rowRawData, Map<String, Set<String>> edgeHash, Map<String, String> logicalToTypeMap) {
 			
 		boolean hasRel = false;
 		
@@ -1564,14 +1564,14 @@ public class TinkerFrame implements ITableDataFrame {
 					//get from vertex
 					Object startNodeValue = getParsedValue(rowCleanData.get(startNode));
 					String rawStartNodeValue = rowRawData.get(startNode).toString();
-					String startUniqueName = logicalToUnqiueMap.get(startNode);
-					Vertex fromVertex = upsertVertex(startUniqueName, startNodeValue, rawStartNodeValue);
+					String startNodeType = logicalToTypeMap.get(startNode);
+					Vertex fromVertex = upsertVertex(startNodeType, startNodeValue, rawStartNodeValue);
 					
 					//get to vertex	
 					Object endNodeValue = getParsedValue(rowCleanData.get(endNode));
 					String rawEndNodeValue = rowRawData.get(endNode).toString();
-					String endUniqueName = logicalToUnqiueMap.get(endNode);
-					Vertex toVertex = upsertVertex(endUniqueName, endNodeValue, rawEndNodeValue);
+					String endNodeType = logicalToTypeMap.get(endNode);
+					Vertex toVertex = upsertVertex(endNodeType, endNodeValue, rawEndNodeValue);
 					
 					upsertEdge(fromVertex, toVertex);
 				}
@@ -1582,10 +1582,10 @@ public class TinkerFrame implements ITableDataFrame {
 		// since edges do not exist yet
 		if(!hasRel) {
 			String singleColName = rowCleanData.keySet().iterator().next();
-			String singleUniqueName = logicalToUnqiueMap.get(singleColName);
+			String singleNodeType = logicalToTypeMap.get(singleColName);
 			Object startNodeValue = getParsedValue(rowCleanData.get(singleColName));
 			String rawStartNodeValue = rowRawData.get(singleColName).toString();
-			upsertVertex(singleUniqueName, startNodeValue, rawStartNodeValue);
+			upsertVertex(singleNodeType, startNodeValue, rawStartNodeValue);
 		}
 		
 	}
@@ -1604,12 +1604,12 @@ public class TinkerFrame implements ITableDataFrame {
 					//get from vertex
 					Object startNodeValue = getParsedValue(rowCleanData.get(startNode));
 					String rawStartNodeValue = rowRawData.get(startNode).toString();
-					Vertex fromVertex = upsertVertex(getMetaNodeValue(startNode), startNodeValue, rawStartNodeValue);
+					Vertex fromVertex = upsertVertex(this.metaData.getValueForUniqueName(startNode), startNodeValue, rawStartNodeValue);
 					
 					//get to vertex		
 					Object endNodeValue = getParsedValue(rowCleanData.get(endNode));
 					String rawEndNodeValue = rowRawData.get(endNode).toString();
-					Vertex toVertex = upsertVertex(getMetaNodeValue(endNode), endNodeValue, rawEndNodeValue);
+					Vertex toVertex = upsertVertex(this.metaData.getValueForUniqueName(endNode), endNodeValue, rawEndNodeValue);
 					
 					upsertEdge(fromVertex, toVertex);
 				}
@@ -2061,7 +2061,7 @@ public class TinkerFrame implements ITableDataFrame {
 		for(Object fv : filterValues) {
 			removeSet.remove(fv);
 		}
-		String valueNode = getMetaNodeValue(columnHeader);
+		String valueNode = this.metaData.getValueForUniqueName(columnHeader);
 		Vertex metaVertex = upsertVertex(META, columnHeader, valueNode);
 		metaVertex.property(Constants.FILTER, true);
 
@@ -2085,7 +2085,7 @@ public class TinkerFrame implements ITableDataFrame {
 	public void unfilter(String columnHeader) {
 		long startTime = System.currentTimeMillis();
 		
-		String valueNode = getMetaNodeValue(columnHeader);
+		String valueNode = this.metaData.getValueForUniqueName(columnHeader);
 		GraphTraversal<Vertex, Edge> qw = g.traversal().V().has(Constants.TYPE, Constants.FILTER).out(Constants.FILTER+edgeLabelDelimeter+valueNode).has(Constants.TYPE, valueNode).inE(Constants.FILTER+edgeLabelDelimeter+valueNode).drop().iterate();
 		Vertex metaVertex = this.upsertVertex(META, columnHeader, valueNode);
 		metaVertex.property(Constants.FILTER, false);
@@ -2159,7 +2159,7 @@ public class TinkerFrame implements ITableDataFrame {
 
 		List<String> filterNodes = getFilteredColumns();
 		for (String nameNode : filterNodes) {
-			String valueName = getMetaNodeValue(nameNode);
+			String valueName = this.metaData.getValueForUniqueName(nameNode);
 			// grab the filter instances and put those in the second map
 			GraphTraversal<Vertex, Vertex> gt = g.traversal().V().has(Constants.TYPE, Constants.FILTER).out().has(Constants.TYPE, valueName);
 			while (gt.hasNext()) {
@@ -2256,7 +2256,7 @@ public class TinkerFrame implements ITableDataFrame {
 	}
 
 	private GraphTraversal<Vertex, Object> getGraphTraversal(String columnHeader) {
-		String columnType = getMetaNodeValue(columnHeader);
+		String columnType = this.metaData.getValueForUniqueName(columnHeader);
 		GraphTraversal<Vertex, Object> gt = g.traversal().V().has(Constants.TYPE, columnType).values(Constants.VALUE);
 		return gt;
 	}
@@ -2375,7 +2375,7 @@ public class TinkerFrame implements ITableDataFrame {
 		
 		//could use count value on edge property instead of count function?
 		int retInt = 0;
-		String columnValue = getMetaNodeValue(columnHeader);
+		String columnValue = this.metaData.getValueForUniqueName(columnHeader);
 		GraphTraversal<Vertex, Long> gt = g.traversal().V().has(Constants.TYPE, columnValue).count();
 		if(gt.hasNext())
 		{
@@ -2501,7 +2501,7 @@ public class TinkerFrame implements ITableDataFrame {
 		//if columnHeader has incoming prim key with no other outgoing types, delete that prim key first, then delete the columnHeader
 		
 //		g.traversal().V().has(Constants.TYPE, PRIM_KEY).as("PrimKey").out().has(Constants.TYPE, columnHeader).in().has(Constants.TYPE, PRIM_KEY).as("PrimKey2").where("PrimKey", P.eq("PrimKey2")).not(__.out().has(Constants.TYPE, columnHeader));
-		String columnValue = getMetaNodeValue(columnHeader);
+		String columnValue = this.metaData.getValueForUniqueName(columnHeader);
 		GraphTraversal<Vertex, Vertex> primKeyTraversal = g.traversal().V().has(Constants.VALUE, PRIM_KEY).as("PrimKey").out(PRIM_KEY+edgeLabelDelimeter+columnValue).has(Constants.TYPE, columnValue).in(PRIM_KEY+edgeLabelDelimeter+columnValue).has(Constants.VALUE, PRIM_KEY).as("PrimKey2").where("PrimKey", P.eq("PrimKey2"));
 		while(primKeyTraversal.hasNext()) {
 			Vertex nextPrimKey = (Vertex)primKeyTraversal.next();
@@ -3017,7 +3017,7 @@ public class TinkerFrame implements ITableDataFrame {
 		LOGGER.info("PERFORMING inserting of blanks.......");
 		for(String addedType : addedColumns){
 			Vertex emptyV = null;
-			String colValue = getMetaNodeValue(colName);
+			String colValue = this.metaData.getValueForUniqueName(colName);
 			GraphTraversal<Vertex, Vertex> metaT = g.traversal().V().has(Constants.TYPE, META).has(Constants.VALUE, colValue).out(META+edgeLabelDelimeter+META).has(Constants.TYPE, META).has(Constants.VALUE, addedType);
 			boolean forward = false;
 			GraphTraversal<Vertex, Vertex> gt = null;
