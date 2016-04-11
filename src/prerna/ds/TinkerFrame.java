@@ -936,11 +936,11 @@ public class TinkerFrame implements ITableDataFrame {
                if(hasMetaModel) {
             	   
             	   Map<String, Set<String>> edgeHash = component.getQueryStruct().getReturnConnectionsHash();
-            	   Map<String, Set<String>> cleanedEdgeHash = this.mergeQSEdgeHash(edgeHash, engine, joinColList);
+            	   Map[] mergedMaps = this.mergeQSEdgeHash(edgeHash, engine, joinColList);
             	   
             	   while(wrapper.hasNext()){
             		   ISelectStatement ss = wrapper.next();
-            		   this.addRelationship(ss.getPropHash(), ss.getRPropHash(), cleanedEdgeHash);
+            		   this.addRelationship(ss.getPropHash(), ss.getRPropHash(), mergedMaps[0], mergedMaps[1]);
             	   }
                } 
                
@@ -1188,10 +1188,13 @@ public class TinkerFrame implements ITableDataFrame {
 		redoLevels(newLevels.toArray(new String[newLevels.size()]));
 	}
 	
-	public Map<String, Set<String>> mergeQSEdgeHash(Map<String, Set<String>> newEdgeHash, IEngine engine, List<Map<String,String>> joinColList) {
+	public Map[] mergeQSEdgeHash(Map<String, Set<String>> newEdgeHash, IEngine engine, List<Map<String,String>> joinColList) {
 		Map<String, Set<String>> cleanedHash = new HashMap<String, Set<String>>();
 		Set<String> newLevels = new LinkedHashSet<String>();
 		Map<String, String[]> physicalToLogical = this.metaData.getPhysical2LogicalTranslations(newEdgeHash, joinColList);
+		
+		Map<String, String> logicalToUniqueName = new HashMap<String, String>();
+		
 		for(String newNodeKey : newEdgeHash.keySet()) {
 			
 			String outUniqueName = physicalToLogical.get(newNodeKey)[0];
@@ -1205,7 +1208,10 @@ public class TinkerFrame implements ITableDataFrame {
 			this.metaData.storeEngineDefinedVertex(outUniqueName, outConceptUniqueName, engine.getEngineName(), newNodeKey);
 			
 			Set<String> cleanSet = new HashSet<String>();
-			cleanedHash.put(this.metaData.getLogicalNameForUniqueName(outUniqueName, engine.getEngineName()), cleanSet);
+			String logicalOutName = this.metaData.getLogicalNameForUniqueName(outUniqueName, engine.getEngineName());
+			logicalToUniqueName.put(logicalOutName, outUniqueName);
+
+			cleanedHash.put(logicalOutName, cleanSet);
 
 			// for each edge in corresponding with newNode create the connection within the META graph
 			if (edges != null && !edges.isEmpty()) {
@@ -1220,7 +1226,10 @@ public class TinkerFrame implements ITableDataFrame {
 					this.metaData.storeEngineDefinedVertex(inUniqueName, inConceptUniqueName, engine.getEngineName(), inVertS);
 					this.metaData.storeRelation(outUniqueName, inUniqueName);
 
-					cleanSet.add(this.metaData.getLogicalNameForUniqueName(inUniqueName, engine.getEngineName()));
+					String logicalInName = this.metaData.getLogicalNameForUniqueName(inUniqueName, engine.getEngineName());
+					cleanSet.add(logicalInName);
+					
+					logicalToUniqueName.put(logicalInName, inUniqueName);
 				}
 			}
 		}
@@ -1232,7 +1241,9 @@ public class TinkerFrame implements ITableDataFrame {
 			}
 		}
 		redoLevels(newLevels.toArray(new String[newLevels.size()]));
-		return cleanedHash;
+		
+		Map[] retMap = new Map[]{cleanedHash, logicalToUniqueName};
+		return retMap;
 	}
 	
 	
@@ -1538,7 +1549,7 @@ public class TinkerFrame implements ITableDataFrame {
 		}
 	}
 	
-	public void addRelationship(Map<String, Object> rowCleanData, Map<String, Object> rowRawData, Map<String, Set<String>> edgeHash) {
+	public void addRelationship(Map<String, Object> rowCleanData, Map<String, Object> rowRawData, Map<String, Set<String>> edgeHash, Map<String, String> logicalToUnqiueMap) {
 			
 		boolean hasRel = false;
 		
@@ -1553,12 +1564,14 @@ public class TinkerFrame implements ITableDataFrame {
 					//get from vertex
 					Object startNodeValue = getParsedValue(rowCleanData.get(startNode));
 					String rawStartNodeValue = rowRawData.get(startNode).toString();
-					Vertex fromVertex = upsertVertex(getMetaNodeValue(startNode), startNodeValue, rawStartNodeValue);
+					String startUniqueName = logicalToUnqiueMap.get(startNode);
+					Vertex fromVertex = upsertVertex(startUniqueName, startNodeValue, rawStartNodeValue);
 					
 					//get to vertex	
 					Object endNodeValue = getParsedValue(rowCleanData.get(endNode));
 					String rawEndNodeValue = rowRawData.get(endNode).toString();
-					Vertex toVertex = upsertVertex(getMetaNodeValue(endNode), endNodeValue, rawEndNodeValue);
+					String endUniqueName = logicalToUnqiueMap.get(endNode);
+					Vertex toVertex = upsertVertex(endUniqueName, endNodeValue, rawEndNodeValue);
 					
 					upsertEdge(fromVertex, toVertex);
 				}
@@ -1569,9 +1582,10 @@ public class TinkerFrame implements ITableDataFrame {
 		// since edges do not exist yet
 		if(!hasRel) {
 			String singleColName = rowCleanData.keySet().iterator().next();
+			String singleUniqueName = logicalToUnqiueMap.get(singleColName);
 			Object startNodeValue = getParsedValue(rowCleanData.get(singleColName));
 			String rawStartNodeValue = rowRawData.get(singleColName).toString();
-			upsertVertex(singleColName, startNodeValue, rawStartNodeValue);
+			upsertVertex(singleUniqueName, startNodeValue, rawStartNodeValue);
 		}
 		
 	}
