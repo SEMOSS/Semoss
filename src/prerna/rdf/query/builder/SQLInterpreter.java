@@ -405,6 +405,7 @@ public class SQLInterpreter implements IQueryInterpreter{
 		}
 		
 		// if one has a property specified, all we can do is get prim key for the other
+		// if both have a property no lookup is needed at all
 		// if neither has a property specified, use owl to look up foreign key relationship
 		if(fromTable != null && toTable == null){
 			String[] toConProp = getConceptProperty(toString);
@@ -418,7 +419,7 @@ public class SQLInterpreter implements IQueryInterpreter{
 			fromCol = fromConProp[1];
 		}
 		
-		else // in this case neither has a property specified. time to go to owl to get fk relationship
+		else if(fromCol == null && toCol == null) // in this case neither has a property specified. time to go to owl to get fk relationship
 		{
 			String fromURI = this.engine.getConceptUri4PhysicalName(fromString);
 			String toURI = this.engine.getConceptUri4PhysicalName(toString);
