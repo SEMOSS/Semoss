@@ -81,6 +81,7 @@ public interface IMetaData {
 	
 	void addDataType(String uniqueName, String dataType);
 	
+	void dropVertex(String uniqueName);
 	
 //////////////////::::::::::::::::::::::: GETTER METHODS :::::::::::::::::::::::::::::::://////////////////////////////
 	/**
@@ -140,6 +141,8 @@ public interface IMetaData {
 	 * @return
 	 */
 	String getDataType(String uniqueName);
+	
+	Map<String, String> getAllUniqueNamesToValues();	
 	
 	boolean isFiltered(String uniqueName);
 	
