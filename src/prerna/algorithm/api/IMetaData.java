@@ -4,6 +4,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import prerna.ds.QueryStruct;
+
 //import org.apache.tinkerpop.gremlin.structure.Vertex;
 
 public interface IMetaData {
@@ -153,5 +155,6 @@ public interface IMetaData {
 	String getLogicalNameForUniqueName(String uniqueName, String engineName);
 
 	Map<String, Set<String>> getEdgeHash();
-	
+
+	QueryStruct getQueryStruct(String startingPoint);
 }
