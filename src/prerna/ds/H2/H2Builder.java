@@ -1199,10 +1199,10 @@ public class H2Builder {
     	header = header.replace(")", "_");
     	header = header.replace("-", "_");
     	header = header.replace("'", "");*/
-//    	header = header.replaceAll("[#%!&()@#$'./_-]*", ""); // replace all the useless shit in one go
-//    	header = header.replaceAll("\\s+","_"); 
-//    	if(Character.isDigit(header.charAt(0)))
-//    		header = "c_" + header;
+    	header = header.replaceAll("[#%!&()@#$'./_-]*", ""); // replace all the useless shit in one go
+    	header = header.replaceAll("\\s+","_"); 
+    	if(Character.isDigit(header.charAt(0)))
+    		header = "c_" + header;
     	return header;
     }
     
