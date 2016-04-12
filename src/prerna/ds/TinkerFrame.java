@@ -98,7 +98,7 @@ public class TinkerFrame implements ITableDataFrame {
 	protected TinkerGraph g = null;
 
 	// stores all of the metadata
-	private IMetaData metaData;
+	protected IMetaData metaData;
 	
 	protected static final String ENVIRONMENT_VERTEX_KEY = "ENVIRONMENT_VERTEX_KEY";
 	public static final String PRIM_KEY = "_GEN_PRIM_KEY";
@@ -1155,7 +1155,7 @@ public class TinkerFrame implements ITableDataFrame {
 	 * 
 	 * This method takes the parameter edge hash information and incorporates it into the META graph incorporated within the graph
 	 */
-	protected void mergeEdgeHash(Map<String, Set<String>> newEdgeHash) {
+	public void mergeEdgeHash(Map<String, Set<String>> newEdgeHash) {
 		Set<String> newLevels = new LinkedHashSet<String>();
 		for(String newNode : newEdgeHash.keySet()) {
 			

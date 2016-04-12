@@ -24,9 +24,7 @@ import org.apache.tinkerpop.gremlin.structure.io.IoRegistry;
 import org.apache.tinkerpop.gremlin.structure.io.gryo.GryoIo;
 import org.apache.tinkerpop.gremlin.tinkergraph.structure.TinkerGraph;
 
-import com.google.gson.Gson;
-
-import prerna.algorithm.api.IMetaData;
+import prerna.ds.QueryStruct;
 import prerna.ds.TinkerFrame;
 import prerna.ds.TinkerMetaData2;
 import prerna.engine.api.IEngine;
@@ -39,6 +37,8 @@ import prerna.util.ArrayUtilityMethods;
 import prerna.util.Constants;
 import prerna.util.MyGraphIoRegistry;
 
+import com.google.gson.Gson;
+
 public class TinkerH2Frame extends TinkerFrame {
 
 	
@@ -46,8 +46,23 @@ public class TinkerH2Frame extends TinkerFrame {
 	private static final String TYPES = "Table_Types";
 	
 	H2Builder builder;
-	IMetaData metaData;
-	Map<String, String> H2HeaderMap;
+	//TODO: need to keep its own once it is no longer extending from TinkerFrame!!!!!
+//	IMetaData metaData;
+	
+	//maps column names to h2 column names
+	public Map<String, String> H2HeaderMap;
+	
+	//map excel sheets to h2 tables
+	Map<String, String> tableMap;
+	
+	//map excel sheets to columns in those sheets
+	Map<String, List<String>> columnMap;
+	
+	//defined relations in the excel
+	List<String> relations;
+	
+	//map excel sheets to types
+	Map<String, List<String>> typeMap;
 	
 	public TinkerH2Frame(String[] headers) {
 		this.headerNames = headers;
@@ -66,26 +81,57 @@ public class TinkerH2Frame extends TinkerFrame {
 	
 	/*************************** AGGREGATION METHODS *************************/
 	
-	public void addRow(Map<String, Object> row) {
-		String[] newRow = new String[row.keySet().size()];
-		
-		int i = 0;
-		for(String key : row.keySet()) {
-			newRow[i] = (String)row.get(key);
-			i++;
-		}
-		
-		addRow(newRow);
+//	public void addRow(Map<String, Object> row) {
+//		String[] newRow = new String[row.keySet().size()];
+//		
+//		int i = 0;
+//		for(String key : row.keySet()) {
+//			newRow[i] = (String)row.get(key);
+//			i++;
+//		}
+//		
+////		addRow(newRow);
+//	}
+	
+	public void addRow2(String tableName, String[] cells, String[] headers, String[] types) {
+		this.builder.tableName = tableName;
+		this.builder.types = types;
+		this.builder.addRow(cells, headers);
 	}
 	
-	public void addRow(String[] row) {
-		builder.addRow(row, getH2Headers());
+	public void addRow(String tableName, String[] row) {
+		
+//		this.metaData.getQueryStruct();
+//		//get alias headers and types from the tableName (sheet name)
+//		//get h2 table name
+//		
+//		//get headers associated with tableName
+//		//get types for each header
+//		
+//		
+//		this.metaData.ge
+//		Map<String, String> typeMap = ((TinkerMetaData2) table.getMetaData()).getNodeTypesForUniqueAlias();
+//		
+//		List<String> headers = columnMap.get(tableName);
+//		List<String> types = typeMap.get(tableName);
+//		headers = getH2Headers(headers);
+//		tableName = tableMap.get(tableName);
+//		builder.addRow(row, headers.toArray(new String[]{}), types.toArray(new String[]{}), tableName);
+	}
+	
+	public void setTypes(String tableName, String[] types) {
+		
 	}
 	
 //	public void addRelationship(Map<String, Object> row) {
 //		//update the builder
 //	}
 	
+	private QueryStruct getQueryStruct() {
+		
+		
+		return null;
+	}
 	/************************** END AGGREGATION METHODS **********************/
 	
 	
@@ -135,6 +181,7 @@ public class TinkerH2Frame extends TinkerFrame {
          	   
          	   //send in new columns, not all
          	   builder.processWrapper(wrapper, headers);
+         	   
             } 
             
             //else default to primary key tinker graph
@@ -161,12 +208,22 @@ public class TinkerH2Frame extends TinkerFrame {
 	
 	@Override
 	public List<Object[]> getData() {
-		return builder.getData(getH2Selectors());
+		Vector<Object[]> retVector = new Vector<>();
+		Iterator<Object[]> iterator = this.iterator(false);
+		while(iterator.hasNext()) {
+			retVector.add(iterator.next());
+		}
+		return retVector;
 	}
 	
 	@Override
 	public List<Object[]> getRawData() {
-		return builder.getData(getH2Selectors());
+		Vector<Object[]> retVector = new Vector<>();
+		Iterator<Object[]> iterator = this.iterator(true);
+		while(iterator.hasNext()) {
+			retVector.add(iterator.next());
+		}
+		return retVector;
 	}
 	
 	
@@ -294,13 +351,34 @@ public class TinkerH2Frame extends TinkerFrame {
 	
 	@Override
 	public Iterator<Object[]> iterator(boolean getRawData, Map<String, Object> options) {
+		// sort by
+		String sortBy = (String)options.get(TinkerFrame.SORT_BY);
+		String actualSortBy = null;
+		
 		List<String> selectors = (List<String>) options.get(TinkerFrame.SELECTORS);
-		if(selectors != null) {
-			List<String> h2selectors = new ArrayList<>();
-			for(String selector : selectors) {
-				h2selectors.add(H2HeaderMap.get(selector));
+		List<String> selectorValues = new Vector<String>();
+		for(String name : selectors) {
+			if(name.startsWith(PRIM_KEY)) {
+				continue;
+			} else {
+				if(name.equals(sortBy)) {
+					actualSortBy = this.metaData.getValueForUniqueName(name);
+				}
+				selectorValues.add(this.metaData.getValueForUniqueName(name));
 			}
-			options.put(TinkerFrame.SELECTORS, h2selectors);
+		}
+		options.put(TinkerFrame.SELECTORS, selectorValues);
+		
+//		if(selectors != null) {
+//			List<String> h2selectors = new ArrayList<>();
+//			for(String selector : selectors) {
+//				h2selectors.add(H2HeaderMap.get(selector));
+//			}
+//			options.put(TinkerFrame.SELECTORS, h2selectors);
+//		}
+		
+		if(actualSortBy != null) {
+			options.put(TinkerFrame.SORT_BY, actualSortBy);
 		}
 		return builder.buildIterator(options);
 	}
@@ -547,70 +625,7 @@ public class TinkerH2Frame extends TinkerFrame {
 		
 		return tf;
 	}
-	
-//	@Override
-//	public Map<String, Set<String>> mergeQSEdgeHash(Map<String, Set<String>> newEdgeHash, IEngine engine) {
-//		Map<String, Set<String>> cleanedHash = new HashMap<String, Set<String>>();
-//		Set<String> newLevels = new LinkedHashSet<String>();
-//		for(String newNodeKey : newEdgeHash.keySet()) {
-//			
-//			//query struct only knows physical name but our tinker is built purely on logical names
-//			//need to translate to logical to get the types
-//			String outPhysicalUri = null;
-//			String physicalName = newNodeKey;
-//			String outConceptName = null;
-//			if(newNodeKey.contains("__")){
-//				outConceptName = newNodeKey.substring(0, newNodeKey.indexOf("__"));
-//				physicalName = newNodeKey.substring(newNodeKey.indexOf("__")+2);
-//				outPhysicalUri = Constants.PROPERTY_URI + physicalName;
-//			}
-//			else{
-//				outPhysicalUri = engine.getConceptUri4PhysicalName(physicalName);
-//			}
-//			String newNode = Utility.getInstanceName(engine.getTransformedNodeName(outPhysicalUri, true));
-//			Set<String> cleanSet = new HashSet<String>();
-//			cleanedHash.put(newNode, cleanSet);
-//			
-//			//grab the edges
-//			Set<String> edges = newEdgeHash.get(newNodeKey);
-//			
-//			//collect the column headers
-//			newLevels.add(newNode);
-//			
-//			//grab/create the meta vertex associated with newNode
-//			Vertex outVert = this.metaData.upsertVertex(META, newNode, cleanHeader(newNode), physicalName, outPhysicalUri, engine.getEngineName(), engine.getDataTypes(outPhysicalUri), outConceptName);
-//			//for each edge in corresponding with newNode create the connection within the META graph
-//			for(String inVertS : edges){
-//				//query struct doesn't know logical names at all but our tinker is built purely on logical
-//				//need to translate to logical to get the types
-//				String inPhysicalUri = null;
-//				String inPhysicalName = inVertS;
-//				String inConceptName = null;
-//				if(inVertS.contains("__")){
-//					inConceptName = inVertS.substring(0, inVertS.indexOf("__"));
-//					inPhysicalName = inVertS.substring(inVertS.indexOf("__")+2);
-//					inPhysicalUri = Constants.PROPERTY_URI + inPhysicalName;
-//				}
-//				else{
-//					inPhysicalUri = engine.getConceptUri4PhysicalName(inPhysicalName);
-//				}
-//				String inVertString = Utility.getInstanceName(engine.getTransformedNodeName(inPhysicalUri, true));
-//				
-//				newLevels.add(inVertString);
-//				cleanSet.add(inVertString);
-//				
-//				// now to insert the meta edge
-//				Vertex inVert = this.metaData.upsertVertex(META, inVertString, inVertString, inPhysicalName, inPhysicalUri, engine.getEngineName(), engine.getDataTypes(inPhysicalUri), inConceptName);
-//				
-//				upsertEdge(outVert, inVert);
-//			}
-//		}
-//		// need to make sure prim key is not added as header
-//		newLevels.remove(PRIM_KEY);
-//		redoLevels(newLevels.toArray(new String[newLevels.size()]));
-//		return cleanedHash;
-//	}
-    
+	   
 	protected void redoLevels(String [] newLevels)
 	{
 		if(this.headerNames == null){
@@ -641,6 +656,7 @@ public class TinkerH2Frame extends TinkerFrame {
 	}
 	
 	protected void updateHeaderMap() {
+//		this.metaData.
 		if(H2HeaderMap == null) {
 			H2HeaderMap = new HashMap<String, String>();
 		}
@@ -648,6 +664,10 @@ public class TinkerH2Frame extends TinkerFrame {
 		for(String headerName : headerNames) {
 			H2HeaderMap.put(headerName, cleanHeader(headerName));
 		}
+	}
+	
+	protected void updateH2PhysicalNames() {
+		
 	}
 	
 	private String cleanHeader(String header) {
@@ -693,10 +713,124 @@ public class TinkerH2Frame extends TinkerFrame {
 		return h2Headers;
 	}
 	
-	public static void main(String[] args) {
-		Object o = "";
-		System.out.println(((Number) o).doubleValue());
+	//relationships in the form tableA.columnA.tableB.columnB
+	public void setRelations(List<String> relations) {
+		//use this to set the relationships gathered from the xl file helper
+		Map<String, Set<String>> edgeHash = new HashMap<>();
+		for(String relation : relations) {
+			String[] relationComps = relation.split(".");
+			String tableA = relationComps[0];
+			String columnA = relationComps[1];
+			String tableB = relationComps[2];
+			String columnB = relationComps[3];
+			
+			String key = tableA+"__"+columnA;
+			Set<String> valueSet = new HashSet<String>();
+			String value = tableB+"__"+columnB;
+			valueSet.add(value);
+			
+			if(edgeHash.containsKey(key) && edgeHash.get(key) != null) {
+				edgeHash.get(key).addAll(valueSet);
+			} else {
+				edgeHash.put(key, valueSet);
+			}
+		}
+		
+		this.mergeEdgeHash(edgeHash);
+		
+		
 	}
 	
+	public void setMetaData(String tableName, String[] headers, String[] types) {
+		
+		if(headers.length != types.length) {
+			throw new IllegalArgumentException("Number of headers and types not equal");
+		}
+			
+
+		addMetaDataTypes(headers, types);
+	}
 	
+	protected String getMetaNodeValue(String metaNodeName) {
+		String metaNodeValue;
+		if(metaNodeName.equals(PRIM_KEY)) {
+			metaNodeValue = builder.getNewTableName();
+		} else {
+			metaNodeValue = cleanHeader(metaNodeName);
+		}
+		
+		// get metamodel info for metaModeName
+		GraphTraversal<Vertex, Vertex> metaT = g.traversal().V().has(Constants.TYPE, TinkerFrame.META).has(Constants.NAME, metaNodeName);
+		
+		// if metaT has metaNodeName then find the value else return metaNodeName
+		if (metaT.hasNext()) {
+			Vertex startNode = metaT.next();
+			metaNodeValue = startNode.property(Constants.VALUE).value() + "";
+		}
+
+		return metaNodeValue;
+	}
+	
+	@Override
+	public void mergeEdgeHash(Map<String, Set<String>> newEdgeHash) {
+		Set<String> newLevels = new LinkedHashSet<String>();
+		for(String newNode : newEdgeHash.keySet()) {
+			
+			//grab the edges
+			Set<String> edges = newEdgeHash.get(newNode);
+			
+			//grab/create the meta vertex associated with newNode
+			this.metaData.storeVertex(newNode, getMetaNodeValue(newNode), null);
+			if(newNode.startsWith(PRIM_KEY)) {
+				this.metaData.setPrimKey(newNode, true);
+			} else {
+				//collect the column headers
+				newLevels.add(newNode);
+			}
+			
+			//for each edge in corresponding with newNode create the connection within the META graph
+			for(String inVertString : edges){
+				// now to insert the meta edge
+				this.metaData.storeVertex(inVertString, getMetaNodeValue(inVertString), newNode);
+				if(inVertString.startsWith(PRIM_KEY)) {
+					this.metaData.setPrimKey(inVertString, true);
+				} else {
+					newLevels.add(inVertString);
+				}
+				this.metaData.storeRelation(newNode, inVertString);
+			}
+		}
+		// need to make sure prim key is not added as header
+//		newLevels.remove(PRIM_KEY);
+		redoLevels(newLevels.toArray(new String[newLevels.size()]));
+	}
+	
+	@Override
+	public void connectTypes(String outType, String inType) {
+
+		Set<String> newLevels = new LinkedHashSet<String>();
+		this.metaData.storeVertex(outType, getMetaNodeValue(outType), null);
+		newLevels.add(outType);
+		
+		if(inType!=null){
+			this.metaData.storeVertex(inType, getMetaNodeValue(inType), null);
+			this.metaData.storeRelation(outType, inType);
+			newLevels.add(inType);
+		}
+		
+		newLevels.remove(PRIM_KEY);
+		redoLevels(newLevels.toArray(new String[newLevels.size()]));
+	}
+	
+	private List<String> getH2Headers(List<String> headers) {
+		List<String> retheaders = new ArrayList<String>(headers.size());
+		for(String header : headers) {
+			retheaders.add(H2HeaderMap.get(header));
+		}
+		return retheaders;
+	}
+	
+	public static void main(String[] args) {
+		
+	}
 }
