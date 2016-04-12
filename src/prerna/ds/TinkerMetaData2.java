@@ -15,6 +15,7 @@ import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 import org.apache.tinkerpop.gremlin.groovy.jsr223.GremlinGroovyScriptEngine;
 import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.GraphTraversal;
+import org.apache.tinkerpop.gremlin.structure.Direction;
 import org.apache.tinkerpop.gremlin.structure.Edge;
 import org.apache.tinkerpop.gremlin.structure.T;
 import org.apache.tinkerpop.gremlin.structure.Vertex;
@@ -347,6 +348,12 @@ public class TinkerMetaData2 implements IMetaData {
 		else return null;
 	}
 	
+	@Override
+	public void dropVertex(String uniqueName) {
+		Vertex vert = getExistingVertex(uniqueName);
+		vert.remove();
+	}
+	
 	
 	private void printNode(Vertex v){
 		System.out.println(v.toString());
@@ -670,6 +677,18 @@ public class TinkerMetaData2 implements IMetaData {
 	}
 
 	@Override
+	public Map<String, String> getAllUniqueNamesToValues() {
+		Map<String, String> uniqueNamesToValue = new Hashtable<String, String>();
+		GraphTraversal<Vertex, Vertex> gt = g.traversal().V().has(Constants.TYPE, META);
+		while(gt.hasNext()) {
+			Vertex v = gt.next();
+			uniqueNamesToValue.put(v.value(Constants.NAME) + "", v.value(Constants.VALUE) + "");
+		}
+		
+		return uniqueNamesToValue;
+	}
+	
+	@Override
 	public void storeVertex(String uniqueName, String howItsCalledInDataFrame, String uniqueParentNameIfProperty) {
 		Vertex vertex = this.upsertVertex(uniqueName, howItsCalledInDataFrame);
 		if(uniqueParentNameIfProperty != null && !uniqueParentNameIfProperty.isEmpty()) {
@@ -753,5 +772,4 @@ public class TinkerMetaData2 implements IMetaData {
 		QueryStruct qs = meta.getQueryStruct("DIRECTOR");
 		qs.print();
 	}
-
 }

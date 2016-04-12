@@ -160,11 +160,11 @@ public class TableDataFrameFactory {
 		// for efficiency, we get all the meta information before the add row
 		IMetaData metaData = dataFrame.getMetaData();
 		// unique names always match the headers when creating from csv/excel
-		Map<String, String> uniqueNameToValueMap = new HashMap<String, String>();
+//		Map<String, String> uniqueNameToValueMap = new HashMap<String, String>();
 		String[] values = new String[headers.length];
 		for(int i = 0; i < headers.length; i++) {
 			values[i] = metaData.getValueForUniqueName(headers[i]);
-			uniqueNameToValueMap.put(headers[i], values[i]);
+//			uniqueNameToValueMap.put(headers[i], values[i]);
 		}
 		
 		String tableName = null;
@@ -184,7 +184,7 @@ public class TableDataFrameFactory {
 		while((cells = helper.getNextRow()) != null) {
 			dataFrame.addRow2(tableName, cells, values, types);
 		}
-		dataFrame.H2HeaderMap = uniqueNameToValueMap;
+//		dataFrame.H2HeaderMap = uniqueNameToValueMap;
 		return dataFrame;
 	}
 	
