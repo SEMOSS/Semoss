@@ -1148,7 +1148,7 @@ public class TinkerFrame implements ITableDataFrame {
 			Set<String> edges = newEdgeHash.get(newNode);
 			
 			//grab/create the meta vertex associated with newNode
-			Vertex outVert = upsertVertex(META, newNode, this.metaData.getValueForUniqueName(newNode));
+			Vertex outVert = upsertVertex(META, newNode, newNode);
 			if(newNode.startsWith(PRIM_KEY)) {
 				outVert.property(PRIM_KEY, true);
 			} else {
@@ -1159,7 +1159,7 @@ public class TinkerFrame implements ITableDataFrame {
 			//for each edge in corresponding with newNode create the connection within the META graph
 			for(String inVertString : edges){
 				// now to insert the meta edge
-				Vertex inVert = upsertVertex(META, inVertString, this.metaData.getValueForUniqueName(inVertString));
+				Vertex inVert = upsertVertex(META, inVertString, inVertString);
 				if(inVertString.startsWith(PRIM_KEY)) {
 					inVert.property(PRIM_KEY, true);
 				} else {
