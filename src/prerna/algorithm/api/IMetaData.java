@@ -149,4 +149,6 @@ public interface IMetaData {
 
 	String getLogicalNameForUniqueName(String uniqueName, String engineName);
 
+	Map<String, Set<String>> getEdgeHash();
+	
 }
