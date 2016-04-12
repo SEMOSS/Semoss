@@ -862,6 +862,18 @@ public class H2Builder {
     	return null;
     }
     
+    public Iterator buildIterator(String query){
+    	try {
+	    	Statement stmt = getConnection().createStatement();
+			ResultSet rs = stmt.executeQuery(query);
+	    	return new TinkerH2Iterator(rs);
+    	} catch(SQLException s) {
+    		s.printStackTrace();
+    	}
+    	
+    	return null;
+    }
+    
     //build the new way to create iterator with all the options
     public Iterator buildIterator(Map<String, Object> options) {
     		
@@ -1002,6 +1014,7 @@ public class H2Builder {
     {
     	getConnection();
     	
+    	String origTableName = tableName;
     	// now create a third table
     	tableName = "TINKERTABLE"+getNextNumber();
     	String newCreate = "CREATE Table " + tableName +" AS (";
@@ -1050,9 +1063,14 @@ public class H2Builder {
 			Statement stmt = conn.createStatement();
 			stmt.execute(finalQuery);
 			
-			//stmt.execute("DROP TABLE " + tableName1);
-			//stmt.execute("DROP TABLE " + tableName2);
-		} catch (SQLException e) {
+//			stmt.execute("DROP TABLE " + tableName1);
+//			stmt.execute("DROP TABLE " + tableName2);
+			runQuery(makeDropTable(tableName1));
+			runQuery(makeDropTable(tableName2));
+			
+			runQuery("ALTER TABLE " + tableName + " RENAME TO " + origTableName);
+			this.tableName = origTableName;
+		} catch (Exception e) {
 			e.printStackTrace();
 		}
     }
