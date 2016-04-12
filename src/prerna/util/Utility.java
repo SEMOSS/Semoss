@@ -2011,9 +2011,9 @@ public class Utility {
 //    		values[i] = UriEncoder.encode(values[i]);
 //    	}
     	
-//    	for(int i = 0; i < values.length; i++) {
-//    		values[i] = Utility.cleanString(values[i], true, false, false);
-//    	}
+    	for(int i = 0; i < values.length; i++) {
+    		values[i] = Utility.cleanString(values[i], true, true, false);
+    	}
     	return values;
     }
 
