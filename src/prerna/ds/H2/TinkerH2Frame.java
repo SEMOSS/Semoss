@@ -1,6 +1,7 @@
 package prerna.ds.H2;
 
 import java.io.IOException;
+import java.sql.ResultSet;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Comparator;
@@ -32,6 +33,8 @@ import prerna.ds.TinkerMetaData2;
 import prerna.engine.api.IEngine;
 import prerna.engine.api.ISelectWrapper;
 import prerna.rdf.engine.wrappers.WrapperManager;
+import prerna.rdf.query.builder.IQueryInterpreter;
+import prerna.rdf.query.builder.SQLInterpreter;
 import prerna.ui.components.playsheets.datamakers.DataMakerComponent;
 import prerna.ui.components.playsheets.datamakers.ISEMOSSTransformation;
 import prerna.ui.components.playsheets.datamakers.JoinTransformation;
@@ -63,6 +66,8 @@ public class TinkerH2Frame extends TinkerFrame {
 	
 	//map excel sheets to types
 	Map<String, List<String>> typeMap;
+	
+	IQueryInterpreter interp = new SQLInterpreter();
 	
 	public TinkerH2Frame(String[] headers) {
 		this.headerNames = headers;
@@ -348,7 +353,13 @@ public class TinkerH2Frame extends TinkerFrame {
 //		for(String selector : getSelectors()) {
 //			h2selectors.add(H2HeaderMap.get(selector));
 //		}
-		return builder.buildIterator(getH2Selectors());
+		QueryStruct struct = this.metaData.getQueryStruct(null);
+		for(String header : this.builder.filterHash.keySet()){
+			struct.addFilter(header, "=", this.builder.filterHash.get(header));
+		}
+		interp.setQueryStruct(struct);
+		String query = interp.composeQuery();
+		return this.builder.buildIterator(query);
 	}
 	
 	@Override

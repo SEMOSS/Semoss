@@ -23,7 +23,7 @@ public class SQLInterpreter implements IQueryInterpreter{
 	QueryStruct qs = null;
 	private static Hashtable <String,String> aliases = new Hashtable<String,String>();
 	Hashtable <String, String> tableProcessed = new Hashtable<String, String>();
-	IEngine engine;
+	IEngine engine; // engine can be null
 	
 	// where the wheres are all kept
 	// key is always a combination of concept and comparator
@@ -47,6 +47,10 @@ public class SQLInterpreter implements IQueryInterpreter{
 	public SQLInterpreter(IEngine engine)
 	{
 		this.engine = engine;
+	}
+
+	public SQLInterpreter()
+	{
 	}
 	
 	@Override
@@ -134,15 +138,17 @@ public class SQLInterpreter implements IQueryInterpreter{
 		if(table != null) // this is a derived data
 		{
 			String tableAlias = getAlias(table);
-			
-			if(colName.equals(QueryStruct.PRIM_KEY_PLACEHOLDER)){
-				colName2Use = this.getPrimKey4Table(table);
-			}
-			// get the logical name for the column
-			String physUri = "http://semoss.org/ontologies/Concept/" + colName2Use + "/" + table;
-			String logicalName = engine.getTransformedNodeName(physUri, true);
-			if(physUri.equals(logicalName)){ // this means it didn't find the logical name. this means that its a property rather than a node
-				logicalName = engine.getTransformedNodeName("http://semoss.org/ontologies/Relation/Contains/" + colName2Use, true);
+			String logicalName = table;
+			if(engine != null) { // Can only get logical names and primary keys if engine is defined (requires owl)
+				if(colName.equals(QueryStruct.PRIM_KEY_PLACEHOLDER)){
+					colName2Use = this.getPrimKey4Table(table);
+				}
+				// get the logical name for the column
+				String physUri = "http://semoss.org/ontologies/Concept/" + colName2Use + "/" + table;
+				logicalName = engine.getTransformedNodeName(physUri, true);
+				if(physUri.equals(logicalName)){ // this means it didn't find the logical name. this means that its a property rather than a node
+					logicalName = engine.getTransformedNodeName("http://semoss.org/ontologies/Relation/Contains/" + colName2Use, true);
+				}
 			}
 			
 			colName2Use = tableAlias + "." + colName2Use + " AS " + Utility.getInstanceName(logicalName);
@@ -363,12 +369,13 @@ public class SQLInterpreter implements IQueryInterpreter{
 		if(primaryKeyCache.containsKey(table)){
 			return primaryKeyCache.get(table);
 		}
-		else {
+		else if (engine != null){
 			String conceptUri = this.engine.getConceptUri4PhysicalName(table);
 			String pk = Utility.getPrimaryKeyFromURI(conceptUri);
 			primaryKeyCache.put(table, pk);
 			return pk;
 		}
+		return table;
 	}
 	
 	/*
@@ -419,7 +426,7 @@ public class SQLInterpreter implements IQueryInterpreter{
 			fromCol = fromConProp[1];
 		}
 		
-		else if(fromCol == null && toCol == null) // in this case neither has a property specified. time to go to owl to get fk relationship
+		else if(engine != null && (fromCol == null && toCol == null)) // in this case neither has a property specified. time to go to owl to get fk relationship
 		{
 			String fromURI = this.engine.getConceptUri4PhysicalName(fromString);
 			String toURI = this.engine.getConceptUri4PhysicalName(toString);

@@ -515,11 +515,19 @@ public class TinkerMetaData2 implements IMetaData {
 		return false;
 	}
 	
+	@Override
 	public QueryStruct getQueryStruct(String startName) {
 		QueryStruct qs = new QueryStruct();
 		List<String> travelledEdges = new Vector<String>();
 
-		Vertex startVert = getExistingVertex(startName);
+		Vertex startVert = null;
+		if( startName != null && !startName.isEmpty()){
+			startVert = getExistingVertex(startName);
+		}
+		else {
+			startVert = g.traversal().V().next();
+		}
+		
 		if(startVert != null) {
 			visitNode(startVert, travelledEdges, qs);
 			return qs;
@@ -695,6 +703,14 @@ public class TinkerMetaData2 implements IMetaData {
 			vertex.property(PARENT, uniqueParentNameIfProperty);
 		}
 	}
+	private String cleanValue(String value) {
+		value = value.replaceAll("[#%!&()@#$'./-]*", ""); // replace all the useless shit in one go
+    	value = value.replaceAll("\\s+","_");
+    	value = value.replaceAll(",","_"); 
+    	if(Character.isDigit(value.charAt(0)))
+    		value = "c_" + value;
+    	return value;
+    }
 	
 	@Override
 	public Map<String, Set<String>> getEdgeHash() {
