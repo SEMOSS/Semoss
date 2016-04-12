@@ -62,7 +62,7 @@ public interface IMetaData {
 	 */
 	void storeEngineDefinedVertex(String uniqueName, String uniqueParentNameIfProperty, String engineName, String DB_QUERY_STRUCT_NAME);
 	
-	void storeVertex(String uniqueName, String uniqueParentNameIfProperty);
+	void storeVertex(String uniqueName, String value, String uniqueParentNameIfProperty);
 	
 	/**
 	 * Store the data type for a given node
@@ -121,6 +121,8 @@ public interface IMetaData {
 	Set<String> getAlias(String uniqueName);
 	
 	String getValueForUniqueName(String uniqueName);
+	
+	List<String> getUniqueNames();
 	
 	/**
 	 * Get all aliases for the unique identifier and the source they came from
