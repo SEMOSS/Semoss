@@ -677,6 +677,26 @@ public class TinkerMetaData2 implements IMetaData {
 		}
 	}
 	
+	@Override
+	public Map<String, Set<String>> getEdgeHash() {
+		Map<String, Set<String>> retMap = new HashMap<String, Set<String>>();
+		GraphTraversal<Vertex, Vertex> metaT = g.traversal().V().has(Constants.TYPE, TinkerFrame.META);
+		while(metaT.hasNext()) {
+			Vertex startNode = metaT.next();
+			String startType = startNode.property(Constants.NAME).value()+"";
+			Iterator<Vertex> downNodes = startNode.vertices(Direction.OUT);
+			Set<String> downSet = new HashSet<String>();
+			while(downNodes.hasNext()){
+				Vertex downNode = downNodes.next();
+				String downType = downNode.property(Constants.NAME).value()+"";
+				downSet.add(downType);
+			}
+			retMap.put(startType, downSet);
+		}
+		return retMap;
+	}
+
+	
 	
 //	public List<String> getSelectors(String aliasKey) {
 //		GraphTraversal<Vertex, Vertex> traversal = g.traversal().V().has(Constants.TYPE, META);
