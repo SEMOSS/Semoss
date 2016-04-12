@@ -1110,22 +1110,7 @@ public class TinkerFrame implements ITableDataFrame {
 	}
 	
 	public Map<String, Set<String>> getEdgeHash() {
-		// Very simple -- for each meta node, get its downstream nodes and put in a set
-		Map<String, Set<String>> retMap = new HashMap<String, Set<String>>();
-		GraphTraversal<Vertex, Vertex> metaT = g.traversal().V().has(Constants.TYPE, TinkerFrame.META);
-		while(metaT.hasNext()) {
-			Vertex startNode = metaT.next();
-			String startType = startNode.property(Constants.NAME).value()+"";
-			Iterator<Vertex> downNodes = startNode.vertices(Direction.OUT);
-			Set<String> downSet = new HashSet<String>();
-			while(downNodes.hasNext()){
-				Vertex downNode = downNodes.next();
-				String downType = downNode.property(Constants.NAME).value()+"";
-				downSet.add(downType);
-			}
-			retMap.put(startType, downSet);
-		}
-		return retMap;
+		return this.metaData.getEdgeHash();
 	}
 
 //	protected String getMetaNodeValue(String metaNodeName) {
