@@ -339,6 +339,11 @@ public class H2Builder {
     	return Utility.findTypes(input);
     }
 	    
+    public String getNewTableName() {
+    	String name = "TINKERTABLE"+getNextNumber();
+    	return name;
+    }
+    
     //build a query to insert values into a new table 	    	    
     public String[] predictRowTypes(String[] thisOutput)
     {
@@ -742,8 +747,10 @@ public class H2Builder {
     	//if first row being added to the table establish the types
     	try
     	{
-	    	if(types == null) {
+    		if(types == null) {
 	    		predictRowTypes(cells);
+	    	}
+    		if(!tableExists(tableName)) {
 	    		String createTable = makeCreate(headers, tableName);
 	    		runQuery(createTable);
 	    		create = true;
@@ -766,6 +773,16 @@ public class H2Builder {
     	{
     		System.out.println("Errored.. nothing to do");
     		brokenLines = brokenLines + " : " + rowCount;
+    	}
+    }
+    
+    public boolean tableExists(String tableName) {
+    	String query = "SELECT * FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_NAME = '"+tableName+"'";
+    	ResultSet rs = executeQuery(query);
+    	try {
+    		return rs.next();
+    	} catch(SQLException e) {
+    		return false;
     	}
     }
     
