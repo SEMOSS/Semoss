@@ -127,6 +127,9 @@ public class TinkerFrameStatRoutine implements IAnalyticTransformationRoutine {
 	private void addStatColumnToTinker(TinkerH2Frame tinker, String columnHeader, String mathType, String newColumnName, String valueColumn) {	
 		tinker.connectTypes(columnHeader, newColumnName);
 		tinker.applyGroupBy(columnHeader, newColumnName, valueColumn, mathType);
+		String[] newHeaders = new String[]{newColumnName};
+		String[] newHeaderType = new String[]{"NUMBER"};
+		tinker.addMetaDataTypes(newHeaders, newHeaderType);
 	}
 	
 	/**

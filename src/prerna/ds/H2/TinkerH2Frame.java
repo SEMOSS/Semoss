@@ -24,6 +24,8 @@ import org.apache.tinkerpop.gremlin.structure.io.IoRegistry;
 import org.apache.tinkerpop.gremlin.structure.io.gryo.GryoIo;
 import org.apache.tinkerpop.gremlin.tinkergraph.structure.TinkerGraph;
 
+import com.google.gson.Gson;
+
 import prerna.ds.QueryStruct;
 import prerna.ds.TinkerFrame;
 import prerna.ds.TinkerMetaData2;
@@ -37,8 +39,6 @@ import prerna.util.ArrayUtilityMethods;
 import prerna.util.Constants;
 import prerna.util.MyGraphIoRegistry;
 
-import com.google.gson.Gson;
-
 public class TinkerH2Frame extends TinkerFrame {
 
 	
@@ -50,7 +50,7 @@ public class TinkerH2Frame extends TinkerFrame {
 //	IMetaData metaData;
 	
 	//maps column names to h2 column names
-	public Map<String, String> H2HeaderMap;
+//	public Map<String, String> H2HeaderMap;
 	
 	//map excel sheets to h2 tables
 	Map<String, String> tableMap;
@@ -69,14 +69,14 @@ public class TinkerH2Frame extends TinkerFrame {
 		builder = new H2Builder();
 //		builder.create(headers);
 		this.metaData = new TinkerMetaData2();
-		H2HeaderMap = new HashMap<String, String>();
-		updateHeaderMap();
+//		H2HeaderMap = new HashMap<String, String>();
+//		updateHeaderMap();
 	}
 	
 	public TinkerH2Frame() {
 		builder = new H2Builder();
 		this.metaData = new TinkerMetaData2();
-		H2HeaderMap = new HashMap<String, String>();
+//		H2HeaderMap = new HashMap<String, String>();
 	}
 	
 	/*************************** AGGREGATION METHODS *************************/
@@ -236,13 +236,15 @@ public class TinkerH2Frame extends TinkerFrame {
 	@Override
 	public void filter(String columnHeader, List<Object> filterValues) {
 		//filterValues is what to keep
-		columnHeader = H2HeaderMap.get(columnHeader);
+//		columnHeader = H2HeaderMap.get(columnHeader);
+		columnHeader = this.metaData.getValueForUniqueName(columnHeader);
 		builder.setFilters(columnHeader, filterValues);
 	}
 
 	@Override
 	public void unfilter(String columnHeader) {
-		columnHeader = H2HeaderMap.get(columnHeader);
+//		columnHeader = H2HeaderMap.get(columnHeader);
+		columnHeader = this.metaData.getValueForUniqueName(columnHeader);
 		builder.removeFilter(columnHeader);
 	}
 
@@ -384,9 +386,13 @@ public class TinkerH2Frame extends TinkerFrame {
 	}
 	
 	public void applyGroupBy(String column, String newColumnName, String valueColumn, String mathType) {
-		column = H2HeaderMap.get(column);
-		valueColumn = H2HeaderMap.get(valueColumn);
-		newColumnName = H2HeaderMap.get(newColumnName);
+//		column = H2HeaderMap.get(column);
+//		valueColumn = H2HeaderMap.get(valueColumn);
+//		newColumnName = H2HeaderMap.get(newColumnName);
+		
+		column = this.metaData.getValueForUniqueName(column);
+		valueColumn = this.metaData.getValueForUniqueName(valueColumn);
+		newColumnName = this.metaData.getValueForUniqueName(newColumnName);
 		builder.processGroupBy(column, newColumnName, valueColumn, mathType, getH2Headers());
 	}
 	
@@ -403,26 +409,30 @@ public class TinkerH2Frame extends TinkerFrame {
 	
 	@Override
 	public Object[] getColumn(String columnHeader) {
-		columnHeader = H2HeaderMap.get(columnHeader);
+//		columnHeader = H2HeaderMap.get(columnHeader);
+		columnHeader = this.metaData.getValueForUniqueName(columnHeader);
 		Object[] array = builder.getColumn(columnHeader, false);
 		return array;
 	}
 	
 	@Override
 	public Integer getUniqueInstanceCount(String columnHeader) {
-		columnHeader = H2HeaderMap.get(columnHeader);
+//		columnHeader = H2HeaderMap.get(columnHeader);
+		columnHeader = this.metaData.getValueForUniqueName(columnHeader);
 		return builder.getColumn(columnHeader, true).length;
 	}
 	
 	@Override
 	public Double getMin(String columnHeader) {
-		columnHeader = H2HeaderMap.get(columnHeader);
+//		columnHeader = H2HeaderMap.get(columnHeader);
+		columnHeader = this.metaData.getValueForUniqueName(columnHeader);
 		return builder.getStat(columnHeader, "MIN");
 	}
 	
 	@Override
 	public Double getMax(String columnHeader) {
-		columnHeader = H2HeaderMap.get(columnHeader);
+//		columnHeader = H2HeaderMap.get(columnHeader);
+		columnHeader = this.metaData.getValueForUniqueName(columnHeader);
 		return builder.getStat(columnHeader, "MAX");
 	}
 	
@@ -436,14 +446,16 @@ public class TinkerH2Frame extends TinkerFrame {
 	
 	@Override
 	public Iterator<List<Object[]>> scaledUniqueIterator(String columnHeader, boolean getRawData) {
-		columnHeader = H2HeaderMap.get(columnHeader);
+//		columnHeader = H2HeaderMap.get(columnHeader);
+		columnHeader = this.metaData.getValueForUniqueName(columnHeader);
 		return new ScaledUniqueH2FrameIterator(columnHeader, getRawData, getH2Selectors(), builder, getMax(), getMin());
 	}
 	
 	@Override
 	public Double[] getColumnAsNumeric(String columnHeader) {
 		if(isNumeric(columnHeader)) {
-			columnHeader = H2HeaderMap.get(columnHeader);
+//			columnHeader = H2HeaderMap.get(columnHeader);
+			columnHeader = this.metaData.getValueForUniqueName(columnHeader);
 			Object[] array = builder.getColumn(columnHeader, false);
 			
 			List<Double> numericCol = new ArrayList<Double>();
@@ -501,7 +513,9 @@ public class TinkerH2Frame extends TinkerFrame {
 			return;
 		}
 		
-		builder.dropColumn(H2HeaderMap.get(columnHeader));
+//		builder.dropColumn(H2HeaderMap.get(columnHeader));
+		builder.dropColumn(this.metaData.getValueForUniqueName(columnHeader));
+		this.metaData.dropVertex(columnHeader);
 		
 		String[] newHeaders = new String[this.headerNames.length-1];
 		int newHeaderIdx = 0;
@@ -513,7 +527,7 @@ public class TinkerH2Frame extends TinkerFrame {
 			}
 		}
 		this.headerNames = newHeaders;
-		updateHeaderMap();
+//		updateHeaderMap();
 	}
 	
 	@Override
@@ -525,7 +539,8 @@ public class TinkerH2Frame extends TinkerFrame {
 //		List<String> selectors = new ArrayList<String>();
 //		selectors.add(columnHeader);
 //		options.put(SELECTORS, selectors);
-		columnHeader = H2HeaderMap.get(columnHeader);
+//		columnHeader = H2HeaderMap.get(columnHeader);
+		columnHeader = this.metaData.getValueForUniqueName(columnHeader);
 		return Arrays.asList(builder.getColumn(columnHeader, true)).iterator();
 	}
 	
@@ -621,7 +636,7 @@ public class TinkerH2Frame extends TinkerFrame {
 		tf.builder = H2Builder.open(fileName);
 //		tf.builder.setHeaders(headers);
 		tf.builder.types = types;
-		tf.updateHeaderMap();
+//		tf.updateHeaderMap();
 		
 		return tf;
 	}
@@ -630,7 +645,7 @@ public class TinkerH2Frame extends TinkerFrame {
 	{
 		if(this.headerNames == null){
 			this.headerNames = newLevels;
-			updateHeaderMap();
+//			updateHeaderMap();
 			return;
 		}
 		
@@ -652,19 +667,19 @@ public class TinkerH2Frame extends TinkerFrame {
 		System.out.println(Arrays.toString(testHeaders));
 		
 		headerNames = newLevelNames;
-		updateHeaderMap();
+//		updateHeaderMap();
 	}
 	
-	protected void updateHeaderMap() {
-//		this.metaData.
-		if(H2HeaderMap == null) {
-			H2HeaderMap = new HashMap<String, String>();
-		}
-		H2HeaderMap.clear();
-		for(String headerName : headerNames) {
-			H2HeaderMap.put(headerName, cleanHeader(headerName));
-		}
-	}
+//	protected void updateHeaderMap() {
+////		this.metaData.
+//		if(H2HeaderMap == null) {
+//			H2HeaderMap = new HashMap<String, String>();
+//		}
+//		H2HeaderMap.clear();
+//		for(String headerName : headerNames) {
+//			H2HeaderMap.put(headerName, cleanHeader(headerName));
+//		}
+//	}
 	
 	protected void updateH2PhysicalNames() {
 		
@@ -699,7 +714,8 @@ public class TinkerH2Frame extends TinkerFrame {
 		List<String> selectors = getSelectors();
 		List<String> h2selectors = new ArrayList<>(selectors.size());
 		for(int i = 0; i < selectors.size(); i++) {
-			h2selectors.add(H2HeaderMap.get(selectors.get(i)));
+			h2selectors.add(this.metaData.getValueForUniqueName(selectors.get(i)));
+//			h2selectors.add(H2HeaderMap.get(selectors.get(i)));
 		}
 		return h2selectors;
 	}
@@ -708,7 +724,8 @@ public class TinkerH2Frame extends TinkerFrame {
 		if(headerNames == null) return null;
 		String[] h2Headers = new String[headerNames.length];
 		for(int i = 0; i < headerNames.length; i++) {
-			h2Headers[i] = H2HeaderMap.get(headerNames[i]);
+//			h2Headers[i] = H2HeaderMap.get(headerNames[i]);
+			h2Headers[i] = this.metaData.getValueForUniqueName(headerNames[i]);
 		}
 		return h2Headers;
 	}
@@ -759,14 +776,14 @@ public class TinkerH2Frame extends TinkerFrame {
 			metaNodeValue = cleanHeader(metaNodeName);
 		}
 		
-		// get metamodel info for metaModeName
-		GraphTraversal<Vertex, Vertex> metaT = g.traversal().V().has(Constants.TYPE, TinkerFrame.META).has(Constants.NAME, metaNodeName);
-		
-		// if metaT has metaNodeName then find the value else return metaNodeName
-		if (metaT.hasNext()) {
-			Vertex startNode = metaT.next();
-			metaNodeValue = startNode.property(Constants.VALUE).value() + "";
-		}
+//		// get metamodel info for metaModeName
+//		GraphTraversal<Vertex, Vertex> metaT = g.traversal().V().has(Constants.TYPE, TinkerFrame.META).has(Constants.NAME, metaNodeName);
+//		
+//		// if metaT has metaNodeName then find the value else return metaNodeName
+//		if (metaT.hasNext()) {
+//			Vertex startNode = metaT.next();
+//			metaNodeValue = startNode.property(Constants.VALUE).value() + "";
+//		}
 
 		return metaNodeValue;
 	}
@@ -822,13 +839,15 @@ public class TinkerH2Frame extends TinkerFrame {
 		redoLevels(newLevels.toArray(new String[newLevels.size()]));
 	}
 	
-	private List<String> getH2Headers(List<String> headers) {
-		List<String> retheaders = new ArrayList<String>(headers.size());
-		for(String header : headers) {
-			retheaders.add(H2HeaderMap.get(header));
-		}
-		return retheaders;
-	}
+//	private List<String> getH2Headers(List<String> headers) {
+//		List<String> retheaders = new ArrayList<String>(headers.size());
+//		for(String header : headers) {
+////			retheaders.add(H2HeaderMap.get(header));
+//			retheaders.add(this.metaData.getValueForUniqueName(header));
+//
+//		}
+//		return retheaders;
+//	}
 	
 	public static void main(String[] args) {
 		
