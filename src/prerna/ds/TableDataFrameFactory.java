@@ -4,10 +4,11 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Hashtable;
-import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import prerna.algorithm.api.IMetaData;
 import prerna.ds.H2.TinkerH2Frame;
 import prerna.ds.util.TinkerCastHelper;
 import prerna.poi.main.helper.CSVFileHelper;
@@ -98,11 +99,54 @@ public class TableDataFrameFactory {
 
 	private static TinkerFrame generateH2FrameFromExcel(String fileLoc) {
 		
+		XLFileHelper helper = new XLFileHelper();
+		helper.parse(fileLoc);
 		
+		TinkerH2Frame dataFrame = new TinkerH2Frame();
+		String [] cells = null;
+		String[] tables = helper.getTables();
+		for(int i = 0; i < tables.length; i++)
+		{
+			String primKeyHeader = null;
+			String table = tables[i];
+			String[] headers = helper.getHeaders(table);
+			for(int index = 0; index < headers.length; index++) {
+				String header = headers[index];
+				headers[index] = table+"__"+header;
+			}
+			String[] types = helper.predictRowTypes(table);
+			
+//			if(dataFrame == null) {
+//				dataFrame = (TinkerH2Frame)createPrimKeyTinkerFrame(headers, "H2", types);
+//			} else {
+			
+			Map<String, Set<String>> newEdgeHash = new Hashtable<String, Set<String>>();
+			// need to create a new prim_key vertex
+			Set<String> values = new HashSet<String>();
+			values.addAll(Arrays.asList(headers));
+			primKeyHeader = TinkerFrame.PRIM_KEY + "_" + table;
+			newEdgeHash.put(primKeyHeader, values);
+			dataFrame.mergeEdgeHash(newEdgeHash);
+			dataFrame.addMetaDataTypes(headers, types);
+
+			
+//			}
+			
+			Object[] vals = null;	
+			String[] row = null;
+			helper.getNextRow(table); // first row is header
+			dataFrame.setMetaData(table, headers, types);
+			while((cells = helper.getNextRow(table)) != null) {
+				//add these cells to this table
+				dataFrame.addRow(table, cells);
+			}
+		}
+		dataFrame.setRelations(helper.getRelations());
 		
-		return null;
+		return dataFrame;
 	}
 
+	
 	private static TinkerH2Frame generateH2FrameFromFile(String fileLoc, String delimeter) {
 		CSVFileHelper helper = new CSVFileHelper();
 		helper.setDelimiter(delimeter.charAt(0));
@@ -110,13 +154,37 @@ public class TableDataFrameFactory {
 		
 		String [] headers = helper.getHeaders();
 		String [] types = helper.predictTypes();
+		
 		TinkerH2Frame dataFrame = (TinkerH2Frame)createPrimKeyTinkerFrame(headers, "H2", types);
+		
+		// for efficiency, we get all the meta information before the add row
+		IMetaData metaData = dataFrame.getMetaData();
+		// unique names always match the headers when creating from csv/excel
+		Map<String, String> uniqueNameToValueMap = new HashMap<String, String>();
+		String[] values = new String[headers.length];
+		for(int i = 0; i < headers.length; i++) {
+			values[i] = metaData.getValueForUniqueName(headers[i]);
+			uniqueNameToValueMap.put(headers[i], values[i]);
+		}
+		
+		String tableName = null;
+		List<String> uniqueNames = metaData.getUniqueNames();
+		for(String name : uniqueNames) {
+			if(name.startsWith(TinkerH2Frame.PRIM_KEY)) {
+				tableName = metaData.getValueForUniqueName(name);
+				break;
+			}
+		}
+		//set the meta data for the frame csv only has one table so just pass in null 
+//		dataFrame.setMetaData(null, headers, types);
+//		dataFrame.addMetaDataTypes(headers, types);
+//		dataFrame.addH2Alias(headers);
 		
 		String [] cells = null;
 		while((cells = helper.getNextRow()) != null) {
-			dataFrame.addRow(cells);
+			dataFrame.addRow2(tableName, cells, values, types);
 		}
-				
+		dataFrame.H2HeaderMap = uniqueNameToValueMap;
 		return dataFrame;
 	}
 	

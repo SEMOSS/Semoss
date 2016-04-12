@@ -104,7 +104,7 @@ public class TinkerMetaData2 implements IMetaData {
 	 */
 	@Override
 	public String getValueForUniqueName (String metaNodeName) {
-		String metaNodeValue = metaNodeName;
+		String metaNodeValue = null;
 		// get metamodel info for metaModeName
 		GraphTraversal<Vertex, Vertex> metaT = g.traversal().V().has(Constants.TYPE, TinkerFrame.META).has(Constants.NAME, metaNodeName);
 		
@@ -508,25 +508,91 @@ public class TinkerMetaData2 implements IMetaData {
 		return false;
 	}
 	
-	
-//////////////////::::::::::::::::::::::: TESTING :::::::::::::::::::::::::::::::://////////////////////////////
+	public QueryStruct getQueryStruct(String startName) {
+		QueryStruct qs = new QueryStruct();
+		List<String> travelledEdges = new Vector<String>();
 
-	public static void main(String[] args) {
-		TinkerMetaData2 meta = new TinkerMetaData2();
-//		meta.upsertVertex("type","uniqueName","logicalName","instanceType","physicalUri","engineName","double",null);
-//		meta.upsertVertex("type2","uniqueName","logicalName2","instanceType2","physicalUri2","engineName2","int",null);
-		System.out.println(meta.getAlias("uniqueName"));
-		System.out.println(meta.isFiltered("uniqueName"));
-		System.out.println(meta.isPrimKey("uniqueName"));
-		System.out.println(meta.getDataType("uniqueName"));
-		Map<String, Map<String, Object>> map = meta.getAliasMetaData("uniqueName");
-		for(String key : map.keySet()) {
-			System.out.println("alias = " + key + ", metadata = " + map.get(key));
+		Vertex startVert = getExistingVertex(startName);
+		if(startVert != null) {
+			visitNode(startVert, travelledEdges, qs);
+			return qs;
 		}
-		
+		return null;
 	}
 	
-	private List<String> getUniqueNames(){
+	public void visitNode(Vertex vert, List<String> travelledEdges, QueryStruct qs) {
+		String origName = vert.value(Constants.NAME);
+		String vertParent = null;
+		if(vert.property(PARENT).isPresent()) {
+			vertParent = vert.property(PARENT).value() + "";
+		}
+
+		GraphTraversal<Vertex, Vertex> downstreamIt = g.traversal().V().has(Constants.TYPE, TinkerFrame.META).has(Constants.ID, vert.property(Constants.ID).value()).out(TinkerFrame.META + TinkerFrame.edgeLabelDelimeter + TinkerFrame.META);
+		while (downstreamIt.hasNext()) {
+			Vertex nodeV = downstreamIt.next();
+			if(nodeV.property(PRIM_KEY).isPresent()) {
+				if((boolean) nodeV.property(PRIM_KEY).value()) {
+					visitNode(nodeV, travelledEdges, qs);
+					continue;
+				}
+			}
+			String nameNode = nodeV.property(Constants.NAME).value() + "";
+			
+			String edgeKey = origName + TinkerFrame.edgeLabelDelimeter + nameNode;
+			if(!travelledEdges.contains(edgeKey)) {
+				travelledEdges.add(edgeKey);
+				
+				String nodeVParent = null;
+				if(nodeV.property(PARENT).isPresent()) {
+					nodeVParent = nodeV.property(PARENT).value() + "";
+				}
+				
+				if(vert.value(Constants.NAME).equals(nodeVParent)) {
+					qs.addSelector(vert.property(Constants.VALUE).value() + "", nodeV.property(Constants.VALUE).value() + "");
+				} else if(nodeV.value(Constants.NAME).equals(vertParent)) {
+					qs.addSelector(nodeV.property(Constants.VALUE).value() + "", vert.property(Constants.VALUE).value() + "");
+				} else {
+//					qs.addSelector(nodeVParent, nodeV.property(Constants.VALUE).value() + "");
+//					qs.addSelector(vertParent, vert.property(Constants.VALUE).value() + "");
+					qs.addRelation(vert.property(Constants.VALUE).value() + "", nodeV.property(Constants.VALUE).value() + "", "inner.join");
+				}
+				visitNode(nodeV, travelledEdges, qs);
+			}
+		}
+
+		GraphTraversal<Vertex, Vertex> upstreamIt = g.traversal().V().has(Constants.TYPE, TinkerFrame.META).has(Constants.ID, vert.property(Constants.ID).value()).in(TinkerFrame.META+TinkerFrame.edgeLabelDelimeter+TinkerFrame.META);
+		while(upstreamIt.hasNext()) {
+			Vertex nodeV = upstreamIt.next();
+			if(nodeV.property(PRIM_KEY).isPresent()) {
+				if((boolean) nodeV.property(PRIM_KEY).value()) {
+					visitNode(nodeV, travelledEdges, qs);
+					continue;
+				}
+			}
+			String nameNode = nodeV.property(Constants.NAME).value() + "";
+			
+			String edgeKey = nameNode + TinkerFrame.edgeLabelDelimeter + origName;
+			if (!travelledEdges.contains(edgeKey)) {
+				travelledEdges.add(edgeKey);
+				
+				String nodeVParent = null;
+				if(nodeV.property(PARENT).isPresent()) {
+					nodeVParent = nodeV.property(PARENT).value() + "";
+				}
+				if(vert.value(Constants.NAME).equals(nodeVParent)) {
+					qs.addSelector(vert.property(Constants.VALUE).value() + "", nodeV.property(Constants.VALUE).value() + "");
+				} else if(nodeV.value(Constants.NAME).equals(vertParent)) {
+					qs.addSelector(nodeV.property(Constants.VALUE).value() + "", vert.property(Constants.VALUE).value() + "");
+				} else {
+//					qs.addSelector(nodeVParent, nodeV.property(Constants.VALUE).value() + "");
+//					qs.addSelector(vertParent, vert.property(Constants.VALUE).value() + "");
+					qs.addRelation(nodeV.property(Constants.VALUE).value() + "", vert.property(Constants.VALUE).value() + "", "inner.join");
+				}
+			}
+		}
+	}
+	
+	public List<String> getUniqueNames(){
 		List<String> uniqueList = new Vector<String>();
 		GraphTraversal<Vertex, Object> trav = g.traversal().V().has(Constants.TYPE, META).values(Constants.NAME);
 		while(trav.hasNext()){
@@ -604,10 +670,68 @@ public class TinkerMetaData2 implements IMetaData {
 	}
 
 	@Override
-	public void storeVertex(String uniqueName, String uniqueParentNameIfProperty) {
-		// TODO Auto-generated method stub
-		
+	public void storeVertex(String uniqueName, String howItsCalledInDataFrame, String uniqueParentNameIfProperty) {
+		Vertex vertex = this.upsertVertex(uniqueName, howItsCalledInDataFrame);
+		if(uniqueParentNameIfProperty != null && !uniqueParentNameIfProperty.isEmpty()) {
+			vertex.property(PARENT, uniqueParentNameIfProperty);
+		}
 	}
 	
+	
+//	public List<String> getSelectors(String aliasKey) {
+//		GraphTraversal<Vertex, Vertex> traversal = g.traversal().V().has(Constants.TYPE, META);
+//		List<String> selectors = new ArrayList<String>();
+//		while(traversal.hasNext()) {
+//			Vertex nextVert = traversal.next();
+//			
+//			//if nextVert not a prim key
+//			if(!nextVert.value(Constants.NAME).equals(PRIM_KEY)) {
+//				selectors.add(nextVert.value(aliasKey));
+//			}
+//		}
+//		return selectors;
+//	}
+	
+//////////////////::::::::::::::::::::::: TESTING :::::::::::::::::::::::::::::::://////////////////////////////
+
+	public static void main(String[] args) {
+		TinkerMetaData2 meta = new TinkerMetaData2();
+
+		Vertex pkV = meta.upsertVertex("TABLE1","TABLE1");
+		pkV.property(PRIM_KEY, true);
+
+		Vertex v1 = meta.upsertVertex("TITLE","TITLE");
+		v1.property(PARENT, "TABLE1");
+		meta.upsertEdge(pkV, v1);
+
+		Vertex v2 = meta.upsertVertex("STUDIO","STUDIO");
+		v2.property(PARENT, "TABLE1");
+		meta.upsertEdge(pkV, v2);
+		
+		Vertex v3 = meta.upsertVertex("DIRECTOR","DIRECTOR");
+		v3.property(PARENT, "TABLE1");
+		meta.upsertEdge(pkV, v3);
+		
+		// new sheet
+		
+		pkV = meta.upsertVertex("TABLE2","TABLE2");
+		pkV.property(PRIM_KEY, true);
+
+		Vertex newv1 = meta.upsertVertex("TABLE2__TITLE","TABLE2__TITLE");
+		newv1.property(PARENT, "TABLE2");
+		meta.upsertEdge(pkV, newv1);
+		meta.upsertEdge(v1, newv1);
+
+		v2 = meta.upsertVertex("BUDGET","BUDGET");
+		v2.property(PARENT, "TABLE2");
+		meta.upsertEdge(pkV, v2);
+		
+		v3 = meta.upsertVertex("REVENUE","REVENUE");
+		v3.property(PARENT, "TABLE2");
+		meta.upsertEdge(pkV, v3);
+
+		QueryStruct qs = meta.getQueryStruct("DIRECTOR");
+		qs.print();
+	}
 
 }
