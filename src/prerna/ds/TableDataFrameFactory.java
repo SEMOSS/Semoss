@@ -68,13 +68,12 @@ public class TableDataFrameFactory {
 					continue;
 				}
 				
-				headers = new String[sheetMap.keySet().size()];
+				headers = sheetMap.keySet().toArray(new String[]{});
+				headers = helper.orderHeadersToGet(sheetName, headers);
+				
 				types = new String[headers.length];
-				int counter = 0;
-				for(String header : sheetMap.keySet()) {
-					headers[counter] = header;
-					types[counter] = sheetMap.get(header);
-					counter++;
+				for(int j = 0; j < headers.length; j++) {
+					types[j] = sheetMap.get(headers[j]);
 				}
 			} else {
 				headers = helper.getHeaders(sheetName);
@@ -150,13 +149,12 @@ public class TableDataFrameFactory {
 					continue;
 				}
 				
-				headers = new String[sheetMap.keySet().size()];
+				headers = sheetMap.keySet().toArray(new String[]{});
+				headers = helper.orderHeadersToGet(table, headers);
+				
 				types = new String[headers.length];
-				int counter = 0;
-				for(String header : sheetMap.keySet()) {
-					headers[counter] = header;
-					types[counter] = sheetMap.get(header);
-					counter++;
+				for(int j = 0; j < headers.length; j++) {
+					types[j] = sheetMap.get(headers[j]);
 				}
 			} else {
 				headers = helper.getHeaders(table);

@@ -342,6 +342,18 @@ public class XLFileHelper {
 		}
 	}
 	
+	public String[] orderHeadersToGet(String sheetName, String[] headersToGet) {
+		String[] currHeaders = headers.get(sheetName);
+		List<String> orderedHeaders = new Vector<String>();
+		for(String header : currHeaders) {
+			if(ArrayUtilityMethods.arrayContainsValue(headersToGet, header)) {
+				orderedHeaders.add(header);
+			}
+		}
+		
+		return orderedHeaders.toArray(new String[]{});
+	}
+	
 	
 	///// TESTING CODE STARTS HERE /////
 
