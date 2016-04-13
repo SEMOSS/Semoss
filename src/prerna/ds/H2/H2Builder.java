@@ -1211,14 +1211,15 @@ public class H2Builder {
     }
     
     //TODO: this is done outside now, need to remove
-    private String cleanHeader(String header) {
+    protected static String cleanHeader(String header) {
     	/*header = header.replaceAll(" ", "_");
     	header = header.replace("(", "_");
     	header = header.replace(")", "_");
     	header = header.replace("-", "_");
     	header = header.replace("'", "");*/
-    	header = header.replaceAll("[#%!&()@#$'./_-]*", ""); // replace all the useless shit in one go
-    	header = header.replaceAll("\\s+","_"); 
+    	header = header.replaceAll("[#%!&()@#$'./-]*", ""); // replace all the useless shit in one go
+    	header = header.replaceAll("\\s+","_");
+    	header = header.replaceAll(",","_"); 
     	if(Character.isDigit(header.charAt(0)))
     		header = "c_" + header;
     	return header;
