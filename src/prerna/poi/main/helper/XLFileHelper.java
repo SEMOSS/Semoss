@@ -5,6 +5,7 @@ import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.util.Hashtable;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
 import java.util.Vector;
 
@@ -15,6 +16,7 @@ import org.apache.poi.xssf.usermodel.XSSFSheet;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 
 import cern.colt.Arrays;
+import prerna.util.ArrayUtilityMethods;
 import prerna.util.Utility;
 
 public class XLFileHelper {
@@ -73,6 +75,8 @@ public class XLFileHelper {
 		return headers.get(sheetName);
 	}
 	
+	/////////////////// START ALL NEXT ROWS ///////////////////
+	
 	public String[] getNextRow(String sheetName) {
 		XSSFSheet thisSheet = sheetNames.get(sheetName);
 		
@@ -87,9 +91,8 @@ public class XLFileHelper {
 		}
 		
 		// assimilate the properties
-		if(counter == 0)
-		{
-			for(int colIndex = colStarter;colIndex < thisRow.length;colIndex++) {
+		if(counter == 0) {
+			for(int colIndex = colStarter; colIndex < thisRow.length;colIndex++) {
 				putProp(thisRow[colIndex], sheetName);
 			}
 		}
@@ -105,8 +108,7 @@ public class XLFileHelper {
 		int colLength = row.getLastCellNum();
 		return getCells(row, colLength);
 	}
-
-
+	
 	private String[] getCells(XSSFRow row, int totalCol)
 	{
 		int colLength = totalCol;
@@ -119,6 +121,62 @@ public class XLFileHelper {
 		return cols;
 	}
 	
+	/////////////////// END ALL NEXT ROWS ///////////////////
+
+	/////////////////// START SPECIFIC HEADERS NEXT ROWS ///////////////////
+
+	public String[] getNextRow(String sheetName, String[] headersToGet) {
+		String[] allHeaders = headers.get(sheetName);
+		if(allHeaders.length == headersToGet.length) {
+			return getNextRow(sheetName);
+		}
+		
+		XSSFSheet thisSheet = sheetNames.get(sheetName);
+		
+		int counter = 0;
+		if(sheetCounter.containsKey(sheetName)) {
+			counter = sheetCounter.get(sheetName);
+		}
+		
+		String [] thisRow = null;
+		if(counter < thisSheet.getLastRowNum()) {
+			thisRow = getCells(thisSheet.getRow(counter), allHeaders, headersToGet);
+		}
+		
+		// assimilate the properties
+		if(counter == 0) {
+			for(int colIndex = colStarter;colIndex < thisRow.length;colIndex++) {
+				putProp(thisRow[colIndex], sheetName);
+			}
+		}
+		
+		// set counter back
+		counter++;		
+		sheetCounter.put(sheetName, counter);
+
+		return thisRow;
+	}
+	
+	private String[] getCells(XSSFRow row, String[] sheetHeaders, String[] headersToGet) {
+		int colLength = row.getLastCellNum();
+		return getCells(row, sheetHeaders, headersToGet, colLength);
+	}
+	
+	private String[] getCells(XSSFRow row, String[] sheetHeaders, String[] headersToGet, int totalCol) {
+		int colLength = totalCol;
+		List<String> cols = new Vector<String>();
+		for(int colIndex = colStarter; colIndex < colLength; colIndex++) {
+			String header = sheetHeaders[colIndex];
+			if(ArrayUtilityMethods.arrayContainsValue(headersToGet, header)) {
+				XSSFCell thisCell = row.getCell(colIndex);
+				cols.add(getCell(thisCell));
+			}
+		}
+		return cols.toArray(new String[]{});
+	}	
+	
+	/////////////////// END SPECIFIC HEADERS NEXT ROWS ///////////////////
+
 
 	private String getCell(XSSFCell thisCell) {
 		if(thisCell != null && thisCell.getCellType() != Cell.CELL_TYPE_BLANK) {
@@ -184,7 +242,7 @@ public class XLFileHelper {
 			}
 			if(type == null) {
 				// no data for column....
-				types[i] = "varchar(255)";
+				types[i] = "VARCHAR(255)";
 			} else {
 				types[i] = type;
 			}
