@@ -1247,7 +1247,7 @@ public class H2Builder {
     		// if currenncy - empty
     		// if date - empty
     		
-    		String name = headers[colIndex];
+    		String name = cleanHeader(headers[colIndex]);
     		StringBuilder thisTemplate = new StringBuilder(name);
     		
     		
