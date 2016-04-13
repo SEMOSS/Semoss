@@ -16,29 +16,34 @@ import prerna.poi.main.helper.XLFileHelper;
 
 public class TableDataFrameFactory {
 
+	private static final String CSV_FILE_KEY = "CSV";
+	
 	/**
 	 * Method to generate a table data frame from a file
 	 * @param dataStr
 	 * @param delimeter
+	 * @param dataTypeMap 
 	 * @return
 	 */
-	public static TinkerFrame generateDataFrameFromFile(String fileLoc, String delimeter, String dataFrameType) {
+	public static TinkerFrame generateDataFrameFromFile(String fileLoc, String delimeter, String dataFrameType, Map<String, Map<String, String>> dataTypeMap) {
 		if(dataFrameType.equalsIgnoreCase("H2")) {
 			if(fileLoc.endsWith(".xlsx") || fileLoc.endsWith(".xlsm")) {
-				return generateH2FrameFromExcel(fileLoc);
+				return generateH2FrameFromExcel(fileLoc, dataTypeMap);
 			} else {
-				return generateH2FrameFromFile(fileLoc, delimeter);
+				return generateH2FrameFromFile(fileLoc, delimeter, dataTypeMap.get(CSV_FILE_KEY));
 			}
 		} else {
 			if(fileLoc.endsWith(".xlsx") || fileLoc.endsWith(".xlsm")) {
-				return generateTinkerFrameFromExcel(fileLoc);
+				return generateTinkerFrameFromExcel(fileLoc, dataTypeMap);
 			} else {
-				return generateTinkerFrameFromFile(fileLoc, delimeter);
+				return generateTinkerFrameFromFile(fileLoc, delimeter, dataTypeMap.get(CSV_FILE_KEY));
 			}
 		}
 	}
 	
-	private static TinkerFrame generateTinkerFrameFromExcel(String fileLoc) {
+	//////////////////////// START EXCEL LOADING //////////////////////////////////////
+	
+	private static TinkerFrame generateTinkerFrameFromExcel(String fileLoc, Map<String, Map<String, String>> dataTypeMap) {
 		XLFileHelper helper = new XLFileHelper();
 		helper.parse(fileLoc);
 		String[] tables = helper.getTables();
@@ -46,12 +51,35 @@ public class TableDataFrameFactory {
 		TinkerFrame tf = null;
 		TinkerCastHelper caster = new TinkerCastHelper();
 
+		int tableCounter = 0;
 		for(int i = 0; i < tables.length; i++)
 		{
 			String primKeyHeader = null;
 			String sheetName = tables[i];
-			String[] headers = helper.getHeaders(sheetName);
-			String[] types = helper.predictRowTypes(sheetName);
+			
+			String [] headers = null;
+			String [] types = null;
+			
+			if(dataTypeMap != null && !dataTypeMap.isEmpty()) {
+				Map<String, String> sheetMap = dataTypeMap.get(sheetName);
+				
+				if(sheetMap == null || sheetMap.isEmpty()) {
+					//not loading anything from this sheet
+					continue;
+				}
+				
+				headers = new String[sheetMap.keySet().size()];
+				types = new String[headers.length];
+				int counter = 0;
+				for(String header : sheetMap.keySet()) {
+					headers[counter] = header;
+					types[counter] = sheetMap.get(header);
+					counter++;
+				}
+			} else {
+				headers = helper.getHeaders(sheetName);
+				types = helper.predictRowTypes(sheetName);			
+			}
 			
 			if(tf == null) {
 				tf = createPrimKeyTinkerFrame(headers, "TinkerFrame", types);
@@ -69,7 +97,7 @@ public class TableDataFrameFactory {
 			Object[] values = null;	
 			String[] row = null;
 			helper.getNextRow(sheetName); // first row is header
-			while( ( row = helper.getNextRow(sheetName) ) != null) {
+			while( ( row = helper.getNextRow(sheetName, headers) ) != null) {
 				values = caster.castToTypes(row, types);
 				Map<String, Object> cleanRow = new HashMap<>();
 				Map<String, Object> rawRow = new HashMap<>();
@@ -82,7 +110,7 @@ public class TableDataFrameFactory {
 					cleanRow.put(headers[j], values[j]);
 					rawRow.put(header, rawVal);
 				}
-				if(i == 0) {
+				if(tableCounter == 0) {
 					tf.addRow(cleanRow, rawRow);
 				} else {
 					String primKeyVal = values.hashCode() + "";
@@ -92,12 +120,13 @@ public class TableDataFrameFactory {
 					tf.addRelationship(cleanRow, rawRow);
 				}
 			}
+			tableCounter++;
 		}
 		
 		return tf;
 	}
 
-	private static TinkerFrame generateH2FrameFromExcel(String fileLoc) {
+	private static TinkerFrame generateH2FrameFromExcel(String fileLoc, Map<String, Map<String, String>> dataTypeMap) {
 		
 		XLFileHelper helper = new XLFileHelper();
 		helper.parse(fileLoc);
@@ -109,16 +138,36 @@ public class TableDataFrameFactory {
 		{
 			String primKeyHeader = null;
 			String table = tables[i];
-			String[] headers = helper.getHeaders(table);
+			
+			String [] headers = null;
+			String [] types = null;
+			
+			if(dataTypeMap != null && !dataTypeMap.isEmpty()) {
+				Map<String, String> sheetMap = dataTypeMap.get(table);
+				
+				if(sheetMap == null || sheetMap.isEmpty()) {
+					//not loading anything from this sheet
+					continue;
+				}
+				
+				headers = new String[sheetMap.keySet().size()];
+				types = new String[headers.length];
+				int counter = 0;
+				for(String header : sheetMap.keySet()) {
+					headers[counter] = header;
+					types[counter] = sheetMap.get(header);
+					counter++;
+				}
+			} else {
+				headers = helper.getHeaders(table);
+				types = helper.predictRowTypes(table);			
+			}
+			
+			// need to make everything a property of the table (i.e. sheet)
 			for(int index = 0; index < headers.length; index++) {
 				String header = headers[index];
 				headers[index] = table+"__"+header;
 			}
-			String[] types = helper.predictRowTypes(table);
-			
-//			if(dataFrame == null) {
-//				dataFrame = (TinkerH2Frame)createPrimKeyTinkerFrame(headers, "H2", types);
-//			} else {
 			
 			Map<String, Set<String>> newEdgeHash = new Hashtable<String, Set<String>>();
 			// need to create a new prim_key vertex
@@ -129,14 +178,9 @@ public class TableDataFrameFactory {
 			dataFrame.mergeEdgeHash(newEdgeHash);
 			dataFrame.addMetaDataTypes(headers, types);
 
-			
-//			}
-			
-			Object[] vals = null;	
-			String[] row = null;
 			helper.getNextRow(table); // first row is header
 			dataFrame.setMetaData(table, headers, types);
-			while((cells = helper.getNextRow(table)) != null) {
+			while((cells = helper.getNextRow(table, headers)) != null) {
 				//add these cells to this table
 				dataFrame.addRow(table, cells);
 			}
@@ -146,25 +190,44 @@ public class TableDataFrameFactory {
 		return dataFrame;
 	}
 
+	//////////////////////// END EXCEL LOADING //////////////////////////////////////
+
 	
-	private static TinkerH2Frame generateH2FrameFromFile(String fileLoc, String delimeter) {
+	//////////////////////// START CSV LOADING //////////////////////////////////////
+	
+	private static TinkerH2Frame generateH2FrameFromFile(String fileLoc, String delimiter, Map<String, String> dataTypeMap) {
 		CSVFileHelper helper = new CSVFileHelper();
-		helper.setDelimiter(delimeter.charAt(0));
+		helper.setDelimiter(delimiter.charAt(0));
 		helper.parse(fileLoc);
 		
-		String [] headers = helper.getHeaders();
-		String [] types = helper.predictTypes();
+		String [] headers = null;
+		String [] types = null;
+		
+		if(dataTypeMap != null && !dataTypeMap.isEmpty()) {
+			headers = new String[dataTypeMap.keySet().size()];
+			types = new String[headers.length];
+			int counter = 0;
+			for(String header : dataTypeMap.keySet()) {
+				headers[counter] = header;
+				types[counter] = dataTypeMap.get(header);
+				counter++;
+			}
+			
+			helper.parseColumns(headers);
+			helper.getNextRow(); // next row is a header
+		} else {
+			headers = helper.getHeaders();
+			types = helper.predictTypes();			
+		}
 		
 		TinkerH2Frame dataFrame = (TinkerH2Frame)createPrimKeyTinkerFrame(headers, "H2", types);
 		
 		// for efficiency, we get all the meta information before the add row
 		IMetaData metaData = dataFrame.getMetaData();
 		// unique names always match the headers when creating from csv/excel
-//		Map<String, String> uniqueNameToValueMap = new HashMap<String, String>();
 		String[] values = new String[headers.length];
 		for(int i = 0; i < headers.length; i++) {
 			values[i] = metaData.getValueForUniqueName(headers[i]);
-//			uniqueNameToValueMap.put(headers[i], values[i]);
 		}
 		
 		String tableName = null;
@@ -175,27 +238,39 @@ public class TableDataFrameFactory {
 				break;
 			}
 		}
-		//set the meta data for the frame csv only has one table so just pass in null 
-//		dataFrame.setMetaData(null, headers, types);
-//		dataFrame.addMetaDataTypes(headers, types);
-//		dataFrame.addH2Alias(headers);
 		
 		String [] cells = null;
 		while((cells = helper.getNextRow()) != null) {
 			dataFrame.addRow2(tableName, cells, values, types);
 		}
-//		dataFrame.H2HeaderMap = uniqueNameToValueMap;
 		return dataFrame;
 	}
 	
-	private static TinkerFrame generateTinkerFrameFromFile(String fileLoc, String delimeter) {
-		// the data string is no longer string but a file name
+	private static TinkerFrame generateTinkerFrameFromFile(String fileLoc, String delimiter, Map<String, String> dataTypeMap) {
 		CSVFileHelper helper = new CSVFileHelper();
-		helper.setDelimiter(delimeter.charAt(0));
+		helper.setDelimiter(delimiter.charAt(0));
 		helper.parse(fileLoc);
 		
-		String [] headers = helper.getHeaders();
-		String [] types = helper.predictTypes();
+		String [] headers = null;
+		String [] types = null;
+		
+		if(dataTypeMap != null && !dataTypeMap.isEmpty()) {
+			headers = new String[dataTypeMap.keySet().size()];
+			types = new String[headers.length];
+			int counter = 0;
+			for(String header : dataTypeMap.keySet()) {
+				headers[counter] = header;
+				types[counter] = dataTypeMap.get(header);
+				counter++;
+			}
+			
+			helper.parseColumns(headers);
+			helper.getNextRow(); // next row is a header
+		} else {
+			headers = helper.getHeaders();
+			types = helper.predictTypes();			
+		}
+
 		TinkerFrame dataFrame = (TinkerFrame)createPrimKeyTinkerFrame(headers, "TinkerFrame", types);
 		
 		TinkerCastHelper caster = new TinkerCastHelper();
@@ -221,6 +296,8 @@ public class TableDataFrameFactory {
 		return dataFrame;
 	}
 	
+	//////////////////////// END CSV LOADING //////////////////////////////////////
+
 	private static TinkerFrame createPrimKeyTinkerFrame(String[] headers, String dataFrameType, String[] types) {
 		
 		TinkerFrame dataFrame;
