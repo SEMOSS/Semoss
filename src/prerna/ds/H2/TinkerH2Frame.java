@@ -1,7 +1,6 @@
 package prerna.ds.H2;
 
 import java.io.IOException;
-import java.sql.ResultSet;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Comparator;
@@ -314,7 +313,7 @@ public class TinkerH2Frame extends TinkerFrame {
 		
 		Map<String, List<Object>> h2filteredValues = builder.getFilteredValues(getH2Selectors());
 		for(String key : filteredValues.keySet()) {
-			String h2key = cleanHeader(key);
+			String h2key = H2Builder.cleanHeader(key);
 			List<Object> values = h2filteredValues.get(h2key);
 			if(values != null) {
 				filteredValues.put(key, values);
@@ -512,7 +511,7 @@ public class TinkerH2Frame extends TinkerFrame {
 		}
 		
 		for(int i = 0; i < columnHeaders.length; i++) {
-			columnHeaders[i] = cleanHeader(columnHeaders[i]);
+			columnHeaders[i] = H2Builder.cleanHeader(columnHeaders[i]);
 		}
 		builder.updateTable(getH2Headers(), values, columnHeaders);
 
@@ -696,19 +695,19 @@ public class TinkerH2Frame extends TinkerFrame {
 		
 	}
 	
-	private String cleanHeader(String header) {
-    	/*header = header.replaceAll(" ", "_");
-    	header = header.replace("(", "_");
-    	header = header.replace(")", "_");
-    	header = header.replace("-", "_");
-    	header = header.replace("'", "");*/
-    	header = header.replaceAll("[#%!&()@#$'./-]*", ""); // replace all the useless shit in one go
-    	header = header.replaceAll("\\s+","_");
-    	header = header.replaceAll(",","_"); 
-    	if(Character.isDigit(header.charAt(0)))
-    		header = "c_" + header;
-    	return header;
-    }
+//	private String cleanHeader(String header) {
+//    	/*header = header.replaceAll(" ", "_");
+//    	header = header.replace("(", "_");
+//    	header = header.replace(")", "_");
+//    	header = header.replace("-", "_");
+//    	header = header.replace("'", "");*/
+//    	header = header.replaceAll("[#%!&()@#$'./-]*", ""); // replace all the useless shit in one go
+//    	header = header.replaceAll("\\s+","_");
+//    	header = header.replaceAll(",","_"); 
+//    	if(Character.isDigit(header.charAt(0)))
+//    		header = "c_" + header;
+//    	return header;
+//    }
 	
 	public List<String> getSelectors() {
 		if(headerNames == null) return new ArrayList<String>();
@@ -784,7 +783,7 @@ public class TinkerH2Frame extends TinkerFrame {
 		if(metaNodeName.equals(PRIM_KEY)) {
 			metaNodeValue = builder.getNewTableName();
 		} else {
-			metaNodeValue = cleanHeader(metaNodeName);
+			metaNodeValue = H2Builder.cleanHeader(metaNodeName);
 		}
 		
 //		// get metamodel info for metaModeName
