@@ -926,7 +926,7 @@ public class TinkerFrame extends AbstractTableDataFrame {
             	   
             	   Map<String, Set<String>> edgeHash = component.getQueryStruct().getReturnConnectionsHash();
             	   Map[] mergedMaps = TinkerMetaHelper.mergeQSEdgeHash(this.metaData, edgeHash, engine, joinColList);
-            	   List<String> fullNames = this.metaData.getUniqueNames();
+            	   List<String> fullNames = this.metaData.getColumnNames();
             	   this.headerNames = fullNames.toArray(new String[fullNames.size()]);
             	   
             	   while(wrapper.hasNext()){
@@ -1043,7 +1043,7 @@ public class TinkerFrame extends AbstractTableDataFrame {
 			this.metaData.storeRelation(outType, inType);
 		}
 
-		List<String> fullNames = this.metaData.getUniqueNames();
+		List<String> fullNames = this.metaData.getColumnNames();
 		this.headerNames = fullNames.toArray(new String[fullNames.size()]);
 	}
 	
@@ -1071,7 +1071,7 @@ public class TinkerFrame extends AbstractTableDataFrame {
 			this.metaData.storeVertex(inType, inType, null);
 			this.metaData.storeRelation(metaPrimKey, inType);
 
-			List<String> fullNames = this.metaData.getUniqueNames();
+			List<String> fullNames = this.metaData.getColumnNames();
 			this.headerNames = fullNames.toArray(new String[fullNames.size()]);
 		}
 	}
@@ -2195,7 +2195,7 @@ public class TinkerFrame extends AbstractTableDataFrame {
 			e.printStackTrace();
 		}
 		this.metaData.open(fileName.substring(0, fileName.lastIndexOf(".")));
-	   List<String> fullNames = this.metaData.getUniqueNames();
+	   List<String> fullNames = this.metaData.getColumnNames();
 	   tf.headerNames = fullNames.toArray(new String[fullNames.size()]);
 //		
 //		String[] headers = null;
