@@ -1207,15 +1207,15 @@ public class Insight {
 //		if(nodesHash.isEmpty()){
 			// Should always be getting metamodel information from tinker meta graph
 			// Need to enhance tinker meta graph to capture all necessary pieces
-			if(this.getDataMaker() instanceof TinkerFrame){
-				TinkerFrame tink = (TinkerFrame) this.getDataMaker();
+			if(this.getDataMaker() instanceof ITableDataFrame){
+				ITableDataFrame tink = (ITableDataFrame) this.getDataMaker();
 				Map<String, Set<String>> edgeHash = tink.getEdgeHash();
-				IMetaData tmd = tink.getMetaData();
-				Map<String, String> props = tmd.getProperties();
+//				IMetaData tmd = tink.getMetaData();
+				Map<String, String> props = tink.getProperties();
 				for(String sub: edgeHash.keySet()){
 					Map<String, Object> nodeObj = new HashMap<String, Object>();
 //					nodeObj.put("uri", sub);
-					Set<String> subEngineNameSet = tmd.getEnginesForUniqueName(sub);
+					Set<String> subEngineNameSet = tink.getEnginesForUniqueName(sub);
 					// this is for the FE s.t. it doesn't break when no engines are sent back
 					if(subEngineNameSet == null || subEngineNameSet.isEmpty()) {
 						subEngineNameSet = new HashSet<String>();
@@ -1231,7 +1231,7 @@ public class Insight {
 					for(String obj : objs){
 						Map<String, Object> nodeObj2 = new HashMap<String, Object>();
 //						nodeObj2.put("uri", obj);
-						Set<String> objEngineNameSet = tmd.getEnginesForUniqueName(obj);
+						Set<String> objEngineNameSet = tink.getEnginesForUniqueName(obj);
 						// this is for the FE s.t. it doesn't break when no engines are sent back
 						if(objEngineNameSet == null || objEngineNameSet.isEmpty()) {
 							objEngineNameSet = new HashSet<String>();
@@ -1258,10 +1258,6 @@ public class Insight {
 		returnHash.put("insightID", this.insightID);
 
 		return returnHash;
-	}
-	
-	public IMetaData getMetaData(){
-		return ((TinkerFrame)this.getDataMaker()).getMetaData();
 	}
 	
 	public void recalcDerivedColumns(){

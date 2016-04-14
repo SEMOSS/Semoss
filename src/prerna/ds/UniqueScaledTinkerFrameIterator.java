@@ -37,7 +37,7 @@ public class UniqueScaledTinkerFrameIterator implements Iterator<List<Object[]>>
 			String columnName,
 			boolean getRawData, 
 			List<String> selectors, 
-			Graph g, 
+			Graph g, Graph metaG,
 			Double[] maxArr, 
 			Double[] minArr) {
 		this.selectors = selectors;
@@ -46,11 +46,11 @@ public class UniqueScaledTinkerFrameIterator implements Iterator<List<Object[]>>
 		this.columnNameIndex = selectors.indexOf(columnName);
 		this.maxArr = maxArr;
 		this.minArr = minArr;
-		this.gt = openTraversal(selectors, g);
+		this.gt = openTraversal(selectors, g, metaG);
 	}
 	
-	private GraphTraversal openTraversal(List<String> selectors, Graph g){
-		GremlinBuilder builder = GremlinBuilder.prepareGenericBuilder(selectors, g);
+	private GraphTraversal openTraversal(List<String> selectors, Graph g, Graph metaG){
+		GremlinBuilder builder = GremlinBuilder.prepareGenericBuilder(selectors, g, metaG);
 		builder.orderBySelector = columnName;
 		this.finalColumns = selectors.toArray(new String[0]);//finalColumns.toArray(new String[0]);
 		//finally execute it to get the executor

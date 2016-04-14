@@ -3,17 +3,12 @@ package prerna.algorithm.api;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import prerna.engine.api.ISelectStatement;
 import prerna.ui.components.playsheets.datamakers.IDataMaker;
 
 public interface ITableDataFrame extends IDataMaker {
-
-	/**
-	 * Call to get the metadata from the data maker
-	 * @return
-	 */
-	IMetaData getMetaData();
 	
 	/**
 	 * Adds a row to the data-frame
@@ -160,35 +155,35 @@ public interface ITableDataFrame extends IDataMaker {
 	 */
 	Double[] getMin();
 	
-	/**
-	 * Get the average value for the column in the data-frame
-	 * Will return null if the column is non-numeric
-	 * @param columnHeader			The column header to get the average value
-	 * @return						The average value in the column
-	 */
-	Double getAverage(String columnHeader);
+//	/**
+//	 * GET THE AVERAGE VALUE FOR THE COLUMN IN THE DATA-FRAME
+//	 * WILL RETURN NULL IF THE COLUMN IS NON-NUMERIC
+//	 * @PARAM COLUMNHEADER			THE COLUMN HEADER TO GET THE AVERAGE VALUE
+//	 * @RETURN						THE AVERAGE VALUE IN THE COLUMN
+//	 */
+//	DOUBLE GETAverage(String columnHeader);
 
-	/**
-	 * Get the average value for all the columns in the data-frame
-	 * Will return null in the column positions that are non-numeric
-	 * @return						The average value for all columns corresponding to the ordered values in the column headers
-	 */
-	Double[] getAverage();
+//	/**
+//	 * Get the average value for all the columns in the data-frame
+//	 * Will return null in the column positions that are non-numeric
+//	 * @return						The average value for all columns corresponding to the ordered values in the column headers
+//	 */
+//	Double[] getAverage();
 	
-	/**
-	 * Get the sum of the values for the inputed column in the data-frame
-	 * Will return null if the column is non-numeric
-	 * @param columnHeader			The column header to get the sum of all the values
-	 * @return						The sum of all the values in the column
-	 */
-	Double getSum(String columnHeader);
+//	/**
+//	 * Get the sum of the values for the inputed column in the data-frame
+//	 * Will return null if the column is non-numeric
+//	 * @param columnHeader			The column header to get the sum of all the values
+//	 * @return						The sum of all the values in the column
+//	 */
+//	Double getSum(String columnHeader);
 
-	/**
-	 * Get the sum of the values for all the inputed columns in the data-frame
-	 * Will return null in the column positions that are non-numeric
-	 * @return						The sum of all the values for all columns corresponding to the ordered values in the column headers
-	 */
-	Double[] getSum();
+//	/**
+//	 * Get the sum of the values for all the inputed columns in the data-frame
+//	 * Will return null in the column positions that are non-numeric
+//	 * @return						The sum of all the values for all columns corresponding to the ordered values in the column headers
+//	 */
+//	Double[] getSum();
 	
 	/**
 	 * Get the standard deviation of the values for the inputed column in the data-frame
@@ -225,12 +220,6 @@ public interface ITableDataFrame extends IDataMaker {
 	String[] getColumnHeaders();
 	
 	/**
-	 * Get the URI values for each corresponding level name
-	 * @return					The URIs for each column header 
-	 */
-	String[] getURIColumnHeaders();
-	
-	/**
 	 * Get the total number of columns in the data-frame
 	 * @return						The count of the number of columns in the data-frame
 	 */
@@ -249,12 +238,12 @@ public interface ITableDataFrame extends IDataMaker {
 	 */
 	int getColCount(int rowIdx);
 	
-	/**
-	 * Get the number of total values for the row  
-	 * @param rowIdx
-	 * @return
-	 */
-	int getRowCount(String columnHeader);
+//	/**
+//	 * Get the number of total values for the row  
+//	 * @param rowIdx
+//	 * @return
+//	 */
+//	int getRowCount(String columnHeader);
 	
 	/**
 	 * Iterator to go through all the rows in the data-frame
@@ -339,12 +328,12 @@ public interface ITableDataFrame extends IDataMaker {
 	 */
 	Object[] getRawColumn(String columnHeader);
 		
-	/**
-	 * Get the unique column values for a specific column in the data-frame
-	 * @param columnHeader			The column header to get the values for
-	 * @return						The unique values for the specific column header in the data-frame
-	 */
-	Object[] getUniqueValues(String columnHeader);
+//	/**
+//	 * Get the unique column values for a specific column in the data-frame
+//	 * @param columnHeader			The column header to get the values for
+//	 * @return						The unique values for the specific column header in the data-frame
+//	 */
+//	Object[] getUniqueValues(String columnHeader);
 	
 	/**
 	 * Get the unique raw column values for a specific column in the data-frame
@@ -463,12 +452,12 @@ public interface ITableDataFrame extends IDataMaker {
 	 */
 	List<Object[]> getRawData();
 	
-	/**
-	 * 
-	 * @param value
-	 * @return
-	 */
-	List<Object[]> getData(String columnHeader, Object value);
+//	/**
+//	 * 
+//	 * @param value
+//	 * @return
+//	 */
+//	List<Object[]> getData(String columnHeader, Object value);
 	
 	/**
 	 * Returns if the ITable is empty
@@ -512,4 +501,24 @@ public interface ITableDataFrame extends IDataMaker {
 
 	void save(String fileName);
 	ITableDataFrame open(String fileName);
+
+	Map<String, Set<String>> createPrimKeyEdgeHash(String[] headers);
+
+	void mergeEdgeHash(Map<String, Set<String>> primKeyEdgeHash);
+
+	void addMetaDataTypes(String[] headers, String[] types);
+
+	void connectTypes(String outType, String inType);
+
+	void addRelationship(Map<String, Object> cleanRow, Map<String, Object> rawRow);
+
+	Map<String, Set<String>> getEdgeHash();
+
+	Set<String> getEnginesForUniqueName(String sub);
+
+	Map<String, String> getProperties();
+
+	String getPhysicalUriForNode(String string, String engineName);
+
+	List<Map<String, String>>  getTableHeaderObjects();
 }

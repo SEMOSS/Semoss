@@ -234,39 +234,39 @@ public class EquationSolver {
 	 */
 	private void solveAggregate(Hashtable<String, String> parsedStringInfo) {
 
-		// get all instances of groupByVariable [e.g. Genre]
-		Object[] uniqueInstances = tree.getColumn(parsedStringInfo.get("groupByVariable"));	    // ["Comedy", "Comedy", "Drama" ... ]
-		Set<Object> uniqueValuesInColumn = new HashSet<Object>(Arrays.asList(uniqueInstances)); // ["Comedy", "Drama" ...]
-		Hashtable<String, Double> intermediateTable = new Hashtable<String, Double>();
-				
-		// get operation to perform on each groupByVariable [e.g. median(Revenue) for "Comedy"]
-		for (Object uniqueValue: uniqueValuesInColumn) {
-			List<Object[]> subSet = tree.getData(parsedStringInfo.get("groupByVariable"), uniqueValue);
-			Double[] values = new Double[subSet.size()];
-			
-			int i = 0;
-			for (Object[] row: subSet) {
-				values[i] = (double) row[aggregrateColumnIndex];
-				i++;
-			}
-						
-			// get a list of all values
-			String tempString = parsedStringInfo.get("operationFunction") + "(" + Arrays.toString(values) + ")";
-			tempString = tempString.replace("[","");
-			tempString = tempString.replace("]","");
-			
-			// use JEP to compute object
-			myParser.parseExpression(tempString);
-			double calculation = myParser.getValue();	
-			
-			// save this single value into intermediate hashtable.
-			intermediateTable.put(uniqueValue.toString(), calculation);
-		}
-		
-		// print and save
-		System.out.println(parsedStringInfo.get("operationToPerform")+": "+intermediateTable);
-		aggregateTable = intermediateTable;
-		
+//		// get all instances of groupByVariable [e.g. Genre]
+//		Object[] uniqueInstances = tree.getColumn(parsedStringInfo.get("groupByVariable"));	    // ["Comedy", "Comedy", "Drama" ... ]
+//		Set<Object> uniqueValuesInColumn = new HashSet<Object>(Arrays.asList(uniqueInstances)); // ["Comedy", "Drama" ...]
+//		Hashtable<String, Double> intermediateTable = new Hashtable<String, Double>();
+//				
+//		// get operation to perform on each groupByVariable [e.g. median(Revenue) for "Comedy"]
+//		for (Object uniqueValue: uniqueValuesInColumn) {
+////			List<Object[]> subSet = tree.getData(parsedStringInfo.get("groupByVariable"), uniqueValue);
+//			Double[] values = new Double[subSet.size()];
+//			
+//			int i = 0;
+//			for (Object[] row: subSet) {
+//				values[i] = (double) row[aggregrateColumnIndex];
+//				i++;
+//			}
+//						
+//			// get a list of all values
+//			String tempString = parsedStringInfo.get("operationFunction") + "(" + Arrays.toString(values) + ")";
+//			tempString = tempString.replace("[","");
+//			tempString = tempString.replace("]","");
+//			
+//			// use JEP to compute object
+//			myParser.parseExpression(tempString);
+//			double calculation = myParser.getValue();	
+//			
+//			// save this single value into intermediate hashtable.
+//			intermediateTable.put(uniqueValue.toString(), calculation);
+//		}
+//		
+//		// print and save
+//		System.out.println(parsedStringInfo.get("operationToPerform")+": "+intermediateTable);
+//		aggregateTable = intermediateTable;
+//		
 	}
 	
 	/**
