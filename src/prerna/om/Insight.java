@@ -951,7 +951,7 @@ public class Insight {
 		} else if (getOutput().equals("Graph") && dm instanceof TinkerFrame){
 			retHash.putAll(((TinkerFrame)getDataMaker()).getGraphOutput());
 		} else {
-			if(dm instanceof TinkerFrame && !selectors.isEmpty()) {
+			if(dm instanceof ITableDataFrame && !selectors.isEmpty()) {
 				retHash.putAll(dm.getDataMakerOutput(selectors.toArray(new String[]{})));
 			} else {
 				retHash.putAll(dm.getDataMakerOutput());

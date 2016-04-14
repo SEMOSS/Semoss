@@ -983,7 +983,7 @@ public class TinkerFrame extends AbstractTableDataFrame {
 		Map<String, SEMOSSVertex> vertStore = new HashMap<String, SEMOSSVertex>();
 		Map<String, SEMOSSEdge> edgeStore = new HashMap<String, SEMOSSEdge>();
 		
-		GraphTraversal<Edge, Edge> edgesIt = ((TinkerMetaData2)this.metaData).g.traversal().E().not(__.or(__.has(T.label, TinkerMetaData2.META+edgeLabelDelimeter+TinkerMetaData2.META), __.has(Constants.TYPE, Constants.FILTER), __.bothV().in().has(Constants.TYPE, Constants.FILTER)));
+		GraphTraversal<Edge, Edge> edgesIt = g.traversal().E().not(__.or(__.has(Constants.TYPE, Constants.FILTER), __.bothV().in().has(Constants.TYPE, Constants.FILTER)));
 		while(edgesIt.hasNext()){
 			Edge e = edgesIt.next();
 			Vertex outV = e.outVertex();
@@ -994,7 +994,7 @@ public class TinkerFrame extends AbstractTableDataFrame {
 			edgeStore.put("https://semoss.org/Relation/"+e.property(Constants.ID).value() + "", new SEMOSSEdge(outVert, inVert, "https://semoss.org/Relation/"+e.property(Constants.ID).value() + ""));
 		}
 		// now i just need to get the verts with no edges
-		GraphTraversal<Vertex, Vertex> vertIt = ((TinkerMetaData2)this.metaData).g.traversal().V().not(__.or(__.both(),__.has(Constants.TYPE, TinkerMetaData2.META),__.has(Constants.TYPE, Constants.FILTER),__.in().has(Constants.TYPE, Constants.FILTER)));
+		GraphTraversal<Vertex, Vertex> vertIt = g.traversal().V().not(__.or(__.both(),__.has(Constants.TYPE, Constants.FILTER),__.in().has(Constants.TYPE, Constants.FILTER)));
 		while(vertIt.hasNext()){
 			Vertex outV = vertIt.next();
 			getSEMOSSVertex(vertStore, outV);
@@ -1554,7 +1554,12 @@ public class TinkerFrame extends AbstractTableDataFrame {
 		}
 		
 		for(Object fv : filterValues) {
-			removeSet.remove(fv);
+			if(fv instanceof String){
+				removeSet.remove(Utility.getInstanceName((String)fv));
+			}
+			else {
+				removeSet.remove(fv);
+			}
 		}
 		this.metaData.setFiltered(columnHeader, true);
 		String valueNode = this.metaData.getValueForUniqueName(columnHeader);
