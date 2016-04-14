@@ -1,8 +1,8 @@
 package prerna.ds.H2;
 
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -15,37 +15,38 @@ import java.util.Vector;
 
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
-import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.GraphTraversal;
-import org.apache.tinkerpop.gremlin.structure.Edge;
-import org.apache.tinkerpop.gremlin.structure.Vertex;
-import org.apache.tinkerpop.gremlin.structure.io.Io.Builder;
-import org.apache.tinkerpop.gremlin.structure.io.IoCore;
-import org.apache.tinkerpop.gremlin.structure.io.IoRegistry;
-import org.apache.tinkerpop.gremlin.structure.io.gryo.GryoIo;
-import org.apache.tinkerpop.gremlin.tinkergraph.structure.TinkerGraph;
 
-import com.google.gson.Gson;
-
+import prerna.algorithm.api.IAnalyticActionRoutine;
+import prerna.algorithm.api.IAnalyticRoutine;
+import prerna.algorithm.api.IAnalyticTransformationRoutine;
+import prerna.algorithm.api.IMatcher;
+import prerna.algorithm.api.IMetaData;
+import prerna.algorithm.api.ITableDataFrame;
+import prerna.ds.AbstractTableDataFrame;
 import prerna.ds.QueryStruct;
 import prerna.ds.TinkerFrame;
 import prerna.ds.TinkerMetaData2;
+import prerna.ds.TinkerMetaHelper;
 import prerna.engine.api.IEngine;
+import prerna.engine.api.ISelectStatement;
 import prerna.engine.api.ISelectWrapper;
 import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.rdf.query.builder.IQueryInterpreter;
 import prerna.rdf.query.builder.SQLInterpreter;
 import prerna.ui.components.playsheets.datamakers.DataMakerComponent;
+import prerna.ui.components.playsheets.datamakers.IDataMaker;
+import prerna.ui.components.playsheets.datamakers.ISEMOSSAction;
 import prerna.ui.components.playsheets.datamakers.ISEMOSSTransformation;
 import prerna.ui.components.playsheets.datamakers.JoinTransformation;
 import prerna.util.ArrayUtilityMethods;
-import prerna.util.Constants;
-import prerna.util.MyGraphIoRegistry;
 
-public class TinkerH2Frame extends TinkerFrame {
+public class TinkerH2Frame extends AbstractTableDataFrame {
 
 	
 	private static final Logger LOGGER = LogManager.getLogger(TinkerH2Frame.class.getName());
 	private static final String TYPES = "Table_Types";
+
+	protected List<String> columnsToSkip = new Vector<String>(); //make a set?
 	
 	H2Builder builder;
 	//TODO: need to keep its own once it is no longer extending from TinkerFrame!!!!!
@@ -65,6 +66,9 @@ public class TinkerH2Frame extends TinkerFrame {
 	
 	//map excel sheets to types
 	Map<String, List<String>> typeMap;
+	
+//	IMetaData metaData;
+//	String[] headerNames;
 	
 	IQueryInterpreter interp = new SQLInterpreter();
 	
@@ -181,7 +185,7 @@ public class TinkerH2Frame extends TinkerFrame {
             if(hasMetaModel) {
          	   String[] headers = getH2Headers();
          	   Map<String, Set<String>> edgeHash = component.getQueryStruct().getReturnConnectionsHash();
-         	   this.mergeQSEdgeHash(edgeHash, engine, joinColList);
+         	  TinkerMetaHelper.mergeQSEdgeHash(this.metaData, edgeHash, engine, joinColList);
          	   
          	   //send in new columns, not all
          	   builder.processWrapper(wrapper, headers);
@@ -191,14 +195,15 @@ public class TinkerH2Frame extends TinkerFrame {
             //else default to primary key tinker graph
             else {
                 displayNames = wrapper.getDisplayVariables();
-         	   this.mergeEdgeHash(this.createPrimKeyEdgeHash(displayNames));
+                Map<String, Set<String>> edgeHash = TinkerMetaHelper.createPrimKeyEdgeHash(displayNames);
+                TinkerMetaHelper.mergeEdgeHash(this.metaData, edgeHash, getNode2ValueHash(edgeHash));
          	   while(wrapper.hasNext()){
          		   this.addRow(wrapper.next());
          	   }
             }
         }
-        g.variables().set(Constants.HEADER_NAMES, this.headerNames); // I dont know if i even need this moving forward.. but for now I will assume it is
-        redoLevels(this.headerNames);
+ 	   List<String> fullNames = this.metaData.getUniqueNames();
+ 	   this.headerNames = fullNames.toArray(new String[fullNames.size()]);
 
         long time2 = System.currentTimeMillis();
         LOGGER.info("	Processed Wrapper: " +(time2 - time1)+" ms");
@@ -208,26 +213,6 @@ public class TinkerH2Frame extends TinkerFrame {
 
         long time4 = System.currentTimeMillis();
         LOGGER.info("Component Processed: " +(time4 - startTime)+" ms");
-	}
-	
-	@Override
-	public List<Object[]> getData() {
-		Vector<Object[]> retVector = new Vector<>();
-		Iterator<Object[]> iterator = this.iterator(false);
-		while(iterator.hasNext()) {
-			retVector.add(iterator.next());
-		}
-		return retVector;
-	}
-	
-	@Override
-	public List<Object[]> getRawData() {
-		Vector<Object[]> retVector = new Vector<>();
-		Iterator<Object[]> iterator = this.iterator(true);
-		while(iterator.hasNext()) {
-			retVector.add(iterator.next());
-		}
-		return retVector;
 	}
 	
 	
@@ -370,7 +355,7 @@ public class TinkerH2Frame extends TinkerFrame {
 		List<String> selectors = (List<String>) options.get(TinkerFrame.SELECTORS);
 		List<String> selectorValues = new Vector<String>();
 		for(String name : selectors) {
-			if(name.startsWith(PRIM_KEY)) {
+			if(name.startsWith(TinkerFrame.PRIM_KEY)) {
 				continue;
 			} else {
 				if(name.equals(sortBy)) {
@@ -556,158 +541,25 @@ public class TinkerH2Frame extends TinkerFrame {
 	
 	@Override
 	public void save(String fileName) {
-		try {
-			long startTime = System.currentTimeMillis();
-			g.variables().set(Constants.HEADER_NAMES, headerNames);
-			g.variables().set(TYPES, builder.types);
-			
-			// create special vertex to save the order of the headers
-			Vertex specialVert = this.upsertVertex(ENVIRONMENT_VERTEX_KEY, ENVIRONMENT_VERTEX_KEY, ENVIRONMENT_VERTEX_KEY);
-			
-			Gson gson = new Gson();
-			Map<String, Object> varMap = g.variables().asMap();
-			for(String key : varMap.keySet()) {
-				specialVert.property(key, gson.toJson(varMap.get(key)));
-			}
-			Builder<GryoIo> builder = IoCore.gryo();
-			builder.graph(g);
-			IoRegistry kryo = new MyGraphIoRegistry();;
-			builder.registry(kryo);
-			GryoIo yes = builder.create();
-			yes.writeGraph(fileName.substring(0, fileName.length() - 3) + "_META.tg");
-			
-			long endTime = System.currentTimeMillis();
-			LOGGER.info("Successfully saved TinkerFrame to file: "+fileName+ "("+(endTime - startTime)+" ms)");
-			
-			// now we need to remvoe the special vert after it is saved since the user might extend the viz even further
-			// we dont want it to continue to show up
-			specialVert.remove();
-		} catch (IOException e) {
-			e.printStackTrace();
-		}
+		this.metaData.save(fileName.substring(0, fileName.lastIndexOf(".")));
 //		fileName = fileName.substring(0, fileName.length() - 3) + ".gz";
 		builder.save(fileName, getH2Headers());
 	}
 	
 	
 	synchronized public TinkerH2Frame open(String fileName) {
-		TinkerGraph g = TinkerGraph.open();
-		try {
-			long startTime = System.currentTimeMillis();
-
-			Builder<GryoIo> builder = IoCore.gryo();
-			builder.graph(g);
-			IoRegistry kryo = new MyGraphIoRegistry();
-			builder.registry(kryo);
-			GryoIo yes = builder.create();
-			yes.readGraph(fileName.substring(0, fileName.length() - 3) + "_META.tg");
-			
-			long endTime = System.currentTimeMillis();
-			LOGGER.info("Successfully loaded TinkerFrame from file: "+fileName+ "("+(endTime - startTime)+" ms)");
-		} catch (IOException e) {
-			e.printStackTrace();
-		}
-		
-		//create new tinker frame and set its tinkergraph
 		TinkerH2Frame tf = new TinkerH2Frame();
-		g.createIndex(Constants.TYPE, Vertex.class);
-		g.createIndex(Constants.ID, Vertex.class);
-		g.createIndex(Constants.ID, Edge.class);
-		tf.g = g;
-		
-		String[] headers = null;
-		String[] types = null;
-		GraphTraversal<Vertex, Vertex> gt = g.traversal().V().has(Constants.TYPE, ENVIRONMENT_VERTEX_KEY);
-		while(gt.hasNext()) {
-			Vertex specialVert = gt.next();
-			
-			// grab all environment properties from node
-			Object headerProp = specialVert.property(Constants.HEADER_NAMES).value();
-			Object typeProp = specialVert.property(TYPES).value();
-			headers = new Gson().fromJson(headerProp + "", new String[]{}.getClass());
-			types = new Gson().fromJson(typeProp + "", new String[]{}.getClass());
-			// delete the vertex
-			specialVert.remove();
-		}
-		
-		if(headers == null) {
-			LOGGER.info("Could not find the headers special vertex.  Will load headers from metadata with no guarantee of order.");
-			List<String> headersList = new Vector<String>();
-			GraphTraversal<Vertex, String> hTraversal = tf.g.traversal().V().has(Constants.TYPE, META).values(Constants.NAME);
-			while(hTraversal.hasNext()) {
-				headersList.add(hTraversal.next());
-			}
-			headers = headersList.toArray(new String[]{});
-		}
-		//gather header names
-		tf.headerNames = headers;
-		g.variables().set(Constants.HEADER_NAMES, headers);
-//		fileName = fileName.substring(0, fileName.length() - 3) + ".gz";
+		this.metaData.open(fileName.substring(0, fileName.lastIndexOf(".")));
 		tf.builder = H2Builder.open(fileName);
-//		tf.builder.setHeaders(headers);
-		tf.builder.types = types;
-//		tf.updateHeaderMap();
-		
+
+ 	   List<String> fullNames = this.metaData.getUniqueNames();
+	   tf.headerNames = fullNames.toArray(new String[fullNames.size()]);
 		return tf;
 	}
-	   
-	protected void redoLevels(String [] newLevels)
-	{
-		if(this.headerNames == null){
-			this.headerNames = newLevels;
-//			updateHeaderMap();
-			return;
-		}
-		
-		// put it in a set to get unique values
-		Set<String> myset = new LinkedHashSet<String>(Arrays.asList(headerNames));
-		
-		for(String newLevel : newLevels) {
-			if(!newLevel.contains(primKeyDelimeter)) {
-				myset.add(newLevel);
-			}
-		}
-//		myset.remove(PRIM_KEY);
-		
-		String [] newLevelNames = myset.toArray(new String[myset.size()]);
-
-		g.variables().set(Constants.HEADER_NAMES, newLevelNames); // I dont know if i even need this moving forward.. but for now I will assume it is	
-		
-		String[] testHeaders = (String[])(g.variables().get(Constants.HEADER_NAMES).get());
-		System.out.println(Arrays.toString(testHeaders));
-		
-		headerNames = newLevelNames;
-//		updateHeaderMap();
-	}
-	
-//	protected void updateHeaderMap() {
-////		this.metaData.
-//		if(H2HeaderMap == null) {
-//			H2HeaderMap = new HashMap<String, String>();
-//		}
-//		H2HeaderMap.clear();
-//		for(String headerName : headerNames) {
-//			H2HeaderMap.put(headerName, cleanHeader(headerName));
-//		}
-//	}
 	
 	protected void updateH2PhysicalNames() {
 		
 	}
-	
-//	private String cleanHeader(String header) {
-//    	/*header = header.replaceAll(" ", "_");
-//    	header = header.replace("(", "_");
-//    	header = header.replace(")", "_");
-//    	header = header.replace("-", "_");
-//    	header = header.replace("'", "");*/
-//    	header = header.replaceAll("[#%!&()@#$'./-]*", ""); // replace all the useless shit in one go
-//    	header = header.replaceAll("\\s+","_");
-//    	header = header.replaceAll(",","_"); 
-//    	if(Character.isDigit(header.charAt(0)))
-//    		header = "c_" + header;
-//    	return header;
-//    }
 	
 	public List<String> getSelectors() {
 		if(headerNames == null) return new ArrayList<String>();
@@ -763,7 +615,7 @@ public class TinkerH2Frame extends TinkerFrame {
 			}
 		}
 		
-		this.mergeEdgeHash(edgeHash);
+		TinkerMetaHelper.mergeEdgeHash(this.metaData, edgeHash, getNode2ValueHash(edgeHash));
 		
 		
 	}
@@ -775,78 +627,49 @@ public class TinkerH2Frame extends TinkerFrame {
 		}
 			
 
-		addMetaDataTypes(headers, types);
+		this.metaData.storeDataTypes(headers, types);
 	}
 	
-	protected String getMetaNodeValue(String metaNodeName) {
+	protected String getCleanHeader(String metaNodeName) {
 		String metaNodeValue;
-		if(metaNodeName.equals(PRIM_KEY)) {
+		if(metaNodeName.equals(TinkerFrame.PRIM_KEY)) {
 			metaNodeValue = builder.getNewTableName();
 		} else {
 			metaNodeValue = H2Builder.cleanHeader(metaNodeName);
 		}
-		
-//		// get metamodel info for metaModeName
-//		GraphTraversal<Vertex, Vertex> metaT = g.traversal().V().has(Constants.TYPE, TinkerFrame.META).has(Constants.NAME, metaNodeName);
-//		
-//		// if metaT has metaNodeName then find the value else return metaNodeName
-//		if (metaT.hasNext()) {
-//			Vertex startNode = metaT.next();
-//			metaNodeValue = startNode.property(Constants.VALUE).value() + "";
-//		}
 
 		return metaNodeValue;
 	}
 	
-	@Override
-	public void mergeEdgeHash(Map<String, Set<String>> newEdgeHash) {
-		Set<String> newLevels = new LinkedHashSet<String>();
-		for(String newNode : newEdgeHash.keySet()) {
-			
-			//grab the edges
-			Set<String> edges = newEdgeHash.get(newNode);
-			
-			//grab/create the meta vertex associated with newNode
-			this.metaData.storeVertex(newNode, getMetaNodeValue(newNode), null);
-			if(newNode.startsWith(PRIM_KEY)) {
-				this.metaData.setPrimKey(newNode, true);
-			} else {
-				//collect the column headers
-				newLevels.add(newNode);
-			}
-			
-			//for each edge in corresponding with newNode create the connection within the META graph
-			for(String inVertString : edges){
-				// now to insert the meta edge
-				this.metaData.storeVertex(inVertString, getMetaNodeValue(inVertString), newNode);
-				if(inVertString.startsWith(PRIM_KEY)) {
-					this.metaData.setPrimKey(inVertString, true);
-				} else {
-					newLevels.add(inVertString);
-				}
-				this.metaData.storeRelation(newNode, inVertString);
-			}
+	private Map<String, String> getNode2ValueHash(Map<String, Set<String>> edgeHash){
+		Set<String> masterSet = new HashSet<String>();
+		masterSet.addAll(edgeHash.keySet());
+		Collection<Set<String>> valSet = edgeHash.values();
+		for(Set<String> val : valSet){
+			masterSet.addAll(val);
 		}
-		// need to make sure prim key is not added as header
-//		newLevels.remove(PRIM_KEY);
-		redoLevels(newLevels.toArray(new String[newLevels.size()]));
+		Map<String, String> trans = new HashMap<String,String>();
+		for(String name : masterSet){
+			trans.put(name, getCleanHeader(name));
+		}
+		return trans;
 	}
 	
 	@Override
 	public void connectTypes(String outType, String inType) {
 
 		Set<String> newLevels = new LinkedHashSet<String>();
-		this.metaData.storeVertex(outType, getMetaNodeValue(outType), null);
+		this.metaData.storeVertex(outType, getCleanHeader(outType), null);
 		newLevels.add(outType);
-		
+
 		if(inType!=null){
-			this.metaData.storeVertex(inType, getMetaNodeValue(inType), null);
+			this.metaData.storeVertex(inType, getCleanHeader(inType), null);
 			this.metaData.storeRelation(outType, inType);
 			newLevels.add(inType);
 		}
-		
-		newLevels.remove(PRIM_KEY);
-		redoLevels(newLevels.toArray(new String[newLevels.size()]));
+
+		List<String> fullNames = this.metaData.getUniqueNames();
+		this.headerNames = fullNames.toArray(new String[fullNames.size()]);
 	}
 	
 //	private List<String> getH2Headers(List<String> headers) {
@@ -858,8 +681,42 @@ public class TinkerH2Frame extends TinkerFrame {
 //		}
 //		return retheaders;
 //	}
+
+
+	@Override
+	public Map<String, Set<String>> createPrimKeyEdgeHash(String[] headers) {
+		return TinkerMetaHelper.createPrimKeyEdgeHash(headers);
+	}
+
+	@Override
+	public void mergeEdgeHash(Map<String, Set<String>> primKeyEdgeHash) {
+		TinkerMetaHelper.mergeEdgeHash(this.metaData, primKeyEdgeHash);
+	}
+
+	@Override
+	public void addMetaDataTypes(String[] headers, String[] types) {
+		this.metaData.storeDataTypes(headers, types);
+	}
 	
 	public static void main(String[] args) {
 		
 	}
+
+	@Override
+	public void addRow(Object[] rowCleanData, Object[] rowRawData) {
+		// TODO Auto-generated method stub
+		
+	}
+
+	@Override
+	public void join(ITableDataFrame table, String colNameInTable, String colNameInJoiningTable,
+			double confidenceThreshold, IMatcher routine) {
+		// TODO Auto-generated method stub
+		
+	}
+
+	public String getValueForUniqueName(String name) {
+		return this.metaData.getValueForUniqueName(name);
+	}
+
 }

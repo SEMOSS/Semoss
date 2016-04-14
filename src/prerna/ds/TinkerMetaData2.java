@@ -1,9 +1,12 @@
 package prerna.ds;
 
+import java.io.IOException;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Hashtable;
 import java.util.Iterator;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -14,18 +17,25 @@ import java.util.Vector;
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 import org.apache.tinkerpop.gremlin.groovy.jsr223.GremlinGroovyScriptEngine;
+import org.apache.tinkerpop.gremlin.process.traversal.Order;
 import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.GraphTraversal;
+import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.__;
 import org.apache.tinkerpop.gremlin.structure.Direction;
 import org.apache.tinkerpop.gremlin.structure.Edge;
 import org.apache.tinkerpop.gremlin.structure.T;
 import org.apache.tinkerpop.gremlin.structure.Vertex;
 import org.apache.tinkerpop.gremlin.structure.VertexProperty;
+import org.apache.tinkerpop.gremlin.structure.io.IoCore;
+import org.apache.tinkerpop.gremlin.structure.io.IoRegistry;
+import org.apache.tinkerpop.gremlin.structure.io.Io.Builder;
+import org.apache.tinkerpop.gremlin.structure.io.gryo.GryoIo;
 import org.apache.tinkerpop.gremlin.tinkergraph.structure.TinkerGraph;
 
 import prerna.algorithm.api.IMetaData;
 import prerna.engine.api.IEngine;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
+import prerna.util.MyGraphIoRegistry;
 import prerna.util.Utility;
 
 public class TinkerMetaData2 implements IMetaData {
@@ -43,16 +53,21 @@ public class TinkerMetaData2 implements IMetaData {
 	public static final String LOGICAL_NAME = "LOGICAL_NAME";
 	public static final String PARENT = "PARENT";
 	public static final String DATATYPE = "DATATYPE";
+	public static final String ORDER = "ORDER";
 	
+
+//	private static final String ENVIRONMENT_VERTEX_KEY = "ENVIRONMENT_VERTEX_KEY";
 	public static final String PRIM_KEY = "PRIM_KEY";
 	public static final String META = "META";
 	public static final String edgeLabelDelimeter = "+++";
+	private static int orderIdx = 0;
 	
 	/**
 	 * CURRENT PROPERTY STRUCTURE::::::::::::::::::
 	 * 		Key	Value	Description
 			TYPE	META	Has type META to differentiate from instance nodes
 			NAME	System_1	What the unique name for this column is
+			ORDER	1
 			VALUE	System	This aligns with the TYPE for the instance nodes
 			ALIAS	[System_1, System, Application, etc]	This is a list for all different aliases that have been given to this node (can be user defined, db physical name, db logical name, etc)
 			DERIVED	m:Sum(…)	String representing how to calc if it is derived (PKQL?) IF IT IS DERIVED
@@ -85,12 +100,7 @@ public class TinkerMetaData2 implements IMetaData {
 				Stringified OWL: ???
 				}"	
 
-	 * @param g
 	 */
-	public TinkerMetaData2(TinkerGraph g) {
-		this.g = g;
-	}
-	
 	public TinkerMetaData2() {
 		TinkerGraph g = TinkerGraph.open();
 		g.createIndex(Constants.TYPE, Vertex.class);
@@ -107,7 +117,7 @@ public class TinkerMetaData2 implements IMetaData {
 	public String getValueForUniqueName (String metaNodeName) {
 		String metaNodeValue = null;
 		// get metamodel info for metaModeName
-		GraphTraversal<Vertex, Vertex> metaT = g.traversal().V().has(Constants.TYPE, TinkerFrame.META).has(Constants.NAME, metaNodeName);
+		GraphTraversal<Vertex, Vertex> metaT = g.traversal().V().has(Constants.TYPE, META).has(Constants.NAME, metaNodeName);
 		
 		// if metaT has metaNodeName then find the value else return metaNodeName
 		if (metaT.hasNext()) {
@@ -149,7 +159,14 @@ public class TinkerMetaData2 implements IMetaData {
 	}
 	
 	@Override
-	public void addDataType(String uniqueName, String dataType) {
+	public void storeDataTypes(String[] uniqueNames, String[] dataTypes){
+		for(int i = 0; i < uniqueNames.length; i++) {
+			this.storeDataType(uniqueNames[i], dataTypes[i]);
+		}
+	}
+	
+	@Override
+	public void storeDataType(String uniqueName, String dataType) {
 		Vertex vert = getExistingVertex(uniqueName);
 		if(dataType == null || dataType.isEmpty()) {
 			return;
@@ -259,6 +276,8 @@ public class TinkerMetaData2 implements IMetaData {
 			// all new meta nodes are defaulted as unfiltered and not prim keys
 			retVertex.property(Constants.FILTER, false);
 			retVertex.property(PRIM_KEY, false);
+			retVertex.property(ORDER, this.orderIdx);
+			this.orderIdx++;
 		}
 		return retVertex;
 	}
@@ -434,12 +453,6 @@ public class TinkerMetaData2 implements IMetaData {
 	}
 
 	@Override
-	public void storeDataType(String uniqueName, String dataType) {
-		// TODO Auto-generated method stub
-		
-	}
-
-	@Override
 	public void setFiltered(String uniqueName, boolean filtered) {
 		// TODO Auto-generated method stub
 		
@@ -542,7 +555,7 @@ public class TinkerMetaData2 implements IMetaData {
 			vertParent = vert.property(PARENT).value() + "";
 		}
 
-		GraphTraversal<Vertex, Vertex> downstreamIt = g.traversal().V().has(Constants.TYPE, TinkerFrame.META).has(Constants.ID, vert.property(Constants.ID).value()).out(TinkerFrame.META + TinkerFrame.edgeLabelDelimeter + TinkerFrame.META);
+		GraphTraversal<Vertex, Vertex> downstreamIt = g.traversal().V().has(Constants.TYPE, META).has(Constants.ID, vert.property(Constants.ID).value()).out(META + TinkerFrame.edgeLabelDelimeter + META);
 		while (downstreamIt.hasNext()) {
 			Vertex nodeV = downstreamIt.next();
 			if(nodeV.property(PRIM_KEY).isPresent()) {
@@ -575,7 +588,7 @@ public class TinkerMetaData2 implements IMetaData {
 			}
 		}
 
-		GraphTraversal<Vertex, Vertex> upstreamIt = g.traversal().V().has(Constants.TYPE, TinkerFrame.META).has(Constants.ID, vert.property(Constants.ID).value()).in(TinkerFrame.META+TinkerFrame.edgeLabelDelimeter+TinkerFrame.META);
+		GraphTraversal<Vertex, Vertex> upstreamIt = g.traversal().V().has(Constants.TYPE, META).has(Constants.ID, vert.property(Constants.ID).value()).in(META+TinkerFrame.edgeLabelDelimeter+META);
 		while(upstreamIt.hasNext()) {
 			Vertex nodeV = upstreamIt.next();
 			if(nodeV.property(PRIM_KEY).isPresent()) {
@@ -609,7 +622,7 @@ public class TinkerMetaData2 implements IMetaData {
 	
 	public List<String> getUniqueNames(){
 		List<String> uniqueList = new Vector<String>();
-		GraphTraversal<Vertex, Object> trav = g.traversal().V().has(Constants.TYPE, META).values(Constants.NAME);
+		GraphTraversal<Vertex, Object> trav = g.traversal().V().has(Constants.TYPE, META).order().by(ORDER, Order.incr).values(Constants.NAME);
 		while(trav.hasNext()){
 			uniqueList.add(trav.next().toString());
 		}
@@ -715,7 +728,7 @@ public class TinkerMetaData2 implements IMetaData {
 	@Override
 	public Map<String, Set<String>> getEdgeHash() {
 		Map<String, Set<String>> retMap = new HashMap<String, Set<String>>();
-		GraphTraversal<Vertex, Vertex> metaT = g.traversal().V().has(Constants.TYPE, TinkerFrame.META);
+		GraphTraversal<Vertex, Vertex> metaT = g.traversal().V().has(Constants.TYPE, META);
 		while(metaT.hasNext()) {
 			Vertex startNode = metaT.next();
 			String startType = startNode.property(Constants.NAME).value()+"";
@@ -729,6 +742,81 @@ public class TinkerMetaData2 implements IMetaData {
 			retMap.put(startType, downSet);
 		}
 		return retMap;
+	}
+	
+	@Override
+	public void save(String baseFileName){
+		String fileName = baseFileName + "_META.tg";
+		try {
+			long startTime = System.currentTimeMillis();
+//			g.variables().set(Constants.HEADER_NAMES, headerNames);
+			
+			// create special vertex to save the order of the headers
+//			Vertex specialVert = this.upsertVertex(ENVIRONMENT_VERTEX_KEY, ENVIRONMENT_VERTEX_KEY, ENVIRONMENT_VERTEX_KEY);
+//			
+//			Gson gson = new Gson();
+//			Map<String, Object> varMap = g.variables().asMap();
+//			for(String key : varMap.keySet()) {
+//				specialVert.property(key, gson.toJson(varMap.get(key)));
+//			}
+			Builder<GryoIo> builder = IoCore.gryo();
+			builder.graph(g);
+			IoRegistry kryo = new MyGraphIoRegistry();;
+			builder.registry(kryo);
+			GryoIo yes = builder.create();
+			yes.writeGraph(fileName);
+			
+			long endTime = System.currentTimeMillis();
+			LOGGER.info("Successfully saved TinkerFrame to file: "+fileName+ "("+(endTime - startTime)+" ms)");
+			
+			// now we need to remvoe the special vert after it is saved since the user might extend the viz even further
+			// we dont want it to continue to show up
+//			specialVert.remove();
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+	}
+
+	
+	@Override
+	public void open(String baseFileName){
+		String fileName = baseFileName + "_META.tg";
+		this.g = TinkerGraph.open();
+		try {
+			long startTime = System.currentTimeMillis();
+
+			Builder<GryoIo> builder = IoCore.gryo();
+			builder.graph(this.g);
+			IoRegistry kryo = new MyGraphIoRegistry();
+			builder.registry(kryo);
+			GryoIo yes = builder.create();
+			yes.readGraph(fileName);
+			
+			long endTime = System.currentTimeMillis();
+			LOGGER.info("Successfully loaded TinkerFrame from file: "+fileName+ "("+(endTime - startTime)+" ms)");
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+		
+		//create new tinker frame and set its tinkergraph
+		this.g.createIndex(Constants.TYPE, Vertex.class);
+		this.g.createIndex(Constants.ID, Vertex.class);
+		this.g.createIndex(Constants.ID, Edge.class);
+		
+	}
+
+	public List<Map<String, String>> getTableHeaderObjects(){
+		List<Map<String, String>> tableHeaders = new ArrayList<Map<String, String>>();
+		List<String> columnHeaders = this.getUniqueNames();
+		Map<String, String> typeMap = getNodeTypesForUniqueAlias();
+		for(int i = 0; i < columnHeaders.size(); i++) {
+			Map<String, String> innerMap = new HashMap<String, String>();
+			innerMap.put("uri", columnHeaders.get(i));
+			innerMap.put("varKey", columnHeaders.get(i));
+			innerMap.put("type", typeMap.get(columnHeaders.get(i)));
+			tableHeaders.add(innerMap);
+		}
+		return tableHeaders;
 	}
 
 	
@@ -787,5 +875,42 @@ public class TinkerMetaData2 implements IMetaData {
 
 		QueryStruct qs = meta.getQueryStruct("DIRECTOR");
 		qs.print();
+	}
+
+	@Override
+	public void unfilterAll() {
+		GraphTraversal<Vertex, Vertex> gt = g.traversal().V().has(Constants.TYPE, META);
+		while(gt.hasNext()) {
+			Vertex metaVertex = gt.next();
+			metaVertex.property(Constants.FILTER, false);
+		}
+		
+	}
+
+	@Override
+	public Map<String, String> getFilteredColumns() {
+		Map<String, String> retMap = new HashMap<String, String>();
+		GraphTraversal<Vertex, Vertex> gt = g.traversal().V().has(Constants.TYPE, META).has(Constants.FILTER, true);
+		while(gt.hasNext()) {
+			Vertex metaVertex = gt.next();
+			String name = metaVertex.property(Constants.NAME).value()+"";
+			String value = metaVertex.property(Constants.VALUE).value() +"";
+			retMap.put(name, value);
+		}
+		return retMap;
+		
+	}
+
+	@Override
+	public boolean isConnectedInDirection(String outName, String inName) {
+		String outValue = this.getValueForUniqueName(outName);
+		String inValue = this.getValueForUniqueName(inName);
+		GraphTraversal<Vertex, Vertex> metaT = g.traversal().V().has(Constants.TYPE, META).has(Constants.VALUE, outValue).out(META+edgeLabelDelimeter+META).has(Constants.TYPE, META).has(Constants.VALUE, inValue);
+		if(metaT.hasNext()){
+			return true;
+		}
+		else {
+			return false;
+		}
 	}
 }

@@ -76,14 +76,15 @@ public interface IMetaData {
 	 * 				The data type to store
 	 */
 	void storeDataType(String uniqueName, String dataType);
+	void storeDataTypes(String[] uniqueNames, String[] dataTypes);
 	
 	void setFiltered(String uniqueName, boolean filtered);
 	
 	void setPrimKey(String uniqueName, boolean primKey);
 	
-	void addDataType(String uniqueName, String dataType);
-	
 	void dropVertex(String uniqueName);
+	
+	void save(String baseFileName);
 	
 //////////////////::::::::::::::::::::::: GETTER METHODS :::::::::::::::::::::::::::::::://////////////////////////////
 	/**
@@ -157,4 +158,14 @@ public interface IMetaData {
 	Map<String, Set<String>> getEdgeHash();
 
 	QueryStruct getQueryStruct(String startingPoint);
+	
+	void open(String baseFileName);
+
+	List<Map<String, String>> getTableHeaderObjects();
+
+	void unfilterAll();
+
+	Map<String, String> getFilteredColumns();
+
+	boolean isConnectedInDirection(String colValue, String addedType);
 }
