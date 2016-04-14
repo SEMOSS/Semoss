@@ -203,6 +203,7 @@ public class TableDataFrameFactory {
 		
 		if(dataTypeMap != null && !dataTypeMap.isEmpty()) {
 			headers = new String[dataTypeMap.keySet().size()];
+			headers = helper.orderHeadersToGet(headers);
 			types = new String[headers.length];
 			int counter = 0;
 			for(String header : dataTypeMap.keySet()) {
@@ -227,12 +228,18 @@ public class TableDataFrameFactory {
 		}
 		
 		String tableName = null;
-		List<String> uniqueNames = Arrays.asList(dataFrame.getColumnHeaders());
-		for(String name : uniqueNames) {
-			if(name.startsWith(TinkerFrame.PRIM_KEY)) {
-				tableName = dataFrame.getValueForUniqueName(name);
-				break;
-			}
+//		List<String> uniqueNames = Arrays.asList(dataFrame.getColumnHeaders());
+//		for(String name : uniqueNames) {
+//			if(name.startsWith(TinkerFrame.PRIM_KEY)) {
+//				tableName = dataFrame.getValueForUniqueName(name);
+//				break;
+//			}
+//		}
+		
+		//TODO: this will get the table name from the unique name
+		// need to properly update the logic s.t. we are grabbing the correct headers so tableName is not null
+		if(tableName == null) {
+			tableName = dataFrame.getTableNameForUniqueColumn(headers[0]);
 		}
 		
 		String [] cells = null;
@@ -252,6 +259,7 @@ public class TableDataFrameFactory {
 		
 		if(dataTypeMap != null && !dataTypeMap.isEmpty()) {
 			headers = new String[dataTypeMap.keySet().size()];
+			headers = helper.orderHeadersToGet(headers);
 			types = new String[headers.length];
 			int counter = 0;
 			for(String header : dataTypeMap.keySet()) {
