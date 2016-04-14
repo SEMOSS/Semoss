@@ -39,8 +39,6 @@ public class TinkerH2Frame extends AbstractTableDataFrame {
 	private static final Logger LOGGER = LogManager.getLogger(TinkerH2Frame.class.getName());
 	private static final String TYPES = "Table_Types";
 
-	protected List<String> columnsToSkip = new Vector<String>(); //make a set?
-	
 	H2Builder builder;
 	//TODO: need to keep its own once it is no longer extending from TinkerFrame!!!!!
 //	IMetaData metaData;
