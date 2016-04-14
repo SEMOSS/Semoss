@@ -201,7 +201,7 @@ public class TinkerH2Frame extends AbstractTableDataFrame {
          	   }
             }
         }
- 	   List<String> fullNames = this.metaData.getUniqueNames();
+ 	   List<String> fullNames = this.metaData.getColumnNames();
  	   this.headerNames = fullNames.toArray(new String[fullNames.size()]);
 
         long time2 = System.currentTimeMillis();
@@ -548,12 +548,13 @@ public class TinkerH2Frame extends AbstractTableDataFrame {
 	
 	synchronized public TinkerH2Frame open(String fileName) {
 		TinkerH2Frame tf = new TinkerH2Frame();
-		this.metaData.open(fileName.substring(0, fileName.lastIndexOf(".")));
+		tf.metaData.open(fileName.substring(0, fileName.lastIndexOf(".")));
 		tf.builder = H2Builder.open(fileName);
+		tf.metaData.setVertexValue(tf.metaData.getPrimKeys().get(0), tf.builder.tableName);
 
- 	   List<String> fullNames = this.metaData.getUniqueNames();
+ 	   List<String> fullNames = tf.metaData.getColumnNames();
 	   tf.headerNames = fullNames.toArray(new String[fullNames.size()]);
-		return tf;
+		return tf;//
 	}
 	
 	protected void updateH2PhysicalNames() {
@@ -671,7 +672,7 @@ public class TinkerH2Frame extends AbstractTableDataFrame {
 			newLevels.add(inType);
 		}
 
-		List<String> fullNames = this.metaData.getUniqueNames();
+		List<String> fullNames = this.metaData.getColumnNames();
 		this.headerNames = fullNames.toArray(new String[fullNames.size()]);
 	}
 	
