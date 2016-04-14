@@ -380,7 +380,10 @@ public class RDBMSReader extends AbstractFileReader {
 			insertData(alterSql.toString());
 		} else {
 			// see if all the columns are accoutned for in the table
-			if(existingConceptTable.keySet().size() == newColsForConcept.keySet().size()) {
+			if(newRelsForConcept == null) {
+				newRelsForConcept = new ArrayList<String>();
+			}
+			if(existingConceptTable.keySet().size() == (newColsForConcept.keySet().size() + newRelsForConcept.size())) {
 				existingTableWithAllColsAccounted.add(concept);
 			}
 		}
