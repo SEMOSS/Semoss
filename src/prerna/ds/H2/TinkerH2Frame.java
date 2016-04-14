@@ -6,6 +6,7 @@ import java.util.Collection;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Hashtable;
 import java.util.Iterator;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -710,8 +711,7 @@ public class TinkerH2Frame extends AbstractTableDataFrame {
 
 	@Override
 	public void addRow(Object[] rowCleanData, Object[] rowRawData) {
-		// TODO Auto-generated method stub
-		
+		addRow(rowCleanData, this.headerNames);
 	}
 
 	@Override
@@ -724,5 +724,34 @@ public class TinkerH2Frame extends AbstractTableDataFrame {
 	public String getValueForUniqueName(String name) {
 		return this.metaData.getValueForUniqueName(name);
 	}
+
+	@Override
+	public void connectTypes(String[] joinCols, String newCol) {
+		connectTypes(joinCols[0], newCol); // multiColumn join not enabled on h2
+		
+	}
+	
+    public void addRow(Object[] cells, String[] headers) {
+        String tableName = getTableNameForUniqueColumn(headers[0]);
+        String[] types = new String[headers.length];
+        for(int i = 0; i < types.length; i++) {
+              types[i] = this.metaData.getDBDataType(headers[i]);
+        }
+        String[] stringArray = Arrays.copyOf(cells, cells.length, String[].class);
+        //get table for headers
+        this.addRow2(tableName, stringArray, headers, types);
+  }
+
+    @Override
+    public void addRow(Object[] cleanCells, Object[] rawCells, String[] headers) {
+    	this.addRow(cleanCells, headers);
+    }
+
+	@Override
+	public void addRelationship(Map<String, Object> rowCleanData, Map<String, Object> rowRawData, Map<String, Set<String>> edgeHash, Map<String, String> logicalToTypeMap) {
+		// TODO Auto-generated method stub
+		
+	}
+
 
 }
