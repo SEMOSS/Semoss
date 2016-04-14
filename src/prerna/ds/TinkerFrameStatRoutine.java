@@ -222,7 +222,7 @@ public class TinkerFrameStatRoutine implements IAnalyticTransformationRoutine {
 					
 					tinker.connectTypes(columnHeader, newColumnName);
 					
-					String primKeyName = tinker.getPrimaryKey(columnHeader);
+					String primKeyName = TinkerMetaHelper.getPrimaryKey(columnHeader);
 					for(Object key : groupByMap.keySet()) {
 						Map<String, Object> cleanRow = new HashMap<String, Object>(columnHeader.length+1);
 						Map<String, Object> rawRow = new HashMap<String, Object>(columnHeader.length+1);
@@ -235,7 +235,7 @@ public class TinkerFrameStatRoutine implements IAnalyticTransformationRoutine {
 						}
 						
 						cleanRow.put(newColumnName, groupByMap.get(key));
-						cleanRow.put(primKeyName, tinker.getPrimaryKey(values));
+						cleanRow.put(primKeyName, TinkerMetaHelper.getPrimaryKey(values));
 						
 						rawRow.putAll(cleanRow);
 						rawRow.put(primKeyName, TinkerFrame.PRIM_KEY);

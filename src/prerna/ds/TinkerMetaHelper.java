@@ -1,5 +1,6 @@
 package prerna.ds;
 
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashSet;
@@ -90,6 +91,29 @@ public class TinkerMetaHelper {
 		Map<String, Set<String>> edges = new HashMap<String, Set<String>>();
 		edges.put(TinkerFrame.PRIM_KEY, primKeyEdges);
 		return edges;
+	}
+
+	/**
+	 * 
+	 * @param nodes
+	 * @return
+	 * 
+	 * return the primary key needed for a primary key vertex downstream from all of nodes
+	 */
+	public static String getPrimaryKey(Object[] nodes) {
+		String[] strings = new String[nodes.length];
+		for(int i = 0; i < nodes.length; i++) {
+			strings[i] = nodes[i].toString();
+		}
+		String primKeyString = "";
+		Arrays.sort(strings);
+		for(String s : strings) {
+			primKeyString += s + TinkerFrame.primKeyDelimeter;
+		}
+		
+		//hash the primKeyString
+//		return primKeyString.hashCode()+"";
+		return primKeyString;
 	}
 	
 	/**

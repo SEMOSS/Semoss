@@ -4,6 +4,7 @@ import java.util.Hashtable;
 import java.util.Vector;
 
 import prerna.algorithm.api.IAction;
+import prerna.algorithm.api.ITableDataFrame;
 import prerna.algorithm.impl.ImportAction;
 import prerna.ds.TinkerFrame;
 import prerna.engine.api.IScriptReactor;
@@ -68,17 +69,17 @@ public class Translation2 extends DepthFirstAdapter {
 	
 	Hashtable <String, String> reactorNames = new Hashtable<String, String>();
 	
-	TinkerFrame frame = null;
+	ITableDataFrame frame = null;
 	
 	public Translation2()
 	{
 		// now get the data from tinker
 		frame = new TinkerFrame();
-		frame.tryCustomGraph();
+		((TinkerFrame)frame).tryCustomGraph();
 		fillReactors();
 	}
 	
-	public Translation2(TinkerFrame frame)
+	public Translation2(ITableDataFrame frame)
 	{
 		// now get the data from tinker
 		this.frame = frame;
