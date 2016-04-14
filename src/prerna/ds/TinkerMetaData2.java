@@ -447,6 +447,9 @@ public class TinkerMetaData2 implements IMetaData {
 		addAliasMeta(vert, queryStructName, NAME_TYPE.DB_QUERY_STRUCT_NAME, engineName);
 		addAliasMeta(vert, physicalUri, NAME_TYPE.DB_PHYSICAL_URI, engineName);
 		
+		//store the datatype
+		storeDataType(uniqueName, engine.getDataTypes(physicalUri));
+		
 		if(uniqueParentNameIfProperty != null){
 			vert.property(PARENT, uniqueParentNameIfProperty);
 		}
