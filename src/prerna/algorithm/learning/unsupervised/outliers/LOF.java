@@ -30,7 +30,6 @@ package prerna.algorithm.learning.unsupervised.outliers;
 
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.Hashtable;
 import java.util.Iterator;
 import java.util.List;
@@ -43,8 +42,6 @@ import prerna.algorithm.api.IAnalyticTransformationRoutine;
 import prerna.algorithm.api.ITableDataFrame;
 import prerna.algorithm.learning.util.DuplicationReconciliation;
 import prerna.algorithm.learning.util.DuplicationReconciliation.ReconciliationMode;
-import prerna.ds.BTreeDataFrame;
-import prerna.ds.TinkerFrame;
 import prerna.math.StatisticsUtilityMethods;
 import prerna.om.SEMOSSParam;
 import prerna.util.ArrayUtilityMethods;
@@ -201,42 +198,29 @@ public class LOF implements IAnalyticTransformationRoutine {
 			this.changedColumn = attributeName + "_LOP_" + counter;
 		}
 		
-		if(this.dataFrame instanceof BTreeDataFrame) {
-			ITableDataFrame returnTable = new BTreeDataFrame(new String[]{attributeName, changedColumn});
-			for(Object instance : results.keySet()) {
-				Map<String, Object> row = new HashMap<String, Object>();
-				row.put(attributeName, instance);
-				row.put(changedColumn, results.get(instance));
-				returnTable.addRow(row, row);
-			}
-			
-			return returnTable;
-		} else {
-			ITableDataFrame tf = this.dataFrame;
-			tf.connectTypes(attributeName, changedColumn);
-			for(Object instance : results.keySet()) {
-				Double val = results.get(instance);
+		dataFrame.connectTypes(attributeName, changedColumn);
+		for(Object instance : results.keySet()) {
+			Double val = results.get(instance);
 
-				Map<String, Object> raw = new HashMap<String, Object>();
-				raw.put(attributeName, instance);
-				raw.put(changedColumn, val);
-				
-				Map<String, Object> clean = new HashMap<String, Object>();
-				if(instance.toString().startsWith("http://semoss.org/ontologies/Concept/")) {
-					instance = Utility.getInstanceName(instance.toString());
-				}
-				clean.put(attributeName, instance);
-				clean.put(changedColumn, val);
-				
-				tf.addRelationship(clean, raw);
+			Map<String, Object> raw = new HashMap<String, Object>();
+			raw.put(attributeName, instance);
+			raw.put(changedColumn, val);
+			
+			Map<String, Object> clean = new HashMap<String, Object>();
+			if(instance.toString().startsWith("http://semoss.org/ontologies/Concept/")) {
+				instance = Utility.getInstanceName(instance.toString());
 			}
+			clean.put(attributeName, instance);
+			clean.put(changedColumn, val);
 			
-			String[] newHeaders = new String[]{changedColumn};
-			String[] newHeaderType = new String[]{"DOUBLE"};
-			tf.addMetaDataTypes(newHeaders, newHeaderType);
-			
-			return null;
+			dataFrame.addRelationship(clean, raw);
 		}
+		
+		String[] newHeaders = new String[]{changedColumn};
+		String[] newHeaderType = new String[]{"DOUBLE"};
+		dataFrame.addMetaDataTypes(newHeaders, newHeaderType);
+		
+		return null;
 	}
 
 	/**

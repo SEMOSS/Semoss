@@ -20,8 +20,6 @@ package prerna.algorithm.learning.unsupervised.outliers;
 
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Hashtable;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -33,8 +31,6 @@ import prerna.algorithm.api.ITableDataFrame;
 import prerna.algorithm.learning.util.DuplicationReconciliation;
 import prerna.algorithm.learning.util.DuplicationReconciliation.ReconciliationMode;
 import prerna.algorithm.learning.util.InstanceSimilarity;
-import prerna.ds.BTreeDataFrame;
-import prerna.ds.TinkerFrame;
 import prerna.om.SEMOSSParam;
 import prerna.util.ArrayUtilityMethods;
 import prerna.util.Utility;
@@ -181,43 +177,29 @@ public class FastOutlierDetection implements IAnalyticTransformationRoutine {
 			counter++;
 			this.changedColumn = attributeName + "_FastOutlier_" + counter;
 		}
-		
-		if(this.dataFrame instanceof BTreeDataFrame) {
-			ITableDataFrame returnTable = new BTreeDataFrame(new String[]{attributeName, changedColumn});
-			for(Object instance : results.keySet()) {
-				Double val = (numRuns-results.get(instance))/numRuns;
-				Map<String, Object> row = new HashMap<String, Object>();
-				row.put(attributeName, instance);
-				row.put(changedColumn, val);
-				returnTable.addRow(row, row);
-			}
-			
-			return returnTable;
-		} else {
-			ITableDataFrame tf = this.dataFrame;
-			tf.connectTypes(attributeName, changedColumn);
-			for(Object instance : results.keySet()) {
-				Double val = (numRuns-results.get(instance))/numRuns;
 
-				Map<String, Object> raw = new HashMap<String, Object>();
-				raw.put(attributeName, instance);
-				raw.put(changedColumn, val);
-				
-				Map<String, Object> clean = new HashMap<String, Object>();
-				if(instance.toString().startsWith("http://semoss.org/ontologies/Concept/")) {
-					instance = Utility.getInstanceName(instance.toString());
-				}
-				clean.put(attributeName, instance);
-				clean.put(changedColumn, val);
-				
-				tf.addRelationship(clean, raw);
+		dataFrame.connectTypes(attributeName, changedColumn);
+		for(Object instance : results.keySet()) {
+			Double val = (numRuns-results.get(instance))/numRuns;
+
+			Map<String, Object> raw = new HashMap<String, Object>();
+			raw.put(attributeName, instance);
+			raw.put(changedColumn, val);
+
+			Map<String, Object> clean = new HashMap<String, Object>();
+			if(instance.toString().startsWith("http://semoss.org/ontologies/Concept/")) {
+				instance = Utility.getInstanceName(instance.toString());
 			}
-			
-			String[] newHeaders = new String[]{changedColumn};
-			String[] newHeaderType = new String[]{"DOUBLE"};
-			tf.addMetaDataTypes(newHeaders, newHeaderType);
-			return null;
+			clean.put(attributeName, instance);
+			clean.put(changedColumn, val);
+
+			dataFrame.addRelationship(clean, raw);
 		}
+
+		String[] newHeaders = new String[]{changedColumn};
+		String[] newHeaderType = new String[]{"DOUBLE"};
+		dataFrame.addMetaDataTypes(newHeaders, newHeaderType);
+		return null;
 	}
 
 	public HashMap<Object, Double> getResults() {
