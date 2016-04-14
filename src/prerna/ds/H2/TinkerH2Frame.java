@@ -16,11 +16,7 @@ import java.util.Vector;
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
-import prerna.algorithm.api.IAnalyticActionRoutine;
-import prerna.algorithm.api.IAnalyticRoutine;
-import prerna.algorithm.api.IAnalyticTransformationRoutine;
 import prerna.algorithm.api.IMatcher;
-import prerna.algorithm.api.IMetaData;
 import prerna.algorithm.api.ITableDataFrame;
 import prerna.ds.AbstractTableDataFrame;
 import prerna.ds.QueryStruct;
@@ -28,14 +24,11 @@ import prerna.ds.TinkerFrame;
 import prerna.ds.TinkerMetaData2;
 import prerna.ds.TinkerMetaHelper;
 import prerna.engine.api.IEngine;
-import prerna.engine.api.ISelectStatement;
 import prerna.engine.api.ISelectWrapper;
 import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.rdf.query.builder.IQueryInterpreter;
 import prerna.rdf.query.builder.SQLInterpreter;
 import prerna.ui.components.playsheets.datamakers.DataMakerComponent;
-import prerna.ui.components.playsheets.datamakers.IDataMaker;
-import prerna.ui.components.playsheets.datamakers.ISEMOSSAction;
 import prerna.ui.components.playsheets.datamakers.ISEMOSSTransformation;
 import prerna.ui.components.playsheets.datamakers.JoinTransformation;
 import prerna.util.ArrayUtilityMethods;
@@ -106,6 +99,12 @@ public class TinkerH2Frame extends AbstractTableDataFrame {
 		this.builder.types = types;
 		this.builder.addRow(cells, headers);
 	}
+	
+	
+	public String getTableNameForUniqueColumn(String uniqueName) {
+		return this.metaData.getParentValueOfUniqueNode(uniqueName);
+	}
+
 	
 	public void addRow(String tableName, String[] row) {
 		
@@ -650,7 +649,11 @@ public class TinkerH2Frame extends AbstractTableDataFrame {
 		}
 		Map<String, String> trans = new HashMap<String,String>();
 		for(String name : masterSet){
-			trans.put(name, getCleanHeader(name));
+			if(name.startsWith(TinkerFrame.PRIM_KEY)) {
+				trans.put(name, builder.getNewTableName());
+			} else {
+				trans.put(name, getCleanHeader(name));
+			} 
 		}
 		return trans;
 	}

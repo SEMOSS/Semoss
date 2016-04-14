@@ -168,4 +168,6 @@ public interface IMetaData {
 	Map<String, String> getFilteredColumns();
 
 	boolean isConnectedInDirection(String colValue, String addedType);
+	
+	String getParentValueOfUniqueNode(String uniqueName);
 }

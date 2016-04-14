@@ -9,6 +9,7 @@ import com.univocity.parsers.csv.CsvParser;
 import com.univocity.parsers.csv.CsvParserSettings;
 
 import cern.colt.Arrays;
+import prerna.util.ArrayUtilityMethods;
 import prerna.util.Utility;
 
 public class CSVFileHelper {
@@ -146,6 +147,19 @@ public class CSVFileHelper {
 	public String getFileLocation() {
 		return this.fileLocation;
 	}
+	
+	public String[] orderHeadersToGet(String[] headersToGet) {
+		String[] orderedHeaders = new String[headersToGet.length];
+		int counter = 0;
+		for(String header : this.allHeaders) {
+			if(ArrayUtilityMethods.arrayContainsValue(headersToGet, header)) {
+				orderedHeaders[counter] = header;
+				counter++;
+			}
+		}
+		return orderedHeaders;
+	}
+
 	
 	/**
 	 * Loop through all the data to see what the data types are for each column
