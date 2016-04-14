@@ -116,7 +116,7 @@ public class ClusteringRoutine extends AbstractClusteringRoutine {
 			return returnTable;
 		} else {
 			if(appendOntoDataMaker) {
-				TinkerFrame tf = (TinkerFrame) this.dataFrame;
+				ITableDataFrame tf = this.dataFrame;
 				tf.connectTypes(attributeName, clusterColName);
 				for(Object instance : results.keySet()) {
 					int val = results.get(instance);

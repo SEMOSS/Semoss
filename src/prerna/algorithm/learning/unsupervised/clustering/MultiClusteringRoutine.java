@@ -110,7 +110,7 @@ public class MultiClusteringRoutine implements IAnalyticTransformationRoutine {
 			
 			return returnTable;
 		} else {
-			TinkerFrame tf = (TinkerFrame) dataFrame;
+			ITableDataFrame tf = dataFrame;
 			tf.connectTypes(attributeName, clusterColName);
 			for(Object instance : results.keySet()) {
 				int val = results.get(instance);
