@@ -336,13 +336,14 @@ public class TinkerH2Frame extends AbstractTableDataFrame {
 //		for(String selector : getSelectors()) {
 //			h2selectors.add(H2HeaderMap.get(selector));
 //		}
-		QueryStruct struct = this.metaData.getQueryStruct(null);
-		for(String header : this.builder.filterHash.keySet()){
-			struct.addFilter(header, "=", this.builder.filterHash.get(header));
-		}
-		interp.setQueryStruct(struct);
-		String query = interp.composeQuery();
-		return this.builder.buildIterator(query);
+//		QueryStruct struct = this.metaData.getQueryStruct(null);
+//		for(String header : this.builder.filterHash.keySet()){
+//			struct.addFilter(header, "=", this.builder.filterHash.get(header));
+//		}
+//		interp.setQueryStruct(struct);//
+//		String query = interp.composeQuery();
+//		return this.builder.buildIterator(query);
+		return this.builder.buildIterator(getH2Selectors()); 
 	}
 	
 	@Override
