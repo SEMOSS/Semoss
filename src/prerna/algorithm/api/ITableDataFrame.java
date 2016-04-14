@@ -1,10 +1,13 @@
 package prerna.algorithm.api;
 
+import java.util.Hashtable;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.Vector;
 
+import prerna.engine.api.IEngine;
 import prerna.engine.api.ISelectStatement;
 import prerna.ui.components.playsheets.datamakers.IDataMaker;
 
@@ -521,4 +524,14 @@ public interface ITableDataFrame extends IDataMaker {
 	String getPhysicalUriForNode(String string, String engineName);
 
 	List<Map<String, String>>  getTableHeaderObjects();
+
+	void connectTypes(String[] joinCols, String newCol);
+
+	void addRow(Object[] cleanCells, Object[] rawCells, String[] headers);
+
+	void setTempExpressionResult(Object expr);
+
+	Map[] mergeQSEdgeHash(Map<String, Set<String>> edgeHash, IEngine engine, Vector<Map<String, String>> joinCols);
+
+	void addRelationship(Map<String, Object> rowCleanData, Map<String, Object> rowRawData, Map<String, Set<String>> edgeHash, Map<String, String> logicalToTypeMap);
 }

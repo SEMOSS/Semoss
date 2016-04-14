@@ -6,8 +6,9 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Vector;
 
+import prerna.algorithm.api.ITableDataFrame;
 import prerna.ds.ExpressionIterator;
-import prerna.ds.TinkerFrame;
+import prerna.ds.TinkerMetaHelper;
 import prerna.engine.api.ISelectStatement;
 
 public class ColAddReactor extends AbstractReactor {
@@ -39,7 +40,7 @@ public class ColAddReactor extends AbstractReactor {
 		String nodeStr = (String)myStore.get(whoAmI);
 		System.out.println("My Store on COL CSV " + myStore);
 		
-		TinkerFrame frame = (TinkerFrame) myStore.get("G");
+		ITableDataFrame frame = (ITableDataFrame) myStore.get("G");
 		
 		String [] joinCols = null;
 		Iterator it = null;
@@ -68,7 +69,7 @@ public class ColAddReactor extends AbstractReactor {
 			frame.connectTypes(joinCols, newCol);
 		
 			if (joinCols.length > 1) { // multicolumn join
-				String primKeyName = frame.getPrimaryKey(joinCols);
+				String primKeyName = TinkerMetaHelper.getPrimaryKey(joinCols);
 				while(it.hasNext()) {
 					HashMap<String, Object> row = new HashMap<String, Object>();
 					Object newVal = it.next();
@@ -85,7 +86,7 @@ public class ColAddReactor extends AbstractReactor {
 							values[i] = rowVal;
 						}
 					}
-					row.put(primKeyName, frame.getPrimaryKey(values));
+					row.put(primKeyName, TinkerMetaHelper.getPrimaryKey(values));
 					frame.addRelationship(row, row);
 				}
 				frame.setTempExpressionResult("SUCCESS");
