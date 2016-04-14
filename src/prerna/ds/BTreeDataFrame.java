@@ -218,7 +218,6 @@ public class BTreeDataFrame implements ITableDataFrame {
 		return table;
 	}
 	
-	@Override
 	public List<Object[]> getData(String columnHeader, Object value) {
 		columnHeader = this.getColumnName(columnHeader);
 
@@ -362,11 +361,11 @@ public class BTreeDataFrame implements ITableDataFrame {
 			///// Also need to grab index trees of passed table and add to my index hash
 
 			String[] columnNames = passedTree.getColumnHeaders();
-			String[] uriColumnNames = passedTree.getURIColumnHeaders();
+//			String[] uriColumnNames = passedTree.getURIColumnHeaders();
 			// add the new data to this tree
 			LOGGER.info("Augmenting tree");
 			int origLength = this.levelNames.length;	
-			joinTreeLevels(columnNames, uriColumnNames, colNameInJoiningTable); // need to add new levels to this tree's level array
+//			joinTreeLevels(columnNames, uriColumnNames, colNameInJoiningTable); // need to add new levels to this tree's level array
 //			List<Object[]> flatMatched = matched.getData();// TODO: this could be replaced with nextRow or getRow method directly on the tree
 
 			TreeNode thisRootNode = this.simpleTree.nodeIndexHash.get(colNameInTable); //TODO: is there a better way to get the type? I don't think this is reliable
@@ -582,7 +581,7 @@ public class BTreeDataFrame implements ITableDataFrame {
     public void join(ITableDataFrame table, String[] colHeadersInTable, String[] colHeadersInJoiningTable, double confidenceThreshold) {
     	int origLength = this.levelNames.length;
 
-    	this.joinTreeLevels(table.getColumnHeaders(), table.getURIColumnHeaders(), colHeadersInJoiningTable);
+//    	this.joinTreeLevels(table.getColumnHeaders(), table.getURIColumnHeaders(), colHeadersInJoiningTable);
     	BTreeDataFrameJoiner.join(this, (BTreeDataFrame)table, colHeadersInTable, colHeadersInJoiningTable);
     	
     	this.simpleTree.removeBranchesWithoutMaxTreeHeight(levelNames[0], levelNames.length);
@@ -774,7 +773,6 @@ public class BTreeDataFrame implements ITableDataFrame {
 		return counts;
 	}
 	
-	@Override
 	public Object[] getUniqueValues(String columnHeader) {
 		columnHeader = this.getColumnName(columnHeader);
 
@@ -1063,7 +1061,6 @@ public class BTreeDataFrame implements ITableDataFrame {
 		return minValues;
 	}
 
-	@Override
 	public Double getAverage(String columnHeader) {
 //		columnHeader = this.getColumnName(columnHeader);
 //
@@ -1096,7 +1093,6 @@ public class BTreeDataFrame implements ITableDataFrame {
 
 	}
 
-	@Override
 	public Double[] getAverage() {
 		Double[] averageValues = new Double[filteredLevelNames.length];
 		for(int i = 0; i < filteredLevelNames.length; i++) {
@@ -1105,7 +1101,6 @@ public class BTreeDataFrame implements ITableDataFrame {
 		return averageValues;
 	}
 
-	@Override
 	public Double getSum(String columnHeader) {
 //		columnHeader = this.getColumnName(columnHeader);
 //
@@ -1148,15 +1143,6 @@ public class BTreeDataFrame implements ITableDataFrame {
 		}
 		return sum;
 
-	}
-
-	@Override
-	public Double[] getSum() {
-		Double[] sumValues = new Double[filteredLevelNames.length];
-		for(int i = 0; i < filteredLevelNames.length; i++) {
-			sumValues[i] = getSum(filteredLevelNames[i]);
-		}
-		return sumValues;
 	}
 
 	@Override
@@ -1280,15 +1266,6 @@ public class BTreeDataFrame implements ITableDataFrame {
 	public String[] getColumnHeaders() {
 		return this.filteredLevelNames;
 	}
-	
-	@Override
-	public String[] getURIColumnHeaders() {
-		String[] uriLevelNames = new String[this.filteredLevelNames.length];
-		for(int i = 0; i < filteredLevelNames.length; i++) {
-			uriLevelNames[i] = this.uriMap.get(filteredLevelNames[i]);
-		}
-		return uriLevelNames;
-	}
 
 	@Override
 	public int getNumCols() {
@@ -1310,15 +1287,6 @@ public class BTreeDataFrame implements ITableDataFrame {
 	@Override
 	public int getColCount(int rowIdx) {
 		// TODO Auto-generated method stub
-		return 0;
-	}
-
-	@Override
-	public int getRowCount(String columnHeader) {
-		columnHeader = this.getColumnName(columnHeader);
-
-		// TODO Auto-generated method stub
-		
 		return 0;
 	}
 
@@ -2195,7 +2163,61 @@ public class BTreeDataFrame implements ITableDataFrame {
 	}
 
 	@Override
-	public IMetaData getMetaData() {
+	public Map<String, Set<String>> createPrimKeyEdgeHash(String[] headers) {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+	@Override
+	public void mergeEdgeHash(Map<String, Set<String>> primKeyEdgeHash) {
+		// TODO Auto-generated method stub
+		
+	}
+
+	@Override
+	public void addMetaDataTypes(String[] headers, String[] types) {
+		// TODO Auto-generated method stub
+		
+	}
+
+	@Override
+	public void connectTypes(String outType, String inType) {
+		// TODO Auto-generated method stub
+		
+	}
+
+	@Override
+	public void addRelationship(Map<String, Object> cleanRow, Map<String, Object> rawRow) {
+		// TODO Auto-generated method stub
+		
+	}
+
+	@Override
+	public Map<String, Set<String>> getEdgeHash() {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+	@Override
+	public Set<String> getEnginesForUniqueName(String sub) {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+	@Override
+	public Map<String, String> getProperties() {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+	@Override
+	public String getPhysicalUriForNode(String string, String engineName) {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+	@Override
+	public List<Map<String, String>> getTableHeaderObjects() {
 		// TODO Auto-generated method stub
 		return null;
 	}

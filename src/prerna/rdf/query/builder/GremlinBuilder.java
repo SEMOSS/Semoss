@@ -14,6 +14,7 @@ import org.apache.tinkerpop.gremlin.structure.Graph;
 import org.apache.tinkerpop.gremlin.structure.Vertex;
 
 import prerna.ds.TinkerFrame;
+import prerna.ds.TinkerMetaData2;
 import prerna.util.Constants;
 
 /**
@@ -24,6 +25,7 @@ public class GremlinBuilder {
 	private static final Logger LOGGER = LogManager.getLogger(GremlinBuilder.class.getName());
 	
 	public Graph g;
+	public Graph metaGraph;
     public GraphTraversal gt;
 	public List<String> selector = new Vector<String>();	
 	private GremlinGroovyScriptEngine engine = new GremlinGroovyScriptEngine();
@@ -41,8 +43,9 @@ public class GremlinBuilder {
 	 * Constructor for the GremlinBuilder class
 	 * @param g					The graph for the gremlin script to be executed on
 	 */
-	public GremlinBuilder(Graph g){
+	public GremlinBuilder(Graph g, Graph metaGraph){
 		this.g = g;
+		this.metaGraph = metaGraph;
 		this.gt = g.traversal().V();
 	}
 	
@@ -94,7 +97,7 @@ public class GremlinBuilder {
 		
 		Vertex startNode;
 		// get the metamodel information from the graph
-		GraphTraversal<Vertex, Vertex> metaT = g.traversal().V().has(Constants.TYPE, TinkerFrame.META);
+		GraphTraversal<Vertex, Vertex> metaT = this.metaGraph.traversal().V().has(Constants.TYPE, TinkerMetaData2.META);
 		if(metaT.hasNext()) { //note: this is an if statement, not a while loop
 			// the purpose of this is to just get the start node for the traversal
 			// start with any meta node
@@ -139,7 +142,7 @@ public class GremlinBuilder {
 		}
 		
 		// for each downstream node of this meta node
-		GraphTraversal<Vertex, Vertex> downstreamIt = g.traversal().V().has(Constants.TYPE, TinkerFrame.META).has(Constants.ID, orig.property(Constants.ID).value()).out(TinkerFrame.META + TinkerFrame.edgeLabelDelimeter + TinkerFrame.META);
+		GraphTraversal<Vertex, Vertex> downstreamIt = this.metaGraph.traversal().V().has(Constants.TYPE, TinkerMetaData2.META).has(Constants.ID, orig.property(Constants.ID).value()).out(TinkerMetaData2.META + TinkerFrame.edgeLabelDelimeter + TinkerMetaData2.META);
 		while (downstreamIt.hasNext()) {
 			// for each downstream node of this meta node
 			Vertex nodeV = downstreamIt.next();
@@ -175,7 +178,7 @@ public class GremlinBuilder {
 			}
 		}
 		// do the same thing for upstream
-		GraphTraversal<Vertex, Vertex> upstreamIt = g.traversal().V().has(Constants.TYPE, TinkerFrame.META).has(Constants.ID, orig.property(Constants.ID).value()).in(TinkerFrame.META+TinkerFrame.edgeLabelDelimeter+TinkerFrame.META);
+		GraphTraversal<Vertex, Vertex> upstreamIt = this.metaGraph.traversal().V().has(Constants.TYPE, TinkerMetaData2.META).has(Constants.ID, orig.property(Constants.ID).value()).in(TinkerMetaData2.META+TinkerFrame.edgeLabelDelimeter+TinkerMetaData2.META);
 		while(upstreamIt.hasNext()) {
 			Vertex nodeV = upstreamIt.next();
 			
@@ -402,9 +405,9 @@ public class GremlinBuilder {
 	 * 		Metamodel: a -> b, a -> c, b -> d
 	 * 		return traversal which returns {a -> a1, b -> b1, c -> c1, d -> d1} for each row in the table represented by graph g
 	 */
-	public static GremlinBuilder prepareGenericBuilder(List<String> selectors, Graph g){
+	public static GremlinBuilder prepareGenericBuilder(List<String> selectors, Graph g, Graph metaGraph){
 		// get all the levels
-		GremlinBuilder builder = new GremlinBuilder(g);
+		GremlinBuilder builder = new GremlinBuilder(g, metaGraph);
 
 		//add edges if edges exist
 		builder.addNodeEdge();

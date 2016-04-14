@@ -17,7 +17,7 @@ public class TinkerFrameIterator implements Iterator<Object[]> {
 	private GraphTraversal gt; //the traversal on the graph
 	private List<String> selectors; //the selectors on the table
 	
-	public TinkerFrameIterator(Graph g, Map<String, Object> options, boolean getRawData) {
+	public TinkerFrameIterator(Graph g, Graph metaG, Map<String, Object> options, boolean getRawData) {
 		dataType = getRawData ? Constants.VALUE : Constants.NAME;
 		
 		GremlinBuilder.DIRECTION dir = null;
@@ -45,7 +45,7 @@ public class TinkerFrameIterator implements Iterator<Object[]> {
 		
 		this.gt = openTraversal(
 				(List<String>) options.get(TinkerFrame.SELECTORS), 
-				g, 
+				g, metaG,
 				(Integer) options.get(TinkerFrame.OFFSET), 
 				(Integer) options.get(TinkerFrame.LIMIT), 
 				(String) options.get(TinkerFrame.SORT_BY),
@@ -53,9 +53,9 @@ public class TinkerFrameIterator implements Iterator<Object[]> {
 				dedup);
 	}
 	
-	private GraphTraversal openTraversal(List<String> selectors, Graph g, Integer start, Integer end, String sortColumn, GremlinBuilder.DIRECTION orderByDirection, Boolean dedup) {
+	private GraphTraversal openTraversal(List<String> selectors, Graph g, Graph metaG, Integer start, Integer end, String sortColumn, GremlinBuilder.DIRECTION orderByDirection, Boolean dedup) {
 		this.selectors = selectors;
-		GremlinBuilder builder = GremlinBuilder.prepareGenericBuilder(selectors, g);
+		GremlinBuilder builder = GremlinBuilder.prepareGenericBuilder(selectors, g, metaG);
 		builder.orderBySelector = sortColumn;
 		builder.orderByDirection = orderByDirection;
 		//finally execute it to get the executor
