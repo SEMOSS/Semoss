@@ -8,7 +8,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import prerna.algorithm.api.IMetaData;
 import prerna.algorithm.api.ITableDataFrame;
 import prerna.ds.H2.TinkerH2Frame;
 import prerna.ds.util.TinkerCastHelper;
@@ -252,10 +251,11 @@ public class TableDataFrameFactory {
 		String [] types = null;
 		
 		if(dataTypeMap != null && !dataTypeMap.isEmpty()) {
-			int counter = 0;
-			headers = helper.getHeaders();
+			headers = new String[dataTypeMap.keySet().size()];
 			types = new String[headers.length];
-			for(String header : headers) {
+			int counter = 0;
+			for(String header : dataTypeMap.keySet()) {
+				headers[counter] = header;
 				types[counter] = dataTypeMap.get(header);
 				counter++;
 			}
