@@ -126,7 +126,7 @@ public interface IMetaData {
 	
 	String getValueForUniqueName(String uniqueName);
 	
-	List<String> getUniqueNames();
+	List<String> getColumnNames();
 	
 	/**
 	 * Get all aliases for the unique identifier and the source they came from
@@ -170,4 +170,8 @@ public interface IMetaData {
 	boolean isConnectedInDirection(String colValue, String addedType);
 	
 	String getParentValueOfUniqueNode(String uniqueName);
+
+	List<String> getPrimKeys();
+
+	void setVertexValue(String string, String tableName);
 }

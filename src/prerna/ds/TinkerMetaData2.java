@@ -616,9 +616,9 @@ public class TinkerMetaData2 implements IMetaData {
 		}
 	}
 	
-	public List<String> getUniqueNames(){
+	public List<String> getColumnNames(){
 		List<String> uniqueList = new Vector<String>();
-		GraphTraversal<Vertex, Object> trav = g.traversal().V().has(Constants.TYPE, META).order().by(ORDER, Order.incr).values(Constants.NAME);
+		GraphTraversal<Vertex, Object> trav = g.traversal().V().has(Constants.TYPE, META).has(PRIM_KEY, false).order().by(ORDER, Order.incr).values(Constants.NAME);
 		while(trav.hasNext()){
 			uniqueList.add(trav.next().toString());
 		}
@@ -651,7 +651,7 @@ public class TinkerMetaData2 implements IMetaData {
 			List<Map<String, String>> joins) {
 		Map<String, String[]> retMap = new HashMap<String, String[]>();
 		
-		List<String> uniqueNames = getUniqueNames();
+		List<String> uniqueNames = getColumnNames();
 		
 		// create master set
 		// master set is all of the query struct names of the things getting added this go
@@ -803,7 +803,7 @@ public class TinkerMetaData2 implements IMetaData {
 
 	public List<Map<String, String>> getTableHeaderObjects(){
 		List<Map<String, String>> tableHeaders = new ArrayList<Map<String, String>>();
-		List<String> columnHeaders = this.getUniqueNames();
+		List<String> columnHeaders = this.getColumnNames();
 		Map<String, String> typeMap = getNodeTypesForUniqueAlias();
 		for(int i = 0; i < columnHeaders.size(); i++) {
 			Map<String, String> innerMap = new HashMap<String, String>();
@@ -921,5 +921,23 @@ public class TinkerMetaData2 implements IMetaData {
 			}
 		}
 		return null;
+	}
+
+	@Override
+	public List<String> getPrimKeys() {
+		List<String> uniqueList = new Vector<String>();
+		GraphTraversal<Vertex, Object> trav = g.traversal().V().has(Constants.TYPE, META).has(PRIM_KEY, true).values(Constants.NAME);
+		while(trav.hasNext()){
+			uniqueList.add(trav.next().toString());
+		}
+		return uniqueList;
+	}
+
+	@Override
+	public void setVertexValue(String uniqueName, String newValue) {
+		GraphTraversal<Vertex, Vertex> trav = g.traversal().V().has(Constants.TYPE, META).has(Constants.NAME, uniqueName);
+		while(trav.hasNext()){
+			trav.next().property(Constants.VALUE, newValue);
+		}
 	}
 }
