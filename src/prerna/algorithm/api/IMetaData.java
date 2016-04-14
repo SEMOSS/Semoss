@@ -145,6 +145,14 @@ public interface IMetaData {
 	 */
 	String getDataType(String uniqueName);
 	
+	/**
+	 * Get the specific data type for the database in which the instance data sits: Integer, Varchar, Double, etc.
+	 * @param uniqeName
+	 * 			The unique identifier
+	 * @return
+	 */
+	String getDBDataType(String uniqeName);
+	
 	Map<String, String> getAllUniqueNamesToValues();	
 	
 	boolean isFiltered(String uniqueName);
