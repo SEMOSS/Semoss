@@ -9,8 +9,6 @@ import prerna.algorithm.api.ITableDataFrame;
 import prerna.algorithm.learning.util.Cluster;
 import prerna.algorithm.learning.util.IClusterDistanceMode;
 import prerna.algorithm.learning.util.IClusterDistanceMode.DistanceMeasure;
-import prerna.ds.BTreeDataFrame;
-import prerna.ds.TinkerFrame;
 import prerna.math.SimilarityWeighting;
 import prerna.util.ArrayUtilityMethods;
 import prerna.util.Utility;
@@ -104,43 +102,30 @@ public class ClusteringRoutine extends AbstractClusteringRoutine {
 			this.clusterColName = attributeName + "_CLUSTER_" + counter;
 		}
 		
-		if(this.dataFrame instanceof BTreeDataFrame) {
-			ITableDataFrame returnTable = new BTreeDataFrame(new String[]{attributeName, clusterColName});
+		if(appendOntoDataMaker) {
+			dataFrame.connectTypes(attributeName, clusterColName);
 			for(Object instance : results.keySet()) {
-				Map<String, Object> row = new HashMap<String, Object>();
-				row.put(attributeName, instance);
-				row.put(clusterColName, results.get(instance));
-				returnTable.addRow(row, row);
+				int val = results.get(instance);
+
+				Map<String, Object> raw = new HashMap<String, Object>();
+				raw.put(attributeName, instance);
+				raw.put(clusterColName, val);
+				
+				Map<String, Object> clean = new HashMap<String, Object>();
+				if(instance.toString().startsWith("http://semoss.org/ontologies/Concept/")) {
+					instance = Utility.getInstanceName(instance.toString());
+				}
+				clean.put(attributeName, instance);
+				clean.put(clusterColName, val);
+				
+				dataFrame.addRelationship(clean, raw);
 			}
 			
-			return returnTable;
-		} else {
-			if(appendOntoDataMaker) {
-				ITableDataFrame tf = this.dataFrame;
-				tf.connectTypes(attributeName, clusterColName);
-				for(Object instance : results.keySet()) {
-					int val = results.get(instance);
-	
-					Map<String, Object> raw = new HashMap<String, Object>();
-					raw.put(attributeName, instance);
-					raw.put(clusterColName, val);
-					
-					Map<String, Object> clean = new HashMap<String, Object>();
-					if(instance.toString().startsWith("http://semoss.org/ontologies/Concept/")) {
-						instance = Utility.getInstanceName(instance.toString());
-					}
-					clean.put(attributeName, instance);
-					clean.put(clusterColName, val);
-					
-					tf.addRelationship(clean, raw);
-				}
-				
-				String[] newHeaders = new String[]{clusterColName};
-				String[] newHeaderType = new String[]{"INT"};
-				tf.addMetaDataTypes(newHeaders, newHeaderType);
-			}
-			return null;
+			String[] newHeaders = new String[]{clusterColName};
+			String[] newHeaderType = new String[]{"INT"};
+			dataFrame.addMetaDataTypes(newHeaders, newHeaderType);
 		}
+		return null;
 	}
 
 	/**
