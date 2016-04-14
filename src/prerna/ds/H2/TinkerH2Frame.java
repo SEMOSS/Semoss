@@ -551,7 +551,10 @@ public class TinkerH2Frame extends AbstractTableDataFrame {
 		TinkerH2Frame tf = new TinkerH2Frame();
 		tf.metaData.open(fileName.substring(0, fileName.lastIndexOf(".")));
 		tf.builder = H2Builder.open(fileName);
-		tf.metaData.setVertexValue(tf.metaData.getPrimKeys().get(0), tf.builder.tableName);
+		List<String> primKeys = tf.metaData.getPrimKeys();
+		if(primKeys.size() == 1){
+			tf.metaData.setVertexValue(primKeys.get(0), tf.builder.tableName);
+		}
 
  	   List<String> fullNames = tf.metaData.getColumnNames();
 	   tf.headerNames = fullNames.toArray(new String[fullNames.size()]);
