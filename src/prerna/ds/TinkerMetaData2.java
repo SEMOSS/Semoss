@@ -32,6 +32,7 @@ import org.apache.tinkerpop.gremlin.structure.io.gryo.GryoIo;
 import org.apache.tinkerpop.gremlin.tinkergraph.structure.TinkerGraph;
 
 import prerna.algorithm.api.IMetaData;
+import prerna.ds.ISEMOSSNode.VALUE_TYPE;
 import prerna.engine.api.IEngine;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
@@ -912,5 +913,18 @@ public class TinkerMetaData2 implements IMetaData {
 		else {
 			return false;
 		}
+	}
+
+	@Override
+	public String getParentValueOfUniqueNode(String uniqueName) {
+		Vertex v = getExistingVertex(uniqueName);
+		if(v != null) {
+			if(v.property(PARENT).isPresent()) {
+				String parentUniqueName = v.property(PARENT).value() + "";
+				Vertex parentV = getExistingVertex(parentUniqueName);
+				return parentV.property(Constants.VALUE).value() + "";
+			}
+		}
+		return null;
 	}
 }
