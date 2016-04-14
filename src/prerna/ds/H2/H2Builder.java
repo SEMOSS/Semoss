@@ -648,6 +648,17 @@ public class H2Builder {
     	addHeader(newColumnName, "double", tableHeaders);
     }
     
+    //process a group by - calculate then make a table then merge the table
+    public void processGroupBy(String[] column, String newColumnName, String valueColumn, String mathType, String[] headers) {
+    	if(column.length == 1) processGroupBy(column[0], newColumnName, valueColumn, mathType, headers);
+    	String[] tableHeaders = getHeaders(tableName);
+    	String inserter = makeGroupBy(column, valueColumn, mathType, newColumnName, this.tableName, headers);
+    	processAlterAsNewTable(inserter, Join.LEFT_OUTER.getName(), tableHeaders);
+
+    	//all group bys are doubles?
+    	addHeader(newColumnName, "double", tableHeaders);
+    }
+    
     private void processAlterAsNewTable(String selectQuery, String joinType, String[] headers)
     {
     	try {
