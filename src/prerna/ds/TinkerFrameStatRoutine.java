@@ -79,12 +79,12 @@ public class TinkerFrameStatRoutine implements IAnalyticTransformationRoutine {
 			String mathType = this.functionMap.get("math").toString();
 			String newColumnHeader = this.functionMap.get("calcName").toString();
 			String[] columnHeaders = ((List<String>)this.functionMap.get("GroupBy")).toArray(new String[0]);
-			if(columnHeaders.length > 1) {
-				throw new UnsupportedOperationException("H2 currently does not support heat maps or multi column joins");
-			}
+//			if(columnHeaders.length > 1) {
+//				throw new UnsupportedOperationException("H2 currently does not support heat maps or multi column joins");
+//			}
 			//calculate group by and add to tinker
 			try {
-				addStatColumnToTinker(tinkerGraph, columnHeaders[0], mathType, newColumnHeader, valueColumn);
+				addStatColumnToTinker(tinkerGraph, columnHeaders, mathType, newColumnHeader, valueColumn);
 			} catch(ClassCastException e) {
 				throw new ClassCastException("Error with computation. Please make sure aggregation values are non-empty and numerical.");
 			}
@@ -124,8 +124,8 @@ public class TinkerFrameStatRoutine implements IAnalyticTransformationRoutine {
 	 * @param newColumnName - name of the new column
 	 * @param valueColumn - the column to do calculations on
 	 */
-	private void addStatColumnToTinker(TinkerH2Frame tinker, String columnHeader, String mathType, String newColumnName, String valueColumn) {	
-		tinker.connectTypes(columnHeader, newColumnName);
+	private void addStatColumnToTinker(TinkerH2Frame tinker, String[] columnHeader, String mathType, String newColumnName, String valueColumn) {	
+		tinker.connectTypes(columnHeader[0], newColumnName);
 		tinker.applyGroupBy(columnHeader, newColumnName, valueColumn, mathType);
 		String[] newHeaders = new String[]{newColumnName};
 		String[] newHeaderType = new String[]{"NUMBER"};

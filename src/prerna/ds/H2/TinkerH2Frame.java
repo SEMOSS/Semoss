@@ -379,12 +379,13 @@ public class TinkerH2Frame extends AbstractTableDataFrame {
 		return builder.buildIterator(options);
 	}
 	
-	public void applyGroupBy(String column, String newColumnName, String valueColumn, String mathType) {
+	public void applyGroupBy(String[] column, String newColumnName, String valueColumn, String mathType) {
 //		column = H2HeaderMap.get(column);
 //		valueColumn = H2HeaderMap.get(valueColumn);
 //		newColumnName = H2HeaderMap.get(newColumnName);
-		
-		column = this.metaData.getValueForUniqueName(column);
+		for(int i = 0; i < column.length; i++) {
+			column[i] = this.metaData.getValueForUniqueName(column[i]);
+		}
 		valueColumn = this.metaData.getValueForUniqueName(valueColumn);
 		newColumnName = this.metaData.getValueForUniqueName(newColumnName);
 		builder.processGroupBy(column, newColumnName, valueColumn, mathType, getH2Headers());
@@ -677,6 +678,10 @@ public class TinkerH2Frame extends AbstractTableDataFrame {
 
 		List<String> fullNames = this.metaData.getColumnNames();
 		this.headerNames = fullNames.toArray(new String[fullNames.size()]);
+	}
+	
+	public void connectTypes(String[] outType, String inType) {
+		connectTypes(outType[0], inType);
 	}
 	
 //	private List<String> getH2Headers(List<String> headers) {
