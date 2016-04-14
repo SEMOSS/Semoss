@@ -113,7 +113,8 @@ public class QuestionAdministrator {
 		if(order == null || order.isEmpty()) {
 			order = calculateDefaultOrdering(perspective) + "";
 		} else {
-			cleanPerspectiveOrdering(perspective, Integer.parseInt(order));
+			// cast as double and then get integer value due to examples when string comes back as "5.0"
+			cleanPerspectiveOrdering(perspective, (int) Double.parseDouble(order));
 		}
 		
 		// insert into table the new record
