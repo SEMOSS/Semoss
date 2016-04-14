@@ -212,7 +212,7 @@ public class LOF implements IAnalyticTransformationRoutine {
 			
 			return returnTable;
 		} else {
-			TinkerFrame tf = (TinkerFrame) this.dataFrame;
+			ITableDataFrame tf = this.dataFrame;
 			tf.connectTypes(attributeName, changedColumn);
 			for(Object instance : results.keySet()) {
 				Double val = results.get(instance);
