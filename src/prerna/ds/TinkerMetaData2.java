@@ -52,6 +52,7 @@ public class TinkerMetaData2 implements IMetaData {
 	public static final String PARENT = "PARENT";
 	public static final String DATATYPE = "DATATYPE";
 	public static final String ORDER = "ORDER";
+	public static final String DB_DATATYPE = "DB_DATATYPE";
 	
 
 //	private static final String ENVIRONMENT_VERTEX_KEY = "ENVIRONMENT_VERTEX_KEY";
@@ -166,6 +167,7 @@ public class TinkerMetaData2 implements IMetaData {
 	@Override
 	public void storeDataType(String uniqueName, String dataType) {
 		Vertex vert = getExistingVertex(uniqueName);
+		vert.property(DB_DATATYPE, dataType);
 		if(dataType == null || dataType.isEmpty()) {
 			return;
 		}
@@ -506,6 +508,13 @@ public class TinkerMetaData2 implements IMetaData {
 		return "STRING";
 	}
 
+	public String getDBDataType(String uniqueName) {
+		Vertex vert = getExistingVertex(uniqueName);
+		if(vert.property(DB_DATATYPE).isPresent()) {
+			return vert.value(DB_DATATYPE);
+		}
+		return "STRING";
+	}
 	@Override
 	public boolean isFiltered(String uniqueName) {
 		Vertex vert = getExistingVertex(uniqueName);
