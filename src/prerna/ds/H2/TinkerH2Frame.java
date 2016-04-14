@@ -690,7 +690,7 @@ public class TinkerH2Frame extends AbstractTableDataFrame {
 
 	@Override
 	public void mergeEdgeHash(Map<String, Set<String>> primKeyEdgeHash) {
-		TinkerMetaHelper.mergeEdgeHash(this.metaData, primKeyEdgeHash);
+		TinkerMetaHelper.mergeEdgeHash(this.metaData, primKeyEdgeHash, getNode2ValueHash(edgeHash));
 	}
 
 	@Override
