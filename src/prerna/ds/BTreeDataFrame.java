@@ -2222,4 +2222,36 @@ public class BTreeDataFrame implements ITableDataFrame {
 		return null;
 	}
 
+	@Override
+	public void connectTypes(String[] joinCols, String newCol) {
+		// TODO Auto-generated method stub
+		
+	}
+
+	@Override
+	public void addRow(Object[] cleanCells, Object[] rawCells, String[] headers) {
+		// TODO Auto-generated method stub
+		
+	}
+
+	@Override
+	public void setTempExpressionResult(Object expr) {
+		// TODO Auto-generated method stub
+		
+	}
+
+	@Override
+	public Map[] mergeQSEdgeHash(Map<String, Set<String>> edgeHash, IEngine engine,
+			Vector<Map<String, String>> joinCols) {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+	@Override
+	public void addRelationship(Map<String, Object> rowCleanData, Map<String, Object> rowRawData,
+			Map<String, Set<String>> edgeHash, Map<String, String> logicalToTypeMap) {
+		// TODO Auto-generated method stub
+		
+	}
+
 }

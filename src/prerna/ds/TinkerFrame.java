@@ -103,8 +103,6 @@ public class TinkerFrame extends AbstractTableDataFrame {
 
 	public static final String edgeLabelDelimeter = "+++";
 	protected static final String primKeyDelimeter = ":::";
-	
-	private Object tempExpressionResult = "FAIL";
 
 
 	/**********************    TESTING PLAYGROUND  ******************************************/
@@ -1080,29 +1078,6 @@ public class TinkerFrame extends AbstractTableDataFrame {
 	 * 
 	 * @param nodes
 	 * @return
-	 * 
-	 * return the primary key needed for a primary key vertex downstream from all of nodes
-	 */
-	public String getPrimaryKey(Object[] nodes) {
-		String[] strings = new String[nodes.length];
-		for(int i = 0; i < nodes.length; i++) {
-			strings[i] = nodes[i].toString();
-		}
-		String primKeyString = "";
-		Arrays.sort(strings);
-		for(String s : strings) {
-			primKeyString += s + primKeyDelimeter;
-		}
-		
-		//hash the primKeyString
-//		return primKeyString.hashCode()+"";
-		return primKeyString;
-	}
-	
-	/**
-	 * 
-	 * @param nodes
-	 * @return
 	 */
 	public String getMetaPrimaryKeyName(String... nodes) {
 		Arrays.sort(nodes);
@@ -1291,6 +1266,7 @@ public class TinkerFrame extends AbstractTableDataFrame {
 		}
 	}
 	
+	@Override
 	public void addRelationship(Map<String, Object> rowCleanData, Map<String, Object> rowRawData, Map<String, Set<String>> edgeHash, Map<String, String> logicalToTypeMap) {
 			
 		boolean hasRel = false;
@@ -2230,37 +2206,6 @@ public class TinkerFrame extends AbstractTableDataFrame {
 //		tf.g.variables().set(Constants.HEADER_NAMES, tf.headerNames);
 		
 		return tf;
-	}
-	
-	public Object runPKQL(String expression) {
-		Parser p =
-			    new Parser(
-			    new Lexer(
-			    new PushbackReader(
-			    new InputStreamReader(new StringBufferInputStream(expression)), 1024)));
-			// new InputStreamReader(System.in), 1024)));
-
-			   // Parse the input.
-			   Start tree;
-			try {
-				tree = p.parse();
-				   // Apply the translation.
-				   tree.apply(new Translation2(this));
-			} catch (ParserException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
-			} catch (LexerException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
-			} catch (IOException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
-			}
-			return this.tempExpressionResult;
-	}
-	
-	public void setTempExpressionResult(Object result) {
-		this.tempExpressionResult = result;
 	}
 
 	public void insertBlanks(String colName, List<String> addedColumns) {

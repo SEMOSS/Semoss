@@ -3,8 +3,8 @@ package prerna.sablecc;
 import java.util.Iterator;
 import java.util.Vector;
 
+import prerna.algorithm.api.ITableDataFrame;
 import prerna.ds.AlgorithmStrategy;
-import prerna.ds.TinkerFrame;
 
 public class MathReactor extends AbstractReactor {
 	
@@ -53,7 +53,7 @@ public class MathReactor extends AbstractReactor {
 			String[] columnsArray = convertVectorToArray(columns);
 			// this call needs to go to tinker
 			// I need to find a way to do this - and I did
-			Iterator iterator = getTinkerData(columns, (TinkerFrame)myStore.get("G"));
+			Iterator iterator = getTinkerData(columns, (ITableDataFrame)myStore.get("G"));
 			
 			if(iterator.hasNext())
 			{

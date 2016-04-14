@@ -1,9 +1,16 @@
 package prerna.sablecc;
 
+import java.util.Arrays;
+import java.util.HashMap;
 import java.util.Hashtable;
 import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
 import java.util.Vector;
 
+import com.google.gson.reflect.TypeToken;
+
+import prerna.algorithm.api.ITableDataFrame;
 import prerna.ds.TinkerFrame;
 import prerna.engine.api.IScriptReactor;
 
@@ -128,12 +135,16 @@ public abstract class AbstractReactor implements IScriptReactor {
 		
 	}
 
-	protected Iterator getTinkerData(Vector <String> columns, TinkerFrame frame)
+	protected Iterator getTinkerData(Vector <String> columns, ITableDataFrame frame)
 	{
 //		if(columns != null && columns.size() <= 1)
 //			columns.add(columns.get(0));
 		// now I need to ask tinker to build me something for this
-		Iterator iterator = frame.getIterator(columns);
+
+		Map<String, Object> options = new HashMap<String, Object>();
+		options.put(TinkerFrame.SELECTORS, columns);
+		
+		Iterator iterator = frame.iterator(true, options);
 		if(iterator.hasNext())
 		{
 			//System.out.println(iterator.next());

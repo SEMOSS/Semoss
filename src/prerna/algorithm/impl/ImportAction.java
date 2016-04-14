@@ -4,7 +4,7 @@ import java.util.Hashtable;
 import java.util.Vector;
 
 import prerna.algorithm.api.IAction;
-import prerna.ds.TinkerFrame;
+import prerna.algorithm.api.ITableDataFrame;
 
 public class ImportAction implements IAction {
 	
@@ -27,7 +27,7 @@ public class ImportAction implements IAction {
 		// TODO Auto-generated method stub
 		// grab the frame from the settings
 		getCols();
-		TinkerFrame thisFrame = (TinkerFrame)settings.get("TF");
+		ITableDataFrame thisFrame = (ITableDataFrame)settings.get("TF");
 		// now get the headers
 		Object [] vals = convertVectorToArrayO((Vector)data);
 		System.err.println("Will insert now.. " + cols + vals);

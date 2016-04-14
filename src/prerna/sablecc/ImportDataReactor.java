@@ -7,8 +7,8 @@ import java.util.Map;
 import java.util.Set;
 import java.util.Vector;
 
+import prerna.algorithm.api.ITableDataFrame;
 import prerna.ds.QueryStruct;
-import prerna.ds.TinkerFrame;
 import prerna.engine.api.IEngine;
 import prerna.engine.api.ISelectStatement;
 import prerna.util.DIHelper;
@@ -33,7 +33,7 @@ public class ImportDataReactor extends AbstractReactor {
 		String nodeStr = (String)myStore.get(whoAmI);
 		System.out.println("My Store on COL CSV " + myStore);
 		
-		TinkerFrame frame = (TinkerFrame) myStore.get("G");
+		ITableDataFrame frame = (ITableDataFrame) myStore.get("G");
 		
 		Iterator it = null;
 		Object value = myStore.get(TokenEnum.API);
