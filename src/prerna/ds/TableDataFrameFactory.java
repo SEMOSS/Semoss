@@ -4,7 +4,6 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Hashtable;
-import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
@@ -130,8 +129,7 @@ public class TableDataFrameFactory {
 		XLFileHelper helper = new XLFileHelper();
 		helper.parse(fileLoc);
 		
-		TinkerH2Frame dataFrame = new TinkerH2Frame();
-		String [] cells = null;
+		TinkerH2Frame dataFrame = null;
 		String[] tables = helper.getTables();
 		for(int i = 0; i < tables.length; i++)
 		{
@@ -162,25 +160,34 @@ public class TableDataFrameFactory {
 			}
 			
 			// need to make everything a property of the table (i.e. sheet)
-			for(int index = 0; index < headers.length; index++) {
-				String header = headers[index];
-				headers[index] = table+"__"+header;
+//			for(int index = 0; index < headers.length; index++) {
+//				String header = headers[index];
+//				headers[index] = table+"__"+header;
+//			}
+
+			if(dataFrame == null) {
+				dataFrame = (TinkerH2Frame) createPrimKeyTinkerFrame(headers, "H2", types);
+			} else {
+				Map<String, Set<String>> newEdgeHash = new Hashtable<String, Set<String>>();
+				// need to create a new prim_key vertex
+				Set<String> values = new HashSet<String>();
+				values.addAll(Arrays.asList(headers));
+				primKeyHeader = TinkerFrame.PRIM_KEY + "_" + i;
+				newEdgeHash.put(primKeyHeader, values);
+				dataFrame.mergeEdgeHash(newEdgeHash);
+				dataFrame.addMetaDataTypes(headers, types);
 			}
 			
-			Map<String, Set<String>> newEdgeHash = new Hashtable<String, Set<String>>();
-			// need to create a new prim_key vertex
-			Set<String> values = new HashSet<String>();
-			values.addAll(Arrays.asList(headers));
-			primKeyHeader = TinkerFrame.PRIM_KEY + "_" + table;
-			newEdgeHash.put(primKeyHeader, values);
-			dataFrame.mergeEdgeHash(newEdgeHash);
-			dataFrame.addMetaDataTypes(headers, types);
-
-			helper.getNextRow(table); // first row is header
-			dataFrame.setMetaData(table, headers, types);
+			// unique names always match the headers when creating from csv/excel
+			String[] values = new String[headers.length];
+			for(int j = 0; j < headers.length; j++) {
+				values[j] = dataFrame.getValueForUniqueName(headers[j]);
+			}
+			
+			String tableName = dataFrame.getTableNameForUniqueColumn(headers[0]);
+			String [] cells = null;
 			while((cells = helper.getNextRow(table, headers)) != null) {
-				//add these cells to this table
-				dataFrame.addRow(table, cells);
+				dataFrame.addRow2(tableName, cells, values, types);
 			}
 		}
 		dataFrame.setRelations(helper.getRelations());
