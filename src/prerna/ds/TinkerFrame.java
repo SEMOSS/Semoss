@@ -2119,11 +2119,6 @@ public class TinkerFrame extends AbstractTableDataFrame {
 	 * Given this.. can we see why we need so many methods ?
 	 * 
 	 */	
-	
-	public GremlinBuilder getGremlinBuilder(List<String> selectors) {
-		return GremlinBuilder.prepareGenericBuilder(selectors, g, ((TinkerMetaData2)this.metaData).g);
-	}
-	
 
 	/**
 	 * This method will remove all nodes that are not META and are not part of the main query return
