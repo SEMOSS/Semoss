@@ -680,10 +680,6 @@ public class TinkerH2Frame extends AbstractTableDataFrame {
 		this.headerNames = fullNames.toArray(new String[fullNames.size()]);
 	}
 	
-	public void connectTypes(String[] outType, String inType) {
-		connectTypes(outType[0], inType);
-	}
-	
 //	private List<String> getH2Headers(List<String> headers) {
 //		List<String> retheaders = new ArrayList<String>(headers.size());
 //		for(String header : headers) {
