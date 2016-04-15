@@ -5,46 +5,46 @@ package prerna.sablecc.node;
 import prerna.sablecc.analysis.*;
 
 @SuppressWarnings("nls")
-public final class AMathFunExpr extends PExpr
+public final class ATermExpr extends PExpr
 {
-    private PMathFun _mathFun_;
+    private PTerm _term_;
 
-    public AMathFunExpr()
+    public ATermExpr()
     {
         // Constructor
     }
 
-    public AMathFunExpr(
-        @SuppressWarnings("hiding") PMathFun _mathFun_)
+    public ATermExpr(
+        @SuppressWarnings("hiding") PTerm _term_)
     {
         // Constructor
-        setMathFun(_mathFun_);
+        setTerm(_term_);
 
     }
 
     @Override
     public Object clone()
     {
-        return new AMathFunExpr(
-            cloneNode(this._mathFun_));
+        return new ATermExpr(
+            cloneNode(this._term_));
     }
 
     @Override
     public void apply(Switch sw)
     {
-        ((Analysis) sw).caseAMathFunExpr(this);
+        ((Analysis) sw).caseATermExpr(this);
     }
 
-    public PMathFun getMathFun()
+    public PTerm getTerm()
     {
-        return this._mathFun_;
+        return this._term_;
     }
 
-    public void setMathFun(PMathFun node)
+    public void setTerm(PTerm node)
     {
-        if(this._mathFun_ != null)
+        if(this._term_ != null)
         {
-            this._mathFun_.parent(null);
+            this._term_.parent(null);
         }
 
         if(node != null)
@@ -57,23 +57,23 @@ public final class AMathFunExpr extends PExpr
             node.parent(this);
         }
 
-        this._mathFun_ = node;
+        this._term_ = node;
     }
 
     @Override
     public String toString()
     {
         return ""
-            + toString(this._mathFun_);
+            + toString(this._term_);
     }
 
     @Override
     void removeChild(@SuppressWarnings("unused") Node child)
     {
         // Remove child
-        if(this._mathFun_ == child)
+        if(this._term_ == child)
         {
-            this._mathFun_ = null;
+            this._term_ = null;
             return;
         }
 
@@ -84,9 +84,9 @@ public final class AMathFunExpr extends PExpr
     void replaceChild(@SuppressWarnings("unused") Node oldChild, @SuppressWarnings("unused") Node newChild)
     {
         // Replace child
-        if(this._mathFun_ == oldChild)
+        if(this._term_ == oldChild)
         {
-            setMathFun((PMathFun) newChild);
+            setTerm((PTerm) newChild);
             return;
         }
 

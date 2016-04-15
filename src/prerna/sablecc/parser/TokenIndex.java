@@ -244,50 +244,68 @@ class TokenIndex extends AnalysisAdapter
     }
 
     @Override
-    public void caseTProc(@SuppressWarnings("unused") TProc node)
+    public void caseTR(@SuppressWarnings("unused") TR node)
     {
         this.index = 39;
     }
 
     @Override
-    public void caseTThis(@SuppressWarnings("unused") TThis node)
+    public void caseTPython(@SuppressWarnings("unused") TPython node)
     {
         this.index = 40;
     }
 
     @Override
-    public void caseTNull(@SuppressWarnings("unused") TNull node)
+    public void caseTProc(@SuppressWarnings("unused") TProc node)
     {
         this.index = 41;
     }
 
     @Override
-    public void caseTImportType(@SuppressWarnings("unused") TImportType node)
+    public void caseTThis(@SuppressWarnings("unused") TThis node)
     {
         this.index = 42;
     }
 
     @Override
-    public void caseTRelType(@SuppressWarnings("unused") TRelType node)
+    public void caseTNull(@SuppressWarnings("unused") TNull node)
     {
         this.index = 43;
     }
 
     @Override
-    public void caseTDataimporttoken(@SuppressWarnings("unused") TDataimporttoken node)
+    public void caseTImportType(@SuppressWarnings("unused") TImportType node)
     {
         this.index = 44;
     }
 
     @Override
-    public void caseTLiteral(@SuppressWarnings("unused") TLiteral node)
+    public void caseTRelType(@SuppressWarnings("unused") TRelType node)
     {
         this.index = 45;
     }
 
     @Override
-    public void caseEOF(@SuppressWarnings("unused") EOF node)
+    public void caseTDataimporttoken(@SuppressWarnings("unused") TDataimporttoken node)
     {
         this.index = 46;
+    }
+
+    @Override
+    public void caseTLiteral(@SuppressWarnings("unused") TLiteral node)
+    {
+        this.index = 47;
+    }
+
+    @Override
+    public void caseTHelpToken(@SuppressWarnings("unused") THelpToken node)
+    {
+        this.index = 48;
+    }
+
+    @Override
+    public void caseEOF(@SuppressWarnings("unused") EOF node)
+    {
+        this.index = 49;
     }
 }

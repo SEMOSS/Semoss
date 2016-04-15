@@ -1,6 +1,5 @@
 package prerna.algorithm.api;
 
-import java.util.Hashtable;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -528,8 +527,6 @@ public interface ITableDataFrame extends IDataMaker {
 	void connectTypes(String[] joinCols, String newCol);
 
 	void addRow(Object[] cleanCells, Object[] rawCells, String[] headers);
-
-	void setTempExpressionResult(Object expr);
 
 	Map[] mergeQSEdgeHash(Map<String, Set<String>> edgeHash, IEngine engine, Vector<Map<String, String>> joinCols);
 
