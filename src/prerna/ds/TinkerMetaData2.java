@@ -167,10 +167,11 @@ public class TinkerMetaData2 implements IMetaData {
 	@Override
 	public void storeDataType(String uniqueName, String dataType) {
 		Vertex vert = getExistingVertex(uniqueName);
-		vert.property(DB_DATATYPE, dataType);
 		if(dataType == null || dataType.isEmpty()) {
+			vert.property(DB_DATATYPE, "VARCHAR(800)");
 			return;
 		}
+		vert.property(DB_DATATYPE, dataType);
 		
 		dataType = dataType.toUpperCase();
 		
