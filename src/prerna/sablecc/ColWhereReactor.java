@@ -26,9 +26,9 @@ public class ColWhereReactor extends AbstractReactor {
 	
 	public ColWhereReactor()
 	{
-		String [] thisReacts = {TokenEnum.COL_DEF, TokenEnum.COL_DEF+ "_1", TokenEnum.COL_DEF+ "_2", TokenEnum.ROW_CSV, TokenEnum.ROW_CSV+"_1"};
+		String [] thisReacts = {PKQLEnum.COL_DEF, PKQLEnum.COL_DEF+ "_1", PKQLEnum.COL_DEF+ "_2", PKQLEnum.ROW_CSV, PKQLEnum.ROW_CSV+"_1"};
 		super.whatIReactTo = thisReacts;
-		super.whoAmI = TokenEnum.WHERE;
+		super.whoAmI = PKQLEnum.WHERE;
 	}
 
 	@Override
@@ -44,9 +44,9 @@ public class ColWhereReactor extends AbstractReactor {
 			// just for the sake of clarity..
 			// I should take the stuff out and get it set right
 			Hashtable <String, Object> finalHash = new Hashtable<String, Object>();
-			finalHash.put(TokenEnum.FROM_COL, myStore.get(whatIReactTo[1]));
+			finalHash.put(PKQLEnum.FROM_COL, myStore.get(whatIReactTo[1]));
 			if(myStore.containsKey(whatIReactTo[2]))
-				finalHash.put(TokenEnum.TO_COL, myStore.get(whatIReactTo[2]));
+				finalHash.put(PKQLEnum.TO_COL, myStore.get(whatIReactTo[2]));
 			if(myStore.containsKey(whatIReactTo[3]))
 				finalHash.put("TO_DATA", myStore.get(whatIReactTo[3]));
 			finalHash.put("COMPARATOR", myStore.get("COMPARATOR"));

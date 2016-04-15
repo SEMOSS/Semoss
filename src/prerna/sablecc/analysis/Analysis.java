@@ -15,8 +15,9 @@ public interface Analysis extends Switch
     void caseAConfiguration(AConfiguration node);
     void caseAColopScript(AColopScript node);
     void caseAVaropScript(AVaropScript node);
-    void caseAJOpScript(AJOpScript node);
+    void caseAROpScript(AROpScript node);
     void caseAExprScript(AExprScript node);
+    void caseAHelpScript(AHelpScript node);
     void caseAScript(AScript node);
     void caseAAddColumnColop(AAddColumnColop node);
     void caseARemcolColop(ARemcolColop node);
@@ -72,17 +73,18 @@ public interface Analysis extends Switch
     void caseACsvGroup(ACsvGroup node);
     void caseAExprRow(AExprRow node);
     void caseAJOp(AJOp node);
-    void caseAFactorExpr(AFactorExpr node);
+    void caseAROp(AROp node);
+    void caseAHelp(AHelp node);
+    void caseATermExpr(ATermExpr node);
     void caseAPlusExpr(APlusExpr node);
     void caseAMinusExpr(AMinusExpr node);
-    void caseAMathFunExpr(AMathFunExpr node);
+    void caseAMultExpr(AMultExpr node);
+    void caseAExpr(AExpr node);
+    void caseADivExpr(ADivExpr node);
+    void caseAModExpr(AModExpr node);
     void caseAEExprExpr(AEExprExpr node);
     void caseAMathFun(AMathFun node);
     void caseAExtendedExpr(AExtendedExpr node);
-    void caseATermFactor(ATermFactor node);
-    void caseAMultFactor(AMultFactor node);
-    void caseADivFactor(ADivFactor node);
-    void caseAModFactor(AModFactor node);
     void caseANumberTerm(ANumberTerm node);
     void caseAExprTerm(AExprTerm node);
     void caseAVarTerm(AVarTerm node);
@@ -92,6 +94,7 @@ public interface Analysis extends Switch
     void caseAWcsvTerm(AWcsvTerm node);
     void caseATerm(ATerm node);
     void caseAAlphaTerm(AAlphaTerm node);
+    void caseAMathFunTerm(AMathFunTerm node);
 
     void caseTNumber(TNumber node);
     void caseTId(TId node);
@@ -133,6 +136,8 @@ public interface Analysis extends Switch
     void caseTNewline(TNewline node);
     void caseTCodeblock(TCodeblock node);
     void caseTJava(TJava node);
+    void caseTR(TR node);
+    void caseTPython(TPython node);
     void caseTProc(TProc node);
     void caseTThis(TThis node);
     void caseTNull(TNull node);
@@ -140,6 +145,7 @@ public interface Analysis extends Switch
     void caseTRelType(TRelType node);
     void caseTDataimporttoken(TDataimporttoken node);
     void caseTLiteral(TLiteral node);
+    void caseTHelpToken(THelpToken node);
     void caseEOF(EOF node);
     void caseInvalidToken(InvalidToken node);
 }

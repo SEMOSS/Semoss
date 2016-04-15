@@ -13,9 +13,9 @@ public class ApiReactor extends AbstractReactor {
 	
 	public ApiReactor()
 	{
-		String [] thisReacts = {TokenEnum.COL_CSV, TokenEnum.FILTER, TokenEnum.JOINS};
+		String [] thisReacts = {PKQLEnum.COL_CSV, PKQLEnum.FILTER, PKQLEnum.JOINS};
 		super.whatIReactTo = thisReacts;
-		super.whoAmI = TokenEnum.API;
+		super.whoAmI = PKQLEnum.API;
 	}
 	
 
@@ -46,12 +46,12 @@ public class ApiReactor extends AbstractReactor {
 			Vector <Hashtable> filters = new Vector<Hashtable>();
 			Vector <Hashtable> joins = new Vector<Hashtable>();
 			
-			if(myStore.containsKey(TokenEnum.COL_CSV) && ((Vector)myStore.get(TokenEnum.COL_CSV)).size() > 0)
-				selectors = (Vector<String>) myStore.get(TokenEnum.COL_CSV);
-			if(myStore.containsKey(TokenEnum.FILTER) && ((Vector)myStore.get(TokenEnum.FILTER)).size() > 0)
-				filters = (Vector<Hashtable>) myStore.get(TokenEnum.FILTER);
-			if(myStore.containsKey(TokenEnum.JOINS) && ((Vector)myStore.get(TokenEnum.JOINS)).size() > 0)
-				joins = (Vector<Hashtable>) myStore.get(TokenEnum.JOINS);
+			if(myStore.containsKey(PKQLEnum.COL_CSV) && ((Vector)myStore.get(PKQLEnum.COL_CSV)).size() > 0)
+				selectors = (Vector<String>) myStore.get(PKQLEnum.COL_CSV);
+			if(myStore.containsKey(PKQLEnum.FILTER) && ((Vector)myStore.get(PKQLEnum.FILTER)).size() > 0)
+				filters = (Vector<Hashtable>) myStore.get(PKQLEnum.FILTER);
+			if(myStore.containsKey(PKQLEnum.JOINS) && ((Vector)myStore.get(PKQLEnum.JOINS)).size() > 0)
+				joins = (Vector<Hashtable>) myStore.get(PKQLEnum.JOINS);
 
 			QueryStruct qs = new QueryStruct();
 			processQueryStruct(qs, selectors, filters, joins);

@@ -53,7 +53,6 @@ import prerna.algorithm.api.IAnalyticActionRoutine;
 import prerna.algorithm.api.IAnalyticRoutine;
 import prerna.algorithm.api.IAnalyticTransformationRoutine;
 import prerna.algorithm.api.IMatcher;
-import prerna.algorithm.api.IMetaData;
 import prerna.algorithm.api.ITableDataFrame;
 import prerna.engine.api.IEngine;
 import prerna.engine.api.ISelectStatement;
@@ -2230,12 +2229,6 @@ public class BTreeDataFrame implements ITableDataFrame {
 
 	@Override
 	public void addRow(Object[] cleanCells, Object[] rawCells, String[] headers) {
-		// TODO Auto-generated method stub
-		
-	}
-
-	@Override
-	public void setTempExpressionResult(Object expr) {
 		// TODO Auto-generated method stub
 		
 	}

@@ -303,7 +303,7 @@ public class RDBMSReader extends AbstractFileReader {
 				sqlBuilder.append(", ").append(cleanRel).append(" ").append(relColType);
 
 				//TODO: do I need to also add types for the FK columns created???
-				owler.addProp(cleanConceptName, cleanRel, relColType);
+//				owler.addProp(cleanConceptName, cleanRel, relColType);
 			}
 		}
 
@@ -354,7 +354,7 @@ public class RDBMSReader extends AbstractFileReader {
 					colsToAdd.put(cleanNewRel, relColType);
 
 					//TODO: do I need to also add types for the FK columns created???
-					owler.addProp(cleanConcept, cleanNewRel, newColsForConcept.get(newRel));
+//					owler.addProp(cleanConcept, cleanNewRel, newColsForConcept.get(newRel));
 				}
 			}
 		}

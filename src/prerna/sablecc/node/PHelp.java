@@ -2,7 +2,7 @@
 
 package prerna.sablecc.node;
 
-public abstract class PDataImport extends Node
+public abstract class PHelp extends Node
 {
     // Empty body
 }
