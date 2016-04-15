@@ -798,7 +798,7 @@ public class RDBMSReader extends AbstractFileReader {
 
 		type = type.toUpperCase();
 		if(type.contains("VARCHAR")) {
-			return "'" + RDBMSEngineCreationHelper.escapeForSQLStatement(value.toString()) + "'";
+			return "'" + RDBMSEngineCreationHelper.escapeForSQLStatement(Utility.cleanString(value.toString(), true)) + "'";
 		} else if(type.contains("INT") || type.contains("DECIMAL") || type.contains("DOUBLE") || type.contains("FLOAT") || type.contains("LONG") || type.contains("BIGINT")
 				|| type.contains("TINYINT") || type.contains("SMALLINT")){
 			return value;
