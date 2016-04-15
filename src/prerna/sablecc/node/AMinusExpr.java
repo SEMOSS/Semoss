@@ -7,9 +7,9 @@ import prerna.sablecc.analysis.*;
 @SuppressWarnings("nls")
 public final class AMinusExpr extends PExpr
 {
-    private PExpr _left_;
+    private PTerm _left_;
     private TMinus _minus_;
-    private PFactor _right_;
+    private PTerm _right_;
 
     public AMinusExpr()
     {
@@ -17,9 +17,9 @@ public final class AMinusExpr extends PExpr
     }
 
     public AMinusExpr(
-        @SuppressWarnings("hiding") PExpr _left_,
+        @SuppressWarnings("hiding") PTerm _left_,
         @SuppressWarnings("hiding") TMinus _minus_,
-        @SuppressWarnings("hiding") PFactor _right_)
+        @SuppressWarnings("hiding") PTerm _right_)
     {
         // Constructor
         setLeft(_left_);
@@ -45,12 +45,12 @@ public final class AMinusExpr extends PExpr
         ((Analysis) sw).caseAMinusExpr(this);
     }
 
-    public PExpr getLeft()
+    public PTerm getLeft()
     {
         return this._left_;
     }
 
-    public void setLeft(PExpr node)
+    public void setLeft(PTerm node)
     {
         if(this._left_ != null)
         {
@@ -95,12 +95,12 @@ public final class AMinusExpr extends PExpr
         this._minus_ = node;
     }
 
-    public PFactor getRight()
+    public PTerm getRight()
     {
         return this._right_;
     }
 
-    public void setRight(PFactor node)
+    public void setRight(PTerm node)
     {
         if(this._right_ != null)
         {
@@ -160,7 +160,7 @@ public final class AMinusExpr extends PExpr
         // Replace child
         if(this._left_ == oldChild)
         {
-            setLeft((PExpr) newChild);
+            setLeft((PTerm) newChild);
             return;
         }
 
@@ -172,7 +172,7 @@ public final class AMinusExpr extends PExpr
 
         if(this._right_ == oldChild)
         {
-            setRight((PFactor) newChild);
+            setRight((PTerm) newChild);
             return;
         }
 

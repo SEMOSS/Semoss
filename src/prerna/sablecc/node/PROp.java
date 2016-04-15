@@ -2,7 +2,7 @@
 
 package prerna.sablecc.node;
 
-public abstract class PFactor extends Node
+public abstract class PROp extends Node
 {
     // Empty body
 }

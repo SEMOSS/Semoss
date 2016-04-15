@@ -6,9 +6,9 @@ public class ColCsvReactor extends AbstractReactor {
 	
 	public ColCsvReactor()
 	{
-		String [] thisReacts = {TokenEnum.COL_DEF};
+		String [] thisReacts = {PKQLEnum.COL_DEF};
 		super.whatIReactTo = thisReacts;
-		super.whoAmI = TokenEnum.COL_CSV;
+		super.whoAmI = PKQLEnum.COL_CSV;
 	}
 
 	@Override
@@ -18,9 +18,9 @@ public class ColCsvReactor extends AbstractReactor {
 		// and put it into who am I
 		String nodeStr = (String)myStore.get(whoAmI);
 		System.out.println("My Store on COL CSV " + myStore);
-		if(myStore.containsKey(TokenEnum.COL_DEF))
+		if(myStore.containsKey(PKQLEnum.COL_DEF))
 		{
-			myStore.put(nodeStr, myStore.get(TokenEnum.COL_DEF));
+			myStore.put(nodeStr, myStore.get(PKQLEnum.COL_DEF));
 		}
 		return null;
 	}

@@ -5,22 +5,22 @@ package prerna.sablecc.node;
 import prerna.sablecc.analysis.*;
 
 @SuppressWarnings("nls")
-public final class AJOpScript extends PScript
+public final class AHelpScript extends PScript
 {
-    private PJOp _jOp_;
+    private PHelp _help_;
     private TSemicolon _semicolon_;
 
-    public AJOpScript()
+    public AHelpScript()
     {
         // Constructor
     }
 
-    public AJOpScript(
-        @SuppressWarnings("hiding") PJOp _jOp_,
+    public AHelpScript(
+        @SuppressWarnings("hiding") PHelp _help_,
         @SuppressWarnings("hiding") TSemicolon _semicolon_)
     {
         // Constructor
-        setJOp(_jOp_);
+        setHelp(_help_);
 
         setSemicolon(_semicolon_);
 
@@ -29,27 +29,27 @@ public final class AJOpScript extends PScript
     @Override
     public Object clone()
     {
-        return new AJOpScript(
-            cloneNode(this._jOp_),
+        return new AHelpScript(
+            cloneNode(this._help_),
             cloneNode(this._semicolon_));
     }
 
     @Override
     public void apply(Switch sw)
     {
-        ((Analysis) sw).caseAJOpScript(this);
+        ((Analysis) sw).caseAHelpScript(this);
     }
 
-    public PJOp getJOp()
+    public PHelp getHelp()
     {
-        return this._jOp_;
+        return this._help_;
     }
 
-    public void setJOp(PJOp node)
+    public void setHelp(PHelp node)
     {
-        if(this._jOp_ != null)
+        if(this._help_ != null)
         {
-            this._jOp_.parent(null);
+            this._help_.parent(null);
         }
 
         if(node != null)
@@ -62,7 +62,7 @@ public final class AJOpScript extends PScript
             node.parent(this);
         }
 
-        this._jOp_ = node;
+        this._help_ = node;
     }
 
     public TSemicolon getSemicolon()
@@ -94,7 +94,7 @@ public final class AJOpScript extends PScript
     public String toString()
     {
         return ""
-            + toString(this._jOp_)
+            + toString(this._help_)
             + toString(this._semicolon_);
     }
 
@@ -102,9 +102,9 @@ public final class AJOpScript extends PScript
     void removeChild(@SuppressWarnings("unused") Node child)
     {
         // Remove child
-        if(this._jOp_ == child)
+        if(this._help_ == child)
         {
-            this._jOp_ = null;
+            this._help_ = null;
             return;
         }
 
@@ -121,9 +121,9 @@ public final class AJOpScript extends PScript
     void replaceChild(@SuppressWarnings("unused") Node oldChild, @SuppressWarnings("unused") Node newChild)
     {
         // Replace child
-        if(this._jOp_ == oldChild)
+        if(this._help_ == oldChild)
         {
-            setJOp((PJOp) newChild);
+            setHelp((PHelp) newChild);
             return;
         }
 

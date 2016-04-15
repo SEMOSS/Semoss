@@ -5,26 +5,26 @@ package prerna.sablecc.node;
 import prerna.sablecc.analysis.*;
 
 @SuppressWarnings("nls")
-public final class AModFactor extends PFactor
+public final class AMultExpr extends PExpr
 {
-    private PFactor _left_;
-    private TMod _mod_;
+    private PTerm _left_;
+    private TMult _mult_;
     private PTerm _right_;
 
-    public AModFactor()
+    public AMultExpr()
     {
         // Constructor
     }
 
-    public AModFactor(
-        @SuppressWarnings("hiding") PFactor _left_,
-        @SuppressWarnings("hiding") TMod _mod_,
+    public AMultExpr(
+        @SuppressWarnings("hiding") PTerm _left_,
+        @SuppressWarnings("hiding") TMult _mult_,
         @SuppressWarnings("hiding") PTerm _right_)
     {
         // Constructor
         setLeft(_left_);
 
-        setMod(_mod_);
+        setMult(_mult_);
 
         setRight(_right_);
 
@@ -33,24 +33,24 @@ public final class AModFactor extends PFactor
     @Override
     public Object clone()
     {
-        return new AModFactor(
+        return new AMultExpr(
             cloneNode(this._left_),
-            cloneNode(this._mod_),
+            cloneNode(this._mult_),
             cloneNode(this._right_));
     }
 
     @Override
     public void apply(Switch sw)
     {
-        ((Analysis) sw).caseAModFactor(this);
+        ((Analysis) sw).caseAMultExpr(this);
     }
 
-    public PFactor getLeft()
+    public PTerm getLeft()
     {
         return this._left_;
     }
 
-    public void setLeft(PFactor node)
+    public void setLeft(PTerm node)
     {
         if(this._left_ != null)
         {
@@ -70,16 +70,16 @@ public final class AModFactor extends PFactor
         this._left_ = node;
     }
 
-    public TMod getMod()
+    public TMult getMult()
     {
-        return this._mod_;
+        return this._mult_;
     }
 
-    public void setMod(TMod node)
+    public void setMult(TMult node)
     {
-        if(this._mod_ != null)
+        if(this._mult_ != null)
         {
-            this._mod_.parent(null);
+            this._mult_.parent(null);
         }
 
         if(node != null)
@@ -92,7 +92,7 @@ public final class AModFactor extends PFactor
             node.parent(this);
         }
 
-        this._mod_ = node;
+        this._mult_ = node;
     }
 
     public PTerm getRight()
@@ -125,7 +125,7 @@ public final class AModFactor extends PFactor
     {
         return ""
             + toString(this._left_)
-            + toString(this._mod_)
+            + toString(this._mult_)
             + toString(this._right_);
     }
 
@@ -139,9 +139,9 @@ public final class AModFactor extends PFactor
             return;
         }
 
-        if(this._mod_ == child)
+        if(this._mult_ == child)
         {
-            this._mod_ = null;
+            this._mult_ = null;
             return;
         }
 
@@ -160,13 +160,13 @@ public final class AModFactor extends PFactor
         // Replace child
         if(this._left_ == oldChild)
         {
-            setLeft((PFactor) newChild);
+            setLeft((PTerm) newChild);
             return;
         }
 
-        if(this._mod_ == oldChild)
+        if(this._mult_ == oldChild)
         {
-            setMod((TMod) newChild);
+            setMult((TMult) newChild);
             return;
         }
 

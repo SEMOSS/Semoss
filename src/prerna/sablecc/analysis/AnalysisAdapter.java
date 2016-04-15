@@ -93,13 +93,19 @@ public class AnalysisAdapter implements Analysis
     }
 
     @Override
-    public void caseAJOpScript(AJOpScript node)
+    public void caseAROpScript(AROpScript node)
     {
         defaultCase(node);
     }
 
     @Override
     public void caseAExprScript(AExprScript node)
+    {
+        defaultCase(node);
+    }
+
+    @Override
+    public void caseAHelpScript(AHelpScript node)
     {
         defaultCase(node);
     }
@@ -435,7 +441,19 @@ public class AnalysisAdapter implements Analysis
     }
 
     @Override
-    public void caseAFactorExpr(AFactorExpr node)
+    public void caseAROp(AROp node)
+    {
+        defaultCase(node);
+    }
+
+    @Override
+    public void caseAHelp(AHelp node)
+    {
+        defaultCase(node);
+    }
+
+    @Override
+    public void caseATermExpr(ATermExpr node)
     {
         defaultCase(node);
     }
@@ -453,7 +471,25 @@ public class AnalysisAdapter implements Analysis
     }
 
     @Override
-    public void caseAMathFunExpr(AMathFunExpr node)
+    public void caseAMultExpr(AMultExpr node)
+    {
+        defaultCase(node);
+    }
+
+    @Override
+    public void caseAExpr(AExpr node)
+    {
+        defaultCase(node);
+    }
+
+    @Override
+    public void caseADivExpr(ADivExpr node)
+    {
+        defaultCase(node);
+    }
+
+    @Override
+    public void caseAModExpr(AModExpr node)
     {
         defaultCase(node);
     }
@@ -472,30 +508,6 @@ public class AnalysisAdapter implements Analysis
 
     @Override
     public void caseAExtendedExpr(AExtendedExpr node)
-    {
-        defaultCase(node);
-    }
-
-    @Override
-    public void caseATermFactor(ATermFactor node)
-    {
-        defaultCase(node);
-    }
-
-    @Override
-    public void caseAMultFactor(AMultFactor node)
-    {
-        defaultCase(node);
-    }
-
-    @Override
-    public void caseADivFactor(ADivFactor node)
-    {
-        defaultCase(node);
-    }
-
-    @Override
-    public void caseAModFactor(AModFactor node)
     {
         defaultCase(node);
     }
@@ -550,6 +562,12 @@ public class AnalysisAdapter implements Analysis
 
     @Override
     public void caseAAlphaTerm(AAlphaTerm node)
+    {
+        defaultCase(node);
+    }
+
+    @Override
+    public void caseAMathFunTerm(AMathFunTerm node)
     {
         defaultCase(node);
     }
@@ -795,6 +813,18 @@ public class AnalysisAdapter implements Analysis
     }
 
     @Override
+    public void caseTR(TR node)
+    {
+        defaultCase(node);
+    }
+
+    @Override
+    public void caseTPython(TPython node)
+    {
+        defaultCase(node);
+    }
+
+    @Override
     public void caseTProc(TProc node)
     {
         defaultCase(node);
@@ -832,6 +862,12 @@ public class AnalysisAdapter implements Analysis
 
     @Override
     public void caseTLiteral(TLiteral node)
+    {
+        defaultCase(node);
+    }
+
+    @Override
+    public void caseTHelpToken(THelpToken node)
     {
         defaultCase(node);
     }

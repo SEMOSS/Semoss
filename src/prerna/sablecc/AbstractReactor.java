@@ -116,7 +116,7 @@ public abstract class AbstractReactor implements IScriptReactor {
 	{
 		String curExpression = (String)myStore.get(whoAmI);
 		System.out.println("Replacers.. " + replacers);
-		for(int ripIndex = 0;ripIndex < replacers.size();ripIndex++)
+		for(int ripIndex = replacers.size()-1;ripIndex > -1 ;ripIndex--)
 		{
 			String tobeReplaced = replacers.elementAt(ripIndex);
 			if(myStore.containsKey(tobeReplaced))

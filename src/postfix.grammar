@@ -7,7 +7,6 @@ Helpers
  digit = ['0' .. '9'];
  underscore = '_';
  hdot = '.';
- special = '%';
  
 
 Tokens
@@ -54,14 +53,17 @@ dot = '.';
  equal = '=';
  newline = '\r'? '\n';
  codeblock = '{' [0 .. 0xFFFF]* '}';
- java = 'code:';
+ java = 'j:';
+ r = 'r:';
+ python = 'p:';
  proc = 'm:'; // | 'average');
  this = 'this';
  null = 'null';
  import_type = ('flat' | 'tree');
  rel_type = ('inner.join' | 'outer.join' | 'right.outer.join' | 'left.outer.join' | 'cross.join' | 'self.join' ); 
  dataimporttoken = 'data.import';
- literal = (letter_s | letter_b | digit | underscore | special)*;
+ literal = (letter_s | letter_b | digit | underscore)*;// | special)*;
+ help_token = 'info.help';
  
  
 Ignored Tokens
@@ -72,10 +74,11 @@ configuration = script*;
 
 script = {colop} colop  semicolon // column operations
 		 | {varop} varop semicolon// row operations or setting up data
-		 //| rOp semicolon// call to CRAN
-		 | {j_op} j_op semicolon// java operation
+		 | {r_op} r_op semicolon// call to CRAN
+		 //| {j_op} j_op semicolon// java operation
 		 | {expr} expr semicolon
 		 //| statop
+		 | {help} help semicolon
 		 | newline
 		 ;
 
@@ -130,18 +133,17 @@ import_data = // imports from api query commands and other scripts
 		dataimporttoken [lp1]:l_par [api]:api_block [joins]:relation_clause? [rp2]:r_par;
 		
 		
-decimal = [whole]:number dot? [fraction]:number?;		
+decimal = [whole]:number dot? [fraction]:number?;
 		
 expr_group = [comma]:comma [expr]:expr;		
 
 api_block = api [engine_name]:id dot [insight]:id l_par [selectors]:col_csv [where]:where_clause? [relations]:relation_clause? r_par; // the insight can also be the method
-
 // query format
 // api:Tap_Core.Query:([Selectors], [Filters], [relations])
 // relations
 // selector sibling selector comes from the same table
 // selector comparator selector
-// 
+
 selector = l_bracket col_csv r_bracket;
 
 // where column clause
@@ -164,7 +166,7 @@ if_block = l_par comparator comma term r_par;
 
 col_group = comma col_def;
 
-group_by = l_par col_def col_group* r_par; // this is to be included in various math calculations (Studion, Genre) - this is equivalent of saving pivot on this
+group_by = l_par col_def col_group* r_par; // this is to be included in various math calculations (Studio, Genre) - this is equivalent of saving pivot on this
 
 col_def = colprefix [colname]:id;
 
@@ -198,31 +200,30 @@ formula = l_par expr r_par;
 		
 csv_group = comma [csv]:word_or_num; // , 3
 
-
 expr_row = l_bracket [expr]:expr expr_group* r_bracket;
 
 j_op = // this of the pattern j:{hola, hello etc.. }
 	java codeblock;
+	
+r_op = r codeblock;
+
+help = help_token;
 		
  expr =
-  {factor} factor |
-  {plus} [left]:expr plus [right]:factor |
-  {minus} [left]:expr minus [right]:factor 
-  |{math_fun} math_fun // I need to still resolve other mathematical functions
+  {term} term
+  | {plus} [left]:term plus [right]:term
+  | {minus} [left]:term minus [right]:term
+  | {mult} [left]:term mult [right]:term |
+  | {div} [left]:term div [right]:term 
+  | {mod} [left]:term mod [right]:term
   | {e_expr} extended_expr
+  //|{math_fun} math_fun // I need to still resolve other mathematical functions
   ;
  
  math_fun = proc id l_par [expr]:expr_row comma? [group]:col_csv? r_par; // m.Sum([1 + c:Activity], /*groupBy*/(c:studio, c:genre));
  
  extended_expr = l_par [expr]:expr comma? [group]:col_csv r_par; // I have no idea why I need this.. but !!
  
- factor =
-  {term} term |
-  {mult} [left]:factor mult [right]:term |
-  {div} [left]:factor div [right]:term |
-  {mod} [left]:factor mod [right]:term;
-
-
  term =
   {number} decimal |
   {expr} l_par expr r_par 
@@ -233,4 +234,6 @@ j_op = // this of the pattern j:{hola, hello etc.. }
   | {wcsv} csv_row
   | null
   |  {alpha} word
+  | {math_fun} math_fun
+  //| {r} r_op //Include in term only if we want a user to be able to do column operations with result from R code
   ;

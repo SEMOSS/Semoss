@@ -5,16 +5,16 @@ package prerna.sablecc.node;
 import prerna.sablecc.analysis.*;
 
 @SuppressWarnings("nls")
-public final class TJava extends Token
+public final class THelpCommand extends Token
 {
-    public TJava()
+    public THelpCommand()
     {
-        super.setText("j:");
+        super.setText("help");
     }
 
-    public TJava(int line, int pos)
+    public THelpCommand(int line, int pos)
     {
-        super.setText("j:");
+        super.setText("help");
         setLine(line);
         setPos(pos);
     }
@@ -22,18 +22,18 @@ public final class TJava extends Token
     @Override
     public Object clone()
     {
-      return new TJava(getLine(), getPos());
+      return new THelpCommand(getLine(), getPos());
     }
 
     @Override
     public void apply(Switch sw)
     {
-        ((Analysis) sw).caseTJava(this);
+        ((Analysis) sw).caseTHelpCommand(this);
     }
 
     @Override
     public void setText(@SuppressWarnings("unused") String text)
     {
-        throw new RuntimeException("Cannot change TJava text.");
+        throw new RuntimeException("Cannot change THelpCommand text.");
     }
 }

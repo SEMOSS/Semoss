@@ -5,46 +5,46 @@ package prerna.sablecc.node;
 import prerna.sablecc.analysis.*;
 
 @SuppressWarnings("nls")
-public final class ATermFactor extends PFactor
+public final class AHelp extends PHelp
 {
-    private PTerm _term_;
+    private THelpToken _helpToken_;
 
-    public ATermFactor()
+    public AHelp()
     {
         // Constructor
     }
 
-    public ATermFactor(
-        @SuppressWarnings("hiding") PTerm _term_)
+    public AHelp(
+        @SuppressWarnings("hiding") THelpToken _helpToken_)
     {
         // Constructor
-        setTerm(_term_);
+        setHelpToken(_helpToken_);
 
     }
 
     @Override
     public Object clone()
     {
-        return new ATermFactor(
-            cloneNode(this._term_));
+        return new AHelp(
+            cloneNode(this._helpToken_));
     }
 
     @Override
     public void apply(Switch sw)
     {
-        ((Analysis) sw).caseATermFactor(this);
+        ((Analysis) sw).caseAHelp(this);
     }
 
-    public PTerm getTerm()
+    public THelpToken getHelpToken()
     {
-        return this._term_;
+        return this._helpToken_;
     }
 
-    public void setTerm(PTerm node)
+    public void setHelpToken(THelpToken node)
     {
-        if(this._term_ != null)
+        if(this._helpToken_ != null)
         {
-            this._term_.parent(null);
+            this._helpToken_.parent(null);
         }
 
         if(node != null)
@@ -57,23 +57,23 @@ public final class ATermFactor extends PFactor
             node.parent(this);
         }
 
-        this._term_ = node;
+        this._helpToken_ = node;
     }
 
     @Override
     public String toString()
     {
         return ""
-            + toString(this._term_);
+            + toString(this._helpToken_);
     }
 
     @Override
     void removeChild(@SuppressWarnings("unused") Node child)
     {
         // Remove child
-        if(this._term_ == child)
+        if(this._helpToken_ == child)
         {
-            this._term_ = null;
+            this._helpToken_ = null;
             return;
         }
 
@@ -84,9 +84,9 @@ public final class ATermFactor extends PFactor
     void replaceChild(@SuppressWarnings("unused") Node oldChild, @SuppressWarnings("unused") Node newChild)
     {
         // Replace child
-        if(this._term_ == oldChild)
+        if(this._helpToken_ == oldChild)
         {
-            setTerm((PTerm) newChild);
+            setHelpToken((THelpToken) newChild);
             return;
         }
 
