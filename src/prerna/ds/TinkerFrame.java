@@ -5,8 +5,6 @@ import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStreamReader;
-import java.io.PushbackReader;
-import java.io.StringBufferInputStream;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -60,12 +58,6 @@ import prerna.om.SEMOSSVertex;
 import prerna.om.TinkerGraphDataModel;
 import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.rdf.query.builder.GremlinBuilder;
-import prerna.sablecc.Translation2;
-import prerna.sablecc.lexer.Lexer;
-import prerna.sablecc.lexer.LexerException;
-import prerna.sablecc.node.Start;
-import prerna.sablecc.parser.Parser;
-import prerna.sablecc.parser.ParserException;
 import prerna.ui.components.playsheets.datamakers.DataMakerComponent;
 import prerna.ui.components.playsheets.datamakers.ISEMOSSTransformation;
 import prerna.ui.components.playsheets.datamakers.JoinTransformation;
@@ -2169,42 +2161,42 @@ public class TinkerFrame extends AbstractTableDataFrame {
 			builder.registry(kryo);
 			GryoIo yes = builder.create();
 			yes.readGraph(fileName);
-			
+
 			long endTime = System.currentTimeMillis();
 			LOGGER.info("Successfully loaded TinkerFrame from file: "+fileName+ "("+(endTime - startTime)+" ms)");
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
-		this.metaData.open(fileName.substring(0, fileName.lastIndexOf(".")));
-	   List<String> fullNames = this.metaData.getColumnNames();
-	   tf.headerNames = fullNames.toArray(new String[fullNames.size()]);
-//		
-//		String[] headers = null;
-//		GraphTraversal<Vertex, Vertex> gt = tf.g.traversal().V().has(Constants.TYPE, ENVIRONMENT_VERTEX_KEY);
-//		while(gt.hasNext()) {
-//			Vertex specialVert = gt.next();
-//			
-//			// grab all environment properties from node
-//			headers = (String[]) specialVert.property(Constants.HEADER_NAMES).value();
-////			headers = new Gson().fromJson(headerProp + "", new String[]{}.getClass());
-//			
-//			// delete the vertex
-//			specialVert.remove();
-//		}
-//		
-//		if(headers == null) {
-//			LOGGER.info("Could not find the headers special vertex.  Will load headers from metadata with no guarantee of order.");
-//			List<String> headersList = new Vector<String>();
-//			GraphTraversal<Vertex, String> hTraversal = tf.g.traversal().V().has(Constants.TYPE, META).values(Constants.NAME);
-//			while(hTraversal.hasNext()) {
-//				headersList.add(hTraversal.next());
-//			}
-//			headers = headersList.toArray(new String[]{});
-//		}
-//		//gather header names
-//		tf.headerNames = headers;
-//		tf.g.variables().set(Constants.HEADER_NAMES, tf.headerNames);
-		
+		tf.metaData.open(fileName.substring(0, fileName.lastIndexOf(".")));
+		List<String> fullNames = tf.metaData.getColumnNames();
+		tf.headerNames = fullNames.toArray(new String[fullNames.size()]);
+		//		
+		//		String[] headers = null;
+		//		GraphTraversal<Vertex, Vertex> gt = tf.g.traversal().V().has(Constants.TYPE, ENVIRONMENT_VERTEX_KEY);
+		//		while(gt.hasNext()) {
+		//			Vertex specialVert = gt.next();
+		//			
+		//			// grab all environment properties from node
+		//			headers = (String[]) specialVert.property(Constants.HEADER_NAMES).value();
+		////			headers = new Gson().fromJson(headerProp + "", new String[]{}.getClass());
+		//			
+		//			// delete the vertex
+		//			specialVert.remove();
+		//		}
+		//		
+		//		if(headers == null) {
+		//			LOGGER.info("Could not find the headers special vertex.  Will load headers from metadata with no guarantee of order.");
+		//			List<String> headersList = new Vector<String>();
+		//			GraphTraversal<Vertex, String> hTraversal = tf.g.traversal().V().has(Constants.TYPE, META).values(Constants.NAME);
+		//			while(hTraversal.hasNext()) {
+		//				headersList.add(hTraversal.next());
+		//			}
+		//			headers = headersList.toArray(new String[]{});
+		//		}
+		//		//gather header names
+		//		tf.headerNames = headers;
+		//		tf.g.variables().set(Constants.HEADER_NAMES, tf.headerNames);
+
 		return tf;
 	}
 
