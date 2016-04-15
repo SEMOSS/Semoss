@@ -928,8 +928,10 @@ public class TinkerFrame extends AbstractTableDataFrame {
                //else default to primary key tinker graph
                else {
                    displayNames = wrapper.getDisplayVariables();
-            	   TinkerMetaHelper.mergeEdgeHash(this.metaData, TinkerMetaHelper.createPrimKeyEdgeHash(displayNames));
-            	   while(wrapper.hasNext()){
+                   TinkerMetaHelper.mergeEdgeHash(this.metaData, TinkerMetaHelper.createPrimKeyEdgeHash(displayNames));
+                   List<String> fullNames = this.metaData.getColumnNames();
+            	   this.headerNames = fullNames.toArray(new String[fullNames.size()]);
+                   while(wrapper.hasNext()){
             		   this.addRow(wrapper.next());
             	   }
                }
