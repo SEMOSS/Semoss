@@ -5,19 +5,19 @@ package prerna.sablecc.node;
 import prerna.sablecc.analysis.*;
 
 @SuppressWarnings("nls")
-public final class ADivFactor extends PFactor
+public final class ADivExpr extends PExpr
 {
-    private PFactor _left_;
+    private PTerm _left_;
     private TDiv _div_;
     private PTerm _right_;
 
-    public ADivFactor()
+    public ADivExpr()
     {
         // Constructor
     }
 
-    public ADivFactor(
-        @SuppressWarnings("hiding") PFactor _left_,
+    public ADivExpr(
+        @SuppressWarnings("hiding") PTerm _left_,
         @SuppressWarnings("hiding") TDiv _div_,
         @SuppressWarnings("hiding") PTerm _right_)
     {
@@ -33,7 +33,7 @@ public final class ADivFactor extends PFactor
     @Override
     public Object clone()
     {
-        return new ADivFactor(
+        return new ADivExpr(
             cloneNode(this._left_),
             cloneNode(this._div_),
             cloneNode(this._right_));
@@ -42,15 +42,15 @@ public final class ADivFactor extends PFactor
     @Override
     public void apply(Switch sw)
     {
-        ((Analysis) sw).caseADivFactor(this);
+        ((Analysis) sw).caseADivExpr(this);
     }
 
-    public PFactor getLeft()
+    public PTerm getLeft()
     {
         return this._left_;
     }
 
-    public void setLeft(PFactor node)
+    public void setLeft(PTerm node)
     {
         if(this._left_ != null)
         {
@@ -160,7 +160,7 @@ public final class ADivFactor extends PFactor
         // Replace child
         if(this._left_ == oldChild)
         {
-            setLeft((PFactor) newChild);
+            setLeft((PTerm) newChild);
             return;
         }
 

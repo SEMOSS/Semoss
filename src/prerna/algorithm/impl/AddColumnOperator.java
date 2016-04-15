@@ -10,6 +10,7 @@ import prerna.algorithm.api.IColumnOperator;
 import prerna.ds.ExpressionIterator;
 import prerna.ds.TinkerFrame;
 
+@Deprecated
 public class AddColumnOperator implements IColumnOperator {
 	
 	private static final Logger LOGGER = LogManager.getLogger(AddColumnOperator.class.getName());
@@ -44,7 +45,6 @@ public class AddColumnOperator implements IColumnOperator {
 			}
 			frame.addRelationship(row, row);
 		}
-		frame.setTempExpressionResult("SUCCESS");
 		
 		LOGGER.info("Added column '"+newCol+"': "+(System.currentTimeMillis() - startTime)+" ms");
 	}

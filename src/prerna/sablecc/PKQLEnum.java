@@ -1,6 +1,6 @@
 package prerna.sablecc;
 
-public class TokenEnum {
+public class PKQLEnum {
 	
 	public enum PKQLToken {NUMBER, DECIMAL, COL_CSV, COL_DEF, WHERE, FILTER, SELECTOR, API, CODE}
 	public enum PKQLReactor {COL_ADD, IMPORT_DATA, MATH_FUN, EXPR, R_OP}

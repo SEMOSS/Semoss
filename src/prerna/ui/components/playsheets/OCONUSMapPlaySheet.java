@@ -28,16 +28,19 @@
 package prerna.ui.components.playsheets;
 
 import java.awt.Dimension;
+import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.Hashtable;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
+import java.util.Map;
 
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
 import prerna.util.Constants;
 import prerna.util.DIHelper;
+import prerna.util.Utility;
 
 import com.google.gson.Gson;
 import com.teamdev.jxbrowser.chromium.JSValue;
@@ -49,8 +52,14 @@ import com.teamdev.jxbrowser.chromium.JSValue;
 public class OCONUSMapPlaySheet extends BrowserPlaySheet {
 	
 	private static final Logger logger = LogManager.getLogger(OCONUSMapPlaySheet.class.getName());
-	protected Hashtable<String, Object> allHash;
 	protected HashSet<LinkedHashMap<String, Object>> data;
+	protected Hashtable<String, Object> allHash;
+	private static final String labelString = "label";
+	private static final String seriesString = "series"; //optional
+	private static final String latString = "lat";
+	private static final String lonString = "lon";
+	private static final String sizeString = "size"; //optional
+	private static final String timeString = "time"; //optional
 	
 	/**
 	 * Constructor for OCONUSMapPlaySheet.
@@ -70,55 +79,123 @@ public class OCONUSMapPlaySheet extends BrowserPlaySheet {
 	 *         data must be in the format lat, lon, size, and must include any relevant properties for the coordinate.
 	 */
 	public void processQueryData() {
+		Map<String, String> align = getDataTableAlign();
+		int labelIdx = -1;
+		int latIdx = -1;
+		int lonIdx = -1;
+		int sizeIdx = -1; //optional
+		int seriesIdx = -1; //optional
+		int timeIdx = -1; //optional
 		data = new HashSet<LinkedHashMap<String, Object>>();
 		String[] names = dataFrame.getColumnHeaders();
 		
+		for(int i = 0; i < names.length; i++){
+			String name = names[i];
+			if(align.containsValue(name)){
+				String key = Utility.getKeyFromValue(align, name);
+				if(key.contains(labelString)){
+					labelIdx = i;
+				}
+				else if(key.contains(seriesString)){
+					seriesIdx = i;
+				}
+				else if(key.contains(latString)){
+					latIdx = i;
+				}
+				else if(key.contains(lonString)){
+					lonIdx = i;
+				}
+				else if(key.contains(sizeString)){
+					sizeIdx = i;
+				}
+				else if(key.contains(timeString)) {
+					timeIdx = i;
+				}
+			}
+		}
+		
+		String name = names[labelIdx];
 		// Possibly filter out all US Facilities from the query?
 		Iterator<Object[]> it = dataFrame.iterator(true);
+		ArrayList<Hashtable<String, Object>> allData = new ArrayList<Hashtable<String, Object>>();
 		while(it.hasNext()) {
-			LinkedHashMap<String, Object> elementHash = new LinkedHashMap<String, Object>();
+			Hashtable<String, Object> elementHash = new Hashtable<String, Object>();
 			Object[] listElement = it.next();
 			String colName;
 			Double value;
-			for (int j = 0; j < names.length; j++) {
-				colName = names[j];
-				if (names.length > 3 && names[3].equals(null))
-					elementHash.put("size", "size");
-				if (listElement[j] instanceof String) {
-					String text = (String) listElement[j];
-					elementHash.put(colName, text);
-				} else {
-					elementHash.put(colName, listElement[j]);
-				}
-				
+			
+			if(seriesIdx != -1) {
+				name = listElement[seriesIdx].toString();
 			}
-			data.add(elementHash);
+			
+			elementHash.put("series", name);
+			elementHash.put("label", listElement[labelIdx]);
+			elementHash.put("lat", listElement[latIdx]);
+			elementHash.put("lon", listElement[lonIdx]);
+			if(sizeIdx != -1) {
+				elementHash.put("size", listElement[sizeIdx]);
+			}
+			if (timeIdx != -1) {
+				elementHash.put("time", listElement[timeIdx]);
+			}
+			
+			allData.add(elementHash);
 		}
-		
 		allHash = new Hashtable<String, Object>();
-		allHash.put("dataSeries", data);
-		
-		allHash.put("lat", names[1]);
-		allHash.put("lon", names[2]);
-		if (names.length > 3 && !names[3].equals(null))
-			allHash.put("size", names[3]);
-		else
+		allHash.put("dataSeries", allData);
+		allHash.put("lat", names[latIdx]);
+		allHash.put("lon", names[lonIdx]);
+		if (sizeIdx != -1) {
+			allHash.put("size", names[sizeIdx]);
+		}
+		else {
 			allHash.put("size", "");
-		allHash.put("locationName", names[0]);
-		/*
-		 * allHash.put("xAxisTitle", var[0]); allHash.put("yAxisTitle", var[1]); allHash.put("value", var[2]);
-		 */
-		
+		}
+		allHash.put("locationName", names[labelIdx]);
 		this.dataHash = allHash;
 	}
 	
+	@Override
+	public Map<String, String> getDataTableAlign() {
+		if(this.tableDataAlign == null){
+			this.tableDataAlign = getAlignHash();
+		}
+		return this.tableDataAlign;
+	}
+	
+	public Hashtable<String, String> getAlignHash() {
+		Hashtable<String, String> alignHash = new Hashtable<String, String>();
+		String[] names = dataFrame.getColumnHeaders();
+		
+		int offset = 0;
+		if(!dataFrame.isNumeric(names[1])) {
+			alignHash.put(seriesString, names[0]);
+			offset = 1;
+		}
+		alignHash.put(labelString, names[0 + offset]);
+		alignHash.put(latString, names[1 + offset]);
+		if(names.length > 2 + offset)
+			alignHash.put(lonString, names[2 + offset]);
+		if(names.length > 3 + offset)
+			alignHash.put(sizeString, names[3 + offset]);
+		if(names.length > 4 + offset)
+			alignHash.put(seriesString, names[4 + offset]);
+		if(names.length > 5 + offset)
+			alignHash.put(timeString, names[5+ offset]);
+		return alignHash;
+	}
+	
+	/**
+	 * Already performed by getAlignHash; unnecessary?
+	 * @return String Array of Table headers
+	 */
 	public String[] getVariableArray() {
 		return this.dataFrame.getColumnHeaders();
 	}
 	
 	@Override
 	/**
-	 * Method callIt.  Converts a given Hashtable to a Json and passes it to the browser.
+	 * Converts a given Hashtable to a Json and passes it to the browser. Deprecated?
 	 * @param table Hashtable - the correctly formatted data from the SPARQL query results.
 	 */
 	public void callIt(final Hashtable table) {
@@ -127,23 +204,7 @@ public class OCONUSMapPlaySheet extends BrowserPlaySheet {
 		logger.info("Converted gson");
 		JSValue val = browser.executeJavaScriptAndReturnValue("start('" + gson.toJson(table) + "');");
 		output.clear();
-		allHash.clear();
 		data.clear();
+		allHash.clear();
 	}
-	
-	@Override
-	public Hashtable<String, String> getDataTableAlign() {
-		Hashtable<String, String> alignHash = new Hashtable<String, String>();
-		String[] names = dataFrame.getColumnHeaders();
-		
-		alignHash.put("label", names[0]);
-		alignHash.put("lat", names[1]);
-		alignHash.put("lon", names[2]);
-		if (names.length > 3 && !names[3].equals(null))
-			alignHash.put("size", names[3]);
-		if (names.length > 4 && !names[4].equals(null))
-			alignHash.put("heat", names[4]);
-		return alignHash;
-	}
-	
 }

@@ -1,12 +1,13 @@
 package prerna.ds.H2;
 
+import java.sql.DatabaseMetaData;
+import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.Hashtable;
 import java.util.Iterator;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -725,7 +726,7 @@ public class TinkerH2Frame extends AbstractTableDataFrame {
 	public String getValueForUniqueName(String name) {
 		return this.metaData.getValueForUniqueName(name);
 	}
-
+	
 	@Override
 	public void connectTypes(String[] joinCols, String newCol) {
 		connectTypes(joinCols[0], newCol); // multiColumn join not enabled on h2
@@ -754,5 +755,18 @@ public class TinkerH2Frame extends AbstractTableDataFrame {
 		
 	}
 
+	public String getJDBCURL() throws SQLException{
+		String url = "";
+		DatabaseMetaData md = builder.conn.getMetaData();
+		url = md.getURL();
+		return url;
+	}
+	
+	public String getUserName() throws SQLException{
+		String userName = "";
+		DatabaseMetaData md = builder.conn.getMetaData();
+		userName = md.getUserName();
+		return userName;
+	}
 
 }

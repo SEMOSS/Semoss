@@ -15,20 +15,17 @@ public class ColAddReactor extends AbstractReactor {
 	
 	Hashtable <String, String[]> values2SyncHash = new Hashtable <String, String[]>();
 	
-	public ColAddReactor()
-	{
-		String [] thisReacts = {TokenEnum.COL_DEF,TokenEnum.COL_DEF + "_1", TokenEnum.API}; // these are the input columns - there is also expr Term which I will come to shortly
+	public ColAddReactor() {
+		String [] thisReacts = {PKQLEnum.COL_DEF,PKQLEnum.COL_DEF + "_1", PKQLEnum.API}; // these are the input columns - there is also expr Term which I will come to shortly
 		super.whatIReactTo = thisReacts;
-		super.whoAmI = TokenEnum.COL_ADD;
-		
+		super.whoAmI = PKQLEnum.COL_ADD;
 		
 		// this is the point where I specify what are the child values required for various input
-		String [] dataFromExpr = {TokenEnum.COL_DEF};
-		values2SyncHash.put(TokenEnum.EXPR_TERM, dataFromExpr);
+		String [] dataFromExpr = {PKQLEnum.COL_DEF};
+		values2SyncHash.put(PKQLEnum.EXPR_TERM, dataFromExpr);
 
-		String [] dataFromApi = {TokenEnum.COL_CSV};
-		values2SyncHash.put(TokenEnum.API, dataFromApi);
-
+		String [] dataFromApi = {PKQLEnum.COL_CSV};
+		values2SyncHash.put(PKQLEnum.API, dataFromApi);
 	}
 
 	@Override
@@ -44,20 +41,20 @@ public class ColAddReactor extends AbstractReactor {
 		
 		String [] joinCols = null;
 		Iterator it = null;
-		String newCol = (String)myStore.get(TokenEnum.COL_DEF + "_1");
+		String newCol = (String)myStore.get(PKQLEnum.COL_DEF + "_1");
 		
 		// ok this came in as an expr term
 		// I need to do the iterator here
-		System.err.println(myStore.get(TokenEnum.EXPR_TERM));
+		System.err.println(myStore.get(PKQLEnum.EXPR_TERM));
 		
 		// ok.. so it would be definitely be cool to pass this to an expr script right now and do the op
 		// however I dont have this shit
-		String expr = (String) myStore.get(TokenEnum.EXPR_TERM);
-		Vector <String> cols = (Vector <String>)myStore.get(TokenEnum.COL_DEF);
+		String expr = (String) myStore.get(PKQLEnum.EXPR_TERM);
+		Vector <String> cols = (Vector <String>)myStore.get(PKQLEnum.COL_DEF);
 		it = getTinkerData(cols, frame);
 		joinCols = convertVectorToArray(cols);
 		Object value = myStore.get(expr);
-		if(value == null) value = myStore.get(TokenEnum.API);
+		if(value == null) value = myStore.get(PKQLEnum.API);
 		
 		if (value instanceof Iterator) {
 			it = (ExpressionIterator)value;
@@ -89,7 +86,7 @@ public class ColAddReactor extends AbstractReactor {
 					row.put(primKeyName, TinkerMetaHelper.getPrimaryKey(values));
 					frame.addRelationship(row, row);
 				}
-				frame.setTempExpressionResult("SUCCESS");
+				myStore.put("STATUS", "SUCCESS");			
 			} else {
 				while(it.hasNext()) {
 					HashMap<String, Object> row = new HashMap<String, Object>();
@@ -109,17 +106,11 @@ public class ColAddReactor extends AbstractReactor {
 				}
 					frame.addRelationship(row, row);
 				}
-				frame.setTempExpressionResult("SUCCESS");
+				myStore.put("STATUS", "SUCCESS");
 			}
 		} else {
-			frame.setTempExpressionResult("FAIL");
+			myStore.put("STATUS", "FAIL");
 		}
-		
-		
-		
-		// I have no idea what we are trying to do here 
-		// need to ask kevin
-		
 		return null;
 	}
 

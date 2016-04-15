@@ -5,46 +5,46 @@ package prerna.sablecc.node;
 import prerna.sablecc.analysis.*;
 
 @SuppressWarnings("nls")
-public final class AFactorExpr extends PExpr
+public final class AMathFunTerm extends PTerm
 {
-    private PFactor _factor_;
+    private PMathFun _mathFun_;
 
-    public AFactorExpr()
+    public AMathFunTerm()
     {
         // Constructor
     }
 
-    public AFactorExpr(
-        @SuppressWarnings("hiding") PFactor _factor_)
+    public AMathFunTerm(
+        @SuppressWarnings("hiding") PMathFun _mathFun_)
     {
         // Constructor
-        setFactor(_factor_);
+        setMathFun(_mathFun_);
 
     }
 
     @Override
     public Object clone()
     {
-        return new AFactorExpr(
-            cloneNode(this._factor_));
+        return new AMathFunTerm(
+            cloneNode(this._mathFun_));
     }
 
     @Override
     public void apply(Switch sw)
     {
-        ((Analysis) sw).caseAFactorExpr(this);
+        ((Analysis) sw).caseAMathFunTerm(this);
     }
 
-    public PFactor getFactor()
+    public PMathFun getMathFun()
     {
-        return this._factor_;
+        return this._mathFun_;
     }
 
-    public void setFactor(PFactor node)
+    public void setMathFun(PMathFun node)
     {
-        if(this._factor_ != null)
+        if(this._mathFun_ != null)
         {
-            this._factor_.parent(null);
+            this._mathFun_.parent(null);
         }
 
         if(node != null)
@@ -57,23 +57,23 @@ public final class AFactorExpr extends PExpr
             node.parent(this);
         }
 
-        this._factor_ = node;
+        this._mathFun_ = node;
     }
 
     @Override
     public String toString()
     {
         return ""
-            + toString(this._factor_);
+            + toString(this._mathFun_);
     }
 
     @Override
     void removeChild(@SuppressWarnings("unused") Node child)
     {
         // Remove child
-        if(this._factor_ == child)
+        if(this._mathFun_ == child)
         {
-            this._factor_ = null;
+            this._mathFun_ = null;
             return;
         }
 
@@ -84,9 +84,9 @@ public final class AFactorExpr extends PExpr
     void replaceChild(@SuppressWarnings("unused") Node oldChild, @SuppressWarnings("unused") Node newChild)
     {
         // Replace child
-        if(this._factor_ == oldChild)
+        if(this._mathFun_ == oldChild)
         {
-            setFactor((PFactor) newChild);
+            setMathFun((PMathFun) newChild);
             return;
         }
 

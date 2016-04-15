@@ -14,9 +14,9 @@ public class ExprReactor extends AbstractReactor {
 	
 	public ExprReactor()
 	{
-		String [] thisReacts = {TokenEnum.COL_DEF, TokenEnum.DECIMAL, TokenEnum.NUMBER};
+		String [] thisReacts = {PKQLEnum.COL_DEF, PKQLEnum.DECIMAL, PKQLEnum.NUMBER};
 		super.whatIReactTo = thisReacts;
-		super.whoAmI = TokenEnum.EXPR_TERM;
+		super.whoAmI = PKQLEnum.EXPR_TERM;
 	}
 	
 	@Override
@@ -28,7 +28,7 @@ public class ExprReactor extends AbstractReactor {
 		// if it came here
 		// there is no point doing anything
 		// but I will ignore that for now
-		if(myStore.get(myStore.get(TokenEnum.EXPR_TERM)) == null)
+		if(myStore.get(PKQLEnum.EXPR_TERM) != null)
 		{			
 			modExpression();
 			String nodeStr = (String)myStore.get(whoAmI);

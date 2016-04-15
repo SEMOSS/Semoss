@@ -24,14 +24,14 @@ public class MathReactor extends AbstractReactor {
 	
 	
 	public MathReactor() {
-		String [] thisReacts = {TokenEnum.EXPR_TERM, TokenEnum.DECIMAL, TokenEnum.NUMBER, TokenEnum.GROUP_BY, TokenEnum.COL_DEF};
+		String [] thisReacts = {PKQLEnum.EXPR_TERM, PKQLEnum.DECIMAL, PKQLEnum.NUMBER, PKQLEnum.GROUP_BY, PKQLEnum.COL_DEF};
 		super.whatIReactTo = thisReacts;
-		super.whoAmI = TokenEnum.MATH_FUN;
+		super.whoAmI = PKQLEnum.MATH_FUN;
 	}
 	
 	public Vector<String> getColumns() {
-		if (myStore.containsKey(TokenEnum.COL_DEF)) {
-			return (Vector<String>)myStore.get(TokenEnum.COL_DEF);
+		if (myStore.containsKey(PKQLEnum.COL_DEF)) {
+			return (Vector<String>)myStore.get(PKQLEnum.COL_DEF);
 		}
 		else {
 			return new Vector<String>();
@@ -44,12 +44,12 @@ public class MathReactor extends AbstractReactor {
 			modExpression();
 			System.out.println("Printing the myStore..  " + myStore);
 
-			String procedureName = (String)myStore.get(TokenEnum.PROC_NAME);
+			String procedureName = (String)myStore.get(PKQLEnum.PROC_NAME);
 			String procedureAlgo = "prerna.algorithm.impl." + procedureName + "Algorithm";
 			
 			Object algorithm = Class.forName(procedureAlgo).newInstance();
 			
-			Vector <String> columns = (Vector <String>)myStore.get(TokenEnum.COL_DEF);
+			Vector <String> columns = (Vector <String>)myStore.get(PKQLEnum.COL_DEF);
 			String[] columnsArray = convertVectorToArray(columns);
 			// this call needs to go to tinker
 			// I need to find a way to do this - and I did

@@ -1,9 +1,5 @@
 package prerna.ds;
 
-import java.io.IOException;
-import java.io.InputStreamReader;
-import java.io.PushbackReader;
-import java.io.StringBufferInputStream;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -26,12 +22,6 @@ import prerna.engine.api.IEngine;
 import prerna.engine.api.ISelectStatement;
 import prerna.math.BarChart;
 import prerna.math.StatisticsUtilityMethods;
-import prerna.sablecc.Translation2;
-import prerna.sablecc.lexer.Lexer;
-import prerna.sablecc.lexer.LexerException;
-import prerna.sablecc.node.Start;
-import prerna.sablecc.parser.Parser;
-import prerna.sablecc.parser.ParserException;
 import prerna.ui.components.playsheets.datamakers.DataMakerComponent;
 import prerna.ui.components.playsheets.datamakers.IDataMaker;
 import prerna.ui.components.playsheets.datamakers.ISEMOSSAction;
@@ -46,34 +36,6 @@ public abstract class AbstractTableDataFrame implements ITableDataFrame {
 	protected String[] headerNames;
 	protected List<Object> algorithmOutput = new Vector<Object>();
 	protected List<String> columnsToSkip = new Vector<String>(); //make a set?
-	protected Object tempExpressionResult = "FAIL";
-	
-	public Object runPKQL(String expression) {
-		Parser p =
-			    new Parser(
-			    new Lexer(
-			    new PushbackReader(
-			    new InputStreamReader(new StringBufferInputStream(expression)), 1024)));
-			// new InputStreamReader(System.in), 1024)));
-
-			   // Parse the input.
-			   Start tree;
-			try {
-				tree = p.parse();
-				   // Apply the translation.
-				   tree.apply(new Translation2(this));
-			} catch (ParserException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
-			} catch (LexerException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
-			} catch (IOException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
-			}
-			return this.tempExpressionResult;
-	}
 	
 	@Override
 	public Map<String, Set<String>> createPrimKeyEdgeHash(String[] headers) {
@@ -95,13 +57,6 @@ public abstract class AbstractTableDataFrame implements ITableDataFrame {
 			Vector<Map<String, String>> joinCols) {
 		return TinkerMetaHelper.mergeQSEdgeHash(this.metaData, edgeHash, engine, joinCols);
 	}
-
-	@Override
-	public void setTempExpressionResult(Object string) {
-		this.tempExpressionResult = string;
-	}
-	
-	
 
 	@Override
 	public void processPreTransformations(DataMakerComponent dmc, List<ISEMOSSTransformation> transforms) {
