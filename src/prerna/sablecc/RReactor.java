@@ -11,7 +11,6 @@ import org.rosuda.REngine.Rserve.RConnection;
 import org.rosuda.REngine.Rserve.RserveException;
 
 import prerna.ds.H2.TinkerH2Frame;
-import prerna.invoker.r.RInvoker;
 import prerna.sablecc.PKQLEnum.PKQLReactor;
 import prerna.sablecc.PKQLEnum.PKQLToken;
 import prerna.util.Constants;
@@ -70,7 +69,6 @@ public class RReactor extends AbstractReactor{
 		String userScript = (String) myStore.get(PKQLToken.CODE.toString());
 		String url = "";
 		String username = "";
-		RInvoker r = new RInvoker();
 		
 		// Error handling
 		if (userScript == null || userScript.length() < 1) {
@@ -103,15 +101,6 @@ public class RReactor extends AbstractReactor{
 				+ "conn <- dbConnect(drv, '" + url + "', '" + username + "', ''); "
 //				+ "d <- dbReadTable(conn, 'TINKERFRAME2'); "; // TODO: allow user to select dataframe name rather than "d"
 				;											 // TODO: find a way to get table name
-		
-		//*** use this code block if we want to separate R execution logic from reactor
-		/*String result = r.convertToString(r.evaluateScript(script + userScript, library));
-		myStore.put(nodeStr, result);
-		if (result.indexOf("Error") > -1) {
-			myStore.put("STATUS", "error");
-		} else {
-			myStore.put("STATUS", "success");
-		}*/
 		
 		REXP rResult;
 		try {
