@@ -245,21 +245,7 @@ public class TableDataFrameFactory {
 			values[i] = dataFrame.getValueForUniqueName(headers[i]);
 		}
 		
-		String tableName = null;
-//		List<String> uniqueNames = Arrays.asList(dataFrame.getColumnHeaders());
-//		for(String name : uniqueNames) {
-//			if(name.startsWith(TinkerFrame.PRIM_KEY)) {
-//				tableName = dataFrame.getValueForUniqueName(name);
-//				break;
-//			}
-//		}
-		
-		//TODO: this will get the table name from the unique name
-		// need to properly update the logic s.t. we are grabbing the correct headers so tableName is not null
-		if(tableName == null) {
-			tableName = dataFrame.getTableNameForUniqueColumn(headers[0]);
-		}
-		
+		String tableName = dataFrame.getTableNameForUniqueColumn(headers[0]);
 		String [] cells = null;
 		while((cells = helper.getNextRow()) != null) {
 			dataFrame.addRow2(tableName, cells, values, types);
@@ -325,20 +311,22 @@ public class TableDataFrameFactory {
 	//////////////////////// END CSV LOADING //////////////////////////////////////
 
 	private static ITableDataFrame createPrimKeyTinkerFrame(String[] headers, String dataFrameType, String[] types, String mainConcept) {
-		ITableDataFrame dataFrame;
+		ITableDataFrame dataFrame = null;
+		Map<String, Set<String>> edgeHash = null;
 		if(dataFrameType.equalsIgnoreCase("H2")) {
 			dataFrame = new TinkerH2Frame(headers);
+			edgeHash = dataFrame.createPrimKeyEdgeHash(headers);
 		} else {
 			dataFrame = new TinkerFrame(headers);
+			// user has defined an edge hash
+			if(mainConcept != null) {
+				edgeHash = createFlatEdgeHash(mainConcept, headers);
+			} else {
+				// no user defined edge hash, create prim key
+				edgeHash = dataFrame.createPrimKeyEdgeHash(headers);
+			}
 		}
-		Map<String, Set<String>> edgeHash = null;
-		// user has defined an edge hash
-		if(mainConcept != null) {
-			edgeHash = createFlatEdgeHash(mainConcept, headers);
-		} else {
-			// no user defined edge hash, create prim key
-			edgeHash = dataFrame.createPrimKeyEdgeHash(headers);
-		}
+		
 		dataFrame.mergeEdgeHash(edgeHash);
 		dataFrame.addMetaDataTypes(headers, types);
 		return dataFrame;
