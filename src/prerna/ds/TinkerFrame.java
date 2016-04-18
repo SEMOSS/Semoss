@@ -2209,18 +2209,19 @@ public class TinkerFrame extends AbstractTableDataFrame {
 		for(String addedType : addedColumns){
 			Vertex emptyV = null;
 			String colValue = this.metaData.getValueForUniqueName(colName);
+			String addedValue = this.metaData.getValueForUniqueName(addedType);
 			boolean forward = false;
 			GraphTraversal<Vertex, Vertex> gt = null;
 			if(this.metaData.isConnectedInDirection(colValue, addedType)){
 				forward = true;
-				gt = g.traversal().V().has(Constants.TYPE, colValue).not(__.out(colValue+edgeLabelDelimeter+addedType).has(Constants.TYPE, addedType));
+				gt = g.traversal().V().has(Constants.TYPE, colValue).not(__.out(colValue+edgeLabelDelimeter+addedValue).has(Constants.TYPE, addedValue));
 			}
 			else {
-				gt = g.traversal().V().has(Constants.TYPE, colValue).not(__.in(addedType+edgeLabelDelimeter+colValue).has(Constants.TYPE, addedType));
+				gt = g.traversal().V().has(Constants.TYPE, colValue).not(__.in(addedValue+edgeLabelDelimeter+colValue).has(Constants.TYPE, addedValue));
 			}
 			while(gt.hasNext()){ // these are the dudes that need an empty
 				if(emptyV == null){
-					emptyV = this.upsertVertex(addedType, EMPTY, EMPTY);
+					emptyV = this.upsertVertex(addedValue, EMPTY, EMPTY);
 				}
 				
 				Vertex existingVert = gt.next();
