@@ -4,6 +4,7 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Hashtable;
+import java.util.LinkedHashSet;
 import java.util.Map;
 import java.util.Set;
 
@@ -22,27 +23,28 @@ public class TableDataFrameFactory {
 	 * @param dataStr
 	 * @param delimeter
 	 * @param dataTypeMap 
+	 * @param mainConcept 
 	 * @return
 	 */
-	public static ITableDataFrame generateDataFrameFromFile(String fileLoc, String delimeter, String dataFrameType, Map<String, Map<String, String>> dataTypeMap) {
+	public static ITableDataFrame generateDataFrameFromFile(String fileLoc, String delimeter, String dataFrameType, Map<String, Map<String, String>> dataTypeMap, Map<String, String> mainCol) {
 		if(dataFrameType.equalsIgnoreCase("H2")) {
 			if(fileLoc.endsWith(".xlsx") || fileLoc.endsWith(".xlsm")) {
-				return generateH2FrameFromExcel(fileLoc, dataTypeMap);
+				return generateH2FrameFromExcel(fileLoc, dataTypeMap, mainCol);
 			} else {
-				return generateH2FrameFromFile(fileLoc, delimeter, dataTypeMap.get(CSV_FILE_KEY));
+				return generateH2FrameFromFile(fileLoc, delimeter, dataTypeMap.get(CSV_FILE_KEY), mainCol.get(CSV_FILE_KEY));
 			}
 		} else {
 			if(fileLoc.endsWith(".xlsx") || fileLoc.endsWith(".xlsm")) {
-				return generateTinkerFrameFromExcel(fileLoc, dataTypeMap);
+				return generateTinkerFrameFromExcel(fileLoc, dataTypeMap, mainCol);
 			} else {
-				return generateTinkerFrameFromFile(fileLoc, delimeter, dataTypeMap.get(CSV_FILE_KEY));
+				return generateTinkerFrameFromFile(fileLoc, delimeter, dataTypeMap.get(CSV_FILE_KEY), mainCol.get(CSV_FILE_KEY));
 			}
 		}
 	}
 	
 	//////////////////////// START EXCEL LOADING //////////////////////////////////////
 	
-	private static TinkerFrame generateTinkerFrameFromExcel(String fileLoc, Map<String, Map<String, String>> dataTypeMap) {
+	private static TinkerFrame generateTinkerFrameFromExcel(String fileLoc, Map<String, Map<String, String>> dataTypeMap, Map<String, String> mainCols) {
 		XLFileHelper helper = new XLFileHelper();
 		helper.parse(fileLoc);
 		String[] tables = helper.getTables();
@@ -80,14 +82,21 @@ public class TableDataFrameFactory {
 			}
 			
 			if(tf == null) {
-				tf = (TinkerFrame) createPrimKeyTinkerFrame(headers, "TinkerFrame", types);
+				tf = (TinkerFrame) createPrimKeyTinkerFrame(headers, "TinkerFrame", types, mainCols.get(sheetName));
 			} else {
-				Map<String, Set<String>> newEdgeHash = new Hashtable<String, Set<String>>();
-				// need to create a new prim_key vertex
-				Set<String> values = new HashSet<String>();
-				values.addAll(Arrays.asList(headers));
-				primKeyHeader = TinkerFrame.PRIM_KEY + "_" + i;
-				newEdgeHash.put(primKeyHeader, values);
+				String mainCol = mainCols.get(sheetName);
+				Map<String, Set<String>> newEdgeHash = null;
+				if(mainCol != null) {
+					newEdgeHash = createFlatEdgeHash(mainCol, headers);
+				} else {
+					newEdgeHash = new Hashtable<String, Set<String>>();
+					// need to create a new prim_key vertex
+					Set<String> values = new HashSet<String>();
+					values.addAll(Arrays.asList(headers));
+					primKeyHeader = TinkerFrame.PRIM_KEY + "_" + i;
+					newEdgeHash.put(primKeyHeader, values);
+				}
+				
 				tf.mergeEdgeHash(newEdgeHash);
 				tf.addMetaDataTypes(headers, types);
 			}
@@ -124,7 +133,7 @@ public class TableDataFrameFactory {
 		return tf;
 	}
 
-	private static TinkerH2Frame generateH2FrameFromExcel(String fileLoc, Map<String, Map<String, String>> dataTypeMap) {
+	private static TinkerH2Frame generateH2FrameFromExcel(String fileLoc, Map<String, Map<String, String>> dataTypeMap, Map<String, String> mainCols) {
 		
 		XLFileHelper helper = new XLFileHelper();
 		helper.parse(fileLoc);
@@ -159,23 +168,21 @@ public class TableDataFrameFactory {
 				types = helper.predictRowTypes(table);			
 			}
 			
-			// need to make everything a property of the table (i.e. sheet)
-//			for(int index = 0; index < headers.length; index++) {
-//				String header = headers[index];
-//				headers[index] = table+"__"+header;
-//			}
-
 			if(dataFrame == null) {
-				dataFrame = (TinkerH2Frame) createPrimKeyTinkerFrame(headers, "H2", types);
+				dataFrame = (TinkerH2Frame) createPrimKeyTinkerFrame(headers, "H2", types, mainCols.get(table));
 			} else {
-				Map<String, Set<String>> newEdgeHash = new Hashtable<String, Set<String>>();
-				// need to create a new prim_key vertex
-				Set<String> values = new HashSet<String>();
-				values.addAll(Arrays.asList(headers));
-				primKeyHeader = TinkerFrame.PRIM_KEY + "_" + i;
-				newEdgeHash.put(primKeyHeader, values);
-				dataFrame.mergeEdgeHash(newEdgeHash);
-				dataFrame.addMetaDataTypes(headers, types);
+				String mainCol = mainCols.get(table);
+				Map<String, Set<String>> newEdgeHash = null;
+				if(mainCol != null) {
+					newEdgeHash = createFlatEdgeHash(mainCol, headers);
+				} else {
+					newEdgeHash = new Hashtable<String, Set<String>>();
+					// need to create a new prim_key vertex
+					Set<String> values = new HashSet<String>();
+					values.addAll(Arrays.asList(headers));
+					primKeyHeader = TinkerFrame.PRIM_KEY + "_" + i;
+					newEdgeHash.put(primKeyHeader, values);
+				}
 			}
 			
 			// unique names always match the headers when creating from csv/excel
@@ -200,7 +207,7 @@ public class TableDataFrameFactory {
 	
 	//////////////////////// START CSV LOADING //////////////////////////////////////
 	
-	private static TinkerH2Frame generateH2FrameFromFile(String fileLoc, String delimiter, Map<String, String> dataTypeMap) {
+	private static TinkerH2Frame generateH2FrameFromFile(String fileLoc, String delimiter, Map<String, String> dataTypeMap, String mainCol) {
 		CSVFileHelper helper = new CSVFileHelper();
 		helper.setDelimiter(delimiter.charAt(0));
 		helper.parse(fileLoc);
@@ -226,7 +233,7 @@ public class TableDataFrameFactory {
 			types = helper.predictTypes();			
 		}
 		
-		TinkerH2Frame dataFrame = (TinkerH2Frame)createPrimKeyTinkerFrame(headers, "H2", types);
+		TinkerH2Frame dataFrame = (TinkerH2Frame)createPrimKeyTinkerFrame(headers, "H2", types, mainCol);
 		
 		// unique names always match the headers when creating from csv/excel
 		String[] values = new String[headers.length];
@@ -256,7 +263,7 @@ public class TableDataFrameFactory {
 		return dataFrame;
 	}
 	
-	private static TinkerFrame generateTinkerFrameFromFile(String fileLoc, String delimiter, Map<String, String> dataTypeMap) {
+	private static TinkerFrame generateTinkerFrameFromFile(String fileLoc, String delimiter, Map<String, String> dataTypeMap, String mainCol) {
 		CSVFileHelper helper = new CSVFileHelper();
 		helper.setDelimiter(delimiter.charAt(0));
 		helper.parse(fileLoc);
@@ -282,7 +289,7 @@ public class TableDataFrameFactory {
 			types = helper.predictTypes();			
 		}
 
-		TinkerFrame dataFrame = (TinkerFrame)createPrimKeyTinkerFrame(headers, "TinkerFrame", types);
+		TinkerFrame dataFrame = (TinkerFrame)createPrimKeyTinkerFrame(headers, "TinkerFrame", types, mainCol);
 		
 		TinkerCastHelper caster = new TinkerCastHelper();
 		String[] cells = null;
@@ -309,17 +316,35 @@ public class TableDataFrameFactory {
 	
 	//////////////////////// END CSV LOADING //////////////////////////////////////
 
-	private static ITableDataFrame createPrimKeyTinkerFrame(String[] headers, String dataFrameType, String[] types) {
-		
+	private static ITableDataFrame createPrimKeyTinkerFrame(String[] headers, String dataFrameType, String[] types, String mainConcept) {
 		ITableDataFrame dataFrame;
 		if(dataFrameType.equalsIgnoreCase("H2")) {
 			dataFrame = new TinkerH2Frame(headers);
 		} else {
 			dataFrame = new TinkerFrame(headers);
 		}
-		Map<String, Set<String>> primKeyEdgeHash = dataFrame.createPrimKeyEdgeHash(headers);
-		dataFrame.mergeEdgeHash(primKeyEdgeHash);
+		Map<String, Set<String>> edgeHash = null;
+		// user has defined an edge hash
+		if(mainConcept != null) {
+			edgeHash = createFlatEdgeHash(mainConcept, headers);
+		} else {
+			// no user defined edge hash, create prim key
+			edgeHash = dataFrame.createPrimKeyEdgeHash(headers);
+		}
+		dataFrame.mergeEdgeHash(edgeHash);
 		dataFrame.addMetaDataTypes(headers, types);
 		return dataFrame;
+	}
+	
+	private static Map<String, Set<String>> createFlatEdgeHash(String mainCol, String[] headers) {
+		Map<String, Set<String>> edgeHash = new HashMap<String, Set<String>>();
+		Set<String> edges = new LinkedHashSet<>();
+		for(String header : headers) {
+			if(!header.equals(mainCol)) {
+				edges.add(header);
+			}
+		}
+		edgeHash.put(mainCol, edges);
+		return edgeHash;
 	}
 }
