@@ -59,7 +59,7 @@ public class TinkerMetaData2 implements IMetaData {
 	public static final String PRIM_KEY = "PRIM_KEY";
 	public static final String META = "META";
 	public static final String edgeLabelDelimeter = "+++";
-	private static int orderIdx = 0;
+	private static int orderIdx = -1;
 	
 	/**
 	 * CURRENT PROPERTY STRUCTURE::::::::::::::::::
@@ -277,10 +277,28 @@ public class TinkerMetaData2 implements IMetaData {
 			// all new meta nodes are defaulted as unfiltered and not prim keys
 			retVertex.property(Constants.FILTER, false);
 			retVertex.property(PRIM_KEY, false);
-			retVertex.property(ORDER, this.orderIdx);
-			this.orderIdx++;
+			retVertex.property(ORDER, getOrderIdx());
 		}
 		return retVertex;
+	}
+
+	private int getOrderIdx() {
+		int retIdx = -1;
+		if(this.orderIdx >= 0){ // this means that it has been set (either after deserializing or starting fresh)
+			retIdx = this.orderIdx;
+		}
+		else {
+			GraphTraversal<Vertex, Number> trav = g.traversal().V().has(Constants.TYPE, META).values(ORDER).max();
+			if(trav.hasNext()){
+				retIdx = (int) trav.next() + 1;
+			}
+			else {
+				retIdx = 0;
+			}
+			this.orderIdx = retIdx;
+		}
+		this.orderIdx++; // set it up for next time
+		return retIdx;
 	}
 
 	private Edge upsertEdge(Vertex fromVertex, Vertex toVertex)
