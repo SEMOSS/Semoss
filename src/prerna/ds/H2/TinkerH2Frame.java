@@ -435,7 +435,7 @@ public class TinkerH2Frame extends AbstractTableDataFrame {
 	@Override 
 	public boolean isNumeric(String columnHeader) {
 		String[] types = builder.getTypes();
-		int index = ArrayUtilityMethods.arrayContainsValueAtIndex(headerNames, columnHeader);
+		int index = ArrayUtilityMethods.arrayContainsValueAtIndexIgnoreCase(headerNames, columnHeader);
 		boolean isNum = types[index].equalsIgnoreCase("int") || types[index].equalsIgnoreCase("double");
 		return isNum;
 	}
@@ -450,7 +450,6 @@ public class TinkerH2Frame extends AbstractTableDataFrame {
 	@Override
 	public Double[] getColumnAsNumeric(String columnHeader) {
 		if(isNumeric(columnHeader)) {
-//			columnHeader = H2HeaderMap.get(columnHeader);
 			columnHeader = this.metaData.getValueForUniqueName(columnHeader);
 			Object[] array = builder.getColumn(columnHeader, false);
 			
@@ -559,7 +558,21 @@ public class TinkerH2Frame extends AbstractTableDataFrame {
 
  	   List<String> fullNames = tf.metaData.getColumnNames();
 	   tf.headerNames = fullNames.toArray(new String[fullNames.size()]);
-		return tf;//
+	   
+	   String[] types = new String[tf.headerNames.length];
+	   for(int i = 0; i < tf.headerNames.length; i++) {
+		   String type = tf.metaData.getDataType(tf.headerNames[i]);
+		   if(type.equalsIgnoreCase("Number")) { 
+			   types[i] = "Double";
+		   } else if(type.equalsIgnoreCase("String")) {
+			   types[i] = "Varchar(800)";
+		   } else {
+			   types[i] = "Date";
+		   }
+	   }
+	   
+	   tf.builder.types = types;
+		return tf;
 	}
 	
 	protected void updateH2PhysicalNames() {
@@ -679,6 +692,21 @@ public class TinkerH2Frame extends AbstractTableDataFrame {
 
 		List<String> fullNames = this.metaData.getColumnNames();
 		this.headerNames = fullNames.toArray(new String[fullNames.size()]);
+		
+		//Algorithm
+		//get outtype and intype parents
+		//if outtype parent == null && intype parent != null
+		//	connect outtype to intypes parent
+		//if outtype parent != null && intype parent == null
+		//	connect intype to outtypes parent
+		//if outtype parent != null && intype parent !== null
+		//	if not the same parent
+		//		?
+		//	else do nothing
+		//if outtype parent == null & intype parent == null
+		//  connect intype to outtype?
+		
+		
 	}
 	
 //	private List<String> getH2Headers(List<String> headers) {
