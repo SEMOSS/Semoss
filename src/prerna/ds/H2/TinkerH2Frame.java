@@ -724,11 +724,11 @@ public class TinkerH2Frame extends AbstractTableDataFrame {
 //		return TinkerMetaHelper.createPrimKeyEdgeHash(headers);
 //	}
 //
-//	@Override
-//	public void mergeEdgeHash(Map<String, Set<String>> primKeyEdgeHash) {
-//		TinkerMetaHelper.mergeEdgeHash(this.metaData, primKeyEdgeHash, getNode2ValueHash(primKeyEdgeHash));
-//	}
-//
+	@Override
+	public void mergeEdgeHash(Map<String, Set<String>> primKeyEdgeHash) {
+		TinkerMetaHelper.mergeEdgeHash(this.metaData, primKeyEdgeHash, getNode2ValueHash(primKeyEdgeHash));
+	}
+
 //	@Override
 //	public void addMetaDataTypes(String[] headers, String[] types) {
 //		this.metaData.storeDataTypes(headers, types);
