@@ -1,5 +1,6 @@
 package prerna.ds.H2;
 
+import java.io.IOException;
 import java.sql.DatabaseMetaData;
 import java.sql.SQLException;
 import java.util.ArrayList;
@@ -17,6 +18,16 @@ import java.util.Vector;
 
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
+import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.GraphTraversal;
+import org.apache.tinkerpop.gremlin.structure.Edge;
+import org.apache.tinkerpop.gremlin.structure.Vertex;
+import org.apache.tinkerpop.gremlin.structure.io.Io.Builder;
+import org.apache.tinkerpop.gremlin.structure.io.IoCore;
+import org.apache.tinkerpop.gremlin.structure.io.IoRegistry;
+import org.apache.tinkerpop.gremlin.structure.io.gryo.GryoIo;
+import org.apache.tinkerpop.gremlin.tinkergraph.structure.TinkerGraph;
+
+import com.google.gson.Gson;
 
 import prerna.algorithm.api.IMatcher;
 import prerna.algorithm.api.ITableDataFrame;
@@ -34,6 +45,8 @@ import prerna.ui.components.playsheets.datamakers.DataMakerComponent;
 import prerna.ui.components.playsheets.datamakers.ISEMOSSTransformation;
 import prerna.ui.components.playsheets.datamakers.JoinTransformation;
 import prerna.util.ArrayUtilityMethods;
+import prerna.util.Constants;
+import prerna.util.MyGraphIoRegistry;
 
 public class TinkerH2Frame extends AbstractTableDataFrame {
 
@@ -95,8 +108,7 @@ public class TinkerH2Frame extends AbstractTableDataFrame {
 	
 	public void addRow2(String tableName, String[] cells, String[] headers, String[] types) {
 		this.builder.tableName = tableName;
-		this.builder.types = types;
-		this.builder.addRow(cells, headers);
+		this.builder.addRow(tableName, cells, headers, types);
 	}
 	
 	
@@ -433,17 +445,18 @@ public class TinkerH2Frame extends AbstractTableDataFrame {
 	
 	@Override 
 	public boolean isNumeric(String columnHeader) {
-		String[] types = builder.getTypes();
-		int index = ArrayUtilityMethods.arrayContainsValueAtIndexIgnoreCase(headerNames, columnHeader);
-		boolean isNum = types[index].equalsIgnoreCase("int") || types[index].equalsIgnoreCase("double");
-		return isNum;
+		String dataType = this.metaData.getDataType(columnHeader);
+		return dataType.equalsIgnoreCase("NUMBER");
 	}
 	
 	@Override
 	public Iterator<List<Object[]>> scaledUniqueIterator(String columnHeader, boolean getRawData) {
-//		columnHeader = H2HeaderMap.get(columnHeader);
 		columnHeader = this.metaData.getValueForUniqueName(columnHeader);
-		return new ScaledUniqueH2FrameIterator(columnHeader, getRawData, getH2Selectors(), builder, getMax(), getMin());
+		Map<String, String> m = this.getH2HeadersAndTypes();
+		String tableName = this.getTableNameForUniqueColumn(columnHeader);
+		ScaledUniqueH2FrameIterator iterator = new ScaledUniqueH2FrameIterator(columnHeader, getRawData, tableName, builder, getMax(), getMin(), m, getH2Selectors());
+		//set the types here
+		return iterator;
 	}
 	
 	@Override
@@ -570,7 +583,7 @@ public class TinkerH2Frame extends AbstractTableDataFrame {
 		   }
 	   }
 	   
-	   tf.builder.types = types;
+//	   tf.builder.types = types;
 		return tf;
 	}
 	
@@ -607,6 +620,27 @@ public class TinkerH2Frame extends AbstractTableDataFrame {
 			h2Headers[i] = this.metaData.getValueForUniqueName(headerNames[i]);
 		}
 		return h2Headers;
+	}
+	
+//	private String[] getH2Types() {
+//		if(headerNames == null) return null;
+//		String[] h2Types = new String[headerNames.length];
+//		for(int i = 0; i < headerNames.length; i++) {
+//			h2Types[i] = this.metaData.getDBDataType(headerNames[i]);
+//		}
+//		return h2Types;
+//	}
+	
+	private Map<String, String> getH2HeadersAndTypes() {
+		
+		if(headerNames == null) return null;
+		Map<String, String> retMap = new HashMap<String, String>(headerNames.length);
+		for(String header : headerNames) {
+			String h2Header = this.metaData.getValueForUniqueName(header);
+			String h2Type = this.metaData.getDataType(header);
+			retMap.put(h2Header, h2Type);
+		}
+		return retMap;
 	}
 	
 	//relationships in the form tableA.columnA.tableB.columnB
@@ -764,7 +798,7 @@ public class TinkerH2Frame extends AbstractTableDataFrame {
         String tableName = getTableNameForUniqueColumn(headers[0]);
         String[] types = new String[headers.length];
         for(int i = 0; i < types.length; i++) {
-              types[i] = this.metaData.getDBDataType(headers[i]);
+              types[i] = this.metaData.getDataType(headers[i]);
         }
         String[] stringArray = Arrays.copyOf(cells, cells.length, String[].class);
         //get table for headers
