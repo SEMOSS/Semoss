@@ -81,10 +81,10 @@ public class TableDataFrameFactory {
 				types = helper.predictRowTypes(sheetName);			
 			}
 			
+			String mainCol = mainCols.get(sheetName);
 			if(tf == null) {
 				tf = (TinkerFrame) createPrimKeyTinkerFrame(headers, "TinkerFrame", types, mainCols.get(sheetName));
 			} else {
-				String mainCol = mainCols.get(sheetName);
 				Map<String, Set<String>> newEdgeHash = null;
 				if(mainCol != null) {
 					newEdgeHash = createFlatEdgeHash(mainCol, headers);
@@ -118,7 +118,11 @@ public class TableDataFrameFactory {
 					rawRow.put(header, rawVal);
 				}
 				if(tableCounter == 0) {
-					tf.addRow(cleanRow, rawRow);
+					if(mainCol == null) {
+						tf.addRow(cleanRow, rawRow);
+					} else {
+						tf.addRelationship(cleanRow, rawRow);
+					}
 				} else {
 					String primKeyVal = values.hashCode() + "";
 					cleanRow.put(primKeyHeader, primKeyVal);
@@ -308,7 +312,11 @@ public class TableDataFrameFactory {
 				row.put(headers[i], values[i]);
 				rawRow.put(header, rawVal);
 			}
-			dataFrame.addRow(row, rawRow);
+			if(mainCol == null) {
+				dataFrame.addRow(row, rawRow);
+			} else {
+				dataFrame.addRelationship(row, rawRow);
+			}
 		}
 				
 		return dataFrame;
