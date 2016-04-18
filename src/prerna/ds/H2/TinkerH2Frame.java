@@ -39,7 +39,6 @@ public class TinkerH2Frame extends AbstractTableDataFrame {
 
 	
 	private static final Logger LOGGER = LogManager.getLogger(TinkerH2Frame.class.getName());
-	private static final String TYPES = "Table_Types";
 
 	H2Builder builder;
 	//TODO: need to keep its own once it is no longer extending from TinkerFrame!!!!!
@@ -49,16 +48,16 @@ public class TinkerH2Frame extends AbstractTableDataFrame {
 //	public Map<String, String> H2HeaderMap;
 	
 	//map excel sheets to h2 tables
-	Map<String, String> tableMap;
+//	Map<String, String> tableMap;
 	
 	//map excel sheets to columns in those sheets
-	Map<String, List<String>> columnMap;
+//	Map<String, List<String>> columnMap;
 	
 	//defined relations in the excel
-	List<String> relations;
+//	List<String> relations;
 	
 	//map excel sheets to types
-	Map<String, List<String>> typeMap;
+//	Map<String, List<String>> typeMap;
 	
 //	IMetaData metaData;
 //	String[] headerNames;
@@ -223,15 +222,16 @@ public class TinkerH2Frame extends AbstractTableDataFrame {
 	 */
 	@Override
 	public void filter(String columnHeader, List<Object> filterValues) {
-		//filterValues is what to keep
-//		columnHeader = H2HeaderMap.get(columnHeader);
-		columnHeader = this.metaData.getValueForUniqueName(columnHeader);
-		builder.setFilters(columnHeader, filterValues);
+		if(filterValues != null && filterValues.size() > 0) {
+			this.metaData.setFiltered(columnHeader, true);
+			columnHeader = this.metaData.getValueForUniqueName(columnHeader);
+			builder.setFilters(columnHeader, filterValues);
+		}
 	}
 
 	@Override
 	public void unfilter(String columnHeader) {
-//		columnHeader = H2HeaderMap.get(columnHeader);
+		this.metaData.setFiltered(columnHeader, false);
 		columnHeader = this.metaData.getValueForUniqueName(columnHeader);
 		builder.removeFilter(columnHeader);
 	}
@@ -312,17 +312,16 @@ public class TinkerH2Frame extends AbstractTableDataFrame {
 	public Map<String, Object[]> getFilterTransformationValues() {
 		Map<String, Object[]> retMap = new HashMap<String, Object[]>();
 		// get meta nodes that are tagged as filtered
-//		GraphTraversal<Vertex, Vertex> metaGt = g.traversal().V().has(Constants.TYPE, META).has(Constants.FILTER, true);
-//		while(metaGt.hasNext()){
-//			Vertex metaV = metaGt.next();
-//			String vertType = metaV.value(Constants.NAME);
-//			GraphTraversal<Vertex, Vertex> gt = g.traversal().V().has(Constants.TYPE, Constants.FILTER).out(Constants.FILTER+edgeLabelDelimeter+vertType).has(Constants.TYPE, vertType);
-//			List<String> vertsList = new Vector<String>();
-//			while(gt.hasNext()){
-//				vertsList.add(gt.next().value(Constants.VALUE));
-//			}
-//			retMap.put(vertType, vertsList.toArray());
-//		}
+		Map<String, String> filters = this.metaData.getFilteredColumns();
+		Map<String, List<Object>> filteredData = this.builder.filterHash;
+		
+		for(String name: filters.keySet()){
+			
+			//for each filtered column
+			String h2Name = this.metaData.getValueForUniqueName(name);
+			retMap.put(name, filteredData.get(h2Name).toArray());
+		}
+		
 		
 		return retMap;
 	}
