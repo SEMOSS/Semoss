@@ -83,7 +83,7 @@ public class TableDataFrameFactory {
 			
 			String mainCol = mainCols.get(sheetName);
 			if(tf == null) {
-				tf = (TinkerFrame) createPrimKeyTinkerFrame(headers, "TinkerFrame", types, mainCols.get(sheetName));
+				tf = (TinkerFrame) createTinkerFrame(headers, "TinkerFrame", types, mainCol);
 			} else {
 				Map<String, Set<String>> newEdgeHash = null;
 				if(mainCol != null) {
@@ -172,10 +172,10 @@ public class TableDataFrameFactory {
 				types = helper.predictRowTypes(table);			
 			}
 			
+			String mainCol = mainCols.get(table);
 			if(dataFrame == null) {
-				dataFrame = (TinkerH2Frame) createPrimKeyTinkerFrame(headers, "H2", types, mainCols.get(table));
+				dataFrame = (TinkerH2Frame) createTinkerFrame(headers, "H2", types, mainCol);
 			} else {
-				String mainCol = mainCols.get(table);
 				Map<String, Set<String>> newEdgeHash = null;
 				if(mainCol != null) {
 					newEdgeHash = createFlatEdgeHash(mainCol, headers);
@@ -195,7 +195,12 @@ public class TableDataFrameFactory {
 				values[j] = dataFrame.getValueForUniqueName(headers[j]);
 			}
 			
-			String tableName = dataFrame.getTableNameForUniqueColumn(headers[0]);
+			String tableName = null;
+			if(mainCol != null) {
+				tableName = mainCol;
+			} else {
+				tableName = dataFrame.getTableNameForUniqueColumn(headers[0]);
+			}
 			String [] cells = null;
 			while((cells = helper.getNextRow(table, headers)) != null) {
 				dataFrame.addRow2(tableName, cells, values, types);
@@ -237,7 +242,7 @@ public class TableDataFrameFactory {
 			types = helper.predictTypes();			
 		}
 		
-		TinkerH2Frame dataFrame = (TinkerH2Frame)createPrimKeyTinkerFrame(headers, "H2", types, mainCol);
+		TinkerH2Frame dataFrame = (TinkerH2Frame) createTinkerFrame(headers, "H2", types, mainCol);
 		
 		// unique names always match the headers when creating from csv/excel
 		String[] values = new String[headers.length];
@@ -245,7 +250,13 @@ public class TableDataFrameFactory {
 			values[i] = dataFrame.getValueForUniqueName(headers[i]);
 		}
 		
-		String tableName = dataFrame.getTableNameForUniqueColumn(headers[0]);
+		String tableName = null;
+		if(mainCol != null) {
+			tableName = mainCol;
+		} else {
+			tableName = dataFrame.getTableNameForUniqueColumn(headers[0]);
+		}
+		
 		String [] cells = null;
 		while((cells = helper.getNextRow()) != null) {
 			dataFrame.addRow2(tableName, cells, values, types);
@@ -279,7 +290,7 @@ public class TableDataFrameFactory {
 			types = helper.predictTypes();			
 		}
 
-		TinkerFrame dataFrame = (TinkerFrame)createPrimKeyTinkerFrame(headers, "TinkerFrame", types, mainCol);
+		TinkerFrame dataFrame = (TinkerFrame) createTinkerFrame(headers, "TinkerFrame", types, mainCol);
 		
 		TinkerCastHelper caster = new TinkerCastHelper();
 		String[] cells = null;
@@ -310,23 +321,22 @@ public class TableDataFrameFactory {
 	
 	//////////////////////// END CSV LOADING //////////////////////////////////////
 
-	private static ITableDataFrame createPrimKeyTinkerFrame(String[] headers, String dataFrameType, String[] types, String mainConcept) {
+	private static ITableDataFrame createTinkerFrame(String[] headers, String dataFrameType, String[] types, String mainConcept) {
 		ITableDataFrame dataFrame = null;
 		Map<String, Set<String>> edgeHash = null;
 		if(dataFrameType.equalsIgnoreCase("H2")) {
 			dataFrame = new TinkerH2Frame(headers);
-			edgeHash = dataFrame.createPrimKeyEdgeHash(headers);
 		} else {
 			dataFrame = new TinkerFrame(headers);
-			// user has defined an edge hash
-			if(mainConcept != null) {
-				edgeHash = createFlatEdgeHash(mainConcept, headers);
-			} else {
-				// no user defined edge hash, create prim key
-				edgeHash = dataFrame.createPrimKeyEdgeHash(headers);
-			}
 		}
 		
+		// user has defined an edge hash
+		if(mainConcept != null) {
+			edgeHash = createFlatEdgeHash(mainConcept, headers);
+		} else {
+			// no user defined edge hash, create prim key
+			edgeHash = dataFrame.createPrimKeyEdgeHash(headers);
+		}
 		dataFrame.mergeEdgeHash(edgeHash);
 		dataFrame.addMetaDataTypes(headers, types);
 		return dataFrame;
