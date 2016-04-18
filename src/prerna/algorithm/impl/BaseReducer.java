@@ -49,11 +49,14 @@ public abstract class BaseReducer implements ExpressionReducer, AlgorithmStrateg
 	{
 		Object daObject = inputIterator.next();
 		Map <Object, Object> row = null;
+		Object[] array = null;
 		Vertex vert = null;
 		Double doubleValue = null;
 		
 		if(daObject instanceof Map)
 			row = (Map<Object, Object>)daObject;
+		else if(daObject instanceof Object[])
+			array = (Object[])daObject;
 		else if(daObject instanceof Vertex)
 			vert = (Vertex) daObject;
 		else if(daObject instanceof Double)
@@ -67,6 +70,15 @@ public abstract class BaseReducer implements ExpressionReducer, AlgorithmStrateg
 				{
 					Vertex v = (Vertex)row.get(ids[colIndex]);
 					Object val = v.value(propToGet);
+					System.out.println("Values is " + val);
+					otherBindings.put(ids[colIndex], val);
+				}
+			}
+			else if(array != null)
+			{
+				for(int colIndex = 0;colIndex < ids.length;colIndex++)
+				{
+					Object val = array[colIndex];
 					System.out.println("Values is " + val);
 					otherBindings.put(ids[colIndex], val);
 				}

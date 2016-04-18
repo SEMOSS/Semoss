@@ -93,10 +93,13 @@ public class ExpressionIterator implements ExpressionMapper, Iterator {
 	protected void setOtherBindings() {
 		Object daObject = results.next();
 		Map <Object, Object> row = null;
+		Object[] array = null;
 		Vertex vert = null;
 		Double doubleValue = null;
 		if(daObject instanceof Map)
 			row = (Map<Object, Object>)daObject;
+		else if(daObject instanceof Object[])
+			array = (Object[])daObject;
 		else if(daObject instanceof Vertex)
 			vert = (Vertex) daObject;
 		else if(daObject instanceof Double)
@@ -110,6 +113,15 @@ public class ExpressionIterator implements ExpressionMapper, Iterator {
 				{
 					Vertex v = (Vertex)row.get(columnsUsed[colIndex]);
 					Object val = v.value(propToGet);
+					System.out.println("Values is " + val);
+					otherBindings.put(columnsUsed[colIndex], val);
+				}
+			}
+			else if(array != null)
+			{
+				for(int colIndex = 0;colIndex < columnsUsed.length;colIndex++)
+				{
+					Object val = array[colIndex];
 					System.out.println("Values is " + val);
 					otherBindings.put(columnsUsed[colIndex], val);
 				}
