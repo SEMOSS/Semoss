@@ -80,10 +80,14 @@ public class ImportDataReactor extends AbstractReactor {
 	private String createResponseString(ISelectWrapper it){
 		
 		Map<String, Object> map = it.getResponseMeta();
-		String retStr = "Sucessfully added data using : \n";
+		String mssg = "";
 		for(String key : map.keySet()){
-			retStr = retStr + key + ": " + map.get(key).toString() + " \n and ";
+			if(!mssg.isEmpty()){
+				mssg = mssg + " \n";
+			}
+			mssg = mssg + key + ": " + map.get(key).toString();
 		}
+		String retStr = "Sucessfully added data using : \n" + mssg;
 		return retStr;
 	}
 }

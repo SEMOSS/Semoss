@@ -4,7 +4,11 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.PushbackReader;
 import java.io.StringBufferInputStream;
+import java.io.UnsupportedEncodingException;
+import java.net.URLEncoder;
 import java.util.HashMap;
+
+import org.apache.commons.lang.StringEscapeUtils;
 
 import prerna.algorithm.api.ITableDataFrame;
 import prerna.sablecc.lexer.Lexer;
@@ -35,7 +39,7 @@ public class PKQLRunner {
 		}
 
 		HashMap<String, Object> result = new HashMap<String, Object>();
-		result.put("result", response);
+		result.put("result", "<pre>" + StringEscapeUtils.escapeHtml(response + "") + "</pre>");
 		result.put("status", currentStatus);
 		return result;
 	}
