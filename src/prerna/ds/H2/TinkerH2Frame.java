@@ -485,6 +485,17 @@ public class TinkerH2Frame extends AbstractTableDataFrame {
 	
 	@Override
 	public void addRelationship(Map<String, Object> cleanRow, Map<String, Object> rawRow) {
+		
+		//if the sets contain keys not in header names, remove them
+		Set<String> keySet = cleanRow.keySet();
+		Map<String, Object> adjustedCleanRow = new HashMap<String, Object>(keySet.size());
+		for(String key : keySet) {
+			if(ArrayUtilityMethods.arrayContainsValue(headerNames, key)) {
+				adjustedCleanRow.put(key, cleanRow.get(key));
+			}
+		}
+		cleanRow = adjustedCleanRow;
+		
 		int size = cleanRow.keySet().size();
 		Object[] values = new Object[size];
 		String[] columnHeaders = cleanRow.keySet().toArray(new String[]{});
@@ -812,8 +823,7 @@ public class TinkerH2Frame extends AbstractTableDataFrame {
 
 	@Override
 	public void addRelationship(Map<String, Object> rowCleanData, Map<String, Object> rowRawData, Map<String, Set<String>> edgeHash, Map<String, String> logicalToTypeMap) {
-		// TODO Auto-generated method stub
-		
+		addRelationship(rowCleanData, rowRawData);
 	}
 
 	public String getJDBCURL() throws SQLException{
