@@ -6,6 +6,7 @@ import java.util.Vector;
 import prerna.algorithm.api.IAction;
 import prerna.algorithm.api.ITableDataFrame;
 import prerna.algorithm.impl.ImportAction;
+import prerna.ds.QueryStruct;
 import prerna.ds.TinkerFrame;
 import prerna.engine.api.IScriptReactor;
 import prerna.sablecc.PKQLEnum.PKQLReactor;
@@ -392,6 +393,9 @@ public class Translation2 extends DepthFirstAdapter {
 		nodeStr = nodeStr.trim();
 		curReactor.put(PKQLEnum.EXPR_TERM, nodeStr);
 		Hashtable <String, Object> thisReactorHash = deinitReactor(PKQLEnum.IMPORT_DATA, nodeStr, (node + "").trim());
+    	IScriptReactor previousReactor = (IScriptReactor)thisReactorHash.get(PKQLReactor.IMPORT_DATA.toString());
+		runner.setResponse(previousReactor.getValue(node.toString().trim()));//
+		runner.setStatus((String)previousReactor.getValue("STATUS"));
     }
 
     @Override
