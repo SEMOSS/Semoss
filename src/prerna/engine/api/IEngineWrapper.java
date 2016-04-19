@@ -27,6 +27,7 @@
  *******************************************************************************/
 package prerna.engine.api;
 
+import java.util.Map;
 
 public interface IEngineWrapper {
 
@@ -37,4 +38,6 @@ public interface IEngineWrapper {
 	public void execute();
 	
 	public boolean hasNext();
+	
+	public Map<String, Object> getResponseMeta();
 }
