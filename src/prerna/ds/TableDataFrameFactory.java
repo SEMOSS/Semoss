@@ -225,14 +225,12 @@ public class TableDataFrameFactory {
 		String [] types = null;
 		
 		if(dataTypeMap != null && !dataTypeMap.isEmpty()) {
-			headers = new String[dataTypeMap.keySet().size()];
+			headers = dataTypeMap.keySet().toArray(new String[]{});
 			headers = helper.orderHeadersToGet(headers);
+			
 			types = new String[headers.length];
-			int counter = 0;
-			for(String header : dataTypeMap.keySet()) {
-				headers[counter] = header;
-				types[counter] = dataTypeMap.get(header);
-				counter++;
+			for(int j = 0; j < headers.length; j++) {
+				types[j] = dataTypeMap.get(headers[j]);
 			}
 			
 			helper.parseColumns(headers);
@@ -273,14 +271,12 @@ public class TableDataFrameFactory {
 		String [] types = null;
 		
 		if(dataTypeMap != null && !dataTypeMap.isEmpty()) {
-			headers = new String[dataTypeMap.keySet().size()];
+			headers = dataTypeMap.keySet().toArray(new String[]{});
 			headers = helper.orderHeadersToGet(headers);
+			
 			types = new String[headers.length];
-			int counter = 0;
-			for(String header : dataTypeMap.keySet()) {
-				headers[counter] = header;
-				types[counter] = dataTypeMap.get(header);
-				counter++;
+			for(int j = 0; j < headers.length; j++) {
+				types[j] = dataTypeMap.get(headers[j]);
 			}
 			
 			helper.parseColumns(headers);
