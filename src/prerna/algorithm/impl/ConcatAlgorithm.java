@@ -19,7 +19,7 @@ public class ConcatAlgorithm implements AlgorithmStrategy {
 	public void setData(Iterator results, String[] columnsUsed, String script) {
 		it = results;
 		headers = columnsUsed;
-		script = script;
+		this.script = script;
 	}
 	
 	@Override
