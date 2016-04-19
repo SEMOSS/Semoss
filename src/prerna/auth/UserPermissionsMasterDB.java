@@ -140,6 +140,18 @@ public class UserPermissionsMasterDB {
 		return requests;
 	}
 	
+	public ArrayList<String> getEngineAccessRequestsByUser(String userId) {
+		ArrayList<String> requests = new ArrayList<String>();
+		
+		String query = "SELECT DISTINCT Engine.NAME AS ENGINENAME FROM AccessRequest, Engine WHERE AccessRequest.SUBMITTEDBY='" + userId + "' AND AccessRequest.ENGINE=Engine.ID;";
+		ArrayList<String[]> ret = runQuery(query);
+		for(String[] row : ret) {
+			requests.add(row[0]);
+		}
+		
+		return requests;
+	}
+	
 	public Boolean processEngineAccessRequest(String requestId, String approvingUserId, String[] permissions) {
 		String userId = "", engine = "";
 		String query = "SELECT ENGINE, SUBMITTEDBY, PERMISSION FROM AccessRequest WHERE SUBMITTEDTO='" + approvingUserId + "' AND ID=" + requestId + ";";
@@ -315,5 +327,47 @@ public class UserPermissionsMasterDB {
 		} catch(Exception e) {
 			e.printStackTrace();
 		}
+	}
+	
+	/**
+	 * Returns all insight tracking info for a given user, ordered by Last Executed descending. 
+	 * 
+	 * @param userId	ID of the user
+	 * @return			Database Name, Insight ID, Count, Last Executed, Session ID (in that order)
+	 */
+	public ArrayList<String[]> getExecutedInsightsForUser(String userId) {
+		String query = "SELECT DATABASE, INSIGHT, COUNT, LASTEXECUTED, SESSION FROM InsightExecution WHERE USER='" + userId + "' GROUP BY SESSION, DATABASE, INSIGHT ORDER BY LASTEXECUTED DESC;";
+		
+		return runQuery(query);
+	}
+	
+	/**
+	 * Returns top insights executed for a given user, or all users if no user ID is passed in.
+	 * 
+	 * @param userId	ID of the user
+	 * @param limit		number of insights to return
+	 * @return			Database Name, Insight ID, Total Execution Count (in that order)
+	 */
+	public ArrayList<String[]> getTopInsightsExecutedForUser(String userId, String limit) {
+		String query = "";
+		if(query != null && !query.isEmpty()) {
+			query = "SELECT DATABASE, INSIGHT, SUM(COUNT) AS TOTAL FROM InsightExecution WHERE USER='" + userId + "' GROUP BY DATABASE, INSIGHT ORDER BY TOTAL DESC";
+		} else {
+			query = "SELECT DATABASE, INSIGHT, SUM(COUNT) AS TOTAL FROM InsightExecution GROUP BY DATABASE, INSIGHT ORDER BY TOTAL DESC";
+		}
+		
+		if(limit != null && !limit.isEmpty()) {
+			query += " LIMIT " + limit;
+		}
+		
+		return runQuery(query);
+	}
+	
+	public ArrayList<String[]> getnext() {
+		String query = "";
+		
+		
+		
+		return runQuery(query);
 	}
 }
