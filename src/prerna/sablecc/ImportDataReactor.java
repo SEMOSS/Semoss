@@ -10,7 +10,9 @@ import java.util.Vector;
 import prerna.algorithm.api.ITableDataFrame;
 import prerna.ds.QueryStruct;
 import prerna.engine.api.IEngine;
+import prerna.engine.api.IEngineWrapper;
 import prerna.engine.api.ISelectStatement;
+import prerna.engine.api.ISelectWrapper;
 import prerna.util.DIHelper;
 
 public class ImportDataReactor extends AbstractReactor {
@@ -35,7 +37,7 @@ public class ImportDataReactor extends AbstractReactor {
 		
 		ITableDataFrame frame = (ITableDataFrame) myStore.get("G");
 		
-		Iterator it = null;
+		ISelectWrapper it = null;
 		Object value = myStore.get(PKQLEnum.API);
 		
 		// put the joins in a list to feed into merge edge hash
@@ -48,7 +50,7 @@ public class ImportDataReactor extends AbstractReactor {
 				joinCols.add(joinMap);
 			}
 		}
-		it = (Iterator)value;
+		it = (ISelectWrapper)value;
 
 		IEngine engine = (IEngine) DIHelper.getInstance().getLocalProp((this.getValue(PKQLEnum.API + "_ENGINE")+"").trim());
 		QueryStruct qs = (QueryStruct) this.getValue(PKQLEnum.API + "_QUERY_STRUCT");
@@ -64,6 +66,8 @@ public class ImportDataReactor extends AbstractReactor {
 		
 		myStore.put("STATUS", "SUCCESS");
 		
+		myStore.put(nodeStr, createResponseString(it));
+		
 		return null;
 	}
 
@@ -73,5 +77,13 @@ public class ImportDataReactor extends AbstractReactor {
 		return values2SyncHash.get(input);
 	}
 
-
+	private String createResponseString(ISelectWrapper it){
+		
+		Map<String, Object> map = it.getResponseMeta();
+		String retStr = "Sucessfully added data using : \n";
+		for(String key : map.keySet()){
+			retStr = retStr + key + ": " + map.get(key).toString() + " \n and ";
+		}
+		return retStr;
+	}
 }

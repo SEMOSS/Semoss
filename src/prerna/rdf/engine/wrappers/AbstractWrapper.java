@@ -27,13 +27,15 @@
  *******************************************************************************/
 package prerna.rdf.engine.wrappers;
 
+import java.util.HashMap;
+import java.util.Map;
+
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
 import prerna.engine.api.IEngine;
 import prerna.engine.api.IEngineWrapper;
 import prerna.engine.api.IRemoteQueryable;
-import prerna.engine.impl.rdf.SesameJenaSelectWrapper;
 
 public abstract class AbstractWrapper implements IRemoteQueryable, IEngineWrapper{
 
@@ -52,6 +54,18 @@ public abstract class AbstractWrapper implements IRemoteQueryable, IEngineWrappe
 	public void setRemoteID(String id) {
 		// TODO Auto-generated method stub
 		this.ID = id;
+	}
+
+	@Override
+	public Map<String, Object> getResponseMeta() {
+		Map<String, Object> resp = new HashMap<String, Object>();
+		if(engine != null) {
+			resp.put("engine", engine.getEngineName());
+		}
+		if(query != null){
+			resp.put("query", query);
+		}
+		return resp;
 	}
 
 	@Override
