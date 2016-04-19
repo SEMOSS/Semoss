@@ -509,14 +509,9 @@ public abstract class AbstractTableDataFrame implements ITableDataFrame {
 		return null;
 	}
 	
-	
-	
-	
-
 	@Override
 	public void addRow(ISelectStatement statement) {
-		// TODO Auto-generated method stub
-		
+		addRow(statement.getPropHash(), statement.getRPropHash());
 	}
 
 	@Override
