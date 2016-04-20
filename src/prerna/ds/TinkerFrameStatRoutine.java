@@ -71,17 +71,16 @@ public class TinkerFrameStatRoutine implements IAnalyticTransformationRoutine {
 		// TODO Auto-generated method stub
 		//grab first, cast to tinker
 		ITableDataFrame table = data[0];
+		
+		//gather the necessary parameters
+		String valueColumn = this.functionMap.get("name").toString();
+		String mathType = this.functionMap.get("math").toString();
+		String newColumnHeader = this.functionMap.get("calcName").toString();
+		String[] columnHeaders = ((List<String>)this.functionMap.get("GroupBy")).toArray(new String[0]);
+		
 		if(table instanceof TinkerH2Frame) {
 			TinkerH2Frame tinkerGraph = (TinkerH2Frame)table;
 			
-			//gather the necessary parameters
-			String valueColumn = this.functionMap.get("name").toString();
-			String mathType = this.functionMap.get("math").toString();
-			String newColumnHeader = this.functionMap.get("calcName").toString();
-			String[] columnHeaders = ((List<String>)this.functionMap.get("GroupBy")).toArray(new String[0]);
-//			if(columnHeaders.length > 1) {
-//				throw new UnsupportedOperationException("H2 currently does not support heat maps or multi column joins");
-//			}
 			//calculate group by and add to tinker
 			try {
 				addStatColumnToTinker(tinkerGraph, columnHeaders, mathType, newColumnHeader, valueColumn);
@@ -92,15 +91,7 @@ public class TinkerFrameStatRoutine implements IAnalyticTransformationRoutine {
 		}
 		
 		else if(table instanceof TinkerFrame) {
-			
 			TinkerFrame tinkerGraph = (TinkerFrame)table;
-			
-			//gather the necessary parameters
-			String valueColumn = this.functionMap.get("name").toString();
-			String mathType = this.functionMap.get("math").toString();
-			String newColumnHeader = this.functionMap.get("calcName").toString();
-//			String columnHeader = ((List<String>)this.functionMap.get("GroupBy")).get(0);
-			String[] columnHeaders = ((List<String>)this.functionMap.get("GroupBy")).toArray(new String[0]);
 			
 			//calculate group by and add to tinker
 			try {
@@ -113,6 +104,8 @@ public class TinkerFrameStatRoutine implements IAnalyticTransformationRoutine {
 		} else {
 			throw new IllegalArgumentException("Cannot run stat routine on instance of"+table.getClass().getName());
 		}
+		
+		
 		return null;
 	}
 	
