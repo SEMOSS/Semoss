@@ -628,34 +628,4 @@ public class RDBMSNativeEngine extends AbstractEngine {
 		String baseH2URL = RDBMSUtility.getH2BaseConnectionURL();
 		return RDBMSUtility.fillH2ConnectionURL(baseH2URL, engineName);
 	}
-	
-	@Override
-	public void loadTransformedNodeNames(){
-		String query = "SELECT DISTINCT ?object (COALESCE(?DisplayName, ?object) AS ?Display) WHERE { "
-				+ " { {?object <http://www.w3.org/2000/01/rdf-schema#subClassOf> <http://semoss.org/ontologies/Concept>} "
-				+ "OPTIONAL{?object <http://semoss.org/ontologies/DisplayName> ?DisplayName } } UNION { "
-				+ "{ ?object <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Relation/Contains> } "
-				+ "OPTIONAL {?object <http://semoss.org/ontologies/DisplayName> ?DisplayName }"
-				+ "} }"; 
-		if(this.baseDataEngine!=null){
-			Vector<String[]> transformedNode = Utility.getVectorObjectOfReturn(query, this.baseDataEngine);
-		
-			if(transformedNode.size()!=0){
-				transformedNodeNames.clear();
-				for(String[] node: transformedNode){
-					String logicalName = node[1];
-					if(logicalName.equals("http://semoss.org/ontologies/Concept")) {
-						this.transformedNodeNames.put(logicalName, Constants.DISPLAY_URI + "Concept");
-						continue;
-					}
-					logicalName = logicalName.replaceAll(".*/Concept/", "");
-					String instance = logicalName.substring(0, logicalName.lastIndexOf("/"));
-					instance = Utility.cleanVariableString(instance);
-					logicalName = Constants.DISPLAY_URI + instance;
-					this.transformedNodeNames.put(logicalName, node[0]); //map contains display name : physical name
-				}
-				this.baseDataEngine.setTransformedNodeNames(this.transformedNodeNames);
-			}
-		}
-	}
 }

@@ -157,6 +157,8 @@ public interface IEngine extends IExplorable{
 	 * @return
 	 */
 	public Map<String, String> getDataTypes(String... uris);
+
+	public String getParentOfProperty(String property);
 }
 
 
