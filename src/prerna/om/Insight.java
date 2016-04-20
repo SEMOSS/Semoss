@@ -801,6 +801,10 @@ public class Insight {
 	 * @param dataMaker					Additional dataMakers if required by the transformation
 	 */
 	public void processPostTransformation(List<ISEMOSSTransformation> postTrans, IDataMaker... dataMaker) throws RuntimeException {
+		if(getDataMakerComponents().size()==0){
+			DataMakerComponent empty = new DataMakerComponent(Constants.LOCAL_MASTER_DB_NAME, Constants.EMPTY);
+			this.dmComponents.add(empty);
+		}
 		DataMakerComponent dmc = getDataMakerComponents().get(this.dmComponents.size() - 1);
 		
 		List<ISEMOSSTransformation> postTransCopy = new Vector<ISEMOSSTransformation>(postTrans.size());
@@ -814,7 +818,7 @@ public class Insight {
 		for(int i = 0; i < postTrans.size(); i++) {
 			postTrans.get(i).setId(dmc.getId() + ":" + POST_TRANS + (++lastPostTrans));
 			dmc.addPostTrans(postTrans.get(i));
-		}
+		}//
 	}
 	
 	/**

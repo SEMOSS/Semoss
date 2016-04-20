@@ -907,7 +907,7 @@ public class TinkerFrame extends AbstractTableDataFrame {
            if(query.trim().toUpperCase().startsWith("CONSTRUCT")){
         	   TinkerGraphDataModel tgdm = new TinkerGraphDataModel();
         	   tgdm.fillModel(query, engine, this);
-           } else {
+           } else if (!query.equals(Constants.EMPTY)){
         	   ISelectWrapper wrapper = WrapperManager.getInstance().getSWrapper(engine, query);
                //if component has data from which we can construct a meta model then construct it and merge it
                boolean hasMetaModel = component.getQueryStruct() != null;
@@ -935,8 +935,8 @@ public class TinkerFrame extends AbstractTableDataFrame {
             	   }
                }
            }
-           g.variables().set(Constants.HEADER_NAMES, this.headerNames); // I dont know if i even need this moving forward.. but for now I will assume it is
-           redoLevels(this.headerNames);
+//           g.variables().set(Constants.HEADER_NAMES, this.headerNames); // I dont know if i even need this moving forward.. but for now I will assume it is
+//           redoLevels(this.headerNames);
 
            long time2 = System.currentTimeMillis();
            LOGGER.info("	Processed Wrapper: " +(time2 - time1)+" ms");
@@ -947,11 +947,6 @@ public class TinkerFrame extends AbstractTableDataFrame {
            long time4 = System.currentTimeMillis();
            LOGGER.info("Component Processed: " +(time4 - startTime)+" ms");
     }
-    
-    public Map[] mergeQSEdgeHash(Map<String, Set<String>> newEdgeHash, IEngine myEngine, List<Map<String,String>> joinColList){
-    	return TinkerMetaHelper.mergeQSEdgeHash(this.metaData, newEdgeHash, myEngine, joinColList);
-    }
-
 	
 	private SEMOSSVertex getSEMOSSVertex(Map<String, SEMOSSVertex> vertStore, Vertex tinkerVert){
 		Object value = tinkerVert.property(Constants.VALUE).value();
