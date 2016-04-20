@@ -1,11 +1,11 @@
 package prerna.engine.impl.rdf;
 
+import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.util.Hashtable;
 import java.util.Iterator;
 import java.util.Properties;
-import java.util.Vector;
 
 import prerna.ds.QueryStruct;
 import prerna.engine.api.IApi;
@@ -13,7 +13,6 @@ import prerna.engine.api.IEngine;
 import prerna.engine.api.ISelectWrapper;
 import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.rdf.query.builder.IQueryInterpreter;
-import prerna.rdf.query.builder.SPARQLInterpreter;
 import prerna.util.DIHelper;
 import prerna.util.Utility;
 
@@ -53,28 +52,31 @@ public class QueryAPI implements IApi {
 	}
 	
 	private void loadEngine4Test(){
-		DIHelper.getInstance().loadCoreProp("C:\\Users\\bisutton\\workspace\\SEMOSSDev\\RDF_Map.prop");
-		FileInputStream fileIn = null;
-		try{
-			Properties prop = new Properties();
-			String fileName = "C:\\Users\\bisutton\\workspace\\SEMOSSDev\\db\\UpdatedRDBMSMovies.smss";
-			fileIn = new FileInputStream(fileName);
-			prop.load(fileIn);
-			System.err.println("Loading DB " + fileName);
-			Utility.loadEngine(fileName, prop);
-			fileName = "C:\\Users\\bisutton\\workspace\\SEMOSSDev\\db\\Movie_DB.smss";
-			fileIn = new FileInputStream(fileName);
-			prop.load(fileIn);
-			System.err.println("Loading DB " + fileName);
-			Utility.loadEngine(fileName, prop);
-		}catch(IOException e){
-			e.printStackTrace();
-		}finally{
+		File f = new File("C:\\Users\\bisutton\\workspace\\SEMOSSDev\\RDF_Map.prop");
+		if(f.exists() && !f.isDirectory()) { 
+			DIHelper.getInstance().loadCoreProp("C:\\Users\\bisutton\\workspace\\SEMOSSDev\\RDF_Map.prop");
+			FileInputStream fileIn = null;
 			try{
-				if(fileIn!=null)
-					fileIn.close();
-			}catch(IOException e) {
+				Properties prop = new Properties();
+				String fileName = "C:\\Users\\bisutton\\workspace\\SEMOSSDev\\db\\UpdatedRDBMSMovies.smss";
+				fileIn = new FileInputStream(fileName);
+				prop.load(fileIn);
+				System.err.println("Loading DB " + fileName);
+				Utility.loadEngine(fileName, prop);
+				fileName = "C:\\Users\\bisutton\\workspace\\SEMOSSDev\\db\\Movie_DB.smss";
+				fileIn = new FileInputStream(fileName);
+				prop.load(fileIn);
+				System.err.println("Loading DB " + fileName);
+				Utility.loadEngine(fileName, prop);
+			}catch(IOException e){
 				e.printStackTrace();
+			}finally{
+				try{
+					if(fileIn!=null)
+						fileIn.close();
+				}catch(IOException e) {
+					e.printStackTrace();
+				}
 			}
 		}
 	}
