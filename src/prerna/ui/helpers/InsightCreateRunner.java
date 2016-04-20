@@ -41,7 +41,9 @@ import prerna.om.InsightStore;
 import prerna.ui.components.api.IPlaySheet;
 import prerna.ui.components.playsheets.AbstractPlaySheet;
 import prerna.ui.components.playsheets.datamakers.DataMakerComponent;
+import prerna.ui.components.playsheets.datamakers.FilterTransformation;
 import prerna.ui.components.playsheets.datamakers.IDataMaker;
+import prerna.ui.components.playsheets.datamakers.ISEMOSSTransformation;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
 import prerna.util.Utility;
@@ -118,7 +120,33 @@ public class InsightCreateRunner implements Runnable{
 //	    	}
 			dm.processDataMakerComponent(copyDmc);
 		}
+		
+		if(needToRecalc(insight.getDataMakerComponents())) {
+			insight.recalcDerivedColumns();
+		}
+		
 		return dm;
+	}
+	
+	//If the last transformation of the last component is a filter transformation, recalc the derived columns
+	private boolean needToRecalc(List<DataMakerComponent> dmComps) {
+		
+		if(dmComps != null && dmComps.size() > 0) {
+			
+			DataMakerComponent lastComponent = dmComps.get(dmComps.size() - 1);
+			if(lastComponent != null) {
+				
+				List<ISEMOSSTransformation> transformations = lastComponent.getPostTrans();
+				if(transformations != null && transformations.size() > 0) {
+					
+					ISEMOSSTransformation lastTrans = transformations.get(transformations.size() - 1);
+					if(lastTrans instanceof FilterTransformation) {
+						return true;
+					}
+				}
+			}
+		}
+		return false;
 	}
 	
 //	public void optimizeDataMakerComponents(DataMakerComponent copyDmc, List<DataMakerComponent> dmcList) {
