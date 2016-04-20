@@ -247,6 +247,15 @@ public class AddToMasterDB extends ModifyMasterDB {
 				// update the concept-concept tree and the keyword-concept graph
 				String typeURI = vert.getURI();//full URI of this keyword
 				String keyWordVertName = removeConceptUri(Utility.cleanString(typeURI, false));
+				
+				// give the uri http://semoss.org/ontologies/Concept/Year/Title 
+				// the vertName above will give you Title, but we need Year
+				// check below is to correct this
+				if(keyWordVertName.contains("/")) {
+					String[] keyWordVertNameSplit = keyWordVertName.split("/");
+					vertName = keyWordVertNameSplit[0];
+				}
+				
 				String cleanVertName = Utility.cleanString(vertName, false);
 				MasterDBHelper.addKeywordNode(masterEngine, typeURI);
 				MasterDBHelper.addRelationship(masterEngine, MasterDatabaseURIs.KEYWORD_BASE_URI + "/" + keyWordVertName, typeURI, MasterDatabaseURIs.SEMOSS_RELATION_URI + "/Has/" + cleanVertName + ":" + cleanVertName);
