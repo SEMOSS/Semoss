@@ -955,7 +955,8 @@ public class TinkerFrame extends AbstractTableDataFrame {
 		// otherwise the semoss vertex will not be able to get the type of the node (it parses the uri to get type)
 		String uri = value + "";
 		if(!(value instanceof String) || !(value instanceof String) || !((String)value).contains(((String)type))){
-			uri = type + "/" + value;
+			uri = "http://semoss.org/ontologies/Concept/" + type + "/" + value;
+//			uri = type + "/" + value;
 		}
 		SEMOSSVertex semossVert = vertStore.get(uri);
 		if(semossVert == null){
