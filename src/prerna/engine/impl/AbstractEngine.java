@@ -112,7 +112,7 @@ public abstract class AbstractEngine implements IEngine {
 	private transient Map<String, String> tableUriCache = new HashMap<String, String>();
 
 	private Hashtable<String, String> baseDataHash;
-	private Hashtable<String,String> transformedNodeNames = new Hashtable<String,String>();
+	protected Hashtable<String,String> transformedNodeNames = new Hashtable<String,String>();
 
 	private static final String SEMOSS_URI = "http://semoss.org/ontologies/";
 	private String baseUri;
@@ -1086,7 +1086,12 @@ public abstract class AbstractEngine implements IEngine {
 					if(isDbQuery) {
 						uris = this.getCleanSelect(paramQuery);
 					} else {
-						uris = this.baseDataEngine.getCleanSelect(paramQuery);
+						Vector<Object> baseUris = this.baseDataEngine.getCleanSelect(paramQuery);
+						if(baseUris != null) {
+							for(Object baseUri : baseUris) {
+								uris.add(this.getTransformedNodeName(baseUri + "", true));
+							}
+						}
 					}
 				}else { 
 					// anything that is get Entity of Type must be on db
@@ -1096,7 +1101,7 @@ public abstract class AbstractEngine implements IEngine {
 		}
 		return uris;
 	}
-
+	
 	@Override
 	public Vector<Insight> getInsight(String... questionIDs) {
 		String idString = "";
