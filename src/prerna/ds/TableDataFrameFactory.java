@@ -190,10 +190,10 @@ public class TableDataFrameFactory {
 			}
 			
 			// unique names always match the headers when creating from csv/excel
-			String[] values = new String[headers.length];
-			for(int j = 0; j < headers.length; j++) {
-				values[j] = dataFrame.getValueForUniqueName(headers[j]);
-			}
+//			String[] values = new String[headers.length];
+//			for(int j = 0; j < headers.length; j++) {
+//				values[j] = dataFrame.getValueForUniqueName(headers[j]);
+//			}
 			
 			String tableName = null;
 			if(mainCol != null) {
@@ -203,7 +203,7 @@ public class TableDataFrameFactory {
 			}
 			String [] cells = null;
 			while((cells = helper.getNextRow(table, headers)) != null) {
-				dataFrame.addRow2(tableName, cells, values, types);
+				dataFrame.addRow2(tableName, cells, headers, types);
 			}
 		}
 		dataFrame.setRelations(helper.getRelations());
@@ -243,10 +243,10 @@ public class TableDataFrameFactory {
 		TinkerH2Frame dataFrame = (TinkerH2Frame) createTinkerFrame(headers, "H2", types, mainCol);
 		
 		// unique names always match the headers when creating from csv/excel
-		String[] values = new String[headers.length];
-		for(int i = 0; i < headers.length; i++) {
-			values[i] = dataFrame.getValueForUniqueName(headers[i]);
-		}
+//		String[] values = new String[headers.length];
+//		for(int i = 0; i < headers.length; i++) {
+//			values[i] = dataFrame.getValueForUniqueName(headers[i]);
+//		}
 		
 		String tableName = null;
 		if(mainCol != null) {
@@ -257,7 +257,7 @@ public class TableDataFrameFactory {
 		
 		String [] cells = null;
 		while((cells = helper.getNextRow()) != null) {
-			dataFrame.addRow2(tableName, cells, values, types);
+			dataFrame.addRow2(tableName, cells, headers, types);
 		}
 		return dataFrame;
 	}
