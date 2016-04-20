@@ -656,6 +656,7 @@ public abstract class AbstractEngine implements IEngine {
 		this.transformedNodeNames = transformedNodeNames;
 	}
 	
+	@Override
 	public void loadTransformedNodeNames(){
 		String query = "SELECT DISTINCT ?object (COALESCE(?DisplayName, ?object) AS ?Display) WHERE { "
 				+ " { {?object <http://www.w3.org/2000/01/rdf-schema#subClassOf> <http://semoss.org/ontologies/Concept>} "
@@ -670,10 +671,31 @@ public abstract class AbstractEngine implements IEngine {
 				transformedNodeNames.clear();
 				for(String[] node: transformedNode){
 					String logicalName = node[1];
-					String instance = logicalName.substring(logicalName.lastIndexOf("/"), logicalName.length());
-					instance = Utility.cleanVariableString(instance);
-					logicalName = Constants.DISPLAY_URI + instance;
-					this.transformedNodeNames.put(logicalName, node[0]); //map contains display name : physical name
+					if(logicalName.equals("http://semoss.org/ontologies/Concept")) {
+						this.transformedNodeNames.put(logicalName, Constants.DISPLAY_URI + "Concept");
+						continue;
+					} else if(logicalName.startsWith("http://semoss.org/ontologies/Relation/Contains/")) {
+						logicalName = Utility.getInstanceName(logicalName);
+					} else {
+						logicalName = logicalName.replaceAll(".*/Concept/", "");
+					}
+					if(logicalName.contains("/")) {
+						// this is for RDBMS engine OWL file concepts
+						// this is for properties that are also "concepts"
+						logicalName = logicalName.substring(0, logicalName.lastIndexOf("/"));
+					} 
+					logicalName = Utility.cleanVariableString(logicalName);
+					logicalName = Constants.DISPLAY_URI + logicalName;
+					if(this.transformedNodeNames.containsKey(logicalName)) {
+						// this occurs when we have a property that is both a prop and a concept
+						// keep the concept one i guess?
+						if(node[0].contains("Relation/Contains")) {
+							continue;
+						}
+						this.transformedNodeNames.put(logicalName, node[0]); //map contains display name : physical name
+					} else {
+						this.transformedNodeNames.put(logicalName, node[0]); //map contains display name : physical name
+					}
 				}
 				this.baseDataEngine.setTransformedNodeNames(this.transformedNodeNames);
 			}
@@ -1269,5 +1291,22 @@ public abstract class AbstractEngine implements IEngine {
 		}
 		
 		return retMap;
+	}
+	
+	public String getParentOfProperty(String prop) {
+		if(!prop.startsWith("http://")) {
+			prop = "http://semoss.org/ontologies/Relation/Contains/" + prop;
+		}
+		
+		String query = "SELECT DISTINCT ?concept WHERE { ?concept <http://www.w3.org/2002/07/owl#DatatypeProperty> <" + prop + "> }";
+		ISelectWrapper wrapper = WrapperManager.getInstance().getSWrapper(baseDataEngine, query);
+		String[] names = wrapper.getPhysicalVariables();
+		while(wrapper.hasNext()) {
+			ISelectStatement ss = wrapper.next();
+			String node = ss.getRawVar(names[0]).toString();
+			return node;
+		}
+		
+		return null;
 	}
 }
