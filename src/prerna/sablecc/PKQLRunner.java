@@ -39,7 +39,7 @@ public class PKQLRunner {
 		}
 
 		HashMap<String, Object> result = new HashMap<String, Object>();
-		result.put("result", "<pre>" + StringEscapeUtils.escapeHtml(response + "") + "</pre>");
+		result.put("result", StringEscapeUtils.escapeHtml(response + ""));
 		result.put("status", currentStatus);
 		return result;
 	}
