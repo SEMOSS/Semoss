@@ -94,62 +94,44 @@ public class TinkerH2Frame extends AbstractTableDataFrame {
 	
 	/*************************** AGGREGATION METHODS *************************/
 	
-//	public void addRow(Map<String, Object> row) {
-//		String[] newRow = new String[row.keySet().size()];
-//		
-//		int i = 0;
-//		for(String key : row.keySet()) {
-//			newRow[i] = (String)row.get(key);
-//			i++;
-//		}
-//		
-////		addRow(newRow);
-//	}
-	
-	public void addRow2(String tableName, String[] cells, String[] headers, String[] types) {
-		this.builder.tableName = tableName;
-		this.builder.addRow(tableName, cells, headers, types);
+
+    
+	@Override
+	public void addRow(Object[] rowCleanData, Object[] rowRawData) {
+		addRow(rowCleanData, this.headerNames);
 	}
+
+    @Override
+    public void addRow(Object[] cleanCells, Object[] rawCells, String[] headers) {
+    	this.addRow(cleanCells, headers);
+    }
 	
+    private void addRow(Object[] cells, String[] headers) {
+        String tableName = getTableNameForUniqueColumn(headers[0]);
+        String[] types = new String[headers.length];
+        for(int i = 0; i < types.length; i++) {
+              types[i] = this.metaData.getDataType(headers[i]);
+        }
+        String[] stringArray = Arrays.copyOf(cells, cells.length, String[].class);
+        		
+        //get table for headers
+        this.addRow2(tableName, stringArray, headers, types);
+    }
+    
+	public void addRow2(String tableName, String[] cells, String[] headers, String[] types) {
+        String[] headerValues = new String[headers.length];
+		for(int j = 0; j < headers.length; j++) {
+			headerValues[j] = getValueForUniqueName(headers[j]);
+		}
+		
+		this.builder.tableName = tableName;
+		this.builder.addRow(tableName, cells, headerValues, types);
+	}
 	
 	public String getTableNameForUniqueColumn(String uniqueName) {
 		return this.metaData.getParentValueOfUniqueNode(uniqueName);
 	}
-
 	
-	public void addRow(String tableName, String[] row) {
-		
-//		this.metaData.getQueryStruct();
-//		//get alias headers and types from the tableName (sheet name)
-//		//get h2 table name
-//		
-//		//get headers associated with tableName
-//		//get types for each header
-//		
-//		
-//		this.metaData.ge
-//		Map<String, String> typeMap = ((TinkerMetaData2) table.getMetaData()).getNodeTypesForUniqueAlias();
-//		
-//		List<String> headers = columnMap.get(tableName);
-//		List<String> types = typeMap.get(tableName);
-//		headers = getH2Headers(headers);
-//		tableName = tableMap.get(tableName);
-//		builder.addRow(row, headers.toArray(new String[]{}), types.toArray(new String[]{}), tableName);
-	}
-	
-	public void setTypes(String tableName, String[] types) {
-		
-	}
-	
-//	public void addRelationship(Map<String, Object> row) {
-//		//update the builder
-//	}
-	
-	private QueryStruct getQueryStruct() {
-		
-		
-		return null;
-	}
 	/************************** END AGGREGATION METHODS **********************/
 	
 	
@@ -570,7 +552,7 @@ public class TinkerH2Frame extends AbstractTableDataFrame {
 	}
 	
 	
-	synchronized public TinkerH2Frame open(String fileName) {
+	public TinkerH2Frame open(String fileName) {
 		TinkerH2Frame tf = new TinkerH2Frame();
 		tf.metaData.open(fileName.substring(0, fileName.lastIndexOf(".")));
 		tf.builder = H2Builder.open(fileName);
@@ -724,33 +706,38 @@ public class TinkerH2Frame extends AbstractTableDataFrame {
 	@Override
 	public void connectTypes(String outType, String inType) {
 
-		Set<String> newLevels = new LinkedHashSet<String>();
+//		Set<String> newLevels = new LinkedHashSet<String>();
 		this.metaData.storeVertex(outType, getCleanHeader(outType), null);
-		newLevels.add(outType);
+//		newLevels.add(outType);
 
 		if(inType!=null){
 			this.metaData.storeVertex(inType, getCleanHeader(inType), null);
 			this.metaData.storeRelation(outType, inType);
-			newLevels.add(inType);
+//			newLevels.add(inType);
 		}
 
 		List<String> fullNames = this.metaData.getColumnNames();
 		this.headerNames = fullNames.toArray(new String[fullNames.size()]);
 		
-		//Algorithm
-		//get outtype and intype parents
-		//if outtype parent == null && intype parent != null
-		//	connect outtype to intypes parent
-		//if outtype parent != null && intype parent == null
-		//	connect intype to outtypes parent
-		//if outtype parent != null && intype parent !== null
-		//	if not the same parent
-		//		?
-		//	else do nothing
-		//if outtype parent == null & intype parent == null
-		//  connect intype to outtype?
-		
-		
+//		String outTypeParent = this.metaData.getParentOfUniqueNode(outType);
+//		String inTypeParent = this.metaData.getParentOfUniqueNode(inType);
+//		
+//		if(outTypeParent != null && inTypeParent != null) {
+//			
+//		} else if(outTypeParent != null && inTypeParent == null) {
+//			this.metaData.storeRelation(outTypeParent, inType);
+//			
+//		} else if(outTypeParent == null && inTypeParent != null) {
+//			this.metaData.storeRelation(inTypeParent, outTypeParent);
+//			
+//		} else {
+//			//both are null
+//			//what to do?
+//			//maybe create a new node and connect both to that new node?
+//		}
+//		
+//		List<String> fullNames = this.metaData.getColumnNames();
+//		this.headerNames = fullNames.toArray(new String[fullNames.size()]);
 	}
 	
 //	private List<String> getH2Headers(List<String> headers) {
@@ -784,11 +771,6 @@ public class TinkerH2Frame extends AbstractTableDataFrame {
 	}
 
 	@Override
-	public void addRow(Object[] rowCleanData, Object[] rowRawData) {
-		addRow(rowCleanData, this.headerNames);
-	}
-
-	@Override
 	public void join(ITableDataFrame table, String colNameInTable, String colNameInJoiningTable,
 			double confidenceThreshold, IMatcher routine) {
 		// TODO Auto-generated method stub
@@ -804,22 +786,6 @@ public class TinkerH2Frame extends AbstractTableDataFrame {
 		connectTypes(joinCols[0], newCol); // multiColumn join not enabled on h2
 		
 	}
-	
-    public void addRow(Object[] cells, String[] headers) {
-        String tableName = getTableNameForUniqueColumn(headers[0]);
-        String[] types = new String[headers.length];
-        for(int i = 0; i < types.length; i++) {
-              types[i] = this.metaData.getDataType(headers[i]);
-        }
-        String[] stringArray = Arrays.copyOf(cells, cells.length, String[].class);
-        //get table for headers
-        this.addRow2(tableName, stringArray, headers, types);
-  }
-
-    @Override
-    public void addRow(Object[] cleanCells, Object[] rawCells, String[] headers) {
-    	this.addRow(cleanCells, headers);
-    }
 
 	@Override
 	public void addRelationship(Map<String, Object> rowCleanData, Map<String, Object> rowRawData, Map<String, Set<String>> edgeHash, Map<String, String> logicalToTypeMap) {
