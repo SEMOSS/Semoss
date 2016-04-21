@@ -5,51 +5,51 @@ package prerna.sablecc.node;
 import prerna.sablecc.analysis.*;
 
 @SuppressWarnings("nls")
-public final class AJOp extends PJOp
+public final class AKeyvalueGroup extends PKeyvalueGroup
 {
-    private TJava _java_;
-    private PCodeblock _codeblock_;
+    private TComma _comma_;
+    private PKeyvalue _keyvalue_;
 
-    public AJOp()
+    public AKeyvalueGroup()
     {
         // Constructor
     }
 
-    public AJOp(
-        @SuppressWarnings("hiding") TJava _java_,
-        @SuppressWarnings("hiding") PCodeblock _codeblock_)
+    public AKeyvalueGroup(
+        @SuppressWarnings("hiding") TComma _comma_,
+        @SuppressWarnings("hiding") PKeyvalue _keyvalue_)
     {
         // Constructor
-        setJava(_java_);
+        setComma(_comma_);
 
-        setCodeblock(_codeblock_);
+        setKeyvalue(_keyvalue_);
 
     }
 
     @Override
     public Object clone()
     {
-        return new AJOp(
-            cloneNode(this._java_),
-            cloneNode(this._codeblock_));
+        return new AKeyvalueGroup(
+            cloneNode(this._comma_),
+            cloneNode(this._keyvalue_));
     }
 
     @Override
     public void apply(Switch sw)
     {
-        ((Analysis) sw).caseAJOp(this);
+        ((Analysis) sw).caseAKeyvalueGroup(this);
     }
 
-    public TJava getJava()
+    public TComma getComma()
     {
-        return this._java_;
+        return this._comma_;
     }
 
-    public void setJava(TJava node)
+    public void setComma(TComma node)
     {
-        if(this._java_ != null)
+        if(this._comma_ != null)
         {
-            this._java_.parent(null);
+            this._comma_.parent(null);
         }
 
         if(node != null)
@@ -62,19 +62,19 @@ public final class AJOp extends PJOp
             node.parent(this);
         }
 
-        this._java_ = node;
+        this._comma_ = node;
     }
 
-    public PCodeblock getCodeblock()
+    public PKeyvalue getKeyvalue()
     {
-        return this._codeblock_;
+        return this._keyvalue_;
     }
 
-    public void setCodeblock(PCodeblock node)
+    public void setKeyvalue(PKeyvalue node)
     {
-        if(this._codeblock_ != null)
+        if(this._keyvalue_ != null)
         {
-            this._codeblock_.parent(null);
+            this._keyvalue_.parent(null);
         }
 
         if(node != null)
@@ -87,30 +87,30 @@ public final class AJOp extends PJOp
             node.parent(this);
         }
 
-        this._codeblock_ = node;
+        this._keyvalue_ = node;
     }
 
     @Override
     public String toString()
     {
         return ""
-            + toString(this._java_)
-            + toString(this._codeblock_);
+            + toString(this._comma_)
+            + toString(this._keyvalue_);
     }
 
     @Override
     void removeChild(@SuppressWarnings("unused") Node child)
     {
         // Remove child
-        if(this._java_ == child)
+        if(this._comma_ == child)
         {
-            this._java_ = null;
+            this._comma_ = null;
             return;
         }
 
-        if(this._codeblock_ == child)
+        if(this._keyvalue_ == child)
         {
-            this._codeblock_ = null;
+            this._keyvalue_ = null;
             return;
         }
 
@@ -121,15 +121,15 @@ public final class AJOp extends PJOp
     void replaceChild(@SuppressWarnings("unused") Node oldChild, @SuppressWarnings("unused") Node newChild)
     {
         // Replace child
-        if(this._java_ == oldChild)
+        if(this._comma_ == oldChild)
         {
-            setJava((TJava) newChild);
+            setComma((TComma) newChild);
             return;
         }
 
-        if(this._codeblock_ == oldChild)
+        if(this._keyvalue_ == oldChild)
         {
-            setCodeblock((PCodeblock) newChild);
+            setKeyvalue((PKeyvalue) newChild);
             return;
         }
 

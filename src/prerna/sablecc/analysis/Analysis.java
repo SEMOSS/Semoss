@@ -18,6 +18,7 @@ public interface Analysis extends Switch
     void caseAROpScript(AROpScript node);
     void caseAExprScript(AExprScript node);
     void caseAHelpScript(AHelpScript node);
+    void caseAVizopScript(AVizopScript node);
     void caseAScript(AScript node);
     void caseAAddColumnColop(AAddColumnColop node);
     void caseARemcolColop(ARemcolColop node);
@@ -29,6 +30,8 @@ public interface Analysis extends Switch
     void caseAImportColop(AImportColop node);
     void caseAAliasColop(AAliasColop node);
     void caseAImportDataColop(AImportDataColop node);
+    void caseAVizChangeVizop(AVizChangeVizop node);
+    void caseAVizChange(AVizChange node);
     void caseAAddColumn(AAddColumn node);
     void caseARemColumn(ARemColumn node);
     void caseASetColumn(ASetColumn node);
@@ -43,6 +46,10 @@ public interface Analysis extends Switch
     void caseAExprGroup(AExprGroup node);
     void caseAApiBlock(AApiBlock node);
     void caseASelector(ASelector node);
+    void caseACodeblock(ACodeblock node);
+    void caseAKeyvalue(AKeyvalue node);
+    void caseAKeyvalueGroup(AKeyvalueGroup node);
+    void caseAMapObj(AMapObj node);
     void caseAColWhere(AColWhere node);
     void caseAColDefColDefOrCsvRow(AColDefColDefOrCsvRow node);
     void caseACsvColDefOrCsvRow(ACsvColDefOrCsvRow node);
@@ -100,6 +107,7 @@ public interface Analysis extends Switch
     void caseTId(TId node);
     void caseTDot(TDot node);
     void caseTSemicolon(TSemicolon node);
+    void caseTColon(TColon node);
     void caseTPlus(TPlus node);
     void caseTMinus(TMinus node);
     void caseTMult(TMult node);
@@ -129,12 +137,13 @@ public interface Analysis extends Switch
     void caseTRPar(TRPar node);
     void caseTLBracket(TLBracket node);
     void caseTRBracket(TRBracket node);
+    void caseTLCurlBracket(TLCurlBracket node);
+    void caseTRCurlBracket(TRCurlBracket node);
     void caseTGroup(TGroup node);
     void caseTBlank(TBlank node);
     void caseTSpace(TSpace node);
     void caseTEqual(TEqual node);
     void caseTNewline(TNewline node);
-    void caseTCodeblock(TCodeblock node);
     void caseTJava(TJava node);
     void caseTR(TR node);
     void caseTPython(TPython node);
@@ -146,6 +155,8 @@ public interface Analysis extends Switch
     void caseTDataimporttoken(TDataimporttoken node);
     void caseTLiteral(TLiteral node);
     void caseTHelpToken(THelpToken node);
+    void caseTVizchange(TVizchange node);
+    void caseTAlphanumeric(TAlphanumeric node);
     void caseEOF(EOF node);
     void caseInvalidToken(InvalidToken node);
 }

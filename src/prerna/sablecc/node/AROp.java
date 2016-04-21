@@ -8,7 +8,7 @@ import prerna.sablecc.analysis.*;
 public final class AROp extends PROp
 {
     private TR _r_;
-    private TCodeblock _codeblock_;
+    private PCodeblock _codeblock_;
 
     public AROp()
     {
@@ -17,7 +17,7 @@ public final class AROp extends PROp
 
     public AROp(
         @SuppressWarnings("hiding") TR _r_,
-        @SuppressWarnings("hiding") TCodeblock _codeblock_)
+        @SuppressWarnings("hiding") PCodeblock _codeblock_)
     {
         // Constructor
         setR(_r_);
@@ -65,12 +65,12 @@ public final class AROp extends PROp
         this._r_ = node;
     }
 
-    public TCodeblock getCodeblock()
+    public PCodeblock getCodeblock()
     {
         return this._codeblock_;
     }
 
-    public void setCodeblock(TCodeblock node)
+    public void setCodeblock(PCodeblock node)
     {
         if(this._codeblock_ != null)
         {
@@ -129,7 +129,7 @@ public final class AROp extends PROp
 
         if(this._codeblock_ == oldChild)
         {
-            setCodeblock((TCodeblock) newChild);
+            setCodeblock((PCodeblock) newChild);
             return;
         }
 
