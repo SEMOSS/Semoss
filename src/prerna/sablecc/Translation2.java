@@ -6,7 +6,6 @@ import java.util.Vector;
 import prerna.algorithm.api.IAction;
 import prerna.algorithm.api.ITableDataFrame;
 import prerna.algorithm.impl.ImportAction;
-import prerna.ds.QueryStruct;
 import prerna.ds.TinkerFrame;
 import prerna.engine.api.IScriptReactor;
 import prerna.sablecc.PKQLEnum.PKQLReactor;
@@ -40,6 +39,8 @@ import prerna.sablecc.node.ARelationDef;
 import prerna.sablecc.node.ASetColumn;
 import prerna.sablecc.node.ATermExpr;
 import prerna.sablecc.node.AVarop;
+import prerna.sablecc.node.AVizChange;
+import prerna.sablecc.node.AVizopScript;
 import prerna.sablecc.node.AWord;
 
 public class Translation2 extends DepthFirstAdapter {
@@ -73,6 +74,7 @@ public class Translation2 extends DepthFirstAdapter {
 	public Translation2() { // Test Constructor
 		frame = new TinkerFrame();
 		((TinkerFrame)frame).tryCustomGraph();
+		this.runner = new PKQLRunner();
 		fillReactors();
 	}
 	/**
@@ -99,6 +101,7 @@ public class Translation2 extends DepthFirstAdapter {
 		reactorNames.put(PKQLEnum.COL_ADD, "prerna.sablecc.ColAddReactor");
 		reactorNames.put(PKQLEnum.IMPORT_DATA, "prerna.sablecc.ImportDataReactor");
 		reactorNames.put(PKQLReactor.R_OP.toString(), "prerna.sablecc.RReactor");
+		reactorNames.put(PKQLEnum.VIZ, "prerna.sablecc.VizReactor");
 	}
 	
 	public void initReactor(String myName) {
@@ -219,6 +222,32 @@ public class Translation2 extends DepthFirstAdapter {
 		String nodeStr = node.getExpr() + "";
 		nodeStr = nodeStr.trim();
 		Hashtable <String, Object> thisReactorHash = deinitReactor(PKQLEnum.EXPR_SCRIPT, nodeStr, (node + "").trim());
+	}
+
+	@Override
+	public void inAVizChange(AVizChange node) {
+		System.out.println("in a viz change");
+		initReactor(PKQLEnum.VIZ);
+		String layout = node.getLayout().toString().trim();
+		String alignment = node.getDatatablealign().toString().trim();
+		runner.addFeData("layout", layout);
+		runner.addFeData("dataTableAlign", alignment);
+		runner.setResponse("Successfully set layout to " + layout + " with alignment " + alignment);//
+		runner.setStatus("SUCCESS");
+	}
+
+	@Override
+	public void outAVizChange(AVizChange node) {
+		System.out.println("out a viz change");
+		deinitReactor(PKQLEnum.VIZ, "", "");
+//		String nodeStr = node.getExpr() + "";
+//		nodeStr = nodeStr.trim();
+//		Hashtable <String, Object> thisReactorHash = deinitReactor(PKQLEnum.EXPR_SCRIPT, nodeStr, (node + "").trim());
+	}
+	
+	@Override 
+	public void inAVizopScript(AVizopScript node){
+		runner.addFeData("type", "visual");
 	}
 
 	@Override

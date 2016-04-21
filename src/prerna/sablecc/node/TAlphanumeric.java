@@ -5,14 +5,14 @@ package prerna.sablecc.node;
 import prerna.sablecc.analysis.*;
 
 @SuppressWarnings("nls")
-public final class TCodeblock extends Token
+public final class TAlphanumeric extends Token
 {
-    public TCodeblock(String text)
+    public TAlphanumeric(String text)
     {
         setText(text);
     }
 
-    public TCodeblock(String text, int line, int pos)
+    public TAlphanumeric(String text, int line, int pos)
     {
         setText(text);
         setLine(line);
@@ -22,12 +22,12 @@ public final class TCodeblock extends Token
     @Override
     public Object clone()
     {
-      return new TCodeblock(getText(), getLine(), getPos());
+      return new TAlphanumeric(getText(), getLine(), getPos());
     }
 
     @Override
     public void apply(Switch sw)
     {
-        ((Analysis) sw).caseTCodeblock(this);
+        ((Analysis) sw).caseTAlphanumeric(this);
     }
 }

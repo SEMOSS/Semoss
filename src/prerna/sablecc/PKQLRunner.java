@@ -4,9 +4,8 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.PushbackReader;
 import java.io.StringBufferInputStream;
-import java.io.UnsupportedEncodingException;
-import java.net.URLEncoder;
 import java.util.HashMap;
+import java.util.Map;
 
 import org.apache.commons.lang.StringEscapeUtils;
 
@@ -23,6 +22,7 @@ public class PKQLRunner {
 	
 	private String currentStatus = "error";
 	private Object response = "Invalid PKQL Statement";
+	private Map<String, Object> feData = new HashMap<String, Object>();
 
 	public HashMap<String, Object> runPKQL(String expression, ITableDataFrame f) {
 		
@@ -50,5 +50,13 @@ public class PKQLRunner {
 	
 	public void setStatus(String currentStatus) {
 		this.currentStatus = currentStatus;
+	}
+	
+	public void addFeData(String key, Object value){
+		this.feData.put(key, value);
+	}
+	
+	public Map<String, Object> getFeData(){
+		return this.feData;
 	}
 }
