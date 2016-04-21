@@ -111,6 +111,12 @@ public class AnalysisAdapter implements Analysis
     }
 
     @Override
+    public void caseAVizopScript(AVizopScript node)
+    {
+        defaultCase(node);
+    }
+
+    @Override
     public void caseAScript(AScript node)
     {
         defaultCase(node);
@@ -172,6 +178,18 @@ public class AnalysisAdapter implements Analysis
 
     @Override
     public void caseAImportDataColop(AImportDataColop node)
+    {
+        defaultCase(node);
+    }
+
+    @Override
+    public void caseAVizChangeVizop(AVizChangeVizop node)
+    {
+        defaultCase(node);
+    }
+
+    @Override
+    public void caseAVizChange(AVizChange node)
     {
         defaultCase(node);
     }
@@ -256,6 +274,30 @@ public class AnalysisAdapter implements Analysis
 
     @Override
     public void caseASelector(ASelector node)
+    {
+        defaultCase(node);
+    }
+
+    @Override
+    public void caseACodeblock(ACodeblock node)
+    {
+        defaultCase(node);
+    }
+
+    @Override
+    public void caseAKeyvalue(AKeyvalue node)
+    {
+        defaultCase(node);
+    }
+
+    @Override
+    public void caseAKeyvalueGroup(AKeyvalueGroup node)
+    {
+        defaultCase(node);
+    }
+
+    @Override
+    public void caseAMapObj(AMapObj node)
     {
         defaultCase(node);
     }
@@ -597,6 +639,12 @@ public class AnalysisAdapter implements Analysis
     }
 
     @Override
+    public void caseTColon(TColon node)
+    {
+        defaultCase(node);
+    }
+
+    @Override
     public void caseTPlus(TPlus node)
     {
         defaultCase(node);
@@ -771,6 +819,18 @@ public class AnalysisAdapter implements Analysis
     }
 
     @Override
+    public void caseTLCurlBracket(TLCurlBracket node)
+    {
+        defaultCase(node);
+    }
+
+    @Override
+    public void caseTRCurlBracket(TRCurlBracket node)
+    {
+        defaultCase(node);
+    }
+
+    @Override
     public void caseTGroup(TGroup node)
     {
         defaultCase(node);
@@ -796,12 +856,6 @@ public class AnalysisAdapter implements Analysis
 
     @Override
     public void caseTNewline(TNewline node)
-    {
-        defaultCase(node);
-    }
-
-    @Override
-    public void caseTCodeblock(TCodeblock node)
     {
         defaultCase(node);
     }
@@ -868,6 +922,18 @@ public class AnalysisAdapter implements Analysis
 
     @Override
     public void caseTHelpToken(THelpToken node)
+    {
+        defaultCase(node);
+    }
+
+    @Override
+    public void caseTVizchange(TVizchange node)
+    {
+        defaultCase(node);
+    }
+
+    @Override
+    public void caseTAlphanumeric(TAlphanumeric node)
     {
         defaultCase(node);
     }
