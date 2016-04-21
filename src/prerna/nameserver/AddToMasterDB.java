@@ -241,9 +241,6 @@ public class AddToMasterDB extends ModifyMasterDB {
 			SEMOSSVertex vert = vertItr.next();
 			String vertName = vert.getProperty(Constants.VERTEX_NAME).toString();
 			if(!vertName.equals("Concept")) {
-				String[] nouns = TextHelper.breakCompoundText(vertName);
-				int numNouns = nouns.length;
-
 				// update the concept-concept tree and the keyword-concept graph
 				String typeURI = vert.getURI();//full URI of this keyword
 				String keyWordVertName = removeConceptUri(Utility.cleanString(typeURI, false));
@@ -260,8 +257,10 @@ public class AddToMasterDB extends ModifyMasterDB {
 				MasterDBHelper.addKeywordNode(masterEngine, typeURI);
 				MasterDBHelper.addRelationship(masterEngine, MasterDatabaseURIs.KEYWORD_BASE_URI + "/" + keyWordVertName, typeURI, MasterDatabaseURIs.SEMOSS_RELATION_URI + "/Has/" + cleanVertName + ":" + cleanVertName);
 
+				String[] nouns = TextHelper.breakCompoundText(vertName);
 				BipartiteNode<String> biNode = new BipartiteNode<String>(keyWordVertName);
 				int i = 0;
+				int numNouns = nouns.length;
 				for(; i < numNouns; i++) {
 					String noun = nouns[i].toLowerCase();
 					biNode.addChild(noun);
