@@ -14,11 +14,12 @@ Tokens
  id = (letter_s | letter_b | digit | underscore)*;
 dot = '.';
  semicolon = ';';
+ colon = ':';
  plus = '+';
  minus = '-';
  mult = '*';
  comma = ',';
- quote = '"';
+ quote = ('"' | ''');
  div = '/';
  col = 'col';
  comparator = ('>' | '<' | '<=' | '>=' | '=' | '!=' | 'like');
@@ -47,12 +48,13 @@ dot = '.';
  r_par = ')';
  l_bracket = '[';
  r_bracket = ']';
+ l_curl_bracket = '{';
+ r_curl_bracket = '}';
  group = 'group:';
  blank = (' ' | 13 | 10)+;
  space = (' ' | 13)+;
  equal = '=';
  newline = '\r'? '\n';
- codeblock = '{' [0 .. 0xFFFF]* '}';
  java = 'j:';
  r = 'r:';
  python = 'p:';
@@ -64,6 +66,8 @@ dot = '.';
  dataimporttoken = 'data.import';
  literal = (letter_s | letter_b | digit | underscore)*;// | special)*;
  help_token = 'info.help';
+ vizchange = 'viz.change';
+ alphanumeric = [0 .. 0xFFFF];
  
  
 Ignored Tokens
@@ -79,6 +83,7 @@ script = {colop} colop  semicolon // column operations
 		 | {expr} expr semicolon
 		 //| statop
 		 | {help} help semicolon
+		 | {vizop} vizop semicolon
 		 | newline
 		 ;
 
@@ -95,6 +100,15 @@ colop = // colOp is usually of the form of joinColumn / addColumn / removeColumn
 		| {import_data} import_data
 		;
 
+vizop = // vizop is usually of the form of viz.change, viz.tools, viz.color
+		{viz_change} viz_change 
+//		| {remcol} rem_column 
+//		| {setcol} set_column
+		;
+
+viz_change = // e.g. viz.change('bar', {'label'='Title', 'dim1'='MovieBudget'}); vizchange( vizType, dataTableAlign );
+		vizchange l_par [layout]:id comma [datatablealign]:map_obj r_par
+		;
 		
 add_column = // follows the pattern of addColumn(columnName and optionally the expression) addColumn(c:NewCol, 'expression', [c:col1, c:col2]);
 		coladd l_par [newcol]:col_def comma [expr]:expr r_par 
@@ -145,6 +159,14 @@ api_block = api [engine_name]:id dot [insight]:id l_par [selectors]:col_csv [whe
 // selector comparator selector
 
 selector = l_bracket col_csv r_bracket;
+
+codeblock = l_curl_bracket alphanumeric* r_curl_bracket;
+
+keyvalue = [word1]:word colon [word2]:word;
+
+keyvalue_group = comma keyvalue;
+
+map_obj = l_curl_bracket keyvalue keyvalue_group* r_curl_bracket;
 
 // where column clause
 col_where = col_def comparator col_def_or_csv_row;

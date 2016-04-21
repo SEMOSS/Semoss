@@ -328,8 +328,8 @@ public class TinkerFrame extends AbstractTableDataFrame {
 		
 		System.out.println("Trying max");
 		GraphTraversal<Vertex, Number> gt2 = g.traversal().V().has("TYPE", "Activity").values(Constants.NAME).max();
-		if(gt2.hasNext())
-			System.out.println(gt2.next());
+//		if(gt2.hasNext())
+//			System.out.println(gt2.next());
 		System.out.println("Trying max - complete");
 
 		System.out.println("Trying max group");

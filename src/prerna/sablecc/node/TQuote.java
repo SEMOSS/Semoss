@@ -7,14 +7,14 @@ import prerna.sablecc.analysis.*;
 @SuppressWarnings("nls")
 public final class TQuote extends Token
 {
-    public TQuote()
+    public TQuote(String text)
     {
-        super.setText("\"");
+        setText(text);
     }
 
-    public TQuote(int line, int pos)
+    public TQuote(String text, int line, int pos)
     {
-        super.setText("\"");
+        setText(text);
         setLine(line);
         setPos(pos);
     }
@@ -22,18 +22,12 @@ public final class TQuote extends Token
     @Override
     public Object clone()
     {
-      return new TQuote(getLine(), getPos());
+      return new TQuote(getText(), getLine(), getPos());
     }
 
     @Override
     public void apply(Switch sw)
     {
         ((Analysis) sw).caseTQuote(this);
-    }
-
-    @Override
-    public void setText(@SuppressWarnings("unused") String text)
-    {
-        throw new RuntimeException("Cannot change TQuote text.");
     }
 }
