@@ -37,6 +37,7 @@ public class PKQLEnum {
 	public static String COL_ADD = "COL_ADD";
 	public static String G = "G";
 	public static String FILTER_DATA = "FILTER_DATA";
+	public static String UNFILTER_DATA = "UNFILTER_DATA";
 //	public static String RELATION = "RELATION";
 
 }
