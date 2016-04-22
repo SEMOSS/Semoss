@@ -57,7 +57,7 @@ public class ColFilterReactor extends AbstractReactor{
 				String comparator = (String)thisFilter.get("COMPARATOR");
 				frame.filter(fromCol, cleanedFilterData);
 				myStore.put("STATUS", "SUCCESS");
-				myStore.put("FILTER_VALUES", cleanedFilterData.toString());
+				myStore.put("FILTER_COLUMN", fromCol);
 			}
 		}
 	}

@@ -441,6 +441,27 @@ public class DepthFirstAdapter extends AnalysisAdapter
         outAImportDataColop(node);
     }
 
+    public void inAUnfiltercolColop(AUnfiltercolColop node)
+    {
+        defaultIn(node);
+    }
+
+    public void outAUnfiltercolColop(AUnfiltercolColop node)
+    {
+        defaultOut(node);
+    }
+
+    @Override
+    public void caseAUnfiltercolColop(AUnfiltercolColop node)
+    {
+        inAUnfiltercolColop(node);
+        if(node.getUnfilterColumn() != null)
+        {
+            node.getUnfilterColumn().apply(this);
+        }
+        outAUnfiltercolColop(node);
+    }
+
     public void inAVizChangeVizop(AVizChangeVizop node)
     {
         defaultIn(node);
@@ -696,6 +717,39 @@ public class DepthFirstAdapter extends AnalysisAdapter
             node.getRPar().apply(this);
         }
         outAFilterColumn(node);
+    }
+
+    public void inAUnfilterColumn(AUnfilterColumn node)
+    {
+        defaultIn(node);
+    }
+
+    public void outAUnfilterColumn(AUnfilterColumn node)
+    {
+        defaultOut(node);
+    }
+
+    @Override
+    public void caseAUnfilterColumn(AUnfilterColumn node)
+    {
+        inAUnfilterColumn(node);
+        if(node.getColunfilter() != null)
+        {
+            node.getColunfilter().apply(this);
+        }
+        if(node.getLPar() != null)
+        {
+            node.getLPar().apply(this);
+        }
+        if(node.getColDef() != null)
+        {
+            node.getColDef().apply(this);
+        }
+        if(node.getRPar() != null)
+        {
+            node.getRPar().apply(this);
+        }
+        outAUnfilterColumn(node);
     }
 
     public void inAFocusColumn(AFocusColumn node)
