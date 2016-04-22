@@ -183,6 +183,12 @@ public class AnalysisAdapter implements Analysis
     }
 
     @Override
+    public void caseAUnfiltercolColop(AUnfiltercolColop node)
+    {
+        defaultCase(node);
+    }
+
+    @Override
     public void caseAVizChangeVizop(AVizChangeVizop node)
     {
         defaultCase(node);
@@ -220,6 +226,12 @@ public class AnalysisAdapter implements Analysis
 
     @Override
     public void caseAFilterColumn(AFilterColumn node)
+    {
+        defaultCase(node);
+    }
+
+    @Override
+    public void caseAUnfilterColumn(AUnfilterColumn node)
     {
         defaultCase(node);
     }
@@ -742,6 +754,12 @@ public class AnalysisAdapter implements Analysis
 
     @Override
     public void caseTColfilter(TColfilter node)
+    {
+        defaultCase(node);
+    }
+
+    @Override
+    public void caseTColunfilter(TColunfilter node)
     {
         defaultCase(node);
     }
