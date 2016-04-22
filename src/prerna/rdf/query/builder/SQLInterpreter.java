@@ -49,8 +49,8 @@ public class SQLInterpreter implements IQueryInterpreter{
 		this.engine = engine;
 	}
 
-	public SQLInterpreter()
-	{
+	public SQLInterpreter(){
+		
 	}
 	
 	@Override
@@ -206,9 +206,19 @@ public class SQLInterpreter implements IQueryInterpreter{
 		while(concepts.hasMoreElements())
 		{
 			String concept_property = concepts.nextElement();
+			
 			// inside this is a hashtable of all the comparators
 			Hashtable <String, Vector> compHash = qs.andfilters.get(concept_property);
 			Enumeration <String> comps = compHash.keys();
+			
+			// when adding implicit filtering from the dataframe as a pretrans that gets appended into the QS
+			// we store the value without the parent__, so need to check here if it is stored as a prop in the engine
+			if(engine != null) {
+				String parent = engine.getParentOfProperty(concept_property);
+				if(parent != null) {
+					concept_property = Utility.getClassName(parent) + "__" + concept_property;
+				}
+			}
 			String[] conProp = getConceptProperty(concept_property);
 			String concept = conProp[0];
 			String property = conProp[1];
@@ -231,7 +241,9 @@ public class SQLInterpreter implements IQueryInterpreter{
 				// usually these are or ?
 				// so I am saying if something is
 
-				for(int optIndex = 0;optIndex < options.size(); addFilter(concept, property, thisComparator, options.get(optIndex) + ""), optIndex++);
+				for(int optIndex = 0;optIndex < options.size(); optIndex++){
+					addFilter(concept, property, thisComparator, options.get(optIndex) + "");
+				}
 			}
 		}
 	}
@@ -302,14 +314,29 @@ public class SQLInterpreter implements IQueryInterpreter{
 				// usually these are or ?
 				// so I am saying if something is
 
-				for(int optIndex = 0;optIndex < options.size(); addJoin(concept_property, thisComparator, options.get(optIndex)), optIndex++);
+				for(int optIndex = 0; optIndex < options.size(); optIndex++) {
+					String joinCols = options.get(optIndex);
+					// when joining on a concept that is actually a property, you don't need this, just addFrom to get table
+					if(joinCols.contains("__")) {
+						String table = joinCols.substring(0, joinCols.indexOf("__"));
+						if(table.equals(concept_property)) {
+							addFrom(concept_property);
+							continue;
+						}
+					} 
+					//TODO: need to check if this is still possible
+					else if(joinCols.equals(concept_property)) {
+						addFrom(concept_property);
+						continue;
+					}
+					addJoin(concept_property, thisComparator, options.get(optIndex));
+				}
 			}
 		}		
 	}
 	
 	private void addJoin(String fromCol,
 			String thisComparator, String toCol) {
-		// TODO Auto-generated method stub
 		// this needs to be revamped pretty extensively
 		// I need to add this back to the from because I might not be projecting everything
 		String thisWhere = "";

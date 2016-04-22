@@ -165,13 +165,20 @@ public class QueryStruct {
 		for(String selectorKey: this.selectors.keySet()){
 			Vector<String> props = this.selectors.get(selectorKey);
 			Set<String> downNodeTypes = edgeHash.get(selectorKey);
-			if(downNodeTypes == null){
-				downNodeTypes = new HashSet<String>();
+			// need to consider if there is no prim key placeholder, that the property is actually a concept
+			if(!props.contains(PRIM_KEY_PLACEHOLDER)) {
+				for(String prop : props){
+					edgeHash.put(selectorKey + "__" + prop, new HashSet<String>());
+				}
+			} else {
+				if(downNodeTypes == null){
+					downNodeTypes = new HashSet<String>();
+				}
 				edgeHash.put(selectorKey, downNodeTypes);
-			}
-			props.remove(PRIM_KEY_PLACEHOLDER); // make sure we don't add a node to itself (e.g. Title__Title)
-			for(String prop : props){
-				downNodeTypes.add(selectorKey + "__" + prop); //mergeQSEdgeHash needs this... plus need to keep it consistent with relations
+				props.remove(PRIM_KEY_PLACEHOLDER); // make sure we don't add a node to itself (e.g. Title__Title)
+				for(String prop : props){
+					downNodeTypes.add(selectorKey + "__" + prop); //mergeQSEdgeHash needs this... plus need to keep it consistent with relations
+				}
 			}
 		}
 		
