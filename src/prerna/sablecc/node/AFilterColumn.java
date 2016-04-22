@@ -10,8 +10,6 @@ public final class AFilterColumn extends PFilterColumn
     private TColfilter _colfilter_;
     private TLPar _lPar_;
     private PWhereClause _where_;
-    private TComma _comma_;
-    private PIfBlock _ifBlock_;
     private TRPar _rPar_;
 
     public AFilterColumn()
@@ -23,8 +21,6 @@ public final class AFilterColumn extends PFilterColumn
         @SuppressWarnings("hiding") TColfilter _colfilter_,
         @SuppressWarnings("hiding") TLPar _lPar_,
         @SuppressWarnings("hiding") PWhereClause _where_,
-        @SuppressWarnings("hiding") TComma _comma_,
-        @SuppressWarnings("hiding") PIfBlock _ifBlock_,
         @SuppressWarnings("hiding") TRPar _rPar_)
     {
         // Constructor
@@ -33,10 +29,6 @@ public final class AFilterColumn extends PFilterColumn
         setLPar(_lPar_);
 
         setWhere(_where_);
-
-        setComma(_comma_);
-
-        setIfBlock(_ifBlock_);
 
         setRPar(_rPar_);
 
@@ -49,8 +41,6 @@ public final class AFilterColumn extends PFilterColumn
             cloneNode(this._colfilter_),
             cloneNode(this._lPar_),
             cloneNode(this._where_),
-            cloneNode(this._comma_),
-            cloneNode(this._ifBlock_),
             cloneNode(this._rPar_));
     }
 
@@ -135,56 +125,6 @@ public final class AFilterColumn extends PFilterColumn
         this._where_ = node;
     }
 
-    public TComma getComma()
-    {
-        return this._comma_;
-    }
-
-    public void setComma(TComma node)
-    {
-        if(this._comma_ != null)
-        {
-            this._comma_.parent(null);
-        }
-
-        if(node != null)
-        {
-            if(node.parent() != null)
-            {
-                node.parent().removeChild(node);
-            }
-
-            node.parent(this);
-        }
-
-        this._comma_ = node;
-    }
-
-    public PIfBlock getIfBlock()
-    {
-        return this._ifBlock_;
-    }
-
-    public void setIfBlock(PIfBlock node)
-    {
-        if(this._ifBlock_ != null)
-        {
-            this._ifBlock_.parent(null);
-        }
-
-        if(node != null)
-        {
-            if(node.parent() != null)
-            {
-                node.parent().removeChild(node);
-            }
-
-            node.parent(this);
-        }
-
-        this._ifBlock_ = node;
-    }
-
     public TRPar getRPar()
     {
         return this._rPar_;
@@ -217,8 +157,6 @@ public final class AFilterColumn extends PFilterColumn
             + toString(this._colfilter_)
             + toString(this._lPar_)
             + toString(this._where_)
-            + toString(this._comma_)
-            + toString(this._ifBlock_)
             + toString(this._rPar_);
     }
 
@@ -241,18 +179,6 @@ public final class AFilterColumn extends PFilterColumn
         if(this._where_ == child)
         {
             this._where_ = null;
-            return;
-        }
-
-        if(this._comma_ == child)
-        {
-            this._comma_ = null;
-            return;
-        }
-
-        if(this._ifBlock_ == child)
-        {
-            this._ifBlock_ = null;
             return;
         }
 
@@ -284,18 +210,6 @@ public final class AFilterColumn extends PFilterColumn
         if(this._where_ == oldChild)
         {
             setWhere((PWhereClause) newChild);
-            return;
-        }
-
-        if(this._comma_ == oldChild)
-        {
-            setComma((TComma) newChild);
-            return;
-        }
-
-        if(this._ifBlock_ == oldChild)
-        {
-            setIfBlock((PIfBlock) newChild);
             return;
         }
 
