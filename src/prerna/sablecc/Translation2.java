@@ -39,6 +39,7 @@ import prerna.sablecc.node.AROp;
 import prerna.sablecc.node.ARelationDef;
 import prerna.sablecc.node.ASetColumn;
 import prerna.sablecc.node.ATermExpr;
+import prerna.sablecc.node.AUnfilterColumn;
 import prerna.sablecc.node.AVarop;
 import prerna.sablecc.node.AVizChange;
 import prerna.sablecc.node.AVizopScript;
@@ -104,6 +105,7 @@ public class Translation2 extends DepthFirstAdapter {
 		reactorNames.put(PKQLEnum.FILTER_DATA, "prerna.sablecc.ColFilterReactor");
 		reactorNames.put(PKQLReactor.R_OP.toString(), "prerna.sablecc.RReactor");
 		reactorNames.put(PKQLEnum.VIZ, "prerna.sablecc.VizReactor");
+		reactorNames.put(PKQLEnum.UNFILTER_DATA, "prerna.sablecc.ColUnfilterReactor");
 	}
 	
 	public void initReactor(String myName) {
@@ -420,8 +422,27 @@ public class Translation2 extends DepthFirstAdapter {
 		Hashtable <String, Object> thisReactorHash = deinitReactor(PKQLEnum.FILTER_DATA, nodeExpr, node.toString().trim());
 		IScriptReactor previousReactor = (IScriptReactor)thisReactorHash.get(PKQLEnum.FILTER_DATA.toString());
 		runner.setStatus((String)previousReactor.getValue("STATUS"));
-		runner.setResponse("Filtering based on: " + (String)previousReactor.getValue("FILTER_VALUES"));
+		runner.setResponse("Filtered Column: " + (String)previousReactor.getValue("FILTER_COLUMN"));
 	}
+	
+	@Override
+    public void inAUnfilterColumn(AUnfilterColumn node) {
+		if(reactorNames.containsKey(PKQLEnum.UNFILTER_DATA)) {
+			initReactor(PKQLEnum.UNFILTER_DATA);
+			String nodeStr = node + "";
+			curReactor.put(PKQLEnum.UNFILTER_DATA, nodeStr.trim());
+		}
+    }
+
+	@Override
+    public void outAUnfilterColumn(AUnfilterColumn node) {
+		String nodeExpr = node.getColDef().toString().trim();
+//		curReactor.put(PKQLEnum.WHERE, nodeExpr);
+		Hashtable <String, Object> thisReactorHash = deinitReactor(PKQLEnum.UNFILTER_DATA, nodeExpr, node.toString().trim());
+		IScriptReactor previousReactor = (IScriptReactor)thisReactorHash.get(PKQLEnum.UNFILTER_DATA.toString());
+		runner.setStatus((String)previousReactor.getValue("STATUS"));
+		runner.setResponse("Unfiltered Column: " + (String)previousReactor.getValue("FILTER_COLUMN"));
+    }
 
 	@Override
 	public void outAExprGroup(AExprGroup node) {

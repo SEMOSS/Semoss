@@ -33,6 +33,7 @@ dot = '.';
  valprefix = 'v:';
  colremove = 'col.remove';
  colfilter = 'col.filter';
+ colunfilter = 'col.unfilter';
  colimport = 'col.import';
  //('removeColumn:' | 'rm:' | 'del:' | 'rem:');
  colset = 'col.set';
@@ -98,6 +99,7 @@ colop = // colOp is usually of the form of joinColumn / addColumn / removeColumn
 		| {import} import_column
 		| {alias} alias_column
 		| {import_data} import_data
+		| {unfiltercol} unfilter_column
 		;
 
 vizop = // vizop is usually of the form of viz.change, viz.tools, viz.color
@@ -128,6 +130,9 @@ pivot_column = // grouping based on multiple columns
 filter_column = // filter column using an expression
 		colfilter l_par [where]:where_clause r_par;
 
+unfilter_column = //unfilter column using col_def
+		colunfilter l_par col_def r_par;
+		
 focus_column = // takes all the other columns and focuses on only these columns
 		colfocus l_par col_def col_group* show_hide r_par
 		;
