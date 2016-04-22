@@ -175,7 +175,7 @@ col_def_or_csv_row = {col_def} col_def | {csv} csv_row;
 
 col_where_group = comma col_where;
 
-where_clause = comma l_par col_where col_where_group* r_par; // , (
+where_clause = comma? l_par col_where col_where_group* r_par; // , (
 
 // relations
 relation_def = l_bracket [from]:col_def [com1]:comma rel_type [com2]:comma [to]:col_def r_bracket;
