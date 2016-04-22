@@ -1,7 +1,5 @@
 package prerna.rdf.query.builder;
 
-import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Enumeration;
 import java.util.Hashtable;
 import java.util.List;
@@ -16,7 +14,6 @@ import prerna.rdf.query.util.SEMOSSQuery;
 import prerna.rdf.query.util.SEMOSSQueryHelper;
 import prerna.rdf.query.util.SPARQLConstants;
 import prerna.rdf.query.util.TriplePart;
-import prerna.rdf.query.util.TriplePartConstant;
 import prerna.util.Utility;
 
 public class SPARQLInterpreter implements IQueryInterpreter {
@@ -134,7 +131,10 @@ public class SPARQLInterpreter implements IQueryInterpreter {
 			String tableName = selections.nextElement();
 			Vector <String> columns = qs.selectors.get(tableName);
 
-			for(int colIndex = 0;colIndex < columns.size();addSelector(tableName, columns.get(colIndex)), addFrom(tableName, columns.get(colIndex)), colIndex++); // adds the from as well
+			for(int colIndex = 0;colIndex < columns.size(); colIndex++){
+				addSelector(tableName, columns.get(colIndex));
+				addFrom(tableName, columns.get(colIndex));
+			}
 		}
 	}
 	
@@ -153,7 +153,7 @@ public class SPARQLInterpreter implements IQueryInterpreter {
 			Enumeration <String> comps = compHash.keys();
 			String concept = concept_property;
 			String property = concept_property;
-			if(concept_property.contains("__")){
+			if(concept_property.contains("__")) {
 				concept = concept_property.substring(0, concept_property.indexOf("__"));
 				property = concept_property.substring(concept_property.indexOf("__")+2);
 			}
@@ -189,6 +189,17 @@ public class SPARQLInterpreter implements IQueryInterpreter {
 		// 2. Using bindings at the end of the query is the same as putting filter within the clause for that concept
 		// 3. If the concept we are filtering on is optional, the filter must be outside of its clause (aka can't use bindings)
 		
+		//TODO:
+		//TODO:
+		// need to tell the FE to not pass this... this currently occurs when you hit on the 
+		// concept when you try to traverse in graph
+		if(objects == null || objects.size() == 0) {
+			return;
+		}
+
+		// should expose this on the engien itself
+		boolean isProp = engine.getParentOfProperty(concept) != null ? true : false;
+		
 		if(objects.get(0) instanceof String) // ok this is a string ------ must be " = " comparator ... currently not handling regex
 		{
 			property = getVarName(property, false); // right now all strings are assumed to be nodes
@@ -199,16 +210,35 @@ public class SPARQLInterpreter implements IQueryInterpreter {
 			}
 			else
 			{
-				for(Object object : objects){
-					String myobject = (""+object).replace("\"", ""); // get rid of the space
-//					myobject = myobject.replaceAll("\\s+","_");
-					myobject = Utility.cleanString(myobject, true, true, false);
-					myobject = myobject.trim();
-					myobject = engine.getNodeBaseUri() + concept+"/"+ myobject;
-					cleanedObjects.add(myobject);
+				if(!isProp) {
+					// then these are all uris that need to be cleaned
+					for(Object object : objects){
+						String myobject = (""+object).replace("\"", ""); 
+						// get rid of the space
+						// myobject = myobject.replaceAll("\\s+","_");
+						myobject = Utility.cleanString(myobject, true, true, false);
+						myobject = myobject.trim();
+						myobject = engine.getNodeBaseUri() + concept+"/"+ myobject;
+						cleanedObjects.add(myobject);
+					}
+				} else {
+					// need to cast objects appropriately
+					for(Object object : objects) {
+						Object myobject = object.toString().replace("\"", "");
+						String type = Utility.findTypes(myobject + "")[0] + "";
+						if(type.equalsIgnoreCase("Date")) {
+							myobject = Utility.getDate(myobject + "");
+						} else if(type.equalsIgnoreCase("Double")) {
+		    				myobject = Utility.getDouble(myobject + "");
+						}
+						cleanedObjects.add(myobject);
+					}
 				}
 			}
-			if(cleanedObjects.size()==1){ // we can always just add a bind to the main clause... never want this to be optional
+			if(isProp) {
+				// literals cannot use bind or bindings because we need to use the comparator
+				SEMOSSQueryHelper.addURIFilterPhrase(getVarName(property, true), TriplePart.VARIABLE, cleanedObjects, TriplePart.LITERAL, " = ", true, semossQuery);
+			} else if(cleanedObjects.size()==1){ // we can always just add a bind to the main clause... never want this to be optional
 				SEMOSSQueryHelper.addBindPhrase(cleanedObjects.get(0)+"", TriplePart.URI, property, semossQuery);
 			}
 			else if (!semossQuery.hasBindings() && !semossQuery.clauseIsOptional(property)){ // bindings is only valid if the clause isn't optional and bindings hasn't already been used
@@ -219,7 +249,6 @@ public class SPARQLInterpreter implements IQueryInterpreter {
 			}
 		}
 		else { // literals cannot use bind or bindings because we need to use the comparator
-//			TriplePartConstant objType = TriplePart.LITERAL;
 			SEMOSSQueryHelper.addURIFilterPhrase(getVarName(property, true), TriplePart.VARIABLE, objects, TriplePart.LITERAL, " = ", true, semossQuery);
 //			SEMOSSQueryHelper.addRegexFilterPhrase(getVarName(property, true), TriplePart.VARIABLE, objects, objType, false, true, semossQuery, true);
 		}
@@ -259,14 +288,15 @@ public class SPARQLInterpreter implements IQueryInterpreter {
 				// usually these are or ?
 				// so I am saying if something is
 
-				for(int optIndex = 0;optIndex < options.size(); addJoin(concept_property, thisComparator, options.get(optIndex)), optIndex++);
+				for(int optIndex = 0;optIndex < options.size(); optIndex++) {
+					addJoin(concept_property, thisComparator, options.get(optIndex));
+				}
 			}
 		}		
 	}
 	
 	private void addJoin(String fromString,
 			String thisComparator, String toString) {
-		// TODO Auto-generated method stub
 		// this needs to be revamped pretty extensively
 		// I need to add this back to the from because I might not be projecting everything
 		if(!fromString.contains("__") && !toString.contains("__")){
@@ -319,10 +349,14 @@ public class SPARQLInterpreter implements IQueryInterpreter {
 			}
 		}
 		else if(fromString.contains("__") && !toString.contains("__")){
-			
+			// joining on a concept that is actually a property
+			String[] nodePropSplit = fromString.split("__");
+			addNodeProperty(nodePropSplit[0], nodePropSplit[1]);
 		}
 		else if(!fromString.contains("__") && toString.contains("__")){
-			
+			// joining on a concept that is actually a property
+			String[] nodePropSplit = toString.split("__");
+			addNodeProperty(nodePropSplit[0], nodePropSplit[1]);
 		}
 		else { // both have properties defined... no idea how to link this... filter match?
 			

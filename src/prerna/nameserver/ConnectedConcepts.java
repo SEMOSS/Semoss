@@ -54,7 +54,7 @@ public class ConnectedConcepts {
 		}
 	}
 	
-	public void addData(String engine, String conceptURI, String physName, Map<String, Object> connections) {
+	public void addData(String engine, String conceptURI, String physName, String parent, Map<String, Object> connections) {
 		if(data.containsKey(engine)) {
 			Map<String, Object> engineMap = (Map<String, Object>) data.get(engine);
 			// need to check if relationship name already exists
@@ -82,12 +82,18 @@ public class ConnectedConcepts {
 				}
 			} else {
 				connections.put("physicalName", physName);
+				if(parent != null) {
+					connections.put("parent", parent);
+				}
 				conceptMap.put(conceptURI, connections);
 			}
 		} else {
 			Map<String, Object> engineMap = new Hashtable<String, Object>();
 			Map<String, Object> innerMap = new Hashtable<String, Object>();
 			connections.put("physicalName", physName);
+			if(parent != null) {
+				connections.put("parent", parent);
+			}
 			innerMap.put(conceptURI, connections);
 			engineMap.put(EQUIVALENT_CONCEPT, innerMap);
 			data.put(engine, engineMap);
