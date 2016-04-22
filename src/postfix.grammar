@@ -126,7 +126,7 @@ pivot_column = // grouping based on multiple columns
 		colpivot l_par [firstcol]:col_def col_group+ r_par;
 
 filter_column = // filter column using an expression
-		colfilter l_par [where]:where_clause comma if_block r_par;
+		colfilter l_par [where]:where_clause r_par;
 
 focus_column = // takes all the other columns and focuses on only these columns
 		colfocus l_par col_def col_group* show_hide r_par

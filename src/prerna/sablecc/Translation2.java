@@ -23,6 +23,7 @@ import prerna.sablecc.node.AEExprExpr;
 import prerna.sablecc.node.AExprGroup;
 import prerna.sablecc.node.AExprRow;
 import prerna.sablecc.node.AExprScript;
+import prerna.sablecc.node.AFilterColumn;
 import prerna.sablecc.node.AHelpScript;
 import prerna.sablecc.node.AImportColumn;
 import prerna.sablecc.node.AImportData;
@@ -100,6 +101,7 @@ public class Translation2 extends DepthFirstAdapter {
 		reactorNames.put(PKQLEnum.REL_DEF, "prerna.sablecc.RelReactor");
 		reactorNames.put(PKQLEnum.COL_ADD, "prerna.sablecc.ColAddReactor");
 		reactorNames.put(PKQLEnum.IMPORT_DATA, "prerna.sablecc.ImportDataReactor");
+		reactorNames.put(PKQLEnum.FILTER_DATA, "prerna.sablecc.ColFilterReactor");
 		reactorNames.put(PKQLReactor.R_OP.toString(), "prerna.sablecc.RReactor");
 		reactorNames.put(PKQLEnum.VIZ, "prerna.sablecc.VizReactor");
 	}
@@ -400,6 +402,25 @@ public class Translation2 extends DepthFirstAdapter {
 		String nodeExpr = node.getExpr().toString().trim();
 		curReactor.put(PKQLEnum.EXPR_TERM, nodeExpr);
 		Hashtable <String, Object> thisReactorHash = deinitReactor(PKQLEnum.COL_ADD, nodeExpr, node.toString().trim());
+	}
+	
+	@Override
+	public void inAFilterColumn(AFilterColumn node) {
+		if(reactorNames.containsKey(PKQLEnum.FILTER_DATA)) {
+			initReactor(PKQLEnum.FILTER_DATA);
+			String nodeStr = node + "";
+			curReactor.put(PKQLEnum.FILTER_DATA, nodeStr.trim());
+		}
+	}
+//	
+	@Override
+	public void outAFilterColumn(AFilterColumn node) {
+		String nodeExpr = node.getWhere().toString().trim();
+//		curReactor.put(PKQLEnum.WHERE, nodeExpr);
+		Hashtable <String, Object> thisReactorHash = deinitReactor(PKQLEnum.FILTER_DATA, nodeExpr, node.toString().trim());
+		IScriptReactor previousReactor = (IScriptReactor)thisReactorHash.get(PKQLEnum.FILTER_DATA.toString());
+		runner.setStatus((String)previousReactor.getValue("STATUS"));
+		runner.setResponse("Filtering based on: " + (String)previousReactor.getValue("FILTER_VALUES"));
 	}
 
 	@Override

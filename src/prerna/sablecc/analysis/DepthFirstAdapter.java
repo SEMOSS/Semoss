@@ -691,14 +691,6 @@ public class DepthFirstAdapter extends AnalysisAdapter
         {
             node.getWhere().apply(this);
         }
-        if(node.getComma() != null)
-        {
-            node.getComma().apply(this);
-        }
-        if(node.getIfBlock() != null)
-        {
-            node.getIfBlock().apply(this);
-        }
         if(node.getRPar() != null)
         {
             node.getRPar().apply(this);
