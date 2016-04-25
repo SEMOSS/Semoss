@@ -40,7 +40,6 @@ public class CorrAlgorithm extends BaseReducer {
 			values.add(retObject);
 		}
 		
-		//TODO: need to test that this conversion will work
 		double[][] A = (double[][]) values.toArray(new double[][]{});
 		PearsonsCorrelation correlation = new PearsonsCorrelation(A);
 		double[][] correlationArray = correlation.getCorrelationMatrix().getData();	
