@@ -328,14 +328,20 @@ class TokenIndex extends AnalysisAdapter
     }
 
     @Override
-    public void caseTAlphanumeric(@SuppressWarnings("unused") TAlphanumeric node)
+    public void caseTVizcomment(@SuppressWarnings("unused") TVizcomment node)
     {
         this.index = 53;
     }
 
     @Override
-    public void caseEOF(@SuppressWarnings("unused") EOF node)
+    public void caseTAlphanumeric(@SuppressWarnings("unused") TAlphanumeric node)
     {
         this.index = 54;
+    }
+
+    @Override
+    public void caseEOF(@SuppressWarnings("unused") EOF node)
+    {
+        this.index = 55;
     }
 }

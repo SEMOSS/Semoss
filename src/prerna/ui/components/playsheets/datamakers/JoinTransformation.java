@@ -173,4 +173,8 @@ public class JoinTransformation extends AbstractTransformation {
 
 		return joinCopy;
 	}
+
+	public List<String> getAddedColumns() {
+		return addedColumns;
+	}
 }

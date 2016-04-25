@@ -68,6 +68,7 @@ dot = '.';
  literal = (letter_s | letter_b | digit | underscore)*;// | special)*;
  help_token = 'info.help';
  vizchange = 'viz.change';
+ vizcomment = 'viz.comment';
  alphanumeric = [0 .. 0xFFFF];
  
  
@@ -104,12 +105,15 @@ colop = // colOp is usually of the form of joinColumn / addColumn / removeColumn
 
 vizop = // vizop is usually of the form of viz.change, viz.tools, viz.color
 		{viz_change} viz_change 
-//		| {remcol} rem_column 
-//		| {setcol} set_column
+		| {viz_comment} viz_comment
 		;
 
-viz_change = // e.g. viz.change('bar', {'label'='Title', 'dim1'='MovieBudget'}); vizchange( vizType, dataTableAlign );
-		vizchange l_par [layout]:id comma [datatablealign]:map_obj r_par
+viz_change = // e.g. viz.change(bar, [c:Title, c:Budget]); vizchange( vizType, ordered headers );
+		vizchange l_par [layout]:id comma [datatablealign]:col_csv r_par
+		;
+		
+viz_comment = // e.g. viz.comment("this looks super important", group0, coordinate, (50, 16));
+		vizcomment l_par [text]:word [c1]:comma [group]:id [c2]:comma [type]:id [c3]:comma [location]:word_or_num r_par
 		;
 		
 add_column = // follows the pattern of addColumn(columnName and optionally the expression) addColumn(c:NewCol, 'expression', [c:col1, c:col2]);
@@ -167,12 +171,6 @@ selector = l_bracket col_csv r_bracket;
 
 codeblock = l_curl_bracket alphanumeric* r_curl_bracket;
 
-keyvalue = [word1]:word colon [word2]:word;
-
-keyvalue_group = comma keyvalue;
-
-map_obj = l_curl_bracket keyvalue keyvalue_group* r_curl_bracket;
-
 // where column clause
 col_where = col_def comparator col_def_or_csv_row;
 
@@ -223,7 +221,7 @@ word_or_num = {num} decimal | {alpha} word |{expr} [formula]:formula ; // I need
 
 word = [l]:quote word_or_blank+ [r]:quote;
 
-word_or_blank = {id} id | {blank} space;
+word_or_blank = {id} id | number | {blank} space;
 
 formula = l_par expr r_par;
 		
