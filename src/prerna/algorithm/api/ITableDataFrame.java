@@ -533,4 +533,6 @@ public interface ITableDataFrame extends IDataMaker {
 	void addRelationship(Map<String, Object> rowCleanData, Map<String, Object> rowRawData, Map<String, Set<String>> edgeHash, Map<String, String> logicalToValMap);
 	
 	Map<String, Object[]> getFilterTransformationValues();
+
+	void filter(String columnHeader, List<Object> filterValues, String comparator);
 }

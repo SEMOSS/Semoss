@@ -53,7 +53,9 @@ public class H2Builder {
 		typeConversionMap.put("STRING", "VARCHAR(800)");
 		typeConversionMap.put("DATE", "DATE");
 	}
+	
 	Map<String, List<Object>> filterHash = new HashMap<>();
+	Map<String, Comparator> filterComparator = new HashMap<>();
 	
 	String tableName; 
 	
@@ -69,6 +71,10 @@ public class H2Builder {
 		}
 	}
 	
+	public enum Comparator {
+		EQUAL, LESS_THAN, GREATER_THAN, LESS_THAN_EQUAL, GREATER_THAN_EQUAL, NOT_EQUAL;
+	}
+	
 	List<String> extraColumn = new ArrayList<String>();
 	
 	//random base for extra column name
@@ -78,17 +84,15 @@ public class H2Builder {
 	/*************************** TEST **********************************************/
 	public static void main(String[] a) throws Exception {
 		
-		String testString = "0.27";
-		System.out.println(NumberUtils.isNumber(testString));
 		
-		
+		concurrencyTest();
 		
 //		new H2Builder().testMakeFilter();
-    	H2Builder test = new H2Builder();
+//    	H2Builder test = new H2Builder();
 //    	test.castToType("6/2/2015");
-		String fileName = "C:/Users/rluthar/Desktop/datasets/Movie.csv";
+//		String fileName = "C:/Users/rluthar/Desktop/datasets/Movie.csv";
 //		long before, after;
-		fileName = "C:/Users/pkapaleeswaran/workspacej3/datasets/Remedy New.csv";
+//		fileName = "C:/Users/pkapaleeswaran/workspacej3/datasets/Remedy New.csv";
 //		//fileName = "C:/Users/pkapaleeswaran/workspacej3/datasets/Movie.csv";
 //
 //		/******* Used Primarily for Streaming *******/
@@ -129,7 +133,28 @@ public class H2Builder {
 //    	//String [] headers = {"A", "b", "d", "e", "f", "g", "h"};
 //    	//test.predictRowTypes("1.0, 2, \"$123,33.22\", wwewewe, \"Hello, I am doing good\", hola, 9/12/2012");
     }
-	    
+	  
+	private static void concurrencyTest() throws SQLException {
+		Connection conn = DriverManager.getConnection("jdbc:h2:mem:test:LOG=0;CACHE_SIZE=65536;LOCK_MODE=1;UNDO_LOG=0", "sa", "");
+		
+		int tableLength = 1000000;
+		//create a table
+		conn.createStatement().execute("CREATE TABLE TEST (COLUMN1 VARCHAR(800), COLUMN2 VARCHAR(800), COLUMN3 VARCHAR(800))");
+		
+		//put in a LOT of data
+		for(int i = 1; i <= tableLength; i++) {
+			conn.createStatement().execute("INSERT INTO TEST (COLUMN1, COLUMN2, COLUMN3) VALUES ('"+tableLength+"', '"+tableLength+"col2"+"', '"+tableLength+"col3')");
+		}
+
+		//alter the table (should take some time)
+		conn.createStatement().execute("ALTER TABLE TEST ADD COLUMN4 VARCHAR(800)");
+		
+		//see if we try and update before alter finishes
+		conn.createStatement().execute("UPDATE TEST SET COLUMN4 = 'THIS IS COLUMN 4' WHERE COLUMN1 = '"+tableLength+"'");
+		
+		System.out.println("Finished");
+	}
+	
 	//Test method
     public void testDB() throws Exception
     {
@@ -502,6 +527,7 @@ public class H2Builder {
     //get scaled version of above method
     public List<Object[]> getScaledData(String tableName, List<String> selectors, Map<String, String> headerTypeMap, String column, Object value, Double[] maxArr, Double[] minArr) {
         
+    	int cindex = selectors.indexOf(column);
     	if(tableName == null) tableName = this.tableName;
     	
         List<Object[]> data;
@@ -529,7 +555,7 @@ public class H2Builder {
 
 		            for(int i = 1; i <= NumOfCol; i++) {
 		                Object val = rs.getObject(i);
-		                if(types[i-1].equalsIgnoreCase("int") || types[i-1].equalsIgnoreCase("double")) {
+		                if(cindex != (i-1) && (types[i-1].equalsIgnoreCase("int") || types[i-1].equalsIgnoreCase("double"))) {
 		                	row[i-1] = ( ((Number)val).doubleValue() - minArr[i-1])/(maxArr[i-1] - minArr[i-1]);
 		                } else {
 		                	row[i-1] = val;
@@ -894,28 +920,33 @@ public class H2Builder {
     }
     
     //aggregate filters
-    public void addFilters(String columnHeader, List<Object> values) {
+    public void addFilters(String columnHeader, List<Object> values, Comparator comparator) {
     	columnHeader = cleanHeader(columnHeader);
-    	if(filterHash.get(columnHeader) == null) {
+    	//always replace for numerical filters
+    	if(filterHash.get(columnHeader) == null || (comparator != Comparator.EQUAL && comparator != Comparator.NOT_EQUAL)) {
     		filterHash.put(columnHeader, values);
     	} else {
     		filterHash.get(columnHeader).addAll(values);
     	}
+    	filterComparator.put(columnHeader, comparator);
     }
     
     //overwrite previous filters with new list
-    public void setFilters(String columnHeader, List<Object> values) {
+    public void setFilters(String columnHeader, List<Object> values, Comparator comparator) {
     	columnHeader = cleanHeader(columnHeader);
     	filterHash.put(columnHeader, values);
+    	filterComparator.put(columnHeader, comparator);
     }
     
     public void removeFilter(String columnHeader) {
     	columnHeader = cleanHeader(columnHeader);
     	filterHash.remove(columnHeader);
+    	filterComparator.remove(columnHeader);
     }
     
     public void clearFilters() {
     	filterHash.clear();
+    	filterComparator.clear();
     }
     
     //use this for the filtered half of filter model
@@ -1765,6 +1796,7 @@ public class H2Builder {
     	return groupByStatement;
     }
     
+    //TODO : don't assume a double group by here
     private String makeGroupBy(String[] column, String valueColumn, String mathType, String alias, String tableName, String[] headers) {
     	if(column.length == 1) return makeGroupBy(column[0], valueColumn, mathType, alias, tableName, headers);
     	String column1 = cleanHeader(column[0]);
@@ -1847,7 +1879,7 @@ public class H2Builder {
     	return updateQuery;
     }
     
-    private String makeFilterSubQuery() {
+    private String makeFilterSubQuery2() {
     	
     	String filterStatement = "";
     	if(filterHash.keySet().size() > 0) {
@@ -1860,6 +1892,75 @@ public class H2Builder {
 	    		String listString = getQueryStringList(filterValues);
 	    		
 	    		filterStatement += header+" in " + listString;
+	    		
+	    		//put appropriate ands
+	    		if(x < filteredColumns.size() - 1) {
+	    			filterStatement += " AND ";
+	    		}
+	    	}
+	    	
+	    	if(filterStatement.length() > 0) {
+	    		filterStatement = " WHERE " + filterStatement;
+	    	}
+    	}
+    	
+    	return filterStatement;
+    }
+    
+    private String makeFilterSubQuery() {
+    	String filterStatement = "";
+    	if(filterHash.keySet().size() > 0) {
+	    	
+	    	List<String> filteredColumns = new ArrayList<String>(filterHash.keySet());
+	    	for(int x = 0; x < filteredColumns.size(); x++) {
+	    		
+	    		String header = filteredColumns.get(x);
+	    		Comparator comparator = filterComparator.get(header);
+	    		
+	    		switch(comparator) {
+	    		case EQUAL:{
+	    			List<Object> filterValues = filterHash.get(header);
+		    		String listString = getQueryStringList(filterValues);
+		    		filterStatement += header+" in " + listString;
+	    			break;
+	    		}
+	    		case NOT_EQUAL: {
+	    			List<Object> filterValues = filterHash.get(header);
+		    		String listString = getQueryStringList(filterValues);
+		    		filterStatement += header+" not in " + listString;
+	    			break;
+	    		}
+	    		case LESS_THAN: {
+	    			List<Object> filterValues = filterHash.get(header);
+		    		String listString = filterValues.get(0).toString();
+		    		filterStatement += header+" < " + listString;
+	    			break;
+	    		}
+	    		case GREATER_THAN: {
+	    			List<Object> filterValues = filterHash.get(header);
+		    		String listString = filterValues.get(0).toString();
+		    		filterStatement += header+" > " + listString;
+	    			break;
+	    		}
+	    		case GREATER_THAN_EQUAL: {
+	    			List<Object> filterValues = filterHash.get(header);
+		    		String listString = filterValues.get(0).toString();
+		    		filterStatement += header+" >= " + listString;
+	    			break;
+	    		}
+	    		case LESS_THAN_EQUAL: {
+	    			List<Object> filterValues = filterHash.get(header);
+		    		String listString = filterValues.get(0).toString();
+		    		filterStatement += header+" <= " + listString;
+	    			break;
+	    		}
+	    		default: {
+		    		List<Object> filterValues = filterHash.get(header);
+		    		String listString = getQueryStringList(filterValues);
+		    		
+		    		filterStatement += header+" in " + listString;
+	    		}
+	    		}
 	    		
 	    		//put appropriate ands
 	    		if(x < filteredColumns.size() - 1) {

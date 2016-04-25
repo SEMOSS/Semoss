@@ -451,7 +451,7 @@ public class Translation2 extends DepthFirstAdapter {
 		Hashtable <String, Object> thisReactorHash = deinitReactor(PKQLEnum.FILTER_DATA, nodeExpr, node.toString().trim());
 		IScriptReactor previousReactor = (IScriptReactor)thisReactorHash.get(PKQLEnum.FILTER_DATA.toString());
 		runner.setStatus((String)previousReactor.getValue("STATUS"));
-		runner.setResponse("Filtered Column: " + (String)previousReactor.getValue("FILTER_COLUMN"));
+		runner.setResponse((String)previousReactor.getValue("FILTER_RESPONSE"));
 	}
 	
 	@Override
@@ -548,6 +548,7 @@ public class Translation2 extends DepthFirstAdapter {
 
     @Override
     public void outANumWordOrNum(ANumWordOrNum node) {
+    	curReactor.set(PKQLEnum.WORD_OR_NUM, (node + "").trim());
     }
 
 	@Override

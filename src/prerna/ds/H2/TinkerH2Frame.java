@@ -118,6 +118,7 @@ public class TinkerH2Frame extends AbstractTableDataFrame {
         this.addRow2(tableName, stringArray, headers, types);
     }
     
+    //need to make this private if we are going with single table h2
 	public void addRow2(String tableName, String[] cells, String[] headers, String[] types) {
         String[] headerValues = new String[headers.length];
 		for(int j = 0; j < headers.length; j++) {
@@ -128,6 +129,7 @@ public class TinkerH2Frame extends AbstractTableDataFrame {
 		this.builder.addRow(tableName, cells, headerValues, types);
 	}
 	
+	//TODO : this won't with main column table
 	public String getTableNameForUniqueColumn(String uniqueName) {
 		return this.metaData.getParentValueOfUniqueNode(uniqueName);
 	}
@@ -219,10 +221,48 @@ public class TinkerH2Frame extends AbstractTableDataFrame {
 		if(filterValues != null && filterValues.size() > 0) {
 			this.metaData.setFiltered(columnHeader, true);
 			columnHeader = this.metaData.getValueForUniqueName(columnHeader);
-			builder.setFilters(columnHeader, filterValues);
+			builder.setFilters(columnHeader, filterValues, H2Builder.Comparator.EQUAL);
 		}
 	}
 
+	@Override
+	public void filter(String columnHeader, List<Object> filterValues, String comparator) {
+		if(filterValues != null && filterValues.size() > 0) {
+			
+			if(comparator.equals("=")) {
+				builder.addFilters(columnHeader, filterValues, H2Builder.Comparator.EQUAL);
+			} else if(comparator.equals("!=")) { 
+				builder.addFilters(columnHeader, filterValues, H2Builder.Comparator.NOT_EQUAL);
+			} else if(comparator.equals("<")) {
+				if(isNumeric(columnHeader)) {
+					builder.addFilters(columnHeader, filterValues, H2Builder.Comparator.LESS_THAN);
+				} else {
+					throw new IllegalArgumentException(columnHeader + " is not a numeric column, cannot use operator " + comparator);
+				}
+			} else if(comparator.equals(">")) {
+				if(isNumeric(columnHeader)) {
+					builder.addFilters(columnHeader, filterValues, H2Builder.Comparator.GREATER_THAN);
+				} else {
+					throw new IllegalArgumentException(columnHeader + " is not a numeric column, cannot use operator " + comparator);
+				}
+			} else if(comparator.equals("<=")) {
+				if(isNumeric(columnHeader)) {
+					builder.addFilters(columnHeader, filterValues, H2Builder.Comparator.LESS_THAN_EQUAL);
+				} else {
+					throw new IllegalArgumentException(columnHeader + " is not a numeric column, cannot use operator " + comparator);
+				}
+			} else if(comparator.equals(">=")) {
+				if(isNumeric(columnHeader)) {
+					builder.addFilters(columnHeader, filterValues, H2Builder.Comparator.GREATER_THAN_EQUAL);
+				} else {
+					throw new IllegalArgumentException(columnHeader + " is not a numeric column, cannot use operator " + comparator);
+				}
+			} else {
+				//comparator not recognized...do equal by default? or do nothing? or throw error?
+			}
+		}
+	}
+	
 	@Override
 	public void unfilter(String columnHeader) {
 		this.metaData.setFiltered(columnHeader, false);
