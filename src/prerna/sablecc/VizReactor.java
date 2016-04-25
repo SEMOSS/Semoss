@@ -10,7 +10,7 @@ public class VizReactor extends AbstractReactor {
 	
 	public VizReactor()
 	{
-		String [] thisReacts = {};
+		String [] thisReacts = {PKQLEnum.WORD_OR_NUM};
 		super.whatIReactTo = thisReacts;
 		super.whoAmI = PKQLEnum.VIZ;
 	}
