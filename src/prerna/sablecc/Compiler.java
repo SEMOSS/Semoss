@@ -50,7 +50,8 @@ public class Compiler
     												
     												
 
-													+"viz.change(bar, {'what' : 'yes'});"
+													+"viz.change(bar, [c:Title, c:Budget]);"
+//													+"viz.comment('this looks super important', group0, coordinate, 50 16);"
 //    												+"(12 + (4 - 8)) * (15 / 5) + 5;"
    													//+ "v:abc = (c:col2 * (2 *4)); "
     												/*+ "set:(c:newCol, (2 * 3) + 4); "

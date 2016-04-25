@@ -2,6 +2,7 @@ package prerna.sablecc;
 
 import java.util.Collection;
 import java.util.Hashtable;
+import java.util.LinkedList;
 import java.util.Vector;
 
 import prerna.algorithm.api.IAction;
@@ -22,7 +23,6 @@ import prerna.sablecc.node.ADecimal;
 import prerna.sablecc.node.ADivExpr;
 import prerna.sablecc.node.AEExprExpr;
 import prerna.sablecc.node.AExprGroup;
-import prerna.sablecc.node.AExprRow;
 import prerna.sablecc.node.AExprScript;
 import prerna.sablecc.node.AFilterColumn;
 import prerna.sablecc.node.AHelpScript;
@@ -43,8 +43,10 @@ import prerna.sablecc.node.ATermExpr;
 import prerna.sablecc.node.AUnfilterColumn;
 import prerna.sablecc.node.AVarop;
 import prerna.sablecc.node.AVizChange;
+import prerna.sablecc.node.AVizComment;
 import prerna.sablecc.node.AVizopScript;
 import prerna.sablecc.node.AWord;
+import prerna.sablecc.node.PWordOrBlank;
 
 public class Translation2 extends DepthFirstAdapter {
 	// this is the third version of this shit I am building
@@ -233,21 +235,37 @@ public class Translation2 extends DepthFirstAdapter {
 	public void inAVizChange(AVizChange node) {
 		System.out.println("in a viz change");
 		initReactor(PKQLEnum.VIZ);
-		String layout = node.getLayout().toString().trim();
-		String alignment = node.getDatatablealign().toString().trim();
-		runner.addFeData("layout", layout);
-		runner.addFeData("dataTableAlign", alignment);
-		runner.setResponse("Successfully set layout to " + layout + " with alignment " + alignment);//
+	}
+
+	@Override
+	public void outAVizComment(AVizComment node) {
+		System.out.println("out a viz change");
+		deinitReactor(PKQLEnum.VIZ, "", "");
+	}
+
+	@Override
+	public void inAVizComment(AVizComment node) {
+		System.out.println("in a viz comment");
+		initReactor(PKQLEnum.VIZ);
+		runner.addFeData("text", node.getText().toString().trim());
+		runner.addFeData("group", node.getGroup().toString().trim());
+		runner.addFeData("type", node.getType().toString().trim());
+		runner.addFeData("location", node.getLocation().toString().trim());
+		runner.setResponse("Successfully commented : " + node.getText().toString().trim());//
 		runner.setStatus("SUCCESS");
 	}
 
 	@Override
 	public void outAVizChange(AVizChange node) {
-		System.out.println("out a viz change");
+		System.out.println("out a viz comment");
+		String layout = node.getLayout().toString().trim();
+//		String alignment = node.getDatatablealign().toString().trim();
+		Object alignment = curReactor.getValue(PKQLEnum.COL_CSV);
+		runner.addFeData("layout", layout);
+		runner.addFeData("dataTableKeys", alignment);
+		runner.setResponse("Successfully set layout to " + layout + " with alignment " + alignment);//
+		runner.setStatus("SUCCESS");
 		deinitReactor(PKQLEnum.VIZ, "", "");
-//		String nodeStr = node.getExpr() + "";
-//		nodeStr = nodeStr.trim();
-//		Hashtable <String, Object> thisReactorHash = deinitReactor(PKQLEnum.EXPR_SCRIPT, nodeStr, (node + "").trim());
 	}
 	
 	@Override 
@@ -516,8 +534,14 @@ public class Translation2 extends DepthFirstAdapter {
     
     @Override
     public void outAWord(AWord node) {
-        //System.out.println("In a word.. " + node); // need to find a way to clean up information puts a space after the quote
-        curReactor.set(PKQLEnum.WORD_OR_NUM, (node + "").trim());
+        //System.out.println("In a word.. " + node);
+    	LinkedList<PWordOrBlank> list = node.getWordOrBlank();
+    	String fullString = "";
+    	for(PWordOrBlank piece : list){
+    		fullString = fullString + (piece + "");
+    	}
+    	fullString = fullString.substring(0, (fullString+"").length()-1); // need to find a way to clean up information puts a space at the end
+        curReactor.set(PKQLEnum.WORD_OR_NUM, fullString);
         //thisRow.addElement((node + "").trim());        
     }
 

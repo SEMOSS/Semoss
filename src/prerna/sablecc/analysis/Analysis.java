@@ -32,7 +32,9 @@ public interface Analysis extends Switch
     void caseAImportDataColop(AImportDataColop node);
     void caseAUnfiltercolColop(AUnfiltercolColop node);
     void caseAVizChangeVizop(AVizChangeVizop node);
+    void caseAVizCommentVizop(AVizCommentVizop node);
     void caseAVizChange(AVizChange node);
+    void caseAVizComment(AVizComment node);
     void caseAAddColumn(AAddColumn node);
     void caseARemColumn(ARemColumn node);
     void caseASetColumn(ASetColumn node);
@@ -49,9 +51,6 @@ public interface Analysis extends Switch
     void caseAApiBlock(AApiBlock node);
     void caseASelector(ASelector node);
     void caseACodeblock(ACodeblock node);
-    void caseAKeyvalue(AKeyvalue node);
-    void caseAKeyvalueGroup(AKeyvalueGroup node);
-    void caseAMapObj(AMapObj node);
     void caseAColWhere(AColWhere node);
     void caseAColDefColDefOrCsvRow(AColDefColDefOrCsvRow node);
     void caseACsvColDefOrCsvRow(ACsvColDefOrCsvRow node);
@@ -78,6 +77,7 @@ public interface Analysis extends Switch
     void caseAExprWordOrNum(AExprWordOrNum node);
     void caseAWord(AWord node);
     void caseAIdWordOrBlank(AIdWordOrBlank node);
+    void caseAWordOrBlank(AWordOrBlank node);
     void caseABlankWordOrBlank(ABlankWordOrBlank node);
     void caseAFormula(AFormula node);
     void caseACsvGroup(ACsvGroup node);
@@ -160,6 +160,7 @@ public interface Analysis extends Switch
     void caseTLiteral(TLiteral node);
     void caseTHelpToken(THelpToken node);
     void caseTVizchange(TVizchange node);
+    void caseTVizcomment(TVizcomment node);
     void caseTAlphanumeric(TAlphanumeric node);
     void caseEOF(EOF node);
     void caseInvalidToken(InvalidToken node);

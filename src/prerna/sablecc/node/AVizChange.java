@@ -11,7 +11,7 @@ public final class AVizChange extends PVizChange
     private TLPar _lPar_;
     private TId _layout_;
     private TComma _comma_;
-    private PMapObj _datatablealign_;
+    private PColCsv _datatablealign_;
     private TRPar _rPar_;
 
     public AVizChange()
@@ -24,7 +24,7 @@ public final class AVizChange extends PVizChange
         @SuppressWarnings("hiding") TLPar _lPar_,
         @SuppressWarnings("hiding") TId _layout_,
         @SuppressWarnings("hiding") TComma _comma_,
-        @SuppressWarnings("hiding") PMapObj _datatablealign_,
+        @SuppressWarnings("hiding") PColCsv _datatablealign_,
         @SuppressWarnings("hiding") TRPar _rPar_)
     {
         // Constructor
@@ -160,12 +160,12 @@ public final class AVizChange extends PVizChange
         this._comma_ = node;
     }
 
-    public PMapObj getDatatablealign()
+    public PColCsv getDatatablealign()
     {
         return this._datatablealign_;
     }
 
-    public void setDatatablealign(PMapObj node)
+    public void setDatatablealign(PColCsv node)
     {
         if(this._datatablealign_ != null)
         {
@@ -295,7 +295,7 @@ public final class AVizChange extends PVizChange
 
         if(this._datatablealign_ == oldChild)
         {
-            setDatatablealign((PMapObj) newChild);
+            setDatatablealign((PColCsv) newChild);
             return;
         }
 

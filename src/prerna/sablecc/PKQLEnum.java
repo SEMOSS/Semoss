@@ -9,6 +9,8 @@ public class PKQLEnum {
 	public static final String COMPARATOR = "COMPARATOR";
 
 
+	public static final String EXPR_ROW = "EXPR_ROW";
+
 	public static String NUMBER = "NUMBER";
 	public static String DECIMAL = "DECIMAL";
 	public static String ALPHA = "ALPHA";
