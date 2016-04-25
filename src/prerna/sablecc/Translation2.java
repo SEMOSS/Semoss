@@ -1,5 +1,6 @@
 package prerna.sablecc;
 
+import java.util.Collection;
 import java.util.Hashtable;
 import java.util.Vector;
 
@@ -286,6 +287,18 @@ public class Translation2 extends DepthFirstAdapter {
 			ExprReactor thisReactor = (ExprReactor)thisReactorHash.get(PKQLEnum.EXPR_TERM);
 			String expr = (String)thisReactor.getValue(PKQLEnum.EXPR_TERM);
 			curReactor.put("COL_DEF", thisReactor.getValue(PKQLEnum.COL_DEF));
+			
+			// see if parent exists
+			String parent = (String)thisReactorHash.get("PARENT_NAME");
+			// if the parent is not null
+			if(parent != null && reactorHash.containsKey(parent)) {
+				IScriptReactor parentReactor = (IScriptReactor)reactorHash.get(parent);
+				Collection<? extends Object> values = (Collection<? extends Object>) thisReactor.getValue(PKQLEnum.COL_DEF);
+				for(Object obj : values) {
+					parentReactor.set("COL_DEF", obj);
+				}
+			}
+			
 			curReactor.addReplacer(expr, thisReactor.getValue(expr));
 			runner.setResponse(thisReactor.getValue(expr));
 			runner.setStatus((String)thisReactor.getValue("STATUS"));
