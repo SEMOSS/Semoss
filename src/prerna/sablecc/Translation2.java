@@ -23,6 +23,7 @@ import prerna.sablecc.node.ADecimal;
 import prerna.sablecc.node.ADivExpr;
 import prerna.sablecc.node.AEExprExpr;
 import prerna.sablecc.node.AExprGroup;
+import prerna.sablecc.node.AExprRow;
 import prerna.sablecc.node.AExprScript;
 import prerna.sablecc.node.AFilterColumn;
 import prerna.sablecc.node.AHelpScript;
