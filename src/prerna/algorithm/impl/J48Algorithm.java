@@ -34,7 +34,6 @@ public class J48Algorithm extends BaseReducer{
 		alg.setSelectedOptions(selectedOptions);
 		alg.runAlgorithm(instances);
 		alg.processTreeString();
-		//TODO: what do i return to the user?
 		//currently giving back the tree as a string
 		return alg.getTreeAsString();
 	}
