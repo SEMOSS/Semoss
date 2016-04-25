@@ -1316,14 +1316,6 @@ public class DepthFirstAdapter extends AnalysisAdapter
     public void caseAWhereClause(AWhereClause node)
     {
         inAWhereClause(node);
-        if(node.getComma() != null)
-        {
-            node.getComma().apply(this);
-        }
-        if(node.getLPar() != null)
-        {
-            node.getLPar().apply(this);
-        }
         if(node.getColWhere() != null)
         {
             node.getColWhere().apply(this);
@@ -1335,11 +1327,40 @@ public class DepthFirstAdapter extends AnalysisAdapter
                 e.apply(this);
             }
         }
+        outAWhereClause(node);
+    }
+
+    public void inAWhereStatement(AWhereStatement node)
+    {
+        defaultIn(node);
+    }
+
+    public void outAWhereStatement(AWhereStatement node)
+    {
+        defaultOut(node);
+    }
+
+    @Override
+    public void caseAWhereStatement(AWhereStatement node)
+    {
+        inAWhereStatement(node);
+        if(node.getComma() != null)
+        {
+            node.getComma().apply(this);
+        }
+        if(node.getLPar() != null)
+        {
+            node.getLPar().apply(this);
+        }
+        if(node.getWhereClause() != null)
+        {
+            node.getWhereClause().apply(this);
+        }
         if(node.getRPar() != null)
         {
             node.getRPar().apply(this);
         }
-        outAWhereClause(node);
+        outAWhereStatement(node);
     }
 
     public void inARelationDef(ARelationDef node)

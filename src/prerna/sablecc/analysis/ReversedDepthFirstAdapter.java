@@ -1322,10 +1322,6 @@ public class ReversedDepthFirstAdapter extends AnalysisAdapter
     public void caseAWhereClause(AWhereClause node)
     {
         inAWhereClause(node);
-        if(node.getRPar() != null)
-        {
-            node.getRPar().apply(this);
-        }
         {
             List<PColWhereGroup> copy = new ArrayList<PColWhereGroup>(node.getColWhereGroup());
             Collections.reverse(copy);
@@ -1338,6 +1334,31 @@ public class ReversedDepthFirstAdapter extends AnalysisAdapter
         {
             node.getColWhere().apply(this);
         }
+        outAWhereClause(node);
+    }
+
+    public void inAWhereStatement(AWhereStatement node)
+    {
+        defaultIn(node);
+    }
+
+    public void outAWhereStatement(AWhereStatement node)
+    {
+        defaultOut(node);
+    }
+
+    @Override
+    public void caseAWhereStatement(AWhereStatement node)
+    {
+        inAWhereStatement(node);
+        if(node.getRPar() != null)
+        {
+            node.getRPar().apply(this);
+        }
+        if(node.getWhereClause() != null)
+        {
+            node.getWhereClause().apply(this);
+        }
         if(node.getLPar() != null)
         {
             node.getLPar().apply(this);
@@ -1346,7 +1367,7 @@ public class ReversedDepthFirstAdapter extends AnalysisAdapter
         {
             node.getComma().apply(this);
         }
-        outAWhereClause(node);
+        outAWhereStatement(node);
     }
 
     public void inARelationDef(ARelationDef node)

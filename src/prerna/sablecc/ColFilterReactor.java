@@ -7,6 +7,7 @@ import java.util.List;
 import java.util.Vector;
 
 import prerna.algorithm.api.ITableDataFrame;
+import prerna.util.Utility;
 
 public class ColFilterReactor extends AbstractReactor{
 
@@ -50,8 +51,11 @@ public class ColFilterReactor extends AbstractReactor{
 				filterData = (Vector)thisFilter.get("TO_DATA");
 				List<Object> cleanedFilterData = new ArrayList<>(filterData.size());
 				for(Object data : filterData) {
-					String cleandata = data.toString();
-					cleandata = cleandata.replace("\"", "").trim();
+					String cleandata = data.toString().trim();
+					if((cleandata.startsWith("\"") && cleandata.endsWith("\"")) || (cleandata.startsWith("'") && cleandata.endsWith("'"))) {
+						cleandata = cleandata.substring(1, cleandata.length() - 1);
+					}
+					cleandata = Utility.cleanString(cleandata, true, true, false);
 					cleanedFilterData.add(cleandata);
 				}
 				String comparator = (String)thisFilter.get("COMPARATOR");

@@ -345,6 +345,12 @@ public class AnalysisAdapter implements Analysis
     }
 
     @Override
+    public void caseAWhereStatement(AWhereStatement node)
+    {
+        defaultCase(node);
+    }
+
+    @Override
     public void caseARelationDef(ARelationDef node)
     {
         defaultCase(node);
