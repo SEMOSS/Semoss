@@ -1689,9 +1689,13 @@ public class ReversedDepthFirstAdapter extends AnalysisAdapter
         {
             node.getRBracket().apply(this);
         }
-        if(node.getCsvGroup() != null)
         {
-            node.getCsvGroup().apply(this);
+            List<PCsvGroup> copy = new ArrayList<PCsvGroup>(node.getCsvGroup());
+            Collections.reverse(copy);
+            for(PCsvGroup e : copy)
+            {
+                e.apply(this);
+            }
         }
         if(node.getWordOrNum() != null)
         {

@@ -207,7 +207,7 @@ varop = // variable operation usually takes the form of a given variable taking 
 		
 //num_csv = l_bracket decimal num_csv_group+ r_bracket; 		
 
-csv_row = l_bracket word_or_num csv_group? r_bracket; 		// [1,3]
+csv_row = l_bracket word_or_num csv_group* r_bracket; 		// [1,3]
 
 easy_row = word_or_num easy_group+ newline;
 
