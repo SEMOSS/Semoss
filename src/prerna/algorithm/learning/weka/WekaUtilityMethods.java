@@ -343,6 +343,8 @@ public final class WekaUtilityMethods {
 					Map<String, Object> mapData = (Map<String, Object>)data; //cast to map
 					retObject[colIndex] = ((Vertex)mapData.get(names[colIndex])).property(Constants.NAME).value();
 				}
+			} else {
+				retObject = (Object[]) data;
 			}
 			dataList.add(retObject);
 		}
