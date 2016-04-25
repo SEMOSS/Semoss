@@ -51,12 +51,24 @@ public class ColFilterReactor extends AbstractReactor{
 				filterData = (Vector)thisFilter.get("TO_DATA");
 				List<Object> cleanedFilterData = new ArrayList<>(filterData.size());
 				for(Object data : filterData) {
-					String cleandata = data.toString().trim();
-					if((cleandata.startsWith("\"") && cleandata.endsWith("\"")) || (cleandata.startsWith("'") && cleandata.endsWith("'"))) {
-						cleandata = cleandata.substring(1, cleandata.length() - 1);
-					}
-					cleandata = Utility.cleanString(cleandata, true, true, false);
-					cleanedFilterData.add(cleandata);
+					String inputData = data.toString().trim();
+					Object cleanData = null;
+					// grammar change should no longer allow for quotes to be added due to outAWord change
+//					if((inputData.startsWith("\"") && inputData.endsWith("\"")) || (inputData.startsWith("'") && inputData.endsWith("'"))) {
+//						// this is logic that input is a string
+//						inputData = inputData.substring(1, inputData.length() - 1);
+//						cleanData = Utility.cleanString(inputData, true, true, false);
+//					} else {
+						String type = Utility.findTypes(inputData)[0] + "";
+						if(type.equalsIgnoreCase("Date")) {
+							cleanData = Utility.getDate(inputData);
+						} else if(type.equalsIgnoreCase("Double")) {
+							cleanData = Utility.getDouble(inputData);
+						} else {
+							cleanData = Utility.cleanString(inputData, true, true, false);
+						}
+//					}
+					cleanedFilterData.add(cleanData);
 				}
 				String comparator = (String)thisFilter.get("COMPARATOR");
 				try {
