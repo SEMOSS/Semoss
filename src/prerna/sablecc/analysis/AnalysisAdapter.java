@@ -195,7 +195,19 @@ public class AnalysisAdapter implements Analysis
     }
 
     @Override
+    public void caseAVizCommentVizop(AVizCommentVizop node)
+    {
+        defaultCase(node);
+    }
+
+    @Override
     public void caseAVizChange(AVizChange node)
+    {
+        defaultCase(node);
+    }
+
+    @Override
+    public void caseAVizComment(AVizComment node)
     {
         defaultCase(node);
     }
@@ -292,24 +304,6 @@ public class AnalysisAdapter implements Analysis
 
     @Override
     public void caseACodeblock(ACodeblock node)
-    {
-        defaultCase(node);
-    }
-
-    @Override
-    public void caseAKeyvalue(AKeyvalue node)
-    {
-        defaultCase(node);
-    }
-
-    @Override
-    public void caseAKeyvalueGroup(AKeyvalueGroup node)
-    {
-        defaultCase(node);
-    }
-
-    @Override
-    public void caseAMapObj(AMapObj node)
     {
         defaultCase(node);
     }
@@ -466,6 +460,12 @@ public class AnalysisAdapter implements Analysis
 
     @Override
     public void caseAIdWordOrBlank(AIdWordOrBlank node)
+    {
+        defaultCase(node);
+    }
+
+    @Override
+    public void caseAWordOrBlank(AWordOrBlank node)
     {
         defaultCase(node);
     }
@@ -952,6 +952,12 @@ public class AnalysisAdapter implements Analysis
 
     @Override
     public void caseTVizchange(TVizchange node)
+    {
+        defaultCase(node);
+    }
+
+    @Override
+    public void caseTVizcomment(TVizcomment node)
     {
         defaultCase(node);
     }

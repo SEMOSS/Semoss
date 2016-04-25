@@ -2,7 +2,7 @@
 
 package prerna.sablecc.node;
 
-public abstract class PMapObj extends Node
+public abstract class PVizComment extends Node
 {
     // Empty body
 }
