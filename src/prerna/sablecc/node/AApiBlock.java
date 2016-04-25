@@ -13,7 +13,7 @@ public final class AApiBlock extends PApiBlock
     private TId _insight_;
     private TLPar _lPar_;
     private PColCsv _selectors_;
-    private PWhereClause _where_;
+    private PWhereStatement _where_;
     private PRelationClause _relations_;
     private TRPar _rPar_;
 
@@ -29,7 +29,7 @@ public final class AApiBlock extends PApiBlock
         @SuppressWarnings("hiding") TId _insight_,
         @SuppressWarnings("hiding") TLPar _lPar_,
         @SuppressWarnings("hiding") PColCsv _selectors_,
-        @SuppressWarnings("hiding") PWhereClause _where_,
+        @SuppressWarnings("hiding") PWhereStatement _where_,
         @SuppressWarnings("hiding") PRelationClause _relations_,
         @SuppressWarnings("hiding") TRPar _rPar_)
     {
@@ -225,12 +225,12 @@ public final class AApiBlock extends PApiBlock
         this._selectors_ = node;
     }
 
-    public PWhereClause getWhere()
+    public PWhereStatement getWhere()
     {
         return this._where_;
     }
 
-    public void setWhere(PWhereClause node)
+    public void setWhere(PWhereStatement node)
     {
         if(this._where_ != null)
         {
@@ -418,7 +418,7 @@ public final class AApiBlock extends PApiBlock
 
         if(this._where_ == oldChild)
         {
-            setWhere((PWhereClause) newChild);
+            setWhere((PWhereStatement) newChild);
             return;
         }
 
