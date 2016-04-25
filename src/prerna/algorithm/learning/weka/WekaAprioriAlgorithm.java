@@ -203,14 +203,14 @@ public class WekaAprioriAlgorithm implements IAnalyticActionRoutine {
 		}
 		
 		LOGGER.info("Generating Decision Table...");
-		int numCols = names.length;
-		columnHeaders = new String[numCols + 1];
-		int i = 1;
-		for(; i < numCols; i++) {
-			columnHeaders[i-1] = names[i];
+		int numCols = names.length + 2;
+		columnHeaders = new String[numCols];
+		int i = 0;
+		for(; i < names.length; i++) {
+			columnHeaders[i] = names[i];
 		}
-		columnHeaders[numCols-1] = Z_AXIS_NAME;
-		columnHeaders[numCols] = X_AXIS_NAME;
+		columnHeaders[numCols-2] = Z_AXIS_NAME;
+		columnHeaders[numCols-1] = X_AXIS_NAME;
 		
 		tabularData = new ArrayList<Object[]>();
 
