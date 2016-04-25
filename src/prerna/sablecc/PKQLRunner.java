@@ -5,6 +5,7 @@ import java.io.InputStreamReader;
 import java.io.PushbackReader;
 import java.io.StringBufferInputStream;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 import org.apache.commons.lang.StringEscapeUtils;
@@ -44,6 +45,10 @@ public class PKQLRunner {
 			StringBuilder builder = new StringBuilder();
 			String retResponse = getStringFromObjectArray( (Object[]) response, builder);
 			result.put("result", StringEscapeUtils.escapeHtml(retResponse));
+		} else if(response instanceof List) {
+			StringBuilder builder = new StringBuilder();
+			String retResponse = getStringFromList( (List) response, builder);
+			result.put("result", StringEscapeUtils.escapeHtml(retResponse));
 		} else if(response instanceof double[]) {
 			result.put("result", StringEscapeUtils.escapeHtml(Arrays.toString( (double[]) response)));
 		} else if(response instanceof int[]) {
@@ -55,6 +60,22 @@ public class PKQLRunner {
 		return result;
 	}
 
+	private String getStringFromList(List objList, StringBuilder builder) {
+		for(int i = 0; i < objList.size(); i++) {
+			Object obj = objList.get(i);
+			if(obj instanceof Object[]) {
+				getStringFromObjectArray( (Object[]) obj, builder);
+			} else if(obj instanceof double[]) {
+				builder.append(Arrays.toString((double[]) obj));
+			} else if(obj instanceof int[]) {
+				builder.append(Arrays.toString((int[]) obj));
+			}
+			builder.append("\n");
+		}
+		
+		return builder.toString();
+	}
+	
 	private String getStringFromObjectArray(Object[] objArray, StringBuilder builder) {
 		builder.append("[");
 		for(int i = 0; i < objArray.length; i++) {
@@ -64,27 +85,27 @@ public class PKQLRunner {
 			} else {
 				if(i == objArray.length-1) {
 					if(obj instanceof double[]) {
-						builder.append(Arrays.toString((double[]) obj)).append("]");
+						builder.append(Arrays.toString((double[]) obj));
 					} else if(obj instanceof int[]) {
-						builder.append(Arrays.toString((int[]) obj)).append("]");
+						builder.append(Arrays.toString((int[]) obj));
 					} else {
-						builder.append(obj).append("]");
+						builder.append(obj);
 					}
 				} else {
 					// since primitive arrays are stupid in java
 					if(obj instanceof double[]) {
 						builder.append(Arrays.toString((double[]) obj)).append(", ");
+						builder.append("\n");
 					} else if(obj instanceof int[]) {
 						builder.append(Arrays.toString((int[]) obj)).append(", ");
+						builder.append("\n");
 					} else {
 						builder.append(obj).append(", ");
 					}
 				}
 			}
-			// not sure when we would ever send an uneven matrix
-			// but if we do, this break would be weird
-			builder.append("\n");
 		}
+		builder.append("]");
 		
 		return builder.toString();
 	}
