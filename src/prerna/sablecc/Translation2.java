@@ -286,17 +286,14 @@ public class Translation2 extends DepthFirstAdapter {
 		if (thisReactorHash.get(PKQLEnum.EXPR_TERM) instanceof ExprReactor) {
 			ExprReactor thisReactor = (ExprReactor)thisReactorHash.get(PKQLEnum.EXPR_TERM);
 			String expr = (String)thisReactor.getValue(PKQLEnum.EXPR_TERM);
-			curReactor.put("COL_DEF", thisReactor.getValue(PKQLEnum.COL_DEF));
-			
-			// see if parent exists
-			String parent = (String)thisReactorHash.get("PARENT_NAME");
-			// if the parent is not null
-			if(parent != null && reactorHash.containsKey(parent)) {
-				IScriptReactor parentReactor = (IScriptReactor)reactorHash.get(parent);
-				Collection<? extends Object> values = (Collection<? extends Object>) thisReactor.getValue(PKQLEnum.COL_DEF);
+			Object objVal = thisReactor.getValue(PKQLEnum.COL_DEF);
+			if(objVal instanceof Collection) {
+				Collection<? extends Object> values = (Collection<? extends Object>) objVal;
 				for(Object obj : values) {
-					parentReactor.set("COL_DEF", obj);
+					curReactor.set("COL_DEF", obj);
 				}
+			} else {
+				curReactor.set("COL_DEF", objVal);
 			}
 			
 			curReactor.addReplacer(expr, thisReactor.getValue(expr));
