@@ -10,7 +10,7 @@ public final class AAliasColumn extends PAliasColumn
     private TColalias _colalias_;
     private TLPar _lp1_;
     private PColCsv _cols_;
-    private PWhereClause _where_;
+    private PWhereStatement _where_;
     private TRPar _rp2_;
 
     public AAliasColumn()
@@ -22,7 +22,7 @@ public final class AAliasColumn extends PAliasColumn
         @SuppressWarnings("hiding") TColalias _colalias_,
         @SuppressWarnings("hiding") TLPar _lp1_,
         @SuppressWarnings("hiding") PColCsv _cols_,
-        @SuppressWarnings("hiding") PWhereClause _where_,
+        @SuppressWarnings("hiding") PWhereStatement _where_,
         @SuppressWarnings("hiding") TRPar _rp2_)
     {
         // Constructor
@@ -130,12 +130,12 @@ public final class AAliasColumn extends PAliasColumn
         this._cols_ = node;
     }
 
-    public PWhereClause getWhere()
+    public PWhereStatement getWhere()
     {
         return this._where_;
     }
 
-    public void setWhere(PWhereClause node)
+    public void setWhere(PWhereStatement node)
     {
         if(this._where_ != null)
         {
@@ -252,7 +252,7 @@ public final class AAliasColumn extends PAliasColumn
 
         if(this._where_ == oldChild)
         {
-            setWhere((PWhereClause) newChild);
+            setWhere((PWhereStatement) newChild);
             return;
         }
 

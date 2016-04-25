@@ -57,6 +57,7 @@ public interface Analysis extends Switch
     void caseACsvColDefOrCsvRow(ACsvColDefOrCsvRow node);
     void caseAColWhereGroup(AColWhereGroup node);
     void caseAWhereClause(AWhereClause node);
+    void caseAWhereStatement(AWhereStatement node);
     void caseARelationDef(ARelationDef node);
     void caseARelationGroup(ARelationGroup node);
     void caseARelationClause(ARelationClause node);
