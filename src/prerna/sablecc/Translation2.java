@@ -297,8 +297,8 @@ public class Translation2 extends DepthFirstAdapter {
 			}
 			
 			curReactor.addReplacer(expr, thisReactor.getValue(expr));
-			runner.setResponse(thisReactor.getValue(expr));
-			runner.setStatus((String)thisReactor.getValue("STATUS"));
+//			runner.setResponse(thisReactor.getValue(expr));
+//			runner.setStatus((String)thisReactor.getValue("STATUS"));
 		}
 	}
 	

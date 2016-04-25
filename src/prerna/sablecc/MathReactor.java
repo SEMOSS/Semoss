@@ -66,6 +66,7 @@ public class MathReactor extends AbstractReactor {
 				Object finalValue = strategy.execute();
 				String nodeStr = myStore.get(whoAmI).toString();
 				myStore.put(nodeStr, finalValue);
+				myStore.put("STATUS","success");
 			}
 			
 //			if(algorithm instanceof ExpressionReducer) {
