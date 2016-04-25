@@ -85,8 +85,7 @@ public class WekaAprioriAlgorithm implements IAnalyticActionRoutine {
 		ITableDataFrame dataFrame = data[0];
 		dataFrame.setColumnsToSkip(skipAttributes);
 		LOGGER.info("Generating Weka Instances object...");
-		this.names = dataFrame.getColumnHeaders();
-		this.instancesData = WekaUtilityMethods.createInstancesFromQueryUsingBinNumerical("Apriori dataset", dataFrame.getData(), names);
+		this.instancesData = WekaUtilityMethods.createInstancesFromQueryUsingBinNumerical("Apriori dataset", dataFrame.getData(), dataFrame.getColumnHeaders());
 		LOGGER.info("Starting apriori algorithm using... ");
 		runAlgorithm(this.instancesData);
 	}
@@ -97,6 +96,12 @@ public class WekaAprioriAlgorithm implements IAnalyticActionRoutine {
 		this.minSupport = ((Number) options.get(2).getSelected()).doubleValue();
 		this.maxSupport = ((Number) options.get(3).getSelected()).doubleValue();
 		this.skipAttributes = (List<String>) options.get(4).getSelected();
+		
+		int numAttributes = instances.numAttributes();
+		this.names = new String[numAttributes];
+		for(int i = 0; i < numAttributes; i++) {
+			this.names[i] = instances.attribute(i).name();
+		}
 		
 		premises = new HashMap<Integer, Collection<Item>>();
 		consequences = new HashMap<Integer, Collection<Item>>();
@@ -241,7 +246,7 @@ public class WekaAprioriAlgorithm implements IAnalyticActionRoutine {
 			String name = category.name();
 			String value = item.getItemValueAsString();
 			
-			tableRow[indexMap.get(name)-1] = value;
+			tableRow[indexMap.get(name)] = value;
 		}
 	}
 	
@@ -251,7 +256,7 @@ public class WekaAprioriAlgorithm implements IAnalyticActionRoutine {
 			String name = category.name();
 			String value = "*** " + item.getItemValueAsString() + " ***";
 			
-			tableRow[indexMap.get(name)-1] = value;
+			tableRow[indexMap.get(name)] = value;
 		}
 	}
 	
