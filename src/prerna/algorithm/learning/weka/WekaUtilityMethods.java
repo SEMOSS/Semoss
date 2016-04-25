@@ -254,7 +254,9 @@ public final class WekaUtilityMethods {
 						if(isCategorical[j]) {
 							dataEntry.setValue(j, valAttr.toString());
 						} else {
-							dataEntry.setValue(j, numericValues[j][i]); // take the numeric values to prevent re-casting
+							if(numericValues[j][i] != null) {
+								dataEntry.setValue(j, numericValues[j][i]); // take the numeric values to prevent re-casting
+							}
 						}
 					}
 				}
