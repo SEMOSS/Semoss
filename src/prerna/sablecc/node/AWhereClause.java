@@ -8,11 +8,8 @@ import prerna.sablecc.analysis.*;
 @SuppressWarnings("nls")
 public final class AWhereClause extends PWhereClause
 {
-    private TComma _comma_;
-    private TLPar _lPar_;
     private PColWhere _colWhere_;
     private final LinkedList<PColWhereGroup> _colWhereGroup_ = new LinkedList<PColWhereGroup>();
-    private TRPar _rPar_;
 
     public AWhereClause()
     {
@@ -20,22 +17,13 @@ public final class AWhereClause extends PWhereClause
     }
 
     public AWhereClause(
-        @SuppressWarnings("hiding") TComma _comma_,
-        @SuppressWarnings("hiding") TLPar _lPar_,
         @SuppressWarnings("hiding") PColWhere _colWhere_,
-        @SuppressWarnings("hiding") List<?> _colWhereGroup_,
-        @SuppressWarnings("hiding") TRPar _rPar_)
+        @SuppressWarnings("hiding") List<?> _colWhereGroup_)
     {
         // Constructor
-        setComma(_comma_);
-
-        setLPar(_lPar_);
-
         setColWhere(_colWhere_);
 
         setColWhereGroup(_colWhereGroup_);
-
-        setRPar(_rPar_);
 
     }
 
@@ -43,67 +31,14 @@ public final class AWhereClause extends PWhereClause
     public Object clone()
     {
         return new AWhereClause(
-            cloneNode(this._comma_),
-            cloneNode(this._lPar_),
             cloneNode(this._colWhere_),
-            cloneList(this._colWhereGroup_),
-            cloneNode(this._rPar_));
+            cloneList(this._colWhereGroup_));
     }
 
     @Override
     public void apply(Switch sw)
     {
         ((Analysis) sw).caseAWhereClause(this);
-    }
-
-    public TComma getComma()
-    {
-        return this._comma_;
-    }
-
-    public void setComma(TComma node)
-    {
-        if(this._comma_ != null)
-        {
-            this._comma_.parent(null);
-        }
-
-        if(node != null)
-        {
-            if(node.parent() != null)
-            {
-                node.parent().removeChild(node);
-            }
-
-            node.parent(this);
-        }
-
-        this._comma_ = node;
-    }
-
-    public TLPar getLPar()
-    {
-        return this._lPar_;
-    }
-
-    public void setLPar(TLPar node)
-    {
-        if(this._lPar_ != null)
-        {
-            this._lPar_.parent(null);
-        }
-
-        if(node != null)
-        {
-            if(node.parent() != null)
-            {
-                node.parent().removeChild(node);
-            }
-
-            node.parent(this);
-        }
-
-        this._lPar_ = node;
     }
 
     public PColWhere getColWhere()
@@ -157,58 +92,18 @@ public final class AWhereClause extends PWhereClause
         }
     }
 
-    public TRPar getRPar()
-    {
-        return this._rPar_;
-    }
-
-    public void setRPar(TRPar node)
-    {
-        if(this._rPar_ != null)
-        {
-            this._rPar_.parent(null);
-        }
-
-        if(node != null)
-        {
-            if(node.parent() != null)
-            {
-                node.parent().removeChild(node);
-            }
-
-            node.parent(this);
-        }
-
-        this._rPar_ = node;
-    }
-
     @Override
     public String toString()
     {
         return ""
-            + toString(this._comma_)
-            + toString(this._lPar_)
             + toString(this._colWhere_)
-            + toString(this._colWhereGroup_)
-            + toString(this._rPar_);
+            + toString(this._colWhereGroup_);
     }
 
     @Override
     void removeChild(@SuppressWarnings("unused") Node child)
     {
         // Remove child
-        if(this._comma_ == child)
-        {
-            this._comma_ = null;
-            return;
-        }
-
-        if(this._lPar_ == child)
-        {
-            this._lPar_ = null;
-            return;
-        }
-
         if(this._colWhere_ == child)
         {
             this._colWhere_ = null;
@@ -220,12 +115,6 @@ public final class AWhereClause extends PWhereClause
             return;
         }
 
-        if(this._rPar_ == child)
-        {
-            this._rPar_ = null;
-            return;
-        }
-
         throw new RuntimeException("Not a child.");
     }
 
@@ -233,18 +122,6 @@ public final class AWhereClause extends PWhereClause
     void replaceChild(@SuppressWarnings("unused") Node oldChild, @SuppressWarnings("unused") Node newChild)
     {
         // Replace child
-        if(this._comma_ == oldChild)
-        {
-            setComma((TComma) newChild);
-            return;
-        }
-
-        if(this._lPar_ == oldChild)
-        {
-            setLPar((TLPar) newChild);
-            return;
-        }
-
         if(this._colWhere_ == oldChild)
         {
             setColWhere((PColWhere) newChild);
@@ -267,12 +144,6 @@ public final class AWhereClause extends PWhereClause
                 oldChild.parent(null);
                 return;
             }
-        }
-
-        if(this._rPar_ == oldChild)
-        {
-            setRPar((TRPar) newChild);
-            return;
         }
 
         throw new RuntimeException("Not a child.");

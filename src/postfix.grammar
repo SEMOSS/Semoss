@@ -146,7 +146,7 @@ import_column = // importing data - col.import(tree | flat, [c:col1, c:col2, c:c
 		;
 
 alias_column = // sets the column aliases
-		colalias [lp1]:l_par [cols]:col_csv [where]:where_clause [rp2]:r_par;
+		colalias [lp1]:l_par [cols]:col_csv [where]:where_statement [rp2]:r_par;
 		
 import_data = // imports from api query commands and other scripts
 		dataimporttoken [lp1]:l_par [api]:api_block [joins]:relation_clause? [rp2]:r_par;
@@ -156,7 +156,7 @@ decimal = [whole]:number dot? [fraction]:number?;
 		
 expr_group = [comma]:comma [expr]:expr;		
 
-api_block = api [engine_name]:id dot [insight]:id l_par [selectors]:col_csv [where]:where_clause? [relations]:relation_clause? r_par; // the insight can also be the method
+api_block = api [engine_name]:id dot [insight]:id l_par [selectors]:col_csv [where]:where_statement? [relations]:relation_clause? r_par; // the insight can also be the method
 // query format
 // api:Tap_Core.Query:([Selectors], [Filters], [relations])
 // relations
@@ -180,8 +180,10 @@ col_def_or_csv_row = {col_def} col_def | {csv} csv_row;
 
 col_where_group = comma col_where;
 
-where_clause = comma? l_par col_where col_where_group* r_par; // , (
+//where_clause = comma? l_par col_where col_where_group* r_par; // , (
+where_clause = col_where col_where_group*;
 
+where_statement = comma? l_par where_clause r_par;
 // relations
 relation_def = l_bracket [from]:col_def [com1]:comma rel_type [com2]:comma [to]:col_def r_bracket;
 
