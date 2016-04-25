@@ -59,9 +59,13 @@ public class ColFilterReactor extends AbstractReactor{
 					cleanedFilterData.add(cleandata);
 				}
 				String comparator = (String)thisFilter.get("COMPARATOR");
-				frame.filter(fromCol, cleanedFilterData);
-				myStore.put("STATUS", "SUCCESS");
-				myStore.put("FILTER_COLUMN", fromCol);
+				try {
+					frame.filter(fromCol, cleanedFilterData, comparator);
+					myStore.put("STATUS", "SUCCESS");
+					myStore.put("FILTER_RESPONSE", "Filtered Column: " + fromCol);
+				} catch(IllegalArgumentException e) {
+					myStore.put("FILTER_RESPONSE", e.getMessage());
+				}
 			}
 		}
 	}

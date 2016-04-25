@@ -2247,4 +2247,11 @@ public class BTreeDataFrame implements ITableDataFrame {
 		
 	}
 
+	@Override
+	public void filter(String columnHeader, List<Object> filterValues,
+			String comparator) {
+		// TODO Auto-generated method stub
+		
+	}
+
 }
