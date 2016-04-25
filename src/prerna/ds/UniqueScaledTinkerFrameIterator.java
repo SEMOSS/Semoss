@@ -105,7 +105,7 @@ public class UniqueScaledTinkerFrameIterator implements Iterator<List<Object[]>>
 			for(int colIndex = 0; colIndex < finalColumns.length; colIndex++) {
 				Map<String, Object> mapData = (Map<String, Object>) data; //cast to map
 				Object value = ((Vertex)mapData.get(finalColumns[colIndex])).property(dataType).value();
-				if(maxArr[colIndex] != null && minArr[colIndex] != null && value instanceof Number) {
+				if(colIndex != this.columnNameIndex && maxArr[colIndex] != null && minArr[colIndex] != null && value instanceof Number) {
 					if(value instanceof Number) {
 						row[colIndex] = ( ((Number)value).doubleValue() - minArr[colIndex])/(maxArr[colIndex] - minArr[colIndex]);
 					} else {
