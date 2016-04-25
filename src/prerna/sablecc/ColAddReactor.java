@@ -51,6 +51,9 @@ public class ColAddReactor extends AbstractReactor {
 		// however I dont have this shit
 		String expr = (String) myStore.get(PKQLEnum.EXPR_TERM);
 		Vector <String> cols = (Vector <String>)myStore.get(PKQLEnum.COL_DEF);
+		// col def of the parent will have all of the col defs of the children
+		// need to remove the new column as it doesn't exist yet
+		cols.remove(newCol);
 		it = getTinkerData(cols, frame);
 		joinCols = convertVectorToArray(cols);
 		Object value = myStore.get(expr);
