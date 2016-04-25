@@ -1546,6 +1546,12 @@ public class TinkerFrame extends AbstractTableDataFrame {
 		
 		LOGGER.info("Filtered '"+columnHeader+"':"+(System.currentTimeMillis() - startTime)+" ms");
 	}
+	
+	@Override
+	public void filter(String columnHeader, List<Object> filterValues, String comparator) {
+		// TODO Auto-generated method stub
+		filter(columnHeader, filterValues);
+	}
 
 	@Override
 	public void unfilter(String columnHeader) {
