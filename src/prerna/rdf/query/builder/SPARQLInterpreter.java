@@ -198,7 +198,9 @@ public class SPARQLInterpreter implements IQueryInterpreter {
 		}
 
 		// should expose this on the engien itself
-		boolean isProp = engine.getParentOfProperty(concept) != null ? true : false;
+		boolean isProp = false;
+		if(property != null || engine.getParentOfProperty(concept) != null)
+			isProp = true;
 		
 		if(objects.get(0) instanceof String) // ok this is a string ------ must be " = " comparator ... currently not handling regex
 		{
