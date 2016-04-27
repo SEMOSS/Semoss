@@ -1,10 +1,13 @@
 package prerna.sablecc;
 
+import java.util.HashMap;
 import java.util.Iterator;
+import java.util.Map;
 import java.util.Vector;
 
 import prerna.algorithm.api.ITableDataFrame;
 import prerna.ds.AlgorithmStrategy;
+import prerna.ds.ExpressionIterator;
 
 public class MathReactor extends AbstractReactor {
 	
@@ -53,21 +56,36 @@ public class MathReactor extends AbstractReactor {
 			String[] columnsArray = convertVectorToArray(columns);
 			// this call needs to go to tinker
 			// I need to find a way to do this - and I did
-			Iterator iterator = getTinkerData(columns, (ITableDataFrame)myStore.get("G"));
-			
-			if(iterator.hasNext())
-			{
-				System.out.println("Ok.. I am getting SOMETHING..");
+			ITableDataFrame frame = (ITableDataFrame)myStore.get("G");
+
+			Vector<String> groupBys = (Vector <String>)myStore.get(PKQLEnum.COL_CSV);
+			if(groupBys != null && !groupBys.isEmpty()){
+				Map masterMap = new HashMap();
+				Iterator groupByIterator = getTinkerData(groupBys, frame);
+				while(groupByIterator.hasNext()){
+					Object[] groupByVals = (Object[])groupByIterator.next();
+					Map<String, Object> valMap = new HashMap<String, Object>();
+					for(String groupBy: groupBys){
+						valMap.put(groupBy, groupByVals[0]);
+					}
+					Iterator iterator = getTinkerData(columns, frame, valMap);
+					Object finalValue = processThing(iterator, algorithm, columnsArray);
+
+					masterMap.put(valMap, finalValue);
+				}
+				String nodeStr = myStore.get(whoAmI).toString();
+				myStore.put(nodeStr, masterMap);
+				myStore.put("STATUS","success");
 			}
-			
-			if (algorithm instanceof AlgorithmStrategy) {
-				strategy = (AlgorithmStrategy) algorithm;
-				strategy.setData(iterator, columnsArray, myStore.get("MOD_" + whoAmI).toString());
-				Object finalValue = strategy.execute();
+			else {
+				Iterator iterator = getTinkerData(columns, frame);
+				Object finalValue = processThing(iterator, algorithm, columnsArray);
 				String nodeStr = myStore.get(whoAmI).toString();
 				myStore.put(nodeStr, finalValue);
 				myStore.put("STATUS","success");
 			}
+
+			
 			
 //			if(algorithm instanceof ExpressionReducer) {
 //				red = (ExpressionReducer) algorithm;
@@ -108,5 +126,19 @@ public class MathReactor extends AbstractReactor {
 		return null;
 	}
 	
+
+	private Object processThing(Iterator iterator, Object algorithm, String[] columnsArray) {
+		if(iterator.hasNext())
+		{
+			System.out.println("Ok.. I am getting SOMETHING..");
+		}
+		
+		if (algorithm instanceof AlgorithmStrategy) {
+			strategy = (AlgorithmStrategy) algorithm;
+			strategy.setData(iterator, columnsArray, myStore.get("MOD_" + whoAmI).toString());
+			return strategy.execute();
+		}
+		return null;
+	}
 	
 }

@@ -4,6 +4,7 @@ import java.util.HashMap;
 import java.util.Hashtable;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 import java.util.Vector;
 
 import prerna.algorithm.api.ITableDataFrame;
@@ -61,10 +62,29 @@ public class ColAddReactor extends AbstractReactor {
 		
 		if (value instanceof Iterator) {
 			it = (ExpressionIterator)value;
+			processIt(it, frame, joinCols, newCol);
+		} else if (value instanceof Map){ // this will be the case when we are adding group by data
+			// this map is in the form { {groupedColName=groupedColValue} = calculatedValue }
+			Map vMap = (Map) value;
+			for(Object mapKey : vMap.keySet())
+			{
+				it = new ExpressionIterator(it, joinCols, vMap.get(mapKey).toString());
+				for(Object key : ((Map)mapKey).keySet()){
+					((ExpressionIterator)it).setBinding(key+"", ((Map)mapKey).get(key));
+					cols.add(key+"");
+				}
+				joinCols = convertVectorToArray(cols);
+				processIt(it, frame, joinCols, newCol);
+			}
 		} else {
 			it = new ExpressionIterator(it, joinCols, value.toString());
+			processIt(it, frame, joinCols, newCol);
 		}
 
+		return null;
+	}
+
+	private void processIt(Iterator it, ITableDataFrame frame, String[] joinCols, String newCol) {
 		if(it.hasNext()) {
 			frame.connectTypes(joinCols, newCol);
 		
@@ -114,7 +134,6 @@ public class ColAddReactor extends AbstractReactor {
 		} else {
 			myStore.put("STATUS", "FAIL");
 		}
-		return null;
 	}
 
 	// gets all the values to synchronize for this 
