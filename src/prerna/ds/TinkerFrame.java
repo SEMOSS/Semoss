@@ -92,6 +92,7 @@ public class TinkerFrame extends AbstractTableDataFrame {
 	public static final String SORT_BY = "sortColumn";
 	public static final String SORT_BY_DIRECTION = "sortDirection";
 	public static final String DE_DUP = "dedup";
+	public static final String TEMPORAL_BINDINGS = "temporalBindings";
 
 	public static final String edgeLabelDelimeter = "+++";
 	protected static final String primKeyDelimeter = ":::";
