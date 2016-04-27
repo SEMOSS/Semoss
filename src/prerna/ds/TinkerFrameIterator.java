@@ -1,8 +1,11 @@
 package prerna.ds;
 
+import java.util.Collection;
+import java.util.Hashtable;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Vector;
 
 import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.GraphTraversal;
 import org.apache.tinkerpop.gremlin.structure.Graph;
@@ -10,6 +13,7 @@ import org.apache.tinkerpop.gremlin.structure.Vertex;
 
 import prerna.rdf.query.builder.GremlinBuilder;
 import prerna.util.Constants;
+import prerna.util.Utility;
 
 public class TinkerFrameIterator implements Iterator<Object[]> {
 
@@ -29,18 +33,54 @@ public class TinkerFrameIterator implements Iterator<Object[]> {
 				dir = GremlinBuilder.DIRECTION.INCR;
 			}
 		}
-//		Integer limit = (Integer) options.get(TinkerFrame.LIMIT);
-//		if(limit == null) {
-//			limit = -1;
-//		}
-//		Integer offset = (Integer) options.get(TinkerFrame.OFFSET);
-//		if(offset == null) {
-//			offset = -1;
-//		}
 		
 		Boolean dedup = false;
 		if(options.containsKey(TinkerFrame.DE_DUP)) {
 			dedup = (Boolean) options.get(TinkerFrame.DE_DUP);
+		}
+		
+		Map<Object, Object> temporalBindings = (Map<Object, Object>) options.get(TinkerFrame.TEMPORAL_BINDINGS); 
+		// clean values always put into list so bifurcation in logic doesn't need to exist elsewhere
+		Map<String, List<Object>> cleanTemporalBindings = new Hashtable<String, List<Object>>();
+		if(temporalBindings != null) {
+			for(Object key : temporalBindings.keySet()) {
+				Object val = temporalBindings.get(key);
+				List<Object> cleanVal = new Vector<Object>();
+				// if passed back a list
+				if(val instanceof Collection) {
+					Collection<? extends Object> collectionVal = (Collection<? extends Object>) val;
+					for(Object valObj : collectionVal) {
+						Object cleanObj = null;
+						String strObj = valObj.toString().trim();
+						String type = Utility.findTypes(strObj)[0] + "";
+						if(type.equalsIgnoreCase("Date")) {
+							cleanObj = Utility.getDate(strObj);
+						} else if(type.equalsIgnoreCase("Double")) {
+							cleanObj = Utility.getDouble(strObj);
+						} else {
+							cleanObj = Utility.cleanString(strObj, true, true, false);
+						}
+						((Vector) cleanVal).add(cleanObj);
+					}
+					// only need to clean the instances
+					cleanTemporalBindings.put(key + "", cleanVal);
+				} else {
+					// this means it is a single value
+					Object cleanObj = null;
+					String strObj = val.toString().trim();
+					String type = Utility.findTypes(strObj)[0] + "";
+					if(type.equalsIgnoreCase("Date")) {
+						cleanObj = Utility.getDate(strObj);
+					} else if(type.equalsIgnoreCase("Double")) {
+						cleanObj = Utility.getDouble(strObj);
+					} else {
+						cleanObj = Utility.cleanString(strObj, true, true, false);
+					}
+					cleanVal.add(cleanObj);
+					// only need to clean the instances
+					cleanTemporalBindings.put(key + "", cleanVal);
+				}
+			}
 		}
 		
 		this.gt = openTraversal(
@@ -49,15 +89,17 @@ public class TinkerFrameIterator implements Iterator<Object[]> {
 				(Integer) options.get(TinkerFrame.OFFSET), 
 				(Integer) options.get(TinkerFrame.LIMIT), 
 				(String) options.get(TinkerFrame.SORT_BY),
+				cleanTemporalBindings,
 				dir, 
 				dedup);
 	}
 	
-	private GraphTraversal openTraversal(List<String> selectors, Graph g, Graph metaG, Integer start, Integer end, String sortColumn, GremlinBuilder.DIRECTION orderByDirection, Boolean dedup) {
+	private GraphTraversal openTraversal(List<String> selectors, Graph g, Graph metaG, Integer start, Integer end, String sortColumn, Map<String, List<Object>> cleanTemporalBindings, GremlinBuilder.DIRECTION orderByDirection, Boolean dedup) {
 		this.selectors = selectors;
 		GremlinBuilder builder = GremlinBuilder.prepareGenericBuilder(selectors, g, metaG);
-		builder.orderBySelector = sortColumn;
-		builder.orderByDirection = orderByDirection;
+		builder.setOrderBySelector(sortColumn);
+		builder.setOrderByDirection(orderByDirection);
+		builder.setTemporalFilters(cleanTemporalBindings);
 		//finally execute it to get the executor
 		if(start != null && start != -1) {
 			builder.setRange(start, end);

@@ -2,12 +2,14 @@ package prerna.rdf.query.builder;
 
 import java.util.Hashtable;
 import java.util.List;
+import java.util.Map;
 import java.util.Vector;
 
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 import org.apache.tinkerpop.gremlin.groovy.jsr223.GremlinGroovyScriptEngine;
 import org.apache.tinkerpop.gremlin.process.traversal.Order;
+import org.apache.tinkerpop.gremlin.process.traversal.P;
 import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.GraphTraversal;
 import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.__;
 import org.apache.tinkerpop.gremlin.structure.Graph;
@@ -24,21 +26,22 @@ public class GremlinBuilder {
 
 	private static final Logger LOGGER = LogManager.getLogger(GremlinBuilder.class.getName());
 	
-	public Graph g;
-	public Graph metaGraph;
-    public GraphTraversal gt;
-	public List<String> selector = new Vector<String>();	
+	private Graph g;
+	private Graph metaGraph;
+	private GraphTraversal gt;
+	private List<String> selector = new Vector<String>();	
 	private GremlinGroovyScriptEngine engine = new GremlinGroovyScriptEngine();
 	private Hashtable nodeHash = new Hashtable();
 	//the range of the graph to execute on
-	int startRange = -1;
-	int endRange = -1;
-	public String groupBySelector;
-	
+	private int startRange = -1;
+	private int endRange = -1;
+	private String groupBySelector;
+	private String orderBySelector;
+	private DIRECTION orderByDirection = DIRECTION.INCR;
+	private Map<String, List<Object>> temporalFilters = new Hashtable<String, List<Object>>();
+
 	public enum DIRECTION {INCR, DECR};
-	public String orderBySelector;
-	public DIRECTION orderByDirection = DIRECTION.INCR;
-	
+
 	/**
 	 * Constructor for the GremlinBuilder class
 	 * @param g					The graph for the gremlin script to be executed on
@@ -120,6 +123,10 @@ public class GremlinBuilder {
 				// filtered edges have a type of filter
 				gt = gt.not(__.in(Constants.FILTER + TinkerFrame.edgeLabelDelimeter + valueType).has(Constants.TYPE, Constants.FILTER));
 			}
+			if(temporalFilters.containsKey(nameType)) {
+				gt = gt.where(P.within(temporalFilters.get(nameType)));
+			}
+			
 			// add the logic to traverse
 			traversals = visitNode(startNode, travelledEdges, traversals);
 			
@@ -167,6 +174,9 @@ public class GremlinBuilder {
 				if ((Boolean) filtered == true) {
 					twoStepT = twoStepT.not(__.in(Constants.FILTER + TinkerFrame.edgeLabelDelimeter + valueNode).has(Constants.TYPE, Constants.FILTER));
 				}
+				if(temporalFilters.containsKey(nameNode)) {
+					gt = gt.where(P.within(temporalFilters.get(nameNode)));
+				}
 
 				twoStepT = twoStepT.as(nameNode);
 				LOGGER.info("twoStepT downstream : " + twoStepT);
@@ -201,7 +211,10 @@ public class GremlinBuilder {
 				if ((Boolean) filtered == true) {
 					twoStepT = twoStepT.not(__.in(Constants.FILTER + TinkerFrame.edgeLabelDelimeter + valueNode).has(Constants.TYPE, Constants.FILTER));
 				}
-
+				if(temporalFilters.containsKey(nameNode)) {
+					gt = gt.where(P.within(temporalFilters.get(nameNode)));
+				}
+				
 				twoStepT = twoStepT.as(nameNode);
 				LOGGER.info("twoStepT upstream : " + twoStepT);
 				traversals.add(twoStepT);
@@ -391,6 +404,18 @@ public class GremlinBuilder {
 
 	public void setGroupBySelector(String groupBySelector) {
 		this.groupBySelector = groupBySelector;
+	}
+	
+	public void setOrderBySelector(String orderBySelector) {
+		this.orderBySelector = orderBySelector;
+	}
+	
+	public void setOrderByDirection(DIRECTION orderByDirection) {
+		this.orderByDirection = orderByDirection;
+	}
+	
+	public void setTemporalFilters(Map<String, List<Object>> temporalFilters) {
+		this.temporalFilters = temporalFilters;
 	}
 
 	/**

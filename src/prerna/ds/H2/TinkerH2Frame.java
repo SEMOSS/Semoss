@@ -9,6 +9,7 @@ import java.util.Collection;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Hashtable;
 import java.util.Iterator;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -399,7 +400,52 @@ public class TinkerH2Frame extends AbstractTableDataFrame {
 			}
 		}
 		options.put(TinkerFrame.SELECTORS, selectorValues);
-		
+
+		Map<Object, Object> temporalBindings = (Map<Object, Object>) options.get(TinkerFrame.TEMPORAL_BINDINGS); 
+		// clean values always put into list so bifurcation in logic doesn't need to exist elsewhere
+		Map<String, List<Object>> cleanTemporalBindings = new Hashtable<String, List<Object>>();
+		if(temporalBindings != null) {
+			for(Object key : temporalBindings.keySet()) {
+				String cleanKey = this.metaData.getValueForUniqueName(key + "");
+				
+				Object val = temporalBindings.get(key);
+				List<Object> cleanVal = new Vector<Object>();
+				// if passed back a list
+				if(val instanceof Collection) {
+					Collection<? extends Object> collectionVal = (Collection<? extends Object>) val;
+					for(Object valObj : collectionVal) {
+						Object cleanObj = null;
+						String strObj = valObj.toString().trim();
+						String type = Utility.findTypes(strObj)[0] + "";
+						if(type.equalsIgnoreCase("Date")) {
+							cleanObj = Utility.getDate(strObj);
+						} else if(type.equalsIgnoreCase("Double")) {
+							cleanObj = Utility.getDouble(strObj);
+						} else {
+							cleanObj = Utility.cleanString(strObj, true, true, false);
+						}
+						((Vector) cleanVal).add(cleanObj);
+					}
+					cleanTemporalBindings.put(cleanKey, cleanVal);
+				} else {
+					// this means it is a single value
+					Object cleanObj = null;
+					String strObj = val.toString().trim();
+					String type = Utility.findTypes(strObj)[0] + "";
+					if(type.equalsIgnoreCase("Date")) {
+						cleanObj = Utility.getDate(strObj);
+					} else if(type.equalsIgnoreCase("Double")) {
+						cleanObj = Utility.getDouble(strObj);
+					} else {
+						cleanObj = Utility.cleanString(strObj, true, true, false);
+					}
+					cleanVal.add(cleanObj);
+					cleanTemporalBindings.put(cleanKey, cleanVal);
+				}
+			}
+		}
+		options.put(TinkerFrame.TEMPORAL_BINDINGS, cleanTemporalBindings);
+
 //		if(selectors != null) {
 //			List<String> h2selectors = new ArrayList<>();
 //			for(String selector : selectors) {
