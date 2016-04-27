@@ -29,6 +29,7 @@ public class PKQLEnum {
 	public static String API = "API";
 	public static String ROW_CSV = "ROW_CSV";
 	public static String IMPORT_DATA = "IMPORT_DATA";
+	public static String REMOVE_DATA = "REMOVE_DATA";
 	public static String VIZ = "VIZ";
 	public static String WORD_OR_NUM = "WORD_OR_NUM";
 	public static String REL_TYPE = "REL_TYPE";
