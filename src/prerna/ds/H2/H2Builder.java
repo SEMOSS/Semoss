@@ -18,19 +18,18 @@ import java.util.Map;
 import java.util.Vector;
 
 import org.apache.commons.lang.text.StrSubstitutor;
-import org.apache.commons.lang3.math.NumberUtils;
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 import org.stringtemplate.v4.ST;
+
+import com.univocity.parsers.csv.CsvParser;
+import com.univocity.parsers.csv.CsvParserSettings;
 
 import prerna.ds.TinkerFrame;
 import prerna.engine.api.ISelectStatement;
 import prerna.engine.api.ISelectWrapper;
 import prerna.util.ArrayUtilityMethods;
 import prerna.util.Utility;
-
-import com.univocity.parsers.csv.CsvParser;
-import com.univocity.parsers.csv.CsvParserSettings;
 
 public class H2Builder {
 	
@@ -1049,7 +1048,7 @@ public class H2Builder {
 		for(String key : temporalBindings.keySet()) {
 			compHash.put(key, Comparator.EQUAL);
 		}
-		String temporalFiltering = makeFilterSubQuery(temporalBindings, new HashMap<String, Comparator>()); // default comparator is equals
+		String temporalFiltering = makeFilterSubQuery(temporalBindings, compHash); // default comparator is equals
 		if(temporalFiltering != null && temporalFiltering.length() > 0) {
 			if(selectQuery.contains(" WHERE ")) {
 				temporalFiltering = temporalFiltering.replaceFirst(" WHERE ", "");
