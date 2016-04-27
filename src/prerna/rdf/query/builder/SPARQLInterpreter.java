@@ -152,7 +152,7 @@ public class SPARQLInterpreter implements IQueryInterpreter {
 			Hashtable <String, Vector> compHash = qs.andfilters.get(concept_property);
 			Enumeration <String> comps = compHash.keys();
 			String concept = concept_property;
-			String property = concept_property;
+			String property = null;
 			if(concept_property.contains("__")) {
 				concept = concept_property.substring(0, concept_property.indexOf("__"));
 				property = concept_property.substring(concept_property.indexOf("__")+2);

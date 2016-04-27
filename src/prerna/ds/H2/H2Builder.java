@@ -54,8 +54,8 @@ public class H2Builder {
 		typeConversionMap.put("DATE", "DATE");
 	}
 	
-	Map<String, List<Object>> filterHash = new HashMap<>();
-	Map<String, Comparator> filterComparator = new HashMap<>();
+	Map<String, List<Object>> filterHash = new HashMap<String, List<Object>>();
+	Map<String, Comparator> filterComparator = new HashMap<String, Comparator>();
 	
 	String tableName; 
 	
@@ -1034,6 +1034,7 @@ public class H2Builder {
 		Integer limit = (Integer) options.get(TinkerFrame.LIMIT);
 		Integer offset = (Integer) options.get(TinkerFrame.OFFSET);
 		String sortBy = (String)options.get(TinkerFrame.SORT_BY);
+		
 		List<String> selectors = (List<String>) options.get(TinkerFrame.SELECTORS);
 		selectors = cleanHeaders(selectors);
 		String selectQuery;
@@ -1041,6 +1042,17 @@ public class H2Builder {
 			selectQuery = makeSelectDistinct(tableName, selectors);
 		} else {
 			selectQuery = makeSelect(tableName, selectors);
+		}
+		
+		Map<String, List<Object>> temporalBindings = (Map<String, List<Object>>) options.get(TinkerFrame.TEMPORAL_BINDINGS); 
+		String temporalFiltering = makeFilterSubQuery(temporalBindings, new HashMap<String, Comparator>()); // default comparator is equals
+		if(temporalFiltering != null && temporalFiltering.length() > 0) {
+			if(selectQuery.contains(" WHERE ")) {
+				temporalFiltering = temporalFiltering.replaceFirst(" WHERE ", "");
+				selectQuery = selectQuery + temporalFiltering;
+			} else {
+				selectQuery = selectQuery + temporalFiltering;
+			}
 		}
 		
 		if(sortBy != null) {
@@ -1599,7 +1611,7 @@ public class H2Builder {
     		}
     	}
     	
-    	String filterSubQuery = makeFilterSubQuery();
+    	String filterSubQuery = makeFilterSubQuery(this.filterHash, this.filterComparator);
     	selectStatement += " FROM " + tableName + filterSubQuery;
     	return selectStatement;
     }
@@ -1623,7 +1635,7 @@ public class H2Builder {
 		
     	//SELECT column1, column2, column3 from table1
 		selectStatement += " FROM " + tableName;
-		String filterSubQuery = makeFilterSubQuery();    	
+		String filterSubQuery = makeFilterSubQuery(this.filterHash, this.filterComparator);    	
     	if(filterSubQuery.length() > 1) {
     		selectStatement += filterSubQuery;
     		selectStatement += " AND " + columnHeader + " = " + "'"+value+"'";
@@ -1651,7 +1663,7 @@ public class H2Builder {
     		}
     	}
     	
-    	String filterSubQuery = makeFilterSubQuery();
+    	String filterSubQuery = makeFilterSubQuery(this.filterHash, this.filterComparator);
     	selectStatement += " FROM " + tableName + filterSubQuery;
     	
     	return selectStatement;
@@ -1805,7 +1817,7 @@ public class H2Builder {
     		functionString = func +valueColumn+")"; break; }
     	}
     	
-    	String filterSubQuery = makeFilterSubQuery();
+    	String filterSubQuery = makeFilterSubQuery(this.filterHash, this.filterComparator);
     	String groupByStatement = "SELECT " + column+", "+functionString + " AS " + alias +" FROM "+tableName + filterSubQuery + " GROUP BY "+ column;
     	
     	return groupByStatement;
@@ -1841,7 +1853,7 @@ public class H2Builder {
     		functionString = func +valueColumn+")"; break; }
     	}
     	
-    	String filterSubQuery = makeFilterSubQuery();
+    	String filterSubQuery = makeFilterSubQuery(this.filterHash, this.filterComparator);
     	String groupByStatement = "SELECT " + column1+", "+column2+", "+functionString + " AS " + alias +" FROM "+tableName + filterSubQuery + " GROUP BY "+ column1+", "+column2;
     	
     	return groupByStatement;
@@ -1922,7 +1934,7 @@ public class H2Builder {
     	return filterStatement;
     }
     
-    private String makeFilterSubQuery() {
+    private String makeFilterSubQuery(Map<String, List<Object>> filterHash, Map<String, Comparator> filterComparator) {
     	String filterStatement = "";
     	if(filterHash.keySet().size() > 0) {
 	    	
