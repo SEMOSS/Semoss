@@ -59,7 +59,7 @@ public class TinkerMetaData2 implements IMetaData {
 	public static final String PRIM_KEY = "PRIM_KEY";
 	public static final String META = "META";
 	public static final String edgeLabelDelimeter = "+++";
-	private static int orderIdx = -1;
+	private int orderIdx = -1;
 	
 	/**
 	 * CURRENT PROPERTY STRUCTURE::::::::::::::::::
