@@ -242,7 +242,7 @@ public class SPARQLInterpreter implements IQueryInterpreter {
 			} else if(cleanedObjects.size()==1){ // we can always just add a bind to the main clause... never want this to be optional
 				SEMOSSQueryHelper.addBindPhrase(cleanedObjects.get(0)+"", TriplePart.URI, concept, semossQuery);
 			}
-			else if (!semossQuery.hasBindings() && !semossQuery.clauseIsOptional(property)){ // bindings is only valid if the clause isn't optional and bindings hasn't already been used
+			else if (!semossQuery.hasBindings() && !semossQuery.clauseIsOptional(concept)){ // bindings is only valid if the clause isn't optional and bindings hasn't already been used
 				SEMOSSQueryHelper.addBindingsToQuery(cleanedObjects, TriplePart.URI, concept, semossQuery);
 			}
 			else { // filter can always be added the main clause... never want this to be optional
