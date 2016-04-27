@@ -614,15 +614,7 @@ public class H2Builder {
     	return null;
     }
     
-    //drop the column from the table
-    public void dropColumn(String columnHeader) {
-    	
-    	try {
-			runQuery(makeDropColumn(columnHeader, tableName));
-		} catch (Exception e) {
-			e.printStackTrace();
-		}
-    }
+
     
     //only use this for analytics for now
     public void updateTable(String[] headers, Object[] values, String[] columnHeaders) {
@@ -673,6 +665,29 @@ public class H2Builder {
     
     /*************************** END READ ****************************************/
     
+    /*************************** DELETE ******************************************/
+    
+    
+    /*************************** END DELETE **************************************/
+    
+    //drop the column from the table
+    public void dropColumn(String columnHeader) {
+    	
+    	try {
+			runQuery(makeDropColumn(columnHeader, tableName));
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+    }
+    
+    public void deleteRow(String[] columns, String[] values) {
+    	try {
+    		String deleteRowQuery = makeDeleteData(tableName, columns, values);
+    		runQuery(deleteRowQuery);
+    	} catch(Exception e) {
+    		e.printStackTrace();
+    	}
+    }
     
     /*************************** UPDATE ******************************************/
    
@@ -1996,6 +2011,17 @@ public class H2Builder {
     //rename column 
     private String makeRenameColumn(String fromColumn, String toColumn, String tableName) {
     	return "ALTER TABLE "+tableName+" ALTER COLUMN "+fromColumn+" RENAME TO "+toColumn;
+    }
+    
+    private String makeDeleteData(String tableName, String[] columnName, String[] values) {
+    	String deleteQuery = "DELETE FROM " + tableName +" WHERE ";
+    	for(int i = 0; i < columnName.length; i++) {
+    		if(i > 0) {
+    			deleteQuery += " AND ";
+    		}
+   			deleteQuery += columnName[i]+" = '"+values[i]+"'";
+    	}
+    	return deleteQuery;
     }
     
     /*************************** END QUERY BUILDERS **************************************/

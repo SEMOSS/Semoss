@@ -2254,4 +2254,11 @@ public class BTreeDataFrame implements ITableDataFrame {
 		
 	}
 
+	@Override
+	public void removeRelationship(Map<String, Object> cleanRow,
+			Map<String, Object> rawRow) {
+		// TODO Auto-generated method stub
+		
+	}
+
 }

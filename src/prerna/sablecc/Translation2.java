@@ -39,6 +39,7 @@ import prerna.sablecc.node.ANumberTerm;
 import prerna.sablecc.node.APlusExpr;
 import prerna.sablecc.node.AROp;
 import prerna.sablecc.node.ARelationDef;
+import prerna.sablecc.node.ARemoveData;
 import prerna.sablecc.node.ASetColumn;
 import prerna.sablecc.node.ATermExpr;
 import prerna.sablecc.node.AUnfilterColumn;
@@ -106,6 +107,7 @@ public class Translation2 extends DepthFirstAdapter {
 		reactorNames.put(PKQLEnum.REL_DEF, "prerna.sablecc.RelReactor");
 		reactorNames.put(PKQLEnum.COL_ADD, "prerna.sablecc.ColAddReactor");
 		reactorNames.put(PKQLEnum.IMPORT_DATA, "prerna.sablecc.ImportDataReactor");
+		reactorNames.put(PKQLEnum.REMOVE_DATA, "prerna.sablecc.RemoveDataReactor");
 		reactorNames.put(PKQLEnum.FILTER_DATA, "prerna.sablecc.ColFilterReactor");
 		reactorNames.put(PKQLReactor.R_OP.toString(), "prerna.sablecc.RReactor");
 		reactorNames.put(PKQLEnum.VIZ, "prerna.sablecc.VizReactor");
@@ -494,6 +496,25 @@ public class Translation2 extends DepthFirstAdapter {
 		curReactor.put(PKQLEnum.EXPR_TERM, nodeStr);
 		Hashtable <String, Object> thisReactorHash = deinitReactor(PKQLEnum.IMPORT_DATA, nodeStr, (node + "").trim());
     	IScriptReactor previousReactor = (IScriptReactor)thisReactorHash.get(PKQLReactor.IMPORT_DATA.toString());
+		runner.setResponse(previousReactor.getValue(node.toString().trim()));//
+		runner.setStatus((String)previousReactor.getValue("STATUS"));
+    }
+    
+    public void inARemoveData(ARemoveData node) {
+    	if(reactorNames.containsKey(PKQLEnum.REMOVE_DATA)) {
+			// simplify baby simplify baby simplify
+			initReactor(PKQLEnum.REMOVE_DATA);
+			String nodeStr = node + "";
+			curReactor.put(PKQLEnum.REMOVE_DATA, nodeStr.trim());
+		}	
+    }
+
+    public void outARemoveData(ARemoveData node) {
+    	String nodeStr = node.getApiBlock() + "";
+		nodeStr = nodeStr.trim();
+		curReactor.put(PKQLEnum.EXPR_TERM, nodeStr);
+		Hashtable <String, Object> thisReactorHash = deinitReactor(PKQLEnum.REMOVE_DATA, nodeStr, (node + "").trim());
+    	IScriptReactor previousReactor = (IScriptReactor)thisReactorHash.get(PKQLEnum.REMOVE_DATA);
 		runner.setResponse(previousReactor.getValue(node.toString().trim()));//
 		runner.setStatus((String)previousReactor.getValue("STATUS"));
     }
