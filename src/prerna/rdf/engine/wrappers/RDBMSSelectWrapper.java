@@ -118,7 +118,7 @@ public class RDBMSSelectWrapper extends AbstractWrapper implements ISelectWrappe
 	
 					for(int colIndex = 0;colIndex < displayVar.length;colIndex++)
 					{
-						Object value = rs.getObject(var[colIndex]);
+						Object value = rs.getObject(displayVar[colIndex]);
 						if(value == null) {
 							value = "";
 						}
