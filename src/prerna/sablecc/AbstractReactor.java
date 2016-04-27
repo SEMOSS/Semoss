@@ -114,15 +114,20 @@ public abstract class AbstractReactor implements IScriptReactor {
 	
 	protected void modExpression()
 	{
-		String curExpression = (String)myStore.get(whoAmI);
+		Object curExpression = (String)myStore.get(whoAmI);
 		System.out.println("Replacers.. " + replacers);
 		for(int ripIndex = replacers.size()-1;ripIndex > -1 ;ripIndex--)
 		{
 			String tobeReplaced = replacers.elementAt(ripIndex);
 			if(myStore.containsKey(tobeReplaced))
 			{
-				String replacedBy = myStore.get(tobeReplaced) + "";
-				curExpression = curExpression.replace(tobeReplaced, replacedBy);
+				Object replacedBy = myStore.get(tobeReplaced);
+				if(curExpression.equals(tobeReplaced)){
+					curExpression = replacedBy;
+				}
+				else{
+					curExpression = (curExpression+"").replace(tobeReplaced, replacedBy+"");
+				}
 			}			
 		}
 		myStore.put("MOD_" + whoAmI, curExpression);
@@ -137,12 +142,20 @@ public abstract class AbstractReactor implements IScriptReactor {
 
 	protected Iterator getTinkerData(Vector <String> columns, ITableDataFrame frame)
 	{
+		return getTinkerData(columns, frame, null);
+	}
+
+	protected Iterator getTinkerData(Vector<String> columns, ITableDataFrame frame, Map<String, Object> valMap) {
 //		if(columns != null && columns.size() <= 1)
 //			columns.add(columns.get(0));
 		// now I need to ask tinker to build me something for this
 
 		Map<String, Object> options = new HashMap<String, Object>();
 		options.put(TinkerFrame.SELECTORS, columns);
+		
+		if(valMap!=null){
+			options.put(TinkerFrame.TEMPORAL_BINDINGS, valMap);
+		}
 		
 		Iterator iterator = frame.iterator(true, options);
 		if(iterator.hasNext())

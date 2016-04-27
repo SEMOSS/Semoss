@@ -22,8 +22,8 @@ public class PKQLRunner {
 	
 	enum Status {SUCCESS, ERROR}
 	
-	private String currentStatus = "error";
-	private Object response = "Invalid PKQL Statement";
+	private String currentStatus = "success";
+	private Object response = "PKQL processing complete";
 	private Map<String, Object> feData = new HashMap<String, Object>();
 
 	public HashMap<String, Object> runPKQL(String expression, ITableDataFrame f) {
@@ -38,6 +38,8 @@ public class PKQLRunner {
 
 		} catch (ParserException | LexerException | IOException e) {
 			e.printStackTrace();
+			currentStatus = "error";
+			response = "Invalid PKQL Statement";
 		}
 
 		HashMap<String, Object> result = new HashMap<String, Object>();

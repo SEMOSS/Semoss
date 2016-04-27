@@ -396,7 +396,10 @@ public class TinkerH2Frame extends AbstractTableDataFrame {
 				if(name.equals(sortBy)) {
 					actualSortBy = this.metaData.getValueForUniqueName(name);
 				}
-				selectorValues.add(this.metaData.getValueForUniqueName(name));
+				String uniqueName = this.metaData.getValueForUniqueName(name);
+				if(uniqueName == null)
+					uniqueName = name;
+				selectorValues.add(uniqueName);
 			}
 		}
 		options.put(TinkerFrame.SELECTORS, selectorValues);
