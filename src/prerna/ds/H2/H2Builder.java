@@ -1045,6 +1045,10 @@ public class H2Builder {
 		}
 		
 		Map<String, List<Object>> temporalBindings = (Map<String, List<Object>>) options.get(TinkerFrame.TEMPORAL_BINDINGS); 
+		Map<String, Comparator> compHash = new HashMap<String, Comparator>();
+		for(String key : temporalBindings.keySet()) {
+			compHash.put(key, Comparator.EQUAL);
+		}
 		String temporalFiltering = makeFilterSubQuery(temporalBindings, new HashMap<String, Comparator>()); // default comparator is equals
 		if(temporalFiltering != null && temporalFiltering.length() > 0) {
 			if(selectQuery.contains(" WHERE ")) {
