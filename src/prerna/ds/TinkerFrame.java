@@ -100,11 +100,14 @@ public class TinkerFrame extends AbstractTableDataFrame {
 	
 	public static void main(String [] args) throws Exception
 	{
+		testDeleteRows();
+//		TinkerFrame t3 = new TinkerFrame();
+//		testPaths();
 		
-		TinkerFrame t3 = new TinkerFrame();
-		testPaths();
+		//tinkerframe to test on
 //		String fileName = "C:\\Users\\rluthar\\Documents\\Movie Results.xlsx";
 //		TinkerFrame t = load2Graph4Testing(fileName);
+		
 //		t.openSandbox();
 //		testGroupBy();
 //		testFilter();
@@ -148,9 +151,55 @@ public class TinkerFrame extends AbstractTableDataFrame {
 		// experiments
 		*/
 		
+	}
+	
+	public static void testDeleteRows() {
+		String fileName = "C:\\Users\\rluthar\\Documents\\Movie Results.xlsx";
+		TinkerFrame t = load2Graph4Testing(fileName);
 		
+		//what i want to delete
+		Map<String, Object> deleteMap = new HashMap<>();
+		deleteMap.put("Studio", "Fox");
+		deleteMap.put("Year", 2007.0);
 		
+		Iterator<Object[]> iterator = t.iterator(false);
+		List<Object[]> deleteSet = new ArrayList<>();
+		List<String> selectors = t.getSelectors();
+		while(iterator.hasNext()) {
+			boolean addRow = true;
+			Object[] row = iterator.next();
+			for(String column : deleteMap.keySet()) {
+				int index = selectors.indexOf(column);
+				if(!row[index].equals(deleteMap.get(column))) {
+					addRow = false;
+					break;
+				}
+			}
+			
+			if(addRow) {
+				deleteSet.add(row);
+				System.out.println(Arrays.toString(row));
+			}
+		}
 		
+		Set<Integer> indexes =  new HashSet<>();
+		for(String column : deleteMap.keySet()) {
+			indexes.add(selectors.indexOf(column));
+		}
+		
+		for(Object[] row : deleteSet) {
+			//delete all the edges necessary
+			for(int i = 0; i < row.length; i++) {
+				if(!indexes.contains(i)) {
+					String column = selectors.get(i);
+					//we have the column
+					Vertex v = t.upsertVertex(column, row[i], row[i]);
+					
+					//we have the instance
+					//how to determine what edges to delete
+				}
+			}
+		}
 	}
 
 	public static void testGroupBy() {
@@ -2236,5 +2285,12 @@ public class TinkerFrame extends AbstractTableDataFrame {
 			}
 		}
 		LOGGER.info("DONE inserting of blanks.......");
+	}
+
+	@Override
+	public void removeRelationship(Map<String, Object> cleanRow,
+			Map<String, Object> rawRow) {
+		// TODO Auto-generated method stub
+		
 	}
 }

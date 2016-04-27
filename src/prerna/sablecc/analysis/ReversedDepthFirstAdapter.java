@@ -463,6 +463,27 @@ public class ReversedDepthFirstAdapter extends AnalysisAdapter
         outAUnfiltercolColop(node);
     }
 
+    public void inARemoveDataColop(ARemoveDataColop node)
+    {
+        defaultIn(node);
+    }
+
+    public void outARemoveDataColop(ARemoveDataColop node)
+    {
+        defaultOut(node);
+    }
+
+    @Override
+    public void caseARemoveDataColop(ARemoveDataColop node)
+    {
+        inARemoveDataColop(node);
+        if(node.getRemoveData() != null)
+        {
+            node.getRemoveData().apply(this);
+        }
+        outARemoveDataColop(node);
+    }
+
     public void inAVizChangeVizop(AVizChangeVizop node)
     {
         defaultIn(node);
@@ -1028,6 +1049,43 @@ public class ReversedDepthFirstAdapter extends AnalysisAdapter
             node.getDataimporttoken().apply(this);
         }
         outAImportData(node);
+    }
+
+    public void inARemoveData(ARemoveData node)
+    {
+        defaultIn(node);
+    }
+
+    public void outARemoveData(ARemoveData node)
+    {
+        defaultOut(node);
+    }
+
+    @Override
+    public void caseARemoveData(ARemoveData node)
+    {
+        inARemoveData(node);
+        if(node.getRPar() != null)
+        {
+            node.getRPar().apply(this);
+        }
+        if(node.getRelationClause() != null)
+        {
+            node.getRelationClause().apply(this);
+        }
+        if(node.getApiBlock() != null)
+        {
+            node.getApiBlock().apply(this);
+        }
+        if(node.getLPar() != null)
+        {
+            node.getLPar().apply(this);
+        }
+        if(node.getDataremovetoken() != null)
+        {
+            node.getDataremovetoken().apply(this);
+        }
+        outARemoveData(node);
     }
 
     public void inADecimal(ADecimal node)

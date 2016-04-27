@@ -47,6 +47,7 @@ import prerna.ui.components.playsheets.datamakers.JoinTransformation;
 import prerna.util.ArrayUtilityMethods;
 import prerna.util.Constants;
 import prerna.util.MyGraphIoRegistry;
+import prerna.util.Utility;
 
 public class TinkerH2Frame extends AbstractTableDataFrame {
 
@@ -844,6 +845,24 @@ public class TinkerH2Frame extends AbstractTableDataFrame {
 		DatabaseMetaData md = builder.conn.getMetaData();
 		userName = md.getUserName();
 		return userName;
+	}
+
+	@Override
+	public void removeRelationship(Map<String, Object> cleanRow, Map<String, Object> rawRow) {
+		
+		Set<String> columnNames = cleanRow.keySet();
+		String[] columns = new String[columnNames.size()];
+		String[] values = new String[columnNames.size()];
+		int i = 0;
+		for(String column : cleanRow.keySet()) {
+			String col = this.metaData.getValueForUniqueName(column);
+			Object value = cleanRow.get(col);
+			String val = Utility.cleanString(value.toString(), true, true, false);
+			columns[i] = col;
+			values[i] = val;
+			i++;
+		}
+		builder.deleteRow(columns, values);
 	}
 
 }
