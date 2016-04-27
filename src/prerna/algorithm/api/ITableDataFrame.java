@@ -514,6 +514,8 @@ public interface ITableDataFrame extends IDataMaker {
 
 	void addRelationship(Map<String, Object> cleanRow, Map<String, Object> rawRow);
 
+	void removeRelationship(Map<String, Object> cleanRow, Map<String, Object> rawRow);
+	
 	Map<String, Set<String>> getEdgeHash();
 
 	Set<String> getEnginesForUniqueName(String sub);

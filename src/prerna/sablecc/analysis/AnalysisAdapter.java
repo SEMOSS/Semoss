@@ -189,6 +189,12 @@ public class AnalysisAdapter implements Analysis
     }
 
     @Override
+    public void caseARemoveDataColop(ARemoveDataColop node)
+    {
+        defaultCase(node);
+    }
+
+    @Override
     public void caseAVizChangeVizop(AVizChangeVizop node)
     {
         defaultCase(node);
@@ -274,6 +280,12 @@ public class AnalysisAdapter implements Analysis
 
     @Override
     public void caseAImportData(AImportData node)
+    {
+        defaultCase(node);
+    }
+
+    @Override
+    public void caseARemoveData(ARemoveData node)
     {
         defaultCase(node);
     }
@@ -934,6 +946,12 @@ public class AnalysisAdapter implements Analysis
 
     @Override
     public void caseTDataimporttoken(TDataimporttoken node)
+    {
+        defaultCase(node);
+    }
+
+    @Override
+    public void caseTDataremovetoken(TDataremovetoken node)
     {
         defaultCase(node);
     }

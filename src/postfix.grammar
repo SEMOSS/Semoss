@@ -65,6 +65,7 @@ dot = '.';
  import_type = ('flat' | 'tree');
  rel_type = ('inner.join' | 'outer.join' | 'right.outer.join' | 'left.outer.join' | 'cross.join' | 'self.join' ); 
  dataimporttoken = 'data.import';
+ dataremovetoken = 'data.remove';
  literal = (letter_s | letter_b | digit | underscore)*;// | special)*;
  help_token = 'info.help';
  vizchange = 'viz.change';
@@ -101,6 +102,7 @@ colop = // colOp is usually of the form of joinColumn / addColumn / removeColumn
 		| {alias} alias_column
 		| {import_data} import_data
 		| {unfiltercol} unfilter_column
+		| {remove_data} remove_data
 		;
 
 vizop = // vizop is usually of the form of viz.change, viz.tools, viz.color
@@ -154,8 +156,10 @@ alias_column = // sets the column aliases
 		
 import_data = // imports from api query commands and other scripts
 		dataimporttoken [lp1]:l_par [api]:api_block [joins]:relation_clause? [rp2]:r_par;
-		
-		
+
+remove_data = // imports from api query commands and other scripts and deletes that data from the table
+		dataremovetoken l_par api_block relation_clause? r_par; 
+
 decimal = [whole]:number dot? [fraction]:number?;
 		
 expr_group = [comma]:comma [expr]:expr;		
