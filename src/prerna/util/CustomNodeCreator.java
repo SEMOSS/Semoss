@@ -34,7 +34,7 @@ import java.util.Enumeration;
 import java.util.StringTokenizer;
 import java.util.Vector;
 
-import org.mvel2.MVEL;
+//import org.mvel2.MVEL;
 
 import prerna.ui.components.VertexFilterData;
 import prerna.ui.components.playsheets.GraphPlaySheet;
@@ -108,8 +108,8 @@ public class CustomNodeCreator {
 					if(selected != null && ps.filterData.typeHash.containsKey(selected))
 					{
 						Vector objs = ps.filterData.typeHash.get(selected);
-						for(int vertIndex = 0;vertIndex <= objs.size();vertIndex++)
-							System.out.println("" + MVEL.eval(expression, objs.elementAt(vertIndex)));
+						for(int vertIndex = 0;vertIndex <= objs.size();vertIndex++) { }
+//							System.out.println("" + MVEL.eval(expression, objs.elementAt(vertIndex)));
 						
 						// the patterns are
 						// basic properties
