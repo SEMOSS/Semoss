@@ -47,6 +47,8 @@ public interface Analysis extends Switch
     void caseAImportColumn(AImportColumn node);
     void caseAAliasColumn(AAliasColumn node);
     void caseAImportData(AImportData node);
+    void caseAApiImportBlock(AApiImportBlock node);
+    void caseACsvTableImportBlock(ACsvTableImportBlock node);
     void caseARemoveData(ARemoveData node);
     void caseADecimal(ADecimal node);
     void caseAExprGroup(AExprGroup node);
