@@ -15,10 +15,13 @@ import prerna.sablecc.PKQLEnum.PKQLToken;
 import prerna.sablecc.analysis.DepthFirstAdapter;
 import prerna.sablecc.node.AAddColumn;
 import prerna.sablecc.node.AApiBlock;
+import prerna.sablecc.node.AApiImportBlock;
 import prerna.sablecc.node.AColCsv;
 import prerna.sablecc.node.AColDef;
 import prerna.sablecc.node.AColWhere;
 import prerna.sablecc.node.ACsvRow;
+import prerna.sablecc.node.ACsvTable;
+import prerna.sablecc.node.ACsvTableImportBlock;
 import prerna.sablecc.node.ADecimal;
 import prerna.sablecc.node.ADivExpr;
 import prerna.sablecc.node.AEExprExpr;
@@ -100,6 +103,7 @@ public class Translation2 extends DepthFirstAdapter {
 		reactorNames.put(PKQLEnum.EXPR_TERM, "prerna.sablecc.ExprReactor");
 		reactorNames.put(PKQLEnum.EXPR_SCRIPT, "prerna.sablecc.ExprReactor");
 		reactorNames.put(PKQLEnum.MATH_FUN, "prerna.sablecc.MathReactor");
+		reactorNames.put(PKQLEnum.CSV_TABLE, "prerna.sablecc.CsvTableReactor");
 		reactorNames.put(PKQLEnum.COL_CSV, "prerna.sablecc.ColCsvReactor"); // it almost feels like I need a way to tell when to do this and when not but let me see
 		reactorNames.put(PKQLEnum.ROW_CSV, "prerna.sablecc.RowCsvReactor");
 		reactorNames.put(PKQLEnum.API, "prerna.sablecc.ApiReactor");
@@ -210,7 +214,7 @@ public class Translation2 extends DepthFirstAdapter {
 		// infact I need a way to say what to pass
 		// this should sit on the parent and not the child
 		// the curReactor is the API
-		if(curReactor != null) {
+		if(curReactor != null && node.parent() != null && node.parent() instanceof AApiImportBlock) {
 			String [] values2Sync = curReactor.getValues2Sync(PKQLEnum.API);
 			synchronizeValues(PKQLEnum.API, values2Sync, thisReactor);
 		}
@@ -411,6 +415,7 @@ public class Translation2 extends DepthFirstAdapter {
 
 	@Override
 	public void outAModExpr(AModExpr node) {
+		
 	}
 
 	@Override
@@ -477,6 +482,7 @@ public class Translation2 extends DepthFirstAdapter {
 
 	@Override
 	public void outAExprGroup(AExprGroup node) {
+		
 	}
 
 	@Override
@@ -491,7 +497,7 @@ public class Translation2 extends DepthFirstAdapter {
     
     @Override
     public void outAImportData(AImportData node){
-		String nodeStr = node.getApi() + "";
+		String nodeStr = node.getImport()+ "";
 		nodeStr = nodeStr.trim();
 		curReactor.put(PKQLEnum.EXPR_TERM, nodeStr);
 		Hashtable <String, Object> thisReactorHash = deinitReactor(PKQLEnum.IMPORT_DATA, nodeStr, (node + "").trim());
@@ -579,7 +585,7 @@ public class Translation2 extends DepthFirstAdapter {
     @Override
     public void outAExprRow(AExprRow node) {
     }
-
+    
     @Override
 	public void inAMathFunTerm(AMathFunTerm node) {
 	}
@@ -704,7 +710,34 @@ public class Translation2 extends DepthFirstAdapter {
     	// get the action
     	// call to say this has happened and then reset it to null;
     	String thisNode = node.toString().trim();
-		deinitReactor(PKQLEnum.ROW_CSV, thisNode, PKQLEnum.ROW_CSV);
+    	
+    	if(node.parent() != null && node.parent() instanceof ACsvTable) {
+        	deinitReactor(PKQLEnum.ROW_CSV, thisNode, PKQLEnum.ROW_CSV, false);
+    	} else {
+        	deinitReactor(PKQLEnum.ROW_CSV, thisNode, PKQLEnum.ROW_CSV);
+    	}
+    }
+    
+    @Override
+    public void inACsvTable(ACsvTable node) {
+    	System.out.println("Directly lands into col table " + node);
+		if(reactorNames.containsKey(PKQLEnum.CSV_TABLE)) {
+			initReactor(PKQLEnum.CSV_TABLE);
+			String nodeStr = node + "";
+			curReactor.put(PKQLEnum.CSV_TABLE, nodeStr.trim());
+		}
+    }
+    
+    @Override
+    public void outACsvTable(ACsvTable node) {
+    	String thisNode = node.toString().trim();
+    	IScriptReactor thisReactor = curReactor;
+		deinitReactor(PKQLEnum.CSV_TABLE, thisNode, PKQLEnum.CSV_TABLE);
+    	
+		if(curReactor != null && node.parent() != null && node.parent() instanceof ACsvTableImportBlock) {
+			String [] values2Sync = curReactor.getValues2Sync(PKQLEnum.CSV_TABLE);
+			synchronizeValues(PKQLEnum.CSV_TABLE, values2Sync, thisReactor);
+		}
     }
     
     @Override

@@ -9,7 +9,7 @@ public final class AImportData extends PImportData
 {
     private TDataimporttoken _dataimporttoken_;
     private TLPar _lp1_;
-    private PApiBlock _api_;
+    private PImportBlock _import_;
     private PRelationClause _joins_;
     private TRPar _rp2_;
 
@@ -21,7 +21,7 @@ public final class AImportData extends PImportData
     public AImportData(
         @SuppressWarnings("hiding") TDataimporttoken _dataimporttoken_,
         @SuppressWarnings("hiding") TLPar _lp1_,
-        @SuppressWarnings("hiding") PApiBlock _api_,
+        @SuppressWarnings("hiding") PImportBlock _import_,
         @SuppressWarnings("hiding") PRelationClause _joins_,
         @SuppressWarnings("hiding") TRPar _rp2_)
     {
@@ -30,7 +30,7 @@ public final class AImportData extends PImportData
 
         setLp1(_lp1_);
 
-        setApi(_api_);
+        setImport(_import_);
 
         setJoins(_joins_);
 
@@ -44,7 +44,7 @@ public final class AImportData extends PImportData
         return new AImportData(
             cloneNode(this._dataimporttoken_),
             cloneNode(this._lp1_),
-            cloneNode(this._api_),
+            cloneNode(this._import_),
             cloneNode(this._joins_),
             cloneNode(this._rp2_));
     }
@@ -105,16 +105,16 @@ public final class AImportData extends PImportData
         this._lp1_ = node;
     }
 
-    public PApiBlock getApi()
+    public PImportBlock getImport()
     {
-        return this._api_;
+        return this._import_;
     }
 
-    public void setApi(PApiBlock node)
+    public void setImport(PImportBlock node)
     {
-        if(this._api_ != null)
+        if(this._import_ != null)
         {
-            this._api_.parent(null);
+            this._import_.parent(null);
         }
 
         if(node != null)
@@ -127,7 +127,7 @@ public final class AImportData extends PImportData
             node.parent(this);
         }
 
-        this._api_ = node;
+        this._import_ = node;
     }
 
     public PRelationClause getJoins()
@@ -186,7 +186,7 @@ public final class AImportData extends PImportData
         return ""
             + toString(this._dataimporttoken_)
             + toString(this._lp1_)
-            + toString(this._api_)
+            + toString(this._import_)
             + toString(this._joins_)
             + toString(this._rp2_);
     }
@@ -207,9 +207,9 @@ public final class AImportData extends PImportData
             return;
         }
 
-        if(this._api_ == child)
+        if(this._import_ == child)
         {
-            this._api_ = null;
+            this._import_ = null;
             return;
         }
 
@@ -244,9 +244,9 @@ public final class AImportData extends PImportData
             return;
         }
 
-        if(this._api_ == oldChild)
+        if(this._import_ == oldChild)
         {
-            setApi((PApiBlock) newChild);
+            setImport((PImportBlock) newChild);
             return;
         }
 

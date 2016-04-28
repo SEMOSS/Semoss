@@ -285,6 +285,18 @@ public class AnalysisAdapter implements Analysis
     }
 
     @Override
+    public void caseAApiImportBlock(AApiImportBlock node)
+    {
+        defaultCase(node);
+    }
+
+    @Override
+    public void caseACsvTableImportBlock(ACsvTableImportBlock node)
+    {
+        defaultCase(node);
+    }
+
+    @Override
     public void caseARemoveData(ARemoveData node)
     {
         defaultCase(node);
