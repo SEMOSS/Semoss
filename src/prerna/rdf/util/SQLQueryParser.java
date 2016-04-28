@@ -31,13 +31,21 @@ import java.io.StringReader;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.Hashtable;
 import java.util.List;
-import java.util.Set;
 
 import net.sf.jsqlparser.JSQLParserException;
-import net.sf.jsqlparser.expression.*;
+import net.sf.jsqlparser.expression.Alias;
+import net.sf.jsqlparser.expression.BinaryExpression;
+import net.sf.jsqlparser.expression.DateValue;
+import net.sf.jsqlparser.expression.DoubleValue;
+import net.sf.jsqlparser.expression.Expression;
+import net.sf.jsqlparser.expression.Function;
+import net.sf.jsqlparser.expression.LongValue;
+import net.sf.jsqlparser.expression.NullValue;
+import net.sf.jsqlparser.expression.Parenthesis;
+import net.sf.jsqlparser.expression.StringValue;
+import net.sf.jsqlparser.expression.TimeValue;
 import net.sf.jsqlparser.expression.operators.relational.EqualsTo;
 import net.sf.jsqlparser.expression.operators.relational.IsNullExpression;
 import net.sf.jsqlparser.parser.CCJSqlParserManager;
@@ -124,21 +132,25 @@ public class SQLQueryParser extends AbstractQueryParser {
 					if(psJoins != null) {
 						for(Join psJoin: psJoins){
 							//System.out.println("join INFO " + psJoin.toString());
-							EqualsTo joinExp = (EqualsTo) psJoin.getOnExpression();
-							
-							if(joinExp!=null){
-								//left part of the join
-								Expression leftExpression = joinExp.getLeftExpression();
-								Column leftJoinColumn = (Column) leftExpression;
-								//right part of the join
-								Expression rightExpression = joinExp.getRightExpression();
-								Column rightJoinColumn = (Column) rightExpression;
-								
-								// since this is a map full of Column objects, you may get duplicates being added 
-								// (if you are doing the SEMOSS outerjoin syntax, then you'll have a union
-								// of two tables with the same joins, just left join vs right join
-								// we'll filter the duplicates out later when we create tripleMappings.
-								joinColumnsMap.put(leftJoinColumn, rightJoinColumn);
+							Expression exp = psJoin.getOnExpression();
+							if(exp != null) {
+								//TODO: what if it is an AndExpression or OrExpression etc.
+								//TODO: do we need to take these into consideration???
+								if(exp instanceof EqualsTo) {
+									EqualsTo joinExp = (EqualsTo) exp;
+									//left part of the join
+									Expression leftExpression = joinExp.getLeftExpression();
+									Column leftJoinColumn = (Column) leftExpression;
+									//right part of the join
+									Expression rightExpression = joinExp.getRightExpression();
+									Column rightJoinColumn = (Column) rightExpression;
+									
+									// since this is a map full of Column objects, you may get duplicates being added 
+									// (if you are doing the SEMOSS outerjoin syntax, then you'll have a union
+									// of two tables with the same joins, just left join vs right join
+									// we'll filter the duplicates out later when we create tripleMappings.
+									joinColumnsMap.put(leftJoinColumn, rightJoinColumn);
+								}
 							}
 							//so get the table name from the join
 							FromItem psJoinTable = psJoin.getRightItem();
