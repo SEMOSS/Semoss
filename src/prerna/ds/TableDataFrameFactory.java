@@ -8,6 +8,8 @@ import java.util.LinkedHashSet;
 import java.util.Map;
 import java.util.Set;
 
+import java.util.Iterator;
+
 import prerna.algorithm.api.ITableDataFrame;
 import prerna.ds.H2.TinkerH2Frame;
 import prerna.ds.util.TinkerCastHelper;
@@ -349,4 +351,44 @@ public class TableDataFrameFactory {
 		edgeHash.put(mainCol, edges);
 		return edgeHash;
 	}
+	
+	public static TinkerH2Frame convertToH2Frame(ITableDataFrame table) {
+
+		if(table instanceof TinkerH2Frame) return (TinkerH2Frame)table;
+		
+		if(table instanceof AbstractTableDataFrame) {
+		
+			AbstractTableDataFrame atable = (AbstractTableDataFrame)table;
+			String[] headers = atable.getColumnHeaders();
+			String[] types = new String[headers.length];
+			for(int i = 0; i < headers.length; i++) {
+				String type = atable.metaData.getDataType(headers[i]);
+				if(type.equalsIgnoreCase("NUMBER")) {
+					types[i] = "DOUBLE";
+				} else if(type.equalsIgnoreCase("DATE")) {
+					types[i] = "DATE";
+				} else {
+					types[i] = "VARCHAR(800)";
+				}
+			}
+			TinkerH2Frame dataFrame = (TinkerH2Frame) createTinkerFrame(headers, "H2", types, null);
+			
+					
+			String tableName = dataFrame.getTableNameForUniqueColumn(headers[0]);
+			
+			Iterator<Object[]> iterator = atable.iterator(false);
+			while(iterator.hasNext()) {
+				Object[] row = iterator.next();
+				String[] cells = new String[row.length];
+				for(int i = 0; i < row.length; i++) {
+					cells[i] = row[i].toString();
+				}
+				dataFrame.addRow2(tableName, cells, headers, types);
+			}
+			
+			return dataFrame;
+		}
+		return null;
+	}
+	
 }
