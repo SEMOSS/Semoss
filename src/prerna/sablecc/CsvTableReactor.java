@@ -2,49 +2,40 @@ package prerna.sablecc;
 
 import java.util.Hashtable;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.Vector;
 
+import prerna.algorithm.api.ITableDataFrame;
 import prerna.ds.QueryStruct;
-import prerna.engine.api.IApi;
-import prerna.engine.impl.rdf.QueryAPI;
 
-public class ApiReactor extends AbstractReactor {
+public class CsvTableReactor extends AbstractReactor {
 
-
-	public ApiReactor()
-	{
-		String [] thisReacts = {PKQLEnum.COL_CSV, PKQLEnum.FILTER, PKQLEnum.JOINS};
+	public CsvTableReactor() {
+		String [] thisReacts = {PKQLEnum.ROW_CSV, PKQLEnum.FILTER, PKQLEnum.JOINS};
 		super.whatIReactTo = thisReacts;
-		super.whoAmI = PKQLEnum.API;
+		super.whoAmI = PKQLEnum.CSV_TABLE;
 	}
-
 
 	@Override
 	public Iterator process() {
 
 		System.out.println("Processed.. " + myStore);
-		// TODO Auto-generated method stub
-		/*
-		 * Come to you in a min
-		 * 
-		 */
-		//System.out.println("Will pull the data on this one and then make the calls to add to other things");
-
-
-		Vector <Hashtable> filtersToBeElaborated = new Vector<Hashtable>();
-		Vector <String> tinkerSelectors = new Vector<String>();
-
-		String engine = (String)myStore.get("ENGINE");
-		String insight = (String)myStore.get("INSIGHT");
-
-		// I need to instantiate the engine here
-		// for now hard coding it
-		IApi qapi = new QueryAPI();
-		qapi.set("ENGINE", engine);
-
+		
+		List<Vector<Object>> values = (List<Vector<Object>>) myStore.get(PKQLEnum.ROW_CSV);
+		if(values.size() < 2) {
+			System.out.println("error, not enough data... how do i send this up to return to FE?");
+		}
+		
 		Vector <String> selectors = new Vector<String>();
+		Vector<Object> headers = values.get(0);
+		for(Object o : headers) {
+			selectors.add(o + "");
+		}
+		
+		Vector <Hashtable> filtersToBeElaborated = new Vector<Hashtable>();
+//		Vector <String> selectors = new Vector<String>();
 		Vector <Hashtable> filters = new Vector<Hashtable>();
 		Vector <Hashtable> joins = new Vector<Hashtable>();
 
@@ -57,14 +48,19 @@ public class ApiReactor extends AbstractReactor {
 
 		QueryStruct qs = new QueryStruct();
 		processQueryStruct(qs, selectors, filters, joins);
-		qapi.set("QUERY_STRUCT", qs);
-		Iterator thisIterator = qapi.process();
-
-		Map<String, Set<String>> edgeHash = qs.getReturnConnectionsHash();
+		
+		Map<String, Set<String>> edgeHash = null;
+		if(qs.relations != null && !qs.relations.isEmpty()) {
+			edgeHash = qs.getReturnConnectionsHash();
+		} else {
+			ITableDataFrame frame = (ITableDataFrame) myStore.get("G");
+			edgeHash = frame.createPrimKeyEdgeHash(selectors.toArray(new String[]{}));
+		}
 		this.put("EDGE_HASH", edgeHash);
+		this.put("QUERY_STRUCT", qs);
 
 		String nodeStr = (String)myStore.get(whoAmI);
-		myStore.put(nodeStr, thisIterator);
+		myStore.put(nodeStr, values.iterator());
 
 		// eventually I need this iterator to set this back for this particular node
 		return null;

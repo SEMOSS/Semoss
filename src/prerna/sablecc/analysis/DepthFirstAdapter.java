@@ -1032,9 +1032,9 @@ public class DepthFirstAdapter extends AnalysisAdapter
         {
             node.getLp1().apply(this);
         }
-        if(node.getApi() != null)
+        if(node.getImport() != null)
         {
-            node.getApi().apply(this);
+            node.getImport().apply(this);
         }
         if(node.getJoins() != null)
         {
@@ -1045,6 +1045,48 @@ public class DepthFirstAdapter extends AnalysisAdapter
             node.getRp2().apply(this);
         }
         outAImportData(node);
+    }
+
+    public void inAApiImportBlock(AApiImportBlock node)
+    {
+        defaultIn(node);
+    }
+
+    public void outAApiImportBlock(AApiImportBlock node)
+    {
+        defaultOut(node);
+    }
+
+    @Override
+    public void caseAApiImportBlock(AApiImportBlock node)
+    {
+        inAApiImportBlock(node);
+        if(node.getApiBlock() != null)
+        {
+            node.getApiBlock().apply(this);
+        }
+        outAApiImportBlock(node);
+    }
+
+    public void inACsvTableImportBlock(ACsvTableImportBlock node)
+    {
+        defaultIn(node);
+    }
+
+    public void outACsvTableImportBlock(ACsvTableImportBlock node)
+    {
+        defaultOut(node);
+    }
+
+    @Override
+    public void caseACsvTableImportBlock(ACsvTableImportBlock node)
+    {
+        inACsvTableImportBlock(node);
+        if(node.getCsvTable() != null)
+        {
+            node.getCsvTable().apply(this);
+        }
+        outACsvTableImportBlock(node);
     }
 
     public void inARemoveData(ARemoveData node)
