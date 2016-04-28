@@ -37,7 +37,8 @@ public class SQLInterpreter implements IQueryInterpreter{
 
 	private SQLQueryUtil queryUtil;
 	private transient Map<String, String> primaryKeyCache = new HashMap<String, String>();
-
+	private transient Map<String, String[]> relationshipConceptPropertiesMap = new HashMap<String, String[]>();
+	
 	String selectors = "";
 	String froms = "";
 	String curWhere = "";
@@ -458,6 +459,10 @@ public class SQLInterpreter implements IQueryInterpreter{
 	}
 	
 	private String[] getRelationshipConceptProperties(String fromString, String toString){
+		if(relationshipConceptPropertiesMap.containsKey(fromString + "__" + toString)) {
+			return relationshipConceptPropertiesMap.get(fromString + "__" + toString);
+		}
+		
 		String fromTable = null;
 		String fromCol = null;
 		String toTable = null;
@@ -519,7 +524,10 @@ public class SQLInterpreter implements IQueryInterpreter{
 			toCol = predPieces[3];
 		}
 		
-		return new String[]{fromTable, fromCol, toTable, toCol};
+		String[] retArr = new String[]{fromTable, fromCol, toTable, toCol};
+		relationshipConceptPropertiesMap.put(fromString + "__" + toString, retArr);
+		
+		return retArr;
 	}
 
 }
