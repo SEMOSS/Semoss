@@ -222,7 +222,11 @@ public class SPARQLInterpreter implements IQueryInterpreter {
 						cleanedObjects.add(myobject);
 					}
 				} else {
-					property = getVarName(property, false); // right now all strings are assumed to be nodes
+					//TODO: this is null when it is a filter defined from the data and is stored as a concept
+					//TODO: need the add implicit filters based on parent/concept
+					if(property == null) {
+						property = concept;
+					}
 					// need to cast objects appropriately
 					for(Object object : objects) {
 						Object myobject = object.toString().replace("\"", "");
