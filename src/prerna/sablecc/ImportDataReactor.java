@@ -58,9 +58,13 @@ public class ImportDataReactor extends AbstractReactor {
 		Map<String, Set<String>> edgeHash = qs.getReturnConnectionsHash();
 		
 		Map[] mergedMaps = frame.mergeQSEdgeHash(edgeHash, engine, joinCols);
+		if(it.hasNext()) {
+			System.out.println("We have something to add");
+		}
+		
 		while(it.hasNext()){
 			ISelectStatement ss = (ISelectStatement) it.next();
-			System.out.println(((ISelectStatement)ss).getPropHash());
+//			System.out.println(((ISelectStatement)ss).getPropHash());
 			frame.addRelationship(ss.getPropHash(), ss.getRPropHash(), mergedMaps[0], mergedMaps[1]);
 		}
 		

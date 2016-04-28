@@ -1,7 +1,6 @@
 package prerna.rdf.query.builder;
 
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.Enumeration;
 import java.util.HashMap;
 import java.util.Hashtable;
@@ -180,23 +179,56 @@ public class SQLInterpreter implements IQueryInterpreter{
 	}
 	
 	private boolean notUsedInJoin(String tableName){
-		Collection<Hashtable<String, Vector>> options = qs.relations.values();
-		for(Hashtable<String, Vector> opt : options){
-			Collection<Vector> collection = opt.values();
-			for(Vector vec : collection){
-				for(Object obj : vec){
-					String objString = obj + "";
+		for(String key : qs.relations.keySet() ) {
+			Hashtable<String, Vector> comparatorOptions = qs.relations.get(key);
+			
+			String[] conProp = getConceptProperty(key);
+			String concept = conProp[0];
+			
+			for(String comparator : comparatorOptions.keySet()) {
+				Vector otherConceptsRelated = comparatorOptions.get(comparator);
+				for(Object otherConceptObj : otherConceptsRelated) {
+					String otherConceptStr = otherConceptObj + "";
 					
-					String[] conProp = getConceptProperty(objString);
-					String concept = conProp[0];
+					//check if actually a prop added as a concept
+					if(otherConceptStr.contains("__")) {
+						return false;
+					}
 					
-					if(concept.equals(tableName)){
+					String[] otherConProp = getConceptProperty(otherConceptStr);
+					String otherConcept = otherConProp[0];
+					
+					String[] relationships = getRelationshipConceptProperties(concept, otherConcept);
+					String toConcept = relationships[2];
+					
+					if(toConcept.equals(tableName)){
 						return false;
 					}
 				}
 			}
 		}
 		return true;
+		
+		//old logic
+//		Collection<Hashtable<String, Vector>> options = qs.relations.values();
+//		for(Hashtable<String, Vector> opt : options){
+//			Collection<Vector> collection = opt.values();
+//			for(Vector vec : collection){
+//				for(Object obj : vec){
+//					String objString = obj + "";
+//					
+//					String[] conProp = getConceptProperty(objString);
+//					String concept = conProp[0];
+//					
+////					String[] relationships = getRelationshipConceptProperties(fromCol, toCol);
+//					
+//					if(concept.equals(tableName)){
+//						return false;
+//					}
+//				}
+//			}
+//		}
+//		return true;
 	}
 	
 	public void addFilters()
@@ -346,8 +378,11 @@ public class SQLInterpreter implements IQueryInterpreter{
 		String toConcept = relConProp[2];
 		String toProperty = relConProp[3];
 		
-		String key = toConcept + toProperty + thisComparator;
-		addFrom(concept);
+//		String key = toConcept + toProperty + thisComparator;
+		String key = toConcept + thisComparator;
+		if(notUsedInJoin(concept)){
+			addFrom(concept);
+		}
 //		addFrom(toConcept);
 		if(!relationHash.containsKey(key))
 		{
