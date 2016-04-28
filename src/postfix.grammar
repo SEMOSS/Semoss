@@ -153,9 +153,11 @@ import_column = // importing data - col.import(tree | flat, [c:col1, c:col2, c:c
 
 alias_column = // sets the column aliases
 		colalias [lp1]:l_par [cols]:col_csv [where]:where_statement [rp2]:r_par;
-		
+
 import_data = // imports from api query commands and other scripts
-		dataimporttoken [lp1]:l_par [api]:api_block [joins]:relation_clause? [rp2]:r_par;
+		dataimporttoken [lp1]:l_par [import]:import_block [joins]:relation_clause? [rp2]:r_par;
+		
+import_block = {api} api_block | {csv_table} csv_table; 
 
 remove_data = // imports from api query commands and other scripts and deletes that data from the table
 		dataremovetoken l_par api_block relation_clause? r_par; 
