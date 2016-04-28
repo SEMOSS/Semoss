@@ -68,13 +68,15 @@ public class ColAddReactor extends AbstractReactor {
 			Map vMap = (Map) value;
 			for(Object mapKey : vMap.keySet())
 			{
+				it = getTinkerData(cols, frame);
+				Vector<String> cols2 = new Vector<String>();
 				it = new ExpressionIterator(it, joinCols, vMap.get(mapKey).toString());
 				for(Object key : ((Map)mapKey).keySet()){
 					((ExpressionIterator)it).setBinding(key+"", ((Map)mapKey).get(key));
-					cols.add(key+"");
+					cols2.add(key+"");
 				}
-				joinCols = convertVectorToArray(cols);
-				processIt(it, frame, joinCols, newCol);
+				String[] joinColss = convertVectorToArray(cols2);
+				processIt(it, frame, joinColss, newCol);
 			}
 		} else {
 			it = new ExpressionIterator(it, joinCols, value.toString());

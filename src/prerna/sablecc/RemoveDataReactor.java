@@ -7,6 +7,10 @@ import java.util.Map;
 import java.util.Vector;
 
 import prerna.algorithm.api.ITableDataFrame;
+import prerna.ds.DataFrameHelper;
+import prerna.ds.TableDataFrameFactory;
+import prerna.ds.TinkerFrame;
+import prerna.ds.H2.TinkerH2Frame;
 import prerna.engine.api.ISelectStatement;
 import prerna.engine.api.ISelectWrapper;
 
@@ -54,12 +58,24 @@ public class RemoveDataReactor extends AbstractReactor{
 //		
 //		Map[] mergedMaps = frame.mergeQSEdgeHash(edgeHash, engine, joinCols);
 		
-		while(it.hasNext()){
-			ISelectStatement ss = (ISelectStatement) it.next();
-			System.out.println(((ISelectStatement)ss).getPropHash());
-			frame.removeRelationship(ss.getPropHash(), ss.getRPropHash());
-		}
+//		if(frame instanceof TinkerH2Frame) {
+//			while(it.hasNext()){
+//				ISelectStatement ss = (ISelectStatement) it.next();
+//				System.out.println(((ISelectStatement)ss).getPropHash());
+//				frame.removeRelationship(ss.getPropHash(), ss.getRPropHash());
+//			}
+//		} else if(frame instanceof TinkerFrame) {
+//			IMetaData metaData = ((TinkerFrame)frame)
+//			TinkerH2Frame tempFrame = TableDataFrameFactory.convertToH2Frame(frame);
+//			while(it.hasNext()){
+//				ISelectStatement ss = (ISelectStatement) it.next();
+//				System.out.println(((ISelectStatement)ss).getPropHash());
+//				tempFrame.removeRelationship(ss.getPropHash(), ss.getRPropHash());
+//			}
+//			
+//		}
 		
+		DataFrameHelper.removeData(frame, it);
 		myStore.put("STATUS", "SUCCESS");
 		
 		myStore.put(nodeStr, createResponseString(it));
