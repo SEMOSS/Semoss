@@ -195,7 +195,7 @@ public class Translation2 extends DepthFirstAdapter {
 			initReactor(PKQLEnum.API);
 			String nodeStr = node.toString().trim();
 			curReactor.put(PKQLEnum.API, nodeStr);
-			curReactor.put("ENGINE", node.getEngineName().toString());
+			curReactor.put("ENGINE", node.getEngineName().toString().trim());
 			curReactor.put("INSIGHT", node.getInsight().toString());
 		}		
 	}
