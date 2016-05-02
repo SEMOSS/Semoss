@@ -1,8 +1,5 @@
 package prerna.engine.api;
 
-import java.util.Enumeration;
-import java.util.Iterator;
-
 public interface IScriptReactor extends IApi {
 	
 

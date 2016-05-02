@@ -29,7 +29,7 @@ package prerna.engine.api;
 
 import java.util.Hashtable;
 
-public interface ISelectStatement {
+public interface ISelectStatement extends IHeadersDataRow{
 
 	public Object getVar(Object var);
 
