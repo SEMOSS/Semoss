@@ -51,8 +51,9 @@ public class PKQLTransformation extends AbstractTransformation {
 	public void runMethod() {
 		PKQLRunner runner = new PKQLRunner();
 
-		String expression = props.get(EXPRESSION) + "";
+		String expression = props.get(EXPRESSION) + "";		
 		this.resultHash.putAll(runner.runPKQL(expression, (ITableDataFrame) this.dm));
+		this.dm = runner.getDataFrame();
 		this.feData.putAll(runner.getFeData());
 	}
 

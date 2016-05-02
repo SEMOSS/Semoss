@@ -25,7 +25,8 @@ public class PKQLRunner {
 	private String currentStatus = "success";
 	private Object response = "PKQL processing complete";
 	private Map<String, Object> feData = new HashMap<String, Object>();
-
+	private Translation2 translation;
+	
 	public HashMap<String, Object> runPKQL(String expression, ITableDataFrame f) {
 		
 		Parser p = new Parser(new Lexer(new PushbackReader(new InputStreamReader(new StringBufferInputStream(expression)), 1024)));
@@ -34,7 +35,8 @@ public class PKQLRunner {
 		try {
 			tree = p.parse();
 			// Apply the translation.
-			tree.apply(new Translation2(f, this));
+			translation = new Translation2(f, this);
+			tree.apply(translation);
 
 		} catch (ParserException | LexerException | IOException e) {
 			e.printStackTrace();
@@ -126,5 +128,9 @@ public class PKQLRunner {
 	
 	public Map<String, Object> getFeData(){
 		return this.feData;
+	}
+	
+	public ITableDataFrame getDataFrame() {
+		return translation.getDataFrame();
 	}
 }
