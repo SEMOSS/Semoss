@@ -5,13 +5,10 @@ import java.util.Hashtable;
 import java.util.LinkedList;
 import java.util.Vector;
 
-import prerna.algorithm.api.IAction;
 import prerna.algorithm.api.ITableDataFrame;
-import prerna.algorithm.impl.ImportAction;
 import prerna.ds.TinkerFrame;
 import prerna.engine.api.IScriptReactor;
 import prerna.sablecc.PKQLEnum.PKQLReactor;
-import prerna.sablecc.PKQLEnum.PKQLToken;
 import prerna.sablecc.analysis.DepthFirstAdapter;
 import prerna.sablecc.node.AAddColumn;
 import prerna.sablecc.node.AApiBlock;
@@ -30,7 +27,6 @@ import prerna.sablecc.node.AExprRow;
 import prerna.sablecc.node.AExprScript;
 import prerna.sablecc.node.AFilterColumn;
 import prerna.sablecc.node.AHelpScript;
-import prerna.sablecc.node.AImportColumn;
 import prerna.sablecc.node.AImportData;
 import prerna.sablecc.node.AMathFun;
 import prerna.sablecc.node.AMathFunTerm;
@@ -40,7 +36,7 @@ import prerna.sablecc.node.AMultExpr;
 import prerna.sablecc.node.ANumWordOrNum;
 import prerna.sablecc.node.ANumberTerm;
 import prerna.sablecc.node.APlusExpr;
-import prerna.sablecc.node.AROp;
+import prerna.sablecc.node.ARQuery;
 import prerna.sablecc.node.ARelationDef;
 import prerna.sablecc.node.ARemoveData;
 import prerna.sablecc.node.ASetColumn;
@@ -102,7 +98,7 @@ public class Translation2 extends DepthFirstAdapter {
 	private void fillReactors() { // TODO: use PKQLReactor enum
 		reactorNames.put(PKQLEnum.EXPR_TERM, "prerna.sablecc.ExprReactor");
 		reactorNames.put(PKQLEnum.EXPR_SCRIPT, "prerna.sablecc.ExprReactor");
-		reactorNames.put(PKQLEnum.MATH_FUN, "prerna.sablecc.MathReactor");
+		reactorNames.put(PKQLReactor.MATH_FUN.toString(), "prerna.sablecc.MathReactor");
 		reactorNames.put(PKQLEnum.CSV_TABLE, "prerna.sablecc.CsvTableReactor");
 		reactorNames.put(PKQLEnum.COL_CSV, "prerna.sablecc.ColCsvReactor"); // it almost feels like I need a way to tell when to do this and when not but let me see
 		reactorNames.put(PKQLEnum.ROW_CSV, "prerna.sablecc.RowCsvReactor");
@@ -151,8 +147,8 @@ public class Translation2 extends DepthFirstAdapter {
 		IScriptReactor thisReactor = (IScriptReactor)thisReactorHash.get(myName);
 		// this is still one level up
 		thisReactor.process();
-		Object value = 	thisReactor.getValue(input);		
-		System.out.println("Value is .. " + value);		
+		Object value = 	thisReactor.getValue(input);
+		System.out.println("Value is .. " + value);
 
 		if(reactorStack.size() > 0) {
 			reactorHash = reactorStack.lastElement();
@@ -161,7 +157,6 @@ public class Translation2 extends DepthFirstAdapter {
 			
 			// if the parent is not null
 			if(parent != null && reactorHash.containsKey(parent)) {
-				// I need to make some decisions here
 				curReactor = (IScriptReactor)reactorHash.get(parent);
 				if(put)
 					curReactor.put(output, value);
@@ -186,8 +181,7 @@ public class Translation2 extends DepthFirstAdapter {
 	}
 	
 	private String getCol(String colName) {
-		colName = colName.substring(colName.indexOf(":") + 1);
-		colName = colName.trim();
+		colName = colName.substring(colName.indexOf(":") + 1).trim();
 
 		return colName;
 	}
@@ -196,24 +190,19 @@ public class Translation2 extends DepthFirstAdapter {
 	public void inAApiBlock(AApiBlock node) {
 		if(reactorNames.containsKey(PKQLEnum.API)) {
 			initReactor(PKQLEnum.API);
-			String nodeStr = node + "";
-			curReactor.put(PKQLEnum.API, nodeStr.trim());
-			curReactor.put("ENGINE", node.getEngineName() + "");
-			curReactor.put("INSIGHT", node.getInsight() + "");
+			String nodeStr = node.toString().trim();
+			curReactor.put(PKQLEnum.API, nodeStr);
+			curReactor.put("ENGINE", node.getEngineName().toString());
+			curReactor.put("INSIGHT", node.getInsight().toString());
 		}		
 	}
 	
 	@Override
 	public void outAApiBlock(AApiBlock node) {
-		String nodeStr = node + "";
-		nodeStr = nodeStr.trim();
+		String nodeStr = node.toString().trim();
 		IScriptReactor thisReactor = curReactor;
 		
 		Hashtable <String, Object> thisReactorHash = deinitReactor(PKQLEnum.API, nodeStr, PKQLEnum.API); // I need to make this into a string
-		// I also need the various columns to join
-		// infact I need a way to say what to pass
-		// this should sit on the parent and not the child
-		// the curReactor is the API
 		if(curReactor != null && node.parent() != null && node.parent() instanceof AApiImportBlock) {
 			String [] values2Sync = curReactor.getValues2Sync(PKQLEnum.API);
 			synchronizeValues(PKQLEnum.API, values2Sync, thisReactor);
@@ -222,20 +211,18 @@ public class Translation2 extends DepthFirstAdapter {
 
 	@Override
 	public void inAExprScript(AExprScript node) {
-		// everytime I need to open it
 		if(reactorNames.containsKey(PKQLEnum.EXPR_SCRIPT)) {
-			// simplify baby simplify baby simplify
 			initReactor(PKQLEnum.EXPR_SCRIPT);
-			String nodeStr = node.getExpr() + "";
-			curReactor.put(PKQLEnum.EXPR_TERM, nodeStr.trim());
+			String nodeExpr = node.getExpr().toString().trim();
+			curReactor.put(PKQLEnum.EXPR_TERM, nodeExpr);
 		}		
 	}
 
 	@Override
 	public void outAExprScript(AExprScript node) {
-		String nodeStr = node.getExpr() + "";
-		nodeStr = nodeStr.trim();
-		Hashtable <String, Object> thisReactorHash = deinitReactor(PKQLEnum.EXPR_SCRIPT, nodeStr, (node + "").trim());
+		String nodeExpr = node.getExpr().toString().trim();
+		String nodeStr = node.toString().trim();
+		Hashtable <String, Object> thisReactorHash = deinitReactor(PKQLEnum.EXPR_SCRIPT, nodeExpr, nodeStr);
 	}
 
 	@Override
@@ -283,29 +270,17 @@ public class Translation2 extends DepthFirstAdapter {
 	@Override
 	public void inATermExpr(ATermExpr node) {
 		if(reactorNames.containsKey(PKQLEnum.EXPR_TERM)) {
-				// get the appropriate reactor
-				initReactor(PKQLEnum.EXPR_TERM);
-				// get the name of reactor
-				String nodeStr = node.getTerm() + "";
-				curReactor.put("G", frame);
-				curReactor.put(PKQLEnum.EXPR_TERM, nodeStr.trim());
+			// get the appropriate reactor
+			initReactor(PKQLEnum.EXPR_TERM);
+			// get the name of reactor
+			String nodeTerm = node.getTerm().toString().trim();
+			curReactor.put("G", frame);
+			curReactor.put(PKQLEnum.EXPR_TERM, nodeTerm);
 		}	
-		// I need to find if there is a parent to this
-		// which is also an expr term
-		// I need some way to see if the parent is the same
-		// then I should just assimilate
-		// instead of trying to redo it
-		// I need some way to figure out
-		// && whatICallThisInMyWorld.containsKey("PARENT") && whatICallThisInMyWorld.get("PARENT").equalsIgnoreCase("EXPR_TERM")					
-		// this is the one that has paranthesis
 	}
 
 	@Override
 	public void outATermExpr(ATermExpr node) {
-		//System.out.println("Successful in retrieving the data for expr term ?+ node.getExpr() + 	+ dataKeeper.containsKey((node.getExpr() + "").trim()));
-		// get the value of it
-		// I am not goiong to do anything here
-		System.out.println("Printing expression.. " + node.getTerm());
 		Hashtable <String, Object> thisReactorHash = deinitReactor(PKQLEnum.EXPR_TERM, node.getTerm().toString().trim(),  node.toString().trim());
 
 		if (thisReactorHash.get(PKQLEnum.EXPR_TERM) instanceof ExprReactor) {
@@ -334,18 +309,16 @@ public class Translation2 extends DepthFirstAdapter {
 	
 	@Override
 	public void outAPlusExpr(APlusExpr node) {
-		String leftKeyName = node.getLeft() + "";
-		String rightKeyName = node.getRight() + "";
+		String leftKeyName = node.getLeft().toString().trim();
+		String rightKeyName = node.getRight().toString().trim();
 
-		Object leftObj = curReactor.getValue(leftKeyName.trim());
-		Object rightObj = curReactor.getValue(rightKeyName.trim());
-		//System.out.println(node.getLeft() + " [][] " + node.getRight());
+		Object leftObj = curReactor.getValue(leftKeyName);
+		Object rightObj = curReactor.getValue(rightKeyName);
 		Object result = null;
 		if (rightObj instanceof Double && leftObj instanceof Double) {
-			result = (Double)(leftObj)
-					+ (Double)(rightObj);
+			result = (Double)(leftObj) + (Double)(rightObj);
 			// remove the left and right key
-			curReactor.addReplacer((node + "").trim(), result);
+			curReactor.addReplacer(node.toString().trim(), result);
 			curReactor.removeReplacer(leftKeyName.trim());
 			curReactor.removeReplacer(rightKeyName.trim());
 		}
@@ -353,23 +326,20 @@ public class Translation2 extends DepthFirstAdapter {
 
 	@Override
 	public void inAMinusExpr(AMinusExpr node) {
-		//System.out.println("MINUS... " + node);
 	}
 
 	@Override
 	public void outAMinusExpr(AMinusExpr node) {
-		String leftKeyName = node.getLeft() + "";
-		String rightKeyName = node.getRight() + "";
+		String leftKeyName = node.getLeft().toString().trim();
+		String rightKeyName = node.getRight().toString().trim();
 
-		Object leftObj = curReactor.getValue(leftKeyName.trim());
-		Object rightObj = curReactor.getValue(rightKeyName.trim());
-		//System.out.println(node.getLeft() + " [][] " + node.getRight());
+		Object leftObj = curReactor.getValue(leftKeyName);
+		Object rightObj = curReactor.getValue(rightKeyName);
 		Object result = null;
 		if (rightObj instanceof Double && leftObj instanceof Double) {
-			result = (Double)(leftObj)
-					- (Double)(rightObj);
+			result = (Double)(leftObj) - (Double)(rightObj);
 			// remove the left and right key
-			curReactor.addReplacer((node + "").trim(), result);
+			curReactor.addReplacer(node.toString().trim(), result);
 			curReactor.removeReplacer(leftKeyName);
 			curReactor.removeReplacer(rightKeyName);
 		}
@@ -377,18 +347,16 @@ public class Translation2 extends DepthFirstAdapter {
 	
 	@Override
 	public void outAMultExpr(AMultExpr node) {
-		String leftKeyName = node.getLeft() + "";
-		String rightKeyName = node.getRight() + "";
+		String leftKeyName = node.getLeft().toString().trim();
+		String rightKeyName = node.getRight().toString().trim();
 
-		Object leftObj = curReactor.getValue(leftKeyName.trim());
-		Object rightObj = curReactor.getValue(rightKeyName.trim());
-		//System.out.println(node.getLeft() + " [][] " + node.getRight());
+		Object leftObj = curReactor.getValue(leftKeyName);
+		Object rightObj = curReactor.getValue(rightKeyName);
 		Object result = null;
 		if (rightObj instanceof Double && leftObj instanceof Double) {
-			result = (Double)(leftObj)
-					* (Double)(rightObj);
+			result = (Double)(leftObj) * (Double)(rightObj);
 			// remove the left and right key
-			curReactor.addReplacer((node + "").trim(), result);
+			curReactor.addReplacer(node.toString().trim(), result);
 			curReactor.removeReplacer(leftKeyName);
 			curReactor.removeReplacer(rightKeyName);
 		}
@@ -396,18 +364,16 @@ public class Translation2 extends DepthFirstAdapter {
 
 	@Override
 	public void outADivExpr(ADivExpr node) {
-		String leftKeyName = node.getLeft() + "";
-		String rightKeyName = node.getRight() + "";
+		String leftKeyName = node.getLeft().toString().trim();
+		String rightKeyName = node.getRight().toString().trim();
 
-		Object leftObj = curReactor.getValue(leftKeyName.trim());
-		Object rightObj = curReactor.getValue(rightKeyName.trim());
-		//System.out.println(node.getLeft() + " [][] " + node.getRight());
+		Object leftObj = curReactor.getValue(leftKeyName);
+		Object rightObj = curReactor.getValue(rightKeyName);
 		Object result = null;
 		if (rightObj instanceof Double && leftObj instanceof Double) {
-			result = (Double)(leftObj)
-					/ (Double)(rightObj);
+			result = (Double)(leftObj) / (Double)(rightObj);
 			// remove the left and right key
-			curReactor.addReplacer((node + "").trim(), result);
+			curReactor.addReplacer(node.toString().trim(), result);
 			curReactor.removeReplacer(leftKeyName);
 			curReactor.removeReplacer(rightKeyName);
 		}
@@ -430,8 +396,8 @@ public class Translation2 extends DepthFirstAdapter {
 	public void inAAddColumn(AAddColumn node) {
 		if(reactorNames.containsKey(PKQLEnum.COL_ADD)) {
 			initReactor(PKQLEnum.COL_ADD);
-			String nodeStr = node + "";
-			curReactor.put(PKQLEnum.COL_ADD, nodeStr.trim());
+			String nodeStr = node.toString().trim();
+			curReactor.put(PKQLEnum.COL_ADD, nodeStr);
 		}		
 	}
 	
@@ -441,7 +407,7 @@ public class Translation2 extends DepthFirstAdapter {
 		curReactor.put(PKQLEnum.EXPR_TERM, nodeExpr);
 		Hashtable <String, Object> thisReactorHash = deinitReactor(PKQLEnum.COL_ADD, nodeExpr, node.toString().trim());
 	}
-	
+
 	@Override
 	public void inAFilterColumn(AFilterColumn node) {
 		if(reactorNames.containsKey(PKQLEnum.FILTER_DATA)) {
@@ -488,21 +454,20 @@ public class Translation2 extends DepthFirstAdapter {
 	@Override
     public void inAImportData(AImportData node){
 		if(reactorNames.containsKey(PKQLEnum.IMPORT_DATA)) {
-			// simplify baby simplify baby simplify
 			initReactor(PKQLEnum.IMPORT_DATA);
-			String nodeStr = node + "";
-			curReactor.put(PKQLEnum.IMPORT_DATA, nodeStr.trim());
+			String nodeStr = node.toString().trim();
+			curReactor.put(PKQLEnum.IMPORT_DATA, nodeStr);
 		}		
     }
     
     @Override
     public void outAImportData(AImportData node){
-		String nodeStr = node.getImport()+ "";
-		nodeStr = nodeStr.trim();
-		curReactor.put(PKQLEnum.EXPR_TERM, nodeStr);
-		Hashtable <String, Object> thisReactorHash = deinitReactor(PKQLEnum.IMPORT_DATA, nodeStr, (node + "").trim());
+		String nodeImport = node.getImport().toString().trim();
+		String nodeStr = node.toString().trim();
+		curReactor.put(PKQLEnum.EXPR_TERM, nodeImport);
+		Hashtable <String, Object> thisReactorHash = deinitReactor(PKQLEnum.IMPORT_DATA, nodeImport, nodeStr);
     	IScriptReactor previousReactor = (IScriptReactor)thisReactorHash.get(PKQLReactor.IMPORT_DATA.toString());
-		runner.setResponse(previousReactor.getValue(node.toString().trim()));//
+		runner.setResponse(previousReactor.getValue(nodeStr));
 		runner.setStatus((String)previousReactor.getValue("STATUS"));
     }
     
@@ -527,32 +492,26 @@ public class Translation2 extends DepthFirstAdapter {
 
     @Override
 	public void outASetColumn(ASetColumn node) {
-		//System.out.println("Set.. [" + (node.getExpr() + "").trim() + "]");
 	}
 
 	@Override
 	public void outAVarop(AVarop node) {
 		String varName = getCol(node.getName() + "");
 		String expr = getCol(node.getExpr() + "");
-		//System.out.println("Variable declaration " + varName + " =  " + expr);
 	}
 
 	@Override
 	public void inANumberTerm(ANumberTerm node) {
-		//System.out.println("Number term.. >>> " + node.getDecimal());
-		String number = node.getDecimal() + "";
+		String number = node.getDecimal().toString().trim();
 	}
 	
 	@Override
     public void inADecimal(ADecimal node) {
-		//System.out.println("DECIMAL VALUE.. >>> " + node);
-		String fraction = node.getFraction() +"";
-		String number = (node.getWhole() + "").trim();
+		String fraction = node.getFraction() + "";
+		String number = node.getWhole().toString().trim();
 		if(node.getFraction() != null)
-			number = number + "." + (node.getFraction() + "").trim();
+			number = number + "." + fraction;
 		
-    	// I also need to add this into mystore - need a cleaner way to do this
-    	//curReactor.set( node.toString().trim(), Double.parseDouble(number));
     	curReactor.addReplacer(node.toString().trim(), Double.parseDouble(number));
 	}
     
@@ -585,7 +544,7 @@ public class Translation2 extends DepthFirstAdapter {
     @Override
     public void outAExprRow(AExprRow node) {
     }
-    
+
     @Override
 	public void inAMathFunTerm(AMathFunTerm node) {
 	}
@@ -593,53 +552,30 @@ public class Translation2 extends DepthFirstAdapter {
 	@Override
 	public void inAMathFun(AMathFun node) {
 		if(reactorNames.containsKey(PKQLEnum.MATH_FUN)) {
-			// get the appropriate reactor
 			String procedureName = node.getId().toString().trim();
 			String nodeStr = node.getExpr().toString().trim();
+			String procedureAlgo = "prerna.algorithm.impl." + procedureName + "Reactor";
+			
+			reactorNames.put(PKQLReactor.MATH_FUN.toString(), procedureAlgo);
 			
 			initReactor(PKQLReactor.MATH_FUN.toString());
-			// get the name of reactor
 			curReactor.put(PKQLEnum.G, frame);
 			curReactor.put(PKQLEnum.MATH_FUN, nodeStr.trim());
-			curReactor.put(PKQLEnum.PROC_NAME, procedureName);
+			curReactor.put(PKQLEnum.PROC_NAME, procedureName); // don't need once all algorithms have been refactored into Reactors
 		}	
 	}
 
 	@Override
 	public void outAMathFun(AMathFun node) {
-		// function would usually get
-		/*
-		 * a. Expression - what to compute b. List of columns to pull c.
-		 * Iterator which has all of these different columns pulled d.
-		 * getValue() method which will actually return an object e.
-		 */
-		// need to accomodate for the array that is there
-		// I need to do something to find if I am at the right level
-		// how no Shit works
-		// I need to set some stuff
-		// like the tinker frame etc.. 
 		String nodeStr = node.toString().trim();
 		String expr = node.getExpr().toString().trim();
 		Hashtable <String, Object> thisReactorHash = deinitReactor(PKQLReactor.MATH_FUN.toString(), expr, nodeStr);
 		IScriptReactor previousReactor = (IScriptReactor)thisReactorHash.get(PKQLReactor.MATH_FUN.toString());
-//		if (thisReactorHash.get(PKQLReactor.MATH_FUN.toString()) instanceof MathReactor) {
-//			MathReactor thisReactor = (MathReactor)thisReactorHash.get(PKQLReactor.MATH_FUN.toString());
-			curReactor.put("COL_DEF", previousReactor.getValue(PKQLEnum.COL_DEF)); //TODO: use syncronize instead
-			curReactor.addReplacer(nodeStr, previousReactor.getValue(expr));
-			runner.setResponse(previousReactor.getValue(expr));
-			runner.setStatus((String)previousReactor.getValue("STATUS"));
-//		}
+		curReactor.put("COL_DEF", previousReactor.getValue(PKQLEnum.COL_DEF)); //TODO: use syncronize instead
+		curReactor.addReplacer(nodeStr, previousReactor.getValue(expr));
+		runner.setResponse(previousReactor.getValue(expr));
+		runner.setStatus((String)previousReactor.getValue("STATUS"));
 	}
-	
-	
-    public void inAImportColumn(AImportColumn node) {
-        //System.out.println("In the import col operation");
-        //System.out.println("DATA ..... " + node.getData());
-        //System.out.println("DATA ..... " + node.getCols());
-        
-        IAction thisAction = new ImportAction();
-        thisAction.set("TF", frame); // will need to change to constants afterwards
-    }
 	
     @Override
     public void inAColWhere(AColWhere node) {
@@ -654,8 +590,7 @@ public class Translation2 extends DepthFirstAdapter {
     @Override
     public void outAColWhere(AColWhere node) {
         // I need to do some kind of action and pop out the last one on everything
-		String nodeStr = node + "";
-		nodeStr = nodeStr.trim();
+		String nodeStr = node.toString().trim();
 		Hashtable <String, Object> thisReactorHash = deinitReactor(PKQLEnum.WHERE, nodeStr, PKQLEnum.FILTER, false);
     }
 
@@ -671,19 +606,17 @@ public class Translation2 extends DepthFirstAdapter {
 
     @Override
     public void outARelationDef(ARelationDef node) {
-		String nodeStr = node + "";
-		nodeStr = nodeStr.trim();
+		String nodeStr = node.toString().trim();
 		Hashtable <String, Object> thisReactorHash = deinitReactor(PKQLEnum.REL_DEF, nodeStr, PKQLEnum.JOINS, false);
     }
     
     @Override
     public void inAColCsv(AColCsv node) {
     	System.out.println("Directly lands into col csv " + node);
-		if(reactorNames.containsKey(PKQLEnum.COL_CSV))
-		{
+		if(reactorNames.containsKey(PKQLEnum.COL_CSV)) {
 			initReactor(PKQLEnum.COL_CSV);
-			String nodeStr = node + "";
-			curReactor.put(PKQLEnum.COL_CSV, nodeStr.trim());
+			String nodeStr = node.toString().trim();
+			curReactor.put(PKQLEnum.COL_CSV, nodeStr);
 		}
     }
 
@@ -699,8 +632,8 @@ public class Translation2 extends DepthFirstAdapter {
     	System.out.println("Directly lands into col csv " + node);
 		if(reactorNames.containsKey(PKQLEnum.ROW_CSV)) {
 			initReactor(PKQLEnum.ROW_CSV);
-			String nodeStr = node + "";
-			curReactor.put(PKQLEnum.ROW_CSV, nodeStr.trim());
+			String nodeStr = node.toString().trim();
+			curReactor.put(PKQLEnum.ROW_CSV, nodeStr);
 		}
     }
     
@@ -714,8 +647,8 @@ public class Translation2 extends DepthFirstAdapter {
     	if(node.parent() != null && node.parent() instanceof ACsvTable) {
         	deinitReactor(PKQLEnum.ROW_CSV, thisNode, PKQLEnum.ROW_CSV, false);
     	} else {
-        	deinitReactor(PKQLEnum.ROW_CSV, thisNode, PKQLEnum.ROW_CSV);
-    	}
+		deinitReactor(PKQLEnum.ROW_CSV, thisNode, PKQLEnum.ROW_CSV);
+    }
     }
     
     @Override
@@ -741,24 +674,29 @@ public class Translation2 extends DepthFirstAdapter {
     }
     
     @Override
-    public void inAROp(AROp node) {
-    	String script = node.getCodeblock().toString().trim();
-    	script = script.substring(1, script.length()-1); // have to exclude curly braces
-    	String nodeStr = node.toString().trim();
-    	initReactor(PKQLReactor.R_OP.toString());
-    	curReactor.put(PKQLEnum.G, frame);
-    	curReactor.put(PKQLReactor.R_OP.toString(), nodeStr);
-    	curReactor.put(PKQLToken.CODE.toString(), script);
+    public void inARQuery(ARQuery node) {
+    	
     }
     
-    @Override
-    public void outAROp(AROp node) {
-    	String nodeStr = node.toString().trim();
-    	Hashtable <String, Object> thisReactorHash = deinitReactor(PKQLReactor.R_OP.toString(), nodeStr, nodeStr); // Should 2nd argument be codeblock?
-    	IScriptReactor previousReactor = (IScriptReactor)thisReactorHash.get(PKQLReactor.R_OP.toString());
-		runner.setResponse(previousReactor.getValue(nodeStr));
-		runner.setStatus((String)previousReactor.getValue("STATUS"));
-    }
+//    @Override
+//    public void inAROp(AROp node) {
+//    	String script = node.getCodeblock().toString().trim();
+//    	script = script.substring(1, script.length()-1); // have to exclude curly braces
+//    	String nodeStr = node.toString().trim();
+//    	initReactor(PKQLReactor.R_OP.toString());
+//    	curReactor.put(PKQLEnum.G, frame);
+//    	curReactor.put(PKQLReactor.R_OP.toString(), nodeStr);
+//    	curReactor.put(PKQLToken.CODE.toString(), script);
+//    }
+//    
+//    @Override
+//    public void outAROp(AROp node) {
+//    	String nodeStr = node.toString().trim();
+//    	Hashtable <String, Object> thisReactorHash = deinitReactor(PKQLReactor.R_OP.toString(), nodeStr, nodeStr); // Should 2nd argument be codeblock?
+//    	IScriptReactor previousReactor = (IScriptReactor)thisReactorHash.get(PKQLReactor.R_OP.toString());
+//		runner.setResponse(previousReactor.getValue(nodeStr));
+//		runner.setStatus((String)previousReactor.getValue("STATUS"));
+//    }
     
     @Override
     public void inAHelpScript(AHelpScript node) {

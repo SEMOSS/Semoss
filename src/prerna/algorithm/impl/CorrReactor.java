@@ -1,6 +1,5 @@
 package prerna.algorithm.impl;
 
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Vector;
@@ -10,12 +9,7 @@ import org.apache.tinkerpop.gremlin.structure.Vertex;
 
 import prerna.util.Constants;
 
-public class CorrAlgorithm extends BaseReducer {
-
-	@Override
-	public void set(Iterator inputIterator, String[] ids, String script) {
-		super.set(inputIterator, ids, script, null);
-	}
+public class CorrReactor extends BaseReducerReactor {
 
 	@Override
 	public Object reduce() {
@@ -47,14 +41,4 @@ public class CorrAlgorithm extends BaseReducer {
 		return correlationArray;
 	}
 	
-	@Override
-	public void setData(Iterator inputIterator, String[] ids, String script) {
-		super.set(inputIterator, ids, script, null);
-	}
-
-	@Override
-	public Object execute() {
-		return reduce();
-	}
-
 }
