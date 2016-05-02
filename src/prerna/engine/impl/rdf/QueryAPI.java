@@ -6,8 +6,10 @@ import java.io.IOException;
 import java.util.Hashtable;
 import java.util.Iterator;
 import java.util.Properties;
+import java.util.Vector;
 
 import prerna.ds.QueryStruct;
+import prerna.ds.util.FileIterator;
 import prerna.engine.api.IApi;
 import prerna.engine.api.IEngine;
 import prerna.engine.api.ISelectWrapper;
@@ -23,7 +25,6 @@ public class QueryAPI implements IApi {
 	
 	@Override
 	public void set(String key, Object value) {
-		// TODO Auto-generated method stub
 		values.put(key, value);
 	}
 
@@ -31,39 +32,46 @@ public class QueryAPI implements IApi {
 	public Iterator process() {
 		// get basic data
 		QueryStruct qs = (QueryStruct) values.get(params[0]); 
-		
+		loadEngine4Test();
 		IEngine engine = (IEngine) DIHelper.getInstance().getLocalProp((values.get(params[1]) + "").trim()); 
-		if(engine == null){
-			loadEngine4Test();
-			engine = (IEngine) DIHelper.getInstance().getLocalProp((values.get(params[1]) + "").trim()); 
+		if(engine != null){
+//			loadEngine4Test();
+//			engine = (IEngine) DIHelper.getInstance().getLocalProp((values.get(params[1]) + "").trim());
+//			if(engine != null) {
+			qs.print();
+			IQueryInterpreter interp = engine.getQueryInterpreter();
+			interp.setQueryStruct(qs);
+			String query = interp.composeQuery();
+			
+			// play
+			ISelectWrapper wrapper = WrapperManager.getInstance().getSWrapper(engine, query);
+			
+			// give back
+			return wrapper;
+			
+		} 
+		else {
+			Hashtable<String, Vector<String>> selectorSet = qs.getSelectors();
+			String fileName = "C:\\Users\\rluthar\\Documents\\"+values.get(params[1])+".csv";
+			return new FileIterator(fileName, qs, null);
 		}
 		
-		qs.print();
-		IQueryInterpreter interp = engine.getQueryInterpreter();
-		interp.setQueryStruct(qs);
-		String query = interp.composeQuery();
-		
-		// play
-		ISelectWrapper wrapper = WrapperManager.getInstance().getSWrapper(engine, query);
-		
-		// give back
-		return wrapper;
 		//return null;
 	}
 	
 	private void loadEngine4Test(){
-		File f = new File("C:\\Users\\bisutton\\workspace\\SEMOSSDev\\RDF_Map.prop");
+		File f = new File("C:\\workspace\\Semoss_Dev\\RDF_Map.prop");
 		if(f.exists() && !f.isDirectory()) { 
-			DIHelper.getInstance().loadCoreProp("C:\\Users\\bisutton\\workspace\\SEMOSSDev\\RDF_Map.prop");
+			DIHelper.getInstance().loadCoreProp("C:\\workspace\\Semoss_Dev\\RDF_Map.prop");
 			FileInputStream fileIn = null;
 			try{
 				Properties prop = new Properties();
-				String fileName = "C:\\Users\\bisutton\\workspace\\SEMOSSDev\\db\\UpdatedRDBMSMovies.smss";
+				String fileName = "C:\\workspace\\Semoss_Dev\\db\\MovieDatabase.smss";
 				fileIn = new FileInputStream(fileName);
 				prop.load(fileIn);
 				System.err.println("Loading DB " + fileName);
 				Utility.loadEngine(fileName, prop);
-				fileName = "C:\\Users\\bisutton\\workspace\\SEMOSSDev\\db\\Movie_DB.smss";
+				fileName = "C:\\workspace\\Semoss_Dev\\db\\MovieDatabase.smss";
 				fileIn = new FileInputStream(fileName);
 				prop.load(fileIn);
 				System.err.println("Loading DB " + fileName);
@@ -83,7 +91,6 @@ public class QueryAPI implements IApi {
 
 	@Override
 	public String[] getParams() {
-		// TODO Auto-generated method stub
 		return params;
 	}
 }
