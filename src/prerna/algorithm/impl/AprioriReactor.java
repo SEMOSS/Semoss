@@ -3,7 +3,6 @@ package prerna.algorithm.impl;
 
 import java.util.ArrayList;
 import java.util.Hashtable;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
@@ -11,18 +10,13 @@ import prerna.algorithm.learning.weka.WekaAprioriAlgorithm;
 import prerna.algorithm.learning.weka.WekaUtilityMethods;
 import weka.core.Instances;
 
-public class AprioriAlgorithm extends BaseReducer{
+public class AprioriReactor extends BaseReducerReactor{
 
 	private int numRules = 10; // number of rules to output
 	private double confPer = 0.1; // min confidence lvl (percentage)
 	private double minSupport = 0.1; // min number of rows required for rule (percentage of total rows of data)
 	private double maxSupport = 1.0; // max number of rows required for rule (percentage of total rows of data)	
 	
-	@Override
-	public void set(Iterator inputIterator, String[] ids, String script) {
-		super.set(inputIterator, ids, script, null);
-	}
-
 	@Override
 	public Object reduce() {
 		Instances instances = WekaUtilityMethods.createInstancesWithNumericBinsFromIterator(inputIterator, ids);
@@ -49,17 +43,6 @@ public class AprioriAlgorithm extends BaseReducer{
 		}
 	}
 
-	@Override
-	public void setData(Iterator inputIterator, String[] ids, String script) {
-		super.set(inputIterator, ids, script, null);
-	}
-
-	@Override
-	public Object execute() {
-		return reduce();
-	}
-	
-	
 	public void setNumRules(int numRules) {
 		this.numRules = numRules;
 	}

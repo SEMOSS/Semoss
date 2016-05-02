@@ -2,17 +2,8 @@ package prerna.algorithm.impl;
 
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.Iterator;
 
-public class MedianAlgorithm extends BaseReducer {
-
-	public void set(Iterator inputIterator, String[] ids, String script) {
-		super.set(inputIterator, ids,script, null);
-	}
-
-	public void set(Iterator inputIterator, String[] ids, String script, String prop) {
-		super.set(inputIterator, ids,script, prop);
-	}
+public class MedianReactor extends BaseReducerReactor {
 
 	@Override
 	public Object reduce() {
@@ -40,13 +31,4 @@ public class MedianAlgorithm extends BaseReducer {
 		return output;
 	}
 	
-	@Override
-	public void setData(Iterator inputIterator, String[] ids, String script) {
-		super.set(inputIterator, ids, script, null);
-	}
-
-	@Override
-	public Object execute() {
-		return reduce();
-	}
 }

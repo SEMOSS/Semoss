@@ -1,14 +1,8 @@
 package prerna.algorithm.impl;
 
 import java.util.ArrayList;
-import java.util.Iterator;
 
-public class MinAlgorithm extends BaseReducer {
-	
-	@Override
-	public void set(Iterator inputIterator, String[] ids, String script) {
-		super.set(inputIterator, ids,script, null);
-	}
+public class MinReactor extends BaseReducerReactor {
 	
 	@Override
 	public Object reduce() {
@@ -32,14 +26,4 @@ public class MinAlgorithm extends BaseReducer {
 		return output;
 	}
 	
-	@Override
-	public void setData(Iterator inputIterator, String[] ids, String script) {
-		super.set(inputIterator, ids, script, null);
-	}
-
-	@Override
-	public Object execute() {
-		return reduce();
-	}
-
 }
