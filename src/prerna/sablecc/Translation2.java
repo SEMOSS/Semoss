@@ -1,8 +1,12 @@
 package prerna.sablecc;
 
+import java.util.ArrayList;
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.Hashtable;
 import java.util.LinkedList;
+import java.util.List;
+import java.util.Map;
 import java.util.Vector;
 
 import prerna.algorithm.api.ITableDataFrame;
@@ -704,4 +708,10 @@ public class Translation2 extends DepthFirstAdapter {
     	runner.setStatus("success");
     }
 	
+    public ITableDataFrame getDataFrame() {
+    	ITableDataFrame table = (ITableDataFrame)this.curReactor.getValue("G");
+    	if(table == null)
+    		return this.frame;
+    	return table;
+    }
 }
