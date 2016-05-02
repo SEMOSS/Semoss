@@ -53,8 +53,7 @@ public abstract class AbstractTableDataFrame implements ITableDataFrame {
 	}
 
 	@Override
-	public Map[] mergeQSEdgeHash(Map<String, Set<String>> edgeHash, IEngine engine,
-			Vector<Map<String, String>> joinCols) {
+	public Map[] mergeQSEdgeHash(Map<String, Set<String>> edgeHash, IEngine engine, Vector<Map<String, String>> joinCols) {
 		Map[] ret =  TinkerMetaHelper.mergeQSEdgeHash(this.metaData, edgeHash, engine, joinCols);
 
     	List<String> fullNames = this.metaData.getColumnNames();
