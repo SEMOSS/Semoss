@@ -447,6 +447,11 @@ public class TinkerMetaData2 implements IMetaData {
 			physicalUri = engine.getConceptUri4PhysicalName(queryStructName);
 		}
 		
+		// stupid check
+		if(engineName.equals(Constants.LOCAL_MASTER_DB_NAME)) {
+			physicalUri = Constants.DISPLAY_URI + uniqueName;
+		}
+		
 		String logicalName = Utility.getInstanceName(engine.getTransformedNodeName(physicalUri, true));
 //		String physicalName = Utility.getInstanceName(physicalUri);
 		String dataType = engine.getDataTypes(physicalUri);
@@ -467,7 +472,7 @@ public class TinkerMetaData2 implements IMetaData {
 		addAliasMeta(vert, physicalUri, NAME_TYPE.DB_PHYSICAL_URI, engineName);
 		
 		//store the datatype
-		storeDataType(uniqueName, engine.getDataTypes(physicalUri));
+		storeDataType(uniqueName, dataType);
 		
 		if(uniqueParentNameIfProperty != null){
 			vert.property(PARENT, uniqueParentNameIfProperty);
