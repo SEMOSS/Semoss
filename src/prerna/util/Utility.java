@@ -2072,7 +2072,6 @@ public class Utility {
 			// for nulls and stuff
 			Set<String> set = edgeHash.get(startNode);
 			if(set==null) {
-				retMapping.put(startIndex, new HashSet<Integer>());
 				continue;
 			}
 			
