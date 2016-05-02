@@ -1,7 +1,9 @@
 package prerna.algorithm.impl;
 
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
+import java.util.Vector;
 
 import javax.script.Bindings;
 import javax.script.CompiledScript;
@@ -11,11 +13,13 @@ import javax.script.ScriptException;
 import org.apache.tinkerpop.gremlin.groovy.jsr223.GremlinGroovyScriptEngine;
 import org.apache.tinkerpop.gremlin.structure.Vertex;
 
-import prerna.ds.AlgorithmStrategy;
+import prerna.algorithm.api.ITableDataFrame;
 import prerna.ds.ExpressionReducer;
+import prerna.sablecc.MathReactor;
+import prerna.sablecc.PKQLEnum;
 import prerna.util.Constants;
 
-public abstract class BaseReducer implements ExpressionReducer, AlgorithmStrategy {
+public abstract class BaseReducerReactor extends MathReactor implements ExpressionReducer  {
 	
 	protected Iterator inputIterator = null;
 	protected String [] ids = null;
@@ -27,8 +31,12 @@ public abstract class BaseReducer implements ExpressionReducer, AlgorithmStrateg
 	protected Bindings otherBindings = engine.getBindings(ScriptContext.ENGINE_SCOPE);
 	protected String propToGet = Constants.VALUE;
 
+
+	public void setData(Iterator inputIterator, String[] ids, String script) {
+		setData(inputIterator, ids,script, null);
+	}
 	
-	public void set(Iterator inputIterator, String[] ids, String script, String prop ) {
+	public void setData(Iterator inputIterator, String[] ids, String script, String prop ) {
 		// TODO Auto-generated method stub
 		this.inputIterator = inputIterator;
 		this.ids = ids;
@@ -98,7 +106,6 @@ public abstract class BaseReducer implements ExpressionReducer, AlgorithmStrateg
 		}		
 	}
 	
-	
 	protected Object getNextValue()
 	{
 		if(inputIterator != null)
@@ -127,5 +134,43 @@ public abstract class BaseReducer implements ExpressionReducer, AlgorithmStrateg
 		
 		return retObject;
 	}
+	
+	@Override
+	public Iterator process() {
+		modExpression();
+		String nodeStr = myStore.get(whoAmI).toString();
+		Vector <String> columns = (Vector <String>)myStore.get(PKQLEnum.COL_DEF);
+		String[] columnsArray = convertVectorToArray(columns);
+		ITableDataFrame frame = (ITableDataFrame)myStore.get("G");
 
+		Vector<String> groupBys = (Vector <String>)myStore.get(PKQLEnum.COL_CSV);
+		if(groupBys != null && !groupBys.isEmpty()){
+			Map masterMap = new HashMap();
+			Iterator groupByIterator = getTinkerData(groupBys, frame);
+			while(groupByIterator.hasNext()){
+				Object[] groupByVals = (Object[])groupByIterator.next();
+				Map<String, Object> valMap = new HashMap<String, Object>();
+				for(String groupBy: groupBys){
+					valMap.put(groupBy, groupByVals[0]);
+				}
+				Iterator iterator = getTinkerData(columns, frame, valMap);
+				Object finalValue = processAlgorithm(iterator, columnsArray);
+
+				masterMap.put(valMap, finalValue);
+			}
+			myStore.put(nodeStr, masterMap);
+			myStore.put("STATUS","success");
+		} else {
+			Iterator iterator = getTinkerData(columns, frame);
+			myStore.put(nodeStr, processAlgorithm(iterator, columnsArray));
+			myStore.put("STATUS","success");
+		}
+		
+		return null;
+	}
+	
+	private Object processAlgorithm(Iterator iterator, String[] columnsArray) {
+		setData(iterator, columnsArray, myStore.get("MOD_" + whoAmI).toString());
+		return reduce();
+	}
 }

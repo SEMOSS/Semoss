@@ -1,17 +1,8 @@
 package prerna.algorithm.impl;
 
 import java.util.ArrayList;
-import java.util.Iterator;
 
-public class StandardDeviationAlgorithm extends BaseReducer{
-
-	public void set(Iterator inputIterator, String[] ids, String script) {
-		super.set(inputIterator, ids,script, null);
-	}
-
-	public void set(Iterator inputIterator, String[] ids, String script, String prop) {
-		super.set(inputIterator, ids,script, prop);
-	}
+public class StandardDeviationReactor extends BaseReducerReactor{
 
 	@Override
 	public Object reduce() {
@@ -34,13 +25,4 @@ public class StandardDeviationAlgorithm extends BaseReducer{
 		return output;
 	}
 	
-	@Override
-	public void setData(Iterator inputIterator, String[] ids, String script) {
-		super.set(inputIterator, ids, script, null);
-	}
-
-	@Override
-	public Object execute() {
-		return reduce();
-	}
 }

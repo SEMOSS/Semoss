@@ -20,9 +20,9 @@ public abstract class AbstractReactor implements IScriptReactor {
 	// NUMBER - listening just for the fun of it for now
 	// 
 	protected String [] whatIReactTo = null;
-	String whoAmI = null;
-	Hashtable <String, Object> myStore = new Hashtable <String, Object>();
-	Vector <String> replacers = new Vector<String>();
+	protected String whoAmI = null;
+	protected Hashtable <String, Object> myStore = new Hashtable <String, Object>();
+	protected Vector <String> replacers = new Vector<String>();
 	
 	
 	@Override
