@@ -4,14 +4,30 @@ import java.io.InputStreamReader;
 import java.io.PushbackReader;
 import java.io.StringBufferInputStream;
 
+import prerna.ds.TinkerFrame;
+import prerna.ds.H2.TinkerH2Frame;
+import prerna.engine.impl.rdf.BigDataEngine;
 import prerna.sablecc.lexer.Lexer;
 import prerna.sablecc.node.Start;
 import prerna.sablecc.parser.Parser;
+import prerna.util.Constants;
+import prerna.util.DIHelper;
 
 public class Compiler
 {
  public static void main(String[] arguments)
  {
+	String workingDir = System.getProperty("user.dir");
+	String propFile = workingDir + "/RDF_Map.prop";
+	DIHelper.getInstance().loadCoreProp(propFile);
+	
+	String engineProp = "C:\\workspace\\Semoss_Dev\\db\\LocalMasterDatabase.smss";
+	BigDataEngine master = new BigDataEngine();
+	master.openDB(engineProp);
+	master.setEngineName(Constants.LOCAL_MASTER_DB_NAME);
+	DIHelper.getInstance().setLocalProperty(Constants.LOCAL_MASTER_DB_NAME, master);
+	 
+	 
   try
   {
 
@@ -33,7 +49,17 @@ public class Compiler
 //    												+ "api:Movie_DB.query([c:Title__Title, c:Title__MovieBudget, c:Studio__Studio], (c:Studio__Studio =[\"WB\",\"Fox\"]), ([c:Title__Title,  inner.join , c:Studio__Studio])); "
 //    												+ "col.add(c:test, api:UpdatedRDBMSMovies.query([c:Title__Title, c:Title__MovieBudget, c:Studio__Studio], (c:Studio__Studio =[\"WB\",\"Fox\"]), ([c:Title__Title,  right.outer.join , c:Studio__Title_FK])));"
 //    												+ "col.add(c:test, api:UpdatedRDBMSMovies.query([c:Title__Title, c:Title__MovieBudget, c:Studio__Studio], (c:Studio__Studio =[\"WB\",\"Fox\"]), ([c:Studio__Title_FK,  right.outer.join , c:Title__Title])));"
-//    												+ "data.import(api:Movie_DB.query([c:Title, c:Title__MovieBudget, c:Studio], (c:Studio =[\"WB\",\"Fox\"]), ([c:Title,  inner.join , c:Studio])));"
+    												+ "data.import(api:MovieDatabase.query([c:Title, c:Studio], (c:Studio =[\"WB\",\"Fox\"]), ([c:Title,  inner.join , c:Studio])));"
+    												+ "data.import(api:Movie_Results.query([c:Title, c:Director], ([c:Title,  inner.join , c:Director])), ([c:Title, inner.join, c:Title]));"
+    												+ "data.import(api:Movie_Results.query([c:Title, c:Producer], ([c:Title,  inner.join , c:Producer])), ([c:Title, inner.join, c:Title]));"
+    												+ "data.import(api:Movie_Results.query([c:Title, c:Year], ([c:Title,  inner.join , c:Year])), ([c:Title, inner.join, c:Title]));"
+//    												+ "data.import(api:Documents\\something.csv.query([c:Title, c:Year]), ([c:Title, inner.join, c:Title]));"
+
+//    												+ "data.import(api:'FILEID'.query([c:Title, c:Title__MovieBudget, c:Studio], (c:Studio =[\"WB\",\"Fox\"]), ([c:Title,  inner.join , c:Studio])));"
+//    												+ "data.remove(api:MovieDatabase.query([c:Title, c:Title__MovieBudget, c:Studio], (c:Studio =[\"WB\",\"Fox\"]), ([c:Title,  inner.join , c:Studio])));"
+//    												+"panel[\"123\"].comment(\"this looks super important\", group0, coordinate, \"a\");"
+//    												+"col.filter(c:Studio =[\"WB\",\"Fox\",\"Lionsgate\"]) ;"
+//    												+"col.unfilter(c:Studio);"
 //    												+ "col.add(c:test, api:Movie_DB.query([c:Title__Title, c:Title__MovieBudget, c:Studio__Studio], (c:Studio__Studio =[\"WB\",\"Fox\"]), ([c:Studio__Studio,  right.outer.join , c:Title__Title])));"
     												//+ "api:TAP_CORE.query([c:Title__title, c:Title__movie_budget], (c:Title__Title =[\"a\",\"b\"], c:Title__Title > [\"c\", \"d\"]), ([c:Title__Title,  inner.join , c:Studio__Studio] ,[c:Title__Title,  outer.join , c:Studio__Studio_FK]) ); "    												//+ "(m:Sum([(2 * 3) * (c:Capability * c:Activity) + c:Activity], [c:bp, c:ab]));"
     												//+ "3 + (m:Sum([(2 * 3) * (c:Capability * c:Activity) + c:Activity], [c:bp, c:ab]));"
@@ -50,7 +76,7 @@ public class Compiler
     												
     												
 
-													+"viz.change(bar, [c:Title, c:Budget]);"
+//													+"viz.change(bar, [c:Title, c:Budget]);"
 //													+"viz.comment('this looks super important', group0, coordinate, 50 16);"
 //    												+"(12 + (4 - 8)) * (15 / 5) + 5;"
    													//+ "v:abc = (c:col2 * (2 *4)); "
@@ -69,7 +95,7 @@ public class Compiler
 
 
    // Apply the translation.
-   tree.apply(new Translation2());
+   tree.apply(new Translation2(new TinkerFrame(), new PKQLRunner()));
   }
   catch(Exception e)
   {

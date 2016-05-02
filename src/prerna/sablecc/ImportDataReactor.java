@@ -4,15 +4,21 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Hashtable;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.Vector;
 
 import prerna.algorithm.api.ITableDataFrame;
 import prerna.ds.H2.TinkerH2Frame;
+import prerna.ds.DataFrameHelper;
+import prerna.ds.TableDataFrameFactory;
+import prerna.ds.util.FileIterator;
 import prerna.engine.api.IEngine;
 import prerna.engine.api.IHeadersDataRow;
+import prerna.engine.api.ISelectStatement;
 import prerna.engine.api.ISelectWrapper;
+import prerna.ui.components.playsheets.datamakers.IDataMaker;
 import prerna.util.ArrayUtilityMethods;
 import prerna.util.DIHelper;
 import prerna.util.Utility;
@@ -56,51 +62,71 @@ public class ImportDataReactor extends AbstractReactor {
 		Map<String, Set<String>> edgeHash = null;
 		Map[] mergedMaps = new Map[2];
 		IEngine engine = null;
-		
-		if(myStore.containsKey(PKQLEnum.API)) {
+
+		if(myStore.containsKey(PKQLEnum.API)) {			
+			Object value = myStore.get(PKQLEnum.API);
 			edgeHash = (Map<String, Set<String>>) this.getValue(PKQLEnum.API + "_EDGE_HASH");
 			engine = (IEngine) DIHelper.getInstance().getLocalProp((this.getValue(PKQLEnum.API + "_ENGINE")+"").trim());
 			mergedMaps = frame.mergeQSEdgeHash(edgeHash, engine, joinCols);
 
-			it = (Iterator) myStore.get(PKQLEnum.API);
+			it  = (Iterator) myStore.get(PKQLEnum.API);
+			
 		} else if(myStore.containsKey(PKQLEnum.CSV_TABLE)) {
 			edgeHash = (Map<String, Set<String>>) this.getValue(PKQLEnum.CSV_TABLE + "_EDGE_HASH");
 			frame.mergeEdgeHash(edgeHash);
 
 			it = (Iterator) myStore.get(PKQLEnum.CSV_TABLE);
 		}
-		
+
 		Map<Integer, Set<Integer>> cardinality = null;
 		String[] headers = null;
 		boolean addRow = false;
+		boolean isPrimKey = false;
 		while(it.hasNext()){
 			IHeadersDataRow ss = (IHeadersDataRow) it.next();
 			if(cardinality == null) { // during first loop
 				cardinality = Utility.getCardinalityOfValues(ss.getHeaders(), mergedMaps[0]);
 				headers = ss.getHeaders();
-				System.out.println("Got headers: " + Arrays.toString(headers));
-				
+//				System.out.println("Got headers: " + Arrays.toString(headers));
+
 				// TODO: annoying, need to determine if i need to create a prim key edge hash
-				if(mergedMaps[0] == null) {
+				if(cardinality.isEmpty()) {
 					Map<String, Set<String>> primKeyEdgeHash = frame.createPrimKeyEdgeHash(headers);
 					frame.mergeEdgeHash(primKeyEdgeHash);
+					isPrimKey = true;
 				}
-				
+
 				// TODO: need to have a smart way of determining when it is an "addRow" vs. "addRelationship"
 				// TODO: h2Builder addRelationship only does update query which does nothing if frame is empty
-				if(engine == null || (frame instanceof TinkerH2Frame && allHeadersAccounted(frame.getColumnHeaders(), headers))) {
+				if((engine == null && frame.isEmpty()) || (frame instanceof TinkerH2Frame && allHeadersAccounted(frame.getColumnHeaders(), headers))) {
 					addRow = true;
 				}
 			}
-			
+
 			// TODO: need to have a smart way of determining when it is an "addRow" vs. "addRelationship"
 			// TODO: h2Builder addRelationship only does update query which does nothing if frame is empty
-			if(addRow) {
+			if(addRow && isPrimKey) {
 				frame.addRow(ss.getValues(), ss.getRawValues(), headers);
 			} else {
 				frame.addRelationship(headers, ss.getValues(), ss.getRawValues(), cardinality, mergedMaps[1]);
 			}
 		}
+		
+		if(engine == null) {
+			if(it instanceof FileIterator) {
+				String[] types = ((FileIterator) it).getTypes();
+				frame.addMetaDataTypes(headers, types);
+			}
+		}
+
+		List<Object[]> data = frame.getData();
+		System.out.println("view data now");
+		for(int i = 0; i < data.size() && i < 15; i++) {
+			System.out.println(Arrays.toString(data.get(i)));
+		}
+		
+		System.out.println(frame.getTableHeaderObjects());
+		
 		
 		// get rid of this bifurcation
 		// push this into the iterators
