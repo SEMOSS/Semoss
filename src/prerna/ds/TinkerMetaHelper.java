@@ -12,11 +12,17 @@ import org.apache.tinkerpop.gremlin.structure.Vertex;
 
 import prerna.algorithm.api.IMetaData;
 import prerna.engine.api.IEngine;
+import prerna.sablecc.PKQLEnum;
+import prerna.util.Constants;
+import prerna.util.DIHelper;
 
 public class TinkerMetaHelper {
 
 
 	public static Map[] mergeQSEdgeHash(IMetaData metaData, Map<String, Set<String>> newEdgeHash, IEngine engine, List<Map<String,String>> joinColList) {
+		if(engine == null) {
+			engine = (IEngine) DIHelper.getInstance().getLocalProp(Constants.LOCAL_MASTER_DB_NAME);
+		}
 		Map<String, Set<String>> cleanedHash = new HashMap<String, Set<String>>();
 		Set<String> newLevels = new LinkedHashSet<String>();
 		Map<String, String[]> physicalToLogical = metaData.getPhysical2LogicalTranslations(newEdgeHash, joinColList);
