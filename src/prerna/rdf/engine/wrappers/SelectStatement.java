@@ -111,9 +111,30 @@ public class SelectStatement implements ISelectStatement {
 		return true;
 	}
 
+	@Override
+	public int getRecordLength() {
+		// TODO Auto-generated method stub
+		return propHash.size();
+	}
 
+	@Override
+	public String[] getHeaders() {
+		// TODO Auto-generated method stub
+		return (String[]) propHash.keySet().toArray(new String[]{});
+	}
 
+	@Override
+	public Object[] getValues() {
+		// TODO Auto-generated method stub
+		return propHash.values().toArray();
+	}
 	
+	@Override
+	public Object[] getRawValues() {
+		// TODO Auto-generated method stub
+		return rawPropHash.values().toArray();
+	}
+
 //	@Override
 //	public boolean equals(ISelectStatement other){
 //		boolean equal = false;

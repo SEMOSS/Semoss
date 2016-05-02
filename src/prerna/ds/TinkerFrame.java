@@ -1346,6 +1346,44 @@ public class TinkerFrame extends AbstractTableDataFrame {
 		}
 		
 	}
+	
+	@Override
+	public void addRelationship(String[] headers, Object[] values, Object[] rawValues, Map<Integer, Set<Integer>> cardinality, Map<String, String> logicalToTypeMap) {
+		boolean hasRel = false;
+		
+		for(Integer startIndex : cardinality.keySet()) {
+			Set<Integer> endIndices = cardinality.get(startIndex);
+			if(endIndices==null) continue;
+			
+			for(Integer endIndex : endIndices) {
+				hasRel = true;
+				
+				//get from vertex
+				Object startNodeValue = getParsedValue(values[startIndex]);
+				String rawStartNodeValue = values[startIndex] + "";
+				String startNodeType = logicalToTypeMap.get(headers[startIndex]);
+				Vertex fromVertex = upsertVertex(startNodeType, startNodeValue, rawStartNodeValue);
+				
+				//get to vertex	
+				Object endNodeValue = getParsedValue(values[endIndex]);
+				String rawEndNodeValue = values[endIndex] + "";
+				String endNodeType = logicalToTypeMap.get(headers[endIndex]);
+				Vertex toVertex = upsertVertex(endNodeType, endNodeValue, rawEndNodeValue);
+				
+				upsertEdge(fromVertex, toVertex);
+			}
+		}
+		
+		// this is to replace the addRow method which needs to be called on the first iteration
+		// since edges do not exist yet
+		if(!hasRel) {
+			String singleColName = headers[0];
+			String singleNodeType = logicalToTypeMap.get(singleColName);
+			Object startNodeValue = getParsedValue(values[0]);
+			String rawStartNodeValue = rawValues[0] + "";
+			upsertVertex(singleNodeType, startNodeValue, rawStartNodeValue);
+		}
+	}
 
 	@Override
 	public void addRelationship(Map<String, Object> rowCleanData, Map<String, Object> rowRawData) {

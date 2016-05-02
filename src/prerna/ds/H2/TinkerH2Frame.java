@@ -1,6 +1,5 @@
 package prerna.ds.H2;
 
-import java.io.IOException;
 import java.sql.DatabaseMetaData;
 import java.sql.SQLException;
 import java.util.ArrayList;
@@ -19,21 +18,10 @@ import java.util.Vector;
 
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
-import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.GraphTraversal;
-import org.apache.tinkerpop.gremlin.structure.Edge;
-import org.apache.tinkerpop.gremlin.structure.Vertex;
-import org.apache.tinkerpop.gremlin.structure.io.Io.Builder;
-import org.apache.tinkerpop.gremlin.structure.io.IoCore;
-import org.apache.tinkerpop.gremlin.structure.io.IoRegistry;
-import org.apache.tinkerpop.gremlin.structure.io.gryo.GryoIo;
-import org.apache.tinkerpop.gremlin.tinkergraph.structure.TinkerGraph;
-
-import com.google.gson.Gson;
 
 import prerna.algorithm.api.IMatcher;
 import prerna.algorithm.api.ITableDataFrame;
 import prerna.ds.AbstractTableDataFrame;
-import prerna.ds.QueryStruct;
 import prerna.ds.TinkerFrame;
 import prerna.ds.TinkerMetaData2;
 import prerna.ds.TinkerMetaHelper;
@@ -47,7 +35,6 @@ import prerna.ui.components.playsheets.datamakers.ISEMOSSTransformation;
 import prerna.ui.components.playsheets.datamakers.JoinTransformation;
 import prerna.util.ArrayUtilityMethods;
 import prerna.util.Constants;
-import prerna.util.MyGraphIoRegistry;
 import prerna.util.Utility;
 
 public class TinkerH2Frame extends AbstractTableDataFrame {
@@ -100,7 +87,7 @@ public class TinkerH2Frame extends AbstractTableDataFrame {
     
 	@Override
 	public void addRow(Object[] rowCleanData, Object[] rowRawData) {
-		addRow(rowCleanData, this.headerNames);
+		addRow(rowCleanData, getColumnHeaders());
 	}
 
     @Override
@@ -110,9 +97,16 @@ public class TinkerH2Frame extends AbstractTableDataFrame {
 	
     private void addRow(Object[] cells, String[] headers) {
         String tableName = getTableNameForUniqueColumn(headers[0]);
+        // TODO: differences between the tinker meta and the flat meta stored in the data frame
+        // TODO: results in us being unable to get the table name
+        if(tableName == null) {
+        	tableName = builder.tableName;
+        }
         String[] types = new String[headers.length];
         for(int i = 0; i < types.length; i++) {
               types[i] = this.metaData.getDataType(headers[i]);
+              // need to stringify everything
+              cells[i] = cells[i] + "";
         }
         String[] stringArray = Arrays.copyOf(cells, cells.length, String[].class);
         		
@@ -846,6 +840,37 @@ public class TinkerH2Frame extends AbstractTableDataFrame {
 //		return TinkerMetaHelper.createPrimKeyEdgeHash(headers);
 //	}
 //
+	
+	@Override
+	public Map[] mergeQSEdgeHash(Map<String, Set<String>> edgeHash, IEngine engine, Vector<Map<String, String>> joinCols) {
+		Map[] ret =  super.mergeQSEdgeHash(edgeHash, engine, joinCols);
+		
+		// alter table for new cols
+		Set<String> headersSet = new LinkedHashSet<String>();
+		headersSet.addAll(edgeHash.keySet());
+		for(String header : edgeHash.keySet()) {
+			Set<String> additionalHeaders = edgeHash.get(header);
+			if(additionalHeaders != null) {
+				for(String addHeader : additionalHeaders) {
+					if(addHeader.contains("__")) {
+						headersSet.add(addHeader.split("__")[1]);
+					} else {
+						headersSet.add(addHeader);
+					}
+				}
+			}
+		}
+		String[] headers = headersSet.toArray(new String[]{});
+		String[] types = new String[headers.length];
+		for(int i = 0; i < types.length; i++) {
+			types[i] = engine.getDataTypes(engine.getTransformedNodeName(Constants.DISPLAY_URI + headers[i], false));
+			types[i] = types[i].replace("TYPE:", "");
+		}
+		builder.alterTableNewColumns(headers, types); 
+		
+		return ret;
+	}
+	
 	@Override
 	public void mergeEdgeHash(Map<String, Set<String>> primKeyEdgeHash) {
 		TinkerMetaHelper.mergeEdgeHash(this.metaData, primKeyEdgeHash, getNode2ValueHash(primKeyEdgeHash));
@@ -881,6 +906,14 @@ public class TinkerH2Frame extends AbstractTableDataFrame {
 	public void addRelationship(Map<String, Object> rowCleanData, Map<String, Object> rowRawData, Map<String, Set<String>> edgeHash, Map<String, String> logicalToTypeMap) {
 		addRelationship(rowCleanData, rowRawData);
 	}
+	
+	@Override
+	public void addRelationship(String[] headers, Object[] values, Object[] rawValues, Map<Integer, Set<Integer>> cardinality, Map<String, String> logicalToValMap) {
+		for(int i = 0; i < headers.length; i++) {
+			headers[i] = H2Builder.cleanHeader(headers[i]);
+		}
+		builder.updateTable(getH2Headers(), values, headers);
+	}
 
 	public String getJDBCURL() throws SQLException{
 		String url = "";
@@ -913,5 +946,4 @@ public class TinkerH2Frame extends AbstractTableDataFrame {
 		}
 		builder.deleteRow(columns, values);
 	}
-
 }

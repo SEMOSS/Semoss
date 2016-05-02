@@ -2261,4 +2261,11 @@ public class BTreeDataFrame implements ITableDataFrame {
 		
 	}
 
+	@Override
+	public void addRelationship(String[] headers, Object[] values, Object[] rawValues,
+			Map<Integer, Set<Integer>> cardinality, Map<String, String> logicalToValMap) {
+		// TODO Auto-generated method stub
+		
+	}
+
 }
