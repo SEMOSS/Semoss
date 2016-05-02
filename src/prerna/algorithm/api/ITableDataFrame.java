@@ -537,4 +537,6 @@ public interface ITableDataFrame extends IDataMaker {
 	Map<String, Object[]> getFilterTransformationValues();
 
 	void filter(String columnHeader, List<Object> filterValues, String comparator);
+	
+	void addRelationship(String[] headers, Object[] values, Object[] rawValues, Map<Integer, Set<Integer>> cardinality, Map<String, String> logicalToValMap);
 }

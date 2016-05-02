@@ -49,12 +49,14 @@ import java.util.Calendar;
 import java.util.Date;
 import java.util.Enumeration;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Hashtable;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Properties;
+import java.util.Set;
 import java.util.StringTokenizer;
 import java.util.TimeZone;
 import java.util.Vector;
@@ -2056,6 +2058,42 @@ public class Utility {
     		}
     	return values;
     }
+    
+	public static Map<Integer, Set<Integer>> getCardinalityOfValues(String[] newHeaders, Map<String, Set<String>> edgeHash) {
+		Map<Integer, Set<Integer>> retMapping = new Hashtable<Integer, Set<Integer>>();
+		
+		if(edgeHash == null) {
+			return retMapping;
+		}
+		
+		for(String startNode : edgeHash.keySet()) {
+			Integer startIndex = ArrayUtilityMethods.arrayContainsValueAtIndex(newHeaders, startNode);
+			
+			// for nulls and stuff
+			Set<String> set = edgeHash.get(startNode);
+			if(set==null) {
+				retMapping.put(startIndex, new HashSet<Integer>());
+				continue;
+			}
+			
+			// finish the mappings
+			for(String endNode : set) {
+				Integer endIndex = ArrayUtilityMethods.arrayContainsValueAtIndex(newHeaders, endNode);
+				
+				// add mapping
+				if(!retMapping.containsKey(startIndex)) {
+					Set<Integer> downstream = new HashSet<Integer>();
+					downstream.add(endIndex);
+					retMapping.put(startIndex, downstream);
+				} else {
+					Set<Integer> downstream = retMapping.get(startIndex);
+					downstream.add(endIndex);
+					retMapping.put(startIndex, downstream);
+				}
+			}
+		}
+		return retMapping;
+	}
 
 	
 }

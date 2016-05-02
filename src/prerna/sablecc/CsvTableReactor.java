@@ -60,7 +60,7 @@ public class CsvTableReactor extends AbstractReactor {
 		this.put("QUERY_STRUCT", qs);
 
 		String nodeStr = (String)myStore.get(whoAmI);
-		myStore.put(nodeStr, values.iterator());
+		myStore.put(nodeStr, new CsvTableWrapper(values));
 
 		// eventually I need this iterator to set this back for this particular node
 		return null;

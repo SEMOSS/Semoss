@@ -612,7 +612,24 @@ public class H2Builder {
 		}
     	return null;
     }
-    
+
+    public void alterTableNewColumns(String[] headers, String[] types) {
+    	try {
+    		runQuery("CREATE TABLE IF NOT EXISTS " + tableName);
+    		for(int i = 0; i < headers.length; i++) {
+    			if(!ArrayUtilityMethods.arrayContainsValue(getHeaders(tableName), headers[i].toUpperCase())) {
+    				//alter the table
+    				String[] newHeaders = new String[]{headers[i]};
+    				String[] newTypes = new String[]{types[i]};
+
+    				String alterQuery = makeAlter(tableName, newHeaders, newTypes);
+    				runQuery(alterQuery);
+    			}
+    		}
+    	} catch (Exception e1) {
+    		e1.printStackTrace();
+    	}
+    }
 
     
     //only use this for analytics for now
@@ -620,7 +637,7 @@ public class H2Builder {
 //    	if(columnHeaders.length != 2) {
 //    		throw new UnsupportedOperationException("multi column join not implemented");
 //    	}
-    	
+//    	
     	try {
 			String[] joinColumn = new String[columnHeaders.length - 1]; 
 			System.arraycopy(columnHeaders, 0, joinColumn, 0, columnHeaders.length - 1);
@@ -629,31 +646,31 @@ public class H2Builder {
 			Object[] joinValue = new Object[values.length - 1];
 			System.arraycopy(values, 0, joinValue, 0, values.length - 1);
 			Object newValue = values[columnHeaders.length - 1];
-			
-			if(!ArrayUtilityMethods.arrayContainsValue(getHeaders(tableName), newColumn.toUpperCase())) {
-				//alter the table
-				
-				//update the types
-				String type;
-//				Utility.findTypes(newValue.toString());
-//				if(NumberUtils.isDigits(newValue.toString())) {
-//					type = "int";
+//			
+//			if(!ArrayUtilityMethods.arrayContainsValue(getHeaders(tableName), newColumn.toUpperCase())) {
+//				//alter the table
+//				
+//				//update the types
+//				String type;
+////				Utility.findTypes(newValue.toString());
+////				if(NumberUtils.isDigits(newValue.toString())) {
+////					type = "int";
+////				}
+//				//else 
+//				if(Utility.getDouble(newValue.toString()) != null ) {
+//					type = "double";
 //				}
-				//else 
-				if(Utility.getDouble(newValue.toString()) != null ) {
-					type = "double";
-				}
-				else {
-					type = "varchar(800)";
-				}
-				
-				
-				String[] newHeaders = new String[]{newColumn};
-				String[] newTypes = new String[]{type};
-				
-				String alterQuery = makeAlter(tableName, newHeaders, newTypes);
-				runQuery(alterQuery);
-			}
+//				else {
+//					type = "varchar(800)";
+//				}
+//				
+//				
+//				String[] newHeaders = new String[]{newColumn};
+//				String[] newTypes = new String[]{type};
+//				
+//				String alterQuery = makeAlter(tableName, newHeaders, newTypes);
+//				runQuery(alterQuery);
+//			}
 			
 			String updateQuery = makeUpdate(tableName, joinColumn, newColumn, joinValue, newValue);
 			runQuery(updateQuery);
@@ -889,7 +906,7 @@ public class H2Builder {
      * add cells to the table 
      */
     public void addRow(String tableName, String[] cells, String[] headers, String[] types) {
-    	
+		create = true;
     	types = cleanTypes(types);
     	//if first row being added to the table establish the types
     	try
@@ -900,7 +917,6 @@ public class H2Builder {
     		if(!tableExists(tableName)) {
 	    		String createTable = makeCreate(tableName, headers, types);
 	    		runQuery(createTable);
-	    		create = true;
 	    	}
     	}catch(Exception ex)
     	{

@@ -1,6 +1,5 @@
 package prerna.engine.api;
 
-import java.util.Hashtable;
 import java.util.Iterator;
 
 public interface IApi{
@@ -19,6 +18,6 @@ public interface IApi{
 		
 	// process and get the iterator
 	// hopefully, the iterator is a map of selectors
-	public Iterator process();		
+	public Iterator<IHeadersDataRow> process();		
 	
 }
