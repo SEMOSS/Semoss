@@ -36,7 +36,6 @@ import prerna.sablecc.node.AMultExpr;
 import prerna.sablecc.node.ANumWordOrNum;
 import prerna.sablecc.node.ANumberTerm;
 import prerna.sablecc.node.APlusExpr;
-import prerna.sablecc.node.ARQuery;
 import prerna.sablecc.node.ARelationDef;
 import prerna.sablecc.node.ARemoveData;
 import prerna.sablecc.node.ASetColumn;
@@ -673,10 +672,10 @@ public class Translation2 extends DepthFirstAdapter {
 		}
     }
     
-    @Override
-    public void inARQuery(ARQuery node) {
-    	
-    }
+//    @Override
+//    public void inARQuery(ARQuery node) {
+//    	
+//    }
     
 //    @Override
 //    public void inAROp(AROp node) {
