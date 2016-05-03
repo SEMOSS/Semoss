@@ -7,19 +7,22 @@ Helpers
  digit = ['0' .. '9'];
  underscore = '_';
  hdot = '.';
+ alphanumeric = [0 .. 0xFFFF];
+ quote = ('"' | ''');
+ not_quote = [alphanumeric - ['"' + ''']];
+ panelprefix =  'panel' ( '[' digit ']' )?;
  
 
 Tokens
  number = ['0' .. '9']+;
  id = (letter_s | letter_b | digit | underscore)*;
-dot = '.';
+ dot = '.';
  semicolon = ';';
  colon = ':';
  plus = '+';
  minus = '-';
  mult = '*';
  comma = ',';
- quote = ('"' | ''');
  div = '/';
  col = 'col';
  comparator = ('>' | '<' | '<=' | '>=' | '=' | '!=' | 'like');
@@ -68,10 +71,10 @@ dot = '.';
  dataremovetoken = 'data.remove';
  literal = (letter_s | letter_b | digit | underscore)*;// | special)*;
  help_token = 'info.help';
- vizchange = 'viz.change';
- vizcomment = 'viz.comment';
- alphanumeric = [0 .. 0xFFFF];
- 
+ codeblock = '{' alphanumeric* 'zzzzzz}'; // need to talk to kevin about this
+ word = quote not_quote+ quote;
+ panelviz =  panelprefix '.viz';
+ panelcomment = panelprefix '.comment';
  
 Ignored Tokens
  blank;
@@ -86,7 +89,7 @@ script = {colop} colop  semicolon // column operations
 		 | {expr} expr semicolon
 		 //| statop
 		 | {help} help semicolon
-		 | {vizop} vizop semicolon
+		 | {panelop} panelop semicolon
 		 | newline
 		 ;
 
@@ -105,17 +108,24 @@ colop = // colOp is usually of the form of joinColumn / addColumn / removeColumn
 		| {remove_data} remove_data
 		;
 
-vizop = // vizop is usually of the form of viz.change, viz.tools, viz.color
-		{viz_change} viz_change 
-		| {viz_comment} viz_comment
+panelop = // panelop is usually of the form of viz.change, viz.tools, viz.color
+		{panel_viz} panel_viz 
+		| {panel_comment} panel_comment
 		;
+ 
 
-viz_change = // e.g. viz.change(bar, [c:Title, c:Budget]); vizchange( vizType, ordered headers );
-		vizchange l_par [layout]:id comma [datatablealign]:col_csv r_par
+keyvalue = [word1]:word colon [word2]:word;
+
+keyvalue_group = comma keyvalue;
+
+map_obj = l_curl_bracket keyvalue keyvalue_group* r_curl_bracket;
+
+panel_viz = // e.g. panel.viz(bar, [c:Title, c:Budget]); panelviz( vizType, ordered headers );
+		panelviz l_par [layout]:id [c1]:comma [datatablealign]:flex_selector_row [c2]:comma? [uioptions]:map_obj? r_par
 		;
 		
-viz_comment = // e.g. viz.comment("this looks super important", group0, coordinate, (50, 16));
-		vizcomment l_par [text]:word [c1]:comma [group]:id [c2]:comma [type]:id [c3]:comma [location]:word_or_num r_par
+panel_comment = // e.g. panel.comment("this looks super important", group0, coordinate, (50, 16));
+		panelcomment l_par [text]:word [c1]:comma [group]:id [c2]:comma [type]:id [c3]:comma [location]:word_or_num r_par
 		;
 		
 add_column = // follows the pattern of addColumn(columnName and optionally the expression) addColumn(c:NewCol, 'expression', [c:col1, c:col2]);
@@ -175,8 +185,6 @@ api_block = api [engine_name]:id dot [insight]:id l_par [selectors]:col_csv [whe
 
 selector = l_bracket col_csv r_bracket;
 
-codeblock = l_curl_bracket alphanumeric* r_curl_bracket;
-
 // where column clause
 col_where = col_def comparator col_def_or_csv_row;
 
@@ -225,9 +233,9 @@ col_csv = l_bracket col_def col_group* r_bracket; // this is typically of the fo
 
 word_or_num = {num} decimal | {alpha} word |{expr} [formula]:formula ; // I need some way putting an expression here
 
-word = [l]:quote word_or_blank+ [r]:quote;
+flex_selector_row = l_bracket term term_group* r_bracket;
 
-word_or_blank = {id} id | number | {blank} space;
+term_group = comma term;
 
 formula = l_par expr r_par;
 		

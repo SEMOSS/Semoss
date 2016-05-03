@@ -2,7 +2,7 @@
 
 package prerna.sablecc.node;
 
-public abstract class PCodeblock extends Node
+public abstract class PMapObj extends Node
 {
     // Empty body
 }

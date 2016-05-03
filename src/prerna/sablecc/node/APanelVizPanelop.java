@@ -5,46 +5,46 @@ package prerna.sablecc.node;
 import prerna.sablecc.analysis.*;
 
 @SuppressWarnings("nls")
-public final class AWordOrBlank extends PWordOrBlank
+public final class APanelVizPanelop extends PPanelop
 {
-    private TNumber _number_;
+    private PPanelViz _panelViz_;
 
-    public AWordOrBlank()
+    public APanelVizPanelop()
     {
         // Constructor
     }
 
-    public AWordOrBlank(
-        @SuppressWarnings("hiding") TNumber _number_)
+    public APanelVizPanelop(
+        @SuppressWarnings("hiding") PPanelViz _panelViz_)
     {
         // Constructor
-        setNumber(_number_);
+        setPanelViz(_panelViz_);
 
     }
 
     @Override
     public Object clone()
     {
-        return new AWordOrBlank(
-            cloneNode(this._number_));
+        return new APanelVizPanelop(
+            cloneNode(this._panelViz_));
     }
 
     @Override
     public void apply(Switch sw)
     {
-        ((Analysis) sw).caseAWordOrBlank(this);
+        ((Analysis) sw).caseAPanelVizPanelop(this);
     }
 
-    public TNumber getNumber()
+    public PPanelViz getPanelViz()
     {
-        return this._number_;
+        return this._panelViz_;
     }
 
-    public void setNumber(TNumber node)
+    public void setPanelViz(PPanelViz node)
     {
-        if(this._number_ != null)
+        if(this._panelViz_ != null)
         {
-            this._number_.parent(null);
+            this._panelViz_.parent(null);
         }
 
         if(node != null)
@@ -57,23 +57,23 @@ public final class AWordOrBlank extends PWordOrBlank
             node.parent(this);
         }
 
-        this._number_ = node;
+        this._panelViz_ = node;
     }
 
     @Override
     public String toString()
     {
         return ""
-            + toString(this._number_);
+            + toString(this._panelViz_);
     }
 
     @Override
     void removeChild(@SuppressWarnings("unused") Node child)
     {
         // Remove child
-        if(this._number_ == child)
+        if(this._panelViz_ == child)
         {
-            this._number_ = null;
+            this._panelViz_ = null;
             return;
         }
 
@@ -84,9 +84,9 @@ public final class AWordOrBlank extends PWordOrBlank
     void replaceChild(@SuppressWarnings("unused") Node oldChild, @SuppressWarnings("unused") Node newChild)
     {
         // Replace child
-        if(this._number_ == oldChild)
+        if(this._panelViz_ == oldChild)
         {
-            setNumber((TNumber) newChild);
+            setPanelViz((PPanelViz) newChild);
             return;
         }
 

@@ -5,38 +5,46 @@ package prerna.sablecc.node;
 import prerna.sablecc.analysis.*;
 
 @SuppressWarnings("nls")
-public final class AVizChange extends PVizChange
+public final class APanelViz extends PPanelViz
 {
-    private TVizchange _vizchange_;
+    private TPanelviz _panelviz_;
     private TLPar _lPar_;
     private TId _layout_;
-    private TComma _comma_;
-    private PColCsv _datatablealign_;
+    private TComma _c1_;
+    private PFlexSelectorRow _datatablealign_;
+    private TComma _c2_;
+    private PMapObj _uioptions_;
     private TRPar _rPar_;
 
-    public AVizChange()
+    public APanelViz()
     {
         // Constructor
     }
 
-    public AVizChange(
-        @SuppressWarnings("hiding") TVizchange _vizchange_,
+    public APanelViz(
+        @SuppressWarnings("hiding") TPanelviz _panelviz_,
         @SuppressWarnings("hiding") TLPar _lPar_,
         @SuppressWarnings("hiding") TId _layout_,
-        @SuppressWarnings("hiding") TComma _comma_,
-        @SuppressWarnings("hiding") PColCsv _datatablealign_,
+        @SuppressWarnings("hiding") TComma _c1_,
+        @SuppressWarnings("hiding") PFlexSelectorRow _datatablealign_,
+        @SuppressWarnings("hiding") TComma _c2_,
+        @SuppressWarnings("hiding") PMapObj _uioptions_,
         @SuppressWarnings("hiding") TRPar _rPar_)
     {
         // Constructor
-        setVizchange(_vizchange_);
+        setPanelviz(_panelviz_);
 
         setLPar(_lPar_);
 
         setLayout(_layout_);
 
-        setComma(_comma_);
+        setC1(_c1_);
 
         setDatatablealign(_datatablealign_);
+
+        setC2(_c2_);
+
+        setUioptions(_uioptions_);
 
         setRPar(_rPar_);
 
@@ -45,31 +53,33 @@ public final class AVizChange extends PVizChange
     @Override
     public Object clone()
     {
-        return new AVizChange(
-            cloneNode(this._vizchange_),
+        return new APanelViz(
+            cloneNode(this._panelviz_),
             cloneNode(this._lPar_),
             cloneNode(this._layout_),
-            cloneNode(this._comma_),
+            cloneNode(this._c1_),
             cloneNode(this._datatablealign_),
+            cloneNode(this._c2_),
+            cloneNode(this._uioptions_),
             cloneNode(this._rPar_));
     }
 
     @Override
     public void apply(Switch sw)
     {
-        ((Analysis) sw).caseAVizChange(this);
+        ((Analysis) sw).caseAPanelViz(this);
     }
 
-    public TVizchange getVizchange()
+    public TPanelviz getPanelviz()
     {
-        return this._vizchange_;
+        return this._panelviz_;
     }
 
-    public void setVizchange(TVizchange node)
+    public void setPanelviz(TPanelviz node)
     {
-        if(this._vizchange_ != null)
+        if(this._panelviz_ != null)
         {
-            this._vizchange_.parent(null);
+            this._panelviz_.parent(null);
         }
 
         if(node != null)
@@ -82,7 +92,7 @@ public final class AVizChange extends PVizChange
             node.parent(this);
         }
 
-        this._vizchange_ = node;
+        this._panelviz_ = node;
     }
 
     public TLPar getLPar()
@@ -135,16 +145,16 @@ public final class AVizChange extends PVizChange
         this._layout_ = node;
     }
 
-    public TComma getComma()
+    public TComma getC1()
     {
-        return this._comma_;
+        return this._c1_;
     }
 
-    public void setComma(TComma node)
+    public void setC1(TComma node)
     {
-        if(this._comma_ != null)
+        if(this._c1_ != null)
         {
-            this._comma_.parent(null);
+            this._c1_.parent(null);
         }
 
         if(node != null)
@@ -157,15 +167,15 @@ public final class AVizChange extends PVizChange
             node.parent(this);
         }
 
-        this._comma_ = node;
+        this._c1_ = node;
     }
 
-    public PColCsv getDatatablealign()
+    public PFlexSelectorRow getDatatablealign()
     {
         return this._datatablealign_;
     }
 
-    public void setDatatablealign(PColCsv node)
+    public void setDatatablealign(PFlexSelectorRow node)
     {
         if(this._datatablealign_ != null)
         {
@@ -183,6 +193,56 @@ public final class AVizChange extends PVizChange
         }
 
         this._datatablealign_ = node;
+    }
+
+    public TComma getC2()
+    {
+        return this._c2_;
+    }
+
+    public void setC2(TComma node)
+    {
+        if(this._c2_ != null)
+        {
+            this._c2_.parent(null);
+        }
+
+        if(node != null)
+        {
+            if(node.parent() != null)
+            {
+                node.parent().removeChild(node);
+            }
+
+            node.parent(this);
+        }
+
+        this._c2_ = node;
+    }
+
+    public PMapObj getUioptions()
+    {
+        return this._uioptions_;
+    }
+
+    public void setUioptions(PMapObj node)
+    {
+        if(this._uioptions_ != null)
+        {
+            this._uioptions_.parent(null);
+        }
+
+        if(node != null)
+        {
+            if(node.parent() != null)
+            {
+                node.parent().removeChild(node);
+            }
+
+            node.parent(this);
+        }
+
+        this._uioptions_ = node;
     }
 
     public TRPar getRPar()
@@ -214,11 +274,13 @@ public final class AVizChange extends PVizChange
     public String toString()
     {
         return ""
-            + toString(this._vizchange_)
+            + toString(this._panelviz_)
             + toString(this._lPar_)
             + toString(this._layout_)
-            + toString(this._comma_)
+            + toString(this._c1_)
             + toString(this._datatablealign_)
+            + toString(this._c2_)
+            + toString(this._uioptions_)
             + toString(this._rPar_);
     }
 
@@ -226,9 +288,9 @@ public final class AVizChange extends PVizChange
     void removeChild(@SuppressWarnings("unused") Node child)
     {
         // Remove child
-        if(this._vizchange_ == child)
+        if(this._panelviz_ == child)
         {
-            this._vizchange_ = null;
+            this._panelviz_ = null;
             return;
         }
 
@@ -244,15 +306,27 @@ public final class AVizChange extends PVizChange
             return;
         }
 
-        if(this._comma_ == child)
+        if(this._c1_ == child)
         {
-            this._comma_ = null;
+            this._c1_ = null;
             return;
         }
 
         if(this._datatablealign_ == child)
         {
             this._datatablealign_ = null;
+            return;
+        }
+
+        if(this._c2_ == child)
+        {
+            this._c2_ = null;
+            return;
+        }
+
+        if(this._uioptions_ == child)
+        {
+            this._uioptions_ = null;
             return;
         }
 
@@ -269,9 +343,9 @@ public final class AVizChange extends PVizChange
     void replaceChild(@SuppressWarnings("unused") Node oldChild, @SuppressWarnings("unused") Node newChild)
     {
         // Replace child
-        if(this._vizchange_ == oldChild)
+        if(this._panelviz_ == oldChild)
         {
-            setVizchange((TVizchange) newChild);
+            setPanelviz((TPanelviz) newChild);
             return;
         }
 
@@ -287,15 +361,27 @@ public final class AVizChange extends PVizChange
             return;
         }
 
-        if(this._comma_ == oldChild)
+        if(this._c1_ == oldChild)
         {
-            setComma((TComma) newChild);
+            setC1((TComma) newChild);
             return;
         }
 
         if(this._datatablealign_ == oldChild)
         {
-            setDatatablealign((PColCsv) newChild);
+            setDatatablealign((PFlexSelectorRow) newChild);
+            return;
+        }
+
+        if(this._c2_ == oldChild)
+        {
+            setC2((TComma) newChild);
+            return;
+        }
+
+        if(this._uioptions_ == oldChild)
+        {
+            setUioptions((PMapObj) newChild);
             return;
         }
 

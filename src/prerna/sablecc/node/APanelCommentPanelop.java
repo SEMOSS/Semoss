@@ -5,46 +5,46 @@ package prerna.sablecc.node;
 import prerna.sablecc.analysis.*;
 
 @SuppressWarnings("nls")
-public final class ABlankWordOrBlank extends PWordOrBlank
+public final class APanelCommentPanelop extends PPanelop
 {
-    private TSpace _space_;
+    private PPanelComment _panelComment_;
 
-    public ABlankWordOrBlank()
+    public APanelCommentPanelop()
     {
         // Constructor
     }
 
-    public ABlankWordOrBlank(
-        @SuppressWarnings("hiding") TSpace _space_)
+    public APanelCommentPanelop(
+        @SuppressWarnings("hiding") PPanelComment _panelComment_)
     {
         // Constructor
-        setSpace(_space_);
+        setPanelComment(_panelComment_);
 
     }
 
     @Override
     public Object clone()
     {
-        return new ABlankWordOrBlank(
-            cloneNode(this._space_));
+        return new APanelCommentPanelop(
+            cloneNode(this._panelComment_));
     }
 
     @Override
     public void apply(Switch sw)
     {
-        ((Analysis) sw).caseABlankWordOrBlank(this);
+        ((Analysis) sw).caseAPanelCommentPanelop(this);
     }
 
-    public TSpace getSpace()
+    public PPanelComment getPanelComment()
     {
-        return this._space_;
+        return this._panelComment_;
     }
 
-    public void setSpace(TSpace node)
+    public void setPanelComment(PPanelComment node)
     {
-        if(this._space_ != null)
+        if(this._panelComment_ != null)
         {
-            this._space_.parent(null);
+            this._panelComment_.parent(null);
         }
 
         if(node != null)
@@ -57,23 +57,23 @@ public final class ABlankWordOrBlank extends PWordOrBlank
             node.parent(this);
         }
 
-        this._space_ = node;
+        this._panelComment_ = node;
     }
 
     @Override
     public String toString()
     {
         return ""
-            + toString(this._space_);
+            + toString(this._panelComment_);
     }
 
     @Override
     void removeChild(@SuppressWarnings("unused") Node child)
     {
         // Remove child
-        if(this._space_ == child)
+        if(this._panelComment_ == child)
         {
-            this._space_ = null;
+            this._panelComment_ = null;
             return;
         }
 
@@ -84,9 +84,9 @@ public final class ABlankWordOrBlank extends PWordOrBlank
     void replaceChild(@SuppressWarnings("unused") Node oldChild, @SuppressWarnings("unused") Node newChild)
     {
         // Replace child
-        if(this._space_ == oldChild)
+        if(this._panelComment_ == oldChild)
         {
-            setSpace((TSpace) newChild);
+            setPanelComment((PPanelComment) newChild);
             return;
         }
 
