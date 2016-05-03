@@ -7,6 +7,7 @@ import java.util.Set;
 import java.util.Vector;
 
 import prerna.engine.api.IEngine;
+import prerna.engine.api.IScriptReactor;
 import prerna.engine.api.ISelectStatement;
 import prerna.ui.components.playsheets.datamakers.IDataMaker;
 
@@ -539,4 +540,6 @@ public interface ITableDataFrame extends IDataMaker {
 	void filter(String columnHeader, List<Object> filterValues, String comparator);
 	
 	void addRelationship(String[] headers, Object[] values, Object[] rawValues, Map<Integer, Set<Integer>> cardinality, Map<String, String> logicalToValMap);
+	
+	IScriptReactor getImportDataReactor();
 }
