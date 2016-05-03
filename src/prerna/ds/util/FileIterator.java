@@ -62,7 +62,8 @@ public class FileIterator implements Iterator<IHeadersDataRow>{
 		for(int i = 0; i < types.length; i++) {
 			types[i] = this.dataTypeMap.get(headers[i]);
 		}
-		getNextRow();
+		helper.getNextRow(); // this will get the headers
+		getNextRow(); // this will get the first row of the file
 //		nextRow = helper.getNextRow();
 	}
 	
@@ -94,17 +95,28 @@ public class FileIterator implements Iterator<IHeadersDataRow>{
 	
 	public void getNextRow() {
 		String[] row = helper.getNextRow();
+		if(filters == null || filters.isEmpty()) {
+			this.nextRow = row;
+			return;
+		}
+		
+		//TODO: look into this filter logic
 		String[] newRow = null;
 		while(newRow == null && (row != null)) {
 			for(int i = 0; i < row.length; i++) {
 				Set<Object> nextSet = filters.get(headers[i]);
-				if(nextSet != null && nextSet.contains(row[i])) {
-					newRow = row;
-					break;
+				if(nextSet != null ){
+					if(nextSet.contains(row[i])) {
+						newRow = row;
+					}
+					else {
+						newRow = null;
+						break;
+					}
 				}
 			}
 			if(newRow == null) {
-				newRow = helper.getNextRow();
+				row = helper.getNextRow();
 			}
 		}
 		

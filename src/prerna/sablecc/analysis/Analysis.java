@@ -78,11 +78,11 @@ public interface Analysis extends Switch
     void caseAEasyGroup(AEasyGroup node);
     void caseACsvTable(ACsvTable node);
     void caseAColCsv(AColCsv node);
-    void caseATermGroup(ATermGroup node);
-    void caseAFlexSelectorRow(AFlexSelectorRow node);
     void caseANumWordOrNum(ANumWordOrNum node);
     void caseAAlphaWordOrNum(AAlphaWordOrNum node);
     void caseAExprWordOrNum(AExprWordOrNum node);
+    void caseAFlexSelectorRow(AFlexSelectorRow node);
+    void caseATermGroup(ATermGroup node);
     void caseAFormula(AFormula node);
     void caseACsvGroup(ACsvGroup node);
     void caseAExprRow(AExprRow node);

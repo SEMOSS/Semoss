@@ -52,26 +52,27 @@ public class QueryAPI implements IApi {
 		} 
 		else {
 			Hashtable<String, Vector<String>> selectorSet = qs.getSelectors();
-			String fileName = "C:\\Users\\rluthar\\Documents\\"+values.get(params[1])+".csv";
+			String fileName = values.get(params[1]) + "";
 			return new FileIterator(fileName, qs, null);
+//			return null;
 		}
 		
 		//return null;
 	}
-	
+
 	private void loadEngine4Test(){
-		File f = new File("C:\\workspace\\Semoss_Dev\\RDF_Map.prop");
+		File f = new File("C:\\Users\\bisutton\\workspace\\SEMOSSDev\\RDF_Map.prop");
 		if(f.exists() && !f.isDirectory()) { 
-			DIHelper.getInstance().loadCoreProp("C:\\workspace\\Semoss_Dev\\RDF_Map.prop");
+			DIHelper.getInstance().loadCoreProp("C:\\Users\\bisutton\\workspace\\SEMOSSDev\\RDF_Map.prop");
 			FileInputStream fileIn = null;
 			try{
 				Properties prop = new Properties();
-				String fileName = "C:\\workspace\\Semoss_Dev\\db\\MovieDatabase.smss";
+				String fileName = "C:\\Users\\bisutton\\workspace\\SEMOSSDev\\db\\UpdatedRDBMSMovies.smss";
 				fileIn = new FileInputStream(fileName);
 				prop.load(fileIn);
 				System.err.println("Loading DB " + fileName);
 				Utility.loadEngine(fileName, prop);
-				fileName = "C:\\workspace\\Semoss_Dev\\db\\MovieDatabase.smss";
+				fileName = "C:\\Users\\bisutton\\workspace\\SEMOSSDev\\db\\Movie_DB.smss";
 				fileIn = new FileInputStream(fileName);
 				prop.load(fileIn);
 				System.err.println("Loading DB " + fileName);

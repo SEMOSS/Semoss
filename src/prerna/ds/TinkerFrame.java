@@ -1242,7 +1242,7 @@ public class TinkerFrame extends AbstractTableDataFrame {
 		}
 		
 		String nextPrimKey = rowString.hashCode()+"";
-		Vertex primVertex = upsertVertex(PRIM_KEY, nextPrimKey, nextPrimKey);
+		Vertex primVertex = upsertVertex(PRIM_KEY+ "_" + headerNames.toString(), nextPrimKey, nextPrimKey);
 		
 		for(Vertex toVertex : toVertices) {
 			this.upsertEdge(primVertex, toVertex);
