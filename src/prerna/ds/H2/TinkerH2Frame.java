@@ -790,13 +790,13 @@ public class TinkerH2Frame extends AbstractTableDataFrame {
 	}
 	
 	@Override
-	public void connectTypes(String outType, String inType) {
+	public void connectTypes(String outType, String inType, Map<String, String> dataTypeMap) {
 
 		Map<String, Set<String>> edgeHash = new HashMap<>();
 		Set<String> set = new HashSet<>();
 		set.add(inType);
 		edgeHash.put(outType, set);
-		mergeEdgeHash(edgeHash);
+		mergeEdgeHash(edgeHash, dataTypeMap);
 
 	}
 	
@@ -837,8 +837,18 @@ public class TinkerH2Frame extends AbstractTableDataFrame {
 	}
 	
 	@Override
-	public void mergeEdgeHash(Map<String, Set<String>> primKeyEdgeHash) {
+	public void mergeEdgeHash(Map<String, Set<String>> primKeyEdgeHash, Map<String, String> dataTypeMap) {
+		
 		TinkerMetaHelper.mergeEdgeHash(this.metaData, primKeyEdgeHash, getNode2ValueHash(primKeyEdgeHash));
+		
+		if(dataTypeMap != null) {
+			for(String key : dataTypeMap.keySet()) {
+				String type = dataTypeMap.get(key);
+				if(type == null) type = "STRING";
+				this.metaData.storeDataType(key, type);
+			}
+		}
+		
     	List<String> fullNames = this.metaData.getColumnNames();
     	this.headerNames = fullNames.toArray(new String[fullNames.size()]);
 		String[] headers = this.headerNames;
@@ -862,9 +872,7 @@ public class TinkerH2Frame extends AbstractTableDataFrame {
 	}
 
 	@Override
-	public void join(ITableDataFrame table, String colNameInTable, String colNameInJoiningTable,
-			double confidenceThreshold, IMatcher routine) {
-		// TODO Auto-generated method stub
+	public void join(ITableDataFrame table, String colNameInTable, String colNameInJoiningTable, double confidenceThreshold, IMatcher routine) {
 		
 	}
 
@@ -873,9 +881,8 @@ public class TinkerH2Frame extends AbstractTableDataFrame {
 	}
 	
 	@Override
-	public void connectTypes(String[] joinCols, String newCol) {
-		connectTypes(joinCols[0], newCol); 
-		
+	public void connectTypes(String[] joinCols, String newCol, Map<String, String> dataTypeMap) {
+		connectTypes(joinCols[0], newCol, dataTypeMap); 
 	}
 
 	@Override

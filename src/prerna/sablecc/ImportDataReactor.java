@@ -62,26 +62,49 @@ public class ImportDataReactor extends AbstractReactor {
 			if(engine != null) {
 				mergedMaps = frame.mergeQSEdgeHash(edgeHash, engine, joinCols);
 			} else {
-				frame.mergeEdgeHash(edgeHash);
+				it  = (Iterator) myStore.get(PKQLEnum.API);
+				Map<String, String> dataType = new HashMap<>();
+				String[] types = new String[]{};
+				String[] headers = new String[]{};
+				if(it instanceof FileIterator) {
+					types = ((FileIterator) it).getTypes();
+					headers = ((FileIterator) it).getHeaders();
+				} 
+				
+				for(int i = 0; i < headers.length;i++) {
+					dataType.put(headers[i], types[i]);
+				}
+				frame.mergeEdgeHash(edgeHash, dataType);
 			}
 			it  = (Iterator) myStore.get(PKQLEnum.API);
 			
 		} else if(myStore.containsKey(PKQLEnum.CSV_TABLE)) {
 			Map<String, Set<String>> edgeHash = (Map<String, Set<String>>) this.getValue(PKQLEnum.CSV_TABLE + "_EDGE_HASH");
-			frame.mergeEdgeHash(edgeHash);
-
 			it = (Iterator) myStore.get(PKQLEnum.CSV_TABLE);
+			
+			Map<String, String> dataType = new HashMap<>();
+			String[] types = new String[]{};
+			String[] headers = new String[]{};
+			if(it instanceof CsvTableWrapper) {
+				types = ((FileIterator) it).getTypes();
+				headers = ((FileIterator) it).getHeaders();
+			}
+			
+			for(int i = 0; i < headers.length;i++) {
+				dataType.put(headers[i], types[i]);
+			}
+			frame.mergeEdgeHash(edgeHash, dataType);
 		}
 		
 		
 		// need to make all these wrappers that give a IHeaderDataRow be the same type to get this info
-		if(it instanceof FileIterator) {
-			String[] types = ((FileIterator) it).getTypes();
-			frame.addMetaDataTypes( ((FileIterator) it).getHeaders(), types);
-		} else if(it instanceof CsvTableWrapper) {
-			String[] types = ((CsvTableWrapper) it).getTypes();
-			frame.addMetaDataTypes( ((CsvTableWrapper) it).getHeaders(), types);
-		}
+//		if(it instanceof FileIterator) {
+//			String[] types = ((FileIterator) it).getTypes();
+//			frame.addMetaDataTypes( ((FileIterator) it).getHeaders(), types);
+//		} else if(it instanceof CsvTableWrapper) {
+//			String[] types = ((CsvTableWrapper) it).getTypes();
+//			frame.addMetaDataTypes( ((CsvTableWrapper) it).getHeaders(), types);
+//		}
 		
 		IScriptReactor reactor = frame.getImportDataReactor();
 		reactor.put("iterator", it);

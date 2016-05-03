@@ -507,11 +507,11 @@ public interface ITableDataFrame extends IDataMaker {
 
 	Map<String, Set<String>> createPrimKeyEdgeHash(String[] headers);
 
-	void mergeEdgeHash(Map<String, Set<String>> primKeyEdgeHash);
+	void mergeEdgeHash(Map<String, Set<String>> primKeyEdgeHash, Map<String, String> dataTypeMap);
 
 	void addMetaDataTypes(String[] headers, String[] types);
 
-	void connectTypes(String outType, String inType);
+	void connectTypes(String outType, String inType, Map<String, String> dataTypeMap);
 
 	void addRelationship(Map<String, Object> cleanRow, Map<String, Object> rawRow);
 
@@ -527,7 +527,7 @@ public interface ITableDataFrame extends IDataMaker {
 
 	List<Map<String, String>>  getTableHeaderObjects();
 
-	void connectTypes(String[] joinCols, String newCol);
+	void connectTypes(String[] joinCols, String newCol, Map<String, String> dataTypeMap);
 
 	void addRow(Object[] cleanCells, Object[] rawCells, String[] headers);
 

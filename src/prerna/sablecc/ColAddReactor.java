@@ -11,6 +11,7 @@ import prerna.algorithm.api.ITableDataFrame;
 import prerna.ds.ExpressionIterator;
 import prerna.ds.TinkerMetaHelper;
 import prerna.engine.api.ISelectStatement;
+import prerna.util.Utility;
 
 public class ColAddReactor extends AbstractReactor {
 	
@@ -66,25 +67,35 @@ public class ColAddReactor extends AbstractReactor {
 		} else if (value instanceof Map){ // this will be the case when we are adding group by data
 			// this map is in the form { {groupedColName=groupedColValue} = calculatedValue }
 			Map vMap = (Map) value;
+			boolean addMetaData = true;
 			for(Object mapKey : vMap.keySet())
 			{
-//				it = getTinkerData(cols, frame);
 				Vector<String> cols2 = new Vector<String>();
-//				it = new ExpressionIterator(it, joinCols, vMap.get(mapKey).toString());
 				for(Object key : ((Map)mapKey).keySet()){
-//					((ExpressionIterator)it).setBinding(key+"", ((Map)mapKey).get(key));
 					cols2.add(key+"");
 				}
 				String[] joinColss = convertVectorToArray(cols2);
-//				processIt(it, frame, joinColss, newCol);
 				
-				frame.connectTypes(joinColss, newCol);
+				
 				Map mk = (Map)mapKey;
 				Map<String, Object> row = new HashMap<>();
 				for(Object key : mk.keySet()) {
 					row.put(key+"", mk.get(key));
 				}
+				
+				Object newVal = vMap.get(mapKey);
 				row.put(newCol, vMap.get(mapKey));
+				
+				if(addMetaData) {
+					Object[] newType = Utility.findTypes(newVal.toString());
+					String type = "";
+					type = newType[0].toString();
+					Map<String, String> dataType = new HashMap<>(1);
+					dataType.put(newCol, type);
+					frame.connectTypes(joinColss, newCol, dataType);
+					addMetaData = false;
+				}
+				
 				frame.addRelationship(row, row);
 			}
 		} else {
@@ -97,7 +108,8 @@ public class ColAddReactor extends AbstractReactor {
 
 	private void processIt(Iterator it, ITableDataFrame frame, String[] joinCols, String newCol) {
 		if(it.hasNext()) {
-			frame.connectTypes(joinCols, newCol);
+			
+			boolean addMetaData = true;
 		
 			if (joinCols.length > 1) { // multicolumn join
 				String primKeyName = TinkerMetaHelper.getPrimaryKey(joinCols);
@@ -118,6 +130,17 @@ public class ColAddReactor extends AbstractReactor {
 						}
 					}
 					row.put(primKeyName, TinkerMetaHelper.getPrimaryKey(values));
+					
+					if(addMetaData) {
+						Object[] newType = Utility.findTypes(newVal.toString());
+						String type = "";
+						type = newType[0].toString();
+						Map<String, String> dataType = new HashMap<>(1);
+						dataType.put(newCol, type);
+						frame.connectTypes(joinCols, newCol, dataType);
+						addMetaData = false;
+					}
+					
 					frame.addRelationship(row, row);
 				}
 				myStore.put("STATUS", "SUCCESS");			
@@ -138,6 +161,15 @@ public class ColAddReactor extends AbstractReactor {
 				if (newVal instanceof ISelectStatement) {
 					System.out.println(((ISelectStatement)newVal).getPropHash());
 				}
+					if(addMetaData) {
+						Object[] newType = Utility.findTypes(newVal.toString());
+						String type = "";
+						type = newType[0].toString();
+						Map<String, String> dataType = new HashMap<>(1);
+						dataType.put(newCol, type);
+						frame.connectTypes(joinCols, newCol, dataType);
+						addMetaData = false;
+					}
 					frame.addRelationship(row, row);
 				}
 				myStore.put("STATUS", "SUCCESS");

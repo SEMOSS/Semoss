@@ -198,7 +198,9 @@ public class LOF implements IAnalyticTransformationRoutine {
 			this.changedColumn = attributeName + "_LOP_" + counter;
 		}
 		
-		dataFrame.connectTypes(attributeName, changedColumn);
+		Map<String, String> dataType = new HashMap<String, String>();
+		dataType.put(changedColumn, "DOUBLE");
+		dataFrame.connectTypes(attributeName, changedColumn, dataType);
 		for(Object instance : results.keySet()) {
 			Double val = results.get(instance);
 

@@ -96,7 +96,9 @@ public class MultiClusteringRoutine implements IAnalyticTransformationRoutine {
 			this.clusterColName = attributeName + "_CLUSTER_" + counter;
 		}
 
-		dataFrame.connectTypes(attributeName, clusterColName);
+		Map<String, String> dataType = new HashMap<String, String>();
+		dataType.put(clusterColName, "DOUBLE");
+		dataFrame.connectTypes(attributeName, clusterColName, dataType);
 		for(Object instance : results.keySet()) {
 			int val = results.get(instance);
 
