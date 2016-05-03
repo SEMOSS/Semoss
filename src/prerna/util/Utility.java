@@ -2093,6 +2093,41 @@ public class Utility {
 		}
 		return retMapping;
 	}
+	
+	public static String getRawDataType(String cleanDataType) {
+		if(cleanDataType == null || cleanDataType.isEmpty()) {
+			return "VARCHAR(800)";
+		}
+		cleanDataType = cleanDataType.toUpperCase();
+		
+		if(cleanDataType.equals("STRING")) {
+			return "VARCHAR(800)";
+		}
+		
+		// currently send double and date, which are the same as raw data type
+		return cleanDataType;
+	}
+	
+	public static String getCleanDataType(String origDataType) {
+		if(origDataType == null || origDataType.isEmpty()) {
+			return "STRING";
+		}
+		origDataType = origDataType.toUpperCase();
+		
+		if(origDataType.equals("DOUBLE") || origDataType.equals("INT")) {
+			return "DOUBLE";
+		}
+		
+		if(origDataType.contains("DATE")) {
+			return "DATE";
+		}
+		
+		if(origDataType.contains("VARCHAR")) {
+			return "STRING";
+		}
+		
+		return "STRING";
+	}
 
 	
 }
