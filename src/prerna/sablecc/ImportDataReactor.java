@@ -90,7 +90,7 @@ public class ImportDataReactor extends AbstractReactor {
 //				System.out.println("Got headers: " + Arrays.toString(headers));
 
 				// TODO: annoying, need to determine if i need to create a prim key edge hash
-				if(cardinality.isEmpty()) {
+				if(mergedMaps[0] == null && cardinality.isEmpty()) {
 					Map<String, Set<String>> primKeyEdgeHash = frame.createPrimKeyEdgeHash(headers);
 					frame.mergeEdgeHash(primKeyEdgeHash);
 					isPrimKey = true;
