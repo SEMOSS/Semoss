@@ -354,7 +354,7 @@ public abstract class AbstractTableDataFrame implements ITableDataFrame {
 
 	@Override
 	public String[] getColumnHeaders() {
-		if(this.headerNames == null) {
+		if(this.headerNames == null || this.headerNames.length == 0) {
 			List<String> uniqueNames = this.metaData.getColumnNames();
 			headerNames = uniqueNames.toArray(new String[uniqueNames.size()]);
 		}
