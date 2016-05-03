@@ -272,7 +272,9 @@ public class Translation2 extends DepthFirstAdapter {
 		}
 		runner.addFeData("layout", layout);
 		runner.addFeData("dataTableKeys", alignTranslated);
-		runner.addFeData("uiOptions", node.getUioptions().toString().trim());
+		if(node.getUioptions()!=null){
+			runner.addFeData("uiOptions", node.getUioptions().toString().trim());
+		}
 		runner.setResponse("Successfully set layout to " + layout + " with alignment " + alignment);//
 		runner.setStatus("SUCCESS");
 		deinitReactor(PKQLEnum.VIZ, "", "");
@@ -281,6 +283,13 @@ public class Translation2 extends DepthFirstAdapter {
 	@Override 
 	public void inAPanelopScript(APanelopScript node){
 		runner.addFeData("type", "visual");
+		String nodeString = node.toString();
+		String id = "";
+		if(nodeString.startsWith("panel[")){
+			nodeString = nodeString.substring(nodeString.indexOf("[")+1);
+			id = nodeString.substring(0, nodeString.indexOf("]"));
+		}
+		runner.addFeData("id", id);
 	}
 
 	@Override
