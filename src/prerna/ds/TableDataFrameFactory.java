@@ -99,8 +99,12 @@ public class TableDataFrameFactory {
 					newEdgeHash.put(primKeyHeader, values);
 				}
 				
-				tf.mergeEdgeHash(newEdgeHash);
-				tf.addMetaDataTypes(headers, types);
+				Map<String, String> datatypes = new HashMap<>();
+				for(int x = 0; x < headers.length; x++) {
+					datatypes.put(headers[x], types[x]);
+				}
+				tf.mergeEdgeHash(newEdgeHash, datatypes);
+//				tf.addMetaDataTypes(headers, types);
 			}
 			
 			Object[] values = null;	
@@ -335,8 +339,12 @@ public class TableDataFrameFactory {
 			// no user defined edge hash, create prim key
 			edgeHash = dataFrame.createPrimKeyEdgeHash(headers);
 		}
-		dataFrame.mergeEdgeHash(edgeHash);
-		dataFrame.addMetaDataTypes(headers, types);
+		Map<String, String> datatypes = new HashMap<>();
+		for(int x = 0; x < headers.length; x++) {
+			datatypes.put(headers[x], types[x]);
+		}
+		dataFrame.mergeEdgeHash(edgeHash, datatypes);
+//		dataFrame.addMetaDataTypes(headers, types);
 		return dataFrame;
 	}
 	
