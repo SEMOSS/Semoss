@@ -847,7 +847,13 @@ public class TinkerH2Frame extends AbstractTableDataFrame {
 		
 		// alter table for new cols
 		Set<String> headersSet = new LinkedHashSet<String>();
-		headersSet.addAll(edgeHash.keySet());
+		for(String addHeader : edgeHash.keySet()) {
+			if(addHeader.contains("__")) {
+				headersSet.add(addHeader.split("__")[1]);
+			} else {
+				headersSet.add(addHeader);
+			}
+		}
 		for(String header : edgeHash.keySet()) {
 			Set<String> additionalHeaders = edgeHash.get(header);
 			if(additionalHeaders != null) {
@@ -864,7 +870,7 @@ public class TinkerH2Frame extends AbstractTableDataFrame {
 		String[] types = new String[headers.length];
 		for(int i = 0; i < types.length; i++) {
 			types[i] = engine.getDataTypes(engine.getTransformedNodeName(Constants.DISPLAY_URI + headers[i], false));
-			types[i] = types[i].replace("TYPE:", "");
+			types[i] = Utility.getRawDataType(types[i].replace("TYPE:", ""));
 		}
 		builder.alterTableNewColumns(headers, types); 
 		
