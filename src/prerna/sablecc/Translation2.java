@@ -15,6 +15,7 @@ import prerna.engine.api.IScriptReactor;
 import prerna.sablecc.PKQLEnum.PKQLReactor;
 import prerna.sablecc.analysis.DepthFirstAdapter;
 import prerna.sablecc.node.AAddColumn;
+import prerna.sablecc.node.AAlphaWordOrNum;
 import prerna.sablecc.node.AApiBlock;
 import prerna.sablecc.node.AApiImportBlock;
 import prerna.sablecc.node.AColCsv;
