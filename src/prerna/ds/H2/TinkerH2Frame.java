@@ -26,10 +26,12 @@ import prerna.ds.TinkerFrame;
 import prerna.ds.TinkerMetaData2;
 import prerna.ds.TinkerMetaHelper;
 import prerna.engine.api.IEngine;
+import prerna.engine.api.IScriptReactor;
 import prerna.engine.api.ISelectWrapper;
 import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.rdf.query.builder.IQueryInterpreter;
 import prerna.rdf.query.builder.SQLInterpreter;
+import prerna.sablecc.H2ImportDataReactor;
 import prerna.ui.components.playsheets.datamakers.DataMakerComponent;
 import prerna.ui.components.playsheets.datamakers.ISEMOSSTransformation;
 import prerna.ui.components.playsheets.datamakers.JoinTransformation;
@@ -39,7 +41,6 @@ import prerna.util.Utility;
 
 public class TinkerH2Frame extends AbstractTableDataFrame {
 
-	
 	private static final Logger LOGGER = LogManager.getLogger(TinkerH2Frame.class.getName());
 
 	H2Builder builder;
@@ -974,5 +975,10 @@ public class TinkerH2Frame extends AbstractTableDataFrame {
 			i++;
 		}
 		builder.deleteRow(columns, values);
+	}
+
+	@Override
+	public IScriptReactor getImportDataReactor() {
+		return new H2ImportDataReactor(this);
 	}
 }
