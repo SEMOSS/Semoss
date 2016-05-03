@@ -185,29 +185,29 @@ public class DepthFirstAdapter extends AnalysisAdapter
         outAHelpScript(node);
     }
 
-    public void inAVizopScript(AVizopScript node)
+    public void inAPanelopScript(APanelopScript node)
     {
         defaultIn(node);
     }
 
-    public void outAVizopScript(AVizopScript node)
+    public void outAPanelopScript(APanelopScript node)
     {
         defaultOut(node);
     }
 
     @Override
-    public void caseAVizopScript(AVizopScript node)
+    public void caseAPanelopScript(APanelopScript node)
     {
-        inAVizopScript(node);
-        if(node.getVizop() != null)
+        inAPanelopScript(node);
+        if(node.getPanelop() != null)
         {
-            node.getVizop().apply(this);
+            node.getPanelop().apply(this);
         }
         if(node.getSemicolon() != null)
         {
             node.getSemicolon().apply(this);
         }
-        outAVizopScript(node);
+        outAPanelopScript(node);
     }
 
     public void inAScript(AScript node)
@@ -483,65 +483,155 @@ public class DepthFirstAdapter extends AnalysisAdapter
         outARemoveDataColop(node);
     }
 
-    public void inAVizChangeVizop(AVizChangeVizop node)
+    public void inAPanelVizPanelop(APanelVizPanelop node)
     {
         defaultIn(node);
     }
 
-    public void outAVizChangeVizop(AVizChangeVizop node)
+    public void outAPanelVizPanelop(APanelVizPanelop node)
     {
         defaultOut(node);
     }
 
     @Override
-    public void caseAVizChangeVizop(AVizChangeVizop node)
+    public void caseAPanelVizPanelop(APanelVizPanelop node)
     {
-        inAVizChangeVizop(node);
-        if(node.getVizChange() != null)
+        inAPanelVizPanelop(node);
+        if(node.getPanelViz() != null)
         {
-            node.getVizChange().apply(this);
+            node.getPanelViz().apply(this);
         }
-        outAVizChangeVizop(node);
+        outAPanelVizPanelop(node);
     }
 
-    public void inAVizCommentVizop(AVizCommentVizop node)
+    public void inAPanelCommentPanelop(APanelCommentPanelop node)
     {
         defaultIn(node);
     }
 
-    public void outAVizCommentVizop(AVizCommentVizop node)
+    public void outAPanelCommentPanelop(APanelCommentPanelop node)
     {
         defaultOut(node);
     }
 
     @Override
-    public void caseAVizCommentVizop(AVizCommentVizop node)
+    public void caseAPanelCommentPanelop(APanelCommentPanelop node)
     {
-        inAVizCommentVizop(node);
-        if(node.getVizComment() != null)
+        inAPanelCommentPanelop(node);
+        if(node.getPanelComment() != null)
         {
-            node.getVizComment().apply(this);
+            node.getPanelComment().apply(this);
         }
-        outAVizCommentVizop(node);
+        outAPanelCommentPanelop(node);
     }
 
-    public void inAVizChange(AVizChange node)
+    public void inAKeyvalue(AKeyvalue node)
     {
         defaultIn(node);
     }
 
-    public void outAVizChange(AVizChange node)
+    public void outAKeyvalue(AKeyvalue node)
     {
         defaultOut(node);
     }
 
     @Override
-    public void caseAVizChange(AVizChange node)
+    public void caseAKeyvalue(AKeyvalue node)
     {
-        inAVizChange(node);
-        if(node.getVizchange() != null)
+        inAKeyvalue(node);
+        if(node.getWord1() != null)
         {
-            node.getVizchange().apply(this);
+            node.getWord1().apply(this);
+        }
+        if(node.getColon() != null)
+        {
+            node.getColon().apply(this);
+        }
+        if(node.getWord2() != null)
+        {
+            node.getWord2().apply(this);
+        }
+        outAKeyvalue(node);
+    }
+
+    public void inAKeyvalueGroup(AKeyvalueGroup node)
+    {
+        defaultIn(node);
+    }
+
+    public void outAKeyvalueGroup(AKeyvalueGroup node)
+    {
+        defaultOut(node);
+    }
+
+    @Override
+    public void caseAKeyvalueGroup(AKeyvalueGroup node)
+    {
+        inAKeyvalueGroup(node);
+        if(node.getComma() != null)
+        {
+            node.getComma().apply(this);
+        }
+        if(node.getKeyvalue() != null)
+        {
+            node.getKeyvalue().apply(this);
+        }
+        outAKeyvalueGroup(node);
+    }
+
+    public void inAMapObj(AMapObj node)
+    {
+        defaultIn(node);
+    }
+
+    public void outAMapObj(AMapObj node)
+    {
+        defaultOut(node);
+    }
+
+    @Override
+    public void caseAMapObj(AMapObj node)
+    {
+        inAMapObj(node);
+        if(node.getLCurlBracket() != null)
+        {
+            node.getLCurlBracket().apply(this);
+        }
+        if(node.getKeyvalue() != null)
+        {
+            node.getKeyvalue().apply(this);
+        }
+        {
+            List<PKeyvalueGroup> copy = new ArrayList<PKeyvalueGroup>(node.getKeyvalueGroup());
+            for(PKeyvalueGroup e : copy)
+            {
+                e.apply(this);
+            }
+        }
+        if(node.getRCurlBracket() != null)
+        {
+            node.getRCurlBracket().apply(this);
+        }
+        outAMapObj(node);
+    }
+
+    public void inAPanelViz(APanelViz node)
+    {
+        defaultIn(node);
+    }
+
+    public void outAPanelViz(APanelViz node)
+    {
+        defaultOut(node);
+    }
+
+    @Override
+    public void caseAPanelViz(APanelViz node)
+    {
+        inAPanelViz(node);
+        if(node.getPanelviz() != null)
+        {
+            node.getPanelviz().apply(this);
         }
         if(node.getLPar() != null)
         {
@@ -551,38 +641,46 @@ public class DepthFirstAdapter extends AnalysisAdapter
         {
             node.getLayout().apply(this);
         }
-        if(node.getComma() != null)
+        if(node.getC1() != null)
         {
-            node.getComma().apply(this);
+            node.getC1().apply(this);
         }
         if(node.getDatatablealign() != null)
         {
             node.getDatatablealign().apply(this);
         }
+        if(node.getC2() != null)
+        {
+            node.getC2().apply(this);
+        }
+        if(node.getUioptions() != null)
+        {
+            node.getUioptions().apply(this);
+        }
         if(node.getRPar() != null)
         {
             node.getRPar().apply(this);
         }
-        outAVizChange(node);
+        outAPanelViz(node);
     }
 
-    public void inAVizComment(AVizComment node)
+    public void inAPanelComment(APanelComment node)
     {
         defaultIn(node);
     }
 
-    public void outAVizComment(AVizComment node)
+    public void outAPanelComment(APanelComment node)
     {
         defaultOut(node);
     }
 
     @Override
-    public void caseAVizComment(AVizComment node)
+    public void caseAPanelComment(APanelComment node)
     {
-        inAVizComment(node);
-        if(node.getVizcomment() != null)
+        inAPanelComment(node);
+        if(node.getPanelcomment() != null)
         {
-            node.getVizcomment().apply(this);
+            node.getPanelcomment().apply(this);
         }
         if(node.getLPar() != null)
         {
@@ -620,7 +718,7 @@ public class DepthFirstAdapter extends AnalysisAdapter
         {
             node.getRPar().apply(this);
         }
-        outAVizComment(node);
+        outAPanelComment(node);
     }
 
     public void inAAddColumn(AAddColumn node)
@@ -1262,38 +1360,6 @@ public class DepthFirstAdapter extends AnalysisAdapter
         outASelector(node);
     }
 
-    public void inACodeblock(ACodeblock node)
-    {
-        defaultIn(node);
-    }
-
-    public void outACodeblock(ACodeblock node)
-    {
-        defaultOut(node);
-    }
-
-    @Override
-    public void caseACodeblock(ACodeblock node)
-    {
-        inACodeblock(node);
-        if(node.getLCurlBracket() != null)
-        {
-            node.getLCurlBracket().apply(this);
-        }
-        {
-            List<TAlphanumeric> copy = new ArrayList<TAlphanumeric>(node.getAlphanumeric());
-            for(TAlphanumeric e : copy)
-            {
-                e.apply(this);
-            }
-        }
-        if(node.getRCurlBracket() != null)
-        {
-            node.getRCurlBracket().apply(this);
-        }
-        outACodeblock(node);
-    }
-
     public void inAColWhere(AColWhere node)
     {
         defaultIn(node);
@@ -1924,6 +1990,67 @@ public class DepthFirstAdapter extends AnalysisAdapter
         outAColCsv(node);
     }
 
+    public void inATermGroup(ATermGroup node)
+    {
+        defaultIn(node);
+    }
+
+    public void outATermGroup(ATermGroup node)
+    {
+        defaultOut(node);
+    }
+
+    @Override
+    public void caseATermGroup(ATermGroup node)
+    {
+        inATermGroup(node);
+        if(node.getComma() != null)
+        {
+            node.getComma().apply(this);
+        }
+        if(node.getTerm() != null)
+        {
+            node.getTerm().apply(this);
+        }
+        outATermGroup(node);
+    }
+
+    public void inAFlexSelectorRow(AFlexSelectorRow node)
+    {
+        defaultIn(node);
+    }
+
+    public void outAFlexSelectorRow(AFlexSelectorRow node)
+    {
+        defaultOut(node);
+    }
+
+    @Override
+    public void caseAFlexSelectorRow(AFlexSelectorRow node)
+    {
+        inAFlexSelectorRow(node);
+        if(node.getLBracket() != null)
+        {
+            node.getLBracket().apply(this);
+        }
+        if(node.getTerm() != null)
+        {
+            node.getTerm().apply(this);
+        }
+        {
+            List<PTermGroup> copy = new ArrayList<PTermGroup>(node.getTermGroup());
+            for(PTermGroup e : copy)
+            {
+                e.apply(this);
+            }
+        }
+        if(node.getRBracket() != null)
+        {
+            node.getRBracket().apply(this);
+        }
+        outAFlexSelectorRow(node);
+    }
+
     public void inANumWordOrNum(ANumWordOrNum node)
     {
         defaultIn(node);
@@ -1985,101 +2112,6 @@ public class DepthFirstAdapter extends AnalysisAdapter
             node.getFormula().apply(this);
         }
         outAExprWordOrNum(node);
-    }
-
-    public void inAWord(AWord node)
-    {
-        defaultIn(node);
-    }
-
-    public void outAWord(AWord node)
-    {
-        defaultOut(node);
-    }
-
-    @Override
-    public void caseAWord(AWord node)
-    {
-        inAWord(node);
-        if(node.getL() != null)
-        {
-            node.getL().apply(this);
-        }
-        {
-            List<PWordOrBlank> copy = new ArrayList<PWordOrBlank>(node.getWordOrBlank());
-            for(PWordOrBlank e : copy)
-            {
-                e.apply(this);
-            }
-        }
-        if(node.getR() != null)
-        {
-            node.getR().apply(this);
-        }
-        outAWord(node);
-    }
-
-    public void inAIdWordOrBlank(AIdWordOrBlank node)
-    {
-        defaultIn(node);
-    }
-
-    public void outAIdWordOrBlank(AIdWordOrBlank node)
-    {
-        defaultOut(node);
-    }
-
-    @Override
-    public void caseAIdWordOrBlank(AIdWordOrBlank node)
-    {
-        inAIdWordOrBlank(node);
-        if(node.getId() != null)
-        {
-            node.getId().apply(this);
-        }
-        outAIdWordOrBlank(node);
-    }
-
-    public void inAWordOrBlank(AWordOrBlank node)
-    {
-        defaultIn(node);
-    }
-
-    public void outAWordOrBlank(AWordOrBlank node)
-    {
-        defaultOut(node);
-    }
-
-    @Override
-    public void caseAWordOrBlank(AWordOrBlank node)
-    {
-        inAWordOrBlank(node);
-        if(node.getNumber() != null)
-        {
-            node.getNumber().apply(this);
-        }
-        outAWordOrBlank(node);
-    }
-
-    public void inABlankWordOrBlank(ABlankWordOrBlank node)
-    {
-        defaultIn(node);
-    }
-
-    public void outABlankWordOrBlank(ABlankWordOrBlank node)
-    {
-        defaultOut(node);
-    }
-
-    @Override
-    public void caseABlankWordOrBlank(ABlankWordOrBlank node)
-    {
-        inABlankWordOrBlank(node);
-        if(node.getSpace() != null)
-        {
-            node.getSpace().apply(this);
-        }
-        outABlankWordOrBlank(node);
     }
 
     public void inAFormula(AFormula node)

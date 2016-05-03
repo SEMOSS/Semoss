@@ -5,14 +5,14 @@ package prerna.sablecc.node;
 import prerna.sablecc.analysis.*;
 
 @SuppressWarnings("nls")
-public final class TQuote extends Token
+public final class TPanelcomment extends Token
 {
-    public TQuote(String text)
+    public TPanelcomment(String text)
     {
         setText(text);
     }
 
-    public TQuote(String text, int line, int pos)
+    public TPanelcomment(String text, int line, int pos)
     {
         setText(text);
         setLine(line);
@@ -22,12 +22,12 @@ public final class TQuote extends Token
     @Override
     public Object clone()
     {
-      return new TQuote(getText(), getLine(), getPos());
+      return new TPanelcomment(getText(), getLine(), getPos());
     }
 
     @Override
     public void apply(Switch sw)
     {
-        ((Analysis) sw).caseTQuote(this);
+        ((Analysis) sw).caseTPanelcomment(this);
     }
 }

@@ -5,11 +5,11 @@ package prerna.sablecc.node;
 import prerna.sablecc.analysis.*;
 
 @SuppressWarnings("nls")
-public final class AVizComment extends PVizComment
+public final class APanelComment extends PPanelComment
 {
-    private TVizcomment _vizcomment_;
+    private TPanelcomment _panelcomment_;
     private TLPar _lPar_;
-    private PWord _text_;
+    private TWord _text_;
     private TComma _c1_;
     private TId _group_;
     private TComma _c2_;
@@ -18,15 +18,15 @@ public final class AVizComment extends PVizComment
     private PWordOrNum _location_;
     private TRPar _rPar_;
 
-    public AVizComment()
+    public APanelComment()
     {
         // Constructor
     }
 
-    public AVizComment(
-        @SuppressWarnings("hiding") TVizcomment _vizcomment_,
+    public APanelComment(
+        @SuppressWarnings("hiding") TPanelcomment _panelcomment_,
         @SuppressWarnings("hiding") TLPar _lPar_,
-        @SuppressWarnings("hiding") PWord _text_,
+        @SuppressWarnings("hiding") TWord _text_,
         @SuppressWarnings("hiding") TComma _c1_,
         @SuppressWarnings("hiding") TId _group_,
         @SuppressWarnings("hiding") TComma _c2_,
@@ -36,7 +36,7 @@ public final class AVizComment extends PVizComment
         @SuppressWarnings("hiding") TRPar _rPar_)
     {
         // Constructor
-        setVizcomment(_vizcomment_);
+        setPanelcomment(_panelcomment_);
 
         setLPar(_lPar_);
 
@@ -61,8 +61,8 @@ public final class AVizComment extends PVizComment
     @Override
     public Object clone()
     {
-        return new AVizComment(
-            cloneNode(this._vizcomment_),
+        return new APanelComment(
+            cloneNode(this._panelcomment_),
             cloneNode(this._lPar_),
             cloneNode(this._text_),
             cloneNode(this._c1_),
@@ -77,19 +77,19 @@ public final class AVizComment extends PVizComment
     @Override
     public void apply(Switch sw)
     {
-        ((Analysis) sw).caseAVizComment(this);
+        ((Analysis) sw).caseAPanelComment(this);
     }
 
-    public TVizcomment getVizcomment()
+    public TPanelcomment getPanelcomment()
     {
-        return this._vizcomment_;
+        return this._panelcomment_;
     }
 
-    public void setVizcomment(TVizcomment node)
+    public void setPanelcomment(TPanelcomment node)
     {
-        if(this._vizcomment_ != null)
+        if(this._panelcomment_ != null)
         {
-            this._vizcomment_.parent(null);
+            this._panelcomment_.parent(null);
         }
 
         if(node != null)
@@ -102,7 +102,7 @@ public final class AVizComment extends PVizComment
             node.parent(this);
         }
 
-        this._vizcomment_ = node;
+        this._panelcomment_ = node;
     }
 
     public TLPar getLPar()
@@ -130,12 +130,12 @@ public final class AVizComment extends PVizComment
         this._lPar_ = node;
     }
 
-    public PWord getText()
+    public TWord getText()
     {
         return this._text_;
     }
 
-    public void setText(PWord node)
+    public void setText(TWord node)
     {
         if(this._text_ != null)
         {
@@ -334,7 +334,7 @@ public final class AVizComment extends PVizComment
     public String toString()
     {
         return ""
-            + toString(this._vizcomment_)
+            + toString(this._panelcomment_)
             + toString(this._lPar_)
             + toString(this._text_)
             + toString(this._c1_)
@@ -350,9 +350,9 @@ public final class AVizComment extends PVizComment
     void removeChild(@SuppressWarnings("unused") Node child)
     {
         // Remove child
-        if(this._vizcomment_ == child)
+        if(this._panelcomment_ == child)
         {
-            this._vizcomment_ = null;
+            this._panelcomment_ = null;
             return;
         }
 
@@ -417,9 +417,9 @@ public final class AVizComment extends PVizComment
     void replaceChild(@SuppressWarnings("unused") Node oldChild, @SuppressWarnings("unused") Node newChild)
     {
         // Replace child
-        if(this._vizcomment_ == oldChild)
+        if(this._panelcomment_ == oldChild)
         {
-            setVizcomment((TVizcomment) newChild);
+            setPanelcomment((TPanelcomment) newChild);
             return;
         }
 
@@ -431,7 +431,7 @@ public final class AVizComment extends PVizComment
 
         if(this._text_ == oldChild)
         {
-            setText((PWord) newChild);
+            setText((TWord) newChild);
             return;
         }
 

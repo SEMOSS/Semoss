@@ -2,7 +2,7 @@
 
 package prerna.sablecc.node;
 
-public abstract class PVizChange extends Node
+public abstract class PKeyvalue extends Node
 {
     // Empty body
 }

@@ -150,8 +150,8 @@ public abstract class BaseReducerReactor extends MathReactor implements Expressi
 			while(groupByIterator.hasNext()){
 				Object[] groupByVals = (Object[])groupByIterator.next();
 				Map<String, Object> valMap = new HashMap<String, Object>();
-				for(String groupBy: groupBys){
-					valMap.put(groupBy, groupByVals[0]);
+				for(int i = 0; i < groupByVals.length; i++){
+					valMap.put(groupBys.get(i), groupByVals[i]);
 				}
 				Iterator iterator = getTinkerData(columns, frame, valMap);
 				Object finalValue = processAlgorithm(iterator, columnsArray);

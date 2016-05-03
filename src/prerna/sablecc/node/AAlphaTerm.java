@@ -7,7 +7,7 @@ import prerna.sablecc.analysis.*;
 @SuppressWarnings("nls")
 public final class AAlphaTerm extends PTerm
 {
-    private PWord _word_;
+    private TWord _word_;
 
     public AAlphaTerm()
     {
@@ -15,7 +15,7 @@ public final class AAlphaTerm extends PTerm
     }
 
     public AAlphaTerm(
-        @SuppressWarnings("hiding") PWord _word_)
+        @SuppressWarnings("hiding") TWord _word_)
     {
         // Constructor
         setWord(_word_);
@@ -35,12 +35,12 @@ public final class AAlphaTerm extends PTerm
         ((Analysis) sw).caseAAlphaTerm(this);
     }
 
-    public PWord getWord()
+    public TWord getWord()
     {
         return this._word_;
     }
 
-    public void setWord(PWord node)
+    public void setWord(TWord node)
     {
         if(this._word_ != null)
         {
@@ -86,7 +86,7 @@ public final class AAlphaTerm extends PTerm
         // Replace child
         if(this._word_ == oldChild)
         {
-            setWord((PWord) newChild);
+            setWord((TWord) newChild);
             return;
         }
 
