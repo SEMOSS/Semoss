@@ -549,7 +549,8 @@ public class Translation2 extends DepthFirstAdapter {
     
     @Override
     public void outAAlphaWordOrNum(AAlphaWordOrNum node) {
-        curReactor.set(PKQLEnum.WORD_OR_NUM, (node.getWord()+"").substring(1, (node.getWord()+"").length())); // remove the quotes
+    	String word = (node.getWord() + "").trim();
+        curReactor.set(PKQLEnum.WORD_OR_NUM, (word.substring(1, word.length()-1))); // remove the quotes
     }
 
     @Override
