@@ -55,7 +55,9 @@ public class H2ImportDataReactor extends AbstractReactor{
 			if(addRow || isPrimKey) {
 				frame.addRow(ss.getValues(), ss.getRawValues(), ss.getHeaders());
 			} else {
-				frame.addRelationship(ss.getHeaders(), ss.getValues(), ss.getRawValues(), cardinality, logicalToValue);
+				frame.processIterator(it, ss.getHeaders(), logicalToValue);
+				break;
+//				frame.addRelationship(ss.getHeaders(), ss.getValues(), ss.getRawValues(), cardinality, logicalToValue);
 			}
 		}
 		
