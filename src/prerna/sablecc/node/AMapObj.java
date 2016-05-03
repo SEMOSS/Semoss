@@ -6,26 +6,30 @@ import java.util.*;
 import prerna.sablecc.analysis.*;
 
 @SuppressWarnings("nls")
-public final class ACodeblock extends PCodeblock
+public final class AMapObj extends PMapObj
 {
     private TLCurlBracket _lCurlBracket_;
-    private final LinkedList<TAlphanumeric> _alphanumeric_ = new LinkedList<TAlphanumeric>();
+    private PKeyvalue _keyvalue_;
+    private final LinkedList<PKeyvalueGroup> _keyvalueGroup_ = new LinkedList<PKeyvalueGroup>();
     private TRCurlBracket _rCurlBracket_;
 
-    public ACodeblock()
+    public AMapObj()
     {
         // Constructor
     }
 
-    public ACodeblock(
+    public AMapObj(
         @SuppressWarnings("hiding") TLCurlBracket _lCurlBracket_,
-        @SuppressWarnings("hiding") List<?> _alphanumeric_,
+        @SuppressWarnings("hiding") PKeyvalue _keyvalue_,
+        @SuppressWarnings("hiding") List<?> _keyvalueGroup_,
         @SuppressWarnings("hiding") TRCurlBracket _rCurlBracket_)
     {
         // Constructor
         setLCurlBracket(_lCurlBracket_);
 
-        setAlphanumeric(_alphanumeric_);
+        setKeyvalue(_keyvalue_);
+
+        setKeyvalueGroup(_keyvalueGroup_);
 
         setRCurlBracket(_rCurlBracket_);
 
@@ -34,16 +38,17 @@ public final class ACodeblock extends PCodeblock
     @Override
     public Object clone()
     {
-        return new ACodeblock(
+        return new AMapObj(
             cloneNode(this._lCurlBracket_),
-            cloneList(this._alphanumeric_),
+            cloneNode(this._keyvalue_),
+            cloneList(this._keyvalueGroup_),
             cloneNode(this._rCurlBracket_));
     }
 
     @Override
     public void apply(Switch sw)
     {
-        ((Analysis) sw).caseACodeblock(this);
+        ((Analysis) sw).caseAMapObj(this);
     }
 
     public TLCurlBracket getLCurlBracket()
@@ -71,29 +76,54 @@ public final class ACodeblock extends PCodeblock
         this._lCurlBracket_ = node;
     }
 
-    public LinkedList<TAlphanumeric> getAlphanumeric()
+    public PKeyvalue getKeyvalue()
     {
-        return this._alphanumeric_;
+        return this._keyvalue_;
     }
 
-    public void setAlphanumeric(List<?> list)
+    public void setKeyvalue(PKeyvalue node)
     {
-        for(TAlphanumeric e : this._alphanumeric_)
+        if(this._keyvalue_ != null)
+        {
+            this._keyvalue_.parent(null);
+        }
+
+        if(node != null)
+        {
+            if(node.parent() != null)
+            {
+                node.parent().removeChild(node);
+            }
+
+            node.parent(this);
+        }
+
+        this._keyvalue_ = node;
+    }
+
+    public LinkedList<PKeyvalueGroup> getKeyvalueGroup()
+    {
+        return this._keyvalueGroup_;
+    }
+
+    public void setKeyvalueGroup(List<?> list)
+    {
+        for(PKeyvalueGroup e : this._keyvalueGroup_)
         {
             e.parent(null);
         }
-        this._alphanumeric_.clear();
+        this._keyvalueGroup_.clear();
 
         for(Object obj_e : list)
         {
-            TAlphanumeric e = (TAlphanumeric) obj_e;
+            PKeyvalueGroup e = (PKeyvalueGroup) obj_e;
             if(e.parent() != null)
             {
                 e.parent().removeChild(e);
             }
 
             e.parent(this);
-            this._alphanumeric_.add(e);
+            this._keyvalueGroup_.add(e);
         }
     }
 
@@ -127,7 +157,8 @@ public final class ACodeblock extends PCodeblock
     {
         return ""
             + toString(this._lCurlBracket_)
-            + toString(this._alphanumeric_)
+            + toString(this._keyvalue_)
+            + toString(this._keyvalueGroup_)
             + toString(this._rCurlBracket_);
     }
 
@@ -141,7 +172,13 @@ public final class ACodeblock extends PCodeblock
             return;
         }
 
-        if(this._alphanumeric_.remove(child))
+        if(this._keyvalue_ == child)
+        {
+            this._keyvalue_ = null;
+            return;
+        }
+
+        if(this._keyvalueGroup_.remove(child))
         {
             return;
         }
@@ -165,13 +202,19 @@ public final class ACodeblock extends PCodeblock
             return;
         }
 
-        for(ListIterator<TAlphanumeric> i = this._alphanumeric_.listIterator(); i.hasNext();)
+        if(this._keyvalue_ == oldChild)
+        {
+            setKeyvalue((PKeyvalue) newChild);
+            return;
+        }
+
+        for(ListIterator<PKeyvalueGroup> i = this._keyvalueGroup_.listIterator(); i.hasNext();)
         {
             if(i.next() == oldChild)
             {
                 if(newChild != null)
                 {
-                    i.set((TAlphanumeric) newChild);
+                    i.set((PKeyvalueGroup) newChild);
                     newChild.parent(this);
                     oldChild.parent(null);
                     return;

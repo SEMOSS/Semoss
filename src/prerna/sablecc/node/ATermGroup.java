@@ -5,51 +5,51 @@ package prerna.sablecc.node;
 import prerna.sablecc.analysis.*;
 
 @SuppressWarnings("nls")
-public final class AVizopScript extends PScript
+public final class ATermGroup extends PTermGroup
 {
-    private PVizop _vizop_;
-    private TSemicolon _semicolon_;
+    private TComma _comma_;
+    private PTerm _term_;
 
-    public AVizopScript()
+    public ATermGroup()
     {
         // Constructor
     }
 
-    public AVizopScript(
-        @SuppressWarnings("hiding") PVizop _vizop_,
-        @SuppressWarnings("hiding") TSemicolon _semicolon_)
+    public ATermGroup(
+        @SuppressWarnings("hiding") TComma _comma_,
+        @SuppressWarnings("hiding") PTerm _term_)
     {
         // Constructor
-        setVizop(_vizop_);
+        setComma(_comma_);
 
-        setSemicolon(_semicolon_);
+        setTerm(_term_);
 
     }
 
     @Override
     public Object clone()
     {
-        return new AVizopScript(
-            cloneNode(this._vizop_),
-            cloneNode(this._semicolon_));
+        return new ATermGroup(
+            cloneNode(this._comma_),
+            cloneNode(this._term_));
     }
 
     @Override
     public void apply(Switch sw)
     {
-        ((Analysis) sw).caseAVizopScript(this);
+        ((Analysis) sw).caseATermGroup(this);
     }
 
-    public PVizop getVizop()
+    public TComma getComma()
     {
-        return this._vizop_;
+        return this._comma_;
     }
 
-    public void setVizop(PVizop node)
+    public void setComma(TComma node)
     {
-        if(this._vizop_ != null)
+        if(this._comma_ != null)
         {
-            this._vizop_.parent(null);
+            this._comma_.parent(null);
         }
 
         if(node != null)
@@ -62,19 +62,19 @@ public final class AVizopScript extends PScript
             node.parent(this);
         }
 
-        this._vizop_ = node;
+        this._comma_ = node;
     }
 
-    public TSemicolon getSemicolon()
+    public PTerm getTerm()
     {
-        return this._semicolon_;
+        return this._term_;
     }
 
-    public void setSemicolon(TSemicolon node)
+    public void setTerm(PTerm node)
     {
-        if(this._semicolon_ != null)
+        if(this._term_ != null)
         {
-            this._semicolon_.parent(null);
+            this._term_.parent(null);
         }
 
         if(node != null)
@@ -87,30 +87,30 @@ public final class AVizopScript extends PScript
             node.parent(this);
         }
 
-        this._semicolon_ = node;
+        this._term_ = node;
     }
 
     @Override
     public String toString()
     {
         return ""
-            + toString(this._vizop_)
-            + toString(this._semicolon_);
+            + toString(this._comma_)
+            + toString(this._term_);
     }
 
     @Override
     void removeChild(@SuppressWarnings("unused") Node child)
     {
         // Remove child
-        if(this._vizop_ == child)
+        if(this._comma_ == child)
         {
-            this._vizop_ = null;
+            this._comma_ = null;
             return;
         }
 
-        if(this._semicolon_ == child)
+        if(this._term_ == child)
         {
-            this._semicolon_ = null;
+            this._term_ = null;
             return;
         }
 
@@ -121,15 +121,15 @@ public final class AVizopScript extends PScript
     void replaceChild(@SuppressWarnings("unused") Node oldChild, @SuppressWarnings("unused") Node newChild)
     {
         // Replace child
-        if(this._vizop_ == oldChild)
+        if(this._comma_ == oldChild)
         {
-            setVizop((PVizop) newChild);
+            setComma((TComma) newChild);
             return;
         }
 
-        if(this._semicolon_ == oldChild)
+        if(this._term_ == oldChild)
         {
-            setSemicolon((TSemicolon) newChild);
+            setTerm((PTerm) newChild);
             return;
         }
 

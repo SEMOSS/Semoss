@@ -2,7 +2,7 @@
 
 package prerna.sablecc.node;
 
-public abstract class PWordOrBlank extends Node
+public abstract class PPanelop extends Node
 {
     // Empty body
 }

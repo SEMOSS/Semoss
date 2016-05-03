@@ -2,7 +2,7 @@
 
 package prerna.sablecc.node;
 
-public abstract class PVizComment extends Node
+public abstract class PFlexSelectorRow extends Node
 {
     // Empty body
 }
