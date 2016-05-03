@@ -44,8 +44,6 @@ public class CsvTableWrapper implements Iterator{
 			}
 		}
 		IHeadersDataRow retObj = new HeadersDataRow(this.headers, cleanRow, currRow);
-		
-		
 		currIndex++;
 		return retObj;
 	}

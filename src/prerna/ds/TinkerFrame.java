@@ -51,6 +51,7 @@ import prerna.algorithm.api.IMatcher;
 import prerna.algorithm.api.ITableDataFrame;
 import prerna.engine.api.IConstructStatement;
 import prerna.engine.api.IEngine;
+import prerna.engine.api.IScriptReactor;
 import prerna.engine.api.ISelectStatement;
 import prerna.engine.api.ISelectWrapper;
 import prerna.om.SEMOSSEdge;
@@ -58,6 +59,7 @@ import prerna.om.SEMOSSVertex;
 import prerna.om.TinkerGraphDataModel;
 import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.rdf.query.builder.GremlinBuilder;
+import prerna.sablecc.TinkerImportDataReactor;
 import prerna.ui.components.playsheets.datamakers.DataMakerComponent;
 import prerna.ui.components.playsheets.datamakers.ISEMOSSTransformation;
 import prerna.ui.components.playsheets.datamakers.JoinTransformation;
@@ -2327,9 +2329,13 @@ public class TinkerFrame extends AbstractTableDataFrame {
 	}
 
 	@Override
-	public void removeRelationship(Map<String, Object> cleanRow,
-			Map<String, Object> rawRow) {
+	public void removeRelationship(Map<String, Object> cleanRow, Map<String, Object> rawRow) {
 		// TODO Auto-generated method stub
 		
+	}
+
+	@Override
+	public IScriptReactor getImportDataReactor() {
+		return new TinkerImportDataReactor(this);
 	}
 }
