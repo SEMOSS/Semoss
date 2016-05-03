@@ -27,14 +27,15 @@
  *******************************************************************************/
 package prerna.rdf.engine.wrappers;
 
-import java.util.Hashtable;
+import java.util.LinkedHashMap;
+import java.util.Map;
 
 import prerna.engine.api.ISelectStatement;
 
 public class SelectStatement implements ISelectStatement {
 	
-	transient public Hashtable propHash = new Hashtable();
-	transient public Hashtable rawPropHash = new Hashtable();
+	transient public Map propHash = new LinkedHashMap();
+	transient public Map rawPropHash = new LinkedHashMap();
 	String serialRep = null;
 
 	public Object getVar(Object var) {
@@ -47,21 +48,21 @@ public class SelectStatement implements ISelectStatement {
 		return rawPropHash.get(var);
 	}
 
-	public void setPropHash(Hashtable propHash) {
+	public void setPropHash(Map propHash) {
 		this.propHash = propHash;
 	}
 
-	public void setRPropHash(Hashtable rawPropHash) {
+	public void setRPropHash(Map rawPropHash) {
 		// TODO Auto-generated method stub
 		this.rawPropHash = rawPropHash;
 	}
 
-	public Hashtable getPropHash() {
+	public Map getPropHash() {
 		// TODO Auto-generated method stub
 		return propHash;
 	}
 
-	public Hashtable getRPropHash() {
+	public Map getRPropHash() {
 		// TODO Auto-generated method stub
 		return rawPropHash;
 	}
