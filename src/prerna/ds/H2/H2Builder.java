@@ -26,6 +26,7 @@ import com.univocity.parsers.csv.CsvParser;
 import com.univocity.parsers.csv.CsvParserSettings;
 
 import prerna.ds.TinkerFrame;
+import prerna.engine.api.IHeadersDataRow;
 import prerna.engine.api.ISelectStatement;
 import prerna.engine.api.ISelectWrapper;
 import prerna.util.ArrayUtilityMethods;
@@ -616,9 +617,8 @@ public class H2Builder {
     public void alterTableNewColumns(String[] headers, String[] types) {
     	try {
     		runQuery("CREATE TABLE IF NOT EXISTS " + tableName);
-			String[] currHeaders = getHeaders(tableName);
     		for(int i = 0; i < headers.length; i++) {
-    			if(!ArrayUtilityMethods.arrayContainsValue(currHeaders, headers[i].toUpperCase())) {
+    			if(!ArrayUtilityMethods.arrayContainsValue(getHeaders(tableName), headers[i].toUpperCase())) {
     				//alter the table
     				String[] newHeaders = new String[]{headers[i]};
     				String[] newTypes = new String[]{types[i]};
@@ -726,6 +726,18 @@ public class H2Builder {
     		processAlterData(data, newHeaders, headers);
     	}
     }
+    
+//    public void processIterator(Iterator<IHeadersDataRow> iterator) {
+//    	String[][] data = getData(iterator);
+//    	String[] newHeaders = ;
+//    	newHeaders = cleanHeaders(newHeaders);
+//    	if(headers == null) {
+//    		//create table
+//    		generateTable(data, newHeaders, tableName);
+//    	} else {
+//    		processAlterData(data, newHeaders, headers);
+//    	}
+//    }
     
     /**
      * 
@@ -892,6 +904,8 @@ public class H2Builder {
     	
     	return data.toArray(new String[][]{});
     }
+    
+    
     
 //    private String[] getRow(Map<String, Object> row) {
 //    	String[] rowData = new String[row.size()];
@@ -1373,9 +1387,12 @@ public class H2Builder {
     }
     
     protected static String cleanType(String type) {
+    	if(type == null) type = "VARCHAR(800)";
     	type = type.toUpperCase();
     	if(typeConversionMap.containsKey(type)) {
     		type = typeConversionMap.get(type);
+    	} else {
+    		type = "VARCHAR(800)";
     	}
     	return type;
     }
