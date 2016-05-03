@@ -15,6 +15,8 @@ public final class AApiBlock extends PApiBlock
     private PColCsv _selectors_;
     private PWhereStatement _where_;
     private PRelationClause _relations_;
+    private TComma _comma_;
+    private PMapObj _properties_;
     private TRPar _rPar_;
 
     public AApiBlock()
@@ -31,6 +33,8 @@ public final class AApiBlock extends PApiBlock
         @SuppressWarnings("hiding") PColCsv _selectors_,
         @SuppressWarnings("hiding") PWhereStatement _where_,
         @SuppressWarnings("hiding") PRelationClause _relations_,
+        @SuppressWarnings("hiding") TComma _comma_,
+        @SuppressWarnings("hiding") PMapObj _properties_,
         @SuppressWarnings("hiding") TRPar _rPar_)
     {
         // Constructor
@@ -50,6 +54,10 @@ public final class AApiBlock extends PApiBlock
 
         setRelations(_relations_);
 
+        setComma(_comma_);
+
+        setProperties(_properties_);
+
         setRPar(_rPar_);
 
     }
@@ -66,6 +74,8 @@ public final class AApiBlock extends PApiBlock
             cloneNode(this._selectors_),
             cloneNode(this._where_),
             cloneNode(this._relations_),
+            cloneNode(this._comma_),
+            cloneNode(this._properties_),
             cloneNode(this._rPar_));
     }
 
@@ -275,6 +285,56 @@ public final class AApiBlock extends PApiBlock
         this._relations_ = node;
     }
 
+    public TComma getComma()
+    {
+        return this._comma_;
+    }
+
+    public void setComma(TComma node)
+    {
+        if(this._comma_ != null)
+        {
+            this._comma_.parent(null);
+        }
+
+        if(node != null)
+        {
+            if(node.parent() != null)
+            {
+                node.parent().removeChild(node);
+            }
+
+            node.parent(this);
+        }
+
+        this._comma_ = node;
+    }
+
+    public PMapObj getProperties()
+    {
+        return this._properties_;
+    }
+
+    public void setProperties(PMapObj node)
+    {
+        if(this._properties_ != null)
+        {
+            this._properties_.parent(null);
+        }
+
+        if(node != null)
+        {
+            if(node.parent() != null)
+            {
+                node.parent().removeChild(node);
+            }
+
+            node.parent(this);
+        }
+
+        this._properties_ = node;
+    }
+
     public TRPar getRPar()
     {
         return this._rPar_;
@@ -312,6 +372,8 @@ public final class AApiBlock extends PApiBlock
             + toString(this._selectors_)
             + toString(this._where_)
             + toString(this._relations_)
+            + toString(this._comma_)
+            + toString(this._properties_)
             + toString(this._rPar_);
     }
 
@@ -364,6 +426,18 @@ public final class AApiBlock extends PApiBlock
         if(this._relations_ == child)
         {
             this._relations_ = null;
+            return;
+        }
+
+        if(this._comma_ == child)
+        {
+            this._comma_ = null;
+            return;
+        }
+
+        if(this._properties_ == child)
+        {
+            this._properties_ = null;
             return;
         }
 
@@ -425,6 +499,18 @@ public final class AApiBlock extends PApiBlock
         if(this._relations_ == oldChild)
         {
             setRelations((PRelationClause) newChild);
+            return;
+        }
+
+        if(this._comma_ == oldChild)
+        {
+            setComma((TComma) newChild);
+            return;
+        }
+
+        if(this._properties_ == oldChild)
+        {
+            setProperties((PMapObj) newChild);
             return;
         }
 

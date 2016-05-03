@@ -1,8 +1,10 @@
 package prerna.sablecc;
 
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Hashtable;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.Vector;
@@ -57,8 +59,11 @@ public class ImportDataReactor extends AbstractReactor {
 		if(myStore.containsKey(PKQLEnum.API)) {			
 			Map<String, Set<String>> edgeHash = (Map<String, Set<String>>) this.getValue(PKQLEnum.API + "_EDGE_HASH");
 			engine = (IEngine) DIHelper.getInstance().getLocalProp((this.getValue(PKQLEnum.API + "_ENGINE")+"").trim());
-			mergedMaps = frame.mergeQSEdgeHash(edgeHash, engine, joinCols);
-
+			if(engine != null) {
+				mergedMaps = frame.mergeQSEdgeHash(edgeHash, engine, joinCols);
+			} else {
+				frame.mergeEdgeHash(edgeHash);
+			}
 			it  = (Iterator) myStore.get(PKQLEnum.API);
 			
 		} else if(myStore.containsKey(PKQLEnum.CSV_TABLE)) {
@@ -90,13 +95,13 @@ public class ImportDataReactor extends AbstractReactor {
 		// now run it
 		reactor.process();
 		
-//		List<Object[]> data = frame.getData();
-//		System.out.println("view data now");
-//		for(int i = 0; i < data.size() && i < 15; i++) {
-//			System.out.println(Arrays.toString(data.get(i)));
-//		}
-//		
-//		System.out.println(frame.getTableHeaderObjects());
+		List<Object[]> data = frame.getData();
+		System.out.println("view data now");
+		for(int i = 0; i < data.size() && i < 15; i++) {
+			System.out.println(Arrays.toString(data.get(i)));
+		}
+		
+		System.out.println(frame.getTableHeaderObjects());
 		
 		
 		// get rid of this bifurcation

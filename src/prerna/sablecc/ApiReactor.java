@@ -15,7 +15,7 @@ public class ApiReactor extends AbstractReactor {
 
 	public ApiReactor()
 	{
-		String [] thisReacts = {PKQLEnum.COL_CSV, PKQLEnum.FILTER, PKQLEnum.JOINS};
+		String [] thisReacts = {PKQLEnum.COL_CSV, PKQLEnum.FILTER, PKQLEnum.JOINS, "KEY_VALUE"};
 		super.whatIReactTo = thisReacts;
 		super.whoAmI = PKQLEnum.API;
 	}
@@ -38,11 +38,17 @@ public class ApiReactor extends AbstractReactor {
 
 		String engine = (String)myStore.get("ENGINE");
 		String insight = (String)myStore.get("INSIGHT");
-
+		String fileLocation = (String) ((Map) ((Vector) myStore.get("KEY_VALUE")).get(0)).get("file");
+		
+		
 		// I need to instantiate the engine here
 		// for now hard coding it
 		IApi qapi = new QueryAPI();
-		qapi.set("ENGINE", engine);
+		if(engine != null && !engine.equals("csvFile")) {
+			qapi.set("ENGINE", engine);
+		} else {
+			qapi.set("ENGINE", fileLocation);
+		}
 
 		Vector <String> selectors = new Vector<String>();
 		Vector <Hashtable> filters = new Vector<Hashtable>();
