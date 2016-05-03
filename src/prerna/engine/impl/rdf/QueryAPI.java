@@ -32,7 +32,7 @@ public class QueryAPI implements IApi {
 	public Iterator process() {
 		// get basic data
 		QueryStruct qs = (QueryStruct) values.get(params[0]); 
-		loadEngine4Test();
+//		loadEngine4Test();
 		IEngine engine = (IEngine) DIHelper.getInstance().getLocalProp((values.get(params[1]) + "").trim()); 
 		if(engine != null){
 //			loadEngine4Test();
