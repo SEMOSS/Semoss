@@ -5,6 +5,8 @@ import java.util.List;
 import java.util.Vector;
 
 import prerna.engine.api.IHeadersDataRow;
+import prerna.engine.impl.rdf.HeadersDataRow;
+import prerna.util.Utility;
 
 public class CsvTableWrapper implements Iterator{
 
@@ -29,41 +31,22 @@ public class CsvTableWrapper implements Iterator{
 	@Override
 	public IHeadersDataRow next() {
 		Object[] currRow = values.get(currIndex).toArray();
-		InnerRetObj retObj = new InnerRetObj(this.headers, currRow);
+		Object[] cleanRow = new Object[currRow.length];
+		for(int i = 0; i < currRow.length; i++) {
+			String val = currRow[i] + "";
+			String type = Utility.findTypes(val)[0] + "";
+			if(type.equalsIgnoreCase("Date")) {
+				cleanRow[i] = Utility.getDate(val);
+			} else if(type.equalsIgnoreCase("Double")) {
+				cleanRow[i] = Utility.getDouble(val);
+			} else {
+				cleanRow[i] = Utility.cleanString(val, true, true, false);
+			}
+		}
+		IHeadersDataRow retObj = new HeadersDataRow(this.headers, cleanRow, currRow);
+		
+		
 		currIndex++;
 		return retObj;
 	}
-	
-	
-	public class InnerRetObj implements IHeadersDataRow {
-
-		private String[] headers;
-		private Object[] dataRow;
-		
-		public InnerRetObj(String[] headers, Object[] dataRow) {
-			this.headers = headers;
-			this.dataRow = dataRow;
-		}
-		
-		@Override
-		public int getRecordLength() {
-			return this.headers.length;
-		}
-
-		@Override
-		public String[] getHeaders() {
-			return this.headers;
-		}
-
-		@Override
-		public Object[] getValues() {
-			return this.dataRow;
-		}
-
-		@Override
-		public Object[] getRawValues() {
-			return this.dataRow;
-		}
-	}
-
 }
