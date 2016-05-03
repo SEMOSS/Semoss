@@ -55,6 +55,7 @@ import prerna.algorithm.api.IAnalyticTransformationRoutine;
 import prerna.algorithm.api.IMatcher;
 import prerna.algorithm.api.ITableDataFrame;
 import prerna.engine.api.IEngine;
+import prerna.engine.api.IScriptReactor;
 import prerna.engine.api.ISelectStatement;
 import prerna.engine.api.ISelectWrapper;
 import prerna.math.BarChart;
@@ -2266,6 +2267,12 @@ public class BTreeDataFrame implements ITableDataFrame {
 			Map<Integer, Set<Integer>> cardinality, Map<String, String> logicalToValMap) {
 		// TODO Auto-generated method stub
 		
+	}
+
+	@Override
+	public IScriptReactor getImportDataReactor() {
+		// TODO Auto-generated method stub
+		return null;
 	}
 
 }
