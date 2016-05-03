@@ -11,14 +11,10 @@ import java.util.Vector;
 
 import prerna.algorithm.api.ITableDataFrame;
 import prerna.ds.H2.TinkerH2Frame;
-import prerna.ds.DataFrameHelper;
-import prerna.ds.TableDataFrameFactory;
 import prerna.ds.util.FileIterator;
 import prerna.engine.api.IEngine;
 import prerna.engine.api.IHeadersDataRow;
-import prerna.engine.api.ISelectStatement;
 import prerna.engine.api.ISelectWrapper;
-import prerna.ui.components.playsheets.datamakers.IDataMaker;
 import prerna.util.ArrayUtilityMethods;
 import prerna.util.DIHelper;
 import prerna.util.Utility;
@@ -47,6 +43,7 @@ public class ImportDataReactor extends AbstractReactor {
 		System.out.println("My Store on COL CSV " + myStore);
 
 		ITableDataFrame frame = (ITableDataFrame) myStore.get("G");
+		String[] startingHeaders = frame.getColumnHeaders();
 		// put the joins in a list to feed into merge edge hash
 		Vector<Map<String,String>> joinCols = new Vector<Map<String,String>>();
 		Vector<Map<String, String>> joins = (Vector<Map<String, String>>) myStore.get(PKQLEnum.JOINS);
@@ -98,17 +95,18 @@ public class ImportDataReactor extends AbstractReactor {
 
 				// TODO: need to have a smart way of determining when it is an "addRow" vs. "addRelationship"
 				// TODO: h2Builder addRelationship only does update query which does nothing if frame is empty
-				if((engine == null && frame.isEmpty()) || (frame instanceof TinkerH2Frame && allHeadersAccounted(frame.getColumnHeaders(), headers))) {
+				boolean empty = frame.isEmpty();
+				if((engine == null && empty) || (frame instanceof TinkerH2Frame && ( allHeadersAccounted(startingHeaders, headers) || empty ) )) {
 					addRow = true;
 				}
 			}
 
 			// TODO: need to have a smart way of determining when it is an "addRow" vs. "addRelationship"
 			// TODO: h2Builder addRelationship only does update query which does nothing if frame is empty
-			if(addRow && isPrimKey) {
-				frame.addRow(ss.getValues(), ss.getRawValues(), headers);
+			if(addRow || isPrimKey) {
+				frame.addRow(ss.getValues(), ss.getRawValues(), ss.getHeaders());
 			} else {
-				frame.addRelationship(headers, ss.getValues(), ss.getRawValues(), cardinality, mergedMaps[1]);
+				frame.addRelationship(ss.getHeaders(), ss.getValues(), ss.getRawValues(), cardinality, mergedMaps[1]);
 			}
 		}
 		

@@ -499,7 +499,7 @@ public abstract class AbstractTableDataFrame implements ITableDataFrame {
 	
 	@Override
 	public boolean isEmpty() {
-		return this.iterator(false).hasNext();
+		return !this.iterator(false).hasNext();
 	}
 
 	@Override

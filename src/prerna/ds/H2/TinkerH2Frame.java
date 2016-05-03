@@ -918,7 +918,30 @@ public class TinkerH2Frame extends AbstractTableDataFrame {
 		for(int i = 0; i < headers.length; i++) {
 			headers[i] = H2Builder.cleanHeader(headers[i]);
 		}
-		builder.updateTable(getH2Headers(), values, headers);
+		
+		String[] currHeaders = getH2Headers();
+		
+		for(int i = 0; i < headers.length-1; i++) {
+			String header1 = headers[i];
+			Object value1 = values[i];
+			for(int j = i+1; j < headers.length; j++) {
+				String header2 = headers[j];
+				Object value2 = values[j];
+
+				int index1 = ArrayUtilityMethods.arrayContainsValueAtIndex(currHeaders, header1);
+				int index2 = ArrayUtilityMethods.arrayContainsValueAtIndex(currHeaders, header2);
+
+				if(index2 < index1) {
+					headers[i] = header2;
+					values[i] = value2;
+
+					headers[j] = header1;
+					values[j] = value1;
+				}
+			}
+		}
+		
+		builder.updateTable(currHeaders, values, headers);
 	}
 
 	public String getJDBCURL() throws SQLException{
