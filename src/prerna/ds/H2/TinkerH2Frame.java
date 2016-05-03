@@ -842,7 +842,7 @@ public class TinkerH2Frame extends AbstractTableDataFrame {
 		String[] cleanHeaders = new String[headers.length];
 		String[] types = new String[headers.length];
 		for(int i = 0; i < types.length; i++) {
-			types[i] = this.metaData.getDataType(headers[i]);
+			types[i] = Utility.getRawDataType(this.metaData.getDataType(headers[i]));
 			cleanHeaders[i] = this.metaData.getValueForUniqueName(headers[i]);
 		}
 		builder.alterTableNewColumns(cleanHeaders, types);
