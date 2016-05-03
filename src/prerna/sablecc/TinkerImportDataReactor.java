@@ -7,6 +7,7 @@ import java.util.Set;
 
 import prerna.ds.TinkerFrame;
 import prerna.engine.api.IHeadersDataRow;
+import prerna.engine.api.ISelectWrapper;
 import prerna.util.Utility;
 
 public class TinkerImportDataReactor extends AbstractReactor{
@@ -36,7 +37,7 @@ public class TinkerImportDataReactor extends AbstractReactor{
 				headers = ss.getHeaders();
 
 				// TODO: annoying, need to determine if i need to create a prim key edge hash
-				if(edgeHash == null || cardinality.isEmpty()) {
+				if( !(it instanceof ISelectWrapper) ) {
 					Map<String, Set<String>> primKeyEdgeHash = frame.createPrimKeyEdgeHash(headers);
 					Object[] values = ss.getValues();
 					Map<String, String> dataType = new HashMap<>();
