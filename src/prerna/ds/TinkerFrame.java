@@ -1074,7 +1074,7 @@ public class TinkerFrame extends AbstractTableDataFrame {
 
 	
 	@Override
-	public void connectTypes(String outType, String inType) {
+	public void connectTypes(String outType, String inType, Map<String, String> dataTypeMap) {
 //		this.metaData.storeVertex(outType, outType, null);
 //
 //		if(inType!=null){
@@ -1089,7 +1089,7 @@ public class TinkerFrame extends AbstractTableDataFrame {
 		Set<String> set = new HashSet<>();
 		set.add(inType);
 		edgeHash.put(outType, set);
-		mergeEdgeHash(edgeHash);
+		mergeEdgeHash(edgeHash, dataTypeMap);
 	}
 	
 	/**
@@ -1099,7 +1099,7 @@ public class TinkerFrame extends AbstractTableDataFrame {
 	 * 
 	 * use this method to say connect all my outTypes to an inType, use for multiColumnJoin
 	 */
-	public void connectTypes(String[] outTypes, String inType) {
+	public void connectTypes(String[] outTypes, String inType, Map<String, String> dataTypeMap) {
 //		if(outTypes.length == 1) {
 //			connectTypes(outTypes[0], inType);
 //		} else {
@@ -1126,7 +1126,7 @@ public class TinkerFrame extends AbstractTableDataFrame {
 		for(String outType : outTypes) {
 			edgeHash.put(outType, set);
 		}
-		mergeEdgeHash(edgeHash);
+		mergeEdgeHash(edgeHash, dataTypeMap);
 	}
 	
 	/**

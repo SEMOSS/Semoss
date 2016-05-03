@@ -117,8 +117,10 @@ public class TinkerFrameStatRoutine implements IAnalyticTransformationRoutine {
 	 * @param newColumnName - name of the new column
 	 * @param valueColumn - the column to do calculations on
 	 */
-	private void addStatColumnToTinker(TinkerH2Frame tinker, String[] columnHeader, String mathType, String newColumnName, String valueColumn) {	
-		tinker.connectTypes(columnHeader[0], newColumnName);
+	private void addStatColumnToTinker(TinkerH2Frame tinker, String[] columnHeader, String mathType, String newColumnName, String valueColumn) {
+		Map<String, String> dataType  = new HashMap<>(1);
+		dataType.put(newColumnName, "DOUBLE");
+		tinker.connectTypes(columnHeader[0], newColumnName, dataType);
 		tinker.applyGroupBy(columnHeader, newColumnName, valueColumn, mathType);
 		String[] newHeaders = new String[]{newColumnName};
 		String[] newHeaderType = new String[]{"NUMBER"};
@@ -195,7 +197,9 @@ public class TinkerFrameStatRoutine implements IAnalyticTransformationRoutine {
 						newEdgeHash.put(column, edgeSet);	
 						logicalToUnique.put(column, column);
 					}
-					tinker.mergeEdgeHash(newEdgeHash);
+					Map<String, String> dataType  = new HashMap<>(1);
+					dataType.put(newColumnName, "DOUBLE");
+					tinker.mergeEdgeHash(newEdgeHash, dataType);
 					
 					String cHeader = columnHeader[0];
 					for(Object key : groupByMap.keySet()) {
@@ -213,7 +217,9 @@ public class TinkerFrameStatRoutine implements IAnalyticTransformationRoutine {
 					tinker.insertBlanks(columnHeader[0], addedCols);
 				} else {
 					
-					tinker.connectTypes(columnHeader, newColumnName);
+					Map<String, String> dataType  = new HashMap<>(1);
+					dataType.put(newColumnName, "DOUBLE");
+					tinker.connectTypes(columnHeader, newColumnName, dataType);
 					
 					String primKeyName = TinkerMetaHelper.getPrimaryKey(columnHeader);
 					for(Object key : groupByMap.keySet()) {

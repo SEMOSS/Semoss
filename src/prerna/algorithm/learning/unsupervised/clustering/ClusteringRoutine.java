@@ -103,7 +103,9 @@ public class ClusteringRoutine extends AbstractClusteringRoutine {
 		}
 		
 		if(appendOntoDataMaker) {
-			dataFrame.connectTypes(attributeName, clusterColName);
+			Map<String, String> dataType = new HashMap<>();
+			dataType.put(clusterColName, "double");
+			dataFrame.connectTypes(attributeName, clusterColName, dataType);
 			for(Object instance : results.keySet()) {
 				int val = results.get(instance);
 

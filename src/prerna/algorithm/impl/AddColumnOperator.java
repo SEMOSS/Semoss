@@ -31,7 +31,7 @@ public class AddColumnOperator implements IColumnOperator {
 		long startTime = System.currentTimeMillis();
 		
 //		for (int i = 0; i < headersUsed.length; i++) {
-			frame.connectTypes(headersUsed[0], newCol);
+			frame.connectTypes(headersUsed[0], newCol, null);
 //		}
 		
 		

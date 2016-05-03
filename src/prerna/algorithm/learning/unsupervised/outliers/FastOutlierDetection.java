@@ -178,7 +178,9 @@ public class FastOutlierDetection implements IAnalyticTransformationRoutine {
 			this.changedColumn = attributeName + "_FastOutlier_" + counter;
 		}
 
-		dataFrame.connectTypes(attributeName, changedColumn);
+		Map<String, String> dataType = new HashMap<String, String>();
+		dataType.put(changedColumn, "DOUBLE");
+		dataFrame.connectTypes(attributeName, changedColumn, dataType);
 		for(Object instance : results.keySet()) {
 			Double val = (numRuns-results.get(instance))/numRuns;
 

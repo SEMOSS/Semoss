@@ -288,7 +288,7 @@ public class TinkerGraphDataModel {
 		logger.info("storing vert "  + uri + " and value " + value);
 		
 		String type = Utility.getClassName(uri);
-		tf.connectTypes(type, null);
+		tf.connectTypes(type, null, null);
 		Map<String, Object> clean = new HashMap<String, Object>();
 		clean.put(type, value);
 		
@@ -314,7 +314,7 @@ public class TinkerGraphDataModel {
 		raw.put(typeOut, outvert);
 		raw.put(typeIn, inVert);
 
-		tf.connectTypes(typeOut, typeIn);
+		tf.connectTypes(typeOut, typeIn, null);
 		tf.addRelationship(clean, raw);
 	}
 
