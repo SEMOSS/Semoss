@@ -30,6 +30,7 @@ import prerna.sablecc.node.AExprGroup;
 import prerna.sablecc.node.AExprRow;
 import prerna.sablecc.node.AExprScript;
 import prerna.sablecc.node.AFilterColumn;
+import prerna.sablecc.node.AFlexSelectorRow;
 import prerna.sablecc.node.AHelpScript;
 import prerna.sablecc.node.AImportData;
 import prerna.sablecc.node.AMathFun;
@@ -39,18 +40,19 @@ import prerna.sablecc.node.AModExpr;
 import prerna.sablecc.node.AMultExpr;
 import prerna.sablecc.node.ANumWordOrNum;
 import prerna.sablecc.node.ANumberTerm;
+import prerna.sablecc.node.APanelComment;
+import prerna.sablecc.node.APanelViz;
+import prerna.sablecc.node.APanelopScript;
 import prerna.sablecc.node.APlusExpr;
 import prerna.sablecc.node.ARelationDef;
 import prerna.sablecc.node.ARemoveData;
 import prerna.sablecc.node.ASetColumn;
 import prerna.sablecc.node.ATermExpr;
+import prerna.sablecc.node.ATermGroup;
 import prerna.sablecc.node.AUnfilterColumn;
 import prerna.sablecc.node.AVarop;
-import prerna.sablecc.node.AVizChange;
-import prerna.sablecc.node.AVizComment;
-import prerna.sablecc.node.AVizopScript;
-import prerna.sablecc.node.AWord;
-import prerna.sablecc.node.PWordOrBlank;
+import prerna.sablecc.node.PFlexSelectorRow;
+import prerna.sablecc.node.PTermGroup;
 
 public class Translation2 extends DepthFirstAdapter {
 	// this is the third version of this shit I am building
@@ -82,7 +84,7 @@ public class Translation2 extends DepthFirstAdapter {
 	
 	public Translation2() { // Test Constructor
 		frame = new TinkerFrame();
-		((TinkerFrame)frame).tryCustomGraph();
+//		((TinkerFrame)frame).tryCustomGraph();
 		this.runner = new PKQLRunner();
 		fillReactors();
 	}
@@ -229,19 +231,19 @@ public class Translation2 extends DepthFirstAdapter {
 	}
 
 	@Override
-	public void inAVizChange(AVizChange node) {
+	public void inAPanelViz(APanelViz node) {
 		System.out.println("in a viz change");
 		initReactor(PKQLEnum.VIZ);
 	}
 
 	@Override
-	public void outAVizComment(AVizComment node) {
+	public void outAPanelComment(APanelComment node) {
 		System.out.println("out a viz change");
 		deinitReactor(PKQLEnum.VIZ, "", "");
 	}
 
 	@Override
-	public void inAVizComment(AVizComment node) {
+	public void inAPanelComment(APanelComment node) {
 		System.out.println("in a viz comment");
 		initReactor(PKQLEnum.VIZ);
 		runner.addFeData("text", node.getText().toString().trim());
@@ -253,20 +255,30 @@ public class Translation2 extends DepthFirstAdapter {
 	}
 
 	@Override
-	public void outAVizChange(AVizChange node) {
+	public void outAPanelViz(APanelViz node) {
 		System.out.println("out a viz comment");
 		String layout = node.getLayout().toString().trim();
 //		String alignment = node.getDatatablealign().toString().trim();
-		Object alignment = curReactor.getValue(PKQLEnum.COL_CSV);
+		Object alignment = curReactor.getValue("TERM");
+		List<Object> alignTranslated = new Vector<Object>();
+		if(alignment instanceof Vector){
+			for(Object obj : (Vector)alignment){
+				alignTranslated.add(curReactor.getValue((obj+"").trim()));
+			}
+		}
+		else {
+			alignTranslated.add(curReactor.getValue(alignment+""));
+		}
 		runner.addFeData("layout", layout);
-		runner.addFeData("dataTableKeys", alignment);
+		runner.addFeData("dataTableKeys", alignTranslated);
+		runner.addFeData("uiOptions", node.getUioptions().toString().trim());
 		runner.setResponse("Successfully set layout to " + layout + " with alignment " + alignment);//
 		runner.setStatus("SUCCESS");
 		deinitReactor(PKQLEnum.VIZ, "", "");
 	}
 	
 	@Override 
-	public void inAVizopScript(AVizopScript node){
+	public void inAPanelopScript(APanelopScript node){
 		runner.addFeData("type", "visual");
 	}
 
@@ -396,6 +408,18 @@ public class Translation2 extends DepthFirstAdapter {
 	}
 
 	@Override
+	public void inAFlexSelectorRow(AFlexSelectorRow node) {
+		// adding to the reactor
+		curReactor.set("TERM", node.getTerm()+"");
+	}
+
+	@Override
+	public void inATermGroup(ATermGroup node) {
+		// adding to the reactor
+		curReactor.set("TERM", node.getTerm()+"");
+	}
+
+	@Override
 	public void inAAddColumn(AAddColumn node) {
 		if(reactorNames.containsKey(PKQLEnum.COL_ADD)) {
 			initReactor(PKQLEnum.COL_ADD);
@@ -519,20 +543,12 @@ public class Translation2 extends DepthFirstAdapter {
 	}
     
     @Override
-    public void inAWord(AWord node) {
+    public void inAAlphaWordOrNum(AAlphaWordOrNum node) {
     }
     
     @Override
-    public void outAWord(AWord node) {
-        //System.out.println("In a word.. " + node);
-    	LinkedList<PWordOrBlank> list = node.getWordOrBlank();
-    	String fullString = "";
-    	for(PWordOrBlank piece : list){
-    		fullString = fullString + (piece + "");
-    	}
-    	fullString = fullString.substring(0, (fullString+"").length()-1); // need to find a way to clean up information puts a space at the end
-        curReactor.set(PKQLEnum.WORD_OR_NUM, fullString);
-        //thisRow.addElement((node + "").trim());        
+    public void outAAlphaWordOrNum(AAlphaWordOrNum node) {
+        curReactor.set(PKQLEnum.WORD_OR_NUM, (node.getWord()+"").substring(1, (node.getWord()+"").length())); // remove the quotes
     }
 
     @Override

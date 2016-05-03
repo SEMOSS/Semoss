@@ -5,51 +5,51 @@ package prerna.sablecc.node;
 import prerna.sablecc.analysis.*;
 
 @SuppressWarnings("nls")
-public final class AJOp extends PJOp
+public final class APanelopScript extends PScript
 {
-    private TJava _java_;
-    private TCodeblock _codeblock_;
+    private PPanelop _panelop_;
+    private TSemicolon _semicolon_;
 
-    public AJOp()
+    public APanelopScript()
     {
         // Constructor
     }
 
-    public AJOp(
-        @SuppressWarnings("hiding") TJava _java_,
-        @SuppressWarnings("hiding") TCodeblock _codeblock_)
+    public APanelopScript(
+        @SuppressWarnings("hiding") PPanelop _panelop_,
+        @SuppressWarnings("hiding") TSemicolon _semicolon_)
     {
         // Constructor
-        setJava(_java_);
+        setPanelop(_panelop_);
 
-        setCodeblock(_codeblock_);
+        setSemicolon(_semicolon_);
 
     }
 
     @Override
     public Object clone()
     {
-        return new AJOp(
-            cloneNode(this._java_),
-            cloneNode(this._codeblock_));
+        return new APanelopScript(
+            cloneNode(this._panelop_),
+            cloneNode(this._semicolon_));
     }
 
     @Override
     public void apply(Switch sw)
     {
-        ((Analysis) sw).caseAJOp(this);
+        ((Analysis) sw).caseAPanelopScript(this);
     }
 
-    public TJava getJava()
+    public PPanelop getPanelop()
     {
-        return this._java_;
+        return this._panelop_;
     }
 
-    public void setJava(TJava node)
+    public void setPanelop(PPanelop node)
     {
-        if(this._java_ != null)
+        if(this._panelop_ != null)
         {
-            this._java_.parent(null);
+            this._panelop_.parent(null);
         }
 
         if(node != null)
@@ -62,19 +62,19 @@ public final class AJOp extends PJOp
             node.parent(this);
         }
 
-        this._java_ = node;
+        this._panelop_ = node;
     }
 
-    public TCodeblock getCodeblock()
+    public TSemicolon getSemicolon()
     {
-        return this._codeblock_;
+        return this._semicolon_;
     }
 
-    public void setCodeblock(TCodeblock node)
+    public void setSemicolon(TSemicolon node)
     {
-        if(this._codeblock_ != null)
+        if(this._semicolon_ != null)
         {
-            this._codeblock_.parent(null);
+            this._semicolon_.parent(null);
         }
 
         if(node != null)
@@ -87,30 +87,30 @@ public final class AJOp extends PJOp
             node.parent(this);
         }
 
-        this._codeblock_ = node;
+        this._semicolon_ = node;
     }
 
     @Override
     public String toString()
     {
         return ""
-            + toString(this._java_)
-            + toString(this._codeblock_);
+            + toString(this._panelop_)
+            + toString(this._semicolon_);
     }
 
     @Override
     void removeChild(@SuppressWarnings("unused") Node child)
     {
         // Remove child
-        if(this._java_ == child)
+        if(this._panelop_ == child)
         {
-            this._java_ = null;
+            this._panelop_ = null;
             return;
         }
 
-        if(this._codeblock_ == child)
+        if(this._semicolon_ == child)
         {
-            this._codeblock_ = null;
+            this._semicolon_ = null;
             return;
         }
 
@@ -121,15 +121,15 @@ public final class AJOp extends PJOp
     void replaceChild(@SuppressWarnings("unused") Node oldChild, @SuppressWarnings("unused") Node newChild)
     {
         // Replace child
-        if(this._java_ == oldChild)
+        if(this._panelop_ == oldChild)
         {
-            setJava((TJava) newChild);
+            setPanelop((PPanelop) newChild);
             return;
         }
 
-        if(this._codeblock_ == oldChild)
+        if(this._semicolon_ == oldChild)
         {
-            setCodeblock((TCodeblock) newChild);
+            setSemicolon((TSemicolon) newChild);
             return;
         }
 
