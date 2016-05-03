@@ -1301,6 +1301,14 @@ public class ReversedDepthFirstAdapter extends AnalysisAdapter
         {
             node.getRPar().apply(this);
         }
+        if(node.getProperties() != null)
+        {
+            node.getProperties().apply(this);
+        }
+        if(node.getComma() != null)
+        {
+            node.getComma().apply(this);
+        }
         if(node.getRelations() != null)
         {
             node.getRelations().apply(this);
@@ -2002,68 +2010,6 @@ public class ReversedDepthFirstAdapter extends AnalysisAdapter
         outAColCsv(node);
     }
 
-    public void inATermGroup(ATermGroup node)
-    {
-        defaultIn(node);
-    }
-
-    public void outATermGroup(ATermGroup node)
-    {
-        defaultOut(node);
-    }
-
-    @Override
-    public void caseATermGroup(ATermGroup node)
-    {
-        inATermGroup(node);
-        if(node.getTerm() != null)
-        {
-            node.getTerm().apply(this);
-        }
-        if(node.getComma() != null)
-        {
-            node.getComma().apply(this);
-        }
-        outATermGroup(node);
-    }
-
-    public void inAFlexSelectorRow(AFlexSelectorRow node)
-    {
-        defaultIn(node);
-    }
-
-    public void outAFlexSelectorRow(AFlexSelectorRow node)
-    {
-        defaultOut(node);
-    }
-
-    @Override
-    public void caseAFlexSelectorRow(AFlexSelectorRow node)
-    {
-        inAFlexSelectorRow(node);
-        if(node.getRBracket() != null)
-        {
-            node.getRBracket().apply(this);
-        }
-        {
-            List<PTermGroup> copy = new ArrayList<PTermGroup>(node.getTermGroup());
-            Collections.reverse(copy);
-            for(PTermGroup e : copy)
-            {
-                e.apply(this);
-            }
-        }
-        if(node.getTerm() != null)
-        {
-            node.getTerm().apply(this);
-        }
-        if(node.getLBracket() != null)
-        {
-            node.getLBracket().apply(this);
-        }
-        outAFlexSelectorRow(node);
-    }
-
     public void inANumWordOrNum(ANumWordOrNum node)
     {
         defaultIn(node);
@@ -2125,6 +2071,68 @@ public class ReversedDepthFirstAdapter extends AnalysisAdapter
             node.getFormula().apply(this);
         }
         outAExprWordOrNum(node);
+    }
+
+    public void inAFlexSelectorRow(AFlexSelectorRow node)
+    {
+        defaultIn(node);
+    }
+
+    public void outAFlexSelectorRow(AFlexSelectorRow node)
+    {
+        defaultOut(node);
+    }
+
+    @Override
+    public void caseAFlexSelectorRow(AFlexSelectorRow node)
+    {
+        inAFlexSelectorRow(node);
+        if(node.getRBracket() != null)
+        {
+            node.getRBracket().apply(this);
+        }
+        {
+            List<PTermGroup> copy = new ArrayList<PTermGroup>(node.getTermGroup());
+            Collections.reverse(copy);
+            for(PTermGroup e : copy)
+            {
+                e.apply(this);
+            }
+        }
+        if(node.getTerm() != null)
+        {
+            node.getTerm().apply(this);
+        }
+        if(node.getLBracket() != null)
+        {
+            node.getLBracket().apply(this);
+        }
+        outAFlexSelectorRow(node);
+    }
+
+    public void inATermGroup(ATermGroup node)
+    {
+        defaultIn(node);
+    }
+
+    public void outATermGroup(ATermGroup node)
+    {
+        defaultOut(node);
+    }
+
+    @Override
+    public void caseATermGroup(ATermGroup node)
+    {
+        inATermGroup(node);
+        if(node.getTerm() != null)
+        {
+            node.getTerm().apply(this);
+        }
+        if(node.getComma() != null)
+        {
+            node.getComma().apply(this);
+        }
+        outATermGroup(node);
     }
 
     public void inAFormula(AFormula node)

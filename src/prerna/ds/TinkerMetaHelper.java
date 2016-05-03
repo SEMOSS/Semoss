@@ -95,7 +95,7 @@ public class TinkerMetaHelper {
 			primKeyEdges.add(header);
 		}
 		Map<String, Set<String>> edges = new HashMap<String, Set<String>>();
-		edges.put(TinkerFrame.PRIM_KEY, primKeyEdges);
+		edges.put(TinkerFrame.PRIM_KEY + "_" + headers.toString(), primKeyEdges);
 		return edges;
 	}
 

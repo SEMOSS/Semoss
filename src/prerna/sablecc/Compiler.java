@@ -20,12 +20,6 @@ public class Compiler
 	String workingDir = System.getProperty("user.dir");
 	String propFile = workingDir + "/RDF_Map.prop";
 	DIHelper.getInstance().loadCoreProp(propFile);
-	
-	String engineProp = "C:\\workspace\\Semoss_Dev\\db\\LocalMasterDatabase.smss";
-	BigDataEngine master = new BigDataEngine();
-	master.openDB(engineProp);
-	master.setEngineName(Constants.LOCAL_MASTER_DB_NAME);
-	DIHelper.getInstance().setLocalProperty(Constants.LOCAL_MASTER_DB_NAME, master);
 	 
 	 
   try
@@ -49,13 +43,18 @@ public class Compiler
 //    												+ "api:Movie_DB.query([c:Title__Title, c:Title__MovieBudget, c:Studio__Studio], (c:Studio__Studio =[\"WB\",\"Fox\"]), ([c:Title__Title,  inner.join , c:Studio__Studio])); "
 //    												+ "col.add(c:test, api:UpdatedRDBMSMovies.query([c:Title__Title, c:Title__MovieBudget, c:Studio__Studio], (c:Studio__Studio =[\"WB\",\"Fox\"]), ([c:Title__Title,  right.outer.join , c:Studio__Title_FK])));"
 //    												+ "col.add(c:test, api:UpdatedRDBMSMovies.query([c:Title__Title, c:Title__MovieBudget, c:Studio__Studio], (c:Studio__Studio =[\"WB\",\"Fox\"]), ([c:Studio__Title_FK,  right.outer.join , c:Title__Title])));"
-    												+ "data.import(api:MovieDatabase.query([c:Title, c:Studio], (c:Studio =[\"WB\",\"Fox\"]), ([c:Title,  inner.join , c:Studio])));"
-    												+ "data.import(api:Movie_Results.query([c:Title, c:Director], ([c:Title,  inner.join , c:Director])), ([c:Title, inner.join, c:Title]));"
-    												+ "data.import(api:Movie_Results.query([c:Title, c:Producer], ([c:Title,  inner.join , c:Producer])), ([c:Title, inner.join, c:Title]));"
-    												+ "data.import(api:Movie_Results.query([c:Title, c:Year], ([c:Title,  inner.join , c:Year])), ([c:Title, inner.join, c:Title]));"
+//    												+ "data.import(api:MovieDatabase.query([c:Title, c:Studio], (c:Studio =[\"WB\",\"Fox\"]), ([c:Title,  inner.join , c:Studio])));"
+//    												+ "data.import(api:Movie_Results.query([c:Title, c:Director], ([c:Title,  inner.join , c:Director])), ([c:Title, inner.join, c:Title]));"
+//    												+ "data.import(api:Movie_Results.query([c:Title, c:Producer], ([c:Title,  inner.join , c:Producer])), ([c:Title, inner.join, c:Title]));"
+//    												+ "data.import(api:Movie_Results.query([c:Title, c:Year], ([c:Title,  inner.join , c:Year])), ([c:Title, inner.join, c:Title]));"
 //    												+ "data.import(api:Documents\\something.csv.query([c:Title, c:Year]), ([c:Title, inner.join, c:Title]));"
 
-//    												+ "data.import(api:'FILEID'.query([c:Title, c:Title__MovieBudget, c:Studio], (c:Studio =[\"WB\",\"Fox\"]), ([c:Title,  inner.join , c:Studio])));"
+//    												+ "data.import(api:Movie_DB.query([c:Title, c:Title__MovieBudget, c:Studio], (c:Studio =[\"WB\",\"Fox\"]), ([c:Title,  inner.join , c:Studio])));"
+//    												+ "panel[0].viz(Bar, [c:Title, c:Studio]);"
+    												
+    												+ "data.import(api:csvFile.query([c:Title, c:Nominated, c:Studio], (c:Title = ['12 Years a Slave'], c:Nominated = ['Y']), {'file':'C:\\Users\\bisutton\\Desktop\\Movie Data.csv'}));"
+    												+ "data.import(api:csvFile.query([c:Title, c:Actor], {'file':'C:\\Users\\bisutton\\Desktop\\Best Actor.csv'}), ([c:Title, inner.join, c:Title]));"
+
 //    												+ "data.remove(api:MovieDatabase.query([c:Title, c:Title__MovieBudget, c:Studio], (c:Studio =[\"WB\",\"Fox\"]), ([c:Title,  inner.join , c:Studio])));"
 //    												+"panel[\"123\"].comment(\"this looks super important\", group0, coordinate, \"a\");"
 //    												+"col.filter(c:Studio =[\"WB\",\"Fox\",\"Lionsgate\"]) ;"
@@ -76,8 +75,6 @@ public class Compiler
     												
     												
 
-//													+"viz.change(bar, [c:Title, c:Budget]);"
-//													+"viz.comment('this looks super important', group0, coordinate, 50 16);"
 //    												+"(12 + (4 - 8)) * (15 / 5) + 5;"
    													//+ "v:abc = (c:col2 * (2 *4)); "
     												/*+ "set:(c:newCol, (2 * 3) + 4); "

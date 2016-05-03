@@ -176,7 +176,7 @@ decimal = [whole]:number dot? [fraction]:number?;
 		
 expr_group = [comma]:comma [expr]:expr;		
 
-api_block = api [engine_name]:id dot [insight]:id l_par [selectors]:col_csv [where]:where_statement? [relations]:relation_clause? r_par; // the insight can also be the method
+api_block = api [engine_name]:id dot [insight]:id l_par [selectors]:col_csv [where]:where_statement? [relations]:relation_clause? comma? [properties]:map_obj? r_par; // the insight can also be the method
 // query format
 // api:Tap_Core.Query:([Selectors], [Filters], [relations])
 // relations
