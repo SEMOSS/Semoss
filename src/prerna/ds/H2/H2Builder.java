@@ -616,8 +616,9 @@ public class H2Builder {
     public void alterTableNewColumns(String[] headers, String[] types) {
     	try {
     		runQuery("CREATE TABLE IF NOT EXISTS " + tableName);
+			String[] currHeaders = getHeaders(tableName);
     		for(int i = 0; i < headers.length; i++) {
-    			if(!ArrayUtilityMethods.arrayContainsValue(getHeaders(tableName), headers[i].toUpperCase())) {
+    			if(!ArrayUtilityMethods.arrayContainsValue(currHeaders, headers[i].toUpperCase())) {
     				//alter the table
     				String[] newHeaders = new String[]{headers[i]};
     				String[] newTypes = new String[]{types[i]};
