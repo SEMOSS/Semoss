@@ -66,23 +66,27 @@ public class ImportDataReactor extends AbstractReactor {
 			frame.mergeEdgeHash(edgeHash);
 
 			it = (Iterator) myStore.get(PKQLEnum.CSV_TABLE);
-			
-			//TODO: need to add logic to add the types into the frame!
 		}
 		
+		
+		// need to make all these wrappers that give a IHeaderDataRow be the same type to get this info
 		if(it instanceof FileIterator) {
 			String[] types = ((FileIterator) it).getTypes();
 			frame.addMetaDataTypes( ((FileIterator) it).getHeaders(), types);
+		} else if(it instanceof CsvTableWrapper) {
+			String[] types = ((CsvTableWrapper) it).getTypes();
+			frame.addMetaDataTypes( ((CsvTableWrapper) it).getHeaders(), types);
 		}
 		
 		IScriptReactor reactor = frame.getImportDataReactor();
-		//TODO: grab the right stuff and add that ish in
 		reactor.put("iterator", it);
-		//TODO: do i need a null check?
-		reactor.put("edgeHash", mergedMaps[0]);
-		reactor.put("logicalToValue", mergedMaps[1]);
+		if(mergedMaps[0] != null) {
+			reactor.put("edgeHash", mergedMaps[0]);
+		}
+		if(mergedMaps[1] != null) {
+			reactor.put("logicalToValue", mergedMaps[1]);
+		}
 		reactor.put("startingHeaders", startingHeaders);
-//		reactor.put("engine", engine);
 		// now run it
 		reactor.process();
 		
