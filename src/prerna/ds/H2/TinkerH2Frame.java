@@ -26,6 +26,7 @@ import prerna.ds.TinkerFrame;
 import prerna.ds.TinkerMetaData2;
 import prerna.ds.TinkerMetaHelper;
 import prerna.engine.api.IEngine;
+import prerna.engine.api.IHeadersDataRow;
 import prerna.engine.api.IScriptReactor;
 import prerna.engine.api.ISelectWrapper;
 import prerna.rdf.engine.wrappers.WrapperManager;
@@ -945,5 +946,24 @@ public class TinkerH2Frame extends AbstractTableDataFrame {
 	@Override
 	public IScriptReactor getImportDataReactor() {
 		return new H2ImportDataReactor(this);
+	}
+	
+	public void processIterator(Iterator<IHeadersDataRow> iterator, String[] newHeaders, Map<String, String> logicalToValue) {
+		
+		String[] valueHeaders = new String[newHeaders.length];
+		for(int i = 0; i < newHeaders.length; i++) {
+			valueHeaders[i] = logicalToValue.get(newHeaders[i]);
+		}
+		String[] columnHeaders = getColumnHeaders();
+		int length = columnHeaders.length;
+		if(ArrayUtilityMethods.arrayContainsValueIgnoreCase(newHeaders, columnHeaders[length-1])) {
+			length = length - 1;
+		}
+		
+		String[] adjustedColHeaders = new String[length];
+		for(int i = 0; i < length; i++) {
+			adjustedColHeaders[i] = this.metaData.getValueForUniqueName(columnHeaders[i]);
+		}
+		this.builder.processIterator(iterator, adjustedColHeaders, valueHeaders);
 	}
 }
