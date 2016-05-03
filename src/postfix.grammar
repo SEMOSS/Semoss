@@ -235,7 +235,7 @@ word_or_num = {num} decimal | {alpha} word |{expr} [formula]:formula ; // I need
 
 flex_selector_row = l_bracket term term_group* r_bracket;
 
-term_group = comma term;
+term_group = comma term?;
 
 formula = l_par expr r_par;
 		
