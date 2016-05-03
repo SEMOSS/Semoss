@@ -1,5 +1,6 @@
 package prerna.sablecc;
 
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Set;
@@ -39,7 +40,16 @@ public class H2ImportDataReactor extends AbstractReactor{
 				// TODO: annoying, need to determine if i need to create a prim key edge hash
 				if(edgeHash == null || cardinality.isEmpty()) {
 					Map<String, Set<String>> primKeyEdgeHash = frame.createPrimKeyEdgeHash(headers);
-					frame.mergeEdgeHash(primKeyEdgeHash);
+					
+					Object[] values = ss.getValues();
+					String[] types = new String[values.length];
+					Map<String, String> dataType = new HashMap<>();
+					for(int i = 0; i < values.length; i++) {
+						Object[] type = Utility.findTypes(values[i].toString());
+						dataType.put(headers[i], type[0].toString());
+					}
+					
+					frame.mergeEdgeHash(primKeyEdgeHash, dataType);
 					isPrimKey = true;
 				}
 

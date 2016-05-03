@@ -2169,7 +2169,7 @@ public class BTreeDataFrame implements ITableDataFrame {
 	}
 
 	@Override
-	public void mergeEdgeHash(Map<String, Set<String>> primKeyEdgeHash) {
+	public void mergeEdgeHash(Map<String, Set<String>> primKeyEdgeHash, Map<String, String> dataType) {
 		// TODO Auto-generated method stub
 		
 	}
@@ -2181,7 +2181,7 @@ public class BTreeDataFrame implements ITableDataFrame {
 	}
 
 	@Override
-	public void connectTypes(String outType, String inType) {
+	public void connectTypes(String outType, String inType, Map<String, String> dataType) {
 		// TODO Auto-generated method stub
 		
 	}
@@ -2223,7 +2223,7 @@ public class BTreeDataFrame implements ITableDataFrame {
 	}
 
 	@Override
-	public void connectTypes(String[] joinCols, String newCol) {
+	public void connectTypes(String[] joinCols, String newCol, Map<String, String> dataType) {
 		// TODO Auto-generated method stub
 		
 	}

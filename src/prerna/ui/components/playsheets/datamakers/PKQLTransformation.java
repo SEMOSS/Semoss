@@ -53,7 +53,7 @@ public class PKQLTransformation extends AbstractTransformation {
 
 		String expression = props.get(EXPRESSION) + "";		
 		this.resultHash.putAll(runner.runPKQL(expression, (ITableDataFrame) this.dm));
-		this.dm = runner.getDataFrame();
+//		this.dm = runner.getDataFrame();
 		this.feData.putAll(runner.getFeData());
 	}
 
