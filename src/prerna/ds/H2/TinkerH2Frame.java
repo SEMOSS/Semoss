@@ -791,56 +791,13 @@ public class TinkerH2Frame extends AbstractTableDataFrame {
 	@Override
 	public void connectTypes(String outType, String inType) {
 
-//		Set<String> newLevels = new LinkedHashSet<String>();
-		this.metaData.storeVertex(outType, getCleanHeader(outType), null);
-//		newLevels.add(outType);
+		Map<String, Set<String>> edgeHash = new HashMap<>();
+		Set<String> set = new HashSet<>();
+		set.add(inType);
+		edgeHash.put(outType, set);
+		mergeEdgeHash(edgeHash);
 
-		if(inType!=null){
-			this.metaData.storeVertex(inType, getCleanHeader(inType), null);
-			this.metaData.storeRelation(outType, inType);
-//			newLevels.add(inType);
-		}
-
-		List<String> fullNames = this.metaData.getColumnNames();
-		this.headerNames = fullNames.toArray(new String[fullNames.size()]);
-		
-//		String outTypeParent = this.metaData.getParentOfUniqueNode(outType);
-//		String inTypeParent = this.metaData.getParentOfUniqueNode(inType);
-//		
-//		if(outTypeParent != null && inTypeParent != null) {
-//			
-//		} else if(outTypeParent != null && inTypeParent == null) {
-//			this.metaData.storeRelation(outTypeParent, inType);
-//			
-//		} else if(outTypeParent == null && inTypeParent != null) {
-//			this.metaData.storeRelation(inTypeParent, outTypeParent);
-//			
-//		} else {
-//			//both are null
-//			//what to do?
-//			//maybe create a new node and connect both to that new node?
-//		}
-//		
-//		List<String> fullNames = this.metaData.getColumnNames();
-//		this.headerNames = fullNames.toArray(new String[fullNames.size()]);
 	}
-	
-//	private List<String> getH2Headers(List<String> headers) {
-//		List<String> retheaders = new ArrayList<String>(headers.size());
-//		for(String header : headers) {
-////			retheaders.add(H2HeaderMap.get(header));
-//			retheaders.add(this.metaData.getValueForUniqueName(header));
-//
-//		}
-//		return retheaders;
-//	}
-
-
-//	@Override
-//	public Map<String, Set<String>> createPrimKeyEdgeHash(String[] headers) {
-//		return TinkerMetaHelper.createPrimKeyEdgeHash(headers);
-//	}
-//
 	
 	@Override
 	public Map[] mergeQSEdgeHash(Map<String, Set<String>> edgeHash, IEngine engine, Vector<Map<String, String>> joinCols) {
@@ -881,6 +838,14 @@ public class TinkerH2Frame extends AbstractTableDataFrame {
 	@Override
 	public void mergeEdgeHash(Map<String, Set<String>> primKeyEdgeHash) {
 		TinkerMetaHelper.mergeEdgeHash(this.metaData, primKeyEdgeHash, getNode2ValueHash(primKeyEdgeHash));
+		String[] headers = getColumnHeaders();
+		String[] cleanHeaders = new String[headers.length];
+		String[] types = new String[headers.length];
+		for(int i = 0; i < types.length; i++) {
+			types[i] = this.metaData.getDataType(headers[i]);
+			cleanHeaders[i] = this.metaData.getValueForUniqueName(headers[i]);
+		}
+		builder.alterTableNewColumns(cleanHeaders, types);
 	}
 
 //	@Override
@@ -905,7 +870,7 @@ public class TinkerH2Frame extends AbstractTableDataFrame {
 	
 	@Override
 	public void connectTypes(String[] joinCols, String newCol) {
-		connectTypes(joinCols[0], newCol); // multiColumn join not enabled on h2
+		connectTypes(joinCols[0], newCol); 
 		
 	}
 
