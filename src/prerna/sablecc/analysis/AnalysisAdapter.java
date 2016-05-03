@@ -471,18 +471,6 @@ public class AnalysisAdapter implements Analysis
     }
 
     @Override
-    public void caseATermGroup(ATermGroup node)
-    {
-        defaultCase(node);
-    }
-
-    @Override
-    public void caseAFlexSelectorRow(AFlexSelectorRow node)
-    {
-        defaultCase(node);
-    }
-
-    @Override
     public void caseANumWordOrNum(ANumWordOrNum node)
     {
         defaultCase(node);
@@ -496,6 +484,18 @@ public class AnalysisAdapter implements Analysis
 
     @Override
     public void caseAExprWordOrNum(AExprWordOrNum node)
+    {
+        defaultCase(node);
+    }
+
+    @Override
+    public void caseAFlexSelectorRow(AFlexSelectorRow node)
+    {
+        defaultCase(node);
+    }
+
+    @Override
+    public void caseATermGroup(ATermGroup node)
     {
         defaultCase(node);
     }

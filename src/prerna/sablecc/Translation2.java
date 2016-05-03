@@ -1,10 +1,8 @@
 package prerna.sablecc;
 
-import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.Hashtable;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Vector;
@@ -34,6 +32,7 @@ import prerna.sablecc.node.AFilterColumn;
 import prerna.sablecc.node.AFlexSelectorRow;
 import prerna.sablecc.node.AHelpScript;
 import prerna.sablecc.node.AImportData;
+import prerna.sablecc.node.AKeyvalue;
 import prerna.sablecc.node.AMathFun;
 import prerna.sablecc.node.AMathFunTerm;
 import prerna.sablecc.node.AMinusExpr;
@@ -52,8 +51,6 @@ import prerna.sablecc.node.ATermExpr;
 import prerna.sablecc.node.ATermGroup;
 import prerna.sablecc.node.AUnfilterColumn;
 import prerna.sablecc.node.AVarop;
-import prerna.sablecc.node.PFlexSelectorRow;
-import prerna.sablecc.node.PTermGroup;
 
 public class Translation2 extends DepthFirstAdapter {
 	// this is the third version of this shit I am building
@@ -565,6 +562,19 @@ public class Translation2 extends DepthFirstAdapter {
     @Override
     public void outANumWordOrNum(ANumWordOrNum node) {
     	curReactor.set(PKQLEnum.WORD_OR_NUM, (node + "").trim());
+    }
+    
+    @Override
+    public void outAKeyvalue(AKeyvalue node){
+    	String word1 = (node.getWord1() + "").trim();
+    	word1 = word1.substring(1, word1.length()-1);
+    	
+    	String word2 = (node.getWord2() + "").trim();
+    	word2 = word2.substring(1, word2.length()-1);
+    	
+    	Map myMap = new HashMap();
+    	myMap.put(word1, word2);
+        curReactor.set("KEY_VALUE", myMap); // remove the quotes
     }
 
 	@Override
