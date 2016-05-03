@@ -45,6 +45,9 @@ public abstract class AbstractTableDataFrame implements ITableDataFrame {
 	@Override
 	public void mergeEdgeHash(Map<String, Set<String>> primKeyEdgeHash) {
 		TinkerMetaHelper.mergeEdgeHash(this.metaData, primKeyEdgeHash);
+
+    	List<String> fullNames = this.metaData.getColumnNames();
+    	this.headerNames = fullNames.toArray(new String[fullNames.size()]);
 	}
 
 	@Override
