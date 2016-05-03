@@ -130,7 +130,9 @@ public class DatasetSimilarity implements IAnalyticTransformationRoutine {
 			this.changedColumn = attributeName + "_SIMILARITY_" + counter;
 		}
 
-		dataFrame.connectTypes(attributeName, changedColumn);
+		Map<String, String> dataType = new HashMap<>();
+		dataType.put(changedColumn, "double");
+		dataFrame.connectTypes(attributeName, changedColumn, dataType);
 		for(Object instance : results.keySet()) {
 			Double val = results.get(instance);
 
