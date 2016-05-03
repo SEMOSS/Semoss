@@ -727,17 +727,33 @@ public class H2Builder {
     	}
     }
     
-//    public void processIterator(Iterator<IHeadersDataRow> iterator) {
-//    	String[][] data = getData(iterator);
-//    	String[] newHeaders = ;
-//    	newHeaders = cleanHeaders(newHeaders);
+    public void processIterator(Iterator<IHeadersDataRow> iterator, String[] oldHeaders, String[] newHeaders) {
+    	ArrayList<String[]> data = new ArrayList<>();
+    	newHeaders = cleanHeaders(newHeaders);
+    	while(iterator.hasNext()) {
+    		IHeadersDataRow nextData = iterator.next();
+    		if(newHeaders == null) {
+    			newHeaders = nextData.getHeaders();
+    		}
+    		Object[] values = nextData.getValues();
+    		String[] stringValues = new String[values.length];
+    		for(int i = 0; i < values.length; i++) {
+    			stringValues[i] = values[i].toString();
+    		}
+    		data.add(stringValues);
+    	}
 //    	if(headers == null) {
 //    		//create table
-//    		generateTable(data, newHeaders, tableName);
+//    		generateTable(data.toArray(new String[0][0]), newHeaders, tableName);
 //    	} else {
-//    		processAlterData(data, newHeaders, headers);
+    		try {
+				runQuery("CREATE TABLE IF NOT EXISTS " + tableName);
+			} catch (Exception e) {
+				e.printStackTrace();
+			}
+    		processAlterData(data.toArray(new String[0][0]), newHeaders, oldHeaders);
 //    	}
-//    }
+    }
     
     /**
      * 
@@ -904,15 +920,6 @@ public class H2Builder {
     	
     	return data.toArray(new String[][]{});
     }
-    
-    
-    
-//    private String[] getRow(Map<String, Object> row) {
-//    	String[] rowData = new String[row.size()];
-//		for(int i = 0; i < length; i++) {
-//			rowData[i] = (String)rowRow.get(colHeaders[i]);
-//		}
-//    }
    
     /**
      * 
@@ -1166,6 +1173,7 @@ public class H2Builder {
 			if(oldHeaderIndices.size() == 0)
 			{
 				// this is the case where it has not been created yet
+				tableName = getNewTableName();
 				generateTable(data, newHeaders, tableName);
 			}
 			else
