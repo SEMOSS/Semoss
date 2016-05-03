@@ -27,7 +27,7 @@
  *******************************************************************************/
 package prerna.engine.api;
 
-import java.util.Hashtable;
+import java.util.Map;
 
 public interface ISelectStatement extends IHeadersDataRow{
 
@@ -39,13 +39,13 @@ public interface ISelectStatement extends IHeadersDataRow{
 	
 	public Object getRawVar(Object var);
 	
-	public void setPropHash(Hashtable propHash);
+	public void setPropHash(Map propHash);
 	
-	public void setRPropHash(Hashtable rawPropHash);
+	public void setRPropHash(Map rawPropHash);
 	
-	public Hashtable getPropHash();
+	public Map getPropHash();
 
-	public Hashtable getRPropHash();
+	public Map getRPropHash();
 	
 	public boolean equals(Object other);
 	
