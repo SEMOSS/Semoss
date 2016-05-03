@@ -38,7 +38,6 @@ public class ApiReactor extends AbstractReactor {
 
 		String engine = (String)myStore.get("ENGINE");
 		String insight = (String)myStore.get("INSIGHT");
-		String fileLocation = (String) ((Map) ((Vector) myStore.get("KEY_VALUE")).get(0)).get("file");
 		
 		
 		// I need to instantiate the engine here
@@ -47,7 +46,10 @@ public class ApiReactor extends AbstractReactor {
 		if(engine != null && !engine.equals("csvFile")) {
 			qapi.set("ENGINE", engine);
 		} else {
-			qapi.set("ENGINE", fileLocation);
+			if(myStore.containsKey("KEY_VALUE") && ((Map) ((Vector) myStore.get("KEY_VALUE")).get(0)).containsKey("file")){
+				String fileLocation = (String) ((Map) ((Vector) myStore.get("KEY_VALUE")).get(0)).get("file");
+				qapi.set("ENGINE", fileLocation);
+			}
 		}
 
 		Vector <String> selectors = new Vector<String>();
