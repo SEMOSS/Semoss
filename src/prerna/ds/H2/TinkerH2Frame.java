@@ -839,7 +839,9 @@ public class TinkerH2Frame extends AbstractTableDataFrame {
 	@Override
 	public void mergeEdgeHash(Map<String, Set<String>> primKeyEdgeHash) {
 		TinkerMetaHelper.mergeEdgeHash(this.metaData, primKeyEdgeHash, getNode2ValueHash(primKeyEdgeHash));
-		String[] headers = getColumnHeaders();
+    	List<String> fullNames = this.metaData.getColumnNames();
+    	this.headerNames = fullNames.toArray(new String[fullNames.size()]);
+		String[] headers = this.headerNames;
 		String[] cleanHeaders = new String[headers.length];
 		String[] types = new String[headers.length];
 		for(int i = 0; i < types.length; i++) {
@@ -847,6 +849,7 @@ public class TinkerH2Frame extends AbstractTableDataFrame {
 			cleanHeaders[i] = this.metaData.getValueForUniqueName(headers[i]);
 		}
 		builder.alterTableNewColumns(cleanHeaders, types);
+		
 	}
 
 //	@Override
