@@ -1075,15 +1075,21 @@ public class TinkerFrame extends AbstractTableDataFrame {
 	
 	@Override
 	public void connectTypes(String outType, String inType) {
-		this.metaData.storeVertex(outType, outType, null);
-
-		if(inType!=null){
-			this.metaData.storeVertex(inType, inType, null);
-			this.metaData.storeRelation(outType, inType);
-		}
-
-		List<String> fullNames = this.metaData.getColumnNames();
-		this.headerNames = fullNames.toArray(new String[fullNames.size()]);
+//		this.metaData.storeVertex(outType, outType, null);
+//
+//		if(inType!=null){
+//			this.metaData.storeVertex(inType, inType, null);
+//			this.metaData.storeRelation(outType, inType);
+//		}
+//
+//		List<String> fullNames = this.metaData.getColumnNames();
+//		this.headerNames = fullNames.toArray(new String[fullNames.size()]);
+		
+		Map<String, Set<String>> edgeHash = new HashMap<>();
+		Set<String> set = new HashSet<>();
+		set.add(inType);
+		edgeHash.put(outType, set);
+		mergeEdgeHash(edgeHash);
 	}
 	
 	/**
@@ -1094,25 +1100,33 @@ public class TinkerFrame extends AbstractTableDataFrame {
 	 * use this method to say connect all my outTypes to an inType, use for multiColumnJoin
 	 */
 	public void connectTypes(String[] outTypes, String inType) {
-		if(outTypes.length == 1) {
-			connectTypes(outTypes[0], inType);
-		} else {
-			
-			String metaPrimKey = getMetaPrimaryKeyName(outTypes);
-			this.metaData.storeVertex(metaPrimKey, metaPrimKey, null);
-			this.metaData.setPrimKey(metaPrimKey, true);
-
-			for(String column : outTypes) {
-				this.metaData.storeVertex(column, column, null);
-				this.metaData.storeRelation(column, metaPrimKey);
-			}
-
-			this.metaData.storeVertex(inType, inType, null);
-			this.metaData.storeRelation(metaPrimKey, inType);
-
-			List<String> fullNames = this.metaData.getColumnNames();
-			this.headerNames = fullNames.toArray(new String[fullNames.size()]);
+//		if(outTypes.length == 1) {
+//			connectTypes(outTypes[0], inType);
+//		} else {
+//			
+//			String metaPrimKey = getMetaPrimaryKeyName(outTypes);
+//			this.metaData.storeVertex(metaPrimKey, metaPrimKey, null);
+//			this.metaData.setPrimKey(metaPrimKey, true);
+//
+//			for(String column : outTypes) {
+//				this.metaData.storeVertex(column, column, null);
+//				this.metaData.storeRelation(column, metaPrimKey);
+//			}
+//
+//			this.metaData.storeVertex(inType, inType, null);
+//			this.metaData.storeRelation(metaPrimKey, inType);
+//
+//			List<String> fullNames = this.metaData.getColumnNames();
+//			this.headerNames = fullNames.toArray(new String[fullNames.size()]);
+//		}
+		
+		Map<String, Set<String>> edgeHash = new HashMap<>();
+		Set<String> set = new HashSet<>();
+		set.add(inType);
+		for(String outType : outTypes) {
+			edgeHash.put(outType, set);
 		}
+		mergeEdgeHash(edgeHash);
 	}
 	
 	/**
