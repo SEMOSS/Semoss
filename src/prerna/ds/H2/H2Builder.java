@@ -614,7 +614,7 @@ public class H2Builder {
     	return null;
     }
 
-    public void alterTableNewColumns(String[] headers, String[] types) {
+    public void alterTableNewColumns(String tableName, String[] headers, String[] types) {
     	types = cleanTypes(types);
     	try {
     		runQuery("CREATE TABLE IF NOT EXISTS " + tableName);

@@ -44,15 +44,39 @@ public abstract class AbstractTableDataFrame implements ITableDataFrame {
 
 	@Override
 	public void mergeEdgeHash(Map<String, Set<String>> primKeyEdgeHash, Map<String, String> dataTypeMap) {
+		// combine the new values into the tinker meta data
 		TinkerMetaHelper.mergeEdgeHash(this.metaData, primKeyEdgeHash);
 
-		for(String key : dataTypeMap.keySet()) {
-			String type = dataTypeMap.get(key);
-			if(type == null) type = "STRING";
-			this.metaData.storeDataType(key, type);
+		// also store the data types associated with the new headers that are created
+		if(dataTypeMap != null) {
+			for(String key : dataTypeMap.keySet()) {
+				String type = dataTypeMap.get(key);
+				if(type == null) type = "STRING";
+				this.metaData.storeDataType(key, type);
+			}
 		}
 	
+		// update the list of header names inside the data frame
+    	List<String> fullNames = this.metaData.getColumnNames();
+    	this.headerNames = fullNames.toArray(new String[fullNames.size()]);
+	}
 	
+
+	public void mergeEdgeHash(IMetaData metaData2, Map<String, Set<String>> primKeyEdgeHash, Map<String, String> node2ValueHash, Map<String, String> dataTypeMap) {
+		// combine the new values into the tinker meta data, BUT ALSO use the values defined
+		// this is extremely important for RDBMS
+		TinkerMetaHelper.mergeEdgeHash(this.metaData, primKeyEdgeHash, node2ValueHash);
+
+		// also store the data types associated with the new headers that are created
+		if(dataTypeMap != null) {
+			for(String key : dataTypeMap.keySet()) {
+				String type = dataTypeMap.get(key);
+				if(type == null) type = "STRING";
+				this.metaData.storeDataType(key, type);
+			}
+		}
+	
+		// update the list of header names inside the data frame
     	List<String> fullNames = this.metaData.getColumnNames();
     	this.headerNames = fullNames.toArray(new String[fullNames.size()]);
 	}

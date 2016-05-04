@@ -831,41 +831,28 @@ public class TinkerH2Frame extends AbstractTableDataFrame {
 			types[i] = engine.getDataTypes(engine.getTransformedNodeName(Constants.DISPLAY_URI + headers[i], false));
 			types[i] = Utility.getRawDataType(types[i].replace("TYPE:", ""));
 		}
-		builder.alterTableNewColumns(headers, types); 
+		builder.alterTableNewColumns(builder.tableName, headers, types); 
 		
 		return ret;
 	}
 	
 	@Override
 	public void mergeEdgeHash(Map<String, Set<String>> primKeyEdgeHash, Map<String, String> dataTypeMap) {
+		// merge results with the tinker meta data and store data types'
+        super.mergeEdgeHash(this.metaData, primKeyEdgeHash, getNode2ValueHash(primKeyEdgeHash), dataTypeMap);
+		// now we need to create and/or modify the existing table to ensure it has all the necessary columns
 		
-		TinkerMetaHelper.mergeEdgeHash(this.metaData, primKeyEdgeHash, getNode2ValueHash(primKeyEdgeHash));
-		
-		if(dataTypeMap != null) {
-			for(String key : dataTypeMap.keySet()) {
-				String type = dataTypeMap.get(key);
-				if(type == null) type = "STRING";
-				this.metaData.storeDataType(key, type);
-			}
-		}
-		
-    	List<String> fullNames = this.metaData.getColumnNames();
-    	this.headerNames = fullNames.toArray(new String[fullNames.size()]);
-		String[] headers = this.headerNames;
-		String[] cleanHeaders = new String[headers.length];
-		String[] types = new String[headers.length];
+		// create a map of column to data type
+		String[] cleanHeaders = new String[this.headerNames.length];
+		String[] types = new String[this.headerNames.length];
 		for(int i = 0; i < types.length; i++) {
-			types[i] = Utility.getRawDataType(this.metaData.getDataType(headers[i]));
-			cleanHeaders[i] = this.metaData.getValueForUniqueName(headers[i]);
+			types[i] = Utility.getRawDataType(this.metaData.getDataType(this.headerNames[i]));
+			cleanHeaders[i] = this.metaData.getValueForUniqueName(this.headerNames[i]);
 		}
-		builder.alterTableNewColumns(cleanHeaders, types);
 		
+		builder.tableName = getTableNameForUniqueColumn(this.headerNames[0]);
+		builder.alterTableNewColumns(builder.tableName, cleanHeaders, types);
 	}
-
-//	@Override
-//	public void addMetaDataTypes(String[] headers, String[] types) {
-//		this.metaData.storeDataTypes(headers, types);
-//	}
 	
 	public static void main(String[] args) {
 		
