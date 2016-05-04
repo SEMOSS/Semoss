@@ -1386,7 +1386,7 @@ public class H2Builder {
     	header = header.replace(")", "_");
     	header = header.replace("-", "_");
     	header = header.replace("'", "");*/
-    	header = header.replaceAll("[#%!&()@#$'./-]*\"", ""); // replace all the useless shit in one go
+    	header = header.replaceAll("[#%!&()@#$'./-]*\"*", ""); // replace all the useless shit in one go
     	header = header.replaceAll("\\s+","_");
     	header = header.replaceAll(",","_"); 
     	if(Character.isDigit(header.charAt(0)))
