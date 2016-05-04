@@ -473,6 +473,45 @@ public class UserPermissionsMasterDB {
 		return true;
 	}
 	
+	public Boolean removeAllPermissionsForGroup(String userId, String groupName, String engineName) {
+		String query = "DELETE FROM GroupEnginePermission "
+				+ "WHERE GroupEnginePermission.ENGINE IN "
+					+ "(SELECT Engine.ID FROM Engine, EnginePermission WHERE Engine.NAME='" + engineName + "' AND EnginePermission.ENGINE=Engine.ID "
+						+ "AND EnginePermission.USER='" + userId + "' AND EnginePermission.PERMISSION=" + EnginePermission.OWNER.getId() + "') "
+				+ "AND GroupEnginePermission.GROUPID IN "
+					+ "(SELECT UserGroup.ID FROM UserGroup WHERE UserGroup.NAME='" + groupName + "' AND UserGroup.OWNER='" + userId + "');";
+		
+		securityDB.execUpdateAndRetrieveStatement(query, true);
+		securityDB.commit();
+		
+		return true;
+	}
+	
+	public Boolean setPermissionsForUser(String userId, String engineName, String userToAdd, EnginePermission[] permissions) {
+		for(int i = 0; i < permissions.length; i++) {
+			String query = "INSERT INTO EnginePermission VALUES (NULL, (SELECT Engine.ID FROM Engine, EnginePermission WHERE Engine.NAME='" + engineName + "' AND EnginePermission.ENGINE=Engine.ID "
+							+ "AND EnginePermission.USER='" + userId + "' AND EnginePermission.PERMISSION=" + EnginePermission.OWNER.getId() + "'), '" + userToAdd + "', " + permissions[i].getId() + ");";
+			
+			securityDB.insertData(query);
+		}
+		securityDB.commit();
+		
+		return true;
+	}
+	
+	public Boolean removeAllPermissionsForUser(String userId, String engineName, String userToRemove) {
+		String query = "DELETE FROM EnginePermission "
+				+ "WHERE EnginePermission.ENGINE IN "
+					+ "(SELECT Engine.ID FROM Engine, EnginePermission WHERE Engine.NAME='" + engineName + "' AND EnginePermission.ENGINE=Engine.ID "
+						+ "AND EnginePermission.USER='" + userId + "' AND EnginePermission.PERMISSION=" + EnginePermission.OWNER.getId() + "') "
+				+ "AND EnginePermission.USER='" + userToRemove + "';";
+		
+		securityDB.execUpdateAndRetrieveStatement(query, true);
+		securityDB.commit();
+		
+		return true;
+	}
+	
 	/**
 	 * Returns a list of values given a query with one column/variable.
 	 * 
