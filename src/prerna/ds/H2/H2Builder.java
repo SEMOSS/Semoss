@@ -615,6 +615,7 @@ public class H2Builder {
     }
 
     public void alterTableNewColumns(String[] headers, String[] types) {
+    	types = cleanTypes(types);
     	try {
     		runQuery("CREATE TABLE IF NOT EXISTS " + tableName);
     		for(int i = 0; i < headers.length; i++) {
@@ -1400,6 +1401,9 @@ public class H2Builder {
     	if(typeConversionMap.containsKey(type)) {
     		type = typeConversionMap.get(type);
     	} else {
+    		if(typeConversionMap.containsValue(type)) {
+    			return type;
+    		}
     		type = "VARCHAR(800)";
     	}
     	return type;
