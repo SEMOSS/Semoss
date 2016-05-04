@@ -182,4 +182,6 @@ public interface IMetaData {
 	List<String> getPrimKeys();
 
 	void setVertexValue(String string, String tableName);
+
+	String getLatestPrimKey();
 }

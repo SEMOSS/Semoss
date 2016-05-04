@@ -54,6 +54,8 @@ public class TinkerMetaData2 implements IMetaData {
 	public static final String ORDER = "ORDER";
 	public static final String DB_DATATYPE = "DB_DATATYPE";
 	
+	private String latestPrimKey;
+	
 
 //	private static final String ENVIRONMENT_VERTEX_KEY = "ENVIRONMENT_VERTEX_KEY";
 	public static final String PRIM_KEY = "PRIM_KEY";
@@ -276,7 +278,12 @@ public class TinkerMetaData2 implements IMetaData {
 			retVertex = g.addVertex(Constants.ID, type + ":" + uniqueName, Constants.VALUE, howItsCalledInDataFrame, Constants.TYPE, type, Constants.NAME, uniqueName);// push the actual value as well who knows when you would need it
 			// all new meta nodes are defaulted as unfiltered and not prim keys
 			retVertex.property(Constants.FILTER, false);
-			retVertex.property(PRIM_KEY, false);
+			if(uniqueName.toString().startsWith(TinkerFrame.PRIM_KEY)) {
+				setPrimKey(uniqueName.toString(), true);
+			}
+			else {
+				retVertex.property(PRIM_KEY, false);
+			}
 			retVertex.property(ORDER, getOrderIdx());
 		}
 		return retVertex;
@@ -489,6 +496,7 @@ public class TinkerMetaData2 implements IMetaData {
 	public void setPrimKey(String uniqueName, boolean primKey) {
 		Vertex v = getExistingVertex(uniqueName);
 		v.property(PRIM_KEY, primKey);
+		this.latestPrimKey = uniqueName;
 	}
 	
 	
@@ -974,6 +982,17 @@ public class TinkerMetaData2 implements IMetaData {
 		GraphTraversal<Vertex, Vertex> trav = g.traversal().V().has(Constants.TYPE, META).has(Constants.NAME, uniqueName);
 		while(trav.hasNext()){
 			trav.next().property(Constants.VALUE, newValue);
+		}
+	}
+
+	@Override
+	public String getLatestPrimKey() {
+		if(this.latestPrimKey!=null){
+			return this.latestPrimKey;
+		}
+		else{
+			List<String> keys = getPrimKeys();
+			return keys.get(keys.size()-1);
 		}
 	}
 }
