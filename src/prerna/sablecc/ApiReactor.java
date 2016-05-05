@@ -2,20 +2,23 @@ package prerna.sablecc;
 
 import java.util.Hashtable;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.Vector;
 
 import prerna.ds.QueryStruct;
+import prerna.algorithm.api.ITableDataFrame;
 import prerna.engine.api.IApi;
 import prerna.engine.impl.rdf.QueryAPI;
+import prerna.util.ArrayUtilityMethods;
 
 public class ApiReactor extends AbstractReactor {
 
 
 	public ApiReactor()
 	{
-		String [] thisReacts = {PKQLEnum.COL_CSV, PKQLEnum.FILTER, PKQLEnum.JOINS, "KEY_VALUE"};
+		String [] thisReacts = {PKQLEnum.COL_CSV, PKQLEnum.FILTER, PKQLEnum.JOINS, "KEY_VALUE", "TABLE_JOINS"};
 		super.whatIReactTo = thisReacts;
 		super.whoAmI = PKQLEnum.API;
 	}
@@ -63,6 +66,59 @@ public class ApiReactor extends AbstractReactor {
 		if(myStore.containsKey(PKQLEnum.JOINS) && ((Vector)myStore.get(PKQLEnum.JOINS)).size() > 0)
 			joins = (Vector<Hashtable>) myStore.get(PKQLEnum.JOINS);
 
+		//for each inner join we want to add filters to the query struct
+		//that way only the pieces we need come from the database
+		ITableDataFrame frame = (ITableDataFrame)myStore.get("G");
+		Vector<Hashtable> tableJoins = (Vector<Hashtable>) myStore.get("TABLE_JOINS");
+		if(tableJoins != null) {
+			for(Hashtable join : tableJoins) {
+				
+				String fromColumn = (String)join.get(PKQLEnum.FROM_COL); //what is in my table
+				String toColumn = (String)join.get(PKQLEnum.TO_COL); //what is coming to my table
+				String joinType = (String)join.get(PKQLEnum.REL_TYPE);
+				if(joinType.equalsIgnoreCase("inner.join")) {
+					String[] columnHeaders = frame.getColumnHeaders();
+					
+					//figure out which is the new column and which already exists in the table
+					Iterator<Object> rowIt = null;
+	//				String filterColumn = null;
+	//				if(ArrayUtilityMethods.arrayContainsValue(columnHeaders, fromColumn)) {
+	//					filterColumn = fromColumn;
+	//				} else if(ArrayUtilityMethods.arrayContainsValue(columnHeaders, toColumn)) {
+	//					filterColumn = toColumn;
+	//				}
+					
+					//we want to add filters to the column that already exists in the table
+					if(fromColumn != null) {
+						rowIt = frame.uniqueValueIterator(fromColumn, false, false);
+						List<Object> uris = new Vector<Object>();
+						
+						//collect all the filter values
+						while(rowIt.hasNext()){
+							uris.add("\""+rowIt.next() + "\"");
+						}
+						
+						//see if this filter already exists
+						for(Hashtable filter : filters) {
+							if(filter.containsKey(fromColumn)) {
+								Vector values = (Vector) filter.get("TO_DATA");
+								if(values != null) {
+									values.addAll(uris);
+								}
+								break;
+							}
+						}
+						
+						//if not contained create a new table and add to filters
+						Hashtable joinfilter = new Hashtable();
+						joinfilter.put(PKQLEnum.FROM_COL, fromColumn);
+						joinfilter.put("TO_DATA", uris);
+						joinfilter.put(PKQLEnum.COMPARATOR, "=");
+						filters.add(joinfilter);
+					}
+				}
+			}
+		}
 		QueryStruct qs = new QueryStruct();
 		processQueryStruct(qs, selectors, filters, joins);
 		qapi.set("QUERY_STRUCT", qs);
