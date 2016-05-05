@@ -229,35 +229,36 @@ public class TinkerH2Frame extends AbstractTableDataFrame {
 		if(filterValues != null && filterValues.size() > 0) {
 			
 			if(comparator.equals("=")) {
-				builder.addFilters(columnHeader, filterValues, H2Builder.Comparator.EQUAL);
+				builder.setFilters(columnHeader, filterValues, H2Builder.Comparator.EQUAL);
 			} else if(comparator.equals("!=")) { 
-				builder.addFilters(columnHeader, filterValues, H2Builder.Comparator.NOT_EQUAL);
+				builder.setFilters(columnHeader, filterValues, H2Builder.Comparator.NOT_EQUAL);
 			} else if(comparator.equals("<")) {
 				if(isNumeric(columnHeader)) {
-					builder.addFilters(columnHeader, filterValues, H2Builder.Comparator.LESS_THAN);
+					builder.setFilters(columnHeader, filterValues, H2Builder.Comparator.LESS_THAN);
 				} else {
 					throw new IllegalArgumentException(columnHeader + " is not a numeric column, cannot use operator " + comparator);
 				}
 			} else if(comparator.equals(">")) {
 				if(isNumeric(columnHeader)) {
-					builder.addFilters(columnHeader, filterValues, H2Builder.Comparator.GREATER_THAN);
+					builder.setFilters(columnHeader, filterValues, H2Builder.Comparator.GREATER_THAN);
 				} else {
 					throw new IllegalArgumentException(columnHeader + " is not a numeric column, cannot use operator " + comparator);
 				}
 			} else if(comparator.equals("<=")) {
 				if(isNumeric(columnHeader)) {
-					builder.addFilters(columnHeader, filterValues, H2Builder.Comparator.LESS_THAN_EQUAL);
+					builder.setFilters(columnHeader, filterValues, H2Builder.Comparator.LESS_THAN_EQUAL);
 				} else {
 					throw new IllegalArgumentException(columnHeader + " is not a numeric column, cannot use operator " + comparator);
 				}
 			} else if(comparator.equals(">=")) {
 				if(isNumeric(columnHeader)) {
-					builder.addFilters(columnHeader, filterValues, H2Builder.Comparator.GREATER_THAN_EQUAL);
+					builder.setFilters(columnHeader, filterValues, H2Builder.Comparator.GREATER_THAN_EQUAL);
 				} else {
 					throw new IllegalArgumentException(columnHeader + " is not a numeric column, cannot use operator " + comparator);
 				}
 			} else {
 				//comparator not recognized...do equal by default? or do nothing? or throw error?
+				builder.setFilters(columnHeader, filterValues, H2Builder.Comparator.EQUAL);
 			}
 		}
 	}
