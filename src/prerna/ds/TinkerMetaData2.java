@@ -53,6 +53,7 @@ public class TinkerMetaData2 implements IMetaData {
 	public static final String DATATYPE = "DATATYPE";
 	public static final String ORDER = "ORDER";
 	public static final String DB_DATATYPE = "DB_DATATYPE";
+	public static final String DERIVED = "DERIVED_COLUMN";
 	
 	private String latestPrimKey;
 	
@@ -499,6 +500,12 @@ public class TinkerMetaData2 implements IMetaData {
 		this.latestPrimKey = uniqueName;
 	}
 	
+	@Override
+	public void setDerived(String uniqueName, boolean derived) {
+		Vertex v = getExistingVertex(uniqueName);
+		v.property(DERIVED, derived);
+	}
+	
 	
 //////////////////::::::::::::::::::::::: GETTER METHODS :::::::::::::::::::::::::::::::://////////////////////////////
 
@@ -564,6 +571,15 @@ public class TinkerMetaData2 implements IMetaData {
 		Vertex vert = getExistingVertex(uniqueName);
 		if(vert.property(PRIM_KEY).isPresent()) {
 			return vert.value(PRIM_KEY);
+		}
+		return false;
+	}
+	
+	@Override
+	public boolean isDerived(String uniqueName) {
+		Vertex vert = getExistingVertex(uniqueName);
+		if(vert.property(DERIVED).isPresent()) {
+			return vert.value(DERIVED);
 		}
 		return false;
 	}
