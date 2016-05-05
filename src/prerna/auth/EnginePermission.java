@@ -20,4 +20,15 @@ public enum EnginePermission {
 	public String getPermission() {
 		return this.permission;
 	}
+	
+	public static EnginePermission getPermissionByValue(String value) {
+		EnginePermission ep = EnginePermission.READ_ONLY;
+		for(EnginePermission perm : EnginePermission.values()) {
+			if(perm.permission.equalsIgnoreCase(value)) {
+				ep = perm;
+			}
+		}
+		
+		return ep;
+	}
 }
