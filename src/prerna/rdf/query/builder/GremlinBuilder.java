@@ -124,7 +124,7 @@ public class GremlinBuilder {
 				gt = gt.not(__.in(Constants.FILTER + TinkerFrame.edgeLabelDelimeter + valueType).has(Constants.TYPE, Constants.FILTER));
 			}
 			if(temporalFilters.containsKey(nameType)) {
-				gt = gt.where(P.within(temporalFilters.get(nameType)));
+				gt = gt.has(Constants.NAME, P.within(temporalFilters.get(nameType).toArray(new String[]{})));
 			}
 			
 			// add the logic to traverse
@@ -175,7 +175,7 @@ public class GremlinBuilder {
 					twoStepT = twoStepT.not(__.in(Constants.FILTER + TinkerFrame.edgeLabelDelimeter + valueNode).has(Constants.TYPE, Constants.FILTER));
 				}
 				if(temporalFilters.containsKey(nameNode)) {
-					gt = gt.where(P.within(temporalFilters.get(nameNode)));
+					twoStepT = twoStepT.has(Constants.NAME, P.within(temporalFilters.get(nameNode).toArray(new String[]{})));
 				}
 
 				twoStepT = twoStepT.as(nameNode);
@@ -212,7 +212,7 @@ public class GremlinBuilder {
 					twoStepT = twoStepT.not(__.in(Constants.FILTER + TinkerFrame.edgeLabelDelimeter + valueNode).has(Constants.TYPE, Constants.FILTER));
 				}
 				if(temporalFilters.containsKey(nameNode)) {
-					gt = gt.where(P.within(temporalFilters.get(nameNode)));
+					twoStepT = twoStepT.has(Constants.NAME, P.within(temporalFilters.get(nameNode).toArray(new String[]{})));
 				}
 				
 				twoStepT = twoStepT.as(nameNode);
@@ -430,10 +430,12 @@ public class GremlinBuilder {
 	 * 		Metamodel: a -> b, a -> c, b -> d
 	 * 		return traversal which returns {a -> a1, b -> b1, c -> c1, d -> d1} for each row in the table represented by graph g
 	 */
-	public static GremlinBuilder prepareGenericBuilder(List<String> selectors, Graph g, Graph metaGraph){
+	public static GremlinBuilder prepareGenericBuilder(List<String> selectors, Graph g, Graph metaGraph, Map<String, List<Object>> temporalFilters){
 		// get all the levels
 		GremlinBuilder builder = new GremlinBuilder(g, metaGraph);
-
+		if(temporalFilters != null) {
+			builder.temporalFilters = temporalFilters;
+		}
 		//add edges if edges exist
 		builder.addNodeEdge();
 

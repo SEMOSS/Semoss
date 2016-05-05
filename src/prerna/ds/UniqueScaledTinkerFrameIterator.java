@@ -50,7 +50,7 @@ public class UniqueScaledTinkerFrameIterator implements Iterator<List<Object[]>>
 	}
 	
 	private GraphTraversal openTraversal(List<String> selectors, Graph g, Graph metaG){
-		GremlinBuilder builder = GremlinBuilder.prepareGenericBuilder(selectors, g, metaG);
+		GremlinBuilder builder = GremlinBuilder.prepareGenericBuilder(selectors, g, metaG, null);
 		builder.setOrderBySelector(columnName);
 		this.finalColumns = selectors.toArray(new String[0]);//finalColumns.toArray(new String[0]);
 		//finally execute it to get the executor

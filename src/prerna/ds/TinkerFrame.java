@@ -272,7 +272,7 @@ public class TinkerFrame extends AbstractTableDataFrame {
 	public static void testCleanup() {
 		String fileName = "C:\\Users\\rluthar\\Documents\\Movie Results.xlsx";
 		TinkerFrame tinker = load2Graph4Testing(fileName);
-		GremlinBuilder builder = GremlinBuilder.prepareGenericBuilder(tinker.getSelectors(), tinker.g, ((TinkerMetaData2)tinker.metaData).g);
+		GremlinBuilder builder = GremlinBuilder.prepareGenericBuilder(tinker.getSelectors(), tinker.g, ((TinkerMetaData2)tinker.metaData).g, null);
 		GraphTraversal traversal = (GraphTraversal)builder.executeScript();
 		traversal = traversal.V();
 		GraphTraversal traversal2 = tinker.g.traversal().V();
@@ -1750,7 +1750,7 @@ public class TinkerFrame extends AbstractTableDataFrame {
 		
 		Vector<String> column = new Vector<>();
 		column.add(columnHeader);
-		GremlinBuilder builder = GremlinBuilder.prepareGenericBuilder(column, g, ((TinkerMetaData2)this.metaData).g);
+		GremlinBuilder builder = GremlinBuilder.prepareGenericBuilder(column, g, ((TinkerMetaData2)this.metaData).g, null);
 		String dataType = getRawData ? Constants.VALUE : Constants.NAME;
 		return builder.executeScript().values(dataType).dedup();	
 	}
@@ -1763,7 +1763,7 @@ public class TinkerFrame extends AbstractTableDataFrame {
 	
 	public Iterator getIterator(Vector <String> columns) {
 		// the columns here are the columns we want to keep
-		GremlinBuilder builder = GremlinBuilder.prepareGenericBuilder(columns, g, ((TinkerMetaData2)this.metaData).g);
+		GremlinBuilder builder = GremlinBuilder.prepareGenericBuilder(columns, g, ((TinkerMetaData2)this.metaData).g, null);
 		return builder.executeScript();	
 	}
 	
@@ -1812,7 +1812,7 @@ public class TinkerFrame extends AbstractTableDataFrame {
 	@Override
 	public int getNumRows() {
 		long startTime = System.currentTimeMillis();
-		GremlinBuilder builder = GremlinBuilder.prepareGenericBuilder(getSelectors(), this.g, ((TinkerMetaData2)this.metaData).g);
+		GremlinBuilder builder = GremlinBuilder.prepareGenericBuilder(getSelectors(), this.g, ((TinkerMetaData2)this.metaData).g, null);
 		Iterator gt = builder.executeScript();		
 		int count = 0;
 		while(gt.hasNext()) {
@@ -2065,7 +2065,7 @@ public class TinkerFrame extends AbstractTableDataFrame {
 				
 		// get all the levels
 		String[] headers = getColumnHeaders();
-		GremlinBuilder builder = GremlinBuilder.prepareGenericBuilder(getSelectors(), g, ((TinkerMetaData2)this.metaData).g);
+		GremlinBuilder builder = GremlinBuilder.prepareGenericBuilder(getSelectors(), g, ((TinkerMetaData2)this.metaData).g, null);
 		builder.setGroupBySelector(columnHeader);
 		
 		//finally execute it to get the executor
