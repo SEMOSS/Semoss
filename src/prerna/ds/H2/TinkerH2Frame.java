@@ -792,17 +792,6 @@ public class TinkerH2Frame extends AbstractTableDataFrame {
 	}
 	
 	@Override
-	public void connectTypes(String outType, String inType, Map<String, String> dataTypeMap) {
-
-		Map<String, Set<String>> edgeHash = new HashMap<>();
-		Set<String> set = new HashSet<>();
-		set.add(inType);
-		edgeHash.put(outType, set);
-		mergeEdgeHash(edgeHash, dataTypeMap);
-
-	}
-	
-	@Override
 	public Map[] mergeQSEdgeHash(Map<String, Set<String>> edgeHash, IEngine engine, Vector<Map<String, String>> joinCols) {
 		Map[] ret =  super.mergeQSEdgeHash(edgeHash, engine, joinCols);
 		
@@ -867,11 +856,6 @@ public class TinkerH2Frame extends AbstractTableDataFrame {
 
 	public String getValueForUniqueName(String name) {
 		return this.metaData.getValueForUniqueName(name);
-	}
-	
-	@Override
-	public void connectTypes(String[] joinCols, String newCol, Map<String, String> dataTypeMap) {
-		connectTypes(joinCols[0], newCol, dataTypeMap); 
 	}
 
 	@Override

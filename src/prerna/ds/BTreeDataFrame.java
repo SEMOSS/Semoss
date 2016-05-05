@@ -2275,4 +2275,10 @@ public class BTreeDataFrame implements ITableDataFrame {
 		return null;
 	}
 
+	@Override
+	public void setDerivedColumn(String uniqueName, boolean isDerived) {
+		// TODO Auto-generated method stub
+		
+	}
+
 }
