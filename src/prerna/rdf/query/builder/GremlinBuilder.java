@@ -98,18 +98,47 @@ public class GremlinBuilder {
 		List<String> travelledEdges = new Vector<String>();
 		List<GraphTraversal<Object, Vertex>> traversals = new Vector<GraphTraversal<Object, Vertex>>();
 		
-		Vertex startNode;
+		Vertex startNode = null;
 		// get the metamodel information from the graph
 		GraphTraversal<Vertex, Vertex> metaT = this.metaGraph.traversal().V().has(Constants.TYPE, TinkerMetaData2.META);
 		if(metaT.hasNext()) { //note: this is an if statement, not a while loop
 			// the purpose of this is to just get the start node for the traversal
-			// start with any meta node
-			startNode = metaT.next();
-			
+
+			// for optimization, start with the node with the greatest filtering
+			if(!temporalFilters.isEmpty()) {
+				String bestFilter = null;
+				Integer minSize = null;
+				for(String filter : temporalFilters.keySet()) {
+					if(minSize == null || temporalFilters.get(filter).size() < minSize) {
+						minSize = temporalFilters.get(filter).size();
+						bestFilter = filter;
+					}
+				}
+
+				//continue through until we find the best one
+				while(metaT.hasNext()) {
+					// this way, startNode will always be set
+					startNode = metaT.next();
+					if(startNode.value(Constants.NAME).equals(bestFilter)) {
+						break;
+					}
+				}
+			} else {
+				// try to find any column that is filtered
+				// costly to determine the most filtered, just use a random one
+				while(metaT.hasNext()) {
+					// this way, startNode will always be set
+					startNode = metaT.next();
+					if(startNode.property(Constants.FILTER).isPresent() && (boolean) startNode.value(Constants.FILTER)) {
+						break;
+					}
+				}
+			}
+
 			//Constants.NAME changes while Constants.VALUE stays constant
 			String nameType = startNode.property(Constants.NAME).value()+""; 
 			String valueType = startNode.property(Constants.VALUE).value()+""; 
-			
+
 			//remove prim_key when making a heatMap
 			if(valueType.equals(TinkerFrame.PRIM_KEY)){
 				valueType = startNode.property(Constants.NAME).value() + "";
