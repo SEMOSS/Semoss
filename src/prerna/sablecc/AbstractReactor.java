@@ -136,12 +136,12 @@ public abstract class AbstractReactor implements IScriptReactor {
 		
 	}
 
-	protected Iterator getTinkerData(Vector <String> columns, ITableDataFrame frame)
+	protected Iterator getTinkerData(Vector <String> columns, ITableDataFrame frame, boolean dedup)
 	{
-		return getTinkerData(columns, frame, null);
+		return getTinkerData(columns, frame, null, dedup);
 	}
 
-	protected Iterator getTinkerData(Vector<String> columns, ITableDataFrame frame, Map<String, Object> valMap) {
+	protected Iterator getTinkerData(Vector<String> columns, ITableDataFrame frame, Map<String, Object> valMap, boolean dedup) {
 //		if(columns != null && columns.size() <= 1)
 //			columns.add(columns.get(0));
 		// now I need to ask tinker to build me something for this
@@ -151,6 +151,9 @@ public abstract class AbstractReactor implements IScriptReactor {
 		
 		if(valMap!=null){
 			options.put(TinkerFrame.TEMPORAL_BINDINGS, valMap);
+		}
+		if(dedup) {
+			options.put(TinkerFrame.DE_DUP, dedup);
 		}
 		
 		Iterator iterator = frame.iterator(true, options);
