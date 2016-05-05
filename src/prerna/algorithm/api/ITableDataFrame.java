@@ -525,7 +525,7 @@ public interface ITableDataFrame extends IDataMaker {
 
 	String getPhysicalUriForNode(String string, String engineName);
 
-	List<Map<String, String>>  getTableHeaderObjects();
+	List<Map<String, String>> getTableHeaderObjects();
 
 	void connectTypes(String[] joinCols, String newCol, Map<String, String> dataTypeMap);
 
@@ -540,6 +540,8 @@ public interface ITableDataFrame extends IDataMaker {
 	void filter(String columnHeader, List<Object> filterValues, String comparator);
 	
 	void addRelationship(String[] headers, Object[] values, Object[] rawValues, Map<Integer, Set<Integer>> cardinality, Map<String, String> logicalToValMap);
+	
+	void setDerivedColumn(String uniqueName, boolean isDerived);
 	
 	IScriptReactor getImportDataReactor();
 }

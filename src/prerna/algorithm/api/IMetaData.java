@@ -82,6 +82,8 @@ public interface IMetaData {
 	
 	void setPrimKey(String uniqueName, boolean primKey);
 	
+	void setDerived(String uniqueName, boolean derived);
+
 	void dropVertex(String uniqueName);
 	
 	void save(String baseFileName);
@@ -159,6 +161,8 @@ public interface IMetaData {
 	
 	boolean isPrimKey(String uniqueName);
 	
+	boolean isDerived(String uniqueName);
+	
 	Map<String, String[]> getPhysical2LogicalTranslations(Map<String,Set<String>> edgeHash, List<Map<String,String>> joins);
 
 	String getLogicalNameForUniqueName(String uniqueName, String engineName);
@@ -184,4 +188,5 @@ public interface IMetaData {
 	void setVertexValue(String string, String tableName);
 
 	String getLatestPrimKey();
+	
 }
