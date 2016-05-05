@@ -251,7 +251,7 @@ public abstract class AbstractTableDataFrame implements ITableDataFrame {
 		return this.metaData.getPhysicalUriForNode(string, engineName);
 	}
 	
-	public List<Map<String, String>> getTableHeaderObjects(){
+	public List<Map<String, Object>> getTableHeaderObjects(){
 		return this.metaData.getTableHeaderObjects();
 	}
 

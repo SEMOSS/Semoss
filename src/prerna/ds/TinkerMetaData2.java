@@ -684,6 +684,15 @@ public class TinkerMetaData2 implements IMetaData {
 		}
 		return uniqueList;
 	}
+	
+	private List<Vertex> getColumnVertices() {
+		List<Vertex> uniqueList = new Vector<Vertex>();
+		GraphTraversal<Vertex, Vertex> trav = g.traversal().V().has(Constants.TYPE, META).has(PRIM_KEY, false).order().by(ORDER, Order.incr);
+		while(trav.hasNext()){
+			uniqueList.add(trav.next());
+		}
+		return uniqueList;
+	}
 
 	/**
 	 * edgeHash is all query struct names of things getting added this go
@@ -861,15 +870,52 @@ public class TinkerMetaData2 implements IMetaData {
 		
 	}
 
-	public List<Map<String, String>> getTableHeaderObjects(){
-		List<Map<String, String>> tableHeaders = new ArrayList<Map<String, String>>();
-		List<String> columnHeaders = this.getColumnNames();
-		Map<String, String> typeMap = getNodeTypesForUniqueAlias();
-		for(int i = 0; i < columnHeaders.size(); i++) {
-			Map<String, String> innerMap = new HashMap<String, String>();
-			innerMap.put("uri", columnHeaders.get(i));
-			innerMap.put("varKey", columnHeaders.get(i));
-			innerMap.put("type", typeMap.get(columnHeaders.get(i)));
+	public List<Map<String, Object>> getTableHeaderObjects(){
+		List<Map<String, Object>> tableHeaders = new ArrayList<Map<String, Object>>();
+		// get all the vertices
+		List<Vertex> uniqueNonPrimKeyVertices = this.getColumnVertices();
+		// get all the data types
+		
+		for(int i = 0; i < uniqueNonPrimKeyVertices.size(); i++) {
+			Vertex vert = uniqueNonPrimKeyVertices.get(i);
+			
+			// store the normal vertex info
+			Map<String, Object> innerMap = new HashMap<String, Object>();
+			String name = vert.value(Constants.NAME); 
+			innerMap.put("uri", name);
+			innerMap.put("varKey", name);
+			
+			// store data type is present
+			if(vert.property(DATATYPE).isPresent()) {
+				String type = vert.value(DATATYPE);
+				innerMap.put("type", type);
+			} else {
+				innerMap.put("type", "TYPE NOT STORED IN OWL, NEED TO UPDATE DB");
+			}
+			
+			//need to also store information if the vertex is a derived column
+			if(vert.property(DERIVED).isPresent()) {
+				boolean isDerived = vert.value(DERIVED);
+				if(isDerived) {
+					// need to determine if what points into this node is a prim key or not
+					Vertex outVert = vert.edges(Direction.IN).next().outVertex();
+					if(outVert.property(PRIM_KEY).isPresent() && (boolean) outVert.value(PRIM_KEY)) {
+						// this is an example where you have a group by with 2 columns + math
+						// the meta edgeHash for this example is {groupByCol1 -> [primKey] , groupByCol2 -> [primKey] , primKey -> [newCol]}
+						List<String> inputs = new Vector<String>();
+						Iterator<Edge> allEdges = vert.edges(Direction.IN);
+						while(allEdges.hasNext()) {
+							inputs.add(allEdges.next().outVertex().value(Constants.NAME));
+						}
+						innerMap.put("derived", inputs.toArray(new String[]{}));
+					} else {
+						// the meta edgeHash for this example is {existingCol -> [newCol]}
+						innerMap.put("derived", new String[]{outVert.value(Constants.NAME)});
+					}
+				}
+			}
+			
+			
 			tableHeaders.add(innerMap);
 		}
 		return tableHeaders;

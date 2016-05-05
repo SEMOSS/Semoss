@@ -173,7 +173,7 @@ public interface IMetaData {
 	
 	void open(String baseFileName);
 
-	List<Map<String, String>> getTableHeaderObjects();
+	List<Map<String, Object>> getTableHeaderObjects();
 
 	void unfilterAll();
 
