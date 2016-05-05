@@ -2217,7 +2217,7 @@ public class BTreeDataFrame implements ITableDataFrame {
 	}
 
 	@Override
-	public List<Map<String, String>> getTableHeaderObjects() {
+	public List<Map<String, Object>> getTableHeaderObjects() {
 		// TODO Auto-generated method stub
 		return null;
 	}
