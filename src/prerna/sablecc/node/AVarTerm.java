@@ -34,7 +34,6 @@ public final class AVarTerm extends PTerm
             cloneNode(this._var_));
     }
 
-    @Override
     public void apply(Switch sw)
     {
         ((Analysis) sw).caseAVarTerm(this);

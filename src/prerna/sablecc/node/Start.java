@@ -31,7 +31,6 @@ public final class Start extends Node
             cloneNode(this._eof_));
     }
 
-    @Override
     public void apply(Switch sw)
     {
         ((Analysis) sw).caseStart(this);

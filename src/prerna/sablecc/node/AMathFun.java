@@ -59,7 +59,6 @@ public final class AMathFun extends PMathFun
             cloneNode(this._rPar_));
     }
 
-    @Override
     public void apply(Switch sw)
     {
         ((Analysis) sw).caseAMathFun(this);
