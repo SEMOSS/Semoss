@@ -146,14 +146,14 @@ public abstract class BaseReducerReactor extends MathReactor implements Expressi
 		Vector<String> groupBys = (Vector <String>)myStore.get(PKQLEnum.COL_CSV);
 		if(groupBys != null && !groupBys.isEmpty()){
 			Map masterMap = new HashMap();
-			Iterator groupByIterator = getTinkerData(groupBys, frame);
+			Iterator groupByIterator = getTinkerData(groupBys, frame, true);
 			while(groupByIterator.hasNext()){
 				Object[] groupByVals = (Object[])groupByIterator.next();
 				Map<String, Object> valMap = new HashMap<String, Object>();
 				for(int i = 0; i < groupByVals.length; i++){
 					valMap.put(groupBys.get(i), groupByVals[i]);
 				}
-				Iterator iterator = getTinkerData(columns, frame, valMap);
+				Iterator iterator = getTinkerData(columns, frame, valMap, false);
 				Object finalValue = processAlgorithm(iterator, columnsArray);
 
 				masterMap.put(valMap, finalValue);
@@ -161,7 +161,7 @@ public abstract class BaseReducerReactor extends MathReactor implements Expressi
 			myStore.put(nodeStr, masterMap);
 			myStore.put("STATUS","success");
 		} else {
-			Iterator iterator = getTinkerData(columns, frame);
+			Iterator iterator = getTinkerData(columns, frame, false);
 			myStore.put(nodeStr, processAlgorithm(iterator, columnsArray));
 			myStore.put("STATUS","success");
 		}
