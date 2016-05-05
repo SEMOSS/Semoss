@@ -208,6 +208,10 @@ public class Translation2 extends DepthFirstAdapter {
 	@Override
 	public void inAApiBlock(AApiBlock node) {
 		if(reactorNames.containsKey(PKQLEnum.API)) {
+			List myJoins = null;
+			if(curReactor !=null && curReactor.getValue(PKQLEnum.JOINS)!=null){
+				myJoins = (List) curReactor.getValue(PKQLEnum.JOINS);
+			}
 			initReactor(PKQLEnum.API);
 			String nodeStr = node.toString().trim();
 			curReactor.put(PKQLEnum.API, nodeStr);
@@ -525,6 +529,8 @@ public class Translation2 extends DepthFirstAdapter {
 			initReactor(PKQLEnum.IMPORT_DATA);
 			String nodeStr = node.toString().trim();
 			curReactor.put(PKQLEnum.IMPORT_DATA, nodeStr);
+			
+			node.getJoins().apply(this); // need to process joins so that we can access them in the api block for preprocessing inner joins
 		}		
     }
     
