@@ -530,7 +530,9 @@ public class Translation2 extends DepthFirstAdapter {
 			String nodeStr = node.toString().trim();
 			curReactor.put(PKQLEnum.IMPORT_DATA, nodeStr);
 			
-			node.getJoins().apply(this); // need to process joins so that we can access them in the api block for preprocessing inner joins
+			if(node.getJoins()!=null){
+				node.getJoins().apply(this); // need to process joins so that we can access them in the api block for preprocessing inner joins
+			}
 		}		
     }
     
