@@ -25,6 +25,7 @@ import prerna.ds.AbstractTableDataFrame;
 import prerna.ds.TinkerFrame;
 import prerna.ds.TinkerMetaData2;
 import prerna.ds.TinkerMetaHelper;
+import prerna.ds.H2.H2Builder.Join;
 import prerna.engine.api.IEngine;
 import prerna.engine.api.IHeadersDataRow;
 import prerna.engine.api.IScriptReactor;
@@ -945,22 +946,60 @@ public class TinkerH2Frame extends AbstractTableDataFrame {
 		return new H2ImportDataReactor(this);
 	}
 	
-	public void processIterator(Iterator<IHeadersDataRow> iterator, String[] newHeaders, Map<String, String> logicalToValue) {
+	public void processIterator(Iterator<IHeadersDataRow> iterator, String[] newHeaders, Map<String, String> logicalToValue, Vector<Map<String, String>> joins, String joinType) {
 		
+		//convert the new headers into value headers
 		String[] valueHeaders = new String[newHeaders.length];
-		for(int i = 0; i < newHeaders.length; i++) {
-			valueHeaders[i] = logicalToValue.get(newHeaders[i]);
+		if(logicalToValue == null) {
+			for(int i = 0; i < newHeaders.length; i++) {
+				valueHeaders[i] = this.metaData.getValueForUniqueName(newHeaders[i]);
+			}
+		} else {	
+			for(int i = 0; i < newHeaders.length; i++) {
+				valueHeaders[i] = logicalToValue.get(newHeaders[i]);
+			}
 		}
+		
+		
 		String[] columnHeaders = getColumnHeaders();
 		int length = columnHeaders.length;
-		if(ArrayUtilityMethods.arrayContainsValueIgnoreCase(newHeaders, columnHeaders[length-1])) {
-			length = length - 1;
-		}
 		
+		//remove the newHeaders from the column headers if they were added already (but don't exist yet in the table)
+//		while(true) {
+			if(ArrayUtilityMethods.arrayContainsValueIgnoreCase(newHeaders, columnHeaders[length-1])) {
+				length = length - 1;
+			} 
+//			else {
+//				break;
+//			}
+//		}
+		
+		//get the values for each column header, i.e. the column name in the h2 table
 		String[] adjustedColHeaders = new String[length];
 		for(int i = 0; i < length; i++) {
 			adjustedColHeaders[i] = this.metaData.getValueForUniqueName(columnHeaders[i]);
 		}
-		this.builder.processIterator(iterator, adjustedColHeaders, valueHeaders);
+		
+		//get the join type
+		Join type = Join.INNER;
+		if(joinType != null) {
+			if(joinType.toUpperCase().startsWith("INNER")) {
+				type = Join.INNER;
+			} else if(joinType.toUpperCase().startsWith("OUTER")) {
+				type = Join.FULL_OUTER;
+			} else if(joinType.toUpperCase().startsWith("LEFT")) {
+				type = Join.LEFT_OUTER;
+			} else if(joinType.toUpperCase().startsWith("RIGHT")) {
+				type = Join.RIGHT_OUTER;
+			}
+		}
+				
+		this.builder.processIterator(iterator, adjustedColHeaders, valueHeaders, type);
 	}
+	
+	
+	
+	
+	
+	
 }
