@@ -624,13 +624,15 @@ public class H2Builder {
 	    			if(!ArrayUtilityMethods.arrayContainsValue(getHeaders(tableName), headers[i].toUpperCase())) {
 	    				//these are the columns to create
 	    				newHeaders.add(headers[i]);
-	    				newHeaders.add(types[i]);
+	    				newTypes.add(types[i]);
 	    			}
 	    		}
 	    		
-	    		String alterQuery = makeAlter(tableName, newHeaders.toArray(new String[]{}), newTypes.toArray(new String[]{}));
-	    		System.out.println("altering table: " + alterQuery);
-				runQuery(alterQuery);
+	    		if(!newHeaders.isEmpty()) {
+		    		String alterQuery = makeAlter(tableName, newHeaders.toArray(new String[]{}), newTypes.toArray(new String[]{}));
+		    		System.out.println("altering table: " + alterQuery);
+					runQuery(alterQuery);
+	    		}
     		} else {
     			String createTable = makeCreate(tableName, headers, types);
     			System.out.println("creating table: " + createTable);
