@@ -96,10 +96,9 @@ public class TinkerFrameIterator implements Iterator<Object[]> {
 	
 	private GraphTraversal openTraversal(List<String> selectors, Graph g, Graph metaG, Integer start, Integer end, String sortColumn, Map<String, List<Object>> cleanTemporalBindings, GremlinBuilder.DIRECTION orderByDirection, Boolean dedup) {
 		this.selectors = selectors;
-		GremlinBuilder builder = GremlinBuilder.prepareGenericBuilder(selectors, g, metaG);
+		GremlinBuilder builder = GremlinBuilder.prepareGenericBuilder(selectors, g, metaG, cleanTemporalBindings);
 		builder.setOrderBySelector(sortColumn);
 		builder.setOrderByDirection(orderByDirection);
-		builder.setTemporalFilters(cleanTemporalBindings);
 		//finally execute it to get the executor
 		if(start != null && start != -1) {
 			builder.setRange(start, end);
