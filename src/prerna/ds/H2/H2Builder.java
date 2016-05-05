@@ -724,7 +724,7 @@ public class H2Builder {
     		//create table
     		generateTable(data, newHeaders, tableName);
     	} else {
-    		processAlterData(data, newHeaders, headers);
+    		processAlterData(data, newHeaders, headers, Join.INNER);
     	}
     }
     
@@ -752,8 +752,73 @@ public class H2Builder {
 			} catch (Exception e) {
 				e.printStackTrace();
 			}
-    		processAlterData(data.toArray(new String[0][0]), newHeaders, oldHeaders);
+    		processAlterData(data.toArray(new String[0][0]), newHeaders, oldHeaders, Join.INNER);
 //    	}
+    }
+    
+    public void processIterator(Iterator<IHeadersDataRow> iterator, String[] oldHeaders, String[] newHeaders, Join joinType) {
+    	ArrayList<String[]> data = new ArrayList<>();
+    	newHeaders = cleanHeaders(newHeaders);
+    	while(iterator.hasNext()) {
+    		IHeadersDataRow nextData = iterator.next();
+    		if(newHeaders == null) {
+    			newHeaders = nextData.getHeaders();
+    		}
+    		Object[] values = nextData.getValues();
+    		String[] stringValues = new String[values.length];
+    		for(int i = 0; i < values.length; i++) {
+    			stringValues[i] = values[i].toString();
+    		}
+    		data.add(stringValues);
+    	}
+
+		try {
+			runQuery("CREATE TABLE IF NOT EXISTS " + tableName);
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+		
+		if(joinType.equals(Join.FULL_OUTER)) {
+			processAlterData(data.toArray(new String[0][0]), newHeaders, oldHeaders, Join.LEFT_OUTER);
+		} else {
+			processAlterData(data.toArray(new String[0][0]), newHeaders, oldHeaders, joinType);
+		}
+		
+		//if we are doing a full outer join (which h2 does not natively have)
+		//we have done the left outer join above
+		//now just add the rows we are missing via a merge query for each row
+		//not efficient but don't see another way to do it
+		//Ex: merge into table (column1, column2) key (column1, column2) values ('value1', 'value2')
+		if(joinType.equals(Join.FULL_OUTER)) {
+			String mergeQuery = "MERGE INTO "+tableName;
+			String columns = "(";
+			for(int i = 0; i < newHeaders.length; i++) {
+				if(i!=0) {
+					columns += ", ";
+				} 
+				columns += newHeaders[i];
+				
+			}
+			columns += ")";
+			
+			mergeQuery += columns + " KEY " + columns;
+			
+			for(Object[] row : data) {
+				String values = " VALUES("; 
+				for(int i = 0; i < row.length; i++) {
+					if(i != 0) {
+						values += ", ";
+					}
+					values += " '"+row[i].toString()+"' ";
+				}
+				values+= ")";
+				try {
+					runQuery(mergeQuery+values);
+				} catch (Exception e) {
+					e.printStackTrace();
+				}
+			}
+		}
     }
     
     /**
@@ -1118,7 +1183,7 @@ public class H2Builder {
     }
     
     //process to join the data and new headers to existing table
-    private void processAlterData(String[][] data, String[] newHeaders, String[] headers)
+    private void processAlterData(String[][] data, String[] newHeaders, String[] headers, Join joinType)
     {
     	// this currently doesnt handle many to many joins and such
     	String[] types = null;
@@ -1201,7 +1266,7 @@ public class H2Builder {
 			String tableName1 = tableName;
 			
 			if(one2Many)
-				mergeTables(tableName1, tableName2, matchers, oldHeaders, newHeaders, Join.INNER.getName());
+				mergeTables(tableName1, tableName2, matchers, oldHeaders, newHeaders, joinType.getName());
 			
 			testData();
 			

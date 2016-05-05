@@ -44,11 +44,13 @@ public class ImportDataReactor extends AbstractReactor {
 		
 		Vector<Map<String,String>> joinCols = new Vector<Map<String,String>>();
 		Vector<Map<String, String>> joins = (Vector<Map<String, String>>) myStore.get(PKQLEnum.JOINS);
+		String joinType = "";
 		if(joins!=null){
 			for(Map<String,String> join : joins){
 				Map<String,String> joinMap = new HashMap<String,String>();
 				joinMap.put(join.get(PKQLEnum.TO_COL), join.get(PKQLEnum.FROM_COL));
 				joinCols.add(joinMap);
+				joinType = join.get(PKQLEnum.REL_TYPE);
 			}
 		}
 
@@ -115,6 +117,8 @@ public class ImportDataReactor extends AbstractReactor {
 			reactor.put("logicalToValue", mergedMaps[1]);
 		}
 		reactor.put("startingHeaders", startingHeaders);
+		reactor.put(PKQLEnum.JOINS, joinCols);
+		reactor.put(PKQLEnum.REL_TYPE, joinType);
 		// now run it
 		reactor.process();
 		
