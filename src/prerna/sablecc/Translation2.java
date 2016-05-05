@@ -56,6 +56,7 @@ import prerna.sablecc.node.AUnfilterColumn;
 import prerna.sablecc.node.AVarop;
 import prerna.sablecc.node.AVaropScript;
 import prerna.sablecc.node.Node;
+import prerna.sablecc.node.PRelationClause;
 
 public class Translation2 extends DepthFirstAdapter {
 	// this is the third version of this shit I am building
@@ -213,6 +214,9 @@ public class Translation2 extends DepthFirstAdapter {
 			curReactor.put(PKQLEnum.API, nodeStr);
 			curReactor.put("ENGINE", node.getEngineName().toString().trim());
 			curReactor.put("INSIGHT", node.getInsight().toString());
+			if(myJoins != null) {
+				curReactor.put("TABLE_JOINS", myJoins);
+			}
 		}		
 	}
 	
@@ -756,8 +760,8 @@ public class Translation2 extends DepthFirstAdapter {
     	if(node.parent() != null && node.parent() instanceof ACsvTable) {
         	deinitReactor(PKQLEnum.ROW_CSV, thisNode, PKQLEnum.ROW_CSV, false);
     	} else {
-		deinitReactor(PKQLEnum.ROW_CSV, thisNode, PKQLEnum.ROW_CSV);
-    }
+    		deinitReactor(PKQLEnum.ROW_CSV, thisNode, PKQLEnum.ROW_CSV);
+    	}
     }
     
     @Override

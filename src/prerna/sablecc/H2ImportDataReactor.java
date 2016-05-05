@@ -60,7 +60,7 @@ public class H2ImportDataReactor extends AbstractReactor{
 
 				// TODO: need to have a smart way of determining when it is an "addRow" vs. "addRelationship"
 				// TODO: h2Builder addRelationship only does update query which does nothing if frame is empty
-				if(isSubset(startingHeaders, headers) || frame.isEmpty() ) {
+				if(allHeadersAccounted(startingHeaders, headers) || frame.isEmpty() ) {
 					addRow = true;
 				}
 			}
