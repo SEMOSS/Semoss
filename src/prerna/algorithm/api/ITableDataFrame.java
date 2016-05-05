@@ -525,7 +525,7 @@ public interface ITableDataFrame extends IDataMaker {
 
 	String getPhysicalUriForNode(String string, String engineName);
 
-	List<Map<String, String>> getTableHeaderObjects();
+	List<Map<String, Object>> getTableHeaderObjects();
 
 	void connectTypes(String[] joinCols, String newCol, Map<String, String> dataTypeMap);
 
