@@ -1100,9 +1100,12 @@ public class TinkerFrame extends AbstractTableDataFrame {
 	 * use this method to say connect all my outTypes to an inType, use for multiColumnJoin
 	 */
 	public void connectTypes(String[] outTypes, String inType, Map<String, String> dataTypeMap) {
-//		if(outTypes.length == 1) {
-//			connectTypes(outTypes[0], inType);
-//		} else {
+		if(outTypes.length == 1) {
+			connectTypes(outTypes[0], inType, dataTypeMap);
+			return;
+		} 
+		
+//		else {
 //			
 //			String metaPrimKey = getMetaPrimaryKeyName(outTypes);
 //			this.metaData.storeVertex(metaPrimKey, metaPrimKey, null);
@@ -1121,11 +1124,21 @@ public class TinkerFrame extends AbstractTableDataFrame {
 //		}
 		
 		Map<String, Set<String>> edgeHash = new HashMap<>();
+		
+		//point each outType to the prim key
+		String metaPrimKey = getMetaPrimaryKeyName(outTypes);
+		Set<String> primSet = new HashSet<>(1);
+		primSet.add(metaPrimKey);
+		for(String outType : outTypes) {
+			edgeHash.put(outType, primSet);
+		}
+		
+		//point the prim key to the intype
 		Set<String> set = new HashSet<>();
 		set.add(inType);
-		for(String outType : outTypes) {
-			edgeHash.put(outType, set);
-		}
+		edgeHash.put(metaPrimKey, set);
+		
+		//merge edgehash
 		mergeEdgeHash(edgeHash, dataTypeMap);
 	}
 	
