@@ -3,6 +3,7 @@ package prerna.ds;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Hashtable;
 import java.util.Iterator;
 import java.util.List;
@@ -94,6 +95,66 @@ public abstract class AbstractTableDataFrame implements ITableDataFrame {
     	this.headerNames = fullNames.toArray(new String[fullNames.size()]);
     	
     	return ret;
+	}
+
+	/**
+	 * 
+	 * @param outTypes
+	 * @param inType
+	 * 
+	 * use this method to say connect all my outTypes to an inType, use for multiColumnJoin
+	 */
+	@Override
+	public void connectTypes(String[] outTypes, String inType, Map<String, String> dataTypeMap) {
+		if(outTypes.length == 1) {
+			connectTypes(outTypes[0], inType, dataTypeMap);
+		} else {
+			Map<String, Set<String>> edgeHash = new HashMap<>();
+			
+			//point each outType to the prim key
+			String metaPrimKey = getMetaPrimaryKeyName(outTypes);
+			Set<String> primSet = new HashSet<>(1);
+			primSet.add(metaPrimKey);
+			for(String outType : outTypes) {
+				edgeHash.put(outType, primSet);
+			}
+			
+			//point the prim key to the intype
+			Set<String> set = new HashSet<>();
+			set.add(inType);
+			edgeHash.put(metaPrimKey, set);
+			
+			//merge edgehash
+			mergeEdgeHash(edgeHash, dataTypeMap);
+		}
+	}
+	
+	/**
+	 * 
+	 * @param nodes
+	 * @return
+	 */
+	public String getMetaPrimaryKeyName(String... nodes) {
+		Arrays.sort(nodes);
+		String primKey = "";
+		for(String node : nodes) {
+			primKey += node + TinkerFrame.primKeyDelimeter;
+		}
+		return primKey;
+	}
+
+	@Override
+	public void connectTypes(String outType, String inType, Map<String, String> dataTypeMap) {
+		Map<String, Set<String>> edgeHash = new HashMap<>();
+		Set<String> set = new HashSet<>();
+		set.add(inType);
+		edgeHash.put(outType, set);
+		mergeEdgeHash(edgeHash, dataTypeMap);
+	}
+	
+	@Override
+	public void setDerivedColumn(String uniqueName, boolean isDerived) {
+		this.metaData.setDerived(uniqueName, isDerived);
 	}
 
 	@Override

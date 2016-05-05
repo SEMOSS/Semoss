@@ -14,14 +14,14 @@ import prerna.engine.api.ISelectStatement;
 import prerna.util.Utility;
 
 public class ColAddReactor extends AbstractReactor {
-	
+
 	Hashtable <String, String[]> values2SyncHash = new Hashtable <String, String[]>();
-	
+
 	public ColAddReactor() {
 		String [] thisReacts = {PKQLEnum.COL_DEF,PKQLEnum.COL_DEF + "_1", PKQLEnum.API}; // these are the input columns - there is also expr Term which I will come to shortly
 		super.whatIReactTo = thisReacts;
 		super.whoAmI = PKQLEnum.COL_ADD;
-		
+
 		// this is the point where I specify what are the child values required for various input
 		String [] dataFromExpr = {PKQLEnum.COL_DEF};
 		values2SyncHash.put(PKQLEnum.EXPR_TERM, dataFromExpr);
@@ -38,17 +38,17 @@ public class ColAddReactor extends AbstractReactor {
 		modExpression();
 		String nodeStr = (String)myStore.get(whoAmI);
 		System.out.println("My Store on COL CSV " + myStore);
-		
+
 		ITableDataFrame frame = (ITableDataFrame) myStore.get("G");
-		
+
 		String [] joinCols = null;
 		Iterator it = null;
 		String newCol = (String)myStore.get(PKQLEnum.COL_DEF + "_1");
-		
+
 		// ok this came in as an expr term
 		// I need to do the iterator here
 		System.err.println(myStore.get(PKQLEnum.EXPR_TERM));
-		
+
 		// ok.. so it would be definitely be cool to pass this to an expr script right now and do the op
 		// however I dont have this shit
 		String expr = (String) myStore.get(PKQLEnum.EXPR_TERM);
@@ -60,7 +60,7 @@ public class ColAddReactor extends AbstractReactor {
 		joinCols = convertVectorToArray(cols);
 		Object value = myStore.get(expr);
 		if(value == null) value = myStore.get(PKQLEnum.API);
-		
+
 		if (value instanceof Iterator) {
 			it = (ExpressionIterator)value;
 			processIt(it, frame, joinCols, newCol);
@@ -75,17 +75,17 @@ public class ColAddReactor extends AbstractReactor {
 					cols2.add(key+"");
 				}
 				String[] joinColss = convertVectorToArray(cols2);
-				
-				
+
+
 				Map mk = (Map)mapKey;
 				Map<String, Object> row = new HashMap<>();
 				for(Object key : mk.keySet()) {
 					row.put(key+"", mk.get(key));
 				}
-				
+
 				Object newVal = vMap.get(mapKey);
 				row.put(newCol, vMap.get(mapKey));
-				
+
 				if(addMetaData) {
 					Object[] newType = Utility.findTypes(newVal.toString());
 					String type = "";
@@ -93,9 +93,10 @@ public class ColAddReactor extends AbstractReactor {
 					Map<String, String> dataType = new HashMap<>(1);
 					dataType.put(newCol, type);
 					frame.connectTypes(joinColss, newCol, dataType);
+					frame.setDerivedColumn(newCol, true);
 					addMetaData = false;
 				}
-				
+
 				frame.addRelationship(row, row);
 			}
 		} else {
@@ -108,9 +109,9 @@ public class ColAddReactor extends AbstractReactor {
 
 	private void processIt(Iterator it, ITableDataFrame frame, String[] joinCols, String newCol) {
 		if(it.hasNext()) {
-			
+
 			boolean addMetaData = true;
-		
+
 			if (joinCols.length > 1) { // multicolumn join
 				String primKeyName = TinkerMetaHelper.getPrimaryKey(joinCols);
 				while(it.hasNext()) {
@@ -130,7 +131,7 @@ public class ColAddReactor extends AbstractReactor {
 						}
 					}
 					row.put(primKeyName, TinkerMetaHelper.getPrimaryKey(values));
-					
+
 					if(addMetaData) {
 						Object[] newType = Utility.findTypes(newVal.toString());
 						String type = "";
@@ -138,9 +139,10 @@ public class ColAddReactor extends AbstractReactor {
 						Map<String, String> dataType = new HashMap<>(1);
 						dataType.put(newCol, type);
 						frame.connectTypes(joinCols, newCol, dataType);
+						frame.setDerivedColumn(newCol, true);
 						addMetaData = false;
 					}
-					
+
 					frame.addRelationship(row, row);
 				}
 				myStore.put("STATUS", "SUCCESS");			
@@ -158,9 +160,9 @@ public class ColAddReactor extends AbstractReactor {
 							row.put(joinCols[i], ((ExpressionIterator)it).getOtherBindings().get(joinCols[i]));
 						}
 					}
-				if (newVal instanceof ISelectStatement) {
-					System.out.println(((ISelectStatement)newVal).getPropHash());
-				}
+					if (newVal instanceof ISelectStatement) {
+						System.out.println(((ISelectStatement)newVal).getPropHash());
+					}
 					if(addMetaData) {
 						Object[] newType = Utility.findTypes(newVal.toString());
 						String type = "";
@@ -168,6 +170,7 @@ public class ColAddReactor extends AbstractReactor {
 						Map<String, String> dataType = new HashMap<>(1);
 						dataType.put(newCol, type);
 						frame.connectTypes(joinCols, newCol, dataType);
+						frame.setDerivedColumn(newCol, true);
 						addMetaData = false;
 					}
 					frame.addRelationship(row, row);
