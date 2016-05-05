@@ -19,7 +19,7 @@ import prerna.sablecc.node.AApiImportBlock;
 import prerna.sablecc.node.AColCsv;
 import prerna.sablecc.node.AColDef;
 import prerna.sablecc.node.AColWhere;
-import prerna.sablecc.node.AConfiguration;
+import prerna.sablecc.node.AColopScript;
 import prerna.sablecc.node.ACsvRow;
 import prerna.sablecc.node.ACsvTable;
 import prerna.sablecc.node.ACsvTableImportBlock;
@@ -46,6 +46,7 @@ import prerna.sablecc.node.APanelComment;
 import prerna.sablecc.node.APanelViz;
 import prerna.sablecc.node.APanelopScript;
 import prerna.sablecc.node.APlusExpr;
+import prerna.sablecc.node.AROpScript;
 import prerna.sablecc.node.ARelationDef;
 import prerna.sablecc.node.ARemoveData;
 import prerna.sablecc.node.ASetColumn;
@@ -53,6 +54,8 @@ import prerna.sablecc.node.ATermExpr;
 import prerna.sablecc.node.ATermGroup;
 import prerna.sablecc.node.AUnfilterColumn;
 import prerna.sablecc.node.AVarop;
+import prerna.sablecc.node.AVaropScript;
+import prerna.sablecc.node.Node;
 
 public class Translation2 extends DepthFirstAdapter {
 	// this is the third version of this shit I am building
@@ -193,15 +196,8 @@ public class Translation2 extends DepthFirstAdapter {
 	
 	// the highest level above all commands
 	// tracks the most basic things all pkql should have
-	@Override
-	public void inAConfiguration(AConfiguration node){
+	private void storeScript(Node node){
 		runner.setCurrentString(node.toString());
-	}
-
-	// the highest level above all commands
-	// tracks the most basic things all pkql should have
-	@Override
-	public void outAConfiguration(AConfiguration node){
 		runner.storeResponse();
 	}
 
@@ -246,6 +242,37 @@ public class Translation2 extends DepthFirstAdapter {
 		String nodeExpr = node.getExpr().toString().trim();
 		String nodeStr = node.toString().trim();
 		Hashtable <String, Object> thisReactorHash = deinitReactor(PKQLEnum.EXPR_SCRIPT, nodeExpr, nodeStr);
+		storeScript(node);
+	}
+
+	// at the highest level, make sure to save to the runner as a completed expression
+	@Override
+	public void outAROpScript(AROpScript node) {
+		storeScript(node);
+	}
+
+	// at the highest level, make sure to save to the runner as a completed expression
+	@Override
+	public void outAHelpScript(AHelpScript node) {
+		storeScript(node);
+	}
+
+	// at the highest level, make sure to save to the runner as a completed expression
+	@Override
+	public void outAVaropScript(AVaropScript node) {
+		storeScript(node);
+	}
+
+	// at the highest level, make sure to save to the runner as a completed expression
+	@Override
+	public void outAColopScript(AColopScript node) {
+		storeScript(node);
+	}
+
+	// at the highest level, make sure to save to the runner as a completed expression
+	@Override
+	public void outAPanelopScript(APanelopScript node) {
+		storeScript(node);
 	}
 	
 //**************************************** START PANEL OPERATIONS **********************************************//
