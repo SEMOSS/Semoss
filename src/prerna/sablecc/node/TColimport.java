@@ -25,7 +25,6 @@ public final class TColimport extends Token
       return new TColimport(getLine(), getPos());
     }
 
-    @Override
     public void apply(Switch sw)
     {
         ((Analysis) sw).caseTColimport(this);

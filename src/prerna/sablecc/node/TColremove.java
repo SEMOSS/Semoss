@@ -25,7 +25,6 @@ public final class TColremove extends Token
       return new TColremove(getLine(), getPos());
     }
 
-    @Override
     public void apply(Switch sw)
     {
         ((Analysis) sw).caseTColremove(this);

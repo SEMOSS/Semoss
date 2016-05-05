@@ -49,7 +49,6 @@ public final class ARemoveData extends PRemoveData
             cloneNode(this._rPar_));
     }
 
-    @Override
     public void apply(Switch sw)
     {
         ((Analysis) sw).caseARemoveData(this);

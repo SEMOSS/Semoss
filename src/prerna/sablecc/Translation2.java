@@ -19,6 +19,7 @@ import prerna.sablecc.node.AApiImportBlock;
 import prerna.sablecc.node.AColCsv;
 import prerna.sablecc.node.AColDef;
 import prerna.sablecc.node.AColWhere;
+import prerna.sablecc.node.AConfiguration;
 import prerna.sablecc.node.ACsvRow;
 import prerna.sablecc.node.ACsvTable;
 import prerna.sablecc.node.ACsvTableImportBlock;
@@ -40,6 +41,7 @@ import prerna.sablecc.node.AModExpr;
 import prerna.sablecc.node.AMultExpr;
 import prerna.sablecc.node.ANumWordOrNum;
 import prerna.sablecc.node.ANumberTerm;
+import prerna.sablecc.node.APanelClone;
 import prerna.sablecc.node.APanelComment;
 import prerna.sablecc.node.APanelViz;
 import prerna.sablecc.node.APanelopScript;
@@ -188,6 +190,20 @@ public class Translation2 extends DepthFirstAdapter {
 
 		return colName;
 	}
+	
+	// the highest level above all commands
+	// tracks the most basic things all pkql should have
+	@Override
+	public void inAConfiguration(AConfiguration node){
+		runner.setCurrentString(node.toString());
+	}
+
+	// the highest level above all commands
+	// tracks the most basic things all pkql should have
+	@Override
+	public void outAConfiguration(AConfiguration node){
+		runner.storeResponse();
+	}
 
 	@Override
 	public void inAApiBlock(AApiBlock node) {
@@ -227,29 +243,25 @@ public class Translation2 extends DepthFirstAdapter {
 		String nodeStr = node.toString().trim();
 		Hashtable <String, Object> thisReactorHash = deinitReactor(PKQLEnum.EXPR_SCRIPT, nodeExpr, nodeStr);
 	}
+	
+//**************************************** START PANEL OPERATIONS **********************************************//
+	@Override 
+	public void inAPanelopScript(APanelopScript node){
+		String nodeString = node.toString();
+		String id = "0";
+		if(nodeString.startsWith("panel[")){
+			nodeString = nodeString.substring(nodeString.indexOf("[")+1);
+			id = nodeString.substring(0, nodeString.indexOf("]"));
+		}
+		runner.openFeDataBlock(id);
+		runner.addFeData("panelId", id, true);
+		runner.addFeData("type", "visual", true);
+	}
 
 	@Override
 	public void inAPanelViz(APanelViz node) {
 		System.out.println("in a viz change");
 		initReactor(PKQLEnum.VIZ);
-	}
-
-	@Override
-	public void outAPanelComment(APanelComment node) {
-		System.out.println("out a viz change");
-		deinitReactor(PKQLEnum.VIZ, "", "");
-	}
-
-	@Override
-	public void inAPanelComment(APanelComment node) {
-		System.out.println("in a viz comment");
-		initReactor(PKQLEnum.VIZ);
-		runner.addFeData("text", node.getText().toString().trim());
-		runner.addFeData("group", node.getGroup().toString().trim());
-		runner.addFeData("type", node.getType().toString().trim());
-		runner.addFeData("location", node.getLocation().toString().trim());
-		runner.setResponse("Successfully commented : " + node.getText().toString().trim());//
-		runner.setStatus("SUCCESS");
 	}
 
 	@Override
@@ -267,27 +279,49 @@ public class Translation2 extends DepthFirstAdapter {
 		else {
 			alignTranslated.add(curReactor.getValue(alignment+""));
 		}
-		runner.addFeData("layout", layout);
-		runner.addFeData("dataTableKeys", alignTranslated);
+		Map<String, Object> chartDataObj = new HashMap<String, Object>();
+		chartDataObj.put("layout", layout);
+		chartDataObj.put("dataTableKeys", alignTranslated);
 		if(node.getUioptions()!=null){
-			runner.addFeData("uiOptions", node.getUioptions().toString().trim());
+			chartDataObj.put("uiOptions", node.getUioptions().toString().trim());
 		}
+		runner.addFeData("chartData", chartDataObj, true);
 		runner.setResponse("Successfully set layout to " + layout + " with alignment " + alignment);//
 		runner.setStatus("SUCCESS");
 		deinitReactor(PKQLEnum.VIZ, "", "");
 	}
-	
-	@Override 
-	public void inAPanelopScript(APanelopScript node){
-		runner.addFeData("type", "visual");
-		String nodeString = node.toString();
-		String id = "";
-		if(nodeString.startsWith("panel[")){
-			nodeString = nodeString.substring(nodeString.indexOf("[")+1);
-			id = nodeString.substring(0, nodeString.indexOf("]"));
-		}
-		runner.addFeData("id", id);
+
+	@Override
+	public void inAPanelComment(APanelComment node) {
+		System.out.println("in a viz comment");
+		initReactor(PKQLEnum.VIZ);
+		runner.addFeData("text", node.getText().toString().trim(), false);
+		runner.addFeData("group", node.getGroup().toString().trim(), false);
+		runner.addFeData("type", node.getType().toString().trim(), false);
+		runner.addFeData("location", node.getLocation().toString().trim(), false);
+		runner.setResponse("Successfully commented : " + node.getText().toString().trim());//
+		runner.setStatus("SUCCESS");
 	}
+
+	@Override
+	public void outAPanelComment(APanelComment node) {
+		System.out.println("out a viz change");
+		deinitReactor(PKQLEnum.VIZ, "", "");
+	}
+	
+	@Override
+	public void inAPanelClone(APanelClone node){
+		System.out.println("in a panel clone");
+		initReactor(PKQLEnum.VIZ);
+	}
+	
+	@Override
+	public void outAPanelClone(APanelClone node){
+		System.out.println("out a panel clone");
+		deinitReactor(PKQLEnum.VIZ, "", "");
+	}
+	
+//**************************************** END PANEL OPERATIONS **********************************************//
 
 	@Override
 	public void inATermExpr(ATermExpr node) {

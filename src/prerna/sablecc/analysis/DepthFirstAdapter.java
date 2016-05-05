@@ -525,94 +525,25 @@ public class DepthFirstAdapter extends AnalysisAdapter
         outAPanelCommentPanelop(node);
     }
 
-    public void inAKeyvalue(AKeyvalue node)
+    public void inAPanelClonePanelop(APanelClonePanelop node)
     {
         defaultIn(node);
     }
 
-    public void outAKeyvalue(AKeyvalue node)
+    public void outAPanelClonePanelop(APanelClonePanelop node)
     {
         defaultOut(node);
     }
 
     @Override
-    public void caseAKeyvalue(AKeyvalue node)
+    public void caseAPanelClonePanelop(APanelClonePanelop node)
     {
-        inAKeyvalue(node);
-        if(node.getWord1() != null)
+        inAPanelClonePanelop(node);
+        if(node.getPanelClone() != null)
         {
-            node.getWord1().apply(this);
+            node.getPanelClone().apply(this);
         }
-        if(node.getColon() != null)
-        {
-            node.getColon().apply(this);
-        }
-        if(node.getWord2() != null)
-        {
-            node.getWord2().apply(this);
-        }
-        outAKeyvalue(node);
-    }
-
-    public void inAKeyvalueGroup(AKeyvalueGroup node)
-    {
-        defaultIn(node);
-    }
-
-    public void outAKeyvalueGroup(AKeyvalueGroup node)
-    {
-        defaultOut(node);
-    }
-
-    @Override
-    public void caseAKeyvalueGroup(AKeyvalueGroup node)
-    {
-        inAKeyvalueGroup(node);
-        if(node.getComma() != null)
-        {
-            node.getComma().apply(this);
-        }
-        if(node.getKeyvalue() != null)
-        {
-            node.getKeyvalue().apply(this);
-        }
-        outAKeyvalueGroup(node);
-    }
-
-    public void inAMapObj(AMapObj node)
-    {
-        defaultIn(node);
-    }
-
-    public void outAMapObj(AMapObj node)
-    {
-        defaultOut(node);
-    }
-
-    @Override
-    public void caseAMapObj(AMapObj node)
-    {
-        inAMapObj(node);
-        if(node.getLCurlBracket() != null)
-        {
-            node.getLCurlBracket().apply(this);
-        }
-        if(node.getKeyvalue() != null)
-        {
-            node.getKeyvalue().apply(this);
-        }
-        {
-            List<PKeyvalueGroup> copy = new ArrayList<PKeyvalueGroup>(node.getKeyvalueGroup());
-            for(PKeyvalueGroup e : copy)
-            {
-                e.apply(this);
-            }
-        }
-        if(node.getRCurlBracket() != null)
-        {
-            node.getRCurlBracket().apply(this);
-        }
-        outAMapObj(node);
+        outAPanelClonePanelop(node);
     }
 
     public void inAPanelViz(APanelViz node)
@@ -719,6 +650,35 @@ public class DepthFirstAdapter extends AnalysisAdapter
             node.getRPar().apply(this);
         }
         outAPanelComment(node);
+    }
+
+    public void inAPanelClone(APanelClone node)
+    {
+        defaultIn(node);
+    }
+
+    public void outAPanelClone(APanelClone node)
+    {
+        defaultOut(node);
+    }
+
+    @Override
+    public void caseAPanelClone(APanelClone node)
+    {
+        inAPanelClone(node);
+        if(node.getPanelcomment() != null)
+        {
+            node.getPanelcomment().apply(this);
+        }
+        if(node.getLPar() != null)
+        {
+            node.getLPar().apply(this);
+        }
+        if(node.getRPar() != null)
+        {
+            node.getRPar().apply(this);
+        }
+        outAPanelClone(node);
     }
 
     public void inAAddColumn(AAddColumn node)
@@ -1695,6 +1655,96 @@ public class DepthFirstAdapter extends AnalysisAdapter
             node.getColDef().apply(this);
         }
         outAColGroup(node);
+    }
+
+    public void inAKeyvalue(AKeyvalue node)
+    {
+        defaultIn(node);
+    }
+
+    public void outAKeyvalue(AKeyvalue node)
+    {
+        defaultOut(node);
+    }
+
+    @Override
+    public void caseAKeyvalue(AKeyvalue node)
+    {
+        inAKeyvalue(node);
+        if(node.getWord1() != null)
+        {
+            node.getWord1().apply(this);
+        }
+        if(node.getColon() != null)
+        {
+            node.getColon().apply(this);
+        }
+        if(node.getWord2() != null)
+        {
+            node.getWord2().apply(this);
+        }
+        outAKeyvalue(node);
+    }
+
+    public void inAKeyvalueGroup(AKeyvalueGroup node)
+    {
+        defaultIn(node);
+    }
+
+    public void outAKeyvalueGroup(AKeyvalueGroup node)
+    {
+        defaultOut(node);
+    }
+
+    @Override
+    public void caseAKeyvalueGroup(AKeyvalueGroup node)
+    {
+        inAKeyvalueGroup(node);
+        if(node.getComma() != null)
+        {
+            node.getComma().apply(this);
+        }
+        if(node.getKeyvalue() != null)
+        {
+            node.getKeyvalue().apply(this);
+        }
+        outAKeyvalueGroup(node);
+    }
+
+    public void inAMapObj(AMapObj node)
+    {
+        defaultIn(node);
+    }
+
+    public void outAMapObj(AMapObj node)
+    {
+        defaultOut(node);
+    }
+
+    @Override
+    public void caseAMapObj(AMapObj node)
+    {
+        inAMapObj(node);
+        if(node.getLCurlBracket() != null)
+        {
+            node.getLCurlBracket().apply(this);
+        }
+        if(node.getKeyvalue() != null)
+        {
+            node.getKeyvalue().apply(this);
+        }
+        {
+            List<PKeyvalueGroup> copy = new ArrayList<PKeyvalueGroup>(node.getKeyvalueGroup());
+            for(PKeyvalueGroup e : copy)
+            {
+                e.apply(this);
+            }
+        }
+        if(node.getRCurlBracket() != null)
+        {
+            node.getRCurlBracket().apply(this);
+        }
+        outAMapObj(node);
     }
 
     public void inAGroupBy(AGroupBy node)

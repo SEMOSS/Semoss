@@ -34,11 +34,10 @@ public interface Analysis extends Switch
     void caseARemoveDataColop(ARemoveDataColop node);
     void caseAPanelVizPanelop(APanelVizPanelop node);
     void caseAPanelCommentPanelop(APanelCommentPanelop node);
-    void caseAKeyvalue(AKeyvalue node);
-    void caseAKeyvalueGroup(AKeyvalueGroup node);
-    void caseAMapObj(AMapObj node);
+    void caseAPanelClonePanelop(APanelClonePanelop node);
     void caseAPanelViz(APanelViz node);
     void caseAPanelComment(APanelComment node);
+    void caseAPanelClone(APanelClone node);
     void caseAAddColumn(AAddColumn node);
     void caseARemColumn(ARemColumn node);
     void caseASetColumn(ASetColumn node);
@@ -68,6 +67,9 @@ public interface Analysis extends Switch
     void caseARelationClause(ARelationClause node);
     void caseAIfBlock(AIfBlock node);
     void caseAColGroup(AColGroup node);
+    void caseAKeyvalue(AKeyvalue node);
+    void caseAKeyvalueGroup(AKeyvalueGroup node);
+    void caseAMapObj(AMapObj node);
     void caseAGroupBy(AGroupBy node);
     void caseAColDef(AColDef node);
     void caseATableDef(ATableDef node);
@@ -167,6 +169,6 @@ public interface Analysis extends Switch
     void caseTWord(TWord node);
     void caseTPanelviz(TPanelviz node);
     void caseTPanelcomment(TPanelcomment node);
+    void caseTPanelclone(TPanelclone node);
     void caseEOF(EOF node);
-    void caseInvalidToken(InvalidToken node);
 }
