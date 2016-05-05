@@ -25,7 +25,6 @@ public final class TR extends Token
       return new TR(getLine(), getPos());
     }
 
-    @Override
     public void apply(Switch sw)
     {
         ((Analysis) sw).caseTR(this);

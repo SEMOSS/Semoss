@@ -34,7 +34,6 @@ public final class AColWhereGroup extends PColWhereGroup
             cloneNode(this._colWhere_));
     }
 
-    @Override
     public void apply(Switch sw)
     {
         ((Analysis) sw).caseAColWhereGroup(this);

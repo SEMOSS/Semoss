@@ -25,7 +25,6 @@ public final class TSpace extends Token
       return new TSpace(getText(), getLine(), getPos());
     }
 
-    @Override
     public void apply(Switch sw)
     {
         ((Analysis) sw).caseTSpace(this);

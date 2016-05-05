@@ -5,14 +5,14 @@ package prerna.sablecc.node;
 import prerna.sablecc.analysis.*;
 
 @SuppressWarnings("nls")
-public final class InvalidToken extends Token
+public final class TPanelclone extends Token
 {
-    public InvalidToken(String text)
+    public TPanelclone(String text)
     {
         setText(text);
     }
 
-    public InvalidToken(String text, int line, int pos)
+    public TPanelclone(String text, int line, int pos)
     {
         setText(text);
         setLine(line);
@@ -22,12 +22,11 @@ public final class InvalidToken extends Token
     @Override
     public Object clone()
     {
-        return new InvalidToken(getText(), getLine(), getPos());
+      return new TPanelclone(getText(), getLine(), getPos());
     }
 
-    @Override
     public void apply(Switch sw)
     {
-        ((Analysis) sw).caseInvalidToken(this);
+        ((Analysis) sw).caseTPanelclone(this);
     }
 }

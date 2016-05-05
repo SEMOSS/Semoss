@@ -29,7 +29,6 @@ public final class AExprWordOrNum extends PWordOrNum
             cloneNode(this._formula_));
     }
 
-    @Override
     public void apply(Switch sw)
     {
         ((Analysis) sw).caseAExprWordOrNum(this);

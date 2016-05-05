@@ -39,7 +39,6 @@ public final class AVarop extends PVarop
             cloneNode(this._expr_));
     }
 
-    @Override
     public void apply(Switch sw)
     {
         ((Analysis) sw).caseAVarop(this);
