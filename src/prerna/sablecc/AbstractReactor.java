@@ -156,7 +156,7 @@ public abstract class AbstractReactor implements IScriptReactor {
 			options.put(TinkerFrame.DE_DUP, dedup);
 		}
 		
-		Iterator iterator = frame.iterator(true, options);
+		Iterator iterator = frame.iterator(false, options);
 		if(iterator.hasNext())
 		{
 			//System.out.println(iterator.next());
