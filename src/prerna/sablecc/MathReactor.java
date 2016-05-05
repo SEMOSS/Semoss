@@ -61,14 +61,14 @@ public class MathReactor extends AbstractReactor {
 			Vector<String> groupBys = (Vector <String>)myStore.get(PKQLEnum.COL_CSV);
 			if(groupBys != null && !groupBys.isEmpty()){
 				Map masterMap = new HashMap();
-				Iterator groupByIterator = getTinkerData(groupBys, frame);
+				Iterator groupByIterator = getTinkerData(groupBys, frame, true);
 				while(groupByIterator.hasNext()){
 					Object[] groupByVals = (Object[])groupByIterator.next();
 					Map<String, Object> valMap = new HashMap<String, Object>();
 					for(String groupBy: groupBys){
 						valMap.put(groupBy, groupByVals[0]);
 					}
-					Iterator iterator = getTinkerData(columns, frame, valMap);
+					Iterator iterator = getTinkerData(columns, frame, valMap, false);
 					Object finalValue = processThing(iterator, algorithm, columnsArray);
 
 					masterMap.put(valMap, finalValue);
@@ -78,7 +78,7 @@ public class MathReactor extends AbstractReactor {
 				myStore.put("STATUS","success");
 			}
 			else {
-				Iterator iterator = getTinkerData(columns, frame);
+				Iterator iterator = getTinkerData(columns, frame, false);
 				Object finalValue = processThing(iterator, algorithm, columnsArray);
 				String nodeStr = myStore.get(whoAmI).toString();
 				myStore.put(nodeStr, finalValue);
