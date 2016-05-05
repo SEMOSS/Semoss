@@ -137,7 +137,7 @@ public class TinkerFrameStatRoutine implements IAnalyticTransformationRoutine {
 	 */
 	private void addStatColumnToTinker(TinkerFrame tinker, String[] columnHeader, String mathType, String newColumnName, String valueColumn) throws ClassCastException{
 				
-		GremlinBuilder builder = GremlinBuilder.prepareGenericBuilder(tinker.getSelectors(), tinker.g, ((TinkerMetaData2)tinker.metaData).g);
+		GremlinBuilder builder = GremlinBuilder.prepareGenericBuilder(tinker.getSelectors(), tinker.g, ((TinkerMetaData2)tinker.metaData).g, null);
 		GraphTraversal statIterator = (GraphTraversal)builder.executeScript();
 		
 		boolean singleColumn = columnHeader.length == 1;
