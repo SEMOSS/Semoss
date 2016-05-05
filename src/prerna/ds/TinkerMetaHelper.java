@@ -3,6 +3,7 @@ package prerna.ds;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
@@ -94,7 +95,7 @@ public class TinkerMetaHelper {
 		for(String header : headers) {
 			primKeyEdges.add(header);
 		}
-		Map<String, Set<String>> edges = new HashMap<String, Set<String>>();
+		Map<String, Set<String>> edges = new LinkedHashMap<String, Set<String>>();
 		edges.put(TinkerFrame.PRIM_KEY + "_" + headers.toString(), primKeyEdges);
 		return edges;
 	}

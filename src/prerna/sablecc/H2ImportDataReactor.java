@@ -4,7 +4,9 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Set;
+import java.util.Vector;
 
+import prerna.ds.H2.H2Builder;
 import prerna.ds.H2.TinkerH2Frame;
 import prerna.engine.api.IHeadersDataRow;
 import prerna.util.ArrayUtilityMethods;
@@ -25,6 +27,9 @@ public class H2ImportDataReactor extends AbstractReactor{
 		Map<String, Set<String>> edgeHash = (Map<String, Set<String>>) myStore.get("edgeHash");
 		Map<String, String> logicalToValue = (Map<String, String>) myStore.get("logicalToValue");
 		String[] startingHeaders = (String[]) myStore.get("startingHeaders");
+		
+		Vector<Map<String, String>> joins = (Vector<Map<String, String>>) myStore.get(PKQLEnum.JOINS);
+		String joinType = (String)myStore.get(PKQLEnum.REL_TYPE);
 		
 		Map<Integer, Set<Integer>> cardinality = null;
 		String[] headers = null;
@@ -55,17 +60,17 @@ public class H2ImportDataReactor extends AbstractReactor{
 
 				// TODO: need to have a smart way of determining when it is an "addRow" vs. "addRelationship"
 				// TODO: h2Builder addRelationship only does update query which does nothing if frame is empty
-				if(allHeadersAccounted(startingHeaders, headers) || frame.isEmpty() ) {
+				if(isSubset(startingHeaders, headers) || frame.isEmpty() ) {
 					addRow = true;
 				}
 			}
 
 			// TODO: need to have a smart way of determining when it is an "addRow" vs. "addRelationship"
 			// TODO: h2Builder addRelationship only does update query which does nothing if frame is empty
-			if(addRow || isPrimKey) {
+			if(addRow && isPrimKey) {
 				frame.addRow(ss.getValues(), ss.getRawValues(), ss.getHeaders());
 			} else {
-				frame.processIterator(it, ss.getHeaders(), logicalToValue);
+				frame.processIterator(it, ss.getHeaders(), logicalToValue, joins, joinType);
 				break;
 //				frame.addRelationship(ss.getHeaders(), ss.getValues(), ss.getRawValues(), cardinality, logicalToValue);
 			}
@@ -81,6 +86,17 @@ public class H2ImportDataReactor extends AbstractReactor{
 		
 		for(String header1 : headers1) {
 			if(!ArrayUtilityMethods.arrayContainsValue(headers2, header1)) {
+				return false;
+			}
+		}
+		
+		return true;
+	}
+	
+	//is headers2 a subset of headers1
+	private boolean isSubset(String[] headers1, String[] headers2) {
+		for(String header2 : headers2) {
+			if(!ArrayUtilityMethods.arrayContainsValue(headers1, header2)) {
 				return false;
 			}
 		}
