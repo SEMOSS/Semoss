@@ -25,7 +25,6 @@ public final class TNumber extends Token
       return new TNumber(getText(), getLine(), getPos());
     }
 
-    @Override
     public void apply(Switch sw)
     {
         ((Analysis) sw).caseTNumber(this);

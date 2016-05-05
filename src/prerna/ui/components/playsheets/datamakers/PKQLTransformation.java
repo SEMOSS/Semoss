@@ -1,7 +1,9 @@
 package prerna.ui.components.playsheets.datamakers;
 
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
+import java.util.Vector;
 
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
@@ -20,7 +22,7 @@ public class PKQLTransformation extends AbstractTransformation {
 
 	public static final String EXPRESSION = "EXPRESSION";
 
-	private Map<String, Object> resultHash = new HashMap<String, Object>();
+	private List<Map> results = new Vector<Map>();
 	private Map<String, Object> feData = new HashMap<String, Object>();
 	
 	
@@ -52,7 +54,7 @@ public class PKQLTransformation extends AbstractTransformation {
 		PKQLRunner runner = new PKQLRunner();
 
 		String expression = props.get(EXPRESSION) + "";		
-		this.resultHash.putAll(runner.runPKQL(expression, (ITableDataFrame) this.dm));
+		this.results.addAll(runner.runPKQL(expression, (ITableDataFrame) this.dm));
 //		this.dm = runner.getDataFrame();
 		this.feData.putAll(runner.getFeData());
 	}
@@ -73,7 +75,7 @@ public class PKQLTransformation extends AbstractTransformation {
 		PKQLTransformation joinCopy = new PKQLTransformation();
 		joinCopy.setDataMakers(dm);
 		joinCopy.setId(id);
-		joinCopy.resultHash = this.resultHash; // keep this shallow so updates can be gotten
+		joinCopy.results = this.results; // keep this shallow so updates can be gotten
 		joinCopy.feData = this.feData; // keep this shallow so updates can be gotten
 
 		if(props != null) {
@@ -86,8 +88,8 @@ public class PKQLTransformation extends AbstractTransformation {
 		return joinCopy;
 	}
 	
-	public Map<String, Object> getResultHash(){
-		return this.resultHash;
+	public List<Map> getResultHash(){
+		return this.results;
 	}
 	
 	public Map<String, Object> getFeData(){

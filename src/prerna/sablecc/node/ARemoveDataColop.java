@@ -29,7 +29,6 @@ public final class ARemoveDataColop extends PColop
             cloneNode(this._removeData_));
     }
 
-    @Override
     public void apply(Switch sw)
     {
         ((Analysis) sw).caseARemoveDataColop(this);

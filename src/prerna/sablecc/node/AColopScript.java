@@ -34,7 +34,6 @@ public final class AColopScript extends PScript
             cloneNode(this._semicolon_));
     }
 
-    @Override
     public void apply(Switch sw)
     {
         ((Analysis) sw).caseAColopScript(this);

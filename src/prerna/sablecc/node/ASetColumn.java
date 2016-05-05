@@ -54,7 +54,6 @@ public final class ASetColumn extends PSetColumn
             cloneNode(this._rPar_));
     }
 
-    @Override
     public void apply(Switch sw)
     {
         ((Analysis) sw).caseASetColumn(this);

@@ -49,9 +49,10 @@ public class Compiler
 //    												+ "data.import(api:Movie_Results.query([c:Title, c:Year], ([c:Title,  inner.join , c:Year])), ([c:Title, inner.join, c:Title]));"
 //    												+ "data.import(api:Documents\\something.csv.query([c:Title, c:Year]), ([c:Title, inner.join, c:Title]));"
 
-//    												+ "data.import(api:Movie_DB.query([c:Title, c:Title__MovieBudget, c:Studio], (c:Studio =[\"WB\",\"Fox\"]), ([c:Title,  inner.join , c:Studio])));"
-    												+ "panel[0].viz(Bar, [c:Title, c:Studio,  ,  ]);"
-    												
+//    												+ "col.add(c:newCol, (c:MovieBudget + c:Revenue-Domestic));"
+    												+ "panel[0].viz(Bar, []);"
+//													+ "col.add(c:newCol, (c:MovieBudget - c:Revenue-Domestic); "
+//    												
 //    												+ "data.import(api:csvFile.query([c:Title, c:Nominated, c:Studio], (c:Title = ['12 Years a Slave'], c:Nominated = ['Y']), {'file':'C:\\Users\\bisutton\\Desktop\\Movie Data.csv'}));"
 //    												+ "data.import(api:csvFile.query([c:Title, c:Actor], {'file':'C:\\Users\\bisutton\\Desktop\\Best Actor.csv'}), ([c:Title, inner.join, c:Title]));"
 

@@ -85,7 +85,7 @@ public abstract class AbstractReactor implements IScriptReactor {
 				Vector valVector = new Vector();
 			if(myStore.containsKey(key))
 				valVector = (Vector)myStore.get(key);
-			if(!valVector.contains(value))
+//			if(!valVector.contains(value)) // We need to hold on to duplicates in a flex selector row.. will this have downstream affects?
 				valVector.add(value);
 			myStore.put(key, valVector);
 			// random for now

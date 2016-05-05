@@ -39,7 +39,6 @@ public final class AKeyvalue extends PKeyvalue
             cloneNode(this._word2_));
     }
 
-    @Override
     public void apply(Switch sw)
     {
         ((Analysis) sw).caseAKeyvalue(this);

@@ -7,6 +7,7 @@ import java.io.StringBufferInputStream;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Vector;
 
 import org.apache.commons.lang.StringEscapeUtils;
 
@@ -23,11 +24,14 @@ public class PKQLRunner {
 	enum Status {SUCCESS, ERROR}
 	
 	private String currentStatus = "success";
+	private String currentString = "";
 	private Object response = "PKQL processing complete";
-	private Map<String, Object> feData = new HashMap<String, Object>();
+	private Map<String, Map<String,Object>> masterFeMap = new HashMap<String, Map<String,Object>>(); // this holds all front end data. in the form panelId --> prop --> value
+	private Map<String, Object> activeFeMap;
 	private Translation2 translation;
+	private List<Map> responseArray = new Vector<Map>();
 	
-	public HashMap<String, Object> runPKQL(String expression, ITableDataFrame f) {
+	public List<Map> runPKQL(String expression, ITableDataFrame f) {
 		
 		Parser p = new Parser(new Lexer(new PushbackReader(new InputStreamReader(new StringBufferInputStream(expression)), 1024)));
 		Start tree;
@@ -41,9 +45,14 @@ public class PKQLRunner {
 		} catch (ParserException | LexerException | IOException e) {
 			e.printStackTrace();
 			currentStatus = "error";
+			currentString = "expression";
 			response = "Invalid PKQL Statement";
+			storeResponse();
 		}
-
+		return responseArray;
+	}
+	
+	public void storeResponse(){
 		HashMap<String, Object> result = new HashMap<String, Object>();
 		if(response instanceof Object[]) {
 			StringBuilder builder = new StringBuilder();
@@ -61,7 +70,17 @@ public class PKQLRunner {
 			result.put("result", StringEscapeUtils.escapeHtml(response + ""));
 		}
 		result.put("status", currentStatus);
-		return result;
+		result.put("command", currentString);
+		
+		// add it to the data associated with this panel if this is a panel pkql
+		// also add the panel id to the master
+		if(this.activeFeMap != null){
+			List<Object> feResults = (List<Object>) this.activeFeMap.get("pkqlData");
+			feResults.add(result);
+			result.put("panelId", this.activeFeMap.get("panelId"));
+			this.activeFeMap = null;
+		}
+		responseArray.add(result);
 	}
 
 	private String getStringFromList(List objList, StringBuilder builder) {
@@ -122,12 +141,48 @@ public class PKQLRunner {
 		this.currentStatus = currentStatus;
 	}
 	
-	public void addFeData(String key, Object value){
-		this.feData.put(key, value);
+	public void setCurrentString(String string){
+		this.currentString = string;
 	}
 	
-	public Map<String, Object> getFeData(){
-		return this.feData;
+	// Front end data needs to be tracked on a panel by panel basis
+	// Each PKQL component adding FE Data though might not know which panel its dealing with
+	// Therefore, on inAPanel I will set the ID and "open" the transaction to every other fe calls will be tracked to that panel
+	// Then on outAPanel I will close it, signaling we are no longer dealing with this panel id
+	//
+	// might these be nested...? for now we'll assume not. could have potential though
+	public void openFeDataBlock(String panelId){
+		Map<String, Object> feBlock = null;
+		if(masterFeMap.containsKey(panelId)){
+			feBlock = masterFeMap.get(panelId);
+		}
+		else {
+			feBlock = new HashMap<String, Object>();
+			List<Map> feResponses = new Vector<Map>();
+			feBlock.put("pkqlData", feResponses);
+			masterFeMap.put(panelId, feBlock);
+		}
+		this.activeFeMap = feBlock;
+	}
+	
+	public void addFeData(String key, Object value, boolean shouldOverride){
+		// if should not override, need to keep as list
+		if(!shouldOverride){
+			List<Object> values = new Vector<Object>();
+			if(this.activeFeMap.containsKey(key)){
+				values = (List<Object>) activeFeMap.get(key);
+			}
+			values.add(value);
+			this.activeFeMap.put(key, values);
+		}
+		// if should override, just put it in
+		else{
+			this.activeFeMap.put(key, value);
+		}
+	}
+	
+	public Map<String, Map<String, Object>> getFeData(){
+		return this.masterFeMap;
 	}
 	
 	public ITableDataFrame getDataFrame() {
