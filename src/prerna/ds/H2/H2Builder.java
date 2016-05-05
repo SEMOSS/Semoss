@@ -617,16 +617,24 @@ public class H2Builder {
     public void alterTableNewColumns(String tableName, String[] headers, String[] types) {
     	types = cleanTypes(types);
     	try {
-    		runQuery("CREATE TABLE IF NOT EXISTS " + tableName);
-    		for(int i = 0; i < headers.length; i++) {
-    			if(!ArrayUtilityMethods.arrayContainsValue(getHeaders(tableName), headers[i].toUpperCase())) {
-    				//alter the table
-    				String[] newHeaders = new String[]{headers[i]};
-    				String[] newTypes = new String[]{types[i]};
-
-    				String alterQuery = makeAlter(tableName, newHeaders, newTypes);
-    				runQuery(alterQuery);
-    			}
+    		if(tableExists(tableName)) {
+    			List<String> newHeaders = new ArrayList<String>();
+    			List<String> newTypes = new ArrayList<String>();
+	    		for(int i = 0; i < headers.length; i++) {
+	    			if(!ArrayUtilityMethods.arrayContainsValue(getHeaders(tableName), headers[i].toUpperCase())) {
+	    				//these are the columns to create
+	    				newHeaders.add(headers[i]);
+	    				newHeaders.add(types[i]);
+	    			}
+	    		}
+	    		
+	    		String alterQuery = makeAlter(tableName, newHeaders.toArray(new String[]{}), newTypes.toArray(new String[]{}));
+	    		System.out.println("altering table: " + alterQuery);
+				runQuery(alterQuery);
+    		} else {
+    			String createTable = makeCreate(tableName, headers, types);
+    			System.out.println("creating table: " + createTable);
+    			runQuery(createTable);
     		}
     	} catch (Exception e1) {
     		e1.printStackTrace();
