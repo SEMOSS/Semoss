@@ -49,6 +49,7 @@ public final class AAliasColumn extends PAliasColumn
             cloneNode(this._rp2_));
     }
 
+    @Override
     public void apply(Switch sw)
     {
         ((Analysis) sw).caseAAliasColumn(this);

@@ -77,7 +77,8 @@ Tokens
  panelcomment = panelprefix '.comment';
  panelclone = panelprefix '.clone';
  panelsetbuilder = panelprefix '.setBuilder';
- 
+ file_text = '<startInput>' alphanumeric* '<endInput>';
+
 Ignored Tokens
  blank;
 
@@ -172,7 +173,9 @@ alias_column = // sets the column aliases
 import_data = // imports from api query commands and other scripts
 		dataimporttoken [lp1]:l_par [import]:import_block [joins]:relation_clause? [rp2]:r_par;
 		
-import_block = {api} api_block | {csv_table} csv_table; 
+import_block = {api} api_block | {csv_table} csv_table | {pasted_data} pasted_data; 
+ 
+pasted_data = file_text comma [delimitier]:word_or_num; 
 
 remove_data = // imports from api query commands and other scripts and deletes that data from the table
 		dataremovetoken l_par api_block relation_clause? r_par; 

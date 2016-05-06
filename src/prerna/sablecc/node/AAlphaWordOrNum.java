@@ -29,6 +29,7 @@ public final class AAlphaWordOrNum extends PWordOrNum
             cloneNode(this._word_));
     }
 
+    @Override
     public void apply(Switch sw)
     {
         ((Analysis) sw).caseAAlphaWordOrNum(this);

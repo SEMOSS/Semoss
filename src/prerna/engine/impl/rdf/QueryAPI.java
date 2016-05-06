@@ -53,7 +53,7 @@ public class QueryAPI implements IApi {
 		else {
 			Hashtable<String, Vector<String>> selectorSet = qs.getSelectors();
 			String fileName = values.get(params[1]) + "";
-			return new FileIterator(fileName, qs, null);
+			return new FileIterator(fileName, ',', qs, null); //TODO: right now making the assumption it is a csv file
 //			return null;
 		}
 		
