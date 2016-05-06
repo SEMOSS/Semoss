@@ -73,6 +73,7 @@ import prerna.engine.api.ISelectWrapper;
 import prerna.engine.impl.rdf.InMemorySesameEngine;
 import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.rdf.query.builder.QueryBuilderData;
+import prerna.sablecc.PKQLRunner;
 import prerna.solr.SolrIndexEngine;
 import prerna.ui.components.api.IPlaySheet;
 import prerna.ui.components.playsheets.datamakers.DataMakerComponent;
@@ -124,6 +125,7 @@ public class Insight {
 	private transient Map<String, List<Object>> paramHash;						// the parameters selected by user for filtering on insights
 	private transient Vector<SEMOSSParam> insightParameters;					// the SEMOSSParam objects for the insight
 	private String uiOptions;
+	private PKQLRunner pkqlRunner;
 	
 	// database id where this insight is
 	// this may be a URL
@@ -260,6 +262,10 @@ public class Insight {
 	
 	public void setOutput(String output) {
 		this.propHash.put(OUTPUT_KEY, output);
+	}
+	
+	public void setPkqlRunner(PKQLRunner pkqlRunner){
+		this.pkqlRunner = pkqlRunner;
 	}
 	
 //	/**
@@ -965,6 +971,7 @@ public class Insight {
 		if(!uiOptions.isEmpty()) {
 			retHash.put("uiOptions", uiOptions);
 		}
+		retHash.put("pkqlOutput", this.getPKQLData());
 		return retHash;
 	}
 	
@@ -1341,6 +1348,19 @@ public class Insight {
 				| IOException e) {
 			e.printStackTrace();
 		}
+	}
+
+	public Map getPKQLData() {
+		Map<String, Object> resultHash = new HashMap<String, Object>();
+		if(pkqlRunner != null){
+			List<Map> pkqlData = pkqlRunner.getResults();
+			Map feData = pkqlRunner.getFeData();
+	
+			resultHash.put("insightID", this.getInsightID());
+			resultHash.put("pkqlData", pkqlData);
+			resultHash.put("feData", feData);
+		}
+		return resultHash;
 	}
 
 }
