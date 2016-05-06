@@ -353,6 +353,8 @@ public class Translation2 extends DepthFirstAdapter {
 	@Override
 	public void outAPanelClone(APanelClone node){
 		System.out.println("out a panel clone");
+		String newId = node.getNewid().getText();
+		runner.addFeData("newPanelId", newId, false);
 		deinitReactor(PKQLEnum.VIZ, "", "");
 	}
 	
