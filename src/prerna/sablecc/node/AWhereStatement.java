@@ -44,7 +44,6 @@ public final class AWhereStatement extends PWhereStatement
             cloneNode(this._rPar_));
     }
 
-    @Override
     public void apply(Switch sw)
     {
         ((Analysis) sw).caseAWhereStatement(this);

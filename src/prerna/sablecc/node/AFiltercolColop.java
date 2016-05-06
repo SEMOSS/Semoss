@@ -29,7 +29,6 @@ public final class AFiltercolColop extends PColop
             cloneNode(this._filterColumn_));
     }
 
-    @Override
     public void apply(Switch sw)
     {
         ((Analysis) sw).caseAFiltercolColop(this);

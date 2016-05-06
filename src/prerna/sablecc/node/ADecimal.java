@@ -39,7 +39,6 @@ public final class ADecimal extends PDecimal
             cloneNode(this._fraction_));
     }
 
-    @Override
     public void apply(Switch sw)
     {
         ((Analysis) sw).caseADecimal(this);

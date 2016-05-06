@@ -34,7 +34,6 @@ public final class ATermGroup extends PTermGroup
             cloneNode(this._term_));
     }
 
-    @Override
     public void apply(Switch sw)
     {
         ((Analysis) sw).caseATermGroup(this);

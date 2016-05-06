@@ -25,7 +25,6 @@ public final class TImportType extends Token
       return new TImportType(getText(), getLine(), getPos());
     }
 
-    @Override
     public void apply(Switch sw)
     {
         ((Analysis) sw).caseTImportType(this);

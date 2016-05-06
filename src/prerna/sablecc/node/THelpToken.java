@@ -25,7 +25,6 @@ public final class THelpToken extends Token
       return new THelpToken(getLine(), getPos());
     }
 
-    @Override
     public void apply(Switch sw)
     {
         ((Analysis) sw).caseTHelpToken(this);

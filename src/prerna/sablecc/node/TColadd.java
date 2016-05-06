@@ -25,7 +25,6 @@ public final class TColadd extends Token
       return new TColadd(getLine(), getPos());
     }
 
-    @Override
     public void apply(Switch sw)
     {
         ((Analysis) sw).caseTColadd(this);

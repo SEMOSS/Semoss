@@ -76,7 +76,7 @@ Tokens
  panelviz =  panelprefix '.viz';
  panelcomment = panelprefix '.comment';
  panelclone = panelprefix '.clone';
- panelsetbuilder = panelprefix '.setBuilder';
+ dataframe = 'data.frame';
  file_text = '<startInput>' alphanumeric* '<endInput>';
 
 Ignored Tokens
@@ -109,6 +109,7 @@ colop = // colOp is usually of the form of joinColumn / addColumn / removeColumn
 		| {import_data} import_data
 		| {unfiltercol} unfilter_column
 		| {remove_data} remove_data
+		| {data_frame} data_frame
 		;
 
 panelop = // panelop is usually of the form of viz.change, viz.tools, viz.color
@@ -130,8 +131,8 @@ panel_clone = // e.g. panel.clone();
 		panelclone l_par [newid]:number r_par
 		;
 		
-panel_set_builder = // e.g. panel.setBuilder('graph');
-		panelsetbuilder l_par [builder]:word r_par
+data_frame = // e.g. panel.setBuilder('graph');
+		dataframe l_par [builder]:word r_par
 		;
 		
 add_column = // follows the pattern of addColumn(columnName and optionally the expression) addColumn(c:NewCol, 'expression', [c:col1, c:col2]);
