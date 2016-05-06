@@ -55,7 +55,39 @@ public final class ArrayUtilityMethods {
 		}
 		return newNames;
 	}
+	
+	public static int[] filterArrayByIndicies(int[] arr, int[] positionsToKeep) {
 
+		int size = positionsToKeep.length;
+		int[] newNames = new int[size];
+		for(int i=0;i<positionsToKeep.length;i++) {
+			newNames[i]=arr[positionsToKeep[i]];
+		}
+		return newNames;
+	}
+	
+	public static double[] filterArrayByIndicies(double[] arr, int[] positionsToKeep) {
+
+		int size = positionsToKeep.length;
+		double[] newNames = new double[size];
+		for(int i=0;i<positionsToKeep.length;i++) {
+			newNames[i]=arr[positionsToKeep[i]];
+		}
+		return newNames;
+	}
+	
+	public static int[] truncateArray(final int[] arr, int lastIndex) {
+		if(lastIndex < 0) {
+			return new int[0];
+		}
+		int i;
+		int[] retArr = new int[lastIndex + 1];
+		for(i = 0; i < lastIndex + 1; i++) {
+			retArr[i] = arr[i];
+		}
+		return retArr; 
+	}
+	
 	public static int calculateIndexOfArray(final String[] arr, final String value) {
 		if(arr == null) {
 			throw new NullPointerException(ERROR);
@@ -661,11 +693,30 @@ public final class ArrayUtilityMethods {
 
 	/**
 	 * Returns a specific range of rows from the original list passed in
+	 * @param dataMatrix			The main list you plan on taking a section from
+	 * @param positionsToRemove		The array of indices to keep in the dataMatrix
+	 * @return						The portioned dataMatrix including the positions to keep
+	 */
+	public static int[][] getRowRangeFromMatrix(int[][] dataMatrix, int[] positionsToKeep) {
+
+		int size = positionsToKeep.length;
+
+		int[][] retDataMatrix = new int[size][];
+		int i = 0;
+		for(; i < size; i++) {
+			retDataMatrix[i] = dataMatrix[positionsToKeep[i]];
+		}
+
+		return retDataMatrix;
+	}
+	
+	/**
+	 * Returns a specific range of rows from the original list passed in
 	 * @param dataMatrix			The main dataMatrix you plan on taking a section from
 	 * @param positionsToRemove		The array of indices to remove from the dataMatrix
 	 * @return						The portioned dataMatrix not including the positions removed 
 	 */
-	public static String[][] removeRowRangeFromMatrix(String[][] dataMatrix, int[] positionsToRemove) {
+	public static int[][] removeRowRangeFromMatrix(int[][] dataMatrix, int[] positionsToRemove) {
 		if(dataMatrix == null) {
 			throw new NullPointerException("dataMatrix is null");
 		}
@@ -675,7 +726,7 @@ public final class ArrayUtilityMethods {
 		// sort array of values to remove for efficient logic
 		Arrays.sort(positionsToRemove);
 
-		String[][] retDataMatrix = new String[size-removeSize][];
+		int[][] retDataMatrix = new int[size-removeSize][];
 		int i = 0;
 		int counter = 0;
 		for(; i < size; i++) {

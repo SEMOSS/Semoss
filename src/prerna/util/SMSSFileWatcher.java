@@ -120,7 +120,7 @@ public class SMSSFileWatcher extends AbstractFileWatcher {
 
 			// initialize combo box for creating future interface db
 			JComboBox selectHRCoreForFutureInterfaceComboBox = (JComboBox) DIHelper.getInstance().getLocalProp(
-					ConstantsTAP.HR_CORE_FUTURE_INTERFACE_DATABASE_CORE_COMBO_BOX);
+					ConstantsTAP.TAP_Core_Data_FUTURE_INTERFACE_DATABASE_CORE_COMBO_BOX);
 			DefaultComboBoxModel selectHRCoreForFutureInterfaceComboBoxModel = (DefaultComboBoxModel) selectHRCoreForFutureInterfaceComboBox
 					.getModel();
 			selectHRCoreForFutureInterfaceComboBoxModel.addElement(engineName);
@@ -154,17 +154,6 @@ public class SMSSFileWatcher extends AbstractFileWatcher {
 			DefaultComboBoxModel exportDataDBComboBoxModel = (DefaultComboBoxModel) exportDataDBComboBox.getModel();
 			exportDataDBComboBoxModel.addElement(engineName);
 			exportDataDBComboBox.repaint();
-
-			// initialize combo box for common subgraph
-			JComboBox commonSubgraphComboBox0 = (JComboBox) DIHelper.getInstance().getLocalProp(Constants.COMMON_SUBGRAPH_COMBO_BOX_0);
-			DefaultComboBoxModel commonSubgraphComboBox0Model = (DefaultComboBoxModel) commonSubgraphComboBox0.getModel();
-			commonSubgraphComboBox0Model.addElement(engineName);
-			commonSubgraphComboBox0.repaint();
-
-			JComboBox commonSubgraphComboBox1 = (JComboBox) DIHelper.getInstance().getLocalProp(Constants.COMMON_SUBGRAPH_COMBO_BOX_1);
-			DefaultComboBoxModel commonSubgraphComboBox1Model = (DefaultComboBoxModel) commonSubgraphComboBox1.getModel();
-			commonSubgraphComboBox1Model.addElement(engineName);
-			commonSubgraphComboBox1.repaint();
 
 			// initialize combo box for question modification
 			JComboBox questionDatabaseSelector = (JComboBox) DIHelper.getInstance().getLocalProp(Constants.QUESTION_DB_SELECTOR);
