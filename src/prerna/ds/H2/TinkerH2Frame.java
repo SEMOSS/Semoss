@@ -841,7 +841,9 @@ public class TinkerH2Frame extends AbstractTableDataFrame {
 			cleanHeaders[i] = this.metaData.getValueForUniqueName(this.headerNames[i]);
 		}
 		
-		builder.tableName = getTableNameForUniqueColumn(this.headerNames[0]);
+		if(builder.tableName == null) {
+			builder.tableName = getTableNameForUniqueColumn(this.headerNames[0]);
+		}
 		builder.alterTableNewColumns(builder.tableName, cleanHeaders, types);
 	}
 	
@@ -928,7 +930,7 @@ public class TinkerH2Frame extends AbstractTableDataFrame {
 
 	@Override
 	public IScriptReactor getImportDataReactor() {
-		return new H2ImportDataReactor(this);
+		return new H2ImportDataReactor();
 	}
 	
 	public void processIterator(Iterator<IHeadersDataRow> iterator, String[] newHeaders, Map<String, String> logicalToValue, Vector<Map<String, String>> joins, String joinType) {

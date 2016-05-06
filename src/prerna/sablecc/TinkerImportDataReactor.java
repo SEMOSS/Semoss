@@ -6,21 +6,19 @@ import java.util.Map;
 import java.util.Set;
 
 import prerna.ds.TinkerFrame;
+import prerna.ds.util.FileIterator;
 import prerna.engine.api.IHeadersDataRow;
 import prerna.engine.api.ISelectWrapper;
 import prerna.util.Utility;
 
-public class TinkerImportDataReactor extends AbstractReactor{
+public class TinkerImportDataReactor extends ImportDataReactor{
 
-	private TinkerFrame frame = null;
-	
-	public TinkerImportDataReactor(TinkerFrame frame) {
-		this.frame = frame;
-	}
-	
 	@Override
 	public Iterator process() {
+		super.process();
+		String nodeStr = (String)myStore.get(whoAmI);
 		
+		TinkerFrame frame = (TinkerFrame) myStore.get("G");
 		Iterator<IHeadersDataRow> it = (Iterator<IHeadersDataRow>) myStore.get("iterator");
 		Map<String, Set<String>> edgeHash = (Map<String, Set<String>>) myStore.get("edgeHash");
 		Map<String, String> logicalToValue = (Map<String, String>) myStore.get("logicalToValue");
@@ -39,11 +37,17 @@ public class TinkerImportDataReactor extends AbstractReactor{
 				// TODO: annoying, need to determine if i need to create a prim key edge hash
 				if( !(it instanceof ISelectWrapper) ) {
 					Map<String, Set<String>> primKeyEdgeHash = frame.createPrimKeyEdgeHash(headers);
-					Object[] values = ss.getValues();
+					//TODO: need to make all these wrappers that give a IHeaderDataRow be the same type to get this info
+					String[] types = null;
+					if(it instanceof FileIterator) {
+						types = ((FileIterator) it).getTypes();
+					} else if(it instanceof CsvTableWrapper) {
+						types = ((CsvTableWrapper) it).getTypes();
+					}
+					
 					Map<String, String> dataType = new HashMap<>();
-					for(int i = 0; i < values.length; i++) {
-						Object[] type = Utility.findTypes(values[i].toString());
-						dataType.put(headers[i], type[0].toString());
+					for(int i = 0; i < types.length; i++) {
+						dataType.put(headers[i], types[i]);
 					}
 					frame.mergeEdgeHash(primKeyEdgeHash, dataType);
 					
@@ -58,6 +62,15 @@ public class TinkerImportDataReactor extends AbstractReactor{
 				frame.addRelationship(ss.getHeaders(), ss.getValues(), ss.getRawValues(), cardinality, logicalToValue);
 			}
 		}
+		
+		// get rid of this bifurcation
+		// push this into the iterators
+		if(it instanceof ISelectWrapper) {
+			myStore.put(nodeStr, createResponseString((ISelectWrapper)it));
+		} else {
+			myStore.put(nodeStr, createResponseString(headers));
+		}
+		myStore.put("STATUS", "SUCCESS");
 		
 		return null;
 	}

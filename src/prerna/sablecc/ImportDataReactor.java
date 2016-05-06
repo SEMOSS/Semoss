@@ -1,10 +1,8 @@
 package prerna.sablecc;
 
-import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Hashtable;
 import java.util.Iterator;
-import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.Vector;
@@ -12,7 +10,6 @@ import java.util.Vector;
 import prerna.algorithm.api.ITableDataFrame;
 import prerna.ds.util.FileIterator;
 import prerna.engine.api.IEngine;
-import prerna.engine.api.IScriptReactor;
 import prerna.engine.api.ISelectWrapper;
 import prerna.util.DIHelper;
 
@@ -36,7 +33,6 @@ public class ImportDataReactor extends AbstractReactor {
 	@Override
 	public Iterator process() {
 		modExpression();
-		String nodeStr = (String)myStore.get(whoAmI);
 		System.out.println("My Store on COL CSV " + myStore);
 		
 		ITableDataFrame frame = (ITableDataFrame) myStore.get("G");
@@ -99,7 +95,7 @@ public class ImportDataReactor extends AbstractReactor {
 		}
 		
 		
-		// need to make all these wrappers that give a IHeaderDataRow be the same type to get this info
+		//TODO: need to make all these wrappers that give a IHeaderDataRow be the same type to get this info
 //		if(it instanceof FileIterator) {
 //			String[] types = ((FileIterator) it).getTypes();
 //			frame.addMetaDataTypes( ((FileIterator) it).getHeaders(), types);
@@ -108,38 +104,18 @@ public class ImportDataReactor extends AbstractReactor {
 //			frame.addMetaDataTypes( ((CsvTableWrapper) it).getHeaders(), types);
 //		}
 		
-		IScriptReactor reactor = frame.getImportDataReactor();
-		reactor.put("iterator", it);
+		// put in values for frame specific import data reactors to grab instead of having to do it based on api/csv table
+		myStore.put("iterator", it);
 		if(mergedMaps[0] != null) {
-			reactor.put("edgeHash", mergedMaps[0]);
+			myStore.put("edgeHash", mergedMaps[0]);
 		}
 		if(mergedMaps[1] != null) {
-			reactor.put("logicalToValue", mergedMaps[1]);
+			myStore.put("logicalToValue", mergedMaps[1]);
 		}
-		reactor.put("startingHeaders", startingHeaders);
-		reactor.put(PKQLEnum.JOINS, joinCols);
-		reactor.put(PKQLEnum.REL_TYPE, joinType);
-		// now run it
-		reactor.process();
+		myStore.put("startingHeaders", startingHeaders);
+		myStore.put(PKQLEnum.JOINS, joinCols);
+		myStore.put(PKQLEnum.REL_TYPE, joinType);
 		
-		List<Object[]> data = frame.getData();
-		System.out.println("view data now");
-		for(int i = 0; i < data.size() && i < 15; i++) {
-			System.out.println(Arrays.toString(data.get(i)));
-		}
-		
-		System.out.println(frame.getTableHeaderObjects());
-		
-		
-		// get rid of this bifurcation
-		// push this into the iterators
-		if(it instanceof ISelectWrapper) {
-			myStore.put(nodeStr, createResponseString((ISelectWrapper)it));
-		} else {
-//			myStore.put(nodeStr, "Successfully added data using:\n headers= " + headers);
-		}
-		myStore.put("STATUS", "SUCCESS");
-
 		return null;
 	}
 
@@ -149,8 +125,7 @@ public class ImportDataReactor extends AbstractReactor {
 		return values2SyncHash.get(input);
 	}
 
-	private String createResponseString(ISelectWrapper it){
-
+	protected String createResponseString(ISelectWrapper it){
 		Map<String, Object> map = it.getResponseMeta();
 		String mssg = "";
 		for(String key : map.keySet()){
@@ -161,5 +136,9 @@ public class ImportDataReactor extends AbstractReactor {
 		}
 		String retStr = "Sucessfully added data using : \n" + mssg;
 		return retStr;
+	}
+	
+	protected String createResponseString(String[] headers){
+		return "Successfully added data using:\n headers= " + headers;
 	}
 }

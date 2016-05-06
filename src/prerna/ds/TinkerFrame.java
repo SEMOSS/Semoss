@@ -2299,6 +2299,6 @@ public class TinkerFrame extends AbstractTableDataFrame {
 
 	@Override
 	public IScriptReactor getImportDataReactor() {
-		return new TinkerImportDataReactor(this);
+		return new TinkerImportDataReactor();
 	}
 }
