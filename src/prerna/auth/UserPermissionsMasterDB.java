@@ -32,6 +32,7 @@ import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 
 import com.google.gson.internal.StringMap;
 
@@ -186,10 +187,17 @@ public class UserPermissionsMasterDB {
 	 * @param userId	ID of the user
 	 * @return			List of engine names
 	 */
-	public ArrayList<String> getUserAccessibleEngines(String userId) {
-		ArrayList<String> engines = new ArrayList<String>();
+	public HashSet<String> getUserAccessibleEngines(String userId) {
+		HashSet<String> engines = new HashSet<String>();
+		ArrayList<String[]> ret = new ArrayList<String[]>();
 		
-		ArrayList<String[]> ret = runQuery("SELECT Engine.name FROM Engine, EnginePermission WHERE EnginePermission.USER='" + userId + "' AND Engine.ID=EnginePermission.ENGINE;");
+		String query = "SELECT Engine.name FROM Engine, EnginePermission WHERE EnginePermission.USER='" + userId + "' AND Engine.ID=EnginePermission.ENGINE;";
+		ret = runQuery(query);
+		
+		query = "SELECT e.NAME AS ENGINENAME FROM Engine e, User u, GroupEnginePermission gep, GroupMembers gm, Permission p "
+				+ "WHERE u.ID='" + userId + "' AND gm.MEMBERID=u.ID AND gm.GROUPID=gep.GROUPID AND gep.PERMISSION=p.ID";
+		ret.addAll(runQuery(query));
+		
 		for(String[] row : ret) {
 			engines.add(row[0]);
 		}
@@ -329,7 +337,7 @@ public class UserPermissionsMasterDB {
 		
 		
 		ArrayList<String> engines = getUserOwnedEngines(userId);
-		query = "SELECT u.ID AS ID, u.NAME AS USERNAME, p.NAME AS PERMISSIONNAME, u.EMAIL AS EMAIL FROM User u, Engine e, EnginePermission ep, Permission p "
+		query = "SELECT DISTINCT u.ID AS ID, u.NAME AS USERNAME, p.NAME AS PERMISSIONNAME, u.EMAIL AS EMAIL FROM User u, Engine e, EnginePermission ep, Permission p "
 				+ "WHERE u.ID=ep.USER "
 					+ "AND ep.ENGINE=e.ID "
 					+ "AND ep.PERMISSION=p.ID "
@@ -383,7 +391,7 @@ public class UserPermissionsMasterDB {
 		
 		ret = runQuery(query);
 		
-		query = "SELECT e.NAME AS ENGINENAME, u.NAME AS OWNER, p.NAME FROM Engine e, User u, GroupEnginePermission gep, GroupMembers gm, Permission p "
+		query = "SELECT e.NAME AS ENGINENAME, u.NAME AS OWNER, p.NAME AS PERMISSIONNAME FROM Engine e, User u, GroupEnginePermission gep, GroupMembers gm, Permission p "
 				+ "WHERE u.ID='" + userId + "' AND gm.MEMBERID=u.ID "
 					+ "AND gm.GROUPID=gep.GROUPID AND gep.PERMISSION=p.ID";
 		
@@ -442,7 +450,7 @@ public class UserPermissionsMasterDB {
 	}
 	
 	public Boolean addUserToGroup(String userId, String groupName, String userIdToAdd) {
-		String query = "INSERT INTO GroupMembers VALUES ((SELECT UserGroup.ID WHERE UserGroup.NAME='" + groupName + "' AND UserGroup.OWNER='" + userId + "'), '" + userIdToAdd + "');";
+		String query = "INSERT INTO GroupMembers VALUES ((SELECT UserGroup.ID FROM UserGroup WHERE UserGroup.NAME='" + groupName + "' AND UserGroup.OWNER='" + userId + "'), '" + userIdToAdd + "');";
 		
 		securityDB.insertData(query);
 		securityDB.commit();
@@ -462,8 +470,10 @@ public class UserPermissionsMasterDB {
 	
 	public Boolean setPermissionsForGroup(String userId, String groupName, String engineName, EnginePermission[] permissions) {
 		for(int i = 0; i < permissions.length; i++) {
-			String query = "INSERT INTO GROUPENGINEPERMISSION VALUES ((SELECT Engine.ID FROM Engine WHERE Engine.NAME='" + engineName + "'), "
-					+ "(SELECT UserGroup.ID FROM UserGroup WHERE UserGroup.NAME='" + groupName + "'), "
+			String query = "INSERT INTO GROUPENGINEPERMISSION VALUES ("
+					+ "(SELECT Engine.ID FROM Engine, EnginePermission WHERE Engine.NAME='" + engineName + "' AND EnginePermission.USER='" + userId + "' "
+							+ "AND EnginePermission.ENGINE=Engine.ID AND EnginePermission.PERMISSION=" + EnginePermission.OWNER.getId() + "), "
+					+ "(SELECT UserGroup.ID FROM UserGroup WHERE UserGroup.NAME='" + groupName + "' AND UserGroup.OWNER='" + userId + "'), "
 					+ permissions[i].getId() + ")";
 			
 			securityDB.insertData(query);
@@ -477,7 +487,7 @@ public class UserPermissionsMasterDB {
 		String query = "DELETE FROM GroupEnginePermission "
 				+ "WHERE GroupEnginePermission.ENGINE IN "
 					+ "(SELECT Engine.ID FROM Engine, EnginePermission WHERE Engine.NAME='" + engineName + "' AND EnginePermission.ENGINE=Engine.ID "
-						+ "AND EnginePermission.USER='" + userId + "' AND EnginePermission.PERMISSION=" + EnginePermission.OWNER.getId() + "') "
+						+ "AND EnginePermission.USER='" + userId + "' AND EnginePermission.PERMISSION=" + EnginePermission.OWNER.getId() + ") "
 				+ "AND GroupEnginePermission.GROUPID IN "
 					+ "(SELECT UserGroup.ID FROM UserGroup WHERE UserGroup.NAME='" + groupName + "' AND UserGroup.OWNER='" + userId + "');";
 		
@@ -490,7 +500,7 @@ public class UserPermissionsMasterDB {
 	public Boolean setPermissionsForUser(String userId, String engineName, String userToAdd, EnginePermission[] permissions) {
 		for(int i = 0; i < permissions.length; i++) {
 			String query = "INSERT INTO EnginePermission VALUES (NULL, (SELECT Engine.ID FROM Engine, EnginePermission WHERE Engine.NAME='" + engineName + "' AND EnginePermission.ENGINE=Engine.ID "
-							+ "AND EnginePermission.USER='" + userId + "' AND EnginePermission.PERMISSION=" + EnginePermission.OWNER.getId() + "'), '" + userToAdd + "', " + permissions[i].getId() + ");";
+							+ "AND EnginePermission.USER='" + userId + "' AND EnginePermission.PERMISSION=" + EnginePermission.OWNER.getId() + "), '" + userToAdd + "', " + permissions[i].getId() + ");";
 			
 			securityDB.insertData(query);
 		}
@@ -503,7 +513,7 @@ public class UserPermissionsMasterDB {
 		String query = "DELETE FROM EnginePermission "
 				+ "WHERE EnginePermission.ENGINE IN "
 					+ "(SELECT Engine.ID FROM Engine, EnginePermission WHERE Engine.NAME='" + engineName + "' AND EnginePermission.ENGINE=Engine.ID "
-						+ "AND EnginePermission.USER='" + userId + "' AND EnginePermission.PERMISSION=" + EnginePermission.OWNER.getId() + "') "
+						+ "AND EnginePermission.USER='" + userId + "' AND EnginePermission.PERMISSION=" + EnginePermission.OWNER.getId() + ") "
 				+ "AND EnginePermission.USER='" + userToRemove + "';";
 		
 		securityDB.execUpdateAndRetrieveStatement(query, true);
