@@ -19,10 +19,10 @@ public class PKQLTransformation extends AbstractTransformation {
 
 	private static final Logger LOGGER = LogManager.getLogger(PKQLTransformation.class.getName());
 	public static final String METHOD_NAME = "pkql";
+	private PKQLRunner runner;
 
 	public static final String EXPRESSION = "EXPRESSION";
 
-	private List<Map> results = new Vector<Map>();
 	private Map<String, Object> feData = new HashMap<String, Object>();
 	
 	
@@ -51,10 +51,8 @@ public class PKQLTransformation extends AbstractTransformation {
 
 	@Override
 	public void runMethod() {
-		PKQLRunner runner = new PKQLRunner();
-
 		String expression = props.get(EXPRESSION) + "";		
-		this.results.addAll(runner.runPKQL(expression, (ITableDataFrame) this.dm));
+		runner.runPKQL(expression, (ITableDataFrame) this.dm);
 //		this.dm = runner.getDataFrame();
 		this.feData.putAll(runner.getFeData());
 	}
@@ -75,7 +73,7 @@ public class PKQLTransformation extends AbstractTransformation {
 		PKQLTransformation joinCopy = new PKQLTransformation();
 		joinCopy.setDataMakers(dm);
 		joinCopy.setId(id);
-		joinCopy.results = this.results; // keep this shallow so updates can be gotten
+		joinCopy.runner = this.runner; // keep this shallow so updates can be gotten
 		joinCopy.feData = this.feData; // keep this shallow so updates can be gotten
 
 		if(props != null) {
@@ -88,11 +86,11 @@ public class PKQLTransformation extends AbstractTransformation {
 		return joinCopy;
 	}
 	
-	public List<Map> getResultHash(){
-		return this.results;
-	}
-	
 	public Map<String, Object> getFeData(){
 		return this.feData;
+	}
+	
+	public void setRunner(PKQLRunner runner){
+		this.runner = runner;
 	}
 }

@@ -38,12 +38,14 @@ import org.apache.log4j.Logger;
 
 import prerna.om.Insight;
 import prerna.om.InsightStore;
+import prerna.sablecc.PKQLRunner;
 import prerna.ui.components.api.IPlaySheet;
 import prerna.ui.components.playsheets.AbstractPlaySheet;
 import prerna.ui.components.playsheets.datamakers.DataMakerComponent;
 import prerna.ui.components.playsheets.datamakers.FilterTransformation;
 import prerna.ui.components.playsheets.datamakers.IDataMaker;
 import prerna.ui.components.playsheets.datamakers.ISEMOSSTransformation;
+import prerna.ui.components.playsheets.datamakers.PKQLTransformation;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
 import prerna.util.Utility;
@@ -109,6 +111,7 @@ public class InsightCreateRunner implements Runnable{
 		// this either fills the query if the parameter was saved as a string using @INPUT_NAME@ taxonomy or
 		// it fills in the values in a Filtering PreTransformation which appends the metamodel
 		insight.appendParamsToDataMakerComponents();
+		PKQLRunner runner = new PKQLRunner();
 		for(DataMakerComponent dmComp : dmComps){
 //			// NOTE: this runs the data maker components directly onto the dm, not through the insight
 			if(dmComp.isProcessed()) {
@@ -118,8 +121,10 @@ public class InsightCreateRunner implements Runnable{
 //			if(copyDmc.getBuilderData() != null) {
 //				optimizeDataMakerComponents(copyDmc, dmComps);
 //	    	}
+			setRunnerInPKQLTrans(copyDmc, runner);
 			dm.processDataMakerComponent(copyDmc);
 		}
+		insight.setPkqlRunner(runner);
 		
 		if(needToRecalc(insight.getDataMakerComponents())) {
 			insight.recalcDerivedColumns();
@@ -128,6 +133,25 @@ public class InsightCreateRunner implements Runnable{
 		return dm;
 	}
 	
+	/**
+	 * this is just to get pkql runner data to fe through create
+	 * need to have the same runner for full create process
+	 * @param copyDmc
+	 * @param runner
+	 */
+	private void setRunnerInPKQLTrans(DataMakerComponent copyDmc, PKQLRunner runner) {
+		for(ISEMOSSTransformation trans : copyDmc.getPreTrans()){
+			if(trans instanceof PKQLTransformation){
+				((PKQLTransformation) trans).setRunner(runner);
+			}
+		}
+		for(ISEMOSSTransformation trans : copyDmc.getPostTrans()){
+			if(trans instanceof PKQLTransformation){
+				((PKQLTransformation) trans).setRunner(runner);
+			}
+		}
+	}
+
 	//If the last transformation of the last component is a filter transformation, recalc the derived columns
 	private boolean needToRecalc(List<DataMakerComponent> dmComps) {
 		
