@@ -675,11 +675,44 @@ public class ReversedDepthFirstAdapter extends AnalysisAdapter
         {
             node.getLPar().apply(this);
         }
-        if(node.getPanelcomment() != null)
+        if(node.getPanelclone() != null)
         {
-            node.getPanelcomment().apply(this);
+            node.getPanelclone().apply(this);
         }
         outAPanelClone(node);
+    }
+
+    public void inAPanelSetBuilder(APanelSetBuilder node)
+    {
+        defaultIn(node);
+    }
+
+    public void outAPanelSetBuilder(APanelSetBuilder node)
+    {
+        defaultOut(node);
+    }
+
+    @Override
+    public void caseAPanelSetBuilder(APanelSetBuilder node)
+    {
+        inAPanelSetBuilder(node);
+        if(node.getRPar() != null)
+        {
+            node.getRPar().apply(this);
+        }
+        if(node.getBuilder() != null)
+        {
+            node.getBuilder().apply(this);
+        }
+        if(node.getLPar() != null)
+        {
+            node.getLPar().apply(this);
+        }
+        if(node.getPanelsetbuilder() != null)
+        {
+            node.getPanelsetbuilder().apply(this);
+        }
+        outAPanelSetBuilder(node);
     }
 
     public void inAAddColumn(AAddColumn node)
