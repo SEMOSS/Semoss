@@ -27,7 +27,12 @@
  *******************************************************************************/
 package prerna.poi.main;
 
+import java.text.DateFormat;
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.Date;
+import java.util.HashSet;
 import java.util.Hashtable;
 import java.util.Iterator;
 import java.util.Set;
@@ -40,6 +45,12 @@ import org.apache.poi.xssf.usermodel.XSSFRow;
 import org.apache.poi.xssf.usermodel.XSSFSheet;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 
+import prerna.engine.api.IEngine;
+import prerna.engine.api.ISelectStatement;
+import prerna.engine.api.ISelectWrapper;
+import prerna.rdf.engine.wrappers.WrapperManager;
+import prerna.util.Constants;
+import prerna.util.DIHelper;
 import prerna.util.Utility;
 
 /**
@@ -48,19 +59,33 @@ import prerna.util.Utility;
  */
 public class NodeLoadingSheetWriter {
 
+	private Boolean showSuccessMessage = true;
+	private String writeFileName;
+	
 	/**
 	 * Functions as the main method for the class
 	 * Reorganizes the information from ExportNodeLoadSheetsListener into a format that is similar to a load sheet and saves it in a workbook
 	 * The data is reorganized in a Hashtable<String, Vector<String[]>> where the keys become the sheet name and the instance data in the format Vector<String[]>  
 	 * @param fileLoc 		String containing the path location to save the workbook
 	 * @param hash 			Hashtable containing the information gotten from ExportNodeLoadSheetsListener, which gets the data from querying the engine
+	 * @param engine
+	 * @param nodeTypes
 	 */
-	public void ExportLoadingSheets(String fileLoc, Hashtable<String, Vector<String[]>> hash) {
-		//create file
+	public void writeNodeLoadingSheets(IEngine engine, ArrayList<String> nodeTypes) {
+		
+		Hashtable<String, Vector<String[]>> hash = queryData(engine, nodeTypes);
+		
+		Hashtable<String, Vector<String[]>> preparedHash = prepareLoadingSheetExport(hash);
+		
+		//Create the blank excel file
+		String workingDir = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER);
+		String folder = "\\export\\Nodes\\";
+		if(writeFileName == null)
+			writeFileName = "Nodes_LoadingSheet_" + DateFormat.getDateTimeInstance(DateFormat.MEDIUM, DateFormat.SHORT).format(new Date()).replace(":", "") + ".xlsx";
+		String fileLoc = workingDir + folder + writeFileName;
 		XSSFWorkbook wb = new XSSFWorkbook();
 
-		Hashtable<String, Vector<String[]>> preparedHash = prepareLoadingSheetExport(hash);
-
+		//Write the loader sheet to excel
 		XSSFSheet sheet = wb.createSheet("Loader");
 		Vector<String[]> data = new Vector<String[]>();
 		data.add(new String[]{"Sheet Name", "Type"});
@@ -80,53 +105,111 @@ public class NodeLoadingSheetWriter {
 			}
 		}
 
+		//Add a sheet for each concept that lists all of its properties
 		Set<String> keySet = preparedHash.keySet();
 		for(String key: keySet){
 			Vector<String[]> sheetVector = preparedHash.get(key);
 			writeSheet(key, sheetVector, wb);
 		}
 
+		//Write the excel
 		Utility.writeWorkbook(wb, fileLoc);
-		Utility.showMessage("Export successful: " + fileLoc);
+		if(showSuccessMessage)
+			Utility.showMessage("Exported node properties successfully: " + fileLoc);
+	}
+	
+	private Hashtable<String, Vector<String[]>> queryData(IEngine engine, ArrayList<String> nodeTypes) {
+		Hashtable<String, Vector<String[]>> hash = new Hashtable<String, Vector<String[]>>();
+		for(String nodeType : nodeTypes) {
+			ArrayList<Object[]> list = new ArrayList<Object[]>();
+			String query = "SELECT ?s ?p ?prop WHERE { {?s <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/";
+			query += nodeType;
+			query += "> ;}OPTIONAL{ {?p <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Relation/Contains> ;} {?s ?p ?prop ;} } }";
+
+
+			ISelectWrapper wrapper = WrapperManager.getInstance().getSWrapper(engine, query);
+
+			int count = 0;
+			String[] names = wrapper.getVariables();
+			HashSet<String> properties = new HashSet<String>();
+			// now get the bindings and generate the data
+			try {
+				while(wrapper.hasNext()) {
+					ISelectStatement sjss = wrapper.next();
+					Object [] values = new Object[names.length];
+					boolean filledData = true;
+
+					for(int colIndex = 0;colIndex < names.length;colIndex++) {
+						if(sjss.getVar(names[colIndex]) != null || sjss.getVar(names[colIndex]).toString().equals("")) {
+							if(colIndex == 1 && !sjss.getVar(names[colIndex]).toString().equals("")) {
+								properties.add((String) sjss.getVar(names[colIndex]));
+							}
+							values[colIndex] = sjss.getVar(names[colIndex]);
+						}
+						else {
+							filledData = false;
+							break;
+						}
+					}
+					if(filledData) {
+						list.add(count, values);
+						count++;
+					}
+				}
+			} 
+			catch (RuntimeException e) {
+				e.printStackTrace();
+			}
+			String nodeKey = nodeType;
+			if(nodeKey.length()>31)nodeKey = nodeKey.substring(0, 31);
+			if(!properties.isEmpty()) {
+				hash.put(nodeKey, formatData(nodeType, properties, list));
+			}
+		}
+		
+		return hash;
 	}
 
 	/**
-	 * Writes the sheet containing the information for all the node instances and properties for the node type specified by the user
-	 * @param key 			String containing the name of the sheet to write
-	 * @param sheetVector 	Vector<String[]> containing the data, all the node instance and properties, to export in the sheet
-	 * @param workbook 		XSSFWorkbook to add the sheet to
-	 */
-	public void writeSheet(String key, Vector<String[]> sheetVector, XSSFWorkbook workbook) {
-		XSSFSheet worksheet = workbook.createSheet(key);
-		int count=0;//keeps track of rows; one below the row int because of header row
-		final Pattern NUMERIC = Pattern.compile("^\\d+\\.?\\d*$");
-		//for each row, create the row in excel
-		for (int row=0; row<sheetVector.size();row++){
-			XSSFRow row1 = worksheet.createRow( count);
-			count++;
-			//for each col, write it to that row.7
-			for (int col=0; col<sheetVector.get(row).length;col++){
-				XSSFCell cell = row1.createCell(col);
-				if(sheetVector.get(row)[col] != null) {
-					String val = sheetVector.get(row)[col];
-					//Check if entire value is numeric - if so, set cell type and parseDouble, else write normally
-					if(val != null && !val.isEmpty() && NUMERIC.matcher(val).find()) {
-						cell.setCellType(Cell.CELL_TYPE_NUMERIC);
-						cell.setCellValue(Double.parseDouble(val));
-					} else {
-						cell.setCellValue(sheetVector.get(row)[col].replace("\"", ""));
-					}
-				}
+	 * Method formatData.  Formats the data into a vector of string arrays for processing.
+	 * @param nodeType String
+	 * @param properties HashSet<String>
+	 * @param list ArrayList<Object[]>
+	
+	 * @return Vector<String[]> the results. */
+	private Vector<String[]> formatData(String nodeType, HashSet<String> properties, ArrayList<Object[]> list) {
+		Collections.sort(list, new Comparator<Object[]>() {
+			public int compare(Object[] a, Object[] b) {
+				return a[0].toString().compareTo(b[0].toString());
 			}
+		});
+		String[] relation = {"Node", "Ignore"};
+		list.add(0, relation);
+		String[] header = new String[properties.size()+1];
+		Iterator<String> it = properties.iterator();
+		header[0] = nodeType;
+		for(int i = 1; i <= properties.size(); i++) {
+			header[i] = it.next();
 		}
+		list.add(1, header);
+		Vector<String[]> results = new Vector<String[]>();
+		for(Object[] o : list) {
+			String[] toAdd = new String[o.length];
+			for(int i = 0; i < o.length; i++) {
+				toAdd[i] = o[i].toString();
+			}
+			results.add(toAdd);
+		}
+		
+		return results;
 	}
-
+	
 	/**
 	 * Reorganize the data from querying the engine into a format similar to a Microsoft Excel Loading Sheet
 	 * @param oldHash 		Hashtable containing the data from ExportNodeLoadSheetsListener, which gets the data from querying the engine						
 	 * @return newHash		Hashtable<String,Vector<String[]>> containing the information in a format similar to the Microsoft Excel Loading Sheet
 	 */
-	public Hashtable<String, Vector<String[]>> prepareLoadingSheetExport(Hashtable oldHash) {
+	private Hashtable<String, Vector<String[]>> prepareLoadingSheetExport(Hashtable oldHash) {
 		Hashtable newHash = new Hashtable();
 		Iterator<String> keyIt = oldHash.keySet().iterator();
 		while(keyIt.hasNext()){
@@ -202,6 +285,45 @@ public class NodeLoadingSheetWriter {
 			newHash.put(key, newSheetV);
 		}
 		return newHash;
+	}
+	
+	/**
+	 * Writes the sheet containing the information for all the node instances and properties for the node type specified by the user
+	 * @param key 			String containing the name of the sheet to write
+	 * @param sheetVector 	Vector<String[]> containing the data, all the node instance and properties, to export in the sheet
+	 * @param workbook 		XSSFWorkbook to add the sheet to
+	 */
+	private void writeSheet(String key, Vector<String[]> sheetVector, XSSFWorkbook workbook) {
+		XSSFSheet worksheet = workbook.createSheet(key);
+		int count=0;//keeps track of rows; one below the row int because of header row
+		final Pattern NUMERIC = Pattern.compile("^\\d+\\.?\\d*$");
+		//for each row, create the row in excel
+		for (int row=0; row<sheetVector.size();row++){
+			XSSFRow row1 = worksheet.createRow( count);
+			count++;
+			//for each col, write it to that row.7
+			for (int col=0; col<sheetVector.get(row).length;col++){
+				XSSFCell cell = row1.createCell(col);
+				if(sheetVector.get(row)[col] != null) {
+					String val = sheetVector.get(row)[col];
+					//Check if entire value is numeric - if so, set cell type and parseDouble, else write normally
+					if(val != null && !val.isEmpty() && NUMERIC.matcher(val).find()) {
+						cell.setCellType(Cell.CELL_TYPE_NUMERIC);
+						cell.setCellValue(Double.parseDouble(val));
+					} else {
+						cell.setCellValue(sheetVector.get(row)[col].replace("\"", ""));
+					}
+				}
+			}
+		}
+	}
+
+	public void setShowSuccessMessage(Boolean showSuccessMessage) {
+		this.showSuccessMessage = showSuccessMessage;
+	}
+	
+	public void setWriteFileName(String writeFileName) {
+		this.writeFileName = writeFileName;
 	}
 
 }

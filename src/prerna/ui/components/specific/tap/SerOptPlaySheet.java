@@ -27,27 +27,22 @@
  *******************************************************************************/
 package prerna.ui.components.specific.tap;
 
-import java.awt.Dimension;
 import java.awt.Font;
 import java.awt.GridBagConstraints;
-import java.awt.GridBagLayout;
 import java.awt.Insets;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
-import java.awt.event.MouseAdapter;
-import java.awt.event.MouseEvent;
 import java.io.BufferedReader;
 import java.io.FileReader;
 import java.io.IOException;
 import java.util.Vector;
 
+import javax.swing.ButtonGroup;
 import javax.swing.DefaultComboBoxModel;
 import javax.swing.JButton;
 import javax.swing.JComboBox;
-import javax.swing.JComponent;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
-import javax.swing.JPopupMenu;
 import javax.swing.JRadioButton;
 import javax.swing.JScrollPane;
 import javax.swing.JTextField;
@@ -56,7 +51,6 @@ import javax.swing.ListSelectionModel;
 
 import prerna.ui.components.BrowserGraphPanel;
 import prerna.ui.helpers.EntityFiller;
-import prerna.ui.main.listener.specific.tap.OptFunctionRadioBtnListener;
 import prerna.ui.main.listener.specific.tap.SerOptBtnListener;
 import prerna.ui.main.listener.specific.tap.SysSpecComboBoxListener;
 import prerna.ui.swing.custom.ButtonMenuDropDown;
@@ -69,21 +63,35 @@ import prerna.util.DIHelper;
  */
 @SuppressWarnings("serial")
 public class SerOptPlaySheet extends OptPlaySheet{
+	
+	//param panel components
+	public JTextField yearField, icdSusField, mtnPctgField;
+	public JTextField minBudgetField, maxBudgetField, hourlyRateField;
+	
+	//advanced param panel components
+	public JTextField iniLearningCnstField, scdLearningTimeField, scdLearningCnstField, startingPtsField;
+	public JTextField attRateField, hireRateField, infRateField, disRateField;
+	//advanced param panel components to select enterprise wide view or system specific view
+	public ButtonMenuDropDown sysSelect;
+	public JComboBox<String> sysSpecComboBox;
 
-	//input panel- optimization types
+	// param panel components to select the type of optimization to run
 	public JRadioButton rdbtnBreakeven, rdbtnProfit, rdbtnROI;
 	
-	//overview tab components
-	public JLabel costLbl, recoupLbl;
-	public BrowserGraphPanel tab1, tab2;
+	//display components - overview tab showing high level metrics after algorithm is run
+	public JLabel costLbl, recoupLbl, savingLbl, roiLbl, bkevenLbl;
+	//display components - overview tab showing graphs after algorithm is run
+	public BrowserGraphPanel tab1, tab2, tab3, tab4, tab5, tab6;
 	
-	//timeline tab
+	//display components - timeline tab shows timeline of service SDLC
 	public JPanel timelinePanel;
 	public BrowserGraphPanel timeline;
 	
-	//other tabs
-	public JPanel specificAlysPanel = new JPanel();
+	//display components - tabs for service view and system view
+	public JPanel specificAlysPanel, specificSysAlysPanel;
+	//display components - tab for graph of services developed
 	public JPanel playSheetPanel = new JPanel();
+	//display components - tab for help text surrounding the algorithm
 	public JTextPane helpTextArea;
 	
 	
@@ -91,46 +99,31 @@ public class SerOptPlaySheet extends OptPlaySheet{
 	protected void createBasicParamComponents() {
 		
 		super.createBasicParamComponents();
-		icdSusField = new JTextField();
-		icdSusField.setFont(new Font("Tahoma", Font.PLAIN, 11));
-		icdSusField.setText(".1");
-		icdSusField.setColumns(4);
-		GridBagConstraints gbc_icdSusField = new GridBagConstraints();
-		gbc_icdSusField.anchor = GridBagConstraints.NORTHWEST;
-		gbc_icdSusField.insets = new Insets(0, 0, 5, 5);
-		gbc_icdSusField.gridx = 1;
-		gbc_icdSusField.gridy = 3;
-		ctlPanel.add(icdSusField, gbc_icdSusField);
-
-		JLabel lblInterfaceSustainmentCostyear = new JLabel("Annual Interface Sustainment Cost ($M)");
-		lblInterfaceSustainmentCostyear.setFont(new Font("Tahoma", Font.PLAIN, 12));
-		GridBagConstraints gbc_lblInterfaceSustainmentCostyear = new GridBagConstraints();
-		gbc_lblInterfaceSustainmentCostyear.insets = new Insets(0, 0, 5, 5);
-		gbc_lblInterfaceSustainmentCostyear.anchor = GridBagConstraints.WEST;
-		gbc_lblInterfaceSustainmentCostyear.gridwidth = 4;
-		gbc_lblInterfaceSustainmentCostyear.gridx = 2;
-		gbc_lblInterfaceSustainmentCostyear.gridy = 3;
-		ctlPanel.add(lblInterfaceSustainmentCostyear, gbc_lblInterfaceSustainmentCostyear);
 		
-		GridBagConstraints gbc_hourlyRateField = new GridBagConstraints();
-		gbc_hourlyRateField.anchor = GridBagConstraints.WEST;
-		gbc_hourlyRateField.insets = new Insets(0, 0, 5, 5);
-		gbc_hourlyRateField.gridx = 6;
-		gbc_hourlyRateField.gridy = 3;
-		ctlPanel.add(hourlyRateField, gbc_hourlyRateField);
+		yearField = addNewButtonToCtrlPanel("10", "Maximum Number of Years", 4, 1, 1);
+		mtnPctgField = addNewButtonToCtrlPanel("10", "Annual Service Sustainment Percentage (%)", 4, 1,2);
+		icdSusField = addNewButtonToCtrlPanel(".1", "Annual Interface Sustainment Cost ($M)", 4, 1, 3);
+		minBudgetField = addNewButtonToCtrlPanel("0", "Minimum Annual Budget ($M)", 1, 6, 1);
+		maxBudgetField = addNewButtonToCtrlPanel("1000", "Maximum Annual Budget ($M)", 1, 6, 2);
+		hourlyRateField = addNewButtonToCtrlPanel("150", "Hourly Build Cost Rate ($)", 1, 6, 3);
 
-		JLabel lblHourlyRate = new JLabel("Hourly Build Cost Rate ($)");
-		lblHourlyRate.setFont(new Font("Tahoma", Font.PLAIN, 12));
-		GridBagConstraints gbc_lblHourlyRate = new GridBagConstraints();
-		gbc_lblHourlyRate.anchor = GridBagConstraints.WEST;
-		gbc_lblHourlyRate.gridwidth = 2;
-		gbc_lblHourlyRate.insets = new Insets(0, 0, 5, 0);
-		gbc_lblHourlyRate.gridx = 7;
-		gbc_lblHourlyRate.gridy = 3;
-		ctlPanel.add(lblHourlyRate, gbc_lblHourlyRate);
+	}
+	
+	
+	@Override
+	protected void createOptimizationComponents()
+	{
+		super.createOptimizationComponents();
 		
-
-
+		rdbtnProfit = addOptimizationTypeButton("Savings", 1, 4);
+		rdbtnROI = addOptimizationTypeButton("ROI", 3, 4); 
+		rdbtnBreakeven = addOptimizationTypeButton("Recoup Period", 5, 4);
+		
+		ButtonGroup btnGrp = new ButtonGroup();
+		btnGrp.add(rdbtnProfit);
+		btnGrp.add(rdbtnROI);
+		btnGrp.add(rdbtnBreakeven);
+		btnGrp.setSelected(rdbtnProfit.getModel(), true);		
 	}
 	
 	@Override
@@ -144,6 +137,26 @@ public class SerOptPlaySheet extends OptPlaySheet{
 	protected void createAdvParamPanels() {
 		super.createAdvParamPanels();
 		
+		attRateField = addNewButtonToAdvParamPanel("3", "Attrition Rate (%)", 1, 0, 1);
+		hireRateField = addNewButtonToAdvParamPanel("3", "Hiring Rate (%)", 1, 0, 2);
+		infRateField = addNewButtonToAdvParamPanel("1.5", "Inflation Rate (%)", 1, 0, 3);
+		disRateField = addNewButtonToAdvParamPanel("2.5", "Discount Rate (%)", 1, 0, 4);
+		iniLearningCnstField = addNewButtonToAdvParamPanel("0", "Experience Level (%) at year 0", 3, 2, 1);
+		scdLearningCnstField = addNewButtonToAdvParamPanel("0.9", "Experience Level (%) at year", 2, 2, 2);
+		startingPtsField = addNewButtonToAdvParamPanel("5", "Number of Starting Points", 3, 2, 3);
+
+		scdLearningTimeField = new JTextField();
+		scdLearningTimeField.setFont(new Font("Tahoma", Font.PLAIN, 11));
+		GridBagConstraints gbc_scdLearningTimeField = new GridBagConstraints();
+		gbc_scdLearningTimeField.anchor = GridBagConstraints.WEST;
+		gbc_scdLearningTimeField.insets = new Insets(0, 0, 5, 0);
+		gbc_scdLearningTimeField.gridx = 5;
+		gbc_scdLearningTimeField.gridy = 2;
+		advParamPanel.add(scdLearningTimeField, gbc_scdLearningTimeField);
+		scdLearningTimeField.setText("5");
+		scdLearningTimeField.setColumns(3);
+
+
 		sysSpecComboBox = new JComboBox<String>();
 		DefaultComboBoxModel<String> sysSpecComboBoxModel = new DefaultComboBoxModel<String>(new String[] {"Choose Optimization Option:", "Enterprise(Default)", "System Specific"});
 		sysSpecComboBox.setModel(sysSpecComboBoxModel);
@@ -179,33 +192,7 @@ public class SerOptPlaySheet extends OptPlaySheet{
 		gbc_sysSelect.gridx = 4;
 		gbc_sysSelect.gridy = 5;
 		advParamPanel.add(sysSelect, gbc_sysSelect);
-		sysSelect.setupButton(listArray);
-		final JPopupMenu popupMenu = sysSelect.popupMenu;
-
-		final JComponent contentPane = (JComponent) this.getContentPane();
-		contentPane.addMouseListener(new MouseAdapter() {  
-
-			@Override  
-			public void mouseClicked(MouseEvent e) {  
-				maybeShowPopup(e);  
-			}  
-
-			@Override  
-			public void mousePressed(MouseEvent e) {  
-				maybeShowPopup(e);  
-			}  
-
-			@Override  
-			public void mouseReleased(MouseEvent e) {  
-				maybeShowPopup(e);  
-			}  
-
-			private void maybeShowPopup(MouseEvent e) {  
-				if (e.isPopupTrigger()) {  
-					popupMenu.show(contentPane, e.getX(), e.getY());  
-				}  
-			}  
-		}); 	
+		sysSelect.setupButton(listArray);	
 	}
 	
 	@Override
@@ -224,127 +211,27 @@ public class SerOptPlaySheet extends OptPlaySheet{
 	}
 	
 	@Override
-	protected void createOptimizationTypeComponents()
-	{
-		rdbtnProfit = new JRadioButton("Savings");
-		rdbtnProfit.setName("rdbtnProfit");
-		rdbtnProfit.setFont(new Font("Tahoma", Font.PLAIN, 12));
-		rdbtnProfit.setSelected(true);
-		GridBagConstraints gbc_rdbtnProfit = new GridBagConstraints();
-		gbc_rdbtnProfit.gridwidth = 2;
-		gbc_rdbtnProfit.anchor = GridBagConstraints.WEST;
-		gbc_rdbtnProfit.insets = new Insets(0, 0, 5, 5);
-		gbc_rdbtnProfit.gridx = 1;
-		gbc_rdbtnProfit.gridy = 4;
-		ctlPanel.add(rdbtnProfit, gbc_rdbtnProfit);
-
-		rdbtnROI = new JRadioButton("ROI");
-		rdbtnROI.setName("rdbtnROI");
-		rdbtnROI.setFont(new Font("Tahoma", Font.PLAIN, 12));
-		GridBagConstraints gbc_rdbtnRoi = new GridBagConstraints();
-		gbc_rdbtnRoi.anchor = GridBagConstraints.WEST;
-		gbc_rdbtnRoi.insets = new Insets(0, 0, 5, 5);
-		gbc_rdbtnRoi.gridx = 3;
-		gbc_rdbtnRoi.gridy = 4;
-		ctlPanel.add(rdbtnROI, gbc_rdbtnRoi);
-
-		//sys opt has different TODO
-		rdbtnBreakeven = new JRadioButton("Recoup Period");
-		rdbtnBreakeven.setName("rdbtnBreakeven");
-		rdbtnBreakeven.setFont(new Font("Tahoma", Font.PLAIN, 12));
-		GridBagConstraints gbc_rdbtnBreakeven = new GridBagConstraints();
-		gbc_rdbtnBreakeven.gridwidth = 2;
-		gbc_rdbtnBreakeven.insets = new Insets(0, 0, 5, 5);
-		gbc_rdbtnBreakeven.anchor = GridBagConstraints.WEST;
-		gbc_rdbtnBreakeven.gridx = 4;
-		gbc_rdbtnBreakeven.gridy = 4;
-		ctlPanel.add(rdbtnBreakeven, gbc_rdbtnBreakeven);
-		
-		OptFunctionRadioBtnListener opl = new OptFunctionRadioBtnListener();
-		rdbtnProfit.addActionListener(opl);
-		rdbtnROI.addActionListener(opl);
-		rdbtnBreakeven.addActionListener(opl);
-		
-		opl.setSerOptRadioBtn(rdbtnProfit, rdbtnROI, rdbtnBreakeven);
-		
-
-	}
-	
-	@Override
 	protected void createDisplayPanel()
 	{
-		//first tab: overall systems with charts
-		//top panel that has labels
-
-		timeline = new BrowserGraphPanel("/html/MHS-RDFSemossCharts/app/timeline.html");
 		super.createDisplayPanel();
 
-		JLabel lblInvestmentRecoupTime = new JLabel("Investment Recoup Time:");
-		GridBagConstraints gbc_lblInvestmentRecoupTime = new GridBagConstraints();
-		gbc_lblInvestmentRecoupTime.insets = new Insets(0, 0, 5, 5);
-		gbc_lblInvestmentRecoupTime.gridx = 4;
-		gbc_lblInvestmentRecoupTime.gridy = 1;
-		panel_1.add(lblInvestmentRecoupTime, gbc_lblInvestmentRecoupTime);
-
-		recoupLbl = new JLabel("");
-		GridBagConstraints gbc_recoupLbl = new GridBagConstraints();
-		gbc_recoupLbl.insets = new Insets(0, 0, 5, 5);
-		gbc_recoupLbl.gridx = 5;
-		gbc_recoupLbl.gridy = 1;
-		panel_1.add(recoupLbl, gbc_recoupLbl);
-
-		JLabel label_1 = new JLabel("Total SOA build cost over time horizon:\r\n");
-		GridBagConstraints gbc_label_1 = new GridBagConstraints();
-		gbc_label_1.anchor = GridBagConstraints.WEST;
-		gbc_label_1.insets = new Insets(0, 0, 0, 5);
-		gbc_label_1.gridx = 0;
-		gbc_label_1.gridy = 2;
-		panel_1.add(label_1, gbc_label_1);
-
-		costLbl = new JLabel("");
-		GridBagConstraints gbc_costLbl = new GridBagConstraints();
-		gbc_costLbl.anchor = GridBagConstraints.WEST;
-		gbc_costLbl.insets = new Insets(0, 0, 0, 5);
-		gbc_costLbl.gridx = 1;
-		gbc_costLbl.gridy = 2;
-		panel_1.add(costLbl, gbc_costLbl);
-
-		//charts for first tab
-		tab1 = new BrowserGraphPanel("/html/MHS-RDFSemossCharts/app/singlechart.html");
-		tab1.setPreferredSize(new Dimension(500, 400));
-		tab1.setMinimumSize(new Dimension(500, 400));
-		tab1.setVisible(false);
-		tab2 = new BrowserGraphPanel("/html/MHS-RDFSemossCharts/app/singlechart.html");
-		tab2.setPreferredSize(new Dimension(500, 400));
-		tab2.setMinimumSize(new Dimension(500, 400));
-		tab2.setVisible(false);
-
-
-		GridBagConstraints gbc_panel_1_1 = new GridBagConstraints();
-		gbc_panel_1_1.anchor = GridBagConstraints.NORTHWEST;
-		gbc_panel_1_1.insets = new Insets(0, 0, 5, 5);
-		gbc_panel_1_1.gridx = 0;
-		gbc_panel_1_1.gridy = 0;
-		chartPanel.add(tab1, gbc_panel_1_1);
-
-		GridBagConstraints gbc_advParamPanel1 = new GridBagConstraints();
-		gbc_advParamPanel1.insets = new Insets(0, 0, 5, 0);
-		gbc_advParamPanel1.fill = GridBagConstraints.BOTH;
-		gbc_advParamPanel1.gridx = 1;
-		gbc_advParamPanel1.gridy = 0;
-		chartPanel.add(tab2, gbc_advParamPanel1);
-
-		//second tab: timeline panel
-		timelinePanel = new JPanel();
-		tabbedPane.addTab("Timeline", null, timelinePanel, null);
-		GridBagLayout gbl_timelinePanel = new GridBagLayout();
-		gbl_timelinePanel.columnWidths = new int[]{0, 0};
-		gbl_timelinePanel.rowHeights = new int[]{0, 0};
-		gbl_timelinePanel.columnWeights = new double[]{1.0, Double.MIN_VALUE};
-		gbl_timelinePanel.rowWeights = new double[]{1.0, Double.MIN_VALUE};
-		timelinePanel.setLayout(gbl_timelinePanel);
-
-		//		timeline = new BrowserGraphPanel("/html/MHS-RDFSemossCharts/app/timeline.html");
+		savingLbl = addNewLabelToOverviewPanel("Total transition savings over time horizon:", 0, 1);
+		costLbl = addNewLabelToOverviewPanel("Total SOA build cost over time horizon:\r\n", 0, 2);
+		roiLbl = addNewLabelToOverviewPanel("Total ROI over time horizon:", 2, 1);
+		bkevenLbl = addNewLabelToOverviewPanel("Breakeven point during time horizon:", 2, 2);
+		recoupLbl = addNewLabelToOverviewPanel("Investment Recoup Time:", 4, 1);
+		
+		//first tab: overall systems with charts
+		//top panel that has labels
+		tab1 = addNewChartToOverviewPanel(0, 0);
+		tab2 = addNewChartToOverviewPanel(1, 0);
+		tab3 = addNewChartToOverviewPanel(0, 1);
+		tab4 = addNewChartToOverviewPanel(1, 1);
+		tab5 = addNewChartToOverviewPanel(0, 2);
+		tab6 = addNewChartToOverviewPanel(1, 2);
+		
+		timelinePanel = addNewDisplayPanel("Timeline");		
+		timeline = new BrowserGraphPanel("/html/MHS-RDFSemossCharts/app/timeline.html");
 		GridBagConstraints gbc_panel_2 = new GridBagConstraints();
 		gbc_panel_2.fill = GridBagConstraints.BOTH;
 		gbc_panel_2.gridx = 0;
@@ -352,27 +239,11 @@ public class SerOptPlaySheet extends OptPlaySheet{
 		timelinePanel.add(timeline, gbc_panel_2);
 		timeline.setVisible(false);
 		
-
-		specificAlysPanel = new JPanel();
-		tabbedPane.addTab("Service Analysis", null, specificAlysPanel, null);
-		GridBagLayout gbl_specificAlysPanel = new GridBagLayout();
-		gbl_specificAlysPanel.columnWidths = new int[]{0, 0};
-		gbl_specificAlysPanel.rowHeights = new int[]{0, 0};
-		gbl_specificAlysPanel.columnWeights = new double[]{1.0, Double.MIN_VALUE};
-		gbl_specificAlysPanel.rowWeights = new double[]{1.0, Double.MIN_VALUE};
-		specificAlysPanel.setLayout(gbl_specificAlysPanel);
-
-		specificSysAlysPanel = new JPanel();
-		tabbedPane.addTab("System Analysis", null, specificSysAlysPanel, null);
-		GridBagLayout gbl_specificSysAlysPanel = new GridBagLayout();
-		gbl_specificSysAlysPanel.columnWidths = new int[]{0, 0};
-		gbl_specificSysAlysPanel.rowHeights = new int[]{0, 0};
-		gbl_specificSysAlysPanel.columnWeights = new double[]{1.0, Double.MIN_VALUE};
-		gbl_specificSysAlysPanel.rowWeights = new double[]{1.0, Double.MIN_VALUE};
-		specificSysAlysPanel.setLayout(gbl_specificSysAlysPanel);
+		specificAlysPanel = addNewDisplayPanel("Service Analysis");
+		specificSysAlysPanel= addNewDisplayPanel("System Analysis");
 
 		playSheetPanel = new JPanel();
-		tabbedPane.addTab("Graph Representation", null, playSheetPanel,null);
+		displayTabbedPane.addTab("Graph Representation", null, playSheetPanel,null);
 
 		String helpNotesData = "";
 		BufferedReader releaseNotesTextReader = null;
@@ -400,14 +271,8 @@ public class SerOptPlaySheet extends OptPlaySheet{
 				e.printStackTrace();
 			}
 		}
-		JPanel optimizationHelpPanel = new JPanel();
-		tabbedPane.addTab("Help", null, optimizationHelpPanel, null);
-		GridBagLayout gbl_optimizationHelpPanel = new GridBagLayout();
-		gbl_optimizationHelpPanel.columnWidths = new int[]{0, 0};
-		gbl_optimizationHelpPanel.rowHeights = new int[]{0, 0};
-		gbl_optimizationHelpPanel.columnWeights = new double[]{1.0, Double.MIN_VALUE};
-		gbl_optimizationHelpPanel.rowWeights = new double[]{1.0, Double.MIN_VALUE};
-		optimizationHelpPanel.setLayout(gbl_optimizationHelpPanel);
+
+		JPanel optimizationHelpPanel = addNewDisplayPanel("Help");
 
 		JScrollPane optimizationHelpScrollPane = new JScrollPane();
 		GridBagConstraints gbc_optimizationHelpScrollPane1 = new GridBagConstraints();
@@ -415,6 +280,7 @@ public class SerOptPlaySheet extends OptPlaySheet{
 		gbc_optimizationHelpScrollPane1.gridx = 0;
 		gbc_optimizationHelpScrollPane1.gridy = 0;
 		optimizationHelpPanel.add(optimizationHelpScrollPane, gbc_optimizationHelpScrollPane1);
+		
 		helpTextArea = new JTextPane();
 		helpTextArea.setEditable(false);
 		optimizationHelpScrollPane.setViewportView(helpTextArea);
@@ -428,6 +294,10 @@ public class SerOptPlaySheet extends OptPlaySheet{
 		super.setGraphsVisible(visible);
 		tab1.setVisible(visible);
 		tab2.setVisible(visible);
+		tab3.setVisible(visible);
+		tab4.setVisible(visible);
+		tab5.setVisible(visible);
+		tab6.setVisible(visible);
 		timeline.setVisible(visible);
 	}
 	
@@ -437,6 +307,7 @@ public class SerOptPlaySheet extends OptPlaySheet{
 	@Override
 	public void clearPanels() {
 		super.clearPanels();
+		specificSysAlysPanel.removeAll();
 		specificAlysPanel.removeAll();
 		playSheetPanel.removeAll();
 	}
@@ -447,6 +318,9 @@ public class SerOptPlaySheet extends OptPlaySheet{
 	@Override
 	public void clearLabels() {
 		super.clearLabels();
+		bkevenLbl.setText("N/A");
+        savingLbl.setText("$0");
+		roiLbl.setText("N/A");
 		recoupLbl.setText("N/A");
 		costLbl.setText("$0");
 	}

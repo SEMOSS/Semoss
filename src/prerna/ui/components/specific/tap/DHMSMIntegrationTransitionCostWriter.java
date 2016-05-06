@@ -150,7 +150,7 @@ public class DHMSMIntegrationTransitionCostWriter {
 	public void writeToExcel() throws IOException 
 	{
 		String templateName = "Transition_Estimates_Template.xlsx";
-		String fileName = "DHMSM_Transition_Estimate_" + Utility.getInstanceName(sysURI) + ".xlsx";
+		String fileName = "MHS_GENESIS_Transition_Estimate_" + Utility.getInstanceName(sysURI) + ".xlsx";
 		writeToExcel(templateName, fileName);
 	}
 	

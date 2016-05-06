@@ -69,7 +69,8 @@ public class DHMSMDispositionFactSheetWriter {
 			"has a low probability of being replaced by the new EHR and will need a direct interface to the new system.",
 			"has a low probability of being replaced by the new EHR and will NOT need a direct interface to the new system. "
 			+ "These systems, along with the 'High' systems, may be candidates for de-duplication and portfolio rationalization.",
-			"has a high probability of being replaced by the new EHR."};
+			"has a high probability of being replaced by the new EHR.",
+			"has not yet been determined."};
 	
 	/**
 	 * Creates the new workbook
@@ -163,7 +164,11 @@ public class DHMSMDispositionFactSheetWriter {
 		} else if (highSystemsList.contains(systemNameArrayList)) {
 			disposition = "High";
 			dispositionDescription = dispositionDescriptions[2];
-		}		
+		} else {
+			disposition = "TBD";
+			dispositionDescription = dispositionDescriptions[3];
+		}
+		
 		fillStringInText(sheetToWriteOver, 3, 3,"@DISPOSITION@", disposition);
 		fillStringInText(sheetToWriteOver, 3, 3,"@DESCRIPTION@", dispositionDescription);	
 		

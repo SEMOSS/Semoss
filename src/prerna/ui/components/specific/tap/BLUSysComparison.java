@@ -38,14 +38,12 @@ import java.util.Set;
 
 import javax.swing.JPanel;
 
-import prerna.engine.api.IEngine;
 import prerna.engine.api.ISelectStatement;
 import prerna.engine.api.ISelectWrapper;
 import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.ui.components.ChartControlPanel;
 import prerna.ui.components.api.IPlaySheet;
 import prerna.ui.main.listener.impl.BrowserPlaySheetListener;
-import prerna.util.DIHelper;
 
 import com.teamdev.jxbrowser.chromium.Browser;
 import com.teamdev.jxbrowser.chromium.swing.BrowserView;
@@ -55,8 +53,6 @@ import com.teamdev.jxbrowser.chromium.swing.BrowserView;
  */
 public class BLUSysComparison extends SimilarityHeatMapSheet{
 
-	String hrCoreDB = "TAP_Core_Data";
-	private IEngine coreDB = (IEngine) DIHelper.getInstance().getLocalProp(hrCoreDB);
 	public ArrayList<String> systemNamesList = new ArrayList<String>();
 	String masterQuery = "SELECT DISTINCT ?System ?BLU ?Data (IF (BOUND (?Provide), 'Needed and Present', IF( BOUND(?ICD), 'Needed and Present', 'Needed but not Present')) AS ?Status) WHERE { {?System <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/ActiveSystem>} OPTIONAL{ { {?ICD <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/SystemInterface>;} {?Consume <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Consume>;} {?ICD ?Consume ?System} {?Data <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/DataObject> ;} {?Payload <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Payload>;} {?ICD ?Payload ?Data} } UNION { {?Data <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/DataObject> ;} {?Provide <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Provide>;} {?System ?Provide ?Data} } } { SELECT DISTINCT ?System ?BLU ?Data WHERE { {?System <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/ActiveSystem>} {?BLU <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/BusinessLogicUnit> ;} {?Provide2 <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Provide>;} {?System ?Provide2 ?BLU} {?Data <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/DataObject> ;} {?Requires <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Requires>;} {?BLU ?Requires ?Data} } } }";
 	String systemKey = "System";
@@ -73,7 +69,7 @@ public class BLUSysComparison extends SimilarityHeatMapSheet{
 
 	List<Object[]> list;
 	String[] names;
-	
+
 	@Override
 	public List<Object[]> getList() {
 		return this.list;
@@ -154,14 +150,7 @@ public class BLUSysComparison extends SimilarityHeatMapSheet{
 		logger.info("Creating " + comparisonType + " Heat Map.");
 		updateProgressBar("10%...Getting " + comparisonType + " list for evaluation", 10);
 		
-		//Creating hashtable from main query 
-		ISelectWrapper mainWrapper = WrapperManager.getInstance().getSWrapper(coreDB, masterQuery);
-		/*
-		SesameJenaSelectWrapper mainWrapper = new SesameJenaSelectWrapper();
-		mainWrapper.setQuery(masterQuery);
-		mainWrapper.setEngine(coreDB);
-		mainWrapper.executeQuery();
-		*/
+		ISelectWrapper mainWrapper = WrapperManager.getInstance().getSWrapper(this.engine, masterQuery);
 		names = mainWrapper.getVariables();
 		processWrapper(mainWrapper, names, BLUNames, sysNames);
 		averageAdder();

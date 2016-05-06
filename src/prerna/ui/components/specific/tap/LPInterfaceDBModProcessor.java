@@ -39,7 +39,7 @@ public class LPInterfaceDBModProcessor extends AbstractLPInterfaceProcessor{
 	private Set<String> labelCostList = new HashSet<String>();
 	private Set<String> sysTrainingList = new HashSet<String>();
 	
-	private final String DHMSM_URI = "http://health.mil/ontologies/Concept/System/DHMSM";
+	private final String DHMSM_URI = "http://health.mil/ontologies/Concept/System/MHS_GENESIS";
 	private final String GLTAG_URI = "http://health.mil/ontologies/Concept/GLTag/";
 	private final String SDLC_PHASE_URI = "http://health.mil/ontologies/Concept/SDLCPhase/";
 
@@ -62,6 +62,7 @@ public class LPInterfaceDBModProcessor extends AbstractLPInterfaceProcessor{
 
 	//TODO: move enigne definitions outside class to keep reusable
 	public LPInterfaceDBModProcessor() throws IOException {
+		super();
 		tapCost = (IEngine) DIHelper.getInstance().getLocalProp("TAP_Cost_Data");
 		if(tapCost == null) {
 			throw new IOException("TAP Cost Data not found.");
@@ -92,8 +93,8 @@ public class LPInterfaceDBModProcessor extends AbstractLPInterfaceProcessor{
 
 		Map<String, Map<String, Double>> retMap = new HashMap<String, Map<String, Double>>();
 		// Process main query
-		ISelectWrapper wrapper1 = WrapperManager.getInstance().getSWrapper(engine, DEFAULT_UPSTREAM_QUERY);
-		ISelectWrapper wrapper2 = WrapperManager.getInstance().getSWrapper(engine, DEFAULT_DOWNSTREAMSTREAM_QUERY);
+		ISelectWrapper wrapper1 = WrapperManager.getInstance().getSWrapper(engine, upstreamQuery);
+		ISelectWrapper wrapper2 = WrapperManager.getInstance().getSWrapper(engine, downstreamQuery);
 
 		ISelectWrapper[] wrappers = new ISelectWrapper[]{wrapper1, wrapper2};
 		String[] headers = wrapper1.getVariables();
@@ -115,7 +116,7 @@ public class LPInterfaceDBModProcessor extends AbstractLPInterfaceProcessor{
 				String dhmsmSOR = "";
 				
 				String sysProbability = sysTypeHash.get(sysName);
-				if (sysProbability == null) {
+				if (sysProbability == null || sysProbability.equals("TBD")) {
 					sysProbability = "No Probability";
 				}
 				if (sjss.getVar(SYS_KEY) != null) {

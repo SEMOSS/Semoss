@@ -33,16 +33,12 @@ import java.awt.GridBagLayout;
 import java.awt.Insets;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
-import java.awt.event.MouseAdapter;
-import java.awt.event.MouseEvent;
 import java.util.ArrayList;
 import java.util.Hashtable;
-import java.util.StringTokenizer;
 
+import javax.swing.ButtonGroup;
 import javax.swing.JButton;
 import javax.swing.JCheckBox;
-import javax.swing.JComboBox;
-import javax.swing.JComponent;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
 import javax.swing.JRadioButton;
@@ -55,9 +51,8 @@ import org.apache.log4j.Logger;
 
 import prerna.algorithm.impl.specific.tap.SysSiteOptimizer;
 import prerna.engine.api.IEngine;
-import prerna.ui.main.listener.specific.tap.OptFunctionRadioBtnListener;
+import prerna.ui.components.BrowserGraphPanel;
 import prerna.ui.main.listener.specific.tap.SysSiteOptBtnListener;
-import prerna.ui.swing.custom.CustomButton;
 import prerna.ui.swing.custom.ToggleButton;
 import prerna.util.DIHelper;
 import aurelienribon.ui.css.Style;
@@ -66,478 +61,117 @@ import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
 
 /**
- * The GridPlaySheet class creates the panel and table for a grid view of data from a SPARQL query.
+ * This is the playsheet used exclusively for TAP system optimization at the site level.
+ * Optimizes systems to find minimum future sustainment budget while still maintaining 
+ * same functionality (data and business logic) at each site and in same environments
+ * (theater/garrison).
  */
 @SuppressWarnings("serial")
 public class SysSiteOptPlaySheet extends OptPlaySheet{
-
-	private Boolean defaultSettings;
-	private String capOrBPURI;
 	
+	//param panel components
+	public JTextField yearField, maxBudgetField;
+	
+	//advanced param panel components
+	public JTextField hourlyRateField, infRateField, disRateField, centralPercOfBudgetField, trainingPercField;
+	public JCheckBox useDHMSMFuncCheckbox;
+
+	//advanced param panels
 	private JPanel systemSelectPanel, systemModDecomSelectPanel;	
 	public DHMSMSystemSelectPanel sysSelectPanel, systemModernizePanel, systemDecomissionPanel;
+	
+	// toggles to show the System Select Panel and System force Mod/Decom Panel
 	private JToggleButton showSystemSelectBtn, showSystemModDecomBtn;
 	
-	public JTextField centralPercOfBudgetField, trainingPercField, relConvergenceField, absConvergenceField;
-	public JCheckBox optimizeBudgetCheckbox, useDHMSMFuncCheckbox;
-	
+	// param panel components to select the type of optimization to run
 	private JRadioButton rdbtnProfit, rdbtnROI, rdbtnIRR;
 	
-	//display panel components
-	public JLabel irrLbl, costLbl, timeTransitionLbl;
+	//display components - overview tab showing high level metrics after algorithm is run
+	public JLabel irrLbl, costLbl, timeTransitionLbl, savingLbl, roiLbl, bkevenLbl;
+	//display components - overview tab showing graphs after algorithm is run
+	public BrowserGraphPanel tab3, tab4, tab5;
 	
 	private SysOptCheckboxListUpdater sysUpdater;
 	private SysSiteOptimizer opt;
-	private String costEngineName;
+	
+	private String capOrBPURI;
 	private String siteEngineName;
 	
-	/**
-	 * Method addPanel.  Creates a panel and adds the table to the panel.
-	 */
 	private static final Logger LOGGER = LogManager.getLogger(SysSiteOptPlaySheet.class.getName());
 	
-	
-	public Boolean defaultSettings() {
-		return defaultSettings;
-	}
-	
-	public Hashtable getSystems(Hashtable<String, Object> webDataHash) {
-		Hashtable returnHash = (Hashtable) super.getDataMakerOutput();
-		Hashtable dataHash = new Hashtable();
-		
-		Gson gson = new Gson();
-		Boolean low = gson.fromJson(gson.toJson(webDataHash.get("low")), Boolean.class);
-		Boolean high = gson.fromJson(gson.toJson(webDataHash.get("high")), Boolean.class);
-		Boolean intDHMSM = gson.fromJson(gson.toJson(webDataHash.get("interface")), Boolean.class);
-		Boolean notIntDHMSM = gson.fromJson(gson.toJson(webDataHash.get("nointerface")), Boolean.class);
-		Boolean theater;
-		Boolean garrison;
-		Boolean mhsSpecific;
-		Boolean ehrCore;
-		
-		if(webDataHash.get("theater") == null)
-			theater = false;
-		else
-			theater = gson.fromJson(gson.toJson(webDataHash.get("theater")), Boolean.class);
-		if(webDataHash.get("garrison") == null)
-			garrison = false;
-		else
-			garrison = gson.fromJson(gson.toJson(webDataHash.get("garrison")), Boolean.class);
-		if(webDataHash.get("mhsspecific") == null)
-			mhsSpecific = false;
-		else
-			mhsSpecific = gson.fromJson(gson.toJson(webDataHash.get("mhsspecific")), Boolean.class);
-		if(webDataHash.get("ehrcore") == null)
-			ehrCore = false;
-		else
-			ehrCore = gson.fromJson(gson.toJson(webDataHash.get("ehrcore")), Boolean.class);
-
-		ArrayList<String> sysList;
-		if(capOrBPURI != null && !capOrBPURI.isEmpty()) {
-			if(capOrBPURI.contains("Capability")) {
-				sysList = new ArrayList<String>(sysUpdater.getSelectedSystemListForCapability(capOrBPURI,intDHMSM, notIntDHMSM, theater, garrison, low, high, mhsSpecific, ehrCore));
-			}else {
-				sysList = new ArrayList<String>(sysUpdater.getSelectedSystemListForBP(capOrBPURI,intDHMSM, notIntDHMSM, theater, garrison, low, high, mhsSpecific, ehrCore));						
-			}
-		} else {
-			sysList = new ArrayList<String>(sysUpdater.getSelectedSystemList(intDHMSM, notIntDHMSM, theater, garrison, low, high, false, false, mhsSpecific, ehrCore));
-		}
-		
-		dataHash.put("systems",sysList);
-		
-		if (dataHash != null)
-			returnHash.put("data", dataHash);
-		return returnHash;
-	}
-	
-	public void setUpOpt(IEngine costEngine, IEngine siteEngine, double yearBudget, int years, double infl, double disc, double trainingRate, int hourlyRate, int numPts, boolean useDHMSMCap, String optType, String capOrBPURI) {
-		opt = new SysSiteOptimizer();
-		opt.setEngines(engine, costEngine, siteEngine); //likely TAP Core Data and tap site
-		opt.setVariables(yearBudget,years, infl/100, disc/100, 0.80, trainingRate, hourlyRate, numPts, 0.05, 0.20); //budget per year and the number of years
-		opt.setUseDHMSMFunctionality(useDHMSMCap); //whether the data objects will come from the list of systems or the dhmsm provided capabilities
-		opt.setOptimizationType(optType); //eventually will be savings, roi, or irr
-		opt.setIsOptimizeBudget(false); //true means that we are looking for optimal budget. false means that we are running LPSolve just for the single budget input
-		opt.setCapOrBPURI(capOrBPURI);
-	}
-	
-	public ArrayList<Hashtable<String,String>> runDefaultOpt(Hashtable<String, Object> webDataHash) {
-
-		//check to make sure site engine is loaded
-		IEngine siteEngine = (IEngine) DIHelper.getInstance().getLocalProp(siteEngineName);
-		IEngine costEngine = (IEngine) DIHelper.getInstance().getLocalProp(costEngineName);
-		if(siteEngine == null || costEngine == null) {
-			//TODO error here
-			return new ArrayList<Hashtable<String,String>>();
-		}
-		
-		ArrayList<String> sysList;
-		if(capOrBPURI != null && !capOrBPURI.isEmpty()) {
-			if(capOrBPURI.contains("Capability")) {
-				sysList= new ArrayList<String>(sysUpdater.getSelectedSystemListForCapability(capOrBPURI,false, false, true, true, false, false, false, false));
-			} else {
-				sysList = new ArrayList<String>(sysUpdater.getSelectedSystemListForBP(capOrBPURI,false, false, true, true, false, false, false, false));						
-			}
-		}else {
-			sysList= new ArrayList<String>(sysUpdater.getSelectedSystemList(false, false, true, true, false, false, false, false, false, false));
-		}
-		if(sysList.isEmpty()) {
-			System.out.println("There are no systems that fit requirements.");
-			return null;
-		}
-		
-		ArrayList<String> modList= new ArrayList<String>(sysUpdater.getSelectedSystemList(true, false, false, false, true, false, false, false, false, false));
-		ArrayList<String> decomList= new ArrayList<String>(sysUpdater.getSelectedSystemList(false, false, false, false, false, false, false, false, false, true));
-		
-		setUpOpt(costEngine, siteEngine, 1000000000, 10, 1.5/100, 2.5/100, 15/100.0, 150, 1, false, "Savings", capOrBPURI);
-		opt.setSysList(sysList,modList,decomList);
-		opt.executeWeb();
-		return opt.getSysResultList();
-	}
-	
-	public ArrayList<Hashtable<String,String>> runOpt(Hashtable<String, Object> webDataHash) {
-
-
-		//check to make sure site engine is loaded
-		IEngine siteEngine = (IEngine) DIHelper.getInstance().getLocalProp(siteEngineName);
-		IEngine costEngine = (IEngine) DIHelper.getInstance().getLocalProp(costEngineName);	
-		if(siteEngine == null || costEngine == null) {
-			//TODO error here
-			return new ArrayList<Hashtable<String,String>>();
-		}
-		
-		Gson gson = new Gson();
-		//general params
-		ArrayList<Hashtable<String, String>> sysHashList = gson.fromJson(gson.toJson(webDataHash.get("systemList")), new TypeToken<ArrayList<Hashtable<String, String>>>() {}.getType());
-		double yearBudget = gson.fromJson(gson.toJson(webDataHash.get("maxAnnualBudget")), Double.class);
-		int years = gson.fromJson(gson.toJson(webDataHash.get("maxYearValue")), Integer.class);
-		Boolean useDHMSMCap = gson.fromJson(gson.toJson(webDataHash.get("dhmsmCap")), Boolean.class);
-		String optType = gson.fromJson(gson.toJson(webDataHash.get("optTypes")), String.class);
-		
-		//advanced params
-		double infl = gson.fromJson(gson.toJson(webDataHash.get("infl")), Double.class);
-		double disc = gson.fromJson(gson.toJson(webDataHash.get("disc")), Double.class);
-		int numPts = gson.fromJson(gson.toJson(webDataHash.get("numPts")), Integer.class);
-		int hourlyRate = gson.fromJson(gson.toJson(webDataHash.get("hbc")), Integer.class);
-		double trainingRate = gson.fromJson(gson.toJson(webDataHash.get("training")), Double.class);
-		
-		setUpOpt(costEngine, siteEngine, yearBudget, years, infl/100.0, disc/100.0, trainingRate/100.0, hourlyRate, numPts, useDHMSMCap, optType, capOrBPURI);
-		opt.setSysHashList(sysHashList);
-		opt.executeWeb();
-		return opt.getSysResultList();
-	}
-	
-	
+	/**
+	 * Creates the data needed for the system, capability, data, and blu selection/scroll lists.
+	 */
 	@Override
 	public void createData() {
 		sysUpdater = new SysOptCheckboxListUpdater(engine, true, true, false, true);
-
 	}
-	@Override
-	public void runAnalytics() {
-		
-	}
-	
-	@Override
-	protected void createBasicParamComponents() {
-
-		yearField = new JTextField();
-		yearField.setFont(new Font("Tahoma", Font.PLAIN, 11));
-		yearField.setText("10");
-		yearField.setColumns(4);
-
-		GridBagConstraints gbc_yearField = new GridBagConstraints();
-		gbc_yearField.anchor = GridBagConstraints.NORTHWEST;
-		gbc_yearField.insets = new Insets(0, 0, 5, 5);
-		gbc_yearField.gridx = 1;
-		gbc_yearField.gridy = 1;
-		ctlPanel.add(yearField, gbc_yearField);
-
-		JLabel label = new JLabel("Maximum Number of Years");
-		label.setFont(new Font("Tahoma", Font.PLAIN, 12));
-		GridBagConstraints gbc_label = new GridBagConstraints();
-		gbc_label.gridwidth = 4;
-		gbc_label.anchor = GridBagConstraints.WEST;
-		gbc_label.insets = new Insets(0, 0, 5, 5);
-		gbc_label.gridx = 2;
-		gbc_label.gridy = 1;
-		ctlPanel.add(label, gbc_label);
-		
-		maxBudgetField = new JTextField();
-		maxBudgetField.setFont(new Font("Tahoma", Font.PLAIN, 11));
-		maxBudgetField.setText("10");
-		maxBudgetField.setColumns(4);
-		GridBagConstraints gbc_maxBudgetField = new GridBagConstraints();
-		gbc_maxBudgetField.anchor = GridBagConstraints.NORTHWEST;
-		gbc_maxBudgetField.insets = new Insets(0, 0, 5, 5);
-		gbc_maxBudgetField.gridx = 1;
-		gbc_maxBudgetField.gridy = 2;
-		ctlPanel.add(maxBudgetField, gbc_maxBudgetField);
-
-		JLabel lblMaximumYearlyBudget = new JLabel("Maximum Annual Budget ($M)");
-		lblMaximumYearlyBudget.setFont(new Font("Tahoma", Font.PLAIN, 12));
-		GridBagConstraints gbc_lblMaximumYearlyBudget = new GridBagConstraints();
-		gbc_lblMaximumYearlyBudget.gridwidth = 4;
-		gbc_lblMaximumYearlyBudget.anchor = GridBagConstraints.WEST;
-		gbc_lblMaximumYearlyBudget.insets = new Insets(0, 0, 5, 5);
-		gbc_lblMaximumYearlyBudget.gridx = 2;
-		gbc_lblMaximumYearlyBudget.gridy = 2;
-		ctlPanel.add(lblMaximumYearlyBudget, gbc_lblMaximumYearlyBudget);
-
-		Object hidePopupKey = new JComboBox<String>().getClientProperty("doNotCancelPopup");  
-		JButton btnRunOptimization = new CustomButton("Run Optimization");
-		btnRunOptimization.putClientProperty("doNotCancelPopup", hidePopupKey);
-
-		btnRunOptimization.setFont(new Font("Tahoma", Font.BOLD, 11));
-		GridBagConstraints gbc_btnRunOptimization = new GridBagConstraints();
-		gbc_btnRunOptimization.gridwidth = 4;
-		gbc_btnRunOptimization.insets = new Insets(0, 0, 0, 5);
-		gbc_btnRunOptimization.anchor = GridBagConstraints.WEST;
-		gbc_btnRunOptimization.gridx = 1;
-		gbc_btnRunOptimization.gridy = 5;
-		ctlPanel.add(btnRunOptimization, gbc_btnRunOptimization);
-		addOptimizationBtnListener(btnRunOptimization);
-		Style.registerTargetClassName(btnRunOptimization,  ".createBtn");
-	}
-
 	
 	/**
-	 * Creates the user interface of the playsheet. Calls functions to create param panel and tabbed display panel Stitches
-	 * the param and display panels together.
+	 *  Sets up the Basic param input on the left of the param panel
+	 * 	Includes number of years for transition and savings gathering and the max annual budget
 	 */
 	@Override
-	protected void createOptimizationTypeComponents() {
+	protected void createBasicParamComponents() {
+		super.createBasicParamComponents();
 		
-		rdbtnProfit = new JRadioButton("Savings");
-		rdbtnProfit.setName("Savings");
-		rdbtnProfit.setFont(new Font("Tahoma", Font.PLAIN, 12));
-		rdbtnProfit.setSelected(true);
-		GridBagConstraints gbc_rdbtnProfit = new GridBagConstraints();
-		gbc_rdbtnProfit.gridwidth = 2;
-		gbc_rdbtnProfit.anchor = GridBagConstraints.SOUTHWEST;
-		gbc_rdbtnProfit.insets = new Insets(0, 0, 5, 5);
-		gbc_rdbtnProfit.gridx = 1;
-		gbc_rdbtnProfit.gridy = 4;
-		ctlPanel.add(rdbtnProfit, gbc_rdbtnProfit);
-		
-		rdbtnROI = new JRadioButton("ROI");
-		rdbtnROI.setName("ROI");
-		rdbtnROI.setFont(new Font("Tahoma", Font.PLAIN, 12));
-		GridBagConstraints gbc_rdbtnRoi = new GridBagConstraints();
-		gbc_rdbtnRoi.anchor = GridBagConstraints.SOUTHWEST;
-		gbc_rdbtnRoi.insets = new Insets(0, 0, 5, 5);
-		gbc_rdbtnRoi.gridx = 3;
-		gbc_rdbtnRoi.gridy = 4;
-		ctlPanel.add(rdbtnROI, gbc_rdbtnRoi);
-		
-		rdbtnIRR = new JRadioButton("IRR");
-		rdbtnIRR.setName("IRR");
-		rdbtnIRR.setFont(new Font("Tahoma", Font.PLAIN, 12));
-		GridBagConstraints gbc_rdbtnIRR = new GridBagConstraints();
-		gbc_rdbtnIRR.anchor = GridBagConstraints.SOUTHWEST;
-		gbc_rdbtnIRR.insets = new Insets(0, 0, 5, 5);
-		gbc_rdbtnIRR.gridx = 5;
-		gbc_rdbtnIRR.gridy = 4;
-		ctlPanel.add(rdbtnIRR, gbc_rdbtnIRR);
-		
-		OptFunctionRadioBtnListener opl = new OptFunctionRadioBtnListener();
-		rdbtnROI.addActionListener(opl);
-		rdbtnProfit.addActionListener(opl);
-		rdbtnIRR.addActionListener(opl);
-		opl.setSerOptRadioBtn(rdbtnProfit, rdbtnROI, rdbtnIRR);
+		yearField = addNewButtonToCtrlPanel("10", "Maximum Number of Years", 4, 1, 1);
+		maxBudgetField = addNewButtonToCtrlPanel("100", "Maximum Annual Budget ($M)", 4, 1, 2);
 	}
 	
+	/**
+	 * Sets up the optimization components on the bottom left of the param panel
+	 * Adds a button for optimization and the listener.
+	 * Adds button so user can select what to optimize: Savings, ROI, IRR, etc.
+	 */
+	@Override
+	protected void createOptimizationComponents() {
+		
+		super.createOptimizationComponents();
+		
+		rdbtnProfit = addOptimizationTypeButton("Savings", 1, 4);
+		rdbtnROI = addOptimizationTypeButton("ROI", 3, 4); 
+		rdbtnIRR = addOptimizationTypeButton("IRR", 5, 4); 
+			
+		ButtonGroup btnGrp = new ButtonGroup();
+		btnGrp.add(rdbtnProfit);
+		btnGrp.add(rdbtnROI);
+		btnGrp.add(rdbtnIRR);
+		btnGrp.setSelected(rdbtnProfit.getModel(), true);		
+		
+	}
 	
+	/**
+	 * Adds the SysSiteOptBtnListener to the run optimization button.
+	 * @param btnRunOptimization
+	 */
+	@Override
+	protected void addOptimizationBtnListener(JButton btnRunOptimization) {
+		SysSiteOptBtnListener obl = new SysSiteOptBtnListener();
+		obl.setOptPlaySheet(this);
+		btnRunOptimization.addActionListener(obl);
+	}
+	
+	/**
+	 * Sets up the advanced panels on the right of the param panel
+	 * 1) Advanced param panel: inflation rate, discount rate, hourly cost,
+	 * portion of budget that is central cost, portion of budget that is training,
+	 * and whether to use DHMSM functionality.
+	 * 2) System select panel: select systems using checkboxes or manually.
+	 * User can also limit data/blu through this.
+	 * 3) Force mod/decom panel: force the algorithm to modernize or decommission specified systems.
+	 */
 	protected void createAdvParamPanels()
 	{
-		advParamPanel = new JPanel();
-		advParamPanel.setBorder(new BevelBorder(BevelBorder.LOWERED, null, null, null, null));
-		advParamPanel.setVisible(false);
+		super.createAdvParamPanels();
 		
-		GridBagConstraints gbc_advParamPanel = new GridBagConstraints();
-		gbc_advParamPanel.gridheight = 6;
-		gbc_advParamPanel.fill = GridBagConstraints.BOTH;
-		gbc_advParamPanel.gridx = 8;
-		gbc_advParamPanel.gridy = 0;
-		ctlPanel.add(advParamPanel, gbc_advParamPanel);
+		infRateField = addNewButtonToAdvParamPanel("1.5", "Inflation Rate (%)", 1, 0, 1);
+		disRateField = addNewButtonToAdvParamPanel("2.5", "Discount Rate (%)", 1, 0, 2);
+		hourlyRateField = addNewButtonToAdvParamPanel("150", "Hourly Build Cost Rate ($)", 1, 0, 3);
+		centralPercOfBudgetField = addNewButtonToAdvParamPanel("80", "Central Percent of Budget (%)", 1,  2, 1);
+		trainingPercField = addNewButtonToAdvParamPanel("15", "Training Factor (%)", 1, 2, 2);
 		
-		GridBagLayout gbl_advParamPanel = new GridBagLayout();
-		gbl_advParamPanel.columnWidths = new int[]{0, 0, 0, 0, 0, 0, 0, 0, 0};
-		gbl_advParamPanel.rowHeights = new int[]{0, 0, 0, 0, 0, 0, 0};
-		gbl_advParamPanel.columnWeights = new double[]{0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, Double.MIN_VALUE};
-		gbl_advParamPanel.rowWeights = new double[]{0.0, 0.0, 0.0, 0.0, 0.0, 0.0, Double.MIN_VALUE};
-		advParamPanel.setLayout(gbl_advParamPanel);
-
-		JLabel lblAdvancedParameters = new JLabel("Advanced Input Parameters:");
-		lblAdvancedParameters.setFont(new Font("Tahoma", Font.BOLD, 12));
-		GridBagConstraints gbc_lblAdvancedParameters = new GridBagConstraints();
-		gbc_lblAdvancedParameters.gridwidth = 5;
-		gbc_lblAdvancedParameters.anchor = GridBagConstraints.WEST;
-		gbc_lblAdvancedParameters.insets = new Insets(10, 0, 5, 5);
-		gbc_lblAdvancedParameters.gridx = 0;
-		gbc_lblAdvancedParameters.gridy = 0;
-		advParamPanel.add(lblAdvancedParameters, gbc_lblAdvancedParameters);
-
-		infRateField = new JTextField();
-		infRateField.setFont(new Font("Tahoma", Font.PLAIN, 11));
-		infRateField.setText("1.5");
-		infRateField.setColumns(4);
-		GridBagConstraints gbc_infRateField = new GridBagConstraints();
-		gbc_infRateField.insets = new Insets(0, 0, 5, 5);
-		gbc_infRateField.anchor = GridBagConstraints.WEST;
-		gbc_infRateField.gridx = 0;
-		gbc_infRateField.gridy = 1;
-		advParamPanel.add(infRateField, gbc_infRateField);
-
-		JLabel lblYearlyInflationRate = new JLabel("Inflation Rate (%)");
-		lblYearlyInflationRate.setFont(new Font("Tahoma", Font.PLAIN, 12));
-		GridBagConstraints gbc_lblYearlyInflationRate = new GridBagConstraints();
-		gbc_lblYearlyInflationRate.insets = new Insets(0, 0, 5, 5);
-		gbc_lblYearlyInflationRate.anchor = GridBagConstraints.WEST;
-		gbc_lblYearlyInflationRate.gridx = 1;
-		gbc_lblYearlyInflationRate.gridy = 1;
-		advParamPanel.add(lblYearlyInflationRate, gbc_lblYearlyInflationRate);
-
-		disRateField = new JTextField();
-		disRateField.setFont(new Font("Tahoma", Font.PLAIN, 11));
-		disRateField.setText("2.5");
-		disRateField.setColumns(4);
-		GridBagConstraints gbc_disRateField = new GridBagConstraints();
-		gbc_disRateField.insets = new Insets(0, 0, 5, 5);
-		gbc_disRateField.anchor = GridBagConstraints.WEST;
-		gbc_disRateField.gridx = 2;
-		gbc_disRateField.gridy = 1;
-		advParamPanel.add(disRateField, gbc_disRateField);
-
-		JLabel lblYearlyDiscountRate = new JLabel("Discount Rate (%)");
-		lblYearlyDiscountRate.setFont(new Font("Tahoma", Font.PLAIN, 12));
-		GridBagConstraints gbc_lblYearlyDiscountRate = new GridBagConstraints();
-		gbc_lblYearlyDiscountRate.insets = new Insets(0, 0, 5, 5);
-		gbc_lblYearlyDiscountRate.anchor = GridBagConstraints.WEST;
-		gbc_lblYearlyDiscountRate.gridx = 3;
-		gbc_lblYearlyDiscountRate.gridy = 1;
-		advParamPanel.add(lblYearlyDiscountRate, gbc_lblYearlyDiscountRate);
-		
-		centralPercOfBudgetField = new JTextField();
-		centralPercOfBudgetField.setFont(new Font("Tahoma", Font.PLAIN, 11));
-		centralPercOfBudgetField.setText("80");
-		centralPercOfBudgetField.setColumns(4);
-		GridBagConstraints gbc_centralPercOfBudgetField = new GridBagConstraints();
-		gbc_centralPercOfBudgetField.insets = new Insets(0, 0, 5, 5);
-		gbc_centralPercOfBudgetField.anchor = GridBagConstraints.WEST;
-		gbc_centralPercOfBudgetField.gridx = 0;
-		gbc_centralPercOfBudgetField.gridy = 2;
-		advParamPanel.add(centralPercOfBudgetField, gbc_centralPercOfBudgetField);
-
-		JLabel lblCentralPerc = new JLabel("Central Percent of Budget (%)");
-		lblCentralPerc.setFont(new Font("Tahoma", Font.PLAIN, 12));
-		GridBagConstraints gbc_lblCentralPerc = new GridBagConstraints();
-		gbc_lblCentralPerc.insets = new Insets(0, 0, 5, 5);
-		gbc_lblCentralPerc.anchor = GridBagConstraints.WEST;
-		gbc_lblCentralPerc.gridx = 1;
-		gbc_lblCentralPerc.gridy = 2;
-		advParamPanel.add(lblCentralPerc, gbc_lblCentralPerc);
-
-		trainingPercField = new JTextField();
-		trainingPercField.setFont(new Font("Tahoma", Font.PLAIN, 11));
-		GridBagConstraints gbc_trainingPercField = new GridBagConstraints();
-		gbc_trainingPercField.anchor = GridBagConstraints.WEST;
-		gbc_trainingPercField.insets = new Insets(0, 0, 5, 5);
-		gbc_trainingPercField.gridx = 2;
-		gbc_trainingPercField.gridy = 2;
-		advParamPanel.add(trainingPercField, gbc_trainingPercField);
-		trainingPercField.setText("15");
-		trainingPercField.setColumns(4);
-
-		JLabel lblTrainingPercField = new JLabel("Training Factor (%)");
-		lblTrainingPercField.setFont(new Font("Tahoma", Font.PLAIN, 12));
-		GridBagConstraints gbc_lblTrainingPercField = new GridBagConstraints();
-		gbc_lblTrainingPercField.insets = new Insets(0, 0, 5, 5);
-		gbc_lblTrainingPercField.anchor = GridBagConstraints.WEST;
-		gbc_lblTrainingPercField.gridx = 3;
-		gbc_lblTrainingPercField.gridy = 2;
-		advParamPanel.add(lblTrainingPercField, gbc_lblTrainingPercField);
-		
-		hourlyRateField = new JTextField();
-		hourlyRateField.setFont(new Font("Tahoma", Font.PLAIN, 11));
-		hourlyRateField.setText("150");
-		hourlyRateField.setColumns(4);
-		GridBagConstraints gbc_hourlyRateField = new GridBagConstraints();
-		gbc_hourlyRateField.insets = new Insets(0, 0, 5, 5);
-		gbc_hourlyRateField.anchor = GridBagConstraints.WEST;
-		gbc_hourlyRateField.gridx = 0;
-		gbc_hourlyRateField.gridy = 3;
-		advParamPanel.add(hourlyRateField, gbc_hourlyRateField);
-
-		JLabel lblHourlyRate = new JLabel("Hourly Build Cost Rate ($)");
-		lblHourlyRate.setFont(new Font("Tahoma", Font.PLAIN, 12));
-		GridBagConstraints gbc_lblHourlyRate = new GridBagConstraints();
-		gbc_lblHourlyRate.insets = new Insets(0, 0, 5, 5);
-		gbc_lblHourlyRate.anchor = GridBagConstraints.WEST;
-		gbc_lblHourlyRate.gridx = 1;
-		gbc_lblHourlyRate.gridy = 3;
-		advParamPanel.add(lblHourlyRate, gbc_lblHourlyRate);
-
-		relConvergenceField = new JTextField();
-		relConvergenceField.setFont(new Font("Tahoma", Font.PLAIN, 11));
-		relConvergenceField.setText("5");
-		relConvergenceField.setColumns(4);
-		GridBagConstraints gbc_relConvergenceField = new GridBagConstraints();
-		gbc_relConvergenceField.insets = new Insets(0, 0, 5, 5);
-		gbc_relConvergenceField.anchor = GridBagConstraints.WEST;
-		gbc_relConvergenceField.gridx = 0;
-		gbc_relConvergenceField.gridy = 4;
-		advParamPanel.add(relConvergenceField, gbc_relConvergenceField);
-
-		JLabel lblRelConvergence = new JLabel("Relative Convergence (%)");
-		lblRelConvergence.setFont(new Font("Tahoma", Font.PLAIN, 12));
-		GridBagConstraints gbc_lblRelConvergence = new GridBagConstraints();
-		gbc_lblRelConvergence.insets = new Insets(0, 0, 5, 5);
-		gbc_lblRelConvergence.anchor = GridBagConstraints.WEST;
-		gbc_lblRelConvergence.gridx = 1;
-		gbc_lblRelConvergence.gridy = 4;
-		advParamPanel.add(lblRelConvergence, gbc_lblRelConvergence);
-
-		absConvergenceField = new JTextField();
-		absConvergenceField.setFont(new Font("Tahoma", Font.PLAIN, 11));
-		absConvergenceField.setText("20");
-		absConvergenceField.setColumns(4);
-		GridBagConstraints gbc_absConvergenceField = new GridBagConstraints();
-		gbc_absConvergenceField.anchor = GridBagConstraints.WEST;
-		gbc_absConvergenceField.insets = new Insets(0, 0, 5, 5);
-		gbc_absConvergenceField.gridx = 2;
-		gbc_absConvergenceField.gridy = 4;
-		advParamPanel.add(absConvergenceField, gbc_absConvergenceField);
-
-		JLabel lblAbsConvergence = new JLabel("Absolute Convergence (% of total budget)");
-		lblAbsConvergence.setFont(new Font("Tahoma", Font.PLAIN, 12));
-		GridBagConstraints gbc_lblAbsConvergence = new GridBagConstraints();
-		gbc_lblAbsConvergence.insets = new Insets(0, 0, 5, 5);
-		gbc_lblAbsConvergence.anchor = GridBagConstraints.WEST;
-		gbc_lblAbsConvergence.gridx = 3;
-		gbc_lblAbsConvergence.gridy = 4;
-		advParamPanel.add(lblAbsConvergence, gbc_lblAbsConvergence);
-
-		startingPtsField = new JTextField();
-		startingPtsField.setFont(new Font("Tahoma", Font.PLAIN, 11));
-		startingPtsField.setText("1");
-		startingPtsField.setColumns(4);
-		GridBagConstraints gbc_startingPtsField = new GridBagConstraints();
-		gbc_startingPtsField.insets = new Insets(0, 0, 5, 5);
-		gbc_startingPtsField.anchor = GridBagConstraints.WEST;
-		gbc_startingPtsField.gridx = 0;
-		gbc_startingPtsField.gridy = 5;
-		advParamPanel.add(startingPtsField, gbc_startingPtsField);
-
-		JLabel lblInitialYearlyBudget = new JLabel("Number of Starting Points");
-		lblInitialYearlyBudget.setFont(new Font("Tahoma", Font.PLAIN, 12));
-		GridBagConstraints gbc_lblInitialYearlyBudget = new GridBagConstraints();
-		gbc_lblInitialYearlyBudget.insets = new Insets(0, 0, 5, 5);
-		gbc_lblInitialYearlyBudget.anchor = GridBagConstraints.WEST;
-		gbc_lblInitialYearlyBudget.gridx = 1;
-		gbc_lblInitialYearlyBudget.gridy = 5;
-		advParamPanel.add(lblInitialYearlyBudget, gbc_lblInitialYearlyBudget);
-		
-		useDHMSMFuncCheckbox = new JCheckBox("Use DHMSM Functionality");
+		useDHMSMFuncCheckbox = new JCheckBox("Use MHS GENESIS Functionality");
 		GridBagConstraints gbc_useDHMSMFuncCheckbox = new GridBagConstraints();
 		gbc_useDHMSMFuncCheckbox.gridwidth = 2;
 		gbc_useDHMSMFuncCheckbox.insets = new Insets(0, 0, 5, 5);
@@ -545,16 +179,6 @@ public class SysSiteOptPlaySheet extends OptPlaySheet{
 		gbc_useDHMSMFuncCheckbox.gridx = 0;
 		gbc_useDHMSMFuncCheckbox.gridy = 6;
 		advParamPanel.add(useDHMSMFuncCheckbox, gbc_useDHMSMFuncCheckbox);
-		
-		optimizeBudgetCheckbox = new JCheckBox("Find Optimal Budget");
-		optimizeBudgetCheckbox.setSelected(false);
-		GridBagConstraints gbc_optimizeBudgetCheckbox = new GridBagConstraints();
-		gbc_optimizeBudgetCheckbox.gridwidth = 2;
-		gbc_optimizeBudgetCheckbox.anchor = GridBagConstraints.WEST;
-		gbc_optimizeBudgetCheckbox.insets = new Insets(0, 0, 5, 5);
-		gbc_optimizeBudgetCheckbox.gridx = 2;
-		gbc_optimizeBudgetCheckbox.gridy = 6;
-		advParamPanel.add(optimizeBudgetCheckbox, gbc_optimizeBudgetCheckbox);
 			
 		systemSelectPanel = new JPanel();
 		systemSelectPanel.setBorder(new BevelBorder(BevelBorder.LOWERED, null, null, null, null));
@@ -614,34 +238,13 @@ public class SysSiteOptPlaySheet extends OptPlaySheet{
 		gbc_systemDecomissionPanel.fill = GridBagConstraints.BOTH;
 		gbc_systemDecomissionPanel.gridx = 1;
 		gbc_systemDecomissionPanel.gridy = 0;
-		systemModDecomSelectPanel.add(systemDecomissionPanel, gbc_systemDecomissionPanel);
-		
-		final JComponent contentPane = (JComponent) this.getContentPane();
-		contentPane.addMouseListener(new MouseAdapter() {
-			
-			@Override
-			public void mouseClicked(MouseEvent e) {
-				maybeShowPopup(e);
-			}
-			
-			@Override
-			public void mousePressed(MouseEvent e) {
-				maybeShowPopup(e);
-			}
-			
-			@Override
-			public void mouseReleased(MouseEvent e) {
-				maybeShowPopup(e);
-			}
-			
-			private void maybeShowPopup(MouseEvent e) {
-				if (e.isPopupTrigger()) {
-				}
-			}
-		});
-		
+		systemModDecomSelectPanel.add(systemDecomissionPanel, gbc_systemDecomissionPanel);		
 	}
 	
+	/**
+	 * Sets up the toggles to switch between advanced parameter panels:
+	 * Advanced param panel, System select panel, and Force mod/decom panel.
+	 */
 	@Override
 	protected void createAdvParamPanelsToggles() {
 		super.createAdvParamPanelsToggles();
@@ -682,6 +285,10 @@ public class SysSiteOptPlaySheet extends OptPlaySheet{
 		ctlPanel.add(showParamBtn, gbc_showParamBtn);
 	}
 	
+	/**
+	 * Sets up the listeners to switch between advanced param panels
+	 * Extensions include the logic for switching the panels.
+	 */
 	@Override
 	protected void createAdvParamPanelsToggleListeners() {
 		
@@ -732,68 +339,209 @@ public class SysSiteOptPlaySheet extends OptPlaySheet{
 		});
 
 	}
-
-	@Override
-	protected void addOptimizationBtnListener(JButton btnRunOptimization) {
-		SysSiteOptBtnListener obl = new SysSiteOptBtnListener();
-		obl.setOptPlaySheet(this);
-		btnRunOptimization.addActionListener(obl);
-	}
 	
+	/**
+	 * Sets up the display panel at the bottom of the split pane.
+	 * 1) overallAlysPanel shows high level metric labels and the graphs. This includes:
+	 * 		a) total savings, number of years for transition, total roi, breakeven point,
+	 * 		internal rate of return, and total cost to transition
+	 * 		b) graphs of investment/sustainment cost, savings, breakeven 
+	 * TODO other graphs should be here too?
+	 */
 	@Override
 	protected void createDisplayPanel() {
-		super.createDisplayPanel();
 
-		JLabel lblIRR = new JLabel("Internal Rate of Return:");
-		GridBagConstraints gbc_lblIRR = new GridBagConstraints();
-		gbc_lblIRR.anchor = GridBagConstraints.WEST;
-		gbc_lblIRR.insets = new Insets(0, 30, 5, 5);
-		gbc_lblIRR.gridx = 4;
-		gbc_lblIRR.gridy = 1;
-		panel_1.add(lblIRR, gbc_lblIRR);
+		super.createDisplayPanel();
 		
-		irrLbl = new JLabel("");
-		GridBagConstraints gbc_IRRLbl = new GridBagConstraints();
-		gbc_IRRLbl.anchor = GridBagConstraints.WEST;
-		gbc_IRRLbl.insets = new Insets(0, 0, 5, 5);
-		gbc_IRRLbl.gridx = 5;
-		gbc_IRRLbl.gridy = 1;
-		panel_1.add(irrLbl, gbc_IRRLbl);
+		tab3 = addNewChartToOverviewPanel(0, 1);
+		tab4 = addNewChartToOverviewPanel(1, 1);
+		tab5 = addNewChartToOverviewPanel(0, 2);
 		
-		JLabel lblTimeSpentTransitioning = new JLabel("Number of Years for Transition:");
-		GridBagConstraints gbc_lblTimeSpentTransitioning = new GridBagConstraints();
-		gbc_lblTimeSpentTransitioning.anchor = GridBagConstraints.WEST;
-		gbc_lblTimeSpentTransitioning.insets = new Insets(0, 0, 0, 5);
-		gbc_lblTimeSpentTransitioning.gridx = 0;
-		gbc_lblTimeSpentTransitioning.gridy = 2;
-		panel_1.add(lblTimeSpentTransitioning, gbc_lblTimeSpentTransitioning);
-		
-		timeTransitionLbl = new JLabel("");
-		GridBagConstraints gbc_timeTransitionLbl = new GridBagConstraints();
-		gbc_timeTransitionLbl.anchor = GridBagConstraints.WEST;
-		gbc_timeTransitionLbl.insets = new Insets(0, 0, 0, 5);
-		gbc_timeTransitionLbl.gridx = 1;
-		gbc_timeTransitionLbl.gridy = 2;
-		panel_1.add(timeTransitionLbl, gbc_timeTransitionLbl);
-		
-		JLabel lblCost = new JLabel("Cost to Transition:");
-		GridBagConstraints gbc_lblCost = new GridBagConstraints();
-		gbc_lblCost.anchor = GridBagConstraints.WEST;
-		gbc_lblCost.insets = new Insets(0, 30, 5, 5);
-		gbc_lblCost.gridx = 4;
-		gbc_lblCost.gridy = 2;
-		panel_1.add(lblCost, gbc_lblCost);
-		
-		costLbl = new JLabel("");
-		GridBagConstraints gbc_costLbl = new GridBagConstraints();
-		gbc_costLbl.anchor = GridBagConstraints.WEST;
-		gbc_costLbl.insets = new Insets(0, 0, 5, 5);
-		gbc_costLbl.gridx = 5;
-		gbc_costLbl.gridy = 2;
-		panel_1.add(costLbl, gbc_costLbl);
+		savingLbl = addNewLabelToOverviewPanel("Total transition savings over time horizon:", 0, 1);
+		timeTransitionLbl = addNewLabelToOverviewPanel("Number of Years for Transition:", 0, 2);
+		roiLbl = addNewLabelToOverviewPanel("Total ROI over time horizon:", 2, 1);
+		bkevenLbl = addNewLabelToOverviewPanel("Breakeven point during time horizon:", 2, 2);
+		irrLbl = addNewLabelToOverviewPanel("Internal Rate of Return:", 4, 1);
+		costLbl = addNewLabelToOverviewPanel("Cost to Transition:", 4, 2);
 		
 	}
 	
+	/**
+	 * Pulls list of systems based on selections made in web version.
+	 * Used to create the overall list of systems to use in the algorithm
+	 * Also used to create list of force modernize or force sustain.
+	 * @param webDataHash	Hashtable that includes names of checkboxes and whether they are selected
+	 * @return	Hashtable that includes a list of systems that meet the input conditions
+	 */
+	public Hashtable getSystems(Hashtable<String, Object> webDataHash) {
+		Hashtable returnHash = (Hashtable) super.getDataMakerOutput();
+		Hashtable<String, ArrayList<String>> dataHash = new Hashtable<String, ArrayList<String>>();
+		
+		Gson gson = new Gson();
+		Boolean lpi = gson.fromJson(gson.toJson(webDataHash.get("lpi")), Boolean.class);
+		Boolean lpni = gson.fromJson(gson.toJson(webDataHash.get("lpni")), Boolean.class);
+		Boolean high = gson.fromJson(gson.toJson(webDataHash.get("high")), Boolean.class);
+		Boolean theater;
+		Boolean garrison;
+		Boolean mhsSpecific;
+		Boolean ehrCore;
+		
+		if(webDataHash.get("theater") == null)
+			theater = false;
+		else
+			theater = gson.fromJson(gson.toJson(webDataHash.get("theater")), Boolean.class);
+		if(webDataHash.get("garrison") == null)
+			garrison = false;
+		else
+			garrison = gson.fromJson(gson.toJson(webDataHash.get("garrison")), Boolean.class);
+		if(webDataHash.get("mhsspecific") == null)
+			mhsSpecific = false;
+		else
+			mhsSpecific = gson.fromJson(gson.toJson(webDataHash.get("mhsspecific")), Boolean.class);
+		if(webDataHash.get("ehrcore") == null)
+			ehrCore = false;
+		else
+			ehrCore = gson.fromJson(gson.toJson(webDataHash.get("ehrcore")), Boolean.class);
+
+		ArrayList<String> sysList;
+		if(capOrBPURI != null && !capOrBPURI.isEmpty()) {
+			if(capOrBPURI.contains("Capability")) {
+				sysList = new ArrayList<String>(sysUpdater.getSelectedSystemListForCapability(capOrBPURI, lpi, lpni, high, theater, garrison, mhsSpecific, ehrCore));
+			}else {
+				sysList = new ArrayList<String>(sysUpdater.getSelectedSystemListForBP(capOrBPURI, lpi, lpni, high, theater, garrison, mhsSpecific, ehrCore));						
+			}
+		} else {
+			sysList = new ArrayList<String>(sysUpdater.getSelectedSystemList(lpi, lpni, high, theater, garrison, false, false, mhsSpecific, ehrCore));
+		}
+		
+		dataHash.put("systems",sysList);
+		
+		if (dataHash != null)
+			returnHash.put("data", dataHash);
+		return returnHash;
+	}
+	
+	/**
+	 * Runs default optimization for Web version.
+	 * Selected when user chooses the portfolio rationalization question
+	 * and selects "Default" as the option in the parameter drop down.
+	 * Default selection includes all theater and garrison systems and
+	 * forced modernization of LPI systems and forced decommission of EHR core.
+	 * @param webDataHash
+	 * @return ArrayList with all the systems and algorithm recommendation on whether to modernize or decommission
+	 */
+	public ArrayList<Hashtable<String,String>> runDefaultOpt(Hashtable<String, Object> webDataHash) {
+
+		//check to make sure site engine is loaded
+		IEngine siteEngine = (IEngine) DIHelper.getInstance().getLocalProp(siteEngineName);
+		if(siteEngine == null) {
+			LOGGER.error("Missing databases. Please make sure you have: TAP_Core_Data_Data and TAP_Site_Data");
+			return new ArrayList<Hashtable<String,String>>();
+		}
+		
+		ArrayList<String> sysList;
+		if(capOrBPURI != null && !capOrBPURI.isEmpty()) {
+			if(capOrBPURI.contains("Capability")) {
+				sysList= new ArrayList<String>(sysUpdater.getSelectedSystemListForCapability(capOrBPURI,false, false, false, true, true, false, false));
+			} else {
+				sysList = new ArrayList<String>(sysUpdater.getSelectedSystemListForBP(capOrBPURI,false, false, false, true, true, false, false));						
+			}
+		}else {
+			sysList= new ArrayList<String>(sysUpdater.getSelectedSystemList(false, false, false, true, true, false, false, false, false));
+		}
+		if(sysList.isEmpty()) {
+			LOGGER.error("There are no systems that fit requirements.");
+			return new ArrayList<Hashtable<String,String>>();
+		}
+		
+		ArrayList<String> modList= new ArrayList<String>(sysUpdater.getSelectedSystemList(true, false, false, false, false, false, false, true, false));
+		ArrayList<String> decomList= new ArrayList<String>(sysUpdater.getSelectedSystemList(false, false, false, false, false, false, false, false, true));
+		
+		if(!setUpOpt(siteEngine, 1000000000, 10, 1.5/100, 2.5/100, 80.0/100.0, 15.0/100.0, 150, "Savings", false, capOrBPURI)) {
+			LOGGER.error("Optimization type is not valid.");
+			return new ArrayList<Hashtable<String,String>>();
+		}
+		opt.setSysList(sysList,modList,decomList);
+		opt.executeWeb();
+		return opt.getSysResultList();
+	}
+	
+	/**
+	 * Runs customized optimization for Web version.
+	 * Selected when user chooses the portfolio rationalization question
+	 * and selects "Customized" as the option in the parameter drop down.
+	 * Customized selection includes: choice of systems, force modernizations or decommissions,
+	 * annual budget, number of years, filtered data/blu list to DHMSM functionality, type of optimization,
+	 * inflation rate, discount rate, hourly cost, pct of budget for training, and number of points.
+	 * @param webDataHash
+	 * @return ArrayList with all the systems and algorithm recommendation on whether to modernize or decommission
+	 */
+	public ArrayList<Hashtable<String,String>> runOpt(Hashtable<String, Object> webDataHash) {
+		//TODO edit what is being sent in from web to remove optimization and number of points
+
+		//check to make sure site engine is loaded
+		IEngine siteEngine = (IEngine) DIHelper.getInstance().getLocalProp(siteEngineName);
+		if(siteEngine == null) {
+			LOGGER.error("Missing databases. Please make sure you have: TAP_Core_Data_Data and TAP_Site_Data");
+			return new ArrayList<Hashtable<String,String>>();
+		}
+		
+		Gson gson = new Gson();
+		//general params
+		ArrayList<Hashtable<String, String>> sysHashList = gson.fromJson(gson.toJson(webDataHash.get("systemList")), new TypeToken<ArrayList<Hashtable<String, String>>>() {}.getType());
+		double yearBudget = gson.fromJson(gson.toJson(webDataHash.get("maxAnnualBudget")), Double.class);
+		int years = gson.fromJson(gson.toJson(webDataHash.get("maxYearValue")), Integer.class);
+		Boolean useDHMSMCap = gson.fromJson(gson.toJson(webDataHash.get("dhmsmCap")), Boolean.class);
+		String optType = gson.fromJson(gson.toJson(webDataHash.get("optTypes")), String.class);
+
+		//advanced params
+		double infl = gson.fromJson(gson.toJson(webDataHash.get("infl")), Double.class);
+		double disc = gson.fromJson(gson.toJson(webDataHash.get("disc")), Double.class);
+		double trainingRate = gson.fromJson(gson.toJson(webDataHash.get("training")), Double.class);
+		int hourlyCost = gson.fromJson(gson.toJson(webDataHash.get("hbc")), Integer.class);
+
+		if(!setUpOpt(siteEngine, yearBudget, years, infl/100.0, disc/100.0, 80.0/100.0, trainingRate/100.0, hourlyCost, optType, useDHMSMCap, capOrBPURI)) {
+			LOGGER.error("Optimization type is not valid.");
+			return new ArrayList<Hashtable<String,String>>();
+		}
+		
+		opt.setSysHashList(sysHashList);
+		opt.executeWeb();
+		return opt.getSysResultList();
+	}
+
+	/**
+	 * Sets values for optimizer including: engines, budget, number of years, rates,
+	 * method for filtering functionality list, type of optimization, and whether to
+	 * limit to a capability or business process.
+	 * @param siteEngine 		Engine to pull site data from
+	 * @param yearBudget		Annual budget of years to run analysis over
+	 * @param years				Number of years to run analysis over
+	 * @param infl				Inflation rate as a decimal 
+	 * @param disc				Discount rate as a decimal 
+	 * @param centralPctOfBudget	Decimal between 0 and 1 representing portion of budget that is a central cost
+	 * @param trainingPctOfBudget	Decimal between 0 and 1 representing portion of budget that is a training cost
+	 * @param hourlyCost		Dollar cost for 1 hour of work
+	 * @param optType			String representing type of optimization to run
+	 * @param useDHMSMCap		Boolean representing whether to limit the data/blu to the DHMSM capabilities data/blu
+	 * @param capOrBPURI		String representing the capability or business process URI to limit to.
+	 * @return					Boolean representing whether the optimizer could be set up
+	 */
+	private boolean setUpOpt(IEngine siteEngine, double yearBudget, int years, double infl, double disc, double centralPctOfBudget, double trainingPctOfBudget, int hourlyCost, String optType, boolean useDHMSMCap, String capOrBPURI) {
+		opt = new SysSiteOptimizer();
+		if(!opt.setOptimizationType(optType)) //savings, roi, or irr
+			return false;
+		opt.setEngines(engine, siteEngine); //likely TAP Core Data and tap site
+		opt.setVariables(yearBudget, years, infl/100, disc/100, centralPctOfBudget, trainingPctOfBudget, hourlyCost);//budget per year, the number of years, inflation rate, discount rate, percent of budget that is central cost, percent of budget that is training, and hourly cost
+		opt.setUseDHMSMFunctionality(useDHMSMCap); //whether to filter the data/blu to what is provided by the list of systems or the dhmsm provided capabilities
+		opt.setCapOrBPURI(capOrBPURI); //if filtering to a specific capability or business process
+		return true;
+	}
+	
+	/**
+	 * TODO
+	 * @return
+	 */
 	public String getOptType() {
 		if(rdbtnROI.isSelected())
 			return rdbtnROI.getName();
@@ -802,28 +550,48 @@ public class SysSiteOptPlaySheet extends OptPlaySheet{
 		else
 			return rdbtnProfit.getName();
 	}
+	
+	
+	/**
+	 * Sets graphs to be visible after algorithm is run.
+	 * @param visible
+	 */
+	@Override
+	public void setGraphsVisible(boolean visible) {
+		tab3.setVisible(visible);
+		tab4.setVisible(visible);
+		tab5.setVisible(visible);
+	}
 
 	/**
 	 * Clears panels within the playsheet
+	 * Called whenever the algorithm is rerun so no previous results left over.
 	 */
 	@Override
 	public void clearPanels() {
-		while(tabbedPane.getTabCount() > 2) {
-			tabbedPane.removeTabAt(2);
+		while(displayTabbedPane.getTabCount() > 2) {
+			displayTabbedPane.removeTabAt(2);
 		}
 	}
 	
 	/**
-	 * Sets N/A or $0 for values in optimizations. Allows for different TAP algorithms to be run as empty functions.
+	 * Sets N/A or $0 for values in optimizations.
+	 * Called whenever the algorithm is rerun so no previous results left over.
 	 */
 	@Override
 	public void clearLabels() {
 		super.clearLabels();
+		bkevenLbl.setText("N/A");
+        savingLbl.setText("$0");
+		roiLbl.setText("N/A");
 		irrLbl.setText("N/A");
 		timeTransitionLbl.setText("N/A");
 		costLbl.setText("$0");
 	}
 	
+	/**
+	 * TODO comment
+	 */
 	@Override
 	public void setQuery(String query) {
 		LOGGER.info("New Query " + query);
@@ -835,22 +603,20 @@ public class SysSiteOptPlaySheet extends OptPlaySheet{
 		}else {
 			this.capOrBPURI = querySplit[0];
 		}
-		if(querySplit[1].toLowerCase().contains("default")) {
-			this.defaultSettings = true;
-		}else {
-			this.defaultSettings = false;
-		}
-		if(querySplit.length < 4) {
-			this.costEngineName = "TAP_Cost_Data";
+		if(querySplit.length < 3) {
 			this.siteEngineName = "TAP_Site_Data";
 		}else {
-			this.costEngineName = querySplit[2];
-			this.siteEngineName = querySplit[3];
+			this.siteEngineName = querySplit[2];
 		}
 	}
 	
 	/**
-	 * Functions for web dashboard calls.
+	 * Returns display information for SEMOSS Web.
+	 * Overview page data shown by default after algorithm is run
+	 * 1) Info - Total savings and number of systems decommissioned
+	 * 2) Map - Systems and savings at each site
+	 * 3) Health Grid - all sustained and consolidated systems
+	 * 4) Coverage - Data/BLU provided by all systems
 	 */
 	public Hashtable getOverviewPageData(Hashtable webDataHash) {
 		Hashtable retHash = new Hashtable();
@@ -873,6 +639,13 @@ public class SysSiteOptPlaySheet extends OptPlaySheet{
 		return retHash;
 	}
 	
+	/**
+	 * Returns display information for SEMOSS Web, specifically System page view
+	 * 1) Info - System info including sustainment budget, description, ato, data, blu, interfaces, etc
+	 * 2) Map - Sites system was or will be deployed to
+	 * 3) Health Grid - all sustained and consolidated systems
+	 * 4) Coverage - Data/BLU coverage filtered to data/blu provided by this system
+	 */
 	public Hashtable getSystemPageData(Hashtable webDataHash) {
 		Hashtable retHash = new Hashtable();
         String type = (String) webDataHash.get("type");

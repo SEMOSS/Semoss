@@ -50,13 +50,13 @@ import prerna.util.Utility;
  */
 public class DHMSMSystemSORAccessTypeReportProcessor {
 	static final Logger logger = LogManager.getLogger(DHMSMSystemSORAccessTypeReportProcessor.class.getName());
-	Hashtable<String,String> dataLatencyTypeHash = new Hashtable<String,String>();
-	Hashtable<String,String> dataAccessTypeHash = new Hashtable<String,String>();
-	String hrCoreEngine = "TAP_Core_Data";
-	String workingDir = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER);
-	Hashtable<String,Hashtable<String,Object>> masterHash;
-	ArrayList<String> sysList;
-	ArrayList<String> headersList;
+	private Hashtable<String,String> dataLatencyTypeHash = new Hashtable<String,String>();
+	private Hashtable<String,String> dataAccessTypeHash = new Hashtable<String,String>();
+	private String tapCoreDB = "TAP_Core_Data";
+	private String workingDir = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER);
+	private Hashtable<String,Hashtable<String,Object>> masterHash;
+	private ArrayList<String> sysList;
+	private ArrayList<String> headersList;
 	
 	public void setDataLatencyTypeHash(Hashtable<String,String> dataLatencyTypeHash)
 	{
@@ -174,17 +174,26 @@ public class DHMSMSystemSORAccessTypeReportProcessor {
 	 * Identifies and runs all the queries required for the system info report.
 	 * Stores values in masterHash 
 	 */
-	public void processQueries() {
+	private void processQueries() {
+		IEngine tapCoreEngine;
+		try
+		{
+			tapCoreEngine = (IEngine) DIHelper.getInstance().getLocalProp(tapCoreDB);
+			if(tapCoreEngine==null)
+				throw new NullPointerException();
+		} catch (NullPointerException e) {
+			Utility.showError("Cannot find TAP Core Data engine.");
+			return;
+		}
 
 		//System Names
 		String sysNameQuery = "SELECT DISTINCT ?System WHERE { {?System <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System>;}{?OwnedBy <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/OwnedBy>;}{?System ?OwnedBy ?Owner}}ORDER BY ?System BINDINGS ?Owner {(<http://health.mil/ontologies/Concept/SystemOwner/Air_Force>)(<http://health.mil/ontologies/Concept/SystemOwner/Army>)(<http://health.mil/ontologies/Concept/SystemOwner/Navy>)(<http://health.mil/ontologies/Concept/SystemOwner/Central>)}";
 		
-		runSystemListQuery(hrCoreEngine, sysNameQuery);
+		runSystemListQuery(tapCoreDB, sysNameQuery);
 
 		DHMSMHelper dhelp = new DHMSMHelper();
-		IEngine engine = (IEngine) DIHelper.getInstance().getLocalProp(hrCoreEngine);
 		dhelp.setUseDHMSMOnly(false);
-		dhelp.runData(engine);
+		dhelp.runData(tapCoreEngine);
 
 		headersList.add("System");
 		headersList.add("Integrated_Data_Objects_System_Is_Record_Of");

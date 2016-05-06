@@ -42,11 +42,11 @@ import prerna.util.DIHelper;
 import prerna.util.Utility;
 
 public class OCONUSSavingsMapPlaySheet extends OCONUSMapPlaySheet {
-	private IEngine hrCore = (IEngine) DIHelper.getInstance().getLocalProp("TAP_Core_Data");
+	private IEngine tapCoreEngine = (IEngine) DIHelper.getInstance().getLocalProp("TAP_Core_Data");
 	private IEngine tapSite = (IEngine) DIHelper.getInstance().getLocalProp("TAP_Site_Data");
 	
 	// Queries used for savings
-	private final String getBPProdQuery = "SELECT DISTINCT ?businessProcess ?Productivity WHERE {{?dhmsm <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/DHMSM>}{?capability <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Capability>}{?businessProcess <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/BusinessProcess>}{?businessProcess <http://semoss.org/ontologies/Relation/Contains/EA-Productivity> ?Productivity}{?dhmsm <http://semoss.org/ontologies/Relation/TaggedBy> ?capability}{?capability <http://semoss.org/ontologies/Relation/Supports> ?businessProcess}}";
+	private final String getBPProdQuery = "SELECT DISTINCT ?businessProcess ?Productivity WHERE {{?dhmsm <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/MHS_GENESIS>}{?capability <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Capability>}{?businessProcess <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/BusinessProcess>}{?businessProcess <http://semoss.org/ontologies/Relation/Contains/EA-Productivity> ?Productivity}{?dhmsm <http://semoss.org/ontologies/Relation/TaggedBy> ?capability}{?capability <http://semoss.org/ontologies/Relation/Supports> ?businessProcess}}";
 	private final String getFCCBPQuery = "SELECT DISTINCT ?FCC ?BusinessProcess ?weight WHERE { {?FCC <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/FCC>;}{?PartOf <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/PartOf> ;} {?BusinessProcess <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/BusinessProcess> ;} {?PartOf <http://semoss.org/ontologies/Relation/Contains/PercentBilled> ?weight}{?FCC ?PartOf ?BusinessProcess ;} }";
 	private final String getMTFFCCQuery = "SELECT DISTINCT ?MTF ?FCC ?TotalCost WHERE {{?FCC <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/FCC>}{?FCCMTF <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/FCC-MTF>}{?MTF <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/MTF>}{?DCSite <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/DCSite>}{?Wave <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Wave>}{?YearQuarter <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Year-Quarter>}{?Year <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Year>}{?FCCMTF <http://semoss.org/ontologies/Relation/Contains/TotalCost> ?TotalCost }{?FCC <http://semoss.org/ontologies/Relation/Has> ?FCCMTF}{?FCCMTF <http://semoss.org/ontologies/Relation/Occurs_At> ?MTF}{?DCSite <http://semoss.org/ontologies/Relation/Includes> ?MTF}{?Wave <http://semoss.org/ontologies/Relation/Contains> ?DCSite}{?Wave <http://semoss.org/ontologies/Relation/EndsOn> ?YearQuarter}{?YearQuarter <http://semoss.org/ontologies/Relation/has> ?Year}}";
 	private final String getDCSiteMTFQuery = "SELECT DISTINCT ?DCSite ?MTF WHERE {{?MTF <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/MTF>}{?DCSite <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/DCSite>}{?Wave <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Wave>}{?YearQuarter <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Year-Quarter>}{?Year <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Year>}{?DCSite <http://semoss.org/ontologies/Relation/Includes> ?MTF}{?Wave <http://semoss.org/ontologies/Relation/Contains> ?DCSite}{?Wave <http://semoss.org/ontologies/Relation/EndsOn> ?YearQuarter}{?YearQuarter <http://semoss.org/ontologies/Relation/has> ?Year}}";
@@ -79,16 +79,16 @@ public class OCONUSSavingsMapPlaySheet extends OCONUSMapPlaySheet {
 		list = getInitialList(getInitialQuery, tapSite);
 		
 		// Maps for savings information
-		HashMap<String, String> bpProdMap = helper.getBPProdMap(getBPProdQuery, hrCore);
-		HashMap<String, ArrayList<String[]>> fccBPMap = helper.getRawOCONArrayMap(getFCCBPQuery, hrCore);
+		HashMap<String, String> bpProdMap = helper.getBPProdMap(getBPProdQuery, tapCoreEngine);
+		HashMap<String, ArrayList<String[]>> fccBPMap = helper.getRawOCONArrayMap(getFCCBPQuery, tapCoreEngine);
 		HashMap<String, ArrayList<String[]>> mtfFCCMap = helper.getRawOCONArrayMap(getMTFFCCQuery, tapSite);
 		
 		// Maps for total loss information
-		HashMap<String, ArrayList<String[]>> activityFGMap = helper.getRawOCONArrayMap(getActivityFGWeightQuery, hrCore);
-		HashMap<String, ArrayList<String[]>> bpActivityMap = helper.getRawOCONArrayMap(getBPActivityWeightQuery, hrCore);
+		HashMap<String, ArrayList<String[]>> activityFGMap = helper.getRawOCONArrayMap(getActivityFGWeightQuery, tapCoreEngine);
+		HashMap<String, ArrayList<String[]>> bpActivityMap = helper.getRawOCONArrayMap(getBPActivityWeightQuery, tapCoreEngine);
 		
 		// Maps for individual fg loss
-		HashMap<String, ArrayList<String[]>> fgActivityMap = helper.getRawOCONArrayMap(getFGActivityWeightQuery, hrCore);
+		HashMap<String, ArrayList<String[]>> fgActivityMap = helper.getRawOCONArrayMap(getFGActivityWeightQuery, tapCoreEngine);
 		
 		HashMap<String, ArrayList<String>> dcSiteMTFMap = helper.getRawOCONListMap(getDCSiteMTFQuery, tapSite);
 		

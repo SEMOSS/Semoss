@@ -61,7 +61,7 @@ public class SysSiteOptFunction extends UnivariateOptFunction{
 		lpSolver = new SysSiteLPSolver();
 	}
 	
-	public void setVariables(int[][] localSystemDataMatrix, int[][] localSystemBLUMatrix, int[] localSystemIsTheaterArr, int[] localSystemIsGarrisonArr, Integer[] localSystemIsModArr, Integer[] localSystemIsDecomArr, double[] localSystemMaintenanceCostArr, double[] localSystemSiteMaintenaceCostArr, double[] localSystemSiteDeploymentCostArr, double[] localSystemSiteInterfaceCostArr, double[] localSystemSiteUserTrainingCostArr, double[][] localSystemSiteMatrix, int[][] centralSystemDataMatrix, int[][] centralSystemBLUMatrix, int[] centralSystemIsTheaterArr, int[] centralSystemIsGarrisonArr, Integer[] centralSystemIsModArr, Integer[] centralSystemIsDecomArr, double[] centralSystemMaintenanceCostArr, double[] centralSystemInterfaceCostArr,  double[] centralSystemUserTrainingCostArr, double trainingPerc, double currentSustainmentCost, double budgetForYear, int years, double infRate, double disRate) {
+	public void setVariables(SysSiteOptDataStore localSysData,SysSiteOptDataStore centralSysData, double currentSustainmentCost, double budgetForYear, int years, double infRate, double disRate) {
 
 		this.currentSustainmentCost = currentSustainmentCost;
 		this.budgetForYear = budgetForYear;
@@ -71,7 +71,7 @@ public class SysSiteOptFunction extends UnivariateOptFunction{
 		this.disRate = disRate;
 		
 		
-		lpSolver.setVariables(localSystemDataMatrix, localSystemBLUMatrix, localSystemIsTheaterArr, localSystemIsGarrisonArr, localSystemIsModArr, localSystemIsDecomArr, localSystemMaintenanceCostArr, localSystemSiteMaintenaceCostArr, localSystemSiteDeploymentCostArr, localSystemSiteInterfaceCostArr, localSystemSiteUserTrainingCostArr, localSystemSiteMatrix, centralSystemDataMatrix, centralSystemBLUMatrix, centralSystemIsTheaterArr, centralSystemIsGarrisonArr, centralSystemIsModArr, centralSystemIsDecomArr, centralSystemMaintenanceCostArr, centralSystemInterfaceCostArr, centralSystemUserTrainingCostArr, trainingPerc, currentSustainmentCost);
+		lpSolver.setVariables(localSysData, centralSysData, currentSustainmentCost);
 	}
 	
 	protected void runLPSolve(double budget) throws LpSolveException {
@@ -139,15 +139,15 @@ public class SysSiteOptFunction extends UnivariateOptFunction{
 		
 	}
 	
-	public double[] getSysKeptArr() {
-		return lpSolver.getLocalSysKeptArr();
+	public int[] getLocalSysSustainedArr() {
+		return lpSolver.getLocalSysSustainedArr();
 	}
 
-	public double[] getCentralSysKeptArr() {
-		return lpSolver.getCentralSysKeptArr();
+	public int[] getCentralSysSustainedArr() {
+		return lpSolver.getCentralSysSustainedArr();
 	}
 	
-	public double[][] getSystemSiteResultMatrix() {
+	public int[][] getSystemSiteResultMatrix() {
 		return lpSolver.getLocalSystemSiteResultMatrix();
 	}
 

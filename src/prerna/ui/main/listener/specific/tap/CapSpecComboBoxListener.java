@@ -82,10 +82,10 @@ public class CapSpecComboBoxListener implements ActionListener{
 			dataQuery = dataQuery.replace("@FILL@","BIND(<http://health.mil/ontologies/Concept/CapabilityFunctionalArea/FHP> AS ?CapabilityFunctionalArea){?Utilizes <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Utilizes>;}{?CapabilityGroup <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/CapabilityGroup>;}{?ConsistsOfCapability <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Consists>;}{?CapabilityFunctionalArea ?Utilizes ?CapabilityGroup;}{?CapabilityGroup ?ConsistsOfCapability ?Capability;}");
 			bluQuery = bluQuery.replace("@FILL@","BIND(<http://health.mil/ontologies/Concept/CapabilityFunctionalArea/FHP> AS ?CapabilityFunctionalArea){?Utilizes <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Utilizes>;}{?CapabilityGroup <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/CapabilityGroup>;}{?ConsistsOfCapability <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Consists>;}{?CapabilityFunctionalArea ?Utilizes ?CapabilityGroup;}{?CapabilityGroup ?ConsistsOfCapability ?Capability;}");
 		}
-		else if(selectedItem.contains("DHMSM"))
+		else if(selectedItem.contains("GENESIS"))
 		{
-			dataQuery = dataQuery.replace("@FILL@","{?DHMSM <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/DHMSM>;}{?TaggedBy <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/TaggedBy>;}{?DHMSM ?TaggedBy ?Capability;}");
-			bluQuery = bluQuery.replace("@FILL@","{?DHMSM <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/DHMSM>;}{?TaggedBy <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/TaggedBy>;}{?DHMSM ?TaggedBy ?Capability;}");
+			dataQuery = dataQuery.replace("@FILL@","{?DHMSM <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/MHS_GENESIS>;}{?TaggedBy <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/TaggedBy>;}{?DHMSM ?TaggedBy ?Capability;}");
+			bluQuery = bluQuery.replace("@FILL@","{?DHMSM <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/MHS_GENESIS>;}{?TaggedBy <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/TaggedBy>;}{?DHMSM ?TaggedBy ?Capability;}");
 		}
 		else
 		{

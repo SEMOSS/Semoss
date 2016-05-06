@@ -8,9 +8,8 @@ public class FutureStateInterfaceProcessor {
 	private static final String DHMSM_PROVIDE_KEY = "Provider";
 	private static final String DHMSM_CONSUME_KEY = "Consumer";
 	private static final String LPI_KEY = "LPI";
-	private static final String HPI_KEY = "HPI";
-	private static final String HPNI_KEY = "HPNI";
-	private static final String NO_PROBABILITY = "No Probability";
+	private static final String HIGH_KEY = "High";
+	private static final String NO_DISPOSITION = "No Disposition";
 	private static final String DOWNSTREAM_KEY = "Downstream";
 
 	private FutureStateInterfaceProcessor() {
@@ -46,11 +45,11 @@ public class FutureStateInterfaceProcessor {
 			downstreamSysType = sysTypeHash.get(sysName);
 		}
 
-		if(upstreamSysType == null || upstreamSysType.isEmpty()) {
-			upstreamSysType = NO_PROBABILITY;
+		if(upstreamSysType == null || upstreamSysType.isEmpty() || upstreamSysType.equals("TBD")) {
+			upstreamSysType = NO_DISPOSITION;
 		}
-		if(downstreamSysType == null || downstreamSysType.isEmpty()) {
-			downstreamSysType = NO_PROBABILITY;
+		if(downstreamSysType == null || downstreamSysType.isEmpty() || downstreamSysType.equals("TBD")) {
+			downstreamSysType = NO_DISPOSITION;
 		}
 
 		FutureStateInterfaceResult results = calculateResponse(
@@ -96,7 +95,7 @@ public class FutureStateInterfaceProcessor {
 		if (dhmsmSOR.contains(DHMSM_PROVIDE_KEY)) {
 			if (upstreamSysType.equals(LPI_KEY)) { // upstream system is LPI
 				if (!selfReportedSystems.contains(upstreamSysName)) {
-					comment = comment.concat("Need to add interface DHMSM->").concat(upstreamSysName).concat(". ");
+					comment = comment.concat("Need to add interface MHS GENESIS->").concat(upstreamSysName).concat(". ");
 					// direct cost if system is upstream and indirect is downstream
 					if (sysName.equals(upstreamSysName)) {
 						directCost = true;
@@ -107,12 +106,12 @@ public class FutureStateInterfaceProcessor {
 					isSelfReported = true;
 				}
 				// if downstream system is HP, remove interface
-				if (downstreamSysType.equals(HPNI_KEY) || downstreamSysType.equals(HPI_KEY)) {
-					comment = comment.concat(" Stay as-is until all deployment sites for HP system field DHMSM (and any additional legal requirements).");
+				if (downstreamSysType.equals(HIGH_KEY)) {
+					comment = comment.concat(" Stay as-is until all deployment sites for HP system field MHS GENESIS (and any additional legal requirements).");
 					decommission = true;
 				} else if(!isSelfReported){
 					comment = comment.concat(" System " + upstreamSysName + " currently gets data object, " + data + ", from system " + downstreamSysName + ". "
-							+ "DHMSM is also projected to be a source of record for this data object, therefore, we recommend reviewing the proposed DHMSM interface.");
+							+ "MHS GENESIS is also projected to be a source of record for this data object, therefore, we recommend reviewing the proposed MHS GENESIS interface.");
 					decommission = false;
 				}
 
@@ -134,10 +133,10 @@ public class FutureStateInterfaceProcessor {
 						results.put(FutureStateInterfaceResult.RECOMMENDATION, FutureStateInterfaceResult.INTERFACE_TYPES.UPSTREAM_CONSUMER_FROM_DHMSM);
 					}
 				}
-				if(consumeSet.contains("DHMSM+++" + upstreamSysName + "+++" + data)) {
+				if(consumeSet.contains("MHS_GENESIS+++" + upstreamSysName + "+++" + data)) {
 					results.setCostTakenIntoConsideration(true);
 				} else {
-					consumeSet.add("DHMSM+++" + upstreamSysName + "+++" + data);
+					consumeSet.add("MHS_GENESIS+++" + upstreamSysName + "+++" + data);
 				}
 			}
 			// new business rule might be added - will either un-comment or remove after discussion today
@@ -149,15 +148,15 @@ public class FutureStateInterfaceProcessor {
 //					comment = comment.concat("Need to add interface DHMSM->").concat(downstreamSysName).concat(".").concat(
 //							" Recommend review of removing interface ").concat(upstreamSysName).concat("->").concat(downstreamSysName).concat(
 //									". ");
-					comment = comment.concat("Need to add interface DHMSM->").concat(downstreamSysName).concat(".");
+					comment = comment.concat("Need to add interface MHS GENESIS->").concat(downstreamSysName).concat(".");
 					// direct cost if system is downstream
 					if (sysName.equals(downstreamSysName)) {
 						directCost = true;
 					} else {
 						directCost = false;
 					}
-					if (upstreamSysType.equals(HPNI_KEY) || upstreamSysType.equals(HPI_KEY)) {
-						comment = comment.concat(" Stay as-is until all deployment sites for HP system field DHMSM (and any additional legal requirements).");
+					if (upstreamSysType.equals(HIGH_KEY)) {
+						comment = comment.concat(" Stay as-is until all deployment sites for HP system field MHS GENESIS (and any additional legal requirements).");
 						decommission = true;
 					} else {
 						decommission = false;
@@ -174,24 +173,23 @@ public class FutureStateInterfaceProcessor {
 					} else {
 						results.put(FutureStateInterfaceResult.RECOMMENDATION, FutureStateInterfaceResult.INTERFACE_TYPES.DOWNSTREAM_CONSUMER_FROM_DHMSM);
 					}
-					if(consumeSet.contains("DHMSM+++" + downstreamSysName + "+++" + data)) {
+					if(consumeSet.contains("MHS_GENESIS+++" + downstreamSysName + "+++" + data)) {
 						results.setCostTakenIntoConsideration(true);
 					} else {
-						consumeSet.add("DHMSM+++" + downstreamSysName + "+++" + data);
+						consumeSet.add("MHS_GENESIS+++" + downstreamSysName + "+++" + data);
 					}
 				} else {
 					// if upstream system is HP, remove interface
-					if (upstreamSysType.equals(HPNI_KEY) || upstreamSysType.equals(HPI_KEY)) {
-						comment = comment.concat(" Stay as-is until all deployment sites for HP system field DHMSM (and any additional legal requirements).");
+					if (upstreamSysType.equals(HIGH_KEY)) {
+						comment = comment.concat(" Stay as-is until all deployment sites for HP system field MHS GENESIS (and any additional legal requirements).");
 						results.put(FutureStateInterfaceResult.RECOMMENDATION, FutureStateInterfaceResult.INTERFACE_TYPES.DECOMMISSIONED);
 						results.put(FutureStateInterfaceResult.COMMENT, comment.trim());
 						results.put(FutureStateInterfaceResult.COST_TYPE, FutureStateInterfaceResult.COST_TYPES.NO_COST );
 					}
 				}
 			} else {
-				if (upstreamSysType.equals(HPI_KEY) || upstreamSysType.equals(HPNI_KEY) || downstreamSysType.equals(HPI_KEY)
-						|| downstreamSysType.equals(HPNI_KEY)) { // if either system is HP
-					comment = "Stay as-is until all deployment sites for HP system field DHMSM (and any additional legal requirements).";
+				if (upstreamSysType.equals(HIGH_KEY) || downstreamSysType.equals(HIGH_KEY)) { // if either system is HP
+					comment = "Stay as-is until all deployment sites for HP system field MHS GENESIS (and any additional legal requirements).";
 					results.put(FutureStateInterfaceResult.COST_TYPE, FutureStateInterfaceResult.COST_TYPES.NO_COST );
 					results.put(FutureStateInterfaceResult.COMMENT, comment.trim());
 					results.put(FutureStateInterfaceResult.RECOMMENDATION, FutureStateInterfaceResult.INTERFACE_TYPES.DECOMMISSIONED);
@@ -207,7 +205,7 @@ public class FutureStateInterfaceProcessor {
 			if (upstreamSysType.equals(LPI_KEY) && sorV.contains(upstreamSysName + data)) { // upstream system is LPI and SOR of data
 				otherwise = false;
 				if (!selfReportedSystems.contains(upstreamSysName)) {
-					comment = comment.concat("Need to add interface ").concat(upstreamSysName).concat("->DHMSM. ");
+					comment = comment.concat("Need to add interface ").concat(upstreamSysName).concat("->MHS GENESIS. ");
 					// direct cost if system is upstream
 					if (sysName.equals(upstreamSysName)) {
 						directCost = true;
@@ -221,16 +219,16 @@ public class FutureStateInterfaceProcessor {
 					}
 					results.put(FutureStateInterfaceResult.COMMENT, comment.trim());
 					results.put(FutureStateInterfaceResult.RECOMMENDATION, FutureStateInterfaceResult.INTERFACE_TYPES.UPSTREAM_PROVIDER_TO_DHMSM);
-					if(provideSet.contains(upstreamSysName + "+++DHMSM+++" + data)) {
+					if(provideSet.contains(upstreamSysName + "+++MHS_GENESIS+++" + data)) {
 						results.setCostTakenIntoConsideration(true);
 					} else {
-						provideSet.add(upstreamSysName + "+++DHMSM+++" + data);
+						provideSet.add(upstreamSysName + "+++MHS_GENESIS+++" + data);
 					}
 				}
 			} else if (downstreamSysType.equals(LPI_KEY) && sorV.contains(downstreamSysName + data)) { // downstream system is LPI and SOR of
 				otherwise = false;
 				if (!selfReportedSystems.contains(downstreamSysName)) {
-					comment = comment.concat("Need to add interface ").concat(downstreamSysName).concat("->DHMSM. ");
+					comment = comment.concat("Need to add interface ").concat(downstreamSysName).concat("->MHS GENESIS. ");
 					if (sysName.equals(downstreamSysName)) {
 						directCost = true;
 					} else {
@@ -243,17 +241,16 @@ public class FutureStateInterfaceProcessor {
 					}
 					results.put(FutureStateInterfaceResult.COMMENT, comment.trim());
 					results.put(FutureStateInterfaceResult.RECOMMENDATION, FutureStateInterfaceResult.INTERFACE_TYPES.DOWNSTREAM_PROVIDER_TO_DHMSM);
-					if(provideSet.contains(downstreamSysName + "+++DHMSM+++" + data)) {
+					if(provideSet.contains(downstreamSysName + "+++MHS_GENESIS+++" + data)) {
 						results.setCostTakenIntoConsideration(true);
 					} else {
-						provideSet.add(downstreamSysName + "+++DHMSM+++" + data);
+						provideSet.add(downstreamSysName + "+++MHS_GENESIS+++" + data);
 					}
 				}
 			} 
 			// check if we should decommission the current interface
-			if (upstreamSysType.equals(HPI_KEY) || upstreamSysType.equals(HPNI_KEY) || downstreamSysType.equals(HPI_KEY)
-					|| downstreamSysType.equals(HPNI_KEY)) { // if either system is HP
-				comment = comment.concat("Stay as-is until all deployment sites for HP system field DHMSM (and any additional legal requirements).");
+			if (upstreamSysType.equals(HIGH_KEY) || downstreamSysType.equals(HIGH_KEY)) { // if either system is HP
+				comment = comment.concat("Stay as-is until all deployment sites for HP system field MHS GENESIS (and any additional legal requirements).");
 				results.put(FutureStateInterfaceResult.COMMENT, comment.trim());
 				results.put(FutureStateInterfaceResult.COST_TYPE, FutureStateInterfaceResult.COST_TYPES.NO_COST );
 				if(results.containsKey(FutureStateInterfaceResult.RECOMMENDATION)) {
@@ -274,9 +271,8 @@ public class FutureStateInterfaceProcessor {
 				results.put(FutureStateInterfaceResult.RECOMMENDATION, FutureStateInterfaceResult.INTERFACE_TYPES.STAY_AS_IS);
 			}
 		} else { // other cases DHMSM doesn't touch data object
-			if (upstreamSysType.equals(HPI_KEY) || upstreamSysType.equals(HPNI_KEY) || downstreamSysType.equals(HPI_KEY) 
-					|| downstreamSysType.equals(HPNI_KEY)) { // if either system is HP
-				comment = "Stay as-is until all deployment sites for HP system field DHMSM (and any additional legal requirements).";
+			if (upstreamSysType.equals(HIGH_KEY) || downstreamSysType.equals(HIGH_KEY)) { // if either system is HP
+				comment = "Stay as-is until all deployment sites for HP system field MHS GENESIS (and any additional legal requirements).";
 				results.put(FutureStateInterfaceResult.COST_TYPE, FutureStateInterfaceResult.COST_TYPES.NO_COST );
 				results.put(FutureStateInterfaceResult.COMMENT, comment.trim());
 				results.put(FutureStateInterfaceResult.RECOMMENDATION, FutureStateInterfaceResult.INTERFACE_TYPES.DECOMMISSIONED);

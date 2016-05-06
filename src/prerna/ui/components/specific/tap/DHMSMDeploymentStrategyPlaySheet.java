@@ -397,7 +397,7 @@ public class DHMSMDeploymentStrategyPlaySheet extends InputPanelPlaySheet {
 		super.createDisplayPanel();
 		
 		siteAnalysisPanel = new JPanel();
-		tabbedPane.insertTab("Site Analysis", null, siteAnalysisPanel, null,1);
+		displayTabbedPane.insertTab("Site Analysis", null, siteAnalysisPanel, null,1);
 		GridBagLayout gbl_siteAnalysisPanel = new GridBagLayout();
 		gbl_siteAnalysisPanel.columnWidths = new int[]{0, 0};
 		gbl_siteAnalysisPanel.rowHeights = new int[]{0, 0};
@@ -407,7 +407,7 @@ public class DHMSMDeploymentStrategyPlaySheet extends InputPanelPlaySheet {
 		
 		//map deployment panel
 		sysMapPanel = new JPanel();
-		tabbedPane.insertTab("Deployment Map", null, sysMapPanel, null,2);
+		displayTabbedPane.insertTab("Deployment Map", null, sysMapPanel, null,2);
 		GridBagLayout gbl_sysMapPanel = new GridBagLayout();
 		gbl_sysMapPanel.columnWidths = new int[] { 0, 0 };
 		gbl_sysMapPanel.rowHeights = new int[] { 0, 0 };
@@ -426,7 +426,7 @@ public class DHMSMDeploymentStrategyPlaySheet extends InputPanelPlaySheet {
 		
 		//panel with bar chart of savings for selected systems
 		sysBarChartPanel = new JPanel();
-		tabbedPane.insertTab("System Bar Chart", null, sysBarChartPanel, null,3);
+		displayTabbedPane.insertTab("System Bar Chart", null, sysBarChartPanel, null,3);
 		GridBagLayout gbl_sysBarChartPanel = new GridBagLayout();
 		gbl_sysBarChartPanel.columnWidths = new int[]{0, 0};
 		gbl_sysBarChartPanel.rowHeights = new int[]{0, 0};

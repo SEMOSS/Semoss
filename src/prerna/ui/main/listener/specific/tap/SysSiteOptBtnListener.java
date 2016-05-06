@@ -52,11 +52,8 @@ public class SysSiteOptBtnListener implements IChakraListener {
 	private int maxYears;
 	private double maxBudget;
 	private double infRate, disRate;
-	private double centralPercOfBudget, trainingPerc;
-	private double hourlyRate;
-	private double relConvergence, absConvergence;
-	private int noOfPts;
-	private SysSiteOptimizer optimizer;
+	private double centralPercOfBudget, trainPercOfBudget;
+	private double hourlyCost;
 	
 	/**
 	 * Method actionPerformed.
@@ -65,44 +62,41 @@ public class SysSiteOptBtnListener implements IChakraListener {
 	@Override
 	public void actionPerformed(ActionEvent arg0) {
 		LOGGER.info("Optimization Button Pushed");
-		boolean validInputs = setVariables();
+		if (!setVariables())
+			return;
 		
-		if (validInputs)
-		{	
-			IEngine siteEngine = (IEngine) DIHelper.getInstance().getLocalProp("TAP_Site_Data");
-			IEngine costEngine = (IEngine) DIHelper.getInstance().getLocalProp("TAP_Cost_Data");
-			
-			if(siteEngine == null || costEngine == null) {
-				Utility.showError("Cannot find required databases. Make sure you have all: " + "TAP_Cost_Data and TAP_Site_Data");
-				return;
-			}
-			
-			ArrayList<String> sysList = playSheet.sysSelectPanel.getSelectedSystems();
-			ArrayList<String> sysModList = playSheet.systemModernizePanel.getSelectedSystems();
-			ArrayList<String> sysDecomList = playSheet.systemDecomissionPanel.getSelectedSystems();
-			
-			//check to make sure user did not put the same system in the mod list and the decom list... may not be issue on web depending how UI is implemented
-			ArrayList<String> duplicates = SysOptUtilityMethods.inBothLists(sysModList, sysDecomList);
-			if (!duplicates.isEmpty()) {
-				Utility.showError("There is at least one system on the manually modernize and manually decommission. Please resolve the lists for systems: " + duplicates.toString());
-				return;
-			}
-			
-			//actually running the algorithm
-			optimizer = new SysSiteOptimizer();
-			optimizer.setEngines(playSheet.engine, costEngine, siteEngine); //likely TAP Core Data and tap site
-			optimizer.setVariables(maxBudget, maxYears, infRate, disRate, centralPercOfBudget, trainingPerc, hourlyRate, noOfPts, relConvergence, absConvergence); //budget per year, the number of years, infl rate, discount rate, training perc, number of points
-			optimizer.setUseDHMSMFunctionality(playSheet.useDHMSMFuncCheckbox.isSelected()); //whether the data objects will come from the list of systems or the dhmsm provided capabilities
-			optimizer.setOptimizationType(playSheet.getOptType()); //eventually will be Savings, ROI, or IRR
-			optimizer.setIsOptimizeBudget(playSheet.optimizeBudgetCheckbox.isSelected()); //true means that we are looking for optimal budget. false means that we are running LPSolve just for the single budget input
-			optimizer.setSysList(sysList, sysModList, sysDecomList); //list of all systems to use in analysis, force modernize and force decommision. Decommision is not implemented yet
-			optimizer.setPlaySheet(playSheet);
-
-			AlgorithmRunner runner = new AlgorithmRunner(optimizer);
-			Thread playThread = new Thread(runner);
-			playThread.start();
-
+		IEngine siteEngine = (IEngine) DIHelper.getInstance().getLocalProp("TAP_Site_Data");
+		
+		if(siteEngine == null) {
+			Utility.showError("Cannot find required databases. Make sure you have all: " + "TAP_Site_Data");
+			return;
 		}
+		
+		ArrayList<String> sysList = playSheet.sysSelectPanel.getSelectedSystems();
+		ArrayList<String> sysModList = playSheet.systemModernizePanel.getSelectedSystems();
+		ArrayList<String> sysDecomList = playSheet.systemDecomissionPanel.getSelectedSystems();
+		
+		//check to make sure user did not put the same system in the mod list and the decom list... may not be issue on web depending how UI is implemented
+		ArrayList<String> duplicates = SysOptUtilityMethods.inBothLists(sysModList, sysDecomList);
+		if (!duplicates.isEmpty()) {
+			Utility.showError("There is at least one system on the manually modernize and manually decommission. Please resolve the lists for systems: " + duplicates.toString());
+			return;
+		}
+		
+		//actually running the algorithm
+		SysSiteOptimizer optimizer = new SysSiteOptimizer();
+		if(!optimizer.setOptimizationType(playSheet.getOptType()))//Savings, ROI, or IRR
+			return;
+		optimizer.setEngines(playSheet.engine, siteEngine); //likely TAP Core Data and tap site
+		optimizer.setVariables(maxBudget, maxYears, infRate, disRate, centralPercOfBudget, trainPercOfBudget, hourlyCost);//budget per year, the number of years, infl rate, discount rate, training perc,
+		optimizer.setUseDHMSMFunctionality(playSheet.useDHMSMFuncCheckbox.isSelected()); //whether the data objects will come from the list of systems or the dhmsm provided capabilities
+		optimizer.setSysList(sysList, sysModList, sysDecomList); //list of all systems to use in analysis, force modernize and force decommision. Decommision is not implemented yet
+		optimizer.setPlaySheet(playSheet);
+
+		AlgorithmRunner runner = new AlgorithmRunner(optimizer);
+		Thread playThread = new Thread(runner);
+		playThread.start();
+
 	}
 	
 	/**
@@ -148,23 +142,6 @@ public class SysSiteOptBtnListener implements IChakraListener {
 		else 
 			this.centralPercOfBudget = centralPercOfBudget;
 
-		//convert to decimal
-		double relConvergence =Double.parseDouble(playSheet.relConvergenceField.getText())/100;
-		if(relConvergence<0 || relConvergence > 1){
-			failStr = failStr+"Relative Convergence must be between 0 and 100 inclusive\n";
-			failCount++;
-		}
-		else 
-			this.relConvergence = relConvergence;
-
-		//convert to decimal
-		double absConvergence =Double.parseDouble(playSheet.absConvergenceField.getText())/100;
-		if(absConvergence<0 || absConvergence > 1){
-			failStr = failStr+"Absolute Convergence must be between 0 and 100 inclusive\n";
-			failCount++;
-		}
-		else 
-			this.absConvergence = absConvergence;
 		
 		//convert to decimal
 		double trainingPerc =Double.parseDouble(playSheet.trainingPercField.getText())/100;
@@ -173,7 +150,7 @@ public class SysSiteOptBtnListener implements IChakraListener {
 			failCount++;
 		}
 		else 
-			this.trainingPerc = trainingPerc;
+			this.trainPercOfBudget = trainingPerc;
 
 		double hourlyRate = Double.parseDouble(playSheet.hourlyRateField.getText());
 		if(hourlyRate<1 ){
@@ -181,15 +158,7 @@ public class SysSiteOptBtnListener implements IChakraListener {
 			failCount++;
 		}
 		else 
-			this.hourlyRate = hourlyRate;
-	
-		int userNoPts = Integer.parseInt(playSheet.startingPtsField.getText());
-		if(userNoPts<1 ){
-			failStr = failStr+"Number of Starting Points must be greater than 0\n";
-			failCount++;
-		}
-		else 
-			this.noOfPts = userNoPts;
+			this.hourlyCost = hourlyRate;
 		
 		//convert to decimal
 		this.infRate = Double.parseDouble(playSheet.infRateField.getText())/100;

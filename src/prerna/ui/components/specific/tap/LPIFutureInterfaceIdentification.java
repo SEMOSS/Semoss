@@ -164,13 +164,13 @@ public class LPIFutureInterfaceIdentification extends GridPlaySheet {
 						if(status.contains(statusCheck)) {
 							
 							if(DHMSMVect.contains(data)){
-								status = "\"Interface proposed with: DHMSM\"";
+								status = "\"Interface proposed with: MHS GENESIS\"";
 							}
 							else if(lsHash.containsKey(data)){
 								status = "\"Interface Proposed with: " + lsHash.get(data) + "\"";
 							}
 							else{
-								status = "\"Needed, Not Present, and Neither DHMSM nor Low Prob SOR System Provides this Data\"";
+								status = "\"Needed, Not Present, and Neither MHS GENESIS nor Low Prob SOR System Provides this Data\"";
 							}
 						}
 						values[colIndex] = status;

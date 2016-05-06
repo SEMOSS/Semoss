@@ -39,7 +39,6 @@ import prerna.engine.api.IEngine;
 import prerna.engine.api.ISelectStatement;
 import prerna.engine.api.ISelectWrapper;
 import prerna.rdf.engine.wrappers.WrapperManager;
-import prerna.util.Constants;
 import prerna.util.ConstantsTAP;
 import prerna.util.DIHelper;
 
@@ -49,10 +48,9 @@ import prerna.util.DIHelper;
  */
 public class CapabilityFactSheetPerformer {
 	static final Logger logger = LogManager.getLogger(CapabilityFactSheetPerformer.class.getName());
-	String HRCoreEngine = "TAP_Core_Data";
-	String workingDir = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER);
-	CapabilityFactSheetCapSimCalculator capSim;
-	Hashtable masterHash = new Hashtable();
+	private String tapCoreDB = "TAP_Core_Data";
+	private CapabilityFactSheetCapSimCalculator capSim;
+	private Hashtable masterHash = new Hashtable();
 	
 	/**
 	 * Runs a query on a specific database and returns the result as an ArrayList
@@ -179,10 +177,10 @@ public class CapabilityFactSheetPerformer {
 		String participantQuery = "SELECT DISTINCT ?Participant WHERE { BIND(<http://health.mil/ontologies/Concept/Capability/Access_a_Healthy_and_Fit_Force> AS ?Capability){?Capability <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Capability> ;}{?Task <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Task>;}{?Participant <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Participant>;}{?Capability <http://semoss.org/ontologies/Relation/Consists> ?Task.} {?Task <http://semoss.org/ontologies/Relation/Requires> ?Participant.}}";
 		participantQuery = participantQuery.replaceAll("Access_a_Healthy_and_Fit_Force",capabilityName);
 				
-		ArrayList<Object> capabilityGroupResultsList = runListQuery(HRCoreEngine, capabilityGroupQuery);
-		ArrayList<Object> missionOutcomeResultsList = runListQuery(HRCoreEngine, missionOutcomeQuery);
-		ArrayList<Object> conopsSourceResultsList = runListQuery(HRCoreEngine, conopsSourceQuery);
-		ArrayList<Object> participantResultsList = runListQuery(HRCoreEngine, participantQuery);
+		ArrayList<Object> capabilityGroupResultsList = runListQuery(tapCoreDB, capabilityGroupQuery);
+		ArrayList<Object> missionOutcomeResultsList = runListQuery(tapCoreDB, missionOutcomeQuery);
+		ArrayList<Object> conopsSourceResultsList = runListQuery(tapCoreDB, conopsSourceQuery);
+		ArrayList<Object> participantResultsList = runListQuery(tapCoreDB, participantQuery);
 
 		ArrayList<Object> taskResultsList = (ArrayList<Object>)masterHash.get(ConstantsTAP.TASK_QUERY);
 		ArrayList<Object> taskCountResultsList = new ArrayList<Object>();
@@ -386,7 +384,7 @@ public class CapabilityFactSheetPerformer {
 		String dataObjectQuery = "SELECT DISTINCT ?Data (IF(SUM(IF(?CRM = 'C'||?CRM = 'M',1,0))>0,'C','R' )AS ?CRMCount) WHERE {BIND(<http://health.mil/ontologies/Concept/Capability/Access_a_Healthy_and_Fit_Force> AS ?Capability ){?Task <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Task>;}{?Needs <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Needs>;}{?Data <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/DataObject>;}{?Needs <http://semoss.org/ontologies/Relation/Contains/CRM> ?CRM;}{?Capability <http://semoss.org/ontologies/Relation/Consists> ?Task.}{?Task ?Needs ?Data.}} GROUP BY ?Data ORDER BY ?Data";		
 		dataObjectQuery = dataObjectQuery.replaceAll("Access_a_Healthy_and_Fit_Force",capabilityName);
 				
-		ArrayList<ArrayList<Object>> dataObjectResultsList = runQuery(HRCoreEngine, dataObjectQuery);
+		ArrayList<ArrayList<Object>> dataObjectResultsList = runQuery(tapCoreDB, dataObjectQuery);
 
 		returnHash.put(ConstantsTAP.DATA_OBJECT_QUERY, dataObjectResultsList);
 		masterHash.put(ConstantsTAP.DATA_OBJECT_QUERY, dataObjectResultsList);
@@ -406,7 +404,7 @@ public class CapabilityFactSheetPerformer {
 		String bluObjectQuery = "SELECT DISTINCT ?BusinessLogicUnit WHERE {BIND(<http://health.mil/ontologies/Concept/Capability/Access_a_Healthy_and_Fit_Force> AS ?Capability ){?Consists <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Consists>;}{?Task <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Task>;}{?BusinessLogicUnit <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/BusinessLogicUnit>} {?Task_Needs_BusinessLogicUnit <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Needs>}{?Capability ?Consists ?Task.}{?Task ?Task_Needs_BusinessLogicUnit ?BusinessLogicUnit}} ORDER BY ?BusinessLogicUnit";		
 		bluObjectQuery = bluObjectQuery.replaceAll("Access_a_Healthy_and_Fit_Force",capabilityName);
 				
-		ArrayList<ArrayList<Object>> bluObjectResultsList = runQuery(HRCoreEngine, bluObjectQuery);
+		ArrayList<ArrayList<Object>> bluObjectResultsList = runQuery(tapCoreDB, bluObjectQuery);
 
 		returnHash.put(ConstantsTAP.BLU_QUERY, bluObjectResultsList);
 		masterHash.put(ConstantsTAP.BLU_QUERY, bluObjectResultsList);
@@ -426,7 +424,7 @@ public class CapabilityFactSheetPerformer {
 		String functionalGapQuery = "SELECT DISTINCT (COALESCE(?FError1,?FError2) AS ?FError) WHERE {BIND(<http://health.mil/ontologies/Concept/Capability/Access_a_Healthy_and_Fit_Force> AS ?Capability) {?Consists <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Consists>;}{?Task <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Task>;}{?Capability ?Consists ?Task.}{{?BusinessLogicUnit <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/BusinessLogicUnit>} {?Task_Needs_BusinessLogicUnit <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Needs>}{?FError1 <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/FError>} {?FError_Needs_BusinessLogicUnit <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Needs>}{?Task ?Task_Needs_BusinessLogicUnit ?BusinessLogicUnit}{?FError1 ?FError_Needs_BusinessLogicUnit ?BusinessLogicUnit} } UNION { {?Data <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/DataObject>} {?Task_Needs_Data <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Needs>}{?Task ?Task_Needs_Data ?Data}{?FError2 <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/FError>} {?FError_Needs_Data <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Needs>}{?Task ?Task_Needs_Data ?Data}{?FError2 ?FError_Needs_Data ?Data} }} ORDER BY ?FError";		
 		functionalGapQuery = functionalGapQuery.replaceAll("Access_a_Healthy_and_Fit_Force",capabilityName);
 				
-		ArrayList<ArrayList<Object>> functionalGapResultsList = runQuery(HRCoreEngine, functionalGapQuery);
+		ArrayList<ArrayList<Object>> functionalGapResultsList = runQuery(tapCoreDB, functionalGapQuery);
 		
 		returnHash.put(ConstantsTAP.FUNCTIONAL_GAP_QUERY, functionalGapResultsList);
 		masterHash.put(ConstantsTAP.FUNCTIONAL_GAP_QUERY, functionalGapResultsList);
@@ -452,8 +450,8 @@ public class CapabilityFactSheetPerformer {
 		String bpQuery = "SELECT DISTINCT ?BusinessProcess WHERE {BIND(<http://health.mil/ontologies/Concept/Capability/Access_a_Healthy_and_Fit_Force> AS ?Capability ){?Task <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Task> ; }{?Needs <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Needs>;} {?BusinessProcess <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/BusinessProcess>;}{?Capability <http://semoss.org/ontologies/Relation/Consists> ?Task.} {?Task ?Needs ?BusinessProcess}} ORDER BY ?BusinessProcess";		
 		bpQuery = bpQuery.replaceAll("Access_a_Healthy_and_Fit_Force",capabilityName);
 				
-		ArrayList<ArrayList<Object>> taskResultsList = runQuery(HRCoreEngine, taskQuery);
-		ArrayList<ArrayList<Object>> bpResultsList = runQuery(HRCoreEngine, bpQuery);
+		ArrayList<ArrayList<Object>> taskResultsList = runQuery(tapCoreDB, taskQuery);
+		ArrayList<ArrayList<Object>> bpResultsList = runQuery(tapCoreDB, bpQuery);
 
 		returnHash.put(ConstantsTAP.TASK_QUERY, taskResultsList);
 		returnHash.put(ConstantsTAP.BP_QUERY, bpResultsList);
@@ -485,9 +483,9 @@ public class CapabilityFactSheetPerformer {
 		tsQuery = tsQuery.replaceAll("Access_a_Healthy_and_Fit_Force",capabilityName);
 
 				
-		ArrayList<ArrayList<Object>> brResultsList = runQuery(HRCoreEngine, brQuery);
-		ArrayList<ArrayList<Object>> bsResultsList = runQuery(HRCoreEngine, bsQuery);
-		ArrayList<ArrayList<Object>> tsResultsList = runQuery(HRCoreEngine, tsQuery);
+		ArrayList<ArrayList<Object>> brResultsList = runQuery(tapCoreDB, brQuery);
+		ArrayList<ArrayList<Object>> bsResultsList = runQuery(tapCoreDB, bsQuery);
+		ArrayList<ArrayList<Object>> tsResultsList = runQuery(tapCoreDB, tsQuery);
 
 		returnHash.put(ConstantsTAP.BR_QUERY, brResultsList);
 		returnHash.put(ConstantsTAP.BS_QUERY, bsResultsList);
@@ -510,7 +508,7 @@ public class CapabilityFactSheetPerformer {
 	 */
 	public Hashtable processSystemQueries(String capabilityName) {
 		DHMSMHelper dhelp = new DHMSMHelper();
-		IEngine engine = (IEngine) DIHelper.getInstance().getLocalProp(HRCoreEngine);
+		IEngine engine = (IEngine) DIHelper.getInstance().getLocalProp(tapCoreDB);
 		dhelp.runData(engine);
 		
 		ArrayList<ArrayList<String>> capProvideSysProvideResultsList = dhelp.getSysAndData(capabilityName, "C", "C");

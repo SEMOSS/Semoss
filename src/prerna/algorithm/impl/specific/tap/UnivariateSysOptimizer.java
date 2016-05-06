@@ -156,8 +156,6 @@ public class UnivariateSysOptimizer extends UnivariateOpt {
 	private void getData() {
 		
 		resFunc = new ResidualSystemOptFillData();
-		resFunc.setMaxYears(maxYears);
-		resFunc.setPlaySheet((SysOptPlaySheet) playSheet);
 		resFunc.setEngines(systemEngine, costEngine, siteEngine);
 		
 		if (includeRegionalization) {
@@ -165,10 +163,28 @@ public class UnivariateSysOptimizer extends UnivariateOpt {
 		}else
 			resFunc.setSysDataBLULists(SysOptUtilityMethods.deepCopy(sysList), SysOptUtilityMethods.deepCopy(dataList), SysOptUtilityMethods.deepCopy(bluList), null, SysOptUtilityMethods.deepCopy(systemMustModernize), SysOptUtilityMethods.deepCopy(systemMustDecommission));
 		
-		if (ignoreTheatGarr)
+		if (ignoreTheatGarr) {
 			reducedFunctionality = resFunc.fillDataStores();
-		else
+		}else {
 			reducedFunctionality = resFunc.fillTheaterGarrisonDataStores(includeTheater, includeGarrison);
+		}
+		
+		if(playSheet!=null) {
+			String sysString = SysOptUtilityMethods.convertToString(sysList);
+			playSheet.consoleArea.setText(playSheet.consoleArea.getText()+"\nSystems to be Considered..."+sysString);
+			
+			String missingSysCostString = SysOptUtilityMethods.convertToStringIfZero(sysList,resFunc.systemCostOfMaintenance);
+			playSheet.consoleArea.setText(playSheet.consoleArea.getText()+"\nSystems with no budget information..."+missingSysCostString);
+			String missingSiteString = SysOptUtilityMethods.convertToStringIfZero(sysList,resFunc.systemNumOfSites);
+			playSheet.consoleArea.setText(playSheet.consoleArea.getText()+"\nSystems with no site information..."+missingSiteString);
+			
+			String dataString = SysOptUtilityMethods.convertToString(dataList);
+			playSheet.consoleArea.setText(playSheet.consoleArea.getText()+"\nData Objects Considered..."+dataString);
+			
+			String bluString = SysOptUtilityMethods.convertToString(bluList);
+			playSheet.consoleArea.setText(playSheet.consoleArea.getText()+"\nBLUs Considered..."+bluString);
+
+		}
 	}
 	
 	private void getModernizedSysList() {
@@ -368,7 +384,7 @@ public class UnivariateSysOptimizer extends UnivariateOpt {
 			for (int i = 0; i < sysList.size(); i++) {
 				Object[] newRow = new Object[size];
 				newRow[0] = resFunc.sysList.get(i);
-				newRow[1] = resFunc.systemLPI[i];
+				newRow[1] = resFunc.systemDisposition[i];
 				newRow[2] = resFunc.systemMHSSpecific[i];
 				if (resFunc.systemTheater != null
 						&& resFunc.systemTheater[i] > 0)
@@ -408,7 +424,7 @@ public class UnivariateSysOptimizer extends UnivariateOpt {
 			for (int i = 0; i < sysList.size(); i++) {
 				Object[] newRow = new Object[size];
 				newRow[0] = resFunc.sysList.get(i);
-				newRow[1] = resFunc.systemLPI[i];
+				newRow[1] = resFunc.systemDisposition[i];
 				newRow[2] = resFunc.systemMHSSpecific[i];
 				newRow[3] = resFunc.systemCONOPS[i];
 				newRow[4] = resFunc.systemCapabilityGroup[i];

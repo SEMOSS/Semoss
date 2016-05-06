@@ -103,7 +103,7 @@ public class DHMSMCapabilitySelectPanel extends JPanel {
 		gbc_allCapButton.gridy = 1;
 		this.add(allCapButton, gbc_allCapButton);
 
-		dhmsmCapButton = new JCheckBox("DHMSM");
+		dhmsmCapButton = new JCheckBox("MHS GENESIS");
 		dhmsmCapButton.setName("dhmsmCapButton");
 		GridBagConstraints gbc_dhmsmCapButton = new GridBagConstraints();
 		gbc_dhmsmCapButton.anchor = GridBagConstraints.WEST;

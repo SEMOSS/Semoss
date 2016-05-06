@@ -43,7 +43,7 @@ import prerna.ui.components.ParamComboBox;
 import prerna.ui.components.api.IChakraListener;
 import prerna.ui.components.specific.tap.DHMSMDispositionFactSheetProcessor;
 import prerna.ui.components.specific.tap.DHMSMHelper;
-import prerna.util.Constants;
+import prerna.util.ConstantsTAP;
 import prerna.util.DIHelper;
 import prerna.util.Utility;
 
@@ -69,9 +69,9 @@ public class FactSheetListener implements IChakraListener {
 	@Override
 	public void actionPerformed(ActionEvent arg0) {
 		JComboBox reportTypeToggleComboBox = (JComboBox) DIHelper.getInstance().getLocalProp(
-				Constants.FACT_SHEET_REPORT_TYPE_TOGGLE_COMBO_BOX);
+				ConstantsTAP.FACT_SHEET_REPORT_TYPE_TOGGLE_COMBO_BOX);
 		JComboBox reportSystemToggleComboBox = (JComboBox) DIHelper.getInstance().getLocalProp(
-				Constants.FACT_SHEET_REPORT_SYSTEM_TOGGLE_COMBO_BOX);
+				ConstantsTAP.FACT_SHEET_REPORT_SYSTEM_TOGGLE_COMBO_BOX);
 		String reportType = (String) reportTypeToggleComboBox.getSelectedItem();
 		String systemSelectionType = (String) reportSystemToggleComboBox.getSelectedItem();
 		String system = null;
@@ -83,7 +83,7 @@ public class FactSheetListener implements IChakraListener {
 		
 		if (reportType.contains("Services")) {
 			processor = new FactSheetProcessor();
-		} else if (reportType.contains("DHMSM Disposition")) {
+		} else if (reportType.contains("MHS GENESIS Disposition")) {
 			try {
 				processor = new DHMSMDispositionFactSheetProcessor();
 			} catch (IOException e) {
@@ -95,7 +95,7 @@ public class FactSheetListener implements IChakraListener {
 		if (systemSelectionType.contains("Specific")) {
 			ParamComboBox systemComboBox = (ParamComboBox) DIHelper
 					.getInstance().getLocalProp(
-							Constants.FACT_SHEET_SYSTEM_SELECT_COMBO_BOX);
+							ConstantsTAP.FACT_SHEET_SYSTEM_SELECT_COMBO_BOX);
 			system = (String) systemComboBox.getSelectedItem();
 			processor.setDHMSMHelper(dhelp);
 			processor.generateSystemReport(system, true);

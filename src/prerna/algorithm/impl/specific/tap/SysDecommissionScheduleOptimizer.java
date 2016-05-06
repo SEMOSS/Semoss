@@ -64,27 +64,23 @@ public class SysDecommissionScheduleOptimizer implements IAlgorithm{
 	
 	DHMSMSysDecommissionSchedulingPlaySheet playSheet;
 	public int maxYears;
-	double serMainPerc;
-	double minBudget;
-	double maxBudget;
-	double hourlyCost;
-	double percentOfPilot = 0.20;
-	double budget = 100000000.0;
-	double totalTransformCost=0.0;
+	private double serMainPerc;
+	private double percentOfPilot = 0.20;
+	private double budget = 100000000.0;
+	private double totalTransformCost=0.0;
 
 	public double totalSavings=0.0;
 	public double investment=0.0;
 
-	String bindStr = "";
-	JProgressBar progressBar;
-	SysDecommissionOptimizationFunctions optFunctions;
-    SysDecommissionSchedulingSavingsOptimizer opt;
-    SystemPropertyGridPlaySheet sysBudgetSheet;
+	private JProgressBar progressBar;
+	private SysDecommissionOptimizationFunctions optFunctions;
+	private SysDecommissionSchedulingSavingsOptimizer opt;
+	private SystemPropertyGridPlaySheet sysBudgetSheet;
 
-	private static String hrCoreDB = "TAP_Core_Data";
-	private static String systemListQuery = "SELECT DISTINCT ?System WHERE {{?System <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/ActiveSystem> ;}{?System <http://semoss.org/ontologies/Relation/Contains/Probability_of_Included_BoS_Enterprise_EHRS> ?HighProb} {?System <http://semoss.org/ontologies/Relation/Contains/MHS_Specific> 'N'} FILTER(?HighProb in('High','Question'))}";
+	private static String tapCoreDB = "TAP_Core_Data";
+	private static String systemListQuery = "SELECT DISTINCT ?System WHERE {{?System <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/ActiveSystem> ;}{?System <http://semoss.org/ontologies/Relation/Contains/Disposition> 'High'} {?System <http://semoss.org/ontologies/Relation/Contains/MHS_Specific> 'N'}{?System <http://semoss.org/ontologies/Relation/Contains/Device> 'N'} {?System <http://semoss.org/ontologies/Relation/Contains/Review_Status> ?Review_Status}FILTER (?Review_Status in('FAC Approved','FCLG Approved'))}";
 	
-	private static String systemBudgetQuery = "High;All;All; SELECT DISTINCT ?System (GROUP_CONCAT(?OwnerName ; SEPARATOR = ', ') AS ?Owner) ?GarrisonTheater ?MHS_Specific ?Transaction_Count ?ATO_Date ?End_Of_Support ?Num_Users WHERE { SELECT DISTINCT ?System (COALESCE(SUBSTR(STR(?Own),50),'') AS ?OwnerName) (COALESCE(?GT, 'Garrison') AS ?GarrisonTheater) ?MHS_Specific (COALESCE(?TC,'') AS ?Transaction_Count) (COALESCE(SUBSTR(STR(?ATO),0,10),'') AS ?ATO_Date) (COALESCE(SUBSTR(STR(?ES),0,10),'') AS ?End_Of_Support) (COALESCE(?NU,'') AS ?Num_Users) ?Probability WHERE { {?System <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/ActiveSystem>} {?System <http://semoss.org/ontologies/Relation/Contains/Received_Information> 'Y'} {?System <http://semoss.org/ontologies/Relation/Contains/Device_InterfaceYN> 'N'} {?System <http://semoss.org/ontologies/Relation/Contains/MHS_Specific> 'N'} BIND('N' AS ?MHS_Specific)OPTIONAL{{?System <http://semoss.org/ontologies/Relation/Contains/GarrisonTheater> ?GT}} OPTIONAL{{?System <http://semoss.org/ontologies/Relation/Contains/Transaction_Count> ?TC}} OPTIONAL{{?System <http://semoss.org/ontologies/Relation/Contains/ATO_Date> ?ATO}} OPTIONAL{{?System <http://semoss.org/ontologies/Relation/Contains/End_of_Support_Date> ?ES}} OPTIONAL{{?System <http://semoss.org/ontologies/Relation/Contains/Number_of_Users> ?NU}} OPTIONAL{{?System <http://semoss.org/ontologies/Relation/OwnedBy> ?Own}} } }  GROUP BY ?System ?GarrisonTheater ?MHS_Specific ?Transaction_Count ?ATO_Date ?End_Of_Support ?Num_Users ORDER BY ?System";
+	private static String systemBudgetQuery = "High;All;All; SELECT DISTINCT ?System (GROUP_CONCAT(?OwnerName ; SEPARATOR = ', ') AS ?Owner) ?GarrisonTheater ?MHS_Specific ?Transaction_Count ?ATO_Date ?End_Of_Support ?Num_Users WHERE { SELECT DISTINCT ?System (COALESCE(SUBSTR(STR(?Own),50),'') AS ?OwnerName) (COALESCE(?GT, 'Garrison') AS ?GarrisonTheater) ?MHS_Specific (COALESCE(?TC,'') AS ?Transaction_Count) (COALESCE(SUBSTR(STR(?ATO),0,10),'') AS ?ATO_Date) (COALESCE(SUBSTR(STR(?ES),0,10),'') AS ?End_Of_Support) (COALESCE(?NU,'') AS ?Num_Users) ?Probability WHERE { {?System <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/ActiveSystem>} {?System <http://semoss.org/ontologies/Relation/Contains/Disposition> ?Disp} {?System <http://semoss.org/ontologies/Relation/Contains/Device> 'N'} {?System <http://semoss.org/ontologies/Relation/Contains/MHS_Specific> 'N'}{?System <http://semoss.org/ontologies/Relation/Contains/Review_Status> ?Review_Status}FILTER (?Review_Status in('FAC Approved','FCLG Approved')) OPTIONAL{{?System <http://semoss.org/ontologies/Relation/Contains/GarrisonTheater> ?GT}} OPTIONAL{{?System <http://semoss.org/ontologies/Relation/Contains/Transaction_Count> ?TC}} OPTIONAL{{?System <http://semoss.org/ontologies/Relation/Contains/ATO_Date> ?ATO}} OPTIONAL{{?System <http://semoss.org/ontologies/Relation/Contains/End_of_Support_Date> ?ES}} OPTIONAL{{?System <http://semoss.org/ontologies/Relation/Contains/Number_of_Users> ?NU}} OPTIONAL{{?System <http://semoss.org/ontologies/Relation/OwnedBy> ?Own}} } }  GROUP BY ?System ?GarrisonTheater ?MHS_Specific ?Transaction_Count ?ATO_Date ?End_Of_Support ?Num_Users ORDER BY ?System";
 
 	private ArrayList<String> systemList = new ArrayList<String>();
 	private Hashtable<String, Double[]> sysToBudgetHash;
@@ -97,12 +93,10 @@ public class SysDecommissionScheduleOptimizer implements IAlgorithm{
 	 * @param minBudget double
 	 * @param maxBudget double
 	 */
-	public void setVariables(int maxYears,double serMainPerc,double minBudget, double maxBudget)
+	public void setVariables(int maxYears,double serMainPerc)
 	{
 		this.maxYears = maxYears;
 		this.serMainPerc = serMainPerc;
-		this.minBudget = minBudget*1000000;
-		this.maxBudget = maxBudget*1000000;
 	}
 	
 	public void setProgressBar (JProgressBar progressBar) {
@@ -232,7 +226,7 @@ public class SysDecommissionScheduleOptimizer implements IAlgorithm{
 		
 	    sysBudgetSheet = new SystemPropertyGridPlaySheet();
 	    sysBudgetSheet.setQuery(systemBudgetQuery);
-		IEngine engine = (IEngine) DIHelper.getInstance().getLocalProp(hrCoreDB);
+		IEngine engine = (IEngine) DIHelper.getInstance().getLocalProp(tapCoreDB);
 		sysBudgetSheet.setRDFEngine(engine);
 		sysBudgetSheet.setAccountingFormat(false);
 	    sysBudgetSheet.createData();
@@ -303,7 +297,7 @@ public class SysDecommissionScheduleOptimizer implements IAlgorithm{
 	
 	public void createSystemList() {
 		
-		ISelectWrapper wrapper = executeQuery(hrCoreDB,systemListQuery);
+		ISelectWrapper wrapper = executeQuery(tapCoreDB,systemListQuery);
 
 		// get the bindings from it
 		String[] names = wrapper.getVariables();

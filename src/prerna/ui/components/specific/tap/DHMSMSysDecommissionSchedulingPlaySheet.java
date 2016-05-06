@@ -189,7 +189,7 @@ public class DHMSMSysDecommissionSchedulingPlaySheet extends InputPanelPlaySheet
 		gbc_lblNewLabel.insets = new Insets(0, 0, 5, 5);
 		gbc_lblNewLabel.gridx = 0;
 		gbc_lblNewLabel.gridy = 1;
-		panel_1.add(lblSavingLabel, gbc_lblNewLabel);
+		overallAlysMetricsPanel.add(lblSavingLabel, gbc_lblNewLabel);
 
 		savingLbl = new JLabel("");
 		GridBagConstraints gbc_savingLbl = new GridBagConstraints();
@@ -197,7 +197,7 @@ public class DHMSMSysDecommissionSchedulingPlaySheet extends InputPanelPlaySheet
 		gbc_savingLbl.insets = new Insets(0, 0, 5, 5);
 		gbc_savingLbl.gridx = 1;
 		gbc_savingLbl.gridy = 1;
-		panel_1.add(savingLbl, gbc_savingLbl);
+		overallAlysMetricsPanel.add(savingLbl, gbc_savingLbl);
 		
 		JLabel lblNetSavinglabel = new JLabel("Total net transition savings over time horizon:");
 		GridBagConstraints gbc_lblNetSavinglabel = new GridBagConstraints();
@@ -205,7 +205,7 @@ public class DHMSMSysDecommissionSchedulingPlaySheet extends InputPanelPlaySheet
 		gbc_lblNetSavinglabel.insets = new Insets(0, 30, 5, 5);
 		gbc_lblNetSavinglabel.gridx = 2;
 		gbc_lblNetSavinglabel.gridy = 1;
-		panel_1.add(lblNetSavinglabel, gbc_lblNetSavinglabel);
+		overallAlysMetricsPanel.add(lblNetSavinglabel, gbc_lblNetSavinglabel);
 
 		netSavingLbl = new JLabel("");
 		GridBagConstraints gbc_netSavingLbl = new GridBagConstraints();
@@ -213,7 +213,7 @@ public class DHMSMSysDecommissionSchedulingPlaySheet extends InputPanelPlaySheet
 		gbc_netSavingLbl.insets = new Insets(0, 0, 5, 5);
 		gbc_netSavingLbl.gridx = 3;
 		gbc_netSavingLbl.gridy = 1;
-		panel_1.add(netSavingLbl, gbc_netSavingLbl);
+		overallAlysMetricsPanel.add(netSavingLbl, gbc_netSavingLbl);
 
 		JLabel lblTotalRoiOver = new JLabel("Total ROI over time horizon:");
 		GridBagConstraints gbc_lblTotalRoiOver = new GridBagConstraints();
@@ -221,7 +221,7 @@ public class DHMSMSysDecommissionSchedulingPlaySheet extends InputPanelPlaySheet
 		gbc_lblTotalRoiOver.insets = new Insets(0, 30, 5, 5);
 		gbc_lblTotalRoiOver.gridx = 4;
 		gbc_lblTotalRoiOver.gridy = 1;
-		panel_1.add(lblTotalRoiOver, gbc_lblTotalRoiOver);
+		overallAlysMetricsPanel.add(lblTotalRoiOver, gbc_lblTotalRoiOver);
 
 		roiLbl = new JLabel("");
 		GridBagConstraints gbc_roiLbl = new GridBagConstraints();
@@ -229,7 +229,7 @@ public class DHMSMSysDecommissionSchedulingPlaySheet extends InputPanelPlaySheet
 		gbc_roiLbl.insets = new Insets(0, 0, 5, 5);
 		gbc_roiLbl.gridx = 5;
 		gbc_roiLbl.gridy = 1;
-		panel_1.add(roiLbl, gbc_roiLbl);
+		overallAlysMetricsPanel.add(roiLbl, gbc_roiLbl);
 		
 		JLabel lblInvestLabel = new JLabel("Total investment cost:");
 		GridBagConstraints gbc_lblInvestLabel = new GridBagConstraints();
@@ -237,7 +237,7 @@ public class DHMSMSysDecommissionSchedulingPlaySheet extends InputPanelPlaySheet
 		gbc_lblInvestLabel.insets = new Insets(0, 0, 0, 5);
 		gbc_lblInvestLabel.gridx = 0;
 		gbc_lblInvestLabel.gridy = 2;
-		panel_1.add(lblInvestLabel, gbc_lblInvestLabel);
+		overallAlysMetricsPanel.add(lblInvestLabel, gbc_lblInvestLabel);
 
 		investLbl = new JLabel("");
 		GridBagConstraints gbc_investLbl = new GridBagConstraints();
@@ -245,7 +245,7 @@ public class DHMSMSysDecommissionSchedulingPlaySheet extends InputPanelPlaySheet
 		gbc_investLbl.anchor = GridBagConstraints.WEST;
 		gbc_investLbl.gridx = 1;
 		gbc_investLbl.gridy = 2;
-		panel_1.add(investLbl, gbc_investLbl);
+		overallAlysMetricsPanel.add(investLbl, gbc_investLbl);
 		
 		JLabel lblBudgetLabel = new JLabel("Annual Budget during transition:");
 		GridBagConstraints gbc_lblBudgetLabel = new GridBagConstraints();
@@ -253,7 +253,7 @@ public class DHMSMSysDecommissionSchedulingPlaySheet extends InputPanelPlaySheet
 		gbc_lblBudgetLabel.insets = new Insets(0, 30, 0, 5);
 		gbc_lblBudgetLabel.gridx = 2;
 		gbc_lblBudgetLabel.gridy = 2;
-		panel_1.add(lblBudgetLabel, gbc_lblBudgetLabel);
+		overallAlysMetricsPanel.add(lblBudgetLabel, gbc_lblBudgetLabel);
 
 		budgetLbl = new JLabel("");
 		GridBagConstraints gbc_budgetLbl = new GridBagConstraints();
@@ -261,22 +261,22 @@ public class DHMSMSysDecommissionSchedulingPlaySheet extends InputPanelPlaySheet
 		gbc_budgetLbl.anchor = GridBagConstraints.WEST;
 		gbc_budgetLbl.gridx = 3;
 		gbc_budgetLbl.gridy = 2;
-		panel_1.add(budgetLbl, gbc_budgetLbl);
+		overallAlysMetricsPanel.add(budgetLbl, gbc_budgetLbl);
 		
 		
-		chartPanel = new JPanel();
-		chartPanel.setBackground(Color.WHITE);
+		overallAlysChartPanel = new JPanel();
+		overallAlysChartPanel.setBackground(Color.WHITE);
 		GridBagConstraints gbc_chartPanel = new GridBagConstraints();
 		gbc_chartPanel.anchor = GridBagConstraints.NORTHWEST;
 		gbc_chartPanel.gridx = 1;
 		gbc_chartPanel.gridy = 1;
-		overallAlysPanel.add(chartPanel, gbc_chartPanel);
+		overallAlysPanel.add(overallAlysChartPanel, gbc_chartPanel);
 		GridBagLayout gbl_chartPanel = new GridBagLayout();
 		gbl_chartPanel.columnWidths = new int[]{0,0};
 		gbl_chartPanel.rowHeights = new int[]{0,0};
 		gbl_chartPanel.columnWeights = new double[]{0.0};
 		gbl_chartPanel.rowWeights = new double[]{0.0};
-		chartPanel.setLayout(gbl_chartPanel);
+		overallAlysChartPanel.setLayout(gbl_chartPanel);
 		
 		tab1 = new BrowserGraphPanel("/html/MHS-RDFSemossCharts/app/singlechart.html");
 		tab1.setPreferredSize(new Dimension(500, 400));
@@ -304,38 +304,38 @@ public class DHMSMSysDecommissionSchedulingPlaySheet extends InputPanelPlaySheet
 		gbc_panel_1_1.insets = new Insets(0, 0, 5, 5);
 		gbc_panel_1_1.gridx = 0;
 		gbc_panel_1_1.gridy = 0;
-		chartPanel.add(tab1, gbc_panel_1_1);
+		overallAlysChartPanel.add(tab1, gbc_panel_1_1);
 
 		GridBagConstraints gbc_advParamPanel1 = new GridBagConstraints();
 		gbc_advParamPanel1.insets = new Insets(0, 0, 5, 0);
 		gbc_advParamPanel1.fill = GridBagConstraints.BOTH;
 		gbc_advParamPanel1.gridx = 1;
 		gbc_advParamPanel1.gridy = 0;
-		chartPanel.add(tab2, gbc_advParamPanel1);
+		overallAlysChartPanel.add(tab2, gbc_advParamPanel1);
 		
 		GridBagConstraints gbc_panel = new GridBagConstraints();
 		gbc_panel.insets = new Insets(0, 0, 0, 5);
 		gbc_panel.fill = GridBagConstraints.BOTH;
 		gbc_panel.gridx = 0;
 		gbc_panel.gridy = 1;
-		chartPanel.add(tab3,  gbc_panel);
+		overallAlysChartPanel.add(tab3,  gbc_panel);
 		
 		GridBagConstraints gbc_panel2 = new GridBagConstraints();
 		gbc_panel2.insets = new Insets(0, 0, 0, 5);
 		gbc_panel2.fill = GridBagConstraints.BOTH;
 		gbc_panel2.gridx = 1;
 		gbc_panel2.gridy = 1;
-		chartPanel.add(tab4,  gbc_panel2);
+		overallAlysChartPanel.add(tab4,  gbc_panel2);
 
 		GridBagConstraints gbc_panel3 = new GridBagConstraints();
 		gbc_panel3.insets = new Insets(0, 0, 0, 5);
 		gbc_panel3.fill = GridBagConstraints.BOTH;
 		gbc_panel3.gridx = 0;
 		gbc_panel3.gridy = 2;
-		chartPanel.add(tab5,  gbc_panel3);
+		overallAlysChartPanel.add(tab5,  gbc_panel3);
 		
 		sysNumSitesAnalPanel = new JPanel();
-		tabbedPane.addTab("System Site Analysis", null, sysNumSitesAnalPanel, null);
+		displayTabbedPane.addTab("System Site Analysis", null, sysNumSitesAnalPanel, null);
 		GridBagLayout gbl_specificSysAlysPanel = new GridBagLayout();
 		gbl_specificSysAlysPanel.columnWidths = new int[]{0, 0};
 		gbl_specificSysAlysPanel.rowHeights = new int[]{0, 0};
@@ -344,7 +344,7 @@ public class DHMSMSysDecommissionSchedulingPlaySheet extends InputPanelPlaySheet
 		sysNumSitesAnalPanel.setLayout(gbl_specificSysAlysPanel);
 		
 		sysCostSavingsAnalPanel = new JPanel();
-		tabbedPane.addTab("System Cost/Savings Analysis", null, sysCostSavingsAnalPanel, null);
+		displayTabbedPane.addTab("System Cost/Savings Analysis", null, sysCostSavingsAnalPanel, null);
 		GridBagLayout gbl_sysCostSavingsAnalPanel = new GridBagLayout();
 		gbl_sysCostSavingsAnalPanel.columnWidths = new int[]{0, 0};
 		gbl_sysCostSavingsAnalPanel.rowHeights = new int[]{0, 0};

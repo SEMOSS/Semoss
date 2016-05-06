@@ -358,7 +358,7 @@ public class DHMSMIntegrationTransitionBySystemOwnerWriter {
 	
 	
 	public void writeFile(String owner) {
-		String fileName = "DHMSM_Transition_Estimate_by_" + owner + ".xlsx";
+		String fileName = "MHS_GENESIS_Transition_Estimate_by_" + owner + ".xlsx";
 		Utility.writeWorkbook(wb, workingDir + folder + fileName);
 	}
 

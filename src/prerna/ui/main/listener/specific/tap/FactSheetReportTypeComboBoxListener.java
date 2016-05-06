@@ -37,7 +37,7 @@ import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
 import prerna.ui.main.listener.impl.AbstractListener;
-import prerna.util.Constants;
+import prerna.util.ConstantsTAP;
 import prerna.util.DIHelper;
 
 /**
@@ -62,7 +62,7 @@ public class FactSheetReportTypeComboBoxListener extends AbstractListener {
 		JComboBox bx = (JComboBox)arg0.getSource();
 		String reportType = bx.getSelectedItem() + "";
 
-		JPanel sysDropdownPanel = (JPanel) DIHelper.getInstance().getLocalProp(Constants.FACT_SHEET_SYSTEM_DROP_DOWN_PANEL);
+		JPanel sysDropdownPanel = (JPanel) DIHelper.getInstance().getLocalProp(ConstantsTAP.FACT_SHEET_SYSTEM_DROP_DOWN_PANEL);
 
 		if(reportType.contains("All Systems")){
 			//hide additional components

@@ -39,6 +39,7 @@ import prerna.ui.components.UpdateProcessor;
 import prerna.ui.components.api.IChakraListener;
 import prerna.ui.components.specific.tap.BusinessValueInserter;
 import prerna.util.Constants;
+import prerna.util.ConstantsTAP;
 import prerna.util.DIHelper;
 import prerna.util.Utility;
 
@@ -56,7 +57,7 @@ public class RunBVAloneButtonListener implements IChakraListener{
 	@Override
 	public void actionPerformed(ActionEvent arg0) {
 		//get soaAlphaValue
-		JTextField textField1 = (JTextField) DIHelper.getInstance().getLocalProp(Constants.SOA_ALPHA_VALUE_TEXT_BOX);
+		JTextField textField1 = (JTextField) DIHelper.getInstance().getLocalProp(ConstantsTAP.SOA_ALPHA_VALUE_TEXT_BOX);
 		String soaTextValue = textField1.getText();
 
 		Double soaAlphaValue = 0.0;

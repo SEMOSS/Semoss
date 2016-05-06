@@ -35,6 +35,7 @@ import prerna.engine.api.ISelectStatement;
 import prerna.engine.api.ISelectWrapper;
 import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.ui.helpers.EntityFiller;
+import prerna.util.Utility;
 
 public final class SysOptUtilityMethods {
 
@@ -85,6 +86,87 @@ public final class SysOptUtilityMethods {
 		return list;
 	}
 	
+//	/** TODO remove
+//	 * Gets the list of all capabilities for a selected functional area
+//	 * @param sparqlQuery 		String containing the query to get all capabilities for a selected functional area
+//	 * @return capabilities		Vector<String> containing list of all capabilities for a selected functional area
+//	 */
+//	public static Vector<String> getList(IEngine engine, String type, String sparqlQuery)
+//	{
+//		Vector<String> retList=new Vector<String>();
+//		try{
+//			EntityFiller filler = new EntityFiller();
+//			filler.engineName = engine.getEngineName();
+//			filler.type = type;
+//			filler.setExternalQuery(sparqlQuery);
+//			filler.run();
+//			Vector names = filler.nameVector;
+//			for (int i = 0;i<names.size();i++) {
+//				retList.add((String) names.get(i));
+//			}
+//		}catch(NullPointerException e) {
+//			System.out.println("Concept does not exist in DB");
+//		}
+//		return retList;
+//		
+//	}
+	
+	/**
+	 * Runs a query on a specific engine.
+	 * @param engineName 	String containing the name of the database engine to be queried
+	 * @param query 		String containing the SPARQL query to run
+	 */
+	public static ArrayList<Object []> runQuery (IEngine engine, String query){
+		ArrayList<Object []> list = new ArrayList<Object []>();
+		ISelectWrapper wrapper = Utility.processQuery(engine, query);
+
+		String[] names = wrapper.getVariables();
+		int numVals = names.length;
+		while (wrapper.hasNext()) {
+			ISelectStatement statement = wrapper.next();
+			Object[] row = new Object[numVals];
+			int i = 0;
+			for(i = 0; i<numVals; i++) {
+				row[i] = statement.getVar(names[i]);
+			}
+			list.add(row);
+		}
+		return list;
+	}
+
+	
+	public static int[][] fillMatrixFromQuery(IEngine engine, String query,int[][] matrix,ArrayList<String> rowNames,ArrayList<String> colNames) {
+
+		ISelectWrapper wrapper = WrapperManager.getInstance().getSWrapper(engine, query);
+		
+		// get the bindings from it
+		String[] names = wrapper.getVariables();
+		// now get the bindings and generate the data
+		try {
+			while(wrapper.hasNext())
+			{
+				ISelectStatement sjss = wrapper.next();
+				Object rowName = sjss.getVar(names[0]);
+				Object colName = sjss.getVar(names[1]);
+				
+				int rowIndex = rowNames.indexOf(rowName);
+				if(rowIndex>-1)
+				{
+					int colIndex = colNames.indexOf(colName);
+					if(colIndex>-1)
+					{
+						matrix[rowIndex][colIndex] = 1;
+					}
+				}
+
+			}
+		} catch (RuntimeException e) {
+			e.printStackTrace();
+		}
+		return matrix;
+	}
+
+	
 	public static ArrayList<String> inBothLists(ArrayList<String> list1,ArrayList<String> list2) {
 		ArrayList<String> duplicates = new ArrayList<String>();
 		
@@ -117,7 +199,7 @@ public final class SysOptUtilityMethods {
 	}
 	
 
-	public static String createPrintString(ArrayList<String> list)
+	public static String convertToString(ArrayList<String> list)
 	{
 		String printString = "";
 		for(String entry : list) {
@@ -127,7 +209,7 @@ public final class SysOptUtilityMethods {
 	}
 	
 
-	public static String createMissingInfoPrintString(ArrayList<String> sysList,double[] listToCheck)
+	public static String convertToStringIfZero(ArrayList<String> sysList,double[] listToCheck)
 	{
 		String ret = "";
 		for(int i=0;i<listToCheck.length;i++)
@@ -136,7 +218,7 @@ public final class SysOptUtilityMethods {
 		return ret;
 	}
 	
-	public static ArrayList<String> createNonZeroList(ArrayList<String> sysList,int[] listToCheck)
+	public static ArrayList<String> convertToStringIfNonZero(ArrayList<String> sysList,int[] listToCheck)
 	{
 		ArrayList<String> nonZeroList = new ArrayList<String>();
 		
@@ -144,135 +226,21 @@ public final class SysOptUtilityMethods {
 			if(listToCheck[i]>0)
 				nonZeroList.add(sysList.get(i));
 		return nonZeroList;
-	}
-	
-	public static String createMatrixPrintString(int[][] matrix, ArrayList<String> rowList,ArrayList<String> colList) {
-		String matrixString = "";
-		for(int i=0;i<matrix.length;i++)
-		{
-			String rowEntry = rowList.get(i);
-			for(int j=0;j<matrix[0].length;j++)
-			{
-				if(matrix[i][j]>0)
-					matrixString += "\n" + rowEntry + " "+colList.get(j);
-			}
-		}
-		return matrixString;
-	}
-	
-	public static String createMatrixPrintString(double[][] matrix, ArrayList<String> rowList,ArrayList<String> colList) {
-		String matrixString = "";
-		for(int i=0;i<matrix.length;i++)
-		{
-			String rowEntry = rowList.get(i);
-			for(int j=0;j<matrix[0].length;j++)
-			{
-				if(matrix[i][j]>0.0)
-					matrixString += "\n" + rowEntry + " "+colList.get(j)+" "+matrix[i][j];
-			}
-		}
-		return matrixString;
-	}
-	
-	public static String createVectorPrintString(double[] matrix, ArrayList<String> rowList) {
-		String vectorString = "";
-		for(int i=0;i<matrix.length;i++)
-		{
-			String rowEntry = rowList.get(i);
-			if(matrix[i]>0.0)
-				vectorString += "\n" + rowEntry + " "+matrix[i];
-		}
-		return vectorString;
-	}
-	
-	public static String createVectorPrintString(int[] matrix, ArrayList<String> rowList) {
-		String vectorString = "";
-		for(int i=0;i<matrix.length;i++)
-		{
-			String rowEntry = rowList.get(i);
-			if(matrix[i]>0.0)
-				vectorString += "\n" + rowEntry + " "+matrix[i];
-		}
-		return vectorString;
-	}
+	}	
 
-	public static String createNumberPrintString(ArrayList<String> dataBLUlist,int[][] numbers)
-	{
-		String ret = "";
-		ArrayList<Integer> numList = new ArrayList<Integer>();
-		for(int i=0;i<numbers.length;i++)
-			numList.add(numbers[i][0]);
-		int numSystemsIndex = 0;
-		while(!numList.isEmpty())
-		{
-			int listLoc = numList.indexOf(numSystemsIndex);
-			if(listLoc>-1)
-			{
-				ret += dataBLUlist.get(listLoc)+": "+numSystemsIndex+", ";
-				dataBLUlist.remove(listLoc);
-				numList.remove(listLoc);
-			}
-			else
-				numSystemsIndex++;
-		}
-		
-		return ret;
-	}
-	
-	public static String createNumberForRegionPristString(ArrayList<String> dataOrBLUList,ArrayList<String> regionList,int[][] numbers)
-	{
-		String ret = "";
-		for(int regionInd=0;regionInd<numbers[0].length;regionInd++)
-		{
-			ret += "\nRegion "+regionList.get(regionInd)+": ";
-			ArrayList<Integer> numList = new ArrayList<Integer>();
-			for(int i=0;i<numbers.length;i++)
-				numList.add(numbers[i][regionInd]);
-			int numSystemsIndex = 0;
-			ArrayList<String> dataOrBLUListCopy = SysOptUtilityMethods.deepCopy(dataOrBLUList);
-			while(!numList.isEmpty())
-			{
-				int listLoc = numList.indexOf(numSystemsIndex);
-				if(listLoc>-1)
-				{
-					ret += dataOrBLUListCopy.get(listLoc)+": "+numSystemsIndex+", ";
-					dataOrBLUListCopy.remove(listLoc);
-					numList.remove(listLoc);
-				}
-				else
-					numSystemsIndex++;
-			}
-		}
-		return ret;
-	}
-
-	public static int[][] createEmptyMatrix(int[][] matrix, int row,int col) {
-		matrix = new int[row][col];
+	public static int[][] createEmptyIntMatrix(int row,int col) {
+		int[][] matrix = new int[row][col];
 		for(int x=0;x<row;x++)
 			for(int y=0;y<col;y++)
 				matrix[x][y] = 0;
 		return matrix;
 	}
 	
-	public static double[][] createEmptyMatrix(double[][] matrix, int row,int col) {
-		matrix = new double[row][col];
+	public static double[][] createEmptyDoubleMatrix(int row,int col) {
+		double[][] matrix = new double[row][col];
 		for(int x=0;x<row;x++)
 			for(int y=0;y<col;y++)
 				matrix[x][y] = 0;
-		return matrix;
-	}
-
-	public static double[] createEmptyVector(double[] matrix, int row) {
-		matrix = new double[row];
-		for(int x=0;x<row;x++)
-			matrix[x] = 0;
-		return matrix;
-	}
-	
-	public static String[] createEmptyVector(String[] matrix, int row) {
-		matrix = new String[row];
-		for(int x=0;x<row;x++)
-			matrix[x] = "";
 		return matrix;
 	}
 	
@@ -284,48 +252,12 @@ public final class SysOptUtilityMethods {
 	}
 	
 	public static double sumRow(double[] row) {
-		double sum = 0;
+		int sum = 0;
 		for (int i = 0; i < row.length; i++)
 			sum += row[i];
 		return sum;
 	}
-	
-	public static int sumColIf(int[][] matrix, int col, int[] ifMatrix) {
-		int sum = 0;
-		int i;
-		int numRows = matrix.length;
-		for (i = 0; i < numRows; i++)
-			sum += matrix[i][col] * ifMatrix[i];
-		return sum;
-	}
-	
-	/**
-	 * Gets the list of all capabilities for a selected functional area
-	 * @param sparqlQuery 		String containing the query to get all capabilities for a selected functional area
-	 * @return capabilities		Vector<String> containing list of all capabilities for a selected functional area
-	 */
-	public static Vector<String> getList(IEngine engine, String type, String sparqlQuery)
-	{
-		Vector<String> retList=new Vector<String>();
-		try{
-			EntityFiller filler = new EntityFiller();
-			filler.engineName = engine.getEngineName();
-			filler.type = type;
-			filler.setExternalQuery(sparqlQuery);
-			filler.run();
-			Vector names = filler.nameVector;
-			for (int i = 0;i<names.size();i++) {
-				retList.add((String) names.get(i));
-			}
-		}catch(NullPointerException e) {
-			System.out.println("Concept does not exist in DB");
-		}
-		return retList;
 		
-	}
-	
-
-	
 	public static double calculateAdjustedTotalSavings(double mu, double yearsToComplete, double totalYrs, double savingsForYear) {
 
 		double i;

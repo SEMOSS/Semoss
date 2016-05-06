@@ -49,9 +49,7 @@ import prerna.util.Utility;
  */
 public class SysCapSimHeatMapSheet extends SimilarityHeatMapSheet {
 
-	private final String hrCoreDB = "TAP_Core_Data";
 	private String fileLoc;
-	private IEngine coreDB = (IEngine) DIHelper.getInstance().getLocalProp(hrCoreDB);
 	private final String capabilityQuery = "SELECT DISTINCT ?Capability WHERE {{?Capability <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Capability>}}";
 	private final String businessProcessQuery = "SELECT DISTINCT ?BusinessProcess WHERE {{?BusinessProcess <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/BusinessProcess>}}";	
 	String workingDir = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER);
@@ -79,18 +77,18 @@ public class SysCapSimHeatMapSheet extends SimilarityHeatMapSheet {
 		{
 			allHash.put("xAxisTitle", "Capability");
 			updateProgressBar("10%...Getting " + comparisonType + " list for evaluation", 10);
-			comparisonObjectList = sdf.createComparisonObjectList(hrCoreDB, capabilityQuery);
+			comparisonObjectList = sdf.createComparisonObjectList(this.engine.getEngineName(), capabilityQuery);
 			setComparisonObjectTypes("Capability", "System");
 			updateProgressBar("35%...Querying Data", 35);
-			processor.genStorageInformation(coreDB, comparisonType);
+			processor.genStorageInformation(this.engine, comparisonType);
 		} else if (comparisonType.equals("BusinessProcess"))
 		{
 			allHash.put("xAxisTitle", "BusinessProcess");
 			updateProgressBar("10%...Getting " + comparisonType + " list for evaluation", 10);
-			comparisonObjectList = sdf.createComparisonObjectList(hrCoreDB, businessProcessQuery);
+			comparisonObjectList = sdf.createComparisonObjectList(this.engine.getEngineName(), businessProcessQuery);
 			setComparisonObjectTypes("BusinessProcess", "System");
 			updateProgressBar("35%...Querying Data", 35);
-			processor.genStorageInformation(coreDB, comparisonType);
+			processor.genStorageInformation(this.engine, comparisonType);
 		}
 
 		sdf.setComparisonObjectList(comparisonObjectList);
@@ -212,7 +210,7 @@ public class SysCapSimHeatMapSheet extends SimilarityHeatMapSheet {
 		SysCapSimHeatMapWriter writer = new SysCapSimHeatMapWriter();
 		String folder = System.getProperty("file.separator") + "export" + System.getProperty("file.separator") + "Reports"
 				+ System.getProperty("file.separator");
-		String writeFileName = "SystemCapabilityHeatMap_for_" + coreDB.getEngineName().replaceAll(":", "") + "_"
+		String writeFileName = "SystemCapabilityHeatMap_for_" + this.engine.getEngineName().replaceAll(":", "") + "_"
 				+ DateFormat.getDateTimeInstance(DateFormat.MEDIUM, DateFormat.SHORT).format(new Date()).replace(":", "").replaceAll(" ", "_")
 				+ ".xlsx";
 		

@@ -36,27 +36,37 @@ import org.apache.log4j.Logger;
 import prerna.ui.components.api.IPlaySheet;
 
 /**
- * This class has linear optimization functionality via the lpsolve import that is used primarily for ServiceOptimizer.
+ * This class provides liner optimization functionality via the lpsolve import.
+ * It is used for SOA service optimization, residual system optimization,
+ * system rationalization at the site level, system replacement optimization,
+ * and road map optimization.
+ * General process for use is as follows: set variables, set objective function,
+ * set constraints, execute, retrieve results, delete solver.
+ * THIS WILL NOT RUN IF YOU DON'T HAVE LPSOLVE DLLs
+ * @author ksmart
  */
 public class LPOptimizer extends AbstractOptimizer{
 	
-	static final Logger LOGGER = LogManager.getLogger(LPOptimizer.class.getName());
+	protected static final Logger LOGGER = LogManager.getLogger(LPOptimizer.class.getName());
 	
 	protected int solved;
 	
 	public LpSolve solver;
 	
 	/**
-	 * Sets the playsheet.
-	 * @param 	Passed playsheet.
+	 * Gathers data set.//TODO i don't think we ever use this
+	 *
 	 */
 	@Override
-	public void setPlaySheet(IPlaySheet playSheet) {
+	public void gatherDataSet() {
 		
 	}
-
+	
 	/**
 	 * Sets up the model for calculations to be performed upon.
+	 * Includes: setting variables, setting objective function,
+	 * setting constraints, and writing LP model to model.lp in SEMOSS file for debugging.
+	 * throws LpSolveException if any errors in failing to set up the model.
 	 */
 	@Override
 	public void setupModel() throws LpSolveException{
@@ -68,7 +78,6 @@ public class LPOptimizer extends AbstractOptimizer{
 			setConstraints();
 			solver.setAddRowmode(false);
 		} catch (LpSolveException e1) {
-			e1.printStackTrace();
 			LOGGER.error("Failed to set up LP Solve model.");
 			throw new LpSolveException("Failed to set up LP Solve model" + e1.getMessage());
 		}
@@ -78,6 +87,42 @@ public class LPOptimizer extends AbstractOptimizer{
 		writeLp("model.lp");
 	}
 	
+	/**
+	 * Sets variables in model.
+	 * Extensions should instantiate a new LpSolver with proper number of variables.
+	 * Variables should be set to binary, original variable branch, etc as needed.
+	 * Variables can also be named here for debugging.
+	 * Generally using: solver = LpSolve.makeLp();
+	 */
+	@Override
+	public void setVariables() throws LpSolveException {
+		
+	}
+	
+	/**
+	 * Sets the function to be optimized as well as whether to minimize or maximize.
+	 * Extensions should create the objective function and add to solver
+	 * Generally using: solver.setObjFnex(); and solver.setMinim();
+	 */
+	@Override
+	public void setObjFunction() throws LpSolveException  {
+		
+	}
+
+	/**
+	 * Sets constraints in the model.
+	 * Extensions should create all constraints and add each to solver
+	 * Generally using: solver.addConstraintex();
+	 */
+	@Override
+	public void setConstraints() throws LpSolveException  {
+		
+	}
+	
+	/**
+	 * Writes the Lp problem to the filename specified.
+	 * @param filename
+	 */
 	public void writeLp(String filename){
 		try{
 			solver.writeLp(filename);
@@ -87,59 +132,10 @@ public class LPOptimizer extends AbstractOptimizer{
 	}
 	
 	/**
-	 * Gathers data set.
-	 */
-	@Override
-	public void gatherDataSet() {
-		
-	}
-	
-	/**
-	 * Gets variable names.
-
-	 * //TODO: Return empty object instead of null
-	 * @return 	List of variable names. */
-	@Override
-	public String[] getVariables() {
-		return null;
-	}
-
-	/**
-	 * Sets variables in model.
-	 */
-	@Override
-	public void setVariables() throws LpSolveException {
-		
-	}
-	
-	/**
-	 * Gets algorithm name.
-	
-	 * //TODO: Return empty object instead of null
-	 * @return 	Name of algorithm. */
-	@Override
-	public String getAlgoName() {
-		return null;
-	}
-
-	/**
-	 * Sets constraints in the model.
-	 */
-	@Override
-	public void setConstraints() throws LpSolveException  {
-		
-	}
-
-	/**
-	 * Sets the function for calculations.
-	 */
-	@Override
-	public void setObjFunction() throws LpSolveException  {
-		
-	}
-
-	/**
 	 * Executes the optimization.
+	 * Solved is set to reflect if optimization was successful.
+	 * Extensions should determine if solution is optimal and process results from the solver
+	 * Generally using: solver.getVarPrimalresult()
 	 */
 	@Override
 	public void execute() {
@@ -165,5 +161,32 @@ public class LPOptimizer extends AbstractOptimizer{
 			solver = null;
 			LOGGER.info("Successfully deleted LP solver.");
 		}
+	}
+
+	/**
+	 * Gets variable names.
+	 * //TODO: Return empty object instead of null. don't think we ever use this
+	 * @return 	List of variable names. */
+	@Override
+	public String[] getVariables() {
+		return null;
+	}
+	
+	/**
+	 * Gets algorithm name.
+	 * //TODO: Return empty object instead of null dont think we ever use this
+	 * @return 	Name of algorithm. */
+	@Override
+	public String getAlgoName() {
+		return null;
+	}
+	
+	/**
+	 * Sets the playsheet.
+	 * @param 	Passed playsheet.
+	 */
+	@Override
+	public void setPlaySheet(IPlaySheet playSheet) {
+		
 	}
 }

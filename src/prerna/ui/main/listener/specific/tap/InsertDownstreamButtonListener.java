@@ -43,6 +43,7 @@ import prerna.ui.components.api.IChakraListener;
 import prerna.ui.components.specific.tap.BusinessValueInserter;
 import prerna.ui.components.specific.tap.TechnicalMaturityInserter;
 import prerna.util.Constants;
+import prerna.util.ConstantsTAP;
 import prerna.util.DIHelper;
 import prerna.util.Utility;
 
@@ -63,13 +64,13 @@ public class InsertDownstreamButtonListener implements IChakraListener {
 	 */
 	@Override
 	public void actionPerformed(ActionEvent arg0) {
-		JTextField soaTextField = (JTextField) DIHelper.getInstance().getLocalProp(Constants.SOA_ALPHA_VALUE_TEXT_BOX);
+		JTextField soaTextField = (JTextField) DIHelper.getInstance().getLocalProp(ConstantsTAP.SOA_ALPHA_VALUE_TEXT_BOX);
 		String soaTextValue = soaTextField.getText();
 		Double soaAlphaValue = 0.0;
-		JTextField appTextField = (JTextField) DIHelper.getInstance().getLocalProp(Constants.APPRECIATION_TEXT_BOX);
+		JTextField appTextField = (JTextField) DIHelper.getInstance().getLocalProp(ConstantsTAP.APPRECIATION_TEXT_BOX);
 		String appTextValue = appTextField.getText();
 		Double appValue = 0.0;
-		JTextField deptextField = (JTextField) DIHelper.getInstance().getLocalProp(Constants.DEPRECIATION_TEXT_BOX);
+		JTextField deptextField = (JTextField) DIHelper.getInstance().getLocalProp(ConstantsTAP.DEPRECIATION_TEXT_BOX);
 		String depTextValue = deptextField.getText();
 		Double depValue = 0.0;
 		try {

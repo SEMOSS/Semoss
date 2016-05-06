@@ -58,7 +58,7 @@ public class SysBPCapInsertProcessor extends AggregationHelper {
 	private String logicType = "AND";
 	HashMap<String, HashMap<String, HashMap<String, Double>>> storageHash = new HashMap<String, HashMap<String, HashMap<String, Double>>>();
 	
-	private final String hrCoreBaseURI = "http://health.mil/ontologies/Relation/";
+	private final String tapBaseURI = "http://health.mil/ontologies/Relation/";
 	
 	public String errorMessage = "";
 		
@@ -291,7 +291,7 @@ public class SysBPCapInsertProcessor extends AggregationHelper {
 	 * @param bp
 	 */
 	public void systemSupportsBPRelationProcessing(String sys, String bp) {					
-		String pred = hrCoreBaseURI + "Supports";
+		String pred = tapBaseURI + "Supports";
 		pred = pred + "/" + getTextAfterFinalDelimeter(sys, "/") +":" + getTextAfterFinalDelimeter(bp, "/");
 		addToDataHash(new Object[]{sys, pred, bp});
 		addToDataHash(new Object[]{pred, semossPropertyBaseURI + "Calculated", "Yes"});

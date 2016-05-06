@@ -34,9 +34,7 @@ import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
 import java.awt.Insets;
 import java.beans.PropertyVetoException;
-import java.util.Hashtable;
 
-import javax.swing.JComponent;
 import javax.swing.JDesktopPane;
 import javax.swing.JFrame;
 import javax.swing.JLabel;
@@ -59,45 +57,47 @@ import prerna.util.DIHelper;
 
 
 /**
- * This is the playsheet used exclusively for TAP service optimization.
+ * This playsheet allows for a split screen view with input panel on top and display panel below.
+ * Button on input panel runs an algorithm and updates display panel below with results.
  */
 @SuppressWarnings("serial")
 public class InputPanelPlaySheet extends TablePlaySheet implements IPlaySheet{
 	
-	protected String title = null;
-	public JComponent pane = null;
+	//View is split between the ctlScrollPane and displayPanel. 
+	private JScrollPane ctlScrollPane;
+	private JPanel displayPanel;
 	
-	//param panel components
-	protected JLabel titleLbl;
+	//ctrlPanel is part of the input panel and is where all buttons/checkboxes/selections can be made by user
+	protected JPanel ctlPanel;
 	protected String titleText = "Optimization Input Parameters:";
 	public JProgressBar progressBar;
 	
-	//display
-	public JTabbedPane tabbedPane;
-	
-	//display overall analysis components
+	//tabbedPane is part of the displayPanel and is where all new additional display tabs can be added
+	public JTabbedPane displayTabbedPane;
 	protected String overallAnalysisTitle = "Overall Analysis";
 	public JPanel overallAlysPanel;
-	public JPanel panel_1, chartPanel;
+	public JPanel overallAlysMetricsPanel, overallAlysChartPanel;
 	public JTextArea consoleArea = new JTextArea();
 
-	String questionNum;
-	public IEngine engine;
+	public IEngine engine;//TODO might not need
 	
-	JScrollPane ctlScrollPane;
-	JPanel ctlPanel;
-	JPanel displayPanel;
 
 	/**
-	 * Constructor for SerOptPlaySheet.
+	 * Constructor for InputPanelPlaySheet.
 	 */
 	public InputPanelPlaySheet() {
-		//createUI();
+		
 		this.setClosable(true);
 		this.setMaximizable(true);
 		this.setIconifiable(true);
 		this.setResizable(true);
 		this.setPreferredSize(new Dimension(800, 600));
+	}
+	
+	@Override
+	public void createData() {
+		// TODO Auto-generated method stub
+		
 	}
 	
 	/**
@@ -150,7 +150,9 @@ public class InputPanelPlaySheet extends TablePlaySheet implements IPlaySheet{
 	}
 	
 	/**
-	 * Sets up the Param panel at the top of the split pane
+	 * Sets up the Param panel at the top of the split pane.
+	 * ctlPanel is protected so any extending classes can add additional components.
+	 * progressBar can be updated externally to show progress of algorithm
 	 */
 	protected void createParamPanel() {
 		ctlScrollPane = new JScrollPane();		
@@ -163,7 +165,7 @@ public class InputPanelPlaySheet extends TablePlaySheet implements IPlaySheet{
 		gbl_ctlPanel.rowWeights = new double[]{0.0, 0.0, 0.0, 0.0, 0.0, 0.0, Double.MIN_VALUE};
 		ctlPanel.setLayout(gbl_ctlPanel);
 
-		titleLbl = new JLabel(titleText);
+		JLabel titleLbl = new JLabel(titleText);
 		titleLbl.setFont(new Font("Tahoma", Font.BOLD, 12));
 		GridBagConstraints gbc_titleLbl = new GridBagConstraints();
 		gbc_titleLbl.gridwidth = 7;
@@ -181,11 +183,17 @@ public class InputPanelPlaySheet extends TablePlaySheet implements IPlaySheet{
 		gbc_progressBar.gridwidth = 2;
 		gbc_progressBar.insets = new Insets(0, 0, 0, 5);
 		gbc_progressBar.gridx = 6;
-		gbc_progressBar.gridy = 5;
+		gbc_progressBar.gridy = 0;
 		ctlPanel.add(progressBar, gbc_progressBar);
 		progressBar.setVisible(false);		
 	}
-	
+
+	/**
+	 * Sets up the display panel at the bottom of the split pane.
+	 * tabbedPane is protected so any extending classes can add additional tabs for disply
+	 * overallAlysPanel is the original tab in the tabbedPane.
+	 * Extensions should populate this with high level metric labels and the graphs
+	 */
 	protected void createDisplayPanel() {
 		
 		displayPanel = new JPanel();
@@ -197,17 +205,18 @@ public class InputPanelPlaySheet extends TablePlaySheet implements IPlaySheet{
 		gbl_displayPanel.rowWeights = new double[]{1.0, Double.MIN_VALUE};
 		displayPanel.setLayout(gbl_displayPanel);
 
-		tabbedPane = new JTabbedPane(JTabbedPane.BOTTOM);
+		displayTabbedPane = new JTabbedPane(JTabbedPane.BOTTOM);
 		GridBagConstraints gbc_tabbedPane = new GridBagConstraints();
 		gbc_tabbedPane.fill = GridBagConstraints.BOTH;
 		gbc_tabbedPane.gridx = 0;
 		gbc_tabbedPane.gridy = 0;
-		displayPanel.add(tabbedPane, gbc_tabbedPane);
+		displayPanel.add(displayTabbedPane, gbc_tabbedPane);
 
 		overallAlysPanel = new JPanel();
 		JScrollPane jsPane = new JScrollPane(overallAlysPanel);
 		overallAlysPanel.setBackground(Color.WHITE);
-		tabbedPane.addTab(overallAnalysisTitle, null, jsPane, null);
+		displayTabbedPane.addTab(overallAnalysisTitle, null, jsPane, null);
+		
 		GridBagLayout gbl_overallAlysPanel = new GridBagLayout();
 		gbl_overallAlysPanel.columnWidths = new int[]{0, 0, 0};
 		gbl_overallAlysPanel.rowHeights = new int[]{0, 0, 0};
@@ -216,23 +225,24 @@ public class InputPanelPlaySheet extends TablePlaySheet implements IPlaySheet{
 		overallAlysPanel.setLayout(gbl_overallAlysPanel);
 		overallAlysPanel.setBackground(Color.WHITE);
 		
-		panel_1 = new JPanel();
-		panel_1.setBackground(Color.WHITE);
+		overallAlysMetricsPanel = new JPanel();
+		overallAlysMetricsPanel.setBackground(Color.WHITE);
 		GridBagConstraints gbc_panel_1 = new GridBagConstraints();
 		gbc_panel_1.insets = new Insets(10, 0, 5, 0);
 		gbc_panel_1.fill = GridBagConstraints.BOTH;
 		gbc_panel_1.gridx = 1;
 		gbc_panel_1.gridy = 0;
-		overallAlysPanel.add(panel_1, gbc_panel_1);
+		overallAlysPanel.add(overallAlysMetricsPanel, gbc_panel_1);
+		
 		GridBagLayout gbl_panel_1 = new GridBagLayout();
 		gbl_panel_1.columnWidths = new int[]{0, 0, 0, 0, 0, 0, 0, 0, 0};
 		gbl_panel_1.rowHeights = new int[]{0, 0, 0};
 		gbl_panel_1.columnWeights = new double[]{0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, Double.MIN_VALUE};
 		gbl_panel_1.rowWeights = new double[]{0.0, 0.0, Double.MIN_VALUE};
-		panel_1.setLayout(gbl_panel_1);
+		overallAlysMetricsPanel.setLayout(gbl_panel_1);
 
 		JPanel consolePanel = new JPanel();
-		tabbedPane.addTab("Console", null, consolePanel, null);
+		displayTabbedPane.addTab("Console", null, consolePanel, null);
 		GridBagLayout gbl_consolePanel = new GridBagLayout();
 		gbl_consolePanel.columnWidths = new int[]{0, 0};
 		gbl_consolePanel.rowHeights = new int[]{0, 0};
@@ -253,20 +263,28 @@ public class InputPanelPlaySheet extends TablePlaySheet implements IPlaySheet{
 		scrollPane_1.setViewportView(consoleArea);
 	}
 
+	/**
+	 * Sets graphs to be visible after algorithm is run.
+	 * Generally all graphs will be on the overall analysis tab.
+	 * @param visible
+	 */
 	public void setGraphsVisible(boolean visible) {}
 	
 	/**
-	 * Clears panels within the playsheet
+	 * Clears panels within the playsheet.
+	 * Called whenever the algorithm is rerun so no previous results left over.
 	 */
 	public void clearPanels() {}
 	
 	/**
 	 * Clears graphs within the playsheets.
+	 * Called whenever the algorithm is rerun so no previous results left over.
 	 */
 	public void clearGraphs() {}
 	
 	/**
-	 * Sets N/A or $0 for values in optimizations. Allows for different TAP algorithms to be run as empty functions.
+	 * Sets N/A or $0 for values in optimizations.
+	 * Called whenever the algorithm is rerun so no previous results left over.
 	 */
 	public void clearLabels() {}
 
@@ -291,12 +309,6 @@ public class InputPanelPlaySheet extends TablePlaySheet implements IPlaySheet{
 				Constants.MAIN_FRAME);
 		frame2.repaint();
 	}
-	
-	/**
-	 * Method run.
-	 */
-	@Override
-	public void run() {}
 
 	/**
 	 * Creates user interface and shows all properties as long as the browser is supported.
@@ -315,19 +327,6 @@ public class InputPanelPlaySheet extends TablePlaySheet implements IPlaySheet{
 	}
 
 	/**
-	 * Recreates the visualizer and the repaints the play sheet without recreating the model or pulling anything from the specified engine. 
-	 * This function is used when the model to be displayed has not been changed, but rather the visualization itself must be redone. 
-	 */
-	@Override
-	public void refineView() {}
-
-	/**
-	 * Used to overlay a query that could be unrelated to the data that currently exists in the play sheet's model.
-	 */
-	@Override
-	public void overlayView() {}
-
-	/**
 	 * Sets the RDF engine for the play sheet to run its query against. 
 	 * @param engine 	Set engine.
 	 */
@@ -336,34 +335,12 @@ public class InputPanelPlaySheet extends TablePlaySheet implements IPlaySheet{
 		this.engine = engine;
 	}
 
-	@Override
-	public void createData() {
-		// TODO Auto-generated method stub
-		
-	}
-	@Override
-	public void runAnalytics() {
-		// TODO Auto-generated method stub
-		
-	}
-	@Override
-	public Hashtable<String, String> getDataTableAlign() {
-		// TODO Auto-generated method stub
-		return null;
-	}
-	
 	/**
-	 * Displays an error message in the pane if the Mozilla engine does not support the environment.
-	 * 
+	 * Displays an error message in the pane. TODO make more clear if errors with calculation
 	 */
 	protected void displayCheckBoxError() {
 		JFrame playPane = (JFrame) DIHelper.getInstance().getLocalProp(Constants.MAIN_FRAME);
-		JOptionPane.showMessageDialog(playPane, "Mozilla15 engine doesn't support the current environment. Please switch to 32-bit Java.", "Error", JOptionPane.ERROR_MESSAGE);
-	}
-
-	@Override
-	public void processQueryData() {
-		
+		JOptionPane.showMessageDialog(playPane, "Error showing the playsheet.", "Error", JOptionPane.ERROR_MESSAGE);
 	}
 
 }

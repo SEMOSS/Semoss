@@ -49,9 +49,9 @@ public class DHMSMIntegrationSavingsPerFiscalYearProcessor {
 
 	private static final Logger LOGGER = LogManager.getLogger(DHMSMIntegrationSavingsPerFiscalYearProcessor.class.getName());
 
-	private final String masterQuery = "SELECT DISTINCT ?Wave ?HostSiteAndFloater ?System WHERE { {?Wave <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Wave>} { {?HostSiteAndFloater <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/DCSite>} {?Wave <http://semoss.org/ontologies/Relation/Contains> ?HostSiteAndFloater} {?SystemDCSite <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/SystemDCSite>} {?SystemDCSite <http://semoss.org/ontologies/Relation/DeployedAt> ?HostSiteAndFloater} {?System <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System>} {?System <http://semoss.org/ontologies/Relation/DeployedAt> ?SystemDCSite} } UNION { {?HostSiteAndFloater <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Floater>} {?HostSiteAndFloater <http://semoss.org/ontologies/Relation/Supports> ?Wave} {?System <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System>} {?HostSiteAndFloater <http://semoss.org/ontologies/Relation/Supports> ?System} } } &SELECT DISTINCT ?System WHERE {{?System <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/ActiveSystem> } {?System <http://semoss.org/ontologies/Relation/Contains/Device_InterfaceYN> 'N'} {?System <http://semoss.org/ontologies/Relation/Contains/Probability_of_Included_BoS_Enterprise_EHRS> ?Probability} }BINDINGS ?Probability {('High') ('Question')}&false&false";
-	private String masterQueryForSingleSystem = "SELECT DISTINCT ?Wave ?HostSiteAndFloater ?System WHERE { BIND(@SYSTEM@ AS ?System) {?Wave <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Wave>} { {?HostSiteAndFloater <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/DCSite>} {?Wave <http://semoss.org/ontologies/Relation/Contains> ?HostSiteAndFloater} {?SystemDCSite <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/SystemDCSite>} {?SystemDCSite <http://semoss.org/ontologies/Relation/DeployedAt> ?HostSiteAndFloater} {?System <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System>} {?System <http://semoss.org/ontologies/Relation/DeployedAt> ?SystemDCSite} } UNION { {?HostSiteAndFloater <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Floater>} {?HostSiteAndFloater <http://semoss.org/ontologies/Relation/Supports> ?Wave} {?System <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System>} {?HostSiteAndFloater <http://semoss.org/ontologies/Relation/Supports> ?System} } } &SELECT DISTINCT ?System WHERE {{?System <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/ActiveSystem> } {?System <http://semoss.org/ontologies/Relation/Contains/Device_InterfaceYN> 'N'} {?System <http://semoss.org/ontologies/Relation/Contains/Probability_of_Included_BoS_Enterprise_EHRS> ?Probability}}BINDINGS ?Probability {('High') ('Question')}&false&false";
-	private String masterQueryForListOfSystems = "SELECT DISTINCT ?Wave ?HostSiteAndFloater ?System WHERE { {?Wave <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Wave>} { {?HostSiteAndFloater <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/DCSite>} {?Wave <http://semoss.org/ontologies/Relation/Contains> ?HostSiteAndFloater} {?SystemDCSite <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/SystemDCSite>} {?SystemDCSite <http://semoss.org/ontologies/Relation/DeployedAt> ?HostSiteAndFloater} {?System <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System>} {?System <http://semoss.org/ontologies/Relation/DeployedAt> ?SystemDCSite} } UNION { {?HostSiteAndFloater <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Floater>} {?HostSiteAndFloater <http://semoss.org/ontologies/Relation/Supports> ?Wave} {?System <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System>} {?HostSiteAndFloater <http://semoss.org/ontologies/Relation/Supports> ?System} } } BINDINGS ?System {@BINDINGS@} &SELECT DISTINCT ?System WHERE {{?System <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/ActiveSystem> } {?System <http://semoss.org/ontologies/Relation/Contains/Device_InterfaceYN> 'N'} {?System <http://semoss.org/ontologies/Relation/Contains/Probability_of_Included_BoS_Enterprise_EHRS> ?Probability}}BINDINGS ?Probability {('High') ('Question')}&false&false";
+private final String masterQuery = "SELECT DISTINCT ?Wave ?HostSiteAndFloater ?System WHERE { {?Wave <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Wave>} { {?HostSiteAndFloater <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/DCSite>} {?Wave <http://semoss.org/ontologies/Relation/Contains> ?HostSiteAndFloater} {?SystemDCSite <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/SystemDCSite>} {?SystemDCSite <http://semoss.org/ontologies/Relation/DeployedAt> ?HostSiteAndFloater} {?System <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System>} {?System <http://semoss.org/ontologies/Relation/DeployedAt> ?SystemDCSite} } UNION { {?HostSiteAndFloater <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Floater>} {?HostSiteAndFloater <http://semoss.org/ontologies/Relation/Supports> ?Wave} {?System <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System>} {?HostSiteAndFloater <http://semoss.org/ontologies/Relation/Supports> ?System} } } &SELECT DISTINCT ?System WHERE {{?System <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/ActiveSystem> } {?System <http://semoss.org/ontologies/Relation/Contains/Device> 'N'} {?System <http://semoss.org/ontologies/Relation/Contains/Disposition> 'High'}{?System <http://semoss.org/ontologies/Relation/Contains/Review_Status> ?Review_Status}FILTER (?Review_Status in('FAC Approved','FCLG Approved')) }&false&false";
+	private String masterQueryForSingleSystem = "SELECT DISTINCT ?Wave ?HostSiteAndFloater ?System WHERE { BIND(@SYSTEM@ AS ?System) {?Wave <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Wave>} { {?HostSiteAndFloater <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/DCSite>} {?Wave <http://semoss.org/ontologies/Relation/Contains> ?HostSiteAndFloater} {?SystemDCSite <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/SystemDCSite>} {?SystemDCSite <http://semoss.org/ontologies/Relation/DeployedAt> ?HostSiteAndFloater} {?System <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System>} {?System <http://semoss.org/ontologies/Relation/DeployedAt> ?SystemDCSite} } UNION { {?HostSiteAndFloater <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Floater>} {?HostSiteAndFloater <http://semoss.org/ontologies/Relation/Supports> ?Wave} {?System <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System>} {?HostSiteAndFloater <http://semoss.org/ontologies/Relation/Supports> ?System} } } &SELECT DISTINCT ?System WHERE {{?System <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/ActiveSystem> } {?System <http://semoss.org/ontologies/Relation/Contains/Device> 'N'} {?System <http://semoss.org/ontologies/Relation/Contains/Disposition> 'High'}{?System <http://semoss.org/ontologies/Relation/Contains/Review_Status> ?Review_Status}FILTER (?Review_Status in('FAC Approved','FCLG Approved'))}&false&false";
+	private String masterQueryForListOfSystems = "SELECT DISTINCT ?Wave ?HostSiteAndFloater ?System WHERE { {?Wave <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Wave>} { {?HostSiteAndFloater <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/DCSite>} {?Wave <http://semoss.org/ontologies/Relation/Contains> ?HostSiteAndFloater} {?SystemDCSite <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/SystemDCSite>} {?SystemDCSite <http://semoss.org/ontologies/Relation/DeployedAt> ?HostSiteAndFloater} {?System <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System>} {?System <http://semoss.org/ontologies/Relation/DeployedAt> ?SystemDCSite} } UNION { {?HostSiteAndFloater <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Floater>} {?HostSiteAndFloater <http://semoss.org/ontologies/Relation/Supports> ?Wave} {?System <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System>} {?HostSiteAndFloater <http://semoss.org/ontologies/Relation/Supports> ?System} } } BINDINGS ?System {@BINDINGS@} &SELECT DISTINCT ?System WHERE {{?System <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/ActiveSystem> } {?System <http://semoss.org/ontologies/Relation/Contains/Device> 'N'} {?System <http://semoss.org/ontologies/Relation/Contains/Disposition> 'High'}{?System <http://semoss.org/ontologies/Relation/Contains/Review_Status> ?Review_Status}FILTER (?Review_Status in('FAC Approved','FCLG Approved'))}&false&false";
 	
 	private IEngine tapPortfolio;
 	private IEngine tapSite;
@@ -127,11 +127,11 @@ public class DHMSMIntegrationSavingsPerFiscalYearProcessor {
 		inflationArr = new double[numColumns+1];
 		List<Double> inflationValues = DHMSMDeploymentHelper.getInflationRate(tapSite);
 		int i;
-		for(i = 1; i < numColumns + 2; i++) {
+		for(i = 0; i < numColumns + 1; i++) {
 			if(i < inflationValues.size()) {
-				inflationArr[i-1] = inflationValues.get(i);
+				inflationArr[i] = inflationValues.get(i);
 			} else {
-				inflationArr[i-1] = inflationArr[i-2] + .02;
+				inflationArr[i] = inflationArr[i-1] + .02;
 			}
 		}
 		
@@ -145,7 +145,8 @@ public class DHMSMIntegrationSavingsPerFiscalYearProcessor {
 			switch(endYear) {
 				case "2017" : sustainmentIndex = 2; break;
 				case "2018" : sustainmentIndex = 3; break;
-				default : sustainmentIndex = 4;
+				case "2019" : sustainmentIndex = 4; break;
+				default : sustainmentIndex = 5;
 			}
 
 			int outputYear = Integer.parseInt(endYear) - minYear + 1;
@@ -199,7 +200,7 @@ public class DHMSMIntegrationSavingsPerFiscalYearProcessor {
 											currSiteSavings += savings * inflationArr[index+1];
 											sysSavings.put(system, currSiteSavings);
 										} else {
-											sysSavings.put(system, savings * inflationArr[index+1]);
+											sysSavings.put(system, savings *inflationArr[index+1]);
 										}
 									}
 								} else {
@@ -217,7 +218,7 @@ public class DHMSMIntegrationSavingsPerFiscalYearProcessor {
 											boolean loop = true;
 											boolean data = true;
 											while(loop) {
-												if(position <= 0) {
+												if(position < 0) {
 													loop = false;
 													data = false;
 												}
@@ -228,7 +229,7 @@ public class DHMSMIntegrationSavingsPerFiscalYearProcessor {
 												}
 											}
 											if(data) {
-												double savingsIn2015 = costs[position] / inflationArr[position - 1];
+												double savingsIn2015 = costs[position] / inflationArr[position];
 												double inflatedSavings = savingsIn2015 * inflationArr[sustainmentIndex+1];
 												savings += inflatedSavings / numSites;
 											}
@@ -264,16 +265,16 @@ public class DHMSMIntegrationSavingsPerFiscalYearProcessor {
 									}
 								}
 								// Determine if a system is Centrally Located
-								// The logic to determine if a system is centrally located is performed earlier and stored in a relationship, which we access directly
+								// The logic to determine if a system is centrally located is performed earleir and stored in a relationship, which we access directly
 								// Centrally located systems only realize their savings after TOC
 								if(centrallyLocatedSys.contains(system)) {
-									double savingsIn2015 = savings / inflationArr[index - 1];
+									double savingsIn2015 = savings / inflationArr[index];
 									yearlySystemSavings[yearlySystemSavings.length - 1] += savingsIn2015 * inflationArr[yearlySystemSavings.length];
 									yearlySiteSavings[yearlySiteSavings.length - 1] += savingsIn2015 * inflationArr[yearlySiteSavings.length];
 
 									break;
 								} else {
-									double savingsIn2015 = savings / inflationArr[sustainmentIndex + counter - 1];
+									double savingsIn2015 = savings / inflationArr[sustainmentIndex + counter];
 									double inflatedSavings = savingsIn2015 * inflationArr[index+1];
 									if(takePercentage) {
 										double realizedSavings = inflatedSavings * percentRealized;
@@ -281,7 +282,7 @@ public class DHMSMIntegrationSavingsPerFiscalYearProcessor {
 										yearlySystemSavings[index] += realizedSavings;
 										yearlySiteSavings[index] += realizedSavings;
 
-										if(index == outputYear) {
+										if(index == outputYear) {  //TODO: why does this only happen once???
 											if(locallyDeployedSavingsHash.containsKey(system)) {
 												double currentDelayedSavings = locallyDeployedSavingsHash.get(system);
 												currentDelayedSavings += savingsIn2015 * (1 - percentRealized) * inflationArr[yearlySystemSavings.length];
@@ -406,7 +407,7 @@ public class DHMSMIntegrationSavingsPerFiscalYearProcessor {
 					costs = (Double[]) ArrayUtilityMethods.removeAllNulls(costs);
 					int numSites = numSitesForSysHash.get(system);
 					int numSitesNotIncluded = numSitesNotInWaveForSysHash.get(system);
-					double otherSiteCost2015 = costs[costs.length - 1] * numSitesNotIncluded/numSites / inflationArr[costs.length - 1];
+					double otherSiteCost2015 = costs[costs.length - 1] * numSitesNotIncluded/numSites / inflationArr[costs.length];
 					double otherSiteCost = otherSiteCost2015 * inflationArr[inflationArr.length - 1];
 					if(sysSavings.containsKey(system)) {
 						double currSiteSavings = sysSavings.get(system);
@@ -438,7 +439,7 @@ public class DHMSMIntegrationSavingsPerFiscalYearProcessor {
 			if(costs != null) {
 				costs = (Double[]) ArrayUtilityMethods.removeAllNulls(costs);
 				if(costs[costs.length-1] != 0) {
-					double systemNotIncludedCost2015 = costs[costs.length - 1] / inflationArr[costs.length - 1];
+					double systemNotIncludedCost2015 = costs[costs.length - 1] / inflationArr[costs.length];
 					double systemNotIncludedCost = systemNotIncludedCost2015 * inflationArr[inflationArr.length - 1];
 					totalSystemsNotIncludedCost += systemNotIncludedCost;
 				}
@@ -494,7 +495,7 @@ public class DHMSMIntegrationSavingsPerFiscalYearProcessor {
 					double inflatedSavings = savings;
 					// add inflation to savings if appropriate
 					if(index - position + 1 > 1) {
-						inflatedSavings /= inflationArr[position - 1];
+						inflatedSavings /= inflationArr[position];
 						inflatedSavings *= inflationArr[index+1];
 					}
 					yearlySavings[index] += inflatedSavings - currSiteSavings;
@@ -583,7 +584,7 @@ public class DHMSMIntegrationSavingsPerFiscalYearProcessor {
 						costs = (Double[]) ArrayUtilityMethods.removeAllNulls(costs);
 						int numSites = numSitesForSysHash.get(system);
 						int numSitesNotIncluded = numSitesNotInWaveForSysHash.get(system);
-						double savingsIn2015 = costs[costs.length-1] * numSitesNotIncluded/numSites / inflationArr[costs.length - 1];
+						double savingsIn2015 = costs[costs.length-1] * numSitesNotIncluded/numSites / inflationArr[costs.length];
 						double additionalSavings = savingsIn2015 * inflationArr[inflationArr.length - 1];
 						values[values.length - 1] += additionalSavings;
 //						values[values.length - 1] += additionalSavings * percentRealized;
@@ -625,7 +626,7 @@ public class DHMSMIntegrationSavingsPerFiscalYearProcessor {
 								}
 							}
 							double savings = costArr[position]; 
-							double savingsIn2015 = savings / inflationArr[position - 1];
+							double savingsIn2015 = savings / inflationArr[position];
 							double inflatedSavings = savingsIn2015 * inflationArr[index+1];
 	
 							value += inflatedSavings - currSysSavings;
@@ -674,7 +675,7 @@ public class DHMSMIntegrationSavingsPerFiscalYearProcessor {
 			double inflatedSavings = 0;
 			if(costArr != null) {
 				costArr = (Double[]) ArrayUtilityMethods.removeAllNulls(costArr);
-				double savingsIn2015 = costArr[costArr.length - 1] / inflationArr[costArr.length - 1];
+				double savingsIn2015 = costArr[costArr.length - 1] / inflationArr[costArr.length];
 				inflatedSavings = savingsIn2015 * inflationArr[inflationArr.length - 1];
 			}
 			if(inflatedSavings == 0) {

@@ -38,9 +38,9 @@ public class SysSiteIRROptFunction extends SysSiteOptFunction{
 	
 	SysSiteIRRLinInterp linInt;
 	
-	public void setVariables(int[][] localSystemDataMatrix, int[][] localSystemBLUMatrix, int[] localSystemIsTheaterArr, int[] localSystemIsGarrisonArr, Integer[] localSystemIsModArr, Integer[] localSystemIsDecomArr, double[] localSystemMaintenanceCostArr, double[] localSystemSiteMaintenaceCostArr, double[] localSystemSiteDeploymentCostArr, double[] localSystemSiteInterfaceCostArr, double[] localSystemUserTrainingCostArr, double[][] localSystemSiteMatrix, int[][] centralSystemDataMatrix, int[][] centralSystemBLUMatrix, int[] centralSystemIsTheaterArr, int[] centralSystemIsGarrisonArr, Integer[] centralSystemIsModArr, Integer[] centralSystemIsDecomArr, double[] centralSystemMaintenanceCostArr, double[] centralSystemInterfaceCostArr, double[] centralSystemUserTrainingCostArr, double trainingPerc, double currentSustainmentCost, double budgetForYear, int years, double infRate, double disRate) {
-		
-		super.setVariables(localSystemDataMatrix, localSystemBLUMatrix, localSystemIsTheaterArr, localSystemIsGarrisonArr, localSystemIsModArr, localSystemIsDecomArr, localSystemMaintenanceCostArr, localSystemSiteMaintenaceCostArr, localSystemSiteDeploymentCostArr, localSystemSiteInterfaceCostArr,localSystemUserTrainingCostArr, localSystemSiteMatrix, centralSystemDataMatrix, centralSystemBLUMatrix, centralSystemIsTheaterArr, centralSystemIsGarrisonArr, centralSystemIsModArr, centralSystemIsDecomArr, centralSystemMaintenanceCostArr, centralSystemInterfaceCostArr, centralSystemUserTrainingCostArr, trainingPerc, currentSustainmentCost, budgetForYear, years, infRate, disRate);
+	public void setVariables(SysSiteOptDataStore localSysData,SysSiteOptDataStore centralSysData, double currentSustainmentCost, double budgetForYear, int years, double infRate, double disRate) {
+
+		super.setVariables(localSysData, centralSysData, currentSustainmentCost, budgetForYear, years, infRate, disRate);
 
 		createLinearInterpolation();
 	}

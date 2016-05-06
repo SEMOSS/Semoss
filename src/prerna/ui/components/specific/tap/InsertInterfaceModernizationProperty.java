@@ -66,7 +66,6 @@ public class InsertInterfaceModernizationProperty {
 
 	private void generateCost() throws IOException 
 	{
-		Map<String,String> reportTypeHash = DHMSMTransitionUtility.processReportTypeQuery(tapCore);
 		IEngine tapCost = (IEngine) DIHelper.getInstance().getLocalProp("TAP_Cost_Data");
 		if(tapCost == null) {
 			throw new IOException("TAP_Cost_Data Database not found");
@@ -89,7 +88,7 @@ public class InsertInterfaceModernizationProperty {
 		
 		LPInterfaceCostProcessor processor = new LPInterfaceCostProcessor();
 		processor.setEngine(tapCore);
-		for(String sysName : reportTypeHash.keySet()){
+		for(String sysName : sysTypeHash.keySet()){
 			double loe = 0.0;
 			if(selfReportedSystems.contains(sysName)) {
 				loe = selfReportedSysCost.get(sysName);
