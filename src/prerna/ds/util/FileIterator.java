@@ -1,5 +1,6 @@
 package prerna.ds.util;
 
+import java.io.File;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Hashtable;
@@ -18,13 +19,13 @@ import prerna.util.Utility;
 
 public class FileIterator implements Iterator<IHeadersDataRow>{
 
-	CSVFileHelper helper;
-	String[] headers;
-	String[] types;
-	String[] nextRow;
+	private CSVFileHelper helper;
+	private String[] headers;
+	private String[] types;
+	private String[] nextRow;
 	
-	Map<String, Set<Object>> filters;
-	Map<String, String> dataTypeMap;
+	private Map<String, Set<Object>> filters;
+	private Map<String, String> dataTypeMap;
 	
 	public FileIterator(String fileLoc, char delimiter, QueryStruct qs, Map<String, String> dataTypeMap) {
 		this.helper = new CSVFileHelper();
@@ -156,5 +157,11 @@ public class FileIterator implements Iterator<IHeadersDataRow>{
 			this.helper.parseColumns(orderedSelectors);
 			this.helper.getNextRow(); // after redoing the selectors, we need to skip the headers 
 		}
+	}
+	
+	public void deleteFile() {
+		this.helper.clear();
+		File file = new File(this.helper.getFileLocation());
+		file.delete();
 	}
 }

@@ -159,6 +159,20 @@ public class ImportDataReactor extends AbstractReactor {
 		return retStr;
 	}
 	
+	protected void inputResponseString(Iterator it, String[] headers) {
+		// get rid of this bifurcation
+		// push this into the iterators
+		String nodeStr = (String)myStore.get(whoAmI);
+		if(it instanceof ISelectWrapper) {
+			myStore.put(nodeStr, createResponseString((ISelectWrapper)it));
+		} else {
+			if(it instanceof FileIterator) {
+				((FileIterator) it).deleteFile();
+			}
+			myStore.put(nodeStr, createResponseString(headers));
+		}
+	}
+	
 	protected String createResponseString(String[] headers){
 		return "Successfully added data using:\n headers= " + Arrays.toString(headers);
 	}
