@@ -25,6 +25,7 @@ public final class TThis extends Token
       return new TThis(getLine(), getPos());
     }
 
+    @Override
     public void apply(Switch sw)
     {
         ((Analysis) sw).caseTThis(this);

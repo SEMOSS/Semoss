@@ -29,6 +29,7 @@ public final class AHelp extends PHelp
             cloneNode(this._helpToken_));
     }
 
+    @Override
     public void apply(Switch sw)
     {
         ((Analysis) sw).caseAHelp(this);
