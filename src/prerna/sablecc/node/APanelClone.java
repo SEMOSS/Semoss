@@ -9,6 +9,7 @@ public final class APanelClone extends PPanelClone
 {
     private TPanelclone _panelclone_;
     private TLPar _lPar_;
+    private TNumber _newid_;
     private TRPar _rPar_;
 
     public APanelClone()
@@ -19,12 +20,15 @@ public final class APanelClone extends PPanelClone
     public APanelClone(
         @SuppressWarnings("hiding") TPanelclone _panelclone_,
         @SuppressWarnings("hiding") TLPar _lPar_,
+        @SuppressWarnings("hiding") TNumber _newid_,
         @SuppressWarnings("hiding") TRPar _rPar_)
     {
         // Constructor
         setPanelclone(_panelclone_);
 
         setLPar(_lPar_);
+
+        setNewid(_newid_);
 
         setRPar(_rPar_);
 
@@ -36,6 +40,7 @@ public final class APanelClone extends PPanelClone
         return new APanelClone(
             cloneNode(this._panelclone_),
             cloneNode(this._lPar_),
+            cloneNode(this._newid_),
             cloneNode(this._rPar_));
     }
 
@@ -94,6 +99,31 @@ public final class APanelClone extends PPanelClone
         this._lPar_ = node;
     }
 
+    public TNumber getNewid()
+    {
+        return this._newid_;
+    }
+
+    public void setNewid(TNumber node)
+    {
+        if(this._newid_ != null)
+        {
+            this._newid_.parent(null);
+        }
+
+        if(node != null)
+        {
+            if(node.parent() != null)
+            {
+                node.parent().removeChild(node);
+            }
+
+            node.parent(this);
+        }
+
+        this._newid_ = node;
+    }
+
     public TRPar getRPar()
     {
         return this._rPar_;
@@ -125,6 +155,7 @@ public final class APanelClone extends PPanelClone
         return ""
             + toString(this._panelclone_)
             + toString(this._lPar_)
+            + toString(this._newid_)
             + toString(this._rPar_);
     }
 
@@ -141,6 +172,12 @@ public final class APanelClone extends PPanelClone
         if(this._lPar_ == child)
         {
             this._lPar_ = null;
+            return;
+        }
+
+        if(this._newid_ == child)
+        {
+            this._newid_ = null;
             return;
         }
 
@@ -166,6 +203,12 @@ public final class APanelClone extends PPanelClone
         if(this._lPar_ == oldChild)
         {
             setLPar((TLPar) newChild);
+            return;
+        }
+
+        if(this._newid_ == oldChild)
+        {
+            setNewid((TNumber) newChild);
             return;
         }
 

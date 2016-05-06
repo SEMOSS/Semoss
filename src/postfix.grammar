@@ -126,7 +126,7 @@ panel_comment = // e.g. panel.comment("this looks super important", group0, coor
 		;
 		
 panel_clone = // e.g. panel.clone();
-		panelclone l_par r_par
+		panelclone l_par [newid]:number r_par
 		;
 		
 panel_set_builder = // e.g. panel.setBuilder('graph');
