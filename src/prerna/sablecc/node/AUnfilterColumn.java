@@ -44,7 +44,6 @@ public final class AUnfilterColumn extends PUnfilterColumn
             cloneNode(this._rPar_));
     }
 
-    @Override
     public void apply(Switch sw)
     {
         ((Analysis) sw).caseAUnfilterColumn(this);

@@ -5,45 +5,45 @@ package prerna.sablecc.node;
 import prerna.sablecc.analysis.*;
 
 @SuppressWarnings("nls")
-public final class ATermExpr extends PExpr
+public final class ADataFrameColop extends PColop
 {
-    private PTerm _term_;
+    private PDataFrame _dataFrame_;
 
-    public ATermExpr()
+    public ADataFrameColop()
     {
         // Constructor
     }
 
-    public ATermExpr(
-        @SuppressWarnings("hiding") PTerm _term_)
+    public ADataFrameColop(
+        @SuppressWarnings("hiding") PDataFrame _dataFrame_)
     {
         // Constructor
-        setTerm(_term_);
+        setDataFrame(_dataFrame_);
 
     }
 
     @Override
     public Object clone()
     {
-        return new ATermExpr(
-            cloneNode(this._term_));
+        return new ADataFrameColop(
+            cloneNode(this._dataFrame_));
     }
 
     public void apply(Switch sw)
     {
-        ((Analysis) sw).caseATermExpr(this);
+        ((Analysis) sw).caseADataFrameColop(this);
     }
 
-    public PTerm getTerm()
+    public PDataFrame getDataFrame()
     {
-        return this._term_;
+        return this._dataFrame_;
     }
 
-    public void setTerm(PTerm node)
+    public void setDataFrame(PDataFrame node)
     {
-        if(this._term_ != null)
+        if(this._dataFrame_ != null)
         {
-            this._term_.parent(null);
+            this._dataFrame_.parent(null);
         }
 
         if(node != null)
@@ -56,23 +56,23 @@ public final class ATermExpr extends PExpr
             node.parent(this);
         }
 
-        this._term_ = node;
+        this._dataFrame_ = node;
     }
 
     @Override
     public String toString()
     {
         return ""
-            + toString(this._term_);
+            + toString(this._dataFrame_);
     }
 
     @Override
     void removeChild(@SuppressWarnings("unused") Node child)
     {
         // Remove child
-        if(this._term_ == child)
+        if(this._dataFrame_ == child)
         {
-            this._term_ = null;
+            this._dataFrame_ = null;
             return;
         }
 
@@ -83,9 +83,9 @@ public final class ATermExpr extends PExpr
     void replaceChild(@SuppressWarnings("unused") Node oldChild, @SuppressWarnings("unused") Node newChild)
     {
         // Replace child
-        if(this._term_ == oldChild)
+        if(this._dataFrame_ == oldChild)
         {
-            setTerm((PTerm) newChild);
+            setDataFrame((PDataFrame) newChild);
             return;
         }
 

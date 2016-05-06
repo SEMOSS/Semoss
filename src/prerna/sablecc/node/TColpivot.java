@@ -25,7 +25,6 @@ public final class TColpivot extends Token
       return new TColpivot(getLine(), getPos());
     }
 
-    @Override
     public void apply(Switch sw)
     {
         ((Analysis) sw).caseTColpivot(this);

@@ -5,16 +5,16 @@ package prerna.sablecc.node;
 import prerna.sablecc.analysis.*;
 
 @SuppressWarnings("nls")
-public final class TThis extends Token
+public final class TDataframe extends Token
 {
-    public TThis()
+    public TDataframe()
     {
-        super.setText("this");
+        super.setText("data.frame");
     }
 
-    public TThis(int line, int pos)
+    public TDataframe(int line, int pos)
     {
-        super.setText("this");
+        super.setText("data.frame");
         setLine(line);
         setPos(pos);
     }
@@ -22,17 +22,17 @@ public final class TThis extends Token
     @Override
     public Object clone()
     {
-      return new TThis(getLine(), getPos());
+      return new TDataframe(getLine(), getPos());
     }
 
     public void apply(Switch sw)
     {
-        ((Analysis) sw).caseTThis(this);
+        ((Analysis) sw).caseTDataframe(this);
     }
 
     @Override
     public void setText(@SuppressWarnings("unused") String text)
     {
-        throw new RuntimeException("Cannot change TThis text.");
+        throw new RuntimeException("Cannot change TDataframe text.");
     }
 }

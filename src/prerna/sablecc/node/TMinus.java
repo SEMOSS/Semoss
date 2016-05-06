@@ -25,7 +25,6 @@ public final class TMinus extends Token
       return new TMinus(getLine(), getPos());
     }
 
-    @Override
     public void apply(Switch sw)
     {
         ((Analysis) sw).caseTMinus(this);

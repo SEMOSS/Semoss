@@ -25,7 +25,6 @@ public final class TRelType extends Token
       return new TRelType(getText(), getLine(), getPos());
     }
 
-    @Override
     public void apply(Switch sw)
     {
         ((Analysis) sw).caseTRelType(this);

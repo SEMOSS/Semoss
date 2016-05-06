@@ -25,7 +25,6 @@ public final class TCodeblock extends Token
       return new TCodeblock(getText(), getLine(), getPos());
     }
 
-    @Override
     public void apply(Switch sw)
     {
         ((Analysis) sw).caseTCodeblock(this);

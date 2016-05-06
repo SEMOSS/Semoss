@@ -34,7 +34,6 @@ public final class AKeyvalueGroup extends PKeyvalueGroup
             cloneNode(this._keyvalue_));
     }
 
-    @Override
     public void apply(Switch sw)
     {
         ((Analysis) sw).caseAKeyvalueGroup(this);

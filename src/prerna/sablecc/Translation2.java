@@ -293,7 +293,6 @@ public class Translation2 extends DepthFirstAdapter {
 		}
 		runner.openFeDataBlock(id);
 		runner.addFeData("panelId", id, true);
-		runner.addFeData("type", "visual", true);
 	}
 
 	@Override
@@ -333,18 +332,18 @@ public class Translation2 extends DepthFirstAdapter {
 	public void inAPanelComment(APanelComment node) {
 		System.out.println("in a viz comment");
 		initReactor(PKQLEnum.VIZ);
-		runner.addFeData("text", node.getText().toString().trim(), false);
-		runner.addFeData("group", node.getGroup().toString().trim(), false);
-		runner.addFeData("type", node.getType().toString().trim(), false);
-		runner.addFeData("location", node.getLocation().toString().trim(), false);
-		runner.setResponse("Successfully commented : " + node.getText().toString().trim());//
-		runner.setStatus("SUCCESS");
 	}
 
 	@Override
 	public void outAPanelComment(APanelComment node) {
 		System.out.println("out a viz change");
 		deinitReactor(PKQLEnum.VIZ, "", "");
+		runner.addFeData("text", node.getText().toString().trim(), false);
+		runner.addFeData("group", node.getGroup().toString().trim(), false);
+		runner.addFeData("type", node.getType().toString().trim(), false);
+		runner.addFeData("location", node.getLocation().toString().trim(), false);
+		runner.setResponse("Successfully commented : " + node.getText().toString().trim());//
+		runner.setStatus("SUCCESS");
 	}
 	
 	@Override
@@ -359,6 +358,8 @@ public class Translation2 extends DepthFirstAdapter {
 		String newId = node.getNewid().getText();
 		runner.addFeData("newPanelId", newId, false);
 		deinitReactor(PKQLEnum.VIZ, "", "");
+		runner.setResponse("Successfully cloned! New panel id: " + newId);//
+		runner.setStatus("SUCCESS");
 	}
 	
 //**************************************** END PANEL OPERATIONS **********************************************//

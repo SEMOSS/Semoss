@@ -25,7 +25,6 @@ public final class TJava extends Token
       return new TJava(getLine(), getPos());
     }
 
-    @Override
     public void apply(Switch sw)
     {
         ((Analysis) sw).caseTJava(this);

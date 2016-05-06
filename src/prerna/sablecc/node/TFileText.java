@@ -25,7 +25,6 @@ public final class TFileText extends Token
       return new TFileText(getText(), getLine(), getPos());
     }
 
-    @Override
     public void apply(Switch sw)
     {
         ((Analysis) sw).caseTFileText(this);

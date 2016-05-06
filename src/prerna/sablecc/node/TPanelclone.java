@@ -25,7 +25,6 @@ public final class TPanelclone extends Token
       return new TPanelclone(getText(), getLine(), getPos());
     }
 
-    @Override
     public void apply(Switch sw)
     {
         ((Analysis) sw).caseTPanelclone(this);

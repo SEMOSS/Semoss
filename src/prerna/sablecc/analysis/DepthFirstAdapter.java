@@ -483,6 +483,27 @@ public class DepthFirstAdapter extends AnalysisAdapter
         outARemoveDataColop(node);
     }
 
+    public void inADataFrameColop(ADataFrameColop node)
+    {
+        defaultIn(node);
+    }
+
+    public void outADataFrameColop(ADataFrameColop node)
+    {
+        defaultOut(node);
+    }
+
+    @Override
+    public void caseADataFrameColop(ADataFrameColop node)
+    {
+        inADataFrameColop(node);
+        if(node.getDataFrame() != null)
+        {
+            node.getDataFrame().apply(this);
+        }
+        outADataFrameColop(node);
+    }
+
     public void inAPanelVizPanelop(APanelVizPanelop node)
     {
         defaultIn(node);
@@ -685,23 +706,23 @@ public class DepthFirstAdapter extends AnalysisAdapter
         outAPanelClone(node);
     }
 
-    public void inAPanelSetBuilder(APanelSetBuilder node)
+    public void inADataFrame(ADataFrame node)
     {
         defaultIn(node);
     }
 
-    public void outAPanelSetBuilder(APanelSetBuilder node)
+    public void outADataFrame(ADataFrame node)
     {
         defaultOut(node);
     }
 
     @Override
-    public void caseAPanelSetBuilder(APanelSetBuilder node)
+    public void caseADataFrame(ADataFrame node)
     {
-        inAPanelSetBuilder(node);
-        if(node.getPanelsetbuilder() != null)
+        inADataFrame(node);
+        if(node.getDataframe() != null)
         {
-            node.getPanelsetbuilder().apply(this);
+            node.getDataframe().apply(this);
         }
         if(node.getLPar() != null)
         {
@@ -715,7 +736,7 @@ public class DepthFirstAdapter extends AnalysisAdapter
         {
             node.getRPar().apply(this);
         }
-        outAPanelSetBuilder(node);
+        outADataFrame(node);
     }
 
     public void inAAddColumn(AAddColumn node)
