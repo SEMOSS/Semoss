@@ -34,6 +34,7 @@ public final class AVarDef extends PVarDef
             cloneNode(this._valname_));
     }
 
+    @Override
     public void apply(Switch sw)
     {
         ((Analysis) sw).caseAVarDef(this);

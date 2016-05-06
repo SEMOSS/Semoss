@@ -13,6 +13,7 @@ import prerna.ds.QueryStruct;
 import prerna.engine.api.IHeadersDataRow;
 import prerna.engine.impl.rdf.HeadersDataRow;
 import prerna.poi.main.helper.CSVFileHelper;
+import prerna.util.ArrayUtilityMethods;
 import prerna.util.Utility;
 
 public class FileIterator implements Iterator<IHeadersDataRow>{
@@ -25,11 +26,11 @@ public class FileIterator implements Iterator<IHeadersDataRow>{
 	Map<String, Set<Object>> filters;
 	Map<String, String> dataTypeMap;
 	
-	public FileIterator(String fileLoc, QueryStruct qs, Map<String, String> dataTypeMap) {
+	public FileIterator(String fileLoc, char delimiter, QueryStruct qs, Map<String, String> dataTypeMap) {
 		
 		this.helper = new CSVFileHelper();
 		filters = new HashMap<String, Set<Object>>();
-		helper.setDelimiter(",".charAt(0));
+		helper.setDelimiter(delimiter);
 		helper.parse(fileLoc);
 		
 		if(dataTypeMap != null && !dataTypeMap.isEmpty()) {
@@ -53,6 +54,8 @@ public class FileIterator implements Iterator<IHeadersDataRow>{
 			}
 		}
 		
+		
+		
 		setSelectors(qs.getSelectors());
 		setFilters(qs.andfilters);
 		
@@ -69,7 +72,11 @@ public class FileIterator implements Iterator<IHeadersDataRow>{
 	
 	@Override
 	public boolean hasNext() {
-		return nextRow != null;
+		if(nextRow == null) {
+			helper.clear();
+			return false;
+		}
+		return true;
 	}
 
 	@Override
@@ -138,6 +145,20 @@ public class FileIterator implements Iterator<IHeadersDataRow>{
 	
 	private void setSelectors(Hashtable<String, Vector<String>> selectorSet) {
 		String[] selectors = selectorSet.keySet().toArray(new String[]{});
-		this.helper.parseColumns(selectors);
+		String[] allHeaders = this.helper.getHeaders();
+		if(allHeaders.length != selectors.length) {
+			// order the selectors
+			// all headers will be ordered
+			String[] orderedSelectors = new String[selectors.length];
+			int counter = 0;
+			for(String header : allHeaders) {
+				if(ArrayUtilityMethods.arrayContainsValue(selectors, header)) {
+					orderedSelectors[counter] = header;
+					counter++;
+				}
+			}
+			
+			this.helper.parseColumns(orderedSelectors);
+		}
 	}
 }

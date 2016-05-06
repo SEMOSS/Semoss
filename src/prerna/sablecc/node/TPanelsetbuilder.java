@@ -25,6 +25,7 @@ public final class TPanelsetbuilder extends Token
       return new TPanelsetbuilder(getText(), getLine(), getPos());
     }
 
+    @Override
     public void apply(Switch sw)
     {
         ((Analysis) sw).caseTPanelsetbuilder(this);

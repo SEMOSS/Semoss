@@ -35,7 +35,7 @@ public class TinkerImportDataReactor extends ImportDataReactor{
 				headers = ss.getHeaders();
 
 				// TODO: annoying, need to determine if i need to create a prim key edge hash
-				if( !(it instanceof ISelectWrapper) ) {
+				if(edgeHash == null) {
 					Map<String, Set<String>> primKeyEdgeHash = frame.createPrimKeyEdgeHash(headers);
 					//TODO: need to make all these wrappers that give a IHeaderDataRow be the same type to get this info
 					String[] types = null;

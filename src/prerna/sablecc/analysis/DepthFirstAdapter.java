@@ -1184,6 +1184,56 @@ public class DepthFirstAdapter extends AnalysisAdapter
         outACsvTableImportBlock(node);
     }
 
+    public void inAPastedDataImportBlock(APastedDataImportBlock node)
+    {
+        defaultIn(node);
+    }
+
+    public void outAPastedDataImportBlock(APastedDataImportBlock node)
+    {
+        defaultOut(node);
+    }
+
+    @Override
+    public void caseAPastedDataImportBlock(APastedDataImportBlock node)
+    {
+        inAPastedDataImportBlock(node);
+        if(node.getPastedData() != null)
+        {
+            node.getPastedData().apply(this);
+        }
+        outAPastedDataImportBlock(node);
+    }
+
+    public void inAPastedData(APastedData node)
+    {
+        defaultIn(node);
+    }
+
+    public void outAPastedData(APastedData node)
+    {
+        defaultOut(node);
+    }
+
+    @Override
+    public void caseAPastedData(APastedData node)
+    {
+        inAPastedData(node);
+        if(node.getFileText() != null)
+        {
+            node.getFileText().apply(this);
+        }
+        if(node.getComma() != null)
+        {
+            node.getComma().apply(this);
+        }
+        if(node.getDelimitier() != null)
+        {
+            node.getDelimitier().apply(this);
+        }
+        outAPastedData(node);
+    }
+
     public void inARemoveData(ARemoveData node)
     {
         defaultIn(node);

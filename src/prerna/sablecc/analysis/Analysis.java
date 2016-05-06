@@ -52,6 +52,8 @@ public interface Analysis extends Switch
     void caseAImportData(AImportData node);
     void caseAApiImportBlock(AApiImportBlock node);
     void caseACsvTableImportBlock(ACsvTableImportBlock node);
+    void caseAPastedDataImportBlock(APastedDataImportBlock node);
+    void caseAPastedData(APastedData node);
     void caseARemoveData(ARemoveData node);
     void caseADecimal(ADecimal node);
     void caseAExprGroup(AExprGroup node);
@@ -172,5 +174,7 @@ public interface Analysis extends Switch
     void caseTPanelcomment(TPanelcomment node);
     void caseTPanelclone(TPanelclone node);
     void caseTPanelsetbuilder(TPanelsetbuilder node);
+    void caseTFileText(TFileText node);
     void caseEOF(EOF node);
+    void caseInvalidToken(InvalidToken node);
 }
