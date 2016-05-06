@@ -29,6 +29,7 @@ public final class AMathFunTerm extends PTerm
             cloneNode(this._mathFun_));
     }
 
+    @Override
     public void apply(Switch sw)
     {
         ((Analysis) sw).caseAMathFunTerm(this);

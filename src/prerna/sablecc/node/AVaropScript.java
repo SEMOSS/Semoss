@@ -34,6 +34,7 @@ public final class AVaropScript extends PScript
             cloneNode(this._semicolon_));
     }
 
+    @Override
     public void apply(Switch sw)
     {
         ((Analysis) sw).caseAVaropScript(this);

@@ -25,6 +25,7 @@ public final class TCol extends Token
       return new TCol(getLine(), getPos());
     }
 
+    @Override
     public void apply(Switch sw)
     {
         ((Analysis) sw).caseTCol(this);

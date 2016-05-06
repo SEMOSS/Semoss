@@ -25,6 +25,7 @@ public final class TShowHide extends Token
       return new TShowHide(getText(), getLine(), getPos());
     }
 
+    @Override
     public void apply(Switch sw)
     {
         ((Analysis) sw).caseTShowHide(this);
