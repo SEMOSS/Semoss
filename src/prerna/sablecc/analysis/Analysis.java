@@ -38,6 +38,7 @@ public interface Analysis extends Switch
     void caseAPanelViz(APanelViz node);
     void caseAPanelComment(APanelComment node);
     void caseAPanelClone(APanelClone node);
+    void caseAPanelSetBuilder(APanelSetBuilder node);
     void caseAAddColumn(AAddColumn node);
     void caseARemColumn(ARemColumn node);
     void caseASetColumn(ASetColumn node);
@@ -170,5 +171,6 @@ public interface Analysis extends Switch
     void caseTPanelviz(TPanelviz node);
     void caseTPanelcomment(TPanelcomment node);
     void caseTPanelclone(TPanelclone node);
+    void caseTPanelsetbuilder(TPanelsetbuilder node);
     void caseEOF(EOF node);
 }

@@ -5,26 +5,30 @@ package prerna.sablecc.node;
 import prerna.sablecc.analysis.*;
 
 @SuppressWarnings("nls")
-public final class APanelClone extends PPanelClone
+public final class APanelSetBuilder extends PPanelSetBuilder
 {
-    private TPanelclone _panelclone_;
+    private TPanelsetbuilder _panelsetbuilder_;
     private TLPar _lPar_;
+    private TWord _builder_;
     private TRPar _rPar_;
 
-    public APanelClone()
+    public APanelSetBuilder()
     {
         // Constructor
     }
 
-    public APanelClone(
-        @SuppressWarnings("hiding") TPanelclone _panelclone_,
+    public APanelSetBuilder(
+        @SuppressWarnings("hiding") TPanelsetbuilder _panelsetbuilder_,
         @SuppressWarnings("hiding") TLPar _lPar_,
+        @SuppressWarnings("hiding") TWord _builder_,
         @SuppressWarnings("hiding") TRPar _rPar_)
     {
         // Constructor
-        setPanelclone(_panelclone_);
+        setPanelsetbuilder(_panelsetbuilder_);
 
         setLPar(_lPar_);
+
+        setBuilder(_builder_);
 
         setRPar(_rPar_);
 
@@ -33,27 +37,28 @@ public final class APanelClone extends PPanelClone
     @Override
     public Object clone()
     {
-        return new APanelClone(
-            cloneNode(this._panelclone_),
+        return new APanelSetBuilder(
+            cloneNode(this._panelsetbuilder_),
             cloneNode(this._lPar_),
+            cloneNode(this._builder_),
             cloneNode(this._rPar_));
     }
 
     public void apply(Switch sw)
     {
-        ((Analysis) sw).caseAPanelClone(this);
+        ((Analysis) sw).caseAPanelSetBuilder(this);
     }
 
-    public TPanelclone getPanelclone()
+    public TPanelsetbuilder getPanelsetbuilder()
     {
-        return this._panelclone_;
+        return this._panelsetbuilder_;
     }
 
-    public void setPanelclone(TPanelclone node)
+    public void setPanelsetbuilder(TPanelsetbuilder node)
     {
-        if(this._panelclone_ != null)
+        if(this._panelsetbuilder_ != null)
         {
-            this._panelclone_.parent(null);
+            this._panelsetbuilder_.parent(null);
         }
 
         if(node != null)
@@ -66,7 +71,7 @@ public final class APanelClone extends PPanelClone
             node.parent(this);
         }
 
-        this._panelclone_ = node;
+        this._panelsetbuilder_ = node;
     }
 
     public TLPar getLPar()
@@ -92,6 +97,31 @@ public final class APanelClone extends PPanelClone
         }
 
         this._lPar_ = node;
+    }
+
+    public TWord getBuilder()
+    {
+        return this._builder_;
+    }
+
+    public void setBuilder(TWord node)
+    {
+        if(this._builder_ != null)
+        {
+            this._builder_.parent(null);
+        }
+
+        if(node != null)
+        {
+            if(node.parent() != null)
+            {
+                node.parent().removeChild(node);
+            }
+
+            node.parent(this);
+        }
+
+        this._builder_ = node;
     }
 
     public TRPar getRPar()
@@ -123,8 +153,9 @@ public final class APanelClone extends PPanelClone
     public String toString()
     {
         return ""
-            + toString(this._panelclone_)
+            + toString(this._panelsetbuilder_)
             + toString(this._lPar_)
+            + toString(this._builder_)
             + toString(this._rPar_);
     }
 
@@ -132,15 +163,21 @@ public final class APanelClone extends PPanelClone
     void removeChild(@SuppressWarnings("unused") Node child)
     {
         // Remove child
-        if(this._panelclone_ == child)
+        if(this._panelsetbuilder_ == child)
         {
-            this._panelclone_ = null;
+            this._panelsetbuilder_ = null;
             return;
         }
 
         if(this._lPar_ == child)
         {
             this._lPar_ = null;
+            return;
+        }
+
+        if(this._builder_ == child)
+        {
+            this._builder_ = null;
             return;
         }
 
@@ -157,15 +194,21 @@ public final class APanelClone extends PPanelClone
     void replaceChild(@SuppressWarnings("unused") Node oldChild, @SuppressWarnings("unused") Node newChild)
     {
         // Replace child
-        if(this._panelclone_ == oldChild)
+        if(this._panelsetbuilder_ == oldChild)
         {
-            setPanelclone((TPanelclone) newChild);
+            setPanelsetbuilder((TPanelsetbuilder) newChild);
             return;
         }
 
         if(this._lPar_ == oldChild)
         {
             setLPar((TLPar) newChild);
+            return;
+        }
+
+        if(this._builder_ == oldChild)
+        {
+            setBuilder((TWord) newChild);
             return;
         }
 
