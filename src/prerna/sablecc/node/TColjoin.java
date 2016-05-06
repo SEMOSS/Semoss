@@ -25,6 +25,7 @@ public final class TColjoin extends Token
       return new TColjoin(getLine(), getPos());
     }
 
+    @Override
     public void apply(Switch sw)
     {
         ((Analysis) sw).caseTColjoin(this);

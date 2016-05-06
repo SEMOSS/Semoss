@@ -21,7 +21,7 @@ public final class AExprRow extends PExprRow
     public AExprRow(
         @SuppressWarnings("hiding") TLBracket _lBracket_,
         @SuppressWarnings("hiding") PExpr _expr_,
-        @SuppressWarnings("hiding") List<PExprGroup> _exprGroup_,
+        @SuppressWarnings("hiding") List<?> _exprGroup_,
         @SuppressWarnings("hiding") TRBracket _rBracket_)
     {
         // Constructor
@@ -45,6 +45,7 @@ public final class AExprRow extends PExprRow
             cloneNode(this._rBracket_));
     }
 
+    @Override
     public void apply(Switch sw)
     {
         ((Analysis) sw).caseAExprRow(this);
@@ -105,18 +106,24 @@ public final class AExprRow extends PExprRow
         return this._exprGroup_;
     }
 
-    public void setExprGroup(List<PExprGroup> list)
+    public void setExprGroup(List<?> list)
     {
-        this._exprGroup_.clear();
-        this._exprGroup_.addAll(list);
-        for(PExprGroup e : list)
+        for(PExprGroup e : this._exprGroup_)
         {
+            e.parent(null);
+        }
+        this._exprGroup_.clear();
+
+        for(Object obj_e : list)
+        {
+            PExprGroup e = (PExprGroup) obj_e;
             if(e.parent() != null)
             {
                 e.parent().removeChild(e);
             }
 
             e.parent(this);
+            this._exprGroup_.add(e);
         }
     }
 

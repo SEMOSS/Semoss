@@ -45,6 +45,8 @@ import prerna.sablecc.node.APanelClone;
 import prerna.sablecc.node.APanelComment;
 import prerna.sablecc.node.APanelViz;
 import prerna.sablecc.node.APanelopScript;
+import prerna.sablecc.node.APastedData;
+import prerna.sablecc.node.APastedDataImportBlock;
 import prerna.sablecc.node.APlusExpr;
 import prerna.sablecc.node.AROpScript;
 import prerna.sablecc.node.ARelationDef;
@@ -112,6 +114,7 @@ public class Translation2 extends DepthFirstAdapter {
 		reactorNames.put(PKQLEnum.COL_CSV, "prerna.sablecc.ColCsvReactor"); // it almost feels like I need a way to tell when to do this and when not but let me see
 		reactorNames.put(PKQLEnum.ROW_CSV, "prerna.sablecc.RowCsvReactor");
 		reactorNames.put(PKQLEnum.API, "prerna.sablecc.ApiReactor");
+		reactorNames.put(PKQLEnum.PASTED_DATA, "prerna.sablecc.PastedDataReactor");
 		reactorNames.put(PKQLEnum.WHERE, "prerna.sablecc.ColWhereReactor");
 		reactorNames.put(PKQLEnum.REL_DEF, "prerna.sablecc.RelReactor");
 		reactorNames.put(PKQLEnum.COL_ADD, "prerna.sablecc.ColAddReactor");
@@ -790,6 +793,28 @@ public class Translation2 extends DepthFirstAdapter {
 		if(curReactor != null && node.parent() != null && node.parent() instanceof ACsvTableImportBlock) {
 			String [] values2Sync = curReactor.getValues2Sync(PKQLEnum.CSV_TABLE);
 			synchronizeValues(PKQLEnum.CSV_TABLE, values2Sync, thisReactor);
+		}
+    }
+    
+    public void inAPastedData(APastedData node)
+    {
+    	System.out.println("Directly lands into col table " + node);
+		if(reactorNames.containsKey(PKQLEnum.PASTED_DATA)) {
+			initReactor(PKQLEnum.PASTED_DATA);
+			String nodeStr = node + "";
+			curReactor.put(PKQLEnum.PASTED_DATA, nodeStr.trim());
+		}
+    }
+
+    public void outAPastedData(APastedData node)
+    {
+    	String thisNode = node.toString().trim();
+    	IScriptReactor thisReactor = curReactor;
+		deinitReactor(PKQLEnum.PASTED_DATA, thisNode, PKQLEnum.PASTED_DATA);
+    	
+		if(curReactor != null && node.parent() != null && node.parent() instanceof APastedDataImportBlock) {
+			String [] values2Sync = curReactor.getValues2Sync(PKQLEnum.PASTED_DATA);
+			synchronizeValues(PKQLEnum.PASTED_DATA, values2Sync, thisReactor);
 		}
     }
     

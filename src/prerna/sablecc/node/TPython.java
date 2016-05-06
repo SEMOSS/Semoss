@@ -25,6 +25,7 @@ public final class TPython extends Token
       return new TPython(getLine(), getPos());
     }
 
+    @Override
     public void apply(Switch sw)
     {
         ((Analysis) sw).caseTPython(this);

@@ -59,6 +59,7 @@ public final class ARelationDef extends PRelationDef
             cloneNode(this._rBracket_));
     }
 
+    @Override
     public void apply(Switch sw)
     {
         ((Analysis) sw).caseARelationDef(this);
