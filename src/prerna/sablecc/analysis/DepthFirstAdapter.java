@@ -666,9 +666,9 @@ public class DepthFirstAdapter extends AnalysisAdapter
     public void caseAPanelClone(APanelClone node)
     {
         inAPanelClone(node);
-        if(node.getPanelcomment() != null)
+        if(node.getPanelclone() != null)
         {
-            node.getPanelcomment().apply(this);
+            node.getPanelclone().apply(this);
         }
         if(node.getLPar() != null)
         {
@@ -679,6 +679,39 @@ public class DepthFirstAdapter extends AnalysisAdapter
             node.getRPar().apply(this);
         }
         outAPanelClone(node);
+    }
+
+    public void inAPanelSetBuilder(APanelSetBuilder node)
+    {
+        defaultIn(node);
+    }
+
+    public void outAPanelSetBuilder(APanelSetBuilder node)
+    {
+        defaultOut(node);
+    }
+
+    @Override
+    public void caseAPanelSetBuilder(APanelSetBuilder node)
+    {
+        inAPanelSetBuilder(node);
+        if(node.getPanelsetbuilder() != null)
+        {
+            node.getPanelsetbuilder().apply(this);
+        }
+        if(node.getLPar() != null)
+        {
+            node.getLPar().apply(this);
+        }
+        if(node.getBuilder() != null)
+        {
+            node.getBuilder().apply(this);
+        }
+        if(node.getRPar() != null)
+        {
+            node.getRPar().apply(this);
+        }
+        outAPanelSetBuilder(node);
     }
 
     public void inAAddColumn(AAddColumn node)
