@@ -32,7 +32,7 @@ public class PKQLRunner {
 	private Translation2 translation;
 	private List<Map> responseArray = new Vector<Map>();
 	
-	public List<Map> runPKQL(String expression, ITableDataFrame f) {
+	public void runPKQL(String expression, ITableDataFrame f) {
 		
 		Parser p = new Parser(new Lexer(new PushbackReader(new InputStreamReader(new StringBufferInputStream(expression)), 1024)));
 		Start tree;
@@ -50,7 +50,11 @@ public class PKQLRunner {
 			response = "Invalid PKQL Statement";
 			storeResponse();
 		}
-		return responseArray;
+		return;
+	}
+	
+	public List<Map> getResults(){
+		return this.responseArray;
 	}
 	
 	public void storeResponse(){
