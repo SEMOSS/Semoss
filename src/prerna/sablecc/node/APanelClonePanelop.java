@@ -29,7 +29,6 @@ public final class APanelClonePanelop extends PPanelop
             cloneNode(this._panelClone_));
     }
 
-    @Override
     public void apply(Switch sw)
     {
         ((Analysis) sw).caseAPanelClonePanelop(this);

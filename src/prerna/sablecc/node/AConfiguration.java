@@ -16,7 +16,7 @@ public final class AConfiguration extends PConfiguration
     }
 
     public AConfiguration(
-        @SuppressWarnings("hiding") List<?> _script_)
+        @SuppressWarnings("hiding") List<PScript> _script_)
     {
         // Constructor
         setScript(_script_);
@@ -30,7 +30,6 @@ public final class AConfiguration extends PConfiguration
             cloneList(this._script_));
     }
 
-    @Override
     public void apply(Switch sw)
     {
         ((Analysis) sw).caseAConfiguration(this);
@@ -41,24 +40,18 @@ public final class AConfiguration extends PConfiguration
         return this._script_;
     }
 
-    public void setScript(List<?> list)
+    public void setScript(List<PScript> list)
     {
-        for(PScript e : this._script_)
-        {
-            e.parent(null);
-        }
         this._script_.clear();
-
-        for(Object obj_e : list)
+        this._script_.addAll(list);
+        for(PScript e : list)
         {
-            PScript e = (PScript) obj_e;
             if(e.parent() != null)
             {
                 e.parent().removeChild(e);
             }
 
             e.parent(this);
-            this._script_.add(e);
         }
     }
 

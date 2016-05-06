@@ -25,7 +25,6 @@ public final class TWord extends Token
       return new TWord(getText(), getLine(), getPos());
     }
 
-    @Override
     public void apply(Switch sw)
     {
         ((Analysis) sw).caseTWord(this);

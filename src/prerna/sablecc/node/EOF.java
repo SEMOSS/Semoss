@@ -25,7 +25,6 @@ public final class EOF extends Token
         return new EOF(getLine(), getPos());
     }
 
-    @Override
     public void apply(Switch sw)
     {
         ((Analysis) sw).caseEOF(this);

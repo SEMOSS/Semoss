@@ -39,7 +39,6 @@ public final class AMultExpr extends PExpr
             cloneNode(this._right_));
     }
 
-    @Override
     public void apply(Switch sw)
     {
         ((Analysis) sw).caseAMultExpr(this);

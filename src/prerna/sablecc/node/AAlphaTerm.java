@@ -29,7 +29,6 @@ public final class AAlphaTerm extends PTerm
             cloneNode(this._word_));
     }
 
-    @Override
     public void apply(Switch sw)
     {
         ((Analysis) sw).caseAAlphaTerm(this);

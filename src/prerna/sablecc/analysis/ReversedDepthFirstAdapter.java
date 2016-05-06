@@ -484,6 +484,27 @@ public class ReversedDepthFirstAdapter extends AnalysisAdapter
         outARemoveDataColop(node);
     }
 
+    public void inADataFrameColop(ADataFrameColop node)
+    {
+        defaultIn(node);
+    }
+
+    public void outADataFrameColop(ADataFrameColop node)
+    {
+        defaultOut(node);
+    }
+
+    @Override
+    public void caseADataFrameColop(ADataFrameColop node)
+    {
+        inADataFrameColop(node);
+        if(node.getDataFrame() != null)
+        {
+            node.getDataFrame().apply(this);
+        }
+        outADataFrameColop(node);
+    }
+
     public void inAPanelVizPanelop(APanelVizPanelop node)
     {
         defaultIn(node);
@@ -686,20 +707,20 @@ public class ReversedDepthFirstAdapter extends AnalysisAdapter
         outAPanelClone(node);
     }
 
-    public void inAPanelSetBuilder(APanelSetBuilder node)
+    public void inADataFrame(ADataFrame node)
     {
         defaultIn(node);
     }
 
-    public void outAPanelSetBuilder(APanelSetBuilder node)
+    public void outADataFrame(ADataFrame node)
     {
         defaultOut(node);
     }
 
     @Override
-    public void caseAPanelSetBuilder(APanelSetBuilder node)
+    public void caseADataFrame(ADataFrame node)
     {
-        inAPanelSetBuilder(node);
+        inADataFrame(node);
         if(node.getRPar() != null)
         {
             node.getRPar().apply(this);
@@ -712,11 +733,11 @@ public class ReversedDepthFirstAdapter extends AnalysisAdapter
         {
             node.getLPar().apply(this);
         }
-        if(node.getPanelsetbuilder() != null)
+        if(node.getDataframe() != null)
         {
-            node.getPanelsetbuilder().apply(this);
+            node.getDataframe().apply(this);
         }
-        outAPanelSetBuilder(node);
+        outADataFrame(node);
     }
 
     public void inAAddColumn(AAddColumn node)

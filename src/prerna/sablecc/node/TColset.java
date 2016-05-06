@@ -25,7 +25,6 @@ public final class TColset extends Token
       return new TColset(getLine(), getPos());
     }
 
-    @Override
     public void apply(Switch sw)
     {
         ((Analysis) sw).caseTColset(this);
