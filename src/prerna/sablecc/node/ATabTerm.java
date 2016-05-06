@@ -29,6 +29,7 @@ public final class ATabTerm extends PTerm
             cloneNode(this._tab_));
     }
 
+    @Override
     public void apply(Switch sw)
     {
         ((Analysis) sw).caseATabTerm(this);

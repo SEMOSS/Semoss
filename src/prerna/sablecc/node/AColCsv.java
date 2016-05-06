@@ -21,7 +21,7 @@ public final class AColCsv extends PColCsv
     public AColCsv(
         @SuppressWarnings("hiding") TLBracket _lBracket_,
         @SuppressWarnings("hiding") PColDef _colDef_,
-        @SuppressWarnings("hiding") List<PColGroup> _colGroup_,
+        @SuppressWarnings("hiding") List<?> _colGroup_,
         @SuppressWarnings("hiding") TRBracket _rBracket_)
     {
         // Constructor
@@ -45,6 +45,7 @@ public final class AColCsv extends PColCsv
             cloneNode(this._rBracket_));
     }
 
+    @Override
     public void apply(Switch sw)
     {
         ((Analysis) sw).caseAColCsv(this);
@@ -105,18 +106,24 @@ public final class AColCsv extends PColCsv
         return this._colGroup_;
     }
 
-    public void setColGroup(List<PColGroup> list)
+    public void setColGroup(List<?> list)
     {
-        this._colGroup_.clear();
-        this._colGroup_.addAll(list);
-        for(PColGroup e : list)
+        for(PColGroup e : this._colGroup_)
         {
+            e.parent(null);
+        }
+        this._colGroup_.clear();
+
+        for(Object obj_e : list)
+        {
+            PColGroup e = (PColGroup) obj_e;
             if(e.parent() != null)
             {
                 e.parent().removeChild(e);
             }
 
             e.parent(this);
+            this._colGroup_.add(e);
         }
     }
 

@@ -25,6 +25,7 @@ public final class TValprefix extends Token
       return new TValprefix(getLine(), getPos());
     }
 
+    @Override
     public void apply(Switch sw)
     {
         ((Analysis) sw).caseTValprefix(this);

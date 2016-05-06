@@ -174,8 +174,10 @@ alias_column = // sets the column aliases
 import_data = // imports from api query commands and other scripts
 		dataimporttoken [lp1]:l_par [import]:import_block [joins]:relation_clause? [rp2]:r_par;
 		
-import_block = {api} api_block | {csv_table} csv_table | {pasted_data} pasted_data; 
- 
+import_block = {api} api_block | {csv_table} csv_table | {pasted_data} pasted_data_block; 
+
+pasted_data_block = l_par pasted_data r_par;
+
 pasted_data = file_text comma [delimitier]:word_or_num; 
 
 remove_data = // imports from api query commands and other scripts and deletes that data from the table

@@ -5,34 +5,26 @@ package prerna.sablecc.node;
 import prerna.sablecc.analysis.*;
 
 @SuppressWarnings("nls")
-public final class AExtendedExpr extends PExtendedExpr
+public final class APastedDataBlock extends PPastedDataBlock
 {
     private TLPar _lPar_;
-    private PExpr _expr_;
-    private TComma _comma_;
-    private PColCsv _group_;
+    private PPastedData _pastedData_;
     private TRPar _rPar_;
 
-    public AExtendedExpr()
+    public APastedDataBlock()
     {
         // Constructor
     }
 
-    public AExtendedExpr(
+    public APastedDataBlock(
         @SuppressWarnings("hiding") TLPar _lPar_,
-        @SuppressWarnings("hiding") PExpr _expr_,
-        @SuppressWarnings("hiding") TComma _comma_,
-        @SuppressWarnings("hiding") PColCsv _group_,
+        @SuppressWarnings("hiding") PPastedData _pastedData_,
         @SuppressWarnings("hiding") TRPar _rPar_)
     {
         // Constructor
         setLPar(_lPar_);
 
-        setExpr(_expr_);
-
-        setComma(_comma_);
-
-        setGroup(_group_);
+        setPastedData(_pastedData_);
 
         setRPar(_rPar_);
 
@@ -41,18 +33,16 @@ public final class AExtendedExpr extends PExtendedExpr
     @Override
     public Object clone()
     {
-        return new AExtendedExpr(
+        return new APastedDataBlock(
             cloneNode(this._lPar_),
-            cloneNode(this._expr_),
-            cloneNode(this._comma_),
-            cloneNode(this._group_),
+            cloneNode(this._pastedData_),
             cloneNode(this._rPar_));
     }
 
     @Override
     public void apply(Switch sw)
     {
-        ((Analysis) sw).caseAExtendedExpr(this);
+        ((Analysis) sw).caseAPastedDataBlock(this);
     }
 
     public TLPar getLPar()
@@ -80,16 +70,16 @@ public final class AExtendedExpr extends PExtendedExpr
         this._lPar_ = node;
     }
 
-    public PExpr getExpr()
+    public PPastedData getPastedData()
     {
-        return this._expr_;
+        return this._pastedData_;
     }
 
-    public void setExpr(PExpr node)
+    public void setPastedData(PPastedData node)
     {
-        if(this._expr_ != null)
+        if(this._pastedData_ != null)
         {
-            this._expr_.parent(null);
+            this._pastedData_.parent(null);
         }
 
         if(node != null)
@@ -102,57 +92,7 @@ public final class AExtendedExpr extends PExtendedExpr
             node.parent(this);
         }
 
-        this._expr_ = node;
-    }
-
-    public TComma getComma()
-    {
-        return this._comma_;
-    }
-
-    public void setComma(TComma node)
-    {
-        if(this._comma_ != null)
-        {
-            this._comma_.parent(null);
-        }
-
-        if(node != null)
-        {
-            if(node.parent() != null)
-            {
-                node.parent().removeChild(node);
-            }
-
-            node.parent(this);
-        }
-
-        this._comma_ = node;
-    }
-
-    public PColCsv getGroup()
-    {
-        return this._group_;
-    }
-
-    public void setGroup(PColCsv node)
-    {
-        if(this._group_ != null)
-        {
-            this._group_.parent(null);
-        }
-
-        if(node != null)
-        {
-            if(node.parent() != null)
-            {
-                node.parent().removeChild(node);
-            }
-
-            node.parent(this);
-        }
-
-        this._group_ = node;
+        this._pastedData_ = node;
     }
 
     public TRPar getRPar()
@@ -185,9 +125,7 @@ public final class AExtendedExpr extends PExtendedExpr
     {
         return ""
             + toString(this._lPar_)
-            + toString(this._expr_)
-            + toString(this._comma_)
-            + toString(this._group_)
+            + toString(this._pastedData_)
             + toString(this._rPar_);
     }
 
@@ -201,21 +139,9 @@ public final class AExtendedExpr extends PExtendedExpr
             return;
         }
 
-        if(this._expr_ == child)
+        if(this._pastedData_ == child)
         {
-            this._expr_ = null;
-            return;
-        }
-
-        if(this._comma_ == child)
-        {
-            this._comma_ = null;
-            return;
-        }
-
-        if(this._group_ == child)
-        {
-            this._group_ = null;
+            this._pastedData_ = null;
             return;
         }
 
@@ -238,21 +164,9 @@ public final class AExtendedExpr extends PExtendedExpr
             return;
         }
 
-        if(this._expr_ == oldChild)
+        if(this._pastedData_ == oldChild)
         {
-            setExpr((PExpr) newChild);
-            return;
-        }
-
-        if(this._comma_ == oldChild)
-        {
-            setComma((TComma) newChild);
-            return;
-        }
-
-        if(this._group_ == oldChild)
-        {
-            setGroup((PColCsv) newChild);
+            setPastedData((PPastedData) newChild);
             return;
         }
 

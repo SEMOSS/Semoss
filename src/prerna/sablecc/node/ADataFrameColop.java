@@ -29,6 +29,7 @@ public final class ADataFrameColop extends PColop
             cloneNode(this._dataFrame_));
     }
 
+    @Override
     public void apply(Switch sw)
     {
         ((Analysis) sw).caseADataFrameColop(this);

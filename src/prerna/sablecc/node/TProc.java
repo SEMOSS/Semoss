@@ -25,6 +25,7 @@ public final class TProc extends Token
       return new TProc(getLine(), getPos());
     }
 
+    @Override
     public void apply(Switch sw)
     {
         ((Analysis) sw).caseTProc(this);

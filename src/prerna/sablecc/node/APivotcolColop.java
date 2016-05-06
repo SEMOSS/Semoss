@@ -29,6 +29,7 @@ public final class APivotcolColop extends PColop
             cloneNode(this._pivotColumn_));
     }
 
+    @Override
     public void apply(Switch sw)
     {
         ((Analysis) sw).caseAPivotcolColop(this);

@@ -29,6 +29,7 @@ public final class AImportDataColop extends PColop
             cloneNode(this._importData_));
     }
 
+    @Override
     public void apply(Switch sw)
     {
         ((Analysis) sw).caseAImportDataColop(this);

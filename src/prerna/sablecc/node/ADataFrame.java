@@ -44,6 +44,7 @@ public final class ADataFrame extends PDataFrame
             cloneNode(this._rPar_));
     }
 
+    @Override
     public void apply(Switch sw)
     {
         ((Analysis) sw).caseADataFrame(this);

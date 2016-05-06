@@ -1223,11 +1223,40 @@ public class ReversedDepthFirstAdapter extends AnalysisAdapter
     public void caseAPastedDataImportBlock(APastedDataImportBlock node)
     {
         inAPastedDataImportBlock(node);
+        if(node.getPastedDataBlock() != null)
+        {
+            node.getPastedDataBlock().apply(this);
+        }
+        outAPastedDataImportBlock(node);
+    }
+
+    public void inAPastedDataBlock(APastedDataBlock node)
+    {
+        defaultIn(node);
+    }
+
+    public void outAPastedDataBlock(APastedDataBlock node)
+    {
+        defaultOut(node);
+    }
+
+    @Override
+    public void caseAPastedDataBlock(APastedDataBlock node)
+    {
+        inAPastedDataBlock(node);
+        if(node.getRPar() != null)
+        {
+            node.getRPar().apply(this);
+        }
         if(node.getPastedData() != null)
         {
             node.getPastedData().apply(this);
         }
-        outAPastedDataImportBlock(node);
+        if(node.getLPar() != null)
+        {
+            node.getLPar().apply(this);
+        }
+        outAPastedDataBlock(node);
     }
 
     public void inAPastedData(APastedData node)
