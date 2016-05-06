@@ -136,7 +136,7 @@ public abstract class AbstractTableDataFrame implements ITableDataFrame {
 	 */
 	public String getMetaPrimaryKeyName(String... nodes) {
 		Arrays.sort(nodes);
-		String primKey = "";
+		String primKey = TinkerFrame.PRIM_KEY;
 		for(String node : nodes) {
 			primKey += node + TinkerFrame.primKeyDelimeter;
 		}
