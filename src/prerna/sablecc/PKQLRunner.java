@@ -45,7 +45,7 @@ public class PKQLRunner {
 		} catch (ParserException | LexerException | IOException e) {
 			e.printStackTrace();
 			currentStatus = "error";
-			currentString = "expression";
+			currentString = expression;
 			response = "Invalid PKQL Statement";
 			storeResponse();
 		}
