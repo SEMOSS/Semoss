@@ -31,19 +31,17 @@ public class H2ImportDataReactor extends AbstractReactor{
 		Vector<Map<String, String>> joins = (Vector<Map<String, String>>) myStore.get(PKQLEnum.JOINS);
 		String joinType = (String)myStore.get(PKQLEnum.REL_TYPE);
 		
-		Map<Integer, Set<Integer>> cardinality = null;
 		String[] headers = null;
 		boolean addRow = false;
 		boolean isPrimKey = false;
 		
 		while(it.hasNext()){
 			IHeadersDataRow ss = (IHeadersDataRow) it.next();
-			if(cardinality == null) { // during first loop
-				cardinality = Utility.getCardinalityOfValues(ss.getHeaders(), edgeHash);
+			if(headers == null) { // during first loop
 				headers = ss.getHeaders();
 
 				// TODO: annoying, need to determine if i need to create a prim key edge hash
-				if(edgeHash == null || cardinality.isEmpty()) {
+				if(edgeHash == null) {
 					Map<String, Set<String>> primKeyEdgeHash = frame.createPrimKeyEdgeHash(headers);
 					
 					Object[] values = ss.getValues();
