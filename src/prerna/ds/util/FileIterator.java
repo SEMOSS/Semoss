@@ -27,7 +27,6 @@ public class FileIterator implements Iterator<IHeadersDataRow>{
 	Map<String, String> dataTypeMap;
 	
 	public FileIterator(String fileLoc, char delimiter, QueryStruct qs, Map<String, String> dataTypeMap) {
-		
 		this.helper = new CSVFileHelper();
 		filters = new HashMap<String, Set<Object>>();
 		helper.setDelimiter(delimiter);
@@ -54,18 +53,14 @@ public class FileIterator implements Iterator<IHeadersDataRow>{
 			}
 		}
 		
-		
-		
 		setSelectors(qs.getSelectors());
 		setFilters(qs.andfilters);
 		
 		headers = helper.getHeaders();
-//		headers = helper.orderHeadersToGet(headers);
 		types = new String[headers.length];
 		for(int i = 0; i < types.length; i++) {
 			types[i] = this.dataTypeMap.get(headers[i]);
 		}
-		helper.getNextRow(); // this will get the headers
 		getNextRow(); // this will get the first row of the file
 //		nextRow = helper.getNextRow();
 	}
@@ -159,6 +154,7 @@ public class FileIterator implements Iterator<IHeadersDataRow>{
 			}
 			
 			this.helper.parseColumns(orderedSelectors);
+			this.helper.getNextRow(); // after redoing the selectors, we need to skip the headers 
 		}
 	}
 }
