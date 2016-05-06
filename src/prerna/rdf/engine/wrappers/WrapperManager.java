@@ -29,6 +29,8 @@ package prerna.rdf.engine.wrappers;
 
 import java.util.Arrays;
 
+import org.apache.log4j.Logger;
+
 import prerna.engine.api.IConstructWrapper;
 import prerna.engine.api.IEngine;
 import prerna.engine.api.ISelectWrapper;
@@ -43,6 +45,7 @@ public class WrapperManager {
 	// I will do that later
 	
 	public static WrapperManager manager = null;
+	static Logger LOGGER = Logger.getLogger(prerna.rdf.engine.wrappers.WrapperManager.class);
 	
 	protected WrapperManager()
 	{
@@ -63,38 +66,35 @@ public class WrapperManager {
 	public ISelectWrapper getSWrapper(IEngine engine, String query)
 	{
 		ISelectWrapper returnWrapper = null;
-			switch(engine.getEngineType())
-			{
-			case SESAME: {
-				returnWrapper = new SesameSelectWrapper();
-				break;
+			switch(engine.getEngineType()) {
+				case SESAME: {
+					returnWrapper = new SesameSelectWrapper();
+					break;
+				}
+				case JENA: {
+					returnWrapper = new JenaSelectWrapper();
+					break;
+				}
+				case SEMOSS_SESAME_REMOTE:{
+					returnWrapper = new RemoteSesameSelectWrapper();
+					break;
+				}
+				case RDBMS:{
+					returnWrapper = new RDBMSSelectWrapper();
+					break;
+					//TBD
+				}
+				default: {
+					
+				}
 			}
-			case JENA: {
-				returnWrapper = new JenaSelectWrapper();
-				break;
-			}
-			case SEMOSS_SESAME_REMOTE:{
-				returnWrapper = new RemoteSesameSelectWrapper();
-				break;
-			}
-			case RDBMS:{
-				returnWrapper = new RDBMSSelectWrapper();
-				break;
-				//TBD
-			}
-
-			default: {
-				
-			}
-			}
+			
+			LOGGER.debug(returnWrapper.getClass() + " executing query: " + query);
 			returnWrapper.setEngine(engine);
-			System.err.println(query);
 			returnWrapper.setQuery(query);
 			returnWrapper.execute();
-			//ISelectWrapper doh = (ISelectWrapper)returnWrapper;
 			returnWrapper.getDisplayVariables();
 			returnWrapper.getPhysicalVariables();
-//			System.out.println("Printing variables " + Arrays.toString(returnWrapper.getVariables()));
 			
 			return returnWrapper;
 	}
