@@ -557,6 +557,11 @@ public class Translation2 extends DepthFirstAdapter {
 	@Override
     public void inAImportData(AImportData node){
 		if(reactorNames.containsKey(PKQLEnum.IMPORT_DATA)) {
+			// make the determination to say if this is a frame.. yes it is
+			/// if it is so change the reactor to the new reactor
+			IScriptReactor reactor = frame.getImportDataReactor();
+			reactorNames.put(PKQLEnum.IMPORT_DATA, (reactor.getClass() + "").replaceFirst("class ", ""));
+			
 			initReactor(PKQLEnum.IMPORT_DATA);
 			String nodeStr = node.toString().trim();
 			curReactor.put(PKQLEnum.IMPORT_DATA, nodeStr);

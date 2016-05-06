@@ -6,23 +6,20 @@ import java.util.Map;
 import java.util.Set;
 import java.util.Vector;
 
-import prerna.ds.H2.H2Builder;
 import prerna.ds.H2.TinkerH2Frame;
+import prerna.ds.util.FileIterator;
 import prerna.engine.api.IHeadersDataRow;
+import prerna.engine.api.ISelectWrapper;
 import prerna.util.ArrayUtilityMethods;
-import prerna.util.Utility;
 
-public class H2ImportDataReactor extends AbstractReactor{
-
-	private TinkerH2Frame frame = null;
-	
-	public H2ImportDataReactor(TinkerH2Frame frame) {
-		this.frame = frame;
-	}
+public class H2ImportDataReactor extends ImportDataReactor {
 	
 	@Override
 	public Iterator process() {
+		super.process();
+		String nodeStr = (String)myStore.get(whoAmI);
 		
+		TinkerH2Frame frame = (TinkerH2Frame) myStore.get("G");
 		Iterator<IHeadersDataRow> it = (Iterator<IHeadersDataRow>) myStore.get("iterator");
 		Map<String, Set<String>> edgeHash = (Map<String, Set<String>>) myStore.get("edgeHash");
 		Map<String, String> logicalToValue = (Map<String, String>) myStore.get("logicalToValue");
@@ -44,12 +41,17 @@ public class H2ImportDataReactor extends AbstractReactor{
 				if(edgeHash == null) {
 					Map<String, Set<String>> primKeyEdgeHash = frame.createPrimKeyEdgeHash(headers);
 					
-					Object[] values = ss.getValues();
-					String[] types = new String[values.length];
+					//TODO: need to make all these wrappers that give a IHeaderDataRow be the same type to get this info
+					String[] types = null;
+					if(it instanceof FileIterator) {
+						types = ((FileIterator) it).getTypes();
+					} else if(it instanceof CsvTableWrapper) {
+						types = ((CsvTableWrapper) it).getTypes();
+					}
+					
 					Map<String, String> dataType = new HashMap<>();
-					for(int i = 0; i < values.length; i++) {
-						Object[] type = Utility.findTypes(values[i].toString());
-						dataType.put(headers[i], type[0].toString());
+					for(int i = 0; i < types.length; i++) {
+						dataType.put(headers[i], types[i]);
 					}
 					
 					frame.mergeEdgeHash(primKeyEdgeHash, dataType);
@@ -70,9 +72,17 @@ public class H2ImportDataReactor extends AbstractReactor{
 			} else {
 				frame.processIterator(it, ss.getHeaders(), logicalToValue, joins, joinType);
 				break;
-//				frame.addRelationship(ss.getHeaders(), ss.getValues(), ss.getRawValues(), cardinality, logicalToValue);
 			}
 		}
+		
+		// get rid of this bifurcation
+		// push this into the iterators
+		if(it instanceof ISelectWrapper) {
+			myStore.put(nodeStr, createResponseString((ISelectWrapper)it));
+		} else {
+			myStore.put(nodeStr, createResponseString(headers));
+		}
+		myStore.put("STATUS", "SUCCESS");
 		
 		return null;
 	}
@@ -90,16 +100,4 @@ public class H2ImportDataReactor extends AbstractReactor{
 		
 		return true;
 	}
-	
-	//is headers2 a subset of headers1
-	private boolean isSubset(String[] headers1, String[] headers2) {
-		for(String header2 : headers2) {
-			if(!ArrayUtilityMethods.arrayContainsValue(headers1, header2)) {
-				return false;
-			}
-		}
-		
-		return true;
-	}
-
 }
