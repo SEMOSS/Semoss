@@ -30,7 +30,6 @@ public class CountReactor extends BaseReducerReactor {
 	@Override
 	public HashMap<HashMap<String,String>,Object> reduceGroupBy(Vector<String> groupBys, Vector<String> processedColumns, String[] columnsArray, Iterator it) {
 		HashMap<HashMap<String,String>, Object> groupByHash = new HashMap<HashMap<String,String>,Object>();
-		Set<Object> values = new TreeSet<Object>();
 
 		while(it.hasNext()){
 			Object[] row = (Object[]) it.next();
@@ -42,13 +41,17 @@ public class CountReactor extends BaseReducerReactor {
 			}
 			int processedIndex = ArrayUtilityMethods.arrayContainsValueAtIndexIgnoreCase(columnsArray, processedColumns.get(0));
 			Object value = row[processedIndex];
+			Set<Object> values = (TreeSet<Object>)groupByHash.get(key);
+			if(values == null) {
+				values = new TreeSet<Object>();
+				groupByHash.put(key, values);
+			}
 			if (!values.contains(value)) {
-				if(!groupByHash.containsKey(key)) {
-					groupByHash.put(key, 0);
-				}
-				groupByHash.put(key, (Integer)groupByHash.get(key) + 1);
 				values.add(value);
 			}
+		}
+		for(HashMap<String,String> key: groupByHash.keySet()) {
+			groupByHash.put(key, ((TreeSet<Object>)groupByHash.get(key)).size());
 		}
 		
 		return groupByHash;
