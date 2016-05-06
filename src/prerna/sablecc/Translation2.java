@@ -356,10 +356,10 @@ public class Translation2 extends DepthFirstAdapter {
 	public void outAPanelClone(APanelClone node){
 		System.out.println("out a panel clone");
 		String newId = node.getNewid().getText();
-		// we add to the current fe data the new panel id
-		runner.addFeData("newPanelId", newId, false);
 		// also copy current state to this new panel id
 		runner.copyFeData(newId);
+		// we add to the current fe data the new panel id
+		runner.addFeData("newPanelId", newId, false);
 		deinitReactor(PKQLEnum.VIZ, "", "");
 		runner.setResponse("Successfully cloned! New panel id: " + newId);//
 		runner.setStatus("SUCCESS");
