@@ -7,7 +7,7 @@ import prerna.sablecc.analysis.*;
 @SuppressWarnings("nls")
 public final class APastedDataImportBlock extends PImportBlock
 {
-    private PPastedData _pastedData_;
+    private PPastedDataBlock _pastedDataBlock_;
 
     public APastedDataImportBlock()
     {
@@ -15,10 +15,10 @@ public final class APastedDataImportBlock extends PImportBlock
     }
 
     public APastedDataImportBlock(
-        @SuppressWarnings("hiding") PPastedData _pastedData_)
+        @SuppressWarnings("hiding") PPastedDataBlock _pastedDataBlock_)
     {
         // Constructor
-        setPastedData(_pastedData_);
+        setPastedDataBlock(_pastedDataBlock_);
 
     }
 
@@ -26,24 +26,25 @@ public final class APastedDataImportBlock extends PImportBlock
     public Object clone()
     {
         return new APastedDataImportBlock(
-            cloneNode(this._pastedData_));
+            cloneNode(this._pastedDataBlock_));
     }
 
+    @Override
     public void apply(Switch sw)
     {
         ((Analysis) sw).caseAPastedDataImportBlock(this);
     }
 
-    public PPastedData getPastedData()
+    public PPastedDataBlock getPastedDataBlock()
     {
-        return this._pastedData_;
+        return this._pastedDataBlock_;
     }
 
-    public void setPastedData(PPastedData node)
+    public void setPastedDataBlock(PPastedDataBlock node)
     {
-        if(this._pastedData_ != null)
+        if(this._pastedDataBlock_ != null)
         {
-            this._pastedData_.parent(null);
+            this._pastedDataBlock_.parent(null);
         }
 
         if(node != null)
@@ -56,23 +57,23 @@ public final class APastedDataImportBlock extends PImportBlock
             node.parent(this);
         }
 
-        this._pastedData_ = node;
+        this._pastedDataBlock_ = node;
     }
 
     @Override
     public String toString()
     {
         return ""
-            + toString(this._pastedData_);
+            + toString(this._pastedDataBlock_);
     }
 
     @Override
     void removeChild(@SuppressWarnings("unused") Node child)
     {
         // Remove child
-        if(this._pastedData_ == child)
+        if(this._pastedDataBlock_ == child)
         {
-            this._pastedData_ = null;
+            this._pastedDataBlock_ = null;
             return;
         }
 
@@ -83,9 +84,9 @@ public final class APastedDataImportBlock extends PImportBlock
     void replaceChild(@SuppressWarnings("unused") Node oldChild, @SuppressWarnings("unused") Node newChild)
     {
         // Replace child
-        if(this._pastedData_ == oldChild)
+        if(this._pastedDataBlock_ == oldChild)
         {
-            setPastedData((PPastedData) newChild);
+            setPastedDataBlock((PPastedDataBlock) newChild);
             return;
         }
 

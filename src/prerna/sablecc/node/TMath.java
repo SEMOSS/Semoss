@@ -25,6 +25,7 @@ public final class TMath extends Token
       return new TMath(getText(), getLine(), getPos());
     }
 
+    @Override
     public void apply(Switch sw)
     {
         ((Analysis) sw).caseTMath(this);

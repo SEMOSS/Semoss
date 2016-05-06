@@ -21,7 +21,7 @@ public final class ACsvRow extends PCsvRow
     public ACsvRow(
         @SuppressWarnings("hiding") TLBracket _lBracket_,
         @SuppressWarnings("hiding") PWordOrNum _wordOrNum_,
-        @SuppressWarnings("hiding") List<PCsvGroup> _csvGroup_,
+        @SuppressWarnings("hiding") List<?> _csvGroup_,
         @SuppressWarnings("hiding") TRBracket _rBracket_)
     {
         // Constructor
@@ -45,6 +45,7 @@ public final class ACsvRow extends PCsvRow
             cloneNode(this._rBracket_));
     }
 
+    @Override
     public void apply(Switch sw)
     {
         ((Analysis) sw).caseACsvRow(this);
@@ -105,18 +106,24 @@ public final class ACsvRow extends PCsvRow
         return this._csvGroup_;
     }
 
-    public void setCsvGroup(List<PCsvGroup> list)
+    public void setCsvGroup(List<?> list)
     {
-        this._csvGroup_.clear();
-        this._csvGroup_.addAll(list);
-        for(PCsvGroup e : list)
+        for(PCsvGroup e : this._csvGroup_)
         {
+            e.parent(null);
+        }
+        this._csvGroup_.clear();
+
+        for(Object obj_e : list)
+        {
+            PCsvGroup e = (PCsvGroup) obj_e;
             if(e.parent() != null)
             {
                 e.parent().removeChild(e);
             }
 
             e.parent(this);
+            this._csvGroup_.add(e);
         }
     }
 

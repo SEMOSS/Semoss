@@ -44,6 +44,7 @@ public final class APanelClone extends PPanelClone
             cloneNode(this._rPar_));
     }
 
+    @Override
     public void apply(Switch sw)
     {
         ((Analysis) sw).caseAPanelClone(this);

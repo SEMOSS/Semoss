@@ -34,6 +34,7 @@ public final class AJOp extends PJOp
             cloneNode(this._codeblock_));
     }
 
+    @Override
     public void apply(Switch sw)
     {
         ((Analysis) sw).caseAJOp(this);
