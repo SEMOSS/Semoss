@@ -169,9 +169,7 @@ public class TinkerH2Frame extends AbstractTableDataFrame {
         if(query.trim().toUpperCase().startsWith("CONSTRUCT")){
 //     	   TinkerGraphDataModel tgdm = new TinkerGraphDataModel();
 //     	   tgdm.fillModel(query, engine, this);
-        }
-        
-        else{
+        } else if (!query.equals(Constants.EMPTY)){
      	   ISelectWrapper wrapper = WrapperManager.getInstance().getSWrapper(engine, query);
             //if component has data from which we can construct a meta model then construct it and merge it
             boolean hasMetaModel = component.getQueryStruct() != null;
