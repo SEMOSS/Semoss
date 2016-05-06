@@ -39,7 +39,7 @@ import prerna.engine.impl.rdf.BigDataEngine;
 
 public class EAPropertyCreator extends AggregationHelper {
 	
-	private IEngine hrCore;
+	private IEngine tapCoreEngine;
 	private ArrayList<Object[]> effectPropList;
 	private ArrayList<Object[]> efficiencyPropList;
 	private ArrayList<Object[]> productPropList;
@@ -47,8 +47,8 @@ public class EAPropertyCreator extends AggregationHelper {
 	private final String semossPropURI = "http://semoss.org/ontologies/Relation/Contains/";
 	private final String bpInstanceRel = "http://health.mil/ontologies/Concept/BusinessProcess/";
 	
-	public EAPropertyCreator(IEngine hrCore) {
-		this.hrCore = hrCore;
+	public EAPropertyCreator(IEngine tapCoreEngine) {
+		this.tapCoreEngine = tapCoreEngine;
 	}
 	
 	private void addPropTriples() {
@@ -90,13 +90,13 @@ public class EAPropertyCreator extends AggregationHelper {
 		allRelations.clear();
 		
 		addPropTriples();
-		processInstancePropOnNodeData(effectPropList, hrCore);
-		processInstancePropOnNodeData(efficiencyPropList, hrCore);
-		processInstancePropOnNodeData(productPropList, hrCore);
-		processData(hrCore, dataHash);
-		((BigDataEngine) hrCore).commit();
-		((BigDataEngine) hrCore).infer();
+		processInstancePropOnNodeData(effectPropList, tapCoreEngine);
+		processInstancePropOnNodeData(efficiencyPropList, tapCoreEngine);
+		processInstancePropOnNodeData(productPropList, tapCoreEngine);
+		processData(tapCoreEngine, dataHash);
+		((BigDataEngine) tapCoreEngine).commit();
+		((BigDataEngine) tapCoreEngine).infer();
 		// update base filter hash
-		((AbstractEngine) hrCore).createBaseRelationEngine();
+		((AbstractEngine) tapCoreEngine).createBaseRelationEngine();
 	}
 }

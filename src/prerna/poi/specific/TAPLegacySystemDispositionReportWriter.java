@@ -411,10 +411,10 @@ public class TAPLegacySystemDispositionReportWriter {
 	}
 	
 	private void writeTransitionAnalysis() {
-		String lpiDescription = "LPI systems were designated by the Functional Advisory Council (FAC) as having a low probability of being replaced by the DHMSM EHR solution and were also designated as requiring integration with DHMSM in order to support data exchange.";
-		String lpniDescription = "LPNI systems were designated by the Functional Advisory Council (FAC) as having a low probability of being replaced by the DHMSM EHR solution and were also designated as not requiring integration with DHMSM.";
-		String hpiDescription = "HPI systems were designated by the Functional Advisory Council (FAC) as having a high probability of being replaced by the DHMSM EHR solution and were also designated as requiring integration with DHMSM in order to support data exchange.";
-		String hpniDescription = "HPNI systems were designated by the Functional Advisory Council (FAC) as having a high probability of being replaced by the DHMSM EHR solution and were also designated as not requiring integration with DHMSM.";
+		String lpiDescription = "LPI systems were designated by the Functional Advisory Council (FAC) as having a low probability of being replaced by the MHS GENESIS solution and were also designated as requiring integration with MHS GENESIS in order to support data exchange.";
+		String lpniDescription = "LPNI systems were designated by the Functional Advisory Council (FAC) as having a low probability of being replaced by the MHS GENESIS solution and were also designated as not requiring integration with MHS GENESIS.";
+		String hpDescription = "HP systems were designated by the Functional Advisory Council (FAC) as having a high probability of being replaced by the MHS GENESIS solution.";
+		String tbdDescription = "This system has not yet been given a disposition by the Functional Advisory Council (FAC).";
 		
 		if(reportTypeHash.isEmpty())
 			reportTypeHash = DHMSMTransitionUtility.processReportTypeQuery(TAP_Core_Data);
@@ -425,12 +425,12 @@ public class TAPLegacySystemDispositionReportWriter {
 		} else if(reportType.equals("LPNI")) {
 			reportSheet.getRow(8).getCell(4).setCellValue("Low Probability without Integration (LPNI)");
 			reportSheet.getRow(8).getCell(7).setCellValue(lpniDescription);
-		} else if(reportType.equals("HPI")) {
-			reportSheet.getRow(8).getCell(4).setCellValue("High Probability with Integration (HPI)");
-			reportSheet.getRow(8).getCell(7).setCellValue(hpiDescription);
-		} else if(reportType.equals("HPNI")) {
-			reportSheet.getRow(8).getCell(4).setCellValue("High Probability without Integration (HPNI)");
-			reportSheet.getRow(8).getCell(7).setCellValue(hpniDescription);
+		} else if(reportType.equals("High")) {
+			reportSheet.getRow(8).getCell(4).setCellValue("High Probability (HP)");
+			reportSheet.getRow(8).getCell(7).setCellValue(hpDescription);
+		} else if(reportType.equals("TBD")) {
+			reportSheet.getRow(8).getCell(4).setCellValue("TBD");
+			reportSheet.getRow(8).getCell(7).setCellValue(tbdDescription);
 		}
 	}
 

@@ -98,24 +98,15 @@ import javax.swing.event.InternalFrameListener;
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
-import com.ibm.icu.util.StringTokenizer;
-
-import aurelienribon.ui.components.Button;
-import aurelienribon.ui.css.Style;
-import aurelienribon.ui.css.swing.SwingStyle;
 import prerna.engine.api.IEngine;
 import prerna.ui.components.api.IChakraListener;
-import prerna.ui.components.specific.tap.DHMSMSystemSelectPanel;
-import prerna.ui.components.specific.tap.FactSheetReportComboBox;
-import prerna.ui.components.specific.tap.SelectRadioButtonPanel;
+import prerna.ui.components.specific.tap.SystemListComboBox;
 import prerna.ui.components.specific.tap.ServiceSelectPanel;
 import prerna.ui.components.specific.tap.SourceSelectPanel;
-import prerna.ui.components.specific.tap.TransitionReportComboBox;
 import prerna.ui.main.listener.impl.ProcessQueryListener;
 import prerna.ui.main.listener.impl.RepoSelectionListener;
 import prerna.ui.main.listener.impl.ShowPlaySheetsButtonListener;
 import prerna.ui.main.listener.impl.TextUndoListener;
-import prerna.ui.main.listener.specific.tap.ICDServiceCostBtnListener;
 import prerna.ui.swing.custom.ButtonMenuDropDown;
 import prerna.ui.swing.custom.CustomAruiStyle;
 import prerna.ui.swing.custom.CustomButton;
@@ -124,6 +115,11 @@ import prerna.ui.swing.custom.ToggleButton;
 import prerna.util.CSSApplication;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
+import aurelienribon.ui.components.Button;
+import aurelienribon.ui.css.Style;
+import aurelienribon.ui.css.swing.SwingStyle;
+
+import com.ibm.icu.util.StringTokenizer;
 
 /**
  * The playpane houses all of the components that create the user interface in SEMOSS.
@@ -161,6 +157,9 @@ public class PlayPane extends JFrame {
 	public JTextField dataPropertiesString, objectPropertiesString;
 	public JButton btnRepaintGraph;
 	
+	// Components on settings panel
+	public JCheckBox propertyCheck, sudowlCheck, searchCheck, highQualityExportCheck;
+	
 	// Help Tab Components
 	private JTextArea aboutArea;
 	private JTextPane releaseNoteArea;
@@ -175,47 +174,11 @@ public class PlayPane extends JFrame {
 	public JScrollPane serviceSelectScrollPane;
 	public JPanel transitionServicePanel, transReportSysDropDownPanel, transReportTypeDropDownPanel, transReportFormDropDownPanel,
 			transReportCheckBoxPanel;
-	public TransitionReportComboBox transCostReportSystemcomboBox;
-	public JComboBox TransReportFormatcomboBox, TransReportTypecomboBox;
+	public SystemListComboBox transCostReportSystemComboBox;
+	public JComboBox transReportFormatComboBox, transReportTypeComboBox;
 	public JRadioButton rdbtnApplyTapOverhead, rdbtnDoNotApplyOverhead;
 	public JCheckBox chckbxDataEsbImplementation, chckbxBluEsbImplementation, chckbxDataFederationTransReport, chckbxBLUprovider, chckbxDataConsumer;
 	public JButton transitionReportGenButton = new JButton();
-	
-	// Tap Generate Report Components
-	public JScrollPane sourceSelectScrollPane;
-	public JPanel sourceSelectPanel;
-	public JButton sourceReportGenButton = new JButton();
-	
-	// DHMSM Report Panel
-	public JPanel dhmsmReportTopPanel;
-	public JLabel dhmsmDataAccessSelectionFileLbl;
-	public Panel dhmsmDataAccessFileImportPanel;
-	public JButton dhmsmDataAccessFileBrowseBtn;
-	public JTextField dhmsmDataAccessImportFileNameField;
-	
-	public Panel dhmsmFunctionalAreaPanel;
-	public JCheckBox HSDCheckBoxDHMSM, HSSCheckBoxDHMSM, FHPCheckBoxDHMSM, DHMSMCheckBoxDHMSM;
-	public SourceSelectPanel dhmsmCapabilitySelectPanel;
-	public JScrollPane dhmsmCapabilitySelectScrollPane;
-	public JButton dhmsmUpdateDataFromFileButton = new JButton();
-	public JButton dhmsmUpdateDataButton = new JButton();
-	
-	public Panel dhmsmSelectAllAccessTypePanel;
-	public JRadioButton integratedAccessButton, hybridAccessButton, manualAccessButton;
-	public JRadioButton realAccessButton, nearAccessButton, archiveAccessButton, ignoreAccessButton;
-	public SelectRadioButtonPanel selectRadioPanel;
-	public JScrollPane selectRadioScrollPane;
-	public JButton dhmsmDecommissionReportButton = new JButton();
-	public JButton dhmsmSystemSORAccessTypeReportButton = new JButton();
-	private JSeparator separator_9;
-	// DHMSM Report 2nd Panel
-	public JPanel dhmsmReportMidPanel;
-	public JButton dhmsmCapSystemIntersectionReportButton;
-	
-	public JTextField sysDecomOptimizationResourceTextField, sysDecomOptimizationTimeTextField;
-	public JButton btnSysDecomOptimization;
-	public DHMSMSystemSelectPanel dhmsmSystemSelectPanel;
-	public JTextField icdServiceSusField, icdServiceICDCostField, icdServiceHourlyRateField;
 	
 	// Financial DB Mod Components
 	public JToggleButton serviceSelectionBtn, btnAdvancedFinancialFunctions;
@@ -223,10 +186,6 @@ public class PlayPane extends JFrame {
 	public JButton btnInsertBudgetProperty, btnInsertServiceProperties, calculateTransitionCostsButton, calcTransAdditionalButton;
 	public JCheckBox tierCheck1, tierCheck2, tierCheck3;
 	public JProgressBar calcTCprogressBar;
-	
-	// BV TM Components
-	public JButton btnRunBvAlone, btnRunTmAlone, btnInsertDownstream, btnRunCapabilityBV;
-	public JTextField soaAlphaValueTextField, depreciationValueTextField, appreciationValueTextField;
 	
 	// Import Components
 	public JComboBox dbImportTypeComboBox, loadingFormatComboBox, dbImportRDBMSDriverComboBox;
@@ -241,7 +200,7 @@ public class PlayPane extends JFrame {
 	
 	// Export Components
 	public JLabel lblMaxExportLimit;
-	public JButton btnExportNodeLoadSheets, btnExportRelationshipsLoadSheets;
+	public JButton btnExportNodeLoadSheets, btnExportRelationshipsLoadSheets, btnExportDatabaseLoadSheets;
 	public ParamComboBox exportDataSourceComboBox, subjectNodeTypeComboBox1, subjectNodeTypeComboBox2, subjectNodeTypeComboBox3,
 			subjectNodeTypeComboBox4, subjectNodeTypeComboBox5, subjectNodeTypeComboBox6, subjectNodeTypeComboBox7, subjectNodeTypeComboBox8,
 			subjectNodeTypeComboBox9;
@@ -261,61 +220,55 @@ public class PlayPane extends JFrame {
 	public JComboBox changedDBComboBox, costDBComboBox;
 	public JButton saveSudowl;
 	
-	// Active Systems
+	//Additional Calculations - BV TM Components
+	public JButton btnRunBvAlone, btnRunTmAlone, btnInsertDownstream, btnRunCapabilityBV;
+	public JTextField soaAlphaValueTextField, depreciationValueTextField, appreciationValueTextField;
+	
+	//Additional Calculations - Active Systems
 	public CustomButton btnUpdateActiveSystems;
 	
-	// Aggregate TAP Services into TAP Core
+	//Additional Calculations - Aggregate TAP Services into TAP Core
 	public CustomButton btnAggregateTapServicesIntoTapCore;
 	public JComboBox<String> selectTapServicesComboBox, selectTapCoreForAggregationComboBox;
 	
-	// Create Future Interface Database
+	//Additional Calculations -  Create Future Interface Database
 	public CustomButton btnCreateFutureInterfaceDatabase;
 	public JComboBox<String> selectFutureInterfaceComboBox, selectHRCoreForFutureInterfaceDBComboBox, selectFutureCostInterfaceComboBox;
 	
-	// System-BP and System-Cap Insert
+	//Additional Calculations -  System-BP and System-Cap Insert
 	public CustomButton btnSysBPCapInsert;
 	public JTextField bluThresholdValueTextField, dataObjectThresholdValueTextField;
 	public JComboBox relInferLogicTypeComboBox;
 	
-	// Source of Record Property Insert
+	//Additional Calculations -  Source of Record Property Insert
 	public CustomButton btnSORInsert;
 	
-	// Components on the Machine Learning Panel
-	public JButton btnRLGridExample, btnRLGamblingExample;
+	//Additional Calculations - Econ Analysis
+	public JButton addEAPropertyButton;
+
+	//Report Generator -  Fact Sheet Report Generator Panel
+	public JButton btnFactSheetImageExport, btnFactSheetReport;
+	public JPanel factSheetReportSysDropDownPanel; //, factSheetReportTypeDropDownPanel;
+	public SystemListComboBox factSheetReportSysComboBox;
+	public JComboBox factSheetReportSystemToggleComboBox, factSheetReportTypeToggleComboBox;
 	
-	// Components on settings panel
-	public JCheckBox propertyCheck, sudowlCheck, searchCheck, highQualityExportCheck;
+	//Report Generator -  Tasker Generation and System Info Panel
+	public JButton btnTaskerGeneration;
+	public SystemListComboBox taskerGenerationSysComboBox;
 	
-	// RFP, vendor, and deconflicting panel
-	private JPanel tapReportTopPanel;
+	//Report Generator - RFP and vendor
+	public JScrollPane sourceSelectScrollPane;
+	public JPanel sourceSelectPanel;
+	public JButton sourceReportGenButton = new JButton();
+	private JPanel vendorInputPanel;
 	public JTextField RFPNameField;
 	public JButton btnUpdateVendorDB;
-	private JSeparator separator_6;
 	private Panel functionalAreaPanel;
 	public JCheckBox HSDCheckBox, HSSCheckBox, FHPCheckBox, DHMSMCheckBox;
 	public JButton btnCalculateVendorTMAlone;
-	public JButton btnDeconflictingReport, btnCommonSubgraph;
-	
-	// Fact Sheet Report Generator Panel
-	private JSeparator separator_7;
-	public JButton btnFactSheetImageExport, btnFactSheetReport;
-	public JPanel factSheetReportSysDropDownPanel, factSheetReportTypeDropDownPanel;
-	public FactSheetReportComboBox factSheetReportSyscomboBox;
-	public JComboBox factSheetReportSystemToggleComboBox, factSheetReportTypeToggleComboBox;
-	
-	// Tasker Generation and System Info Panel
-	private JSeparator separator_8;
-	public JButton btnTaskerGeneration, btnInterfaceReportButton;
-	public JButton btnSystemInfoGenButton, btnDataInterfaceWithDHMSM;
-	public FactSheetReportComboBox TaskerGenerationSyscomboBox;
-	
-	// MHS TAP: REPORT GENERATOR: COMMON SUBGRAPH
-	public JTextField commonSubgraphThresholdTextField;
-	public JComboBox<String> commonSubgraphComboBox0, commonSubgraphComboBox1;
 	
 	private JLabel lblModifyQueryOf;
 	private JSeparator separator;
-	// public JButton btnCommonGraph;
 	
 	// Question Modification Panel
 	private JLabel lblQuestionPerspective, lblQuestion, lblQuestionLayout, lblQuestionSparql, lblQuestionModType, lblQuestionSelectDatabase,
@@ -343,7 +296,6 @@ public class PlayPane extends JFrame {
 	public JComboBox newDBComboBox, oldDBComboBox;
 	public JButton compareDBButton;
 	
-	public JButton addEAPropertyButton;
 	
 	/**
 	 * Launch the application.
@@ -380,19 +332,19 @@ public class PlayPane extends JFrame {
 			((JScrollPane) c).getVerticalScrollBar().setUI(new NewScrollBarUI());
 		}
 		
-		popup = TransReportFormatcomboBox.getUI().getAccessibleChild(TransReportFormatcomboBox, 0);
+		popup = transReportFormatComboBox.getUI().getAccessibleChild(transReportFormatComboBox, 0);
 		c = ((Container) popup).getComponent(0);
 		if (c instanceof JScrollPane) {
 			((JScrollPane) c).getVerticalScrollBar().setUI(new NewScrollBarUI());
 		}
 		
-		popup = TransReportTypecomboBox.getUI().getAccessibleChild(TransReportTypecomboBox, 0);
+		popup = transReportTypeComboBox.getUI().getAccessibleChild(transReportTypeComboBox, 0);
 		c = ((Container) popup).getComponent(0);
 		if (c instanceof JScrollPane) {
 			((JScrollPane) c).getVerticalScrollBar().setUI(new NewScrollBarUI());
 		}
 		
-		popup = factSheetReportSyscomboBox.getUI().getAccessibleChild(factSheetReportSyscomboBox, 0);
+		popup = factSheetReportSysComboBox.getUI().getAccessibleChild(factSheetReportSysComboBox, 0);
 		c = ((Container) popup).getComponent(0);
 		if (c instanceof JScrollPane) {
 			((JScrollPane) c).getVerticalScrollBar().setUI(new NewScrollBarUI());
@@ -1572,6 +1524,15 @@ public class PlayPane extends JFrame {
 		gbc_btnExportRelationshipsLoad.gridy = 18;
 		loadSheetExportPanel.add(btnExportRelationshipsLoadSheets, gbc_btnExportRelationshipsLoad);
 		
+		btnExportDatabaseLoadSheets = new CustomButton("Export Entire Database Load Sheets");
+		btnExportDatabaseLoadSheets.setFont(new Font("Tahoma", Font.BOLD, 11));
+		GridBagConstraints gbc_btnExportDatabaseLoadSheets = new GridBagConstraints();
+		gbc_btnExportDatabaseLoadSheets.anchor = GridBagConstraints.WEST;
+		gbc_btnExportDatabaseLoadSheets.insets = new Insets(0, 0, 5, 5);
+		gbc_btnExportDatabaseLoadSheets.gridx = 2;
+		gbc_btnExportDatabaseLoadSheets.gridy = 18;
+		loadSheetExportPanel.add(btnExportDatabaseLoadSheets, gbc_btnExportDatabaseLoadSheets);
+		
 		GridBagConstraints gbc_loadSheetExportPanel = new GridBagConstraints();
 		gbc_loadSheetExportPanel.insets = new Insets(0, 15, 5, 0);
 		gbc_loadSheetExportPanel.fill = GridBagConstraints.BOTH;
@@ -1591,6 +1552,7 @@ public class PlayPane extends JFrame {
 		Style.registerTargetClassName(btnClearAll, ".standardButton");
 		Style.registerTargetClassName(btnExportNodeLoadSheets, ".standardButton");
 		Style.registerTargetClassName(btnExportRelationshipsLoadSheets, ".standardButton");
+		Style.registerTargetClassName(btnExportDatabaseLoadSheets, ".standardButton");
 		// customUpdateScrollPane.getVerticalScrollBar().setUI(new
 		// NewScrollBarUI());
 		
@@ -2445,15 +2407,15 @@ public class PlayPane extends JFrame {
 		gbc_lblSelectSystem.gridy = 0;
 		transReportSysDropDownPanel.add(lblSelectSystem, gbc_lblSelectSystem);
 		
-		transCostReportSystemcomboBox = new TransitionReportComboBox(fetching);
-		transCostReportSystemcomboBox.setFont(new Font("Tahoma", Font.PLAIN, 11));
-		transCostReportSystemcomboBox.setBackground(Color.GRAY);
-		transCostReportSystemcomboBox.setPreferredSize(new Dimension(200, 25));
+		transCostReportSystemComboBox = new SystemListComboBox(fetching);
+		transCostReportSystemComboBox.setFont(new Font("Tahoma", Font.PLAIN, 11));
+		transCostReportSystemComboBox.setBackground(Color.GRAY);
+		transCostReportSystemComboBox.setPreferredSize(new Dimension(200, 25));
 		GridBagConstraints gbc_transCostReportSystemcomboBox = new GridBagConstraints();
 		gbc_transCostReportSystemcomboBox.fill = GridBagConstraints.HORIZONTAL;
 		gbc_transCostReportSystemcomboBox.gridx = 0;
 		gbc_transCostReportSystemcomboBox.gridy = 1;
-		transReportSysDropDownPanel.add(transCostReportSystemcomboBox, gbc_transCostReportSystemcomboBox);
+		transReportSysDropDownPanel.add(transCostReportSystemComboBox, gbc_transCostReportSystemcomboBox);
 		
 		transReportTypeDropDownPanel = new JPanel();
 		transReportTypeDropDownPanel.setBackground(SystemColor.control);
@@ -2479,15 +2441,15 @@ public class PlayPane extends JFrame {
 		gbc_lblSelectReportType.gridy = 0;
 		transReportTypeDropDownPanel.add(lblSelectReportType, gbc_lblSelectReportType);
 		
-		TransReportTypecomboBox = new JComboBox();
-		TransReportTypecomboBox.setFont(new Font("Tahoma", Font.PLAIN, 11));
-		TransReportTypecomboBox.setBackground(Color.GRAY);
+		transReportTypeComboBox = new JComboBox();
+		transReportTypeComboBox.setFont(new Font("Tahoma", Font.PLAIN, 11));
+		transReportTypeComboBox.setBackground(Color.GRAY);
 		GridBagConstraints gbc_TransReportTypecomboBox = new GridBagConstraints();
 		gbc_TransReportTypecomboBox.fill = GridBagConstraints.HORIZONTAL;
 		gbc_TransReportTypecomboBox.gridx = 0;
 		gbc_TransReportTypecomboBox.gridy = 1;
-		transReportTypeDropDownPanel.add(TransReportTypecomboBox, gbc_TransReportTypecomboBox);
-		TransReportTypecomboBox.setModel(new DefaultComboBoxModel(new String[] { "System Specific", "Generic" }));
+		transReportTypeDropDownPanel.add(transReportTypeComboBox, gbc_TransReportTypecomboBox);
+		transReportTypeComboBox.setModel(new DefaultComboBoxModel(new String[] { "System Specific", "Generic" }));
 		
 		transReportFormDropDownPanel = new JPanel();
 		transReportFormDropDownPanel.setBackground(SystemColor.control);
@@ -2513,15 +2475,15 @@ public class PlayPane extends JFrame {
 		gbc_lblSelectReportFormat.gridy = 0;
 		transReportFormDropDownPanel.add(lblSelectReportFormat, gbc_lblSelectReportFormat);
 		
-		TransReportFormatcomboBox = new JComboBox();
-		TransReportFormatcomboBox.setFont(new Font("Tahoma", Font.PLAIN, 11));
-		TransReportFormatcomboBox.setBackground(Color.GRAY);
+		transReportFormatComboBox = new JComboBox();
+		transReportFormatComboBox.setFont(new Font("Tahoma", Font.PLAIN, 11));
+		transReportFormatComboBox.setBackground(Color.GRAY);
 		GridBagConstraints gbc_TransReportFormatcomboBox = new GridBagConstraints();
 		gbc_TransReportFormatcomboBox.fill = GridBagConstraints.HORIZONTAL;
 		gbc_TransReportFormatcomboBox.gridx = 0;
 		gbc_TransReportFormatcomboBox.gridy = 1;
-		transReportFormDropDownPanel.add(TransReportFormatcomboBox, gbc_TransReportFormatcomboBox);
-		TransReportFormatcomboBox.setModel(new DefaultComboBoxModel(new String[] { "TAP", "ProSite" }));
+		transReportFormDropDownPanel.add(transReportFormatComboBox, gbc_TransReportFormatcomboBox);
+		transReportFormatComboBox.setModel(new DefaultComboBoxModel(new String[] { "TAP", "ProSite" }));
 		
 		transitionReportGenButton = new CustomButton("Generate Report");
 		transitionReportGenButton.setFont(new Font("Tahoma", Font.BOLD, 11));
@@ -3243,35 +3205,244 @@ public class PlayPane extends JFrame {
 		gbc_addEAPropertyButton.gridy = 15;
 		eaPropertyPanel.add(addEAPropertyButton, gbc_addEAPropertyButton);
 		Style.registerTargetClassName(addEAPropertyButton, ".standardButton");
-		//
 		
 		JPanel tapReportPanel = new JPanel();
 		tapReportPanel.setBackground(SystemColor.control);
 		JScrollPane tapReportScroll = new JScrollPane(tapReportPanel);
 		tapTabPane.addTab("Report Generator", null, tapReportScroll, null);
 		GridBagLayout tapReportPanelLayout = new GridBagLayout();
-		tapReportPanelLayout.rowHeights = new int[] { 30, 0, 0, 0, 0 };
+		tapReportPanelLayout.rowHeights = new int[] { 15, 0, 0, 0, 0 };
 		tapReportPanelLayout.rowWeights = new double[] { 0.0, 0.0, 0.0, 0.0, 1.0 };
 		tapReportPanelLayout.columnWeights = new double[] { 0.0, 1.0, 0.0 };
-		tapReportPanelLayout.columnWidths = new int[] { 0, 0, 0 };
+		tapReportPanelLayout.columnWidths = new int[] { 10, 0, 0 };
 		tapReportPanel.setLayout(tapReportPanelLayout);
 		
-		tapReportTopPanel = new JPanel();
-		tapReportTopPanel.setBackground(SystemColor.control);
+		//Fact Sheets
+		JPanel factSheetPanel = new JPanel();
+		factSheetPanel.setBackground(SystemColor.control);
+		GridBagConstraints gbc_FactSheetPanel = new GridBagConstraints();
+		gbc_FactSheetPanel.fill = GridBagConstraints.HORIZONTAL;
+		gbc_FactSheetPanel.insets = new Insets(10, 0, 5, 5);
+		gbc_FactSheetPanel.anchor = GridBagConstraints.NORTH;
+		gbc_FactSheetPanel.gridx = 0;
+		gbc_FactSheetPanel.gridy = 0;
+		tapReportPanel.add(factSheetPanel, gbc_FactSheetPanel);
+		GridBagLayout gbl_FactSheetPanel = new GridBagLayout();
+		gbl_FactSheetPanel.columnWidths = new int[] { 10, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
+		gbl_FactSheetPanel.rowHeights = new int[] { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
+		gbl_FactSheetPanel.columnWeights = new double[] { 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, Double.MIN_VALUE };
+		gbl_FactSheetPanel.rowWeights = new double[] { 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
+				Double.MIN_VALUE };
+		factSheetPanel.setLayout(gbl_FactSheetPanel);
+		
+		JLabel FactSheetTitleLabel = new JLabel("System Fact Sheet Reports");
+		FactSheetTitleLabel.setFont(new Font("Tahoma", Font.BOLD, 12));
+		GridBagConstraints gbc_FactSheetTitleLabel = new GridBagConstraints();
+		gbc_FactSheetTitleLabel.anchor = GridBagConstraints.WEST;
+		gbc_FactSheetTitleLabel.gridwidth = 4;
+		gbc_FactSheetTitleLabel.insets = new Insets(0, 0, 0, 5);
+		gbc_FactSheetTitleLabel.gridx = 1;
+		gbc_FactSheetTitleLabel.gridy = 1;
+		factSheetPanel.add(FactSheetTitleLabel, gbc_FactSheetTitleLabel);
+				
+		JLabel ReportVariationLabel = new JLabel("Select Report Variation:");
+		GridBagConstraints gbc_ReportVariationLabel = new GridBagConstraints();
+		gbc_ReportVariationLabel.anchor = GridBagConstraints.WEST;
+		gbc_ReportVariationLabel.insets = new Insets(10, 0, 0, 5);
+		gbc_ReportVariationLabel.gridx = 2;
+		gbc_ReportVariationLabel.gridy = 2;
+		factSheetPanel.add(ReportVariationLabel, gbc_ReportVariationLabel);
+		ReportVariationLabel.setFont(new Font("Tahoma", Font.PLAIN, 12));
+		
+		factSheetReportTypeToggleComboBox = new JComboBox();
+		factSheetReportTypeToggleComboBox.setFont(new Font("Tahoma", Font.PLAIN, 11));
+		GridBagConstraints gbc_factSheetReportTypeToggleComboBox = new GridBagConstraints();
+		gbc_factSheetReportTypeToggleComboBox.anchor = GridBagConstraints.WEST;
+		gbc_factSheetReportTypeToggleComboBox.insets = new Insets(10, 10, 0, 5);
+		gbc_factSheetReportTypeToggleComboBox.gridx = 3;
+		gbc_factSheetReportTypeToggleComboBox.gridy = 2;
+		factSheetPanel.add(factSheetReportTypeToggleComboBox, gbc_factSheetReportTypeToggleComboBox);
+		factSheetReportTypeToggleComboBox.setModel(new DefaultComboBoxModel(new String[] { "Services", "MHS GENESIS Disposition" }));
+		
+		JLabel lblSelectFactSheetReportType = new JLabel("Select Report Type:");
+		lblSelectFactSheetReportType.setFont(new Font("Tahoma", Font.PLAIN, 12));
+		GridBagConstraints gbc_lblSelectFactSheetReportType = new GridBagConstraints();
+		gbc_lblSelectFactSheetReportType.anchor = GridBagConstraints.WEST;
+		gbc_lblSelectFactSheetReportType.insets = new Insets(10, 0, 0, 5);
+		gbc_lblSelectFactSheetReportType.gridx = 2;
+		gbc_lblSelectFactSheetReportType.gridy = 3;
+		factSheetPanel.add(lblSelectFactSheetReportType, gbc_lblSelectFactSheetReportType);
+		
+		factSheetReportSystemToggleComboBox = new JComboBox();
+		factSheetReportSystemToggleComboBox.setFont(new Font("Tahoma", Font.PLAIN, 11));
+		factSheetReportSystemToggleComboBox.setBackground(Color.GRAY);
+		GridBagConstraints gbc_factSheetReportSystemToggleComboBox = new GridBagConstraints();
+		gbc_factSheetReportSystemToggleComboBox.anchor = GridBagConstraints.WEST;
+		gbc_factSheetReportSystemToggleComboBox.insets = new Insets(10, 10, 0, 5);
+		gbc_factSheetReportSystemToggleComboBox.gridx = 3;
+		gbc_factSheetReportSystemToggleComboBox.gridy = 3;
+		factSheetPanel.add(factSheetReportSystemToggleComboBox, gbc_factSheetReportSystemToggleComboBox);
+		factSheetReportSystemToggleComboBox.setModel(new DefaultComboBoxModel(new String[] { "All Systems", "System Specific" }));	
+		
+		factSheetReportSysDropDownPanel = new JPanel();
+		factSheetReportSysDropDownPanel.setBackground(SystemColor.control);
+		GridBagConstraints gbc_factSheetReportSysDropDownPanel = new GridBagConstraints();
+		gbc_factSheetReportSysDropDownPanel.anchor = GridBagConstraints.WEST;
+		gbc_factSheetReportSysDropDownPanel.gridwidth = 2;
+		gbc_factSheetReportSysDropDownPanel.gridx = 2;
+		gbc_factSheetReportSysDropDownPanel.gridy = 4;
+		factSheetPanel.add(factSheetReportSysDropDownPanel, gbc_factSheetReportSysDropDownPanel);
+		GridBagLayout gbl_factSheetReportSysDropDownPanel = new GridBagLayout();
+		gbl_factSheetReportSysDropDownPanel.columnWidths = new int[] { 0, 0 };
+		gbl_factSheetReportSysDropDownPanel.rowHeights = new int[] { 0, 0, 0 };
+		gbl_factSheetReportSysDropDownPanel.columnWeights = new double[] { 1.0, Double.MIN_VALUE };
+		gbl_factSheetReportSysDropDownPanel.rowWeights = new double[] { 0.0, 0.0, Double.MIN_VALUE };
+		factSheetReportSysDropDownPanel.setLayout(gbl_factSheetReportSysDropDownPanel);
+		factSheetReportSysDropDownPanel.setVisible(false);
+		
+		JLabel lblFactSheetSelectSystem = new JLabel("Select System:");
+		lblSelectSystem.setFont(new Font("Tahoma", Font.PLAIN, 12));
+		GridBagConstraints gbc_lblFactSheetSelectSystem = new GridBagConstraints();
+		gbc_lblFactSheetSelectSystem.anchor = GridBagConstraints.WEST;
+		gbc_lblFactSheetSelectSystem.insets = new Insets(10, 0, 0, 5);
+		gbc_lblFactSheetSelectSystem.gridx = 0;
+		gbc_lblFactSheetSelectSystem.gridy = 0;
+		factSheetReportSysDropDownPanel.add(lblFactSheetSelectSystem, gbc_lblFactSheetSelectSystem);
+		
+		factSheetReportSysComboBox = new SystemListComboBox(fetching);
+		factSheetReportSysComboBox.setFont(new Font("Tahoma", Font.PLAIN, 11));
+		factSheetReportSysComboBox.setBackground(Color.GRAY);
+		factSheetReportSysComboBox.setPreferredSize(new Dimension(200, 25));
+		GridBagConstraints gbc_factSheetReportSyscomboBox = new GridBagConstraints();
+		gbc_factSheetReportSyscomboBox.anchor = GridBagConstraints.WEST;
+		gbc_factSheetReportSyscomboBox.insets = new Insets(10, 10, 0, 5);
+		gbc_factSheetReportSyscomboBox.gridx = 1;
+		gbc_factSheetReportSyscomboBox.gridy = 0;
+		factSheetReportSysDropDownPanel.add(factSheetReportSysComboBox, gbc_factSheetReportSyscomboBox);
+		
+		btnFactSheetReport = new CustomButton("Generate Fact Sheet Report");
+		btnFactSheetReport.setFont(new Font("Tahoma", Font.BOLD, 11));
+		GridBagConstraints gbc_btnFactSheetReport = new GridBagConstraints();
+		gbc_btnFactSheetReport.anchor = GridBagConstraints.WEST;
+		gbc_btnFactSheetReport.gridwidth = 2;
+		gbc_btnFactSheetReport.insets = new Insets(10, 0, 5, 5);
+		gbc_btnFactSheetReport.gridx = 2;
+		gbc_btnFactSheetReport.gridy = 5;
+		factSheetPanel.add(btnFactSheetReport, gbc_btnFactSheetReport);
+		Style.registerTargetClassName(btnFactSheetReport, ".standardButton");
+		
+		JLabel CONUSMapExportTitleLabel = new JLabel("Export Health Grid and Maps for all Systems:");
+		GridBagConstraints gbc_CONUSMapExportTitleLabel = new GridBagConstraints();
+		gbc_CONUSMapExportTitleLabel.anchor = GridBagConstraints.WEST;
+		gbc_CONUSMapExportTitleLabel.gridwidth = 2;
+		gbc_CONUSMapExportTitleLabel.insets = new Insets(10, 0, 0, 5);
+		gbc_CONUSMapExportTitleLabel.gridx = 2;
+		gbc_CONUSMapExportTitleLabel.gridy = 6;
+		factSheetPanel.add(CONUSMapExportTitleLabel, gbc_CONUSMapExportTitleLabel);
+		CONUSMapExportTitleLabel.setFont(new Font("Tahoma", Font.PLAIN, 12));
+		
+		btnFactSheetImageExport = new CustomButton("Export all");
+		btnFactSheetImageExport.setFont(new Font("Tahoma", Font.BOLD, 11));
+		GridBagConstraints gbc_btnCONUSMapExport = new GridBagConstraints();
+		gbc_btnCONUSMapExport.anchor = GridBagConstraints.WEST;
+		gbc_btnCONUSMapExport.insets = new Insets(10, 10, 0, 5);
+		gbc_btnCONUSMapExport.gridx = 4;
+		gbc_btnCONUSMapExport.gridy = 6;
+		factSheetPanel.add(btnFactSheetImageExport, gbc_btnCONUSMapExport);
+		Style.registerTargetClassName(btnFactSheetImageExport, ".standardButton");
+		
+		JSeparator reportGenPanelSeparator1 = new JSeparator();
+		GridBagConstraints gbc_separator_6 = new GridBagConstraints();
+		gbc_separator_6.fill = GridBagConstraints.HORIZONTAL;
+		gbc_separator_6.gridwidth = 1;
+		gbc_separator_6.insets = new Insets(0, 0, 5, 5);
+		gbc_separator_6.gridx = 0;
+		gbc_separator_6.gridy = 1;
+		tapReportPanel.add(reportGenPanelSeparator1, gbc_separator_6);
+		
+		JPanel TaskerGenerationPanel = new JPanel();
+		TaskerGenerationPanel.setBackground(SystemColor.control);
+		GridBagConstraints gbc_TaskerGenerationPanel = new GridBagConstraints();
+		gbc_TaskerGenerationPanel.fill = GridBagConstraints.HORIZONTAL;
+		gbc_TaskerGenerationPanel.insets = new Insets(10, 0, 5, 5);
+		gbc_TaskerGenerationPanel.gridx = 0;
+		gbc_TaskerGenerationPanel.gridy = 2;
+		tapReportPanel.add(TaskerGenerationPanel, gbc_TaskerGenerationPanel);
+		
+		GridBagLayout gbl_TaskerGenerationPanel = new GridBagLayout();
+		gbl_TaskerGenerationPanel.columnWidths = new int[] { 10, 0, 0, 0, 0, 0, 0 };
+		gbl_TaskerGenerationPanel.rowHeights = new int[] { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
+		gbl_TaskerGenerationPanel.columnWeights = new double[] { 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, Double.MIN_VALUE };
+		gbl_TaskerGenerationPanel.rowWeights = new double[] { 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
+				0.0, 0.0, Double.MIN_VALUE };
+		TaskerGenerationPanel.setLayout(gbl_TaskerGenerationPanel);
+		
+		JLabel TaskerGenerationTitleLabel = new JLabel("Tasker and System Info Report Generation");
+		TaskerGenerationTitleLabel.setFont(new Font("Tahoma", Font.BOLD, 12));
+		GridBagConstraints gbc_TaskerGenerationTitleLabel = new GridBagConstraints();
+		gbc_TaskerGenerationTitleLabel.gridwidth = 4;
+		gbc_TaskerGenerationTitleLabel.anchor = GridBagConstraints.WEST;
+		gbc_TaskerGenerationTitleLabel.insets = new Insets(0, 0, 0, 5);
+		gbc_TaskerGenerationTitleLabel.gridx = 1;
+		gbc_TaskerGenerationTitleLabel.gridy = 1;
+		TaskerGenerationPanel.add(TaskerGenerationTitleLabel, gbc_TaskerGenerationTitleLabel);
+		
+		JLabel lblTaskerGenerationSelectSystem = new JLabel("Select System");
+		lblTaskerGenerationSelectSystem.setFont(new Font("Tahoma", Font.PLAIN, 12));
+		GridBagConstraints gbc_lblTaskerGenerationSelectSystem = new GridBagConstraints();
+		gbc_lblTaskerGenerationSelectSystem.anchor = GridBagConstraints.WEST;
+		gbc_lblTaskerGenerationSelectSystem.insets = new Insets(10, 0, 5, 5);
+		gbc_lblTaskerGenerationSelectSystem.gridx = 2;
+		gbc_lblTaskerGenerationSelectSystem.gridy = 2;
+		TaskerGenerationPanel.add(lblTaskerGenerationSelectSystem, gbc_lblTaskerGenerationSelectSystem);
+		
+		taskerGenerationSysComboBox = new SystemListComboBox(fetching);
+		taskerGenerationSysComboBox.setFont(new Font("Tahoma", Font.PLAIN, 11));
+		GridBagConstraints gbc_TaskerGenerationSyscomboBox = new GridBagConstraints();
+		gbc_TaskerGenerationSyscomboBox.anchor = GridBagConstraints.WEST;
+		gbc_TaskerGenerationSyscomboBox.insets = new Insets(10, 0, 5, 5);
+		gbc_TaskerGenerationSyscomboBox.gridx = 3;
+		gbc_TaskerGenerationSyscomboBox.gridy = 2;
+		TaskerGenerationPanel.add(taskerGenerationSysComboBox, gbc_TaskerGenerationSyscomboBox);
+		
+		btnTaskerGeneration = new CustomButton("Generate Tasker Report");
+		btnTaskerGeneration.setFont(new Font("Tahoma", Font.BOLD, 11));
+		btnTaskerGeneration.setPreferredSize(new Dimension(200, 25));
+		GridBagConstraints gbc_btnTaskerGeneration = new GridBagConstraints();
+		gbc_btnTaskerGeneration.anchor = GridBagConstraints.WEST;
+		gbc_btnTaskerGeneration.gridwidth = 2;
+		gbc_btnTaskerGeneration.insets = new Insets(10, 0, 5, 5);
+		gbc_btnTaskerGeneration.gridx = 2;
+		gbc_btnTaskerGeneration.gridy = 3;
+		TaskerGenerationPanel.add(btnTaskerGeneration, gbc_btnTaskerGeneration);
+		Style.registerTargetClassName(btnTaskerGeneration, ".standardButton");
+		
+		JSeparator reportGenPanelSeparator2 = new JSeparator();
+		GridBagConstraints gbc_separator_7 = new GridBagConstraints();
+		gbc_separator_7.fill = GridBagConstraints.HORIZONTAL;
+		gbc_separator_7.gridwidth = 1;
+		gbc_separator_7.insets = new Insets(5, 5, 5, 5);
+		gbc_separator_7.gridx = 0;
+		gbc_separator_7.gridy = 3;
+		tapReportPanel.add(reportGenPanelSeparator2, gbc_separator_7);
+		
+		
+		vendorInputPanel = new JPanel();
+		vendorInputPanel.setBackground(SystemColor.control);
 		GridBagConstraints gbc_tapReportTopPanel = new GridBagConstraints();
 		gbc_tapReportTopPanel.fill = GridBagConstraints.HORIZONTAL;
 		gbc_tapReportTopPanel.insets = new Insets(0, 0, 5, 5);
 		gbc_tapReportTopPanel.anchor = GridBagConstraints.NORTH;
 		gbc_tapReportTopPanel.gridx = 0;
-		gbc_tapReportTopPanel.gridy = 0;
-		tapReportPanel.add(tapReportTopPanel, gbc_tapReportTopPanel);
+		gbc_tapReportTopPanel.gridy = 4;
+		tapReportPanel.add(vendorInputPanel, gbc_tapReportTopPanel);
 		GridBagLayout gbl_tapReportTopPanel = new GridBagLayout();
 		gbl_tapReportTopPanel.columnWidths = new int[] { 10, 10, 10, 0, 0 };
 		gbl_tapReportTopPanel.rowHeights = new int[] { 10, 35, 0, 0, 0, 0, 0, 0, 0, 0 };
 		gbl_tapReportTopPanel.columnWeights = new double[] { 0.0, 0.0, 0.0, 0.0, 1.0 };
 		gbl_tapReportTopPanel.rowWeights = new double[] { 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, Double.MIN_VALUE };
-		tapReportTopPanel.setLayout(gbl_tapReportTopPanel);
-		
+		vendorInputPanel.setLayout(gbl_tapReportTopPanel);
+
 		JLabel tapReportTitleLabel = new JLabel("Generate Vendor Input Report");
 		GridBagConstraints gbc_tapReportTitleLabel = new GridBagConstraints();
 		gbc_tapReportTitleLabel.gridwidth = 2;
@@ -3279,7 +3450,7 @@ public class PlayPane extends JFrame {
 		gbc_tapReportTitleLabel.insets = new Insets(0, 0, 5, 5);
 		gbc_tapReportTitleLabel.gridx = 1;
 		gbc_tapReportTitleLabel.gridy = 1;
-		tapReportTopPanel.add(tapReportTitleLabel, gbc_tapReportTitleLabel);
+		vendorInputPanel.add(tapReportTitleLabel, gbc_tapReportTitleLabel);
 		tapReportTitleLabel.setFont(new Font("Tahoma", Font.BOLD, 12));
 		
 		JLabel lblRFPName = new JLabel("Designate RFP Identifier:");
@@ -3290,7 +3461,7 @@ public class PlayPane extends JFrame {
 		gbc_lblRFPName.insets = new Insets(0, 0, 5, 5);
 		gbc_lblRFPName.gridx = 2;
 		gbc_lblRFPName.gridy = 2;
-		tapReportTopPanel.add(lblRFPName, gbc_lblRFPName);
+		vendorInputPanel.add(lblRFPName, gbc_lblRFPName);
 		
 		RFPNameField = new JTextField();
 		RFPNameField.setFont(new Font("Tahoma", Font.PLAIN, 11));
@@ -3302,14 +3473,14 @@ public class PlayPane extends JFrame {
 		gbc_RFPNameField.insets = new Insets(0, 0, 5, 5);
 		gbc_RFPNameField.gridx = 2;
 		gbc_RFPNameField.gridy = 3;
-		tapReportTopPanel.add(RFPNameField, gbc_RFPNameField);
+		vendorInputPanel.add(RFPNameField, gbc_RFPNameField);
 		
 		functionalAreaPanel = new Panel();
 		GridBagConstraints gbc_functionalAreaPanel = new GridBagConstraints();
 		gbc_functionalAreaPanel.anchor = GridBagConstraints.WEST;
 		gbc_functionalAreaPanel.gridx = 2;
 		gbc_functionalAreaPanel.gridy = 4;
-		tapReportTopPanel.add(functionalAreaPanel, gbc_functionalAreaPanel);
+		vendorInputPanel.add(functionalAreaPanel, gbc_functionalAreaPanel);
 		functionalAreaPanel.setLayout(new FlowLayout(FlowLayout.CENTER, 5, 5));
 		
 		HSDCheckBox = new JCheckBox("HSD");
@@ -3321,7 +3492,7 @@ public class PlayPane extends JFrame {
 		FHPCheckBox = new JCheckBox("FHP");
 		functionalAreaPanel.add(FHPCheckBox);
 		
-		DHMSMCheckBox = new JCheckBox("DHMSM");
+		DHMSMCheckBox = new JCheckBox("MHS GENESIS");
 		functionalAreaPanel.add(DHMSMCheckBox);
 		
 		JLabel lblCapabilityName = new JLabel("Capabilities:");
@@ -3332,7 +3503,7 @@ public class PlayPane extends JFrame {
 		gbc_lblCapabilityName.insets = new Insets(0, 0, 5, 5);
 		gbc_lblCapabilityName.gridx = 2;
 		gbc_lblCapabilityName.gridy = 5;
-		tapReportTopPanel.add(lblCapabilityName, gbc_lblCapabilityName);
+		vendorInputPanel.add(lblCapabilityName, gbc_lblCapabilityName);
 		
 		sourceSelectPanel = new SourceSelectPanel();// change this
 		FlowLayout flowLayout = (FlowLayout) sourceSelectPanel.getLayout();
@@ -3345,7 +3516,7 @@ public class PlayPane extends JFrame {
 		gbc_sourceSelectScrollPane.insets = new Insets(0, 0, 5, 5);
 		gbc_sourceSelectScrollPane.gridx = 2;
 		gbc_sourceSelectScrollPane.gridy = 6;
-		tapReportTopPanel.add(sourceSelectScrollPane, gbc_sourceSelectScrollPane);
+		vendorInputPanel.add(sourceSelectScrollPane, gbc_sourceSelectScrollPane);
 		sourceSelectScrollPane.setPreferredSize(new Dimension(300, 300));
 		
 		sourceReportGenButton = new CustomButton("Generate Vendor Input Report");
@@ -3354,18 +3525,18 @@ public class PlayPane extends JFrame {
 		gbc_sourceReportGenButton.insets = new Insets(0, 0, 5, 5);
 		gbc_sourceReportGenButton.gridx = 2;
 		gbc_sourceReportGenButton.gridy = 7;
-		tapReportTopPanel.add(sourceReportGenButton, gbc_sourceReportGenButton);
+		vendorInputPanel.add(sourceReportGenButton, gbc_sourceReportGenButton);
 		sourceReportGenButton.setFont(new Font("Tahoma", Font.BOLD, 11));
 		Style.registerTargetClassName(sourceReportGenButton, ".standardButton");
-		
-		separator_6 = new JSeparator();
-		GridBagConstraints gbc_separator_6 = new GridBagConstraints();
-		gbc_separator_6.fill = GridBagConstraints.HORIZONTAL;
-		gbc_separator_6.gridwidth = 1;
-		gbc_separator_6.insets = new Insets(0, 0, 5, 5);
-		gbc_separator_6.gridx = 0;
-		gbc_separator_6.gridy = 1;
-		tapReportPanel.add(separator_6, gbc_separator_6);
+
+		JSeparator reportGenPanelSeparator3 = new JSeparator();
+		GridBagConstraints gbc_separator_8 = new GridBagConstraints();
+		gbc_separator_8.fill = GridBagConstraints.HORIZONTAL;
+		gbc_separator_8.gridwidth = 1;
+		gbc_separator_8.insets = new Insets(5, 5, 5, 5);
+		gbc_separator_8.gridx = 0;
+		gbc_separator_8.gridy = 5;
+		tapReportPanel.add(reportGenPanelSeparator3, gbc_separator_8);
 		
 		JPanel updateTaskWeightPanel = new JPanel();
 		updateTaskWeightPanel.setBackground(SystemColor.control);
@@ -3373,7 +3544,7 @@ public class PlayPane extends JFrame {
 		gbc_updateTaskWeightPanel.fill = GridBagConstraints.HORIZONTAL;
 		gbc_updateTaskWeightPanel.insets = new Insets(0, 0, 5, 5);
 		gbc_updateTaskWeightPanel.gridx = 0;
-		gbc_updateTaskWeightPanel.gridy = 2;
+		gbc_updateTaskWeightPanel.gridy = 6;
 		tapReportPanel.add(updateTaskWeightPanel, gbc_updateTaskWeightPanel);
 		GridBagLayout gbl_updateTaskWeightPanel = new GridBagLayout();
 		gbl_updateTaskWeightPanel.columnWidths = new int[] { 10, 10, 0, 0, 75, 75, 300 };
@@ -3414,870 +3585,7 @@ public class PlayPane extends JFrame {
 		gbc_btnCalculateVendorTMAlone.fill = GridBagConstraints.HORIZONTAL;
 		updateTaskWeightPanel.add(btnCalculateVendorTMAlone, gbc_btnCalculateVendorTMAlone);
 		Style.registerTargetClassName(btnCalculateVendorTMAlone, ".standardButton");
-		
-		JPanel deconflictingPanel = new JPanel();
-		deconflictingPanel.setBackground(SystemColor.control);
-		GridBagConstraints gbc_deconflictingPanel = new GridBagConstraints();
-		gbc_deconflictingPanel.fill = GridBagConstraints.HORIZONTAL;
-		gbc_deconflictingPanel.insets = new Insets(0, 0, 5, 5);
-		gbc_deconflictingPanel.gridx = 1;
-		gbc_deconflictingPanel.gridy = 2;
-		tapReportPanel.add(deconflictingPanel, gbc_deconflictingPanel);
-		GridBagLayout gbl_deconflictingPanel = new GridBagLayout();
-		gbl_deconflictingPanel.columnWidths = new int[] { 10, 10, 0, 0, 75, 75, 300 };
-		gbl_deconflictingPanel.rowHeights = new int[] { 0, 0, 0, 0, 0 };
-		gbl_deconflictingPanel.columnWeights = new double[] { 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0 };
-		gbl_deconflictingPanel.rowWeights = new double[] { 0.0, 0.0, 0.0, 0.0, 0.0 };
-		deconflictingPanel.setLayout(gbl_deconflictingPanel);
-		
-		JLabel deconflictingTitleLabel = new JLabel("Generate Deconflicting and Missing ICD/Data Report");
-		GridBagConstraints gbc_deconflictingTitleLabel = new GridBagConstraints();
-		gbc_deconflictingTitleLabel.gridwidth = 3;
-		gbc_deconflictingTitleLabel.fill = GridBagConstraints.BOTH;
-		gbc_deconflictingTitleLabel.insets = new Insets(5, 0, 10, 0);
-		gbc_deconflictingTitleLabel.gridx = 5;
-		gbc_deconflictingTitleLabel.gridy = 0;
-		updateTaskWeightPanel.add(deconflictingTitleLabel, gbc_deconflictingTitleLabel);
-		deconflictingTitleLabel.setFont(new Font("Tahoma", Font.BOLD, 12));
-		
-		btnDeconflictingReport = new CustomButton("Generate Report");
-		btnDeconflictingReport.setFont(new Font("Tahoma", Font.BOLD, 11));
-		GridBagConstraints gbc_btnDeconflictingReport = new GridBagConstraints();
-		gbc_btnDeconflictingReport.fill = GridBagConstraints.HORIZONTAL;
-		gbc_btnDeconflictingReport.gridwidth = 2;
-		gbc_btnDeconflictingReport.insets = new Insets(0, 0, 5, 5);
-		gbc_btnDeconflictingReport.gridx = 5;
-		gbc_btnDeconflictingReport.gridy = 1;
-		updateTaskWeightPanel.add(btnDeconflictingReport, gbc_btnDeconflictingReport);
-		Style.registerTargetClassName(btnDeconflictingReport, ".standardButton");
-		
-		separator_7 = new JSeparator();
-		GridBagConstraints gbc_separator_7 = new GridBagConstraints();
-		gbc_separator_7.fill = GridBagConstraints.HORIZONTAL;
-		gbc_separator_7.gridwidth = 1;
-		gbc_separator_7.insets = new Insets(5, 5, 5, 5);
-		gbc_separator_7.gridx = 0;
-		gbc_separator_7.gridy = 3;
-		tapReportPanel.add(separator_7, gbc_separator_7);
-		
-		JPanel FactSheetPanel = new JPanel();
-		FactSheetPanel.setBackground(SystemColor.control);
-		GridBagConstraints gbc_FactSheetPanel = new GridBagConstraints();
-		gbc_FactSheetPanel.fill = GridBagConstraints.HORIZONTAL;
-		gbc_FactSheetPanel.insets = new Insets(0, 0, 5, 5);
-		gbc_FactSheetPanel.gridx = 0;
-		gbc_FactSheetPanel.gridy = 4;
-		tapReportPanel.add(FactSheetPanel, gbc_FactSheetPanel);
-		GridBagLayout gbl_FactSheetPanel = new GridBagLayout();
-		gbl_FactSheetPanel.columnWidths = new int[] { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
-		gbl_FactSheetPanel.rowHeights = new int[] { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
-		gbl_FactSheetPanel.columnWeights = new double[] { 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, Double.MIN_VALUE };
-		gbl_FactSheetPanel.rowWeights = new double[] { 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
-				Double.MIN_VALUE };
-		FactSheetPanel.setLayout(gbl_FactSheetPanel);
-		
-		JLabel FactSheetTitleLabel = new JLabel("System Fact Sheet Reports");
-		FactSheetTitleLabel.setFont(new Font("Tahoma", Font.BOLD, 12));
-		GridBagConstraints gbc_FactSheetTitleLabel = new GridBagConstraints();
-		gbc_FactSheetTitleLabel.gridwidth = 3;
-		gbc_FactSheetTitleLabel.fill = GridBagConstraints.BOTH;
-		gbc_FactSheetTitleLabel.insets = new Insets(10, 10, 5, 5);
-		gbc_FactSheetTitleLabel.gridx = 1;
-		gbc_FactSheetTitleLabel.gridy = 0;
-		FactSheetPanel.add(FactSheetTitleLabel, gbc_FactSheetTitleLabel);
-		
-		/*JLabel lblFactSheetGenerator = new JLabel("Fact Sheet Generator:");
-		lblFactSheetGenerator.setFont(new Font("Tahoma", Font.PLAIN, 12));
-		GridBagConstraints gbc_lblFactSheetGenerator = new GridBagConstraints();
-		gbc_lblFactSheetGenerator.gridwidth = 6;
-		gbc_lblFactSheetGenerator.anchor = GridBagConstraints.NORTHWEST;
-		gbc_lblFactSheetGenerator.insets = new Insets(5, 20, 10, 5);
-		gbc_lblFactSheetGenerator.gridx = 1;
-		gbc_lblFactSheetGenerator.gridy = 1;
-		FactSheetPanel.add(lblFactSheetGenerator, gbc_lblFactSheetGenerator);*/
-		
-		JLabel ReportVariationLabel = new JLabel("                            Select Report Variation:");
-		GridBagConstraints gbc_ReportVariationLabel = new GridBagConstraints();
-		gbc_ReportVariationLabel.gridwidth = 4;
-		gbc_ReportVariationLabel.fill = GridBagConstraints.BOTH;
-		gbc_ReportVariationLabel.insets = new Insets(5, 20, 10, 5);
-		gbc_ReportVariationLabel.gridx = 3;
-		gbc_ReportVariationLabel.gridy = 1;
-		FactSheetPanel.add(ReportVariationLabel, gbc_ReportVariationLabel);
-		ReportVariationLabel.setFont(new Font("Tahoma", Font.PLAIN, 12));
-		
-		factSheetReportTypeToggleComboBox = new JComboBox();
-		factSheetReportTypeToggleComboBox.setFont(new Font("Tahoma", Font.PLAIN, 11));
-		factSheetReportTypeToggleComboBox.setBackground(Color.GRAY);
-		GridBagConstraints gbc_factSheetReportTypeToggleComboBox = new GridBagConstraints();
-		gbc_factSheetReportTypeToggleComboBox.fill = GridBagConstraints.HORIZONTAL;
-		gbc_factSheetReportTypeToggleComboBox.gridx = 4;
-		gbc_factSheetReportTypeToggleComboBox.gridy = 1;
-		FactSheetPanel.add(factSheetReportTypeToggleComboBox, gbc_factSheetReportTypeToggleComboBox);
-		factSheetReportTypeToggleComboBox.setModel(new DefaultComboBoxModel(new String[] { "Services", "DHMSM Disposition" }));
-		
-		factSheetReportSysDropDownPanel = new JPanel();
-		factSheetReportSysDropDownPanel.setBackground(SystemColor.control);
-		GridBagConstraints gbc_factSheetReportSysDropDownPanel = new GridBagConstraints();
-		gbc_factSheetReportSysDropDownPanel.gridheight = 2;
-		gbc_factSheetReportSysDropDownPanel.insets = new Insets(0, 10, 5, 5);
-		gbc_factSheetReportSysDropDownPanel.fill = GridBagConstraints.BOTH;
-		gbc_factSheetReportSysDropDownPanel.gridx = 5;
-		gbc_factSheetReportSysDropDownPanel.gridy = 3;
-		FactSheetPanel.add(factSheetReportSysDropDownPanel, gbc_factSheetReportSysDropDownPanel);
-		GridBagLayout gbl_factSheetReportSysDropDownPanel = new GridBagLayout();
-		gbl_factSheetReportSysDropDownPanel.columnWidths = new int[] { 0, 0 };
-		gbl_factSheetReportSysDropDownPanel.rowHeights = new int[] { 0, 0, 0 };
-		gbl_factSheetReportSysDropDownPanel.columnWeights = new double[] { 1.0, Double.MIN_VALUE };
-		gbl_factSheetReportSysDropDownPanel.rowWeights = new double[] { 0.0, 0.0, Double.MIN_VALUE };
-		factSheetReportSysDropDownPanel.setLayout(gbl_factSheetReportSysDropDownPanel);
-		factSheetReportSysDropDownPanel.setVisible(false);
-		
-		JLabel lblFactSheetSelectSystem = new JLabel("Select System:");
-		lblSelectSystem.setFont(new Font("Tahoma", Font.PLAIN, 12));
-		GridBagConstraints gbc_lblFactSheetSelectSystem = new GridBagConstraints();
-		gbc_lblFactSheetSelectSystem.insets = new Insets(0, 0, 5, 0);
-		gbc_lblFactSheetSelectSystem.gridx = 0;
-		gbc_lblFactSheetSelectSystem.gridy = 0;
-		factSheetReportSysDropDownPanel.add(lblFactSheetSelectSystem, gbc_lblFactSheetSelectSystem);
-		
-		factSheetReportSyscomboBox = new FactSheetReportComboBox(fetching);
-		factSheetReportSyscomboBox.setFont(new Font("Tahoma", Font.PLAIN, 11));
-		factSheetReportSyscomboBox.setBackground(Color.GRAY);
-		factSheetReportSyscomboBox.setPreferredSize(new Dimension(200, 25));
-		GridBagConstraints gbc_factSheetReportSyscomboBox = new GridBagConstraints();
-		gbc_factSheetReportSyscomboBox.fill = GridBagConstraints.HORIZONTAL;
-		gbc_factSheetReportSyscomboBox.gridx = 0;
-		gbc_factSheetReportSyscomboBox.gridy = 1;
-		factSheetReportSysDropDownPanel.add(factSheetReportSyscomboBox, gbc_factSheetReportSyscomboBox);
-		
-		factSheetReportTypeDropDownPanel = new JPanel();
-		factSheetReportTypeDropDownPanel.setBackground(SystemColor.control);
-		GridBagConstraints gbc_factSheetReportTypeDropDownPanel = new GridBagConstraints();
-		gbc_factSheetReportTypeDropDownPanel.gridheight = 2;
-		gbc_factSheetReportTypeDropDownPanel.insets = new Insets(0, 10, 5, 5);
-		gbc_factSheetReportTypeDropDownPanel.fill = GridBagConstraints.BOTH;
-		gbc_factSheetReportTypeDropDownPanel.gridx = 3;
-		gbc_factSheetReportTypeDropDownPanel.gridy = 3;
-		FactSheetPanel.add(factSheetReportTypeDropDownPanel, gbc_factSheetReportTypeDropDownPanel);
-		GridBagLayout gbl_factSheetReportTypeDropDownPanel = new GridBagLayout();
-		gbl_factSheetReportTypeDropDownPanel.columnWidths = new int[] { 0, 0 };
-		gbl_factSheetReportTypeDropDownPanel.rowHeights = new int[] { 0, 0, 0 };
-		gbl_factSheetReportTypeDropDownPanel.columnWeights = new double[] { 1.0, Double.MIN_VALUE };
-		gbl_factSheetReportTypeDropDownPanel.rowWeights = new double[] { 0.0, 0.0, Double.MIN_VALUE };
-		factSheetReportTypeDropDownPanel.setLayout(gbl_factSheetReportTypeDropDownPanel);
-		
-		JLabel lblSelectFactSheetReportType = new JLabel("                                     Select Report Type:");
-		lblSelectFactSheetReportType.setFont(new Font("Tahoma", Font.PLAIN, 12));
-		GridBagConstraints gbc_lblSelectFactSheetReportType = new GridBagConstraints();
-		gbc_lblSelectFactSheetReportType.insets = new Insets(0, 0, 5, 0);
-		gbc_lblSelectFactSheetReportType.gridx = 3;
-		gbc_lblSelectFactSheetReportType.gridy = 2;
-		FactSheetPanel.add(lblSelectFactSheetReportType, gbc_lblSelectFactSheetReportType);
-		
-		factSheetReportSystemToggleComboBox = new JComboBox();
-		factSheetReportSystemToggleComboBox.setFont(new Font("Tahoma", Font.PLAIN, 11));
-		factSheetReportSystemToggleComboBox.setBackground(Color.GRAY);
-		GridBagConstraints gbc_factSheetReportSystemToggleComboBox = new GridBagConstraints();
-		gbc_factSheetReportSystemToggleComboBox.fill = GridBagConstraints.HORIZONTAL;
-		gbc_factSheetReportSystemToggleComboBox.gridx = 4;
-		gbc_factSheetReportSystemToggleComboBox.gridy = 2;
-		FactSheetPanel.add(factSheetReportSystemToggleComboBox, gbc_factSheetReportSystemToggleComboBox);
-		factSheetReportSystemToggleComboBox.setModel(new DefaultComboBoxModel(new String[] { "All Systems", "System Specific" }));	
-		
-		btnFactSheetReport = new CustomButton("Generate Fact Sheet Report");
-		btnFactSheetReport.setFont(new Font("Tahoma", Font.BOLD, 11));
-		GridBagConstraints gbc_btnFactSheetReport = new GridBagConstraints();
-		gbc_btnFactSheetReport.fill = GridBagConstraints.HORIZONTAL;
-		gbc_btnFactSheetReport.gridwidth = 2;
-		gbc_btnFactSheetReport.insets = new Insets(0, 0, 5, 5);
-		gbc_btnFactSheetReport.gridx = 5;
-		gbc_btnFactSheetReport.gridy = 5;
-		FactSheetPanel.add(btnFactSheetReport, gbc_btnFactSheetReport);
-		Style.registerTargetClassName(btnFactSheetReport, ".standardButton");
-		
-		JLabel CONUSMapExportTitleLabel = new JLabel("Export Health Grid and Maps for all Systems:");
-		GridBagConstraints gbc_CONUSMapExportTitleLabel = new GridBagConstraints();
-		gbc_CONUSMapExportTitleLabel.gridwidth = 3;
-		gbc_CONUSMapExportTitleLabel.fill = GridBagConstraints.BOTH;
-		gbc_CONUSMapExportTitleLabel.insets = new Insets(5, 20, 10, 5);
-		gbc_CONUSMapExportTitleLabel.gridx = 1;
-		gbc_CONUSMapExportTitleLabel.gridy = 6;
-		FactSheetPanel.add(CONUSMapExportTitleLabel, gbc_CONUSMapExportTitleLabel);
-		CONUSMapExportTitleLabel.setFont(new Font("Tahoma", Font.PLAIN, 12));
-		
-		btnFactSheetImageExport = new CustomButton("Export all");
-		btnFactSheetImageExport.setFont(new Font("Tahoma", Font.BOLD, 11));
-		GridBagConstraints gbc_btnCONUSMapExport = new GridBagConstraints();
-		gbc_btnCONUSMapExport.fill = GridBagConstraints.HORIZONTAL;
-		gbc_btnCONUSMapExport.gridwidth = 1;
-		gbc_btnCONUSMapExport.insets = new Insets(0, 0, 5, 5);
-		gbc_btnCONUSMapExport.gridx = 4;
-		gbc_btnCONUSMapExport.gridy = 6;
-		FactSheetPanel.add(btnFactSheetImageExport, gbc_btnCONUSMapExport);
-		Style.registerTargetClassName(btnFactSheetImageExport, ".standardButton");
-		
-		separator_8 = new JSeparator();
-		GridBagConstraints gbc_separator_8 = new GridBagConstraints();
-		gbc_separator_8.fill = GridBagConstraints.HORIZONTAL;
-		gbc_separator_8.gridwidth = 1;
-		gbc_separator_8.insets = new Insets(5, 5, 5, 5);
-		gbc_separator_8.gridx = 0;
-		gbc_separator_8.gridy = 5;
-		tapReportPanel.add(separator_8, gbc_separator_8);
-		
-		JPanel TaskerGenerationPanel = new JPanel();
-		TaskerGenerationPanel.setBackground(SystemColor.control);
-		GridBagConstraints gbc_TaskerGenerationPanel = new GridBagConstraints();
-		gbc_TaskerGenerationPanel.fill = GridBagConstraints.HORIZONTAL;
-		gbc_TaskerGenerationPanel.insets = new Insets(0, 0, 5, 5);
-		gbc_TaskerGenerationPanel.gridx = 0;
-		gbc_TaskerGenerationPanel.gridy = 6;
-		tapReportPanel.add(TaskerGenerationPanel, gbc_TaskerGenerationPanel);
-		
-		GridBagLayout gbl_TaskerGenerationPanel = new GridBagLayout();
-		gbl_TaskerGenerationPanel.columnWidths = new int[] { 30, 0, 30, 30, 60, 30, 30, 30, 30, 30, 0 };
-		gbl_TaskerGenerationPanel.rowHeights = new int[] { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
-		gbl_TaskerGenerationPanel.columnWeights = new double[] { 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, Double.MIN_VALUE };
-		gbl_TaskerGenerationPanel.rowWeights = new double[] { 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
-				0.0, 0.0, Double.MIN_VALUE };
-		TaskerGenerationPanel.setLayout(gbl_TaskerGenerationPanel);
-		
-		JLabel TaskerGenerationTitleLabel = new JLabel("Tasker and System Info Report Generation");
-		TaskerGenerationTitleLabel.setFont(new Font("Tahoma", Font.BOLD, 12));
-		GridBagConstraints gbc_TaskerGenerationTitleLabel = new GridBagConstraints();
-		gbc_TaskerGenerationTitleLabel.gridwidth = 3;
-		gbc_TaskerGenerationTitleLabel.fill = GridBagConstraints.BOTH;
-		gbc_TaskerGenerationTitleLabel.insets = new Insets(10, 10, 5, 5);
-		gbc_TaskerGenerationTitleLabel.gridx = 1;
-		gbc_TaskerGenerationTitleLabel.gridy = 0;
-		TaskerGenerationPanel.add(TaskerGenerationTitleLabel, gbc_TaskerGenerationTitleLabel);
-		
-		JLabel lblTaskerGenerationSelectSystem = new JLabel("Select System");
-		lblTaskerGenerationSelectSystem.setFont(new Font("Tahoma", Font.PLAIN, 12));
-		GridBagConstraints gbc_lblTaskerGenerationSelectSystem = new GridBagConstraints();
-		gbc_lblTaskerGenerationSelectSystem.insets = new Insets(0, 0, 5, 0);
-		gbc_lblTaskerGenerationSelectSystem.gridx = 1;
-		gbc_lblTaskerGenerationSelectSystem.gridy = 1;
-		TaskerGenerationPanel.add(lblTaskerGenerationSelectSystem, gbc_lblTaskerGenerationSelectSystem);
-		
-		TaskerGenerationSyscomboBox = new FactSheetReportComboBox(fetching);
-		TaskerGenerationSyscomboBox.setFont(new Font("Tahoma", Font.PLAIN, 11));
-		TaskerGenerationSyscomboBox.setBackground(Color.GRAY);
-		TaskerGenerationSyscomboBox.setPreferredSize(new Dimension(200, 25));
-		GridBagConstraints gbc_TaskerGenerationSyscomboBox = new GridBagConstraints();
-		gbc_TaskerGenerationSyscomboBox.fill = GridBagConstraints.HORIZONTAL;
-		gbc_TaskerGenerationSyscomboBox.gridx = 1;
-		gbc_TaskerGenerationSyscomboBox.gridy = 2;
-		TaskerGenerationPanel.add(TaskerGenerationSyscomboBox, gbc_TaskerGenerationSyscomboBox);
-		
-		btnTaskerGeneration = new CustomButton("Generate Tasker Report");
-		btnTaskerGeneration.setFont(new Font("Tahoma", Font.BOLD, 11));
-		GridBagConstraints gbc_btnTaskerGeneration = new GridBagConstraints();
-		gbc_btnTaskerGeneration.fill = GridBagConstraints.HORIZONTAL;
-		gbc_btnTaskerGeneration.gridwidth = 2;
-		gbc_btnTaskerGeneration.insets = new Insets(0, 0, 5, 5);
-		gbc_btnTaskerGeneration.gridx = 1;
-		gbc_btnTaskerGeneration.gridy = 3;
-		TaskerGenerationPanel.add(btnTaskerGeneration, gbc_btnTaskerGeneration);
-		Style.registerTargetClassName(btnTaskerGeneration, ".standardButton");
-		
-		btnInterfaceReportButton = new CustomButton("Generate Interface Report");
-		btnInterfaceReportButton.setFont(new Font("Tahoma", Font.BOLD, 11));
-		GridBagConstraints gbc_btnInterfaceReportButton = new GridBagConstraints();
-		gbc_btnInterfaceReportButton.fill = GridBagConstraints.HORIZONTAL;
-		gbc_btnInterfaceReportButton.gridwidth = 2;
-		gbc_btnInterfaceReportButton.insets = new Insets(0, 0, 5, 5);
-		gbc_btnInterfaceReportButton.gridx = 1;
-		gbc_btnInterfaceReportButton.gridy = 4;
-		TaskerGenerationPanel.add(btnInterfaceReportButton, gbc_btnInterfaceReportButton);
-		Style.registerTargetClassName(btnInterfaceReportButton, ".standardButton");
-		
-		btnSystemInfoGenButton = new CustomButton("Generate System Info Report");
-		btnSystemInfoGenButton.setFont(new Font("Tahoma", Font.BOLD, 11));
-		GridBagConstraints gbc_btnSystemInfoGenerator = new GridBagConstraints();
-		gbc_btnSystemInfoGenerator.fill = GridBagConstraints.HORIZONTAL;
-		gbc_btnSystemInfoGenerator.gridwidth = 2;
-		gbc_btnSystemInfoGenerator.insets = new Insets(0, 0, 5, 5);
-		gbc_btnSystemInfoGenerator.gridx = 3;
-		gbc_btnSystemInfoGenerator.gridy = 3;
-		TaskerGenerationPanel.add(btnSystemInfoGenButton, gbc_btnSystemInfoGenerator);
-		Style.registerTargetClassName(btnSystemInfoGenButton, ".standardButton");
-		
-		btnDataInterfaceWithDHMSM = new CustomButton("Generate Data Interface With DHMSM Report");
-		btnDataInterfaceWithDHMSM.setFont(new Font("Tahoma", Font.BOLD, 11));
-		GridBagConstraints gbc_btnDataInterfaceWithDHMSM = new GridBagConstraints();
-		gbc_btnDataInterfaceWithDHMSM.fill = GridBagConstraints.HORIZONTAL;
-		gbc_btnDataInterfaceWithDHMSM.gridwidth = 2;
-		gbc_btnDataInterfaceWithDHMSM.insets = new Insets(0, 0, 5, 5);
-		gbc_btnDataInterfaceWithDHMSM.gridx = 3;
-		gbc_btnDataInterfaceWithDHMSM.gridy = 4;
-		TaskerGenerationPanel.add(btnDataInterfaceWithDHMSM, gbc_btnDataInterfaceWithDHMSM);
-		Style.registerTargetClassName(btnDataInterfaceWithDHMSM, ".standardButton");
-		
-		// /Common Subgraph functions --> ultimately to be used for database
-		// recommender. temporarily here for George's
-		// testing
-		
-		JSeparator separator_10 = new JSeparator();
-		GridBagConstraints gbc_separator_10 = new GridBagConstraints();
-		gbc_separator_10.fill = GridBagConstraints.HORIZONTAL;
-		gbc_separator_10.gridwidth = 1;
-		gbc_separator_10.insets = new Insets(5, 5, 5, 5);
-		gbc_separator_10.gridx = 0;
-		gbc_separator_10.gridy = 7;
-		tapReportPanel.add(separator_10, gbc_separator_10);
-		
-		JPanel commonSubgraphPanel = new JPanel();
-		commonSubgraphPanel.setBackground(SystemColor.control);
-		GridBagConstraints gbc_commonSubgraphPanel = new GridBagConstraints();
-		gbc_commonSubgraphPanel.fill = GridBagConstraints.HORIZONTAL;
-		gbc_commonSubgraphPanel.insets = new Insets(0, 0, 5, 5);
-		gbc_commonSubgraphPanel.gridx = 0;
-		gbc_commonSubgraphPanel.gridy = 8;
-		tapReportPanel.add(commonSubgraphPanel, gbc_commonSubgraphPanel);
-		GridBagLayout gbl_commonSubgraphPanel = new GridBagLayout();
-		gbl_commonSubgraphPanel.columnWidths = new int[] { 10, 10, 0, 0, 75, 75, 300 };
-		gbl_commonSubgraphPanel.rowHeights = new int[] { 0, 0, 0, 0, 0 };
-		gbl_commonSubgraphPanel.columnWeights = new double[] { 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0 };
-		gbl_commonSubgraphPanel.rowWeights = new double[] { 0.0, 0.0, 0.0, 0.0, 0.0 };
-		commonSubgraphPanel.setLayout(gbl_commonSubgraphPanel);
-		
-		JLabel commonSubgraphTitleLabel = new JLabel("Determine Common Subgraph between Databases");
-		GridBagConstraints gbc_commonSubgraphTitleLabel = new GridBagConstraints();
-		gbc_commonSubgraphTitleLabel.gridwidth = 3;
-		gbc_commonSubgraphTitleLabel.fill = GridBagConstraints.BOTH;
-		gbc_commonSubgraphTitleLabel.insets = new Insets(5, 0, 10, 5);
-		gbc_commonSubgraphTitleLabel.gridx = 1;
-		gbc_commonSubgraphTitleLabel.gridy = 0;
-		commonSubgraphPanel.add(commonSubgraphTitleLabel, gbc_commonSubgraphTitleLabel);
-		commonSubgraphTitleLabel.setFont(new Font("Tahoma", Font.BOLD, 12));
-		
-		JLabel lblCommonSubgraphThreshold = new JLabel("Similarity Threshold:");
-		lblCommonSubgraphThreshold.setFont(new Font("Tahoma", Font.PLAIN, 12));
-		GridBagConstraints gbc_lblCommonSubgraphThreshold = new GridBagConstraints();
-		gbc_lblCommonSubgraphThreshold.anchor = GridBagConstraints.WEST;
-		gbc_lblCommonSubgraphThreshold.insets = new Insets(0, 0, 5, 5);
-		gbc_lblCommonSubgraphThreshold.gridx = 2;
-		gbc_lblCommonSubgraphThreshold.gridy = 1;
-		commonSubgraphPanel.add(lblCommonSubgraphThreshold, gbc_lblCommonSubgraphThreshold);
-		
-		commonSubgraphThresholdTextField = new JTextField();
-		commonSubgraphThresholdTextField.setFont(new Font("Tahoma", Font.PLAIN, 11));
-		commonSubgraphThresholdTextField.setMinimumSize(new Dimension(122, 28));
-		commonSubgraphThresholdTextField.setSize(new Dimension(10, 28));
-		commonSubgraphThresholdTextField.setText("2.0");
-		commonSubgraphThresholdTextField.setMaximumSize(new Dimension(15, 2147483647));
-		GridBagConstraints gbc_commonSubgraphThresholdTextField = new GridBagConstraints();
-		gbc_commonSubgraphThresholdTextField.anchor = GridBagConstraints.WEST;
-		gbc_commonSubgraphThresholdTextField.insets = new Insets(0, 0, 5, 5);
-		gbc_commonSubgraphThresholdTextField.gridx = 3;
-		gbc_commonSubgraphThresholdTextField.gridy = 1;
-		commonSubgraphPanel.add(commonSubgraphThresholdTextField, gbc_commonSubgraphThresholdTextField);
-		commonSubgraphThresholdTextField.setColumns(12);
-		
-		JLabel commonSubgraphDatabaseLabel = new JLabel("Select Databases:");
-		GridBagConstraints gbc_commonSubgraphDatabaseLabel = new GridBagConstraints();
-		gbc_commonSubgraphDatabaseLabel.anchor = GridBagConstraints.WEST;
-		gbc_commonSubgraphDatabaseLabel.insets = new Insets(0, 0, 5, 5);
-		gbc_commonSubgraphDatabaseLabel.gridx = 2;
-		gbc_commonSubgraphDatabaseLabel.gridy = 2;
-		commonSubgraphPanel.add(commonSubgraphDatabaseLabel, gbc_commonSubgraphDatabaseLabel);
-		
-		commonSubgraphComboBox0 = new JComboBox<String>();
-		commonSubgraphComboBox0.setEditable(false);
-		GridBagConstraints gbc_commonSubgraphComboBox0 = new GridBagConstraints();
-		gbc_commonSubgraphComboBox0.gridwidth = 1;
-		gbc_commonSubgraphComboBox0.insets = new Insets(0, 0, 5, 5);
-		gbc_commonSubgraphComboBox0.fill = GridBagConstraints.HORIZONTAL;
-		gbc_commonSubgraphComboBox0.gridx = 2;
-		gbc_commonSubgraphComboBox0.gridy = 3;
-		commonSubgraphPanel.add(commonSubgraphComboBox0, gbc_commonSubgraphComboBox0);
-		
-		commonSubgraphComboBox1 = new JComboBox<String>();
-		commonSubgraphComboBox1.setEditable(false);
-		GridBagConstraints gbc_commonSubgraphComboBox1 = new GridBagConstraints();
-		gbc_commonSubgraphComboBox1.gridwidth = 1;
-		gbc_commonSubgraphComboBox1.insets = new Insets(0, 0, 5, 5);
-		gbc_commonSubgraphComboBox1.fill = GridBagConstraints.HORIZONTAL;
-		gbc_commonSubgraphComboBox1.gridx = 3;
-		gbc_commonSubgraphComboBox1.gridy = 3;
-		commonSubgraphPanel.add(commonSubgraphComboBox1, gbc_commonSubgraphComboBox1);
-		
-		btnCommonSubgraph = new CustomButton("Run Common Subgraph");
-		btnCommonSubgraph.setFont(new Font("Tahoma", Font.BOLD, 11));
-		GridBagConstraints gbc_btnCommonSubgraph = new GridBagConstraints();
-		gbc_btnCommonSubgraph.fill = GridBagConstraints.HORIZONTAL;
-		gbc_btnCommonSubgraph.gridwidth = 2;
-		gbc_btnCommonSubgraph.insets = new Insets(0, 0, 5, 5);
-		gbc_btnCommonSubgraph.gridx = 2;
-		gbc_btnCommonSubgraph.gridy = 4;
-		gbc_btnCommonSubgraph.fill = GridBagConstraints.HORIZONTAL;
-		commonSubgraphPanel.add(btnCommonSubgraph, gbc_btnCommonSubgraph);
-		Style.registerTargetClassName(btnCommonSubgraph, ".standardButton");
-		
-		// DHMSM Reports tab under MHS TAP tab
-		JPanel dhmsmReportPanel = new JPanel();
-		dhmsmReportPanel.setBackground(SystemColor.control);
-		JScrollPane dhmsmReportScroll = new JScrollPane(dhmsmReportPanel);
-		tapTabPane.addTab("DHMSM Reports", null, dhmsmReportScroll, null);
-		GridBagLayout dhmsmReportPanelLayout = new GridBagLayout();
-		dhmsmReportPanelLayout.rowHeights = new int[] { 30, 0, 0, 0, 0 };
-		dhmsmReportPanelLayout.rowWeights = new double[] { 0.0, 0.0, 0.0, 0.0, 1.0 };
-		dhmsmReportPanelLayout.columnWeights = new double[] { 0.0, 1.0, 0.0 };
-		dhmsmReportPanelLayout.columnWidths = new int[] { 0, 0, 0 };
-		dhmsmReportPanel.setLayout(dhmsmReportPanelLayout);
-		
-		dhmsmReportTopPanel = new JPanel();
-		dhmsmReportTopPanel.setBackground(SystemColor.control);
-		GridBagConstraints gbc_dhmsmReportTopPanel = new GridBagConstraints();
-		gbc_dhmsmReportTopPanel.fill = GridBagConstraints.HORIZONTAL;
-		gbc_dhmsmReportTopPanel.insets = new Insets(0, 0, 5, 5);
-		gbc_dhmsmReportTopPanel.anchor = GridBagConstraints.NORTH;
-		gbc_dhmsmReportTopPanel.gridx = 0;
-		gbc_dhmsmReportTopPanel.gridy = 0;
-		dhmsmReportPanel.add(dhmsmReportTopPanel, gbc_dhmsmReportTopPanel);
-		GridBagLayout gbl_dhmsmReportTopPanel = new GridBagLayout();
-		gbl_dhmsmReportTopPanel.columnWidths = new int[] { 10, 10, 10, 0, 0 };
-		gbl_dhmsmReportTopPanel.rowHeights = new int[] { 10, 35, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
-		gbl_dhmsmReportTopPanel.columnWeights = new double[] { 0.0, 0.0, 0.0, 0.0, 1.0 };
-		gbl_dhmsmReportTopPanel.rowWeights = new double[] { 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, Double.MIN_VALUE };
-		dhmsmReportTopPanel.setLayout(gbl_dhmsmReportTopPanel);
-		
-		JLabel dhmsmDecommissionReportTitleLabel = new JLabel("Generate Decommission Report");
-		GridBagConstraints gbc_dhmsmDecommissionReportTitleLabel = new GridBagConstraints();
-		gbc_dhmsmDecommissionReportTitleLabel.gridwidth = 2;
-		gbc_dhmsmDecommissionReportTitleLabel.anchor = GridBagConstraints.WEST;
-		gbc_dhmsmDecommissionReportTitleLabel.insets = new Insets(0, 0, 5, 5);
-		gbc_dhmsmDecommissionReportTitleLabel.gridx = 1;
-		gbc_dhmsmDecommissionReportTitleLabel.gridy = 1;
-		dhmsmReportTopPanel.add(dhmsmDecommissionReportTitleLabel, gbc_dhmsmDecommissionReportTitleLabel);
-		dhmsmDecommissionReportTitleLabel.setFont(new Font("Tahoma", Font.BOLD, 12));
-		
-		dhmsmDataAccessSelectionFileLbl = new JLabel("Select Data Access and Latency File to Import");
-		GridBagConstraints gbc_dhmsmDataAccessSelectionFileLbl = new GridBagConstraints();
-		gbc_dhmsmDataAccessSelectionFileLbl.gridwidth = 2;
-		gbc_dhmsmDataAccessSelectionFileLbl.anchor = GridBagConstraints.WEST;
-		gbc_dhmsmDataAccessSelectionFileLbl.insets = new Insets(0, 0, 5, 5);
-		gbc_dhmsmDataAccessSelectionFileLbl.gridx = 2;
-		gbc_dhmsmDataAccessSelectionFileLbl.gridy = 2;
-		dhmsmReportTopPanel.add(dhmsmDataAccessSelectionFileLbl, gbc_dhmsmDataAccessSelectionFileLbl);
-		dhmsmDataAccessSelectionFileLbl.setFont(new Font("Tahoma", Font.PLAIN, 12));
-		
-		dhmsmDataAccessFileImportPanel = new Panel();
-		GridBagConstraints gbc_dhmsmDataAccessFileImportPanel = new GridBagConstraints();
-		gbc_dhmsmDataAccessFileImportPanel.insets = new Insets(0, 0, 5, 5);
-		gbc_dhmsmDataAccessFileImportPanel.gridwidth = 1;
-		gbc_dhmsmDataAccessFileImportPanel.anchor = GridBagConstraints.WEST;
-		gbc_dhmsmDataAccessFileImportPanel.gridx = 2;
-		gbc_dhmsmDataAccessFileImportPanel.gridy = 3;
-		dhmsmReportTopPanel.add(dhmsmDataAccessFileImportPanel, gbc_dhmsmDataAccessFileImportPanel);
-		dhmsmDataAccessFileImportPanel.setLayout(new GridBagLayout());
-		
-		//
-		// GridBagLayout gbl_dhmsmReportTopPanel = new GridBagLayout();
-		// gbl_dhmsmReportTopPanel.columnWidths = new int[] { 10, 10, 10, 0, 0
-		// };
-		// gbl_dhmsmReportTopPanel.rowHeights = new int[] { 10, 35, 0, 0, 0, 0,
-		// 0, 0, 0, 0 };
-		// gbl_dhmsmReportTopPanel.columnWeights = new double[] { 0.0, 0.0, 0.0,
-		// 0.0, 1.0 };
-		// gbl_dhmsmReportTopPanel.rowWeights = new double[] { 0.0, 0.0, 0.0,
-		// 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, Double.MIN_VALUE
-		// };
-		// dhmsmReportTopPanel.setLayout(gbl_dhmsmReportTopPanel);
-		
-		dhmsmDataAccessFileBrowseBtn = new CustomButton("Browse");
-		dhmsmDataAccessFileBrowseBtn.setName(Constants.IMPORT_BUTTON_BROWSE);
-		dhmsmDataAccessFileBrowseBtn.setFont(new Font("Tahoma", Font.BOLD, 11));
-		// dhmsmDataAccessFileImportPanel.add(dhmsmDataAccessFileBrowseBtn);
-		GridBagConstraints gbc_dhmsmDataAccessFileBrowseBtn = new GridBagConstraints();
-		gbc_dhmsmDataAccessFileBrowseBtn.anchor = GridBagConstraints.WEST;
-		gbc_dhmsmDataAccessFileBrowseBtn.insets = new Insets(0, 0, 5, 5);
-		gbc_dhmsmDataAccessFileBrowseBtn.gridx = 0;
-		gbc_dhmsmDataAccessFileBrowseBtn.gridy = 0;
-		// dhmsmReportTopPanel.add(dhmsmDataAccessFileBrowseBtn,
-		// gbc_dhmsmDataAccessFileBrowseBtn);
-		dhmsmDataAccessFileImportPanel.add(dhmsmDataAccessFileBrowseBtn, gbc_dhmsmDataAccessFileBrowseBtn);
-		Style.registerTargetClassName(dhmsmDataAccessFileBrowseBtn, ".standardButton");
-		
-		dhmsmDataAccessImportFileNameField = new JTextField();
-		dhmsmDataAccessImportFileNameField.setFont(new Font("Tahoma", Font.PLAIN, 11));
-		// dhmsmDataAccessFileImportPanel.add(dhmsmDataAccessImportFileNameField);
-		GridBagConstraints gbc_dhmsmDataAccessImportFileNameField = new GridBagConstraints();
-		gbc_dhmsmDataAccessImportFileNameField.fill = GridBagConstraints.HORIZONTAL;
-		gbc_dhmsmDataAccessImportFileNameField.insets = new Insets(0, 0, 5, 0);
-		gbc_dhmsmDataAccessImportFileNameField.gridx = 1;
-		gbc_dhmsmDataAccessImportFileNameField.gridy = 0;
-		dhmsmDataAccessFileImportPanel.add(dhmsmDataAccessImportFileNameField, gbc_dhmsmDataAccessImportFileNameField);
-		// dhmsmReportTopPanel.add(dhmsmDataAccessImportFileNameField,
-		// gbc_dhmsmDataAccessImportFileNameField);
-		dhmsmDataAccessImportFileNameField.setColumns(10);
-		
-		dhmsmFunctionalAreaPanel = new Panel();
-		GridBagConstraints gbc_functionalAreaDHMSMPanel = new GridBagConstraints();
-		gbc_functionalAreaDHMSMPanel.insets = new Insets(0, 0, 5, 5);
-		gbc_functionalAreaDHMSMPanel.gridwidth = 2;
-		gbc_functionalAreaDHMSMPanel.anchor = GridBagConstraints.WEST;
-		gbc_functionalAreaDHMSMPanel.gridx = 2;
-		gbc_functionalAreaDHMSMPanel.gridy = 4;
-		dhmsmReportTopPanel.add(dhmsmFunctionalAreaPanel, gbc_functionalAreaDHMSMPanel);
-		dhmsmFunctionalAreaPanel.setLayout(new FlowLayout(FlowLayout.CENTER, 5, 5));
-		
-		HSDCheckBoxDHMSM = new JCheckBox("HSD");
-		dhmsmFunctionalAreaPanel.add(HSDCheckBoxDHMSM);
-		
-		HSSCheckBoxDHMSM = new JCheckBox("HSS");
-		dhmsmFunctionalAreaPanel.add(HSSCheckBoxDHMSM);
-		
-		FHPCheckBoxDHMSM = new JCheckBox("FHP");
-		dhmsmFunctionalAreaPanel.add(FHPCheckBoxDHMSM);
-		
-		DHMSMCheckBoxDHMSM = new JCheckBox("DHMSM");
-		dhmsmFunctionalAreaPanel.add(DHMSMCheckBoxDHMSM);
-		
-		JLabel dhmsmlblCapName = new JLabel("Capabilities:");
-		dhmsmlblCapName.setMinimumSize(new Dimension(155, 32));
-		dhmsmlblCapName.setFont(new Font("Tahoma", Font.PLAIN, 12));
-		GridBagConstraints gbc_dhmsmlblCapName = new GridBagConstraints();
-		gbc_dhmsmlblCapName.anchor = GridBagConstraints.WEST;
-		gbc_dhmsmlblCapName.insets = new Insets(0, 0, 5, 5);
-		gbc_dhmsmlblCapName.gridx = 2;
-		gbc_dhmsmlblCapName.gridy = 5;
-		dhmsmReportTopPanel.add(dhmsmlblCapName, gbc_dhmsmlblCapName);
-		
-		selectRadioPanel = new SelectRadioButtonPanel();// change this
-		/*
-		 * GridBagConstraints gbc_selectRadioPanel = new GridBagConstraints(); gbc_selectRadioPanel.insets = new Insets(0,
-		 * 0, 5, 0); gbc_selectRadioPanel.gridx = 4; gbc_selectRadioPanel.gridy = 6;
-		 * dhmsmReportTopPanel.add(selectRadioPanel, gbc_selectRadioPanel);
-		 */
-		FlowLayout flowLayout3 = (FlowLayout) selectRadioPanel.getLayout();
-		flowLayout3.setAlignment(FlowLayout.LEFT);
-		selectRadioPanel.setBackground(SystemColor.control);
-		
-		dhmsmCapabilitySelectPanel = new SourceSelectPanel();// change this
-		FlowLayout flowLayout2 = (FlowLayout) dhmsmCapabilitySelectPanel.getLayout();
-		flowLayout2.setAlignment(FlowLayout.LEFT);
-		dhmsmCapabilitySelectPanel.setBackground(SystemColor.control);
-		
-		dhmsmCapabilitySelectScrollPane = new JScrollPane(dhmsmCapabilitySelectPanel);
-		GridBagConstraints gbc_dhmsmCapabilitySelectScrollPane = new GridBagConstraints();
-		gbc_dhmsmCapabilitySelectScrollPane.fill = GridBagConstraints.HORIZONTAL;
-		gbc_dhmsmCapabilitySelectScrollPane.insets = new Insets(0, 0, 5, 5);
-		gbc_dhmsmCapabilitySelectScrollPane.gridx = 2;
-		gbc_dhmsmCapabilitySelectScrollPane.gridy = 7;
-		dhmsmReportTopPanel.add(dhmsmCapabilitySelectScrollPane, gbc_dhmsmCapabilitySelectScrollPane);
-		dhmsmCapabilitySelectScrollPane.setPreferredSize(new Dimension(300, 300));
-		
-		dhmsmUpdateDataFromFileButton = new CustomButton("Update Data Access Type List from File");
-		GridBagConstraints gbc_dhmsmUpdateDataFromFileButton = new GridBagConstraints();
-		gbc_dhmsmUpdateDataFromFileButton.anchor = GridBagConstraints.WEST;
-		gbc_dhmsmUpdateDataFromFileButton.insets = new Insets(0, 0, 5, 5);
-		gbc_dhmsmUpdateDataFromFileButton.gridx = 2;
-		gbc_dhmsmUpdateDataFromFileButton.gridy = 8;
-		dhmsmReportTopPanel.add(dhmsmUpdateDataFromFileButton, gbc_dhmsmUpdateDataFromFileButton);
-		dhmsmUpdateDataFromFileButton.setFont(new Font("Tahoma", Font.BOLD, 11));
-		Style.registerTargetClassName(dhmsmUpdateDataFromFileButton, ".standardButton");
-		
-		dhmsmUpdateDataButton = new CustomButton("Update Data Access Type List from Capabilities");
-		GridBagConstraints gbc_dhmsmUpdateDataButton = new GridBagConstraints();
-		gbc_dhmsmUpdateDataButton.anchor = GridBagConstraints.WEST;
-		gbc_dhmsmUpdateDataButton.insets = new Insets(0, 0, 0, 5);
-		gbc_dhmsmUpdateDataButton.gridx = 2;
-		gbc_dhmsmUpdateDataButton.gridy = 9;
-		dhmsmReportTopPanel.add(dhmsmUpdateDataButton, gbc_dhmsmUpdateDataButton);
-		dhmsmUpdateDataButton.setFont(new Font("Tahoma", Font.BOLD, 11));
-		Style.registerTargetClassName(dhmsmUpdateDataButton, ".standardButton");
-		
-		dhmsmSelectAllAccessTypePanel = new Panel();
-		GridBagConstraints gbc_dhmsmSelectAllAccessTypePanel = new GridBagConstraints();
-		gbc_dhmsmSelectAllAccessTypePanel.insets = new Insets(0, 0, 5, 0);
-		gbc_dhmsmSelectAllAccessTypePanel.anchor = GridBagConstraints.WEST;
-		gbc_dhmsmSelectAllAccessTypePanel.gridx = 4;
-		gbc_dhmsmSelectAllAccessTypePanel.gridy = 4;
-		dhmsmReportTopPanel.add(dhmsmSelectAllAccessTypePanel, gbc_dhmsmSelectAllAccessTypePanel);
-		dhmsmSelectAllAccessTypePanel.setLayout(new FlowLayout(FlowLayout.CENTER, 5, 5));
-		
-		ButtonGroup selectAllDataAccessType = new ButtonGroup();
-		integratedAccessButton = new JRadioButton("Integrated");
-		selectAllDataAccessType.add(integratedAccessButton);
-		dhmsmSelectAllAccessTypePanel.add(integratedAccessButton);
-		
-		hybridAccessButton = new JRadioButton("Hybrid");
-		selectAllDataAccessType.add(hybridAccessButton);
-		dhmsmSelectAllAccessTypePanel.add(hybridAccessButton);
-		
-		manualAccessButton = new JRadioButton("Manual");
-		selectAllDataAccessType.add(manualAccessButton);
-		dhmsmSelectAllAccessTypePanel.add(manualAccessButton);
-		
-		ButtonGroup selectAllDataLatencyType = new ButtonGroup();
-		realAccessButton = new JRadioButton("RealTime");
-		selectAllDataLatencyType.add(realAccessButton);
-		dhmsmSelectAllAccessTypePanel.add(realAccessButton);
-		
-		nearAccessButton = new JRadioButton("Near RealTime");
-		selectAllDataLatencyType.add(nearAccessButton);
-		dhmsmSelectAllAccessTypePanel.add(nearAccessButton);
-		
-		archiveAccessButton = new JRadioButton("Archive");
-		selectAllDataLatencyType.add(archiveAccessButton);
-		dhmsmSelectAllAccessTypePanel.add(archiveAccessButton);
-		
-		ignoreAccessButton = new JRadioButton("Ignore");
-		selectAllDataLatencyType.add(ignoreAccessButton);
-		dhmsmSelectAllAccessTypePanel.add(ignoreAccessButton);
-		
-		JLabel dhmsmLblDataName = new JLabel("Data Objects:");
-		dhmsmLblDataName.setMinimumSize(new Dimension(155, 32));
-		dhmsmLblDataName.setFont(new Font("Tahoma", Font.PLAIN, 12));
-		GridBagConstraints gbc_dhmsmLblDataName = new GridBagConstraints();
-		gbc_dhmsmLblDataName.anchor = GridBagConstraints.WEST;
-		gbc_dhmsmLblDataName.insets = new Insets(0, 0, 5, 0);
-		gbc_dhmsmLblDataName.gridx = 4;
-		gbc_dhmsmLblDataName.gridy = 5;
-		dhmsmReportTopPanel.add(dhmsmLblDataName, gbc_dhmsmLblDataName);
-		
-		selectRadioScrollPane = new JScrollPane(selectRadioPanel);
-		GridBagConstraints gbc_selectRadioScrollPane = new GridBagConstraints();
-		gbc_selectRadioScrollPane.fill = GridBagConstraints.HORIZONTAL;
-		gbc_selectRadioScrollPane.insets = new Insets(0, 0, 5, 0);
-		gbc_selectRadioScrollPane.gridx = 4;
-		gbc_selectRadioScrollPane.gridy = 7;
-		dhmsmReportTopPanel.add(selectRadioScrollPane, gbc_selectRadioScrollPane);
-		selectRadioScrollPane.setPreferredSize(new Dimension(750, 300));
-		
-		dhmsmDecommissionReportButton = new CustomButton("Generate DHMSM Decommission Report");
-		GridBagConstraints gbc_dhmsmDecommissionReportButton = new GridBagConstraints();
-		gbc_dhmsmDecommissionReportButton.anchor = GridBagConstraints.WEST;
-		gbc_dhmsmDecommissionReportButton.insets = new Insets(0, 0, 5, 0);
-		gbc_dhmsmDecommissionReportButton.gridx = 4;
-		gbc_dhmsmDecommissionReportButton.gridy = 8;
-		dhmsmReportTopPanel.add(dhmsmDecommissionReportButton, gbc_dhmsmDecommissionReportButton);
-		dhmsmDecommissionReportButton.setFont(new Font("Tahoma", Font.BOLD, 11));
-		Style.registerTargetClassName(dhmsmDecommissionReportButton, ".standardButton");
-		
-		dhmsmSystemSORAccessTypeReportButton = new CustomButton("Generate DHMSM System SOR Access Type Report");
-		GridBagConstraints gbc_dhmsmSystemSORAccessTypeReportButton = new GridBagConstraints();
-		gbc_dhmsmSystemSORAccessTypeReportButton.anchor = GridBagConstraints.WEST;
-		gbc_dhmsmSystemSORAccessTypeReportButton.gridx = 4;
-		gbc_dhmsmSystemSORAccessTypeReportButton.gridy = 9;
-		dhmsmReportTopPanel.add(dhmsmSystemSORAccessTypeReportButton, gbc_dhmsmSystemSORAccessTypeReportButton);
-		dhmsmSystemSORAccessTypeReportButton.setFont(new Font("Tahoma", Font.BOLD, 11));
-		Style.registerTargetClassName(dhmsmSystemSORAccessTypeReportButton, ".standardButton");
-		
-		separator_9 = new JSeparator();
-		GridBagConstraints gbc_separator_9 = new GridBagConstraints();
-		gbc_separator_9.fill = GridBagConstraints.HORIZONTAL;
-		gbc_separator_9.gridwidth = 1;
-		gbc_separator_9.insets = new Insets(5, 5, 5, 5);
-		gbc_separator_9.gridx = 0;
-		gbc_separator_9.gridy = 3;
-		dhmsmReportPanel.add(separator_9, gbc_separator_9);
-		
-		dhmsmReportMidPanel = new JPanel();
-		dhmsmReportMidPanel.setBackground(SystemColor.control);
-		GridBagConstraints gbc_dhmsmReportMidPanel = new GridBagConstraints();
-		gbc_dhmsmReportMidPanel.fill = GridBagConstraints.HORIZONTAL;
-		gbc_dhmsmReportMidPanel.insets = new Insets(0, 0, 5, 5);
-		gbc_dhmsmReportMidPanel.anchor = GridBagConstraints.NORTH;
-		gbc_dhmsmReportMidPanel.gridx = 0;
-		gbc_dhmsmReportMidPanel.gridy = 1;
-		dhmsmReportPanel.add(dhmsmReportMidPanel, gbc_dhmsmReportMidPanel);
-		GridBagLayout gbl_dhmsmReportMidPanel = new GridBagLayout();
-		gbl_dhmsmReportMidPanel.columnWidths = new int[] { 10, 10, 10, 0, 0 };
-		gbl_dhmsmReportMidPanel.rowHeights = new int[] { 10, 35, 0, 0, 0, 0, 0, 0, 0, 0 };
-		gbl_dhmsmReportMidPanel.columnWeights = new double[] { 0.0, 0.0, 0.0, 0.0, 1.0 };
-		gbl_dhmsmReportMidPanel.rowWeights = new double[] { 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, Double.MIN_VALUE };
-		dhmsmReportMidPanel.setLayout(gbl_dhmsmReportMidPanel);
-		
-		JLabel dhmsmCapSystemIntersectionTitleLabel = new JLabel("DHMSM Capability and System Overlap");
-		GridBagConstraints gbc_dhmsmCapSystemIntersectionTitleLabel = new GridBagConstraints();
-		gbc_dhmsmCapSystemIntersectionTitleLabel.gridwidth = 2;
-		gbc_dhmsmCapSystemIntersectionTitleLabel.anchor = GridBagConstraints.WEST;
-		gbc_dhmsmCapSystemIntersectionTitleLabel.insets = new Insets(0, 0, 5, 5);
-		gbc_dhmsmCapSystemIntersectionTitleLabel.gridx = 1;
-		gbc_dhmsmCapSystemIntersectionTitleLabel.gridy = 1;
-		dhmsmReportMidPanel.add(dhmsmCapSystemIntersectionTitleLabel, gbc_dhmsmCapSystemIntersectionTitleLabel);
-		dhmsmCapSystemIntersectionTitleLabel.setFont(new Font("Tahoma", Font.BOLD, 12));
-		
-		dhmsmCapSystemIntersectionReportButton = new CustomButton("Generate Capability and System Overlap");
-		GridBagConstraints gbc_dhmsmCapSystemIntersectionReportButton = new GridBagConstraints();
-		gbc_dhmsmCapSystemIntersectionReportButton.anchor = GridBagConstraints.WEST;
-		gbc_dhmsmCapSystemIntersectionReportButton.insets = new Insets(0, 0, 5, 5);
-		gbc_dhmsmCapSystemIntersectionReportButton.gridx = 2;
-		gbc_dhmsmCapSystemIntersectionReportButton.gridy = 2;
-		dhmsmReportMidPanel.add(dhmsmCapSystemIntersectionReportButton, gbc_dhmsmCapSystemIntersectionReportButton);
-		dhmsmCapSystemIntersectionReportButton.setFont(new Font("Tahoma", Font.BOLD, 11));
-		Style.registerTargetClassName(dhmsmCapSystemIntersectionReportButton, ".standardButton");
-		
-		JLabel lblSysDecomOptimization = new JLabel("System Decommission Optimization");
-		GridBagConstraints gbc_lblSysDecomOptimization = new GridBagConstraints();
-		gbc_lblSysDecomOptimization.gridwidth = 2;
-		gbc_lblSysDecomOptimization.anchor = GridBagConstraints.WEST;
-		gbc_lblSysDecomOptimization.insets = new Insets(0, 0, 5, 5);
-		gbc_lblSysDecomOptimization.gridx = 1;
-		gbc_lblSysDecomOptimization.gridy = 3;
-		dhmsmReportMidPanel.add(lblSysDecomOptimization, gbc_lblSysDecomOptimization);
-		lblSysDecomOptimization.setFont(new Font("Tahoma", Font.BOLD, 12));
-		
-		JLabel lblSysDecomOptimizationResourceConstraint = new JLabel("Resource Constraint:");
-		lblSysDecomOptimizationResourceConstraint.setFont(new Font("Tahoma", Font.PLAIN, 12));
-		GridBagConstraints gbc_lblSysDecomOptimizationResourceConstraint = new GridBagConstraints();
-		gbc_lblSysDecomOptimizationResourceConstraint.anchor = GridBagConstraints.WEST;
-		gbc_lblSysDecomOptimizationResourceConstraint.insets = new Insets(0, 0, 5, 5);
-		gbc_lblSysDecomOptimizationResourceConstraint.gridx = 2;
-		gbc_lblSysDecomOptimizationResourceConstraint.gridy = 4;
-		dhmsmReportMidPanel.add(lblSysDecomOptimizationResourceConstraint, gbc_lblSysDecomOptimizationResourceConstraint);
-		
-		JLabel lblSysDecomOptimizationTimeConstraint = new JLabel("Time Constraint (in years):");
-		lblSysDecomOptimizationTimeConstraint.setFont(new Font("Tahoma", Font.PLAIN, 12));
-		GridBagConstraints gbc_lblSysDecomOptimizationTimeConstraint = new GridBagConstraints();
-		gbc_lblSysDecomOptimizationTimeConstraint.anchor = GridBagConstraints.WEST;
-		gbc_lblSysDecomOptimizationTimeConstraint.insets = new Insets(0, 10, 5, 5);
-		gbc_lblSysDecomOptimizationTimeConstraint.gridx = 3;
-		gbc_lblSysDecomOptimizationTimeConstraint.gridy = 4;
-		dhmsmReportMidPanel.add(lblSysDecomOptimizationTimeConstraint, gbc_lblSysDecomOptimizationTimeConstraint);
-		
-		sysDecomOptimizationResourceTextField = new JTextField();
-		sysDecomOptimizationResourceTextField.setFont(new Font("Tahoma", Font.PLAIN, 11));
-		sysDecomOptimizationResourceTextField.setMinimumSize(new Dimension(122, 28));
-		sysDecomOptimizationResourceTextField.setSize(new Dimension(10, 28));
-		sysDecomOptimizationResourceTextField.setText("");
-		sysDecomOptimizationResourceTextField.setMaximumSize(new Dimension(15, 2147483647));
-		GridBagConstraints gbc_sysDecomOptimizationResourceTextField = new GridBagConstraints();
-		gbc_sysDecomOptimizationResourceTextField.anchor = GridBagConstraints.WEST;
-		gbc_sysDecomOptimizationResourceTextField.insets = new Insets(0, 0, 5, 5);
-		gbc_sysDecomOptimizationResourceTextField.gridx = 2;
-		gbc_sysDecomOptimizationResourceTextField.gridy = 5;
-		dhmsmReportMidPanel.add(sysDecomOptimizationResourceTextField, gbc_sysDecomOptimizationResourceTextField);
-		sysDecomOptimizationResourceTextField.setColumns(12);
-		
-		sysDecomOptimizationTimeTextField = new JTextField();
-		sysDecomOptimizationTimeTextField.setFont(new Font("Tahoma", Font.PLAIN, 11));
-		sysDecomOptimizationTimeTextField.setMinimumSize(new Dimension(122, 28));
-		sysDecomOptimizationTimeTextField.setSize(new Dimension(10, 28));
-		sysDecomOptimizationTimeTextField.setText("");
-		GridBagConstraints gbc_sysDecomOptimizationTimeTextField = new GridBagConstraints();
-		gbc_sysDecomOptimizationTimeTextField.anchor = GridBagConstraints.WEST;
-		gbc_sysDecomOptimizationTimeTextField.insets = new Insets(0, 10, 5, 5);
-		gbc_sysDecomOptimizationTimeTextField.gridx = 3;
-		gbc_sysDecomOptimizationTimeTextField.gridy = 5;
-		dhmsmReportMidPanel.add(sysDecomOptimizationTimeTextField, gbc_sysDecomOptimizationTimeTextField);
-		sysDecomOptimizationTimeTextField.setColumns(12);
-		
-		btnSysDecomOptimization = new CustomButton("Sys Decom Optimization");
-		btnSysDecomOptimization.setFont(new Font("Tahoma", Font.BOLD, 11));
-		GridBagConstraints gbc_btnSysDecomOptimizationResourceConstraint = new GridBagConstraints();
-		gbc_btnSysDecomOptimizationResourceConstraint.anchor = GridBagConstraints.WEST;
-		gbc_btnSysDecomOptimizationResourceConstraint.insets = new Insets(0, 20, 5, 5);
-		gbc_btnSysDecomOptimizationResourceConstraint.gridx = 2;
-		gbc_btnSysDecomOptimizationResourceConstraint.gridy = 6;
-		dhmsmReportMidPanel.add(btnSysDecomOptimization, gbc_btnSysDecomOptimizationResourceConstraint);
-		Style.registerTargetClassName(btnSysDecomOptimization, ".standardButton");
-		
-		JPanel ICDServiceCostPanel = new JPanel();
-		dhmsmSystemSelectPanel = new DHMSMSystemSelectPanel();
-		JButton runButton = new CustomButton("Run ICD Estimates for SOA Services");
-		ICDServiceCostBtnListener serICDListener = new ICDServiceCostBtnListener();
-		serICDListener.setSystemSelectPanel(dhmsmSystemSelectPanel);
-		runButton.addActionListener(serICDListener);
-		Style.registerTargetClassName(runButton, ".standardButton");
-		
-		GridBagConstraints gbc_icdSerPanel = new GridBagConstraints();
-		
-		gbc_icdSerPanel.fill = GridBagConstraints.WEST;
-		gbc_icdSerPanel.anchor = GridBagConstraints.WEST;
-		gbc_icdSerPanel.insets = new Insets(0, 5, 5, 5);
-		gbc_icdSerPanel.gridx = 0;
-		gbc_icdSerPanel.gridy = 4;
-		dhmsmReportPanel.add(ICDServiceCostPanel, gbc_icdSerPanel);
-		
-		ICDServiceCostPanel.setLayout(new GridBagLayout());
-		GridBagConstraints gbc_dhmsmSystemSelectPanel = new GridBagConstraints();
-		ICDServiceCostPanel.setBackground(SystemColor.control);
-		dhmsmSystemSelectPanel.setBackground(SystemColor.control);
-		gbc_dhmsmSystemSelectPanel.fill = GridBagConstraints.WEST;
-		gbc_dhmsmSystemSelectPanel.anchor = GridBagConstraints.WEST;
-		gbc_dhmsmSystemSelectPanel.insets = new Insets(0, 0, 5, 5);
-		gbc_dhmsmSystemSelectPanel.gridx = 0;
-		gbc_dhmsmSystemSelectPanel.gridy = 0;
-		gbc_dhmsmSystemSelectPanel.gridheight = 4;
-		ICDServiceCostPanel.add(dhmsmSystemSelectPanel, gbc_dhmsmSystemSelectPanel);
-		
-		GridBagConstraints gbc_runButton = new GridBagConstraints();
-		gbc_runButton.anchor = GridBagConstraints.NORTHWEST;
-		gbc_runButton.insets = new Insets(20, 0, 5, 5);
-		gbc_runButton.gridx = 1;
-		gbc_runButton.gridy = 0;
-		gbc_runButton.gridwidth = 2;
-		gbc_dhmsmSystemSelectPanel.gridwidth = 2;
-		ICDServiceCostPanel.add(runButton, gbc_runButton);
-		
-		JLabel ICDServiceSusPerLabel = new JLabel("SOA Sustainment Percentage");
-		GridBagConstraints gbc_ICDServiceSusPerLabel = new GridBagConstraints();
-		gbc_ICDServiceSusPerLabel.anchor = GridBagConstraints.NORTHWEST;
-		gbc_ICDServiceSusPerLabel.insets = new Insets(0, 0, 5, 5);
-		gbc_ICDServiceSusPerLabel.gridx = 1;
-		gbc_ICDServiceSusPerLabel.gridy = 1;
-		gbc_ICDServiceSusPerLabel.gridwidth = 1;
-		ICDServiceCostPanel.add(ICDServiceSusPerLabel, gbc_ICDServiceSusPerLabel);
-		
-		JLabel ICDServiceICDSusLabel = new JLabel("Annual ICD Sustainment Cost ($)");
-		GridBagConstraints gbc_ICDServiceICDSusLabel = new GridBagConstraints();
-		gbc_ICDServiceICDSusLabel.anchor = GridBagConstraints.NORTHWEST;
-		gbc_ICDServiceICDSusLabel.insets = new Insets(0, 0, 5, 5);
-		gbc_ICDServiceICDSusLabel.gridx = 1;
-		gbc_ICDServiceICDSusLabel.gridy = 2;
-		gbc_ICDServiceICDSusLabel.gridwidth = 1;
-		ICDServiceCostPanel.add(ICDServiceICDSusLabel, gbc_ICDServiceICDSusLabel);
-		
-		JLabel ICDServiceHourlyRateLabel = new JLabel("Hourly Rate ($)");
-		GridBagConstraints gbc_ICDServiceHourlyRateLabel = new GridBagConstraints();
-		gbc_ICDServiceHourlyRateLabel.anchor = GridBagConstraints.NORTHWEST;
-		gbc_ICDServiceHourlyRateLabel.insets = new Insets(0, 0, 5, 5);
-		gbc_ICDServiceHourlyRateLabel.gridx = 1;
-		gbc_ICDServiceHourlyRateLabel.gridy = 3;
-		gbc_ICDServiceHourlyRateLabel.gridwidth = 1;
-		ICDServiceCostPanel.add(ICDServiceHourlyRateLabel, gbc_ICDServiceHourlyRateLabel);
-		
-		icdServiceSusField = new JTextField();
-		icdServiceSusField.setText("0.18");
-		icdServiceSusField.setColumns(5);
-		
-		GridBagConstraints gbc_icdServiceSusField = new GridBagConstraints();
-		gbc_icdServiceSusField.anchor = GridBagConstraints.NORTHWEST;
-		gbc_icdServiceSusField.insets = new Insets(0, 0, 5, 5);
-		gbc_icdServiceSusField.gridx = 2;
-		gbc_icdServiceSusField.gridy = 1;
-		gbc_icdServiceSusField.gridwidth = 1;
-		ICDServiceCostPanel.add(icdServiceSusField, gbc_icdServiceSusField);
-		
-		icdServiceICDCostField = new JTextField();
-		icdServiceICDCostField.setText("100000");
-		icdServiceICDCostField.setColumns(5);
-		
-		GridBagConstraints gbc_icdServiceICDCostField = new GridBagConstraints();
-		gbc_icdServiceICDCostField.anchor = GridBagConstraints.NORTHWEST;
-		gbc_icdServiceICDCostField.insets = new Insets(0, 0, 5, 5);
-		gbc_icdServiceICDCostField.gridx = 2;
-		gbc_icdServiceICDCostField.gridy = 2;
-		gbc_icdServiceICDCostField.gridwidth = 1;
-		ICDServiceCostPanel.add(icdServiceICDCostField, gbc_icdServiceICDCostField);
-		
-		icdServiceHourlyRateField = new JTextField();
-		icdServiceHourlyRateField.setText("150");
-		icdServiceHourlyRateField.setColumns(5);
-		
-		GridBagConstraints gbc_icdServiceHourlyRateField = new GridBagConstraints();
-		gbc_icdServiceHourlyRateField.anchor = GridBagConstraints.NORTHWEST;
-		gbc_icdServiceHourlyRateField.insets = new Insets(0, 0, 5, 5);
-		gbc_icdServiceHourlyRateField.gridx = 2;
-		gbc_icdServiceHourlyRateField.gridy = 3;
-		gbc_icdServiceHourlyRateField.gridwidth = 1;
-		ICDServiceCostPanel.add(icdServiceHourlyRateField, gbc_icdServiceHourlyRateField);
-		
+
 		JSeparator separator_5 = new JSeparator();
 		GridBagConstraints gbc_separator_5 = new GridBagConstraints();
 		gbc_separator_5.fill = GridBagConstraints.HORIZONTAL;
@@ -4486,63 +3794,7 @@ public class PlayPane extends JFrame {
 		gbc_compareDBButton.gridy = 4;
 		dbComparisonTopPanel.add(compareDBButton, gbc_compareDBButton);
 		Style.registerTargetClassName(compareDBButton, ".standardButton");
-		// Machine Learning tab
-		JPanel machineLearningPanel = new JPanel();
-		machineLearningPanel.setBackground(SystemColor.control);
-		
-		rightView.addTab("Machine Learning", null, machineLearningPanel, null);
-		GridBagLayout gbl_machineLearningPanel = new GridBagLayout();
-		gbl_machineLearningPanel.columnWidths = new int[] { 15, 0, 0 };
-		gbl_machineLearningPanel.rowHeights = new int[] { 0, 0, 0, 0, 0, 0, 0, 0, 0 };
-		gbl_machineLearningPanel.columnWeights = new double[] { 0.0, 0.0, Double.MIN_VALUE };
-		gbl_machineLearningPanel.rowWeights = new double[] { 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, Double.MIN_VALUE };
-		machineLearningPanel.setLayout(gbl_machineLearningPanel);
-		
-		JPanel rlPanel = new JPanel();
-		rlPanel.setBackground(SystemColor.control);
-		GridBagConstraints gbc_rlPanel = new GridBagConstraints();
-		gbc_rlPanel.gridx = 0;
-		gbc_rlPanel.gridy = 0;
-		machineLearningPanel.add(rlPanel, gbc_rlPanel);
-		
-		GridBagLayout gbl_rlPanel = new GridBagLayout();
-		gbl_rlPanel.columnWidths = new int[] { 15, 0, 0 };
-		gbl_rlPanel.rowHeights = new int[] { 0, 0, 0, 0, 0, 0, 0, 0, 0 };
-		gbl_rlPanel.columnWeights = new double[] { 0.0, 0.0, Double.MIN_VALUE };
-		gbl_rlPanel.rowWeights = new double[] { 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, Double.MIN_VALUE };
-		rlPanel.setLayout(gbl_rlPanel);
-		
-		JLabel lblReinforcementLearningExamples = new JLabel("Reinforcement Learning Examples");
-		lblReinforcementLearningExamples.setFont(new Font("Tahoma", Font.BOLD, 12));
-		GridBagConstraints gbc_lblReinforcementLearningExamples = new GridBagConstraints();
-		gbc_lblReinforcementLearningExamples.insets = new Insets(15, 0, 10, 0);
-		gbc_lblReinforcementLearningExamples.gridx = 1;
-		gbc_lblReinforcementLearningExamples.gridy = 0;
-		rlPanel.add(lblReinforcementLearningExamples, gbc_lblReinforcementLearningExamples);
-		
-		btnRLGridExample = new CustomButton("Run Grid Example");
-		btnRLGridExample.setFont(new Font("Tahoma", Font.BOLD, 11));
-		GridBagConstraints gbc_btnRLGridExample = new GridBagConstraints();
-		gbc_btnRLGridExample.anchor = GridBagConstraints.NORTHWEST;
-		gbc_btnRLGridExample.gridwidth = 4;
-		gbc_btnRLGridExample.insets = new Insets(10, 10, 0, 5);
-		gbc_btnRLGridExample.gridx = 1;
-		gbc_btnRLGridExample.gridy = 1;
-		rlPanel.add(btnRLGridExample, gbc_btnRLGridExample);
-		Style.registerTargetClassName(btnRLGridExample, ".standardButton");
 
-		btnRLGamblingExample = new CustomButton("Run Gamble Example");
-		btnRLGamblingExample.setFont(new Font("Tahoma", Font.BOLD, 11));
-		GridBagConstraints gbc_btnRLGamblingExample = new GridBagConstraints();
-		gbc_btnRLGamblingExample.anchor = GridBagConstraints.NORTHWEST;
-		gbc_btnRLGamblingExample.gridwidth = 4;
-		gbc_btnRLGamblingExample.insets = new Insets(10, 10, 10, 5);
-		gbc_btnRLGamblingExample.gridx = 1;
-		gbc_btnRLGamblingExample.gridy = 2;
-		rlPanel.add(btnRLGamblingExample, gbc_btnRLGamblingExample);
-		Style.registerTargetClassName(btnRLGamblingExample, ".standardButton");
-		
-		
 		// Settings tab
 		JPanel settingsPanel = new JPanel();
 		settingsPanel.setBackground(SystemColor.control);
@@ -4618,14 +3870,6 @@ public class PlayPane extends JFrame {
 		gbc_highQualityExportCheck.gridy = 4;
 		settingsPanel.add(highQualityExportCheck, gbc_highQualityExportCheck);
 		DIHelper.getInstance().setLocalProperty(Constants.highQualityExport, false);
-		
-		// btnCommonGraph = new JButton("Find Common Graph");
-		// btnCommonGraph.setFont(new Font("Tahoma", Font.BOLD, 11));
-		// GridBagConstraints gbc_btnCommonGraph = new GridBagConstraints();
-		// gbc_btnCommonGraph.gridx = 1;
-		// gbc_btnCommonGraph.gridy = 7;
-		// settingsPanel.add(btnCommonGraph, gbc_btnCommonGraph);
-		// Style.registerTargetClassName(btnCommonGraph, ".standardButton");
 		
 		JPanel overAllHelpPanel = new JPanel();
 		overAllHelpPanel.setBackground(SystemColor.control);

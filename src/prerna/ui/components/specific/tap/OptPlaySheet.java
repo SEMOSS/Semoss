@@ -35,16 +35,14 @@ import java.awt.GridBagLayout;
 import java.awt.Insets;
 
 import javax.swing.JButton;
-import javax.swing.JComboBox;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
+import javax.swing.JRadioButton;
 import javax.swing.JTextField;
-import javax.swing.JTextPane;
 import javax.swing.JToggleButton;
 import javax.swing.border.BevelBorder;
 
 import prerna.ui.components.BrowserGraphPanel;
-import prerna.ui.swing.custom.ButtonMenuDropDown;
 import prerna.ui.swing.custom.CustomButton;
 import prerna.ui.swing.custom.ToggleButton;
 import aurelienribon.ui.css.Style;
@@ -52,34 +50,27 @@ import aurelienribon.ui.css.Style;
 
 
 /**
- * This is the playsheet used exclusively for TAP service optimization.
+ * This is the playsheet used exclusively for algorithms with numerous input parameters,
+ * Generally this means optimization.
+ * Top parameter input panel contains a basic param panel, 
+ * advanced param components, algorithm types, and and run algorithm button.
+ * Bottom display panel contains overall analysis tab with high level metrics and graphs,
+ * console tab with log outputs, and any additional tabs with detailed results.
  */
 @SuppressWarnings("serial")
 public class OptPlaySheet extends InputPanelPlaySheet{
-
-	//param panel components
-	public JLabel lblSoaSustainmentCost;
-	public JTextField yearField, icdSusField, mtnPctgField;
-	public JTextField minBudgetField, maxBudgetField, hourlyRateField;
 	
 	//advanced param panel components
-	public JPanel advParamPanel;
-	public JToggleButton showParamBtn;
-	public JTextField iniLearningCnstField, scdLearningTimeField, scdLearningCnstField, startingPtsField;
-	public JTextField attRateField, hireRateField, infRateField,disRateField;
-	public ButtonMenuDropDown sysSelect;
-	public JComboBox<String> sysSpecComboBox;
-	
-	//display overall analysis components
-	public BrowserGraphPanel tab3, tab4, tab5, tab6;
-	public JLabel savingLbl, roiLbl, bkevenLbl;
-	
-	//other display panels
-	public JPanel specificSysAlysPanel;
+	protected JPanel advParamPanel;
+	protected JToggleButton showParamBtn;
 	
 	
 	/**
-	 * Sets up the Param panel at the top of the split pane
+	 * Sets up the Param panel at the top of the split pane.
+	 * Includes three major sections:
+	 * 1) Basic param input on left side
+	 * 2) Optimization button and any required selections for this on bottom left
+	 * 3) Advanced param panel that toggles on/off on right side
 	 */
 	protected void createParamPanel()
 	{
@@ -87,7 +78,7 @@ public class OptPlaySheet extends InputPanelPlaySheet{
 
 		createBasicParamComponents();
 
-		createOptimizationTypeComponents();
+		createOptimizationComponents();
 
 		createAdvParamPanels();
 		
@@ -97,101 +88,26 @@ public class OptPlaySheet extends InputPanelPlaySheet{
 		
 	}
 
+	/**
+	 *  Sets up the Basic param input on the left of the param panel
+	 * 	Generally includes min/max budget and number of years. 
+	 */
 	protected void createBasicParamComponents() {
 
-		yearField = new JTextField();
-		yearField.setFont(new Font("Tahoma", Font.PLAIN, 11));
-		yearField.setText("10");
-		yearField.setColumns(4);
-
-		GridBagConstraints gbc_yearField = new GridBagConstraints();
-		gbc_yearField.anchor = GridBagConstraints.NORTHWEST;
-		gbc_yearField.insets = new Insets(0, 0, 5, 5);
-		gbc_yearField.gridx = 1;
-		gbc_yearField.gridy = 1;
-		ctlPanel.add(yearField, gbc_yearField);
-
-		JLabel label = new JLabel("Maximum Number of Years");
-		label.setFont(new Font("Tahoma", Font.PLAIN, 12));
-		GridBagConstraints gbc_label = new GridBagConstraints();
-		gbc_label.gridwidth = 4;
-		gbc_label.anchor = GridBagConstraints.WEST;
-		gbc_label.insets = new Insets(0, 0, 5, 5);
-		gbc_label.gridx = 2;
-		gbc_label.gridy = 1;
-		ctlPanel.add(label, gbc_label);
-
-		minBudgetField = new JTextField();
-		minBudgetField.setFont(new Font("Tahoma", Font.PLAIN, 11));
-		minBudgetField.setText("0");
-		minBudgetField.setColumns(3);
-		GridBagConstraints gbc_minBudgetField = new GridBagConstraints();
-		gbc_minBudgetField.anchor = GridBagConstraints.WEST;
-		gbc_minBudgetField.insets = new Insets(0, 0, 5, 5);
-		gbc_minBudgetField.gridx = 6;
-		gbc_minBudgetField.gridy = 1;
-		ctlPanel.add(minBudgetField, gbc_minBudgetField);
-
-		JLabel lblMinimumYearlyBudget = new JLabel("Minimum Annual Budget ($M)");
-		lblMinimumYearlyBudget.setFont(new Font("Tahoma", Font.PLAIN, 12));
-		GridBagConstraints gbc_lblMinimumYearlyBudget = new GridBagConstraints();
-		gbc_lblMinimumYearlyBudget.anchor = GridBagConstraints.WEST;
-		gbc_lblMinimumYearlyBudget.insets = new Insets(0, 0, 5, 5);
-		gbc_lblMinimumYearlyBudget.gridx = 7;
-		gbc_lblMinimumYearlyBudget.gridy = 1;
-		ctlPanel.add(lblMinimumYearlyBudget, gbc_lblMinimumYearlyBudget);
-
-		mtnPctgField = new JTextField();
-		mtnPctgField.setFont(new Font("Tahoma", Font.PLAIN, 11));
-		mtnPctgField.setText("18");
-		mtnPctgField.setColumns(4);
-		GridBagConstraints gbc_mtnPctgField = new GridBagConstraints();
-		gbc_mtnPctgField.insets = new Insets(0, 0, 5, 5);
-		gbc_mtnPctgField.anchor = GridBagConstraints.NORTHWEST;
-		gbc_mtnPctgField.gridx = 1;
-		gbc_mtnPctgField.gridy = 2;
-		ctlPanel.add(mtnPctgField, gbc_mtnPctgField);
-
-		lblSoaSustainmentCost = new JLabel("Annual Service Sustainment Percentage (%)");
-		lblSoaSustainmentCost.setFont(new Font("Tahoma", Font.PLAIN, 12));
-		GridBagConstraints gbc_lblSoaSustainmentCost = new GridBagConstraints();
-		gbc_lblSoaSustainmentCost.anchor = GridBagConstraints.WEST;
-		gbc_lblSoaSustainmentCost.gridwidth = 4;
-		gbc_lblSoaSustainmentCost.insets = new Insets(0, 0, 5, 5);
-		gbc_lblSoaSustainmentCost.gridx = 2;
-		gbc_lblSoaSustainmentCost.gridy = 2;
-		ctlPanel.add(lblSoaSustainmentCost, gbc_lblSoaSustainmentCost);
-
-		maxBudgetField = new JTextField();
-		maxBudgetField.setFont(new Font("Tahoma", Font.PLAIN, 11));
-		maxBudgetField.setText("100");
-		maxBudgetField.setColumns(3);
-		GridBagConstraints gbc_maxBudgetField = new GridBagConstraints();
-		gbc_maxBudgetField.anchor = GridBagConstraints.WEST;
-		gbc_maxBudgetField.insets = new Insets(0, 0, 5, 5);
-		gbc_maxBudgetField.gridx = 6;
-		gbc_maxBudgetField.gridy = 2;
-		ctlPanel.add(maxBudgetField, gbc_maxBudgetField);
-
-		JLabel lblMaximumYearlyBudget = new JLabel("Maximum Annual Budget ($M)");
-		lblMaximumYearlyBudget.setFont(new Font("Tahoma", Font.PLAIN, 12));
-		GridBagConstraints gbc_lblMaximumYearlyBudget = new GridBagConstraints();
-		gbc_lblMaximumYearlyBudget.anchor = GridBagConstraints.WEST;
-		gbc_lblMaximumYearlyBudget.insets = new Insets(0, 0, 5, 5);
-		gbc_lblMaximumYearlyBudget.gridx = 7;
-		gbc_lblMaximumYearlyBudget.gridy = 2;
-		ctlPanel.add(lblMaximumYearlyBudget, gbc_lblMaximumYearlyBudget);
-
-		hourlyRateField = new JTextField();
-		hourlyRateField.setFont(new Font("Tahoma", Font.PLAIN, 11));
-		hourlyRateField.setText("150");
-		hourlyRateField.setColumns(3);
-
-		Object hidePopupKey = new JComboBox<String>().getClientProperty("doNotCancelPopup");  
+	}
+	
+	/**
+	 * Sets up the optimization components on the bottom left of the param panel
+	 * Adds a button for optimization and the listener.
+	 * Extensions may also include different types of optimization:
+	 * Savings, ROI, IRR, Break even, etc.
+	 */
+	protected void createOptimizationComponents() {
+		//Button to run the optimization
 		JButton btnRunOptimization = new CustomButton("Run Optimization");
-		btnRunOptimization.putClientProperty("doNotCancelPopup", hidePopupKey);
-
 		btnRunOptimization.setFont(new Font("Tahoma", Font.BOLD, 11));
+		Style.registerTargetClassName(btnRunOptimization,  ".createBtn");
+		
 		GridBagConstraints gbc_btnRunOptimization = new GridBagConstraints();
 		gbc_btnRunOptimization.gridwidth = 4;
 		gbc_btnRunOptimization.insets = new Insets(0, 0, 0, 5);
@@ -199,18 +115,24 @@ public class OptPlaySheet extends InputPanelPlaySheet{
 		gbc_btnRunOptimization.gridx = 1;
 		gbc_btnRunOptimization.gridy = 5;
 		ctlPanel.add(btnRunOptimization, gbc_btnRunOptimization);
+		
 		addOptimizationBtnListener(btnRunOptimization);
-		Style.registerTargetClassName(btnRunOptimization,  ".createBtn");
 	}
 	
+	/**
+	 * Adds the appropriate listener to the run optimization button.
+	 * Extensions should include the proper type of listener
+	 * @param btnRunOptimization
+	 */
 	protected void addOptimizationBtnListener(JButton btnRunOptimization) {
 	}
 	
-	
-	protected void createOptimizationTypeComponents() {
-	}
 
-
+	/**
+	 * Sets up the advanced components on the right of the param panel
+	 * Extensions may include additional panels: system selection panel, 
+	 * data/blu selection panel, forced mod/decom extension panel , etc.
+	 */
 	protected void createAdvParamPanels()
 	{
 		advParamPanel = new JPanel();
@@ -241,157 +163,13 @@ public class OptPlaySheet extends InputPanelPlaySheet{
 		gbc_lblAdvancedParameters.gridy = 0;
 		advParamPanel.add(lblAdvancedParameters, gbc_lblAdvancedParameters);
 
-		attRateField = new JTextField();
-		attRateField.setFont(new Font("Tahoma", Font.PLAIN, 11));
-		GridBagConstraints gbc_attRateField = new GridBagConstraints();
-		gbc_attRateField.insets = new Insets(0, 0, 5, 5);
-		gbc_attRateField.gridx = 0;
-		gbc_attRateField.gridy = 1;
-		advParamPanel.add(attRateField, gbc_attRateField);
-		attRateField.setText("3");
-		attRateField.setColumns(3);
+	}	
 
-		JLabel lblYearlyRetentionRate = new JLabel("Attrition Rate (%)");
-		lblYearlyRetentionRate.setFont(new Font("Tahoma", Font.PLAIN, 12));
-		GridBagConstraints gbc_lblYearlyRetentionRate = new GridBagConstraints();
-		gbc_lblYearlyRetentionRate.anchor = GridBagConstraints.WEST;
-		gbc_lblYearlyRetentionRate.insets = new Insets(0, 0, 5, 5);
-		gbc_lblYearlyRetentionRate.gridx = 1;
-		gbc_lblYearlyRetentionRate.gridy = 1;
-		advParamPanel.add(lblYearlyRetentionRate, gbc_lblYearlyRetentionRate);
-
-		iniLearningCnstField = new JTextField();
-		iniLearningCnstField.setFont(new Font("Tahoma", Font.PLAIN, 11));
-		GridBagConstraints gbc_iniLearningCnstField = new GridBagConstraints();
-		gbc_iniLearningCnstField.insets = new Insets(0, 0, 5, 5);
-		gbc_iniLearningCnstField.gridx = 2;
-		gbc_iniLearningCnstField.gridy = 1;
-		advParamPanel.add(iniLearningCnstField, gbc_iniLearningCnstField);
-		iniLearningCnstField.setText("0");
-		iniLearningCnstField.setColumns(3);
-
-		JLabel lblNewLabel_1 = new JLabel("Experience Level at year 0 (%)");
-		lblNewLabel_1.setFont(new Font("Tahoma", Font.PLAIN, 12));
-		GridBagConstraints gbc_lblNewLabel_1 = new GridBagConstraints();
-		gbc_lblNewLabel_1.gridwidth = 3;
-		gbc_lblNewLabel_1.anchor = GridBagConstraints.WEST;
-		gbc_lblNewLabel_1.insets = new Insets(0, 0, 5, 0);
-		gbc_lblNewLabel_1.gridx = 3;
-		gbc_lblNewLabel_1.gridy = 1;
-		advParamPanel.add(lblNewLabel_1, gbc_lblNewLabel_1);
-
-		hireRateField = new JTextField();
-		hireRateField.setFont(new Font("Tahoma", Font.PLAIN, 11));
-		GridBagConstraints gbc_hireRateField = new GridBagConstraints();
-		gbc_hireRateField.insets = new Insets(0, 0, 5, 5);
-		gbc_hireRateField.gridx = 0;
-		gbc_hireRateField.gridy = 2;
-		advParamPanel.add(hireRateField, gbc_hireRateField);
-		hireRateField.setText("3");
-		hireRateField.setColumns(3);
-
-		JLabel lblHiringRate = new JLabel("Hiring Rate (%)");
-		lblHiringRate.setFont(new Font("Tahoma", Font.PLAIN, 12));
-		GridBagConstraints gbc_lblHiringRate = new GridBagConstraints();
-		gbc_lblHiringRate.anchor = GridBagConstraints.WEST;
-		gbc_lblHiringRate.insets = new Insets(0, 0, 5, 5);
-		gbc_lblHiringRate.gridx = 1;
-		gbc_lblHiringRate.gridy = 2;
-		advParamPanel.add(lblHiringRate, gbc_lblHiringRate);
-
-		scdLearningCnstField = new JTextField();
-		scdLearningCnstField.setFont(new Font("Tahoma", Font.PLAIN, 11));
-		GridBagConstraints gbc_scdLearningCnstField = new GridBagConstraints();
-		gbc_scdLearningCnstField.insets = new Insets(0, 0, 5, 5);
-		gbc_scdLearningCnstField.gridx = 2;
-		gbc_scdLearningCnstField.gridy = 2;
-		advParamPanel.add(scdLearningCnstField, gbc_scdLearningCnstField);
-		scdLearningCnstField.setText("0.9");
-		scdLearningCnstField.setColumns(3);
-
-		JLabel lblSecondLearningCurve_1 = new JLabel("Experience Level at year");
-		lblSecondLearningCurve_1.setFont(new Font("Tahoma", Font.PLAIN, 12));
-		GridBagConstraints gbc_lblSecondLearningCurve_1 = new GridBagConstraints();
-		gbc_lblSecondLearningCurve_1.gridwidth = 2;
-		gbc_lblSecondLearningCurve_1.anchor = GridBagConstraints.WEST;
-		gbc_lblSecondLearningCurve_1.insets = new Insets(0, 0, 5, 5);
-		gbc_lblSecondLearningCurve_1.gridx = 3;
-		gbc_lblSecondLearningCurve_1.gridy = 2;
-		advParamPanel.add(lblSecondLearningCurve_1, gbc_lblSecondLearningCurve_1);
-
-		scdLearningTimeField = new JTextField();
-		scdLearningTimeField.setFont(new Font("Tahoma", Font.PLAIN, 11));
-		GridBagConstraints gbc_scdLearningTimeField = new GridBagConstraints();
-		gbc_scdLearningTimeField.anchor = GridBagConstraints.WEST;
-		gbc_scdLearningTimeField.insets = new Insets(0, 0, 5, 0);
-		gbc_scdLearningTimeField.gridx = 5;
-		gbc_scdLearningTimeField.gridy = 2;
-		advParamPanel.add(scdLearningTimeField, gbc_scdLearningTimeField);
-		scdLearningTimeField.setText("5");
-		scdLearningTimeField.setColumns(3);
-
-		infRateField = new JTextField();
-		infRateField.setFont(new Font("Tahoma", Font.PLAIN, 11));
-		infRateField.setText("1.5");
-		infRateField.setColumns(3);
-		GridBagConstraints gbc_infRateField = new GridBagConstraints();
-		gbc_infRateField.insets = new Insets(0, 0, 5, 5);
-		gbc_infRateField.fill = GridBagConstraints.HORIZONTAL;
-		gbc_infRateField.gridx = 0;
-		gbc_infRateField.gridy = 3;
-		advParamPanel.add(infRateField, gbc_infRateField);
-
-		JLabel lblYearlyInflationRate = new JLabel("Inflation Rate (%)");
-		lblYearlyInflationRate.setFont(new Font("Tahoma", Font.PLAIN, 12));
-		GridBagConstraints gbc_lblYearlyInflationRate = new GridBagConstraints();
-		gbc_lblYearlyInflationRate.insets = new Insets(0, 0, 5, 5);
-		gbc_lblYearlyInflationRate.anchor = GridBagConstraints.WEST;
-		gbc_lblYearlyInflationRate.gridx = 1;
-		gbc_lblYearlyInflationRate.gridy = 3;
-		advParamPanel.add(lblYearlyInflationRate, gbc_lblYearlyInflationRate);
-
-		startingPtsField = new JTextField();
-		startingPtsField.setFont(new Font("Tahoma", Font.PLAIN, 11));
-		GridBagConstraints gbc_startingPtsField = new GridBagConstraints();
-		gbc_startingPtsField.anchor = GridBagConstraints.WEST;
-		gbc_startingPtsField.insets = new Insets(0, 0, 5, 5);
-		gbc_startingPtsField.gridx = 2;
-		gbc_startingPtsField.gridy = 3;
-		advParamPanel.add(startingPtsField, gbc_startingPtsField);
-		startingPtsField.setText("5");
-		startingPtsField.setColumns(3);
-
-		JLabel lblInitialYearlyBudget = new JLabel("Number of Starting Points");
-		lblInitialYearlyBudget.setFont(new Font("Tahoma", Font.PLAIN, 12));
-		GridBagConstraints gbc_lblInitialYearlyBudget = new GridBagConstraints();
-		gbc_lblInitialYearlyBudget.gridwidth = 3;
-		gbc_lblInitialYearlyBudget.insets = new Insets(0, 0, 5, 0);
-		gbc_lblInitialYearlyBudget.anchor = GridBagConstraints.WEST;
-		gbc_lblInitialYearlyBudget.gridx = 3;
-		gbc_lblInitialYearlyBudget.gridy = 3;
-		advParamPanel.add(lblInitialYearlyBudget, gbc_lblInitialYearlyBudget);
-
-		disRateField = new JTextField();
-		disRateField.setFont(new Font("Tahoma", Font.PLAIN, 11));
-		disRateField.setText("2.5");
-		disRateField.setColumns(3);
-		GridBagConstraints gbc_disRateField = new GridBagConstraints();
-		gbc_disRateField.insets = new Insets(0, 0, 5, 5);
-		gbc_disRateField.fill = GridBagConstraints.HORIZONTAL;
-		gbc_disRateField.gridx = 0;
-		gbc_disRateField.gridy = 4;
-		advParamPanel.add(disRateField, gbc_disRateField);
-
-		JLabel lblYearlyDiscountRate = new JLabel("Discount Rate (%)");
-		lblYearlyDiscountRate.setFont(new Font("Tahoma", Font.PLAIN, 12));
-		GridBagConstraints gbc_lblYearlyDiscountRate = new GridBagConstraints();
-		gbc_lblYearlyDiscountRate.insets = new Insets(0, 0, 5, 5);
-		gbc_lblYearlyDiscountRate.gridx = 1;
-		gbc_lblYearlyDiscountRate.gridy = 4;
-		advParamPanel.add(lblYearlyDiscountRate, gbc_lblYearlyDiscountRate);
-
-
-	}
+	/**
+	 * Sets up the toggles to switch between advanced parameter panels.
+	 * Extensions may include toggles to switch between additional panels: 
+	 * system selection panel, data/blu selection panel, forced mod/decom panel , etc.
+	 */
 	protected void createAdvParamPanelsToggles() {
 		showParamBtn = new ToggleButton("Show Advanced Parameters");
 		showParamBtn.setName("showParamBtn");
@@ -408,143 +186,160 @@ public class OptPlaySheet extends InputPanelPlaySheet{
 
 	}
 	
+	/**
+	 * Sets up the listeners to switch between advanced param panels
+	 * Extensions include the logic for switching the panels.
+	 */
 	protected void createAdvParamPanelsToggleListeners() {
 	}
 	
-	protected void createDisplayPanel()
-	{
-		tab3 = new BrowserGraphPanel("/html/MHS-RDFSemossCharts/app/singlechart.html");
-		tab3.setPreferredSize(new Dimension(500, 400));
-		tab3.setMinimumSize(new Dimension(500, 400));
-		tab3.setVisible(false);
-		tab4 = new BrowserGraphPanel("/html/MHS-RDFSemossCharts/app/singlechart.html");
-		tab4.setPreferredSize(new Dimension(500, 400));
-		tab4.setMinimumSize(new Dimension(500, 400));
-		tab4.setVisible(false);
-		tab5 = new BrowserGraphPanel("/html/MHS-RDFSemossCharts/app/singlechart.html");
-		tab5.setPreferredSize(new Dimension(500, 400));
-		tab5.setMinimumSize(new Dimension(500, 400));
-		tab5.setVisible(false);
-		tab6 = new BrowserGraphPanel("/html/MHS-RDFSemossCharts/app/singlechart.html");
-		tab6.setPreferredSize(new Dimension(500, 400));
-		tab6.setMinimumSize(new Dimension(500, 400));
-		tab6.setVisible(false);
+	/**
+	 * Sets up the display panel at the bottom of the split pane.
+	 * tabbedPane is protected so any extending classes can add additional tabs for display
+	 * overallAlysPanel is the original tab in the tabbedPane.
+	 * Extensions should populate this with high level metric labels and the graphs
+	 */
+	protected void createDisplayPanel() {
 		
 		super.createDisplayPanel();
-
-		JLabel lblNewLabel = new JLabel("Total transition savings over time horizon:");
-		GridBagConstraints gbc_lblNewLabel = new GridBagConstraints();
-		gbc_lblNewLabel.anchor = GridBagConstraints.WEST;
-		gbc_lblNewLabel.insets = new Insets(0, 0, 5, 5);
-		gbc_lblNewLabel.gridx = 0;
-		gbc_lblNewLabel.gridy = 1;
-		panel_1.add(lblNewLabel, gbc_lblNewLabel);
-
-		savingLbl = new JLabel("");
-		GridBagConstraints gbc_savingLbl = new GridBagConstraints();
-		gbc_savingLbl.anchor = GridBagConstraints.WEST;
-		gbc_savingLbl.insets = new Insets(0, 0, 5, 5);
-		gbc_savingLbl.gridx = 1;
-		gbc_savingLbl.gridy = 1;
-		panel_1.add(savingLbl, gbc_savingLbl);
-
-		JLabel lblTotalRoiOver = new JLabel("Total ROI over time horizon:");
-		GridBagConstraints gbc_lblTotalRoiOver = new GridBagConstraints();
-		gbc_lblTotalRoiOver.anchor = GridBagConstraints.WEST;
-		gbc_lblTotalRoiOver.insets = new Insets(0, 30, 5, 5);
-		gbc_lblTotalRoiOver.gridx = 2;
-		gbc_lblTotalRoiOver.gridy = 1;
-		panel_1.add(lblTotalRoiOver, gbc_lblTotalRoiOver);
-
-		roiLbl = new JLabel("");
-		GridBagConstraints gbc_roiLbl = new GridBagConstraints();
-		gbc_roiLbl.anchor = GridBagConstraints.WEST;
-		gbc_roiLbl.insets = new Insets(0, 0, 5, 5);
-		gbc_roiLbl.gridx = 3;
-		gbc_roiLbl.gridy = 1;
-		panel_1.add(roiLbl, gbc_roiLbl);
 		
-		JLabel lblBreakevenPointDuring = new JLabel("Breakeven point during time horizon:");
-		GridBagConstraints gbc_lblBreakevenPointDuring = new GridBagConstraints();
-		gbc_lblBreakevenPointDuring.anchor = GridBagConstraints.WEST;
-		gbc_lblBreakevenPointDuring.insets = new Insets(0, 30, 0, 5);
-		gbc_lblBreakevenPointDuring.gridx = 2;
-		gbc_lblBreakevenPointDuring.gridy = 2;
-		panel_1.add(lblBreakevenPointDuring, gbc_lblBreakevenPointDuring);
-
-		bkevenLbl = new JLabel("");
-		GridBagConstraints gbc_bkevenLbl = new GridBagConstraints();
-		gbc_bkevenLbl.insets = new Insets(0, 0, 0, 5);
-		gbc_bkevenLbl.anchor = GridBagConstraints.WEST;
-		gbc_bkevenLbl.gridx = 3;
-		gbc_bkevenLbl.gridy = 2;
-		panel_1.add(bkevenLbl, gbc_bkevenLbl);
-		
-		chartPanel = new JPanel();
-		chartPanel.setBackground(Color.WHITE);
+		overallAlysChartPanel = new JPanel();
+		overallAlysChartPanel.setBackground(Color.WHITE);
 		GridBagConstraints gbc_chartPanel = new GridBagConstraints();
 		gbc_chartPanel.anchor = GridBagConstraints.NORTHWEST;
 		gbc_chartPanel.gridx = 1;
 		gbc_chartPanel.gridy = 1;
-		overallAlysPanel.add(chartPanel, gbc_chartPanel);
+		overallAlysPanel.add(overallAlysChartPanel, gbc_chartPanel);
+		
 		GridBagLayout gbl_chartPanel = new GridBagLayout();
 		gbl_chartPanel.columnWidths = new int[]{0,0};
 		gbl_chartPanel.rowHeights = new int[]{0,0};
 		gbl_chartPanel.columnWeights = new double[]{0.0};
 		gbl_chartPanel.rowWeights = new double[]{0.0};
-		chartPanel.setLayout(gbl_chartPanel);
-		
-		GridBagConstraints gbc_panel = new GridBagConstraints();
-		gbc_panel.insets = new Insets(0, 0, 0, 5);
-		gbc_panel.fill = GridBagConstraints.BOTH;
-		gbc_panel.gridx = 0;
-		gbc_panel.gridy = 1;
-		chartPanel.add(tab3,  gbc_panel);
-		
-		GridBagConstraints gbc_panel2 = new GridBagConstraints();
-		gbc_panel2.insets = new Insets(0, 0, 0, 5);
-		gbc_panel2.fill = GridBagConstraints.BOTH;
-		gbc_panel2.gridx = 1;
-		gbc_panel2.gridy = 1;
-		chartPanel.add(tab4,  gbc_panel2);
-
-		GridBagConstraints gbc_panel3 = new GridBagConstraints();
-		gbc_panel3.insets = new Insets(0, 0, 0, 5);
-		gbc_panel3.fill = GridBagConstraints.BOTH;
-		gbc_panel3.gridx = 0;
-		gbc_panel3.gridy = 2;
-		chartPanel.add(tab5,  gbc_panel3);
-
-		GridBagConstraints gbc_panel4 = new GridBagConstraints();
-		gbc_panel4.insets = new Insets(0, 0, 0, 5);
-		gbc_panel4.fill = GridBagConstraints.BOTH;
-		gbc_panel4.gridx = 1;
-		gbc_panel4.gridy = 2;
-		chartPanel.add(tab6,  gbc_panel4);
-
+		overallAlysChartPanel.setLayout(gbl_chartPanel);
 	}
 
-	public void setGraphsVisible(boolean visible) {
-		tab3.setVisible(visible);
-		tab4.setVisible(visible);
-		tab5.setVisible(visible);
-		tab6.setVisible(visible);
+	
+	//TODO comment
+	protected JTextField addNewButtonToCtrlPanel(String fieldValue, String labelText, int width, int xLoc, int yLoc) {
+		JTextField field = new JTextField();
+		field.setFont(new Font("Tahoma", Font.PLAIN, 11));
+		field.setText(fieldValue);
+		field.setColumns(4);
+
+		GridBagConstraints gbc_Field = new GridBagConstraints();
+		gbc_Field.anchor = GridBagConstraints.NORTHWEST;
+		gbc_Field.insets = new Insets(0, 0, 5, 5);
+		gbc_Field.gridx = xLoc;//1;
+		gbc_Field.gridy = yLoc;//1;
+		ctlPanel.add(field, gbc_Field);
+
+		JLabel lbl = new JLabel(labelText);
+		lbl.setFont(new Font("Tahoma", Font.PLAIN, 12));
+		GridBagConstraints gbc_lbl = new GridBagConstraints();
+		gbc_lbl.gridwidth = width;//4;
+		gbc_lbl.anchor = GridBagConstraints.WEST;
+		gbc_lbl.insets = new Insets(0, 0, 5, 5);
+		gbc_lbl.gridx = xLoc + 1;//2;
+		gbc_lbl.gridy = yLoc;//1;
+		ctlPanel.add(lbl, gbc_lbl);
+
+		return field;
 	}
 	
-	/**
-	 * Clears panels within the playsheet
-	 */
-	public void clearPanels() {
-		specificSysAlysPanel.removeAll();
+	//TODO comment
+	protected JTextField addNewButtonToAdvParamPanel(String fieldValue, String labelText, int width, int xLoc, int yLoc) {
+		JTextField field = new JTextField();
+		field.setFont(new Font("Tahoma", Font.PLAIN, 11));
+		field.setText(fieldValue);
+		field.setColumns(3);
+		
+		GridBagConstraints gbc_Field = new GridBagConstraints();
+		gbc_Field.insets = new Insets(0, 0, 5, 5);
+		gbc_Field.gridx = xLoc;
+		gbc_Field.gridy = yLoc;
+		advParamPanel.add(field, gbc_Field);
+
+		JLabel lbl = new JLabel(labelText);
+		lbl.setFont(new Font("Tahoma", Font.PLAIN, 12));
+		GridBagConstraints gbc_lbl = new GridBagConstraints();
+		gbc_lbl.anchor = GridBagConstraints.WEST;
+		gbc_lbl.insets = new Insets(0, 0, 5, 5);
+		gbc_lbl.gridx = xLoc+1;
+		gbc_lbl.gridy = yLoc;
+		advParamPanel.add(lbl, gbc_lbl);
+		
+		return field;
 	}
 	
-	/**
-	 * Sets N/A or $0 for values in optimizations. Allows for different TAP algorithms to be run as empty functions.
-	 */
-	public void clearLabels() {
-		bkevenLbl.setText("N/A");
-        savingLbl.setText("$0");
-		roiLbl.setText("N/A");
+	//TODO comment
+	protected JRadioButton addOptimizationTypeButton(String btnText, int xLoc, int yLoc) {
+		JRadioButton btn = new JRadioButton(btnText);
+		btn.setName(btnText);
+		btn.setFont(new Font("Tahoma", Font.PLAIN, 12));
+		
+		GridBagConstraints gbc_btn = new GridBagConstraints();
+		gbc_btn.gridwidth = 2;
+		gbc_btn.anchor = GridBagConstraints.WEST;
+		gbc_btn.insets = new Insets(0, 0, 5, 5);
+		gbc_btn.gridx = xLoc;
+		gbc_btn.gridy = yLoc;
+		ctlPanel.add(btn, gbc_btn);
+		
+		return btn;
+	}
+	
+	//TODO comment
+	protected BrowserGraphPanel addNewChartToOverviewPanel(int xLoc, int yLoc) {
+		BrowserGraphPanel graph = new BrowserGraphPanel("/html/MHS-RDFSemossCharts/app/singlechart.html");
+		graph.setPreferredSize(new Dimension(500, 400));
+		graph.setMinimumSize(new Dimension(500, 400));
+		graph.setVisible(false);
+		
+		GridBagConstraints gbc_graph = new GridBagConstraints();
+		gbc_graph.insets = new Insets(0, 0, 0, 5);
+		gbc_graph.fill = GridBagConstraints.BOTH;
+		gbc_graph.gridx = xLoc;
+		gbc_graph.gridy = yLoc;
+		overallAlysChartPanel.add(graph,  gbc_graph);
+		
+		return graph;
+	}
+	
+	//TODO comment
+	protected JLabel addNewLabelToOverviewPanel(String lblText, int xLoc, int yLoc) {
+		
+		JLabel lblNewLabel = new JLabel(lblText);
+		GridBagConstraints gbc_lblNewLabel = new GridBagConstraints();
+		gbc_lblNewLabel.anchor = GridBagConstraints.WEST;
+		gbc_lblNewLabel.insets = new Insets(0, 0, 5, 5);
+		gbc_lblNewLabel.gridx = xLoc;
+		gbc_lblNewLabel.gridy = yLoc;
+		overallAlysMetricsPanel.add(lblNewLabel, gbc_lblNewLabel);
+
+		JLabel lbl = new JLabel("");
+		GridBagConstraints gbc_lbl = new GridBagConstraints();
+		gbc_lbl.anchor = GridBagConstraints.WEST;
+		gbc_lbl.insets = new Insets(0, 0, 5, 5);
+		gbc_lbl.gridx = xLoc+1;
+		gbc_lbl.gridy = yLoc;
+		overallAlysMetricsPanel.add(lbl, gbc_lbl);
+		
+		return lbl;
+	}
+	
+	//TODO comment
+	protected JPanel addNewDisplayPanel(String panelLabel) {
+		JPanel panel = new JPanel();
+		displayTabbedPane.addTab(panelLabel, null, panel, null);
+		GridBagLayout gbl_panel = new GridBagLayout();
+		gbl_panel.columnWidths = new int[]{0, 0};
+		gbl_panel.rowHeights = new int[]{0, 0};
+		gbl_panel.columnWeights = new double[]{1.0, Double.MIN_VALUE};
+		gbl_panel.rowWeights = new double[]{1.0, Double.MIN_VALUE};
+		panel.setLayout(gbl_panel);
+		
+		return panel;
 	}
 
 }

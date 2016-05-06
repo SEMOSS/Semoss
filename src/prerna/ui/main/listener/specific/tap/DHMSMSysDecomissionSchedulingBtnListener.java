@@ -53,8 +53,6 @@ public class DHMSMSysDecomissionSchedulingBtnListener implements IChakraListener
 	
 	int maxYears;
 	double serMainPerc;
-	double minBudget;
-	double maxBudget;
 	IAlgorithm optimizer;
 	
 	/**
@@ -68,7 +66,7 @@ public class DHMSMSysDecomissionSchedulingBtnListener implements IChakraListener
 		if (validInputs)
 		{
 			this.optimizer = new SysDecommissionScheduleOptimizer();//change type of optimizer
-			((SysDecommissionScheduleOptimizer)optimizer).setVariables(maxYears,serMainPerc,minBudget,maxBudget);
+			((SysDecommissionScheduleOptimizer)optimizer).setVariables(maxYears,serMainPerc);
 			optimizer.setPlaySheet(playSheet);
 			AlgorithmRunner runner = new AlgorithmRunner(optimizer);
 			Thread playThread = new Thread(runner);
@@ -110,21 +108,6 @@ public class DHMSMSysDecomissionSchedulingBtnListener implements IChakraListener
 		}
 		else 
 			this.serMainPerc = userSerMainPerc;
-		double userMinBudget = Double.parseDouble(playSheet.minBudgetField.getText());
-		if(userMinBudget<0){
-			failStr = failStr+"Minimum Annual Budget must not be negative\n";
-			failCount++;
-		}
-		else 
-			this.minBudget = userMinBudget;
-		
-		double userMaxBudget = Double.parseDouble(playSheet.maxBudgetField.getText());
-		if(userMaxBudget<0){
-			failStr = failStr+"Maximum Annual Budget must not be negative\n";
-			failCount++;
-		}
-		else 
-			this.maxBudget = userMaxBudget;
 				
 		failStr = specificSetVariablesString(failStr);
 		failCount = specificSetVariablesCount(failCount);

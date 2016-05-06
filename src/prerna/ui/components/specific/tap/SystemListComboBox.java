@@ -36,50 +36,50 @@ import prerna.ui.helpers.EntityFiller;
 import prerna.util.DIHelper;
 
 /**
- * Combo box specific to the Transition Report.
+ * Used to set a list of systems as combo box.
  */
-public class TransitionReportComboBox extends ParamComboBox implements Runnable {
+public class SystemListComboBox extends ParamComboBox implements Runnable {
 	
-	static final Logger logger = LogManager.getLogger(TransitionReportComboBox.class.getName());
-	
+	static final Logger logger = LogManager.getLogger(SystemListComboBox.class.getName());
 	Object[] repos = new Object[1];
-	
+
 	/**
-	 * Constructor for TransitionReportComboBox.
-	 * 
-	 * @param array String[]	Items populating the combobox
+	 * Constructor for SystemListComboBox.
+	 * @param array String[]
 	 */
-	public TransitionReportComboBox(String[] array) {
+	public SystemListComboBox(String[] array) {
 		super(array);
 	}
 
 	/**
-	 * Inherited method - calls fillParam()
+	 * Runs the fillParam method and starts the thread.
 	 */
-	public void run(){
+	@Override
+	public void run() {
 		fillParam();
 	}
-	
+
 	/**
-	 * Sets engine as specified.
-	 * 
-	 * @param repo String	Name of repo to be set
+	 * Sets the engine.
+	 * @param repo 	Repository to be set.
 	 */
 	public void setEngine(String repo){
 		repos[0] = repo;
 	}
-	
+
+
 	/**
-	 * Fills combobox with Systems using EntityFiller
+	 * Sets the name of the parameter to system.
+	 * Gets access to the engine and runs a query given certain parameters.
 	 */
 	public void fillParam(){
 		String key = "System";
-		// execute the logic for filling the information here
-		String entityType = "http://semoss.org/ontologies/Concept/System";
+		String entityType = "http://semoss.org/ontologies/Concept/"+key;
 		setParamName(key);
 		
 		setEditable(false);
-		//PlayTextField pField = new PlayTextField(field);
+
+		logger.info("Repository is " + repos);
 		
 		for(int repoIndex = 0;repoIndex < repos.length;repoIndex++)
 		{
@@ -95,5 +95,6 @@ public class TransitionReportComboBox extends ParamComboBox implements Runnable 
 			aThread.start();
 		}
 	}
+	
 
 }

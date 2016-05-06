@@ -45,12 +45,15 @@ import prerna.util.Utility;
 @SuppressWarnings("serial")
 public class SysDHMSMInfoAtSitePlaySheet extends GridPlaySheet {
 
+	//TODO does anyone actually use this playsheet?
 	private static final Logger logger = LogManager.getLogger(SysDHMSMInfoAtSitePlaySheet.class.getName());
 	private String GET_SYSTEMS_AT_SITE = "SELECT DISTINCT ?DCSite ?System WHERE { {?SystemDCSite <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/SystemDCSite> ;} {?DCSite <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/DCSite>;} {?SystemDCSite <http://semoss.org/ontologies/Relation/DeployedAt> ?DCSite;} {?System <http://semoss.org/ontologies/Relation/DeployedAt> ?SystemDCSite;} } ORDER BY ?DCSite";
-	private String siteEngineName = "TAP_Site_Data";
+	private String tapSiteDB = "TAP_Site_Data";
+	private IEngine tapSiteEngine;
 
-	private String GET_SYSTEM_INFO = "SELECT DISTINCT ?System ?Probability ?Integrate WHERE { {?System <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/ActiveSystem>} {?System <http://semoss.org/ontologies/Relation/Contains/Probability_of_Included_BoS_Enterprise_EHRS> ?Probability} {?System <http://semoss.org/ontologies/Relation/Contains/Interface_Needed_w_DHMSM> ?Integrate} {?System <http://semoss.org/ontologies/Relation/Contains/Device_InterfaceYN> 'N'} }";
-	private String hrCoreEngineName = "TAP_Core_Data";
+	private String GET_SYSTEM_INFO = "SELECT DISTINCT ?System ?Disposition WHERE { {?System <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/ActiveSystem>} {?System <http://semoss.org/ontologies/Relation/Contains/Disposition> ?Disposition} {?System <http://semoss.org/ontologies/Relation/Contains/Device> 'N'} {?System <http://semoss.org/ontologies/Relation/Contains/Review_Status> ?Review_Status}FILTER (?Review_Status in('FAC Approved','FCLG Approved'))}";
+	private String tapCoreDB = "TAP_Core_Data";
+	private IEngine tapCoreEngine;
 
 	private Hashtable<String, Hashtable<String, Integer>> dataToAdd = new Hashtable<String, Hashtable<String, Integer>>();
 
@@ -69,19 +72,31 @@ public class SysDHMSMInfoAtSitePlaySheet extends GridPlaySheet {
 	
 	@Override
 	public void createData() {
+		//checking to see if databases are loaded
+		try
+		{
+			tapCoreEngine = (IEngine) DIHelper.getInstance().getLocalProp(tapCoreDB);
+			tapSiteEngine = (IEngine) DIHelper.getInstance().getLocalProp(tapSiteDB);
+			if(tapCoreEngine == null || tapSiteEngine==null)
+				throw new NullPointerException();
+		} catch (NullPointerException e) {
+			Utility.showError("Cannot find TAP Core Data or TAP Site engine.");
+			return;
+		}
+
 		list = new ArrayList<Object[]>();
 		Hashtable<String, ArrayList<String>> siteData = new Hashtable<String, ArrayList<String>>();
 		siteData = runSiteQuery(); 
 		if(siteData.keySet().size() != 0) {
-			Hashtable<String, Hashtable<String, String>> hrCoreData = new Hashtable<String, Hashtable<String, String>>();
-			hrCoreData = runHRCoreQuery();
-			if(hrCoreData.keySet().size() != 0) {
-				list = processQuery(siteData, hrCoreData);
+			Hashtable<String, String> tapCoreData = new Hashtable<String, String>();
+			tapCoreData = runTapCoreQuery();
+			if(tapCoreData.keySet().size() != 0) {
+				list = processQuery(siteData, tapCoreData);
 			}
 		}
 	}
 
-	private ArrayList<Object[]> processQuery(Hashtable<String, ArrayList<String>> siteData, Hashtable<String, Hashtable<String, String>> hrCoreData) {
+	private ArrayList<Object[]> processQuery(Hashtable<String, ArrayList<String>> siteData, Hashtable<String, String> tapCoreData) {
 		ArrayList<Object[]> newList = new ArrayList<Object[]>();
 
 		for(String site : siteData.keySet())
@@ -89,12 +104,9 @@ public class SysDHMSMInfoAtSitePlaySheet extends GridPlaySheet {
 			ArrayList<String> sysAtSiteList = siteData.get(site);
 			for(String sysAtSite : sysAtSiteList)
 			{
-				Hashtable<String, String> sysPropHash = hrCoreData.get(sysAtSite);
-				if(sysPropHash != null)
+				String disposition = tapCoreData.get(sysAtSite);
+				if(disposition != null)
 				{
-					String probability = sysPropHash.get("Probability");
-					String integrate = sysPropHash.get("Integrate");
-
 					if(!dataToAdd.containsKey(site))
 					{
 						Hashtable<String, Integer> innerHash = new Hashtable<String, Integer>();
@@ -102,21 +114,21 @@ public class SysDHMSMInfoAtSitePlaySheet extends GridPlaySheet {
 						innerHash.put("HPS_Count", (Integer) 0);
 						innerHash.put("LPNI_Count", (Integer) 0);
 
-						if(probability.equals("High")) 
+						if(disposition.equals("High")) 
 						{
 							Integer HPS_Count = innerHash.get("HPS_Count");
 							HPS_Count = HPS_Count + 1;
 							innerHash.put("HPS_Count", HPS_Count);
 						}
 
-						if(probability.equals("Low") && integrate.equals("Yes"))
+						if(disposition.equals("LPI"))
 						{
 							Integer LPI_Count = innerHash.get("LPI_Count");
 							LPI_Count = LPI_Count + 1;
 							innerHash.put("LPI_Count", LPI_Count);
 						} 
 
-						if(probability.equals("Low") && integrate.equals("No"))
+						if(disposition.equals("LPNI"))
 						{
 							Integer LPNI_Count = innerHash.get("LPNI_Count");
 							LPNI_Count = LPNI_Count + 1;
@@ -127,21 +139,21 @@ public class SysDHMSMInfoAtSitePlaySheet extends GridPlaySheet {
 					} else {
 						Hashtable<String, Integer> innerHash = dataToAdd.get(site);
 
-						if(probability.equals("High")) 
+						if(disposition.equals("High")) 
 						{
 							Integer HPS_Count = innerHash.get("HPS_Count");
 							HPS_Count = HPS_Count + 1;
 							innerHash.put("HPS_Count", HPS_Count);
 						}
 
-						if(probability.equals("Low") && integrate.equals("Yes"))
+						if(disposition.equals("LPI"))
 						{
 							Integer LPI_Count = innerHash.get("LPI_Count");
 							LPI_Count = LPI_Count + 1;
 							innerHash.put("LPI_Count", LPI_Count);
 						} 
 
-						if(probability.equals("Low") && integrate.equals("No"))
+						if(disposition.equals("LPNI"))
 						{
 							Integer LPNI_Count = innerHash.get("LPNI_Count");
 							LPNI_Count = LPNI_Count + 1;
@@ -162,110 +174,59 @@ public class SysDHMSMInfoAtSitePlaySheet extends GridPlaySheet {
 
 		}
 		// add the new column in output to the names array
-		String[] newNames = new String[]{"Site", "Low Prob Integrated Count", "Low Prob Not Integrate Count", "High Prob Count"};
+		String[] newNames = new String[]{"Site", "LPI Count", "LPNI Count", "High Count"};
 		names = newNames;
 
 		return newList;
 	}
 
-	private Hashtable<String, Hashtable<String, String>> runHRCoreQuery() {
-		Hashtable<String, Hashtable<String, String>> hrCoreData = new Hashtable<String, Hashtable<String, String>>();
+	private Hashtable<String, String> runTapCoreQuery() {
+		Hashtable<String, String> tapCoreData = new Hashtable<String, String>();
 
 		logger.info("PROCESSING QUERY: " + GET_SYSTEM_INFO);
 		
 
-		//SesameJenaSelectWrapper sjsw = new SesameJenaSelectWrapper();
-		//run the query against the engine provided
-		IEngine hrCoreEngine = (IEngine) DIHelper.getInstance().getLocalProp(hrCoreEngineName);
+		ISelectWrapper sjsw = WrapperManager.getInstance().getSWrapper(tapCoreEngine, GET_SYSTEM_INFO);
+		
+		names = sjsw.getVariables();
 
-
-		if(hrCoreEngineName != null)
+		while(sjsw.hasNext())
 		{
-			ISelectWrapper sjsw = WrapperManager.getInstance().getSWrapper(hrCoreEngine, GET_SYSTEM_INFO);
-			
-			/*sjsw.setEngine(hrCoreEngine);
-			sjsw.setQuery(GET_SYSTEM_INFO);
-			sjsw.executeQuery();
-			*/
-			names = sjsw.getVariables();
+			ISelectStatement sjss = sjsw.next();
+			String sys = sjss.getVar(names[0]).toString();
+			String disposition = sjss.getVar(names[1]).toString();
+			sys = sys.replace("\"", "");
+			disposition = disposition.replace("\"", "");
 
-			while(sjsw.hasNext())
-			{
-				ISelectStatement sjss = sjsw.next();
-				String sys = sjss.getVar(names[0]).toString();
-				String prob = sjss.getVar(names[1]).toString();
-				String integrate = sjss.getVar(names[2]).toString();
-				sys = sys.replace("\"", "");
-				prob = prob.replace("\"", "");
-				integrate = integrate.replace("\"", "");
-
-				if(prob.equals("Question"))
-				{
-					prob = "High";
-				} else if (prob.equals("Medium") || prob.equals("Medium-High"))
-				{
-					prob = "Low";
-				}
-
-				if(integrate.equals("Y"))
-				{
-					integrate = "Yes";
-				} else {
-					integrate = "No";
-				}
-
-				Hashtable<String, String> innerHash = new Hashtable<String, String>();
-				innerHash.put("Probability", prob);
-				innerHash.put("Integrate", integrate);
-
-				hrCoreData.put(sys, innerHash);
-			}
-			return hrCoreData;
-		}  else {
-			Utility.showError("Cannot find TAP_Core_Data database");
+			tapCoreData.put(sys, disposition);
 		}
-		return hrCoreData;
+		return tapCoreData;
 	}
 
 	private Hashtable<String, ArrayList<String>> runSiteQuery() {
 		Hashtable<String, ArrayList<String>> siteData = new Hashtable<String, ArrayList<String>>();
 
 		logger.info("PROCESSING QUERY: " + GET_SYSTEMS_AT_SITE);
-		//SesameJenaSelectWrapper sjsw = new SesameJenaSelectWrapper();
-		//run the query against the site engine provided
-		IEngine siteEngine = (IEngine) DIHelper.getInstance().getLocalProp(siteEngineName);
-
-		if(siteEngine != null)
-		{
-			ISelectWrapper sjsw = WrapperManager.getInstance().getSWrapper(siteEngine, GET_SYSTEMS_AT_SITE);
-
-			/*sjsw.setEngine(siteEngine);
-			sjsw.setQuery(GET_SYSTEMS_AT_SITE);
-			sjsw.executeQuery();
-			*/
+		ISelectWrapper sjsw = WrapperManager.getInstance().getSWrapper(tapSiteEngine, GET_SYSTEMS_AT_SITE);
 			
-			names = sjsw.getVariables();
+		names = sjsw.getVariables();
 
-			while(sjsw.hasNext())
-			{
-				ISelectStatement sjss = sjsw.next();
-				String site = sjss.getVar(names[0]).toString();
-				String sys = sjss.getVar(names[1]).toString();
-				site = site.replace("\"", "");
-				sys = sys.replace("\"", "");
-				
-				if(!siteData.containsKey(site)) {
-					ArrayList<String> sysList = new ArrayList<String>();
-					sysList.add(sys);
-					siteData.put(site, sysList);
-				} else {
-					ArrayList<String> sysList = siteData.get(site);
-					sysList.add(sys);
-				}
+		while(sjsw.hasNext())
+		{
+			ISelectStatement sjss = sjsw.next();
+			String site = sjss.getVar(names[0]).toString();
+			String sys = sjss.getVar(names[1]).toString();
+			site = site.replace("\"", "");
+			sys = sys.replace("\"", "");
+			
+			if(!siteData.containsKey(site)) {
+				ArrayList<String> sysList = new ArrayList<String>();
+				sysList.add(sys);
+				siteData.put(site, sysList);
+			} else {
+				ArrayList<String> sysList = siteData.get(site);
+				sysList.add(sys);
 			}
-			return siteData;
-		} else {
-			Utility.showError("Cannot find TAP_Site_Data database");
 		}
 		return siteData;
 	}

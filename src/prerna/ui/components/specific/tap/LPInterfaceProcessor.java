@@ -77,7 +77,7 @@ public class LPInterfaceProcessor extends AbstractLPInterfaceProcessor{
 				String sysName = "";
 				String interfaceType = "";
 				String interfacingSysName = "";
-				String interfaceingSysProbability = "";
+				String interfacingSysDisposition = "";
 				String icd = "";
 				String data = "";
 				String format = "";
@@ -86,7 +86,7 @@ public class LPInterfaceProcessor extends AbstractLPInterfaceProcessor{
 				String dhmsmSOR = "";
 				
 				String sysProbability = sysTypeHash.get(sysName);
-				if (sysProbability == null) {
+				if (sysProbability == null || sysProbability.equals("TBD")) {
 					sysProbability = "No Probability";
 				}
 				if (sjss.getVar(SYS_KEY) != null) {
@@ -98,8 +98,8 @@ public class LPInterfaceProcessor extends AbstractLPInterfaceProcessor{
 				if (sjss.getVar(INTERFACING_SYS_KEY) != null) {
 					interfacingSysName = sjss.getVar(INTERFACING_SYS_KEY).toString();
 				}
-				if (sjss.getVar(PROBABILITY_KEY) != null) {
-					interfaceingSysProbability = sjss.getVar(PROBABILITY_KEY).toString();
+				if (sjss.getVar(DISPOSITION_KEY) != null) {
+					interfacingSysDisposition = sjss.getVar(DISPOSITION_KEY).toString();
 				}
 				if (sjss.getVar(ICD_KEY) != null) {
 					icd = sjss.getVar(ICD_KEY).toString();
@@ -137,7 +137,7 @@ public class LPInterfaceProcessor extends AbstractLPInterfaceProcessor{
 				newRow[0] = sysName;
 				newRow[1] = interfaceType;
 				newRow[2] = interfacingSysName;
-				newRow[3] = interfaceingSysProbability;
+				newRow[3] = interfacingSysDisposition;
 				newRow[4] = icd;
 				newRow[5] = data;
 				newRow[6] = format;

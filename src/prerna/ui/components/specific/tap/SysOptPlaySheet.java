@@ -34,21 +34,19 @@ import java.awt.Insets;
 import java.awt.SystemColor;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
-import java.awt.event.MouseAdapter;
-import java.awt.event.MouseEvent;
 
+import javax.swing.ButtonGroup;
 import javax.swing.JButton;
 import javax.swing.JCheckBox;
 import javax.swing.JComboBox;
-import javax.swing.JComponent;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
 import javax.swing.JRadioButton;
+import javax.swing.JTextField;
 import javax.swing.JToggleButton;
 import javax.swing.border.BevelBorder;
 
 import prerna.ui.components.BrowserGraphPanel;
-import prerna.ui.main.listener.specific.tap.OptFunctionRadioBtnListener;
 import prerna.ui.main.listener.specific.tap.SysOptBtnListener;
 import prerna.ui.main.listener.specific.tap.UpdateDataBLUListListener;
 import prerna.ui.swing.custom.CustomButton;
@@ -56,13 +54,24 @@ import prerna.ui.swing.custom.ToggleButton;
 import aurelienribon.ui.css.Style;
 
 /**
- * This is the playsheet used exclusively for TAP service optimization.
+ * This is the playsheet used exclusively for TAP system optimization.
+ * Optimizes systems to find minimum future sustainment budget while still maintaining 
+ * same functionality (data and business logic) either enterprise wide or regionally 
+ * and in same environments (theater/garrison) if desired.
+ * 
  */
 @SuppressWarnings("serial")
 public class SysOptPlaySheet extends OptPlaySheet {
 	
 	private SysOptCheckboxListUpdater checkboxListUpdater;
 	
+	//param panel components
+	public JTextField yearField, icdSusField, mtnPctgField;
+	public JTextField minBudgetField, maxBudgetField, hourlyRateField;
+	
+	//advanced param panel components
+	public JTextField iniLearningCnstField, scdLearningTimeField, scdLearningCnstField, startingPtsField;
+	public JTextField attRateField, hireRateField, infRateField,disRateField;
 	public JCheckBox includeRegionalizationCheckbox;
 	public JCheckBox garrTheaterCheckbox;
 	
@@ -79,27 +88,111 @@ public class SysOptPlaySheet extends OptPlaySheet {
 	// toggle to show the data/blu panel (dataBLUSelectPanel) within the systemDataBLUSelectPanel
 	public JToggleButton updateDataBLUPanelButton;
 	
-	// overall analysis tab
-
+	// param panel components to select the type of optimization to run
 	public JRadioButton rdbtnProfit, rdbtnROI, rdbtnIRR;
-	public JLabel solutionLbl, irrLbl, annualBudgetLbl, timeTransitionLbl;
+	
+	//display components - overview tab showing high level metrics after algorithm is run
+	public JLabel solutionLbl, irrLbl, annualBudgetLbl, timeTransitionLbl, savingLbl, roiLbl, bkevenLbl;
+	//display components - overview tab showing graphs after algorithm is run
+	public BrowserGraphPanel tab3, tab4, tab5, tab6;
+	//display components - additional tabs showing functionality after algorithm is run
 	public BrowserGraphPanel replacementHeatMap, geoSpatialMap;
-	public JPanel currentFuncPanel, futureFuncPanel, replacementHeatMapPanel, sysCapOptionsPanel, sysCapDisplayPanel,
+	public JPanel specificSysAlysPanel, currentFuncPanel, futureFuncPanel, replacementHeatMapPanel, sysCapOptionsPanel, sysCapDisplayPanel,
 			geoSpatialOptionsPanel;
 	public static JComboBox<String> capComboBox, sysComboBox, geoCapComboBox;
 	public static JButton createSysCapButton, createGeoSpatialMapButton;
-
+//TODO why are these static?
+	
+	/**
+	 * Creates the data needed for the system, capability, data, and blu selection/scroll lists.
+	 */
 	@Override
 	public void createData() {
-		//create all the data needed for the system, capability, data, and blu scroll lsits
 		checkboxListUpdater = new SysOptCheckboxListUpdater(engine);
 		
 	}
 	
+	/**
+	 *  Sets up the Basic param input on the left of the param panel
+	 * 	Includes number of years, maintenance percentage for exposed data,
+	 * 	hourly build cost rate, minimum and maximum annual budgets
+	 */
+	@Override
+	protected void createBasicParamComponents() {
+		
+		super.createBasicParamComponents();
+		yearField = addNewButtonToCtrlPanel("10", "Maximum Number of Years", 4, 1, 1);
+		mtnPctgField = addNewButtonToCtrlPanel("10", "Annual Maint Exposed Data (%)", 4, 1,2);
+		hourlyRateField = addNewButtonToCtrlPanel("150", "Hourly Build Cost Rate ($)", 4, 1, 3);
+		minBudgetField = addNewButtonToCtrlPanel("0", "Minimum Annual Budget ($M)", 1, 6, 1);
+		maxBudgetField = addNewButtonToCtrlPanel("500", "Maximum Annual Budget ($M)", 1, 6, 2);
+	}
+	
+	/**
+	 * Sets up the optimization components on the bottom left of the param panel
+	 * Adds a button for optimization and the listener.
+	 * Adds button so user can select what to optimize: Savings, ROI, IRR, etc.
+	 */
+	@Override
+	protected void createOptimizationComponents() {
+		super.createOptimizationComponents();
+		
+		rdbtnProfit = addOptimizationTypeButton("Savings", 1, 4);
+		rdbtnROI = addOptimizationTypeButton("ROI", 3, 4);
+		rdbtnIRR = addOptimizationTypeButton("IRR", 5, 4);
+
+		ButtonGroup btnGrp = new ButtonGroup();
+		btnGrp.add(rdbtnProfit);
+		btnGrp.add(rdbtnROI);
+		btnGrp.add(rdbtnIRR);
+		btnGrp.setSelected(rdbtnProfit.getModel(), true);
+	}	
+	
+	/**
+	 * Adds the SysOptBtnListener to the run optimization button.
+	 * @param btnRunOptimization
+	 */
+	@Override
+	protected void addOptimizationBtnListener(JButton btnRunOptimization) {
+		SysOptBtnListener obl = new SysOptBtnListener();
+		obl.setOptPlaySheet(this);
+		btnRunOptimization.addActionListener(obl);
+	}
+
+	/**
+	 * Sets up the advanced panels on the right of the param panel
+	 * 1) Advanced param panel: attrition rate, hiring rate, inflation rate,
+	 * discount rate, experience level at year 0, experience level in future year,
+	 * and number of starting point and whether to approach regionally or to ignore environment.
+	 * 2) System select panel: select systems using checkboxes or manually.
+	 * User can also limit data/blu through this.
+	 * 3) Capability select panel: filter data/blu by 
+	 * only considering those that pertain to desired capabilities.
+	 * 4) Force mod/decom panel: force the algorithm to modernize or decomission specified systems.
+	 */
 	@Override
 	protected void createAdvParamPanels() {
 		super.createAdvParamPanels();
-		
+
+		attRateField = addNewButtonToAdvParamPanel("3", "Attrition Rate (%)", 1, 0, 1);
+		hireRateField = addNewButtonToAdvParamPanel("3", "Hiring Rate (%)", 1, 0, 2);
+		infRateField = addNewButtonToAdvParamPanel("1.5", "Inflation Rate (%)", 1, 0, 3);
+		disRateField = addNewButtonToAdvParamPanel("2.5", "Discount Rate (%)", 1, 0, 4);
+		iniLearningCnstField = addNewButtonToAdvParamPanel("0", "Experience Level (%) at year 0", 3, 2, 1);
+		scdLearningCnstField = addNewButtonToAdvParamPanel("0.9", "Experience Level (%) at year", 2, 2, 2);
+		startingPtsField = addNewButtonToAdvParamPanel("5", "Number of Starting Points", 3, 2, 3);
+
+		scdLearningTimeField = new JTextField();
+		scdLearningTimeField.setFont(new Font("Tahoma", Font.PLAIN, 11));
+		GridBagConstraints gbc_scdLearningTimeField = new GridBagConstraints();
+		gbc_scdLearningTimeField.anchor = GridBagConstraints.WEST;
+		gbc_scdLearningTimeField.insets = new Insets(0, 0, 5, 0);
+		gbc_scdLearningTimeField.gridx = 5;
+		gbc_scdLearningTimeField.gridy = 2;
+		advParamPanel.add(scdLearningTimeField, gbc_scdLearningTimeField);
+		scdLearningTimeField.setText("5");
+		scdLearningTimeField.setColumns(3);
+
 		includeRegionalizationCheckbox = new JCheckBox("Include Regionalization");
 		GridBagConstraints gbc_includeRegionalizationCheckbox = new GridBagConstraints();
 		gbc_includeRegionalizationCheckbox.gridwidth = 2;
@@ -205,34 +298,14 @@ public class SysOptPlaySheet extends OptPlaySheet {
 		gbc_systemDecomissionPanel.fill = GridBagConstraints.BOTH;
 		gbc_systemDecomissionPanel.gridx = 1;
 		gbc_systemDecomissionPanel.gridy = 0;
-		systemModDecomSelectPanel.add(systemDecomissionPanel, gbc_systemDecomissionPanel);
-		
-		final JComponent contentPane = (JComponent) this.getContentPane();
-		contentPane.addMouseListener(new MouseAdapter() {
-			
-			@Override
-			public void mouseClicked(MouseEvent e) {
-				maybeShowPopup(e);
-			}
-			
-			@Override
-			public void mousePressed(MouseEvent e) {
-				maybeShowPopup(e);
-			}
-			
-			@Override
-			public void mouseReleased(MouseEvent e) {
-				maybeShowPopup(e);
-			}
-			
-			private void maybeShowPopup(MouseEvent e) {
-				if (e.isPopupTrigger()) {
-				}
-			}
-		});
-		
+		systemModDecomSelectPanel.add(systemDecomissionPanel, gbc_systemDecomissionPanel);		
 	}
 	
+	/**
+	 * Sets up the toggles to switch between advanced parameter panels:
+	 * Advanced param panel, System select panel, Capability select panel,
+	 * and Force mod/decom panel.
+	 */
 	@Override
 	protected void createAdvParamPanelsToggles() {
 		super.createAdvParamPanelsToggles();
@@ -285,8 +358,13 @@ public class SysOptPlaySheet extends OptPlaySheet {
 		ctlPanel.add(showSystemModDecomBtn, gbc_showSystemModDecomBtn);
 	}
 	
+	/**
+	 * Sets up the listeners to switch between advanced param panels
+	 * Extensions include the logic for switching the panels.
+	 */
 	@Override
 	protected void createAdvParamPanelsToggleListeners() {
+		super.createAdvParamPanelsToggleListeners();
 		
 		showParamBtn.addActionListener(new ActionListener()
 		{
@@ -401,238 +479,72 @@ public class SysOptPlaySheet extends OptPlaySheet {
 		dataBLUSelectPanel.updateProvideDataBLUButton.addActionListener(updateDataBLUListener);
 		dataBLUSelectPanel.updateConsumeDataBLUButton.addActionListener(updateDataBLUListener);
 		dataBLUSelectPanel.updateComplementDataBLUButton.addActionListener(updateDataBLUListener);
-	}
-	
-	@Override
-	protected void createBasicParamComponents() {
-		
-		super.createBasicParamComponents();
-		lblSoaSustainmentCost.setText("Annual Maint Exposed Data (%)");
-		maxBudgetField.setText("500");
-		
-		GridBagConstraints gbc_progressBar = new GridBagConstraints();
-		gbc_progressBar.anchor = GridBagConstraints.SOUTH;
-		gbc_progressBar.fill = GridBagConstraints.HORIZONTAL;
-		gbc_progressBar.gridwidth = 2;
-		gbc_progressBar.insets = new Insets(0, 0, 0, 5);
-		gbc_progressBar.gridx = 6;
-		gbc_progressBar.gridy = 0;
-		ctlPanel.add(progressBar, gbc_progressBar);
-		progressBar.setVisible(false);
-		
-		hourlyRateField.setColumns(4);
-		GridBagConstraints gbc_hourlyRateField = new GridBagConstraints();
-		gbc_hourlyRateField.anchor = GridBagConstraints.NORTHWEST;
-		gbc_hourlyRateField.insets = new Insets(0, 0, 5, 5);
-		gbc_hourlyRateField.gridx = 1;
-		gbc_hourlyRateField.gridy = 3;
-		ctlPanel.add(hourlyRateField, gbc_hourlyRateField);
-		
-		JLabel lblHourlyRate = new JLabel("Hourly Build Cost Rate ($)");
-		lblHourlyRate.setFont(new Font("Tahoma", Font.PLAIN, 12));
-		GridBagConstraints gbc_lblHourlyRate = new GridBagConstraints();
-		gbc_lblHourlyRate.anchor = GridBagConstraints.WEST;
-		gbc_lblHourlyRate.gridwidth = 4;
-		gbc_lblHourlyRate.insets = new Insets(0, 0, 5, 5);
-		gbc_lblHourlyRate.gridx = 2;
-		gbc_lblHourlyRate.gridy = 3;
-		ctlPanel.add(lblHourlyRate, gbc_lblHourlyRate);
-		
-	}
-	
-	@Override
-	protected void addOptimizationBtnListener(JButton btnRunOptimization) {
-		SysOptBtnListener obl = new SysOptBtnListener();
-		obl.setOptPlaySheet(this);
-		btnRunOptimization.addActionListener(obl);
-	}
+	}	
 	
 	/**
-	 * Creates the user interface of the playsheet. Calls functions to create param panel and tabbed display panel Stitches
-	 * the param and display panels together.
+	 * Sets up the display panel at the bottom of the split pane.
+	 * 1) overallAlysPanel shows high level metric labels and the graphs. This includes:
+	 * 		a) solution label depicting success of algorithm,
+	 *		b) total savings, number of years for transition, total roi, breakeven point,
+	 * 		internal rate of return, and annual budget
+	 * 		c) graphs
+	 * 2) specificSysAlysPanel shows system speciffic details
+	 * 3) currentFuncPanel shows current data/blu provided by each system
+	 * 4) futureFuncPanel shows future data/blu provided by each system sustained
+	 * 5) replacementHeatMapPanel shows whicch systems overlap with each functionality
+	 * 6) capability comparison panel
+	 * 7) geospatial map panel
 	 */
 	@Override
-	protected void createOptimizationTypeComponents() {
-		
-		rdbtnProfit = new JRadioButton("Savings");
-		rdbtnProfit.setName("rdbtnProfit");
-		rdbtnProfit.setFont(new Font("Tahoma", Font.PLAIN, 12));
-		rdbtnProfit.setSelected(true);
-		GridBagConstraints gbc_rdbtnProfit = new GridBagConstraints();
-		gbc_rdbtnProfit.gridwidth = 2;
-		gbc_rdbtnProfit.anchor = GridBagConstraints.WEST;
-		gbc_rdbtnProfit.insets = new Insets(0, 0, 5, 5);
-		gbc_rdbtnProfit.gridx = 1;
-		gbc_rdbtnProfit.gridy = 4;
-		ctlPanel.add(rdbtnProfit, gbc_rdbtnProfit);
-		
-		rdbtnROI = new JRadioButton("ROI");
-		rdbtnROI.setName("rdbtnROI");
-		rdbtnROI.setFont(new Font("Tahoma", Font.PLAIN, 12));
-		GridBagConstraints gbc_rdbtnRoi = new GridBagConstraints();
-		gbc_rdbtnRoi.anchor = GridBagConstraints.WEST;
-		gbc_rdbtnRoi.insets = new Insets(0, 0, 5, 5);
-		gbc_rdbtnRoi.gridx = 3;
-		gbc_rdbtnRoi.gridy = 4;
-		ctlPanel.add(rdbtnROI, gbc_rdbtnRoi);
-		
-		rdbtnIRR = new JRadioButton("IRR");
-		rdbtnIRR.setName("rdbtnIRR");
-		rdbtnIRR.setFont(new Font("Tahoma", Font.PLAIN, 12));
-		GridBagConstraints gbc_rdbtnIRR = new GridBagConstraints();
-		gbc_rdbtnIRR.anchor = GridBagConstraints.WEST;
-		gbc_rdbtnIRR.insets = new Insets(0, 0, 5, 5);
-		gbc_rdbtnIRR.gridx = 5;
-		gbc_rdbtnIRR.gridy = 4;
-		ctlPanel.add(rdbtnIRR, gbc_rdbtnIRR);
-		
-		OptFunctionRadioBtnListener opl = new OptFunctionRadioBtnListener();
-		rdbtnROI.addActionListener(opl);
-		rdbtnProfit.addActionListener(opl);
-		rdbtnIRR.addActionListener(opl);
-		opl.setSerOptRadioBtn(rdbtnProfit, rdbtnROI, rdbtnIRR);
-	}
-	
-	
-	
-	@Override
 	protected void createDisplayPanel() {
+
 		super.createDisplayPanel();
-		GridBagConstraints gbc_panel = new GridBagConstraints();
-		gbc_panel.insets = new Insets(0, 0, 0, 5);
-		gbc_panel.fill = GridBagConstraints.BOTH;
-		gbc_panel.gridx = 0;
-		gbc_panel.gridy = 2;
-		chartPanel.add(tab3, gbc_panel);
-		
-		GridBagConstraints gbc_panel2 = new GridBagConstraints();
-		gbc_panel2.insets = new Insets(0, 0, 0, 5);
-		gbc_panel2.fill = GridBagConstraints.BOTH;
-		gbc_panel2.gridx = 1;
-		gbc_panel2.gridy = 2;
-		chartPanel.add(tab4, gbc_panel2);
-		
-		GridBagConstraints gbc_panel3 = new GridBagConstraints();
-		gbc_panel3.insets = new Insets(0, 0, 0, 5);
-		gbc_panel3.fill = GridBagConstraints.BOTH;
-		gbc_panel3.gridx = 0;
-		gbc_panel3.gridy = 3;
-		chartPanel.add(tab5, gbc_panel3);
-		
-		GridBagConstraints gbc_panel4 = new GridBagConstraints();
-		gbc_panel4.insets = new Insets(0, 0, 0, 5);
-		gbc_panel4.fill = GridBagConstraints.BOTH;
-		gbc_panel4.gridx = 1;
-		gbc_panel4.gridy = 3;
-		chartPanel.add(tab6, gbc_panel4);
-		
+
 		solutionLbl = new JLabel("");
 		solutionLbl.setFont(new Font("Tahoma", Font.BOLD, 12));
 		GridBagConstraints gbc_solutionLbl = new GridBagConstraints();
 		gbc_solutionLbl.insets = new Insets(0, 0, 5, 5);
-		gbc_solutionLbl.gridx = 0;
 		gbc_solutionLbl.gridwidth = 5;
+		gbc_solutionLbl.gridx = 0;
 		gbc_solutionLbl.gridy = 0;
-		panel_1.add(solutionLbl, gbc_solutionLbl);
+		overallAlysMetricsPanel.add(solutionLbl, gbc_solutionLbl);
 		
-		JLabel lblIRR = new JLabel("Internal Rate of Return:");
-		GridBagConstraints gbc_lblIRR = new GridBagConstraints();
-		gbc_lblIRR.insets = new Insets(0, 30, 5, 5);
-		gbc_lblIRR.gridx = 4;
-		gbc_lblIRR.gridy = 1;
-		panel_1.add(lblIRR, gbc_lblIRR);
+		savingLbl = addNewLabelToOverviewPanel("Total transition savings over time horizon:", 0, 1);
+		timeTransitionLbl = addNewLabelToOverviewPanel("Number of Years for Transition:", 0, 2);
+		roiLbl = addNewLabelToOverviewPanel("Total ROI over time horizon:", 2, 1);
+		bkevenLbl = addNewLabelToOverviewPanel("Breakeven point during time horizon:", 2, 2);
+		irrLbl = addNewLabelToOverviewPanel("Internal Rate of Return:", 4, 1);
+		annualBudgetLbl = addNewLabelToOverviewPanel("Annual Budget During Transition:", 4, 2);
+
+		tab3 = addNewChartToOverviewPanel(0, 2);
+		tab4 = addNewChartToOverviewPanel(1, 2);
+		tab5 = addNewChartToOverviewPanel(0, 3);
+		tab6 = addNewChartToOverviewPanel(1, 3);
 		
-		irrLbl = new JLabel("");
-		GridBagConstraints gbc_IRRLbl = new GridBagConstraints();
-		gbc_IRRLbl.insets = new Insets(0, 0, 5, 5);
-		gbc_IRRLbl.gridx = 5;
-		gbc_IRRLbl.gridy = 1;
-		panel_1.add(irrLbl, gbc_IRRLbl);
+		specificSysAlysPanel = addNewDisplayPanel("System Analysis");
+		currentFuncPanel = addNewDisplayPanel("As-Is Functionality");
+		futureFuncPanel = addNewDisplayPanel("Future Functionality");
 		
-		JLabel lblTimeSpentTransitioning = new JLabel("Number of Years for Transition:");
-		GridBagConstraints gbc_lblTimeSpentTransitioning = new GridBagConstraints();
-		gbc_lblTimeSpentTransitioning.anchor = GridBagConstraints.WEST;
-		gbc_lblTimeSpentTransitioning.insets = new Insets(0, 0, 0, 5);
-		gbc_lblTimeSpentTransitioning.gridx = 0;
-		gbc_lblTimeSpentTransitioning.gridy = 2;
-		panel_1.add(lblTimeSpentTransitioning, gbc_lblTimeSpentTransitioning);
-		
-		timeTransitionLbl = new JLabel("");
-		GridBagConstraints gbc_timeTransitionLbl = new GridBagConstraints();
-		gbc_timeTransitionLbl.anchor = GridBagConstraints.WEST;
-		gbc_timeTransitionLbl.insets = new Insets(0, 0, 0, 5);
-		gbc_timeTransitionLbl.gridx = 1;
-		gbc_timeTransitionLbl.gridy = 2;
-		panel_1.add(timeTransitionLbl, gbc_timeTransitionLbl);
-		
-		JLabel lblAnnualBudget = new JLabel("Annual Budget During Transition:");
-		GridBagConstraints gbc_lblAnnualBudget = new GridBagConstraints();
-		gbc_lblAnnualBudget.insets = new Insets(0, 30, 5, 5);
-		gbc_lblAnnualBudget.gridx = 4;
-		gbc_lblAnnualBudget.gridy = 2;
-		panel_1.add(lblAnnualBudget, gbc_lblAnnualBudget);
-		
-		annualBudgetLbl = new JLabel("");
-		GridBagConstraints gbc_annualBudgetLbl = new GridBagConstraints();
-		gbc_annualBudgetLbl.insets = new Insets(0, 0, 5, 5);
-		gbc_annualBudgetLbl.gridx = 5;
-		gbc_annualBudgetLbl.gridy = 2;
-		panel_1.add(annualBudgetLbl, gbc_annualBudgetLbl);
-		
-		specificSysAlysPanel = new JPanel();
-		tabbedPane.addTab("System Analysis", null, specificSysAlysPanel, null);
-		GridBagLayout gbl_specificSysAlysPanel = new GridBagLayout();
-		gbl_specificSysAlysPanel.columnWidths = new int[] { 0, 0 };
-		gbl_specificSysAlysPanel.rowHeights = new int[] { 0, 0 };
-		gbl_specificSysAlysPanel.columnWeights = new double[] { 1.0, Double.MIN_VALUE };
-		gbl_specificSysAlysPanel.rowWeights = new double[] { 1.0, Double.MIN_VALUE };
-		specificSysAlysPanel.setLayout(gbl_specificSysAlysPanel);
-		
-		currentFuncPanel = new JPanel();
-		tabbedPane.addTab("As-Is Functionality", null, currentFuncPanel, null);
-		GridBagLayout gbl_specificFuncAlysPanel = new GridBagLayout();
-		gbl_specificFuncAlysPanel.columnWidths = new int[] { 0, 0 };
-		gbl_specificFuncAlysPanel.rowHeights = new int[] { 0, 0 };
-		gbl_specificFuncAlysPanel.columnWeights = new double[] { 1.0, Double.MIN_VALUE };
-		gbl_specificFuncAlysPanel.rowWeights = new double[] { 1.0, Double.MIN_VALUE };
-		currentFuncPanel.setLayout(gbl_specificFuncAlysPanel);
-		
-		futureFuncPanel = new JPanel();
-		tabbedPane.addTab("Future Functionality", null, futureFuncPanel, null);
-		GridBagLayout gbl_futureFuncPanel = new GridBagLayout();
-		gbl_futureFuncPanel.columnWidths = new int[] { 0, 0 };
-		gbl_futureFuncPanel.rowHeights = new int[] { 0, 0 };
-		gbl_futureFuncPanel.columnWeights = new double[] { 1.0, Double.MIN_VALUE };
-		gbl_futureFuncPanel.rowWeights = new double[] { 1.0, Double.MIN_VALUE };
-		currentFuncPanel.setLayout(gbl_futureFuncPanel);
-		
-		replacementHeatMapPanel = new JPanel();
-		tabbedPane.addTab("Replacement Heat Map", null, replacementHeatMapPanel, null);
-		GridBagLayout gbl_replacementHeatMapPanel = new GridBagLayout();
-		gbl_replacementHeatMapPanel.columnWidths = new int[] { 0, 0 };
-		gbl_replacementHeatMapPanel.rowHeights = new int[] { 0, 0 };
-		gbl_replacementHeatMapPanel.columnWeights = new double[] { 1.0, Double.MIN_VALUE };
-		gbl_replacementHeatMapPanel.rowWeights = new double[] { 1.0, Double.MIN_VALUE };
-		replacementHeatMapPanel.setLayout(gbl_replacementHeatMapPanel);
-		
+		replacementHeatMapPanel = addNewDisplayPanel("Replacement Heat Map");
+				
 		replacementHeatMap = new BrowserGraphPanel("/html/MHS-RDFSemossCharts/app/heatmap.html");
-		
 		GridBagConstraints gbc_replacementHeatMap = new GridBagConstraints();
 		gbc_replacementHeatMap.insets = new Insets(0, 0, 0, 5);
 		gbc_replacementHeatMap.fill = GridBagConstraints.BOTH;
 		gbc_replacementHeatMap.gridx = 0;
 		gbc_replacementHeatMap.gridy = 0;
 		replacementHeatMapPanel.add(replacementHeatMap, gbc_replacementHeatMap);
-		
-		// Components for Capability System Comparison Panel
-		JPanel sysCapPanel = new JPanel();
-		tabbedPane.addTab("Capability System Comparison", null, sysCapPanel, null);
-		GridBagLayout gbl_sysCapPanel = new GridBagLayout();
-		gbl_sysCapPanel.columnWidths = new int[] { 0, 0, 10 };
-		gbl_sysCapPanel.rowHeights = new int[] { 0, 0, 10 };
-		gbl_sysCapPanel.columnWeights = new double[] { 1.0, Double.MIN_VALUE };
-		gbl_sysCapPanel.rowWeights = new double[] { 0.0, 1.0, Double.MIN_VALUE };
-		sysCapPanel.setLayout(gbl_sysCapPanel);
+	
+		createSysCapComparisonPanel();
+	
+		createGeoSpatialMapPanel();
+	}
+	
+	/**
+	 * Adds a tab in the display panel for a capability system comparison
+	 */
+	private void createSysCapComparisonPanel() {
+		JPanel sysCapPanel = addNewDisplayPanel("Capability System Comparison");
 		
 		sysCapOptionsPanel = new JPanel();
 		sysCapOptionsPanel.setBackground(SystemColor.control);
@@ -707,16 +619,14 @@ public class SysOptPlaySheet extends OptPlaySheet {
 		gbc_noteLabel.gridx = 0;
 		gbc_noteLabel.gridy = 0;
 		sysCapOptionsPanel.add(noteLabel, gbc_noteLabel);
-		
-		// Components for GeoSpatial Map
-		JPanel geoSpatialPanel = new JPanel();
-		tabbedPane.addTab("GeoSpatial Map", null, geoSpatialPanel, null);
-		GridBagLayout gbl_geoSpatialPanel = new GridBagLayout();
-		gbl_geoSpatialPanel.columnWidths = new int[] { 0, 0, 10 };
-		gbl_geoSpatialPanel.rowHeights = new int[] { 0, 0, 10 };
-		gbl_geoSpatialPanel.columnWeights = new double[] { 1.0, Double.MIN_VALUE };
-		gbl_geoSpatialPanel.rowWeights = new double[] { 0.0, 1.0, Double.MIN_VALUE };
-		geoSpatialPanel.setLayout(gbl_geoSpatialPanel);
+
+	}
+
+	/**
+	 * Adds a tab in the display panel for a geospatial map
+	 */
+	private void createGeoSpatialMapPanel(){
+		JPanel geoSpatialPanel = addNewDisplayPanel("GeoSpatial Map");
 		
 		geoSpatialOptionsPanel = new JPanel();
 		geoSpatialOptionsPanel.setBackground(SystemColor.control);
@@ -761,32 +671,49 @@ public class SysOptPlaySheet extends OptPlaySheet {
 		gbc_createGeoSpatialMapButton.insets = new Insets(0, 0, 5, 5);
 		gbc_createGeoSpatialMapButton.gridx = 0;
 		gbc_createGeoSpatialMapButton.gridy = 1;
-		geoSpatialOptionsPanel.add(createGeoSpatialMapButton, gbc_createSysCapButton);
+		geoSpatialOptionsPanel.add(createGeoSpatialMapButton, gbc_createGeoSpatialMapButton);
 		Style.registerTargetClassName(createGeoSpatialMapButton, ".standardButton");
 	}
 	
 	/**
-	 * Clears panels within the playsheet
+	 * Sets graphs to be visible after algorithm is run.
+	 * @param visible
+	 */
+	@Override
+	public void setGraphsVisible(boolean visible) {
+		super.setGraphsVisible(visible);
+		tab3.setVisible(visible);
+		tab4.setVisible(visible);
+		tab5.setVisible(visible);
+		tab6.setVisible(visible);
+	}
+	
+	/**
+	 * Clears panels within the playsheet.
+	 * Called whenever the algorithm is rerun so no previous results left over.
 	 */
 	@Override
 	public void clearPanels() {
 		super.clearPanels();
+		specificSysAlysPanel.removeAll();
 		currentFuncPanel.removeAll();
+		futureFuncPanel.removeAll();
+		replacementHeatMapPanel.removeAll();
 	}
 	
 	/**
-	 * Sets N/A or $0 for values in optimizations. Allows for different TAP algorithms to be run as empty functions.
+	 * Sets N/A or $0 for values in optimizations.
+	 * Called whenever the algorithm is rerun so no previous results left over.
 	 */
 	@Override
 	public void clearLabels() {
 		super.clearLabels();
+		bkevenLbl.setText("N/A");
+        savingLbl.setText("$0");
+		roiLbl.setText("N/A");
 		irrLbl.setText("N/A");
 		annualBudgetLbl.setText("$0");
 		timeTransitionLbl.setText("N/A");
-	}
-	
-	public SysOptCheckboxListUpdater getCheckboxListUpdater() {
-		return checkboxListUpdater;
 	}
 	
 }

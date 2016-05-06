@@ -285,16 +285,13 @@ public class Constants {
 	public static final String TRANSITION_COST_INSERT_TRAINING = "TRANSITION_COST_INSERT_TRAINING";
 	public static final String TRANSITION_COST_INSERT_SEMANTICS = "TRANSITION_COST_INSERT_SEMANTICS";
 	public static final String TRANSITION_DATA_FEDERATION_PHASE_INDEPENDENT = "TRANSITION_DATA_FEDERATION_PHASE_INDEPENDENT";
-	public static final String TRANSITION_REPORT_COMBO_BOX = "transCostReportSystemcomboBox";
-	public static final String TRANSITION_REPORT_TYPE_COMBO_BOX = "TransReportTypecomboBox";
-	public static final String TRANSITION_REPORT_FORMAT_COMBO_BOX = "TransReportFormatcomboBox";
+	public static final String TRANSITION_REPORT_COMBO_BOX = "transCostReportSystemComboBox";
+	public static final String TRANSITION_REPORT_TYPE_COMBO_BOX = "transReportTypeComboBox";
+	public static final String TRANSITION_REPORT_FORMAT_COMBO_BOX = "transReportFormatComboBox";
 	public static final String TRANSITION_APPLY_OVERHEAD_RADIO = "rdbtnApplyTapOverhead";
 	public static final String TRANSITION_NOT_APPLY_OVERHEAD_RADIO = "rdbtnDoNotApplyOverhead";
 	public static final String TRANSITION_SERVICE_PANEL = "transitionServicePanel";
 	public static final String SOURCE_SELECT_PANEL = "sourceSelectPanel";
-	public static final String DHMSM_CAPABILITY_SELECT_PANEL = "dhmsmCapabilitySelectPanel";
-	public static final String SELECT_RADIO_PANEL = "selectRadioPanel";
-	public static final String SELECT_DATA_ACCESS_FILE_JFIELD = "dhmsmDataAccessImportFileNameField";
 	public static final String TRANSITION_CHECK_BOX_DATA_FED = "chckbxDataFederationTransReport";
 	public static final String TRANSITION_CHECK_BOX_DATA_CONSUMER = "chckbxDataConsumer";
 	public static final String TRANSITION_ITEM_GEN_BUTTON = "loadGenBtn";
@@ -316,36 +313,12 @@ public class Constants {
 	public static final String TIER2_CHECKBOX = "tierCheck2";
 	public static final String TIER3_CHECKBOX = "tierCheck3";
 
-	// Fact Sheet Report Queries
-	public static final String FACT_SHEET_REPORT_SYSTEM_TOGGLE_COMBO_BOX = "factSheetReportSystemToggleComboBox";
-	public static final String FACT_SHEET_REPORT_TYPE_TOGGLE_COMBO_BOX = "factSheetReportTypeToggleComboBox";
-	public static final String FACT_SHEET_SYSTEM_DROP_DOWN_PANEL = "factSheetReportSysDropDownPanel";
-	public static final String FACT_SHEET_SYSTEM_SELECT_COMBO_BOX = "factSheetReportSyscomboBox";
-
 	// Used by optimization organizer
 	public static final String TRANSITION_GENERIC_COSTS = "TRANSITION_GENERIC_COSTS";
 	public static final String TRANSITION_CONSUMER_COSTS = "TRANSITION_CONSUMER_COSTS";
 	public static final String TRANSITION_PROVIDER_COSTS = "TRANSITION_PROVIDER_COSTS";
 
 	public static final String UPDATE_SPARQL_AREA = "customUpdateTextPane";
-	public static final String INSERT_SYS_SUSTAINMENT_BUDGET_BUTTON = "btnInsertBudgetProperty";
-	public static final String SYSTEM_SUSTAINMENT_BUDGET_INSERT_QUERY = "SYSTEM_SUSTAINMENT_BUDGET_INSERT_QUERY";
-
-	// Distance Downstream
-	public static final String INSERT_DOWNSTREAM_BUTTON = "btnInsertDownstream";
-	public static final String DISTANCE_DOWNSTREAM_QUERY = "DISTANCE_DOWNSTREAM_QUERY";
-	public static final String SOA_ALPHA_VALUE_TEXT_BOX = "soaAlphaValueTextField";
-	public static final String APPRECIATION_TEXT_BOX = "appreciationValueTextField";
-	public static final String DEPRECIATION_TEXT_BOX = "depreciationValueTextField";
-
-	// Common Subgraph
-	public static final String COMMON_SUBGRAPH_THRESHOLD_TEXT_BOX = "commonSubgraphThresholdTextField";
-	public static final String COMMON_SUBGRAPH_COMBO_BOX_0 = "commonSubgraphComboBox0";
-	public static final String COMMON_SUBGRAPH_COMBO_BOX_1 = "commonSubgraphComboBox1";
-
-	// Central System Sys-BP Sys-Activity Aggregation Thresholds
-	public static final String DATA_OBJECT_THRESHOLD_VALUE_TEXT_BOX = "dataObjectThresholdValueTextField";
-	public static final String BLU_THRESHOLD_VALUE_TEXT_BOX = "bluThresholdValueTextField";
 
 	// SOA Transition All
 	public static final String SOA_TRANSITION_ALL_DATA_QUERY = "SOA_TRANSITION_ALL_DATA_QUERY";

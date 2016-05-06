@@ -174,37 +174,22 @@ public class SystemPropertyGridPlaySheet extends GridPlaySheet {
 			String addBindings = "";
 			
 			int semicolon1 = query.indexOf(";");
-			int semicolon2 = query.indexOf(";", semicolon1 + 1);
-			int semicolon3 = query.indexOf(" SELECT", semicolon2 + 1);
+			int semicolon2 = query.indexOf(" SELECT", semicolon1 + 1);
 			
-			String probabilityUserResponse = query.substring(0, semicolon1);
-			String interfaceUserResponse = query.substring(semicolon1 + 1, semicolon2);
-			String archiveUserResponse = query.substring(semicolon2 + 1, semicolon3);
-			query = query.substring(semicolon3 + 1);
+			String dispositionUserResponse = query.substring(0, semicolon1);
+			String archiveUserResponse = query.substring(semicolon1 + 1, semicolon2);
+			query = query.substring(semicolon2 + 1);
 			
-			if (probabilityUserResponse.equals("All")) {
-				// do nothing
-			} else {
-				addConditions = addConditions
-						.concat("{?System <http://semoss.org/ontologies/Relation/Contains/Probability_of_Included_BoS_Enterprise_EHRS> ?Probability} ");
-				if (probabilityUserResponse.equals("High")) {
-					addBindings = addBindings.concat("BINDINGS ?Probability {('High')('Question')}");
-				} else {
-					addBindings = addBindings.concat("BINDINGS ?Probability {('Low')('Medium')('Medium-High')}");
-				}
+			//if all, don't need to add any conditions
+			if (dispositionUserResponse.equals("High")) {
+				addConditions = addConditions.concat("{?System <http://semoss.org/ontologies/Relation/Contains/Disposition> 'High'} {?System <http://semoss.org/ontologies/Relation/Contains/Device> 'N'} {?System <http://semoss.org/ontologies/Relation/Contains/Review_Status> ?Review_Status}FILTER (?Review_Status in('FAC Approved','FCLG Approved'))");
+			} else if (dispositionUserResponse.equals("LPI")) {
+				addConditions = addConditions.concat("{?System <http://semoss.org/ontologies/Relation/Contains/Disposition> 'LPI'}  {?System <http://semoss.org/ontologies/Relation/Contains/Device> 'N'} {?System <http://semoss.org/ontologies/Relation/Contains/Review_Status> ?Review_Status}FILTER (?Review_Status in('FAC Approved','FCLG Approved'))");
+			} else if (dispositionUserResponse.equals("LPNI")) {
+				addConditions = addConditions.concat("{?System <http://semoss.org/ontologies/Relation/Contains/Disposition> 'LPNI'}  {?System <http://semoss.org/ontologies/Relation/Contains/Device> 'N'} {?System <http://semoss.org/ontologies/Relation/Contains/Review_Status> ?Review_Status}FILTER (?Review_Status in('FAC Approved','FCLG Approved'))");
 			}
 			
-			if (interfaceUserResponse.equals("All")) {
-				// do nothing
-			} else if (interfaceUserResponse.equals("Yes")) {
-				addConditions = addConditions.concat("{?System <http://semoss.org/ontologies/Relation/Contains/Interface_Needed_w_DHMSM> 'Y' } ");
-			} else if (interfaceUserResponse.equals("No")) {
-				addConditions = addConditions.concat("{?System <http://semoss.org/ontologies/Relation/Contains/Interface_Needed_w_DHMSM> 'N' } ");
-			}
-			
-			if (archiveUserResponse.equals("All")) {
-				// do nothing
-			} else if (archiveUserResponse.equals("Yes")) {
+			if (archiveUserResponse.equals("Yes")) {
 				addConditions = addConditions.concat("{?System <http://semoss.org/ontologies/Relation/Contains/Archive_Req> 'Y' } ");
 			} else if (archiveUserResponse.equals("No")) {
 				addConditions = addConditions.concat("{?System <http://semoss.org/ontologies/Relation/Contains/Archive_Req> 'N' } ");

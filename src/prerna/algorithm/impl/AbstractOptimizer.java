@@ -36,34 +36,30 @@ import prerna.algorithm.api.IAlgorithm;
 public abstract class AbstractOptimizer implements IAlgorithm{
 
 	/**
-	 * Sets up model.
-	 */
-	public abstract void setupModel() throws LpSolveException;
-	
-	/**
 	 * Gathers data set.
 	 */
 	public abstract void gatherDataSet();
 	
 	/**
-	 * Sets constraints for algorithm.
+	 * Sets up model. Should call:
+	 * settingVariables(), setObjFunction(), and setConstraints()
 	 */
-	public abstract void setConstraints() throws LpSolveException ;
-	
-	/**
-	 * Sets the algorithm/function to be executed.
-	 */
-	public abstract void setObjFunction() throws LpSolveException ;
-	
-	/**
-	 * Deletes model.
-	 */
-	public abstract void deleteModel();
+	public abstract void setupModel() throws LpSolveException;
 	
 	/**
 	 * Sets variables in algorithm.
 	 */
 	public abstract void setVariables() throws LpSolveException;
+
+	/**
+	 * Sets the function to be optimized
+	 */
+	public abstract void setObjFunction() throws LpSolveException;
+	
+	/**
+	 * Sets constraints for algorithm.
+	 */
+	public abstract void setConstraints() throws LpSolveException;
 	
 	/**
 	 * Executes algorithm.
@@ -71,5 +67,8 @@ public abstract class AbstractOptimizer implements IAlgorithm{
 	@Override
 	public abstract void execute();
 	
-	
+	/**
+	 * Deletes model.
+	 */
+	public abstract void deleteModel();
 }

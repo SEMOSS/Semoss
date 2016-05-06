@@ -45,7 +45,7 @@ public class DHMSMDeploymentSiteSpecificICDPlaySheet extends GridPlaySheet {
 	
 	HashMap<String, ArrayList<String>> siteData;
 	Set<String> centrallyDeployedSystems;
-
+	
 	List<Object[]> list;
 	String[] names;
 	
@@ -76,7 +76,7 @@ public class DHMSMDeploymentSiteSpecificICDPlaySheet extends GridPlaySheet {
 			Object[] values = resultIterator.next();
 			String site = values[0].toString();
 			ArrayList<String> sysList = siteData.get(site);
-			sysList.add("DHMSM");
+			sysList.add("MHS_GENESIS");
 			String sys1 = values[1].toString();
 			String sys2 = values[2].toString();
 			String icd = values[3].toString();
@@ -108,8 +108,8 @@ public class DHMSMDeploymentSiteSpecificICDPlaySheet extends GridPlaySheet {
 			siteData = DHMSMDeploymentHelper.getSysAtSitesInDeploymentPlan(engine);
 		}
 		if(centrallyDeployedSystems == null) {
-			IEngine hrCore = (IEngine) DIHelper.getInstance().getLocalProp("TAP_Core_Data");
-			centrallyDeployedSystems = DHMSMDeploymentHelper.getCentrallyDeployedSystems(hrCore);
+			IEngine tapCoreDB = (IEngine) DIHelper.getInstance().getLocalProp("TAP_Core_Data");
+			centrallyDeployedSystems = DHMSMDeploymentHelper.getCentrallyDeployedSystems(tapCoreDB);
 		}
 	}
 }

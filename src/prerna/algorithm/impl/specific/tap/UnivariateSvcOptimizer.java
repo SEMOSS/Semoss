@@ -102,7 +102,7 @@ public class UnivariateSvcOptimizer extends UnivariateOpt{
         displaySpecifics(((UnivariateSvcOptFunction)f).lin);
         displaySystemSpecifics(((UnivariateSvcOptFunction)f).lin);
         createTimelineData(((UnivariateSvcOptFunction)f).lin);
-        if(!bindStr.equals("{}")) createGraphSheet();
+  //TODO this is broken      if(!bindStr.equals("{}")) createGraphSheet();
         playSheet.setGraphsVisible(true);
 	}
 	

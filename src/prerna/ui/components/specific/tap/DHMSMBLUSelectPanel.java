@@ -45,8 +45,6 @@ import prerna.ui.swing.custom.SelectScrollList;
 @SuppressWarnings("serial")
 public class DHMSMBLUSelectPanel extends JPanel {
 
-	private SysOptPlaySheet playSheet;
-
 	private SelectScrollList dataSelectDropDown;
 	private JCheckBox hsdCheck, hssCheck, fhpCheck, dhmsmCheck, allDataCheck;
 
@@ -84,7 +82,7 @@ public class DHMSMBLUSelectPanel extends JPanel {
 
 		dataSelectDropDown = new SelectScrollList("Select Individual Data");
 		dataSelectDropDown.setSelectionMode(ListSelectionModel.MULTIPLE_INTERVAL_SELECTION);
-		dataSelectDropDown.setupButton(playSheet.getCheckboxListUpdater().getAllBLUList(),100,120);
+		dataSelectDropDown.setupButton(checkboxListUpdater.getAllBLUList(),100,120);
 		dataSelectDropDown.setVisible(true);
 
 
@@ -130,7 +128,7 @@ public class DHMSMBLUSelectPanel extends JPanel {
 		gbc_fhpCheck.gridy = 2;
 		this.add(fhpCheck, gbc_fhpCheck);
 
-		dhmsmCheck = new JCheckBox("DHMSM");
+		dhmsmCheck = new JCheckBox("MHS GENESIS");
 		GridBagConstraints gbc_dhmsmCheck = new GridBagConstraints();
 		gbc_dhmsmCheck.anchor = GridBagConstraints.WEST;
 		gbc_dhmsmCheck.gridx = 1;

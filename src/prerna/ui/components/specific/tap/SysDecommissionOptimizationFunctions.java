@@ -30,6 +30,7 @@ package prerna.ui.components.specific.tap;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Hashtable;
+import java.util.Map;
 import java.util.Vector;
 
 import org.apache.log4j.LogManager;
@@ -39,6 +40,7 @@ import prerna.engine.api.IEngine;
 import prerna.engine.api.ISelectStatement;
 import prerna.engine.api.ISelectWrapper;
 import prerna.rdf.engine.wrappers.WrapperManager;
+import prerna.util.DHMSMTransitionUtility;
 import prerna.util.DIHelper;
 
 public class SysDecommissionOptimizationFunctions {
@@ -61,7 +63,7 @@ public class SysDecommissionOptimizationFunctions {
     //hashtable storing all the systems and their sites.
     Hashtable<String, ArrayList<String>> sysToSiteHash;
     //hashtable storing all the systems and their probabilities
-    Hashtable<String, String> sysToProbHash;
+    Map<String, String> sysToDispositionHash;
     private Hashtable<String, String> sysToOwnerHash;
 //    public Hashtable<String, Double> sysToSustainmentCost;
     public Hashtable<String, Integer> sysToSiteCountHash;
@@ -84,7 +86,6 @@ public class SysDecommissionOptimizationFunctions {
 //	private static String systemSustainmentCostQuery = "SELECT DISTINCT ?System ?SustainmentBudget WHERE { {?System <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System>}{?System <http://semoss.org/ontologies/Relation/Contains/SustainmentBudget> ?SustainmentBudget}}";
 	
 	private static String coreDB = "TAP_Core_Data";
-	private static String systemProbQuery = "SELECT DISTINCT ?System ?Prob WHERE {{?System <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/ActiveSystem> ;}OPTIONAL{?System <http://semoss.org/ontologies/Relation/Contains/Probability_of_Included_BoS_Enterprise_EHRS> ?Prob}}";
 	private static String systemArchiveQuery = "SELECT DISTINCT ?System ?Archive WHERE {{?System <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/ActiveSystem> ;}OPTIONAL{?System <http://semoss.org/ontologies/Relation/Contains/Archive_Req> ?Archive}}";
 	private static String systemOwnerQuery = "SELECT DISTINCT ?System (GROUP_CONCAT(?OwnerName ; SEPARATOR = ', ') AS ?Owner) WHERE { SELECT DISTINCT ?System (COALESCE(SUBSTR(STR(?Own),50),'') AS ?OwnerName) WHERE { {?System <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/ActiveSystem>} OPTIONAL{?System <http://semoss.org/ontologies/Relation/OwnedBy> ?Own} }}  GROUP BY ?System";
 	
@@ -231,7 +232,7 @@ public class SysDecommissionOptimizationFunctions {
 		sysToWorkVolHashAllSites = new Hashtable<String, Double>();
 		sysToDataToLOEHash = new Hashtable<String, Hashtable<String,Double>>();
 		sysToSiteHash = new Hashtable<String, ArrayList<String>>();
-		sysToProbHash = new Hashtable<String, String>();
+		sysToDispositionHash = new Hashtable<String, String>();
 		sysToOwnerHash = new Hashtable<String, String>();
 //		sysToSustainmentCost = new Hashtable<String,Double>();
 		sysToSiteCountHash = new Hashtable<String, Integer>();
@@ -254,8 +255,8 @@ public class SysDecommissionOptimizationFunctions {
 //		removeSystemsWithNoSite();
 		sortSysList();
 		
-		ArrayList <Object []> systemProbList = createData(coreDB,systemProbQuery);
-		processSystemHash(systemProbList,sysToProbHash);
+		sysToDispositionHash = DHMSMTransitionUtility.processReportTypeQuery((IEngine) DIHelper.getInstance().getLocalProp(coreDB));
+
 //		ArrayList <Object []> systemSustainmentCostList = createData(coreDB,systemSustainmentCostQuery);
 //		processSystemSustainmentCostHash(systemSustainmentCostList);
 		if(includeArchive) {
@@ -502,7 +503,7 @@ public class SysDecommissionOptimizationFunctions {
 		{
 			Object[] element = new Object[9];
 			element[0] = sys;
-			element[1] = sysToProbHash.get(sys);
+			element[1] = sysToDispositionHash.get(sys);
 			element[2] = sysToMinTimeHashPerSite.get(sys) / 365.0;
 			
 			//add a minimum time for system
@@ -531,7 +532,7 @@ public class SysDecommissionOptimizationFunctions {
 			{
 				Object[] element = new Object[9];
 				element[0] = sys;
-				element[1] = sysToProbHash.get(sys);
+				element[1] = sysToDispositionHash.get(sys);
 				element[2] = -1;
 				element[3] = -1;
 				element[4] = -1;

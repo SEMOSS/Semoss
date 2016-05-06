@@ -53,7 +53,7 @@ public class CreateFutureInterfaceDatabaseListener extends AbstractListener{
 	@Override
 	public void actionPerformed(ActionEvent arg0) {
 		//get selected values
-		JComboBox<String> hrCoreDBComboBox = (JComboBox<String>) DIHelper.getInstance().getLocalProp(ConstantsTAP.HR_CORE_FUTURE_INTERFACE_DATABASE_CORE_COMBO_BOX);
+		JComboBox<String> hrCoreDBComboBox = (JComboBox<String>) DIHelper.getInstance().getLocalProp(ConstantsTAP.TAP_Core_Data_FUTURE_INTERFACE_DATABASE_CORE_COMBO_BOX);
 		String hrCoreDBName = hrCoreDBComboBox.getSelectedItem() + "";
 		
 		JComboBox<String> futureStateDBComboBox = (JComboBox<String>) DIHelper.getInstance().getLocalProp(ConstantsTAP.TAP_FUTURE_INTERFACE_DATABASE_COMBO_BOX);

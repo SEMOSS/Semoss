@@ -39,6 +39,7 @@ import prerna.ui.components.UpdateProcessor;
 import prerna.ui.components.api.IChakraListener;
 import prerna.ui.components.specific.tap.SystemBudgetPropInserter;
 import prerna.util.Constants;
+import prerna.util.ConstantsTAP;
 import prerna.util.DIHelper;
 import prerna.util.Utility;
 
@@ -60,7 +61,7 @@ public class SysBudgetInsertListener implements IChakraListener{
 	@Override
 	public void actionPerformed(ActionEvent e) {
 	
-		String query = (String) DIHelper.getInstance().getProperty(Constants.SYSTEM_SUSTAINMENT_BUDGET_INSERT_QUERY);
+		String query = (String) DIHelper.getInstance().getProperty(ConstantsTAP.SYSTEM_SUSTAINMENT_BUDGET_INSERT_QUERY);
 		String budgetPropCheckQuery = "ASK WHERE { {?s <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System> ;} BIND(<http://semoss.org/ontologies/Relation/Contains/SustainmentBudget> AS ?contains) {?s ?contains ?prop ;} }";
 		
 		if(query == null) {

@@ -585,7 +585,7 @@ public class DHMSMSysDecommissionReport {
 	public void createGrid(ArrayList<Object[]> outputList)
 	{
 		String [] names = new String[]{"System", "Site", "TAP Recommendation","Site Start Date", "System Start Date", "System End Date","Date Elapsed", "LOE", "Resources", "Total Cost"};
-		String title = "DHMSM System Decomission Report";
+		String title = "MHS GENESIS System Decomission Report";
 		gfd.setColumnNames(names);
 		gfd.setDataList(outputList);
 		JTable table = new JTable();

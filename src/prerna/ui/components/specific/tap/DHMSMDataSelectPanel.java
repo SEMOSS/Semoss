@@ -155,7 +155,7 @@ public class DHMSMDataSelectPanel extends JPanel {
 		gbc_fhpCheck.gridy = 2;
 		this.add(fhpCheck, gbc_fhpCheck);
 
-		dhmsmCheck = new JCheckBox("DHMSM");
+		dhmsmCheck = new JCheckBox("MHS GENESIS");
 		GridBagConstraints gbc_dhmsmCheck = new GridBagConstraints();
 		gbc_dhmsmCheck.anchor = GridBagConstraints.WEST;
 		gbc_dhmsmCheck.gridx = 1;
