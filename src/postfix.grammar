@@ -76,6 +76,7 @@ Tokens
  panelviz =  panelprefix '.viz';
  panelcomment = panelprefix '.comment';
  panelclone = panelprefix '.clone';
+ panelsetbuilder = panelprefix '.setBuilder';
  
 Ignored Tokens
  blank;
@@ -125,7 +126,11 @@ panel_comment = // e.g. panel.comment("this looks super important", group0, coor
 		;
 		
 panel_clone = // e.g. panel.clone();
-		panelcomment l_par r_par
+		panelclone l_par r_par
+		;
+		
+panel_set_builder = // e.g. panel.setBuilder('graph');
+		panelsetbuilder l_par [builder]:word r_par
 		;
 		
 add_column = // follows the pattern of addColumn(columnName and optionally the expression) addColumn(c:NewCol, 'expression', [c:col1, c:col2]);

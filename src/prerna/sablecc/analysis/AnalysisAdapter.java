@@ -199,6 +199,11 @@ public class AnalysisAdapter implements Analysis
         defaultCase(node);
     }
 
+    public void caseAPanelSetBuilder(APanelSetBuilder node)
+    {
+        defaultCase(node);
+    }
+
     public void caseAAddColumn(AAddColumn node)
     {
         defaultCase(node);
@@ -850,6 +855,11 @@ public class AnalysisAdapter implements Analysis
     }
 
     public void caseTPanelclone(TPanelclone node)
+    {
+        defaultCase(node);
+    }
+
+    public void caseTPanelsetbuilder(TPanelsetbuilder node)
     {
         defaultCase(node);
     }
