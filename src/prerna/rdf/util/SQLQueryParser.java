@@ -302,7 +302,6 @@ public class SQLQueryParser extends AbstractQueryParser {
 					}
 					if(expression instanceof Column){
 						Column returnColumn = (Column) expression;
-						System.out.println(returnColumn.getColumnName());
 						String tableAliasName = returnColumn.getTable().getName();
 						//String fullyQualifiedName = returnColumn.getFullyQualifiedName();
 						String columnName = returnColumn.getColumnName();

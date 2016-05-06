@@ -42,8 +42,10 @@ import java.util.Map;
 import java.util.Vector;
 
 import org.apache.commons.dbcp2.BasicDataSource;
+import org.apache.commons.io.FileUtils;
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
+import org.h2.tools.DeleteDbFiles;
 import org.openrdf.model.vocabulary.RDFS;
 import org.openrdf.query.BindingSet;
 import org.openrdf.query.QueryEvaluationException;
@@ -222,6 +224,7 @@ public class RDBMSNativeEngine extends AbstractEngine {
 		try {
 			conn = getConnection();
 			stmt = conn.createStatement();
+			logger.debug("Executing RDBMS query: " + query);
 			if(query.startsWith("CREATE") && !(query.startsWith("CREATE DATABASE"))){ // this is create statement"
 				stmt.execute(query);
 			} else {
@@ -351,6 +354,13 @@ public class RDBMSNativeEngine extends AbstractEngine {
 		return null;
 	}
 	
+	/**
+	 * Method to execute Update/Delete statements with the option of closing the Statement object.
+	 * 
+	 * @param query					Query to execute
+	 * @param autoCloseStatement	Option to automatically close the Statement object after query execution
+	 * @return
+	 */
 	public Statement execUpdateAndRetrieveStatement(String query, boolean autoCloseStatement) {
 		Connection conn = null;
 		Statement stmt = null;
