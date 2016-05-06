@@ -903,7 +903,7 @@ public class TinkerMetaData2 implements IMetaData {
 						// this is an example where you have a group by with 2 columns + math
 						// the meta edgeHash for this example is {groupByCol1 -> [primKey] , groupByCol2 -> [primKey] , primKey -> [newCol]}
 						List<String> inputs = new Vector<String>();
-						Iterator<Edge> allEdges = vert.edges(Direction.IN);
+						Iterator<Edge> allEdges = outVert.edges(Direction.IN);
 						while(allEdges.hasNext()) {
 							inputs.add(allEdges.next().outVertex().value(Constants.NAME));
 						}
