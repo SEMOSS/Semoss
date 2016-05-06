@@ -2,9 +2,12 @@ package prerna.algorithm.impl;
 
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.Hashtable;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Vector;
 
 import prerna.algorithm.learning.weka.WekaAprioriAlgorithm;
 import prerna.algorithm.learning.weka.WekaUtilityMethods;
@@ -57,5 +60,12 @@ public class AprioriReactor extends BaseReducerReactor{
 	
 	public void setMaxSupport(double maxSupport) {
 		this.maxSupport = maxSupport;
+	}
+
+	@Override
+	public HashMap<HashMap<String, String>, Object> reduceGroupBy(Vector<String> groupBys, Vector<String> processedColumns, String[] columnsArray,
+			Iterator it) {
+		// TODO Auto-generated method stub
+		return null;
 	}
 }

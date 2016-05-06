@@ -1,8 +1,11 @@
 package prerna.algorithm.impl;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.Hashtable;
+import java.util.Iterator;
 import java.util.Map;
+import java.util.Vector;
 
 import prerna.algorithm.learning.weka.WekaAprioriAlgorithm;
 import prerna.algorithm.learning.weka.WekaClassification;
@@ -27,5 +30,13 @@ public class J48Reactor extends BaseReducerReactor{
 		//currently giving back the tree as a string
 		return alg.getTreeAsString();
 	}
+
+	@Override
+	public HashMap<HashMap<String, String>, Object> reduceGroupBy(Vector<String> groupBys, Vector<String> processedColumns, String[] columnsArray,
+			Iterator it) {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
 
 }
