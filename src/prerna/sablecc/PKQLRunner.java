@@ -209,4 +209,17 @@ public class PKQLRunner {
 		this.activeFeMap = null;
 		this.openFeDataBlock(panelId);
 	}
+
+	/**
+	 * This method is for putting the state of the current panel into a new panel
+	 * Used mostly for clone (a clone takes the current state)
+	 * @param newId
+	 */
+	public void copyFeData(String newId) {
+		Map<String, Object> copiedActiveMap = new HashMap<String, Object>();
+		copiedActiveMap.putAll(this.activeFeMap);
+		copiedActiveMap.remove("panelId");
+		openFeDataBlock(newId);
+		this.activeFeMap.putAll(copiedActiveMap);
+	}
 }
