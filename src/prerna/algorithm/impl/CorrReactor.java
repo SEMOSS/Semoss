@@ -1,5 +1,7 @@
 package prerna.algorithm.impl;
 
+import java.util.HashMap;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Vector;
@@ -39,6 +41,13 @@ public class CorrReactor extends BaseReducerReactor {
 		double[][] correlationArray = correlation.getCorrelationMatrix().getData();	
 		
 		return correlationArray;
+	}
+
+	@Override
+	public HashMap<HashMap<String, String>, Object> reduceGroupBy(Vector<String> groupBys, Vector<String> processedColumns, String[] columnsArray,
+			Iterator it) {
+		// TODO Auto-generated method stub
+		return null;
 	}
 	
 }
