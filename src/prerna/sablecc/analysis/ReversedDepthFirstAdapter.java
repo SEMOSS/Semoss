@@ -671,6 +671,10 @@ public class ReversedDepthFirstAdapter extends AnalysisAdapter
         {
             node.getRPar().apply(this);
         }
+        if(node.getNewid() != null)
+        {
+            node.getNewid().apply(this);
+        }
         if(node.getLPar() != null)
         {
             node.getLPar().apply(this);
