@@ -30,7 +30,9 @@ public abstract class BaseReducerReactor extends MathReactor implements Expressi
 	protected java.lang.Object baseException = null;
 	protected Bindings otherBindings = engine.getBindings(ScriptContext.ENGINE_SCOPE);
 	protected String propToGet = Constants.VALUE;
-
+	
+	
+	public abstract HashMap<HashMap<String,String>,Object> reduceGroupBy(Vector<String> groupBys, Vector<String> processedColumns, String[] columnsArray, Iterator it);
 
 	public void setData(Iterator inputIterator, String[] ids, String script) {
 		setData(inputIterator, ids,script, null);
@@ -142,23 +144,18 @@ public abstract class BaseReducerReactor extends MathReactor implements Expressi
 		Vector <String> columns = (Vector <String>)myStore.get(PKQLEnum.COL_DEF);
 		String[] columnsArray = convertVectorToArray(columns);
 		ITableDataFrame frame = (ITableDataFrame)myStore.get("G");
-
 		Vector<String> groupBys = (Vector <String>)myStore.get(PKQLEnum.COL_CSV);
+		
 		if(groupBys != null && !groupBys.isEmpty()){
-			Map masterMap = new HashMap();
-			Iterator groupByIterator = getTinkerData(groupBys, frame, true);
-			while(groupByIterator.hasNext()){
-				Object[] groupByVals = (Object[])groupByIterator.next();
-				Map<String, Object> valMap = new HashMap<String, Object>();
-				for(int i = 0; i < groupByVals.length; i++){
-					valMap.put(groupBys.get(i), groupByVals[i]);
-				}
-				Iterator iterator = getTinkerData(columns, frame, valMap, false);
-				Object finalValue = processAlgorithm(iterator, columnsArray);
-
-				masterMap.put(valMap, finalValue);
-			}
-			myStore.put(nodeStr, masterMap);
+			Vector<String> allColumns = new Vector<String>();
+			allColumns.addAll(groupBys);
+			allColumns.addAll(columns);
+			String[] allColumnsArray = convertVectorToArray(allColumns);
+			Iterator it = getTinkerData(allColumns, frame, false);
+			
+			HashMap<HashMap<String,String>,Object> groupByHash = reduceGroupBy(groupBys, columns, allColumnsArray, it);
+			
+			myStore.put(nodeStr, groupByHash);
 			myStore.put("STATUS","success");
 		} else {
 			Iterator iterator = getTinkerData(columns, frame, false);
