@@ -8,7 +8,6 @@ import java.util.Set;
 import prerna.ds.TinkerFrame;
 import prerna.ds.util.FileIterator;
 import prerna.engine.api.IHeadersDataRow;
-import prerna.engine.api.ISelectWrapper;
 import prerna.util.Utility;
 
 public class TinkerImportDataReactor extends ImportDataReactor{
@@ -63,13 +62,7 @@ public class TinkerImportDataReactor extends ImportDataReactor{
 			}
 		}
 		
-		// get rid of this bifurcation
-		// push this into the iterators
-		if(it instanceof ISelectWrapper) {
-			myStore.put(nodeStr, createResponseString((ISelectWrapper)it));
-		} else {
-			myStore.put(nodeStr, createResponseString(headers));
-		}
+		inputResponseString(it, headers);
 		myStore.put("STATUS", "SUCCESS");
 		
 		return null;
