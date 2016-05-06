@@ -149,6 +149,9 @@ public class TinkerMetaHelper {
 				value = node2Value.get(newNode);
 			}
 			metaData.storeVertex(newNode, value, null);
+			if(newNode.startsWith(TinkerFrame.PRIM_KEY)) {
+				metaData.setPrimKey(newNode, true);
+			}
 			
 			//for each edge in corresponding with newNode create the connection within the META graph
 			for(String inVertString : edges){
@@ -158,6 +161,9 @@ public class TinkerMetaHelper {
 					value2 = node2Value.get(inVertString);
 				}
 				metaData.storeVertex(inVertString, value2, newNode);
+				if(inVertString.startsWith(TinkerFrame.PRIM_KEY)) {
+					metaData.setPrimKey(inVertString, true);
+				}
 				metaData.storeRelation(newNode, inVertString);
 			}
 		}
