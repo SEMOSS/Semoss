@@ -1,6 +1,11 @@
 package prerna.algorithm.impl;
 
 import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.Vector;
+
+import prerna.util.ArrayUtilityMethods;
 
 public class MaxReactor extends BaseReducerReactor {
 	
@@ -24,6 +29,30 @@ public class MaxReactor extends BaseReducerReactor {
 		}
 		System.out.println(output);
 		return output;
+	}
+	
+	@Override
+	public HashMap<HashMap<String,String>,Object> reduceGroupBy(Vector<String> groupBys, Vector<String> processedColumns, String[] columnsArray, Iterator it) {
+		HashMap<HashMap<String,String>, Object> groupByHash = new HashMap<HashMap<String,String>,Object>();
+		
+		while(it.hasNext()){
+			Object[] row = (Object[]) it.next();
+			HashMap<String, String> key = new HashMap<String,String>();
+			for(String groupBy : groupBys) {
+				int groupByIndex = ArrayUtilityMethods.arrayContainsValueAtIndexIgnoreCase(columnsArray, groupBy);
+				String instance = (String)row[groupByIndex];
+				key.put(groupBy, instance);
+			}
+			int processedIndex = ArrayUtilityMethods.arrayContainsValueAtIndexIgnoreCase(columnsArray, processedColumns.get(0));
+			Object value = row[processedIndex];
+			if(!groupByHash.containsKey(key)) {
+				groupByHash.put(key, (Double)value);
+			} else if(((Double)groupByHash.get(key)) < ((Double)value)){
+				groupByHash.put(key, (Double)value);
+			}
+		}
+		
+		return groupByHash;
 	}
 	
 }
