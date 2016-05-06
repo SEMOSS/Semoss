@@ -29,6 +29,7 @@ public final class ANumWordOrNum extends PWordOrNum
             cloneNode(this._decimal_));
     }
 
+    @Override
     public void apply(Switch sw)
     {
         ((Analysis) sw).caseANumWordOrNum(this);

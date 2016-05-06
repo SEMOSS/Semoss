@@ -59,6 +59,7 @@ public final class AImportColumn extends PImportColumn
             cloneNode(this._data_));
     }
 
+    @Override
     public void apply(Switch sw)
     {
         ((Analysis) sw).caseAImportColumn(this);

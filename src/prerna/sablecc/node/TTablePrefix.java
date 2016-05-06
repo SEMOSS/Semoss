@@ -25,6 +25,7 @@ public final class TTablePrefix extends Token
       return new TTablePrefix(getLine(), getPos());
     }
 
+    @Override
     public void apply(Switch sw)
     {
         ((Analysis) sw).caseTTablePrefix(this);

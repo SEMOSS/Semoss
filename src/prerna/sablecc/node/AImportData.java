@@ -49,6 +49,7 @@ public final class AImportData extends PImportData
             cloneNode(this._rp2_));
     }
 
+    @Override
     public void apply(Switch sw)
     {
         ((Analysis) sw).caseAImportData(this);

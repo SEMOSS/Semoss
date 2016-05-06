@@ -49,6 +49,7 @@ public final class AExtendedExpr extends PExtendedExpr
             cloneNode(this._rPar_));
     }
 
+    @Override
     public void apply(Switch sw)
     {
         ((Analysis) sw).caseAExtendedExpr(this);

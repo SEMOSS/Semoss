@@ -23,7 +23,7 @@ public final class APivotColumn extends PPivotColumn
         @SuppressWarnings("hiding") TColpivot _colpivot_,
         @SuppressWarnings("hiding") TLPar _lPar_,
         @SuppressWarnings("hiding") PColDef _firstcol_,
-        @SuppressWarnings("hiding") List<PColGroup> _colGroup_,
+        @SuppressWarnings("hiding") List<?> _colGroup_,
         @SuppressWarnings("hiding") TRPar _rPar_)
     {
         // Constructor
@@ -50,6 +50,7 @@ public final class APivotColumn extends PPivotColumn
             cloneNode(this._rPar_));
     }
 
+    @Override
     public void apply(Switch sw)
     {
         ((Analysis) sw).caseAPivotColumn(this);
@@ -135,18 +136,24 @@ public final class APivotColumn extends PPivotColumn
         return this._colGroup_;
     }
 
-    public void setColGroup(List<PColGroup> list)
+    public void setColGroup(List<?> list)
     {
-        this._colGroup_.clear();
-        this._colGroup_.addAll(list);
-        for(PColGroup e : list)
+        for(PColGroup e : this._colGroup_)
         {
+            e.parent(null);
+        }
+        this._colGroup_.clear();
+
+        for(Object obj_e : list)
+        {
+            PColGroup e = (PColGroup) obj_e;
             if(e.parent() != null)
             {
                 e.parent().removeChild(e);
             }
 
             e.parent(this);
+            this._colGroup_.add(e);
         }
     }
 
