@@ -25,7 +25,6 @@ public final class TGroup extends Token
       return new TGroup(getLine(), getPos());
     }
 
-    @Override
     public void apply(Switch sw)
     {
         ((Analysis) sw).caseTGroup(this);

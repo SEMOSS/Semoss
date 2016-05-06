@@ -25,7 +25,6 @@ public final class TDataremovetoken extends Token
       return new TDataremovetoken(getLine(), getPos());
     }
 
-    @Override
     public void apply(Switch sw)
     {
         ((Analysis) sw).caseTDataremovetoken(this);

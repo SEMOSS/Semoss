@@ -29,7 +29,6 @@ public final class AImportColop extends PColop
             cloneNode(this._importColumn_));
     }
 
-    @Override
     public void apply(Switch sw)
     {
         ((Analysis) sw).caseAImportColop(this);

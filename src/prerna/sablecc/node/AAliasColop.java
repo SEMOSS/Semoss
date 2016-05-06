@@ -29,7 +29,6 @@ public final class AAliasColop extends PColop
             cloneNode(this._aliasColumn_));
     }
 
-    @Override
     public void apply(Switch sw)
     {
         ((Analysis) sw).caseAAliasColop(this);

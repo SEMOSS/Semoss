@@ -352,7 +352,7 @@ class TokenIndex extends AnalysisAdapter
     }
 
     @Override
-    public void caseTPanelsetbuilder(@SuppressWarnings("unused") TPanelsetbuilder node)
+    public void caseTDataframe(@SuppressWarnings("unused") TDataframe node)
     {
         this.index = 57;
     }

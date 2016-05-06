@@ -26,7 +26,8 @@ public class PKQLRunner {
 	private String currentStatus = "success";
 	private String currentString = "";
 	private Object response = "PKQL processing complete";
-	private Map<String, Map<String,Object>> masterFeMap = new HashMap<String, Map<String,Object>>(); // this holds all front end data. in the form panelId --> prop --> value
+	private Map<String, Map<String,Object>> masterFeMap = new HashMap<String, Map<String,Object>>(); // this holds all active front end data. in the form panelId --> prop --> value
+	private Map<String, List<Map<String, Object>>> expiredFeMaps =  new HashMap<String, List<Map<String,Object>>>();
 	private Map<String, Object> activeFeMap;
 	private Translation2 translation;
 	private List<Map> responseArray = new Vector<Map>();
@@ -187,5 +188,25 @@ public class PKQLRunner {
 	
 	public ITableDataFrame getDataFrame() {
 		return translation.getDataFrame();
+	}
+
+	/**
+	 * This method stores the current fe state and opens a new hash to store next state
+	 * This is called when a new state comes in and we don't want to lose the old one
+	 */
+	public void storeFeState() {
+		// remove the activeFeMap from masterFeMap
+		// put activeFeMap into expiredFeMap
+		// open new activeFeMap
+		
+		String panelId = (String) this.activeFeMap.get("panelId");
+		this.masterFeMap.remove(panelId);
+		List<Map<String, Object>> expiredMaps = new Vector<Map<String, Object>>();
+		if(this.expiredFeMaps.containsKey(panelId)){
+			expiredMaps = this.expiredFeMaps.get(panelId);
+		}
+		expiredMaps.add(this.activeFeMap);
+		this.activeFeMap = null;
+		this.openFeDataBlock(panelId);
 	}
 }

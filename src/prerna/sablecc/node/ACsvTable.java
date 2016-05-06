@@ -19,7 +19,7 @@ public final class ACsvTable extends PCsvTable
 
     public ACsvTable(
         @SuppressWarnings("hiding") TLBracket _lBracket_,
-        @SuppressWarnings("hiding") List<?> _csvRow_,
+        @SuppressWarnings("hiding") List<PCsvRow> _csvRow_,
         @SuppressWarnings("hiding") TRBracket _rBracket_)
     {
         // Constructor
@@ -40,7 +40,6 @@ public final class ACsvTable extends PCsvTable
             cloneNode(this._rBracket_));
     }
 
-    @Override
     public void apply(Switch sw)
     {
         ((Analysis) sw).caseACsvTable(this);
@@ -76,24 +75,18 @@ public final class ACsvTable extends PCsvTable
         return this._csvRow_;
     }
 
-    public void setCsvRow(List<?> list)
+    public void setCsvRow(List<PCsvRow> list)
     {
-        for(PCsvRow e : this._csvRow_)
-        {
-            e.parent(null);
-        }
         this._csvRow_.clear();
-
-        for(Object obj_e : list)
+        this._csvRow_.addAll(list);
+        for(PCsvRow e : list)
         {
-            PCsvRow e = (PCsvRow) obj_e;
             if(e.parent() != null)
             {
                 e.parent().removeChild(e);
             }
 
             e.parent(this);
-            this._csvRow_.add(e);
         }
     }
 

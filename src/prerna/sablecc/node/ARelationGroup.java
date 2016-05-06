@@ -34,7 +34,6 @@ public final class ARelationGroup extends PRelationGroup
             cloneNode(this._relationDef_));
     }
 
-    @Override
     public void apply(Switch sw)
     {
         ((Analysis) sw).caseARelationGroup(this);

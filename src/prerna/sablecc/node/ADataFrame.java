@@ -5,26 +5,26 @@ package prerna.sablecc.node;
 import prerna.sablecc.analysis.*;
 
 @SuppressWarnings("nls")
-public final class APanelSetBuilder extends PPanelSetBuilder
+public final class ADataFrame extends PDataFrame
 {
-    private TPanelsetbuilder _panelsetbuilder_;
+    private TDataframe _dataframe_;
     private TLPar _lPar_;
     private TWord _builder_;
     private TRPar _rPar_;
 
-    public APanelSetBuilder()
+    public ADataFrame()
     {
         // Constructor
     }
 
-    public APanelSetBuilder(
-        @SuppressWarnings("hiding") TPanelsetbuilder _panelsetbuilder_,
+    public ADataFrame(
+        @SuppressWarnings("hiding") TDataframe _dataframe_,
         @SuppressWarnings("hiding") TLPar _lPar_,
         @SuppressWarnings("hiding") TWord _builder_,
         @SuppressWarnings("hiding") TRPar _rPar_)
     {
         // Constructor
-        setPanelsetbuilder(_panelsetbuilder_);
+        setDataframe(_dataframe_);
 
         setLPar(_lPar_);
 
@@ -37,29 +37,28 @@ public final class APanelSetBuilder extends PPanelSetBuilder
     @Override
     public Object clone()
     {
-        return new APanelSetBuilder(
-            cloneNode(this._panelsetbuilder_),
+        return new ADataFrame(
+            cloneNode(this._dataframe_),
             cloneNode(this._lPar_),
             cloneNode(this._builder_),
             cloneNode(this._rPar_));
     }
 
-    @Override
     public void apply(Switch sw)
     {
-        ((Analysis) sw).caseAPanelSetBuilder(this);
+        ((Analysis) sw).caseADataFrame(this);
     }
 
-    public TPanelsetbuilder getPanelsetbuilder()
+    public TDataframe getDataframe()
     {
-        return this._panelsetbuilder_;
+        return this._dataframe_;
     }
 
-    public void setPanelsetbuilder(TPanelsetbuilder node)
+    public void setDataframe(TDataframe node)
     {
-        if(this._panelsetbuilder_ != null)
+        if(this._dataframe_ != null)
         {
-            this._panelsetbuilder_.parent(null);
+            this._dataframe_.parent(null);
         }
 
         if(node != null)
@@ -72,7 +71,7 @@ public final class APanelSetBuilder extends PPanelSetBuilder
             node.parent(this);
         }
 
-        this._panelsetbuilder_ = node;
+        this._dataframe_ = node;
     }
 
     public TLPar getLPar()
@@ -154,7 +153,7 @@ public final class APanelSetBuilder extends PPanelSetBuilder
     public String toString()
     {
         return ""
-            + toString(this._panelsetbuilder_)
+            + toString(this._dataframe_)
             + toString(this._lPar_)
             + toString(this._builder_)
             + toString(this._rPar_);
@@ -164,9 +163,9 @@ public final class APanelSetBuilder extends PPanelSetBuilder
     void removeChild(@SuppressWarnings("unused") Node child)
     {
         // Remove child
-        if(this._panelsetbuilder_ == child)
+        if(this._dataframe_ == child)
         {
-            this._panelsetbuilder_ = null;
+            this._dataframe_ = null;
             return;
         }
 
@@ -195,9 +194,9 @@ public final class APanelSetBuilder extends PPanelSetBuilder
     void replaceChild(@SuppressWarnings("unused") Node oldChild, @SuppressWarnings("unused") Node newChild)
     {
         // Replace child
-        if(this._panelsetbuilder_ == oldChild)
+        if(this._dataframe_ == oldChild)
         {
-            setPanelsetbuilder((TPanelsetbuilder) newChild);
+            setDataframe((TDataframe) newChild);
             return;
         }
 

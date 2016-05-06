@@ -29,7 +29,6 @@ public final class ARemcolColop extends PColop
             cloneNode(this._remColumn_));
     }
 
-    @Override
     public void apply(Switch sw)
     {
         ((Analysis) sw).caseARemcolColop(this);

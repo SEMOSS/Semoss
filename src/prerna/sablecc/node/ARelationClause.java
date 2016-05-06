@@ -23,7 +23,7 @@ public final class ARelationClause extends PRelationClause
         @SuppressWarnings("hiding") TComma _comma_,
         @SuppressWarnings("hiding") TLPar _lPar_,
         @SuppressWarnings("hiding") PRelationDef _relationDef_,
-        @SuppressWarnings("hiding") List<?> _relationGroup_,
+        @SuppressWarnings("hiding") List<PRelationGroup> _relationGroup_,
         @SuppressWarnings("hiding") TRPar _rPar_)
     {
         // Constructor
@@ -50,7 +50,6 @@ public final class ARelationClause extends PRelationClause
             cloneNode(this._rPar_));
     }
 
-    @Override
     public void apply(Switch sw)
     {
         ((Analysis) sw).caseARelationClause(this);
@@ -136,24 +135,18 @@ public final class ARelationClause extends PRelationClause
         return this._relationGroup_;
     }
 
-    public void setRelationGroup(List<?> list)
+    public void setRelationGroup(List<PRelationGroup> list)
     {
-        for(PRelationGroup e : this._relationGroup_)
-        {
-            e.parent(null);
-        }
         this._relationGroup_.clear();
-
-        for(Object obj_e : list)
+        this._relationGroup_.addAll(list);
+        for(PRelationGroup e : list)
         {
-            PRelationGroup e = (PRelationGroup) obj_e;
             if(e.parent() != null)
             {
                 e.parent().removeChild(e);
             }
 
             e.parent(this);
-            this._relationGroup_.add(e);
         }
     }
 

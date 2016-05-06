@@ -79,7 +79,6 @@ public final class AApiBlock extends PApiBlock
             cloneNode(this._rPar_));
     }
 
-    @Override
     public void apply(Switch sw)
     {
         ((Analysis) sw).caseAApiBlock(this);
