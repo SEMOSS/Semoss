@@ -568,6 +568,27 @@ public class ReversedDepthFirstAdapter extends AnalysisAdapter
         outAPanelClonePanelop(node);
     }
 
+    public void inAPanelClosePanelop(APanelClosePanelop node)
+    {
+        defaultIn(node);
+    }
+
+    public void outAPanelClosePanelop(APanelClosePanelop node)
+    {
+        defaultOut(node);
+    }
+
+    @Override
+    public void caseAPanelClosePanelop(APanelClosePanelop node)
+    {
+        inAPanelClosePanelop(node);
+        if(node.getPanelClose() != null)
+        {
+            node.getPanelClose().apply(this);
+        }
+        outAPanelClosePanelop(node);
+    }
+
     public void inAPanelViz(APanelViz node)
     {
         defaultIn(node);
@@ -705,6 +726,35 @@ public class ReversedDepthFirstAdapter extends AnalysisAdapter
             node.getPanelclone().apply(this);
         }
         outAPanelClone(node);
+    }
+
+    public void inAPanelClose(APanelClose node)
+    {
+        defaultIn(node);
+    }
+
+    public void outAPanelClose(APanelClose node)
+    {
+        defaultOut(node);
+    }
+
+    @Override
+    public void caseAPanelClose(APanelClose node)
+    {
+        inAPanelClose(node);
+        if(node.getRPar() != null)
+        {
+            node.getRPar().apply(this);
+        }
+        if(node.getLPar() != null)
+        {
+            node.getLPar().apply(this);
+        }
+        if(node.getPanelclose() != null)
+        {
+            node.getPanelclose().apply(this);
+        }
+        outAPanelClose(node);
     }
 
     public void inADataFrame(ADataFrame node)

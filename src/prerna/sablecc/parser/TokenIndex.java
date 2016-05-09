@@ -352,20 +352,26 @@ class TokenIndex extends AnalysisAdapter
     }
 
     @Override
-    public void caseTDataframe(@SuppressWarnings("unused") TDataframe node)
+    public void caseTPanelclose(@SuppressWarnings("unused") TPanelclose node)
     {
         this.index = 57;
     }
 
     @Override
-    public void caseTFileText(@SuppressWarnings("unused") TFileText node)
+    public void caseTDataframe(@SuppressWarnings("unused") TDataframe node)
     {
         this.index = 58;
     }
 
     @Override
-    public void caseEOF(@SuppressWarnings("unused") EOF node)
+    public void caseTFileText(@SuppressWarnings("unused") TFileText node)
     {
         this.index = 59;
+    }
+
+    @Override
+    public void caseEOF(@SuppressWarnings("unused") EOF node)
+    {
+        this.index = 60;
     }
 }
