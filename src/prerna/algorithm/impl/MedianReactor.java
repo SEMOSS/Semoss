@@ -48,15 +48,17 @@ public class MedianReactor extends BaseReducerReactor {
 				key.put(groupBy, instance);
 			}
 			int processedIndex = ArrayUtilityMethods.arrayContainsValueAtIndexIgnoreCase(columnsArray, processedColumns.get(0));
-			Object value = row[processedIndex];
-			HashMap<String,Object> paramMap = (HashMap<String,Object>)groupByHash.get(key);
-			if(paramMap == null) {
-				paramMap = new HashMap<String,Object>();
-				groupByHash.put(key, paramMap);
-				paramMap.put("VALUES", new ArrayList<Double>());
+			if (row[processedIndex] instanceof Number) {
+				double value = ((Number)row[processedIndex]).doubleValue();
+				HashMap<String,Object> paramMap = (HashMap<String,Object>)groupByHash.get(key);
+				if(paramMap == null) {
+					paramMap = new HashMap<String,Object>();
+					groupByHash.put(key, paramMap);
+					paramMap.put("VALUES", new ArrayList<Double>());
+				}
+				ArrayList<Double> values = (ArrayList<Double>)paramMap.get("VALUES");
+				values.add(value);
 			}
-			ArrayList<Double> values = (ArrayList<Double>)paramMap.get("VALUES");
-			values.add((Double)value);
 		}
 		for(HashMap<String,String> key: groupByHash.keySet()) {
 			HashMap<String,Object> paramMap = (HashMap<String,Object>)groupByHash.get(key);
