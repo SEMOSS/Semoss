@@ -29,7 +29,6 @@ public final class AUnfocusColop extends PColop
             cloneNode(this._unfocus_));
     }
 
-    @Override
     public void apply(Switch sw)
     {
         ((Analysis) sw).caseAUnfocusColop(this);

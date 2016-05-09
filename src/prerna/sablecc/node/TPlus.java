@@ -25,7 +25,6 @@ public final class TPlus extends Token
       return new TPlus(getLine(), getPos());
     }
 
-    @Override
     public void apply(Switch sw)
     {
         ((Analysis) sw).caseTPlus(this);

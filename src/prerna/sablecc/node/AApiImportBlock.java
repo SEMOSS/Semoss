@@ -29,7 +29,6 @@ public final class AApiImportBlock extends PImportBlock
             cloneNode(this._apiBlock_));
     }
 
-    @Override
     public void apply(Switch sw)
     {
         ((Analysis) sw).caseAApiImportBlock(this);

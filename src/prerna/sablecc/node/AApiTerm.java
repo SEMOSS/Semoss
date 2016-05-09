@@ -29,7 +29,6 @@ public final class AApiTerm extends PTerm
             cloneNode(this._apiBlock_));
     }
 
-    @Override
     public void apply(Switch sw)
     {
         ((Analysis) sw).caseAApiTerm(this);

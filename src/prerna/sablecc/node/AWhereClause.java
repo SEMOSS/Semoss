@@ -18,7 +18,7 @@ public final class AWhereClause extends PWhereClause
 
     public AWhereClause(
         @SuppressWarnings("hiding") PColWhere _colWhere_,
-        @SuppressWarnings("hiding") List<?> _colWhereGroup_)
+        @SuppressWarnings("hiding") List<PColWhereGroup> _colWhereGroup_)
     {
         // Constructor
         setColWhere(_colWhere_);
@@ -35,7 +35,6 @@ public final class AWhereClause extends PWhereClause
             cloneList(this._colWhereGroup_));
     }
 
-    @Override
     public void apply(Switch sw)
     {
         ((Analysis) sw).caseAWhereClause(this);
@@ -71,24 +70,18 @@ public final class AWhereClause extends PWhereClause
         return this._colWhereGroup_;
     }
 
-    public void setColWhereGroup(List<?> list)
+    public void setColWhereGroup(List<PColWhereGroup> list)
     {
-        for(PColWhereGroup e : this._colWhereGroup_)
-        {
-            e.parent(null);
-        }
         this._colWhereGroup_.clear();
-
-        for(Object obj_e : list)
+        this._colWhereGroup_.addAll(list);
+        for(PColWhereGroup e : list)
         {
-            PColWhereGroup e = (PColWhereGroup) obj_e;
             if(e.parent() != null)
             {
                 e.parent().removeChild(e);
             }
 
             e.parent(this);
-            this._colWhereGroup_.add(e);
         }
     }
 

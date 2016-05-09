@@ -124,7 +124,7 @@ panel_viz = // e.g. panel.viz(bar, [c:Title, c:Budget]); panelviz( vizType, orde
 		;
 		
 panel_comment = // e.g. panel.comment("this looks super important", group0, coordinate, (50, 16));
-		panelcomment l_par [text]:word [c1]:comma [group]:id [c2]:comma [type]:id [c3]:comma [location]:word_or_num r_par
+		panelcomment l_par [text]:word [c1]:comma [type]:id [c2]:comma [location]:map_obj [c3]:comma [group]:id r_par
 		;
 		
 panel_clone = // e.g. panel.clone();
@@ -218,7 +218,7 @@ if_block = l_par comparator comma term r_par;
 
 col_group = comma col_def;
 
-keyvalue = [word1]:word colon [word2]:word;
+keyvalue = [word1]:word_or_num colon [word2]:word_or_num;
 
 keyvalue_group = comma keyvalue;
 

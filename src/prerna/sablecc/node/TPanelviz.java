@@ -25,7 +25,6 @@ public final class TPanelviz extends Token
       return new TPanelviz(getText(), getLine(), getPos());
     }
 
-    @Override
     public void apply(Switch sw)
     {
         ((Analysis) sw).caseTPanelviz(this);

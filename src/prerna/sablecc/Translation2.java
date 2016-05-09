@@ -340,10 +340,13 @@ public class Translation2 extends DepthFirstAdapter {
 	public void outAPanelComment(APanelComment node) {
 		System.out.println("out a viz change");
 		deinitReactor(PKQLEnum.VIZ, "", "");
-		runner.addFeData("text", node.getText().toString().trim(), false);
-		runner.addFeData("group", node.getGroup().toString().trim(), false);
-		runner.addFeData("type", node.getType().toString().trim(), false);
-		runner.addFeData("location", node.getLocation().toString().trim(), false);
+		Map<String, Object> commentMap = new HashMap<String, Object>();
+		String textWithQuotes = node.getText().toString().trim();
+		commentMap.put("text", textWithQuotes.substring(1, textWithQuotes.length()-1)); // remove the quotes
+		commentMap.put("group", node.getGroup().toString().trim());
+		commentMap.put("type", node.getType().toString().trim());
+		commentMap.put("location", node.getLocation().toString().trim());
+		runner.addFeData("comment", commentMap, false);
 		runner.setResponse("Successfully commented : " + node.getText().toString().trim());//
 		runner.setStatus("SUCCESS");
 	}

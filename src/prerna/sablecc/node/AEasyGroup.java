@@ -34,7 +34,6 @@ public final class AEasyGroup extends PEasyGroup
             cloneNode(this._wordOrNum_));
     }
 
-    @Override
     public void apply(Switch sw)
     {
         ((Analysis) sw).caseAEasyGroup(this);

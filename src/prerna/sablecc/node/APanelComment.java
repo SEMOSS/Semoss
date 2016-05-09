@@ -11,11 +11,11 @@ public final class APanelComment extends PPanelComment
     private TLPar _lPar_;
     private TWord _text_;
     private TComma _c1_;
-    private TId _group_;
-    private TComma _c2_;
     private TId _type_;
+    private TComma _c2_;
+    private PMapObj _location_;
     private TComma _c3_;
-    private PWordOrNum _location_;
+    private TId _group_;
     private TRPar _rPar_;
 
     public APanelComment()
@@ -28,11 +28,11 @@ public final class APanelComment extends PPanelComment
         @SuppressWarnings("hiding") TLPar _lPar_,
         @SuppressWarnings("hiding") TWord _text_,
         @SuppressWarnings("hiding") TComma _c1_,
-        @SuppressWarnings("hiding") TId _group_,
-        @SuppressWarnings("hiding") TComma _c2_,
         @SuppressWarnings("hiding") TId _type_,
+        @SuppressWarnings("hiding") TComma _c2_,
+        @SuppressWarnings("hiding") PMapObj _location_,
         @SuppressWarnings("hiding") TComma _c3_,
-        @SuppressWarnings("hiding") PWordOrNum _location_,
+        @SuppressWarnings("hiding") TId _group_,
         @SuppressWarnings("hiding") TRPar _rPar_)
     {
         // Constructor
@@ -44,15 +44,15 @@ public final class APanelComment extends PPanelComment
 
         setC1(_c1_);
 
-        setGroup(_group_);
+        setType(_type_);
 
         setC2(_c2_);
 
-        setType(_type_);
+        setLocation(_location_);
 
         setC3(_c3_);
 
-        setLocation(_location_);
+        setGroup(_group_);
 
         setRPar(_rPar_);
 
@@ -66,15 +66,14 @@ public final class APanelComment extends PPanelComment
             cloneNode(this._lPar_),
             cloneNode(this._text_),
             cloneNode(this._c1_),
-            cloneNode(this._group_),
-            cloneNode(this._c2_),
             cloneNode(this._type_),
-            cloneNode(this._c3_),
+            cloneNode(this._c2_),
             cloneNode(this._location_),
+            cloneNode(this._c3_),
+            cloneNode(this._group_),
             cloneNode(this._rPar_));
     }
 
-    @Override
     public void apply(Switch sw)
     {
         ((Analysis) sw).caseAPanelComment(this);
@@ -180,16 +179,16 @@ public final class APanelComment extends PPanelComment
         this._c1_ = node;
     }
 
-    public TId getGroup()
+    public TId getType()
     {
-        return this._group_;
+        return this._type_;
     }
 
-    public void setGroup(TId node)
+    public void setType(TId node)
     {
-        if(this._group_ != null)
+        if(this._type_ != null)
         {
-            this._group_.parent(null);
+            this._type_.parent(null);
         }
 
         if(node != null)
@@ -202,7 +201,7 @@ public final class APanelComment extends PPanelComment
             node.parent(this);
         }
 
-        this._group_ = node;
+        this._type_ = node;
     }
 
     public TComma getC2()
@@ -230,16 +229,16 @@ public final class APanelComment extends PPanelComment
         this._c2_ = node;
     }
 
-    public TId getType()
+    public PMapObj getLocation()
     {
-        return this._type_;
+        return this._location_;
     }
 
-    public void setType(TId node)
+    public void setLocation(PMapObj node)
     {
-        if(this._type_ != null)
+        if(this._location_ != null)
         {
-            this._type_.parent(null);
+            this._location_.parent(null);
         }
 
         if(node != null)
@@ -252,7 +251,7 @@ public final class APanelComment extends PPanelComment
             node.parent(this);
         }
 
-        this._type_ = node;
+        this._location_ = node;
     }
 
     public TComma getC3()
@@ -280,16 +279,16 @@ public final class APanelComment extends PPanelComment
         this._c3_ = node;
     }
 
-    public PWordOrNum getLocation()
+    public TId getGroup()
     {
-        return this._location_;
+        return this._group_;
     }
 
-    public void setLocation(PWordOrNum node)
+    public void setGroup(TId node)
     {
-        if(this._location_ != null)
+        if(this._group_ != null)
         {
-            this._location_.parent(null);
+            this._group_.parent(null);
         }
 
         if(node != null)
@@ -302,7 +301,7 @@ public final class APanelComment extends PPanelComment
             node.parent(this);
         }
 
-        this._location_ = node;
+        this._group_ = node;
     }
 
     public TRPar getRPar()
@@ -338,11 +337,11 @@ public final class APanelComment extends PPanelComment
             + toString(this._lPar_)
             + toString(this._text_)
             + toString(this._c1_)
-            + toString(this._group_)
-            + toString(this._c2_)
             + toString(this._type_)
-            + toString(this._c3_)
+            + toString(this._c2_)
             + toString(this._location_)
+            + toString(this._c3_)
+            + toString(this._group_)
             + toString(this._rPar_);
     }
 
@@ -374,9 +373,9 @@ public final class APanelComment extends PPanelComment
             return;
         }
 
-        if(this._group_ == child)
+        if(this._type_ == child)
         {
-            this._group_ = null;
+            this._type_ = null;
             return;
         }
 
@@ -386,9 +385,9 @@ public final class APanelComment extends PPanelComment
             return;
         }
 
-        if(this._type_ == child)
+        if(this._location_ == child)
         {
-            this._type_ = null;
+            this._location_ = null;
             return;
         }
 
@@ -398,9 +397,9 @@ public final class APanelComment extends PPanelComment
             return;
         }
 
-        if(this._location_ == child)
+        if(this._group_ == child)
         {
-            this._location_ = null;
+            this._group_ = null;
             return;
         }
 
@@ -441,9 +440,9 @@ public final class APanelComment extends PPanelComment
             return;
         }
 
-        if(this._group_ == oldChild)
+        if(this._type_ == oldChild)
         {
-            setGroup((TId) newChild);
+            setType((TId) newChild);
             return;
         }
 
@@ -453,9 +452,9 @@ public final class APanelComment extends PPanelComment
             return;
         }
 
-        if(this._type_ == oldChild)
+        if(this._location_ == oldChild)
         {
-            setType((TId) newChild);
+            setLocation((PMapObj) newChild);
             return;
         }
 
@@ -465,9 +464,9 @@ public final class APanelComment extends PPanelComment
             return;
         }
 
-        if(this._location_ == oldChild)
+        if(this._group_ == oldChild)
         {
-            setLocation((PWordOrNum) newChild);
+            setGroup((TId) newChild);
             return;
         }
 
