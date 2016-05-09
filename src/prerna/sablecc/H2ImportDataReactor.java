@@ -2,10 +2,12 @@ package prerna.sablecc;
 
 import java.util.HashMap;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.Vector;
 
+import cern.colt.Arrays;
 import prerna.ds.H2.TinkerH2Frame;
 import prerna.ds.util.FileIterator;
 import prerna.engine.api.IHeadersDataRow;
@@ -24,53 +26,57 @@ public class H2ImportDataReactor extends ImportDataReactor {
 		Map<String, Set<String>> edgeHash = (Map<String, Set<String>>) myStore.get("edgeHash");
 		Map<String, String> logicalToValue = (Map<String, String>) myStore.get("logicalToValue");
 		String[] startingHeaders = (String[]) myStore.get("startingHeaders");
-		
 		Vector<Map<String, String>> joins = (Vector<Map<String, String>>) myStore.get(PKQLEnum.JOINS);
 		String joinType = (String)myStore.get(PKQLEnum.REL_TYPE);
 		
-		String[] headers = null;
 		boolean addRow = false;
+		
+		//TODO: need to make all these wrappers that give a IHeaderDataRow be the same type to get this info
+		String[] types = null;
+		String[] headers = null;
+		if(it instanceof FileIterator) {
+			types = ((FileIterator) it).getTypes();
+			headers = ((FileIterator) it).getHeaders();
+		} else if(it instanceof CsvTableWrapper) {
+			types = ((CsvTableWrapper) it).getTypes();
+			headers = ((CsvTableWrapper) it).getHeaders();
+		} else if(it instanceof ISelectWrapper) {
+			headers = ((ISelectWrapper)it).getDisplayVariables();
+		}
+		
+		
+		// TODO: annoying, need to determine if i need to create a prim key edge hash
 		boolean isPrimKey = false;
+		if(edgeHash == null) {
+			Map<String, Set<String>> primKeyEdgeHash = frame.createPrimKeyEdgeHash(headers);
+			Map<String, String> dataType = new HashMap<>();
+			for(int i = 0; i < types.length; i++) {
+				dataType.put(headers[i], types[i]);
+			}
+			
+			frame.mergeEdgeHash(primKeyEdgeHash, dataType);
+			isPrimKey = true;
+		}
+		
+		//am i simply adding more data to the same columns or am i adding new columns as well?
+		//if frame is empty then just add row
+		if(allHeadersAccounted(startingHeaders, headers) || frame.isEmpty() ) {
+			addRow = true;
+		}
 		
 		while(it.hasNext()){
-			IHeadersDataRow ss = (IHeadersDataRow) it.next();
-			if(headers == null) { // during first loop
-				headers = ss.getHeaders();
-
-				// TODO: annoying, need to determine if i need to create a prim key edge hash
-				if(edgeHash == null) {
-					Map<String, Set<String>> primKeyEdgeHash = frame.createPrimKeyEdgeHash(headers);
-					
-					//TODO: need to make all these wrappers that give a IHeaderDataRow be the same type to get this info
-					String[] types = null;
-					if(it instanceof FileIterator) {
-						types = ((FileIterator) it).getTypes();
-					} else if(it instanceof CsvTableWrapper) {
-						types = ((CsvTableWrapper) it).getTypes();
-					}
-					
-					Map<String, String> dataType = new HashMap<>();
-					for(int i = 0; i < types.length; i++) {
-						dataType.put(headers[i], types[i]);
-					}
-					
-					frame.mergeEdgeHash(primKeyEdgeHash, dataType);
-					isPrimKey = true;
-				}
-
-				// TODO: need to have a smart way of determining when it is an "addRow" vs. "addRelationship"
-				// TODO: h2Builder addRelationship only does update query which does nothing if frame is empty
-				if(allHeadersAccounted(startingHeaders, headers) || frame.isEmpty() ) {
-					addRow = true;
-				}
-			}
 
 			// TODO: need to have a smart way of determining when it is an "addRow" vs. "addRelationship"
 			// TODO: h2Builder addRelationship only does update query which does nothing if frame is empty
 			if(addRow && isPrimKey) {
+				IHeadersDataRow ss = (IHeadersDataRow) it.next();
 				frame.addRow(ss.getValues(), ss.getRawValues(), ss.getHeaders());
 			} else {
-				frame.processIterator(it, ss.getHeaders(), logicalToValue, joins, joinType);
+				frame.processIterator(it, headers, logicalToValue, joins, joinType);
+//				List<Object[]> frameData = frame.getData();
+//				for(Object[] nextRow : frameData) {
+//					System.out.println(Arrays.toString(nextRow));
+//				}
 				break;
 			}
 		}
