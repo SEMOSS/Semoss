@@ -35,11 +35,13 @@ public class SumReactor extends BaseReducerReactor {
 				key.put(groupBy, instance);
 			}
 			int processedIndex = ArrayUtilityMethods.arrayContainsValueAtIndexIgnoreCase(columnsArray, processedColumns.get(0));
-			Object value = row[processedIndex];
-			if(!groupByHash.containsKey(key)) {
-				groupByHash.put(key, 0.0);
+			if (row[processedIndex] instanceof Number) {
+				double value = ((Number)row[processedIndex]).doubleValue();
+				if(!groupByHash.containsKey(key)) {
+					groupByHash.put(key, 0.0);
+				}
+				groupByHash.put(key, (Double) groupByHash.get(key) + value);
 			}
-			groupByHash.put(key, (Double) groupByHash.get(key) + (Double)value);
 		}
 		
 		return groupByHash;
