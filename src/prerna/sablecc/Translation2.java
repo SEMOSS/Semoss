@@ -42,6 +42,7 @@ import prerna.sablecc.node.AMultExpr;
 import prerna.sablecc.node.ANumWordOrNum;
 import prerna.sablecc.node.ANumberTerm;
 import prerna.sablecc.node.APanelClone;
+import prerna.sablecc.node.APanelClose;
 import prerna.sablecc.node.APanelComment;
 import prerna.sablecc.node.APanelViz;
 import prerna.sablecc.node.APanelopScript;
@@ -59,8 +60,6 @@ import prerna.sablecc.node.AUnfilterColumn;
 import prerna.sablecc.node.AVarop;
 import prerna.sablecc.node.AVaropScript;
 import prerna.sablecc.node.Node;
-import prerna.sablecc.node.PRelationClause;
-import prerna.sablecc.node.PWordOrNum;
 
 public class Translation2 extends DepthFirstAdapter {
 	// this is the third version of this shit I am building
@@ -367,6 +366,21 @@ public class Translation2 extends DepthFirstAdapter {
 		runner.copyFeData(newId);
 		deinitReactor(PKQLEnum.VIZ, "", "");
 		runner.setResponse("Successfully cloned! New panel id: " + newId);//
+		runner.setStatus("SUCCESS");
+	}
+	
+	@Override
+	public void inAPanelClose(APanelClose node){
+		System.out.println("in a panel close");
+		initReactor(PKQLEnum.VIZ);
+	}
+	
+	@Override
+	public void outAPanelClose(APanelClose node){
+		System.out.println("out a panel close");
+		runner.addFeData("closed", true, false);
+		deinitReactor(PKQLEnum.VIZ, "", "");
+		runner.setResponse("Successfully closed panel");//
 		runner.setStatus("SUCCESS");
 	}
 	
