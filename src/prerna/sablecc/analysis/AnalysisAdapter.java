@@ -189,6 +189,11 @@ public class AnalysisAdapter implements Analysis
         defaultCase(node);
     }
 
+    public void caseAPanelClosePanelop(APanelClosePanelop node)
+    {
+        defaultCase(node);
+    }
+
     public void caseAPanelViz(APanelViz node)
     {
         defaultCase(node);
@@ -200,6 +205,11 @@ public class AnalysisAdapter implements Analysis
     }
 
     public void caseAPanelClone(APanelClone node)
+    {
+        defaultCase(node);
+    }
+
+    public void caseAPanelClose(APanelClose node)
     {
         defaultCase(node);
     }
@@ -875,6 +885,11 @@ public class AnalysisAdapter implements Analysis
     }
 
     public void caseTPanelclone(TPanelclone node)
+    {
+        defaultCase(node);
+    }
+
+    public void caseTPanelclose(TPanelclose node)
     {
         defaultCase(node);
     }
