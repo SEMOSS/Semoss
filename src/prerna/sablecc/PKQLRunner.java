@@ -223,6 +223,7 @@ public class PKQLRunner {
 		Map<String, Object> copiedActiveMap = new HashMap<String, Object>();
 		copiedActiveMap.putAll(this.activeFeMap);
 		copiedActiveMap.remove("panelId");
+		copiedActiveMap.remove("newPanelId");
 		openFeDataBlock(newId);
 		this.activeFeMap.putAll(copiedActiveMap);
 	}
