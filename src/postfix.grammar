@@ -76,6 +76,7 @@ Tokens
  panelviz =  panelprefix '.viz';
  panelcomment = panelprefix '.comment';
  panelclone = panelprefix '.clone';
+ panelclose = panelprefix '.close';
  dataframe = 'data.frame';
  file_text = '<startInput>' alphanumeric* '<endInput>';
 
@@ -116,6 +117,7 @@ panelop = // panelop is usually of the form of viz.change, viz.tools, viz.color
 		{panel_viz} panel_viz 
 		| {panel_comment} panel_comment
 		| {panel_clone} panel_clone
+		| {panel_close} panel_close
 		;
  
 
@@ -127,8 +129,12 @@ panel_comment = // e.g. panel.comment("this looks super important", group0, coor
 		panelcomment l_par [text]:word [c1]:comma [type]:id [c2]:comma [location]:map_obj [c3]:comma [group]:id r_par
 		;
 		
-panel_clone = // e.g. panel.clone();
+panel_clone = // e.g. panel.clone(1);
 		panelclone l_par [newid]:number r_par
+		;
+		
+panel_close = // e.g. panel.close();
+		panelclose l_par r_par
 		;
 		
 data_frame = // e.g. panel.setBuilder('graph');

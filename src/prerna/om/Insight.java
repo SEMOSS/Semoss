@@ -35,6 +35,7 @@ import java.security.NoSuchAlgorithmException;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Hashtable;
@@ -971,7 +972,7 @@ public class Insight {
 		if(!uiOptions.isEmpty()) {
 			retHash.put("uiOptions", uiOptions);
 		}
-		retHash.put("pkqlOutput", this.getPKQLData());
+		retHash.put("pkqlOutput", this.getPKQLData(false));
 		return retHash;
 	}
 	
@@ -1350,14 +1351,33 @@ public class Insight {
 		}
 	}
 
-	public Map getPKQLData() {
+	public Map getPKQLData(boolean includeClosed) {
 		Map<String, Object> resultHash = new HashMap<String, Object>();
 		if(pkqlRunner != null){
 			List<Map> pkqlData = pkqlRunner.getResults();
-			Map feData = pkqlRunner.getFeData();
-	
+			Map<String, Map<String, Object>> feData = pkqlRunner.getFeData();
+
+			if(!includeClosed){
+				Map<String, Map<String, Object>> openMaps = new HashMap<String, Map<String, Object>>();
+				Collection<String> panelIds = feData.keySet();
+				List<String> closedIds = new Vector<String>();
+				for(String pid : panelIds){
+					Map<String, Object> panelState = feData.get(pid);
+					if(panelState.get("closed")==null || !(boolean)panelState.get("closed")){ // this means it is open
+						openMaps.put(pid, panelState);
+					}
+					else{
+						closedIds.add(pid);
+					}
+				}
+				resultHash.put("pkqlData", pkqlData);
+				resultHash.put("closedPanels", closedIds);
+			}
+			else{
+				resultHash.put("pkqlData", pkqlData);
+			}
+			
 			resultHash.put("insightID", this.getInsightID());
-			resultHash.put("pkqlData", pkqlData);
 			resultHash.put("feData", feData);
 		}
 		return resultHash;
