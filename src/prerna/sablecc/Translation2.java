@@ -378,7 +378,7 @@ public class Translation2 extends DepthFirstAdapter {
 	@Override
 	public void outAPanelClose(APanelClose node){
 		System.out.println("out a panel close");
-		runner.addFeData("closed", true, false);
+		runner.addFeData("closed", true, true);
 		deinitReactor(PKQLEnum.VIZ, "", "");
 		runner.setResponse("Successfully closed panel");//
 		runner.setStatus("SUCCESS");
