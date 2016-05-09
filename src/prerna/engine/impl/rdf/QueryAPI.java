@@ -8,6 +8,7 @@ import java.util.Iterator;
 import java.util.Properties;
 import java.util.Vector;
 
+import prerna.cache.FileStore;
 import prerna.ds.QueryStruct;
 import prerna.ds.util.FileIterator;
 import prerna.engine.api.IApi;
@@ -53,6 +54,12 @@ public class QueryAPI implements IApi {
 		else {
 			Hashtable<String, Vector<String>> selectorSet = qs.getSelectors();
 			String fileName = values.get(params[1]) + "";
+			
+			// look to see if this file is actually a unique id for a file that is on the server
+			if(FileStore.getInstance().containsKey(fileName)) {
+				fileName = FileStore.getInstance().get(fileName);
+			}
+			
 			return new FileIterator(fileName, ',', qs, null); //TODO: right now making the assumption it is a csv file
 //			return null;
 		}
