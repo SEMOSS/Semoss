@@ -46,6 +46,7 @@ import prerna.sablecc.node.APanelComment;
 import prerna.sablecc.node.APanelViz;
 import prerna.sablecc.node.APanelopScript;
 import prerna.sablecc.node.APastedData;
+import prerna.sablecc.node.APastedDataBlock;
 import prerna.sablecc.node.APastedDataImportBlock;
 import prerna.sablecc.node.APlusExpr;
 import prerna.sablecc.node.AROpScript;
@@ -59,6 +60,7 @@ import prerna.sablecc.node.AVarop;
 import prerna.sablecc.node.AVaropScript;
 import prerna.sablecc.node.Node;
 import prerna.sablecc.node.PRelationClause;
+import prerna.sablecc.node.PWordOrNum;
 
 public class Translation2 extends DepthFirstAdapter {
 	// this is the third version of this shit I am building
@@ -807,6 +809,11 @@ public class Translation2 extends DepthFirstAdapter {
 			initReactor(PKQLEnum.PASTED_DATA);
 			String nodeStr = node + "";
 			curReactor.put(PKQLEnum.PASTED_DATA, nodeStr.trim());
+			// is theere a more appropriate way to pass information between siblings
+			if(node.parent() != null && node.parent() instanceof APastedDataBlock) {
+				String word = ((APastedDataBlock) node.parent()).getDelimitier().toString().trim();
+		        curReactor.set(PKQLEnum.WORD_OR_NUM, (word.substring(1, word.length()-1))); // remove the quotes
+			}
 		}
     }
 
