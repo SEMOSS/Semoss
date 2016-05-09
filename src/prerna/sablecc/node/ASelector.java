@@ -39,7 +39,6 @@ public final class ASelector extends PSelector
             cloneNode(this._rBracket_));
     }
 
-    @Override
     public void apply(Switch sw)
     {
         ((Analysis) sw).caseASelector(this);

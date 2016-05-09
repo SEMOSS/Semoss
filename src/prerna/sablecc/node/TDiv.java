@@ -25,7 +25,6 @@ public final class TDiv extends Token
       return new TDiv(getLine(), getPos());
     }
 
-    @Override
     public void apply(Switch sw)
     {
         ((Analysis) sw).caseTDiv(this);

@@ -7,9 +7,9 @@ import prerna.sablecc.analysis.*;
 @SuppressWarnings("nls")
 public final class AKeyvalue extends PKeyvalue
 {
-    private TWord _word1_;
+    private PWordOrNum _word1_;
     private TColon _colon_;
-    private TWord _word2_;
+    private PWordOrNum _word2_;
 
     public AKeyvalue()
     {
@@ -17,9 +17,9 @@ public final class AKeyvalue extends PKeyvalue
     }
 
     public AKeyvalue(
-        @SuppressWarnings("hiding") TWord _word1_,
+        @SuppressWarnings("hiding") PWordOrNum _word1_,
         @SuppressWarnings("hiding") TColon _colon_,
-        @SuppressWarnings("hiding") TWord _word2_)
+        @SuppressWarnings("hiding") PWordOrNum _word2_)
     {
         // Constructor
         setWord1(_word1_);
@@ -39,18 +39,17 @@ public final class AKeyvalue extends PKeyvalue
             cloneNode(this._word2_));
     }
 
-    @Override
     public void apply(Switch sw)
     {
         ((Analysis) sw).caseAKeyvalue(this);
     }
 
-    public TWord getWord1()
+    public PWordOrNum getWord1()
     {
         return this._word1_;
     }
 
-    public void setWord1(TWord node)
+    public void setWord1(PWordOrNum node)
     {
         if(this._word1_ != null)
         {
@@ -95,12 +94,12 @@ public final class AKeyvalue extends PKeyvalue
         this._colon_ = node;
     }
 
-    public TWord getWord2()
+    public PWordOrNum getWord2()
     {
         return this._word2_;
     }
 
-    public void setWord2(TWord node)
+    public void setWord2(PWordOrNum node)
     {
         if(this._word2_ != null)
         {
@@ -160,7 +159,7 @@ public final class AKeyvalue extends PKeyvalue
         // Replace child
         if(this._word1_ == oldChild)
         {
-            setWord1((TWord) newChild);
+            setWord1((PWordOrNum) newChild);
             return;
         }
 
@@ -172,7 +171,7 @@ public final class AKeyvalue extends PKeyvalue
 
         if(this._word2_ == oldChild)
         {
-            setWord2((TWord) newChild);
+            setWord2((PWordOrNum) newChild);
             return;
         }
 

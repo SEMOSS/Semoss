@@ -29,7 +29,6 @@ public final class AColDefColDefOrCsvRow extends PColDefOrCsvRow
             cloneNode(this._colDef_));
     }
 
-    @Override
     public void apply(Switch sw)
     {
         ((Analysis) sw).caseAColDefColDefOrCsvRow(this);

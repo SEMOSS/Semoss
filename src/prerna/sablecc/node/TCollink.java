@@ -25,7 +25,6 @@ public final class TCollink extends Token
       return new TCollink(getLine(), getPos());
     }
 
-    @Override
     public void apply(Switch sw)
     {
         ((Analysis) sw).caseTCollink(this);

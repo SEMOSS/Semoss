@@ -29,7 +29,6 @@ public final class APastedDataImportBlock extends PImportBlock
             cloneNode(this._pastedDataBlock_));
     }
 
-    @Override
     public void apply(Switch sw)
     {
         ((Analysis) sw).caseAPastedDataImportBlock(this);

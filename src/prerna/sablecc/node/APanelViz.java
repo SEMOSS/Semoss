@@ -64,7 +64,6 @@ public final class APanelViz extends PPanelViz
             cloneNode(this._rPar_));
     }
 
-    @Override
     public void apply(Switch sw)
     {
         ((Analysis) sw).caseAPanelViz(this);
