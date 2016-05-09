@@ -9,6 +9,8 @@ public final class APastedDataBlock extends PPastedDataBlock
 {
     private TLPar _lPar_;
     private PPastedData _pastedData_;
+    private TComma _comma_;
+    private PWordOrNum _delimitier_;
     private TRPar _rPar_;
 
     public APastedDataBlock()
@@ -19,12 +21,18 @@ public final class APastedDataBlock extends PPastedDataBlock
     public APastedDataBlock(
         @SuppressWarnings("hiding") TLPar _lPar_,
         @SuppressWarnings("hiding") PPastedData _pastedData_,
+        @SuppressWarnings("hiding") TComma _comma_,
+        @SuppressWarnings("hiding") PWordOrNum _delimitier_,
         @SuppressWarnings("hiding") TRPar _rPar_)
     {
         // Constructor
         setLPar(_lPar_);
 
         setPastedData(_pastedData_);
+
+        setComma(_comma_);
+
+        setDelimitier(_delimitier_);
 
         setRPar(_rPar_);
 
@@ -36,6 +44,8 @@ public final class APastedDataBlock extends PPastedDataBlock
         return new APastedDataBlock(
             cloneNode(this._lPar_),
             cloneNode(this._pastedData_),
+            cloneNode(this._comma_),
+            cloneNode(this._delimitier_),
             cloneNode(this._rPar_));
     }
 
@@ -95,6 +105,56 @@ public final class APastedDataBlock extends PPastedDataBlock
         this._pastedData_ = node;
     }
 
+    public TComma getComma()
+    {
+        return this._comma_;
+    }
+
+    public void setComma(TComma node)
+    {
+        if(this._comma_ != null)
+        {
+            this._comma_.parent(null);
+        }
+
+        if(node != null)
+        {
+            if(node.parent() != null)
+            {
+                node.parent().removeChild(node);
+            }
+
+            node.parent(this);
+        }
+
+        this._comma_ = node;
+    }
+
+    public PWordOrNum getDelimitier()
+    {
+        return this._delimitier_;
+    }
+
+    public void setDelimitier(PWordOrNum node)
+    {
+        if(this._delimitier_ != null)
+        {
+            this._delimitier_.parent(null);
+        }
+
+        if(node != null)
+        {
+            if(node.parent() != null)
+            {
+                node.parent().removeChild(node);
+            }
+
+            node.parent(this);
+        }
+
+        this._delimitier_ = node;
+    }
+
     public TRPar getRPar()
     {
         return this._rPar_;
@@ -126,6 +186,8 @@ public final class APastedDataBlock extends PPastedDataBlock
         return ""
             + toString(this._lPar_)
             + toString(this._pastedData_)
+            + toString(this._comma_)
+            + toString(this._delimitier_)
             + toString(this._rPar_);
     }
 
@@ -142,6 +204,18 @@ public final class APastedDataBlock extends PPastedDataBlock
         if(this._pastedData_ == child)
         {
             this._pastedData_ = null;
+            return;
+        }
+
+        if(this._comma_ == child)
+        {
+            this._comma_ = null;
+            return;
+        }
+
+        if(this._delimitier_ == child)
+        {
+            this._delimitier_ = null;
             return;
         }
 
@@ -167,6 +241,18 @@ public final class APastedDataBlock extends PPastedDataBlock
         if(this._pastedData_ == oldChild)
         {
             setPastedData((PPastedData) newChild);
+            return;
+        }
+
+        if(this._comma_ == oldChild)
+        {
+            setComma((TComma) newChild);
+            return;
+        }
+
+        if(this._delimitier_ == oldChild)
+        {
+            setDelimitier((PWordOrNum) newChild);
             return;
         }
 

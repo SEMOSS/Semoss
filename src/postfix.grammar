@@ -176,9 +176,9 @@ import_data = // imports from api query commands and other scripts
 		
 import_block = {api} api_block | {csv_table} csv_table | {pasted_data} pasted_data_block; 
 
-pasted_data_block = l_par pasted_data r_par;
+pasted_data_block = l_par pasted_data comma [delimitier]:word_or_num r_par;
 
-pasted_data = file_text comma [delimitier]:word_or_num; 
+pasted_data = file_text; 
 
 remove_data = // imports from api query commands and other scripts and deletes that data from the table
 		dataremovetoken l_par api_block relation_clause? r_par; 
