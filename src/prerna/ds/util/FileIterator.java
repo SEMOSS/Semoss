@@ -140,6 +140,9 @@ public class FileIterator implements Iterator<IHeadersDataRow>{
 	}
 	
 	private void setSelectors(Hashtable<String, Vector<String>> selectorSet) {
+		if(selectorSet.isEmpty()) {
+			return; // if no selectors, return everything
+		}
 		String[] selectors = selectorSet.keySet().toArray(new String[]{});
 		String[] allHeaders = this.helper.getHeaders();
 		if(allHeaders.length != selectors.length) {
