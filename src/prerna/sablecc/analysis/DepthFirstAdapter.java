@@ -1248,6 +1248,14 @@ public class DepthFirstAdapter extends AnalysisAdapter
         {
             node.getPastedData().apply(this);
         }
+        if(node.getComma() != null)
+        {
+            node.getComma().apply(this);
+        }
+        if(node.getDelimitier() != null)
+        {
+            node.getDelimitier().apply(this);
+        }
         if(node.getRPar() != null)
         {
             node.getRPar().apply(this);
@@ -1272,14 +1280,6 @@ public class DepthFirstAdapter extends AnalysisAdapter
         if(node.getFileText() != null)
         {
             node.getFileText().apply(this);
-        }
-        if(node.getComma() != null)
-        {
-            node.getComma().apply(this);
-        }
-        if(node.getDelimitier() != null)
-        {
-            node.getDelimitier().apply(this);
         }
         outAPastedData(node);
     }

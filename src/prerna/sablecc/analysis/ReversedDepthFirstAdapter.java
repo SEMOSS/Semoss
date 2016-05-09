@@ -1248,6 +1248,14 @@ public class ReversedDepthFirstAdapter extends AnalysisAdapter
         {
             node.getRPar().apply(this);
         }
+        if(node.getDelimitier() != null)
+        {
+            node.getDelimitier().apply(this);
+        }
+        if(node.getComma() != null)
+        {
+            node.getComma().apply(this);
+        }
         if(node.getPastedData() != null)
         {
             node.getPastedData().apply(this);
@@ -1273,14 +1281,6 @@ public class ReversedDepthFirstAdapter extends AnalysisAdapter
     public void caseAPastedData(APastedData node)
     {
         inAPastedData(node);
-        if(node.getDelimitier() != null)
-        {
-            node.getDelimitier().apply(this);
-        }
-        if(node.getComma() != null)
-        {
-            node.getComma().apply(this);
-        }
         if(node.getFileText() != null)
         {
             node.getFileText().apply(this);

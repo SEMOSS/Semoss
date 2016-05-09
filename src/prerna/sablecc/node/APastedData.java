@@ -8,8 +8,6 @@ import prerna.sablecc.analysis.*;
 public final class APastedData extends PPastedData
 {
     private TFileText _fileText_;
-    private TComma _comma_;
-    private PWordOrNum _delimitier_;
 
     public APastedData()
     {
@@ -17,16 +15,10 @@ public final class APastedData extends PPastedData
     }
 
     public APastedData(
-        @SuppressWarnings("hiding") TFileText _fileText_,
-        @SuppressWarnings("hiding") TComma _comma_,
-        @SuppressWarnings("hiding") PWordOrNum _delimitier_)
+        @SuppressWarnings("hiding") TFileText _fileText_)
     {
         // Constructor
         setFileText(_fileText_);
-
-        setComma(_comma_);
-
-        setDelimitier(_delimitier_);
 
     }
 
@@ -34,9 +26,7 @@ public final class APastedData extends PPastedData
     public Object clone()
     {
         return new APastedData(
-            cloneNode(this._fileText_),
-            cloneNode(this._comma_),
-            cloneNode(this._delimitier_));
+            cloneNode(this._fileText_));
     }
 
     @Override
@@ -70,63 +60,11 @@ public final class APastedData extends PPastedData
         this._fileText_ = node;
     }
 
-    public TComma getComma()
-    {
-        return this._comma_;
-    }
-
-    public void setComma(TComma node)
-    {
-        if(this._comma_ != null)
-        {
-            this._comma_.parent(null);
-        }
-
-        if(node != null)
-        {
-            if(node.parent() != null)
-            {
-                node.parent().removeChild(node);
-            }
-
-            node.parent(this);
-        }
-
-        this._comma_ = node;
-    }
-
-    public PWordOrNum getDelimitier()
-    {
-        return this._delimitier_;
-    }
-
-    public void setDelimitier(PWordOrNum node)
-    {
-        if(this._delimitier_ != null)
-        {
-            this._delimitier_.parent(null);
-        }
-
-        if(node != null)
-        {
-            if(node.parent() != null)
-            {
-                node.parent().removeChild(node);
-            }
-
-            node.parent(this);
-        }
-
-        this._delimitier_ = node;
-    }
-
     @Override
     public String toString()
     {
         return ""
-            + toString(this._fileText_)
-            + toString(this._comma_)
-            + toString(this._delimitier_);
+            + toString(this._fileText_);
     }
 
     @Override
@@ -136,18 +74,6 @@ public final class APastedData extends PPastedData
         if(this._fileText_ == child)
         {
             this._fileText_ = null;
-            return;
-        }
-
-        if(this._comma_ == child)
-        {
-            this._comma_ = null;
-            return;
-        }
-
-        if(this._delimitier_ == child)
-        {
-            this._delimitier_ = null;
             return;
         }
 
@@ -161,18 +87,6 @@ public final class APastedData extends PPastedData
         if(this._fileText_ == oldChild)
         {
             setFileText((TFileText) newChild);
-            return;
-        }
-
-        if(this._comma_ == oldChild)
-        {
-            setComma((TComma) newChild);
-            return;
-        }
-
-        if(this._delimitier_ == oldChild)
-        {
-            setDelimitier((PWordOrNum) newChild);
             return;
         }
 
