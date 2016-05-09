@@ -131,4 +131,13 @@ public interface IExplorable {
 	String getNodeBaseUri();
 	
 	String getConceptUri4PhysicalName(String physicalName);
+	
+	public String getPkqlLogicalFromPhysical(String nodeURI); 
+	
+	public String getPhysicalFromPkql(String nodeURI);
+	
+	public String getPkqlFromAlias(String nodeURI);
+
+	public String getAliasFromPkql(String nodeUri);
+	
 }
