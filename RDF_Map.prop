@@ -499,6 +499,7 @@ Graph_DATA	getGraphOutput
 
 ##TRANSFORMATIONS DEFINED
 join	prerna.ui.components.playsheets.datamakers.JoinTransformation
+pkql	prerna.ui.components.playsheets.datamakers.PKQLTransformation
 filter	prerna.ui.components.playsheets.datamakers.FilterTransformation
 algorithmTransformation	prerna.algorithm.learning.AlgorithmTransformation
 algorithmAction	prerna.algorithm.learning.AlgorithmAction
