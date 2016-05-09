@@ -39,7 +39,6 @@ public final class AColWhere extends PColWhere
             cloneNode(this._colDefOrCsvRow_));
     }
 
-    @Override
     public void apply(Switch sw)
     {
         ((Analysis) sw).caseAColWhere(this);

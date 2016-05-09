@@ -24,7 +24,7 @@ public final class AFocusColumn extends PFocusColumn
         @SuppressWarnings("hiding") TColfocus _colfocus_,
         @SuppressWarnings("hiding") TLPar _lPar_,
         @SuppressWarnings("hiding") PColDef _colDef_,
-        @SuppressWarnings("hiding") List<?> _colGroup_,
+        @SuppressWarnings("hiding") List<PColGroup> _colGroup_,
         @SuppressWarnings("hiding") TShowHide _showHide_,
         @SuppressWarnings("hiding") TRPar _rPar_)
     {
@@ -55,7 +55,6 @@ public final class AFocusColumn extends PFocusColumn
             cloneNode(this._rPar_));
     }
 
-    @Override
     public void apply(Switch sw)
     {
         ((Analysis) sw).caseAFocusColumn(this);
@@ -141,24 +140,18 @@ public final class AFocusColumn extends PFocusColumn
         return this._colGroup_;
     }
 
-    public void setColGroup(List<?> list)
+    public void setColGroup(List<PColGroup> list)
     {
-        for(PColGroup e : this._colGroup_)
-        {
-            e.parent(null);
-        }
         this._colGroup_.clear();
-
-        for(Object obj_e : list)
+        this._colGroup_.addAll(list);
+        for(PColGroup e : list)
         {
-            PColGroup e = (PColGroup) obj_e;
             if(e.parent() != null)
             {
                 e.parent().removeChild(e);
             }
 
             e.parent(this);
-            this._colGroup_.add(e);
         }
     }
 

@@ -29,7 +29,6 @@ public final class ASetcolColop extends PColop
             cloneNode(this._setColumn_));
     }
 
-    @Override
     public void apply(Switch sw)
     {
         ((Analysis) sw).caseASetcolColop(this);

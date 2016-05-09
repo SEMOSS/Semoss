@@ -44,7 +44,6 @@ public final class AFilterColumn extends PFilterColumn
             cloneNode(this._rPar_));
     }
 
-    @Override
     public void apply(Switch sw)
     {
         ((Analysis) sw).caseAFilterColumn(this);

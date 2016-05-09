@@ -49,7 +49,6 @@ public final class APastedDataBlock extends PPastedDataBlock
             cloneNode(this._rPar_));
     }
 
-    @Override
     public void apply(Switch sw)
     {
         ((Analysis) sw).caseAPastedDataBlock(this);

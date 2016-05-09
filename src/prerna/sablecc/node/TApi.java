@@ -25,7 +25,6 @@ public final class TApi extends Token
       return new TApi(getText(), getLine(), getPos());
     }
 
-    @Override
     public void apply(Switch sw)
     {
         ((Analysis) sw).caseTApi(this);

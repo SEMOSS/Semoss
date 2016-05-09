@@ -25,7 +25,6 @@ public final class TMult extends Token
       return new TMult(getLine(), getPos());
     }
 
-    @Override
     public void apply(Switch sw)
     {
         ((Analysis) sw).caseTMult(this);

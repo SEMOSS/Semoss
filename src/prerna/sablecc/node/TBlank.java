@@ -25,7 +25,6 @@ public final class TBlank extends Token
       return new TBlank(getText(), getLine(), getPos());
     }
 
-    @Override
     public void apply(Switch sw)
     {
         ((Analysis) sw).caseTBlank(this);

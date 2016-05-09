@@ -25,7 +25,6 @@ public final class TLBracket extends Token
       return new TLBracket(getLine(), getPos());
     }
 
-    @Override
     public void apply(Switch sw)
     {
         ((Analysis) sw).caseTLBracket(this);
