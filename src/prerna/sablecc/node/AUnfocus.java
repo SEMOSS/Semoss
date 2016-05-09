@@ -44,7 +44,6 @@ public final class AUnfocus extends PUnfocus
             cloneNode(this._rPar_));
     }
 
-    @Override
     public void apply(Switch sw)
     {
         ((Analysis) sw).caseAUnfocus(this);

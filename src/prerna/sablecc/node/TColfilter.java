@@ -25,7 +25,6 @@ public final class TColfilter extends Token
       return new TColfilter(getLine(), getPos());
     }
 
-    @Override
     public void apply(Switch sw)
     {
         ((Analysis) sw).caseTColfilter(this);

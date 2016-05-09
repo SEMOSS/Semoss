@@ -25,7 +25,6 @@ public final class TDataimporttoken extends Token
       return new TDataimporttoken(getLine(), getPos());
     }
 
-    @Override
     public void apply(Switch sw)
     {
         ((Analysis) sw).caseTDataimporttoken(this);

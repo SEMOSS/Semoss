@@ -178,5 +178,4 @@ public interface Analysis extends Switch
     void caseTDataframe(TDataframe node);
     void caseTFileText(TFileText node);
     void caseEOF(EOF node);
-    void caseInvalidToken(InvalidToken node);
 }

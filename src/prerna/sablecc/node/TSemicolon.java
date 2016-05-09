@@ -25,7 +25,6 @@ public final class TSemicolon extends Token
       return new TSemicolon(getLine(), getPos());
     }
 
-    @Override
     public void apply(Switch sw)
     {
         ((Analysis) sw).caseTSemicolon(this);

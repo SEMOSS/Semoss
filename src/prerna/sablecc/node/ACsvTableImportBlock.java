@@ -29,7 +29,6 @@ public final class ACsvTableImportBlock extends PImportBlock
             cloneNode(this._csvTable_));
     }
 
-    @Override
     public void apply(Switch sw)
     {
         ((Analysis) sw).caseACsvTableImportBlock(this);

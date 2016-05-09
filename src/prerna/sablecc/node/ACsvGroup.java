@@ -34,7 +34,6 @@ public final class ACsvGroup extends PCsvGroup
             cloneNode(this._csv_));
     }
 
-    @Override
     public void apply(Switch sw)
     {
         ((Analysis) sw).caseACsvGroup(this);
