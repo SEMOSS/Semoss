@@ -64,7 +64,6 @@ import org.openrdf.sail.memory.MemoryStore;
 import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
 
-import prerna.algorithm.api.IMetaData;
 import prerna.algorithm.api.ITableDataFrame;
 import prerna.ds.QueryStruct;
 import prerna.ds.TinkerFrame;
@@ -83,6 +82,7 @@ import prerna.ui.components.playsheets.datamakers.IDataMaker;
 import prerna.ui.components.playsheets.datamakers.ISEMOSSAction;
 import prerna.ui.components.playsheets.datamakers.ISEMOSSTransformation;
 import prerna.ui.components.playsheets.datamakers.JoinTransformation;
+import prerna.ui.components.playsheets.datamakers.PKQLTransformation;
 import prerna.util.Constants;
 import prerna.util.Utility;
 
@@ -1281,7 +1281,7 @@ public class Insight {
 		for (; firstComp < dmcList.size() && firstTransId == null; firstComp ++){
 			DataMakerComponent dmc = dmcIt.next();
 			for(ISEMOSSTransformation trans : dmc.getPostTrans()){
-				if(!(trans instanceof FilterTransformation) && !(trans instanceof JoinTransformation)){
+				if(!(trans instanceof FilterTransformation) && !(trans instanceof JoinTransformation) && !(trans instanceof PKQLTransformation)){
 					firstTransId = trans.getId();
 					firstComp--;
 					break;
@@ -1300,7 +1300,7 @@ public class Insight {
 			List<ISEMOSSTransformation> postList = dmc.getPostTrans();
 			for(int transIdx = postList.size() - 1; transIdx >= 0 && !hitFirst; transIdx -- ){
 				ISEMOSSTransformation trans = postList.get(transIdx);
-				if(!(trans instanceof JoinTransformation) && !(trans instanceof FilterTransformation)){
+				if(!(trans instanceof JoinTransformation) && !(trans instanceof FilterTransformation) && !(trans instanceof PKQLTransformation)){
 					transToRedo.add(trans);
 					String id = trans.getId();
 					this.undoProcesses(Arrays.asList(new String[]{id}));
@@ -1313,7 +1313,7 @@ public class Insight {
 			List<ISEMOSSTransformation> preList = dmc.getPreTrans();
 			for(int transIdx = preList.size() - 1; transIdx >= 0 && !hitFirst; transIdx -- ){
 				ISEMOSSTransformation trans = preList.get(transIdx);
-				if(!(trans instanceof JoinTransformation) && !(trans instanceof FilterTransformation)){
+				if(!(trans instanceof JoinTransformation) && !(trans instanceof FilterTransformation) && !(trans instanceof FilterTransformation)){
 					transToRedo.add(trans);
 					String id = trans.getId();
 					this.undoProcesses(Arrays.asList(new String[]{id}));
