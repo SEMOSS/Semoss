@@ -39,16 +39,18 @@ public class AverageReactor extends BaseReducerReactor {
 				key.put(groupBy, instance);
 			}
 			int processedIndex = ArrayUtilityMethods.arrayContainsValueAtIndexIgnoreCase(columnsArray, processedColumns.get(0));
-			Object value = row[processedIndex];
-			HashMap<String,Object> paramMap = (HashMap<String,Object>)groupByHash.get(key);
-			if(paramMap == null) {
-				paramMap = new HashMap<String,Object>();
-				groupByHash.put(key, paramMap);
-				paramMap.put("SUM", 0.0);
-				paramMap.put("COUNT", 0);
+			if (row[processedIndex] instanceof Number) {
+				double value = ((Number)row[processedIndex]).doubleValue();
+				HashMap<String,Object> paramMap = (HashMap<String,Object>)groupByHash.get(key);
+				if(paramMap == null) {
+					paramMap = new HashMap<String,Object>();
+					groupByHash.put(key, paramMap);
+					paramMap.put("SUM", 0.0);
+					paramMap.put("COUNT", 0);
+				}
+				paramMap.put("SUM", (Double)paramMap.get("SUM") + value);
+				paramMap.put("COUNT", (Integer)paramMap.get("COUNT")+1);
 			}
-			paramMap.put("SUM", (Double)paramMap.get("SUM")+(Double)value);
-			paramMap.put("COUNT", (Integer)paramMap.get("COUNT")+1);
 		}
 		for(HashMap<String,String> key: groupByHash.keySet()) {
 			HashMap<String,Object> paramMap = (HashMap<String,Object>)groupByHash.get(key);

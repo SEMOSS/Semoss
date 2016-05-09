@@ -44,11 +44,13 @@ public class MinReactor extends BaseReducerReactor {
 				key.put(groupBy, instance);
 			}
 			int processedIndex = ArrayUtilityMethods.arrayContainsValueAtIndexIgnoreCase(columnsArray, processedColumns.get(0));
-			Object value = row[processedIndex];
-			if(!groupByHash.containsKey(key)) {
-				groupByHash.put(key, (Double)value);
-			} else if(((Double)groupByHash.get(key)) > ((Double)value)){
-				groupByHash.put(key, (Double)value);
+			if (row[processedIndex] instanceof Number) {
+				double value = ((Number)row[processedIndex]).doubleValue();
+				if(!groupByHash.containsKey(key)) {
+					groupByHash.put(key, value);
+				} else if(((Double)groupByHash.get(key)) > value){
+					groupByHash.put(key, value);
+				}
 			}
 		}
 		
