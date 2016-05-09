@@ -70,13 +70,34 @@ public class SPARQLInterpreter implements IQueryInterpreter {
 		return " invalid addFrom call ";
 	}
 	
+//	//this should be the pkql logical
+//	private String getVarName(String physName, boolean property){
+//		String logName = "";
+//		if(!property){
+//			logName = engine.getTransformedNodeName("http://semoss.org/ontologies/Concept/" + physName, true); 
+//			logName = engine.getTransformedNodeName("http://semoss.org/ontologies/DisplayName/" + physName, true); 
+//			//get the alias from the pkql logical
+//		}
+//		else {
+//			logName = engine.getTransformedNodeName("http://semoss.org/ontologies/Relation/Contains/" + physName, true);
+//			//get the 
+//		}
+//		return Utility.getInstanceName(logName);
+//	}
+	
+	//this should be the pkql logical
 	private String getVarName(String physName, boolean property){
 		String logName = "";
 		if(!property){
-			logName = engine.getTransformedNodeName("http://semoss.org/ontologies/Concept/" + physName, true);
+//			logName = engine.getTransformedNodeName("http://semoss.org/ontologies/Concept/" + physName, true); 
+//			logName = engine.getTransformedNodeName("http://semoss.org/ontologies/DisplayName/" + physName, true);
+			logName = engine.getAliasFromPkql("http://semoss.org/ontologies/DisplayName/" + physName);
+			//get the alias from the pkql logical
 		}
 		else {
-			logName = engine.getTransformedNodeName("http://semoss.org/ontologies/Relation/Contains/" + physName, true);
+//			logName = engine.getTransformedNodeName("http://semoss.org/ontologies/Relation/Contains/" + physName, true);
+			logName = engine.getAliasFromPkql("http://semoss.org/ontologies/DisplayName/" + physName);
+			//get the 
 		}
 		return Utility.getInstanceName(logName);
 	}
@@ -105,13 +126,14 @@ public class SPARQLInterpreter implements IQueryInterpreter {
 	}
 	
 	private String addNodeProperty(String table, String col){
+		String col2 = Utility.getInstanceName(engine.getPhysicalFromPkql("http://semoss.org/ontologies/DisplayName/"+col));
 		String nodeURI = addNode(table);
 
 		// get the prop uri from the owl (how....?)
 		String propURI = "Unable to get prop uri";
 		List<String> props = this.engine.getProperties4Concept(nodeURI, false);
 		for(String prop : props){
-			if(Utility.getInstanceName(prop).equals(col)){
+			if(Utility.getInstanceName(prop).equals(col2)){
 				propURI = prop;
 				break;
 			}
