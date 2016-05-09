@@ -662,6 +662,7 @@ public class QuestionAdministrator {
 	}
 	
 	private String escapeForNTripleAndSQLStatement(String s) {
+		s = s.replaceAll("(\\\\\")", "'"); // replace escaped double quotes with single
 		s = escapeForSQLStatement(s);
 		return s.replaceAll("\"", "\\\\\"");
 	}
