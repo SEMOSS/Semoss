@@ -482,7 +482,6 @@ public class Constants {
 	public static final String VALUE = "VALUE";
 	public static final String COUNT = "COUNT";
 	public static final String NAME = "NAME";
-	public static final String UNIQUE_NAME = "UNIQUE_NAME";
 	public static final String FILTERS = "FILTERS";
 	public static final String DATA_TONS = "UI_OPTIONS";
 }
