@@ -11,6 +11,7 @@ Helpers
  quote = ('"' | ''');
  not_quote = [alphanumeric - ['"' + ''']];
  panelprefix =  'panel' ( '[' digit ']' )?;
+ panelcommentprefix = panelprefix '.comment' ( '[' digit ']' )?;
  
 
 Tokens
@@ -74,11 +75,13 @@ Tokens
  codeblock = '{' alphanumeric* 'zzzzzz}'; // need to talk to kevin about this
  word = quote not_quote+ quote;
  panelviz =  panelprefix '.viz';
- panelcomment = panelprefix '.comment';
  panelclone = panelprefix '.clone';
  panelclose = panelprefix '.close';
  dataframe = 'data.frame';
  file_text = '<startInput>' alphanumeric* '<endInput>';
+ panelcommentremove = panelcommentprefix '.remove';
+ panelcommentedit = panelcommentprefix '.edit';
+ panelcommentadd = panelcommentprefix '.add';
 
 Ignored Tokens
  blank;
@@ -116,6 +119,8 @@ colop = // colOp is usually of the form of joinColumn / addColumn / removeColumn
 panelop = // panelop is usually of the form of viz.change, viz.tools, viz.color
 		{panel_viz} panel_viz 
 		| {panel_comment} panel_comment
+		| {panel_comment_remove} panel_comment_remove
+		| {panel_comment_edit} panel_comment_edit
 		| {panel_clone} panel_clone
 		| {panel_close} panel_close
 		;
@@ -126,7 +131,15 @@ panel_viz = // e.g. panel.viz(bar, [c:Title, c:Budget]); panelviz( vizType, orde
 		;
 		
 panel_comment = // e.g. panel.comment("this looks super important", group0, coordinate, (50, 16));
-		panelcomment l_par [text]:word [c1]:comma [type]:id [c2]:comma [location]:map_obj [c3]:comma [group]:id r_par
+		panelcommentadd l_par [text]:word [c1]:comma [type]:id [c2]:comma [location]:map_obj [c3]:comma [group]:id r_par
+		;
+		
+panel_comment_edit = // e.g. panel.comment("this looks super important", group0, coordinate, (50, 16));
+		panelcommentedit l_par [text]:word [c1]:comma [type]:id [c2]:comma [location]:map_obj [c3]:comma [group]:id r_par
+		;
+		
+panel_comment_remove = // e.g. panel.comment[0].remove();
+		panelcommentremove l_par r_par
 		;
 		
 panel_clone = // e.g. panel.clone(1);
@@ -224,7 +237,7 @@ if_block = l_par comparator comma term r_par;
 
 col_group = comma col_def;
 
-keyvalue = [word1]:word_or_num colon [word2]:word_or_num;
+keyvalue = [word1]:word_or_num colon [word2]:word_or_num_or_nested_map;
 
 keyvalue_group = comma keyvalue;
 
@@ -255,6 +268,8 @@ csv_table = l_bracket csv_row+ r_bracket; //[[1,3][2,4][5,6]]
 col_csv = l_bracket col_def col_group* r_bracket; // this is typically of the form [c:col1, c:col2, c:col3]
 
 word_or_num = {num} decimal | {alpha} word |{expr} [formula]:formula ; // I need some way putting an expression here
+
+word_or_num_or_nested_map = {word_or_num} word_or_num | {nested_map} map_obj;
 
 flex_selector_row = l_bracket term? term_group* r_bracket;
 

@@ -5,9 +5,9 @@ package prerna.sablecc.node;
 import prerna.sablecc.analysis.*;
 
 @SuppressWarnings("nls")
-public final class APanelComment extends PPanelComment
+public final class APanelCommentEdit extends PPanelCommentEdit
 {
-    private TPanelcommentadd _panelcommentadd_;
+    private TPanelcommentedit _panelcommentedit_;
     private TLPar _lPar_;
     private TWord _text_;
     private TComma _c1_;
@@ -18,13 +18,13 @@ public final class APanelComment extends PPanelComment
     private TId _group_;
     private TRPar _rPar_;
 
-    public APanelComment()
+    public APanelCommentEdit()
     {
         // Constructor
     }
 
-    public APanelComment(
-        @SuppressWarnings("hiding") TPanelcommentadd _panelcommentadd_,
+    public APanelCommentEdit(
+        @SuppressWarnings("hiding") TPanelcommentedit _panelcommentedit_,
         @SuppressWarnings("hiding") TLPar _lPar_,
         @SuppressWarnings("hiding") TWord _text_,
         @SuppressWarnings("hiding") TComma _c1_,
@@ -36,7 +36,7 @@ public final class APanelComment extends PPanelComment
         @SuppressWarnings("hiding") TRPar _rPar_)
     {
         // Constructor
-        setPanelcommentadd(_panelcommentadd_);
+        setPanelcommentedit(_panelcommentedit_);
 
         setLPar(_lPar_);
 
@@ -61,8 +61,8 @@ public final class APanelComment extends PPanelComment
     @Override
     public Object clone()
     {
-        return new APanelComment(
-            cloneNode(this._panelcommentadd_),
+        return new APanelCommentEdit(
+            cloneNode(this._panelcommentedit_),
             cloneNode(this._lPar_),
             cloneNode(this._text_),
             cloneNode(this._c1_),
@@ -76,19 +76,19 @@ public final class APanelComment extends PPanelComment
 
     public void apply(Switch sw)
     {
-        ((Analysis) sw).caseAPanelComment(this);
+        ((Analysis) sw).caseAPanelCommentEdit(this);
     }
 
-    public TPanelcommentadd getPanelcommentadd()
+    public TPanelcommentedit getPanelcommentedit()
     {
-        return this._panelcommentadd_;
+        return this._panelcommentedit_;
     }
 
-    public void setPanelcommentadd(TPanelcommentadd node)
+    public void setPanelcommentedit(TPanelcommentedit node)
     {
-        if(this._panelcommentadd_ != null)
+        if(this._panelcommentedit_ != null)
         {
-            this._panelcommentadd_.parent(null);
+            this._panelcommentedit_.parent(null);
         }
 
         if(node != null)
@@ -101,7 +101,7 @@ public final class APanelComment extends PPanelComment
             node.parent(this);
         }
 
-        this._panelcommentadd_ = node;
+        this._panelcommentedit_ = node;
     }
 
     public TLPar getLPar()
@@ -333,7 +333,7 @@ public final class APanelComment extends PPanelComment
     public String toString()
     {
         return ""
-            + toString(this._panelcommentadd_)
+            + toString(this._panelcommentedit_)
             + toString(this._lPar_)
             + toString(this._text_)
             + toString(this._c1_)
@@ -349,9 +349,9 @@ public final class APanelComment extends PPanelComment
     void removeChild(@SuppressWarnings("unused") Node child)
     {
         // Remove child
-        if(this._panelcommentadd_ == child)
+        if(this._panelcommentedit_ == child)
         {
-            this._panelcommentadd_ = null;
+            this._panelcommentedit_ = null;
             return;
         }
 
@@ -416,9 +416,9 @@ public final class APanelComment extends PPanelComment
     void replaceChild(@SuppressWarnings("unused") Node oldChild, @SuppressWarnings("unused") Node newChild)
     {
         // Replace child
-        if(this._panelcommentadd_ == oldChild)
+        if(this._panelcommentedit_ == oldChild)
         {
-            setPanelcommentadd((TPanelcommentadd) newChild);
+            setPanelcommentedit((TPanelcommentedit) newChild);
             return;
         }
 

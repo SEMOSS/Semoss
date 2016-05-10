@@ -546,6 +546,48 @@ public class DepthFirstAdapter extends AnalysisAdapter
         outAPanelCommentPanelop(node);
     }
 
+    public void inAPanelCommentRemovePanelop(APanelCommentRemovePanelop node)
+    {
+        defaultIn(node);
+    }
+
+    public void outAPanelCommentRemovePanelop(APanelCommentRemovePanelop node)
+    {
+        defaultOut(node);
+    }
+
+    @Override
+    public void caseAPanelCommentRemovePanelop(APanelCommentRemovePanelop node)
+    {
+        inAPanelCommentRemovePanelop(node);
+        if(node.getPanelCommentRemove() != null)
+        {
+            node.getPanelCommentRemove().apply(this);
+        }
+        outAPanelCommentRemovePanelop(node);
+    }
+
+    public void inAPanelCommentEditPanelop(APanelCommentEditPanelop node)
+    {
+        defaultIn(node);
+    }
+
+    public void outAPanelCommentEditPanelop(APanelCommentEditPanelop node)
+    {
+        defaultOut(node);
+    }
+
+    @Override
+    public void caseAPanelCommentEditPanelop(APanelCommentEditPanelop node)
+    {
+        inAPanelCommentEditPanelop(node);
+        if(node.getPanelCommentEdit() != null)
+        {
+            node.getPanelCommentEdit().apply(this);
+        }
+        outAPanelCommentEditPanelop(node);
+    }
+
     public void inAPanelClonePanelop(APanelClonePanelop node)
     {
         defaultIn(node);
@@ -651,9 +693,9 @@ public class DepthFirstAdapter extends AnalysisAdapter
     public void caseAPanelComment(APanelComment node)
     {
         inAPanelComment(node);
-        if(node.getPanelcomment() != null)
+        if(node.getPanelcommentadd() != null)
         {
-            node.getPanelcomment().apply(this);
+            node.getPanelcommentadd().apply(this);
         }
         if(node.getLPar() != null)
         {
@@ -692,6 +734,92 @@ public class DepthFirstAdapter extends AnalysisAdapter
             node.getRPar().apply(this);
         }
         outAPanelComment(node);
+    }
+
+    public void inAPanelCommentEdit(APanelCommentEdit node)
+    {
+        defaultIn(node);
+    }
+
+    public void outAPanelCommentEdit(APanelCommentEdit node)
+    {
+        defaultOut(node);
+    }
+
+    @Override
+    public void caseAPanelCommentEdit(APanelCommentEdit node)
+    {
+        inAPanelCommentEdit(node);
+        if(node.getPanelcommentedit() != null)
+        {
+            node.getPanelcommentedit().apply(this);
+        }
+        if(node.getLPar() != null)
+        {
+            node.getLPar().apply(this);
+        }
+        if(node.getText() != null)
+        {
+            node.getText().apply(this);
+        }
+        if(node.getC1() != null)
+        {
+            node.getC1().apply(this);
+        }
+        if(node.getType() != null)
+        {
+            node.getType().apply(this);
+        }
+        if(node.getC2() != null)
+        {
+            node.getC2().apply(this);
+        }
+        if(node.getLocation() != null)
+        {
+            node.getLocation().apply(this);
+        }
+        if(node.getC3() != null)
+        {
+            node.getC3().apply(this);
+        }
+        if(node.getGroup() != null)
+        {
+            node.getGroup().apply(this);
+        }
+        if(node.getRPar() != null)
+        {
+            node.getRPar().apply(this);
+        }
+        outAPanelCommentEdit(node);
+    }
+
+    public void inAPanelCommentRemove(APanelCommentRemove node)
+    {
+        defaultIn(node);
+    }
+
+    public void outAPanelCommentRemove(APanelCommentRemove node)
+    {
+        defaultOut(node);
+    }
+
+    @Override
+    public void caseAPanelCommentRemove(APanelCommentRemove node)
+    {
+        inAPanelCommentRemove(node);
+        if(node.getPanelcommentremove() != null)
+        {
+            node.getPanelcommentremove().apply(this);
+        }
+        if(node.getLPar() != null)
+        {
+            node.getLPar().apply(this);
+        }
+        if(node.getRPar() != null)
+        {
+            node.getRPar().apply(this);
+        }
+        outAPanelCommentRemove(node);
     }
 
     public void inAPanelClone(APanelClone node)
@@ -2296,6 +2424,48 @@ public class DepthFirstAdapter extends AnalysisAdapter
             node.getFormula().apply(this);
         }
         outAExprWordOrNum(node);
+    }
+
+    public void inAWordOrNumWordOrNumOrNestedMap(AWordOrNumWordOrNumOrNestedMap node)
+    {
+        defaultIn(node);
+    }
+
+    public void outAWordOrNumWordOrNumOrNestedMap(AWordOrNumWordOrNumOrNestedMap node)
+    {
+        defaultOut(node);
+    }
+
+    @Override
+    public void caseAWordOrNumWordOrNumOrNestedMap(AWordOrNumWordOrNumOrNestedMap node)
+    {
+        inAWordOrNumWordOrNumOrNestedMap(node);
+        if(node.getWordOrNum() != null)
+        {
+            node.getWordOrNum().apply(this);
+        }
+        outAWordOrNumWordOrNumOrNestedMap(node);
+    }
+
+    public void inANestedMapWordOrNumOrNestedMap(ANestedMapWordOrNumOrNestedMap node)
+    {
+        defaultIn(node);
+    }
+
+    public void outANestedMapWordOrNumOrNestedMap(ANestedMapWordOrNumOrNestedMap node)
+    {
+        defaultOut(node);
+    }
+
+    @Override
+    public void caseANestedMapWordOrNumOrNestedMap(ANestedMapWordOrNumOrNestedMap node)
+    {
+        inANestedMapWordOrNumOrNestedMap(node);
+        if(node.getMapObj() != null)
+        {
+            node.getMapObj().apply(this);
+        }
+        outANestedMapWordOrNumOrNestedMap(node);
     }
 
     public void inAFlexSelectorRow(AFlexSelectorRow node)
