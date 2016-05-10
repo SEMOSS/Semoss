@@ -44,6 +44,8 @@ import prerna.sablecc.node.ANumberTerm;
 import prerna.sablecc.node.APanelClone;
 import prerna.sablecc.node.APanelClose;
 import prerna.sablecc.node.APanelComment;
+import prerna.sablecc.node.APanelCommentEdit;
+import prerna.sablecc.node.APanelCommentRemove;
 import prerna.sablecc.node.APanelViz;
 import prerna.sablecc.node.APanelopScript;
 import prerna.sablecc.node.APastedData;
@@ -339,14 +341,72 @@ public class Translation2 extends DepthFirstAdapter {
 	public void outAPanelComment(APanelComment node) {
 		System.out.println("out a viz change");
 		deinitReactor(PKQLEnum.VIZ, "", "");
+		String nodeCommentString = node.getPanelcommentadd().toString();
+		String cid = "0";
+		if(nodeCommentString.contains(".comment[")){
+			nodeCommentString = nodeCommentString.substring(nodeCommentString.indexOf(".comment[")+1);
+			cid = nodeCommentString.substring(0, nodeCommentString.indexOf("]"));
+		}
 		Map<String, Object> commentMap = new HashMap<String, Object>();
 		String textWithQuotes = node.getText().toString().trim();
 		commentMap.put("text", textWithQuotes.substring(1, textWithQuotes.length()-1)); // remove the quotes
 		commentMap.put("group", node.getGroup().toString().trim());
 		commentMap.put("type", node.getType().toString().trim());
 		commentMap.put("location", node.getLocation().toString().trim());
-		runner.addFeData("comment", commentMap, false);
+		commentMap.put("commentId", cid);
+		runner.addFeData("comment"+cid, commentMap, true);
 		runner.setResponse("Successfully commented : " + node.getText().toString().trim());//
+		runner.setStatus("SUCCESS");
+	}
+
+	@Override
+	public void inAPanelCommentEdit(APanelCommentEdit node) {
+		System.out.println("in a viz comment edit");
+		initReactor(PKQLEnum.VIZ);
+	}
+
+	@Override
+	public void outAPanelCommentEdit(APanelCommentEdit node) {
+		System.out.println("out a viz comment edit");
+		deinitReactor(PKQLEnum.VIZ, "", "");
+		String nodeCommentString = node.getPanelcommentedit().toString();
+		String cid = "0";
+		if(nodeCommentString.contains(".comment[")){
+			nodeCommentString = nodeCommentString.substring(nodeCommentString.indexOf(".comment[")+1);
+			cid = nodeCommentString.substring(0, nodeCommentString.indexOf("]"));
+		}
+		Map<String, Object> commentMap = new HashMap<String, Object>();
+		String textWithQuotes = node.getText().toString().trim();
+		commentMap.put("text", textWithQuotes.substring(1, textWithQuotes.length()-1)); // remove the quotes
+		commentMap.put("group", node.getGroup().toString().trim());
+		commentMap.put("type", node.getType().toString().trim());
+		commentMap.put("location", node.getLocation().toString().trim());
+		commentMap.put("commentId", cid);
+		runner.addFeData("comment"+cid, commentMap, true);
+		runner.setResponse("Successfully edited comment " + cid + " : " + node.getText().toString().trim());//
+		runner.setStatus("SUCCESS");
+	}
+
+	@Override
+	public void inAPanelCommentRemove(APanelCommentRemove node) {
+		System.out.println("in a viz comment remove");
+		initReactor(PKQLEnum.VIZ);
+	}
+
+	@Override
+	public void outAPanelCommentRemove(APanelCommentRemove node) {
+		System.out.println("out a viz comment remove");
+		deinitReactor(PKQLEnum.VIZ, "", "");
+		String nodeCommentString = node.getPanelcommentremove().toString();
+		String cid = "0";
+		if(nodeCommentString.contains(".comment[")){
+			nodeCommentString = nodeCommentString.substring(nodeCommentString.indexOf(".comment[")+1);
+			cid = nodeCommentString.substring(0, nodeCommentString.indexOf("]"));
+		}
+		Map<String, Object> commentMap = new HashMap<String, Object>();
+		commentMap.put("closed", true); // remove the quotes
+		runner.addFeData("comment"+cid, commentMap, true);
+		runner.setResponse("Successfully removed comment " + cid);//
 		runner.setStatus("SUCCESS");
 	}
 	
