@@ -1,6 +1,7 @@
 package prerna.sablecc;
 
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Hashtable;
 import java.util.Iterator;
 import java.util.Map;
@@ -11,6 +12,7 @@ import cern.colt.Arrays;
 import prerna.algorithm.api.ITableDataFrame;
 import prerna.engine.api.IEngine;
 import prerna.engine.api.ISelectWrapper;
+import prerna.util.ArrayUtilityMethods;
 import prerna.util.DIHelper;
 
 public class ImportDataReactor extends AbstractReactor {
@@ -175,4 +177,62 @@ public class ImportDataReactor extends AbstractReactor {
 	protected String createResponseString(String[] headers){
 		return "Successfully added data using:\n headers= " + Arrays.toString(headers);
 	}
+	
+	protected void updateDataForJoins(Map<String, Set<String>> primKeyEdgeHash, Map<String, String> dataType, String[] headers, Vector<Map<String, String>> joinCols) {
+		if(joinCols != null && !joinCols.isEmpty()){
+			Map<String, Set<String>> fixedEdgeMap = new HashMap<String, Set<String>>(); // used to add new keys since cannot update existing map while looping
+			
+			Set<String> processedJoins = new HashSet<String>(); // due to stupid doubling of joins that occurs need to keep track to not process twice
+			for(Map<String, String> join : joinCols) { // grab each join map, mapping is new name to existing name
+				Set<String> removeNames = new HashSet<String>(); // the new keys that were added since cannot update existing map while looping
+				
+				for(String otherName : join.keySet()) {
+					String existingName = join.get(otherName);
+
+					// to keep from doing stupid doubling
+					processedJoins.add(existingName + otherName);
+					
+					if(!otherName.equals(existingName)) { // if names not the same, modify both prim key edge hash and data type map
+						// loop through prim keys
+						for(String key : primKeyEdgeHash.keySet()) {
+							if(key.equals(otherName)) { // found a key, this requires us to add to new map to avoid concurrent modification
+								fixedEdgeMap.put(existingName, primKeyEdgeHash.get(otherName)); // swap new name for old one
+								removeNames.add(otherName); // add old key to remove
+								
+								// update data type map
+								String dataValue = dataType.remove(otherName);
+								dataType.put(existingName, dataValue);
+								// update the header
+								int index = ArrayUtilityMethods.arrayContainsValueAtIndex(headers, otherName);
+								if(index > -1) {
+									headers[index] = existingName;
+								}
+							} else {
+								// need to test the children
+								Set<String> values = primKeyEdgeHash.get(key);
+								if(values.contains(otherName)) {
+									values.remove(otherName);
+									values.add(existingName);
+									
+									// update data type map
+									String dataValue = dataType.remove(otherName);
+									dataType.put(existingName, dataValue);
+									// update the header
+									int index = ArrayUtilityMethods.arrayContainsValueAtIndex(headers, otherName);
+									if(index > -1) {
+										headers[index] = existingName;
+									}
+								}
+							}
+						}
+						
+						// remove old keys, add new ones using existing values
+						primKeyEdgeHash.keySet().removeAll(removeNames);
+						primKeyEdgeHash.putAll(fixedEdgeMap);
+					}					
+				}
+			}
+		}
+	}
+	
 }
