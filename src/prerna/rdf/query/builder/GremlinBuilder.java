@@ -192,7 +192,7 @@ public class GremlinBuilder {
 				valueNode = nodeV.property(Constants.NAME).value() + "";
 			}
 			
-			String edgeKey = origValue + TinkerFrame.edgeLabelDelimeter + valueNode;
+			String edgeKey = origName + TinkerFrame.edgeLabelDelimeter + nameNode;
 
 			if (!travelledEdges.contains(edgeKey)) {
 				LOGGER.info("travelling down to " + nameNode);
@@ -230,7 +230,7 @@ public class GremlinBuilder {
 				valueNode = nodeV.property(Constants.NAME).value() + "";
 			}
 			
-			String edgeKey = valueNode + TinkerFrame.edgeLabelDelimeter + origValue;
+			String edgeKey = nameNode + TinkerFrame.edgeLabelDelimeter + origName;
 			if (!travelledEdges.contains(edgeKey)) {
 				LOGGER.info("travelling down to " + nameNode);
 

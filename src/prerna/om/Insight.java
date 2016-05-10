@@ -1379,6 +1379,7 @@ public class Insight {
 			
 			resultHash.put("insightID", this.getInsightID());
 			resultHash.put("feData", feData);
+			resultHash.put("newColumns", pkqlRunner.getNewColumns());
 		}
 		return resultHash;
 	}
