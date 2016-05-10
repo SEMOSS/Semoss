@@ -9,7 +9,6 @@ import java.util.Vector;
 
 import cern.colt.Arrays;
 import prerna.algorithm.api.ITableDataFrame;
-import prerna.ds.util.FileIterator;
 import prerna.engine.api.IEngine;
 import prerna.engine.api.ISelectWrapper;
 import prerna.util.DIHelper;
@@ -166,9 +165,9 @@ public class ImportDataReactor extends AbstractReactor {
 		if(it instanceof ISelectWrapper) {
 			myStore.put(nodeStr, createResponseString((ISelectWrapper)it));
 		} else {
-			if(it instanceof FileIterator) {
-				((FileIterator) it).deleteFile();
-			}
+//			if(it instanceof FileIterator) {
+//				((FileIterator) it).deleteFile();
+//			}
 			myStore.put(nodeStr, createResponseString(headers));
 		}
 	}
