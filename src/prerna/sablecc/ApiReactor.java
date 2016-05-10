@@ -89,7 +89,7 @@ public class ApiReactor extends AbstractReactor {
 	//				}
 					
 					//we want to add filters to the column that already exists in the table
-					if(fromColumn != null) {
+					if(fromColumn != null && toColumn != null) {
 						rowIt = frame.uniqueValueIterator(fromColumn, false, false);
 						List<Object> uris = new Vector<Object>();
 						
