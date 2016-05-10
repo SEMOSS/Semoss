@@ -353,7 +353,7 @@ public class Translation2 extends DepthFirstAdapter {
 		String nodeCommentString = node.getPanelcommentadd().toString();
 		String cid = "0";
 		if(nodeCommentString.contains(".comment[")){
-			nodeCommentString = nodeCommentString.substring(nodeCommentString.indexOf(".comment[")+1);
+			nodeCommentString = nodeCommentString.substring(nodeCommentString.indexOf(".comment[")+9);
 			cid = nodeCommentString.substring(0, nodeCommentString.indexOf("]"));
 		}
 		
@@ -365,7 +365,12 @@ public class Translation2 extends DepthFirstAdapter {
 		commentMap.put("type", node.getType().toString().trim());
 		commentMap.put("location", node.getLocation().toString().trim());
 		commentMap.put("commentId", cid);
-		runner.addFeData("comment"+cid, commentMap, true);
+		Map comments = (Map) runner.getFeData("comments");
+		if(comments == null){
+			comments = new HashMap();
+		}
+		comments.put(cid, commentMap);
+		runner.addFeData("comments", comments, true);
 		runner.setResponse("Successfully commented : " + node.getText().toString().trim());//
 		runner.setStatus("SUCCESS");
 	}
@@ -387,7 +392,7 @@ public class Translation2 extends DepthFirstAdapter {
 		String nodeCommentString = node.getPanelcommentedit().toString();
 		String cid = "0";
 		if(nodeCommentString.contains(".comment[")){
-			nodeCommentString = nodeCommentString.substring(nodeCommentString.indexOf(".comment[")+1);
+			nodeCommentString = nodeCommentString.substring(nodeCommentString.indexOf(".comment[")+9);
 			cid = nodeCommentString.substring(0, nodeCommentString.indexOf("]"));
 		}
 		
@@ -399,7 +404,12 @@ public class Translation2 extends DepthFirstAdapter {
 		commentMap.put("type", node.getType().toString().trim());
 		commentMap.put("location", node.getLocation().toString().trim());
 		commentMap.put("commentId", cid);
-		runner.addFeData("comment"+cid, commentMap, true);
+		Map comments = (Map) runner.getFeData("comments");
+		if(comments == null){
+			comments = new HashMap();
+		}
+		comments.put(cid, commentMap);
+		runner.addFeData("comments", comments, true);
 		runner.setResponse("Successfully edited comment " + cid + " : " + node.getText().toString().trim());//
 		runner.setStatus("SUCCESS");
 	}
@@ -420,7 +430,7 @@ public class Translation2 extends DepthFirstAdapter {
 		String nodeCommentString = node.getPanelcommentremove().toString();
 		String cid = "0";
 		if(nodeCommentString.contains(".comment[")){
-			nodeCommentString = nodeCommentString.substring(nodeCommentString.indexOf(".comment[")+1);
+			nodeCommentString = nodeCommentString.substring(nodeCommentString.indexOf(".comment[")+9);
 			cid = nodeCommentString.substring(0, nodeCommentString.indexOf("]"));
 		}
 		
@@ -428,7 +438,12 @@ public class Translation2 extends DepthFirstAdapter {
 		Map<String, Object> commentMap = new HashMap<String, Object>();
 		commentMap.put("closed", true);
 
-		runner.addFeData("comment"+cid, commentMap, true);
+		Map comments = (Map) runner.getFeData("comments");
+		if(comments == null){
+			comments = new HashMap();
+		}
+		comments.put(cid, commentMap);
+		runner.addFeData("comments", comments, true);
 		runner.setResponse("Successfully removed comment " + cid);//
 		runner.setStatus("SUCCESS");
 	}
