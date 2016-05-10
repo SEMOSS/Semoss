@@ -37,12 +37,18 @@ public interface Analysis extends Switch
     void caseAPanelCommentPanelop(APanelCommentPanelop node);
     void caseAPanelCommentRemovePanelop(APanelCommentRemovePanelop node);
     void caseAPanelCommentEditPanelop(APanelCommentEditPanelop node);
+    void caseAPanelLookAndFeelPanelop(APanelLookAndFeelPanelop node);
+    void caseAPanelToolsPanelop(APanelToolsPanelop node);
+    void caseAPanelConfigPanelop(APanelConfigPanelop node);
     void caseAPanelClonePanelop(APanelClonePanelop node);
     void caseAPanelClosePanelop(APanelClosePanelop node);
     void caseAPanelViz(APanelViz node);
     void caseAPanelComment(APanelComment node);
     void caseAPanelCommentEdit(APanelCommentEdit node);
     void caseAPanelCommentRemove(APanelCommentRemove node);
+    void caseAPanelLookAndFeel(APanelLookAndFeel node);
+    void caseAPanelTools(APanelTools node);
+    void caseAPanelConfig(APanelConfig node);
     void caseAPanelClone(APanelClone node);
     void caseAPanelClose(APanelClose node);
     void caseADataFrame(ADataFrame node);
@@ -188,5 +194,8 @@ public interface Analysis extends Switch
     void caseTPanelcommentremove(TPanelcommentremove node);
     void caseTPanelcommentedit(TPanelcommentedit node);
     void caseTPanelcommentadd(TPanelcommentadd node);
+    void caseTPanellookandfeel(TPanellookandfeel node);
+    void caseTPaneltools(TPaneltools node);
+    void caseTPanelconfig(TPanelconfig node);
     void caseEOF(EOF node);
 }

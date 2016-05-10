@@ -7,6 +7,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Vector;
 
+import com.google.gson.Gson;
+
 import prerna.algorithm.api.ITableDataFrame;
 import prerna.ds.TinkerFrame;
 import prerna.engine.api.IScriptReactor;
@@ -46,6 +48,9 @@ import prerna.sablecc.node.APanelClose;
 import prerna.sablecc.node.APanelComment;
 import prerna.sablecc.node.APanelCommentEdit;
 import prerna.sablecc.node.APanelCommentRemove;
+import prerna.sablecc.node.APanelConfig;
+import prerna.sablecc.node.APanelLookAndFeel;
+import prerna.sablecc.node.APanelTools;
 import prerna.sablecc.node.APanelViz;
 import prerna.sablecc.node.APanelopScript;
 import prerna.sablecc.node.APastedData;
@@ -337,16 +342,22 @@ public class Translation2 extends DepthFirstAdapter {
 		initReactor(PKQLEnum.VIZ);
 	}
 
+	// this is just grabbing the comment information and storing it in the runner
+	// should be split out into reactor
 	@Override
 	public void outAPanelComment(APanelComment node) {
 		System.out.println("out a viz change");
 		deinitReactor(PKQLEnum.VIZ, "", "");
+		
+		// get the comment id
 		String nodeCommentString = node.getPanelcommentadd().toString();
 		String cid = "0";
 		if(nodeCommentString.contains(".comment[")){
 			nodeCommentString = nodeCommentString.substring(nodeCommentString.indexOf(".comment[")+1);
 			cid = nodeCommentString.substring(0, nodeCommentString.indexOf("]"));
 		}
+		
+		// set the information
 		Map<String, Object> commentMap = new HashMap<String, Object>();
 		String textWithQuotes = node.getText().toString().trim();
 		commentMap.put("text", textWithQuotes.substring(1, textWithQuotes.length()-1)); // remove the quotes
@@ -365,16 +376,22 @@ public class Translation2 extends DepthFirstAdapter {
 		initReactor(PKQLEnum.VIZ);
 	}
 
+	// this is just grabbing the comment information and storing it in the runner
+	// should be split out into reactor
 	@Override
 	public void outAPanelCommentEdit(APanelCommentEdit node) {
 		System.out.println("out a viz comment edit");
 		deinitReactor(PKQLEnum.VIZ, "", "");
+		
+		// get the comment id
 		String nodeCommentString = node.getPanelcommentedit().toString();
 		String cid = "0";
 		if(nodeCommentString.contains(".comment[")){
 			nodeCommentString = nodeCommentString.substring(nodeCommentString.indexOf(".comment[")+1);
 			cid = nodeCommentString.substring(0, nodeCommentString.indexOf("]"));
 		}
+		
+		//set the information
 		Map<String, Object> commentMap = new HashMap<String, Object>();
 		String textWithQuotes = node.getText().toString().trim();
 		commentMap.put("text", textWithQuotes.substring(1, textWithQuotes.length()-1)); // remove the quotes
@@ -393,18 +410,24 @@ public class Translation2 extends DepthFirstAdapter {
 		initReactor(PKQLEnum.VIZ);
 	}
 
+	// this sets a comment as closed
 	@Override
 	public void outAPanelCommentRemove(APanelCommentRemove node) {
 		System.out.println("out a viz comment remove");
 		deinitReactor(PKQLEnum.VIZ, "", "");
+		
+		// get the comment id
 		String nodeCommentString = node.getPanelcommentremove().toString();
 		String cid = "0";
 		if(nodeCommentString.contains(".comment[")){
 			nodeCommentString = nodeCommentString.substring(nodeCommentString.indexOf(".comment[")+1);
 			cid = nodeCommentString.substring(0, nodeCommentString.indexOf("]"));
 		}
+		
+		//set it as closed
 		Map<String, Object> commentMap = new HashMap<String, Object>();
-		commentMap.put("closed", true); // remove the quotes
+		commentMap.put("closed", true);
+
 		runner.addFeData("comment"+cid, commentMap, true);
 		runner.setResponse("Successfully removed comment " + cid);//
 		runner.setStatus("SUCCESS");
@@ -426,6 +449,66 @@ public class Translation2 extends DepthFirstAdapter {
 		runner.copyFeData(newId);
 		deinitReactor(PKQLEnum.VIZ, "", "");
 		runner.setResponse("Successfully cloned! New panel id: " + newId);//
+		runner.setStatus("SUCCESS");
+	}
+
+	@Override
+	public void inAPanelLookAndFeel(APanelLookAndFeel node){
+		System.out.println("in a panel laf");
+		initReactor(PKQLEnum.VIZ);
+	}
+	
+	@Override
+	public void outAPanelLookAndFeel(APanelLookAndFeel node){
+		System.out.println("out a panel laf");
+		Map laf = (Map) runner.getFeData("lookandfeel");
+		if(laf == null){
+			laf = new HashMap();
+		}
+		laf.putAll(new Gson().fromJson(node.getMap().toString(), HashMap.class));
+		runner.addFeData("lookandfeel", laf, true);
+		deinitReactor(PKQLEnum.VIZ, "", "");
+		runner.setResponse("Successfully set look and feel");//
+		runner.setStatus("SUCCESS");
+	}
+
+	@Override
+	public void inAPanelTools(APanelTools node){
+		System.out.println("in a panel tools");
+		initReactor(PKQLEnum.VIZ);
+	}
+	
+	@Override
+	public void outAPanelTools(APanelTools node){
+		System.out.println("out a panel tools");
+		Map tools = (Map) runner.getFeData("tools");
+		if(tools == null){
+			tools = new HashMap();
+		}
+		tools.putAll(new Gson().fromJson(node.getMap().toString(), HashMap.class));
+		runner.addFeData("tools", tools, true);
+		deinitReactor(PKQLEnum.VIZ, "", "");
+		runner.setResponse("Successfully set tools");//
+		runner.setStatus("SUCCESS");
+	}
+
+	@Override
+	public void inAPanelConfig(APanelConfig node){
+		System.out.println("in a panel config");
+		initReactor(PKQLEnum.VIZ);
+	}
+	
+	@Override
+	public void outAPanelConfig(APanelConfig node){
+		System.out.println("out a panel config");
+		Map config = (Map) runner.getFeData("config");
+		if(config == null){
+			config = new HashMap();
+		}
+		config.putAll(new Gson().fromJson(node.getMap().toString(), HashMap.class));
+		runner.addFeData("config", config, true);
+		deinitReactor(PKQLEnum.VIZ, "", "");
+		runner.setResponse("Successfully set config");//
 		runner.setStatus("SUCCESS");
 	}
 	
