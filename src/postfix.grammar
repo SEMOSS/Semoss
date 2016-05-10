@@ -82,6 +82,10 @@ Tokens
  panelcommentremove = panelcommentprefix '.remove';
  panelcommentedit = panelcommentprefix '.edit';
  panelcommentadd = panelcommentprefix '.add';
+ panellookandfeel = panelprefix '.lookandfeel';
+ paneltools = panelprefix '.tools';
+ panelconfig = panelprefix '.config';
+ 
 
 Ignored Tokens
  blank;
@@ -121,6 +125,9 @@ panelop = // panelop is usually of the form of viz.change, viz.tools, viz.color
 		| {panel_comment} panel_comment
 		| {panel_comment_remove} panel_comment_remove
 		| {panel_comment_edit} panel_comment_edit
+		| {panel_look_and_feel} panel_look_and_feel
+		| {panel_tools} panel_tools
+		| {panel_config} panel_config
 		| {panel_clone} panel_clone
 		| {panel_close} panel_close
 		;
@@ -130,16 +137,28 @@ panel_viz = // e.g. panel.viz(bar, [c:Title, c:Budget]); panelviz( vizType, orde
 		panelviz l_par [layout]:id [c1]:comma [datatablealign]:flex_selector_row [c2]:comma? [uioptions]:map_obj? r_par
 		;
 		
-panel_comment = // e.g. panel.comment("this looks super important", group0, coordinate, (50, 16));
+panel_comment = // e.g. panel.comment.add("this looks super important", group0, coordinate, (50, 16));
 		panelcommentadd l_par [text]:word [c1]:comma [type]:id [c2]:comma [location]:map_obj [c3]:comma [group]:id r_par
 		;
 		
-panel_comment_edit = // e.g. panel.comment("this looks super important", group0, coordinate, (50, 16));
+panel_comment_edit = // e.g. panel.comment.edit("this looks super important", group0, coordinate, (50, 16));
 		panelcommentedit l_par [text]:word [c1]:comma [type]:id [c2]:comma [location]:map_obj [c3]:comma [group]:id r_par
 		;
 		
 panel_comment_remove = // e.g. panel.comment[0].remove();
 		panelcommentremove l_par r_par
+		;
+		
+panel_look_and_feel = // e.g. panel.lookandfeel({'color':'red'});
+		panellookandfeel l_par [map]:map_obj r_par
+		;
+		
+panel_tools = // e.g. panel.tools({'flippedaxis':'true'});
+		paneltools l_par [map]:map_obj r_par
+		;
+		
+panel_config = // e.g. panel.config({'positon':'leftside'});
+		panelconfig l_par [map]:map_obj r_par
 		;
 		
 panel_clone = // e.g. panel.clone(1);

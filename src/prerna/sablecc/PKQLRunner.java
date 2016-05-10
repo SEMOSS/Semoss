@@ -227,4 +227,8 @@ public class PKQLRunner {
 		openFeDataBlock(newId);
 		this.activeFeMap.putAll(copiedActiveMap);
 	}
+
+	public Object getFeData(String key) {
+		return this.activeFeMap.get(key);
+	}
 }
