@@ -110,7 +110,7 @@ public class FileIterator implements Iterator<IHeadersDataRow>{
 				Set<Object> nextSet = filters.get(headers[i]);
 				if(nextSet != null ){
 					if(dataTypeMap.get(headers[i]).toUpperCase().startsWith("VARCHAR")) {
-						if(nextSet.contains(Utility.cleanString(row[i], false))) {
+						if(nextSet.contains(Utility.cleanString(row[i], true))) {
 							newRow = row;
 						}
 					} else if(nextSet.contains(row[i])) {
