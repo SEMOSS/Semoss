@@ -1,9 +1,7 @@
 package prerna.ui.components.playsheets.datamakers;
 
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
-import java.util.Vector;
 
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
@@ -24,6 +22,7 @@ public class PKQLTransformation extends AbstractTransformation {
 	public static final String EXPRESSION = "EXPRESSION";
 
 	private Map<String, Object> feData = new HashMap<String, Object>();
+	private Map<String, String> newColumns = new HashMap<String, String>();
 	
 	
 	IDataMaker dm;
@@ -55,6 +54,9 @@ public class PKQLTransformation extends AbstractTransformation {
 		runner.runPKQL(expression, (ITableDataFrame) this.dm);
 //		this.dm = runner.getDataFrame();
 		this.feData.putAll(runner.getFeData());
+		if(runner.getNewColumns() != null) {
+			this.newColumns.putAll(runner.getNewColumns());
+		}
 	}
 
 	@Override
@@ -88,6 +90,10 @@ public class PKQLTransformation extends AbstractTransformation {
 	
 	public Map<String, Object> getFeData(){
 		return this.feData;
+	}
+	
+	public Map<String, String> getNewColumns() {
+		return this.newColumns;
 	}
 	
 	public void setRunner(PKQLRunner runner){
