@@ -184,6 +184,16 @@ public class AnalysisAdapter implements Analysis
         defaultCase(node);
     }
 
+    public void caseAPanelCommentRemovePanelop(APanelCommentRemovePanelop node)
+    {
+        defaultCase(node);
+    }
+
+    public void caseAPanelCommentEditPanelop(APanelCommentEditPanelop node)
+    {
+        defaultCase(node);
+    }
+
     public void caseAPanelClonePanelop(APanelClonePanelop node)
     {
         defaultCase(node);
@@ -200,6 +210,16 @@ public class AnalysisAdapter implements Analysis
     }
 
     public void caseAPanelComment(APanelComment node)
+    {
+        defaultCase(node);
+    }
+
+    public void caseAPanelCommentEdit(APanelCommentEdit node)
+    {
+        defaultCase(node);
+    }
+
+    public void caseAPanelCommentRemove(APanelCommentRemove node)
     {
         defaultCase(node);
     }
@@ -455,6 +475,16 @@ public class AnalysisAdapter implements Analysis
     }
 
     public void caseAExprWordOrNum(AExprWordOrNum node)
+    {
+        defaultCase(node);
+    }
+
+    public void caseAWordOrNumWordOrNumOrNestedMap(AWordOrNumWordOrNumOrNestedMap node)
+    {
+        defaultCase(node);
+    }
+
+    public void caseANestedMapWordOrNumOrNestedMap(ANestedMapWordOrNumOrNestedMap node)
     {
         defaultCase(node);
     }
@@ -879,11 +909,6 @@ public class AnalysisAdapter implements Analysis
         defaultCase(node);
     }
 
-    public void caseTPanelcomment(TPanelcomment node)
-    {
-        defaultCase(node);
-    }
-
     public void caseTPanelclone(TPanelclone node)
     {
         defaultCase(node);
@@ -900,6 +925,21 @@ public class AnalysisAdapter implements Analysis
     }
 
     public void caseTFileText(TFileText node)
+    {
+        defaultCase(node);
+    }
+
+    public void caseTPanelcommentremove(TPanelcommentremove node)
+    {
+        defaultCase(node);
+    }
+
+    public void caseTPanelcommentedit(TPanelcommentedit node)
+    {
+        defaultCase(node);
+    }
+
+    public void caseTPanelcommentadd(TPanelcommentadd node)
     {
         defaultCase(node);
     }
