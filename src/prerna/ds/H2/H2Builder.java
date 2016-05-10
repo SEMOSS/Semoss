@@ -738,33 +738,33 @@ public class H2Builder {
     	}
     }
     
-    public void processIterator(Iterator<IHeadersDataRow> iterator, String[] oldHeaders, String[] newHeaders) {
-    	ArrayList<String[]> data = new ArrayList<>();
-    	newHeaders = cleanHeaders(newHeaders);
-    	while(iterator.hasNext()) {
-    		IHeadersDataRow nextData = iterator.next();
-    		if(newHeaders == null) {
-    			newHeaders = nextData.getHeaders();
-    		}
-    		Object[] values = nextData.getValues();
-    		String[] stringValues = new String[values.length];
-    		for(int i = 0; i < values.length; i++) {
-    			stringValues[i] = values[i].toString();
-    		}
-    		data.add(stringValues);
-    	}
-//    	if(headers == null) {
-//    		//create table
-//    		generateTable(data.toArray(new String[0][0]), newHeaders, tableName);
-//    	} else {
-    		try {
-				runQuery("CREATE TABLE IF NOT EXISTS " + tableName);
-			} catch (Exception e) {
-				e.printStackTrace();
-			}
-    		processAlterData(data.toArray(new String[0][0]), newHeaders, oldHeaders, Join.INNER);
+//    public void processIterator(Iterator<IHeadersDataRow> iterator, String[] oldHeaders, String[] newHeaders) {
+//    	ArrayList<String[]> data = new ArrayList<>();
+//    	newHeaders = cleanHeaders(newHeaders);
+//    	while(iterator.hasNext()) {
+//    		IHeadersDataRow nextData = iterator.next();
+//    		if(newHeaders == null) {
+//    			newHeaders = nextData.getHeaders();
+//    		}
+//    		Object[] values = nextData.getValues();
+//    		String[] stringValues = new String[values.length];
+//    		for(int i = 0; i < values.length; i++) {
+//    			stringValues[i] = values[i].toString();
+//    		}
+//    		data.add(stringValues);
 //    	}
-    }
+////    	if(headers == null) {
+////    		//create table
+////    		generateTable(data.toArray(new String[0][0]), newHeaders, tableName);
+////    	} else {
+//    		try {
+//				runQuery("CREATE TABLE IF NOT EXISTS " + tableName);
+//			} catch (Exception e) {
+//				e.printStackTrace();
+//			}
+//    		processAlterData(data.toArray(new String[0][0]), newHeaders, oldHeaders, Join.INNER);
+////    	}
+//    }
     
     public void processIterator(Iterator<IHeadersDataRow> iterator, String[] oldHeaders, String[] newHeaders, Join joinType) {
     	ArrayList<String[]> data = new ArrayList<>();
@@ -1205,40 +1205,42 @@ public class H2Builder {
 
 	    	//headers for the joining table
     		
-    		int curHeadCount = headers.length;
+//    		int curHeadCount = headers.length;
     		Vector <String> newHeaderIndices = new Vector<String>();
     		Vector <String> oldHeaderIndices = new Vector<String>();
+    		Hashtable<Integer, Integer> matchers = new Hashtable<Integer, Integer>();
+//    		if(matchers == null || matchers.isEmpty()) {
+//	    		matchers = new Hashtable<Integer, Integer>();
+	    		
+	    		// I need to find which ones are already there and which ones are new
+	    		for(int hIndex = 0;hIndex < newHeaders.length;hIndex++)
+	    		{
+	    			String uheader = newHeaders[hIndex];
+	    			uheader = cleanHeader(uheader);
+	
+	    			boolean old = false;
+	    			for(int oIndex = 0;oIndex < headers.length;oIndex++)
+	    			{
+	    				if(headers[oIndex].equalsIgnoreCase(uheader))
+	    				{
+	    					old = true;
+	    					oldHeaderIndices.add(hIndex+"");
+	    					matchers.put(hIndex, oIndex);
+	    					break;
+	    				}
+	    			}
+	    			
+	    			if(!old)
+	    				newHeaderIndices.add((hIndex) + "");
+	    		}
+//    		}
     		
-    		Hashtable <Integer, Integer> matchers = new Hashtable<Integer, Integer>();
-    		
-    		// I need to find which ones are already there and which ones are new
-    		for(int hIndex = 0;hIndex < newHeaders.length;hIndex++)
-    		{
-    			String uheader = newHeaders[hIndex];
-    			uheader = cleanHeader(uheader);
-
-    			boolean old = false;
-    			for(int oIndex = 0;oIndex < headers.length;oIndex++)
-    			{
-    				if(headers[oIndex].equalsIgnoreCase(uheader))
-    				{
-    					old = true;
-    					oldHeaderIndices.add(hIndex+"");
-    					matchers.put(hIndex, oIndex);
-    					break;
-    				}
-    			}
-    			
-    			if(!old)
-    				newHeaderIndices.add((hIndex) + "");
-    		}
-    		
-    		headers = newHeaders;
+//    		headers = newHeaders;
 				    		
 //    		String [] oldTypes = types; // I am not sure if I need this we will see - yes I do now yipee
     		
-			String[] cells = data[0];
-			predictRowTypes(cells);
+//			String[] cells = data[0];
+//			predictRowTypes(cells);
 
 //			String[] newTypes = types;
 			
@@ -1246,7 +1248,8 @@ public class H2Builder {
 			
 			boolean one2Many = false;
 			// I also need to accomodate when there are no common ones
-			if(oldHeaderIndices.size() == 0)
+//			if(oldHeaderIndices.size() == 0)
+			if(matchers.isEmpty())	
 			{
 				// this is the case where it has not been created yet
 				tableName = getNewTableName();
