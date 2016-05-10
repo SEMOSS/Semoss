@@ -54,16 +54,17 @@ public class ConnectedConcepts {
 		}
 	}
 	
-	public void addData(String engine, String conceptURI, String physName, String parent, Map<String, Object> connections) {
+	public void addData(String engine, String displayURI, String physName, String parent, Map<String, Object> connections) {
 		if(data.containsKey(engine)) {
 			Map<String, Object> engineMap = (Map<String, Object>) data.get(engine);
 			// need to check if relationship name already exists
 			Map<String, Map<String, Object>> conceptMap = (Map<String, Map<String, Object>>) engineMap.get(EQUIVALENT_CONCEPT);
-			if(conceptMap.containsKey(conceptURI)) {
+			if(conceptMap.containsKey(physName)) {
 				// need to check if already existing relationships
-				Map<String, Object> currConnections = conceptMap.get(conceptURI);
+				Map<String, Object> currConnections = conceptMap.get(physName);
 				for(String key : connections.keySet()) {
 					currConnections.put("physicalName", physName);
+					currConnections.put("displayName", displayURI);
 					if(currConnections.containsKey(key)) {
 						Map<String, Set<String>> newRels = (Map<String, Set<String>>) connections.get(key); // this is like "downstream" --> [displayName/Studio]
 						// if found, add to existing set of possible connections
@@ -82,19 +83,21 @@ public class ConnectedConcepts {
 				}
 			} else {
 				connections.put("physicalName", physName);
+				connections.put("displayName", displayURI);
 				if(parent != null) {
 					connections.put("parent", parent);
 				}
-				conceptMap.put(conceptURI, connections);
+				conceptMap.put(physName, connections);
 			}
 		} else {
 			Map<String, Object> engineMap = new Hashtable<String, Object>();
 			Map<String, Object> innerMap = new Hashtable<String, Object>();
 			connections.put("physicalName", physName);
+			connections.put("displayName", displayURI);
 			if(parent != null) {
 				connections.put("parent", parent);
 			}
-			innerMap.put(conceptURI, connections);
+			innerMap.put(physName, connections);
 			engineMap.put(EQUIVALENT_CONCEPT, innerMap);
 			data.put(engine, engineMap);
 		}
