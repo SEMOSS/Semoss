@@ -57,7 +57,6 @@ import prerna.sablecc.node.APastedData;
 import prerna.sablecc.node.APastedDataBlock;
 import prerna.sablecc.node.APastedDataImportBlock;
 import prerna.sablecc.node.APlusExpr;
-import prerna.sablecc.node.AROpScript;
 import prerna.sablecc.node.ARelationDef;
 import prerna.sablecc.node.ARemoveData;
 import prerna.sablecc.node.ASetColumn;
@@ -129,7 +128,6 @@ public class Translation2 extends DepthFirstAdapter {
 		reactorNames.put(PKQLEnum.IMPORT_DATA, "prerna.sablecc.ImportDataReactor");
 		reactorNames.put(PKQLEnum.REMOVE_DATA, "prerna.sablecc.RemoveDataReactor");
 		reactorNames.put(PKQLEnum.FILTER_DATA, "prerna.sablecc.ColFilterReactor");
-		reactorNames.put(PKQLReactor.R_OP.toString(), "prerna.sablecc.RReactor");
 		reactorNames.put(PKQLEnum.VIZ, "prerna.sablecc.VizReactor");
 		reactorNames.put(PKQLEnum.UNFILTER_DATA, "prerna.sablecc.ColUnfilterReactor");
 	}
@@ -205,7 +203,7 @@ public class Translation2 extends DepthFirstAdapter {
 
 		return colName;
 	}
-	
+
 	// the highest level above all commands
 	// tracks the most basic things all pkql should have
 	private void storeScript(Node node){
@@ -227,8 +225,8 @@ public class Translation2 extends DepthFirstAdapter {
 			curReactor.put("INSIGHT", node.getInsight().toString());
 			if(myJoins != null) {
 				curReactor.put("TABLE_JOINS", myJoins);
-			}
 		}		
+	}
 	}
 	
 	@Override
@@ -240,6 +238,8 @@ public class Translation2 extends DepthFirstAdapter {
 		if(curReactor != null && node.parent() != null && node.parent() instanceof AApiImportBlock) {
 			String [] values2Sync = curReactor.getValues2Sync(PKQLEnum.API);
 			synchronizeValues(PKQLEnum.API, values2Sync, thisReactor);
+			runner.setResponse((String)thisReactor.getValue("RESPONSE"));
+			runner.setStatus((String)thisReactor.getValue("STATUS"));
 		}
 	}
 
@@ -257,12 +257,6 @@ public class Translation2 extends DepthFirstAdapter {
 		String nodeExpr = node.getExpr().toString().trim();
 		String nodeStr = node.toString().trim();
 		Hashtable <String, Object> thisReactorHash = deinitReactor(PKQLEnum.EXPR_SCRIPT, nodeExpr, nodeStr);
-		storeScript(node);
-	}
-
-	// at the highest level, make sure to save to the runner as a completed expression
-	@Override
-	public void outAROpScript(AROpScript node) {
 		storeScript(node);
 	}
 
@@ -335,8 +329,8 @@ public class Translation2 extends DepthFirstAdapter {
 		runner.setStatus("SUCCESS");
 		deinitReactor(PKQLEnum.VIZ, "", "");
 	}
-
-	@Override
+	
+	@Override 
 	public void inAPanelComment(APanelComment node) {
 		System.out.println("in a viz comment");
 		initReactor(PKQLEnum.VIZ);
@@ -373,7 +367,7 @@ public class Translation2 extends DepthFirstAdapter {
 		runner.addFeData("comments", comments, true);
 		runner.setResponse("Successfully commented : " + node.getText().toString().trim());//
 		runner.setStatus("SUCCESS");
-	}
+		}
 
 	@Override
 	public void inAPanelCommentEdit(APanelCommentEdit node) {
@@ -466,7 +460,7 @@ public class Translation2 extends DepthFirstAdapter {
 		runner.setResponse("Successfully cloned! New panel id: " + newId);//
 		runner.setStatus("SUCCESS");
 	}
-
+	
 	@Override
 	public void inAPanelLookAndFeel(APanelLookAndFeel node){
 		System.out.println("in a panel laf");
@@ -754,8 +748,8 @@ public class Translation2 extends DepthFirstAdapter {
 			
 			if(node.getJoins()!=null){
 				node.getJoins().apply(this); // need to process joins so that we can access them in the api block for preprocessing inner joins
-			}
 		}		
+    }
     }
     
     @Override
@@ -765,6 +759,7 @@ public class Translation2 extends DepthFirstAdapter {
 		curReactor.put(PKQLEnum.EXPR_TERM, nodeImport);
 		Hashtable <String, Object> thisReactorHash = deinitReactor(PKQLEnum.IMPORT_DATA, nodeImport, nodeStr);
     	IScriptReactor previousReactor = (IScriptReactor)thisReactorHash.get(PKQLReactor.IMPORT_DATA.toString());
+    	runner.setNewColumns((Map<String, String>)previousReactor.getValue("logicalToValue"));
 		runner.setResponse(previousReactor.getValue(nodeStr));
 		runner.setStatus((String)previousReactor.getValue("STATUS"));
     }
@@ -951,8 +946,8 @@ public class Translation2 extends DepthFirstAdapter {
     	if(node.parent() != null && node.parent() instanceof ACsvTable) {
         	deinitReactor(PKQLEnum.ROW_CSV, thisNode, PKQLEnum.ROW_CSV, false);
     	} else {
-    		deinitReactor(PKQLEnum.ROW_CSV, thisNode, PKQLEnum.ROW_CSV);
-    	}
+		deinitReactor(PKQLEnum.ROW_CSV, thisNode, PKQLEnum.ROW_CSV);
+    }
     }
     
     @Override
