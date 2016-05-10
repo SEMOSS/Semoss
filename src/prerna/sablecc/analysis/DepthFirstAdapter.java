@@ -588,6 +588,69 @@ public class DepthFirstAdapter extends AnalysisAdapter
         outAPanelCommentEditPanelop(node);
     }
 
+    public void inAPanelLookAndFeelPanelop(APanelLookAndFeelPanelop node)
+    {
+        defaultIn(node);
+    }
+
+    public void outAPanelLookAndFeelPanelop(APanelLookAndFeelPanelop node)
+    {
+        defaultOut(node);
+    }
+
+    @Override
+    public void caseAPanelLookAndFeelPanelop(APanelLookAndFeelPanelop node)
+    {
+        inAPanelLookAndFeelPanelop(node);
+        if(node.getPanelLookAndFeel() != null)
+        {
+            node.getPanelLookAndFeel().apply(this);
+        }
+        outAPanelLookAndFeelPanelop(node);
+    }
+
+    public void inAPanelToolsPanelop(APanelToolsPanelop node)
+    {
+        defaultIn(node);
+    }
+
+    public void outAPanelToolsPanelop(APanelToolsPanelop node)
+    {
+        defaultOut(node);
+    }
+
+    @Override
+    public void caseAPanelToolsPanelop(APanelToolsPanelop node)
+    {
+        inAPanelToolsPanelop(node);
+        if(node.getPanelTools() != null)
+        {
+            node.getPanelTools().apply(this);
+        }
+        outAPanelToolsPanelop(node);
+    }
+
+    public void inAPanelConfigPanelop(APanelConfigPanelop node)
+    {
+        defaultIn(node);
+    }
+
+    public void outAPanelConfigPanelop(APanelConfigPanelop node)
+    {
+        defaultOut(node);
+    }
+
+    @Override
+    public void caseAPanelConfigPanelop(APanelConfigPanelop node)
+    {
+        inAPanelConfigPanelop(node);
+        if(node.getPanelConfig() != null)
+        {
+            node.getPanelConfig().apply(this);
+        }
+        outAPanelConfigPanelop(node);
+    }
+
     public void inAPanelClonePanelop(APanelClonePanelop node)
     {
         defaultIn(node);
@@ -820,6 +883,105 @@ public class DepthFirstAdapter extends AnalysisAdapter
             node.getRPar().apply(this);
         }
         outAPanelCommentRemove(node);
+    }
+
+    public void inAPanelLookAndFeel(APanelLookAndFeel node)
+    {
+        defaultIn(node);
+    }
+
+    public void outAPanelLookAndFeel(APanelLookAndFeel node)
+    {
+        defaultOut(node);
+    }
+
+    @Override
+    public void caseAPanelLookAndFeel(APanelLookAndFeel node)
+    {
+        inAPanelLookAndFeel(node);
+        if(node.getPanellookandfeel() != null)
+        {
+            node.getPanellookandfeel().apply(this);
+        }
+        if(node.getLPar() != null)
+        {
+            node.getLPar().apply(this);
+        }
+        if(node.getMap() != null)
+        {
+            node.getMap().apply(this);
+        }
+        if(node.getRPar() != null)
+        {
+            node.getRPar().apply(this);
+        }
+        outAPanelLookAndFeel(node);
+    }
+
+    public void inAPanelTools(APanelTools node)
+    {
+        defaultIn(node);
+    }
+
+    public void outAPanelTools(APanelTools node)
+    {
+        defaultOut(node);
+    }
+
+    @Override
+    public void caseAPanelTools(APanelTools node)
+    {
+        inAPanelTools(node);
+        if(node.getPaneltools() != null)
+        {
+            node.getPaneltools().apply(this);
+        }
+        if(node.getLPar() != null)
+        {
+            node.getLPar().apply(this);
+        }
+        if(node.getMap() != null)
+        {
+            node.getMap().apply(this);
+        }
+        if(node.getRPar() != null)
+        {
+            node.getRPar().apply(this);
+        }
+        outAPanelTools(node);
+    }
+
+    public void inAPanelConfig(APanelConfig node)
+    {
+        defaultIn(node);
+    }
+
+    public void outAPanelConfig(APanelConfig node)
+    {
+        defaultOut(node);
+    }
+
+    @Override
+    public void caseAPanelConfig(APanelConfig node)
+    {
+        inAPanelConfig(node);
+        if(node.getPanelconfig() != null)
+        {
+            node.getPanelconfig().apply(this);
+        }
+        if(node.getLPar() != null)
+        {
+            node.getLPar().apply(this);
+        }
+        if(node.getMap() != null)
+        {
+            node.getMap().apply(this);
+        }
+        if(node.getRPar() != null)
+        {
+            node.getRPar().apply(this);
+        }
+        outAPanelConfig(node);
     }
 
     public void inAPanelClone(APanelClone node)

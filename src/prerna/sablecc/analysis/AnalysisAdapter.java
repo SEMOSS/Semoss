@@ -194,6 +194,21 @@ public class AnalysisAdapter implements Analysis
         defaultCase(node);
     }
 
+    public void caseAPanelLookAndFeelPanelop(APanelLookAndFeelPanelop node)
+    {
+        defaultCase(node);
+    }
+
+    public void caseAPanelToolsPanelop(APanelToolsPanelop node)
+    {
+        defaultCase(node);
+    }
+
+    public void caseAPanelConfigPanelop(APanelConfigPanelop node)
+    {
+        defaultCase(node);
+    }
+
     public void caseAPanelClonePanelop(APanelClonePanelop node)
     {
         defaultCase(node);
@@ -220,6 +235,21 @@ public class AnalysisAdapter implements Analysis
     }
 
     public void caseAPanelCommentRemove(APanelCommentRemove node)
+    {
+        defaultCase(node);
+    }
+
+    public void caseAPanelLookAndFeel(APanelLookAndFeel node)
+    {
+        defaultCase(node);
+    }
+
+    public void caseAPanelTools(APanelTools node)
+    {
+        defaultCase(node);
+    }
+
+    public void caseAPanelConfig(APanelConfig node)
     {
         defaultCase(node);
     }
@@ -940,6 +970,21 @@ public class AnalysisAdapter implements Analysis
     }
 
     public void caseTPanelcommentadd(TPanelcommentadd node)
+    {
+        defaultCase(node);
+    }
+
+    public void caseTPanellookandfeel(TPanellookandfeel node)
+    {
+        defaultCase(node);
+    }
+
+    public void caseTPaneltools(TPaneltools node)
+    {
+        defaultCase(node);
+    }
+
+    public void caseTPanelconfig(TPanelconfig node)
     {
         defaultCase(node);
     }
