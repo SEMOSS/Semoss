@@ -106,7 +106,7 @@ public class NameServerProcessor extends AbstractNameServer {
 								Set<String> conceptsURI= eachMap.getValue().get(eachRelationship);
 								Map<String, Map<String, String>> newConceptsURI = new TreeMap<String, Map<String, String>>();
 								for(String singleURI: conceptsURI){
-									String displayURI = engine.getTransformedNodeName(singleURI, true);
+									String logicalURI = engine.getTransformedNodeName(singleURI, true);
 									String node = singleURI.replaceAll(".*/Concept/", "");
 									String parent = null;
 									if(node.contains("/")) {
@@ -122,12 +122,11 @@ public class NameServerProcessor extends AbstractNameServer {
 									}
 									Map<String, String> nodeMap = new Hashtable<String, String>();
 									nodeMap.put("physicalName", node);
-									nodeMap.put("displayName", displayURI);
 									if(parent != null) {
 										nodeMap.put("parent", parent);
 									}
 									
-									newConceptsURI.put(node, nodeMap);
+									newConceptsURI.put(logicalURI, nodeMap);
 								}
 								newMap.put(eachRelationship, newConceptsURI);
 							}
@@ -151,7 +150,7 @@ public class NameServerProcessor extends AbstractNameServer {
 							}
 						}
 						combineResults.addData(engineName, datakeyword, node, parent, cleanedConnections);
-						combineResults.addSimilarity(engineName, node, 1-simScore);
+						combineResults.addSimilarity(engineName, datakeyword, 1-simScore);
 						if(engineURLHash.containsKey(engineName)) {
 							combineResults.addAPI(engineName, engineURLHash.get(engineName));
 						}
