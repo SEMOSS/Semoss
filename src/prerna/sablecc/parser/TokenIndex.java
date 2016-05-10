@@ -340,38 +340,50 @@ class TokenIndex extends AnalysisAdapter
     }
 
     @Override
-    public void caseTPanelcomment(@SuppressWarnings("unused") TPanelcomment node)
+    public void caseTPanelclone(@SuppressWarnings("unused") TPanelclone node)
     {
         this.index = 55;
     }
 
     @Override
-    public void caseTPanelclone(@SuppressWarnings("unused") TPanelclone node)
+    public void caseTPanelclose(@SuppressWarnings("unused") TPanelclose node)
     {
         this.index = 56;
     }
 
     @Override
-    public void caseTPanelclose(@SuppressWarnings("unused") TPanelclose node)
+    public void caseTDataframe(@SuppressWarnings("unused") TDataframe node)
     {
         this.index = 57;
     }
 
     @Override
-    public void caseTDataframe(@SuppressWarnings("unused") TDataframe node)
+    public void caseTFileText(@SuppressWarnings("unused") TFileText node)
     {
         this.index = 58;
     }
 
     @Override
-    public void caseTFileText(@SuppressWarnings("unused") TFileText node)
+    public void caseTPanelcommentremove(@SuppressWarnings("unused") TPanelcommentremove node)
     {
         this.index = 59;
     }
 
     @Override
-    public void caseEOF(@SuppressWarnings("unused") EOF node)
+    public void caseTPanelcommentedit(@SuppressWarnings("unused") TPanelcommentedit node)
     {
         this.index = 60;
+    }
+
+    @Override
+    public void caseTPanelcommentadd(@SuppressWarnings("unused") TPanelcommentadd node)
+    {
+        this.index = 61;
+    }
+
+    @Override
+    public void caseEOF(@SuppressWarnings("unused") EOF node)
+    {
+        this.index = 62;
     }
 }
