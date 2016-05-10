@@ -176,6 +176,7 @@ public class ImportDataReactor extends AbstractReactor {
 	
 	protected String createResponseString(String[] headers){
 		return "Successfully added data using:\n headers= " + Arrays.toString(headers);
+	}
 	
 	protected void updateDataForJoins(Map<String, Set<String>> primKeyEdgeHash, Map<String, String> dataType, String[] headers, Vector<Map<String, String>> joinCols) {
 		if(joinCols != null && !joinCols.isEmpty()){
@@ -233,6 +234,4 @@ public class ImportDataReactor extends AbstractReactor {
 			}
 		}
 	}
-	
-}
 }
