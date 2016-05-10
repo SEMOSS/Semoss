@@ -229,10 +229,9 @@ public class ImportDataReactor extends AbstractReactor {
 						// remove old keys, add new ones using existing values
 						primKeyEdgeHash.keySet().removeAll(removeNames);
 						primKeyEdgeHash.putAll(fixedEdgeMap);
-					}
+					}					
 				}
 			}
 		}
 	}
-	
 }

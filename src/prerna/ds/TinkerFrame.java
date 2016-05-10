@@ -196,7 +196,7 @@ public class TinkerFrame extends AbstractTableDataFrame {
 				if(!indexes.contains(i)) {
 					String column = selectors.get(i);
 					//we have the column
-					Vertex v = t.upsertVertex(column, row[i], row[i]);
+					Vertex v = t.upsertVertex(column, column, row[i], row[i]);
 					
 					//we have the instance
 					//how to determine what edges to delete
@@ -331,11 +331,11 @@ public class TinkerFrame extends AbstractTableDataFrame {
 			
 				for(int parIndex = 0;parIndex < numParent;parIndex++)
 				{
-					Vertex parVertex = upsertVertex(parentTypeName, parentTypeName + parIndex, parentTypeName + parIndex);
+					Vertex parVertex = upsertVertex(parentTypeName, parentTypeName, parentTypeName + parIndex, parentTypeName + parIndex);
 					parVertex.property("DATA", parIndex);
 					for(int childIndex = 0;childIndex < numChild;childIndex++)
 					{
-						Vertex childVertex = upsertVertex(childTypeName, childTypeName + childIndex, childTypeName + childIndex);
+						Vertex childVertex = upsertVertex(childTypeName, childTypeName, childTypeName + childIndex, childTypeName + childIndex);
 						Object data = childIndex;
 						childVertex.property("DATA", data);
 						upsertEdge(parVertex, childVertex);	
@@ -350,8 +350,8 @@ public class TinkerFrame extends AbstractTableDataFrame {
 			
 			else {
 				//just add a vertex
-				Vertex vert = upsertVertex(types[0], types[0]+"1", types[0]+"1");
-				Vertex vert2 = upsertVertex(types[0], types[0]+"2", types[0]+"2");
+				Vertex vert = upsertVertex(types[0], types[0], types[0]+"1", types[0]+"1");
+				Vertex vert2 = upsertVertex(types[0], types[0], types[0]+"2", types[0]+"2");
 			}
 		}
 		
@@ -1084,16 +1084,16 @@ public class TinkerFrame extends AbstractTableDataFrame {
 //
 //		List<String> fullNames = this.metaData.getColumnNames();
 //		this.headerNames = fullNames.toArray(new String[fullNames.size()]);
-		
+
 		Map<String, Set<String>> edgeHash = new HashMap<>();
 		Set<String> set = new HashSet<>();
 		set.add(inType);
 		edgeHash.put(outType, set);
 		mergeEdgeHash(edgeHash, dataTypeMap);
-	}
-	
+		}
+
 	// create or add vertex
-	protected Vertex upsertVertex(String type, Object data, Object value)
+	protected Vertex upsertVertex(String type, String uniqueName, Object data, Object value)
 	{
 		if(data == null) data = EMPTY;
 		if(value == null) value = EMPTY;
@@ -1102,28 +1102,28 @@ public class TinkerFrame extends AbstractTableDataFrame {
 		// if not inserts the vertex and then returns that vertex
 		Vertex retVertex = null;
 		// try to find the vertex
-//		GraphTraversal<Vertex, Vertex> gt = g.traversal().V().has(Constants.TYPE, type).has(Constants.ID, type + ":" + data);
-		GraphTraversal<Vertex, Vertex> gt = g.traversal().V().has(Constants.ID, type + ":" + data);
+		//			GraphTraversal<Vertex, Vertex> gt = g.traversal().V().has(Constants.TYPE, type).has(Constants.ID, type + ":" + data);
+		GraphTraversal<Vertex, Vertex> gt = g.traversal().V().has(Constants.ID, type + ":" + data).has(Constants.UNIQUE_NAME, uniqueName);
 		if(gt.hasNext()) {
 			retVertex = gt.next();
 		} else {
 			//retVertex = g.addVertex(Constants.ID, type + ":" + data, Constants.VALUE, value, Constants.TYPE, type, Constants.NAME, data, Constants.FILTER, false); //should we add a filter flag to each vertex?
 			if(data instanceof Number) {
 				// need to keep values as they are, not with XMLSchema tag
-				retVertex = g.addVertex(Constants.ID, type + ":" + data, Constants.VALUE, data, Constants.TYPE, type, Constants.NAME, data);// push the actual value as well who knows when you would need it
+				retVertex = g.addVertex(Constants.ID, type + ":" + data, Constants.VALUE, data, Constants.TYPE, type, Constants.NAME, data, Constants.UNIQUE_NAME, uniqueName);// push the actual value as well who knows when you would need it
 			} else {
-				LOGGER.debug(" adding vertex ::: " + Constants.ID + " = " + type + ":" + data+ " & " + Constants.VALUE+ " = " + value+ " & " + Constants.TYPE+ " = " + type+ " & " + Constants.NAME+ " = " + data);
-				retVertex = g.addVertex(Constants.ID, type + ":" + data, Constants.VALUE, value, Constants.TYPE, type, Constants.NAME, data);// push the actual value as well who knows when you would need it
+				LOGGER.debug(" adding vertex ::: " + Constants.ID + " = " + type + ":" + data+ " & " + Constants.VALUE+ " = " + value+ " & " + Constants.TYPE+ " = " + type+ " & " + Constants.NAME+ " = " + data + " & " + Constants.UNIQUE_NAME+ " = " + uniqueName );
+				retVertex = g.addVertex(Constants.ID, type + ":" + data, Constants.VALUE, value, Constants.TYPE, type, Constants.NAME, data, Constants.UNIQUE_NAME, uniqueName);// push the actual value as well who knows when you would need it
 			}
-			
+
 		}
-		return retVertex;
+		return retVertex; 
 	}
 	
 	protected Edge upsertEdge(Vertex fromVertex, Vertex toVertex)
 	{
 		Edge retEdge = null;
-		String type = fromVertex.value(Constants.TYPE) + edgeLabelDelimeter + toVertex.value(Constants.TYPE);
+		String type = fromVertex.value(Constants.UNIQUE_NAME) + edgeLabelDelimeter + toVertex.value(Constants.UNIQUE_NAME);
 		String edgeID = type + "/" + fromVertex.value(Constants.NAME) + ":" + toVertex.value(Constants.NAME);
 		// try to find the vertex
 		GraphTraversal<Edge, Edge> gt = g.traversal().E().has(Constants.ID, edgeID);
@@ -1162,13 +1162,13 @@ public class TinkerFrame extends AbstractTableDataFrame {
 		String rowString = "";
 		Vertex[] toVertices = new Vertex[headerNames.length];
 		for(int index = 0; index < headerNames.length; index++) {
-			Vertex toVertex = upsertVertex(headerNames[index], rowCleanData[index], rowRawData[index]); // need to discuss if we need specialized vertices too		
+			Vertex toVertex = upsertVertex(headerNames[index], headerNames[index], rowCleanData[index], rowRawData[index]); // need to discuss if we need specialized vertices too		
 			toVertices[index] = toVertex;
 			rowString = rowString+rowCleanData[index]+":";
 		}
 		
 		String nextPrimKey = rowString.hashCode()+"";
-		Vertex primVertex = upsertVertex(this.metaData.getLatestPrimKey(), nextPrimKey, nextPrimKey);
+		Vertex primVertex = upsertVertex(this.metaData.getLatestPrimKey(), this.metaData.getLatestPrimKey(), nextPrimKey, nextPrimKey);
 		
 		for(Vertex toVertex : toVertices) {
 			this.upsertEdge(primVertex, toVertex);
@@ -1185,13 +1185,13 @@ public class TinkerFrame extends AbstractTableDataFrame {
 		String rowString = "";
 		Vertex[] toVertices = new Vertex[headerNames.length];
 		for(int index = 0; index < headerNames.length; index++) {
-			Vertex toVertex = upsertVertex(headerNames[index], rowCleanData[index], rowRawData[index]); // need to discuss if we need specialized vertices too		
+			Vertex toVertex = upsertVertex(headerNames[index], headerNames[index], rowCleanData[index], rowRawData[index]); // need to discuss if we need specialized vertices too		
 			toVertices[index] = toVertex;
 			rowString = rowString+rowCleanData[index]+":";
 		}
 		
 		String nextPrimKey = rowString.hashCode()+"";
-		Vertex primVertex = upsertVertex(this.metaData.getLatestPrimKey(), nextPrimKey, nextPrimKey);
+		Vertex primVertex = upsertVertex(this.metaData.getLatestPrimKey(), this.metaData.getLatestPrimKey(), nextPrimKey, nextPrimKey);
 		
 		for(Vertex toVertex : toVertices) {
 			this.upsertEdge(primVertex, toVertex);
@@ -1249,10 +1249,10 @@ public class TinkerFrame extends AbstractTableDataFrame {
 			}
 	
 			//get from vertex
-			Vertex fromVertex = upsertVertex(subType, subInst, sub);
+			Vertex fromVertex = upsertVertex(subType, subType, subInst, sub);
 			
 			//get to vertex		
-			Vertex toVertex = upsertVertex(objType, objInst, obj);
+			Vertex toVertex = upsertVertex(objType, objType, objInst, obj);
 			
 			upsertEdge(fromVertex, toVertex);
 		}
@@ -1266,7 +1266,7 @@ public class TinkerFrame extends AbstractTableDataFrame {
 				TinkerMetaHelper.mergeEdgeHash(this.metaData, relMap);
 			}
 			//get from vertex
-			upsertVertex(subType, subInst, sub);
+			upsertVertex(subType, subType, subInst, sub);
 		}
 	}
 	
@@ -1287,13 +1287,13 @@ public class TinkerFrame extends AbstractTableDataFrame {
 					Object startNodeValue = getParsedValue(rowCleanData.get(startNode));
 					String rawStartNodeValue = rowRawData.get(startNode).toString();
 					String startNodeType = logicalToTypeMap.get(startNode);
-					Vertex fromVertex = upsertVertex(startNodeType, startNodeValue, rawStartNodeValue);
+					Vertex fromVertex = upsertVertex(startNodeType, startNodeType, startNodeValue, rawStartNodeValue);
 					
 					//get to vertex	
 					Object endNodeValue = getParsedValue(rowCleanData.get(endNode));
 					String rawEndNodeValue = rowRawData.get(endNode).toString();
 					String endNodeType = logicalToTypeMap.get(endNode);
-					Vertex toVertex = upsertVertex(endNodeType, endNodeValue, rawEndNodeValue);
+					Vertex toVertex = upsertVertex(endNodeType, endNodeType, endNodeValue, rawEndNodeValue);
 					
 					upsertEdge(fromVertex, toVertex);
 				}
@@ -1307,11 +1307,11 @@ public class TinkerFrame extends AbstractTableDataFrame {
 			String singleNodeType = logicalToTypeMap.get(singleColName);
 			Object startNodeValue = getParsedValue(rowCleanData.get(singleColName));
 			String rawStartNodeValue = rowRawData.get(singleColName).toString();
-			upsertVertex(singleNodeType, startNodeValue, rawStartNodeValue);
+			upsertVertex(singleNodeType, singleNodeType, startNodeValue, rawStartNodeValue);
 		}
 		
 	}
-	
+
 	@Override
 	public void addRelationship(String[] headers, Object[] values, Object[] rawValues, Map<Integer, Set<Integer>> cardinality, Map<String, String> logicalToTypeMap) {
 		boolean hasRel = false;
@@ -1324,16 +1324,18 @@ public class TinkerFrame extends AbstractTableDataFrame {
 				hasRel = true;
 				
 				//get from vertex
+				String startNode = headers[startIndex];
+				String startUniqueName = logicalToTypeMap.get(headers[startIndex]);
 				Object startNodeValue = getParsedValue(values[startIndex]);
 				String rawStartNodeValue = values[startIndex] + "";
-				String startNodeType = logicalToTypeMap.get(headers[startIndex]);
-				Vertex fromVertex = upsertVertex(startNodeType, startNodeValue, rawStartNodeValue);
+				Vertex fromVertex = upsertVertex(startNode, startUniqueName, startNodeValue, rawStartNodeValue);
 				
 				//get to vertex	
+				String endNode = headers[endIndex];
+				String endUniqueName = logicalToTypeMap.get(headers[endIndex]);
 				Object endNodeValue = getParsedValue(values[endIndex]);
 				String rawEndNodeValue = values[endIndex] + "";
-				String endNodeType = logicalToTypeMap.get(headers[endIndex]);
-				Vertex toVertex = upsertVertex(endNodeType, endNodeValue, rawEndNodeValue);
+				Vertex toVertex = upsertVertex(endNode, endUniqueName, endNodeValue, rawEndNodeValue);
 				
 				upsertEdge(fromVertex, toVertex);
 			}
@@ -1346,7 +1348,7 @@ public class TinkerFrame extends AbstractTableDataFrame {
 			String singleNodeType = logicalToTypeMap.get(singleColName);
 			Object startNodeValue = getParsedValue(values[0]);
 			String rawStartNodeValue = rawValues[0] + "";
-			upsertVertex(singleNodeType, startNodeValue, rawStartNodeValue);
+			upsertVertex(singleNodeType, singleNodeType, startNodeValue, rawStartNodeValue);
 		}
 	}
 
@@ -1365,12 +1367,12 @@ public class TinkerFrame extends AbstractTableDataFrame {
 					//get from vertex
 					Object startNodeValue = getParsedValue(rowCleanData.get(startNode));
 					String rawStartNodeValue = rowRawData.get(startNode).toString();
-					Vertex fromVertex = upsertVertex(this.metaData.getValueForUniqueName(startNode), startNodeValue, rawStartNodeValue);
+					Vertex fromVertex = upsertVertex(this.metaData.getValueForUniqueName(startNode), this.metaData.getValueForUniqueName(startNode), startNodeValue, rawStartNodeValue);
 					
 					//get to vertex		
 					Object endNodeValue = getParsedValue(rowCleanData.get(endNode));
 					String rawEndNodeValue = rowRawData.get(endNode).toString();
-					Vertex toVertex = upsertVertex(this.metaData.getValueForUniqueName(endNode), endNodeValue, rawEndNodeValue);
+					Vertex toVertex = upsertVertex(this.metaData.getValueForUniqueName(endNode), this.metaData.getValueForUniqueName(endNode), endNodeValue, rawEndNodeValue);
 					
 					upsertEdge(fromVertex, toVertex);
 				}
@@ -1383,7 +1385,7 @@ public class TinkerFrame extends AbstractTableDataFrame {
 			String singleColName = rowCleanData.keySet().iterator().next();
 			Object startNodeValue = getParsedValue(rowCleanData.get(singleColName));
 			String rawStartNodeValue = rowRawData.get(singleColName).toString();
-			upsertVertex(singleColName, startNodeValue, rawStartNodeValue);
+			upsertVertex(singleColName, singleColName, startNodeValue, rawStartNodeValue);
 		}
 	}
 	
@@ -1450,7 +1452,7 @@ public class TinkerFrame extends AbstractTableDataFrame {
 			{
 				// see if this exists
 				// now just add everthing
-				Vertex newVertex = upsertVertex(joiningTableHeaders[colIndex], row[colIndex], row[colIndex]);
+				Vertex newVertex = upsertVertex(joiningTableHeaders[colIndex], joiningTableHeaders[colIndex], row[colIndex], row[colIndex]);
 				upsertEdge(v2Add, newVertex);
 			}
 		}
@@ -1584,7 +1586,7 @@ public class TinkerFrame extends AbstractTableDataFrame {
 //		Vertex metaVertex = upsertVertex(META, columnHeader, valueNode);
 //		metaVertex.property(Constants.FILTER, true);
 
-		Vertex filterVertex = upsertVertex(Constants.FILTER, Constants.FILTER, Constants.FILTER);
+		Vertex filterVertex = upsertVertex(Constants.FILTER, Constants.FILTER, Constants.FILTER, Constants.FILTER);
 
 		for(Object val : removeSet) {
 			String id = valueNode +":"+ val.toString(); 
@@ -2276,7 +2278,7 @@ public class TinkerFrame extends AbstractTableDataFrame {
 			}
 			while(gt.hasNext()){ // these are the dudes that need an empty
 				if(emptyV == null){
-					emptyV = this.upsertVertex(addedValue, EMPTY, EMPTY);
+					emptyV = this.upsertVertex(addedValue, addedValue, EMPTY, EMPTY);
 				}
 				
 				Vertex existingVert = gt.next();
