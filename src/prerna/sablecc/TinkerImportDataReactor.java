@@ -4,6 +4,7 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Set;
+import java.util.Vector;
 
 import prerna.ds.TinkerFrame;
 import prerna.ds.util.FileIterator;
@@ -21,6 +22,7 @@ public class TinkerImportDataReactor extends ImportDataReactor{
 		Iterator<IHeadersDataRow> it = (Iterator<IHeadersDataRow>) myStore.get("iterator");
 		Map<String, Set<String>> edgeHash = (Map<String, Set<String>>) myStore.get("edgeHash");
 		Map<String, String> logicalToValue = (Map<String, String>) myStore.get("logicalToValue");
+		Vector<Map<String,String>> joinCols = (Vector<Map<String, String>>) myStore.get(PKQLEnum.JOINS);
 		
 		Map<Integer, Set<Integer>> cardinality = null;
 		String[] headers = null;
@@ -44,19 +46,23 @@ public class TinkerImportDataReactor extends ImportDataReactor{
 						types = ((CsvTableWrapper) it).getTypes();
 					}
 					
+					String[] headersCopy = new String[types.length]; // need to create a copy to not override settings in iterator
 					Map<String, String> dataType = new HashMap<>();
 					for(int i = 0; i < types.length; i++) {
 						dataType.put(headers[i], types[i]);
+						headersCopy[i] = headers[i];
 					}
-					frame.mergeEdgeHash(primKeyEdgeHash, dataType);
 					
+					updateDataForJoins(primKeyEdgeHash, dataType, headersCopy, joinCols);
+					frame.mergeEdgeHash(primKeyEdgeHash, dataType);
+					headers = headersCopy; // change variable pointer instead of modifying iterator header pointer
 					isPrimKey = true;
 				}
 			}
 
 			// TODO: need to have a smart way of determining when it is an "addRow" vs. "addRelationship"
 			if(isPrimKey) {
-				frame.addRow(ss.getValues(), ss.getRawValues(), ss.getHeaders());
+				frame.addRow(ss.getValues(), ss.getRawValues(), headers);
 			} else {
 				frame.addRelationship(ss.getHeaders(), ss.getValues(), ss.getRawValues(), cardinality, logicalToValue);
 			}
@@ -67,5 +73,4 @@ public class TinkerImportDataReactor extends ImportDataReactor{
 		
 		return null;
 	}
-
 }

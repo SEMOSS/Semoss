@@ -100,7 +100,7 @@ public class ApiReactor extends AbstractReactor {
 						
 						//see if this filter already exists
 						for(Hashtable filter : filters) {
-							if(filter.containsKey(fromColumn)) {
+							if(filter.containsKey(toColumn)) {
 								Vector values = (Vector) filter.get("TO_DATA");
 								if(values != null) {
 									values.addAll(uris);
@@ -111,7 +111,7 @@ public class ApiReactor extends AbstractReactor {
 						
 						//if not contained create a new table and add to filters
 						Hashtable joinfilter = new Hashtable();
-						joinfilter.put(PKQLEnum.FROM_COL, fromColumn);
+						joinfilter.put(PKQLEnum.FROM_COL, toColumn);
 						joinfilter.put("TO_DATA", uris);
 						joinfilter.put(PKQLEnum.COMPARATOR, "=");
 						filters.add(joinfilter);
