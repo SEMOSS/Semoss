@@ -5,23 +5,19 @@ package prerna.sablecc.node;
 import prerna.sablecc.analysis.*;
 
 @SuppressWarnings("nls")
-public final class AROp extends PROp
+public final class ACodeblockTerm extends PTerm
 {
-    private TR _r_;
     private TCodeblock _codeblock_;
 
-    public AROp()
+    public ACodeblockTerm()
     {
         // Constructor
     }
 
-    public AROp(
-        @SuppressWarnings("hiding") TR _r_,
+    public ACodeblockTerm(
         @SuppressWarnings("hiding") TCodeblock _codeblock_)
     {
         // Constructor
-        setR(_r_);
-
         setCodeblock(_codeblock_);
 
     }
@@ -29,40 +25,14 @@ public final class AROp extends PROp
     @Override
     public Object clone()
     {
-        return new AROp(
-            cloneNode(this._r_),
+        return new ACodeblockTerm(
             cloneNode(this._codeblock_));
     }
 
     @Override
     public void apply(Switch sw)
     {
-        ((Analysis) sw).caseAROp(this);
-    }
-
-    public TR getR()
-    {
-        return this._r_;
-    }
-
-    public void setR(TR node)
-    {
-        if(this._r_ != null)
-        {
-            this._r_.parent(null);
-        }
-
-        if(node != null)
-        {
-            if(node.parent() != null)
-            {
-                node.parent().removeChild(node);
-            }
-
-            node.parent(this);
-        }
-
-        this._r_ = node;
+        ((Analysis) sw).caseACodeblockTerm(this);
     }
 
     public TCodeblock getCodeblock()
@@ -94,7 +64,6 @@ public final class AROp extends PROp
     public String toString()
     {
         return ""
-            + toString(this._r_)
             + toString(this._codeblock_);
     }
 
@@ -102,12 +71,6 @@ public final class AROp extends PROp
     void removeChild(@SuppressWarnings("unused") Node child)
     {
         // Remove child
-        if(this._r_ == child)
-        {
-            this._r_ = null;
-            return;
-        }
-
         if(this._codeblock_ == child)
         {
             this._codeblock_ = null;
@@ -121,12 +84,6 @@ public final class AROp extends PROp
     void replaceChild(@SuppressWarnings("unused") Node oldChild, @SuppressWarnings("unused") Node newChild)
     {
         // Replace child
-        if(this._r_ == oldChild)
-        {
-            setR((TR) newChild);
-            return;
-        }
-
         if(this._codeblock_ == oldChild)
         {
             setCodeblock((TCodeblock) newChild);

@@ -57,7 +57,6 @@ import prerna.sablecc.node.APastedData;
 import prerna.sablecc.node.APastedDataBlock;
 import prerna.sablecc.node.APastedDataImportBlock;
 import prerna.sablecc.node.APlusExpr;
-import prerna.sablecc.node.AROpScript;
 import prerna.sablecc.node.ARelationDef;
 import prerna.sablecc.node.ARemoveData;
 import prerna.sablecc.node.ASetColumn;
@@ -129,7 +128,6 @@ public class Translation2 extends DepthFirstAdapter {
 		reactorNames.put(PKQLEnum.IMPORT_DATA, "prerna.sablecc.ImportDataReactor");
 		reactorNames.put(PKQLEnum.REMOVE_DATA, "prerna.sablecc.RemoveDataReactor");
 		reactorNames.put(PKQLEnum.FILTER_DATA, "prerna.sablecc.ColFilterReactor");
-		reactorNames.put(PKQLReactor.R_OP.toString(), "prerna.sablecc.RReactor");
 		reactorNames.put(PKQLEnum.VIZ, "prerna.sablecc.VizReactor");
 		reactorNames.put(PKQLEnum.UNFILTER_DATA, "prerna.sablecc.ColUnfilterReactor");
 	}
@@ -235,12 +233,13 @@ public class Translation2 extends DepthFirstAdapter {
 	public void outAApiBlock(AApiBlock node) {
 		String nodeStr = node.toString().trim();
 		IScriptReactor thisReactor = curReactor;
-		
 		Hashtable <String, Object> thisReactorHash = deinitReactor(PKQLEnum.API, nodeStr, PKQLEnum.API); // I need to make this into a string
 		if(curReactor != null && node.parent() != null && node.parent() instanceof AApiImportBlock) {
 			String [] values2Sync = curReactor.getValues2Sync(PKQLEnum.API);
 			synchronizeValues(PKQLEnum.API, values2Sync, thisReactor);
 		}
+		runner.setResponse(thisReactor.getValue("RESPONSE"));
+		runner.setStatus(thisReactor.getValue("STATUS") + "");
 	}
 
 	@Override
@@ -257,12 +256,6 @@ public class Translation2 extends DepthFirstAdapter {
 		String nodeExpr = node.getExpr().toString().trim();
 		String nodeStr = node.toString().trim();
 		Hashtable <String, Object> thisReactorHash = deinitReactor(PKQLEnum.EXPR_SCRIPT, nodeExpr, nodeStr);
-		storeScript(node);
-	}
-
-	// at the highest level, make sure to save to the runner as a completed expression
-	@Override
-	public void outAROpScript(AROpScript node) {
 		storeScript(node);
 	}
 
