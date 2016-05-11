@@ -692,6 +692,52 @@ public class Insight {
 		return null;
 	}
 	
+	public List<Map<String, Object>> getRecipe() {
+		
+		List<Map<String, Object>> recipeList = new ArrayList<>();
+		
+		String pkqlKey = "pkql";
+		String otherKey = "transformation";
+		for(DataMakerComponent dmc : getDataMakerComponents()) {
+			if(dmc.getQuery().endsWith(Constants.EMPTY)) {
+				continue;
+			}
+			
+			Map<String, Object> componentIngredient = new HashMap<String, Object>();
+			componentIngredient.put("component", dmc.getQueryStruct());
+			recipeList.add(componentIngredient);
+			
+			Map<String, Object> nextIngredient = null;
+			for(ISEMOSSTransformation ist : dmc.getPreTrans()) {
+				nextIngredient = new HashMap<>();
+				if(ist instanceof PKQLTransformation) {
+					String pkql = ((PKQLTransformation)ist).getPkql();
+					nextIngredient.put(pkqlKey, pkql);
+				} else {
+					Map<String, Object> properties = ist.getProperties();
+					properties.put("transformationType", ist.getClass().toString());
+					properties.put("stepID", ist.getId());
+					nextIngredient.put(otherKey, ist.getId());
+				}
+			}
+			
+			for(ISEMOSSTransformation ist : dmc.getPostTrans()) {
+				nextIngredient = new HashMap<>();
+				if(ist instanceof PKQLTransformation) {
+					String pkql = ((PKQLTransformation)ist).getPkql();
+					nextIngredient.put(pkqlKey, pkql);
+				} else {
+					Map<String, Object> properties = ist.getProperties();
+					properties.put("transformationType", ist.getClass().toString());
+					properties.put("stepID", ist.getId());
+					nextIngredient.put(otherKey, ist.getId());
+				}
+			}
+			
+			recipeList.add(nextIngredient);
+		}
+		return recipeList;
+	}
 	/**
 	 * Setter for the DataMakerComponents of the insight
 	 * @param dmComponents
