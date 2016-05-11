@@ -692,52 +692,56 @@ public class Insight {
 		return null;
 	}
 	
+	// Get the recipe for the front end to display
+	// Also serve it to the front end in such a way that they can replay it
+	// Identify which are pkql and which are other steps
 	public List<Map<String, Object>> getRecipe() {
 		
 		List<Map<String, Object>> recipeList = new ArrayList<>();
 		
-		String pkqlKey = "pkql";
-		String otherKey = "transformation";
 		for(DataMakerComponent dmc : getDataMakerComponents()) {
-			if(dmc.getQuery().endsWith(Constants.EMPTY)) {
-				continue;
-			}
 			
-			Map<String, Object> componentIngredient = new HashMap<String, Object>();
-			componentIngredient.put("component", dmc.getQueryStruct());
-			recipeList.add(componentIngredient);
-			
-			Map<String, Object> nextIngredient = null;
+			//iterate through pretrans
 			for(ISEMOSSTransformation ist : dmc.getPreTrans()) {
-				nextIngredient = new HashMap<>();
-				if(ist instanceof PKQLTransformation) {
-					String pkql = ((PKQLTransformation)ist).getPkql();
-					nextIngredient.put(pkqlKey, pkql);
-				} else {
-					Map<String, Object> properties = ist.getProperties();
-					properties.put("transformationType", ist.getClass().toString());
-					properties.put("stepID", ist.getId());
-					nextIngredient.put(otherKey, ist.getId());
-				}
+				storeTransInRecipe(ist, recipeList);
 			}
 			
+			//add the component if not empty
+			if(dmc.getQuery() != null && !dmc.getQuery().equals(Constants.EMPTY)) {
+				Map<String, Object> componentIngredient = new HashMap<String, Object>();
+				
+				if(dmc.getQueryStruct() != null){
+					componentIngredient.put("customComponent", dmc.getQueryStruct());
+				}
+				else{
+					componentIngredient.put("customComponent", dmc.getQueryStruct());
+				}
+				recipeList.add(componentIngredient);
+			}
+			
+			//iterate through the post trans
 			for(ISEMOSSTransformation ist : dmc.getPostTrans()) {
-				nextIngredient = new HashMap<>();
-				if(ist instanceof PKQLTransformation) {
-					String pkql = ((PKQLTransformation)ist).getPkql();
-					nextIngredient.put(pkqlKey, pkql);
-				} else {
-					Map<String, Object> properties = ist.getProperties();
-					properties.put("transformationType", ist.getClass().toString());
-					properties.put("stepID", ist.getId());
-					nextIngredient.put(otherKey, ist.getId());
-				}
+				storeTransInRecipe(ist, recipeList);
 			}
-			
-			recipeList.add(nextIngredient);
 		}
 		return recipeList;
 	}
+	
+	// Stores the pieces that make up a recipe block for the front end
+	private void storeTransInRecipe(ISEMOSSTransformation ist, List<Map<String, Object>> list){
+		Map<String, Object> block = new HashMap<String, Object>();
+		if(ist instanceof PKQLTransformation) {
+			String pkql = ((PKQLTransformation)ist).getPkql();
+			block.put("cmd", pkql);
+		} else {
+			Map<String, Object> properties = ist.getProperties();
+			properties.put("transformationType", ist.getClass().toString());
+			properties.put("stepID", ist.getId());
+			block.put("customTransformation", ist.getId());
+		}
+		list.add(block);
+	}
+	
 	/**
 	 * Setter for the DataMakerComponents of the insight
 	 * @param dmComponents
