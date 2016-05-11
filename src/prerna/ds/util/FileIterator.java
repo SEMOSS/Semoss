@@ -80,9 +80,20 @@ public class FileIterator implements Iterator<IHeadersDataRow>{
 		String[] row = nextRow;
 		getNextRow();
 
-		String[] cleanRow = new String[row.length];
+		Object[] cleanRow = new Object[row.length];
 		for(int i = 0; i < row.length; i++) {
-			cleanRow[i] = Utility.cleanString(row[i], true, true, false);
+			String type = types[i];
+			if(type.contains("DOUBLE")) {
+				try {
+					cleanRow[i] = Double.parseDouble(row[i].trim());
+				} catch(NumberFormatException ex) {
+					//do nothing
+				}
+			} else if(type.contains("DATE")) {
+				cleanRow[i] = row[i]; //TODO do i need to do anything for dates???
+			} else {
+				cleanRow[i] = Utility.cleanString(row[i], true, true, false);
+			} 
 		}
 		IHeadersDataRow nextData = new HeadersDataRow(this.headers, cleanRow, cleanRow);
 		return nextData;
