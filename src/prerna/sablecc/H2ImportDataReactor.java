@@ -69,22 +69,22 @@ public class H2ImportDataReactor extends ImportDataReactor {
 			addRow = true;
 		}
 		
-		while(it.hasNext()){
 
-			// TODO: need to have a smart way of determining when it is an "addRow" vs. "addRelationship"
-			// TODO: h2Builder addRelationship only does update query which does nothing if frame is empty
-			if(addRow || isPrimKey) {
+		// TODO: need to have a smart way of determining when it is an "addRow" vs. "addRelationship"
+		// TODO: h2Builder addRelationship only does update query which does nothing if frame is empty
+		if(addRow || isPrimKey) {
+			while(it.hasNext()) {
 				IHeadersDataRow ss = (IHeadersDataRow) it.next();
 				frame.addRow(ss.getValues(), ss.getRawValues(), headers);
-			} else {
-				frame.processIterator(it, headers, logicalToValue, joins, joinType);
-//				List<Object[]> frameData = frame.getData();
-//				for(Object[] nextRow : frameData) {
-//					System.out.println(Arrays.toString(nextRow));
-//				}
-				break;
 			}
+		} else {
+			frame.processIterator(it, headers, logicalToValue, joins, joinType);
 		}
+		
+//		List<Object[]> frameData = frame.getData();
+//		for(Object[] nextRow : frameData) {
+//			System.out.println(Arrays.toString(nextRow));
+//		}
 		
 		inputResponseString(it, headers);
 		myStore.put("STATUS", "SUCCESS");
