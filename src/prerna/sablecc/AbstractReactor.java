@@ -117,7 +117,7 @@ public abstract class AbstractReactor implements IScriptReactor {
 			if(myStore.containsKey(tobeReplaced))
 			{
 				Object replacedBy = myStore.get(tobeReplaced);
-				if(curExpression.equals(tobeReplaced) || replacedBy instanceof Map){
+				if(curExpression.equals(tobeReplaced)) {
 					curExpression = replacedBy;
 				} else{
 					curExpression = (curExpression+"").replace(tobeReplaced, replacedBy+"");
