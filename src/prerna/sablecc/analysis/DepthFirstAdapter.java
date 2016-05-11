@@ -693,6 +693,27 @@ public class DepthFirstAdapter extends AnalysisAdapter
         outAPanelClosePanelop(node);
     }
 
+    public void inAOutputInsightPanelop(AOutputInsightPanelop node)
+    {
+        defaultIn(node);
+    }
+
+    public void outAOutputInsightPanelop(AOutputInsightPanelop node)
+    {
+        defaultOut(node);
+    }
+
+    @Override
+    public void caseAOutputInsightPanelop(AOutputInsightPanelop node)
+    {
+        inAOutputInsightPanelop(node);
+        if(node.getOutputInsight() != null)
+        {
+            node.getOutputInsight().apply(this);
+        }
+        outAOutputInsightPanelop(node);
+    }
+
     public void inAPanelViz(APanelViz node)
     {
         defaultIn(node);
@@ -1713,6 +1734,47 @@ public class DepthFirstAdapter extends AnalysisAdapter
             node.getExpr().apply(this);
         }
         outAExprGroup(node);
+    }
+
+    public void inAOutputInsight(AOutputInsight node)
+    {
+        defaultIn(node);
+    }
+
+    public void outAOutputInsight(AOutputInsight node)
+    {
+        defaultOut(node);
+    }
+
+    @Override
+    public void caseAOutputInsight(AOutputInsight node)
+    {
+        inAOutputInsight(node);
+        if(node.getOutputToken() != null)
+        {
+            node.getOutputToken().apply(this);
+        }
+        if(node.getLPar() != null)
+        {
+            node.getLPar().apply(this);
+        }
+        if(node.getEngineName() != null)
+        {
+            node.getEngineName().apply(this);
+        }
+        if(node.getComma() != null)
+        {
+            node.getComma().apply(this);
+        }
+        if(node.getInsightId() != null)
+        {
+            node.getInsightId().apply(this);
+        }
+        if(node.getRPar() != null)
+        {
+            node.getRPar().apply(this);
+        }
+        outAOutputInsight(node);
     }
 
     public void inAApiBlock(AApiBlock node)

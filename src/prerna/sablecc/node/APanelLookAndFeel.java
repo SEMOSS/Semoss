@@ -44,6 +44,7 @@ public final class APanelLookAndFeel extends PPanelLookAndFeel
             cloneNode(this._rPar_));
     }
 
+    @Override
     public void apply(Switch sw)
     {
         ((Analysis) sw).caseAPanelLookAndFeel(this);

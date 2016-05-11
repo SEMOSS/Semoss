@@ -34,6 +34,7 @@ public final class ATableDef extends PTableDef
             cloneNode(this._cardinality_));
     }
 
+    @Override
     public void apply(Switch sw)
     {
         ((Analysis) sw).caseATableDef(this);

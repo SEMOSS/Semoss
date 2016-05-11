@@ -29,6 +29,7 @@ public final class APastedData extends PPastedData
             cloneNode(this._fileText_));
     }
 
+    @Override
     public void apply(Switch sw)
     {
         ((Analysis) sw).caseAPastedData(this);

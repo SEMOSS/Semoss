@@ -29,6 +29,7 @@ public final class AColTerm extends PTerm
             cloneNode(this._col_));
     }
 
+    @Override
     public void apply(Switch sw)
     {
         ((Analysis) sw).caseAColTerm(this);

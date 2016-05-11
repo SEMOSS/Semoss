@@ -23,15 +23,15 @@ public class SumReactor extends BaseReducerReactor {
 	}
 	
 	@Override
-	public HashMap<HashMap<String,String>,Object> reduceGroupBy(Vector<String> groupBys, Vector<String> processedColumns, String[] columnsArray, Iterator it) {
-		HashMap<HashMap<String,String>, Object> groupByHash = new HashMap<HashMap<String,String>,Object>();
+	public HashMap<HashMap<Object,Object>,Object> reduceGroupBy(Vector<String> groupBys, Vector<String> processedColumns, String[] columnsArray, Iterator it) {
+		HashMap<HashMap<Object,Object>, Object> groupByHash = new HashMap<HashMap<Object,Object>,Object>();
 		
 		while(it.hasNext()){
 			Object[] row = (Object[]) it.next();
-			HashMap<String, String> key = new HashMap<String,String>();
+			HashMap<Object,Object> key = new HashMap<Object,Object>();
 			for(String groupBy : groupBys) {
 				int groupByIndex = ArrayUtilityMethods.arrayContainsValueAtIndexIgnoreCase(columnsArray, groupBy);
-				String instance = (String)row[groupByIndex];
+				Object instance = row[groupByIndex];
 				key.put(groupBy, instance);
 			}
 			int processedIndex = ArrayUtilityMethods.arrayContainsValueAtIndexIgnoreCase(columnsArray, processedColumns.get(0));

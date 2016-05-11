@@ -44,6 +44,7 @@ public final class APanelConfig extends PPanelConfig
             cloneNode(this._rPar_));
     }
 
+    @Override
     public void apply(Switch sw)
     {
         ((Analysis) sw).caseAPanelConfig(this);
