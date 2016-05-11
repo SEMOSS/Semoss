@@ -28,8 +28,10 @@
 package prerna.om;
 
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Hashtable;
 import java.util.Map;
+import java.util.Set;
 
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
@@ -288,7 +290,10 @@ public class TinkerGraphDataModel {
 		logger.info("storing vert "  + uri + " and value " + value);
 		
 		String type = Utility.getClassName(uri);
-		tf.connectTypes(type, null, null);
+		Map<String, Set<String>> edgeHash = new HashMap<String, Set<String>>();
+		edgeHash.put(type, new HashSet<String>());
+		tf.mergeEdgeHash(edgeHash, null);
+//		tf.connectTypes(type, null, null);
 		Map<String, Object> clean = new HashMap<String, Object>();
 		clean.put(type, value);
 		
