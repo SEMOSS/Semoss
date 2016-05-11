@@ -25,6 +25,7 @@ public final class TPanelclose extends Token
       return new TPanelclose(getText(), getLine(), getPos());
     }
 
+    @Override
     public void apply(Switch sw)
     {
         ((Analysis) sw).caseTPanelclose(this);

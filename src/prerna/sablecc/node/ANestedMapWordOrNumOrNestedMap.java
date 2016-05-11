@@ -29,6 +29,7 @@ public final class ANestedMapWordOrNumOrNestedMap extends PWordOrNumOrNestedMap
             cloneNode(this._mapObj_));
     }
 
+    @Override
     public void apply(Switch sw)
     {
         ((Analysis) sw).caseANestedMapWordOrNumOrNestedMap(this);

@@ -21,7 +21,7 @@ public final class AFlexSelectorRow extends PFlexSelectorRow
     public AFlexSelectorRow(
         @SuppressWarnings("hiding") TLBracket _lBracket_,
         @SuppressWarnings("hiding") PTerm _term_,
-        @SuppressWarnings("hiding") List<PTermGroup> _termGroup_,
+        @SuppressWarnings("hiding") List<?> _termGroup_,
         @SuppressWarnings("hiding") TRBracket _rBracket_)
     {
         // Constructor
@@ -45,6 +45,7 @@ public final class AFlexSelectorRow extends PFlexSelectorRow
             cloneNode(this._rBracket_));
     }
 
+    @Override
     public void apply(Switch sw)
     {
         ((Analysis) sw).caseAFlexSelectorRow(this);
@@ -105,18 +106,24 @@ public final class AFlexSelectorRow extends PFlexSelectorRow
         return this._termGroup_;
     }
 
-    public void setTermGroup(List<PTermGroup> list)
+    public void setTermGroup(List<?> list)
     {
-        this._termGroup_.clear();
-        this._termGroup_.addAll(list);
-        for(PTermGroup e : list)
+        for(PTermGroup e : this._termGroup_)
         {
+            e.parent(null);
+        }
+        this._termGroup_.clear();
+
+        for(Object obj_e : list)
+        {
+            PTermGroup e = (PTermGroup) obj_e;
             if(e.parent() != null)
             {
                 e.parent().removeChild(e);
             }
 
             e.parent(this);
+            this._termGroup_.add(e);
         }
     }
 

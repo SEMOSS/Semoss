@@ -34,6 +34,7 @@ public final class AColGroup extends PColGroup
             cloneNode(this._colDef_));
     }
 
+    @Override
     public void apply(Switch sw)
     {
         ((Analysis) sw).caseAColGroup(this);

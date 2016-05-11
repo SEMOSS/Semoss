@@ -44,7 +44,7 @@ public class CorrReactor extends BaseReducerReactor {
 	}
 
 	@Override
-	public HashMap<HashMap<String, String>, Object> reduceGroupBy(Vector<String> groupBys, Vector<String> processedColumns, String[] columnsArray,
+	public HashMap<HashMap<Object, Object>, Object> reduceGroupBy(Vector<String> groupBys, Vector<String> processedColumns, String[] columnsArray,
 			Iterator it) {
 		// TODO Auto-generated method stub
 		return null;

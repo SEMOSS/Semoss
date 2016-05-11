@@ -21,7 +21,7 @@ public final class AMapObj extends PMapObj
     public AMapObj(
         @SuppressWarnings("hiding") TLCurlBracket _lCurlBracket_,
         @SuppressWarnings("hiding") PKeyvalue _keyvalue_,
-        @SuppressWarnings("hiding") List<PKeyvalueGroup> _keyvalueGroup_,
+        @SuppressWarnings("hiding") List<?> _keyvalueGroup_,
         @SuppressWarnings("hiding") TRCurlBracket _rCurlBracket_)
     {
         // Constructor
@@ -45,6 +45,7 @@ public final class AMapObj extends PMapObj
             cloneNode(this._rCurlBracket_));
     }
 
+    @Override
     public void apply(Switch sw)
     {
         ((Analysis) sw).caseAMapObj(this);
@@ -105,18 +106,24 @@ public final class AMapObj extends PMapObj
         return this._keyvalueGroup_;
     }
 
-    public void setKeyvalueGroup(List<PKeyvalueGroup> list)
+    public void setKeyvalueGroup(List<?> list)
     {
-        this._keyvalueGroup_.clear();
-        this._keyvalueGroup_.addAll(list);
-        for(PKeyvalueGroup e : list)
+        for(PKeyvalueGroup e : this._keyvalueGroup_)
         {
+            e.parent(null);
+        }
+        this._keyvalueGroup_.clear();
+
+        for(Object obj_e : list)
+        {
+            PKeyvalueGroup e = (PKeyvalueGroup) obj_e;
             if(e.parent() != null)
             {
                 e.parent().removeChild(e);
             }
 
             e.parent(this);
+            this._keyvalueGroup_.add(e);
         }
     }
 

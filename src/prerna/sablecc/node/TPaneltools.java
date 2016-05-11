@@ -25,6 +25,7 @@ public final class TPaneltools extends Token
       return new TPaneltools(getText(), getLine(), getPos());
     }
 
+    @Override
     public void apply(Switch sw)
     {
         ((Analysis) sw).caseTPaneltools(this);

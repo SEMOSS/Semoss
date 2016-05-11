@@ -25,6 +25,7 @@ public final class TColprefix extends Token
       return new TColprefix(getLine(), getPos());
     }
 
+    @Override
     public void apply(Switch sw)
     {
         ((Analysis) sw).caseTColprefix(this);
