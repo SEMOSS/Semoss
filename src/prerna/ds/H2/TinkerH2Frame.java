@@ -818,8 +818,14 @@ public class TinkerH2Frame extends AbstractTableDataFrame {
 		String[] types = new String[headers.length];
 		for(int i = 0; i < types.length; i++) {
 			types[i] = engine.getDataTypes(engine.getTransformedNodeName(Constants.DISPLAY_URI + headers[i], false));
-			types[i] = Utility.getRawDataType(types[i].replace("TYPE:", ""));
+			
+			if(types[i] != null) {
+				types[i] = Utility.getRawDataType(types[i].replace("TYPE:", ""));
+			} else {
+				types[i] = "STRING";
+			}
 		}
+		
 		builder.alterTableNewColumns(builder.tableName, headers, types); 
 		
 		return ret;
