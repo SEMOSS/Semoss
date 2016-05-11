@@ -1,5 +1,6 @@
 package prerna.sablecc;
 
+import java.sql.SQLException;
 import java.util.Hashtable;
 import java.util.Iterator;
 import java.util.List;
@@ -7,11 +8,14 @@ import java.util.Map;
 import java.util.Set;
 import java.util.Vector;
 
-import prerna.ds.QueryStruct;
+import org.rosuda.REngine.Rserve.RserveException;
+
 import prerna.algorithm.api.ITableDataFrame;
+import prerna.ds.QueryStruct;
+import prerna.ds.H2.TinkerH2Frame;
 import prerna.engine.api.IApi;
+import prerna.engine.api.RApi;
 import prerna.engine.impl.rdf.QueryAPI;
-import prerna.util.ArrayUtilityMethods;
 
 public class ApiReactor extends AbstractReactor {
 
@@ -34,24 +38,45 @@ public class ApiReactor extends AbstractReactor {
 		 * 
 		 */
 		//System.out.println("Will pull the data on this one and then make the calls to add to other things");
-
-
+		String nodeStr = (String)myStore.get(whoAmI);
 		Vector <Hashtable> filtersToBeElaborated = new Vector<Hashtable>();
 		Vector <String> tinkerSelectors = new Vector<String>();
 
 		String engine = (String)myStore.get("ENGINE");
-		String insight = (String)myStore.get("INSIGHT");
-		
+		IApi api = new QueryAPI();
 		
 		// I need to instantiate the engine here
 		// for now hard coding it
-		IApi qapi = new QueryAPI();
-		if(engine != null && !engine.equals("csvFile")) {
-			qapi.set("ENGINE", engine);
+
+		if (engine != null && !engine.equals("csvFile")) {
+			if(engine.equalsIgnoreCase("r")) {
+				if (myStore.get(PKQLEnum.G) instanceof TinkerH2Frame) {
+					api = new RApi();
+					TinkerH2Frame frame = (TinkerH2Frame) myStore.get(PKQLEnum.G);
+					try {
+						api.set("TABLE_NAME", frame.getDatabaseMetaData().get("tableName"));
+						api.set("R_RUNNER", frame.getRRunner());
+					} catch (RserveException e) {
+						myStore.put("RESPONSE", "Error: R server is down.");
+						myStore.put("STATUS", "error");
+						e.printStackTrace();
+					} catch (SQLException e) {
+						myStore.put("RESPONSE", "Error: Invalid database connection.");
+						myStore.put("STATUS", "error");
+						e.printStackTrace();
+					}
+				} else {
+					myStore.put("RESPONSE", "Error: Dataframe must be in Grid format.");
+					myStore.put("STATUS", "error");
+					return null;
+				} 
+			} else {
+				api.set("ENGINE", engine);
+			} 
 		} else {
 			if(myStore.containsKey("KEY_VALUE") && ((Map) ((Vector) myStore.get("KEY_VALUE")).get(0)).containsKey("file")){
 				String fileLocation = (String) ((Map) ((Vector) myStore.get("KEY_VALUE")).get(0)).get("file");
-				qapi.set("ENGINE", fileLocation);
+				api.set("ENGINE", fileLocation);
 			}
 		}
 
@@ -121,14 +146,15 @@ public class ApiReactor extends AbstractReactor {
 		}
 		QueryStruct qs = new QueryStruct();
 		processQueryStruct(qs, selectors, filters, joins);
-		qapi.set("QUERY_STRUCT", qs);
-		Iterator thisIterator = qapi.process();
+		api.set("QUERY_STRUCT", qs);
+		Iterator thisIterator = api.process();
 
 		Map<String, Set<String>> edgeHash = qs.getReturnConnectionsHash();
 		this.put("EDGE_HASH", edgeHash);
 
-		String nodeStr = (String)myStore.get(whoAmI);
 		myStore.put(nodeStr, thisIterator);
+		myStore.put("RESPONSE", "success");
+		myStore.put("STATUS", "success");
 
 		// eventually I need this iterator to set this back for this particular node
 		return null;

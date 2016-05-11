@@ -18,6 +18,7 @@ import java.util.Vector;
 
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
+import org.rosuda.REngine.Rserve.RserveException;
 
 import prerna.algorithm.api.IMatcher;
 import prerna.algorithm.api.ITableDataFrame;
@@ -30,6 +31,7 @@ import prerna.engine.api.IEngine;
 import prerna.engine.api.IHeadersDataRow;
 import prerna.engine.api.IScriptReactor;
 import prerna.engine.api.ISelectWrapper;
+import prerna.engine.impl.r.RRunner;
 import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.rdf.query.builder.IQueryInterpreter;
 import prerna.rdf.query.builder.SQLInterpreter;
@@ -68,6 +70,7 @@ public class TinkerH2Frame extends AbstractTableDataFrame {
 //	String[] headerNames;
 	
 	IQueryInterpreter interp = new SQLInterpreter();
+	RRunner r = null;
 	
 	public TinkerH2Frame(String[] headers) {
 		this.headerNames = headers;
@@ -800,7 +803,7 @@ public class TinkerH2Frame extends AbstractTableDataFrame {
 				headersSet.add(addHeader.split("__")[1]);
 			} else {
 				headersSet.add(addHeader);
-			}
+	}
 		}
 		for(String header : edgeHash.keySet()) {
 			Set<String> additionalHeaders = edgeHash.get(header);
@@ -827,16 +830,16 @@ public class TinkerH2Frame extends AbstractTableDataFrame {
 		}
 		
 		builder.alterTableNewColumns(builder.tableName, headers, types); 
-		
+	
 		return ret;
 	}
-	
+
 	@Override
 	public void mergeEdgeHash(Map<String, Set<String>> primKeyEdgeHash, Map<String, String> dataTypeMap) {
 		// merge results with the tinker meta data and store data types'
         super.mergeEdgeHash(this.metaData, primKeyEdgeHash, getNode2ValueHash(primKeyEdgeHash), dataTypeMap);
 		// now we need to create and/or modify the existing table to ensure it has all the necessary columns
-		
+
 		// create a map of column to data type
 		String[] cleanHeaders = new String[this.headerNames.length];
 		String[] types = new String[this.headerNames.length];
@@ -847,10 +850,10 @@ public class TinkerH2Frame extends AbstractTableDataFrame {
 		
 		if(builder.tableName == null) {
 			builder.tableName = getTableNameForUniqueColumn(this.headerNames[0]);
-		}
+	}
 		builder.alterTableNewColumns(builder.tableName, cleanHeaders, types);
 	}
-	
+
 	public static void main(String[] args) {
 		
 	}
@@ -863,7 +866,7 @@ public class TinkerH2Frame extends AbstractTableDataFrame {
 	public String getValueForUniqueName(String name) {
 		return this.metaData.getValueForUniqueName(name);
 	}
-
+	
 	@Override
 	public void addRelationship(Map<String, Object> rowCleanData, Map<String, Object> rowRawData, Map<String, Set<String>> edgeHash, Map<String, String> logicalToTypeMap) {
 		addRelationship(rowCleanData, rowRawData);
@@ -900,20 +903,14 @@ public class TinkerH2Frame extends AbstractTableDataFrame {
 		builder.updateTable(currHeaders, values, headers);
 	}
 
-	public String getJDBCURL() throws SQLException{
-		String url = "";
-		DatabaseMetaData md = builder.conn.getMetaData();
-		url = md.getURL();
-		return url;
+	public HashMap<String, String> getDatabaseMetaData() throws SQLException {
+		HashMap<String, String> dbmdMap = new HashMap<String, String>();
+		DatabaseMetaData dbmd = builder.conn.getMetaData();
+		dbmdMap.put("username", dbmd.getUserName());
+		dbmdMap.put("tableName", builder.getTableName());
+		return dbmdMap;
 	}
 	
-	public String getUserName() throws SQLException{
-		String userName = "";
-		DatabaseMetaData md = builder.conn.getMetaData();
-		userName = md.getUserName();
-		return userName;
-	}
-
 	@Override
 	public void removeRelationship(Map<String, Object> cleanRow, Map<String, Object> rawRow) {
 		
@@ -931,7 +928,7 @@ public class TinkerH2Frame extends AbstractTableDataFrame {
 		}
 		builder.deleteRow(columns, values);
 	}
-
+	
 	@Override
 	public IScriptReactor getImportDataReactor() {
 		return new H2ImportDataReactor();
@@ -942,13 +939,13 @@ public class TinkerH2Frame extends AbstractTableDataFrame {
 		//convert the new headers into value headers
 		String[] valueHeaders = new String[newHeaders.length];
 		if(logicalToValue == null) {
-			for(int i = 0; i < newHeaders.length; i++) {
+		for(int i = 0; i < newHeaders.length; i++) {
 				valueHeaders[i] = this.metaData.getValueForUniqueName(newHeaders[i]);
 			}
 		} else {	
 			for(int i = 0; i < newHeaders.length; i++) {
-				valueHeaders[i] = logicalToValue.get(newHeaders[i]);
-			}
+			valueHeaders[i] = logicalToValue.get(newHeaders[i]);
+		}
 		}
 		
 		
@@ -957,9 +954,9 @@ public class TinkerH2Frame extends AbstractTableDataFrame {
 		
 		//remove the newHeaders from the column headers if they were added already (but don't exist yet in the table)
 //		while(true) {
-			if(ArrayUtilityMethods.arrayContainsValueIgnoreCase(newHeaders, columnHeaders[length-1])) {
-				length = length - 1;
-			} 
+		if(ArrayUtilityMethods.arrayContainsValueIgnoreCase(newHeaders, columnHeaders[length-1])) {
+			length = length - 1;
+		}
 //			else {
 //				break;
 //			}
@@ -983,14 +980,22 @@ public class TinkerH2Frame extends AbstractTableDataFrame {
 			} else if(joinType.toUpperCase().startsWith("RIGHT")) {
 				type = Join.RIGHT_OUTER;
 			}
+
 		}
-				
 		this.builder.processIterator(iterator, adjustedColHeaders, valueHeaders, type);
 	}
+
+	public RRunner getRRunner() throws RserveException, SQLException {
+	if (this.r == null) {
+		this.r = new RRunner(this.getDatabaseMetaData());
+	}
+
+	return this.r;
+	}
 	
-	
-	
-	
-	
-	
+	public void closeRRunner() {
+		if (r != null) {
+			this.r.close();
+		}
+	}
 }

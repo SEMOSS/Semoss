@@ -1,7 +1,6 @@
 package prerna.sablecc;
 
 import java.util.HashMap;
-import java.util.Hashtable;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Vector;
@@ -21,7 +20,7 @@ public abstract class AbstractReactor implements IScriptReactor {
 	// 
 	protected String [] whatIReactTo = null;
 	protected String whoAmI = null;
-	protected Hashtable <String, Object> myStore = new Hashtable <String, Object>();
+	protected HashMap <String, Object> myStore = new HashMap <String, Object>();
 	protected Vector <String> replacers = new Vector<String>();
 	
 	
@@ -118,10 +117,9 @@ public abstract class AbstractReactor implements IScriptReactor {
 			if(myStore.containsKey(tobeReplaced))
 			{
 				Object replacedBy = myStore.get(tobeReplaced);
-				if(curExpression.equals(tobeReplaced)){
+				if(curExpression.equals(tobeReplaced) || replacedBy instanceof Map){
 					curExpression = replacedBy;
-				}
-				else{
+				} else{
 					curExpression = (curExpression+"").replace(tobeReplaced, replacedBy+"");
 				}
 			}			

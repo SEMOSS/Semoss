@@ -110,31 +110,6 @@ public class DepthFirstAdapter extends AnalysisAdapter
         outAVaropScript(node);
     }
 
-    public void inAROpScript(AROpScript node)
-    {
-        defaultIn(node);
-    }
-
-    public void outAROpScript(AROpScript node)
-    {
-        defaultOut(node);
-    }
-
-    @Override
-    public void caseAROpScript(AROpScript node)
-    {
-        inAROpScript(node);
-        if(node.getROp() != null)
-        {
-            node.getROp().apply(this);
-        }
-        if(node.getSemicolon() != null)
-        {
-            node.getSemicolon().apply(this);
-        }
-        outAROpScript(node);
-    }
-
     public void inAExprScript(AExprScript node)
     {
         defaultIn(node);
@@ -2868,31 +2843,6 @@ public class DepthFirstAdapter extends AnalysisAdapter
         outAJOp(node);
     }
 
-    public void inAROp(AROp node)
-    {
-        defaultIn(node);
-    }
-
-    public void outAROp(AROp node)
-    {
-        defaultOut(node);
-    }
-
-    @Override
-    public void caseAROp(AROp node)
-    {
-        inAROp(node);
-        if(node.getR() != null)
-        {
-            node.getR().apply(this);
-        }
-        if(node.getCodeblock() != null)
-        {
-            node.getCodeblock().apply(this);
-        }
-        outAROp(node);
-    }
-
     public void inAHelp(AHelp node)
     {
         defaultIn(node);
@@ -3420,5 +3370,26 @@ public class DepthFirstAdapter extends AnalysisAdapter
             node.getMathFun().apply(this);
         }
         outAMathFunTerm(node);
+    }
+
+    public void inACodeblockTerm(ACodeblockTerm node)
+    {
+        defaultIn(node);
+    }
+
+    public void outACodeblockTerm(ACodeblockTerm node)
+    {
+        defaultOut(node);
+    }
+
+    @Override
+    public void caseACodeblockTerm(ACodeblockTerm node)
+    {
+        inACodeblockTerm(node);
+        if(node.getCodeblock() != null)
+        {
+            node.getCodeblock().apply(this);
+        }
+        outACodeblockTerm(node);
     }
 }
