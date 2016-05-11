@@ -54,6 +54,7 @@ public final class AAddColumn extends PAddColumn
             cloneNode(this._rPar_));
     }
 
+    @Override
     public void apply(Switch sw)
     {
         ((Analysis) sw).caseAAddColumn(this);

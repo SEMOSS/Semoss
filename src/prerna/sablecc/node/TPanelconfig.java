@@ -25,6 +25,7 @@ public final class TPanelconfig extends Token
       return new TPanelconfig(getText(), getLine(), getPos());
     }
 
+    @Override
     public void apply(Switch sw)
     {
         ((Analysis) sw).caseTPanelconfig(this);

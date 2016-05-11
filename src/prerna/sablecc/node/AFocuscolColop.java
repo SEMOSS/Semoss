@@ -29,6 +29,7 @@ public final class AFocuscolColop extends PColop
             cloneNode(this._focusColumn_));
     }
 
+    @Override
     public void apply(Switch sw)
     {
         ((Analysis) sw).caseAFocuscolColop(this);

@@ -39,6 +39,7 @@ public final class APanelClose extends PPanelClose
             cloneNode(this._rPar_));
     }
 
+    @Override
     public void apply(Switch sw)
     {
         ((Analysis) sw).caseAPanelClose(this);

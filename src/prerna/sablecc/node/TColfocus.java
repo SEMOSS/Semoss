@@ -25,6 +25,7 @@ public final class TColfocus extends Token
       return new TColfocus(getLine(), getPos());
     }
 
+    @Override
     public void apply(Switch sw)
     {
         ((Analysis) sw).caseTColfocus(this);

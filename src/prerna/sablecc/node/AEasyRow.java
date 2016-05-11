@@ -19,7 +19,7 @@ public final class AEasyRow extends PEasyRow
 
     public AEasyRow(
         @SuppressWarnings("hiding") PWordOrNum _wordOrNum_,
-        @SuppressWarnings("hiding") List<PEasyGroup> _easyGroup_,
+        @SuppressWarnings("hiding") List<?> _easyGroup_,
         @SuppressWarnings("hiding") TNewline _newline_)
     {
         // Constructor
@@ -40,6 +40,7 @@ public final class AEasyRow extends PEasyRow
             cloneNode(this._newline_));
     }
 
+    @Override
     public void apply(Switch sw)
     {
         ((Analysis) sw).caseAEasyRow(this);
@@ -75,18 +76,24 @@ public final class AEasyRow extends PEasyRow
         return this._easyGroup_;
     }
 
-    public void setEasyGroup(List<PEasyGroup> list)
+    public void setEasyGroup(List<?> list)
     {
-        this._easyGroup_.clear();
-        this._easyGroup_.addAll(list);
-        for(PEasyGroup e : list)
+        for(PEasyGroup e : this._easyGroup_)
         {
+            e.parent(null);
+        }
+        this._easyGroup_.clear();
+
+        for(Object obj_e : list)
+        {
+            PEasyGroup e = (PEasyGroup) obj_e;
             if(e.parent() != null)
             {
                 e.parent().removeChild(e);
             }
 
             e.parent(this);
+            this._easyGroup_.add(e);
         }
     }
 

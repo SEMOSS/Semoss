@@ -85,7 +85,7 @@ Tokens
  panellookandfeel = panelprefix '.lookandfeel';
  paneltools = panelprefix '.tools';
  panelconfig = panelprefix '.config';
- 
+ output_token = panelprefix '.create';
 
 Ignored Tokens
  blank;
@@ -130,6 +130,7 @@ panelop = // panelop is usually of the form of viz.change, viz.tools, viz.color
 		| {panel_config} panel_config
 		| {panel_clone} panel_clone
 		| {panel_close} panel_close
+		| {output_insight} output_insight
 		;
  
 
@@ -224,6 +225,8 @@ remove_data = // imports from api query commands and other scripts and deletes t
 decimal = [whole]:number dot? [fraction]:number?;
 		
 expr_group = [comma]:comma [expr]:expr;		
+
+output_insight = output_token l_par [engine_name]:id comma [insight_id]:id r_par;
 
 api_block = api [engine_name]:id dot [insight]:id l_par [selectors]:col_csv [where]:where_statement? [relations]:relation_clause? comma? [properties]:map_obj? r_par; // the insight can also be the method
 // query format

@@ -25,6 +25,7 @@ public final class TLCurlBracket extends Token
       return new TLCurlBracket(getLine(), getPos());
     }
 
+    @Override
     public void apply(Switch sw)
     {
         ((Analysis) sw).caseTLCurlBracket(this);

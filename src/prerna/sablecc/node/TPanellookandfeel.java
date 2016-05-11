@@ -25,6 +25,7 @@ public final class TPanellookandfeel extends Token
       return new TPanellookandfeel(getText(), getLine(), getPos());
     }
 
+    @Override
     public void apply(Switch sw)
     {
         ((Analysis) sw).caseTPanellookandfeel(this);

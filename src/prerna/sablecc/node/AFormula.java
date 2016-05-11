@@ -39,6 +39,7 @@ public final class AFormula extends PFormula
             cloneNode(this._rPar_));
     }
 
+    @Override
     public void apply(Switch sw)
     {
         ((Analysis) sw).caseAFormula(this);

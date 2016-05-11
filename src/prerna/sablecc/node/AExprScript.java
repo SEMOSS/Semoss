@@ -34,6 +34,7 @@ public final class AExprScript extends PScript
             cloneNode(this._semicolon_));
     }
 
+    @Override
     public void apply(Switch sw)
     {
         ((Analysis) sw).caseAExprScript(this);

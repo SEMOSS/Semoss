@@ -25,6 +25,7 @@ public final class TPanelcommentedit extends Token
       return new TPanelcommentedit(getText(), getLine(), getPos());
     }
 
+    @Override
     public void apply(Switch sw)
     {
         ((Analysis) sw).caseTPanelcommentedit(this);

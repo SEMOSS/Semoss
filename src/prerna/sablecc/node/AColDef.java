@@ -34,6 +34,7 @@ public final class AColDef extends PColDef
             cloneNode(this._colname_));
     }
 
+    @Override
     public void apply(Switch sw)
     {
         ((Analysis) sw).caseAColDef(this);

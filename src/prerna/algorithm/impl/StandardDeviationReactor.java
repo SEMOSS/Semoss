@@ -31,15 +31,15 @@ public class StandardDeviationReactor extends BaseReducerReactor{
 	}
 	
 	@Override
-	public HashMap<HashMap<String,String>,Object> reduceGroupBy(Vector<String> groupBys, Vector<String> processedColumns, String[] columnsArray, Iterator it) {
-		HashMap<HashMap<String,String>, Object> groupByHash = new HashMap<HashMap<String,String>,Object>();
+	public HashMap<HashMap<Object,Object>,Object> reduceGroupBy(Vector<String> groupBys, Vector<String> processedColumns, String[] columnsArray, Iterator it) {
+		HashMap<HashMap<Object,Object>, Object> groupByHash = new HashMap<HashMap<Object,Object>,Object>();
 		
 		while(it.hasNext()){
 			Object[] row = (Object[]) it.next();
-			HashMap<String, String> key = new HashMap<String,String>();
+			HashMap<Object, Object> key = new HashMap<Object,Object>();
 			for(String groupBy : groupBys) {
 				int groupByIndex = ArrayUtilityMethods.arrayContainsValueAtIndexIgnoreCase(columnsArray, groupBy);
-				String instance = (String)row[groupByIndex];
+				Object instance = row[groupByIndex];
 				key.put(groupBy, instance);
 			}
 			int processedIndex = ArrayUtilityMethods.arrayContainsValueAtIndexIgnoreCase(columnsArray, processedColumns.get(0));
@@ -58,8 +58,8 @@ public class StandardDeviationReactor extends BaseReducerReactor{
 				paramMap.put("COUNT", (Integer)paramMap.get("COUNT")+1);
 			}
 		}
-		for(HashMap<String,String> key: groupByHash.keySet()) {
-			HashMap<String,Object> paramMap = (HashMap<String,Object>)groupByHash.get(key);
+		for(HashMap<Object,Object> key: groupByHash.keySet()) {
+			HashMap<Object,Object> paramMap = (HashMap<Object, Object>) groupByHash.get(key);
 			int count = (Integer)paramMap.get("COUNT");
 			double sum = (Double)paramMap.get("SUM");
 			double sumOfSquares = (Double)paramMap.get("SUMOFSQUARES");

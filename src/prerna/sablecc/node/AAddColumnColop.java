@@ -29,6 +29,7 @@ public final class AAddColumnColop extends PColop
             cloneNode(this._addColumn_));
     }
 
+    @Override
     public void apply(Switch sw)
     {
         ((Analysis) sw).caseAAddColumnColop(this);
