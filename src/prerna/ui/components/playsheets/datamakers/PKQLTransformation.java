@@ -93,4 +93,9 @@ public class PKQLTransformation extends AbstractTransformation {
 	public void setRunner(PKQLRunner runner){
 		this.runner = runner;
 	}
+	
+	public String getPkql() {
+		String expression = props.get(EXPRESSION) + "";
+		return expression;
+	}
 }
