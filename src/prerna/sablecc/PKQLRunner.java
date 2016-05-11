@@ -11,6 +11,9 @@ import java.util.Vector;
 
 import org.apache.commons.lang.StringEscapeUtils;
 
+import com.google.gson.Gson;
+import com.google.gson.reflect.TypeToken;
+
 import cern.colt.Arrays;
 import prerna.algorithm.api.ITableDataFrame;
 import prerna.sablecc.lexer.Lexer;
@@ -225,7 +228,12 @@ public class PKQLRunner {
 		copiedActiveMap.remove("panelId");
 		copiedActiveMap.remove("newPanelId");
 		openFeDataBlock(newId);
-		this.activeFeMap.putAll(copiedActiveMap);
+
+		// copy the objects stored
+		Gson gson = new Gson();
+		String propCopy = gson.toJson(copiedActiveMap);
+		Map<String, Object> newProps = gson.fromJson(propCopy, new TypeToken<Map<String, Object>>() {}.getType());
+		this.activeFeMap.putAll(newProps);
 	}
 
 	public Object getFeData(String key) {
