@@ -25,6 +25,7 @@ public final class TPanelcommentremove extends Token
       return new TPanelcommentremove(getText(), getLine(), getPos());
     }
 
+    @Override
     public void apply(Switch sw)
     {
         ((Analysis) sw).caseTPanelcommentremove(this);

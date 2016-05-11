@@ -32,7 +32,7 @@ public abstract class BaseReducerReactor extends MathReactor implements Expressi
 	protected String propToGet = Constants.VALUE;
 	
 	
-	public abstract HashMap<HashMap<String,String>,Object> reduceGroupBy(Vector<String> groupBys, Vector<String> processedColumns, String[] columnsArray, Iterator it);
+	public abstract HashMap<HashMap<Object,Object>,Object> reduceGroupBy(Vector<String> groupBys, Vector<String> processedColumns, String[] columnsArray, Iterator it);
 
 	public void setData(Iterator inputIterator, String[] ids, String script) {
 		setData(inputIterator, ids,script, null);
@@ -153,7 +153,7 @@ public abstract class BaseReducerReactor extends MathReactor implements Expressi
 			String[] allColumnsArray = convertVectorToArray(allColumns);
 			Iterator it = getTinkerData(allColumns, frame, false);
 			
-			HashMap<HashMap<String,String>,Object> groupByHash = reduceGroupBy(groupBys, columns, allColumnsArray, it);
+			HashMap<HashMap<Object,Object>,Object> groupByHash = reduceGroupBy(groupBys, columns, allColumnsArray, it);
 			
 			myStore.put(nodeStr, groupByHash);
 			myStore.put("STATUS","success");

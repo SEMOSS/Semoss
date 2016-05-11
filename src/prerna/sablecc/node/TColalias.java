@@ -25,6 +25,7 @@ public final class TColalias extends Token
       return new TColalias(getLine(), getPos());
     }
 
+    @Override
     public void apply(Switch sw)
     {
         ((Analysis) sw).caseTColalias(this);

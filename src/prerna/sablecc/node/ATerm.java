@@ -29,6 +29,7 @@ public final class ATerm extends PTerm
             cloneNode(this._null_));
     }
 
+    @Override
     public void apply(Switch sw)
     {
         ((Analysis) sw).caseATerm(this);

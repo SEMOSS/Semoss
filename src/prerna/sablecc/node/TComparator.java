@@ -25,6 +25,7 @@ public final class TComparator extends Token
       return new TComparator(getText(), getLine(), getPos());
     }
 
+    @Override
     public void apply(Switch sw)
     {
         ((Analysis) sw).caseTComparator(this);

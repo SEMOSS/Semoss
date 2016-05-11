@@ -29,6 +29,7 @@ public final class AScript extends PScript
             cloneNode(this._newline_));
     }
 
+    @Override
     public void apply(Switch sw)
     {
         ((Analysis) sw).caseAScript(this);
