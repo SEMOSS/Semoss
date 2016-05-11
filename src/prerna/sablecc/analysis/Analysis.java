@@ -15,7 +15,6 @@ public interface Analysis extends Switch
     void caseAConfiguration(AConfiguration node);
     void caseAColopScript(AColopScript node);
     void caseAVaropScript(AVaropScript node);
-    void caseAROpScript(AROpScript node);
     void caseAExprScript(AExprScript node);
     void caseAHelpScript(AHelpScript node);
     void caseAPanelopScript(APanelopScript node);
@@ -110,7 +109,6 @@ public interface Analysis extends Switch
     void caseACsvGroup(ACsvGroup node);
     void caseAExprRow(AExprRow node);
     void caseAJOp(AJOp node);
-    void caseAROp(AROp node);
     void caseAHelp(AHelp node);
     void caseATermExpr(ATermExpr node);
     void caseAPlusExpr(APlusExpr node);
@@ -132,6 +130,7 @@ public interface Analysis extends Switch
     void caseATerm(ATerm node);
     void caseAAlphaTerm(AAlphaTerm node);
     void caseAMathFunTerm(AMathFunTerm node);
+    void caseACodeblockTerm(ACodeblockTerm node);
 
     void caseTNumber(TNumber node);
     void caseTId(TId node);
@@ -175,7 +174,6 @@ public interface Analysis extends Switch
     void caseTEqual(TEqual node);
     void caseTNewline(TNewline node);
     void caseTJava(TJava node);
-    void caseTR(TR node);
     void caseTPython(TPython node);
     void caseTProc(TProc node);
     void caseTThis(TThis node);

@@ -12,6 +12,7 @@ Helpers
  not_quote = [alphanumeric - ['"' + ''']];
  panelprefix =  'panel' ( '[' digit ']' )?;
  panelcommentprefix = panelprefix '.comment' ( '[' digit ']' )?;
+ code = '<code>';
  
 
 Tokens
@@ -28,7 +29,6 @@ Tokens
  col = 'col';
  comparator = ('>' | '<' | '<=' | '>=' | '=' | '!=' | 'like');
  coladd = 'col.add';
- //('addColumn:'|'ac:'|'a:'|'add:' | 'col');
  api = ('api:'|'call:');
  math = ('math.' | 'm.');
  coljoin = 'col.join';
@@ -61,9 +61,8 @@ Tokens
  equal = '=';
  newline = '\r'? '\n';
  java = 'j:';
- r = 'r:';
  python = 'p:';
- proc = 'm:'; // | 'average');
+ proc = 'm:';
  this = 'this';
  null = 'null';
  import_type = ('flat' | 'tree');
@@ -72,7 +71,7 @@ Tokens
  dataremovetoken = 'data.remove';
  literal = (letter_s | letter_b | digit | underscore)*;// | special)*;
  help_token = 'info.help';
- codeblock = '{' alphanumeric* 'zzzzzz}'; // need to talk to kevin about this
+ codeblock = code alphanumeric* code;
  word = quote not_quote+ quote;
  panelviz =  panelprefix '.viz';
  panelclone = panelprefix '.clone';
@@ -95,7 +94,6 @@ configuration = script*;
 
 script = {colop} colop  semicolon // column operations
 		 | {varop} varop semicolon// row operations or setting up data
-		 | {r_op} r_op semicolon// call to CRAN
 		 //| {j_op} j_op semicolon// java operation
 		 | {expr} expr semicolon
 		 //| statop
@@ -306,8 +304,6 @@ expr_row = l_bracket [expr]:expr expr_group* r_bracket;
 j_op = // this of the pattern j:{hola, hello etc.. }
 	java codeblock;
 	
-r_op = r codeblock;
-
 help = help_token;
 		
  expr =
@@ -336,5 +332,5 @@ help = help_token;
   | null
   |  {alpha} word
   | {math_fun} math_fun
-  //| {r} r_op //Include in term only if we want a user to be able to do column operations with result from R code
+  | {codeblock} codeblock
   ;

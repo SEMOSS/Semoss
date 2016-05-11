@@ -93,12 +93,6 @@ public class AnalysisAdapter implements Analysis
     }
 
     @Override
-    public void caseAROpScript(AROpScript node)
-    {
-        defaultCase(node);
-    }
-
-    @Override
     public void caseAExprScript(AExprScript node)
     {
         defaultCase(node);
@@ -663,12 +657,6 @@ public class AnalysisAdapter implements Analysis
     }
 
     @Override
-    public void caseAROp(AROp node)
-    {
-        defaultCase(node);
-    }
-
-    @Override
     public void caseAHelp(AHelp node)
     {
         defaultCase(node);
@@ -790,6 +778,12 @@ public class AnalysisAdapter implements Analysis
 
     @Override
     public void caseAMathFunTerm(AMathFunTerm node)
+    {
+        defaultCase(node);
+    }
+
+    @Override
+    public void caseACodeblockTerm(ACodeblockTerm node)
     {
         defaultCase(node);
     }
@@ -1042,12 +1036,6 @@ public class AnalysisAdapter implements Analysis
 
     @Override
     public void caseTJava(TJava node)
-    {
-        defaultCase(node);
-    }
-
-    @Override
-    public void caseTR(TR node)
     {
         defaultCase(node);
     }
