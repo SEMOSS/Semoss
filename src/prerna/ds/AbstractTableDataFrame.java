@@ -20,9 +20,11 @@ import prerna.algorithm.api.IAnalyticTransformationRoutine;
 import prerna.algorithm.api.IMetaData;
 import prerna.algorithm.api.ITableDataFrame;
 import prerna.engine.api.IEngine;
+import prerna.engine.api.IScriptReactor;
 import prerna.engine.api.ISelectStatement;
 import prerna.math.BarChart;
 import prerna.math.StatisticsUtilityMethods;
+import prerna.sablecc.ColAddReactor;
 import prerna.ui.components.playsheets.datamakers.DataMakerComponent;
 import prerna.ui.components.playsheets.datamakers.IDataMaker;
 import prerna.ui.components.playsheets.datamakers.ISEMOSSAction;
@@ -112,7 +114,7 @@ public abstract class AbstractTableDataFrame implements ITableDataFrame {
 			Map<String, Set<String>> edgeHash = new HashMap<>();
 			
 			//point each outType to the prim key
-			String metaPrimKey = getMetaPrimaryKeyName(outTypes);
+			String metaPrimKey = TinkerMetaHelper.getMetaPrimaryKeyName(outTypes);
 			Set<String> primSet = new HashSet<>(1);
 			primSet.add(metaPrimKey);
 			for(String outType : outTypes) {
@@ -129,20 +131,6 @@ public abstract class AbstractTableDataFrame implements ITableDataFrame {
 		}
 	}
 	
-	/**
-	 * 
-	 * @param nodes
-	 * @return
-	 */
-	public String getMetaPrimaryKeyName(String... nodes) {
-		Arrays.sort(nodes);
-		String primKey = TinkerFrame.PRIM_KEY;
-		for(String node : nodes) {
-			primKey += node + TinkerFrame.primKeyDelimeter;
-		}
-		return primKey;
-	}
-
 	@Override
 	public void connectTypes(String outType, String inType, Map<String, String> dataTypeMap) {
 		Map<String, Set<String>> edgeHash = new HashMap<>();
@@ -697,4 +685,10 @@ public abstract class AbstractTableDataFrame implements ITableDataFrame {
 		}
 		return selectors;
 	}
+	
+	@Override
+	public IScriptReactor getColAddReactor() {
+		return new ColAddReactor();
+	}
+	
 }

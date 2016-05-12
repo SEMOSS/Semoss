@@ -59,6 +59,7 @@ import prerna.om.SEMOSSVertex;
 import prerna.om.TinkerGraphDataModel;
 import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.rdf.query.builder.GremlinBuilder;
+import prerna.sablecc.TinkerColAddReactor;
 import prerna.sablecc.TinkerImportDataReactor;
 import prerna.ui.components.playsheets.datamakers.DataMakerComponent;
 import prerna.ui.components.playsheets.datamakers.ISEMOSSTransformation;
@@ -2300,5 +2301,10 @@ public class TinkerFrame extends AbstractTableDataFrame {
 	@Override
 	public IScriptReactor getImportDataReactor() {
 		return new TinkerImportDataReactor();
+	}
+	
+	@Override
+	public IScriptReactor getColAddReactor() {
+		return new TinkerColAddReactor();
 	}
 }
