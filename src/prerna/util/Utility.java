@@ -646,9 +646,9 @@ public class Utility {
 			if (hiddenString != null) {
 				hidden = Boolean.parseBoolean(hiddenString);
 			}
-			LOGGER.info(engineToAdd.getEngineName() + " has solr force reload value of " + smssProp );
 			// check if should always recreate and check if db currently exists and check if db is updated
 			if (!hidden && (AbstractEngine.RECREATE_SOLR || !solrE.containsEngine(engineName) || smssProp)) {
+				LOGGER.info(engineToAdd.getEngineName() + " has solr force reload value of " + smssProp );
 				LOGGER.info(engineToAdd.getEngineName() + " is reloading solr");
 				try {
 					addToSolrInstanceCore(engineToAdd);

@@ -907,7 +907,7 @@ public class SolrIndexEngine {
 	 */
 	public boolean containsEngine(String engineName) {
 		// check if db currently exists
-		LOGGER.info(engineName + " is being added ");
+		LOGGER.info("checking if engine " + engineName + " needs to be added to solr");
 		SolrIndexEngineQueryBuilder builder = new SolrIndexEngineQueryBuilder();
 		builder.setSearchString(engineName);
 		builder.setDefaultSearchField(SolrIndexEngine.CORE_ENGINE);
@@ -922,7 +922,7 @@ public class SolrIndexEngine {
 			e.printStackTrace();
 		}
 		if (queryRet != null && queryRet.size() != 0) {
-			LOGGER.info("Engine " + engineName + " already exists.");
+			LOGGER.info("Engine " + engineName + " already exists inside solr");
 		} else {
 			LOGGER.info("queryRet.size() = 0 ... so add engine");
 		}
@@ -941,7 +941,7 @@ public class SolrIndexEngine {
 				LOGGER.info("deleted query is " + query);
 				insightServer.deleteByQuery(query);
 				insightServer.commit();
-				LOGGER.info("successfully removed from solr" + engineName);
+				LOGGER.info("successfully removed " + engineName + " from solr" + engineName);
 			} catch (SolrServerException e1) {
 				e1.printStackTrace();
 			} catch (IOException e1) {
