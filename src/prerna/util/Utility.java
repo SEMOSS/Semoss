@@ -67,7 +67,6 @@ import javax.swing.JFrame;
 import javax.swing.JList;
 import javax.swing.JOptionPane;
 
-import org.apache.commons.lang3.math.NumberUtils;
 import org.apache.http.HttpEntity;
 import org.apache.http.NameValuePair;
 import org.apache.http.client.entity.UrlEncodedFormEntity;
@@ -96,12 +95,12 @@ import org.openrdf.rio.RDFHandlerException;
 import org.openrdf.rio.RDFParseException;
 import org.openrdf.sail.inferencer.fc.ForwardChainingRDFSInferencer;
 import org.openrdf.sail.memory.MemoryStore;
-import org.yaml.snakeyaml.util.UriEncoder;
 
 import com.ibm.icu.math.BigDecimal;
 import com.ibm.icu.text.DecimalFormat;
 
 import prerna.engine.api.IEngine;
+import prerna.engine.api.IEngine.ENGINE_TYPE;
 import prerna.engine.api.ISelectStatement;
 import prerna.engine.api.ISelectWrapper;
 import prerna.engine.impl.AbstractEngine;
@@ -1103,6 +1102,7 @@ public class Utility {
 				deleter.deleteEngine(engineName);
 				Utility.deleteFromSolr(engineName);
 			}
+			Utility.loadDataTypesIfNotPresent(engine);
 			
 //			if(closeDB)
 //				engine.closeDB();
@@ -1116,6 +1116,107 @@ public class Utility {
 		return engine;
 	}
 	
+	public static void loadDataTypesIfNotPresent(IEngine engine) {
+		ENGINE_TYPE engineType = engine.getEngineType();
+		OWLER owler = new OWLER(engine, ((AbstractEngine) engine).getOWL(), engineType);
+		// first grab all the concepts
+		// see if concept has a data type, if not, determine the type and then add it
+		// for that concept, get all the properties
+		// see if property has a dat type, if not, determine the type and then add it
+		Vector<String> concepts = engine.getConcepts();
+		for(String concept : concepts) {
+			if(concept.equals("http://semoss.org/ontologies/Concept")) {
+				continue; // ignore stupid master concept
+			}
+			String conceptType = engine.getDataTypes(concept);
+			// if the type of the concept isn't stored, need to add it
+			if(conceptType == null) {
+				// checking the type if rdf
+				// if it is a RDF engine, all concepts are strings as its stored in a URI
+				if(engineType != ENGINE_TYPE.RDBMS) {
+					// all URIs are strings!!!!
+					owler.addConcept(Utility.getInstanceName(concept), "STRING");
+				} else {
+					// grab all values
+					try {
+					Vector<Object> instances = engine.getEntityOfType(concept);
+					if(instances != null && !instances.isEmpty()) {
+						// determine the type via the first row
+						String instanceObj = instances.get(0).toString().replace("\"", "");
+						String type = Utility.findTypes(instanceObj)[0] + "";
+						owler.addConcept(Utility.getInstanceName(concept), type);
+					} else {
+						// why is this a thing???
+						LOGGER.error("no instances... not sure how i determine a type here...");
+					}
+					} catch(Exception e) {
+						System.out.println("wtf");
+					}
+				}
+			}
+			
+			// now go through the properties logic
+			List<String> propNames = engine.getProperties4Concept(concept, false);
+			if(propNames != null && !propNames.isEmpty()) { // if there are properties, lets go through the logic
+				
+				// need a bifurcation in logic between rdbms and rdf
+				// rdbms engine is smart enough to parse the table and column name from the uri in getEntityOfType call
+				// however, rdf is dumb and requires a unique query to be created 
+				// 			in order to get the values of a property for a specific concept
+				
+				if(engineType == ENGINE_TYPE.RDBMS) {
+					for(String prop : propNames) {
+						String propType = engine.getDataTypes(concept);
+						// if the prop type isn't sotred, need to add it
+						if(propType == null) {
+							// grab all values
+							Vector<Object> properties = engine.getEntityOfType(prop);
+							if(properties != null && !properties.isEmpty()) {
+								// determine the type via the first row
+								try {
+								String property = properties.get(0).toString().replace("\"", "");
+								String type = Utility.findTypes(property)[0] + "";
+								owler.addProp(Utility.getInstanceName(concept), Utility.getInstanceName(prop), type);
+								} catch(Exception e) {
+									System.out.println("wtf");
+								}
+							} else {
+								// why is this a thing???
+								LOGGER.error("no instances of property... not sure how i determine a type here...");
+							}
+						}
+					}
+				} else {
+					// sadly, need to hand jam the appropriate query here
+					for(String prop : propNames) {
+						if(prop.equalsIgnoreCase("http://semoss.org/ontologies/Relation/Contains/Long")) {
+							System.out.println("check");
+						}
+						String propQuery = "SELECT DISTINCT ?property WHERE { {?x <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <" + concept + "> } { ?x <" + prop + "> ?property} }";
+						ISelectWrapper propWrapper = WrapperManager.getInstance().getSWrapper(engine, propQuery);
+						if(propWrapper.hasNext()) {
+							ISelectStatement propSS = propWrapper.next();
+							String property = propSS.getVar("property").toString().replace("\"", "");
+							String type = Utility.findTypes(property)[0] + "";
+							owler.addProp(Utility.getInstanceName(concept), Utility.getInstanceName(prop), type);
+						}  else {
+							// why is this a thing???
+							LOGGER.error("no instances of property... not sure how i determine a type here...");
+						}
+					}
+				}
+			}
+		}
+		
+		// now write the owler with all these triples added
+		try {
+			owler.export();
+			engine.setOWL(owler.getFileName());
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+	}
+
 	public static void addToLocalMaster(IEngine engineToAdd) {
 		IEngine localMaster = (IEngine) DIHelper.getInstance().getLocalProp(Constants.LOCAL_MASTER_DB_NAME);
 		if(localMaster == null) {
