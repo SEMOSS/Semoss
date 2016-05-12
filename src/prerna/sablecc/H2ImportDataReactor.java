@@ -45,21 +45,30 @@ public class H2ImportDataReactor extends ImportDataReactor {
 			headers = ((ISelectWrapper)it).getDisplayVariables();
 		}
 		
-		
+		String[] headersCopy = new String[headers.length];
 		// TODO: annoying, need to determine if i need to create a prim key edge hash
-		boolean isPrimKey = false;
 		if(edgeHash == null) {
 			Map<String, Set<String>> primKeyEdgeHash = frame.createPrimKeyEdgeHash(headers);
 			Map<String, String> dataType = new HashMap<>();
-			String[] headersCopy = new String[types.length];
 			for(int i = 0; i < types.length; i++) {
 				dataType.put(headers[i], types[i]);
 				headersCopy[i] = headers[i];
 			}
 			
+			// TODO: does this need to also occur when there is an edge hash?
 			updateDataForJoins(primKeyEdgeHash, dataType, headersCopy, joins);
 			frame.mergeEdgeHash(primKeyEdgeHash, dataType);
-			isPrimKey = true;
+			headers = headersCopy; 
+		} else {
+			for(int i = 0; i < headers.length; i++) {
+				headersCopy[i] = headers[i];
+			}
+			// the only thing that needs to be updated is the headers
+			// this is to account for when we have an existing frame
+			// while the behavior should be to "join" in the case when all headers are accounted
+			// we actually only need to perform inserts, instead of updates
+			// note that the edgeHash has already been merged during MergeQSEdgeHash
+			updateDataForJoins(edgeHash, new HashMap<String, String>(), headersCopy, joins);
 			headers = headersCopy; 
 		}
 		
@@ -68,11 +77,10 @@ public class H2ImportDataReactor extends ImportDataReactor {
 		if(allHeadersAccounted(startingHeaders, headers, joins) || frame.isEmpty() ) {
 			addRow = true;
 		}
-		
 
 		// TODO: need to have a smart way of determining when it is an "addRow" vs. "addRelationship"
 		// TODO: h2Builder addRelationship only does update query which does nothing if frame is empty
-		if(addRow || isPrimKey) {
+		if(addRow) {
 			while(it.hasNext()) {
 				IHeadersDataRow ss = (IHeadersDataRow) it.next();
 				frame.addRow(ss.getValues(), ss.getRawValues(), headers);
