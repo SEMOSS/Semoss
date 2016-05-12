@@ -240,6 +240,13 @@ public abstract class AbstractEngine implements IEngine {
 				if (genEngPropFile != null) {
 					generalEngineProp = loadProp(baseFolder + "/" + genEngPropFile);
 				}
+				
+				// since this is new, we need to add it to the smss file if missing
+				String fillDataTypes = prop.getProperty(Constants.FILL_EMPTY_DATATYPES);
+				if(fillDataTypes == null) {
+					Utility.updateSMSSFile(propFile, Constants.FILL_EMPTY_DATATYPES, "true");
+				}
+				
 			}
 			this.loadTransformedNodeNames();
 		} catch (RuntimeException e) {
