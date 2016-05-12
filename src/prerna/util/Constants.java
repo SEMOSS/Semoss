@@ -367,7 +367,8 @@ public class Constants {
 	public static final String GLITEM_SITE_LOADING_SHEET = "Site_HWSW_GLItems.xlsx";
 	public static final String OWL = "OWL";
 	public static final String DB = "DB";
-
+	public static final String FILL_EMPTY_DATATYPES = "FILL_EMPTY_DATATYPES";
+	
 	public static final String URL_PARAM = "URL_PARAM";
 	public static final String PROPS = "PROPS";
 	// public static final String TYPE_URI = "TYPE_URI";
