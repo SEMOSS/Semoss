@@ -86,6 +86,10 @@ public class JoinTransformation extends AbstractTransformation {
 			processPostTransformation();
 		} else {
 			this.prevHeaders = Arrays.asList(((ITableDataFrame) dm).getColumnHeaders());
+			// if the table is currently empty, there is nothing to optimize on
+			if(this.prevHeaders.isEmpty()) {
+				return;
+			}
 			QueryStruct qs = dmc.getQueryStruct();
 			
 			//if stringmap already contains the filters, then it is a hard filter
