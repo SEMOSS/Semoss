@@ -52,6 +52,7 @@ public class H2Builder {
 		typeConversionMap.put("NUMBER", "DOUBLE");
 		typeConversionMap.put("STRING", "VARCHAR(800)");
 		typeConversionMap.put("DATE", "DATE");
+		typeConversionMap.put("FLOAT", "DOUBLE");
 	}
 	
 	Map<String, List<Object>> filterHash = new HashMap<String, List<Object>>();
