@@ -42,11 +42,13 @@ public class OWLER {
 
 	public boolean addBase = false;
 	protected BaseDatabaseCreator engine = null;
-
+	protected String fileName = null;
+	
 	// I need something here to add to the base relationship
 	// i.e. semoss/concept is a type of class
 	
 	public OWLER(String fileName, IEngine.ENGINE_TYPE type) {
+		this.fileName = fileName;
 		this.type = type;
 		
 		engine = new BaseDatabaseCreator(fileName);
@@ -60,6 +62,7 @@ public class OWLER {
 	}
 	
 	public OWLER(IEngine existingEngine, String fileName, IEngine.ENGINE_TYPE type) {
+		this.fileName = fileName;
 		this.type = type;
 		engine = new BaseDatabaseCreator(existingEngine, fileName);
 	}
@@ -82,6 +85,10 @@ public class OWLER {
 
 	public void setEngine(BaseDatabaseCreator engine) {
 		this.engine = engine;
+	}
+	
+	public String getFileName() {
+		return this.fileName;
 	}
 	
 	// a class that has been LONG pending
