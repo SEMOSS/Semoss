@@ -677,6 +677,9 @@ public class Translation2 extends DepthFirstAdapter {
 	@Override
 	public void inAAddColumn(AAddColumn node) {
 		if(reactorNames.containsKey(PKQLEnum.COL_ADD)) {
+			IScriptReactor reactor = frame.getColAddReactor();
+			reactorNames.put(PKQLEnum.COL_ADD, (reactor.getClass() + "").replaceFirst("class ", ""));
+			
 			initReactor(PKQLEnum.COL_ADD);
 			String nodeStr = node.toString().trim();
 			curReactor.put(PKQLEnum.COL_ADD, nodeStr);
@@ -868,7 +871,9 @@ public class Translation2 extends DepthFirstAdapter {
 		String expr = node.getExpr().toString().trim();
 		Hashtable <String, Object> thisReactorHash = deinitReactor(PKQLReactor.MATH_FUN.toString(), expr, nodeStr);
 		IScriptReactor previousReactor = (IScriptReactor)thisReactorHash.get(PKQLReactor.MATH_FUN.toString());
-		curReactor.put("COL_DEF", previousReactor.getValue(PKQLEnum.COL_DEF)); //TODO: use syncronize instead
+		curReactor.put(PKQLEnum.COL_DEF, previousReactor.getValue(PKQLEnum.COL_DEF)); //TODO: use syncronize instead
+//		curReactor.put(PKQLEnum.PROC_NAME, previousReactor.getValue(PKQLEnum.PROC_NAME));
+//		curReactor.put(PKQLEnum.COL_CSV, previousReactor.getValue(PKQLEnum.COL_CSV));
 		curReactor.addReplacer(nodeStr, previousReactor.getValue(expr));
 		runner.setResponse(previousReactor.getValue(expr));
 		runner.setStatus((String)previousReactor.getValue("STATUS"));

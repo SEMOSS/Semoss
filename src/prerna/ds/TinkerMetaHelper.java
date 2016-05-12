@@ -125,6 +125,25 @@ public class TinkerMetaHelper {
 	
 	/**
 	 * 
+	 * @param nodes
+	 * @return
+	 */
+	public static String getMetaPrimaryKeyName(String... nodes) {
+		// due to sorting, create a new list such that we don't mess up the ordering
+		String[] newNodes = new String[nodes.length];
+		for(int i = 0; i < nodes.length; i++) {
+			newNodes[i] = nodes[i];
+		}
+		Arrays.sort(newNodes);
+		String primKey = TinkerFrame.PRIM_KEY;
+		for(String node : newNodes) {
+			primKey += node + TinkerFrame.primKeyDelimeter;
+		}
+		return primKey;
+	}
+	
+	/**
+	 * 
 	 * @param newEdgeHash
 	 * 
 	 * new EdgeHash in the form:

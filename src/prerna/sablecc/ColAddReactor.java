@@ -10,7 +10,6 @@ import java.util.Vector;
 import prerna.algorithm.api.ITableDataFrame;
 import prerna.ds.ExpressionIterator;
 import prerna.ds.TinkerMetaHelper;
-import prerna.engine.api.ISelectStatement;
 import prerna.util.Utility;
 
 public class ColAddReactor extends AbstractReactor {
@@ -18,7 +17,7 @@ public class ColAddReactor extends AbstractReactor {
 	Hashtable <String, String[]> values2SyncHash = new Hashtable <String, String[]>();
 
 	public ColAddReactor() {
-		String [] thisReacts = {PKQLEnum.COL_DEF,PKQLEnum.COL_DEF + "_1", PKQLEnum.API}; // these are the input columns - there is also expr Term which I will come to shortly
+		String [] thisReacts = {PKQLEnum.COL_DEF, PKQLEnum.COL_DEF + "_1", PKQLEnum.API}; // these are the input columns - there is also expr Term which I will come to shortly
 		super.whatIReactTo = thisReacts;
 		super.whoAmI = PKQLEnum.COL_ADD;
 
@@ -38,7 +37,6 @@ public class ColAddReactor extends AbstractReactor {
 		modExpression();
 		String nodeStr = (String)myStore.get(whoAmI);
 		System.out.println("My Store on COL CSV " + myStore);
-
 		ITableDataFrame frame = (ITableDataFrame) myStore.get("G");
 
 		String [] joinCols = null;
@@ -160,9 +158,7 @@ public class ColAddReactor extends AbstractReactor {
 							row.put(joinCols[i], ((ExpressionIterator)it).getOtherBindings().get(joinCols[i]));
 						}
 					}
-					if (newVal instanceof ISelectStatement) {
-						System.out.println(((ISelectStatement)newVal).getPropHash());
-					}
+
 					if(addMetaData) {
 						Object[] newType = Utility.findTypes(newVal.toString());
 						String type = "";
