@@ -201,7 +201,9 @@ public class ImportDataReactor extends AbstractReactor {
 								
 								// update data type map
 								String dataValue = dataType.remove(otherName);
-								dataType.put(existingName, dataValue);
+								if(dataValue != null) {
+									dataType.put(existingName, dataValue);
+								}
 								// update the header
 								int index = ArrayUtilityMethods.arrayContainsValueAtIndex(headers, otherName);
 								if(index > -1) {
@@ -216,7 +218,9 @@ public class ImportDataReactor extends AbstractReactor {
 									
 									// update data type map
 									String dataValue = dataType.remove(otherName);
-									dataType.put(existingName, dataValue);
+									if(dataValue != null) {
+										dataType.put(existingName, dataValue);
+									}
 									// update the header
 									int index = ArrayUtilityMethods.arrayContainsValueAtIndex(headers, otherName);
 									if(index > -1) {
