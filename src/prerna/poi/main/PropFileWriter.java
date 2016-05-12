@@ -276,6 +276,7 @@ public class PropFileWriter {
 				pw.write(Constants.ENGINE_TYPE + "\t" + this.defaultEngine + "\n");
 				pw.write(Constants.DREAMER + "\t" + questionFileName + "\n\n\n");
 			}
+			pw.write(Constants.FILL_EMPTY_DATATYPES + "\tfalse\n");
 			if (dbType == ImportDataProcessor.DB_TYPE.RDBMS) {
 				if(this.queryUtil == null) {
 					this.queryUtil = SQLQueryUtil.initialize(dbDriverType);
