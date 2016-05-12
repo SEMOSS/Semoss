@@ -71,7 +71,7 @@ public class SQLInterpreter implements IQueryInterpreter{
 		//System.out.println("With Join ..  " + relationHash);
 		
 		// the final step where the equation is balanced and the anamoly revealed
-		query = "SELECT  " + selectors + "  FROM " + froms;
+		query = "SELECT  DISTINCT " + selectors + "  FROM " + froms;
 		boolean firstTime = true;
 
 		Enumeration joins = relationHash.keys();
