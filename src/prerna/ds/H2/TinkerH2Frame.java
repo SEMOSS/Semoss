@@ -950,23 +950,53 @@ public class TinkerH2Frame extends AbstractTableDataFrame {
 		
 		
 		String[] columnHeaders = getColumnHeaders();
-		int length = columnHeaders.length;
 		
-		//remove the newHeaders from the column headers if they were added already (but don't exist yet in the table)
-//		while(true) {
-		if(ArrayUtilityMethods.arrayContainsValueIgnoreCase(newHeaders, columnHeaders[length-1])) {
-			length = length - 1;
-		}
-//			else {
-//				break;
-//			}
+		//////////////////////////////////////////////////////
+		//////////////////////////////////////////////////////
+		//////////////////////////////////////////////////////
+		// ughhhhh... what is this logic ???? 
+		// literally have no idea why its just a minus one
+		// really need to figure out this ish
+		// looking at the method this gets sent to, look at my understanding below
+		
+//		int length = columnHeaders.length;
+//		
+//		//remove the newHeaders from the column headers if they were added already (but don't exist yet in the table)
+////		while(true) {
+//		if(ArrayUtilityMethods.arrayContainsValueIgnoreCase(newHeaders, columnHeaders[length-1])) {
+//			length = length - 1;
+//		}
+////			else {
+////				break;
+////			}
+////		}
+//		
+//		//get the values for each column header, i.e. the column name in the h2 table
+//		String[] adjustedColHeaders = new String[length];
+//		for(int i = 0; i < length; i++) {
+//			adjustedColHeaders[i] = this.metaData.getValueForUniqueName(columnHeaders[i]);
 //		}
 		
-		//get the values for each column header, i.e. the column name in the h2 table
-		String[] adjustedColHeaders = new String[length];
-		for(int i = 0; i < length; i++) {
-			adjustedColHeaders[i] = this.metaData.getValueForUniqueName(columnHeaders[i]);
+		// my understanding
+		// need to get the list of columns that are currently inside the frame
+		// this is because mergeEdgeHash has already occured and added the headers into the metadata
+		// thus, columnHeaders has both the old headers and the new ones that we want to add
+		// thus, go through and only keep the list of headers that are not in the new ones
+		// but also need to add those that are in the joinCols in case 2 headers match
+		List<String> adjustedColHeadersList = new Vector<String>();
+		for(String header : columnHeaders) {
+			if(!ArrayUtilityMethods.arrayContainsValueIgnoreCase(newHeaders, header)) {
+				adjustedColHeadersList.add(this.metaData.getValueForUniqueName(header));
+			} else {
+				joinLoop : for(Map<String, String> join : joins) {
+					if(join.keySet().contains(header)) {
+						adjustedColHeadersList.add(this.metaData.getValueForUniqueName(header));
+						break joinLoop;
+					}
+				}
+			}
 		}
+		String[] adjustedColHeaders = adjustedColHeadersList.toArray(new String[]{});
 		
 		//get the join type
 		Join type = Join.INNER;
