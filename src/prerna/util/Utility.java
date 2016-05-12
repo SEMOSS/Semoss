@@ -646,7 +646,7 @@ public class Utility {
 			if (hiddenString != null) {
 				hidden = Boolean.parseBoolean(hiddenString);
 			}
-			LOGGER.info(engineToAdd.getEngineName() + " has smss force reload value of " + smssProp);
+			LOGGER.info(engineToAdd.getEngineName() + " has solr force reload value of " + smssProp );
 			// check if should always recreate and check if db currently exists and check if db is updated
 			if (!hidden && (AbstractEngine.RECREATE_SOLR || !solrE.containsEngine(engineName) || smssProp)) {
 				LOGGER.info(engineToAdd.getEngineName() + " is reloading solr");
@@ -661,8 +661,8 @@ public class Utility {
 				Utility.deleteFromSolr(engineName);
 			}
 			if(smssProp){
-				LOGGER.info(engineToAdd.getEngineName() + " is changing boolean on smss");
-				changeSolrBoolean(fileName);
+				LOGGER.info(engineToAdd.getEngineName() + " is changing solr boolean on smss");
+				changeSMSSBoolean(fileName, Constants.SOLR_RELOAD, "false");
 			}
 		
 		}
@@ -965,9 +965,9 @@ public class Utility {
 	
 	//force solr to load once 
 	//once engine is loaded, set boolean to false
-	public static void changeSolrBoolean(String path) {
+	public static void changeSMSSBoolean(String smssPath, String valueToAlter, String valueToProvide) {
 		FileOutputStream fileOut = null;
-		File file = new File(path);
+		File file = new File(smssPath);
 		List<String> content = new ArrayList<String>();
 
 		BufferedReader reader = null;
@@ -983,8 +983,8 @@ public class Utility {
 			fileOut = new FileOutputStream(file);
 			byte[] lineBreak = "\n".getBytes();
 			for(int i=0; i<content.size(); i++){
-				if(content.get(i).contains(Constants.SOLR_RELOAD)){
-					String falseBool = Constants.SOLR_RELOAD + "\tfalse";
+				if(content.get(i).contains(valueToAlter)){
+					String falseBool = valueToAlter + "\t" + valueToProvide;
 					fileOut.write(falseBool.getBytes());
 				}
 				else {
@@ -993,6 +993,52 @@ public class Utility {
 				}
 				fileOut.write(lineBreak);
 			}
+		} catch(IOException e){
+			e.printStackTrace();
+		} finally{
+			try{
+				reader.close();
+			} catch (IOException e) {
+				e.printStackTrace();
+			}
+
+			try{
+				fileOut.close();
+			} catch (IOException e){
+				e.printStackTrace();
+			}
+		}
+	}
+	
+	public static void updateSMSSFile(String smssPath, String valueToAdd, String valueToProvide) {
+		FileOutputStream fileOut = null;
+		File file = new File(smssPath);
+		List<String> content = new ArrayList<String>();
+
+		BufferedReader reader = null;
+		FileReader fr = null;
+		String locInFile = "OWL";
+		try{
+			fr = new FileReader(file);
+			reader = new BufferedReader(fr);
+			String line;
+			while((line = reader.readLine()) != null){
+				content.add(line);
+			}
+
+			fileOut = new FileOutputStream(file);
+			for(int i=0; i<content.size(); i++){
+				byte[] contentInBytes = content.get(i).getBytes();
+				fileOut.write(contentInBytes);
+				fileOut.write("\n".getBytes());
+
+				if(content.get(i).contains(locInFile)){
+					String newProp = valueToAdd + "\t" + valueToProvide;
+					fileOut.write(newProp.getBytes());
+					fileOut.write("\n".getBytes());
+				}
+			}
+
 		} catch(IOException e){
 			e.printStackTrace();
 		} finally{
@@ -1102,7 +1148,7 @@ public class Utility {
 				deleter.deleteEngine(engineName);
 				Utility.deleteFromSolr(engineName);
 			}
-			Utility.loadDataTypesIfNotPresent(engine);
+			Utility.loadDataTypesIfNotPresent(engine, fileName);
 			
 //			if(closeDB)
 //				engine.closeDB();
@@ -1116,104 +1162,107 @@ public class Utility {
 		return engine;
 	}
 	
-	public static void loadDataTypesIfNotPresent(IEngine engine) {
-		ENGINE_TYPE engineType = engine.getEngineType();
-		OWLER owler = new OWLER(engine, ((AbstractEngine) engine).getOWL(), engineType);
-		// first grab all the concepts
-		// see if concept has a data type, if not, determine the type and then add it
-		// for that concept, get all the properties
-		// see if property has a dat type, if not, determine the type and then add it
-		Vector<String> concepts = engine.getConcepts();
-		for(String concept : concepts) {
-			if(concept.equals("http://semoss.org/ontologies/Concept")) {
-				continue; // ignore stupid master concept
-			}
-			String conceptType = engine.getDataTypes(concept);
-			// if the type of the concept isn't stored, need to add it
-			if(conceptType == null) {
-				// checking the type if rdf
-				// if it is a RDF engine, all concepts are strings as its stored in a URI
-				if(engineType != ENGINE_TYPE.RDBMS) {
-					// all URIs are strings!!!!
-					owler.addConcept(Utility.getInstanceName(concept), "STRING");
-				} else {
-					// grab all values
-					try {
-					Vector<Object> instances = engine.getEntityOfType(concept);
-					if(instances != null && !instances.isEmpty()) {
-						// determine the type via the first row
-						String instanceObj = instances.get(0).toString().replace("\"", "");
-						String type = Utility.findTypes(instanceObj)[0] + "";
-						owler.addConcept(Utility.getInstanceName(concept), type);
+	public static void loadDataTypesIfNotPresent(IEngine engine, String fileName) {
+		// smss file contains a boolean to determine if we need to look at data types to add to owl
+		boolean fillEmpty = true;
+		String fillEmptyStr = engine.getProperty(Constants.FILL_EMPTY_DATATYPES);
+		if(fillEmptyStr != null) {
+			fillEmpty = Boolean.parseBoolean(fillEmptyStr);
+		}
+		
+		if(fillEmpty) {
+			LOGGER.info(engine.getEngineName() + " is reloading data types into owl file");
+			ENGINE_TYPE engineType = engine.getEngineType();
+			OWLER owler = new OWLER(engine, ((AbstractEngine) engine).getOWL(), engineType);
+			// first grab all the concepts
+			// see if concept has a data type, if not, determine the type and then add it
+			// for that concept, get all the properties
+			// see if property has a dat type, if not, determine the type and then add it
+			Vector<String> concepts = engine.getConcepts();
+			for(String concept : concepts) {
+				if(concept.equals("http://semoss.org/ontologies/Concept")) {
+					continue; // ignore stupid master concept
+				}
+				String conceptType = engine.getDataTypes(concept);
+				// if the type of the concept isn't stored, need to add it
+				if(conceptType == null) {
+					// checking the type if rdf
+					// if it is a RDF engine, all concepts are strings as its stored in a URI
+					if(engineType != ENGINE_TYPE.RDBMS) {
+						// all URIs are strings!!!!
+						owler.addConcept(Utility.getInstanceName(concept), "STRING");
 					} else {
-						// why is this a thing???
-						LOGGER.error("no instances... not sure how i determine a type here...");
-					}
-					} catch(Exception e) {
-						System.out.println("wtf");
+						// grab all values
+						Vector<Object> instances = engine.getEntityOfType(concept);
+						if(instances != null && !instances.isEmpty()) {
+							// determine the type via the first row
+							String instanceObj = instances.get(0).toString().replace("\"", "");
+							String type = Utility.findTypes(instanceObj)[0] + "";
+							owler.addConcept(Utility.getInstanceName(concept), type);
+						} else {
+							// why is this a thing???
+							LOGGER.error("no instances... not sure how i determine a type here...");
+						}
 					}
 				}
-			}
-			
-			// now go through the properties logic
-			List<String> propNames = engine.getProperties4Concept(concept, false);
-			if(propNames != null && !propNames.isEmpty()) { // if there are properties, lets go through the logic
-				
-				// need a bifurcation in logic between rdbms and rdf
-				// rdbms engine is smart enough to parse the table and column name from the uri in getEntityOfType call
-				// however, rdf is dumb and requires a unique query to be created 
-				// 			in order to get the values of a property for a specific concept
-				
-				if(engineType == ENGINE_TYPE.RDBMS) {
-					for(String prop : propNames) {
-						String propType = engine.getDataTypes(concept);
-						// if the prop type isn't sotred, need to add it
-						if(propType == null) {
-							// grab all values
-							Vector<Object> properties = engine.getEntityOfType(prop);
-							if(properties != null && !properties.isEmpty()) {
-								// determine the type via the first row
-								try {
-								String property = properties.get(0).toString().replace("\"", "");
+	
+				// now go through the properties logic
+				List<String> propNames = engine.getProperties4Concept(concept, false);
+				if(propNames != null && !propNames.isEmpty()) { // if there are properties, lets go through the logic
+	
+					// need a bifurcation in logic between rdbms and rdf
+					// rdbms engine is smart enough to parse the table and column name from the uri in getEntityOfType call
+					// however, rdf is dumb and requires a unique query to be created 
+					// 			in order to get the values of a property for a specific concept
+	
+					if(engineType == ENGINE_TYPE.RDBMS) {
+						for(String prop : propNames) {
+							String propType = engine.getDataTypes(concept);
+							// if the prop type isn't sotred, need to add it
+							if(propType == null) {
+								// grab all values
+								Vector<Object> properties = engine.getEntityOfType(prop);
+								if(properties != null && !properties.isEmpty()) {
+									// determine the type via the first row
+									String property = properties.get(0).toString().replace("\"", "");
+									String type = Utility.findTypes(property)[0] + "";
+									owler.addProp(Utility.getInstanceName(concept), Utility.getInstanceName(prop), type);
+								} else {
+									// why is this a thing???
+									LOGGER.error("no instances of property... not sure how i determine a type here...");
+								}
+							}
+						}
+					} else {
+						// sadly, need to hand jam the appropriate query here
+						for(String prop : propNames) {
+							String propQuery = "SELECT DISTINCT ?property WHERE { {?x <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <" + concept + "> } { ?x <" + prop + "> ?property} }";
+							ISelectWrapper propWrapper = WrapperManager.getInstance().getSWrapper(engine, propQuery);
+							if(propWrapper.hasNext()) {
+								ISelectStatement propSS = propWrapper.next();
+								String property = propSS.getVar("property").toString().replace("\"", "");
 								String type = Utility.findTypes(property)[0] + "";
 								owler.addProp(Utility.getInstanceName(concept), Utility.getInstanceName(prop), type);
-								} catch(Exception e) {
-									System.out.println("wtf");
-								}
-							} else {
+							}  else {
 								// why is this a thing???
 								LOGGER.error("no instances of property... not sure how i determine a type here...");
 							}
 						}
 					}
-				} else {
-					// sadly, need to hand jam the appropriate query here
-					for(String prop : propNames) {
-						if(prop.equalsIgnoreCase("http://semoss.org/ontologies/Relation/Contains/Long")) {
-							System.out.println("check");
-						}
-						String propQuery = "SELECT DISTINCT ?property WHERE { {?x <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <" + concept + "> } { ?x <" + prop + "> ?property} }";
-						ISelectWrapper propWrapper = WrapperManager.getInstance().getSWrapper(engine, propQuery);
-						if(propWrapper.hasNext()) {
-							ISelectStatement propSS = propWrapper.next();
-							String property = propSS.getVar("property").toString().replace("\"", "");
-							String type = Utility.findTypes(property)[0] + "";
-							owler.addProp(Utility.getInstanceName(concept), Utility.getInstanceName(prop), type);
-						}  else {
-							// why is this a thing???
-							LOGGER.error("no instances of property... not sure how i determine a type here...");
-						}
-					}
 				}
 			}
-		}
-		
-		// now write the owler with all these triples added
-		try {
-			owler.export();
-			engine.setOWL(owler.getFileName());
-		} catch (IOException e) {
-			e.printStackTrace();
+	
+			// now write the owler with all these triples added
+			try {
+				owler.export();
+				engine.setOWL(owler.getFileName());
+			} catch (IOException e) {
+				e.printStackTrace();
+			}
+			
+			// update the smss file to contain the boolean as true to avoid this process on start up again
+			LOGGER.info(engine.getEngineName() + " is changing boolean on smss for filling empty datatypes");
+			changeSMSSBoolean(fileName, Constants.FILL_EMPTY_DATATYPES, "false");
 		}
 	}
 
