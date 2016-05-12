@@ -2281,4 +2281,10 @@ public class BTreeDataFrame implements ITableDataFrame {
 		
 	}
 
+	@Override
+	public IScriptReactor getColAddReactor() {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
 }
