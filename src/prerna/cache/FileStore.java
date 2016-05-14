@@ -40,7 +40,6 @@ public class FileStore extends Hashtable<String, String> {
 	 */
 	public String put(String fileLoc) {
 		String uniqueID = UUID.randomUUID().toString();
-		uniqueID.replace("-", "_");
 		super.put(uniqueID, fileLoc);
 		return uniqueID;
 	}

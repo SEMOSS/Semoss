@@ -14,6 +14,7 @@ import prerna.rdf.query.util.SEMOSSQuery;
 import prerna.rdf.query.util.SEMOSSQueryHelper;
 import prerna.rdf.query.util.SPARQLConstants;
 import prerna.rdf.query.util.TriplePart;
+import prerna.util.Constants;
 import prerna.util.Utility;
 
 public class SPARQLInterpreter implements IQueryInterpreter {
@@ -70,34 +71,14 @@ public class SPARQLInterpreter implements IQueryInterpreter {
 		return " invalid addFrom call ";
 	}
 	
-//	//this should be the pkql logical
-//	private String getVarName(String physName, boolean property){
-//		String logName = "";
-//		if(!property){
-//			logName = engine.getTransformedNodeName("http://semoss.org/ontologies/Concept/" + physName, true); 
-//			logName = engine.getTransformedNodeName("http://semoss.org/ontologies/DisplayName/" + physName, true); 
-//			//get the alias from the pkql logical
-//		}
-//		else {
-//			logName = engine.getTransformedNodeName("http://semoss.org/ontologies/Relation/Contains/" + physName, true);
-//			//get the 
-//		}
-//		return Utility.getInstanceName(logName);
-//	}
-	
-	//this should be the pkql logical
 	private String getVarName(String physName, boolean property){
 		String logName = "";
+		physName = Utility.getInstanceName(engine.getTransformedNodeName("http://semoss.org/ontologies/DisplayName/" + physName, false));
 		if(!property){
-//			logName = engine.getTransformedNodeName("http://semoss.org/ontologies/Concept/" + physName, true); 
-//			logName = engine.getTransformedNodeName("http://semoss.org/ontologies/DisplayName/" + physName, true);
-			logName = engine.getAliasFromPkql("http://semoss.org/ontologies/DisplayName/" + physName);
-			//get the alias from the pkql logical
+			logName = engine.getTransformedNodeName("http://semoss.org/ontologies/Concept/" + physName, true);
 		}
 		else {
-//			logName = engine.getTransformedNodeName("http://semoss.org/ontologies/Relation/Contains/" + physName, true);
-			logName = engine.getAliasFromPkql("http://semoss.org/ontologies/DisplayName/" + physName);
-			//get the 
+			logName = engine.getTransformedNodeName("http://semoss.org/ontologies/Relation/Contains/" + physName, true);
 		}
 		return Utility.getInstanceName(logName);
 	}
@@ -119,6 +100,7 @@ public class SPARQLInterpreter implements IQueryInterpreter {
 	
 	private String addNode(String table){
 		// get the node uri from the owl (how....?)
+		table = Utility.getInstanceName(engine.getTransformedNodeName(Constants.DISPLAY_URI+table, false));
 		String nodeURI = engine.getConceptUri4PhysicalName(table);
 		
 		SEMOSSQueryHelper.addConceptTypeTripleToQuery(getVarName(table, false), nodeURI, false, semossQuery, table);
@@ -126,14 +108,13 @@ public class SPARQLInterpreter implements IQueryInterpreter {
 	}
 	
 	private String addNodeProperty(String table, String col){
-		String col2 = Utility.getInstanceName(engine.getPhysicalFromPkql("http://semoss.org/ontologies/DisplayName/"+col));
 		String nodeURI = addNode(table);
-
+		col = Utility.getInstanceName(engine.getTransformedNodeName(Constants.DISPLAY_URI+col, false));
 		// get the prop uri from the owl (how....?)
 		String propURI = "Unable to get prop uri";
 		List<String> props = this.engine.getProperties4Concept(nodeURI, false);
 		for(String prop : props){
-			if(Utility.getInstanceName(prop).equals(col2)){
+			if(Utility.getInstanceName(prop).equals(col)){
 				propURI = prop;
 				break;
 			}
@@ -223,6 +204,7 @@ public class SPARQLInterpreter implements IQueryInterpreter {
 		if(property != null || engine.getParentOfProperty(concept) != null)
 			isProp = true;
 		
+		concept = Utility.getInstanceName(engine.getTransformedNodeName(Constants.DISPLAY_URI+concept, false));
 		if(objects.get(0) instanceof String) // ok this is a string ------ must be " = " comparator ... currently not handling regex
 		{
 			List<Object> cleanedObjects = new Vector<Object>();
