@@ -19,7 +19,10 @@ import com.google.gson.reflect.TypeToken;
 import prerna.algorithm.api.ITableDataFrame;
 import prerna.ds.QueryStruct;
 import prerna.ds.TinkerFrame;
+import prerna.engine.api.IEngine;
 import prerna.om.GraphDataModel;
+import prerna.util.Constants;
+import prerna.util.Utility;
 
 public class JoinTransformation extends AbstractTransformation {
 
@@ -100,7 +103,11 @@ public class JoinTransformation extends AbstractTransformation {
 				while(rowIt.hasNext()){
 					uris.add("\""+rowIt.next() + "\"");
 				}
-				qs.addFilter(props.get(COLUMN_TWO_KEY)+"", "=", uris );
+				
+				IEngine engine = dmc.getEngine();
+				String columnTwo = props.get(COLUMN_TWO_KEY).toString();
+				String columnTwoLogical = Utility.getInstanceName(engine.getTransformedNodeName(Constants.CONCEPT_URI+columnTwo, true));
+				qs.addFilter(columnTwoLogical, "=", uris );
 			} 
 
 			// add the join as a post transformation
