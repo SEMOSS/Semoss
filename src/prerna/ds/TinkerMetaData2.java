@@ -444,15 +444,16 @@ public class TinkerMetaData2 implements IMetaData {
 		//get the rest of the needed information off the owl
 		IEngine engine = (IEngine) DIHelper.getInstance().getLocalProp(engineName);
 		
-		String physicalName = queryStructName;
+		String physicalName = null;
 		String physicalUri = null;
 		//check if property
-		if(physicalName.contains("__")){
-			physicalName = physicalName.substring(physicalName.indexOf("__")+2);
-			physicalUri = Constants.PROPERTY_URI + physicalName;
+		if(queryStructName.contains("__")){
+			physicalName = queryStructName.substring(queryStructName.indexOf("__")+2);
+			physicalUri = engine.getTransformedNodeName(Constants.DISPLAY_URI+physicalName, false);
 		}
 		else{
-			physicalUri = engine.getConceptUri4PhysicalName(queryStructName);
+			physicalName = Utility.getInstanceName(engine.getTransformedNodeName(Constants.DISPLAY_URI+queryStructName, false));
+			physicalUri = engine.getConceptUri4PhysicalName(physicalName);
 		}
 		
 		// stupid check
