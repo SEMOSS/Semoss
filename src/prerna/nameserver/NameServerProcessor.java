@@ -10,6 +10,7 @@ import java.util.TreeMap;
 
 import prerna.engine.api.IEngine;
 import prerna.util.DIHelper;
+import prerna.util.Utility;
 
 public class NameServerProcessor extends AbstractNameServer {
 
@@ -107,7 +108,8 @@ public class NameServerProcessor extends AbstractNameServer {
 								Map<String, Map<String, String>> newConceptsURI = new TreeMap<String, Map<String, String>>();
 								for(String singleURI: conceptsURI){
 									String logicalURI = engine.getTransformedNodeName(singleURI, true);
-									String node = singleURI.replaceAll(".*/Concept/", "");
+//									String node = singleURI.replaceAll(".*/Concept/", "");
+									String node = Utility.getInstanceName(logicalURI);
 									String parent = null;
 									if(node.contains("/")) {
 										// this is for properties that are also concepts
@@ -136,7 +138,8 @@ public class NameServerProcessor extends AbstractNameServer {
 						}
 						
 						String datakeyword = engine.getTransformedNodeName(keyword, true); //get the keywords display name
-						String node = keyword.replaceAll(".*/Concept/", "");
+//						String node = keyword.replaceAll(".*/Concept/", "");
+						String node = Utility.getInstanceName(keyword);
 						String parent = null;
 						if(node.contains("/")) {
 							// this is for properties that are also concepts

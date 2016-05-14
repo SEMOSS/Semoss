@@ -112,12 +112,7 @@ public abstract class AbstractEngine implements IEngine {
 	private transient Map<String, String> tableUriCache = new HashMap<String, String>();
 
 	private Hashtable<String, String> baseDataHash;
-	
-	//currently logical to physical...needs to change from pkql logical to physical
 	protected Hashtable<String,String> transformedNodeNames = new Hashtable<String,String>();
-	
-	//will hold logical to pkql logical
-	protected Hashtable<String,String> logicalToPkqlLogical = new Hashtable<String, String>(); 
 
 	private static final String SEMOSS_URI = "http://semoss.org/ontologies/";
 	private String baseUri;
@@ -635,21 +630,10 @@ public abstract class AbstractEngine implements IEngine {
 			return nodeURI;
 		}
 		
-//		//for rdbms normalize the URI... for concepts and relation uris
-//		if (nodeURI.startsWith(Constants.CONCEPT_URI) || nodeURI.startsWith(Constants.PROPERTY_URI) && this.getEngineType().equals(IEngine.ENGINE_TYPE.RDBMS)) {
-//			for(String displayName: this.transformedNodeNames.keySet()){
-//				String physicalName = this.transformedNodeNames.get(displayName);
-//				if(physicalName.equalsIgnoreCase(nodeURI)){
-//					nodeURI = physicalName;
-//					break;
-//				}
-//			}
-//		}
-		
+		//for rdbms normalize the URI... for concepts and relation uris
 		if (nodeURI.startsWith(Constants.CONCEPT_URI) || nodeURI.startsWith(Constants.PROPERTY_URI) && this.getEngineType().equals(IEngine.ENGINE_TYPE.RDBMS)) {
-			for(String displayName: this.logicalToPkqlLogical.keySet()){
-				String pkqlLogical = this.logicalToPkqlLogical.get(displayName);
-				String physicalName = this.transformedNodeNames.get(pkqlLogical);
+			for(String displayName: this.transformedNodeNames.keySet()){
+				String physicalName = this.transformedNodeNames.get(displayName);
 				if(physicalName.equalsIgnoreCase(nodeURI)){
 					nodeURI = physicalName;
 					break;
@@ -676,56 +660,9 @@ public abstract class AbstractEngine implements IEngine {
 		return findTransformedNodeName(nodeURI, getDisplayName);
 
 	}
-	
-	/**
-	 * get the pkl logical name to build the pkql from the physical name
-	 */
-	public String getPkqlLogicalFromPhysical(String nodeURI) {
-		
-		for(String pkqlLogicalName : this.transformedNodeNames.keySet()) {
-			String physicalName = this.transformedNodeNames.get(pkqlLogicalName);
-			if(physicalName.equals(nodeURI)) {
-				return pkqlLogicalName;
-			}
-		}
-		
-		//should this be the case?
-		return null;
-	}
-	
-	/**
-	 * get the physical name from the pkql
-	 */
-	public String getPhysicalFromPkql(String nodeURI) {
-		return this.transformedNodeNames.get(nodeURI);
-	}
-	
-	/**
-	 * get the logical pkql name from the alias
-	 */
-	public String getPkqlFromAlias(String nodeURI) {
-		return this.logicalToPkqlLogical.get(nodeURI);
-	}
-	
-	/**
-	 * get the logical (alias) from the pkql logical
-	 */
-	public String getAliasFromPkql(String nodeUri) {
-		
-		for(String alias : this.logicalToPkqlLogical.keySet()) {
-			String logicalName = this.logicalToPkqlLogical.get(alias);
-			if(logicalName.equals(nodeUri)) {
-				return alias;
-			}
-		}
-		
-		//should this be the case?
-		return null;
-	}
 
-	public void setTransformedNodeNames(Hashtable transformedNodeNames, Hashtable logicaltoPkqlLogical){
+	public void setTransformedNodeNames(Hashtable transformedNodeNames){
 		this.transformedNodeNames = transformedNodeNames;
-		this.logicalToPkqlLogical = logicaltoPkqlLogical;
 	}
 	
 	@Override
@@ -744,9 +681,7 @@ public abstract class AbstractEngine implements IEngine {
 				for(String[] node: transformedNode){
 					String logicalName = node[1];
 					if(logicalName.equals("http://semoss.org/ontologies/Concept")) {
-						String pkqlLogical = cleanPKQL(logicalName);
-						this.logicalToPkqlLogical.put(logicalName, pkqlLogical);
-						this.transformedNodeNames.put(pkqlLogical, Constants.DISPLAY_URI + "Concept");
+						this.transformedNodeNames.put(logicalName, Constants.DISPLAY_URI + "Concept");
 						continue;
 					} else if(logicalName.startsWith("http://semoss.org/ontologies/Relation/Contains/")) {
 						logicalName = Utility.getInstanceName(logicalName);
@@ -760,101 +695,46 @@ public abstract class AbstractEngine implements IEngine {
 					} 
 					logicalName = Utility.cleanVariableString(logicalName);
 					logicalName = Constants.DISPLAY_URI + logicalName;
-					if(this.logicalToPkqlLogical.containsKey(logicalName)) {
+					if(this.transformedNodeNames.containsKey(logicalName)) {
 						// this occurs when we have a property that is both a prop and a concept
 						// keep the concept one i guess?
 						if(node[0].contains("Relation/Contains")) {
 							continue;
 						}
-						
-//						this.transformedNodeNames.put(logicalName, node[0]); //map contains display name : physical name
-						String pkqlLogical = cleanPKQL(logicalName);
-						this.logicalToPkqlLogical.put(logicalName, pkqlLogical);
-						this.transformedNodeNames.put(pkqlLogical, node[0]); //map contains display name : physical name
-						
+						this.transformedNodeNames.put(logicalName, node[0]); //map contains display name : physical name
 					} else {
-//						this.transformedNodeNames.put(logicalName, node[0]); //map contains display name : physical name
-						String pkqlLogical = cleanPKQL(logicalName);
-						this.logicalToPkqlLogical.put(logicalName, pkqlLogical);
-						this.transformedNodeNames.put(pkqlLogical, node[0]); //map contains display name : physical name
+						this.transformedNodeNames.put(logicalName, node[0]); //map contains display name : physical name
 					}
 				}
-				this.baseDataEngine.setTransformedNodeNames(this.transformedNodeNames, this.logicalToPkqlLogical);
+				this.baseDataEngine.setTransformedNodeNames(this.transformedNodeNames);
 			}
 		}
 	}
 	
-	
 	private String findTransformedNodeName(String nodeURI, boolean getDisplayName){
 		
-		//
-//		if(this.transformedNodeNames.containsKey(nodeURI) && !getDisplayName){
-//			String physicalName = this.transformedNodeNames.get(nodeURI); 
-//			if(!physicalName.equalsIgnoreCase(nodeURI)){ // I have to do this because of RDBMS and its inconsistency with capitalizing concepts
-//				return physicalName;
-//			} else {
-//				return nodeURI;
-//			}
-//		} 
-		
-		//
-		if(this.logicalToPkqlLogical.containsKey(nodeURI) && !getDisplayName){
-			String pkqlLogical = this.logicalToPkqlLogical.get(nodeURI);
-			String physicalName = this.transformedNodeNames.get(pkqlLogical); 
+		if(this.transformedNodeNames.containsKey(nodeURI) && !getDisplayName){
+			String physicalName = this.transformedNodeNames.get(nodeURI); 
 			if(!physicalName.equalsIgnoreCase(nodeURI)){ // I have to do this because of RDBMS and its inconsistency with capitalizing concepts
 				return physicalName;
 			} else {
 				return nodeURI;
 			}
-		} 
-		
-		//
-//		else if(this.transformedNodeNames.contains(nodeURI) && getDisplayName){
-//			for(String displayName: this.transformedNodeNames.keySet()){
-//				String physicalName = this.transformedNodeNames.get(displayName);
-//				if(physicalName.equalsIgnoreCase(nodeURI)){
-//					if(!displayName.equalsIgnoreCase(nodeURI)){ // I have to do this because of RDBMS and its inconsistency with capitalizing concepts
-//						return displayName;
-//					} else {
-//						return nodeURI;
-//					}
-//				}
-//			}
-//		} 
-		
-		else if(this.transformedNodeNames.contains(nodeURI) && getDisplayName){
-			for(String pkqlLogical: this.transformedNodeNames.keySet()){
-				String physicalName = this.transformedNodeNames.get(pkqlLogical);
+		} else if(this.transformedNodeNames.contains(nodeURI) && getDisplayName){
+			for(String displayName: this.transformedNodeNames.keySet()){
+				String physicalName = this.transformedNodeNames.get(displayName);
 				if(physicalName.equalsIgnoreCase(nodeURI)){
-					for(String displayName: this.logicalToPkqlLogical.keySet()){
-						if(logicalToPkqlLogical.get(displayName).equals(pkqlLogical)) {
-							if(physicalName.equalsIgnoreCase(nodeURI)){
-								if(!displayName.equalsIgnoreCase(nodeURI)){ // I have to do this because of RDBMS and its inconsistency with capitalizing concepts
-									return displayName;
-								} else {
-									return nodeURI;
-								}
-							}
-						}
+					if(!displayName.equalsIgnoreCase(nodeURI)){ // I have to do this because of RDBMS and its inconsistency with capitalizing concepts
+						return displayName;
+					} else {
+						return nodeURI;
 					}
 				}
 			}
-		} 
-		
-		//
-//		else if (nodeURI.startsWith(Constants.DISPLAY_URI)) {
-//			for(String displayName: this.transformedNodeNames.keySet()){
-//				if(Utility.getInstanceName(displayName).equalsIgnoreCase(Utility.getInstanceName(nodeURI))){
-//					return this.transformedNodeNames.get(displayName);
-//				}
-//			}
-//		}
-		
-		else if (nodeURI.startsWith(Constants.DISPLAY_URI)) {
-			for(String displayName: this.logicalToPkqlLogical.keySet()){
+		} else if (nodeURI.startsWith(Constants.DISPLAY_URI)) {
+			for(String displayName: this.transformedNodeNames.keySet()){
 				if(Utility.getInstanceName(displayName).equalsIgnoreCase(Utility.getInstanceName(nodeURI))){
-					String pkqlLogical = this.logicalToPkqlLogical.get(displayName);
-					return this.transformedNodeNames.get(pkqlLogical);
+					return this.transformedNodeNames.get(displayName);
 				}
 			}
 		}
@@ -1437,10 +1317,5 @@ public abstract class AbstractEngine implements IEngine {
 		}
 		
 		return null;
-	}
-	
-	private String cleanPKQL(String alias) {
-		String pkqlLogical = alias.replace("-", "_");
-		return pkqlLogical;
 	}
 }
