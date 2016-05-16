@@ -1,13 +1,11 @@
 package prerna.engine.impl.r;
 
 import java.sql.SQLException;
-import java.util.Arrays;
 import java.util.HashMap;
 
 import org.h2.tools.Server;
 import org.rosuda.REngine.REXP;
 import org.rosuda.REngine.REXPMismatchException;
-import org.rosuda.REngine.RList;
 import org.rosuda.REngine.Rserve.RConnection;
 import org.rosuda.REngine.Rserve.RserveException;
 
@@ -121,28 +119,41 @@ public class RRunner {
 		try {
 //			r = conn.parseAndEval(script);
 			scriptRanSuccessfully = false;
+			script = "paste(capture.output(print(" + script + ")),collapse='\\n')";
 			r = conn.eval(script);
 			scriptRanSuccessfully = true;
 //			if (r.inherits("try-error")) {
 //				result = "Error: ";
 //				scriptRanSuccessfully = false;
 //			}
-			if (r.isList()) {
-				RList list = r.asList();
-				int headerIndex = 0;
-				HashMap<String, String> dataframe = new HashMap<String, String>();
-				for(String header : list.keys()) {
-					dataframe.put(header, Arrays.toString(list.at(headerIndex).asStrings()));
-					headerIndex++;
-				}
-				result = dataframe;
-			} else if (r.isVector()) {
-				result = r.asStrings();
-			} else {
-				result = r.asString();
-			}
+//			if (r.isList()) {
+//				RList list = r.asList();
+//				if (list.size() != 0) {
+//					int headerIndex = 0;
+//					HashMap<String, String> dataframe = new HashMap<String, String>();
+//					for(String header : list.keys()) {
+//						dataframe.put(header, Arrays.toString(list.at(headerIndex).asStrings()));
+//						headerIndex++;
+//					}
+//					result = dataframe;
+//				} else {
+					r = conn.eval(script);
+					result = r.asString();
+//				}
+//			} else if (r.isVector()) {
+//				result = r.asStrings();
+//			} else {
+//				result = r.asString();
+//			}
 		} catch (RserveException e) {
 			e.printStackTrace();
+			try {
+				r = conn.eval("geterrmessage()");
+				result = r.asString();
+			} catch (RserveException | REXPMismatchException e1) {
+				// TODO Auto-generated catch block
+				e1.printStackTrace();
+			}
 		} catch (REXPMismatchException e) {
 			e.printStackTrace();
 		}
