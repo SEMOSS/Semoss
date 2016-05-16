@@ -267,6 +267,10 @@ public class Insight {
 	
 	public void setPkqlRunner(PKQLRunner pkqlRunner){
 		this.pkqlRunner = pkqlRunner;
+		ITableDataFrame frame = pkqlRunner.getDataFrame();
+		if(frame!=null){
+			setDataMaker(frame);
+		}
 	}
 	
 //	/**
@@ -729,17 +733,21 @@ public class Insight {
 	
 	// Stores the pieces that make up a recipe block for the front end
 	private void storeTransInRecipe(ISEMOSSTransformation ist, List<Map<String, Object>> list){
-		Map<String, Object> block = new HashMap<String, Object>();
 		if(ist instanceof PKQLTransformation) {
-			String pkql = ((PKQLTransformation)ist).getPkql();
-			block.put("cmd", pkql);
+			List<String> pkqls = ((PKQLTransformation)ist).getPkql();
+			for(String pkql : pkqls){
+				Map<String, Object> block = new HashMap<String, Object>();
+				block.put("cmd", pkql);
+				list.add(block);
+			}
 		} else {
+			Map<String, Object> block = new HashMap<String, Object>();
 			Map<String, Object> properties = ist.getProperties();
 			properties.put("transformationType", ist.getClass().toString());
 			properties.put("stepID", ist.getId());
 			block.put("customTransformation", ist.getId());
+			list.add(block);
 		}
-		list.add(block);
 	}
 	
 	/**

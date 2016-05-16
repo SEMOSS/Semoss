@@ -1881,7 +1881,7 @@ public class Utility {
 	public static Object getClassFromString(String className){
 		Object obj = null;
 		try {
-			System.out.println("Tinker name is " + className);
+			System.out.println("Dataframe name is " + className);
 			obj = Class.forName(className).getConstructor(null).newInstance(null);
 		} catch (ClassNotFoundException ex) {
 			ex.printStackTrace();
