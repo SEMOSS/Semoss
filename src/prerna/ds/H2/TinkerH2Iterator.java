@@ -13,7 +13,9 @@ public class TinkerH2Iterator implements Iterator<Object[]>{
 	
 	TinkerH2Iterator(ResultSet resultSet) {
 		this.resultSet = resultSet;
-		nextRow = getNextRow();
+		if(this.resultSet != null){
+			nextRow = getNextRow();
+		}
 	}
 	
 	@Override
