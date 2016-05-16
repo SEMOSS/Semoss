@@ -11,6 +11,9 @@ public class PKQLEnum {
 
 	public static final String EXPR_ROW = "EXPR_ROW";
 
+
+	public static String DATA_FRAME = "DATA_FRAME";
+
 	public static String NUMBER = "NUMBER";
 	public static String DECIMAL = "DECIMAL";
 	public static String ALPHA = "ALPHA";

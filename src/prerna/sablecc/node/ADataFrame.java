@@ -9,7 +9,7 @@ public final class ADataFrame extends PDataFrame
 {
     private TDataframe _dataframe_;
     private TLPar _lPar_;
-    private TWord _builder_;
+    private PWordOrNum _builder_;
     private TRPar _rPar_;
 
     public ADataFrame()
@@ -20,7 +20,7 @@ public final class ADataFrame extends PDataFrame
     public ADataFrame(
         @SuppressWarnings("hiding") TDataframe _dataframe_,
         @SuppressWarnings("hiding") TLPar _lPar_,
-        @SuppressWarnings("hiding") TWord _builder_,
+        @SuppressWarnings("hiding") PWordOrNum _builder_,
         @SuppressWarnings("hiding") TRPar _rPar_)
     {
         // Constructor
@@ -100,12 +100,12 @@ public final class ADataFrame extends PDataFrame
         this._lPar_ = node;
     }
 
-    public TWord getBuilder()
+    public PWordOrNum getBuilder()
     {
         return this._builder_;
     }
 
-    public void setBuilder(TWord node)
+    public void setBuilder(PWordOrNum node)
     {
         if(this._builder_ != null)
         {
@@ -209,7 +209,7 @@ public final class ADataFrame extends PDataFrame
 
         if(this._builder_ == oldChild)
         {
-            setBuilder((TWord) newChild);
+            setBuilder((PWordOrNum) newChild);
             return;
         }
 
