@@ -39,11 +39,13 @@ public class PKQLRunner {
 		
 		Parser p = new Parser(new Lexer(new PushbackReader(new InputStreamReader(new StringBufferInputStream(expression)), 1024)));
 		Start tree;
+		if(translation == null){
+			translation = new Translation2(f, this);
+		}
 
 		try {
 			tree = p.parse();
 			// Apply the translation.
-			translation = new Translation2(f, this);
 			tree.apply(translation);
 
 		} catch (ParserException | LexerException | IOException e) {

@@ -23,6 +23,7 @@ public class PKQLTransformation extends AbstractTransformation {
 
 	public static final String EXPRESSION = "EXPRESSION";
 
+	private List<String> parsedPkqls = new Vector<String>();
 	private Map<String, Object> feData = new HashMap<String, Object>();
 	
 	
@@ -51,10 +52,29 @@ public class PKQLTransformation extends AbstractTransformation {
 
 	@Override
 	public void runMethod() {
+		// check how long runner response array is
+		int numOldCmds = runner.getResults().size();
+		
 		String expression = props.get(EXPRESSION) + "";		
 		runner.runPKQL(expression, (ITableDataFrame) this.dm);
 //		this.dm = runner.getDataFrame();
 		this.feData.putAll(runner.getFeData());
+		
+		// running the pkql may have changed the datamaker:::::::::::::::::::::::::::::::::::::::::::::::::::::
+		// need to remember to set this back into the insight:::::::::::::::::::::::::::::::::::::::::::::::::
+		this.dm = runner.getDataFrame();
+		
+		// store added responses
+		List<Map> allCmds = runner.getResults();
+		for(int i = numOldCmds ; i < allCmds.size(); i++){
+			String cmd = (String) allCmds.get(i).get("command");
+			if(cmd != null){
+				parsedPkqls.add(cmd);
+			}
+			else {
+				LOGGER.error("this is weird... my runner response doesn't have a PKQL command stored. Skipping for now in terms of adding to recipe");
+			}
+		}
 	}
 
 	@Override
@@ -75,6 +95,7 @@ public class PKQLTransformation extends AbstractTransformation {
 		joinCopy.setId(id);
 		joinCopy.runner = this.runner; // keep this shallow so updates can be gotten
 		joinCopy.feData = this.feData; // keep this shallow so updates can be gotten
+		joinCopy.parsedPkqls = this.parsedPkqls; // keep this shallow so updates can be gotten
 
 		if(props != null) {
 			Gson gson = new GsonBuilder().disableHtmlEscaping().serializeSpecialFloatingPointValues().setPrettyPrinting().create();
@@ -94,8 +115,7 @@ public class PKQLTransformation extends AbstractTransformation {
 		this.runner = runner;
 	}
 	
-	public String getPkql() {
-		String expression = props.get(EXPRESSION) + "";
-		return expression;
+	public List<String> getPkql() {
+		return parsedPkqls;
 	}
 }

@@ -25,6 +25,7 @@ import prerna.sablecc.node.AColopScript;
 import prerna.sablecc.node.ACsvRow;
 import prerna.sablecc.node.ACsvTable;
 import prerna.sablecc.node.ACsvTableImportBlock;
+import prerna.sablecc.node.ADataFrame;
 import prerna.sablecc.node.ADecimal;
 import prerna.sablecc.node.ADivExpr;
 import prerna.sablecc.node.AEExprExpr;
@@ -66,6 +67,7 @@ import prerna.sablecc.node.AUnfilterColumn;
 import prerna.sablecc.node.AVarop;
 import prerna.sablecc.node.AVaropScript;
 import prerna.sablecc.node.Node;
+import prerna.util.Utility;
 
 public class Translation2 extends DepthFirstAdapter {
 	// this is the third version of this shit I am building
@@ -130,6 +132,7 @@ public class Translation2 extends DepthFirstAdapter {
 		reactorNames.put(PKQLEnum.FILTER_DATA, "prerna.sablecc.ColFilterReactor");
 		reactorNames.put(PKQLEnum.VIZ, "prerna.sablecc.VizReactor");
 		reactorNames.put(PKQLEnum.UNFILTER_DATA, "prerna.sablecc.ColUnfilterReactor");
+		reactorNames.put(PKQLEnum.DATA_FRAME, "prerna.sablecc.DataFrameReactor");
 	}
 	
 	public void initReactor(String myName) {
@@ -537,6 +540,26 @@ public class Translation2 extends DepthFirstAdapter {
 	
 //**************************************** END PANEL OPERATIONS **********************************************//
 
+	@Override
+	public void inADataFrame(ADataFrame node) {
+		if(reactorNames.containsKey(PKQLEnum.DATA_FRAME)) {
+			// get the appropriate reactor
+			initReactor(PKQLEnum.DATA_FRAME);
+			curReactor.put("G", frame);
+		}	
+	}
+	
+	@Override
+	public void outADataFrame(ADataFrame node) {
+		// then deinit
+		//grab the new G from the reactor
+		// set into this class
+		
+		deinitReactor(PKQLEnum.DATA_FRAME, node.getBuilder().toString().trim(),  node.toString().trim());
+		
+		this.frame = (ITableDataFrame) curReactor.getValue(PKQLEnum.G);
+	}
+	
 	@Override
 	public void inATermExpr(ATermExpr node) {
 		if(reactorNames.containsKey(PKQLEnum.EXPR_TERM)) {
