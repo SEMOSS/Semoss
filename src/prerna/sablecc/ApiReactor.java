@@ -101,7 +101,8 @@ public class ApiReactor extends AbstractReactor {
 				String fromColumn = (String)join.get(PKQLEnum.FROM_COL); //what is in my table
 				String toColumn = (String)join.get(PKQLEnum.TO_COL); //what is coming to my table
 				String joinType = (String)join.get(PKQLEnum.REL_TYPE);
-				if(joinType.equalsIgnoreCase("inner.join")) {
+				if(joinType.equalsIgnoreCase("inner.join") || joinType.equalsIgnoreCase("left.outer.join")) {
+//				if(joinType.equalsIgnoreCase("inner.join")) {
 					String[] columnHeaders = frame.getColumnHeaders();
 					
 					//figure out which is the new column and which already exists in the table
@@ -124,22 +125,27 @@ public class ApiReactor extends AbstractReactor {
 						}
 						
 						//see if this filter already exists
+						boolean addFilter = true;
 						for(Hashtable filter : filters) {
-							if(filter.containsKey(toColumn)) {
+							if(((String)filter.get("FROM_COL")).equals(toColumn)) {
 								Vector values = (Vector) filter.get("TO_DATA");
-								if(values != null) {
-									values.addAll(uris);
+								if(values != null && values.size() > 0) {
+//									values.addAll(uris);
+									addFilter = false;
+									break;
 								}
 								break;
 							}
 						}
 						
 						//if not contained create a new table and add to filters
-						Hashtable joinfilter = new Hashtable();
-						joinfilter.put(PKQLEnum.FROM_COL, toColumn);
-						joinfilter.put("TO_DATA", uris);
-						joinfilter.put(PKQLEnum.COMPARATOR, "=");
-						filters.add(joinfilter);
+						if(addFilter) {
+							Hashtable joinfilter = new Hashtable();
+							joinfilter.put(PKQLEnum.FROM_COL, toColumn);
+							joinfilter.put("TO_DATA", uris);
+							joinfilter.put(PKQLEnum.COMPARATOR, "=");
+							filters.add(joinfilter);
+						}
 					}
 				}
 			}
