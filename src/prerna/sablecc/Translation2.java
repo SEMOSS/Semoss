@@ -839,7 +839,9 @@ public class Translation2 extends DepthFirstAdapter {
     @Override
     public void outAAlphaWordOrNum(AAlphaWordOrNum node) {
     	String word = (node.getWord() + "").trim();
-        curReactor.set(PKQLEnum.WORD_OR_NUM, (word.substring(1, word.length()-1))); // remove the quotes
+    	String cleaned = word.substring(1, word.length()-1);// remove the quotes
+        curReactor.set(PKQLEnum.WORD_OR_NUM, cleaned); 
+        curReactor.addReplacer(word, cleaned);
     }
 
     @Override
@@ -849,11 +851,15 @@ public class Translation2 extends DepthFirstAdapter {
     
     @Override
     public void outAKeyvalue(AKeyvalue node){
-    	String word1 = (node.getWord1() + "").trim();
-    	word1 = word1.substring(1, word1.length()-1);
-    	
-    	String word2 = (node.getWord2() + "").trim();
-    	word2 = word2.substring(1, word2.length()-1);
+    	Object word1 = node.getWord1();
+    	if(curReactor.getValue(word1.toString().trim())!=null){
+	    	word1 = curReactor.getValue(word1.toString().trim());
+    	}
+
+    	Object word2 = node.getWord2();
+    	if(curReactor.getValue(word2.toString().trim())!=null){
+	    	word2 = curReactor.getValue(word2.toString().trim());
+    	}
     	
     	Map myMap = new HashMap();
     	myMap.put(word1, word2);
