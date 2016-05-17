@@ -2625,46 +2625,67 @@ public class DepthFirstAdapter extends AnalysisAdapter
         outAExprWordOrNum(node);
     }
 
-    public void inAWordOrNumWordOrNumOrNestedMap(AWordOrNumWordOrNumOrNestedMap node)
+    public void inAWordOrNumWordOrNumOrNestedObj(AWordOrNumWordOrNumOrNestedObj node)
     {
         defaultIn(node);
     }
 
-    public void outAWordOrNumWordOrNumOrNestedMap(AWordOrNumWordOrNumOrNestedMap node)
+    public void outAWordOrNumWordOrNumOrNestedObj(AWordOrNumWordOrNumOrNestedObj node)
     {
         defaultOut(node);
     }
 
     @Override
-    public void caseAWordOrNumWordOrNumOrNestedMap(AWordOrNumWordOrNumOrNestedMap node)
+    public void caseAWordOrNumWordOrNumOrNestedObj(AWordOrNumWordOrNumOrNestedObj node)
     {
-        inAWordOrNumWordOrNumOrNestedMap(node);
+        inAWordOrNumWordOrNumOrNestedObj(node);
         if(node.getWordOrNum() != null)
         {
             node.getWordOrNum().apply(this);
         }
-        outAWordOrNumWordOrNumOrNestedMap(node);
+        outAWordOrNumWordOrNumOrNestedObj(node);
     }
 
-    public void inANestedMapWordOrNumOrNestedMap(ANestedMapWordOrNumOrNestedMap node)
+    public void inANestedMapWordOrNumOrNestedObj(ANestedMapWordOrNumOrNestedObj node)
     {
         defaultIn(node);
     }
 
-    public void outANestedMapWordOrNumOrNestedMap(ANestedMapWordOrNumOrNestedMap node)
+    public void outANestedMapWordOrNumOrNestedObj(ANestedMapWordOrNumOrNestedObj node)
     {
         defaultOut(node);
     }
 
     @Override
-    public void caseANestedMapWordOrNumOrNestedMap(ANestedMapWordOrNumOrNestedMap node)
+    public void caseANestedMapWordOrNumOrNestedObj(ANestedMapWordOrNumOrNestedObj node)
     {
-        inANestedMapWordOrNumOrNestedMap(node);
+        inANestedMapWordOrNumOrNestedObj(node);
         if(node.getMapObj() != null)
         {
             node.getMapObj().apply(this);
         }
-        outANestedMapWordOrNumOrNestedMap(node);
+        outANestedMapWordOrNumOrNestedObj(node);
+    }
+
+    public void inANestedCsvWordOrNumOrNestedObj(ANestedCsvWordOrNumOrNestedObj node)
+    {
+        defaultIn(node);
+    }
+
+    public void outANestedCsvWordOrNumOrNestedObj(ANestedCsvWordOrNumOrNestedObj node)
+    {
+        defaultOut(node);
+    }
+
+    @Override
+    public void caseANestedCsvWordOrNumOrNestedObj(ANestedCsvWordOrNumOrNestedObj node)
+    {
+        inANestedCsvWordOrNumOrNestedObj(node);
+        if(node.getCsvRow() != null)
+        {
+            node.getCsvRow().apply(this);
+        }
+        outANestedCsvWordOrNumOrNestedObj(node);
     }
 
     public void inAFlexSelectorRow(AFlexSelectorRow node)
