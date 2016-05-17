@@ -939,13 +939,18 @@ public class TinkerH2Frame extends AbstractTableDataFrame {
 		//convert the new headers into value headers
 		String[] valueHeaders = new String[newHeaders.length];
 		if(logicalToValue == null) {
-		for(int i = 0; i < newHeaders.length; i++) {
-				valueHeaders[i] = this.metaData.getValueForUniqueName(newHeaders[i]);
-			}
-		} else {	
 			for(int i = 0; i < newHeaders.length; i++) {
-			valueHeaders[i] = logicalToValue.get(newHeaders[i]);
+					valueHeaders[i] = this.metaData.getValueForUniqueName(newHeaders[i]);
+				}
+			} else {	
+				for(int i = 0; i < newHeaders.length; i++) {
+				valueHeaders[i] = logicalToValue.get(newHeaders[i]);
+			}
 		}
+		
+		String[] types = new String[newHeaders.length];
+		for(int i = 0; i < newHeaders.length; i++) {
+			types[i] = this.metaData.getDataType(newHeaders[i]);
 		}
 		
 		
@@ -999,20 +1004,21 @@ public class TinkerH2Frame extends AbstractTableDataFrame {
 		String[] adjustedColHeaders = adjustedColHeadersList.toArray(new String[]{});
 		
 		//get the join type
-		Join type = Join.INNER;
+		Join jType = Join.INNER;
 		if(joinType != null) {
 			if(joinType.toUpperCase().startsWith("INNER")) {
-				type = Join.INNER;
+				jType = Join.INNER;
 			} else if(joinType.toUpperCase().startsWith("OUTER")) {
-				type = Join.FULL_OUTER;
+				jType = Join.FULL_OUTER;
 			} else if(joinType.toUpperCase().startsWith("LEFT")) {
-				type = Join.LEFT_OUTER;
+				jType = Join.LEFT_OUTER;
 			} else if(joinType.toUpperCase().startsWith("RIGHT")) {
-				type = Join.RIGHT_OUTER;
+				jType = Join.RIGHT_OUTER;
 			}
 
 		}
-		this.builder.processIterator(iterator, adjustedColHeaders, valueHeaders, type);
+		
+		this.builder.processIterator(iterator, adjustedColHeaders, valueHeaders, types, jType);
 	}
 
 	public RRunner getRRunner() throws RserveException, SQLException {
