@@ -196,7 +196,10 @@ public class PKQLRunner {
 	}
 	
 	public ITableDataFrame getDataFrame() {
-		return translation.getDataFrame();
+		if(translation != null) {
+			return translation.getDataFrame();
+		}
+		return null;
 	}
 
 	/**
