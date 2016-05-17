@@ -9,6 +9,7 @@ import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Enumeration;
 import java.util.HashMap;
 import java.util.Hashtable;
@@ -420,6 +421,30 @@ public class H2Builder {
 		}
     }
     
+    private void generateTable(Iterator<IHeadersDataRow> iterator, String[] headers, String[] types, String tableName) {
+    	try {
+    		
+    		String createTable = makeCreate(tableName, headers, types);
+			runQuery(createTable);
+    		
+			while(iterator.hasNext()) {
+    			IHeadersDataRow nextData = iterator.next();
+    			Object[] row = nextData.getValues();
+    			String[] stringRow = new String[row.length];
+    			for(int i = 0; i < row.length; i++) {
+    				stringRow[i] = row[i].toString();
+    			}
+    			
+    			String[] cells = Utility.castToTypes(stringRow, types);
+    			String inserter = makeInsert(headers, types, cells, new Hashtable<String, String>(), tableName);
+				runQuery(inserter);
+    		}
+    		
+    	} catch(Exception e) {
+    		
+    	}
+    }
+    
     private void addEmptyDerivedColumns() {
     	//make query
     	if(extraColumn.size() == 0) {
@@ -739,7 +764,7 @@ public class H2Builder {
     	}
     }
     
-//    public void processIterator(Iterator<IHeadersDataRow> iterator, String[] oldHeaders, String[] newHeaders) {
+//    public void processIterator(Iterator<IHeadersDataRow> iterator, String[] oldHeaders, String[] newHeaders, Join joinType) {
 //    	ArrayList<String[]> data = new ArrayList<>();
 //    	newHeaders = cleanHeaders(newHeaders);
 //    	while(iterator.hasNext()) {
@@ -754,34 +779,62 @@ public class H2Builder {
 //    		}
 //    		data.add(stringValues);
 //    	}
-////    	if(headers == null) {
-////    		//create table
-////    		generateTable(data.toArray(new String[0][0]), newHeaders, tableName);
-////    	} else {
-//    		try {
-//				runQuery("CREATE TABLE IF NOT EXISTS " + tableName);
-//			} catch (Exception e) {
-//				e.printStackTrace();
+//
+//		try {
+//			runQuery("CREATE TABLE IF NOT EXISTS " + tableName);
+//		} catch (Exception e) {
+//			e.printStackTrace();
+//		}
+//		
+//		if(joinType.equals(Join.FULL_OUTER)) {
+//			processAlterData(data.toArray(new String[0][0]), newHeaders, oldHeaders, Join.LEFT_OUTER);
+//		} else {
+//			processAlterData(data.toArray(new String[0][0]), newHeaders, oldHeaders, joinType);
+//		}
+//		
+//		//if we are doing a full outer join (which h2 does not natively have)
+//		//we have done the left outer join above
+//		//now just add the rows we are missing via a merge query for each row
+//		//not efficient but don't see another way to do it
+//		//Ex: merge into table (column1, column2) key (column1, column2) values ('value1', 'value2')
+//		if(joinType.equals(Join.FULL_OUTER)) {
+//			String mergeQuery = "MERGE INTO "+tableName;
+//			String columns = "(";
+//			for(int i = 0; i < newHeaders.length; i++) {
+//				if(i!=0) {
+//					columns += ", ";
+//				} 
+//				columns += newHeaders[i];
+//				
 //			}
-//    		processAlterData(data.toArray(new String[0][0]), newHeaders, oldHeaders, Join.INNER);
-////    	}
+//			columns += ")";
+//			
+//			mergeQuery += columns + " KEY " + columns;
+//			
+//			for(Object[] row : data) {
+//				String values = " VALUES("; 
+//				for(int i = 0; i < row.length; i++) {
+//					if(i != 0) {
+//						values += ", ";
+//					}
+//					values += " '"+row[i].toString()+"' ";
+//				}
+//				values+= ")";
+//				try {
+//					runQuery(mergeQuery+values);
+//				} catch (Exception e) {
+//					e.printStackTrace();
+//				}
+//			}
+//		}
 //    }
     
-    public void processIterator(Iterator<IHeadersDataRow> iterator, String[] oldHeaders, String[] newHeaders, Join joinType) {
-    	ArrayList<String[]> data = new ArrayList<>();
+    public void processIterator(Iterator<IHeadersDataRow> iterator, String[] oldHeaders, String[] newHeaders, String[] types, Join joinType) {
+
     	newHeaders = cleanHeaders(newHeaders);
-    	while(iterator.hasNext()) {
-    		IHeadersDataRow nextData = iterator.next();
-    		if(newHeaders == null) {
-    			newHeaders = nextData.getHeaders();
-    		}
-    		Object[] values = nextData.getValues();
-    		String[] stringValues = new String[values.length];
-    		for(int i = 0; i < values.length; i++) {
-    			stringValues[i] = values[i].toString();
-    		}
-    		data.add(stringValues);
-    	}
+    	types = cleanTypes(types);
+    	String newTableName = getNewTableName();
+    	generateTable(iterator, newHeaders, types, newTableName);
 
 		try {
 			runQuery("CREATE TABLE IF NOT EXISTS " + tableName);
@@ -790,9 +843,9 @@ public class H2Builder {
 		}
 		
 		if(joinType.equals(Join.FULL_OUTER)) {
-			processAlterData(data.toArray(new String[0][0]), newHeaders, oldHeaders, Join.LEFT_OUTER);
+			processAlterData(newTableName, newHeaders, oldHeaders, Join.LEFT_OUTER);
 		} else {
-			processAlterData(data.toArray(new String[0][0]), newHeaders, oldHeaders, joinType);
+			processAlterData(newTableName, newHeaders, oldHeaders, joinType);
 		}
 		
 		//if we are doing a full outer join (which h2 does not natively have)
@@ -801,33 +854,44 @@ public class H2Builder {
 		//not efficient but don't see another way to do it
 		//Ex: merge into table (column1, column2) key (column1, column2) values ('value1', 'value2')
 		if(joinType.equals(Join.FULL_OUTER)) {
-			String mergeQuery = "MERGE INTO "+tableName;
-			String columns = "(";
-			for(int i = 0; i < newHeaders.length; i++) {
-				if(i!=0) {
-					columns += ", ";
-				} 
-				columns += newHeaders[i];
+			
+			try {
+				Statement stmt = getConnection().createStatement();
+				String selectQuery = makeSelect(newTableName, Arrays.asList(newHeaders));
+				ResultSet rs = stmt.executeQuery(selectQuery);
+		    	TinkerH2Iterator h2iterator = new TinkerH2Iterator(rs);
 				
-			}
-			columns += ")";
-			
-			mergeQuery += columns + " KEY " + columns;
-			
-			for(Object[] row : data) {
-				String values = " VALUES("; 
-				for(int i = 0; i < row.length; i++) {
-					if(i != 0) {
-						values += ", ";
+				String mergeQuery = "MERGE INTO "+tableName;
+				String columns = "(";
+				for(int i = 0; i < newHeaders.length; i++) {
+					if(i!=0) {
+						columns += ", ";
+					} 
+					columns += newHeaders[i];
+					
+				}
+				columns += ")";
+				
+				mergeQuery += columns + " KEY " + columns;
+				
+				while(h2iterator.hasNext()) {
+					Object[] row = h2iterator.next();
+					String values = " VALUES("; 
+					for(int i = 0; i < row.length; i++) {
+						if(i != 0) {
+							values += ", ";
+						}
+						values += " '"+row[i].toString()+"' ";
 					}
-					values += " '"+row[i].toString()+"' ";
+					values+= ")";
+					try {
+						runQuery(mergeQuery+values);
+					} catch (Exception e) {
+						e.printStackTrace();
+					}
 				}
-				values+= ")";
-				try {
-					runQuery(mergeQuery+values);
-				} catch (Exception e) {
-					e.printStackTrace();
-				}
+			} catch(Exception e) {
+				e.printStackTrace();
 			}
 		}
     }
@@ -1281,6 +1345,66 @@ public class H2Builder {
 			
 			if(one2Many)
 				mergeTables(tableName1, tableName2, matchers, oldHeaders, newHeaders, joinType.getName());
+			
+			testData();
+			
+		} catch (SQLException e) {
+			e.printStackTrace();
+		}
+    }
+    
+    private void processAlterData(String newTableName, String[] newHeaders, String[] headers, Join joinType)
+    {
+    	// this currently doesnt handle many to many joins and such
+    	try {
+    		getConnection();
+	    	
+	    	// I need to do an evaluation here to find if this one to many
+	    	String [] oldHeaders = headers;
+
+	    	//headers for the joining table
+    		
+//    		int curHeadCount = headers.length;
+    		Vector <String> newHeaderIndices = new Vector<String>();
+    		Vector <String> oldHeaderIndices = new Vector<String>();
+    		Hashtable<Integer, Integer> matchers = new Hashtable<Integer, Integer>();
+	    		
+    		// I need to find which ones are already there and which ones are new
+    		for(int hIndex = 0;hIndex < newHeaders.length;hIndex++)
+    		{
+    			String uheader = newHeaders[hIndex];
+    			uheader = cleanHeader(uheader);
+
+    			boolean old = false;
+    			for(int oIndex = 0;oIndex < headers.length;oIndex++)
+    			{
+    				if(headers[oIndex].equalsIgnoreCase(uheader))
+    				{
+    					old = true;
+    					oldHeaderIndices.add(hIndex+"");
+    					matchers.put(hIndex, oIndex);
+    					break;
+    				}
+    			}
+    			
+    			if(!old)
+    				newHeaderIndices.add((hIndex) + "");
+    		}
+    		
+			//stream.close();
+			
+			boolean one2Many = true;
+			if(matchers == null || matchers.isEmpty()) {
+				one2Many = false;
+			}
+			// I also need to accomodate when there are no common ones
+			
+			
+			// now I need to assimilate everything into one
+			String tableName1 = tableName;
+			
+			if(one2Many)
+				mergeTables(tableName1, newTableName, matchers, oldHeaders, newHeaders, joinType.getName());
 			
 			testData();
 			
