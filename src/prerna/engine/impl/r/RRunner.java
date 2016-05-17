@@ -69,7 +69,6 @@ public class RRunner {
 	/**
 	 * Runs the script necessary to load the data from the H2Frame into R
 	 * @param databaseMetaData Must contain "username" and "tableName" from H2Frame
-	 * @throws RserveException 
 	 */
 	private String initializeRJDBCConnection() {
 		String workingDir = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER).replace("\\", "/");;
@@ -77,8 +76,8 @@ public class RRunner {
 		String driver = "org.h2.Driver";
 		String jar = "h2-1.4.185.jar"; // TODO: create an enum of available drivers and the necessary jar for each
 		String url = "jdbc:h2:" + server.getURL() + "/mem:test:LOG=0;CACHE_SIZE=65536;LOCK_MODE=1;UNDO_LOG=0";
-		String script = "drv <- JDBC('" + driver + "', '" + workingDir + "/RDFGraphLib/" + jar + "', identifier.quote='`'); " 
-				+ "conn <- dbConnect(drv, '" + url + "', '" + username + "', ''); ";
+		String script = "drv <- JDBC('" + driver + "', '" + workingDir + "/RDFGraphLib/" + jar + "', identifier.quote='`');" // line of R that loads database driver and jar
+			+ "conn <- dbConnect(drv, '" + url + "', '" + username + "', '')"; // line of R script that connects to H2Frame
 		try {
 			loadPackage(library);
 		} catch (RserveException e) {
@@ -87,82 +86,74 @@ public class RRunner {
 			conn = null;
 			return "Error: RJDBC package must be installed locally.";
 		}
-		evaluateScript(script);
-		if (scriptRanSuccessfully) {
-			return "Success: RJDBC connection created.";
-		}
 		
-		return "Error: Could not create RJDBC connection.";
+		return evaluateScript(script);
 	}
 	
+	/**
+	 * Loads all data from current dataframe into R dataframe
+	 * @return <code>String</code> Success message
+	 * @throws RserveException Thrown if Rserve is not running/crashed
+	 */
 	public String createDefaultDataframe() throws RserveException {
 		String script = "dataframe <- dbReadTable(conn, '" + tableName + "'); ";
-		evaluateScript(script);
-		return "Success: dataframe created.";
+		String result = evaluateScript(script);
+		dataframeExists = true;
+		
+		return result;
 	}
 	
+	/**
+	 * Loads R package
+	 * @param library Name of package
+	 * @throws RserveException Thrown if RServe isn't running/crashed or if library doesn't exist locally
+	 */
 	public void loadPackage(String library) throws RserveException {
 		conn.voidEval("library(" + library + ")");
 	}
 	
 	/**
-	 * Executes R script using optional library if necessary for script to run and returns output from R
-	 * @param library String of library name; null if no library is needed to execute script
+	 * Executes R script(s) and returns String result from R
 	 * @param script String of R script to be evaluated
-	 * @return REXP object containing R output
-	 * @throws RserveException 
+	 * @return String R result
 	 */
-	public Object evaluateScript(String script) {
-		REXP r = null;
-		Object result = null;
-//		script = "try(" + script + ",silent=TRUE)";
+	public String evaluateScript(String script) {
+		String result = null;
+		String[] scripts = null;
+		String semiColonRegex = ";(?=(?:[^'|\"]*('|\")[^'|\"]*('|\"))*[^'|\"]*$)"; // counts out pairs of quotes (single or double) in order to only obtain semicolons not between quotes
+		scripts = script.trim().split(semiColonRegex);
+		int i = 0;
+		for(; i < scripts.length - 1; i++) {
+			runScript(scripts[i].trim());
+		}
+		script = "paste(capture.output(print(" + scripts[i] + ")),collapse='\\n')";
+		result = runScript(script);
+		
+		scriptRanSuccessfully = !Boolean.parseBoolean(result); // result="true" if the script errored and parses to false otherwise, thus we set scriptRanSuccessfully to opposite of result boolean
+		if(!scriptRanSuccessfully) {
+			result = runScript("geterrmessage()");
+		}
+		
+		return result;
+	}
+	
+	/**
+	 * Runs script and returns String result from script. Will return true if there was an error.
+	 * @param script
+	 * @return String R result
+	 */
+	private String runScript(String script) {
+		REXP r;
+		String result = null;
 		try {
-//			r = conn.parseAndEval(script);
-			scriptRanSuccessfully = false;
-			script = "paste(capture.output(print(" + script + ")),collapse='\\n')";
 			r = conn.eval(script);
-			scriptRanSuccessfully = true;
-//			if (r.inherits("try-error")) {
-//				result = "Error: ";
-//				scriptRanSuccessfully = false;
-//			}
-//			if (r.isList()) {
-//				RList list = r.asList();
-//				if (list.size() != 0) {
-//					int headerIndex = 0;
-//					HashMap<String, String> dataframe = new HashMap<String, String>();
-//					for(String header : list.keys()) {
-//						dataframe.put(header, Arrays.toString(list.at(headerIndex).asStrings()));
-//						headerIndex++;
-//					}
-//					result = dataframe;
-//				} else {
-					r = conn.eval(script);
-					result = r.asString();
-//				}
-//			} else if (r.isVector()) {
-//				result = r.asStrings();
-//			} else {
-//				result = r.asString();
-//			}
+			result = r.asString();
 		} catch (RserveException e) {
 			e.printStackTrace();
-			try {
-				r = conn.eval("geterrmessage()");
-				result = r.asString();
-			} catch (RserveException | REXPMismatchException e1) {
-				// TODO Auto-generated catch block
-				e1.printStackTrace();
-			}
+			result = "true";
 		} catch (REXPMismatchException e) {
-			e.printStackTrace();
+			System.out.println("R result could not be converted into a String");
 		}
-//		} catch (REXPMismatchException | REngineException e) {
-//			e.printStackTrace();
-//			conn.finalize();
-//			conn = null;
-//		}
-		
 		return result;
 	}
 		
