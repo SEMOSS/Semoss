@@ -101,8 +101,9 @@ public interface Analysis extends Switch
     void caseANumWordOrNum(ANumWordOrNum node);
     void caseAAlphaWordOrNum(AAlphaWordOrNum node);
     void caseAExprWordOrNum(AExprWordOrNum node);
-    void caseAWordOrNumWordOrNumOrNestedMap(AWordOrNumWordOrNumOrNestedMap node);
-    void caseANestedMapWordOrNumOrNestedMap(ANestedMapWordOrNumOrNestedMap node);
+    void caseAWordOrNumWordOrNumOrNestedObj(AWordOrNumWordOrNumOrNestedObj node);
+    void caseANestedMapWordOrNumOrNestedObj(ANestedMapWordOrNumOrNestedObj node);
+    void caseANestedCsvWordOrNumOrNestedObj(ANestedCsvWordOrNumOrNestedObj node);
     void caseAFlexSelectorRow(AFlexSelectorRow node);
     void caseATermGroup(ATermGroup node);
     void caseAFormula(AFormula node);

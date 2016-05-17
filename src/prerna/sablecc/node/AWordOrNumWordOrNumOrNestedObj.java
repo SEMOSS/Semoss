@@ -5,16 +5,16 @@ package prerna.sablecc.node;
 import prerna.sablecc.analysis.*;
 
 @SuppressWarnings("nls")
-public final class AWordOrNumWordOrNumOrNestedMap extends PWordOrNumOrNestedMap
+public final class AWordOrNumWordOrNumOrNestedObj extends PWordOrNumOrNestedObj
 {
     private PWordOrNum _wordOrNum_;
 
-    public AWordOrNumWordOrNumOrNestedMap()
+    public AWordOrNumWordOrNumOrNestedObj()
     {
         // Constructor
     }
 
-    public AWordOrNumWordOrNumOrNestedMap(
+    public AWordOrNumWordOrNumOrNestedObj(
         @SuppressWarnings("hiding") PWordOrNum _wordOrNum_)
     {
         // Constructor
@@ -25,14 +25,14 @@ public final class AWordOrNumWordOrNumOrNestedMap extends PWordOrNumOrNestedMap
     @Override
     public Object clone()
     {
-        return new AWordOrNumWordOrNumOrNestedMap(
+        return new AWordOrNumWordOrNumOrNestedObj(
             cloneNode(this._wordOrNum_));
     }
 
     @Override
     public void apply(Switch sw)
     {
-        ((Analysis) sw).caseAWordOrNumWordOrNumOrNestedMap(this);
+        ((Analysis) sw).caseAWordOrNumWordOrNumOrNestedObj(this);
     }
 
     public PWordOrNum getWordOrNum()

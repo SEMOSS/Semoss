@@ -2,7 +2,7 @@
 
 package prerna.sablecc.node;
 
-public abstract class PWordOrNumOrNestedMap extends Node
+public abstract class PWordOrNumOrNestedObj extends Node
 {
     // Empty body
 }

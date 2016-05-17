@@ -609,13 +609,19 @@ public class AnalysisAdapter implements Analysis
     }
 
     @Override
-    public void caseAWordOrNumWordOrNumOrNestedMap(AWordOrNumWordOrNumOrNestedMap node)
+    public void caseAWordOrNumWordOrNumOrNestedObj(AWordOrNumWordOrNumOrNestedObj node)
     {
         defaultCase(node);
     }
 
     @Override
-    public void caseANestedMapWordOrNumOrNestedMap(ANestedMapWordOrNumOrNestedMap node)
+    public void caseANestedMapWordOrNumOrNestedObj(ANestedMapWordOrNumOrNestedObj node)
+    {
+        defaultCase(node);
+    }
+
+    @Override
+    public void caseANestedCsvWordOrNumOrNestedObj(ANestedCsvWordOrNumOrNestedObj node)
     {
         defaultCase(node);
     }
