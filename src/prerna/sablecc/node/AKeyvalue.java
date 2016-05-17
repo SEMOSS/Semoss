@@ -9,7 +9,7 @@ public final class AKeyvalue extends PKeyvalue
 {
     private PWordOrNum _word1_;
     private TColon _colon_;
-    private PWordOrNumOrNestedMap _word2_;
+    private PWordOrNumOrNestedObj _word2_;
 
     public AKeyvalue()
     {
@@ -19,7 +19,7 @@ public final class AKeyvalue extends PKeyvalue
     public AKeyvalue(
         @SuppressWarnings("hiding") PWordOrNum _word1_,
         @SuppressWarnings("hiding") TColon _colon_,
-        @SuppressWarnings("hiding") PWordOrNumOrNestedMap _word2_)
+        @SuppressWarnings("hiding") PWordOrNumOrNestedObj _word2_)
     {
         // Constructor
         setWord1(_word1_);
@@ -95,12 +95,12 @@ public final class AKeyvalue extends PKeyvalue
         this._colon_ = node;
     }
 
-    public PWordOrNumOrNestedMap getWord2()
+    public PWordOrNumOrNestedObj getWord2()
     {
         return this._word2_;
     }
 
-    public void setWord2(PWordOrNumOrNestedMap node)
+    public void setWord2(PWordOrNumOrNestedObj node)
     {
         if(this._word2_ != null)
         {
@@ -172,7 +172,7 @@ public final class AKeyvalue extends PKeyvalue
 
         if(this._word2_ == oldChild)
         {
-            setWord2((PWordOrNumOrNestedMap) newChild);
+            setWord2((PWordOrNumOrNestedObj) newChild);
             return;
         }
 

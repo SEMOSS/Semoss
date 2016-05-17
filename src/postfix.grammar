@@ -257,7 +257,7 @@ if_block = l_par comparator comma term r_par;
 
 col_group = comma col_def;
 
-keyvalue = [word1]:word_or_num colon [word2]:word_or_num_or_nested_map;
+keyvalue = [word1]:word_or_num colon [word2]:word_or_num_or_nested_obj;
 
 keyvalue_group = comma keyvalue;
 
@@ -289,7 +289,7 @@ col_csv = l_bracket col_def col_group* r_bracket; // this is typically of the fo
 
 word_or_num = {num} decimal | {alpha} word |{expr} [formula]:formula ; // I need some way putting an expression here
 
-word_or_num_or_nested_map = {word_or_num} word_or_num | {nested_map} map_obj;
+word_or_num_or_nested_obj = {word_or_num} word_or_num | {nested_map} map_obj | {nested_csv} csv_row;
 
 flex_selector_row = l_bracket term? term_group* r_bracket;
 
