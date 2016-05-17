@@ -172,7 +172,7 @@ public class UserPermissionsMasterDB {
 	public ArrayList<String> getUserOwnedEngines(String userId) {
 		ArrayList<String> engines = new ArrayList<String>();
 		
-		ArrayList<String[]> ret = runQuery("SELECT Engine.NAME FROM Engine, EnginePermission, Permission "
+		ArrayList<String[]> ret = runQuery("SELECT DISTINCT Engine.NAME FROM Engine, EnginePermission, Permission "
 				+ "WHERE EnginePermission.USER='" + userId + "' AND Permission.ID=" + EnginePermission.OWNER.getId() + " AND EnginePermission.PERMISSION=Permission.ID AND Engine.ID=EnginePermission.ENGINE");
 		for(String[] row : ret) {
 			engines.add(row[0]);
@@ -191,10 +191,10 @@ public class UserPermissionsMasterDB {
 		HashSet<String> engines = new HashSet<String>();
 		ArrayList<String[]> ret = new ArrayList<String[]>();
 		
-		String query = "SELECT Engine.name FROM Engine, EnginePermission WHERE EnginePermission.USER='" + userId + "' AND Engine.ID=EnginePermission.ENGINE;";
+		String query = "SELECT DISTINCT Engine.name FROM Engine, EnginePermission WHERE EnginePermission.USER='" + userId + "' AND Engine.ID=EnginePermission.ENGINE;";
 		ret = runQuery(query);
 		
-		query = "SELECT e.NAME AS ENGINENAME FROM Engine e, User u, GroupEnginePermission gep, GroupMembers gm, Permission p "
+		query = "SELECT DISTINCT e.NAME AS ENGINENAME FROM Engine e, User u, GroupEnginePermission gep, GroupMembers gm, Permission p "
 				+ "WHERE u.ID='" + userId + "' AND gm.MEMBERID=u.ID AND gm.GROUPID=gep.GROUPID AND gep.PERMISSION=p.ID";
 		ret.addAll(runQuery(query));
 		
@@ -235,7 +235,7 @@ public class UserPermissionsMasterDB {
 	 */
 	public ArrayList<String> getEnginesForUserAndPermissions(String user, EnginePermission[] permissions) {
 		ArrayList<String> engines = new ArrayList<String>();
-		String query = "SELECT e.NAME FROM Engine e, EnginePermission ep, Permission p WHERE ep.USER='" + user + "' AND e.ID=ep.ENGINE AND ep.PERMISSION=p.ID AND (p.NAME='";
+		String query = "SELECT DISTINCT e.NAME FROM Engine e, EnginePermission ep, Permission p WHERE ep.USER='" + user + "' AND e.ID=ep.ENGINE AND ep.PERMISSION=p.ID AND (p.NAME='";
 		
 		if(permissions.length > 0) {
 			query = query + permissions[0].getPermission();
@@ -285,7 +285,7 @@ public class UserPermissionsMasterDB {
 	}
 	
 	public StringMap<ArrayList<StringMap<String>>> getGroupsAndMembersForUser(String userId) {
-		String query = "SELECT ug.NAME AS GroupName, u.ID AS ID, u.NAME AS MEMBERNAME, u.EMAIL AS EMAIL FROM UserGroup ug, User u, GroupMembers gm WHERE ug.OWNER='" + userId + "' AND ug.ID=gm.GROUPID AND gm.MEMBERID=u.ID;";
+		String query = "SELECT DISTINCT ug.NAME AS GroupName, u.ID AS ID, u.NAME AS MEMBERNAME, u.EMAIL AS EMAIL FROM UserGroup ug, User u, GroupMembers gm WHERE ug.OWNER='" + userId + "' AND ug.ID=gm.GROUPID AND gm.MEMBERID=u.ID;";
 		
 		ArrayList<String[]> groups = runQuery(query);
 		StringMap<ArrayList<StringMap<String>>> ret = new StringMap<ArrayList<StringMap<String>>>();
@@ -310,7 +310,7 @@ public class UserPermissionsMasterDB {
 	}
 	
 	public ArrayList<String[]> getAllEnginesOwnedByUser(String userId) {
-		String query = "SELECT Engine.NAME AS EngineName FROM Engine, User, UserGroup, GroupMembers, Permission, EnginePermission, GroupEnginePermission "
+		String query = "SELECT DISTINCT Engine.NAME AS EngineName FROM Engine, User, UserGroup, GroupMembers, Permission, EnginePermission, GroupEnginePermission "
 				+ "WHERE User.ID='" + userId + "' "
 					+ "AND ((User.ID=EnginePermission.USER AND EnginePermission.PERMISSION=" + EnginePermission.OWNER.getId() + ") "
 						+ "OR (UserGroup.ID=GroupEnginePermission.GROUPID AND GroupEnginePermission.PERMISSION=" + EnginePermission.OWNER.getId() + " "
@@ -370,7 +370,7 @@ public class UserPermissionsMasterDB {
 	}
 	
 	public ArrayList<StringMap<String>> searchForUser(String searchTerm) {
-		String query = "SELECT User.ID AS ID, User.NAME AS NAME, User.EMAIL AS EMAIL FROM User WHERE UPPER(User.NAME) LIKE UPPER('%" + searchTerm + "%') OR UPPER(User.EMAIL) LIKE UPPER('%" + searchTerm + "%');";
+		String query = "SELECT DISTINCT User.ID AS ID, User.NAME AS NAME, User.EMAIL AS EMAIL FROM User WHERE UPPER(User.NAME) LIKE UPPER('%" + searchTerm + "%') OR UPPER(User.EMAIL) LIKE UPPER('%" + searchTerm + "%');";
 		ArrayList<StringMap<String>> users = new ArrayList<StringMap<String>>();
 		
 		for(String[] s : runQuery(query)) {
@@ -386,12 +386,12 @@ public class UserPermissionsMasterDB {
 	
 	public ArrayList<StringMap<String>> getAllEnginesAndPermissionsForUser(String userId) {
 		ArrayList<String[]> ret = new ArrayList<String[]>();
-		String query = "SELECT e.NAME AS ENGINENAME, u.NAME AS OWNER, p.NAME AS PERMISSION FROM Engine e, User u, EnginePermission ep, Permission p "
+		String query = "SELECT DISTINCT e.NAME AS ENGINENAME, u.NAME AS OWNER, p.NAME AS PERMISSION FROM Engine e, User u, EnginePermission ep, Permission p "
 				+ "WHERE u.ID='" + userId + "' AND ep.USER=u.ID AND ep.PERMISSION=p.ID";
 		
 		ret = runQuery(query);
 		
-		query = "SELECT e.NAME AS ENGINENAME, u.NAME AS OWNER, p.NAME AS PERMISSIONNAME FROM Engine e, User u, GroupEnginePermission gep, GroupMembers gm, Permission p "
+		query = "SELECT DISTINCT e.NAME AS ENGINENAME, u.NAME AS OWNER, p.NAME AS PERMISSIONNAME FROM Engine e, User u, GroupEnginePermission gep, GroupMembers gm, Permission p "
 				+ "WHERE u.ID='" + userId + "' AND gm.MEMBERID=u.ID "
 					+ "AND gm.GROUPID=gep.GROUPID AND gep.PERMISSION=p.ID";
 		
@@ -460,7 +460,7 @@ public class UserPermissionsMasterDB {
 	
 	public Boolean removeUserFromGroup(String userId, String groupName, String userToRemove) {
 		String query = "DELETE FROM GroupMembers WHERE GroupMembers.MEMBERID='" + userToRemove + "' AND GroupMembers.GROUPID IN "
-				+ "(SELECT UserGroup.ID AS GROUPID FROM UserGroup WHERE UserGroup.OWNER='" + userId + "');";
+				+ "(SELECT DISTINCT UserGroup.ID AS GROUPID FROM UserGroup WHERE UserGroup.OWNER='" + userId + "');";
 		
 		securityDB.execUpdateAndRetrieveStatement(query, true);
 		securityDB.commit();
@@ -471,9 +471,9 @@ public class UserPermissionsMasterDB {
 	public Boolean setPermissionsForGroup(String userId, String groupName, String engineName, EnginePermission[] permissions) {
 		for(int i = 0; i < permissions.length; i++) {
 			String query = "INSERT INTO GROUPENGINEPERMISSION VALUES ("
-					+ "(SELECT Engine.ID FROM Engine, EnginePermission WHERE Engine.NAME='" + engineName + "' AND EnginePermission.USER='" + userId + "' "
+					+ "(SELECT DISTINCT Engine.ID FROM Engine, EnginePermission WHERE Engine.NAME='" + engineName + "' AND EnginePermission.USER='" + userId + "' "
 							+ "AND EnginePermission.ENGINE=Engine.ID AND EnginePermission.PERMISSION=" + EnginePermission.OWNER.getId() + "), "
-					+ "(SELECT UserGroup.ID FROM UserGroup WHERE UserGroup.NAME='" + groupName + "' AND UserGroup.OWNER='" + userId + "'), "
+					+ "(SELECT DISTINCT UserGroup.ID FROM UserGroup WHERE UserGroup.NAME='" + groupName + "' AND UserGroup.OWNER='" + userId + "'), "
 					+ permissions[i].getId() + ")";
 			
 			securityDB.insertData(query);
@@ -486,10 +486,10 @@ public class UserPermissionsMasterDB {
 	public Boolean removeAllPermissionsForGroup(String userId, String groupName, String engineName) {
 		String query = "DELETE FROM GroupEnginePermission "
 				+ "WHERE GroupEnginePermission.ENGINE IN "
-					+ "(SELECT Engine.ID FROM Engine, EnginePermission WHERE Engine.NAME='" + engineName + "' AND EnginePermission.ENGINE=Engine.ID "
+					+ "(SELECT DISTINCT Engine.ID FROM Engine, EnginePermission WHERE Engine.NAME='" + engineName + "' AND EnginePermission.ENGINE=Engine.ID "
 						+ "AND EnginePermission.USER='" + userId + "' AND EnginePermission.PERMISSION=" + EnginePermission.OWNER.getId() + ") "
 				+ "AND GroupEnginePermission.GROUPID IN "
-					+ "(SELECT UserGroup.ID FROM UserGroup WHERE UserGroup.NAME='" + groupName + "' AND UserGroup.OWNER='" + userId + "');";
+					+ "(SELECT DISTINCT UserGroup.ID FROM UserGroup WHERE UserGroup.NAME='" + groupName + "' AND UserGroup.OWNER='" + userId + "');";
 		
 		securityDB.execUpdateAndRetrieveStatement(query, true);
 		securityDB.commit();
@@ -499,7 +499,7 @@ public class UserPermissionsMasterDB {
 	
 	public Boolean setPermissionsForUser(String userId, String engineName, String userToAdd, EnginePermission[] permissions) {
 		for(int i = 0; i < permissions.length; i++) {
-			String query = "INSERT INTO EnginePermission VALUES (NULL, (SELECT Engine.ID FROM Engine, EnginePermission WHERE Engine.NAME='" + engineName + "' AND EnginePermission.ENGINE=Engine.ID "
+			String query = "INSERT INTO EnginePermission VALUES (NULL, (SELECT DISTINCT Engine.ID FROM Engine, EnginePermission WHERE Engine.NAME='" + engineName + "' AND EnginePermission.ENGINE=Engine.ID "
 							+ "AND EnginePermission.USER='" + userId + "' AND EnginePermission.PERMISSION=" + EnginePermission.OWNER.getId() + "), '" + userToAdd + "', " + permissions[i].getId() + ");";
 			
 			securityDB.insertData(query);
@@ -512,7 +512,7 @@ public class UserPermissionsMasterDB {
 	public Boolean removeAllPermissionsForUser(String userId, String engineName, String userToRemove) {
 		String query = "DELETE FROM EnginePermission "
 				+ "WHERE EnginePermission.ENGINE IN "
-					+ "(SELECT Engine.ID FROM Engine, EnginePermission WHERE Engine.NAME='" + engineName + "' AND EnginePermission.ENGINE=Engine.ID "
+					+ "(SELECT DISTINCT Engine.ID FROM Engine, EnginePermission WHERE Engine.NAME='" + engineName + "' AND EnginePermission.ENGINE=Engine.ID "
 						+ "AND EnginePermission.USER='" + userId + "' AND EnginePermission.PERMISSION=" + EnginePermission.OWNER.getId() + ") "
 				+ "AND EnginePermission.USER='" + userToRemove + "';";
 		
