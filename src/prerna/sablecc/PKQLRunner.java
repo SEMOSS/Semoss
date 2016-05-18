@@ -82,6 +82,7 @@ public class PKQLRunner {
 		result.put("status", currentStatus);
 		result.put("command", currentString);
 		
+		// this is what frontend uses to diplay this piece in the recipe
 		// this will definitely have to be built out to be more encompassing
 		// maybe throw the current string through an English Translation class to get the label
 		// for now we will just parse out the beginning
