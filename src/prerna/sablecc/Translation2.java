@@ -207,7 +207,7 @@ public class Translation2 extends DepthFirstAdapter {
 
 		return colName;
 	}
-	
+
 	// the highest level above all commands
 	// tracks the most basic things all pkql should have
 	private void storeScript(Node node){
@@ -229,8 +229,8 @@ public class Translation2 extends DepthFirstAdapter {
 			curReactor.put("INSIGHT", node.getInsight().toString());
 			if(myJoins != null) {
 				curReactor.put("TABLE_JOINS", myJoins);
-			}
 		}		
+	}
 	}
 	
 	@Override
@@ -332,8 +332,8 @@ public class Translation2 extends DepthFirstAdapter {
 		runner.setStatus(PKQLRunner.STATUS.SUCCESS);
 		deinitReactor(PKQLEnum.VIZ, "", "");
 	}
-
-	@Override
+	
+	@Override 
 	public void inAPanelComment(APanelComment node) {
 		System.out.println("in a viz comment");
 		initReactor(PKQLEnum.VIZ);
@@ -370,7 +370,7 @@ public class Translation2 extends DepthFirstAdapter {
 		runner.addFeData("comments", comments, true);
 		runner.setResponse("Successfully commented : " + node.getText().toString().trim());//
 		runner.setStatus(PKQLRunner.STATUS.SUCCESS);
-	}
+		}
 
 	@Override
 	public void inAPanelCommentEdit(APanelCommentEdit node) {
@@ -463,7 +463,7 @@ public class Translation2 extends DepthFirstAdapter {
 		runner.setResponse("Successfully cloned! New panel id: " + newId);//
 		runner.setStatus(PKQLRunner.STATUS.SUCCESS);
 	}
-
+	
 	@Override
 	public void inAPanelLookAndFeel(APanelLookAndFeel node){
 		System.out.println("in a panel laf");
@@ -774,8 +774,8 @@ public class Translation2 extends DepthFirstAdapter {
 			
 			if(node.getJoins()!=null){
 				node.getJoins().apply(this); // need to process joins so that we can access them in the api block for preprocessing inner joins
-			}
 		}		
+    }
     }
     
     @Override
@@ -785,6 +785,7 @@ public class Translation2 extends DepthFirstAdapter {
 		curReactor.put(PKQLEnum.EXPR_TERM, nodeImport);
 		Hashtable <String, Object> thisReactorHash = deinitReactor(PKQLEnum.IMPORT_DATA, nodeImport, nodeStr);
     	IScriptReactor previousReactor = (IScriptReactor)thisReactorHash.get(PKQLReactor.IMPORT_DATA.toString());
+    	runner.setNewColumns((Map<String, String>)previousReactor.getValue("logicalToValue"));
 		runner.setResponse(previousReactor.getValue(nodeStr));
 		runner.setStatus((STATUS)previousReactor.getValue("STATUS"));
     }
@@ -979,8 +980,8 @@ public class Translation2 extends DepthFirstAdapter {
     	if(node.parent() != null && node.parent() instanceof ACsvTable) {
         	deinitReactor(PKQLEnum.ROW_CSV, thisNode, PKQLEnum.ROW_CSV, false);
     	} else {
-    		deinitReactor(PKQLEnum.ROW_CSV, thisNode, PKQLEnum.ROW_CSV);
-    	}
+		deinitReactor(PKQLEnum.ROW_CSV, thisNode, PKQLEnum.ROW_CSV);
+    }
     }
     
     @Override

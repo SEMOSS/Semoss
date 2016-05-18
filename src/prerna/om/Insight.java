@@ -84,6 +84,7 @@ import prerna.ui.components.playsheets.datamakers.ISEMOSSTransformation;
 import prerna.ui.components.playsheets.datamakers.JoinTransformation;
 import prerna.ui.components.playsheets.datamakers.PKQLTransformation;
 import prerna.util.Constants;
+import prerna.util.DIHelper;
 import prerna.util.Utility;
 
 public class Insight {
@@ -1129,7 +1130,7 @@ public class Insight {
 	public Map<String, Object> getInsightMetaModel() {
 		IDataMaker dataMaker = getDataMaker();
 		if(!(dataMaker instanceof ITableDataFrame)) {
-			throw new IllegalArgumentException("This Insight is not eligible to navigate through Explore. The data maker is not of type ITableDataMaker.");
+			throw new IllegalArgumentException("This Insight is not eligible to navigate through Explore. The data maker is not of type ITableDataFrame.");
 		}
 //		ITableDataFrame dataFrame = (ITableDataFrame) dataMaker;
 		Hashtable<String, Object> returnHash = new Hashtable<String, Object>();
@@ -1280,7 +1281,6 @@ public class Insight {
 			if(this.getDataMaker() instanceof ITableDataFrame){
 				ITableDataFrame tink = (ITableDataFrame) this.getDataMaker();
 				Map<String, Set<String>> edgeHash = tink.getEdgeHash();
-//				IMetaData tmd = tink.getMetaData();
 				Map<String, String> props = tink.getProperties();
 				for(String sub: edgeHash.keySet()){
 					Map<String, Object> nodeObj = new HashMap<String, Object>();
@@ -1292,6 +1292,16 @@ public class Insight {
 						subEngineNameSet.add(Constants.LOCAL_MASTER_DB_NAME);
 					}
 					nodeObj.put("engineName", subEngineNameSet);
+					nodeObj.put("engineName", subEngineNameSet);
+					HashMap<String, String> engineToSubPhysicalMap = new HashMap<String, String>();
+					for (String engine : subEngineNameSet) {
+						String engineDisplay = null;
+						IEngine e = (IEngine)DIHelper.getInstance().getLocalProp(engine);
+						String physicalUri = tink.getPhysicalUriForNode(sub, engine);
+						engineDisplay = Utility.getInstanceName(e.getTransformedNodeName(physicalUri, true));
+						engineToSubPhysicalMap.put(engine, engineDisplay);
+					}
+					nodeObj.put("engineToPhysical", engineToSubPhysicalMap);
 					if(props.containsKey(sub)){
 						nodeObj.put("prop", props.get(sub));
 					}
@@ -1308,6 +1318,15 @@ public class Insight {
 							objEngineNameSet.add(Constants.LOCAL_MASTER_DB_NAME);
 						}
 						nodeObj2.put("engineName", objEngineNameSet);
+						HashMap<String, String> engineToObjPhysicalMap = new HashMap<String, String>();
+						for (String engine : objEngineNameSet) {
+							String engineDisplay = null;
+							IEngine e = (IEngine)DIHelper.getInstance().getLocalProp(engine);
+							String physicalUri = tink.getPhysicalUriForNode(obj, engine);
+							engineDisplay = Utility.getInstanceName(e.getTransformedNodeName(physicalUri, true));
+							engineToObjPhysicalMap.put(engine, engineDisplay);
+						}
+						nodeObj2.put("engineToPhysical", engineToObjPhysicalMap);
 						if(props.containsKey(obj)){
 							nodeObj2.put("prop", props.get(obj));
 						}
@@ -1437,6 +1456,7 @@ public class Insight {
 			
 			resultHash.put("insightID", this.getInsightID());
 			resultHash.put("feData", feData);
+			resultHash.put("newColumns", pkqlRunner.getNewColumns());
 		}
 		return resultHash;
 	}
