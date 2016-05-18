@@ -29,6 +29,7 @@ public class PKQLRunner {
 	private STATUS currentStatus = PKQLRunner.STATUS.SUCCESS;
 	private String currentString = "";
 	private Object response = "PKQL processing complete";
+	private Map<String,String> newColumns = new HashMap<String,String>();
 	private Map<String, Map<String,Object>> masterFeMap = new HashMap<String, Map<String,Object>>(); // this holds all active front end data. in the form panelId --> prop --> value
 	private Map<String, List<Map<String, Object>>> expiredFeMaps =  new HashMap<String, List<Map<String,Object>>>();
 	private Map<String, Object> activeFeMap;
@@ -249,5 +250,13 @@ public class PKQLRunner {
 
 	public Object getFeData(String key) {
 		return this.activeFeMap.get(key);
+	}
+
+	public Map<String,String> getNewColumns() {
+		return newColumns;
+	}
+
+	public void setNewColumns(Map<String, String> newColumns) {
+		this.newColumns = newColumns;
 	}
 }
