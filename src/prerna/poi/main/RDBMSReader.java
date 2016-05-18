@@ -1007,7 +1007,7 @@ public class RDBMSReader extends AbstractFileReader {
 					relations.put(toConcept, relList);
 				}
 
-				owler.addRelation(fromConcept, toConcept, null);
+				owler.addRelation(cleanFromConceptTableName, cleanToConceptTableName, null);
 			}
 		}
 
