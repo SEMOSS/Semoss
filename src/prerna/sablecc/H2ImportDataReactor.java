@@ -13,6 +13,7 @@ import prerna.ds.H2.TinkerH2Frame;
 import prerna.ds.util.FileIterator;
 import prerna.engine.api.IHeadersDataRow;
 import prerna.engine.api.ISelectWrapper;
+import prerna.sablecc.PKQLRunner.STATUS;
 import prerna.util.ArrayUtilityMethods;
 
 public class H2ImportDataReactor extends ImportDataReactor {
@@ -95,7 +96,7 @@ public class H2ImportDataReactor extends ImportDataReactor {
 //		}
 		
 		inputResponseString(it, headers);
-		myStore.put("STATUS", "SUCCESS");
+		myStore.put("STATUS", STATUS.SUCCESS);
 		
 		return null;
 	}

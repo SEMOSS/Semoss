@@ -13,6 +13,7 @@ import prerna.algorithm.api.ITableDataFrame;
 import prerna.ds.TinkerFrame;
 import prerna.engine.api.IScriptReactor;
 import prerna.sablecc.PKQLEnum.PKQLReactor;
+import prerna.sablecc.PKQLRunner.STATUS;
 import prerna.sablecc.analysis.DepthFirstAdapter;
 import prerna.sablecc.node.AAddColumn;
 import prerna.sablecc.node.AAlphaWordOrNum;
@@ -242,7 +243,7 @@ public class Translation2 extends DepthFirstAdapter {
 			synchronizeValues(PKQLEnum.API, values2Sync, thisReactor);
 		}
 		runner.setResponse(thisReactor.getValue("RESPONSE"));
-		runner.setStatus(thisReactor.getValue("STATUS") + "");
+		runner.setStatus((STATUS) thisReactor.getValue("STATUS"));
 	}
 
 	@Override
@@ -328,7 +329,7 @@ public class Translation2 extends DepthFirstAdapter {
 		}
 		runner.addFeData("chartData", chartDataObj, true);
 		runner.setResponse("Successfully set layout to " + layout + " with alignment " + alignment);//
-		runner.setStatus("SUCCESS");
+		runner.setStatus(PKQLRunner.STATUS.SUCCESS);
 		deinitReactor(PKQLEnum.VIZ, "", "");
 	}
 
@@ -368,7 +369,7 @@ public class Translation2 extends DepthFirstAdapter {
 		comments.put(cid, commentMap);
 		runner.addFeData("comments", comments, true);
 		runner.setResponse("Successfully commented : " + node.getText().toString().trim());//
-		runner.setStatus("SUCCESS");
+		runner.setStatus(PKQLRunner.STATUS.SUCCESS);
 	}
 
 	@Override
@@ -407,7 +408,7 @@ public class Translation2 extends DepthFirstAdapter {
 		comments.put(cid, commentMap);
 		runner.addFeData("comments", comments, true);
 		runner.setResponse("Successfully edited comment " + cid + " : " + node.getText().toString().trim());//
-		runner.setStatus("SUCCESS");
+		runner.setStatus(PKQLRunner.STATUS.SUCCESS);
 	}
 
 	@Override
@@ -441,7 +442,7 @@ public class Translation2 extends DepthFirstAdapter {
 		comments.put(cid, commentMap);
 		runner.addFeData("comments", comments, true);
 		runner.setResponse("Successfully removed comment " + cid);//
-		runner.setStatus("SUCCESS");
+		runner.setStatus(PKQLRunner.STATUS.SUCCESS);
 	}
 	
 	@Override
@@ -460,7 +461,7 @@ public class Translation2 extends DepthFirstAdapter {
 		runner.copyFeData(newId);
 		deinitReactor(PKQLEnum.VIZ, "", "");
 		runner.setResponse("Successfully cloned! New panel id: " + newId);//
-		runner.setStatus("SUCCESS");
+		runner.setStatus(PKQLRunner.STATUS.SUCCESS);
 	}
 
 	@Override
@@ -480,7 +481,7 @@ public class Translation2 extends DepthFirstAdapter {
 		runner.addFeData("lookandfeel", laf, true);
 		deinitReactor(PKQLEnum.VIZ, "", "");
 		runner.setResponse("Successfully set look and feel");//
-		runner.setStatus("SUCCESS");
+		runner.setStatus(PKQLRunner.STATUS.SUCCESS);
 	}
 
 	@Override
@@ -500,7 +501,7 @@ public class Translation2 extends DepthFirstAdapter {
 		runner.addFeData("tools", tools, true);
 		deinitReactor(PKQLEnum.VIZ, "", "");
 		runner.setResponse("Successfully set tools");//
-		runner.setStatus("SUCCESS");
+		runner.setStatus(PKQLRunner.STATUS.SUCCESS);
 	}
 
 	@Override
@@ -520,7 +521,7 @@ public class Translation2 extends DepthFirstAdapter {
 		runner.addFeData("config", config, true);
 		deinitReactor(PKQLEnum.VIZ, "", "");
 		runner.setResponse("Successfully set config");//
-		runner.setStatus("SUCCESS");
+		runner.setStatus(PKQLRunner.STATUS.SUCCESS);
 	}
 	
 	@Override
@@ -535,7 +536,7 @@ public class Translation2 extends DepthFirstAdapter {
 		runner.addFeData("closed", true, true);
 		deinitReactor(PKQLEnum.VIZ, "", "");
 		runner.setResponse("Successfully closed panel");//
-		runner.setStatus("SUCCESS");
+		runner.setStatus(PKQLRunner.STATUS.SUCCESS);
 	}
 	
 //**************************************** END PANEL OPERATIONS **********************************************//
@@ -731,7 +732,7 @@ public class Translation2 extends DepthFirstAdapter {
 //		curReactor.put(PKQLEnum.WHERE, nodeExpr);
 		Hashtable <String, Object> thisReactorHash = deinitReactor(PKQLEnum.FILTER_DATA, nodeExpr, node.toString().trim());
 		IScriptReactor previousReactor = (IScriptReactor)thisReactorHash.get(PKQLEnum.FILTER_DATA.toString());
-		runner.setStatus((String)previousReactor.getValue("STATUS"));
+		runner.setStatus((STATUS)previousReactor.getValue("STATUS"));
 		runner.setResponse((String)previousReactor.getValue("FILTER_RESPONSE"));
 	}
 	
@@ -750,7 +751,7 @@ public class Translation2 extends DepthFirstAdapter {
 //		curReactor.put(PKQLEnum.WHERE, nodeExpr);
 		Hashtable <String, Object> thisReactorHash = deinitReactor(PKQLEnum.UNFILTER_DATA, nodeExpr, node.toString().trim());
 		IScriptReactor previousReactor = (IScriptReactor)thisReactorHash.get(PKQLEnum.UNFILTER_DATA.toString());
-		runner.setStatus((String)previousReactor.getValue("STATUS"));
+		runner.setStatus((STATUS)previousReactor.getValue("STATUS"));
 		runner.setResponse("Unfiltered Column: " + (String)previousReactor.getValue("FILTER_COLUMN"));
     }
 
@@ -785,7 +786,7 @@ public class Translation2 extends DepthFirstAdapter {
 		Hashtable <String, Object> thisReactorHash = deinitReactor(PKQLEnum.IMPORT_DATA, nodeImport, nodeStr);
     	IScriptReactor previousReactor = (IScriptReactor)thisReactorHash.get(PKQLReactor.IMPORT_DATA.toString());
 		runner.setResponse(previousReactor.getValue(nodeStr));
-		runner.setStatus((String)previousReactor.getValue("STATUS"));
+		runner.setStatus((STATUS)previousReactor.getValue("STATUS"));
     }
     
     public void inARemoveData(ARemoveData node) {
@@ -804,7 +805,7 @@ public class Translation2 extends DepthFirstAdapter {
 		Hashtable <String, Object> thisReactorHash = deinitReactor(PKQLEnum.REMOVE_DATA, nodeStr, (node + "").trim());
     	IScriptReactor previousReactor = (IScriptReactor)thisReactorHash.get(PKQLEnum.REMOVE_DATA);
 		runner.setResponse(previousReactor.getValue(node.toString().trim()));//
-		runner.setStatus((String)previousReactor.getValue("STATUS"));
+		runner.setStatus((STATUS)previousReactor.getValue("STATUS"));
     }
 
     @Override
@@ -905,7 +906,7 @@ public class Translation2 extends DepthFirstAdapter {
 //		curReactor.put(PKQLEnum.COL_CSV, previousReactor.getValue(PKQLEnum.COL_CSV));
 		curReactor.addReplacer(nodeStr, previousReactor.getValue(expr));
 		runner.setResponse(previousReactor.getValue(expr));
-		runner.setStatus((String)previousReactor.getValue("STATUS"));
+		runner.setStatus((STATUS)previousReactor.getValue("STATUS"));
 	}
 	
     @Override
@@ -1060,7 +1061,7 @@ public class Translation2 extends DepthFirstAdapter {
     public void inAHelpScript(AHelpScript node) {
     	//TODO: build out a String that explains PKQL and the commands
     	runner.setResponse("Welcome to PKQL. Please look through documentation to find available functions.");
-    	runner.setStatus("success");
+    	runner.setStatus(STATUS.SUCCESS);
     }
 	
     public ITableDataFrame getDataFrame() {

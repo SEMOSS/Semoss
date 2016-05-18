@@ -10,6 +10,7 @@ import java.util.Vector;
 import prerna.algorithm.api.ITableDataFrame;
 import prerna.ds.ExpressionIterator;
 import prerna.ds.TinkerMetaHelper;
+import prerna.sablecc.PKQLRunner.STATUS;
 import prerna.util.Utility;
 
 public class ColAddReactor extends AbstractReactor {
@@ -143,7 +144,7 @@ public class ColAddReactor extends AbstractReactor {
 
 					frame.addRelationship(row, row);
 				}
-				myStore.put("STATUS", "SUCCESS");			
+				myStore.put("STATUS", STATUS.SUCCESS);			
 			} else {
 				while(it.hasNext()) {
 					HashMap<String, Object> row = new HashMap<String, Object>();
@@ -171,10 +172,10 @@ public class ColAddReactor extends AbstractReactor {
 					}
 					frame.addRelationship(row, row);
 				}
-				myStore.put("STATUS", "SUCCESS");
+				myStore.put("STATUS", STATUS.SUCCESS);
 			}
 		} else {
-			myStore.put("STATUS", "FAIL");
+			myStore.put("STATUS", STATUS.ERROR);
 		}
 	}
 
