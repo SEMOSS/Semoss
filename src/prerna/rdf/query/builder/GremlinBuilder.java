@@ -150,7 +150,7 @@ public class GremlinBuilder {
 			Object filtered = startNode.value(Constants.FILTER); 
 			if((Boolean)filtered == true) {
 				// filtered edges have a type of filter
-				gt = gt.not(__.in(Constants.FILTER + TinkerFrame.edgeLabelDelimeter + valueType).has(Constants.TYPE, Constants.FILTER));
+				gt = gt.not(__.in(Constants.FILTER + TinkerFrame.edgeLabelDelimeter + nameType).has(Constants.TYPE, Constants.FILTER));
 			}
 			if(temporalFilters.containsKey(nameType)) {
 				gt = gt.has(Constants.NAME, P.within(temporalFilters.get(nameType).toArray(new String[]{})));
@@ -192,7 +192,7 @@ public class GremlinBuilder {
 				valueNode = nodeV.property(Constants.NAME).value() + "";
 			}
 			
-			String edgeKey = origValue + TinkerFrame.edgeLabelDelimeter + valueNode;
+			String edgeKey = origName + TinkerFrame.edgeLabelDelimeter + nameNode;
 
 			if (!travelledEdges.contains(edgeKey)) {
 				LOGGER.info("travelling down to " + nameNode);
@@ -201,7 +201,7 @@ public class GremlinBuilder {
 
 				Object filtered = nodeV.value(Constants.FILTER);
 				if ((Boolean) filtered == true) {
-					twoStepT = twoStepT.not(__.in(Constants.FILTER + TinkerFrame.edgeLabelDelimeter + valueNode).has(Constants.TYPE, Constants.FILTER));
+					twoStepT = twoStepT.not(__.in(Constants.FILTER + TinkerFrame.edgeLabelDelimeter + nameNode).has(Constants.TYPE, Constants.FILTER));
 				}
 				if(temporalFilters.containsKey(nameNode)) {
 					twoStepT = twoStepT.has(Constants.NAME, P.within(temporalFilters.get(nameNode).toArray(new String[]{})));
@@ -230,7 +230,7 @@ public class GremlinBuilder {
 				valueNode = nodeV.property(Constants.NAME).value() + "";
 			}
 			
-			String edgeKey = valueNode + TinkerFrame.edgeLabelDelimeter + origValue;
+			String edgeKey = nameNode + TinkerFrame.edgeLabelDelimeter + origName;
 			if (!travelledEdges.contains(edgeKey)) {
 				LOGGER.info("travelling down to " + nameNode);
 
@@ -238,7 +238,7 @@ public class GremlinBuilder {
 
 				Object filtered = nodeV.value(Constants.FILTER);
 				if ((Boolean) filtered == true) {
-					twoStepT = twoStepT.not(__.in(Constants.FILTER + TinkerFrame.edgeLabelDelimeter + valueNode).has(Constants.TYPE, Constants.FILTER));
+					twoStepT = twoStepT.not(__.in(Constants.FILTER + TinkerFrame.edgeLabelDelimeter + nameNode).has(Constants.TYPE, Constants.FILTER));
 				}
 				if(temporalFilters.containsKey(nameNode)) {
 					twoStepT = twoStepT.has(Constants.NAME, P.within(temporalFilters.get(nameNode).toArray(new String[]{})));

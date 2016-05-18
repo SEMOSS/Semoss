@@ -9,11 +9,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import org.apache.tinkerpop.gremlin.structure.Vertex;
-
 import prerna.algorithm.api.IMetaData;
 import prerna.engine.api.IEngine;
-import prerna.sablecc.PKQLEnum;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
 
@@ -28,7 +25,7 @@ public class TinkerMetaHelper {
 		Set<String> newLevels = new LinkedHashSet<String>();
 		Map<String, String[]> physicalToLogical = metaData.getPhysical2LogicalTranslations(newEdgeHash, joinColList);
 		
-		Map<String, String> logicalToValue = new HashMap<String, String>();
+		Map<String, String> logicalToUniqueName = new HashMap<String, String>();
 		
 		for(String newNodeKey : newEdgeHash.keySet()) {
 			
@@ -44,7 +41,7 @@ public class TinkerMetaHelper {
 			
 			Set<String> cleanSet = new HashSet<String>();
 			String logicalOutName = metaData.getLogicalNameForUniqueName(outUniqueName, engine.getEngineName());
-			logicalToValue.put(logicalOutName, metaData.getValueForUniqueName(outUniqueName));
+			logicalToUniqueName.put(logicalOutName, outUniqueName);
 
 			cleanedHash.put(logicalOutName, cleanSet);
 
@@ -64,7 +61,7 @@ public class TinkerMetaHelper {
 					String logicalInName = metaData.getLogicalNameForUniqueName(inUniqueName, engine.getEngineName());
 					cleanSet.add(logicalInName);
 					
-					logicalToValue.put(logicalInName, metaData.getValueForUniqueName(inUniqueName));
+					logicalToUniqueName.put(logicalInName, inUniqueName);
 				}
 			}
 		}
@@ -77,7 +74,7 @@ public class TinkerMetaHelper {
 //		}
 //		redoLevels(newLevels.toArray(new String[newLevels.size()]));
 		
-		Map[] retMap = new Map[]{cleanedHash, logicalToValue};
+		Map[] retMap = new Map[]{cleanedHash, logicalToUniqueName};
 		return retMap;
 	}
 	
