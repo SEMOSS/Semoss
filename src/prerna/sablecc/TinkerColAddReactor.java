@@ -11,6 +11,7 @@ import prerna.algorithm.api.ITableDataFrame;
 import prerna.ds.ExpressionIterator;
 import prerna.ds.TinkerFrame;
 import prerna.ds.TinkerMetaHelper;
+import prerna.sablecc.PKQLRunner.STATUS;
 import prerna.util.Utility;
 
 public class TinkerColAddReactor extends ColAddReactor {
@@ -127,7 +128,7 @@ public class TinkerColAddReactor extends ColAddReactor {
 				frame.insertBlanks(primKeyConceptName, addedCols);
 			}
 			
-			myStore.put("STATUS", "SUCCESS");			
+			myStore.put("STATUS", STATUS.SUCCESS);			
 			
 		} else {
 			it = new ExpressionIterator(it, joinCols, value.toString());
@@ -175,7 +176,7 @@ public class TinkerColAddReactor extends ColAddReactor {
 
 					frame.addRelationship(row, row);
 				}
-				myStore.put("STATUS", "SUCCESS");			
+				myStore.put("STATUS", STATUS.SUCCESS);			
 			} else {
 				while(it.hasNext()) {
 					HashMap<String, Object> row = new HashMap<String, Object>();
@@ -203,10 +204,10 @@ public class TinkerColAddReactor extends ColAddReactor {
 					}
 					frame.addRelationship(row, row);
 				}
-				myStore.put("STATUS", "SUCCESS");
+				myStore.put("STATUS", STATUS.SUCCESS);
 			}
 		} else {
-			myStore.put("STATUS", "FAIL");
+			myStore.put("STATUS", STATUS.ERROR);
 		}
 	}
 }

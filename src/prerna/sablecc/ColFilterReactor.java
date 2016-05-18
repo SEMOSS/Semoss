@@ -73,9 +73,10 @@ public class ColFilterReactor extends AbstractReactor{
 				String comparator = (String)thisFilter.get("COMPARATOR");
 				try {
 					frame.filter(fromCol, cleanedFilterData, comparator);
-					myStore.put("STATUS", "SUCCESS");
+					myStore.put("STATUS", PKQLRunner.STATUS.SUCCESS);
 					myStore.put("FILTER_RESPONSE", "Filtered Column: " + fromCol);
 				} catch(IllegalArgumentException e) {
+					myStore.put("STATUS", PKQLRunner.STATUS.ERROR);
 					myStore.put("FILTER_RESPONSE", e.getMessage());
 				}
 			}

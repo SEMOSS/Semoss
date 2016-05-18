@@ -58,16 +58,16 @@ public class ApiReactor extends AbstractReactor {
 						api.set("R_RUNNER", frame.getRRunner());
 					} catch (RserveException e) {
 						myStore.put("RESPONSE", "Error: R server is down.");
-						myStore.put("STATUS", "error");
+						myStore.put("STATUS", PKQLRunner.STATUS.ERROR);
 						e.printStackTrace();
 					} catch (SQLException e) {
 						myStore.put("RESPONSE", "Error: Invalid database connection.");
-						myStore.put("STATUS", "error");
+						myStore.put("STATUS", PKQLRunner.STATUS.ERROR);
 						e.printStackTrace();
 					}
 				} else {
 					myStore.put("RESPONSE", "Error: Dataframe must be in Grid format.");
-					myStore.put("STATUS", "error");
+					myStore.put("STATUS", PKQLRunner.STATUS.ERROR);
 					return null;
 				} 
 			} else {
@@ -160,7 +160,7 @@ public class ApiReactor extends AbstractReactor {
 
 		myStore.put(nodeStr, thisIterator);
 		myStore.put("RESPONSE", "success");
-		myStore.put("STATUS", "success");
+		myStore.put("STATUS", PKQLRunner.STATUS.SUCCESS);
 
 		// eventually I need this iterator to set this back for this particular node
 		return null;

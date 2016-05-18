@@ -13,6 +13,7 @@ import prerna.ds.TinkerFrame;
 import prerna.ds.H2.TinkerH2Frame;
 import prerna.engine.api.ISelectStatement;
 import prerna.engine.api.ISelectWrapper;
+import prerna.sablecc.PKQLRunner.STATUS;
 
 public class RemoveDataReactor extends AbstractReactor{
 
@@ -76,7 +77,7 @@ public class RemoveDataReactor extends AbstractReactor{
 //		}
 		
 		DataFrameHelper.removeData(frame, it);
-		myStore.put("STATUS", "SUCCESS");
+		myStore.put("STATUS", STATUS.SUCCESS);
 		
 		myStore.put(nodeStr, createResponseString(it));
 		
