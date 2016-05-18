@@ -17,6 +17,7 @@ import prerna.algorithm.api.ITableDataFrame;
 import prerna.ds.ExpressionReducer;
 import prerna.sablecc.MathReactor;
 import prerna.sablecc.PKQLEnum;
+import prerna.sablecc.PKQLRunner.STATUS;
 import prerna.util.Constants;
 
 public abstract class BaseReducerReactor extends MathReactor implements ExpressionReducer  {
@@ -156,11 +157,11 @@ public abstract class BaseReducerReactor extends MathReactor implements Expressi
 			HashMap<HashMap<Object,Object>,Object> groupByHash = reduceGroupBy(groupBys, columns, allColumnsArray, it);
 			
 			myStore.put(nodeStr, groupByHash);
-			myStore.put("STATUS","success");
+			myStore.put("STATUS",STATUS.SUCCESS);
 		} else {
 			Iterator iterator = getTinkerData(columns, frame, false);
 			myStore.put(nodeStr, processAlgorithm(iterator, columnsArray));
-			myStore.put("STATUS","success");
+			myStore.put("STATUS",STATUS.SUCCESS);
 		}
 		
 		return null;

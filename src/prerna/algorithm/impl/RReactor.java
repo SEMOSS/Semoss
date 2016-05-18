@@ -9,6 +9,7 @@ import prerna.ds.H2.TinkerH2Frame;
 import prerna.engine.impl.r.RRunner;
 import prerna.sablecc.MathReactor;
 import prerna.sablecc.PKQLEnum;
+import prerna.sablecc.PKQLRunner.STATUS;
 
 /**
  * Reacts to PKQL commands invoking R scripts, ex. {@code m:R([<code>script<code>}]);
@@ -30,7 +31,7 @@ public class RReactor extends MathReactor{
 		} else {
 //			frame = TableDataFrameFactory.convertToH2Frame((TinkerFrame)myStore.get(PKQLEnum.G));
 			myStore.put(nodeStr, "Error: Dataframe must be in Grid format.");
-			myStore.put("STATUS", "error");
+			myStore.put("STATUS", STATUS.ERROR);
 			return null;
 		}
 		
@@ -38,11 +39,11 @@ public class RReactor extends MathReactor{
 			r = frame.getRRunner();
 		} catch (RserveException e) {
 			myStore.put(nodeStr, "Error: R server is down.");
-			myStore.put("STATUS", "error");
+			myStore.put("STATUS", STATUS.ERROR);
 			e.printStackTrace();
 		} catch (SQLException e) {
 			myStore.put(nodeStr, "Error: Invalid database connection.");
-			myStore.put("STATUS", "error");
+			myStore.put("STATUS", STATUS.ERROR);
 			e.printStackTrace();
 		}
 		
@@ -53,16 +54,16 @@ public class RReactor extends MathReactor{
 			} catch (RserveException e) {
 				e.printStackTrace();
 				myStore.put(nodeStr, "Error: Could not store data in R.");
-				myStore.put("STATUS", "error");
+				myStore.put("STATUS", STATUS.ERROR);
 			}
 		}
 		
 		Object result = r.evaluateScript(userScript);
 		myStore.put(nodeStr, result);
 		if (r.getScriptRanSuccessfully()) {
-			myStore.put("STATUS", "success");
+			myStore.put("STATUS", STATUS.SUCCESS);
 		} else {
-			myStore.put("STATUS", "error");
+			myStore.put("STATUS", STATUS.ERROR);
 		}
 		return null;
 	}
