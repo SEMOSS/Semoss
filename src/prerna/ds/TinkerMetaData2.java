@@ -372,9 +372,13 @@ public class TinkerMetaData2 implements IMetaData {
 		GraphTraversal<Vertex, Vertex> trav = g.traversal().V().has(Constants.TYPE, META).has(Constants.NAME, nodeUniqueName);
 		if(trav.hasNext()){
 			Vertex node = trav.next();
-			Map<Object, Object> engineMap = (Map<Object, Object>) node.property(engineName).value();
-			String physUri = (String) engineMap.get(IMetaData.NAME_TYPE.DB_PHYSICAL_URI);
-			return physUri;
+			if(node.property(engineName).isPresent()) {
+				Map<Object, Object> engineMap = (Map<Object, Object>) node.property(engineName).value();
+				String physUri = (String) engineMap.get(IMetaData.NAME_TYPE.DB_PHYSICAL_URI);
+				return physUri;
+			} else {
+				return nodeUniqueName;
+			}
 		}
 		else return null;
 	}

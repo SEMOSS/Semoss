@@ -25,6 +25,7 @@ public class PKQLTransformation extends AbstractTransformation {
 
 	private List<String> parsedPkqls = new Vector<String>();
 	private Map<String, Object> feData = new HashMap<String, Object>();
+	private Map<String, String> newColumns = new HashMap<String, String>();
 	
 	
 	IDataMaker dm;
@@ -59,6 +60,9 @@ public class PKQLTransformation extends AbstractTransformation {
 		runner.runPKQL(expression, (ITableDataFrame) this.dm);
 //		this.dm = runner.getDataFrame();
 		this.feData.putAll(runner.getFeData());
+		if(runner.getNewColumns() != null) {
+			this.newColumns.putAll(runner.getNewColumns());
+		}
 		
 		// running the pkql may have changed the datamaker:::::::::::::::::::::::::::::::::::::::::::::::::::::
 		// need to remember to set this back into the insight:::::::::::::::::::::::::::::::::::::::::::::::::
@@ -109,6 +113,10 @@ public class PKQLTransformation extends AbstractTransformation {
 	
 	public Map<String, Object> getFeData(){
 		return this.feData;
+	}
+	
+	public Map<String, String> getNewColumns() {
+		return this.newColumns;
 	}
 	
 	public void setRunner(PKQLRunner runner){
