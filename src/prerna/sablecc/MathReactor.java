@@ -8,6 +8,7 @@ import java.util.Vector;
 import prerna.algorithm.api.ITableDataFrame;
 import prerna.ds.AlgorithmStrategy;
 import prerna.ds.ExpressionIterator;
+import prerna.sablecc.PKQLRunner.STATUS;
 
 public class MathReactor extends AbstractReactor {
 	
@@ -75,14 +76,14 @@ public class MathReactor extends AbstractReactor {
 				}
 				String nodeStr = myStore.get(whoAmI).toString();
 				myStore.put(nodeStr, masterMap);
-				myStore.put("STATUS","success");
+				myStore.put("STATUS", STATUS.SUCCESS);
 			}
 			else {
 				Iterator iterator = getTinkerData(columns, frame, false);
 				Object finalValue = processThing(iterator, algorithm, columnsArray);
 				String nodeStr = myStore.get(whoAmI).toString();
 				myStore.put(nodeStr, finalValue);
-				myStore.put("STATUS","success");
+				myStore.put("STATUS", STATUS.SUCCESS);
 			}
 
 			
