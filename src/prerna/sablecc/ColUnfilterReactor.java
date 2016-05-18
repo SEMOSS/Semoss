@@ -28,7 +28,7 @@ public class ColUnfilterReactor extends AbstractReactor{
 		
 		for(String c : column) {
 			frame.unfilter(c);
-			myStore.put("STATUS", "SUCCESS");
+			myStore.put("STATUS", PKQLRunner.STATUS.SUCCESS);
 			myStore.put("FILTER_COLUMN", c);
 		}
 		return null;

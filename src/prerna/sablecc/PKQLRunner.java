@@ -24,9 +24,9 @@ import prerna.sablecc.parser.ParserException;
 
 public class PKQLRunner {
 	
-	enum Status {SUCCESS, ERROR}
+	public enum STATUS {SUCCESS, ERROR}
 	
-	private String currentStatus = "success";
+	private STATUS currentStatus = PKQLRunner.STATUS.SUCCESS;
 	private String currentString = "";
 	private Object response = "PKQL processing complete";
 	private Map<String, Map<String,Object>> masterFeMap = new HashMap<String, Map<String,Object>>(); // this holds all active front end data. in the form panelId --> prop --> value
@@ -50,7 +50,7 @@ public class PKQLRunner {
 
 		} catch (ParserException | LexerException | IOException e) {
 			e.printStackTrace();
-			currentStatus = "error";
+			currentStatus = PKQLRunner.STATUS.ERROR;
 			currentString = expression;
 			response = "Invalid PKQL Statement";
 			storeResponse();
@@ -81,6 +81,11 @@ public class PKQLRunner {
 		}
 		result.put("status", currentStatus);
 		result.put("command", currentString);
+		
+		// this will definitely have to be built out to be more encompassing
+		// maybe throw the current string through an English Translation class to get the label
+		// for now we will just parse out the beginning
+		result.put("label", currentString.substring(0, currentString.indexOf("(")));
 		
 		// add it to the data associated with this panel if this is a panel pkql
 		// also add the panel id to the master
@@ -147,7 +152,7 @@ public class PKQLRunner {
 		this.response = response;
 	}
 	
-	public void setStatus(String currentStatus) {
+	public void setStatus(PKQLRunner.STATUS currentStatus) {
 		this.currentStatus = currentStatus;
 	}
 	

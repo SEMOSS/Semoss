@@ -9,6 +9,7 @@ import java.util.Vector;
 import prerna.ds.TinkerFrame;
 import prerna.ds.util.FileIterator;
 import prerna.engine.api.IHeadersDataRow;
+import prerna.sablecc.PKQLRunner.STATUS;
 import prerna.util.Utility;
 
 public class TinkerImportDataReactor extends ImportDataReactor{
@@ -69,7 +70,7 @@ public class TinkerImportDataReactor extends ImportDataReactor{
 		}
 		
 		inputResponseString(it, headers);
-		myStore.put("STATUS", "SUCCESS");
+		myStore.put("STATUS", STATUS.SUCCESS);
 		
 		return null;
 	}
