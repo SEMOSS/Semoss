@@ -894,6 +894,12 @@ public class H2Builder {
 				e.printStackTrace();
 			}
 		}
+		
+		try {
+			runQuery(makeDropTable(newTableName));
+		} catch(Exception e) {
+			e.printStackTrace();
+		}
     }
     
     /**
@@ -981,67 +987,64 @@ public class H2Builder {
     	}
     }
     
-    private void processAlterAsNewTable(String selectQuery, String joinType, String[] headers)
-    {
-    	try {
-			// I need to get the names and types here
-			// and then do the same magic as before
-
-    		ResultSet rs = executeQuery(selectQuery);
-			
-			String [] oldHeaders = headers;
-//			String [] oldTypes = types;
-			
-			
-			int numCols = rs.getMetaData().getColumnCount();
-			String [] newHeaders = new String[numCols];
-			String [] newTypes = new String[numCols];
-			
-			ResultSetMetaData rsmd = rs.getMetaData();	
-			for(int colIndex = 1;colIndex <= numCols;colIndex++)
-			{
-				// set the name and type
-				int arrIndex = colIndex - 1;
-				newHeaders[arrIndex] = rsmd.getColumnLabel(colIndex);
-				newTypes[arrIndex] = rsmd.getColumnTypeName(colIndex);
-			}
-			
-			Hashtable <Integer, Integer> matchers = new Hashtable <Integer, Integer>();
-			String oldTable = tableName;
-			String newTable = "TINKERTABLE" + getNextNumber() ;
-			// now I need a creator
-			String creator = "Create table " + newTable+ " AS "  + selectQuery;
-			getConnection().createStatement().execute(creator);
-			
-			// find the matchers
-    		// I need to find which ones are already there and which ones are new
-    		for(int hIndex = 0;hIndex < newHeaders.length;hIndex++)
-    		{
-    			String uheader = newHeaders[hIndex];
-    			uheader = cleanHeader(uheader);
-
-    			boolean old = false;
-    			for(int oIndex = 0;oIndex < headers.length;oIndex++)
-    			{
-    				if(headers[oIndex].equalsIgnoreCase(uheader))
-    				{
-    					old = true;
-    					matchers.put(hIndex, oIndex);
-    					break;
-    				}
-    			}
-    		}
-			
-			mergeTables(oldTable, newTable, matchers, oldHeaders, newHeaders, joinType);
-			
-		} catch (SQLException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
-    	
-    	
-    	
-    }
+//    private void processAlterAsNewTable(String selectQuery, String joinType, String[] headers)
+//    {
+//    	try {
+//			// I need to get the names and types here
+//			// and then do the same magic as before
+//
+//    		ResultSet rs = executeQuery(selectQuery);
+//			
+//			String [] oldHeaders = headers;
+////			String [] oldTypes = types;
+//			
+//			
+//			int numCols = rs.getMetaData().getColumnCount();
+//			String [] newHeaders = new String[numCols];
+//			String [] newTypes = new String[numCols];
+//			
+//			ResultSetMetaData rsmd = rs.getMetaData();	
+//			for(int colIndex = 1;colIndex <= numCols;colIndex++)
+//			{
+//				// set the name and type
+//				int arrIndex = colIndex - 1;
+//				newHeaders[arrIndex] = rsmd.getColumnLabel(colIndex);
+//				newTypes[arrIndex] = rsmd.getColumnTypeName(colIndex);
+//			}
+//			
+//			Hashtable <Integer, Integer> matchers = new Hashtable <Integer, Integer>();
+//			String oldTable = tableName;
+//			String newTable = "TINKERTABLE" + getNextNumber() ;
+//			// now I need a creator
+//			String creator = "Create table " + newTable+ " AS "  + selectQuery;
+//			getConnection().createStatement().execute(creator);
+//			
+//			// find the matchers
+//    		// I need to find which ones are already there and which ones are new
+//    		for(int hIndex = 0;hIndex < newHeaders.length;hIndex++)
+//    		{
+//    			String uheader = newHeaders[hIndex];
+//    			uheader = cleanHeader(uheader);
+//
+//    			boolean old = false;
+//    			for(int oIndex = 0;oIndex < headers.length;oIndex++)
+//    			{
+//    				if(headers[oIndex].equalsIgnoreCase(uheader))
+//    				{
+//    					old = true;
+//    					matchers.put(hIndex, oIndex);
+//    					break;
+//    				}
+//    			}
+//    		}
+//			
+//			mergeTables(oldTable, newTable, matchers, oldHeaders, newHeaders, joinType);
+//			
+//		} catch (SQLException e) {
+//			// TODO Auto-generated catch block
+//			e.printStackTrace();
+//		}
+//    }
     
     //turn the wrapper data to double array
     private String[][] getData(ISelectWrapper wrapper) {
@@ -1471,7 +1474,7 @@ public class H2Builder {
 			stmt.execute(finalQuery);
 			
 			runQuery(makeDropTable(tableName1));
-			runQuery(makeDropTable(tableName2));
+//			runQuery(makeDropTable(tableName2));
 			
 			runQuery("ALTER TABLE " + tableName + " RENAME TO " + origTableName);
 			this.tableName = origTableName;
