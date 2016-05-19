@@ -1066,9 +1066,15 @@ public class Translation2 extends DepthFirstAdapter {
     }
 	
     public ITableDataFrame getDataFrame() {
-    	ITableDataFrame table = (ITableDataFrame)this.curReactor.getValue("G");
-    	if(table == null)
-    		return this.frame;
-    	return table;
+    	if(this.curReactor!=null){
+	    	ITableDataFrame table = (ITableDataFrame)this.curReactor.getValue("G");
+	    	if(table == null){
+	    		return this.frame;
+	    	}
+	    	return table;
+    	}
+    	else {
+    		return null;
+    	}
     }
 }
