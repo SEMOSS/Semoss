@@ -32,6 +32,7 @@ import java.awt.event.MouseListener;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.Hashtable;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -139,7 +140,7 @@ public class TFInstanceRelationQueryBuilderPopup extends JMenu implements MouseL
 					addLabel("From:");
 					Collection<String> upstreamRels = upstream.keySet();
 					for(String upstreamRel: upstreamRels){
-						Map<String,String> specificNodes = (Map<String,String>) ((Map<String, Object>) upstream).get(upstreamRel);
+						Map<String,Hashtable> specificNodes = (Map<String,Hashtable>) ((Map<String, Object>) upstream).get(upstreamRel);
 						for(String logicalName : specificNodes.keySet()){
 							List<Object> filterList = new ArrayList<Object>();
 							filterList.add(uri);
@@ -147,8 +148,8 @@ public class TFInstanceRelationQueryBuilderPopup extends JMenu implements MouseL
 //							String instance = Utility.getInstanceName(Utility.getTransformedNodeName(engine, node, true));
 							QueryStruct data = new QueryStruct();
 							data.addSelector(type, null);
-							data.addSelector(specificNodes.get(logicalName), null);
-							data.addRelation(specificNodes.get(logicalName), type, "inner.join");
+							data.addSelector(specificNodes.get(logicalName).get("physicalName") + "", null);
+							data.addRelation(specificNodes.get(logicalName).get("physicalName") + "", type, "inner.join");
 							data.addFilter(type, "=", filterList);
 							DataMakerComponent dmc = new DataMakerComponent(engine, data);
 							addJoinTransformation(dmc, type, type);
@@ -164,7 +165,7 @@ public class TFInstanceRelationQueryBuilderPopup extends JMenu implements MouseL
 					addLabel("To:");
 					Collection<String> downstreamRels = downstream.keySet();
 					for(String downstreamRel: downstreamRels){
-						Map<String,String> specificNodes = (Map<String,String>) ((Map<String, Object>) downstream).get(downstreamRel);
+						Map<String,Hashtable> specificNodes = (Map<String,Hashtable>) ((Map<String, Object>) downstream).get(downstreamRel);
 						for(String logicalName : specificNodes.keySet()){
 							List<Object> filterList = new ArrayList<Object>();
 							filterList.add(uri);
@@ -172,8 +173,8 @@ public class TFInstanceRelationQueryBuilderPopup extends JMenu implements MouseL
 //							String instance = Utility.getInstanceName(Utility.getTransformedNodeName(engine, node, true));
 							QueryStruct data = new QueryStruct();
 							data.addSelector(type, null);
-							data.addSelector(specificNodes.get(logicalName), null);
-							data.addRelation(type, specificNodes.get(logicalName), "inner.join");
+							data.addSelector(specificNodes.get(logicalName).get("physicalName") + "", null);
+							data.addRelation(type, specificNodes.get(logicalName).get("physicalName") + "", "inner.join");
 							data.addFilter(type, "=", filterList);
 							DataMakerComponent dmc = new DataMakerComponent(engine, data);
 							addJoinTransformation(dmc, type, type);
