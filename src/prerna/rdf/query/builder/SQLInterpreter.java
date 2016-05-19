@@ -89,21 +89,49 @@ public class SQLInterpreter implements IQueryInterpreter{
 		}
 		
 		// filters
-		Enumeration wheres = whereHash.keys();
+//		Enumeration wheres = whereHash.keys();
+//		firstTime = true;
+//		while(wheres.hasMoreElements())
+//		{
+//			String value = whereHash.get(wheres.nextElement());
+////			if(value.contains(" OR "))
+//				value = " ( " + value + " ) ";
+//			
+//			if(firstTime)
+//			{
+//				query = query + " WHERE " + value;
+//				firstTime = false;
+//			}
+//			else
+//				query = query + " AND " + value;
+//		}
+		
 		firstTime = true;
-		while(wheres.hasMoreElements())
+		for (String key : whereHash.keySet())
 		{
-			String value = whereHash.get(wheres.nextElement());
-			if(value.contains(" OR "))
+			String value = whereHash.get(key);
+			
+			String[] conceptKey = key.split(":::");
+			String concept = conceptKey[0];
+			String property = conceptKey[1];
+			String comparator = conceptKey[2];
+			
+			String conceptString = "";
+			if(comparator.trim().equals("=")) {
+				conceptString = getAlias(concept) + "." + property +" IN ";
+			}
+			
+			if(comparator.trim().equals("=") || value.contains(" OR ")) {
 				value = " ( " + value + " ) ";
+			}
 			
 			if(firstTime)
 			{
-				query = query + " WHERE " + value;
+				query = query + " WHERE " + conceptString + value;
 				firstTime = false;
 			}
 			else
-				query = query + " AND " + value;
+				query = query + " AND " + conceptString + value;
 		}
 
 		System.out.println("QUERY....  " + query);
@@ -274,8 +302,14 @@ public class SQLInterpreter implements IQueryInterpreter{
 				// usually these are or ?
 				// so I am saying if something is
 
-				for(int optIndex = 0;optIndex < options.size(); optIndex++){
-					addFilter(concept, property, thisComparator, options.get(optIndex) + "");
+				if(thisComparator == null || thisComparator.trim().equals("=")) {
+					for(int optIndex = 0;optIndex < options.size(); optIndex++){
+						addEqualsFilter(concept, property, thisComparator, options.get(optIndex) + "");
+					}
+				} else {
+					for(int optIndex = 0;optIndex < options.size(); optIndex++){
+						addFilter(concept, property, thisComparator, options.get(optIndex)+"");
+					}
 				}
 			}
 		}
@@ -286,7 +320,7 @@ public class SQLInterpreter implements IQueryInterpreter{
 			String thisComparator, String object) {
 		// TODO Auto-generated method stub
 		String thisWhere = "";
-		String key = concept + property + thisComparator;
+		String key = concept +":::"+ property +":::"+ thisComparator;
 		if(!whereHash.containsKey(key))
 		{
 			if(object instanceof String) // ok this is a string
@@ -317,6 +351,41 @@ public class SQLInterpreter implements IQueryInterpreter{
 		whereHash.put(key, thisWhere);
 	}
 	
+	//we want the filter query to be: "... where table.column in ('value1', 'value2', ...) when the comparator is '='
+	private void addEqualsFilter(String concept, String property,
+			String thisComparator, String object) {
+		// TODO Auto-generated method stub
+		String thisWhere = "";
+		String key = concept +":::"+ property +":::"+ thisComparator;
+		if(!whereHash.containsKey(key))
+		{
+			if(object instanceof String) // ok this is a string
+			{
+				object = object.replace("\"", ""); // get rid of the space
+				object = object.replaceAll("'", "''");
+				object = object.trim();
+				object = "\'" + object + "\'";
+				//thisWhere = getAlias(concept) + "." + property + " " + thisComparator + " " + object;
+			}
+			thisWhere = object;		
+			
+		}
+		else
+		{
+			thisWhere = whereHash.get(key);
+			if(object instanceof String) // ok this is a string
+			{
+				object = object.replaceAll("\"", ""); // get rid of the space
+				object = object.replaceAll("'", "''");
+				object = object.trim();
+				object = "\'" + object + "\'";
+				//thisWhere = getAlias(concept) + "." + property + " " + thisComparator + " " + object;
+			}
+			thisWhere = thisWhere + ", " +object;						
+		}
+	//	System.out.println("WHERE " + thisWhere);
+		whereHash.put(key, thisWhere);
+	}
 	public void addJoins()
 	{
 		// full and final and we are here
