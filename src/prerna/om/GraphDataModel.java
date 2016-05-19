@@ -619,7 +619,7 @@ public class GraphDataModel implements IDataMaker {
 			String propName = this.getDisplayName(predicate); //Utility.getInstanceName(this.getDisplayName(subjectInstance +"%"+ predicate));
 			if (vert1.getProperty(propName)==null) {
 				if(this.subclassCreate && object instanceof LiteralImpl && ((LiteralImpl)object).getLabel().isEmpty()){
-					object = Utility.getInstanceName(predicate);
+					object = Utility.getInstanceName(this.getDisplayName(predicate));
 				}
 				vert1.setProperty(propName, object);
 				storeVert(vert1);
