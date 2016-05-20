@@ -2270,19 +2270,25 @@ public class BTreeDataFrame implements ITableDataFrame {
 	}
 
 	@Override
-	public IScriptReactor getImportDataReactor() {
-		// TODO Auto-generated method stub
-		return null;
-	}
-
-	@Override
 	public void setDerivedColumn(String uniqueName, boolean isDerived) {
 		// TODO Auto-generated method stub
 		
 	}
 
 	@Override
-	public IScriptReactor getColAddReactor() {
+	public void setDerviedCalculation(String uniqueName, String calculationName) {
+		// TODO Auto-generated method stub
+		
+	}
+
+	@Override
+	public void setDerivedUsing(String uniqueName, String... otherUniqueNames) {
+		// TODO Auto-generated method stub
+		
+	}
+
+	@Override
+	public IScriptReactor getReactor(DATA_FRAME_REACTORS reactorType) {
 		// TODO Auto-generated method stub
 		return null;
 	}

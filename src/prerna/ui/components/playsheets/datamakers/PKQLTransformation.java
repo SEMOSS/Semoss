@@ -12,7 +12,6 @@ import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.reflect.TypeToken;
 
-import prerna.algorithm.api.ITableDataFrame;
 import prerna.sablecc.PKQLRunner;
 
 public class PKQLTransformation extends AbstractTransformation {
@@ -57,7 +56,7 @@ public class PKQLTransformation extends AbstractTransformation {
 		int numOldCmds = runner.getResults().size();
 		
 		String expression = props.get(EXPRESSION) + "";		
-		runner.runPKQL(expression, (ITableDataFrame) this.dm);
+		runner.runPKQL(expression, (IDataMaker) this.dm);
 //		this.dm = runner.getDataFrame();
 		this.feData.putAll(runner.getFeData());
 		if(runner.getNewColumns() != null) {

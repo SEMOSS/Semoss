@@ -28,6 +28,7 @@
 package prerna.om;
 
 import java.util.Hashtable;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Vector;
@@ -57,6 +58,7 @@ import com.hp.hpl.jena.rdf.model.Resource;
 import prerna.engine.api.IConstructStatement;
 import prerna.engine.api.IConstructWrapper;
 import prerna.engine.api.IEngine;
+import prerna.engine.api.IScriptReactor;
 import prerna.engine.impl.AbstractEngine;
 import prerna.engine.impl.rdf.InMemoryJenaEngine;
 import prerna.engine.impl.rdf.InMemorySesameEngine;
@@ -65,6 +67,7 @@ import prerna.engine.impl.rdf.SesameJenaConstructStatement;
 import prerna.engine.impl.rdf.SesameJenaSelectCheater;
 import prerna.engine.impl.rdf.SesameJenaUpdateWrapper;
 import prerna.rdf.engine.wrappers.WrapperManager;
+import prerna.sablecc.GDMImportDataReactor;
 import prerna.ui.components.GraphOWLHelper;
 import prerna.ui.components.PropertySpecData;
 import prerna.ui.components.RDFEngineHelper;
@@ -95,14 +98,14 @@ public class GraphDataModel implements IDataMaker {
 	public RDFFileSesameEngine baseRelEngine = null;
 	public Hashtable baseFilterHash = new Hashtable();
 	Model jenaModel = null;
-	Model curModel = null;
+	public Model curModel = null;
 	public int modelCounter = 0;
 	public Vector <Model> modelStore = new Vector<Model>();
 	String containsRelation;
 	public Vector <RepositoryConnection> rcStore = new Vector<RepositoryConnection>();
 	public PropertySpecData predData = new PropertySpecData();
-	StringBuffer subjects = new StringBuffer("");
-	StringBuffer objects = new StringBuffer("");
+	public StringBuffer subjects = new StringBuffer("");
+	public StringBuffer objects = new StringBuffer("");
 
 	private boolean isPhysicalMetamodel = false;
 	private static final String PHYSICAL_NAME = "PhysicalName";
@@ -168,6 +171,35 @@ public class GraphDataModel implements IDataMaker {
 		}
 
 		processData(query, engine);
+		processTraverseCourse();
+	}
+	
+	public void overlayData(Iterator<IConstructStatement> it, IEngine engine){
+
+		subjects = new StringBuffer(""); // remove from the old one
+		objects = new StringBuffer(""); // remove fromt he old one
+
+		curModel = null;
+		curRC = null;
+		incrementalVertStore = new Hashtable<String, SEMOSSVertex>();
+		incrementalVertPropStore = new Hashtable<String, SEMOSSVertex>();
+		incrementalEdgeStore = new Hashtable<String, SEMOSSEdge>();
+
+		logger.info("Creating the new model");
+		try {
+			Repository myRepository2 = new SailRepository(
+					new ForwardChainingRDFSInferencer(
+							new MemoryStore()));
+			myRepository2.initialize();
+
+			curRC = myRepository2.getConnection();
+			curModel = ModelFactory.createDefaultModel();
+
+		} catch (RepositoryException e) {
+			e.printStackTrace();
+		}
+
+		processData(it, engine);
 		processTraverseCourse();
 	}
 
@@ -264,22 +296,8 @@ public class GraphDataModel implements IDataMaker {
 			logger.info("Loaded Graph");
 		}
 	}
-
-	public void processData(String query, IEngine engine) {
-		this.coreEngine = engine; // right now we need this for logical names... really shouldn't be needed in this class at all
-		this.coreQuery = query;
-
-		// open up the engine
-		String queryCap = query.toUpperCase();
-
-		//SesameJenaConstructWrapper sjw = null;
-		IConstructWrapper sjw = null;
-
-		if(queryCap.startsWith("CONSTRUCT"))
-			sjw = WrapperManager.getInstance().getCWrapper(engine, query);
-		else
-			sjw = WrapperManager.getInstance().getChWrapper(engine, query);
-
+	
+	public void processData(Iterator<IConstructStatement> sjw, IEngine engine) {
 		/*logger.debug("Query is " + query);
 		sjw.setEngine(engine);
 		sjw.setQuery(query);
@@ -450,6 +468,24 @@ public class GraphDataModel implements IDataMaker {
 			e.printStackTrace();
 		}	
 		modelCounter++;
+	}
+
+	public void processData(String query, IEngine engine) {
+		this.coreEngine = engine; // right now we need this for logical names... really shouldn't be needed in this class at all
+		this.coreQuery = query;
+
+		// open up the engine
+		String queryCap = query.toUpperCase();
+
+		//SesameJenaConstructWrapper sjw = null;
+		IConstructWrapper sjw = null;
+
+		if(queryCap.startsWith("CONSTRUCT"))
+			sjw = WrapperManager.getInstance().getCWrapper(engine, query);
+		else
+			sjw = WrapperManager.getInstance().getChWrapper(engine, query);
+
+		processData(sjw, engine);
 	}
 
 	/**
@@ -1236,13 +1272,11 @@ public class GraphDataModel implements IDataMaker {
 
 	@Override
 	public void processPostTransformations(DataMakerComponent dmc, List<ISEMOSSTransformation> transforms, IDataMaker... dataFrame) {
-		// TODO Auto-generated method stub
-		// TODO Auto-generated method stub
-		// TODO Auto-generated method stub
-		// TODO Auto-generated method stub
-		// TODO Auto-generated method stub
-		// TODO Auto-generated method stub
-
+		for(ISEMOSSTransformation transform : transforms){
+			transform.setDataMakers(this);
+			transform.setDataMakerComponent(dmc);
+			transform.runMethod();
+		}
 	}
 
 	@Override
@@ -1281,5 +1315,16 @@ public class GraphDataModel implements IDataMaker {
 			retHash.put("edges", this.getEdgeStore().values());
 //		}
 		return retHash;
+	}
+
+	@Override
+	public IScriptReactor getReactor(DATA_FRAME_REACTORS reactorType) {
+		switch(reactorType) {
+			case IMPORT_DATA : return new GDMImportDataReactor();
+			// incase we ever add more reactors for gdm
+//			case COL_ADD : return new ColAddReactor();
+		}
+		
+		return null;
 	}
 }

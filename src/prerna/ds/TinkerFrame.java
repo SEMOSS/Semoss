@@ -2310,14 +2310,14 @@ public class TinkerFrame extends AbstractTableDataFrame {
 		// TODO Auto-generated method stub
 		
 	}
-
-	@Override
-	public IScriptReactor getImportDataReactor() {
-		return new TinkerImportDataReactor();
-	}
 	
 	@Override
-	public IScriptReactor getColAddReactor() {
-		return new TinkerColAddReactor();
+	public IScriptReactor getReactor(DATA_FRAME_REACTORS reactorType) {
+		switch(reactorType) {
+			case IMPORT_DATA : return new TinkerImportDataReactor();
+			case COL_ADD : return new TinkerColAddReactor();
+		}
+		
+		return null;
 	}
 }

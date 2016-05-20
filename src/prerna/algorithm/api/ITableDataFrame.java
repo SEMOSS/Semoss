@@ -543,7 +543,7 @@ public interface ITableDataFrame extends IDataMaker {
 	
 	void setDerivedColumn(String uniqueName, boolean isDerived);
 	
-	IScriptReactor getImportDataReactor();
-
-	IScriptReactor getColAddReactor();
+	void setDerviedCalculation(String uniqueName, String calculationName);
+	
+	void setDerivedUsing(String uniqueName, String... otherUniqueNames);
 }

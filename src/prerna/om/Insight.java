@@ -268,7 +268,7 @@ public class Insight {
 	
 	public void setPkqlRunner(PKQLRunner pkqlRunner){
 		this.pkqlRunner = pkqlRunner;
-		ITableDataFrame frame = pkqlRunner.getDataFrame();
+		IDataMaker frame = pkqlRunner.getDataFrame();
 		if(frame!=null){
 			setDataMaker(frame);
 		}
