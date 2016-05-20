@@ -13,7 +13,6 @@ import prerna.ds.QueryStruct;
 import prerna.ds.util.FileIterator;
 import prerna.engine.api.IApi;
 import prerna.engine.api.IEngine;
-import prerna.engine.api.ISelectWrapper;
 import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.rdf.query.builder.IQueryInterpreter;
 import prerna.util.DIHelper;
@@ -23,6 +22,7 @@ public class QueryAPI implements IApi {
 	
 	Hashtable <String, Object> values = new Hashtable<String, Object>();
 	String [] params = {"QUERY_STRUCT", "ENGINE"};
+	public static final String USE_CHEATER = "useCheater";
 	
 	@Override
 	public void set(String key, Object value) {
@@ -45,10 +45,11 @@ public class QueryAPI implements IApi {
 			String query = interp.composeQuery();
 			
 			// play
-			ISelectWrapper wrapper = WrapperManager.getInstance().getSWrapper(engine, query);
-			
-			// give back
-			return wrapper;
+			if(values.containsKey(QueryAPI.USE_CHEATER) && (boolean) values.get(QueryAPI.USE_CHEATER)) {
+				return WrapperManager.getInstance().getChWrapper(engine, query);
+			} else {
+				return WrapperManager.getInstance().getSWrapper(engine, query);
+			}
 			
 		} 
 		else {
