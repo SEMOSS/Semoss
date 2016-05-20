@@ -35,6 +35,7 @@ import prerna.engine.impl.r.RRunner;
 import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.rdf.query.builder.IQueryInterpreter;
 import prerna.rdf.query.builder.SQLInterpreter;
+import prerna.sablecc.ColAddReactor;
 import prerna.sablecc.H2ImportDataReactor;
 import prerna.ui.components.playsheets.datamakers.DataMakerComponent;
 import prerna.ui.components.playsheets.datamakers.ISEMOSSTransformation;
@@ -930,8 +931,13 @@ public class TinkerH2Frame extends AbstractTableDataFrame {
 	}
 	
 	@Override
-	public IScriptReactor getImportDataReactor() {
-		return new H2ImportDataReactor();
+	public IScriptReactor getReactor(DATA_FRAME_REACTORS reactorType) {
+		switch(reactorType) {
+			case IMPORT_DATA : return new H2ImportDataReactor();
+			case COL_ADD : return new ColAddReactor();
+		}
+		
+		return null;
 	}
 	
 	public void processIterator(Iterator<IHeadersDataRow> iterator, String[] newHeaders, Map<String, String> logicalToValue, Vector<Map<String, String>> joins, String joinType) {

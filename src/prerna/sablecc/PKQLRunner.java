@@ -15,12 +15,12 @@ import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
 
 import cern.colt.Arrays;
-import prerna.algorithm.api.ITableDataFrame;
 import prerna.sablecc.lexer.Lexer;
 import prerna.sablecc.lexer.LexerException;
 import prerna.sablecc.node.Start;
 import prerna.sablecc.parser.Parser;
 import prerna.sablecc.parser.ParserException;
+import prerna.ui.components.playsheets.datamakers.IDataMaker;
 
 public class PKQLRunner {
 	
@@ -36,7 +36,7 @@ public class PKQLRunner {
 	private Translation2 translation;
 	private List<Map> responseArray = new Vector<Map>();
 	
-	public void runPKQL(String expression, ITableDataFrame f) {
+	public void runPKQL(String expression, IDataMaker f) {
 		
 		Parser p = new Parser(new Lexer(new PushbackReader(new InputStreamReader(new StringBufferInputStream(expression)), 1024)));
 		Start tree;
@@ -202,7 +202,7 @@ public class PKQLRunner {
 		return this.masterFeMap;
 	}
 	
-	public ITableDataFrame getDataFrame() {
+	public IDataMaker getDataFrame() {
 		if(translation != null) {
 			return translation.getDataFrame();
 		}

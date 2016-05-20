@@ -34,6 +34,7 @@ import java.util.Map;
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
+import prerna.engine.api.IScriptReactor;
 import prerna.ui.components.playsheets.datamakers.DataMakerComponent;
 import prerna.ui.components.playsheets.datamakers.IDataMaker;
 import prerna.ui.components.playsheets.datamakers.ISEMOSSAction;
@@ -151,6 +152,12 @@ public class MashupPlaySheet extends AbstractPlaySheet implements IDataMaker {
 
 	@Override
 	public List<Object> getActionOutput() {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+	@Override
+	public IScriptReactor getReactor(DATA_FRAME_REACTORS reactorType) {
 		// TODO Auto-generated method stub
 		return null;
 	}

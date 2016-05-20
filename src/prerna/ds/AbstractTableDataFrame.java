@@ -144,6 +144,16 @@ public abstract class AbstractTableDataFrame implements ITableDataFrame {
 	public void setDerivedColumn(String uniqueName, boolean isDerived) {
 		this.metaData.setDerived(uniqueName, isDerived);
 	}
+	
+	@Override
+	public void setDerviedCalculation(String uniqueName, String calculationName) {
+		this.metaData.setDerivedCalculation(uniqueName, calculationName);
+	}
+	
+	@Override
+	public void setDerivedUsing(String uniqueName, String... otherUniqueNames) {
+		this.metaData.setDerivedUsing(uniqueName, otherUniqueNames);
+	}
 
 	@Override
 	public void processPreTransformations(DataMakerComponent dmc, List<ISEMOSSTransformation> transforms) {
@@ -675,7 +685,7 @@ public abstract class AbstractTableDataFrame implements ITableDataFrame {
 
 		return uniV.toArray();
 	}
-
+	
 	public List<String> getSelectors() {
 		List<String> selectors = new ArrayList<String>();
 		for(int i = 0; i < headerNames.length; i++) {
@@ -685,10 +695,4 @@ public abstract class AbstractTableDataFrame implements ITableDataFrame {
 		}
 		return selectors;
 	}
-	
-	@Override
-	public IScriptReactor getColAddReactor() {
-		return new ColAddReactor();
-	}
-	
 }

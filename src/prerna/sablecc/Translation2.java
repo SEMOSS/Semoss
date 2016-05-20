@@ -68,7 +68,8 @@ import prerna.sablecc.node.AUnfilterColumn;
 import prerna.sablecc.node.AVarop;
 import prerna.sablecc.node.AVaropScript;
 import prerna.sablecc.node.Node;
-import prerna.util.Utility;
+import prerna.ui.components.playsheets.datamakers.IDataMaker;
+import prerna.ui.components.playsheets.datamakers.IDataMaker.DATA_FRAME_REACTORS;
 
 public class Translation2 extends DepthFirstAdapter {
 	// this is the third version of this shit I am building
@@ -95,7 +96,7 @@ public class Translation2 extends DepthFirstAdapter {
 	// b. What is the name of the reactor
 	
 	Hashtable <String, String> reactorNames = new Hashtable<String, String>();
-	ITableDataFrame frame = null;
+	IDataMaker frame = null;
 	PKQLRunner runner = null;
 	
 	public Translation2() { // Test Constructor
@@ -109,7 +110,7 @@ public class Translation2 extends DepthFirstAdapter {
 	 * @param frame IDataMaker: either TinkerFrame or TinkerH2Frame
 	 * @param runner PKQLRunner: holds response from PKQL script and the status of whether the script errored or not
 	 */
-	public Translation2(ITableDataFrame frame, PKQLRunner runner) {
+	public Translation2(IDataMaker frame, PKQLRunner runner) {
 		// now get the data from tinker
 		this.frame = frame;
 		this.runner = runner;
@@ -581,15 +582,26 @@ public class Translation2 extends DepthFirstAdapter {
 			ExprReactor thisReactor = (ExprReactor)thisReactorHash.get(PKQLEnum.EXPR_TERM);
 			String expr = (String)thisReactor.getValue(PKQLEnum.EXPR_TERM);
 			Object objVal = thisReactor.getValue(PKQLEnum.COL_DEF);
-			if(objVal instanceof Collection) {
-				Collection<? extends Object> values = (Collection<? extends Object>) objVal;
-				for(Object obj : values) {
-					curReactor.set("COL_DEF", obj);
+			if(objVal != null) {
+				if(objVal instanceof Collection) {
+					Collection<? extends Object> values = (Collection<? extends Object>) objVal;
+					for(Object obj : values) {
+						curReactor.set(PKQLEnum.COL_DEF, obj);
+					}
+				} else {
+					curReactor.set(PKQLEnum.COL_DEF, objVal);
 				}
-			} else {
-				curReactor.set("COL_DEF", objVal);
 			}
 			
+			// this commented out code is part of the shift to getting derived calculation info
+//			objVal = thisReactor.getValue(PKQLEnum.COL_CSV);
+//			if(objVal != null) {
+//				curReactor.put(PKQLEnum.COL_CSV, objVal);
+//			}
+//			objVal = thisReactor.getValue(PKQLEnum.PROC_NAME);
+//			if(objVal != null) {
+//				curReactor.put(PKQLEnum.PROC_NAME, objVal);
+//			}
 			curReactor.addReplacer(expr, thisReactor.getValue(expr));
 //			runner.setResponse(thisReactor.getValue(expr));
 //			runner.setStatus((String)thisReactor.getValue("STATUS"));
@@ -701,7 +713,7 @@ public class Translation2 extends DepthFirstAdapter {
 	@Override
 	public void inAAddColumn(AAddColumn node) {
 		if(reactorNames.containsKey(PKQLEnum.COL_ADD)) {
-			IScriptReactor reactor = frame.getColAddReactor();
+			IScriptReactor reactor = frame.getReactor(DATA_FRAME_REACTORS.COL_ADD);
 			reactorNames.put(PKQLEnum.COL_ADD, (reactor.getClass() + "").replaceFirst("class ", ""));
 			
 			initReactor(PKQLEnum.COL_ADD);
@@ -765,7 +777,7 @@ public class Translation2 extends DepthFirstAdapter {
 		if(reactorNames.containsKey(PKQLEnum.IMPORT_DATA)) {
 			// make the determination to say if this is a frame.. yes it is
 			/// if it is so change the reactor to the new reactor
-			IScriptReactor reactor = frame.getImportDataReactor();
+			IScriptReactor reactor = frame.getReactor(DATA_FRAME_REACTORS.IMPORT_DATA);
 			reactorNames.put(PKQLEnum.IMPORT_DATA, (reactor.getClass() + "").replaceFirst("class ", ""));
 			
 			initReactor(PKQLEnum.IMPORT_DATA);
@@ -903,8 +915,8 @@ public class Translation2 extends DepthFirstAdapter {
 		Hashtable <String, Object> thisReactorHash = deinitReactor(PKQLReactor.MATH_FUN.toString(), expr, nodeStr);
 		IScriptReactor previousReactor = (IScriptReactor)thisReactorHash.get(PKQLReactor.MATH_FUN.toString());
 		curReactor.put(PKQLEnum.COL_DEF, previousReactor.getValue(PKQLEnum.COL_DEF)); //TODO: use syncronize instead
-//		curReactor.put(PKQLEnum.PROC_NAME, previousReactor.getValue(PKQLEnum.PROC_NAME));
-//		curReactor.put(PKQLEnum.COL_CSV, previousReactor.getValue(PKQLEnum.COL_CSV));
+		curReactor.put(PKQLEnum.PROC_NAME, previousReactor.getValue(PKQLEnum.PROC_NAME));
+		curReactor.put(PKQLEnum.COL_CSV, previousReactor.getValue(PKQLEnum.COL_CSV));
 		curReactor.addReplacer(nodeStr, previousReactor.getValue(expr));
 		runner.setResponse(previousReactor.getValue(expr));
 		runner.setStatus((STATUS)previousReactor.getValue("STATUS"));
@@ -1065,9 +1077,9 @@ public class Translation2 extends DepthFirstAdapter {
     	runner.setStatus(STATUS.SUCCESS);
     }
 	
-    public ITableDataFrame getDataFrame() {
+    public IDataMaker getDataFrame() {
     	if(this.curReactor!=null){
-	    	ITableDataFrame table = (ITableDataFrame)this.curReactor.getValue("G");
+    		IDataMaker table = (IDataMaker)this.curReactor.getValue("G");
 	    	if(table == null){
 	    		return this.frame;
 	    	}

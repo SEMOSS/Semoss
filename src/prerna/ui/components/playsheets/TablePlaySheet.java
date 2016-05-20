@@ -41,6 +41,7 @@ import org.apache.log4j.Logger;
 import prerna.algorithm.api.ITableDataFrame;
 import prerna.ds.BTreeDataFrame;
 import prerna.engine.api.IEngine;
+import prerna.engine.api.IScriptReactor;
 import prerna.om.InsightStore;
 import prerna.ui.components.GridFilterData;
 import prerna.ui.components.GridRAWTableModel;
@@ -290,6 +291,11 @@ public class TablePlaySheet extends AbstractPlaySheet implements IDataMaker{
 
 	@Override
 	public List<Object> getActionOutput() {
+		return null;
+	}
+
+	@Override
+	public IScriptReactor getReactor(DATA_FRAME_REACTORS reactorType) {
 		return null;
 	}
 }

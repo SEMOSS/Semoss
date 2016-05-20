@@ -16,6 +16,7 @@ import prerna.ds.H2.TinkerH2Frame;
 import prerna.engine.api.IApi;
 import prerna.engine.api.RApi;
 import prerna.engine.impl.rdf.QueryAPI;
+import prerna.ui.components.playsheets.datamakers.IDataMaker;
 
 public class ApiReactor extends AbstractReactor {
 
@@ -93,63 +94,73 @@ public class ApiReactor extends AbstractReactor {
 
 		//for each inner join we want to add filters to the query struct
 		//that way only the pieces we need come from the database
-		ITableDataFrame frame = (ITableDataFrame)myStore.get("G");
-		Vector<Hashtable> tableJoins = (Vector<Hashtable>) myStore.get("TABLE_JOINS");
-		if(tableJoins != null) {
-			for(Hashtable join : tableJoins) {
-				
-				String fromColumn = (String)join.get(PKQLEnum.FROM_COL); //what is in my table
-				String toColumn = (String)join.get(PKQLEnum.TO_COL); //what is coming to my table
-				String joinType = (String)join.get(PKQLEnum.REL_TYPE);
-				if(joinType.equalsIgnoreCase("inner.join") || joinType.equalsIgnoreCase("left.outer.join")) {
-//				if(joinType.equalsIgnoreCase("inner.join")) {
-					String[] columnHeaders = frame.getColumnHeaders();
+		IDataMaker dm = (IDataMaker) myStore.get("G");
+		if(dm instanceof ITableDataFrame) {
+			ITableDataFrame frame = (ITableDataFrame)dm;
+			Vector<Hashtable> tableJoins = (Vector<Hashtable>) myStore.get("TABLE_JOINS");
+			if(tableJoins != null) {
+				for(Hashtable join : tableJoins) {
 					
-					//figure out which is the new column and which already exists in the table
-					Iterator<Object> rowIt = null;
-	//				String filterColumn = null;
-	//				if(ArrayUtilityMethods.arrayContainsValue(columnHeaders, fromColumn)) {
-	//					filterColumn = fromColumn;
-	//				} else if(ArrayUtilityMethods.arrayContainsValue(columnHeaders, toColumn)) {
-	//					filterColumn = toColumn;
-	//				}
-					
-					//we want to add filters to the column that already exists in the table
-					if(fromColumn != null && toColumn != null) {
-						rowIt = frame.uniqueValueIterator(fromColumn, false, false);
-						List<Object> uris = new Vector<Object>();
+					String fromColumn = (String)join.get(PKQLEnum.FROM_COL); //what is in my table
+					String toColumn = (String)join.get(PKQLEnum.TO_COL); //what is coming to my table
+					String joinType = (String)join.get(PKQLEnum.REL_TYPE);
+					if(joinType.equalsIgnoreCase("inner.join") || joinType.equalsIgnoreCase("left.outer.join")) {
+	//				if(joinType.equalsIgnoreCase("inner.join")) {
+						String[] columnHeaders = frame.getColumnHeaders();
 						
-						//collect all the filter values
-						while(rowIt.hasNext()){
-							uris.add(rowIt.next() + "");
-						}
+						//figure out which is the new column and which already exists in the table
+						Iterator<Object> rowIt = null;
+		//				String filterColumn = null;
+		//				if(ArrayUtilityMethods.arrayContainsValue(columnHeaders, fromColumn)) {
+		//					filterColumn = fromColumn;
+		//				} else if(ArrayUtilityMethods.arrayContainsValue(columnHeaders, toColumn)) {
+		//					filterColumn = toColumn;
+		//				}
 						
-						//see if this filter already exists
-						boolean addFilter = true;
-						for(Hashtable filter : filters) {
-							if(((String)filter.get("FROM_COL")).equals(toColumn)) {
-								Vector values = (Vector) filter.get("TO_DATA");
-								if(values != null && values.size() > 0) {
-//									values.addAll(uris);
-									addFilter = false;
+						//we want to add filters to the column that already exists in the table
+						if(fromColumn != null && toColumn != null) {
+							rowIt = frame.uniqueValueIterator(fromColumn, false, false);
+							List<Object> uris = new Vector<Object>();
+							
+							//collect all the filter values
+							while(rowIt.hasNext()){
+								uris.add(rowIt.next() + "");
+							}
+							
+							//see if this filter already exists
+							boolean addFilter = true;
+							for(Hashtable filter : filters) {
+								if(((String)filter.get("FROM_COL")).equals(toColumn)) {
+									Vector values = (Vector) filter.get("TO_DATA");
+									if(values != null && values.size() > 0) {
+	//									values.addAll(uris);
+										addFilter = false;
+										break;
+									}
 									break;
 								}
-								break;
 							}
-						}
-						
-						//if not contained create a new table and add to filters
-						if(addFilter) {
-							Hashtable joinfilter = new Hashtable();
-							joinfilter.put(PKQLEnum.FROM_COL, toColumn);
-							joinfilter.put("TO_DATA", uris);
-							joinfilter.put(PKQLEnum.COMPARATOR, "=");
-							filters.add(joinfilter);
+							
+							//if not contained create a new table and add to filters
+							if(addFilter) {
+								Hashtable joinfilter = new Hashtable();
+								joinfilter.put(PKQLEnum.FROM_COL, toColumn);
+								joinfilter.put("TO_DATA", uris);
+								joinfilter.put(PKQLEnum.COMPARATOR, "=");
+								filters.add(joinfilter);
+							}
 						}
 					}
 				}
 			}
 		}
+		// really crappy bifurcation here
+		// this is entered when the data maker is a legacy GDM
+		else {
+			api.set(QueryAPI.USE_CHEATER, true);
+		}
+		
+		
 		QueryStruct qs = new QueryStruct();
 		processQueryStruct(qs, selectors, filters, joins);
 		api.set("QUERY_STRUCT", qs);
