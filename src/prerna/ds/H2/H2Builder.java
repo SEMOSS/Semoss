@@ -2396,12 +2396,15 @@ public class H2Builder {
     	return retValue;
     }
     
-//    @Override
-//	protected void finalize() {
-//    	String finalQuery = makeDropTable(tableName);
-//    	runQuery(finalQuery);
-//    	System.out.println("DROPPED TABLE" + tableName);
-//    }
+	protected void dropTable() {
+    	String finalQuery = makeDropTable(tableName);
+    	try {
+			runQuery(finalQuery);
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+    	System.out.println("DROPPED H2 TABLE" + tableName);
+    }
 }
 
 
