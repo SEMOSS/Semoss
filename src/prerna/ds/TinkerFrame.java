@@ -1183,8 +1183,8 @@ public class TinkerFrame extends AbstractTableDataFrame {
 		String nextPrimKey = rowString.hashCode()+"";
 		Vertex primVertex = upsertVertex(this.metaData.getLatestPrimKey(), nextPrimKey, nextPrimKey);
 		
-		for(Vertex toVertex : toVertices) {
-			this.upsertEdge(primVertex, this.metaData.getLatestPrimKey(), toVertex, nextPrimKey);
+		for(int i = 0; i < headerNames.length; i++) {
+			this.upsertEdge(primVertex, this.metaData.getLatestPrimKey(), toVertices[i], headerNames[i]);
 		}
 	}
 	
@@ -1194,7 +1194,6 @@ public class TinkerFrame extends AbstractTableDataFrame {
 			throw new IllegalArgumentException("Input row must have same dimensions as levels in dataframe."); // when the HELL would this ever happen ?
 		}
 		
-//		Vertex primVertex = upsertVertex(this.PRIM_KEY, nextPrimKey.toString(), nextPrimKey.toString());
 		String rowString = "";
 		Vertex[] toVertices = new Vertex[headerNames.length];
 		for(int index = 0; index < headerNames.length; index++) {
@@ -1210,23 +1209,10 @@ public class TinkerFrame extends AbstractTableDataFrame {
 			this.upsertEdge(primVertex, this.metaData.getLatestPrimKey(), toVertices[i], headerNames[i]);
 		}
 		
-		
 		//Need to update Header Names if incoming headers is different from stored header names
 		if(this.headerNames == null) {
 			this.headerNames = headerNames;
 		} 
-		
-//		else {
-//			
-//			//see if we have any new incoming headers
-//			List<String> headers = new ArrayList<String>(Arrays.asList(this.headerNames));
-//			for(String header : headerNames) {
-//				if(!headers.contains(header)) {
-//					headers.add(header);
-//				}
-//			}
-//			this.headerNames = headers.toArray(new String[headers.size()]);
-//		}
 	}
 
 	

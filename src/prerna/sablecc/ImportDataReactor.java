@@ -11,7 +11,7 @@ import java.util.Vector;
 import cern.colt.Arrays;
 import prerna.algorithm.api.ITableDataFrame;
 import prerna.engine.api.IEngine;
-import prerna.engine.api.ISelectWrapper;
+import prerna.engine.api.IEngineWrapper;
 import prerna.util.ArrayUtilityMethods;
 import prerna.util.DIHelper;
 
@@ -147,7 +147,7 @@ public class ImportDataReactor extends AbstractReactor {
 		return values2SyncHash.get(input);
 	}
 
-	protected String createResponseString(ISelectWrapper it){
+	protected String createResponseString(IEngineWrapper it){
 		Map<String, Object> map = it.getResponseMeta();
 		String mssg = "";
 		for(String key : map.keySet()){
@@ -164,8 +164,8 @@ public class ImportDataReactor extends AbstractReactor {
 		// get rid of this bifurcation
 		// push this into the iterators
 		String nodeStr = (String)myStore.get(whoAmI);
-		if(it instanceof ISelectWrapper) {
-			myStore.put(nodeStr, createResponseString((ISelectWrapper)it));
+		if(it instanceof IEngineWrapper) {
+			myStore.put(nodeStr, createResponseString((IEngineWrapper)it));
 		} else {
 //			if(it instanceof FileIterator) {
 //				((FileIterator) it).deleteFile();
