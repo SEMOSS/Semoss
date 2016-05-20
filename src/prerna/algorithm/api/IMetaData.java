@@ -83,6 +83,10 @@ public interface IMetaData {
 	void setPrimKey(String uniqueName, boolean primKey);
 	
 	void setDerived(String uniqueName, boolean derived);
+	
+	void setDerivedCalculation(String uniqueName, String calculation);
+	
+	void setDerivedUsing(String uniqueName, String... otherUniqueNames);
 
 	void dropVertex(String uniqueName);
 	
