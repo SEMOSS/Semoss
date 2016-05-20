@@ -3,6 +3,8 @@ package prerna.ui.components.playsheets.datamakers;
 import java.util.List;
 import java.util.Map;
 
+import prerna.engine.api.IScriptReactor;
+
 /**
  * This Interface defines responsibilities of a data maker
  * Data makers are used to generate the data necessary for a view
@@ -13,6 +15,8 @@ import java.util.Map;
  */
 public interface IDataMaker {
 
+	enum DATA_FRAME_REACTORS {IMPORT_DATA, COL_ADD};
+	
 	void processDataMakerComponent(DataMakerComponent component);
 
 	void processPreTransformations(DataMakerComponent dmc, List<ISEMOSSTransformation> transforms);
@@ -24,4 +28,6 @@ public interface IDataMaker {
 	List<Object> processActions(DataMakerComponent dmc, List<ISEMOSSAction> actions, IDataMaker... dataMaker);
 	
 	List<Object> getActionOutput();
+	
+	IScriptReactor getReactor(DATA_FRAME_REACTORS reactorType);
 }
