@@ -54,11 +54,11 @@ public class TinkerMetaData2 implements IMetaData {
 	public static final String ORDER = "ORDER";
 	public static final String DB_DATATYPE = "DB_DATATYPE";
 	public static final String DERIVED = "DERIVED_COLUMN";
-	
-	private String latestPrimKey;
-	
+	public static final String DERIVED_CALCULATION = "DERIVED_CALCULATION";
+	public static final String DERIVED_USING = "DERIVED_USING";
 
-//	private static final String ENVIRONMENT_VERTEX_KEY = "ENVIRONMENT_VERTEX_KEY";
+	private String latestPrimKey;
+
 	public static final String PRIM_KEY = "PRIM_KEY";
 	public static final String META = "META";
 	public static final String edgeLabelDelimeter = "+++";
@@ -509,6 +509,19 @@ public class TinkerMetaData2 implements IMetaData {
 	public void setDerived(String uniqueName, boolean derived) {
 		Vertex v = getExistingVertex(uniqueName);
 		v.property(DERIVED, derived);
+	}
+	
+
+	@Override
+	public void setDerivedCalculation(String uniqueName, String calculation) {
+		Vertex v = getExistingVertex(uniqueName);
+		v.property(DERIVED_CALCULATION, calculation);
+	}
+
+	@Override
+	public void setDerivedUsing(String uniqueName, String... otherUniqueNames) {
+		Vertex v = getExistingVertex(uniqueName);
+		v.property(DERIVED_USING, otherUniqueNames);
 	}
 	
 	
