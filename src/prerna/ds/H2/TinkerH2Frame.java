@@ -953,34 +953,7 @@ public class TinkerH2Frame extends AbstractTableDataFrame {
 			types[i] = this.metaData.getDataType(newHeaders[i]);
 		}
 		
-		
 		String[] columnHeaders = getColumnHeaders();
-		
-		//////////////////////////////////////////////////////
-		//////////////////////////////////////////////////////
-		//////////////////////////////////////////////////////
-		// ughhhhh... what is this logic ???? 
-		// literally have no idea why its just a minus one
-		// really need to figure out this ish
-		// looking at the method this gets sent to, look at my understanding below
-		
-//		int length = columnHeaders.length;
-//		
-//		//remove the newHeaders from the column headers if they were added already (but don't exist yet in the table)
-////		while(true) {
-//		if(ArrayUtilityMethods.arrayContainsValueIgnoreCase(newHeaders, columnHeaders[length-1])) {
-//			length = length - 1;
-//		}
-////			else {
-////				break;
-////			}
-////		}
-//		
-//		//get the values for each column header, i.e. the column name in the h2 table
-//		String[] adjustedColHeaders = new String[length];
-//		for(int i = 0; i < length; i++) {
-//			adjustedColHeaders[i] = this.metaData.getValueForUniqueName(columnHeaders[i]);
-//		}
 		
 		// my understanding
 		// need to get the list of columns that are currently inside the frame
@@ -1033,5 +1006,9 @@ public class TinkerH2Frame extends AbstractTableDataFrame {
 		if (r != null) {
 			this.r.close();
 		}
+	}
+	
+	public void dropTable() {
+		this.builder.dropTable();
 	}
 }
