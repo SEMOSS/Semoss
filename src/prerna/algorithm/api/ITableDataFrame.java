@@ -151,12 +151,6 @@ public interface ITableDataFrame extends IDataMaker {
 	String[] getColumnHeaders();
 	
 	/**
-	 * Get the total number of columns in the data-frame
-	 * @return						The count of the number of columns in the data-frame
-	 */
-	int getNumCols();
-
-	/**
 	 * Get the total number of rows in the data-frame
 	 * @return						The count of the number of rows in the data-frame
 	 */

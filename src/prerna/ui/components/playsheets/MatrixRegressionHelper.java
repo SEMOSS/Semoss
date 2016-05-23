@@ -46,8 +46,8 @@ public final class MatrixRegressionHelper{
 	 * If bIndex is less than the number of columns, bIndex will be removed
 	 */
 	public static double[][] createA(ITableDataFrame data, int variableStartCol, int bIndex) {
+		int listNumCols = data.getColumnHeaders().length;
 		int listNumRows = data.getNumRows();
-		int listNumCols = data.getNumCols();
 		
 		int outNumCols;
 		if(bIndex<listNumCols) {

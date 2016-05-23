@@ -128,8 +128,8 @@ public class MOAPerceptronRunner implements IAnalyticTransformationRoutine {
 		//ArrayList<String> skip = new ArrayList<>();
 		//skip.add(table.getColumnHeaders()[0]);
 		//table.setColumnsToSkip(skip);
-		int numAttributes = table.getNumCols();
 		String[] names = table.getColumnHeaders();
+		int numAttributes = names.length;
 
 		List<Object[]> dataTable;
 		if(kernelType.equalsIgnoreCase("Exponential")) {
