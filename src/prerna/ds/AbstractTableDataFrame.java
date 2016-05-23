@@ -254,23 +254,6 @@ public abstract class AbstractTableDataFrame implements ITableDataFrame {
 	}
 
 	@Override
-	public void undoJoin() {
-		// TODO Auto-generated method stub
-		//Do we need this?
-	}
-
-	@Override
-	public void append(ITableDataFrame table) {
-		// TODO Auto-generated method stub
-	}
-
-	@Override
-	public void undoAppend() {
-		// TODO Auto-generated method stub
-		//Do we need this?
-	}
-
-	@Override
 	public void performAnalyticTransformation(IAnalyticTransformationRoutine routine) throws RuntimeException {
 		ITableDataFrame newTable = routine.runAlgorithm(this);
 		if(newTable != null) {
@@ -278,11 +261,6 @@ public abstract class AbstractTableDataFrame implements ITableDataFrame {
 		}
 	}
 
-	@Override
-	public List<String> getMostSimilarColumns(ITableDataFrame table, double confidenceThreshold, IAnalyticRoutine routine) {
-		return null;
-	}
-	
 	@Override
 	public void performAnalyticAction(IAnalyticActionRoutine routine) throws RuntimeException {
 		routine.runAlgorithm(this);
@@ -390,16 +368,6 @@ public abstract class AbstractTableDataFrame implements ITableDataFrame {
 	}
 	
 	@Override
-	public Double getStandardDeviation(String columnHeader) {
-		return null;
-	}
-
-	@Override
-	public Double[] getStandardDeviation() {
-		return null;
-	}
-
-	@Override
 	public void binNumericColumn(String column) {
 		
 	}
@@ -420,17 +388,7 @@ public abstract class AbstractTableDataFrame implements ITableDataFrame {
 	}
 
 	@Override
-	public Iterator<Object[]> standardizedIterator(boolean getRawData) {
-		return null;
-	}
-
-	@Override
 	public Iterator<Object[]> scaledIterator(boolean getRawData) {
-		return null;
-	}
-
-	@Override
-	public Iterator<List<Object[]>> standardizedUniqueIterator(String columnHeader, boolean getRawData) {
 		return null;
 	}
 
@@ -465,11 +423,6 @@ public abstract class AbstractTableDataFrame implements ITableDataFrame {
 		return this.getColumnHeaders().length;
 	}
 
-	@Override
-	public int getColCount(int rowIdx) {
-		return 0;
-	}
-	
 	@Override
 	public Object[] getColumn(String columnHeader) {
 		return null;
@@ -511,39 +464,6 @@ public abstract class AbstractTableDataFrame implements ITableDataFrame {
 			counts.put(header, getUniqueValuesAndCount(header));
 		}
 		return counts;
-	}
-
-	@Override
-	public void refresh() {
-		// TODO Auto-generated method stub
-		
-	}
-
-	@Override
-	public void removeDuplicateRows() {
-		//don't think this is needed
-	}
-
-	@Override
-	public void removeRow(int rowIdx) {
-		//unsure
-	}
-
-	@Override
-	public void removeValue(String value, String rawValue, String level) {
-		//do able
-		//find the value, delete that node and all nodes connecting to that which have no other connections, repeat for deleted nodes
-	}
-
-	@Override
-	public ITableDataFrame[] splitTableByColumn(String columnHeader) {
-		return null;
-		//should be 'relatively' simple to do
-	}
-
-	@Override
-	public ITableDataFrame[] splitTableByRow(int rowIdx) {
-		return null;
 	}
 
 	@Override
