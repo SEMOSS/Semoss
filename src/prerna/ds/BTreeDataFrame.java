@@ -281,15 +281,6 @@ public class BTreeDataFrame implements ITableDataFrame {
 		return retData;
 	}
 	
-	public List<Object[]> getStandardizedData() {
-		List<Object[]> retData = new ArrayList<Object[]>();
-		Iterator<Object[]> iterator = this.standardizedIterator(false);
-		while(iterator.hasNext()) {
-			retData.add(iterator.next());
-		}
-		return retData;
-	}
-	
 	@Override
 	public List<Object[]> getRawData() {
 		List<Object[]> table = new ArrayList<Object[]>();
@@ -300,12 +291,6 @@ public class BTreeDataFrame implements ITableDataFrame {
 		}
 
 		return table;
-	}
-
-	@Override
-	public List<String> getMostSimilarColumns(ITableDataFrame table, double confidenceThreshold, IAnalyticRoutine routine) {
-		// TODO Auto-generated method stub
-		return null;
 	}
 
 	@Override
@@ -601,17 +586,6 @@ public class BTreeDataFrame implements ITableDataFrame {
 		}
     }
 
-    
-	@Override
-	public void undoJoin() {
-		// TODO Auto-generated method stub
-	}
-
-	@Override
-	public void append(ITableDataFrame table) {
-
-	}
-	
 	private void append(BTreeDataFrame bTree) {
 		/*
 		 * Algorithm
@@ -727,11 +701,6 @@ public class BTreeDataFrame implements ITableDataFrame {
 			if(tableLookup.containsKey(levelNames[i])) levels.add(tableLookup.get(levelNames[i]));
 		}
 		this.append(table, levels);
-	}
-
-	@Override
-	public void undoAppend() {
-		// TODO Auto-generated method stub
 	}
 
 	@Override
@@ -1146,77 +1115,6 @@ public class BTreeDataFrame implements ITableDataFrame {
 	}
 
 	@Override
-	public Double getStandardDeviation(String columnHeader) {
-//		columnHeader = this.getColumnName(columnHeader);
-//
-//		Double mean = getAverage(columnHeader);
-//		if(mean.isNaN()) {
-//			return Double.NaN;
-//		}
-//		
-//		double stdev = 0;
-//		int numValues = 0;
-//		TreeNode typeRoot = simpleTree.nodeIndexHash.get(columnHeader);
-//		FilteredIndexTreeIterator it = new FilteredIndexTreeIterator(typeRoot);
-//		StringClass empty = new StringClass(SimpleTreeNode.EMPTY);
-//		while(it.hasNext()) {
-//			TreeNode node = it.next();
-//			ITreeKeyEvaluatable val = node.leaf;
-//			if(val instanceof StringClass) {
-//				if(val.isEqual(empty)) {
-//					continue;
-//				}
-//			}
-//			stdev += Math.pow( ((Number) val.getValue()).doubleValue() - mean, 2);
-//			numValues++;
-//		}
-//		
-//		if(numValues == 1) {
-//			return Double.NaN;
-//		}
-//		
-//		return Math.pow(stdev / (--numValues), 0.5);
-		
-		columnHeader = this.getColumnName(columnHeader);  //get column name
-		Object[] getColumn = this.getColumn(columnHeader);  //get all objects within column
-		Double mean = this.getAverage(columnHeader); //use average method
-		//if mean isn't a number return
-		if (mean.isNaN()) {
-			return Double.NaN;
-		}
-		double stdev = 0;
-		int numValues = 0;
-		//for the length of the column calculate stdev
-		for (int i = 0; i < getColumn.length; i++) {
-			if (getColumn[i] instanceof StringClass) {
-				if (getColumn[i] == null) {
-					continue;
-				}
-			} else {
-				stdev += Math.pow(((Number) getColumn[i]).doubleValue() - mean, 2);
-				numValues++;
-			}
-		}
-		//if numValues equals one return not a number
-		if (numValues == 1) {
-			return Double.NaN;
-		}
-		return Math.pow(stdev / (--numValues), 0.5);
-
-	}
-	
-	@Override
-	public Double[] getStandardDeviation() {
-		Double[] standardDeviation = new Double[filteredLevelNames.length];
-		int size = filteredLevelNames.length;
-		for(int i = 0; i < size; i++) {
-			standardDeviation[i] = getStandardDeviation(filteredLevelNames[i]);
-		}
-		
-		return standardDeviation;
-	}
-	
-	@Override
 	public boolean isNumeric(String columnHeader) {
 		columnHeader = this.getColumnName(columnHeader);
 
@@ -1285,12 +1183,6 @@ public class BTreeDataFrame implements ITableDataFrame {
 	}
 
 	@Override
-	public int getColCount(int rowIdx) {
-		// TODO Auto-generated method stub
-		return 0;
-	}
-
-	@Override
 	public Iterator<Object[]> iterator(boolean getRawData) {
 		TreeNode typeRoot = simpleTree.nodeIndexHash.get(levelNames[levelNames.length-1]);	
 		return new BTreeIterator(typeRoot, getRawData, columnsToSkip);
@@ -1314,25 +1206,11 @@ public class BTreeDataFrame implements ITableDataFrame {
 //	}
 
 	@Override
-	public Iterator<Object[]> standardizedIterator(boolean getRawData) {
-		TreeNode typeRoot = simpleTree.nodeIndexHash.get(levelNames[levelNames.length-1]);
-		return new StandardizedBTreeIterator(typeRoot, this.isNumeric(), this.getAverage(), this.getStandardDeviation(), getRawData, columnsToSkip);
-	}
-	
-	@Override
 	public Iterator<List<Object[]>> uniqueIterator(String columnHeader, boolean getRawData) {
 		columnHeader = this.getColumnName(columnHeader);
 
 		TreeNode typeRoot = simpleTree.nodeIndexHash.get(columnHeader);	
 		return new UniqueBTreeIterator(typeRoot, getRawData, columnsToSkip);
-	}
-	
-	@Override
-	public Iterator<List<Object[]>> standardizedUniqueIterator(String columnHeader, boolean getRawData) {
-		columnHeader = this.getColumnName(columnHeader);
-
-		TreeNode typeRoot = simpleTree.nodeIndexHash.get(columnHeader);
-		return new StandardizedUniqueBTreeIterator(typeRoot, this.isNumeric(), this.getAverage(), this.getStandardDeviation(), getRawData, columnsToSkip);
 	}
 	
 	@Override
@@ -1427,14 +1305,6 @@ public class BTreeDataFrame implements ITableDataFrame {
 	}
 	
 	@Override
-	public void refresh() {
-		simpleTree.deleteFilteredValues(simpleTree.getRoot());
-		for (String level : levelNames) {
-			simpleTree.nodeIndexHash.put(level, simpleTree.refreshIndexTree(level));
-		}
-	}
-
-	@Override
 	public void removeColumn(String columnHeader) {
 		columnHeader = this.getColumnName(columnHeader);
 		
@@ -1464,36 +1334,6 @@ public class BTreeDataFrame implements ITableDataFrame {
 //		System.out.println("new names  " + Arrays.toString(levelNames));
 	}
 	
-	@Override
-	public void removeDuplicateRows() {
-		for(String s : levelNames)
-			this.simpleTree.removeDuplicates(s);
-	}
-
-	@Override
-	public void removeRow(int rowIdx) {
-		// TODO Auto-generated method stub
-	}
-	
-	@Override
-	public void removeValue(String value, String rawValue, String level) {
-		ISEMOSSNode node = this.createNodeObject(value, rawValue, level);
-		this.simpleTree.removeNode(node);
-	}
-
-	@Override
-	public ITableDataFrame[] splitTableByColumn(String colHeader) {
-
-		// TODO Auto-generated method stub
-		return null;
-	}
-
-	@Override
-	public ITableDataFrame[] splitTableByRow(int rowIdx) {
-		// TODO Auto-generated method stub
-		return null;
-	}
-
 	@Override
 	public void filter(String columnHeader, List<Object> filterValues) {
 		columnHeader = this.getColumnName(columnHeader);

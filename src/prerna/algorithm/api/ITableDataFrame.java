@@ -34,16 +34,6 @@ public interface ITableDataFrame extends IDataMaker {
 	void addRow(Object[] rowCleanData, Object[] rowRawData);
 	
 	/**
-	 * Gets the most similar columns given threshold and routine between this and the passed in table.
-	 * This can be used before calling join to better understand the two tables
-	 * @param table					The data-frame to join with the current data-frame
-	 * @param confidenceThreshold	The confidence interval for the joining algorithm, should be in range [0,1]
-	 * @param routine				The analytical routine to perform the joining
-	 * @return						The column headers that are most similar from the two tables. First value is from this table, second value is from passed in table
-	 */
-	List<String> getMostSimilarColumns(ITableDataFrame table, double confidenceThreshold, IAnalyticRoutine routine);
-	
-	/**
 	 * Joins the inputed data-frame to the current data-frame for the provided column names 
 	 * @param table					The data-frame to join with the current data-frame
 	 * @param colNameInTable		The column name in the original data-frame to join
@@ -53,23 +43,6 @@ public interface ITableDataFrame extends IDataMaker {
 	 */
 	void join(ITableDataFrame table, String colNameInTable, String colNameInJoiningTable, double confidenceThreshold, IMatcher routine);
 	
-	/**
-	 * Undo the most recent join on the data-table
-	 * @return						The previous data-frame prior to performing the join
-	 */
-	void undoJoin();
-
-	/**
-	 * Append the inputed data-frame to the current data-frame
-	 * @param table					The data-frame to append with the current data-frame
-	 */
-	void append(ITableDataFrame table);
-	
-	/**
-	 * Undo the most recent append to the data-frame
-	 */
-	void undoAppend();
-
 	/**
 	 * Perform the inputed analytical routine onto the data frame. The routine does not necessarily have to 
 	 * alter/modify the existing data-frame
@@ -158,51 +131,6 @@ public interface ITableDataFrame extends IDataMaker {
 	 */
 	Double[] getMin();
 	
-//	/**
-//	 * GET THE AVERAGE VALUE FOR THE COLUMN IN THE DATA-FRAME
-//	 * WILL RETURN NULL IF THE COLUMN IS NON-NUMERIC
-//	 * @PARAM COLUMNHEADER			THE COLUMN HEADER TO GET THE AVERAGE VALUE
-//	 * @RETURN						THE AVERAGE VALUE IN THE COLUMN
-//	 */
-//	DOUBLE GETAverage(String columnHeader);
-
-//	/**
-//	 * Get the average value for all the columns in the data-frame
-//	 * Will return null in the column positions that are non-numeric
-//	 * @return						The average value for all columns corresponding to the ordered values in the column headers
-//	 */
-//	Double[] getAverage();
-	
-//	/**
-//	 * Get the sum of the values for the inputed column in the data-frame
-//	 * Will return null if the column is non-numeric
-//	 * @param columnHeader			The column header to get the sum of all the values
-//	 * @return						The sum of all the values in the column
-//	 */
-//	Double getSum(String columnHeader);
-
-//	/**
-//	 * Get the sum of the values for all the inputed columns in the data-frame
-//	 * Will return null in the column positions that are non-numeric
-//	 * @return						The sum of all the values for all columns corresponding to the ordered values in the column headers
-//	 */
-//	Double[] getSum();
-	
-	/**
-	 * Get the standard deviation of the values for the inputed column in the data-frame
-	 * Will return null if the column is non-numeric
-	 * @param columnHeader			The column header to get the sum of all the values
-	 * @return						The standard deviation of all the values in the column
-	 */
-	Double getStandardDeviation(String columnHeader);
-
-	/**
-	 * Get the standard deviation of the values for all the inputed columns in the data-frame
-	 * Will return null in the column positions that are non-numeric
-	 * @return						The standard deviation of all the values for all columns corresponding to the ordered values in the column headers
-	 */
-	Double[] getStandardDeviation();
-	
 	/**
 	 * Determine if a column is numeric or categorical
 	 * @param columnHeader			The column header to determine if it is numeric or categorical
@@ -235,20 +163,6 @@ public interface ITableDataFrame extends IDataMaker {
 	int getNumRows();
 	
 	/**
-	 * Get the number of total values for the column in the data-frame
-	 * @param columnHeader			The column header to get the total number of values
-	 * @return						The count of the number of values for the column
-	 */
-	int getColCount(int rowIdx);
-	
-//	/**
-//	 * Get the number of total values for the row  
-//	 * @param rowIdx
-//	 * @return
-//	 */
-//	int getRowCount(String columnHeader);
-	
-	/**
 	 * Iterator to go through all the rows in the data-frame
 	 * The iterator will return an Object[] corresponding to the data in a row of the data-frame
 	 * @return						The iterator to go through all the rows
@@ -270,27 +184,11 @@ public interface ITableDataFrame extends IDataMaker {
 	Iterator<List<Object[]>> uniqueIterator(String columnHeader, boolean getRawData);
 	
 	/**
-	 * Returns the iterator that will iterate through a numeric column
-	 * the iterator will return the each unique value in the column as a function -> x' = (x - average(columnHeader))/stdv(columnHeader)
-	 * @param columnHeader
-	 * @return
-	 */
-	Iterator<Object[]> standardizedIterator(boolean getRawData);
-	
-	/**
 	 * 	 * Returns the iterator that will iterate through a numeric column
 	 * the iterator will return the each unique value in the column as a function -> x' = (x - min(columnHeader))/(max(columnHeader) - min(columnHeader))	 * @param columnHeader
 	 * @return
 	 */
 	Iterator<Object[]> scaledIterator(boolean getRawData);
-	
-	/**
-	 * Returns the iterator that will iterate through a numeric column
-	 * the iterator will return the each unique value in the column as a function -> x' = (x - average(columnHeader))/stdv(columnHeader)
-	 * @param columnHeader
-	 * @return
-	 */
-	Iterator<List<Object[]>> standardizedUniqueIterator(String columnHeader, boolean getRawData);
 	
 	/**
 	 * 	 * Returns the iterator that will iterate through a numeric column
@@ -359,11 +257,6 @@ public interface ITableDataFrame extends IDataMaker {
 	Map<String, Map<String, Integer>> getUniqueColumnValuesAndCount();
 	
 	/**
-	 * Refreshes data-frame with what is in database. Currently hard-deletes all rows that have been filtered.
-	 */
-	void refresh();
-	
-	/**
 	 * Filter table based on passed in values
 	 * @param columnHeader			The column header to apply the filter on
 	 * @param filterValues			The specific values of the column header for the filtering
@@ -388,42 +281,6 @@ public interface ITableDataFrame extends IDataMaker {
 	 * @param columnHeader			The column header to remove from the data-frame
 	 */
 	void removeColumn(String columnHeader);
-	
-	/**
-	 * 
-	 */
-	void removeDuplicateRows();
-	
-	/**
-	 * Removes a row from the data-frame
-	 * @param rowIdx				The row to remove from the data-frame
-	 */
-	void removeRow(int rowIdx);
-	
-	/**
-	 * Hard deletes all rows containing specified value
-	 * 
-	 * @param cleanValue
-	 * @param rawValue
-	 * @param level
-	 */
-	void removeValue(String value, String rawValue, String level);
-
-	/**
-	 * Splits the data-frame into two parts based on the inputed column header
-	 * Defaulted that the column header passed in is only included in the left partition of the split 
-	 * @param columnHeader			The column header to split the data-frame
-	 * @return						An array of data-frames containing the two partitions of the split
-	 */
-	ITableDataFrame[] splitTableByColumn(String columnHeader);
-	
-	/**
-	 * Splits the data-frame into two parts based on the inputed row index
-	 * Defaulted that the row index passed in is only included in the left partition of the split
-	 * @param rowIdx				The row index to split the data-frame
-	 * @return						An array of data-frames containing the two partitions of the split
-	 */
-	ITableDataFrame[] splitTableByRow(int rowIdx);
 	
 	/**
 	 * Get all the data contained in the data-frame
