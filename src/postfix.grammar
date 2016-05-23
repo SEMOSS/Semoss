@@ -17,12 +17,12 @@ Helpers
 
 Tokens
  number = ['0' .. '9']+;
- id = (letter_s | letter_b | digit | underscore | '-')*;
+ id = (letter_s | letter_b | digit | underscore)*;
  dot = '.';
  semicolon = ';';
  colon = ':';
  plus = '+';
- minus = '--';
+ minus = '-';
  mult = '*';
  comma = ',';
  div = '/';
