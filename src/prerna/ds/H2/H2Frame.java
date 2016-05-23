@@ -33,8 +33,6 @@ import prerna.engine.api.IScriptReactor;
 import prerna.engine.api.ISelectWrapper;
 import prerna.engine.impl.r.RRunner;
 import prerna.rdf.engine.wrappers.WrapperManager;
-import prerna.rdf.query.builder.IQueryInterpreter;
-import prerna.rdf.query.builder.SQLInterpreter;
 import prerna.sablecc.ColAddReactor;
 import prerna.sablecc.H2ImportDataReactor;
 import prerna.ui.components.playsheets.datamakers.DataMakerComponent;
@@ -49,49 +47,24 @@ public class H2Frame extends AbstractTableDataFrame {
 	private static final Logger LOGGER = LogManager.getLogger(H2Frame.class.getName());
 
 	H2Builder builder;
-	//TODO: need to keep its own once it is no longer extending from TinkerFrame!!!!!
-//	IMetaData metaData;
 	
-	//maps column names to h2 column names
-//	public Map<String, String> H2HeaderMap;
-	
-	//map excel sheets to h2 tables
-//	Map<String, String> tableMap;
-	
-	//map excel sheets to columns in those sheets
-//	Map<String, List<String>> columnMap;
-	
-	//defined relations in the excel
-//	List<String> relations;
-	
-	//map excel sheets to types
-//	Map<String, List<String>> typeMap;
-	
-//	IMetaData metaData;
-//	String[] headerNames;
-	
-	IQueryInterpreter interp = new SQLInterpreter();
+	// this was being used when we wanted the sql interpreter to create the traverse query
+//	IQueryInterpreter interp = new SQLInterpreter();
 	RRunner r = null;
 	
 	public H2Frame(String[] headers) {
 		this.headerNames = headers;
 		builder = new H2Builder();
-//		builder.create(headers);
 		this.metaData = new TinkerMetaData();
-//		H2HeaderMap = new HashMap<String, String>();
-//		updateHeaderMap();
 	}
 	
 	public H2Frame() {
 		builder = new H2Builder();
 		this.metaData = new TinkerMetaData();
-//		H2HeaderMap = new HashMap<String, String>();
 	}
 	
 	/*************************** AGGREGATION METHODS *************************/
 	
-
-    
 	@Override
 	public void addRow(Object[] rowCleanData, Object[] rowRawData) {
 		addRow(rowCleanData, getColumnHeaders());
@@ -118,11 +91,11 @@ public class H2Frame extends AbstractTableDataFrame {
         String[] stringArray = Arrays.copyOf(cells, cells.length, String[].class);
         		
         //get table for headers
-        this.addRow2(tableName, stringArray, headers, types);
+        this.addRow(tableName, stringArray, headers, types);
     }
     
     //need to make this private if we are going with single table h2
-	public void addRow2(String tableName, String[] cells, String[] headers, String[] types) {
+	public void addRow(String tableName, String[] cells, String[] headers, String[] types) {
         String[] headerValues = new String[headers.length];
 		for(int j = 0; j < headers.length; j++) {
 			headerValues[j] = getValueForUniqueName(headers[j]);
@@ -670,10 +643,6 @@ public class H2Frame extends AbstractTableDataFrame {
 		return tf;
 	}
 	
-	protected void updateH2PhysicalNames() {
-		
-	}
-	
 	public List<String> getSelectors() {
 		if(headerNames == null) return new ArrayList<String>();
 		List<String> selectors = new ArrayList<String>();
@@ -750,18 +719,6 @@ public class H2Frame extends AbstractTableDataFrame {
 		}
 		
 		TinkerMetaHelper.mergeEdgeHash(this.metaData, edgeHash, getNode2ValueHash(edgeHash));
-		
-		
-	}
-	
-	public void setMetaData(String tableName, String[] headers, String[] types) {
-		
-		if(headers.length != types.length) {
-			throw new IllegalArgumentException("Number of headers and types not equal");
-		}
-			
-
-		this.metaData.storeDataTypes(headers, types);
 	}
 	
 	protected String getCleanHeader(String metaNodeName) {
@@ -851,17 +808,13 @@ public class H2Frame extends AbstractTableDataFrame {
 		
 		if(builder.tableName == null) {
 			builder.tableName = getTableNameForUniqueColumn(this.headerNames[0]);
-	}
+		}
 		builder.alterTableNewColumns(builder.tableName, cleanHeaders, types);
-	}
-
-	public static void main(String[] args) {
-		
 	}
 
 	@Override
 	public void join(ITableDataFrame table, String colNameInTable, String colNameInJoiningTable, double confidenceThreshold, IMatcher routine) {
-		
+		LOGGER.error("join method has not been implemented for H2Frame");
 	}
 
 	public String getValueForUniqueName(String name) {
@@ -1001,11 +954,11 @@ public class H2Frame extends AbstractTableDataFrame {
 	}
 
 	public RRunner getRRunner() throws RserveException, SQLException {
-	if (this.r == null) {
-		this.r = new RRunner(this.getDatabaseMetaData());
-	}
-
-	return this.r;
+		if (this.r == null) {
+			this.r = new RRunner(this.getDatabaseMetaData());
+		}
+	
+		return this.r;
 	}
 	
 	public void closeRRunner() {
