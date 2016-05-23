@@ -9,12 +9,12 @@ public final class TMinus extends Token
 {
     public TMinus()
     {
-        super.setText("--");
+        super.setText("-");
     }
 
     public TMinus(int line, int pos)
     {
-        super.setText("--");
+        super.setText("-");
         setLine(line);
         setPos(pos);
     }
