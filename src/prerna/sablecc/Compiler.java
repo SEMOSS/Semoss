@@ -109,7 +109,7 @@ public class Compiler
 
 
    // Apply the translation.
-   tree.apply(new Translation2(new TinkerFrame(), new PKQLRunner()));
+   tree.apply(new Translation(new TinkerFrame(), new PKQLRunner()));
   }
   catch(Exception e)
   {
