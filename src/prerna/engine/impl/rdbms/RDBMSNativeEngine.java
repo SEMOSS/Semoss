@@ -61,6 +61,7 @@ import prerna.rdf.util.AbstractQueryParser;
 import prerna.rdf.util.SQLQueryParser;
 import prerna.util.ConnectionUtils;
 import prerna.util.Constants;
+import prerna.util.DIHelper;
 import prerna.util.Utility;
 import prerna.util.sql.H2QueryUtil;
 import prerna.util.sql.RDBMSUtility;
@@ -129,10 +130,11 @@ public class RDBMSNativeEngine extends AbstractEngine {
 					connectionURL = RDBMSUtility.fillH2ConnectionURL(connectionURL, engineName);
 					try {
 						Class.forName(H2QueryUtil.DATABASE_DRIVER);
-						if(!(new File(RDBMSUtility.getH2ConnectionURLAbsolutePath(connectionURL)).exists()) || 
-								!RDBMSUtility.isValidConnection(DriverManager.getConnection(connectionURL, "sa" , ""))) {
-							connectionURL = resetH2ConnectionURL();System.out.println();
+						Connection c = DriverManager.getConnection(connectionURL, "sa" , "");
+						if(!(new File(RDBMSUtility.getH2ConnectionURLAbsolutePath(connectionURL)).exists()) || !RDBMSUtility.isValidConnection(c)) {
+							connectionURL = resetH2ConnectionURL();
 						}
+						c.close();
 					} catch (ClassNotFoundException | SQLException e) {
 						logger.error("H2 Connection Error: " + e.getMessage() + " for Connection URL: " + connectionURL);
 						connectionURL = resetH2ConnectionURL();
@@ -333,6 +335,7 @@ public class RDBMSNativeEngine extends AbstractEngine {
 			conn = getConnection();
 			stmt = conn.createStatement(); 
 			Map<String, Object> map = new HashMap();
+			System.out.println("RDBMS QUERY IS " + query);
 			rs = getResults(stmt, query);
 			//normally would use instance.getClass() but when we retrieve the 
 			//references from the object we can't guarantee that they will not be null
@@ -588,35 +591,25 @@ public class RDBMSNativeEngine extends AbstractEngine {
 	}
 	
 	public void deleteDB() {
+		logger.debug("Deleting RDBMS Engine: " + this.engineName);
+		
+		// If this DB is not an H2, just delete the schema the data was added into, not the existing DB instance
 		if (this.getDbType() != SQLQueryUtil.DB_TYPE.H2_DB) {
 			String deleteText = SQLQueryUtil.initialize(dbType).getDialectDeleteDBSchema(this.engineName);
 			insertData(deleteText);
 		}
 		
-//		try {
-//			this.insightRDBMS.getConnection().close();
-//			closeDB();
-//			
-//			try {
-//				System.out.println("Conn obj closed: " + this.engineConn.isClosed());
-//			} catch (SQLException e) {
-//				e.printStackTrace();
-//			}
-//			System.out.println("Datasource: " + this.dataSource);
-//			
-//			DeleteDbFiles delete = new DeleteDbFiles();
-//			delete.execute(DIHelper.getInstance().getProperty(Constants.BASE_FOLDER) + "/db/" + this.engineName, "database", false);
-//			
-//			String location = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER) + "/db/" + this.engineName + "/database.mv.db";
-//			try {
-//				FileUtils.forceDelete(new File(location));
-//			} catch (IOException e) {
-//				e.printStackTrace();
-//			}
-//		} catch (SQLException e) {
-//			e.printStackTrace();
-//		}
+		// Close the Insights RDBMS connection, the actual connection, and delete the folders
+		try {
+			this.insightRDBMS.getConnection().close();
+			closeDB();
+			
+			DeleteDbFiles.execute(DIHelper.getInstance().getProperty(Constants.BASE_FOLDER) + "/db/" + this.engineName, "database", false);
+		} catch (SQLException e) {
+			e.printStackTrace();
+		}
 		
+		// Clean up SMSS and DB files/folder
 		super.deleteDB();
 	}
 
