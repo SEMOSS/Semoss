@@ -273,7 +273,7 @@ public class TinkerFrame extends AbstractTableDataFrame {
 	public static void testCleanup() {
 		String fileName = "C:\\Users\\rluthar\\Documents\\Movie Results.xlsx";
 		TinkerFrame tinker = load2Graph4Testing(fileName);
-		GremlinBuilder builder = GremlinBuilder.prepareGenericBuilder(tinker.getSelectors(), tinker.g, ((TinkerMetaData2)tinker.metaData).g, null);
+		GremlinBuilder builder = GremlinBuilder.prepareGenericBuilder(tinker.getSelectors(), tinker.g, ((TinkerMetaData)tinker.metaData).g, null);
 		GraphTraversal traversal = (GraphTraversal)builder.executeScript();
 		traversal = traversal.V();
 		GraphTraversal traversal2 = tinker.g.traversal().V();
@@ -901,7 +901,7 @@ public class TinkerFrame extends AbstractTableDataFrame {
 		g.createIndex(T.label.toString(), Edge.class);
 		g.createIndex(Constants.ID, Edge.class);
 		g.variables().set(Constants.HEADER_NAMES, headerNames);
-		this.metaData = new TinkerMetaData2();
+		this.metaData = new TinkerMetaData();
 	}
 	
 	public TinkerFrame(String[] headerNames, Hashtable<String, Set<String>> edgeHash) {
@@ -913,7 +913,7 @@ public class TinkerFrame extends AbstractTableDataFrame {
 		g.createIndex(T.label.toString(), Edge.class);
 		g.createIndex(Constants.ID, Edge.class);
 		g.variables().set(Constants.HEADER_NAMES, headerNames);
-		this.metaData = new TinkerMetaData2();
+		this.metaData = new TinkerMetaData();
 		TinkerMetaHelper.mergeEdgeHash(this.metaData, edgeHash, null);
 	}			 
 
@@ -924,7 +924,7 @@ public class TinkerFrame extends AbstractTableDataFrame {
 		g.createIndex(Constants.ID, Vertex.class);
 		g.createIndex(Constants.ID, Edge.class);
 		g.createIndex(T.label.toString(), Edge.class);
-		this.metaData = new TinkerMetaData2();
+		this.metaData = new TinkerMetaData();
 	}
 
 	/*********************************  END CONSTRUCTORS  ********************************/
@@ -1238,7 +1238,7 @@ public class TinkerFrame extends AbstractTableDataFrame {
 				objInst = obj;
 			}
 			// check if meta edge has already been created for this rel
-			GraphTraversal<Vertex, Vertex> metaT = ((TinkerMetaData2)this.metaData).g.traversal().V().has(Constants.TYPE, TinkerMetaData2.META).has(Constants.NAME, subType).out(TinkerMetaData2.META+edgeLabelDelimeter+TinkerMetaData2.META).has(Constants.TYPE, TinkerMetaData2.META).has(Constants.NAME, objType);
+			GraphTraversal<Vertex, Vertex> metaT = ((TinkerMetaData)this.metaData).g.traversal().V().has(Constants.TYPE, TinkerMetaData.META).has(Constants.NAME, subType).out(TinkerMetaData.META+edgeLabelDelimeter+TinkerMetaData.META).has(Constants.TYPE, TinkerMetaData.META).has(Constants.NAME, objType);
 			if(!metaT.hasNext()){ // if it hasn't we need to add it
 				Map<String, Set<String>> relMap = new HashMap<String, Set<String>>();
 				Set<String> downList = new HashSet<String>();
@@ -1257,7 +1257,7 @@ public class TinkerFrame extends AbstractTableDataFrame {
 		}
 		else {
 			//check if the one meta node has been added
-			GraphTraversal<Vertex, Vertex> metaT = ((TinkerMetaData2)this.metaData).g.traversal().V().has(Constants.TYPE, TinkerMetaData2.META).has(Constants.NAME, subType);
+			GraphTraversal<Vertex, Vertex> metaT = ((TinkerMetaData)this.metaData).g.traversal().V().has(Constants.TYPE, TinkerMetaData.META).has(Constants.NAME, subType);
 			if(!metaT.hasNext()){ // if it hasn't we need to add it
 				Map<String, Set<String>> relMap = new HashMap<String, Set<String>>();
 				Set<String> downList = new HashSet<String>();
@@ -1356,7 +1356,7 @@ public class TinkerFrame extends AbstractTableDataFrame {
 		boolean hasRel = false;
 		
 		for(String startNode : rowCleanData.keySet()) {
-			GraphTraversal<Vertex, Vertex> metaT = ((TinkerMetaData2)this.metaData).g.traversal().V().has(Constants.TYPE, TinkerMetaData2.META).has(Constants.NAME, startNode).out(TinkerMetaData2.META+edgeLabelDelimeter+TinkerMetaData2.META);
+			GraphTraversal<Vertex, Vertex> metaT = ((TinkerMetaData)this.metaData).g.traversal().V().has(Constants.TYPE, TinkerMetaData.META).has(Constants.NAME, startNode).out(TinkerMetaData.META+edgeLabelDelimeter+TinkerMetaData.META);
 			while(metaT.hasNext()){
 				Vertex conn = metaT.next();
 				String endNode = conn.property(Constants.NAME).value()+"";
@@ -1726,17 +1726,17 @@ public class TinkerFrame extends AbstractTableDataFrame {
 	public Iterator<Object[]> iterator(boolean getRawData) {
 		Map<String, Object> options = new HashMap<String, Object>();
 		options.put(TinkerFrame.SELECTORS, getSelectors());
-		return new TinkerFrameIterator(g, ((TinkerMetaData2)this.metaData).g, options, getRawData);
+		return new TinkerFrameIterator(g, ((TinkerMetaData)this.metaData).g, options, getRawData);
 	}
 	
 	@Override
 	public Iterator<Object[]> iterator(boolean getRawData, Map<String, Object> options) {
-		return new TinkerFrameIterator(g, ((TinkerMetaData2)this.metaData).g, options, getRawData);
+		return new TinkerFrameIterator(g, ((TinkerMetaData)this.metaData).g, options, getRawData);
 	}
 	
 	@Override
 	public Iterator<List<Object[]>> scaledUniqueIterator(String columnHeader, boolean getRawData) {
-		return new UniqueScaledTinkerFrameIterator(columnHeader, getRawData, getSelectors(), g, ((TinkerMetaData2)this.metaData).g, getMax(), getMin());
+		return new UniqueScaledTinkerFrameIterator(columnHeader, getRawData, getSelectors(), g, ((TinkerMetaData)this.metaData).g, getMax(), getMin());
 	}
 
 	@Override
@@ -1750,7 +1750,7 @@ public class TinkerFrame extends AbstractTableDataFrame {
 		
 		Vector<String> column = new Vector<>();
 		column.add(columnHeader);
-		GremlinBuilder builder = GremlinBuilder.prepareGenericBuilder(column, g, ((TinkerMetaData2)this.metaData).g, null);
+		GremlinBuilder builder = GremlinBuilder.prepareGenericBuilder(column, g, ((TinkerMetaData)this.metaData).g, null);
 		String dataType = getRawData ? Constants.VALUE : Constants.NAME;
 		return builder.executeScript().values(dataType).dedup();	
 	}
@@ -1763,7 +1763,7 @@ public class TinkerFrame extends AbstractTableDataFrame {
 	
 	public Iterator getIterator(Vector <String> columns) {
 		// the columns here are the columns we want to keep
-		GremlinBuilder builder = GremlinBuilder.prepareGenericBuilder(columns, g, ((TinkerMetaData2)this.metaData).g, null);
+		GremlinBuilder builder = GremlinBuilder.prepareGenericBuilder(columns, g, ((TinkerMetaData)this.metaData).g, null);
 		return builder.executeScript();	
 	}
 	
@@ -1812,7 +1812,7 @@ public class TinkerFrame extends AbstractTableDataFrame {
 	@Override
 	public int getNumRows() {
 		long startTime = System.currentTimeMillis();
-		GremlinBuilder builder = GremlinBuilder.prepareGenericBuilder(getSelectors(), this.g, ((TinkerMetaData2)this.metaData).g, null);
+		GremlinBuilder builder = GremlinBuilder.prepareGenericBuilder(getSelectors(), this.g, ((TinkerMetaData)this.metaData).g, null);
 		Iterator gt = builder.executeScript();		
 		int count = 0;
 		while(gt.hasNext()) {
@@ -2065,7 +2065,7 @@ public class TinkerFrame extends AbstractTableDataFrame {
 				
 		// get all the levels
 		String[] headers = getColumnHeaders();
-		GremlinBuilder builder = GremlinBuilder.prepareGenericBuilder(getSelectors(), g, ((TinkerMetaData2)this.metaData).g, null);
+		GremlinBuilder builder = GremlinBuilder.prepareGenericBuilder(getSelectors(), g, ((TinkerMetaData)this.metaData).g, null);
 		builder.setGroupBySelector(columnHeader);
 		
 		//finally execute it to get the executor

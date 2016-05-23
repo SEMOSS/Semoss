@@ -16,7 +16,7 @@ import org.apache.tinkerpop.gremlin.structure.Graph;
 import org.apache.tinkerpop.gremlin.structure.Vertex;
 
 import prerna.ds.TinkerFrame;
-import prerna.ds.TinkerMetaData2;
+import prerna.ds.TinkerMetaData;
 import prerna.util.Constants;
 
 /**
@@ -100,7 +100,7 @@ public class GremlinBuilder {
 		
 		Vertex startNode = null;
 		// get the metamodel information from the graph
-		GraphTraversal<Vertex, Vertex> metaT = this.metaGraph.traversal().V().has(Constants.TYPE, TinkerMetaData2.META);
+		GraphTraversal<Vertex, Vertex> metaT = this.metaGraph.traversal().V().has(Constants.TYPE, TinkerMetaData.META);
 		if(metaT.hasNext()) { //note: this is an if statement, not a while loop
 			// the purpose of this is to just get the start node for the traversal
 
@@ -178,7 +178,7 @@ public class GremlinBuilder {
 		}
 		
 		// for each downstream node of this meta node
-		GraphTraversal<Vertex, Vertex> downstreamIt = this.metaGraph.traversal().V().has(Constants.TYPE, TinkerMetaData2.META).has(Constants.ID, orig.property(Constants.ID).value()).out(TinkerMetaData2.META + TinkerFrame.edgeLabelDelimeter + TinkerMetaData2.META);
+		GraphTraversal<Vertex, Vertex> downstreamIt = this.metaGraph.traversal().V().has(Constants.TYPE, TinkerMetaData.META).has(Constants.ID, orig.property(Constants.ID).value()).out(TinkerMetaData.META + TinkerFrame.edgeLabelDelimeter + TinkerMetaData.META);
 		while (downstreamIt.hasNext()) {
 			// for each downstream node of this meta node
 			Vertex nodeV = downstreamIt.next();
@@ -217,7 +217,7 @@ public class GremlinBuilder {
 			}
 		}
 		// do the same thing for upstream
-		GraphTraversal<Vertex, Vertex> upstreamIt = this.metaGraph.traversal().V().has(Constants.TYPE, TinkerMetaData2.META).has(Constants.ID, orig.property(Constants.ID).value()).in(TinkerMetaData2.META+TinkerFrame.edgeLabelDelimeter+TinkerMetaData2.META);
+		GraphTraversal<Vertex, Vertex> upstreamIt = this.metaGraph.traversal().V().has(Constants.TYPE, TinkerMetaData.META).has(Constants.ID, orig.property(Constants.ID).value()).in(TinkerMetaData.META+TinkerFrame.edgeLabelDelimeter+TinkerMetaData.META);
 		while(upstreamIt.hasNext()) {
 			Vertex nodeV = upstreamIt.next();
 			
