@@ -6,14 +6,14 @@ import java.util.Map;
 
 import prerna.algorithm.api.IMetaData;
 import prerna.algorithm.api.ITableDataFrame;
-import prerna.ds.H2.TinkerH2Frame;
+import prerna.ds.H2.H2Frame;
 import prerna.engine.api.ISelectStatement;
 import prerna.engine.api.ISelectWrapper;
 
 public class DataFrameHelper {
 
 	public static void removeData(ITableDataFrame frame, ISelectWrapper it) {
-		if(frame instanceof TinkerH2Frame) {
+		if(frame instanceof H2Frame) {
 			
 			while(it.hasNext()){
 				ISelectStatement ss = (ISelectStatement) it.next();
@@ -25,7 +25,7 @@ public class DataFrameHelper {
 			
 			IMetaData metaData = ((TinkerFrame)frame).metaData;
 			String[] columnHeaders = frame.getColumnHeaders();
-			TinkerH2Frame tempFrame = TableDataFrameFactory.convertToH2Frame(frame);
+			H2Frame tempFrame = TableDataFrameFactory.convertToH2Frame(frame);
 			while(it.hasNext()){
 				ISelectStatement ss = (ISelectStatement) it.next();
 				System.out.println(((ISelectStatement)ss).getPropHash());

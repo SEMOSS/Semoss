@@ -3,18 +3,15 @@ package prerna.sablecc;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
-import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.Vector;
 
-import cern.colt.Arrays;
-import prerna.ds.H2.TinkerH2Frame;
+import prerna.ds.H2.H2Frame;
 import prerna.ds.util.FileIterator;
 import prerna.engine.api.IHeadersDataRow;
 import prerna.engine.api.ISelectWrapper;
 import prerna.sablecc.PKQLRunner.STATUS;
-import prerna.util.ArrayUtilityMethods;
 
 public class H2ImportDataReactor extends ImportDataReactor {
 	
@@ -23,7 +20,7 @@ public class H2ImportDataReactor extends ImportDataReactor {
 		super.process();
 		String nodeStr = (String)myStore.get(whoAmI);
 		
-		TinkerH2Frame frame = (TinkerH2Frame) myStore.get("G");
+		H2Frame frame = (H2Frame) myStore.get("G");
 		Iterator<IHeadersDataRow> it = (Iterator<IHeadersDataRow>) myStore.get("iterator");
 		Map<String, Set<String>> edgeHash = (Map<String, Set<String>>) myStore.get("edgeHash");
 		Map<String, String> logicalToValue = (Map<String, String>) myStore.get("logicalToValue");

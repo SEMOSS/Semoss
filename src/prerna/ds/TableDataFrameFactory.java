@@ -4,14 +4,13 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Hashtable;
+import java.util.Iterator;
 import java.util.LinkedHashSet;
 import java.util.Map;
 import java.util.Set;
 
-import java.util.Iterator;
-
 import prerna.algorithm.api.ITableDataFrame;
-import prerna.ds.H2.TinkerH2Frame;
+import prerna.ds.H2.H2Frame;
 import prerna.ds.util.TinkerCastHelper;
 import prerna.poi.main.helper.CSVFileHelper;
 import prerna.poi.main.helper.XLFileHelper;
@@ -85,7 +84,7 @@ public class TableDataFrameFactory {
 			
 			String mainCol = mainCols.get(sheetName);
 			if(tf == null) {
-				tf = (TinkerFrame) createTinkerFrame(headers, "TinkerFrame", types, mainCol);
+				tf = (TinkerFrame) createDataFrame(headers, "TinkerFrame", types, mainCol);
 			} else {
 				Map<String, Set<String>> newEdgeHash = null;
 				if(mainCol != null) {
@@ -143,12 +142,12 @@ public class TableDataFrameFactory {
 		return tf;
 	}
 
-	private static TinkerH2Frame generateH2FrameFromExcel(String fileLoc, Map<String, Map<String, String>> dataTypeMap, Map<String, String> mainCols) {
+	private static H2Frame generateH2FrameFromExcel(String fileLoc, Map<String, Map<String, String>> dataTypeMap, Map<String, String> mainCols) {
 		
 		XLFileHelper helper = new XLFileHelper();
 		helper.parse(fileLoc);
 		
-		TinkerH2Frame dataFrame = null;
+		H2Frame dataFrame = null;
 		String[] tables = helper.getTables();
 		for(int i = 0; i < tables.length; i++)
 		{
@@ -180,7 +179,7 @@ public class TableDataFrameFactory {
 			
 			String mainCol = mainCols.get(table);
 			if(dataFrame == null) {
-				dataFrame = (TinkerH2Frame) createTinkerFrame(headers, "H2", types, mainCol);
+				dataFrame = (H2Frame) createDataFrame(headers, "H2", types, mainCol);
 			} else {
 				Map<String, Set<String>> newEdgeHash = null;
 				if(mainCol != null) {
@@ -222,7 +221,7 @@ public class TableDataFrameFactory {
 	
 	//////////////////////// START CSV LOADING //////////////////////////////////////
 	
-	private static TinkerH2Frame generateH2FrameFromFile(String fileLoc, String delimiter, Map<String, String> dataTypeMap, String mainCol) {
+	private static H2Frame generateH2FrameFromFile(String fileLoc, String delimiter, Map<String, String> dataTypeMap, String mainCol) {
 		CSVFileHelper helper = new CSVFileHelper();
 		helper.setDelimiter(delimiter.charAt(0));
 		helper.parse(fileLoc);
@@ -246,7 +245,7 @@ public class TableDataFrameFactory {
 			types = helper.predictTypes();			
 		}
 		
-		TinkerH2Frame dataFrame = (TinkerH2Frame) createTinkerFrame(headers, "H2", types, mainCol);
+		H2Frame dataFrame = (H2Frame) createDataFrame(headers, "H2", types, mainCol);
 		
 		// unique names always match the headers when creating from csv/excel
 //		String[] values = new String[headers.length];
@@ -292,7 +291,7 @@ public class TableDataFrameFactory {
 			types = helper.predictTypes();			
 		}
 
-		TinkerFrame dataFrame = (TinkerFrame) createTinkerFrame(headers, "TinkerFrame", types, mainCol);
+		TinkerFrame dataFrame = (TinkerFrame) createDataFrame(headers, "TinkerFrame", types, mainCol);
 		
 		TinkerCastHelper caster = new TinkerCastHelper();
 		String[] cells = null;
@@ -323,11 +322,11 @@ public class TableDataFrameFactory {
 	
 	//////////////////////// END CSV LOADING //////////////////////////////////////
 
-	private static ITableDataFrame createTinkerFrame(String[] headers, String dataFrameType, String[] types, String mainConcept) {
+	private static ITableDataFrame createDataFrame(String[] headers, String dataFrameType, String[] types, String mainConcept) {
 		ITableDataFrame dataFrame = null;
 		Map<String, Set<String>> edgeHash = null;
 		if(dataFrameType.equalsIgnoreCase("H2")) {
-			dataFrame = new TinkerH2Frame(headers);
+			dataFrame = new H2Frame(headers);
 		} else {
 			dataFrame = new TinkerFrame(headers);
 		}
@@ -360,9 +359,9 @@ public class TableDataFrameFactory {
 		return edgeHash;
 	}
 	
-	public static TinkerH2Frame convertToH2Frame(ITableDataFrame table) {
+	public static H2Frame convertToH2Frame(ITableDataFrame table) {
 
-		if(table instanceof TinkerH2Frame) return (TinkerH2Frame)table;
+		if(table instanceof H2Frame) return (H2Frame)table;
 		
 		if(table instanceof AbstractTableDataFrame) {
 		
@@ -379,7 +378,7 @@ public class TableDataFrameFactory {
 					types[i] = "VARCHAR(800)";
 				}
 			}
-			TinkerH2Frame dataFrame = (TinkerH2Frame) createTinkerFrame(headers, "H2", types, null);
+			H2Frame dataFrame = (H2Frame) createDataFrame(headers, "H2", types, null);
 			
 					
 			String tableName = dataFrame.getTableNameForUniqueColumn(headers[0]);

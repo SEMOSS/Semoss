@@ -13,7 +13,7 @@ import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.__;
 
 import prerna.algorithm.api.IAnalyticTransformationRoutine;
 import prerna.algorithm.api.ITableDataFrame;
-import prerna.ds.H2.TinkerH2Frame;
+import prerna.ds.H2.H2Frame;
 import prerna.om.SEMOSSParam;
 import prerna.rdf.query.builder.GremlinBuilder;
 import prerna.util.Constants;
@@ -78,12 +78,12 @@ public class TinkerFrameStatRoutine implements IAnalyticTransformationRoutine {
 		String newColumnHeader = this.functionMap.get("calcName").toString();
 		String[] columnHeaders = ((List<String>)this.functionMap.get("GroupBy")).toArray(new String[0]);
 		
-		if(table instanceof TinkerH2Frame) {
-			TinkerH2Frame tinkerGraph = (TinkerH2Frame)table;
+		if(table instanceof H2Frame) {
+			H2Frame h2Frame = (H2Frame)table;
 			
 			//calculate group by and add to tinker
 			try {
-				addStatColumnToTinker(tinkerGraph, columnHeaders, mathType, newColumnHeader, valueColumn);
+				addStatColumnToTinker(h2Frame, columnHeaders, mathType, newColumnHeader, valueColumn);
 			} catch(ClassCastException e) {
 				throw new ClassCastException("Error with computation. Please make sure aggregation values are non-empty and numerical.");
 			}
@@ -117,7 +117,7 @@ public class TinkerFrameStatRoutine implements IAnalyticTransformationRoutine {
 	 * @param newColumnName - name of the new column
 	 * @param valueColumn - the column to do calculations on
 	 */
-	private void addStatColumnToTinker(TinkerH2Frame tinker, String[] columnHeader, String mathType, String newColumnName, String valueColumn) {
+	private void addStatColumnToTinker(H2Frame tinker, String[] columnHeader, String mathType, String newColumnName, String valueColumn) {
 		Map<String, String> dataType  = new HashMap<>(1);
 		dataType.put(newColumnName, "DOUBLE");
 		tinker.connectTypes(columnHeader[0], newColumnName, dataType);
@@ -137,7 +137,7 @@ public class TinkerFrameStatRoutine implements IAnalyticTransformationRoutine {
 	 */
 	private void addStatColumnToTinker(TinkerFrame tinker, String[] columnHeader, String mathType, String newColumnName, String valueColumn) throws ClassCastException{
 				
-		GremlinBuilder builder = GremlinBuilder.prepareGenericBuilder(tinker.getSelectors(), tinker.g, ((TinkerMetaData2)tinker.metaData).g, null);
+		GremlinBuilder builder = GremlinBuilder.prepareGenericBuilder(tinker.getSelectors(), tinker.g, ((TinkerMetaData)tinker.metaData).g, null);
 		GraphTraversal statIterator = (GraphTraversal)builder.executeScript();
 		
 		boolean singleColumn = columnHeader.length == 1;
