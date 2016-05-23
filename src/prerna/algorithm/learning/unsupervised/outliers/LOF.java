@@ -124,8 +124,8 @@ public class LOF implements IAnalyticTransformationRoutine {
 		}
 		
 		dataFrame.setColumnsToSkip(skipAttributes);
-		this.dimensions = dataFrame.getNumCols() - 1;
 		this.attributeNames = dataFrame.getColumnHeaders();
+		this.dimensions = this.attributeNames.length - 1;
 		
 		// double check that all info is numerical
 		boolean[] isNumeric = dataFrame.isNumeric();

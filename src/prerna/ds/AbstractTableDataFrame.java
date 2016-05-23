@@ -419,11 +419,6 @@ public abstract class AbstractTableDataFrame implements ITableDataFrame {
 	}
 
 	@Override
-	public int getNumCols() {
-		return this.getColumnHeaders().length;
-	}
-
-	@Override
 	public Object[] getColumn(String columnHeader) {
 		return null;
 	}

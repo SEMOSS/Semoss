@@ -228,7 +228,7 @@ public class MachineLearningModulePlaySheet extends TablePlaySheet{
 		if(dataFrame == null || dataFrame.isEmpty())
 			return;
 		
-		entropyArr = new Double[dataFrame.getNumCols()];
+		entropyArr = new Double[dataFrame.getColumnHeaders().length];
 //		
 //		entropyArr = dataFrame.getEntropyDensity();
 //		fillSimBarChartHash(dataFrame, new ArrayList<String>());
@@ -236,7 +236,7 @@ public class MachineLearningModulePlaySheet extends TablePlaySheet{
 	
 	public void displayEntropyDensity(List<String> skipColumns) {
 		if(dataFrame == null || dataFrame.isEmpty()) return;		
-		entropyArr = new Double[dataFrame.getNumCols()];
+		entropyArr = new Double[dataFrame.getColumnHeaders().length];
 		//dataFrame.setColumnsToSkip(skipColumns);
 		entropyArr = dataFrame.getEntropyDensity();
 		

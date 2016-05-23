@@ -1166,12 +1166,6 @@ public class BTreeDataFrame implements ITableDataFrame {
 	}
 
 	@Override
-	public int getNumCols() {
-		//return this.levelNames.length;
-		 return this.filteredLevelNames.length;
-	}
-
-	@Override
 	public int getNumRows() {
 		int numRows = 0;
 		TreeNode typeRoot = simpleTree.nodeIndexHash.get(levelNames[levelNames.length-1]);
