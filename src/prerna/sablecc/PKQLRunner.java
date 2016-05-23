@@ -33,20 +33,27 @@ public class PKQLRunner {
 	private Map<String, Map<String,Object>> masterFeMap = new HashMap<String, Map<String,Object>>(); // this holds all active front end data. in the form panelId --> prop --> value
 	private Map<String, List<Map<String, Object>>> expiredFeMaps =  new HashMap<String, List<Map<String,Object>>>();
 	private Map<String, Object> activeFeMap;
-	private Translation2 translation;
+	private Translation translation;
 	private List<Map> responseArray = new Vector<Map>();
 	
-	public void runPKQL(String expression, IDataMaker f) {
+	/**
+	 * Runs a given pkql expression (can be multiple if semicolon delimited) on a provided data maker 
+	 * @param expression			The sequence of semicolon delimited pkql expressions.
+	 * 								If just one expression, still must end with a semicolon
+	 * @param frame					The data maker to run the pkql expression on
+	 */
+	public void runPKQL(String expression, IDataMaker frame) {
 		
 		Parser p = new Parser(new Lexer(new PushbackReader(new InputStreamReader(new StringBufferInputStream(expression)), 1024)));
 		Start tree;
 		if(translation == null){
-			translation = new Translation2(f, this);
+			translation = new Translation(frame, this);
 		}
 
 		try {
+			// parsing the pkql - this process also determines if expression is syntactically correct
 			tree = p.parse();
-			// Apply the translation.
+			// apply the translation.
 			tree.apply(translation);
 
 		} catch (ParserException | LexerException | IOException e) {

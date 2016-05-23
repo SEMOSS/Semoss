@@ -71,7 +71,7 @@ import prerna.sablecc.node.Node;
 import prerna.ui.components.playsheets.datamakers.IDataMaker;
 import prerna.ui.components.playsheets.datamakers.IDataMaker.DATA_FRAME_REACTORS;
 
-public class Translation2 extends DepthFirstAdapter {
+public class Translation extends DepthFirstAdapter {
 	// this is the third version of this shit I am building
 	// I need some way of having logical points for me to know when to start another reactor
 	// for instance I could have an expr term within a math function which itself could be within another expr term
@@ -99,7 +99,7 @@ public class Translation2 extends DepthFirstAdapter {
 	IDataMaker frame = null;
 	PKQLRunner runner = null;
 	
-	public Translation2() { // Test Constructor
+	public Translation() { // Test Constructor
 		frame = new TinkerFrame();
 //		((TinkerFrame)frame).tryCustomGraph();
 		this.runner = new PKQLRunner();
@@ -110,7 +110,7 @@ public class Translation2 extends DepthFirstAdapter {
 	 * @param frame IDataMaker: either TinkerFrame or TinkerH2Frame
 	 * @param runner PKQLRunner: holds response from PKQL script and the status of whether the script errored or not
 	 */
-	public Translation2(IDataMaker frame, PKQLRunner runner) {
+	public Translation(IDataMaker frame, PKQLRunner runner) {
 		// now get the data from tinker
 		this.frame = frame;
 		this.runner = runner;
