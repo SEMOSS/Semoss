@@ -12,7 +12,7 @@ import org.rosuda.REngine.Rserve.RserveException;
 
 import prerna.algorithm.api.ITableDataFrame;
 import prerna.ds.QueryStruct;
-import prerna.ds.H2.TinkerH2Frame;
+import prerna.ds.H2.H2Frame;
 import prerna.engine.api.IApi;
 import prerna.engine.api.RApi;
 import prerna.engine.impl.rdf.QueryAPI;
@@ -51,9 +51,9 @@ public class ApiReactor extends AbstractReactor {
 
 		if (engine != null && !engine.equals("csvFile")) {
 			if(engine.equalsIgnoreCase("r")) {
-				if (myStore.get(PKQLEnum.G) instanceof TinkerH2Frame) {
+				if (myStore.get(PKQLEnum.G) instanceof H2Frame) {
 					api = new RApi();
-					TinkerH2Frame frame = (TinkerH2Frame) myStore.get(PKQLEnum.G);
+					H2Frame frame = (H2Frame) myStore.get(PKQLEnum.G);
 					try {
 						api.set("TABLE_NAME", frame.getDatabaseMetaData().get("tableName"));
 						api.set("R_RUNNER", frame.getRRunner());
