@@ -208,7 +208,7 @@ public class TableDataFrameFactory {
 			}
 			String [] cells = null;
 			while((cells = helper.getNextRow(table, headers)) != null) {
-				dataFrame.addRow2(tableName, cells, headers, types);
+				dataFrame.addRow(tableName, cells, headers, types);
 			}
 		}
 		dataFrame.setRelations(helper.getRelations());
@@ -262,7 +262,7 @@ public class TableDataFrameFactory {
 		
 		String [] cells = null;
 		while((cells = helper.getNextRow()) != null) {
-			dataFrame.addRow2(tableName, cells, headers, types);
+			dataFrame.addRow(tableName, cells, headers, types);
 		}
 		return dataFrame;
 	}
@@ -390,7 +390,7 @@ public class TableDataFrameFactory {
 				for(int i = 0; i < row.length; i++) {
 					cells[i] = row[i].toString();
 				}
-				dataFrame.addRow2(tableName, cells, headers, types);
+				dataFrame.addRow(tableName, cells, headers, types);
 			}
 			
 			return dataFrame;
