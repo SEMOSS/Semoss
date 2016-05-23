@@ -86,7 +86,7 @@ public class SelfOrganizingMap3DPlotPlaySheet extends BrowserPlaySheet {
 	public void processQueryData() {
 		Hashtable<Integer, ArrayList<Object[]>> gridData = new Hashtable<Integer, ArrayList<Object[]>>();
 		
-		int numCol = dataFrame.getNumCols();
+		int numCol = dataFrame.getColumnHeaders().length;
 		Iterator<Object[]> it = dataFrame.iterator(false);
 		while(it.hasNext()) {
 			Object[] dataRow = it.next();
