@@ -5,7 +5,7 @@ import java.util.Iterator;
 
 import org.rosuda.REngine.Rserve.RserveException;
 
-import prerna.ds.H2.TinkerH2Frame;
+import prerna.ds.H2.H2Frame;
 import prerna.engine.impl.r.RRunner;
 import prerna.sablecc.MathReactor;
 import prerna.sablecc.PKQLEnum;
@@ -23,11 +23,11 @@ public class RReactor extends MathReactor{
 		String nodeStr = (String) myStore.get(whoAmI);
 		String userScript = (String) myStore.get(PKQLEnum.MATH_FUN);
 		userScript = userScript.substring(1, userScript.length()-1).replace("<code>", ""); // Need to remove brackets and code delimiters, create new process in postfix for text so that we can extract text without delimiters
-		TinkerH2Frame frame = null;
+		H2Frame frame = null;
 		RRunner r = null;
 		
-		if (myStore.get(PKQLEnum.G) instanceof TinkerH2Frame) {
-			frame = (TinkerH2Frame) myStore.get(PKQLEnum.G);
+		if (myStore.get(PKQLEnum.G) instanceof H2Frame) {
+			frame = (H2Frame) myStore.get(PKQLEnum.G);
 		} else {
 //			frame = TableDataFrameFactory.convertToH2Frame((TinkerFrame)myStore.get(PKQLEnum.G));
 			myStore.put(nodeStr, "Error: Dataframe must be in Grid format.");
