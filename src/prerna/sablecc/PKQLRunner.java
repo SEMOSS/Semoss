@@ -116,6 +116,8 @@ public class PKQLRunner {
 				builder.append(Arrays.toString((double[]) obj));
 			} else if(obj instanceof int[]) {
 				builder.append(Arrays.toString((int[]) obj));
+			} else {
+				builder.append(obj);
 			}
 			builder.append("\n");
 		}
