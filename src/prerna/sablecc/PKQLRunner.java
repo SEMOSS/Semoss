@@ -94,7 +94,12 @@ public class PKQLRunner {
 		// this will definitely have to be built out to be more encompassing
 		// maybe throw the current string through an English Translation class to get the label
 		// for now we will just parse out the beginning
-		result.put("label", currentString.substring(0, currentString.indexOf("(")));
+		if(currentString.contains("(")){
+			result.put("label", currentString.substring(0, currentString.indexOf("(")));
+		}
+		else {
+			result.put("label", currentString);
+		}
 		
 		// add it to the data associated with this panel if this is a panel pkql
 		// also add the panel id to the master
