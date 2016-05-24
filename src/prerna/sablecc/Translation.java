@@ -727,6 +727,9 @@ public class Translation extends DepthFirstAdapter {
 		String nodeExpr = node.getExpr().toString().trim();
 		curReactor.put(PKQLEnum.EXPR_TERM, nodeExpr);
 		Hashtable <String, Object> thisReactorHash = deinitReactor(PKQLEnum.COL_ADD, nodeExpr, node.toString().trim());
+		IScriptReactor previousReactor = (IScriptReactor)thisReactorHash.get(PKQLEnum.COL_ADD.toString());
+		runner.setStatus((STATUS)previousReactor.getValue("STATUS"));
+		runner.setResponse((String)previousReactor.getValue("RESPONSE"));
 	}
 
 	@Override

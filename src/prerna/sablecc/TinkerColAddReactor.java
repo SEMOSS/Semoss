@@ -127,14 +127,13 @@ public class TinkerColAddReactor extends ColAddReactor {
 				addedCols.add(newCol);
 				frame.insertBlanks(primKeyConceptName, addedCols);
 			}
-			
-			myStore.put("STATUS", STATUS.SUCCESS);			
-			
 		} else {
 			it = new ExpressionIterator(it, joinCols, value.toString());
 			processIt(it, frame, joinCols, newCol);
 		}
-
+		myStore.put("RESPONSE", STATUS.SUCCESS.toString());
+		myStore.put("STATUS", STATUS.SUCCESS);
+		
 		return null;
 	}
 
