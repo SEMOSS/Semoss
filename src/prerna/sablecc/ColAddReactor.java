@@ -102,6 +102,8 @@ public class ColAddReactor extends AbstractReactor {
 			it = new ExpressionIterator(it, joinCols, value.toString());
 			processIt(it, frame, joinCols, newCol);
 		}
+		myStore.put("RESPONSE", STATUS.SUCCESS.toString());
+		myStore.put("STATUS", STATUS.SUCCESS);
 
 		return null;
 	}
