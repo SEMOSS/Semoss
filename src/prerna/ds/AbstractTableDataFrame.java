@@ -517,11 +517,6 @@ public abstract class AbstractTableDataFrame implements ITableDataFrame {
 	}
 
 	@Override
-	public Object[] getFilteredUniqueRawValues(String columnHeader) {
-		return null;
-	}
-	
-	@Override
 	public void addRow(ISelectStatement statement) {
 		addRow(statement.getPropHash(), statement.getRPropHash());
 	}

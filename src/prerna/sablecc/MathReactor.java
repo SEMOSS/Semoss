@@ -10,7 +10,7 @@ import prerna.ds.AlgorithmStrategy;
 import prerna.ds.ExpressionIterator;
 import prerna.sablecc.PKQLRunner.STATUS;
 
-public class MathReactor extends AbstractReactor {
+public abstract class MathReactor extends AbstractReactor {
 	
 	// every single thing I am listening to
 	// I need
