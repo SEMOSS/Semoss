@@ -46,7 +46,7 @@ public class RApi implements IApi{
 			r.setDataframeExists(true);
 		}
 		
-		return null; // until TinkerH2Frame can run a query on itself, can't generate a wrapper from query
+		return null; // until H2Frame can run a query on itself, can't generate a wrapper from query
 	}
 
 }
