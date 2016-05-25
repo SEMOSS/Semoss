@@ -700,9 +700,9 @@ public class Insight {
 	// Get the recipe for the front end to display
 	// Also serve it to the front end in such a way that they can replay it
 	// Identify which are pkql and which are other steps
-	public List<Map<String, Object>> getRecipe() {
+	public String getRecipe() {
 		
-		List<Map<String, Object>> recipeList = new ArrayList<>();
+		StringBuilder recipeList = new StringBuilder();
 		
 		for(DataMakerComponent dmc : getDataMakerComponents()) {
 			
@@ -713,15 +713,16 @@ public class Insight {
 			
 			//add the component if not empty
 			if(dmc.getQuery() != null && !dmc.getQuery().equals(Constants.EMPTY)) {
-				Map<String, Object> componentIngredient = new HashMap<String, Object>();
-				
+//				Map<String, Object> componentIngredient = new HashMap<String, Object>();
+
+				recipeList.append(System.getProperty("line.separator"));
 				if(dmc.getQueryStruct() != null){
-					componentIngredient.put("customComponent", dmc.getQueryStruct());
+					recipeList.append(dmc.getQueryStruct());
 				}
 				else{
-					componentIngredient.put("customComponent", dmc.getQueryStruct());
+					recipeList.append(dmc.getQuery());
 				}
-				recipeList.add(componentIngredient);
+//				recipeList.add(componentIngredient);
 			}
 			
 			//iterate through the post trans
@@ -729,25 +730,28 @@ public class Insight {
 				storeTransInRecipe(ist, recipeList);
 			}
 		}
-		return recipeList;
+		return recipeList.toString();
 	}
 	
 	// Stores the pieces that make up a recipe block for the front end
-	private void storeTransInRecipe(ISEMOSSTransformation ist, List<Map<String, Object>> list){
+	private void storeTransInRecipe(ISEMOSSTransformation ist, StringBuilder list){
 		if(ist instanceof PKQLTransformation) {
 			List<String> pkqls = ((PKQLTransformation)ist).getPkql();
 			for(String pkql : pkqls){
-				Map<String, Object> block = new HashMap<String, Object>();
-				block.put("cmd", pkql);
-				list.add(block);
+//				Map<String, Object> block = new HashMap<String, Object>();
+//				block.put("cmd", pkql);
+				list.append(System.getProperty("line.separator"));
+				list.append(pkql);
 			}
 		} else {
-			Map<String, Object> block = new HashMap<String, Object>();
-			Map<String, Object> properties = ist.getProperties();
-			properties.put("transformationType", ist.getClass().toString());
-			properties.put("stepID", ist.getId());
-			block.put("customTransformation", ist.getId());
-			list.add(block);
+//			Map<String, Object> block = new HashMap<String, Object>();
+//			Map<String, Object> properties = ist.getProperties();
+//			properties.put("transformationType", ist.getClass().toString());
+//			properties.put("stepID", ist.getId());
+//			block.put("customTransformation", ist.getId());
+			list.append(System.getProperty("line.separator"));
+			list.append(ist.getClass().toString() + " ");
+			list.append(ist.getId() + " ");
 		}
 	}
 	
@@ -998,12 +1002,12 @@ public class Insight {
 		retHash.put("layout", getOutput());
 		retHash.put("title", getInsightName());
 		List<String> selectors = new ArrayList<String>();
-		if(dataTableAlign != null){ // some playsheets don't require data table align, like grid play sheet. Should probably change this so they all have data table align (like if i want to change the order of my columns)
-			retHash.put("dataTableAlign", dataTableAlign);
-			for(String label : dataTableAlign.keySet()) {
-				selectors.add(dataTableAlign.get(label));
-			}
-		}
+//		if(dataTableAlign != null){ // some playsheets don't require data table align, like grid play sheet. Should probably change this so they all have data table align (like if i want to change the order of my columns)
+//			retHash.put("dataTableAlign", dataTableAlign);
+//			for(String label : dataTableAlign.keySet()) {
+//				selectors.add(dataTableAlign.get(label));
+//			}
+//		}
 		// TODO: how do i get this outside of here? we need to return incremental stores during traversing but not when recreating insight
 		IDataMaker dm = getDataMaker();
 		if(dm instanceof GraphDataModel) {
