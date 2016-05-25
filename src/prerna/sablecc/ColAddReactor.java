@@ -51,6 +51,7 @@ public class ColAddReactor extends AbstractReactor {
 		// ok.. so it would be definitely be cool to pass this to an expr script right now and do the op
 		// however I dont have this shit
 		String expr = (String) myStore.get(PKQLEnum.EXPR_TERM);
+		
 		Vector <String> cols = (Vector <String>)myStore.get(PKQLEnum.COL_DEF);
 		// col def of the parent will have all of the col defs of the children
 		// need to remove the new column as it doesn't exist yet
@@ -99,6 +100,9 @@ public class ColAddReactor extends AbstractReactor {
 				frame.addRelationship(row, row);
 			}
 		} else {
+			if(value == null){
+				value = modExpression(expr); // expr doesn't get modded initially since its grabbed separately from whoAmI. Need to mod it here.
+			}
 			it = new ExpressionIterator(it, joinCols, value.toString());
 			processIt(it, frame, joinCols, newCol);
 		}
