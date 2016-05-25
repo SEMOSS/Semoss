@@ -745,7 +745,7 @@ public class H2Builder {
     
     /*************************** UPDATE ******************************************/
    
-    //process the wrapper from processDataMakerComponent in TinkerH2Frame to generate a table then add that table
+    //process the wrapper from processDataMakerComponent in H2Frame to generate a table then add that table
     /**
      * 
      * @param wrapper - wrapper to process
