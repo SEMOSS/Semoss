@@ -81,7 +81,7 @@ public abstract class BaseReducerReactor extends MathReactor implements Expressi
 				{
 					Vertex v = (Vertex)row.get(ids[colIndex]);
 					Object val = v.value(propToGet);
-					System.out.println("Values is " + val);
+//					System.out.println("Values is " + val);
 					otherBindings.put(ids[colIndex], val);
 				}
 			}
@@ -90,20 +90,20 @@ public abstract class BaseReducerReactor extends MathReactor implements Expressi
 				for(int colIndex = 0;colIndex < ids.length;colIndex++)
 				{
 					Object val = array[colIndex];
-					System.out.println("Values is " + val);
+//					System.out.println("Values is " + val);
 					otherBindings.put(ids[colIndex], val);
 				}
 			}
 			else if(vert != null)
 			{
 				Object val = vert.value(propToGet);
-				System.out.println("Values is " + val);
+//				System.out.println("Values is " + val);
 				otherBindings.put(ids[0], val);
 			}
 			else if(doubleValue != null)
 			{
 				Object val = doubleValue.doubleValue();
-				System.out.println("Values is " + val);
+//				System.out.println("Values is " + val);
 				otherBindings.put(ids[0], val);
 			}
 		}		
@@ -122,10 +122,10 @@ public abstract class BaseReducerReactor extends MathReactor implements Expressi
 		
 		try {
 			retObject = cs.eval();
-			System.out.println("Returning value.. " + retObject);
+//			System.out.println("Returning value.. " + retObject);
 			long now = System.nanoTime();
 			
-			System.out.println("Time Difference..  " + ((now - nanoTime)/1000000));
+//			System.out.println("Time Difference..  " + ((now - nanoTime)/1000000));
 
 		} catch (ScriptException e) {
 			// TODO Auto-generated catch block

@@ -56,7 +56,7 @@ public class PKQLRunner {
 			// apply the translation.
 			tree.apply(translation);
 
-		} catch (ParserException | LexerException | IOException e) {
+		} catch (ParserException | LexerException | IOException | RuntimeException e) {
 			e.printStackTrace();
 			currentStatus = PKQLRunner.STATUS.ERROR;
 			currentString = expression;
