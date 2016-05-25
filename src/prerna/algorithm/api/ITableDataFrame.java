@@ -351,8 +351,12 @@ public interface ITableDataFrame extends IDataMaker {
 	Object[] getFilterModel();
 	
 	//temporary hack for build...delete later
-	public Object[] getFilteredUniqueRawValues(String columnHeader);
+//	public Object[] getFilteredUniqueRawValues(String columnHeader);
 
+	/**
+	 * 
+	 * @param fileName
+	 */
 	void save(String fileName);
 	ITableDataFrame open(String fileName);
 
