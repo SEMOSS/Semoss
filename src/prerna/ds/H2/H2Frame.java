@@ -35,6 +35,8 @@ import prerna.engine.impl.r.RRunner;
 import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.sablecc.ColAddReactor;
 import prerna.sablecc.H2ImportDataReactor;
+import prerna.sablecc.PKQLEnum;
+import prerna.sablecc.PKQLEnum.PKQLReactor;
 import prerna.ui.components.playsheets.datamakers.DataMakerComponent;
 import prerna.ui.components.playsheets.datamakers.ISEMOSSTransformation;
 import prerna.ui.components.playsheets.datamakers.JoinTransformation;
@@ -884,13 +886,31 @@ public class H2Frame extends AbstractTableDataFrame {
 	}
 	
 	@Override
-	public IScriptReactor getReactor(DATA_FRAME_REACTORS reactorType) {
-		switch(reactorType) {
-			case IMPORT_DATA : return new H2ImportDataReactor();
-			case COL_ADD : return new ColAddReactor();
-		}
+	public Map<String, String> getScriptReactors() {
+		Map<String, String> reactorNames = new HashMap<String, String>();
+		reactorNames.put(PKQLEnum.EXPR_TERM, "prerna.sablecc.ExprReactor");
+		reactorNames.put(PKQLEnum.EXPR_SCRIPT, "prerna.sablecc.ExprReactor");
+		reactorNames.put(PKQLReactor.MATH_FUN.toString(), "prerna.sablecc.MathReactor");
+		reactorNames.put(PKQLEnum.CSV_TABLE, "prerna.sablecc.CsvTableReactor");
+		reactorNames.put(PKQLEnum.COL_CSV, "prerna.sablecc.ColCsvReactor"); // it almost feels like I need a way to tell when to do this and when not but let me see
+		reactorNames.put(PKQLEnum.ROW_CSV, "prerna.sablecc.RowCsvReactor");
+		reactorNames.put(PKQLEnum.API, "prerna.sablecc.ApiReactor");
+		reactorNames.put(PKQLEnum.PASTED_DATA, "prerna.sablecc.PastedDataReactor");
+		reactorNames.put(PKQLEnum.WHERE, "prerna.sablecc.ColWhereReactor");
+		reactorNames.put(PKQLEnum.REL_DEF, "prerna.sablecc.RelReactor");
+		reactorNames.put(PKQLEnum.COL_ADD, "prerna.sablecc.ColAddReactor");
+		reactorNames.put(PKQLEnum.IMPORT_DATA, "prerna.sablecc.H2ImportDataReactor");
+		reactorNames.put(PKQLEnum.REMOVE_DATA, "prerna.sablecc.RemoveDataReactor");
+		reactorNames.put(PKQLEnum.FILTER_DATA, "prerna.sablecc.ColFilterReactor");
+		reactorNames.put(PKQLEnum.VIZ, "prerna.sablecc.VizReactor");
+		reactorNames.put(PKQLEnum.UNFILTER_DATA, "prerna.sablecc.ColUnfilterReactor");
+		reactorNames.put(PKQLEnum.DATA_FRAME, "prerna.sablecc.DataFrameReactor");
+//		switch(reactorType) {
+//			case IMPORT_DATA : return new H2ImportDataReactor();
+//			case COL_ADD : return new ColAddReactor();
+//		}
 		
-		return null;
+		return reactorNames;
 	}
 	
 	public void processIterator(Iterator<IHeadersDataRow> iterator, String[] newHeaders, Map<String, String> logicalToValue, Vector<Map<String, String>> joins, String joinType) {
