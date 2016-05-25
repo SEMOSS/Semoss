@@ -95,15 +95,16 @@ public class Translation extends DepthFirstAdapter {
 	// a. Where to initiate
 	// b. What is the name of the reactor
 	
-	Hashtable <String, String> reactorNames = new Hashtable<String, String>();
+	Map <String, String> reactorNames = new Hashtable<String, String>();
 	IDataMaker frame = null;
 	PKQLRunner runner = null;
 	
 	public Translation() { // Test Constructor
 		frame = new TinkerFrame();
+		this.reactorNames = frame.getScriptReactors();
 //		((TinkerFrame)frame).tryCustomGraph();
 		this.runner = new PKQLRunner();
-		fillReactors();
+//		fillReactors();
 	}
 	/**
 	 * Constructor that takes in the dataframe that it will perform its calculations off of and the runner that invoked the translation
@@ -113,29 +114,31 @@ public class Translation extends DepthFirstAdapter {
 	public Translation(IDataMaker frame, PKQLRunner runner) {
 		// now get the data from tinker
 		this.frame = frame;
+		this.reactorNames = frame.getScriptReactors();
 		this.runner = runner;
-		fillReactors();
+//		fillReactors();
 	}
 	
-	private void fillReactors() { // TODO: use PKQLReactor enum
-		reactorNames.put(PKQLEnum.EXPR_TERM, "prerna.sablecc.ExprReactor");
-		reactorNames.put(PKQLEnum.EXPR_SCRIPT, "prerna.sablecc.ExprReactor");
-		reactorNames.put(PKQLReactor.MATH_FUN.toString(), "prerna.sablecc.MathReactor");
-		reactorNames.put(PKQLEnum.CSV_TABLE, "prerna.sablecc.CsvTableReactor");
-		reactorNames.put(PKQLEnum.COL_CSV, "prerna.sablecc.ColCsvReactor"); // it almost feels like I need a way to tell when to do this and when not but let me see
-		reactorNames.put(PKQLEnum.ROW_CSV, "prerna.sablecc.RowCsvReactor");
-		reactorNames.put(PKQLEnum.API, "prerna.sablecc.ApiReactor");
-		reactorNames.put(PKQLEnum.PASTED_DATA, "prerna.sablecc.PastedDataReactor");
-		reactorNames.put(PKQLEnum.WHERE, "prerna.sablecc.ColWhereReactor");
-		reactorNames.put(PKQLEnum.REL_DEF, "prerna.sablecc.RelReactor");
-		reactorNames.put(PKQLEnum.COL_ADD, "prerna.sablecc.ColAddReactor");
-		reactorNames.put(PKQLEnum.IMPORT_DATA, "prerna.sablecc.ImportDataReactor");
-		reactorNames.put(PKQLEnum.REMOVE_DATA, "prerna.sablecc.RemoveDataReactor");
-		reactorNames.put(PKQLEnum.FILTER_DATA, "prerna.sablecc.ColFilterReactor");
-		reactorNames.put(PKQLEnum.VIZ, "prerna.sablecc.VizReactor");
-		reactorNames.put(PKQLEnum.UNFILTER_DATA, "prerna.sablecc.ColUnfilterReactor");
-		reactorNames.put(PKQLEnum.DATA_FRAME, "prerna.sablecc.DataFrameReactor");
-	}
+	// MOVED TO THE DATA FRAMES SO THEY HAVE CONTROL
+//	private void fillReactors() { // TODO: use PKQLReactor enum
+//		reactorNames.put(PKQLEnum.EXPR_TERM, "prerna.sablecc.ExprReactor");
+//		reactorNames.put(PKQLEnum.EXPR_SCRIPT, "prerna.sablecc.ExprReactor");
+//		reactorNames.put(PKQLReactor.MATH_FUN.toString(), "prerna.sablecc.MathReactor");
+//		reactorNames.put(PKQLEnum.CSV_TABLE, "prerna.sablecc.CsvTableReactor");
+//		reactorNames.put(PKQLEnum.COL_CSV, "prerna.sablecc.ColCsvReactor"); // it almost feels like I need a way to tell when to do this and when not but let me see
+//		reactorNames.put(PKQLEnum.ROW_CSV, "prerna.sablecc.RowCsvReactor");
+//		reactorNames.put(PKQLEnum.API, "prerna.sablecc.ApiReactor");
+//		reactorNames.put(PKQLEnum.PASTED_DATA, "prerna.sablecc.PastedDataReactor");
+//		reactorNames.put(PKQLEnum.WHERE, "prerna.sablecc.ColWhereReactor");
+//		reactorNames.put(PKQLEnum.REL_DEF, "prerna.sablecc.RelReactor");
+//		reactorNames.put(PKQLEnum.COL_ADD, "prerna.sablecc.ColAddReactor");
+//		reactorNames.put(PKQLEnum.IMPORT_DATA, "prerna.sablecc.ImportDataReactor");
+//		reactorNames.put(PKQLEnum.REMOVE_DATA, "prerna.sablecc.RemoveDataReactor");
+//		reactorNames.put(PKQLEnum.FILTER_DATA, "prerna.sablecc.ColFilterReactor");
+//		reactorNames.put(PKQLEnum.VIZ, "prerna.sablecc.VizReactor");
+//		reactorNames.put(PKQLEnum.UNFILTER_DATA, "prerna.sablecc.ColUnfilterReactor");
+//		reactorNames.put(PKQLEnum.DATA_FRAME, "prerna.sablecc.DataFrameReactor");
+//	}
 	
 	public void initReactor(String myName) {
 		String parentName = null;
@@ -713,9 +716,6 @@ public class Translation extends DepthFirstAdapter {
 	@Override
 	public void inAAddColumn(AAddColumn node) {
 		if(reactorNames.containsKey(PKQLEnum.COL_ADD)) {
-			IScriptReactor reactor = frame.getReactor(DATA_FRAME_REACTORS.COL_ADD);
-			reactorNames.put(PKQLEnum.COL_ADD, (reactor.getClass() + "").replaceFirst("class ", ""));
-			
 			initReactor(PKQLEnum.COL_ADD);
 			String nodeStr = node.toString().trim();
 			curReactor.put(PKQLEnum.COL_ADD, nodeStr);
@@ -780,9 +780,6 @@ public class Translation extends DepthFirstAdapter {
 		if(reactorNames.containsKey(PKQLEnum.IMPORT_DATA)) {
 			// make the determination to say if this is a frame.. yes it is
 			/// if it is so change the reactor to the new reactor
-			IScriptReactor reactor = frame.getReactor(DATA_FRAME_REACTORS.IMPORT_DATA);
-			reactorNames.put(PKQLEnum.IMPORT_DATA, (reactor.getClass() + "").replaceFirst("class ", ""));
-			
 			initReactor(PKQLEnum.IMPORT_DATA);
 			String nodeStr = node.toString().trim();
 			curReactor.put(PKQLEnum.IMPORT_DATA, nodeStr);

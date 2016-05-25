@@ -28,6 +28,6 @@ public interface IDataMaker {
 	List<Object> processActions(DataMakerComponent dmc, List<ISEMOSSAction> actions, IDataMaker... dataMaker);
 	
 	List<Object> getActionOutput();
-	
-	IScriptReactor getReactor(DATA_FRAME_REACTORS reactorType);
+
+	Map<String, String> getScriptReactors();
 }
