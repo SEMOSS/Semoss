@@ -21,7 +21,7 @@ public class DataFrameReactor extends AbstractReactor {
 		// This might be broken out to a prop file
 		// The key in this map is what is in the PKQL
 		// The value in this map is looked up on RDF Map to get the class
-		dfTranslation.put("GRID", "TinkerH2Frame");
+		dfTranslation.put("GRID", "H2Frame");
 		dfTranslation.put("GRAPH", "TinkerFrame");
 	}
 

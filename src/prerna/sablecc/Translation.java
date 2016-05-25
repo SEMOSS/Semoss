@@ -107,7 +107,7 @@ public class Translation extends DepthFirstAdapter {
 	}
 	/**
 	 * Constructor that takes in the dataframe that it will perform its calculations off of and the runner that invoked the translation
-	 * @param frame IDataMaker: either TinkerFrame or TinkerH2Frame
+	 * @param frame IDataMaker
 	 * @param runner PKQLRunner: holds response from PKQL script and the status of whether the script errored or not
 	 */
 	public Translation(IDataMaker frame, PKQLRunner runner) {
