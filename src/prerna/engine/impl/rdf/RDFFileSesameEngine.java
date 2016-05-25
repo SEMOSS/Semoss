@@ -109,6 +109,7 @@ public class RDFFileSesameEngine extends AbstractEngine implements IEngine {
 		//super.openDB(propFile);
 		try
 		{
+			super.openDB(propFile);
 			Repository myRepository;
 				//super.openDB(propFile);
 				myRepository = new SailRepository(
