@@ -110,6 +110,16 @@ public abstract class AbstractReactor implements IScriptReactor {
 	protected void modExpression()
 	{
 		Object curExpression = (String)myStore.get(whoAmI);
+
+		curExpression = modExpression(curExpression);
+		
+		myStore.put("MOD_" + whoAmI, curExpression);
+		
+		return;
+	}
+	
+	protected Object modExpression(Object curExpression){
+		
 		System.out.println("Replacers.. " + replacers);
 		for(int ripIndex = replacers.size()-1;ripIndex > -1 ;ripIndex--)
 		{
@@ -124,7 +134,7 @@ public abstract class AbstractReactor implements IScriptReactor {
 				}
 			}			
 		}
-		myStore.put("MOD_" + whoAmI, curExpression);
+		return curExpression;
 	}
 	
 	@Override

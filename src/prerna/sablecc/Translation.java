@@ -69,7 +69,6 @@ import prerna.sablecc.node.AVarop;
 import prerna.sablecc.node.AVaropScript;
 import prerna.sablecc.node.Node;
 import prerna.ui.components.playsheets.datamakers.IDataMaker;
-import prerna.ui.components.playsheets.datamakers.IDataMaker.DATA_FRAME_REACTORS;
 
 public class Translation extends DepthFirstAdapter {
 	// this is the third version of this shit I am building
