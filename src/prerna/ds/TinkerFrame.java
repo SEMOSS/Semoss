@@ -2324,6 +2324,6 @@ public class TinkerFrame extends AbstractTableDataFrame {
 //			case COL_ADD : return new TinkerColAddReactor();
 //		}
 		
-		return null;
+		return reactorNames;
 	}
 }
