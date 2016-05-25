@@ -32,8 +32,8 @@ public abstract class InsightCache implements ICache {
 		} catch (ClassNotFoundException e) {}
 		
 		try {
-			classMap.put(".gz", Class.forName("prerna.ds.H2.TinkerH2Frame"));
-			extensionMap.put("prerna.ds.H2.TinkerH2Frame", ".gz");
+			classMap.put(".gz", Class.forName("prerna.ds.H2.H2Frame"));
+			extensionMap.put("prerna.ds.H2.H2Frame", ".gz");
 		} catch(ClassNotFoundException e) {}
 	}
 	

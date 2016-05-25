@@ -55,7 +55,7 @@ public class RemoveDataReactor extends AbstractReactor{
 //		
 //		Map[] mergedMaps = frame.mergeQSEdgeHash(edgeHash, engine, joinCols);
 		
-//		if(frame instanceof TinkerH2Frame) {
+//		if(frame instanceof H2Frame) {
 //			while(it.hasNext()){
 //				ISelectStatement ss = (ISelectStatement) it.next();
 //				System.out.println(((ISelectStatement)ss).getPropHash());
@@ -63,7 +63,7 @@ public class RemoveDataReactor extends AbstractReactor{
 //			}
 //		} else if(frame instanceof TinkerFrame) {
 //			IMetaData metaData = ((TinkerFrame)frame)
-//			TinkerH2Frame tempFrame = TableDataFrameFactory.convertToH2Frame(frame);
+//			H2Frame tempFrame = TableDataFrameFactory.convertToH2Frame(frame);
 //			while(it.hasNext()){
 //				ISelectStatement ss = (ISelectStatement) it.next();
 //				System.out.println(((ISelectStatement)ss).getPropHash());
