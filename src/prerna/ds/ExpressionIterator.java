@@ -59,7 +59,7 @@ public class ExpressionIterator implements ExpressionMapper, Iterator {
 			try {
 				retObject = (Object)cs.eval();
 				long now = System.nanoTime();
-				System.out.println("Time Difference..  " + ((now - nanoTime)/1000000));
+//				System.out.println("Time Difference..  " + ((now - nanoTime)/1000000));
 			} catch (ScriptException e) {
 				// TODO Auto-generated catch block
 				retObject = e; // surprise !!
@@ -113,7 +113,7 @@ public class ExpressionIterator implements ExpressionMapper, Iterator {
 				{
 					Vertex v = (Vertex)row.get(columnsUsed[colIndex]);
 					Object val = v.value(propToGet);
-					System.out.println("Values is " + val);
+//					System.out.println("Values is " + val);
 					otherBindings.put(columnsUsed[colIndex], val);
 				}
 			}
@@ -122,20 +122,20 @@ public class ExpressionIterator implements ExpressionMapper, Iterator {
 				for(int colIndex = 0;colIndex < columnsUsed.length;colIndex++)
 				{
 					Object val = array[colIndex];
-					System.out.println("Values is " + val);
+//					System.out.println("Values is " + val);
 					otherBindings.put(columnsUsed[colIndex], val);
 				}
 			}
 			else if(vert != null)
 			{
 				Object val = vert.value(propToGet);
-				System.out.println("Values is " + val);
+//				System.out.println("Values is " + val);
 				otherBindings.put(columnsUsed[0], val);
 			}
 			else if(doubleValue != null)
 			{
 				Object val = (Object)new Double(doubleValue.doubleValue());
-				System.out.println("Values is " + val);
+//				System.out.println("Values is " + val);
 				otherBindings.put(columnsUsed[0], val);
 			}
 		}
