@@ -562,6 +562,7 @@ public class Translation extends DepthFirstAdapter {
 		deinitReactor(PKQLEnum.DATA_FRAME, node.getBuilder().toString().trim(),  node.toString().trim());
 		
 		this.frame = (ITableDataFrame) curReactor.getValue(PKQLEnum.G);
+		this.reactorNames = frame.getScriptReactors();
 	}
 	
 	@Override
