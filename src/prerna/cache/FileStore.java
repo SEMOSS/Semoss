@@ -39,9 +39,11 @@ public class FileStore extends Hashtable<String, String> {
 	 * @return						The unique id for the insight
 	 */
 	public String put(String fileLoc) {
-		String uniqueID = UUID.randomUUID().toString();
-		super.put(uniqueID, fileLoc);
-		return uniqueID;
+		// due to difficulties with these unique id being used within PKQL
+		// currently just using the fileLocation
+//		String uniqueID = UUID.randomUUID().toString();
+		super.put(fileLoc, fileLoc);
+		return fileLoc;
 	}
 	
 	public void addToSessionHash(String sessionID, String insightID) {
