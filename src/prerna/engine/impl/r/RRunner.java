@@ -18,6 +18,7 @@ public class RRunner {
 	private Server server = null;
 	private String tableName = "";
 	private String username = "";
+	private String url = "";
 	private boolean dataframeExists = false;
 	private boolean scriptRanSuccessfully = false;
 	
@@ -71,11 +72,11 @@ public class RRunner {
 	 * @param databaseMetaData Must contain "username" and "tableName" from H2Frame
 	 */
 	private String initializeRJDBCConnection() {
+		url = "jdbc:h2:" + server.getURL() + "/mem:test:LOG=0;CACHE_SIZE=65536;LOCK_MODE=1;UNDO_LOG=0";
 		String workingDir = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER).replace("\\", "/");;
 		String library = "RJDBC";
 		String driver = "org.h2.Driver";
 		String jar = "h2-1.4.185.jar"; // TODO: create an enum of available drivers and the necessary jar for each
-		String url = "jdbc:h2:" + server.getURL() + "/mem:test:LOG=0;CACHE_SIZE=65536;LOCK_MODE=1;UNDO_LOG=0";
 		String script = "drv <- JDBC('" + driver + "', '" + workingDir + "/RDFGraphLib/" + jar + "', identifier.quote='`');" // line of R that loads database driver and jar
 			+ "conn <- dbConnect(drv, '" + url + "', '" + username + "', '')"; // line of R script that connects to H2Frame
 		try {
@@ -96,7 +97,7 @@ public class RRunner {
 	 * @throws RserveException Thrown if Rserve is not running/crashed
 	 */
 	public String createDefaultDataframe() throws RserveException {
-		String script = "dataframe <- dbReadTable(conn, '" + tableName + "'); ";
+		String script = "dataframe<-as.data.frame(unclass(dbReadTable(conn,'" + tableName + "')));";
 		String result = evaluateScript(script);
 		dataframeExists = true;
 		
@@ -149,7 +150,7 @@ public class RRunner {
 			r = conn.eval(script);
 			result = r.asString();
 		} catch (RserveException e) {
-			e.printStackTrace();
+			//e.printStackTrace();
 			result = "true";
 		} catch (REXPMismatchException e) {
 			System.out.println("R result could not be converted into a String");
@@ -178,6 +179,20 @@ public class RRunner {
 	
 	public boolean getScriptRanSuccessfully() {
 		return this.scriptRanSuccessfully;
+	}
+
+	/**
+	 * @return the url
+	 */
+	public String getUrl() {
+		return url;
+	}
+	
+	/**
+	 * @return the url
+	 */
+	public String getUsername() {
+		return username;
 	}
 
 }
