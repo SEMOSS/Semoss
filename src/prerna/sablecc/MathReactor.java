@@ -28,7 +28,7 @@ public abstract class MathReactor extends AbstractReactor {
 	
 	
 	public MathReactor() {
-		String [] thisReacts = {PKQLEnum.EXPR_TERM, PKQLEnum.DECIMAL, PKQLEnum.NUMBER, PKQLEnum.GROUP_BY, PKQLEnum.COL_DEF};
+		String [] thisReacts = {PKQLEnum.EXPR_TERM, PKQLEnum.DECIMAL, PKQLEnum.NUMBER, PKQLEnum.GROUP_BY, PKQLEnum.COL_DEF, PKQLEnum.MATH_PARAM};
 		super.whatIReactTo = thisReacts;
 		super.whoAmI = PKQLEnum.MATH_FUN;
 	}

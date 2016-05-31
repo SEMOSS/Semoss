@@ -3121,6 +3121,10 @@ public class ReversedDepthFirstAdapter extends AnalysisAdapter
         {
             node.getRPar().apply(this);
         }
+        if(node.getParameters() != null)
+        {
+            node.getParameters().apply(this);
+        }
         if(node.getGroup() != null)
         {
             node.getGroup().apply(this);
@@ -3146,6 +3150,31 @@ public class ReversedDepthFirstAdapter extends AnalysisAdapter
             node.getProc().apply(this);
         }
         outAMathFun(node);
+    }
+
+    public void inAMathParam(AMathParam node)
+    {
+        defaultIn(node);
+    }
+
+    public void outAMathParam(AMathParam node)
+    {
+        defaultOut(node);
+    }
+
+    @Override
+    public void caseAMathParam(AMathParam node)
+    {
+        inAMathParam(node);
+        if(node.getMapObj() != null)
+        {
+            node.getMapObj().apply(this);
+        }
+        if(node.getComma() != null)
+        {
+            node.getComma().apply(this);
+        }
+        outAMathParam(node);
     }
 
     public void inAExtendedExpr(AExtendedExpr node)

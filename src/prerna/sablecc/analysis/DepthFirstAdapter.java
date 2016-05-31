@@ -3127,11 +3127,40 @@ public class DepthFirstAdapter extends AnalysisAdapter
         {
             node.getGroup().apply(this);
         }
+        if(node.getParameters() != null)
+        {
+            node.getParameters().apply(this);
+        }
         if(node.getRPar() != null)
         {
             node.getRPar().apply(this);
         }
         outAMathFun(node);
+    }
+
+    public void inAMathParam(AMathParam node)
+    {
+        defaultIn(node);
+    }
+
+    public void outAMathParam(AMathParam node)
+    {
+        defaultOut(node);
+    }
+
+    @Override
+    public void caseAMathParam(AMathParam node)
+    {
+        inAMathParam(node);
+        if(node.getComma() != null)
+        {
+            node.getComma().apply(this);
+        }
+        if(node.getMapObj() != null)
+        {
+            node.getMapObj().apply(this);
+        }
+        outAMathParam(node);
     }
 
     public void inAExtendedExpr(AExtendedExpr node)

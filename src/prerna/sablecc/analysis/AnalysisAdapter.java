@@ -723,6 +723,12 @@ public class AnalysisAdapter implements Analysis
     }
 
     @Override
+    public void caseAMathParam(AMathParam node)
+    {
+        defaultCase(node);
+    }
+
+    @Override
     public void caseAExtendedExpr(AExtendedExpr node)
     {
         defaultCase(node);
