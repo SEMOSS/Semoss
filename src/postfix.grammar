@@ -317,7 +317,9 @@ help = help_token;
   //|{math_fun} math_fun // I need to still resolve other mathematical functions
   ;
  
- math_fun = proc id l_par [expr]:expr_row comma? [group]:col_csv? r_par; // m.Sum([1 + c:Activity], /*groupBy*/(c:studio, c:genre));
+ math_fun = proc id l_par [expr]:expr_row comma? [group]:col_csv? [parameters]:math_param? r_par; // m.Sum([1 + c:Activity], /*groupBy*/(c:studio, c:genre));
+ 
+ math_param = comma map_obj; 
  
  extended_expr = l_par [expr]:expr comma? [group]:col_csv r_par; // I have no idea why I need this.. but !!
  

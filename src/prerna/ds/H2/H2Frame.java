@@ -29,12 +29,9 @@ import prerna.ds.TinkerMetaHelper;
 import prerna.ds.H2.H2Builder.Join;
 import prerna.engine.api.IEngine;
 import prerna.engine.api.IHeadersDataRow;
-import prerna.engine.api.IScriptReactor;
 import prerna.engine.api.ISelectWrapper;
 import prerna.engine.impl.r.RRunner;
 import prerna.rdf.engine.wrappers.WrapperManager;
-import prerna.sablecc.ColAddReactor;
-import prerna.sablecc.H2ImportDataReactor;
 import prerna.sablecc.PKQLEnum;
 import prerna.sablecc.PKQLEnum.PKQLReactor;
 import prerna.ui.components.playsheets.datamakers.DataMakerComponent;
@@ -463,7 +460,6 @@ public class H2Frame extends AbstractTableDataFrame {
 	
 	@Override
 	public Object[] getColumn(String columnHeader) {
-//		columnHeader = H2HeaderMap.get(columnHeader);
 		columnHeader = this.metaData.getValueForUniqueName(columnHeader);
 		Object[] array = builder.getColumn(columnHeader, false);
 		return array;
@@ -471,23 +467,27 @@ public class H2Frame extends AbstractTableDataFrame {
 	
 	@Override
 	public Integer getUniqueInstanceCount(String columnHeader) {
-//		columnHeader = H2HeaderMap.get(columnHeader);
 		columnHeader = this.metaData.getValueForUniqueName(columnHeader);
 		return builder.getColumn(columnHeader, true).length;
 	}
 	
 	@Override
 	public Double getMin(String columnHeader) {
-//		columnHeader = H2HeaderMap.get(columnHeader);
-		columnHeader = this.metaData.getValueForUniqueName(columnHeader);
-		return builder.getStat(columnHeader, "MIN");
+		// make sure its a number
+		if(this.metaData.getDataType(columnHeader).equals("NUMBER")) {
+			columnHeader = this.metaData.getValueForUniqueName(columnHeader);
+			return builder.getStat(columnHeader, "MIN");
+		}
+		return null;
 	}
 	
 	@Override
 	public Double getMax(String columnHeader) {
-//		columnHeader = H2HeaderMap.get(columnHeader);
-		columnHeader = this.metaData.getValueForUniqueName(columnHeader);
-		return builder.getStat(columnHeader, "MAX");
+		if(this.metaData.getDataType(columnHeader).equals("NUMBER")) {
+			columnHeader = this.metaData.getValueForUniqueName(columnHeader);
+			return builder.getStat(columnHeader, "MAX");
+		}
+		return null;
 	}
 	
 	@Override 
@@ -497,12 +497,32 @@ public class H2Frame extends AbstractTableDataFrame {
 	}
 	
 	@Override
-	public Iterator<List<Object[]>> scaledUniqueIterator(String columnHeader, boolean getRawData) {
+	public Iterator<List<Object[]>> scaledUniqueIterator(String columnHeader, boolean getRawData, Map<String, Object> options) {
+		List<String> selectors = null;
+		Double[] max = null;
+		Double[] min = null;
+		if(options != null && options.containsKey(TinkerFrame.SELECTORS)) {
+			// get the max and min values based on the order that is defined
+			selectors = (List<String>) options.get(TinkerFrame.SELECTORS);
+			int numSelected = selectors.size();
+			max = new Double[numSelected];
+			min = new Double[numSelected];
+			for(int i = 0; i < numSelected; i++) {
+				//TODO: think about storing this value s.t. we do not need to calculate max/min with each loop
+				max[i] = getMax(selectors.get(i));
+				min[i] = getMin(selectors.get(i));
+			}
+		} else {
+			// order of selectors will match order of max and min arrays
+			selectors = getH2Selectors();
+			max = getMax();
+			min = getMin();
+		}
+		
 		columnHeader = this.metaData.getValueForUniqueName(columnHeader);
-		Map<String, String> m = this.getH2HeadersAndTypes();
+		Map<String, String> headerTypes = this.getH2HeadersAndTypes();
 		String tableName = this.getTableNameForUniqueColumn(columnHeader);
-		ScaledUniqueH2FrameIterator iterator = new ScaledUniqueH2FrameIterator(columnHeader, getRawData, tableName, builder, getMax(), getMin(), m, getH2Selectors());
-		//set the types here
+		ScaledUniqueH2FrameIterator iterator = new ScaledUniqueH2FrameIterator(columnHeader, getRawData, tableName, builder, max, min, headerTypes, selectors);
 		return iterator;
 	}
 	
@@ -891,6 +911,7 @@ public class H2Frame extends AbstractTableDataFrame {
 		reactorNames.put(PKQLEnum.EXPR_TERM, "prerna.sablecc.ExprReactor");
 		reactorNames.put(PKQLEnum.EXPR_SCRIPT, "prerna.sablecc.ExprReactor");
 		reactorNames.put(PKQLReactor.MATH_FUN.toString(), "prerna.sablecc.MathReactor");
+		reactorNames.put(PKQLEnum.MATH_PARAM, "prerna.sablecc.MathParamReactor");
 		reactorNames.put(PKQLEnum.CSV_TABLE, "prerna.sablecc.CsvTableReactor");
 		reactorNames.put(PKQLEnum.COL_CSV, "prerna.sablecc.ColCsvReactor"); // it almost feels like I need a way to tell when to do this and when not but let me see
 		reactorNames.put(PKQLEnum.ROW_CSV, "prerna.sablecc.RowCsvReactor");

@@ -13,6 +13,7 @@ public final class AMathFun extends PMathFun
     private PExprRow _expr_;
     private TComma _comma_;
     private PColCsv _group_;
+    private PMathParam _parameters_;
     private TRPar _rPar_;
 
     public AMathFun()
@@ -27,6 +28,7 @@ public final class AMathFun extends PMathFun
         @SuppressWarnings("hiding") PExprRow _expr_,
         @SuppressWarnings("hiding") TComma _comma_,
         @SuppressWarnings("hiding") PColCsv _group_,
+        @SuppressWarnings("hiding") PMathParam _parameters_,
         @SuppressWarnings("hiding") TRPar _rPar_)
     {
         // Constructor
@@ -42,6 +44,8 @@ public final class AMathFun extends PMathFun
 
         setGroup(_group_);
 
+        setParameters(_parameters_);
+
         setRPar(_rPar_);
 
     }
@@ -56,6 +60,7 @@ public final class AMathFun extends PMathFun
             cloneNode(this._expr_),
             cloneNode(this._comma_),
             cloneNode(this._group_),
+            cloneNode(this._parameters_),
             cloneNode(this._rPar_));
     }
 
@@ -215,6 +220,31 @@ public final class AMathFun extends PMathFun
         this._group_ = node;
     }
 
+    public PMathParam getParameters()
+    {
+        return this._parameters_;
+    }
+
+    public void setParameters(PMathParam node)
+    {
+        if(this._parameters_ != null)
+        {
+            this._parameters_.parent(null);
+        }
+
+        if(node != null)
+        {
+            if(node.parent() != null)
+            {
+                node.parent().removeChild(node);
+            }
+
+            node.parent(this);
+        }
+
+        this._parameters_ = node;
+    }
+
     public TRPar getRPar()
     {
         return this._rPar_;
@@ -250,6 +280,7 @@ public final class AMathFun extends PMathFun
             + toString(this._expr_)
             + toString(this._comma_)
             + toString(this._group_)
+            + toString(this._parameters_)
             + toString(this._rPar_);
     }
 
@@ -290,6 +321,12 @@ public final class AMathFun extends PMathFun
         if(this._group_ == child)
         {
             this._group_ = null;
+            return;
+        }
+
+        if(this._parameters_ == child)
+        {
+            this._parameters_ = null;
             return;
         }
 
@@ -339,6 +376,12 @@ public final class AMathFun extends PMathFun
         if(this._group_ == oldChild)
         {
             setGroup((PColCsv) newChild);
+            return;
+        }
+
+        if(this._parameters_ == oldChild)
+        {
+            setParameters((PMathParam) newChild);
             return;
         }
 

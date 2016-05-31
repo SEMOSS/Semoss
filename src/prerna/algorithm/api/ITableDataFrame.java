@@ -7,7 +7,6 @@ import java.util.Set;
 import java.util.Vector;
 
 import prerna.engine.api.IEngine;
-import prerna.engine.api.IScriptReactor;
 import prerna.engine.api.ISelectStatement;
 import prerna.ui.components.playsheets.datamakers.IDataMaker;
 
@@ -189,7 +188,7 @@ public interface ITableDataFrame extends IDataMaker {
 	 * the iterator will return the each unique value in the column as a function -> x' = (x - min(columnHeader))/(max(columnHeader) - min(columnHeader))	 * @param columnHeader
 	 * @return
 	 */
-	Iterator<List<Object[]>> scaledUniqueIterator(String columnHeader, boolean getRawData);
+	Iterator<List<Object[]>> scaledUniqueIterator(String columnHeader, boolean getRawData, Map<String, Object> options);
 	
 	/**
 	 * Returns the iterator that iterates through unique values of a column
@@ -401,4 +400,6 @@ public interface ITableDataFrame extends IDataMaker {
 	void setDerviedCalculation(String uniqueName, String calculationName);
 	
 	void setDerivedUsing(String uniqueName, String... otherUniqueNames);
+	
+	String getDataType(String uniqueName);
 }
