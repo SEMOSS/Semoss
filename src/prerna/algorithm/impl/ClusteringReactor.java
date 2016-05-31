@@ -51,14 +51,19 @@ public class ClusteringReactor extends MathReactor {
 			if(options.containsKey("instanceIndex".toUpperCase())) {
 				this.instanceIndex = Integer.parseInt(options.get("instanceIndex".toUpperCase()) + "");
 			} else {
+				// i think its a fair assumption that the first column written can be assumed to be the instance
 				this.instanceIndex = 0;
 			}
 			
 			if(options.containsKey("numClusters".toUpperCase())) {
 				this.numClusters = Integer.parseInt(options.get("numClusters".toUpperCase()) + "");
 			} else {
+				// TODO: need to throw an error saying number of clusters is required
 				this.numClusters = 5;
 			}
+		} else {
+			//TODO: need to throw an error saying parameters are required
+			return null;
 		}
 		this.attributeNamesList = (List<String>)myStore.get(PKQLEnum.COL_DEF);
 		this.attributeNames = attributeNamesList.toArray(new String[]{});
@@ -103,6 +108,7 @@ public class ClusteringReactor extends MathReactor {
 		///////////////// end basic checks
 
 		
+		//TODO: process of getting these weights is outdated
 		// fills in numericalWeights and categoricalWeights maps
 		SimilarityWeighting.calculateWeights(dataFrame, instanceIndex, attributeNames, isNumeric, numericalWeights, categoricalWeights);
 		
@@ -145,6 +151,7 @@ public class ClusteringReactor extends MathReactor {
 			this.clusterColName = attributeName + "_CLUSTER_" + counter;
 		}
 		
+		// TODO: need to return an iterator and not automatically append the data to the frame
 		if(appendOntoDataMaker) {
 			Map<String, String> dataType = new HashMap<>();
 			dataType.put(clusterColName, "double");
