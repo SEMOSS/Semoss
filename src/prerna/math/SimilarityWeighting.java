@@ -39,7 +39,17 @@ public final class SimilarityWeighting {
 		
 	}
 	
+	/**
+	 * Calculates the weights for numerical and categorical attributes based on the entropy density of the column
+	 * @param dataFrame
+	 * @param instanceIndex
+	 * @param attributeNames
+	 * @param isNumeric
+	 * @param numericalWeights
+	 * @param categoricalWeights
+	 */
 	public static void calculateWeights(ITableDataFrame dataFrame, int instanceIndex, String[] attributeNames, boolean[] isNumeric, Map<String, Double> numericalWeights, Map<String, Double> categoricalWeights) {
+		// initializing variables
 		int i = 0;
 		int size = attributeNames.length;
 		String instanceType = attributeNames[instanceIndex];
@@ -50,6 +60,7 @@ public final class SimilarityWeighting {
 		List<Double> categoricalEntropy = new ArrayList<Double>();
 		List<String> categoricalNames = new ArrayList<String>();
 		
+		// looping through and getting the entropy density for each attribute
 		for(; i < size; i++) {
 			String attribute = attributeNames[i];
 			if(attribute.equals(instanceType)) {
@@ -64,6 +75,7 @@ public final class SimilarityWeighting {
 			}
 		}
 		
+		// based on the entorpy values, generate the weights and input into maps
 		if(!numericalEntropy.isEmpty()){
 			double[] numericalWeightsArr = generateWeighting(numericalEntropy.toArray(new Double[0]));
 			i = 0;
@@ -121,6 +133,7 @@ public final class SimilarityWeighting {
 			if(totalEntropy == 0) {
 				weight[i] = 0;
 			} else {
+				// weight is based on the ratio of entropy density of column to overall entropy density in data
 				weight[i] = entropyArr[i] / totalEntropy;
 			}
 		}
