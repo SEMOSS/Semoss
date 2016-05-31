@@ -40,6 +40,7 @@ import prerna.sablecc.node.AImportData;
 import prerna.sablecc.node.AKeyvalue;
 import prerna.sablecc.node.AMathFun;
 import prerna.sablecc.node.AMathFunTerm;
+import prerna.sablecc.node.AMathParam;
 import prerna.sablecc.node.AMinusExpr;
 import prerna.sablecc.node.AModExpr;
 import prerna.sablecc.node.AMultExpr;
@@ -920,6 +921,23 @@ public class Translation extends DepthFirstAdapter {
 		curReactor.addReplacer(nodeStr, previousReactor.getValue(expr));
 		runner.setResponse(previousReactor.getValue(expr));
 		runner.setStatus((STATUS)previousReactor.getValue("STATUS"));
+	}
+	
+	@Override
+	public void inAMathParam(AMathParam node) {
+		if(reactorNames.containsKey(PKQLEnum.MATH_PARAM)) {
+			initReactor(PKQLEnum.MATH_PARAM);
+		}	
+	}
+	
+	@Override
+	public void outAMathParam(AMathParam node) {
+		String nodeStr = node.toString().trim();
+		String expr = node.getMapObj().toString().trim();
+		Hashtable <String, Object> thisReactorHash = deinitReactor(PKQLEnum.MATH_PARAM, expr, nodeStr);
+		IScriptReactor previousReactor = (IScriptReactor)thisReactorHash.get((PKQLEnum.MATH_PARAM));
+		curReactor.put(PKQLEnum.MATH_PARAM, previousReactor.getValue(PKQLEnum.MATH_PARAM));
+		
 	}
 	
     @Override

@@ -120,6 +120,7 @@ public interface Analysis extends Switch
     void caseAModExpr(AModExpr node);
     void caseAEExprExpr(AEExprExpr node);
     void caseAMathFun(AMathFun node);
+    void caseAMathParam(AMathParam node);
     void caseAExtendedExpr(AExtendedExpr node);
     void caseANumberTerm(ANumberTerm node);
     void caseAExprTerm(AExprTerm node);

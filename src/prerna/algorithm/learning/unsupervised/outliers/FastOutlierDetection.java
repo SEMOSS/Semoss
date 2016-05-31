@@ -132,7 +132,7 @@ public class FastOutlierDetection implements IAnalyticTransformationRoutine {
 		
 		for (int k = 0; k < numRuns; k++) {
 			// grab R random rows
-			Iterator<List<Object[]>> it = dataFrame.scaledUniqueIterator(attributeNames[instanceIndex], false);
+			Iterator<List<Object[]>> it = dataFrame.scaledUniqueIterator(attributeNames[instanceIndex], false, null);
 			List<List<Object[]>> rSubset = new ArrayList<List<Object[]>>();
 			for (int i = 0; i < numSubsetSize; i++) {
 				// skip over a number between 0 and random_skip rows
@@ -144,7 +144,7 @@ public class FastOutlierDetection implements IAnalyticTransformationRoutine {
 			}
 	
 			// for row in dataTable, grab R random rows
-			it = dataFrame.scaledUniqueIterator(attributeNames[instanceIndex], false);
+			it = dataFrame.scaledUniqueIterator(attributeNames[instanceIndex], false, null);
 			while(it.hasNext()) {
 				List<Object[]> instance = it.next();
 				Object instanceName = instance.get(0)[instanceIndex];

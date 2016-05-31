@@ -154,7 +154,7 @@ public class LOF implements IAnalyticTransformationRoutine {
 
 		this.Tree = new KDTree(dimensions);
 		// This code flattens out instances, incase there are repeat appearances of an identifier
-		Iterator<List<Object[]>> it = dataFrame.scaledUniqueIterator(attributeNames[instanceIndex], false);
+		Iterator<List<Object[]>> it = dataFrame.scaledUniqueIterator(attributeNames[instanceIndex], false, null);
 		int numInstance = 0;
 		while(it.hasNext()) {
 			List<Object[]> instance = it.next();

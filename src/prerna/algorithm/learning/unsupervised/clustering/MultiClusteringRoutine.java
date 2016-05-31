@@ -255,7 +255,7 @@ public class MultiClusteringRoutine implements IAnalyticTransformationRoutine {
 //				groupByMap = (Map<Object, Object>) gt.next();
 //			}
 			
-			Iterator<List<Object[]>> it = data.scaledUniqueIterator(instanceType, false);
+			Iterator<List<Object[]>> it = data.scaledUniqueIterator(instanceType, false, null);
 			while(it.hasNext()) {
 				List<Object[]> instance = it.next();
 				Object instanceName = instance.get(0)[instanceIndex];

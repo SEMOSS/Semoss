@@ -54,7 +54,6 @@ import prerna.algorithm.api.IAnalyticTransformationRoutine;
 import prerna.algorithm.api.IMatcher;
 import prerna.algorithm.api.ITableDataFrame;
 import prerna.engine.api.IEngine;
-import prerna.engine.api.IScriptReactor;
 import prerna.engine.api.ISelectStatement;
 import prerna.engine.api.ISelectWrapper;
 import prerna.math.BarChart;
@@ -1208,7 +1207,7 @@ public class BTreeDataFrame implements ITableDataFrame {
 	}
 	
 	@Override
-	public Iterator<List<Object[]>> scaledUniqueIterator(String columnHeader, boolean getRawData) {
+	public Iterator<List<Object[]>> scaledUniqueIterator(String columnHeader, boolean getRawData, Map<String, Object> options) {
 		columnHeader = this.getColumnName(columnHeader);
 
 		TreeNode typeRoot = simpleTree.nodeIndexHash.get(columnHeader);
@@ -2147,6 +2146,12 @@ public class BTreeDataFrame implements ITableDataFrame {
 //		}
 		
 		return reactorNames;
+	}
+
+	@Override
+	public String getDataType(String uniqueName) {
+		// TODO Auto-generated method stub
+		return null;
 	}
 
 }
