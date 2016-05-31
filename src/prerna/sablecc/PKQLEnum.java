@@ -20,6 +20,7 @@ public class PKQLEnum {
 	public static String EXPR_TERM = "EXPR_TERM";
 	public static String EXPR_SCRIPT = "EXPR_SCRIPT";
 	public static String MATH_FUN = "MATH_FUN";
+	public static String MATH_PARAM = "MATH_PARAM";
 	public static String MOD_MATH_FUN = "MOD_MATH_FUN";
 	public static String COL_CSV = "COL_CSV";
 	public static String COL_DEF = "COL_DEF";

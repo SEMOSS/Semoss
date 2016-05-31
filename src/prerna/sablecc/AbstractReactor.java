@@ -1,7 +1,9 @@
 package prerna.sablecc;
 
 import java.util.HashMap;
+import java.util.Hashtable;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
 import java.util.Vector;
 
@@ -170,6 +172,12 @@ public abstract class AbstractReactor implements IScriptReactor {
 			//System.out.println(iterator.next());
 		}
 		return iterator;
+	}
+	
+	protected Iterator getUniqueScaledData(String instance, List<String> columns, ITableDataFrame frame) {
+		Map<String, Object> options = new Hashtable<String, Object>();
+		options.put(TinkerFrame.SELECTORS, columns);
+		return frame.scaledUniqueIterator(instance, false, options);
 	}
 	
 	// move to utility

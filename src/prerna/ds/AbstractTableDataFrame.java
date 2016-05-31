@@ -154,6 +154,11 @@ public abstract class AbstractTableDataFrame implements ITableDataFrame {
 	public void setDerivedUsing(String uniqueName, String... otherUniqueNames) {
 		this.metaData.setDerivedUsing(uniqueName, otherUniqueNames);
 	}
+	
+	@Override
+	public String getDataType(String uniqueName){
+		return this.metaData.getDataType(uniqueName);
+	}
 
 	@Override
 	public void processPreTransformations(DataMakerComponent dmc, List<ISEMOSSTransformation> transforms) {

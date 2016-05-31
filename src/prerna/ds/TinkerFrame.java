@@ -51,7 +51,6 @@ import prerna.algorithm.api.IMatcher;
 import prerna.algorithm.api.ITableDataFrame;
 import prerna.engine.api.IConstructStatement;
 import prerna.engine.api.IEngine;
-import prerna.engine.api.IScriptReactor;
 import prerna.engine.api.ISelectStatement;
 import prerna.engine.api.ISelectWrapper;
 import prerna.om.SEMOSSEdge;
@@ -60,8 +59,6 @@ import prerna.om.TinkerGraphDataModel;
 import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.rdf.query.builder.GremlinBuilder;
 import prerna.sablecc.PKQLEnum;
-import prerna.sablecc.TinkerColAddReactor;
-import prerna.sablecc.TinkerImportDataReactor;
 import prerna.sablecc.PKQLEnum.PKQLReactor;
 import prerna.ui.components.playsheets.datamakers.DataMakerComponent;
 import prerna.ui.components.playsheets.datamakers.ISEMOSSTransformation;
@@ -1482,11 +1479,13 @@ public class TinkerFrame extends AbstractTableDataFrame {
 	
 	@Override
 	public Double getMax(String columnHeader) {
-	
 		Double retValue = null;
-		GraphTraversal<Vertex, Number> gt2 = getGraphTraversal(columnHeader).max();
-		if(gt2.hasNext())
-			retValue = gt2.next().doubleValue();
+		if(this.metaData.getDataType(columnHeader).equals("NUMBER")) {
+			GraphTraversal<Vertex, Number> gt2 = getGraphTraversal(columnHeader).max();
+			if(gt2.hasNext()) {
+				retValue = gt2.next().doubleValue();
+			}
+		}
 		
 		return retValue;
 	}
@@ -1494,10 +1493,12 @@ public class TinkerFrame extends AbstractTableDataFrame {
 	@Override
 	public Double getMin(String columnHeader) {
 		Double retValue = null;
-		GraphTraversal<Vertex, Number> gt2 = getGraphTraversal(columnHeader).min();
-		if(gt2.hasNext())
-			retValue = gt2.next().doubleValue();
-		
+		if(this.metaData.getDataType(columnHeader).equals("NUMBER")) {
+			GraphTraversal<Vertex, Number> gt2 = getGraphTraversal(columnHeader).min();
+			if(gt2.hasNext()) {
+				retValue = gt2.next().doubleValue();
+			}
+		}
 		return retValue;
 	}
 
@@ -1737,8 +1738,27 @@ public class TinkerFrame extends AbstractTableDataFrame {
 	}
 	
 	@Override
-	public Iterator<List<Object[]>> scaledUniqueIterator(String columnHeader, boolean getRawData) {
-		return new UniqueScaledTinkerFrameIterator(columnHeader, getRawData, getSelectors(), g, ((TinkerMetaData)this.metaData).g, getMax(), getMin());
+	public Iterator<List<Object[]>> scaledUniqueIterator(String columnHeader, boolean getRawData, Map<String, Object> options) {
+		List<String> selectors = null;
+		Double[] max = null;
+		Double[] min = null;
+		if(options.containsKey(TinkerFrame.SELECTORS)) {
+			selectors = (List<String>) options.get(TinkerFrame.SELECTORS);
+			int numSelected = selectors.size();
+			max = new Double[numSelected];
+			min = new Double[numSelected];
+			for(int i = 0; i < numSelected; i++) {
+				//TODO: think about storing this value s.t. we do not need to calculate max/min with each loop
+				max[i] = getMax(selectors.get(i));
+				min[i] = getMin(selectors.get(i));
+			}
+		} else {
+			selectors = getSelectors();
+			max = getMax();
+			min = getMin();
+		}
+		
+		return new UniqueScaledTinkerFrameIterator(columnHeader, getRawData, selectors, g, ((TinkerMetaData)this.metaData).g, max, min);
 	}
 
 	@Override
@@ -2305,6 +2325,7 @@ public class TinkerFrame extends AbstractTableDataFrame {
 		reactorNames.put(PKQLEnum.EXPR_TERM, "prerna.sablecc.ExprReactor");
 		reactorNames.put(PKQLEnum.EXPR_SCRIPT, "prerna.sablecc.ExprReactor");
 		reactorNames.put(PKQLReactor.MATH_FUN.toString(), "prerna.sablecc.MathReactor");
+		reactorNames.put(PKQLEnum.MATH_PARAM, "prerna.sablecc.MathParamReactor");
 		reactorNames.put(PKQLEnum.CSV_TABLE, "prerna.sablecc.CsvTableReactor");
 		reactorNames.put(PKQLEnum.COL_CSV, "prerna.sablecc.ColCsvReactor"); // it almost feels like I need a way to tell when to do this and when not but let me see
 		reactorNames.put(PKQLEnum.ROW_CSV, "prerna.sablecc.RowCsvReactor");
