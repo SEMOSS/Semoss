@@ -178,44 +178,44 @@ public class TinkerMetaData implements IMetaData {
 		
 		dataType = dataType.toUpperCase();
 		
-		String currType = null;
+		DATA_TYPES currType = null;
 		if(vert.property(DATATYPE).isPresent()){
 			currType = vert.value(DATATYPE);
 		}
 		
 		if(currType == null) {
 			if(dataType.contains("STRING") || dataType.contains("TEXT") || dataType.contains("VARCHAR")) {
-				vert.property(DATATYPE, "STRING");
+				vert.property(DATATYPE, IMetaData.DATA_TYPES.STRING);
 			} 
 			else if(dataType.contains("INT") || dataType.contains("DECIMAL") || dataType.contains("DOUBLE") || dataType.contains("FLOAT") || dataType.contains("LONG") || dataType.contains("BIGINT")
 					|| dataType.contains("TINYINT") || dataType.contains("SMALLINT") || dataType.contains("NUMBER")){
-				vert.property(DATATYPE, "NUMBER");
+				vert.property(DATATYPE, IMetaData.DATA_TYPES.NUMERIC);
 			} 
 			else if(dataType.contains("DATE")) {
-				vert.property(DATATYPE, "DATE");
+				vert.property(DATATYPE, IMetaData.DATA_TYPES.DATE);
 			}
 		} else {
 			// if current is string or new col is string
 			// column must now be a string
-			if(currType.contains("STRING") || dataType.contains("STRING") || dataType.contains("TEXT") || dataType.contains("VARCHAR")) {
-				vert.property(DATATYPE, "STRING");
+			if(currType.equals(IMetaData.DATA_TYPES.STRING) || dataType.contains("STRING") || dataType.contains("TEXT") || dataType.contains("VARCHAR")) {
+				vert.property(DATATYPE, IMetaData.DATA_TYPES.STRING);
 			}
 			// if current is a number and new is a number
 			// column is still number
-			else if(currType.equals("NUMBER") && ( dataType.contains("INT") || dataType.contains("DECIMAL") || dataType.contains("DOUBLE") || dataType.contains("FLOAT") || dataType.contains("LONG") || dataType.contains("BIGINT")
+			else if(currType.equals(IMetaData.DATA_TYPES.NUMERIC) && ( dataType.contains("INT") || dataType.contains("DECIMAL") || dataType.contains("DOUBLE") || dataType.contains("FLOAT") || dataType.contains("LONG") || dataType.contains("BIGINT")
 					|| dataType.contains("TINYINT") || dataType.contains("SMALLINT") )){
 				// no change
 				// vert.property(DATATYPE, "NUMBER");
 			}
 			// if current is date and new is date
 			// column is still date
-			else if(currType.equals("DATE") && dataType.contains("DATE")) {
+			else if(currType.equals(IMetaData.DATA_TYPES.DATE) && dataType.contains("DATE")) {
 				// no change
 				// vert.property(DATATYPE, "DATE");
 			}
 			// any other situation, you have mixed types or numbers and dates... declare it a string for now //TODO
 			else {
-				vert.property(DATATYPE, "STRING");
+				vert.property(DATATYPE, IMetaData.DATA_TYPES.STRING);
 			}
 			
 		}
@@ -560,12 +560,12 @@ public class TinkerMetaData implements IMetaData {
 	}
 
 	@Override
-	public String getDataType(String uniqueName) {
+	public IMetaData.DATA_TYPES getDataType(String uniqueName) {
 		Vertex vert = getExistingVertex(uniqueName);
 		if(vert.property(DATATYPE).isPresent()) {
 			return vert.value(DATATYPE);
 		}
-		return "STRING";
+		return IMetaData.DATA_TYPES.STRING;
 	}
 
 	public String getDBDataType(String uniqueName) {
@@ -844,7 +844,7 @@ public class TinkerMetaData implements IMetaData {
 //			}
 			Builder<GryoIo> builder = IoCore.gryo();
 			builder.graph(g);
-			IoRegistry kryo = new MyGraphIoRegistry();;
+			IoRegistry kryo = new MyGraphIoRegistry();
 			builder.registry(kryo);
 			GryoIo yes = builder.create();
 			yes.writeGraph(fileName);
@@ -905,8 +905,8 @@ public class TinkerMetaData implements IMetaData {
 			
 			// store data type is present
 			if(vert.property(DATATYPE).isPresent()) {
-				String type = vert.value(DATATYPE);
-				innerMap.put("type", type);
+				IMetaData.DATA_TYPES type = vert.value(DATATYPE);
+				innerMap.put("type", type + "");
 			} else {
 				innerMap.put("type", "TYPE NOT STORED IN OWL, NEED TO UPDATE DB");
 			}

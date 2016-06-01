@@ -6,6 +6,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.Vector;
 
+import prerna.algorithm.api.IMetaData.DATA_TYPES;
 import prerna.engine.api.IEngine;
 import prerna.engine.api.ISelectStatement;
 import prerna.ui.components.playsheets.datamakers.IDataMaker;
@@ -359,11 +360,11 @@ public interface ITableDataFrame extends IDataMaker {
 	void save(String fileName);
 	ITableDataFrame open(String fileName);
 
-	Map<String, Set<String>> createPrimKeyEdgeHash(String[] headers);
+//	Map<String, Set<String>> createPrimKeyEdgeHash(String[] headers);
 
 	void mergeEdgeHash(Map<String, Set<String>> primKeyEdgeHash, Map<String, String> dataTypeMap);
 
-	void addMetaDataTypes(String[] headers, String[] types);
+//	void addMetaDataTypes(String[] headers, String[] types);
 
 	void connectTypes(String outType, String inType, Map<String, String> dataTypeMap);
 
@@ -401,5 +402,5 @@ public interface ITableDataFrame extends IDataMaker {
 	
 	void setDerivedUsing(String uniqueName, String... otherUniqueNames);
 	
-	String getDataType(String uniqueName);
+	DATA_TYPES getDataType(String uniqueName);
 }

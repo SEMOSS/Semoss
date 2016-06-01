@@ -7,6 +7,7 @@ import java.util.Set;
 import java.util.Vector;
 
 import prerna.ds.TinkerFrame;
+import prerna.ds.TinkerMetaHelper;
 import prerna.ds.util.FileIterator;
 import prerna.engine.api.IHeadersDataRow;
 import prerna.sablecc.PKQLRunner.STATUS;
@@ -38,7 +39,7 @@ public class TinkerImportDataReactor extends ImportDataReactor{
 
 				// TODO: annoying, need to determine if i need to create a prim key edge hash
 				if(edgeHash == null) {
-					Map<String, Set<String>> primKeyEdgeHash = frame.createPrimKeyEdgeHash(headers);
+					Map<String, Set<String>> primKeyEdgeHash = TinkerMetaHelper.createPrimKeyEdgeHash(headers);
 					//TODO: need to make all these wrappers that give a IHeaderDataRow be the same type to get this info
 					String[] types = null;
 					if(it instanceof FileIterator) {
