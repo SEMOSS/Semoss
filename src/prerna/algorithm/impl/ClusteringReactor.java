@@ -13,6 +13,7 @@ import prerna.algorithm.learning.util.IClusterDistanceMode.DistanceMeasure;
 import prerna.math.SimilarityWeighting;
 import prerna.sablecc.MathReactor;
 import prerna.sablecc.PKQLEnum;
+import prerna.sablecc.PKQLRunner.STATUS;
 import prerna.util.ArrayUtilityMethods;
 import prerna.util.Utility;
 
@@ -39,7 +40,6 @@ public class ClusteringReactor extends MathReactor {
 	private Map<String, Double> categoricalWeights = new HashMap<String, Double>();
 	
 	private String clusterColName;
-	private boolean appendOntoDataMaker = true;
 	
 	@Override
 	public Iterator process() {
@@ -71,12 +71,7 @@ public class ClusteringReactor extends MathReactor {
 		ITableDataFrame dataFrame = (ITableDataFrame)myStore.get("G");
 		this.isNumeric = new boolean[this.attributeNames.length];
 		for(int i = 0; i < this.attributeNames.length; i++) {
-			String type = dataFrame.getDataType(this.attributeNames[i]);
-			if(type.equalsIgnoreCase("STRING")) {
-				this.isNumeric[i] = false;
-			} else {
-				this.isNumeric[i] = true;
-			}
+			this.isNumeric[i] = dataFrame.isNumeric(this.attributeNames[i]);
 		}
 		
 		// set the type of distance measure to be used for each numerical property - default is using mean
@@ -152,31 +147,37 @@ public class ClusteringReactor extends MathReactor {
 		}
 		
 		// TODO: need to return an iterator and not automatically append the data to the frame
-		if(appendOntoDataMaker) {
-			Map<String, String> dataType = new HashMap<>();
-			dataType.put(clusterColName, "double");
-			dataFrame.connectTypes(attributeName, clusterColName, dataType);
-			for(Object instance : results.keySet()) {
-				int val = results.get(instance);
+		Map<String, String> dataType = new HashMap<>();
+		dataType.put(clusterColName, "double");
+		dataFrame.connectTypes(attributeName, clusterColName, dataType);
+		for(Object instance : results.keySet()) {
+			int val = results.get(instance);
 
-				Map<String, Object> raw = new HashMap<String, Object>();
-				raw.put(attributeName, instance);
-				raw.put(clusterColName, val);
-				
-				Map<String, Object> clean = new HashMap<String, Object>();
-				if(instance.toString().startsWith("http://semoss.org/ontologies/Concept/")) {
-					instance = Utility.getInstanceName(instance.toString());
-				}
-				clean.put(attributeName, instance);
-				clean.put(clusterColName, val);
-				
-				dataFrame.addRelationship(clean, raw);
-			}
+			Map<String, Object> raw = new HashMap<String, Object>();
+			raw.put(attributeName, instance);
+			raw.put(clusterColName, val);
 			
-			String[] newHeaders = new String[]{clusterColName};
-			String[] newHeaderType = new String[]{"INT"};
-			dataFrame.addMetaDataTypes(newHeaders, newHeaderType);
+			Map<String, Object> clean = new HashMap<String, Object>();
+			if(instance.toString().startsWith("http://semoss.org/ontologies/Concept/")) {
+				instance = Utility.getInstanceName(instance.toString());
+			}
+			clean.put(attributeName, instance);
+			clean.put(clusterColName, val);
+			
+			dataFrame.addRelationship(clean, raw);
 		}
+		
+//		SingleColAddIterator it = new SingleColAddIterator();
+//		it.setExistingCol(attributeName);
+//		it.setNewCol(this.clusterColName);
+//		Map<String, String> dataTypeMap = new HashMap<>();
+//		dataTypeMap.put(this.clusterColName, "double");
+//		it.setDataTypeMap(dataTypeMap);
+//		it.setResults(results);
+//
+//		String nodeStr = myStore.get(whoAmI).toString();
+//		myStore.put(nodeStr, it);
+		myStore.put("STATUS",STATUS.SUCCESS);
 		
 		return null;
 	}

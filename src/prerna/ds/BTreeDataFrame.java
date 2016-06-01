@@ -52,6 +52,7 @@ import cern.colt.Arrays;
 import prerna.algorithm.api.IAnalyticActionRoutine;
 import prerna.algorithm.api.IAnalyticTransformationRoutine;
 import prerna.algorithm.api.IMatcher;
+import prerna.algorithm.api.IMetaData.DATA_TYPES;
 import prerna.algorithm.api.ITableDataFrame;
 import prerna.engine.api.IEngine;
 import prerna.engine.api.ISelectStatement;
@@ -1996,19 +1997,7 @@ public class BTreeDataFrame implements ITableDataFrame {
 	}
 
 	@Override
-	public Map<String, Set<String>> createPrimKeyEdgeHash(String[] headers) {
-		// TODO Auto-generated method stub
-		return null;
-	}
-
-	@Override
 	public void mergeEdgeHash(Map<String, Set<String>> primKeyEdgeHash, Map<String, String> dataType) {
-		// TODO Auto-generated method stub
-		
-	}
-
-	@Override
-	public void addMetaDataTypes(String[] headers, String[] types) {
 		// TODO Auto-generated method stub
 		
 	}
@@ -2149,7 +2138,7 @@ public class BTreeDataFrame implements ITableDataFrame {
 	}
 
 	@Override
-	public String getDataType(String uniqueName) {
+	public DATA_TYPES getDataType(String uniqueName) {
 		// TODO Auto-generated method stub
 		return null;
 	}
