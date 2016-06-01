@@ -7,6 +7,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.Vector;
 
+import prerna.ds.TinkerMetaHelper;
 import prerna.ds.H2.H2Frame;
 import prerna.ds.util.FileIterator;
 import prerna.engine.api.IHeadersDataRow;
@@ -46,7 +47,7 @@ public class H2ImportDataReactor extends ImportDataReactor {
 		String[] headersCopy = new String[headers.length];
 		// TODO: annoying, need to determine if i need to create a prim key edge hash
 		if(edgeHash == null) {
-			Map<String, Set<String>> primKeyEdgeHash = frame.createPrimKeyEdgeHash(headers);
+			Map<String, Set<String>> primKeyEdgeHash = TinkerMetaHelper.createPrimKeyEdgeHash(headers);
 			Map<String, String> dataType = new HashMap<>();
 			for(int i = 0; i < types.length; i++) {
 				dataType.put(headers[i], types[i]);

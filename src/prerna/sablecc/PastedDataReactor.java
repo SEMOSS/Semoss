@@ -12,6 +12,7 @@ import java.util.List;
 
 import prerna.algorithm.api.ITableDataFrame;
 import prerna.ds.QueryStruct;
+import prerna.ds.TinkerMetaHelper;
 import prerna.ds.util.FileIterator;
 import prerna.poi.main.helper.CSVFileHelper;
 import prerna.util.Constants;
@@ -62,7 +63,7 @@ public class PastedDataReactor extends AbstractReactor {
 
 		String[] headers = helper.getHeaders();
 		ITableDataFrame frame = (ITableDataFrame) myStore.get("G");
-		Map<String, Set<String>> edgeHash = frame.createPrimKeyEdgeHash(headers);
+		Map<String, Set<String>> edgeHash = TinkerMetaHelper.createPrimKeyEdgeHash(headers);
 		this.put("EDGE_HASH", edgeHash);
 		
 		QueryStruct qs = new QueryStruct();

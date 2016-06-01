@@ -1,6 +1,5 @@
 package prerna.sablecc;
 
-import java.util.Hashtable;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -8,7 +7,7 @@ import java.util.Set;
 import java.util.Vector;
 
 import prerna.algorithm.api.ITableDataFrame;
-import prerna.ds.QueryStruct;
+import prerna.ds.TinkerMetaHelper;
 
 public class CsvTableReactor extends AbstractReactor {
 
@@ -54,7 +53,7 @@ public class CsvTableReactor extends AbstractReactor {
 //			edgeHash = qs.getReturnConnectionsHash();
 //		} else {
 			ITableDataFrame frame = (ITableDataFrame) myStore.get("G");
-			edgeHash = frame.createPrimKeyEdgeHash(selectors.toArray(new String[]{}));
+			edgeHash = TinkerMetaHelper.createPrimKeyEdgeHash(selectors.toArray(new String[]{}));
 //		}
 		this.put("EDGE_HASH", edgeHash);
 //		this.put("QUERY_STRUCT", qs);

@@ -48,6 +48,7 @@ import org.apache.tinkerpop.gremlin.tinkergraph.structure.TinkerFactory;
 import org.apache.tinkerpop.gremlin.tinkergraph.structure.TinkerGraph;
 
 import prerna.algorithm.api.IMatcher;
+import prerna.algorithm.api.IMetaData;
 import prerna.algorithm.api.ITableDataFrame;
 import prerna.engine.api.IConstructStatement;
 import prerna.engine.api.IEngine;
@@ -1480,7 +1481,7 @@ public class TinkerFrame extends AbstractTableDataFrame {
 	@Override
 	public Double getMax(String columnHeader) {
 		Double retValue = null;
-		if(this.metaData.getDataType(columnHeader).equals("NUMBER")) {
+		if(this.metaData.getDataType(columnHeader).equals(IMetaData.DATA_TYPES.NUMERIC)) {
 			GraphTraversal<Vertex, Number> gt2 = getGraphTraversal(columnHeader).max();
 			if(gt2.hasNext()) {
 				retValue = gt2.next().doubleValue();
@@ -1493,7 +1494,7 @@ public class TinkerFrame extends AbstractTableDataFrame {
 	@Override
 	public Double getMin(String columnHeader) {
 		Double retValue = null;
-		if(this.metaData.getDataType(columnHeader).equals("NUMBER")) {
+		if(this.metaData.getDataType(columnHeader).equals(IMetaData.DATA_TYPES.NUMERIC)) {
 			GraphTraversal<Vertex, Number> gt2 = getGraphTraversal(columnHeader).min();
 			if(gt2.hasNext()) {
 				retValue = gt2.next().doubleValue();
@@ -1792,44 +1793,44 @@ public class TinkerFrame extends AbstractTableDataFrame {
 	/****************************** END TRAVERSAL METHODS ***************************************/
 	
 	
-	/**
-	 * 
-	 * @param columnHeader - the column we are operating on
-	 * @return
-	 * 
-	 * returns true if values in columnHeader are numeric, false otherwise
-	 * 		skips values considered 'empty'
-	 */
-	@Override
-	public boolean isNumeric(String columnHeader) {
-
-		//Grab from map if this value has been calculated before
-		if(isNumericalMap.containsKey(columnHeader)) {
-			Boolean isNum = isNumericalMap.get(columnHeader);
-			if(isNum != null) {
-				return isNum;
-			}
-		}
-		
-		boolean isNumeric = true;
-		
-		//if all values 
-		Iterator<Object> iterator = this.uniqueValueIterator(columnHeader, false, false);
-		while(iterator.hasNext()) {
-			
-			Object nextValue = iterator.next();
-			if(!(nextValue instanceof Number)) {	
-				//is nextValue represented by an empty?
-					//if so continue
-					//else store false in the isNumerical Map and break
-				isNumeric = false;
-				break;
-			}
-		}
-		
-		isNumericalMap.put(columnHeader, isNumeric);
-		return isNumeric;
-	}
+//	/**
+//	 * 
+//	 * @param columnHeader - the column we are operating on
+//	 * @return
+//	 * 
+//	 * returns true if values in columnHeader are numeric, false otherwise
+//	 * 		skips values considered 'empty'
+//	 */
+//	@Override
+//	public boolean isNumeric(String columnHeader) {
+//
+//		//Grab from map if this value has been calculated before
+//		if(isNumericalMap.containsKey(columnHeader)) {
+//			Boolean isNum = isNumericalMap.get(columnHeader);
+//			if(isNum != null) {
+//				return isNum;
+//			}
+//		}
+//		
+//		boolean isNumeric = true;
+//		
+//		//if all values 
+//		Iterator<Object> iterator = this.uniqueValueIterator(columnHeader, false, false);
+//		while(iterator.hasNext()) {
+//			
+//			Object nextValue = iterator.next();
+//			if(!(nextValue instanceof Number)) {	
+//				//is nextValue represented by an empty?
+//					//if so continue
+//					//else store false in the isNumerical Map and break
+//				isNumeric = false;
+//				break;
+//			}
+//		}
+//		
+//		isNumericalMap.put(columnHeader, isNumeric);
+//		return isNumeric;
+//	}
 
 	@Override
 	public int getNumRows() {

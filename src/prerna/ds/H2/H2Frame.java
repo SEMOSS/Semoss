@@ -21,6 +21,8 @@ import org.apache.log4j.Logger;
 import org.rosuda.REngine.Rserve.RserveException;
 
 import prerna.algorithm.api.IMatcher;
+import prerna.algorithm.api.IMetaData;
+import prerna.algorithm.api.IMetaData.DATA_TYPES;
 import prerna.algorithm.api.ITableDataFrame;
 import prerna.ds.AbstractTableDataFrame;
 import prerna.ds.TinkerFrame;
@@ -83,7 +85,7 @@ public class H2Frame extends AbstractTableDataFrame {
         }
         String[] types = new String[headers.length];
         for(int i = 0; i < types.length; i++) {
-              types[i] = this.metaData.getDataType(headers[i]);
+              types[i] = convertDataTypeToString(this.metaData.getDataType(headers[i]));
               // need to stringify everything
               cells[i] = cells[i] + "";
         }
@@ -474,7 +476,7 @@ public class H2Frame extends AbstractTableDataFrame {
 	@Override
 	public Double getMin(String columnHeader) {
 		// make sure its a number
-		if(this.metaData.getDataType(columnHeader).equals("NUMBER")) {
+		if(this.metaData.getDataType(columnHeader).equals(IMetaData.DATA_TYPES.NUMERIC)) {
 			columnHeader = this.metaData.getValueForUniqueName(columnHeader);
 			return builder.getStat(columnHeader, "MIN");
 		}
@@ -483,17 +485,11 @@ public class H2Frame extends AbstractTableDataFrame {
 	
 	@Override
 	public Double getMax(String columnHeader) {
-		if(this.metaData.getDataType(columnHeader).equals("NUMBER")) {
+		if(this.metaData.getDataType(columnHeader).equals(IMetaData.DATA_TYPES.NUMERIC)) {
 			columnHeader = this.metaData.getValueForUniqueName(columnHeader);
 			return builder.getStat(columnHeader, "MAX");
 		}
 		return null;
-	}
-	
-	@Override 
-	public boolean isNumeric(String columnHeader) {
-		String dataType = this.metaData.getDataType(columnHeader);
-		return dataType.equalsIgnoreCase("NUMBER");
 	}
 	
 	@Override
@@ -651,10 +647,10 @@ public class H2Frame extends AbstractTableDataFrame {
 	   
 	   String[] types = new String[tf.headerNames.length];
 	   for(int i = 0; i < tf.headerNames.length; i++) {
-		   String type = tf.metaData.getDataType(tf.headerNames[i]);
-		   if(type.equalsIgnoreCase("Number")) { 
+		   DATA_TYPES type = tf.metaData.getDataType(tf.headerNames[i]);
+		   if(type.equals(IMetaData.DATA_TYPES.NUMERIC)) { 
 			   types[i] = "Double";
-		   } else if(type.equalsIgnoreCase("String")) {
+		   } else if(type.equals(IMetaData.DATA_TYPES.STRING)) {
 			   types[i] = "Varchar(800)";
 		   } else {
 			   types[i] = "Date";
@@ -711,7 +707,7 @@ public class H2Frame extends AbstractTableDataFrame {
 		Map<String, String> retMap = new HashMap<String, String>(headerNames.length);
 		for(String header : headerNames) {
 			String h2Header = this.metaData.getValueForUniqueName(header);
-			String h2Type = this.metaData.getDataType(header);
+			String h2Type = convertDataTypeToString(this.metaData.getDataType(header));
 			retMap.put(h2Header, h2Type);
 		}
 		return retMap;
@@ -775,7 +771,7 @@ public class H2Frame extends AbstractTableDataFrame {
 	@Override
 	public Map[] mergeQSEdgeHash(Map<String, Set<String>> edgeHash, IEngine engine, Vector<Map<String, String>> joinCols) {
 		Map[] ret =  super.mergeQSEdgeHash(edgeHash, engine, joinCols);
-		
+
 		// alter table for new cols
 		Set<String> headersSet = new LinkedHashSet<String>();
 		for(String addHeader : edgeHash.keySet()) {
@@ -783,7 +779,7 @@ public class H2Frame extends AbstractTableDataFrame {
 				headersSet.add(addHeader.split("__")[1]);
 			} else {
 				headersSet.add(addHeader);
-	}
+			}
 		}
 		for(String header : edgeHash.keySet()) {
 			Set<String> additionalHeaders = edgeHash.get(header);
@@ -801,16 +797,16 @@ public class H2Frame extends AbstractTableDataFrame {
 		String[] types = new String[headers.length];
 		for(int i = 0; i < types.length; i++) {
 			types[i] = engine.getDataTypes(engine.getTransformedNodeName(Constants.DISPLAY_URI + headers[i], false));
-			
+
 			if(types[i] != null) {
 				types[i] = Utility.getRawDataType(types[i].replace("TYPE:", ""));
 			} else {
 				types[i] = "STRING";
 			}
 		}
-		
+
 		builder.alterTableNewColumns(builder.tableName, headers, types); 
-	
+
 		return ret;
 	}
 
@@ -824,7 +820,7 @@ public class H2Frame extends AbstractTableDataFrame {
 		String[] cleanHeaders = new String[this.headerNames.length];
 		String[] types = new String[this.headerNames.length];
 		for(int i = 0; i < types.length; i++) {
-			types[i] = Utility.getRawDataType(this.metaData.getDataType(this.headerNames[i]));
+			types[i] = convertDataTypeToString(this.metaData.getDataType(this.headerNames[i]));
 			cleanHeaders[i] = this.metaData.getValueForUniqueName(this.headerNames[i]);
 		}
 		
@@ -950,7 +946,7 @@ public class H2Frame extends AbstractTableDataFrame {
 		
 		String[] types = new String[newHeaders.length];
 		for(int i = 0; i < newHeaders.length; i++) {
-			types[i] = this.metaData.getDataType(newHeaders[i]);
+			types[i] = convertDataTypeToString(this.metaData.getDataType(newHeaders[i]));
 		}
 		
 		String[] columnHeaders = getColumnHeaders();
@@ -992,6 +988,16 @@ public class H2Frame extends AbstractTableDataFrame {
 		}
 		
 		this.builder.processIterator(iterator, adjustedColHeaders, valueHeaders, types, jType);
+	}
+	
+	public String convertDataTypeToString(IMetaData.DATA_TYPES type) {
+		if(type.equals(IMetaData.DATA_TYPES.NUMERIC)) { 
+			return "double";
+		} else if(type.equals(IMetaData.DATA_TYPES.STRING)) {
+			return "varchar(800)";
+		} else {
+			return "date";
+		}
 	}
 
 	public RRunner getRRunner() throws RserveException, SQLException {

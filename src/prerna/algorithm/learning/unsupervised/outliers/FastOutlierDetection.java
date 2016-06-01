@@ -198,9 +198,6 @@ public class FastOutlierDetection implements IAnalyticTransformationRoutine {
 			dataFrame.addRelationship(clean, raw);
 		}
 
-		String[] newHeaders = new String[]{changedColumn};
-		String[] newHeaderType = new String[]{"DOUBLE"};
-		dataFrame.addMetaDataTypes(newHeaders, newHeaderType);
 		return null;
 	}
 

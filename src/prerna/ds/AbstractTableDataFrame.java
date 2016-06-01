@@ -18,6 +18,7 @@ import prerna.algorithm.api.IAnalyticActionRoutine;
 import prerna.algorithm.api.IAnalyticRoutine;
 import prerna.algorithm.api.IAnalyticTransformationRoutine;
 import prerna.algorithm.api.IMetaData;
+import prerna.algorithm.api.IMetaData.DATA_TYPES;
 import prerna.algorithm.api.ITableDataFrame;
 import prerna.engine.api.IEngine;
 import prerna.engine.api.IScriptReactor;
@@ -40,11 +41,6 @@ public abstract class AbstractTableDataFrame implements ITableDataFrame {
 	protected List<Object> algorithmOutput = new Vector<Object>();
 	protected List<String> columnsToSkip = new Vector<String>(); //make a set?
 	
-	@Override
-	public Map<String, Set<String>> createPrimKeyEdgeHash(String[] headers) {
-		return TinkerMetaHelper.createPrimKeyEdgeHash(headers);
-	}
-
 	@Override
 	public void mergeEdgeHash(Map<String, Set<String>> primKeyEdgeHash, Map<String, String> dataTypeMap) {
 		// combine the new values into the tinker meta data
@@ -82,11 +78,6 @@ public abstract class AbstractTableDataFrame implements ITableDataFrame {
 		// update the list of header names inside the data frame
     	List<String> fullNames = this.metaData.getColumnNames();
     	this.headerNames = fullNames.toArray(new String[fullNames.size()]);
-	}
-
-	@Override
-	public void addMetaDataTypes(String[] headers, String[] types) {
-		this.metaData.storeDataTypes(headers, types);
 	}
 
 	@Override
@@ -156,7 +147,7 @@ public abstract class AbstractTableDataFrame implements ITableDataFrame {
 	}
 	
 	@Override
-	public String getDataType(String uniqueName){
+	public IMetaData.DATA_TYPES getDataType(String uniqueName){
 		return this.metaData.getDataType(uniqueName);
 	}
 
@@ -406,6 +397,12 @@ public abstract class AbstractTableDataFrame implements ITableDataFrame {
 			isNumeric[i] = isNumeric(headers[i]);
 		}
 		return isNumeric;
+	}
+	
+	@Override
+	public boolean isNumeric(String uniqueName) {
+		DATA_TYPES dataType = this.metaData.getDataType(uniqueName);
+		return dataType.equals(IMetaData.DATA_TYPES.NUMERIC);
 	}
 
 	@Override
