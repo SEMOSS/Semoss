@@ -9,6 +9,7 @@ import java.util.LinkedHashSet;
 import java.util.Map;
 import java.util.Set;
 
+import prerna.algorithm.api.IMetaData.DATA_TYPES;
 import prerna.algorithm.api.ITableDataFrame;
 import prerna.ds.H2.H2Frame;
 import prerna.ds.util.TinkerCastHelper;
@@ -336,7 +337,7 @@ public class TableDataFrameFactory {
 			edgeHash = createFlatEdgeHash(mainConcept, headers);
 		} else {
 			// no user defined edge hash, create prim key
-			edgeHash = dataFrame.createPrimKeyEdgeHash(headers);
+			edgeHash = TinkerMetaHelper.createPrimKeyEdgeHash(headers);
 		}
 		Map<String, String> datatypes = new HashMap<>();
 		for(int x = 0; x < headers.length; x++) {
@@ -369,10 +370,10 @@ public class TableDataFrameFactory {
 			String[] headers = atable.getColumnHeaders();
 			String[] types = new String[headers.length];
 			for(int i = 0; i < headers.length; i++) {
-				String type = atable.metaData.getDataType(headers[i]);
-				if(type.equalsIgnoreCase("NUMBER")) {
+				DATA_TYPES type = atable.metaData.getDataType(headers[i]);
+				if(type.equals(DATA_TYPES.NUMERIC)) {
 					types[i] = "DOUBLE";
-				} else if(type.equalsIgnoreCase("DATE")) {
+				} else if(type.equals(DATA_TYPES.DATE)) {
 					types[i] = "DATE";
 				} else {
 					types[i] = "VARCHAR(800)";

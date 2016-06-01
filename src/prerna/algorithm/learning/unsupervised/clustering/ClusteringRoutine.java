@@ -123,9 +123,6 @@ public class ClusteringRoutine extends AbstractClusteringRoutine {
 				dataFrame.addRelationship(clean, raw);
 			}
 			
-			String[] newHeaders = new String[]{clusterColName};
-			String[] newHeaderType = new String[]{"INT"};
-			dataFrame.addMetaDataTypes(newHeaders, newHeaderType);
 		}
 		return null;
 	}

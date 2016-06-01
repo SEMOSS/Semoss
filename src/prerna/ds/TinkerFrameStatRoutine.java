@@ -122,9 +122,6 @@ public class TinkerFrameStatRoutine implements IAnalyticTransformationRoutine {
 		dataType.put(newColumnName, "DOUBLE");
 		tinker.connectTypes(columnHeader[0], newColumnName, dataType);
 		tinker.applyGroupBy(columnHeader, newColumnName, valueColumn, mathType);
-		String[] newHeaders = new String[]{newColumnName};
-		String[] newHeaderType = new String[]{"NUMBER"};
-		tinker.addMetaDataTypes(newHeaders, newHeaderType);
 	}
 	
 	/**
@@ -252,10 +249,6 @@ public class TinkerFrameStatRoutine implements IAnalyticTransformationRoutine {
 					tinker.insertBlanks(primKeyName, addedCols);
 
 				}	
-
-				String[] newHeaders = new String[]{newColumnName};
-				String[] newHeaderType = new String[]{"NUMBER"};
-				tinker.addMetaDataTypes(newHeaders, newHeaderType);
 			}
 		} catch(ClassCastException e) {
 			throw new ClassCastException(e.getMessage());

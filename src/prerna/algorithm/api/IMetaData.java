@@ -23,7 +23,8 @@ public interface IMetaData {
 	 *
 	 */
 	enum NAME_TYPE {USER_DEFINED, DB_PHYSICAL_NAME, DB_PHYSICAL_URI, DB_LOGICAL_NAME, DB_QUERY_STRUCT_NAME}
-	
+	enum DATA_TYPES {NUMERIC, STRING, DATE}
+
 
 //////////////////::::::::::::::::::::::: SETTER METHODS :::::::::::::::::::::::::::::::://////////////////////////////
 //	/**
@@ -76,6 +77,7 @@ public interface IMetaData {
 	 * 				The data type to store
 	 */
 	void storeDataType(String uniqueName, String dataType);
+	
 	void storeDataTypes(String[] uniqueNames, String[] dataTypes);
 	
 	void setFiltered(String uniqueName, boolean filtered);
@@ -149,7 +151,7 @@ public interface IMetaData {
 	 * 				The unique identifier
 	 * @return
 	 */
-	String getDataType(String uniqueName);
+	DATA_TYPES getDataType(String uniqueName);
 	
 	/**
 	 * Get the specific data type for the database in which the instance data sits: Integer, Varchar, Double, etc.
