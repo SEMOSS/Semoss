@@ -1001,13 +1001,13 @@ public class Insight {
 		retHash.put("insightID", getInsightID());
 		retHash.put("layout", getOutput());
 		retHash.put("title", getInsightName());
-		List<String> selectors = new ArrayList<String>();
-//		if(dataTableAlign != null){ // some playsheets don't require data table align, like grid play sheet. Should probably change this so they all have data table align (like if i want to change the order of my columns)
-//			retHash.put("dataTableAlign", dataTableAlign);
+//		List<String> selectors = new ArrayList<String>();
+		if(dataTableAlign != null){ // some playsheets don't require data table align, like grid play sheet. Should probably change this so they all have data table align (like if i want to change the order of my columns)
+			retHash.put("dataTableAlign", dataTableAlign);
 //			for(String label : dataTableAlign.keySet()) {
 //				selectors.add(dataTableAlign.get(label));
 //			}
-//		}
+		}
 		// TODO: how do i get this outside of here? we need to return incremental stores during traversing but not when recreating insight
 		IDataMaker dm = getDataMaker();
 		if(dm instanceof GraphDataModel) {
@@ -1025,8 +1025,10 @@ public class Insight {
 		} else if (getOutput().equals("Graph") && dm instanceof TinkerFrame){
 			retHash.putAll(((TinkerFrame)getDataMaker()).getGraphOutput());
 		} else {
-			if(dm instanceof ITableDataFrame && !selectors.isEmpty()) {
-				retHash.putAll(dm.getDataMakerOutput(selectors.toArray(new String[]{})));
+			if(dm instanceof ITableDataFrame) {
+				retHash.putAll(dm.getDataMakerOutput());
+//			if(dm instanceof ITableDataFrame && !selectors.isEmpty()) {
+//				retHash.putAll(dm.getDataMakerOutput(selectors.toArray(new String[]{})));
 			} else {
 				retHash.putAll(dm.getDataMakerOutput());
 			}
