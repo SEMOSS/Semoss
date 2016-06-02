@@ -77,9 +77,9 @@ public class SolrIndexEngineQueryBuilder {
 			StringBuilder filterStr = new StringBuilder();
 			for (int i = 0; i < filterValuesList.size(); i++) {
 				if (i == filterValuesList.size() - 1) {
-					filterStr.append(filterValuesList.get(i));
+					filterStr.append( "\"" + filterValuesList.get(i) + "\"" );
 				} else {
-					filterStr.append(filterValuesList.get(i) + " OR ");
+					filterStr.append( "\"" + filterValuesList.get(i) + "\""  + " OR ");
 				}
 			}
 			this.Q.addFilterQuery(fieldName + ":" + "(" + filterStr.toString() + ")");
