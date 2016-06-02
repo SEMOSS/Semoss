@@ -1,14 +1,10 @@
 package prerna.ds.H2;
 
-import java.sql.ResultSet;
-import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.List;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
 import java.util.NoSuchElementException;
-
-import org.apache.tinkerpop.gremlin.structure.Graph;
 
 import prerna.util.Constants;
 
