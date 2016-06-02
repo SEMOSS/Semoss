@@ -189,7 +189,7 @@ public class TinkerMetaData implements IMetaData {
 			} 
 			else if(dataType.contains("INT") || dataType.contains("DECIMAL") || dataType.contains("DOUBLE") || dataType.contains("FLOAT") || dataType.contains("LONG") || dataType.contains("BIGINT")
 					|| dataType.contains("TINYINT") || dataType.contains("SMALLINT") || dataType.contains("NUMBER")){
-				vert.property(DATATYPE, IMetaData.DATA_TYPES.NUMERIC);
+				vert.property(DATATYPE, IMetaData.DATA_TYPES.NUMBER);
 			} 
 			else if(dataType.contains("DATE")) {
 				vert.property(DATATYPE, IMetaData.DATA_TYPES.DATE);
@@ -202,7 +202,7 @@ public class TinkerMetaData implements IMetaData {
 			}
 			// if current is a number and new is a number
 			// column is still number
-			else if(currType.equals(IMetaData.DATA_TYPES.NUMERIC) && ( dataType.contains("INT") || dataType.contains("DECIMAL") || dataType.contains("DOUBLE") || dataType.contains("FLOAT") || dataType.contains("LONG") || dataType.contains("BIGINT")
+			else if(currType.equals(IMetaData.DATA_TYPES.NUMBER) && ( dataType.contains("INT") || dataType.contains("DECIMAL") || dataType.contains("DOUBLE") || dataType.contains("FLOAT") || dataType.contains("LONG") || dataType.contains("BIGINT")
 					|| dataType.contains("TINYINT") || dataType.contains("SMALLINT") )){
 				// no change
 				// vert.property(DATATYPE, "NUMBER");
