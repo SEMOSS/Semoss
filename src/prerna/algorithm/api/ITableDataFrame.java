@@ -58,11 +58,6 @@ public interface ITableDataFrame extends IDataMaker {
 	void performAnalyticAction(IAnalyticActionRoutine routine) throws RuntimeException;
 	
 	/**
-	 * Undo the most recent analytical routine performed on the data-frame
-	 */
-	void undoAction();
-	
-	/**
 	 * Generate the entropy for the column in the data-frame
 	 * @param columnHeader			The column header to calculate the entropy for
 	 * @return						The entropy value for the column

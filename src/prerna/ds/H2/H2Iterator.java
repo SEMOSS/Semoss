@@ -6,12 +6,12 @@ import java.sql.SQLException;
 import java.util.Iterator;
 import java.util.NoSuchElementException;
 
-public class TinkerH2Iterator implements Iterator<Object[]>{
+public class H2Iterator implements Iterator<Object[]>{
 
 	ResultSet resultSet;
 	Object[] nextRow;
 	
-	TinkerH2Iterator(ResultSet resultSet) {
+	H2Iterator(ResultSet resultSet) {
 		this.resultSet = resultSet;
 		if(this.resultSet != null){
 			nextRow = getNextRow();
