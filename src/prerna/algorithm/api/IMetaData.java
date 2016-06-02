@@ -23,7 +23,7 @@ public interface IMetaData {
 	 *
 	 */
 	enum NAME_TYPE {USER_DEFINED, DB_PHYSICAL_NAME, DB_PHYSICAL_URI, DB_LOGICAL_NAME, DB_QUERY_STRUCT_NAME}
-	enum DATA_TYPES {NUMERIC, STRING, DATE}
+	enum DATA_TYPES {NUMBER, STRING, DATE}
 
 
 //////////////////::::::::::::::::::::::: SETTER METHODS :::::::::::::::::::::::::::::::://////////////////////////////
