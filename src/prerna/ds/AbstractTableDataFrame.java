@@ -402,7 +402,7 @@ public abstract class AbstractTableDataFrame implements ITableDataFrame {
 	@Override
 	public boolean isNumeric(String uniqueName) {
 		DATA_TYPES dataType = this.metaData.getDataType(uniqueName);
-		return dataType.equals(IMetaData.DATA_TYPES.NUMERIC);
+		return dataType.equals(IMetaData.DATA_TYPES.NUMBER);
 	}
 
 	@Override

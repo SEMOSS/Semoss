@@ -476,7 +476,7 @@ public class H2Frame extends AbstractTableDataFrame {
 	@Override
 	public Double getMin(String columnHeader) {
 		// make sure its a number
-		if(this.metaData.getDataType(columnHeader).equals(IMetaData.DATA_TYPES.NUMERIC)) {
+		if(this.metaData.getDataType(columnHeader).equals(IMetaData.DATA_TYPES.NUMBER)) {
 			columnHeader = this.metaData.getValueForUniqueName(columnHeader);
 			return builder.getStat(columnHeader, "MIN");
 		}
@@ -485,7 +485,7 @@ public class H2Frame extends AbstractTableDataFrame {
 	
 	@Override
 	public Double getMax(String columnHeader) {
-		if(this.metaData.getDataType(columnHeader).equals(IMetaData.DATA_TYPES.NUMERIC)) {
+		if(this.metaData.getDataType(columnHeader).equals(IMetaData.DATA_TYPES.NUMBER)) {
 			columnHeader = this.metaData.getValueForUniqueName(columnHeader);
 			return builder.getStat(columnHeader, "MAX");
 		}
@@ -648,7 +648,7 @@ public class H2Frame extends AbstractTableDataFrame {
 	   String[] types = new String[tf.headerNames.length];
 	   for(int i = 0; i < tf.headerNames.length; i++) {
 		   DATA_TYPES type = tf.metaData.getDataType(tf.headerNames[i]);
-		   if(type.equals(IMetaData.DATA_TYPES.NUMERIC)) { 
+		   if(type.equals(IMetaData.DATA_TYPES.NUMBER)) { 
 			   types[i] = "Double";
 		   } else if(type.equals(IMetaData.DATA_TYPES.STRING)) {
 			   types[i] = "Varchar(800)";
@@ -991,7 +991,7 @@ public class H2Frame extends AbstractTableDataFrame {
 	}
 	
 	public String convertDataTypeToString(IMetaData.DATA_TYPES type) {
-		if(type.equals(IMetaData.DATA_TYPES.NUMERIC)) { 
+		if(type.equals(IMetaData.DATA_TYPES.NUMBER)) { 
 			return "double";
 		} else if(type.equals(IMetaData.DATA_TYPES.STRING)) {
 			return "varchar(800)";

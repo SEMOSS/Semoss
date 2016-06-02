@@ -371,7 +371,7 @@ public class TableDataFrameFactory {
 			String[] types = new String[headers.length];
 			for(int i = 0; i < headers.length; i++) {
 				DATA_TYPES type = atable.metaData.getDataType(headers[i]);
-				if(type.equals(DATA_TYPES.NUMERIC)) {
+				if(type.equals(DATA_TYPES.NUMBER)) {
 					types[i] = "DOUBLE";
 				} else if(type.equals(DATA_TYPES.DATE)) {
 					types[i] = "DATE";
