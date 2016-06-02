@@ -263,12 +263,6 @@ public abstract class AbstractTableDataFrame implements ITableDataFrame {
 	}
 
 	@Override
-	public void undoAction() {
-		// TODO Auto-generated method stub
-		
-	}
-
-	@Override
 	public Double getEntropy(String columnHeader) {
 		// TODO Auto-generated method stub
 		return null;
