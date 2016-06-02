@@ -1481,7 +1481,7 @@ public class TinkerFrame extends AbstractTableDataFrame {
 	@Override
 	public Double getMax(String columnHeader) {
 		Double retValue = null;
-		if(this.metaData.getDataType(columnHeader).equals(IMetaData.DATA_TYPES.NUMERIC)) {
+		if(this.metaData.getDataType(columnHeader).equals(IMetaData.DATA_TYPES.NUMBER)) {
 			GraphTraversal<Vertex, Number> gt2 = getGraphTraversal(columnHeader).max();
 			if(gt2.hasNext()) {
 				retValue = gt2.next().doubleValue();
@@ -1494,7 +1494,7 @@ public class TinkerFrame extends AbstractTableDataFrame {
 	@Override
 	public Double getMin(String columnHeader) {
 		Double retValue = null;
-		if(this.metaData.getDataType(columnHeader).equals(IMetaData.DATA_TYPES.NUMERIC)) {
+		if(this.metaData.getDataType(columnHeader).equals(IMetaData.DATA_TYPES.NUMBER)) {
 			GraphTraversal<Vertex, Number> gt2 = getGraphTraversal(columnHeader).min();
 			if(gt2.hasNext()) {
 				retValue = gt2.next().doubleValue();
