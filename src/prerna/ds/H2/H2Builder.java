@@ -639,7 +639,40 @@ public class H2Builder {
 		}
     	return null;
     }
-
+    
+    public Map<Map<Object, Object>, Object> getStat(String columnHeader, String statType, List<String> groupByCols) {
+    	ResultSet rs = executeQuery(makeFunction(columnHeader, statType, tableName, groupByCols));
+    	try {
+    		Map<Map<Object, Object>, Object> results = new Hashtable<Map<Object, Object>, Object>();
+    		ResultSetMetaData metaData = rs.getMetaData();
+    		int numReturns = metaData.getColumnCount();
+    		
+    		int[] typeArr = new int[numReturns];
+    		// index starts at 1 for metaData
+    		for(int i = 1; i <= numReturns; i++) {
+    			typeArr[i-1] = metaData.getColumnType(i);
+    		}
+    		
+			while(rs.next()) {
+				// first return is the stat routine
+				Double val = rs.getDouble(1);
+				// get the unique set of group by values
+				Map<Object, Object> groupByVals = new Hashtable<Object, Object>();
+				for(int i = 2; i <= numReturns; i++) {
+					// group by cols are added in the same position as the list passed in
+					groupByVals.put(groupByCols.get(i-2), rs.getObject(i));
+				}
+				// add the row into the result set
+				results.put(groupByVals, val);
+			}
+			
+			return results;
+		} catch (SQLException e) {
+			e.printStackTrace();
+		}
+    	return null;
+    }
+    
     public void alterTableNewColumns(String tableName, String[] headers, String[] types) {
     	types = cleanTypes(types);
     	try {
@@ -859,7 +892,7 @@ public class H2Builder {
 				Statement stmt = getConnection().createStatement();
 				String selectQuery = makeSelect(newTableName, Arrays.asList(newHeaders));
 				ResultSet rs = stmt.executeQuery(selectQuery);
-		    	TinkerH2Iterator h2iterator = new TinkerH2Iterator(rs);
+				H2Iterator h2iterator = new H2Iterator(rs);
 				
 				String mergeQuery = "MERGE INTO "+tableName;
 				String columns = "(";
@@ -1184,7 +1217,7 @@ public class H2Builder {
 	    	Statement stmt = getConnection().createStatement();
 			String selectQuery = makeSelect(tableName, selectors);
 			ResultSet rs = stmt.executeQuery(selectQuery);
-	    	return new TinkerH2Iterator(rs);
+	    	return new H2Iterator(rs);
     	} catch(SQLException s) {
     		s.printStackTrace();
     	}
@@ -1196,7 +1229,7 @@ public class H2Builder {
     	try {
 	    	Statement stmt = getConnection().createStatement();
 			ResultSet rs = stmt.executeQuery(query);
-	    	return new TinkerH2Iterator(rs);
+	    	return new H2Iterator(rs);
     	} catch(SQLException s) {
     		s.printStackTrace();
     	}
@@ -1256,7 +1289,7 @@ public class H2Builder {
 		}
 		
 		ResultSet rs = executeQuery(selectQuery);
-    	return new TinkerH2Iterator(rs);
+    	return new H2Iterator(rs);
     	
     }
     
@@ -2115,19 +2148,60 @@ public class H2Builder {
     }
         
     private String makeFunction(String column, String function, String tableName) {
-    	
     	column = cleanHeader(column);
     	String functionString = "SELECT ";
     	switch(function.toUpperCase()) {
-    	case "COUNT": functionString += "COUNT("+column+")"; break;
-    	case "AVERAGE": functionString += "AVG("+column+")"; break;
-    	case "MIN": functionString += "MIN("+column+")"; break;
-    	case "MAX": functionString += "MAX("+column+")"; break;
-    	case "SUM": functionString += "SUM("+column+")"; break;
-    	default: functionString += column;
+	    	case "COUNT": functionString += "COUNT("+column+")"; break;
+	    	case "AVERAGE": functionString += "AVG("+column+")"; break;
+	    	case "MIN": functionString += "MIN("+column+")"; break;
+	    	case "MAX": functionString += "MAX("+column+")"; break;
+	    	case "SUM": functionString += "SUM("+column+")"; break;
+	    	default: functionString += column;
     	}
     	
     	functionString += "FROM "+tableName;
+    	return functionString;
+    }
+    
+    private String makeFunction(String column, String function, String tableName, List<String> groupByCols) {
+    	if(groupByCols == null || groupByCols.isEmpty()) {
+    		return makeFunction(column, function, tableName);
+    	}
+    	
+    	// clean all the headers and group by cols
+    	column = cleanHeader(column);
+    	List<String> cleanGroupByCols = new Vector<String>();
+    	for(String col : groupByCols) {
+    		cleanGroupByCols.add(cleanHeader(col));
+    	}
+
+    	// the first return is the column you are modifying
+    	String functionString = "SELECT DISTINCT ";
+    	switch(function.toUpperCase()) {
+	    	case "COUNT": functionString += "COUNT("+column+")"; break;
+	    	case "AVERAGE": functionString += "AVG("+column+")"; break;
+	    	case "MIN": functionString += "MIN("+column+")"; break;
+	    	case "MAX": functionString += "MAX("+column+")"; break;
+	    	case "SUM": functionString += "SUM("+column+")"; break;
+	    	default: functionString += column;
+    	}
+    	
+    	// also want to return the group by cols
+    	for(String col : groupByCols) {
+    		functionString += ", " + col;
+    	}
+    	
+    	// add group by
+    	functionString += " FROM " + tableName + " GROUP BY ";
+    	boolean isFirst = true;
+    	for(String col : groupByCols) {
+    		if(isFirst) {
+    			functionString += col;
+    			isFirst = false;
+    		} else {
+    			functionString += ", " + col;
+    		}
+    	}
     	
     	return functionString;
     }

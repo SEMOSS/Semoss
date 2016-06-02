@@ -716,11 +716,6 @@ public class BTreeDataFrame implements ITableDataFrame {
 	}
 
 	@Override
-	public void undoAction() {
-		// TODO Auto-generated method stub
-	}
-
-	@Override
 	public Integer getUniqueInstanceCount(String columnHeader) {
 		columnHeader = this.getColumnName(columnHeader);
 
@@ -889,7 +884,7 @@ public class BTreeDataFrame implements ITableDataFrame {
 		}
 		return entropyValues;
 	}
-
+	
 	@Override
 	public Double getEntropyDensity(String columnHeader) {
 		columnHeader = this.getColumnName(columnHeader);
