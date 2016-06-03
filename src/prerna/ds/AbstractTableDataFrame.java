@@ -15,17 +15,14 @@ import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
 import prerna.algorithm.api.IAnalyticActionRoutine;
-import prerna.algorithm.api.IAnalyticRoutine;
 import prerna.algorithm.api.IAnalyticTransformationRoutine;
 import prerna.algorithm.api.IMetaData;
 import prerna.algorithm.api.IMetaData.DATA_TYPES;
 import prerna.algorithm.api.ITableDataFrame;
 import prerna.engine.api.IEngine;
-import prerna.engine.api.IScriptReactor;
 import prerna.engine.api.ISelectStatement;
 import prerna.math.BarChart;
 import prerna.math.StatisticsUtilityMethods;
-import prerna.sablecc.ColAddReactor;
 import prerna.ui.components.playsheets.datamakers.DataMakerComponent;
 import prerna.ui.components.playsheets.datamakers.IDataMaker;
 import prerna.ui.components.playsheets.datamakers.ISEMOSSAction;
@@ -263,18 +260,6 @@ public abstract class AbstractTableDataFrame implements ITableDataFrame {
 	}
 
 	@Override
-	public Double getEntropy(String columnHeader) {
-		// TODO Auto-generated method stub
-		return null;
-	}
-
-	@Override
-	public Double[] getEntropy() {
-		// TODO Auto-generated method stub
-		return null;
-	}
-
-	@Override
 	public Double getEntropyDensity(String columnHeader) {
 		double entropyDensity = 0;
 		
@@ -329,12 +314,6 @@ public abstract class AbstractTableDataFrame implements ITableDataFrame {
 		}
 		
 		return -1.0 * entropyDensity;
-	}
-
-	@Override
-	public Double[] getEntropyDensity() {
-		// TODO Auto-generated method stub
-		return null;
 	}
 
 	@Override
