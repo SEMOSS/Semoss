@@ -32,7 +32,25 @@ public interface ITableDataFrame extends IDataMaker {
 	 * @param rowRawData			The array of raw values where indices match the columns in the data-frame
 	 */
 	void addRow(Object[] rowCleanData, Object[] rowRawData);
-	
+
+	/**
+	 * Adds a row to the data-frame
+	 * @param rowCleanData			The array of clean values where indices match the columns in the data-frame
+	 * @param rowRawData			The array of raw values where indices match the columns in the data-frame
+	 * @param headers				The headers corresponding to the new row to add
+	 */
+	void addRow(Object[] cleanCells, Object[] rawCells, String[] headers);
+
+	/**
+	 * 
+	 * @param headers
+	 * @param values
+	 * @param rawValues
+	 * @param cardinality
+	 * @param logicalToValMap
+	 */
+	void addRelationship(String[] headers, Object[] values, Object[] rawValues, Map<Integer, Set<Integer>> cardinality, Map<String, String> logicalToValMap);
+
 	/**
 	 * Joins the inputed data-frame to the current data-frame for the provided column names 
 	 * @param table					The data-frame to join with the current data-frame
@@ -58,30 +76,11 @@ public interface ITableDataFrame extends IDataMaker {
 	void performAnalyticAction(IAnalyticActionRoutine routine) throws RuntimeException;
 	
 	/**
-	 * Generate the entropy for the column in the data-frame
-	 * @param columnHeader			The column header to calculate the entropy for
-	 * @return						The entropy value for the column
-	 */
-	Double getEntropy(String columnHeader);
-
-	/**
-	 * Generate the entropy for all the columns in the data-frame
-	 * @return						The entropy values for all the columns corresponding to the ordered values in the column headers
-	 */
-	Double[] getEntropy();
-	
-	/**
 	 * Generate the entropy density for the column in the data-frame
 	 * @param columnHeader			The column header to calculate the entropy density for
 	 * @return						The entropy density value for the column
 	 */
 	Double getEntropyDensity(String columnHeader);
-
-	/**
-	 * Generate the entropy density for all the columns in the data-frame
-	 * @return						The entropy density values for all the columns corresponding to the ordered values in the column headers
-	 */
-	Double[] getEntropyDensity();
 
 	/**
 	 * Get the unique instance count for the column in the data-frame
@@ -345,57 +344,146 @@ public interface ITableDataFrame extends IDataMaker {
 	 */
 	Object[] getFilterModel();
 	
-	//temporary hack for build...delete later
-//	public Object[] getFilteredUniqueRawValues(String columnHeader);
-
 	/**
-	 * 
+	 * Serialize the dataframe
 	 * @param fileName
 	 */
 	void save(String fileName);
+	
+	/**
+	 * Deserialize the dataframe
+	 * @param fileName
+	 * @return
+	 */
 	ITableDataFrame open(String fileName);
 
-//	Map<String, Set<String>> createPrimKeyEdgeHash(String[] headers);
-
+	/**
+	 * 
+	 * @param primKeyEdgeHash
+	 * @param dataTypeMap
+	 */
 	void mergeEdgeHash(Map<String, Set<String>> primKeyEdgeHash, Map<String, String> dataTypeMap);
 
-//	void addMetaDataTypes(String[] headers, String[] types);
-
-	void connectTypes(String outType, String inType, Map<String, String> dataTypeMap);
-
-	void addRelationship(Map<String, Object> cleanRow, Map<String, Object> rawRow);
-
-	void removeRelationship(Map<String, Object> cleanRow, Map<String, Object> rawRow);
-	
-	Map<String, Set<String>> getEdgeHash();
-
-	Set<String> getEnginesForUniqueName(String sub);
-
-	Map<String, String> getProperties();
-
-	String getPhysicalUriForNode(String string, String engineName);
-
-	List<Map<String, Object>> getTableHeaderObjects();
-
-	void connectTypes(String[] joinCols, String newCol, Map<String, String> dataTypeMap);
-
-	void addRow(Object[] cleanCells, Object[] rawCells, String[] headers);
-
+	/**
+	 * 
+	 * @param edgeHash
+	 * @param engine
+	 * @param joinCols
+	 * @return
+	 */
 	Map[] mergeQSEdgeHash(Map<String, Set<String>> edgeHash, IEngine engine, Vector<Map<String, String>> joinCols);
 
+	/**
+	 * 
+	 * @param outType
+	 * @param inType
+	 * @param dataTypeMap
+	 */
+	void connectTypes(String outType, String inType, Map<String, String> dataTypeMap);
+
+	/**
+	 * 
+	 * @param joinCols
+	 * @param newCol
+	 * @param dataTypeMap
+	 */
+	void connectTypes(String[] joinCols, String newCol, Map<String, String> dataTypeMap);
+
+	/**
+	 * 
+	 * @param cleanRow
+	 * @param rawRow
+	 */
+	void addRelationship(Map<String, Object> cleanRow, Map<String, Object> rawRow);
+
+	/**
+	 * 
+	 * @param cleanRow
+	 * @param rawRow
+	 */
+	void removeRelationship(Map<String, Object> cleanRow, Map<String, Object> rawRow);
+	
+	/**
+	 * 
+	 * @return
+	 */
+	Map<String, Set<String>> getEdgeHash();
+
+	/**
+	 * 
+	 * @param sub
+	 * @return
+	 */
+	Set<String> getEnginesForUniqueName(String sub);
+
+	/**
+	 * 
+	 * @return
+	 */
+	Map<String, String> getProperties();
+
+	/**
+	 * 
+	 * @param string
+	 * @param engineName
+	 * @return
+	 */
+	String getPhysicalUriForNode(String string, String engineName);
+
+	/**
+	 * 
+	 * @return
+	 */
+	List<Map<String, Object>> getTableHeaderObjects();
+
+	/**
+	 * 
+	 * @param rowCleanData
+	 * @param rowRawData
+	 * @param edgeHash
+	 * @param logicalToValMap
+	 */
 	void addRelationship(Map<String, Object> rowCleanData, Map<String, Object> rowRawData, Map<String, Set<String>> edgeHash, Map<String, String> logicalToValMap);
 	
+	/**
+	 * 
+	 * @return
+	 */
 	Map<String, Object[]> getFilterTransformationValues();
 
+	/**
+	 * 
+	 * @param columnHeader
+	 * @param filterValues
+	 * @param comparator
+	 */
 	void filter(String columnHeader, List<Object> filterValues, String comparator);
 	
-	void addRelationship(String[] headers, Object[] values, Object[] rawValues, Map<Integer, Set<Integer>> cardinality, Map<String, String> logicalToValMap);
-	
+	/**
+	 * 
+	 * @param uniqueName
+	 * @param isDerived
+	 */
 	void setDerivedColumn(String uniqueName, boolean isDerived);
 	
+	/**
+	 * 
+	 * @param uniqueName
+	 * @param calculationName
+	 */
 	void setDerviedCalculation(String uniqueName, String calculationName);
 	
+	/**
+	 * 
+	 * @param uniqueName
+	 * @param otherUniqueNames
+	 */
 	void setDerivedUsing(String uniqueName, String... otherUniqueNames);
 	
+	/**
+	 * 
+	 * @param uniqueName
+	 * @return
+	 */
 	DATA_TYPES getDataType(String uniqueName);
 }
