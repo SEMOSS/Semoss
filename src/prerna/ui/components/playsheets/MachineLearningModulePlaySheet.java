@@ -235,10 +235,14 @@ public class MachineLearningModulePlaySheet extends TablePlaySheet{
 	}
 	
 	public void displayEntropyDensity(List<String> skipColumns) {
-		if(dataFrame == null || dataFrame.isEmpty()) return;		
-		entropyArr = new Double[dataFrame.getColumnHeaders().length];
+		if(dataFrame == null || dataFrame.isEmpty()) return;
+		
+		String[] headers = dataFrame.getColumnHeaders();
+		entropyArr = new Double[headers.length];
 		//dataFrame.setColumnsToSkip(skipColumns);
-		entropyArr = dataFrame.getEntropyDensity();
+		for(int i = 0 ; i < headers.length; i++) {
+			entropyArr[i] = dataFrame.getEntropyDensity(headers[i]);
+		}
 		
 		DecimalFormat formatter = new DecimalFormat("#0.00");
 		for(int i = 1; i < columnHeaders.length; i++) {
