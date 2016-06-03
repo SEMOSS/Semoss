@@ -822,7 +822,6 @@ public class BTreeDataFrame implements ITableDataFrame {
 		return uniqueColsAndValueCount;
 	}
 	
-	@Override
 	public Double getEntropy(String columnHeader) {
 		columnHeader = this.getColumnName(columnHeader);
 
@@ -876,7 +875,6 @@ public class BTreeDataFrame implements ITableDataFrame {
 		return -1.0 *entropy;
 	}
 
-	@Override
 	public Double[] getEntropy() {
 		Double[] entropyValues = new Double[filteredLevelNames.length];
 		for(int i = 0; i < filteredLevelNames.length; i++) {
@@ -944,7 +942,6 @@ public class BTreeDataFrame implements ITableDataFrame {
 		return -1.0 * entropyDensity;
 	}
 
-	@Override
 	public Double[] getEntropyDensity() {
 		Double[] entropyDensityValues = new Double[filteredLevelNames.length];
 		for(int i = 0; i < filteredLevelNames.length; i++) {
