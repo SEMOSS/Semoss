@@ -185,4 +185,12 @@ public class FileIterator implements Iterator<IHeadersDataRow>{
 		File file = new File(this.helper.getFileLocation());
 		file.delete();
 	}
+	
+	public String getFileLocation() {
+		return this.helper.getFileLocation();
+	}
+	
+	public char getDelimiter() {
+		return this.helper.getDelimiter();
+	}
 }

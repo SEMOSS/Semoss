@@ -720,6 +720,9 @@ public class Translation extends DepthFirstAdapter {
 			initReactor(PKQLEnum.COL_ADD);
 			String nodeStr = node.toString().trim();
 			curReactor.put(PKQLEnum.COL_ADD, nodeStr);
+			
+			String nodeExpr = node.getExpr().toString().trim();
+			curReactor.put(PKQLEnum.EXPR_TERM, nodeExpr);
 		}		
 	}
 	
@@ -898,6 +901,13 @@ public class Translation extends DepthFirstAdapter {
 		if(reactorNames.containsKey(PKQLEnum.MATH_FUN)) {
 			String procedureName = node.getId().toString().trim();
 			String nodeStr = node.getExpr().toString().trim();
+
+			String procedureAlgo;
+			if(reactorNames.containsKey(procedureName.toUpperCase())) {
+				procedureAlgo = reactorNames.get(procedureName.toUpperCase());
+			} else {
+				procedureAlgo = "prerna.algorithm.impl." + procedureName + "Reactor";
+			}
 			
 			String procedureAlgo = "";
 			if(reactorNames.containsKey(procedureName)) {
@@ -907,11 +917,14 @@ public class Translation extends DepthFirstAdapter {
 				procedureAlgo = "prerna.algorithm.impl." + procedureName + "Reactor";
 			}
 			reactorNames.put(PKQLReactor.MATH_FUN.toString(), procedureAlgo);
+			String expr = (String)curReactor.getValue(PKQLEnum.EXPR_TERM);
 			
 			initReactor(PKQLReactor.MATH_FUN.toString());
 			curReactor.put(PKQLEnum.G, frame);
 			curReactor.put(PKQLEnum.MATH_FUN, nodeStr.trim());
 			curReactor.put(PKQLEnum.PROC_NAME, procedureName); // don't need once all algorithms have been refactored into Reactors
+			if(expr != null)
+				curReactor.put(PKQLEnum.EXPR_TERM, expr);
 		}	
 	}
 
