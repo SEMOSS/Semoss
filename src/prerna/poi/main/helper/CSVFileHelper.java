@@ -140,6 +140,10 @@ public class CSVFileHelper {
 		this.delimiter = charAt;
 	}
 	
+	public char getDelimiter() {
+		return this.delimiter;
+	}
+	
 	/**
 	 * Get the file location
 	 * @return		String with the file location
@@ -258,5 +262,13 @@ public class CSVFileHelper {
 	private void printRow(String[] nextRow) {
 		System.out.println(Arrays.toString(nextRow));
 	}
+	
+//	public String[] cleanHeaders(String[] headers) {
+//		String[] cleanHeaders = new String[headers.length];
+//		for(int i = 0; i < headers.length; i++) {
+//			cleanHeaders[i] = Utility.cleanVariableString(headers[i]);
+//		}
+//		return cleanHeaders;
+//	}
 
 }
