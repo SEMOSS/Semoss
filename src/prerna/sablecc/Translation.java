@@ -904,18 +904,12 @@ public class Translation extends DepthFirstAdapter {
 
 			String procedureAlgo;
 			if(reactorNames.containsKey(procedureName.toUpperCase())) {
+				// the frame has defined a specific reactor for this procedure
 				procedureAlgo = reactorNames.get(procedureName.toUpperCase());
 			} else {
 				procedureAlgo = "prerna.algorithm.impl." + procedureName + "Reactor";
 			}
 			
-			String procedureAlgo = "";
-			if(reactorNames.containsKey(procedureName)) {
-				// the frame has defined a specific reactor for this procedure
-				procedureAlgo = reactorNames.get(procedureName);
-			} else {
-				procedureAlgo = "prerna.algorithm.impl." + procedureName + "Reactor";
-			}
 			reactorNames.put(PKQLReactor.MATH_FUN.toString(), procedureAlgo);
 			String expr = (String)curReactor.getValue(PKQLEnum.EXPR_TERM);
 			
