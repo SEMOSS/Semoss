@@ -1,4 +1,4 @@
-package prerna.algorithm.impl;
+package prerna.algorithm.impl.spark;
 
 import java.util.HashMap;
 import java.util.Iterator;
@@ -15,13 +15,15 @@ import org.apache.tinkerpop.gremlin.structure.Vertex;
 
 import prerna.algorithm.api.ITableDataFrame;
 import prerna.ds.ExpressionReducer;
+import prerna.ds.spark.SparkDataFrame;
 import prerna.sablecc.MathReactor;
 import prerna.sablecc.PKQLEnum;
 import prerna.sablecc.PKQLRunner.STATUS;
+import prerna.sablecc.SparkMathReactor;
 import prerna.util.Constants;
 
-public abstract class BaseReducerReactor extends MathReactor implements ExpressionReducer  {
-	
+public abstract class SparkBaseReducerReactor extends SparkMathReactor implements ExpressionReducer {
+
 	protected Iterator inputIterator = null;
 	protected String [] ids = null;
 	protected String script = null;
@@ -32,17 +34,14 @@ public abstract class BaseReducerReactor extends MathReactor implements Expressi
 	protected Bindings otherBindings = engine.getBindings(ScriptContext.ENGINE_SCOPE);
 	protected String propToGet = Constants.VALUE;
 	
-	
-	public abstract HashMap<HashMap<Object,Object>,Object> reduceGroupBy(Vector<String> groupBys, Vector<String> processedColumns, String[] columnsArray, Iterator it);
+	protected Vector<String> groupBys = null;
+	protected Vector<String> columns = null;
+	protected String expr = null;
+//	public abstract HashMap<HashMap<Object,Object>,Object> reduceGroupBy(Vector<String> groupBys, Vector<String> processedColumns, String[] columnsArray, Iterator it);
 
 	public void setData(Iterator inputIterator, String[] ids, String script) {
 		setData(inputIterator, ids,script, null);
 	}
-	
-	public void setData(Map<Object, Object> options) {
-		//TODO: shouldn't keep this empty
-	}
-
 	
 	public void setData(Iterator inputIterator, String[] ids, String script, String prop ) {
 		// TODO Auto-generated method stub
@@ -59,6 +58,12 @@ public abstract class BaseReducerReactor extends MathReactor implements Expressi
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}		
+	}
+	
+	public void setData(Map<Object, Object> options) {
+		groupBys = (Vector<String>)options.get("groupBys");
+		columns = (Vector<String>)options.get("columns");
+		expr = (String)options.get("expr");
 	}
 	
 	private void addDataToBindings()
@@ -86,7 +91,7 @@ public abstract class BaseReducerReactor extends MathReactor implements Expressi
 				{
 					Vertex v = (Vertex)row.get(ids[colIndex]);
 					Object val = v.value(propToGet);
-//					System.out.println("Values is " + val);
+					System.out.println("Values is " + val);
 					otherBindings.put(ids[colIndex], val);
 				}
 			}
@@ -95,20 +100,20 @@ public abstract class BaseReducerReactor extends MathReactor implements Expressi
 				for(int colIndex = 0;colIndex < ids.length;colIndex++)
 				{
 					Object val = array[colIndex];
-//					System.out.println("Values is " + val);
+					System.out.println("Values is " + val);
 					otherBindings.put(ids[colIndex], val);
 				}
 			}
 			else if(vert != null)
 			{
 				Object val = vert.value(propToGet);
-//				System.out.println("Values is " + val);
+				System.out.println("Values is " + val);
 				otherBindings.put(ids[0], val);
 			}
 			else if(doubleValue != null)
 			{
 				Object val = doubleValue.doubleValue();
-//				System.out.println("Values is " + val);
+				System.out.println("Values is " + val);
 				otherBindings.put(ids[0], val);
 			}
 		}		
@@ -127,10 +132,10 @@ public abstract class BaseReducerReactor extends MathReactor implements Expressi
 		
 		try {
 			retObject = cs.eval();
-//			System.out.println("Returning value.. " + retObject);
+			System.out.println("Returning value.. " + retObject);
 			long now = System.nanoTime();
 			
-//			System.out.println("Time Difference..  " + ((now - nanoTime)/1000000));
+			System.out.println("Time Difference..  " + ((now - nanoTime)/1000000));
 
 		} catch (ScriptException e) {
 			// TODO Auto-generated catch block
@@ -152,28 +157,53 @@ public abstract class BaseReducerReactor extends MathReactor implements Expressi
 		ITableDataFrame frame = (ITableDataFrame)myStore.get("G");
 		Vector<String> groupBys = (Vector <String>)myStore.get(PKQLEnum.COL_CSV);
 		
-		if(groupBys != null && !groupBys.isEmpty()){
-			Vector<String> allColumns = new Vector<String>();
-			allColumns.addAll(groupBys);
-			allColumns.addAll(columns);
-			String[] allColumnsArray = convertVectorToArray(allColumns);
-			Iterator it = getTinkerData(allColumns, frame, false);
-			
-			HashMap<HashMap<Object,Object>,Object> groupByHash = reduceGroupBy(groupBys, columns, allColumnsArray, it);
-			
-			myStore.put(nodeStr, groupByHash);
-			myStore.put("STATUS",STATUS.SUCCESS);
-		} else {
-			Iterator iterator = getTinkerData(columns, frame, false);
-			myStore.put(nodeStr, processAlgorithm(iterator, columnsArray));
-			myStore.put("STATUS",STATUS.SUCCESS);
-		}
+		Object val = processAlgorithm(columns, groupBys);
+		myStore.put(nodeStr, val);
+		myStore.put("STATUS",STATUS.SUCCESS);
+		
+//		if(groupBys != null && !groupBys.isEmpty()){
+//			Vector<String> allColumns = new Vector<String>();
+//			allColumns.addAll(groupBys);
+//			allColumns.addAll(columns);
+//			String[] allColumnsArray = convertVectorToArray(allColumns);
+//			
+//			//HERE
+//			if(frame instanceof SparkDataFrame) {
+//				Object val = ((SparkDataFrame)frame).mapReduce(columns, groupBys, this.getClass().getName());
+//				myStore.put(nodeStr, val);
+//			} else {
+//				Iterator it = getTinkerData(allColumns, frame, false);			
+//				HashMap<HashMap<Object,Object>,Object> groupByHash = reduceGroupBy(groupBys, columns, allColumnsArray, it);
+//				myStore.put(nodeStr, groupByHash);
+//			}
+//			myStore.put("STATUS",STATUS.SUCCESS);
+//		} else {
+//			
+//			//HERE
+//			if(frame instanceof SparkDataFrame) {
+//				Object val = ((SparkDataFrame)frame).mapReduce(columns, null, this.getClass().getName());
+//				myStore.put(nodeStr, val);
+//			} else {
+//				Iterator iterator = getTinkerData(columns, frame, false);
+//				myStore.put(nodeStr, processAlgorithm(iterator, columnsArray));
+//			}
+//			myStore.put("STATUS",STATUS.SUCCESS);
+//		}
 		
 		return null;
 	}
 	
-	private Object processAlgorithm(Iterator iterator, String[] columnsArray) {
-		setData(iterator, columnsArray, myStore.get("MOD_" + whoAmI).toString());
+//	private Object processAlgorithm(Iterator iterator, String[] columnsArray) {
+//		setData(iterator, columnsArray, myStore.get("MOD_" + whoAmI).toString());
+//		return reduce();
+//	}
+	
+	private Object processAlgorithm(Vector<String> columns, Vector<String> groupBys) {
+		Map options = new HashMap();
+		options.put("groupBys", groupBys);
+		options.put("columns", columns);
+		options.put("expr", (String) myStore.get(PKQLEnum.EXPR_TERM));
+		setData(options);
 		return reduce();
 	}
 }

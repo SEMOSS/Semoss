@@ -902,7 +902,7 @@ public class Translation extends DepthFirstAdapter {
 			String procedureName = node.getId().toString().trim();
 			String nodeStr = node.getExpr().toString().trim();
 
-			String procedureAlgo;
+			String procedureAlgo = "";
 			if(reactorNames.containsKey(procedureName.toUpperCase())) {
 				// the frame has defined a specific reactor for this procedure
 				procedureAlgo = reactorNames.get(procedureName.toUpperCase());
