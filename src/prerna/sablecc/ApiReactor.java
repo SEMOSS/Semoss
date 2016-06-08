@@ -14,12 +14,14 @@ import prerna.algorithm.api.ITableDataFrame;
 import prerna.ds.QueryStruct;
 import prerna.ds.H2.H2Frame;
 import prerna.engine.api.IApi;
+import prerna.engine.api.ImportApi;
 import prerna.engine.api.RApi;
 import prerna.engine.impl.rdf.QueryAPI;
 import prerna.ui.components.playsheets.datamakers.IDataMaker;
 
 public class ApiReactor extends AbstractReactor {
 
+	private IApi api = null;
 
 	public ApiReactor()
 	{
@@ -44,13 +46,39 @@ public class ApiReactor extends AbstractReactor {
 		Vector <String> tinkerSelectors = new Vector<String>();
 
 		String engine = (String)myStore.get("ENGINE");
-		IApi api = new QueryAPI();
-		
+		api = new QueryAPI();
+
 		// I need to instantiate the engine here
 		// for now hard coding it
 
 		if (engine != null && !engine.equals("csvFile")) {
-			if(engine.equalsIgnoreCase("r")) {
+			//processing for import.io web data extract feature
+			if(engine.equalsIgnoreCase("ImportIO")){
+				if (myStore.get(PKQLEnum.G) instanceof H2Frame) {
+					api = new ImportApi();					
+					String url;
+					if(myStore.containsKey("KEY_VALUE") && ((Map) ((Vector) myStore.get("KEY_VALUE")).get(0)).containsKey("url")){
+						url = (String) ((Map) ((Vector) myStore.get("KEY_VALUE")).get(0)).get("url");
+						api.set("URL_MAP", url);
+					}else{
+						System.out.println("Invalid PKQL: Missing URL. Required Syntax: data.import(api:ImportIO.Query({'url':'enter_your_url_here'})); ");
+						myStore.put("RESPONSE", "Error: Invalid PKQL.");
+						myStore.put("STATUS", PKQLRunner.STATUS.ERROR);
+						return null;
+					}
+					//if url value is found in mystore
+					
+					//processImportApi(url);
+					Iterator thisIterator = api.process();
+					
+					myStore.put(nodeStr, thisIterator);
+					myStore.put("RESPONSE", "success");
+					myStore.put("STATUS", PKQLRunner.STATUS.SUCCESS);
+				}
+
+				return null;
+
+			}else if(engine.equalsIgnoreCase("r")) {
 				if (myStore.get(PKQLEnum.G) instanceof H2Frame) {
 					api = new RApi();
 					H2Frame frame = (H2Frame) myStore.get(PKQLEnum.G);
@@ -100,47 +128,47 @@ public class ApiReactor extends AbstractReactor {
 			Vector<Hashtable> tableJoins = (Vector<Hashtable>) myStore.get("TABLE_JOINS");
 			if(tableJoins != null) {
 				for(Hashtable join : tableJoins) {
-					
+
 					String fromColumn = (String)join.get(PKQLEnum.FROM_COL); //what is in my table
 					String toColumn = (String)join.get(PKQLEnum.TO_COL); //what is coming to my table
 					String joinType = (String)join.get(PKQLEnum.REL_TYPE);
 					if(joinType.equalsIgnoreCase("inner.join") || joinType.equalsIgnoreCase("left.outer.join")) {
-	//				if(joinType.equalsIgnoreCase("inner.join")) {
+						//				if(joinType.equalsIgnoreCase("inner.join")) {
 						String[] columnHeaders = frame.getColumnHeaders();
-						
+
 						//figure out which is the new column and which already exists in the table
 						Iterator<Object> rowIt = null;
-		//				String filterColumn = null;
-		//				if(ArrayUtilityMethods.arrayContainsValue(columnHeaders, fromColumn)) {
-		//					filterColumn = fromColumn;
-		//				} else if(ArrayUtilityMethods.arrayContainsValue(columnHeaders, toColumn)) {
-		//					filterColumn = toColumn;
-		//				}
-						
+						//				String filterColumn = null;
+						//				if(ArrayUtilityMethods.arrayContainsValue(columnHeaders, fromColumn)) {
+						//					filterColumn = fromColumn;
+						//				} else if(ArrayUtilityMethods.arrayContainsValue(columnHeaders, toColumn)) {
+						//					filterColumn = toColumn;
+						//				}
+
 						//we want to add filters to the column that already exists in the table
 						if(fromColumn != null && toColumn != null) {
 							rowIt = frame.uniqueValueIterator(fromColumn, false, false);
 							List<Object> uris = new Vector<Object>();
-							
+
 							//collect all the filter values
 							while(rowIt.hasNext()){
 								uris.add(rowIt.next() + "");
 							}
-							
+
 							//see if this filter already exists
 							boolean addFilter = true;
 							for(Hashtable filter : filters) {
 								if(((String)filter.get("FROM_COL")).equals(toColumn)) {
 									Vector values = (Vector) filter.get("TO_DATA");
 									if(values != null && values.size() > 0) {
-	//									values.addAll(uris);
+										//									values.addAll(uris);
 										addFilter = false;
 										break;
 									}
 									break;
 								}
 							}
-							
+
 							//if not contained create a new table and add to filters
 							if(addFilter) {
 								Hashtable joinfilter = new Hashtable();
@@ -159,8 +187,8 @@ public class ApiReactor extends AbstractReactor {
 		else {
 			api.set(QueryAPI.USE_CHEATER, true);
 		}
-		
-		
+
+
 		QueryStruct qs = new QueryStruct();
 		processQueryStruct(qs, selectors, filters, joins);
 		api.set("QUERY_STRUCT", qs);
