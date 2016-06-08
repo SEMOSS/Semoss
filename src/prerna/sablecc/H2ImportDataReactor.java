@@ -10,6 +10,7 @@ import java.util.Vector;
 import prerna.ds.TinkerMetaHelper;
 import prerna.ds.H2.H2Frame;
 import prerna.ds.util.FileIterator;
+import prerna.ds.util.ImportApiIterator;
 import prerna.engine.api.IHeadersDataRow;
 import prerna.engine.api.ISelectWrapper;
 import prerna.sablecc.PKQLRunner.STATUS;
@@ -34,7 +35,11 @@ public class H2ImportDataReactor extends ImportDataReactor {
 		//TODO: need to make all these wrappers that give a IHeaderDataRow be the same type to get this info
 		String[] types = null;
 		String[] headers = null;
-		if(it instanceof FileIterator) {
+		//add provision for ImportApiIterator
+		if(it instanceof ImportApiIterator) {
+			types = ((ImportApiIterator) it).getTypes();
+			headers = ((ImportApiIterator) it).getHeaders();
+		}else if(it instanceof FileIterator) {
 			types = ((FileIterator) it).getTypes();
 			headers = ((FileIterator) it).getHeaders();
 		} else if(it instanceof CsvTableWrapper) {
