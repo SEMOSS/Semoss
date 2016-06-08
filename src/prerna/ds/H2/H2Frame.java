@@ -117,73 +117,72 @@ public class H2Frame extends AbstractTableDataFrame {
 	@Override
 	public void processDataMakerComponent(DataMakerComponent component) {
 		long startTime = System.currentTimeMillis();
-        LOGGER.info("Processing Component..................................");
-        
-        
-        List<ISEMOSSTransformation>  preTrans = component.getPreTrans();
-        List<Map<String,String>> joinColList= new ArrayList<Map<String,String>> ();
-        for(ISEMOSSTransformation transformation: preTrans){
-     	   if(transformation instanceof JoinTransformation){
-     		   Map<String, String> joinMap = new HashMap<String,String>();
-     		  String joinCol1 = (String) ((JoinTransformation)transformation).getProperties().get(JoinTransformation.COLUMN_ONE_KEY);
-     		  String joinCol2 = (String) ((JoinTransformation)transformation).getProperties().get(JoinTransformation.COLUMN_TWO_KEY);
-     		  joinMap.put(joinCol2, joinCol1); // physical in query struct ----> logical in existing data maker
-     		  joinColList.add(joinMap);
-     	   }  
-        }
-        
-        
-        processPreTransformations(component, component.getPreTrans());
-        long time1 = System.currentTimeMillis();
-        LOGGER.info("	Processed Pretransformations: " +(time1 - startTime)+" ms");
-        
-        IEngine engine = component.getEngine();
-        // automatically created the query if stored as metamodel
-        // fills the query with selected params if required
-        // params set in insightcreatrunner
-        String query = component.fillQuery();
-        
-        String[] displayNames = null;
-        if(query.trim().toUpperCase().startsWith("CONSTRUCT")){
-//     	   TinkerGraphDataModel tgdm = new TinkerGraphDataModel();
-//     	   tgdm.fillModel(query, engine, this);
-        } else if (!query.equals(Constants.EMPTY)){
-     	   ISelectWrapper wrapper = WrapperManager.getInstance().getSWrapper(engine, query);
-            //if component has data from which we can construct a meta model then construct it and merge it
-            boolean hasMetaModel = component.getQueryStruct() != null;
-            if(hasMetaModel) {
-         	   String[] headers = getH2Headers();
-         	   Map<String, Set<String>> edgeHash = component.getQueryStruct().getReturnConnectionsHash();
-         	  TinkerMetaHelper.mergeQSEdgeHash(this.metaData, edgeHash, engine, joinColList);
-         	   
-         	   //send in new columns, not all
-         	   builder.processWrapper(wrapper, headers);
-         	   
-            } 
-            
-            //else default to primary key tinker graph
-            else {
-                displayNames = wrapper.getDisplayVariables();
-                Map<String, Set<String>> edgeHash = TinkerMetaHelper.createPrimKeyEdgeHash(displayNames);
-                TinkerMetaHelper.mergeEdgeHash(this.metaData, edgeHash, getNode2ValueHash(edgeHash));
-         	   while(wrapper.hasNext()){
-         		   this.addRow(wrapper.next());
-         	   }
-            }
-        }
- 	   List<String> fullNames = this.metaData.getColumnNames();
- 	   this.headerNames = fullNames.toArray(new String[fullNames.size()]);
+		LOGGER.info("Processing Component..................................");
 
-        long time2 = System.currentTimeMillis();
-        LOGGER.info("	Processed Wrapper: " +(time2 - time1)+" ms");
-        
-        processPostTransformations(component, component.getPostTrans());
-        processActions(component, component.getActions());
 
-        long time4 = System.currentTimeMillis();
-        LOGGER.info("Component Processed: " +(time4 - startTime)+" ms");
+		List<ISEMOSSTransformation>  preTrans = component.getPreTrans();
+		List<Map<String,String>> joinColList= new ArrayList<Map<String,String>> ();
+		for(ISEMOSSTransformation transformation: preTrans){
+			if(transformation instanceof JoinTransformation){
+				Map<String, String> joinMap = new HashMap<String,String>();
+				String joinCol1 = (String) ((JoinTransformation)transformation).getProperties().get(JoinTransformation.COLUMN_ONE_KEY);
+				String joinCol2 = (String) ((JoinTransformation)transformation).getProperties().get(JoinTransformation.COLUMN_TWO_KEY);
+				joinMap.put(joinCol2, joinCol1); // physical in query struct ----> logical in existing data maker
+				joinColList.add(joinMap);
+			}  
+		}
+
+
+		processPreTransformations(component, component.getPreTrans());
+		long time1 = System.currentTimeMillis();
+		LOGGER.info("	Processed Pretransformations: " +(time1 - startTime)+" ms");
+
+		IEngine engine = component.getEngine();
+		// automatically created the query if stored as metamodel
+		// fills the query with selected params if required
+		// params set in insightcreatrunner
+		String query = component.fillQuery();
+
+		String[] displayNames = null;
+		if(query.trim().toUpperCase().startsWith("CONSTRUCT")){
+			//     	   TinkerGraphDataModel tgdm = new TinkerGraphDataModel();
+			//     	   tgdm.fillModel(query, engine, this);
+		} else if (!query.equals(Constants.EMPTY)){
+			ISelectWrapper wrapper = WrapperManager.getInstance().getSWrapper(engine, query);
+			//if component has data from which we can construct a meta model then construct it and merge it
+			boolean hasMetaModel = component.getQueryStruct() != null;
+			if(hasMetaModel) {
+				String[] headers = getH2Headers();
+				Map<String, Set<String>> edgeHash = component.getQueryStruct().getReturnConnectionsHash();
+				TinkerMetaHelper.mergeQSEdgeHash(this.metaData, edgeHash, engine, joinColList);
+
+				//send in new columns, not all
+				builder.processWrapper(wrapper, headers);
+
+			} 
+
+			//else default to primary key tinker graph
+			else {
+				Map<String, Set<String>> edgeHash = TinkerMetaHelper.createPrimKeyEdgeHash(wrapper.getDisplayVariables());
+				this.mergeEdgeHash(this.metaData, edgeHash, getNode2ValueHash(edgeHash), null);
+				while(wrapper.hasNext()){
+					this.addRow(wrapper.next());
+				}
+			}
+		}
+		List<String> fullNames = this.metaData.getColumnNames();
+		this.headerNames = fullNames.toArray(new String[fullNames.size()]);
+
+		long time2 = System.currentTimeMillis();
+		LOGGER.info("	Processed Wrapper: " +(time2 - time1)+" ms");
+
+		processPostTransformations(component, component.getPostTrans());
+		processActions(component, component.getActions());
+
+		long time4 = System.currentTimeMillis();
+		LOGGER.info("Component Processed: " +(time4 - startTime)+" ms");
 	}
-	
+
 	
 	/****************************** FILTER METHODS **********************************************/
 	
