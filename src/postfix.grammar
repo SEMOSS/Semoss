@@ -85,7 +85,7 @@ Tokens
  paneltools = panelprefix '.tools';
  panelconfig = panelprefix '.config';
  output_token = panelprefix '.create';
-
+ 
 Ignored Tokens
  blank;
 
@@ -226,7 +226,7 @@ expr_group = [comma]:comma [expr]:expr;
 
 output_insight = output_token l_par [engine_name]:id comma [insight_id]:id r_par;
 
-api_block = api [engine_name]:id dot [insight]:id l_par [selectors]:col_csv [where]:where_statement? [relations]:relation_clause? comma? [properties]:map_obj? r_par; // the insight can also be the method
+api_block = api [engine_name]:id dot [insight]:id l_par [selectors]:col_csv? [where]:where_statement? [relations]:relation_clause? comma? [properties]:map_obj? r_par; // the insight can also be the method
 // query format
 // api:Tap_Core.Query:([Selectors], [Filters], [relations])
 // relations

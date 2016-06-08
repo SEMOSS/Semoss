@@ -242,7 +242,7 @@ public class Translation extends DepthFirstAdapter {
 		String nodeStr = node.toString().trim();
 		IScriptReactor thisReactor = curReactor;
 		Hashtable <String, Object> thisReactorHash = deinitReactor(PKQLEnum.API, nodeStr, PKQLEnum.API); // I need to make this into a string
-		if(curReactor != null && node.parent() != null && node.parent() instanceof AApiImportBlock) {
+		if(curReactor != null && node.parent() != null && node.parent() instanceof AApiImportBlock && !node.getEngineName().toString().equalsIgnoreCase("ImportIO")) {
 			String [] values2Sync = curReactor.getValues2Sync(PKQLEnum.API);
 			synchronizeValues(PKQLEnum.API, values2Sync, thisReactor);
 		}
