@@ -23,6 +23,7 @@ public class DataFrameReactor extends AbstractReactor {
 		// The value in this map is looked up on RDF Map to get the class
 		dfTranslation.put("GRID", "H2Frame");
 		dfTranslation.put("GRAPH", "TinkerFrame");
+		dfTranslation.put("SPARK", "SparkDataFrame");
 	}
 
 	@Override
