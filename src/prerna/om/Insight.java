@@ -127,13 +127,14 @@ public class Insight {
 	private transient Map<String, List<Object>> paramHash;						// the parameters selected by user for filtering on insights
 	private transient Vector<SEMOSSParam> insightParameters;					// the SEMOSSParam objects for the insight
 	private String uiOptions;
-	private PKQLRunner pkqlRunner;
+	private PKQLRunner pkqlRunner; // unique to this insight that is responsible for tracking state and variables
 	
 	// database id where this insight is
 	// this may be a URL
 	// in memory
 	// or a file
 	String databaseIDkey = "databaseID";
+	private Map<String, Object> pkqlVarMap = new HashMap<String, Object>();
 	
 	/**
 	 * Constructor for the insight
@@ -271,6 +272,19 @@ public class Insight {
 		IDataMaker frame = pkqlRunner.getDataFrame();
 		if(frame!=null){
 			setDataMaker(frame);
+		}
+	}
+	
+	public PKQLRunner getPKQLRunner(){
+		if(this.pkqlRunner != null){
+			return this.pkqlRunner;
+		}
+		else{
+			this.pkqlRunner = new PKQLRunner();
+			// Set in the variable map as this is kept on the insight
+			// Runner just holds reference to it so that translation can get/set
+			this.pkqlRunner.setVarMap(pkqlVarMap);
+			return this.pkqlRunner;
 		}
 	}
 	
@@ -1463,6 +1477,11 @@ public class Insight {
 			resultHash.put("insightID", this.getInsightID());
 			resultHash.put("feData", feData);
 			resultHash.put("newColumns", pkqlRunner.getNewColumns());
+			
+			// Clear the pkql runner of all existing results data
+			// No need for us to hold on to any of this at this point other than 1. variables 2. pkql yet to be run (user input prevented)
+			pkqlRunner.clearResponses();// = new PKQLRunner();
+//			pkqlRunner.setVarMap(this.pkqlVarMap );
 		}
 		return resultHash;
 	}

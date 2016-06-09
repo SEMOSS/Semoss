@@ -8,8 +8,8 @@ import prerna.sablecc.analysis.*;
 public final class AColWhere extends PColWhere
 {
     private PColDef _colDef_;
-    private TComparator _comparator_;
-    private PColDefOrCsvRow _colDefOrCsvRow_;
+    private PEqualOrCompare _equalOrCompare_;
+    private PTerm _term_;
 
     public AColWhere()
     {
@@ -18,15 +18,15 @@ public final class AColWhere extends PColWhere
 
     public AColWhere(
         @SuppressWarnings("hiding") PColDef _colDef_,
-        @SuppressWarnings("hiding") TComparator _comparator_,
-        @SuppressWarnings("hiding") PColDefOrCsvRow _colDefOrCsvRow_)
+        @SuppressWarnings("hiding") PEqualOrCompare _equalOrCompare_,
+        @SuppressWarnings("hiding") PTerm _term_)
     {
         // Constructor
         setColDef(_colDef_);
 
-        setComparator(_comparator_);
+        setEqualOrCompare(_equalOrCompare_);
 
-        setColDefOrCsvRow(_colDefOrCsvRow_);
+        setTerm(_term_);
 
     }
 
@@ -35,8 +35,8 @@ public final class AColWhere extends PColWhere
     {
         return new AColWhere(
             cloneNode(this._colDef_),
-            cloneNode(this._comparator_),
-            cloneNode(this._colDefOrCsvRow_));
+            cloneNode(this._equalOrCompare_),
+            cloneNode(this._term_));
     }
 
     @Override
@@ -70,16 +70,16 @@ public final class AColWhere extends PColWhere
         this._colDef_ = node;
     }
 
-    public TComparator getComparator()
+    public PEqualOrCompare getEqualOrCompare()
     {
-        return this._comparator_;
+        return this._equalOrCompare_;
     }
 
-    public void setComparator(TComparator node)
+    public void setEqualOrCompare(PEqualOrCompare node)
     {
-        if(this._comparator_ != null)
+        if(this._equalOrCompare_ != null)
         {
-            this._comparator_.parent(null);
+            this._equalOrCompare_.parent(null);
         }
 
         if(node != null)
@@ -92,19 +92,19 @@ public final class AColWhere extends PColWhere
             node.parent(this);
         }
 
-        this._comparator_ = node;
+        this._equalOrCompare_ = node;
     }
 
-    public PColDefOrCsvRow getColDefOrCsvRow()
+    public PTerm getTerm()
     {
-        return this._colDefOrCsvRow_;
+        return this._term_;
     }
 
-    public void setColDefOrCsvRow(PColDefOrCsvRow node)
+    public void setTerm(PTerm node)
     {
-        if(this._colDefOrCsvRow_ != null)
+        if(this._term_ != null)
         {
-            this._colDefOrCsvRow_.parent(null);
+            this._term_.parent(null);
         }
 
         if(node != null)
@@ -117,7 +117,7 @@ public final class AColWhere extends PColWhere
             node.parent(this);
         }
 
-        this._colDefOrCsvRow_ = node;
+        this._term_ = node;
     }
 
     @Override
@@ -125,8 +125,8 @@ public final class AColWhere extends PColWhere
     {
         return ""
             + toString(this._colDef_)
-            + toString(this._comparator_)
-            + toString(this._colDefOrCsvRow_);
+            + toString(this._equalOrCompare_)
+            + toString(this._term_);
     }
 
     @Override
@@ -139,15 +139,15 @@ public final class AColWhere extends PColWhere
             return;
         }
 
-        if(this._comparator_ == child)
+        if(this._equalOrCompare_ == child)
         {
-            this._comparator_ = null;
+            this._equalOrCompare_ = null;
             return;
         }
 
-        if(this._colDefOrCsvRow_ == child)
+        if(this._term_ == child)
         {
-            this._colDefOrCsvRow_ = null;
+            this._term_ = null;
             return;
         }
 
@@ -164,15 +164,15 @@ public final class AColWhere extends PColWhere
             return;
         }
 
-        if(this._comparator_ == oldChild)
+        if(this._equalOrCompare_ == oldChild)
         {
-            setComparator((TComparator) newChild);
+            setEqualOrCompare((PEqualOrCompare) newChild);
             return;
         }
 
-        if(this._colDefOrCsvRow_ == oldChild)
+        if(this._term_ == oldChild)
         {
-            setColDefOrCsvRow((PColDefOrCsvRow) newChild);
+            setTerm((PTerm) newChild);
             return;
         }
 

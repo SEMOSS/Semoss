@@ -2,7 +2,7 @@
 
 package prerna.sablecc.node;
 
-public abstract class PVarDef extends Node
+public abstract class PEqualOrCompare extends Node
 {
     // Empty body
 }

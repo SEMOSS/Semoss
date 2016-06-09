@@ -1,8 +1,10 @@
 package prerna.sablecc;
 
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.Hashtable;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Vector;
@@ -23,6 +25,7 @@ import prerna.sablecc.node.AColCsv;
 import prerna.sablecc.node.AColDef;
 import prerna.sablecc.node.AColWhere;
 import prerna.sablecc.node.AColopScript;
+import prerna.sablecc.node.AConfiguration;
 import prerna.sablecc.node.ACsvRow;
 import prerna.sablecc.node.ACsvTable;
 import prerna.sablecc.node.ACsvTableImportBlock;
@@ -66,9 +69,13 @@ import prerna.sablecc.node.ASetColumn;
 import prerna.sablecc.node.ATermExpr;
 import prerna.sablecc.node.ATermGroup;
 import prerna.sablecc.node.AUnfilterColumn;
+import prerna.sablecc.node.AUserInput;
+import prerna.sablecc.node.AVarTerm;
 import prerna.sablecc.node.AVarop;
 import prerna.sablecc.node.AVaropScript;
 import prerna.sablecc.node.Node;
+import prerna.sablecc.node.PScript;
+import prerna.sablecc.node.PVarop;
 import prerna.ui.components.playsheets.datamakers.IDataMaker;
 
 public class Translation extends DepthFirstAdapter {
@@ -139,6 +146,33 @@ public class Translation extends DepthFirstAdapter {
 //		reactorNames.put(PKQLEnum.UNFILTER_DATA, "prerna.sablecc.ColUnfilterReactor");
 //		reactorNames.put(PKQLEnum.DATA_FRAME, "prerna.sablecc.DataFrameReactor");
 //	}
+
+	@Override
+	public void inAConfiguration(AConfiguration node){
+		System.out.println(node.toString());
+		runner.pkqlToRun.addAll(node.getScript());
+		
+		int index = 0;
+        while(index < runner.pkqlToRun.size())
+        {
+        	PScript script = runner.pkqlToRun.get(index);
+        	if(runner.unassignedVars.isEmpty() || script instanceof AVaropScript){ // if no vars are unassigned.. we are good. otherwise we only look for their assignment
+//        		PVarop varop = ((AVaropScript)script).getVarop();
+        		runner.pkqlToRun.remove(index).apply(this);
+                index = 0;
+        	}
+        	else{
+        		System.out.println("Waiting for var(s) to be defined : " + runner.unassignedVars.toString());
+        		runner.setCurrentString("Waiting for var(s) to be defined : " + runner.unassignedVars.toString());
+        		runner.setStatus(STATUS.INPUT_NEEDED);
+        		postProcess(script);
+        		index++;
+        	}
+        }
+        outAConfiguration(node);
+        // make sure we don't re-process everything on the node... set it empty
+		node.setScript(new LinkedList());
+	}
 	
 	public void initReactor(String myName) {
 		String parentName = null;
@@ -214,7 +248,13 @@ public class Translation extends DepthFirstAdapter {
 
 	// the highest level above all commands
 	// tracks the most basic things all pkql should have
-	private void storeScript(Node node){
+	private void postProcess(Node node){
+		runner.setCurrentString(node.toString());
+		runner.storeResponse();
+	}
+	
+	// highest level preprocessing
+	private void preProcess(Node node){
 		runner.setCurrentString(node.toString());
 		runner.storeResponse();
 	}
@@ -250,6 +290,8 @@ public class Translation extends DepthFirstAdapter {
 		runner.setStatus((STATUS) thisReactor.getValue("STATUS"));
 	}
 
+	
+//////////// HIGHEST LEVEL SCRIPT IN AND OUT //////////////////////////////
 	@Override
 	public void inAExprScript(AExprScript node) {
 		if(reactorNames.containsKey(PKQLEnum.EXPR_SCRIPT)) {
@@ -264,31 +306,37 @@ public class Translation extends DepthFirstAdapter {
 		String nodeExpr = node.getExpr().toString().trim();
 		String nodeStr = node.toString().trim();
 		Hashtable <String, Object> thisReactorHash = deinitReactor(PKQLEnum.EXPR_SCRIPT, nodeExpr, nodeStr);
-		storeScript(node);
+		postProcess(node);
 	}
 
 	// at the highest level, make sure to save to the runner as a completed expression
+    @Override
+    public void inAHelpScript(AHelpScript node) {
+    	//TODO: build out a String that explains PKQL and the commands
+    	runner.setResponse("Welcome to PKQL. Please look through documentation to find available functions.");
+    	runner.setStatus(STATUS.SUCCESS);
+    }
 	@Override
 	public void outAHelpScript(AHelpScript node) {
-		storeScript(node);
+		postProcess(node);
 	}
 
 	// at the highest level, make sure to save to the runner as a completed expression
 	@Override
 	public void outAVaropScript(AVaropScript node) {
-		storeScript(node);
+		postProcess(node);
 	}
 
 	// at the highest level, make sure to save to the runner as a completed expression
 	@Override
 	public void outAColopScript(AColopScript node) {
-		storeScript(node);
+		postProcess(node);
 	}
 
 	// at the highest level, make sure to save to the runner as a completed expression
 	@Override
 	public void outAPanelopScript(APanelopScript node) {
-		storeScript(node);
+		postProcess(node);
 	}
 	
 //**************************************** START PANEL OPERATIONS **********************************************//
@@ -563,6 +611,8 @@ public class Translation extends DepthFirstAdapter {
 		deinitReactor(PKQLEnum.DATA_FRAME, node.getBuilder().toString().trim(),  node.toString().trim());
 		
 		this.frame = (ITableDataFrame) curReactor.getValue(PKQLEnum.G);
+		
+		// set the script reactors for this new frame
 		this.reactorNames = frame.getScriptReactors();
 	}
 	
@@ -828,11 +878,95 @@ public class Translation extends DepthFirstAdapter {
     @Override
 	public void outASetColumn(ASetColumn node) {
 	}
+    
+    @Override
+    public void inAVarop(AVarop node){
+		if(reactorNames.containsKey(PKQLReactor.VAR.toString())) {
+			String varName = (node.getValname() + "").trim();
+			String expr = (node.getInputOrExpr() + "").trim();
+			
+			initReactor(PKQLReactor.VAR.toString());
+			curReactor.put(PKQLReactor.VAR.toString(), varName);
+			curReactor.put(PKQLEnum.EXPR_TERM, expr); // don't need once all algorithms have been refactored into Reactors
+		}	
+    }
 
+    //this is only used for setting a var (aka v:test = 'true')
+    //AVarTerm will be used in expressions (aka c:Budget + v:test)
 	@Override
 	public void outAVarop(AVarop node) {
-		String varName = getCol(node.getName() + "");
-		String expr = getCol(node.getExpr() + "");
+		if(reactorNames.containsKey(PKQLReactor.VAR.toString())) {
+			String nodeStr = PKQLReactor.VAR.toString();
+			String expr = curReactor.getValue(PKQLEnum.EXPR_TERM) + "";
+			Map<String, Object> thisReactorHash = deinitReactor(PKQLReactor.VAR.toString(), nodeStr, nodeStr);
+			IScriptReactor previousReactor = (IScriptReactor)thisReactorHash.get(PKQLReactor.VAR.toString());
+			String varName = previousReactor.getValue(PKQLReactor.VAR.toString()) + "";
+			Object inputNeeded = previousReactor.getValue(PKQLEnum.INPUT);
+			if(inputNeeded == null) // if no input needed for this var, set it and we are good
+			{
+				runner.unassignedVars.remove(varName);
+				runner.setVariable(varName, expr);
+				runner.setResponse("Set variable " + varName +" to " + expr);
+				runner.setStatus(STATUS.SUCCESS);
+			}
+			else {
+				runner.unassignedVars.add(varName);
+				runner.setResponse("Need input on variable " + varName);
+				Map<String, Object> paramMap = new HashMap<String,Object>();
+				paramMap.put("varToSet", varName);
+				paramMap.put("options", previousReactor.getValue("options"));
+				paramMap.put("selectAmount", previousReactor.getValue("selectAmount"));
+				runner.addBeData("var2define", paramMap, false);
+				runner.setStatus(STATUS.INPUT_NEEDED);
+			}
+		}	
+	}
+
+	@Override
+	public void inAVarTerm(AVarTerm node) {
+		String varName = node.getVar().toString().trim();
+		// get the value for the var from the runner
+		Object varVal = runner.getVariable(varName);
+		// adding to the reactor
+		curReactor.set(PKQLEnum.VAR_TERM, varVal);
+		curReactor.addReplacer((node + "").trim(), varVal);
+	}
+
+	@Override
+	public void inAUserInput(AUserInput node) {
+		if(reactorNames.containsKey(PKQLReactor.INPUT.toString())) {
+//			String options = node.getOptions().toString().trim();
+//			String selections = node.getSelections().toString().trim();
+			
+			initReactor(PKQLReactor.INPUT.toString());
+			curReactor.put(PKQLReactor.INPUT.toString(), node.toString());
+//			curReactor.put(PKQLEnum.EXPR_TERM, expr); // don't need once all algorithms have been refactored into Reactors
+		}	
+	}
+
+	@Override
+	public void outAUserInput(AUserInput node) {
+		if(reactorNames.containsKey(PKQLReactor.INPUT.toString())) {
+			String nodeStr = PKQLReactor.INPUT.toString();
+			Map<String, Object> thisReactorHash = deinitReactor(PKQLReactor.INPUT.toString(), nodeStr, nodeStr);
+			IScriptReactor previousReactor = (IScriptReactor)thisReactorHash.get(PKQLReactor.INPUT.toString());
+			List options = (List) previousReactor.getValue("options");
+			String selections = node.getSelections().toString().trim();
+			// need to pause processing here........
+			// a user defined value must be retrieved from the front end
+	//		this.unassignedVars.add(node.toString());
+			curReactor.put("options", options);
+			curReactor.put("selectAmount", selections);
+	//		node.replaceBy(null); // need to get out of finishing the processing of this pkql..... how do i just return out of this bad boy??
+			// the plan is:
+			// return out of this bad boy
+			// allow for term = term which will be the way the front end sets it
+			// in the config we look for that type of script and allow it if our missing piece is there
+			
+			// FOR NOW ASSUMING USER INPUT IS JUST FOR VAR ASSIGNMENT
+			// DONT NEED TO WORRY ABOUT RETURNING OUT OF ANYTHING
+	//		node.
+		}
 	}
 
 	@Override
@@ -959,7 +1093,7 @@ public class Translation extends DepthFirstAdapter {
 			initReactor(PKQLEnum.WHERE);
 			String nodeStr = node + "";
 			curReactor.put(PKQLEnum.WHERE, nodeStr.trim());
-			curReactor.put(PKQLEnum.COMPARATOR, (node.getComparator()+"").trim());
+			curReactor.put(PKQLEnum.COMPARATOR, (node.getEqualOrCompare()+"").trim());
 		}		
     }
 
@@ -1100,13 +1234,6 @@ public class Translation extends DepthFirstAdapter {
 //		runner.setResponse(previousReactor.getValue(nodeStr));
 //		runner.setStatus((String)previousReactor.getValue("STATUS"));
 //    }
-    
-    @Override
-    public void inAHelpScript(AHelpScript node) {
-    	//TODO: build out a String that explains PKQL and the commands
-    	runner.setResponse("Welcome to PKQL. Please look through documentation to find available functions.");
-    	runner.setStatus(STATUS.SUCCESS);
-    }
 	
     public IDataMaker getDataFrame() {
     	if(this.curReactor!=null){

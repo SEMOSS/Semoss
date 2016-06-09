@@ -5,6 +5,7 @@ import java.io.InputStreamReader;
 import java.io.PushbackReader;
 import java.io.StringBufferInputStream;
 import java.util.HashMap;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Vector;
@@ -17,6 +18,7 @@ import com.google.gson.reflect.TypeToken;
 import cern.colt.Arrays;
 import prerna.sablecc.lexer.Lexer;
 import prerna.sablecc.lexer.LexerException;
+import prerna.sablecc.node.PScript;
 import prerna.sablecc.node.Start;
 import prerna.sablecc.parser.Parser;
 import prerna.sablecc.parser.ParserException;
@@ -24,7 +26,7 @@ import prerna.ui.components.playsheets.datamakers.IDataMaker;
 
 public class PKQLRunner {
 	
-	public enum STATUS {SUCCESS, ERROR}
+	public enum STATUS {SUCCESS, ERROR, INPUT_NEEDED}
 	
 	private STATUS currentStatus = PKQLRunner.STATUS.SUCCESS;
 	private String currentString = "";
@@ -32,9 +34,12 @@ public class PKQLRunner {
 	private Map<String,String> newColumns = new HashMap<String,String>();
 	private Map<String, Map<String,Object>> masterFeMap = new HashMap<String, Map<String,Object>>(); // this holds all active front end data. in the form panelId --> prop --> value
 	private Map<String, List<Map<String, Object>>> expiredFeMaps =  new HashMap<String, List<Map<String,Object>>>();
-	private Map<String, Object> activeFeMap;
+	private Map<String, Object> activeFeMap; // temporally grabbed out of master
 	private Translation translation;
 	private List<Map> responseArray = new Vector<Map>();
+	private Map<String, Object> varMap;
+	LinkedList<PScript> pkqlToRun = new LinkedList<PScript>();
+	List<String> unassignedVars = new Vector<String>();
 	
 	/**
 	 * Runs a given pkql expression (can be multiple if semicolon delimited) on a provided data maker 
@@ -183,33 +188,47 @@ public class PKQLRunner {
 	//
 	// might these be nested...? for now we'll assume not. could have potential though
 	public void openFeDataBlock(String panelId){
-		Map<String, Object> feBlock = null;
-		if(masterFeMap.containsKey(panelId)){
-			feBlock = masterFeMap.get(panelId);
-		}
-		else {
-			feBlock = new HashMap<String, Object>();
-			List<Map> feResponses = new Vector<Map>();
-			feBlock.put("pkqlData", feResponses);
-			masterFeMap.put(panelId, feBlock);
-		}
+		Map<String, Object> feBlock = openBlock(panelId);
 		this.activeFeMap = feBlock;
 	}
 	
+	private Map<String, Object> openBlock(String blockName){
+		Map<String, Object> block = null;
+		if(masterFeMap.containsKey(blockName)){
+			block = masterFeMap.get(blockName);
+		}
+		else {
+			block = new HashMap<String, Object>();
+			List<Map> feResponses = new Vector<Map>();
+			block.put("pkqlData", feResponses);
+			masterFeMap.put(blockName, block);
+		}
+		return block;
+	}
+	
 	public void addFeData(String key, Object value, boolean shouldOverride){
+		addData(key, value, shouldOverride, this.activeFeMap);
+	}
+	
+	public void addData(String key, Object value, boolean shouldOverride, Map<String, Object> map){
 		// if should not override, need to keep as list
 		if(!shouldOverride){
 			List<Object> values = new Vector<Object>();
-			if(this.activeFeMap.containsKey(key)){
-				values = (List<Object>) activeFeMap.get(key);
+			if(map.containsKey(key)){
+				values = (List<Object>) map.get(key);
 			}
 			values.add(value);
-			this.activeFeMap.put(key, values);
+			map.put(key, values);
 		}
 		// if should override, just put it in
 		else{
-			this.activeFeMap.put(key, value);
+			map.put(key, value);
 		}
+	}
+	
+	public void addBeData(String key, Object value, boolean shouldOverride){
+		Map<String, Object> beBlock = openBlock("data");
+		addData(key, value, shouldOverride, beBlock);
 	}
 	
 	public Map<String, Map<String, Object>> getFeData(){
@@ -272,5 +291,39 @@ public class PKQLRunner {
 
 	public void setNewColumns(Map<String, String> newColumns) {
 		this.newColumns = newColumns;
+	}
+
+	/*
+	 * Adds a variable to the var map so that it can be retrieved with other pkqls
+	 */
+	public void setVariable(String varName, String expr) {
+		this.varMap.put(varName, expr);
+	}
+	
+	/*
+	 * Sets a reference to the variable map into the runner so that Translation can access it
+	 * The main object sits on the Insight
+	 */
+	public void setVarMap(Map<String, Object> varMap){
+		this.varMap = varMap;
+	}
+
+	/*
+	 * Retrieves a variable from the var map
+	 */
+	public Object getVariable(String varName) {
+		return this.varMap.get(varName);
+	}
+
+	public void clearResponses() {
+		this.currentStatus = PKQLRunner.STATUS.SUCCESS;
+		this.currentString = "";
+		this.response = "PKQL processing complete";
+		this.responseArray = new Vector<Map>();
+		this.newColumns = new HashMap<String,String>();
+		this.masterFeMap = new HashMap<String, Map<String,Object>>(); // this holds all active front end data. in the form panelId --> prop --> value
+		this.expiredFeMaps =  new HashMap<String, List<Map<String,Object>>>();
+		this.activeFeMap = null; // temporally grabbed out of master
+		this.translation = null;
 	}
 }

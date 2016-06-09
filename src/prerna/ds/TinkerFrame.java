@@ -2322,7 +2322,7 @@ public class TinkerFrame extends AbstractTableDataFrame {
 	
 	@Override
 	public Map<String, String> getScriptReactors() {
-		Map<String, String> reactorNames = new HashMap<String, String>();
+		Map<String, String> reactorNames = super.getScriptReactors();
 		reactorNames.put(PKQLEnum.EXPR_TERM, "prerna.sablecc.ExprReactor");
 		reactorNames.put(PKQLEnum.EXPR_SCRIPT, "prerna.sablecc.ExprReactor");
 		reactorNames.put(PKQLReactor.MATH_FUN.toString(), "prerna.sablecc.MathReactor");

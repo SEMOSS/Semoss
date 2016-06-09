@@ -3,13 +3,19 @@ package prerna.sablecc;
 public class PKQLEnum {
 	
 	public enum PKQLToken {NUMBER, DECIMAL, COL_CSV, COL_DEF, WHERE, FILTER, SELECTOR, API, CODE}
-	public enum PKQLReactor {COL_ADD, IMPORT_DATA, MATH_FUN, EXPR, VIZ}
+	public enum PKQLReactor {COL_ADD, IMPORT_DATA, MATH_FUN, EXPR, VIZ, VAR, INPUT}
 	public enum PKQLAlgorithm {SUM, AVERAGE, STANDARD_DEVIATION, MEDIAN, MIN, MAX, CONCAT}
 
 	public static final String COMPARATOR = "COMPARATOR";
 
 
 	public static final String EXPR_ROW = "EXPR_ROW";
+
+
+	public static final String VAR_TERM = "VAR_TERM";
+
+
+	public static final String INPUT = "INPUT";
 
 
 	public static String DATA_FRAME = "DATA_FRAME";
