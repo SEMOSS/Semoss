@@ -5,34 +5,38 @@ package prerna.sablecc.node;
 import prerna.sablecc.analysis.*;
 
 @SuppressWarnings("nls")
-public final class AIfBlock extends PIfBlock
+public final class AUserInput extends PUserInput
 {
+    private TUserinput _userinput_;
     private TLPar _lPar_;
-    private PEqualOrCompare _equalOrCompare_;
+    private PTerm _options_;
     private TComma _comma_;
-    private PTerm _term_;
+    private PWordOrNum _selections_;
     private TRPar _rPar_;
 
-    public AIfBlock()
+    public AUserInput()
     {
         // Constructor
     }
 
-    public AIfBlock(
+    public AUserInput(
+        @SuppressWarnings("hiding") TUserinput _userinput_,
         @SuppressWarnings("hiding") TLPar _lPar_,
-        @SuppressWarnings("hiding") PEqualOrCompare _equalOrCompare_,
+        @SuppressWarnings("hiding") PTerm _options_,
         @SuppressWarnings("hiding") TComma _comma_,
-        @SuppressWarnings("hiding") PTerm _term_,
+        @SuppressWarnings("hiding") PWordOrNum _selections_,
         @SuppressWarnings("hiding") TRPar _rPar_)
     {
         // Constructor
+        setUserinput(_userinput_);
+
         setLPar(_lPar_);
 
-        setEqualOrCompare(_equalOrCompare_);
+        setOptions(_options_);
 
         setComma(_comma_);
 
-        setTerm(_term_);
+        setSelections(_selections_);
 
         setRPar(_rPar_);
 
@@ -41,18 +45,44 @@ public final class AIfBlock extends PIfBlock
     @Override
     public Object clone()
     {
-        return new AIfBlock(
+        return new AUserInput(
+            cloneNode(this._userinput_),
             cloneNode(this._lPar_),
-            cloneNode(this._equalOrCompare_),
+            cloneNode(this._options_),
             cloneNode(this._comma_),
-            cloneNode(this._term_),
+            cloneNode(this._selections_),
             cloneNode(this._rPar_));
     }
 
     @Override
     public void apply(Switch sw)
     {
-        ((Analysis) sw).caseAIfBlock(this);
+        ((Analysis) sw).caseAUserInput(this);
+    }
+
+    public TUserinput getUserinput()
+    {
+        return this._userinput_;
+    }
+
+    public void setUserinput(TUserinput node)
+    {
+        if(this._userinput_ != null)
+        {
+            this._userinput_.parent(null);
+        }
+
+        if(node != null)
+        {
+            if(node.parent() != null)
+            {
+                node.parent().removeChild(node);
+            }
+
+            node.parent(this);
+        }
+
+        this._userinput_ = node;
     }
 
     public TLPar getLPar()
@@ -80,16 +110,16 @@ public final class AIfBlock extends PIfBlock
         this._lPar_ = node;
     }
 
-    public PEqualOrCompare getEqualOrCompare()
+    public PTerm getOptions()
     {
-        return this._equalOrCompare_;
+        return this._options_;
     }
 
-    public void setEqualOrCompare(PEqualOrCompare node)
+    public void setOptions(PTerm node)
     {
-        if(this._equalOrCompare_ != null)
+        if(this._options_ != null)
         {
-            this._equalOrCompare_.parent(null);
+            this._options_.parent(null);
         }
 
         if(node != null)
@@ -102,7 +132,7 @@ public final class AIfBlock extends PIfBlock
             node.parent(this);
         }
 
-        this._equalOrCompare_ = node;
+        this._options_ = node;
     }
 
     public TComma getComma()
@@ -130,16 +160,16 @@ public final class AIfBlock extends PIfBlock
         this._comma_ = node;
     }
 
-    public PTerm getTerm()
+    public PWordOrNum getSelections()
     {
-        return this._term_;
+        return this._selections_;
     }
 
-    public void setTerm(PTerm node)
+    public void setSelections(PWordOrNum node)
     {
-        if(this._term_ != null)
+        if(this._selections_ != null)
         {
-            this._term_.parent(null);
+            this._selections_.parent(null);
         }
 
         if(node != null)
@@ -152,7 +182,7 @@ public final class AIfBlock extends PIfBlock
             node.parent(this);
         }
 
-        this._term_ = node;
+        this._selections_ = node;
     }
 
     public TRPar getRPar()
@@ -184,10 +214,11 @@ public final class AIfBlock extends PIfBlock
     public String toString()
     {
         return ""
+            + toString(this._userinput_)
             + toString(this._lPar_)
-            + toString(this._equalOrCompare_)
+            + toString(this._options_)
             + toString(this._comma_)
-            + toString(this._term_)
+            + toString(this._selections_)
             + toString(this._rPar_);
     }
 
@@ -195,15 +226,21 @@ public final class AIfBlock extends PIfBlock
     void removeChild(@SuppressWarnings("unused") Node child)
     {
         // Remove child
+        if(this._userinput_ == child)
+        {
+            this._userinput_ = null;
+            return;
+        }
+
         if(this._lPar_ == child)
         {
             this._lPar_ = null;
             return;
         }
 
-        if(this._equalOrCompare_ == child)
+        if(this._options_ == child)
         {
-            this._equalOrCompare_ = null;
+            this._options_ = null;
             return;
         }
 
@@ -213,9 +250,9 @@ public final class AIfBlock extends PIfBlock
             return;
         }
 
-        if(this._term_ == child)
+        if(this._selections_ == child)
         {
-            this._term_ = null;
+            this._selections_ = null;
             return;
         }
 
@@ -232,15 +269,21 @@ public final class AIfBlock extends PIfBlock
     void replaceChild(@SuppressWarnings("unused") Node oldChild, @SuppressWarnings("unused") Node newChild)
     {
         // Replace child
+        if(this._userinput_ == oldChild)
+        {
+            setUserinput((TUserinput) newChild);
+            return;
+        }
+
         if(this._lPar_ == oldChild)
         {
             setLPar((TLPar) newChild);
             return;
         }
 
-        if(this._equalOrCompare_ == oldChild)
+        if(this._options_ == oldChild)
         {
-            setEqualOrCompare((PEqualOrCompare) newChild);
+            setOptions((PTerm) newChild);
             return;
         }
 
@@ -250,9 +293,9 @@ public final class AIfBlock extends PIfBlock
             return;
         }
 
-        if(this._term_ == oldChild)
+        if(this._selections_ == oldChild)
         {
-            setTerm((PTerm) newChild);
+            setSelections((PWordOrNum) newChild);
             return;
         }
 

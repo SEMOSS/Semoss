@@ -27,7 +27,8 @@ Tokens
  comma = ',';
  div = '/';
  col = 'col';
- comparator = ('>' | '<' | '<=' | '>=' | '=' | '!=' | 'like');
+ comparator = ('>' | '<' | '<=' | '>=' | '!=' | 'like');
+ equal = '=';
  coladd = 'col.add';
  api = ('api:'|'call:');
  math = ('math.' | 'm.');
@@ -58,7 +59,6 @@ Tokens
  group = 'group:';
  blank = (' ' | 13 | 10)+;
  space = (' ' | 13)+;
- equal = '=';
  newline = '\r'? '\n';
  java = 'j:';
  python = 'p:';
@@ -85,7 +85,8 @@ Tokens
  paneltools = panelprefix '.tools';
  panelconfig = panelprefix '.config';
  output_token = panelprefix '.create';
- 
+ userinput = 'user.input';
+
 Ignored Tokens
  blank;
 
@@ -231,12 +232,12 @@ api_block = api [engine_name]:id dot [insight]:id l_par [selectors]:col_csv? [wh
 // api:Tap_Core.Query:([Selectors], [Filters], [relations])
 // relations
 // selector sibling selector comes from the same table
-// selector comparator selector
+// selector equal_or_compare selector
 
 selector = l_bracket col_csv r_bracket;
 
 // where column clause
-col_where = col_def comparator col_def_or_csv_row;
+col_where = col_def equal_or_compare term;
 
 col_def_or_csv_row = {col_def} col_def | {csv} csv_row;
 
@@ -253,7 +254,7 @@ relation_group = comma relation_def;
 
 relation_clause = comma l_par relation_def relation_group* r_par;
 
-if_block = l_par comparator comma term r_par;
+if_block = l_par equal_or_compare comma term r_par;
 
 col_group = comma col_def;
 
@@ -269,10 +270,8 @@ col_def = colprefix [colname]:id;
 
 table_def = table_prefix [cardinality]:number; // if you want to add runtime formulas as you take the table in - instead of waiting
 
-var_def = valprefix [valname]:id;
-
 varop = // variable operation usually takes the form of a given variable taking ID = some stuff
-		 [name]:var_def equal [expr]:expr 
+		 valprefix [valname]:id equal input_or_expr
 		;
 		
 //num_csv = l_bracket decimal num_csv_group+ r_bracket; 		
@@ -305,6 +304,12 @@ j_op = // this of the pattern j:{hola, hello etc.. }
 	java codeblock;
 	
 help = help_token;
+
+equal_or_compare = {comparator} comparator | {equal} equal;
+
+user_input = userinput l_par [options]:term comma [selections]:word_or_num r_par;
+
+input_or_expr = {expr} expr | {input} user_input;
 		
  expr =
   {term} term
@@ -335,4 +340,5 @@ help = help_token;
   |  {alpha} word
   | {math_fun} math_fun
   | {codeblock} codeblock
+  //| {input} user_input
   ;

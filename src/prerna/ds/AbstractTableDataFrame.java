@@ -23,6 +23,8 @@ import prerna.engine.api.IEngine;
 import prerna.engine.api.ISelectStatement;
 import prerna.math.BarChart;
 import prerna.math.StatisticsUtilityMethods;
+import prerna.sablecc.PKQLEnum;
+import prerna.sablecc.PKQLEnum.PKQLReactor;
 import prerna.ui.components.playsheets.datamakers.DataMakerComponent;
 import prerna.ui.components.playsheets.datamakers.IDataMaker;
 import prerna.ui.components.playsheets.datamakers.ISEMOSSAction;
@@ -579,5 +581,14 @@ public abstract class AbstractTableDataFrame implements ITableDataFrame {
 			}
 		}
 		return selectors;
+	}	
+	
+	@Override
+	public Map<String, String> getScriptReactors() {
+		Map<String, String> reactorNames = new HashMap<String, String>();
+		reactorNames.put(PKQLReactor.VAR.toString(), "prerna.sablecc.VarReactor");
+		reactorNames.put(PKQLReactor.INPUT.toString(), "prerna.sablecc.InputReactor");
+		
+		return reactorNames;
 	}
 }

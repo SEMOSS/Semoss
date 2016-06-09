@@ -91,7 +91,6 @@ public interface Analysis extends Switch
     void caseAGroupBy(AGroupBy node);
     void caseAColDef(AColDef node);
     void caseATableDef(ATableDef node);
-    void caseAVarDef(AVarDef node);
     void caseAVarop(AVarop node);
     void caseACsvRow(ACsvRow node);
     void caseAEasyRow(AEasyRow node);
@@ -111,6 +110,11 @@ public interface Analysis extends Switch
     void caseAExprRow(AExprRow node);
     void caseAJOp(AJOp node);
     void caseAHelp(AHelp node);
+    void caseAComparatorEqualOrCompare(AComparatorEqualOrCompare node);
+    void caseAEqualEqualOrCompare(AEqualEqualOrCompare node);
+    void caseAUserInput(AUserInput node);
+    void caseAExprInputOrExpr(AExprInputOrExpr node);
+    void caseAInputInputOrExpr(AInputInputOrExpr node);
     void caseATermExpr(ATermExpr node);
     void caseAPlusExpr(APlusExpr node);
     void caseAMinusExpr(AMinusExpr node);
@@ -146,6 +150,7 @@ public interface Analysis extends Switch
     void caseTDiv(TDiv node);
     void caseTCol(TCol node);
     void caseTComparator(TComparator node);
+    void caseTEqual(TEqual node);
     void caseTColadd(TColadd node);
     void caseTApi(TApi node);
     void caseTMath(TMath node);
@@ -173,7 +178,6 @@ public interface Analysis extends Switch
     void caseTGroup(TGroup node);
     void caseTBlank(TBlank node);
     void caseTSpace(TSpace node);
-    void caseTEqual(TEqual node);
     void caseTNewline(TNewline node);
     void caseTJava(TJava node);
     void caseTPython(TPython node);
@@ -200,6 +204,7 @@ public interface Analysis extends Switch
     void caseTPaneltools(TPaneltools node);
     void caseTPanelconfig(TPanelconfig node);
     void caseTOutputToken(TOutputToken node);
+    void caseTUserinput(TUserinput node);
     void caseEOF(EOF node);
     void caseInvalidToken(InvalidToken node);
 }

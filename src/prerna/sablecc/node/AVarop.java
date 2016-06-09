@@ -7,9 +7,10 @@ import prerna.sablecc.analysis.*;
 @SuppressWarnings("nls")
 public final class AVarop extends PVarop
 {
-    private PVarDef _name_;
+    private TValprefix _valprefix_;
+    private TId _valname_;
     private TEqual _equal_;
-    private PExpr _expr_;
+    private PInputOrExpr _inputOrExpr_;
 
     public AVarop()
     {
@@ -17,16 +18,19 @@ public final class AVarop extends PVarop
     }
 
     public AVarop(
-        @SuppressWarnings("hiding") PVarDef _name_,
+        @SuppressWarnings("hiding") TValprefix _valprefix_,
+        @SuppressWarnings("hiding") TId _valname_,
         @SuppressWarnings("hiding") TEqual _equal_,
-        @SuppressWarnings("hiding") PExpr _expr_)
+        @SuppressWarnings("hiding") PInputOrExpr _inputOrExpr_)
     {
         // Constructor
-        setName(_name_);
+        setValprefix(_valprefix_);
+
+        setValname(_valname_);
 
         setEqual(_equal_);
 
-        setExpr(_expr_);
+        setInputOrExpr(_inputOrExpr_);
 
     }
 
@@ -34,9 +38,10 @@ public final class AVarop extends PVarop
     public Object clone()
     {
         return new AVarop(
-            cloneNode(this._name_),
+            cloneNode(this._valprefix_),
+            cloneNode(this._valname_),
             cloneNode(this._equal_),
-            cloneNode(this._expr_));
+            cloneNode(this._inputOrExpr_));
     }
 
     @Override
@@ -45,16 +50,16 @@ public final class AVarop extends PVarop
         ((Analysis) sw).caseAVarop(this);
     }
 
-    public PVarDef getName()
+    public TValprefix getValprefix()
     {
-        return this._name_;
+        return this._valprefix_;
     }
 
-    public void setName(PVarDef node)
+    public void setValprefix(TValprefix node)
     {
-        if(this._name_ != null)
+        if(this._valprefix_ != null)
         {
-            this._name_.parent(null);
+            this._valprefix_.parent(null);
         }
 
         if(node != null)
@@ -67,7 +72,32 @@ public final class AVarop extends PVarop
             node.parent(this);
         }
 
-        this._name_ = node;
+        this._valprefix_ = node;
+    }
+
+    public TId getValname()
+    {
+        return this._valname_;
+    }
+
+    public void setValname(TId node)
+    {
+        if(this._valname_ != null)
+        {
+            this._valname_.parent(null);
+        }
+
+        if(node != null)
+        {
+            if(node.parent() != null)
+            {
+                node.parent().removeChild(node);
+            }
+
+            node.parent(this);
+        }
+
+        this._valname_ = node;
     }
 
     public TEqual getEqual()
@@ -95,16 +125,16 @@ public final class AVarop extends PVarop
         this._equal_ = node;
     }
 
-    public PExpr getExpr()
+    public PInputOrExpr getInputOrExpr()
     {
-        return this._expr_;
+        return this._inputOrExpr_;
     }
 
-    public void setExpr(PExpr node)
+    public void setInputOrExpr(PInputOrExpr node)
     {
-        if(this._expr_ != null)
+        if(this._inputOrExpr_ != null)
         {
-            this._expr_.parent(null);
+            this._inputOrExpr_.parent(null);
         }
 
         if(node != null)
@@ -117,25 +147,32 @@ public final class AVarop extends PVarop
             node.parent(this);
         }
 
-        this._expr_ = node;
+        this._inputOrExpr_ = node;
     }
 
     @Override
     public String toString()
     {
         return ""
-            + toString(this._name_)
+            + toString(this._valprefix_)
+            + toString(this._valname_)
             + toString(this._equal_)
-            + toString(this._expr_);
+            + toString(this._inputOrExpr_);
     }
 
     @Override
     void removeChild(@SuppressWarnings("unused") Node child)
     {
         // Remove child
-        if(this._name_ == child)
+        if(this._valprefix_ == child)
         {
-            this._name_ = null;
+            this._valprefix_ = null;
+            return;
+        }
+
+        if(this._valname_ == child)
+        {
+            this._valname_ = null;
             return;
         }
 
@@ -145,9 +182,9 @@ public final class AVarop extends PVarop
             return;
         }
 
-        if(this._expr_ == child)
+        if(this._inputOrExpr_ == child)
         {
-            this._expr_ = null;
+            this._inputOrExpr_ = null;
             return;
         }
 
@@ -158,9 +195,15 @@ public final class AVarop extends PVarop
     void replaceChild(@SuppressWarnings("unused") Node oldChild, @SuppressWarnings("unused") Node newChild)
     {
         // Replace child
-        if(this._name_ == oldChild)
+        if(this._valprefix_ == oldChild)
         {
-            setName((PVarDef) newChild);
+            setValprefix((TValprefix) newChild);
+            return;
+        }
+
+        if(this._valname_ == oldChild)
+        {
+            setValname((TId) newChild);
             return;
         }
 
@@ -170,9 +213,9 @@ public final class AVarop extends PVarop
             return;
         }
 
-        if(this._expr_ == oldChild)
+        if(this._inputOrExpr_ == oldChild)
         {
-            setExpr((PExpr) newChild);
+            setInputOrExpr((PInputOrExpr) newChild);
             return;
         }
 

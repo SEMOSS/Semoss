@@ -549,12 +549,6 @@ public class AnalysisAdapter implements Analysis
     }
 
     @Override
-    public void caseAVarDef(AVarDef node)
-    {
-        defaultCase(node);
-    }
-
-    @Override
     public void caseAVarop(AVarop node)
     {
         defaultCase(node);
@@ -664,6 +658,36 @@ public class AnalysisAdapter implements Analysis
 
     @Override
     public void caseAHelp(AHelp node)
+    {
+        defaultCase(node);
+    }
+
+    @Override
+    public void caseAComparatorEqualOrCompare(AComparatorEqualOrCompare node)
+    {
+        defaultCase(node);
+    }
+
+    @Override
+    public void caseAEqualEqualOrCompare(AEqualEqualOrCompare node)
+    {
+        defaultCase(node);
+    }
+
+    @Override
+    public void caseAUserInput(AUserInput node)
+    {
+        defaultCase(node);
+    }
+
+    @Override
+    public void caseAExprInputOrExpr(AExprInputOrExpr node)
+    {
+        defaultCase(node);
+    }
+
+    @Override
+    public void caseAInputInputOrExpr(AInputInputOrExpr node)
     {
         defaultCase(node);
     }
@@ -873,6 +897,12 @@ public class AnalysisAdapter implements Analysis
     }
 
     @Override
+    public void caseTEqual(TEqual node)
+    {
+        defaultCase(node);
+    }
+
+    @Override
     public void caseTColadd(TColadd node)
     {
         defaultCase(node);
@@ -1035,12 +1065,6 @@ public class AnalysisAdapter implements Analysis
     }
 
     @Override
-    public void caseTEqual(TEqual node)
-    {
-        defaultCase(node);
-    }
-
-    @Override
     public void caseTNewline(TNewline node)
     {
         defaultCase(node);
@@ -1192,6 +1216,12 @@ public class AnalysisAdapter implements Analysis
 
     @Override
     public void caseTOutputToken(TOutputToken node)
+    {
+        defaultCase(node);
+    }
+
+    @Override
+    public void caseTUserinput(TUserinput node)
     {
         defaultCase(node);
     }
