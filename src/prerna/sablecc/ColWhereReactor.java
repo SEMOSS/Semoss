@@ -26,7 +26,7 @@ public class ColWhereReactor extends AbstractReactor {
 	
 	public ColWhereReactor()
 	{
-		String [] thisReacts = {PKQLEnum.COL_DEF, PKQLEnum.COL_DEF+ "_1", PKQLEnum.COL_DEF+ "_2", PKQLEnum.ROW_CSV, PKQLEnum.ROW_CSV+"_1"};
+		String [] thisReacts = {PKQLEnum.COL_DEF, PKQLEnum.COL_DEF+ "_1", PKQLEnum.COL_DEF+ "_2", PKQLEnum.ROW_CSV, PKQLEnum.VAR_TERM};
 		super.whatIReactTo = thisReacts;
 		super.whoAmI = PKQLEnum.WHERE;
 	}
@@ -49,6 +49,8 @@ public class ColWhereReactor extends AbstractReactor {
 				finalHash.put(PKQLEnum.TO_COL, myStore.get(whatIReactTo[2]));
 			if(myStore.containsKey(whatIReactTo[3]))
 				finalHash.put("TO_DATA", myStore.get(whatIReactTo[3]));
+			if(myStore.containsKey(whatIReactTo[4]))
+				finalHash.put("TO_DATA", myStore.get(whatIReactTo[4]));
 			finalHash.put("COMPARATOR", myStore.get("COMPARATOR"));
 			myStore.put(nodeStr, finalHash);
 

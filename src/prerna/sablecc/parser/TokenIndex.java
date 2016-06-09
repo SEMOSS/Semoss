@@ -82,163 +82,163 @@ class TokenIndex extends AnalysisAdapter
     }
 
     @Override
-    public void caseTColadd(@SuppressWarnings("unused") TColadd node)
+    public void caseTEqual(@SuppressWarnings("unused") TEqual node)
     {
         this.index = 12;
     }
 
     @Override
-    public void caseTApi(@SuppressWarnings("unused") TApi node)
+    public void caseTColadd(@SuppressWarnings("unused") TColadd node)
     {
         this.index = 13;
     }
 
     @Override
-    public void caseTMath(@SuppressWarnings("unused") TMath node)
+    public void caseTApi(@SuppressWarnings("unused") TApi node)
     {
         this.index = 14;
     }
 
     @Override
-    public void caseTColjoin(@SuppressWarnings("unused") TColjoin node)
+    public void caseTMath(@SuppressWarnings("unused") TMath node)
     {
         this.index = 15;
     }
 
     @Override
-    public void caseTColprefix(@SuppressWarnings("unused") TColprefix node)
+    public void caseTColjoin(@SuppressWarnings("unused") TColjoin node)
     {
         this.index = 16;
     }
 
     @Override
-    public void caseTTablePrefix(@SuppressWarnings("unused") TTablePrefix node)
+    public void caseTColprefix(@SuppressWarnings("unused") TColprefix node)
     {
         this.index = 17;
     }
 
     @Override
-    public void caseTValprefix(@SuppressWarnings("unused") TValprefix node)
+    public void caseTTablePrefix(@SuppressWarnings("unused") TTablePrefix node)
     {
         this.index = 18;
     }
 
     @Override
-    public void caseTColremove(@SuppressWarnings("unused") TColremove node)
+    public void caseTValprefix(@SuppressWarnings("unused") TValprefix node)
     {
         this.index = 19;
     }
 
     @Override
-    public void caseTColfilter(@SuppressWarnings("unused") TColfilter node)
+    public void caseTColremove(@SuppressWarnings("unused") TColremove node)
     {
         this.index = 20;
     }
 
     @Override
-    public void caseTColunfilter(@SuppressWarnings("unused") TColunfilter node)
+    public void caseTColfilter(@SuppressWarnings("unused") TColfilter node)
     {
         this.index = 21;
     }
 
     @Override
-    public void caseTColimport(@SuppressWarnings("unused") TColimport node)
+    public void caseTColunfilter(@SuppressWarnings("unused") TColunfilter node)
     {
         this.index = 22;
     }
 
     @Override
-    public void caseTColset(@SuppressWarnings("unused") TColset node)
+    public void caseTColimport(@SuppressWarnings("unused") TColimport node)
     {
         this.index = 23;
     }
 
     @Override
-    public void caseTColpivot(@SuppressWarnings("unused") TColpivot node)
+    public void caseTColset(@SuppressWarnings("unused") TColset node)
     {
         this.index = 24;
     }
 
     @Override
-    public void caseTColfocus(@SuppressWarnings("unused") TColfocus node)
+    public void caseTColpivot(@SuppressWarnings("unused") TColpivot node)
     {
         this.index = 25;
     }
 
     @Override
-    public void caseTColalias(@SuppressWarnings("unused") TColalias node)
+    public void caseTColfocus(@SuppressWarnings("unused") TColfocus node)
     {
         this.index = 26;
     }
 
     @Override
-    public void caseTCollink(@SuppressWarnings("unused") TCollink node)
+    public void caseTColalias(@SuppressWarnings("unused") TColalias node)
     {
         this.index = 27;
     }
 
     @Override
-    public void caseTShowHide(@SuppressWarnings("unused") TShowHide node)
+    public void caseTCollink(@SuppressWarnings("unused") TCollink node)
     {
         this.index = 28;
     }
 
     @Override
-    public void caseTMod(@SuppressWarnings("unused") TMod node)
+    public void caseTShowHide(@SuppressWarnings("unused") TShowHide node)
     {
         this.index = 29;
     }
 
     @Override
-    public void caseTLPar(@SuppressWarnings("unused") TLPar node)
+    public void caseTMod(@SuppressWarnings("unused") TMod node)
     {
         this.index = 30;
     }
 
     @Override
-    public void caseTRPar(@SuppressWarnings("unused") TRPar node)
+    public void caseTLPar(@SuppressWarnings("unused") TLPar node)
     {
         this.index = 31;
     }
 
     @Override
-    public void caseTLBracket(@SuppressWarnings("unused") TLBracket node)
+    public void caseTRPar(@SuppressWarnings("unused") TRPar node)
     {
         this.index = 32;
     }
 
     @Override
-    public void caseTRBracket(@SuppressWarnings("unused") TRBracket node)
+    public void caseTLBracket(@SuppressWarnings("unused") TLBracket node)
     {
         this.index = 33;
     }
 
     @Override
-    public void caseTLCurlBracket(@SuppressWarnings("unused") TLCurlBracket node)
+    public void caseTRBracket(@SuppressWarnings("unused") TRBracket node)
     {
         this.index = 34;
     }
 
     @Override
-    public void caseTRCurlBracket(@SuppressWarnings("unused") TRCurlBracket node)
+    public void caseTLCurlBracket(@SuppressWarnings("unused") TLCurlBracket node)
     {
         this.index = 35;
     }
 
     @Override
-    public void caseTGroup(@SuppressWarnings("unused") TGroup node)
+    public void caseTRCurlBracket(@SuppressWarnings("unused") TRCurlBracket node)
     {
         this.index = 36;
     }
 
     @Override
-    public void caseTSpace(@SuppressWarnings("unused") TSpace node)
+    public void caseTGroup(@SuppressWarnings("unused") TGroup node)
     {
         this.index = 37;
     }
 
     @Override
-    public void caseTEqual(@SuppressWarnings("unused") TEqual node)
+    public void caseTSpace(@SuppressWarnings("unused") TSpace node)
     {
         this.index = 38;
     }
@@ -400,8 +400,14 @@ class TokenIndex extends AnalysisAdapter
     }
 
     @Override
-    public void caseEOF(@SuppressWarnings("unused") EOF node)
+    public void caseTUserinput(@SuppressWarnings("unused") TUserinput node)
     {
         this.index = 65;
+    }
+
+    @Override
+    public void caseEOF(@SuppressWarnings("unused") EOF node)
+    {
+        this.index = 66;
     }
 }
