@@ -111,7 +111,7 @@ public class InsightCreateRunner implements Runnable{
 		// this either fills the query if the parameter was saved as a string using @INPUT_NAME@ taxonomy or
 		// it fills in the values in a Filtering PreTransformation which appends the metamodel
 		insight.appendParamsToDataMakerComponents();
-		PKQLRunner runner = new PKQLRunner();
+		PKQLRunner runner = insight.getPKQLRunner();
 		for(DataMakerComponent dmComp : dmComps){
 //			// NOTE: this runs the data maker components directly onto the dm, not through the insight
 			if(dmComp.isProcessed()) {
