@@ -23,7 +23,6 @@ import prerna.engine.api.IEngine;
 import prerna.engine.api.ISelectStatement;
 import prerna.math.BarChart;
 import prerna.math.StatisticsUtilityMethods;
-import prerna.sablecc.PKQLEnum;
 import prerna.sablecc.PKQLEnum.PKQLReactor;
 import prerna.ui.components.playsheets.datamakers.DataMakerComponent;
 import prerna.ui.components.playsheets.datamakers.IDataMaker;
@@ -39,6 +38,7 @@ public abstract class AbstractTableDataFrame implements ITableDataFrame {
 	protected String[] headerNames;
 	protected List<Object> algorithmOutput = new Vector<Object>();
 	protected List<String> columnsToSkip = new Vector<String>(); //make a set?
+	protected String userId;
 	
 	@Override
 	public void mergeEdgeHash(Map<String, Set<String>> primKeyEdgeHash, Map<String, String> dataTypeMap) {
@@ -590,5 +590,15 @@ public abstract class AbstractTableDataFrame implements ITableDataFrame {
 		reactorNames.put(PKQLReactor.INPUT.toString(), "prerna.sablecc.InputReactor");
 		
 		return reactorNames;
+	}
+	
+	@Override
+	public void setUserId(String userId) {
+		this.userId = userId;
+	}
+	
+	@Override
+	public String getUserId() {
+		return this.userId;
 	}
 }

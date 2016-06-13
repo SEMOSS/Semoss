@@ -59,7 +59,6 @@ import com.hp.hpl.jena.rdf.model.Resource;
 import prerna.engine.api.IConstructStatement;
 import prerna.engine.api.IConstructWrapper;
 import prerna.engine.api.IEngine;
-import prerna.engine.api.IScriptReactor;
 import prerna.engine.impl.AbstractEngine;
 import prerna.engine.impl.rdf.InMemoryJenaEngine;
 import prerna.engine.impl.rdf.InMemorySesameEngine;
@@ -68,7 +67,6 @@ import prerna.engine.impl.rdf.SesameJenaConstructStatement;
 import prerna.engine.impl.rdf.SesameJenaSelectCheater;
 import prerna.engine.impl.rdf.SesameJenaUpdateWrapper;
 import prerna.rdf.engine.wrappers.WrapperManager;
-import prerna.sablecc.GDMImportDataReactor;
 import prerna.sablecc.PKQLEnum;
 import prerna.sablecc.PKQLEnum.PKQLReactor;
 import prerna.ui.components.GraphOWLHelper;
@@ -1350,5 +1348,17 @@ public class GraphDataModel implements IDataMaker {
 //		}
 		
 		return reactorNames;
+	}
+
+	@Override
+	public void setUserId(String userId) {
+		// TODO Auto-generated method stub
+		
+	}
+	
+	@Override
+	public String getUserId() {
+		// TODO Auto-generated method stub
+		return null;
 	}
 }

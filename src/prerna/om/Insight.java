@@ -98,6 +98,8 @@ public class Insight {
 	// type of database where it is
 	public enum DB_TYPE {MEMORY, FILE, REST};
 	
+	private String userID;														// id for the user creating the insight
+	
 	private String insightID;													// id of the question
 //	private boolean multiInsightQuery;											// boolean if the query is a multi-insight query
 	
@@ -195,6 +197,22 @@ public class Insight {
 		if(this.playSheet != null) {
 			this.playSheet.setQuestionID(insightID);
 		}
+	}
+	
+	/**
+	 * Get the userID
+	 * @return
+	 */
+	public String getUserID() {
+		return this.userID;
+	}
+	
+	/**
+	 * Set the userID for the insight
+	 * @param userID				The userID used to store in InsightStore
+	 */
+	public void setUserID(String userID) {
+		this.userID = userID;
 	}
 	
 //	public void setMultiInsightQuery(boolean multiInsightQuery) {
@@ -667,6 +685,7 @@ public class Insight {
 					}
 				}
 			}
+			this.dataMaker.setUserId(this.userID);
 		}
 		return this.dataMaker;
 	}
@@ -681,6 +700,9 @@ public class Insight {
 	 */
 	public void setDataMaker(IDataMaker dataMaker) {
 		this.dataMaker = dataMaker;
+		if(this.dataMaker.getUserId() == null) {
+			this.dataMaker.setUserId(this.userID);
+		}
 	}
 
 	/**
