@@ -42,6 +42,8 @@ public class H2Builder {
 //	String alterString = null;
 	Vector <String> castTargets = new Vector<String>();
 	Connection conn = null;
+	String schema = "test"; // assign a default schema which is test
+
 	boolean create = false;
 	static int tableRunNumber = 1;
 	static int rowCount = 0;
@@ -78,7 +80,7 @@ public class H2Builder {
 	}
 	
 	List<String> extraColumn = new ArrayList<String>();
-	
+
 	//random base for extra column name
 	private static final String extraColumnBase = "ExtraColumn92917289";
 	private static int columnCount = 0;
@@ -359,8 +361,8 @@ public class H2Builder {
     /*************************** CONSTRUCTORS **************************************/
     
     public H2Builder() {
-    	//initialize a connection
-    	getConnection();
+//    	//initialize a connection
+//    	getConnection();
     	tableName = "TINKERFRAME"+tableRunNumber;
     	tableRunNumber++;
     }
@@ -1532,7 +1534,7 @@ public class H2Builder {
 				//jdbc:h2:~/test
 				
 				//this will have to update
-				this.conn = DriverManager.getConnection("jdbc:h2:mem:test:LOG=0;CACHE_SIZE=65536;LOCK_MODE=1;UNDO_LOG=0", "sa", "");
+				this.conn = DriverManager.getConnection("jdbc:h2:mem:" + this.schema + ":LOG=0;CACHE_SIZE=65536;LOCK_MODE=1;UNDO_LOG=0", "sa", "");
 				//	getConnection("jdbc:h2:C:/Users/pkapaleeswaran/h2/test.db;LOG=0;CACHE_SIZE=65536;LOCK_MODE=0;UNDO_LOG=0", "sa", "");
 				
 				//Class.forName("nl.cwi.monetdb.jdbc.MonetDriver");

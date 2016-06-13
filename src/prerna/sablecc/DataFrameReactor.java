@@ -41,7 +41,11 @@ public class DataFrameReactor extends AbstractReactor {
 			}
 
 			System.out.println("DataFrameReactor translates this name to  : " + translatedDf);
+			ITableDataFrame oldFrame = (ITableDataFrame) myStore.get("G");
+			
 			ITableDataFrame newFrame = (ITableDataFrame) Utility.getDataMaker(null, translatedDf);
+			// set the old id into the new frame
+			newFrame.setUserId(oldFrame.getUserId());
 			
 			myStore.put(PKQLEnum.G, newFrame);
 		}

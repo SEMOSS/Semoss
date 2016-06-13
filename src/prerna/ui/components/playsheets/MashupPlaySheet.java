@@ -187,4 +187,16 @@ public class MashupPlaySheet extends AbstractPlaySheet implements IDataMaker {
 		return reactorNames;
 	}
 
+	@Override
+	public void setUserId(String userId) {
+		// TODO Auto-generated method stub
+		
+	}
+
+	
+	@Override
+	public String getUserId() {
+		// TODO Auto-generated method stub
+		return null;
+	}
 }
