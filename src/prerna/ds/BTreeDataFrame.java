@@ -2135,4 +2135,15 @@ public class BTreeDataFrame implements ITableDataFrame {
 		return null;
 	}
 
+	@Override
+	public void setUserId(String userId) {
+		// TODO Auto-generated method stub
+		
+	}
+	
+	@Override
+	public String getUserId() {
+		return null;
+	}
+
 }
