@@ -1010,7 +1010,7 @@ public class TinkerFrame extends AbstractTableDataFrame {
 		// if this vertex is a literal, need to build the uri
 		// otherwise the semoss vertex will not be able to get the type of the node (it parses the uri to get type)
 		String uri = value + "";
-		if(!(value instanceof String) || !(value instanceof String) || !((String)value).contains(((String)type))){
+		if((!(value instanceof String) || !((String)value).contains(((String)type))) && !((String)value).startsWith("http://semoss.org/ontologies/Concept")){
 			uri = "http://semoss.org/ontologies/Concept/" + type + "/" + value;
 //			uri = type + "/" + value;
 		}
