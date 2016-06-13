@@ -30,4 +30,8 @@ public interface IDataMaker {
 	List<Object> getActionOutput();
 
 	Map<String, String> getScriptReactors();
+	
+	void setUserId(String userId);
+	
+	String getUserId();
 }

@@ -55,13 +55,24 @@ public class H2Frame extends AbstractTableDataFrame {
 	
 	public H2Frame(String[] headers) {
 		this.headerNames = headers;
-		builder = new H2Builder();
 		this.metaData = new TinkerMetaData();
 	}
 	
 	public H2Frame() {
-		builder = new H2Builder();
 		this.metaData = new TinkerMetaData();
+	}
+	
+	private void setSchema() {
+		if(this.builder == null) {
+			this.builder = new H2Builder();
+			this.builder.schema = this.userId;
+		}
+	}
+	
+	@Override
+	public void setUserId(String userId) {
+		super.setUserId(userId);
+		this.setSchema();
 	}
 	
 	/*************************** AGGREGATION METHODS *************************/
