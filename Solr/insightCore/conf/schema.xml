@@ -69,6 +69,8 @@
 		<field name="name" type="string" indexed="true" stored="true" required="true" multiValued="false" /> 
 		<!-- this will hold the insight name for indexing -->
 		<field name="index_name" type="text_en_splitting" indexed="true" stored="false" required="true" multiValued="true" termVectors="true" termPositions="true" termOffsets="true" /> 
+		<!-- this will hold if the insight is a TinkerFrame vs. H2Frame vs... etc. -->
+		<field name="datamaker_name" type="string" indexed="true" stored="true" required="true" multiValued="false" />
 		<!-- this will hold hte date the insight was created -->
 		<field name="created_on" type="date" indexed="true" stored="true" required="true" multiValued="false" /> 
 		<!-- this will hold the last modified date of the insight -->
