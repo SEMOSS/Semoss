@@ -298,73 +298,67 @@ public final class MasterDBHelper {
 	
 	
 	//////// EVERYTHING BELOW IS LEGACY CODE AND NOT ACTIVELY USED ////////
-	////// USED IN SearchEngineMasterDB.java which is not used anymore
-	
-	/**
-	 * Adds the list of engines that are in the master db
-	 * @param masterEngine		The engine to query
-	 * @param engineList		The set to add the engine list to
-	 */
-	public static void fillEnglishList(IEngine masterEngine, Set<String> engineList) {
-		ISelectWrapper wrapper = Utility.processQuery(masterEngine, MasterDatabaseQueries.ENGINE_LIST_QUERY);
-		// get the bindings from it
-		String[] names = wrapper.getVariables();
-		// now get the bindings and generate the data
-		while(wrapper.hasNext()) {
-			ISelectStatement sjss = wrapper.next();
-			engineList.add((String) sjss.getVar(names[0]));
-		}
-	}
-	
-	/**
-	 * Based on the keywordURI, find related keywords and their respective nouns and engines
-	 * @param masterEngine			The engine to query
-	 * @param keywordSet			The Set of keywords to find related to
-	 * @param relatedKeywordSet		The Set connected keywords to the keywordSet passed in
-	 * @param engineKeywordMap		The Map containing the engine keyword and the value Set of keywords contained in that engine
-	 */
-	public static void findRelatedKeywordsToSetStrings(IEngine masterEngine, Set<String> keywordSet, Set<String> connectedKeywordSet, Map<String, Set<String>> engineKeywordMap){
-		// find all related keywords to the inputed data type
-		String bindingsStr = "";
-		Iterator<String> keywordsIt = keywordSet.iterator();
-		while(keywordsIt.hasNext()) {
-			bindingsStr = bindingsStr.concat("(<").concat(MasterDatabaseURIs.KEYWORD_BASE_URI).concat("/").concat(keywordsIt.next()).concat(">)");
-		}
-		
-		if(!bindingsStr.isEmpty()) {
-			String[] queries = new String[]{MasterDatabaseQueries.GET_RELATED_KEYWORDS_TO_SET_AND_THEIR_NOUNS.replace("@BINDINGS@", bindingsStr), MasterDatabaseQueries.GET_RELATED_KEYWORDS_TO_SET_AND_THEIR_NOUNS_NO_RECURSION.replace("@BINDINGS@", bindingsStr)};
-			for(int i = 0; i < queries.length; i++) {
-				ISelectWrapper sjsw = Utility.processQuery(masterEngine, queries[i]);
-				String[] names = sjsw.getVariables();
-				while(sjsw.hasNext()) {
-					ISelectStatement sjss = sjsw.next();
-					String engine = sjss.getVar(names[0]).toString();
-					String keyword = sjss.getRawVar(names[1]).toString();
-					
-					connectedKeywordSet.add(keyword);
-					
-					Set<String> keywordForEngineList;
-					if(engineKeywordMap.containsKey(engine)) {
-						keywordForEngineList = engineKeywordMap.get(engine);
-						keywordForEngineList.add(keyword);
-					} else {
-						keywordForEngineList = new HashSet<String>();
-						keywordForEngineList.add(keyword);
-						engineKeywordMap.put(engine, keywordForEngineList);
-					}
-				}
-			}
-		}
-		
-		//TODO: remove once error checking is done
-//		System.err.println(">>>>>>>>>>>>>>>>>FOUND RELATED KEYWORDS TO SET: " + keywordSet);
-//		System.err.println(">>>>>>>>>>>>>>>>>LIST IS: " + connectedKeywordSet);
-	}
-	
-	////// END USED IN SearchEngineMasterDB.java which is not used anymore
-
-	// JUST NOT USED ANYMORE AT ALL
-	
+//	/**
+//	 * Adds the list of engines that are in the master db
+//	 * @param masterEngine		The engine to query
+//	 * @param engineList		The set to add the engine list to
+//	 */
+//	public static void fillEnglishList(IEngine masterEngine, Set<String> engineList) {
+//		ISelectWrapper wrapper = Utility.processQuery(masterEngine, MasterDatabaseQueries.ENGINE_LIST_QUERY);
+//		// get the bindings from it
+//		String[] names = wrapper.getVariables();
+//		// now get the bindings and generate the data
+//		while(wrapper.hasNext()) {
+//			ISelectStatement sjss = wrapper.next();
+//			engineList.add((String) sjss.getVar(names[0]));
+//		}
+//	}
+//	
+//	/**
+//	 * Based on the keywordURI, find related keywords and their respective nouns and engines
+//	 * @param masterEngine			The engine to query
+//	 * @param keywordSet			The Set of keywords to find related to
+//	 * @param relatedKeywordSet		The Set connected keywords to the keywordSet passed in
+//	 * @param engineKeywordMap		The Map containing the engine keyword and the value Set of keywords contained in that engine
+//	 */
+//	public static void findRelatedKeywordsToSetStrings(IEngine masterEngine, Set<String> keywordSet, Set<String> connectedKeywordSet, Map<String, Set<String>> engineKeywordMap){
+//		// find all related keywords to the inputed data type
+//		String bindingsStr = "";
+//		Iterator<String> keywordsIt = keywordSet.iterator();
+//		while(keywordsIt.hasNext()) {
+//			bindingsStr = bindingsStr.concat("(<").concat(MasterDatabaseURIs.KEYWORD_BASE_URI).concat("/").concat(keywordsIt.next()).concat(">)");
+//		}
+//		
+//		if(!bindingsStr.isEmpty()) {
+//			String[] queries = new String[]{MasterDatabaseQueries.GET_RELATED_KEYWORDS_TO_SET_AND_THEIR_NOUNS.replace("@BINDINGS@", bindingsStr), MasterDatabaseQueries.GET_RELATED_KEYWORDS_TO_SET_AND_THEIR_NOUNS_NO_RECURSION.replace("@BINDINGS@", bindingsStr)};
+//			for(int i = 0; i < queries.length; i++) {
+//				ISelectWrapper sjsw = Utility.processQuery(masterEngine, queries[i]);
+//				String[] names = sjsw.getVariables();
+//				while(sjsw.hasNext()) {
+//					ISelectStatement sjss = sjsw.next();
+//					String engine = sjss.getVar(names[0]).toString();
+//					String keyword = sjss.getRawVar(names[1]).toString();
+//					
+//					connectedKeywordSet.add(keyword);
+//					
+//					Set<String> keywordForEngineList;
+//					if(engineKeywordMap.containsKey(engine)) {
+//						keywordForEngineList = engineKeywordMap.get(engine);
+//						keywordForEngineList.add(keyword);
+//					} else {
+//						keywordForEngineList = new HashSet<String>();
+//						keywordForEngineList.add(keyword);
+//						engineKeywordMap.put(engine, keywordForEngineList);
+//					}
+//				}
+//			}
+//		}
+//		
+//		//TODO: remove once error checking is done
+////		System.err.println(">>>>>>>>>>>>>>>>>FOUND RELATED KEYWORDS TO SET: " + keywordSet);
+////		System.err.println(">>>>>>>>>>>>>>>>>LIST IS: " + connectedKeywordSet);
+//	}
+//	
 //	public static Map<String, Date> getEngineTimestamps(IEngine masterEngine) {
 //		DateFormat format = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss", Locale.ENGLISH);
 //		
