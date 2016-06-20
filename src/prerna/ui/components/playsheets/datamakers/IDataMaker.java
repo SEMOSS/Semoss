@@ -3,8 +3,6 @@ package prerna.ui.components.playsheets.datamakers;
 import java.util.List;
 import java.util.Map;
 
-import prerna.engine.api.IScriptReactor;
-
 /**
  * This Interface defines responsibilities of a data maker
  * Data makers are used to generate the data necessary for a view
@@ -31,7 +29,22 @@ public interface IDataMaker {
 
 	Map<String, String> getScriptReactors();
 	
+	/**
+	 * Sets the name of the user who created this instance of the data maker
+	 * @param userId
+	 */
 	void setUserId(String userId);
 	
+	/**
+	 * Returns the name of the user who created this instance of the data maker
+	 * @return
+	 */
 	String getUserId();
+	
+	/**
+	 * Returns the name of the data maker
+	 * This name must match that which is defined within RDF_MAP
+	 * @return
+	 */
+	String getDataMakerName();
 }

@@ -35,7 +35,6 @@ import java.util.Map;
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
-import prerna.engine.api.IScriptReactor;
 import prerna.sablecc.PKQLEnum;
 import prerna.sablecc.PKQLEnum.PKQLReactor;
 import prerna.ui.components.playsheets.datamakers.DataMakerComponent;
@@ -198,5 +197,10 @@ public class MashupPlaySheet extends AbstractPlaySheet implements IDataMaker {
 	public String getUserId() {
 		// TODO Auto-generated method stub
 		return null;
+	}
+
+	@Override
+	public String getDataMakerName() {
+		return this.getClass().getName();
 	}
 }

@@ -628,47 +628,6 @@ public class Utility {
 		return retString;
 	}
 
-	public static IEngine loadWebEngine(String fileName, Properties prop)
-			throws KeyManagementException, NoSuchAlgorithmException, KeyStoreException {
-		SolrIndexEngine solrE = null;
-		IEngine engineToAdd = loadEngine(fileName, prop);
-		String engineName = engineToAdd.getEngineName();
-
-		solrE = SolrIndexEngine.getInstance();
-		if (solrE.serverActive()) {
-			String smssPropString = engineToAdd.getProperty(Constants.SOLR_RELOAD);
-			boolean smssProp = false;
-			if (smssPropString != null) {
-				smssProp = Boolean.parseBoolean(smssPropString);
-			}
-			String hiddenString = engineToAdd.getProperty(Constants.HIDDEN_DATABASE);
-			boolean hidden = false;
-			if (hiddenString != null) {
-				hidden = Boolean.parseBoolean(hiddenString);
-			}
-			// check if should always recreate and check if db currently exists and check if db is updated
-			if (!hidden && (AbstractEngine.RECREATE_SOLR || !solrE.containsEngine(engineName) || smssProp)) {
-				LOGGER.info(engineToAdd.getEngineName() + " has solr force reload value of " + smssProp );
-				LOGGER.info(engineToAdd.getEngineName() + " is reloading solr");
-				try {
-					addToSolrInstanceCore(engineToAdd);
-					addToSolrInsightCore(engineToAdd, fileName);
-				} catch (ParseException e) {
-					e.printStackTrace();
-				}
-			}
-			else if(hidden){
-				Utility.deleteFromSolr(engineName);
-			}
-			if(smssProp){
-				LOGGER.info(engineToAdd.getEngineName() + " is changing solr boolean on smss");
-				changeSMSSBoolean(fileName, Constants.SOLR_RELOAD, "false");
-			}
-		
-		}
-		return engineToAdd;
-	}
-	
 //	public static void main(String[] args) {
 //		String date = "qweqweqw";
 //		System.out.println(isStringDate(date));
@@ -692,28 +651,86 @@ public class Utility {
 		return false;
 	}
 		
-		
+	/**
+	 * Add the engine instances into the solr index engine
+	 * @param engineToAdd					The IEngine to add into the solr index engine
+	 * @throws KeyManagementException
+	 * @throws NoSuchAlgorithmException
+	 * @throws KeyStoreException
+	 * @throws ParseException
+	 */
 	public static void addToSolrInstanceCore(IEngine engineToAdd) throws KeyManagementException, NoSuchAlgorithmException, KeyStoreException, ParseException{
+		// get the engine name
 		String engineName = engineToAdd.getEngineName();
+		// get the solr index engine
 		SolrIndexEngine solrE = SolrIndexEngine.getInstance();
+		// if the solr is active...
 		if (solrE.serverActive()) {
+			
 			List<SolrInputDocument> docs = new ArrayList<SolrInputDocument>();
+			/*
+			 * The unique document is the engineName concatenated with the concept
+			 * BUT for properties it is the engineName concatenated with the concept concatenated with the property 
+			 * Note: we only add properties that are not numeric
+			 * 
+			 * Logic is as follows
+			 * 1) Get the list of all the concepts
+			 * 2) For each concept add the concept with all its instance values to the docs list
+			 * 3) If the concept has properties, perform steps 4 & 5
+			 * 		4) for each property, get the list of values
+			 * 		5) if property is categorical, add the property with all its instance values as a document to the docs list
+			 * 6) Index all the documents that are stored in docs
+			 * 
+			 * There is a very annoying caveat.. we have an annoying bifurcation based on the engine type
+			 * If it is a RDBMS, getting the properties is pretty easy based on the way the IEngine is set up and how RDBMS queries work
+			 * However, for RDF, getting the properties requires us to create a query and execute that query to get the list of values :/
+			 */
+			
+			//TODO: WE NOW STORE THE DATA TYPES ON THE OWL!!! NO NEED TO PERFORM THE QUERY BEFORE CHECKING THE TYPE!!!!!
+			//TODO: will come back to this
 
-			// grab all concepts and their instances from the db
+			// 1) grab all concepts that exist in the database
 			List<String> conceptList = engineToAdd.getConcepts();
 			for(String concept : conceptList) {
+				// we ignore the default concept node...
 				if(concept.equals("http://semoss.org/ontologies/Concept")) {
 					continue;
 				}
-				Map<String, Object> fieldData = new HashMap<String, Object>();
-				List<Object> instances = null;
+				
+				// 2) get all the instances for the concept
+				// fieldData will store the instance document information when we add the concept
+				List<Object> instances = engineToAdd.getEntityOfType(concept);
+				if(instances.isEmpty()) {
+					// sometimes this list is empty when users create databases with empty fields that are
+					// meant to filled in via forms 
+					continue;
+				}
+				// create the concept unique id which is the engineName concatenated with the concept
 				String newId = engineName + "_" + concept;
+				
+				//use the method that you just made to save the concept
+				Map<String, Object> fieldData = new HashMap<String, Object>();
+				fieldData.put(SolrIndexEngine.CORE_ENGINE, engineName);
+				fieldData.put(SolrIndexEngine.VALUE, concept);
+				// sadly, the instances we get back are URIs.. need to extract the instance values from it
+				List<Object> instancesList = new ArrayList<Object>();
+				for(Object instance : instances) {
+					instancesList.add(Utility.getInstanceName(instance + ""));
+				}
+				fieldData.put(SolrIndexEngine.INSTANCES, instancesList);
+				// add to the docs list
+				docs.add(solrE.createDocument(newId, fieldData));
+
+				// 3) now see if the concept has properties
+				List<String> propName = engineToAdd.getProperties4Concept(concept, false);
+				if(propName.isEmpty()) {
+					// if no properties, go onto the next concept
+					continue;
+				}
+				
+				// we found properties, lets try to add those as well
+				// here we have the bifurcation based on the engine type
 				if(engineToAdd.getEngineType().equals(IEngine.ENGINE_TYPE.RDBMS)) {
-					instances = engineToAdd.getEntityOfType(concept);
-					if(instances.isEmpty()) {
-						continue;
-					}
-					List<String> propName = engineToAdd.getProperties4Concept(concept, false);
 					NEXT_PROP : for(String prop : propName) {
 						Vector<Object> propertiesList = engineToAdd.getEntityOfType(prop);
 						boolean isNumeric = false;
@@ -729,6 +746,8 @@ public class Utility {
 								continue NEXT_PROP;
 							}
 						}
+						
+						// add if the property and its instances to the docs list
 						if(!isNumeric && !propertiesList.isEmpty()) {
 							String propId = newId + "_" + prop; // in case there are properties for the same engine, tie it to the concept
 							Map<String, Object> propFieldData = new HashMap<String, Object>();
@@ -736,22 +755,14 @@ public class Utility {
 							propFieldData.put(SolrIndexEngine.VALUE, prop);
 							propertiesList.add(Utility.getInstanceName(prop));
 							propFieldData.put(SolrIndexEngine.INSTANCES, propertiesList);
-//							try {
-								docs.add(solrE.createDocument(propId, propFieldData));
-//								solrE.addInstance(propId, propFieldData);
-//							} catch (SolrServerException | IOException e) {
-//								e.printStackTrace();
-//							}
+							// add the property document to the docs
+							docs.add(solrE.createDocument(propId, propFieldData));
 						}
 					}
 				} else {
-					instances = engineToAdd.getEntityOfType(concept);
-					// case when dumb data is loaded
-					if(instances.isEmpty()) {
-						continue;
-					}
-					List<String> propName = engineToAdd.getProperties4Concept(concept, false);
 					for(String prop : propName) {
+						// there is no way to get the list of properties for a specific concept in RDF through the interface
+						// create a query using the concept and the property name
 						String propQuery = "SELECT DISTINCT ?property WHERE { {?x <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <" + concept + "> } { ?x <" + prop + "> ?property} }";
 						ISelectWrapper propWrapper = WrapperManager.getInstance().getSWrapper(engineToAdd, propQuery);
 						List<Object> propertiesList = new ArrayList<Object>();
@@ -765,7 +776,7 @@ public class Utility {
 							}
 						}
 						
-						// add properties as fields
+						// add if the property and its instances to the docs list
 						if(!propertiesList.isEmpty()) {
 							String propId = newId + "_" + prop; // in case there are properties for the same engine, tie it to the concept
 							Map<String, Object> propFieldData = new HashMap<String, Object>();
@@ -773,36 +784,14 @@ public class Utility {
 							propFieldData.put(SolrIndexEngine.VALUE, prop);
 							propertiesList.add(Utility.getInstanceName(prop));
 							propFieldData.put(SolrIndexEngine.INSTANCES, propertiesList);
-//							try {
-								docs.add(solrE.createDocument(propId, propFieldData));
-//								solrE.addInstance(propId, propFieldData);
-//							} catch (SolrServerException | IOException e) {
-//								e.printStackTrace();
-//							}
+							// add the property document to the docs
+							docs.add(solrE.createDocument(propId, propFieldData));
 						}
 					}
 				}
-				
-				//use the method that you just made to save the concept
-				fieldData.put(SolrIndexEngine.CORE_ENGINE, engineName);
-				fieldData.put(SolrIndexEngine.VALUE, concept);
-				List<Object> instancesList= new ArrayList<Object>();
-				for(Object instance : instances) {
-					instancesList.add(Utility.getInstanceName(instance + ""));
-				}
-				if(!instancesList.isEmpty()) {
-					instancesList.add(Utility.getInstanceName(concept));
-				}
-				fieldData.put(SolrIndexEngine.INSTANCES, instancesList);
-				
-//				try {
-					docs.add(solrE.createDocument(newId, fieldData));
-//					solrE.addInstance(newId, fieldData);
-//				} catch (SolrServerException | IOException e) {
-//					e.printStackTrace();
-//				}
 			}
 			
+			// 6) index all the documents at the same time for efficiency
 			try {
 				solrE.addInstances(docs);
 			} catch (SolrServerException | IOException e) {
@@ -811,62 +800,67 @@ public class Utility {
 		}
 	}
 
-	public static void addToSolrInsightCore(IEngine engineToAdd, String path) throws KeyManagementException, NoSuchAlgorithmException, KeyStoreException {
-//		SolrDocumentExportWriter writer = null;
+	/**
+	 * Add the engine insights into the solr index engine
+	 * @param engineToAdd					The IEngine to add into the solr index engine
+	 * @throws KeyManagementException
+	 * @throws NoSuchAlgorithmException
+	 * @throws KeyStoreException
+	 */
+	public static void addToSolrInsightCore(IEngine engineToAdd) throws KeyManagementException, NoSuchAlgorithmException, KeyStoreException {
+//		// get the engine name
 		String engineName = engineToAdd.getEngineName();
-		//don't grab localMaster DB data
-		if(engineName.equals(Constants.LOCAL_MASTER_DB_NAME)){
-			return;
-		}
-		LOGGER.info("Checking if we need to add " + engineName);
+		// get the solr index engine
 		SolrIndexEngine solrE = SolrIndexEngine.getInstance();
-		if(solrE.serverActive()) {
+		// if the solr is active...
+		if (solrE.serverActive()) {
 
-			String folderPath = DIHelper.getInstance().getProperty("BaseFolder");
-			folderPath = folderPath + "\\db\\" + engineName + "\\";
-			String fileName = engineName + "_Solr.txt";
-			File file = new File(folderPath + fileName);
-			if (!file.exists()) {
-				try {
-					file.createNewFile();
-				} catch (IOException e) {
-					e.printStackTrace();
-				}
-			}
-
-//			try {
-//				writer = new SolrDocumentExportWriter(file);
-//			} catch (IOException e1) {
-//				e1.printStackTrace();
-//			}
-
+			List<SolrInputDocument> docs = new ArrayList<SolrInputDocument>();
+			/*
+			 * The unique document is the engineName concatenated with the engine unique rdbms name (which is just a number)
+			 * 
+			 * Logic is as follows
+			 * 1) Delete all existing insights that are tagged by this engine 
+			 * 2) Execute a query to get all relevant information from the engine rdbms insights database
+			 * 3) For each insight, grab the relevant information and store into a solr document and add it to the docs list
+			 * 4) Index all the documents stored in docs list
+			 */
+			
+			// 1) delete any existing insights from this engine
+			solrE.deleteEngine(engineName);
+			
+			// also going to get some default field values since they are not captured anywhere...
+			
+			// get the current date which will be used to store in "created_on" and "modified_on" fields within schema
 			DateFormat dateFormat = SolrIndexEngine.getDateFormat();
 			Date date = new Date();
 			String currDate = dateFormat.format(date);
+			// set all the users to be default...
 			String userID = "default";
-			String query = "SELECT DISTINCT ID, QUESTION_NAME, QUESTION_LAYOUT, QUESTION_MAKEUP, QUESTION_PERSPECTIVE  FROM QUESTION_ID";
-
-			solrE.deleteEngine(engineName);
-
-			List<SolrInputDocument> docs = new ArrayList<SolrInputDocument>();
-			// query the current insights in this db
+			
+			
+			// 2) execute the query and iterate through the insights
+			String query = "SELECT DISTINCT ID, QUESTION_NAME, QUESTION_LAYOUT, QUESTION_MAKEUP, QUESTION_PERSPECTIVE, QUESTION_DATA_MAKER FROM QUESTION_ID";
 			ISelectWrapper wrapper = WrapperManager.getInstance().getSWrapper(engineToAdd.getInsightDatabase(), query);
 			while(wrapper.hasNext()){
 				ISelectStatement ss = wrapper.next();
-				int id = (int) ss.getVar("ID");
-				String name = (String) ss.getVar("QUESTION_NAME");
-				String layout = (String) ss.getVar("QUESTION_LAYOUT");
-
-//				String prerna = ".";
-//				if (layout.contains(prerna)) {
-//					int endIndex = ((String) layout).lastIndexOf(prerna) + 1;
-//					if (endIndex != -1) {
-//						layout = ((String) layout).substring(endIndex,((String) layout).length());
-//						//innerMap.put(newString, facetInstance.getCount());
-//					}
-//				}
 				
+				// 3) start to get all the relevant metadata surrounding the insight
+				
+				// get the unique id of the insight within the engine
+				int id = (int) ss.getVar("ID");
+				// get the question name
+				String name = (String) ss.getVar("QUESTION_NAME");
+				// get the question layout
+				String layout = (String) ss.getVar("QUESTION_LAYOUT");
+				// get the data maker name
+				String dataMakerName = (String) ss.getVar("QUESTION_DATA_MAKER");
+
+				// get the question perspective to use as a default tag
 				String perspective = (String) ss.getVar("QUESTION_PERSPECTIVE");
+				// sadly, at some point the perspective which we use as a tag has been added 
+				// using the following 3 ways...
+				// remove all 3 if found
 				String perspString1 ="-Perspective";
 				String perspString2 ="Perspective";
 				String perspString3 ="_Perspective";
@@ -879,7 +873,13 @@ public class Utility {
 				if(perspective.contains(perspString3)){
 					perspective = perspective.replace(perspString3, "").trim();
 				}
-
+				
+				// get the clob containing the question makeup
+				// TODO: we use this to query it and get the list of engines associated with an insight
+				// TODO: however, since the DMC is no longer valid and that logic is placed within the PKQL
+				// TODO: we need to not do this and figure out a way to get the engines that are used in the PKQL
+				
+				/////// START CLOB PROCESSING TO GET LIST OF ENGINES ///////
 				JdbcClob obj = (JdbcClob) ss.getVar("QUESTION_MAKEUP"); 
 				InputStream makeup = null;
 				try {
@@ -908,94 +908,114 @@ public class Utility {
 				InMemorySesameEngine myEng = new InMemorySesameEngine();
 				myEng.setRepositoryConnection(rc);
 
-				List<String> engineList = new ArrayList<String>();
-				//Query the engine
+				Set<String> engineSet = new HashSet<String>();
+				// query the in-memory sesame engine to get the list of engines
 				String engineQuery = "SELECT DISTINCT ?EngineName WHERE {{?Engine a <http://semoss.org/ontologies/Concept/Engine>}{?Engine <http://semoss.org/ontologies/Relation/Contains/Name> ?EngineName} }";
 				ISelectWrapper engineWrapper = WrapperManager.getInstance().getSWrapper(myEng, engineQuery);
 				while(engineWrapper.hasNext()) {
 					ISelectStatement engineSS = engineWrapper.next();
-					engineList.add(engineSS.getVar("EngineName") + "");
+					engineSet.add(engineSS.getVar("EngineName") + "");
 				}
+				// since pkql adds only one dmc with engine being local master... we want to remove that
+				// and set engine into the set
+				engineSet.remove(Constants.LOCAL_MASTER_DB_NAME);
+				engineSet.add(engineName);
+				/////// END CLOB PROCESSING TO GET LIST OF ENGINES ///////
 
+				// get the list of params associated with the insight and add that into the paramList
+				// TODO: this will also become out dated just like the list of engines logic above when it is shifted into PKQL
 				List<String> paramList = new ArrayList<String>();
-				List<String> paramTypeList = new ArrayList<String>();
 				List<SEMOSSParam> params = engineToAdd.getParams(id + "");
-
 				if(params != null && !params.isEmpty()) {
 					for(SEMOSSParam p : params) {
-						paramTypeList.add(p.getType());
 						paramList.add(p.getName());
 					}
 				}
 
-				// as you get each result, add the insight as a document in the solr index engine
+				// have all the relevant fields now, so store with appropriate schema name
+				// create solr document and add into docs list
 				Map<String, Object>  queryResults = new  HashMap<> ();
 				queryResults.put(SolrIndexEngine.STORAGE_NAME, name);
 				queryResults.put(SolrIndexEngine.INDEX_NAME, name);
 				queryResults.put(SolrIndexEngine.CREATED_ON, currDate);
 				queryResults.put(SolrIndexEngine.MODIFIED_ON, currDate);
 				queryResults.put(SolrIndexEngine.USER_ID, userID);
-				queryResults.put(SolrIndexEngine.ENGINES, engineList);
+				queryResults.put(SolrIndexEngine.ENGINES, engineSet);
 				queryResults.put(SolrIndexEngine.PARAMS, paramList);
 				queryResults.put(SolrIndexEngine.CORE_ENGINE, engineName);
 				queryResults.put(SolrIndexEngine.CORE_ENGINE_ID, id);
 				queryResults.put(SolrIndexEngine.LAYOUT, layout);
 				queryResults.put(SolrIndexEngine.TAGS, perspective);
-
+				queryResults.put(SolrIndexEngine.DATAMAKER_NAME, dataMakerName);
 				try {
 					docs.add(solrE.createDocument(engineName + "_" + id, queryResults));
-//					solrE.addInsight(engineName + "_" + id, queryResults);
-//					writer.writeSolrDocument(engineName + "_" + id, queryResults);
 				} catch (Exception e) {
 					e.printStackTrace();
 				}
 			}
 
+			// 4) index all the documents at the same time for efficiency
 			try {
 				solrE.addInsights(docs);
 			} catch (SolrServerException | IOException e) {
 				e.printStackTrace();
 			}
-			//close writer
-//			if(writer != null) {
-//				writer.closeExport();
-//			}
 		}
 	}
 	
 	//force solr to load once 
 	//once engine is loaded, set boolean to false
-	public static void changeSMSSBoolean(String smssPath, String valueToAlter, String valueToProvide) {
+	/**
+	 * Changes a value within the SMSS file for a given key
+	 * @param smssPath					The path to the SMSS file
+	 * @param keyToAlter				The key to alter
+	 * @param valueToProvide			The value to give the key
+	 */
+	public static void changeSMSSValue(String smssPath, String keyToAlter, String valueToProvide) {
 		FileOutputStream fileOut = null;
 		File file = new File(smssPath);
+		
+		/*
+		 * 1) Loop through the smss file and add each line as a list of strings
+		 * 2) For each line, see if it starts with the key to alter
+		 * 3) if yes, write out the key with the new value passed in
+		 * 4) if no, just write out the line as is
+		 * 
+		 */
 		List<String> content = new ArrayList<String>();
-
 		BufferedReader reader = null;
 		FileReader fr = null;
 		try{
 			fr = new FileReader(file);
 			reader = new BufferedReader(fr);
 			String line;
+			// 1) add each line as a different string in list
 			while((line = reader.readLine()) != null){
 				content.add(line);
 			}
 
 			fileOut = new FileOutputStream(file);
 			byte[] lineBreak = "\n".getBytes();
+			// 2) iterate through each line if the smss file
 			for(int i=0; i<content.size(); i++){
-				if(content.get(i).contains(valueToAlter)){
-					String falseBool = valueToAlter + "\t" + valueToProvide;
-					fileOut.write(falseBool.getBytes());
+				// 3) if this line starts with the key to alter
+				if(content.get(i).contains(keyToAlter)){
+					// create new line to write using the key and the new value
+					String newKeyValue = keyToAlter + "\t" + valueToProvide;
+					fileOut.write(newKeyValue.getBytes());
 				}
+				// 4) if it doesn't, just write the next line as is
 				else {
 					byte[] contentInBytes = content.get(i).getBytes();
 					fileOut.write(contentInBytes);
 				}
+				// after each line, write a line break into the file
 				fileOut.write(lineBreak);
 			}
 		} catch(IOException e){
 			e.printStackTrace();
 		} finally{
+			// close the readers
 			try{
 				reader.close();
 			} catch (IOException e) {
@@ -1010,38 +1030,55 @@ public class Utility {
 		}
 	}
 	
-	public static void updateSMSSFile(String smssPath, String valueToAdd, String valueToProvide) {
+	/**
+	 * Adds a new key-value pair into the SMSS file
+	 * @param smssPath					The path of the smss file
+	 * @param keyToAdd					The key to add into the smss file
+	 * @param valueToProvide			The value for the key to add to the smss file
+	 */
+	public static void updateSMSSFile(String smssPath, String keyToAdd, String valueToProvide) {
 		FileOutputStream fileOut = null;
 		File file = new File(smssPath);
-		List<String> content = new ArrayList<String>();
+		String locInFile = "OWL";
 
+		/*
+		 * 1) Loop through the smss file and add each line as a list of strings
+		 * 2) iterate through the list of strings and write out each line
+		 * 3) if the current line being printed starts with locInFile (hard coded as OWL)
+		 * 		then the new key-value pair will be written right after it
+		 */
+		
+		List<String> content = new ArrayList<String>();
 		BufferedReader reader = null;
 		FileReader fr = null;
-		String locInFile = "OWL";
 		try{
 			fr = new FileReader(file);
 			reader = new BufferedReader(fr);
 			String line;
+			// 1) add each line as a different string in list
 			while((line = reader.readLine()) != null){
 				content.add(line);
 			}
 
 			fileOut = new FileOutputStream(file);
 			for(int i=0; i<content.size(); i++){
+				// 2) write out each line into the file
 				byte[] contentInBytes = content.get(i).getBytes();
 				fileOut.write(contentInBytes);
 				fileOut.write("\n".getBytes());
-
+				
+				// 3) if the last line printed matches that in locInFile, then write the new
+				// 		key-value pair after
 				if(content.get(i).contains(locInFile)){
-					String newProp = valueToAdd + "\t" + valueToProvide;
+					String newProp = keyToAdd + "\t" + valueToProvide;
 					fileOut.write(newProp.getBytes());
 					fileOut.write("\n".getBytes());
 				}
 			}
-
 		} catch(IOException e){
 			e.printStackTrace();
 		} finally{
+			// close the readers
 			try{
 				reader.close();
 			} catch (IOException e) {
@@ -1056,6 +1093,10 @@ public class Utility {
 		}
 	}
 	
+	/**
+	 * Delete all the insights surrounding a specified engine
+	 * @param engineName				
+	 */
 	public static void deleteFromSolr(String engineName) {
 		try {
 			SolrIndexEngine.getInstance().deleteEngine(engineName);
@@ -1066,6 +1107,82 @@ public class Utility {
 		} catch (KeyStoreException e) {
 			e.printStackTrace();
 		}
+	}
+	
+	public static IEngine loadWebEngine(String fileName, Properties prop) throws KeyManagementException, NoSuchAlgorithmException, KeyStoreException {
+		// load the engine
+		IEngine engineToAdd = loadEngine(fileName, prop);
+		// get the engine name
+		String engineName = engineToAdd.getEngineName();
+
+		// get the solr instance
+		SolrIndexEngine solrE = SolrIndexEngine.getInstance();
+		// if the solr is active...
+		if (solrE.serverActive()) {
+			/*
+			 * Here is the logic to determine if we need to load the engine into solr
+			 * 
+			 * 1) if the database is hidden -> do NOT add to solr
+			 * Given that the database if not hidden, do the following
+			 * 2) if a developer has hard coded to reload all solr values based on a hard coded boolean in abstract engine
+			 * 		-> if the value is true, then we add the engine into solr
+			 * 		-> note: this should be false whenever we make a build/deploy... 
+			 * 					this is purely for ease in testing new development code
+			 * 3) the user can define in the SMSS file a boolean value SOLR_RELOAD
+			 * 		-> if the value is true, then we add the engine into solr
+			 * 4) check to see if solr already contains the engine
+			 * 		-> if the value is false, then we add the engine into solr
+			 * 
+			 * ****Decision Logic****
+			 * Given that the engine is not hidden (i.e. 1 is false), then
+			 * 		if a developer has hard coded to reload all solr values in abstract engine (2 is true) or 
+			 * 		if the user has hard reloaded (2 is true) or 
+			 * 		if solr doesn't contain the engine (3 is false), then
+			 * 			add the engine into solr
+			 */
+			
+			// 1) get the boolean is the database is hidden
+			// 		default value is false if it is not found in the SMSS file
+			String hiddenString = engineToAdd.getProperty(Constants.HIDDEN_DATABASE);
+			boolean hidden = false;
+			if (hiddenString != null) {
+				hidden = Boolean.parseBoolean(hiddenString);
+			}
+			// 3) check if the user has set a hard reload to the SOLR_RELOAD boolean
+			//		default value is false if it is not found in the SMSS file
+			String smssPropString = engineToAdd.getProperty(Constants.SOLR_RELOAD);
+			boolean smssProp = false;
+			if (smssPropString != null) {
+				smssProp = Boolean.parseBoolean(smssPropString);
+			}
+			// this if statement corresponds to the decision logic in comment block above
+			if (!hidden && (AbstractEngine.RECREATE_SOLR || smssProp || !solrE.containsEngine(engineName))) {
+				// alright, we are going to load the engines insights into solr
+				LOGGER.info(engineToAdd.getEngineName() + " has solr force reload value of " + smssProp );
+				LOGGER.info(engineToAdd.getEngineName() + " is reloading solr");
+				try {
+					// add the instances into solr
+					addToSolrInstanceCore(engineToAdd);
+					// add the insights into solr
+					addToSolrInsightCore(engineToAdd);
+				} catch (ParseException e) {
+					e.printStackTrace();
+				}
+			}
+			// if the engine is hidden, delete it from solr
+			else if(hidden){
+				Utility.deleteFromSolr(engineName);
+			}
+			// if the smss prop was set to true -> i.e. a hard solr reload for that specific engine
+			// then we want to change the boolean to be false such that this is only a one time solr reload
+			if(smssProp){
+				LOGGER.info(engineToAdd.getEngineName() + " is changing solr boolean on smss");
+				changeSMSSValue(fileName, Constants.SOLR_RELOAD, "false");
+			}
+		}
+		
+		// return the newly loaded engine
+		return engineToAdd;
 	}
 	
 	/**
@@ -1162,29 +1279,64 @@ public class Utility {
 		return engine;
 	}
 	
+	/**
+	 * Add data types into the OWL file for each concept and property for an engine 
+	 * @param engine				The IEngine to add datatypes for
+	 * @param fileName				The location of the SMSS file for that engine
+	 */
 	public static void loadDataTypesIfNotPresent(IEngine engine, String fileName) {
-		// smss file contains a boolean to determine if we need to look at data types to add to owl
+		/*
+		 * Many use cases through the application requires that the data type be properly 
+		 * defined within the OWL file for each data source
+		 * 		-> when data type is not defined, most places in the code assumes values
+		 * 			to be of type string/varchar
+		 * 
+		 * This routine is called at engine start-up to loop through every concept and
+		 * property and add an appropriate data type triple
+		 * 
+		 * Note: this code first looks to see if a data type for that column exists within
+		 * the owl, only if it not present will it try to determine the data type
+		 * 
+		 * Here is the logical flow
+		 * 1) grab the boolean on the SMSS file to see if we need to go through this routine
+		 * 2) if the boolean is true, continue to perform the following steps
+		 * 3) grab all the concepts that exist in the database
+		 * 4) get all the instances for the concept and determine the type IF a type is not present
+		 * 		-> note: all concepts in an RDF database are automatically strings
+		 * 			since they are stored as URIs
+		 * 5) grab all the properties for the given concept
+		 * 6) determine the type of the property IF a type is not already present
+		 * 
+ 		 * There is a very annoying caveat.. we have an annoying bifurcation based on the engine type
+		 * If it is a RDBMS, getting the properties is pretty easy based on the way the IEngine is set up and how RDBMS queries work
+		 * However, for RDF, getting the properties requires us to create a query and execute that query to get the list of values :/
+		 */
+		
+		// 1) grab boolean value that was defined in the SMSS file to determine if we need to look at data types to add to owl
 		boolean fillEmpty = true;
 		String fillEmptyStr = engine.getProperty(Constants.FILL_EMPTY_DATATYPES);
 		if(fillEmptyStr != null) {
 			fillEmpty = Boolean.parseBoolean(fillEmptyStr);
 		}
 		
+		// 2) if the boolean is true, proceed to perform logic, else, nothing to do
 		if(fillEmpty) {
 			LOGGER.info(engine.getEngineName() + " is reloading data types into owl file");
+			// grab the engine type
 			ENGINE_TYPE engineType = engine.getEngineType();
+			// use the super handy owler object to actual add the triples 
 			OWLER owler = new OWLER(engine, ((AbstractEngine) engine).getOWL(), engineType);
-			// first grab all the concepts
+			
+			// 3) first grab all the concepts
 			// see if concept has a data type, if not, determine the type and then add it
-			// for that concept, get all the properties
-			// see if property has a dat type, if not, determine the type and then add it
 			Vector<String> concepts = engine.getConcepts();
 			for(String concept : concepts) {
+				// ignore stupid master concept
 				if(concept.equals("http://semoss.org/ontologies/Concept")) {
-					continue; // ignore stupid master concept
+					continue; 
 				}
 				String conceptType = engine.getDataTypes(concept);
-				// if the type of the concept isn't stored, need to add it
+				// 4) if the type of the concept isn't stored, need to add it
 				if(conceptType == null) {
 					// checking the type if rdf
 					// if it is a RDF engine, all concepts are strings as its stored in a URI
@@ -1205,21 +1357,21 @@ public class Utility {
 						}
 					}
 				}
-	
-				// now go through the properties logic
+
+				// 5) For the concept, get all the properties
+				// see if property has a data type, if not, determine the type and then add it
 				List<String> propNames = engine.getProperties4Concept(concept, false);
-				if(propNames != null && !propNames.isEmpty()) { // if there are properties, lets go through the logic
-	
+				if(propNames != null && !propNames.isEmpty()) {
 					// need a bifurcation in logic between rdbms and rdf
 					// rdbms engine is smart enough to parse the table and column name from the uri in getEntityOfType call
 					// however, rdf is dumb and requires a unique query to be created 
-					// 			in order to get the values of a property for a specific concept
-	
-					if(engineType == ENGINE_TYPE.RDBMS) {
-						for(String prop : propNames) {
-							String propType = engine.getDataTypes(concept);
-							// if the prop type isn't sotred, need to add it
-							if(propType == null) {
+					// in order to get the values of a property for a specific concept
+					for(String prop : propNames) {
+						String propType = engine.getDataTypes(prop);
+
+						// 6) If the prop type isn't sotred, need to add it
+						if(propType == null) {
+							if(engineType == ENGINE_TYPE.RDBMS) {
 								// grab all values
 								Vector<Object> properties = engine.getEntityOfType(prop);
 								if(properties != null && !properties.isEmpty()) {
@@ -1231,56 +1383,81 @@ public class Utility {
 									// why is this a thing???
 									LOGGER.error("no instances of property... not sure how i determine a type here...");
 								}
-							}
-						}
-					} else {
-						// sadly, need to hand jam the appropriate query here
-						for(String prop : propNames) {
-							String propQuery = "SELECT DISTINCT ?property WHERE { {?x <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <" + concept + "> } { ?x <" + prop + "> ?property} }";
-							ISelectWrapper propWrapper = WrapperManager.getInstance().getSWrapper(engine, propQuery);
-							if(propWrapper.hasNext()) {
-								ISelectStatement propSS = propWrapper.next();
-								String property = propSS.getVar("property").toString().replace("\"", "");
-								String type = Utility.findTypes(property)[0] + "";
-								owler.addProp(Utility.getInstanceName(concept), Utility.getInstanceName(prop), type);
-							}  else {
-								// why is this a thing???
-								LOGGER.error("no instances of property... not sure how i determine a type here...");
+							} else {
+								// sadly, need to hand jam the appropriate query here
+								String propQuery = "SELECT DISTINCT ?property WHERE { {?x <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <" + concept + "> } { ?x <" + prop + "> ?property} }";
+								ISelectWrapper propWrapper = WrapperManager.getInstance().getSWrapper(engine, propQuery);
+								if(propWrapper.hasNext()) {
+									ISelectStatement propSS = propWrapper.next();
+									String property = propSS.getVar("property").toString().replace("\"", "");
+									String type = Utility.findTypes(property)[0] + "";
+									owler.addProp(Utility.getInstanceName(concept), Utility.getInstanceName(prop), type);
+								}  else {
+									// why is this a thing???
+									LOGGER.error("no instances of property... not sure how i determine a type here...");
+								}
 							}
 						}
 					}
 				}
 			}
-	
+
 			// now write the owler with all these triples added
+			// also need to reset the OWL within the engine to load in teh triples
 			try {
 				owler.export();
 				engine.setOWL(owler.getFileName());
 			} catch (IOException e) {
 				e.printStackTrace();
 			}
-			
+
 			// update the smss file to contain the boolean as true to avoid this process on start up again
 			LOGGER.info(engine.getEngineName() + " is changing boolean on smss for filling empty datatypes");
-			changeSMSSBoolean(fileName, Constants.FILL_EMPTY_DATATYPES, "false");
+			changeSMSSValue(fileName, Constants.FILL_EMPTY_DATATYPES, "false");
 		}
 	}
 
+	/**
+	 * Adds the engine into the local master database
+	 * @param engineToAdd				The engine to add into local master
+	 */
 	public static void addToLocalMaster(IEngine engineToAdd) {
+		/*
+		 * This determines when it is necessary to add an engine into the local master database
+		 * 
+		 * Logical Flow
+		 * 
+		 * 1) Get timestamp of the engine within local master -> call this time_local
+		 * 2) Get timestamp of last engine update, stored on engine's OWL file -> call this time_engine
+		 * 3) If time_local is equal to time_engine, local master is up to date
+		 * 4) In all other conditions, add the engine to the local master
+		 * 		-> all other conditions means if either time_local or time_engine are null or
+		 * 			if they do not equal
+		 * 
+		 * Note: that after the local master has the engine added, the timestamp in the local master
+		 * 			is set to be equal to that in the engine's OWL file (if the engine's OWL file time
+		 * 			stamp is null, it is set to the time when this routine started running)
+		 */
+		
+		// grab the local master engine
 		IEngine localMaster = (IEngine) DIHelper.getInstance().getLocalProp(Constants.LOCAL_MASTER_DB_NAME);
 		if(localMaster == null) {
 			LOGGER.info(">>>>>>>> Unable to find local master database in DIHelper.");
 			return;
 		}
 		if(engineToAdd == null) {
-			throw new NullPointerException("Unable to load engine ");
+			throw new NullPointerException("Engine passed in is null... no engine to load");
 		}
 
+		// generate the appropriate query to execute on the local master engine to get the time stamp
 		String engineName = engineToAdd.getEngineName();
 		String engineURL = "http://semoss.org/ontologies/Concept/Engine/" + Utility.cleanString(engineName, true);
 		String localDbQuery = "SELECT DISTINCT ?TIMESTAMP WHERE {<" + engineURL + "> <" + BaseDatabaseCreator.TIME_KEY + "> ?TIMESTAMP}";
+		
+		// generate the query to execute on the engine's OWL to get the time stamp
 		String engineQuery = "SELECT DISTINCT ?TIMESTAMP WHERE {<" + BaseDatabaseCreator.TIME_URL + "> <" + BaseDatabaseCreator.TIME_KEY + "> ?TIMESTAMP}";
 
+		// 1) get the local master timestamp for engine
 		String localDbTimeForEngine = null;
 		ISelectWrapper wrapper = WrapperManager.getInstance().getSWrapper(localMaster, localDbQuery);
 		String[] names = wrapper.getVariables();
@@ -1289,6 +1466,7 @@ public class Utility {
 			localDbTimeForEngine = ss.getVar(names[0]) + "";
 		}
 
+		// 2) get the engine timestamp from OWL 
 		String engineDbTime = null;
 		ISelectWrapper wrapper2 = WrapperManager.getInstance().getSWrapper( ((AbstractEngine)engineToAdd).getBaseDataEngine(), engineQuery);
 		String[] names2 = wrapper2.getVariables();
@@ -1297,6 +1475,7 @@ public class Utility {
 			engineDbTime = ss.getVar(names2[0]) + "";
 		}
 
+		// if the engine OWL file doesn't have a time stamp, add one into it
 		if(engineDbTime == null) {
 			DateFormat dateFormat = BaseDatabaseCreator.getFormatter();
 			Calendar cal = Calendar.getInstance();
@@ -1314,21 +1493,32 @@ public class Utility {
 			}
 		}
 
+		// 4) perform the necessary additions if the time stamps do not equal
+		// this is broken out into 2 separate parts
+		// 4.1) the local master doesn't have a time stamp which means the engine is not present
+		//		-> i.e. we do not need to remove the engine and re-add it
+		// 4.2) the time is present and we need to remove anything relating the engine that was in the engine and then re-add it
+		
 		if(localDbTimeForEngine == null) {
+			// here we add the engine's time stamp into the local master
 			localMaster.doAction(IEngine.ACTION_TYPE.ADD_STATEMENT, new Object[]{engineURL, BaseDatabaseCreator.TIME_KEY, engineDbTime, false});
 
+			// logic to register the engine into the local master
 			AddToMasterDB adder = new AddToMasterDB(Constants.LOCAL_MASTER_DB_NAME);
 			adder.registerEngineLocal(engineToAdd);
 			localMaster.commit();
 		} else if(!localDbTimeForEngine.equals(engineDbTime)) {
+			// remove the existing time stamp in the local master
 			localMaster.doAction(IEngine.ACTION_TYPE.REMOVE_STATEMENT, new Object[]{engineURL, BaseDatabaseCreator.TIME_KEY, localDbTimeForEngine, false});
+			// add the time stamp to be equal to that which is stored in the engine's OWL
 			localMaster.doAction(IEngine.ACTION_TYPE.ADD_STATEMENT, new Object[]{engineURL, BaseDatabaseCreator.TIME_KEY, engineDbTime, false});
 
-			//if it has a time stamp, it means it was previously in local master
-			//need to delete current information and read
+			// if it has a time stamp, it means it was previously in local master
+			// logic to delete an engine from the local master
 			DeleteFromMasterDB remover = new DeleteFromMasterDB(Constants.LOCAL_MASTER_DB_NAME);
 			remover.deleteEngine(engineName);
 
+			// logic to add the engine into the local master
 			AddToMasterDB adder = new AddToMasterDB(Constants.LOCAL_MASTER_DB_NAME);
 			adder.registerEngineLocal(engineToAdd);
 			localMaster.commit();
