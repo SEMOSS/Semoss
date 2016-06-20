@@ -703,6 +703,7 @@ public class Insight {
 		if(this.dataMaker.getUserId() == null) {
 			this.dataMaker.setUserId(this.userID);
 		}
+		this.dataMakerName = dataMaker.getDataMakerName();
 	}
 
 	/**
@@ -870,7 +871,11 @@ public class Insight {
 	 * @return
 	 */
 	public String getDataMakerName() {
-		return this.dataMakerName;
+		if(this.dataMaker == null) {
+			return this.dataMakerName;
+		} else {
+			return this.dataMaker.getClass().getSimpleName();
+		}
 	}
 	
 	/**
@@ -1459,10 +1464,11 @@ public class Insight {
 			} else if(solrDocs.size() > 1) {
 				// not sure how this would happen or what to do
 			}
-			
+
 			Map<String, Object> insightMetaData = solrDocs.get(0).getFieldValueMap();
 			this.setInsightName(insightMetaData.get(SolrIndexEngine.STORAGE_NAME) + "");
 			this.setOutput(insightMetaData.get(SolrIndexEngine.LAYOUT) + "");
+			this.dataMakerName = insightMetaData.get(SolrIndexEngine.DATAMAKER_NAME) + "";
 			
 		} catch (KeyManagementException | NoSuchAlgorithmException | KeyStoreException | SolrServerException
 				| IOException e) {

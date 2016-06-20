@@ -1361,4 +1361,9 @@ public class GraphDataModel implements IDataMaker {
 		// TODO Auto-generated method stub
 		return null;
 	}
+	
+	@Override
+	public String getDataMakerName() {
+		return "GraphDataModel";
+	}
 }

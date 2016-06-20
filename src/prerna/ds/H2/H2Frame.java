@@ -56,17 +56,19 @@ public class H2Frame extends AbstractTableDataFrame {
 	public H2Frame(String[] headers) {
 		this.headerNames = headers;
 		this.metaData = new TinkerMetaData();
+		setSchema();
 	}
 	
 	public H2Frame() {
 		this.metaData = new TinkerMetaData();
+		setSchema();
 	}
 	
 	private void setSchema() {
 		if(this.builder == null) {
 			this.builder = new H2Builder();
-			this.builder.schema = this.userId;
-		}
+		} 
+		this.builder.setSchema(this.userId);
 	}
 	
 	@Override
@@ -937,6 +939,8 @@ public class H2Frame extends AbstractTableDataFrame {
 		reactorNames.put(PKQLEnum.VIZ, "prerna.sablecc.VizReactor");
 		reactorNames.put(PKQLEnum.UNFILTER_DATA, "prerna.sablecc.ColUnfilterReactor");
 		reactorNames.put(PKQLEnum.DATA_FRAME, "prerna.sablecc.DataFrameReactor");
+		reactorNames.put(PKQLEnum.DASHBOARD_JOIN, "prerna.sablecc.DashboardJoinReactor");
+
 //		switch(reactorType) {
 //			case IMPORT_DATA : return new H2ImportDataReactor();
 //			case COL_ADD : return new ColAddReactor();
@@ -1031,5 +1035,10 @@ public class H2Frame extends AbstractTableDataFrame {
 	
 	public void dropTable() {
 		this.builder.dropTable();
+	}
+	
+	@Override
+	public String getDataMakerName() {
+		return "H2Frame";
 	}
 }
