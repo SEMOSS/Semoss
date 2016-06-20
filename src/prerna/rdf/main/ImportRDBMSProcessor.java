@@ -49,8 +49,10 @@ import prerna.poi.main.BaseDatabaseCreator;
 import prerna.poi.main.PropFileWriter;
 import prerna.poi.main.RDBMSEngineCreationHelper;
 import prerna.ui.components.ImportDataProcessor;
+import prerna.util.AbstractFileWatcher;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
+import prerna.util.SMSSWebWatcher;
 import prerna.util.sql.SQLQueryUtil;
 
 public class ImportRDBMSProcessor {
@@ -318,8 +320,17 @@ public class ImportRDBMSProcessor {
 		File oldFile = null;
 		File newFile = null;
 		try {
+			String watcher = "SMSSWebWatcher";
+			String folder = DIHelper.getInstance().getProperty(watcher + "_DIR");
+			AbstractFileWatcher watcherInstance = new SMSSWebWatcher();
+			watcherInstance.setMonitor(new Object[]{});
+			watcherInstance.setFolderToWatch(folder);
+			
 			propWriter.runWriter(engineName, "", "", "", ImportDataProcessor.DB_TYPE.RDBMS);
 			oldFile = new File(propWriter.propFileName);
+			
+			watcherInstance.process(propWriter.propFileName.substring(propWriter.propFileName.lastIndexOf("/"))); 
+			
 			newFile = new File(propWriter.propFileName.replace("temp", "smss"));
 			FileUtils.copyFile(oldFile, newFile);
 			newFile.setReadable(true);
