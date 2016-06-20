@@ -268,7 +268,8 @@ public final class SolrImportUtility {
 			}
 			// the name of the datamaker is required
 			if(dataMakerName == null || dataMakerName.isEmpty()) {
-				throw new IOException("SolrInputDocument does not contain the datamaker name for the insight...");
+				//TODO: will make this mandatory once the insight cache refactor is pushed
+//				throw new IOException("SolrInputDocument does not contain the datamaker name for the insight...");
 			} else {
 				insightQueryResults.put(SolrIndexEngine.DATAMAKER_NAME, dataMakerName);
 			}
