@@ -55,27 +55,39 @@ public class SolrIndexEngine {
 
 	private static final Logger LOGGER = LogManager.getLogger(SolrIndexEngine.class.getName());
 
+	// two cores for the solr index engine 
 	public enum SOLR_PATHS {
 		SOLR_INSIGHTS_PATH, SOLR_INSTANCES_PATH
 	}
-
+	// the name of insight core
+	private static final String SOLR_INSIGHTS_PATH_NAME = "/insightCore";
+	// the name of instances core
+	private static final String SOLR_INSTANCES_PATH_NAME = "/instancesCore";
+	
+	// the solr index engine singleton
 	private static SolrIndexEngine singleton;
+	// the url to connect to the solr index engine
 	private static String url;
+	// the insight solr server
 	private HttpSolrServer insightServer;
+	// the instance solr server
 	private HttpSolrServer instanceServer;
 
+	// search return response
 	private static final String QUERY_RESPONSE = "queryResponse";
+	// the spellcheck return response
 	private static final String SPELLCHECK_RESPONSE = "spellcheckResponse";
-	private static final String SOLR_INSIGHTS_PATH_NAME = "/insightCore";
-	private static final String SOLR_INSTANCES_PATH_NAME = "/instancesCore";
+	// the total number of documents found -> used for limit/offset by FE
 	public static final String NUM_FOUND = "numFound";
 
+	// the default query to get all documents
 	public static final String QUERY_ALL = "*:*";
 	
-	// Schema Field Names
+	// Schema Field Names For Insight Core
 	public static final String ID = "id";
 	public static final String STORAGE_NAME = "name";
 	public static final String INDEX_NAME = "index_name";
+	public static final String DATAMAKER_NAME = "datamaker_name";
 	public static final String CREATED_ON = "created_on";
 	public static final String MODIFIED_ON = "modified_on";
 	public static final String USER_ID = "user_id";
@@ -95,12 +107,14 @@ public class SolrIndexEngine {
 	public static final String ALGORITHMS = "algorithms";
 	public static final String NON_DB_INSIGHT = "non_db_insight";
 	
-	// Instance specific schema fields
+	// Schema Field Names For Instance Core
 	public static final String VALUE = "value";
 	public static final String INSTANCES = "instances";
 	
+	// ordering of results
 	public static final String DESC = "desc";
 	public static final String ASC = "asc";
+	// the match score for the insight to the query terms
 	public static final String SCORE = "score";
 	
 	/**
@@ -113,15 +127,8 @@ public class SolrIndexEngine {
 		SolrIndexEngine.url = url;
 	}
 
-	public static void main(String[] args) throws SolrServerException, IOException, KeyManagementException, NoSuchAlgorithmException, KeyStoreException {
-		SolrIndexEngine.setUrl("http://localhost:8080/solr");
-		SolrIndexEngine e = SolrIndexEngine.getInstance();
-		e.deleteAllSolrData();
-	}
-
 	/**
 	 * Creates one instance of the Solr engine.
-	 * 
 	 * @return an instance of the SolrIndexEngine
 	 */
 	public static SolrIndexEngine getInstance()
@@ -141,17 +148,21 @@ public class SolrIndexEngine {
 		builder.loadTrustMaterial(null, new TrustSelfSignedStrategy());
 		SSLConnectionSocketFactory sslsf = new SSLConnectionSocketFactory(builder.build());
 		CloseableHttpClient httpclient = HttpClients.custom().setSSLSocketFactory(sslsf).build();
-
+		
+		// the URL for the solr index is defined in RDF_MAP
+		// need to make sure this is accurate for code to work
 		if (SolrIndexEngine.url == null) {
 			SolrIndexEngine.url = DIHelper.getInstance().getProperty(Constants.SOLR_URL);
 		}
 
+		// create your insight and instance servers
 		insightServer = new HttpSolrServer(SolrIndexEngine.url + SOLR_INSIGHTS_PATH_NAME, httpclient);
 		instanceServer = new HttpSolrServer(SolrIndexEngine.url + SOLR_INSTANCES_PATH_NAME, httpclient);
 	}
 
 	/**
 	 * Used to determine if the server is active or not
+	 * This call is basically made before any other method is called
 	 * @return true if the server is active
 	 */
 	public boolean serverActive() {
@@ -166,9 +177,63 @@ public class SolrIndexEngine {
 	}
 	
 	/**
-	 * Uses the passed in params to add a new Document into Solr
-	 * @param uniqueID					new ID to be added
+	 * Used to create a generic SolrInputDocument
+	 * This is usually called when you want to store a list of solr documents you want to index
+	 * 		It is significantly more efficient to add the full list of documents to index at the same time
+	 * 		instead of indexing each document separately 
+	 * This can be used when creating a document for the insight and instance core
+	 * @param uniqueID				The unique id for the solr document
+	 * @param fieldData				The field data for the document.. must match the existing schema values
+	 * 									all the fields are defined above as constants
+	 * @return
+	 */
+	public SolrInputDocument createDocument(String uniqueID, Map<String, Object> fieldData) {
+		SolrInputDocument doc = new SolrInputDocument();
+		// set document ID to uniqueID
+		doc.setField(ID, uniqueID);
+		// add field names and data to new Document
+		for (String fieldname : fieldData.keySet()) {
+			doc.setField(fieldname, fieldData.get(fieldname));
+		}
+		
+		return doc;
+	}
+	
+	/////////////////// START ADDING INSIGHTS INTO SOLR ///////////////////
+	
+	/*
+	 * There are two ways to add insights into solr.  
+	 * 1) add one insight at a time 
+	 * 		-> this is used when we are saving a specific insight
+	 * 2) input a collection of insights to add
+	 * 		-> this is currently being used on start up (used Utility.LoadWebEngine)
+	 * 		-> we query the entire engines rdbms insights database and then add all the documents at the same time
+	 * 		-> this is significantly faster than indexing each insight one at a time 
+	 */
+	
+	/**
+	 * Used to add a list of insights into the insight solr core
+	 * @param docs						The list of solr documents to index
+	 * @throws SolrServerException
+	 * @throws IOException
+	 */
+	public void addInsights(Collection<SolrInputDocument> docs) throws SolrServerException, IOException {
+		if (serverActive()) {
+			if(docs != null && !docs.isEmpty()) {
+				LOGGER.info("Adding " + docs.size() + " documents into insight server...");
+				insightServer.add(docs);
+				insightServer.commit();
+				LOGGER.info("Done adding documents in insight server.");
+			}
+		}
+	}
+	
+	/**
+	 * Uses the passed in params to add a new document into insight solr core
+	 * @param uniqueID					new id to be added
 	 * @param fieldData					fields to be added to the new Doc
+	 * @throws SolrServerException
+	 * @throws IOException
 	 */
 	public void addInsight(String uniqueID, Map<String, Object> fieldData) throws SolrServerException, IOException {
 		if (serverActive()) {
@@ -182,30 +247,164 @@ public class SolrIndexEngine {
 		}
 	}
 	
-	public SolrInputDocument createDocument(String uniqueID, Map<String, Object> fieldData) {
-		SolrInputDocument doc = new SolrInputDocument();
-		// set document ID to uniqueID
-		doc.setField(ID, uniqueID);
-		// add field names and data to new Document
-		for (String fieldname : fieldData.keySet()) {
-			doc.setField(fieldname, fieldData.get(fieldname));
+	/////////////////// END ADDING INSIGHTS INTO SOLR ///////////////////
+
+	/////////////////// START MODIFICATION TO INSIGHTS SOLR CORE ///////////////////
+
+	/**
+	 * Deletes the specified document based on its Unique ID
+	 * @param uniqueID              ID to be deleted
+	 */
+	public void removeInsight(List<String> uniqueIDs) throws SolrServerException, IOException {
+		if (serverActive()) {
+			// delete document based on ID
+			LOGGER.info("Deleting documents with ids:  " + uniqueIDs);
+			insightServer.deleteById(uniqueIDs);
+			insightServer.commit();
+			LOGGER.info("Documents with uniqueIDs: " + uniqueIDs + " have been deleted");
+			buildSuggester();
 		}
-		
-		return doc;
 	}
 	
-	public void addInsights(Collection<SolrInputDocument> docs) throws SolrServerException, IOException {
+	/**
+	 * Modifies the specified document based on its Unique ID
+	 * @param uniqueID              ID to be modified
+	 * @param fieldsToModify        specific fields to modify
+	 */
+	public Map<String, Object> modifyInsight(String uniqueID, Map<String, Object> fieldsToModify) throws SolrServerException, IOException {
 		if (serverActive()) {
-			if(docs != null && !docs.isEmpty()) {
-				LOGGER.info("Adding " + docs.size() + " documents into insight server...");
-				insightServer.add(docs);
-				insightServer.commit();
-				LOGGER.info("Done adding documents in insight server.");
+			/*
+			 * solr doens't allow you to modify specific fields in a document that is already indexed
+			 * therefore, to modify an existing insight we need to
+			 * 1) query the solr insight core using the specific unique id for the document
+			 * 2) once you have the solr document, get the map containing the field attributes
+			 * 3) override any of the existing fields contained in the map that were received from the solr document
+			 * 		with the new values in the fieldsToModify map that was passed into the method
+			 * 4) add this new solr document back into insight core
+			 * 
+			 * note: if you add a solr document which has the same id as an existing document that was indexed
+			 * 			solr automatically overrides that index with the new one
+			 */
+			
+			
+			// 1) query to get the existing insight
+			
+			// create a solr query builder and add a filter on the specific ID to get the correct insight
+			SolrIndexEngineQueryBuilder queryBuilder = new SolrIndexEngineQueryBuilder();
+			queryBuilder.setSearchString(QUERY_ALL);
+			Map<String, List<String>> filterForId = new HashMap<String, List<String>>();
+			List<String> idList = new ArrayList<String>();
+			idList.add(uniqueID);
+			filterForId.put(ID, idList);
+			queryBuilder.setFilterOptions(filterForId);
+			// execute the query
+			QueryResponse res = getQueryResponse(queryBuilder.getSolrQuery(), SOLR_PATHS.SOLR_INSIGHTS_PATH);
+			// the results object is defaulted to a list.. but with the ID bind (which is unique) there should
+			// be exactly one solr document returned
+			SolrDocument origDoc = res.getResults().get(0);
+			
+			// 2) create an iterator to go through the existing fields
+			Iterator<Entry<String, Object>> iterator = origDoc.iterator();
+			
+			// 3) we need to create a new solr document to combine the existing values and override any of those values
+			//		with those in the fieldsToModify set
+			SolrInputDocument doc = new SolrInputDocument();
+			
+			// we also need to keep a list of fields that have been added
+			// this is because the existing values in the iterator only returns those which are set
+			// but there may be values which are not set that are defined in the fieldsToModify map
+			// based on the looping, need to iterate through and make sure all are added
+			Set<String> currFieldNames = new HashSet<String>();
+			
+			// loop through existing values
+			while (iterator.hasNext()) {
+				//get the next field value in the existing map
+				Entry<String, Object> field = iterator.next();
+				// fieldName will correspond to a defined field name in the schema
+				String fieldName = field.getKey();
+				// add to the list of field names that have been added
+				currFieldNames.add(fieldName);
+				// if modified field, grab new value
+				if (fieldsToModify.containsKey(fieldName)) {
+					doc.setField(fieldName, fieldsToModify.get(fieldName));
+				} else {
+					// if not modified field, use existing value
+					doc.setField(fieldName, field.getValue());
+					// also update the map to return what all the values are
+					if(fieldName.equals(CREATED_ON) || fieldName.equals(MODIFIED_ON)) {
+						// special case for dates since they must be in a specific format
+						try {
+							Date d = getSolrDateFormat().parse(field.getValue() + "");
+							fieldsToModify.put(fieldName, getDateFormat().format(d));
+						} catch (ParseException e) {
+							e.printStackTrace();
+						}
+					} else {
+						// if not a date, just add the value as is
+						fieldsToModify.put(fieldName, field.getValue());
+					}
+				}
+			}
+			
+			// again.. since the iterator only contains the values that are set
+			// the above loop will not get any new fields defined in fieldsToModify map
+			// so loop through the map and see if any fields are defined there that need to be set
+			for (String newField : fieldsToModify.keySet()) {
+				if (!currFieldNames.contains(newField)) {
+					doc.setField(newField, fieldsToModify.get(newField));
+				}
+			}
+			
+			// when committing, automatically overrides existing field values with the new ones
+			LOGGER.info("Modifying document:  " + uniqueID);
+			insightServer.add(doc);
+			insightServer.commit();
+			LOGGER.info("UniqueID " + uniqueID + "'s doc has been modified");
+			buildSuggester();
+		}
+		
+		return fieldsToModify;
+	}
+	
+	/////////////////// END MODIFICATION TO INSIGHTS SOLR CORE ///////////////////
+
+	
+	/////////////////// START ADDING INSTANCES INTO SOLR ///////////////////
+
+	/*
+	 * There are two ways to add instances into solr.  
+	 * 1) add one insight at a time 
+	 * 		-> this used to be called back when we were indexing one document at a time
+	 * 2) input a collection of insights to add
+	 * 		-> this is currently being used on start up (used Utility.LoadWebEngine)
+	 * 		-> we query the entire engines rdbms insights database and then add all the documents at the same time
+	 * 		-> this is significantly faster than indexing each insight one at a time 
+	 */
+	
+	/**
+	 * Used to add a list of instances into the instance solr core
+	 * @param docs						The list of solr documents to index
+	 * @throws SolrServerException
+	 * @throws IOException
+	 */
+	public void addInstances(Collection<SolrInputDocument> docs) throws SolrServerException, IOException {
+		if (serverActive()) {
+			if(!docs.isEmpty()) {
+				LOGGER.info("Adding " + docs.size() + " documents into instance server...");
+				instanceServer.add(docs);
+				instanceServer.commit();
+				LOGGER.info("Done adding documents in instance server.");
 			}
 		}
 	}
-
-	// make another method to add core_engine, concept, and instances
+	
+	/**
+	 * Adds a specific concept with all its instances into the instance solr core
+	 * @param uniqueID					new id to be added
+	 * @param fieldData					fields to be added to the new Doc
+	 * @throws SolrServerException
+	 * @throws IOException
+	 */
 	public void addInstance(String uniqueID, Map<String, Object> fieldData) throws SolrServerException, IOException {
 		if (serverActive()) {
 			// create new Document
@@ -217,17 +416,25 @@ public class SolrIndexEngine {
 		}
 	}
 	
-	public void addInstances(Collection<SolrInputDocument> docs) throws SolrServerException, IOException {
-		if (serverActive()) {
-			if(!docs.isEmpty()) {
-				LOGGER.info("Adding " + docs.size() + " documents into instance server...");
-				instanceServer.add(docs);
-				instanceServer.commit();
-				LOGGER.info("Done adding documents in instance server.");
-			}
-		}
-	}
+	/////////////////// END ADDING INSTANCES INTO SOLR ///////////////////
 
+	
+	
+	/////////////////// START VARIOUS WAYS TO QUERY SOLR ENGINE ///////////////////
+	
+	/*
+	 * THERE ARE MANY WAYS TO QUERY THE SOLR CORES... I need to go back and add why there are so many...
+	 * TODO
+	 * TODO
+	 * TODO
+	 * 
+	 * in a very brief description, methods are exposed if you want to do just do a search, a group by, or facet results
+	 * each of the above has 2 methods.. one that takes in the user input and formats it to call
+	 * 		a private method which does the execution on the core... also does the logic to know when to 
+	 * 		use the instance core and get spellcheck results, etc.
+	 * 
+	 */
+	
 	public SolrDocumentList getInsight(String uniqueID) throws SolrServerException, IOException {
 		SolrDocumentList results = null;
 		if(serverActive()) {
@@ -260,86 +467,6 @@ public class SolrIndexEngine {
 			results = res.getResults();
 		}
 		return results;
-	}
-	
-	/**
-	 * Deletes the specified document based on its Unique ID
-	 * @param uniqueID              ID to be deleted
-	 */
-	public void removeInsight(List<String> uniqueIDs) throws SolrServerException, IOException {
-		if (serverActive()) {
-			// delete document based on ID
-			LOGGER.info("Deleting documents with ids:  " + uniqueIDs);
-			insightServer.deleteById(uniqueIDs);
-			insightServer.commit();
-			LOGGER.info("Documents with uniqueIDs: " + uniqueIDs + " have been deleted");
-			buildSuggester();
-		}
-	}
-
-	/**
-	 * Modifies the specified document based on its Unique ID
-	 * @param uniqueID              ID to be modified
-	 * @param fieldsToModify        specific fields to modify
-	 */
-	public Map<String, Object> modifyInsight(String uniqueID, Map<String, Object> fieldsToModify) throws SolrServerException, IOException {
-		if (serverActive()) {
-			SolrIndexEngineQueryBuilder queryBuilder = new SolrIndexEngineQueryBuilder();
-			queryBuilder.setSearchString(QUERY_ALL);
-			Map<String, List<String>> filterForId = new HashMap<String, List<String>>();
-			List<String> idList = new ArrayList<String>();
-			idList.add(uniqueID);
-			filterForId.put(ID, idList);
-			queryBuilder.setFilterOptions(filterForId);
-			
-//			SolrDocument origDoc = queryDocument(queryBuilder).get(0);
-			QueryResponse res = getQueryResponse(queryBuilder.getSolrQuery(), SOLR_PATHS.SOLR_INSIGHTS_PATH);
-			SolrDocument origDoc = res.getResults().get(0);
-			
-			Iterator<Entry<String, Object>> iterator = origDoc.iterator();
-			SolrInputDocument doc = new SolrInputDocument();
-			doc.get(uniqueID); // getting the doc set based on the id
-
-			Set<String> currFieldNames = new HashSet<String>();
-			while (iterator.hasNext()) {
-				// getName & getValues
-				Entry<String, Object> field = iterator.next();
-				String fieldName = field.getKey();
-				currFieldNames.add(fieldName);
-				// if modified field, grab new value
-				if (fieldsToModify.containsKey(fieldName)) {
-					doc.setField(fieldName, fieldsToModify.get(fieldName));
-				} else {
-					// if not modified field, use existing value
-					doc.setField(fieldName, field.getValue());
-					// also update the map to return what all the values are
-					if(fieldName.equals(CREATED_ON) || fieldName.equals(MODIFIED_ON)) {
-						try {
-							Date d = getSolrDateFormat().parse(field.getValue() + "");
-							fieldsToModify.put(fieldName, getDateFormat().format(d));
-						} catch (ParseException e) {
-							e.printStackTrace();
-						}
-					} else {
-						fieldsToModify.put(fieldName, field.getValue());
-					}
-				}
-			}
-			// loop through if new fields are being added
-			for (String newField : fieldsToModify.keySet()) {
-				if (!currFieldNames.contains(newField)) {
-					doc.setField(newField, fieldsToModify.get(newField));
-				}
-			}
-			// when committing, automatically overrides existing field values with the new ones
-			LOGGER.info("Modifying document:  " + uniqueID);
-			insightServer.add(doc);
-			insightServer.commit();
-			LOGGER.info("UniqueID " + uniqueID + "'s doc has been modified");
-			buildSuggester();
-		}
-		
-		return fieldsToModify;
 	}
 
 	/**
@@ -899,9 +1026,14 @@ public class SolrIndexEngine {
 		return allResponse;
 	}
 	
+	/////////////////// END VARIOUS WAYS TO QUERY SOLR ENGINE ///////////////////
+
+	
+	/////////////////// START UTILITY METHODS ///////////////////
+
 	/**
-	 * Used to verify if specified engine is already contained within Solr If
-	 * the method returns a false then the engine needs to be added to Solr
+	 * Used to verify if specified engine is already contained within solr If
+	 * the method returns a false then the engine needs to be added to solr
 	 * @param engineName           name of the engine to verify existence
 	 * @return true if the engine already exists
 	 */
@@ -996,10 +1128,22 @@ public class SolrIndexEngine {
 		return new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'");
 	}
 	
+	/**
+	 * While the solr document for passing in data is in yyyy-MM-dd'T'HH:mm:ss'Z' format, the date format 
+	 * it returns those fields are in EEE MMM dd HH:mm:ss ZZZ yyyy format... not sure why it does this
+	 * @return
+	 */
 	public static DateFormat getSolrDateFormat() {
 		return new SimpleDateFormat("EEE MMM dd HH:mm:ss ZZZ yyyy");
 	}
 	
+	/**
+	 * Get the solr id based on the engine name and the unique engine id
+	 * This does a concatenation between the engine name and the unique engine id
+	 * @param engineName			The engine name
+	 * @param engineIds				The list of the engine ids
+	 * @return						The solr id for each entry in the engine id list
+	 */
 	public static List<String> getSolrIdFromInsightEngineId(String engineName, List<String> engineIds) {
 		Vector<String> fixedQuestionIds = new Vector<String>();
 		for(String id : engineIds) {
@@ -1009,8 +1153,26 @@ public class SolrIndexEngine {
 		return fixedQuestionIds;
 	}
 	
+	/**
+	 * Get the solr id based on the engine name and the unique engine id
+	 * @param engineName			The engine name
+	 * @param id					The insight unique id for that engine
+	 * @return						The corresponding solr unique insight id
+	 */
 	public static String getSolrIdFromInsightEngineId(String engineName, String id) {
 		return engineName + "_" + id;
 	}
+	
+	/////////////////// END UTILITY METHODS ///////////////////
+
+	
+	///////////////// Use for testing purposes ////////////////////
+	// clearly have been doing a lot of testing this way....
+	public static void main(String[] args) throws SolrServerException, IOException, KeyManagementException, NoSuchAlgorithmException, KeyStoreException {
+		SolrIndexEngine.setUrl("http://localhost:8080/solr");
+		SolrIndexEngine e = SolrIndexEngine.getInstance();
+		e.deleteAllSolrData();
+	}
+
 	
 }

@@ -2348,4 +2348,9 @@ public class TinkerFrame extends AbstractTableDataFrame {
 		
 		return reactorNames;
 	}
+	
+	@Override
+	public String getDataMakerName() {
+		return "TinkerFrame";
+	}
 }
