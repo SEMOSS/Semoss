@@ -939,7 +939,7 @@ public class H2Frame extends AbstractTableDataFrame {
 		reactorNames.put(PKQLEnum.VIZ, "prerna.sablecc.VizReactor");
 		reactorNames.put(PKQLEnum.UNFILTER_DATA, "prerna.sablecc.ColUnfilterReactor");
 		reactorNames.put(PKQLEnum.DATA_FRAME, "prerna.sablecc.DataFrameReactor");
-		reactorNames.put(PKQLEnum.DASHBOARD_JOIN, "prerna.sablecc.DashboardJoinReactor");
+//		reactorNames.put(PKQLEnum.DASHBOARD_JOIN, "prerna.sablecc.DashboardJoinReactor");
 
 //		switch(reactorType) {
 //			case IMPORT_DATA : return new H2ImportDataReactor();
