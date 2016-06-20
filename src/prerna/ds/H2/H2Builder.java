@@ -42,8 +42,7 @@ public class H2Builder {
 //	String alterString = null;
 	Vector <String> castTargets = new Vector<String>();
 	Connection conn = null;
-	String schema = "test"; // assign a default schema which is test
-
+	private String schema = "test"; // assign a default schema which is test
 	boolean create = false;
 	static int tableRunNumber = 1;
 	static int rowCount = 0;
@@ -1671,6 +1670,16 @@ public class H2Builder {
 			e.printStackTrace();
 		}
     }
+    
+    public String getSchema() {
+		return this.schema;
+	}
+
+	public void setSchema(String schema) {
+		if(schema != null) {
+			this.schema = schema;
+		}
+	}
     
     /*************************** QUERY BUILDERS ******************************************/
     

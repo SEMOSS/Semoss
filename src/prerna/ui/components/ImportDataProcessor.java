@@ -302,7 +302,7 @@ public class ImportDataProcessor {
 				engineNames = engineNames + ";" + dbName;
 				DIHelper.getInstance().setLocalProperty(Constants.ENGINES, engineNames);
 				Utility.addToLocalMaster(engine);
-				Utility.addToSolrInsightCore(engine, propWriter.propFileName);
+				Utility.addToSolrInsightCore(engine);
 				Utility.addToSolrInstanceCore(engine);
 			}
 			

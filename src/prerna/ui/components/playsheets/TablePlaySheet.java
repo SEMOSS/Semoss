@@ -42,7 +42,6 @@ import org.apache.log4j.Logger;
 import prerna.algorithm.api.ITableDataFrame;
 import prerna.ds.BTreeDataFrame;
 import prerna.engine.api.IEngine;
-import prerna.engine.api.IScriptReactor;
 import prerna.om.InsightStore;
 import prerna.sablecc.PKQLEnum;
 import prerna.sablecc.PKQLEnum.PKQLReactor;
@@ -336,5 +335,14 @@ public class TablePlaySheet extends AbstractPlaySheet implements IDataMaker{
 	public String getUserId() {
 		// TODO Auto-generated method stub
 		return null;
+	}
+
+	@Override
+	public String getDataMakerName() {
+		if(this.dataFrame != null) {
+			return this.dataFrame.getDataMakerName();
+		} else {
+			return this.getClass().getName();
+		}
 	}
 }
