@@ -27,17 +27,11 @@
  *******************************************************************************/
 package prerna.nameserver;
 
-import java.text.DateFormat;
-import java.text.ParseException;
-import java.text.SimpleDateFormat;
 import java.util.ArrayList;
-import java.util.Date;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Hashtable;
 import java.util.Iterator;
 import java.util.List;
-import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 
@@ -47,33 +41,14 @@ import org.openrdf.model.vocabulary.RDFS;
 import prerna.engine.api.IEngine;
 import prerna.engine.api.ISelectStatement;
 import prerna.engine.api.ISelectWrapper;
-import prerna.engine.impl.rdf.BigDataEngine;
 import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.util.Constants;
-import prerna.util.DIHelper;
 import prerna.util.Utility;
 
 public final class MasterDBHelper {
 
 	private MasterDBHelper() {
 		
-	}
-	
-	public static Map<String, Date> getEngineTimestamps(IEngine masterEngine) {
-		DateFormat format = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss", Locale.ENGLISH);
-		
-		Map<String, Date> engines = new HashMap<String, Date>();
-		ISelectWrapper wrapper = WrapperManager.getInstance().getSWrapper(masterEngine, MasterDatabaseQueries.ENGINE_TIMESTAMP_QUERY);
-		String[] names = wrapper.getVariables();
-		while(wrapper.hasNext()) {
-			ISelectStatement iss = wrapper.next();
-			try {
-				engines.put(iss.getVar(names[0]).toString(), format.parse(iss.getVar(names[1]).toString()) );
-			} catch (ParseException e) {
-				e.printStackTrace();
-			}
-		}
-		return engines;
 	}
 	
 	public static List<String> getAllEngines(IEngine masterEngine) {
@@ -207,22 +182,6 @@ public final class MasterDBHelper {
 	}
 	
 	/**
-	 * Adds the list of enignes that are in the master db
-	 * @param masterEngine		The engine to query
-	 * @param engineList		The set to add the engine list to
-	 */
-	public static void fillEnglishList(IEngine masterEngine, Set<String> engineList) {
-		ISelectWrapper wrapper = Utility.processQuery(masterEngine, MasterDatabaseQueries.ENGINE_LIST_QUERY);
-		// get the bindings from it
-		String[] names = wrapper.getVariables();
-		// now get the bindings and generate the data
-		while(wrapper.hasNext()) {
-			ISelectStatement sjss = wrapper.next();
-			engineList.add((String) sjss.getVar(names[0]));
-		}
-	}
-	
-	/**
 	 * Add the engine URLs to a hashtable
 	 * @param masterEngine		The engine to query
 	 * @param engineURLHash		The hashtable to add all the engine URLs to
@@ -239,51 +198,6 @@ public final class MasterDBHelper {
 			String baseURI = (sjss.getRawVar(names[1])).toString();
 			engineURLHash.put(engine,baseURI);
 		}
-	}
-	
-	/**
-	 * Based on the keywordURI, find related keywords and their respective nouns and engines
-	 * @param masterEngine			The engine to query
-	 * @param keywordSet			The Set of keywords to find related to
-	 * @param relatedKeywordSet		The Set connected keywords to the keywordSet passed in
-	 * @param engineKeywordMap		The Map containing the engine keyword and the value Set of keywords contained in that engine
-	 */
-	public static void findRelatedKeywordsToSetStrings(IEngine masterEngine, Set<String> keywordSet, Set<String> connectedKeywordSet, Map<String, Set<String>> engineKeywordMap){
-		// find all related keywords to the inputed data type
-		String bindingsStr = "";
-		Iterator<String> keywordsIt = keywordSet.iterator();
-		while(keywordsIt.hasNext()) {
-			bindingsStr = bindingsStr.concat("(<").concat(MasterDatabaseURIs.KEYWORD_BASE_URI).concat("/").concat(keywordsIt.next()).concat(">)");
-		}
-		
-		if(!bindingsStr.isEmpty()) {
-			String[] queries = new String[]{MasterDatabaseQueries.GET_RELATED_KEYWORDS_TO_SET_AND_THEIR_NOUNS.replace("@BINDINGS@", bindingsStr), MasterDatabaseQueries.GET_RELATED_KEYWORDS_TO_SET_AND_THEIR_NOUNS_NO_RECURSION.replace("@BINDINGS@", bindingsStr)};
-			for(int i = 0; i < queries.length; i++) {
-				ISelectWrapper sjsw = Utility.processQuery(masterEngine, queries[i]);
-				String[] names = sjsw.getVariables();
-				while(sjsw.hasNext()) {
-					ISelectStatement sjss = sjsw.next();
-					String engine = sjss.getVar(names[0]).toString();
-					String keyword = sjss.getRawVar(names[1]).toString();
-					
-					connectedKeywordSet.add(keyword);
-					
-					Set<String> keywordForEngineList;
-					if(engineKeywordMap.containsKey(engine)) {
-						keywordForEngineList = engineKeywordMap.get(engine);
-						keywordForEngineList.add(keyword);
-					} else {
-						keywordForEngineList = new HashSet<String>();
-						keywordForEngineList.add(keyword);
-						engineKeywordMap.put(engine, keywordForEngineList);
-					}
-				}
-			}
-		}
-		
-		//TODO: remove once error checking is done
-//		System.err.println(">>>>>>>>>>>>>>>>>FOUND RELATED KEYWORDS TO SET: " + keywordSet);
-//		System.err.println(">>>>>>>>>>>>>>>>>LIST IS: " + connectedKeywordSet);
 	}
 	
 	
@@ -325,72 +239,6 @@ public final class MasterDBHelper {
 		//TODO: remove once error checking is done
 //		System.err.println(">>>>>>>>>>>>>>>>>FOUND RELATED KEYWORDS " + Utility.getInstanceName(keywordURI));
 //		System.err.println(">>>>>>>>>>>>>>>>>LIST IS: " + keywordSet);
-	}
-	
-	public static Map<String, Set<String>> getMCValueMappingTree(IEngine masterEngine) {
-		// fill the concept-concept tree 
-		MasterDatabaseForest<String> forest = new MasterDatabaseForest<String>();
-		ISelectWrapper wrapper = Utility.processQuery(masterEngine, MasterDatabaseQueries.MC_PARENT_CHILD_QUERY);
-		String[] names = wrapper.getVariables();
-		while(wrapper.hasNext())
-		{
-			ISelectStatement sjss = wrapper.next();
-			// add parent child relationships to value mapping
-			TreeNode<String> parentNode = new TreeNode<String>(sjss.getVar(names[0]).toString());
-			parentNode.addChild(sjss.getVar(names[1]).toString());
-			forest.addNodes(parentNode);
-		}
-		return forest.getValueMapping();
-	}
-	
-	public static Map<String, Set<String>> getMCToKeywordValueMapping(IEngine masterEngine) {
-		// fill the keyword-concept graph
-		MasterDatabaseBipartiteGraph<String> keywordConceptBipartiteGraph = new MasterDatabaseBipartiteGraph<String>();
-		ISelectWrapper wrapper = Utility.processQuery(masterEngine, MasterDatabaseQueries.KEYWORD_NOUN_QUERY);
-		String[] names = wrapper.getVariables();
-		while(wrapper.hasNext())
-		{
-			ISelectStatement sjss = wrapper.next();
-			// add parent child relationships to value mapping
-			BipartiteNode<String> node = new BipartiteNode<String>(sjss.getVar(names[0]).toString());
-			node.addChild(sjss.getVar(names[1]).toString());
-			keywordConceptBipartiteGraph.addToKeywordSet(node);
-		}
-		return keywordConceptBipartiteGraph.getMcMapping();
-	}
-	
-	public static Map<String, Set<String>> getMCValueMappingTree(String masterEngineName) {
-		BigDataEngine masterEngine = (BigDataEngine) DIHelper.getInstance().getLocalProp(masterEngineName);
-		// fill the concept-concept tree 
-		MasterDatabaseForest<String> forest = new MasterDatabaseForest<String>();
-		ISelectWrapper wrapper = Utility.processQuery(masterEngine, MasterDatabaseQueries.MC_PARENT_CHILD_QUERY);
-		String[] names = wrapper.getVariables();
-		while(wrapper.hasNext())
-		{
-			ISelectStatement sjss = wrapper.next();
-			// add parent child relationships to value mapping
-			TreeNode<String> parentNode = new TreeNode<String>(sjss.getVar(names[0]).toString());
-			parentNode.addChild(sjss.getVar(names[1]).toString());
-			forest.addNodes(parentNode);
-		}
-		return forest.getValueMapping();
-	}
-	
-	public static Map<String, Set<String>> getMCToKeywordValueMapping(String masterEngineName) {
-		BigDataEngine masterEngine = (BigDataEngine) DIHelper.getInstance().getLocalProp(masterEngineName);
-		// fill the keyword-concept graph
-		MasterDatabaseBipartiteGraph<String> keywordConceptBipartiteGraph = new MasterDatabaseBipartiteGraph<String>();
-		ISelectWrapper wrapper = Utility.processQuery(masterEngine, MasterDatabaseQueries.KEYWORD_NOUN_QUERY);
-		String[] names = wrapper.getVariables();
-		while(wrapper.hasNext())
-		{
-			ISelectStatement sjss = wrapper.next();
-			// add parent child relationships to value mapping
-			BipartiteNode<String> node = new BipartiteNode<String>(sjss.getVar(names[0]).toString());
-			node.addChild(sjss.getVar(names[1]).toString());
-			keywordConceptBipartiteGraph.addToKeywordSet(node);
-		}
-		return keywordConceptBipartiteGraph.getMcMapping();
 	}
 	
 	// will return a map of relName to upstream/downstream to a set of nodes
@@ -446,4 +294,160 @@ public final class MasterDBHelper {
 		
 		return keywordURIs;
 	}
+	
+	
+	
+	//////// EVERYTHING BELOW IS LEGACY CODE AND NOT ACTIVELY USED ////////
+	////// USED IN SearchEngineMasterDB.java which is not used anymore
+	
+	/**
+	 * Adds the list of engines that are in the master db
+	 * @param masterEngine		The engine to query
+	 * @param engineList		The set to add the engine list to
+	 */
+	public static void fillEnglishList(IEngine masterEngine, Set<String> engineList) {
+		ISelectWrapper wrapper = Utility.processQuery(masterEngine, MasterDatabaseQueries.ENGINE_LIST_QUERY);
+		// get the bindings from it
+		String[] names = wrapper.getVariables();
+		// now get the bindings and generate the data
+		while(wrapper.hasNext()) {
+			ISelectStatement sjss = wrapper.next();
+			engineList.add((String) sjss.getVar(names[0]));
+		}
+	}
+	
+	/**
+	 * Based on the keywordURI, find related keywords and their respective nouns and engines
+	 * @param masterEngine			The engine to query
+	 * @param keywordSet			The Set of keywords to find related to
+	 * @param relatedKeywordSet		The Set connected keywords to the keywordSet passed in
+	 * @param engineKeywordMap		The Map containing the engine keyword and the value Set of keywords contained in that engine
+	 */
+	public static void findRelatedKeywordsToSetStrings(IEngine masterEngine, Set<String> keywordSet, Set<String> connectedKeywordSet, Map<String, Set<String>> engineKeywordMap){
+		// find all related keywords to the inputed data type
+		String bindingsStr = "";
+		Iterator<String> keywordsIt = keywordSet.iterator();
+		while(keywordsIt.hasNext()) {
+			bindingsStr = bindingsStr.concat("(<").concat(MasterDatabaseURIs.KEYWORD_BASE_URI).concat("/").concat(keywordsIt.next()).concat(">)");
+		}
+		
+		if(!bindingsStr.isEmpty()) {
+			String[] queries = new String[]{MasterDatabaseQueries.GET_RELATED_KEYWORDS_TO_SET_AND_THEIR_NOUNS.replace("@BINDINGS@", bindingsStr), MasterDatabaseQueries.GET_RELATED_KEYWORDS_TO_SET_AND_THEIR_NOUNS_NO_RECURSION.replace("@BINDINGS@", bindingsStr)};
+			for(int i = 0; i < queries.length; i++) {
+				ISelectWrapper sjsw = Utility.processQuery(masterEngine, queries[i]);
+				String[] names = sjsw.getVariables();
+				while(sjsw.hasNext()) {
+					ISelectStatement sjss = sjsw.next();
+					String engine = sjss.getVar(names[0]).toString();
+					String keyword = sjss.getRawVar(names[1]).toString();
+					
+					connectedKeywordSet.add(keyword);
+					
+					Set<String> keywordForEngineList;
+					if(engineKeywordMap.containsKey(engine)) {
+						keywordForEngineList = engineKeywordMap.get(engine);
+						keywordForEngineList.add(keyword);
+					} else {
+						keywordForEngineList = new HashSet<String>();
+						keywordForEngineList.add(keyword);
+						engineKeywordMap.put(engine, keywordForEngineList);
+					}
+				}
+			}
+		}
+		
+		//TODO: remove once error checking is done
+//		System.err.println(">>>>>>>>>>>>>>>>>FOUND RELATED KEYWORDS TO SET: " + keywordSet);
+//		System.err.println(">>>>>>>>>>>>>>>>>LIST IS: " + connectedKeywordSet);
+	}
+	
+	////// END USED IN SearchEngineMasterDB.java which is not used anymore
+
+	// JUST NOT USED ANYMORE AT ALL
+	
+//	public static Map<String, Date> getEngineTimestamps(IEngine masterEngine) {
+//		DateFormat format = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss", Locale.ENGLISH);
+//		
+//		Map<String, Date> engines = new HashMap<String, Date>();
+//		ISelectWrapper wrapper = WrapperManager.getInstance().getSWrapper(masterEngine, MasterDatabaseQueries.ENGINE_TIMESTAMP_QUERY);
+//		String[] names = wrapper.getVariables();
+//		while(wrapper.hasNext()) {
+//			ISelectStatement iss = wrapper.next();
+//			try {
+//				engines.put(iss.getVar(names[0]).toString(), format.parse(iss.getVar(names[1]).toString()) );
+//			} catch (ParseException e) {
+//				e.printStackTrace();
+//			}
+//		}
+//		return engines;
+//	}
+//	
+//	public static Map<String, Set<String>> getMCToKeywordValueMapping(String masterEngineName) {
+//		BigDataEngine masterEngine = (BigDataEngine) DIHelper.getInstance().getLocalProp(masterEngineName);
+//		// fill the keyword-concept graph
+//		MasterDatabaseBipartiteGraph<String> keywordConceptBipartiteGraph = new MasterDatabaseBipartiteGraph<String>();
+//		ISelectWrapper wrapper = Utility.processQuery(masterEngine, MasterDatabaseQueries.KEYWORD_NOUN_QUERY);
+//		String[] names = wrapper.getVariables();
+//		while(wrapper.hasNext())
+//		{
+//			ISelectStatement sjss = wrapper.next();
+//			// add parent child relationships to value mapping
+//			BipartiteNode<String> node = new BipartiteNode<String>(sjss.getVar(names[0]).toString());
+//			node.addChild(sjss.getVar(names[1]).toString());
+//			keywordConceptBipartiteGraph.addToKeywordSet(node);
+//		}
+//		return keywordConceptBipartiteGraph.getMcMapping();
+//	}
+//	
+//	public static Map<String, Set<String>> getMCValueMappingTree(String masterEngineName) {
+//		BigDataEngine masterEngine = (BigDataEngine) DIHelper.getInstance().getLocalProp(masterEngineName);
+//		// fill the concept-concept tree 
+//		MasterDatabaseForest<String> forest = new MasterDatabaseForest<String>();
+//		ISelectWrapper wrapper = Utility.processQuery(masterEngine, MasterDatabaseQueries.MC_PARENT_CHILD_QUERY);
+//		String[] names = wrapper.getVariables();
+//		while(wrapper.hasNext())
+//		{
+//			ISelectStatement sjss = wrapper.next();
+//			// add parent child relationships to value mapping
+//			TreeNode<String> parentNode = new TreeNode<String>(sjss.getVar(names[0]).toString());
+//			parentNode.addChild(sjss.getVar(names[1]).toString());
+//			forest.addNodes(parentNode);
+//		}
+//		return forest.getValueMapping();
+//	}
+//	
+//	public static Map<String, Set<String>> getMCValueMappingTree(IEngine masterEngine) {
+//		// fill the concept-concept tree 
+//		MasterDatabaseForest<String> forest = new MasterDatabaseForest<String>();
+//		ISelectWrapper wrapper = Utility.processQuery(masterEngine, MasterDatabaseQueries.MC_PARENT_CHILD_QUERY);
+//		String[] names = wrapper.getVariables();
+//		while(wrapper.hasNext())
+//		{
+//			ISelectStatement sjss = wrapper.next();
+//			// add parent child relationships to value mapping
+//			TreeNode<String> parentNode = new TreeNode<String>(sjss.getVar(names[0]).toString());
+//			parentNode.addChild(sjss.getVar(names[1]).toString());
+//			forest.addNodes(parentNode);
+//		}
+//		return forest.getValueMapping();
+//	}
+//	
+//	public static Map<String, Set<String>> getMCToKeywordValueMapping(IEngine masterEngine) {
+//		// fill the keyword-concept graph
+//		MasterDatabaseBipartiteGraph<String> keywordConceptBipartiteGraph = new MasterDatabaseBipartiteGraph<String>();
+//		ISelectWrapper wrapper = Utility.processQuery(masterEngine, MasterDatabaseQueries.KEYWORD_NOUN_QUERY);
+//		String[] names = wrapper.getVariables();
+//		while(wrapper.hasNext())
+//		{
+//			ISelectStatement sjss = wrapper.next();
+//			// add parent child relationships to value mapping
+//			BipartiteNode<String> node = new BipartiteNode<String>(sjss.getVar(names[0]).toString());
+//			node.addChild(sjss.getVar(names[1]).toString());
+//			keywordConceptBipartiteGraph.addToKeywordSet(node);
+//		}
+//		return keywordConceptBipartiteGraph.getMcMapping();
+//	}
+	
+	
+	
 }
