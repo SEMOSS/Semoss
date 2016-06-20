@@ -244,7 +244,8 @@ public class InsightsConverter {
 				|| layout.equals("prerna.ui.components.specific.tap.SysSimHeatMapSheet")
 				|| layout.equals("prerna.ui.components.specific.tap.PeoEisSysSimHeatMapSheet")
 				|| layout.equals("prerna.ui.components.specific.ousd.EnduringSysSimHeatMapSheet")
-				|| layout.equals("prerna.ui.components.specific.ousd.OUSDSysSimHeatMapSheet")){
+				|| layout.equals("prerna.ui.components.specific.ousd.OUSDSysSimHeatMapSheet")
+				|| layout.equals("GraphDataModel")){
 			dataMaker = layout;
 		}
 		else {
@@ -551,6 +552,9 @@ public class InsightsConverter {
 		String layoutID = PlaySheetRDFMapBasedEnum.getIdFromClass(playsheet);
 		if(layoutID.isEmpty()){
 			switch(playsheet){
+			case "GraphDataModel":
+				layoutID = "Graph";
+				break;
 			case "prerna.ui.components.playsheets.DatasetSimilairtyColumnChartPlaySheet":
 				layoutID = "Column";
 				break;
