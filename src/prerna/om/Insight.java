@@ -49,7 +49,7 @@ import org.apache.commons.io.IOUtils;
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 import org.apache.solr.client.solrj.SolrServerException;
-import org.apache.solr.common.SolrDocumentList;
+import org.apache.solr.common.SolrDocument;
 import org.h2.jdbc.JdbcClob;
 import org.openrdf.model.Literal;
 import org.openrdf.repository.Repository;
@@ -1456,20 +1456,25 @@ public class Insight {
 //		}
 	}
 	
+	/**
+	 * Loads the metadata around a specific insight from the solr insight core
+	 */
 	public void loadDataFromSolr() {
 		try {
-			SolrDocumentList solrDocs = SolrIndexEngine.getInstance().getInsight(getDatabaseID());
-			if(solrDocs == null || solrDocs.size() == 0) {
+			// get the solr document from the unique id
+			SolrDocument solrDoc = SolrIndexEngine.getInstance().getInsight(getDatabaseID());
+			if(solrDoc == null || solrDoc.size() == 0) {
 				return;
-			} else if(solrDocs.size() > 1) {
-				// not sure how this would happen or what to do
 			}
 
-			Map<String, Object> insightMetaData = solrDocs.get(0).getFieldValueMap();
+			// get the document (insight) metadata from the solr document
+			Map<String, Object> insightMetaData = solrDoc.getFieldValueMap();
+			// get the name of the insight
 			this.setInsightName(insightMetaData.get(SolrIndexEngine.STORAGE_NAME) + "");
+			// get the output of the insight
 			this.setOutput(insightMetaData.get(SolrIndexEngine.LAYOUT) + "");
+			// get the name of the datamaker
 			this.dataMakerName = insightMetaData.get(SolrIndexEngine.DATAMAKER_NAME) + "";
-			
 		} catch (KeyManagementException | NoSuchAlgorithmException | KeyStoreException | SolrServerException
 				| IOException e) {
 			e.printStackTrace();
