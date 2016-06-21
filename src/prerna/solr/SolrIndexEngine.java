@@ -928,6 +928,7 @@ public class SolrIndexEngine {
 		// set the group by parameters
 		queryBuilder.setGroupBy(true);
 		// set the group limit/offset
+		// this relates to the document within the groups themselves
 		if (groupLimit != null) {
 			queryBuilder.setGroupLimit(groupLimit);
 		} else {
@@ -947,6 +948,7 @@ public class SolrIndexEngine {
 		// always add sort by score desc
 		queryBuilder.setGroupSort(SCORE, DESC);
 		
+		// set the limit for the number of groups to return
 		//TODO: need to expose number of groups to return to UI
 		queryBuilder.setLimit(50);
 
