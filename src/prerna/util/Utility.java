@@ -1124,12 +1124,13 @@ public class Utility {
 			 * 
 			 * 1) if the database is hidden -> do NOT add to solr
 			 * Given that the database if not hidden, do the following
-			 * 2) if a developer has hard coded to reload all solr values based on a hard coded boolean in abstract engine
+			 * 2) the user can define in the SMSS file a boolean value SOLR_RELOAD
+			 * 		-> if the value is true, then we add the engine into solr
+			 * 3) if a developer has hard coded to reload all solr values based on a hard coded boolean in abstract engine
 			 * 		-> if the value is true, then we add the engine into solr
 			 * 		-> note: this should be false whenever we make a build/deploy... 
 			 * 					this is purely for ease in testing new development code
-			 * 3) the user can define in the SMSS file a boolean value SOLR_RELOAD
-			 * 		-> if the value is true, then we add the engine into solr
+
 			 * 4) check to see if solr already contains the engine
 			 * 		-> if the value is false, then we add the engine into solr
 			 * 
@@ -1148,7 +1149,7 @@ public class Utility {
 			if (hiddenString != null) {
 				hidden = Boolean.parseBoolean(hiddenString);
 			}
-			// 3) check if the user has set a hard reload to the SOLR_RELOAD boolean
+			// 2) check if the user has set a hard reload to the SOLR_RELOAD boolean
 			//		default value is false if it is not found in the SMSS file
 			String smssPropString = engineToAdd.getProperty(Constants.SOLR_RELOAD);
 			boolean smssProp = false;
@@ -1156,6 +1157,7 @@ public class Utility {
 				smssProp = Boolean.parseBoolean(smssPropString);
 			}
 			// this if statement corresponds to the decision logic in comment block above
+			// 3) and 4) are checked within the if statement
 			if (!hidden && (AbstractEngine.RECREATE_SOLR || smssProp || !solrE.containsEngine(engineName))) {
 				// alright, we are going to load the engines insights into solr
 				LOGGER.info(engineToAdd.getEngineName() + " has solr force reload value of " + smssProp );
