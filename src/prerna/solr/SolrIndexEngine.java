@@ -28,7 +28,6 @@ import org.apache.http.ssl.SSLContextBuilder;
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 import org.apache.solr.client.solrj.SolrQuery;
-import org.apache.solr.client.solrj.SolrQuery.SortClause;
 import org.apache.solr.client.solrj.SolrServerException;
 import org.apache.solr.client.solrj.impl.HttpSolrServer;
 import org.apache.solr.client.solrj.response.FacetField;
@@ -422,87 +421,828 @@ public class SolrIndexEngine {
 	
 	/////////////////// START VARIOUS WAYS TO QUERY SOLR ENGINE ///////////////////
 	
-	/*
-	 * THERE ARE MANY WAYS TO QUERY THE SOLR CORES... I need to go back and add why there are so many...
-	 * TODO
-	 * TODO
-	 * TODO
-	 * 
-	 * in a very brief description, methods are exposed if you want to do just do a search, a group by, or facet results
-	 * each of the above has 2 methods.. one that takes in the user input and formats it to call
-	 * 		a private method which does the execution on the core... also does the logic to know when to 
-	 * 		use the instance core and get spellcheck results, etc.
-	 * 
+	/**
+	 * Provides the query response for a query on a specific path
+	 * @param q							SolrQuery containing the query information
+	 * @param path						The solr core to execute on
+	 * @return							The QueryResponse for the query on the core
+	 * @throws SolrServerException
 	 */
-	
-	public SolrDocumentList getInsight(String uniqueID) throws SolrServerException, IOException {
-		SolrDocumentList results = null;
-		if(serverActive()) {
-			// delete document based on ID
-			LOGGER.info("Getting documents with id:  " + uniqueID);
-			SolrIndexEngineQueryBuilder queryBuilder = new SolrIndexEngineQueryBuilder();
-			queryBuilder.setSearchString(QUERY_ALL);
-			Map<String, List<String>> filterForId = new HashMap<String, List<String>>();
-			List<String> uniqueIDs = new ArrayList<String>();
-			uniqueIDs.add(uniqueID);
-			filterForId.put(ID, uniqueIDs);
-			queryBuilder.setFilterOptions(filterForId);
-			QueryResponse res = getQueryResponse(queryBuilder.getSolrQuery(), SOLR_PATHS.SOLR_INSIGHTS_PATH);
-			results = res.getResults();
+	private QueryResponse getQueryResponse(SolrQuery q, SOLR_PATHS path) throws SolrServerException {
+		/*
+		 * This is the main method used to execute queries on the solr cores
+		 * The SolrQuery is generated using a SolrIndexEngineQueryBuilder instance
+		 * This returns a SolrQuery which is then run on the server
+		 */
+		
+		QueryResponse res = null;
+		if (serverActive()) {
+			// determine based on the path which core to run the query on
+			if (path.equals(SOLR_PATHS.SOLR_INSIGHTS_PATH)) {
+				res = insightServer.query(q);
+				LOGGER.info("Querying within the insighCore");
+			} else if (path.equals(SOLR_PATHS.SOLR_INSTANCES_PATH)) {
+				res = instanceServer.query(q);
+				LOGGER.info("Querying within the instanceCore");
+			}
 		}
-		return results;
+		return res;
 	}
 	
-	public SolrDocumentList getInsight(List<String> uniqueIDs) throws SolrServerException, IOException {
-		SolrDocumentList results = null;
-		if(serverActive()) {
-			// delete document based on ID
-			LOGGER.info("Getting documents with ids:  " + uniqueIDs);
-			SolrIndexEngineQueryBuilder queryBuilder = new SolrIndexEngineQueryBuilder();
-			queryBuilder.setSearchString(QUERY_ALL);
-			Map<String, List<String>> filterForId = new HashMap<String, List<String>>();
-			filterForId.put(ID, uniqueIDs);
-			queryBuilder.setFilterOptions(filterForId);
-			QueryResponse res = getQueryResponse(queryBuilder.getSolrQuery(), SOLR_PATHS.SOLR_INSIGHTS_PATH);
-			results = res.getResults();
-		}
-		return results;
-	}
-
 	/**
 	 * Refines the list of Documents in the search based on the query
-	 * @param queryOptions        				options that determine how the SolrDocumentList can be queried/filtered on
-	 * @return SolrDocumentList					filtered SolrDocumentList based on the results of the query
+	 * @param queryBuilder        		SolrIndexEngineQueryBuilder containing the information for the query
+	 * @return SolrDocumentList			SolrDocumentList based on the results of the query
 	 */
 	public SolrDocumentList queryDocument(SolrIndexEngineQueryBuilder queryBuilder) throws SolrServerException, IOException {
+		/*
+		 * This is very similar to the executeSearchQuery method but differs in that it takes in a queryBuilder object
+		 * This is used as a more generic way to execute a query on the solr insight core as the user has complete control over
+		 * the queryBuilder that is being passed.  As opposed to the executeSearchQuery, it has specific inputs that restricts the
+		 * query builder that is built.  It also differs in that this class only returns the solr document list and doesn't
+		 * pass back any information regarding spell check
+		 */
 		SolrDocumentList results = null;
 		if (serverActive()) {
+			// get the solr query from the builder
 			SolrQuery query = queryBuilder.getSolrQuery();
-			String appendedQuerySearch = "";
+			// execute the query on the solr insight core
 			QueryResponse res = getQueryResponse(query, SOLR_PATHS.SOLR_INSIGHTS_PATH);
+			// if the query return is null or has no results
 			if(res != null && res.getResults().size() == 0) {
-				// Query within the instanceCore only when the normal query returns no results
+				/*
+				 * now we want to use the instance core
+				 * 1) we query the instance core to get an updated query search
+				 * 2) this new query search is then executed to get a new query response
+				 * 3) the results of this new query response are now returned
+				 */ 
+				
+				// 1) we query the instance core using the query previously executed
+				// look at method to see map structure
 				Map<String, Object> queryResults = executeInstanceCoreQuery(query.getQuery());
-				appendedQuerySearch = (String) queryResults.get(QUERY_RESPONSE);
-				query.setQuery(appendedQuerySearch);
+				// 2) the query response within the returned map contains the new query to use to get results
+				String updatedQuerySearch = (String) queryResults.get(QUERY_RESPONSE);
+				// set the new search string and execute the query
+				query.setQuery(updatedQuerySearch);
+				// override the existing res object with the new one generated with the updated search
 				res = getQueryResponse(query, SOLR_PATHS.SOLR_INSIGHTS_PATH);
 			}
+			// get the results from the query response
+			// note the res is updated by reference if the original query returned no reuslts and had to be updated
+			// using the instance core
 			results = res.getResults();
 		}
 		LOGGER.info("Returning results of search");
 		return results;
 	}
 
+	
+	//////////////////////////// insight core general search methods /////////////////////////////////////////////
+	/*
+	 * There are the main methods used to query within the search bar.
+	 * There are 3 operations available
+	 * 1) search query
+	 * 2) facet query
+	 * 3) group by query
+	 * 
+	 * There are 2 methods for each operation.  One method is public and the other method is a private.
+	 * The public method starts with the word "execute".  It takes in the possible inputs from the user
+	 * and generates the appropriate queryBuilder object.  The private method then takes in the query builder
+	 * generated from the public method and then executes it and returns the results to the user.
+	 * 
+	 * These methods are called in NameServer.java (Monolith package)
+	 */
+	
+	/////////////////////////////////// operation 1 - search query /////////////////////////////////////////
+	/**
+	 * Executes a search query to get the insights based on the input values
+	 * @param searchString						The search string for the query
+	 * @param sortString						String either "asc" or "desc" to sort based on the insight name. if null does not sort
+	 * @param offsetInt							The offset for the query
+	 * @param limitInt							The limit for the query
+	 * @param filterData						The filter values for the query.  The key in the map is the specific 
+	 * 											schema key and the list corresponds to the values to filter on.
+	 * 											Each entry in the list is a logical or with regards to the filter logic.
+	 * 											Example: {layout : [bar, pie] } means filter to show insights where the 
+	 * 											layout is either a bar OR pie chart 
+	 * @return									The return map contains the following information
+	 * 												1) the list of insights based on the provided limit/offset
+	 * 												2) the total number of instances found <- so the FE knows how to execute for infinite scroll
+	 * 												3) spell check corrections for any misspelled words
+	 * @throws KeyManagementException
+	 * @throws NoSuchAlgorithmException
+	 * @throws KeyStoreException
+	 * @throws SolrServerException
+	 * @throws IOException
+	 */
+	public Map<String, Object> executeSearchQuery(String searchString, String sortString, Integer offsetInt, Integer limitInt, Map<String, List<String>> filterData) 
+			throws KeyManagementException, NoSuchAlgorithmException, KeyStoreException, SolrServerException, IOException 
+	{
+		/*
+		 * General steps:
+		 * 1) Create a query builder object
+		 * 2) Add all the various inputs from the user 
+		 * 3) Execute the query on the insight core
+		 */
+		
+		// 1) create the query builder
+		SolrIndexEngineQueryBuilder queryBuilder = new SolrIndexEngineQueryBuilder();
+		
+		
+		// 2) now we start customizing the query based on the user inputs and default values defined
+
+		// if the search string is not empty, add a search string
+		// default in query builder is a select all
+		if (searchString != null && !searchString.isEmpty()) {
+			queryBuilder.setSearchString(searchString);
+		}
+		// if a order is set to sort based on the insight name
+		if (sortString != null && !sortString.isEmpty()) {
+			queryBuilder.setSort(STORAGE_NAME, sortString.toLowerCase());
+		}
+		// always add sort by score desc
+		queryBuilder.setSort(SCORE, DESC);
+		
+		// add the limit and offset
+		// used for infinite scroll
+		if (offsetInt != null) {
+			queryBuilder.setOffset(offsetInt);
+		}
+		if (limitInt != null) {
+			queryBuilder.setLimit(limitInt);
+		}
+		
+		// created a heuristic that seems to work well with determining what insights better match the search terms 
+		// this sets which fields will be weighted more regarding the match
+		// however, only want to use this if the query is not a query_all (i.e. just return everything)
+		// query_all is used if searchString is null/empty/or the solr query_all character
+		if(searchString != null && !searchString.isEmpty() && !searchString.equals(QUERY_ALL)) {
+			queryBuilder.setDefaultDisMaxWeighting();
+		}
+
+		// set the solr field values to return
+		// these are the necessarily fields to view and run a returned insight
+		List<String> retFields = new ArrayList<String>();
+		retFields.add(CORE_ENGINE);
+		retFields.add(CORE_ENGINE_ID);
+		retFields.add(LAYOUT);
+		retFields.add(STORAGE_NAME);
+		retFields.add(CREATED_ON);
+		retFields.add(USER_ID);
+		retFields.add(TAGS);
+		retFields.add(SCORE);
+		queryBuilder.setReturnFields(retFields);
+
+		// set the filter data
+		if(filterData != null && !filterData.isEmpty()) {
+			queryBuilder.setFilterOptions(filterData);
+		}
+		
+		// also enable spell check to return to the user
+		queryBuilder.setQueryType("/spell");
+		queryBuilder.setSpellCheck(true);
+		queryBuilder.setSpellCheckBuild(true);
+		queryBuilder.setSpellCheckCollate(true);
+		queryBuilder.setSpellCheckCollateExtendedResults(true);
+		queryBuilder.setSpellCheckCount(4);
+
+		// 3) execute the query
+		return searchDocument(queryBuilder);
+	}
+
+	/**
+	 * Returns results of executing a query on the insight core 
+	 * @param queryBuilder							The queryBuilder containing the query options to be executed
+	 * @return										The return object contains the following information
+	 * 													1) the list of insights based on the provided limit/offset
+	 * 													2) the total number of instances found <- so the FE knows how to execute for infinite scroll
+	 * 													3) spell check corrections for any misspelled words
+	 * @throws SolrServerException
+	 * @throws IOException
+	 */
+	private Map<String, Object> searchDocument(SolrIndexEngineQueryBuilder queryBuilder) throws SolrServerException, IOException {
+		// initialize the return map
+		Map<String, Object> searchResultMap = new HashMap<String, Object>();
+		if (serverActive()) {
+			/*
+			 * logic for execution
+			 * 
+			 * 1) get the SolrQuery object
+			 * 2) execute the query on the insight core and get the results
+			 * 3) get the spell check response
+			 * the next steps only occur if the results returned from the insight core are empty
+			 * 		4) execute the query on the instance core
+			 *		5) the return object from the execute on the instance core gives you a new query
+			 * 		to execute on the insight core
+			 * 		6) use the new query string returned to execute that query to execute on the insight core
+			 */
+			
+			// 1) get the query object
+			SolrQuery query = queryBuilder.getSolrQuery();
+			// 2) execute the query on the insight core and get the results
+			QueryResponse res = getQueryResponse(query, SOLR_PATHS.SOLR_INSIGHTS_PATH);
+			SolrDocumentList results = res.getResults();
+			
+			// 3) get the spell check response
+			Map<String, List<String>> insightSpellCheck = getSpellCheckResponse(res);
+			// also declare a object to store the spell check for the instance core
+			Map<String, List<String>> instanceSpellCheck = null;
+
+			// this code block is only entered if the results from executing on the insight core are empty
+			if(res != null && res.getResults().size() == 0) {
+				// we now need to query the instance core
+				// 4) use the query search string used and execute it on the instance core
+				Map<String, Object> queryResults = executeInstanceCoreQuery(query.get(CommonParams.Q));
+				// grab the spell check response from the instance core
+				instanceSpellCheck = (Map<String, List<String>>) queryResults.get(SPELLCHECK_RESPONSE);
+
+				// 5) the query response in the returned map from the execution on the instance core
+				// gives an updated query search string
+				String updatedQuerySearch = (String) queryResults.get(QUERY_RESPONSE);
+				
+				// note: we do not need the spell check params on this new search since it is a composite string
+				// with additions that we had added that the user did not include.. doesn't make sense to show them 
+				// to the user. we already have the spell check response from the insight and instance cores for what
+				// the user actually passed in
+				queryBuilder.removeSpellCheckParams();
+				// set the updatedQuerySearch within the builder
+				// and get a new query object with the updated information
+				queryBuilder.setSearchString(updatedQuerySearch);
+				query = queryBuilder.getSolrQuery();
+				// 6) query the insight core again with the updated query search string and get the results
+				res = getQueryResponse(query, SOLR_PATHS.SOLR_INSIGHTS_PATH);
+				results = res.getResults();
+			}
+			
+			/*
+			 * Populate the return map with the results
+			 * This map has the following structure
+			 * 
+			 * {
+			 * 	queryResponse: SolrDocumentList <- this is in essence a list of maps where each entry is the necessary
+			 * 										metadata to view and execute the insight 
+			 * 	spellcheckResponse : 	{
+			 * 								misspelledWord1: [possibleCorrectSpelling1, possibleCorrectSpelling2];
+			 * 								misspelledWord2: [possibleCorrectSpelling3];
+			 * 							}
+			 * 	numFound: integer containing the total number of results found <- used to update limit/offset 
+			 * 										for infinite scroll
+			 * }
+			 * However, the spellcheckResponse does not have to be present
+			 */
+			searchResultMap.put(QUERY_RESPONSE, results);
+			searchResultMap.put(NUM_FOUND, results.getNumFound());
+			// here we combine the spell check response from both the insight core and the instance core
+			searchResultMap.put(SPELLCHECK_RESPONSE, mergeSpellCheckResponse(insightSpellCheck, instanceSpellCheck));
+		}
+		LOGGER.info("Done executing search query");
+		return searchResultMap;
+	}
+	/////////////////////////////////// end operation 1 - search query /////////////////////////////////////////
+
+
+	/////////////////////////////////// operation 2 - facet query /////////////////////////////////////////
+	/**
+	 * Get the facet results for a given query
+	 * @param searchString							The string containing the search term
+	 * @param facetList								The schema fields to facet and return
+	 * @return										Map containing the return data. Each key in the main map
+	 * 												contains a specific facet field that was passed in the 
+	 * 												facet list.  That key corresponds to another map, which 
+	 * 												contains the unique instance values present the core and the
+	 * 												number of times that instance value appears 
+	 * 												An example map is as follows:
+	 * 												{
+	 * 													layout: 
+	 * 															{
+	 * 																bar chart: 125,
+	 * 																pie chart: 34
+	 * 															}
+	 * 													engines: 
+	 * 															{
+	 * 																movie_db : 130,
+	 * 																actor_db : 12
+	 * 															}
+	 * 												}
+	 * @throws KeyManagementException
+	 * @throws NoSuchAlgorithmException
+	 * @throws KeyStoreException
+	 * @throws SolrServerException
+	 */
+	public Map<String, Map<String, Long>> executeQueryFacetResults(String searchString, List<String> facetList)
+					throws KeyManagementException, NoSuchAlgorithmException, KeyStoreException, SolrServerException 
+	{
+		/*
+		 * General steps:
+		 * 1) Create a query builder object
+		 * 2) Add all the various inputs from the user 
+		 * 3) Execute the query on the insight core
+		 */
+		
+		// 1) create the query builder object
+		SolrIndexEngineQueryBuilder queryBuilder = new SolrIndexEngineQueryBuilder();
+		
+		// 2) now customize the builder -- need to set the search string and the facet list
+		
+		// if the search string is not empty, add a search string
+		// default in query builder is a select all
+		if (searchString != null && !searchString.isEmpty()) {
+			queryBuilder.setSearchString(searchString);
+		}
+		
+		// since this is being used in conjunction with the search
+		// we need to use the same scoring mechanism and logic as in executeSearchQuery
+		if(searchString != null && !searchString.isEmpty() && !searchString.equals(QUERY_ALL)) {
+			queryBuilder.setDefaultDisMaxWeighting();
+		}
+		
+		// annoying... facet still requires a default field or it throws an error...
+		queryBuilder.setDefaultSearchField(INDEX_NAME);
+		
+		// set the facet variables
+		queryBuilder.setFacet(true);
+		queryBuilder.setFacetField(facetList);
+		queryBuilder.setFacetMinCount(1);
+		queryBuilder.setFacetSortCount(true);
+
+		// 3) execute the query and get the facet results
+		return facetDocument(queryBuilder);
+	}
+
+	/**
+	 * Returns facet results of executing a query on the insight core 
+	 * @param queryBuilder							The queryBuilder containing the query options to be executed
+	 * @return										Map containing the return data. Each key in the main map
+	 * 												contains a specific facet field that was passed in the 
+	 * 												facet list.  That key corresponds to another map, which 
+	 * 												contains the unique instance values present the core and the
+	 * 												number of times that instance value appears 
+	 * @throws SolrServerException
+	 */
+	private Map<String, Map<String, Long>> facetDocument(SolrIndexEngineQueryBuilder queryBuilder) throws SolrServerException {
+		Map<String, Map<String, Long>> facetFieldMap = new LinkedHashMap<String, Map<String, Long>>();
+		if (serverActive()) {
+			/*
+			 * logic for execution
+			 * 
+			 * 1) get the SolrQuery object
+			 * 2) execute the query on the insight core and get the facet results
+			 * steps 3-5 only occur if the facet results is empty from the insight core
+			 * 		3) execute the query on the instance core
+			 * 		4) the return object from the execute on the instance core gives you a new query
+			 * 		to execute on the insight core
+			 * 		5) use the new query string returned to execute that query to execute on the insight core
+			 * 6) format the results to extract the relevant information
+			 */
+			
+			// 1) get the query object
+			SolrQuery query = queryBuilder.getSolrQuery();
+			
+			// 2) execute the query and get the facet results
+			QueryResponse res = getQueryResponse(query, SOLR_PATHS.SOLR_INSIGHTS_PATH);
+			List<FacetField> facetFieldList = res.getFacetFields();
+			
+			// this code block is only entered if the results from executing on the insight core are empty
+			if (facetFieldList != null && facetFieldList.get(0).getValueCount() == 0) {
+				// we now need to query the instance core
+				// 3) use the query search string used and execute it on the instance core
+				Map<String, Object> queryResults = executeInstanceCoreQuery(query.get(CommonParams.Q));
+				// 4) the query response in the returned map from the execution on the instance core
+				// gives an updated query search string
+				String updatedQuerySearch = (String) queryResults.get(QUERY_RESPONSE);
+				// set the updatedQuerySearch within the builder
+				// and get a new query object with the updated information
+				queryBuilder.setSearchString(updatedQuerySearch);
+				query = queryBuilder.getSolrQuery();
+				// 5) query the insight core
+				res = getQueryResponse(query, SOLR_PATHS.SOLR_INSIGHTS_PATH);
+				facetFieldList = res.getFacetFields();
+			}
+
+			// 6) now iterate through the facet results and get the relevant information to send
+			/*
+			 * example output that we want to produce
+			 * 	{
+			 * 		layout : 	{
+			 * 						bar chart: 125,
+			 * 						pie chart: 34
+			 * 					}
+			 * 
+			 * 		engines : 	{
+			 * 						movie_db : 130,
+			 * 						actor_db : 12
+			 * 					}
+			 * 	}
+			 */
+			if (facetFieldList != null && facetFieldList.size() > 0) {
+				// for each field -> corresponding to a schema entry in the facet list passed into the 
+				// query builder before entering this method
+				for (FacetField field : facetFieldList) {
+					// the inner map will contain the instance level information
+					LinkedHashMap<String, Long> innerMap = new LinkedHashMap<String, Long>();
+					// the field name here is the schema name entry
+					// in the above example, this corresponds to layout and engines
+					String fieldName = field.getName();
+					// here we get a list of unique instances associated with the field
+					List<Count> facetInfo = field.getValues();
+					if (facetInfo != null) {
+						for (FacetField.Count facetInstance : facetInfo) {
+							// facet name will correspond to the instance name
+							// facet count will correspond to the number of times it appears
+							// in the above example, this corresponds to each specific set
+							// {bar chart : 125} and {pie chart : 34} when the fieldName is layout, and 
+							// {movie_db : 130} and {actor_db : 12} when the fieldName is engines
+							innerMap.put(facetInstance.getName(), facetInstance.getCount());
+						}
+					}
+					// input into the return map
+					facetFieldMap.put(fieldName, innerMap);
+				}
+			}
+		}
+		LOGGER.info("Done executing facet query");
+		return facetFieldMap;
+	}
+	/////////////////////////////////// end operation 2 - facet query /////////////////////////////////////////
+
+	
+	/////////////////////////////////// operation 3 - group by query /////////////////////////////////////////
+
+	/**
+	 * Executes a group by query to get the insights based on the input values
+	 * @param searchString					The search string for the query
+	 * @param groupOffset					The offset for the group by results
+	 * @param groupLimit					The limit for the group by results
+	 * @param groupByField					The field to group by
+	 * @param groupSort						String either "asc" or "desc" to sort based on the insight name. if null does not sort
+	 * @param filterData						The filter values for the query.  The key in the map is the specific 
+	 * 											schema key and the list corresponds to the values to filter on.
+	 * 											Each entry in the list is a logical or with regards to the filter logic.
+	 * 											Example: {layout : [bar, pie] } means filter to show insights where the 
+	 * 											layout is either a bar OR pie chart 
+	 * @return								The return map contains the following information
+	 * 											1) query response containing the group by data
+	 * 											2) spell check corrections for any misspelled words
+	 * 										The query response points to a map containing the group by field, which points to an 
+	 * 										inner map containing each instance of the group by field as a key pointing to a list of 
+	 * 										the solr documents corresponding to the group by
+	 * 										Example return map for the query response portion is:
+	 *										{
+	 *											core_engine : 
+	 *															{
+	 * 																Actor_DB : SolrDocumentList with core_engine = Actor_DB,
+	 * 																Movie_DB : SolrDocumentList with core_engine = Movie_DB,
+	 * 																TAP_Core_Data : SolrDocumentList with core_engine = TAP_Core_Data
+	 *															}
+	 *										}										
+	 * 										Note: the way this is set up, there can only be one field to group by, thus, in the
+	 * 										above example, core_engine would be the only key present
+	 * @throws KeyManagementException
+	 * @throws NoSuchAlgorithmException
+	 * @throws KeyStoreException
+	 * @throws SolrServerException
+	 * @throws IOException
+	 */
+	public Map<String, Object> executeQueryGroupBy(String searchString, Integer groupOffset, Integer groupLimit, 
+			String groupByField, String groupSort, Map<String, List<String>> filterData)
+			throws KeyManagementException, NoSuchAlgorithmException, KeyStoreException, SolrServerException, IOException 
+	{
+		/*
+		 * General steps:
+		 * 1) Create a query builder object
+		 * 2) Add all the various inputs from the user 
+		 * 3) Execute the query on the insight core
+		 */
+		
+		// 1) create a query builder object
+		SolrIndexEngineQueryBuilder queryBuilder = new SolrIndexEngineQueryBuilder();
+		
+		// 2) customize the query builder object based on input
+		
+		// if the search string is not empty, add a search string
+		// default in query builder is a select all
+		if (searchString != null && !searchString.isEmpty()) {
+			queryBuilder.setSearchString(searchString);
+		}
+
+		// set the group by parameters
+		queryBuilder.setGroupBy(true);
+		// set the group limit/offset
+		if (groupLimit != null) {
+			queryBuilder.setGroupLimit(groupLimit);
+		} else {
+			// use default group limit of 200
+			queryBuilder.setGroupLimit(200);
+		}
+		if (groupOffset != null) {
+			queryBuilder.setGroupOffset(groupOffset);
+		} else {
+			// use default group offset to 0
+			queryBuilder.setGroupOffset(0);
+		}
+		// add group sort if present
+		if (groupSort != null && !groupSort.isEmpty()) {
+			queryBuilder.setSort(STORAGE_NAME, groupSort.toLowerCase());
+		}
+		// always add sort by score desc
+		queryBuilder.setGroupSort(SCORE, DESC);
+		
+		//TODO: need to expose number of groups to return to UI
+		queryBuilder.setLimit(50);
+
+		// add the group by field
+		// note, we only expose one group by field, but this in theory can do multi group bys
+		List<String> groupList = new ArrayList<String>();
+		groupList.add(groupByField);
+		queryBuilder.setGroupFields(groupList);
+		
+		// created a heuristic that seems to work well with determining what insights better match the search terms 
+		// this sets which fields will be weighted more regarding the match
+		// however, only want to use this if the query is not a query_all (i.e. just return everything)
+		// query_all is used if searchString is null/empty/or the solr query_all character
+		if(searchString != null && !searchString.isEmpty() && !searchString.equals(QUERY_ALL)) {
+			queryBuilder.setDefaultDisMaxWeighting();
+		}
+		
+		// set the solr field values to return
+		// these are the necessarily fields to view and run a returned insight
+		List<String> retFields = new ArrayList<String>();
+		retFields.add(CORE_ENGINE);
+		retFields.add(CORE_ENGINE_ID);
+		retFields.add(LAYOUT);
+		retFields.add(STORAGE_NAME);
+		retFields.add(CREATED_ON);
+		retFields.add(USER_ID);
+		retFields.add(TAGS);
+		retFields.add(SCORE);
+		queryBuilder.setReturnFields(retFields);
+
+		// set the filter data
+		if(filterData != null && !filterData.isEmpty()) {
+			queryBuilder.setFilterOptions(filterData);
+		}
+		
+		// also enable spell check to return to the user
+		queryBuilder.setQueryType("/spell");
+		queryBuilder.setSpellCheck(true);
+		queryBuilder.setSpellCheckBuild(true);
+		queryBuilder.setSpellCheckCollate(true);
+		queryBuilder.setSpellCheckCollateExtendedResults(true);
+		queryBuilder.setSpellCheckCount(4);
+
+		// 3) execute the query
+		return groupDocument(queryBuilder);
+	}
+
+	/**
+	 * Returns facet results of executing a query on the insight core 
+	 * @param queryBuilder					The queryBuilder containing the query options to be executed
+	 * @return								The return map contains the following information
+	 * 											1) query response containing the group by data
+	 * 											2) spell check corrections for any misspelled words							
+	 * @throws SolrServerException
+	 * @throws IOException
+	 */
+	private Map<String, Object> groupDocument(SolrIndexEngineQueryBuilder queryBuilder) throws SolrServerException, IOException {
+		// initialize the return map
+		Map<String, Object> groupByResponse = new HashMap<String, Object>();
+		if (serverActive()) {
+			
+			// initialize the group field map
+			Map<String, Map<String, SolrDocumentList>> groupFieldMap = new HashMap<String, Map<String, SolrDocumentList>>();
+
+			/*
+			 * logic for execution
+			 * 
+			 * 1) get the SolrQuery object
+			 * 2) execute the query on the insight core and get the results
+			 * 3) get the spell check response
+			 * the next steps only occur if the results returned from the insight core are empty
+			 * 		4) execute the query on the instance core
+			 * 		5) the return object from the execute on the instance core gives you a new query
+			 *		to execute on the insight core
+			 * 		6) use the new query string returned to execute that query to execute on the insight core
+			 * 7) format the group by return 
+			 */
+			
+			// 1) get the solr query
+			SolrQuery query = queryBuilder.getSolrQuery();
+			// 2) execute the query on the insight core
+			QueryResponse res = getQueryResponse(query, SOLR_PATHS.SOLR_INSIGHTS_PATH);
+			// 3) get the insight spell check response
+			Map<String, List<String>> insightSpellCheck = getSpellCheckResponse(res);
+			// also declare a object to store the spell check for the instance core
+			Map<String, List<String>> instanceSpellCheck = null;
+			
+			// get the group by response
+			GroupResponse groupResponse = res.getGroupResponse();
+			// this code block is only entered if the results from executing on the insight core are empty
+			if(groupResponse != null && groupResponse.getValues().get(0).getValues().size() == 0) {
+				// we now need to query the instance core
+				// 4) use the query search string used and execute it on the instance core
+				Map<String, Object> queryResults = executeInstanceCoreQuery(query.get(CommonParams.Q));
+				// grab the spell check response from the instance core
+				instanceSpellCheck = (Map<String, List<String>>) queryResults.get(SPELLCHECK_RESPONSE);
+				
+				// 5) the query response in the returned map from the execution on the instance core
+				// gives an updated query search string
+				String updatedQuerySearch = (String) queryResults.get(QUERY_RESPONSE);
+				
+				// note: we do not need the spell check params on this new search since it is a composite string
+				// with additions that we had added that the user did not include.. doesn't make sense to show them 
+				// to the user. we already have the spell check response from the insight and instance cores for what
+				// the user actually passed in
+				queryBuilder.removeSpellCheckParams();
+				// set the updatedQuerySearch within the builder
+				// and get a new query object with the updated information
+				queryBuilder.setSearchString(updatedQuerySearch);
+				query = queryBuilder.getSolrQuery();
+				// 6) query the insight core again with the updated query search string and get the results
+				res = getQueryResponse(query, SOLR_PATHS.SOLR_INSIGHTS_PATH);
+				groupResponse = res.getGroupResponse();
+			}
+
+			// 7) format the group by response
+			/*
+			 * example output that we want to produce if we are grouping by engines:
+			 *	{
+			 * 		core_engine : 
+			 * 				{
+			 * 					Actor_DB : SolrDocumentList with core_engine = Actor_DB,
+			 * 					Movie_DB : SolrDocumentList with core_engine = Movie_DB,
+			 * 					TAP_Core_Data : SolrDocumentList with core_engine = TAP_Core_Data
+			 * 				}
+			 * 	}
+			 */
+			if (groupResponse != null) { 
+				for (GroupCommand gc : groupResponse.getValues()) {
+					Map<String, SolrDocumentList> innerMap = new HashMap<String, SolrDocumentList>();
+					// groupBy is the schema level group by value
+					// in the above example, it is the core_engine
+					String groupBy = gc.getName();
+					// get the group values
+					List<Group> groups = gc.getValues();
+					if (groups != null) {
+						for (Group g : groups) {
+							// group value is the specific instance within the group by field
+							// the results is the solr document list corresponding to the specific instance value
+							// in the above example, each iteration of this loop would produce one of the following:
+							// { Actor_DB : SolrDocumentList with core_engine = Actor_DB } or
+							// { Movie_DB : SolrDocumentList with core_engine = Movie_DB } or
+							// { TAP_Core_Data : SolrDocumentList with core_engine = TAP_Core_Data }
+							innerMap.put(g.getGroupValue(), g.getResult());
+						}
+					}
+					groupFieldMap.put(groupBy, innerMap);
+				}
+			}
+			
+			// we put the formated group by map inside another map so we can also send spell check 
+			groupByResponse.put(QUERY_RESPONSE, groupFieldMap);
+			// we merge the spell check response between the insight and instance cores
+			groupByResponse.put(SPELLCHECK_RESPONSE, mergeSpellCheckResponse(insightSpellCheck, instanceSpellCheck));
+		}
+
+		LOGGER.info("Done executing group by query");
+		return groupByResponse;
+	}
+	/////////////////////////////////// end operation 3 - group by query /////////////////////////////////////////
+
+	
+	//////////////////////////// instance core search methods /////////////////////////////////////////////
+	/*
+	 * Querying always occurs on the insight core before the instance core
+	 * When the query on the insight core returns no results, then that search string is executed on the insight core
+	 * 
+	 * The main assumption is that the query on the insight core returns no results when the search term is a set of instances
+	 * The instance core is then queried to provide the list of concepts associated with the search term
+	 * For example: the user passes in AHLTA
+	 * Output: System (matches the system AHLTA), SystemDCSite (matches AHLTA%xyz where xyz is a DCSite), etc.
+	 * 
+	 * The output is them used as a new search term in the insight core to get insights
+	 */
+	
+	/**
+	 * Execute a query on the instance core
+	 * @param querySearch						String containing the search term used by the user
+	 * @return									Map containing the query response and the spell check response 
+	 * 											for the query.  The query response is a string containing the new
+	 * 											search term to execute on the insight core.  The spell check response
+	 * 											is in case there is a spelling mistake with a user entered instance.
+	 * @throws SolrServerException
+	 */
+	public Map<String, Object> executeInstanceCoreQuery(String querySearch) throws SolrServerException {
+		Map<String, Object> queryResults = new HashMap<String, Object>();
+		if (serverActive()) {
+			// search for instances
+			SolrIndexEngineQueryBuilder queryBuilder = new SolrIndexEngineQueryBuilder();
+			queryBuilder.setSearchString(querySearch);
+			queryBuilder.setDefaultSearchField(INSTANCES);
+			queryBuilder.setQueryType("/spell");
+			queryBuilder.setSpellCheck(true);
+			queryBuilder.setSpellCheckBuild(true);
+			queryBuilder.setSpellCheckCollate(true);
+			queryBuilder.setSpellCheckCollateExtendedResults(true);
+			queryBuilder.setSpellCheckCount(4);
+			// no need to return the entire document info, just return the concept/property which is 
+			// stored under the "value" schema name
+			queryBuilder.addReturnFields(VALUE);
+			// get the solr query
+			SolrQuery query = queryBuilder.getSolrQuery();
+			// execute the query
+			QueryResponse res = getQueryResponse(query, SOLR_PATHS.SOLR_INSTANCES_PATH);
+			// the query response we want from the instance core is a new query to run on the insight
+			// core to get the instances that best matches the user input
+			String appendQuery = getUniqueConceptsForInstances(res);
+			//append the original search term with the new return
+			querySearch = querySearch + " " + appendQuery;
+			LOGGER.info("New search query will be: " + querySearch);
+			// set this as the query response
+			queryResults.put(QUERY_RESPONSE, querySearch);
+			
+			// set any spell check return
+			Map<String, List<String>> spellCheckResponse = getSpellCheckResponse(res);
+			if (spellCheckResponse != null && !spellCheckResponse.isEmpty()) {
+				queryResults.put(SPELLCHECK_RESPONSE, spellCheckResponse);
+			}
+		}		
+		/*
+		 * The return map containing the instance core results
+		 * This map has the following structure
+		 * 
+		 * {
+		 * 	queryResponse: "STRING CONTAINING NEW INSIGHT CORE SEARCH"
+		 * 	spellcheckResponse : 	{
+		 * 								misspelledWord1: [possibleCorrectSpelling1, possibleCorrectSpelling2];
+		 * 								misspelledWord2: [possibleCorrectSpelling3];
+		 * 							}
+		 * }
+		 * ***However, the spellcheckResponse does not have to be present
+		 */
+		return queryResults;
+	}
+
+	/**
+	 * This goes through the query return in instances core to get all the unique set of concepts
+	 * @param queryResponse				The queryResponse object containing the unique set of 
+	 * @return							Returns a string of the concepts, space delimited  
+	 */
+	private String getUniqueConceptsForInstances(QueryResponse queryResponse) {
+		// create a set such that the search term is a unique set of concepts
+		Set<String> valueSet = new HashSet<String>();
+		// iterate through all the returns
+		SolrDocumentList results = queryResponse.getResults();
+		for (SolrDocument solrDoc : results) {
+			// grab the concept/property from the solr doc
+			String concept_or_property = (String) solrDoc.getFieldValue(VALUE);
+			// add it to the set
+			valueSet.add(Utility.getInstanceName(concept_or_property));
+		}
+		
+		// iterate through the set and return a string containing all the values space delimited
+		String queryAddition = "";
+		for (String value : valueSet) {
+			queryAddition += value + " ";
+		}
+
+		LOGGER.info("Based on the instance query add this to the next query: " + queryAddition);
+		return queryAddition;
+	}
+	//////////////////////////// end instance core search methods /////////////////////////////////////////////
+
+	
+	//////////////////////////// spell check methods /////////////////////////////////////////////
+	/*
+	 * The following is used to get the spell check response from a query
+	 * Each term within a query that is identified as being misspelled will receive a list of possible corrections
+	 * 
+	 * This is done at both the insight core and instance core to provide spell checking at both the 
+	 * insight metadata level and the instance level if the user search is utilizing instances
+	 */
+	
+	/**
+	 * Format the spell check response contained within solr to the appropriate format for the FE
+	 * @param res				QueryResponse object returned from executing a query on the 
+	 * @return					Returns the results of the spell check in a more appropriate format
+	 * 							Example input in search: moviee
+	 * 							Example output format from spell check: { moviee -> [movies, movie, motive, mobile] }
+	 */
 	private static Map<String, List<String>> getSpellCheckResponse(QueryResponse res) {
 		Map<String, List<String>> spellCheckRet = new HashMap<String, List<String>>();
 		SpellCheckResponse scr = res.getSpellCheckResponse();
+		// if there is a spell check response
 		if (scr != null) {
+			// grab the set of collations
 			List<Collation> collations = scr.getCollatedResults();
 			if (collations != null) {
 				for (Collation c : collations) {
+					// for each collation, grab the original input and the corrected values
 					for (Correction correction : c.getMisspellingsAndCorrections()) {
 						String orig = correction.getOriginal();
 						String corr = correction.getCorrection();
+						// the below is just to check if the incorrect word has already been seen
+						// if so, add it to the existing list of values
+						// else, set a new key-value pair in the map
 						List<String> suggestions;
 						if(spellCheckRet.containsKey(orig)) {
 							suggestions = spellCheckRet.get(orig);
@@ -518,490 +1258,19 @@ public class SolrIndexEngine {
 		}
 		return spellCheckRet;
 	}
-
-	/**
-	 * Provides options for how a search can be queried, filtered, faceted,
-	 * grouped by, and to find MoreLikeThisParams.MLT to narrow down the results of the return
-	 * @param queryOptions               specification to query by
-	 * @return result of the query
-	 */
-	private QueryResponse getQueryResponse(SolrQuery q, SOLR_PATHS path) throws SolrServerException {
-		QueryResponse res = null;
-		if (serverActive()) {
-			if (path.equals(SOLR_PATHS.SOLR_INSIGHTS_PATH)) {
-				res = insightServer.query(q);
-				LOGGER.info("Querying within the insighCore");
-			} else if (path.equals(SOLR_PATHS.SOLR_INSTANCES_PATH)) {
-				res = instanceServer.query(q);
-				LOGGER.info("Querying within the instanceCore");
-			}
-		}
-		return res;
-	}
-
-	public String getUniqueConceptsForInstances(QueryResponse queryResponse) {
-		String queryAddition = "";
-		Set<String> noDuplication = new HashSet<String>();
-		SolrDocumentList results = queryResponse.getResults();
-
-		for (SolrDocument solrDoc : results) {
-			for (Entry<String, Object> solrDocFields : solrDoc) {
-				String fieldName = solrDocFields.getKey();
-				if (fieldName.equals(VALUE)) {
-					String concept = (String) solrDocFields.getValue();
-					noDuplication.add(Utility.getInstanceName(concept));
-				}
-			}
-		}
-		for (String concept : noDuplication) {
-			queryAddition += concept + " ";
-		}
-
-		LOGGER.info("Based on the instance query add this to the next query: " + queryAddition);
-		return queryAddition;
-	}
-
-	public Map<String, Object> executeInstanceCoreQuery(String querySearch) throws SolrServerException {
-		Map<String, Object> queryResults = new HashMap<String, Object>();
-		if (serverActive()) {
-			// search for instances
-			SolrIndexEngineQueryBuilder queryBuilder = new SolrIndexEngineQueryBuilder();
-			queryBuilder.setSearchString(querySearch);
-			queryBuilder.setDefaultSearchField(INSTANCES);
-			queryBuilder.setQueryType("/spell");
-			queryBuilder.setSpellCheck(true);
-			queryBuilder.setSpellCheckBuild(true);
-			queryBuilder.setSpellCheckCollate(true);
-			queryBuilder.setSpellCheckCollateExtendedResults(true);
-			queryBuilder.setSpellCheckCount(4);
-
-			SolrQuery query = queryBuilder.getSolrQuery();
-			QueryResponse res = getQueryResponse(query, SOLR_PATHS.SOLR_INSTANCES_PATH);
-			String appendQuery = getUniqueConceptsForInstances(res);
-			//append systems to the search
-			querySearch = querySearch + " " + appendQuery;
-			LOGGER.info("New search query will be: " + querySearch);
-			queryResults.put(QUERY_RESPONSE, querySearch);
-			
-			Map<String, List<String>> spellCheckResponse = getSpellCheckResponse(res);
-			if (spellCheckResponse != null && !spellCheckResponse.isEmpty()) {
-				queryResults.put(SPELLCHECK_RESPONSE, spellCheckResponse);
-			}
-		}		
-		return queryResults;
-	}
-
-	public List<String> executeAutoCompleteQuery(String term) throws SolrServerException, IOException {
-		List<String> insightLists = new ArrayList<String>();
-		if(term != null && !term.isEmpty()) {
-			SolrIndexEngineQueryBuilder queryBuilder = new SolrIndexEngineQueryBuilder();
-			queryBuilder.setPreFixSearch(true);
-			queryBuilder.setQueryType("/suggest");
-			queryBuilder.setSpellCheck(true);
-			queryBuilder.setSpellCheckBuild(true);
-			queryBuilder.setSpellCheckQuery(term);
-			queryBuilder.setSort(STORAGE_NAME, DESC);
-			SolrQuery query = queryBuilder.getSolrQuery();
-			QueryResponse resInsight = getQueryResponse(query, SOLR_PATHS.SOLR_INSIGHTS_PATH);
-			insightLists.addAll(getAutoSuggestResponse(resInsight));
-		}
-
-		LOGGER.info("Suggestions include ::: " + insightLists);
-		return insightLists;
-	}
-
-	private static List<String> getAutoSuggestResponse(QueryResponse res) {
-		List<String> autoSuggestRet = new ArrayList<String>();
-		SpellCheckResponse spellRes = res.getSpellCheckResponse();
-		if(spellRes != null) {
-			List<Suggestion> suggestions = res.getSpellCheckResponse().getSuggestions();
-			if (suggestions != null && !suggestions.isEmpty()) {
-				for (Suggestion suggestion : suggestions) {
-					List<String> alternativeList = suggestion.getAlternatives();
-					for (String alternative : alternativeList) {
-						autoSuggestRet.add(alternative.replace("<b>", "").replace("</b>", ""));
-					}
-				}
-			}
-		}
-		return autoSuggestRet;
-	}
 	
 	/**
-	 * Returns the query response and spell check based on input files 
-	 * @param searchString					Search string for the query
-	 * @param searchField					The field to apply for the search
-	 * @param sortString					The field to sort the query return
-	 * @param limitInt						The limit of insights to return
-	 * @param offsetInt						The start document for the insight return
-	 * @param filterData					The filter field values (must be exact match)
-	 * @return 								Map<String, Object> where the keys are QUERY_RESPONSE and
-	 *         								SPELLCHECK_RESPONSE to get query return and spell check values
-	 *         								respectively
-	 * @throws KeyManagementException
-	 * @throws NoSuchAlgorithmException
-	 * @throws KeyStoreException
-	 * @throws SolrServerException
-	 * @throws IOException
+	 * Merges the spell check results of execution on the insight core and on the instance core
+	 * @param insightCoreSpelling			The spell check response on the insight core
+	 * @param instanceCoreSpelling			The spell check response on the instance core
+	 * @return								The combined spell check response from both cores
 	 */
-	public Map<String, Object> executeSearchQuery(String searchString, String sortString, Integer offsetInt, Integer limitInt, Map<String, List<String>> filterData) 
-			throws KeyManagementException, NoSuchAlgorithmException, KeyStoreException, SolrServerException, IOException 
-	{
-		SolrIndexEngineQueryBuilder queryBuilder = new SolrIndexEngineQueryBuilder();
-		if (searchString != null && !searchString.isEmpty()) {
-			queryBuilder.setSearchString(searchString);
-		}
-		if (sortString != null && !sortString.isEmpty()) {
-			queryBuilder.setSort(STORAGE_NAME, sortString.toLowerCase());
-		}
-		// always add sort by score desc
-		queryBuilder.setSort(SCORE, DESC);
-		
-		if (offsetInt != null) {
-			queryBuilder.setOffset(offsetInt);
-		}
-		if (limitInt != null) {
-			queryBuilder.setLimit(limitInt);
-		}
-		// sets the field weighting for relevant value
-		if(searchString != null && !searchString.isEmpty() && !searchString.equals(QUERY_ALL)) {
-			queryBuilder.setDefaultDisMaxWeighting();
-		}
-
-		List<String> retFields = new ArrayList<String>();
-		retFields.add(CORE_ENGINE);
-		retFields.add(CORE_ENGINE_ID);
-		retFields.add(LAYOUT);
-		retFields.add(STORAGE_NAME);
-		retFields.add(CREATED_ON);
-		retFields.add(USER_ID);
-		retFields.add(TAGS);
-		retFields.add(SCORE);
-		queryBuilder.setReturnFields(retFields);
-
-		if(filterData != null && !filterData.isEmpty()) {
-			queryBuilder.setFilterOptions(filterData);
-		}
-		
-		queryBuilder.setQueryType("/spell");
-		queryBuilder.setSpellCheck(true);
-		queryBuilder.setSpellCheckBuild(true);
-		queryBuilder.setSpellCheckCollate(true);
-		queryBuilder.setSpellCheckCollateExtendedResults(true);
-		queryBuilder.setSpellCheckCount(4);
-
-		return searchDocument(queryBuilder);
-	}
-
-	/**
-	 * Returns the query response and spell check based on input files
-	 * @param queryOptions						A Map containing the query options
-	 * @return 									Map<String, Object> where the keys are QUERY_RESPONSE and
-	 *         									SPELLCHECK_RESPONSE to get query return and spell check values
-	 *         									respectively
-	 * @throws SolrServerException
-	 * @throws IOException
-	 */
-	private Map<String, Object> searchDocument(SolrIndexEngineQueryBuilder queryBuilder) throws SolrServerException, IOException {
-		Map<String, Object> searchResultMap = new HashMap<String, Object>();
-		if (serverActive()) {
-			// for spellcheck
-			Map<String, List<String>> insightSpellCheck = null;
-			Map<String, List<String>> instanceSpellCheck = null;
-
-			SolrQuery query = queryBuilder.getSolrQuery();
-			String querySearch = query.get(CommonParams.Q);
-			QueryResponse res = getQueryResponse(query, SOLR_PATHS.SOLR_INSIGHTS_PATH);
-			SolrDocumentList results = res.getResults();
-			// get insight spell check results
-			insightSpellCheck = getSpellCheckResponse(res);
-
-			if(res != null && res.getResults().size() == 0) {
-				// need to remove sorts since they might not exist
-				List<SortClause> sorts = query.getSorts();
-				List<SortClause> sortsCopy = new ArrayList<SortClause>();
-				sortsCopy.addAll(sorts);
-				for(SortClause sort : sortsCopy) {
-					query.removeSort(sort);
-				}
-
-				// Query within the instanceCore
-				Map<String, Object> queryResults = executeInstanceCoreQuery(querySearch);
-				instanceSpellCheck = (Map<String, List<String>>) queryResults.get(SPELLCHECK_RESPONSE);
-
-				String appendedQuerySearch = (String) queryResults.get(QUERY_RESPONSE);
-
-				queryBuilder.removeSpellCheckParams();
-				queryBuilder.setSearchString(appendedQuerySearch);
-				query = queryBuilder.getSolrQuery();
-				// re-add sorts
-				for (SortClause sort : sortsCopy) {
-					query.addSort(sort);
-				}
-
-				// query the insight core
-				res = getQueryResponse(query, SOLR_PATHS.SOLR_INSIGHTS_PATH);
-				results = res.getResults();
-			}
-			
-			searchResultMap.put(QUERY_RESPONSE, results);
-			searchResultMap.put(NUM_FOUND, results.getNumFound());
-			searchResultMap.put(SPELLCHECK_RESPONSE, mergeCoreSuggestions(insightSpellCheck, instanceSpellCheck));
-		}
-		LOGGER.info("Done executing search query");
-		return searchResultMap;
-	}
-
-
-	/**
-	 * Gets the facet/count for each instance of the specified fields
-	 * @param searchString						Search string for the query
-	 * @param facetList							The list of fields to facet
-	 * @return
-	 * @throws KeyManagementException
-	 * @throws NoSuchAlgorithmException
-	 * @throws KeyStoreException
-	 * @throws SolrServerException
-	 */
-	public Map<String, Map<String, Long>> executeQueryFacetResults(String searchString, List<String> facetList)
-					throws KeyManagementException, NoSuchAlgorithmException, KeyStoreException, SolrServerException 
-	{
-		SolrIndexEngineQueryBuilder queryBuilder = new SolrIndexEngineQueryBuilder();
-		if (searchString != null && !searchString.isEmpty()) {
-			queryBuilder.setSearchString(searchString);
-		}
-		
-		// sets the field weighting for relevant value
-		if(searchString != null && !searchString.isEmpty() && !searchString.equals(QUERY_ALL)) {
-			queryBuilder.setDefaultDisMaxWeighting();
-		}
-		// facet still requires a default field or it throws an error 
-		queryBuilder.setDefaultSearchField(INDEX_NAME);
-		queryBuilder.setFacet(true);
-		queryBuilder.setFacetField(facetList);
-		queryBuilder.setFacetMinCount(1);
-		queryBuilder.setFacetSortCount(true);
-
-		return facetDocument(queryBuilder);
-	}
-
-	/**
-	 * Gets the facet/count for each instance of the specified fields
-	 * @param queryOptions				Options that determine which fields to facet by
-	 * @return faceted values of fields
-	 */
-	private Map<String, Map<String, Long>> facetDocument(SolrIndexEngineQueryBuilder queryBuilder) throws SolrServerException {
-		Map<String, Long> innerMap = null;
-		Map<String, Map<String, Long>> facetFieldMap = null;
-		if (serverActive()) {
-			String appendedQuerySearch = "";
-			QueryResponse res = null;
-			List<FacetField> facetFieldList = null;
-
-			SolrQuery query = queryBuilder.getSolrQuery();
-			String querySearch = query.get(CommonParams.Q);
-
-			res = getQueryResponse(query, SOLR_PATHS.SOLR_INSIGHTS_PATH);
-			facetFieldList = res.getFacetFields();
-			if (facetFieldList != null && facetFieldList.get(0).getValueCount() == 0) {
-				// need to remove sorts sinc they might not exist
-				List<SortClause> sorts = query.getSorts();
-				List<SortClause> sortsCopy = new ArrayList<SortClause>();
-				sortsCopy.addAll(sorts);
-				for(SortClause sort : sortsCopy) {
-					query.removeSort(sort);
-				}
-				//Query within the instanceCore
-				Map<String, Object> queryResults = executeInstanceCoreQuery(querySearch);
-				appendedQuerySearch = (String) queryResults.get(QUERY_RESPONSE);
-				query.set(CommonParams.Q, appendedQuerySearch);
-				// readd sorts
-				for(SortClause sort : sortsCopy) {
-					query.addSort(sort);
-				}
-				// query the insight core
-				res = getQueryResponse(query, SOLR_PATHS.SOLR_INSIGHTS_PATH);
-				facetFieldList = res.getFacetFields();
-			}
-
-			if (facetFieldList != null && facetFieldList.size() > 0) {
-				facetFieldMap = new LinkedHashMap<String, Map<String, Long>>();
-				for (FacetField field : facetFieldList) {
-					innerMap = new LinkedHashMap<String, Long>();
-					String fieldName = field.getName();
-					List<Count> facetInfo = field.getValues();
-					if (facetInfo != null) {
-						for (FacetField.Count facetInstance : facetInfo) {
-							String facetName = facetInstance.getName();
-							innerMap.put(facetName, facetInstance.getCount());
-						}
-					}
-					facetFieldMap.put(fieldName, innerMap);
-				}
-			}
-		}
-		LOGGER.info("Done executing facet query");
-		return facetFieldMap;
-	}
-
-	/**
-	 * Gets the grouped SolrDocument based on the results of the selected fields to group by
-	 * @param searchString					Search string for the query
-	 * @param searchField					The field to apply for the search
-	 * @param groupOffset					The offset for the group return
-	 * @param groupLimit					The limit for the group return
-	 * @param groupByField					The field to group by
-	 * @param filterData
-	 * @return
-	 * @throws KeyManagementException
-	 * @throws NoSuchAlgorithmException
-	 * @throws KeyStoreException
-	 * @throws SolrServerException
-	 * @throws IOException
-	 */
-	public Map<String, Object> executeQueryGroupBy(String searchString, Integer groupOffset, Integer groupLimit, 
-			String groupByField, String groupSort, Map<String, List<String>> filterData)
-			throws KeyManagementException, NoSuchAlgorithmException, KeyStoreException, SolrServerException, IOException 
-	{
-		SolrIndexEngineQueryBuilder queryBuilder = new SolrIndexEngineQueryBuilder();
-		if (searchString != null && !searchString.isEmpty()) {
-			queryBuilder.setSearchString(searchString);
-		}
-
-		queryBuilder.setGroupBy(true);
-		if (groupLimit != null) {
-			queryBuilder.setGroupLimit(groupLimit);
-		} else {
-			queryBuilder.setGroupLimit(200);
-		}
-		if (groupOffset != null) {
-			queryBuilder.setGroupOffset(groupOffset);
-		} else {
-			queryBuilder.setGroupLimit(0);
-		}
-		if (groupSort != null && !groupSort.isEmpty()) {
-			queryBuilder.setSort(STORAGE_NAME, groupSort.toLowerCase());
-		}
-		// always add sort by score desc
-		queryBuilder.setGroupSort(SCORE, DESC);
-		//TODO: need to expose number of groups to return to UI
-		queryBuilder.setLimit(50);
-
-		
-		List<String> groupList = new ArrayList<String>();
-		groupList.add(groupByField);
-		queryBuilder.setGroupFields(groupList);
-		
-		// sets the field weighting for relevant value
-		if(searchString != null && !searchString.isEmpty() && !searchString.equals(QUERY_ALL)) {
-			queryBuilder.setDefaultDisMaxWeighting();
-		}
-				
-		List<String> retFields = new ArrayList<String>();
-		retFields.add(CORE_ENGINE);
-		retFields.add(CORE_ENGINE_ID);
-		retFields.add(LAYOUT);
-		retFields.add(STORAGE_NAME);
-		retFields.add(CREATED_ON);
-		retFields.add(USER_ID);
-		retFields.add(TAGS);
-		retFields.add(SCORE);
-		queryBuilder.setReturnFields(retFields);
-
-		if(filterData != null && !filterData.isEmpty()) {
-			queryBuilder.setFilterOptions(filterData);
-		}
-		
-		queryBuilder.setQueryType("/spell");
-		queryBuilder.setSpellCheck(true);
-		queryBuilder.setSpellCheckBuild(true);
-		queryBuilder.setSpellCheckCollate(true);
-		queryBuilder.setSpellCheckCollateExtendedResults(true);
-		queryBuilder.setSpellCheckCount(4);
-
-		return groupDocument(queryBuilder);
-	}
-
-	/**
-	 * Gets the grouped SolrDocument based on the results of the selected fields to group by
-	 * @param queryOptions			options that determine how the SolrDocumentList will be
-	 *           					grouped and viewed
-	 * @return grouped SolrDocumentList
-	 */
-	private Map<String, Object> groupDocument(SolrIndexEngineQueryBuilder queryBuilder) throws SolrServerException, IOException {
-		Map<String, Object> groupByResponse = new HashMap<String, Object>();
-		
-		if (serverActive()) {
-			QueryResponse res = null;
-			
-			Map<String, Map<String, SolrDocumentList>> groupFieldMap = new HashMap<String, Map<String, SolrDocumentList>>();
-			GroupResponse groupResponse = null;
-			Map<String, SolrDocumentList> innerMap = null;
-			
-			//for spellcheck
-			Map<String, List<String>> insightSpellCheck = null;
-			Map<String, List<String>> instanceSpellCheck = null;
-			
-			SolrQuery query = queryBuilder.getSolrQuery();
-			String querySearch = query.get(CommonParams.Q);
-			res = getQueryResponse(query, SOLR_PATHS.SOLR_INSIGHTS_PATH);
-			//get insight spell check results
-			insightSpellCheck = getSpellCheckResponse(res);
-			
-			groupResponse = res.getGroupResponse();
-			if(groupResponse != null && groupResponse.getValues().get(0).getValues().size() == 0) {
-				// need to remove sorts since they might not exist
-				List<SortClause> sorts = query.getSorts();
-				List<SortClause> sortsCopy = new ArrayList<SortClause>();
-				sortsCopy.addAll(sorts);
-				for(SortClause sort : sortsCopy) {
-					query.removeSort(sort);
-				}
-				
-				//Query within the instanceCore
-				Map<String, Object> queryResults = executeInstanceCoreQuery(querySearch);
-				instanceSpellCheck = (Map<String, List<String>>) queryResults.get(SPELLCHECK_RESPONSE);
-				
-				String appendedQuerySearch = (String) queryResults.get(QUERY_RESPONSE);
-				
-				queryBuilder.removeSpellCheckParams();
-				queryBuilder.setSearchString(appendedQuerySearch);
-				query = queryBuilder.getSolrQuery();
-				// readd sorts
-				for(SortClause sort : sortsCopy) {
-					query.addSort(sort);
-				}
-				
-				// query the insight core
-				res = getQueryResponse(query, SOLR_PATHS.SOLR_INSIGHTS_PATH);
-				groupResponse = res.getGroupResponse();
-			}
-
-			if (groupResponse != null) { 
-				groupFieldMap = new HashMap<String, Map<String, SolrDocumentList>>();
-				for (GroupCommand gc : groupResponse.getValues()) {
-					innerMap = new HashMap<String, SolrDocumentList>();
-					String groupBy = gc.getName();
-					List<Group> groups = gc.getValues();
-					if (groups != null) {
-						for (Group g : groups) {
-							SolrDocumentList solrDocs = g.getResult();
-							innerMap.put(g.getGroupValue(), solrDocs);
-						}
-					}
-					groupFieldMap.put(groupBy, innerMap);
-				}
-			}
-			
-			groupByResponse.put(QUERY_RESPONSE, groupFieldMap);
-			groupByResponse.put(SPELLCHECK_RESPONSE, mergeCoreSuggestions(insightSpellCheck, instanceSpellCheck));
-		}
-
-		LOGGER.info("Done executing group by query");
-		return groupByResponse;
-	}
-	
-	private Map<String, List<String>> mergeCoreSuggestions(Map<String, List<String>> insightCoreSpelling, Map<String, List<String>> instanceCoreSpelling) {
+	private Map<String, List<String>> mergeSpellCheckResponse(Map<String, List<String>> insightCoreSpelling, Map<String, List<String>> instanceCoreSpelling) {
+		/*
+		 * This method just iterates through the two maps and combines the spelling corrections if the misspelled 
+		 * word appears in both lists... i.e. if the two maps inputed contain the same key (key being the misspelled word)
+		 * then the lists that they point to are combined into one list
+		 */
 		Map<String, List<String>> allResponse = new HashMap<String, List<String>>(); 
 		//add insight suggestions
 		if (insightCoreSpelling != null && !insightCoreSpelling.isEmpty()) {
@@ -1010,21 +1279,191 @@ public class SolrIndexEngine {
 		//add instance suggestions
 		if (instanceCoreSpelling != null && !instanceCoreSpelling.isEmpty()) {
 			for (String searchString : instanceCoreSpelling.keySet()) {
+				// if the key (misspelled word) is already present due to it being in the other map
 				if(allResponse.containsKey(searchString)) {
+					// get all the current spelling corrections provided from the insight core which 
+					// has been put into the new allResponse map
 					List<String> currSpellingCorrections = allResponse.get(searchString);
+					// get all the new spelling corrections provided from the instance core
 					List<String> newSpellingCorrections = instanceCoreSpelling.get(searchString);
+					// loop through all the instance spelling corrections
 					for(String newSpelling : newSpellingCorrections) {
+						// but while you loop, only add in the corrections not already there so the 
+						// list of corrected values is unique
 						if(!currSpellingCorrections.contains(newSpelling)) {
 							currSpellingCorrections.add(newSpelling);
 						}
 					}
 				} else {
+					// the misspelled word hasn't been seen before
+					// just add it and the list of corrections into the new map
 					allResponse.put(searchString, instanceCoreSpelling.get(searchString));
 				}
 			}
 		}
 		return allResponse;
 	}
+	//////////////////////////// end spell check methods /////////////////////////////////////////////
+
+	
+	
+	//////////////////////////// auto-complete methods /////////////////////////////////////////////
+	/*
+	 * Execute Auto Complete and getAutoSuggestResponse are both used to suggest insights to the user 
+	 * based on the insight names that are stored within the solr core.
+	 * 
+	 * This uses the solr "insight_suggest" schema field.  This field is a copyfield from the insight name
+	 * schema field (index_name), but uses different indexing/querying such that the entire question name
+	 * is suggested based on the user input. It is currently set up to only show auto-complete suggestions 
+	 * where the user input is a correct "prefix" for the insight name
+	 * For example, if a user types in: "movie relationship" the suggestions might be the following:
+	 * 			1) "movie relationship with actors"
+	 * 			2) "movie relationship with studios"
+	 * But it will not suggest the following
+	 * 			1) "what are the movie relationships with actors"
+	 * 			2) "what are the movie relationships with studios"
+	 * 
+	 * The auto-complete will only show results where the user input is a "prefix" on the insight name, but
+	 * when a user runs the search routine, it will show all the insights above.
+	 */
+
+	/**
+	 * Takes in a term (a sentence) and provides suggestions for insights the user might be interested in
+	 * @param term							String containing the input to find suggestions
+	 * @return								A List of suggestions based on the input term
+	 * @throws SolrServerException
+	 * @throws IOException
+	 */
+	public List<String> executeAutoCompleteQuery(String term) throws SolrServerException, IOException {
+		List<String> insightLists = new ArrayList<String>();
+		if(term != null && !term.isEmpty()) {
+			// generate a solr query
+			SolrIndexEngineQueryBuilder queryBuilder = new SolrIndexEngineQueryBuilder();
+			// this is what tells the search to use the input term as a "prefix" for the results to return
+			queryBuilder.setPreFixSearch(true);
+			// uses the suggest path and set the spellcheck query value to contain the term
+			// the auto-complete suggestions exist within the spellcheckresponse on the QueryResponse
+			// 		once the query is executed
+			queryBuilder.setQueryType("/suggest");
+			queryBuilder.setSpellCheck(true);
+			queryBuilder.setSpellCheckBuild(true);
+			queryBuilder.setSpellCheckQuery(term);
+			// sort the return based on name
+			queryBuilder.setSort(STORAGE_NAME, DESC);
+			// get the solr query
+			SolrQuery query = queryBuilder.getSolrQuery();
+			// execute the query on the solr insight core
+			QueryResponse resInsight = getQueryResponse(query, SOLR_PATHS.SOLR_INSIGHTS_PATH);
+			// return the results
+			insightLists.addAll(getAutoSuggestResponse(resInsight));
+		}
+
+		LOGGER.info("Suggestions include ::: " + insightLists);
+		return insightLists;
+	}
+
+	/**
+	 * Extracts the auto-complete suggestions from the query return
+	 * @param res				The QueryResponse after the SolrQuery has been run on a specific core
+	 * @return					List containing the suggested auto-complete sentences					
+	 */
+	private List<String> getAutoSuggestResponse(QueryResponse res) {
+		List<String> autoSuggestRet = new ArrayList<String>();
+		// the auto-complete suggestions are contained within the spell check response
+		SpellCheckResponse spellRes = res.getSpellCheckResponse();
+		if(spellRes != null) {
+			// get the suggestions
+			List<Suggestion> suggestions = res.getSpellCheckResponse().getSuggestions();
+			if (suggestions != null && !suggestions.isEmpty()) {
+				// iterate through each suggestion
+				for (Suggestion suggestion : suggestions) {
+					List<String> alternativeList = suggestion.getAlternatives();
+					for (String alternative : alternativeList) {
+						// there is a really annoying thing where the portion that matches appends
+						// html bold tags in the insight name
+						// currently just replacing them out, but should go back and figure out 
+						// the configuration to never add them
+						autoSuggestRet.add(alternative.replace("<b>", "").replace("</b>", ""));
+					}
+				}
+			}
+		}
+		return autoSuggestRet;
+	}
+	//////////////////////////// end auto-complete methods /////////////////////////////////////////////
+
+	
+	//////////////////////////// getInsight methods /////////////////////////////////////////////
+	/*
+	 * The getInsight methods are just useful wrappers to get insight information
+	 * This is used when the information isn't stored in the insight rdbms and instead
+	 * we need to get the information from solr... this is the case for "drag and drop"
+	 * insights where files are passed in
+	 */
+	
+	/**
+	 * Returns the solr metadata around one insight
+	 * This calls the normal querying routines but with a filter on the solr id
+	 * @param uniqueID						String containing the unique solr id for the insight
+	 * @return								SolrDocument containing the insight metadata
+	 * @throws SolrServerException
+	 * @throws IOException
+	 */
+	public SolrDocument getInsight(String uniqueID) throws SolrServerException, IOException {
+		SolrDocumentList results = null;
+		if(serverActive()) {
+			LOGGER.info("Getting documents with id:  " + uniqueID);
+			// create a query builder
+			SolrIndexEngineQueryBuilder queryBuilder = new SolrIndexEngineQueryBuilder();
+			// use the generic return all query
+			queryBuilder.setSearchString(QUERY_ALL);
+			// create the required filter map object to contain the single uniqueID
+			Map<String, List<String>> filterForId = new HashMap<String, List<String>>();
+			List<String> uniqueIDs = new ArrayList<String>();
+			uniqueIDs.add(uniqueID);
+			filterForId.put(ID, uniqueIDs);
+			// set the query builder to add the unique id as a filter
+			queryBuilder.setFilterOptions(filterForId);
+			// execute the query on the insight core
+			QueryResponse res = getQueryResponse(queryBuilder.getSolrQuery(), SOLR_PATHS.SOLR_INSIGHTS_PATH);
+			// get the output 
+			results = res.getResults();
+		}
+		// return should only contain 1 value since each id is unique
+		return results.get(0);
+	}
+	
+	/**
+	 * Returns the solr metadata around a list of insights
+	 * @param uniqueIDs						List containing the unique solr ids for the insights
+	 * @return								SolrDocumentList containing the insights metadata
+	 * @throws SolrServerException
+	 * @throws IOException
+	 */
+	public SolrDocumentList getInsight(List<String> uniqueIDs) throws SolrServerException, IOException {
+		SolrDocumentList results = null;
+		if(serverActive()) {
+			LOGGER.info("Getting documents with ids:  " + uniqueIDs);
+			// create a query builder
+			SolrIndexEngineQueryBuilder queryBuilder = new SolrIndexEngineQueryBuilder();
+			// use the generic return all query
+			queryBuilder.setSearchString(QUERY_ALL);
+			// create the required filter map object to contain the single uniqueID
+			Map<String, List<String>> filterForId = new HashMap<String, List<String>>();
+			filterForId.put(ID, uniqueIDs);
+			// set the query builder to use the unqiue ids passed in as a filter
+			queryBuilder.setFilterOptions(filterForId);
+			// execute the query on the insight core
+			QueryResponse res = getQueryResponse(queryBuilder.getSolrQuery(), SOLR_PATHS.SOLR_INSIGHTS_PATH);
+			// get the output 
+			results = res.getResults();
+		}
+		return results;
+	}
+	//////////////////////////// end getInsight methods /////////////////////////////////////////////
+
+	
+	
 	
 	/////////////////// END VARIOUS WAYS TO QUERY SOLR ENGINE ///////////////////
 
