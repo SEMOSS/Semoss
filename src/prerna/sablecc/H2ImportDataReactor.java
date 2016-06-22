@@ -19,18 +19,30 @@ public class H2ImportDataReactor extends ImportDataReactor {
 	
 	@Override
 	public Iterator process() {
+		// use the import data reactor to go thorugh teh logic to get the necessary data 
 		super.process();
-		String nodeStr = (String)myStore.get(whoAmI);
 		
+		// get all the appropriate values
+		
+		// get the frame
 		H2Frame frame = (H2Frame) myStore.get("G");
+		// get the iterator containing the information to add
 		Iterator<IHeadersDataRow> it = (Iterator<IHeadersDataRow>) myStore.get("iterator");
+
+		// TODO: terrible use of the edgeHash... the values of the edgeHash are not actually used
+		// its purpose is a null check to determine if we need to call mergeEdgeHash
+		// stupid since if it wasn't null (i.e. API Reactor called with an engine), the super.process() will
+		// do the QSMergeEdgeHash but the super will never handle any case where a mergeEdgeHash needs to occur
 		Map<String, Set<String>> edgeHash = (Map<String, Set<String>>) myStore.get("edgeHash");
 		Map<String, String> logicalToValue = (Map<String, String>) myStore.get("logicalToValue");
+		
+		// this is used to help with the determination if the frame should be doing an update vs. an insert
+		// with respect to the new values being added
 		String[] startingHeaders = (String[]) myStore.get("startingHeaders");
+		
+		// get the join data 
 		Vector<Map<String, String>> joins = (Vector<Map<String, String>>) myStore.get(PKQLEnum.JOINS);
 		String joinType = (String)myStore.get(PKQLEnum.REL_TYPE);
-		
-		boolean addRow = false;
 		
 		//TODO: need to make all these wrappers that give a IHeaderDataRow be the same type to get this info
 		String[] types = null;
@@ -50,7 +62,10 @@ public class H2ImportDataReactor extends ImportDataReactor {
 		}
 		
 		String[] headersCopy = new String[headers.length];
-		// TODO: annoying, need to determine if i need to create a prim key edge hash
+
+		// if the edge hash is not defined from when the super.process()
+		// we need to perform the mergeEdgeHash logic here
+		
 		if(edgeHash == null) {
 			Map<String, Set<String>> primKeyEdgeHash = TinkerMetaHelper.createPrimKeyEdgeHash(headers);
 			Map<String, String> dataType = new HashMap<>();
@@ -76,34 +91,45 @@ public class H2ImportDataReactor extends ImportDataReactor {
 			headers = headersCopy; 
 		}
 		
-		//am i simply adding more data to the same columns or am i adding new columns as well?
-		//if frame is empty then just add row
+		
+		// TODO: is this the best way to determine when it is an "addRow" vs. "addRelationship"
+		// TODO: h2Builder addRelationship only executes update queries which does nothing if frame is empty
+		
+		// set the addRow logic to false
+		boolean addRow = false;
+		// if all the headers are accounted or the frame is empty, then the logic should only be inserting
+		// the values from the iterator into the frame
 		if(allHeadersAccounted(startingHeaders, headers, joins) || frame.isEmpty() ) {
 			addRow = true;
 		}
-
-		// TODO: need to have a smart way of determining when it is an "addRow" vs. "addRelationship"
-		// TODO: h2Builder addRelationship only does update query which does nothing if frame is empty
 		if(addRow) {
 			while(it.hasNext()) {
 				IHeadersDataRow ss = (IHeadersDataRow) it.next();
 				frame.addRow(ss.getValues(), ss.getRawValues(), headers);
 			}
 		} else {
+			// if logicalToValue is null, it will create it within the processIterator method
 			frame.processIterator(it, headers, logicalToValue, joins, joinType);
 		}
 		
-//		List<Object[]> frameData = frame.getData();
-//		for(Object[] nextRow : frameData) {
-//			System.out.println(Arrays.toString(nextRow));
-//		}
-		
+		// store the response string
 		inputResponseString(it, headers);
+		// set status to success
 		myStore.put("STATUS", STATUS.SUCCESS);
 		
 		return null;
 	}
 	
+	
+	/**
+	 * Determine if all the headers are taken into consideration within the iterator
+	 * This helps to determine if we need to perform an insert vs. an update query to fill the frame
+	 * @param headers1				The original set of headers in the frame
+	 * @param headers2				The new set of headers from the iterator
+	 * @param joins					Needs to take into consideration the joins since we can join on 
+	 * 								columns that do not have the same names
+	 * @return
+	 */
 	private boolean allHeadersAccounted(String[] headers1, String[] headers2, Vector<Map<String, String>> joins) {
 		if(headers1.length != headers2.length) {
 			return false;
@@ -136,13 +162,5 @@ public class H2ImportDataReactor extends ImportDataReactor {
 		
 		//return true if header sets matched, false otherwise
 		return header2Set.size() == 0;
-//		for(String header1 : headers1) {
-//			if(!ArrayUtilityMethods.arrayContainsValue(adjustedHeaders2, header1)) {
-//				//check here if 
-//				return false;
-//			}
-//		}
-//		
-//		return true;
 	}
 }
