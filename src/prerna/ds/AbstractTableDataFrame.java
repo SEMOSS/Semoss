@@ -34,18 +34,85 @@ public abstract class AbstractTableDataFrame implements ITableDataFrame {
 	
 	private static final Logger LOGGER = LogManager.getLogger(AbstractTableDataFrame.class.getName());
 
+	// the meta data for the frame
 	protected IMetaData metaData;
+	
+	// the header names persisted on the frame
+	// this is taken from the frame
+	// but it doesn't include prim keys
 	protected String[] headerNames;
+	
+	// TODO: once actions are moved to PKQL, won't need to keep this
+	// examples include: numerical_correlation, classification, matrix_regression, association_learning
+	// we keep a set of algorithm outputs on the frame
 	protected List<Object> algorithmOutput = new Vector<Object>();
+	
+	// this is used to determine the list of columns to skip 
 	protected List<String> columnsToSkip = new Vector<String>(); //make a set?
+	
+	// the user id of the user who executed to create this frame
+	// this has a lot of use for the specific implementation of H2Frame
+	// H2Frame determines the schema to add the in-memory tables based on the userId
 	protected String userId;
 	
+	
+	///////////////////////// merge edge hash methods ///////////////////////////////////////
+	
+	/*
+	 * There are two main types of merge edge hash methods
+	 * 1) merge edge hash for new data being added to a frame
+	 * 		-> this is used when adding a new column, i.e. when a group by result is added to the frame
+	 * 2) merge edge hash for new data coming from an engine
+	 * 		-> this does a lot more as it loads engine specific properties onto the metadata
+	 */
+	
 	@Override
-	public void mergeEdgeHash(Map<String, Set<String>> primKeyEdgeHash, Map<String, String> dataTypeMap) {
-		// combine the new values into the tinker meta data
-		TinkerMetaHelper.mergeEdgeHash(this.metaData, primKeyEdgeHash);
+	/**
+	 * Merges the inputed edge hash with the existing metadata in the frame
+	 * @param edgeHash						The edge hash to merge into the existing meta data
+	 * @param dataTypeMap					The data type for each entry in the edgeHash
+	 */
+	public void mergeEdgeHash(Map<String, Set<String>> edgeHash, Map<String, String> dataTypeMap) {
+		// combine the new values into the meta data
+		TinkerMetaHelper.mergeEdgeHash(this.metaData, edgeHash);
 
-		// also store the data types associated with the new headers that are created
+		// store the data types for the new columns added
+		// sets any missing data type to be a string
+		mergeDataTypeMap(dataTypeMap);
+	
+		// update the list of header names inside the data frame
+    	List<String> fullNames = this.metaData.getColumnNames();
+    	this.headerNames = fullNames.toArray(new String[fullNames.size()]);
+	}
+	
+	/**
+	 * Merges the inputed edge hash with the existing metadata in the frame
+	 * @param edgeHash						The edge hash to merge into the existing meta data
+ 	 * @param node2ValueHash				The name for each entry in the edgeHash for how it will be called in the data frame
+	 * @param dataTypeMap					The data type for each entry in the edgeHash
+	 */
+	public void mergeEdgeHash(Map<String, Set<String>> edgeHash, Map<String, String> node2ValueHash, Map<String, String> dataTypeMap) {
+		// this will combine the new values into the meta data
+		// but it will also use the node2ValueHash to have define a specific definition for how
+		// the column is defined within the frame
+		// this is important for H2Frame since column names have character restrictions
+		TinkerMetaHelper.mergeEdgeHash(this.metaData, edgeHash, node2ValueHash);
+
+		// store the data types for the new columns added
+		// sets any missing data type to be a string
+		mergeDataTypeMap(dataTypeMap);
+	
+		// update the list of header names inside the data frame
+    	List<String> fullNames = this.metaData.getColumnNames();
+    	this.headerNames = fullNames.toArray(new String[fullNames.size()]);
+	}
+	
+	/**
+	 * Store the data types associated with new headers that are created during mergeEdgeHash
+	 * @param dataTypeMap
+	 */
+	private void mergeDataTypeMap(Map<String, String> dataTypeMap) {
+		// sets any missing data type to be a string
 		if(dataTypeMap != null) {
 			for(String key : dataTypeMap.keySet()) {
 				String type = dataTypeMap.get(key);
@@ -53,49 +120,53 @@ public abstract class AbstractTableDataFrame implements ITableDataFrame {
 				this.metaData.storeDataType(key, type);
 			}
 		}
-	
-		// update the list of header names inside the data frame
-    	List<String> fullNames = this.metaData.getColumnNames();
-    	this.headerNames = fullNames.toArray(new String[fullNames.size()]);
-	}
-	
-
-	public void mergeEdgeHash(IMetaData metaData2, Map<String, Set<String>> primKeyEdgeHash, Map<String, String> node2ValueHash, Map<String, String> dataTypeMap) {
-		// combine the new values into the tinker meta data, BUT ALSO use the values defined
-		// this is extremely important for RDBMS
-		TinkerMetaHelper.mergeEdgeHash(this.metaData, primKeyEdgeHash, node2ValueHash);
-
-		// also store the data types associated with the new headers that are created
-		if(dataTypeMap != null) {
-			for(String key : dataTypeMap.keySet()) {
-				String type = dataTypeMap.get(key);
-				if(type == null) type = "STRING";
-				this.metaData.storeDataType(key, type);
-			}
-		}
-	
-		// update the list of header names inside the data frame
-    	List<String> fullNames = this.metaData.getColumnNames();
-    	this.headerNames = fullNames.toArray(new String[fullNames.size()]);
 	}
 
 	@Override
+	/**
+	 * Merges the inputed edge hash with the existing metadata in the frame
+	 * @param edgeHash						The edge hash to merge into the existing meta data. The edge hash contains the 
+	 * 										query struct names for the query input
+	 * 										Example edge hash is:
+	 * 										{ Title -> [Title__Movie_Budget, Studio] } ; where Movie_Budget is a property on Title
+	 * @param engine						The engine where the columns in the edge hash came from
+	 * @param joinCols						The join columns for the merging
+	 * 										This enables that we can declare columns to be equivalent between the existing frame
+	 * 										and those we are going to add to the frame via the merge without them needing to be 
+	 * 										exact matches
+	 * @return								Return a map array containing the following
+	 * 										index 0: this map contains a clean version of the edgeHash. the clean version is the 
+	 * 											edge hash contains all the logical names (display names) as defined by the engine.
+	 * 										index 1: this map contains the logical name (matching that in the clean edge hash at
+	 * 											index 0 of the map array) pointing to the unique name of the column within the 
+	 * 											metadata
+	 */
 	public Map[] mergeQSEdgeHash(Map<String, Set<String>> edgeHash, IEngine engine, Vector<Map<String, String>> joinCols) {
+		// this method handles all the complexity of adding the new headers, adding the engine properties, and returning the 
+		// map array which is utilized by ImportDataReactor to add data onto the frame
 		Map[] ret =  TinkerMetaHelper.mergeQSEdgeHash(this.metaData, edgeHash, engine, joinCols);
 
+		// update the list of header names inside the data frame
     	List<String> fullNames = this.metaData.getColumnNames();
     	this.headerNames = fullNames.toArray(new String[fullNames.size()]);
     	
+    	// return the map array
     	return ret;
 	}
+	
+	///////////////////////// end merge edge hash methods ///////////////////////////////////////
 
-	/**
-	 * 
-	 * @param outTypes
-	 * @param inType
-	 * 
-	 * use this method to say connect all my outTypes to an inType, use for multiColumnJoin
+	
+
+	/////////////////////// connect type methods ///////////////////////////////////
+	
+	/*
+	 * The connect type method are just wrappers around the mergeEdgeHash methods
+	 * This just makes it easier to have simple inputs that creates the necessary edge maps
+	 * to merge instead of creating those maps in multiple pieces of the code...
+	 * this is used within the generic ColAddReactor and frame specific variant
 	 */
+
 	@Override
 	public void connectTypes(String[] outTypes, String inType, Map<String, String> dataTypeMap) {
 		if(outTypes.length == 1) {
@@ -129,6 +200,9 @@ public abstract class AbstractTableDataFrame implements ITableDataFrame {
 		edgeHash.put(outType, set);
 		mergeEdgeHash(edgeHash, dataTypeMap);
 	}
+	
+	/////////////////////// end connect type methods ///////////////////////////////////
+
 	
 	@Override
 	public void setDerivedColumn(String uniqueName, boolean isDerived) {
@@ -593,11 +667,17 @@ public abstract class AbstractTableDataFrame implements ITableDataFrame {
 	}
 	
 	@Override
+	/**
+	 * Set the user id for the user who created this frame instance
+	 */
 	public void setUserId(String userId) {
 		this.userId = userId;
 	}
 	
 	@Override
+	/**
+	 * Return the user id for the user who created this frame instance
+	 */
 	public String getUserId() {
 		return this.userId;
 	}
