@@ -558,7 +558,12 @@ public abstract class AbstractTableDataFrame implements ITableDataFrame {
 	
 	@Override
 	public boolean isEmpty() {
-		return !this.iterator(false).hasNext();
+		Iterator it = this.iterator(false);
+		if(it != null) {
+			return !it.hasNext();
+		}
+		// assume if the iterator cannot be created that the frame is empty
+		return true;
 	}
 
 	@Override

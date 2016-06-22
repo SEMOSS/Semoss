@@ -15,34 +15,93 @@ import prerna.engine.api.IEngineWrapper;
 import prerna.util.ArrayUtilityMethods;
 import prerna.util.DIHelper;
 
-public class ImportDataReactor extends AbstractReactor {
+public abstract class ImportDataReactor extends AbstractReactor {
 
+	/**
+	 * This is the base class used by the frame specific import data reactors.
+	 * This class doesn't perform any adding of data in the frames
+	 * It does however input specific pieces of information into the myStore map
+	 * such that the frame specific import data reactors can optimally 
+	 * add the data into the frame
+	 *
+	 */
+	
+	
+	// this stores the specific values that need to be aggregated from the child reactors
+	// based on the child, different information is needed in order to properly add the 
+	// data into the frame
 	Hashtable <String, String[]> values2SyncHash = new Hashtable <String, String[]>();
 
+	/**
+	 * Constructor for the abstract class
+	 */
 	public ImportDataReactor()
 	{
 		String [] thisReacts = {PKQLEnum.API, PKQLEnum.JOINS, PKQLEnum.CSV_TABLE, PKQLEnum.PASTED_DATA};
 		super.whatIReactTo = thisReacts;
 		super.whoAmI = PKQLEnum.IMPORT_DATA;
 
+		// when the data is coming from an API (i.e. an engine or a file)
 		String [] dataFromApi = {PKQLEnum.COL_CSV, "ENGINE", "EDGE_HASH"};
 		values2SyncHash.put(PKQLEnum.API, dataFromApi);
 
-		String [] dataFromTable = {"EDGE_HASH"};
-		values2SyncHash.put(PKQLEnum.CSV_TABLE, dataFromTable);
-		
+		// when the data is coming from user copy/paste data into the tool
 		String [] dataFromPastedData = {"EDGE_HASH"};
 		values2SyncHash.put(PKQLEnum.PASTED_DATA, dataFromPastedData);
+		
+		// TODO: don't really need this, should probably remove it since the format is
+		// not user friendly at all
+		//
+		// when the data is coming from a "csv table"
+		String [] dataFromTable = {"EDGE_HASH"};
+		values2SyncHash.put(PKQLEnum.CSV_TABLE, dataFromTable);
 	}
 
 	@Override
+	/**
+	 * Processes through the information based on the values2SyncHash
+	 * Based on the values2Sync, the required information will be extracted and inputted into the myStore
+	 * for the frame specific data reactors to add the data
+	 */
 	public Iterator process() {
+		/*
+		 * Process for getting the base information from the child reactors to then be used by the
+		 * frame specific import data reactors
+		 * 
+		 * 1) get the starting headers in the frame -> this is only used by H2ImportDataReactor and SparkImportDataReactor
+		 * 2) get the join information
+		 * 3) based on the type of child reactor, get the iterator
+		 * only if the child reactor is an api reactor
+		 * if there is an engine
+		 * 4) perform the metadata update using the engine and edgeHash
+		 * 5) store edgeHash and logicalToValueMap
+		 * 
+		 * TODO:
+		 * if no engine, it is a drag and drop file
+		 * the user can still define an edge hash to load
+		 * why are we just ignoring this :(
+		 * 
+		 * TODO:
+		 * also super weird that the QSMergeEdgeHash occurs here (i.e. when its an engine api within the ImportDataReactor)
+		 * but the other cases where a mergeEdgeHash method is called is done in the frame specific classes.... not consistent 
+		 * for no reason
+		 */
+		
+		
 		modExpression();
-		System.out.println("My Store on COL CSV " + myStore);
+		System.out.println("My Store on IMPORT DATA REACTOR: " + myStore);
 		
 		ITableDataFrame frame = (ITableDataFrame) myStore.get("G");
-		String[] startingHeaders = frame.getColumnHeaders();
 		
+		// 1) get the starting headers
+		// the starting headers is important to keep for the frame specific import data reactors 
+		// They are responsible for knowing when to perform an addRow vs. an addRelationship 
+		// (i.e. insert vs. update for H2ImportDataReactor)
+		String[] startingHeaders = frame.getColumnHeaders();
+		// store in mystore
+		myStore.put("startingHeaders", startingHeaders);
+
+		// 2) format and process the join information
 		Vector<Map<String,String>> joinCols = new Vector<Map<String,String>>();
 		Vector<Map<String, String>> joins = (Vector<Map<String, String>>) myStore.get(PKQLEnum.JOINS);
 		String joinType = "";
@@ -54,130 +113,54 @@ public class ImportDataReactor extends AbstractReactor {
 				joinType = join.get(PKQLEnum.REL_TYPE);
 			}
 		}
-
-		Iterator it = null;
-		IEngine engine = null;
+		// store in mystore
+		myStore.put(PKQLEnum.JOINS, joinCols);
+		myStore.put(PKQLEnum.REL_TYPE, joinType);
 		
+		
+		// 3) grab the iterator
+		// the iterator is stored based on the type of child reactor was part of the import data reactor
+		Iterator it = null;
 		if(myStore.containsKey(PKQLEnum.API)) {			
 			Map<String, Set<String>> edgeHash = (Map<String, Set<String>>) this.getValue(PKQLEnum.API + "_EDGE_HASH");
-			engine = (IEngine) DIHelper.getInstance().getLocalProp((this.getValue(PKQLEnum.API + "_ENGINE")+"").trim());
+			IEngine engine = (IEngine) DIHelper.getInstance().getLocalProp((this.getValue(PKQLEnum.API + "_ENGINE")+"").trim());
+			it  = (Iterator) myStore.get(PKQLEnum.API);
+
+			// 4 & 5) if engine is not null, merge the data into the frame
+			// the engine is null when the api is actually a csv file
 			if(engine != null) {
+				// put the edge hash and the logicalToValue maps within the myStore
+				// will be used when the data is actually imported
 				Map[] mergedMaps = frame.mergeQSEdgeHash(edgeHash, engine, joinCols);
 				myStore.put("edgeHash", mergedMaps[0]);
 				myStore.put("logicalToValue", mergedMaps[1]);
 			} 
+			// TODO: this is the logic we are ignoring
+			// the edge hash may contain specific information the user wants to load
+			// the logic needs to take into the fact that the default edge hash for when nothing 
+			// is specified is each header pointing to an empty set
 //			else {
-//				it  = (Iterator) myStore.get(PKQLEnum.API);
-//				Map<String, String> dataType = new HashMap<>();
-//				String[] types = new String[]{};
-//				String[] headers = new String[]{};
-//				if(it instanceof FileIterator) {
-//					types = ((FileIterator) it).getTypes();
-//					headers = ((FileIterator) it).getHeaders();
-//				} 
-//				
-//				for(int i = 0; i < headers.length;i++) {
-//					dataType.put(headers[i], types[i]);
-//				}
-//				frame.mergeEdgeHash(edgeHash, dataType);
-//				myStore.put("edgeHash", edgeHash);
+//
 //			}
-			
-			it  = (Iterator) myStore.get(PKQLEnum.API);
-			
-		} else if(myStore.containsKey(PKQLEnum.CSV_TABLE)) {
-			Map<String, Set<String>> edgeHash = (Map<String, Set<String>>) this.getValue(PKQLEnum.CSV_TABLE + "_EDGE_HASH");
-			it = (Iterator) myStore.get(PKQLEnum.CSV_TABLE);
-			
-//			Map<String, String> dataType = new HashMap<>();
-//			String[] types = new String[]{};
-//			String[] headers = new String[]{};
-//			if(it instanceof CsvTableWrapper) {
-//				types = ((CsvTableWrapper) it).getTypes();
-//				headers = ((CsvTableWrapper) it).getHeaders();
-//			}
-//			
-//			for(int i = 0; i < headers.length;i++) {
-//				dataType.put(headers[i], types[i]);
-//			}
-//			frame.mergeEdgeHash(edgeHash, dataType);
-//			myStore.put("edgeHash", edgeHash);
-
 		} else if(myStore.containsKey(PKQLEnum.PASTED_DATA)) {
-			Map<String, Set<String>> edgeHash = (Map<String, Set<String>>) this.getValue(PKQLEnum.PASTED_DATA + "_EDGE_HASH");
 			it = (Iterator) myStore.get(PKQLEnum.PASTED_DATA);
-
-//			Map<String, String> dataType = new HashMap<>();
-//			String[] types = new String[]{};
-//			String[] headers = new String[]{};
-//			if(it instanceof FileIterator) {
-//				types = ((FileIterator) it).getTypes();
-//				headers = ((FileIterator) it).getHeaders();
-//			} 
-//			
-//			for(int i = 0; i < headers.length;i++) {
-//				dataType.put(headers[i], types[i]);
-//			}
-//			frame.mergeEdgeHash(edgeHash, dataType);
-//			myStore.put("edgeHash", edgeHash);
-		}
+		} else if(myStore.containsKey(PKQLEnum.CSV_TABLE)) {
+			it = (Iterator) myStore.get(PKQLEnum.CSV_TABLE);
+		} 
 		
-		
-		//TODO: need to make all these wrappers that give a IHeaderDataRow be the same type to get this info
-//		if(it instanceof FileIterator) {
-//			String[] types = ((FileIterator) it).getTypes();
-//			frame.addMetaDataTypes( ((FileIterator) it).getHeaders(), types);
-//		} else if(it instanceof CsvTableWrapper) {
-//			String[] types = ((CsvTableWrapper) it).getTypes();
-//			frame.addMetaDataTypes( ((CsvTableWrapper) it).getHeaders(), types);
-//		}
-		
-		// put in values for frame specific import data reactors to grab instead of having to do it based on api/csv table
+		// store the iterator
 		myStore.put("iterator", it);
-		myStore.put("startingHeaders", startingHeaders);
-		myStore.put(PKQLEnum.JOINS, joinCols);
-		myStore.put(PKQLEnum.REL_TYPE, joinType);
 		
 		return null;
 	}
 
-	// gets all the values to synchronize for this 
-	public String[] getValues2Sync(String input)
-	{
-		return values2SyncHash.get(input);
-	}
-
-	protected String createResponseString(IEngineWrapper it){
-		Map<String, Object> map = it.getResponseMeta();
-		String mssg = "";
-		for(String key : map.keySet()){
-			if(!mssg.isEmpty()){
-				mssg = mssg + " \n";
-			}
-			mssg = mssg + key + ": " + map.get(key).toString();
-		}
-		String retStr = "Sucessfully added data using : \n" + mssg;
-		return retStr;
-	}
-	
-	protected void inputResponseString(Iterator it, String[] headers) {
-		// get rid of this bifurcation
-		// push this into the iterators
-		String nodeStr = (String)myStore.get(whoAmI);
-		if(it instanceof IEngineWrapper) {
-			myStore.put(nodeStr, createResponseString((IEngineWrapper)it));
-		} else {
-//			if(it instanceof FileIterator) {
-//				((FileIterator) it).deleteFile();
-//			}
-			myStore.put(nodeStr, createResponseString(headers));
-		}
-	}
-	
-	protected String createResponseString(String[] headers){
-		return "Successfully added data using:\n headers= " + Arrays.toString(headers);
-	}
-	
+	/**
+	 * Method to update the values present in the edge hash, data type map, and headers based on the join cols
+	 * @param primKeyEdgeHash					The edge hash to clean up based on the join columns
+	 * @param dataType							The data type map to clean up based on the join columns
+	 * @param headers							The header array to clean up based on the join columns
+	 * @param joinCols							The set of join columns
+	 */
 	protected void updateDataForJoins(Map<String, Set<String>> primKeyEdgeHash, Map<String, String> dataType, String[] headers, Vector<Map<String, String>> joinCols) {
 		if(joinCols != null && !joinCols.isEmpty()){
 			Map<String, Set<String>> fixedEdgeMap = new HashMap<String, Set<String>>(); // used to add new keys since cannot update existing map while looping
@@ -237,6 +220,68 @@ public class ImportDataReactor extends AbstractReactor {
 				}
 			}
 		}
+	}
+	
+	
+	/**
+	 * Gets the values to load into the reactor
+	 * This is used to synchronize between the various reactors that can feed into this reactor
+	 * @param input			The type of child reactor
+	 */
+	public String[] getValues2Sync(String input)
+	{
+		return values2SyncHash.get(input);
+	}
+
+	/**
+	 * Creates the return response string based on the iterator and the headers
+	 * @param it					The iterator being used to insert data
+	 * @param headers				String[] containing the headers that were added
+	 */
+	protected void inputResponseString(Iterator it, String[] headers) {
+		// get rid of this bifurcation
+		// push this into the iterators
+		
+		
+		String nodeStr = (String)myStore.get(whoAmI);
+		// if the iterator is the return from an engine
+		// get the query return response to send back
+		if(it instanceof IEngineWrapper) {
+			myStore.put(nodeStr, createResponseString((IEngineWrapper)it));
+		} else {
+			// this is just from a file
+			// create a boring response string
+			myStore.put(nodeStr, createResponseString(headers));
+		}
+	}
+	
+	/**
+	 * Create the return response from a engine wrapper
+	 * @param it				The iterator used to insert data
+	 * @return					String returning the response
+	 */
+	protected String createResponseString(IEngineWrapper it){
+		// get map containing the response metadata from the iterator
+		Map<String, Object> map = it.getResponseMeta();
+		// format fields from meta data map into a string
+		String mssg = "";
+		for(String key : map.keySet()){
+			if(!mssg.isEmpty()){
+				mssg = mssg + " \n";
+			}
+			mssg = mssg + key + ": " + map.get(key).toString();
+		}
+		String retStr = "Sucessfully added data using : \n" + mssg;
+		return retStr;
+	}
+	
+	/**
+	 * Create the return response based on the headers
+	 * @param headers			The headers of the data used to insert data
+	 * @return					String returning the response
+	 */
+	protected String createResponseString(String[] headers){
+		return "Successfully added data using:\n headers= " + Arrays.toString(headers);
 	}
 	
 }
