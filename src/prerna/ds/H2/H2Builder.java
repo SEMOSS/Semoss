@@ -1675,9 +1675,19 @@ public class H2Builder {
 		return this.schema;
 	}
 
+    /**
+     * Sets the schema for the connection
+     * This is used to create a different schema for each user to facilitate BE join
+     * @param schema
+     */
 	public void setSchema(String schema) {
 		if(schema != null) {
-			this.schema = schema;
+			if(!this.schema.equals(schema)) {
+				LOGGER.info("Schema being modified from: '" +  this.schema + "' to new schema for user: '" + schema + "'");
+				this.schema = schema;
+				this.conn = null;
+				getConnection();
+			}
 		}
 	}
     
