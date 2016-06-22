@@ -19,6 +19,7 @@ public class RRunner {
 	private String tableName = "";
 	private String username = "";
 	private String url = "";
+	private String schema = "";
 	private boolean dataframeExists = false;
 	private boolean scriptRanSuccessfully = false;
 	
@@ -31,6 +32,7 @@ public class RRunner {
 	public RRunner(HashMap<String, String> databaseMetaData) throws RserveException, SQLException {
 		this.tableName = databaseMetaData.get("tableName");
 		this.username = databaseMetaData.get("username");
+		this.schema = databaseMetaData.get("schema");
 		start();
 	}
 	
@@ -44,7 +46,8 @@ public class RRunner {
 	 */
 	public RRunner(HashMap<String, String> databaseMetaData, RConnection conn, Server server) throws RserveException, SQLException {
 		this.tableName = databaseMetaData.get("tableName");
-		this.username = databaseMetaData.get("username");		
+		this.username = databaseMetaData.get("username");
+		this.schema = databaseMetaData.get("schema");
 		this.conn = conn;
 		this.server = server;
 		start();
@@ -72,7 +75,7 @@ public class RRunner {
 	 * @param databaseMetaData Must contain "username" and "tableName" from H2Frame
 	 */
 	private String initializeRJDBCConnection() {
-		url = "jdbc:h2:" + server.getURL() + "/mem:test:LOG=0;CACHE_SIZE=65536;LOCK_MODE=1;UNDO_LOG=0";
+		url = "jdbc:h2:" + server.getURL() + "/mem:" + schema + ":LOG=0;CACHE_SIZE=65536;LOCK_MODE=1;UNDO_LOG=0";
 		String workingDir = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER).replace("\\", "/");;
 		String library = "RJDBC";
 		String driver = "org.h2.Driver";
@@ -99,7 +102,9 @@ public class RRunner {
 	public String createDefaultDataframe() throws RserveException {
 		String script = "dataframe<-as.data.frame(unclass(dbReadTable(conn,'" + tableName + "')));";
 		String result = evaluateScript(script);
-		dataframeExists = true;
+		if(!result.startsWith("Error ")) {
+			dataframeExists = true;
+		}
 		
 		return result;
 	}
