@@ -47,6 +47,7 @@ public class H2Builder {
 	static int tableRunNumber = 1;
 	static int rowCount = 0;
 	private static final String tempTable = "TEMP_TABLE98793";
+	static final String H2FRAME = "H2FRAME";
 	String brokenLines = "";
 	
 	private static Map<String, String> typeConversionMap = new HashMap<String, String>();
@@ -362,7 +363,7 @@ public class H2Builder {
     public H2Builder() {
 //    	//initialize a connection
 //    	getConnection();
-    	tableName = "TINKERFRAME"+tableRunNumber;
+    	tableName = H2FRAME+tableRunNumber;
     	tableRunNumber++;
     }
     
@@ -373,7 +374,7 @@ public class H2Builder {
     }
 	    
     public String getNewTableName() {
-    	String name = "TINKERTABLE"+getNextNumber();
+    	String name = H2FRAME + getNextNumber();
     	return name;
     }
     
@@ -2424,7 +2425,7 @@ public class H2Builder {
     
     public static H2Builder open(String fileName) {
     	H2Builder builder = new H2Builder();
-    	String tableName = "TINKERTABLE" + builder.getNextNumber(); 
+    	String tableName = H2FRAME + builder.getNextNumber(); 
     	String openScript = "RUNSCRIPT FROM '"+fileName+"' COMPRESSION GZIP ";
     	String createQuery = "CREATE TABLE "+tableName+" AS SELECT * FROM "+tempTable;
 //    	RunScript.execute(builder.getConnection(), new FileReader(fileName))
