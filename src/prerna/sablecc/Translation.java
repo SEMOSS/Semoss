@@ -1,6 +1,5 @@
 package prerna.sablecc;
 
-import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.Hashtable;
@@ -75,7 +74,6 @@ import prerna.sablecc.node.AVarop;
 import prerna.sablecc.node.AVaropScript;
 import prerna.sablecc.node.Node;
 import prerna.sablecc.node.PScript;
-import prerna.sablecc.node.PVarop;
 import prerna.ui.components.playsheets.datamakers.IDataMaker;
 
 public class Translation extends DepthFirstAdapter {
@@ -998,7 +996,15 @@ public class Translation extends DepthFirstAdapter {
 
     @Override
     public void outANumWordOrNum(ANumWordOrNum node) {
-    	curReactor.set(PKQLEnum.WORD_OR_NUM, (node + "").trim());
+    	String number = node.getDecimal().toString().trim();
+    	if(node.getDecimal() instanceof ADecimal) {
+    		ADecimal dec = (ADecimal)node.getDecimal();
+        	String fraction = dec.getFraction() + "";
+    		number = dec.getWhole().toString().trim();
+    		if(dec.getFraction() != null)
+    			number = number + "." + fraction;
+    	}
+    	curReactor.set(PKQLEnum.WORD_OR_NUM, number);
     }
     
     @Override
@@ -1158,7 +1164,7 @@ public class Translation extends DepthFirstAdapter {
         	deinitReactor(PKQLEnum.ROW_CSV, thisNode, PKQLEnum.ROW_CSV, false);
     	} else {
 		deinitReactor(PKQLEnum.ROW_CSV, thisNode, PKQLEnum.ROW_CSV);
-    }
+    	}
     }
     
     @Override
@@ -1210,31 +1216,6 @@ public class Translation extends DepthFirstAdapter {
 		}
     }
     
-//    @Override
-//    public void inARQuery(ARQuery node) {
-//    	
-//    }
-    
-//    @Override
-//    public void inAROp(AROp node) {
-//    	String script = node.getCodeblock().toString().trim();
-//    	script = script.substring(1, script.length()-1); // have to exclude curly braces
-//    	String nodeStr = node.toString().trim();
-//    	initReactor(PKQLReactor.R_OP.toString());
-//    	curReactor.put(PKQLEnum.G, frame);
-//    	curReactor.put(PKQLReactor.R_OP.toString(), nodeStr);
-//    	curReactor.put(PKQLToken.CODE.toString(), script);
-//    }
-//    
-//    @Override
-//    public void outAROp(AROp node) {
-//    	String nodeStr = node.toString().trim();
-//    	Hashtable <String, Object> thisReactorHash = deinitReactor(PKQLReactor.R_OP.toString(), nodeStr, nodeStr); // Should 2nd argument be codeblock?
-//    	IScriptReactor previousReactor = (IScriptReactor)thisReactorHash.get(PKQLReactor.R_OP.toString());
-//		runner.setResponse(previousReactor.getValue(nodeStr));
-//		runner.setStatus((String)previousReactor.getValue("STATUS"));
-//    }
-	
     public IDataMaker getDataFrame() {
     	if(this.curReactor!=null){
     		IDataMaker table = (IDataMaker)this.curReactor.getValue("G");
