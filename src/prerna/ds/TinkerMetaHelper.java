@@ -16,64 +16,105 @@ import prerna.util.DIHelper;
 
 public class TinkerMetaHelper {
 
-
+	/**
+	 * Merges the engine specific edge hash into the existing metadata
+	 * @param metaData						The existing metadata
+	 * @param newEdgeHash					The edge hash to merge into the existing meta data. The edge hash contains the 
+	 * 										query struct names for the query input
+	 * 										Example edge hash is:
+	 * 										{ Title -> [Title__Movie_Budget, Studio] } ; where Movie_Budget is a property on Title
+	 * @param engine						The engine where all the columns in the edge hash come from
+	 * @param joinCols						The join columns for the merging
+	 * 										This enables that we can declare columns to be equivalent between the existing frame
+	 * 										and those we are going to add to the frame via the merge without them needing to be 
+	 * 										exact matches
+	 * @return								Return a map array containing the following
+	 * 										index 0: this map contains a clean version of the edgeHash. the clean version is the 
+	 * 											edge hash contains all the logical names (display names) as defined by the engine.
+	 * 										index 1: this map contains the logical name (matching that in the clean edge hash at
+	 * 											index 0 of the map array) pointing to the unique name of the column within the 
+	 * 											metadata
+	 */
 	public static Map[] mergeQSEdgeHash(IMetaData metaData, Map<String, Set<String>> newEdgeHash, IEngine engine, List<Map<String,String>> joinColList) {
+		// if the engine is null, we will just grab the local master
 		if(engine == null) {
 			engine = (IEngine) DIHelper.getInstance().getLocalProp(Constants.LOCAL_MASTER_DB_NAME);
 		}
-		Map<String, Set<String>> cleanedHash = new HashMap<String, Set<String>>();
-		Set<String> newLevels = new LinkedHashSet<String>();
-		Map<String, String[]> physicalToLogical = metaData.getPhysical2LogicalTranslations(newEdgeHash, joinColList);
 		
+		// the clean hash will contain the clean edge hash
+		// this is index 0 of the returned map array
+		Map<String, Set<String>> cleanedHash = new HashMap<String, Set<String>>();
+		
+		// this is the logical name to unique name map
+		// this is index 1 of the returned map array
 		Map<String, String> logicalToUniqueName = new HashMap<String, String>();
 		
+		// retrieve the unique name and unique parent name (if property) to be associated with each physical name in 
+		// the query struct edge hash
+		// using the example newEdgeHash above, the following would be in the physicalToLocal map
+		// {
+		//	Title -> [Title, null],
+		//	Title__Movie_Budget => [Movie_Budget, Title],
+		//	Studio -> [Studio, null]
+		// }
+		Map<String, String[]> physicalToLogical = metaData.getPhysical2LogicalTranslations(newEdgeHash, joinColList);
+		
+		/*
+		 * Logic for loop around edge hash:
+		 * ----THIS PORTION OCCURS FOR EACH KEY IN THE EDGE HASH----
+		 * 1. grab each key in the edge hash. each key corresponds to a node
+		 * 2. get the physical name for the node corresponding to the key from the physicalToLogical map
+		 * 3. store the node corresponding to the key in the tinker metadata
+		 * 4. store the values necessary for the map[] return
+		 * 
+		 * ----THIS PORTION OCCURS FOR EACH ENTITY IN THE SET CORRESPONDING TO THE KEY IN THE EDGE HASH----
+		 * 5. get the set of values for the inputed key. this corresponds to the downstream nodes to add in the tinker meta to the key
+		 * 6. for each downstream node, get the physical name corresponding to the key from the physicalToLogical map
+		 * 7. store each node in the tinker metadata
+		 * 8. store the relationship from the key to each entity in the value set in the tinker meta
+		 * 9. store the values necessary for the map[] return
+		 */
+		
+		// 1) looping through to grab each key in the edge hash
 		for(String newNodeKey : newEdgeHash.keySet()) {
 			
+			// 2) get the physical name and the physical parent name if property
 			String outUniqueName = physicalToLogical.get(newNodeKey)[0];
-			String outConceptUniqueName = physicalToLogical.get(newNodeKey)[1];
-			//grab the edges
-			Set<String> edges = newEdgeHash.get(newNodeKey);
-			//collect the column headers
-			newLevels.add(outUniqueName);
+			String outUniqueParentNameIfProperty = physicalToLogical.get(newNodeKey)[1];
 			
-			//grab/create the meta vertex associated with newNode
-			metaData.storeEngineDefinedVertex(outUniqueName, outConceptUniqueName, engine.getEngineName(), newNodeKey);
+			// 3) create the meta vertex associated with newNodeKey
+			metaData.storeEngineDefinedVertex(outUniqueName, outUniqueParentNameIfProperty, engine.getEngineName(), newNodeKey);
 			
+			// 4) store the clean values of the edge hash and store the local to unique name
 			Set<String> cleanSet = new HashSet<String>();
 			String logicalOutName = metaData.getLogicalNameForUniqueName(outUniqueName, engine.getEngineName());
 			logicalToUniqueName.put(logicalOutName, outUniqueName);
-
 			cleanedHash.put(logicalOutName, cleanSet);
 
-			// for each edge in corresponding with newNode create the connection within the META graph
-			if (edges != null && !edges.isEmpty()) {
-				for (String inVertS : edges) {
-
+			// 5) grab the in downstream nodes
+			Set<String> inNodesSet = newEdgeHash.get(newNodeKey);
+			
+			// need to iterate through all the in nodes
+			if (inNodesSet != null && !inNodesSet.isEmpty()) {
+				for (String inVertS : inNodesSet) {
+					// 6) get the physical name and the physical parent name if property
 					String inUniqueName = physicalToLogical.get(inVertS)[0];
-					String inConceptUniqueName = physicalToLogical.get(inVertS)[1];
+					String inUniqueParentNameIfProperty = physicalToLogical.get(inVertS)[1];
 
-					newLevels.add(inUniqueName);
-
-					// now to insert the meta edge Vertex inVert = this.metaData.upsertVertex(META,
-					metaData.storeEngineDefinedVertex(inUniqueName, inConceptUniqueName, engine.getEngineName(), inVertS);
+					// 7) create the meta vertex associated with the inVertS
+					metaData.storeEngineDefinedVertex(inUniqueName, inUniqueParentNameIfProperty, engine.getEngineName(), inVertS);
+					// 8) create the relationship between the newNodeKey and the inVertS
 					metaData.storeRelation(outUniqueName, inUniqueName);
 
+					// 9) store the clean values of the edge hash and store the local to unique name
 					String logicalInName = metaData.getLogicalNameForUniqueName(inUniqueName, engine.getEngineName());
 					cleanSet.add(logicalInName);
-					
 					logicalToUniqueName.put(logicalInName, inUniqueName);
 				}
 			}
 		}
-//		// need to make sure prim key is not added as header
-//		Iterator<String> newLevelsIt = newLevels.iterator();
-//		while(newLevelsIt.hasNext()) {
-//			if(newLevelsIt.next().startsWith(PRIM_KEY)) {
-//				newLevelsIt.remove();
-//			}
-//		}
-//		redoLevels(newLevels.toArray(new String[newLevels.size()]));
 		
+		// create and then return the map array
 		Map[] retMap = new Map[]{cleanedHash, logicalToUniqueName};
 		return retMap;
 	}
