@@ -72,6 +72,9 @@ public class H2Frame extends AbstractTableDataFrame {
 	}
 	
 	@Override
+	/**
+	 * Setting the user id in the builder will automatically update the schema 
+	 */
 	public void setUserId(String userId) {
 		super.setUserId(userId);
 		this.setSchema();
@@ -828,9 +831,9 @@ public class H2Frame extends AbstractTableDataFrame {
 	}
 
 	@Override
-	public void mergeEdgeHash(Map<String, Set<String>> primKeyEdgeHash, Map<String, String> dataTypeMap) {
+	public void mergeEdgeHash(Map<String, Set<String>> edgeHash, Map<String, String> dataTypeMap) {
 		// merge results with the tinker meta data and store data types'
-        super.mergeEdgeHash(this.metaData, primKeyEdgeHash, getNode2ValueHash(primKeyEdgeHash), dataTypeMap);
+        super.mergeEdgeHash(edgeHash, getNode2ValueHash(edgeHash), dataTypeMap);
 		// now we need to create and/or modify the existing table to ensure it has all the necessary columns
 
 		// create a map of column to data type
@@ -939,7 +942,7 @@ public class H2Frame extends AbstractTableDataFrame {
 		reactorNames.put(PKQLEnum.VIZ, "prerna.sablecc.VizReactor");
 		reactorNames.put(PKQLEnum.UNFILTER_DATA, "prerna.sablecc.ColUnfilterReactor");
 		reactorNames.put(PKQLEnum.DATA_FRAME, "prerna.sablecc.DataFrameReactor");
-//		reactorNames.put(PKQLEnum.DASHBOARD_JOIN, "prerna.sablecc.DashboardJoinReactor");
+		reactorNames.put(PKQLEnum.DASHBOARD_JOIN, "prerna.sablecc.DashboardJoinReactor");
 
 //		switch(reactorType) {
 //			case IMPORT_DATA : return new H2ImportDataReactor();
