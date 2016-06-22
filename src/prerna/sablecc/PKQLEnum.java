@@ -39,6 +39,7 @@ public class PKQLEnum {
 	public static String API = "API";
 	public static String CSV_TABLE = "CSV_TABLE";
 	public static String PASTED_DATA = "PASTED_DATA";
+	public static String DASHBOARD_JOIN	 = "DASHBOARD_JOIN";
 	public static String ROW_CSV = "ROW_CSV";
 	public static String IMPORT_DATA = "IMPORT_DATA";
 	public static String REMOVE_DATA = "REMOVE_DATA";
