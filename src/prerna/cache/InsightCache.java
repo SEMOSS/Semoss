@@ -205,7 +205,7 @@ public abstract class InsightCache implements ICache {
 						Class frame = Class.forName(framePackageLocation);
 						Constructor<ITableDataFrame> cons = frame.getConstructor();
 						instanceFrame = cons.newInstance();
-						dataFrame = instanceFrame.open(fileName);
+						dataFrame = instanceFrame.open(fileName, in.getUserID());
 					}
 				} catch(NoSuchMethodException e) {
 					e.printStackTrace();
