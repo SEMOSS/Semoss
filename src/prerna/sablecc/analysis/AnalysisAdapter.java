@@ -195,6 +195,12 @@ public class AnalysisAdapter implements Analysis
     }
 
     @Override
+    public void caseADashboardJoinColop(ADashboardJoinColop node)
+    {
+        defaultCase(node);
+    }
+
+    @Override
     public void caseAPanelVizPanelop(APanelVizPanelop node)
     {
         defaultCase(node);
@@ -646,6 +652,12 @@ public class AnalysisAdapter implements Analysis
 
     @Override
     public void caseAExprRow(AExprRow node)
+    {
+        defaultCase(node);
+    }
+
+    @Override
+    public void caseADashboardJoin(ADashboardJoin node)
     {
         defaultCase(node);
     }
@@ -1222,6 +1234,12 @@ public class AnalysisAdapter implements Analysis
 
     @Override
     public void caseTUserinput(TUserinput node)
+    {
+        defaultCase(node);
+    }
+
+    @Override
+    public void caseTJoin(TJoin node)
     {
         defaultCase(node);
     }
