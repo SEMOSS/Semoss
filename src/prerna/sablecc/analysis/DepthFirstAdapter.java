@@ -479,6 +479,27 @@ public class DepthFirstAdapter extends AnalysisAdapter
         outADataFrameColop(node);
     }
 
+    public void inADashboardJoinColop(ADashboardJoinColop node)
+    {
+        defaultIn(node);
+    }
+
+    public void outADashboardJoinColop(ADashboardJoinColop node)
+    {
+        defaultOut(node);
+    }
+
+    @Override
+    public void caseADashboardJoinColop(ADashboardJoinColop node)
+    {
+        inADashboardJoinColop(node);
+        if(node.getDashboardJoin() != null)
+        {
+            node.getDashboardJoin().apply(this);
+        }
+        outADashboardJoinColop(node);
+    }
+
     public void inAPanelVizPanelop(APanelVizPanelop node)
     {
         defaultIn(node);
@@ -2816,6 +2837,71 @@ public class DepthFirstAdapter extends AnalysisAdapter
             node.getRBracket().apply(this);
         }
         outAExprRow(node);
+    }
+
+    public void inADashboardJoin(ADashboardJoin node)
+    {
+        defaultIn(node);
+    }
+
+    public void outADashboardJoin(ADashboardJoin node)
+    {
+        defaultOut(node);
+    }
+
+    @Override
+    public void caseADashboardJoin(ADashboardJoin node)
+    {
+        inADashboardJoin(node);
+        if(node.getJoin() != null)
+        {
+            node.getJoin().apply(this);
+        }
+        if(node.getLPar() != null)
+        {
+            node.getLPar().apply(this);
+        }
+        if(node.getInsight1() != null)
+        {
+            node.getInsight1().apply(this);
+        }
+        if(node.getCom1() != null)
+        {
+            node.getCom1().apply(this);
+        }
+        if(node.getInsight2() != null)
+        {
+            node.getInsight2().apply(this);
+        }
+        if(node.getCom2() != null)
+        {
+            node.getCom2().apply(this);
+        }
+        if(node.getInsight1Col() != null)
+        {
+            node.getInsight1Col().apply(this);
+        }
+        if(node.getCom3() != null)
+        {
+            node.getCom3().apply(this);
+        }
+        if(node.getInsight2Col() != null)
+        {
+            node.getInsight2Col().apply(this);
+        }
+        if(node.getCom4() != null)
+        {
+            node.getCom4().apply(this);
+        }
+        if(node.getRel() != null)
+        {
+            node.getRel().apply(this);
+        }
+        if(node.getRPar() != null)
+        {
+            node.getRPar().apply(this);
+        }
+        outADashboardJoin(node);
     }
 
     public void inAJOp(AJOp node)
