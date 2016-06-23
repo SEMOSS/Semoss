@@ -86,6 +86,7 @@ Tokens
  panelconfig = panelprefix '.config';
  output_token = panelprefix '.create';
  userinput = 'user.input';
+ join = 'data.join';
 
 Ignored Tokens
  blank;
@@ -117,6 +118,7 @@ colop = // colOp is usually of the form of joinColumn / addColumn / removeColumn
 		| {unfiltercol} unfilter_column
 		| {remove_data} remove_data
 		| {data_frame} data_frame
+		| {dashboard_join} dashboard_join
 		;
 
 panelop = // panelop is usually of the form of viz.change, viz.tools, viz.color
@@ -299,6 +301,9 @@ formula = l_par expr r_par;
 csv_group = comma [csv]:word_or_num; // , 3
 
 expr_row = l_bracket [expr]:expr expr_group* r_bracket;
+
+dashboard_join =  // data.join("insight1", "insight2", c:Title, c:Movie_Title, inner.join);
+	join l_par [insight1]:word_or_num [com1]:comma [insight2]:word_or_num [com2]:comma [insight1_col]:col_def [com3]:comma [insight2_col]:col_def [com4]:comma [rel]:rel_type r_par;
 
 j_op = // this of the pattern j:{hola, hello etc.. }
 	java codeblock;

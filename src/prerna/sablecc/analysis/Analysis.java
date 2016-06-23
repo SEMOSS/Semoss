@@ -32,6 +32,7 @@ public interface Analysis extends Switch
     void caseAUnfiltercolColop(AUnfiltercolColop node);
     void caseARemoveDataColop(ARemoveDataColop node);
     void caseADataFrameColop(ADataFrameColop node);
+    void caseADashboardJoinColop(ADashboardJoinColop node);
     void caseAPanelVizPanelop(APanelVizPanelop node);
     void caseAPanelCommentPanelop(APanelCommentPanelop node);
     void caseAPanelCommentRemovePanelop(APanelCommentRemovePanelop node);
@@ -108,6 +109,7 @@ public interface Analysis extends Switch
     void caseAFormula(AFormula node);
     void caseACsvGroup(ACsvGroup node);
     void caseAExprRow(AExprRow node);
+    void caseADashboardJoin(ADashboardJoin node);
     void caseAJOp(AJOp node);
     void caseAHelp(AHelp node);
     void caseAComparatorEqualOrCompare(AComparatorEqualOrCompare node);
@@ -205,6 +207,7 @@ public interface Analysis extends Switch
     void caseTPanelconfig(TPanelconfig node);
     void caseTOutputToken(TOutputToken node);
     void caseTUserinput(TUserinput node);
+    void caseTJoin(TJoin node);
     void caseEOF(EOF node);
     void caseInvalidToken(InvalidToken node);
 }
