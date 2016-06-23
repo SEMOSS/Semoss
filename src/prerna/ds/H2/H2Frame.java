@@ -22,7 +22,6 @@ import org.rosuda.REngine.Rserve.RserveException;
 
 import prerna.algorithm.api.IMatcher;
 import prerna.algorithm.api.IMetaData;
-import prerna.algorithm.api.IMetaData.DATA_TYPES;
 import prerna.algorithm.api.ITableDataFrame;
 import prerna.ds.AbstractTableDataFrame;
 import prerna.ds.TinkerFrame;
@@ -652,33 +651,37 @@ public class H2Frame extends AbstractTableDataFrame {
 		builder.save(fileName, getH2Headers());
 	}
 	
-	
-	public H2Frame open(String fileName) {
-		H2Frame tf = new H2Frame();
-		tf.metaData.open(fileName.substring(0, fileName.lastIndexOf(".")));
-		tf.builder = H2Builder.open(fileName);
-		List<String> primKeys = tf.metaData.getPrimKeys();
+	/**
+	 * Open a serialized TinkerFrame
+	 * This is used with in InsightCache class
+	 * @param fileName				The file location to the cached graph
+	 * @param userId				The userId who is creating this instance of the frame
+	 * @return
+	 */
+	public H2Frame open(String fileName, String userId) {
+		// create the new H2Frame instance
+		H2Frame h2Frame = new H2Frame();
+		// set the user id who invoked this new instance
+		// this also sets the correct schema for the in memory connection
+		h2Frame.setUserId(userId);
+		// the builder is responsible for loading in the actual serialized values
+		// the set user id is responsible for setting the correct schema inside the builder object
+		h2Frame.builder.open(fileName);
+		
+		// need to also set the metaData
+		// the meta data fileName parameter passed is going to be the same as the name as the file of the actual instances
+		// this isn't the actual fileName of the file, the metadata appends the predefined prefix for the file
+		h2Frame.metaData.open(fileName.substring(0, fileName.lastIndexOf(".")));
+		List<String> primKeys = h2Frame.metaData.getPrimKeys();
 		if(primKeys.size() == 1){
-			tf.metaData.setVertexValue(primKeys.get(0), tf.builder.tableName);
+			h2Frame.metaData.setVertexValue(primKeys.get(0), h2Frame.builder.tableName);
 		}
+		// set the list of headers in the class variable
+		List<String> fullNames = h2Frame.metaData.getColumnNames();
+		h2Frame.headerNames = fullNames.toArray(new String[fullNames.size()]);
 
- 	   List<String> fullNames = tf.metaData.getColumnNames();
-	   tf.headerNames = fullNames.toArray(new String[fullNames.size()]);
-	   
-	   String[] types = new String[tf.headerNames.length];
-	   for(int i = 0; i < tf.headerNames.length; i++) {
-		   DATA_TYPES type = tf.metaData.getDataType(tf.headerNames[i]);
-		   if(type.equals(IMetaData.DATA_TYPES.NUMBER)) { 
-			   types[i] = "Double";
-		   } else if(type.equals(IMetaData.DATA_TYPES.STRING)) {
-			   types[i] = "Varchar(800)";
-		   } else {
-			   types[i] = "Date";
-		   }
-	   }
-	   
-//	   tf.builder.types = types;
-		return tf;
+		// return the new instance
+		return h2Frame;
 	}
 	
 	public List<String> getSelectors() {
