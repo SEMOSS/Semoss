@@ -124,7 +124,7 @@ public class SparkDataFrame extends AbstractTableDataFrame{
 	}
 
 	@Override
-	public ITableDataFrame open(String fileName) {
+	public ITableDataFrame open(String fileName, String userId) {
 		//open a parquet file?
 		return null;
 	}

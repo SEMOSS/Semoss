@@ -353,9 +353,10 @@ public interface ITableDataFrame extends IDataMaker {
 	/**
 	 * Deserialize the dataframe
 	 * @param fileName
+	 * @param userId
 	 * @return
 	 */
-	ITableDataFrame open(String fileName);
+	ITableDataFrame open(String fileName, String userId);
 
 	/**
 	 * 
