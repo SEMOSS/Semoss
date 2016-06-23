@@ -2242,62 +2242,45 @@ public class TinkerFrame extends AbstractTableDataFrame {
 	}
 	
 	/**
-	 * 
-	 * @param fileName
+	 * Open a serialized TinkerFrame
+	 * This is used with in InsightCache class
+	 * @param fileName				The file location to the cached graph
+	 * @param userId				The userId who is creating this instance of the frame
 	 * @return
-	 * 
-	 * load tinker from file
 	 */
-	public TinkerFrame open(String fileName) {
+	public TinkerFrame open(String fileName, String userId) {
+		// create a new tinker frame class
 		TinkerFrame tf = new TinkerFrame();
+		// set the user id
+		tf.setUserId(userId);
 		try {
 			long startTime = System.currentTimeMillis();
 
+			// user kyro to de-serialize the cached graph
 			Builder<GryoIo> builder = IoCore.gryo();
 			builder.graph(tf.g);
 			IoRegistry kryo = new MyGraphIoRegistry();
 			builder.registry(kryo);
 			GryoIo yes = builder.create();
 			yes.readGraph(fileName);
-			
+
 			long endTime = System.currentTimeMillis();
 			LOGGER.info("Successfully loaded TinkerFrame from file: "+fileName+ "("+(endTime - startTime)+" ms)");
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
+		// need to also set the metaData
+		// the meta data fileName parameter passed is going to be the same as the name as the file of the actual instances
+		// this isn't the actual fileName of the file, the metadata appends the predefined prefix for the file
 		tf.metaData.open(fileName.substring(0, fileName.lastIndexOf(".")));
+		// set the list of headers in the class variable
 		List<String> fullNames = tf.metaData.getColumnNames();
-	   tf.headerNames = fullNames.toArray(new String[fullNames.size()]);
-//		
-//		String[] headers = null;
-//		GraphTraversal<Vertex, Vertex> gt = tf.g.traversal().V().has(Constants.TYPE, ENVIRONMENT_VERTEX_KEY);
-//		while(gt.hasNext()) {
-//			Vertex specialVert = gt.next();
-//			
-//			// grab all environment properties from node
-//			headers = (String[]) specialVert.property(Constants.HEADER_NAMES).value();
-////			headers = new Gson().fromJson(headerProp + "", new String[]{}.getClass());
-//			
-//			// delete the vertex
-//			specialVert.remove();
-//		}
-//		
-//		if(headers == null) {
-//			LOGGER.info("Could not find the headers special vertex.  Will load headers from metadata with no guarantee of order.");
-//			List<String> headersList = new Vector<String>();
-//			GraphTraversal<Vertex, String> hTraversal = tf.g.traversal().V().has(Constants.TYPE, META).values(Constants.NAME);
-//			while(hTraversal.hasNext()) {
-//				headersList.add(hTraversal.next());
-//			}
-//			headers = headersList.toArray(new String[]{});
-//		}
-//		//gather header names
-//		tf.headerNames = headers;
-//		tf.g.variables().set(Constants.HEADER_NAMES, tf.headerNames);
-		
+		tf.headerNames = fullNames.toArray(new String[fullNames.size()]);
+
+		// return the new instance
 		return tf;
 	}
-	
+
 	public void insertBlanks(String colName, List<String> addedColumns) {
 		// for each node in colName
 		// if it does not have a relationship to any node in any of the addedColumns

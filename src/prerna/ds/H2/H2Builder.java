@@ -2423,24 +2423,46 @@ public class H2Builder {
 		}
     }
     
-    public static H2Builder open(String fileName) {
-    	H2Builder builder = new H2Builder();
-    	String tableName = H2FRAME + builder.getNextNumber(); 
+//    public static H2Builder open(String fileName, String userId) {
+//    	H2Builder builder = new H2Builder();
+//    	String tableName = H2FRAME + builder.getNextNumber(); 
+//    	String openScript = "RUNSCRIPT FROM '"+fileName+"' COMPRESSION GZIP ";
+//    	String createQuery = "CREATE TABLE "+tableName+" AS SELECT * FROM "+tempTable;
+////    	RunScript.execute(builder.getConnection(), new FileReader(fileName))
+//    	try {
+//			builder.runQuery(openScript);
+//			builder.runQuery(createQuery);
+//			builder.tableName = tableName;
+//			
+//			String dropQuery = builder.makeDropTable(tempTable);
+//			builder.runQuery(dropQuery);
+//		} catch (Exception e) {
+//			e.printStackTrace();
+//		}
+//    	
+//    	return builder;
+//    }
+    
+    /**
+     * Runs the script for a cached Insight
+     * @param fileName				The file containing the script to create the frame
+     */
+    public void open(String fileName) {
+    	// get a unique table name
+    	// set the table name for the instance
+    	tableName = H2FRAME + getNextNumber(); 
+    	// get the open sql script
     	String openScript = "RUNSCRIPT FROM '"+fileName+"' COMPRESSION GZIP ";
-    	String createQuery = "CREATE TABLE "+tableName+" AS SELECT * FROM "+tempTable;
-//    	RunScript.execute(builder.getConnection(), new FileReader(fileName))
+    	// get an alter table name sql
+    	String createQuery = "ALTER TABLE " + tempTable + " RENAME TO " + tableName;
     	try {
-			builder.runQuery(openScript);
-			builder.runQuery(createQuery);
-			builder.tableName = tableName;
-			
-			String dropQuery = builder.makeDropTable(tempTable);
-			builder.runQuery(dropQuery);
+    		// we run the script in the file which automatically creates a temp temple
+			runQuery(openScript);
+			// then we rename the temp table to the new unqiue table name
+			runQuery(createQuery);
 		} catch (Exception e) {
 			e.printStackTrace();
 		}
-    	
-    	return builder;
     }
     
     /*************************** ORIGINAL UNUSED CODE **************************************/

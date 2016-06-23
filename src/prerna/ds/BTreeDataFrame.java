@@ -1983,7 +1983,7 @@ public class BTreeDataFrame implements ITableDataFrame {
 	}
 
 	@Override
-	public ITableDataFrame open(String fileName) {
+	public ITableDataFrame open(String fileName, String userId) {
 		// TODO Auto-generated method stub
 		return null;
 	}
