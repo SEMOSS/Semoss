@@ -28,6 +28,7 @@ import prerna.sablecc.node.AConfiguration;
 import prerna.sablecc.node.ACsvRow;
 import prerna.sablecc.node.ACsvTable;
 import prerna.sablecc.node.ACsvTableImportBlock;
+import prerna.sablecc.node.ADashboardJoin;
 import prerna.sablecc.node.ADataFrame;
 import prerna.sablecc.node.ADecimal;
 import prerna.sablecc.node.ADivExpr;
@@ -1215,6 +1216,26 @@ public class Translation extends DepthFirstAdapter {
 			synchronizeValues(PKQLEnum.PASTED_DATA, values2Sync, thisReactor);
 		}
     }
+    
+    public void inADashboardJoin(ADashboardJoin node)
+    {
+    	System.out.println("Have dashboard join as " + node);
+		if(reactorNames.containsKey(PKQLEnum.DASHBOARD_JOIN)) {
+			initReactor(PKQLEnum.DASHBOARD_JOIN);
+			String nodeStr = node + "";
+			curReactor.put(PKQLEnum.DASHBOARD_JOIN, nodeStr.trim());
+			// rel type is a token, not a production, so no in/out to add it to the reactor
+			// need to add it here
+			curReactor.put(PKQLEnum.REL_TYPE, node.getRel().toString().trim());
+		}
+    }
+
+    public void outADashboardJoin(ADashboardJoin node)
+    {
+    	String nodeStr = node.toString().trim();
+    	Hashtable <String, Object> thisReactorHash = deinitReactor(PKQLEnum.DASHBOARD_JOIN, nodeStr, PKQLEnum.DASHBOARD_JOIN);
+    }
+    
     
     public IDataMaker getDataFrame() {
     	if(this.curReactor!=null){
