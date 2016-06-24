@@ -17,7 +17,7 @@ public class TinkerImportDataReactor extends ImportDataReactor{
 
 	@Override
 	public Iterator process() {
-		// use the import data reactor to go thorugh teh logic to get the necessary data 
+		// use the import data reactor to go through the logic to get the necessary data 
 		super.process();
 		
 		// get all the appropriate values
@@ -52,6 +52,8 @@ public class TinkerImportDataReactor extends ImportDataReactor{
 			if(headers == null) { // happens only during first loop
 				headers = ss.getHeaders();
 
+				// TODO this merge edge hash should go inside the super.process()!!!!
+				
 				// if the edge hash is not defined from when the super.process()
 				// we need to perform the mergeEdgeHash logic here
 
