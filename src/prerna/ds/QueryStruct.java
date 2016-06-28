@@ -2,7 +2,7 @@ package prerna.ds;
 
 import java.io.FileInputStream;
 import java.io.IOException;
-import java.util.Arrays;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Hashtable;
@@ -12,10 +12,6 @@ import java.util.Properties;
 import java.util.Set;
 import java.util.Vector;
 
-import com.google.gson.Gson;
-
-import prerna.engine.api.IEngine;
-import prerna.rdf.query.builder.SPARQLInterpreter;
 import prerna.util.DIHelper;
 import prerna.util.Utility;
 
@@ -156,79 +152,184 @@ public class QueryStruct {
 	 * @return
 	 */
 	public Map<String, Set<String>> getReturnConnectionsHash() {
-
+		// create the return edgeHash map
 		Map<String, Set<String>> edgeHash = new HashMap<String, Set<String>>();
-		// First need to iterate through properties
-		// These are the easiest to capture
-		// Need to make sure valid return value
-
-		for(String selectorKey: this.selectors.keySet()){
+		
+		/*
+		 * 1) iterate through and add concepts and properties
+		 * This step is very simple and doesn't require any special logic
+		 * Just need to consider the case when PRIM_KEY_PLACEHOLDER is not present which means
+		 * That the query return only returns the property and not the main concept
+		 * 
+		 * 2) iterate through and add the relationships
+		 * This needs to take into consideration intermediary nodes
+		 * e.g. i have concepts a -> b -> c -> d but I only want to return a-> d
+		 * thus, the edge hash should only contain a -> d
+		 */
+		
+		// 1) iterate through all the selectors
+		for(String selectorKey: this.selectors.keySet()) {
 			Vector<String> props = this.selectors.get(selectorKey);
 			Set<String> downNodeTypes = edgeHash.get(selectorKey);
-			// need to consider if there is no prim key placeholder, that the property is actually a concept
+			// if the props doesn't contain a prim_key_placeholder... then it is actually just a property and not a concept
 			if(!props.contains(PRIM_KEY_PLACEHOLDER)) {
+				// just loop through and add all the properties by themselves
 				for(String prop : props){
 					edgeHash.put(selectorKey + "__" + prop, new HashSet<String>());
 				}
 			} else {
+				// a prim_key_placeholder was found
+				// thus, we need to add the concept to all of its properties
 				if(downNodeTypes == null){
 					downNodeTypes = new HashSet<String>();
 				}
 				edgeHash.put(selectorKey, downNodeTypes);
-				props.remove(PRIM_KEY_PLACEHOLDER); // make sure we don't add a node to itself (e.g. Title__Title)
+				// make sure we don't add a node to itself (e.g. Title__Title)
+				props.remove(PRIM_KEY_PLACEHOLDER); 
 				for(String prop : props){
-					downNodeTypes.add(selectorKey + "__" + prop); //mergeQSEdgeHash needs this... plus need to keep it consistent with relations
+					// mergeQSEdgeHash needs this to be the concept__property... plus need to keep it consistent with relations
+					downNodeTypes.add(selectorKey + "__" + prop); 
 				}
 			}
 		}
-		
-		if(this.relations != null){
-			for(String relationsKey : this.relations.keySet()){
-				// get the concept for the relation
-				String item = storeRelationsKey(relationsKey, edgeHash);
-				Set<String> downNodeTypes = edgeHash.get(item);
-				Map<String, Vector> relHash = this.relations.get(relationsKey);
-				
-				for(Vector<String> vec : relHash.values()){
-					// need to get the concept for each in the vector
-					for(String downString : vec){
-						String downItem = storeRelationsKey(downString, edgeHash);
-						downNodeTypes.add(downItem);
+
+		// 2) need to determine and connect the appropriate connections based on the 
+		if(this.relations != null) {
+			// get the starting concept
+			for(String startNode : this.relations.keySet()) {
+				// the relMap contains the joinType pointing to a list of columns to be joined to
+				Hashtable<String, Vector> relMap = this.relations.get(startNode);
+				// else, just doing a normal join
+				// if the edge hash has the start node as a selector
+				// then we need to see if we should connect it
+				// otherwise, check if it is a relationship based on a property
+				// if that also fails, do nothing
+				// this is because the logic for returning a -> d can be done when checking
+				// the endNode of the relationship
+				if(edgeHash.containsKey(startNode)) {
+					processRelationship(startNode, relMap, edgeHash);
+				} else {
+					if(startNode.contains("__")) {
+						String concept = startNode.substring(0, startNode.indexOf("__"));
+						if(edgeHash.containsKey(concept)) {
+							processRelationship(concept, relMap, edgeHash);
+						}
 					}
 				}
-
 			}
 		}
 
 		return edgeHash;
 	}
 	
-	private String storeRelationsKey(String relationsKey, Map<String, Set<String>> edgeHash){
-		String item = relationsKey;
-		if(!relationsKey.contains("__")){
-			Set<String> downNodeTypes = edgeHash.get(relationsKey);
-			if(downNodeTypes == null){
-				downNodeTypes = new HashSet<String>();
+	/**
+	 * Logic to process the relationship
+	 * This takes into consideration intermediary nodes that should not be added to the return hash
+	 * e.g. i have concepts a -> b -> c -> d but I only want to return a-> d
+	 * @param startNode				The startNode of the relationship
+	 * @param relMap				The relationships being observed for the startNode
+	 * @param edgeHash				The existing edge hash to determine what the current selectors are
+	 */
+	private void processRelationship(String startNode, Hashtable<String, Vector> relMap, Map<String, Set<String>> edgeHash) {
+		// grab all the end nodes
+		// the edge hash doesn't care about what kind of join it is
+		Collection<Vector> endNodeValues = relMap.values();
+		for(Vector<String> endNodeList : endNodeValues) {
+			// iterate through all the end nodes
+			for(String endNode : endNodeList) {
+				// need to ignore the prim_key_value...
+				if(startNode.equals(endNode)) {
+					continue;
+				}
+				
+				// if the endNode already exists as a key in the edgeHash,
+				// then just connect it and we are done
+				if(edgeHash.containsKey(endNode)) {
+					edgeHash.get(startNode).add(endNode);
+				} else {
+					// maybe we are joining on a prop
+					// lets first test this out
+					if(endNode.contains("__")) {
+						String concept = endNode.substring(0, endNode.indexOf("__"));
+						if(edgeHash.containsKey(concept)) {
+							// we found the parent.. therefore we add it 
+							// just add parent to the startNode
+							edgeHash.get(startNode).add(concept);
+						} else {
+							// here we need to loop through and find the shortest path
+							// starting from this specific endNode to an endNode which is 
+							// a selector to be returned
+							// we use a recursive method determineShortestEndNodePath to fill in 
+							// the list newEndNodeList and then we add that to the edgeHash
+							List<String> newEndNodeList = new Vector<String>();
+							determineShortestEndNodePath(endNode, edgeHash, newEndNodeList);
+							for(String newEndNode : newEndNodeList) {
+								edgeHash.get(startNode).add(newEndNode);
+							}
+						}
+					} else {
+						// here we need to loop through and find the shortest path
+						// starting from this specific endNode to an endNode which is 
+						// a selector to be returned
+						// we use a recursive method determineShortestEndNodePath to fill in 
+						// the list newEndNodeList and then we add that to the edgeHash
+						List<String> newEndNodeList = new Vector<String>();
+						determineShortestEndNodePath(endNode, edgeHash, newEndNodeList);
+						for(String newEndNode : newEndNodeList) {
+							edgeHash.get(startNode).add(newEndNode);
+						}
+					}
+				}
 			}
-			edgeHash.put(relationsKey, downNodeTypes);
 		}
-		else {
-			String relConcept = relationsKey.substring(0, relationsKey.indexOf("__"));
-			Set<String> downNodeTypes = edgeHash.get(relationsKey);
-			if(downNodeTypes == null){
-				downNodeTypes = new HashSet<String>();
+	}
+	
+	/**
+	 * Recursive method to find the shortest path to all the nearest concepts that are being returned as selectors
+	 * @param endNode					The endNode that is node a selector which we are trying to find the shortest path to 
+	 * @param edgeHash					The edgeHash to find the current selectors
+	 * @param newEndNodeList			The list of endNodes that have been found using the logic to find the shortest 
+	 * 									path for connected nodes
+	 */
+	private void determineShortestEndNodePath(String endNode, Map<String, Set<String>> edgeHash, List<String> newEndNodeList) {
+		// this endNode is a node which is not a selector
+		// need to find the shortest path to nodes which this endNode is connected to which is also a selector
+
+		// first see if there is a connection for the endNode to traverse to
+		if(this.relations.containsKey(endNode)) {
+			// grab the join map
+			Hashtable<String, Vector> joinMap = this.relations.get(endNode);
+			// we do not care at all about the type of join
+			// just go through and get the list of nodes which we care about
+			Collection<Vector> connections = joinMap.values();
+			for(Vector<String> endNodeList :  connections) {
+				for(String possibleNewEndNode : endNodeList) {
+					// if this connection is a selector (i.e. key in the edgeHash), then we need to add it to the newEndNodeList
+					if(edgeHash.containsKey(possibleNewEndNode)) {
+						newEndNodeList.add(possibleNewEndNode);
+					} else {
+						// maybe we are joining on a prop
+						// lets first test this out
+						if(possibleNewEndNode.contains("__")) {
+							String concept = possibleNewEndNode.substring(0, possibleNewEndNode.indexOf("__"));
+							if(edgeHash.containsKey(concept)) {
+								// we found the parent.. therefore we add it 
+								// append it to the list
+								newEndNodeList.add(concept);
+							} else {
+								// if possibleNewEndNode is in fact not a end node
+								// then we need to recursively go down the path and see if it has a possibleNewEndNode
+								determineShortestEndNodePath(possibleNewEndNode, edgeHash, newEndNodeList);
+							}
+						} else {
+							// if possibleNewEndNode is in fact not a end node
+							// then we need to recursively go down the path and see if it has a possibleNewEndNode
+							determineShortestEndNodePath(possibleNewEndNode, edgeHash, newEndNodeList);
+						}
+					}
+				}
 			}
-			edgeHash.put(relationsKey, downNodeTypes);
-			
-			// also store concept -> property
-			Set<String> downNodeTypes2 = edgeHash.get(relConcept);
-			if(downNodeTypes2 == null){
-				downNodeTypes2 = new HashSet<String>();
-			}
-			downNodeTypes2.add(relationsKey);
-			edgeHash.put(relConcept, downNodeTypes2);
 		}
-		return item;
 	}
 
 	/* 
@@ -245,21 +346,40 @@ public class QueryStruct {
 	
 	public static void main(String [] args) throws Exception
 	{
+		// test code for getting proper edge hash when there are intermediary nodes that
+		// i.e. the query requires a specific node that you do not want in your selectors
+		// e.g. i have concepts a -> b -> c -> d but I only want to return a-> d
+		// thus, the edge hash should only contain a -> d 
+		
 		QueryStruct qs = new QueryStruct();
-		qs.addSelector("Title", "Title");
-		qs.addFilter("Title__Title", "=", Arrays.asList(new String[]{"WB", "ABC"}));
-		qs.addRelation("Title__Title", "Actor__Title_FK", "inner.join");
+		qs.addSelector("a", "x");
+		qs.addSelector("b", null);
+		qs.addSelector("b", "y");
+		qs.addSelector("d", null);
+
+		qs.addRelation("a__x", "b__y", "inner.join");
+		qs.addRelation("b__y", "c", "inner.join");
+		qs.addRelation("c", "d", "inner.join");
+
+		System.out.println(qs.getReturnConnectionsHash());
 		
-		Gson gson = new Gson();
-		System.out.println(gson.toJson(qs));
-		
-		loadEngine4Test();
-		IEngine engine = (IEngine) DIHelper.getInstance().getLocalProp("Movie_DB"); 
-		SPARQLInterpreter in = new SPARQLInterpreter(engine);
-		
-		in.setQueryStruct(qs);
-		String query = in.composeQuery();
-		System.out.println(query);
+		// previous test code .. based on path assuming it is done by b.s.s
+//		
+//		QueryStruct qs = new QueryStruct();
+//		qs.addSelector("Title", "Title");
+//		qs.addFilter("Title__Title", "=", Arrays.asList(new String[]{"WB", "ABC"}));
+//		qs.addRelation("Title__Title", "Actor__Title_FK", "inner.join");
+//		
+//		Gson gson = new Gson();
+//		System.out.println(gson.toJson(qs));
+//		
+//		loadEngine4Test();
+//		IEngine engine = (IEngine) DIHelper.getInstance().getLocalProp("Movie_DB"); 
+//		SPARQLInterpreter in = new SPARQLInterpreter(engine);
+//		
+//		in.setQueryStruct(qs);
+//		String query = in.composeQuery();
+//		System.out.println(query);
 	}
 
 	private static void loadEngine4Test(){
