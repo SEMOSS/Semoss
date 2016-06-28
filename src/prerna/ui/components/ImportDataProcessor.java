@@ -50,6 +50,7 @@ import prerna.poi.main.NLPReader;
 //import prerna.poi.main.OntologyFileWriter;
 import prerna.poi.main.POIReader;
 import prerna.poi.main.PropFileWriter;
+import prerna.poi.main.RDBMSFlatCSVUploader;
 import prerna.poi.main.RDBMSReader;
 import prerna.poi.main.RdfExcelTableReader;
 import prerna.util.Constants;
@@ -62,7 +63,7 @@ public class ImportDataProcessor {
 	static final Logger logger = LogManager.getLogger(ImportDataProcessor.class.getName());
 
 	public enum IMPORT_METHOD {CREATE_NEW, ADD_TO_EXISTING, OVERRIDE, RDBMS};
-	public enum IMPORT_TYPE {CSV, NLP, EXCEL_POI, EXCEL, OCR};
+	public enum IMPORT_TYPE {CSV, NLP, EXCEL_POI, EXCEL, OCR, FLAT_LOAD};
 	public enum DB_TYPE {RDF,RDBMS};
 
 	private String baseDirectory;
@@ -286,6 +287,10 @@ public class ImportDataProcessor {
 //				newRelURIvalues = reader.relationURIHash;
 //				newBaseRelURIvalues = reader.baseRelationURIHash;
 //				propURI = reader.basePropURI;
+			} else if(importType == IMPORT_TYPE.FLAT_LOAD && dbType == DB_TYPE.RDBMS) {
+				RDBMSFlatCSVUploader reader = new RDBMSFlatCSVUploader();
+				reader.setAutoLoad(autoLoad);
+				engine = reader.importFileWithOutConnection(propWriter.propFileName , fileNames, customBaseURI, owlPath, dbName, dbDriverType, allowDuplicates);
 			}
 //			OntologyFileWriter ontologyWriter = new OntologyFileWriter();
 //			ontologyWriter.runAugment(ontoPath, newURIvalues, newBaseURIvalues,	newRelURIvalues, newBaseRelURIvalues, propURI);
