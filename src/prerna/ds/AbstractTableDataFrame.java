@@ -686,4 +686,17 @@ public abstract class AbstractTableDataFrame implements ITableDataFrame {
 	public String getUserId() {
 		return this.userId;
 	}
+
+	@Override
+	public int getNumRows() {
+		Iterator<Object[]> iterator = this.iterator(false);
+		int count = 0;
+		while(iterator.hasNext()) {
+			count++;
+			iterator.next();
+		}
+		return count;
+	}
+	
+
 }
