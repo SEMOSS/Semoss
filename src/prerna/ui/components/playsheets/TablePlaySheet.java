@@ -40,7 +40,7 @@ import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
 import prerna.algorithm.api.ITableDataFrame;
-import prerna.ds.BTreeDataFrame;
+import prerna.ds.TinkerFrame;
 import prerna.engine.api.IEngine;
 import prerna.om.InsightStore;
 import prerna.sablecc.PKQLEnum;
@@ -238,7 +238,7 @@ public class TablePlaySheet extends AbstractPlaySheet implements IDataMaker{
 		if(this.dmComponent == null){
 			this.dmComponent = new DataMakerComponent(this.engine, this.query);
 		}
-		this.dataFrame = new BTreeDataFrame();
+		this.dataFrame = new TinkerFrame();
 		this.dataFrame.processDataMakerComponent(this.dmComponent);
 	}
 
