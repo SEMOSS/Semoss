@@ -92,11 +92,10 @@ public class H2Frame extends AbstractTableDataFrame {
     }
 	
     private void addRow(Object[] cells, String[] headers) {
-        String tableName = getTableNameForUniqueColumn(headers[0]);
         // TODO: differences between the tinker meta and the flat meta stored in the data frame
         // TODO: results in us being unable to get the table name
-        if(tableName == null) {
-        	tableName = builder.tableName;
+        if(builder.tableName == null) {
+        	builder.tableName = getTableNameForUniqueColumn(headers[0]);
         }
         String[] types = new String[headers.length];
         for(int i = 0; i < types.length; i++) {
@@ -107,7 +106,7 @@ public class H2Frame extends AbstractTableDataFrame {
         String[] stringArray = Arrays.copyOf(cells, cells.length, String[].class);
         		
         //get table for headers
-        this.addRow(tableName, stringArray, headers, types);
+        this.addRow(builder.tableName, stringArray, headers, types);
     }
     
     //need to make this private if we are going with single table h2
@@ -594,8 +593,10 @@ public class H2Frame extends AbstractTableDataFrame {
 		
 		columnHeader = this.metaData.getValueForUniqueName(columnHeader);
 		Map<String, String> headerTypes = this.getH2HeadersAndTypes();
-		String tableName = this.getTableNameForUniqueColumn(columnHeader);
-		ScaledUniqueH2FrameIterator iterator = new ScaledUniqueH2FrameIterator(columnHeader, getRawData, tableName, builder, max, min, headerTypes, selectors);
+		if(builder.tableName == null) {
+			builder.tableName = getTableNameForUniqueColumn(this.headerNames[0]);
+		}
+		ScaledUniqueH2FrameIterator iterator = new ScaledUniqueH2FrameIterator(columnHeader, getRawData, builder.tableName, builder, max, min, headerTypes, selectors);
 		return iterator;
 	}
 	
