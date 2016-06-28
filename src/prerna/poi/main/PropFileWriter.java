@@ -121,6 +121,9 @@ public class PropFileWriter {
 			engineDirectory.mkdir();
 			// define the owlFile location
 			this.owlFile = "db" + System.getProperty("file.separator") + engineName + System.getProperty("file.separator") + engineName + "_OWL.OWL";
+			if(owlFile.contains("\\")) {
+				owlFile = owlFile.replaceAll("\\\\", "/");
+			}
 			// if owlFile is null (which it is upon loading a new engine, create a new one
 			File owlF = new File(baseDirectory + System.getProperty("file.separator") + owlFile);
 			if(!owlF.exists()) { 

@@ -107,15 +107,16 @@ public class OWLER {
 	 and then concept is a type of class
 	 
 	 */
-	public String addConcept(String concept, String baseURI, String dataType) {
-		if(!conceptHash.containsKey(concept)) {
+	
+	public String addConcept(String tableName, String colName, String baseURI, String dataType) {
+		if(!conceptHash.containsKey(tableName + colName)) {
 			// add this to the base URI
 			// make this as a type of semoss class
 			// make the class as a subclass of RDF Class
 			String object = baseURI + DEFAULT_NODE_CLASS ;
-			String subject = object + "/" + concept;
+			String subject = object + "/" + colName;
 			if(type.equals(IEngine.ENGINE_TYPE.RDBMS)) {
-				subject += "/" + concept;
+				subject += "/" + tableName;
 			} 
 			
 			String typeObject = "TYPE:" + dataType;
@@ -127,21 +128,25 @@ public class OWLER {
 			String predicate = RDFS.SUBCLASSOF.stringValue();
 			engine.addToBaseEngine(subject, predicate, object);
 
-			conceptHash.put(concept, subject);
+			conceptHash.put(tableName + colName, subject);
 
 			// STEP 2
 			// also add this as base
 			// I will handle this as a separate call at the end for now
 		}		
-		return conceptHash.get(concept);
+		return conceptHash.get(tableName + colName);
+	}
+	
+	public String addConcept(String concept, String col, String dataType) {
+		return addConcept(concept, col, SEMOSS_URI, dataType);
 	}
 	
 	public String addConcept(String concept, String dataType) {
-		return addConcept(concept, SEMOSS_URI, dataType);
+		return addConcept(concept, "", SEMOSS_URI, dataType);
 	}
 	
 	public String addConcept(String concept) {
-		return addConcept(concept, SEMOSS_URI, "STRING");
+		return addConcept(concept, "", SEMOSS_URI, "STRING");
 	}
 	
 	// creates a relation
@@ -240,6 +245,33 @@ public class OWLER {
 		if(!propHash.containsKey(concept + "%" + property)) {
 			// same as concepts
 			String propSubject = addConcept(concept);
+			
+			// STEP 1
+			String propMaster = SEMOSS_URI + DEFAULT_PROP_CLASS;
+			String propObject = propMaster + "/" + property;
+			
+			engine.addToBaseEngine(propObject, RDF.TYPE.stringValue(), propMaster);
+			
+			// STEP 2
+			engine.addToBaseEngine(propSubject, PROP_DATATYPE_PREDICATE, propObject);
+			
+			// STEP 3 ?
+			// I need some way to also add the types to this
+			String typeObject = "TYPE:" + type;
+			
+			engine.addToBaseEngine(propObject, DATATYPE_PREDICATE, typeObject);
+			
+			propHash.put(concept + "%" + property, propObject);
+		}
+		
+		return propHash.get(concept + "%" + property);
+	}
+	
+	public String addProp(String concept, String conceptCol, String property, String type)
+	{
+		if(!propHash.containsKey(concept + "%" + property)) {
+			// same as concepts
+			String propSubject = addConcept(concept, conceptCol, null);
 			
 			// STEP 1
 			String propMaster = SEMOSS_URI + DEFAULT_PROP_CLASS;
