@@ -1868,18 +1868,18 @@ public class TinkerFrame extends AbstractTableDataFrame {
 	}
 
 //	@Override
-	public int getRowCount(String columnHeader) {
-		
-		//could use count value on edge property instead of count function?
-		int retInt = 0;
-		String columnValue = this.metaData.getValueForUniqueName(columnHeader);
-		GraphTraversal<Vertex, Long> gt = g.traversal().V().has(Constants.TYPE, columnValue).count();
-		if(gt.hasNext())
-		{
-			retInt = gt.next().intValue();
-		}
-		return retInt;
-	}
+//	public int getRowCount(String columnHeader) {
+//		
+//		//could use count value on edge property instead of count function?
+//		int retInt = 0;
+//		String columnValue = this.metaData.getValueForUniqueName(columnHeader);
+//		GraphTraversal<Vertex, Long> gt = g.traversal().V().has(Constants.TYPE, columnValue).count();
+//		if(gt.hasNext())
+//		{
+//			retInt = gt.next().intValue();
+//		}
+//		return retInt;
+//	}
 
 	@Override
 	public Double[] getColumnAsNumeric(String columnHeader) {
@@ -2098,39 +2098,39 @@ public class TinkerFrame extends AbstractTableDataFrame {
     }
 
 //	@Override
-	public List<Object[]> getData(String columnHeader, Object value) {
-
-		// the only important piece here is columns to skip
-		// and then I am not sure if I need to worry about the filtered columns
-		// create the return vector
-		Vector<Object[]> retVector = null;
-				
-		// get all the levels
-		String[] headers = getColumnHeaders();
-		GremlinBuilder builder = GremlinBuilder.prepareGenericBuilder(getSelectors(), g, ((TinkerMetaData)this.metaData).g, null);
-		builder.setGroupBySelector(columnHeader);
-		
-		//finally execute it to get the executor
-		GraphTraversal gt = (GraphTraversal) builder.executeScript();
-		
-		if(gt.hasNext()) {
-			Map<Object, Object> groupByMap = (Map<Object, Object>) gt.next();
-			List<Map> instanceArrayMap = (List<Map>) groupByMap.get(value);
-			
-			int size = instanceArrayMap.size();
-			retVector = new Vector(size);
-			for(int i = 0; i < size; i++) {
-				Map rowMap = instanceArrayMap.get(i);
-				Object[] row = new Object[headers.length];
-				for(int j = 0; j < headers.length; j++) {
-					row[j] = ((Vertex) rowMap.get(headers[j])).value(Constants.NAME);
-				}
-				retVector.add(row);
-			}
-		}
-
-		return retVector;
-	}
+//	public List<Object[]> getData(String columnHeader, Object value) {
+//
+//		// the only important piece here is columns to skip
+//		// and then I am not sure if I need to worry about the filtered columns
+//		// create the return vector
+//		Vector<Object[]> retVector = null;
+//				
+//		// get all the levels
+//		String[] headers = getColumnHeaders();
+//		GremlinBuilder builder = GremlinBuilder.prepareGenericBuilder(getSelectors(), g, ((TinkerMetaData)this.metaData).g, null);
+//		builder.setGroupBySelector(columnHeader);
+//		
+//		//finally execute it to get the executor
+//		GraphTraversal gt = (GraphTraversal) builder.executeScript();
+//		
+//		if(gt.hasNext()) {
+//			Map<Object, Object> groupByMap = (Map<Object, Object>) gt.next();
+//			List<Map> instanceArrayMap = (List<Map>) groupByMap.get(value);
+//			
+//			int size = instanceArrayMap.size();
+//			retVector = new Vector(size);
+//			for(int i = 0; i < size; i++) {
+//				Map rowMap = instanceArrayMap.get(i);
+//				Object[] row = new Object[headers.length];
+//				for(int j = 0; j < headers.length; j++) {
+//					row[j] = ((Vertex) rowMap.get(headers[j])).value(Constants.NAME);
+//				}
+//				retVector.add(row);
+//			}
+//		}
+//
+//		return retVector;
+//	}
 
 
 	protected void redoLevels(String [] newLevels)
