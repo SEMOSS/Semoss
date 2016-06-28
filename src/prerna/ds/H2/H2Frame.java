@@ -219,42 +219,111 @@ public class H2Frame extends AbstractTableDataFrame {
 		}
 	}
 
+//	@Override
+//	public void filter(String columnHeader, List<Object> filterValues, String comparator) {
+//		if(filterValues != null && filterValues.size() > 0) {
+//			
+//			if(comparator.equals("=")) {
+//				builder.setFilters(columnHeader, filterValues, H2Builder.Comparator.EQUAL);
+//			} else if(comparator.equals("!=")) { 
+//				builder.setFilters(columnHeader, filterValues, H2Builder.Comparator.NOT_EQUAL);
+//			} else if(comparator.equals("<")) {
+//				if(isNumeric(columnHeader)) {
+//					builder.setFilters(columnHeader, filterValues, H2Builder.Comparator.LESS_THAN);
+//				} else {
+//					throw new IllegalArgumentException(columnHeader + " is not a numeric column, cannot use operator " + comparator);
+//				}
+//			} else if(comparator.equals(">")) {
+//				if(isNumeric(columnHeader)) {
+//					builder.setFilters(columnHeader, filterValues, H2Builder.Comparator.GREATER_THAN);
+//				} else {
+//					throw new IllegalArgumentException(columnHeader + " is not a numeric column, cannot use operator " + comparator);
+//				}
+//			} else if(comparator.equals("<=")) {
+//				if(isNumeric(columnHeader)) {
+//					builder.setFilters(columnHeader, filterValues, H2Builder.Comparator.LESS_THAN_EQUAL);
+//				} else {
+//					throw new IllegalArgumentException(columnHeader + " is not a numeric column, cannot use operator " + comparator);
+//				}
+//			} else if(comparator.equals(">=")) {
+//				if(isNumeric(columnHeader)) {
+//					builder.setFilters(columnHeader, filterValues, H2Builder.Comparator.GREATER_THAN_EQUAL);
+//				} else {
+//					throw new IllegalArgumentException(columnHeader + " is not a numeric column, cannot use operator " + comparator);
+//				}
+//			} else {
+//				//comparator not recognized...do equal by default? or do nothing? or throw error?
+//				builder.setFilters(columnHeader, filterValues, H2Builder.Comparator.EQUAL);
+//			}
+//			this.metaData.setFiltered(columnHeader, true);
+//		}
+//	}
+	
 	@Override
-	public void filter(String columnHeader, List<Object> filterValues, String comparator) {
-		if(filterValues != null && filterValues.size() > 0) {
+	public void filter(String columnHeader, Map<String, List<Object>> filterValues) {
+		if(columnHeader == null || filterValues == null) return;
+		
+		String[] comparators = filterValues.keySet().toArray(new String[]{});
+		for(int i = 0; i < comparators.length; i++) {
+			String comparator = comparators[i];
+			boolean override = i == 0;
+			List<Object> filters = filterValues.get(comparator);
 			
+			comparator = comparator.trim();
 			if(comparator.equals("=")) {
-				builder.setFilters(columnHeader, filterValues, H2Builder.Comparator.EQUAL);
+				
+				if(override) builder.setFilters(columnHeader, filters, H2Builder.Comparator.EQUAL);
+				else builder.addFilters(columnHeader, filters, H2Builder.Comparator.EQUAL);
+				
 			} else if(comparator.equals("!=")) { 
-				builder.setFilters(columnHeader, filterValues, H2Builder.Comparator.NOT_EQUAL);
+				
+				if(override) builder.setFilters(columnHeader, filters, H2Builder.Comparator.NOT_EQUAL);
+				else builder.addFilters(columnHeader, filters, H2Builder.Comparator.NOT_EQUAL);
+			
 			} else if(comparator.equals("<")) {
+				
 				if(isNumeric(columnHeader)) {
-					builder.setFilters(columnHeader, filterValues, H2Builder.Comparator.LESS_THAN);
+					
+					if(override) builder.setFilters(columnHeader, filters, H2Builder.Comparator.LESS_THAN);
+					else builder.addFilters(columnHeader, filters, H2Builder.Comparator.LESS_THAN);
+				
 				} else {
 					throw new IllegalArgumentException(columnHeader + " is not a numeric column, cannot use operator " + comparator);
 				}
+				
 			} else if(comparator.equals(">")) {
+				
 				if(isNumeric(columnHeader)) {
-					builder.setFilters(columnHeader, filterValues, H2Builder.Comparator.GREATER_THAN);
+					
+					if(override) builder.setFilters(columnHeader, filters, H2Builder.Comparator.GREATER_THAN);
+					else builder.addFilters(columnHeader, filters, H2Builder.Comparator.GREATER_THAN);
+					
 				} else {
 					throw new IllegalArgumentException(columnHeader + " is not a numeric column, cannot use operator " + comparator);
 				}
+				
 			} else if(comparator.equals("<=")) {
 				if(isNumeric(columnHeader)) {
-					builder.setFilters(columnHeader, filterValues, H2Builder.Comparator.LESS_THAN_EQUAL);
+					
+					if(override) builder.setFilters(columnHeader, filters, H2Builder.Comparator.LESS_THAN_EQUAL);
+					else builder.addFilters(columnHeader, filters, H2Builder.Comparator.LESS_THAN_EQUAL);
+					
 				} else {
 					throw new IllegalArgumentException(columnHeader + " is not a numeric column, cannot use operator " + comparator);
 				}
 			} else if(comparator.equals(">=")) {
 				if(isNumeric(columnHeader)) {
-					builder.setFilters(columnHeader, filterValues, H2Builder.Comparator.GREATER_THAN_EQUAL);
+					
+					if(override) builder.setFilters(columnHeader, filters, H2Builder.Comparator.GREATER_THAN_EQUAL);
+					else builder.addFilters(columnHeader, filters, H2Builder.Comparator.GREATER_THAN_EQUAL);
+					
 				} else {
 					throw new IllegalArgumentException(columnHeader + " is not a numeric column, cannot use operator " + comparator);
 				}
 			} else {
 				//comparator not recognized...do equal by default? or do nothing? or throw error?
-				builder.setFilters(columnHeader, filterValues, H2Builder.Comparator.EQUAL);
 			}
+			this.metaData.setFiltered(columnHeader, true);
 		}
 	}
 	
@@ -341,15 +410,15 @@ public class H2Frame extends AbstractTableDataFrame {
 	public Map<String, Object[]> getFilterTransformationValues() {
 		Map<String, Object[]> retMap = new HashMap<String, Object[]>();
 		// get meta nodes that are tagged as filtered
-		Map<String, String> filters = this.metaData.getFilteredColumns();
-		Map<String, List<Object>> filteredData = this.builder.filterHash;
-		
-		for(String name: filters.keySet()){
-			
-			//for each filtered column
-			String h2Name = this.metaData.getValueForUniqueName(name);
-			retMap.put(name, filteredData.get(h2Name).toArray());
-		}
+//		Map<String, String> filters = this.metaData.getFilteredColumns();
+//		Map<String, List<Object>> filteredData = this.builder.filterHash;
+//		
+//		for(String name: filters.keySet()){
+//			
+//			//for each filtered column
+//			String h2Name = this.metaData.getValueForUniqueName(name);
+//			retMap.put(name, filteredData.get(h2Name).toArray());
+//		}
 		
 		
 		return retMap;
@@ -466,17 +535,6 @@ public class H2Frame extends AbstractTableDataFrame {
 		valueColumn = this.metaData.getValueForUniqueName(valueColumn);
 		newColumnName = this.metaData.getValueForUniqueName(newColumnName);
 		builder.processGroupBy(column, newColumnName, valueColumn, mathType, getH2Headers());
-	}
-	
-	@Override
-	public int getNumRows() {
-		Iterator<Object[]> iterator = this.iterator(false);
-		int count = 0;
-		while(iterator.hasNext()) {
-			count++;
-			iterator.next();
-		}
-		return count;
 	}
 	
 	@Override
@@ -613,10 +671,12 @@ public class H2Frame extends AbstractTableDataFrame {
 			return;
 		}
 		
-//		builder.dropColumn(H2HeaderMap.get(columnHeader));
+		//drop the column from the h2 table
 		builder.dropColumn(this.metaData.getValueForUniqueName(columnHeader));
+		//remove the column name from the metadata
 		this.metaData.dropVertex(columnHeader);
-		
+
+		//update the headerNames array
 		String[] newHeaders = new String[this.headerNames.length-1];
 		int newHeaderIdx = 0;
 		for(int i = 0; i < this.headerNames.length; i++){
@@ -627,7 +687,6 @@ public class H2Frame extends AbstractTableDataFrame {
 			}
 		}
 		this.headerNames = newHeaders;
-//		updateHeaderMap();
 	}
 	
 	@Override
@@ -793,10 +852,13 @@ public class H2Frame extends AbstractTableDataFrame {
 	
 	@Override
 	public Map[] mergeQSEdgeHash(Map<String, Set<String>> edgeHash, IEngine engine, Vector<Map<String, String>> joinCols) {
+		//process the meta data
 		Map[] ret =  super.mergeQSEdgeHash(edgeHash, engine, joinCols);
 
 		// alter table for new cols
-		Set<String> headersSet = new LinkedHashSet<String>();
+		Set<String> headersSet = new LinkedHashSet<String>(); //this will contain all the headers in the edgeHash
+		
+		//add all the keys from the edgeHash
 		for(String addHeader : edgeHash.keySet()) {
 			if(addHeader.contains("__")) {
 				headersSet.add(addHeader.split("__")[1]);
@@ -804,6 +866,8 @@ public class H2Frame extends AbstractTableDataFrame {
 				headersSet.add(addHeader);
 			}
 		}
+		
+		//add all the values for each key in the edgeHash
 		for(String header : edgeHash.keySet()) {
 			Set<String> additionalHeaders = edgeHash.get(header);
 			if(additionalHeaders != null) {
@@ -816,8 +880,11 @@ public class H2Frame extends AbstractTableDataFrame {
 				}
 			}
 		}
+		
 		String[] headers = headersSet.toArray(new String[]{});
 		String[] types = new String[headers.length];
+		
+		//grab all the types for each header
 		for(int i = 0; i < types.length; i++) {
 			types[i] = engine.getDataTypes(engine.getTransformedNodeName(Constants.DISPLAY_URI + headers[i], false));
 
@@ -828,6 +895,7 @@ public class H2Frame extends AbstractTableDataFrame {
 			}
 		}
 
+		//alter the table
 		builder.alterTableNewColumns(builder.tableName, headers, types); 
 
 		return ret;
@@ -1046,6 +1114,7 @@ public class H2Frame extends AbstractTableDataFrame {
 	
 	@Override
 	public String getDataMakerName() {
+		//could we just do "return this.class.toString();" ?
 		return "H2Frame";
 	}
 }

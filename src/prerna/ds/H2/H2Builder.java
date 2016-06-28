@@ -57,16 +57,11 @@ public class H2Builder {
 	}
 	
 	//consists of which values to keep for each header when gathering data
-	//Ex: Studio -> [WB, Universal]
-	// 		we want to focus on only Studios which are WB and Universal 
-	Map<String, List<Object>> filterHash = new HashMap<String, List<Object>>();
-	
-	//determines the relation between the column header and the values in the filter hash
-	//Ex: 
-	//		filterComparator = RottenTomatoesCritics -> GREATER_THAN
-	//		filterHash = RottenTomatoesCritics -> 0.7
-	//			we want to focus on RottenTomatoesCritics that are greater than 0.7
-	Map<String, Comparator> filterComparator = new HashMap<String, Comparator>();
+	//Ex: Studio -> {EQUALS -> [WB, Universal]}
+	// 		we want to focus on only Studios which are WB and Universal
+	//	RottenTomatoesCritics -> {LESS_THAN -> [0.9], GREATER_THAN -> [0.8]}
+	//		we want to focus on RottenTomatoesCritics < 0.9 AND > 0.8
+	Map<String, Map<Comparator, List<Object>>> filterHash2 = new HashMap<>();
 	
 	//name of the main table for H2
 	String tableName; 
@@ -100,9 +95,9 @@ public class H2Builder {
 	public static void main(String[] a) throws Exception {
 		
 		
-		concurrencyTest();
+//		concurrencyTest();
 		
-//		new H2Builder().testMakeFilter();
+		new H2Builder().testMakeFilter();
 //    	H2Builder test = new H2Builder();
 //    	test.castToType("6/2/2015");
 //		String fileName = "C:/Users/rluthar/Desktop/datasets/Movie.csv";
@@ -341,21 +336,27 @@ public class H2Builder {
     	list1.add("value2");
     	list1.add("value3");
     	list1.add("value4");
-    	filterHash.put("column1", list1);
+    	Map<Comparator, List<Object>> innerMap = new HashMap<>();
+    	innerMap.put(Comparator.EQUAL, list1);
+    	filterHash2.put("column1", innerMap);
     	
     	List<Object> list2 = new ArrayList<>();
     	list2.add("valueA");
     	list2.add("valueB");
     	list2.add("valueC");
     	list2.add("valueD");
-    	filterHash.put("column2", list2);
+    	Map<Comparator, List<Object>> innerMap2 = new HashMap<>();
+    	innerMap2.put(Comparator.EQUAL, list2);
+    	filterHash2.put("column2", innerMap2);
     	
     	List<Object> list3 = new ArrayList<>();
     	list3.add("value1A");
     	list3.add("value2B");
     	list3.add("value3C");
     	list3.add("value4D");
-    	filterHash.put("column3", list3);
+    	Map<Comparator, List<Object>> innerMap3 = new HashMap<>();
+    	innerMap3.put(Comparator.NOT_EQUAL, list3);
+    	filterHash2.put("column3", innerMap3);
     	
     	List<String> headers = new ArrayList<>();
     	headers.add("column1");
@@ -860,13 +861,23 @@ public class H2Builder {
     public void addFilters(String columnHeader, List<Object> values, Comparator comparator) {
     	columnHeader = cleanHeader(columnHeader);
     	//always overwrite for numerical filters (greater than, less than, etc.)
-    	if(filterHash.get(columnHeader) == null || (comparator != Comparator.EQUAL && comparator != Comparator.NOT_EQUAL)) {
+//    	if(filterHash.get(columnHeader) == null || (comparator != Comparator.EQUAL && comparator != Comparator.NOT_EQUAL)) {
+//    		setFilters(columnHeader, values, comparator);
+//    	} else {
+//    		filterHash.get(columnHeader).addAll(values);
+//    		filterComparator.put(columnHeader, comparator);
+//    	}
+    	
+    	if(filterHash2.get(columnHeader) == null) {
     		setFilters(columnHeader, values, comparator);
     	} else {
-    		filterHash.get(columnHeader).addAll(values);
-    		filterComparator.put(columnHeader, comparator);
+    		Map<Comparator, List<Object>> innerMap = filterHash2.get(columnHeader);
+    		if(innerMap.get(comparator) == null || (comparator != Comparator.EQUAL && comparator != Comparator.NOT_EQUAL)) {
+    			innerMap.put(comparator, values);
+    		} else {
+    			innerMap.get(comparator).addAll(values);
+    		}
     	}
-    	
     }
     
     /**
@@ -877,8 +888,12 @@ public class H2Builder {
      */
     public void setFilters(String columnHeader, List<Object> values, Comparator comparator) {
     	columnHeader = cleanHeader(columnHeader);
-    	filterHash.put(columnHeader, values);
-    	filterComparator.put(columnHeader, comparator);
+//    	filterHash.put(columnHeader, values);
+//    	filterComparator.put(columnHeader, comparator);
+    	
+    	Map<Comparator, List<Object>> innerMap = new HashMap<>();
+    	innerMap.put(comparator, values);
+    	filterHash2.put(columnHeader, innerMap);
     }
     
     /**
@@ -887,18 +902,172 @@ public class H2Builder {
      */
     public void removeFilter(String columnHeader) {
     	columnHeader = cleanHeader(columnHeader);
-    	filterHash.remove(columnHeader);
-    	filterComparator.remove(columnHeader);
+//    	filterHash.remove(columnHeader);
+//    	filterComparator.remove(columnHeader);
+    	
+    	filterHash2.remove(columnHeader);
     }
     
     /**
      * Clears all filters associated with the main table
      */
     public void clearFilters() {
-    	filterHash.clear();
-    	filterComparator.clear();
+//    	filterHash.clear();
+//    	filterComparator.clear();
+    	
+    	filterHash2.clear();
     }
     
+    /**
+     * 
+     * @param filterHash
+     * @param filterComparator
+     * @return
+     */
+    private String makeFilterSubQuery(Map<String, List<Object>> filterHash, Map<String, Comparator> filterComparator) {
+    	String filterStatement = "";
+    	if(filterHash.keySet().size() > 0) {
+	    	
+	    	List<String> filteredColumns = new ArrayList<String>(filterHash.keySet());
+	    	for(int x = 0; x < filteredColumns.size(); x++) {
+	    		
+	    		String header = filteredColumns.get(x);
+	    		Comparator comparator = filterComparator.get(header);
+	    		
+	    		switch(comparator) {
+	    		case EQUAL:{
+	    			List<Object> filterValues = filterHash.get(header);
+		    		String listString = getQueryStringList(filterValues);
+		    		filterStatement += header+" in " + listString;
+	    			break;
+	    		}
+	    		case NOT_EQUAL: {
+	    			List<Object> filterValues = filterHash.get(header);
+		    		String listString = getQueryStringList(filterValues);
+		    		filterStatement += header+" not in " + listString;
+	    			break;
+	    		}
+	    		case LESS_THAN: {
+	    			List<Object> filterValues = filterHash.get(header);
+		    		String listString = filterValues.get(0).toString();
+		    		filterStatement += header+" < " + listString;
+	    			break;
+	    		}
+	    		case GREATER_THAN: {
+	    			List<Object> filterValues = filterHash.get(header);
+		    		String listString = filterValues.get(0).toString();
+		    		filterStatement += header+" > " + listString;
+	    			break;
+	    		}
+	    		case GREATER_THAN_EQUAL: {
+	    			List<Object> filterValues = filterHash.get(header);
+		    		String listString = filterValues.get(0).toString();
+		    		filterStatement += header+" >= " + listString;
+	    			break;
+	    		}
+	    		case LESS_THAN_EQUAL: {
+	    			List<Object> filterValues = filterHash.get(header);
+		    		String listString = filterValues.get(0).toString();
+		    		filterStatement += header+" <= " + listString;
+	    			break;
+	    		}
+	    		default: {
+		    		List<Object> filterValues = filterHash.get(header);
+		    		String listString = getQueryStringList(filterValues);
+		    		
+		    		filterStatement += header+" in " + listString;
+	    		}
+	    		}
+	    		
+	    		//put appropriate ands
+	    		if(x < filteredColumns.size() - 1) {
+	    			filterStatement += " AND ";
+	    		}
+	    	}
+	    	
+	    	if(filterStatement.length() > 0) {
+	    		filterStatement = " WHERE " + filterStatement;
+	    	}
+    	}
+    	
+    	return filterStatement;
+    }
+    
+    private String makeFilterSubQuery(Map<String, Map<Comparator, List<Object>>> filterHash) {
+    	String filterStatement = "";
+    	if(filterHash.keySet().size() > 0) {
+	    	
+	    	List<String> filteredColumns = new ArrayList<String>(filterHash.keySet());
+	    	for(int x = 0; x < filteredColumns.size(); x++) {
+	    		
+	    		String header = filteredColumns.get(x);
+	    		Map<Comparator, List<Object>> innerMap = filterHash.get(header);
+	    		int i = 0;
+	    		for(Comparator comparator : innerMap.keySet()) {
+	    			if(i > 0) {
+	    				filterStatement += " AND ";
+	    			}
+		    		switch(comparator) {
+		    		
+		    		case EQUAL:{
+		    			List<Object> filterValues = innerMap.get(comparator);
+			    		String listString = getQueryStringList(filterValues);
+			    		filterStatement += header+" in " + listString;
+		    			break;
+		    		}
+		    		case NOT_EQUAL: {
+		    			List<Object> filterValues = innerMap.get(comparator);
+			    		String listString = getQueryStringList(filterValues);
+			    		filterStatement += header+" not in " + listString;
+		    			break;
+		    		}
+		    		case LESS_THAN: {
+		    			List<Object> filterValues = innerMap.get(comparator);
+			    		String listString = filterValues.get(0).toString();
+			    		filterStatement += header+" < " + listString;
+		    			break;
+		    		}
+		    		case GREATER_THAN: {
+		    			List<Object> filterValues = innerMap.get(comparator);
+			    		String listString = filterValues.get(0).toString();
+			    		filterStatement += header+" > " + listString;
+		    			break;
+		    		}
+		    		case GREATER_THAN_EQUAL: {
+		    			List<Object> filterValues = innerMap.get(comparator);
+			    		String listString = filterValues.get(0).toString();
+			    		filterStatement += header+" >= " + listString;
+		    			break;
+		    		}
+		    		case LESS_THAN_EQUAL: {
+		    			List<Object> filterValues = innerMap.get(comparator);
+			    		String listString = filterValues.get(0).toString();
+			    		filterStatement += header+" <= " + listString;
+		    			break;
+		    		}
+		    		default: {
+		    			List<Object> filterValues = innerMap.get(comparator);
+			    		String listString = getQueryStringList(filterValues);
+			    		filterStatement += header+" in " + listString;
+		    		}
+		    		
+		    		}
+		    		i++;
+	    		}
+	    		
+	    		//put appropriate ands
+	    		if(x < filteredColumns.size() - 1) {
+	    			filterStatement += " AND ";
+	    		}
+	    	}
+	    	
+	    	if(filterStatement.length() > 0) {
+	    		filterStatement = " WHERE " + filterStatement;
+	    	}
+    	}
+    	
+    	return filterStatement;
+    }
     /*************************** END FILTER **************************************/
     
     
@@ -1229,7 +1398,7 @@ public class H2Builder {
     	
     	try {
 	    	for(String selector : selectors) {
-	    		if(filterHash.get(selector) != null) {
+	    		if(filterHash2.get(selector) != null) {
 		    		String query = makeNotSelect(tableName, selector);
 		    		ResultSet rs = executeQuery(query);
 		    		
@@ -2003,7 +2172,8 @@ public class H2Builder {
     		}
     	}
     	
-    	String filterSubQuery = makeFilterSubQuery(this.filterHash, this.filterComparator);
+//    	String filterSubQuery = makeFilterSubQuery(this.filterHash, this.filterComparator);
+    	String filterSubQuery = makeFilterSubQuery(this.filterHash2);
     	selectStatement += " FROM " + tableName + filterSubQuery;
     	return selectStatement;
     }
@@ -2027,7 +2197,8 @@ public class H2Builder {
 		
     	//SELECT column1, column2, column3 from table1
 		selectStatement += " FROM " + tableName;
-		String filterSubQuery = makeFilterSubQuery(this.filterHash, this.filterComparator);    	
+//		String filterSubQuery = makeFilterSubQuery(this.filterHash, this.filterComparator);
+		String filterSubQuery = makeFilterSubQuery(this.filterHash2); 
     	if(filterSubQuery.length() > 1) {
     		selectStatement += filterSubQuery;
     		selectStatement += " AND " + columnHeader + " = " + "'"+value+"'";
@@ -2055,13 +2226,40 @@ public class H2Builder {
     		}
     	}
     	
-    	String filterSubQuery = makeFilterSubQuery(this.filterHash, this.filterComparator);
+//    	String filterSubQuery = makeFilterSubQuery(this.filterHash, this.filterComparator);
+    	String filterSubQuery = makeFilterSubQuery(this.filterHash2);
     	selectStatement += " FROM " + tableName + filterSubQuery;
     	
     	return selectStatement;
     }
     
     
+//    private String makeNotSelect(String tableName, String selector) {
+//    	String selectStatement = "SELECT DISTINCT ";
+//    	
+//		selector = cleanHeader(selector);
+//		selectStatement += selector + " FROM " + tableName;    	
+//    	
+//    	String filterStatement = "";
+//    	
+////    	List<Object> filterValues = filterHash.get(selector);
+//		List<Object> filterValues = filterHash2.get(selector).get(Comparator.EQUAL);
+//		String listString = getQueryStringList(filterValues);
+//    		
+//		filterStatement += selector+" NOT IN " + listString;
+//    	selectStatement += " WHERE " + filterStatement;
+//    	
+//    	return selectStatement;
+//    }
+    
+    /**
+     * This method returns all the distinct values that are filtered out for a particular column
+     * This method is mainly used to retrieve values for the filter model displayed on the front end
+     * 
+     * @param tableName - table in which selector exists
+     * @param selector - column to grab values from
+     * @return
+     */
     private String makeNotSelect(String tableName, String selector) {
     	String selectStatement = "SELECT DISTINCT ";
     	
@@ -2069,11 +2267,36 @@ public class H2Builder {
 		selectStatement += selector + " FROM " + tableName;    	
     	
     	String filterStatement = "";
+    	
+		Map<Comparator, List<Object>> filterMap = filterHash2.get(selector);
+		int i = 0;
+		//what ever is listed in the filter hash, we want the get the values that would be the logical opposite
+		//i.e. if filter hash indicates 'X < 0.9 AND X > 0.8', return 'X > =0.9 OR X <= 0.8'
+		for(Comparator comparator : filterMap.keySet()) {
+			if(i > 0) {
+				filterStatement += " OR ";
+			}
+			List<Object> filterValues = filterMap.get(comparator);
+			if(filterValues.size() == 0) continue;
+			
+			if(comparator.equals(Comparator.EQUAL)) {
+				String listString = getQueryStringList(filterValues);
+				filterStatement += selector+" NOT IN " + listString;
+			} else if(comparator.equals(Comparator.NOT_EQUAL)) {
+				String listString = getQueryStringList(filterValues);
+				filterStatement += selector+" IN " + listString;
+			} else if(comparator.equals(Comparator.GREATER_THAN)) {
+				filterStatement += selector+" <= "+filterValues.get(0);
+			} else if(comparator.equals(Comparator.GREATER_THAN_EQUAL)) {
+				filterStatement += selector+" < "+filterValues.get(0);
+			} else if(comparator.equals(Comparator.LESS_THAN)) {
+				filterStatement += selector+" >= "+filterValues.get(0);
+			} else if(comparator.equals(Comparator.LESS_THAN_EQUAL)) {
+				filterStatement += selector+" > "+filterValues.get(0);
+			}
+			i++;
+		}
     		
-		List<Object> filterValues = filterHash.get(selector);
-		String listString = getQueryStringList(filterValues);
-    		
-		filterStatement += selector+" NOT IN " + listString;
     	selectStatement += " WHERE " + filterStatement;
     	
     	return selectStatement;
@@ -2209,7 +2432,8 @@ public class H2Builder {
     		functionString = func +valueColumn+")"; break; }
     	}
     	
-    	String filterSubQuery = makeFilterSubQuery(this.filterHash, this.filterComparator);
+//    	String filterSubQuery = makeFilterSubQuery(this.filterHash, this.filterComparator);
+    	String filterSubQuery = makeFilterSubQuery(this.filterHash2);
     	String groupByStatement = "SELECT " + column+", "+functionString + " AS " + alias +" FROM "+tableName + filterSubQuery + " GROUP BY "+ column;
     	
     	return groupByStatement;
@@ -2245,7 +2469,8 @@ public class H2Builder {
     		functionString = func +valueColumn+")"; break; }
     	}
     	
-    	String filterSubQuery = makeFilterSubQuery(this.filterHash, this.filterComparator);
+//    	String filterSubQuery = makeFilterSubQuery(this.filterHash, this.filterComparator);
+    	String filterSubQuery = makeFilterSubQuery(this.filterHash2);
     	String groupByStatement = "SELECT " + column1+", "+column2+", "+functionString + " AS " + alias +" FROM "+tableName + filterSubQuery + " GROUP BY "+ column1+", "+column2;
     	
     	return groupByStatement;
@@ -2339,74 +2564,7 @@ public class H2Builder {
     	return updateQuery;
     }
     
-    private String makeFilterSubQuery(Map<String, List<Object>> filterHash, Map<String, Comparator> filterComparator) {
-    	String filterStatement = "";
-    	if(filterHash.keySet().size() > 0) {
-	    	
-	    	List<String> filteredColumns = new ArrayList<String>(filterHash.keySet());
-	    	for(int x = 0; x < filteredColumns.size(); x++) {
-	    		
-	    		String header = filteredColumns.get(x);
-	    		Comparator comparator = filterComparator.get(header);
-	    		
-	    		switch(comparator) {
-	    		case EQUAL:{
-	    			List<Object> filterValues = filterHash.get(header);
-		    		String listString = getQueryStringList(filterValues);
-		    		filterStatement += header+" in " + listString;
-	    			break;
-	    		}
-	    		case NOT_EQUAL: {
-	    			List<Object> filterValues = filterHash.get(header);
-		    		String listString = getQueryStringList(filterValues);
-		    		filterStatement += header+" not in " + listString;
-	    			break;
-	    		}
-	    		case LESS_THAN: {
-	    			List<Object> filterValues = filterHash.get(header);
-		    		String listString = filterValues.get(0).toString();
-		    		filterStatement += header+" < " + listString;
-	    			break;
-	    		}
-	    		case GREATER_THAN: {
-	    			List<Object> filterValues = filterHash.get(header);
-		    		String listString = filterValues.get(0).toString();
-		    		filterStatement += header+" > " + listString;
-	    			break;
-	    		}
-	    		case GREATER_THAN_EQUAL: {
-	    			List<Object> filterValues = filterHash.get(header);
-		    		String listString = filterValues.get(0).toString();
-		    		filterStatement += header+" >= " + listString;
-	    			break;
-	    		}
-	    		case LESS_THAN_EQUAL: {
-	    			List<Object> filterValues = filterHash.get(header);
-		    		String listString = filterValues.get(0).toString();
-		    		filterStatement += header+" <= " + listString;
-	    			break;
-	    		}
-	    		default: {
-		    		List<Object> filterValues = filterHash.get(header);
-		    		String listString = getQueryStringList(filterValues);
-		    		
-		    		filterStatement += header+" in " + listString;
-	    		}
-	    		}
-	    		
-	    		//put appropriate ands
-	    		if(x < filteredColumns.size() - 1) {
-	    			filterStatement += " AND ";
-	    		}
-	    	}
-	    	
-	    	if(filterStatement.length() > 0) {
-	    		filterStatement = " WHERE " + filterStatement;
-	    	}
-    	}
-    	
-    	return filterStatement;
-    }
+
     
     private String getType(String tableName, String column)
     {
