@@ -118,16 +118,16 @@ public class RDBMSFlatCSVUploader extends AbstractFileReader {
 		queryBuilder.setLength(0); // clear the query builder
 		queryBuilder.append("ALTER TABLE ");
 		queryBuilder.append(TABLE_NAME);
-		queryBuilder.append(" ADD ID IDENTITY");
+		queryBuilder.append(" ADD UNIQUE_ROW_ID IDENTITY");
 		
 		// add the unique id for the table
 		System.out.println(queryBuilder.toString());
 		this.engine.insertData(queryBuilder.toString());
 		
 		// need to add metadata
-		owler.addConcept(TABLE_NAME, "ID", "LONG");
+		owler.addConcept(TABLE_NAME, "UNIQUE_ROW_ID", "LONG");
 		for(int headerIndex = 0; headerIndex < headers.length; headerIndex++) {
-			owler.addProp(TABLE_NAME, "ID", headers[headerIndex], dataTypes[headerIndex]);
+			owler.addProp(TABLE_NAME, "UNIQUE_ROW_ID", headers[headerIndex], dataTypes[headerIndex]);
 		}
 		
 	}
