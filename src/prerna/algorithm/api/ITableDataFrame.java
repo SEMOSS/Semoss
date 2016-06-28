@@ -458,7 +458,7 @@ public interface ITableDataFrame extends IDataMaker {
 	 * @param filterValues
 	 * @param comparator
 	 */
-	void filter(String columnHeader, List<Object> filterValues, String comparator);
+	void filter(String columnHeader, Map<String, List<Object>> filterValues);
 	
 	/**
 	 * 

@@ -1587,48 +1587,43 @@ public class TinkerFrame extends AbstractTableDataFrame {
 		long startTime = System.currentTimeMillis();
 		
 		unfilter(columnHeader);
+		filterColumn(columnHeader, filterValues);
 		
-		Set<Object> removeSet = new HashSet<Object>();
-		Iterator<Object> iterator = uniqueValueIterator(columnHeader, false, false);
-		while(iterator.hasNext()) {
-			removeSet.add(iterator.next());
-		}
-		
-		for(Object fv : filterValues) {
-			if(fv instanceof String){
-				removeSet.remove(Utility.getInstanceName((String)fv));
-			}
-			else {
-			removeSet.remove(fv);
-		}
-		}
-		this.metaData.setFiltered(columnHeader, true);
-		String valueNode = this.metaData.getValueForUniqueName(columnHeader);
-//		Vertex metaVertex = upsertVertex(META, columnHeader, valueNode);
-//		metaVertex.property(Constants.FILTER, true);
-
-		Vertex filterVertex = upsertVertex(Constants.FILTER, Constants.FILTER, Constants.FILTER);
-
-		for(Object val : removeSet) {
-			String id = valueNode +":"+ val.toString();
-
-			GraphTraversal<Vertex, Vertex> fgt = g.traversal().V().has(Constants.ID, id);
-			Vertex nextVertex = null;
-			if(fgt.hasNext()) {
-				nextVertex = fgt.next();
-				upsertEdge(filterVertex, Constants.FILTER, nextVertex, columnHeader);
-			}
-		}
+//		Set<Object> removeSet = new HashSet<Object>();
+//		Iterator<Object> iterator = uniqueValueIterator(columnHeader, false, false);
+//		while(iterator.hasNext()) {
+//			removeSet.add(iterator.next());
+//		}
+//		
+//		for(Object fv : filterValues) {
+//			if(fv instanceof String){
+//				removeSet.remove(Utility.getInstanceName((String)fv));
+//			}
+//			else {
+//			removeSet.remove(fv);
+//		}
+//		}
+//		this.metaData.setFiltered(columnHeader, true);
+//		String valueNode = this.metaData.getValueForUniqueName(columnHeader);
+////		Vertex metaVertex = upsertVertex(META, columnHeader, valueNode);
+////		metaVertex.property(Constants.FILTER, true);
+//
+//		Vertex filterVertex = upsertVertex(Constants.FILTER, Constants.FILTER, Constants.FILTER);
+//
+//		for(Object val : removeSet) {
+//			String id = valueNode +":"+ val.toString();
+//
+//			GraphTraversal<Vertex, Vertex> fgt = g.traversal().V().has(Constants.ID, id);
+//			Vertex nextVertex = null;
+//			if(fgt.hasNext()) {
+//				nextVertex = fgt.next();
+//				upsertEdge(filterVertex, Constants.FILTER, nextVertex, columnHeader);
+//			}
+//		}
 		
 		LOGGER.info("Filtered '"+columnHeader+"':"+(System.currentTimeMillis() - startTime)+" ms");
 	}
 	
-	@Override
-	public void filter(String columnHeader, List<Object> filterValues, String comparator) {
-		// TODO Auto-generated method stub
-		filter(columnHeader, filterValues);
-	}
-
 	@Override
 	public void unfilter(String columnHeader) {
 		long startTime = System.currentTimeMillis();
@@ -1738,6 +1733,152 @@ public class TinkerFrame extends AbstractTableDataFrame {
 		}
 		
 		return retMap;
+	}
+	
+	//Inefficient out of the box method generic to all data frames, if a class can do this more efficiently it should override and do the efficient manner
+	@Override
+	public void filter(String columnHeader, Map<String, List<Object>> filterData) {
+		
+		filter(columnHeader, filterData.get(filterData.keySet().iterator().next()));
+		return;
+		
+//		List<Object> adjustedFilters = new ArrayList<>();
+//		Iterator<Object> iterator = uniqueValueIterator(columnHeader, false, false);
+//		
+//		int i = 0;
+//		for(String comparator : filterData.keySet()) {
+//			List<Object> filterValues = filterData.get(comparator);
+//			
+//			Double fv = null;
+//			try {
+//				if(isNumeric(columnHeader)) {
+//					fv = Double.parseDouble(filterValues.get(0).toString());
+//				}
+//			} catch(Exception e) {
+//				fv = Double.NaN;
+//			}
+//			
+//			if(filterValues != null && filterValues.size() > 0) {
+//				
+//				if(comparator.equals("=")) {
+//					if(i == 0)filter(columnHeader, filterValues);
+//					else filterColumn(columnHeader, filterValues);
+//					continue;
+//				} else if(comparator.equals("!=")) {
+//					Set<Object> removeSet = new HashSet<>();
+//					while(iterator.hasNext()) {
+//						removeSet.add(iterator.next());
+//					}
+//					removeSet.removeAll(filterValues);
+//					List<Object> removeList = new ArrayList<>(removeSet);
+//					if(i == 0)filter(columnHeader, removeList);
+//					else filterColumn(columnHeader, removeList);
+//					continue;
+//				} else if(comparator.equals("<")) {
+//					if(isNumeric(columnHeader)) {
+//						
+//						while(iterator.hasNext()) {
+//							Object value = iterator.next();
+//							try {
+//								if (((Number) value).doubleValue() < fv) {
+//									adjustedFilters.add(value);
+//								}
+//							} catch(ClassCastException e) {
+//								adjustedFilters.add(value);
+//							}
+//						}
+//						
+//					} else {
+//						throw new IllegalArgumentException(columnHeader + " is not a numeric column, cannot use operator " + comparator);
+//					}
+//				} else if(comparator.equals(">")) {
+//					if(isNumeric(columnHeader)) {
+//						while(iterator.hasNext()) {
+//							Object value = iterator.next();
+//							try {
+//								if (((Number) value).doubleValue() > fv) {
+//									adjustedFilters.add(value);
+//								}
+//							} catch(ClassCastException e) {
+//								adjustedFilters.add(value);
+//							}
+//						}
+//					} else {
+//						throw new IllegalArgumentException(columnHeader + " is not a numeric column, cannot use operator " + comparator);
+//					}
+//				} else if(comparator.equals("<=")) {
+//					if(isNumeric(columnHeader)) {
+//						while(iterator.hasNext()) {
+//							Object value = iterator.next();
+//							try {
+//								if (((Number) value).doubleValue() <= fv) {
+//									adjustedFilters.add(value);
+//								}
+//							} catch(ClassCastException e) {
+//								adjustedFilters.add(value);
+//							}
+//						}
+//					} else {
+//						throw new IllegalArgumentException(columnHeader + " is not a numeric column, cannot use operator " + comparator);
+//					}
+//				} else if(comparator.equals(">=")) {
+//					if(isNumeric(columnHeader)) {
+//						while(iterator.hasNext()) {
+//							Object value = iterator.next();
+//							try {
+//								if (((Number) value).doubleValue() >= fv) {
+//									adjustedFilters.add(value);
+//								}
+//							} catch(ClassCastException e) {
+//								adjustedFilters.add(value);
+//							}
+//						}
+//					} else {
+//						throw new IllegalArgumentException(columnHeader + " is not a numeric column, cannot use operator " + comparator);
+//					}
+//				} else {
+//					//comparator not recognized...do equal by default? or do nothing? or throw error?
+//				}
+//			}
+//			
+//			if(i == 0)filter(columnHeader, adjustedFilters);
+//			else filterColumn(columnHeader, adjustedFilters);
+//			i++;
+//		}
+	}
+	
+	private void filterColumn(String columnHeader, List<Object> filterValues) {
+		Set<Object> removeSet = new HashSet<Object>();
+		Iterator<Object> iterator = uniqueValueIterator(columnHeader, false, false);
+		while(iterator.hasNext()) {
+			removeSet.add(iterator.next());
+		}
+		
+		for(Object fv : filterValues) {
+			if(fv instanceof String){
+				removeSet.remove(Utility.getInstanceName((String)fv));
+			}
+			else {
+			removeSet.remove(fv);
+		}
+		}
+		this.metaData.setFiltered(columnHeader, true);
+		String valueNode = this.metaData.getValueForUniqueName(columnHeader);
+//		Vertex metaVertex = upsertVertex(META, columnHeader, valueNode);
+//		metaVertex.property(Constants.FILTER, true);
+
+		Vertex filterVertex = upsertVertex(Constants.FILTER, Constants.FILTER, Constants.FILTER);
+
+		for(Object val : removeSet) {
+			String id = valueNode +":"+ val.toString();
+
+			GraphTraversal<Vertex, Vertex> fgt = g.traversal().V().has(Constants.ID, id);
+			Vertex nextVertex = null;
+			if(fgt.hasNext()) {
+				nextVertex = fgt.next();
+				upsertEdge(filterVertex, Constants.FILTER, nextVertex, columnHeader);
+			}
+		}
 	}
 	
 	/****************************** END FILTER METHODS ******************************************/
