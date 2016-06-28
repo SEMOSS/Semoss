@@ -73,7 +73,7 @@ public class GremlinInterpreter implements IQueryInterpreter {
 	}
 	
 	/**
-	 * gets the seelctors and adds it to the traversal
+	 * gets the selectors and adds it to the traversal
 	 */
 	private void addSelectors() {
 		List<String> selector = getSelector(); // get the selectors

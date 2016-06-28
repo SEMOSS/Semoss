@@ -2063,13 +2063,6 @@ public class BTreeDataFrame implements ITableDataFrame {
 	}
 
 	@Override
-	public void filter(String columnHeader, List<Object> filterValues,
-			String comparator) {
-		// TODO Auto-generated method stub
-		
-	}
-
-	@Override
 	public void removeRelationship(Map<String, Object> cleanRow,
 			Map<String, Object> rawRow) {
 		// TODO Auto-generated method stub
@@ -2149,5 +2142,12 @@ public class BTreeDataFrame implements ITableDataFrame {
 	@Override
 	public String getDataMakerName() {
 		return "BTreeDataFrame";
+	}
+
+	@Override
+	public void filter(String columnHeader,
+			Map<String, List<Object>> filterValues) {
+		// TODO Auto-generated method stub
+		
 	}
 }

@@ -309,14 +309,16 @@ public class SparkDataFrame extends AbstractTableDataFrame{
 			return "date";
 		}
 	}
-	@Override
-	public void filter(String columnHeader, List<Object> filterValues, String comparator) {
-		// TODO Auto-generated method stub
-		
-	}
+
 	
 	@Override
 	public String getDataMakerName() {
 		return "SparkDataFrame";
+	}
+	@Override
+	public void filter(String columnHeader,
+			Map<String, List<Object>> filterValues) {
+		// TODO Auto-generated method stub
+		
 	}
 }
