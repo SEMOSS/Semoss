@@ -40,9 +40,12 @@ public class RDBMSFlatCSVUploader extends AbstractFileReader {
 		
 		boolean error = false;
 		queryUtil = SQLQueryUtil.initialize(dbDriverType);
+		// sets the custom base uri, sets the owl path, sets the smss location
+		// and returns the fileLocations split into an array based on ';' character
 		String[] files = prepareReader(fileLocations, customBaseURI, owlPath, smssLocation);
 		LOGGER.setLevel(Level.WARN);
 		try {
+			// create the engine and the owler
 			openRdbmsEngineWithoutConnection(engineName);
 			for(int i = 0; i < files.length;i++)
 			{
@@ -53,7 +56,9 @@ public class RDBMSFlatCSVUploader extends AbstractFileReader {
 				}
 				processFirstTable(fileName);
 			}
+			// write the owl file
 			createBaseRelations();
+			// create the base question sheet
 			RDBMSEngineCreationHelper.writeDefaultQuestionSheet(engine);
 		} finally {
 			if(error || autoLoad) {
@@ -135,6 +140,9 @@ public class RDBMSFlatCSVUploader extends AbstractFileReader {
 	///////////////////////////////// test methods /////////////////////////////////
 	
 	public static void main(String[] args) throws IOException {
+		// run this test when the server is not running
+		// this will create the db and smss file so when you start the server
+		// the database created will be picked up and exposed
 		TestUtilityMethods.loadDIHelper();
 
 		// set the file
@@ -142,7 +150,6 @@ public class RDBMSFlatCSVUploader extends AbstractFileReader {
 		
 		// set a bunch of db stuff
 		String baseFolder = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER);
-		// DO NOT USE engine_name="test" since the \t on load gets interpreted as a tab :/ not sure why
 		String engineName = "test";
 		String customBase = "http://semoss.org/ontologies";
 		SQLQueryUtil.DB_TYPE dbType = SQLQueryUtil.DB_TYPE.H2_DB;
