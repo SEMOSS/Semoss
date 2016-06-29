@@ -115,13 +115,15 @@ public class RDBMSEngineCreationHelper {
 	}
 	
 	
-	public static void writeDefaultQuestionSheet(IEngine rdbmsEngine)
+	public static void writeDefaultQuestionSheet(IEngine rdbmsEngine, SQLQueryUtil queryUtil)
 	{		
 //		QuestionAdministrator questionAdmin = new QuestionAdministrator(((AbstractEngine)rdbmsEngine));
 		
 		String engineName = rdbmsEngine.getEngineName();
 		// get all the tables names in the database
 		String getAllTablesQuery = "SHOW TABLES FROM PUBLIC";
+		if(queryUtil != null)
+			getAllTablesQuery = queryUtil.getDialectAllTables();
 		ISelectWrapper wrapper = WrapperManager.getInstance().getSWrapper(rdbmsEngine, getAllTablesQuery);
 		String[] names = wrapper.getVariables();
 		Set<String> tableNames = new HashSet<String>();
@@ -135,11 +137,13 @@ public class RDBMSEngineCreationHelper {
 	}
 	
 	
-	public static void addToExistingQuestionFile(IEngine rdbmsEngine, Set<String> newTables) {
+	public static void addToExistingQuestionFile(IEngine rdbmsEngine, Set<String> newTables, SQLQueryUtil queryUtil) {
 		
 		QuestionAdministrator questionAdmin = new QuestionAdministrator(((AbstractEngine)rdbmsEngine));
 		// get all the tables names in the database
 		String getAllTablesQuery = "SHOW TABLES FROM PUBLIC";
+		if(queryUtil != null)
+			getAllTablesQuery = queryUtil.getDialectAllTables();
 		ISelectWrapper wrapper = WrapperManager.getInstance().getSWrapper(rdbmsEngine, getAllTablesQuery);
 		String[] names = wrapper.getVariables();
 		Set<String> tableNames = new HashSet<String>();
@@ -175,11 +179,14 @@ public class RDBMSEngineCreationHelper {
 		}
 	}
 	
-	public static Map<String, Map<String, String>> getExistingRDBMSStructure(IEngine rdbmsEngine) {
+	public static Map<String, Map<String, String>> getExistingRDBMSStructure(IEngine rdbmsEngine, SQLQueryUtil queryUtil) {
 		Map<String, Map<String, String>> retMap = new Hashtable<String, Map<String, String>>();
 
 		// get all the tables names in the H2 database
 		String getAllTablesQuery = "SHOW TABLES FROM PUBLIC";
+		// for databases other than H2
+		if(queryUtil != null)
+			getAllTablesQuery = queryUtil.getDialectAllTables();
 		ISelectWrapper wrapper = WrapperManager.getInstance().getSWrapper(rdbmsEngine, getAllTablesQuery);
 		String[] names = wrapper.getVariables();
 		Set<String> tableNames = new HashSet<String>();
@@ -191,15 +198,19 @@ public class RDBMSEngineCreationHelper {
 
 		// get all the columns and their types for each table name
 		String defaultColTypesQuery = "SHOW COLUMNS FROM ";
+		/*if(queryUtil != null)
+			defaultColTypesQuery = queryUtil.getDialectAllColumns();*/
 		for(String tableName : tableNames) {
 			String getAllColTypesQuery = defaultColTypesQuery + tableName;
+			if(queryUtil != null)
+				getAllColTypesQuery = queryUtil.getDialectAllColumns(tableName);
 			wrapper = WrapperManager.getInstance().getSWrapper(rdbmsEngine, getAllColTypesQuery);
 			names = wrapper.getVariables();
 			Map<String, String> colTypeHash = new Hashtable<String, String>();
 			while(wrapper.hasNext()) {
 				ISelectStatement ss = wrapper.next();
 				String colName = ss.getVar("COLUMN_NAME") + "";
-				String colType = ss.getVar("TYPE") + "";
+				String colType = ss.getVar("DATA_TYPE") + "";
 				colTypeHash.put(colName, colType);
 			}
 
