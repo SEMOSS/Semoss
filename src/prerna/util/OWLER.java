@@ -116,7 +116,7 @@ public class OWLER {
 			String object = baseURI + DEFAULT_NODE_CLASS ;
 			
 			// get the subject
-			String subject = object;
+			String subject = object + "/";
 			// if it is rdbms, we need to account when the tablen ame and col name are not the same
 			if(type.equals(IEngine.ENGINE_TYPE.RDBMS)) {
 				// if the col is null or empty, assume table name and col name are the same
@@ -128,7 +128,7 @@ public class OWLER {
 			// here, it must be RDF
 			// just add the table name
 			} else {
-				subject += "/" + tableName;
+				subject += tableName;
 			}
 			
 			String typeObject = "TYPE:" + dataType;
