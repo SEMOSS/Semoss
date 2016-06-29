@@ -37,20 +37,24 @@ import java.io.StringWriter;
 import java.lang.reflect.InvocationTargetException;
 import java.sql.SQLException;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Hashtable;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
+import java.util.Set;
 import java.util.Vector;
 
 import org.apache.commons.io.FileUtils;
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 import org.h2.jdbc.JdbcClob;
+import org.openrdf.model.vocabulary.RDFS;
 import org.openrdf.repository.RepositoryException;
 import org.openrdf.rio.RDFHandlerException;
 import org.openrdf.rio.rdfxml.RDFXMLWriter;
 
+import prerna.ds.QueryStruct;
 import prerna.engine.api.IEngine;
 import prerna.engine.api.ISelectStatement;
 import prerna.engine.api.ISelectWrapper;
@@ -1334,4 +1338,70 @@ public abstract class AbstractEngine implements IEngine {
 		
 		return null;
 	}
+	
+	
+	/**
+	 * This method will return a query struct which when interpreted would produce a query to 
+	 * get all the data within the engine.  Will currently assume all joins to be inner.join
+	 * @return
+	 */
+	public QueryStruct getDatabaseQueryStruct() {
+		QueryStruct qs = new QueryStruct();
+		
+		// query to get all the concepts and properties for selectors
+		String getSelectorsInformation = "SELECT DISTINCT ?concept ?property WHERE { "
+				+ "{?concept <http://www.w3.org/2000/01/rdf-schema#subClassOf> <http://semoss.org/ontologies/Concept>} "
+				+ "OPTIONAL {"
+				+ "{?property <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <" + CONTAINS_BASE_URI + "> } "
+				+ "{?concept <http://www.w3.org/2002/07/owl#DatatypeProperty> ?property } "
+				+ "}" // END OPTIONAL
+				+ "}"; // END WHERE
+		
+		// execute the query and loop through and add it into the QS
+		ISelectWrapper wrapper = WrapperManager.getInstance().getSWrapper(baseDataEngine, getSelectorsInformation);
+		String[] names = wrapper.getPhysicalVariables();
+		// we will keep a set of the concepts such that we know when we need to append a PRIM_KEY_PLACEHOLDER
+		Set<String> conceptSet = new HashSet<String>();
+		while(wrapper.hasNext()) {
+			ISelectStatement ss = wrapper.next();
+			String concept = ss.getVar(names[0]) + "";
+			if(concept.equals("Concept")) {
+				continue;
+			}
+			
+			Object property = ss.getVar(names[1]);
+			
+			if(!conceptSet.contains(concept)) {			
+				qs.addSelector(concept, null);
+				conceptSet.add(concept);
+			}
+			
+			if(property != null && !property.toString().isEmpty()) {
+				qs.addSelector(concept, property.toString());
+			}
+		}
+		// no need to keep this anymore
+		conceptSet = null;
+		
+		// query to get all the relationships 
+		String getRelationshipsInformation = "SELECT DISTINCT ?fromConcept ?toConcept WHERE { "
+				+ "{?fromConcept <http://www.w3.org/2000/01/rdf-schema#subClassOf> <http://semoss.org/ontologies/Concept>} "
+				+ "{?toConcept <http://www.w3.org/2000/01/rdf-schema#subClassOf> <http://semoss.org/ontologies/Concept>} "
+				+ "{?rel <" + RDFS.SUBPROPERTYOF + "> <http://semoss.org/ontologies/Relation>} "
+				+ "{?fromConcept ?rel ?toConcept} "
+				+ "}"; // END WHERE
+		
+		wrapper = WrapperManager.getInstance().getSWrapper(baseDataEngine, getRelationshipsInformation);
+		names = wrapper.getPhysicalVariables();
+		while(wrapper.hasNext()) {
+			ISelectStatement ss = wrapper.next();
+			String fromConcept = ss.getVar(names[0]) + "";
+			String toConcept = ss.getVar(names[1]) + "";
+			
+			qs.addRelation(fromConcept, toConcept, "inner.join");
+		}
+		
+		return qs;
+	}
+	
 }
