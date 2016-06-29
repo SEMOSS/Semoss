@@ -114,10 +114,22 @@ public class OWLER {
 			// make this as a type of semoss class
 			// make the class as a subclass of RDF Class
 			String object = baseURI + DEFAULT_NODE_CLASS ;
-			String subject = object + "/" + colName;
+			
+			// get the subject
+			String subject = object;
+			// if it is rdbms, we need to account when the tablen ame and col name are not the same
 			if(type.equals(IEngine.ENGINE_TYPE.RDBMS)) {
+				// if the col is null or empty, assume table name and col name are the same
+				if(colName == null || colName.isEmpty()) {
+					subject += tableName + "/" + tableName;
+				} else {
+					subject += colName + "/" + tableName;
+				}
+			// here, it must be RDF
+			// just add the table name
+			} else {
 				subject += "/" + tableName;
-			} 
+			}
 			
 			String typeObject = "TYPE:" + dataType;
 			// all concepts in a rdf database are strings as they are uri's
