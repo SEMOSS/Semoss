@@ -164,7 +164,7 @@ public class RDBMSReader extends AbstractFileReader {
 			}
 			cleanUpDBTables(engineName, allowDuplicates);
 			createBaseRelations();
-			RDBMSEngineCreationHelper.writeDefaultQuestionSheet(engine);
+			RDBMSEngineCreationHelper.writeDefaultQuestionSheet(engine, queryUtil);
 		} catch(FileNotFoundException e) {
 			error = true;
 			throw new FileNotFoundException(e.getMessage());
@@ -241,7 +241,7 @@ public class RDBMSReader extends AbstractFileReader {
 			createBaseRelations();
 			addOriginalIndices();
 			cleanUpDBTables(engineName, allowDuplicates);
-			RDBMSEngineCreationHelper.addToExistingQuestionFile(engine, addedTables);
+			RDBMSEngineCreationHelper.addToExistingQuestionFile(engine, addedTables, queryUtil);
 		} finally {
 			if(scriptFile != null) {
 				scriptFile.println("-- ********* completed load process ********* ");
@@ -256,7 +256,7 @@ public class RDBMSReader extends AbstractFileReader {
 	private void processData(boolean noExistingData) throws IOException {
 		// get existing data is present
 		if(!noExistingData) {
-			existingRDBMSStructure = RDBMSEngineCreationHelper.getExistingRDBMSStructure(engine);
+			existingRDBMSStructure = RDBMSEngineCreationHelper.getExistingRDBMSStructure(engine,queryUtil);
 		} else {
 			existingRDBMSStructure = new Hashtable<String, Map<String, String>>();
 		}
@@ -685,7 +685,7 @@ public class RDBMSReader extends AbstractFileReader {
 
 	private void cleanUpDBTables(String engineName, boolean allowDuplicates){
 		//fill up the availableTables and availableTablesInfo maps
-		Map<String, Map<String, String>> existingStructure = RDBMSEngineCreationHelper.getExistingRDBMSStructure(engine);
+		Map<String, Map<String, String>> existingStructure = RDBMSEngineCreationHelper.getExistingRDBMSStructure(engine, queryUtil);
 		Set<String> alteredTables = allConcepts.keySet();
 		
 		Set<String> allTables = existingStructure.keySet();

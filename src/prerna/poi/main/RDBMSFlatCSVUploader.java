@@ -59,7 +59,7 @@ public class RDBMSFlatCSVUploader extends AbstractFileReader {
 			// write the owl file
 			createBaseRelations();
 			// create the base question sheet
-			RDBMSEngineCreationHelper.writeDefaultQuestionSheet(engine);
+			RDBMSEngineCreationHelper.writeDefaultQuestionSheet(engine, queryUtil);
 		} finally {
 			if(error || autoLoad) {
 				closeDB();
