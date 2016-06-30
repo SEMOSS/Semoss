@@ -6,6 +6,7 @@ import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Calendar;
+import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.Hashtable;
@@ -43,7 +44,7 @@ public class MHSDashboardDrillPlaysheet extends TablePlaySheet implements IDataM
 	private final String ACTUAL_START = "ActualStart";
 	private final String ACTUAL_END = "ActualEnd";
 	private final String UPLOAD_DATE = "UploadDate";
-	private final String MAX_ACTIVITY_VALUE = "MAX_ACTIVITY_VALUE";
+	private final String MIN_ACTIVITY_VALUE = "MinActivityVal";
 	
 	private String userId;
 	
@@ -96,12 +97,9 @@ public class MHSDashboardDrillPlaysheet extends TablePlaySheet implements IDataM
 	@Override
 	public Map getDataMakerOutput(String... selectors) {
 		Map<String, Object> returnHashMap = aggregateDHAGroup();
-		//	returnHashMap.putAll(getUIOptions());
-			return returnHashMap;
-			
-			
-//		  selectors = new String[]{SYSTEM, UPLOAD_DATE};
-//          return super.getDataMakerOutput(selectors);
+		List<Object> sdlcList = new ArrayList <Object> (Arrays.asList("Strategy", "Requirement", "Design", "Development", "Test", "Security", "Deployment", "Training"));
+		returnHashMap.put("SDLCList", sdlcList);
+		return returnHashMap;
 	}
 	
 	// just calls default getDataMakerOutput
@@ -208,7 +206,7 @@ public class MHSDashboardDrillPlaysheet extends TablePlaySheet implements IDataM
 				Map<String, Object> innerMapReturn = (Map<String, Object>) valueMap.get(key);
 				long totalHeatVal = (long) innerMapReturn.get(HEAT_VALUE);
 				int numActivtyReturn = (int) innerMapReturn.get("ACTIVITY_NUM");
-				List<Long> heatValReturn = (List<Long>) innerMapReturn.get(MAX_ACTIVITY_VALUE);
+				List<Long> heatValReturn = (List<Long>) innerMapReturn.get(MIN_ACTIVITY_VALUE);
 				heatValReturn.add(heatValue);
 //				if(heatValReturn > heatValue){
 //					innerMap.put (MAX_ACTIVITY_VALUE, heatValReturn);
@@ -221,7 +219,7 @@ public class MHSDashboardDrillPlaysheet extends TablePlaySheet implements IDataM
 				totalHeatVal = (totalHeatVal + heatValue)/numActivtyReturn;
 				innerMap.put(HEAT_VALUE, totalHeatVal);
 				innerMap.put("ACTIVITY_NUM", numActivtyReturn);
-				innerMap.put (MAX_ACTIVITY_VALUE, heatValReturn);
+				innerMap.put (MIN_ACTIVITY_VALUE, heatValReturn);
 				valueMap.put(key, innerMap);
 
 			} else if (!valueMap.containsKey(key)) {
@@ -229,7 +227,7 @@ public class MHSDashboardDrillPlaysheet extends TablePlaySheet implements IDataM
 				innerMap.put ("ACTIVITY_NUM", 1);
 				List<Long> heatList = new ArrayList<Long>();
 				heatList.add(heatValue);
- 				innerMap.put (MAX_ACTIVITY_VALUE, heatList);
+ 				innerMap.put (MIN_ACTIVITY_VALUE, heatList);
 				
 				valueMap.put(key, innerMap);
 			}
@@ -242,14 +240,20 @@ public class MHSDashboardDrillPlaysheet extends TablePlaySheet implements IDataM
 			 for(Object innerVal : value.entrySet()){
 				 String returnKey = ((Entry<String, Object>) innerVal).getKey();
 				 if(!returnKey.equals("ACTIVITY_NUM")){
-					 Object returnVal = ((Entry<String, Object>) innerVal).getValue();
-					 innerList.add(returnVal);
+					 if(returnKey.equals(MIN_ACTIVITY_VALUE)){
+						 List<Long> heatList = (List<Long>) ((Entry<String, Object>) innerVal).getValue();
+						 Long minHeat = Collections.min(heatList);
+						 innerList.add(minHeat);
+					 } else {
+						 Object returnVal = ((Entry<String, Object>) innerVal).getValue();
+						 innerList.add(returnVal);
+					 }
 				 }
 			 }
 			 returnList.add(innerList);
 		}
 		returnMap.put("data", returnList);
-		returnMap.put("headers", Arrays.asList(SDLC, ActivityGroup, DHA, HEAT_VALUE, MAX_ACTIVITY_VALUE));
+		returnMap.put("headers", Arrays.asList(SDLC, MIN_ACTIVITY_VALUE, ActivityGroup, DHA, HEAT_VALUE));
 
 		return returnMap;
 	}
@@ -285,8 +289,6 @@ public class MHSDashboardDrillPlaysheet extends TablePlaySheet implements IDataM
 		Map<String, List<Object>> returnMap = new HashMap<String, List<Object>> ();
 		Map<String, String> uiOptionMap = new HashMap<String, String> ();
 		List<Object> sdlcList = new ArrayList <Object> (Arrays.asList("Strategy", "Requirement", "Design", "Development", "Test", "Security", "Deployment", "Training"));
-//		uiOptionMap.put("Styling", "MHSDashboard");
-		sdlcList.add(uiOptionMap);
 		returnMap.put("uiOptions", sdlcList);
 		return returnMap;
 	}
