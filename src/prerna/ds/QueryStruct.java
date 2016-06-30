@@ -344,6 +344,21 @@ public class QueryStruct {
 		}
 	}
 	
+	/**
+	 * Returns if no information has been set into the query struct
+	 * @return
+	 */
+	public boolean isEmpty() {
+		// if any of the main 3 objects within the QS have info, return false
+		// even in the case that selectors are empty, if other info is set, the QS will still 
+		// return false for this method
+		if(!this.selectors.isEmpty() || !this.relations.isEmpty() || !this.andfilters.isEmpty()) {
+			return false;
+		}
+		
+		return true;
+	}
+	
 	public static void main(String [] args) throws Exception
 	{
 		// test code for getting proper edge hash when there are intermediary nodes that
