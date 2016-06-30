@@ -21,7 +21,7 @@ public class AnthemPainpointsPlaysheet extends TablePlaySheet implements IDataMa
 
 	//OBA_L0.OBA_L0.OBA_L1.OBA_L0_FK
 
-	public static String instanceOfPlaysheet = "prerna.ui.components.specific.tap.AnthemPainpointsPlaysheet";
+	public static String instanceOfPlaysheet = "prerna.ui.components.specific.anthem.AnthemPainpointsPlaysheet";
 
 	//create a datamaker
 	@Override
