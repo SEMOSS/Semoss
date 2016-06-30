@@ -16,6 +16,7 @@ import prerna.ds.H2.H2Frame;
 import prerna.engine.api.IApi;
 import prerna.engine.api.ImportApi;
 import prerna.engine.api.RApi;
+import prerna.engine.impl.rdf.CSVApi;
 import prerna.engine.impl.rdf.QueryAPI;
 import prerna.ui.components.playsheets.datamakers.IDataMaker;
 
@@ -51,63 +52,62 @@ public class ApiReactor extends AbstractReactor {
 		// I need to instantiate the engine here
 		// for now hard coding it
 
-		if (engine != null && !engine.equals("csvFile")) {
-			//processing for import.io web data extract feature
-			if(engine.equalsIgnoreCase("ImportIO")){
-				if (myStore.get(PKQLEnum.G) instanceof H2Frame) {
-					api = new ImportApi();					
-					String url;
-					if(myStore.containsKey("KEY_VALUE") && ((Map) ((Vector) myStore.get("KEY_VALUE")).get(0)).containsKey("url")){
-						url = (String) ((Map) ((Vector) myStore.get("KEY_VALUE")).get(0)).get("url");
-						api.set("URL_MAP", url);
-					}else{
-						System.out.println("Invalid PKQL: Missing URL. Required Syntax: data.import(api:ImportIO.Query({'url':'enter_your_url_here'})); ");
-						myStore.put("RESPONSE", "Error: Invalid PKQL.");
-						myStore.put("STATUS", PKQLRunner.STATUS.ERROR);
-						return null;
-					}
-					//if url value is found in mystore
-					
-					//processImportApi(url);
-					Iterator thisIterator = api.process();
-					
-					myStore.put(nodeStr, thisIterator);
-					myStore.put("RESPONSE", "success");
-					myStore.put("STATUS", PKQLRunner.STATUS.SUCCESS);
-				}
-
-				return null;
-
-			}else if(engine.equalsIgnoreCase("r")) {
-				if (myStore.get(PKQLEnum.G) instanceof H2Frame) {
-					api = new RApi();
-					H2Frame frame = (H2Frame) myStore.get(PKQLEnum.G);
-					try {
-						api.set("TABLE_NAME", frame.getDatabaseMetaData().get("tableName"));
-						api.set("R_RUNNER", frame.getRRunner());
-					} catch (RserveException e) {
-						myStore.put("RESPONSE", "Error: R server is down.");
-						myStore.put("STATUS", PKQLRunner.STATUS.ERROR);
-						e.printStackTrace();
-					} catch (SQLException e) {
-						myStore.put("RESPONSE", "Error: Invalid database connection.");
-						myStore.put("STATUS", PKQLRunner.STATUS.ERROR);
-						e.printStackTrace();
-					}
-				} else {
-					myStore.put("RESPONSE", "Error: Dataframe must be in Grid format.");
+		//processing for import.io web data extract feature
+		if(engine.equalsIgnoreCase("ImportIO")){
+			if (myStore.get(PKQLEnum.G) instanceof H2Frame) {
+				api = new ImportApi();					
+				String url;
+				if(myStore.containsKey("KEY_VALUE") && ((Map) ((Vector) myStore.get("KEY_VALUE")).get(0)).containsKey("url")){
+					url = (String) ((Map) ((Vector) myStore.get("KEY_VALUE")).get(0)).get("url");
+					api.set("URL_MAP", url);
+				}else{
+					System.out.println("Invalid PKQL: Missing URL. Required Syntax: data.import(api:ImportIO.Query({'url':'enter_your_url_here'})); ");
+					myStore.put("RESPONSE", "Error: Invalid PKQL.");
 					myStore.put("STATUS", PKQLRunner.STATUS.ERROR);
 					return null;
-				} 
+				}
+				//if url value is found in mystore
+
+				//processImportApi(url);
+				Iterator thisIterator = api.process();
+
+				myStore.put(nodeStr, thisIterator);
+				myStore.put("RESPONSE", "success");
+				myStore.put("STATUS", PKQLRunner.STATUS.SUCCESS);
+			}
+
+			return null;
+
+		} else if(engine.equalsIgnoreCase("r")) {
+			if (myStore.get(PKQLEnum.G) instanceof H2Frame) {
+				api = new RApi();
+				H2Frame frame = (H2Frame) myStore.get(PKQLEnum.G);
+				try {
+					api.set("TABLE_NAME", frame.getDatabaseMetaData().get("tableName"));
+					api.set("R_RUNNER", frame.getRRunner());
+				} catch (RserveException e) {
+					myStore.put("RESPONSE", "Error: R server is down.");
+					myStore.put("STATUS", PKQLRunner.STATUS.ERROR);
+					e.printStackTrace();
+				} catch (SQLException e) {
+					myStore.put("RESPONSE", "Error: Invalid database connection.");
+					myStore.put("STATUS", PKQLRunner.STATUS.ERROR);
+					e.printStackTrace();
+				}
 			} else {
-				api.set("ENGINE", engine);
+				myStore.put("RESPONSE", "Error: Dataframe must be in Grid format.");
+				myStore.put("STATUS", PKQLRunner.STATUS.ERROR);
+				return null;
 			} 
-		} else {
+		} else if(engine.equals("csvFile")) {
+			api = new CSVApi();
 			if(myStore.containsKey("KEY_VALUE") && ((Map) ((Vector) myStore.get("KEY_VALUE")).get(0)).containsKey("file")){
 				String fileLocation = (String) ((Map) ((Vector) myStore.get("KEY_VALUE")).get(0)).get("file");
-				api.set("ENGINE", fileLocation);
+				api.set("FILE", fileLocation);
 			}
-		}
+		} else {
+			api.set("ENGINE", engine);
+		} 
 
 		Vector <String> selectors = new Vector<String>();
 		Vector <Hashtable> filters = new Vector<Hashtable>();
@@ -187,7 +187,6 @@ public class ApiReactor extends AbstractReactor {
 		else {
 			api.set(QueryAPI.USE_CHEATER, true);
 		}
-
 
 		QueryStruct qs = new QueryStruct();
 		processQueryStruct(qs, selectors, filters, joins);

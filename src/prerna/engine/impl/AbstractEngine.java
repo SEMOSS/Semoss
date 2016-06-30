@@ -1364,13 +1364,16 @@ public abstract class AbstractEngine implements IEngine {
 		Set<String> conceptSet = new HashSet<String>();
 		while(wrapper.hasNext()) {
 			ISelectStatement ss = wrapper.next();
-			String concept = ss.getVar(names[0]) + "";
-			if(concept.equals("Concept")) {
+			String conceptURI = ss.getRawVar(names[0]) + "";
+			if(conceptURI.equals("http://semoss.org/ontologies/Concept")) {
 				continue;
 			}
 			
 			Object property = ss.getVar(names[1]);
-			
+			String concept = conceptURI.replaceAll(".*/Concept/", "");
+			if(concept.contains("/")) {
+				concept = concept.substring(0, concept.indexOf("/"));
+			}
 			if(!conceptSet.contains(concept)) {			
 				qs.addSelector(concept, null);
 				conceptSet.add(concept);

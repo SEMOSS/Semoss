@@ -30,6 +30,8 @@ package prerna.engine.api;
 import java.util.Map;
 import java.util.Vector;
 
+import prerna.ds.QueryStruct;
+
 /**
  * This interface standardizes the functionality of all engines.  All engines must implement this interface 
  * so that they can be used without first recognizing what specific engine class it is.  A lot of different classes call on 
@@ -159,6 +161,8 @@ public interface IEngine extends IExplorable{
 	public Map<String, String> getDataTypes(String... uris);
 
 	public String getParentOfProperty(String property);
+	
+	public QueryStruct getDatabaseQueryStruct();
 }
 
 
