@@ -31,6 +31,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Vector;
 
+import prerna.ds.QueryStruct;
 import prerna.om.Insight;
 import prerna.om.SEMOSSParam;
 import prerna.rdf.query.builder.IQueryBuilder;
@@ -100,9 +101,23 @@ public interface IExplorable {
 	// gets a vector of all concepts that exist
 	Vector<String> getConcepts();
 	
+	/**
+	 * Returns the list of concepts as defined by the OWL file
+	 */
+	Vector<String> getConcepts2(boolean conceptualNames);
+
 	// gets all of the properties for a given concept
 	List<String> getProperties4Concept(String concept, Boolean logicalNames);
-	
+	/**
+	 * Returns the set of properties for a given concept
+	 * @param concept					The concept URI
+	 * 									Assumes the concept URI is the conceptual URI
+	 * @param conceptualNames			Boolean to determine if the return should be the properties
+	 * 									conceptual names or physical names
+	 * @return							List containing the property URIs for the given concept
+	 */
+	List<String> getProperties4Concept2(String concept, Boolean conceptualNames);
+
 	// executes a query on the ontology engine
 	Object execOntoSelectQuery(String query);
 	
@@ -123,6 +138,14 @@ public interface IExplorable {
 	// gets the display or physical for a given concept
 	String getTransformedNodeName(String concept, boolean getDisplayName);
 	
+	/**
+	 * Get the physical URI from the conceptual URI
+	 * @param conceptualURI			The conceptual URI
+	 * 								If it is not a valid URI, we will assume it is the instance_name and create the URI
+	 * @return						Return the physical URI 					
+	 */
+	String getPhysicalUriFromConceptualUri(String conceptualURI);
+
 	//loads the logical and physical names
 	void loadTransformedNodeNames();
 
@@ -131,4 +154,25 @@ public interface IExplorable {
 	String getNodeBaseUri();
 	
 	String getConceptUri4PhysicalName(String physicalName);
+	
+	/**
+	 * Get the datatypes for the uri from the associated owl file
+	 * @param uris
+	 * @return
+	 */
+	public String getDataTypes(String uri);
+	
+	/**
+	 * Get the datatypes for the uris from the associated owl file
+	 * If varargs param is empty, it will return all data types
+	 * @param uris
+	 * @return
+	 */
+	public Map<String, String> getDataTypes(String... uris);
+
+	public String getParentOfProperty(String property);
+	
+	public QueryStruct getDatabaseQueryStruct();
+	
+	public Map<String, Object> getMetamodel();
 }

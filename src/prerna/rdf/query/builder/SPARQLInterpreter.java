@@ -98,33 +98,59 @@ public class SPARQLInterpreter implements IQueryInterpreter {
 		}
 	}
 	
+//	private String addNode(String table){
+//		// get the node uri from the owl (how....?)
+//		table = Utility.getInstanceName(engine.getTransformedNodeName(Constants.DISPLAY_URI+table, false));
+//		String nodeURI = engine.getConceptUri4PhysicalName(table);
+//		
+//		SEMOSSQueryHelper.addConceptTypeTripleToQuery(getVarName(table, false), nodeURI, false, semossQuery, table);
+//		return nodeURI;
+//	}
+	
 	private String addNode(String table){
-		// get the node uri from the owl (how....?)
-		table = Utility.getInstanceName(engine.getTransformedNodeName(Constants.DISPLAY_URI+table, false));
-		String nodeURI = engine.getConceptUri4PhysicalName(table);
-		
+		// get the correct nodeURI from the owl
+		String nodeURI = engine.getPhysicalUriFromConceptualUri("http://semoss.org/ontologies/Concept/"+table);
+		// add the node to the query
 		SEMOSSQueryHelper.addConceptTypeTripleToQuery(getVarName(table, false), nodeURI, false, semossQuery, table);
 		return nodeURI;
 	}
 	
+//	private String addNodeProperty(String table, String col){
+//		String nodeURI = addNode(table);
+//		col = Utility.getInstanceName(engine.getTransformedNodeName(Constants.DISPLAY_URI+col, false));
+//		// get the prop uri from the owl (how....?)
+//		String propURI = "Unable to get prop uri";
+//		List<String> props = this.engine.getProperties4Concept(nodeURI, false);
+//		for(String prop : props){
+//			if(Utility.getInstanceName(prop).equals(col)){
+//				propURI = prop;
+//				break;
+//			}
+//		}
+//		
+//		SEMOSSQueryHelper.addGenericTriple(getVarName(table, false), TriplePart.VARIABLE, propURI, TriplePart.URI, getVarName(col, true), TriplePart.VARIABLE, false, semossQuery, table);
+//		
+//		return propURI;
+//	}
+
 	private String addNodeProperty(String table, String col){
-		String nodeURI = addNode(table);
-		col = Utility.getInstanceName(engine.getTransformedNodeName(Constants.DISPLAY_URI+col, false));
-		// get the prop uri from the owl (how....?)
-		String propURI = "Unable to get prop uri";
-		List<String> props = this.engine.getProperties4Concept(nodeURI, false);
-		for(String prop : props){
-			if(Utility.getInstanceName(prop).equals(col)){
-				propURI = prop;
-				break;
-			}
-		}
+		addNode(table);
+		String propURI = engine.getPhysicalUriFromConceptualUri("http://semoss.org/ontologies/Relation/Contains/"+col);
+//		col = Utility.getInstanceName(engine.getTransformedNodeName(Constants.DISPLAY_URI+col, false));
+//		// get the prop uri from the owl (how....?)
+//		String propURI = "Unable to get prop uri";
+//		List<String> props = this.engine.getProperties4Concept(nodeURI, false);
+//		for(String prop : props){
+//			if(Utility.getInstanceName(prop).equals(col)){
+//				propURI = prop;
+//				break;
+//			}
+//		}
 		
 		SEMOSSQueryHelper.addGenericTriple(getVarName(table, false), TriplePart.VARIABLE, propURI, TriplePart.URI, getVarName(col, true), TriplePart.VARIABLE, false, semossQuery, table);
 		
 		return propURI;
 	}
-
 	
 	public void addSelectors()
 	{
@@ -308,8 +334,7 @@ public class SPARQLInterpreter implements IQueryInterpreter {
 		}		
 	}
 	
-	private void addJoin(String fromString,
-			String thisComparator, String toString) {
+	private void addJoin(String fromString, String thisComparator, String toString) {
 		// this needs to be revamped pretty extensively
 		// I need to add this back to the from because I might not be projecting everything
 		if(!fromString.contains("__") && !toString.contains("__")){
