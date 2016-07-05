@@ -17,9 +17,8 @@ import prerna.ds.H2.H2Frame;
 import prerna.util.ArrayUtilityMethods;
 
 /**
- * 
- * 
- *
+ * This class is used to build a suggested metamodel from a file, currently only works with CSV 
+ * The logic was taken from the equivalent front end code that performed the same task
  */
 public class MetaModelPredictor {
 
@@ -29,10 +28,12 @@ public class MetaModelPredictor {
 	List<Object[]> data;
 	Map<String, Set<String>> matches;
 	int[] processOrder; //order in which to process columns 
+	Map<String, String> dataTypeMap;
 	
 	//return data
-	Map<String, String[]> allowableDataTypes;
-	private Hashtable<String, ArrayList<Hashtable<String, String[]>>> propFileData = new Hashtable<String, ArrayList<Hashtable<String, String[]>>>();
+	Map<String, List<String>> allowableDataTypes;
+	private Map<String, ArrayList<Map<String, String>>> propFileData = new HashMap<>();
+	
 	
 	public MetaModelPredictor() {
 		frame = new H2Frame();
@@ -40,10 +41,12 @@ public class MetaModelPredictor {
 	
 	public MetaModelPredictor(String fileName, Map<String, Map<String, String>> dataTypeMap, String delimeter) {
 		//use the file name
-		//TODO : limit to first 500 rows and use CSVHelper to read data
+		//TODO : limit to first 500 rows and use CSVHelper to read data\
+		//Migrate away from frame since it is unnecessary overhead
 		Map<String, String> mainColMap = new HashMap<>();
 		mainColMap.put("CSV", null);
 		frame = TableDataFrameFactory.generateDataFrameFromFile(fileName, delimeter, "H2", dataTypeMap, mainColMap);
+		this.dataTypeMap = dataTypeMap.get("CSV");
 	}
 	
 	/**
@@ -59,6 +62,7 @@ public class MetaModelPredictor {
 		populateData();
 		populateProcessOrder();
 		populateColumnPropMap();
+		populateAllowableTypes();
 		
 		//run comparisons for strings
 		for(int i = 0; i < columnHeaders.length; i++) {
@@ -80,18 +84,34 @@ public class MetaModelPredictor {
 			}
 		}
 		
-		for(String key : matches.keySet()) {
-			Set<String> set = matches.get(key);
-			for(String s : set) {
-				//if 
-				//else
+		for(String subject : matches.keySet()) {
+			Set<String> set = matches.get(subject);
+			for(String object : set) {
+				DATA_TYPES dataType = frame.getDataType(object);
+				Map<String, String> predMap = new HashMap<>();
+				if(!dataType.equals(DATA_TYPES.STRING)) {
+					String predHolder = subject + "_" + object;
+					predMap.put("sub", subject);
+					predMap.put("prop", predHolder);
+					predMap.put("obj", object);
+					this.propFileData.get("propFileRel").add(predMap);
+				} else {
+					predMap.put("sub", subject);
+					predMap.put("prop", object);
+					predMap.put("dataType", dataTypeMap.get(object));
+					this.propFileData.get("propFileNodeProp").add(predMap);
+				}
 			}
 		}
 	}
 	
 	public Map<String, Object> getMetaModelData() {
-		return null;
+		Map<String, Object> retMap = new HashMap<>(2);
+		retMap.put("allowableTypes", this.allowableDataTypes);
+		retMap.put("propFileData", this.propFileData);
+		return retMap;
 	}
+
 	/**
 	 * 
 	 * @param columnHeaders - the column headers in the csv
@@ -171,7 +191,7 @@ public class MetaModelPredictor {
 	}
 	
 	/**
-	 * 
+	 * collect the data that we will use to predict a meta model
 	 */
 	private void populateData() {
 		data = new ArrayList<Object[]>(limit);
@@ -206,7 +226,7 @@ public class MetaModelPredictor {
 	}
 	
 	/**
-	 * 
+	 * initialize the column property map, each column defaulted to false
 	 */
 	private void populateColumnPropMap() {
 		String[] columnHeaders = frame.getColumnHeaders();
@@ -216,6 +236,23 @@ public class MetaModelPredictor {
 		}
 	}
 	
+	/**
+	 * 
+	 */
+	private void populateAllowableTypes() {
+		allowableDataTypes = new HashMap<>();
+		String[] columnHeaders = frame.getColumnHeaders();
+		for(String header : columnHeaders) {
+			List<String> dataTypeList = new ArrayList<>(2);
+			dataTypeList.add("STRING");
+			
+			DATA_TYPES dataType = frame.getDataType(header);
+			if(!dataType.equals(DATA_TYPES.STRING)) {
+				dataTypeList.add(dataType.toString());
+			}
+			allowableDataTypes.put(header, dataTypeList);
+		}
+	}
 	//Use this to test metamodel predictor
 	public static void main(String[] args) {
 		
