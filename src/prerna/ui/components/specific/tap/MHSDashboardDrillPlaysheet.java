@@ -34,9 +34,10 @@ public class MHSDashboardDrillPlaysheet extends TablePlaySheet implements IDataM
 	private final String SDLC = "SDLCPhase";
 	private final String ActivityGroup = "ActivityGroup";
 	private final String DHA = "DHAGroup";
+	private final String SDLC_ACTIVITYGROUP_DHA = "SDLCPhase_ActivityGroup_DHAGroup";
 	private final String SYSTEM_ACTIVITY = "SystemActivity";
-	private final String ACTIVITY = "Activity";
 	private final String SYSTEM = "System";
+	private final String ACTIVITY = "Activity";
 	private final String HEAT_VALUE = "HeatValue";
 	private final String TotalHeatValue = "TotalHeatValue";
 	private final String PLANNED_START = "PlannedStart";
@@ -48,7 +49,7 @@ public class MHSDashboardDrillPlaysheet extends TablePlaySheet implements IDataM
 	
 	private String userId;
 	
-	//private final String masterQuery = "";
+	//private final String masterQuery = "SELECT DISTINCT ?SDLCPhase ?ActivityGroup ?DHAGroup ?SDLCPhase_ActivityGroup_DHAGroup ?SystemActivity ?System ?Activity ?UploadDate ?PlannedStart ?PlannedEnd ?ActualStart ?ActualEnd WHERE {{?SDLCPhase a <http://semoss.org/ontologies/Concept/SDLCPhase>}{?ActivityGroup a <http://semoss.org/ontologies/Concept/ActivityGroup>}{?DHAGroup a <http://semoss.org/ontologies/Concept/DHAGroup>}{?SDLCPhase_ActivityGroup_DHAGroup a <http://semoss.org/ontologies/Concept/SDLCPhase_ActivityGroup_DHAGroup>}{?SystemActivity a <http://semoss.org/ontologies/Concept/SystemActivity>}{?System a <http://semoss.org/ontologies/Concept/System>}{?Activity a <http://semoss.org/ontologies/Concept/Activity>}{?SDLCPhase <http://semoss.org/ontologies/Relation/Has> ?ActivityGroup}{?ActivityGroup <http://semoss.org/ontologies/Relation/Has> ?DHAGroup}{?SDLCPhase <http://semoss.org/ontologies/Relation/Has> ?SDLCPhase_ActivityGroup_DHAGroup}{?ActivityGroup <http://semoss.org/ontologies/Relation/Has> ?SDLCPhase_ActivityGroup_DHAGroup}{?DHAGroup <http://semoss.org/ontologies/Relation/Has> ?SDLCPhase_ActivityGroup_DHAGroup}{?SDLCPhase_ActivityGroup_DHAGroup <http://semoss.org/ontologies/Relation/Has> ?SystemActivity}{?SystemActivity <http://semoss.org/ontologies/Relation/Has> ?System}{?SystemActivity <http://semoss.org/ontologies/Relation/Has> ?Activity}{?SystemActivity <http://semoss.org/ontologies/Relation/Contains/UploadDate> ?UploadDate}OPTIONAL{?SystemActivity <http://semoss.org/ontologies/Relation/Contains/PlannedStart> ?PlannedStart}OPTIONAL{?SystemActivity <http://semoss.org/ontologies/Relation/Contains/PlannedEnd> ?PlannedEnd}OPTIONAL{?SystemActivity <http://semoss.org/ontologies/Relation/Contains/ActualStart> ?ActualStart}OPTIONAL{?SystemActivity <http://semoss.org/ontologies/Relation/Contains/ActualEnd> ?ActualEnd}}";
 	
 	//private final static String masterQuery = "data.import ( api: MHSDashboard . query ( [ c: SDLCPhase , c: MHSGroup, c:DHAGroup, c:ActivitySystem, c:System, c:Activity, c:ActivitySystemUploadDate__UploadDate, c:ActivitySystemUploadDate__PlannedStart, c:ActivitySystemUploadDate__PlannedEnd, c:ActivitySystemUploadDate__ActualStart, c:ActivitySystemUploadDate__ActualEnd], ([ c: SDLCPhase , inner.join , c: MHSGroup] , [c: MHSGroup , inner.join , c: DHAGroup], [c: DHAGroup , inner.join , c: ActivitySystem], [c: ActivitySystem , inner.join , c: System], [c: ActivitySystem , inner.join , c: Activity], [c: ActivitySystemUploadDate , inner.join , c: ActivitySystemUploadDate__UploadDate],[c: ActivitySystemUploadDate , inner.join , c: ActivitySystemUploadDate__PlannedStart],[c: ActivitySystemUploadDate , inner.join , c: ActivitySystemUploadDate__PlannedEnd],[c: ActivitySystemUploadDate , inner.join , c: ActivitySystemUploadDate__ActualStart],[c: ActivitySystemUploadDate , inner.join , c: ActivitySystemUploadDate__ActualEnd] ))) ; ";
 
@@ -90,9 +91,8 @@ public class MHSDashboardDrillPlaysheet extends TablePlaySheet implements IDataM
 		this.dataFrame.setUserId(userId);
 	}
 	
-	/*
-	 * 	sdlc to group to dha is the default view
-	 * @see prerna.ui.components.playsheets.TablePlaySheet#getDataMakerOutput(java.lang.String[])
+	/**
+	 * Method to pass the FE the ordered list of SDLC phases and all values necessary for the main table
 	 */
 	@Override
 	public Map getDataMakerOutput(String... selectors) {
@@ -102,28 +102,35 @@ public class MHSDashboardDrillPlaysheet extends TablePlaySheet implements IDataM
 		return returnHashMap;
 	}
 	
-	// just calls default getDataMakerOutput
+	/**
+	 * Method to pass FE values for system and upload date which will be used for the filters
+	 * @param dhaHashmap null
+	 * @return list of systems and list of uploaded dates within a hashmap
+	 */
 	public Map getData(Hashtable<String, Object> dhaHashmap) {
 		String [] selectors = new String[]{SYSTEM, UPLOAD_DATE};
 		return super.getDataMakerOutput(selectors);
 	}
 	
+	/**
+	 * Method to iterated through specified selectors and calculate the heat values per each DHA group
+	 * @return Hashmap contain SDLC, Group, DHA, heat value, minimum heat value
+	 */
 	public Map aggregateDHAGroup () {
-		Map<String, List<Object>> returnMap = new HashMap<String, List<Object>>();
-		Map<String, Object> valueMap = new HashMap <String, Object> ();
+		Map<String, Object> returnMap = new HashMap <String, Object> ();
 		Map<String, Object> iteratorMap = new HashMap <String, Object> ();
 
+		//set selector list
 		List<String> selectorList = new ArrayList<String> ();
 		selectorList.add(SDLC);
 		selectorList.add(ActivityGroup);
 		selectorList.add(DHA);
+		selectorList.add(SDLC_ACTIVITYGROUP_DHA);
+		//selectorList.add(SYSTEM_ACTIVITY);
 		selectorList.add(PLANNED_START);
 		selectorList.add(PLANNED_END);
 		selectorList.add(ACTUAL_START);
 		selectorList.add(ACTUAL_END);
-		selectorList.add(UPLOAD_DATE);
-		selectorList.add(SYSTEM);
-		selectorList.add(ACTIVITY);
 
 		iteratorMap.put(TinkerFrame.DE_DUP, true);
 		iteratorMap.put(TinkerFrame.SELECTORS, selectorList);
@@ -136,133 +143,159 @@ public class MHSDashboardDrillPlaysheet extends TablePlaySheet implements IDataM
 			String sdlc = (String) iteratirArr[0];
 			String group = (String) iteratirArr[1];
 			String dha = (String) iteratirArr[2];
-			String plannedStartDate = (String) iteratirArr[3];
-			String plannedEndDate = (String) iteratirArr[4];
-			String actualStartDate = (String) iteratirArr[5];
-			String actualEndDate = (String) iteratirArr[6];
-            String uploadDate = (String) iteratirArr[7];
-            String system = (String) iteratirArr[8];
-            String activity = (String) iteratirArr[9];
-
-			String key = sdlc + "_" + group + "_" + dha;
-
-			Date plannedStart = null;
-			Date plannedEnd = null;
-			Date actualStart = null;
-			Date actualEnd = null;
-			//Date upload = null;
-		
-			try {
-				if(plannedStartDate != null){
-					plannedStart = (Date) getDateFormat().parse(plannedStartDate);
-				}
-				if(plannedEndDate != null){
-					plannedEnd = (Date) getDateFormat().parse(plannedEndDate);
-				}
-				if(actualStartDate != null){
-					actualStart = (Date) getDateFormat().parse(actualStartDate);
-				}
-				if(actualEndDate != null){
-					actualEnd = (Date) getDateFormat().parse(actualEndDate);
-				}
-//				upload = (Date) getDateFormat().parse(uploadDate);
-			} catch (ParseException e) {
-				e.printStackTrace();
-			}
-
-			Date todaysDate = Calendar.getInstance().getTime();
-			long heatValue = 0;
-			
-			//actualEnd is after todaysDate
-			if(actualEnd==null){
-				actualEnd = todaysDate;
-			}
-			
-			if(actualEnd.compareTo(todaysDate)> 0){
-				if(plannedStart !=null && actualStart != null){
-					heatValue = (plannedStart.getTime()-actualStart.getTime())/(24 * 60 * 60 * 1000);
-				}else {
-					heatValue = 0;
-				}
-        	}else if(actualEnd.compareTo(todaysDate) < 0){
-        		if(plannedEnd !=null && actualEnd != null){
-        			heatValue = (plannedEnd.getTime()-actualEnd.getTime())/(24 * 60 * 60 * 1000); 
-        		}else {
-					heatValue = 0;
-				}
-        	} 
-        	//TODO what do we do in the instance of actual date equaling today's date?
-        	else {
-        		heatValue = 0;
-        	}
+			String key = (String) iteratirArr[3];
+			//String sysActivity = (String) iteratirArr[4];
+			String plannedStartDate = (String) iteratirArr[4];
+			String plannedEndDate = (String) iteratirArr[5];
+			String actualStartDate = (String) iteratirArr[6];
+			String actualEndDate = (String) iteratirArr[7];
 
 			Map<String, Object> innerMap = new HashMap <String, Object> ();
+			
 			innerMap.put(SDLC, sdlc);
 			innerMap.put(ActivityGroup, group);
 			innerMap.put(DHA, dha);
-			//innerMap.put(UPLOAD_DATE, upload);
-			List<Date> uploadList = new ArrayList<Date> ();
-			if(valueMap.containsKey(key)) {
-				Map<String, Object> innerMapReturn = (Map<String, Object>) valueMap.get(key);
+			
+			Map<String, Long> valueMap = calculateValues(plannedStartDate, plannedEndDate, actualStartDate, actualEndDate);
+			long heatValue = valueMap.get("HeatVal");
+			long minVal = valueMap.get("MinVal");
+			
+			if(returnMap.containsKey(key)) {
+				Map<String, Object> innerMapReturn = (Map<String, Object>) returnMap.get(key);
 				long totalHeatVal = (long) innerMapReturn.get(HEAT_VALUE);
 				int numActivtyReturn = (int) innerMapReturn.get("ACTIVITY_NUM");
-				List<Long> heatValReturn = (List<Long>) innerMapReturn.get(MIN_ACTIVITY_VALUE);
-				heatValReturn.add(heatValue);
-//				if(heatValReturn > heatValue){
-//					innerMap.put (MAX_ACTIVITY_VALUE, heatValReturn);
-//				} else {
-//					innerMap.put (MAX_ACTIVITY_VALUE, heatValue);
-//				}
 				
+				//calculate total average heat value 
 				totalHeatVal = totalHeatVal * numActivtyReturn;
 				numActivtyReturn +=1; 
 				totalHeatVal = (totalHeatVal + heatValue)/numActivtyReturn;
 				innerMap.put(HEAT_VALUE, totalHeatVal);
 				innerMap.put("ACTIVITY_NUM", numActivtyReturn);
-				innerMap.put (MIN_ACTIVITY_VALUE, heatValReturn);
-				valueMap.put(key, innerMap);
+				
+				List<Long> minValueReturnList = (List<Long>) innerMapReturn.get(MIN_ACTIVITY_VALUE);
+				minValueReturnList.add(minVal);
+				innerMap.put(MIN_ACTIVITY_VALUE, minValueReturnList);
+				returnMap.put(key, innerMap);
 
-			} else if (!valueMap.containsKey(key)) {
+			} else if (!returnMap.containsKey(key)) {
 				innerMap.put(HEAT_VALUE, heatValue);
 				innerMap.put ("ACTIVITY_NUM", 1);
-				List<Long> heatList = new ArrayList<Long>();
-				heatList.add(heatValue);
- 				innerMap.put (MIN_ACTIVITY_VALUE, heatList);
-				
-				valueMap.put(key, innerMap);
+				List<Long> minValueList = new ArrayList<Long>();
+				minValueList.add(minVal);
+				innerMap.put (MIN_ACTIVITY_VALUE, minValueList);
+				returnMap.put(key, innerMap);
 			}
 		}
+		return manipulateData(returnMap);
+	}
+	
+	/**
+	 * Method to calculate heat value based on the start and end planned and actual dates
+	 * @param plannedStartDate String planned start date
+	 * @param plannedEndDate String planned end date
+	 * @param actualStartDate String actual start date
+	 * @param actualEndDate String actual end date
+	 * @return Hashmap<String, Long> where "HeatVal" is the heat value for each dha and "MinVal" is the lowest heat value for each DHA  
+	 */
+	public Map<String, Long> calculateValues (String plannedStartDate, String plannedEndDate, String actualStartDate, String actualEndDate) {
+		Date plannedStart = null;
+		Date plannedEnd = null;
+		Date actualStart = null;
+		Date actualEnd = null;
+	
+		//format string date to type Date
+		try {
+			if(!plannedStartDate.equals("null")){
+				plannedStart = (Date) getDateFormat().parse(plannedStartDate);
+			}
+			if(!plannedEndDate.equals("null")){
+				plannedEnd = (Date) getDateFormat().parse(plannedEndDate);
+			}
+			if(!actualStartDate.equals("null")){
+				actualStart = (Date) getDateFormat().parse(actualStartDate);
+			}
+			if(!actualEndDate.equals("null")){
+				actualEnd = (Date) getDateFormat().parse(actualEndDate);
+			}
+		} catch (ParseException e) {
+			e.printStackTrace();
+		}
+		
+		Map<String, Long> returnMap = new HashMap<String, Long> ();
+		Date todaysDate = Calendar.getInstance().getTime();
+		long heatValue = 0;
+		long minVal = 0;
+		
+		// if there is a date associated with each : (planned end date - actual end date)
+		if(plannedStart !=null && plannedEnd !=null && actualStart !=null && actualEnd !=null){
+			heatValue = (plannedEnd.getTime() - actualEnd.getTime())/(24 * 60 * 60 * 1000);
+		}
+		// if there are no actual start and actual end dates : (planned start - today's date) if planned start date is greater than today's date
+		else if (plannedStart !=null && plannedEnd !=null && actualStart == null && actualEnd == null) {
+			if(plannedStart.getTime() < todaysDate.getTime()){
+				heatValue = (plannedStart.getTime() - todaysDate.getTime())/(24 * 60 * 60 * 1000);
+			} else {
+				heatValue = 0;
+			}
+		}  
+		// if there is no actual end date : (planned start date - actual start date)
+		else if(plannedStart !=null && plannedEnd !=null && actualStart != null && actualEnd == null ){
+			heatValue = (plannedStart.getTime() - actualStart.getTime())/(24 * 60 * 60 * 1000);
+			minVal = heatValue;
+		} else{
+			heatValue = 0;
+		}
+		
+		//if there is row with absolutely no dates then it will not be calculated into the heat value
+		
+		returnMap.put("HeatVal", heatValue);
+		returnMap.put("MinVal", minVal);
+		
+		return returnMap;
+	}
+	
+	public static DateFormat getDateFormat() {
+		return new SimpleDateFormat("dd-MM-yyyy");
+	}
 
+	
+	/**
+	 * Method to format date the way FE expects it...ie without the string keys that objMap currently contains
+	 * @param objMap 
+	 * @return Hashmap
+	 */
+	public Map manipulateData (Map<String, Object> objMap) {
+		Map<String, List<Object>> returnMap = new HashMap<String, List<Object>>();
 		List<Object> returnList =new ArrayList<Object>();
-		for(Entry<String, Object> entry : valueMap.entrySet()) {
-			 HashMap value = (HashMap) entry.getValue();
-			 List<Object> innerList =new ArrayList<Object>();
-			 for(Object innerVal : value.entrySet()){
-				 String returnKey = ((Entry<String, Object>) innerVal).getKey();
-				 if(!returnKey.equals("ACTIVITY_NUM")){
-					 if(returnKey.equals(MIN_ACTIVITY_VALUE)){
-						 List<Long> heatList = (List<Long>) ((Entry<String, Object>) innerVal).getValue();
-						 Long minHeat = Collections.min(heatList);
-						 innerList.add(minHeat);
-					 } else {
-						 Object returnVal = ((Entry<String, Object>) innerVal).getValue();
-						 innerList.add(returnVal);
-					 }
-				 }
-			 }
-			 returnList.add(innerList);
+		for(Entry<String, Object> entry : objMap.entrySet()) {
+			HashMap value = (HashMap) entry.getValue();
+			List<Object> innerList =new ArrayList<Object>();
+			for(Object innerVal : value.entrySet()){
+				String returnKey = ((Entry<String, Object>) innerVal).getKey();
+				if(!returnKey.equals("ACTIVITY_NUM")){
+					if(returnKey.equals(MIN_ACTIVITY_VALUE)){
+						List<Long> heatList = (List<Long>) ((Entry<String, Object>) innerVal).getValue();
+						Long minHeat = Collections.min(heatList);
+						innerList.add(minHeat);
+					} else {
+						Object returnVal = ((Entry<String, Object>) innerVal).getValue();
+						innerList.add(returnVal);
+					}
+				}
+			}
+			returnList.add(innerList);
 		}
 		returnMap.put("data", returnList);
 		returnMap.put("headers", Arrays.asList(SDLC, MIN_ACTIVITY_VALUE, ActivityGroup, DHA, HEAT_VALUE));
 
 		return returnMap;
 	}
-
+	
 		
 	/**
-	 * Method to filter on systems
+	 * Method to filter for the tools bar
 	 * @param filterActivityTable - HashTable: KEY should be the column that you want to filter on (ie: System), VALUE should be the list of insight you want to filter  
-	 * @return 
+	 * @return Hashmap of filter values
 	 */
 	public Map filter(Hashtable<String, Object> filterTable) {
 		for (String columnKey : filterTable.keySet()) {
@@ -273,25 +306,17 @@ public class MHSDashboardDrillPlaysheet extends TablePlaySheet implements IDataM
 		return getDataMakerOutput(selector);
 	}
 
-	//TODO unfilter - for system, group, DHA group
+	/**
+	 * Method to unfilter on the tools bar
+	 * @param unfilterDrillDownTable null
+	 * @return Hashmap of unfiltered values
+	 */
 	public Map unfilter (Hashtable<String, Object> unfilterDrillDownTable) {
 		dataFrame.unfilter();
 		String [] selector = new String []{};
 		return getDataMakerOutput(selector);
 	}
 
-
-	/**
-	 * Method to return the correct order of the SDLC phases
-	 * @return Map, where the KEY is "SDLC", VALUE is a list of the phases
-	 */
-	public Map<String, List<Object>> getUIOptions () {
-		Map<String, List<Object>> returnMap = new HashMap<String, List<Object>> ();
-		Map<String, String> uiOptionMap = new HashMap<String, String> ();
-		List<Object> sdlcList = new ArrayList <Object> (Arrays.asList("Strategy", "Requirement", "Design", "Development", "Test", "Security", "Deployment", "Training"));
-		returnMap.put("uiOptions", sdlcList);
-		return returnMap;
-	}
 
 	/**
 	 * Method to get a list of Systems based on the DHA that is selected
@@ -362,7 +387,7 @@ public class MHSDashboardDrillPlaysheet extends TablePlaySheet implements IDataM
 	}
 
 //	/**
-//	 * Method to get the dha-system relationship for when a user clicks on a dha
+//	 * PQKL METHOD!!!...do not delete!
 //	 * @param dhaMap - KEY - 'SDLC', 'GROUP', 'DHA' ; VALUE - the string value of the sdlc/group/dha that was sent
 //	 * @return 
 //	 * @return Map of all systems with their activities plan and actual start/end date
@@ -406,9 +431,5 @@ public class MHSDashboardDrillPlaysheet extends TablePlaySheet implements IDataM
 	/*
 	 * Formats the data
 	 */
-	public static DateFormat getDateFormat() {
-		return new SimpleDateFormat("dd-MM-yyyy");
-	}
-
 
 }
