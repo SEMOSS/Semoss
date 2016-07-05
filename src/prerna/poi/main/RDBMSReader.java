@@ -23,6 +23,7 @@ import java.util.Set;
 import java.util.StringTokenizer;
 import java.util.Vector;
 
+import org.apache.commons.io.FileUtils;
 import org.apache.log4j.Level;
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
@@ -44,6 +45,7 @@ import prerna.engine.api.ISelectStatement;
 import prerna.engine.api.ISelectWrapper;
 import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.test.TestUtilityMethods;
+import prerna.ui.components.ImportDataProcessor;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
 import prerna.util.Utility;
@@ -1229,18 +1231,85 @@ public class RDBMSReader extends AbstractFileReader {
 
 	public static void main(String [] args) throws RepositoryException, SailException, Exception
 	{
+		// run this test when the server is not running
+		// this will create the db and smss file so when you start the server
+		// the database created will be picked up and exposed
 		TestUtilityMethods.loadDIHelper();
 
-		RDBMSReader reader = new RDBMSReader();
-		// DATABASE WILL BE WRITTEN WHERE YOUR DB FOLDER IS IN A FOLDER WITH THE ENGINE NAME
-		// SMSS file will not be created at the moment.. will add shortly
-		String fileNames = "C:\\Users\\mahkhalil\\Desktop\\Movie Results.csv;C:\\Users\\mahkhalil\\Desktop\\Movie Results Fixed 2.csv";
-		String smssLocation = "";
-		String engineName = "test";
+		// set the file
+		String fileNames = "C:\\Users\\mahkhalil\\Desktop\\Clean_Movies.csv";
+		
+		// set a bunch of db stuff
+		String baseFolder = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER);
+		String engineName = "Movie_RDMBS_OWL_NEW";
 		String customBase = "http://semoss.org/ontologies";
-		String owlFile = DIHelper.getInstance().getProperty("BaseFolder") + "\\db\\" + engineName + "\\" + engineName + "_OWL.OWL";
 		SQLQueryUtil.DB_TYPE dbType = SQLQueryUtil.DB_TYPE.H2_DB;
 
-		reader.importFileWithOutConnection(smssLocation, fileNames, customBase, owlFile, engineName, dbType, false);
+		// write .temp to convert to .smss
+		PropFileWriter propWriter = new PropFileWriter();
+		propWriter.setBaseDir(baseFolder);
+		propWriter.setRDBMSType(dbType);
+		propWriter.runWriter(engineName, "", "", "" , ImportDataProcessor.DB_TYPE.RDBMS);
+		
+		
+		Hashtable<String, String>[] rdfMapArr = new Hashtable[1];
+		Hashtable<String, String> rdfMap = new Hashtable<String, String>();
+		rdfMapArr[0] = rdfMap;
+		
+		// need to set the prop file data into rdfMap...
+		// this is very annoying
+		rdfMap.put("NUM_COLUMNS", "17");
+		rdfMap.put("DISPLAY_NAME", "");
+		rdfMap.put("RELATION_PROP", "");
+		rdfMap.put("RELATION", "Title@Title_Producer@Producer;Title@Title_Director@Director;Title@Title_Studio@Studio;Title@Title_Genre_Updated@Genre Updated;Title@Title_Rating_G_PG_PG-13_R@Rating (G, PG, PG-13, R);Title@Title_Nominated@Nominated;");
+		rdfMap.put("NODE_PROP", "Title@Title_Revenue_-_International@Revenue - International ;Title%Revenue - Domestic;Title%Metacritic score - Critics;Title%Movie Budget;Title%Metacritic score - Audience;Title%Rotten Tomatoes Score - Critics;Title%Rotten Tomatoes - Audience;Title%IMDB Score - Audience (10);Title%Year;Title%Release Month (MM);");
+		rdfMap.put("17", "STRING");
+		rdfMap.put("16", "NUMBER");
+		rdfMap.put("15", "NUMBER");
+		rdfMap.put("14", "NUMBER");
+		rdfMap.put("13", "NUMBER");
+		rdfMap.put("12", "NUMBER");
+		rdfMap.put("11", "NUMBER");
+		rdfMap.put("10", "STRING");
+		rdfMap.put("9", "NUMBER");
+		rdfMap.put("8", "NUMBER");
+		rdfMap.put("7", "STRING");
+		rdfMap.put("6", "STRING");
+		rdfMap.put("5", "NUMBER");
+		rdfMap.put("4", "STRING");
+		rdfMap.put("3", "STRING");
+		rdfMap.put("2", "STRING");
+		rdfMap.put("1", "STRING");
+		rdfMap.put("NOT_OPTIONAL", ";");
+		rdfMap.put("START_ROW", "2");
+
+		// do the actual db loading
+		RDBMSReader reader = new RDBMSReader();
+		reader.setRdfMapArr(rdfMapArr);
+		String owlFile = baseFolder + "/" + propWriter.owlFile;
+		reader.importFileWithOutConnection(propWriter.propFileName, fileNames, customBase, owlFile, engineName, dbType, false);
+		
+		// create the smss file and drop temp file
+		File propFile = new File(propWriter.propFileName);
+		File newProp = new File(propWriter.propFileName.replace("temp", "smss"));
+		FileUtils.copyFile(propFile, newProp);
+		newProp.setReadable(true);
+		FileUtils.forceDelete(propFile);
+		
+		
+		
+//		TestUtilityMethods.loadDIHelper();
+//
+//		RDBMSReader reader = new RDBMSReader();
+//		// DATABASE WILL BE WRITTEN WHERE YOUR DB FOLDER IS IN A FOLDER WITH THE ENGINE NAME
+//		// SMSS file will not be created at the moment.. will add shortly
+//		String fileNames = "C:\\Users\\mahkhalil\\Desktop\\Movie Results.csv;C:\\Users\\mahkhalil\\Desktop\\Movie Results Fixed 2.csv";
+//		String smssLocation = "";
+//		String engineName = "test";
+//		String customBase = "http://semoss.org/ontologies";
+//		String owlFile = DIHelper.getInstance().getProperty("BaseFolder") + "\\db\\" + engineName + "\\" + engineName + "_OWL.OWL";
+//		SQLQueryUtil.DB_TYPE dbType = SQLQueryUtil.DB_TYPE.H2_DB;
+//
+//		reader.importFileWithOutConnection(smssLocation, fileNames, customBase, owlFile, engineName, dbType, false);
 	}
 }

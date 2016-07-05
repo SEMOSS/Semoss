@@ -138,49 +138,149 @@ public class SQLInterpreter implements IQueryInterpreter{
 		return query;
 	}
 
+//	private void addFrom(String tableName)
+//	{
+//		String alias = getAlias(tableName);
+//		if(!tableProcessed.containsKey(tableName))
+//		{
+//			tableProcessed.put(tableName, "true");
+//			String fromText =  tableName + "  " + alias;
+//			if(froms.length() > 0){
+//				froms = froms + " , " + fromText;
+//				//rightJoinsArr.add(queryUtil.getDialectOuterJoinRight(fromText));
+//				//leftJoinsArr.add(queryUtil.getDialectOuterJoinLeft(fromText));
+//			} else {
+//				froms = fromText;
+//				//rightJoinsArr.add(fromText);
+//				//leftJoinsArr.add(fromText);
+//			}
+//		}
+//	}
+	
+	/**
+	 * Adds the form statement for each table
+	 * @param tableName				The name of the table
+	 */
 	private void addFrom(String tableName)
 	{
+		/*
+		 * First implementation of this
+		 * Assumption is that the table name being passed in is the conceptual name
+		 */
+		
 		String alias = getAlias(tableName);
+		// we dont want to add the from table multiple times as this is invalid in sql
 		if(!tableProcessed.containsKey(tableName))
 		{
-			tableProcessed.put(tableName,"true");
+			tableProcessed.put(tableName, "true");
+			if(engine != null) {
+				// we will get the physical tableName from the engine
+				String conceptualURI = "http://semoss.org/ontologies/Concept/" + tableName;
+				tableName = this.engine.getPhysicalUriFromConceptualUri(conceptualURI);
+				// table name is the instance name of the given uri
+					tableName = Utility.getInstanceName(tableName);
+			}
+			
 			String fromText =  tableName + "  " + alias;
 			if(froms.length() > 0){
 				froms = froms + " , " + fromText;
-				//rightJoinsArr.add(queryUtil.getDialectOuterJoinRight(fromText));
-				//leftJoinsArr.add(queryUtil.getDialectOuterJoinLeft(fromText));
 			} else {
 				froms = fromText;
-				//rightJoinsArr.add(fromText);
-				//leftJoinsArr.add(fromText);
 			}
 		}
 	}
 
 	
 	// add from
+//	public void addSelector(String table, String colName)
+//	{
+//		// the table can be null
+//		String colName2Use = colName;
+//		if(table != null) // this is a derived data
+//		{
+//			String tableAlias = getAlias(table);
+//			String logicalName = table;
+//			if(engine != null) { // Can only get logical names and primary keys if engine is defined (requires owl)
+//				if(colName.equals(QueryStruct.PRIM_KEY_PLACEHOLDER)){
+//					colName2Use = this.getPrimKey4Table(table);
+//				}
+//				// get the logical name for the column
+//				String physUri = "http://semoss.org/ontologies/Concept/" + colName2Use + "/" + table;
+//				logicalName = engine.getTransformedNodeName(physUri, true);
+//				if(physUri.equals(logicalName)){ // this means it didn't find the logical name. this means that its a property rather than a node
+//					logicalName = engine.getTransformedNodeName("http://semoss.org/ontologies/Relation/Contains/" + colName2Use, true);
+//				}
+//			}
+//			
+//			colName2Use = tableAlias + "." + colName2Use + " AS " + Utility.getInstanceName(logicalName);
+//		}
+//		if(selectors.length() == 0)
+//			selectors = colName2Use;
+//		else
+//			selectors = selectors + " , " + colName2Use;
+//	}
+	
+	/**
+	 * Adds the selector required for a table and column name
+	 * @param table				The name of the table
+	 * @param colName			The column in the table
+	 */
 	public void addSelector(String table, String colName)
 	{
-		// the table can be null
+		/*
+		 * First implementation of this
+		 * We will start by assuming the information being passed is the conceptual name
+		 * We will also assume the conceptual name is the logical name to return...
+		 * 
+		 * TODO: The conceptual name being the returned logical name will need to be changed in the future
+		 */
+		
 		String colName2Use = colName;
 		if(table != null) // this is a derived data
 		{
 			String tableAlias = getAlias(table);
 			String logicalName = table;
-			if(engine != null) { // Can only get logical names and primary keys if engine is defined (requires owl)
+			
+			// if engine is not null, get the info from the engine
+			if(engine != null) {
+				// get the correct column name
+				// if it is a prim_key_placeholder
+				// get the prim key for the table
 				if(colName.equals(QueryStruct.PRIM_KEY_PLACEHOLDER)){
 					colName2Use = this.getPrimKey4Table(table);
+					
+					// TODO: what should the logical name actually be in this situation? 
+					// TODO: fix this later...
+					logicalName = table;
+					
+				} else {
+					// default assumption is the info being passed is the conceptual name
+					// get the physical from the conceptual
+					String conceptualURI = "http://semoss.org/ontologies/Relation/Contains/" + colName;
+					colName2Use = this.engine.getPhysicalUriFromConceptualUri(conceptualURI);
+					
+					// TODO: this occurs when we have the old version of the OWL file
+					if(colName2Use.equals(conceptualURI)) {
+						// in this case, just use the instance name
+						colName2Use = Utility.getInstanceName(colName2Use);
+					} else {
+						// this should be the default case once new OWL is only possibility
+						colName2Use = Utility.getClassName(colName2Use);
+					}
+					logicalName = colName;
 				}
+				
 				// get the logical name for the column
-				String physUri = "http://semoss.org/ontologies/Concept/" + colName2Use + "/" + table;
-				logicalName = engine.getTransformedNodeName(physUri, true);
-				if(physUri.equals(logicalName)){ // this means it didn't find the logical name. this means that its a property rather than a node
-					logicalName = engine.getTransformedNodeName("http://semoss.org/ontologies/Relation/Contains/" + colName2Use, true);
-				}
+//				String physUri = "http://semoss.org/ontologies/Concept/" + colName2Use + "/" + table;
+//				logicalName = engine.getTransformedNodeName(physUri, true);
+//				if(physUri.equals(logicalName)){ // this means it didn't find the logical name. this means that its a property rather than a node
+//					logicalName = engine.getTransformedNodeName("http://semoss.org/ontologies/Relation/Contains/" + colName2Use, true);
+//				}
 			}
 			
 			colName2Use = tableAlias + "." + colName2Use + " AS " + Utility.getInstanceName(logicalName);
 		}
+		
 		if(selectors.length() == 0)
 			selectors = colName2Use;
 		else
@@ -188,8 +288,7 @@ public class SQLInterpreter implements IQueryInterpreter{
 	}
 
 	
-	public void addSelectors()
-	{
+	public void addSelectors() {
 		Enumeration <String> selections = qs.selectors.keys();
 		while(selections.hasMoreElements())
 		{
@@ -207,7 +306,7 @@ public class SQLInterpreter implements IQueryInterpreter{
 		}
 	}
 	
-	private boolean notUsedInJoin(String tableName){
+	private boolean notUsedInJoin(String tableName) {
 		for(String key : qs.relations.keySet() ) {
 			Hashtable<String, Vector> comparatorOptions = qs.relations.get(key);
 			
@@ -316,9 +415,7 @@ public class SQLInterpreter implements IQueryInterpreter{
 	}
 	
 	
-	private void addFilter(String concept, String property,
-			String thisComparator, String object) {
-		// TODO Auto-generated method stub
+	private void addFilter(String concept, String property, String thisComparator, String object) {
 		String thisWhere = "";
 		String key = concept +":::"+ property +":::"+ thisComparator;
 		if(!whereHash.containsKey(key))
@@ -352,9 +449,7 @@ public class SQLInterpreter implements IQueryInterpreter{
 	}
 	
 	//we want the filter query to be: "... where table.column in ('value1', 'value2', ...) when the comparator is '='
-	private void addEqualsFilter(String concept, String property,
-			String thisComparator, String object) {
-		// TODO Auto-generated method stub
+	private void addEqualsFilter(String concept, String property, String thisComparator, String object) {
 		String thisWhere = "";
 		String key = concept +":::"+ property +":::"+ thisComparator;
 		if(!whereHash.containsKey(key))
@@ -502,10 +597,25 @@ public class SQLInterpreter implements IQueryInterpreter{
 			return primaryKeyCache.get(table);
 		}
 		else if (engine != null){
-			String conceptUri = this.engine.getConceptUri4PhysicalName(table);
-			String pk = Utility.getPrimaryKeyFromURI(conceptUri);
-			primaryKeyCache.put(table, pk);
-			return pk;
+			if(primaryKeyCache.containsKey(table)) {
+				return primaryKeyCache.get(table);
+			}
+			
+			String conceptualURI = "http://semoss.org/ontologies/Concept/" + table;
+			String physicalURI = this.engine.getPhysicalUriFromConceptualUri(conceptualURI);
+			
+			String primKey = "";
+			// TODO: this occurs when we have the old version of the OWL file
+			if(conceptualURI.equals(physicalURI)) {
+				// in this case, just use the instance name
+				primKey = Utility.getInstanceName(physicalURI);
+			} else {
+				// this should be the default case once new OWL is only possibility
+				primKey = Utility.getClassName(physicalURI);
+			}
+			
+			primaryKeyCache.put(table, primKey);
+			return primKey;
 		}
 		return table;
 	}

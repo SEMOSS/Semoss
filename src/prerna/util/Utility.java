@@ -690,7 +690,7 @@ public class Utility {
 			//TODO: will come back to this
 
 			// 1) grab all concepts that exist in the database
-			List<String> conceptList = engineToAdd.getConcepts();
+			List<String> conceptList = engineToAdd.getConcepts2(false);
 			for(String concept : conceptList) {
 				// we ignore the default concept node...
 				if(concept.equals("http://semoss.org/ontologies/Concept")) {
@@ -722,7 +722,7 @@ public class Utility {
 				docs.add(solrE.createDocument(newId, fieldData));
 
 				// 3) now see if the concept has properties
-				List<String> propName = engineToAdd.getProperties4Concept(concept, false);
+				List<String> propName = engineToAdd.getProperties4Concept2(concept, false);
 				if(propName.isEmpty()) {
 					// if no properties, go onto the next concept
 					continue;
@@ -1327,11 +1327,11 @@ public class Utility {
 			// grab the engine type
 			ENGINE_TYPE engineType = engine.getEngineType();
 			// use the super handy owler object to actual add the triples 
-			OWLER owler = new OWLER(engine, ((AbstractEngine) engine).getOWL(), engineType);
+			OWLER owler = new OWLER(engine, ((AbstractEngine) engine).getOWL());
 			
 			// 3) first grab all the concepts
 			// see if concept has a data type, if not, determine the type and then add it
-			Vector<String> concepts = engine.getConcepts();
+			Vector<String> concepts = engine.getConcepts2(false);;
 			for(String concept : concepts) {
 				// ignore stupid master concept
 				if(concept.equals("http://semoss.org/ontologies/Concept")) {
@@ -1362,7 +1362,7 @@ public class Utility {
 
 				// 5) For the concept, get all the properties
 				// see if property has a data type, if not, determine the type and then add it
-				List<String> propNames = engine.getProperties4Concept(concept, false);
+				List<String> propNames = engine.getProperties4Concept2(concept, false);
 				if(propNames != null && !propNames.isEmpty()) {
 					// need a bifurcation in logic between rdbms and rdf
 					// rdbms engine is smart enough to parse the table and column name from the uri in getEntityOfType call
@@ -1405,10 +1405,11 @@ public class Utility {
 			}
 
 			// now write the owler with all these triples added
-			// also need to reset the OWL within the engine to load in teh triples
+			// also need to reset the OWL within the engine to load in the triples
 			try {
 				owler.export();
-				engine.setOWL(owler.getFileName());
+				// setting the owl reloads the base engine to get the data types
+				engine.setOWL(owler.getOwlPath());
 			} catch (IOException e) {
 				e.printStackTrace();
 			}
@@ -1582,6 +1583,10 @@ public class Utility {
 		cleaned = cleaned.replaceAll("\\(", "");
 		cleaned = cleaned.replaceAll("\\)", "");
 		cleaned = cleaned.replaceAll("\\&", "and");
+		while(cleaned.contains("__")) {
+			cleaned = cleaned.replace("__", "_");
+		}
+		
 		return cleaned;
 	}
 
