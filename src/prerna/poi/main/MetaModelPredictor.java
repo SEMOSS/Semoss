@@ -32,7 +32,7 @@ public class MetaModelPredictor {
 	
 	//return data
 	Map<String, List<String>> allowableDataTypes;
-	private Map<String, ArrayList<Map<String, String>>> propFileData = new HashMap<>();
+	private Map<String, List<Map<String, String>>> propFileData = new HashMap<>();
 	
 	
 	public MetaModelPredictor() {
@@ -83,6 +83,11 @@ public class MetaModelPredictor {
 				runAllComparisons(columnHeaders, i);
 			}
 		}
+		
+		List<Map<String, String>> initList1 = new ArrayList<>();
+		List<Map<String, String>> initList2 = new ArrayList<>();
+		this.propFileData.put("propFileRel", initList1);
+		this.propFileData.put("propFileNodeProp", initList2);
 		
 		for(String subject : matches.keySet()) {
 			Set<String> set = matches.get(subject);
