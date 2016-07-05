@@ -27,10 +27,7 @@
  *******************************************************************************/
 package prerna.engine.api;
 
-import java.util.Map;
 import java.util.Vector;
-
-import prerna.ds.QueryStruct;
 
 /**
  * This interface standardizes the functionality of all engines.  All engines must implement this interface 
@@ -144,25 +141,6 @@ public interface IEngine extends IExplorable{
 	 */
 	public Object doAction(IEngine.ACTION_TYPE actionType, Object[] args);
 	
-	
-	/**
-	 * Get the datatypes for the uri from the associated owl file
-	 * @param uris
-	 * @return
-	 */
-	public String getDataTypes(String uri);
-	
-	/**
-	 * Get the datatypes for the uris from the associated owl file
-	 * If varargs param is empty, it will return all data types
-	 * @param uris
-	 * @return
-	 */
-	public Map<String, String> getDataTypes(String... uris);
-
-	public String getParentOfProperty(String property);
-	
-	public QueryStruct getDatabaseQueryStruct();
 }
 
 

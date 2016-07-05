@@ -95,7 +95,7 @@ public class RDBMSFlatCSVUploader extends AbstractFileReader {
 		String[] dataTypes = helper.predictTypes();
 		LOGGER.info("Found data types: " + Arrays.toString(dataTypes));
 
-		final String TABLE_NAME = "TESTING_TABLE";
+		final String TABLE_NAME = RDBMSEngineCreationHelper.cleanTableName(new File(fileLocation).getName());
 		
 		// generate create table statement
 		StringBuilder queryBuilder = new StringBuilder("CREATE TABLE ");
