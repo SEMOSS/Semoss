@@ -181,8 +181,8 @@ public abstract class AbstractFileReader {
 	 *            relationships
 	 * @throws EngineException
 	 */
-	private void openOWLWithConnection(IEngine engine, String owlFile,  IEngine.ENGINE_TYPE type) {
-		owler = new OWLER(engine, owlFile, type);
+	private void openOWLWithConnection(IEngine engine, String owlFile) {
+		owler = new OWLER(engine, owlFile);
 	}
 
 	/**
@@ -403,7 +403,7 @@ public abstract class AbstractFileReader {
 
 	protected void openEngineWithConnection(String engineName) {
 		engine = (IEngine)DIHelper.getInstance().getLocalProp(engineName);
-		openOWLWithConnection(engine, owlFile, engine.getEngineType());
+		openOWLWithConnection(engine, owlFile);
 	}
 
 //	public String getBaseURI(String nodeType) {

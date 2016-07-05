@@ -61,7 +61,9 @@ import prerna.engine.api.ISelectWrapper;
 import prerna.engine.impl.rdbms.RDBMSNativeEngine;
 import prerna.engine.impl.rdf.RDFFileSesameEngine;
 import prerna.om.Insight;
+import prerna.om.SEMOSSEdge;
 import prerna.om.SEMOSSParam;
+import prerna.om.SEMOSSVertex;
 import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.rdf.query.builder.IQueryBuilder;
 import prerna.rdf.query.builder.IQueryInterpreter;
@@ -72,7 +74,6 @@ import prerna.rdf.util.SPARQLQueryParser;
 import prerna.ui.components.RDFEngineHelper;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
-import prerna.util.OWLER;
 import prerna.util.Utility;
 
 /**
@@ -580,6 +581,26 @@ public abstract class AbstractEngine implements IEngine {
 	}
 	
 	/**
+	 * Get the list of the concepts within the database
+	 * @param conceptualNames		Return the conceptualNames if present within the database
+	 */
+	public Vector<String> getConcepts2(boolean conceptualNames) {
+		String query = "";
+		if(!conceptualNames) {
+			query = "SELECT ?concept WHERE {?concept <http://www.w3.org/2000/01/rdf-schema#subClassOf> <http://semoss.org/ontologies/Concept> }";
+		} else {
+			query = "SELECT DISTINCT COALESCE(?conceptual, ?concept) AS ?retConcept WHERE { "
+					+ "{?concept <http://www.w3.org/2000/01/rdf-schema#subClassOf> <http://semoss.org/ontologies/Concept> }"
+						+ "OPTIONAL {"
+							+ "{?concept <http://semoss.org/ontologies/Relation/Conceptual> ?conceptual }"
+						+ "}" // end optional for conceputal names if present
+					+ "}"; // end where
+		}		
+		
+		return Utility.getVectorOfReturn(query, baseDataEngine, true);
+	}
+	
+	/**
 	 * Goes to the owl using a regex sparql query to get the physical uri
 	 * @param physicalName e.g. Studio
 	 * @return e.g. http://semoss.org/ontologies/Concept/Studio
@@ -588,7 +609,7 @@ public abstract class AbstractEngine implements IEngine {
 		if(tableUriCache.containsKey(physicalName)){
 			return tableUriCache.get(physicalName);
 		}
-		Vector<String> cons = this.getConcepts();
+		Vector<String> cons = this.getConcepts2(false);
 		for(String checkUri : cons){
 			if(Utility.getInstanceName(checkUri).equals(physicalName)){
 				tableUriCache.put(physicalName, checkUri);
@@ -622,6 +643,76 @@ public abstract class AbstractEngine implements IEngine {
 			return propNames;
 		}
 	}
+	
+	/**
+	 * Returns the set of properties for a given concept
+	 * @param concept					The concept URI
+	 * 									Assumes the concept URI is the conceptual URI
+	 * @param conceptualNames			Boolean to determine if the return should be the properties
+	 * 									conceptual names or physical names
+	 * @return							List containing the property URIs for the given concept
+	 */
+	public List<String> getProperties4Concept2(String concept, Boolean conceptualNames) {
+		// get the physical URI for the concept
+		String conceptPhysical = getPhysicalUriFromConceptualUri(concept);
+		
+		String query = null;
+		// instead of getting the URIs in a set format and having to do a conversion afterwards
+		// just have the query get the values directly
+		if(conceptualNames) {
+			query = "SELECT DISTINCT ?propertyConceptual WHERE { "
+					+ "BIND(<" + conceptPhysical + "> AS ?concept) "
+					+ "{?concept <http://www.w3.org/2000/01/rdf-schema#subClassOf> <http://semoss.org/ontologies/Concept> } "
+					+ "{?property <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Relation/Contains>} "
+					+ "{?concept <http://www.w3.org/2002/07/owl#DatatypeProperty> ?property} "
+//					+ "{?propertyConceptual <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Relation/Contains>} "
+					+ "{?property <http://semoss.org/ontologies/Relation/Conceptual> ?propertyConceptual} "
+					+ "}";
+		} else {
+			query = "SELECT DISTINCT ?property WHERE { "
+					+ "BIND(<" + conceptPhysical + "> AS ?concept) "
+					+ "{?concept <http://www.w3.org/2000/01/rdf-schema#subClassOf> <http://semoss.org/ontologies/Concept> } "
+					+ "{?property <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Relation/Contains>} "
+					+ "{?concept <http://www.w3.org/2002/07/owl#DatatypeProperty> ?property} "
+					+ "}";
+		}
+		
+		return Utility.getVectorOfReturn(query, baseDataEngine, true);
+	}
+	
+	/**
+	 * Get the physical URI from the conceptual URI
+	 * @param conceptualURI			The conceptual URI
+	 * 								If it is not a valid URI, we will assume it is the instance_name and create the URI
+	 * @return						Return the physical URI 					
+	 */
+	public String getPhysicalUriFromConceptualUri(String conceptualURI) {
+		// the URI is not valid if it doesn't start with http://
+		// if it is not valid, assume only the last part of the URI was passed and create the URI
+		if(!conceptualURI.startsWith("http://")) {
+			conceptualURI = "http://semoss.org/ontologies/Concept/" + conceptualURI;
+		}
+		
+		// this query needs to take into account if the conceptual URI is a concept or a property
+		String query = "SELECT DISTINCT ?uri WHERE { "
+				+ "BIND(<" + conceptualURI + "> AS ?conceptual) "
+				+ "{"
+					+ "{?uri <http://www.w3.org/2000/01/rdf-schema#subClassOf> <http://semoss.org/ontologies/Concept> } "
+					+ "{?uri <http://semoss.org/ontologies/Relation/Conceptual> ?conceptual } "
+				+ "} UNION {"
+					+ "{?uri <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Relation/Contains> } "
+					+ "{?uri <http://semoss.org/ontologies/Relation/Conceptual> ?conceptual } "
+				+ "}"
+				+ "}";
+
+		Vector<String> queryReturn = Utility.getVectorOfReturn(query, baseDataEngine, true);
+		// there should only be one return in the vector since conceptual URIs are a one-to-one match with the physical URIs
+		if(queryReturn.isEmpty()) {
+			return conceptualURI;
+		}
+		return queryReturn.get(0);
+	}
+
 	
 	/**
 	 * query the owl to get the display name or the physical name
@@ -1280,7 +1371,7 @@ public abstract class AbstractEngine implements IEngine {
 	@Override
 	public String getDataTypes(String uri) {
 		String cleanUri = getTransformedNodeName(uri, false);
-		String query = "SELECT DISTINCT ?TYPE WHERE { {<" + cleanUri + "> <" + OWLER.DATATYPE_PREDICATE + "> ?TYPE} }";
+		String query = "SELECT DISTINCT ?TYPE WHERE { {<" + cleanUri + "> <" + RDFS.CLASS.toString() + "> ?TYPE} }";
 			
 		ISelectWrapper wrapper = WrapperManager.getInstance().getSWrapper(baseDataEngine, query);
 		String[] names = wrapper.getPhysicalVariables();
@@ -1303,11 +1394,11 @@ public abstract class AbstractEngine implements IEngine {
 		}
 		String query = null;
 		if(!bindings.isEmpty()) {
-			query = "SELECT DISTINCT ?NODE ?TYPE WHERE { {?NODE <" + OWLER.DATATYPE_PREDICATE + "> ?TYPE} } BINDINGS ?NODE {" + bindings + "}";
+			query = "SELECT DISTINCT ?NODE ?TYPE WHERE { {?NODE <" + RDFS.CLASS.toString() + "> ?TYPE} } BINDINGS ?NODE {" + bindings + "}";
 			
 		} else {
 			// if no bindings, return everything
-			query = "SELECT DISTINCT ?NODE ?TYPE WHERE { {?NODE <" + OWLER.DATATYPE_PREDICATE + "> ?TYPE} }";
+			query = "SELECT DISTINCT ?NODE ?TYPE WHERE { {?NODE <" + RDFS.CLASS.toString() + "> ?TYPE} }";
 		}
 		ISelectWrapper wrapper = WrapperManager.getInstance().getSWrapper(baseDataEngine, query);
 		String[] names = wrapper.getPhysicalVariables();
@@ -1348,17 +1439,44 @@ public abstract class AbstractEngine implements IEngine {
 	public QueryStruct getDatabaseQueryStruct() {
 		QueryStruct qs = new QueryStruct();
 		
-		// query to get all the concepts and properties for selectors
-		String getSelectorsInformation = "SELECT DISTINCT ?concept ?property WHERE { "
-				+ "{?concept <http://www.w3.org/2000/01/rdf-schema#subClassOf> <http://semoss.org/ontologies/Concept>} "
-				+ "OPTIONAL {"
-				+ "{?property <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <" + CONTAINS_BASE_URI + "> } "
-				+ "{?concept <http://www.w3.org/2002/07/owl#DatatypeProperty> ?property } "
-				+ "}" // END OPTIONAL
-				+ "}"; // END WHERE
+		boolean oldOwl = true;
+		// TODO: need to get rid of this bifurcation in queries between having an OLD OWL vs.
+		// having a new OWL
+		String testOwlVersion = "SELECT DISTINCT ?conceptual WHERE {"
+				+ "{?concept <http://www.w3.org/2000/01/rdf-schema#subClassOf> <http://semoss.org/ontologies/Concept> }"
+				+ "{?concept <http://semoss.org/ontologies/Relation/Conceptual> ?conceptual }"
+				+ "FILTER NOT EXISTS {?conceptual <http://www.w3.org/2000/01/rdf-schema#subClassOf> <http://semoss.org/ontologies/Concept> }"
+			+ "}"; // end where
+		ISelectWrapper wrapper = WrapperManager.getInstance().getSWrapper(baseDataEngine, testOwlVersion);
+		if(wrapper.hasNext()) {
+			oldOwl = false;
+		}
 		
+		// query to get all the concepts and properties for selectors
+		String getSelectorsInformation = "";
+		//TODO: bifurcation because of different OWL versions
+		if(oldOwl) {
+			getSelectorsInformation = "SELECT DISTINCT ?concept ?property WHERE { "
+					+ "{?concept <http://www.w3.org/2000/01/rdf-schema#subClassOf> <http://semoss.org/ontologies/Concept>} "
+					+ "OPTIONAL {"
+						+ "{?property <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <" + CONTAINS_BASE_URI + "> } "
+						+ "{?concept <http://www.w3.org/2002/07/owl#DatatypeProperty> ?property } "
+					+ "}" // END OPTIONAL
+					+ "}"; // END WHERE
+		} else {
+			getSelectorsInformation = "SELECT DISTINCT ?conceptualConcept ?conceptualProperty WHERE { "
+					+ "{?concept2 <http://www.w3.org/2000/01/rdf-schema#subClassOf> <http://semoss.org/ontologies/Concept> }"
+					+ "{?concept2 <http://semoss.org/ontologies/Relation/Conceptual> ?conceptualConcept }"
+					+ "OPTIONAL {"
+						+ "{?property <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <" + CONTAINS_BASE_URI + "> } "
+						+ "{?concept2 <http://www.w3.org/2002/07/owl#DatatypeProperty> ?property } "
+						+ "{?property <http://semoss.org/ontologies/Relation/Conceptual> ?conceptualProperty }"
+					+ "}" // END OPTIONAL
+					+ "}"; // END WHERE
+		}
+	
 		// execute the query and loop through and add it into the QS
-		ISelectWrapper wrapper = WrapperManager.getInstance().getSWrapper(baseDataEngine, getSelectorsInformation);
+		wrapper = WrapperManager.getInstance().getSWrapper(baseDataEngine, getSelectorsInformation);
 		String[] names = wrapper.getPhysicalVariables();
 		// we will keep a set of the concepts such that we know when we need to append a PRIM_KEY_PLACEHOLDER
 		Set<String> conceptSet = new HashSet<String>();
@@ -1387,12 +1505,25 @@ public abstract class AbstractEngine implements IEngine {
 		conceptSet = null;
 		
 		// query to get all the relationships 
-		String getRelationshipsInformation = "SELECT DISTINCT ?fromConcept ?toConcept WHERE { "
+		String getRelationshipsInformation = "";
+		//TODO: bifurcation because of different OWL versions
+		if(oldOwl) {
+			getRelationshipsInformation = "SELECT DISTINCT ?fromConcept ?toConcept WHERE { "
 				+ "{?fromConcept <http://www.w3.org/2000/01/rdf-schema#subClassOf> <http://semoss.org/ontologies/Concept>} "
 				+ "{?toConcept <http://www.w3.org/2000/01/rdf-schema#subClassOf> <http://semoss.org/ontologies/Concept>} "
 				+ "{?rel <" + RDFS.SUBPROPERTYOF + "> <http://semoss.org/ontologies/Relation>} "
 				+ "{?fromConcept ?rel ?toConcept} "
 				+ "}"; // END WHERE
+		} else {
+			getRelationshipsInformation = "SELECT DISTINCT ?fromConceptualConcept ?toConceptualConcept WHERE { "
+					+ "{?fromConcept <http://www.w3.org/2000/01/rdf-schema#subClassOf> <http://semoss.org/ontologies/Concept>} "
+					+ "{?toConcept <http://www.w3.org/2000/01/rdf-schema#subClassOf> <http://semoss.org/ontologies/Concept>} "
+					+ "{?rel <" + RDFS.SUBPROPERTYOF + "> <http://semoss.org/ontologies/Relation>} "
+					+ "{?fromConcept ?rel ?toConcept} "
+					+ "{?fromConcept <http://semoss.org/ontologies/Relation/Conceptual> ?fromConceptualConcept }"
+					+ "{?toConcept <http://semoss.org/ontologies/Relation/Conceptual> ?toConceptualConcept }"
+					+ "}"; // END WHERE
+		}
 		
 		wrapper = WrapperManager.getInstance().getSWrapper(baseDataEngine, getRelationshipsInformation);
 		names = wrapper.getPhysicalVariables();
@@ -1405,6 +1536,82 @@ public abstract class AbstractEngine implements IEngine {
 		}
 		
 		return qs;
+	}
+	
+	
+	/**
+	 * This will return the metamodel object used to view on dagger for an engine
+	 * @return
+	 */
+	public Map<String, Object> getMetamodel() {
+		// create the return object map and put all values inside
+		// when objects are modified, they get modified in the retObj as well
+		// yay modifying references
+		Map<String, Object> retObj = new Hashtable<String, Object>();
+		List<SEMOSSVertex> nodes = new Vector<SEMOSSVertex>();
+		List<SEMOSSEdge> edges = new Vector<SEMOSSEdge>();
+		retObj.put("nodes", nodes);
+		retObj.put("edges", edges);
+
+		// create this from the query struct
+		QueryStruct qs = getDatabaseQueryStruct();
+
+		// need to store the edges in a way that we can easily get them
+		Map<String, SEMOSSVertex> vertStore = new Hashtable<String, SEMOSSVertex>();
+
+		// first get all the nodes
+		Hashtable<String, Vector<String>> vertices = qs.getSelectors();
+		for(String concept : vertices.keySet()) {
+			// grab each vert
+			SEMOSSVertex vert = new SEMOSSVertex("http://semoss.org/ontologies/Concept/" + concept);
+			vert.putProperty("PhysicalName", concept);
+			// grab the properties and add it to the vert
+			Vector<String> props = vertices.get(concept);
+			for(String prop : props) {
+				// ignore the placeholder as it is only used by interpreters for query construction
+				if(prop.equals(QueryStruct.PRIM_KEY_PLACEHOLDER)) {
+					continue;
+				}
+				
+				// add the prop
+				vert.setProperty("http://semoss.org/ontologies/Relation/Contains/" + prop, prop);
+			}
+			
+			vertStore.put(concept, vert);
+			// add it to the nodes list
+			nodes.add(vert);
+		}
+		
+		// now go through all the relations
+		// remember, the map is the {fromConcept -> { joinType -> [toConcept1, toConcept2] } }
+		// need to iterate through to get fromConcept -> toConcept and make a unique edge for each
+		// remember the edge names are not every actually used
+		Hashtable<String, Hashtable<String, Vector>> relations = qs.getRelations();
+		for(String fromConcept : relations.keySet()) {
+			// get the from-vertex
+			SEMOSSVertex fromVert = vertStore.get(fromConcept);
+
+			// need to iterate through the join types to get to the toConcpets
+			Hashtable<String, Vector> joinsMap = relations.get(fromConcept);
+			for(String joinType : joinsMap.keySet()) {
+				Vector<String> toConcepts = joinsMap.get(joinType);
+				
+				for(String toConcept : toConcepts) {
+					// get the to-vertex
+					SEMOSSVertex toVert = vertStore.get(toConcept);
+					
+					// create the edge
+					// edge name doesn't actually matter
+					SEMOSSEdge edge = new SEMOSSEdge(fromVert, toVert, "http://semoss.org/ontologies/Relation/" + fromConcept + ":" + toConcept);
+					
+					// add it to the edge list
+					edges.add(edge);
+				}
+			}
+		}
+		
+		
+		return retObj;
 	}
 	
 }
