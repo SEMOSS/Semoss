@@ -1358,7 +1358,12 @@ public class H2Builder {
 				String inserter = makeInsert(headers, types, cells, new Hashtable<String, String>(), tableName);
 				runQuery(inserter);
 	    	}
-    	}catch (Exception ex)
+    	}catch (SQLException ex)
+    	{
+    		System.out.println("SQL error while inserting row at " + rowCount); 
+    		System.out.println("Exception: "+ex);
+    	}
+    	catch (Exception ex)
     	{
     		System.out.println("Errored.. nothing to do");
     		brokenLines = brokenLines + " : " + rowCount;
@@ -2013,6 +2018,7 @@ public class H2Builder {
     	inserter.append(")  VALUES  ");// = new StringBuilder(inserter + ")  VALUES  ");
 //    	template.append(inserter + "" + template + ")");// = new StringBuilder(inserter + "" + template + ")");
     	inserter.append(template+")");
+    	//System.out.println("Insert Values: " +template);
     	
 //    	return template.toString();
     	return inserter.toString();
