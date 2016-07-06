@@ -32,7 +32,7 @@ public class MetaModelPredictor {
 	
 	//return data
 	Map<String, List<String>> allowableDataTypes;
-	private Map<String, List<Map<String, String>>> propFileData = new HashMap<>();
+	private Map<String, List<Map<String, Object>>> propFileData = new HashMap<>();
 	
 	
 	public MetaModelPredictor() {
@@ -84,8 +84,8 @@ public class MetaModelPredictor {
 			}
 		}
 		
-		List<Map<String, String>> initList1 = new ArrayList<>();
-		List<Map<String, String>> initList2 = new ArrayList<>();
+		List<Map<String, Object>> initList1 = new ArrayList<>();
+		List<Map<String, Object>> initList2 = new ArrayList<>();
 		this.propFileData.put("propFileRel", initList1);
 		this.propFileData.put("propFileNodeProp", initList2);
 		
@@ -93,16 +93,20 @@ public class MetaModelPredictor {
 			Set<String> set = matches.get(subject);
 			for(String object : set) {
 				DATA_TYPES dataType = frame.getDataType(object);
-				Map<String, String> predMap = new HashMap<>();
+				Map<String, Object> predMap = new HashMap<>();
+				
+				String[] subjectArr = {subject};
+				String[] objectArr = {object};
+				
 				if(!dataType.equals(DATA_TYPES.STRING)) {
 					String predHolder = subject + "_" + object;
-					predMap.put("sub", subject);
+					predMap.put("sub", subjectArr);
 					predMap.put("pred", predHolder);
-					predMap.put("obj", object);
+					predMap.put("obj", objectArr);
 					this.propFileData.get("propFileRel").add(predMap);
 				} else {
-					predMap.put("sub", subject);
-					predMap.put("prop", object);
+					predMap.put("sub", subjectArr);
+					predMap.put("prop", objectArr);
 					predMap.put("dataType", dataTypeMap.get(object));
 					this.propFileData.get("propFileNodeProp").add(predMap);
 				}
@@ -110,7 +114,7 @@ public class MetaModelPredictor {
 		}
 	}
 	
-	public Map<String, List<Map<String, String>>> getMetaModelData() {
+	public Map<String, List<Map<String, Object>>> getMetaModelData() {
 //		Map<String, Object> retMap = new HashMap<>(2);
 //		retMap.put("propFileData"this.propFileData);
 		return propFileData;
