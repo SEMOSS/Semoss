@@ -317,7 +317,7 @@ public class H2Builder {
 		while(rs.next())
 			System.out.println("Inserted..  "  + rs.getInt(1));
 		
-		/*String query = "Select  bencat, count(*) from tinkertable where sex='F' Group By Bencat";
+		/*String query = "Select  bencat, count(*) from H2FRAME where sex='F' Group By Bencat";
 		
 		rs = conn.createStatement().executeQuery(query);
 		
@@ -1288,7 +1288,7 @@ public class H2Builder {
 //			
 //			Hashtable <Integer, Integer> matchers = new Hashtable <Integer, Integer>();
 //			String oldTable = tableName;
-//			String newTable = "TINKERTABLE" + getNextNumber() ;
+//			String newTable = H2FRAME + getNextNumber() ;
 //			// now I need a creator
 //			String creator = "Create table " + newTable+ " AS "  + selectQuery;
 //			getConnection().createStatement().execute(creator);
@@ -1606,7 +1606,7 @@ public class H2Builder {
 				// do a different process here
 				// I need to create a new database here
 				one2Many = true;
-				generateTable(data, newHeaders, "TINKERTABLE" + getNextNumber());
+				generateTable(data, newHeaders, H2FRAME + getNextNumber());
 				// not bad -- this does it ?
 				// whoa hang on I need to handle the older headers and such
 				// done in reset headers
@@ -1619,7 +1619,7 @@ public class H2Builder {
     		// just test to see if it finally came through
 			
 			// now I need to assimilate everything into one
-			String tableName2 = "TINKERTABLE" + tableRunNumber;
+			String tableName2 = H2FRAME + tableRunNumber;
 			String tableName1 = tableName;
 			
 			if(one2Many)
@@ -1708,7 +1708,7 @@ public class H2Builder {
     	
     	String origTableName = tableName;
     	// now create a third table
-    	tableName = "TINKERTABLE"+getNextNumber();
+    	tableName = H2FRAME+getNextNumber();
     	String newCreate = "CREATE Table " + tableName +" AS (";
     	
     	// now I need to create a join query
