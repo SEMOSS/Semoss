@@ -4,8 +4,10 @@ import java.io.File;
 import java.io.IOException;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
+import java.util.HashSet;
 import java.util.Hashtable;
 import java.util.Map;
+import java.util.Set;
 
 import org.apache.commons.io.FileUtils;
 import org.apache.log4j.Level;
@@ -25,14 +27,20 @@ public class RDBMSFlatCSVUploader extends AbstractFileReader {
 
 	private static final Logger LOGGER = LogManager.getLogger(RDBMSFlatCSVUploader.class.getName());
 	
+	// hold the existing rdbms structure
 	private Map<String, Map<String, String>> existingRDBMSStructure;
 	
+	// need to keep track of the new tables added when doing addToExisting
+	private Set<String> newTables = new HashSet<String>();
 	
 	// these keys are used within the return of the parseCSVData to get the
 	// headers and data types from a given csv file
 	private final String CSV_HEADERS = "headers";
 	private final String CSV_DATA_TYPES = "dataTypes";
 
+	
+	///////////////////////////////////////// main upload methods //////////////////////////////////////////
+	
 	/**
 	 * Load a new flat table rdbms database
 	 * @param smssLocation						The location of the smss file
@@ -42,7 +50,7 @@ public class RDBMSFlatCSVUploader extends AbstractFileReader {
 	 * @param dbName							The name of the database driver
 	 * @param dbDriverType						The database type (h2, mysql, etc.)
 	 * @param allowDuplicates					Boolean to determine if we should delete duplicate rows
-	 * @return
+	 * @return									The new engine created
 	 * @throws IOException 
 	 */
 	public IEngine importFileWithOutConnection(String smssLocation, String fileLocations, String customBaseURI, String owlPath, String engineName, SQLQueryUtil.DB_TYPE dbDriverType, boolean allowDuplicates) throws IOException {
@@ -85,6 +93,57 @@ public class RDBMSFlatCSVUploader extends AbstractFileReader {
 
 		return engine;
 	}
+	
+	/**
+	 * Load a new flat table into an existing rdbms engine
+	 * @param smssLocation						The location of the smss file
+	 * @param fileLocations						The location of the files
+	 * @param customBaseURI						customBaseURI to set... need to remove this stupid thing
+	 * @param owlPath							The path to the owl file
+	 * @param dbDriverType						The database type (h2, mysql, etc.)
+	 * @param allowDuplicates					Boolean to determine if we should delete duplicate rows
+	 * @throws IOException 
+	 */
+	public void importFileWithConnection(String smssLocation, String fileLocations, String customBaseURI, String owlPath, prerna.util.sql.SQLQueryUtil.DB_TYPE dbDriverType, boolean allowDuplicates) throws IOException {
+		boolean error = false;
+		
+		queryUtil = SQLQueryUtil.initialize(dbDriverType);
+		// sets the custom base uri, sets the owl path, sets the smss location
+		// and returns the fileLocations split into an array based on ';' character
+		String[] files = prepareReader(fileLocations, customBaseURI, owlPath, smssLocation);
+
+		LOGGER.setLevel(Level.WARN);
+		try {
+			// create the engine and the owler
+			openEngineWithConnection(smssLocation);
+			for(int i = 0; i < files.length;i++)
+			{
+				String fileName = files[i];
+				// cause of stupid split adding empty values
+				if(fileName.isEmpty()) {
+					continue;
+				}
+				// need to update to get the rdbms structure to determine how the new files should be added
+				existingRDBMSStructure = RDBMSEngineCreationHelper.getExistingRDBMSStructure(engine, queryUtil);
+				processTable(fileName);
+			}
+			// write the owl file
+			createBaseRelations();
+			// create the base question sheet
+			RDBMSEngineCreationHelper.addToExistingQuestionFile(this.engine, newTables, queryUtil);
+		} finally {
+			if(error || autoLoad) {
+				closeDB();
+				closeOWL();
+			} else {
+				commitDB();
+			}
+		}
+	}
+	
+	
+	///////////////////////////////////////// end main upload methods //////////////////////////////////////////
+
 	
 	/**
 	 * This is used to add additional flat tables into the engine
@@ -514,5 +573,4 @@ public class RDBMSFlatCSVUploader extends AbstractFileReader {
 		newProp.setReadable(true);
 		FileUtils.forceDelete(propFile);
 	}
-	
 }

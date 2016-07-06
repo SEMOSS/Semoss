@@ -182,7 +182,11 @@ public class ImportDataProcessor {
 //			OntologyFileWriter ontologyWriter = new OntologyFileWriter();
 //			ontologyWriter.runAugment(mapPath, csvReader.conceptURIHash, csvReader.baseConceptURIHash, csvReader.relationURIHash,  csvReader.baseRelationURIHash, csvReader.basePropURI);
 		} //*/
-
+		else if(importType == IMPORT_TYPE.FLAT_LOAD && dbType == DB_TYPE.RDBMS) {
+			RDBMSFlatCSVUploader reader = new RDBMSFlatCSVUploader();
+			reader.importFileWithConnection(dbName , fileNames, customBaseURI, owlPath, dbDriverType, allowDuplicates);
+		}
+		
 		//addNewInstances to solr
 		IEngine engine = (IEngine) DIHelper.getInstance().getLocalProp(dbName); 
 		Utility.addToSolrInstanceCore(engine);
