@@ -97,7 +97,7 @@ public class MetaModelPredictor {
 				if(!dataType.equals(DATA_TYPES.STRING)) {
 					String predHolder = subject + "_" + object;
 					predMap.put("sub", subject);
-					predMap.put("prop", predHolder);
+					predMap.put("pred", predHolder);
 					predMap.put("obj", object);
 					this.propFileData.get("propFileRel").add(predMap);
 				} else {
@@ -110,10 +110,10 @@ public class MetaModelPredictor {
 		}
 	}
 	
-	public Map<String, Object> getMetaModelData() {
-		Map<String, Object> retMap = new HashMap<>(2);
-		retMap.put("propFileData", this.propFileData);
-		return retMap;
+	public Map<String, List<Map<String, String>>> getMetaModelData() {
+//		Map<String, Object> retMap = new HashMap<>(2);
+//		retMap.put("propFileData"this.propFileData);
+		return propFileData;
 	}
 
 	/**
