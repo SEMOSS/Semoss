@@ -192,7 +192,7 @@ public class RDBMSEngineCreationHelper {
 		Set<String> tableNames = new HashSet<String>();
 		while(wrapper.hasNext()) {
 			ISelectStatement ss = wrapper.next();
-			String tableName = ss.getVar("TABLE_NAME") + "";
+			String tableName = ss.getVar(names[0]) + "";
 			tableNames.add(tableName);
 		}
 
@@ -209,8 +209,8 @@ public class RDBMSEngineCreationHelper {
 			Map<String, String> colTypeHash = new Hashtable<String, String>();
 			while(wrapper.hasNext()) {
 				ISelectStatement ss = wrapper.next();
-				String colName = ss.getVar("COLUMN_NAME") + "";
-				String colType = ss.getVar("DATA_TYPE") + "";
+				String colName = ss.getVar(names[0]) + "";
+				String colType = ss.getVar(names[1]) + "";
 				colTypeHash.put(colName, colType);
 			}
 

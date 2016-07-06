@@ -260,25 +260,29 @@ public class RDBMSNativeEngine extends AbstractEngine {
         String column; // column of table in RDBMS
         String query;
 
-        if(type.contains("http://semoss.org/ontologies/Concept")){
+        if(type.contains("http://semoss.org/ontologies")){
         	// we are dealing with the physical uri which is in the form ...Concept/Column/Table
         	query = "SELECT DISTINCT " + Utility.getClassName(type) + " FROM " + Utility.getInstanceName(type);
         }
-        else if(type.contains("http://semoss.org/ontologies/Relation/Contains")){// this is such a mess... 
-        	String xmlQuery = "SELECT ?concept WHERE { ?concept rdfs:subClassOf <http://semoss.org/ontologies/Concept>. ?concept <http://www.w3.org/2002/07/owl#DatatypeProperty> <"+type+">}";
-        	TupleQueryResult ret = (TupleQueryResult) this.execOntoSelectQuery(xmlQuery);
-			String conceptURI = null;
-        	try {
-				if(ret.hasNext()){
-					BindingSet row = ret.next();
-					conceptURI = row.getBinding("concept").getValue().toString();
-				}
-			} catch (QueryEvaluationException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
-			}
-        	query = "SELECT DISTINCT " + Utility.getInstanceName(type) + " FROM " + Utility.getInstanceName(conceptURI);
-        }
+        // TODO: how did the below every work???
+        // the query had rdfs:subClassOf as a string inside...
+        // assuming it is not used anywhere
+        // also becomes irrelevant with new format of properties
+//        else if(type.contains("http://semoss.org/ontologies/Relation/Contains")){// this is such a mess... 
+//        	String xmlQuery = "SELECT ?concept WHERE { ?concept rdfs:subClassOf <http://semoss.org/ontologies/Concept>. ?concept <http://www.w3.org/2002/07/owl#DatatypeProperty> <"+type+">}";
+//        	TupleQueryResult ret = (TupleQueryResult) this.execOntoSelectQuery(xmlQuery);
+//			String conceptURI = null;
+//        	try {
+//				if(ret.hasNext()){
+//					BindingSet row = ret.next();
+//					conceptURI = row.getBinding("concept").getValue().toString();
+//				}
+//			} catch (QueryEvaluationException e) {
+//				// TODO Auto-generated catch block
+//				e.printStackTrace();
+//			}
+//        	query = "SELECT DISTINCT " + Utility.getInstanceName(type) + " FROM " + Utility.getInstanceName(conceptURI);
+//        }
         else if(type.contains(":")) {
             int tableStartIndex = type.indexOf("-") + 1;
             int columnStartIndex = type.indexOf(":") + 1;
