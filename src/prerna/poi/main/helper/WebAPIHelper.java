@@ -3,12 +3,13 @@ package prerna.poi.main.helper;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
 public class WebAPIHelper {
 
-	protected Map<String,String> dataTypeMap = new HashMap<String, String>();
+	protected Map<String,String> dataTypeMap = new LinkedHashMap<String, String>();
 	protected static Map<Integer, HashMap<String, String>> allDataMap = new HashMap<Integer, HashMap<String, String>>();
 	protected HashMap<String, String> dataMap;
 
