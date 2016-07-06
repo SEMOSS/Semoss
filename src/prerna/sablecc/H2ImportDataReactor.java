@@ -10,7 +10,7 @@ import java.util.Vector;
 import prerna.ds.TinkerMetaHelper;
 import prerna.ds.H2.H2Frame;
 import prerna.ds.util.FileIterator;
-import prerna.ds.util.ImportApiIterator;
+import prerna.ds.util.WebApiIterator;
 import prerna.engine.api.IHeadersDataRow;
 import prerna.engine.api.ISelectWrapper;
 import prerna.sablecc.PKQLRunner.STATUS;
@@ -48,9 +48,9 @@ public class H2ImportDataReactor extends ImportDataReactor {
 		String[] types = null;
 		String[] headers = null;
 		//add provision for ImportApiIterator
-		if(it instanceof ImportApiIterator) {
-			types = ((ImportApiIterator) it).getTypes();
-			headers = ((ImportApiIterator) it).getHeaders();
+		if(it instanceof WebApiIterator) {
+			types = ((WebApiIterator) it).getTypes();
+			headers = ((WebApiIterator) it).getHeaders();
 		}else if(it instanceof FileIterator) {
 			types = ((FileIterator) it).getTypes();
 			headers = ((FileIterator) it).getHeaders();
