@@ -62,7 +62,7 @@ public class MetaModelPredictor {
 		populateData();
 		populateProcessOrder();
 		populateColumnPropMap();
-		populateAllowableTypes();
+//		populateAllowableTypes();
 		
 		//run comparisons for strings
 		for(int i = 0; i < columnHeaders.length; i++) {
@@ -112,7 +112,6 @@ public class MetaModelPredictor {
 	
 	public Map<String, Object> getMetaModelData() {
 		Map<String, Object> retMap = new HashMap<>(2);
-		retMap.put("allowableTypes", this.allowableDataTypes);
 		retMap.put("propFileData", this.propFileData);
 		return retMap;
 	}
