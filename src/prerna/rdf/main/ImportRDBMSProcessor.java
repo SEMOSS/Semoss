@@ -317,6 +317,7 @@ public class ImportRDBMSProcessor {
 		PropFileWriter propWriter = new PropFileWriter();
 		propWriter.setBaseDir(baseFolder);
 		propWriter.setSQLQueryUtil(queryUtil);
+		propWriter.setShouldFillEmptyTypes("true");
 		File oldFile = null;
 		File newFile = null;
 		try {

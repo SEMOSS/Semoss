@@ -72,6 +72,11 @@ public class PropFileWriter {
 
 	private SQLQueryUtil.DB_TYPE dbDriverType = SQLQueryUtil.DB_TYPE.H2_DB;
 	SQLQueryUtil queryUtil;
+	private String shouldFillEmptyTypes = "false";
+
+	public void setShouldFillEmptyTypes(String shouldFillEmptyTypes) {
+		this.shouldFillEmptyTypes = shouldFillEmptyTypes;
+	}
 
 	public PropFileWriter() {
 		defaultDBPropName = "db/Default/Default.properties";
@@ -280,7 +285,7 @@ public class PropFileWriter {
 				pw.write(Constants.DREAMER + "\t" + questionFileName + "\n\n\n");
 			}
 			pw.write(Constants.SOLR_RELOAD + "\tfalse\n");
-			pw.write(Constants.FILL_EMPTY_DATATYPES + "\tfalse\n");
+			pw.write(Constants.FILL_EMPTY_DATATYPES + "\t"+this.shouldFillEmptyTypes +"\n");
 			pw.write(Constants.HIDDEN_DATABASE + "\tfalse\n");
 			if (dbType == ImportDataProcessor.DB_TYPE.RDBMS) {
 				if(this.queryUtil == null) {
