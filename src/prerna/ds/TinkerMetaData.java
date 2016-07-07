@@ -442,6 +442,9 @@ public class TinkerMetaData implements IMetaData {
 		addAliasMeta(vert, aliasName, NAME_TYPE.USER_DEFINED, null);
 	}
 
+	//TODO: need to see how this is working and interacting now since new OWL is added
+	//TODO: need to see how this is working and interacting now since new OWL is added
+	//TODO: need to see how this is working and interacting now since new OWL is added
 	@Override
 	public void storeEngineDefinedVertex(String uniqueName, String uniqueParentNameIfProperty, String engineName, String queryStructName) {
 		
@@ -465,7 +468,9 @@ public class TinkerMetaData implements IMetaData {
 			physicalUri = Constants.DISPLAY_URI + uniqueName;
 		}
 		
-		String logicalName = Utility.getInstanceName(engine.getTransformedNodeName(physicalUri, true));
+		//TODO: this needs to be updated - used to be getting the logical from the engine
+		//TODO: this needs to be updated - used to be getting the logical from the engine
+		String logicalName = Utility.getInstanceName(physicalUri);
 //		String physicalName = Utility.getInstanceName(physicalUri);
 		String dataType = engine.getDataTypes(physicalUri);
 
