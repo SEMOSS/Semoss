@@ -105,7 +105,7 @@ public class MHSDashboardDrillPlaysheet extends TablePlaySheet implements IDataM
 		dataTableALign.put("heatValue", HEAT_VALUE);
 		dataTableALign.put("minValue", MIN_ACTIVITY_VALUE);
 		returnHashMap.put("SDLCList", sdlcList);
-		returnHashMap.put("dataTableALign", dataTableALign);
+		returnHashMap.put("dataTableAlign", dataTableALign);
 		return returnHashMap;
 	}
 	
@@ -262,6 +262,7 @@ public class MHSDashboardDrillPlaysheet extends TablePlaySheet implements IDataM
 	}
 	
 	public static DateFormat getDateFormat() {
+		//formating date by month-day-year
 		return new SimpleDateFormat("MM-dd-yyyy");
 	}
 
@@ -279,7 +280,9 @@ public class MHSDashboardDrillPlaysheet extends TablePlaySheet implements IDataM
 			List<Object> innerList =new ArrayList<Object>();
 			for(Object innerVal : value.entrySet()){
 				String returnKey = ((Entry<String, Object>) innerVal).getKey();
+				//return all keys but activity_num
 				if(!returnKey.equals("ACTIVITY_NUM")){
+					//get the lowest value in the list of heat values
 					if(returnKey.equals(MIN_ACTIVITY_VALUE)){
 						List<Long> heatList = (List<Long>) ((Entry<String, Object>) innerVal).getValue();
 						Long minHeat = Collections.min(heatList);
