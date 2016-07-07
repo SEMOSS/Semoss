@@ -98,7 +98,7 @@ public class MetaModelPredictor {
 				String[] subjectArr = {subject};
 				String[] objectArr = {object};
 				
-				if(!dataType.equals(DATA_TYPES.STRING)) {
+				if(dataType.equals(DATA_TYPES.STRING)) {
 					String predHolder = subject + "_" + object;
 					predMap.put("sub", subjectArr);
 					predMap.put("pred", predHolder);
