@@ -470,7 +470,7 @@ public class TinkerMetaData implements IMetaData {
 		
 		//TODO: this needs to be updated - used to be getting the logical from the engine
 		//TODO: this needs to be updated - used to be getting the logical from the engine
-		String logicalName = Utility.getInstanceName(physicalUri);
+		String logicalName = Utility.getInstanceName(engine.getConceptualUriFromPhysicalUri(physicalUri));
 //		String physicalName = Utility.getInstanceName(physicalUri);
 		String dataType = engine.getDataTypes(physicalUri);
 
