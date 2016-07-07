@@ -98,14 +98,14 @@ public class MHSDashboardDrillPlaysheet extends TablePlaySheet implements IDataM
 	public Map getDataMakerOutput(String... selectors) {
 		Map<String, Object> returnHashMap = aggregateDHAGroup();
 		List<Object> sdlcList = new ArrayList <Object> (Arrays.asList("Strategy", "Requirement", "Design", "Development", "Test", "Security", "Deployment", "Training"));
-		Map<String, String> dataTableALign = new HashMap <String, String> ();
-		dataTableALign.put("levelOne", SDLC);
-		dataTableALign.put("levelTwo", ActivityGroup);
-		dataTableALign.put("levelThree", DHA);
-		dataTableALign.put("heatValue", HEAT_VALUE);
-		dataTableALign.put("minValue", MIN_ACTIVITY_VALUE);
+		Map<String, String> dataTableAlign = new HashMap <String, String> ();
+		dataTableAlign.put("levelOne", SDLC);
+		dataTableAlign.put("levelTwo", ActivityGroup);
+		dataTableAlign.put("levelThree", DHA);
+		dataTableAlign.put("heatValue", HEAT_VALUE);
+		dataTableAlign.put("minValue", MIN_ACTIVITY_VALUE);
 		returnHashMap.put("SDLCList", sdlcList);
-		returnHashMap.put("dataTableAlign", dataTableALign);
+		returnHashMap.put("dataTableAlign", dataTableAlign);
 		return returnHashMap;
 	}
 	
