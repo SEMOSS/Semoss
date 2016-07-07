@@ -107,7 +107,7 @@ public class MetaModelPredictor {
 				} else {
 					predMap.put("sub", subjectArr);
 					predMap.put("prop", objectArr);
-					predMap.put("dataType", dataTypeMap.get(object));
+					predMap.put("dataType", dataType.toString());
 					this.propFileData.get("propFileNodeProp").add(predMap);
 				}
 			}
