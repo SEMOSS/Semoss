@@ -712,6 +712,20 @@ public abstract class AbstractEngine implements IEngine {
 		}
 		return queryReturn.get(0);
 	}
+	
+	public String getConceptualUriFromPhysicalUri(String physicalURI) {
+		String query = "SELECT DISTINCT ?conceptual WHERE { "
+				+ "BIND(<" + physicalURI + "> AS ?uri) "
+				+ "{?uri <http://semoss.org/ontologies/Relation/Conceptual> ?conceptual } "
+				+ "}"; // end where
+
+		Vector<String> queryReturn = Utility.getVectorOfReturn(query, baseDataEngine, true);
+		// there should only be one return in the vector since conceptual URIs are a one-to-one match with the physical URIs
+		if(queryReturn.isEmpty()) {
+			return physicalURI;
+		}
+		return queryReturn.get(0);
+	}
 
 	
 	/**

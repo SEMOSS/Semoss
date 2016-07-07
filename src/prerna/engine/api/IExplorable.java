@@ -145,6 +145,14 @@ public interface IExplorable {
 	 * @return						Return the physical URI 					
 	 */
 	String getPhysicalUriFromConceptualUri(String conceptualURI);
+	
+	/**
+	 * Get the conceptual URI from the physical URI
+	 * @param physicalURI			The physical URI
+	 * 								If it is not a valid URI, we will assume it is the instance_name and create the URI
+	 * @return						Return the conceptual URI 					
+	 */
+	String getConceptualUriFromPhysicalUri(String physicalURI);
 
 	//loads the logical and physical names
 	void loadTransformedNodeNames();
