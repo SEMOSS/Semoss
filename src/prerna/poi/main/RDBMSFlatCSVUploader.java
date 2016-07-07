@@ -37,7 +37,9 @@ public class RDBMSFlatCSVUploader extends AbstractFileReader {
 	// headers and data types from a given csv file
 	private final String CSV_HEADERS = "headers";
 	private final String CSV_DATA_TYPES = "dataTypes";
-
+	
+	private final String BASE_PRIM_KEY = "_UNIQUE_ROW_ID";
+	
 	
 	///////////////////////////////////////// main upload methods //////////////////////////////////////////
 	
@@ -190,10 +192,11 @@ public class RDBMSFlatCSVUploader extends AbstractFileReader {
 			// check that every header is contained in this table
 			// check that the data types from the csv file and the table match
 			for(int i = 0; i < headers.length; i++) {
+				// existing rdbms structure returns with everything upper case
 				String csvHeader = RDBMSEngineCreationHelper.cleanTableName(headers[i]).toUpperCase();
 				String csvDataType = dataTypes[i].toUpperCase();
-				// existing rdbms structure returns with everything upper case
-				if(!existingColTypeMap.containsKey(csvHeader.toUpperCase())) {
+				
+				if(!existingColTypeMap.containsKey(csvHeader)) {
 					// if the column name doesn't exist in the existing table
 					// look at the next table
 					continue TABLE_LOOP;
@@ -234,10 +237,10 @@ public class RDBMSFlatCSVUploader extends AbstractFileReader {
 			// let us try and remove this
 			String fileName = getOriginalFileName(FILE_LOCATION);
 			// make the table name based on the fileName
-			String cleanTableName = RDBMSEngineCreationHelper.cleanTableName(fileName);
+			String cleanTableName = RDBMSEngineCreationHelper.cleanTableName(fileName).toUpperCase();
 			
 			// we also need to make sure the table is unique
-			if(existingRDBMSStructure.containsKey(cleanTableName.toUpperCase())) {
+			if(existingRDBMSStructure.containsKey(cleanTableName)) {
 				// TODO: might want a better way to do this
 				// 		but i think this is pretty unlikely... maybe...
 				cleanTableName += "_2"; 
@@ -247,15 +250,13 @@ public class RDBMSFlatCSVUploader extends AbstractFileReader {
 			generateNewTableFromCSV(FILE_LOCATION, cleanTableName, csvMeta);
 			
 			
-			//TODO: this is where join information would need to be added
-			// 		if we want the new table to be able to be joined onto existing tables
+			//TODO: this is where join information from the user would need to be added
+			// if we want the new table to be able to be joined onto existing tables
 			
-			
-			
-			
+			// default behavior if none found, join on column names that are the same
+			joinTables(cleanTableName, csvMeta);
 		}
 	}
-	
 	
 	///////////////////////////////// utility methods ///////////////////////////////
 	
@@ -343,7 +344,7 @@ public class RDBMSFlatCSVUploader extends AbstractFileReader {
 		
 		// now we need to append an identity column for the table, this will be the prim key
 		// TODO: should this be static across all tables or made to be different?
-		final String UNIQUE_ROW_ID = TABLE_NAME + "_UNIQUE_ROW_ID";
+		final String UNIQUE_ROW_ID = TABLE_NAME + BASE_PRIM_KEY;
 		
 		String addIdentityColumnQuery = addIdentityColumnToTable(TABLE_NAME, UNIQUE_ROW_ID);
 
@@ -500,6 +501,45 @@ public class RDBMSFlatCSVUploader extends AbstractFileReader {
 	}
 	
 	/**
+	 * Looks through all the existing column names and tries to join the new table with the existing tables
+	 * that are present. Join is only defined on the OWL itself, not the data
+	 * 
+	 * This adds the following triples:
+	 * TODO: fill in
+	 * 
+	 * 
+	 * 
+	 * 
+	 * @param TABLE_NAME					The name of the table
+	 * @param csvMeta						The column names and types of the csv file
+	 */
+	private void joinTables(final String TABLE_NAME, Map<String, String[]> csvMeta) {
+//		String[] headers = csvMeta.get(CSV_HEADERS);
+//
+//		// loop through every existing table
+//		for(String existingTableName : existingRDBMSStructure.keySet()) {
+//			// get the map containing the column names to data types for the existing table name
+//			Map<String, String> existingColTypeMap = existingRDBMSStructure.get(existingTableName);
+//			
+//			// check if a header in that table matches a header in the new table added
+//			for(int i = 0; i < headers.length; i++) {
+//				// existing rdbms structure returns with everything upper case
+//				String csvHeader = RDBMSEngineCreationHelper.cleanTableName(headers[i]).toUpperCase();
+//				if(existingColTypeMap.containsKey(csvHeader)) {
+//					// we have a match!
+//					// lets add a relationship between them
+//					// realize the concepts are joined based on a property, not based on the prim keys
+//					// thus, we can't use the default predicate that owler would create
+//					String predicate = existingTableName + "." + csvHeader + "." + TABLE_NAME + "." + csvHeader;
+//					
+//					// assumption that the column is the name of the table with the base_prim_key constant for both tables
+//					owler.addRelation(existingTableName, existingTableName + BASE_PRIM_KEY, TABLE_NAME, TABLE_NAME + BASE_PRIM_KEY, predicate);
+//				}
+//			}
+//		}
+	}
+	
+	/**
 	 * Determine if the data types are equivalent
 	 * Does a non string match for types - i.e. float and double are the same, etc.
 	 * @param existingDataType
@@ -547,11 +587,11 @@ public class RDBMSFlatCSVUploader extends AbstractFileReader {
 		TestUtilityMethods.loadDIHelper();
 
 		// set the file
-		String fileNames = "C:\\Users\\mahkhalil\\Desktop\\Movie Results.csv;C:\\Users\\mahkhalil\\Desktop\\Movie Results.csv;C:\\Users\\mahkhalil\\Desktop\\Movie Characteristics.csv";
+		String fileNames = "C:\\Users\\mahkhalil\\Desktop\\Movie Results.csv;C:\\Users\\mahkhalil\\Desktop\\Movie Characteristics.csv";
 		
 		// set a bunch of db stuff
 		String baseFolder = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER);
-		String engineName = "testing4";
+		String engineName = "test_this";
 		String customBase = "http://semoss.org/ontologies";
 		SQLQueryUtil.DB_TYPE dbType = SQLQueryUtil.DB_TYPE.H2_DB;
 

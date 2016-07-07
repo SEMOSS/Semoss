@@ -123,7 +123,7 @@ public class OWLER {
 	 * For a RDBMS concept, say it is 'C1' for column name and sits on 'T1' table name, the following tiples will be added:
 	 * 1) { <semoss:Concept/C1/T1> <rdfs:subClassOf> <semoss:Concept> }
 	 * 2) { <semoss:Concept/C1/T1> <rdfs:Class> 'TYPE:DATA_TYPE_HERE' }
-	 * 3) { <semoss:Concept/C1/T1> <semoss:Relation/Conceptual> <semoss:Concept/C1> }
+	 * 3) { <semoss:Concept/C1/T1> <semoss:Relation/Conceptual> <semoss:Concept/T1> }
  	 * TODO: no longer doing 4
 	 * 4) { <semoss:Concept/C1> <rdfs:subClassOf> <semoss:Concept> }
 	 */
@@ -158,25 +158,26 @@ public class OWLER {
 			// here is the logic to create the physical uri for the concept
 			// the base URI for the concept will be the baseNodeURI
 			String subject = baseNodeURI + "/";
-			// we also want to keep track of what the column/name of the concept is
-			String subjectName = null;
+			// we also want to keep track of what the conceptual name is
+			// jk, this will always be the table name now
+//			String subjectName = null;
 			// if it is an RDBMS engine, we need to account when the table name and column name are not the same
 			if(type.equals(IEngine.ENGINE_TYPE.RDBMS)) {
 				// if the column is null or empty, assume table name and col name are the same
 				if(colName == null || colName.isEmpty()) {
 					subject += tableName + "/" + tableName;
-					subjectName = tableName;
+//					subjectName = tableName;
 				} else {
 					// they might be the same, might be diff, don't matter
 					// create it appropriately
 					subject += colName + "/" + tableName;
-					subjectName = colName;
+//					subjectName = colName;
 				}
 			} else {
 				// here, it must be RDF
 				// just add the table name since that is supposed to hold the concept name
 				subject += tableName;
-				subjectName = tableName;
+//				subjectName = tableName;
 			}
 			
 			// now lets start to add the triples
@@ -193,7 +194,7 @@ public class OWLER {
 			// if it contains any of the special characters that are not allowed in PKQL
 			// the conceptual name is the clean version of the name ... for now
 			String conceptualRelationship = baseRelation + "/" + CONCEPTUAL_RELATION_NAME;
-			String conceptualNode = Utility.cleanVariableString(subjectName);
+			String conceptualNode = Utility.cleanVariableString(tableName);
 			String conceptualSubject = baseNodeURI + "/" + conceptualNode;
 			engine.addToBaseEngine(subject, conceptualRelationship, conceptualSubject);
 //			engine.addToBaseEngine(conceptualSubject, RDFS.SUBCLASSOF.stringValue(), baseNodeURI);
