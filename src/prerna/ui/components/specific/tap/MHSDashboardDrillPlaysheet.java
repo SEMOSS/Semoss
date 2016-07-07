@@ -98,7 +98,14 @@ public class MHSDashboardDrillPlaysheet extends TablePlaySheet implements IDataM
 	public Map getDataMakerOutput(String... selectors) {
 		Map<String, Object> returnHashMap = aggregateDHAGroup();
 		List<Object> sdlcList = new ArrayList <Object> (Arrays.asList("Strategy", "Requirement", "Design", "Development", "Test", "Security", "Deployment", "Training"));
+		Map<String, String> dataTableALign = new HashMap <String, String> ();
+		dataTableALign.put("levelOne", SDLC);
+		dataTableALign.put("levelTwo", ActivityGroup);
+		dataTableALign.put("levelThree", DHA);
+		dataTableALign.put("heatValue", HEAT_VALUE);
+		dataTableALign.put("minValue", MIN_ACTIVITY_VALUE);
 		returnHashMap.put("SDLCList", sdlcList);
+		returnHashMap.put("dataTableALign", dataTableALign);
 		return returnHashMap;
 	}
 	
@@ -156,13 +163,13 @@ public class MHSDashboardDrillPlaysheet extends TablePlaySheet implements IDataM
 			innerMap.put(ActivityGroup, group);
 			innerMap.put(DHA, dha);
 			
-			Map<String, Long> valueMap = calculateValues(plannedStartDate, plannedEndDate, actualStartDate, actualEndDate);
-			long heatValue = valueMap.get("HeatVal");
-			long minVal = valueMap.get("MinVal");
+			Map<String, Number> valueMap = calculateValues(plannedStartDate, plannedEndDate, actualStartDate, actualEndDate);
+			int heatValue = (int) valueMap.get("HeatVal");
+			long minVal = (long)valueMap.get("MinVal");
 			
 			if(returnMap.containsKey(key)) {
 				Map<String, Object> innerMapReturn = (Map<String, Object>) returnMap.get(key);
-				long totalHeatVal = (long) innerMapReturn.get(HEAT_VALUE);
+				int totalHeatVal = (int) innerMapReturn.get(HEAT_VALUE);
 				int numActivtyReturn = (int) innerMapReturn.get("ACTIVITY_NUM");
 				
 				//calculate total average heat value 
@@ -197,7 +204,7 @@ public class MHSDashboardDrillPlaysheet extends TablePlaySheet implements IDataM
 	 * @param actualEndDate String actual end date
 	 * @return Hashmap<String, Long> where "HeatVal" is the heat value for each dha and "MinVal" is the lowest heat value for each DHA  
 	 */
-	public Map<String, Long> calculateValues (String plannedStartDate, String plannedEndDate, String actualStartDate, String actualEndDate) {
+	public Map<String, Number> calculateValues (String plannedStartDate, String plannedEndDate, String actualStartDate, String actualEndDate) {
 		Date plannedStart = null;
 		Date plannedEnd = null;
 		Date actualStart = null;
@@ -221,26 +228,26 @@ public class MHSDashboardDrillPlaysheet extends TablePlaySheet implements IDataM
 			e.printStackTrace();
 		}
 		
-		Map<String, Long> returnMap = new HashMap<String, Long> ();
+		Map<String, Number> returnMap = new HashMap<String, Number> ();
 		Date todaysDate = Calendar.getInstance().getTime();
-		long heatValue = 0;
+		int heatValue = 0;
 		long minVal = 0;
 		
 		// if there is a date associated with each : (planned end date - actual end date)
 		if(plannedStart !=null && plannedEnd !=null && actualStart !=null && actualEnd !=null){
-			heatValue = (plannedEnd.getTime() - actualEnd.getTime())/(24 * 60 * 60 * 1000);
+			heatValue = (int) ((plannedEnd.getTime() - actualEnd.getTime())/(24 * 60 * 60 * 1000));
 		}
 		// if there are no actual start and actual end dates : (planned start - today's date) if planned start date is greater than today's date
 		else if (plannedStart !=null && plannedEnd !=null && actualStart == null && actualEnd == null) {
 			if(plannedStart.getTime() < todaysDate.getTime()){
-				heatValue = (plannedStart.getTime() - todaysDate.getTime())/(24 * 60 * 60 * 1000);
+				heatValue = (int) ((plannedStart.getTime() - todaysDate.getTime())/(24 * 60 * 60 * 1000));
 			} else {
 				heatValue = 0;
 			}
 		}  
 		// if there is no actual end date : (planned start date - actual start date)
 		else if(plannedStart !=null && plannedEnd !=null && actualStart != null && actualEnd == null ){
-			heatValue = (plannedStart.getTime() - actualStart.getTime())/(24 * 60 * 60 * 1000);
+			heatValue = (int) ((plannedStart.getTime() - actualStart.getTime())/(24 * 60 * 60 * 1000));
 			minVal = heatValue;
 		} else{
 			heatValue = 0;
@@ -255,7 +262,7 @@ public class MHSDashboardDrillPlaysheet extends TablePlaySheet implements IDataM
 	}
 	
 	public static DateFormat getDateFormat() {
-		return new SimpleDateFormat("dd-MM-yyyy");
+		return new SimpleDateFormat("MM-dd-yyyy");
 	}
 
 	
