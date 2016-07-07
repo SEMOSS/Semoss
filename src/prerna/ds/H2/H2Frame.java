@@ -136,65 +136,84 @@ public class H2Frame extends AbstractTableDataFrame {
         
         List<ISEMOSSTransformation>  preTrans = component.getPreTrans();
         List<Map<String,String>> joinColList= new ArrayList<Map<String,String>> ();
+        String joinType = null;
         for(ISEMOSSTransformation transformation: preTrans){
      	   if(transformation instanceof JoinTransformation){
      		   Map<String, String> joinMap = new HashMap<String,String>();
      		  String joinCol1 = (String) ((JoinTransformation)transformation).getProperties().get(JoinTransformation.COLUMN_ONE_KEY);
      		  String joinCol2 = (String) ((JoinTransformation)transformation).getProperties().get(JoinTransformation.COLUMN_TWO_KEY);
+     		  joinType = (String) ((JoinTransformation)transformation).getProperties().get(JoinTransformation.JOIN_TYPE);
      		  joinMap.put(joinCol2, joinCol1); // physical in query struct ----> logical in existing data maker
      		  joinColList.add(joinMap);
      	   }  
         }
-        
-        
+
+
         processPreTransformations(component, component.getPreTrans());
         long time1 = System.currentTimeMillis();
         LOGGER.info("	Processed Pretransformations: " +(time1 - startTime)+" ms");
-        
+
         IEngine engine = component.getEngine();
         // automatically created the query if stored as metamodel
         // fills the query with selected params if required
         // params set in insightcreatrunner
         String query = component.fillQuery();
-        
+
         String[] displayNames = null;
         if(query.trim().toUpperCase().startsWith("CONSTRUCT")){
-//     	   TinkerGraphDataModel tgdm = new TinkerGraphDataModel();
-//     	   tgdm.fillModel(query, engine, this);
+        	//     	   TinkerGraphDataModel tgdm = new TinkerGraphDataModel();
+        	//     	   tgdm.fillModel(query, engine, this);
         } else if (!query.equals(Constants.EMPTY)){
-     	   ISelectWrapper wrapper = WrapperManager.getInstance().getSWrapper(engine, query);
-            //if component has data from which we can construct a meta model then construct it and merge it
-            boolean hasMetaModel = component.getQueryStruct() != null;
-            if(hasMetaModel) {
-         	   String[] headers = getH2Headers();
-         	   Map<String, Set<String>> edgeHash = component.getQueryStruct().getReturnConnectionsHash();
-         	  TinkerMetaHelper.mergeQSEdgeHash(this.metaData, edgeHash, engine, joinColList);
-         	   
-         	   //send in new columns, not all
-         	   builder.processWrapper(wrapper, headers);
+        	ISelectWrapper wrapper = WrapperManager.getInstance().getSWrapper(engine, query);
+        	String[] headers = wrapper.getDisplayVariables();
+        	//if component has data from which we can construct a meta model then construct it and merge it
+        	boolean hasMetaModel = component.getQueryStruct() != null;
+        	if(hasMetaModel) {
+        		String[] startHeaders = getH2Headers();
+        		if(startHeaders == null) {
+        			startHeaders = new String[0];
+        		}
+        		Map<String, Set<String>> edgeHash = component.getQueryStruct().getReturnConnectionsHash();
+        		Map[] retMap = TinkerMetaHelper.mergeQSEdgeHash(this.metaData, edgeHash, engine, joinColList);
 
-         	   List<String> fullNames = this.metaData.getColumnNames();
-         	   this.headerNames = fullNames.toArray(new String[fullNames.size()]);
-            } 
-            
-            //else default to primary key tinker graph
-            else {
-                displayNames = wrapper.getDisplayVariables();
-                Map<String, Set<String>> edgeHash = TinkerMetaHelper.createPrimKeyEdgeHash(displayNames);
-                TinkerMetaHelper.mergeEdgeHash(this.metaData, edgeHash, getNode2ValueHash(edgeHash));
-          	   List<String> fullNames = this.metaData.getColumnNames();
-         	   this.headerNames = fullNames.toArray(new String[fullNames.size()]);
-         	   while(wrapper.hasNext()){
-         		   this.addRow(wrapper.next());
-         	   }
-            }
+        		// set the addRow logic to false
+        		boolean addRow = false;
+        		// if all the headers are accounted or the frame is empty, then the logic should only be inserting
+        		// the values from the iterator into the frame
+        		if(allHeadersAccounted(startHeaders, headers, joinColList) || this.isEmpty() ) {
+        			addRow = true;
+        		}
+        		if(addRow) {
+        			while(wrapper.hasNext()) {
+        				IHeadersDataRow ss = (IHeadersDataRow) wrapper.next();
+        				addRow(ss.getValues(), ss.getRawValues(), headers);
+        			}
+        		} else {
+            		processIterator(wrapper, wrapper.getDisplayVariables(), retMap[1], joinColList, joinType);
+        		}
+
+        		List<String> fullNames = this.metaData.getColumnNames();
+        		this.headerNames = fullNames.toArray(new String[fullNames.size()]);
+        	} 
+
+        	//else default to primary key tinker graph
+        	else {
+        		displayNames = wrapper.getDisplayVariables();
+        		Map<String, Set<String>> edgeHash = TinkerMetaHelper.createPrimKeyEdgeHash(displayNames);
+        		TinkerMetaHelper.mergeEdgeHash(this.metaData, edgeHash, getNode2ValueHash(edgeHash));
+        		List<String> fullNames = this.metaData.getColumnNames();
+        		this.headerNames = fullNames.toArray(new String[fullNames.size()]);
+        		while(wrapper.hasNext()){
+        			this.addRow(wrapper.next());
+        		}
+        	}
         }
-// 	   List<String> fullNames = this.metaData.getColumnNames();
-// 	   this.headerNames = fullNames.toArray(new String[fullNames.size()]);
+        // 	   List<String> fullNames = this.metaData.getColumnNames();
+        // 	   this.headerNames = fullNames.toArray(new String[fullNames.size()]);
 
         long time2 = System.currentTimeMillis();
         LOGGER.info("	Processed Wrapper: " +(time2 - time1)+" ms");
-        
+
         processPostTransformations(component, component.getPostTrans());
         processActions(component, component.getActions());
 
@@ -202,6 +221,49 @@ public class H2Frame extends AbstractTableDataFrame {
         LOGGER.info("Component Processed: " +(time4 - startTime)+" ms");
 	}
 	
+	/**
+	 * Determine if all the headers are taken into consideration within the iterator
+	 * This helps to determine if we need to perform an insert vs. an update query to fill the frame
+	 * @param headers1				The original set of headers in the frame
+	 * @param headers2				The new set of headers from the iterator
+	 * @param joins					Needs to take into consideration the joins since we can join on 
+	 * 								columns that do not have the same names
+	 * @return
+	 */
+	private boolean allHeadersAccounted(String[] headers1, String[] headers2, List<Map<String, String>> joins) {
+		if(headers1.length != headers2.length) {
+			return false;
+		}
+		
+		//add values to a set and compare
+		Set<String> header1Set = new HashSet<>();
+		Set<String> header2Set = new HashSet<>();
+
+		//make a set with headers1
+		for(String header : headers1) {
+			header1Set.add(header);
+		}
+		
+		//make a set with headers2
+		for(String header : headers2) {
+			header2Set.add(header);
+		}
+		
+		//add headers1 headers to headers2set if there is a matching join and remove the other header
+		for(Map<String, String> join : joins) {
+			for(String key : join.keySet()) {
+				header2Set.add(key);
+				header2Set.remove(join.get(key));
+			}
+		}
+		
+		//take the difference
+		header2Set.removeAll(header1Set);
+		
+		//return true if header sets matched, false otherwise
+		return header2Set.size() == 0;
+	}
+
 	
 	/****************************** FILTER METHODS **********************************************/
 	
@@ -523,6 +585,8 @@ public class H2Frame extends AbstractTableDataFrame {
 		}
 		return builder.buildIterator(options);
 	}
+	
+	
 	
 	public void applyGroupBy(String[] column, String newColumnName, String valueColumn, String mathType) {
 //		column = H2HeaderMap.get(column);
@@ -1025,7 +1089,7 @@ public class H2Frame extends AbstractTableDataFrame {
 		return reactorNames;
 	}
 	
-	public void processIterator(Iterator<IHeadersDataRow> iterator, String[] newHeaders, Map<String, String> logicalToValue, Vector<Map<String, String>> joins, String joinType) {
+	public void processIterator(Iterator<IHeadersDataRow> iterator, String[] newHeaders, Map<String, String> logicalToValue, List<Map<String, String>> joins, String joinType) {
 		
 		//convert the new headers into value headers
 		String[] valueHeaders = new String[newHeaders.length];
@@ -1078,8 +1142,11 @@ public class H2Frame extends AbstractTableDataFrame {
 				jType = Join.LEFT_OUTER;
 			} else if(joinType.toUpperCase().startsWith("RIGHT")) {
 				jType = Join.RIGHT_OUTER;
-			}
 
+			//due to stupid legacy code using partial
+			} else if(joinType.toUpperCase().startsWith("PARTIAL")) {
+				jType = Join.LEFT_OUTER;
+			}
 		}
 		
 		this.builder.processIterator(iterator, adjustedColHeaders, valueHeaders, types, jType);

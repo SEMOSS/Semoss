@@ -30,6 +30,7 @@ import prerna.ds.TinkerFrame;
 import prerna.engine.api.IHeadersDataRow;
 import prerna.engine.api.ISelectStatement;
 import prerna.engine.api.ISelectWrapper;
+import prerna.ui.components.playsheets.datamakers.JoinTransformation;
 import prerna.util.ArrayUtilityMethods;
 import prerna.util.Utility;
 
@@ -78,6 +79,7 @@ public class H2Builder {
 			return name;
 		}
 	}
+	
 	
 	//types of comparators
 	public enum Comparator {
@@ -426,23 +428,23 @@ public class H2Builder {
 
     //create a table with the data given the columnheaders with the tableName
     // I am not sure if we even use it now
-    private void generateTable(String[][] data, String[] columnHeaders, String tableName) {
-    	
-    	try {
-			String[] types = predictRowTypes(data[0]);
-			String createTable = makeCreate(tableName, columnHeaders, types);
-			runQuery(createTable);
-			
-			
-			for(String[] row : data) {
-				String[] cells = Utility.castToTypes(row, types);
-				String inserter = makeInsert(columnHeaders, types, cells, new Hashtable<String, String>(), tableName);
-				runQuery(inserter);
-			}
-		} catch (Exception e) {
-			e.printStackTrace();
-		}
-    }
+//    private void generateTable(String[][] data, String[] columnHeaders, String tableName) {
+//    	
+//    	try {
+//			String[] types = predictRowTypes(data[0]);
+//			String createTable = makeCreate(tableName, columnHeaders, types);
+//			runQuery(createTable);
+//			
+//			
+//			for(String[] row : data) {
+//				String[] cells = Utility.castToTypes(row, types);
+//				String inserter = makeInsert(columnHeaders, types, cells, new Hashtable<String, String>(), tableName);
+//				runQuery(inserter);
+//			}
+//		} catch (Exception e) {
+//			e.printStackTrace();
+//		}
+//    }
     
     /**
      * Generates a new H2 table from the paramater data
@@ -1073,24 +1075,24 @@ public class H2Builder {
     
     /*************************** UPDATE ******************************************/
    
-    //process the wrapper from processDataMakerComponent in H2Frame to generate a table then add that table
-    /**
-     * 
-     * @param wrapper - wrapper to process
-     * @param headers - 
-     * @param types
-     */
-    public void processWrapper(ISelectWrapper wrapper, String[] headers) {
-    	String[][] data = getData(wrapper);
-    	String[] newHeaders = wrapper.getDisplayVariables();
-    	newHeaders = cleanHeaders(newHeaders);
-    	if(headers == null) {
-    		//create table
-    		generateTable(data, newHeaders, tableName);
-    	} else {
-    		processAlterData(data, newHeaders, headers, Join.INNER);
-    	}
-    }
+//    //process the wrapper from processDataMakerComponent in H2Frame to generate a table then add that table
+//    /**
+//     * 
+//     * @param wrapper - wrapper to process
+//     * @param headers - 
+//     * @param types
+//     */
+//    public void processWrapper(ISelectWrapper wrapper, String[] headers) {
+//    	String[][] data = getData(wrapper);
+//    	String[] newHeaders = wrapper.getDisplayVariables();
+//    	newHeaders = cleanHeaders(newHeaders);
+//    	if(headers == null) {
+//    		//create table
+//    		generateTable(data, newHeaders, tableName);
+//    	} else {
+//    		processAlterData(data, newHeaders, headers, Join.INNER);
+//    	}
+//    }
     
     /**
      * This method is responsible for processing the data associated with an iterator and adding it to the H2 table
@@ -1344,6 +1346,7 @@ public class H2Builder {
 	    	}
     	}catch(Exception ex)
     	{
+    		ex.printStackTrace();
     		brokenLines = "Headers are not properly formatted - Discontinued processing";
     		create = false;
     	}
@@ -1542,101 +1545,101 @@ public class H2Builder {
     }
     
     //process to join the data and new headers to existing table
-    private void processAlterData(String[][] data, String[] newHeaders, String[] headers, Join joinType)
-    {
-    	// this currently doesnt handle many to many joins and such
-    	String[] types = null;
-    	try {
-    		getConnection();
-	    	
-	    	// I need to do an evaluation here to find if this one to many
-	    	String [] oldHeaders = headers;
-
-	    	//headers for the joining table
-    		
-//    		int curHeadCount = headers.length;
-    		Vector <String> newHeaderIndices = new Vector<String>();
-    		Vector <String> oldHeaderIndices = new Vector<String>();
-    		Hashtable<Integer, Integer> matchers = new Hashtable<Integer, Integer>();
-//    		if(matchers == null || matchers.isEmpty()) {
-//	    		matchers = new Hashtable<Integer, Integer>();
-	    		
-	    		// I need to find which ones are already there and which ones are new
-	    		for(int hIndex = 0;hIndex < newHeaders.length;hIndex++)
-	    		{
-	    			String uheader = newHeaders[hIndex];
-	    			uheader = cleanHeader(uheader);
-	
-	    			boolean old = false;
-	    			for(int oIndex = 0;oIndex < headers.length;oIndex++)
-	    			{
-	    				if(headers[oIndex].equalsIgnoreCase(uheader))
-	    				{
-	    					old = true;
-	    					oldHeaderIndices.add(hIndex+"");
-	    					matchers.put(hIndex, oIndex);
-	    					break;
-	    				}
-	    			}
-	    			
-	    			if(!old)
-	    				newHeaderIndices.add((hIndex) + "");
-	    		}
-//    		}
-    		
-//    		headers = newHeaders;
-				    		
-//    		String [] oldTypes = types; // I am not sure if I need this we will see - yes I do now yipee
-    		
-//			String[] cells = data[0];
-//			predictRowTypes(cells);
-
-//			String[] newTypes = types;
-			
-			//stream.close();
-			
-			boolean one2Many = false;
-			// I also need to accomodate when there are no common ones
-//			if(oldHeaderIndices.size() == 0)
-			if(matchers.isEmpty())	
-			{
-				// this is the case where it has not been created yet
-				tableName = getNewTableName();
-				generateTable(data, newHeaders, tableName);
-			}
-			else
-			{
-				// close the stream and open it again
-				
-				// do a different process here
-				// I need to create a new database here
-				one2Many = true;
-				generateTable(data, newHeaders, H2FRAME + getNextNumber());
-				// not bad -- this does it ?
-				// whoa hang on I need to handle the older headers and such
-				// done in reset headers
-			}
-			
-			// need to create a new database with everything now
-			// reset all the headers
+//    private void processAlterData(String[][] data, String[] newHeaders, String[] headers, Join joinType)
+//    {
+//    	// this currently doesnt handle many to many joins and such
+//    	String[] types = null;
+//    	try {
+//    		getConnection();
+//	    	
+//	    	// I need to do an evaluation here to find if this one to many
+//	    	String [] oldHeaders = headers;
+//
+//	    	//headers for the joining table
+//    		
+////    		int curHeadCount = headers.length;
+//    		Vector <String> newHeaderIndices = new Vector<String>();
+//    		Vector <String> oldHeaderIndices = new Vector<String>();
+//    		Hashtable<Integer, Integer> matchers = new Hashtable<Integer, Integer>();
+////    		if(matchers == null || matchers.isEmpty()) {
+////	    		matchers = new Hashtable<Integer, Integer>();
+//	    		
+//	    		// I need to find which ones are already there and which ones are new
+//	    		for(int hIndex = 0;hIndex < newHeaders.length;hIndex++)
+//	    		{
+//	    			String uheader = newHeaders[hIndex];
+//	    			uheader = cleanHeader(uheader);
+//	
+//	    			boolean old = false;
+//	    			for(int oIndex = 0;oIndex < headers.length;oIndex++)
+//	    			{
+//	    				if(headers[oIndex].equalsIgnoreCase(uheader))
+//	    				{
+//	    					old = true;
+//	    					oldHeaderIndices.add(hIndex+"");
+//	    					matchers.put(hIndex, oIndex);
+//	    					break;
+//	    				}
+//	    			}
+//	    			
+//	    			if(!old)
+//	    				newHeaderIndices.add((hIndex) + "");
+//	    		}
+////    		}
+//    		
+////    		headers = newHeaders;
+//				    		
+////    		String [] oldTypes = types; // I am not sure if I need this we will see - yes I do now yipee
+//    		
+////			String[] cells = data[0];
+////			predictRowTypes(cells);
+//
+////			String[] newTypes = types;
+//			
+//			//stream.close();
+//			
+//			boolean one2Many = false;
+//			// I also need to accomodate when there are no common ones
+////			if(oldHeaderIndices.size() == 0)
+//			if(matchers.isEmpty())	
+//			{
+//				// this is the case where it has not been created yet
+//				tableName = getNewTableName();
+//				generateTable(data, newHeaders, tableName);
+//			}
+//			else
+//			{
+//				// close the stream and open it again
+//				
+//				// do a different process here
+//				// I need to create a new database here
+//				one2Many = true;
+//				generateTable(data, newHeaders, H2FRAME + getNextNumber());
+//				// not bad -- this does it ?
+//				// whoa hang on I need to handle the older headers and such
+//				// done in reset headers
+//			}
+//			
+//			// need to create a new database with everything now
+//			// reset all the headers
+////			if(one2Many)
+////			resetHeaders(oldHeaders, headers, newHeaderIndices, oldTypes, types, curHeadCount);
+//    		// just test to see if it finally came through
+//			
+//			// now I need to assimilate everything into one
+//			String tableName2 = H2FRAME + tableRunNumber;
+//			String tableName1 = tableName;
+//			
 //			if(one2Many)
-//			resetHeaders(oldHeaders, headers, newHeaderIndices, oldTypes, types, curHeadCount);
-    		// just test to see if it finally came through
-			
-			// now I need to assimilate everything into one
-			String tableName2 = H2FRAME + tableRunNumber;
-			String tableName1 = tableName;
-			
-			if(one2Many)
-				mergeTables(tableName1, tableName2, matchers, oldHeaders, newHeaders, joinType.getName());
-			
-			testData();
-			
-		} catch (SQLException e) {
-			e.printStackTrace();
-		}
-    }
-    
+//				mergeTables(tableName1, tableName2, matchers, oldHeaders, newHeaders, joinType.getName());
+//			
+//			testData();
+//			
+//		} catch (SQLException e) {
+//			e.printStackTrace();
+//		}
+//    }
+//    
     /**
      * 
      * @param newTableName - new table to join onto main table
@@ -2343,7 +2346,7 @@ public class H2Builder {
     	}
     	
 //    	this.headers = capHeaders;
-    	createString = createString + ")";
+    	createString = createString + ");";
     	
     	return createString;
     }
