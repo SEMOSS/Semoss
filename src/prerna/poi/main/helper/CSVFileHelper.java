@@ -211,6 +211,11 @@ public class CSVFileHelper {
 					type = newTypePred;
 				}
 			}
+			// if an entire column is empty, type will be null
+			// why someone has a csv file with an empty column, i do not know...
+			if(type == null) {
+				type = "VARCHAR(800)";
+			}
 			types[counter] = type;
 			counter++;
 		}

@@ -2,6 +2,8 @@ package prerna.poi.main;
 
 import java.io.File;
 import java.io.IOException;
+import java.sql.PreparedStatement;
+import java.sql.SQLException;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.HashSet;
@@ -16,11 +18,13 @@ import org.apache.log4j.Logger;
 
 import cern.colt.Arrays;
 import prerna.engine.api.IEngine;
+import prerna.engine.api.IEngine.ACTION_TYPE;
 import prerna.poi.main.helper.CSVFileHelper;
 import prerna.test.TestUtilityMethods;
 import prerna.ui.components.ImportDataProcessor;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
+import prerna.util.Utility;
 import prerna.util.sql.SQLQueryUtil;
 
 public class RDBMSFlatCSVUploader extends AbstractFileReader {
@@ -38,8 +42,17 @@ public class RDBMSFlatCSVUploader extends AbstractFileReader {
 	private final String CSV_HEADERS = "headers";
 	private final String CSV_DATA_TYPES = "dataTypes";
 	
+	// used as a default for the unique row id
 	private final String BASE_PRIM_KEY = "_UNIQUE_ROW_ID";
 	
+	// CSVFileHelper to get information from the csv file
+	// i.e. the headers and data types
+	// also used to look through csv file when performing bulk
+	// inserts instead of CSV file upload - used currently
+	// when there are date data types since they must be in a specific
+	// format for RDBMS (probably differs based on type.. right now assuming
+	// it is h2)
+	private CSVFileHelper helper;
 	
 	///////////////////////////////////////// main upload methods //////////////////////////////////////////
 	
@@ -54,8 +67,9 @@ public class RDBMSFlatCSVUploader extends AbstractFileReader {
 	 * @param allowDuplicates					Boolean to determine if we should delete duplicate rows
 	 * @return									The new engine created
 	 * @throws IOException 
+	 * @throws SQLException 
 	 */
-	public IEngine importFileWithOutConnection(String smssLocation, String fileLocations, String customBaseURI, String owlPath, String engineName, SQLQueryUtil.DB_TYPE dbDriverType, boolean allowDuplicates) throws IOException {
+	public IEngine importFileWithOutConnection(String smssLocation, String fileLocations, String customBaseURI, String owlPath, String engineName, SQLQueryUtil.DB_TYPE dbDriverType, boolean allowDuplicates) throws IOException, SQLException {
 		boolean error = false;
 		queryUtil = SQLQueryUtil.initialize(dbDriverType);
 		// sets the custom base uri, sets the owl path, sets the smss location
@@ -85,6 +99,9 @@ public class RDBMSFlatCSVUploader extends AbstractFileReader {
 			// create the base question sheet
 			RDBMSEngineCreationHelper.writeDefaultQuestionSheet(engine, queryUtil);
 		} finally {
+			// close the helper
+			helper.clear();
+			// close other stuff
 			if(error || autoLoad) {
 				closeDB();
 				closeOWL();
@@ -105,8 +122,9 @@ public class RDBMSFlatCSVUploader extends AbstractFileReader {
 	 * @param dbDriverType						The database type (h2, mysql, etc.)
 	 * @param allowDuplicates					Boolean to determine if we should delete duplicate rows
 	 * @throws IOException 
+	 * @throws SQLException 
 	 */
-	public void importFileWithConnection(String smssLocation, String fileLocations, String customBaseURI, String owlPath, prerna.util.sql.SQLQueryUtil.DB_TYPE dbDriverType, boolean allowDuplicates) throws IOException {
+	public void importFileWithConnection(String smssLocation, String fileLocations, String customBaseURI, String owlPath, prerna.util.sql.SQLQueryUtil.DB_TYPE dbDriverType, boolean allowDuplicates) throws IOException, SQLException {
 		boolean error = false;
 		
 		queryUtil = SQLQueryUtil.initialize(dbDriverType);
@@ -134,6 +152,9 @@ public class RDBMSFlatCSVUploader extends AbstractFileReader {
 			// create the base question sheet
 			RDBMSEngineCreationHelper.addToExistingQuestionFile(this.engine, newTables, queryUtil);
 		} finally {
+			// close the helper
+			helper.clear();
+			// close other stuff
 			if(error || autoLoad) {
 				closeDB();
 				closeOWL();
@@ -159,8 +180,9 @@ public class RDBMSFlatCSVUploader extends AbstractFileReader {
 	 * 
 	 * 
 	 * @param fileLocation					The location of the csv file
+	 * @throws SQLException 
 	 */
-	private void processTable(final String FILE_LOCATION) {
+	private void processTable(final String FILE_LOCATION) throws SQLException {
 		// parse the csv meta to get the headers and data types
 		// headers and data types arrays match based on position 
 		// currently assume we are loading all the columns
@@ -276,7 +298,7 @@ public class RDBMSFlatCSVUploader extends AbstractFileReader {
 		LOGGER.info("Processing csv file: " + FILE_LOCATION);
 
 		// use the csv file helper to load the data
-		CSVFileHelper helper = new CSVFileHelper();
+		helper = new CSVFileHelper();
 		// assume csv
 		helper.setDelimiter(',');
 		helper.parse(FILE_LOCATION);
@@ -289,9 +311,6 @@ public class RDBMSFlatCSVUploader extends AbstractFileReader {
 		String[] dataTypes = helper.predictTypes();
 		LOGGER.info("Found data types: " + Arrays.toString(dataTypes));
 
-		// close the helper
-		helper.clear();
-		
 		Map<String, String[]> csvMeta = new Hashtable<String, String[]>();
 		csvMeta.put(CSV_HEADERS, headers);
 		csvMeta.put(CSV_DATA_TYPES, dataTypes);
@@ -333,57 +352,76 @@ public class RDBMSFlatCSVUploader extends AbstractFileReader {
 	 * @param FILE_LOCATION						The location of the csv file
 	 * @param TABLE_NAME						The name of the table to create
 	 * @param csvMeta							Map containing the header and data type for each column, aligned by position
+	 * @throws SQLException 
 	 */
-	private void generateNewTableFromCSV(final String FILE_LOCATION, final String TABLE_NAME, Map<String, String[]> csvMeta) {
+	private void generateNewTableFromCSV(final String FILE_LOCATION, final String TABLE_NAME, Map<String, String[]> csvMeta) throws SQLException {
 		LOGGER.info("Creating a new table from " + FILE_LOCATION);
 
-		String insertCSVIntoTableQuery = generateCreateTableFromCSVSQL(FILE_LOCATION, TABLE_NAME, csvMeta);
-		// load the csv as a table
-		System.out.println(insertCSVIntoTableQuery);
-		this.engine.insertData(insertCSVIntoTableQuery);
+		// in the case of H2 RDBMS (and i'm guessing this is the case for other RDBMS)
+		// dates are required to be sent in a specific format
+		// thus, we want to look at the data types and see if there is a date
+		// if there is a date, we need to perform a bulk insert, where we convert every date object to the correct format
+		
+		if(containsDateDataType(csvMeta.get(CSV_DATA_TYPES))) {
+			// we had a date!
+			// first create the table
+			createTable(TABLE_NAME, csvMeta);
+			// this logic will be to do a bulk insert
+			bulkInsertCSVFile(FILE_LOCATION, TABLE_NAME, csvMeta);
+		} else {
+			// this logic just grabs the csv file and creates the table using it all in one go
+			generateCreateTableFromCSVSQL(FILE_LOCATION, TABLE_NAME, csvMeta);
+		}
 		
 		// now we need to append an identity column for the table, this will be the prim key
 		// TODO: should this be static across all tables or made to be different?
 		final String UNIQUE_ROW_ID = TABLE_NAME + BASE_PRIM_KEY;
-		
-		String addIdentityColumnQuery = addIdentityColumnToTable(TABLE_NAME, UNIQUE_ROW_ID);
-
 		// add the unique id for the table
-		System.out.println(addIdentityColumnQuery);
-		this.engine.insertData(addIdentityColumnQuery);
+		addIdentityColumnToTable(TABLE_NAME, UNIQUE_ROW_ID);
 		
 		// now need to add the table onto the owl file
 		addTableToOWL(TABLE_NAME, UNIQUE_ROW_ID, csvMeta);
 	}
-	
-	
+
 	/**
 	 * Inserts the csv data into an existing table
 	 * @param FILE_LOCATION						The location of the csv file
 	 * @param TABLE_NAME						The name of the table to insert the csv data into
 	 * @param csvMeta							Map containing the header and data type for each column, aligned by position
+	 * @throws SQLException 
 	 */
-	private void insertCSVIntoExistingTable(final String FILE_LOCATION, final String TABLE_NAME, Map<String, String[]> csvMeta) {
+	private void insertCSVIntoExistingTable(final String FILE_LOCATION, final String TABLE_NAME, Map<String, String[]> csvMeta) throws SQLException {
 		/*
-		 * This will be done in 3 steps
-		 * 1) load csv file into a temp table
-		 * 2) insert the temp table into the existing table
-		 * 3) drop the temp table
+		 * TODO: need to determine if creating a temp table is better than always inserting 
+		 * the records directly into the table... this is currently done under the assumption
+		 * that the CSV bulk insert is better than the bulk insert i am doing since i need to
+		 * cast the datat types
+		 * NOTE: we can only do the load via SQL if there are no dates.  if we have dates,
+		 * we need to do our own insert since we must convert date objects
+		 * 
+		 * If no dates are found
+		 * 		This will be done in 3 steps
+		 * 		1) load csv file into a temp table
+		 * 		2) insert the temp table into the existing table
+		 *		3) drop the temp table
+		 *
+		 * If there are dates
+		 * 		We will just iterate through the csv file and insert
 		 */
 		
-		final String TEMP_TABLE = "TEMP_TABLE_98712396874";
-		// 1) create the temp table
-		String createTempTableFromCSVQuery = generateCreateTableFromCSVSQL(FILE_LOCATION, TEMP_TABLE , csvMeta);
-		System.out.println(createTempTableFromCSVQuery);
-		this.engine.insertData(createTempTableFromCSVQuery);
-		
-		// 2) create query to insert temp into existing table
-		String insertTableIntoExistingTableQuery = generateInsertTableIntoOtherTableSQL(TABLE_NAME, TEMP_TABLE, csvMeta);
-		System.out.println(insertTableIntoExistingTableQuery);
-		this.engine.insertData(insertTableIntoExistingTableQuery);
-		
-		// 3) drop current table
-		this.engine.removeData("DROP TABLE " + TEMP_TABLE);
+		if(containsDateDataType(csvMeta.get(CSV_DATA_TYPES))) {
+			// perform a bulk insert into the table
+			bulkInsertCSVFile(FILE_LOCATION, TABLE_NAME, csvMeta);
+		} else {
+			// no date found... lets do steps 1-3
+			final String TEMP_TABLE = "TEMP_TABLE_98712396874";
+			// 1) create the temp table
+			generateCreateTableFromCSVSQL(FILE_LOCATION, TEMP_TABLE, csvMeta);
+			// 2) create query to insert temp into existing table
+			insertTableIntoOtherTable(TABLE_NAME, TEMP_TABLE, csvMeta);
+			// 3) drop current table
+			this.engine.removeData("DROP TABLE " + TEMP_TABLE);
+		}
 	}
 	
 	/**
@@ -393,7 +431,7 @@ public class RDBMSFlatCSVUploader extends AbstractFileReader {
 	 * @param csvMeta					The column names and types of the csv file
 	 * @return							The query to load the csv file into the table
 	 */
-	private String generateCreateTableFromCSVSQL(final String FILE_LOCATION, final String TABLE_NAME, Map<String, String[]> csvMeta) {
+	private void generateCreateTableFromCSVSQL(final String FILE_LOCATION, final String TABLE_NAME, Map<String, String[]> csvMeta) {
 		// headers and data types arrays match based on position 
 		String[] headers = csvMeta.get(CSV_HEADERS);
 		String[] dataTypes = csvMeta.get(CSV_DATA_TYPES);
@@ -417,17 +455,116 @@ public class RDBMSFlatCSVUploader extends AbstractFileReader {
 		queryBuilder.append(FILE_LOCATION);
 		queryBuilder.append("')");
 		
-		return queryBuilder.toString();
+		// load the csv as a table
+		System.out.println(queryBuilder.toString());
+		this.engine.insertData(queryBuilder.toString());
 	}
+	
+	/**
+	 * Creates a table using the table name and columns/types specified in csvMeta
+	 * @param TABLE_NAME				The name of the table
+	 * @param csvMeta					Map containing the headers and column types
+	 * 									for the table
+	 */
+	private void createTable(final String TABLE_NAME, Map<String, String[]> csvMeta) {
+		// headers and data types arrays match based on position 
+		String[] headers = csvMeta.get(CSV_HEADERS);
+		String[] dataTypes = csvMeta.get(CSV_DATA_TYPES);
+		
+		// need to first create the table
+		StringBuilder queryBuilder = new StringBuilder("CREATE TABLE ");
+		queryBuilder.append(TABLE_NAME);
+		queryBuilder.append(" (");
+		for(int headerIndex = 0; headerIndex < headers.length; headerIndex++) {
+			String cleanHeader = RDBMSEngineCreationHelper.cleanTableName(headers[headerIndex]);
+			queryBuilder.append(cleanHeader.toUpperCase());
+			queryBuilder.append(" ");
+			queryBuilder.append(dataTypes[headerIndex].toUpperCase());
+			
+			// add a comma if NOT the last index
+			if(headerIndex != headers.length-1) {
+				queryBuilder.append(", ");
+			}
+		}
+		queryBuilder.append(")");
+		LOGGER.info("CREATE TABLE QUERY : " + queryBuilder.toString());
+		this.engine.insertData(queryBuilder.toString());
+	}
+	
+	
+	/**
+	 * Generates a table and does a bulk insert of all the data from teh csv file
+	 * @param FILE_LOCATION					
+	 * @param TABLE_NAME
+	 * @param csvMeta
+	 * @throws SQLException 
+	 */
+	private void bulkInsertCSVFile(final String FILE_LOCATION, final String TABLE_NAME, Map<String, String[]> csvMeta) throws SQLException {
+		// headers and data types arrays match based on position 
+		String[] headers = csvMeta.get(CSV_HEADERS);
+		String[] dataTypes = csvMeta.get(CSV_DATA_TYPES);
+		
+		// now we need to loop through the csv data and cast to the appropriate type and insert
+		// let us be smart about this and use a PreparedStatement for bulk insert
+		// get the bulk statement
+		
+		// the prepared statement requires the table name and then the list of columns
+		Object[] getPreparedStatementArgs = new Object[headers.length+1];
+		getPreparedStatementArgs[0] = TABLE_NAME;
+		for(int headerIndex = 0; headerIndex < headers.length; headerIndex++) {
+			getPreparedStatementArgs[headerIndex+1] = RDBMSEngineCreationHelper.cleanTableName(headers[headerIndex]);
+		}
+		PreparedStatement ps = (PreparedStatement) this.engine.doAction(ACTION_TYPE.BULK_INSERT, getPreparedStatementArgs);
+		
+		// keep a batch size so we dont get heapspace
+		final int batchSize = 5000;
+		int count = 0;
+		
+		// we loop through every row of the csv
+		String[] nextRow = null;
+		while( (nextRow  = this.helper.getNextRow()) != null ) {
+			// we need to loop through every value and cast appropriately
+			for(int colIndex = 0; colIndex < nextRow.length; colIndex++) {
+				String type = dataTypes[colIndex];
+				if(type.equalsIgnoreCase("DATE")) {
+					java.util.Date value = Utility.getDateAsDateObj(nextRow[colIndex]);
+					if(value != null) {
+						ps.setDate(colIndex+1, new java.sql.Date(value.getTime()));
+					}
+				} else if(type.equalsIgnoreCase("DOUBLE")) {
+					Double value = Utility.getDouble(nextRow[colIndex]);
+					if(value != null) {
+						ps.setDouble(colIndex+1, value);
+					}
+				} else {
+					String value = nextRow[colIndex];
+					ps.setString(colIndex+1, value + "");
+				}
+			}
+			// add it
+			ps.addBatch();
+			
+			// batch commit based on size
+			if(++count % batchSize == 0) {
+				ps.executeBatch();
+			}
+		}
+		
+		// well, we are done looping through now
+		ps.executeBatch(); // insert any remaining records
+		ps.close();
+	}
+	
+	
+	
 	
 	/**
 	 * Generate the query to create a new table with the csv data
 	 * @param FILE_LOCATION				The location of the csv file
 	 * @param TABLE_NAME				The name of the table to load the csv file into
 	 * @param csvMeta					The column names and types of the csv file
-	 * @return							The query to load the csv file into the table
 	 */
-	private String generateInsertTableIntoOtherTableSQL(final String BASE_TABLE, final String TABLE_TO_INSERT, Map<String, String[]> csvMeta) {
+	private void insertTableIntoOtherTable(final String BASE_TABLE, final String TABLE_TO_INSERT, Map<String, String[]> csvMeta) {
 		// headers and data types arrays match based on position 
 		String[] headers = csvMeta.get(CSV_HEADERS);
 		
@@ -447,21 +584,22 @@ public class RDBMSFlatCSVUploader extends AbstractFileReader {
 		queryBuilder.append(") SELECT * FROM ");
 		queryBuilder.append(TABLE_TO_INSERT);
 		
-		return queryBuilder.toString();
+		System.out.println(queryBuilder.toString());
+		this.engine.insertData(queryBuilder.toString());
 	}
 	
 	/**
 	 * Generate the query to append an identity column onto the table
 	 * @param TABLE_NAME				The name of the table
 	 * @param IDENTITY_COL_NAME			The name of the identity column
-	 * @return
 	 */
-	private String addIdentityColumnToTable(final String TABLE_NAME, final String IDENTITY_COL_NAME) {
+	private void addIdentityColumnToTable(final String TABLE_NAME, final String IDENTITY_COL_NAME) {
 		StringBuilder queryBuilder = new StringBuilder("ALTER TABLE ");
 		queryBuilder.append(TABLE_NAME);
 		queryBuilder.append(" ADD ").append(IDENTITY_COL_NAME).append(" IDENTITY");
 		
-		return queryBuilder.toString();
+		System.out.println(queryBuilder.toString());
+		this.engine.insertData(queryBuilder.toString());
 	}
 	
 	/**
@@ -563,6 +701,11 @@ public class RDBMSFlatCSVUploader extends AbstractFileReader {
 		if(existingDataType.contains("DOUBLE") && csvDataType.contains("DOUBLE")) {
 			return true;
 		}
+		// if both are some kind of date
+		if(existingDataType.contains("DATE") && csvDataType.contains("DATE")) {
+			return true;
+		}
+		
 		// if one is a float and the other a double
 		if( (existingDataType.contains("FLOAT") && csvDataType.contains("DOUBLE") ) || 
 				( existingDataType.contains("DOUBLE") && csvDataType.contains("FLOAT") ) ) {
@@ -574,24 +717,43 @@ public class RDBMSFlatCSVUploader extends AbstractFileReader {
 		return false;
 	}
 	
+	/**
+	 * Utility method to see if there is a date type
+	 * Dates have to be in a specific format, so we need to perform bulk insert
+	 * when this is true
+	 * @param dataTypes				String[] containing all the data types for each column
+	 * @return						boolean if one of the data types is a date
+	 */
+	private boolean containsDateDataType(String[] dataTypes) {
+		for(String dataType : dataTypes) {
+			if(dataType.equalsIgnoreCase("DATE")) {
+				return true;
+			}
+		}
+		return false;
+	}
+	
 	
 	//////////////////////////////// end utility methods //////////////////////////////
 	
 
 	///////////////////////////////// test methods /////////////////////////////////
 	
-	public static void main(String[] args) throws IOException {
+	public static void main(String[] args) throws IOException, SQLException {
+		
+		long start = System.currentTimeMillis();
+		
 		// run this test when the server is not running
 		// this will create the db and smss file so when you start the server
 		// the database created will be picked up and exposed
 		TestUtilityMethods.loadDIHelper();
 
 		// set the file
-		String fileNames = "C:\\Users\\mahkhalil\\Desktop\\Movie Results.csv;C:\\Users\\mahkhalil\\Desktop\\Movie Characteristics.csv";
+		String fileNames = "C:\\Users\\mahkhalil\\Desktop\\pregnancy.csv";
 		
 		// set a bunch of db stuff
 		String baseFolder = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER);
-		String engineName = "test_this";
+		String engineName = "abcd123";
 		String customBase = "http://semoss.org/ontologies";
 		SQLQueryUtil.DB_TYPE dbType = SQLQueryUtil.DB_TYPE.H2_DB;
 
@@ -612,5 +774,10 @@ public class RDBMSFlatCSVUploader extends AbstractFileReader {
 		FileUtils.copyFile(propFile, newProp);
 		newProp.setReadable(true);
 		FileUtils.forceDelete(propFile);
+		
+		long end = System.currentTimeMillis();
+
+		System.out.println("TIME TO RUN: " + (end-start)/1000 + " seconds...");
+		
 	}
 }
