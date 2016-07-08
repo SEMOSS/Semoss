@@ -456,14 +456,20 @@ public class TinkerMetaData implements IMetaData {
 		//check if property
 		if(queryStructName.contains("__")){
 			physicalName = queryStructName.substring(queryStructName.indexOf("__")+2);
-			physicalUri = engine.getPhysicalUriFromConceptualUri("http://semoss.org/ontologies/Relation/Contains/" + physicalName);
-//			physicalUri = engine.getTransformedNodeName(Constants.DISPLAY_URI+physicalName, false);
+			String conceptualUri = "http://semoss.org/ontologies/Relation/Contains/" + physicalName;
+			physicalUri = engine.getPhysicalUriFromConceptualUri(conceptualUri);
 		}
 		else{
 			physicalName = queryStructName;
-			physicalUri = engine.getPhysicalUriFromConceptualUri("http://semoss.org/ontologies/Concept/" + physicalName);
-//			physicalName = Utility.getInstanceName(engine.getTransformedNodeName(Constants.DISPLAY_URI+queryStructName, false));
-//			physicalUri = engine.getConceptUri4PhysicalName(physicalName);
+			String conceptualUri = "http://semoss.org/ontologies/Concept/" + physicalName;
+			physicalUri = engine.getPhysicalUriFromConceptualUri(conceptualUri);
+			
+			//TODO: due to differences between old OWL and new OWL :(
+			if(physicalUri.equals(conceptualUri) && engine.getEngineType().equals(IEngine.ENGINE_TYPE.RDBMS)) {
+				// need to append based on them being the same... this only works for db's created through semoss
+				// this will not work for old OWL with connect to existing rdbms :(
+				physicalUri += "/" + physicalName; 
+			}
 		}
 		
 		// stupid check
@@ -535,6 +541,27 @@ public class TinkerMetaData implements IMetaData {
 	
 //////////////////::::::::::::::::::::::: GETTER METHODS :::::::::::::::::::::::::::::::://////////////////////////////
 
+	@Override
+	/**
+	 * Get the list of the vertices to their types
+	 * Ignores Prim_Keys
+	 * Returns the VALUE (i.e. what it is called in frame) to the type
+	 * @return
+	 */
+	public Map<String, IMetaData.DATA_TYPES> getColumnTypes() {
+		List<Vertex> verts = getColumnVertices();
+		
+		Map<String, IMetaData.DATA_TYPES> retMap = new Hashtable<String, IMetaData.DATA_TYPES>();
+		for(Vertex vert : verts) {
+			String name = vert.value(Constants.NAME);
+			System.out.println(name);
+			IMetaData.DATA_TYPES dataType = vert.value(DATATYPE);
+			retMap.put(name, dataType);
+		}
+		
+		return retMap;
+	}
+	
 	@Override
 	public Set<String> getAlias(String uniqueName) {
 		Vertex vert = getExistingVertex(uniqueName);
