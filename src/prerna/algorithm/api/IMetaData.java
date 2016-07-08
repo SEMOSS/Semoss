@@ -194,5 +194,7 @@ public interface IMetaData {
 	void setVertexValue(String string, String tableName);
 
 	String getLatestPrimKey();
+
+	Map<String, IMetaData.DATA_TYPES> getColumnTypes();
 	
 }
