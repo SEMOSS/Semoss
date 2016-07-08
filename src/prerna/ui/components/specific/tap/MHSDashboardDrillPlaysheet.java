@@ -106,17 +106,35 @@ public class MHSDashboardDrillPlaysheet extends TablePlaySheet implements IDataM
 		dataTableAlign.put("minValue", MIN_ACTIVITY_VALUE);
 		returnHashMap.put("SDLCList", sdlcList);
 		returnHashMap.put("dataTableAlign", dataTableAlign);
+		returnHashMap.putAll(getSystem());
+		returnHashMap.putAll(getUploadDate());
 		return returnHashMap;
 	}
 	
 	/**
-	 * Method to pass FE values for system and upload date which will be used for the filters
-	 * @param dhaHashmap null
-	 * @return list of systems and list of uploaded dates within a hashmap
+	 * Method to pass FE values for system which will be used for the filters
+	 * @return list of systems within a hashmap
 	 */
-	public Map getData(Hashtable<String, Object> dhaHashmap) {
-		String [] selectors = new String[]{SYSTEM, UPLOAD_DATE};
-		return super.getDataMakerOutput(selectors);
+	public Map getSystem() {
+		String [] selectors = new String[]{SYSTEM};
+		Map<String, Object> mainHash = super.getDataMakerOutput(selectors);
+		Object systems = mainHash.get("data");
+		Map<String, Object> returnHash = new HashMap<String, Object>();
+		returnHash.put("Systems", systems);
+		return returnHash;
+	}
+	
+	/**
+	 * Method to pass FE values for upload dates which will be used for the filters
+	 * @return list of uploaded dates within a hashmap
+	 */
+	public Map getUploadDate() {
+		String [] selectors = new String[]{UPLOAD_DATE};
+		Map<String, Object> mainHash = super.getDataMakerOutput(selectors);
+		Object upload = mainHash.get("data");
+		Map<String, Object> returnHash = new HashMap<String, Object>();
+		returnHash.put("Upload", upload);
+		return returnHash;
 	}
 	
 	/**
@@ -133,7 +151,7 @@ public class MHSDashboardDrillPlaysheet extends TablePlaySheet implements IDataM
 		selectorList.add(ActivityGroup);
 		selectorList.add(DHA);
 		selectorList.add(SDLC_ACTIVITYGROUP_DHA);
-		//selectorList.add(SYSTEM_ACTIVITY);
+		selectorList.add(SYSTEM);
 		selectorList.add(PLANNED_START);
 		selectorList.add(PLANNED_END);
 		selectorList.add(ACTUAL_START);
@@ -151,11 +169,11 @@ public class MHSDashboardDrillPlaysheet extends TablePlaySheet implements IDataM
 			String group = (String) iteratirArr[1];
 			String dha = (String) iteratirArr[2];
 			String key = (String) iteratirArr[3];
-			//String sysActivity = (String) iteratirArr[4];
-			String plannedStartDate = (String) iteratirArr[4];
-			String plannedEndDate = (String) iteratirArr[5];
-			String actualStartDate = (String) iteratirArr[6];
-			String actualEndDate = (String) iteratirArr[7];
+			String system = (String) iteratirArr[4];
+			String plannedStartDate = (String) iteratirArr[5];
+			String plannedEndDate = (String) iteratirArr[6];
+			String actualStartDate = (String) iteratirArr[7];
+			String actualEndDate = (String) iteratirArr[8];
 
 			Map<String, Object> innerMap = new HashMap <String, Object> ();
 			
