@@ -99,6 +99,7 @@ import org.openrdf.sail.memory.MemoryStore;
 import com.ibm.icu.math.BigDecimal;
 import com.ibm.icu.text.DecimalFormat;
 
+import prerna.algorithm.api.IMetaData;
 import prerna.engine.api.IEngine;
 import prerna.engine.api.IEngine.ENGINE_TYPE;
 import prerna.engine.api.ISelectStatement;
@@ -2492,6 +2493,16 @@ public class Utility {
 		}
 		
 		return "STRING";
+	}
+	
+	public static String convertDataTypeToString(IMetaData.DATA_TYPES type) {
+		if(type.equals(IMetaData.DATA_TYPES.NUMBER)) { 
+			return "double";
+		} else if(type.equals(IMetaData.DATA_TYPES.STRING)) {
+			return "varchar(800)";
+		} else {
+			return "date";
+		}
 	}
 
 	

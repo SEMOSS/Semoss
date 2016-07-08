@@ -10,7 +10,6 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Hashtable;
 import java.util.Iterator;
-import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -81,6 +80,18 @@ public class H2Frame extends AbstractTableDataFrame {
 	
 	/*************************** AGGREGATION METHODS *************************/
 	
+	public void addRowsViaIterator(Iterator<IHeadersDataRow> it) {
+		// TODO: differences between the tinker meta and the flat meta stored in the data frame
+		// TODO: results in us being unable to get the table name
+		if(builder.tableName == null) {
+			builder.tableName = getTableNameForUniqueColumn(getColumnHeaders()[0]);
+		}
+		
+		// we really need another way to get the data types....
+		Map<String, IMetaData.DATA_TYPES> typesMap = this.metaData.getColumnTypes();
+		builder.addRowsViaIterator(it, typesMap);
+	}
+
 	@Override
 	public void addRow(Object[] rowCleanData, Object[] rowRawData) {
 		addRow(rowCleanData, getColumnHeaders());
@@ -92,21 +103,21 @@ public class H2Frame extends AbstractTableDataFrame {
     }
 	
     private void addRow(Object[] cells, String[] headers) {
-        // TODO: differences between the tinker meta and the flat meta stored in the data frame
-        // TODO: results in us being unable to get the table name
-        if(builder.tableName == null) {
-        	builder.tableName = getTableNameForUniqueColumn(headers[0]);
-        }
-        String[] types = new String[headers.length];
-        for(int i = 0; i < types.length; i++) {
-              types[i] = convertDataTypeToString(this.metaData.getDataType(headers[i]));
-              // need to stringify everything
-              cells[i] = cells[i] + "";
-        }
-        String[] stringArray = Arrays.copyOf(cells, cells.length, String[].class);
-        		
-        //get table for headers
-        this.addRow(builder.tableName, stringArray, headers, types);
+    	// TODO: differences between the tinker meta and the flat meta stored in the data frame
+    	// TODO: results in us being unable to get the table name
+    	if(builder.tableName == null) {
+    		builder.tableName = getTableNameForUniqueColumn(headers[0]);
+    	}
+    	String[] types = new String[headers.length];
+    	for(int i = 0; i < types.length; i++) {
+    		types[i] = Utility.convertDataTypeToString(this.metaData.getDataType(headers[i]));
+    		// need to stringify everything
+    		cells[i] = cells[i] + "";
+    	}
+    	String[] stringArray = Arrays.copyOf(cells, cells.length, String[].class);
+
+    	//get table for headers
+    	this.addRow(builder.tableName, stringArray, headers, types);
     }
     
     //need to make this private if we are going with single table h2
@@ -854,7 +865,7 @@ public class H2Frame extends AbstractTableDataFrame {
 		Map<String, String> retMap = new HashMap<String, String>(headerNames.length);
 		for(String header : headerNames) {
 			String h2Header = this.metaData.getValueForUniqueName(header);
-			String h2Type = convertDataTypeToString(this.metaData.getDataType(header));
+			String h2Type = Utility.convertDataTypeToString(this.metaData.getDataType(header));
 			retMap.put(h2Header, h2Type);
 		}
 		return retMap;
@@ -926,24 +937,11 @@ public class H2Frame extends AbstractTableDataFrame {
 
 		// need to get the types for each of the names
 		String[] types = new String[this.headerNames.length];
-		//grab all the types for each header
+		// grab all the types for each header from the metadata
+		Map<String, IMetaData.DATA_TYPES> typeMap = this.metaData.getColumnTypes();
 		for(int i = 0; i < types.length; i++) {
-			// we can construct the conceptual URI since that is what the values are within the frame
-			types[i] = engine.getDataTypes(engine.getPhysicalUriFromConceptualUri("http://semoss.org/ontologies/Concept/" + this.headerNames[i]));
-			
-			if(types[i] == null) {
-				// we have a difference in how the conceptual uri's are made between concepts and properties
-				// so now we will try the property version
-				types[i] = engine.getDataTypes(engine.getPhysicalUriFromConceptualUri("http://semoss.org/ontologies/Relation/Contains/" + this.headerNames[i]));
-			}
-			
-			// if its still null, make it a STRING
-			if(types[i] != null) {
-				// types are stored with the prefix "TYPE:", so need to remove it
-				types[i] = Utility.getRawDataType(types[i].replace("TYPE:", ""));
-			} else {
-				types[i] = "STRING";
-			}
+			// convert the type to string
+			types[i] = Utility.convertDataTypeToString(typeMap.get(this.headerNames[i]));
 		}
 
 		//alter the table
@@ -962,7 +960,7 @@ public class H2Frame extends AbstractTableDataFrame {
 		String[] cleanHeaders = new String[this.headerNames.length];
 		String[] types = new String[this.headerNames.length];
 		for(int i = 0; i < types.length; i++) {
-			types[i] = convertDataTypeToString(this.metaData.getDataType(this.headerNames[i]));
+			types[i] = Utility.convertDataTypeToString(this.metaData.getDataType(this.headerNames[i]));
 			cleanHeaders[i] = this.metaData.getValueForUniqueName(this.headerNames[i]);
 		}
 		
@@ -1091,7 +1089,7 @@ public class H2Frame extends AbstractTableDataFrame {
 		
 		String[] types = new String[newHeaders.length];
 		for(int i = 0; i < newHeaders.length; i++) {
-			types[i] = convertDataTypeToString(this.metaData.getDataType(newHeaders[i]));
+			types[i] = Utility.convertDataTypeToString(this.metaData.getDataType(newHeaders[i]));
 		}
 		
 		String[] columnHeaders = getColumnHeaders();
@@ -1138,16 +1136,6 @@ public class H2Frame extends AbstractTableDataFrame {
 		this.builder.processIterator(iterator, adjustedColHeaders, valueHeaders, types, jType);
 	}
 	
-	public String convertDataTypeToString(IMetaData.DATA_TYPES type) {
-		if(type.equals(IMetaData.DATA_TYPES.NUMBER)) { 
-			return "double";
-		} else if(type.equals(IMetaData.DATA_TYPES.STRING)) {
-			return "varchar(800)";
-		} else {
-			return "date";
-		}
-	}
-
 	public RRunner getRRunner() throws RserveException, SQLException {
 		if (this.r == null) {
 			this.r = new RRunner(this.getDatabaseMetaData());
