@@ -456,11 +456,14 @@ public class TinkerMetaData implements IMetaData {
 		//check if property
 		if(queryStructName.contains("__")){
 			physicalName = queryStructName.substring(queryStructName.indexOf("__")+2);
-			physicalUri = engine.getTransformedNodeName(Constants.DISPLAY_URI+physicalName, false);
+			physicalUri = engine.getPhysicalUriFromConceptualUri("http://semoss.org/ontologies/Relation/Contains/" + physicalName);
+//			physicalUri = engine.getTransformedNodeName(Constants.DISPLAY_URI+physicalName, false);
 		}
 		else{
-			physicalName = Utility.getInstanceName(engine.getTransformedNodeName(Constants.DISPLAY_URI+queryStructName, false));
-			physicalUri = engine.getConceptUri4PhysicalName(physicalName);
+			physicalName = queryStructName;
+			physicalUri = engine.getPhysicalUriFromConceptualUri("http://semoss.org/ontologies/Concept/" + physicalName);
+//			physicalName = Utility.getInstanceName(engine.getTransformedNodeName(Constants.DISPLAY_URI+queryStructName, false));
+//			physicalUri = engine.getConceptUri4PhysicalName(physicalName);
 		}
 		
 		// stupid check
