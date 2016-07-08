@@ -330,8 +330,8 @@ public class SQLInterpreter implements IQueryInterpreter{
 		// based on the position of the relationships
 		// if the toConcept isn't defined in the from selection
 		// we need to add it or the query will break
-		if(notUsedInJoin(toConcept)){
-			addFrom(toConcept);
+		if(notUsedInJoin(concept)){
+			addFrom(concept);
 		}
 		
 		if(!relationHash.containsKey(key))
