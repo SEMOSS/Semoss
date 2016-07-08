@@ -2277,6 +2277,24 @@ public class Utility {
 			return output_date;	
     }
     
+    public static Date getDateAsDateObj(String input) {
+		SimpleDateFormat outdate_formatter = new SimpleDateFormat("yyyy-MM-dd");
+    	String output_date = getDate(input);
+    	if(output_date == null) {
+    		return null;
+    	}
+    	
+    	Date outDate = null;
+    	try {
+			outDate = outdate_formatter.parse(output_date);
+		} catch (ParseException e) {
+			e.printStackTrace();
+		}
+    	
+    	return outDate;
+    }
+    
+    
     public static Object getCurrency(String input)
     {
     	//COMMENTING THIS OUT BECAUSE CAST TO TYPES BREAKS IN CASES WHERE THIS RETURNS, NEED TO UPDATE THAT BUT WILL KEEP IT AS STRING FOR NOW

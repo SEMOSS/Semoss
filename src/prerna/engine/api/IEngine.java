@@ -51,7 +51,7 @@ public interface IEngine extends IExplorable{
 	 * @author bisutton
 	 *
 	 */
-	public enum ACTION_TYPE {ADD_STATEMENT, REMOVE_STATEMENT};
+	public enum ACTION_TYPE {ADD_STATEMENT, REMOVE_STATEMENT, BULK_INSERT};
 	
 	/**
 	 * Opens a database as defined by its properties file.  What is included in the properties file is dependent on the type of 
