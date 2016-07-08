@@ -920,40 +920,26 @@ public class H2Frame extends AbstractTableDataFrame {
 		//process the meta data
 		Map[] ret =  super.mergeQSEdgeHash(edgeHash, engine, joinCols);
 
-		// alter table for new cols
-		Set<String> headersSet = new LinkedHashSet<String>(); //this will contain all the headers in the edgeHash
-		
-		//add all the keys from the edgeHash
-		for(String addHeader : edgeHash.keySet()) {
-			if(addHeader.contains("__")) {
-				headersSet.add(addHeader.split("__")[1]);
-			} else {
-				headersSet.add(addHeader);
-			}
-		}
-		
-		//add all the values for each key in the edgeHash
-		for(String header : edgeHash.keySet()) {
-			Set<String> additionalHeaders = edgeHash.get(header);
-			if(additionalHeaders != null) {
-				for(String addHeader : additionalHeaders) {
-					if(addHeader.contains("__")) {
-						headersSet.add(addHeader.split("__")[1]);
-					} else {
-						headersSet.add(addHeader);
-					}
-				}
-			}
-		}
-		
-		String[] headers = headersSet.toArray(new String[]{});
-		String[] types = new String[headers.length];
-		
+		// its a bit inefficient to loop through all the headers...
+		// but this is better than looping through the edge hash
+		// at least the logic in the the builder won't re-add columns
+
+		// need to get the types for each of the names
+		String[] types = new String[this.headerNames.length];
 		//grab all the types for each header
 		for(int i = 0; i < types.length; i++) {
-			types[i] = engine.getDataTypes(engine.getTransformedNodeName(Constants.DISPLAY_URI + headers[i], false));
-
+			// we can construct the conceptual URI since that is what the values are within the frame
+			types[i] = engine.getDataTypes(engine.getPhysicalUriFromConceptualUri("http://semoss.org/ontologies/Concept/" + this.headerNames[i]));
+			
+			if(types[i] == null) {
+				// we have a difference in how the conceptual uri's are made between concepts and properties
+				// so now we will try the property version
+				types[i] = engine.getDataTypes(engine.getPhysicalUriFromConceptualUri("http://semoss.org/ontologies/Relation/Contains/" + this.headerNames[i]));
+			}
+			
+			// if its still null, make it a STRING
 			if(types[i] != null) {
+				// types are stored with the prefix "TYPE:", so need to remove it
 				types[i] = Utility.getRawDataType(types[i].replace("TYPE:", ""));
 			} else {
 				types[i] = "STRING";
@@ -961,7 +947,7 @@ public class H2Frame extends AbstractTableDataFrame {
 		}
 
 		//alter the table
-		builder.alterTableNewColumns(builder.tableName, headers, types); 
+		builder.alterTableNewColumns(builder.tableName, this.headerNames, types); 
 
 		return ret;
 	}

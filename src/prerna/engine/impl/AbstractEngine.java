@@ -889,6 +889,10 @@ public abstract class AbstractEngine implements IEngine {
 			retString = "removeStatement";
 			break;
 		}
+		case BULK_INSERT : {
+			retString = "bulkInsertPreparedStatement";
+			break;
+		}
 		default: {
 
 		}
