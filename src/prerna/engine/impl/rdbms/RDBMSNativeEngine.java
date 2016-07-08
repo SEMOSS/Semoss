@@ -42,7 +42,6 @@ import java.util.Map;
 import java.util.Vector;
 
 import org.apache.commons.dbcp2.BasicDataSource;
-import org.apache.commons.io.FileUtils;
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 import org.h2.tools.DeleteDbFiles;
@@ -635,4 +634,42 @@ public class RDBMSNativeEngine extends AbstractEngine {
 		String baseH2URL = RDBMSUtility.getH2BaseConnectionURL();
 		return RDBMSUtility.fillH2ConnectionURL(baseH2URL, engineName);
 	}
+	
+	/**
+	 * This is intended to be executed via doAction
+	 * @param args			Object[] where the first index is the table name
+	 * 						and every other entry are the column names
+	 * @return				PreparedStatement to perform a bulk insert
+	 */
+	public java.sql.PreparedStatement bulkInsertPreparedStatement(Object[] args) {
+		// if a table name and a column name are not specified, do nothing
+		// not enough information to be meaningful
+		if(args.length < 2) {
+			return null;
+		}
+		
+		// generate the sql for hte prepared statement
+		StringBuilder sql = new StringBuilder("INSERT INTO ");
+		sql.append(args[0]).append(" (").append(args[1]);
+		for(int colIndex = 2; colIndex < args.length; colIndex++) {
+			sql.append(", ");
+			sql.append(args[colIndex]);
+		}
+		sql.append(") VALUES (?"); // remember, we already assumed one col
+		for(int colIndex = 2; colIndex < args.length; colIndex++) {
+			sql.append(", ?");
+		}
+		sql.append(")");
+		
+		java.sql.PreparedStatement ps = null;
+		try {
+			// create the prepared statement using the sql query defined
+			ps = this.engineConn.prepareStatement(sql.toString());
+		} catch (SQLException e) {
+			e.printStackTrace();
+		}
+		
+		return ps;
+	}
+	
 }
