@@ -93,6 +93,7 @@ public class MHSDashboardDrillPlaysheet extends TablePlaySheet implements IDataM
 	
 	/**
 	 * Method to pass the FE the ordered list of SDLC phases and all values necessary for the main table
+	 * @return returns data, headers, dataTableAlign, systems, and upload date
 	 */
 	@Override
 	public Map getDataMakerOutput(String... selectors) {
@@ -120,7 +121,7 @@ public class MHSDashboardDrillPlaysheet extends TablePlaySheet implements IDataM
 		Map<String, Object> mainHash = super.getDataMakerOutput(selectors);
 		Object systems = mainHash.get("data");
 		Map<String, Object> returnHash = new HashMap<String, Object>();
-		returnHash.put("Systems", systems);
+		returnHash.put("SYSTEM", systems);
 		return returnHash;
 	}
 	
@@ -133,7 +134,7 @@ public class MHSDashboardDrillPlaysheet extends TablePlaySheet implements IDataM
 		Map<String, Object> mainHash = super.getDataMakerOutput(selectors);
 		Object upload = mainHash.get("data");
 		Map<String, Object> returnHash = new HashMap<String, Object>();
-		returnHash.put("Upload", upload);
+		returnHash.put("UPLOAD_DATE", upload);
 		return returnHash;
 	}
 	
@@ -169,7 +170,7 @@ public class MHSDashboardDrillPlaysheet extends TablePlaySheet implements IDataM
 			String group = (String) iteratirArr[1];
 			String dha = (String) iteratirArr[2];
 			String key = (String) iteratirArr[3];
-			String system = (String) iteratirArr[4];
+			//String system = (String) iteratirArr[4];
 			String plannedStartDate = (String) iteratirArr[5];
 			String plannedEndDate = (String) iteratirArr[6];
 			String actualStartDate = (String) iteratirArr[7];
