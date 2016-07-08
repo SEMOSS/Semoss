@@ -103,10 +103,7 @@ public class H2ImportDataReactor extends ImportDataReactor {
 			addRow = true;
 		}
 		if(addRow) {
-			while(it.hasNext()) {
-				IHeadersDataRow ss = (IHeadersDataRow) it.next();
-				frame.addRow(ss.getValues(), ss.getRawValues(), headers);
-			}
+			frame.addRowsViaIterator(it);
 		} else {
 			// if logicalToValue is null, it will create it within the processIterator method
 			frame.processIterator(it, headers, logicalToValue, joins, joinType);
