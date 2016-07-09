@@ -121,7 +121,7 @@ public class MHSDashboardDrillPlaysheet extends TablePlaySheet implements IDataM
 		Map<String, Object> mainHash = super.getDataMakerOutput(selectors);
 		Object systems = mainHash.get("data");
 		Map<String, Object> returnHash = new HashMap<String, Object>();
-		returnHash.put("SYSTEM", systems);
+		returnHash.put(SYSTEM, systems);
 		return returnHash;
 	}
 	
@@ -134,7 +134,7 @@ public class MHSDashboardDrillPlaysheet extends TablePlaySheet implements IDataM
 		Map<String, Object> mainHash = super.getDataMakerOutput(selectors);
 		Object upload = mainHash.get("data");
 		Map<String, Object> returnHash = new HashMap<String, Object>();
-		returnHash.put("UPLOAD_DATE", upload);
+		returnHash.put(UPLOAD_DATE, upload);
 		return returnHash;
 	}
 	
@@ -158,12 +158,14 @@ public class MHSDashboardDrillPlaysheet extends TablePlaySheet implements IDataM
 		selectorList.add(ACTUAL_START);
 		selectorList.add(ACTUAL_END);
 
+		//delete duplicates
 		iteratorMap.put(TinkerFrame.DE_DUP, true);
 		iteratorMap.put(TinkerFrame.SELECTORS, selectorList);
 
 		boolean getRawData = false;
 		Iterator<Object[]> iterator = dataFrame.iterator(getRawData, iteratorMap);
 
+		//iterate to get data
 		while(iterator.hasNext()){
 			Object[] iteratirArr = iterator.next();
 			String sdlc = (String) iteratirArr[0];
@@ -182,10 +184,12 @@ public class MHSDashboardDrillPlaysheet extends TablePlaySheet implements IDataM
 			innerMap.put(ActivityGroup, group);
 			innerMap.put(DHA, dha);
 			
+			//calculate heat value and get min value per each heat value
 			Map<String, Number> valueMap = calculateValues(plannedStartDate, plannedEndDate, actualStartDate, actualEndDate);
 			int heatValue = (int) valueMap.get("HeatVal");
 			long minVal = (long)valueMap.get("MinVal");
 			
+			//if key already exists in map
 			if(returnMap.containsKey(key)) {
 				Map<String, Object> innerMapReturn = (Map<String, Object>) returnMap.get(key);
 				int totalHeatVal = (int) innerMapReturn.get(HEAT_VALUE);
@@ -202,8 +206,9 @@ public class MHSDashboardDrillPlaysheet extends TablePlaySheet implements IDataM
 				minValueReturnList.add(minVal);
 				innerMap.put(MIN_ACTIVITY_VALUE, minValueReturnList);
 				returnMap.put(key, innerMap);
-
-			} else if (!returnMap.containsKey(key)) {
+			} 
+			//else key doesnt exist in map
+			else if (!returnMap.containsKey(key)) {
 				innerMap.put(HEAT_VALUE, heatValue);
 				innerMap.put ("ACTIVITY_NUM", 1);
 				List<Long> minValueList = new ArrayList<Long>();
@@ -252,11 +257,11 @@ public class MHSDashboardDrillPlaysheet extends TablePlaySheet implements IDataM
 		int heatValue = 0;
 		long minVal = 0;
 		
-		// if there is a date associated with each : (planned end date - actual end date)
+		// if there are both 'planned' and 'actual' dates : (planned end date - actual end date)
 		if(plannedStart !=null && plannedEnd !=null && actualStart !=null && actualEnd !=null){
 			heatValue = (int) ((plannedEnd.getTime() - actualEnd.getTime())/(24 * 60 * 60 * 1000));
 		}
-		// if there are no actual start and actual end dates : (planned start - today's date) if planned start date is greater than today's date
+		// if there are no 'actual' dates : (planned start - today's date) if planned start date is greater than today's date
 		else if (plannedStart !=null && plannedEnd !=null && actualStart == null && actualEnd == null) {
 			if(plannedStart.getTime() < todaysDate.getTime()){
 				heatValue = (int) ((plannedStart.getTime() - todaysDate.getTime())/(24 * 60 * 60 * 1000));
@@ -264,15 +269,16 @@ public class MHSDashboardDrillPlaysheet extends TablePlaySheet implements IDataM
 				heatValue = 0;
 			}
 		}  
-		// if there is no actual end date : (planned start date - actual start date)
+		// if there is no 'actualend' date : (planned start date - actual start date)
 		else if(plannedStart !=null && plannedEnd !=null && actualStart != null && actualEnd == null ){
 			heatValue = (int) ((plannedStart.getTime() - actualStart.getTime())/(24 * 60 * 60 * 1000));
+			//only get a min value in this case..otherwise minValue will remain 0
 			minVal = heatValue;
-		} else{
+		} 
+		//if there is row with absolutely no dates then it will not be calculated into the heat value
+		else{
 			heatValue = 0;
 		}
-		
-		//if there is row with absolutely no dates then it will not be calculated into the heat value
 		
 		returnMap.put("HeatVal", heatValue);
 		returnMap.put("MinVal", minVal);
@@ -294,13 +300,17 @@ public class MHSDashboardDrillPlaysheet extends TablePlaySheet implements IDataM
 	public Map manipulateData (Map<String, Object> objMap) {
 		Map<String, List<Object>> returnMap = new HashMap<String, List<Object>>();
 		List<Object> returnList =new ArrayList<Object>();
+		
 		for(Entry<String, Object> entry : objMap.entrySet()) {
 			HashMap value = (HashMap) entry.getValue();
 			List<Object> innerList =new ArrayList<Object>();
+			
 			for(Object innerVal : value.entrySet()){
 				String returnKey = ((Entry<String, Object>) innerVal).getKey();
+				
 				//return all keys but activity_num
 				if(!returnKey.equals("ACTIVITY_NUM")){
+					
 					//get the lowest value in the list of heat values
 					if(returnKey.equals(MIN_ACTIVITY_VALUE)){
 						List<Long> heatList = (List<Long>) ((Entry<String, Object>) innerVal).getValue();
@@ -346,6 +356,8 @@ public class MHSDashboardDrillPlaysheet extends TablePlaySheet implements IDataM
 		return getDataMakerOutput(selector);
 	}
 
+	
+	////////     These methods may be used for later iterations of this dashbaord    ////////
 
 	/**
 	 * Method to get a list of Systems based on the DHA that is selected
