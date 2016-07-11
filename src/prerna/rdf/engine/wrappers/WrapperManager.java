@@ -27,12 +27,11 @@
  *******************************************************************************/
 package prerna.rdf.engine.wrappers;
 
-import java.util.Arrays;
-
 import org.apache.log4j.Logger;
 
 import prerna.engine.api.IConstructWrapper;
 import prerna.engine.api.IEngine;
+import prerna.engine.api.IRawSelectWrapper;
 import prerna.engine.api.ISelectWrapper;
 
 public class WrapperManager {
@@ -164,6 +163,43 @@ public class WrapperManager {
 			//returnWrapper.getVariables();
 			
 			return returnWrapper;
+	}
+
+	public IRawSelectWrapper getRawWrapper(IEngine engine, String query) {
+		IRawSelectWrapper returnWrapper = null;
+		switch(engine.getEngineType()) {
+		case SESAME: {
+			returnWrapper = new RawSesameSelectWrapper();
+			break;
+		}
+		case JENA: {
+			returnWrapper = new RawJenaSelectWrapper();
+			break;
+		}
+		case RDBMS:{
+			returnWrapper = new RawRDBMSSelectWrapper();
+			break;
+		}
+		case SEMOSS_SESAME_REMOTE:{
+			//TODO: need to build out RemoteSesameSelectWrapper
+			System.err.println("NEED TO IMPLEMENT RAW QUERY FOR REMOTE SESAME SELECT WRAPPER!!!!!");
+			System.err.println("NEED TO IMPLEMENT RAW QUERY FOR REMOTE SESAME SELECT WRAPPER!!!!!");
+			System.err.println("NEED TO IMPLEMENT RAW QUERY FOR REMOTE SESAME SELECT WRAPPER!!!!!");
+			System.err.println("NEED TO IMPLEMENT RAW QUERY FOR REMOTE SESAME SELECT WRAPPER!!!!!");
+//			returnWrapper = new RemoteSesameSelectWrapper();
+//			break;
+		}
+		default: {
+
+		}
+		}
+
+		LOGGER.debug(returnWrapper.getClass() + " executing query: " + query);
+		returnWrapper.setEngine(engine);
+		returnWrapper.setQuery(query);
+		returnWrapper.execute();
+
+		return returnWrapper;
 	}
 	
 }
