@@ -161,6 +161,7 @@ public class MetaModelCreator {
 	private void generateMetaModelFromProp() throws Exception{
 		//TODO: check if prop file headers and csv headers match
 		if(this.propFile != null) {
+			String[] columnHeaders = frame.getColumnHeaders();
 			try {
 				InputStream input = new FileInputStream(propFile);
 				Properties prop = new Properties();
@@ -171,6 +172,8 @@ public class MetaModelCreator {
 				this.propFileData.put("propFileRel", initList1);
 				this.propFileData.put("propFileNodeProp", initList2);
 				
+				//Parses text written as:
+				//RELATION	Title@BelongsTo@Genre;Title@DirectedBy@Director;Title@DirectedAt@Studio;
 				if(prop.containsKey("RELATION")) {
 					
 					String relationText = prop.getProperty("RELATION");
@@ -179,9 +182,19 @@ public class MetaModelCreator {
 					for(String relation : relations) {
 						
 						String[] components = relation.split("@");
-						String[] subjectArr = {components[0].trim()};
+						String subject = components[0].trim();
+						String object = components[2].trim();
+						if(!ArrayUtilityMethods.arrayContainsValueIgnoreCase(columnHeaders, subject)) {
+							throw new NoSuchFieldException("CSV does not contain header : "+subject+".  Please update RELATION in .prop file");
+						}
+						
+						if(!ArrayUtilityMethods.arrayContainsValueIgnoreCase(columnHeaders, object)) {
+							throw new NoSuchFieldException("CSV does not contain header : "+object+".  Please update RELATION in .prop file");
+						}
+						
+						String[] subjectArr = {subject};
 						String predicate = components[1];
-						String[] objectArr = {components[2].trim()};
+						String[] objectArr = {object};
 						
 						Map<String, Object> predMap = new HashMap<>();
 						predMap.put("sub", subjectArr);
@@ -191,6 +204,8 @@ public class MetaModelCreator {
 					}
 				}
 				
+				//Parses text written as :
+				//NODE_PROP	Title%RevenueDomestic;Title%RevenueInternational;Title%MovieBudget;Title%RottenTomatoesCritics;Title%RottenTomatoesAudience;Title%Nominated;
 				if(prop.containsKey("NODE_PROP")) {
 					String nodePropText = prop.getProperty("NODE_PROP");
 					String[] nodeProps = nodePropText.split(";");
@@ -198,17 +213,36 @@ public class MetaModelCreator {
 					for(String nodeProp : nodeProps) {
 						
 						String[] components = nodeProp.split("%");
-						String[] subjectArr = {components[0].trim()};
-						String[] objectArr = {components[1].trim()};
+						
+						String subject = components[0].trim();
+						String object = components[1].trim();
+						
+						if(!ArrayUtilityMethods.arrayContainsValueIgnoreCase(columnHeaders, subject)) {
+							throw new NoSuchFieldException("CSV does not contain header : "+subject+".  Please update NODE_PROP in .prop file");
+						}
+						
+						if(!ArrayUtilityMethods.arrayContainsValueIgnoreCase(columnHeaders, object)) {
+							throw new NoSuchFieldException("CSV does not contain header : "+object+".  Please update NODE_PROP in .prop file");
+						}
+						
+						String[] subjectArr = {subject};
+						String[] objectArr = {object};
 						
 						Map<String, Object> predMap = new HashMap<>();
 						predMap.put("sub", subjectArr);
 						predMap.put("prop", objectArr);
-						predMap.put("dataType", null);
+						
+						String dataType = frame.getDataType(object).toString();
+						if(dataType.equals("DOUBLE")) {
+							dataType = "NUMBER";
+						}
+						predMap.put("dataType", dataType);
 						this.propFileData.get("propFileNodeProp").add(predMap);
 					}
 				} 
 				
+				//Parses text written as : 
+				//DISPLAY_NAME	Title:Moovie_Title;Title%RevenueInternational:InternationalRevenueMovie;Title%Nominated:MoovieNominated;Studio:Stoodio;
 				if(prop.containsKey("DISPLAY_NAME")) {
 					String displayNameText = prop.getProperty("DISPLAY_NAME");
 					if(displayNameText != null && !displayNameText.isEmpty()) {
@@ -219,15 +253,32 @@ public class MetaModelCreator {
 						String[] displayNames = displayNameText.split(";");
 						for(String displayName : displayNames) {
 							String[] display = displayName.split(":");
-							String[] selectedDisplayNameArr = {display[1]};
+							String[] selectedDisplayNameArr = {display[1].trim()};
 							String[] selectedPropertyArr;
 							String[] selectedNodeArr;
 							if(display[0].contains("%")) {
 								String[] prop_node = display[0].split("%");
-								selectedNodeArr = new String[]{prop_node[0]};
-								selectedPropertyArr = new String[]{prop_node[1]};
+								
+								String subject = prop_node[0].trim();
+								String object = prop_node[1].trim(); 
+								
+								if(!ArrayUtilityMethods.arrayContainsValueIgnoreCase(columnHeaders, subject)) {
+									throw new NoSuchFieldException("CSV does not contain header : "+subject+".  Please update DISPLAY_NAME in .prop file");
+								}
+								
+								if(!ArrayUtilityMethods.arrayContainsValueIgnoreCase(columnHeaders, object)) {
+									throw new NoSuchFieldException("CSV does not contain header : "+object+".  Please update DISPLAY_NAME in .prop file");
+								}
+								
+								selectedNodeArr = new String[]{subject};
+								selectedPropertyArr = new String[]{object};
 							} else {
-								selectedPropertyArr = selectedNodeArr = new String[]{display[0]};
+								
+								String subject = display[0].trim();
+								if(!ArrayUtilityMethods.arrayContainsValueIgnoreCase(columnHeaders, subject)) {
+									throw new NoSuchFieldException("CSV does not contain header : "+subject+".  Please update DISPLAY_NAME in .prop file");
+								}
+								selectedPropertyArr = selectedNodeArr = new String[]{subject};
 							}
 							
 							Map<String, Object> displayMap = new HashMap<>();
@@ -240,9 +291,10 @@ public class MetaModelCreator {
 					//itemDisplayName -> [{selectedNode: [title], selectedProperty: [title], selectedDisplayName : [moovietitles]}, {selectedNode : title, selectedProperty : budget}]
 				} 
 				
-				if(prop.containsKey("RELATION_PROP")) {
-					String relationProp = prop.getProperty("RELATION_PROP");
-				}
+				
+//				if(prop.containsKey("RELATION_PROP")) {
+//					String relationProp = prop.getProperty("RELATION_PROP");
+//				}
 				
 			} catch (IOException e) {
 				e.printStackTrace();
