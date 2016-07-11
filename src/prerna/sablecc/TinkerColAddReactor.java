@@ -51,6 +51,10 @@ public class TinkerColAddReactor extends ColAddReactor {
 		Object value = myStore.get(expr);
 		if(value == null) value = myStore.get(PKQLEnum.API);
 
+//		if(value instanceof ColAddIterator) {
+//			((ColAddIterator)value).updateNewColName(newCol);
+//			((ColAddIterator)value).processIterator(frame);
+//		} else 
 		if (value instanceof Iterator) {
 			it = (ExpressionIterator)value;
 			processIt(it, frame, joinCols, newCol);
@@ -133,6 +137,10 @@ public class TinkerColAddReactor extends ColAddReactor {
 		}
 		myStore.put("RESPONSE", STATUS.SUCCESS.toString());
 		myStore.put("STATUS", STATUS.SUCCESS);
+		
+		
+		// update the data id so FE knows data has been changed
+		frame.updateDataId();
 		
 		return null;
 	}
