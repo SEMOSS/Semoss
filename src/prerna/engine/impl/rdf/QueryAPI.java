@@ -46,14 +46,13 @@ public class QueryAPI implements IApi {
 		String query = interp.composeQuery();
 
 		// in order to support legacy GDM insights
-		// need to determine if we should get a select wrapper
-		// or a cheater wrapper
+		// need to determine if we should get a select wrapper or a cheater wrapper
 		if(values.containsKey(QueryAPI.USE_CHEATER) && (boolean) values.get(QueryAPI.USE_CHEATER)) {
 			return WrapperManager.getInstance().getChWrapper(engine, query);
 		} else {
-			return WrapperManager.getInstance().getSWrapper(engine, query);
+			// return the raw wrapper
+			return WrapperManager.getInstance().getRawWrapper(engine, query);
 		}
-
 	}
 	
 	@Override

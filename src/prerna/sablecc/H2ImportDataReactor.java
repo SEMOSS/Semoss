@@ -12,7 +12,7 @@ import prerna.ds.H2.H2Frame;
 import prerna.ds.util.FileIterator;
 import prerna.ds.util.WebApiIterator;
 import prerna.engine.api.IHeadersDataRow;
-import prerna.engine.api.ISelectWrapper;
+import prerna.engine.api.IRawSelectWrapper;
 import prerna.sablecc.PKQLRunner.STATUS;
 
 public class H2ImportDataReactor extends ImportDataReactor {
@@ -57,8 +57,8 @@ public class H2ImportDataReactor extends ImportDataReactor {
 		} else if(it instanceof CsvTableWrapper) {
 			types = ((CsvTableWrapper) it).getTypes();
 			headers = ((CsvTableWrapper) it).getHeaders();
-		} else if(it instanceof ISelectWrapper) {
-			headers = ((ISelectWrapper)it).getDisplayVariables();
+		} else if(it instanceof IRawSelectWrapper) {
+			headers = ((IRawSelectWrapper)it).getDisplayVariables();
 		}
 		
 		String[] headersCopy = new String[headers.length];
