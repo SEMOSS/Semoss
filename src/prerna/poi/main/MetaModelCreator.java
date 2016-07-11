@@ -1,5 +1,9 @@
 package prerna.poi.main;
 
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
+import java.io.IOException;
+import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -9,6 +13,10 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.TreeMap;
+import java.util.Properties;
+
+
+
 
 import prerna.algorithm.api.IMetaData.DATA_TYPES;
 import prerna.algorithm.api.ITableDataFrame;
@@ -20,7 +28,7 @@ import prerna.util.ArrayUtilityMethods;
  * This class is used to build a suggested metamodel from a file, currently only works with CSV 
  * The logic was taken from the equivalent front end code that performed the same task
  */
-public class MetaModelPredictor {
+public class MetaModelCreator {
 
 	ITableDataFrame frame;
 	int limit = 500;
@@ -29,30 +37,65 @@ public class MetaModelPredictor {
 	Map<String, Set<String>> matches;
 	int[] processOrder; //order in which to process columns 
 	Map<String, String> dataTypeMap;
-	
+	String propFile;
+	CreatorMode mode;
 	//return data
 	Map<String, List<String>> allowableDataTypes;
 	private Map<String, List<Map<String, Object>>> propFileData = new HashMap<>();
 	
+	public enum CreatorMode {AUTO, PROP, TABLE};
 	
-	public MetaModelPredictor() {
+	public MetaModelCreator() {
 		frame = new H2Frame();
 	}
 	
-	public MetaModelPredictor(String fileName, Map<String, Map<String, String>> dataTypeMap, String delimeter) {
+	public MetaModelCreator(String fileName, Map<String, Map<String, String>> dataTypeMap, String delimeter, CreatorMode setting) {
 		//use the file name
 		//TODO : limit to first 500 rows and use CSVHelper to read data\
 		//Migrate away from frame since it is unnecessary overhead
-		Map<String, String> mainColMap = new HashMap<>();
-		mainColMap.put("CSV", null);
-		frame = TableDataFrameFactory.generateDataFrameFromFile(fileName, delimeter, "H2", dataTypeMap, mainColMap);
+		if(setting != CreatorMode.PROP) {
+			Map<String, String> mainColMap = new HashMap<>();
+			mainColMap.put("CSV", null);
+			frame = TableDataFrameFactory.generateDataFrameFromFile(fileName, delimeter, "H2", dataTypeMap, mainColMap);
+		}
 		this.dataTypeMap = dataTypeMap.get("CSV");
+		this.mode = setting;
+	}
+	
+
+	/**
+	 * 
+	 * @param propFile
+	 */
+	public void addPropFile(String propFile) {
+		this.propFile = propFile;
 	}
 	
 	/**
 	 * 
 	 */
-	public void predictMetaModel() {
+	public void constructMetaModel() {		
+		switch (this.mode) {
+		case AUTO: {
+			autoGenerateMetaModel(); break;
+		}
+		
+		case PROP: {
+			generateMetaModelFromProp(); break;
+		}
+		
+		case TABLE: {
+			generateTableMetaModel(); break;
+		}
+			
+		default: break;
+		}
+	}
+	
+	/**
+	 * auto generate the meta model
+	 */
+	private void autoGenerateMetaModel() {
 		String[] columnHeaders = frame.getColumnHeaders();
 		
 		//need to sort columns by number of unique instances
@@ -62,7 +105,6 @@ public class MetaModelPredictor {
 		populateData();
 		populateProcessOrder();
 		populateColumnPropMap();
-//		populateAllowableTypes();
 		
 		//run comparisons for strings
 		for(int i = 0; i < columnHeaders.length; i++) {
@@ -73,7 +115,6 @@ public class MetaModelPredictor {
 				runAllComparisons(columnHeaders, i);
 			}
 		}
-		
 		
 		//run comparisons for non strings
 		for(int i = 0; i < columnHeaders.length; i++) {
@@ -114,9 +155,100 @@ public class MetaModelPredictor {
 		}
 	}
 	
+	/**
+	 * 
+	 */
+	private void generateMetaModelFromProp() {
+		
+		if(this.propFile != null) {
+			try {
+				InputStream input = new FileInputStream(propFile);
+				Properties prop = new Properties();
+				prop.load(input);
+				
+				if(prop.containsKey("RELATION")) {
+					
+					String relationText = prop.getProperty("RELATION");
+					String[] relations = relationText.split(";");
+					
+					for(String relation : relations) {
+						
+						String[] components = relation.split("@");
+						String[] subjectArr = {components[0]};
+						String predicate = components[1];
+						String[] objectArr = {components[2]};
+						
+						Map<String, Object> predMap = new HashMap<>();
+						predMap.put("sub", subjectArr);
+						predMap.put("pred", predicate);
+						predMap.put("obj", objectArr);
+						this.propFileData.get("propFileRel").add(predMap);
+					}
+				}
+				
+				if(prop.containsKey("NODE_PROP")) {
+					String nodePropText = prop.getProperty("NODE_PROP");
+					String[] nodeProps = nodePropText.split(";");
+					
+					for(String nodeProp : nodeProps) {
+						
+						String[] components = nodeProp.split("%");
+						String[] subjectArr = {components[0]};
+						String[] objectArr = {components[1]};
+						
+						Map<String, Object> predMap = new HashMap<>();
+						predMap.put("sub", subjectArr);
+						predMap.put("prop", objectArr);
+						predMap.put("dataType", null);
+						this.propFileData.get("propFileRel").add(predMap);
+					}
+				} 
+				
+				if(prop.containsKey("DISPLAY_NAME")) {
+					String displayName = prop.getProperty("DISPLAY_NAME");
+				} 
+				
+				if(prop.containsKey("RELATION_PROP")) {
+					String relationProp = prop.getProperty("RELATION_PROP");
+				}
+				
+			} catch (IOException e) {
+				e.printStackTrace();
+			}
+		}	
+		
+	}
+	
+	/**
+	 * generate a metamodel in which the column with the most unique instances is the primary key and all other columns are properties of that column
+	 */
+	private void generateTableMetaModel() {
+		String[] columnHeaders = frame.getColumnHeaders();
+		populateData();
+		populateProcessOrder();
+		
+		List<Map<String, Object>> initList1 = new ArrayList<>();
+		List<Map<String, Object>> initList2 = new ArrayList<>();
+		this.propFileData.put("propFileRel", initList1);
+		this.propFileData.put("propFileNodeProp", initList2);
+		
+		String subject = columnHeaders[processOrder[0]];
+		for(int i = 1; i < processOrder.length; i++) {
+			String object = columnHeaders[processOrder[i]];
+			DATA_TYPES dataType = frame.getDataType(object);
+			Map<String, Object> predMap = new HashMap<>();
+			
+			String[] subjectArr = {subject};
+			String[] objectArr = {object};
+			
+			predMap.put("sub", subjectArr);
+			predMap.put("prop", objectArr);
+			predMap.put("dataType", dataType.toString());
+			this.propFileData.get("propFileNodeProp").add(predMap);
+		}
+	}
+	
 	public Map<String, List<Map<String, Object>>> getMetaModelData() {
-//		Map<String, Object> retMap = new HashMap<>(2);
-//		retMap.put("propFileData"this.propFileData);
 		return propFileData;
 	}
 
@@ -244,24 +376,25 @@ public class MetaModelPredictor {
 		}
 	}
 	
-	/**
-	 * 
-	 */
-	private void populateAllowableTypes() {
-		allowableDataTypes = new HashMap<>();
-		String[] columnHeaders = frame.getColumnHeaders();
-		for(String header : columnHeaders) {
-			List<String> dataTypeList = new ArrayList<>(2);
-			dataTypeList.add("STRING");
-			
-			DATA_TYPES dataType = frame.getDataType(header);
-			if(!dataType.equals(DATA_TYPES.STRING)) {
-				dataTypeList.add(dataType.toString());
-			}
-			allowableDataTypes.put(header, dataTypeList);
-		}
-	}
-	//Use this to test metamodel predictor
+//	/**
+//	 * 
+//	 */
+//	private void populateAllowableTypes() {
+//		allowableDataTypes = new HashMap<>();
+//		String[] columnHeaders = frame.getColumnHeaders();
+//		for(String header : columnHeaders) {
+//			List<String> dataTypeList = new ArrayList<>(2);
+//			dataTypeList.add("STRING");
+//			
+//			DATA_TYPES dataType = frame.getDataType(header);
+//			if(!dataType.equals(DATA_TYPES.STRING)) {
+//				dataTypeList.add(dataType.toString());
+//			}
+//			allowableDataTypes.put(header, dataTypeList);
+//		}
+//	}
+	
+	//Use this to test metamodel creator
 	public static void main(String[] args) {
 		
 		String file = "C:\\Users\\rluthar\\Documents\\Movie_Data.csv";
@@ -280,14 +413,15 @@ public class MetaModelPredictor {
 		innerMap.put("RottenTomatoesAudience", "NUMBER");
 		headerMap.put("CSV", innerMap);
 		
-		MetaModelPredictor predictor = new MetaModelPredictor(file, headerMap, delimiter);
-		predictor.predictMetaModel();
+		MetaModelCreator predictor = new MetaModelCreator(file, headerMap, delimiter, CreatorMode.AUTO);
+		predictor.constructMetaModel();
 		for(String key : predictor.matches.keySet()) {
 			System.out.print(key+"  ");
 			System.out.println(predictor.matches.get(key).toString());
 		}
 		System.out.println(predictor.columnPropMap.toString());
 		
-		System.out.println("\nMetaModelPredictor Test Complete");
+		System.out.println("\nMetaModelCreator Test Complete");
 	}
+
 }
