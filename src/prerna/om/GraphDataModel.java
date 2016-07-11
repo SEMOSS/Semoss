@@ -27,6 +27,7 @@
  *******************************************************************************/
 package prerna.om;
 
+import java.math.BigInteger;
 import java.util.HashMap;
 import java.util.Hashtable;
 import java.util.Iterator;
@@ -125,6 +126,15 @@ public class GraphDataModel implements IDataMaker {
 
 	IEngine coreEngine;
 	String coreQuery;
+	
+	
+	// the user id of the user who executed to create this frame
+	// not really important for gdm... not important for h2 frame
+	protected String userId;
+	// used to determine if the data id has been altered
+	// this is only being updated when logic goes through pkql
+	protected BigInteger dataId = new BigInteger("0");
+
 
 	public GraphDataModel(){
 		vertStore = new Hashtable<String, SEMOSSVertex>();
@@ -1351,17 +1361,37 @@ public class GraphDataModel implements IDataMaker {
 	}
 
 	@Override
+	/**
+	 * Set the user id for the user who created this frame instance
+	 */
 	public void setUserId(String userId) {
-		// TODO Auto-generated method stub
-		
+		this.userId = userId;
 	}
 	
 	@Override
+	/**
+	 * Return the user id for the user who created this frame instance
+	 */
 	public String getUserId() {
-		// TODO Auto-generated method stub
-		return null;
+		return this.userId;
+	}
+
+	@Override
+	/**
+	 * Used to update the data id when data has changed within the frame
+	 */
+	public void updateDataId() {
+		this.dataId = this.dataId.add(BigInteger.valueOf(1));
 	}
 	
+	@Override
+	/**
+	 * Returns the current data id
+	 */
+	public int getDataId() {
+		return this.dataId.intValue();
+	}
+
 	@Override
 	public String getDataMakerName() {
 		return "GraphDataModel";

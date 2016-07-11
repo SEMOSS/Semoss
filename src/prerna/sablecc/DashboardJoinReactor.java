@@ -62,6 +62,13 @@ public class DashboardJoinReactor extends AbstractReactor {
 			System.err.println("currently can only join h2 frames...");
 			return null;			
 		}
+		
+		
+		// update the data id so FE knows data has been changed
+		frame1.updateDataId();
+		frame2.updateDataId();
+
+		
 //		
 //		String table1 = frame1.getTableNameForUniqueColumn(frame1Headers[frame1Headers.length-1]);
 //		String table2 = frame2.getTableNameForUniqueColumn(frame2Headers[frame2Headers.length-1]);

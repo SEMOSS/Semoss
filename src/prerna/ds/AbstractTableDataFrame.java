@@ -1,5 +1,6 @@
 package prerna.ds;
 
+import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -55,6 +56,9 @@ public abstract class AbstractTableDataFrame implements ITableDataFrame {
 	// H2Frame determines the schema to add the in-memory tables based on the userId
 	protected String userId;
 	
+	// used to determine if the data id has been altered
+	// this is only being updated when logic goes through pkql
+	protected BigInteger dataId = BigInteger.valueOf(0);
 	
 	///////////////////////// merge edge hash methods ///////////////////////////////////////
 	
@@ -687,6 +691,22 @@ public abstract class AbstractTableDataFrame implements ITableDataFrame {
 		return this.userId;
 	}
 
+	@Override
+	/**
+	 * Used to update the data id when data has changed within the frame
+	 */
+	public void updateDataId() {
+		this.dataId = this.dataId.add(BigInteger.valueOf(1));
+	}
+	
+	@Override
+	/**
+	 * Returns the current data id
+	 */
+	public int getDataId() {
+		return this.dataId.intValue();
+	}
+	
 	@Override
 	public int getNumRows() {
 		Iterator<Object[]> iterator = this.iterator(false);
