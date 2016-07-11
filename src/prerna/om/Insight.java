@@ -1508,6 +1508,7 @@ public class Insight {
 			}
 			
 			resultHash.put("insightID", this.getInsightID());
+			resultHash.put("dataID", this.dataMaker.getDataId());
 			resultHash.put("feData", feData);
 			resultHash.put("newColumns", pkqlRunner.getNewColumns());
 			

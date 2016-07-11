@@ -30,6 +30,17 @@ public interface IDataMaker {
 	Map<String, String> getScriptReactors();
 	
 	/**
+	 * Used to update the data id when data has changed within the frame
+	 */
+	void updateDataId();
+	
+	/**
+	 * Returns the current data id
+	 * @return 
+	 */
+	int getDataId();
+	
+	/**
 	 * Sets the name of the user who created this instance of the data maker
 	 * @param userId
 	 */
