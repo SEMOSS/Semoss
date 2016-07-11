@@ -166,6 +166,11 @@ public class MetaModelCreator {
 				Properties prop = new Properties();
 				prop.load(input);
 				
+				List<Map<String, Object>> initList1 = new ArrayList<>();
+				List<Map<String, Object>> initList2 = new ArrayList<>();
+				this.propFileData.put("propFileRel", initList1);
+				this.propFileData.put("propFileNodeProp", initList2);
+				
 				if(prop.containsKey("RELATION")) {
 					
 					String relationText = prop.getProperty("RELATION");
@@ -357,11 +362,11 @@ public class MetaModelCreator {
 		}
 		
 		//store the index of column headers
-		int i = 0;
+		int i = sortedMap.keySet().size() - 1;
 		for(Integer key : sortedMap.keySet()) {
 			String nextColumn = sortedMap.get(key);
 			this.processOrder[i] = ArrayUtilityMethods.arrayContainsValueAtIndex(columnHeaders, nextColumn);
-			i++;
+			i--;
 		}
 	}
 	
