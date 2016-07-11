@@ -33,6 +33,10 @@ public class ColFilterReactor extends AbstractReactor{
 		
 		Vector<Hashtable> filters = (Vector<Hashtable>) myStore.get(PKQLEnum.FILTER);
 		this.processFilters(frame, filters);
+		
+		// update the data id so FE knows data has been changed
+		frame.updateDataId();
+		
 		return null;
 	}
 	

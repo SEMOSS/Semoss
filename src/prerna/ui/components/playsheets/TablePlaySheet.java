@@ -345,4 +345,20 @@ public class TablePlaySheet extends AbstractPlaySheet implements IDataMaker{
 			return this.getClass().getName();
 		}
 	}
+
+	@Override
+	public void updateDataId() {
+		if(this.dataFrame != null) {
+			this.dataFrame.updateDataId();
+		}
+	}
+
+	@Override
+	public int getDataId() {
+		if(this.dataFrame != null) {
+			return this.dataFrame.getDataId();
+		}
+		
+		return 0;
+	}
 }

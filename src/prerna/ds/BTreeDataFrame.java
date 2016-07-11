@@ -2150,4 +2150,16 @@ public class BTreeDataFrame implements ITableDataFrame {
 		// TODO Auto-generated method stub
 		
 	}
+
+	@Override
+	public void updateDataId() {
+		// TODO Auto-generated method stub
+		
+	}
+
+	@Override
+	public int getDataId() {
+		// TODO Auto-generated method stub
+		return 0;
+	}
 }
