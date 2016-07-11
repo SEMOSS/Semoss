@@ -75,6 +75,7 @@ public abstract class ImportDataReactor extends AbstractReactor {
 		 * if there is an engine
 		 * 4) perform the metadata update using the engine and edgeHash
 		 * 5) store edgeHash and logicalToValueMap
+		 * 6) update the data id on the frame so FE knows new data is being added
 		 * 
 		 * TODO:
 		 * if no engine, it is a drag and drop file
@@ -146,7 +147,11 @@ public abstract class ImportDataReactor extends AbstractReactor {
 			it = (Iterator) myStore.get(PKQLEnum.PASTED_DATA);
 		} else if(myStore.containsKey(PKQLEnum.CSV_TABLE)) {
 			it = (Iterator) myStore.get(PKQLEnum.CSV_TABLE);
-		} 
+		}
+		
+		
+		// 6) update the data id on the frame
+		frame.updateDataId();
 		
 		// store the iterator
 		myStore.put("iterator", it);

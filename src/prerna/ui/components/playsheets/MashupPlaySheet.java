@@ -203,4 +203,16 @@ public class MashupPlaySheet extends AbstractPlaySheet implements IDataMaker {
 	public String getDataMakerName() {
 		return this.getClass().getName();
 	}
+
+	@Override
+	public void updateDataId() {
+		// TODO Auto-generated method stub
+		
+	}
+
+	@Override
+	public int getDataId() {
+		// TODO Auto-generated method stub
+		return 0;
+	}
 }

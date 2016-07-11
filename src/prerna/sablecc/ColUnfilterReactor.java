@@ -1,6 +1,5 @@
 package prerna.sablecc;
 
-import java.util.Hashtable;
 import java.util.Iterator;
 import java.util.Vector;
 
@@ -31,6 +30,10 @@ public class ColUnfilterReactor extends AbstractReactor{
 			myStore.put("STATUS", PKQLRunner.STATUS.SUCCESS);
 			myStore.put("FILTER_COLUMN", c);
 		}
+		
+		// update the data id so FE knows data has been changed
+		frame.updateDataId();
+				
 		return null;
 	}
 
