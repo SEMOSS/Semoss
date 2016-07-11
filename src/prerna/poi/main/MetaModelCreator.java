@@ -74,7 +74,7 @@ public class MetaModelCreator {
 	/**
 	 * 
 	 */
-	public void constructMetaModel() {		
+	public void constructMetaModel() throws Exception{		
 		switch (this.mode) {
 		case AUTO: {
 			autoGenerateMetaModel(); break;
@@ -158,8 +158,8 @@ public class MetaModelCreator {
 	/**
 	 * 
 	 */
-	private void generateMetaModelFromProp() {
-		
+	private void generateMetaModelFromProp() throws Exception{
+		//TODO: check if prop file headers and csv headers match
 		if(this.propFile != null) {
 			try {
 				InputStream input = new FileInputStream(propFile);
@@ -179,9 +179,9 @@ public class MetaModelCreator {
 					for(String relation : relations) {
 						
 						String[] components = relation.split("@");
-						String[] subjectArr = {components[0]};
+						String[] subjectArr = {components[0].trim()};
 						String predicate = components[1];
-						String[] objectArr = {components[2]};
+						String[] objectArr = {components[2].trim()};
 						
 						Map<String, Object> predMap = new HashMap<>();
 						predMap.put("sub", subjectArr);
@@ -198,19 +198,46 @@ public class MetaModelCreator {
 					for(String nodeProp : nodeProps) {
 						
 						String[] components = nodeProp.split("%");
-						String[] subjectArr = {components[0]};
-						String[] objectArr = {components[1]};
+						String[] subjectArr = {components[0].trim()};
+						String[] objectArr = {components[1].trim()};
 						
 						Map<String, Object> predMap = new HashMap<>();
 						predMap.put("sub", subjectArr);
 						predMap.put("prop", objectArr);
 						predMap.put("dataType", null);
-						this.propFileData.get("propFileRel").add(predMap);
+						this.propFileData.get("propFileNodeProp").add(predMap);
 					}
 				} 
 				
 				if(prop.containsKey("DISPLAY_NAME")) {
-					String displayName = prop.getProperty("DISPLAY_NAME");
+					String displayNameText = prop.getProperty("DISPLAY_NAME");
+					if(displayNameText != null && !displayNameText.isEmpty()) {
+						List<Map<String, Object>> displayList = new ArrayList<>();
+						this.propFileData.put("itemDisplayName", displayList);
+						
+						
+						String[] displayNames = displayNameText.split(";");
+						for(String displayName : displayNames) {
+							String[] display = displayName.split(":");
+							String[] selectedDisplayNameArr = {display[1]};
+							String[] selectedPropertyArr;
+							String[] selectedNodeArr;
+							if(display[0].contains("%")) {
+								String[] prop_node = display[0].split("%");
+								selectedNodeArr = new String[]{prop_node[0]};
+								selectedPropertyArr = new String[]{prop_node[1]};
+							} else {
+								selectedPropertyArr = selectedNodeArr = new String[]{display[0]};
+							}
+							
+							Map<String, Object> displayMap = new HashMap<>();
+							
+							displayMap.put("selectedNode", selectedNodeArr);
+							displayMap.put("selectedProperty", selectedPropertyArr);
+							displayMap.put("selectedDisplayName", selectedDisplayNameArr);
+						}
+					}
+					//itemDisplayName -> [{selectedNode: [title], selectedProperty: [title], selectedDisplayName : [moovietitles]}, {selectedNode : title, selectedProperty : budget}]
 				} 
 				
 				if(prop.containsKey("RELATION_PROP")) {
@@ -237,7 +264,20 @@ public class MetaModelCreator {
 		this.propFileData.put("propFileRel", initList1);
 		this.propFileData.put("propFileNodeProp", initList2);
 		
-		String subject = columnHeaders[processOrder[0]];
+		boolean findPrimKey = true;
+		String subject = null;
+		while(findPrimKey) {
+			subject = columnHeaders[processOrder[0]];
+			if(frame.getDataType(subject).equals(DATA_TYPES.STRING)) {
+				findPrimKey = false;
+			}
+		}
+		
+		//if all columns are numbers use the first number
+		if(subject == null) {
+			subject = columnHeaders[processOrder[0]];
+		}
+		
 		for(int i = 1; i < processOrder.length; i++) {
 			String object = columnHeaders[processOrder[i]];
 			DATA_TYPES dataType = frame.getDataType(object);
@@ -419,7 +459,12 @@ public class MetaModelCreator {
 		headerMap.put("CSV", innerMap);
 		
 		MetaModelCreator predictor = new MetaModelCreator(file, headerMap, delimiter, CreatorMode.AUTO);
-		predictor.constructMetaModel();
+		try {
+			predictor.constructMetaModel();
+		} catch (Exception e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
 		for(String key : predictor.matches.keySet()) {
 			System.out.print(key+"  ");
 			System.out.println(predictor.matches.get(key).toString());
