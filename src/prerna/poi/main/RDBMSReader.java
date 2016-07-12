@@ -974,6 +974,8 @@ public class RDBMSReader extends AbstractFileReader {
 
 				// add relationships
 				List<String> relList = null;
+				String predicate = cleanToConceptTableName + "." + cleanFromConceptTableName + FK 
+						+ "." + cleanFromConceptTableName + "." + cleanFromConceptTableName;
 				// determine order based on * 
 				// if it is fromConcept *has toConcept
 				// then toConcept has the FK for fromConcept
@@ -996,6 +998,11 @@ public class RDBMSReader extends AbstractFileReader {
 					}
 					relList.add(toConcept);
 					relations.put(fromConcept, relList);
+					
+					// the predicate string is different from the default defined
+					predicate = cleanToConceptTableName + "." + cleanToConceptTableName 
+							+ "." + cleanFromConceptTableName + "." + cleanToConceptTableName + FK;
+					
 				} else {
 					// do it based on relationship format
 					// TODO: build it out to do it based on
@@ -1009,7 +1016,7 @@ public class RDBMSReader extends AbstractFileReader {
 					relations.put(toConcept, relList);
 				}
 
-				owler.addRelation(cleanFromConceptTableName, cleanToConceptTableName, null);
+				owler.addRelation(cleanFromConceptTableName, cleanToConceptTableName, predicate);
 			}
 		}
 
