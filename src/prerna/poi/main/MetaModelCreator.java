@@ -61,9 +61,9 @@ public class MetaModelCreator {
 		this.columnHeaders = headers;
 		
 		String [] cells = null;
-		int count = 0;
+		int count = 1;
 		while((cells = helper.getNextRow()) != null) {
-			if(count < limit) {
+			if(count <= limit) {
 				data.add(cells);
 			}
 			count++;
