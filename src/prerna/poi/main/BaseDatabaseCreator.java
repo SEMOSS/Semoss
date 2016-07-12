@@ -6,14 +6,20 @@ import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.Calendar;
 import java.util.Hashtable;
+import java.util.List;
 import java.util.Map;
+import java.util.Vector;
 
 import org.openrdf.repository.RepositoryException;
 import org.openrdf.rio.RDFHandlerException;
 
 import prerna.engine.api.IEngine;
+import prerna.engine.api.IEngine.ACTION_TYPE;
+import prerna.engine.api.IHeadersDataRow;
+import prerna.engine.api.IRawSelectWrapper;
 import prerna.engine.impl.AbstractEngine;
 import prerna.engine.impl.rdf.RDFFileSesameEngine;
+import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.util.Utility;
 
 public class BaseDatabaseCreator {
@@ -74,6 +80,7 @@ public class BaseDatabaseCreator {
 		try {
 			//adding a time-stamp to the OWL file
 			if(addTimeStamp) {
+				deleteExisitngTimestamp();
 				DateFormat dateFormat = getFormatter();
 				Calendar cal = Calendar.getInstance();
 				String cleanObj = dateFormat.format(cal.getTime());
@@ -91,6 +98,7 @@ public class BaseDatabaseCreator {
 			//adding a time-stamp to the OWL file
 			StringWriter writer = new StringWriter();
 			if(addTimeStamp) {
+				deleteExisitngTimestamp();
 				DateFormat dateFormat = getFormatter();
 				Calendar cal = Calendar.getInstance();
 				String cleanObj = dateFormat.format(cal.getTime());
@@ -103,6 +111,34 @@ public class BaseDatabaseCreator {
 			e.printStackTrace();
 			throw new IOException("Error in writing base engine db as OWL file");
 		}
+	}
+	
+	private void deleteExisitngTimestamp() {
+		String getAllTimestampQuery = "SELECT DISTINCT ?time ?val WHERE { "
+				+ "BIND(<http://semoss.org/ontologies/Concept/TimeStamp> AS ?time)"
+				+ "{?time <" + TIME_KEY + "> ?val} "
+				+ "}";
+		
+		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(baseEng, getAllTimestampQuery);
+		List<String> currTimes = new Vector<String>();
+		while(wrapper.hasNext()) {
+			IHeadersDataRow row = wrapper.next();
+			Object[] rawRow = row.getRawValues();
+			Object[] cleanRow = row.getValues();
+			currTimes.add(rawRow[0] + "");
+			currTimes.add(cleanRow[1] + "");
+		}
+		
+		for(int delIndex = 0; delIndex < currTimes.size(); delIndex+=2) {
+			Object[] delTriples = new Object[4];
+			delTriples[0] = currTimes.get(delIndex);
+			delTriples[1] = TIME_KEY;
+			delTriples[2] = currTimes.get(delIndex+1);
+			delTriples[3] = false;
+			
+			this.baseEng.doAction(ACTION_TYPE.REMOVE_STATEMENT, delTriples);
+		}
+		
 	}
 
 	/**
