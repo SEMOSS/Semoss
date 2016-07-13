@@ -20,8 +20,8 @@ import cern.colt.Arrays;
 import prerna.engine.api.IEngine;
 import prerna.engine.api.IEngine.ACTION_TYPE;
 import prerna.poi.main.helper.CSVFileHelper;
+import prerna.poi.main.helper.ImportOptions;
 import prerna.test.TestUtilityMethods;
-import prerna.ui.components.ImportDataProcessor;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
 import prerna.util.Utility;
@@ -69,7 +69,7 @@ public class RDBMSFlatCSVUploader extends AbstractFileReader {
 	 * @throws IOException 
 	 * @throws SQLException 
 	 */
-	public IEngine importFileWithOutConnection(String smssLocation, String fileLocations, String customBaseURI, String owlPath, String engineName, SQLQueryUtil.DB_TYPE dbDriverType, boolean allowDuplicates) throws IOException, SQLException {
+	public IEngine importFileWithOutConnection(String smssLocation, String engineName, String fileLocations, String customBaseURI, String owlPath, SQLQueryUtil.DB_TYPE dbDriverType, boolean allowDuplicates) throws IOException, SQLException {
 		boolean error = false;
 		queryUtil = SQLQueryUtil.initialize(dbDriverType);
 		// sets the custom base uri, sets the owl path, sets the smss location
@@ -124,7 +124,7 @@ public class RDBMSFlatCSVUploader extends AbstractFileReader {
 	 * @throws IOException 
 	 * @throws SQLException 
 	 */
-	public void importFileWithConnection(String smssLocation, String fileLocations, String customBaseURI, String owlPath, prerna.util.sql.SQLQueryUtil.DB_TYPE dbDriverType, boolean allowDuplicates) throws IOException, SQLException {
+	public void importFileWithConnection(String smssLocation, String fileLocations, String customBaseURI, String owlPath, prerna.util.sql.SQLQueryUtil.DB_TYPE dbDriverType, boolean allowDuplicates) throws IOException {
 		boolean error = false;
 		
 		queryUtil = SQLQueryUtil.initialize(dbDriverType);
@@ -182,7 +182,7 @@ public class RDBMSFlatCSVUploader extends AbstractFileReader {
 	 * @param fileLocation					The location of the csv file
 	 * @throws SQLException 
 	 */
-	private void processTable(final String FILE_LOCATION) throws SQLException {
+	private void processTable(final String FILE_LOCATION) throws IOException {
 		// parse the csv meta to get the headers and data types
 		// headers and data types arrays match based on position 
 		// currently assume we are loading all the columns
@@ -353,8 +353,9 @@ public class RDBMSFlatCSVUploader extends AbstractFileReader {
 	 * @param TABLE_NAME						The name of the table to create
 	 * @param csvMeta							Map containing the header and data type for each column, aligned by position
 	 * @throws SQLException 
+	 * @throws IOException 
 	 */
-	private void generateNewTableFromCSV(final String FILE_LOCATION, final String TABLE_NAME, Map<String, String[]> csvMeta) throws SQLException {
+	private void generateNewTableFromCSV(final String FILE_LOCATION, final String TABLE_NAME, Map<String, String[]> csvMeta) throws IOException {
 		LOGGER.info("Creating a new table from " + FILE_LOCATION);
 
 		// in the case of H2 RDBMS (and i'm guessing this is the case for other RDBMS)
@@ -390,7 +391,7 @@ public class RDBMSFlatCSVUploader extends AbstractFileReader {
 	 * @param csvMeta							Map containing the header and data type for each column, aligned by position
 	 * @throws SQLException 
 	 */
-	private void insertCSVIntoExistingTable(final String FILE_LOCATION, final String TABLE_NAME, Map<String, String[]> csvMeta) throws SQLException {
+	private void insertCSVIntoExistingTable(final String FILE_LOCATION, final String TABLE_NAME, Map<String, String[]> csvMeta) throws IOException {
 		/*
 		 * TODO: need to determine if creating a temp table is better than always inserting 
 		 * the records directly into the table... this is currently done under the assumption
@@ -499,7 +500,7 @@ public class RDBMSFlatCSVUploader extends AbstractFileReader {
 	 * @param csvMeta
 	 * @throws SQLException 
 	 */
-	private void bulkInsertCSVFile(final String FILE_LOCATION, final String TABLE_NAME, Map<String, String[]> csvMeta) throws SQLException {
+	private void bulkInsertCSVFile(final String FILE_LOCATION, final String TABLE_NAME, Map<String, String[]> csvMeta) throws IOException {
 		// headers and data types arrays match based on position 
 		String[] headers = csvMeta.get(CSV_HEADERS);
 		String[] dataTypes = csvMeta.get(CSV_DATA_TYPES);
@@ -522,37 +523,43 @@ public class RDBMSFlatCSVUploader extends AbstractFileReader {
 		
 		// we loop through every row of the csv
 		String[] nextRow = null;
-		while( (nextRow  = this.helper.getNextRow()) != null ) {
-			// we need to loop through every value and cast appropriately
-			for(int colIndex = 0; colIndex < nextRow.length; colIndex++) {
-				String type = dataTypes[colIndex];
-				if(type.equalsIgnoreCase("DATE")) {
-					java.util.Date value = Utility.getDateAsDateObj(nextRow[colIndex]);
-					if(value != null) {
-						ps.setDate(colIndex+1, new java.sql.Date(value.getTime()));
+		try {
+			while( (nextRow  = this.helper.getNextRow()) != null ) {
+				// we need to loop through every value and cast appropriately
+				for(int colIndex = 0; colIndex < nextRow.length; colIndex++) {
+					String type = dataTypes[colIndex];
+					if(type.equalsIgnoreCase("DATE")) {
+						java.util.Date value = Utility.getDateAsDateObj(nextRow[colIndex]);
+						if(value != null) {
+							ps.setDate(colIndex+1, new java.sql.Date(value.getTime()));
+						}
+					} else if(type.equalsIgnoreCase("DOUBLE")) {
+						Double value = Utility.getDouble(nextRow[colIndex]);
+						if(value != null) {
+							ps.setDouble(colIndex+1, value);
+						}
+					} else {
+						String value = nextRow[colIndex];
+						ps.setString(colIndex+1, value + "");
 					}
-				} else if(type.equalsIgnoreCase("DOUBLE")) {
-					Double value = Utility.getDouble(nextRow[colIndex]);
-					if(value != null) {
-						ps.setDouble(colIndex+1, value);
-					}
-				} else {
-					String value = nextRow[colIndex];
-					ps.setString(colIndex+1, value + "");
+				}
+				// add it
+				ps.addBatch();
+				
+				// batch commit based on size
+				if(++count % batchSize == 0) {
+					ps.executeBatch();
 				}
 			}
-			// add it
-			ps.addBatch();
 			
-			// batch commit based on size
-			if(++count % batchSize == 0) {
-				ps.executeBatch();
-			}
+			// well, we are done looping through now
+			ps.executeBatch(); // insert any remaining records
+			ps.close();
+		} catch(SQLException e) {
+			String errorMessage = "Error occured while performing insert on csv data row:"
+					+ "\n" + Arrays.toString(nextRow);
+			throw new IOException(errorMessage);
 		}
-		
-		// well, we are done looping through now
-		ps.executeBatch(); // insert any remaining records
-		ps.close();
 	}
 	
 	
@@ -761,12 +768,12 @@ public class RDBMSFlatCSVUploader extends AbstractFileReader {
 		PropFileWriter propWriter = new PropFileWriter();
 		propWriter.setBaseDir(baseFolder);
 		propWriter.setRDBMSType(dbType);
-		propWriter.runWriter(engineName, "", "", "" ,ImportDataProcessor.DB_TYPE.RDBMS);
+		propWriter.runWriter(engineName, "", "", ImportOptions.DB_TYPE.RDBMS);
 		
 		// do the actual db loading
 		RDBMSFlatCSVUploader reader = new RDBMSFlatCSVUploader();
 		String owlFile = baseFolder + "/" + propWriter.owlFile;
-		reader.importFileWithOutConnection(propWriter.propFileName, fileNames, customBase, owlFile, engineName, dbType, false);
+		reader.importFileWithOutConnection(propWriter.propFileName, engineName, fileNames, customBase, owlFile, dbType, false);
 		
 		// create the smss file and drop temp file
 		File propFile = new File(propWriter.propFileName);

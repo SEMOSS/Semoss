@@ -48,7 +48,7 @@ import com.hp.hpl.jena.vocabulary.OWL;
 import prerna.poi.main.BaseDatabaseCreator;
 import prerna.poi.main.PropFileWriter;
 import prerna.poi.main.RDBMSEngineCreationHelper;
-import prerna.ui.components.ImportDataProcessor;
+import prerna.poi.main.helper.ImportOptions;
 import prerna.util.AbstractFileWatcher;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
@@ -327,7 +327,7 @@ public class ImportRDBMSProcessor {
 			watcherInstance.setMonitor(new Object[]{});
 			watcherInstance.setFolderToWatch(folder);
 			
-			propWriter.runWriter(engineName, "", "", "", ImportDataProcessor.DB_TYPE.RDBMS);
+			propWriter.runWriter(engineName, "", "", ImportOptions.DB_TYPE.RDBMS);
 			oldFile = new File(propWriter.propFileName);
 			
 			watcherInstance.process(propWriter.propFileName.substring(propWriter.propFileName.lastIndexOf("/"))); 

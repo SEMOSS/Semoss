@@ -39,17 +39,13 @@ public class NLPReader extends AbstractFileReader {
 
 	private List<TripleWrapper> triples = new ArrayList<TripleWrapper>();
 
-	public IEngine importFileWithOutConnection(String smssLocation, String engineName,  String fileNames, String customBase, String customMap, String owlFile) 
+	public IEngine importFileWithOutConnection(String smssLocation, String engineName,  String fileNames, String customBase, String owlFile) 
 			throws FileNotFoundException, IOException {	
 		boolean error = false;
 		
 		String[] files = prepareReader(fileNames, customBase, owlFile, smssLocation);
 		openRdfEngineWithoutConnection(engineName);		
 		try {
-			if(!customMap.equals("")) 
-			{
-				openProp(customMap);
-			}
 			//if user selected a map, load just as before--using the prop file to discover Excel->URI translation
 			ProcessNLP processor = new ProcessNLP();
 			triples = processor.generateTriples(files);
