@@ -14,7 +14,7 @@ import org.junit.runners.Suite.SuiteClasses;
 
 @RunWith(Suite.class)
 @SuiteClasses({ 
-				SuiteComponents.class, 
+//				SuiteComponents.class, 
 				SuiteAlgorithm.class
 				})
 public class SuiteAllTests {

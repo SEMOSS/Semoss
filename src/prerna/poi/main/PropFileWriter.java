@@ -42,6 +42,7 @@ import java.nio.file.Paths;
 
 import org.apache.commons.io.FileUtils;
 
+import prerna.poi.main.helper.ImportOptions;
 import prerna.ui.components.ImportDataProcessor;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
@@ -113,7 +114,7 @@ public class PropFileWriter {
 	 * @throws FileNotFoundException
 	 * @throws IOException 
 	 */
-	public void runWriter(String dbName, String ontologyName, String dbPropFile, String questionFile, ImportDataProcessor.DB_TYPE dbType)
+	public void runWriter(String dbName, String dbPropFile, String questionFile, ImportOptions.DB_TYPE dbType)
 			throws IllegalArgumentException, FileNotFoundException, IOException {
 		if (dbName == null) {
 			throw new IllegalArgumentException("Database name is invalid.");
@@ -154,17 +155,17 @@ public class PropFileWriter {
 			if ((questionFile == null || questionFile.equals(""))) {
 				questionFileName = defaultQuestionProp.replaceAll("Default", dbName);
 				// need to create XML file from scratch
-				if (dbType == ImportDataProcessor.DB_TYPE.RDF) {
+				if (dbType == ImportOptions.DB_TYPE.RDF) {
 					copyFile(baseDirectory + System.getProperty("file.separator") + questionFileName, baseDirectory
 							+ System.getProperty("file.separator") + defaultQuestionProp);
-				} else if (dbType == ImportDataProcessor.DB_TYPE.RDBMS) {
+				} else if (dbType == ImportOptions.DB_TYPE.RDBMS) {
 					// do nothing, question sheets are created during the creation of the engine
 				}
 				// this needs to be completed
 			}
 			// if it was specified, get it in the format for the map file and move the file to the new directory
 			else {
-				if (dbType == ImportDataProcessor.DB_TYPE.RDF)
+				if (dbType == ImportOptions.DB_TYPE.RDF)
 					FileUtils.copyFileToDirectory(new File(questionFile), engineDirectory, true);
 				questionFileName = engineDirectoryName + questionFile.substring(questionFile.lastIndexOf("\\"));
 				if (questionFileName.contains("\\"))
@@ -259,7 +260,7 @@ public class PropFileWriter {
 	 *            String containing the name of the new database
 	 * @throws FileReaderException
 	 */
-	private void writeCustomDBProp(String defaultName, String dbname, ImportDataProcessor.DB_TYPE dbType) throws IOException {
+	private void writeCustomDBProp(String defaultName, String dbname, ImportOptions.DB_TYPE dbType) throws IOException {
 		String jnlName = engineDirectoryName + System.getProperty("file.separator") + dbname + ".jnl";
 		// move it outside the default directory
 		propFileName = defaultName.replace("Default/", "") + "1";
@@ -280,14 +281,14 @@ public class PropFileWriter {
 			pw.write(Constants.OWL + "\t" + owlFile + "\n");
 			// pw.write(name+"_PROP" + "\t"+ propFileName + "\n");
 			pw.write(Constants.ENGINE + "\t" + dbname + "\n");
-			if (dbType == ImportDataProcessor.DB_TYPE.RDF) {
+			if (dbType == ImportOptions.DB_TYPE.RDF) {
 				pw.write(Constants.ENGINE_TYPE + "\t" + this.defaultEngine + "\n");
 				pw.write(Constants.DREAMER + "\t" + questionFileName + "\n\n\n");
 			}
 			pw.write(Constants.SOLR_RELOAD + "\tfalse\n");
 			pw.write(Constants.FILL_EMPTY_DATATYPES + "\t"+this.shouldFillEmptyTypes +"\n");
 			pw.write(Constants.HIDDEN_DATABASE + "\tfalse\n");
-			if (dbType == ImportDataProcessor.DB_TYPE.RDBMS) {
+			if (dbType == ImportOptions.DB_TYPE.RDBMS) {
 				if(this.queryUtil == null) {
 					this.queryUtil = SQLQueryUtil.initialize(dbDriverType);
 				}
@@ -315,7 +316,7 @@ public class PropFileWriter {
 			if (this.hasMap) {
 				pw.write("MAP" + "\t" + "db/" + dbname + "/" + dbname + "_Mapping.ttl" + "\n");
 			}
-			if (dbType == ImportDataProcessor.DB_TYPE.RDF) {
+			if (dbType == ImportOptions.DB_TYPE.RDF) {
 				fileRead = new FileReader(defaultName);
 				read = new BufferedReader(fileRead);
 				String currentLine;
