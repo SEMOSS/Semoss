@@ -43,6 +43,7 @@ import org.supercsv.prefs.CsvPreference;
 import prerna.engine.api.IEngine;
 import prerna.engine.api.ISelectStatement;
 import prerna.engine.api.ISelectWrapper;
+import prerna.poi.main.helper.ImportOptions;
 import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.test.TestUtilityMethods;
 import prerna.ui.components.ImportDataProcessor;
@@ -117,7 +118,7 @@ public class RDBMSReader extends AbstractFileReader {
 	 * @throws FileNotFoundException 
 	 * @throws SailException 
 	 */
-	public IEngine importFileWithOutConnection(String smssLocation, String fileNames, String customBase, String owlFile, String engineName, SQLQueryUtil.DB_TYPE dbType, boolean allowDuplicates) 
+	public IEngine importFileWithOutConnection(String smssLocation, String engineName, String fileNames, String customBase, String owlFile, SQLQueryUtil.DB_TYPE dbType, boolean allowDuplicates) 
 			throws RepositoryException, FileNotFoundException, IOException, SailException, Exception {
 		long start = System.currentTimeMillis();
 
@@ -193,7 +194,7 @@ public class RDBMSReader extends AbstractFileReader {
 	}
 
 	public void importFileWithConnection(String engineName, String fileNames, String customBase, String owlFile, SQLQueryUtil.DB_TYPE dbType, boolean allowDuplicates) 
-			throws RepositoryException, FileNotFoundException, IOException, SailException, Exception {
+			throws IOException {
 
 		long start = System.currentTimeMillis();
 
@@ -1256,7 +1257,7 @@ public class RDBMSReader extends AbstractFileReader {
 		PropFileWriter propWriter = new PropFileWriter();
 		propWriter.setBaseDir(baseFolder);
 		propWriter.setRDBMSType(dbType);
-		propWriter.runWriter(engineName, "", "", "" , ImportDataProcessor.DB_TYPE.RDBMS);
+		propWriter.runWriter(engineName, "", "" , ImportOptions.DB_TYPE.RDBMS);
 		
 		
 		Hashtable<String, String>[] rdfMapArr = new Hashtable[1];
@@ -1294,7 +1295,7 @@ public class RDBMSReader extends AbstractFileReader {
 		RDBMSReader reader = new RDBMSReader();
 		reader.setRdfMapArr(rdfMapArr);
 		String owlFile = baseFolder + "/" + propWriter.owlFile;
-		reader.importFileWithOutConnection(propWriter.propFileName, fileNames, customBase, owlFile, engineName, dbType, false);
+		reader.importFileWithOutConnection(propWriter.propFileName, engineName, fileNames, customBase, owlFile, dbType, false);
 		
 		// create the smss file and drop temp file
 		File propFile = new File(propWriter.propFileName);
@@ -1317,6 +1318,6 @@ public class RDBMSReader extends AbstractFileReader {
 //		String owlFile = DIHelper.getInstance().getProperty("BaseFolder") + "\\db\\" + engineName + "\\" + engineName + "_OWL.OWL";
 //		SQLQueryUtil.DB_TYPE dbType = SQLQueryUtil.DB_TYPE.H2_DB;
 //
-//		reader.importFileWithOutConnection(smssLocation, fileNames, customBase, owlFile, engineName, dbType, false);
+//		reader.importFileWithOutConnection(smssLocation, engineName, fileNames, customBase, owlFile, dbType, false);
 	}
 }
