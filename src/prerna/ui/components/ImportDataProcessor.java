@@ -46,6 +46,7 @@ import org.apache.poi.xssf.usermodel.XSSFSheet;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 
 import prerna.engine.api.IEngine;
+import prerna.engine.api.IEngine.ENGINE_TYPE;
 import prerna.engine.impl.AbstractEngine;
 import prerna.poi.main.CSVReader;
 import prerna.poi.main.NLPReader;
@@ -387,7 +388,6 @@ public class ImportDataProcessor {
 	 */
 	private void addToExistingDb(ImportOptions options) throws IOException {
 		ImportOptions.IMPORT_TYPE importType = options.getImportType();
-		ImportOptions.DB_TYPE dbType = options.getDbType();
 		String engineName = options.getDbName();
 		String filePath = options.getFileLocations();
 		String customBaseUri = options.getBaseUrl();
@@ -416,12 +416,13 @@ public class ImportDataProcessor {
 			errorMessage = "Engine name, " + engineName + ", cannot be found to add new data";
 			throw new IOException(errorMessage);
 		}
+		ENGINE_TYPE engineDbType = engine.getEngineType();
 		
 		String owlPath = engine.getOWL();
 		
 		//then process based on what type of database
 		// if RDF now check the import type
-		if(dbType == ImportOptions.DB_TYPE.RDF) {
+		if(engineDbType == IEngine.ENGINE_TYPE.SESAME) {
 			
 			// if it is POI excel using the loader sheet format
 			if(importType == ImportOptions.IMPORT_TYPE.EXCEL_POI) {
@@ -457,7 +458,7 @@ public class ImportDataProcessor {
 			}
 			
 			// if it is a nlp upload
-			else if(importType == ImportOptions.IMPORT_TYPE.NLP && dbType == ImportOptions.DB_TYPE.RDF){
+			else if(importType == ImportOptions.IMPORT_TYPE.NLP){
 				NLPReader reader = new NLPReader();
 				reader.importFileWithConnection(engineName, filePath, customBaseUri, owlPath);
 			}
@@ -470,7 +471,7 @@ public class ImportDataProcessor {
 		} 
 		
 		// if RDBMS now check the import type
-		else if(dbType == ImportOptions.DB_TYPE.RDBMS) {
+		else if(engineDbType == IEngine.ENGINE_TYPE.RDBMS) {
 			// grab rdbms specific options
 			SQLQueryUtil.DB_TYPE rdbmsDriverType = options.getRDBMSDriverType();
 			Boolean allowDups = options.isAllowDuplicates();
@@ -509,11 +510,12 @@ public class ImportDataProcessor {
 		
 		// ughhhh... not RDF or RDBMS... your out of luck user
 		else {
-			errorMessage = "Database type, " + dbType + " is not recognized as a valid format";
+			errorMessage = "Unable to add data into database " + engineName + ", because it has database type, " + engineDbType + ", which "
+					+ "is currently unsupported for adding data.";
 			throw new IOException(errorMessage);
 		}
 		
-		// should update solr
+		// should update solr instances
 		try {
 			Utility.addToSolrInstanceCore(engine);
 		} catch (KeyManagementException | NoSuchAlgorithmException | KeyStoreException | ParseException e) {
