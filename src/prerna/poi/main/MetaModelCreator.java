@@ -14,6 +14,7 @@ import java.util.Properties;
 
 import prerna.poi.main.helper.CSVFileHelper;
 import prerna.util.ArrayUtilityMethods;
+import prerna.util.Utility;
 
 /**
  * This class is used to build a suggested metamodel from a file, currently only works with CSV 
@@ -21,23 +22,43 @@ import prerna.util.ArrayUtilityMethods;
  */
 public class MetaModelCreator {
 
-//	ITableDataFrame frame;
+	//column headers
 	String[] columnHeaders;
-	int limit = 500;
-	Map<String, Boolean> columnPropMap;
-	List<String[]> data;
-	Map<String, Set<String>> matches;
-	int[] processOrder; //order in which to process columns 
 	Map<String, String> dataTypeMap;
-	String propFile;
+	int[] processOrder; //order in which to process columns 
 	CreatorMode mode;
-	int endRow = 2;
+	
+	//start and end row to read, won't be less than 2
+	int endRow = 2; 
 	int startRow = 2;
 	
-	//return data
+	//the amount of rows we will use for prediction
+	int limit = 500;
+	
+	
+	
+	//the instance data we will use for prediction
+	List<String[]> data;
+	
+	//AUTO GENERATE META MODEL VARIABLES
+	Map<String, Set<String>> matches;
+	Map<String, Boolean> columnPropMap;
+	
+	//PROP FILE VARIABLE
+	String propFile;
+	
+	
+	
+	//RETURN DATA
+	//allowableDataTypes - what each column is allowed to be, i.e. MovieBudget can be String or Number
+	//						so map will have {MovieBudget -> [STRING, NUMBER]} 
 	Map<String, List<String>> allowableDataTypes;
 	private Map<String, List<Map<String, Object>>> propFileData = new HashMap<>();
+	//*************************************************
 	
+	//AUTO = auto generate/predict a metamodel
+	//PROP = generate a meta model from a prop file
+	//TABLE = generate a table with the column of most unique instances as the metamodel
 	public enum CreatorMode {AUTO, PROP, TABLE};
 	
 	public MetaModelCreator() {
@@ -56,9 +77,10 @@ public class MetaModelCreator {
 		helper.setDelimiter(delimiter.charAt(0));
 		helper.parse(fileName);
 		
-		String[] headers = this.dataTypeMap.keySet().toArray(new String[]{});
-		headers = helper.orderHeadersToGet(headers);
-		this.columnHeaders = headers;
+		this.columnHeaders = helper.getHeaders();
+		for(int i = 0; i < columnHeaders.length; i++) {
+			columnHeaders[i] = Utility.cleanVariableString(columnHeaders[i]);
+		}
 		
 		String [] cells = null;
 		int count = 1;
@@ -159,6 +181,7 @@ public class MetaModelCreator {
 				} else {
 					predMap.put("sub", subjectArr);
 					predMap.put("prop", objectArr);
+					dataType = dataType == "DOUBLE" ? "NUMBER" : dataType;
 					predMap.put("dataType", dataType);
 					this.propFileData.get("propFileNodeProp").add(predMap);
 				}
@@ -167,7 +190,7 @@ public class MetaModelCreator {
 	}
 	
 	/**
-	 * 
+	 * Generates the Meta model data based on the definition of the prop file
 	 */
 	private void generateMetaModelFromProp() throws Exception{
 		//TODO: check if prop file headers and csv headers match
@@ -331,22 +354,26 @@ public class MetaModelCreator {
 	 * generate a metamodel in which the column with the most unique instances is the primary key and all other columns are properties of that column
 	 */
 	private void generateTableMetaModel() {
-//		String[] columnHeaders = frame.getColumnHeaders();
-//		populateData();
+
+		//initialize the order of columns from highest unique instances to lowest
 		populateProcessOrder();
 		
+		//initialize the prop file data
 		List<Map<String, Object>> initList1 = new ArrayList<>();
 		List<Map<String, Object>> initList2 = new ArrayList<>();
 		this.propFileData.put("propFileRel", initList1);
 		this.propFileData.put("propFileNodeProp", initList2);
 		
+		//we want to grab the value which has the highest unique instances and is also a string
 		boolean findPrimKey = true;
 		String subject = null;
-		while(findPrimKey) {
-			subject = columnHeaders[processOrder[0]];
+		int count = 0;
+		while(findPrimKey && count < processOrder.length) {
+			subject = columnHeaders[processOrder[count]];
 			if(this.dataTypeMap.get(subject).equals("STRING")) {
 				findPrimKey = false;
 			}
+			count++;
 		}
 		
 		//if all columns are numbers use the first number
@@ -354,9 +381,15 @@ public class MetaModelCreator {
 			subject = columnHeaders[processOrder[0]];
 		}
 		
-		for(int i = 1; i < processOrder.length; i++) {
+		
+		//make all other columns properties of the main column
+		for(int i = 0; i < processOrder.length; i++) {
 			String object = columnHeaders[processOrder[i]];
-//			DATA_TYPES dataType = frame.getDataType(object);
+
+			//skip, don't want property equal to itself
+			if(subject.equals(object)) continue;
+			
+			//add the data
 			String dataType = this.dataTypeMap.get(object);
 			Map<String, Object> predMap = new HashMap<>();
 			
@@ -365,7 +398,8 @@ public class MetaModelCreator {
 			
 			predMap.put("sub", subjectArr);
 			predMap.put("prop", objectArr);
-			predMap.put("dataType", dataType.toString());
+			dataType = dataType == "DOUBLE" ? "NUMBER" : dataType;
+			predMap.put("dataType", dataType);
 			this.propFileData.get("propFileNodeProp").add(predMap);
 		}
 	}
@@ -500,17 +534,25 @@ public class MetaModelCreator {
 		
 		processOrder = new int[columnHeaders.length];
 		//sort by instance count
-		Map<Integer, String> sortedMap = new TreeMap<>();
+		Map<Integer, List<String>> sortedMap = new TreeMap<>();
 		for(int i = 0; i < columnHeaders.length; i++) {
-			sortedMap.put(instanceCount[i], columnHeaders[i]);
+			if(sortedMap.containsKey(instanceCount[i])) {
+				sortedMap.get(instanceCount[i]).add(columnHeaders[i]);
+			} else {
+				List<String> list = new ArrayList<>(3);
+				list.add(columnHeaders[i]);
+				sortedMap.put(instanceCount[i], list);
+			}
 		}
 		
 		//store the index of column headers
-		int i = sortedMap.keySet().size() - 1;
+		int i = columnHeaders.length - 1;
 		for(Integer key : sortedMap.keySet()) {
-			String nextColumn = sortedMap.get(key);
-			this.processOrder[i] = ArrayUtilityMethods.arrayContainsValueAtIndex(columnHeaders, nextColumn);
-			i--;
+			List<String> nextColumns = sortedMap.get(key);
+			for(String column : nextColumns) {
+				this.processOrder[i] = ArrayUtilityMethods.arrayContainsValueAtIndexIgnoreCase(columnHeaders, column);
+				i--;
+			}
 		}
 	}
 	
