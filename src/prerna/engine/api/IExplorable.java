@@ -77,6 +77,8 @@ public interface IExplorable {
 	
 	// sets the owl
 	void setOWL(String owl);
+	
+	String getOWL();
 
 	// gets the owl definitions
 	String getOWLDefinition();
