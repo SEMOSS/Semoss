@@ -3,16 +3,11 @@ package prerna.poi.main;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
-import java.io.FileReader;
 import java.io.IOException;
 import java.io.OutputStreamWriter;
 import java.io.PrintWriter;
-import java.text.DateFormat;
-import java.text.ParseException;
-import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Hashtable;
@@ -29,24 +24,14 @@ import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 import org.openrdf.repository.RepositoryException;
 import org.openrdf.sail.SailException;
-import org.supercsv.cellprocessor.Optional;
-import org.supercsv.cellprocessor.ParseBool;
-import org.supercsv.cellprocessor.ParseDate;
-import org.supercsv.cellprocessor.ParseDouble;
-import org.supercsv.cellprocessor.constraint.NotNull;
-import org.supercsv.cellprocessor.ift.CellProcessor;
-import org.supercsv.exception.SuperCsvCellProcessorException;
-import org.supercsv.io.CsvMapReader;
-import org.supercsv.io.ICsvMapReader;
-import org.supercsv.prefs.CsvPreference;
 
 import prerna.engine.api.IEngine;
 import prerna.engine.api.ISelectStatement;
 import prerna.engine.api.ISelectWrapper;
+import prerna.poi.main.helper.CSVFileHelper;
 import prerna.poi.main.helper.ImportOptions;
 import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.test.TestUtilityMethods;
-import prerna.ui.components.ImportDataProcessor;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
 import prerna.util.Utility;
@@ -56,21 +41,20 @@ public class RDBMSReader extends AbstractFileReader {
 
 	private static final Logger LOGGER = LogManager.getLogger(RDBMSReader.class.getName());
 
-	private static final DateFormat DATE_DF = new SimpleDateFormat("yyy-MM-dd");
-	private static final DateFormat GENERIC_DF = new SimpleDateFormat("E MMM dd HH:mm:ss Z yyyy");
-
 	private String propFile; // the file that serves as the property file
-	private FileReader readCSVFile;
-	private ICsvMapReader mapReader;
+
+	// fields around the csv file
+	private CSVFileHelper csvHelper;
 	private String [] header;
-	private List<String> headerList;
-	private CellProcessor[] processors;
-	private static Hashtable <String, CellProcessor> typeHash = new Hashtable<String, CellProcessor>();
-	public final static String NUMCOL = "NUM_COLUMNS";
-	public final static String NOT_OPTIONAL = "NOT_OPTIONAL";
+	private String[] dataTypes;
+	private Map<String, Integer> csvColumnToIndex;
+
+	// keep conversion from user input to sql datatypes
+	private Map<String, String> sqlHash = new Hashtable<String, String>();
+
+	// metamodel data
 	private ArrayList<String> relationArrayList = new ArrayList<String>();
 	private ArrayList<String> nodePropArrayList = new ArrayList<String>();
-	//	private ArrayList<String> relPropArrayList = new ArrayList<String>();
 	private boolean propFileExist = true;
 	private Hashtable<String, String>[] rdfMapArr;
 
@@ -78,15 +62,13 @@ public class RDBMSReader extends AbstractFileReader {
 	private int startRow = 2;
 	private int maxRows = 100000;
 
-	private Map<String, String> sqlHash = new Hashtable<String, String>();
-	private Map<String, String> types = new Hashtable<String, String>();
 	private Map<String, Map<String, String>> allConcepts = new LinkedHashMap<String, Map<String, String>>();
 	private Map<String, Map<String, String>> concepts = new LinkedHashMap<String, Map<String, String>>();
 	private Map<String, List<String>> relations = new LinkedHashMap <String, List<String>>();
 	private Map<String, Map<String, String>> existingRDBMSStructure = new Hashtable<String, Map<String, String>>();
 	private Set<String> existingTableWithAllColsAccounted = new HashSet<String>();
 	private Set<String> addedTables = new HashSet<String>();
-	
+
 	private int indexUniqueId = 1;
 	private List<String> recreateIndexList = new Vector<String>(); 
 	private List<String> tempIndexAddedList = new Vector<String>();
@@ -96,6 +78,7 @@ public class RDBMSReader extends AbstractFileReader {
 
 	protected String scriptFileName = "DBScript.sql";
 	protected PrintWriter scriptFile = null;
+
 
 	private void clearTables() {
 		// keep track of all the concepts that were modified during the loading process
@@ -129,13 +112,21 @@ public class RDBMSReader extends AbstractFileReader {
 		try {
 			openRdbmsEngineWithoutConnection(engineName);
 			openScriptFile(engineName);
-			createTypes();
 			createSQLTypes();
 			for(int i = 0; i<files.length;i++)
 			{
 				try {
 					String fileName = files[i];
+
+					// open the csv file
 					openCSVFile(fileName);
+					// load the prop file for the CSV file 
+					if(propFileExist){
+						openProp(propFile);
+					} else {
+						rdfMap = rdfMapArr[i];
+					}
+					preParseCSVMetaData(rdfMap);
 
 					if(i ==0 ) {
 						scriptFile.println("-- ********* begin load process ********* ");
@@ -143,13 +134,6 @@ public class RDBMSReader extends AbstractFileReader {
 					scriptFile.println("-- ********* begin load " + fileName + " ********* ");
 					LOGGER.info("-- ********* begin load " + fileName + " ********* ");
 
-					// load the prop file for the CSV file 
-					if(propFileExist){
-						openProp(propFile);
-					} else {
-						rdfMap = rdfMapArr[i];
-					}
-					createProcessors();
 					//TODO: same method used in other classes
 					parseMetadata();
 					// determine the type of data in each column of CSV file
@@ -189,7 +173,7 @@ public class RDBMSReader extends AbstractFileReader {
 
 		long end = System.currentTimeMillis();
 		LOGGER.info((end - start)/1000 + " seconds to load...");
-		
+
 		return engine;
 	}
 
@@ -205,27 +189,29 @@ public class RDBMSReader extends AbstractFileReader {
 		try {
 			openEngineWithConnection(engineName);
 			openScriptFile(engineName);
-			createTypes();
 			createSQLTypes();
 			findIndexes(engine.getEngineName());
 			for(int i = 0; i<files.length;i++)
 			{
 				try {
 					String fileName = files[i];
-					openCSVFile(fileName);			
-					if(i ==0 ) {
-						scriptFile.println("-- ********* begin load process ********* ");
-					}
-					scriptFile.println("-- ********* begin load " + fileName + " ********* ");
-					LOGGER.info("-- ********* begin load " + fileName + " ********* ");
 
+					// open the csv file
+					openCSVFile(fileName);
 					// load the prop file for the CSV file 
 					if(propFileExist){
 						openProp(propFile);
 					} else {
 						rdfMap = rdfMapArr[i];
 					}
-					createProcessors();
+					preParseCSVMetaData(rdfMap);
+
+					if(i ==0 ) {
+						scriptFile.println("-- ********* begin load process ********* ");
+					}
+					scriptFile.println("-- ********* begin load " + fileName + " ********* ");
+					LOGGER.info("-- ********* begin load " + fileName + " ********* ");
+
 					//TODO: same method used in other classes
 					parseMetadata();
 					// determine the type of data in each column of CSV file
@@ -304,9 +290,6 @@ public class RDBMSReader extends AbstractFileReader {
 				String cleanRel = RDBMSEngineCreationHelper.cleanTableName(rel) + FK;
 				String relColType = concepts.get(rel).get(rel);
 				sqlBuilder.append(", ").append(cleanRel).append(" ").append(relColType);
-
-				//TODO: do I need to also add types for the FK columns created???
-//				owler.addProp(cleanConceptName, cleanRel, relColType);
 			}
 		}
 
@@ -316,7 +299,7 @@ public class RDBMSReader extends AbstractFileReader {
 		sqlBuilder.append(")");
 		LOGGER.info("CREATE TABLE SQL: " + sqlBuilder.toString());
 		insertData(sqlBuilder.toString());
-		
+
 		addedTables.add(cleanConceptName);
 	}
 
@@ -355,9 +338,6 @@ public class RDBMSReader extends AbstractFileReader {
 				if(!existingConceptTable.containsKey(cleanNewRel.toUpperCase())) {
 					String relColType = concepts.get(newRel).get(newRel);
 					colsToAdd.put(cleanNewRel, relColType);
-
-					//TODO: do I need to also add types for the FK columns created???
-//					owler.addProp(cleanConcept, cleanNewRel, newColsForConcept.get(newRel));
 				}
 			}
 		}
@@ -393,59 +373,48 @@ public class RDBMSReader extends AbstractFileReader {
 	}
 
 	private void processCSVTable(boolean noExistingData) throws IOException{
-		try {
-			Map<String, String> defaultInsertStatements = getDefaultInsertStatements();
-			Map<String, Object> jcrMap;
-			while( (jcrMap = mapReader.read(header, processors)) != null && count<(maxRows))
-			{
-				// loop through all the concepts
-				for(String concept : concepts.keySet()) {
-					String defaultInsert = defaultInsertStatements.get(concept);
+		Map<String, String> defaultInsertStatements = getDefaultInsertStatements();
+		String[] values = null;
+		while( (values = csvHelper.getNextRow()) != null && count<maxRows )
+		{
+			// loop through all the concepts
+			for(String concept : concepts.keySet()) {
+				String defaultInsert = defaultInsertStatements.get(concept);
 
-					String sqlQuery = null;
-					if(noExistingData) {
-						// this is the easiest case, just add all the information
-						sqlQuery = createInsertStatement(concept, defaultInsert, jcrMap);
+				String sqlQuery = null;
+				if(noExistingData) {
+					// this is the easiest case, just add all the information
+					sqlQuery = createInsertStatement(concept, defaultInsert, values);
+				} else {
+					// if the concept is a brand new table, easy, just add
+					// for some reason, all existing metadata comes back upper case
+					if(!existingRDBMSStructure.containsKey(concept.toUpperCase())) {
+						sqlQuery = createInsertStatement(concept, defaultInsert, values);
+					} 
+					// other case is if the table is there, but it hasn't been altered, also just add
+					else if(existingTableWithAllColsAccounted.contains(concept)) {
+						sqlQuery = createInsertStatement(concept, defaultInsert, values);
 					} else {
-						// if the concept is a brand new table, easy, just add
-						// for some reason, all existing metadata comes back upper case
-						if(!existingRDBMSStructure.containsKey(concept.toUpperCase())) {
-							sqlQuery = createInsertStatement(concept, defaultInsert, jcrMap);
-						} 
-						// other case is if the table is there, but it hasn't been altered, also just add
-						else if(existingTableWithAllColsAccounted.contains(concept)) {
-							sqlQuery = createInsertStatement(concept, defaultInsert, jcrMap);
-						} else {
-							// here we add the logic if we should perform an update query vs. an insert query
-							sqlQuery = getAlterQuery(concept, jcrMap, defaultInsert);
-							if(!sqlQuery.isEmpty()) {
-								insertData(sqlQuery);
-							}
+						// here we add the logic if we should perform an update query vs. an insert query
+						sqlQuery = getAlterQuery(concept, values, defaultInsert);
+						if(!sqlQuery.isEmpty()) {
+							insertData(sqlQuery);
 						}
 					}
-					if(sqlQuery != null && !sqlQuery.isEmpty()) {
-						insertData(sqlQuery);
-					}
+				}
+				if(sqlQuery != null && !sqlQuery.isEmpty()) {
+					insertData(sqlQuery);
 				}
 			}
-
-			// delete the indexes created and clear the arrays
-			dropTempIndicies();
-			tempIndexDropList.clear();//clear the drop index sql text
-			tempIndexAddedList.clear();//clear the index array text
-		} catch(SuperCsvCellProcessorException e) {
-			e.printStackTrace();
-			String errorMessage = "Error processing row number " + count + ". ";
-			errorMessage += e.getMessage();
-			throw new IOException(errorMessage);
-		} catch (IOException e) {
-			e.printStackTrace();
-			throw new IOException("Error processing CSV headers");
 		}
 
+		// delete the indexes created and clear the arrays
+		dropTempIndicies();
+		tempIndexDropList.clear();//clear the drop index sql text
+		tempIndexAddedList.clear();//clear the index array text
 	}
 
-	private String getAlterQuery(String concept, Map <String, Object> jcrMap, String defaultInsert) {
+	private String getAlterQuery(String concept, String[] rowValues, String defaultInsert) {
 		String cleanConcept = RDBMSEngineCreationHelper.cleanTableName(concept);
 
 		// get all the columns to be added for the table
@@ -476,7 +445,7 @@ public class RDBMSReader extends AbstractFileReader {
 			}
 			String cleanCol = RDBMSEngineCreationHelper.cleanTableName(col);
 			String type = columns.get(col);
-			Object value = getProperlyFormatedForQuery(col, createObject(col, jcrMap), type);
+			Object value = getProperlyFormatedForQuery(col, createObject(col, rowValues, dataTypes, csvColumnToIndex), type);
 
 			if(valuesBuffer.toString().length() == 0) {
 				valuesBuffer.append(cleanCol + " = " +  value); 
@@ -496,7 +465,7 @@ public class RDBMSReader extends AbstractFileReader {
 			for(String rel : rels) {
 				String cleanRel = RDBMSEngineCreationHelper.cleanTableName(rel) + FK;
 				String type = concepts.get(rel).get(rel);
-				Object value = getProperlyFormatedForQuery(rel, createObject(rel, jcrMap), type);
+				Object value = getProperlyFormatedForQuery(rel, createObject(rel, rowValues, dataTypes, csvColumnToIndex), type);
 
 				if(valuesBuffer.toString().length() == 0) {
 					valuesBuffer.append(cleanRel + " = " +  value); 
@@ -515,7 +484,7 @@ public class RDBMSReader extends AbstractFileReader {
 
 		// this whereBuffer contains the string "concept = instance_value"
 		StringBuffer whereBuffer = new StringBuffer();
-		Object value = getProperlyFormatedForQuery(concept, createObject(concept, jcrMap), conceptType);
+		Object value = getProperlyFormatedForQuery(concept, createObject(concept, rowValues, dataTypes, csvColumnToIndex), conceptType);
 		whereBuffer.append(cleanConcept).append(" = ").append(value);
 		HashMap<String, String> whereValues = new HashMap<String, String>();
 		whereValues.put(cleanConcept, value + "");
@@ -546,7 +515,7 @@ public class RDBMSReader extends AbstractFileReader {
 		if(isInsert){
 			if(values.length()==0) {
 				// this is the odd case when no columns are being added, but we need to insert the instance by itself
-				return createInsertStatement(concept, defaultInsert, jcrMap);
+				return createInsertStatement(concept, defaultInsert, rowValues);
 			} else {
 				//doing a distinct here, alternatively we can just let it create all the dups later
 				String allColumnsString = ""; 
@@ -690,11 +659,11 @@ public class RDBMSReader extends AbstractFileReader {
 		//fill up the availableTables and availableTablesInfo maps
 		Map<String, Map<String, String>> existingStructure = RDBMSEngineCreationHelper.getExistingRDBMSStructure(engine, queryUtil);
 		Set<String> alteredTables = allConcepts.keySet();
-		
+
 		Set<String> allTables = existingStructure.keySet();
 		for(String tableName : allTables) {
 			List<String> createIndex = new ArrayList<String>();
-		
+
 			Map<String, String> tableStruc = existingStructure.get(tableName);
 			Set<String> columns = tableStruc.keySet();
 
@@ -719,7 +688,7 @@ public class RDBMSReader extends AbstractFileReader {
 					break;
 				}
 			}
-			
+
 			//do this duplicates removal for only the tables that were modified
 			if(tableAltered){
 				if(!allowDuplicates){
@@ -746,26 +715,26 @@ public class RDBMSReader extends AbstractFileReader {
 					//drop existing table
 					String dropTable = queryUtil.getDialectDropTable(tableName);//dropTable = "DROP TABLE " + tableName;
 					insertData(dropTable);
-	
+
 					//rename our temporary table to the new table name				
 					String alterTableName = queryUtil.getDialectAlterTableName(tableName+"_TEMP", tableName); //alterTableName = "ALTER TABLE " + tableName + "_TEMP RENAME TO " + tableName;
 					insertData(alterTableName);
 				}
 			}
-			
+
 			//create indexs for ALL tables since we deleted all indexes before
 			for(String singleIndex: createIndex){
 				insertData(singleIndex);
 			}
 		}
 	}
-	
-	private String createInsertStatement(String concept, String defaultInsertQuery, Map<String, Object> jcrMap) {
+
+	private String createInsertStatement(String concept, String defaultInsertQuery, String[] values) {
 
 		StringBuilder insertQuery = new StringBuilder(defaultInsertQuery);
 		Map<String, String> propMap = concepts.get(concept);
 		String type = propMap.get(concept);
-		Object propertyValue = createObject(concept, jcrMap);
+		Object propertyValue = createObject(concept, values, dataTypes, csvColumnToIndex);
 		insertQuery.append(getProperlyFormatedForQuery(concept, propertyValue, type));
 
 		for(String prop : propMap.keySet()) {
@@ -775,7 +744,7 @@ public class RDBMSReader extends AbstractFileReader {
 			insertQuery.append(",");
 
 			type = propMap.get(prop);
-			propertyValue = createObject(prop, jcrMap);
+			propertyValue = createObject(prop, values, dataTypes, csvColumnToIndex);
 			insertQuery.append(getProperlyFormatedForQuery(prop, propertyValue, type));
 		}
 
@@ -785,7 +754,7 @@ public class RDBMSReader extends AbstractFileReader {
 				insertQuery.append(",");
 
 				String relColType = concepts.get(rel).get(rel);
-				propertyValue = createObject(rel, jcrMap);
+				propertyValue = createObject(rel, values, dataTypes, csvColumnToIndex);
 				insertQuery.append(getProperlyFormatedForQuery(rel, propertyValue, relColType));
 			}
 		}
@@ -802,44 +771,14 @@ public class RDBMSReader extends AbstractFileReader {
 		type = type.toUpperCase();
 		if(type.contains("VARCHAR")) {
 			return "'" + RDBMSEngineCreationHelper.escapeForSQLStatement(Utility.cleanString(value.toString(), true)) + "'";
-		} else if(type.contains("INT") || type.contains("DECIMAL") || type.contains("DOUBLE") || type.contains("FLOAT") || type.contains("LONG") || type.contains("BIGINT")
+		} else if(type.contains("FLOAT") || type.contains("DECIMAL") || type.contains("DOUBLE") || type.contains("INT") || type.contains("LONG") || type.contains("BIGINT")
 				|| type.contains("TINYINT") || type.contains("SMALLINT")){
 			return value;
 		} else  if(type.contains("DATE")) {
-			Date dateValue = null;
-			try {
-				dateValue = GENERIC_DF.parse(value + "");
-			} catch (ParseException e) {
-				e.printStackTrace();
-				throw new IllegalArgumentException("Input value, " + value + " for column " + colName + " cannot be parsed as a date.");
-			}
-			value = DATE_DF.format(dateValue);
 			return "'" + value + "'";
 		}
 
 		return "'" + RDBMSEngineCreationHelper.escapeForSQLStatement(value.toString()) + "'";
-	}
-
-	/**
-	 * Retrieves the data in the CSV file for a specified string
-	 * @param object 	String containing the object to retrieve from the CSV data
-	 * @param jcrMap 	Map containing the data in the CSV file
-	 * @return Object	The CSV data mapped to the object string
-	 */
-	public Object createObject(String object, Map <String, Object> jcrMap)
-	{
-		// need to do the class vs. object magic
-		if(object.contains("+"))
-		{
-			StringBuilder strBuilder = new StringBuilder();
-			String[] objList = object.split("\\+");
-			for(int i = 0; i < objList.length; i++){
-				strBuilder.append(jcrMap.get(objList[i])); 
-			}
-			return Utility.cleanString(strBuilder.toString(), true);
-		}
-
-		return jcrMap.get(object);
 	}
 
 	private Map<String, String> getDefaultInsertStatements() {
@@ -907,7 +846,7 @@ public class RDBMSReader extends AbstractFileReader {
 					if(concept.contains("+")) {
 						propMap.put(concept, "VARCHAR(2000)");
 					} else {
-						propMap.put(concept, types.get(concept));
+						propMap.put(concept, dataTypes[csvColumnToIndex.get(concept)]);
 					}
 					owler.addConcept(cleanConceptTableName, propMap.get(concept));
 				}
@@ -919,7 +858,7 @@ public class RDBMSReader extends AbstractFileReader {
 					if(prop.contains("+")) {
 						propMap.put(prop, "VARCHAR(2000)");
 					} else {
-						propMap.put(prop, types.get(prop));
+						propMap.put(prop, dataTypes[csvColumnToIndex.get(prop)]);
 					}
 					owler.addProp(cleanConceptTableName, cleanProp, propMap.get(prop));
 				}
@@ -956,7 +895,7 @@ public class RDBMSReader extends AbstractFileReader {
 					if(fromConcept.contains("+")) {
 						propMap.put(fromConcept, "VARCHAR(2000)");
 					} else {
-						propMap.put(fromConcept, types.get(fromConcept));
+						propMap.put(fromConcept, dataTypes[csvColumnToIndex.get(fromConcept)]);
 					}
 					owler.addConcept(cleanFromConceptTableName, propMap.get(fromConcept));
 					concepts.put(fromConcept, propMap);
@@ -967,7 +906,7 @@ public class RDBMSReader extends AbstractFileReader {
 					if(toConcept.contains("+")) {
 						propMap.put(toConcept, "VARCHAR(2000)");
 					} else {
-						propMap.put(toConcept, types.get(toConcept));
+						propMap.put(toConcept, dataTypes[csvColumnToIndex.get(toConcept)]);
 					}
 					owler.addConcept(cleanToConceptTableName, propMap.get(toConcept));
 					concepts.put(toConcept, propMap);
@@ -999,11 +938,11 @@ public class RDBMSReader extends AbstractFileReader {
 					}
 					relList.add(toConcept);
 					relations.put(fromConcept, relList);
-					
+
 					// the predicate string is different from the default defined
 					predicate = cleanToConceptTableName + "." + cleanToConceptTableName 
 							+ "." + cleanFromConceptTableName + "." + cleanToConceptTableName + FK;
-					
+
 				} else {
 					// do it based on relationship format
 					// TODO: build it out to do it based on
@@ -1020,25 +959,6 @@ public class RDBMSReader extends AbstractFileReader {
 				owler.addRelation(cleanFromConceptTableName, cleanToConceptTableName, predicate);
 			}
 		}
-
-		//		if(rdfMap.get("RELATION_PROP") != null)
-		//		{
-		//			String propNames = rdfMap.get("RELATION_PROP");
-		//			StringTokenizer propTokens = new StringTokenizer(propNames, ";");
-		//			relPropArrayList = new ArrayList<String>();
-		//			if(basePropURI.equals("")){
-		//				basePropURI = semossURI + "/" + Constants.DEFAULT_RELATION_CLASS + "/" + CONTAINS;
-		//			}
-		//			while(propTokens.hasMoreElements())
-		//			{
-		//				String relation = propTokens.nextToken();
-		//				//just in case the end of the prop string is empty string or spaces
-		//				if(!relation.contains("%"))
-		//					continue;
-		//
-		//				relPropArrayList.add(relation);
-		//			}
-		//		}
 	}
 
 	private void insertData(String sql){
@@ -1056,22 +976,12 @@ public class RDBMSReader extends AbstractFileReader {
 	public void skipRows() throws IOException {
 		//start count at 1 just row 1 is the header
 		count = 1;
-		if (rdfMap.get("START_ROW") != null)
+		if (rdfMap.get("START_ROW") != null) {
 			startRow = Integer.parseInt(rdfMap.get("START_ROW")); 
-		try {
-			while( count<startRow-1 && mapReader.read(header, processors) != null)// && count<maxRows)
-			{
-				count++;
-				//logger.info("Skipping line: " + count);
-			}
-		} catch(SuperCsvCellProcessorException e) {
-			e.printStackTrace();
-			String errorMessage = "Error processing row number " + count + ". ";
-			errorMessage += e.getMessage();
-			throw new IOException(errorMessage);
-		} catch (IOException e) {
-			e.printStackTrace();
-			throw new IOException("Error processing CSV headers");
+		}
+		while( count<startRow-1 && csvHelper.getNextRow() != null)// && count<maxRows)
+		{
+			count++;
 		}
 	}
 
@@ -1081,7 +991,9 @@ public class RDBMSReader extends AbstractFileReader {
 		sqlHash.put("DOUBLE", "FLOAT");
 		sqlHash.put("STRING", "VARCHAR(2000)"); // 8000 was chosen because this is the max for SQL Server; needs more permanent fix
 		sqlHash.put("TEXT", "VARCHAR(2000)"); // 8000 was chosen because this is the max for SQL Server; needs more permanent fix
-		sqlHash.put("DATE", "TIME");
+
+		//TODO: the FE needs to differentiate between "dates with times" vs. "dates"
+		sqlHash.put("DATE", "DATE");
 		sqlHash.put("SIMPLEDATE", "DATE");
 		// currently only add in numbers as doubles
 		sqlHash.put("NUMBER", "FLOAT");
@@ -1089,82 +1001,48 @@ public class RDBMSReader extends AbstractFileReader {
 		//		typeHash.put("NUMBER", new ParseInt());
 		//		typeHash.put("INTEGER", new ParseInt());
 		sqlHash.put("BOOLEAN", "BOOLEAN");
-
-		// not sure the optional is needed
 	}
 
-	/**
-	 * Stores all possible variable types that the user can input from the CSV file into hashtable
-	 * Hashtable is then used to match each column in CSV to a specific type based on user input in prop file
-	 */
-	public static void createTypes()
-	{
-		typeHash.put("DECIMAL", new ParseDouble());
-		typeHash.put("DOUBLE", new ParseDouble());
-		typeHash.put("STRING", new NotNull());
-		typeHash.put("TEXT", new NotNull());
-		typeHash.put("DATE", new ParseDate("yyyy-MM-dd hh:mm:ss"));
-		typeHash.put("SIMPLEDATE", new ParseDate("MM/dd/yyyy"));
-		// currently only add in numbers as doubles
-		typeHash.put("NUMBER", new ParseDouble());
-		typeHash.put("INTEGER", new ParseDouble());
-		//		typeHash.put("NUMBER", new ParseInt());
-		//		typeHash.put("INTEGER", new ParseInt());
-		typeHash.put("BOOLEAN", new ParseBool());
 
-		// now the optionals
-		typeHash.put("DECIMAL_OPTIONAL", new Optional(new ParseDouble()));
-		typeHash.put("DOUBLE_OPTIONAL", new Optional(new ParseDouble()));
-		typeHash.put("STRING_OPTIONAL", new Optional());
-		typeHash.put("TEXT_OPTIONAL", new Optional());
-		typeHash.put("DATE_OPTIONAL", new Optional(new ParseDate("yyyy-MM-dd HH:mm:ss")));
-		typeHash.put("SIMPLEDATE_OPTIONAL", new Optional(new ParseDate("MM/dd/yyyy")));
-		// currently only add in numbers as doubles
-		typeHash.put("NUMBER_OPTIONAL", new Optional(new ParseDouble()));
-		typeHash.put("INTEGER_OPTIONAL", new Optional(new ParseDouble()));
-		//		typeHash.put("NUMBER_OPTIONAL", new Optional(new ParseInt()));
-		//		typeHash.put("INTEGER_OPTIONAL", new Optional(new ParseInt()));
-		typeHash.put("BOOLEAN_OPTIONAL", new Optional(new ParseBool()));
-	}
 
 	/**
-	 * Matches user inputed column type in prop file to the specific variable type name within Java SuperCSV API
+	 * Retrieves the data in the CSV file for a specified string
+	 * @param object 	String containing the object to retrieve from the CSV data
+	 * @param jcrMap 	Map containing the data in the CSV file
+	 * @return Object	The CSV data mapped to the object string
 	 */
-	public void createProcessors()
+	public Object createObject(String object, String[] values, String[] dataTypes, Map<String, Integer> colNameToIndex)
 	{
-		// get the number columns in CSV file
-		int numColumns = Integer.parseInt(rdfMap.get(NUMCOL));
-		// Columns in prop file that are NON_OPTIMAL must contain a value
-		String optional = ";";
-		if(rdfMap.get(NOT_OPTIONAL) != null)
+		// need to do the class vs. object magic
+		if(object.contains("+"))
 		{
-			optional  = rdfMap.get(NOT_OPTIONAL);
-		}
-
-		int offset = 0;
-		if(propFileExist){
-			offset = 1;
-		}
-		processors = new CellProcessor[numColumns+offset];
-		for(int procIndex = 1;procIndex <= processors.length;procIndex++)
-		{
-			// find the type for each column
-			String type = rdfMap.get(procIndex+"");
-			boolean opt = true;
-			if(optional.indexOf(";" + procIndex + ";") > 1)
-				opt = false;
-
-			if(type != null && opt) {
-				types.put(header[procIndex-1], sqlHash.get(type));
-				processors[procIndex-1] = typeHash.get(type.toUpperCase() + "_OPTIONAL");
-			} else if(type != null) {
-				types.put(header[procIndex-1], sqlHash.get(type));
-				processors[procIndex-1] = typeHash.get(type.toUpperCase());
-			} else if(type == null) {
-				types.put(header[procIndex-1], sqlHash.get("TEXT"));
-				processors[procIndex-1] = typeHash.get("STRING_OPTIONAL");
+			StringBuilder strBuilder = new StringBuilder();
+			String[] objList = object.split("\\+");
+			for(int i = 0; i < objList.length; i++){
+				strBuilder.append(values[colNameToIndex.get(object)]); 
 			}
+			return Utility.cleanString(strBuilder.toString(), true);
 		}
+
+		// here we need to grab the value and cast it based on the type
+		Object retObj = null;
+		int colIndex = colNameToIndex.get(object);
+
+		String type = dataTypes[colIndex];
+		String strVal = values[colIndex];
+		if(type.equals("FLOAT")) {
+			retObj = Utility.getDouble(strVal);
+		} else if(type.equals("DATE")) {
+			retObj = Utility.getDate(strVal);
+		} 
+		//		else if(type.equals("TIMESTAMP")) {
+		//			retObj = Utility.getTimeStamp(strVal);
+		//		}
+		else {
+			retObj = strVal;
+		}
+
+		return retObj;
 	}
 
 	/**
@@ -1173,27 +1051,52 @@ public class RDBMSReader extends AbstractFileReader {
 	 * @param fileName String
 	 * @throws FileNotFoundException 
 	 */
-	public void openCSVFile(String fileName) throws FileNotFoundException {
-		try {
-			readCSVFile = new FileReader(fileName);
-			mapReader = new CsvMapReader(readCSVFile, CsvPreference.STANDARD_PREFERENCE);
-		} catch (FileNotFoundException e) {
-			e.printStackTrace();
-			throw new FileNotFoundException("Could not find CSV file located at " + fileName);
-		}		
-		try {
-			header = mapReader.getHeader(true);
-			//header clean up, consistent with RDBMS headers handling
-			/*for(int j = 0; j < header.length; j++){
-				String singleHeader = Utility.cleanVariableString(header[j]); //String singleHeader = header[j];
-				header[j] = singleHeader;
-			}*/
-			headerList = Arrays.asList(header);
-			// last header in CSV file is the absolute path to the prop file
-			propFile = header[header.length-1];
-		} catch (IOException e) {
-			e.printStackTrace();
-			throw new FileNotFoundException("Could not close reader input stream for CSV file " + fileName);
+	private void openCSVFile(final String FILE_LOCATION) {
+		LOGGER.info("Processing csv file: " + FILE_LOCATION);
+
+		// use the csv file helper to load the data
+		csvHelper = new CSVFileHelper();
+		// assume csv
+		csvHelper.setDelimiter(',');
+		csvHelper.parse(FILE_LOCATION);
+
+		// get the headers for the csv
+		this.header = csvHelper.getHeaders();
+		LOGGER.info("Found headers: " + Arrays.toString(header));
+	}
+
+	/**
+	 * Get the data types and the csvColumnToIndex maps ready for the file load
+	 * I call this preParseMetaData since this is needed for parseMetaData as it needs
+	 * to know what the types are for each column to properly add into OWL
+	 * @param rdfMap
+	 */
+	private void preParseCSVMetaData(Map<String, String> rdfMap) {
+		// create the data types list
+		int numCols = header.length;
+		this.dataTypes = new String[numCols];
+		// create a map from column name to index
+		// this will be used to help speed up finding the location of values
+		this.csvColumnToIndex = new Hashtable<String, Integer>();
+
+		for(int colIndex = 1; colIndex <= numCols; colIndex++) {
+			// fill in the column to index
+			csvColumnToIndex.put(header[colIndex-1], colIndex-1);
+
+			// fill in the data type for the column
+			if(rdfMap.containsKey(colIndex + "")) {
+				String uiType = rdfMap.get(colIndex + "");
+				String sqlType = sqlHash.get(uiType);
+				if(sqlType == null) {
+					// this should never happen...
+					System.err.println("Need to add ui data type option, " + uiType + ", into sql hash");
+					sqlType = "VARCHAR(800)";
+				}
+				dataTypes[colIndex-1] = sqlType;
+			} else {
+				//TODO: if it is not passed from the FE... lets go with string for now
+				dataTypes[colIndex-1] = "VARCHAR(800)";
+			}
 		}
 	}
 
@@ -1201,14 +1104,10 @@ public class RDBMSReader extends AbstractFileReader {
 	 * Closes the CSV file streams
 	 * @throws IOException 
 	 */
-	public void closeCSVFile() throws IOException {
-		try {
-			readCSVFile.close();
-			mapReader.close();
-		} catch (IOException e) {
-			e.printStackTrace();
-			throw new IOException("Could not close CSV file streams");
-		}		
+	public void closeCSVFile() {
+		if(csvHelper != null) {
+			csvHelper.clear();
+		}
 	}
 
 	/**
@@ -1246,7 +1145,7 @@ public class RDBMSReader extends AbstractFileReader {
 
 		// set the file
 		String fileNames = "C:\\Users\\mahkhalil\\Desktop\\Clean_Movies.csv";
-		
+
 		// set a bunch of db stuff
 		String baseFolder = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER);
 		String engineName = "Movie_RDMBS_OWL_NEW";
@@ -1258,12 +1157,12 @@ public class RDBMSReader extends AbstractFileReader {
 		propWriter.setBaseDir(baseFolder);
 		propWriter.setRDBMSType(dbType);
 		propWriter.runWriter(engineName, "", "" , ImportOptions.DB_TYPE.RDBMS);
-		
-		
+
+
 		Hashtable<String, String>[] rdfMapArr = new Hashtable[1];
 		Hashtable<String, String> rdfMap = new Hashtable<String, String>();
 		rdfMapArr[0] = rdfMap;
-		
+
 		// need to set the prop file data into rdfMap...
 		// this is very annoying
 		rdfMap.put("NUM_COLUMNS", "17");
@@ -1288,7 +1187,6 @@ public class RDBMSReader extends AbstractFileReader {
 		rdfMap.put("3", "STRING");
 		rdfMap.put("2", "STRING");
 		rdfMap.put("1", "STRING");
-		rdfMap.put("NOT_OPTIONAL", ";");
 		rdfMap.put("START_ROW", "2");
 
 		// do the actual db loading
@@ -1296,28 +1194,28 @@ public class RDBMSReader extends AbstractFileReader {
 		reader.setRdfMapArr(rdfMapArr);
 		String owlFile = baseFolder + "/" + propWriter.owlFile;
 		reader.importFileWithOutConnection(propWriter.propFileName, engineName, fileNames, customBase, owlFile, dbType, false);
-		
+
 		// create the smss file and drop temp file
 		File propFile = new File(propWriter.propFileName);
 		File newProp = new File(propWriter.propFileName.replace("temp", "smss"));
 		FileUtils.copyFile(propFile, newProp);
 		newProp.setReadable(true);
 		FileUtils.forceDelete(propFile);
-		
-		
-		
-//		TestUtilityMethods.loadDIHelper();
-//
-//		RDBMSReader reader = new RDBMSReader();
-//		// DATABASE WILL BE WRITTEN WHERE YOUR DB FOLDER IS IN A FOLDER WITH THE ENGINE NAME
-//		// SMSS file will not be created at the moment.. will add shortly
-//		String fileNames = "C:\\Users\\mahkhalil\\Desktop\\Movie Results.csv;C:\\Users\\mahkhalil\\Desktop\\Movie Results Fixed 2.csv";
-//		String smssLocation = "";
-//		String engineName = "test";
-//		String customBase = "http://semoss.org/ontologies";
-//		String owlFile = DIHelper.getInstance().getProperty("BaseFolder") + "\\db\\" + engineName + "\\" + engineName + "_OWL.OWL";
-//		SQLQueryUtil.DB_TYPE dbType = SQLQueryUtil.DB_TYPE.H2_DB;
-//
-//		reader.importFileWithOutConnection(smssLocation, engineName, fileNames, customBase, owlFile, dbType, false);
+
+
+
+		//		TestUtilityMethods.loadDIHelper();
+		//
+		//		RDBMSReader reader = new RDBMSReader();
+		//		// DATABASE WILL BE WRITTEN WHERE YOUR DB FOLDER IS IN A FOLDER WITH THE ENGINE NAME
+		//		// SMSS file will not be created at the moment.. will add shortly
+		//		String fileNames = "C:\\Users\\mahkhalil\\Desktop\\Movie Results.csv;C:\\Users\\mahkhalil\\Desktop\\Movie Results Fixed 2.csv";
+		//		String smssLocation = "";
+		//		String engineName = "test";
+		//		String customBase = "http://semoss.org/ontologies";
+		//		String owlFile = DIHelper.getInstance().getProperty("BaseFolder") + "\\db\\" + engineName + "\\" + engineName + "_OWL.OWL";
+		//		SQLQueryUtil.DB_TYPE dbType = SQLQueryUtil.DB_TYPE.H2_DB;
+		//
+		//		reader.importFileWithOutConnection(smssLocation, engineName, fileNames, customBase, owlFile, dbType, false);
 	}
 }
