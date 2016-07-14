@@ -48,6 +48,8 @@ public class H2Builder {
 		typeConversionMap.put("NUMBER", "DOUBLE");
 		typeConversionMap.put("STRING", "VARCHAR(800)");
 		typeConversionMap.put("DATE", "DATE");
+		// TODO: for now, also assume timestamp as date
+		typeConversionMap.put("TIMESTAMP", "DATE");
 		typeConversionMap.put("FLOAT", "DOUBLE");
 	}
 
