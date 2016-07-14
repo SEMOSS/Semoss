@@ -638,13 +638,16 @@ public class POIReader extends AbstractFileReader {
 				XSSFRow row = lSheet.getRow(sIndex);
 				// check to make sure cell is not null
 				if (row != null) {
+					int sheetCounter = 0;
 					XSSFCell sheetNameCell = row.getCell(0);
-					XSSFCell sheetTypeCell = row.getCell(1);				
-					if (sheetNameCell != null && sheetTypeCell != null) {
+					// unlike rdf, we do not have multiple load types for sheets
+//					XSSFCell sheetTypeCell = row.getCell(1);				
+					if (sheetNameCell != null) {
+						sheetCounter++;
 						// get the name of the sheet
 						String sheetToLoad = sheetNameCell.getStringCellValue();
 						// determine the type of load
-						String loadTypeName = sheetTypeCell.getStringCellValue();
+//						String loadTypeName = sheetTypeCell.getStringCellValue();
 
 						assimilateSheet(sheetToLoad, workbook);
 
@@ -654,6 +657,9 @@ public class POIReader extends AbstractFileReader {
 						// Concept - and all the given properties of this concept
 						// hash 2 tells me
 						// given this concept what are its relationships as a vector	
+					}
+					if(sheetCounter == 0) {
+						throw new IOException("Loader sheet specified no sheets to upload.\n Please specify which sheets you want to laod.");
 					}
 				}
 			}
@@ -776,7 +782,7 @@ public class POIReader extends AbstractFileReader {
 		String conceptType = props.get(thisConcept);
 
 		// add it to OWL
-		//owler.addConcept(thisConcept);
+		owler.addConcept(thisConcept, conceptType);
 
 		String createString = "CREATE TABLE " + thisConcept + " (";
 		createString = createString + " " + thisConcept + " " + conceptType;
@@ -903,20 +909,27 @@ public class POIReader extends AbstractFileReader {
 			//			if(tableToSet.equalsIgnoreCase(tableToInsert)) {
 			//				tableToInsert = fromName;
 			//			}
-			owler.addRelation(tableToSet, tableToInsert, null);
 
+			// we need to make sure we create the predicate appropriately
+			String predicate = null;
 			int setter, inserter;
 			if(headers[1].equalsIgnoreCase(tableToSet))
 			{
+				// this means the FK is on the tableToSet
 				setter = 1;
 				inserter = 2;
+				predicate = tableToSet + "." + tableToInsert + "_FK." + tableToInsert + "." + tableToInsert;
 			}
 			else
 			{
+				// this means the FK is on the tableToInsert
 				setter = 2;
 				inserter = 1;
+				predicate = tableToSet + "." + tableToSet + "." + tableToInsert + "." + tableToSet + "_FK";
 			}
+			owler.addRelation(tableToSet, tableToInsert, predicate);
 
+			
 			createIndices(tableToSet, tableToSet);
 
 			for(int rowIndex = 1;rowIndex <= lastRow;rowIndex++)
