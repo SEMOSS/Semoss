@@ -8,13 +8,12 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Properties;
 import java.util.Set;
 import java.util.TreeMap;
-import java.util.Properties;
 
 import prerna.poi.main.helper.CSVFileHelper;
 import prerna.util.ArrayUtilityMethods;
-import prerna.util.Utility;
 
 /**
  * This class is used to build a suggested metamodel from a file, currently only works with CSV 
@@ -35,8 +34,6 @@ public class MetaModelCreator {
 	//the amount of rows we will use for prediction
 	int limit = 500;
 	
-	
-	
 	//the instance data we will use for prediction
 	List<String[]> data;
 	
@@ -46,7 +43,6 @@ public class MetaModelCreator {
 	
 	//PROP FILE VARIABLE
 	String propFile;
-	
 	
 	
 	//RETURN DATA
@@ -72,15 +68,11 @@ public class MetaModelCreator {
 		this.mode = setting;
 		this.data = new ArrayList<>(500);
 		
-		
 		CSVFileHelper helper = new CSVFileHelper();
 		helper.setDelimiter(delimiter.charAt(0));
 		helper.parse(fileName);
 		
 		this.columnHeaders = helper.getHeaders();
-		for(int i = 0; i < columnHeaders.length; i++) {
-			columnHeaders[i] = Utility.cleanVariableString(columnHeaders[i]);
-		}
 		
 		String [] cells = null;
 		int count = 1;
