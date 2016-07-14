@@ -2,12 +2,8 @@ package prerna.poi.main;
 
 import java.io.File;
 import java.io.FileNotFoundException;
-import java.io.FileOutputStream;
 import java.io.IOException;
-import java.io.OutputStreamWriter;
-import java.io.PrintWriter;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Hashtable;
@@ -28,7 +24,6 @@ import org.openrdf.sail.SailException;
 import prerna.engine.api.IEngine;
 import prerna.engine.api.ISelectStatement;
 import prerna.engine.api.ISelectWrapper;
-import prerna.poi.main.helper.CSVFileHelper;
 import prerna.poi.main.helper.ImportOptions;
 import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.test.TestUtilityMethods;
@@ -37,30 +32,9 @@ import prerna.util.DIHelper;
 import prerna.util.Utility;
 import prerna.util.sql.SQLQueryUtil;
 
-public class RDBMSReader extends AbstractFileReader {
+public class RDBMSReader extends AbstractCSVFileReader {
 
 	private static final Logger LOGGER = LogManager.getLogger(RDBMSReader.class.getName());
-
-	private String propFile; // the file that serves as the property file
-
-	// fields around the csv file
-	private CSVFileHelper csvHelper;
-	private String [] header;
-	private String[] dataTypes;
-	private Map<String, Integer> csvColumnToIndex;
-
-	// keep conversion from user input to sql datatypes
-	private Map<String, String> sqlHash = new Hashtable<String, String>();
-
-	// metamodel data
-	private ArrayList<String> relationArrayList = new ArrayList<String>();
-	private ArrayList<String> nodePropArrayList = new ArrayList<String>();
-	private boolean propFileExist = true;
-	private Hashtable<String, String>[] rdfMapArr;
-
-	private int count = 0;
-	private int startRow = 2;
-	private int maxRows = 100000;
 
 	private Map<String, Map<String, String>> allConcepts = new LinkedHashMap<String, Map<String, String>>();
 	private Map<String, Map<String, String>> concepts = new LinkedHashMap<String, Map<String, String>>();
@@ -76,9 +50,8 @@ public class RDBMSReader extends AbstractFileReader {
 
 	private final String FK = "_FK";
 
-	protected String scriptFileName = "DBScript.sql";
-	protected PrintWriter scriptFile = null;
-
+//	protected String scriptFileName = "DBScript.sql";
+//	protected PrintWriter scriptFile = null;
 
 	private void clearTables() {
 		// keep track of all the concepts that were modified during the loading process
@@ -112,7 +85,6 @@ public class RDBMSReader extends AbstractFileReader {
 		try {
 			openRdbmsEngineWithoutConnection(engineName);
 			openScriptFile(engineName);
-			createSQLTypes();
 			for(int i = 0; i<files.length;i++)
 			{
 				try {
@@ -126,13 +98,13 @@ public class RDBMSReader extends AbstractFileReader {
 					} else {
 						rdfMap = rdfMapArr[i];
 					}
-					preParseCSVMetaData(rdfMap);
+					preParseRdbmsCSVMetaData(rdfMap);
 
-					if(i ==0 ) {
-						scriptFile.println("-- ********* begin load process ********* ");
-					}
-					scriptFile.println("-- ********* begin load " + fileName + " ********* ");
-					LOGGER.info("-- ********* begin load " + fileName + " ********* ");
+//					if(i ==0 ) {
+//						scriptFile.println("-- ********* begin load process ********* ");
+//					}
+//					scriptFile.println("-- ********* begin load " + fileName + " ********* ");
+//					LOGGER.info("-- ********* begin load " + fileName + " ********* ");
 
 					//TODO: same method used in other classes
 					parseMetadata();
@@ -141,8 +113,8 @@ public class RDBMSReader extends AbstractFileReader {
 					skipRows();
 					processData(i == 0);
 
-					scriptFile.println("-- ********* completed processing file " + fileName + " ********* ");
-					LOGGER.info("-- ********* completed processing file " + fileName + " ********* ");
+//					scriptFile.println("-- ********* completed processing file " + fileName + " ********* ");
+//					LOGGER.info("-- ********* completed processing file " + fileName + " ********* ");
 
 				} finally {
 					closeCSVFile();
@@ -165,10 +137,10 @@ public class RDBMSReader extends AbstractFileReader {
 			} else {
 				commitDB();
 			}
-			if(scriptFile != null) {
-				scriptFile.println("-- ********* completed load process ********* ");
-				scriptFile.close();
-			}
+//			if(scriptFile != null) {
+//				scriptFile.println("-- ********* completed load process ********* ");
+//				scriptFile.close();
+//			}
 		}
 
 		long end = System.currentTimeMillis();
@@ -189,7 +161,6 @@ public class RDBMSReader extends AbstractFileReader {
 		try {
 			openEngineWithConnection(engineName);
 			openScriptFile(engineName);
-			createSQLTypes();
 			findIndexes(engine.getEngineName());
 			for(int i = 0; i<files.length;i++)
 			{
@@ -204,13 +175,13 @@ public class RDBMSReader extends AbstractFileReader {
 					} else {
 						rdfMap = rdfMapArr[i];
 					}
-					preParseCSVMetaData(rdfMap);
+					preParseRdbmsCSVMetaData(rdfMap);
 
-					if(i ==0 ) {
-						scriptFile.println("-- ********* begin load process ********* ");
-					}
-					scriptFile.println("-- ********* begin load " + fileName + " ********* ");
-					LOGGER.info("-- ********* begin load " + fileName + " ********* ");
+//					if(i ==0 ) {
+//						scriptFile.println("-- ********* begin load process ********* ");
+//					}
+//					scriptFile.println("-- ********* begin load " + fileName + " ********* ");
+//					LOGGER.info("-- ********* begin load " + fileName + " ********* ");
 
 					//TODO: same method used in other classes
 					parseMetadata();
@@ -219,8 +190,8 @@ public class RDBMSReader extends AbstractFileReader {
 					skipRows();
 					processData(false);
 
-					scriptFile.println("-- ********* completed processing file " + fileName + " ********* ");
-					LOGGER.info("-- ********* completed processing file " + fileName + " ********* ");
+//					scriptFile.println("-- ********* completed processing file " + fileName + " ********* ");
+//					LOGGER.info("-- ********* completed processing file " + fileName + " ********* ");
 
 				} finally {
 					closeCSVFile();
@@ -232,10 +203,10 @@ public class RDBMSReader extends AbstractFileReader {
 			cleanUpDBTables(engineName, allowDuplicates);
 			RDBMSEngineCreationHelper.addToExistingQuestionFile(engine, addedTables, queryUtil);
 		} finally {
-			if(scriptFile != null) {
-				scriptFile.println("-- ********* completed load process ********* ");
-				scriptFile.close();
-			}
+//			if(scriptFile != null) {
+//				scriptFile.println("-- ********* completed load process ********* ");
+//				scriptFile.close();
+//			}
 		}
 
 		long end = System.currentTimeMillis();
@@ -626,7 +597,7 @@ public class RDBMSReader extends AbstractFileReader {
 		} else {
 			boolean indexAlreadyExists = false; 
 			for(String index : tempIndexAddedList){
-				if(index.equals(indexOnTable)){//TODO check various order of keys since they are comma seperated
+				if(index.equals(indexOnTable)){ //TODO check various order of keys since they are comma seperated
 					indexAlreadyExists = true;
 					break;
 				}
@@ -815,7 +786,45 @@ public class RDBMSReader extends AbstractFileReader {
 		return retMap;
 	}
 
-	public void parseMetadata() {
+	/**
+	 * Get the data types and the csvColumnToIndex maps ready for the file load
+	 * I call this preParseMetaData since this is needed for parseMetaData as it needs
+	 * to know what the types are for each column to properly add into OWL
+	 * @param rdfMap
+	 */
+	private void preParseRdbmsCSVMetaData(Map<String, String> rdfMap) {
+		if(sqlHash.isEmpty()) {
+			createSQLTypes();
+		}
+		// create the data types list
+		int numCols = header.length;
+		this.dataTypes = new String[numCols];
+		// create a map from column name to index
+		// this will be used to help speed up finding the location of values
+		this.csvColumnToIndex = new Hashtable<String, Integer>();
+
+		for(int colIndex = 1; colIndex <= numCols; colIndex++) {
+			// fill in the column to index
+			csvColumnToIndex.put(header[colIndex-1], colIndex-1);
+
+			// fill in the data type for the column
+			if(rdfMap.containsKey(colIndex + "")) {
+				String uiType = rdfMap.get(colIndex + "");
+				String sqlType = sqlHash.get(uiType);
+				if(sqlType == null) {
+					// this should never happen...
+					System.err.println("Need to add ui data type option, " + uiType + ", into sql hash");
+					sqlType = "VARCHAR(800)";
+				}
+				dataTypes[colIndex-1] = sqlType;
+			} else {
+				//TODO: if it is not passed from the FE... lets go with string for now
+				dataTypes[colIndex-1] = "VARCHAR(800)";
+			}
+		}
+	}
+	
+	private void parseMetadata() {
 		if(rdfMap.get("NODE_PROP") != null)
 		{
 			String nodePropNames = rdfMap.get("NODE_PROP");
@@ -965,45 +974,9 @@ public class RDBMSReader extends AbstractFileReader {
 		if(!sql.endsWith(";")){
 			sql+= ";";
 		}
-		scriptFile.println(sql);
+//		scriptFile.println(sql);
 		engine.insertData(sql);	
 	}
-
-	/**
-	 * Specifies which rows in the CSV to load based on user input in the prop file
-	 * @throws FileReaderException 
-	 */
-	public void skipRows() throws IOException {
-		//start count at 1 just row 1 is the header
-		count = 1;
-		if (rdfMap.get("START_ROW") != null) {
-			startRow = Integer.parseInt(rdfMap.get("START_ROW")); 
-		}
-		while( count<startRow-1 && csvHelper.getNextRow() != null)// && count<maxRows)
-		{
-			count++;
-		}
-	}
-
-	public void createSQLTypes()
-	{
-		sqlHash.put("DECIMAL", "FLOAT");
-		sqlHash.put("DOUBLE", "FLOAT");
-		sqlHash.put("STRING", "VARCHAR(2000)"); // 8000 was chosen because this is the max for SQL Server; needs more permanent fix
-		sqlHash.put("TEXT", "VARCHAR(2000)"); // 8000 was chosen because this is the max for SQL Server; needs more permanent fix
-
-		//TODO: the FE needs to differentiate between "dates with times" vs. "dates"
-		sqlHash.put("DATE", "DATE");
-		sqlHash.put("SIMPLEDATE", "DATE");
-		// currently only add in numbers as doubles
-		sqlHash.put("NUMBER", "FLOAT");
-		sqlHash.put("INTEGER", "FLOAT");
-		//		typeHash.put("NUMBER", new ParseInt());
-		//		typeHash.put("INTEGER", new ParseInt());
-		sqlHash.put("BOOLEAN", "BOOLEAN");
-	}
-
-
 
 	/**
 	 * Retrieves the data in the CSV file for a specified string
@@ -1011,7 +984,7 @@ public class RDBMSReader extends AbstractFileReader {
 	 * @param jcrMap 	Map containing the data in the CSV file
 	 * @return Object	The CSV data mapped to the object string
 	 */
-	public Object createObject(String object, String[] values, String[] dataTypes, Map<String, Integer> colNameToIndex)
+	private Object createObject(String object, String[] values, String[] dataTypes, Map<String, Integer> colNameToIndex)
 	{
 		// need to do the class vs. object magic
 		if(object.contains("+"))
@@ -1046,93 +1019,19 @@ public class RDBMSReader extends AbstractFileReader {
 	}
 
 	/**
-	 * Load the CSV file
-	 * Gets the headers for each column and reads the property file
-	 * @param fileName String
-	 * @throws FileNotFoundException 
-	 */
-	private void openCSVFile(final String FILE_LOCATION) {
-		LOGGER.info("Processing csv file: " + FILE_LOCATION);
-
-		// use the csv file helper to load the data
-		csvHelper = new CSVFileHelper();
-		// assume csv
-		csvHelper.setDelimiter(',');
-		csvHelper.parse(FILE_LOCATION);
-
-		// get the headers for the csv
-		this.header = csvHelper.getHeaders();
-		LOGGER.info("Found headers: " + Arrays.toString(header));
-	}
-
-	/**
-	 * Get the data types and the csvColumnToIndex maps ready for the file load
-	 * I call this preParseMetaData since this is needed for parseMetaData as it needs
-	 * to know what the types are for each column to properly add into OWL
-	 * @param rdfMap
-	 */
-	private void preParseCSVMetaData(Map<String, String> rdfMap) {
-		// create the data types list
-		int numCols = header.length;
-		this.dataTypes = new String[numCols];
-		// create a map from column name to index
-		// this will be used to help speed up finding the location of values
-		this.csvColumnToIndex = new Hashtable<String, Integer>();
-
-		for(int colIndex = 1; colIndex <= numCols; colIndex++) {
-			// fill in the column to index
-			csvColumnToIndex.put(header[colIndex-1], colIndex-1);
-
-			// fill in the data type for the column
-			if(rdfMap.containsKey(colIndex + "")) {
-				String uiType = rdfMap.get(colIndex + "");
-				String sqlType = sqlHash.get(uiType);
-				if(sqlType == null) {
-					// this should never happen...
-					System.err.println("Need to add ui data type option, " + uiType + ", into sql hash");
-					sqlType = "VARCHAR(800)";
-				}
-				dataTypes[colIndex-1] = sqlType;
-			} else {
-				//TODO: if it is not passed from the FE... lets go with string for now
-				dataTypes[colIndex-1] = "VARCHAR(800)";
-			}
-		}
-	}
-
-	/**
-	 * Closes the CSV file streams
-	 * @throws IOException 
-	 */
-	public void closeCSVFile() {
-		if(csvHelper != null) {
-			csvHelper.clear();
-		}
-	}
-
-	/**
-	 * Setter to store the metamodel created by user as a Hashtable
-	 * @param data	Hashtable<String, String> containing all the information in a properties file
-	 */
-	public void setRdfMapArr(Hashtable<String, String>[] rdfMapArr) {
-		this.rdfMapArr = rdfMapArr;
-		propFileExist = false;
-	}
-
-	/**
 	 * Open script file that contains all the sql statements run during the upload process
 	 * @param engineName name of the engine/db
 	 */
 	private void openScriptFile(String engineName){
-		try {
-			String dbBaseFolder = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER).replace("\\", System.getProperty("file.separator"));
-			scriptFileName =  dbBaseFolder + "/db/" + engineName + "/" + scriptFileName;
-			if(scriptFile == null) {
-				scriptFile = new PrintWriter(new OutputStreamWriter(new FileOutputStream(new File(scriptFileName),true)));//set append to true
-			}
-		} catch (FileNotFoundException e) {
-			e.printStackTrace();
-		}
+//		try {
+//			String dbBaseFolder = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER).replace("\\", System.getProperty("file.separator"));
+//			scriptFileName =  dbBaseFolder + "/db/" + engineName + "/" + scriptFileName;
+//			if(scriptFile == null) {
+//				scriptFile = new PrintWriter(new OutputStreamWriter(new FileOutputStream(new File(scriptFileName),true)));//set append to true
+//			}
+//		} catch (FileNotFoundException e) {
+//			e.printStackTrace();
+//		}
 	}
 
 
@@ -1201,8 +1100,6 @@ public class RDBMSReader extends AbstractFileReader {
 		FileUtils.copyFile(propFile, newProp);
 		newProp.setReadable(true);
 		FileUtils.forceDelete(propFile);
-
-
 
 		//		TestUtilityMethods.loadDIHelper();
 		//

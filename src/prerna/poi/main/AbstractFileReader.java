@@ -58,14 +58,15 @@ import prerna.util.sql.SQLQueryUtil;
 
 public abstract class AbstractFileReader {
 
+	private static final Logger logger = LogManager.getLogger(AbstractFileReader.class.getName());
+
 	protected Hashtable<String, String> rdfMap = new Hashtable<String, String>();
 	protected String bdPropFile;
-	protected Properties bdProp = new Properties(); // properties for big data
 	protected IEngine engine;
 	
+	protected String propFile;
 	protected String customBaseURI = "";
-	public String basePropURI= "";
-
+	protected String basePropURI= "";
 	protected String semossURI;
 	protected final static String CONTAINS = "Contains";
 	
@@ -73,23 +74,12 @@ public abstract class AbstractFileReader {
 	// after creation and loaded back through smss watcher
 	// or if process will handle load that portion
 	protected boolean autoLoad = true;
-	
-	//	public Hashtable<String,String> baseConceptURIHash = new Hashtable<String,String>(); 
-//	public Hashtable<String,String> conceptURIHash = new Hashtable<String,String>();
-//	public Hashtable<String,String> baseRelationURIHash = new Hashtable<String,String>(); 
-//	public Hashtable<String,String> relationURIHash = new Hashtable<String,String>();
-//	private Hashtable<String,String> basePropURIHash = new Hashtable<String,String>();
-//	private Hashtable<String,String> basePropRelations = new Hashtable<String,String>();
 	protected Hashtable<String,String> displayNamesHash = new Hashtable<String,String>();
-	
 	protected Hashtable<String, String[]> baseRelations = new Hashtable<String, String[]>();
-
-	private static final Logger logger = LogManager.getLogger(AbstractFileReader.class.getName());
 
 	// OWL variables
 	protected String owlFile = "";
 	protected OWLER owler;
-//	protected BaseDatabaseCreator baseEngCreator;
 
 	// sadly need to keep RDBMS specific object
 	protected SQLQueryUtil queryUtil;
@@ -134,21 +124,12 @@ public abstract class AbstractFileReader {
 			commitDB();
 			engine.closeDB();
 		}
-		//TODO: why do we do this?
-//		try {
-//			sc.close();
-//			bdSail.shutDown();
-//		} catch (SailException e) {
-//			e.printStackTrace();
-//			throw new IOException("Could not close database connection");
-//		}
 	}	
 
 	protected void commitDB() throws IOException {
 		logger.warn("Committing....");
 		engine.commit();
 		
-		//TODO: how to call .infer() ?
 		if(engine!=null && engine instanceof BigDataEngine){
 			((BigDataEngine)engine).infer();
 		} else if(engine!=null && engine instanceof RDFFileSesameEngine){
@@ -193,131 +174,17 @@ public abstract class AbstractFileReader {
 		owler.closeOwl();
 	}
 	
-//	protected void storeBaseStatement(String sub, String pred, String obj) {
-//		storeBaseStatement(sub,pred,obj,true);
-//	}
-//	
-//	protected void storeBaseStatement(String sub, String pred, String obj, boolean concept) {
-//		owler.addRelation(sub, sub, pred);
-//	}
-
 	/**
-	 * Creates all base relationships in the metamodel to add into the database
-	 * and creates the OWL file
-	 * 
-	 * @throws EngineException
-	 * @throws FileWriterException
+	 * Writes the base information in the OWL to a file
+	 * @throws IOException 
 	 */
-	protected void createBaseRelations() {
-//		// necessary triple saying Concept is a type of Class
-//		String sub = semossURI + "/" + Constants.DEFAULT_NODE_CLASS;
-//		String pred = RDF.TYPE.stringValue();
-//		String obj = Constants.CLASS_URI;
-//		engine.doAction(IEngine.ACTION_TYPE.ADD_STATEMENT, new Object[]{sub, pred, obj, true});
-//		owler.addTriple(sub, obj, pred);
-////		storeBaseStatement(sub, pred, obj);
-//		// necessary triple saying Relation is a type of Property
-//		sub =  semossURI + "/" + Constants.DEFAULT_RELATION_CLASS;
-//		pred = RDF.TYPE.stringValue();
-//		obj = Constants.DEFAULT_PROPERTY_URI;
-//		engine.doAction(IEngine.ACTION_TYPE.ADD_STATEMENT, new Object[]{sub, pred, obj, true});
-//		owler.addTriple(sub, obj, pred);
-////		storeBaseStatement(sub, pred, obj);
-//		// add custom base uri.
-//		logger.info("adding custom node base uri to the owl :::: " + customBaseURI+"/"+Constants.DEFAULT_NODE_CLASS+"/");
-//		owler.addTriple("SEMOSS:ENGINE_METADATA", "CONTAINS:BASE_URI", customBaseURI+"/"+Constants.DEFAULT_NODE_CLASS+"/");
-////		storeBaseStatement("SEMOSS:ENGINE_METADATA", "CONTAINS:BASE_URI", customBaseURI+"/"+Constants.DEFAULT_NODE_CLASS+"/");
-//
-//		if(basePropURI.equals("")){
-//			basePropURI = semossURI + "/" + Constants.DEFAULT_RELATION_CLASS + "/" + CONTAINS;
-//		}
-//		owler.addTriple(basePropURI, Constants.SUBPROPERTY_URI, basePropURI);
-//		storeBaseStatement(basePropURI, Constants.SUBPROPERTY_URI, basePropURI);
-//
-//		Iterator<String> baseHashIt = baseConceptURIHash.keySet().iterator();
-//		//now add all of the base relations that have been stored in the hash.
-//		while(baseHashIt.hasNext()){
-//			String subjectInstance = baseHashIt.next() +"";
-//			String predicate = Constants.SUBCLASS_URI;
-//			//convert instances to URIs
-//			String subject = Utility.cleanString(baseConceptURIHash.get(subjectInstance) +"", false);
-//			String object = semossURI + "/Concept";
-//			// create the statement now
-//			engine.doAction(IEngine.ACTION_TYPE.ADD_STATEMENT, new Object[]{subject, predicate, object, true});
-//			// add base relations URIs to OWL
-//			owler.addTriple(subject, predicate, object);
-////			storeBaseStatement(subject, predicate, object);
-//		}
-//		baseHashIt = baseRelationURIHash.keySet().iterator();
-//		while(baseHashIt.hasNext()){
-//			String subjectInstance = baseHashIt.next() +"";
-//			String predicate = Constants.SUBPROPERTY_URI;
-//			//convert instances to URIs
-//			String subject = Utility.cleanString(baseRelationURIHash.get(subjectInstance) +"", false);
-//			String object = semossURI + "/Relation";
-//			// create the statement now
-//			engine.doAction(IEngine.ACTION_TYPE.ADD_STATEMENT, new Object[]{subject, predicate, object, true});
-//			// add base relationship URIs to OWL//
-//			owler.addTriple(subject, predicate, object);
-////			storeBaseStatement(subject, predicate, object);
-//		}
-//		for(String[] relArray : baseRelations.values()){
-//			String subject = relArray[0];
-//			String predicate = relArray[1];
-//			String object = relArray[2];
-//			owler.addTriple(subject, predicate, object);
-////			storeBaseStatement(subject, predicate, object);
-////			logger.info("RELATION TRIPLE:::: " + subject +" "+ predicate +" "+ object);
-//		}
-//
-//		// I need to write one now for creating properties as well
-//		// this is where I will do properties
-//		// add the base relation first
-//		owler.addTriple(semossURI + "/" + Constants.DEFAULT_PROPERTY_CLASS, semossURI + "/" + Constants.DEFAULT_RELATION_CLASS, RDF.TYPE+"");
-////		storeBaseStatement(semossURI + "/" + Constants.DEFAULT_PROPERTY_CLASS, RDF.TYPE+"", semossURI + "/" + Constants.DEFAULT_RELATION_CLASS);
-//		
-//		Iterator<String> baseHashIt = basePropURIHash.keySet().iterator();
-//		while(baseHashIt.hasNext()){
-//			String subjectKey = baseHashIt.next() +"";
-//			String subjectInstance = basePropURIHash.get(subjectKey);//String subjectInstance = baseHashIt.next() +"";
-//			String predicate = RDF.TYPE +"";
-//			//convert instances to URIs
-//			String subject = subjectInstance;
-//			String object = semossURI + "/" + Constants.DEFAULT_PROPERTY_CLASS;
-//			// create the statement now
-//			// base property uri is like
-//			// Relation/Contains/MovieBudget RDFS:SUBCLASSOF /Relation/Contains
-//			owler.addTriple(subject, predicate, object);
-////			storeBaseStatement(subject, predicate, object);
-//			String parent = basePropRelations.get(subjectKey);
-//		}
-//		
-//		// now write the actual relations
-//		// relation instances go next
-//		for(String relArray : basePropRelations.keySet()){
-//			String propertyKey = relArray;
-//			String parent = basePropRelations.get(propertyKey);
-////			String parentURI = baseConceptURIHash.get(parent);
-//			String parentURI = owler.addConcept(parent); // just returns the URI
-//			String propertyURI = basePropURIHash.get(propertyKey);
-//			owler.addTriple(subject, predicate, object);
-////			storeBaseStatement(parentURI, OWL.DatatypeProperty+"", propertyURI);
-////			logger.info("RELATION TRIPLE:::: " + subject +" "+ predicate +" "+ object);
-//		}
-//		
-//		//process logic for display naming
-//		if(displayNamesHash.size()>0){
-//			//TODO::
-//			//TODO::
-//			// need to not pass owler.getEngine() and pass owler directly
-//			DisplayNamesProcessor.addDisplayNamesToOWL(displayNamesHash, basePropURIHash, baseConceptURIHash, owler.getEngine(), engine);
-//		}
-
+	protected void createBaseRelations() throws IOException {
 		owler.commit();
 		try {
 			owler.export();
 		} catch (IOException ex) {
 			ex.printStackTrace();
+			throw new IOException("Unable to export OWL file...");
 		}
 	}
 	
@@ -406,37 +273,8 @@ public abstract class AbstractFileReader {
 		openOWLWithConnection(engine, owlFile);
 	}
 
-//	public String getBaseURI(String nodeType) {
-//		// Generate URI for subject node at the instance and base level
-//		String semossBaseURI = baseConceptURIHash.get(nodeType);
-//		// check to see if user specified URI in custom map file
-//		if(semossBaseURI == null){
-////			if(rdfMap.containsKey(nodeType+Constants.CLASS)){
-////				semossBaseURI = rdfMap.get(nodeType+Constants.CLASS);
-////			}
-////			// if no user specified URI, use generic SEMOSS URI
-////			else {
-//				semossBaseURI = semossURI + "/" + Constants.DEFAULT_NODE_CLASS +"/"+ nodeType;
-////			}
-//			baseConceptURIHash.put(nodeType, semossBaseURI);
-//		}
-//		return semossBaseURI;
-//	}
-
 	public String getInstanceURI(String nodeType) {
-//		String instanceBaseURI = conceptURIHash.get(nodeType);
-//		// check to see if user specified URI in custom map file
-//		if(instanceBaseURI == null){
-//			if(rdfMap.containsKey(nodeType)){
-//				instanceBaseURI = rdfMap.get(nodeType);
-//			}
-//			// if no user specified URI, use generic customBaseURI
-//			else {
-				String instanceBaseURI = customBaseURI + "/" + Constants.DEFAULT_NODE_CLASS +"/"+ nodeType;
-//			}
-//			conceptURIHash.put(nodeType, instanceBaseURI);
-//		}
-		return instanceBaseURI;
+		return customBaseURI + "/" + Constants.DEFAULT_NODE_CLASS +"/"+ nodeType;
 	}
 
 	/**
@@ -457,12 +295,10 @@ public abstract class AbstractFileReader {
 		instanceObjectName = Utility.cleanString(instanceObjectName, true);
 
 		// get base URIs for subject node at instance and semoss level
-//		String subjectSemossBaseURI = getBaseURI(subjectNodeType);
 		String subjectSemossBaseURI = owler.addConcept(subjectNodeType);
 		String subjectInstanceBaseURI = getInstanceURI(subjectNodeType);
 
 		// get base URIs for object node at instance and semoss level
-//		String objectSemossBaseURI = getBaseURI(objectNodeType);
 		String objectSemossBaseURI = owler.addConcept(objectNodeType);
 		String objectInstanceBaseURI = getInstanceURI(objectNodeType);
 
@@ -480,44 +316,12 @@ public abstract class AbstractFileReader {
 
 		// generate URIs for the relationship
 		relName = Utility.cleanPredicateString(relName);
-
-//		String relSemossBaseURI = baseRelationURIHash.get(subjectNodeType + "_" + relName + "_" + objectNodeType);
-		// check to see if user specified URI in custom map file
-//		if (relSemossBaseURI == null) {
-//			if (rdfMap.containsKey(subjectNodeType + "_" + relName + "_" + objectNodeType + Constants.CLASS)) {
-//				relSemossBaseURI = rdfMap.get(subjectNodeType + "_" + relName + "_" + objectNodeType + Constants.CLASS);
-//			}
-//			// if no user specified URI, use generic SEMOSS URI
-//			else {
-//				relSemossBaseURI = semossURI + "/" + Constants.DEFAULT_RELATION_CLASS + "/" + relName;
-//			}
-//			baseRelationURIHash.put(subjectNodeType + "_" + relName + "_" + objectNodeType,	relSemossBaseURI);
-//		}
 		String relSemossBaseURI = owler.addRelation(subjectNodeType, objectNodeType, relName);
-		
-//		String relInstanceBaseURI = relationURIHash.get(subjectNodeType + "_" + relName + "_" + objectNodeType);
-		// check to see if user specified URI in custom map file
-//		if (relInstanceBaseURI == null) {
-//			if (rdfMap.containsKey(subjectNodeType + "_" + relName + "_" + objectNodeType)) {
-//				relInstanceBaseURI = rdfMap.get(subjectNodeType + "_" + relName + "_" + objectNodeType);
-//			}
-//			// if no user specified URI, use generic customBaseURI
-//			else {
-				String relInstanceBaseURI = customBaseURI + "/" + Constants.DEFAULT_RELATION_CLASS + "/" + relName;
-//			}
-//			relationURIHash.put(subjectNodeType + "_" + relName + "_" + objectNodeType, relInstanceBaseURI);
-//		}
-
-//		String relArrayKey = subjectSemossBaseURI + relSemossBaseURI + objectSemossBaseURI;
-//		if (!baseRelations.contains(relArrayKey))
-//			baseRelations.put(relArrayKey, new String[] { subjectSemossBaseURI, relSemossBaseURI, objectSemossBaseURI });
+		String relInstanceBaseURI = customBaseURI + "/" + Constants.DEFAULT_RELATION_CLASS + "/" + relName;
 
 		// create instance value of relationship and add instance relationship,
 		// subproperty, and label triples
 		String instanceRelURI = relInstanceBaseURI + "/" + instanceSubjectName + Constants.RELATION_URI_CONCATENATOR + instanceObjectName;
-		// logger.info("Adding Relationship " +subjectNodeType +" " +
-		// instanceSubjectName + " ... " + relName + " ... " + objectNodeType +"
-		// " + instanceObjectName);
 		engine.doAction(IEngine.ACTION_TYPE.ADD_STATEMENT, new Object[] { instanceRelURI, RDFS.SUBPROPERTYOF, relSemossBaseURI, true });
 		engine.doAction(IEngine.ACTION_TYPE.ADD_STATEMENT, new Object[] { instanceRelURI, RDFS.LABEL, 
 				instanceSubjectName + Constants.RELATION_URI_CONCATENATOR + instanceObjectName, false });
@@ -530,7 +334,6 @@ public abstract class AbstractFileReader {
 		//create the node in case its not in a relationship
 		instanceName = Utility.cleanString(instanceName, true);
 		nodeType = Utility.cleanString(nodeType, true); 
-//		String semossBaseURI = getBaseURI(nodeType);
 		String semossBaseURI = owler.addConcept(nodeType);
 		String instanceBaseURI = getInstanceURI(nodeType);
 		String subjectNodeURI = instanceBaseURI + "/" + instanceName;
@@ -538,16 +341,6 @@ public abstract class AbstractFileReader {
 		engine.doAction(IEngine.ACTION_TYPE.ADD_STATEMENT, new Object[]{subjectNodeURI, RDFS.LABEL, instanceName, false});
 
 		addProperties(nodeType, subjectNodeURI, propHash);
-		// adding node properties to owl
-		if(basePropURI.equals(""))
-		{
-			basePropURI = semossURI + "/" + Constants.DEFAULT_RELATION_CLASS + "/" + CONTAINS;
-		}
-//		for(String propName : propHash.keySet()) {
-//			String propURI = basePropURI + "/" + propName;
-//			basePropRelations.put(nodeType + "%" + propName, nodeType);//basePropRelations.put(propURI, semossBaseURI);
-//			basePropURIHash.put(nodeType + "%" + propName, propURI);//basePropURIHash.put(propURI, propURI);
-//		}
 	}
 
 	public void addProperties(String subjectNodeType, String instanceURI, Hashtable<String, Object> propHash) {
@@ -584,7 +377,7 @@ public abstract class AbstractFileReader {
 				// logger.info("Processing Date value " + dateFormatted);
 				engine.doAction(IEngine.ACTION_TYPE.ADD_STATEMENT, new Object[] { instanceURI, propURI, dateFormatted, false });
 				if(subjectNodeType != null && !subjectNodeType.isEmpty()) {
-					owler.addProp(subjectNodeType, key, "TIMESTAMP");
+					owler.addProp(subjectNodeType, key, "DATE");
 				}
 			} else if (propHash.get(key).getClass() == new Boolean(true).getClass()) {
 				Boolean value = (Boolean) propHash.get(key);
