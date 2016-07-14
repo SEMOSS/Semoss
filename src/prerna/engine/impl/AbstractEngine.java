@@ -706,10 +706,11 @@ public abstract class AbstractEngine implements IEngine {
 				+ "}";
 
 		Vector<String> queryReturn = Utility.getVectorOfReturn(query, baseDataEngine, true);
-		// there should only be one return in the vector since conceptual URIs are a one-to-one match with the physical URIs
+		// if it is empty, either the URI is bad or it is already the physical URI
 		if(queryReturn.isEmpty()) {
 			return conceptualURI;
 		}
+		// there should only be one return in the vector since conceptual URIs are a one-to-one match with the physical URIs
 		return queryReturn.get(0);
 	}
 	
@@ -1463,7 +1464,6 @@ public abstract class AbstractEngine implements IEngine {
 		String testOwlVersion = "SELECT DISTINCT ?conceptual WHERE {"
 				+ "{?concept <http://www.w3.org/2000/01/rdf-schema#subClassOf> <http://semoss.org/ontologies/Concept> }"
 				+ "{?concept <http://semoss.org/ontologies/Relation/Conceptual> ?conceptual }"
-				+ "FILTER NOT EXISTS {?conceptual <http://www.w3.org/2000/01/rdf-schema#subClassOf> <http://semoss.org/ontologies/Concept> }"
 			+ "}"; // end where
 		ISelectWrapper wrapper = WrapperManager.getInstance().getSWrapper(baseDataEngine, testOwlVersion);
 		if(wrapper.hasNext()) {
