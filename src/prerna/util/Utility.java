@@ -2278,6 +2278,42 @@ public class Utility {
 			return output_date;	
     }
     
+    public static String getTimeStamp(String input)
+    {
+    	String[] date_formats = {
+                //"dd/MM/yyyy",
+                "MM/dd/yyyy",
+                //"dd-MM-yyyy",
+                "yyyy-MM-dd",
+                "yyyy/MM/dd", 
+                "yyyy MMM dd",
+                "yyyy dd MMM",
+                "dd MMM yyyy",
+                "dd MMM",
+                "MMM dd",
+                "dd MMM yyyy",
+                "MMM yyyy"};
+
+				String output_date = null;
+				boolean itsDate = false;
+				for (String formatString : date_formats)
+				{
+				try
+				{    
+				 Date mydate = new SimpleDateFormat(formatString).parse(input);
+				 SimpleDateFormat outdate = new SimpleDateFormat("yyyy-MM-dd hh:mm:ss");
+				 output_date = outdate.format(mydate);
+				 itsDate = true;
+				 break;
+				}
+					catch (ParseException e) {
+						//System.out.println("Next!");
+					}
+				}
+				
+			return output_date;	
+    }
+    
     public static Date getDateAsDateObj(String input) {
 		SimpleDateFormat outdate_formatter = new SimpleDateFormat("yyyy-MM-dd");
     	String output_date = getDate(input);
