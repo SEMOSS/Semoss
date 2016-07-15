@@ -4,8 +4,6 @@ import java.io.File;
 import java.io.IOException;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
-import java.text.ParseException;
-import java.text.SimpleDateFormat;
 import java.util.HashSet;
 import java.util.Hashtable;
 import java.util.Map;
@@ -257,7 +255,7 @@ public class RDBMSFlatCSVUploader extends AbstractFileReader {
 			// the upload time as "_yyyy_MM_dd_HH_mm_ss_SSSS" onto the original fileName in 
 			// order to ensure that it is a unique file name
 			// let us try and remove this
-			String fileName = getOriginalFileName(FILE_LOCATION);
+			String fileName = Utility.getOriginalFileName(FILE_LOCATION);
 			// make the table name based on the fileName
 			String cleanTableName = RDBMSEngineCreationHelper.cleanTableName(fileName).toUpperCase();
 			
@@ -316,34 +314,6 @@ public class RDBMSFlatCSVUploader extends AbstractFileReader {
 		csvMeta.put(CSV_DATA_TYPES, dataTypes);
 		
 		return csvMeta;
-	}
-	
-	/**
-	 * Take the file location and return the original file name
-	 * Based on upload flow, files that go through FileUploader.java class get appended with the date of upload
-	 * in the format of "_yyyy_MM_dd_HH_mm_ss_SSSS" (length of 25) 
-	 * Thus, we see if the file has the date appended and remove it if we find it
-	 * @param FILE_LOCATION						The location of the csv file
-	 * @return									The original file name of the csv file
-	 */
-	private String getOriginalFileName(final String FILE_LOCATION) {
-		// before this point is reached, the FileUploader appends the time as "_yyyy_MM_dd_HH_mm_ss_SSSS"
-		// onto the original fileName in order to ensure that it is unique
-		// since we are using the fileName to be the table name, let us try and remove this
-		String fileName = new File(FILE_LOCATION).getName().replace(".csv", "");
-		// 24 is the length of the date being added
-		if(fileName.length() > 28) {
-			String fileEnd = fileName.substring(fileName.length()-24);
-			try {
-				new SimpleDateFormat("yyyy_MM_dd_HH_mm_ss_SSSS").parse(fileEnd);
-				// if the parsing was successful, we remove it from the fileName
-				// it is -25 because of the 24 above plus one more for the "_"
-				fileName = fileName.substring(0, fileName.length()-25);
-			} catch (ParseException e) {
-				// the end was not the added date, so do nothing
-			}
-		}
-		return fileName;
 	}
 	
 	/**

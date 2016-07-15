@@ -486,4 +486,7 @@ public class Constants {
 	public static final String NAME = "NAME";
 	public static final String FILTERS = "FILTERS";
 	public static final String DATA_TONS = "UI_OPTIONS";
+	
+	// prohibited headers
+	public static final String PROBHIBITED_HEADERS = "PROBHIBITED_HEADERS";
 }
