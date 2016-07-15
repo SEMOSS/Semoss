@@ -2541,5 +2541,32 @@ public class Utility {
 		}
 	}
 
+	/**
+	 * Take the file location and return the original file name
+	 * Based on upload flow, files that go through FileUploader.java class get appended with the date of upload
+	 * in the format of "_yyyy_MM_dd_HH_mm_ss_SSSS" (length of 25) 
+	 * Thus, we see if the file has the date appended and remove it if we find it
+	 * @param FILE_LOCATION						The location of the csv file
+	 * @return									The original file nam	e of the csv file
+	 */
+	public static String getOriginalFileName(final String FILE_LOCATION) {
+		// The FileUploader appends the time as "_yyyy_MM_dd_HH_mm_ss_SSSS"
+		// onto the original fileName in order to ensure that it is unique
+		// since we are using the fileName to be the table name, let us try and remove this
+		String fileName = new File(FILE_LOCATION).getName().replace(".csv", "");
+		// 24 is the length of the date being added
+		if(fileName.length() > 28) {
+			String fileEnd = fileName.substring(fileName.length()-24);
+			try {
+				new SimpleDateFormat("yyyy_MM_dd_HH_mm_ss_SSSS").parse(fileEnd);
+				// if the parsing was successful, we remove it from the fileName
+				// it is -25 because of the 24 above plus one more for the "_"
+				fileName = fileName.substring(0, fileName.length()-25);
+			} catch (ParseException e) {
+				// the end was not the added date, so do nothing
+			}
+		}
+		return fileName;
+	}
 	
 }
