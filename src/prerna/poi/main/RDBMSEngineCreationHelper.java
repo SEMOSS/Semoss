@@ -232,9 +232,16 @@ public class RDBMSEngineCreationHelper {
 			s = s.replace("  ", " ");
 		}
 		s = s.replaceAll(" ", "_");
-		return s.replaceAll("[^a-zA-Z0-9\\_]", "");
+		s = s.replaceAll("[^a-zA-Z0-9\\_]", "");
+		// can't start with a digit in rdbms
+		// have it start with an underscore and it will work
+		if(Character.isDigit(s.charAt(0))) {
+			s = "_" + s;
+		}
+		
+		return s;
 	}
-
+	
 	public static String escapeForSQLStatement(String s) {
 		return s.replaceAll("'", "''");
 	}
