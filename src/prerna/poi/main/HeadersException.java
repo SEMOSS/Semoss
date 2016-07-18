@@ -27,9 +27,10 @@ public class HeadersException {
 	// we will store everything in upper case format
 	private static Set<String> prohibitedHeaders = new HashSet<String>();;
 	
-	private final static String DUP_HEADERS_KEY = "DUPLICATE_HEADERS";
-	private final static String ILLEGAL_HEADERS_KEY = "ILLEGAL_HEADERS";
-
+	public final static String DUP_HEADERS_KEY = "DUPLICATE_HEADERS";
+	public final static String ILLEGAL_HEADERS_KEY = "ILLEGAL_HEADERS";
+	public final static String ILLEGAL_CHARACTER_KEY = "ILLEGAL_CHARACTER_KEY";
+	
 	// the constructor
 	// responsible for loading in the prohibited headers
 	// requires DIHelper
@@ -65,7 +66,7 @@ public class HeadersException {
 		// instantiate errorMessage objects
 		boolean foundError = false;
 		StringBuilder errorMessage = new StringBuilder();
-		errorMessage.append("There are issues with the headers in file = " + Utility.getOriginalFileName(fileName) + ".");
+		errorMessage.append("FILE ERROR : " + Utility.getOriginalFileName(fileName) + "<br>");
 		
 		// two tests
 		// first one is if we have duplicate headers
@@ -78,27 +79,41 @@ public class HeadersException {
 		Set<String> duplicateHeaders = comparisons.get(DUP_HEADERS_KEY);
 		// illegal headers will store which headers are illegal
 		Set<String> illegalHeaders = comparisons.get(ILLEGAL_HEADERS_KEY);
-
+		// illegal characters will store headers which have any of the following: %+;@
+		Set<String> illCharacterHeaders = comparisons.get(ILLEGAL_CHARACTER_KEY);
+		
 		if(!duplicateHeaders.isEmpty()) {
 			foundError = true;
-			errorMessage.append("\n");
-			errorMessage.append("Unable to load when there are duplicate names for column headers.\n");
-			errorMessage.append("Here are the following column names that are duplicated:\n");
+			errorMessage.append("<br>");
+			errorMessage.append("ERROR - Duplicate Column Names:<br>");
 			int dupCounter = 1;
 			for(String dupHeader : duplicateHeaders) {
-				errorMessage.append(dupCounter + ") " + dupHeader + "\n");
+				errorMessage.append(dupCounter + ") " + dupHeader + "<br>");
+				dupCounter++;
 			}
 		}
 		
 		if(!illegalHeaders.isEmpty()) {
 			foundError = true;
-			errorMessage.append("\n");
-			errorMessage.append("Unable to load due to restrictions with column headers.\n");
-			errorMessage.append("Here are the following column names that are not acceptable:\n");
+			errorMessage.append("<br>");
+			errorMessage.append("ERROR - Prohibited Column Names:<br>");
 			// cause i'm ill son
 			int illCounter = 1;
 			for(String illHeader : illegalHeaders) {
-				errorMessage.append(illCounter + ") " + illHeader + "\n");
+				errorMessage.append(illCounter + ") " + illHeader + "<br>");
+				illCounter++;
+			}
+		}
+		
+		if(!illCharacterHeaders.isEmpty()) {
+			foundError = true;
+			errorMessage.append("<br>");
+			errorMessage.append("ERROR - Column name can't contain any of the following characters: %+;@ <br>");
+			// cause i'm ill son
+			int illCounter = 1;
+			for(String illHeader : illCharacterHeaders) {
+				errorMessage.append(illCounter + ") " + illHeader + "<br>");
+				illCounter++;
 			}
 		}
 		
@@ -125,7 +140,9 @@ public class HeadersException {
 		Set<String> illegalHeaders = new TreeSet<String>();
 		// keep a list of the headers current seen
 		Set<String> currHeadersProcessed = new HashSet<String>();
-		
+		// store the illegal headers... make it an ordered set
+		Set<String> illConcatHeaders = new TreeSet<String>();
+				
 		int size = headers.length;
 		for(int headIdx = 0; headIdx < size; headIdx++) {
 			String thisHeader = headers[headIdx];
@@ -146,11 +163,19 @@ public class HeadersException {
 				illegalHeaders.add(thisHeader);
 			}
 			// END ILLEGAL HEADERS
+			
+			// THIS IS THE PORTION OF CODE FOR ILLEGAL CHARACTERS
+			if(thisHeader.contains("+") || thisHeader.contains("%") || thisHeader.contains("@") || thisHeader.contains(";")) {
+				// we found an illegal value!
+				illConcatHeaders.add(thisHeader);
+			}
+			// END ILLEGAL CONCATENATIONS
 		}
 		
 		returnComparisonsMap.put(DUP_HEADERS_KEY, duplicateHeaders);
 		returnComparisonsMap.put(ILLEGAL_HEADERS_KEY, illegalHeaders);
-		
+		returnComparisonsMap.put(ILLEGAL_CHARACTER_KEY, illConcatHeaders);
+
 		return returnComparisonsMap;
 	}
 	
@@ -204,6 +229,60 @@ public class HeadersException {
 		}
 		
 		return illegalHeaders;
+	}
+	
+	public Set<String> findIllegalCharacters(String[] headers) {
+		// store the illegal headers... make it an ordered set
+		Set<String> illegalCharacterHeaders = new TreeSet<String>();
+
+		// iterate through and find which headers are illegal
+		int size = headers.length;
+		for(int headIdx = 0; headIdx < size; headIdx++) {
+			String thisHeader = headers[headIdx];
+			if(thisHeader.contains("+") || thisHeader.contains("%") || thisHeader.contains("@") || thisHeader.contains(";")) {
+				// we found an illegal value!
+				illegalCharacterHeaders.add(thisHeader);
+			}
+		}
+		
+		return illegalCharacterHeaders;
+	}
+	
+	public boolean isDuplicated(String checkHeader, String[] allHeaders) {
+		checkHeader = checkHeader.toUpperCase();
+		for(String currHeaders : allHeaders) {
+			if(currHeaders == null) {
+				continue;
+			}
+			if(checkHeader.equals(currHeaders.toUpperCase())) {
+				return true;
+			}
+		}
+		
+		return false;
+	}
+	
+	public boolean isIllegalHeader(String checkHeader) {
+		if(prohibitedHeaders.contains(checkHeader)) {
+			return true;
+		}
+		return false;
+	}
+	
+	public boolean containsIllegalCharacter(String checkHeader) {
+		if(checkHeader.contains("+") || checkHeader.contains("%") || checkHeader.contains("@") || checkHeader.contains(";")) {
+			// we found an illegal value!
+			return true;
+		}
+		return false;
+	}
+	
+	public String removeIllegalCharacters(String checkHeader) {
+		checkHeader = checkHeader.replace("+", "");
+		checkHeader = checkHeader.replace("@", "");
+		checkHeader = checkHeader.replace("%", "");
+		checkHeader = checkHeader.replace(";", "");
+		return checkHeader;
 	}
 	
 }

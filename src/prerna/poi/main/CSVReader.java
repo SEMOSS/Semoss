@@ -438,10 +438,12 @@ public class CSVReader extends AbstractCSVFileReader {
 	}
 
 	/**
-	 * Constructs the node instance name
-	 * @param subject 		String containing the node type name
-	 * @param jcrMap 		Map containing the data in the CSV file
-	 * @return retString 	String containing the instance level name
+	 * Gets the instance value for a given subject.  The subject can be a concatenation. Note that we do 
+	 * not care about the data type for this since a URI is always a string
+	 * @param subject					The subject type (i.e. concept, or header name) to get the instance value for
+	 * @param values					String[] containing the values for the row
+	 * @param colNameToIndex			Map containing the header names to index within the values array
+	 * @return							The return is the value for the instance
 	 */
 	private String createInstanceValue(String subject, String[] values, Map<String, Integer> colNameToIndex)
 	{
@@ -472,20 +474,27 @@ public class CSVReader extends AbstractCSVFileReader {
 		}
 		else
 		{
+			// if the value is not empty, get the correct value to return
 			int colIndex = colNameToIndex.get(subject);
-			if(values[colIndex] != null && !values[colIndex].toString().trim().isEmpty())
-			{
-				String value = values[colIndex] + "";
-				value = Utility.cleanString(value, true);
-				retString = value;
+			if(values[colIndex] != null && !values[colIndex].trim().isEmpty()) {
+				retString = Utility.cleanString(values[colIndex], true);
 			}
 		}
 		return retString;
 	}
 
+	/**
+	 * Gets the properly formatted object from the string[] values object
+	 * Also handles if the column is a concatenation
+	 * @param object					The column to get the correct data type for - can be a concatenation
+	 * @param values					The string[] containing the values for the row
+	 * @param dataTypes					The string[] containing the data type for each column in the values array
+	 * @param colNameToIndex			Map containing the column name to index in values[] for fast retrieval of data
+	 * @return							The object in the correct data format
+	 */
 	private Object createObject(String object, String[] values, String[] dataTypes, Map<String, Integer> colNameToIndex)
 	{
-		// need to do the class vs. object magic
+		// if it contains a plus sign, it is a concatenation
 		if(object.contains("+"))
 		{
 			StringBuilder strBuilder = new StringBuilder();
