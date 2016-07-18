@@ -136,7 +136,7 @@ public class Insight {
 	// in memory
 	// or a file
 	String databaseIDkey = "databaseID";
-	private Map<String, Object> pkqlVarMap = new HashMap<String, Object>();
+	private Map<String, Map<String, Object>> pkqlVarMap = new HashMap<String, Map<String, Object>>();
 	
 	/**
 	 * Constructor for the insight
@@ -927,8 +927,18 @@ public class Insight {
 		int lastPostTrans = dmc.getPostTrans().size() - 1;
 		// what does this do? -jason
 		for(int i = 0; i < postTrans.size(); i++) {
-			postTrans.get(i).setId(dmc.getId() + ":" + POST_TRANS + (++lastPostTrans));
-			dmc.addPostTrans(postTrans.get(i));
+			// TODO: Clean this up, possibly move the boolean and recipeindex to AbstractTrans
+			// If this is a PKQLTrans, see if it needs to be inserted at a specific index (user.input needs to go at the top)
+			// This should go away if we have metadata around each PKQLTrans so we know what to do with it
+			if(!(postTransCopy.get(i) instanceof PKQLTransformation) || (postTransCopy.get(i) instanceof PKQLTransformation && ((PKQLTransformation) postTransCopy.get(i)).isAddToRecipe())) {
+				if(postTransCopy.get(i) instanceof PKQLTransformation && ((PKQLTransformation) postTransCopy.get(i)).getRecipeIndex() != -1) {
+					postTrans.get(i).setId(dmc.getId() + ":" + POST_TRANS + (++lastPostTrans));
+					dmc.addPostTrans(postTrans.get(i), ((PKQLTransformation) postTransCopy.get(i)).getRecipeIndex());
+				} else {
+					postTrans.get(i).setId(dmc.getId() + ":" + POST_TRANS + (++lastPostTrans));
+					dmc.addPostTrans(postTrans.get(i));
+				}
+			}
 		}//
 	}
 	

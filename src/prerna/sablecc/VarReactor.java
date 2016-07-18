@@ -9,6 +9,7 @@ import prerna.ds.TinkerFrame;
 import prerna.engine.api.IScriptReactor;
 import prerna.sablecc.PKQLEnum.PKQLReactor;
 import prerna.sablecc.PKQLRunner.STATUS;
+import prerna.util.Constants;
 
 public class VarReactor extends AbstractReactor {
 	
@@ -18,7 +19,7 @@ public class VarReactor extends AbstractReactor {
 	
 	public VarReactor()
 	{
-		String [] thisReacts = {PKQLEnum.VAR_TERM, PKQLEnum.EXPR_TERM, PKQLEnum.INPUT};
+		String [] thisReacts = {PKQLEnum.VAR_TERM, PKQLEnum.EXPR_TERM, PKQLEnum.INPUT, Constants.ENGINE};
 		super.whatIReactTo = thisReacts;
 		super.whoAmI = PKQLReactor.VAR.toString();
 	}
