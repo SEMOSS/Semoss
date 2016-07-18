@@ -20,6 +20,7 @@ import prerna.sablecc.node.AAddColumn;
 import prerna.sablecc.node.AAlphaWordOrNum;
 import prerna.sablecc.node.AApiBlock;
 import prerna.sablecc.node.AApiImportBlock;
+import prerna.sablecc.node.AApiTerm;
 import prerna.sablecc.node.AColCsv;
 import prerna.sablecc.node.AColDef;
 import prerna.sablecc.node.AColWhere;
@@ -76,6 +77,7 @@ import prerna.sablecc.node.AVaropScript;
 import prerna.sablecc.node.Node;
 import prerna.sablecc.node.PScript;
 import prerna.ui.components.playsheets.datamakers.IDataMaker;
+import prerna.util.Constants;
 
 public class Translation extends DepthFirstAdapter {
 	// this is the third version of this shit I am building
@@ -268,12 +270,23 @@ public class Translation extends DepthFirstAdapter {
 			initReactor(PKQLEnum.API);
 			String nodeStr = node.toString().trim();
 			curReactor.put(PKQLEnum.API, nodeStr);
-			curReactor.put("ENGINE", node.getEngineName().toString().trim());
+			String engine = node.getEngineName().toString().trim();
+			curReactor.put("ENGINE", engine);
 			curReactor.put("INSIGHT", node.getInsight().toString());
+			Map<String, Map<String, Object>> varMap = runner.getVarMap();
+			Map<String, Map<String, Object>> varMapForReactor = new HashMap<String, Map<String, Object>>();
+			// Grab any param data for the current engine so API reactor grabs those values as needed
+			for(String var : varMap.keySet()) {
+				Map<String, Object> paramValues = varMap.get(var);
+				if(paramValues.get(Constants.ENGINE).equals(engine)) {
+					varMapForReactor.put(var, varMap.get(var));
+				}
+			}
+			curReactor.put("VARMAP", varMapForReactor);
 			if(myJoins != null) {
 				curReactor.put("TABLE_JOINS", myJoins);
-		}		
-	}
+			}		
+		}
 	}
 	
 	@Override
@@ -281,7 +294,7 @@ public class Translation extends DepthFirstAdapter {
 		String nodeStr = node.toString().trim();
 		IScriptReactor thisReactor = curReactor;
 		Hashtable <String, Object> thisReactorHash = deinitReactor(PKQLEnum.API, nodeStr, PKQLEnum.API); // I need to make this into a string
-		if(curReactor != null && node.parent() != null && node.parent() instanceof AApiImportBlock && !node.getEngineName().toString().equalsIgnoreCase("ImportIO")) {
+		if(curReactor != null && node.parent() != null && (node.parent() instanceof AApiImportBlock || node.parent() instanceof AApiTerm) && !node.getEngineName().toString().equalsIgnoreCase("ImportIO")) {
 			String [] values2Sync = curReactor.getValues2Sync(PKQLEnum.API);
 			synchronizeValues(PKQLEnum.API, values2Sync, thisReactor);
 		}
@@ -837,6 +850,13 @@ public class Translation extends DepthFirstAdapter {
 			String nodeStr = node.toString().trim();
 			curReactor.put(PKQLEnum.IMPORT_DATA, nodeStr);
 			
+//			String varName = node.getVar().toString().trim();
+//			// get the value for the var from the runner
+//			Object varVal = runner.getVariable(varName);
+//			// adding to the reactor
+//			curReactor.set(PKQLEnum.VAR_TERM, varVal);
+//			curReactor.addReplacer((node + "").trim(), varVal);
+			
 			if(node.getJoins()!=null){
 				node.getJoins().apply(this); // need to process joins so that we can access them in the api block for preprocessing inner joins
 		}		
@@ -897,6 +917,7 @@ public class Translation extends DepthFirstAdapter {
 		if(reactorNames.containsKey(PKQLReactor.VAR.toString())) {
 			String nodeStr = PKQLReactor.VAR.toString();
 			String expr = curReactor.getValue(PKQLEnum.EXPR_TERM) + "";
+			boolean updatingExistingVar = false;
 			Map<String, Object> thisReactorHash = deinitReactor(PKQLReactor.VAR.toString(), nodeStr, nodeStr);
 			IScriptReactor previousReactor = (IScriptReactor)thisReactorHash.get(PKQLReactor.VAR.toString());
 			String varName = previousReactor.getValue(PKQLReactor.VAR.toString()) + "";
@@ -904,12 +925,18 @@ public class Translation extends DepthFirstAdapter {
 			if(inputNeeded == null) // if no input needed for this var, set it and we are good
 			{
 				runner.unassignedVars.remove(varName);
-				runner.setVariable(varName, expr);
+				if(runner.getVariableData(varName) != null) {
+					updatingExistingVar = true;
+				}
+				runner.setVariableValue(varName, expr.replaceAll("^\'|\'$", ""));
 				runner.setResponse("Set variable " + varName +" to " + expr);
 				runner.setStatus(STATUS.SUCCESS);
 			}
 			else {
 				runner.unassignedVars.add(varName);
+				if(runner.getVariableData(varName) == null) {
+					runner.addNewVariable(varName, previousReactor.getValue(Constants.ENGINE).toString(), ((Vector)previousReactor.getValue(Constants.TYPE)).get(0).toString());
+				}
 				runner.setResponse("Need input on variable " + varName);
 				Map<String, Object> paramMap = new HashMap<String,Object>();
 				paramMap.put("varToSet", varName);
@@ -925,7 +952,7 @@ public class Translation extends DepthFirstAdapter {
 	public void inAVarTerm(AVarTerm node) {
 		String varName = node.getVar().toString().trim();
 		// get the value for the var from the runner
-		Object varVal = runner.getVariable(varName);
+		Object varVal = runner.getVariableValue(varName);
 		// adding to the reactor
 		curReactor.set(PKQLEnum.VAR_TERM, varVal);
 		curReactor.addReplacer((node + "").trim(), varVal);
@@ -956,6 +983,8 @@ public class Translation extends DepthFirstAdapter {
 	//		this.unassignedVars.add(node.toString());
 			curReactor.put("options", options);
 			curReactor.put("selectAmount", selections);
+			curReactor.put(Constants.ENGINE, previousReactor.getValue(PKQLEnum.API + "_" + Constants.ENGINE));
+			curReactor.put(Constants.TYPE, previousReactor.getValue(PKQLEnum.API + "_" + PKQLEnum.COL_CSV));
 	//		node.replaceBy(null); // need to get out of finishing the processing of this pkql..... how do i just return out of this bad boy??
 			// the plan is:
 			// return out of this bad boy

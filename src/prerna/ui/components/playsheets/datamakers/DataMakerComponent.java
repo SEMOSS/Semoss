@@ -173,6 +173,15 @@ public class DataMakerComponent {
 		postTran.setTransformationType(false);
 		this.postTrans.add(postTran);
 	}
+	
+	/**
+	 * Append a postTransformation onto the component
+	 * @param postTran
+	 */
+	public void addPostTrans(ISEMOSSTransformation postTran, int index){
+		postTran.setTransformationType(false);
+		this.postTrans.add(index, postTran);
+	}
 
 	/**
 	 * Append an action onto the component

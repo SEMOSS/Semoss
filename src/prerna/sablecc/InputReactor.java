@@ -11,6 +11,7 @@ import prerna.engine.api.IHeadersDataRow;
 import prerna.engine.api.IScriptReactor;
 import prerna.sablecc.PKQLEnum.PKQLReactor;
 import prerna.sablecc.PKQLRunner.STATUS;
+import prerna.util.Constants;
 
 public class InputReactor extends AbstractReactor {
 	
@@ -18,11 +19,20 @@ public class InputReactor extends AbstractReactor {
 	// the map of vars to objects will either sit on runner or in insight
 	// for now we will put it on the insight since runner isn't singleton wrt insight
 	
+
+	// need to get the values to sync from the api
+	Hashtable <String, String[]> values2SyncHash = new Hashtable <String, String[]>();
+
+	
 	public InputReactor()
 	{
-		String [] thisReacts = {PKQLEnum.VAR_TERM, PKQLEnum.EXPR_TERM, PKQLEnum.API};
+		String [] thisReacts = {PKQLEnum.VAR_TERM, PKQLEnum.EXPR_TERM, PKQLEnum.API, Constants.ENGINE};
 		super.whatIReactTo = thisReacts;
 		super.whoAmI = PKQLReactor.INPUT.toString();
+		
+		// when the data is coming from an API (i.e. an engine or a file)
+		String [] dataFromApi = {PKQLEnum.COL_CSV, Constants.ENGINE};
+		values2SyncHash.put(PKQLEnum.API, dataFromApi);
 	}
 
 	@Override
@@ -49,6 +59,18 @@ public class InputReactor extends AbstractReactor {
 		}
 		myStore.put("options", options);
 		return null;
+	}
+	
+	
+	
+	/**
+	 * Gets the values to load into the reactor
+	 * This is used to synchronize between the various reactors that can feed into this reactor
+	 * @param input			The type of child reactor
+	 */
+	public String[] getValues2Sync(String input)
+	{
+		return values2SyncHash.get(input);
 	}
 	
 	
