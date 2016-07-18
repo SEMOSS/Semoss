@@ -1,5 +1,6 @@
 package prerna.ui.components.specific.anthem;
 
+import java.util.HashMap;
 import java.util.Hashtable;
 import java.util.Map;
 
@@ -15,17 +16,21 @@ public class AnthemPainpointsPlaysheet extends TablePlaySheet implements IDataMa
 
 	private static final Logger logger = LogManager.getLogger(TablePlaySheet.class.getName());
 	private DataMakerComponent dmComponent;
-	static String masterQuery = "SELECT DISTINCT OBA_L1.OBA_L0_FK AS OBA_L0, OBA_L1.OBA_L1 AS OBA_L1, OBA_L2.OBA_L2  OBA_L2, PAIN_POINT.PAIN_POINT_DESCRIPTION AS PAIN_POINT "
+	static String masterQuery = "SELECT DISTINCT OBA_L1.OBA_L0_FK AS OBA_L0, OBA_L1.OBA_L1 AS OBA_L1, OBA_L2.OBA_L2 AS OBA_L2, PAIN_POINT.PAIN_POINT_DESCRIPTION AS PAIN_POINT "
 			+ "FROM OBA_L1, PAIN_POINT "
-			+ "INNER JOIN OBA_L2 ON OBA_L1.OBA_L1 = OBA_L2.OBA_L1_FK AND PAIN_POINT.PAIN_POINT = OBA_L2.PAIN_POINT_FK";
+			+ "INNER JOIN OBA_L2 ON OBA_L1.OBA_L1 = OBA_L2.OBA_L1_FK AND PAIN_POINT.PAIN_POINT = OBA_L2.PAIN_POINT_FK "
+			+ "where OBA_L2 is not null";
 
 	//OBA_L0.OBA_L0.OBA_L1.OBA_L0_FK
+	private final String OBA_L0 = "OBA_L0_FK";
+	private final String OBA_L1 = "OBA_L1";
+	private final String OBA_L2 = "OBA_L2";
+//	private final String PAIN_POINT = "PAIN_POINT_DESCRIPTION";
 
 	public static String instanceOfPlaysheet = "prerna.ui.components.specific.anthem.AnthemPainpointsPlaysheet";
 
 	//create a datamaker
 	@Override
-	@Deprecated
 	public void createData() {
 		if (this.dmComponent == null) {
 			this.dmComponent = new DataMakerComponent(this.engine, masterQuery);
@@ -55,7 +60,21 @@ public class AnthemPainpointsPlaysheet extends TablePlaySheet implements IDataMa
 
 	@Override
 	public Map getDataMakerOutput(String... selectors) {
-		return super.getDataMakerOutput(selectors);
+		
+		Map<String, Object> returnHashMap = new HashMap <String, Object> ();
+		
+		Map<String, String> dataHash = super.getDataMakerOutput(selectors);
+		returnHashMap.putAll(dataHash);
+		
+		Map<String, String> dataTableAlign = new HashMap <String, String> ();
+		dataTableAlign.put("levelOne", OBA_L0);
+		dataTableAlign.put("levelTwo", OBA_L1);
+		dataTableAlign.put("levelThree", OBA_L2);
+//		dataTableAlign.put("heatValue", HEAT_VALUE);
+//		dataTableAlign.put("minValue", MIN_ACTIVITY_VALUE);
+		returnHashMap.put("dataTableAlign", dataTableAlign);
+		return returnHashMap;
 	}     
+
 
 }
