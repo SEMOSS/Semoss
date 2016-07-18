@@ -64,15 +64,19 @@ public class RDBMSReader extends AbstractCSVFileReader {
 
 	/**
 	 * Loading data into SEMOSS to create a new database
-	 * @param dbName 		String grabbed from the user interface that would be used as the name for the database
-	 * @param fileNames		Absolute paths of files the user wants to load into SEMOSS, paths are separated by ";"
-	 * @param customBase	String grabbed from the user interface that is used as the URI base for all instances 
-	 * @param customMap		
-	 * @param owlFile		String automatically generated within SEMOSS to determine the location of the OWL file that is produced
-	 * @throws RepositoryException 
-	 * @throws IOException 
-	 * @throws FileNotFoundException 
-	 * @throws SailException 
+	 * @param smssLocation					The location of the smss file for the engine
+	 * @param engineName					The name of the engine
+	 * @param fileNames						String containing the file names semicolon delimited
+	 * @param customBase					The custom base uri for the database
+	 * @param owlFile						The location of the OWL file for the database
+	 * @param dbType						The RDBMS data type
+	 * @param allowDuplicates				Boolean is we should allow duplicated in the tables
+	 * @return								The newly created engine
+	 * @throws RepositoryException
+	 * @throws FileNotFoundException
+	 * @throws IOException
+	 * @throws SailException
+	 * @throws Exception
 	 */
 	public IEngine importFileWithOutConnection(String smssLocation, String engineName, String fileNames, String customBase, String owlFile, SQLQueryUtil.DB_TYPE dbType, boolean allowDuplicates) 
 			throws RepositoryException, FileNotFoundException, IOException, SailException, Exception {
@@ -99,6 +103,7 @@ public class RDBMSReader extends AbstractCSVFileReader {
 						rdfMap = rdfMapArr[i];
 					}
 					preParseRdbmsCSVMetaData(rdfMap);
+					parseMetadata();
 
 //					if(i ==0 ) {
 //						scriptFile.println("-- ********* begin load process ********* ");
@@ -106,9 +111,6 @@ public class RDBMSReader extends AbstractCSVFileReader {
 //					scriptFile.println("-- ********* begin load " + fileName + " ********* ");
 //					LOGGER.info("-- ********* begin load " + fileName + " ********* ");
 
-					//TODO: same method used in other classes
-					parseMetadata();
-					// determine the type of data in each column of CSV file
 					processDisplayNames();
 					skipRows();
 					processData(i == 0);
@@ -149,6 +151,16 @@ public class RDBMSReader extends AbstractCSVFileReader {
 		return engine;
 	}
 
+	/**
+	 * Load data into an existing relational database
+	 * @param engineName				The name of the engine to add data into
+	 * @param fileNames					The list of files to upload, semicolon delimited
+	 * @param customBase				The base URI for the database
+	 * @param owlFile					The path to the existing owl file... TODO: can grab this from the engine directly
+	 * @param dbType					The type of relational database....		TODO: can grab this from the engine directly
+	 * @param allowDuplicates			Boolean to allow duplicate rows in the tables
+	 * @throws IOException
+	 */
 	public void importFileWithConnection(String engineName, String fileNames, String customBase, String owlFile, SQLQueryUtil.DB_TYPE dbType, boolean allowDuplicates) 
 			throws IOException {
 
@@ -176,23 +188,20 @@ public class RDBMSReader extends AbstractCSVFileReader {
 						rdfMap = rdfMapArr[i];
 					}
 					preParseRdbmsCSVMetaData(rdfMap);
+					parseMetadata();
 
 //					if(i ==0 ) {
 //						scriptFile.println("-- ********* begin load process ********* ");
 //					}
 //					scriptFile.println("-- ********* begin load " + fileName + " ********* ");
 //					LOGGER.info("-- ********* begin load " + fileName + " ********* ");
-
-					//TODO: same method used in other classes
-					parseMetadata();
-					// determine the type of data in each column of CSV file
+					
 					processDisplayNames();
 					skipRows();
 					processData(false);
-
+					
 //					scriptFile.println("-- ********* completed processing file " + fileName + " ********* ");
 //					LOGGER.info("-- ********* completed processing file " + fileName + " ********* ");
-
 				} finally {
 					closeCSVFile();
 					clearTables();
@@ -979,14 +988,17 @@ public class RDBMSReader extends AbstractCSVFileReader {
 	}
 
 	/**
-	 * Retrieves the data in the CSV file for a specified string
-	 * @param object 	String containing the object to retrieve from the CSV data
-	 * @param jcrMap 	Map containing the data in the CSV file
-	 * @return Object	The CSV data mapped to the object string
+	 * Gets the properly formatted object from the string[] values object.  Since this just goes into a sql insert
+	 * query, the object is always in string format
+	 * Also handles if the column is a concatenation
+	 * @param object					The column to get the correct data type for - can be a concatenation
+	 * @param values					The string[] containing the values for the row
+	 * @param dataTypes					The string[] containing the data type for each column in the values array
+	 * @param colNameToIndex			Map containing the column name to index in values[] for fast retrieval of data
+	 * @return							The object in the correct format
 	 */
 	private Object createObject(String object, String[] values, String[] dataTypes, Map<String, Integer> colNameToIndex)
 	{
-		// need to do the class vs. object magic
 		if(object.contains("+"))
 		{
 			StringBuilder strBuilder = new StringBuilder();
