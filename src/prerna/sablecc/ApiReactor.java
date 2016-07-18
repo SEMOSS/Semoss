@@ -19,6 +19,7 @@ import prerna.engine.api.RApi;
 import prerna.engine.impl.rdf.CSVApi;
 import prerna.engine.impl.rdf.QueryAPI;
 import prerna.ui.components.playsheets.datamakers.IDataMaker;
+import prerna.util.Constants;
 
 public class ApiReactor extends AbstractReactor {
 
@@ -230,7 +231,7 @@ public class ApiReactor extends AbstractReactor {
 
 	public void processQueryStruct(QueryStruct qs, Vector <String> selectors, Vector <Hashtable> filters, Vector <Hashtable> joins)
 	{
-
+		Map<String, Map<String, Object>> varMap = (Map<String, Map<String, Object>>) myStore.get("VARMAP");
 		for(int selectIndex = 0;selectIndex < selectors.size();selectIndex++)
 		{
 			String thisSelector = selectors.get(selectIndex);
@@ -242,6 +243,17 @@ public class ApiReactor extends AbstractReactor {
 			else
 			{
 				qs.addSelector(thisSelector, null);
+			}
+			
+			// For this column, see if there is a param set that references it
+			// If so, grab it's value and add as a filter to apply that param
+			for(String var : varMap.keySet()) {
+				Map<String, Object> paramValues = varMap.get(var);
+				if(paramValues != null && paramValues.get(Constants.TYPE).equals(thisSelector)) {
+					Vector<String> filterValues = new Vector<String>();
+					filterValues.add(paramValues.get(Constants.VALUE).toString());
+					qs.addFilter(thisSelector, "=", filterValues);
+				}
 			}
 		}
 		for(int filterIndex = 0;filterIndex < filters.size();filterIndex++)
@@ -270,6 +282,16 @@ public class ApiReactor extends AbstractReactor {
 				String comparator = (String)thisFilter.get("COMPARATOR");
 				//				String concept = fromCol.substring(0, fromCol.indexOf("__"));
 				//				String property = fromCol.substring(fromCol.indexOf("__")+2);
+				
+				// For this column filter, see if there is a param set that references it
+				// If so, grab it's value and add as a filter to apply that param
+				for(String var : varMap.keySet()) {
+					Map<String, Object> paramValues = varMap.get(var);
+					if(paramValues != null && paramValues.get(Constants.TYPE).equals(fromCol)) {
+						filterData.add(paramValues.get(Constants.VALUE).toString());
+					}
+				}
+				
 				qs.addFilter(fromCol, comparator, filterData);
 			}
 		}
