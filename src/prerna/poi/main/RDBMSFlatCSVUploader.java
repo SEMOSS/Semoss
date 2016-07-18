@@ -25,7 +25,7 @@ import prerna.util.DIHelper;
 import prerna.util.Utility;
 import prerna.util.sql.SQLQueryUtil;
 
-public class RDBMSFlatCSVUploader extends AbstractFileReader {
+public class RDBMSFlatCSVUploader extends AbstractCSVFileReader {
 
 	private static final Logger LOGGER = LogManager.getLogger(RDBMSFlatCSVUploader.class.getName());
 	
@@ -90,6 +90,11 @@ public class RDBMSFlatCSVUploader extends AbstractFileReader {
 					// need to update to get the rdbms structure to determine how the new files should be added
 					existingRDBMSStructure = RDBMSEngineCreationHelper.getExistingRDBMSStructure(engine, queryUtil);
 				}
+				// similar to other csv reading
+				// we load the types into rdfMap
+				if(!propFileExist){
+					rdfMap = rdfMapArr[i];
+				}
 				processTable(fileName);
 			}
 			// write the owl file
@@ -143,6 +148,7 @@ public class RDBMSFlatCSVUploader extends AbstractFileReader {
 				}
 				// need to update to get the rdbms structure to determine how the new files should be added
 				existingRDBMSStructure = RDBMSEngineCreationHelper.getExistingRDBMSStructure(engine, queryUtil);
+				
 				processTable(fileName);
 			}
 			// write the owl file
