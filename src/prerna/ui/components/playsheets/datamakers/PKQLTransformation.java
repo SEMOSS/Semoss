@@ -26,8 +26,18 @@ public class PKQLTransformation extends AbstractTransformation {
 	private Map<String, Object> feData = new HashMap<String, Object>();
 	private Map<String, String> newColumns = new HashMap<String, String>();
 	
-	
 	IDataMaker dm;
+	
+	boolean addToRecipe = true;
+	int recipeIndex = -1;
+	
+	public boolean isAddToRecipe() {
+		return this.addToRecipe;
+	}
+	
+	public int getRecipeIndex() {
+		return this.recipeIndex;
+	}
 
 	@Override
 	public void setProperties(Map<String, Object> props) {
@@ -72,6 +82,13 @@ public class PKQLTransformation extends AbstractTransformation {
 		for(int i = numOldCmds ; i < allCmds.size(); i++){
 			String cmd = (String) allCmds.get(i).get("command");
 			if(cmd != null){
+				if(cmd.startsWith("v:")) {
+					if(!cmd.contains("user.input")) {
+						this.addToRecipe = false;
+					} else {
+						this.recipeIndex = 0;
+					}
+				} 
 				parsedPkqls.add(cmd);
 			}
 			else {
