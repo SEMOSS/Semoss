@@ -6,6 +6,7 @@ import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
@@ -14,6 +15,7 @@ import java.util.TreeMap;
 
 import prerna.poi.main.helper.CSVFileHelper;
 import prerna.util.ArrayUtilityMethods;
+import prerna.util.Utility;
 
 /**
  * This class is used to build a suggested metamodel from a file, currently only works with CSV 
@@ -21,11 +23,13 @@ import prerna.util.ArrayUtilityMethods;
  */
 public class MetaModelCreator {
 
+	private CSVFileHelper helper;
 	//column headers
-	String[] columnHeaders;
-	Map<String, String> dataTypeMap;
-	int[] processOrder; //order in which to process columns 
-	CreatorMode mode;
+	private String[] columnHeaders;
+	private String[] dataTypes;
+	private Map<String, String> dataTypeMap;
+	private int[] processOrder; //order in which to process columns 
+	private CreatorMode mode;
 	
 	//start and end row to read, won't be less than 2
 	int endRow = 2; 
@@ -58,21 +62,22 @@ public class MetaModelCreator {
 	public enum CreatorMode {AUTO, PROP, TABLE};
 	
 	public MetaModelCreator() {
+		
 	}
 	
-	public MetaModelCreator(String fileName, Map<String, Map<String, String>> dataTypeMap, String delimiter, CreatorMode setting) {
-		//use the file name
-		//TODO : limit to first 500 rows and use CSVHelper to read data
-		//Migrate away from frame since it is unnecessary overhead
-		this.dataTypeMap = dataTypeMap.get("CSV");
+	public MetaModelCreator(CSVFileHelper helper, CreatorMode setting) {
+		this.helper = helper;
+		this.columnHeaders = helper.getHeaders();
+		this.dataTypes = helper.predictTypes();
+		this.dataTypeMap = new LinkedHashMap<String, String>();
+		
+		int size = columnHeaders.length;
+		for(int colIdx = 0; colIdx < size; colIdx++) {
+			dataTypeMap.put(columnHeaders[colIdx], Utility.getCleanDataType(dataTypes[colIdx]));
+		}
+		
 		this.mode = setting;
 		this.data = new ArrayList<>(500);
-		
-		CSVFileHelper helper = new CSVFileHelper();
-		helper.setDelimiter(delimiter.charAt(0));
-		helper.parse(fileName);
-		
-		this.columnHeaders = helper.getHeaders();
 		
 		String [] cells = null;
 		int count = 1;
@@ -407,6 +412,10 @@ public class MetaModelCreator {
 	public int getStartRow() {
 		return this.startRow;
 	}
+	
+	public Map<String, String> getDataTypeMap() {
+		return this.dataTypeMap;
+	}
 
 	/**
 	 * 
@@ -581,26 +590,16 @@ public class MetaModelCreator {
 	public static void main(String[] args) {
 		
 		String file = "C:\\Users\\rluthar\\Documents\\Movie_Data.csv";
-		String delimiter = ",";
+		char delimiter = ',';
 		
-		Map<String, Map<String, String>> headerMap = new HashMap<>();
-		Map<String, String> innerMap = new HashMap<>();
-		innerMap.put("Nominated", "STRING");
-		innerMap.put("Title", "STRING");
-		innerMap.put("Genre", "STRING");
-		innerMap.put("Studio", "STRING");
-		innerMap.put("Director", "STRING");
-		innerMap.put("MovieBudget", "NUMBER");
-		innerMap.put("RevenueInternational", "NUMBER");
-		innerMap.put("RottenTomatoesCritics", "NUMBER");
-		innerMap.put("RottenTomatoesAudience", "NUMBER");
-		headerMap.put("CSV", innerMap);
+		CSVFileHelper helper = new CSVFileHelper();
+		helper.setDelimiter(delimiter);
+		helper.parse(file);
 		
-		MetaModelCreator predictor = new MetaModelCreator(file, headerMap, delimiter, CreatorMode.AUTO);
+		MetaModelCreator predictor = new MetaModelCreator(helper, CreatorMode.AUTO);
 		try {
 			predictor.constructMetaModel();
 		} catch (Exception e) {
-			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
 		for(String key : predictor.matches.keySet()) {
