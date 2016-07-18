@@ -23,6 +23,7 @@ import prerna.sablecc.node.Start;
 import prerna.sablecc.parser.Parser;
 import prerna.sablecc.parser.ParserException;
 import prerna.ui.components.playsheets.datamakers.IDataMaker;
+import prerna.util.Constants;
 
 public class PKQLRunner {
 	
@@ -37,7 +38,7 @@ public class PKQLRunner {
 	private Map<String, Object> activeFeMap; // temporally grabbed out of master
 	private Translation translation;
 	private List<Map> responseArray = new Vector<Map>();
-	private Map<String, Object> varMap;
+	private Map<String, Map<String, Object>> varMap = new HashMap<String, Map<String, Object>>();
 	LinkedList<PScript> pkqlToRun = new LinkedList<PScript>();
 	List<String> unassignedVars = new Vector<String>();
 	
@@ -292,26 +293,58 @@ public class PKQLRunner {
 	public void setNewColumns(Map<String, String> newColumns) {
 		this.newColumns = newColumns;
 	}
+	
+	/**
+	 * Set new map with engine and col name, to be filled with user inputted value once that comes in.
+	 */
+	public void addNewVariable(String varName, String engine, String col) {
+		Map<String, Object> thisVarData = new HashMap<String, Object>();
+		thisVarData.put(Constants.ENGINE, engine);
+		thisVarData.put(Constants.TYPE, col);
+		this.varMap.put(varName, thisVarData);
+	}
 
 	/*
 	 * Adds a variable to the var map so that it can be retrieved with other pkqls
 	 */
-	public void setVariable(String varName, String expr) {
-		this.varMap.put(varName, expr);
+	public void setVariableValue(String varName, String expr) {
+		this.varMap.get(varName).put(Constants.VALUE, expr);
 	}
 	
 	/*
 	 * Sets a reference to the variable map into the runner so that Translation can access it
 	 * The main object sits on the Insight
 	 */
-	public void setVarMap(Map<String, Object> varMap){
+	public void setVarMap(Map<String, Map<String, Object>> varMap){
 		this.varMap = varMap;
+	}
+	
+	/**
+	 * Get the varMap for the given runner/insight.
+	 * 
+	 * @return	varMap	Map of params/var info, including engine, col name, and user inputted value
+	 */
+	public Map<String, Map<String, Object>> getVarMap() {
+		return this.varMap;
 	}
 
 	/*
 	 * Retrieves a variable from the var map
 	 */
-	public Object getVariable(String varName) {
+	public Object getVariableValue(String varName) {
+		if(this.varMap.get(varName) != null) {
+			return this.varMap.get(varName).get(Constants.VALUE);
+		} else {
+			return null;
+		}
+	}
+	
+	/**
+	 * Get the info for a given var/param from the varMap.
+	 * 
+	 * @return	Map<String, Object> holding data for a given param (engine, col name, user inputted value)
+	 */
+	public Map<String, Object> getVariableData(String varName) {
 		return this.varMap.get(varName);
 	}
 

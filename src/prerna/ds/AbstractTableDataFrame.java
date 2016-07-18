@@ -264,8 +264,14 @@ public abstract class AbstractTableDataFrame implements ITableDataFrame {
 	public Map<String, Object> getDataMakerOutput(String... selectors) {
 		Hashtable retHash = new Hashtable();
 		if(selectors.length == 0) {
-			retHash.put("data", this.getRawData());
-			retHash.put("headers", this.headerNames);
+			List<Object[]> retVector = new Vector<Object[]>();
+			String[] headers = new String[1];
+			if(this.headerNames != null && this.headerNames.length > 0) {
+				retVector = this.getRawData();
+				headers = this.headerNames;
+			}
+			retHash.put("data", retVector);
+			retHash.put("headers", headers);
 		} else {
 			long startTime = System.currentTimeMillis();
 			
@@ -551,11 +557,13 @@ public abstract class AbstractTableDataFrame implements ITableDataFrame {
 		Vector<Object[]> retVector = new Vector<>();
 		Iterator<Object[]> iterator = this.iterator(true);
 //		int count = 0;
-		while(iterator.hasNext()) {
-			retVector.add(iterator.next());
-//			System.out.println("added row " + count++);
+		if(iterator != null) {
+			while(iterator.hasNext()) {
+				retVector.add(iterator.next());
+	//			System.out.println("added row " + count++);
+			}
 		}
-		
+			
 		LOGGER.info("Collected Raw Data: "+(System.currentTimeMillis() - startTime));
 		return retVector;
 	}

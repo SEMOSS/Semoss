@@ -902,7 +902,9 @@ public class H2Frame extends AbstractTableDataFrame {
 	public void save(String fileName) {
 		this.metaData.save(fileName.substring(0, fileName.lastIndexOf(".")));
 		// fileName = fileName.substring(0, fileName.length() - 3) + ".gz";
-		builder.save(fileName, getH2Headers());
+		if(fileName != null && !fileName.isEmpty() && getH2Headers() != null) {
+			builder.save(fileName, getH2Headers());
+		}
 	}
 
 	/**
