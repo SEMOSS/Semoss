@@ -51,30 +51,34 @@ public class AnthemPainpointsPlaysheet extends TablePlaySheet implements IDataMa
 		this.dataFrame.setUserId(userId);
 	}
 
-	// just calls default getDataMakerOutput
-	public Map getData(Hashtable<String, Object> obj) {
-		Map<String, Object> returnHashMap =  getDataMakerOutput();
-		returnHashMap.put("Styling", "Anthem");
-		return returnHashMap;
-	}
+//	 //just calls default getDataMakerOutput
+//	public Map getData(Hashtable<String, Object> obj) {
+//		Map<String, Object> returnHashMap =  getDataMakerOutput();
+//		returnHashMap.put("Styling", "Anthem");
+//		return returnHashMap;
+//	}
 
 	@Override
 	public Map getDataMakerOutput(String... selectors) {
+		Map<String, Object> returnHashMap = super.getDataMakerOutput(selectors);
 		
-		Map<String, Object> returnHashMap = new HashMap <String, Object> ();
+		returnHashMap.put("dataTableAlign", getDataTableAlign());
+		returnHashMap.put("styling", "Anthem");
 		
-		Map<String, String> dataHash = super.getDataMakerOutput(selectors);
-		returnHashMap.putAll(dataHash);
+		String[] headers = (String[]) returnHashMap.get("headers");
 		
+		returnHashMap.put("Filter", headers[3]);
+		returnHashMap.put("FilterGroup", headers[4]);
+		
+		
+		return returnHashMap;
+	}    
+	
+	public Map getDataTableAlign (){
 		Map<String, String> dataTableAlign = new HashMap <String, String> ();
 		dataTableAlign.put("levelOne", OBA_L0);
 		dataTableAlign.put("levelTwo", OBA_L1);
 		dataTableAlign.put("levelThree", OBA_L2);
-//		dataTableAlign.put("heatValue", HEAT_VALUE);
-//		dataTableAlign.put("minValue", MIN_ACTIVITY_VALUE);
-		returnHashMap.put("dataTableAlign", dataTableAlign);
-		return returnHashMap;
-	}     
-
-
+		return dataTableAlign;
+	}
 }
