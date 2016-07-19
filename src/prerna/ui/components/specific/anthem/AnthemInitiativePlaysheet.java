@@ -77,6 +77,7 @@ public class AnthemInitiativePlaysheet extends TablePlaySheet implements IDataMa
 		dataTableAlign.put("levelThree", OBA_L2);
 //		dataTableAlign.put("heatValue", HEAT_VALUE);
 //		dataTableAlign.put("minValue", MIN_ACTIVITY_VALUE);
+		returnHashMap.put("styling", "Anthem");
 		returnHashMap.put("dataTableAlign", dataTableAlign);
 		return returnHashMap;
 	}     
