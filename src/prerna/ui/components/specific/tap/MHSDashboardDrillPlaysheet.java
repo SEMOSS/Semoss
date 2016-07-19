@@ -170,13 +170,13 @@ public class MHSDashboardDrillPlaysheet extends TablePlaySheet implements IDataM
 		selectorList.add(DHA);
 		selectorList.add(SDLC_ACTIVITYGROUP_DHA);
 		selectorList.add(SYSTEM);
-		selectorList.add(SYSTEM_OWNER);
-		selectorList.add(UPLOAD_DATE);
 		selectorList.add(PLANNED_START);
 		selectorList.add(PLANNED_END);
 		selectorList.add(ACTUAL_START);
 		selectorList.add(ACTUAL_END);
-
+		selectorList.add(SYSTEM_OWNER);
+		selectorList.add(UPLOAD_DATE);
+		
 		//delete duplicates
 		iteratorMap.put(TinkerFrame.DE_DUP, true);
 		iteratorMap.put(TinkerFrame.SELECTORS, selectorList);
