@@ -37,6 +37,7 @@ public class MHSDashboardDrillPlaysheet extends TablePlaySheet implements IDataM
 	private final String SDLC_ACTIVITYGROUP_DHA = "SDLCPhase_ActivityGroup_DHAGroup";
 	private final String SYSTEM_ACTIVITY = "SystemActivity";
 	private final String SYSTEM = "System";
+	private final String SYSTEM_OWNER = "SystemOwner";
 	private final String ACTIVITY = "Activity";
 	private final String HEAT_VALUE = "HeatValue";
 	private final String TotalHeatValue = "TotalHeatValue";
@@ -100,16 +101,23 @@ public class MHSDashboardDrillPlaysheet extends TablePlaySheet implements IDataM
 		Map<String, Object> returnHashMap = aggregateDHAGroup();
 		List<Object> sdlcList = new ArrayList <Object> (Arrays.asList("Strategy", "Requirement", "Design", "Development", "Test", "Security", "Deployment", "Training"));
 		Map<String, String> dataTableAlign = new HashMap <String, String> ();
+		returnHashMap.put("SDLCList", sdlcList);
+		returnHashMap.put("styling", "MHS");
+		returnHashMap.put("dataTableAlign", getDataTableAlign());
+		returnHashMap.putAll(getSystem());
+		returnHashMap.putAll(getSystemOwner());
+		returnHashMap.putAll(getUploadDate());
+		return returnHashMap;
+	}
+	
+	public Map getDataTableAlign (){
+		Map<String, String> dataTableAlign = new HashMap <String, String> ();
 		dataTableAlign.put("levelOne", SDLC);
 		dataTableAlign.put("levelTwo", ActivityGroup);
 		dataTableAlign.put("levelThree", DHA);
 		dataTableAlign.put("heatValue", HEAT_VALUE);
 		dataTableAlign.put("minValue", MIN_ACTIVITY_VALUE);
-		returnHashMap.put("SDLCList", sdlcList);
-		returnHashMap.put("dataTableAlign", dataTableAlign);
-		returnHashMap.putAll(getSystem());
-		returnHashMap.putAll(getUploadDate());
-		return returnHashMap;
+		return dataTableAlign;
 	}
 	
 	/**
@@ -122,6 +130,15 @@ public class MHSDashboardDrillPlaysheet extends TablePlaySheet implements IDataM
 		Object systems = mainHash.get("data");
 		Map<String, Object> returnHash = new HashMap<String, Object>();
 		returnHash.put(SYSTEM, systems);
+		return returnHash;
+	}
+	
+	public Map getSystemOwner() {
+		String [] selectors = new String[]{SYSTEM_OWNER};
+		Map<String, Object> mainHash = super.getDataMakerOutput(selectors);
+		Object systemsOwner = mainHash.get("data");
+		Map<String, Object> returnHash = new HashMap<String, Object>();
+		returnHash.put(SYSTEM_OWNER, systemsOwner);
 		return returnHash;
 	}
 	
@@ -153,6 +170,8 @@ public class MHSDashboardDrillPlaysheet extends TablePlaySheet implements IDataM
 		selectorList.add(DHA);
 		selectorList.add(SDLC_ACTIVITYGROUP_DHA);
 		selectorList.add(SYSTEM);
+		selectorList.add(SYSTEM_OWNER);
+		selectorList.add(UPLOAD_DATE);
 		selectorList.add(PLANNED_START);
 		selectorList.add(PLANNED_END);
 		selectorList.add(ACTUAL_START);
