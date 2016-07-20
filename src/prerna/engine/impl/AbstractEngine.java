@@ -589,7 +589,7 @@ public abstract class AbstractEngine implements IEngine {
 		if(!conceptualNames) {
 			query = "SELECT ?concept WHERE {?concept <http://www.w3.org/2000/01/rdf-schema#subClassOf> <http://semoss.org/ontologies/Concept> }";
 		} else {
-			query = "SELECT DISTINCT COALESCE(?conceptual, ?concept) AS ?retConcept WHERE { "
+			query = "SELECT DISTINCT (COALESCE(?conceptual, ?concept) AS ?retConcept) WHERE { "
 					+ "{?concept <http://www.w3.org/2000/01/rdf-schema#subClassOf> <http://semoss.org/ontologies/Concept> }"
 						+ "OPTIONAL {"
 							+ "{?concept <http://semoss.org/ontologies/Relation/Conceptual> ?conceptual }"
