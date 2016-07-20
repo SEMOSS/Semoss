@@ -2247,37 +2247,37 @@ public class Utility {
     public static String getDate(String input)
     {
     	String[] date_formats = {
-                //"dd/MM/yyyy",
-                "MM/dd/yyyy",
-                //"dd-MM-yyyy",
-                "yyyy-MM-dd",
-                "yyyy/MM/dd", 
-                "yyyy MMM dd",
-                "yyyy dd MMM",
-                "dd MMM yyyy",
-                "dd MMM",
-                "MMM dd",
-                "dd MMM yyyy",
-                "MMM yyyy"};
+    			"yyyy-MM-dd",
+    			//"dd/MM/yyyy",
+    			"MM/dd/yyyy",
+    			//"dd-MM-yyyy",
+    			"yyyy/MM/dd", 
+    			"yyyy MMM dd",
+    			"yyyy dd MMM",
+    			"dd MMM yyyy",
+    			"dd MMM",
+    			"MMM dd",
+    			"dd MMM yyyy",
+    	"MMM yyyy"};
 
-				String output_date = null;
-				boolean itsDate = false;
-				for (String formatString : date_formats)
-				{
-				try
-				{    
-				 Date mydate = new SimpleDateFormat(formatString).parse(input);
-				 SimpleDateFormat outdate = new SimpleDateFormat("yyyy-MM-dd");
-				 output_date = outdate.format(mydate);
-				 itsDate = true;
-				 break;
-				}
-					catch (ParseException e) {
-						//System.out.println("Next!");
-					}
-				}
-				
-			return output_date;	
+    	String output_date = null;
+    	boolean itsDate = false;
+    	for (String formatString : date_formats)
+    	{
+    		try
+    		{    
+    			Date mydate = new SimpleDateFormat(formatString).parse(input);
+    			SimpleDateFormat outdate = new SimpleDateFormat("yyyy-MM-dd");
+    			output_date = outdate.format(mydate);
+    			itsDate = true;
+    			break;
+    		}
+    		catch (ParseException e) {
+    			//System.out.println("Next!");
+    		}
+    	}
+
+    	return output_date;	
     }
     
     public static String getTimeStamp(String input)
