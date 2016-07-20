@@ -102,6 +102,9 @@ public class CSVFileHelper {
 			
 			for(int colIdx = 0; colIdx < numCols; colIdx++) {
 				String origHeader = allCsvHeaders[colIdx];
+				if(origHeader.trim().isEmpty()) {
+					origHeader = "BLANK_HEADER";
+				}
 				String newHeader = recursivelyFixHeaders(origHeader, newUniqueCSVHeaders, headerChecker);
 				
 				// now update the unique headers, as this will be used to match duplications
@@ -161,7 +164,7 @@ public class CSVFileHelper {
 	private String appendNumOntoHeader(String origHeader) {
 		int num = 0;
 		if(origHeader.matches(".*_\\d+")) {
-			String strNumbers = origHeader.substring(origHeader.lastIndexOf("_"), origHeader.length());
+			String strNumbers = origHeader.substring(origHeader.lastIndexOf("_") + 1, origHeader.length());
 			num = Integer.parseInt(strNumbers);
 		}
 		origHeader = origHeader  + "_" + (++num);
