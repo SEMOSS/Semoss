@@ -470,7 +470,11 @@ public class SQLInterpreter implements IQueryInterpreter{
 			dataType = dataType.toUpperCase();
 			if(dataType.contains("DOUBLE") || dataType.contains("FLOAT") || dataType.contains("LONG")) {
 				myObj = object.toString();
-			} else {
+			} else if(dataType.contains("DATE") || dataType.contains("TIMESTAMP")) {
+				myObj = object.toString();
+				myObj = Utility.getDate(myObj);
+				myObj = "\'" + myObj + "\'";
+			}else {
 				myObj = object.toString();
 				myObj = myObj.replace("\"", ""); // get rid of the space
 				myObj = myObj.replaceAll("'", "''");
@@ -481,6 +485,10 @@ public class SQLInterpreter implements IQueryInterpreter{
 			// do it based on type casting
 			if(object instanceof Number) {
 				myObj = object.toString();
+			} else if(object instanceof java.util.Date || object instanceof java.sql.Date) {
+				myObj = object.toString();
+				myObj = Utility.getDate(myObj);
+				myObj = "\'" + myObj + "\'";
 			} else {
 				myObj = object.toString();
 				myObj = myObj.replace("\"", ""); // get rid of the space
