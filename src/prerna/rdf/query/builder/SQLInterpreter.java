@@ -403,13 +403,19 @@ public class SQLInterpreter implements IQueryInterpreter{
 				// usually these are or ?
 				// so I am saying if something is
 
+				String dataType = null;
+				if(engine != null) {
+					dataType = this.engine.getDataTypes("http://semoss.org/ontologies/Concept/" + property + "/" + concept);
+					dataType = dataType.replace("TYPE:", "");
+				}
+				
 				if(thisComparator == null || thisComparator.trim().equals("=")) {
 					for(int optIndex = 0;optIndex < options.size(); optIndex++){
-						addEqualsFilter(concept, property, thisComparator, options.get(optIndex) + "");
+						addEqualsFilter(concept, property, thisComparator, dataType, options.get(optIndex));
 					}
 				} else {
 					for(int optIndex = 0;optIndex < options.size(); optIndex++){
-						addFilter(concept, property, thisComparator, options.get(optIndex)+"");
+						addFilter(concept, property, thisComparator, dataType, options.get(optIndex));
 					}
 				}
 			}
@@ -417,71 +423,74 @@ public class SQLInterpreter implements IQueryInterpreter{
 	}
 	
 	
-	private void addFilter(String concept, String property, String thisComparator, String object) {
+	private void addFilter(String concept, String property, String thisComparator, String dataType, Object object) {
 		String thisWhere = "";
 		String key = concept +":::"+ property +":::"+ thisComparator;
-		if(!whereHash.containsKey(key))
-		{
-			if(object instanceof String) // ok this is a string
-			{
-				object = object.replace("\"", ""); // get rid of the space
-				object = object.replaceAll("'", "''");
-				object = object.trim();
-				object = "\'" + object + "\'";
-				//thisWhere = getAlias(concept) + "." + property + " " + thisComparator + " " + object;
-			}
-			thisWhere = getAlias(concept) + "." + property + " " + thisComparator + " " + object;		
-			
-		}
-		else
-		{
+
+		// this will hold the sql acceptable format of the object
+		String myObj = getFormatedObject(dataType, object);
+
+		// add it to the where statement
+		if(!whereHash.containsKey(key)) {
+			thisWhere = getAlias(concept) + "." + property + " " + thisComparator + " " + myObj;		
+		} else {
 			thisWhere = whereHash.get(key);
-			if(object instanceof String) // ok this is a string
-			{
-				object = object.replaceAll("\"", ""); // get rid of the space
-				object = object.replaceAll("'", "''");
-				object = object.trim();
-				object = "\'" + object + "\'";
-				//thisWhere = getAlias(concept) + "." + property + " " + thisComparator + " " + object;
-			}
-			thisWhere = thisWhere + " OR " + getAlias(concept) + "." + property + " " + thisComparator + " " + object;						
+			thisWhere = thisWhere + " OR " + getAlias(concept) + "." + property + " " + thisComparator + " " + myObj;						
 		}
-	//	System.out.println("WHERE " + thisWhere);
+
+		whereHash.put(key, thisWhere);
+	}
+
+	//we want the filter query to be: "... where table.column in ('value1', 'value2', ...) when the comparator is '='
+	private void addEqualsFilter(String concept, String property, String thisComparator, String dataType, Object object) {
+		String thisWhere = "";
+		String key = concept +":::"+ property +":::"+ thisComparator;
+		
+		// this will hold the sql acceptable format of the object
+		String myObj = getFormatedObject(dataType, object);
+
+		// add it to a new where statement or an existing where statement
+		if(!whereHash.containsKey(key)) {
+			thisWhere = myObj;		
+		} else {
+			thisWhere = whereHash.get(key);
+			thisWhere = thisWhere + ", " + myObj;						
+		}
+
 		whereHash.put(key, thisWhere);
 	}
 	
-	//we want the filter query to be: "... where table.column in ('value1', 'value2', ...) when the comparator is '='
-	private void addEqualsFilter(String concept, String property, String thisComparator, String object) {
-		String thisWhere = "";
-		String key = concept +":::"+ property +":::"+ thisComparator;
-		if(!whereHash.containsKey(key))
-		{
-			if(object instanceof String) // ok this is a string
-			{
-				object = object.replace("\"", ""); // get rid of the space
-				object = object.replaceAll("'", "''");
-				object = object.trim();
-				object = "\'" + object + "\'";
-				//thisWhere = getAlias(concept) + "." + property + " " + thisComparator + " " + object;
+	private String getFormatedObject(String dataType, Object object) {
+		// this will hold the sql acceptable format of the object
+		String myObj = null;
+
+		// if we can get the data type from the OWL, lets just use that
+		// if we dont have it, we will do type casting...
+		if(dataType != null) {
+			dataType = dataType.toUpperCase();
+			if(dataType.contains("DOUBLE") || dataType.contains("FLOAT") || dataType.contains("LONG")) {
+				myObj = object.toString();
+			} else {
+				myObj = object.toString();
+				myObj = myObj.replace("\"", ""); // get rid of the space
+				myObj = myObj.replaceAll("'", "''");
+				myObj = myObj.trim();
+				myObj = "\'" + myObj + "\'";
 			}
-			thisWhere = object;		
-			
-		}
-		else
-		{
-			thisWhere = whereHash.get(key);
-			if(object instanceof String) // ok this is a string
-			{
-				object = object.replaceAll("\"", ""); // get rid of the space
-				object = object.replaceAll("'", "''");
-				object = object.trim();
-				object = "\'" + object + "\'";
-				//thisWhere = getAlias(concept) + "." + property + " " + thisComparator + " " + object;
+		} else {
+			// do it based on type casting
+			if(object instanceof Number) {
+				myObj = object.toString();
+			} else {
+				myObj = object.toString();
+				myObj = myObj.replace("\"", ""); // get rid of the space
+				myObj = myObj.replaceAll("'", "''");
+				myObj = myObj.trim();
+				myObj = "\'" + myObj + "\'";
 			}
-			thisWhere = thisWhere + ", " +object;						
 		}
-	//	System.out.println("WHERE " + thisWhere);
-		whereHash.put(key, thisWhere);
+		
+		return myObj;
 	}
 	
 	////////////////////////////////////// end adding filters ////////////////////////////////////////////
