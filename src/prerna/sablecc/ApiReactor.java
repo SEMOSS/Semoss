@@ -177,7 +177,7 @@ public class ApiReactor extends AbstractReactor {
 
 							//collect all the filter values
 							while(rowIt.hasNext()){
-								uris.add(rowIt.next() + "");
+								uris.add(rowIt.next());
 							}
 
 							//see if this filter already exists
