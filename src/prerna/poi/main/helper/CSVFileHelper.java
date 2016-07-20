@@ -215,6 +215,16 @@ public class CSVFileHelper {
 	}
 	
 	/**
+	 * Get all the headers used in the csv file
+	 * This is the clean version of the csv headers
+	 * @return
+	 */
+	public String[] getAllCSVHeaders() {
+		return this.newUniqueCSVHeaders.toArray(new String[]{});
+	}
+	
+	
+	/**
 	 * Set a limit on which columns you want to be parsed
 	 * @param columns			The String[] containing the headers you want
 	 */
@@ -230,6 +240,9 @@ public class CSVFileHelper {
 		settings.selectIndexes(values);
 		currHeaders = columns;
 		reset(false);
+		
+		// this is to get the header row
+		getNextRow();
 	}
 	
 	/**
@@ -314,7 +327,7 @@ public class CSVFileHelper {
 		int counter = 0;
 		for(String col : newUniqueCSVHeaders) {
 			parseColumns(new String[]{col});
-			getNextRow();
+//			getNextRow();
 			String type = null;
 			String[] row = null;
 			WHILE_LOOP : while( ( row = parser.parseNext()) != null) {
