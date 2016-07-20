@@ -1,6 +1,7 @@
 package prerna.poi.main.helper;
 
 import java.util.Hashtable;
+import java.util.List;
 import java.util.Map;
 
 import prerna.util.sql.SQLQueryUtil;
@@ -196,11 +197,11 @@ public class ImportOptions {
 	 * Set the dataTypeMap for a set of files
 	 * @return
 	 */
-	public Map<String, Map<String, String>> getDataTypeMap() {
-		return (Map<String, Map<String, String>> ) thisMap.get(IMPORT_OPTIONS.DATA_TYPE_MAP);
+	public List<Map<String, String[]>> getDataTypeMap() {
+		return (List<Map<String, String[]>>) thisMap.get(IMPORT_OPTIONS.DATA_TYPE_MAP);
 	}
 	
-	public void setDataTypeMap(Map<String, Map<String, String>> dataTypeMap) {
+	public void setDataTypeMap(List<Map<String, String[]>> dataTypeMap) {
 		thisMap.put(IMPORT_OPTIONS.DATA_TYPE_MAP, dataTypeMap);
 	}
 	

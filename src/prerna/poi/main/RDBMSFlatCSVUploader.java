@@ -6,6 +6,7 @@ import java.sql.PreparedStatement;
 import java.sql.SQLException;
 import java.util.HashSet;
 import java.util.Hashtable;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
@@ -32,6 +33,10 @@ public class RDBMSFlatCSVUploader extends AbstractCSVFileReader {
 	// hold the existing rdbms structure
 	private Map<String, Map<String, String>> existingRDBMSStructure;
 	
+	// this will hold the headers to the data types for each csv file
+	private List<Map<String, String[]>> dataTypeMapList;
+	private Map<String, String[]> dataTypeMap;
+	
 	// need to keep track of the new tables added when doing addToExisting
 	private Set<String> newTables = new HashSet<String>();
 	
@@ -42,15 +47,6 @@ public class RDBMSFlatCSVUploader extends AbstractCSVFileReader {
 	
 	// used as a default for the unique row id
 	private final String BASE_PRIM_KEY = "_UNIQUE_ROW_ID";
-	
-	// CSVFileHelper to get information from the csv file
-	// i.e. the headers and data types
-	// also used to look through csv file when performing bulk
-	// inserts instead of CSV file upload - used currently
-	// when there are date data types since they must be in a specific
-	// format for RDBMS (probably differs based on type.. right now assuming
-	// it is h2)
-	private CSVFileHelper helper;
 	
 	///////////////////////////////////////// main upload methods //////////////////////////////////////////
 	
@@ -91,11 +87,11 @@ public class RDBMSFlatCSVUploader extends AbstractCSVFileReader {
 					existingRDBMSStructure = RDBMSEngineCreationHelper.getExistingRDBMSStructure(engine, queryUtil);
 				}
 				// similar to other csv reading
-				// we load the types into rdfMap
-				if(!propFileExist){
-					rdfMap = rdfMapArr[i];
+				// we load the user defined types
+				if(dataTypeMapList != null && !dataTypeMapList.isEmpty()) {
+					dataTypeMap = dataTypeMapList.get(i); 
 				}
-				processTable(fileName);
+				processTable(fileName, dataTypeMap);
 			}
 			// write the owl file
 			createBaseRelations();
@@ -103,7 +99,7 @@ public class RDBMSFlatCSVUploader extends AbstractCSVFileReader {
 			RDBMSEngineCreationHelper.writeDefaultQuestionSheet(engine, queryUtil);
 		} finally {
 			// close the helper
-			helper.clear();
+			csvHelper.clear();
 			// close other stuff
 			if(error || autoLoad) {
 				closeDB();
@@ -149,7 +145,12 @@ public class RDBMSFlatCSVUploader extends AbstractCSVFileReader {
 				// need to update to get the rdbms structure to determine how the new files should be added
 				existingRDBMSStructure = RDBMSEngineCreationHelper.getExistingRDBMSStructure(engine, queryUtil);
 				
-				processTable(fileName);
+				// similar to other csv reading
+				// we load the user defined types
+				if(dataTypeMapList != null && !dataTypeMapList.isEmpty()) {
+					dataTypeMap = dataTypeMapList.get(i);
+				}
+				processTable(fileName, dataTypeMap);
 			}
 			// write the owl file
 			createBaseRelations();
@@ -157,7 +158,7 @@ public class RDBMSFlatCSVUploader extends AbstractCSVFileReader {
 			RDBMSEngineCreationHelper.addToExistingQuestionFile(this.engine, newTables, queryUtil);
 		} finally {
 			// close the helper
-			helper.clear();
+			csvHelper.clear();
 			// close other stuff
 			if(error || autoLoad) {
 				closeDB();
@@ -181,17 +182,25 @@ public class RDBMSFlatCSVUploader extends AbstractCSVFileReader {
 	 * TODO: need to figure out how to take in join information to add into the OWL!!!!
 	 * TODO: need to figure out how to take in join information to add into the OWL!!!!
 	 * TODO: need to figure out how to take in join information to add into the OWL!!!!
+	 * @param dataTypeMap 
 	 * 
 	 * 
 	 * @param fileLocation					The location of the csv file
 	 * @throws SQLException 
 	 */
-	private void processTable(final String FILE_LOCATION) throws IOException {
-		// parse the csv meta to get the headers and data types
-		// headers and data types arrays match based on position 
-		// currently assume we are loading all the columns
-		// currently not taking in the dataTypes
-		Map<String, String[]> csvMeta = parseCSVData(FILE_LOCATION);
+	private void processTable(final String FILE_LOCATION, Map<String, String[]> csvMeta) throws IOException {
+		
+		// if csvMeta is null, we are not getting data type information fromn the FE, and we need to create this
+		// using all the file info
+		if(csvMeta == null) {
+			// parse the csv meta to get the headers and data types
+			// headers and data types arrays match based on position 
+			// currently assume we are loading all the columns
+			// currently not taking in the dataTypes
+			csvMeta = parseCSVData(FILE_LOCATION);
+		} else {
+			parseCSV(FILE_LOCATION, csvMeta);
+		}
 		
 		/*
 		 * We need to determine if we are going to create a new table or append onto an existing engine
@@ -302,17 +311,17 @@ public class RDBMSFlatCSVUploader extends AbstractCSVFileReader {
 		LOGGER.info("Processing csv file: " + FILE_LOCATION);
 
 		// use the csv file helper to load the data
-		helper = new CSVFileHelper();
+		csvHelper = new CSVFileHelper();
 		// assume csv
-		helper.setDelimiter(',');
-		helper.parse(FILE_LOCATION);
+		csvHelper.setDelimiter(',');
+		csvHelper.parse(FILE_LOCATION);
 		
 		// currently assume we are loading all the columns
 		// currently not taking in the dataTypes
 		// ... at least this way, we know all the values always work with regards to loading
-		String[] headers = helper.getHeaders();
+		String[] headers = csvHelper.getHeaders();
 		LOGGER.info("Found headers: " + Arrays.toString(headers));
-		String[] dataTypes = helper.predictTypes();
+		String[] dataTypes = csvHelper.predictTypes();
 		LOGGER.info("Found data types: " + Arrays.toString(dataTypes));
 
 		Map<String, String[]> csvMeta = new Hashtable<String, String[]>();
@@ -320,6 +329,34 @@ public class RDBMSFlatCSVUploader extends AbstractCSVFileReader {
 		csvMeta.put(CSV_DATA_TYPES, dataTypes);
 		
 		return csvMeta;
+	}
+	
+	private void parseCSV(final String FILE_LOCATION, Map<String, String[]> csvMeta) {
+		LOGGER.info("Processing csv file: " + FILE_LOCATION);
+
+		// use the csv file helper to load the data
+		csvHelper = new CSVFileHelper();
+		// assume csv
+		csvHelper.setDelimiter(',');
+		csvHelper.parse(FILE_LOCATION);
+		
+		// set the columns to get
+		String[] headersToUse = csvMeta.get(CSV_HEADERS);
+		csvHelper.parseColumns(headersToUse);
+		
+		// we need to convert from the generic data types from the FE to the sql specific types
+		String[] dataTypes = csvMeta.get(CSV_DATA_TYPES);
+		if(sqlHash.isEmpty()) {
+			createSQLTypes();
+		}
+		int numCols = headersToUse.length;
+		String[] sqlDataTypes = new String[numCols];
+		for(int colIdx = 0; colIdx < numCols; colIdx++) {
+			sqlDataTypes[colIdx] = sqlHash.get(dataTypes[colIdx]);
+		}
+		
+		// now update the meta data
+		csvMeta.put(CSV_DATA_TYPES, sqlDataTypes);
 	}
 	
 	/**
@@ -339,7 +376,7 @@ public class RDBMSFlatCSVUploader extends AbstractCSVFileReader {
 		// thus, we want to look at the data types and see if there is a date
 		// if there is a date, we need to perform a bulk insert, where we convert every date object to the correct format
 		
-		if(containsDateDataType(csvMeta.get(CSV_DATA_TYPES))) {
+		if(containsDateDataType(csvMeta.get(CSV_DATA_TYPES)) || !allHeadersUsed(csvMeta.get(CSV_HEADERS))) {
 			// we had a date!
 			// first create the table
 			createTable(TABLE_NAME, csvMeta);
@@ -386,7 +423,7 @@ public class RDBMSFlatCSVUploader extends AbstractCSVFileReader {
 		 * 		We will just iterate through the csv file and insert
 		 */
 		
-		if(containsDateDataType(csvMeta.get(CSV_DATA_TYPES))) {
+		if(containsDateDataType(csvMeta.get(CSV_DATA_TYPES)) || !allHeadersUsed(csvMeta.get(CSV_HEADERS))) {
 			// perform a bulk insert into the table
 			bulkInsertCSVFile(FILE_LOCATION, TABLE_NAME, csvMeta);
 		} else {
@@ -500,7 +537,7 @@ public class RDBMSFlatCSVUploader extends AbstractCSVFileReader {
 		// we loop through every row of the csv
 		String[] nextRow = null;
 		try {
-			while( (nextRow  = this.helper.getNextRow()) != null ) {
+			while( (nextRow  = this.csvHelper.getNextRow()) != null ) {
 				// we need to loop through every value and cast appropriately
 				for(int colIndex = 0; colIndex < nextRow.length; colIndex++) {
 					String type = dataTypes[colIndex];
@@ -508,11 +545,17 @@ public class RDBMSFlatCSVUploader extends AbstractCSVFileReader {
 						java.util.Date value = Utility.getDateAsDateObj(nextRow[colIndex]);
 						if(value != null) {
 							ps.setDate(colIndex+1, new java.sql.Date(value.getTime()));
+						} else {
+							// set default as null
+							ps.setObject(colIndex+1, null);
 						}
 					} else if(type.equalsIgnoreCase("DOUBLE")) {
 						Double value = Utility.getDouble(nextRow[colIndex]);
 						if(value != null) {
 							ps.setDouble(colIndex+1, value);
+						} else {
+							// set default as null
+							ps.setObject(colIndex+1, null);
 						}
 					} else {
 						String value = nextRow[colIndex];
@@ -716,6 +759,22 @@ public class RDBMSFlatCSVUploader extends AbstractCSVFileReader {
 		return false;
 	}
 	
+	private boolean allHeadersUsed(String[] headersToUse) {
+		String[] csvHeaders = csvHelper.getAllCSVHeaders();
+		if(csvHeaders.length == headersToUse.length) {
+			return true;
+		}
+		
+		return false;
+	}
+	
+	/**
+	 * Set the data types and headers to load for each csv file
+	 * @param dataTypeMap
+	 */
+	public void setDataTypeMapList(List<Map<String, String[]>> dataTypeMapList) {
+		this.dataTypeMapList = dataTypeMapList;
+	}
 	
 	//////////////////////////////// end utility methods //////////////////////////////
 	
