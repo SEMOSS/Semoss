@@ -36,6 +36,8 @@ import java.security.NoSuchAlgorithmException;
 import java.text.ParseException;
 import java.util.ArrayList;
 import java.util.Hashtable;
+import java.util.List;
+import java.util.Map;
 
 import org.apache.commons.io.FileUtils;
 import org.apache.log4j.LogManager;
@@ -258,6 +260,13 @@ public class ImportDataProcessor {
 				// csv upload via flat 
 				else if(importType == ImportOptions.IMPORT_TYPE.CSV_FLAT_LOAD) {
 					RDBMSFlatCSVUploader reader = new RDBMSFlatCSVUploader();
+					
+					// if the data type map has been created from the FE
+					List<Map<String, String[]>> dataTypeMap = options.getDataTypeMap();
+					if(dataTypeMap != null) {
+						reader.setDataTypeMapList(dataTypeMap);
+					}
+					
 					reader.setAutoLoad(autoLoad);
 					engine = reader.importFileWithOutConnection(smssLocation, engineName, filePath, customBaseUri, owlPath, rdbmsDriverType, allowDups);
 				}
@@ -498,6 +507,12 @@ public class ImportDataProcessor {
 			// csv upload via flat 
 			else if(importType == ImportOptions.IMPORT_TYPE.CSV_FLAT_LOAD) {
 				RDBMSFlatCSVUploader reader = new RDBMSFlatCSVUploader();
+				
+				// if the data type map has been created from the FE
+				List<Map<String, String[]>> dataTypeMap = options.getDataTypeMap();
+				if(dataTypeMap != null) {
+					reader.setDataTypeMapList(dataTypeMap);
+				}
 				reader.importFileWithConnection(engineName, filePath, customBaseUri, owlPath, rdbmsDriverType, allowDups);
 			}
 			
