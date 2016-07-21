@@ -138,6 +138,8 @@ public class Insight {
 	String databaseIDkey = "databaseID";
 	private Map<String, Map<String, Object>> pkqlVarMap = new HashMap<String, Map<String, Object>>();
 	
+	private Insight parentInsight = null;
+	
 	/**
 	 * Constructor for the insight
 	 * @param mainEngine					The main engine which holds the insight
@@ -285,7 +287,7 @@ public class Insight {
 		this.propHash.put(OUTPUT_KEY, output);
 	}
 	
-	public void setPkqlRunner(PKQLRunner pkqlRunner){
+	public void syncPkqlRunnerAndFrame(PKQLRunner pkqlRunner){
 		this.pkqlRunner = pkqlRunner;
 		IDataMaker frame = pkqlRunner.getDataFrame();
 		if(frame!=null){
@@ -883,6 +885,13 @@ public class Insight {
 	 * @param component
 	 */
 	public void processDataMakerComponent(DataMakerComponent component) {
+		
+		if(isJoined()) {
+			this.parentInsight.processDataMakerComponent(component);
+			return;
+		}
+		
+		
 		int lastComponent = this.getDataMakerComponents().size();
 		String compId = COMP + lastComponent;
 		component.setId(compId);
@@ -904,6 +913,7 @@ public class Insight {
 		DataMakerComponent componentCopy = component.copy();
 		getDataMaker().processDataMakerComponent(componentCopy);
 		getDataMakerComponents().add(component);
+			
 	}
 	
 	/**
@@ -912,6 +922,10 @@ public class Insight {
 	 * @param dataMaker					Additional dataMakers if required by the transformation
 	 */
 	public void processPostTransformation(List<ISEMOSSTransformation> postTrans, IDataMaker... dataMaker) throws RuntimeException {
+		if(isJoined()) {
+			this.parentInsight.processPostTransformation(postTrans, dataMaker);
+			return;
+		}
 		if(getDataMakerComponents().size()==0){
 			DataMakerComponent empty = new DataMakerComponent(Constants.LOCAL_MASTER_DB_NAME, Constants.EMPTY);
 			this.dmComponents.add(empty);
@@ -939,7 +953,7 @@ public class Insight {
 					dmc.addPostTrans(postTrans.get(i));
 				}
 			}
-		}//
+		}
 	}
 	
 	/**
@@ -948,6 +962,9 @@ public class Insight {
 	 * @param dataMaker					Additional dataMakers if required by the actions
 	 */
 	public List<Object> processActions(List<ISEMOSSAction> actions, IDataMaker... dataMaker) throws RuntimeException {
+		if(isJoined()) {
+			return this.parentInsight.processActions(actions, dataMaker);
+		}
 		DataMakerComponent dmc = getDataMakerComponents().get(this.dmComponents.size() - 1);
 		
 		List<ISEMOSSAction> actionsCopy = new Vector<ISEMOSSAction>(actions.size());
@@ -1522,12 +1539,21 @@ public class Insight {
 			resultHash.put("feData", feData);
 			resultHash.put("newColumns", pkqlRunner.getNewColumns());
 			
+			String insightID = null;
+			if((insightID = pkqlRunner.getNewInsightID()) != null) {
+				resultHash.put("generatedInsightID", insightID);
+			}
+			
 			// Clear the pkql runner of all existing results data
 			// No need for us to hold on to any of this at this point other than 1. variables 2. pkql yet to be run (user input prevented)
 			pkqlRunner.clearResponses();// = new PKQLRunner();
 //			pkqlRunner.setVarMap(this.pkqlVarMap );
 		}
 		return resultHash;
+	}
+	
+	public boolean isJoined() {
+		return this.parentInsight != null;
 	}
 
 }

@@ -500,6 +500,27 @@ public class DepthFirstAdapter extends AnalysisAdapter
         outADashboardJoinColop(node);
     }
 
+    public void inAOpenDataColop(AOpenDataColop node)
+    {
+        defaultIn(node);
+    }
+
+    public void outAOpenDataColop(AOpenDataColop node)
+    {
+        defaultOut(node);
+    }
+
+    @Override
+    public void caseAOpenDataColop(AOpenDataColop node)
+    {
+        inAOpenDataColop(node);
+        if(node.getOpenData() != null)
+        {
+            node.getOpenData().apply(this);
+        }
+        outAOpenDataColop(node);
+    }
+
     public void inAPanelVizPanelop(APanelVizPanelop node)
     {
         defaultIn(node);
@@ -1518,6 +1539,47 @@ public class DepthFirstAdapter extends AnalysisAdapter
             node.getRp2().apply(this);
         }
         outAImportData(node);
+    }
+
+    public void inAOpenData(AOpenData node)
+    {
+        defaultIn(node);
+    }
+
+    public void outAOpenData(AOpenData node)
+    {
+        defaultOut(node);
+    }
+
+    @Override
+    public void caseAOpenData(AOpenData node)
+    {
+        inAOpenData(node);
+        if(node.getDataopentoken() != null)
+        {
+            node.getDataopentoken().apply(this);
+        }
+        if(node.getLp() != null)
+        {
+            node.getLp().apply(this);
+        }
+        if(node.getEngine() != null)
+        {
+            node.getEngine().apply(this);
+        }
+        if(node.getComma() != null)
+        {
+            node.getComma().apply(this);
+        }
+        if(node.getEngineId() != null)
+        {
+            node.getEngineId().apply(this);
+        }
+        if(node.getRp() != null)
+        {
+            node.getRp().apply(this);
+        }
+        outAOpenData(node);
     }
 
     public void inAApiImportBlock(AApiImportBlock node)

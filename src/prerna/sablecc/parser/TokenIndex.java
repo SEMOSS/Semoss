@@ -304,116 +304,122 @@ class TokenIndex extends AnalysisAdapter
     }
 
     @Override
-    public void caseTLiteral(@SuppressWarnings("unused") TLiteral node)
+    public void caseTDataopentoken(@SuppressWarnings("unused") TDataopentoken node)
     {
         this.index = 49;
     }
 
     @Override
-    public void caseTHelpToken(@SuppressWarnings("unused") THelpToken node)
+    public void caseTLiteral(@SuppressWarnings("unused") TLiteral node)
     {
         this.index = 50;
     }
 
     @Override
-    public void caseTCodeblock(@SuppressWarnings("unused") TCodeblock node)
+    public void caseTHelpToken(@SuppressWarnings("unused") THelpToken node)
     {
         this.index = 51;
     }
 
     @Override
-    public void caseTWord(@SuppressWarnings("unused") TWord node)
+    public void caseTCodeblock(@SuppressWarnings("unused") TCodeblock node)
     {
         this.index = 52;
     }
 
     @Override
-    public void caseTPanelviz(@SuppressWarnings("unused") TPanelviz node)
+    public void caseTWord(@SuppressWarnings("unused") TWord node)
     {
         this.index = 53;
     }
 
     @Override
-    public void caseTPanelclone(@SuppressWarnings("unused") TPanelclone node)
+    public void caseTPanelviz(@SuppressWarnings("unused") TPanelviz node)
     {
         this.index = 54;
     }
 
     @Override
-    public void caseTPanelclose(@SuppressWarnings("unused") TPanelclose node)
+    public void caseTPanelclone(@SuppressWarnings("unused") TPanelclone node)
     {
         this.index = 55;
     }
 
     @Override
-    public void caseTDataframe(@SuppressWarnings("unused") TDataframe node)
+    public void caseTPanelclose(@SuppressWarnings("unused") TPanelclose node)
     {
         this.index = 56;
     }
 
     @Override
-    public void caseTFileText(@SuppressWarnings("unused") TFileText node)
+    public void caseTDataframe(@SuppressWarnings("unused") TDataframe node)
     {
         this.index = 57;
     }
 
     @Override
-    public void caseTPanelcommentremove(@SuppressWarnings("unused") TPanelcommentremove node)
+    public void caseTFileText(@SuppressWarnings("unused") TFileText node)
     {
         this.index = 58;
     }
 
     @Override
-    public void caseTPanelcommentedit(@SuppressWarnings("unused") TPanelcommentedit node)
+    public void caseTPanelcommentremove(@SuppressWarnings("unused") TPanelcommentremove node)
     {
         this.index = 59;
     }
 
     @Override
-    public void caseTPanelcommentadd(@SuppressWarnings("unused") TPanelcommentadd node)
+    public void caseTPanelcommentedit(@SuppressWarnings("unused") TPanelcommentedit node)
     {
         this.index = 60;
     }
 
     @Override
-    public void caseTPanellookandfeel(@SuppressWarnings("unused") TPanellookandfeel node)
+    public void caseTPanelcommentadd(@SuppressWarnings("unused") TPanelcommentadd node)
     {
         this.index = 61;
     }
 
     @Override
-    public void caseTPaneltools(@SuppressWarnings("unused") TPaneltools node)
+    public void caseTPanellookandfeel(@SuppressWarnings("unused") TPanellookandfeel node)
     {
         this.index = 62;
     }
 
     @Override
-    public void caseTPanelconfig(@SuppressWarnings("unused") TPanelconfig node)
+    public void caseTPaneltools(@SuppressWarnings("unused") TPaneltools node)
     {
         this.index = 63;
     }
 
     @Override
-    public void caseTOutputToken(@SuppressWarnings("unused") TOutputToken node)
+    public void caseTPanelconfig(@SuppressWarnings("unused") TPanelconfig node)
     {
         this.index = 64;
     }
 
     @Override
-    public void caseTUserinput(@SuppressWarnings("unused") TUserinput node)
+    public void caseTOutputToken(@SuppressWarnings("unused") TOutputToken node)
     {
         this.index = 65;
     }
 
     @Override
-    public void caseTJoin(@SuppressWarnings("unused") TJoin node)
+    public void caseTUserinput(@SuppressWarnings("unused") TUserinput node)
     {
         this.index = 66;
     }
 
     @Override
-    public void caseEOF(@SuppressWarnings("unused") EOF node)
+    public void caseTJoin(@SuppressWarnings("unused") TJoin node)
     {
         this.index = 67;
+    }
+
+    @Override
+    public void caseEOF(@SuppressWarnings("unused") EOF node)
+    {
+        this.index = 68;
     }
 }
