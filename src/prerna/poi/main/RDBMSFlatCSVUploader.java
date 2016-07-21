@@ -538,6 +538,9 @@ public class RDBMSFlatCSVUploader extends AbstractCSVFileReader {
 		String[] nextRow = null;
 		try {
 			while( (nextRow  = this.csvHelper.getNextRow()) != null ) {
+				if(count == 441) {
+					System.out.println("here");
+				}
 				// we need to loop through every value and cast appropriately
 				for(int colIndex = 0; colIndex < nextRow.length; colIndex++) {
 					String type = dataTypes[colIndex];
@@ -549,7 +552,7 @@ public class RDBMSFlatCSVUploader extends AbstractCSVFileReader {
 							// set default as null
 							ps.setObject(colIndex+1, null);
 						}
-					} else if(type.equalsIgnoreCase("DOUBLE")) {
+					} else if(type.equalsIgnoreCase("DOUBLE") || type.equals("FLOAT") || type.equals("LONG")) {
 						Double value = Utility.getDouble(nextRow[colIndex]);
 						if(value != null) {
 							ps.setDouble(colIndex+1, value);
@@ -575,8 +578,14 @@ public class RDBMSFlatCSVUploader extends AbstractCSVFileReader {
 			ps.executeBatch(); // insert any remaining records
 			ps.close();
 		} catch(SQLException e) {
-			String errorMessage = "Error occured while performing insert on csv data row:"
-					+ "\n" + Arrays.toString(nextRow);
+			e.printStackTrace();
+			String errorMessage = "";
+			if(nextRow == null) {
+				errorMessage = "Error occured while performing insert on csv on row number = " + count;
+			} else {
+				errorMessage = "Error occured while performing insert on csv data row:"
+						+ "\n" + Arrays.toString(nextRow);
+			}
 			throw new IOException(errorMessage);
 		}
 	}
