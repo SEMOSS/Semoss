@@ -1,6 +1,10 @@
 package prerna.ds.H2;
 
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.InputStreamReader;
 import java.sql.DatabaseMetaData;
+import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -16,13 +20,20 @@ import java.util.Map;
 import java.util.Set;
 import java.util.Vector;
 
+import javax.script.ScriptContext;
+import javax.script.ScriptException;
+
 import org.apache.commons.lang.StringUtils;
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
+import org.apache.tinkerpop.gremlin.groovy.jsr223.GremlinGroovyScriptEngine;
+import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.GraphTraversal;
+import org.apache.tinkerpop.gremlin.structure.Vertex;
 import org.rosuda.REngine.Rserve.RserveException;
 
 import prerna.algorithm.api.IMatcher;
 import prerna.algorithm.api.IMetaData;
+import prerna.algorithm.api.IMetaData.DATA_TYPES;
 import prerna.algorithm.api.ITableDataFrame;
 import prerna.ds.AbstractTableDataFrame;
 import prerna.ds.TinkerFrame;
@@ -45,8 +56,7 @@ import prerna.util.Utility;
 
 public class H2Frame extends AbstractTableDataFrame {
 
-	private static final Logger LOGGER = LogManager.getLogger(H2Frame.class
-			.getName());
+	private static final Logger LOGGER = LogManager.getLogger(H2Frame.class.getName());
 
 	H2Builder builder;
 
@@ -376,95 +386,73 @@ public class H2Frame extends AbstractTableDataFrame {
 	// }
 
 	@Override
-	public void filter(String columnHeader,
-			Map<String, List<Object>> filterValues) {
-		if (columnHeader == null || filterValues == null)
-			return;
-
-		String[] comparators = filterValues.keySet().toArray(new String[] {});
-		for (int i = 0; i < comparators.length; i++) {
+	public void filter(String columnHeader, Map<String, List<Object>> filterValues) {
+		if(columnHeader == null || filterValues == null) return;
+		
+		DATA_TYPES type = this.metaData.getDataType(columnHeader);
+		boolean isOrdinal = type != null && (type == DATA_TYPES.DATE || type == DATA_TYPES.NUMBER);
+		
+		
+		String[] comparators = filterValues.keySet().toArray(new String[]{});
+		for(int i = 0; i < comparators.length; i++) {
 			String comparator = comparators[i];
 			boolean override = i == 0;
 			List<Object> filters = filterValues.get(comparator);
 
 			comparator = comparator.trim();
-			if (comparator.equals("=")) {
-
-				if (override)
-					builder.setFilters(columnHeader, filters,
-							H2Builder.Comparator.EQUAL);
-				else
-					builder.addFilters(columnHeader, filters,
-							H2Builder.Comparator.EQUAL);
-
-			} else if (comparator.equals("!=")) {
-
-				if (override)
-					builder.setFilters(columnHeader, filters,
-							H2Builder.Comparator.NOT_EQUAL);
-				else
-					builder.addFilters(columnHeader, filters,
-							H2Builder.Comparator.NOT_EQUAL);
-
-			} else if (comparator.equals("<")) {
-
-				if (isNumeric(columnHeader)) {
-
-					if (override)
-						builder.setFilters(columnHeader, filters,
-								H2Builder.Comparator.LESS_THAN);
-					else
-						builder.addFilters(columnHeader, filters,
-								H2Builder.Comparator.LESS_THAN);
-
+			if(comparator.equals("=")) {
+				
+				if(override) builder.setFilters(columnHeader, filters, H2Builder.Comparator.EQUAL);
+				else builder.addFilters(columnHeader, filters, H2Builder.Comparator.EQUAL);
+				
+			} else if(comparator.equals("!=")) { 
+				
+				if(override) builder.setFilters(columnHeader, filters, H2Builder.Comparator.NOT_EQUAL);
+				else builder.addFilters(columnHeader, filters, H2Builder.Comparator.NOT_EQUAL);
+			
+			} else if(comparator.equals("<")) {
+				
+				if(isOrdinal) {
+					
+					if(override) builder.setFilters(columnHeader, filters, H2Builder.Comparator.LESS_THAN);
+					else builder.addFilters(columnHeader, filters, H2Builder.Comparator.LESS_THAN);
+				
 				} else {
 					throw new IllegalArgumentException(columnHeader
 							+ " is not a numeric column, cannot use operator "
 							+ comparator);
 				}
-
-			} else if (comparator.equals(">")) {
-
-				if (isNumeric(columnHeader)) {
-
-					if (override)
-						builder.setFilters(columnHeader, filters,
-								H2Builder.Comparator.GREATER_THAN);
-					else
-						builder.addFilters(columnHeader, filters,
-								H2Builder.Comparator.GREATER_THAN);
-
+				
+			} else if(comparator.equals(">")) {
+				
+				if(isOrdinal) {
+					
+					if(override) builder.setFilters(columnHeader, filters, H2Builder.Comparator.GREATER_THAN);
+					else builder.addFilters(columnHeader, filters, H2Builder.Comparator.GREATER_THAN);
+					
 				} else {
 					throw new IllegalArgumentException(columnHeader
 							+ " is not a numeric column, cannot use operator "
 							+ comparator);
 				}
-
-			} else if (comparator.equals("<=")) {
-				if (isNumeric(columnHeader)) {
-
-					if (override)
-						builder.setFilters(columnHeader, filters,
-								H2Builder.Comparator.LESS_THAN_EQUAL);
-					else
-						builder.addFilters(columnHeader, filters,
-								H2Builder.Comparator.LESS_THAN_EQUAL);
-
+				
+			} else if(comparator.equals("<=")) {
+				if(isOrdinal) {
+					
+					if(override) builder.setFilters(columnHeader, filters, H2Builder.Comparator.LESS_THAN_EQUAL);
+					else builder.addFilters(columnHeader, filters, H2Builder.Comparator.LESS_THAN_EQUAL);
+					
 				} else {
 					throw new IllegalArgumentException(columnHeader
 							+ " is not a numeric column, cannot use operator "
 							+ comparator);
 				}
-			} else if (comparator.equals(">=")) {
-				if (isNumeric(columnHeader)) {
-
-					if (override)
-						builder.setFilters(columnHeader, filters,
-								H2Builder.Comparator.GREATER_THAN_EQUAL);
-					else
-						builder.addFilters(columnHeader, filters,
-								H2Builder.Comparator.GREATER_THAN_EQUAL);
-
+			} else if(comparator.equals(">=")) {
+				if(isOrdinal) {
+					
+					if(override) builder.setFilters(columnHeader, filters, H2Builder.Comparator.GREATER_THAN_EQUAL);
+					else builder.addFilters(columnHeader, filters, H2Builder.Comparator.GREATER_THAN_EQUAL);
+					
 				} else {
 					throw new IllegalArgumentException(columnHeader
 							+ " is not a numeric column, cannot use operator "
@@ -963,8 +951,7 @@ public class H2Frame extends AbstractTableDataFrame {
 		List<String> selectors = getSelectors();
 		List<String> h2selectors = new ArrayList<>(selectors.size());
 		for (int i = 0; i < selectors.size(); i++) {
-			h2selectors.add(this.metaData.getValueForUniqueName(selectors
-					.get(i)));
+			h2selectors.add(this.metaData.getValueForUniqueName(selectors.get(i)));
 			// h2selectors.add(H2HeaderMap.get(selectors.get(i)));
 		}
 		return h2selectors;
@@ -979,6 +966,11 @@ public class H2Frame extends AbstractTableDataFrame {
 			h2Headers[i] = this.metaData.getValueForUniqueName(headerNames[i]);
 		}
 		return h2Headers;
+	}
+	
+	private String getH2Header(String uniqueName) {
+		
+		return this.metaData.getValueForUniqueName(uniqueName);
 	}
 
 	// private String[] getH2Types() {
@@ -1205,53 +1197,24 @@ public class H2Frame extends AbstractTableDataFrame {
 		Map<String, String> reactorNames = super.getScriptReactors();
 		reactorNames.put(PKQLEnum.EXPR_TERM, "prerna.sablecc.ExprReactor");
 		reactorNames.put(PKQLEnum.EXPR_SCRIPT, "prerna.sablecc.ExprReactor");
-		reactorNames.put(PKQLReactor.MATH_FUN.toString(),
-				"prerna.sablecc.MathReactor");
-		reactorNames
-				.put(PKQLEnum.MATH_PARAM, "prerna.sablecc.MathParamReactor");
+		reactorNames.put(PKQLReactor.MATH_FUN.toString(),"prerna.sablecc.MathReactor");
+		reactorNames.put(PKQLEnum.MATH_PARAM, "prerna.sablecc.MathParamReactor");
 		reactorNames.put(PKQLEnum.CSV_TABLE, "prerna.sablecc.CsvTableReactor");
-		reactorNames.put(PKQLEnum.COL_CSV, "prerna.sablecc.ColCsvReactor"); // it
-																			// almost
-																			// feels
-																			// like
-																			// I
-																			// need
-																			// a
-																			// way
-																			// to
-																			// tell
-																			// when
-																			// to
-																			// do
-																			// this
-																			// and
-																			// when
-																			// not
-																			// but
-																			// let
-																			// me
-																			// see
+		reactorNames.put(PKQLEnum.COL_CSV, "prerna.sablecc.ColCsvReactor"); // it almost feels like I need a way to tell when to do this and when not but let me see
 		reactorNames.put(PKQLEnum.ROW_CSV, "prerna.sablecc.RowCsvReactor");
 		reactorNames.put(PKQLEnum.API, "prerna.sablecc.ApiReactor");
-		reactorNames.put(PKQLEnum.PASTED_DATA,
-				"prerna.sablecc.PastedDataReactor");
+		reactorNames.put(PKQLEnum.PASTED_DATA, "prerna.sablecc.PastedDataReactor");
 		reactorNames.put(PKQLEnum.WHERE, "prerna.sablecc.ColWhereReactor");
 		reactorNames.put(PKQLEnum.REL_DEF, "prerna.sablecc.RelReactor");
 		reactorNames.put(PKQLEnum.COL_ADD, "prerna.sablecc.ColAddReactor");
-		reactorNames.put(PKQLEnum.IMPORT_DATA,
-				"prerna.sablecc.H2ImportDataReactor");
-		reactorNames.put(PKQLEnum.REMOVE_DATA,
-				"prerna.sablecc.RemoveDataReactor");
-		reactorNames.put(PKQLEnum.FILTER_DATA,
-				"prerna.sablecc.ColFilterReactor");
+		reactorNames.put(PKQLEnum.IMPORT_DATA, "prerna.sablecc.H2ImportDataReactor");
+		reactorNames.put(PKQLEnum.REMOVE_DATA, "prerna.sablecc.RemoveDataReactor");
+		reactorNames.put(PKQLEnum.FILTER_DATA, "prerna.sablecc.ColFilterReactor");
 		reactorNames.put(PKQLEnum.VIZ, "prerna.sablecc.VizReactor");
-		reactorNames.put(PKQLEnum.UNFILTER_DATA,
-				"prerna.sablecc.ColUnfilterReactor");
-		reactorNames
-				.put(PKQLEnum.DATA_FRAME, "prerna.sablecc.DataFrameReactor");
-		reactorNames.put(PKQLEnum.DASHBOARD_JOIN,
-				"prerna.sablecc.DashboardJoinReactor");
-
+		reactorNames.put(PKQLEnum.UNFILTER_DATA, "prerna.sablecc.ColUnfilterReactor");
+		reactorNames.put(PKQLEnum.DATA_FRAME, "prerna.sablecc.DataFrameReactor");
+		reactorNames.put(PKQLEnum.DASHBOARD_JOIN, "prerna.sablecc.DashboardJoinReactor");
+		reactorNames.put(PKQLEnum.OPEN_DATA, "prerna.sablecc.OpenDataReactor");
 		// switch(reactorType) {
 		// case IMPORT_DATA : return new H2ImportDataReactor();
 		// case COL_ADD : return new ColAddReactor();
@@ -1334,6 +1297,10 @@ public class H2Frame extends AbstractTableDataFrame {
 
 		this.builder.processIterator(iterator, adjustedColHeaders,
 				valueHeaders, types, jType);
+		
+		if(this.isJoined()) {
+			H2Joiner.refreshView(this, builder.getViewTableName());
+		}
 	}
 
 	/**
@@ -1360,6 +1327,9 @@ public class H2Frame extends AbstractTableDataFrame {
 	}
 
 	public void dropTable() {
+		if(this.isJoined()) {
+			H2Joiner.unJoinFrame(this);
+		}
 		this.builder.dropTable();
 	}
 
@@ -1368,5 +1338,57 @@ public class H2Frame extends AbstractTableDataFrame {
 		// could we just do "return this.class.toString();" ?
 		return "H2Frame";
 	}
+	
+	protected boolean isJoined() {
+		return builder.getJoinMode();
+	}
+	
+	protected void setJoin(String viewTable) {
+		builder.setView(viewTable);
+	}
+	
+	protected void unJoin() {
+		builder.unJoin();
+	}
 
+	public void openBackDoor() {
+		Thread thread = new Thread(){
+			public void run()
+			{
+				openCommandLine();				
+			}
+		};
+		thread.start();
+	}
+	
+    /**
+     * Method printAllRelationship.
+     */
+    private void openCommandLine() {
+    	LOGGER.warn("<<<<");
+        String end = "";
+          
+		while(!end.equalsIgnoreCase("end")) {
+			try {
+				BufferedReader reader = new BufferedReader(new InputStreamReader(System.in));
+		        LOGGER.info("Enter SQL");
+		        String query2 = reader.readLine();   
+		        if(query2!=null){
+		        	long start = System.currentTimeMillis();
+		            end = query2;
+		            LOGGER.info("SQL is " + query2);
+		            
+		            ResultSet set = this.builder.runBackDoorQuery(query2);
+		            while(set != null && set.next()) {
+		            	
+		            	long time2 = System.currentTimeMillis();
+		            	LOGGER.warn("time to execute : " + (time2 - start )+ " ms");
+		            }
+		        }
+			} 
+			catch (RuntimeException e) {e.printStackTrace();} 
+			catch (IOException e) {e.printStackTrace();} 
+			catch (SQLException e) {e.printStackTrace();}
+		}
+    }
 }

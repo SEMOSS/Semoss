@@ -33,6 +33,7 @@ public interface Analysis extends Switch
     void caseARemoveDataColop(ARemoveDataColop node);
     void caseADataFrameColop(ADataFrameColop node);
     void caseADashboardJoinColop(ADashboardJoinColop node);
+    void caseAOpenDataColop(AOpenDataColop node);
     void caseAPanelVizPanelop(APanelVizPanelop node);
     void caseAPanelCommentPanelop(APanelCommentPanelop node);
     void caseAPanelCommentRemovePanelop(APanelCommentRemovePanelop node);
@@ -64,6 +65,7 @@ public interface Analysis extends Switch
     void caseAImportColumn(AImportColumn node);
     void caseAAliasColumn(AAliasColumn node);
     void caseAImportData(AImportData node);
+    void caseAOpenData(AOpenData node);
     void caseAApiImportBlock(AApiImportBlock node);
     void caseACsvTableImportBlock(ACsvTableImportBlock node);
     void caseAPastedDataImportBlock(APastedDataImportBlock node);
@@ -190,6 +192,7 @@ public interface Analysis extends Switch
     void caseTRelType(TRelType node);
     void caseTDataimporttoken(TDataimporttoken node);
     void caseTDataremovetoken(TDataremovetoken node);
+    void caseTDataopentoken(TDataopentoken node);
     void caseTLiteral(TLiteral node);
     void caseTHelpToken(THelpToken node);
     void caseTCodeblock(TCodeblock node);
