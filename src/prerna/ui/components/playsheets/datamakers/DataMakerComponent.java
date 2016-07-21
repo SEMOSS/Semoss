@@ -30,6 +30,8 @@ public class DataMakerComponent {
 	private List<ISEMOSSAction> actions = new ArrayList<ISEMOSSAction>();
 	private boolean isProcessed = false;
 	
+	private String insightTag;
+	
 	/**
 	 * Constructor for the data maker component object
 	 * @param engine					The name of the engine
@@ -298,5 +300,13 @@ public class DataMakerComponent {
 
 	public void setProcessed(boolean isProcessed) {
 		this.isProcessed = isProcessed;
+	}
+	
+	public String getInsightTag() {
+		return this.insightTag;
+	}
+	
+	public void setInsightTag(String insightTag) {
+		this.insightTag = insightTag;
 	}
 }
