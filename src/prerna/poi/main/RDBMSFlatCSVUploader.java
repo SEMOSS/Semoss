@@ -61,9 +61,8 @@ public class RDBMSFlatCSVUploader extends AbstractCSVFileReader {
 	 * @param allowDuplicates					Boolean to determine if we should delete duplicate rows
 	 * @return									The new engine created
 	 * @throws IOException 
-	 * @throws SQLException 
 	 */
-	public IEngine importFileWithOutConnection(String smssLocation, String engineName, String fileLocations, String customBaseURI, String owlPath, SQLQueryUtil.DB_TYPE dbDriverType, boolean allowDuplicates) throws IOException, SQLException {
+	public IEngine importFileWithOutConnection(String smssLocation, String engineName, String fileLocations, String customBaseURI, String owlPath, SQLQueryUtil.DB_TYPE dbDriverType, boolean allowDuplicates) throws IOException {
 		boolean error = false;
 		queryUtil = SQLQueryUtil.initialize(dbDriverType);
 		// sets the custom base uri, sets the owl path, sets the smss location
@@ -97,6 +96,14 @@ public class RDBMSFlatCSVUploader extends AbstractCSVFileReader {
 			createBaseRelations();
 			// create the base question sheet
 			RDBMSEngineCreationHelper.writeDefaultQuestionSheet(engine, queryUtil);
+		} catch(IOException e) {
+			e.printStackTrace();
+			error = true;
+			String errorMessage = e.getMessage();
+			if(errorMessage == null || errorMessage.trim().isEmpty()) {
+				errorMessage = "Uknown error occured...";
+			}
+			throw new IOException(errorMessage);
 		} finally {
 			// close the helper
 			csvHelper.clear();
@@ -121,7 +128,6 @@ public class RDBMSFlatCSVUploader extends AbstractCSVFileReader {
 	 * @param dbDriverType						The database type (h2, mysql, etc.)
 	 * @param allowDuplicates					Boolean to determine if we should delete duplicate rows
 	 * @throws IOException 
-	 * @throws SQLException 
 	 */
 	public void importFileWithConnection(String smssLocation, String fileLocations, String customBaseURI, String owlPath, prerna.util.sql.SQLQueryUtil.DB_TYPE dbDriverType, boolean allowDuplicates) throws IOException {
 		boolean error = false;
@@ -156,6 +162,14 @@ public class RDBMSFlatCSVUploader extends AbstractCSVFileReader {
 			createBaseRelations();
 			// create the base question sheet
 			RDBMSEngineCreationHelper.addToExistingQuestionFile(this.engine, newTables, queryUtil);
+		} catch(IOException e) {
+			e.printStackTrace();
+			error = true;
+			String errorMessage = e.getMessage();
+			if(errorMessage == null || errorMessage.trim().isEmpty()) {
+				errorMessage = "Uknown error occured...";
+			}
+			throw new IOException(errorMessage);
 		} finally {
 			// close the helper
 			csvHelper.clear();
@@ -538,9 +552,6 @@ public class RDBMSFlatCSVUploader extends AbstractCSVFileReader {
 		String[] nextRow = null;
 		try {
 			while( (nextRow  = this.csvHelper.getNextRow()) != null ) {
-				if(count == 441) {
-					System.out.println("here");
-				}
 				// we need to loop through every value and cast appropriately
 				for(int colIndex = 0; colIndex < nextRow.length; colIndex++) {
 					String type = dataTypes[colIndex];
@@ -552,7 +563,7 @@ public class RDBMSFlatCSVUploader extends AbstractCSVFileReader {
 							// set default as null
 							ps.setObject(colIndex+1, null);
 						}
-					} else if(type.equalsIgnoreCase("DOUBLE") || type.equals("FLOAT") || type.equals("LONG")) {
+					} else if(type.equalsIgnoreCase("DOUBLE")) {
 						Double value = Utility.getDouble(nextRow[colIndex]);
 						if(value != null) {
 							ps.setDouble(colIndex+1, value);
