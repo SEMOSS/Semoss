@@ -9,6 +9,8 @@ import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
 
 import prerna.ds.TinkerFrame;
+import prerna.ds.H2.H2Frame;
+import prerna.ds.spark.SparkDataFrame;
 import prerna.sablecc.lexer.Lexer;
 import prerna.sablecc.node.Start;
 import prerna.sablecc.parser.Parser;
@@ -54,7 +56,10 @@ public class Compiler
 //    												+ "data.import(api:Movie_Results.query([c:Title, c:Producer], ([c:Title,  inner.join , c:Producer])), ([c:Title, inner.join, c:Title]));"
 //    												+ "data.import(api:Movie_Results.query([c:Title, c:Year], ([c:Title,  inner.join , c:Year])), ([c:Title, inner.join, c:Title]));"
 //    												+ "data.import(api:Documents\\something.csv.query([c:Title, c:Year]), ([c:Title, inner.join, c:Title]));"
-
+//    												+ "data.import(api:csvFile.query([c:Title, c:Studio, c:Year], {'file':'C:\\Users\\rluthar\\Documents\\Movie Results.csv'}));"
+//    												+ "m:Sum([c:Year]);"
+    												+ "data.open(\"Movie_RDBMS\", \"1\");"
+//    												+ "data.import(api:csvFile.query([c:column1, c:column3], {'file':'C:\\Users\\rluthar\\Documents\\test2.csv'}), ([c:column1, outer.join, c:column1]));"
 //    												+ "col.add(c:newCol, (c:MovieBudget + c:Revenue-Domestic));"
 //    												+ "panel[0].setbuilder('this');"
 //    												+ "panel[0].clone(1);"
@@ -66,7 +71,7 @@ public class Compiler
 //    												+"panel[0].comment[0].add( 'test',svgMain,{'sort':{'descending':'Title'},'key':'value','key':'value'}, test1);"
 //    												+"panel[0].comment[0].edit('test',svgMain,{'sort':{'descending':'Title'},'key':'value','key':'value'}, test1);"
 //    												+"panel[0].comment[0].remove();"
-    												+"panel[0].tools({'color':['#F1433F','#660066','#F7E967','#B3CF8B','#EB99FF','#4D6529','#B3110D','#0066CC','#A49508','#6699FF'],'stackToggle':'group-data','colorName':'Semoss','backgroundColor':'#FFFFFF'});"
+//    												+"panel[0].tools({'color':['#F1433F','#660066','#F7E967','#B3CF8B','#EB99FF','#4D6529','#B3110D','#0066CC','#A49508','#6699FF'],'stackToggle':'group-data','colorName':'Semoss','backgroundColor':'#FFFFFF'});"
 
 //													+"panel[0].lookandfeel({'color':{'thisbar':'red'},'key':'value','key':'value'});"
 //													+"panel[0].tools({'sort':{'descending':'Title'},'key':'value','key':'value'});"
@@ -109,7 +114,7 @@ public class Compiler
 
 
    // Apply the translation.
-   tree.apply(new Translation(new TinkerFrame(), new PKQLRunner()));
+   tree.apply(new Translation(new H2Frame(), new PKQLRunner()));
   }
   catch(Exception e)
   {

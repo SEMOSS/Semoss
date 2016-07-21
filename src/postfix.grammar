@@ -69,6 +69,7 @@ Tokens
  rel_type = ('inner.join' | 'outer.join' | 'right.outer.join' | 'left.outer.join' | 'cross.join' | 'self.join' ); 
  dataimporttoken = 'data.import';
  dataremovetoken = 'data.remove';
+ dataopentoken = 'data.open';
  literal = (letter_s | letter_b | digit | underscore)*;// | special)*;
  help_token = 'info.help';
  codeblock = code alphanumeric* code;
@@ -119,6 +120,7 @@ colop = // colOp is usually of the form of joinColumn / addColumn / removeColumn
 		| {remove_data} remove_data
 		| {data_frame} data_frame
 		| {dashboard_join} dashboard_join
+		| {open_data} open_data
 		;
 
 panelop = // panelop is usually of the form of viz.change, viz.tools, viz.color
@@ -213,7 +215,10 @@ alias_column = // sets the column aliases
 
 import_data = // imports from api query commands and other scripts
 		dataimporttoken [lp1]:l_par [import]:import_block [joins]:relation_clause? [rp2]:r_par;
-		
+
+open_data = //opens insight given an engine and id, e.g. "data.open("MovieDB", "3");
+		dataopentoken [lp]:l_par [engine]:word_or_num [comma]:comma [engine_id]:word_or_num [rp]: r_par;
+			
 import_block = {api} api_block | {csv_table} csv_table | {pasted_data} pasted_data_block; 
 
 pasted_data_block = l_par pasted_data comma [delimitier]:word_or_num r_par;

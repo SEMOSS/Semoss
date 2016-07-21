@@ -1,9 +1,12 @@
 package prerna.sablecc;
 
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 
 import prerna.ds.H2.H2Frame;
+import prerna.ds.H2.H2Joiner;
 import prerna.om.Insight;
 import prerna.om.InsightStore;
 
@@ -58,9 +61,17 @@ public class DashboardJoinReactor extends AbstractReactor {
 			
 			frame2 = (H2Frame) in2.getDataMaker();
 			frame2Headers = frame2.getColumnHeaders();
+			
+			Map<String, String> joinCols = new HashMap<String, String>(2);
+			joinCols.put(colsForInsightsToJoin.get(0), colsForInsightsToJoin.get(1));
+			
+			H2Joiner.joinFrames(frame1, frame2, joinCols);
 		} catch (ClassCastException e) {
 			System.err.println("currently can only join h2 frames...");
 			return null;			
+		} catch (Exception e) {
+			System.err.println("Join error");
+			return null;
 		}
 		
 		

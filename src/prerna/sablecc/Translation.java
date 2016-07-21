@@ -50,6 +50,7 @@ import prerna.sablecc.node.AModExpr;
 import prerna.sablecc.node.AMultExpr;
 import prerna.sablecc.node.ANumWordOrNum;
 import prerna.sablecc.node.ANumberTerm;
+import prerna.sablecc.node.AOpenData;
 import prerna.sablecc.node.APanelClone;
 import prerna.sablecc.node.APanelClose;
 import prerna.sablecc.node.APanelComment;
@@ -859,8 +860,8 @@ public class Translation extends DepthFirstAdapter {
 			
 			if(node.getJoins()!=null){
 				node.getJoins().apply(this); // need to process joins so that we can access them in the api block for preprocessing inner joins
-		}		
-    }
+			}		
+		}
     }
     
     @Override
@@ -875,6 +876,28 @@ public class Translation extends DepthFirstAdapter {
 		runner.setStatus((STATUS)previousReactor.getValue("STATUS"));
     }
     
+    @Override
+    public void inAOpenData(AOpenData node)
+    {
+    	if(reactorNames.containsKey(PKQLEnum.OPEN_DATA)) {
+			initReactor(PKQLEnum.OPEN_DATA);
+			String nodeStr = node.toString().trim();
+			curReactor.put(PKQLEnum.OPEN_DATA, nodeStr);
+		}
+    }
+
+    @Override
+    public void outAOpenData(AOpenData node)
+    {
+    	String nodeOpen = node.getDataopentoken().toString().trim();
+		String nodeStr = node.toString().trim();
+		curReactor.put(PKQLEnum.EXPR_TERM, nodeOpen);
+		Hashtable <String, Object> thisReactorHash = deinitReactor(PKQLEnum.OPEN_DATA, nodeOpen, nodeStr);
+		IScriptReactor previousReactor = (IScriptReactor)thisReactorHash.get(PKQLEnum.OPEN_DATA);
+		runner.setNewInsightID(previousReactor.getValue(PKQLEnum.OPEN_DATA+"insightID").toString());
+    }
+    
+    @Override
     public void inARemoveData(ARemoveData node) {
     	if(reactorNames.containsKey(PKQLEnum.REMOVE_DATA)) {
 			// simplify baby simplify baby simplify
@@ -884,6 +907,7 @@ public class Translation extends DepthFirstAdapter {
 		}	
     }
 
+    @Override
     public void outARemoveData(ARemoveData node) {
     	String nodeStr = node.getApiBlock() + "";
 		nodeStr = nodeStr.trim();
