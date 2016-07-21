@@ -42,6 +42,7 @@ public class PKQLRunner {
 	LinkedList<PScript> pkqlToRun = new LinkedList<PScript>();
 	List<String> unassignedVars = new Vector<String>();
 	
+	private String newInsightID;
 	/**
 	 * Runs a given pkql expression (can be multiple if semicolon delimited) on a provided data maker 
 	 * @param expression			The sequence of semicolon delimited pkql expressions.
@@ -358,5 +359,13 @@ public class PKQLRunner {
 		this.expiredFeMaps =  new HashMap<String, List<Map<String,Object>>>();
 		this.activeFeMap = null; // temporally grabbed out of master
 		this.translation = null;
+	}
+
+	public String getNewInsightID() {
+		return newInsightID;
+	}
+	
+	public void setNewInsightID(String id) {
+		this.newInsightID = id;
 	}
 }
