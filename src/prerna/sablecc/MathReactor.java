@@ -8,6 +8,7 @@ import java.util.Vector;
 import prerna.algorithm.api.ITableDataFrame;
 import prerna.ds.AlgorithmStrategy;
 import prerna.ds.ExpressionIterator;
+import prerna.ds.spark.SparkDataFrame;
 import prerna.sablecc.PKQLRunner.STATUS;
 
 public abstract class MathReactor extends AbstractReactor {
@@ -61,26 +62,38 @@ public abstract class MathReactor extends AbstractReactor {
 
 			Vector<String> groupBys = (Vector <String>)myStore.get(PKQLEnum.COL_CSV);
 			if(groupBys != null && !groupBys.isEmpty()){
+				
 				Map masterMap = new HashMap();
-				Iterator groupByIterator = getTinkerData(groupBys, frame, true);
-				while(groupByIterator.hasNext()){
-					Object[] groupByVals = (Object[])groupByIterator.next();
-					Map<String, Object> valMap = new HashMap<String, Object>();
-					for(String groupBy: groupBys){
-						valMap.put(groupBy, groupByVals[0]);
+				if(frame instanceof SparkDataFrame) {
+//					((SparkDataFrame)frame).mapReduce(columns, groupBys, procedureAlgo);
+				} else {
+					Iterator groupByIterator = getTinkerData(groupBys, frame, true);
+					while(groupByIterator.hasNext()){
+						Object[] groupByVals = (Object[])groupByIterator.next();
+						Map<String, Object> valMap = new HashMap<String, Object>();
+						for(String groupBy: groupBys){
+							valMap.put(groupBy, groupByVals[0]);
+						}
+						Iterator iterator = getTinkerData(columns, frame, valMap, false);
+						Object finalValue = processThing(iterator, algorithm, columnsArray);
+	
+						masterMap.put(valMap, finalValue);
 					}
-					Iterator iterator = getTinkerData(columns, frame, valMap, false);
-					Object finalValue = processThing(iterator, algorithm, columnsArray);
-
-					masterMap.put(valMap, finalValue);
 				}
 				String nodeStr = myStore.get(whoAmI).toString();
 				myStore.put(nodeStr, masterMap);
 				myStore.put("STATUS", STATUS.SUCCESS);
 			}
 			else {
-				Iterator iterator = getTinkerData(columns, frame, false);
-				Object finalValue = processThing(iterator, algorithm, columnsArray);
+				
+				//bifurcation here 
+				Object finalValue = null;
+				if(frame instanceof SparkDataFrame) {
+//					((SparkDataFrame)frame).mapReduce(columns, null, procedureAlgo);
+				} else {
+					Iterator iterator = getTinkerData(columns, frame, false);
+					finalValue = processThing(iterator, algorithm, columnsArray);
+				}
 				String nodeStr = myStore.get(whoAmI).toString();
 				myStore.put(nodeStr, finalValue);
 				myStore.put("STATUS", STATUS.SUCCESS);

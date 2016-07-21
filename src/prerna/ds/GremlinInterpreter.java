@@ -441,7 +441,7 @@ public class GremlinInterpreter implements IQueryInterpreter {
 		
 		Insight insight = new Insight(null, "TinkerFrame", "Grid");
 		insight.processPostTransformation(list);
-		insight.setPkqlRunner(runner);
+		insight.syncPkqlRunnerAndFrame(runner);
 		
 		Map resultHash = insight.getPKQLData(true);
 		

@@ -124,7 +124,7 @@ public class InsightCreateRunner implements Runnable{
 			setRunnerInPKQLTrans(copyDmc, runner);
 			dm.processDataMakerComponent(copyDmc);
 		}
-		insight.setPkqlRunner(runner);
+		insight.syncPkqlRunnerAndFrame(runner);
 		
 		if(needToRecalc(insight.getDataMakerComponents())) {
 			insight.recalcDerivedColumns();
