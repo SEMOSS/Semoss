@@ -46,8 +46,10 @@ public class MHSDashboardDrillPlaysheet extends TablePlaySheet implements IDataM
 	private final String ACTUAL_START = "ActualStart";
 	private final String ACTUAL_END = "ActualEnd";
 	private final String UPLOAD_DATE = "UploadDate";
-	private final String MIN_ACTIVITY_VALUE = "MinActivityVal";
-	
+	private final String IS_ACTIVE = "IsActive";
+	private final String ACTIVITY_NUM = "ACTIVITY_NUM";
+	private final String CURRENT_STATUS = "currentStatus";
+	private final String HEAT_VAL = "HeatVal";
 	private String userId;
 	
 	//private final String masterQuery = "SELECT DISTINCT ?SDLCPhase ?ActivityGroup ?DHAGroup ?SDLCPhase_ActivityGroup_DHAGroup ?SystemActivity ?System ?Activity ?UploadDate ?PlannedStart ?PlannedEnd ?ActualStart ?ActualEnd WHERE {{?SDLCPhase a <http://semoss.org/ontologies/Concept/SDLCPhase>}{?ActivityGroup a <http://semoss.org/ontologies/Concept/ActivityGroup>}{?DHAGroup a <http://semoss.org/ontologies/Concept/DHAGroup>}{?SDLCPhase_ActivityGroup_DHAGroup a <http://semoss.org/ontologies/Concept/SDLCPhase_ActivityGroup_DHAGroup>}{?SystemActivity a <http://semoss.org/ontologies/Concept/SystemActivity>}{?System a <http://semoss.org/ontologies/Concept/System>}{?Activity a <http://semoss.org/ontologies/Concept/Activity>}{?SDLCPhase <http://semoss.org/ontologies/Relation/Has> ?ActivityGroup}{?ActivityGroup <http://semoss.org/ontologies/Relation/Has> ?DHAGroup}{?SDLCPhase <http://semoss.org/ontologies/Relation/Has> ?SDLCPhase_ActivityGroup_DHAGroup}{?ActivityGroup <http://semoss.org/ontologies/Relation/Has> ?SDLCPhase_ActivityGroup_DHAGroup}{?DHAGroup <http://semoss.org/ontologies/Relation/Has> ?SDLCPhase_ActivityGroup_DHAGroup}{?SDLCPhase_ActivityGroup_DHAGroup <http://semoss.org/ontologies/Relation/Has> ?SystemActivity}{?SystemActivity <http://semoss.org/ontologies/Relation/Has> ?System}{?SystemActivity <http://semoss.org/ontologies/Relation/Has> ?Activity}{?SystemActivity <http://semoss.org/ontologies/Relation/Contains/UploadDate> ?UploadDate}OPTIONAL{?SystemActivity <http://semoss.org/ontologies/Relation/Contains/PlannedStart> ?PlannedStart}OPTIONAL{?SystemActivity <http://semoss.org/ontologies/Relation/Contains/PlannedEnd> ?PlannedEnd}OPTIONAL{?SystemActivity <http://semoss.org/ontologies/Relation/Contains/ActualStart> ?ActualStart}OPTIONAL{?SystemActivity <http://semoss.org/ontologies/Relation/Contains/ActualEnd> ?ActualEnd}}";
@@ -116,7 +118,7 @@ public class MHSDashboardDrillPlaysheet extends TablePlaySheet implements IDataM
 		dataTableAlign.put("levelTwo", ActivityGroup);
 		dataTableAlign.put("levelThree", DHA);
 		dataTableAlign.put("heatValue", HEAT_VALUE);
-		dataTableAlign.put("minValue", MIN_ACTIVITY_VALUE);
+		dataTableAlign.put("status", IS_ACTIVE);
 		return dataTableAlign;
 	}
 	
@@ -204,40 +206,49 @@ public class MHSDashboardDrillPlaysheet extends TablePlaySheet implements IDataM
 			innerMap.put(DHA, dha);
 			
 			//calculate heat value and get min value per each heat value
-			Map<String, Number> valueMap = calculateValues(plannedStartDate, plannedEndDate, actualStartDate, actualEndDate);
-			int heatValue = (int) valueMap.get("HeatVal");
-			long minVal = (long)valueMap.get("MinVal");
+			Map<String, Object> valueMap = calculateValues(plannedStartDate, plannedEndDate, actualStartDate, actualEndDate);
+			int heatValue = (int) valueMap.get(HEAT_VAL);
+			boolean activityStatus = (boolean)valueMap.get(CURRENT_STATUS);
 			
 			//if key already exists in map
 			if(returnMap.containsKey(key)) {
 				Map<String, Object> innerMapReturn = (Map<String, Object>) returnMap.get(key);
 				int totalHeatVal = (int) innerMapReturn.get(HEAT_VALUE);
-				int numActivtyReturn = (int) innerMapReturn.get("ACTIVITY_NUM");
+				int numActivtyReturn = (int) innerMapReturn.get(ACTIVITY_NUM);
+				boolean isActive = (boolean) innerMapReturn.get(IS_ACTIVE);
+				
+				//check if block has active activities
+				if(isActive){
+					innerMap.put(IS_ACTIVE, isActive);
+				} else{
+					innerMap.put(IS_ACTIVE, activityStatus);
+				}
 				
 				//calculate total average heat value 
 				totalHeatVal = totalHeatVal * numActivtyReturn;
 				numActivtyReturn +=1; 
 				totalHeatVal = (totalHeatVal + heatValue)/numActivtyReturn;
 				innerMap.put(HEAT_VALUE, totalHeatVal);
-				innerMap.put("ACTIVITY_NUM", numActivtyReturn);
-				
-				List<Long> minValueReturnList = (List<Long>) innerMapReturn.get(MIN_ACTIVITY_VALUE);
-				minValueReturnList.add(minVal);
-				innerMap.put(MIN_ACTIVITY_VALUE, minValueReturnList);
+				innerMap.put(ACTIVITY_NUM, numActivtyReturn);
 				returnMap.put(key, innerMap);
 			} 
+			
 			//else key doesnt exist in map
 			else if (!returnMap.containsKey(key)) {
 				innerMap.put(HEAT_VALUE, heatValue);
-				innerMap.put ("ACTIVITY_NUM", 1);
-				List<Long> minValueList = new ArrayList<Long>();
-				minValueList.add(minVal);
-				innerMap.put (MIN_ACTIVITY_VALUE, minValueList);
+				innerMap.put (ACTIVITY_NUM, 1);
+				
+				innerMap.put (IS_ACTIVE, activityStatus);
 				returnMap.put(key, innerMap);
 			}
 		}
 		return manipulateData(returnMap);
 	}
+	
+//	public Map getActiveActivites (Hashtable<String, Object> obj) {
+//		boolean activeActivities
+//	}
+	
 	
 	/**
 	 * Method to calculate heat value based on the start and end planned and actual dates
@@ -247,12 +258,11 @@ public class MHSDashboardDrillPlaysheet extends TablePlaySheet implements IDataM
 	 * @param actualEndDate String actual end date
 	 * @return Hashmap<String, Long> where "HeatVal" is the heat value for each dha and "MinVal" is the lowest heat value for each DHA  
 	 */
-	public Map<String, Number> calculateValues (String plannedStartDate, String plannedEndDate, String actualStartDate, String actualEndDate) {
+	public Map<String, Object> calculateValues (String plannedStartDate, String plannedEndDate, String actualStartDate, String actualEndDate) {
 		Date plannedStart = null;
 		Date plannedEnd = null;
 		Date actualStart = null;
 		Date actualEnd = null;
-	
 		//format string date to type Date
 		try {
 			if(!plannedStartDate.equals("null")){
@@ -271,16 +281,17 @@ public class MHSDashboardDrillPlaysheet extends TablePlaySheet implements IDataM
 			e.printStackTrace();
 		}
 		
-		Map<String, Number> returnMap = new HashMap<String, Number> ();
+		Map<String, Object> returnMap = new HashMap<String, Object> ();
 		Date todaysDate = Calendar.getInstance().getTime();
 		int heatValue = 0;
-		long minVal = 0;
+		boolean isActive = false;
 		
-		// if there are both 'planned' and 'actual' dates : (planned end date - actual end date)
+		// COMPLETED: if there are both 'planned' and 'actual' dates : (planned end date - actual end date)
 		if(plannedStart !=null && plannedEnd !=null && actualStart !=null && actualEnd !=null){
 			heatValue = (int) ((plannedEnd.getTime() - actualEnd.getTime())/(24 * 60 * 60 * 1000));
 		}
-		// if there are no 'actual' dates : (planned start - today's date) if planned start date is greater than today's date
+		
+		// HASN'T BEGUN: if there are no 'actual' dates : (planned start - today's date) if planned start date is greater than today's date
 		else if (plannedStart !=null && plannedEnd !=null && actualStart == null && actualEnd == null) {
 			if(plannedStart.getTime() < todaysDate.getTime()){
 				heatValue = (int) ((plannedStart.getTime() - todaysDate.getTime())/(24 * 60 * 60 * 1000));
@@ -288,19 +299,19 @@ public class MHSDashboardDrillPlaysheet extends TablePlaySheet implements IDataM
 				heatValue = 0;
 			}
 		}  
-		// if there is no 'actualend' date : (planned start date - actual start date)
+		
+		// STILL ACTIVE: if there is no 'actualend' date : (planned start date - actual start date)
 		else if(plannedStart !=null && plannedEnd !=null && actualStart != null && actualEnd == null ){
 			heatValue = (int) ((plannedStart.getTime() - actualStart.getTime())/(24 * 60 * 60 * 1000));
 			//only get a min value in this case..otherwise minValue will remain 0
-			minVal = heatValue;
+			isActive = true;
 		} 
 		//if there is row with absolutely no dates then it will not be calculated into the heat value
 		else{
 			heatValue = 0;
 		}
-		
-		returnMap.put("HeatVal", heatValue);
-		returnMap.put("MinVal", minVal);
+		returnMap.put(HEAT_VAL, heatValue);
+		returnMap.put(CURRENT_STATUS, isActive);
 		
 		return returnMap;
 	}
@@ -310,7 +321,9 @@ public class MHSDashboardDrillPlaysheet extends TablePlaySheet implements IDataM
 		return new SimpleDateFormat("MM-dd-yyyy");
 	}
 
-	
+//	public static DateFormat getShortDate () {
+//		
+//	}
 	/**
 	 * Method to format date the way FE expects it...ie without the string keys that objMap currently contains
 	 * @param objMap 
@@ -328,23 +341,15 @@ public class MHSDashboardDrillPlaysheet extends TablePlaySheet implements IDataM
 				String returnKey = ((Entry<String, Object>) innerVal).getKey();
 				
 				//return all keys but activity_num
-				if(!returnKey.equals("ACTIVITY_NUM")){
-					
-					//get the lowest value in the list of heat values
-					if(returnKey.equals(MIN_ACTIVITY_VALUE)){
-						List<Long> heatList = (List<Long>) ((Entry<String, Object>) innerVal).getValue();
-						Long minHeat = Collections.min(heatList);
-						innerList.add(minHeat);
-					} else {
+				if(!returnKey.equals(ACTIVITY_NUM)){
 						Object returnVal = ((Entry<String, Object>) innerVal).getValue();
 						innerList.add(returnVal);
-					}
 				}
 			}
 			returnList.add(innerList);
 		}
 		returnMap.put("data", returnList);
-		returnMap.put("headers", Arrays.asList(SDLC, MIN_ACTIVITY_VALUE, ActivityGroup, DHA, HEAT_VALUE));
+		returnMap.put("headers", Arrays.asList(SDLC, IS_ACTIVE, ActivityGroup, DHA, HEAT_VALUE));
 
 		return returnMap;
 	}
