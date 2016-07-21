@@ -170,6 +170,9 @@ public class ImportDataProcessor {
 			// 		need to go back and clean the prop writer
 			String smssLocation = propWriter.propFileName;
 			String owlPath = baseDirectory + "/" + propWriter.owlFile;
+			
+			// need to create the .temp file object before we upload so we can delete the file if an error occurs
+			propFile = new File(smssLocation);
 
 			//then process based on what type of database
 			// if RDF now check the import type
@@ -306,7 +309,6 @@ public class ImportDataProcessor {
 			}
 			
 			// convert the .temp to .smss file
-			propFile = new File(smssLocation);
 			newProp = new File(smssLocation.replace("temp", "smss"));
 			try {
 				// we just copy over the the .temp file contents into the .smss
