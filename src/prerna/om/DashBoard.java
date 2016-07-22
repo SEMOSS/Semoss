@@ -9,6 +9,8 @@ import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
 import prerna.algorithm.api.ITableDataFrame;
+import prerna.sablecc.PKQLEnum;
+import prerna.sablecc.PKQLEnum.PKQLReactor;
 import prerna.ui.components.playsheets.datamakers.DataMakerComponent;
 import prerna.ui.components.playsheets.datamakers.IDataMaker;
 import prerna.ui.components.playsheets.datamakers.ISEMOSSAction;
@@ -17,26 +19,31 @@ import prerna.ui.components.playsheets.datamakers.ISEMOSSTransformation;
 public class DashBoard implements IDataMaker {
 
 	private static final Logger LOGGER = LogManager.getLogger(DashBoard.class.getName());
-	List<Insight> attachedInsights;
-	Map<Insight, List<DataMakerComponent>> componentMap;
+	Map<String, Insight> attachedInsights = new HashMap<>(4);
+	private static String delimiter = ":::";
 	
-	public DashBoard() {
-		attachedInsights = new ArrayList<>(4);
-		componentMap = new HashMap<>();
-	}
-	
-	public DashBoard(String insight1, String insight2) {
-		this();
-	}
-	
-	public DashBoard(DataMakerComponent component) {
-		//this must be a pkql transformation, must be a join
-	}
-
 	@Override
 	public void processDataMakerComponent(DataMakerComponent component) {
-		//process this component to each
-		//how do i know where this component came from?
+		
+		//this won't match the second time around
+		String insightID = component.getInsightTag();
+		
+		if(insightID != null) {
+			Insight insight = InsightStore.getInstance().get(insightID);
+			String engine = insight.getEngineName();
+			String id = insight.getRdbmsId();
+			String insightKey = engine+delimiter+id;
+		
+			//i know this is duplicative to the above code but we want to ensure the insight we are running on is in fact joined to this dashboard
+			insight = this.attachedInsights.get(insightKey);
+			insight.getDataMaker().processDataMakerComponent(component);
+		} else {
+			//if join then need to add open insight and param pkql
+			processPreTransformations(component, component.getPreTrans());
+			processPostTransformations(component, component.getPostTrans());
+			processActions(component, component.getActions());
+			
+		}
 	}
 
 	@Override
@@ -77,7 +84,8 @@ public class DashBoard implements IDataMaker {
 	 */
 	public Map<String, Object> getDataMakerOutput(String... selectors) {
 		Map<String, Object> returnHash = new HashMap<>();
-		for(Insight insight : attachedInsights) {
+		for(String insightID : attachedInsights.keySet()) {
+			Insight insight = attachedInsights.get(insightID);
 			ITableDataFrame frame = (ITableDataFrame)insight.getDataMaker();
 			Object output = insight.getDataMaker().getDataMakerOutput(frame.getColumnHeaders());
 			returnHash.put(insight.getInsightID(), output);
@@ -97,7 +105,12 @@ public class DashBoard implements IDataMaker {
 
 	@Override
 	public Map<String, String> getScriptReactors() {
-		return null;
+		Map<String, String> reactorNames = new HashMap<>();
+		reactorNames.put(PKQLEnum.DASHBOARD_JOIN, "prerna.sablecc.DashboardJoinReactor");
+		reactorNames.put(PKQLEnum.OPEN_DATA, "prerna.sablecc.OpenDataReactor");
+		reactorNames.put(PKQLReactor.VAR.toString(), "prerna.sablecc.VarReactor");
+		reactorNames.put(PKQLReactor.INPUT.toString(), "prerna.sablecc.InputReactor");
+		return reactorNames;
 	}
 
 	@Override
@@ -123,5 +136,9 @@ public class DashBoard implements IDataMaker {
 	@Override
 	public String getDataMakerName() {
 		return "DashBoard";
+	}
+	
+	public void addInsight(String engineName, String id, Insight insight) {
+		this.attachedInsights.put(engineName+delimiter+id, insight);
 	}
 }
