@@ -16,16 +16,13 @@ public class AnthemPainpointsPlaysheet extends TablePlaySheet implements IDataMa
 
 	private static final Logger logger = LogManager.getLogger(TablePlaySheet.class.getName());
 	private DataMakerComponent dmComponent;
-//	static String masterQuery = "SELECT DISTINCT OBA_L1.OBA_L0_FK AS OBA_L0, OBA_L1.OBA_L1 AS OBA_L1, OBA_L2.OBA_L2 AS OBA_L2, PAIN_POINT.PAIN_POINT_DESCRIPTION AS PAIN_POINT "
-//			+ "FROM OBA_L1, PAIN_POINT "
-//			+ "INNER JOIN OBA_L2 ON OBA_L1.OBA_L1 = OBA_L2.OBA_L1_FK AND PAIN_POINT.PAIN_POINT = OBA_L2.PAIN_POINT_FK "
-//			+ "where OBA_L2 is not null";
+////	static String masterQuery = SELECT DISTINCT OBA_L1.OBA_L0_FK AS OBA_L0, OBA_L1.OBA_L1 AS OBA_L1, OBA_L2.OBA_L2 AS OBA_L2, PAIN_POINT.PAIN_POINT_DESCRIPTION AS PAIN_POINT, SOURCE_DOMAIN.SOURCE_DOMAIN AS SOURCE_DOMAIN  FROM OBA_L1, PAIN_POINT, SOURCE_DOMAIN INNER JOIN OBA_L2 ON OBA_L1.OBA_L1 = OBA_L2.OBA_L1_FK AND PAIN_POINT.PAIN_POINT = OBA_L2.PAIN_POINT_FK  and SOURCE_DOMAIN.SOURCE_DOMAIN = PAIN_POINT.SOURCE_DOMAIN_FK where OBA_L2.OBA_TYPE = 'PD' "where OBA_L2 is not null";"
 
 	//OBA_L0.OBA_L0.OBA_L1.OBA_L0_FK
 	private final String OBA_L0 = "OBA_L0_FK";
 	private final String OBA_L1 = "OBA_L1";
 	private final String OBA_L2 = "OBA_L2";
-	private final String SOURCE = "SOURCE";
+	private final String SOURCE = "SOURCE_DOMAIN";
 	private final String PAIN_POINT = "PAIN_POINT";
 
 	public static String instanceOfPlaysheet = "prerna.ui.components.specific.anthem.AnthemPainpointsPlaysheet";
