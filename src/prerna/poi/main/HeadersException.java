@@ -283,6 +283,7 @@ public class HeadersException {
 	}
 	
 	public boolean isIllegalHeader(String checkHeader) {
+		checkHeader = checkHeader.toUpperCase();
 		if(prohibitedHeaders.contains(checkHeader)) {
 			return true;
 		}
