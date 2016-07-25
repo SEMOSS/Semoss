@@ -228,11 +228,11 @@ public class RDBMSEngineCreationHelper {
 	 */
 	public static String cleanTableName(String s) {
 		s = s.trim();
-		while(s.contains("  ")){
-			s = s.replace("  ", " ");
-		}
 		s = s.replaceAll(" ", "_");
 		s = s.replaceAll("[^a-zA-Z0-9\\_]", "");
+		while(s.contains("__")){
+			s = s.replace("__", "_");
+		}
 		// can't start with a digit in rdbms
 		// have it start with an underscore and it will work
 		if(Character.isDigit(s.charAt(0))) {
