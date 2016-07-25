@@ -293,33 +293,33 @@ public class CSVFileHelper {
 		return types;
 	}
 
-	public String getHTMLBasedHeaderChanges() {
-		StringBuilder htmlStr = new StringBuilder();
-		htmlStr.append("Errors Found in Column Headers For File " + Utility.getOriginalFileName(this.fileLocation) + ". Performed the following changes to enable upload:<br>");
-		htmlStr.append("<br>");
-		htmlStr.append("COLUMN INDEX | OLD CSV NAME | NEW CSV NAME");
-
-		boolean isChange = false;
-
-		// loop through and find changes
-		int numCols = allCsvHeaders.length;
-		for(int colIdx = 0; colIdx < numCols; colIdx++) {
-			String origHeader = allCsvHeaders[colIdx];
-			String newHeader = newUniqueCSVHeaders.get(colIdx);
-
-			if(!origHeader.equalsIgnoreCase(newHeader)) {
-				isChange = true;
-				htmlStr.append("<br>");
-				htmlStr.append( (colIdx+1) + ") " + origHeader + " | " + newHeader);
-			}
-		}
-
-		if(isChange) {
-			return htmlStr.toString();
-		} else {
-			return null;
-		}
-	}
+//	public String getHTMLBasedHeaderChanges() {
+//		StringBuilder htmlStr = new StringBuilder();
+//		htmlStr.append("Errors Found in Column Headers For File " + Utility.getOriginalFileName(this.fileLocation) + ". Performed the following changes to enable upload:<br>");
+//		htmlStr.append("<br>");
+//		htmlStr.append("COLUMN INDEX | OLD CSV NAME | NEW CSV NAME");
+//
+//		boolean isChange = false;
+//
+//		// loop through and find changes
+//		int numCols = allCsvHeaders.length;
+//		for(int colIdx = 0; colIdx < numCols; colIdx++) {
+//			String origHeader = allCsvHeaders[colIdx];
+//			String newHeader = newUniqueCSVHeaders.get(colIdx);
+//
+//			if(!origHeader.equalsIgnoreCase(newHeader)) {
+//				isChange = true;
+//				htmlStr.append("<br>");
+//				htmlStr.append( (colIdx+1) + ") " + origHeader + " | " + newHeader);
+//			}
+//		}
+//
+//		if(isChange) {
+//			return htmlStr.toString();
+//		} else {
+//			return null;
+//		}
+//	}
 	
 	public Map<String, String> getChangedHeaders() {
 		Map<String, String> modHeaders = new Hashtable<String, String>();
@@ -335,6 +335,27 @@ public class CSVFileHelper {
 		}
 
 		return modHeaders;
+	}
+	
+	public void modifyCleanedHeaders(Map<String, String> thisFileHeaderChanges) {
+		// iterate through all sets of oldHeader -> newHeader
+		for(String oldHeader : thisFileHeaderChanges.keySet()) {
+			String newHeaderValue = thisFileHeaderChanges.get(oldHeader);
+			
+			// since the user may not want all the headers, we only check if new headers are valid
+			// based on the headers they want
+			// thus, we need to check and see if the newHeaderValue is actually already used
+			int newNameIndex = this.newUniqueCSVHeaders.indexOf(newHeaderValue);
+			if(newNameIndex >= 0) {
+				// this new header exists
+				// lets modify it
+				this.newUniqueCSVHeaders.set(newNameIndex, "NOT_USED_COLUMN_1234567890");
+			}
+			
+			// now we modify what was the old header to be the new header
+			int oldHeaderIndex = this.newUniqueCSVHeaders.indexOf(oldHeader);
+			this.newUniqueCSVHeaders.set(oldHeaderIndex, newHeaderValue);
+		}
 	}
 
 	/**
@@ -383,7 +404,6 @@ public class CSVFileHelper {
 		test.printRow(test.getNextRow());
 		test.printRow(test.getNextRow());
 		test.printRow(test.getNextRow());
-		System.out.println(test.getHTMLBasedHeaderChanges());
 
 
 		//		test.allHeaders = null;

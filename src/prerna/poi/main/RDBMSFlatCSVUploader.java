@@ -334,9 +334,13 @@ public class RDBMSFlatCSVUploader extends AbstractCSVFileReader {
 		csvHelper.setDelimiter(',');
 		csvHelper.parse(FILE_LOCATION);
 		
-		// currently assume we are loading all the columns
-		// currently not taking in the dataTypes
-		// ... at least this way, we know all the values always work with regards to loading
+		// modify the clean header names
+		if(userHeaderNames != null) {
+			Map<String, String> thisFileHeaderChanges = userHeaderNames.get(FILE_LOCATION);
+			if(thisFileHeaderChanges != null && !thisFileHeaderChanges.isEmpty()) {
+				csvHelper.modifyCleanedHeaders(thisFileHeaderChanges);
+			}
+		}
 		String[] headers = csvHelper.getHeaders();
 		LOGGER.info("Found headers: " + Arrays.toString(headers));
 		
@@ -359,6 +363,13 @@ public class RDBMSFlatCSVUploader extends AbstractCSVFileReader {
 		csvHelper.setDelimiter(',');
 		csvHelper.parse(FILE_LOCATION);
 		
+		// modify the clean header names
+		if(userHeaderNames != null) {
+			Map<String, String> thisFileHeaderChanges = userHeaderNames.get(FILE_LOCATION);
+			if(thisFileHeaderChanges != null && !thisFileHeaderChanges.isEmpty()) {
+				csvHelper.modifyCleanedHeaders(thisFileHeaderChanges);
+			}
+		}
 		// set the columns to get
 		String[] headersToUse = csvMeta.get(CSV_HEADERS);
 		csvHelper.parseColumns(headersToUse);
