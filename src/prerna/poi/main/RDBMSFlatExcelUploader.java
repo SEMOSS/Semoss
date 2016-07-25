@@ -78,7 +78,8 @@ public class RDBMSFlatExcelUploader extends AbstractFileReader {
 	 * 		}
 	 */
 	private List<Map<String, Map<String, String>>> userHeaderNames;
-	
+	private Map<String, Map<String, String>> excelHeaderNames;
+
 	///////////////////////////////////////// main upload methods //////////////////////////////////////////
 	
 	/**
@@ -109,6 +110,10 @@ public class RDBMSFlatExcelUploader extends AbstractFileReader {
 				// cause of stupid split adding empty values
 				if(fileName.isEmpty()) {
 					continue;
+				}
+				// get the user defined headers if present
+				if(userHeaderNames != null) {
+					excelHeaderNames = userHeaderNames.get(i);
 				}
 				// similar to other csv reading
 				// we load the user defined types
@@ -175,7 +180,10 @@ public class RDBMSFlatExcelUploader extends AbstractFileReader {
 				}
 				// need to update to get the rdbms structure to determine how the new files should be added
 				existingRDBMSStructure = RDBMSEngineCreationHelper.getExistingRDBMSStructure(engine, queryUtil);
-				
+				// get the user defined headers if present
+				if(userHeaderNames != null) {
+					excelHeaderNames = userHeaderNames.get(i);
+				}
 				// similar to other csv reading
 				// we load the user defined types
 				if(dataTypeMapList != null && !dataTypeMapList.isEmpty()) {
@@ -369,6 +377,11 @@ public class RDBMSFlatExcelUploader extends AbstractFileReader {
 		// these will be the tables
 		String[] sheetNames = xlHelper.getTables();
 		
+		// update header names to be those defined by user
+		if(excelHeaderNames != null && !excelHeaderNames.isEmpty()) {
+			xlHelper.modifyCleanedHeaders(excelHeaderNames);
+		}
+		
 		// for each sheet we need to get the headers and data types for each column
 		Map<String, Map<String, String[]>> excelMeta = new Hashtable<String, Map<String, String[]>>();
 		for(String sheetName : sheetNames) {
@@ -395,10 +408,15 @@ public class RDBMSFlatExcelUploader extends AbstractFileReader {
 		// we need to convert from the generic data types from the FE to the sql specific types
 		// need to do this for every sheet
 		
-		// TODO: i need to set this
 		if(sqlHash.isEmpty()) {
 			createSQLTypes();
 		}
+		
+		// update header names to be those defined by user
+		if(excelHeaderNames != null && !excelHeaderNames.isEmpty()) {
+			xlHelper.modifyCleanedHeaders(excelHeaderNames);
+		}
+				
 		for(String sheetName : excelMeta.keySet()) {
 			// get the data types for this sheet as defined by user
 			Map<String, String[]> sheetMeta = excelMeta.get(sheetName);

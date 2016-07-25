@@ -340,12 +340,12 @@ public class CSVFileHelper {
 	public void modifyCleanedHeaders(Map<String, String> thisFileHeaderChanges) {
 		// iterate through all sets of oldHeader -> newHeader
 		for(String oldHeader : thisFileHeaderChanges.keySet()) {
-			String newHeaderValue = thisFileHeaderChanges.get(oldHeader);
+			String desiredNewHeaderValue = thisFileHeaderChanges.get(oldHeader);
 			
 			// since the user may not want all the headers, we only check if new headers are valid
 			// based on the headers they want
 			// thus, we need to check and see if the newHeaderValue is actually already used
-			int newNameIndex = this.newUniqueCSVHeaders.indexOf(newHeaderValue);
+			int newNameIndex = this.newUniqueCSVHeaders.indexOf(desiredNewHeaderValue);
 			if(newNameIndex >= 0) {
 				// this new header exists
 				// lets modify it
@@ -354,7 +354,7 @@ public class CSVFileHelper {
 			
 			// now we modify what was the old header to be the new header
 			int oldHeaderIndex = this.newUniqueCSVHeaders.indexOf(oldHeader);
-			this.newUniqueCSVHeaders.set(oldHeaderIndex, newHeaderValue);
+			this.newUniqueCSVHeaders.set(oldHeaderIndex, desiredNewHeaderValue);
 		}
 	}
 
