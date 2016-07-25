@@ -35,7 +35,9 @@ public class ImportOptions {
 								// have the smss watcher find the engine and load it
 		DEFINED_METAMODEL,		// should point to Hashtable<String, String>[] - only valid for csv upload
 		CSV_DATA_TYPE_MAP,		// should point to Map<String, Map<String, String>> - only valid for flat upload
-		EXCEL_DATA_TYPE_MAP
+		EXCEL_DATA_TYPE_MAP,	// should point to List<Map<String, Map<String, String>> - only valid for flat upload
+		CSV_DATA_NEW_HEADERS,	// should point to Map<String, Map<String, String>
+		EXCEL_DATA_NEW_HEADERS	// should point to List<Map<String, Map<String, String>>>
 	};
 	
 	
@@ -126,6 +128,10 @@ public class ImportOptions {
 		thisMap.put(IMPORT_OPTIONS.DB_NAME, dbName);
 	}
 	
+	/**
+	 * Get the base folder to determine where to add db folders
+	 * @return
+	 */
 	public String getBaseFolder() {
 		return (String) thisMap.get(IMPORT_OPTIONS.BASE_FOLDER);
 	}
@@ -183,7 +189,7 @@ public class ImportOptions {
 	}
 	
 	/**
-	 * Set the metamodel for a set of csv files
+	 * Get the metamodel for a set of csv files
 	 * @return
 	 */
 	public Hashtable<String, String>[] getMetamodelArray() {
@@ -195,7 +201,7 @@ public class ImportOptions {
 	}
 	
 	/**
-	 * Set the dataTypeMap for a set of files
+	 * Get the dataTypeMap for a set of csv files
 	 * @return
 	 */
 	public List<Map<String, String[]>> getCsvDataTypeMap() {
@@ -206,13 +212,40 @@ public class ImportOptions {
 		thisMap.put(IMPORT_OPTIONS.CSV_DATA_TYPE_MAP, dataTypeMap);
 	}
 	
-	
+	/**
+	 * Get the dataTypeMap for a set of excel files
+	 * @return
+	 */
 	public List<Map<String, Map<String, String[]>>> getExcelDataTypeMap() {
 		return (List<Map<String, Map<String, String[]>>>) thisMap.get(IMPORT_OPTIONS.EXCEL_DATA_TYPE_MAP);
 	}
 	
 	public void setExcelDataTypeMap(List<Map<String, Map<String, String[]>>> dataTypeMap) {
 		thisMap.put(IMPORT_OPTIONS.EXCEL_DATA_TYPE_MAP, dataTypeMap);
+	}
+	
+	/**
+	 * Get the user defined changed headers for a set of csv files
+	 * @return
+	 */
+	public Map<String, Map<String, String>> getCsvNewHeaders() {
+		return (Map<String, Map<String, String>>) thisMap.get(IMPORT_OPTIONS.CSV_DATA_NEW_HEADERS);
+	}
+	
+	public void setCsvNewHeaders(Map<String, Map<String, String>> newCsvHeaders) {
+		thisMap.put(IMPORT_OPTIONS.CSV_DATA_NEW_HEADERS, newCsvHeaders);
+	}
+	
+	/**
+	 * Get the user defined changed headers for a set of excel files
+	 * @return
+	 */
+	public List<Map<String, Map<String, String>>> getExcelNewHeaders() {
+		return (List<Map<String, Map<String, String>>>) thisMap.get(IMPORT_OPTIONS.EXCEL_DATA_NEW_HEADERS);
+	}
+	
+	public void setExcelNewHeaders(List<Map<String, Map<String, String>>> newExcelHeaders) {
+		thisMap.put(IMPORT_OPTIONS.EXCEL_DATA_NEW_HEADERS, newExcelHeaders);
 	}
 	
 	///////////////////////////// end getters & setters /////////////////////////////////////
