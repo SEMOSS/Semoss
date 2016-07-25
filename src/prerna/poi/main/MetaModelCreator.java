@@ -82,7 +82,7 @@ public class MetaModelCreator {
 		// it means we are dealing with the new flat table
 		// old flat table was putting everything a property on a single node
 		// new flat table is not using any of this and making everything equal
-		if(this.mode != null) {
+		if(!CreatorMode.TABLE.equals(this.mode)) {
 			this.data = new ArrayList<>(500);
 			
 			String [] cells = null;
