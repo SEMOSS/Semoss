@@ -456,6 +456,34 @@ public class XLFileHelper {
 		}
 	}
 	
+	public void modifyCleanedHeaders(Map<String, Map<String, String>> excelHeaderNames) {
+		for(String sheetName : excelHeaderNames.keySet()) {
+			// get existing headers for this sheet
+			String[] cleanHeaders = this.clean_headers.get(sheetName);
+			
+			// get the user changes
+			Map<String, String> thisSheetHeaderChanges = excelHeaderNames.get(sheetName);
+			
+			// iterate through all sets of oldHeader -> newHeader
+			for(String oldHeader : thisSheetHeaderChanges.keySet()) {
+				String desiredNewHeaderValue = thisSheetHeaderChanges.get(oldHeader);
+				// since the user may not want all the headers, we only check if new headers are valid
+				// based on the headers they want
+				// thus, we need to check and see if the newHeaderValue is actually already used
+				int newNameIndex = ArrayUtilityMethods.arrayContainsValueAtIndex(cleanHeaders, desiredNewHeaderValue);
+				if(newNameIndex >= 0) {
+					// this new header exists
+					// lets modify it
+					cleanHeaders[newNameIndex] = "NOT_USED_COLUMN_1234567890";
+				}
+				
+				// now we modify what was the old header to be the new header
+				int oldHeaderIndex = ArrayUtilityMethods.arrayContainsValueAtIndex(cleanHeaders, oldHeader);
+				cleanHeaders[oldHeaderIndex] = desiredNewHeaderValue;
+			}
+		}
+	}
+	
 	public String[] orderHeadersToGet(String sheetName, String[] headersToGet) {
 		String[] currHeaders = clean_headers.get(sheetName);
 		List<String> orderedHeaders = new Vector<String>();
@@ -506,5 +534,4 @@ public class XLFileHelper {
 	private void printRow(String[] nextRow) {
 		System.out.println(Arrays.toString(nextRow));
 	}
-	
 }
