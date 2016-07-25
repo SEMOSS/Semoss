@@ -67,6 +67,8 @@ public class MetaModelCreator {
 	
 	public MetaModelCreator(CSVFileHelper helper, CreatorMode setting) {
 		this.helper = helper;
+		this.mode = setting;
+
 		this.columnHeaders = helper.getHeaders();
 		this.dataTypes = helper.predictTypes();
 		this.dataTypeMap = new LinkedHashMap<String, String>();
@@ -76,18 +78,23 @@ public class MetaModelCreator {
 			dataTypeMap.put(columnHeaders[colIdx], Utility.getCleanDataType(dataTypes[colIdx]));
 		}
 		
-		this.mode = setting;
-		this.data = new ArrayList<>(500);
-		
-		String [] cells = null;
-		int count = 1;
-		while((cells = helper.getNextRow()) != null) {
-			if(count <= limit) {
-				data.add(cells);
+		// if the mode is not set
+		// it means we are dealing with the new flat table
+		// old flat table was putting everything a property on a single node
+		// new flat table is not using any of this and making everything equal
+		if(this.mode != null) {
+			this.data = new ArrayList<>(500);
+			
+			String [] cells = null;
+			int count = 1;
+			while((cells = helper.getNextRow()) != null) {
+				if(count <= limit) {
+					data.add(cells);
+				}
+				count++;
 			}
-			count++;
+			this.endRow = count;
 		}
-		this.endRow = count;
 	}
 	
 
