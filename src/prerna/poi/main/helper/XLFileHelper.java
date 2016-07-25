@@ -16,6 +16,8 @@ import org.apache.poi.xssf.usermodel.XSSFSheet;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 
 import cern.colt.Arrays;
+import prerna.poi.main.HeadersException;
+import prerna.test.TestUtilityMethods;
 import prerna.util.ArrayUtilityMethods;
 import prerna.util.Utility;
 
@@ -27,9 +29,18 @@ public class XLFileHelper {
 	private FileInputStream sourceFile = null;
 	private String fileLocation = null;
 
+	// contains the string to the excel sheet object
 	private Map <String, XSSFSheet> sheetNames = new Hashtable<String, XSSFSheet>();
-	private Map <String, String[]> headers = new Hashtable<String, String[]>();
+	// gets the sheet name -> headers for sheet
+	private Map <String, String[]> original_headers = new Hashtable<String, String[]>();
+	// gets the sheet name -> headers for sheet
+		private Map <String, String[]> clean_headers = new Hashtable<String, String[]>();
+	// used for iterating through the sheet
 	private Map <String, Integer> sheetCounter = new Hashtable<String, Integer>();
+	
+	// used to assimilate the properties...
+	// TODO: need to come back and understand what that means...
+	// has to do with prediction of what things are related but need to look more into this
 	private Map <String, Vector<String>> allProps = new Hashtable <String, Vector<String>> ();
 
 	
@@ -62,7 +73,26 @@ public class XLFileHelper {
 				sheetNames.put(nameOfSheet, sheet);
 				
 				String[] sheetHeaders = getCells(sheet.getRow(0));
-				headers.put(nameOfSheet, sheetHeaders);
+				original_headers.put(nameOfSheet, sheetHeaders);
+				
+				// grab the headerChecker
+				HeadersException headerChecker = HeadersException.getInstance();
+				List<String> newUniqueCleanHeaders = new Vector<String>();
+				
+				int numCols = sheetHeaders.length;
+				for(int colIdx = 0; colIdx < numCols; colIdx++) {
+					String origHeader = sheetHeaders[colIdx];
+					if(origHeader.trim().isEmpty()) {
+						origHeader = "BLANK_HEADER";
+					}
+					String newHeader = headerChecker.recursivelyFixHeaders(origHeader, newUniqueCleanHeaders);
+					
+					// now update the unique headers, as this will be used to match duplications
+					newUniqueCleanHeaders.add(newHeader);
+				}
+				
+				// now store the clean headers
+				clean_headers.put(nameOfSheet, newUniqueCleanHeaders.toArray(new String[]{}));
 			}
 		} catch (FileNotFoundException e) {
 			e.printStackTrace();
@@ -72,7 +102,7 @@ public class XLFileHelper {
 	}
 	
 	public String[] getHeaders(String sheetName) {
-		return headers.get(sheetName);
+		return clean_headers.get(sheetName);
 	}
 	
 	/////////////////// START ALL NEXT ROWS ///////////////////
@@ -80,7 +110,7 @@ public class XLFileHelper {
 	public String[] getNextRow(String sheetName) {
 		XSSFSheet thisSheet = sheetNames.get(sheetName);
 		
-		int counter = 0;
+		int counter = 1;
 		if(sheetCounter.containsKey(sheetName)) {
 			counter = sheetCounter.get(sheetName);
 		}
@@ -91,11 +121,12 @@ public class XLFileHelper {
 		}
 		
 		// assimilate the properties
-		if(counter == 0) {
-			for(int colIndex = colStarter; colIndex < thisRow.length;colIndex++) {
-				putProp(thisRow[colIndex], sheetName);
-			}
-		}
+		// TODO: this logic isn't valid since we get the headers on instantiation of the instance
+//		if(counter == 0) {
+//			for(int colIndex = colStarter; colIndex < thisRow.length; colIndex++) {
+//				putProp(thisRow[colIndex], sheetName);
+//			}
+//		}
 		
 		// set counter back
 		counter++;		
@@ -126,14 +157,14 @@ public class XLFileHelper {
 	/////////////////// START SPECIFIC HEADERS NEXT ROWS ///////////////////
 
 	public String[] getNextRow(String sheetName, String[] headersToGet) {
-		String[] allHeaders = headers.get(sheetName);
+		String[] allHeaders = clean_headers.get(sheetName);
 		if(allHeaders.length == headersToGet.length) {
 			return getNextRow(sheetName);
 		}
 		
 		XSSFSheet thisSheet = sheetNames.get(sheetName);
 		
-		int counter = 0;
+		int counter = 1;
 		if(sheetCounter.containsKey(sheetName)) {
 			counter = sheetCounter.get(sheetName);
 		}
@@ -144,11 +175,12 @@ public class XLFileHelper {
 		}
 		
 		// assimilate the properties
-		if(counter == 0) {
-			for(int colIndex = colStarter;colIndex < thisRow.length;colIndex++) {
-				putProp(thisRow[colIndex], sheetName);
-			}
-		}
+		// TODO: this logic isn't valid since we get the headers on instantiation of the instance
+//		if(counter == 0) {
+//			for(int colIndex = colStarter; colIndex < thisRow.length; colIndex++) {
+//				putProp(thisRow[colIndex], sheetName);
+//			}
+//		}
 		
 		// set counter back
 		counter++;		
@@ -162,8 +194,7 @@ public class XLFileHelper {
 		return getCells(row, sheetHeaders, headersToGet, colLength);
 	}
 	
-	private String[] getCells(XSSFRow row, String[] sheetHeaders, String[] headersToGet, int totalCol) {
-		int colLength = totalCol;
+	private String[] getCells(XSSFRow row, String[] sheetHeaders, String[] headersToGet, int colLength) {
 		List<String> cols = new Vector<String>();
 		for(int colIndex = colStarter; colIndex < colLength; colIndex++) {
 			String header = sheetHeaders[colIndex];
@@ -175,16 +206,68 @@ public class XLFileHelper {
 		return cols.toArray(new String[]{});
 	}	
 	
-	/////////////////// END SPECIFIC HEADERS NEXT ROWS ///////////////////
+	public int[] getHeaderIndicies(String sheetName, String[] headers) {
+		String[] sheetHeaders = this.clean_headers.get(sheetName);
+		
+		int numHeadersToGet = headers.length;
+		int[] indicesToGet = new int[numHeadersToGet];
+		for(int colIdx = 0; colIdx < numHeadersToGet; colIdx++) {
+			String headerToGet = headers[colIdx];
+			// find the index in sheet headers to return
+			indicesToGet[colIdx] = ArrayUtilityMethods.arrayContainsValueAtIndex(sheetHeaders, headerToGet);
+		}
+		
+		return indicesToGet;
+	}
+	
+	public String[] getNextRow(String sheetName, int[] headerIndicesToGet) {
+		XSSFSheet thisSheet = sheetNames.get(sheetName);
+		
+		int counter = 1;
+		if(sheetCounter.containsKey(sheetName)) {
+			counter = sheetCounter.get(sheetName);
+		}
+		
+		String [] thisRow = null;
+		if(counter < thisSheet.getLastRowNum()) {
+			thisRow = getCells(thisSheet.getRow(counter), headerIndicesToGet);
+		}
+		
+		// assimilate the properties
+		// TODO: this logic isn't valid since we get the headers on instantiation of the instance
+//		if(counter == 0) {
+//			for(int colIndex = colStarter; colIndex < thisRow.length; colIndex++) {
+//				putProp(thisRow[colIndex], sheetName);
+//			}
+//		}
+		
+		// set counter back
+		counter++;		
+		sheetCounter.put(sheetName, counter);
 
+		return thisRow;
+	}
+	
+	private String[] getCells(XSSFRow row, int[] headerIndicesToGet) {
+		int numCols = headerIndicesToGet.length;
+		List<String> cols = new Vector<String>();
+		for(int colIndex = colStarter; colIndex < numCols; colIndex++) {
+			XSSFCell thisCell = row.getCell(colIndex);
+			cols.add(getCell(thisCell));
+		}
+		return cols.toArray(new String[]{});
+	}
+	
+	/////////////////// END SPECIFIC HEADERS NEXT ROWS ///////////////////
 
 	private String getCell(XSSFCell thisCell) {
 		if(thisCell != null && thisCell.getCellType() != Cell.CELL_TYPE_BLANK) {
 			if(thisCell.getCellType() == Cell.CELL_TYPE_STRING) {
 				return thisCell.getStringCellValue();
-			}
-			else if(thisCell.getCellType() == Cell.CELL_TYPE_NUMERIC) {
+			} else if(thisCell.getCellType() == Cell.CELL_TYPE_NUMERIC) {
 				return thisCell.getNumericCellValue() + "";
+			} else if(thisCell.getCellType() == Cell.CELL_TYPE_BOOLEAN) {
+				return thisCell.getBooleanCellValue() + "";
 			}
 		}
 		return "";
@@ -343,7 +426,7 @@ public class XLFileHelper {
 	}
 	
 	public String[] orderHeadersToGet(String sheetName, String[] headersToGet) {
-		String[] currHeaders = headers.get(sheetName);
+		String[] currHeaders = clean_headers.get(sheetName);
 		List<String> orderedHeaders = new Vector<String>();
 		for(String header : currHeaders) {
 			if(ArrayUtilityMethods.arrayContainsValue(headersToGet, header)) {
@@ -359,6 +442,10 @@ public class XLFileHelper {
 
 	public static void main(String [] args) throws Exception
 	{
+		// ugh, need to load this in for the header exceptions
+		// this contains all the sql reserved words
+		TestUtilityMethods.loadDIHelper();
+		
 		String fileName = "C:/Users/pkapaleeswaran/workspacej3/datasets/Movie.csv";
 		long before, after;
 		//fileName = "C:/Users/pkapaleeswaran/workspacej3/datasets/consumer_complaints.csv";
@@ -388,5 +475,4 @@ public class XLFileHelper {
 	private void printRow(String[] nextRow) {
 		System.out.println(Arrays.toString(nextRow));
 	}
-
 }

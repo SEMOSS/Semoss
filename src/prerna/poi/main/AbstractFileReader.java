@@ -36,6 +36,7 @@ import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.Enumeration;
 import java.util.Hashtable;
+import java.util.Map;
 import java.util.Properties;
 
 import org.apache.log4j.LogManager;
@@ -83,7 +84,9 @@ public abstract class AbstractFileReader {
 
 	// sadly need to keep RDBMS specific object
 	protected SQLQueryUtil queryUtil;
-
+	// keep conversion from user input to sql datatypes
+	protected Map<String, String> sqlHash = new Hashtable<String, String>();
+	
 	/**
 	 * Loads the prop file for the CSV file
 	 * @param fileName	Absolute path to the prop file specified in the last column of the CSV file
@@ -444,6 +447,23 @@ public abstract class AbstractFileReader {
 
 	public void setAutoLoad(boolean autoLoad) {
 		this.autoLoad = autoLoad;
+	}
+	
+	/**
+	 * Fill in the sqlHash with the types
+	 */
+	protected void createSQLTypes() {
+		sqlHash.put("DECIMAL", "FLOAT");
+		sqlHash.put("DOUBLE", "FLOAT");
+		sqlHash.put("STRING", "VARCHAR(2000)"); // 8000 was chosen because this is the max for SQL Server; needs more permanent fix
+		sqlHash.put("TEXT", "VARCHAR(2000)"); // 8000 was chosen because this is the max for SQL Server; needs more permanent fix
+		//TODO: the FE needs to differentiate between "dates with times" vs. "dates"
+		sqlHash.put("DATE", "DATE");
+		sqlHash.put("SIMPLEDATE", "DATE");
+		// currently only add in numbers as doubles
+		sqlHash.put("NUMBER", "FLOAT");
+		sqlHash.put("INTEGER", "FLOAT");
+		sqlHash.put("BOOLEAN", "BOOLEAN");
 	}
 
 }

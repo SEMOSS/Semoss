@@ -95,6 +95,7 @@ public class RDBMSReader extends AbstractCSVFileReader {
 					String fileName = files[i];
 
 					// open the csv file
+					// and get the headers
 					openCSVFile(fileName);
 					// load the prop file for the CSV file 
 					if(propFileExist){
@@ -102,6 +103,8 @@ public class RDBMSReader extends AbstractCSVFileReader {
 					} else {
 						rdfMap = rdfMapArr[i];
 					}
+					// use the rdf map to get the data types
+					// that match the headers
 					preParseRdbmsCSVMetaData(rdfMap);
 					parseMetadata();
 

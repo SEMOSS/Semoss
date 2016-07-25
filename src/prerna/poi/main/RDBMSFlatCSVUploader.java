@@ -204,7 +204,7 @@ public class RDBMSFlatCSVUploader extends AbstractCSVFileReader {
 	 */
 	private void processTable(final String FILE_LOCATION, Map<String, String[]> csvMeta) throws IOException {
 		
-		// if csvMeta is null, we are not getting data type information fromn the FE, and we need to create this
+		// if csvMeta is null, we are not getting data type information from the FE, and we need to create this
 		// using all the file info
 		if(csvMeta == null) {
 			// parse the csv meta to get the headers and data types
@@ -217,7 +217,7 @@ public class RDBMSFlatCSVUploader extends AbstractCSVFileReader {
 		}
 		
 		/*
-		 * We need to determine if we are going to create a new table or append onto an existing engine
+		 * We need to determine if we are going to create a new table or append onto an existing one
 		 * Requirements for inserting into an existing table:
 		 * 
 		 * 1) If all the headers are a subset of the existing headers within a single table,
@@ -289,15 +289,17 @@ public class RDBMSFlatCSVUploader extends AbstractCSVFileReader {
 			String cleanTableName = RDBMSEngineCreationHelper.cleanTableName(fileName).toUpperCase();
 			
 			// we also need to make sure the table is unique
-			if(existingRDBMSStructure.containsKey(cleanTableName)) {
+			int counter = 2;
+			String uniqueTableName = cleanTableName;
+			if(existingRDBMSStructure.containsKey(uniqueTableName)) {
 				// TODO: might want a better way to do this
 				// 		but i think this is pretty unlikely... maybe...
-				cleanTableName += "_2"; 
+				uniqueTableName = cleanTableName + "_" + counter;
+				counter++;
 			}
 			
 			// run the process to create a new table from the csv file
-			generateNewTableFromCSV(FILE_LOCATION, cleanTableName, csvMeta);
-			
+			generateNewTableFromCSV(FILE_LOCATION, uniqueTableName, csvMeta);
 			
 			//TODO: this is where join information from the user would need to be added
 			// if we want the new table to be able to be joined onto existing tables
@@ -402,7 +404,6 @@ public class RDBMSFlatCSVUploader extends AbstractCSVFileReader {
 		}
 		
 		// now we need to append an identity column for the table, this will be the prim key
-		// TODO: should this be static across all tables or made to be different?
 		final String UNIQUE_ROW_ID = TABLE_NAME + BASE_PRIM_KEY;
 		// add the unique id for the table
 		addIdentityColumnToTable(TABLE_NAME, UNIQUE_ROW_ID);
@@ -517,11 +518,13 @@ public class RDBMSFlatCSVUploader extends AbstractCSVFileReader {
 		queryBuilder.append(")");
 		LOGGER.info("CREATE TABLE QUERY : " + queryBuilder.toString());
 		this.engine.insertData(queryBuilder.toString());
+		
+		newTables.add(TABLE_NAME);
 	}
 	
 	
 	/**
-	 * Generates a table and does a bulk insert of all the data from teh csv file
+	 * Generates a table and does a bulk insert of all the data from the csv file
 	 * @param FILE_LOCATION					
 	 * @param TABLE_NAME
 	 * @param csvMeta
@@ -563,7 +566,7 @@ public class RDBMSFlatCSVUploader extends AbstractCSVFileReader {
 							// set default as null
 							ps.setObject(colIndex+1, null);
 						}
-					} else if(type.equalsIgnoreCase("DOUBLE")) {
+					} else if(type.equalsIgnoreCase("DOUBLE") || type.equalsIgnoreCase("FLOAT") || type.equalsIgnoreCase("LONG")) {
 						Double value = Utility.getDouble(nextRow[colIndex]);
 						if(value != null) {
 							ps.setDouble(colIndex+1, value);

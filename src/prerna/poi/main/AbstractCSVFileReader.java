@@ -34,9 +34,6 @@ public abstract class AbstractCSVFileReader extends AbstractFileReader {
 	protected int startRow = 2;
 	protected int maxRows = 10000000;
 
-	// keep conversion from user input to sql datatypes
-	protected Map<String, String> sqlHash = new Hashtable<String, String>();
-
 	/**
 	 * Specifies which rows in the CSV to load based on user input in the prop file
 	 * @throws FileReaderException 
@@ -71,23 +68,6 @@ public abstract class AbstractCSVFileReader extends AbstractFileReader {
 		// get the headers for the csv
 		this.header = csvHelper.getHeaders();
 		LOGGER.info("Found headers: " + Arrays.toString(header));
-	}
-
-	/**
-	 * Fill in the sqlHash with the types
-	 */
-	protected void createSQLTypes() {
-		sqlHash.put("DECIMAL", "FLOAT");
-		sqlHash.put("DOUBLE", "FLOAT");
-		sqlHash.put("STRING", "VARCHAR(2000)"); // 8000 was chosen because this is the max for SQL Server; needs more permanent fix
-		sqlHash.put("TEXT", "VARCHAR(2000)"); // 8000 was chosen because this is the max for SQL Server; needs more permanent fix
-		//TODO: the FE needs to differentiate between "dates with times" vs. "dates"
-		sqlHash.put("DATE", "DATE");
-		sqlHash.put("SIMPLEDATE", "DATE");
-		// currently only add in numbers as doubles
-		sqlHash.put("NUMBER", "FLOAT");
-		sqlHash.put("INTEGER", "FLOAT");
-		sqlHash.put("BOOLEAN", "BOOLEAN");
 	}
 
 	/**

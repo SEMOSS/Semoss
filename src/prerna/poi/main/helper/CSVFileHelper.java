@@ -105,7 +105,7 @@ public class CSVFileHelper {
 				if(origHeader.trim().isEmpty()) {
 					origHeader = "BLANK_HEADER";
 				}
-				String newHeader = recursivelyFixHeaders(origHeader, newUniqueCSVHeaders, headerChecker);
+				String newHeader = headerChecker.recursivelyFixHeaders(origHeader, newUniqueCSVHeaders);
 				
 				// now update the unique headers, as this will be used to match duplications
 				newUniqueCSVHeaders.add(newHeader);
@@ -115,92 +115,6 @@ public class CSVFileHelper {
 			}
 		}
 	}
-	
-	
-	private String recursivelyFixHeaders(String origHeader, List<String> currCleanHeaders, HeadersException headerChecker) {
-		boolean isAltered = false;
-		
-		/*
-		 * For the following 3 checks
-		 * Just perform a single fix within each block
-		 * And let the recursion deal with having to fix an issue that is arising
-		 * due to a previous fix
-		 * i.e. you made a header no longer illegal but now it is a duplicate, recurssion of
-		 * this method will deal with that
-		 */
-		
-		// first, clean illegal characters
-		if(headerChecker.containsIllegalCharacter(origHeader)) {
-			origHeader = headerChecker.removeIllegalCharacters(origHeader);
-			isAltered = true;
-		}
-		
-		// second, check if header is some kind of reserved word
-		if(headerChecker.isIllegalHeader(origHeader)) {
-			origHeader = appendNumOntoHeader(origHeader);
-			isAltered = true;
-		}
-		
-		// third, check for duplications
-		for(String currHead : currCleanHeaders) {
-			if(origHeader.equalsIgnoreCase(currHead)) {
-				origHeader = appendNumOntoHeader(origHeader);
-				isAltered = true;
-				break;
-			}
-		}
-		
-		// if we did alter the string at any point
-		// we need to continue and re-run these checks again
-		// until we have gone through without altering the string
-		// and return the string
-		if(isAltered) {
-			origHeader = recursivelyFixHeaders(origHeader, currCleanHeaders, headerChecker);
-		}
-		
-		return origHeader;
-	}
-	
-	private String appendNumOntoHeader(String origHeader) {
-		int num = 0;
-		if(origHeader.matches(".*_\\d+")) {
-			String strNumbers = origHeader.substring(origHeader.lastIndexOf("_") + 1, origHeader.length());
-			num = Integer.parseInt(strNumbers);
-		}
-		origHeader = origHeader  + "_" + (++num);
-		
-		return origHeader;
-	}
-	
-	public String getHTMLBasedHeaderChanges() {
-		StringBuilder htmlStr = new StringBuilder();
-		htmlStr.append("Errors Found in Column Headers For File " + Utility.getOriginalFileName(this.fileLocation) + ". Performed the following changes to enable upload:<br>");
-		htmlStr.append("<br>");
-		htmlStr.append("COLUMN INDEX | OLD CSV NAME | NEW CSV NAME");
-
-		boolean isChange = false;
-		
-		// loop through and find changes
-		int numCols = allCsvHeaders.length;
-		for(int colIdx = 0; colIdx < numCols; colIdx++) {
-			String origHeader = allCsvHeaders[colIdx];
-			String newHeader = newUniqueCSVHeaders.get(colIdx);
-			
-			if(!origHeader.equalsIgnoreCase(newHeader)) {
-				isChange = true;
-				htmlStr.append("<br>");
-				htmlStr.append( (colIdx+1) + ") " + origHeader + " | " + newHeader);
-			}
-		}
-		
-		if(isChange) {
-			return htmlStr.toString();
-		} else {
-			return null;
-		}
-	}
-	
-	
 	
 	/**
 	 * Return the headers for the parser
@@ -375,6 +289,53 @@ public class CSVFileHelper {
 		
 		reset(true);
 		return types;
+	}
+	
+	public String getHTMLBasedHeaderChanges() {
+		StringBuilder htmlStr = new StringBuilder();
+		htmlStr.append("Errors Found in Column Headers For File " + Utility.getOriginalFileName(this.fileLocation) + ". Performed the following changes to enable upload:<br>");
+		htmlStr.append("<br>");
+		htmlStr.append("COLUMN INDEX | OLD CSV NAME | NEW CSV NAME");
+
+		boolean isChange = false;
+		
+		// loop through and find changes
+		int numCols = allCsvHeaders.length;
+		for(int colIdx = 0; colIdx < numCols; colIdx++) {
+			String origHeader = allCsvHeaders[colIdx];
+			String newHeader = newUniqueCSVHeaders.get(colIdx);
+			
+			if(!origHeader.equalsIgnoreCase(newHeader)) {
+				isChange = true;
+				htmlStr.append("<br>");
+				htmlStr.append( (colIdx+1) + ") " + origHeader + " | " + newHeader);
+			}
+		}
+		
+		if(isChange) {
+			return htmlStr.toString();
+		} else {
+			return null;
+		}
+	}
+	
+	
+	/**
+	 * Get each csv column name as it exists in the csv file to the valid csv header 
+	 * that we create on the BE
+	 * If the name is already valid, it just points to itself
+	 * @return
+	 */
+	public List<String[]> getExistingToModifedHeaders() {
+		List<String[]> modHeaders = new Vector<String[]>();
+		// loop through and find changes
+		int numCols = allCsvHeaders.length;
+		for(int colIdx = 0; colIdx < numCols; colIdx++) {
+			String[] modified = new String[]{allCsvHeaders[colIdx], newUniqueCSVHeaders.get(colIdx)};
+			modHeaders.add(modified);
+		}
+		
+		return modHeaders;
 	}
 	
 

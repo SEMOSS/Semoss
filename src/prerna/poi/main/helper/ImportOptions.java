@@ -16,7 +16,7 @@ public class ImportOptions {
 	private Hashtable<ImportOptions.IMPORT_OPTIONS , Object> thisMap = new Hashtable<ImportOptions.IMPORT_OPTIONS , Object>();
 	
 	public enum IMPORT_METHOD {CREATE_NEW, ADD_TO_EXISTING, OVERRIDE, CONNECT_TO_EXISTING_RDBMS};
-	public enum IMPORT_TYPE {CSV, NLP, EXCEL_POI, EXCEL, OCR, CSV_FLAT_LOAD};
+	public enum IMPORT_TYPE {CSV, NLP, EXCEL_POI, EXCEL, OCR, CSV_FLAT_LOAD, EXCEL_FLAT_UPLOAD};
 	public enum DB_TYPE {RDF, RDBMS};
 	
 	public enum IMPORT_OPTIONS {
@@ -34,7 +34,8 @@ public class ImportOptions {
 		AUTO_LOAD, 				// should point to boolean - determine if we should load the database directly or shut it down and have
 								// have the smss watcher find the engine and load it
 		DEFINED_METAMODEL,		// should point to Hashtable<String, String>[] - only valid for csv upload
-		DATA_TYPE_MAP			// should point to Map<String, Map<String, String>> - only valid for flat upload
+		CSV_DATA_TYPE_MAP,		// should point to Map<String, Map<String, String>> - only valid for flat upload
+		EXCEL_DATA_TYPE_MAP
 	};
 	
 	
@@ -197,12 +198,21 @@ public class ImportOptions {
 	 * Set the dataTypeMap for a set of files
 	 * @return
 	 */
-	public List<Map<String, String[]>> getDataTypeMap() {
-		return (List<Map<String, String[]>>) thisMap.get(IMPORT_OPTIONS.DATA_TYPE_MAP);
+	public List<Map<String, String[]>> getCsvDataTypeMap() {
+		return (List<Map<String, String[]>>) thisMap.get(IMPORT_OPTIONS.CSV_DATA_TYPE_MAP);
 	}
 	
-	public void setDataTypeMap(List<Map<String, String[]>> dataTypeMap) {
-		thisMap.put(IMPORT_OPTIONS.DATA_TYPE_MAP, dataTypeMap);
+	public void setCsvDataTypeMap(List<Map<String, String[]>> dataTypeMap) {
+		thisMap.put(IMPORT_OPTIONS.CSV_DATA_TYPE_MAP, dataTypeMap);
+	}
+	
+	
+	public List<Map<String, Map<String, String[]>>> getExcelDataTypeMap() {
+		return (List<Map<String, Map<String, String[]>>>) thisMap.get(IMPORT_OPTIONS.EXCEL_DATA_TYPE_MAP);
+	}
+	
+	public void setExcelDataTypeMap(List<Map<String, Map<String, String[]>>> dataTypeMap) {
+		thisMap.put(IMPORT_OPTIONS.EXCEL_DATA_TYPE_MAP, dataTypeMap);
 	}
 	
 	///////////////////////////// end getters & setters /////////////////////////////////////
