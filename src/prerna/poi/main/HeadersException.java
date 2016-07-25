@@ -263,6 +263,25 @@ public class HeadersException {
 		return false;
 	}
 	
+	public boolean isDuplicated(String checkHeader, String[] allHeaders, int ignoreIndex) {
+		checkHeader = checkHeader.toUpperCase();
+		for(int colIdx = 0; colIdx < allHeaders.length; colIdx++) {
+			if(colIdx == ignoreIndex) {
+				continue;
+			}
+			
+			String currHeaders = allHeaders[colIdx];
+			if(currHeaders == null) {
+				continue;
+			}
+			if(checkHeader.equals(currHeaders.toUpperCase())) {
+				return true;
+			}
+		}
+		
+		return false;
+	}
+	
 	public boolean isIllegalHeader(String checkHeader) {
 		if(prohibitedHeaders.contains(checkHeader)) {
 			return true;
