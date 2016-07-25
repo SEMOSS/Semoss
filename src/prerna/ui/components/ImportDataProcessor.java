@@ -265,6 +265,12 @@ public class ImportDataProcessor {
 				else if(importType == ImportOptions.IMPORT_TYPE.CSV_FLAT_LOAD) {
 					RDBMSFlatCSVUploader reader = new RDBMSFlatCSVUploader();
 					
+					// get new headers if user defined
+//					Map<String, Map<String, String>> newCsvHeaders = options.getCsvNewHeaders();
+//					if(newCsvHeaders != null) {
+//						reader.set(dataTypeMap);
+//					}
+					
 					// if the data type map has been created from the FE
 					List<Map<String, String[]>> dataTypeMap = options.getCsvDataTypeMap();
 					if(dataTypeMap != null) {
