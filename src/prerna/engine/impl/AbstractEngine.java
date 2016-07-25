@@ -202,7 +202,7 @@ public abstract class AbstractEngine implements IEngine {
 					insightRDBMS.insertData("UPDATE QUESTION_ID p SET QUESTION_DATA_MAKER = REPLACE(QUESTION_DATA_MAKER, 'BTreeDataFrame', 'TinkerFrame')");
 //					insightRDBMS.insertData("UPDATE QUESTION_ID SET QUESTION_MAKEUP=REGEXP_REPLACE ( QUESTION_MAKEUP , '\\\\\\\"' , '''' )");
 					insightRDBMS.insertData("UPDATE QUESTION_ID p SET QUESTION_MAKEUP = REPLACE(QUESTION_MAKEUP, 'SELECT @Concept-Concept:Concept@, ''http://www.w3.org/1999/02/22-rdf-syntax-ns#type'', ''http://semoss.org/ontologies/Concept''', 'SELECT @Concept-Concept:Concept@') WHERE p.QUESTION_DATA_MAKER = 'TinkerFrame'");
-					
+					insightRDBMS.insertData("UPDATE QUESTION_ID SET QUESTION_DATA_MAKER='TinkerFrame' WHERE QUESTION_NAME='Explore a concept from the database' OR QUESTION_NAME='Explore an instance of a selected node type'");
 					// Update existing dbs to not include QUESTION_ID column if it is there. Can remove this once everyone has updated their dbs
 //					ITableDataFrame f = WrapperManager.getInstance().getSWrapper(insightRDBMS, "select count(*) from information_schema.columns where table_name = 'QUESTION_ID' and column_name = 'QUESTION_ID'").getTableDataFrame();
 //					if((Double)f.getData().get(0)[0] != 0 ){
