@@ -15,6 +15,7 @@ import prerna.ds.H2.H2Frame;
 import prerna.ds.util.TinkerCastHelper;
 import prerna.poi.main.helper.CSVFileHelper;
 import prerna.poi.main.helper.XLFileHelper;
+import prerna.util.Utility;
 
 public class TableDataFrameFactory {
 
@@ -396,6 +397,49 @@ public class TableDataFrameFactory {
 			
 			return dataFrame;
 		}
+		return null;
+	}
+	
+	/**
+	 * 
+	 * @param table 	table to convert to a tinker frame
+	 * @return			converts an ITableDataFrame of type H2Frame to an ITableDataFrame of type TinkerFrame
+	 * 
+	 */
+	public static TinkerFrame convertToTinkerFrame(ITableDataFrame table) {
+//		frame.addRelationship(ss.getHeaders(), ss.getValues(), ss.getRawValues(), cardinality, logicalToValue);
+		if(table instanceof TinkerFrame) {
+			return (TinkerFrame)table;
+		} else if(table instanceof H2Frame) {
+			
+			TinkerFrame frame = new TinkerFrame();
+			
+			H2Frame h2frame = (H2Frame)table;
+			frame.metaData = h2frame.metaData; //set the meta data for the new frame
+			
+			//get an iterator and skip duplicates
+			Map<String, Object> options = new HashMap<>();
+			options.put(TinkerFrame.DE_DUP, true);
+			options.put(TinkerFrame.SELECTORS, h2frame.getSelectors());
+			Iterator<Object[]> iterator = h2frame.iterator(false, options);
+			
+			String[] columnHeaders  = h2frame.getSelectors().toArray(new String[]{});
+			Map<Integer, Set<Integer>> cardinality = Utility.getCardinalityOfValues(columnHeaders, frame.getEdgeHash());
+			Map<String, String> uniqueToValue = frame.metaData.getAllUniqueNamesToValues();
+			
+			//for each row add that relationship to tinker
+			while(iterator.hasNext()) {
+				Object[] row = iterator.next();
+				frame.addRelationship(columnHeaders, row, row, cardinality, uniqueToValue);
+//				Map<String, Object> nextMap = new HashMap<>();
+//				for(int i = 0; i < row.length; i++) {
+//					nextMap.put(columnHeaders[i], row[i]);
+//				}
+//				frame.addRelationship(nextMap, nextMap);
+			}
+			return frame;
+		}
+		
 		return null;
 	}
 	
