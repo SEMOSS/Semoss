@@ -73,6 +73,8 @@ public class CSVReader extends AbstractCSVFileReader {
 			{
 				try {
 					String fileName = files[i];
+					// open the csv file
+					// and get the headers
 					openCSVFile(fileName);			
 					// load the prop file for the CSV file 
 					if(propFileExist){
@@ -80,6 +82,7 @@ public class CSVReader extends AbstractCSVFileReader {
 					} else {
 						rdfMap = rdfMapArr[i];
 					}
+					// get the user selected datatypes for each header
 					preParseRdfCSVMetaData(rdfMap);
 					parseMetadata();
 					processDisplayNames();
@@ -126,6 +129,8 @@ public class CSVReader extends AbstractCSVFileReader {
 		for(int i = 0; i<files.length;i++)
 		{
 			String fileName = files[i];
+			// open the csv file
+			// and get the headers
 			openCSVFile(fileName);	
 			try {
 				// load the prop file for the CSV file 
@@ -134,6 +139,7 @@ public class CSVReader extends AbstractCSVFileReader {
 				} else {
 					rdfMap = rdfMapArr[i];
 				}
+				// get the user selected datatypes for each header
 				preParseRdfCSVMetaData(rdfMap);
 				parseMetadata();
 				processDisplayNames();

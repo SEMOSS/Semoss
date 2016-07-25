@@ -55,6 +55,7 @@ import prerna.poi.main.NLPReader;
 import prerna.poi.main.POIReader;
 import prerna.poi.main.PropFileWriter;
 import prerna.poi.main.RDBMSFlatCSVUploader;
+import prerna.poi.main.RDBMSFlatExcelUploader;
 import prerna.poi.main.RDBMSReader;
 import prerna.poi.main.RdfExcelTableReader;
 import prerna.poi.main.helper.ImportOptions;
@@ -265,12 +266,24 @@ public class ImportDataProcessor {
 					RDBMSFlatCSVUploader reader = new RDBMSFlatCSVUploader();
 					
 					// if the data type map has been created from the FE
-					List<Map<String, String[]>> dataTypeMap = options.getDataTypeMap();
+					List<Map<String, String[]>> dataTypeMap = options.getCsvDataTypeMap();
 					if(dataTypeMap != null) {
 						reader.setDataTypeMapList(dataTypeMap);
 					}
 					
 					reader.setAutoLoad(autoLoad);
+					engine = reader.importFileWithOutConnection(smssLocation, engineName, filePath, customBaseUri, owlPath, rdbmsDriverType, allowDups);
+				}
+				
+				// excel upload via flat 
+				else if(importType == ImportOptions.IMPORT_TYPE.EXCEL_FLAT_UPLOAD) {
+					RDBMSFlatExcelUploader reader = new RDBMSFlatExcelUploader();
+					
+					// if the data type map has been created from the FE
+					List<Map<String, Map<String, String[]>>> dataTypeMap = options.getExcelDataTypeMap();
+					if(dataTypeMap != null) {
+						reader.setDataTypeMapList(dataTypeMap);
+					}
 					engine = reader.importFileWithOutConnection(smssLocation, engineName, filePath, customBaseUri, owlPath, rdbmsDriverType, allowDups);
 				}
 				
@@ -511,7 +524,19 @@ public class ImportDataProcessor {
 				RDBMSFlatCSVUploader reader = new RDBMSFlatCSVUploader();
 				
 				// if the data type map has been created from the FE
-				List<Map<String, String[]>> dataTypeMap = options.getDataTypeMap();
+				List<Map<String, String[]>> dataTypeMap = options.getCsvDataTypeMap();
+				if(dataTypeMap != null) {
+					reader.setDataTypeMapList(dataTypeMap);
+				}
+				reader.importFileWithConnection(engineName, filePath, customBaseUri, owlPath, rdbmsDriverType, allowDups);
+			}
+			
+			// excel upload via flat 
+			else if(importType == ImportOptions.IMPORT_TYPE.EXCEL_FLAT_UPLOAD) {
+				RDBMSFlatExcelUploader reader = new RDBMSFlatExcelUploader();
+				
+				// if the data type map has been created from the FE
+				List<Map<String, Map<String, String[]>>> dataTypeMap = options.getExcelDataTypeMap();
 				if(dataTypeMap != null) {
 					reader.setDataTypeMapList(dataTypeMap);
 				}
