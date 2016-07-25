@@ -15,6 +15,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
+import java.util.Vector;
 
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
@@ -127,19 +128,21 @@ public class MHSDashboardDrillPlaysheet extends TablePlaySheet implements IDataM
 	 * @return list of systems within a hashmap
 	 */
 	public Map getSystem() {
+		Map<String, Object> returnHash = new HashMap<String, Object>();
+		
 		String [] selectors = new String[]{SYSTEM};
 		Map<String, Object> mainHash = super.getDataMakerOutput(selectors);
 		Object systems = mainHash.get("data");
-		Map<String, Object> returnHash = new HashMap<String, Object>();
 		returnHash.put(SYSTEM, systems);
 		return returnHash;
 	}
 	
 	public Map getSystemOwner() {
+		Map<String, Object> returnHash = new HashMap<String, Object>();
+		
 		String [] selectors = new String[]{SYSTEM_OWNER};
 		Map<String, Object> mainHash = super.getDataMakerOutput(selectors);
 		Object systemsOwner = mainHash.get("data");
-		Map<String, Object> returnHash = new HashMap<String, Object>();
 		returnHash.put(SYSTEM_OWNER, systemsOwner);
 		return returnHash;
 	}
@@ -149,11 +152,28 @@ public class MHSDashboardDrillPlaysheet extends TablePlaySheet implements IDataM
 	 * @return list of uploaded dates within a hashmap
 	 */
 	public Map getUploadDate() {
+		Map<String, Object> returnHash = new HashMap<String, Object>();
+		
 		String [] selectors = new String[]{UPLOAD_DATE};
 		Map<String, Object> mainHash = super.getDataMakerOutput(selectors);
-		Object upload = mainHash.get("data");
-		Map<String, Object> returnHash = new HashMap<String, Object>();
-		returnHash.put(UPLOAD_DATE, upload);
+		Vector<Object[]> uploadList = (Vector<Object[]>) mainHash.get("data");
+		List<String> uploadDateList = new ArrayList<String> ();
+//		List<Object> uploadDateList = new ArrayList<Object> ();
+		for(Object [] upload : uploadList) {
+			String[] stringArray = Arrays.copyOf(upload, upload.length, String[].class);
+			Date uploadDate = null;
+			for (String s: stringArray) {           
+//				try {
+//					uploadDate = (Date) getDateFormat().parse(s);
+//				} catch (ParseException e) {
+//					e.printStackTrace();
+//				}
+				uploadDateList.add(s);
+		    }
+		}
+		Collections.sort(uploadDateList, Collections.reverseOrder());
+		
+		returnHash.put(UPLOAD_DATE, uploadDateList);
 		return returnHash;
 	}
 	
@@ -321,9 +341,7 @@ public class MHSDashboardDrillPlaysheet extends TablePlaySheet implements IDataM
 		return new SimpleDateFormat("MM-dd-yyyy");
 	}
 
-//	public static DateFormat getShortDate () {
-//		
-//	}
+
 	/**
 	 * Method to format date the way FE expects it...ie without the string keys that objMap currently contains
 	 * @param objMap 
