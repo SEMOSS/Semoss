@@ -48,6 +48,36 @@ public class RDBMSFlatExcelUploader extends AbstractFileReader {
 	
 	// used as a default for the unique row id
 	private final String BASE_PRIM_KEY = "_UNIQUE_ROW_ID";
+
+	/*
+	 * Store the new user defined excel file names
+	 * Format for this is:
+	 * [	{
+	 * 		excel_1_sheet_1 -> {
+	 * 							fixed_header_name_1 -> user_changed_header_name_1,
+	 *	 						fixed_header_name_2 -> user_changed_header_name_2,
+	 * 							fixed_header_name_3 -> user_changed_header_name_3,
+	 * 						}
+	 * 		excel_1_sheet_2 -> {
+	 * 							fixed_header_name_4 -> user_changed_header_name_4,
+	 *	 						fixed_header_name_5 -> user_changed_header_name_5,
+	 * 							fixed_header_name_6 -> user_changed_header_name_6,
+	 * 						} 
+	 * 		}, 
+	 * 		{
+	 * 		excel_2_sheet_1 -> {
+	 * 							fixed_header_name_1 -> user_changed_header_name_1,
+	 *	 						fixed_header_name_2 -> user_changed_header_name_2,
+	 * 							fixed_header_name_3 -> user_changed_header_name_3,
+	 * 						}
+	 * 		excel_2_sheet_2 -> {
+	 * 							fixed_header_name_4 -> user_changed_header_name_4,
+	 *	 						fixed_header_name_5 -> user_changed_header_name_5,
+	 * 							fixed_header_name_6 -> user_changed_header_name_6,
+	 * 						} 
+	 * 		}
+	 */
+	private List<Map<String, Map<String, String>>> userHeaderNames;
 	
 	///////////////////////////////////////// main upload methods //////////////////////////////////////////
 	
@@ -664,6 +694,10 @@ public class RDBMSFlatExcelUploader extends AbstractFileReader {
 	 */
 	public void setDataTypeMapList(List<Map<String, Map<String, String[]>>> dataTypeMapList) {
 		this.dataTypeMapList = dataTypeMapList;
+	}
+	
+	public void setNewExcelHeaders(List<Map<String, Map<String, String>>> newExcelHeaders) {
+		this.userHeaderNames = newExcelHeaders;
 	}
 	
 	//////////////////////////////// end utility methods //////////////////////////////
