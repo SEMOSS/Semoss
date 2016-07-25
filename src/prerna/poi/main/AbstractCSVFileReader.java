@@ -30,6 +30,24 @@ public abstract class AbstractCSVFileReader extends AbstractFileReader {
 	protected String[] dataTypes;
 	protected Map<String, Integer> csvColumnToIndex;
 	
+	/*
+	 * Store the new user defined csv file names
+	 * Format for this is:
+	 * {
+	 * 		csv_file_name1 -> {
+	 * 							fixed_header_name_1 -> user_changed_header_name_1,
+	 *	 						fixed_header_name_2 -> user_changed_header_name_2,
+	 * 							fixed_header_name_3 -> user_changed_header_name_3,
+	 * 						}
+	 * 		csv_file_name2 -> {
+	 * 							fixed_header_name_4 -> user_changed_header_name_4,
+	 *	 						fixed_header_name_5 -> user_changed_header_name_5,
+	 * 							fixed_header_name_6 -> user_changed_header_name_6,
+	 * 						} 
+	 * }
+	 */
+	protected Map<String, Map<String, String>> userHeaderNames;
+	
 	protected int count = 0;
 	protected int startRow = 2;
 	protected int maxRows = 10000000;

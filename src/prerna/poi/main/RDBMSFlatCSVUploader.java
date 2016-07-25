@@ -90,6 +90,7 @@ public class RDBMSFlatCSVUploader extends AbstractCSVFileReader {
 				if(dataTypeMapList != null && !dataTypeMapList.isEmpty()) {
 					dataTypeMap = dataTypeMapList.get(i); 
 				}
+				// note that the csvHelper gets created in processTable
 				processTable(fileName, dataTypeMap);
 			}
 			// write the owl file
@@ -156,6 +157,7 @@ public class RDBMSFlatCSVUploader extends AbstractCSVFileReader {
 				if(dataTypeMapList != null && !dataTypeMapList.isEmpty()) {
 					dataTypeMap = dataTypeMapList.get(i);
 				}
+				// note that the csvHelper gets created in processTable
 				processTable(fileName, dataTypeMap);
 			}
 			// write the owl file
@@ -337,6 +339,7 @@ public class RDBMSFlatCSVUploader extends AbstractCSVFileReader {
 		// ... at least this way, we know all the values always work with regards to loading
 		String[] headers = csvHelper.getHeaders();
 		LOGGER.info("Found headers: " + Arrays.toString(headers));
+		
 		String[] dataTypes = csvHelper.predictTypes();
 		LOGGER.info("Found data types: " + Arrays.toString(dataTypes));
 
