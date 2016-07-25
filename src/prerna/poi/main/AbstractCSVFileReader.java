@@ -107,5 +107,9 @@ public abstract class AbstractCSVFileReader extends AbstractFileReader {
 		propFileExist = false;
 	}
 	
+	public void setNewCsvHeaders(Map<String, Map<String, String>> newCsvHeaders) {
+		this.userHeaderNames = newCsvHeaders;		
+	}
+	
 	
 }

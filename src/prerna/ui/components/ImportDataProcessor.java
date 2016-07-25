@@ -266,10 +266,10 @@ public class ImportDataProcessor {
 					RDBMSFlatCSVUploader reader = new RDBMSFlatCSVUploader();
 					
 					// get new headers if user defined
-//					Map<String, Map<String, String>> newCsvHeaders = options.getCsvNewHeaders();
-//					if(newCsvHeaders != null) {
-//						reader.set(dataTypeMap);
-//					}
+					Map<String, Map<String, String>> newCsvHeaders = options.getCsvNewHeaders();
+					if(newCsvHeaders != null) {
+						reader.setNewCsvHeaders(newCsvHeaders);
+					}
 					
 					// if the data type map has been created from the FE
 					List<Map<String, String[]>> dataTypeMap = options.getCsvDataTypeMap();
@@ -284,6 +284,12 @@ public class ImportDataProcessor {
 				// excel upload via flat 
 				else if(importType == ImportOptions.IMPORT_TYPE.EXCEL_FLAT_UPLOAD) {
 					RDBMSFlatExcelUploader reader = new RDBMSFlatExcelUploader();
+					
+					// get new headers if user defined
+					List<Map<String, Map<String, String>>> newExcelHeaders = options.getExcelNewHeaders();
+					if(newExcelHeaders != null) {
+						reader.setNewExcelHeaders(newExcelHeaders);
+					}
 					
 					// if the data type map has been created from the FE
 					List<Map<String, Map<String, String[]>>> dataTypeMap = options.getExcelDataTypeMap();
@@ -529,6 +535,12 @@ public class ImportDataProcessor {
 			else if(importType == ImportOptions.IMPORT_TYPE.CSV_FLAT_LOAD) {
 				RDBMSFlatCSVUploader reader = new RDBMSFlatCSVUploader();
 				
+				// get new headers if user defined
+				Map<String, Map<String, String>> newCsvHeaders = options.getCsvNewHeaders();
+				if(newCsvHeaders != null) {
+					reader.setNewCsvHeaders(newCsvHeaders);
+				}
+				
 				// if the data type map has been created from the FE
 				List<Map<String, String[]>> dataTypeMap = options.getCsvDataTypeMap();
 				if(dataTypeMap != null) {
@@ -540,6 +552,12 @@ public class ImportDataProcessor {
 			// excel upload via flat 
 			else if(importType == ImportOptions.IMPORT_TYPE.EXCEL_FLAT_UPLOAD) {
 				RDBMSFlatExcelUploader reader = new RDBMSFlatExcelUploader();
+				
+				// get new headers if user defined
+				List<Map<String, Map<String, String>>> newExcelHeaders = options.getExcelNewHeaders();
+				if(newExcelHeaders != null) {
+					reader.setNewExcelHeaders(newExcelHeaders);
+				}
 				
 				// if the data type map has been created from the FE
 				List<Map<String, Map<String, String[]>>> dataTypeMap = options.getExcelDataTypeMap();
