@@ -336,6 +336,37 @@ public class XLFileHelper {
 		return types;
 	}
 	
+	public Map<String, Map<String, String>> getChangedHeaders() {
+		Map<String, Map<String, String>> changedHeaders = new Hashtable<String, Map<String, String>>();
+		
+		// loop through all the sheets
+		String[] sheetNames = this.getTables();
+		for(String sheetName : sheetNames) {
+			// get all the original headers in the sheet
+			String[] originalHeaders = original_headers.get(sheetName);
+			// get all the new headers in the sheet
+			String[] newHeaders = clean_headers.get(sheetName);
+
+			Hashtable<String, String> modHeaders = new Hashtable<String, String>();
+			
+			// iterate thorugh the headers lists and see what values have changed
+			int numCols = newHeaders.length;
+			for(int colIdx = 0; colIdx < numCols; colIdx++) {
+				String origHeader = originalHeaders[colIdx];
+				String newHeader = newHeaders[colIdx];
+				
+				if(!origHeader.equalsIgnoreCase(newHeader)) {
+					modHeaders.put(newHeader, "Original Header Value = " + origHeader);
+				}
+			}
+			
+			changedHeaders.put(sheetName, modHeaders);
+		}
+		
+		return changedHeaders;
+	}
+	
+	
 	/**
 	 * Each sheet becomes a table
 	 * @return
@@ -475,4 +506,5 @@ public class XLFileHelper {
 	private void printRow(String[] nextRow) {
 		System.out.println(Arrays.toString(nextRow));
 	}
+	
 }
