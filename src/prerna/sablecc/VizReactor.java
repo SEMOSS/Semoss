@@ -9,6 +9,10 @@ import java.util.Map;
 import java.util.Set;
 import java.util.Vector;
 
+import prerna.algorithm.api.ITableDataFrame;
+import prerna.ds.TinkerFrame;
+import prerna.util.ArrayUtilityMethods;
+
 public class VizReactor extends AbstractReactor {
 
 
@@ -24,8 +28,11 @@ public class VizReactor extends AbstractReactor {
 	@Override
 	public Iterator process() {
 		Object termObject = myStore.get("VizTableData");
+		ITableDataFrame frame = (ITableDataFrame)myStore.get("G");
 		
 		List<String> columns = new ArrayList<>();
+		List<String> columnsToGrab  = new ArrayList<>();
+		String[] keyColumns = new String[]{};
 		Map<Map<String, Object>, Object> mainMap = new HashMap<>();
 		List<Object[]> grid = new ArrayList<>(1);
 		
@@ -36,22 +43,86 @@ public class VizReactor extends AbstractReactor {
 				if(nextObject instanceof Map) {
 					String newColName = "newCol"+counter++;
 					columns.add(newColName);
+					
+					if(keyColumns.length == 0) {
+						keyColumns = ((Map<Map<String, Object>, Object>)nextObject).keySet().iterator().next().keySet().toArray(new String[]{});
+					}
+					
 					mainMap = mergeMap(mainMap, (Map<Map<String, Object>, Object>)nextObject);
-//					grid = convertMapToGrid((Map<Map<String, Object>, Object>)nextObject);
+					
+					
 				} else if(nextObject instanceof String) {
-					columns.add(nextObject.toString());
+					columnsToGrab.add(nextObject.toString());
 				} else {
 					//formulas which are not group bys and not columns should be taken care of here
 				}
 			}
 		} else {
-			
+			//if this is the case what are we displaying?
 		}
 		
-		grid = convertMapToGrid(mainMap);
-		myStore.put("VizTableKeys", columns);
+		//grab the iterator
+		if(columnsToGrab.size() > 0 && keyColumns.length > 0) {
+			Map<String, Object> options = new HashMap<>();
+			options.put(TinkerFrame.SELECTORS, columnsToGrab);
+			options.put(TinkerFrame.DE_DUP, true);
+			Iterator<Object[]> iterator = frame.iterator(false, options);
+			
+			//convert to map
+			Map<Map<String, Object>, Object> newMap = convertIteratorDataToMap(iterator, columnsToGrab, keyColumns);
+			mainMap = mergeMap(mainMap, newMap);
+		} else if(columnsToGrab.size() > 0) {
+			Map<String, Object> options = new HashMap<>();
+			options.put(TinkerFrame.SELECTORS, columnsToGrab);
+			options.put(TinkerFrame.DE_DUP, true);
+			Iterator<Object[]> iterator = frame.iterator(false, options);
+			
+			grid = new ArrayList<>(100);
+			while(iterator.hasNext()) {
+				grid.add(iterator.next());
+			}
+		}
+		//merge with current map
+		
+		
+		for(String column : keyColumns) {
+			columnsToGrab.remove(column);
+		}
+		columns.addAll(columnsToGrab);
+		
+		List<String> headerColumns = new ArrayList<>();
+		for(String column : keyColumns) {
+			headerColumns.add(column);
+		}
+		headerColumns.addAll(columns);
+		
+		if(keyColumns.length > 0) {
+			grid = convertMapToGrid(mainMap, keyColumns);
+		}
+		myStore.put("VizTableKeys", headerColumns);
 		myStore.put("VizTableValues", grid);
+		
 		return null;
+	}
+	
+	private Map<Map<String, Object>, Object> convertIteratorDataToMap(Iterator<Object[]> iterator, List<String> columnsToGrab, String[] keyColumns) {
+		Map<Map<String, Object>, Object> retMap = new HashMap<>();
+		while(iterator.hasNext()) {
+			Map<String, Object> newKey = new HashMap<>();
+			List<Object> newValue = new ArrayList<>();
+			
+			Object[] row = iterator.next();
+			for(int i = 0; i < row.length; i++) {
+				if(ArrayUtilityMethods.arrayContainsValueIgnoreCase(keyColumns, columnsToGrab.get(i))) {
+					newKey.put(columnsToGrab.get(i), row[i]);
+				} else {
+					newValue.add(row[i]);
+				}
+			}
+			retMap.put(newKey, newValue);
+		}
+		
+		return retMap;
 	}
 	
 	private Map<Map<String, Object>, Object> mergeMap(Map<Map<String, Object>, Object> firstMap, Map<Map<String, Object>, Object> secondMap) {
@@ -73,12 +144,24 @@ public class VizReactor extends AbstractReactor {
 				} else if(obj != null) {
 					List<Object> newList = new ArrayList<>();
 					newList.add(obj);
-					newList.add(secondMap.get(key));
+					Object secondObj = secondMap.get(key);
+					if(secondObj instanceof List) {
+						newList.addAll((List)secondObj);
+					} else if(secondObj != null) {
+						newList.add(secondMap.get(key));
+					}
 					mergedMap.put(key, newList);
 				} else {
 					List<Object> newList = new ArrayList<>();
 					newList.add("");
-					newList.add(secondMap.get(key));
+					Object secondObj = secondMap.get(key);
+					if(secondObj instanceof List) {
+						newList.addAll((List)secondObj);
+					} else if(secondObj != null) {
+						newList.add(secondMap.get(key));
+					} else {
+						newList.add("");
+					}
 					mergedMap.put(key, newList);
 				}
 			} else {
@@ -92,23 +175,16 @@ public class VizReactor extends AbstractReactor {
 		return mergedMap;
 	}
 	
-    private List<Object[]> convertMapToGrid(Map<Map<String, Object>, Object> mapData) {
+    private List<Object[]> convertMapToGrid(Map<Map<String, Object>, Object> mapData, String[] headers) {
         List<Object[]> grid = new Vector<Object[]>();
         
-        String[] headers = null;
-        int numHeaders = 0;
+        int numHeaders = headers.length;
         
         // iterate through each unique group
         Set<Map<String, Object>> unqiueGroupSet = mapData.keySet();
         for(Map<String, Object> group : unqiueGroupSet) {
-              // get the headers from the keyset
-              if(headers == null) {
-                    headers = group.keySet().toArray(new String[]{});
-                    numHeaders = headers.length;
-              }
-              
-//              Object[] row = new Object[numHeaders + 1];
-              List<Object> row = new ArrayList<>();
+
+        	List<Object> row = new ArrayList<>();
               // store each value of the group by
               for(int colIdx = 0; colIdx < numHeaders; colIdx++) {
                     row.add(group.get(headers[colIdx]));
@@ -125,18 +201,6 @@ public class VizReactor extends AbstractReactor {
               grid.add(row.toArray());
         }
         
-//        String[] dataHeaders = new String[numHeaders+1];
-//        for(int i = 0; i < dataHeaders.length; i++) {
-//        	if(i==dataHeaders.length-1) {
-//        		dataHeaders[i] = newColName;
-//        	} else {
-//        		dataHeaders[i] = headers[i];
-//        	}
-//        }
-//        Map map = new HashMap();
-//        map.put("data", grid);
-//        map.put("headers", dataHeaders);
-//        dataMap.put("data", grid);
         return grid;
     }
 }
