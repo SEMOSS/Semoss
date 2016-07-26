@@ -222,7 +222,7 @@ public class RDBMSFlatCSVUploader extends AbstractCSVFileReader {
 		 * We need to determine if we are going to create a new table or append onto an existing one
 		 * Requirements for inserting into an existing table:
 		 * 
-		 * 1) If all the headers are a subset of the existing headers within a single table,
+		 * 1) If all the headers are contained in an existing single table,
 		 * then we go ahead and insert into that table and keep everything else empty where columns
 		 * might be missing
 		 * 
@@ -239,6 +239,14 @@ public class RDBMSFlatCSVUploader extends AbstractCSVFileReader {
 		TABLE_LOOP : for(String existingTableName : existingRDBMSStructure.keySet()) {
 			// get the map containing the column names to data types for the existing table name
 			Map<String, String> existingColTypeMap = existingRDBMSStructure.get(existingTableName);
+			
+			// if the number of headers does not match
+			// we know it is not a good match
+			if(existingColTypeMap.keySet().size() != headers.length) {
+				// no way all columns are contained
+				// look at the next table
+				continue TABLE_LOOP;
+			}
 			
 			// check that every header is contained in this table
 			// check that the data types from the csv file and the table match
@@ -293,7 +301,7 @@ public class RDBMSFlatCSVUploader extends AbstractCSVFileReader {
 			// we also need to make sure the table is unique
 			int counter = 2;
 			String uniqueTableName = cleanTableName;
-			if(existingRDBMSStructure.containsKey(uniqueTableName)) {
+			while(existingRDBMSStructure.containsKey(uniqueTableName)) {
 				// TODO: might want a better way to do this
 				// 		but i think this is pretty unlikely... maybe...
 				uniqueTableName = cleanTableName + "_" + counter;
@@ -735,6 +743,10 @@ public class RDBMSFlatCSVUploader extends AbstractCSVFileReader {
 //					
 //					// assumption that the column is the name of the table with the base_prim_key constant for both tables
 //					owler.addRelation(existingTableName, existingTableName + BASE_PRIM_KEY, TABLE_NAME, TABLE_NAME + BASE_PRIM_KEY, predicate);
+//					
+//					// TODO: assumption that the first one to match is it
+//					// if we add the others, each time we join I will have no idea which one is selected...
+//					break;
 //				}
 //			}
 //		}

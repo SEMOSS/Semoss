@@ -265,7 +265,7 @@ public class RDBMSFlatExcelUploader extends AbstractFileReader {
 		 * We need to determine if we are going to create a new table or append onto an existing one
 		 * Requirements for inserting into an existing table:
 		 * 
-		 * 1) If all the headers are a subset of the existing headers within a single table,
+		 * 1) If all the headers are contained within a single existing table,
 		 * then we go ahead and insert into that table and keep everything else empty where columns
 		 * might be missing
 		 * 
@@ -289,6 +289,14 @@ public class RDBMSFlatExcelUploader extends AbstractFileReader {
 		TABLE_LOOP : for(String existingTableName : existingRDBMSStructure.keySet()) {
 			// get the map containing the column names to data types for the existing table name
 			Map<String, String> existingColTypeMap = existingRDBMSStructure.get(existingTableName);
+			
+			// if the number of headers does not match
+			// we know it is not a good match
+			if(existingColTypeMap.keySet().size() != headers.length) {
+				// no way all columns are contained
+				// look at the next table
+				continue TABLE_LOOP;
+			}
 			
 			// check that every header is contained in this table
 			// check that the data types from the csv file and the table match
@@ -337,7 +345,7 @@ public class RDBMSFlatExcelUploader extends AbstractFileReader {
 			// we also need to make sure the table is unique
 			int counter = 2;
 			String uniqueTableName = cleanTableName;
-			if(existingRDBMSStructure.containsKey(uniqueTableName)) {
+			while(existingRDBMSStructure.containsKey(uniqueTableName)) {
 				// TODO: might want a better way to do this
 				// 		but i think this is pretty unlikely... maybe...
 				uniqueTableName = cleanTableName + "_" + counter;
