@@ -34,7 +34,7 @@ public class XLFileHelper {
 	// gets the sheet name -> headers for sheet
 	private Map <String, String[]> original_headers = new Hashtable<String, String[]>();
 	// gets the sheet name -> headers for sheet
-		private Map <String, String[]> clean_headers = new Hashtable<String, String[]>();
+	private Map <String, String[]> clean_headers = new Hashtable<String, String[]>();
 	// used for iterating through the sheet
 	private Map <String, Integer> sheetCounter = new Hashtable<String, Integer>();
 	
@@ -72,7 +72,10 @@ public class XLFileHelper {
 				String nameOfSheet = sheet.getSheetName();
 				sheetNames.put(nameOfSheet, sheet);
 				
-				String[] sheetHeaders = getCells(sheet.getRow(0));
+				String[] sheetHeaders = getSheetHeaders(sheet);
+				if(sheetHeaders == null) {
+					sheetHeaders = new String[]{};
+				}
 				original_headers.put(nameOfSheet, sheetHeaders);
 				
 				// grab the headerChecker
@@ -105,6 +108,25 @@ public class XLFileHelper {
 		return clean_headers.get(sheetName);
 	}
 	
+	// this is in case the user has a dumb excel
+	// where the top row is completely empty/null
+	// find the first non-null row
+	public String[] getSheetHeaders(XSSFSheet sheet) {
+		int counter = 0;
+		XSSFRow headerRow = null;
+		while(headerRow == null && counter < sheet.getLastRowNum()) {
+			headerRow = sheet.getRow(counter);
+			counter++;
+		}
+		
+		// get the headers
+		String[] sheetHeaders = getCells(headerRow);
+		// set the new start for the getNextRow for this sheet
+		sheetCounter.put(sheet.getSheetName(), counter);
+		
+		return sheetHeaders;
+	}
+	
 	/////////////////// START ALL NEXT ROWS ///////////////////
 	
 	public String[] getNextRow(String sheetName) {
@@ -116,9 +138,13 @@ public class XLFileHelper {
 		}
 		
 		String [] thisRow = null;
-		if(counter < thisSheet.getLastRowNum()) {
+		while(thisRow == null && counter < thisSheet.getLastRowNum()) {
 			thisRow = getCells(thisSheet.getRow(counter));
+			counter++;		
 		}
+		
+		// set counter back
+		sheetCounter.put(sheetName, counter);
 		
 		// assimilate the properties
 		// TODO: this logic isn't valid since we get the headers on instantiation of the instance
@@ -127,15 +153,14 @@ public class XLFileHelper {
 //				putProp(thisRow[colIndex], sheetName);
 //			}
 //		}
-		
-		// set counter back
-		counter++;		
-		sheetCounter.put(sheetName, counter);
 
 		return thisRow;
 	}
 	
 	private String[] getCells(XSSFRow row) {
+		if(row == null) {
+			return null;
+		}
 		int colLength = row.getLastCellNum();
 		return getCells(row, colLength);
 	}
@@ -170,9 +195,13 @@ public class XLFileHelper {
 		}
 		
 		String [] thisRow = null;
-		if(counter < thisSheet.getLastRowNum()) {
+		while(thisRow == null && counter < thisSheet.getLastRowNum()) {
 			thisRow = getCells(thisSheet.getRow(counter), allHeaders, headersToGet);
+			counter++;		
 		}
+		
+		// set counter back
+		sheetCounter.put(sheetName, counter);
 		
 		// assimilate the properties
 		// TODO: this logic isn't valid since we get the headers on instantiation of the instance
@@ -182,10 +211,6 @@ public class XLFileHelper {
 //			}
 //		}
 		
-		// set counter back
-		counter++;		
-		sheetCounter.put(sheetName, counter);
-
 		return thisRow;
 	}
 	
@@ -229,9 +254,13 @@ public class XLFileHelper {
 		}
 		
 		String [] thisRow = null;
-		if(counter < thisSheet.getLastRowNum()) {
+		while(thisRow == null && counter < thisSheet.getLastRowNum()) {			
 			thisRow = getCells(thisSheet.getRow(counter), headerIndicesToGet);
+			counter++;
 		}
+		
+		// set counter back
+		sheetCounter.put(sheetName, counter);
 		
 		// assimilate the properties
 		// TODO: this logic isn't valid since we get the headers on instantiation of the instance
@@ -241,10 +270,6 @@ public class XLFileHelper {
 //			}
 //		}
 		
-		// set counter back
-		counter++;		
-		sheetCounter.put(sheetName, counter);
-
 		return thisRow;
 	}
 	
@@ -511,13 +536,22 @@ public class XLFileHelper {
 		//fileName = "C:/Users/pkapaleeswaran/workspacej3/datasets/Movie.csv";
 		fileName = "C:/Users/pkapaleeswaran/workspacej3/datasets/XLUploadTester.xlsx";
 		//fileName = "C:/Users/pkapaleeswaran/workspacej3/datasets/Medical_devices_data.xlsx";
+		
+		fileName = "C:/Users/mahkhalil/Desktop/Copy of eXAMPLE_DATA.xlsx";
 		before = System.nanoTime();
 		XLFileHelper test = new XLFileHelper();
 		test.parse(fileName);
 		String [] tables = test.getTables();
+		test.printRow(tables);
 		for(int tabIndex = 0;tabIndex < tables.length;tabIndex++)
 		{
+			test.printRow(test.getHeaders(tables[tabIndex]));
 			test.printRow(test.getNextRow(tables[tabIndex]));
+			test.printRow(test.getNextRow(tables[tabIndex]));
+			test.printRow(test.getNextRow(tables[tabIndex]));
+			System.out.println(">>>>>>>>>>>>>>>>>>>>>>>>");
+			System.out.println(">>>>>>>>>>>>>>>>>>>>>>>>");
+			System.out.println(">>>>>>>>>>>>>>>>>>>>>>>>");
 		}
 		Vector <String> allRels = test.getRelations();
 		
@@ -532,6 +566,8 @@ public class XLFileHelper {
 	}
 
 	private void printRow(String[] nextRow) {
-		System.out.println(Arrays.toString(nextRow));
+		if(nextRow != null) {
+			System.out.println(Arrays.toString(nextRow));
+		}
 	}
 }
