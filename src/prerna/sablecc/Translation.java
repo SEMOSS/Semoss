@@ -386,9 +386,12 @@ public class Translation extends DepthFirstAdapter {
 		else {
 			alignTranslated.add(curReactor.getValue(alignment+""));
 		}
+		
+		curReactor.put("VizTableData", alignTranslated);
 		Map<String, Object> chartDataObj = new HashMap<String, Object>();
 		chartDataObj.put("layout", layout);
-		chartDataObj.put("dataTableKeys", alignTranslated);
+//		chartDataObj.put("dataTableKeys", alignTranslated);
+//		chartDataObj.put("dataTableValues", null);
 		if(node.getUioptions()!=null){
 			chartDataObj.put("uiOptions", node.getUioptions().toString().trim());
 		}
@@ -396,6 +399,9 @@ public class Translation extends DepthFirstAdapter {
 		runner.setResponse("Successfully set layout to " + layout + " with alignment " + alignment);//
 		runner.setStatus(PKQLRunner.STATUS.SUCCESS);
 		deinitReactor(PKQLEnum.VIZ, "", "");
+		
+		chartDataObj.put("dataTableKeys", curReactor.getValue("VizTableKeys"));
+		chartDataObj.put("dataTableValues", curReactor.getValue("VizTableValues"));
 	}
 	
 	@Override 
