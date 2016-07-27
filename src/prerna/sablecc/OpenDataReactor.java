@@ -101,7 +101,7 @@ public class OpenDataReactor extends AbstractReactor {
 			IDataMaker dm = (IDataMaker)myStore.get("G");
 			if(dm instanceof Dashboard) {
 				Dashboard dashboard = (Dashboard)myStore.get("G");
-				dashboard.addInsight(engine, engine_id, insightObj);
+				dashboard.addInsight(insightObj);
 			}
 		} else {
 			//put error mesage
