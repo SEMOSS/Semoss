@@ -326,7 +326,9 @@ public class ImportDataProcessor {
 				}
 				Utility.addToLocalMaster(engine);
 				Utility.addToSolrInsightCore(engine);
-				Utility.addToSolrInstanceCore(engine);
+				// Do we need this?
+				// Commenting it out for now to speed up upload until we find a better way to utilize this
+//				Utility.addToSolrInstanceCore(engine);
 				
 				// only after all of this is good, should we add it to DIHelper
 				DIHelper.getInstance().setLocalProperty(engineName, engine);
