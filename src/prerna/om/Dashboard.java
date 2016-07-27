@@ -21,10 +21,7 @@ public class Dashboard implements IDataMaker {
 	private static final Logger LOGGER = LogManager.getLogger(Dashboard.class.getName());
 	Map<String, Insight> attachedInsights = new HashMap<>(4);
 	private static String delimiter = ":::";
-	
-	public Dashboard() {
-		
-	}
+	private String insightID;
 	
 	@Override
 	public void processDataMakerComponent(DataMakerComponent component) {
@@ -64,28 +61,27 @@ public class Dashboard implements IDataMaker {
 	
 	@Override
 	public void processPostTransformations(DataMakerComponent dmc, List<ISEMOSSTransformation> transforms, IDataMaker... dataFrame) {
-//		LOGGER.info("We are processing " + transforms.size() + " post transformations");
-//		// if other data frames present, create new array with this at position 0
-//		IDataMaker[] extendedArray = new IDataMaker[]{this};
-//		if(dataFrame.length > 0) {
-//			extendedArray = new IDataMaker[dataFrame.length + 1];
-//			extendedArray[0] =  this;
-//			for(int i = 0; i < dataFrame.length; i++) {
-//				extendedArray[i+1] = dataFrame[i];
-//			}
-//		}
-//		for(ISEMOSSTransformation transform : transforms){
-//			//get the id from the pkql transformation and run in on that join
-//			transform.setDataMakers(extendedArray);
-//			transform.setDataMakerComponent(dmc);
-//			transform.runMethod();
-//		}
+		LOGGER.info("We are processing " + transforms.size() + " post transformations");
+		// if other data frames present, create new array with this at position 0
+		IDataMaker[] extendedArray = new IDataMaker[]{this};
+		if(dataFrame.length > 0) {
+			extendedArray = new IDataMaker[dataFrame.length + 1];
+			extendedArray[0] =  this;
+			for(int i = 0; i < dataFrame.length; i++) {
+				extendedArray[i+1] = dataFrame[i];
+			}
+		}
+		for(ISEMOSSTransformation transform : transforms){
+			//get the id from the pkql transformation and run in on that join
+			transform.setDataMakers(extendedArray);
+			transform.setDataMakerComponent(dmc);
+			transform.runMethod();
+		}
 		
-		//run on all insights
-		//ideally when we open we would only run on the original insight it ran on
 		for(String key : attachedInsights.keySet()) {
 			Insight insight = attachedInsights.get(key);
-			insight.getDataMaker().processPostTransformations(dmc, transforms, dataFrame);
+			insight.setParentInsight(InsightStore.getInstance().get(this.insightID));
+//			insight.getDataMaker().processPostTransformations(dmc, transforms, dataFrame);
 		}
 	}
 
@@ -152,7 +148,9 @@ public class Dashboard implements IDataMaker {
 		return "DashBoard";
 	}
 	
-	public void addInsight(String engineName, String id, Insight insight) {
+	public void addInsight(Insight insight) {
+		String engineName = insight.getEngineName();
+		String id = insight.getDatabaseID();
 		this.attachedInsights.put(engineName+delimiter+id, insight);
 	}
 	
@@ -162,5 +160,9 @@ public class Dashboard implements IDataMaker {
 			insightList.add(attachedInsights.get(key));
 		}
 		return insightList;
+	}
+	
+	public void setInsightID(String insightID) {
+		this.insightID = insightID;
 	}
 }
