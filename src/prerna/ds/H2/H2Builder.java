@@ -1141,6 +1141,7 @@ public class H2Builder {
 		//now just add the rows we are missing via a merge query for each row
 		//not efficient but don't see another way to do it
 		//Ex: merge into table (column1, column2) key (column1, column2) values ('value1', 'value2')
+		//TODO: change this to be a union of right outer and left outer instead of inserting values
 		if(joinType.equals(Join.FULL_OUTER)) {
 
 			try {

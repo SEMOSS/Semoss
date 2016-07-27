@@ -1,5 +1,6 @@
 package prerna.ds.H2;
 
+import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -118,6 +119,18 @@ public class H2Joiner {
 	
 	/**
 	 * 
+	 * @param joinCols
+	 * @param frames
+	 * 
+	 * use this for muli column join
+	 */
+	public static void joinFrames(List<String[]> joinCols, H2Frame... frames) {
+		for(String[] columns : joinCols) {
+			
+		}
+	}
+	/**
+	 * 
 	 * @param frames		This method unjoins a list of frames
 	 * 							if last frame is for a view is unjoined, the view table will also be dropped
 	 * 							if the second to last frame for a view, that frame will also be unjoined
@@ -220,6 +233,8 @@ public class H2Joiner {
 	 * @return						The sql query that will build the view
 	 * 
 	 * Example of return : "CREATE VIEW newTableName AS (SELECT Frame1.TITLE, Director, Genre FROM Frame1 INNER JOIN Frame2 ON Frame1.TITLE = Frame2.TITLE)"
+	 * 
+	 * TODO : need to change this to be outer, i.e. left outer union right outer
 	 */
 	private static String buildView(String newTableName) {
 		
@@ -288,5 +303,14 @@ public class H2Joiner {
 	
 	public static void main(String[] args) {
 		
+	}
+
+	public static void updateDataId(String viewTableName) {
+		List<H2Frame> frames = joinedFrames.get(viewTableName);
+		if(frames != null) {
+			for(H2Frame frame : frames) {
+				frame.updateDataId(1);;
+			}
+		}
 	}
 }

@@ -31,6 +31,9 @@ public class PKQLTransformation extends AbstractTransformation {
 	boolean addToRecipe = true;
 	int recipeIndex = -1;
 	
+	private String sourceEngine;
+	private String sourceId;
+	
 	public boolean isAddToRecipe() {
 		return this.addToRecipe;
 	}

@@ -30,7 +30,7 @@ public class DataMakerComponent {
 	private List<ISEMOSSAction> actions = new ArrayList<ISEMOSSAction>();
 	private boolean isProcessed = false;
 	
-	private String insightTag;
+	private String rdbmsID;
 	
 	/**
 	 * Constructor for the data maker component object
@@ -302,11 +302,11 @@ public class DataMakerComponent {
 		this.isProcessed = isProcessed;
 	}
 	
-	public String getInsightTag() {
-		return this.insightTag;
+	public String getRdbmsId() {
+		return this.rdbmsID;
 	}
 	
-	public void setInsightTag(String insightTag) {
-		this.insightTag = insightTag;
+	public void setRdbmsId(String id) {
+		this.rdbmsID = id;
 	}
 }

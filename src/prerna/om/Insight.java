@@ -886,12 +886,6 @@ public class Insight {
 	 */
 	public void processDataMakerComponent(DataMakerComponent component) {
 		
-		if(isJoined()) {
-			this.parentInsight.processDataMakerComponent(component);
-			return;
-		}
-		
-		
 		int lastComponent = this.getDataMakerComponents().size();
 		String compId = COMP + lastComponent;
 		component.setId(compId);
@@ -922,15 +916,18 @@ public class Insight {
 	 * @param dataMaker					Additional dataMakers if required by the transformation
 	 */
 	public void processPostTransformation(List<ISEMOSSTransformation> postTrans, IDataMaker... dataMaker) throws RuntimeException {
+		
+//		if(getDataMakerComponents().size()==0){
+//			DataMakerComponent empty = new DataMakerComponent(Constants.LOCAL_MASTER_DB_NAME, Constants.EMPTY);
+//			this.dmComponents.add(empty);
+//		}
+		
+		DataMakerComponent dmc;
 		if(isJoined()) {
-			this.parentInsight.processPostTransformation(postTrans, dataMaker);
-			return;
+			dmc = parentInsight.getLastComponent();
+		} else {
+			dmc = getLastComponent();
 		}
-		if(getDataMakerComponents().size()==0){
-			DataMakerComponent empty = new DataMakerComponent(Constants.LOCAL_MASTER_DB_NAME, Constants.EMPTY);
-			this.dmComponents.add(empty);
-		}
-		DataMakerComponent dmc = getDataMakerComponents().get(this.dmComponents.size() - 1);
 		
 		List<ISEMOSSTransformation> postTransCopy = new Vector<ISEMOSSTransformation>(postTrans.size());
 		for(ISEMOSSTransformation trans : postTrans) {
@@ -939,7 +936,6 @@ public class Insight {
 		getDataMaker().processPostTransformations(dmc, postTransCopy, dataMaker);
 		//TODO: extrapolate in datamakercomponent to take in a list
 		int lastPostTrans = dmc.getPostTrans().size() - 1;
-		// what does this do? -jason
 		for(int i = 0; i < postTrans.size(); i++) {
 			// TODO: Clean this up, possibly move the boolean and recipeindex to AbstractTrans
 			// If this is a PKQLTrans, see if it needs to be inserted at a specific index (user.input needs to go at the top)
@@ -954,6 +950,15 @@ public class Insight {
 				}
 			}
 		}
+	}
+	
+	public DataMakerComponent getLastComponent() {
+		if(getDataMakerComponents().size()==0){
+			DataMakerComponent empty = new DataMakerComponent(Constants.LOCAL_MASTER_DB_NAME, Constants.EMPTY);
+			this.dmComponents.add(empty);
+		}
+		
+		return getDataMakerComponents().get(this.dmComponents.size() - 1);	
 	}
 	
 	/**
@@ -1554,6 +1559,10 @@ public class Insight {
 	
 	public boolean isJoined() {
 		return this.parentInsight != null;
+	}
+	
+	public void setParentInsight(Insight insight) {
+		this.parentInsight = insight;
 	}
 
 }
