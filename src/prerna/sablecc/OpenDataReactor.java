@@ -9,10 +9,12 @@ import java.util.Map;
 import prerna.cache.CacheFactory;
 import prerna.engine.api.IEngine;
 import prerna.engine.impl.AbstractEngine;
+import prerna.om.Dashboard;
 import prerna.om.Insight;
 import prerna.om.InsightStore;
 import prerna.solr.SolrDocumentExportWriter;
 import prerna.solr.SolrIndexEngine;
+import prerna.ui.components.playsheets.datamakers.IDataMaker;
 import prerna.ui.helpers.InsightCreateRunner;
 import prerna.util.DIHelper;
 
@@ -52,7 +54,7 @@ public class OpenDataReactor extends AbstractReactor {
 			IEngine coreEngine = (AbstractEngine)DIHelper.getInstance().getLocalProp(engine);
 			if(coreEngine == null) {
 				//store error message
-				myStore.put(PKQLEnum.OPEN_DATA+"insightID", "Error Opening Insight");
+				myStore.put(PKQLEnum.OPEN_DATA, "Error Opening Insight");
 				return null;
 			}
 			Insight insightObj = ((AbstractEngine)coreEngine).getInsight(engine_id).get(0);
@@ -67,7 +69,8 @@ public class OpenDataReactor extends AbstractReactor {
 			if(vizData != null) {
 				// insight has been cached, send it to the FE with a new insight id
 				String id = InsightStore.getInstance().put(insightObj);
-				myStore.put(PKQLEnum.OPEN_DATA+"insightID", id);
+				this.set(PKQLEnum.OPEN_DATA, id);
+				
 				Map<String, Object> uploaded = gson.fromJson(vizData, new TypeToken<Map<String, Object>>() {}.getType());
 				uploaded.put("insightID", id);
 				
@@ -93,9 +96,16 @@ public class OpenDataReactor extends AbstractReactor {
 					errorHash.put("Class", "");
 				}
 			}
+			
+			//add the newly opened insight to the dashboard if we have one
+			IDataMaker dm = (IDataMaker)myStore.get("G");
+			if(dm instanceof Dashboard) {
+				Dashboard dashboard = (Dashboard)myStore.get("G");
+				dashboard.addInsight(engine, engine_id, insightObj);
+			}
 		} else {
 			//put error mesage
-			myStore.put(PKQLEnum.OPEN_DATA+"insightID", "Error Opening Insight");
+			myStore.put(PKQLEnum.OPEN_DATA, "Error Opening Insight");
 		}
 		return null;
 	}

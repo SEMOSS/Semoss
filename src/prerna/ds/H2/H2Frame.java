@@ -3,6 +3,7 @@ package prerna.ds.H2;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.math.BigInteger;
 import java.sql.DatabaseMetaData;
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -64,7 +65,8 @@ public class H2Frame extends AbstractTableDataFrame {
 	// traverse query
 	// IQueryInterpreter interp = new SQLInterpreter();
 	RRunner r = null;
-
+	Map<String, String> joinHeaders = new HashMap<>();
+	
 	public H2Frame(String[] headers) {
 		this.headerNames = headers;
 		this.metaData = new TinkerMetaData();
@@ -326,9 +328,8 @@ public class H2Frame extends AbstractTableDataFrame {
 	public void filter(String columnHeader, List<Object> filterValues) {
 		if (filterValues != null && filterValues.size() > 0) {
 			this.metaData.setFiltered(columnHeader, true);
-			columnHeader = this.metaData.getValueForUniqueName(columnHeader);
-			builder.setFilters(columnHeader, filterValues,
-					H2Builder.Comparator.EQUAL);
+			columnHeader = this.getValueForUniqueName(columnHeader);
+			builder.setFilters(columnHeader, filterValues, H2Builder.Comparator.EQUAL);
 		}
 	}
 
@@ -469,7 +470,7 @@ public class H2Frame extends AbstractTableDataFrame {
 	@Override
 	public void unfilter(String columnHeader) {
 		this.metaData.setFiltered(columnHeader, false);
-		columnHeader = this.metaData.getValueForUniqueName(columnHeader);
+		columnHeader = this.getValueForUniqueName(columnHeader);
 		builder.removeFilter(columnHeader);
 	}
 
@@ -509,14 +510,10 @@ public class H2Frame extends AbstractTableDataFrame {
 		int length = selectors.size();
 
 		// initialize the objects
-		Map<String, List<Object>> filteredValues = new HashMap<String, List<Object>>(
-				length);
-		Map<String, List<Object>> visibleValues = new HashMap<String, List<Object>>(
-				length);
-		HashMap<IMetaData.DATA_TYPES, Number[]> dataValues = new HashMap<IMetaData.DATA_TYPES, Number[]>(
-				length);
-		Map<String, HashMap<IMetaData.DATA_TYPES, Number[]>> dataTypeValues = new HashMap<String, HashMap<IMetaData.DATA_TYPES, Number[]>>(
-				length);
+		Map<String, List<Object>> filteredValues = new HashMap<String, List<Object>>(length);
+		Map<String, List<Object>> visibleValues = new HashMap<String, List<Object>>(length);
+		HashMap<IMetaData.DATA_TYPES, Number[]> dataValues = new HashMap<IMetaData.DATA_TYPES, Number[]>(length);
+		Map<String, HashMap<IMetaData.DATA_TYPES, Number[]>> dataTypeValues = new HashMap<String, HashMap<IMetaData.DATA_TYPES, Number[]>>(length);
 
 		// put instances into sets to remove duplicates
 		Set<Object>[] columnSets = new HashSet[length];
@@ -533,14 +530,12 @@ public class H2Frame extends AbstractTableDataFrame {
 
 		// put the visible collected values
 		for (int i = 0; i < length; i++) {
-			visibleValues.put(selectors.get(i), new ArrayList<Object>(
-					columnSets[i]));
+			visibleValues.put(selectors.get(i), new ArrayList<Object>(columnSets[i]));
 			filteredValues.put(selectors.get(i), new ArrayList<Object>());
 			if (this.metaData.getDataType(selectors.get(i)) == IMetaData.DATA_TYPES.NUMBER) {
 				double min = getMin(selectors.get(i));
 				double max = getMax(selectors.get(i));
-				dataValues.put(this.metaData.getDataType(selectors.get(i)),
-						new Number[] { min, max });
+				dataValues.put(this.metaData.getDataType(selectors.get(i)),	new Number[] { min, max });
 				dataTypeValues.put(selectors.get(i), dataValues);
 			}
 
@@ -553,8 +548,7 @@ public class H2Frame extends AbstractTableDataFrame {
 
 		}
 
-		Map<String, List<Object>> h2filteredValues = builder
-				.getFilteredValues(getH2Selectors());
+		Map<String, List<Object>> h2filteredValues = builder.getFilteredValues(getH2Selectors());
 		for (String key : filteredValues.keySet()) {
 			String h2key = H2Builder.cleanHeader(key);
 			List<Object> values = h2filteredValues.get(h2key);
@@ -577,7 +571,7 @@ public class H2Frame extends AbstractTableDataFrame {
 		// for(String name: filters.keySet()){
 		//
 		// //for each filtered column
-		// String h2Name = this.metaData.getValueForUniqueName(name);
+		// String h2Name = this.getValueForUniqueName(name);
 		// retMap.put(name, filteredData.get(h2Name).toArray());
 		// }
 
@@ -617,9 +611,9 @@ public class H2Frame extends AbstractTableDataFrame {
 				continue;
 			} else {
 				if (name.equals(sortBy)) {
-					actualSortBy = this.metaData.getValueForUniqueName(name);
+					actualSortBy = this.getValueForUniqueName(name);
 				}
-				String uniqueName = this.metaData.getValueForUniqueName(name);
+				String uniqueName = this.getValueForUniqueName(name);
 				if (uniqueName == null)
 					uniqueName = name;
 				selectorValues.add(uniqueName);
@@ -634,7 +628,7 @@ public class H2Frame extends AbstractTableDataFrame {
 		Map<String, List<Object>> cleanTemporalBindings = new Hashtable<String, List<Object>>();
 		if (temporalBindings != null) {
 			for (Object key : temporalBindings.keySet()) {
-				String cleanKey = this.metaData.getValueForUniqueName(key + "");
+				String cleanKey = this.getValueForUniqueName(key + "");
 
 				Object val = temporalBindings.get(key);
 				List<Object> cleanVal = new Vector<Object>();
@@ -696,24 +690,24 @@ public class H2Frame extends AbstractTableDataFrame {
 		// valueColumn = H2HeaderMap.get(valueColumn);
 		// newColumnName = H2HeaderMap.get(newColumnName);
 		for (int i = 0; i < column.length; i++) {
-			column[i] = this.metaData.getValueForUniqueName(column[i]);
+			column[i] = this.getValueForUniqueName(column[i]);
 		}
-		valueColumn = this.metaData.getValueForUniqueName(valueColumn);
-		newColumnName = this.metaData.getValueForUniqueName(newColumnName);
+		valueColumn = this.getValueForUniqueName(valueColumn);
+		newColumnName = this.getValueForUniqueName(newColumnName);
 		builder.processGroupBy(column, newColumnName, valueColumn, mathType,
 				getH2Headers());
 	}
 
 	@Override
 	public Object[] getColumn(String columnHeader) {
-		columnHeader = this.metaData.getValueForUniqueName(columnHeader);
+		columnHeader = this.getValueForUniqueName(columnHeader);
 		Object[] array = builder.getColumn(columnHeader, false);
 		return array;
 	}
 
 	@Override
 	public Integer getUniqueInstanceCount(String columnHeader) {
-		columnHeader = this.metaData.getValueForUniqueName(columnHeader);
+		columnHeader = this.getValueForUniqueName(columnHeader);
 		return builder.getColumn(columnHeader, true).length;
 	}
 
@@ -722,7 +716,7 @@ public class H2Frame extends AbstractTableDataFrame {
 		// make sure its a number
 		if (this.metaData.getDataType(columnHeader).equals(
 				IMetaData.DATA_TYPES.NUMBER)) {
-			columnHeader = this.metaData.getValueForUniqueName(columnHeader);
+			columnHeader = this.getValueForUniqueName(columnHeader);
 			return builder.getStat(columnHeader, "MIN");
 		}
 		return null;
@@ -732,7 +726,7 @@ public class H2Frame extends AbstractTableDataFrame {
 	public Double getMax(String columnHeader) {
 		if (this.metaData.getDataType(columnHeader).equals(
 				IMetaData.DATA_TYPES.NUMBER)) {
-			columnHeader = this.metaData.getValueForUniqueName(columnHeader);
+			columnHeader = this.getValueForUniqueName(columnHeader);
 			return builder.getStat(columnHeader, "MAX");
 		}
 		return null;
@@ -763,7 +757,7 @@ public class H2Frame extends AbstractTableDataFrame {
 			min = getMin();
 		}
 
-		columnHeader = this.metaData.getValueForUniqueName(columnHeader);
+		columnHeader = this.getValueForUniqueName(columnHeader);
 		Map<String, String> headerTypes = this.getH2HeadersAndTypes();
 		if (builder.tableName == null) {
 			builder.tableName = getTableNameForUniqueColumn(this.headerNames[0]);
@@ -777,7 +771,7 @@ public class H2Frame extends AbstractTableDataFrame {
 	@Override
 	public Double[] getColumnAsNumeric(String columnHeader) {
 		if (isNumeric(columnHeader)) {
-			columnHeader = this.metaData.getValueForUniqueName(columnHeader);
+			columnHeader = this.getValueForUniqueName(columnHeader);
 			Object[] array = builder.getColumn(columnHeader, false);
 
 			List<Double> numericCol = new ArrayList<Double>();
@@ -799,8 +793,7 @@ public class H2Frame extends AbstractTableDataFrame {
 	}
 
 	@Override
-	public void addRelationship(Map<String, Object> cleanRow,
-			Map<String, Object> rawRow) {
+	public void addRelationship(Map<String, Object> cleanRow, Map<String, Object> rawRow) {
 
 		// if the sets contain keys not in header names, remove them
 		Set<String> keySet = cleanRow.keySet();
@@ -821,10 +814,8 @@ public class H2Frame extends AbstractTableDataFrame {
 
 			@Override
 			public int compare(String o1, String o2) {
-				int firstIndex = ArrayUtilityMethods.arrayContainsValueAtIndex(
-						headerNames, o1);
-				int secondIndex = ArrayUtilityMethods
-						.arrayContainsValueAtIndex(headerNames, o2);
+				int firstIndex = ArrayUtilityMethods.arrayContainsValueAtIndex(headerNames, o1);
+				int secondIndex = ArrayUtilityMethods.arrayContainsValueAtIndex(headerNames, o2);
 				if (firstIndex < secondIndex)
 					return -1;
 				if (firstIndex == secondIndex)
@@ -843,7 +834,9 @@ public class H2Frame extends AbstractTableDataFrame {
 			columnHeaders[i] = H2Builder.cleanHeader(columnHeaders[i]);
 		}
 		builder.updateTable(getH2Headers(), values, columnHeaders);
-
+		if(this.isJoined()) {
+			H2Joiner.refreshView(this, builder.getViewTableName());
+		}
 	}
 
 	@Override
@@ -854,7 +847,7 @@ public class H2Frame extends AbstractTableDataFrame {
 		}
 
 		// drop the column from the h2 table
-		builder.dropColumn(this.metaData.getValueForUniqueName(columnHeader));
+		builder.dropColumn(this.getValueForUniqueName(columnHeader));
 		// remove the column name from the metadata
 		this.metaData.dropVertex(columnHeader);
 
@@ -882,7 +875,7 @@ public class H2Frame extends AbstractTableDataFrame {
 		// selectors.add(columnHeader);
 		// options.put(SELECTORS, selectors);
 		// columnHeader = H2HeaderMap.get(columnHeader);
-		columnHeader = this.metaData.getValueForUniqueName(columnHeader);
+		columnHeader = this.getValueForUniqueName(columnHeader);
 		return Arrays.asList(builder.getColumn(columnHeader, true)).iterator();
 	}
 
@@ -951,7 +944,8 @@ public class H2Frame extends AbstractTableDataFrame {
 		List<String> selectors = getSelectors();
 		List<String> h2selectors = new ArrayList<>(selectors.size());
 		for (int i = 0; i < selectors.size(); i++) {
-			h2selectors.add(this.metaData.getValueForUniqueName(selectors.get(i)));
+			h2selectors.add(getH2Header(selectors.get(i)));
+//			h2selectors.add(this.getValueForUniqueName(selectors.get(i)));
 			// h2selectors.add(H2HeaderMap.get(selectors.get(i)));
 		}
 		return h2selectors;
@@ -963,14 +957,22 @@ public class H2Frame extends AbstractTableDataFrame {
 		String[] h2Headers = new String[headerNames.length];
 		for (int i = 0; i < headerNames.length; i++) {
 			// h2Headers[i] = H2HeaderMap.get(headerNames[i]);
-			h2Headers[i] = this.metaData.getValueForUniqueName(headerNames[i]);
+//			h2Headers[i] = this.getValueForUniqueName(headerNames[i]);
+			h2Headers[i] = getH2Header(headerNames[i]);
 		}
 		return h2Headers;
 	}
 	
 	private String getH2Header(String uniqueName) {
-		
-		return this.metaData.getValueForUniqueName(uniqueName);
+		if(this.isJoined()) {
+			return joinHeaders.get(uniqueName);
+		} else {
+			return this.getValueForUniqueName(uniqueName);
+		}
+	}
+	
+	protected void setH2Headers(Map<String, String> headers) {
+		this.joinHeaders = headers;
 	}
 
 	// private String[] getH2Types() {
@@ -989,7 +991,7 @@ public class H2Frame extends AbstractTableDataFrame {
 		Map<String, String> retMap = new HashMap<String, String>(
 				headerNames.length);
 		for (String header : headerNames) {
-			String h2Header = this.metaData.getValueForUniqueName(header);
+			String h2Header = this.getH2Header(header);
 			String h2Type = Utility.convertDataTypeToString(this.metaData
 					.getDataType(header));
 			retMap.put(h2Header, h2Type);
@@ -1082,8 +1084,7 @@ public class H2Frame extends AbstractTableDataFrame {
 	}
 
 	@Override
-	public void mergeEdgeHash(Map<String, Set<String>> edgeHash,
-			Map<String, String> dataTypeMap) {
+	public void mergeEdgeHash(Map<String, Set<String>> edgeHash, Map<String, String> dataTypeMap) {
 		// merge results with the tinker meta data and store data types'
 		super.mergeEdgeHash(edgeHash, getNode2ValueHash(edgeHash), dataTypeMap);
 		// now we need to create and/or modify the existing table to ensure it
@@ -1093,10 +1094,8 @@ public class H2Frame extends AbstractTableDataFrame {
 		String[] cleanHeaders = new String[this.headerNames.length];
 		String[] types = new String[this.headerNames.length];
 		for (int i = 0; i < types.length; i++) {
-			types[i] = Utility.convertDataTypeToString(this.metaData
-					.getDataType(this.headerNames[i]));
-			cleanHeaders[i] = this.metaData
-					.getValueForUniqueName(this.headerNames[i]);
+			types[i] = Utility.convertDataTypeToString(this.metaData.getDataType(this.headerNames[i]));
+			cleanHeaders[i] = this.getValueForUniqueName(this.headerNames[i]);
 		}
 
 		if (builder.tableName == null) {
@@ -1106,9 +1105,7 @@ public class H2Frame extends AbstractTableDataFrame {
 	}
 
 	@Override
-	public void join(ITableDataFrame table, String colNameInTable,
-			String colNameInJoiningTable, double confidenceThreshold,
-			IMatcher routine) {
+	public void join(ITableDataFrame table, String colNameInTable, String colNameInJoiningTable, double confidenceThreshold, IMatcher routine) {
 		LOGGER.error("join method has not been implemented for H2Frame");
 	}
 
@@ -1117,16 +1114,12 @@ public class H2Frame extends AbstractTableDataFrame {
 	}
 
 	@Override
-	public void addRelationship(Map<String, Object> rowCleanData,
-			Map<String, Object> rowRawData, Map<String, Set<String>> edgeHash,
-			Map<String, String> logicalToTypeMap) {
+	public void addRelationship(Map<String, Object> rowCleanData,Map<String, Object> rowRawData, Map<String, Set<String>> edgeHash,	Map<String, String> logicalToTypeMap) {
 		addRelationship(rowCleanData, rowRawData);
 	}
 
 	@Override
-	public void addRelationship(String[] headers, Object[] values,
-			Object[] rawValues, Map<Integer, Set<Integer>> cardinality,
-			Map<String, String> logicalToValMap) {
+	public void addRelationship(String[] headers, Object[] values,Object[] rawValues, Map<Integer, Set<Integer>> cardinality,Map<String, String> logicalToValMap) {
 		for (int i = 0; i < headers.length; i++) {
 			headers[i] = H2Builder.cleanHeader(headers[i]);
 		}
@@ -1140,10 +1133,8 @@ public class H2Frame extends AbstractTableDataFrame {
 				String header2 = headers[j];
 				Object value2 = values[j];
 
-				int index1 = ArrayUtilityMethods.arrayContainsValueAtIndex(
-						currHeaders, header1);
-				int index2 = ArrayUtilityMethods.arrayContainsValueAtIndex(
-						currHeaders, header2);
+				int index1 = ArrayUtilityMethods.arrayContainsValueAtIndex(currHeaders, header1);
+				int index2 = ArrayUtilityMethods.arrayContainsValueAtIndex(currHeaders, header2);
 
 				if (index2 < index1) {
 					headers[i] = header2;
@@ -1156,6 +1147,9 @@ public class H2Frame extends AbstractTableDataFrame {
 		}
 
 		builder.updateTable(currHeaders, values, headers);
+		if(this.isJoined()) {
+			H2Joiner.refreshView(this, builder.getViewTableName());
+		}
 	}
 
 	/**
@@ -1181,7 +1175,7 @@ public class H2Frame extends AbstractTableDataFrame {
 		String[] values = new String[columnNames.size()];
 		int i = 0;
 		for (String column : cleanRow.keySet()) {
-			String col = this.metaData.getValueForUniqueName(column);
+			String col = this.getValueForUniqueName(column);
 			Object value = cleanRow.get(col);
 			String val = Utility.cleanString(value.toString(), true, true,
 					false);
@@ -1223,16 +1217,13 @@ public class H2Frame extends AbstractTableDataFrame {
 		return reactorNames;
 	}
 
-	public void processIterator(Iterator<IHeadersDataRow> iterator,
-			String[] newHeaders, Map<String, String> logicalToValue,
-			List<Map<String, String>> joins, String joinType) {
+	public void processIterator(Iterator<IHeadersDataRow> iterator,	String[] newHeaders, Map<String, String> logicalToValue, List<Map<String, String>> joins, String joinType) {
 
 		// convert the new headers into value headers
 		String[] valueHeaders = new String[newHeaders.length];
 		if (logicalToValue == null) {
 			for (int i = 0; i < newHeaders.length; i++) {
-				valueHeaders[i] = this.metaData
-						.getValueForUniqueName(newHeaders[i]);
+				valueHeaders[i] = this.getValueForUniqueName(newHeaders[i]);
 			}
 		} else {
 			for (int i = 0; i < newHeaders.length; i++) {
@@ -1242,8 +1233,7 @@ public class H2Frame extends AbstractTableDataFrame {
 
 		String[] types = new String[newHeaders.length];
 		for (int i = 0; i < newHeaders.length; i++) {
-			types[i] = Utility.convertDataTypeToString(this.metaData
-					.getDataType(newHeaders[i]));
+			types[i] = Utility.convertDataTypeToString(this.metaData.getDataType(newHeaders[i]));
 		}
 
 		String[] columnHeaders = getColumnHeaders();
@@ -1260,22 +1250,18 @@ public class H2Frame extends AbstractTableDataFrame {
 		// match
 		List<String> adjustedColHeadersList = new Vector<String>();
 		for (String header : columnHeaders) {
-			if (!ArrayUtilityMethods.arrayContainsValueIgnoreCase(newHeaders,
-					header)) {
-				adjustedColHeadersList.add(this.metaData
-						.getValueForUniqueName(header));
+			if (!ArrayUtilityMethods.arrayContainsValueIgnoreCase(newHeaders,header)) {
+				adjustedColHeadersList.add(this.getValueForUniqueName(header));
 			} else {
 				joinLoop: for (Map<String, String> join : joins) {
 					if (join.keySet().contains(header)) {
-						adjustedColHeadersList.add(this.metaData
-								.getValueForUniqueName(header));
+						adjustedColHeadersList.add(this.getValueForUniqueName(header));
 						break joinLoop;
 					}
 				}
 			}
 		}
-		String[] adjustedColHeaders = adjustedColHeadersList
-				.toArray(new String[] {});
+		String[] adjustedColHeaders = adjustedColHeadersList.toArray(new String[] {});
 
 		// get the join type
 		Join jType = Join.INNER;
@@ -1295,8 +1281,7 @@ public class H2Frame extends AbstractTableDataFrame {
 			}
 		}
 
-		this.builder.processIterator(iterator, adjustedColHeaders,
-				valueHeaders, types, jType);
+		this.builder.processIterator(iterator, adjustedColHeaders,valueHeaders, types, jType);
 		
 		if(this.isJoined()) {
 			H2Joiner.refreshView(this, builder.getViewTableName());
@@ -1361,6 +1346,21 @@ public class H2Frame extends AbstractTableDataFrame {
 		thread.start();
 	}
 	
+	@Override
+	/**
+	 * Used to update the data id when data has changed within the frame
+	 */
+	public void updateDataId() {
+		if(this.isJoined()) {
+			H2Joiner.updateDataId(this.builder.getViewTableName());
+		} else {
+			updateDataId(1);
+		}
+	}
+	
+	protected void updateDataId(int val) {
+		this.dataId = this.dataId.add(BigInteger.valueOf(val));
+	}
     /**
      * Method printAllRelationship.
      */
