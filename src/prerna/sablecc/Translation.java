@@ -900,7 +900,7 @@ public class Translation extends DepthFirstAdapter {
 		curReactor.put(PKQLEnum.EXPR_TERM, nodeOpen);
 		Hashtable <String, Object> thisReactorHash = deinitReactor(PKQLEnum.OPEN_DATA, nodeOpen, nodeStr);
 		IScriptReactor previousReactor = (IScriptReactor)thisReactorHash.get(PKQLEnum.OPEN_DATA);
-		runner.setNewInsightID(previousReactor.getValue(PKQLEnum.OPEN_DATA+"insightID").toString());
+//		runner.setNewInsightID(previousReactor.getValue(PKQLEnum.OPEN_DATA).toString());
     }
     
     @Override
