@@ -296,6 +296,8 @@ public class ImportDataProcessor {
 					if(dataTypeMap != null) {
 						reader.setDataTypeMapList(dataTypeMap);
 					}
+					
+					reader.setAutoLoad(autoLoad);
 					engine = reader.importFileWithOutConnection(smssLocation, engineName, filePath, customBaseUri, owlPath, rdbmsDriverType, allowDups);
 				}
 				
