@@ -16,23 +16,29 @@ import prerna.ui.components.playsheets.datamakers.IDataMaker;
 import prerna.ui.components.playsheets.datamakers.ISEMOSSAction;
 import prerna.ui.components.playsheets.datamakers.ISEMOSSTransformation;
 
-public class DashBoard implements IDataMaker {
+public class Dashboard implements IDataMaker {
 
-	private static final Logger LOGGER = LogManager.getLogger(DashBoard.class.getName());
+	private static final Logger LOGGER = LogManager.getLogger(Dashboard.class.getName());
 	Map<String, Insight> attachedInsights = new HashMap<>(4);
 	private static String delimiter = ":::";
+	
+	public Dashboard() {
+		
+	}
 	
 	@Override
 	public void processDataMakerComponent(DataMakerComponent component) {
 		
-		//this won't match the second time around
-		String insightID = component.getInsightTag();
+		Insight insight = null;
+		String insightID = component.getRdbmsId();
+		String engine = component.getEngine().getEngineName();
 		
+		String insightKey = engine+delimiter+insightID;
 		if(insightID != null) {
-			Insight insight = InsightStore.getInstance().get(insightID);
-			String engine = insight.getEngineName();
-			String id = insight.getRdbmsId();
-			String insightKey = engine+delimiter+id;
+//			Insight insight = InsightStore.getInstance().get(insightID);
+//			String engine = insight.getEngineName();
+//			String id = insight.getRdbmsId();
+//			String insightKey = engine+delimiter+id;
 		
 			//i know this is duplicative to the above code but we want to ensure the insight we are running on is in fact joined to this dashboard
 			insight = this.attachedInsights.get(insightKey);
@@ -48,30 +54,38 @@ public class DashBoard implements IDataMaker {
 
 	@Override
 	public void processPreTransformations(DataMakerComponent dmc, List<ISEMOSSTransformation> transforms) {
-		LOGGER.info("We are processing " + transforms.size() + " pre transformations");
-		for(ISEMOSSTransformation transform : transforms) { 
-			transform.setDataMakers(this);
-			transform.setDataMakerComponent(dmc);
-			transform.runMethod();
-		}
+//		LOGGER.info("We are processing " + transforms.size() + " pre transformations");
+//		for(ISEMOSSTransformation transform : transforms) { 
+//			transform.setDataMakers(this);
+//			transform.setDataMakerComponent(dmc);
+//			transform.runMethod();
+//		}
 	}
-
+	
 	@Override
 	public void processPostTransformations(DataMakerComponent dmc, List<ISEMOSSTransformation> transforms, IDataMaker... dataFrame) {
-		LOGGER.info("We are processing " + transforms.size() + " post transformations");
-		// if other data frames present, create new array with this at position 0
-		IDataMaker[] extendedArray = new IDataMaker[]{this};
-		if(dataFrame.length > 0) {
-			extendedArray = new IDataMaker[dataFrame.length + 1];
-			extendedArray[0] =  this;
-			for(int i = 0; i < dataFrame.length; i++) {
-				extendedArray[i+1] = dataFrame[i];
-			}
-		}
-		for(ISEMOSSTransformation transform : transforms){
-			transform.setDataMakers(extendedArray);
-			transform.setDataMakerComponent(dmc);
-			transform.runMethod();
+//		LOGGER.info("We are processing " + transforms.size() + " post transformations");
+//		// if other data frames present, create new array with this at position 0
+//		IDataMaker[] extendedArray = new IDataMaker[]{this};
+//		if(dataFrame.length > 0) {
+//			extendedArray = new IDataMaker[dataFrame.length + 1];
+//			extendedArray[0] =  this;
+//			for(int i = 0; i < dataFrame.length; i++) {
+//				extendedArray[i+1] = dataFrame[i];
+//			}
+//		}
+//		for(ISEMOSSTransformation transform : transforms){
+//			//get the id from the pkql transformation and run in on that join
+//			transform.setDataMakers(extendedArray);
+//			transform.setDataMakerComponent(dmc);
+//			transform.runMethod();
+//		}
+		
+		//run on all insights
+		//ideally when we open we would only run on the original insight it ran on
+		for(String key : attachedInsights.keySet()) {
+			Insight insight = attachedInsights.get(key);
+			insight.getDataMaker().processPostTransformations(dmc, transforms, dataFrame);
 		}
 	}
 
@@ -140,5 +154,13 @@ public class DashBoard implements IDataMaker {
 	
 	public void addInsight(String engineName, String id, Insight insight) {
 		this.attachedInsights.put(engineName+delimiter+id, insight);
+	}
+	
+	public List<Insight> getInsights() {
+		List<Insight> insightList = new ArrayList<>();
+		for(String key : attachedInsights.keySet()) {
+			insightList.add(attachedInsights.get(key));
+		}
+		return insightList;
 	}
 }
