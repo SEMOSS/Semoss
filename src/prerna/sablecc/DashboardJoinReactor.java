@@ -7,8 +7,10 @@ import java.util.Map;
 
 import prerna.ds.H2.H2Frame;
 import prerna.ds.H2.H2Joiner;
+import prerna.om.Dashboard;
 import prerna.om.Insight;
 import prerna.om.InsightStore;
+import prerna.ui.components.playsheets.datamakers.IDataMaker;
 
 public class DashboardJoinReactor extends AbstractReactor {
 
@@ -54,6 +56,11 @@ public class DashboardJoinReactor extends AbstractReactor {
 		
 		Insight in1 = InsightStore.getInstance().get(insightsToJoin.get(0));
 		Insight in2 = InsightStore.getInstance().get(insightsToJoin.get(1));
+		
+		Dashboard dashboard = (Dashboard)myStore.get("G");
+		dashboard.addInsight(in1);
+		dashboard.addInsight(in2);
+		
 		
 		if(in1 == null || in2 == null) {
 			System.err.println("insights not found...");
