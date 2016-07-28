@@ -13,6 +13,12 @@ import prerna.algorithm.api.ITableDataFrame;
 import prerna.ds.TinkerFrame;
 import prerna.util.ArrayUtilityMethods;
 
+/**
+ * 
+ * Viz reactor is responsible for return data associated with a panel.viz pkql command
+ *
+ * The command will
+ */
 public class VizReactor extends AbstractReactor {
 
 
@@ -20,7 +26,11 @@ public class VizReactor extends AbstractReactor {
 	
 	public VizReactor()
 	{
-		String [] thisReacts = {PKQLEnum.WORD_OR_NUM, "TERM"};
+		//MATH_EXPRESSION = the formulas used 
+		//PKQLEnum.PROC_NAME = type of math, i.e. Average, Sum
+		//PKQLEnum.COL_DEF = columns to do math on
+		//PKQLEnum.COL_CSV = group by columns
+		String [] thisReacts = {PKQLEnum.WORD_OR_NUM, "TERM", "MATH_EXPRESSION", PKQLEnum.PROC_NAME+"2", PKQLEnum.COL_DEF+"2", PKQLEnum.COL_CSV+"2"};
 		super.whatIReactTo = thisReacts;
 		super.whoAmI = PKQLEnum.VIZ;
 	}
@@ -29,6 +39,10 @@ public class VizReactor extends AbstractReactor {
 	public Iterator process() {
 		Object termObject = myStore.get("VizTableData");
 		ITableDataFrame frame = (ITableDataFrame)myStore.get("G");
+		List<String> formulas = (List<String>)myStore.get("MATH_EXPRESSION");
+		List<String> procedureTypes = (List<String>)myStore.get(PKQLEnum.PROC_NAME+"2");
+		List<List<String>> groupBys = (List<List<String>>)myStore.get(PKQLEnum.COL_CSV+"2");
+		List<List<String>> calculatedBy = (List<List<String>>)myStore.get(PKQLEnum.COL_DEF+"2");
 		
 		List<String> columns = new ArrayList<>();
 		List<String> columnsToGrab  = new ArrayList<>();
@@ -68,7 +82,7 @@ public class VizReactor extends AbstractReactor {
 			options.put(TinkerFrame.DE_DUP, true);
 			Iterator<Object[]> iterator = frame.iterator(false, options);
 			
-			//convert to map
+			//convert to map and merge
 			Map<Map<String, Object>, Object> newMap = convertIteratorDataToMap(iterator, columnsToGrab, keyColumns);
 			mainMap = mergeMap(mainMap, newMap);
 		} else if(columnsToGrab.size() > 0) {
@@ -82,7 +96,6 @@ public class VizReactor extends AbstractReactor {
 				grid.add(iterator.next());
 			}
 		}
-		//merge with current map
 		
 		
 		for(String column : keyColumns) {
@@ -96,13 +109,92 @@ public class VizReactor extends AbstractReactor {
 		}
 		headerColumns.addAll(columns);
 		
+		//order of header columns will be : key columns (grouped columns) in stable order, then new function columns, then other columns
+		
 		if(keyColumns.length > 0) {
 			grid = convertMapToGrid(mainMap, keyColumns);
 		}
-		myStore.put("VizTableKeys", headerColumns);
+		
+		//add in the grouped columns
+		List columnList = new ArrayList<>(headerColumns.size());
+		int i;
+		for(i = 0; i < keyColumns.length; i++) {
+			Map<String, Object> keyMap = new HashMap<>();
+			keyMap.put("varKey", keyColumns[i]);
+			keyMap.put("uri", keyColumns[i]);
+			keyMap.put("type", frame.getDataType(keyColumns[i]).toString());
+			keyMap.put("operation", new HashMap<>());
+			columnList.add(keyMap);
+		}
+		
+		//add in the function columns
+		int formNum = 0;
+		if(procedureTypes != null) {
+			for(; i < procedureTypes.size()+keyColumns.length; i++) {
+				Map<String, Object> keyMap = new HashMap<>();
+				String columnName = headerColumns.get(i);
+				if(keyColumns.length == 0) {
+					keyMap.put("type", frame.getDataType(headerColumns.get(i)).toString());
+					keyMap.put("operation", new HashMap<>());
+				} else {
+					keyMap.put("type", "NUMBER");
+					Map<String, Object> operationMap = new HashMap<>();
+					columnName = generateName(groupBys.get(formNum), calculatedBy.get(formNum), procedureTypes.get(formNum));
+					operationMap.put("formula", formulas.get(formNum));
+					operationMap.put("groupedBy", groupBys.get(formNum));
+					operationMap.put("calculatedBy", calculatedBy.get(formNum));
+					operationMap.put("math", procedureTypes.get(formNum));
+					keyMap.put("operation", operationMap);
+				}
+				keyMap.put("varKey", columnName);
+				keyMap.put("uri", columnName);
+				columnList.add(keyMap);
+				formNum++;
+			}
+		}
+		
+		//add in the rest of the columns, non group and non function
+		for(; i < headerColumns.size(); i++) {
+			Map<String, Object> keyMap = new HashMap<>();
+			keyMap.put("varKey", headerColumns.get(i));
+			keyMap.put("uri", headerColumns.get(i));
+			keyMap.put("type", frame.getDataType(headerColumns.get(i)).toString());
+			keyMap.put("operation", new HashMap<>());
+			columnList.add(keyMap);
+		}
+		
+		myStore.put("VizTableKeys", columnList);
 		myStore.put("VizTableValues", grid);
 		
 		return null;
+	}
+	
+	private String generateName(List<String> groupBys, List<String> calcBys, String math) {
+		String generatedName = "";
+		generatedName+= math;  //Average
+		
+		//AverageRevenue
+		for(int i = 0; i < calcBys.size(); i++) {
+			if(i > 0) {
+				generatedName+="And"+calcBys.get(i);
+			} else {
+				generatedName+=calcBys.get(i);
+			}
+		}
+		
+		//AverageRevenueOn
+		generatedName+="On";
+		
+		//AverageRevenueOnStudioAndBudget
+		for(int i = 0; i < groupBys.size(); i++) {
+			if(i > 0) {
+				generatedName+= "And"+groupBys.get(i);
+			} else {
+				generatedName+= groupBys.get(i);
+			}
+		}
+		
+		return generatedName;
 	}
 	
 	private Map<Map<String, Object>, Object> convertIteratorDataToMap(Iterator<Object[]> iterator, List<String> columnsToGrab, String[] keyColumns) {
@@ -175,6 +267,17 @@ public class VizReactor extends AbstractReactor {
 		return mergedMap;
 	}
 	
+	/**
+	 * 
+	 * @param mapData
+	 * @param headers
+	 * @return		  converts the return data from a group by math column into a grid format
+	 * 
+	 * mapData is of the form:
+	 * {
+	 * 		{} -> []
+	 * }
+	 */
     private List<Object[]> convertMapToGrid(Map<Map<String, Object>, Object> mapData, String[] headers) {
         List<Object[]> grid = new Vector<Object[]>();
         
@@ -190,7 +293,6 @@ public class VizReactor extends AbstractReactor {
                     row.add(group.get(headers[colIdx]));
               }
               // store the value for the group by result
-//              row[numHeaders] = mapData.get(group);
               Object val = mapData.get(group);
               if(val instanceof List) {
             	  row.addAll((List)val);
