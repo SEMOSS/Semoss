@@ -8,12 +8,14 @@ import java.util.List;
 import java.util.Map;
 import java.util.Vector;
 
+import prerna.algorithm.api.IMetaData;
 import prerna.algorithm.api.ITableDataFrame;
 import prerna.util.Utility;
 
 public class ColFilterReactor extends AbstractReactor{
 
 //	Hashtable <String, String[]> values2SyncHash = new Hashtable <String, String[]>();
+	ITableDataFrame frame;
 	
 	public ColFilterReactor() {
 		String [] thisReacts = {PKQLEnum.FILTER}; // these are the input columns - there is also expr Term which I will come to shortly
@@ -29,7 +31,7 @@ public class ColFilterReactor extends AbstractReactor{
 		String nodeStr = (String)myStore.get(whoAmI);
 		System.out.println("My Store on COL CSV " + myStore);
 		
-		ITableDataFrame frame = (ITableDataFrame) myStore.get("G");
+		frame = (ITableDataFrame) myStore.get("G");
 		
 		Vector<Hashtable> filters = (Vector<Hashtable>) myStore.get(PKQLEnum.FILTER);
 		this.processFilters(frame, filters);
@@ -54,14 +56,25 @@ public class ColFilterReactor extends AbstractReactor{
 				for(Object data : filterData) {
 					String inputData = data.toString().trim();
 					Object cleanData = null;
-					String type = Utility.findTypes(inputData)[0] + "";
-					if(type.equalsIgnoreCase("Date")) {
-						cleanData = Utility.getDate(inputData);
-					} else if(type.equalsIgnoreCase("Double")) {
-						cleanData = Utility.getDouble(inputData);
-					} else {
+					
+					//if the column type in the frame is a string simply cast it to a string
+					if(frame != null && frame.getDataType(fromCol).equals(IMetaData.DATA_TYPES.STRING)) {
 						cleanData = Utility.cleanString(inputData, true, true, false);
+					} 
+					
+					//else go through the current flow
+					//TODO : we should use the types on the frame to determine how to cast instead of guessing what came from pkql
+					else {
+						String type = Utility.findTypes(inputData)[0] + "";
+						if(type.equalsIgnoreCase("Date")) {
+							cleanData = Utility.getDate(inputData);
+						} else if(type.equalsIgnoreCase("Double")) {
+							cleanData = Utility.getDouble(inputData);
+						} else {
+							cleanData = Utility.cleanString(inputData, true, true, false);
+						}
 					}
+					
 					cleanedFilterData.add(cleanData);
 				}
 				
