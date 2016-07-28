@@ -1116,6 +1116,10 @@ public class Translation extends DepthFirstAdapter {
 			initReactor(PKQLReactor.MATH_FUN.toString());
 			curReactor.put(PKQLEnum.G, frame);
 			curReactor.put(PKQLEnum.MATH_FUN, nodeStr.trim());
+			
+			//for panel.viz
+			curReactor.put("MATH_EXPRESSION", node.toString().trim());
+			
 			curReactor.put(PKQLEnum.PROC_NAME, procedureName); // don't need once all algorithms have been refactored into Reactors
 			if(expr != null)
 				curReactor.put(PKQLEnum.EXPR_TERM, expr);
@@ -1131,6 +1135,15 @@ public class Translation extends DepthFirstAdapter {
 		curReactor.put(PKQLEnum.COL_DEF, previousReactor.getValue(PKQLEnum.COL_DEF)); //TODO: use syncronize instead
 		curReactor.put(PKQLEnum.PROC_NAME, previousReactor.getValue(PKQLEnum.PROC_NAME));
 		curReactor.put(PKQLEnum.COL_CSV, previousReactor.getValue(PKQLEnum.COL_CSV));
+		
+		//for panel.viz -- can't use the same, because i need set, not put...don't want to change because that might break something
+		//TODO : combine with above
+		curReactor.set("MATH_EXPRESSION", previousReactor.getValue("MATH_EXPRESSION"));
+		curReactor.set(PKQLEnum.COL_DEF+"2", previousReactor.getValue(PKQLEnum.COL_DEF)); //TODO: use syncronize instead
+		curReactor.set(PKQLEnum.PROC_NAME+"2", previousReactor.getValue(PKQLEnum.PROC_NAME));
+		curReactor.set(PKQLEnum.COL_CSV+"2", previousReactor.getValue(PKQLEnum.COL_CSV));
+		
+		
 		curReactor.addReplacer(nodeStr, previousReactor.getValue(expr));
 		runner.setResponse(previousReactor.getValue(expr));
 		runner.setStatus((STATUS)previousReactor.getValue("STATUS"));
