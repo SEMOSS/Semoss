@@ -41,6 +41,11 @@ public interface IDataMaker {
 	int getDataId();
 	
 	/**
+	 * reset the dataId to be 0
+	 */
+	void resetDataId();
+	
+	/**
 	 * Sets the name of the user who created this instance of the data maker
 	 * @param userId
 	 */

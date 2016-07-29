@@ -726,5 +726,9 @@ public abstract class AbstractTableDataFrame implements ITableDataFrame {
 		return count;
 	}
 	
+	public void resetDataId() {
+		this.dataId = BigInteger.valueOf(0);
+	}
+	
 
 }
