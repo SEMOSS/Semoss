@@ -401,6 +401,7 @@ public class RDBMSNativeEngine extends AbstractEngine {
 			if(engineConn != null) {
 				try {
 					engineConn.close();
+					this.engineConnected = false;
 				} catch (SQLException e) {
 					e.printStackTrace();
 				}
