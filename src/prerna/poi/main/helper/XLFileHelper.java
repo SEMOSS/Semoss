@@ -24,6 +24,8 @@ import prerna.util.Utility;
 public class XLFileHelper {
 	
 	int colStarter = 0;
+	
+	private static final int NUM_ROWS_TO_PREDICT_TYPES = 1000;
 
 	private	XSSFWorkbook workbook = null;
 	private FileInputStream sourceFile = null;
@@ -306,9 +308,10 @@ public class XLFileHelper {
 		int numCells = header.getLastCellNum();
 		
 		String [] types = new String[numCells];
+		// Loop through cols, and up to 1000 rows
 		for(int i = colStarter; i < numCells; i++) {
 			String type = null;
-			ROW_LOOP : for(int j = 1; j < numRows; j++) {
+			ROW_LOOP : for(int j = 1; j < numRows && j < NUM_ROWS_TO_PREDICT_TYPES; j++) {
 				XSSFRow row = lSheet.getRow(j);
 				if(row != null) {
 					XSSFCell cell = row.getCell(i);
