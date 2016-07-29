@@ -17,7 +17,12 @@ import prerna.util.ArrayUtilityMethods;
  * 
  * Viz reactor is responsible for return data associated with a panel.viz pkql command
  *
- * The command will
+ * The class 
+ * 		1. will take column headers and/or group by data from the math reactors
+ * 		2. retrieve data for column headers from the frame if they are not part of the group by
+ * 		3. combine data coming from multiple math functions (ASSUMES THEY HAVE THE SAME GROUP BY***)
+ * 		4. combine data coming from frames and data coming from reactors into a single grid
+ * 		5. reorder the grid and header data to match the order it was passed in
  */
 public class VizReactor extends AbstractReactor {
 
@@ -37,6 +42,8 @@ public class VizReactor extends AbstractReactor {
 	
 	@Override
 	public Iterator process() {
+		
+		//grab the data i need
 		Object termObject = myStore.get("VizTableData");
 		ITableDataFrame frame = (ITableDataFrame)myStore.get("G");
 		List<String> formulas = (List<String>)myStore.get("MATH_EXPRESSION");
@@ -44,47 +51,69 @@ public class VizReactor extends AbstractReactor {
 		List<List<String>> groupBys = (List<List<String>>)myStore.get(PKQLEnum.COL_CSV+"2");
 		List<List<String>> calculatedBy = (List<List<String>>)myStore.get(PKQLEnum.COL_DEF+"2");
 		
+		
 		List<String> columns = new ArrayList<>();
 		List<String> columnsToGrab  = new ArrayList<>();
 		String[] keyColumns = new String[]{}; //group by columns for the calculated columns, assumed to be the same for all calculated columns
 		Map<Map<String, Object>, Object> mainMap = new HashMap<>();
 		List<Object[]> grid = new ArrayList<>(1);
 		
-		Map<String, Integer> indexMap = new HashMap<>();
+		Map<Integer, String> indexMap = new HashMap<>();
 		
 		int index = 0;
 		if(termObject instanceof List) {
 			List<Object> listObject = (List<Object>)termObject;
 			int counter = 0;
 			for(Object nextObject : listObject) {
+				
+				//if its a map we know it came from a math reactor
 				if(nextObject instanceof Map) {
 					String newColName = "newCol"+counter++;
 					columns.add(newColName);
-					indexMap.put(newColName, index);
+//					indexMap.put(newColName, index);
+					indexMap.put(index, newColName);
 					
+					//we assume key columns are the same for all math reactors, need to initialize
 					if(keyColumns.length == 0) {
+						//
 						keyColumns = ((Map<Map<String, Object>, Object>)nextObject).keySet().iterator().next().keySet().toArray(new String[]{});
 					}
 					
 					mainMap = mergeMap(mainMap, (Map<Map<String, Object>, Object>)nextObject);
 					
-					
-				} else if(nextObject instanceof String) {
+				} 
+				
+				//this is a column header 
+				else if(nextObject instanceof String) {
 					columnsToGrab.add(nextObject.toString());
-					indexMap.put(nextObject.toString(), index);
-				} else if(nextObject == null){
-					indexMap.put("EMPTY"+index, index);
-				} else {
+//					indexMap.put(nextObject.toString(), index);
+					indexMap.put(index, nextObject.toString());
+				} 
+				
+				//this is an empty placeholder to maintain order, need to keep track
+				else if(nextObject == null){
+//					indexMap.put("EMPTY"+index, index);
+					indexMap.put(index, "EMPTY");
+				} 
+				
+				//this would be a formula that is not a group by, not accounting for these yet
+				//getting this would be huge for data visual, imagine scaling axis based on data...i.e. logs
+				else {
 					//formulas which are not group bys and not columns should be taken care of here
 				}
+				
 				index++;
 			}
 		} else {
 			//if this is the case what are we displaying?
 		}
 		
-		//grab the iterator
-		if(columnsToGrab.size() > 0 && keyColumns.length > 0) {
+		boolean mathPerformed = keyColumns.length > 0;
+		
+		
+		//grab the iterator because we have columns that need data from the frame
+		if(columnsToGrab.size() > keyColumns.length) {
+//		if(columnsToGrab.size() > 0 && keyColumns.length > 0) {
 			Map<String, Object> options = new HashMap<>();
 			options.put(TinkerFrame.SELECTORS, columnsToGrab);
 			options.put(TinkerFrame.DE_DUP, true);
@@ -93,7 +122,10 @@ public class VizReactor extends AbstractReactor {
 			//convert to map and merge
 			Map<Map<String, Object>, Object> newMap = convertIteratorDataToMap(iterator, columnsToGrab, keyColumns);
 			mainMap = mergeMap(mainMap, newMap);
-		} else if(columnsToGrab.size() > 0) {
+		} 
+		
+		//otherwise we only have column data to grab from the frame, no math was done
+		else if(columnsToGrab.size() > 0 && !mathPerformed) {
 			Map<String, Object> options = new HashMap<>();
 			options.put(TinkerFrame.SELECTORS, columnsToGrab);
 			options.put(TinkerFrame.DE_DUP, true);
@@ -109,6 +141,8 @@ public class VizReactor extends AbstractReactor {
 		for(String column : keyColumns) {
 			columnsToGrab.remove(column);
 		}
+		
+		//columnsToGrab is now all the columns that are not group bys columns
 		columns.addAll(columnsToGrab);
 		
 		List<String> headerColumns = new ArrayList<>();
@@ -119,7 +153,7 @@ public class VizReactor extends AbstractReactor {
 		
 		//order of header columns will be : key columns (grouped columns) in stable order, then new function columns, then other columns
 		
-		if(keyColumns.length > 0) {
+		if(mathPerformed) {
 			grid = convertMapToGrid(mainMap, keyColumns);
 		}
 		
@@ -151,9 +185,16 @@ public class VizReactor extends AbstractReactor {
 					Map<String, Object> operationMap = new HashMap<>();
 					String newColumnName = generateName(groupBys.get(formNum), calculatedBy.get(formNum), procedureTypes.get(formNum));
 					
-					Integer val = indexMap.get(columnName);
-					indexMap.remove(columnName);
-					indexMap.put(newColumnName, val);
+//					Integer val = indexMap.get(columnName);
+//					indexMap.remove(columnName);
+//					indexMap.put(newColumnName, val);
+					
+					for(Integer indexVal : indexMap.keySet()) {
+						String column = indexMap.get(indexVal);
+						if(column.equals(columnName)) {
+							indexMap.put(indexVal, newColumnName);
+						}
+					}
 					
 					columnName = newColumnName;
 					headerColumns.set(i, columnName);
@@ -305,7 +346,7 @@ public class VizReactor extends AbstractReactor {
 	 * 
 	 * mapData is of the form:
 	 * {
-	 * 		{} -> []
+	 * 		{Title = T1, Studio = S1} -> [0.8, 0.5]
 	 * }
 	 */
     private List<Object[]> convertMapToGrid(Map<Map<String, Object>, Object> mapData, String[] headers) {
@@ -337,6 +378,56 @@ public class VizReactor extends AbstractReactor {
     }
 
 
+//    /**
+//     * 
+//     * @param grid
+//     * @param columnList
+//     * @param indexMap
+//     * @return			need to reorder the grid :(
+//     */
+//    private List<Object[]> reorderGrid(List<Object[]> grid, List<String> columnList, Map<String, Integer> indexMap) {
+//    	List<Object[]> returnGrid = new ArrayList<>();
+//    	int length = indexMap.keySet().size();
+//    	
+//    	String[] columns = new String[columnList.size()];
+//    	for(int i = 0; i < columns.length; i++) {
+//    		columns[i] = columnList.get(i);
+//    	}
+//    	
+//    	for(Object[] row : grid) {
+//    		Object[] newRow = new Object[length];
+//    		for(String key : indexMap.keySet()) {
+//    			int val = indexMap.get(key);
+//    			if(key.toUpperCase().startsWith("EMPTY")) {
+//    				newRow[val] = "";
+//    			} else {
+//    				newRow[val] = row[ArrayUtilityMethods.arrayContainsValueAtIndex(columns, key)];
+//    			}
+//    		}
+//    		returnGrid.add(newRow);
+//    	}
+//    	
+//    	return returnGrid;
+//    }
+//    
+//    private Object[] getColumnsInOrder(Map<String, Object> columnMap, Map<String, Integer> indexMap) {
+//    	Object[] colArr = new Object[indexMap.keySet().size()];
+//    	for(String key : indexMap.keySet()) {
+//    		Integer val = indexMap.get(key);
+//    		if(key.toUpperCase().startsWith("EMPTY")) {
+//    			Map<String, Object> keyMap = new HashMap<>();
+//    			keyMap.put("varKey", "");
+//    			keyMap.put("uri", "");
+//    			keyMap.put("type", "");
+//    			keyMap.put("operation", new HashMap<>());
+//    			colArr[val] = keyMap;
+//    		} else {
+//    			colArr[val] = columnMap.get(key);
+//    		}
+//    	}
+//    	return colArr;
+//    }
+    
     /**
      * 
      * @param grid
@@ -344,7 +435,7 @@ public class VizReactor extends AbstractReactor {
      * @param indexMap
      * @return			need to reorder the grid :(
      */
-    private List<Object[]> reorderGrid(List<Object[]> grid, List<String> columnList, Map<String, Integer> indexMap) {
+    private List<Object[]> reorderGrid(List<Object[]> grid, List<String> columnList, Map<Integer, String> indexMap) {
     	List<Object[]> returnGrid = new ArrayList<>();
     	int length = indexMap.keySet().size();
     	
@@ -355,12 +446,12 @@ public class VizReactor extends AbstractReactor {
     	
     	for(Object[] row : grid) {
     		Object[] newRow = new Object[length];
-    		for(String key : indexMap.keySet()) {
-    			int val = indexMap.get(key);
-    			if(key.toUpperCase().startsWith("EMPTY")) {
-    				newRow[val] = "";
+    		for(Integer key : indexMap.keySet()) {
+    			String column = indexMap.get(key);
+    			if(column.toUpperCase().startsWith("EMPTY")) {
+    				newRow[key] = "";
     			} else {
-    				newRow[val] = row[ArrayUtilityMethods.arrayContainsValueAtIndex(columns, key)];
+    				newRow[key] = row[ArrayUtilityMethods.arrayContainsValueAtIndex(columns, column)];
     			}
     		}
     		returnGrid.add(newRow);
@@ -369,19 +460,19 @@ public class VizReactor extends AbstractReactor {
     	return returnGrid;
     }
     
-    private Object[] getColumnsInOrder(Map<String, Object> columnMap, Map<String, Integer> indexMap) {
+    private Object[] getColumnsInOrder(Map<String, Object> columnMap, Map<Integer, String> indexMap) {
     	Object[] colArr = new Object[indexMap.keySet().size()];
-    	for(String key : indexMap.keySet()) {
-    		Integer val = indexMap.get(key);
-    		if(key.toUpperCase().startsWith("EMPTY")) {
+    	for(Integer key : indexMap.keySet()) {
+    		String column = indexMap.get(key);
+    		if(column.toUpperCase().startsWith("EMPTY")) {
     			Map<String, Object> keyMap = new HashMap<>();
     			keyMap.put("varKey", "");
     			keyMap.put("uri", "");
     			keyMap.put("type", "");
     			keyMap.put("operation", new HashMap<>());
-    			colArr[val] = keyMap;
+    			colArr[key] = keyMap;
     		} else {
-    			colArr[val] = columnMap.get(key);
+    			colArr[key] = columnMap.get(column);
     		}
     	}
     	return colArr;
