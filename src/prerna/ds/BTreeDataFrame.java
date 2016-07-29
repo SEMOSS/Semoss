@@ -2162,4 +2162,10 @@ public class BTreeDataFrame implements ITableDataFrame {
 		// TODO Auto-generated method stub
 		return 0;
 	}
+
+	@Override
+	public void resetDataId() {
+		// TODO Auto-generated method stub
+		
+	}
 }

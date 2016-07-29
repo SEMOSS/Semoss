@@ -321,4 +321,9 @@ public class SparkDataFrame extends AbstractTableDataFrame{
 		// TODO Auto-generated method stub
 		
 	}
+	@Override
+	public void resetDataId() {
+		// TODO Auto-generated method stub
+		
+	}
 }
