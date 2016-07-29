@@ -23,6 +23,10 @@ public class Dashboard implements IDataMaker {
 	private static String delimiter = ":::";
 	private String insightID;
 	
+	public Dashboard() {
+		
+	}
+	
 	@Override
 	public void processDataMakerComponent(DataMakerComponent component) {
 		
@@ -164,5 +168,11 @@ public class Dashboard implements IDataMaker {
 	
 	public void setInsightID(String insightID) {
 		this.insightID = insightID;
+	}
+
+	@Override
+	public void resetDataId() {
+		// TODO Auto-generated method stub
+		
 	}
 }

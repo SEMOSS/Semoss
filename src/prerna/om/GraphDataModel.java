@@ -1391,6 +1391,10 @@ public class GraphDataModel implements IDataMaker {
 	public int getDataId() {
 		return this.dataId.intValue();
 	}
+	
+	public void resetDataId() {
+		this.dataId = BigInteger.valueOf(0);
+	}
 
 	@Override
 	public String getDataMakerName() {

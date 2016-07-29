@@ -361,4 +361,11 @@ public class TablePlaySheet extends AbstractPlaySheet implements IDataMaker{
 		
 		return 0;
 	}
+	
+	@Override
+	public void resetDataId() {
+		if(this.dataFrame != null) {
+			this.dataFrame.resetDataId();
+		}
+	}
 }
