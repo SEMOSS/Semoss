@@ -288,6 +288,7 @@ public class ApiReactor extends AbstractReactor {
 				for(String var : varMap.keySet()) {
 					Map<String, Object> paramValues = varMap.get(var);
 					if(paramValues != null && paramValues.get(Constants.TYPE).equals(fromCol)) {
+						filterData.clear();
 						filterData.add(paramValues.get(Constants.VALUE).toString());
 					}
 				}
