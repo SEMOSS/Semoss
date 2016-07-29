@@ -46,10 +46,13 @@ public class VizReactor extends AbstractReactor {
 		
 		List<String> columns = new ArrayList<>();
 		List<String> columnsToGrab  = new ArrayList<>();
-		String[] keyColumns = new String[]{};
+		String[] keyColumns = new String[]{}; //group by columns for the calculated columns, assumed to be the same for all calculated columns
 		Map<Map<String, Object>, Object> mainMap = new HashMap<>();
 		List<Object[]> grid = new ArrayList<>(1);
 		
+		Map<String, Integer> indexMap = new HashMap<>();
+		
+		int index = 0;
 		if(termObject instanceof List) {
 			List<Object> listObject = (List<Object>)termObject;
 			int counter = 0;
@@ -57,6 +60,7 @@ public class VizReactor extends AbstractReactor {
 				if(nextObject instanceof Map) {
 					String newColName = "newCol"+counter++;
 					columns.add(newColName);
+					indexMap.put(newColName, index);
 					
 					if(keyColumns.length == 0) {
 						keyColumns = ((Map<Map<String, Object>, Object>)nextObject).keySet().iterator().next().keySet().toArray(new String[]{});
@@ -67,9 +71,13 @@ public class VizReactor extends AbstractReactor {
 					
 				} else if(nextObject instanceof String) {
 					columnsToGrab.add(nextObject.toString());
+					indexMap.put(nextObject.toString(), index);
+				} else if(nextObject == null){
+					indexMap.put("EMPTY"+index, index);
 				} else {
 					//formulas which are not group bys and not columns should be taken care of here
 				}
+				index++;
 			}
 		} else {
 			//if this is the case what are we displaying?
@@ -116,7 +124,8 @@ public class VizReactor extends AbstractReactor {
 		}
 		
 		//add in the grouped columns
-		List columnList = new ArrayList<>(headerColumns.size());
+//		List columnList = new ArrayList<>(headerColumns.size());
+		Map<String, Object> columnMap = new HashMap<>();
 		int i;
 		for(i = 0; i < keyColumns.length; i++) {
 			Map<String, Object> keyMap = new HashMap<>();
@@ -124,7 +133,8 @@ public class VizReactor extends AbstractReactor {
 			keyMap.put("uri", keyColumns[i]);
 			keyMap.put("type", frame.getDataType(keyColumns[i]).toString());
 			keyMap.put("operation", new HashMap<>());
-			columnList.add(keyMap);
+//			columnList.add(keyMap);
+			columnMap.put(keyColumns[i], keyMap);
 		}
 		
 		//add in the function columns
@@ -139,7 +149,15 @@ public class VizReactor extends AbstractReactor {
 				} else {
 					keyMap.put("type", "NUMBER");
 					Map<String, Object> operationMap = new HashMap<>();
-					columnName = generateName(groupBys.get(formNum), calculatedBy.get(formNum), procedureTypes.get(formNum));
+					String newColumnName = generateName(groupBys.get(formNum), calculatedBy.get(formNum), procedureTypes.get(formNum));
+					
+					Integer val = indexMap.get(columnName);
+					indexMap.remove(columnName);
+					indexMap.put(newColumnName, val);
+					
+					columnName = newColumnName;
+					headerColumns.set(i, columnName);
+					
 					operationMap.put("formula", formulas.get(formNum));
 					operationMap.put("groupedBy", groupBys.get(formNum));
 					operationMap.put("calculatedBy", calculatedBy.get(formNum));
@@ -148,7 +166,8 @@ public class VizReactor extends AbstractReactor {
 				}
 				keyMap.put("varKey", columnName);
 				keyMap.put("uri", columnName);
-				columnList.add(keyMap);
+//				columnList.add(keyMap);
+				columnMap.put(columnName, keyMap);
 				formNum++;
 			}
 		}
@@ -160,10 +179,13 @@ public class VizReactor extends AbstractReactor {
 			keyMap.put("uri", headerColumns.get(i));
 			keyMap.put("type", frame.getDataType(headerColumns.get(i)).toString());
 			keyMap.put("operation", new HashMap<>());
-			columnList.add(keyMap);
+//			columnList.add(keyMap);
+			columnMap.put(headerColumns.get(i), keyMap);
 		}
 		
-		myStore.put("VizTableKeys", columnList);
+		grid = reorderGrid(grid, headerColumns, indexMap);
+		Object[] finalHeaders = getColumnsInOrder(columnMap, indexMap);
+		myStore.put("VizTableKeys", finalHeaders);
 		myStore.put("VizTableValues", grid);
 		
 		return null;
@@ -217,6 +239,14 @@ public class VizReactor extends AbstractReactor {
 		return retMap;
 	}
 	
+	/**
+	 * 
+	 * @param firstMap
+	 * @param secondMap
+	 * @return
+	 * 
+	 * merges two maps
+	 */
 	private Map<Map<String, Object>, Object> mergeMap(Map<Map<String, Object>, Object> firstMap, Map<Map<String, Object>, Object> secondMap) {
 		
 		if(firstMap == null || firstMap.isEmpty()) return secondMap;
@@ -304,5 +334,56 @@ public class VizReactor extends AbstractReactor {
         }
         
         return grid;
+    }
+
+
+    /**
+     * 
+     * @param grid
+     * @param columnList
+     * @param indexMap
+     * @return			need to reorder the grid :(
+     */
+    private List<Object[]> reorderGrid(List<Object[]> grid, List<String> columnList, Map<String, Integer> indexMap) {
+    	List<Object[]> returnGrid = new ArrayList<>();
+    	int length = indexMap.keySet().size();
+    	
+    	String[] columns = new String[columnList.size()];
+    	for(int i = 0; i < columns.length; i++) {
+    		columns[i] = columnList.get(i);
+    	}
+    	
+    	for(Object[] row : grid) {
+    		Object[] newRow = new Object[length];
+    		for(String key : indexMap.keySet()) {
+    			int val = indexMap.get(key);
+    			if(key.toUpperCase().startsWith("EMPTY")) {
+    				newRow[val] = "";
+    			} else {
+    				newRow[val] = row[ArrayUtilityMethods.arrayContainsValueAtIndex(columns, key)];
+    			}
+    		}
+    		returnGrid.add(newRow);
+    	}
+    	
+    	return returnGrid;
+    }
+    
+    private Object[] getColumnsInOrder(Map<String, Object> columnMap, Map<String, Integer> indexMap) {
+    	Object[] colArr = new Object[indexMap.keySet().size()];
+    	for(String key : indexMap.keySet()) {
+    		Integer val = indexMap.get(key);
+    		if(key.toUpperCase().startsWith("EMPTY")) {
+    			Map<String, Object> keyMap = new HashMap<>();
+    			keyMap.put("varKey", "");
+    			keyMap.put("uri", "");
+    			keyMap.put("type", "");
+    			keyMap.put("operation", new HashMap<>());
+    			colArr[val] = keyMap;
+    		} else {
+    			colArr[val] = columnMap.get(key);
+    		}
+    	}
+    	return colArr;
     }
 }
