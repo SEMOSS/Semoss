@@ -19,7 +19,9 @@ import prerna.util.ArrayUtilityMethods;
 import prerna.util.Utility;
 
 public class CSVFileHelper {
-
+	
+	private static final int NUM_ROWS_TO_PREDICT_TYPES = 1000;
+	
 	private CsvParser parser = null;
 	private CsvParserSettings settings = null;
 	private char delimiter = ',';
@@ -241,12 +243,14 @@ public class CSVFileHelper {
 	public String[] predictTypes() {
 		String[] types = new String[newUniqueCSVHeaders.size()];
 		int counter = 0;
+		// Loop through cols, and up to 1000 rows
 		for(String col : newUniqueCSVHeaders) {
+			int rowCounter = 0;
 			parseColumns(new String[]{col});
 			//			getNextRow();
 			String type = null;
 			String[] row = null;
-			WHILE_LOOP : while( ( row = parser.parseNext()) != null) {
+			WHILE_LOOP : while(rowCounter < NUM_ROWS_TO_PREDICT_TYPES && ( row = parser.parseNext()) != null) {
 				String val = row[0];
 				if(val.isEmpty()) {
 					continue;
@@ -279,6 +283,8 @@ public class CSVFileHelper {
 					// or type is null on first iteration
 					type = newTypePred;
 				}
+				
+				rowCounter++;
 			}
 			// if an entire column is empty, type will be null
 			// why someone has a csv file with an empty column, i do not know...
