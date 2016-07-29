@@ -289,6 +289,7 @@ public class InsightCreateRunner implements Runnable{
 			tableDataAlign = (Map<String, String>) (((AbstractPlaySheet) playSheet).getDataTableAlign());
 			insight.setDataTableAlign(tableDataAlign);
 		}
+		insight.getDataMaker().resetDataId();
 		return insight.getWebData();
 	}
 	
