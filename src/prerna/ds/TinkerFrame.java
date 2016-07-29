@@ -1013,25 +1013,30 @@ public class TinkerFrame extends AbstractTableDataFrame {
 	private SEMOSSVertex getSEMOSSVertex(Map<String, SEMOSSVertex> vertStore, Vertex tinkerVert){
 		Object value = tinkerVert.property(Constants.VALUE).value();
 		String type = tinkerVert.property(Constants.TYPE).value() + "";
-		// if this vertex is a literal, need to build the uri
-		// otherwise the semoss vertex will not be able to get the type of the node (it parses the uri to get type)
 		
-		// start with the assumption that the value is already a uri... but we can't be positive
-		// let us perform some checks
-		String uri = value + "";
-		// check 1
-		// if it is not a value of string, most definitely need to create a uri
-		if(!(value instanceof String)) {
-			uri = "http://semoss.org/ontologies/Concept/" + type + "/" + value;
-		} else {
-			// check 2
-			// but even if it is a string, we might still need to create a uri
-			// well, if it isn't already a URI with the concatenation of the base semoss concept, a forward slash, and the type
-			// then create a uri
-			if(!value.toString().startsWith("http://semoss.org/ontologies/Concept/" + type)) {
-				uri = "http://semoss.org/ontologies/Concept/" + type + "/" + value;
-			}
-		}
+		// New logic to construct URI - don't need to take into account base URI beacuse it sits on OWL and is used upon query creation
+		String newValue = Utility.getInstanceName(value.toString());
+		String uri = "http://semoss.org/ontologies/Concept/" + type + "/" + newValue;
+		
+		// Old logic
+//		if this vertex is a literal, need to build the uri
+//		otherwise the semoss vertex will not be able to get the type of the node (it parses the uri to get type)
+//		start with the assumption that the value is already a uri... but we can't be positive
+//		let us perform some checks
+//		String uri = value + "";
+//		check 1
+//		if it is not a value of string, most definitely need to create a uri
+//		if(!(value instanceof String)) {
+//			uri = "http://semoss.org/ontologies/Concept/" + type + "/" + value;
+//		} else {
+//			// check 2
+//			// but even if it is a string, we might still need to create a uri
+//			// well, if it isn't already a URI with the concatenation of the base semoss concept, a forward slash, and the type
+//			// then create a uri
+//			if(!value.toString().startsWith("http://semoss.org/ontologies/Concept/" + type) && !((String)value).contains(((String)type))) {
+//				uri = "http://semoss.org/ontologies/Concept/" + type + "/" + value;
+//			}
+//		}
 			
 		SEMOSSVertex semossVert = vertStore.get(uri);
 		if(semossVert == null){
