@@ -215,4 +215,10 @@ public class MashupPlaySheet extends AbstractPlaySheet implements IDataMaker {
 		// TODO Auto-generated method stub
 		return 0;
 	}
+
+	@Override
+	public void resetDataId() {
+		// TODO Auto-generated method stub
+		
+	}
 }
