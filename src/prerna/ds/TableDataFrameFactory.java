@@ -407,40 +407,48 @@ public class TableDataFrameFactory {
 	 * 
 	 */
 	public static TinkerFrame convertToTinkerFrame(ITableDataFrame table) {
-//		frame.addRelationship(ss.getHeaders(), ss.getValues(), ss.getRawValues(), cardinality, logicalToValue);
+		//		frame.addRelationship(ss.getHeaders(), ss.getValues(), ss.getRawValues(), cardinality, logicalToValue);
 		if(table instanceof TinkerFrame) {
 			return (TinkerFrame)table;
 		} else if(table instanceof H2Frame) {
-			
-			TinkerFrame frame = new TinkerFrame();
-			
+
+			TinkerFrame frame = null;
+
 			H2Frame h2frame = (H2Frame)table;
-			frame.metaData = h2frame.metaData; //set the meta data for the new frame
-			
 			//get an iterator and skip duplicates
 			Map<String, Object> options = new HashMap<>();
 			options.put(TinkerFrame.DE_DUP, true);
 			options.put(TinkerFrame.SELECTORS, h2frame.getSelectors());
 			Iterator<Object[]> iterator = h2frame.iterator(false, options);
-			
+
 			String[] columnHeaders  = h2frame.getSelectors().toArray(new String[]{});
-			Map<Integer, Set<Integer>> cardinality = Utility.getCardinalityOfValues(columnHeaders, frame.getEdgeHash());
-			Map<String, String> uniqueToValue = frame.metaData.getAllUniqueNamesToValues();
-			
+			Map<Integer, Set<Integer>> cardinality = Utility.getCardinalityOfValues(columnHeaders, h2frame.getEdgeHash());
+			Map<String, String> uniqueToValue = h2frame.metaData.getAllUniqueNamesToValues();
+
+			String[] types = new String[columnHeaders.length];
+			int i = 0;
+			for(String header : columnHeaders) {
+				String headerType = h2frame.getDataType(header).toString();
+				types[i] = headerType;
+				i++;
+			}
+
 			//for each row add that relationship to tinker
 			while(iterator.hasNext()) {
 				Object[] row = iterator.next();
-				frame.addRelationship(columnHeaders, row, row, cardinality, uniqueToValue);
-//				Map<String, Object> nextMap = new HashMap<>();
-//				for(int i = 0; i < row.length; i++) {
-//					nextMap.put(columnHeaders[i], row[i]);
-//				}
-//				frame.addRelationship(nextMap, nextMap);
+				if(cardinality == null || cardinality.isEmpty()) {
+					frame = (TinkerFrame)createDataFrame(columnHeaders, "tinker", types, null);
+					frame.addRow(row, row, columnHeaders);
+				} else{
+					frame = new TinkerFrame();
+					frame.metaData = h2frame.metaData; //set the meta data for the new frame
+					frame.addRelationship(columnHeaders, row, row, cardinality, uniqueToValue);
+				}
 			}
 			return frame;
 		}
-		
+
 		return null;
 	}
-	
+
 }
