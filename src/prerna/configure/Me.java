@@ -6,12 +6,10 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
-import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.OutputStreamWriter;
-import java.net.InetSocketAddress;
-import java.net.Socket;
+import java.net.ServerSocket;
 import java.nio.file.Files;
 import java.nio.file.StandardCopyOption;
 import java.util.Hashtable;
@@ -57,7 +55,7 @@ public class Me {
 		// I have a few things now i need to change
 		String port = cm.findOpenPort();
 		
-		//System.out.println("Found port.. " + port);
+		System.out.println("Found port.. " + port);
 		// RDF Map is sitting in 
 		// args[0] / semosshome	
 		cm.changeRDFMap(homePath, port);
@@ -120,27 +118,36 @@ public class Me {
 	public String findOpenPort()
 	{
 		// start with 7677 and see if you can find any
+		
 		System.out.println("Finding an open port.. ");
 		boolean found = true;
 		int port = 5355;int count = 0;
+		String server = "10.13.229.203";
+		server = "127.0.0.1";
 		for(;found && count < 5;port++, count++)
 		{
 			System.out.print("Trying.. " + port);
 			try
 			{
-				Socket s = new Socket();
-				s.connect(new InetSocketAddress("localhost", port), 5000);//"localhost", port);
+				ServerSocket s = new ServerSocket(port) ;//"10.13.229.203", port);
+				//s.connect(new InetSocketAddress(server, port), 5000);//"localhost", port);
+				//s.accept();
 				found = false;
 				s.close();
 				System.out.println("  Success !!!!");
 			}catch (Exception ex)
 			{
 				// do nothing
+				//ex.printStackTrace();
 				System.out.println("  Fail");
+				//System.exit(0);
 				found = true;
 				//ex.printStackTrace();
+			}finally
+			{
 			}
 		}
+		port--;
 		BufferedReader br = new BufferedReader(new InputStreamReader(System.in));
 		String portStr = null;
 		if(count >= 5) {
