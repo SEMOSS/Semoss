@@ -37,11 +37,16 @@ public class Me {
 	{
 		// get in the args what the base folder is
 		String homePath = null;
+		
+		if(args.length == 0) {
+			System.out.println("java prerna.configure.Me <semosshome>");
+			System.exit(0);
+		}
 		if(args != null && args.length > 0)
 			homePath = args[0];
 		
-		if(homePath == null)
-			homePath = "C:/Users/pkapaleeswaran/workspacej3/MonolithDev2";
+//		if(homePath == null)
+//			homePath = "C:/Users/pkapaleeswaran/workspacej3/MonolithDev2";
 
 		System.out.println(homePath);
 		Me cm = new Me();
@@ -79,7 +84,7 @@ public class Me {
 		// args[0]/conf/server
 		String appFile = homePath + "/conf/server.xml";
 		// changing for my current box
-		appFile = "C:/Users/pkapaleeswaran/Desktop/From C Drive Root/apache-tomcat-8.0.15/conf/server2.xml";
+//		appFile = "C:/Users/pkapaleeswaran/Desktop/From C Drive Root/apache-tomcat-8.0.15/conf/server2.xml";
 		System.out.println("Configuring Tomcat.. " + appFile);
 		
 		DocumentBuilder db = DocumentBuilderFactory.newInstance().newDocumentBuilder();
@@ -136,7 +141,7 @@ public class Me {
 	{
 		System.out.println("Configuring RDF Map.. ");
 		String rdfHome = homePath + "/semosshome/RDF_Map.prop";
-		rdfHome = homePath + "/RDF_Map2.prop";
+//		rdfHome = homePath + "/RDF_Map2.prop";
 		
 		String [] stringToReplace = {"BaseFolder", 
 									"LOG4J", 
@@ -149,8 +154,8 @@ public class Me {
 										 homePath + "/semosshome/log4j.prop", 
 										 homePath + "/semosshome/db", 
 										 homePath + "/semosshome/db",
-										 homePath + "/semosshome/cache",
-										 homePath + "/semosshome/insightCache",
+										 homePath + "/semosshome/InsightCache/CSV_Insights",
+										 homePath + "/semosshome/InsightCache",
 										 "http://localhost:" + port + "/solr"}; 
 		
 		replaceProp(rdfHome, stringToReplace, stringToReplaceWith);
@@ -166,14 +171,14 @@ public class Me {
 		
 		System.out.println("Modifying Web Configuration.....");
 		
-		//String appPath = homePath + "/webapps/semossweb/app/app.config.js";
-		//String altPath = homePath + "/webapps/semossweb/app/app.config2.js";
+		String appPath = homePath + "/webapps/SemossWeb/app/app.config.js";
+		String altPath = appPath + "temp";
 		
 
-		String appPath = homePath + "/Webcontent/dev/app/app.config1.js";
-		String altPath = homePath + "/Webcontent/dev/app/app.config2.js";
+//		String appPath = homePath + "/Webcontent/dev/app/app.config1.js";
+//		String altPath = homePath + "/Webcontent/dev/app/app.config2.js";
 		System.out.println("Web Config " + appPath);
-		System.out.println("Web Config 2 " + appPath);
+		System.out.println("Web Config 2 " + altPath);
 		
 		String inout = null;
 		
@@ -198,10 +203,10 @@ public class Me {
 		
 		
 		// the old app.config
-		//appPath = homePath + "/webapps/semossweb/olddev/app/scripts/config.js";
-		//altPath = homePath + "/webapps/semossweb/olddev/app/scripts/config2.js";
-		appPath = homePath + "/Webcontent/dev/olddev/app/scripts/config.js";
-		altPath = homePath + "/Webcontent/dev/olddev/app/scripts/config2.js";
+		appPath = homePath + "/webapps/SemossWeb/olddev/app/scripts/config.js";
+		altPath = appPath + "temp";
+//		appPath = homePath + "/Webcontent/dev/olddev/app/scripts/config.js";
+//		altPath = homePath + "/Webcontent/dev/olddev/app/scripts/config2.js";
 
 		inout = null;
 		
@@ -265,13 +270,13 @@ public class Me {
 		
 		
 		Hashtable thingsToWatch= new Hashtable();
-		thingsToWatch.put("file-upload", homePath + "/Temp");
-		thingsToWatch.put("temp-file-upload", homePath + "/Temp");
-		thingsToWatch.put("RDF-MAP", homePath + "/RDF_MAP.prop");
+		thingsToWatch.put("file-upload", homePath + "/semosshome/upload");
+		thingsToWatch.put("temp-file-upload", homePath + "/semosshome/upload");
+		thingsToWatch.put("RDF-MAP", homePath + "/RDF_Map.prop");
 		
 
 		DocumentBuilder db = DocumentBuilderFactory.newInstance().newDocumentBuilder();
-		String appFile = homePath + "/WebContent/WEB-INF/web2.xml";
+		String appFile = homePath + "/webapps/Monolith/WEB-INF/web.xml";
 		System.out.println("Configuring web.xml " + appFile);
 		Document d = db.parse(appFile);
 		NodeList nl = d.getElementsByTagName("context-param");
@@ -300,7 +305,7 @@ public class Me {
 		
 		
 		// write it back
-		String altFile = homePath + "/WebContent/WEB-INF/web3.xml";
+		String altFile = appFile + "temp";
 		//FileWriter fw = new FileWriter();
 		TransformerFactory tf = TransformerFactory.newInstance();
 		DOMSource source = new DOMSource(d);
