@@ -12,6 +12,8 @@ import java.io.InputStreamReader;
 import java.io.OutputStreamWriter;
 import java.net.InetSocketAddress;
 import java.net.Socket;
+import java.nio.file.Files;
+import java.nio.file.StandardCopyOption;
 import java.util.Hashtable;
 import java.util.Properties;
 
@@ -26,8 +28,6 @@ import org.w3c.dom.NamedNodeMap;
 import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
 
-import com.google.common.io.Files;
-
 public class Me {
 	// the idea here really simple
 	// look at where the batch file is 
@@ -39,16 +39,17 @@ public class Me {
 		String homePath = null;
 		
 		if(args.length == 0) {
-			System.out.println("java prerna.configure.Me <semosshome>");
+			System.out.println("Usage: java prerna.configure.Me <semoss home dir>");
 			System.exit(0);
 		}
 		if(args != null && args.length > 0)
-			homePath = args[0];
+			homePath = args[0].replace("\\", "/");
+		
+		System.out.println("Using home folder: " + homePath);
 		
 //		if(homePath == null)
 //			homePath = "C:/Users/pkapaleeswaran/workspacej3/MonolithDev2";
 
-		System.out.println(homePath);
 		Me cm = new Me();
 		
 		
@@ -77,12 +78,18 @@ public class Me {
 		
 		// last thing is tomcat
 		cm.changeTomcatXML(homePath,port);
+		
+		cm.genOpenBrowser(homePath, port);
+		
+		System.out.println("------------------------");
+		System.out.println("SEMOSS configured! Run startSEMOSS.bat and point your browser to http://localhost:" + port + "/SemossWeb/ to access SEMOSS!");
+		System.out.println("------------------------");
 	}
 	
 	public void changeTomcatXML(String homePath, String port) throws Exception
 	{
 		// args[0]/conf/server
-		String appFile = homePath + "/conf/server.xml";
+		String appFile = homePath + "/../conf/server.xml";
 		// changing for my current box
 //		appFile = "C:/Users/pkapaleeswaran/Desktop/From C Drive Root/apache-tomcat-8.0.15/conf/server2.xml";
 		System.out.println("Configuring Tomcat.. " + appFile);
@@ -115,8 +122,8 @@ public class Me {
 		// start with 7677 and see if you can find any
 		System.out.println("Finding an open port.. ");
 		boolean found = true;
-		int port = 5355;
-		for(;found;port++)
+		int port = 5355;int count = 0;
+		for(;found && count < 5;port++, count++)
 		{
 			System.out.print("Trying.. " + port);
 			try
@@ -134,13 +141,27 @@ public class Me {
 				//ex.printStackTrace();
 			}
 		}
-		return port+"";
+		BufferedReader br = new BufferedReader(new InputStreamReader(System.in));
+		String portStr = null;
+		if(count >= 5) {
+			System.out.println("Unable to find an open port. Please provide a port.");
+			 try {
+				portStr = br.readLine();
+			} catch (IOException e) {
+				e.printStackTrace();
+			}
+			System.out.println("Using port: " + portStr);
+		} else {
+			portStr = port+"";
+		}
+		
+		return portStr;
 	}
 	
 	public void changeRDFMap(String homePath, String port)
 	{
 		System.out.println("Configuring RDF Map.. ");
-		String rdfHome = homePath + "/semosshome/RDF_Map.prop";
+		String rdfHome = homePath + "/RDF_Map.prop";
 //		rdfHome = homePath + "/RDF_Map2.prop";
 		
 		String [] stringToReplace = {"BaseFolder", 
@@ -148,14 +169,14 @@ public class Me {
 									"SMSSWebWatcher_DIR",
 									"SMSSWatcher_DIR", 
 									"CSVInsightsWebWatcher_DIR", 
-									"INSIGHT_CACHE_DIR,"
-									+ "SOLR_BASE_URL"};
+									"INSIGHT_CACHE_DIR",
+									"SOLR_BASE_URL"};
 		String [] stringToReplaceWith = {homePath, 
-										 homePath + "/semosshome/log4j.prop", 
-										 homePath + "/semosshome/db", 
-										 homePath + "/semosshome/db",
-										 homePath + "/semosshome/InsightCache/CSV_Insights",
-										 homePath + "/semosshome/InsightCache",
+										 homePath + "/log4j.prop", 
+										 homePath + "/db", 
+										 homePath + "/db",
+										 homePath + "/InsightCache/CSV_Insights",
+										 homePath + "/InsightCache",
 										 "http://localhost:" + port + "/solr"}; 
 		
 		replaceProp(rdfHome, stringToReplace, stringToReplaceWith);
@@ -171,7 +192,7 @@ public class Me {
 		
 		System.out.println("Modifying Web Configuration.....");
 		
-		String appPath = homePath + "/webapps/SemossWeb/app/app.config.js";
+		String appPath = homePath + "/../webapps/SemossWeb/app/app.config.js";
 		String altPath = appPath + "temp";
 		
 
@@ -198,12 +219,13 @@ public class Me {
 		}
 		
 		bw.close();
+		br.close();
 		
 		replaceFiles(appPath, altPath);
 		
 		
 		// the old app.config
-		appPath = homePath + "/webapps/SemossWeb/olddev/app/scripts/config.js";
+		appPath = homePath + "/../webapps/SemossWeb/olddev/app/scripts/config.js";
 		altPath = appPath + "temp";
 //		appPath = homePath + "/Webcontent/dev/olddev/app/scripts/config.js";
 //		altPath = homePath + "/Webcontent/dev/olddev/app/scripts/config2.js";
@@ -225,6 +247,7 @@ public class Me {
 		}
 		
 		bw.close();
+		br.close();
 
 		replaceFiles(appPath, altPath);		
 	}
@@ -234,7 +257,7 @@ public class Me {
 		// delete file to replace and replace with file to be replaced
 		File toRep = new File(fileToReplace);
 		File tobeRep = new File(fileToReplaceWith);
-		Files.move(tobeRep, toRep);
+		Files.move(tobeRep.toPath(), toRep.toPath(), StandardCopyOption.REPLACE_EXISTING);
 	}
 	
 	private void replaceProp(String fileName, String [] thingsToReplace, String []thingsToReplaceWith)
@@ -270,13 +293,13 @@ public class Me {
 		
 		
 		Hashtable thingsToWatch= new Hashtable();
-		thingsToWatch.put("file-upload", homePath + "/semosshome/upload");
-		thingsToWatch.put("temp-file-upload", homePath + "/semosshome/upload");
+		thingsToWatch.put("file-upload", homePath + "/upload");
+		thingsToWatch.put("temp-file-upload", homePath + "/upload");
 		thingsToWatch.put("RDF-MAP", homePath + "/RDF_Map.prop");
 		
 
 		DocumentBuilder db = DocumentBuilderFactory.newInstance().newDocumentBuilder();
-		String appFile = homePath + "/webapps/Monolith/WEB-INF/web.xml";
+		String appFile = homePath + "/../webapps/Monolith/WEB-INF/web.xml";
 		System.out.println("Configuring web.xml " + appFile);
 		Document d = db.parse(appFile);
 		NodeList nl = d.getElementsByTagName("context-param");
@@ -317,4 +340,21 @@ public class Me {
 		
 		replaceFiles(appFile, altFile);
 	}
+	
+	private void genOpenBrowser(String homePath, String port) throws Exception
+	{
+		String browserBat = homePath + "/../openBrowser.bat";
+		BufferedWriter writer = new BufferedWriter(new OutputStreamWriter(new FileOutputStream(browserBat)));
+		
+		writer.write("ECHO Opening browser to http://localhost:" + port + "/SemossWeb/ to access SEMOSS...");
+		writer.write("\n\n");
+		writer.write("ECHO OFF\n\n");
+		writer.write("IF EXIST \"C:\\Program Files (x86)\\Google\\Chrome\\Application\\chrome.exe\" (");
+		writer.write("  START \"Chrome\" chrome --new-window \"http://localhost:" + port + "/SemossWeb/\"");	
+		writer.write("			) ELSE (");
+		writer.write("  START \"\" \"http://localhost:" + port + "/SemossWeb/\"");
+		writer.write(")");
+		writer.flush();writer.close();
+		
+	} 
 }
