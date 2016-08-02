@@ -1743,6 +1743,8 @@ public class TinkerFrame extends AbstractTableDataFrame {
 	@Override
 	public void filter(String columnHeader, Map<String, List<Object>> filterData) {
 		
+		unfilter(columnHeader);
+		
 		QueryStruct qs = new QueryStruct();
 		qs.addSelector(columnHeader, null);
 		for(String comparator : filterData.keySet()) {
