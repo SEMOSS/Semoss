@@ -132,7 +132,7 @@ public class Me {
 				ServerSocket s = new ServerSocket(port) ;//"10.13.229.203", port);
 				//s.connect(new InetSocketAddress(server, port), 5000);//"localhost", port);
 				//s.accept();
-				found = false;
+				found = true;
 				s.close();
 				System.out.println("  Success !!!!");
 			}catch (Exception ex)
@@ -141,7 +141,7 @@ public class Me {
 				//ex.printStackTrace();
 				System.out.println("  Fail");
 				//System.exit(0);
-				found = true;
+				found = false;
 				//ex.printStackTrace();
 			}finally
 			{
@@ -350,7 +350,7 @@ public class Me {
 	
 	private void genOpenBrowser(String homePath, String port) throws Exception
 	{
-		String browserBat = homePath + "/../openBrowser.bat";
+		String browserBat = homePath + "/../semosshome/config/openBrowser.bat";
 		BufferedWriter writer = new BufferedWriter(new OutputStreamWriter(new FileOutputStream(browserBat)));
 		
 		writer.write("ECHO Opening browser to http://localhost:" + port + "/SemossWeb/ to access SEMOSS...");
