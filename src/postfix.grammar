@@ -323,11 +323,11 @@ input_or_expr = {expr} expr | {input} user_input;
 		
  expr =
   {term} term
-  | {plus} [left]:term plus [right]:term
-  | {minus} [left]:term minus [right]:term
-  | {mult} [left]:term mult [right]:term |
-  | {div} [left]:term div [right]:term 
-  | {mod} [left]:term mod [right]:term
+  | {plus} [left]:term plus [right]:expr
+  | {minus} [left]:term minus [right]:expr
+  | {mult} [left]:term mult [right]:expr 
+  | {div} [left]:term div [right]:expr 
+  | {mod} [left]:term mod [right]:expr
   | {e_expr} extended_expr
   //|{math_fun} math_fun // I need to still resolve other mathematical functions
   ;
