@@ -120,11 +120,11 @@ public class Me {
 		// start with 7677 and see if you can find any
 		
 		System.out.println("Finding an open port.. ");
-		boolean found = true;
+		boolean found = false;
 		int port = 5355;int count = 0;
 		String server = "10.13.229.203";
 		server = "127.0.0.1";
-		for(;found && count < 5;port++, count++)
+		for(;!found && count < 5;port++, count++)
 		{
 			System.out.print("Trying.. " + port);
 			try
@@ -135,6 +135,8 @@ public class Me {
 				found = true;
 				s.close();
 				System.out.println("  Success !!!!");
+				//no error, found an open port, we can stop
+				break;
 			}catch (Exception ex)
 			{
 				// do nothing
@@ -147,10 +149,14 @@ public class Me {
 			{
 			}
 		}
+		
+		//if we found a port, return that port
+		if(found) return port+"";
+				
 		port--;
 		BufferedReader br = new BufferedReader(new InputStreamReader(System.in));
 		String portStr = null;
-		if(count >= 5) {
+		if(!found) {
 			System.out.println("Unable to find an open port. Please provide a port.");
 			 try {
 				portStr = br.readLine();

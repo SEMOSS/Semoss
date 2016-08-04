@@ -9,7 +9,7 @@ public final class AModExpr extends PExpr
 {
     private PTerm _left_;
     private TMod _mod_;
-    private PTerm _right_;
+    private PExpr _right_;
 
     public AModExpr()
     {
@@ -19,7 +19,7 @@ public final class AModExpr extends PExpr
     public AModExpr(
         @SuppressWarnings("hiding") PTerm _left_,
         @SuppressWarnings("hiding") TMod _mod_,
-        @SuppressWarnings("hiding") PTerm _right_)
+        @SuppressWarnings("hiding") PExpr _right_)
     {
         // Constructor
         setLeft(_left_);
@@ -95,12 +95,12 @@ public final class AModExpr extends PExpr
         this._mod_ = node;
     }
 
-    public PTerm getRight()
+    public PExpr getRight()
     {
         return this._right_;
     }
 
-    public void setRight(PTerm node)
+    public void setRight(PExpr node)
     {
         if(this._right_ != null)
         {
@@ -172,7 +172,7 @@ public final class AModExpr extends PExpr
 
         if(this._right_ == oldChild)
         {
-            setRight((PTerm) newChild);
+            setRight((PExpr) newChild);
             return;
         }
 
