@@ -9,7 +9,7 @@ public final class AMinusExpr extends PExpr
 {
     private PTerm _left_;
     private TMinus _minus_;
-    private PTerm _right_;
+    private PExpr _right_;
 
     public AMinusExpr()
     {
@@ -19,7 +19,7 @@ public final class AMinusExpr extends PExpr
     public AMinusExpr(
         @SuppressWarnings("hiding") PTerm _left_,
         @SuppressWarnings("hiding") TMinus _minus_,
-        @SuppressWarnings("hiding") PTerm _right_)
+        @SuppressWarnings("hiding") PExpr _right_)
     {
         // Constructor
         setLeft(_left_);
@@ -95,12 +95,12 @@ public final class AMinusExpr extends PExpr
         this._minus_ = node;
     }
 
-    public PTerm getRight()
+    public PExpr getRight()
     {
         return this._right_;
     }
 
-    public void setRight(PTerm node)
+    public void setRight(PExpr node)
     {
         if(this._right_ != null)
         {
@@ -172,7 +172,7 @@ public final class AMinusExpr extends PExpr
 
         if(this._right_ == oldChild)
         {
-            setRight((PTerm) newChild);
+            setRight((PExpr) newChild);
             return;
         }
 
