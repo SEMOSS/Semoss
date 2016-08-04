@@ -9,7 +9,7 @@ public final class APlusExpr extends PExpr
 {
     private PTerm _left_;
     private TPlus _plus_;
-    private PTerm _right_;
+    private PExpr _right_;
 
     public APlusExpr()
     {
@@ -19,7 +19,7 @@ public final class APlusExpr extends PExpr
     public APlusExpr(
         @SuppressWarnings("hiding") PTerm _left_,
         @SuppressWarnings("hiding") TPlus _plus_,
-        @SuppressWarnings("hiding") PTerm _right_)
+        @SuppressWarnings("hiding") PExpr _right_)
     {
         // Constructor
         setLeft(_left_);
@@ -95,12 +95,12 @@ public final class APlusExpr extends PExpr
         this._plus_ = node;
     }
 
-    public PTerm getRight()
+    public PExpr getRight()
     {
         return this._right_;
     }
 
-    public void setRight(PTerm node)
+    public void setRight(PExpr node)
     {
         if(this._right_ != null)
         {
@@ -172,7 +172,7 @@ public final class APlusExpr extends PExpr
 
         if(this._right_ == oldChild)
         {
-            setRight((PTerm) newChild);
+            setRight((PExpr) newChild);
             return;
         }
 
