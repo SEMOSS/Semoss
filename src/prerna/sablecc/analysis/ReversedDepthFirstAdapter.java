@@ -3259,23 +3259,6 @@ public class ReversedDepthFirstAdapter extends AnalysisAdapter
         outAMultExpr(node);
     }
 
-    public void inAExpr(AExpr node)
-    {
-        defaultIn(node);
-    }
-
-    public void outAExpr(AExpr node)
-    {
-        defaultOut(node);
-    }
-
-    @Override
-    public void caseAExpr(AExpr node)
-    {
-        inAExpr(node);
-        outAExpr(node);
-    }
-
     public void inADivExpr(ADivExpr node)
     {
         defaultIn(node);

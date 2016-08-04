@@ -123,7 +123,6 @@ public interface Analysis extends Switch
     void caseAPlusExpr(APlusExpr node);
     void caseAMinusExpr(AMinusExpr node);
     void caseAMultExpr(AMultExpr node);
-    void caseAExpr(AExpr node);
     void caseADivExpr(ADivExpr node);
     void caseAModExpr(AModExpr node);
     void caseAEExprExpr(AEExprExpr node);
