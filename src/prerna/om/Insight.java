@@ -1512,8 +1512,57 @@ public class Insight {
 			e.printStackTrace();
 		}
 	}
-
-	public Map getPKQLData(boolean includeClosed) {
+//
+//	public Map getPKQLData(boolean includeClosed) {
+//		
+//		if(this.isJoined()) {
+//			
+//		}
+//			
+//		Map<String, Object> resultHash = new HashMap<String, Object>();
+//		if(pkqlRunner != null){
+//			List<Map> pkqlData = pkqlRunner.getResults();
+//			Map<String, Map<String, Object>> feData = pkqlRunner.getFeData();
+//
+//			if(!includeClosed){
+//				Map<String, Map<String, Object>> openMaps = new HashMap<String, Map<String, Object>>();
+//				Collection<String> panelIds = feData.keySet();
+//				List<String> closedIds = new Vector<String>();
+//				for(String pid : panelIds){
+//					Map<String, Object> panelState = feData.get(pid);
+//					if(panelState.get("closed")==null || !(boolean)panelState.get("closed")){ // this means it is open
+//						openMaps.put(pid, panelState);
+//					}
+//					else{
+//						closedIds.add(pid);
+//					}
+//				}
+//				resultHash.put("pkqlData", pkqlData);
+//				resultHash.put("closedPanels", closedIds);
+//			}
+//			else{
+//				resultHash.put("pkqlData", pkqlData);
+//			}
+//			
+//			resultHash.put("insightID", this.getInsightID());
+//			resultHash.put("dataID", this.dataMaker.getDataId());
+//			resultHash.put("feData", feData);
+//			resultHash.put("newColumns", pkqlRunner.getNewColumns());
+//			
+//			String insightID = null;
+//			if((insightID = pkqlRunner.getNewInsightID()) != null) {
+//				resultHash.put("generatedInsightID", insightID);
+//			}
+//			
+//			// Clear the pkql runner of all existing results data
+//			// No need for us to hold on to any of this at this point other than 1. variables 2. pkql yet to be run (user input prevented)
+//			pkqlRunner.clearResponses();// = new PKQLRunner();
+////			pkqlRunner.setVarMap(this.pkqlVarMap );
+//		}
+//		return resultHash;
+//	}
+	
+	private Object getInsightData(boolean includeClosed) {
 		Map<String, Object> resultHash = new HashMap<String, Object>();
 		if(pkqlRunner != null){
 			List<Map> pkqlData = pkqlRunner.getResults();
@@ -1555,6 +1604,32 @@ public class Insight {
 //			pkqlRunner.setVarMap(this.pkqlVarMap );
 		}
 		return resultHash;
+	}
+	public Map getPKQLData(boolean includeClosed) {
+		List insightList = new ArrayList<>();
+		Map<String, Object> retHash = new HashMap<>();
+		
+		if(this.isJoined()) {
+			return this.parentInsight.getPKQLData(includeClosed);
+		} else if(this.dataMaker instanceof Dashboard) {
+			
+			Map<String, List<String>> dashboardMap = new HashMap<>();
+			List<String> insightIDList = new ArrayList<>();
+			dashboardMap.put(insightID, new ArrayList<>());
+			List<Insight> list = ((Dashboard)dataMaker).getInsights();
+			for(Insight insight : list) {
+				insightList.add(insight.getInsightData(includeClosed));
+				insightIDList.add(insight.getInsightID());
+			}
+			dashboardMap.put(insightID, insightIDList);
+			retHash.put("dashboard", dashboardMap);
+			
+		} else {
+			insightList.add(getInsightData(includeClosed));
+		}
+		
+		retHash.put("insights", insightList);
+		return retHash;
 	}
 	
 	public boolean isJoined() {
