@@ -414,16 +414,18 @@ public class RDBMSFlatCSVUploader extends AbstractCSVFileReader {
 		// thus, we want to look at the data types and see if there is a date
 		// if there is a date, we need to perform a bulk insert, where we convert every date object to the correct format
 		
-		if(containsDateDataType(csvMeta.get(CSV_DATA_TYPES)) || !allHeadersUsed(csvMeta.get(CSV_HEADERS))) {
+//		if(containsDateDataType(csvMeta.get(CSV_DATA_TYPES)) || !allHeadersUsed(csvMeta.get(CSV_HEADERS))) {
 			// we had a date!
 			// first create the table
 			createTable(TABLE_NAME, csvMeta);
 			// this logic will be to do a bulk insert
 			bulkInsertCSVFile(FILE_LOCATION, TABLE_NAME, csvMeta);
-		} else {
-			// this logic just grabs the csv file and creates the table using it all in one go
-			generateCreateTableFromCSVSQL(FILE_LOCATION, TABLE_NAME, csvMeta);
-		}
+//		} 
+		
+//		else {
+//			// this logic just grabs the csv file and creates the table using it all in one go
+//			generateCreateTableFromCSVSQL(FILE_LOCATION, TABLE_NAME, csvMeta);
+//		}
 		
 		// now we need to append an identity column for the table, this will be the prim key
 		final String UNIQUE_ROW_ID = TABLE_NAME + BASE_PRIM_KEY;
@@ -460,19 +462,19 @@ public class RDBMSFlatCSVUploader extends AbstractCSVFileReader {
 		 * 		We will just iterate through the csv file and insert
 		 */
 		
-		if(containsDateDataType(csvMeta.get(CSV_DATA_TYPES)) || !allHeadersUsed(csvMeta.get(CSV_HEADERS))) {
+//		if(containsDateDataType(csvMeta.get(CSV_DATA_TYPES)) || !allHeadersUsed(csvMeta.get(CSV_HEADERS))) {
 			// perform a bulk insert into the table
 			bulkInsertCSVFile(FILE_LOCATION, TABLE_NAME, csvMeta);
-		} else {
-			// no date found... lets do steps 1-3
-			final String TEMP_TABLE = "TEMP_TABLE_98712396874";
-			// 1) create the temp table
-			generateCreateTableFromCSVSQL(FILE_LOCATION, TEMP_TABLE, csvMeta);
-			// 2) create query to insert temp into existing table
-			insertTableIntoOtherTable(TABLE_NAME, TEMP_TABLE, csvMeta);
-			// 3) drop current table
-			this.engine.removeData("DROP TABLE " + TEMP_TABLE);
-		}
+//		} else {
+//			// no date found... lets do steps 1-3
+//			final String TEMP_TABLE = "TEMP_TABLE_98712396874";
+//			// 1) create the temp table
+//			generateCreateTableFromCSVSQL(FILE_LOCATION, TEMP_TABLE, csvMeta);
+//			// 2) create query to insert temp into existing table
+//			insertTableIntoOtherTable(TABLE_NAME, TEMP_TABLE, csvMeta);
+//			// 3) drop current table
+//			this.engine.removeData("DROP TABLE " + TEMP_TABLE);
+//		}
 	}
 	
 	/**
@@ -597,7 +599,7 @@ public class RDBMSFlatCSVUploader extends AbstractCSVFileReader {
 							ps.setObject(colIndex+1, null);
 						}
 					} else {
-						String value = nextRow[colIndex];
+						String value = Utility.cleanString(nextRow[colIndex], false);
 						ps.setString(colIndex+1, value + "");
 					}
 				}
