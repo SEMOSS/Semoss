@@ -556,7 +556,7 @@ public class RDBMSFlatExcelUploader extends AbstractFileReader {
 							ps.setObject(colIndex+1, null);
 						}
 					} else {
-						String value = nextRow[colIndex];
+						String value = Utility.cleanString(nextRow[colIndex], false);
 						ps.setString(colIndex+1, value + "");
 					}
 				}
