@@ -45,6 +45,11 @@ public class ColFilterReactor extends AbstractReactor{
 	private Map<String, Map<String, List<Object>>> getFilters(Vector<Hashtable> filters) {
 		Map<String, Map<String, List<Object>>> fdata = new HashMap<>();
 		
+		Map<String, String> properties = new HashMap<>();
+		if(frame != null) {
+			properties = frame.getProperties();
+		}
+		
 		for(int filterIndex = 0;filterIndex < filters.size();filterIndex++) {
 			Hashtable thisFilter = (Hashtable)filters.get(filterIndex);
 			String fromCol = (String)thisFilter.get("FROM_COL");
@@ -57,10 +62,14 @@ public class ColFilterReactor extends AbstractReactor{
 					String inputData = data.toString().trim();
 					Object cleanData = null;
 					
-					//if the column type in the frame is a string simply cast it to a string
-					if(frame != null && frame.getDataType(fromCol).equals(IMetaData.DATA_TYPES.STRING)) {
-						cleanData = Utility.cleanString(inputData, true, true, false);
+					//if the column type in the frame is a string and a property simply cast it to a string
+					if(frame != null && frame.getDataType(fromCol).equals(IMetaData.DATA_TYPES.STRING) && properties.containsKey(fromCol)) {
+						cleanData = inputData;
 					} 
+					
+					else if(frame != null && frame.getDataType(fromCol).equals(IMetaData.DATA_TYPES.STRING) && !properties.containsKey(fromCol)) {
+						cleanData = Utility.cleanString(inputData, true, true, false);
+					}
 					
 					//else go through the current flow
 					//TODO : we should use the types on the frame to determine how to cast instead of guessing what came from pkql
@@ -71,7 +80,12 @@ public class ColFilterReactor extends AbstractReactor{
 						} else if(type.equalsIgnoreCase("Double")) {
 							cleanData = Utility.getDouble(inputData);
 						} else {
-							cleanData = Utility.cleanString(inputData, true, true, false);
+							if(properties.containsKey(fromCol)) {
+								//if we are filtering a property, don't clean
+								cleanData = inputData;
+							} else {
+								cleanData = Utility.cleanString(inputData, true, true, false);
+							}
 						}
 					}
 					
