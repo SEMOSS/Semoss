@@ -297,11 +297,11 @@ public class GremlinInterpreter implements IQueryInterpreter {
 		for(String filterType : filterInfo.keySet()) {
 			Vector filterVals = filterInfo.get(filterType);
 			if(filterType.equals("=")) {
-				if(filterVals.get(0) instanceof Number) {
-					gt = gt.has(Constants.NAME, P.eq(filterVals.get(0) ));
-				} else {
-					gt = gt.has(Constants.NAME, P.within(filterVals.toArray(new String[]{})));
-				}
+//				if(filterVals.get(0) instanceof Number) {
+//					gt = gt.has(Constants.NAME, P.eq(filterVals.get(0) ));
+//				} else {
+					gt = gt.has(Constants.NAME, P.within(filterVals.toArray()));
+//				}
 			} else if(filterType.equals("<")) {
 				gt = gt.has(Constants.NAME, P.lt(filterVals.get(0)));
 			} else if(filterType.equals(">")) {
@@ -311,11 +311,11 @@ public class GremlinInterpreter implements IQueryInterpreter {
 			} else if(filterType.equals(">=")) {
 				gt = gt.has(Constants.NAME, P.gte(filterVals.get(0)));
 			} else if(filterType.equals("!=")) {
-				if(filterVals.get(0) instanceof Number) {
-					gt = gt.has(Constants.NAME, P.neq(filterVals.get(0) ));
-				} else {
-					gt = gt.has(Constants.NAME, P.without(filterVals.toArray(new String[]{})));
-				}
+//				if(filterVals.get(0) instanceof Number) {
+//					gt = gt.has(Constants.NAME, P.neq(filterVals.get(0) ));
+//				} else {
+					gt = gt.has(Constants.NAME, P.without(filterVals.toArray()));
+//				}
 			}
 		}
 	}
