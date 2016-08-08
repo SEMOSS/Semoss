@@ -820,6 +820,27 @@ public class ReversedDepthFirstAdapter extends AnalysisAdapter
         outADatatypeDataop(node);
     }
 
+    public void inADataconnectDataop(ADataconnectDataop node)
+    {
+        defaultIn(node);
+    }
+
+    public void outADataconnectDataop(ADataconnectDataop node)
+    {
+        defaultOut(node);
+    }
+
+    @Override
+    public void caseADataconnectDataop(ADataconnectDataop node)
+    {
+        inADataconnectDataop(node);
+        if(node.getDataconnect() != null)
+        {
+            node.getDataconnect().apply(this);
+        }
+        outADataconnectDataop(node);
+    }
+
     public void inAPanelViz(APanelViz node)
     {
         defaultIn(node);
@@ -3257,6 +3278,39 @@ public class ReversedDepthFirstAdapter extends AnalysisAdapter
             node.getDatatypeToken().apply(this);
         }
         outADatatype(node);
+    }
+
+    public void inADataconnect(ADataconnect node)
+    {
+        defaultIn(node);
+    }
+
+    public void outADataconnect(ADataconnect node)
+    {
+        defaultOut(node);
+    }
+
+    @Override
+    public void caseADataconnect(ADataconnect node)
+    {
+        inADataconnect(node);
+        if(node.getRPar() != null)
+        {
+            node.getRPar().apply(this);
+        }
+        if(node.getWordOrNum() != null)
+        {
+            node.getWordOrNum().apply(this);
+        }
+        if(node.getLPar() != null)
+        {
+            node.getLPar().apply(this);
+        }
+        if(node.getDataconnectToken() != null)
+        {
+            node.getDataconnectToken().apply(this);
+        }
+        outADataconnect(node);
     }
 
     public void inAComparatorEqualOrCompare(AComparatorEqualOrCompare node)
