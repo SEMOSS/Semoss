@@ -207,6 +207,18 @@ public class AnalysisAdapter implements Analysis
     }
 
     @Override
+    public void caseARenamecolColop(ARenamecolColop node)
+    {
+        defaultCase(node);
+    }
+
+    @Override
+    public void caseASplitcolColop(ASplitcolColop node)
+    {
+        defaultCase(node);
+    }
+
+    @Override
     public void caseAPanelVizPanelop(APanelVizPanelop node)
     {
         defaultCase(node);
@@ -382,6 +394,18 @@ public class AnalysisAdapter implements Analysis
 
     @Override
     public void caseAAliasColumn(AAliasColumn node)
+    {
+        defaultCase(node);
+    }
+
+    @Override
+    public void caseARenameColumn(ARenameColumn node)
+    {
+        defaultCase(node);
+    }
+
+    @Override
+    public void caseASplitColumn(ASplitColumn node)
     {
         defaultCase(node);
     }
@@ -670,6 +694,18 @@ public class AnalysisAdapter implements Analysis
 
     @Override
     public void caseADashboardJoin(ADashboardJoin node)
+    {
+        defaultCase(node);
+    }
+
+    @Override
+    public void caseAOpenDataJoinGroup(AOpenDataJoinGroup node)
+    {
+        defaultCase(node);
+    }
+
+    @Override
+    public void caseAInsightidJoinGroup(AInsightidJoinGroup node)
     {
         defaultCase(node);
     }
@@ -1006,6 +1042,18 @@ public class AnalysisAdapter implements Analysis
 
     @Override
     public void caseTColalias(TColalias node)
+    {
+        defaultCase(node);
+    }
+
+    @Override
+    public void caseTColrename(TColrename node)
+    {
+        defaultCase(node);
+    }
+
+    @Override
+    public void caseTColsplit(TColsplit node)
     {
         defaultCase(node);
     }
