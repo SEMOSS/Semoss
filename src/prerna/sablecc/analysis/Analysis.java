@@ -19,6 +19,7 @@ public interface Analysis extends Switch
     void caseAHelpScript(AHelpScript node);
     void caseAPanelopScript(APanelopScript node);
     void caseAScript(AScript node);
+    void caseADataopScript(ADataopScript node);
     void caseAAddColumnColop(AAddColumnColop node);
     void caseARemcolColop(ARemcolColop node);
     void caseASetcolColop(ASetcolColop node);
@@ -46,6 +47,7 @@ public interface Analysis extends Switch
     void caseAPanelClonePanelop(APanelClonePanelop node);
     void caseAPanelClosePanelop(APanelClosePanelop node);
     void caseAOutputInsightPanelop(AOutputInsightPanelop node);
+    void caseADatatypeDataop(ADatatypeDataop node);
     void caseAPanelViz(APanelViz node);
     void caseAPanelComment(APanelComment node);
     void caseAPanelCommentEdit(APanelCommentEdit node);
@@ -120,6 +122,7 @@ public interface Analysis extends Switch
     void caseAInsightidJoinGroup(AInsightidJoinGroup node);
     void caseAJOp(AJOp node);
     void caseAHelp(AHelp node);
+    void caseADatatype(ADatatype node);
     void caseAComparatorEqualOrCompare(AComparatorEqualOrCompare node);
     void caseAEqualEqualOrCompare(AEqualEqualOrCompare node);
     void caseAUserInput(AUserInput node);
@@ -218,6 +221,7 @@ public interface Analysis extends Switch
     void caseTOutputToken(TOutputToken node);
     void caseTUserinput(TUserinput node);
     void caseTJoin(TJoin node);
+    void caseTDatatypeToken(TDatatypeToken node);
     void caseEOF(EOF node);
     void caseInvalidToken(InvalidToken node);
 }

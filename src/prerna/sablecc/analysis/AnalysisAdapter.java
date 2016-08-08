@@ -117,6 +117,12 @@ public class AnalysisAdapter implements Analysis
     }
 
     @Override
+    public void caseADataopScript(ADataopScript node)
+    {
+        defaultCase(node);
+    }
+
+    @Override
     public void caseAAddColumnColop(AAddColumnColop node)
     {
         defaultCase(node);
@@ -274,6 +280,12 @@ public class AnalysisAdapter implements Analysis
 
     @Override
     public void caseAOutputInsightPanelop(AOutputInsightPanelop node)
+    {
+        defaultCase(node);
+    }
+
+    @Override
+    public void caseADatatypeDataop(ADatatypeDataop node)
     {
         defaultCase(node);
     }
@@ -718,6 +730,12 @@ public class AnalysisAdapter implements Analysis
 
     @Override
     public void caseAHelp(AHelp node)
+    {
+        defaultCase(node);
+    }
+
+    @Override
+    public void caseADatatype(ADatatype node)
     {
         defaultCase(node);
     }
@@ -1300,6 +1318,12 @@ public class AnalysisAdapter implements Analysis
 
     @Override
     public void caseTJoin(TJoin node)
+    {
+        defaultCase(node);
+    }
+
+    @Override
+    public void caseTDatatypeToken(TDatatypeToken node)
     {
         defaultCase(node);
     }
