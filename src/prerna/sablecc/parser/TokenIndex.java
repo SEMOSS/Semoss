@@ -436,8 +436,14 @@ class TokenIndex extends AnalysisAdapter
     }
 
     @Override
-    public void caseEOF(@SuppressWarnings("unused") EOF node)
+    public void caseTDataconnectToken(@SuppressWarnings("unused") TDataconnectToken node)
     {
         this.index = 71;
+    }
+
+    @Override
+    public void caseEOF(@SuppressWarnings("unused") EOF node)
+    {
+        this.index = 72;
     }
 }
