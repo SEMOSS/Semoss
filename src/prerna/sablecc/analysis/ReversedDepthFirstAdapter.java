@@ -522,6 +522,48 @@ public class ReversedDepthFirstAdapter extends AnalysisAdapter
         outAOpenDataColop(node);
     }
 
+    public void inARenamecolColop(ARenamecolColop node)
+    {
+        defaultIn(node);
+    }
+
+    public void outARenamecolColop(ARenamecolColop node)
+    {
+        defaultOut(node);
+    }
+
+    @Override
+    public void caseARenamecolColop(ARenamecolColop node)
+    {
+        inARenamecolColop(node);
+        if(node.getRenameColumn() != null)
+        {
+            node.getRenameColumn().apply(this);
+        }
+        outARenamecolColop(node);
+    }
+
+    public void inASplitcolColop(ASplitcolColop node)
+    {
+        defaultIn(node);
+    }
+
+    public void outASplitcolColop(ASplitcolColop node)
+    {
+        defaultOut(node);
+    }
+
+    @Override
+    public void caseASplitcolColop(ASplitcolColop node)
+    {
+        inASplitcolColop(node);
+        if(node.getSplitColumn() != null)
+        {
+            node.getSplitColumn().apply(this);
+        }
+        outASplitcolColop(node);
+    }
+
     public void inAPanelVizPanelop(APanelVizPanelop node)
     {
         defaultIn(node);
@@ -1506,6 +1548,88 @@ public class ReversedDepthFirstAdapter extends AnalysisAdapter
             node.getColalias().apply(this);
         }
         outAAliasColumn(node);
+    }
+
+    public void inARenameColumn(ARenameColumn node)
+    {
+        defaultIn(node);
+    }
+
+    public void outARenameColumn(ARenameColumn node)
+    {
+        defaultOut(node);
+    }
+
+    @Override
+    public void caseARenameColumn(ARenameColumn node)
+    {
+        inARenameColumn(node);
+        if(node.getRp1() != null)
+        {
+            node.getRp1().apply(this);
+        }
+        if(node.getNewcol() != null)
+        {
+            node.getNewcol().apply(this);
+        }
+        if(node.getComma() != null)
+        {
+            node.getComma().apply(this);
+        }
+        if(node.getOldcol() != null)
+        {
+            node.getOldcol().apply(this);
+        }
+        if(node.getLp1() != null)
+        {
+            node.getLp1().apply(this);
+        }
+        if(node.getColrename() != null)
+        {
+            node.getColrename().apply(this);
+        }
+        outARenameColumn(node);
+    }
+
+    public void inASplitColumn(ASplitColumn node)
+    {
+        defaultIn(node);
+    }
+
+    public void outASplitColumn(ASplitColumn node)
+    {
+        defaultOut(node);
+    }
+
+    @Override
+    public void caseASplitColumn(ASplitColumn node)
+    {
+        inASplitColumn(node);
+        if(node.getRp1() != null)
+        {
+            node.getRp1().apply(this);
+        }
+        if(node.getDelimiter() != null)
+        {
+            node.getDelimiter().apply(this);
+        }
+        if(node.getComma() != null)
+        {
+            node.getComma().apply(this);
+        }
+        if(node.getCol() != null)
+        {
+            node.getCol().apply(this);
+        }
+        if(node.getLp1() != null)
+        {
+            node.getLp1().apply(this);
+        }
+        if(node.getColsplit() != null)
+        {
+            node.getColsplit().apply(this);
+        }
+        outASplitColumn(node);
     }
 
     public void inAImportData(AImportData node)
@@ -2978,6 +3102,48 @@ public class ReversedDepthFirstAdapter extends AnalysisAdapter
             node.getJoin().apply(this);
         }
         outADashboardJoin(node);
+    }
+
+    public void inAOpenDataJoinGroup(AOpenDataJoinGroup node)
+    {
+        defaultIn(node);
+    }
+
+    public void outAOpenDataJoinGroup(AOpenDataJoinGroup node)
+    {
+        defaultOut(node);
+    }
+
+    @Override
+    public void caseAOpenDataJoinGroup(AOpenDataJoinGroup node)
+    {
+        inAOpenDataJoinGroup(node);
+        if(node.getOpenData() != null)
+        {
+            node.getOpenData().apply(this);
+        }
+        outAOpenDataJoinGroup(node);
+    }
+
+    public void inAInsightidJoinGroup(AInsightidJoinGroup node)
+    {
+        defaultIn(node);
+    }
+
+    public void outAInsightidJoinGroup(AInsightidJoinGroup node)
+    {
+        defaultOut(node);
+    }
+
+    @Override
+    public void caseAInsightidJoinGroup(AInsightidJoinGroup node)
+    {
+        inAInsightidJoinGroup(node);
+        if(node.getWordOrNum() != null)
+        {
+            node.getWordOrNum().apply(this);
+        }
+        outAInsightidJoinGroup(node);
     }
 
     public void inAJOp(AJOp node)

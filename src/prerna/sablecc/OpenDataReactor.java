@@ -54,7 +54,7 @@ public class OpenDataReactor extends AbstractReactor {
 			IEngine coreEngine = (AbstractEngine)DIHelper.getInstance().getLocalProp(engine);
 			if(coreEngine == null) {
 				//store error message
-				myStore.put(PKQLEnum.OPEN_DATA, "Error Opening Insight");
+				myStore.put(PKQLEnum.OPEN_DATA+"insightid", "Error Opening Insight");
 				return null;
 			}
 			Insight insightObj = ((AbstractEngine)coreEngine).getInsight(engine_id).get(0);
@@ -69,7 +69,8 @@ public class OpenDataReactor extends AbstractReactor {
 			if(vizData != null) {
 				// insight has been cached, send it to the FE with a new insight id
 				String id = InsightStore.getInstance().put(insightObj);
-				this.set(PKQLEnum.OPEN_DATA, id);
+				
+				myStore.put(PKQLEnum.OPEN_DATA+"insightid", id);
 				
 				Map<String, Object> uploaded = gson.fromJson(vizData, new TypeToken<Map<String, Object>>() {}.getType());
 				uploaded.put("insightID", id);
@@ -77,7 +78,10 @@ public class OpenDataReactor extends AbstractReactor {
 			} else {
 				// insight visualization data has not been cached, run the insight
 				try {
-					InsightStore.getInstance().put(insightObj);
+					String id = InsightStore.getInstance().put(insightObj);
+					
+					myStore.put(PKQLEnum.OPEN_DATA+"insightid", id);
+					
 					InsightCreateRunner run = new InsightCreateRunner(insightObj);
 					obj = run.runWeb();
 					
@@ -97,12 +101,6 @@ public class OpenDataReactor extends AbstractReactor {
 				}
 			}
 			
-			//add the newly opened insight to the dashboard if we have one
-			IDataMaker dm = (IDataMaker)myStore.get("G");
-			if(dm instanceof Dashboard) {
-				Dashboard dashboard = (Dashboard)myStore.get("G");
-				dashboard.addInsight(insightObj);
-			}
 		} else {
 			//put error mesage
 			myStore.put(PKQLEnum.OPEN_DATA, "Error Opening Insight");

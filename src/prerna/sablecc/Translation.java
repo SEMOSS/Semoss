@@ -68,6 +68,7 @@ import prerna.sablecc.node.APlusExpr;
 import prerna.sablecc.node.ARelationDef;
 import prerna.sablecc.node.ARemoveData;
 import prerna.sablecc.node.ASetColumn;
+import prerna.sablecc.node.ASplitColumn;
 import prerna.sablecc.node.ATermExpr;
 import prerna.sablecc.node.ATermGroup;
 import prerna.sablecc.node.AUnfilterColumn;
@@ -844,6 +845,26 @@ public class Translation extends DepthFirstAdapter {
     }
 
 	@Override
+	public void inASplitColumn(ASplitColumn node) {
+
+		if(reactorNames.containsKey(PKQLEnum.COL_SPLIT)) {
+			initReactor(PKQLEnum.COL_SPLIT);
+			String nodeStr = node + "";
+			curReactor.put(PKQLEnum.COL_SPLIT, nodeStr.trim());
+		}
+	}
+
+	@Override
+    public void outASplitColumn(ASplitColumn node) {
+    
+		String nodeExpr = node.getColsplit().toString().trim();
+		Hashtable <String, Object> thisReactorHash = deinitReactor(PKQLEnum.COL_SPLIT, nodeExpr, node.toString().trim());
+		IScriptReactor previousReactor = (IScriptReactor)thisReactorHash.get(PKQLEnum.COL_SPLIT.toString());
+//		runner.setStatus((STATUS)previousReactor.getValue("STATUS"));
+//		runner.setResponse("SplitColumn: " + (String)previousReactor.getValue("FILTER_COLUMN"));
+	}
+    
+	@Override
 	public void outAExprGroup(AExprGroup node) {
 		
 	}
@@ -898,8 +919,10 @@ public class Translation extends DepthFirstAdapter {
     	String nodeOpen = node.getDataopentoken().toString().trim();
 		String nodeStr = node.toString().trim();
 		curReactor.put(PKQLEnum.EXPR_TERM, nodeOpen);
+		Object o = curReactor.getValue(PKQLEnum.OPEN_DATA+"insightID");
 		Hashtable <String, Object> thisReactorHash = deinitReactor(PKQLEnum.OPEN_DATA, nodeOpen, nodeStr);
 		IScriptReactor previousReactor = (IScriptReactor)thisReactorHash.get(PKQLEnum.OPEN_DATA);
+		curReactor.set(PKQLEnum.OPEN_DATA+"insightid", previousReactor.getValue(PKQLEnum.OPEN_DATA+"insightid"));
 //		runner.setNewInsightID(previousReactor.getValue(PKQLEnum.OPEN_DATA).toString());
     }
     
@@ -1305,6 +1328,7 @@ public class Translation extends DepthFirstAdapter {
     public void outADashboardJoin(ADashboardJoin node)
     {
     	String nodeStr = node.toString().trim();
+    	curReactor.put("G", this.frame);
     	Hashtable <String, Object> thisReactorHash = deinitReactor(PKQLEnum.DASHBOARD_JOIN, nodeStr, PKQLEnum.DASHBOARD_JOIN);
     }
     

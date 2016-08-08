@@ -153,9 +153,7 @@ public class Dashboard implements IDataMaker {
 	}
 	
 	public void addInsight(Insight insight) {
-		String engineName = insight.getEngineName();
-		String id = insight.getDatabaseID();
-		this.attachedInsights.put(engineName+delimiter+id, insight);
+		this.attachedInsights.put(insight.getInsightID(), insight);
 	}
 	
 	public List<Insight> getInsights() {

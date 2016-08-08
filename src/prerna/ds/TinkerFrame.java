@@ -1604,8 +1604,8 @@ public class TinkerFrame extends AbstractTableDataFrame {
 				removeSet.remove(Utility.getInstanceName((String)fv));
 			}
 			else {
-			removeSet.remove(fv);
-		}
+				removeSet.remove(fv);
+			}
 		}
 		this.metaData.setFiltered(columnHeader, true);
 		String valueNode = this.metaData.getValueForUniqueName(columnHeader);
