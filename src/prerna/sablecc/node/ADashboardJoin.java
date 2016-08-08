@@ -9,9 +9,9 @@ public final class ADashboardJoin extends PDashboardJoin
 {
     private TJoin _join_;
     private TLPar _lPar_;
-    private PWordOrNum _insight1_;
+    private PJoinGroup _insight1_;
     private TComma _com1_;
-    private PWordOrNum _insight2_;
+    private PJoinGroup _insight2_;
     private TComma _com2_;
     private PColDef _insight1Col_;
     private TComma _com3_;
@@ -28,9 +28,9 @@ public final class ADashboardJoin extends PDashboardJoin
     public ADashboardJoin(
         @SuppressWarnings("hiding") TJoin _join_,
         @SuppressWarnings("hiding") TLPar _lPar_,
-        @SuppressWarnings("hiding") PWordOrNum _insight1_,
+        @SuppressWarnings("hiding") PJoinGroup _insight1_,
         @SuppressWarnings("hiding") TComma _com1_,
-        @SuppressWarnings("hiding") PWordOrNum _insight2_,
+        @SuppressWarnings("hiding") PJoinGroup _insight2_,
         @SuppressWarnings("hiding") TComma _com2_,
         @SuppressWarnings("hiding") PColDef _insight1Col_,
         @SuppressWarnings("hiding") TComma _com3_,
@@ -140,12 +140,12 @@ public final class ADashboardJoin extends PDashboardJoin
         this._lPar_ = node;
     }
 
-    public PWordOrNum getInsight1()
+    public PJoinGroup getInsight1()
     {
         return this._insight1_;
     }
 
-    public void setInsight1(PWordOrNum node)
+    public void setInsight1(PJoinGroup node)
     {
         if(this._insight1_ != null)
         {
@@ -190,12 +190,12 @@ public final class ADashboardJoin extends PDashboardJoin
         this._com1_ = node;
     }
 
-    public PWordOrNum getInsight2()
+    public PJoinGroup getInsight2()
     {
         return this._insight2_;
     }
 
-    public void setInsight2(PWordOrNum node)
+    public void setInsight2(PJoinGroup node)
     {
         if(this._insight2_ != null)
         {
@@ -505,7 +505,7 @@ public final class ADashboardJoin extends PDashboardJoin
 
         if(this._insight1_ == oldChild)
         {
-            setInsight1((PWordOrNum) newChild);
+            setInsight1((PJoinGroup) newChild);
             return;
         }
 
@@ -517,7 +517,7 @@ public final class ADashboardJoin extends PDashboardJoin
 
         if(this._insight2_ == oldChild)
         {
-            setInsight2((PWordOrNum) newChild);
+            setInsight2((PJoinGroup) newChild);
             return;
         }
 

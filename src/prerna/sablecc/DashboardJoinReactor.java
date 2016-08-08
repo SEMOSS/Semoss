@@ -21,7 +21,7 @@ public class DashboardJoinReactor extends AbstractReactor {
 	
 	public DashboardJoinReactor() {
 		// example join is data.join("insight1", "insight2", c:Title, c:Movie_Title, inner.join);
-		String [] thisReacts = {PKQLEnum.WORD_OR_NUM, PKQLEnum.COL_DEF, PKQLEnum.REL_TYPE, PKQLEnum.OPEN_DATA};
+		String [] thisReacts = {PKQLEnum.WORD_OR_NUM, PKQLEnum.COL_DEF, PKQLEnum.REL_TYPE, PKQLEnum.OPEN_DATA, PKQLEnum.OPEN_DATA+"insightid", "G"};
 		super.whatIReactTo = thisReacts;
 		super.whoAmI = PKQLEnum.DASHBOARD_JOIN;
 	}
@@ -43,10 +43,10 @@ public class DashboardJoinReactor extends AbstractReactor {
 		List<String> insightsToJoin;
 		List<String> colsForInsightsToJoin;
 		try {
-			insightsToJoin = (List<String>) myStore.get(PKQLEnum.WORD_OR_NUM);
-			if(insightsToJoin == null) {
-				insightsToJoin = (List<String>) myStore.get(PKQLEnum.OPEN_DATA); 
-			}
+//			insightsToJoin = (List<String>) myStore.get(PKQLEnum.WORD_OR_NUM);
+//			if(insightsToJoin == null) {
+				insightsToJoin = (List<String>) myStore.get(PKQLEnum.OPEN_DATA+"insightid"); 
+//			}
 			colsForInsightsToJoin = (List<String>) myStore.get(PKQLEnum.COL_DEF);
 		} catch(Exception e) {
 			System.err.println("Error retrieving insights");
