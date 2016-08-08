@@ -77,6 +77,11 @@ public class H2Frame extends AbstractTableDataFrame {
 		this.metaData = new TinkerMetaData();
 		setSchema();
 	}
+	
+	//added as a path to get connection url for current dataframe
+	public H2Builder getBuilder(){
+		return this.builder;
+	}
 
 	private void setSchema() {
 		if (this.builder == null) {
@@ -1209,6 +1214,7 @@ public class H2Frame extends AbstractTableDataFrame {
 		reactorNames.put(PKQLEnum.DATA_FRAME, "prerna.sablecc.DataFrameReactor");
 		reactorNames.put(PKQLEnum.DASHBOARD_JOIN, "prerna.sablecc.DashboardJoinReactor");
 		reactorNames.put(PKQLEnum.OPEN_DATA, "prerna.sablecc.OpenDataReactor");
+		reactorNames.put(PKQLEnum.DATA_TYPE, "prerna.sablecc.DataTypeReactor");
 		// switch(reactorType) {
 		// case IMPORT_DATA : return new H2ImportDataReactor();
 		// case COL_ADD : return new ColAddReactor();
