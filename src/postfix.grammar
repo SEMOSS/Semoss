@@ -46,6 +46,8 @@ Tokens
  colpivot = 'col.pivot';
  colfocus = 'col.focus';
  colalias = 'col.alias';
+ colrename = 'col.rename';
+ colsplit = 'col.split';
  //('pivotColumn:' | 'pivot:' | 'pc:');
  collink = 'link:';
  show_hide = ('on' | 'off');
@@ -121,6 +123,8 @@ colop = // colOp is usually of the form of joinColumn / addColumn / removeColumn
 		| {data_frame} data_frame
 		| {dashboard_join} dashboard_join
 		| {open_data} open_data
+		| {renamecol} rename_column
+		| {splitcol} split_column
 		;
 
 panelop = // panelop is usually of the form of viz.change, viz.tools, viz.color
@@ -213,6 +217,12 @@ import_column = // importing data - col.import(tree | flat, [c:col1, c:col2, c:c
 alias_column = // sets the column aliases
 		colalias [lp1]:l_par [cols]:col_csv [where]:where_statement [rp2]:r_par;
 
+rename_column = //renames a column
+		colrename [lp1]:l_par [oldcol]:col_def comma [newcol]:col_def [rp1]:r_par;
+
+split_column = //splits a column based on a delimiter
+		colsplit [lp1]:l_par [col]:col_def comma [delimiter]:word_or_num [rp1]:r_par;
+		
 import_data = // imports from api query commands and other scripts
 		dataimporttoken [lp1]:l_par [import]:import_block [joins]:relation_clause? [rp2]:r_par;
 
@@ -308,7 +318,9 @@ csv_group = comma [csv]:word_or_num; // , 3
 expr_row = l_bracket [expr]:expr expr_group* r_bracket;
 
 dashboard_join =  // data.join("insight1", "insight2", c:Title, c:Movie_Title, inner.join);
-	join l_par [insight1]:word_or_num [com1]:comma [insight2]:word_or_num [com2]:comma [insight1_col]:col_def [com3]:comma [insight2_col]:col_def [com4]:comma [rel]:rel_type r_par;
+	join l_par [insight1]:join_group [com1]:comma [insight2]:join_group [com2]:comma [insight1_col]:col_def [com3]:comma [insight2_col]:col_def [com4]:comma [rel]:rel_type r_par;
+
+join_group = {open_data} open_data | {insightid} word_or_num;
 
 j_op = // this of the pattern j:{hola, hello etc.. }
 	java codeblock;

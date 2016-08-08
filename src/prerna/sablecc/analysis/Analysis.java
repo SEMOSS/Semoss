@@ -34,6 +34,8 @@ public interface Analysis extends Switch
     void caseADataFrameColop(ADataFrameColop node);
     void caseADashboardJoinColop(ADashboardJoinColop node);
     void caseAOpenDataColop(AOpenDataColop node);
+    void caseARenamecolColop(ARenamecolColop node);
+    void caseASplitcolColop(ASplitcolColop node);
     void caseAPanelVizPanelop(APanelVizPanelop node);
     void caseAPanelCommentPanelop(APanelCommentPanelop node);
     void caseAPanelCommentRemovePanelop(APanelCommentRemovePanelop node);
@@ -64,6 +66,8 @@ public interface Analysis extends Switch
     void caseAUnfocus(AUnfocus node);
     void caseAImportColumn(AImportColumn node);
     void caseAAliasColumn(AAliasColumn node);
+    void caseARenameColumn(ARenameColumn node);
+    void caseASplitColumn(ASplitColumn node);
     void caseAImportData(AImportData node);
     void caseAOpenData(AOpenData node);
     void caseAApiImportBlock(AApiImportBlock node);
@@ -112,6 +116,8 @@ public interface Analysis extends Switch
     void caseACsvGroup(ACsvGroup node);
     void caseAExprRow(AExprRow node);
     void caseADashboardJoin(ADashboardJoin node);
+    void caseAOpenDataJoinGroup(AOpenDataJoinGroup node);
+    void caseAInsightidJoinGroup(AInsightidJoinGroup node);
     void caseAJOp(AJOp node);
     void caseAHelp(AHelp node);
     void caseAComparatorEqualOrCompare(AComparatorEqualOrCompare node);
@@ -169,6 +175,8 @@ public interface Analysis extends Switch
     void caseTColpivot(TColpivot node);
     void caseTColfocus(TColfocus node);
     void caseTColalias(TColalias node);
+    void caseTColrename(TColrename node);
+    void caseTColsplit(TColsplit node);
     void caseTCollink(TCollink node);
     void caseTShowHide(TShowHide node);
     void caseTMod(TMod node);
