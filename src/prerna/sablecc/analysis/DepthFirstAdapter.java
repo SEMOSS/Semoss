@@ -206,6 +206,31 @@ public class DepthFirstAdapter extends AnalysisAdapter
         outAScript(node);
     }
 
+    public void inADataopScript(ADataopScript node)
+    {
+        defaultIn(node);
+    }
+
+    public void outADataopScript(ADataopScript node)
+    {
+        defaultOut(node);
+    }
+
+    @Override
+    public void caseADataopScript(ADataopScript node)
+    {
+        inADataopScript(node);
+        if(node.getDataop() != null)
+        {
+            node.getDataop().apply(this);
+        }
+        if(node.getSemicolon() != null)
+        {
+            node.getSemicolon().apply(this);
+        }
+        outADataopScript(node);
+    }
+
     public void inAAddColumnColop(AAddColumnColop node)
     {
         defaultIn(node);
@@ -771,6 +796,27 @@ public class DepthFirstAdapter extends AnalysisAdapter
             node.getOutputInsight().apply(this);
         }
         outAOutputInsightPanelop(node);
+    }
+
+    public void inADatatypeDataop(ADatatypeDataop node)
+    {
+        defaultIn(node);
+    }
+
+    public void outADatatypeDataop(ADatatypeDataop node)
+    {
+        defaultOut(node);
+    }
+
+    @Override
+    public void caseADatatypeDataop(ADatatypeDataop node)
+    {
+        inADatatypeDataop(node);
+        if(node.getDatatype() != null)
+        {
+            node.getDatatype().apply(this);
+        }
+        outADatatypeDataop(node);
     }
 
     public void inAPanelViz(APanelViz node)
@@ -3176,6 +3222,27 @@ public class DepthFirstAdapter extends AnalysisAdapter
             node.getHelpToken().apply(this);
         }
         outAHelp(node);
+    }
+
+    public void inADatatype(ADatatype node)
+    {
+        defaultIn(node);
+    }
+
+    public void outADatatype(ADatatype node)
+    {
+        defaultOut(node);
+    }
+
+    @Override
+    public void caseADatatype(ADatatype node)
+    {
+        inADatatype(node);
+        if(node.getDatatypeToken() != null)
+        {
+            node.getDatatypeToken().apply(this);
+        }
+        outADatatype(node);
     }
 
     public void inAComparatorEqualOrCompare(AComparatorEqualOrCompare node)
