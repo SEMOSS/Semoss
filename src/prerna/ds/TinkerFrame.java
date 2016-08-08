@@ -2366,6 +2366,8 @@ public class TinkerFrame extends AbstractTableDataFrame {
 		reactorNames.put(PKQLEnum.UNFILTER_DATA, "prerna.sablecc.ColUnfilterReactor");
 		reactorNames.put(PKQLEnum.DATA_FRAME, "prerna.sablecc.DataFrameReactor");
 		reactorNames.put(PKQLEnum.DATA_TYPE, "prerna.sablecc.DataTypeReactor");
+		reactorNames.put(PKQLEnum.DATA_CONNECT, "prerna.sablecc.DataConnectReactor");
+
 //		switch(reactorType) {
 //			case IMPORT_DATA : return new TinkerImportDataReactor();
 //			case COL_ADD : return new TinkerColAddReactor();

@@ -53,6 +53,7 @@ public class H2Builder {
 		// TODO: for now, also assume timestamp as date
 		typeConversionMap.put("TIMESTAMP", "DATE");
 		typeConversionMap.put("FLOAT", "DOUBLE");
+		typeConversionMap.put("LONG", "DOUBLE");
 	}
 
 	//consists of which values to keep for each header when gathering data
@@ -1741,7 +1742,9 @@ public class H2Builder {
 		return tableRunNumber;
 	}
 
-	private Connection getConnection()
+	//changing from private to public access to get connection url
+	//to pkql console
+	public Connection getConnection()
 	{
 		if(this.conn == null)
 		{
