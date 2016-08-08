@@ -31,6 +31,7 @@ import prerna.sablecc.node.ACsvTable;
 import prerna.sablecc.node.ACsvTableImportBlock;
 import prerna.sablecc.node.ADashboardJoin;
 import prerna.sablecc.node.ADataFrame;
+import prerna.sablecc.node.ADataconnect;
 import prerna.sablecc.node.ADatatype;
 import prerna.sablecc.node.ADecimal;
 import prerna.sablecc.node.ADivExpr;
@@ -1380,5 +1381,28 @@ public class Translation extends DepthFirstAdapter {
 		runner.storeResponse();
 		System.out.println("");
 	}
+	
+	public void inADataconnect(ADataconnect node)
+    {
+    	System.out.println("Translation.inADataconnect() with node = "+ node );
+    	if(reactorNames.containsKey(PKQLEnum.DATA_CONNECT)) {
+			initReactor(PKQLEnum.DATA_CONNECT);
+			String nodeStr = node.toString().trim();
+			curReactor.put(PKQLEnum.DATA_CONNECT, nodeStr);
+		}
+    }
+
+    public void outADataconnect(ADataconnect node)
+    {
+    	System.out.println("Translation.outADataconnect() with node = "+ node );
+    	String thisNode = node.toString().trim();
+    	IScriptReactor thisReactor = curReactor;
+		Hashtable <String, Object> thisReactorHash = deinitReactor(PKQLEnum.DATA_CONNECT, thisNode, PKQLEnum.DATA_CONNECT);
+		runner.setResponse(thisReactor.getValue(PKQLEnum.DATA_CONNECT));
+		runner.setStatus((STATUS) thisReactor.getValue("STATUS"));//
+		runner.setCurrentString(PKQLEnum.DATA_CONNECT);
+		runner.storeResponse();
+    }
+
 
 }
