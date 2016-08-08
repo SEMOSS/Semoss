@@ -20,6 +20,7 @@ public class PKQLEnum {
 
 	public static String DATA_FRAME = "DATA_FRAME";
 	public static String DATA_TYPE = "DATA_TYPE";
+	public static String DATA_CONNECT = "DATA_CONNECT";
 
 	public static String NUMBER = "NUMBER";
 	public static String DECIMAL = "DECIMAL";
