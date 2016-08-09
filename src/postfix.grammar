@@ -90,6 +90,8 @@ Tokens
  output_token = panelprefix '.create';
  userinput = 'user.input';
  join = 'data.join';
+ datatype_token = 'data.type';
+ dataconnect_token = 'data.connect';
 
 Ignored Tokens
  blank;
@@ -105,6 +107,7 @@ script = {colop} colop  semicolon // column operations
 		 | {help} help semicolon
 		 | {panelop} panelop semicolon
 		 | newline
+		 | {dataop} dataop semicolon
 		 ;
 
 colop = // colOp is usually of the form of joinColumn / addColumn / removeColumn / setColumn
@@ -138,6 +141,11 @@ panelop = // panelop is usually of the form of viz.change, viz.tools, viz.color
 		| {panel_clone} panel_clone
 		| {panel_close} panel_close
 		| {output_insight} output_insight
+		;
+		
+dataop = // dataop is usually of the form of data.frame, etc.
+		{datatype} datatype
+		| {dataconnect} dataconnect
 		;
  
 
@@ -326,6 +334,10 @@ j_op = // this of the pattern j:{hola, hello etc.. }
 	java codeblock;
 	
 help = help_token;
+
+datatype = datatype_token;
+
+dataconnect = dataconnect_token l_par word_or_num r_par;
 
 equal_or_compare = {comparator} comparator | {equal} equal;
 
