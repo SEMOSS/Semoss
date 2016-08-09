@@ -43,10 +43,10 @@ public class DashboardJoinReactor extends AbstractReactor {
 		List<String> insightsToJoin;
 		List<String> colsForInsightsToJoin;
 		try {
-//			insightsToJoin = (List<String>) myStore.get(PKQLEnum.WORD_OR_NUM);
-//			if(insightsToJoin == null) {
+			insightsToJoin = (List<String>) myStore.get(PKQLEnum.WORD_OR_NUM);
+			if(insightsToJoin == null) {
 				insightsToJoin = (List<String>) myStore.get(PKQLEnum.OPEN_DATA+"insightid"); 
-//			}
+			}
 			colsForInsightsToJoin = (List<String>) myStore.get(PKQLEnum.COL_DEF);
 		} catch(Exception e) {
 			System.err.println("Error retrieving insights");
