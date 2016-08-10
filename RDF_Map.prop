@@ -447,7 +447,7 @@ PrimaryKeyTinkerFrame	prerna.ds.TinkerFrame
 TinkerH2Frame	prerna.ds.H2.H2Frame
 H2Frame	prerna.ds.H2.H2Frame
 SparkDataFrame	prerna.ds.spark.SparkDataFrame
-Dashboard prerna.om.Dashboard;
+Dashboard prerna.om.Dashboard
 
 ##PLAYSHEETS DEFINED
 PLAYSHEETS_DEFINED	Grid;Graph;HeatMap;Line;Combo;Dendrogram;ParallelCoordinates;ParallelSets;Scatter;Column;Pie;3dBarchart;CirclePack;Clustering;Gantt;Sankey;ScatterplotMatrix;SingleAxisCluster;SystemSimilarity;USHeatMap;USMap;WorldHeatMap;WorldMap;RawGrid;
