@@ -1562,6 +1562,18 @@ public class Insight {
 //		return resultHash;
 //	}
 	
+	private Map getDashboardInsightData() {
+		Object dashboardData = null;
+		Map<String, Object> resultHash = new HashMap<String, Object>();
+		if((dashboardData = pkqlRunner.getDashboardData()) != null) {
+			
+			Map dashboardMap = new HashMap();
+			dashboardMap.put(this.insightID, dashboardData);
+			resultHash.put("Dashboard", dashboardMap);
+		}
+		return resultHash;
+	}
+	
 	private Object getInsightData(boolean includeClosed) {
 		Map<String, Object> resultHash = new HashMap<String, Object>();
 		if(pkqlRunner != null){
@@ -1605,6 +1617,7 @@ public class Insight {
 		}
 		return resultHash;
 	}
+	
 	public Map getPKQLData(boolean includeClosed) {
 		List insightList = new ArrayList<>();
 		Map<String, Object> retHash = new HashMap<>();
@@ -1613,16 +1626,17 @@ public class Insight {
 			return this.parentInsight.getPKQLData(includeClosed);
 		} else if(this.dataMaker instanceof Dashboard) {
 			
-			Map<String, List<String>> dashboardMap = new HashMap<>();
-			List<String> insightIDList = new ArrayList<>();
-			dashboardMap.put(insightID, new ArrayList<>());
-			List<Insight> list = ((Dashboard)dataMaker).getInsights();
-			for(Insight insight : list) {
-				insightList.add(insight.getInsightData(includeClosed));
-				insightIDList.add(insight.getInsightID());
-			}
-			dashboardMap.put(insightID, insightIDList);
-			retHash.put("dashboard", dashboardMap);
+//			Map<String, List<String>> dashboardMap = new HashMap<>();
+//			List<String> insightIDList = new ArrayList<>();
+//			dashboardMap.put(insightID, new ArrayList<>());
+//			List<Insight> list = ((Dashboard)dataMaker).getInsights();
+//			for(Insight insight : list) {
+////				insightList.add(insight.getInsightData(includeClosed));
+//				insightIDList.add(insight.getInsightID());
+//			}
+//			dashboardMap.put(insightID, insightIDList);
+//			retHash.put("dashboard", dashboardMap);
+			return getDashboardInsightData();
 			
 		} else {
 			insightList.add(getInsightData(includeClosed));

@@ -1,5 +1,6 @@
 package prerna.sablecc;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
@@ -43,6 +44,7 @@ public class DashboardJoinReactor extends AbstractReactor {
 		List<String> insightsToJoin;
 		List<String> colsForInsightsToJoin;
 		try {
+			//change this to join param list or something
 			insightsToJoin = (List<String>) myStore.get(PKQLEnum.WORD_OR_NUM);
 			if(insightsToJoin == null) {
 				insightsToJoin = (List<String>) myStore.get(PKQLEnum.OPEN_DATA+"insightid"); 
@@ -57,15 +59,14 @@ public class DashboardJoinReactor extends AbstractReactor {
 		Insight in1 = InsightStore.getInstance().get(insightsToJoin.get(0));
 		Insight in2 = InsightStore.getInstance().get(insightsToJoin.get(1));
 		
-		Dashboard dashboard = (Dashboard)myStore.get("G");
-		dashboard.addInsight(in1);
-		dashboard.addInsight(in2);
-		
-		
 		if(in1 == null || in2 == null) {
 			System.err.println("insights not found...");
 			return null;
 		}
+		
+		Dashboard dashboard = (Dashboard)myStore.get("G");
+		dashboard.addInsight(in1);
+		dashboard.addInsight(in2);
 		
 		H2Frame frame1 = null;
 		String[] frame1Headers = null;
@@ -83,6 +84,10 @@ public class DashboardJoinReactor extends AbstractReactor {
 			joinCols.put(colsForInsightsToJoin.get(0), colsForInsightsToJoin.get(1));
 			
 			H2Joiner.joinFrames(frame1, frame2, joinCols);
+			
+			// update the data id so FE knows data has been changed
+			frame1.updateDataId();
+			frame2.updateDataId();
 		} catch (ClassCastException e) {
 			System.err.println("currently can only join h2 frames...");
 			return null;			
@@ -91,31 +96,38 @@ public class DashboardJoinReactor extends AbstractReactor {
 			return null;
 		}
 		
-		
-		// update the data id so FE knows data has been changed
-		frame1.updateDataId();
-		frame2.updateDataId();
-
-		
-//		
-//		String table1 = frame1.getTableNameForUniqueColumn(frame1Headers[frame1Headers.length-1]);
-//		String table2 = frame2.getTableNameForUniqueColumn(frame2Headers[frame2Headers.length-1]);
-//
-//		String viewQuery = "CREATE VIEW TEST_VIEW AS (SELECT * FROM " + table1;
-//		if(joinType.equals("inner.join")) {
-//			viewQuery += " INNER JOIN " + table2;
-//		} else if(joinType.equals("left.join")) {
-//			//TODO expand list
-//		}
-//		
-//		
-//		
-//		viewQuery += " ON " + table1 + "." + colsForInsightsToJoin.get(0) + " = " + table2 + "." + colsForInsightsToJoin.get(1) + ");";
-//		
-//		System.out.println("view query is: ");
-//		System.out.println(viewQuery);
+		setDashboardData(insightsToJoin, colsForInsightsToJoin);
 		
 		return null;
+	}
+	
+	private void setDashboardData(List<String> insightIDs, List<String> joinCols) {
+		
+		List<Object> joinList = new ArrayList<>();
+		for(int i = 0; i < insightIDs.size(); i++) {
+			String insightID = insightIDs.get(i);
+			Map<String, String> joinMap = new HashMap<>();
+			joinMap.put("insightID", insightID);
+			joinMap.put("column", joinCols.get(i));
+			joinList.add(joinMap);
+		}
+		
+		Map joins = new HashMap();
+		joins.put("joins", joinList);
+		
+		List joinDataList = new ArrayList();
+		joinDataList.add(joins);
+		
+//		Map dashboardMap = new HashMap();
+//		dashboardMap.put(dashboardID, joinDataList);
+//		
+//		Map<String, Object> DashboardMap = new HashMap<>();
+//		DashboardMap.put("Dashboard", dashboardMap);
+		this.myStore.put("DashboardData", joinDataList);
+	}
+	
+	private void setDashboardData2(List<String> insightIDs, List<String[]> joinCols) {
+		
 	}
 
 }
