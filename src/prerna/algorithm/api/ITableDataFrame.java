@@ -338,9 +338,27 @@ public interface ITableDataFrame extends IDataMaker {
 	public void setColumnsToSkip(List<String> columnHeaders);
 	
 	/**
+	 * This method returns the filter model for the graph in the form:
+	 * <pre>
+	 * [
+	 * 		{
+	 * 			header_1 -> [UF_instance_01, UF_instance_02, ..., UF_instance_0N]
+	 * 			header_2 -> [UF_instance_11, UF_instance_12, ..., UF_instance_1N]
+	 * 			...
+	 * 			header_M -> [UF_instance_M1, UF_instance_M2, ..., UF_instance_MN]
+	 * 		}, 
 	 * 
-	 * @param 
-	 * @return the filter model associated with this table used for excel style filtering on the table
+	 * 		{
+	 * 			header_1 -> [F_instance_01, F_instance_02, ..., F_instance_0N]
+	 * 			header_2 -> [F_instance_11, F_instance_12, ..., F_instance_1N]
+	 * 			...
+	 * 			header_M -> [F_instance_M1, F_instance_M2, ..., F_instance_MN]
+	 * 		}	
+	 * ]
+	 * </pre>
+	 * First object in array is Map<String, List<String>> where each header points to the list of UNFILTERED or VISIBLE values for that header.
+	 * Second object in array is Map<String, List<String>> where each header points to the list of FILTERED values for that header.
+	 * Third object in array only exists if column has numerical data in format Map<String, Map<String, Double>> containing relative min/max and absolute min/max for column.
 	 */
 	Object[] getFilterModel();
 	
