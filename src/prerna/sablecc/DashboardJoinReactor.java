@@ -96,12 +96,12 @@ public class DashboardJoinReactor extends AbstractReactor {
 			return null;
 		}
 		
-		setDashboardData(insightsToJoin, colsForInsightsToJoin);
+		setDashboardData(insightsToJoin, colsForInsightsToJoin, joinType);
 		
 		return null;
 	}
 	
-	private void setDashboardData(List<String> insightIDs, List<String> joinCols) {
+	private void setDashboardData(List<String> insightIDs, List<String> joinCols, String joinType) {
 		
 		List<Object> joinList = new ArrayList<>();
 		for(int i = 0; i < insightIDs.size(); i++) {
@@ -114,6 +114,7 @@ public class DashboardJoinReactor extends AbstractReactor {
 		
 		Map joins = new HashMap();
 		joins.put("joins", joinList);
+		joins.put("type", joinType);
 		
 		List joinDataList = new ArrayList();
 		joinDataList.add(joins);

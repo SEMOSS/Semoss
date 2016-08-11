@@ -1623,7 +1623,7 @@ public class Insight {
 		Map<String, Object> retHash = new HashMap<>();
 		
 		if(this.isJoined()) {
-			return this.parentInsight.getPKQLData(includeClosed);
+			return this.parentInsight.getJoinedPKQLData(includeClosed);
 		} else if(this.dataMaker instanceof Dashboard) {
 			
 //			Map<String, List<String>> dashboardMap = new HashMap<>();
@@ -1644,6 +1644,29 @@ public class Insight {
 		
 		retHash.put("insights", insightList);
 		return retHash;
+	}
+	
+	public Map getJoinedPKQLData(boolean includeClosed) {
+		if(this.isJoined()) {
+			return this.parentInsight.getJoinedPKQLData(includeClosed);
+		} else if(this.dataMaker instanceof Dashboard) {
+			Map<String, Object> retHash = new HashMap<>();
+			List insightList = new ArrayList();
+			Map<String, List<String>> dashboardMap = new HashMap<>();
+			List<String> insightIDList = new ArrayList<>();
+			dashboardMap.put(insightID, new ArrayList<>());
+			List<Insight> list = ((Dashboard)dataMaker).getInsights();
+			for(Insight insight : list) {
+				insightList.add(insight.getInsightData(includeClosed));
+				insightIDList.add(insight.getInsightID());
+			}
+			dashboardMap.put(insightID, insightIDList);
+			retHash.put("dashboard", dashboardMap);
+			retHash.put("insights", insightList);
+			return retHash;
+		} else {
+			return null;
+		}
 	}
 	
 	public boolean isJoined() {
