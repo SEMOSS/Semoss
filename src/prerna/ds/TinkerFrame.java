@@ -1673,21 +1673,17 @@ public class TinkerFrame extends AbstractTableDataFrame {
 	 * the second object in the array is a Map<String, List<String>> where each header points to the list of FILTERED values for that header
 	 */
 	public Object[] getFilterModel() {
-
-		Iterator<Object[]> iterator = this.iterator(false);
-		
 		int length = this.headerNames.length;
-		
-		//initialize the objects
 		Map<String, List<Object>> filteredValues = new HashMap<String, List<Object>>(length);
 		Map<String, List<Object>> visibleValues = new HashMap<String, List<Object>>(length);
+		Map<String, Map<String, Double>> minMaxValues = new HashMap<String, Map<String, Double>>(length);
+		Iterator<Object[]> iterator = this.iterator(false);
 		
 		//put instances into sets to remove duplicates
 		Set<Object>[] columnSets = new HashSet[length];
 		for(int i = 0; i < length; i++) {
-			columnSets[i] = new HashSet<Object>(length);
+			columnSets[i] = new HashSet<Object>();
 		}
-		
 		while(iterator.hasNext()) {
 			Object[] nextRow = iterator.next();
 			for(int i = 0; i < length; i++) {
@@ -1695,12 +1691,48 @@ public class TinkerFrame extends AbstractTableDataFrame {
 			}
 		}
 		
-		//put the visible collected values
 		for(int i = 0; i < length; i++) {
+			// initialize lists for each header for unfiltered/filtered values and store data type
 			visibleValues.put(headerNames[i], new ArrayList<Object>(columnSets[i]));
 			filteredValues.put(headerNames[i], new ArrayList<Object>());
+
+			// store data type for header
+			// get min and max values for numerical columns
+			// TODO: need to include date type
+			if(this.metaData.getDataType(headerNames[i]) == IMetaData.DATA_TYPES.NUMBER) {
+				Map<String, Double> minMax = new HashMap<String, Double>();
+
+				// sort unfiltered array to pull relative min and max of unfiltered data
+				Object[] unfilteredArray = columnSets[i].toArray();
+				Arrays.sort(unfilteredArray);
+				double absMin = getMin(headerNames[i]);
+				double absMax = getMax(headerNames[i]);
+				if(!columnSets[i].isEmpty()) {
+					minMax.put("min", (Double)unfilteredArray[0]);
+					minMax.put("max", (Double)unfilteredArray[unfilteredArray.length-1]);
+				}
+				minMax.put("absMin", absMin);
+				minMax.put("absMax", absMax);
+				
+				// calculate how large each step in the slider should be
+				double difference = absMax - absMin;
+				double step = 1;
+				if(difference < 1) {
+					double tenthPower = Math.floor(Math.log10(difference));
+					if(tenthPower < 0) {
+						// ex. if difference is 0.009, step should be 0.001
+						step = Math.pow(10, tenthPower);
+					} else {
+						step = 0.1;
+					}
+				}
+				minMax.put("step", step);
+				
+				minMaxValues.put(headerNames[i], minMax);
+			}
 		}
 
+		// begin gathering filtered data
 		List<String> filterNodes = getFilteredColumns();
 		for (String nameNode : filterNodes) {
 			String valueName = this.metaData.getValueForUniqueName(nameNode);
@@ -1713,9 +1745,9 @@ public class TinkerFrame extends AbstractTableDataFrame {
 				fvalues.add(value.value(Constants.NAME));
 			}
 		}
-		return new Object[] { visibleValues, filteredValues };
+		return new Object[] { visibleValues, filteredValues, minMaxValues};
 	}
-
+	
 	public Map<String, Object[]> getFilterTransformationValues() {
 		Map<String, Object[]> retMap = new HashMap<String, Object[]>();
 		// get meta nodes that are tagged as filtered

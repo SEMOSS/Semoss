@@ -11,7 +11,6 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Comparator;
-import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Hashtable;
@@ -21,15 +20,8 @@ import java.util.Map;
 import java.util.Set;
 import java.util.Vector;
 
-import javax.script.ScriptContext;
-import javax.script.ScriptException;
-
-import org.apache.commons.lang.StringUtils;
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
-import org.apache.tinkerpop.gremlin.groovy.jsr223.GremlinGroovyScriptEngine;
-import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.GraphTraversal;
-import org.apache.tinkerpop.gremlin.structure.Vertex;
 import org.rosuda.REngine.Rserve.RserveException;
 
 import prerna.algorithm.api.IMatcher;
@@ -394,71 +386,71 @@ public class H2Frame extends AbstractTableDataFrame {
 	@Override
 	public void filter(String columnHeader, Map<String, List<Object>> filterValues) {
 		if(columnHeader == null || filterValues == null) return;
-		
+
 		DATA_TYPES type = this.metaData.getDataType(columnHeader);
 		boolean isOrdinal = type != null && (type == DATA_TYPES.DATE || type == DATA_TYPES.NUMBER);
 		
 		
-		String[] comparators = filterValues.keySet().toArray(new String[]{});
-		for(int i = 0; i < comparators.length; i++) {
+		String[] comparators = filterValues.keySet().toArray(new String[] {});
+		for (int i = 0; i < comparators.length; i++) {
 			String comparator = comparators[i];
 			boolean override = i == 0;
 			List<Object> filters = filterValues.get(comparator);
 
 			comparator = comparator.trim();
-			if(comparator.equals("=")) {
-				
+			if (comparator.equals("=")) {
+
 				if(override) builder.setFilters(columnHeader, filters, H2Builder.Comparator.EQUAL);
 				else builder.addFilters(columnHeader, filters, H2Builder.Comparator.EQUAL);
-				
-			} else if(comparator.equals("!=")) { 
-				
+
+			} else if (comparator.equals("!=")) {
+
 				if(override) builder.setFilters(columnHeader, filters, H2Builder.Comparator.NOT_EQUAL);
 				else builder.addFilters(columnHeader, filters, H2Builder.Comparator.NOT_EQUAL);
-			
-			} else if(comparator.equals("<")) {
-				
+
+			} else if (comparator.equals("<")) {
+
 				if(isOrdinal) {
-					
+
 					if(override) builder.setFilters(columnHeader, filters, H2Builder.Comparator.LESS_THAN);
 					else builder.addFilters(columnHeader, filters, H2Builder.Comparator.LESS_THAN);
-				
+
 				} else {
 					throw new IllegalArgumentException(columnHeader
 							+ " is not a numeric column, cannot use operator "
 							+ comparator);
 				}
-				
-			} else if(comparator.equals(">")) {
-				
+
+			} else if (comparator.equals(">")) {
+
 				if(isOrdinal) {
-					
+
 					if(override) builder.setFilters(columnHeader, filters, H2Builder.Comparator.GREATER_THAN);
 					else builder.addFilters(columnHeader, filters, H2Builder.Comparator.GREATER_THAN);
-					
+
 				} else {
 					throw new IllegalArgumentException(columnHeader
 							+ " is not a numeric column, cannot use operator "
 							+ comparator);
 				}
-				
-			} else if(comparator.equals("<=")) {
+
+			} else if (comparator.equals("<=")) {
 				if(isOrdinal) {
-					
+
 					if(override) builder.setFilters(columnHeader, filters, H2Builder.Comparator.LESS_THAN_EQUAL);
 					else builder.addFilters(columnHeader, filters, H2Builder.Comparator.LESS_THAN_EQUAL);
-					
+
 				} else {
 					throw new IllegalArgumentException(columnHeader
 							+ " is not a numeric column, cannot use operator "
 							+ comparator);
 				}
-			} else if(comparator.equals(">=")) {
+			} else if (comparator.equals(">=")) {
 				if(isOrdinal) {
-					
+
 					if(override) builder.setFilters(columnHeader, filters, H2Builder.Comparator.GREATER_THAN_EQUAL);
 					else builder.addFilters(columnHeader, filters, H2Builder.Comparator.GREATER_THAN_EQUAL);
-					
+
 				} else {
 					throw new IllegalArgumentException(columnHeader
 							+ " is not a numeric column, cannot use operator "
@@ -504,69 +496,86 @@ public class H2Frame extends AbstractTableDataFrame {
 	 * 		}	
 	 * ]
 	 * 
-	 * the first object in the array is a Map<String, List<String>> where each header points to the list of UNFILTERED or VISIBLE values for that header
-	 * the second object in the array is a Map<String, List<String>> where each header points to the list of FILTERED values for that header
+	 * First object in array is Map<String, List<String>> where each header points to the list of UNFILTERED or VISIBLE values for that header.
+	 * Second object in array is Map<String, List<String>> where each header points to the list of FILTERED values for that header.
+	 * Third object in array only exists if column has numerical data in format Map<String, Map<String, Double>> containing relative min/max and absolute min/max for column.
 	 */
 	public Object[] getFilterModel() {
-
-		Iterator<Object[]> iterator = this.iterator(true);
-
 		List<String> selectors = this.getSelectors();
 		int length = selectors.size();
-
-		// initialize the objects
 		Map<String, List<Object>> filteredValues = new HashMap<String, List<Object>>(length);
 		Map<String, List<Object>> visibleValues = new HashMap<String, List<Object>>(length);
-		HashMap<IMetaData.DATA_TYPES, Number[]> dataValues = new HashMap<IMetaData.DATA_TYPES, Number[]>(length);
-		Map<String, HashMap<IMetaData.DATA_TYPES, Number[]>> dataTypeValues = new HashMap<String, HashMap<IMetaData.DATA_TYPES, Number[]>>(length);
+		Map<String, Map<String, Double>> minMaxValues = new HashMap<String, Map<String, Double>>(length);
+		Iterator<Object[]> iterator = this.iterator(true);
 
 		// put instances into sets to remove duplicates
 		Set<Object>[] columnSets = new HashSet[length];
 		for (int i = 0; i < length; i++) {
-			columnSets[i] = new HashSet<Object>(length);
+			columnSets[i] = new HashSet<Object>();
 		}
-
 		while (iterator.hasNext()) {
 			Object[] nextRow = iterator.next();
 			for (int i = 0; i < length; i++) {
 				columnSets[i].add(nextRow[i]);
 			}
 		}
-
-		// put the visible collected values
-		for (int i = 0; i < length; i++) {
-			visibleValues.put(selectors.get(i), new ArrayList<Object>(columnSets[i]));
-			filteredValues.put(selectors.get(i), new ArrayList<Object>());
-			if (this.metaData.getDataType(selectors.get(i)) == IMetaData.DATA_TYPES.NUMBER) {
-				double min = getMin(selectors.get(i));
-				double max = getMax(selectors.get(i));
-				dataValues.put(this.metaData.getDataType(selectors.get(i)),	new Number[] { min, max });
-				dataTypeValues.put(selectors.get(i), dataValues);
-			}
-
-			/* still need to refine further for differ data type */
-			// else {
-			// dataValues.put(this.metaData.getDataType(selectors.get(i)), new
-			// Number []{null,null});
-			// dataTypeValues.put(selectors.get(i), dataValues);
-			// }
-
-		}
-
+		
+		//TODO: is this the same as filteredValues object?
 		Map<String, List<Object>> h2filteredValues = builder.getFilteredValues(getH2Selectors());
-		for (String key : filteredValues.keySet()) {
-			String h2key = H2Builder.cleanHeader(key);
+
+		for (int i = 0; i < length; i++) {
+			// get filtered values
+			String h2key = H2Builder.cleanHeader(selectors.get(i));
 			List<Object> values = h2filteredValues.get(h2key);
 			if (values != null) {
-				filteredValues.put(key, values);
+				filteredValues.put(selectors.get(i), values);
 			} else {
-				filteredValues.put(key, new ArrayList<Object>());
+				filteredValues.put(selectors.get(i), new ArrayList<Object>());
+			}
+			
+			// get unfiltered values
+			ArrayList<Object> unfilteredList = new ArrayList<Object>(columnSets[i]);
+			visibleValues.put(selectors.get(i), unfilteredList);
+			
+			// store data type for header
+			// get min and max values for numerical columns
+			// TODO: need to include date type
+			if(this.metaData.getDataType(selectors.get(i)) == IMetaData.DATA_TYPES.NUMBER) {
+				Map<String, Double> minMax = new HashMap<String, Double>();
+
+				// sort unfiltered array to pull relative min and max of unfiltered data
+				Object[] unfilteredArray = unfilteredList.toArray();
+				Arrays.sort(unfilteredArray);
+				double absMin = getMin(selectors.get(i));
+				double absMax = getMax(selectors.get(i));
+				if(!unfilteredList.isEmpty()) {
+					minMax.put("min", (Double)unfilteredArray[0]);
+					minMax.put("max", (Double)unfilteredArray[unfilteredArray.length-1]);
+				}
+				minMax.put("absMin", absMin);
+				minMax.put("absMax", absMax);
+				
+				// calculate how large each step in the slider should be
+				double difference = absMax - absMin;
+				double step = 1;
+				if(difference < 1) {
+					double tenthPower = Math.floor(Math.log10(difference));
+					if(tenthPower < 0) {
+						// ex. if difference is 0.009, step should be 0.001
+						step = Math.pow(10, tenthPower);
+					} else {
+						step = 0.1;
+					}
+				}
+				minMax.put("step", step);
+				
+				minMaxValues.put(selectors.get(i), minMax);
 			}
 		}
 
-		return new Object[] { visibleValues, filteredValues, dataTypeValues };
+		return new Object[] { visibleValues, filteredValues, minMaxValues };
 	}
-
+	
 	public Map<String, Object[]> getFilterTransformationValues() {
 		Map<String, Object[]> retMap = new HashMap<String, Object[]>();
 		// get meta nodes that are tagged as filtered
@@ -967,7 +976,7 @@ public class H2Frame extends AbstractTableDataFrame {
 		}
 		return h2Headers;
 	}
-	
+
 	private String getH2Header(String uniqueName) {
 		if(this.isJoined()) {
 			return joinHeaders.get(uniqueName);
@@ -1293,7 +1302,7 @@ public class H2Frame extends AbstractTableDataFrame {
 		
 		if(this.isJoined()) {
 			H2Joiner.refreshView(this, builder.getViewTableName());
-		}
+	}
 	}
 
 	/**
@@ -1331,7 +1340,7 @@ public class H2Frame extends AbstractTableDataFrame {
 		// could we just do "return this.class.toString();" ?
 		return "H2Frame";
 	}
-	
+
 	protected boolean isJoined() {
 		return builder.getJoinMode();
 	}
