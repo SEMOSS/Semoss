@@ -1339,8 +1339,11 @@ public class Translation extends DepthFirstAdapter {
 	public void outADashboardJoin(ADashboardJoin node)
 	{
 		String nodeStr = node.toString().trim();
+		IScriptReactor thisReactor = curReactor;
 		curReactor.put("G", this.frame);
 		Hashtable <String, Object> thisReactorHash = deinitReactor(PKQLEnum.DASHBOARD_JOIN, nodeStr, PKQLEnum.DASHBOARD_JOIN);
+		runner.setDashBoardData(thisReactor.getValue("DashboardData"));
+		
 	}
 
 
