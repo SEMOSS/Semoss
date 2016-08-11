@@ -43,6 +43,8 @@ public class PKQLRunner {
 	List<String> unassignedVars = new Vector<String>();
 	
 	private String newInsightID;
+	private Object dashboardMap;
+	
 	/**
 	 * Runs a given pkql expression (can be multiple if semicolon delimited) on a provided data maker 
 	 * @param expression			The sequence of semicolon delimited pkql expressions.
@@ -309,6 +311,9 @@ public class PKQLRunner {
 	 * Adds a variable to the var map so that it can be retrieved with other pkqls
 	 */
 	public void setVariableValue(String varName, String expr) {
+		if(!this.varMap.containsKey(varName)) {
+			this.varMap.put(varName, new HashMap<>());
+		}
 		this.varMap.get(varName).put(Constants.VALUE, expr);
 	}
 	
@@ -367,5 +372,13 @@ public class PKQLRunner {
 	
 	public void setNewInsightID(String id) {
 		this.newInsightID = id;
+	}
+	
+	public Object getDashboardData() {
+		return this.dashboardMap;
+	}
+	
+	public void setDashBoardData(Object dashboardData) {
+		this.dashboardMap = dashboardData;
 	}
 }
