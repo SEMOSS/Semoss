@@ -753,6 +753,12 @@ public class AnalysisAdapter implements Analysis
     }
 
     @Override
+    public void caseADataconnectdb(ADataconnectdb node)
+    {
+        defaultCase(node);
+    }
+
+    @Override
     public void caseAComparatorEqualOrCompare(AComparatorEqualOrCompare node)
     {
         defaultCase(node);
@@ -1342,6 +1348,12 @@ public class AnalysisAdapter implements Analysis
 
     @Override
     public void caseTDataconnectToken(TDataconnectToken node)
+    {
+        defaultCase(node);
+    }
+
+    @Override
+    public void caseTDataconnectdbToken(TDataconnectdbToken node)
     {
         defaultCase(node);
     }
