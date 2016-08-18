@@ -44,7 +44,10 @@ public class H2Iterator implements Iterator<Object[]>{
 	        if (resultSet.next()){
 	            row = new Object[NumOfCol];
 	            for(int i = 1; i <= NumOfCol; i++) {
-	                row[i-1] = resultSet.getObject(i);
+	            	if(resultSet.getObject(i) != null)//added to display blank instead of null on the FE
+	            		row[i-1] = resultSet.getObject(i);
+	            	else
+	            		row[i-1] = "";
 	            }
 	        }
 	        return row;			

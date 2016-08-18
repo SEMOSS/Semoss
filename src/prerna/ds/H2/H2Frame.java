@@ -15,6 +15,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Hashtable;
 import java.util.Iterator;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -58,7 +59,7 @@ public class H2Frame extends AbstractTableDataFrame {
 	// IQueryInterpreter interp = new SQLInterpreter();
 	RRunner r = null;
 	Map<String, String> joinHeaders = new HashMap<>();
-	
+
 	public H2Frame(String[] headers) {
 		this.headerNames = headers;
 		this.metaData = new TinkerMetaData();
@@ -69,7 +70,7 @@ public class H2Frame extends AbstractTableDataFrame {
 		this.metaData = new TinkerMetaData();
 		setSchema();
 	}
-	
+
 	//added as a path to get connection url for current dataframe
 	public H2Builder getBuilder(){
 		return this.builder;
@@ -175,8 +176,8 @@ public class H2Frame extends AbstractTableDataFrame {
 				joinType = (String) ((JoinTransformation) transformation)
 						.getProperties().get(JoinTransformation.JOIN_TYPE);
 				joinMap.put(joinCol2, joinCol1); // physical in query struct
-													// ----> logical in existing
-													// data maker
+				// ----> logical in existing
+				// data maker
 				joinColList.add(joinMap);
 			}
 		}
@@ -234,7 +235,7 @@ public class H2Frame extends AbstractTableDataFrame {
 
 				List<String> fullNames = this.metaData.getColumnNames();
 				this.headerNames = fullNames.toArray(new String[fullNames
-						.size()]);
+				                                                .size()]);
 			}
 
 			// else default to primary key tinker graph
@@ -246,7 +247,7 @@ public class H2Frame extends AbstractTableDataFrame {
 						getNode2ValueHash(edgeHash));
 				List<String> fullNames = this.metaData.getColumnNames();
 				this.headerNames = fullNames.toArray(new String[fullNames
-						.size()]);
+				                                                .size()]);
 				while (wrapper.hasNext()) {
 					this.addRow(wrapper.next());
 				}
@@ -389,26 +390,26 @@ public class H2Frame extends AbstractTableDataFrame {
 
 		DATA_TYPES type = this.metaData.getDataType(columnHeader);
 		boolean isOrdinal = type != null && (type == DATA_TYPES.DATE || type == DATA_TYPES.NUMBER);
-		
-		
-		String[] comparators = filterValues.keySet().toArray(new String[] {});
-		for (int i = 0; i < comparators.length; i++) {
+
+
+		String[] comparators = filterValues.keySet().toArray(new String[]{});
+		for(int i = 0; i < comparators.length; i++) {
 			String comparator = comparators[i];
 			boolean override = i == 0;
 			List<Object> filters = filterValues.get(comparator);
 
 			comparator = comparator.trim();
-			if (comparator.equals("=")) {
+			if(comparator.equals("=")) {
 
 				if(override) builder.setFilters(columnHeader, filters, H2Builder.Comparator.EQUAL);
 				else builder.addFilters(columnHeader, filters, H2Builder.Comparator.EQUAL);
 
-			} else if (comparator.equals("!=")) {
+			} else if(comparator.equals("!=")) { 
 
 				if(override) builder.setFilters(columnHeader, filters, H2Builder.Comparator.NOT_EQUAL);
 				else builder.addFilters(columnHeader, filters, H2Builder.Comparator.NOT_EQUAL);
 
-			} else if (comparator.equals("<")) {
+			} else if(comparator.equals("<")) {
 
 				if(isOrdinal) {
 
@@ -421,7 +422,7 @@ public class H2Frame extends AbstractTableDataFrame {
 							+ comparator);
 				}
 
-			} else if (comparator.equals(">")) {
+			} else if(comparator.equals(">")) {
 
 				if(isOrdinal) {
 
@@ -434,7 +435,7 @@ public class H2Frame extends AbstractTableDataFrame {
 							+ comparator);
 				}
 
-			} else if (comparator.equals("<=")) {
+			} else if(comparator.equals("<=")) {
 				if(isOrdinal) {
 
 					if(override) builder.setFilters(columnHeader, filters, H2Builder.Comparator.LESS_THAN_EQUAL);
@@ -445,7 +446,7 @@ public class H2Frame extends AbstractTableDataFrame {
 							+ " is not a numeric column, cannot use operator "
 							+ comparator);
 				}
-			} else if (comparator.equals(">=")) {
+			} else if(comparator.equals(">=")) {
 				if(isOrdinal) {
 
 					if(override) builder.setFilters(columnHeader, filters, H2Builder.Comparator.GREATER_THAN_EQUAL);
@@ -519,7 +520,7 @@ public class H2Frame extends AbstractTableDataFrame {
 				columnSets[i].add(nextRow[i]);
 			}
 		}
-		
+
 		//TODO: is this the same as filteredValues object?
 		Map<String, List<Object>> h2filteredValues = builder.getFilteredValues(getH2Selectors());
 
@@ -530,13 +531,13 @@ public class H2Frame extends AbstractTableDataFrame {
 			if (values != null) {
 				filteredValues.put(selectors.get(i), values);
 			} else {
-				filteredValues.put(selectors.get(i), new ArrayList<Object>());
+			filteredValues.put(selectors.get(i), new ArrayList<Object>());
 			}
-			
+
 			// get unfiltered values
 			ArrayList<Object> unfilteredList = new ArrayList<Object>(columnSets[i]);
 			visibleValues.put(selectors.get(i), unfilteredList);
-			
+
 			// store data type for header
 			// get min and max values for numerical columns
 			// TODO: need to include date type
@@ -551,10 +552,10 @@ public class H2Frame extends AbstractTableDataFrame {
 				if(!unfilteredList.isEmpty()) {
 					minMax.put("min", (Double)unfilteredArray[0]);
 					minMax.put("max", (Double)unfilteredArray[unfilteredArray.length-1]);
-				}
+		}
 				minMax.put("absMin", absMin);
 				minMax.put("absMax", absMax);
-				
+
 				// calculate how large each step in the slider should be
 				double difference = absMax - absMin;
 				double step = 1;
@@ -563,14 +564,14 @@ public class H2Frame extends AbstractTableDataFrame {
 					if(tenthPower < 0) {
 						// ex. if difference is 0.009, step should be 0.001
 						step = Math.pow(10, tenthPower);
-					} else {
+			} else {
 						step = 0.1;
-					}
-				}
-				minMax.put("step", step);
-				
-				minMaxValues.put(selectors.get(i), minMax);
 			}
+		}
+				minMax.put("step", step);
+
+				minMaxValues.put(selectors.get(i), minMax);
+	}
 		}
 
 		return new Object[] { visibleValues, filteredValues, minMaxValues };
@@ -809,19 +810,55 @@ public class H2Frame extends AbstractTableDataFrame {
 	@Override
 	public void addRelationship(Map<String, Object> cleanRow, Map<String, Object> rawRow) {
 
-		// if the sets contain keys not in header names, remove them
+		Object[] origValues = null;
+		String[] origColumnHeaders = null;	
+		boolean multiUpdates = false;
+		
 		Set<String> keySet = cleanRow.keySet();
-		Map<String, Object> adjustedCleanRow = new HashMap<String, Object>(
-				keySet.size());
+		Map<String, Object> adjustedCleanRow = new LinkedHashMap<String, Object>();
+		
+		//distinguish between new columns (cleanRow) and original columns (rawRow)
+		//remove original columns from new columns and keep them separated
+		//way to figure out if one new column is being updated or multiple
+		//specifically done when figuring out better approach for col split operation
+		if(!cleanRow.equals(rawRow)){
+			
+			//collect original columns and their respective values
+			origValues = new Object[rawRow.keySet().size()];
+			origColumnHeaders = rawRow.keySet().toArray(new String[] {});
+			
+			for (int i = 0; i < origColumnHeaders.length; i++) {
+				origValues[i] = rawRow.get(origColumnHeaders[i]);
+				origColumnHeaders[i] = H2Builder.cleanHeader(origColumnHeaders[i]);
+			}		
+						
+			Set<String> origKeySet = rawRow.keySet();
+			boolean exists = false;
+			for(String key : keySet){	
+				exists = false;
+				for(String origKey : origKeySet){
+					if(key.equals(origKey)){
+						exists = true;
+						multiUpdates = true;
+					}
+				}
+				if(!exists)
+					adjustedCleanRow.put(key, cleanRow.get(key));
+			}			
+			cleanRow = adjustedCleanRow;	
+		}
+		
+		// if the sets contain keys not in header names, remove them
+		adjustedCleanRow = new LinkedHashMap<String, Object>();
+		keySet = cleanRow.keySet();
 		for (String key : keySet) {
 			if (ArrayUtilityMethods.arrayContainsValue(headerNames, key)) {
 				adjustedCleanRow.put(key, cleanRow.get(key));
 			}
 		}
-		cleanRow = adjustedCleanRow;
-
-		int size = cleanRow.keySet().size();
-		Object[] values = new Object[size];
+		cleanRow = adjustedCleanRow;		
+		
+		Object[] values = new Object[cleanRow.keySet().size()];
 		String[] columnHeaders = cleanRow.keySet().toArray(new String[] {});
 
 		Arrays.sort(columnHeaders, new Comparator<String>() {
@@ -842,12 +879,14 @@ public class H2Frame extends AbstractTableDataFrame {
 
 		for (int i = 0; i < columnHeaders.length; i++) {
 			values[i] = cleanRow.get(columnHeaders[i]);
-		}
-
-		for (int i = 0; i < columnHeaders.length; i++) {
 			columnHeaders[i] = H2Builder.cleanHeader(columnHeaders[i]);
-		}
-		builder.updateTable(getH2Headers(), values, columnHeaders);
+		}		
+		
+		if(multiUpdates)			
+			builder.updateTable2(origColumnHeaders, origValues, columnHeaders, values);		
+		else
+			builder.updateTable(getH2Headers(), values, columnHeaders);
+		
 		if(this.isJoined()) {
 			H2Joiner.refreshView(this, builder.getViewTableName());
 		}
@@ -959,7 +998,7 @@ public class H2Frame extends AbstractTableDataFrame {
 		List<String> h2selectors = new ArrayList<>(selectors.size());
 		for (int i = 0; i < selectors.size(); i++) {
 			h2selectors.add(getH2Header(selectors.get(i)));
-//			h2selectors.add(this.getValueForUniqueName(selectors.get(i)));
+			//			h2selectors.add(this.getValueForUniqueName(selectors.get(i)));
 			// h2selectors.add(H2HeaderMap.get(selectors.get(i)));
 		}
 		return h2selectors;
@@ -971,7 +1010,7 @@ public class H2Frame extends AbstractTableDataFrame {
 		String[] h2Headers = new String[headerNames.length];
 		for (int i = 0; i < headerNames.length; i++) {
 			// h2Headers[i] = H2HeaderMap.get(headerNames[i]);
-//			h2Headers[i] = this.getValueForUniqueName(headerNames[i]);
+			//			h2Headers[i] = this.getValueForUniqueName(headerNames[i]);
 			h2Headers[i] = getH2Header(headerNames[i]);
 		}
 		return h2Headers;
@@ -984,7 +1023,7 @@ public class H2Frame extends AbstractTableDataFrame {
 			return this.getValueForUniqueName(uniqueName);
 		}
 	}
-	
+
 	protected void setH2Headers(Map<String, String> headers) {
 		this.joinHeaders = headers;
 	}
@@ -1225,6 +1264,7 @@ public class H2Frame extends AbstractTableDataFrame {
 		reactorNames.put(PKQLEnum.OPEN_DATA, "prerna.sablecc.OpenDataReactor");
 		reactorNames.put(PKQLEnum.DATA_TYPE, "prerna.sablecc.DataTypeReactor");
 		reactorNames.put(PKQLEnum.DATA_CONNECT, "prerna.sablecc.DataConnectReactor");
+		reactorNames.put(PKQLEnum.COL_SPLIT, "prerna.sablecc.ColSplitReactor");
 
 		// switch(reactorType) {
 		// case IMPORT_DATA : return new H2ImportDataReactor();
@@ -1299,10 +1339,10 @@ public class H2Frame extends AbstractTableDataFrame {
 		}
 
 		this.builder.processIterator(iterator, adjustedColHeaders,valueHeaders, types, jType);
-		
+
 		if(this.isJoined()) {
 			H2Joiner.refreshView(this, builder.getViewTableName());
-	}
+		}
 	}
 
 	/**
@@ -1344,11 +1384,11 @@ public class H2Frame extends AbstractTableDataFrame {
 	protected boolean isJoined() {
 		return builder.getJoinMode();
 	}
-	
+
 	protected void setJoin(String viewTable) {
 		builder.setView(viewTable);
 	}
-	
+
 	protected void unJoin() {
 		builder.unJoin();
 	}
@@ -1362,7 +1402,7 @@ public class H2Frame extends AbstractTableDataFrame {
 		};
 		thread.start();
 	}
-	
+
 	@Override
 	/**
 	 * Used to update the data id when data has changed within the frame
@@ -1374,38 +1414,38 @@ public class H2Frame extends AbstractTableDataFrame {
 			updateDataId(1);
 		}
 	}
-	
+
 	protected void updateDataId(int val) {
 		this.dataId = this.dataId.add(BigInteger.valueOf(val));
 	}
-    /**
-     * Method printAllRelationship.
-     */
-    private void openCommandLine() {
-    	LOGGER.warn("<<<<");
-        String end = "";
-          
+	/**
+	 * Method printAllRelationship.
+	 */
+	private void openCommandLine() {
+		LOGGER.warn("<<<<");
+		String end = "";
+
 		while(!end.equalsIgnoreCase("end")) {
 			try {
 				BufferedReader reader = new BufferedReader(new InputStreamReader(System.in));
-		        LOGGER.info("Enter SQL");
-		        String query2 = reader.readLine();   
-		        if(query2!=null){
-		        	long start = System.currentTimeMillis();
-		            end = query2;
-		            LOGGER.info("SQL is " + query2);
-		            
-		            ResultSet set = this.builder.runBackDoorQuery(query2);
-		            while(set != null && set.next()) {
-		            	
-		            	long time2 = System.currentTimeMillis();
-		            	LOGGER.warn("time to execute : " + (time2 - start )+ " ms");
-		            }
-		        }
+				LOGGER.info("Enter SQL");
+				String query2 = reader.readLine();   
+				if(query2!=null){
+					long start = System.currentTimeMillis();
+					end = query2;
+					LOGGER.info("SQL is " + query2);
+
+					ResultSet set = this.builder.runBackDoorQuery(query2);
+					while(set != null && set.next()) {
+
+						long time2 = System.currentTimeMillis();
+						LOGGER.warn("time to execute : " + (time2 - start )+ " ms");
+					}
+				}
 			} 
 			catch (RuntimeException e) {e.printStackTrace();} 
 			catch (IOException e) {e.printStackTrace();} 
 			catch (SQLException e) {e.printStackTrace();}
 		}
-    }
+	}
 }
