@@ -15,18 +15,16 @@ import prerna.engine.api.IEngineWrapper;
 import prerna.util.ArrayUtilityMethods;
 import prerna.util.DIHelper;
 
+/**
+ * This is the base class used by the frame specific import data reactors.
+ * This class doesn't perform any adding of data in the frames
+ * It does however input specific pieces of information into the myStore map
+ * such that the frame specific import data reactors can optimally 
+ * add the data into the frame
+ *
+ */
 public abstract class ImportDataReactor extends AbstractReactor {
 
-	/**
-	 * This is the base class used by the frame specific import data reactors.
-	 * This class doesn't perform any adding of data in the frames
-	 * It does however input specific pieces of information into the myStore map
-	 * such that the frame specific import data reactors can optimally 
-	 * add the data into the frame
-	 *
-	 */
-	
-	
 	// this stores the specific values that need to be aggregated from the child reactors
 	// based on the child, different information is needed in order to properly add the 
 	// data into the frame
@@ -246,7 +244,6 @@ public abstract class ImportDataReactor extends AbstractReactor {
 	protected void inputResponseString(Iterator it, String[] headers) {
 		// get rid of this bifurcation
 		// push this into the iterators
-		
 		
 		String nodeStr = (String)myStore.get(whoAmI);
 		// if the iterator is the return from an engine
