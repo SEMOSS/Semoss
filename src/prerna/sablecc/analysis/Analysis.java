@@ -125,6 +125,7 @@ public interface Analysis extends Switch
     void caseAHelp(AHelp node);
     void caseADatatype(ADatatype node);
     void caseADataconnect(ADataconnect node);
+    void caseADataconnectdb(ADataconnectdb node);
     void caseAComparatorEqualOrCompare(AComparatorEqualOrCompare node);
     void caseAEqualEqualOrCompare(AEqualEqualOrCompare node);
     void caseAUserInput(AUserInput node);
@@ -225,6 +226,7 @@ public interface Analysis extends Switch
     void caseTJoin(TJoin node);
     void caseTDatatypeToken(TDatatypeToken node);
     void caseTDataconnectToken(TDataconnectToken node);
+    void caseTDataconnectdbToken(TDataconnectdbToken node);
     void caseEOF(EOF node);
     void caseInvalidToken(InvalidToken node);
 }
