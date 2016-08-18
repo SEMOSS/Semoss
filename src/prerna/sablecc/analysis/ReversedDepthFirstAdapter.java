@@ -841,6 +841,27 @@ public class ReversedDepthFirstAdapter extends AnalysisAdapter
         outADataconnectDataop(node);
     }
 
+    public void inADataconnectdbDataop(ADataconnectdbDataop node)
+    {
+        defaultIn(node);
+    }
+
+    public void outADataconnectdbDataop(ADataconnectdbDataop node)
+    {
+        defaultOut(node);
+    }
+
+    @Override
+    public void caseADataconnectdbDataop(ADataconnectdbDataop node)
+    {
+        inADataconnectdbDataop(node);
+        if(node.getDataconnectdb() != null)
+        {
+            node.getDataconnectdb().apply(this);
+        }
+        outADataconnectdbDataop(node);
+    }
+
     public void inAPanelViz(APanelViz node)
     {
         defaultIn(node);
