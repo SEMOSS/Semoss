@@ -49,6 +49,7 @@ public interface Analysis extends Switch
     void caseAOutputInsightPanelop(AOutputInsightPanelop node);
     void caseADatatypeDataop(ADatatypeDataop node);
     void caseADataconnectDataop(ADataconnectDataop node);
+    void caseADataconnectdbDataop(ADataconnectdbDataop node);
     void caseAPanelViz(APanelViz node);
     void caseAPanelComment(APanelComment node);
     void caseAPanelCommentEdit(APanelCommentEdit node);
