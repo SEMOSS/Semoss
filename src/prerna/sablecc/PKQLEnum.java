@@ -60,6 +60,9 @@ public class PKQLEnum {
 	public static String COL_SPLIT = "COL_SPLIT";
 	public static String REGEX = "REGEX";
 	public static String COL_RENAME = "COL_RENAME";
+	public static String JOIN_PARAM = "JOIN_PARAM";
+	public static String COL_TABLE = "COL_TABLE";
+	public static String DATA_CONNECTDB = "DATA_CONNECTDB";
 //	public static String RELATION = "RELATION";
 
 }
