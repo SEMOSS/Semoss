@@ -297,6 +297,12 @@ public class AnalysisAdapter implements Analysis
     }
 
     @Override
+    public void caseADataconnectdbDataop(ADataconnectdbDataop node)
+    {
+        defaultCase(node);
+    }
+
+    @Override
     public void caseAPanelViz(APanelViz node)
     {
         defaultCase(node);
