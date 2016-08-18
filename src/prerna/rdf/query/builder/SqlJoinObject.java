@@ -1,7 +1,10 @@
 package prerna.rdf.query.builder;
 
-import java.util.HashSet;
+import java.util.Hashtable;
+import java.util.List;
+import java.util.Map;
 import java.util.Set;
+import java.util.Vector;
 
 public class SqlJoinObject {
 
@@ -14,10 +17,10 @@ public class SqlJoinObject {
 	private StringBuilder queryString = new StringBuilder();
 	
 	// contains the list of values that are needed in order to determine 
-	private Set<String> requiredTableDefinitions = new HashSet<String>(); 
+	private Map<String, String> requiredTableDefinitions = new Hashtable<String, String>();
 	
 	// contains the list of alias defined within the join object
-	private Set<String> definedAliasWithinJoin = new HashSet<String>();
+	private Map<String, String> definedAliasWithinJoin = new Hashtable<String, String>();
 	
 	// contains the join type
 	private SqlJoinTypeEnum joinType;
@@ -36,19 +39,19 @@ public class SqlJoinObject {
 	}
 	
 	// add required table alias definitions to be used by the join
-	public void addTableAliasRequired(String tableAlias) {
-		requiredTableDefinitions.add(tableAlias);
+	public void addTableAliasRequired(String tableAlias, String tableName) {
+		requiredTableDefinitions.put(tableAlias, tableName);
 	}
 	
 	// add the table alias that this join string defines
-	public void addTableAliasDefinedByJoin(String tableAlias) {
-		definedAliasWithinJoin.add(tableAlias);
+	public void addTableAliasDefinedByJoin(String tableAlias, String tableName) {
+		definedAliasWithinJoin.put(tableAlias, tableName);
 	}
 	
 	// see if aliases are defined such that when the join query portion
 	// is added it will be valid
 	public boolean tableDefinitionsMet(Set<String> definedAliasSet) {
-		return definedAliasSet.containsAll(requiredTableDefinitions);
+		return definedAliasSet.containsAll(requiredTableDefinitions.keySet());
 	}
 	
 	// get the query string for this join
@@ -56,9 +59,26 @@ public class SqlJoinObject {
 		return queryString.toString();
 	}
 	
+	public int getNumRequiredTables() {
+		return requiredTableDefinitions.keySet().size();
+	}
+	
+	// get a list of all the required tables for the join
+	// list contains a String[] of tableName and alias
+	public List<String[]> getAllRequiredTables() {
+		List<String[]> results = new Vector<String[]>();
+		// iterate through and create list of required tables and their aliases
+		for(String alias : requiredTableDefinitions.keySet()) {
+			String[] reqEntry = new String[]{requiredTableDefinitions.get(alias), alias};
+			results.add(reqEntry);
+		}
+		
+		return results;
+	}
+	
 	// get the defined alias for the tables within this join
 	public Set<String> getDefinedAliasWithinJoin() {
-		return this.definedAliasWithinJoin;
+		return this.definedAliasWithinJoin.keySet();
 	}
 	
 	// set the join type
