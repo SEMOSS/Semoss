@@ -2,10 +2,8 @@ package prerna.rdf.query.builder;
 
 import java.util.Enumeration;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.Hashtable;
 import java.util.Map;
-import java.util.Set;
 import java.util.Vector;
 
 import org.openrdf.query.QueryEvaluationException;
@@ -35,7 +33,6 @@ public class SQLInterpreter implements IQueryInterpreter{
 	// need to keep track of the primary key for tables
 	private transient Map<String, String> primaryKeyCache = new HashMap<String, String>();
 
-	
 	// we can create a statement without an engine... but everything needs to be the physical
 	// we currently only use it when the engine is null, but we could use this to query on 
 	// an in-memory rdbms like an H2Frame which is not an engine
@@ -46,14 +43,15 @@ public class SQLInterpreter implements IQueryInterpreter{
 	// and the values are values
 	private Hashtable <String, String> whereHash = new Hashtable<String, String>();
 
-	private Set<String> fromAliasDefined = new HashSet<String>();
-	private Hashtable <String, SQLJoinObject> relationHash = new Hashtable<String, SQLJoinObject>();
-
 	private transient Map<String, String[]> relationshipConceptPropertiesMap = new HashMap<String, String[]>();
 	
 	private String selectors = "";
 	private String froms = "";
-	
+	// this will store the one from alias we are starting with
+	// important so we can do the join logic in the right order
+	private String fromAliasDefined = null;
+	// store the joins in the object for easy use
+	private SqlJoinList relationList = new SqlJoinList();
 	
 	public SQLInterpreter() {
 		
@@ -86,51 +84,17 @@ public class SQLInterpreter implements IQueryInterpreter{
 		 */
 		
 		String query = null;
+		
 		addSelectors();
 		addJoins();
 		addFilters();
 		
 		// the final step where the equation is balanced and the anamoly revealed
 		query = "SELECT  DISTINCT " + selectors + "  FROM " + froms;
+		
+		query = query + relationList.getJoinPath(fromAliasDefined);
+		
 		boolean firstTime = true;
-
-		// keep track of all the joins that we have already added
-		Set<String> usedJoins = new HashSet<String>();
-		// keep track of the set of available alias we have defined
-		// note that we start with the set defined in the from portion of the query
-		Set<String> availableAlias = new HashSet<String>(fromAliasDefined);
-		// get the set of the join keys
-		Set<String> joinKeySet = relationHash.keySet();
-		// keep a counter showing the number of joins we have added and the total number
-		// so we know when we are done
-		int joinCounter = 0;
-		int totalJoinsToAdd = joinKeySet.size();
-		
-		//TODO: this is a very greedy way of doing this
-		//TODO: should figure out a smart way to do a path problem...
-		
-		// we loop through until every join is added
-		while(joinCounter < totalJoinsToAdd) {
-			for(String joinKey : joinKeySet) {
-				// so we dont add the same joins twice
-				if(!usedJoins.contains(joinKey)) {
-					SQLJoinObject joinObject = relationHash.get(joinKey);
-					// do we have all the necessary information to add the join
-					if(joinObject.tableDefinitionsMet(availableAlias)) {
-						// add the query from the join object
-						query = query + " " + joinObject.getQueryString();
-						// update the used joins so we dont try to add again
-						usedJoins.add(joinKey);
-						// update the available aliases
-						availableAlias.addAll(joinObject.getDefinedAliasWithinJoin());
-						// update the counter so the while loop can end
-						joinCounter++;
-					}
-				}
-			}
-		}
-		
-		firstTime = true;
 		for (String key : whereHash.keySet())
 		{
 			String value = whereHash.get(key);
@@ -247,24 +211,30 @@ public class SQLInterpreter implements IQueryInterpreter{
 	private void addFrom(String conceptualTableName)
 	{
 		String alias = getAlias(conceptualTableName);
-		// we don't want to add the from table multiple times as this is invalid in sql
-		if(!tableProcessed.containsKey(conceptualTableName)) {
-			tableProcessed.put(conceptualTableName, "true");
-			
-			// we want to use the physical table name
-			String physicalTableName = getPhysicalTableNameFromConceptualName(conceptualTableName);
-			
-			// add the physical table name and define its unique alias into the from statement
-			String fromText =  physicalTableName + "  " + alias;
-			if(froms.length() > 0){
-				froms = froms + " , " + fromText;
-			} else {
-				froms = fromText;
+		
+		// need to determine if we can have multiple froms or not
+		
+		// we only need to store one table in the from
+		if(froms.length() == 0) {
+			// we don't want to add the from table multiple times as this is invalid in sql
+			if(!tableProcessed.containsKey(conceptualTableName)) {
+				tableProcessed.put(conceptualTableName, "true");
+				
+				// we want to use the physical table name
+				String physicalTableName = getPhysicalTableNameFromConceptualName(conceptualTableName);
+				
+				// add the physical table name and define its unique alias into the from statement
+				String fromText =  physicalTableName + "  " + alias;
+				if(froms.length() > 0){
+					froms = froms + " , " + fromText;
+				} else {
+					froms = fromText;
+				}
+				
+				// add the from set so we know which alias we have access to
+				// in order to create the sql query appropriately
+				fromAliasDefined = alias;
 			}
-			
-			// add the from set so we know which alias we have access to
-			// in order to create the sql query appropriately
-			fromAliasDefined.add(alias);
 		}
 	}
 
@@ -342,7 +312,7 @@ public class SQLInterpreter implements IQueryInterpreter{
 	 * 									or table__column
 	 */
 	private void addJoin(String fromCol, String thisComparator, String toCol) {
-		SQLJoinObject thisJoin = null;
+		SqlJoinObject thisJoin = null;
 		
 		// get the parts of the join
 		String[] relConProp = getRelationshipConceptProperties(fromCol, toCol);
@@ -364,24 +334,40 @@ public class SQLInterpreter implements IQueryInterpreter{
 		}
 		
 		String queryString = "";
-		if(!relationHash.containsKey(key)) {
+		if(!relationList.doesJoinAlreadyExist(key)) {
 			String compName = thisComparator.replace(".", "  ");
 			queryString = compName + "  " + toConcept+ " " + getAlias(toConcept) + " ON " + getAlias(concept) + "." + property + " = " + getAlias(toConcept) + "." + toProperty;
 			
-			thisJoin = new SQLJoinObject();
+			thisJoin = new SqlJoinObject(key);
+			// add the defined table
 			thisJoin.addTableAliasDefinedByJoin(getAlias(toConcept));
+			// need to add the required aliases
+			thisJoin.addTableAliasRequired(getAlias(concept));
+			// need to add the query string into the join object
+			thisJoin.addQueryString(queryString);
+			// set the join type
+			if(thisComparator.equalsIgnoreCase("inner.join")) {
+				thisJoin.setSqlJoinType(SqlJoinObject.SqlJoinTypeEnum.inner);
+			} else if(thisComparator.equalsIgnoreCase("left.outer.join")) {
+				thisJoin.setSqlJoinType(SqlJoinObject.SqlJoinTypeEnum.left);
+			} else if(thisComparator.equalsIgnoreCase("right.outer.join")) {
+				thisJoin.setSqlJoinType(SqlJoinObject.SqlJoinTypeEnum.right);
+			} else if(thisComparator.equalsIgnoreCase("outer.join")) {
+				thisJoin.setSqlJoinType(SqlJoinObject.SqlJoinTypeEnum.outer);
+			} else if(thisComparator.equalsIgnoreCase("cross.join")) {
+				thisJoin.setSqlJoinType(SqlJoinObject.SqlJoinTypeEnum.cross);
+			}
+			// add to the list
+			relationList.addSqlJoinObject(thisJoin);
 		} else {
-			queryString = getAlias(concept) + "." + property + " = " + getAlias(toConcept) + "." + toProperty;			
-			
-			thisJoin = relationHash.get(key);
+			queryString = concept + " " + getAlias(concept) + " ON " + getAlias(concept) +  "." + property + " = " + getAlias(toConcept) + "." + toProperty;			
+
+			thisJoin = relationList.getExistingJoin(key);
+			// add the defined table
+			thisJoin.addTableAliasDefinedByJoin(getAlias(concept));
+			// need to add the query string into the join object
+			thisJoin.addQueryString(queryString);
 		}
-		
-		// need to add the query string into the join object
-		thisJoin.addQueryString(queryString);
-		// need to add the required aliases
-		thisJoin.addTableAliasRequired(getAlias(concept));
-				
-		relationHash.put(key, thisJoin);
 	}
 	
 	////////////////////////////////////////// end adding joins ///////////////////////////////////////
@@ -855,7 +841,6 @@ public class SQLInterpreter implements IQueryInterpreter{
 	///////////////////////////////////////// test method /////////////////////////////////////////////////
 	
 	public static void main(String[] args) {
-		
 		// load in the engine
 		TestUtilityMethods.loadDIHelper();
 
@@ -881,9 +866,6 @@ public class SQLInterpreter implements IQueryInterpreter{
 		
 		System.out.println(query);
 	}
-	
-	
-	
 	
 	///////////////////////////////////////// end test methods //////////////////////////////////////////////
 	
