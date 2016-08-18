@@ -65,6 +65,7 @@ import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
 
 import prerna.algorithm.api.ITableDataFrame;
+import prerna.cache.CacheFactory;
 import prerna.ds.QueryStruct;
 import prerna.ds.TinkerFrame;
 import prerna.engine.api.IEngine;
@@ -672,7 +673,17 @@ public class Insight {
 	public IDataMaker getDataMaker() {
 		if(this.dataMaker == null){
 			if(this.dataMakerName != null && !this.dataMakerName.isEmpty()) {
-				this.dataMaker = Utility.getDataMaker(this.mainEngine, this.dataMakerName);
+				//first try and get it from cache, if doesn't exist then make default
+				try {
+					IDataMaker dm = CacheFactory.getInsightCache(CacheFactory.CACHE_TYPE.DB_INSIGHT_CACHE).getDMCache(this);
+					if(dm != null) {
+						this.dataMaker = dm;
+					} else {
+						this.dataMaker = Utility.getDataMaker(this.mainEngine, this.dataMakerName);
+					}
+				} catch(Exception e) {
+					this.dataMaker = Utility.getDataMaker(this.mainEngine, this.dataMakerName);
+				}				
 			} else {
 				if(this.playSheet == null){
 					this.playSheet = getPlaySheet();
@@ -1675,6 +1686,17 @@ public class Insight {
 	
 	public void setParentInsight(Insight insight) {
 		this.parentInsight = insight;
+	}
+	
+	public void unJoin() {
+		this.parentInsight.unJoin(this);
+		this.parentInsight = null;
+	}
+	
+	public void unJoin(Insight insight) {
+		if(getDataMaker() instanceof Dashboard) {
+			((Dashboard)this.dataMaker).unJoinInsights(insight);
+		}
 	}
 
 }
