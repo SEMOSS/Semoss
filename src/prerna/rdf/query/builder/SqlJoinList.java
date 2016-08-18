@@ -15,7 +15,6 @@ public class SqlJoinList {
 	// store a map of join ids to indices in joinList
 	private Map<String, Integer> joinPositionMap = new Hashtable<String, Integer>();
 
-
 	public void addSqlJoinObject(SqlJoinObject join) {
 		this.joinList.add(join);
 		this.joinPositionMap.put(join.getId(), this.joinList.size()-1);
@@ -46,6 +45,21 @@ public class SqlJoinList {
 			return joinList.get(joinPositionMap.get(joinId));
 		}
 		return null;
+	}
+	
+	// so we can properly create the from when there is a join
+	public String[] getStartTableAndAlias() {
+		String[] startTableAndAlias = null;
+		int joinIdx = 0;	
+		int numJoins = joinList.size();
+		for(; joinIdx < numJoins; joinIdx++) {
+			SqlJoinObject join = joinList.get(joinIdx);
+			if(join.getNumRequiredTables() == 1) {
+				startTableAndAlias = join.getAllRequiredTables().get(0);
+			}
+		}
+			
+		return startTableAndAlias;
 	}
 	
 	// determine if appropriate path exists
