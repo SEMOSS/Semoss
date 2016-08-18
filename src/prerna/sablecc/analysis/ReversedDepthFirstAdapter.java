@@ -3313,6 +3313,39 @@ public class ReversedDepthFirstAdapter extends AnalysisAdapter
         outADataconnect(node);
     }
 
+    public void inADataconnectdb(ADataconnectdb node)
+    {
+        defaultIn(node);
+    }
+
+    public void outADataconnectdb(ADataconnectdb node)
+    {
+        defaultOut(node);
+    }
+
+    @Override
+    public void caseADataconnectdb(ADataconnectdb node)
+    {
+        inADataconnectdb(node);
+        if(node.getRPar() != null)
+        {
+            node.getRPar().apply(this);
+        }
+        if(node.getWordOrNum() != null)
+        {
+            node.getWordOrNum().apply(this);
+        }
+        if(node.getLPar() != null)
+        {
+            node.getLPar().apply(this);
+        }
+        if(node.getDataconnectdbToken() != null)
+        {
+            node.getDataconnectdbToken().apply(this);
+        }
+        outADataconnectdb(node);
+    }
+
     public void inAComparatorEqualOrCompare(AComparatorEqualOrCompare node)
     {
         defaultIn(node);

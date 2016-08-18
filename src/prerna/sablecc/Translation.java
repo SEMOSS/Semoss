@@ -32,6 +32,7 @@ import prerna.sablecc.node.ACsvTableImportBlock;
 import prerna.sablecc.node.ADashboardJoin;
 import prerna.sablecc.node.ADataFrame;
 import prerna.sablecc.node.ADataconnect;
+import prerna.sablecc.node.ADataconnectdb;
 import prerna.sablecc.node.ADatatype;
 import prerna.sablecc.node.ADecimal;
 import prerna.sablecc.node.ADivExpr;
@@ -1406,6 +1407,19 @@ public class Translation extends DepthFirstAdapter {
 		runner.setCurrentString(PKQLEnum.DATA_CONNECT);
 		runner.storeResponse();
     }
+    
+    public void inADataconnectdb(ADataconnectdb node)
+    {
+    	initReactor(PKQLEnum.DATA_CONNECTDB);
+		String nodeStr = node.toString().trim();
+		curReactor.put(PKQLEnum.DATA_CONNECTDB, nodeStr);
+    }
 
+    public void outADataconnectdb(ADataconnectdb node)
+    {
+    	String thisNode = node.toString().trim();
+    	IScriptReactor thisReactor = curReactor;
+		Hashtable <String, Object> thisReactorHash = deinitReactor(PKQLEnum.DATA_CONNECTDB, thisNode, PKQLEnum.DATA_CONNECTDB);
+    }
 
 }

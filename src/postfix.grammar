@@ -92,7 +92,8 @@ Tokens
  join = 'data.join';
  datatype_token = 'data.type';
  dataconnect_token = 'data.connect';
-
+ dataconnectdb_token = 'data.connectdb';
+ 
 Ignored Tokens
  blank;
 
@@ -338,6 +339,8 @@ help = help_token;
 datatype = datatype_token;
 
 dataconnect = dataconnect_token l_par word_or_num r_par;
+
+dataconnectdb = dataconnectdb_token l_par word_or_num r_par;
 
 equal_or_compare = {comparator} comparator | {equal} equal;
 
