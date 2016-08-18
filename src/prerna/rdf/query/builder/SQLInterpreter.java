@@ -83,15 +83,25 @@ public class SQLInterpreter implements IQueryInterpreter{
 		 * 		the join 
 		 */
 		
-		String query = null;
-		
 		addSelectors();
 		addJoins();
 		addFilters();
 		
-		// the final step where the equation is balanced and the anamoly revealed
-		query = "SELECT  DISTINCT " + selectors + "  FROM " + froms;
+		// add the selectors
+		String query = "SELECT  DISTINCT " + selectors + "  FROM ";
+		// if there is a join
+		// can only have one table in from in general sql case 
+		// thus, the order matters 
+		// so get a good starting from table
+		if(relationList.getStartTableAndAlias() != null) {
+			String[] fromInfo = relationList.getStartTableAndAlias();
+			query = query + fromInfo[0] + " " + fromInfo[1];
+		} else {
+			// no join, just use whatever is in the froms since that will be accurate
+			query = query + froms;
+		}
 		
+		// add the join data
 		query = query + relationList.getJoinPath(fromAliasDefined);
 		
 		boolean firstTime = true;
@@ -340,9 +350,9 @@ public class SQLInterpreter implements IQueryInterpreter{
 			
 			thisJoin = new SqlJoinObject(key);
 			// add the defined table
-			thisJoin.addTableAliasDefinedByJoin(getAlias(toConcept));
+			thisJoin.addTableAliasDefinedByJoin(getAlias(toConcept), toConcept);
 			// need to add the required aliases
-			thisJoin.addTableAliasRequired(getAlias(concept));
+			thisJoin.addTableAliasRequired(getAlias(concept), concept);
 			// need to add the query string into the join object
 			thisJoin.addQueryString(queryString);
 			// set the join type
@@ -364,7 +374,7 @@ public class SQLInterpreter implements IQueryInterpreter{
 
 			thisJoin = relationList.getExistingJoin(key);
 			// add the defined table
-			thisJoin.addTableAliasDefinedByJoin(getAlias(concept));
+			thisJoin.addTableAliasDefinedByJoin(getAlias(concept), concept);
 			// need to add the query string into the join object
 			thisJoin.addQueryString(queryString);
 		}
