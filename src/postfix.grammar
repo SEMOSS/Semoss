@@ -147,6 +147,7 @@ panelop = // panelop is usually of the form of viz.change, viz.tools, viz.color
 dataop = // dataop is usually of the form of data.frame, etc.
 		{datatype} datatype
 		| {dataconnect} dataconnect
+		| {dataconnectdb} dataconnectdb
 		;
  
 
