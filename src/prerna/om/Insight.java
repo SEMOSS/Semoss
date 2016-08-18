@@ -1688,15 +1688,15 @@ public class Insight {
 		this.parentInsight = insight;
 	}
 	
-	public void unJoin() {
-		this.parentInsight.unJoin(this);
-		this.parentInsight = null;
-	}
-	
-	public void unJoin(Insight insight) {
-		if(getDataMaker() instanceof Dashboard) {
-			((Dashboard)this.dataMaker).unJoinInsights(insight);
-		}
-	}
+//	public void unJoin() {
+//		this.parentInsight.unJoin(this);
+//		this.parentInsight = null;
+//	}
+//	
+//	public void unJoin(Insight insight) {
+//		if(getDataMaker() instanceof Dashboard) {
+//			((Dashboard)this.dataMaker).unJoinInsights(insight);
+//		}
+//	}
 
 }
