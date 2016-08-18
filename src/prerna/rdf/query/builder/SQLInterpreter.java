@@ -93,16 +93,19 @@ public class SQLInterpreter implements IQueryInterpreter{
 		// can only have one table in from in general sql case 
 		// thus, the order matters 
 		// so get a good starting from table
+		String startFrom = fromAliasDefined;
 		if(relationList.getStartTableAndAlias() != null) {
 			String[] fromInfo = relationList.getStartTableAndAlias();
 			query = query + fromInfo[0] + " " + fromInfo[1];
+			// need to update the start from
+			startFrom = fromInfo[1];
 		} else {
 			// no join, just use whatever is in the froms since that will be accurate
 			query = query + froms;
-		}
+		} 
 		
 		// add the join data
-		query = query + relationList.getJoinPath(fromAliasDefined);
+		query = query + relationList.getJoinPath(startFrom);
 		
 		boolean firstTime = true;
 		for (String key : whereHash.keySet())
