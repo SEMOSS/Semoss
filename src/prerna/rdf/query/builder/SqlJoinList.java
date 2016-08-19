@@ -47,20 +47,54 @@ public class SqlJoinList {
 		return null;
 	}
 	
-	// if an alias is not defined at any point within any of the join objects
-	// then that alias is not used in the joins
-	// and is a good candidate to be used for the start table in the from clause
-	public boolean tableUsedInJoin(String alias) {
-		int joinIdx = 0;	
+	// since we assume that the sql joins define a specific path
+	// lets find which table is not defined inside the join
+	// this will determine which table should be defined in the froms clause
+	public String[] getTableNotDefinedInJoinList() {
+		int joinIdx1 = 0;
 		int numJoins = joinList.size();
-		for(; joinIdx < numJoins; joinIdx++) {
-			SqlJoinObject join = joinList.get(joinIdx);
-			if(join.getDefinedAliasWithinJoin().contains(alias)) {
-				return true;
+		
+		// store the table not defined in any of the joins
+		String[] tableNotInJoin = null;
+		
+		FOUND_TABLE_LOOP : for(; joinIdx1 < numJoins; joinIdx1++) {
+			// grab the first join
+			SqlJoinObject join1 = joinList.get(joinIdx1);
+			
+			// get the required tables from this join
+			// that means it needs to be defined before this join can be called
+			List<String[]> requiredTables = join1.getAllRequiredTables();
+			
+			TABLE_LOOP : for(String[] reqTable : requiredTables) {
+				String alias = reqTable[1];
+				
+				// now we need to test each required tables to all the existing joins
+				
+				int joinIdx2 = 0;
+				for(; joinIdx2 < numJoins; joinIdx2++) {
+					if(joinIdx1 == joinIdx2) {
+						continue;
+					}
+					// grab the second join
+					SqlJoinObject join2 = joinList.get(joinIdx2);
+					
+					// if this table is defined within another join
+					// it ain't good
+					// so continue the table loop
+					if(join2.getDefinedAliasWithinJoin().contains(alias)) {
+						continue TABLE_LOOP;
+					}
+				}
+				
+				// if we get to this point, we did not enter the continue table loop
+				// while going through all of the other joins
+				// thus, this table is not defined
+				tableNotInJoin = reqTable;
+				break FOUND_TABLE_LOOP;
 			}
 		}
 		
-		return false;
+		return tableNotInJoin;
 	}
 	
 	// determine if appropriate path exists
@@ -113,6 +147,10 @@ public class SqlJoinList {
 		}
 		
 		return query.toString();
+	}
+	
+	public boolean isEmpty() {
+		return this.joinList.isEmpty();
 	}
 
 }
