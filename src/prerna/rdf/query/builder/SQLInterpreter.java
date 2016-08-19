@@ -3,6 +3,7 @@ package prerna.rdf.query.builder;
 import java.util.Enumeration;
 import java.util.HashMap;
 import java.util.Hashtable;
+import java.util.List;
 import java.util.Map;
 import java.util.Vector;
 
@@ -46,10 +47,8 @@ public class SQLInterpreter implements IQueryInterpreter{
 	private transient Map<String, String[]> relationshipConceptPropertiesMap = new HashMap<String, String[]>();
 	
 	private String selectors = "";
-	private String froms = "";
-	// this will store the one from alias we are starting with
-	// important so we can do the join logic in the right order
-	private String fromAliasDefined = null;
+//	private String froms = "";
+	private List<String[]> froms = new Vector<String[]>();
 	// store the joins in the object for easy use
 	private SqlJoinList relationList = new SqlJoinList();
 	
@@ -82,9 +81,11 @@ public class SQLInterpreter implements IQueryInterpreter{
 		 * 		determine when we add it to the from clause or if the table will be defined via 
 		 * 		the join 
 		 */
-		
-		addSelectors();
+
+		// we do the joins since when we get to adding the from portion of the query
+		// we want to make sure that table is not used within the joins
 		addJoins();
+		addSelectors();
 		addFilters();
 		
 		// add the selectors
@@ -93,19 +94,12 @@ public class SQLInterpreter implements IQueryInterpreter{
 		// can only have one table in from in general sql case 
 		// thus, the order matters 
 		// so get a good starting from table
-		String startFrom = fromAliasDefined;
-		if(relationList.getStartTableAndAlias() != null) {
-			String[] fromInfo = relationList.getStartTableAndAlias();
-			query = query + fromInfo[0] + " " + fromInfo[1];
-			// need to update the start from
-			startFrom = fromInfo[1];
-		} else {
-			// no join, just use whatever is in the froms since that will be accurate
-			query = query + froms;
-		} 
+		// we can use any of the froms that is not part of the join
+		String[] randomStartFrom = froms.get(0);
+		query = query + randomStartFrom[0] + " " + randomStartFrom[1];
 		
 		// add the join data
-		query = query + relationList.getJoinPath(startFrom);
+		query = query + relationList.getJoinPath(randomStartFrom[1]);
 		
 		boolean firstTime = true;
 		for (String key : whereHash.keySet())
@@ -227,27 +221,22 @@ public class SQLInterpreter implements IQueryInterpreter{
 		
 		// need to determine if we can have multiple froms or not
 		
-		// we only need to store one table in the from
-		if(froms.length() == 0) {
-			// we don't want to add the from table multiple times as this is invalid in sql
-			if(!tableProcessed.containsKey(conceptualTableName)) {
-				tableProcessed.put(conceptualTableName, "true");
-				
-				// we want to use the physical table name
-				String physicalTableName = getPhysicalTableNameFromConceptualName(conceptualTableName);
-				
-				// add the physical table name and define its unique alias into the from statement
-				String fromText =  physicalTableName + "  " + alias;
-				if(froms.length() > 0){
-					froms = froms + " , " + fromText;
-				} else {
-					froms = fromText;
-				}
-				
-				// add the from set so we know which alias we have access to
-				// in order to create the sql query appropriately
-				fromAliasDefined = alias;
-			}
+		// we don't want to add the from table multiple times as this is invalid in sql
+		if(!tableProcessed.containsKey(conceptualTableName)) {
+			tableProcessed.put(conceptualTableName, "true");
+			
+			// we want to use the physical table name
+			String physicalTableName = getPhysicalTableNameFromConceptualName(conceptualTableName);
+			
+			froms.add(new String[]{physicalTableName, alias});
+			
+			// add the physical table name and define its unique alias into the from statement
+//			String fromText =  physicalTableName + "  " + alias;
+//			if(froms.length() > 0){
+//				froms = froms + " , " + fromText;
+//			} else {
+//				froms = fromText;
+//			}
 		}
 	}
 
@@ -257,37 +246,8 @@ public class SQLInterpreter implements IQueryInterpreter{
 	 * @return						Boolean true if not used in join, false if used in join
 	 */
 	private boolean notUsedInJoin(String tableName) {
-		// need to get the physical name
-		String physicalTableName = getPhysicalTableNameFromConceptualName(tableName);
-		
-		// need to look a the table name and compare it to all the different relationships defined via the joins
-		Hashtable<String, Hashtable<String, Vector>> relationsData = qs.relations;
-		for(String startConceptProperty : relationsData.keySet() ) {
-			// at this point, we do not care about the type of join
-			// just want to see if it will be used in a join
-			Hashtable<String, Vector> joinMap = relationsData.get(startConceptProperty);
-			
-			for(String comparator : joinMap.keySet()) {
-				Vector<String> joinColumns = joinMap.get(comparator);
-				for(String endConceptProperty : joinColumns) {
-					
-					// get the actual join information
-					// this also returns the physical names
-					String[] relationships = getRelationshipConceptProperties(startConceptProperty, endConceptProperty);
-					// based on the determination used for joins
-					// the end table is used within the join and not the start table
-					String toConcept = relationships[2];
-					// so if the table entered
-					if(toConcept.equals(physicalTableName)){
-						return false;
-					}
-				}
-			}
-		}
-		
-		// if we found don't return during the above loop
-		// this table is not used in a join
-		return true;
+		String alias = getAlias(tableName);
+		return !relationList.tableUsedInJoin(alias);
 	}
 	
 	////////////////////////////////////// end adding from ///////////////////////////////////////
@@ -337,14 +297,6 @@ public class SQLInterpreter implements IQueryInterpreter{
 		// the unique key for the join will be the concept and type of join
 		// this is so we append the joins property
 		String key = toConcept + thisComparator;
-		
-		// based on the linear approach of creating the sql
-		// based on the position of the relationships
-		// if the toConcept isn't defined in the from selection
-		// we need to add it or the query will break
-		if(notUsedInJoin(concept)){
-			addFrom(concept);
-		}
 		
 		String queryString = "";
 		if(!relationList.doesJoinAlreadyExist(key)) {
