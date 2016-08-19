@@ -141,6 +141,7 @@ public class NativeApiReactor extends ApiReactor {
 		Map<String, Set<String>> edgeHash = qs.getReturnConnectionsHash();
 		this.put("EDGE_HASH", edgeHash);
 
+		myStore.put(nodeStr, query);
 		myStore.put("RESPONSE", "success");
 		myStore.put("STATUS", PKQLRunner.STATUS.SUCCESS);
 
