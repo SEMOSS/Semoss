@@ -95,11 +95,16 @@ public class SQLInterpreter implements IQueryInterpreter{
 		// thus, the order matters 
 		// so get a good starting from table
 		// we can use any of the froms that is not part of the join
-		String[] randomStartFrom = froms.get(0);
-		query = query + randomStartFrom[0] + " " + randomStartFrom[1];
+		String[] startPoint = null;
+		if(relationList.isEmpty()) {
+			startPoint = froms.get(0);
+		} else {
+			startPoint = relationList.getTableNotDefinedInJoinList();
+		}
+		query = query + startPoint[0] + " " + startPoint[1];
 		
 		// add the join data
-		query = query + relationList.getJoinPath(randomStartFrom[1]);
+		query = query + relationList.getJoinPath(startPoint[1]);
 		
 		boolean firstTime = true;
 		for (String key : whereHash.keySet())
@@ -151,7 +156,7 @@ public class SQLInterpreter implements IQueryInterpreter{
 				// now actually do the column add into the selector string
 				addSelector(tableName, col);
 				// adds the from if it isn't part of a join
-				if(notUsedInJoin(tableName)){
+				if(relationList.isEmpty()){
 					addFrom(tableName);
 				}
 			}
@@ -240,16 +245,6 @@ public class SQLInterpreter implements IQueryInterpreter{
 		}
 	}
 
-	/**
-	 * Determine if a table is used within a join
-	 * @param tableName				The name of the table
-	 * @return						Boolean true if not used in join, false if used in join
-	 */
-	private boolean notUsedInJoin(String tableName) {
-		String alias = getAlias(tableName);
-		return !relationList.tableUsedInJoin(alias);
-	}
-	
 	////////////////////////////////////// end adding from ///////////////////////////////////////
 	
 	
