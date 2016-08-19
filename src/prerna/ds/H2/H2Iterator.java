@@ -11,7 +11,7 @@ public class H2Iterator implements Iterator<Object[]>{
 	ResultSet resultSet;
 	Object[] nextRow;
 	
-	H2Iterator(ResultSet resultSet) {
+	public H2Iterator(ResultSet resultSet) {
 		this.resultSet = resultSet;
 		if(this.resultSet != null){
 			nextRow = getNextRow();
