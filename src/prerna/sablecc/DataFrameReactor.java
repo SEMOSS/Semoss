@@ -24,6 +24,7 @@ public class DataFrameReactor extends AbstractReactor {
 		dfTranslation.put("GRID", "H2Frame");
 		dfTranslation.put("GRAPH", "TinkerFrame");
 		dfTranslation.put("SPARK", "SparkDataFrame");
+		dfTranslation.put("NATIVE", "NativeFrame");
 	}
 
 	@Override
