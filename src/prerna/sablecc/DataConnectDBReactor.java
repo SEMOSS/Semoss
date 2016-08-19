@@ -1,6 +1,9 @@
 package prerna.sablecc;
 
 import java.util.Iterator;
+import java.util.List;
+
+import prerna.ds.NativeFrame.NativeFrame;
 
 
 public class DataConnectDBReactor  extends AbstractReactor{
@@ -14,8 +17,11 @@ public class DataConnectDBReactor  extends AbstractReactor{
 	@Override
 	public Iterator process() {
 		
-		Object engine = myStore.get(PKQLEnum.WORD_OR_NUM);
+		List engine = (List)myStore.get(PKQLEnum.WORD_OR_NUM);
 		System.out.println(engine);
+		
+		NativeFrame frame = (NativeFrame)myStore.get("G");
+		frame.setConnection(engine.get(0).toString().trim());
 
 		return null;
 	}
