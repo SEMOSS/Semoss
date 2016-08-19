@@ -3,7 +3,7 @@ package prerna.sablecc;
 import java.util.Iterator;
 import java.util.List;
 
-import prerna.ds.NativeFrame.NativeFrame;
+import prerna.ds.nativeframe.NativeFrame;
 
 
 public class DataConnectDBReactor  extends AbstractReactor{
