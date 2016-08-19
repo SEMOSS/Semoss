@@ -47,19 +47,20 @@ public class SqlJoinList {
 		return null;
 	}
 	
-	// so we can properly create the from when there is a join
-	public String[] getStartTableAndAlias() {
-		String[] startTableAndAlias = null;
+	// if an alias is not defined at any point within any of the join objects
+	// then that alias is not used in the joins
+	// and is a good candidate to be used for the start table in the from clause
+	public boolean tableUsedInJoin(String alias) {
 		int joinIdx = 0;	
 		int numJoins = joinList.size();
 		for(; joinIdx < numJoins; joinIdx++) {
 			SqlJoinObject join = joinList.get(joinIdx);
-			if(join.getNumRequiredTables() == 1) {
-				startTableAndAlias = join.getAllRequiredTables().get(0);
+			if(join.getDefinedAliasWithinJoin().contains(alias)) {
+				return true;
 			}
 		}
-			
-		return startTableAndAlias;
+		
+		return false;
 	}
 	
 	// determine if appropriate path exists
