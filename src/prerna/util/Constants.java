@@ -477,7 +477,7 @@ public class Constants {
 	public static final String SOLR_RELOAD = "SOLR_RELOAD";
 	public static final String SOLR_URL = "SOLR_BASE_URL";
 	public static final String SOLR_SYSTEM_VAR_KEY = "solr.solr.home";
-	public static final String SOLR_HOME_DIR = "Solr";
+	public static final String SOLR_HOME_DIR = "SOLR";
 	
 	//TinkerFrame specific
 	public static final String HEADER_NAMES = "HEADER_NAMES";
@@ -486,6 +486,11 @@ public class Constants {
 	public static final String NAME = "NAME";
 	public static final String FILTERS = "FILTERS";
 	public static final String DATA_TONS = "UI_OPTIONS";
+	public static final String STORE = "STORE";
+	
+	public static final String INSIGHTS_DB = "RDBMS_INSIGHTS";
+	public static final String DEFAULT_INSIGHT_DRIVER = "org.h2.Driver";
+	public static final String DEFAULT_RDBMS_TYPE = "H2_DB";
 	
 	// prohibited headers
 	public static final String PROBHIBITED_HEADERS = "PROBHIBITED_HEADERS";

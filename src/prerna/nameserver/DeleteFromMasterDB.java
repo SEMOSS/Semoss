@@ -38,10 +38,13 @@ import org.openrdf.model.vocabulary.RDF;
 import org.openrdf.sail.SailException;
 
 import com.bigdata.rdf.model.BigdataLiteralImpl;
+import com.hp.hpl.jena.vocabulary.RDFS;
 
 import prerna.engine.api.IEngine;
 import prerna.engine.api.ISelectStatement;
 import prerna.engine.api.ISelectWrapper;
+import prerna.util.Constants;
+import prerna.util.DIHelper;
 import prerna.util.Utility;
 
 public class DeleteFromMasterDB extends ModifyMasterDB {
@@ -52,6 +55,27 @@ public class DeleteFromMasterDB extends ModifyMasterDB {
 
 	public DeleteFromMasterDB() {
 		super();
+	}
+	
+	public boolean deleteEngine2(String engineName)
+	{
+		boolean success = false;
+		try
+		{
+			
+			IEngine localMaster = (IEngine)DIHelper.getInstance().getLocalProp(Constants.LOCAL_MASTER_DB_NAME);
+			deleteEngineConceptsWithProperties(engineName, localMaster);
+			deleteEngineConceptsWithoutProperties(engineName, localMaster);
+			deleteRelations(engineName, localMaster);
+			deleteCoreConcepts(engineName, localMaster);
+			deleteEngineMetadata(engineName, localMaster);
+			success = true;
+		}catch(Exception ex)
+		{
+			ex.printStackTrace();
+		}
+		
+		return success;
 	}
 
 	/**
@@ -451,6 +475,109 @@ public class DeleteFromMasterDB extends ModifyMasterDB {
 	public void deleteAll() throws SailException{
 		masterEngine.removeData("DELETE {?x ?y ?z}");
 //		masterEngine.sc.clear();
+	}
+	
+	// Delete the properties and concepts
+	private void deleteEngineConceptsWithProperties(String engineName, IEngine fromEngine)
+	{
+		// first get rid of concept with properties
+		String deleteQuery = "DELETE "
+				+ "{"
+				+ "?concept ?prop ?conceptProp."
+				+ "?conceptProp ?type ?semossProp. "
+				+ "?concept ?type ?semossConcept."
+				+ "?concept ?subclass ?rdfConcept."
+				+ "} "
+				+ "WHERE"
+				+ "{"
+				+ "{?concept <http://semoss.org/ontologies/Relation/presentin>  <http://semoss.org/ontologies/meta/engine/" + engineName + ">}"
+				+ "{?concept ?in ?engine}"
+				+ "{?concept ?prop ?conceptProp}"
+				+ "{?concept ?type ?semossConcept}"
+				+ "{?concept ?subclass ?rdfConcept}"
+				+ "{?conceptProp ?type ?semossProp}"
+				+ "FILTER(?in = <http://semoss.org/ontologies/Relation/presentin> &&"
+				+ "		  ?prop = <http://www.w3.org/2002/07/owl#DatatypeProperty> &&"
+				+ "		  ?type = <" + RDF.TYPE + "> &&"
+				+ "		  ?subclass = <" + RDFS.subClassOf + ">"
+				+ ")"
+				+"}";
+
+		fromEngine.insertData(deleteQuery);	
+	}
+	
+	// delete concepts without properties
+	private void deleteEngineConceptsWithoutProperties(String engineName, IEngine fromEngine)
+	{
+		// first get rid of concept with properties
+		String deleteQuery =  "DELETE "
+				+ "{"
+				+ "?concept ?type ?semossConcept."
+				+ "?concept ?subclass ?rdfConcept."
+				+ "} "
+				+ "WHERE"
+				+ "{"
+				+ "{?concept <http://semoss.org/ontologies/Relation/presentin>  <http://semoss.org/ontologies/meta/engine/" + engineName + ">}"
+				+ "{?concept ?in ?engine}"
+				+ "{?concept ?type ?semossConcept}"
+				+ "{?concept ?subclass ?rdfConcept}"
+				+ "FILTER(?in = <http://semoss.org/ontologies/Relation/presentin> &&"
+				+ "		  ?type = <" + RDF.TYPE + "> &&"
+				+ "		  ?subclass = <" + RDFS.subClassOf + ">"
+				+ ")"
+				+"}";
+		fromEngine.insertData(deleteQuery);	
+	}
+	
+	// delete concept relationships
+	private void deleteRelations(String engineName, IEngine fromEngine)
+	{
+		String deleteQuery = "DELETE "
+				+ "{"
+				+ "?concept ?rel ?anotherConcept."
+				+ "?rel ?subprop ?semRel."
+				+ "} "
+				+ "WHERE"
+				+ "{"
+				+ "{?concept <http://semoss.org/ontologies/Relation/presentin>  <http://semoss.org/ontologies/meta/engine/" + engineName + ">}"
+				+ "{?anotherConcept <http://semoss.org/ontologies/Relation/presentin>  <http://semoss.org/ontologies/meta/engine/" + engineName + ">}"
+				+ "{?rel <" + RDFS.subPropertyOf + "> <http://semoss.org/ontologies/Relation>}"
+				+ "{?rel ?subprop ?semRel}"
+				+ "FILTER(?subprop = <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> &&"
+				+ "		  ?semRel = <http://semoss.org/ontologies/Relation>"
+				+ ")"
+				+"}";
+		
+		fromEngine.insertData(deleteQuery);	
+	}
+	
+	// cleanup everything else
+	private void deleteCoreConcepts(String engineName, IEngine fromEngine)
+	{
+		String deleteQuery = "DELETE "
+				+ "{"
+				+ "?concept ?in ?engine;"
+				+ "} "
+				+ "WHERE"
+				+ "{"
+				+ "{?concept ?in  <http://semoss.org/ontologies/meta/engine/" + engineName + ">}"
+				+ "{?concept ?in ?engine}"
+				+ "FILTER(?in = <http://semoss.org/ontologies/Relation/presentin>"
+				+ ")"
+				+"}";
+
+		fromEngine.insertData(deleteQuery);	
+	}
+
+	// finally wipe out the engine
+	private void deleteEngineMetadata(String engineName, IEngine fromEngine)
+	{
+		String deleteQuery = "DELETE {?engine ?anyPred ?anyObj} WHERE {"
+				+ "{<http://semoss.org/ontologies/meta/engine/" + engineName + "> ?anyPred ?anyObj}"
+				+ "{?engine ?anyPred ?anyObj}"
+				+ "}";
+
+		fromEngine.insertData(deleteQuery);	
 	}
 	
 }

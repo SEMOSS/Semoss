@@ -19,6 +19,8 @@ public class OWLER {
 	public static final String DEFAULT_NODE_CLASS = "Concept";
 	public static final String DEFAULT_RELATION_CLASS = "Relation";
 	public static final String DEFAULT_PROP_CLASS = "Relation/Contains";
+	public static final String PHYSICAL_NAME = "http://semoss.org/ontologies/physical/property";
+	public static final String PHYSICAL_TABLE = "http://semoss.org/ontologies/physical/table";
 	public static final String DEFAULT_PROPERTY_CLASS = "Relation/Contains";
 	public static final String CONCEPTUAL_RELATION_NAME = "Conceptual";
 	

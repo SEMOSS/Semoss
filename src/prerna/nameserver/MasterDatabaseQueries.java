@@ -27,6 +27,10 @@
  *******************************************************************************/
 package prerna.nameserver;
 
+import org.openrdf.model.vocabulary.RDF;
+
+import prerna.util.Constants;
+
 public final class MasterDatabaseQueries extends MasterDatabaseURIs {
 
 	private MasterDatabaseQueries() {
@@ -36,6 +40,7 @@ public final class MasterDatabaseQueries extends MasterDatabaseURIs {
 	// USED IN MasterDBHelper.java, AddToMasterDB.java, NameServer.java
 	
 	public static final String MC_PARENT_CHILD_QUERY = "SELECT DISTINCT ?parentMC ?childMC WHERE { {?parentMC <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/MasterConcept>} {?childMC <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/MasterConcept>} {?parentMC <http://semoss.org/ontologies/Relation/ParentOf> ?childMC} }";
+	
 	public static final String KEYWORD_NOUN_QUERY = "SELECT DISTINCT ?keyword ?mc WHERE { {?keyword <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Keyword>} {?mc <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/MasterConcept>} {?keyword <http://semoss.org/ontologies/Relation/ComposedOf> ?mc} }";
 	
 	public static final String GET_RELATED_KEYWORDS_AND_THEIR_NOUNS = "SELECT DISTINCT ?engine ?retKeywords WHERE { BIND(<@KEYWORD@> AS ?Keyword) {?Keyword <http://semoss.org/ontologies/Relation/ComposedOf> ?Noun} {?Noun <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/MasterConcept>} {?MC <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/MasterConcept>} {?Noun <http://semoss.org/ontologies/Relation/HasTopHypernym> ?MC} {?MC <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/MasterConcept>} {?childMC <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/MasterConcept>} {?MC <http://semoss.org/ontologies/Relation/ParentOf>+ ?childMC} {?retKeywords <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Keyword>} {?retKeywords <http://semoss.org/ontologies/Relation/ComposedOf> ?childMC} {?engine <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Engine>} {?engine <http://semoss.org/ontologies/Relation/Has> ?retKeywords} }";
@@ -44,12 +49,22 @@ public final class MasterDatabaseQueries extends MasterDatabaseURIs {
 	public static final String GET_RELATED_KEYWORDS_TO_SET_AND_THEIR_NOUNS_NO_RECURSION = "SELECT DISTINCT ?engine ?retKeywords WHERE { {?Keyword <http://semoss.org/ontologies/Relation/ComposedOf> ?Noun} {?Noun <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/MasterConcept>} {?Noun <http://semoss.org/ontologies/Relation/HasTopHypernym> ?MC} {?MC <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/MasterConcept>} {?retKeywords <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Keyword>} {?retKeywords <http://semoss.org/ontologies/Relation/ComposedOf> ?MC} {?engine <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Engine>} {?engine <http://semoss.org/ontologies/Relation/Has> ?retKeywords} } BINDINGS ?Keyword {@BINDINGS@}";
 
 	public static final String ENGINE_API_QUERY = "SELECT DISTINCT ?Engine ?API WHERE { {?Engine <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Engine>} {?Engine <http://semoss.org/ontologies/Relation/Contains/API> ?API}}";
-	public static final String ENGINE_LIST_QUERY = "SELECT DISTINCT ?Engine WHERE { {?Engine <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Engine>} }";
+	public static final String ENGINE_LIST_QUERY = "SELECT DISTINCT ?Engine WHERE { {?Engine <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/meta/engine>} }";
 	public static final String ENGINE_TIMESTAMP_QUERY = "SELECT DISTINCT ?engine ?time WHERE { {?engine <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Engine>} {?engine <http://semoss.org/ontologies/Relation/Contains/TimeStamp> ?time } }";
 	
 	public static final String GET_ALL_KEYWORDS = "SELECT DISTINCT ?keyword WHERE { {?keyword <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Keyword>} }";
+	public static final String GET_ALL_KEYWORDS2 = "SELECT ?conceptLogical WHERE {{?conceptComposite <http://semoss.org/ontologies/Relation/presentin> ?engine}"
+														//+ "{?conceptComposite ?rel2 <" + Constants.CONCEPT_URI + ">}"
+														+ "{?conceptComposite <" + RDF.TYPE + "> ?concept}"
+														+ "{?concept <http://semoss.org/ontologies/Relation/logical> ?conceptLogical}"
+														+ "}";
 	public static final String GET_ALL_KEYWORDS_AND_ENGINES = "SELECT DISTINCT ?engine ?keywords WHERE { {?engine <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Engine>}  {?keywords <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Keyword>} {?engine <http://semoss.org/ontologies/Relation/Has> ?keywords} } ORDER BY ?engine";
-	
+	public static final String GET_ALL_KEYWORDS_AND_ENGINES2 = "SELECT ?engine ?conceptLogical ?concept WHERE {{?conceptComposite <http://semoss.org/ontologies/Relation/presentin> ?engine}"
+																//+ "{?conceptComposite ?rel2 <" + Constants.CONCEPT_URI + ">}"
+																+ "{?conceptComposite <" + RDF.TYPE + "> ?concept}"
+																+ "{?concept <http://semoss.org/ontologies/Relation/conceptual> ?conceptLogical}"
+																+ "}";
+														
 	
 	// ONLY USED IN DeleteFromMasterDB.java class
 	//queries for relations to delete
