@@ -6,6 +6,7 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
+import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.OutputStreamWriter;
@@ -79,9 +80,27 @@ public class Me {
 		
 		cm.genOpenBrowser(homePath, port);
 		
+		cm.writeConfigureFile(homePath, port);
+		
 		System.out.println("------------------------");
 		System.out.println("SEMOSS configured! Run startSEMOSS.bat and point your browser to http://localhost:" + port + "/SemossWeb/ to access SEMOSS!");
 		System.out.println("------------------------");
+	}
+	
+	public void writeConfigureFile(String homePath, String port)
+	{
+		try {
+			BufferedWriter writer = new BufferedWriter(new FileWriter(homePath + "configured.txt"));
+			writer.write("Port = " + port);
+			writer.write("SEMOSS Web = " + "http://localhost:" + port + "/SemossWeb/");
+			writer.flush();
+			writer.close();
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		
+		
 	}
 	
 	public void changeTomcatXML(String homePath, String port) throws Exception

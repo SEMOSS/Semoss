@@ -99,6 +99,7 @@ public class SEMOSSVertex{
 		putProperty(Constants.VERTEX_NAME, instanceName);
 		logger.debug("Name is " + instanceName);
 
+		
 		Color color = TypeColorShapeTable.getInstance().getColor(className, instanceName);
 		setColor(color);
 		logger.debug("Color is " + color);
@@ -168,6 +169,8 @@ public class SEMOSSVertex{
 	}
 	
 	public Color getColor(){
+		if(!this.propHash.containsKey(Constants.VERTEX_COLOR))
+			resetColor();
 		String color = this.getProperty(Constants.VERTEX_COLOR) + "";
 		if(!color.isEmpty()){
 			StringTokenizer tokenizer = new StringTokenizer(color, ",");

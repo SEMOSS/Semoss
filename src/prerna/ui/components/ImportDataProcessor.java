@@ -324,7 +324,9 @@ public class ImportDataProcessor {
 					((AbstractEngine) engine).setPropFile(propWriter.propFileName);
 					((AbstractEngine) engine).createInsights(baseDirectory);
 				}
-				Utility.addToLocalMaster(engine);
+				DIHelper.getInstance().getCoreProp().setProperty(engineName + "_" + Constants.STORE, smssLocation);
+				Utility.synchronizeEngineMetadata(engineName); // replacing this for engine
+				//Utility.addToLocalMaster(engine);
 				Utility.addToSolrInsightCore(engine);
 				// Do we need this?
 				// Commenting it out for now to speed up upload until we find a better way to utilize this
@@ -338,7 +340,10 @@ public class ImportDataProcessor {
 			}
 			
 			// convert the .temp to .smss file
-			newProp = new File(smssLocation.replace("temp", "smss"));
+			smssLocation = smssLocation.replace("temp", "smss");
+			newProp = new File(smssLocation);
+			// replace the .temp on the DI Helper with .smss
+			DIHelper.getInstance().getCoreProp().setProperty(engineName + "_" + Constants.STORE, smssLocation);
 			try {
 				// we just copy over the the .temp file contents into the .smss
 				FileUtils.copyFile(propFile, newProp);
@@ -365,8 +370,9 @@ public class ImportDataProcessor {
 			// so delete the .temp
 			if(propFile != null) {
 				try {
+					// this should work now
 					FileUtils.forceDelete(propFile);
-				} catch (IOException e) {
+				} catch (Exception e) {
 					e.printStackTrace();
 					throw new IOException("Could not delete .temp file for new database");
 				}

@@ -87,6 +87,7 @@ public abstract class AbstractEngine implements IEngine {
 	//PLEASE REMEMBER TO TURN THIS TO FALSE AFTERWARDS!
 	private static final boolean RECREATE_INSIGHTS = false;
 
+
 	//THIS IS IN CASE YOU ARE MANUALLY MANIPULATING THE DB FOLDER AND WANT TO RE-ADD
 	//INSIGHTS INTO THE SOLR INSTANCE ON YOUR LOCAL MACHINE
 	//PLEASE REMEMBER TO TURN THIS TO FALSE AFTERWARDS!
@@ -101,6 +102,8 @@ public abstract class AbstractEngine implements IEngine {
 	private Properties generalEngineProp = null;
 	private Properties ontoProp = null;
 
+	private MetaHelper owlHelper = null;
+	
 	protected RDFFileSesameEngine baseDataEngine;
 	protected RDBMSNativeEngine insightRDBMS;
 	protected String insightDriver = "org.h2.Driver";
@@ -117,7 +120,6 @@ public abstract class AbstractEngine implements IEngine {
 	private transient Map<String, String> tableUriCache = new HashMap<String, String>();
 
 	private Hashtable<String, String> baseDataHash;
-	protected Hashtable<String,String> transformedNodeNames = new Hashtable<String,String>();
 
 	private static final String SEMOSS_URI = "http://semoss.org/ontologies/";
 	private String baseUri;
@@ -141,21 +143,6 @@ public abstract class AbstractEngine implements IEngine {
 	private static final String GET_INFO_FOR_PARAM = "SELECT DISTINCT PARAMETER_LABEL, PARAMETER_TYPE, PARAMETER_OPTIONS, PARAMETER_QUERY, PARAMETER_DEPENDENCY, PARAMETER_IS_DB_QUERY, PARAMETER_MULTI_SELECT, PARAMETER_COMPONENT_FILTER_ID FROM PARAMETER_ID WHERE PARAMETER_ID = '" + PARAMETER_ID_PARAM_KEY + "'";
 	private static final String GET_INFO_FOR_PARAMS = "SELECT DISTINCT PARAMETER_LABEL, PARAMETER_TYPE, PARAMETER_OPTIONS, PARAMETER_QUERY, PARAMETER_DEPENDENCY, PARAMETER_IS_DB_QUERY, PARAMETER_MULTI_SELECT, PARAMETER_COMPONENT_FILTER_ID FROM PARAMETER_ID WHERE PARAMETER_ID IN (" + PARAMETER_ID_PARAM_KEY + ")";
 	
-	private static final String FROM_SPARQL = "SELECT DISTINCT ?entity WHERE { "
-			+ "{?rel <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation>} "
-			+ "{?entity <http://www.w3.org/2000/01/rdf-schema#subClassOf> <http://semoss.org/ontologies/Concept>} "
-			+ "{?x ?rel  ?y} "
-			+ "{?entity <http://www.w3.org/2000/01/rdf-schema#subClassOf>* ?x}"
-			+ "{<@nodeType@> <http://www.w3.org/2000/01/rdf-schema#subClassOf>* ?y}"
-			+ "}";
-
-	private static final String TO_SPARQL = "SELECT DISTINCT ?entity WHERE { "
-			+ "{?rel <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation>} "
-			+ "{?entity <http://www.w3.org/2000/01/rdf-schema#subClassOf> <http://semoss.org/ontologies/Concept>} "
-			+ "{?x ?rel ?y} "
-			+ "{<@nodeType@> <http://www.w3.org/2000/01/rdf-schema#subClassOf>* ?x}"
-			+ "{?entity <http://www.w3.org/2000/01/rdf-schema#subClassOf>* ?y}"
-			+ "}";
 	
 	private static final String GET_BASE_URI_FROM_OWL = "SELECT DISTINCT ?entity WHERE {"
 			+ "{ <SEMOSS:ENGINE_METADATA> <CONTAINS:BASE_URI> ?entity } } LIMIT 1";
@@ -202,7 +189,7 @@ public abstract class AbstractEngine implements IEngine {
 					insightRDBMS.insertData("UPDATE QUESTION_ID p SET QUESTION_DATA_MAKER = REPLACE(QUESTION_DATA_MAKER, 'BTreeDataFrame', 'TinkerFrame')");
 //					insightRDBMS.insertData("UPDATE QUESTION_ID SET QUESTION_MAKEUP=REGEXP_REPLACE ( QUESTION_MAKEUP , '\\\\\\\"' , '''' )");
 					insightRDBMS.insertData("UPDATE QUESTION_ID p SET QUESTION_MAKEUP = REPLACE(QUESTION_MAKEUP, 'SELECT @Concept-Concept:Concept@, ''http://www.w3.org/1999/02/22-rdf-syntax-ns#type'', ''http://semoss.org/ontologies/Concept''', 'SELECT @Concept-Concept:Concept@') WHERE p.QUESTION_DATA_MAKER = 'TinkerFrame'");
-					insightRDBMS.insertData("UPDATE QUESTION_ID SET QUESTION_DATA_MAKER='TinkerFrame' WHERE QUESTION_NAME='Explore a concept from the database' OR QUESTION_NAME='Explore an instance of a selected node type'");
+					insightRDBMS.insertData("UPDATE QUESTION_ID SET QUESTION_DATA_MAKER='TinkerFrame' WHERE QUESTION_NAME='Explore a concept from the database' OR QUESTION_NAME='Explore an instance of a selected node type'"); 
 					// Update existing dbs to not include QUESTION_ID column if it is there. Can remove this once everyone has updated their dbs
 //					ITableDataFrame f = WrapperManager.getInstance().getSWrapper(insightRDBMS, "select count(*) from information_schema.columns where table_name = 'QUESTION_ID' and column_name = 'QUESTION_ID'").getTableDataFrame();
 //					if((Double)f.getData().get(0)[0] != 0 ){
@@ -248,7 +235,9 @@ public abstract class AbstractEngine implements IEngine {
 				}
 				
 			}
-			this.loadTransformedNodeNames();
+			this.owlHelper = new MetaHelper(baseDataEngine, getEngineType(), this.engineName);
+			this.owlHelper.loadTransformedNodeNames();
+			//this.loadTransformedNodeNames();
 		} catch (RuntimeException e) {
 			e.printStackTrace();
 		} catch (FileNotFoundException e) {
@@ -403,6 +392,7 @@ public abstract class AbstractEngine implements IEngine {
 	 */
 	public void setBaseData(RDFFileSesameEngine eng) {
 		this.baseDataEngine = eng;
+		
 		if(this.baseDataEngine != null) {
 			if(this.baseDataEngine.getEngineName() == null) {
 				this.baseDataEngine.setEngineName(this.engineName + "_OWL");
@@ -459,6 +449,8 @@ public abstract class AbstractEngine implements IEngine {
 	public void setOWL(String owl) {
 		this.owl = owl;
 		createBaseRelationEngine();
+		this.owlHelper = new MetaHelper(baseDataEngine, getEngineType(), this.engineName);
+		this.owlHelper.loadTransformedNodeNames();
 	}
 
 	public void setProperties(Properties prop) {
@@ -502,32 +494,23 @@ public abstract class AbstractEngine implements IEngine {
 
 	// gets the from neighborhood for a given node
 	public Vector<String> getFromNeighbors(String nodeType, int neighborHood) {
-		// this is where this node is the from node
-		String physicalNodeType = getTransformedNodeName(Constants.DISPLAY_URI + Utility.getInstanceName(nodeType), false);
-		Map<String, List<Object>> paramHash = new Hashtable<String, List<Object>>();
-		List<Object> nodeArr = new Vector<Object>();
-		nodeArr.add(physicalNodeType);
-		paramHash.put("nodeType", nodeArr);
-		return Utility.getVectorOfReturn(Utility.fillParam(FROM_SPARQL, paramHash), baseDataEngine, true);
+		if(owlHelper == null)
+			return null;
+		return owlHelper.getFromNeighbors(nodeType, neighborHood);
 	}
 
 	// gets the to nodes
 	public Vector<String> getToNeighbors(String nodeType, int neighborHood) {
-		// this is where this node is the to node
-		String physicalNodeType = getTransformedNodeName(Constants.DISPLAY_URI + Utility.getInstanceName(nodeType), false);
-		Map<String, List<Object>> paramHash = new Hashtable<String, List<Object>>();
-		List<Object> nodeArr = new Vector<Object>();
-		nodeArr.add(physicalNodeType);
-		paramHash.put("nodeType", nodeArr);
-		return Utility.getVectorOfReturn(Utility.fillParam(TO_SPARQL, paramHash), baseDataEngine, true);
+		if(owlHelper == null)
+			return null;
+		return owlHelper.getToNeighbors(nodeType, neighborHood);
 	}
 
 	// gets the from and to nodes
 	public Vector<String> getNeighbors(String nodeType, int neighborHood) {
-		Vector<String> from = getFromNeighbors(nodeType, 0);
-		Vector<String> to = getToNeighbors(nodeType, 0);
-		from.addAll(to);
-		return from;
+		if(owlHelper == null)
+			return null;
+		return owlHelper.getNeighbors(nodeType, neighborHood);
 	}
 
 	public String getOWL() {
@@ -545,17 +528,9 @@ public abstract class AbstractEngine implements IEngine {
 
 	public String getOWLDefinition()
 	{
-		StringWriter output = new StringWriter();
-		try {
-			baseDataEngine.getRc().export(new RDFXMLWriter(output));
-		} catch (RepositoryException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		} catch (RDFHandlerException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
-		return output.toString();
+		if(owlHelper == null)
+			return null;
+		return owlHelper.getOWLDefinition();
 	}
 
 	public IQueryBuilder getQueryBuilder(){
@@ -576,28 +551,17 @@ public abstract class AbstractEngine implements IEngine {
 	public abstract Vector<Object> getCleanSelect(String query);
 
 	public Vector<String> getConcepts() {
-		String query = "SELECT ?concept WHERE {?concept <http://www.w3.org/2000/01/rdf-schema#subClassOf> <http://semoss.org/ontologies/Concept> }";
-		return Utility.getVectorOfReturn(query, baseDataEngine, true);
-	}
+		if(owlHelper == null)
+			return null;
+		return owlHelper.getConcepts();
+}
 	
 	/**
 	 * Get the list of the concepts within the database
 	 * @param conceptualNames		Return the conceptualNames if present within the database
 	 */
 	public Vector<String> getConcepts2(boolean conceptualNames) {
-		String query = "";
-		if(!conceptualNames) {
-			query = "SELECT ?concept WHERE {?concept <http://www.w3.org/2000/01/rdf-schema#subClassOf> <http://semoss.org/ontologies/Concept> }";
-		} else {
-			query = "SELECT DISTINCT (COALESCE(?conceptual, ?concept) AS ?retConcept) WHERE { "
-					+ "{?concept <http://www.w3.org/2000/01/rdf-schema#subClassOf> <http://semoss.org/ontologies/Concept> }"
-						+ "OPTIONAL {"
-							+ "{?concept <http://semoss.org/ontologies/Relation/Conceptual> ?conceptual }"
-						+ "}" // end optional for conceputal names if present
-					+ "}"; // end where
-		}		
-		
-		return Utility.getVectorOfReturn(query, baseDataEngine, true);
+		return owlHelper.getConcepts2(conceptualNames);
 	}
 	
 	/**
@@ -653,31 +617,7 @@ public abstract class AbstractEngine implements IEngine {
 	 * @return							List containing the property URIs for the given concept
 	 */
 	public List<String> getProperties4Concept2(String concept, Boolean conceptualNames) {
-		// get the physical URI for the concept
-		String conceptPhysical = getPhysicalUriFromConceptualUri(concept);
-		
-		String query = null;
-		// instead of getting the URIs in a set format and having to do a conversion afterwards
-		// just have the query get the values directly
-		if(conceptualNames) {
-			query = "SELECT DISTINCT ?propertyConceptual WHERE { "
-					+ "BIND(<" + conceptPhysical + "> AS ?concept) "
-					+ "{?concept <http://www.w3.org/2000/01/rdf-schema#subClassOf> <http://semoss.org/ontologies/Concept> } "
-					+ "{?property <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Relation/Contains>} "
-					+ "{?concept <http://www.w3.org/2002/07/owl#DatatypeProperty> ?property} "
-//					+ "{?propertyConceptual <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Relation/Contains>} "
-					+ "{?property <http://semoss.org/ontologies/Relation/Conceptual> ?propertyConceptual} "
-					+ "}";
-		} else {
-			query = "SELECT DISTINCT ?property WHERE { "
-					+ "BIND(<" + conceptPhysical + "> AS ?concept) "
-					+ "{?concept <http://www.w3.org/2000/01/rdf-schema#subClassOf> <http://semoss.org/ontologies/Concept> } "
-					+ "{?property <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Relation/Contains>} "
-					+ "{?concept <http://www.w3.org/2002/07/owl#DatatypeProperty> ?property} "
-					+ "}";
-		}
-		
-		return Utility.getVectorOfReturn(query, baseDataEngine, true);
+		return owlHelper.getProperties4Concept2(concept, conceptualNames);
 	}
 	
 	/**
@@ -687,45 +627,11 @@ public abstract class AbstractEngine implements IEngine {
 	 * @return						Return the physical URI 					
 	 */
 	public String getPhysicalUriFromConceptualUri(String conceptualURI) {
-		// the URI is not valid if it doesn't start with http://
-		// if it is not valid, assume only the last part of the URI was passed and create the URI
-		if(!conceptualURI.startsWith("http://")) {
-			conceptualURI = "http://semoss.org/ontologies/Concept/" + conceptualURI;
-		}
-		
-		// this query needs to take into account if the conceptual URI is a concept or a property
-		String query = "SELECT DISTINCT ?uri WHERE { "
-				+ "BIND(<" + conceptualURI + "> AS ?conceptual) "
-				+ "{"
-					+ "{?uri <http://www.w3.org/2000/01/rdf-schema#subClassOf> <http://semoss.org/ontologies/Concept> } "
-					+ "{?uri <http://semoss.org/ontologies/Relation/Conceptual> ?conceptual } "
-				+ "} UNION {"
-					+ "{?uri <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Relation/Contains> } "
-					+ "{?uri <http://semoss.org/ontologies/Relation/Conceptual> ?conceptual } "
-				+ "}"
-				+ "}";
-
-		Vector<String> queryReturn = Utility.getVectorOfReturn(query, baseDataEngine, true);
-		// if it is empty, either the URI is bad or it is already the physical URI
-		if(queryReturn.isEmpty()) {
-			return conceptualURI;
-		}
-		// there should only be one return in the vector since conceptual URIs are a one-to-one match with the physical URIs
-		return queryReturn.get(0);
+		return owlHelper.getPhysicalUriFromConceptualUri(conceptualURI);
 	}
 	
 	public String getConceptualUriFromPhysicalUri(String physicalURI) {
-		String query = "SELECT DISTINCT ?conceptual WHERE { "
-				+ "BIND(<" + physicalURI + "> AS ?uri) "
-				+ "{?uri <http://semoss.org/ontologies/Relation/Conceptual> ?conceptual } "
-				+ "}"; // end where
-
-		Vector<String> queryReturn = Utility.getVectorOfReturn(query, baseDataEngine, true);
-		// there should only be one return in the vector since conceptual URIs are a one-to-one match with the physical URIs
-		if(queryReturn.isEmpty()) {
-			return physicalURI;
-		}
-		return queryReturn.get(0);
+		return owlHelper.getConceptualUriFromPhysicalUri(physicalURI);
 	}
 
 	
@@ -736,121 +642,20 @@ public abstract class AbstractEngine implements IEngine {
 		//String returnNodeURI = nodeURI;
 		
 		//these validation peices are seperated out intentionally for readability.
-		if(baseDataEngine == null || nodeURI == null || nodeURI.isEmpty() ){ 
+		if(owlHelper == null)
 			return nodeURI;
-		}
-		
-		//for rdbms normalize the URI... for concepts and relation uris
-		if (nodeURI.startsWith(Constants.CONCEPT_URI) || nodeURI.startsWith(Constants.PROPERTY_URI) && this.getEngineType().equals(IEngine.ENGINE_TYPE.RDBMS)) {
-			for(String displayName: this.transformedNodeNames.keySet()){
-				String physicalName = this.transformedNodeNames.get(displayName);
-				if(physicalName.equalsIgnoreCase(nodeURI)){
-					nodeURI = physicalName;
-					break;
-				}
-			}
-		}
-		
-		//if you are trying to get the physical name, but you came in here with out the display name uri component, exit out
-		if(!nodeURI.startsWith(Constants.DISPLAY_URI) && !getDisplayName){
-			return nodeURI;
-		}
-		//if you are trying to get a display name but you came in with out the physical URI component, exit out
-		if(getDisplayName && !(nodeURI.startsWith(Constants.CONCEPT_URI) || nodeURI.startsWith(Constants.PROPERTY_URI))){
-			return nodeURI;
-		}
-		
-		//if uri coming in is just a base URI...
-		if(nodeURI.equals(Constants.DISPLAY_URI) || nodeURI.equals(Constants.CONCEPT_URI) || nodeURI.equals(Constants.PROPERTY_URI)){
-			return nodeURI;
-		}
-		
-		//first check the Hashtable to see if its already existing, so you dont need to query any databases.
-		//the key is the logical name since those can be unique (properties names may be the same across types)
-		return findTransformedNodeName(nodeURI, getDisplayName);
-
+		return owlHelper.getTransformedNodeName(nodeURI, getDisplayName);
 	}
 
 	public void setTransformedNodeNames(Hashtable transformedNodeNames){
-		this.transformedNodeNames = transformedNodeNames;
+		owlHelper.setTransformedNodeNames(transformedNodeNames);
 	}
 	
 	@Override
 	public void loadTransformedNodeNames(){
-		String query = "SELECT DISTINCT ?object (COALESCE(?DisplayName, ?object) AS ?Display) WHERE { "
-				+ " { {?object <http://www.w3.org/2000/01/rdf-schema#subClassOf> <http://semoss.org/ontologies/Concept>} "
-				+ "OPTIONAL{?object <http://semoss.org/ontologies/DisplayName> ?DisplayName } } UNION { "
-				+ "{ ?object <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Relation/Contains> } "
-				+ "OPTIONAL {?object <http://semoss.org/ontologies/DisplayName> ?DisplayName }"
-				+ "} }"; 
-		if(this.baseDataEngine!=null){
-			Vector<String[]> transformedNode = Utility.getVectorObjectOfReturn(query, this.baseDataEngine);
-		
-			if(transformedNode.size()!=0){
-				transformedNodeNames.clear();
-				for(String[] node: transformedNode){
-					String logicalName = node[1];
-					if(logicalName.equals("http://semoss.org/ontologies/Concept")) {
-						this.transformedNodeNames.put(logicalName, Constants.DISPLAY_URI + "Concept");
-						continue;
-					} else if(logicalName.startsWith("http://semoss.org/ontologies/Relation/Contains/")) {
-						logicalName = Utility.getInstanceName(logicalName);
-					} else {
-						logicalName = logicalName.replaceAll(".*/Concept/", "");
-					}
-					if(logicalName.contains("/")) {
-						// this is for RDBMS engine OWL file concepts
-						// this is for properties that are also "concepts"
-						logicalName = logicalName.substring(0, logicalName.lastIndexOf("/"));
-					} 
-					logicalName = Utility.cleanVariableString(logicalName);
-					logicalName = Constants.DISPLAY_URI + logicalName;
-					if(this.transformedNodeNames.containsKey(logicalName)) {
-						// this occurs when we have a property that is both a prop and a concept
-						// keep the concept one i guess?
-						if(node[0].contains("Relation/Contains")) {
-							continue;
-						}
-						this.transformedNodeNames.put(logicalName, node[0]); //map contains display name : physical name
-					} else {
-						this.transformedNodeNames.put(logicalName, node[0]); //map contains display name : physical name
-					}
-				}
-				this.baseDataEngine.setTransformedNodeNames(this.transformedNodeNames);
-			}
-		}
+		owlHelper.loadTransformedNodeNames();
 	}
 	
-	private String findTransformedNodeName(String nodeURI, boolean getDisplayName){
-		
-		if(this.transformedNodeNames.containsKey(nodeURI) && !getDisplayName){
-			String physicalName = this.transformedNodeNames.get(nodeURI); 
-			if(!physicalName.equalsIgnoreCase(nodeURI)){ // I have to do this because of RDBMS and its inconsistency with capitalizing concepts
-				return physicalName;
-			} else {
-				return nodeURI;
-			}
-		} else if(this.transformedNodeNames.contains(nodeURI) && getDisplayName){
-			for(String displayName: this.transformedNodeNames.keySet()){
-				String physicalName = this.transformedNodeNames.get(displayName);
-				if(physicalName.equalsIgnoreCase(nodeURI)){
-					if(!displayName.equalsIgnoreCase(nodeURI)){ // I have to do this because of RDBMS and its inconsistency with capitalizing concepts
-						return displayName;
-					} else {
-						return nodeURI;
-					}
-				}
-			}
-		} else if (nodeURI.startsWith(Constants.DISPLAY_URI)) {
-			for(String displayName: this.transformedNodeNames.keySet()){
-				if(Utility.getInstanceName(displayName).equalsIgnoreCase(Utility.getInstanceName(nodeURI))){
-					return this.transformedNodeNames.get(displayName);
-				}
-			}
-		}
-		
-		return nodeURI;
-	}
 	
 	/**
 	 * Runs a select query on the base data engine of this engine
