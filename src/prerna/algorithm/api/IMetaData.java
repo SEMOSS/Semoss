@@ -24,6 +24,10 @@ public interface IMetaData {
 	 */
 	enum NAME_TYPE {USER_DEFINED, DB_PHYSICAL_NAME, DB_PHYSICAL_URI, DB_LOGICAL_NAME, DB_QUERY_STRUCT_NAME}
 	enum DATA_TYPES {NUMBER, STRING, DATE}
+	
+	public static final String NUMERIC = "NUMERIC";
+	public static final String STRING = "STRING";
+	public static final String DATE = "DATE";
 
 
 //////////////////::::::::::::::::::::::: SETTER METHODS :::::::::::::::::::::::::::::::://////////////////////////////

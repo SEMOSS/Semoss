@@ -72,9 +72,14 @@ import org.openrdf.sail.SailConnection;
 import org.openrdf.sail.SailException;
 import org.openrdf.sail.inferencer.fc.ForwardChainingRDFSInferencer;
 import org.openrdf.sail.memory.MemoryStore;
+import org.openrdf.sail.nativerdf.NativeStore;
 
 import prerna.engine.api.IEngine;
+import prerna.engine.api.ISelectStatement;
+import prerna.engine.api.ISelectWrapper;
 import prerna.engine.impl.AbstractEngine;
+import prerna.nameserver.MasterDatabaseQueries;
+import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
 import prerna.util.Utility;
@@ -91,7 +96,7 @@ public class RDFFileSesameEngine extends AbstractEngine implements IEngine {
 	RepositoryConnection rc = null;
 	ValueFactory vf = null;
 	String rdfFileType = "RDF/XML";
-	String baseURI = null;
+	String baseURI = "http://semoss.org/ontologies";
 	String fileName = null;
 	SailConnection sc = null;
 	boolean connected = false;
@@ -123,8 +128,10 @@ public class RDFFileSesameEngine extends AbstractEngine implements IEngine {
 			{
 				
 				fileName = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER) + "/" + prop.getProperty(Constants.RDF_FILE_NAME);
-				rdfFileType = prop.getProperty(Constants.RDF_FILE_TYPE);
-				baseURI = prop.getProperty(Constants.RDF_FILE_BASE_URI);
+				if(prop.containsKey(Constants.RDF_FILE_TYPE))
+					rdfFileType = prop.getProperty(Constants.RDF_FILE_TYPE);
+				if(prop.containsKey(Constants.RDF_FILE_BASE_URI))
+					baseURI = prop.getProperty(Constants.RDF_FILE_BASE_URI);
 			}
 
 			rc = myRepository.getConnection();
@@ -159,6 +166,59 @@ public class RDFFileSesameEngine extends AbstractEngine implements IEngine {
 		}
 	}
 
+	
+	public void openFile(String rdfFile, String rdfFileType, String baseURI)
+	{
+		//super.openDB(propFile);
+		try
+		{
+			Repository myRepository;
+				//super.openDB(propFile);
+				myRepository = new SailRepository(
+						//new NativeStore(new File("sample.native")));
+						new MemoryStore());
+				myRepository.initialize();
+			fileName = rdfFile;	
+			//System.err.println("Prop File is " + propFile2);
+			if(rdfFileType != null)
+				this.rdfFileType = rdfFileType;
+			if(baseURI != null)
+				this.baseURI = baseURI;
+			rc = myRepository.getConnection();
+			sc = ((SailRepositoryConnection) rc).getSailConnection();
+			vf = rc.getValueFactory();
+			
+			if(fileName != null)
+			{
+				File file = new File( fileName);
+				if(this.rdfFileType.equalsIgnoreCase("RDF/XML")) rc.add(file, this.baseURI, RDFFormat.RDFXML);
+				else if(this.rdfFileType.equalsIgnoreCase("TURTLE")) rc.add(file, baseURI, RDFFormat.TURTLE);
+				else if(this.rdfFileType.equalsIgnoreCase("BINARY")) rc.add(file, baseURI, RDFFormat.BINARY);
+				else if(this.rdfFileType.equalsIgnoreCase("N3")) rc.add(file, baseURI, RDFFormat.N3);
+				else if(this.rdfFileType.equalsIgnoreCase("NTRIPLES")) rc.add(file, baseURI, RDFFormat.NTRIPLES);
+				else if(this.rdfFileType.equalsIgnoreCase("TRIG")) rc.add(file, baseURI, RDFFormat.TRIG);
+				else if(this.rdfFileType.equalsIgnoreCase("TRIX")) rc.add(file, baseURI, RDFFormat.TRIX);
+				rc.commit();
+				System.out.println("Loaded the file " + fileName);
+			}
+		    this.connected = true;
+		}catch(RuntimeException ignored)
+		{
+			this.connected = false;
+			ignored.printStackTrace();
+		} catch (RDFParseException e) {
+			this.connected = false;
+			e.printStackTrace();
+		} catch (RepositoryException e) {
+			this.connected = false;
+			e.printStackTrace();
+		} catch (IOException e) {
+			this.connected = false;
+			e.printStackTrace();
+		}
+	}
+
+	
 	/**
 	 * Closes the data base associated with the engine.  This will prevent further changes from being made in the data store and 
 	 * safely ends the active transactions and closes the engine.
@@ -596,4 +656,48 @@ public class RDFFileSesameEngine extends AbstractEngine implements IEngine {
 		}
 	}
 	
+	public void writeBack(){
+		try {
+			RDFXMLWriter writer = new RDFXMLWriter(new FileWriter(fileName));
+			writeData(writer);
+		} catch (RepositoryException e) {
+			e.printStackTrace();
+		} catch (RDFHandlerException e) {
+			e.printStackTrace();
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+	}
+	
+	public static void main(String [] args)
+	{
+		RDFFileSesameEngine engine = new RDFFileSesameEngine();
+		
+		String rdfFile = "C:/Users/pkapaleeswaran/workspacej3/SemossWeb/db/LocalMasterDatabase/FileLocalMaster.xml";
+		engine.openFile(rdfFile, null, null);
+		
+		IEngine iEngine = engine;
+		String query = MasterDatabaseQueries.GET_ALL_KEYWORDS_AND_ENGINES2;
+		//query = "SELECT ?s ?p ?o where { ?s ?p ?o}";
+		ISelectWrapper wrapper = WrapperManager.getInstance().getSWrapper(iEngine, query);
+		
+		String [] names = wrapper.getDisplayVariables();
+		while(wrapper.hasNext())
+		{
+			// this actually has three things within it
+			// engineName
+			// concept name - This will end up being physical
+			// Logical Name - this is the concept name really
+			ISelectStatement iss = wrapper.next();
+			
+			String engineName = iss.getVar(names[0]) + "";
+			String conceptURI = iss.getRawVar(names[1]) + ""; // logical name
+			String physicalURI = iss.getRawVar(names[2]) + ""; // physical name
+			
+			System.out.println(engineName + "<>" + conceptURI + "<>" + physicalURI);	
+		}
+	}
+
+
 }
