@@ -41,15 +41,17 @@ public abstract class ModifyMasterDB {
 	protected BigDataEngine masterEngine;
 	
 	public ModifyMasterDB() {
-		this.masterEngine = (BigDataEngine) DIHelper.getInstance().getLocalProp(masterDBName);
+		if(DIHelper.getInstance().getLocalProp(masterDBName) instanceof BigDataEngine)	
+			this.masterEngine = (BigDataEngine) DIHelper.getInstance().getLocalProp(masterDBName);
 	}
 	
 	public ModifyMasterDB(String masterDBName) {
 		this.masterDBName = masterDBName;
-		this.masterEngine = (BigDataEngine) DIHelper.getInstance().getLocalProp(masterDBName);
-		if(this.masterEngine == null) {
-			throw new NullPointerException("Unable to find master database.");
-		}
+		if(DIHelper.getInstance().getLocalProp(masterDBName) instanceof BigDataEngine)	
+			this.masterEngine = (BigDataEngine) DIHelper.getInstance().getLocalProp(masterDBName);
+		//if(this.masterEngine == null) {
+		//	throw new NullPointerException("Unable to find master database.");
+		//}
 	}
 
 	public String getMasterDBName() {

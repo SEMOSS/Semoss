@@ -58,6 +58,8 @@ import org.openrdf.query.UpdateExecutionException;
 import org.openrdf.repository.RepositoryConnection;
 import org.openrdf.repository.RepositoryException;
 import org.openrdf.repository.sail.SailRepositoryConnection;
+import org.openrdf.rio.RDFHandlerException;
+import org.openrdf.rio.rdfxml.RDFXMLWriter;
 import org.openrdf.sail.SailConnection;
 import org.openrdf.sail.SailException;
 
@@ -357,8 +359,10 @@ public class InMemorySesameEngine extends AbstractEngine implements IEngine {
 					sc.addStatement(newSub, newPred, (Literal)object);
 				else if(object instanceof URI)
 					sc.addStatement(newSub, newPred, (URI)object);
-				else
+				else if(object instanceof Value)
 					sc.addStatement(newSub, newPred, (Value)object);
+				else
+					sc.addStatement(newSub, newPred, vf.createURI(object+""));
 				//else if(object instanceof URI && object.toString().startsWith("http://"))
 				//	sc.addStatement(newSub, newPred, (URI)object);
 
@@ -402,5 +406,16 @@ public class InMemorySesameEngine extends AbstractEngine implements IEngine {
 		
 	}
 	
+	public void writeData(RDFXMLWriter writer) throws RepositoryException, RDFHandlerException {
+		try {
+			rc.export(writer);
+		} catch (RepositoryException e) {
+			e.printStackTrace();
+			throw new RepositoryException("Could not export base relationships from OWL database");
+		} catch (RDFHandlerException e) {
+			e.printStackTrace();
+			throw new RDFHandlerException("Could not export base relationships from OWL database");
+		}
+	}
 	
 }

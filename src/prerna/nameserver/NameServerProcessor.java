@@ -216,8 +216,9 @@ public class NameServerProcessor extends AbstractNameServer {
 	@Override
 	public String findMostSimilarKeyword(String word) {
 		Set<String> keywordURIs = MasterDBHelper.getExistingKeywords(masterEngine);
+		/*
 		for(String uri : keywordURIs) {
-			String instance = uri.replaceAll(".*/Keyword/", "");
+			String instance = uri.replaceAll(".Keyword/", "");
 			if(instance.contains("/")) {
 				// this is for properties that are also concepts
 				instance = instance.substring(0, instance.lastIndexOf("/"));
@@ -225,13 +226,16 @@ public class NameServerProcessor extends AbstractNameServer {
 			if(instance.equalsIgnoreCase(word)) {
 				return uri;
 			}
-		}
+		}*/
 		
 		// no match, use wordnet comparison
+		// not sure if we need this yet
+		
 		String mostRelatedURI = null;
 		double mostSimVal = HypernymListGenerator.SIMILARITY_CUTOFF;
 		for(String uri : keywordURIs) {
-			String instance = uri.replaceAll(".*/Keyword/", "");
+			//String instance = uri.replaceAll(".Keyword/", "");
+			String instance = uri;
 			if(instance.contains("/")) {
 				// this is for properties that are also concepts
 				instance = instance.substring(0, instance.lastIndexOf("/"));
