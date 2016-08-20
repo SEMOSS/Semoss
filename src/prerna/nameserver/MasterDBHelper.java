@@ -53,6 +53,7 @@ public final class MasterDBHelper {
 	
 	public static List<String> getAllEngines(IEngine masterEngine) {
 		List<String> engines = new ArrayList<String>();
+
 		ISelectWrapper wrapper = WrapperManager.getInstance().getSWrapper(masterEngine, MasterDatabaseQueries.ENGINE_LIST_QUERY);
 		String[] names = wrapper.getVariables();
 		while(wrapper.hasNext()) {
@@ -285,7 +286,7 @@ public final class MasterDBHelper {
 	
 	public static Set<String> getExistingKeywords(IEngine masterEngine) {
 		Set<String> keywordURIs = new HashSet<String>();
-		ISelectWrapper wrapper = WrapperManager.getInstance().getSWrapper(masterEngine, MasterDatabaseQueries.GET_ALL_KEYWORDS);
+		ISelectWrapper wrapper = WrapperManager.getInstance().getSWrapper(masterEngine, MasterDatabaseQueries.GET_ALL_KEYWORDS2);
 		String[] names = wrapper.getVariables();
 		while(wrapper.hasNext()) {
 			ISelectStatement sjss = wrapper.next();

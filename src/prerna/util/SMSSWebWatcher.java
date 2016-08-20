@@ -44,6 +44,7 @@ import org.apache.log4j.Logger;
 import org.apache.solr.client.solrj.SolrServerException;
 
 import prerna.engine.api.IEngine;
+import prerna.engine.impl.rdf.RDFFileSesameEngine;
 import prerna.nameserver.DeleteFromMasterDB;
 import prerna.nameserver.MasterDBHelper;
 import prerna.solr.SolrIndexEngine;
@@ -103,6 +104,64 @@ public class SMSSWebWatcher extends AbstractFileWatcher {
 		
 		return engineName;
 	}
+	
+	// this is an alternate method.. which will not load the database but would merely keep the name of the engine
+	// and the SMSS file
+	/**
+	 * Loads a new database by setting a specific engine with associated properties.
+	 * @param 	Specifies properties to load 
+	 */
+	public String catalogDB(String newFile) {
+		String engines = DIHelper.getInstance().getLocalProp(Constants.ENGINES) + "";
+		FileInputStream fileIn = null;
+		String engineName = null;
+		try{
+			Properties prop = new Properties();
+			fileIn = new FileInputStream(folderToWatch + "/"  +  newFile);
+			prop.load(fileIn);
+			engineName = prop.getProperty(Constants.ENGINE);
+			
+			if(engines.startsWith(engineName) || engines.contains(";"+engineName+";") || engines.endsWith(";"+engineName)) {
+				logger.debug("DB " + folderToWatch + "<>" + newFile + " is already loaded...");
+			} 
+			else 
+			{
+				String fileName = folderToWatch + "/" + newFile;
+				DIHelper.getInstance().getCoreProp().setProperty(engineName + "_" + Constants.STORE, fileName);
+				String engineTypeString = null;
+				// @TODO when we get to modifying engines
+				if((""+prop.get(Constants.ENGINE_TYPE)).contains("RDBMS"))
+					engineTypeString = "RDBMS";
+				else
+					engineTypeString = "RDF";
+				DIHelper.getInstance().getCoreProp().setProperty(engineName + "_" + Constants.TYPE, engineTypeString);
+				String engineNames = (String)DIHelper.getInstance().getLocalProp(Constants.ENGINES);
+				if(!(engines.startsWith(engineName) || engines.contains(";"+engineName+";") || engines.endsWith(";"+engineName))) 
+				{
+					engineNames = engineNames + ";" + engineName;
+					DIHelper.getInstance().setLocalProperty(Constants.ENGINES, engineNames);
+				}
+				// get that metadata I say
+				Utility.synchronizeEngineMetadata(engineName);
+				// get the solr too ? :)<-- this is the slow part.. so removing it for now
+				//Utility.addToSolrInsightCore2(engineName);
+				System.out.println("Loaded Engine.. " + fileName);
+				//Utility.loadWebEngine(fileName, prop);
+			}
+		}catch(Exception e){
+			e.printStackTrace();
+		}finally{
+			try{
+				if(fileIn!=null)
+					fileIn.close();
+			}catch(IOException e) {
+				e.printStackTrace();
+			}
+		}
+		
+		return engineName;
+	}
+
 
 	//	private void clearLocalDB() {
 	//		BigDataEngine localDB = (BigDataEngine) DIHelper.getInstance().getLocalProp(Constants.LOCAL_MASTER_DB_NAME);
@@ -141,38 +200,61 @@ public class SMSSWebWatcher extends AbstractFileWatcher {
 //			e1.printStackTrace();
 //		}
 
+		// I need to get all the SMSS files
+		// Read the engine names and profile the SMSS files i.e. capture that in some kind of hashtable
+		// and let it go that is it
+		
 		File dir = new File(folderToWatch);
 		String[] fileNames = dir.list(this);
 		String[] engineNames = new String[fileNames.length];
 		String localMasterDBName = Constants.LOCAL_MASTER_DB_NAME + this.extension;
+		// trying to figure out where the local master database is in the scheme of things
+		// and then letting it load first
 		int localMasterIndex = ArrayUtilityMethods.calculateIndexOfArray(fileNames, localMasterDBName);
 		if(localMasterIndex != -1) {
 			String temp = fileNames[0];
 			fileNames[0] = localMasterDBName;
 			fileNames[localMasterIndex] = temp;
 			localMasterIndex = 0;
+			// let us first load the master index
+			loadExistingDB(fileNames[0]);
 		}
-		for (int fileIdx = 0; fileIdx < fileNames.length; fileIdx++) {
+		
+		for (int fileIdx = 1; fileIdx < fileNames.length; fileIdx++) {
 			try {
-				String loadedEngineName = loadExistingDB(fileNames[fileIdx]);
+				// I really dont want to load anything here
+				// I only want to keep track of what are the engine names and their corresponding SMSS files
+				
+				String loadedEngineName = catalogDB(fileNames[fileIdx]);
 				engineNames[fileIdx] = loadedEngineName;
 			} catch (RuntimeException ex) {
 				ex.printStackTrace();
 				logger.fatal("Engine Failed " + folderToWatch + "/" + fileNames[fileIdx]);
 			}
 		}
+		
+		IEngine localMaster = (IEngine) DIHelper.getInstance().getLocalProp(Constants.LOCAL_MASTER_DB_NAME);
+		// write the local master back ?
+		// highly temporary right now
 
+		// I dont know why we check this again ?
 		if(localMasterIndex == 0) {
 			// remove unused databases
-			IEngine localMaster = (IEngine) DIHelper.getInstance().getLocalProp(Constants.LOCAL_MASTER_DB_NAME);
+			//IEngine localMaster = (IEngine) DIHelper.getInstance().getLocalProp(Constants.LOCAL_MASTER_DB_NAME);
 			List<String> engines = MasterDBHelper.getAllEngines(localMaster);
 			DeleteFromMasterDB remover = new DeleteFromMasterDB(Constants.LOCAL_MASTER_DB_NAME);
+			
+			// so delete the engines if the SMSS is not there anymore sure makes sense
+			
 			for(String engine : engines) {
 				if(!ArrayUtilityMethods.arrayContainsValue(engineNames, engine)) {
-					remover.deleteEngine(engine);
+					System.out.println("Deleting the engine..... " + engine);
+					remover.deleteEngine2(engine);
 				}
 			}
 		}
+		// let us write back with all the changes now :)
+		//((RDFFileSesameEngine)localMaster).writeBack();
 		
 		try {
 			SolrIndexEngine solrIndexEngine = SolrIndexEngine.getInstance();
@@ -184,6 +266,7 @@ public class SMSSWebWatcher extends AbstractFileWatcher {
 					Map<String, Long> solrEngines = facetReturn.get(SolrIndexEngine.CORE_ENGINE);
 					if(solrEngines != null) {
 						Set<String> engineSet = solrEngines.keySet();
+						// no reason why this can be done alongside the local master database removal. but sure let us go with this as well
 						for(String engine : engineSet) {
 							if(!ArrayUtilityMethods.arrayContainsValue(engineNames, engine)) {
 								Utility.deleteFromSolr(engine);
