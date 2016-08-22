@@ -34,8 +34,40 @@ public class SqlJoinObject {
 		if(queryString.length() == 0) {
 			queryString.append(additionalJoinInfo);
 		} else {
-			queryString.append(" INNER JOIN ").append(additionalJoinInfo);
+//			if(SqlJoinTypeEnum.inner == joinType) {
+				queryString.append(" ").append(additionalJoinInfo);
+//			} else if(SqlJoinTypeEnum.left == joinType) {
+//				queryString.append(" left outer join ").append(additionalJoinInfo);
+//			} else if(SqlJoinTypeEnum.right == joinType) {
+//				queryString.append(" right outer join ").append(additionalJoinInfo);
+//			} else if(SqlJoinTypeEnum.outer == joinType) {
+//				queryString.append(" outer join ").append(additionalJoinInfo);
+//			} else if(SqlJoinTypeEnum.cross == joinType) {
+//				queryString.append(" cross join ").append(additionalJoinInfo);
+//			} else {
+//				queryString.append(" inner join ").append(additionalJoinInfo);
+//			}
 		}
+	}
+	
+	public void addQueryString(String additionalJoinInfo, String compName) {
+//		if(queryString.length() == 0) {
+//			queryString.append(" ").append(compName).append(" ").append(additionalJoinInfo);
+//		} else {
+//			if(SqlJoinTypeEnum.inner == joinType) {
+				queryString.append(" ").append(compName).append(" ").append(additionalJoinInfo);
+//			} else if(SqlJoinTypeEnum.left == joinType) {
+//				queryString.append(" left outer join ").append(additionalJoinInfo);
+//			} else if(SqlJoinTypeEnum.right == joinType) {
+//				queryString.append(" right outer join ").append(additionalJoinInfo);
+//			} else if(SqlJoinTypeEnum.outer == joinType) {
+//				queryString.append(" outer join ").append(additionalJoinInfo);
+//			} else if(SqlJoinTypeEnum.cross == joinType) {
+//				queryString.append(" cross join ").append(additionalJoinInfo);
+//			} else {
+//				queryString.append(" inner join ").append(additionalJoinInfo);
+//			}
+//		}
 	}
 	
 	// add required table alias definitions to be used by the join
