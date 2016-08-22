@@ -31,6 +31,8 @@ public class NativeApiReactor extends ApiReactor {
 
 		System.out.println("Processed.. " + myStore);
 
+		api = new QueryAPI();
+		
 		String nodeStr = (String)myStore.get(whoAmI);
 		Vector <Hashtable> filtersToBeElaborated = new Vector<Hashtable>();
 		Vector <String> tinkerSelectors = new Vector<String>();
