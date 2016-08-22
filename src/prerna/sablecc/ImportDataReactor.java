@@ -119,11 +119,13 @@ public abstract class ImportDataReactor extends AbstractReactor {
 		
 		// 3) grab the iterator
 		// the iterator is stored based on the type of child reactor was part of the import data reactor
-		Iterator it = null;
+//		Iterator it = null;
+		Object it = null;
 		if(myStore.containsKey(PKQLEnum.API)) {			
 			Map<String, Set<String>> edgeHash = (Map<String, Set<String>>) this.getValue(PKQLEnum.API + "_EDGE_HASH");
 			IEngine engine = (IEngine) DIHelper.getInstance().getLocalProp((this.getValue(PKQLEnum.API + "_ENGINE")+"").trim());
-			it  = (Iterator) myStore.get(PKQLEnum.API);
+//			it  = (Iterator) myStore.get(PKQLEnum.API);
+			it  = myStore.get(PKQLEnum.API);
 
 			// 4 & 5) if engine is not null, merge the data into the frame
 			// the engine is null when the api is actually a csv file
@@ -142,9 +144,11 @@ public abstract class ImportDataReactor extends AbstractReactor {
 //
 //			}
 		} else if(myStore.containsKey(PKQLEnum.PASTED_DATA)) {
-			it = (Iterator) myStore.get(PKQLEnum.PASTED_DATA);
+//			it = (Iterator) myStore.get(PKQLEnum.PASTED_DATA);
+			it = myStore.get(PKQLEnum.PASTED_DATA);
 		} else if(myStore.containsKey(PKQLEnum.CSV_TABLE)) {
-			it = (Iterator) myStore.get(PKQLEnum.CSV_TABLE);
+//			it = (Iterator) myStore.get(PKQLEnum.CSV_TABLE);
+			it = myStore.get(PKQLEnum.CSV_TABLE);
 		}
 		
 		
