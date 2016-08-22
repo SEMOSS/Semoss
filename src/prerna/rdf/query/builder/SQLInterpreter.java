@@ -291,11 +291,11 @@ public class SQLInterpreter implements IQueryInterpreter{
 		
 		// the unique key for the join will be the concept and type of join
 		// this is so we append the joins property
-		String key = toConcept + thisComparator;
+		String key = toConcept;
 		
 		String queryString = "";
+		String compName = thisComparator.replace(".", "  ");
 		if(!relationList.doesJoinAlreadyExist(key)) {
-			String compName = thisComparator.replace(".", "  ");
 			queryString = compName + "  " + toConcept+ " " + getAlias(toConcept) + " ON " + getAlias(concept) + "." + property + " = " + getAlias(toConcept) + "." + toProperty;
 			
 			thisJoin = new SqlJoinObject(key);
@@ -305,18 +305,18 @@ public class SQLInterpreter implements IQueryInterpreter{
 			thisJoin.addTableAliasRequired(getAlias(concept), concept);
 			// need to add the query string into the join object
 			thisJoin.addQueryString(queryString);
-			// set the join type
-			if(thisComparator.equalsIgnoreCase("inner.join")) {
-				thisJoin.setSqlJoinType(SqlJoinObject.SqlJoinTypeEnum.inner);
-			} else if(thisComparator.equalsIgnoreCase("left.outer.join")) {
-				thisJoin.setSqlJoinType(SqlJoinObject.SqlJoinTypeEnum.left);
-			} else if(thisComparator.equalsIgnoreCase("right.outer.join")) {
-				thisJoin.setSqlJoinType(SqlJoinObject.SqlJoinTypeEnum.right);
-			} else if(thisComparator.equalsIgnoreCase("outer.join")) {
-				thisJoin.setSqlJoinType(SqlJoinObject.SqlJoinTypeEnum.outer);
-			} else if(thisComparator.equalsIgnoreCase("cross.join")) {
-				thisJoin.setSqlJoinType(SqlJoinObject.SqlJoinTypeEnum.cross);
-			}
+//			// set the join type
+//			if(thisComparator.equalsIgnoreCase("inner.join")) {
+//				thisJoin.setSqlJoinType(SqlJoinObject.SqlJoinTypeEnum.inner);
+//			} else if(thisComparator.equalsIgnoreCase("left.outer.join")) {
+//				thisJoin.setSqlJoinType(SqlJoinObject.SqlJoinTypeEnum.left);
+//			} else if(thisComparator.equalsIgnoreCase("right.outer.join")) {
+//				thisJoin.setSqlJoinType(SqlJoinObject.SqlJoinTypeEnum.right);
+//			} else if(thisComparator.equalsIgnoreCase("outer.join")) {
+//				thisJoin.setSqlJoinType(SqlJoinObject.SqlJoinTypeEnum.outer);
+//			} else if(thisComparator.equalsIgnoreCase("cross.join")) {
+//				thisJoin.setSqlJoinType(SqlJoinObject.SqlJoinTypeEnum.cross);
+//			}
 			// add to the list
 			relationList.addSqlJoinObject(thisJoin);
 		} else {
@@ -326,7 +326,7 @@ public class SQLInterpreter implements IQueryInterpreter{
 			// add the defined table
 			thisJoin.addTableAliasDefinedByJoin(getAlias(concept), concept);
 			// need to add the query string into the join object
-			thisJoin.addQueryString(queryString);
+			thisJoin.addQueryString(queryString, compName);
 		}
 	}
 	
