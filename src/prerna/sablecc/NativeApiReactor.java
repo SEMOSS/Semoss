@@ -133,8 +133,8 @@ public class NativeApiReactor extends ApiReactor {
 		IQueryInterpreter interp = eng.getQueryInterpreter();
 		interp.setQueryStruct(qs);
 		String query = interp.composeQuery();
-		query = "("+query+")";
-		query = "CREATE VIEW AS VIEWTABLE "+query;
+//		query = "("+query+")";
+//		query = "CREATE OR REPLACE VIEW AS VIEWTABLE "+query;
 
 		//run this query on the native frame
 		
