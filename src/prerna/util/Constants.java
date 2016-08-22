@@ -494,4 +494,5 @@ public class Constants {
 	
 	// prohibited headers
 	public static final String PROBHIBITED_HEADERS = "PROBHIBITED_HEADERS";
+	public static final String MARIADB_PORT = "MARIADB_PORT";
 }
