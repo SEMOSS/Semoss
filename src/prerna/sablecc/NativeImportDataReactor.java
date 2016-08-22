@@ -5,6 +5,7 @@ import java.util.Map;
 import java.util.Set;
 
 import prerna.algorithm.api.ITableDataFrame;
+import prerna.ds.nativeframe.NativeFrame;
 import prerna.engine.api.IEngine;
 import prerna.util.DIHelper;
 
@@ -15,11 +16,13 @@ public class NativeImportDataReactor extends ImportDataReactor {
 		String query = "";
 		
 		if(myStore.containsKey(PKQLEnum.API)) {	
-			ITableDataFrame frame = null;
+			NativeFrame frame = (NativeFrame)myStore.get("G");
 			Map<String, Set<String>> edgeHash = (Map<String, Set<String>>) this.getValue(PKQLEnum.API + "_EDGE_HASH");
 			IEngine engine = (IEngine) DIHelper.getInstance().getLocalProp((this.getValue(PKQLEnum.API + "_ENGINE")+"").trim());
 			query  = (String) myStore.get(PKQLEnum.API);
 
+			
+			frame.createView(query);
 			// 4 & 5) if engine is not null, merge the data into the frame
 			// the engine is null when the api is actually a csv file
 			if(engine != null) {
