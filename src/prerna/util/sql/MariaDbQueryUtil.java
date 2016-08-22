@@ -29,11 +29,14 @@ package prerna.util.sql;
 
 import java.util.List;
 
+import prerna.util.Constants;
+import prerna.util.DIHelper;
+
 //interchangable with mysql
 public class MariaDbQueryUtil extends SQLQueryUtil {
 	
 	public static final String DATABASE_DRIVER = "org.mariadb.jdbc.Driver";
-	private static String connectionBase = "jdbc:mysql://localhost:3306";
+	private static String connectionBase = "jdbc:mysql://localhost:"+DIHelper.getInstance().getProperty(Constants.MARIADB_PORT);
 	private static String indexNameBind = "{indexName}";
 	private static String dbNameBind = "{dbName}";
 	private static String dialectForceGraphMaria = "SELECT DISTINCT TABLE_NAME FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_SCHEMA = " + dbNameBind;
