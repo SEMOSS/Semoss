@@ -76,7 +76,8 @@ public class NativeFrameBuilder {
 	}
 	
 	public String getNewTableName() {
-		return viewTableName+viewTableCount++;
+		viewTableCount++;
+		return viewTableName+viewTableCount;
 	}
 	
 	public void setView(String tableName) {
