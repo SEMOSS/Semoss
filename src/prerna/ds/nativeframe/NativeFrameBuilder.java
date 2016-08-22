@@ -73,6 +73,7 @@ public class NativeFrameBuilder {
 	
 	public Connection getConnection() {
 		return this.conn;
+		
 	}
 	
 	public String getNewTableName() {
@@ -990,7 +991,16 @@ public class NativeFrameBuilder {
 	/*************************** QUERY EXECUTION **********************************************/
 	//use this when result set is not expected back
 	private void runQuery(String query) throws Exception{
-		getConnection().createStatement().execute(query);
+		query = query.trim().toUpperCase();
+		if(query.startsWith("DROP")) {
+			if(query.startsWith("DROP VIEW")) {
+				getConnection().createStatement().execute(query);
+			} else {
+				throw new IllegalArgumentException("CAN ONLY DROP VIEWS IN NATIVE MODE");
+			}
+		} else {
+			getConnection().createStatement().execute(query);
+		}
 	}
 
 	//use this when result set is expected
@@ -1032,4 +1042,18 @@ public class NativeFrameBuilder {
 	}
 	
 	/*************************** END UTILITY **********************************************/
+	
+	/*----------------- ONLY WANT TO DELETE VIEWS HERE, NOT DATABASE DATA----------------------------------*/ 
+	/*************************** DELETE **********************************************/
+
+	protected void dropView() {
+		String dropViewQuery = "DROP VIEW "+this.tableName;
+		try {
+			runQuery(dropViewQuery);
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+	}
+	
+	/*************************** END DELTE **********************************************/
 }

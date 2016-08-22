@@ -420,6 +420,15 @@ public class NativeFrame extends AbstractTableDataFrame {
 		
 	}
 	
+	public void close() {
+		try {
+			this.builder.dropView();
+			this.builder.getConnection().close();
+		} catch (SQLException e) {
+			e.printStackTrace();
+		}
+	}
+	
 	/******************************* UNNECESSARY ON NATIVE FRAME FOR NOW BUT NEED TO OVERRIDE FOR NOW *************************************************/
 	
 	@Override
@@ -471,4 +480,6 @@ public class NativeFrame extends AbstractTableDataFrame {
 	@Override
 	public void join(ITableDataFrame table, String colNameInTable, String colNameInJoiningTable, double confidenceThreshold, IMatcher routine) {
 	}
+
+
 }
