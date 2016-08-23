@@ -1,5 +1,6 @@
 package prerna.sablecc;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Hashtable;
 import java.util.Iterator;
@@ -28,7 +29,18 @@ public class ColAddReactor extends AbstractReactor {
 
 		String [] dataFromApi = {PKQLEnum.COL_CSV};
 		values2SyncHash.put(PKQLEnum.API, dataFromApi);
+		
+		//setting pkqlMetaData
+		String title = "Add a new column";
+		String pkqlCommand = "col.add(c:newCol, (expression));";
+		String description = "Adds a new column named newCol, setting each cell to the result of the expression";
+		boolean showMenu = true;
+		boolean pinned = true;
+		super.setPKQLMetaData(title, pkqlCommand, description, showMenu, pinned);
+		super.setPKQLMetaDataInput(populatePKQLMetaDataInput());
+		super.setPKQLMetaDataConsole(populatePKQLMetaDataConsole());
 	}
+	
 
 	@Override
 	public Iterator process() {
@@ -51,7 +63,7 @@ public class ColAddReactor extends AbstractReactor {
 		// ok.. so it would be definitely be cool to pass this to an expr script right now and do the op
 		// however I dont have this shit
 		String expr = (String) myStore.get(PKQLEnum.EXPR_TERM);
-		
+
 		Vector <String> cols = (Vector <String>)myStore.get(PKQLEnum.COL_DEF);
 		// col def of the parent will have all of the col defs of the children
 		// need to remove the new column as it doesn't exist yet
@@ -61,10 +73,10 @@ public class ColAddReactor extends AbstractReactor {
 		Object value = myStore.get(expr);
 		if(value == null) value = myStore.get(PKQLEnum.API);
 
-//		if(value instanceof ColAddIterator) {
-//			((ColAddIterator)value).updateNewColName(newCol);
-//			((ColAddIterator)value).processIterator(frame);
-//		} else 
+		//		if(value instanceof ColAddIterator) {
+		//			((ColAddIterator)value).updateNewColName(newCol);
+		//			((ColAddIterator)value).processIterator(frame);
+		//		} else 
 		if (value instanceof Iterator) {
 			it = (ExpressionIterator)value;
 			processIt(it, frame, joinCols, newCol);
@@ -115,7 +127,7 @@ public class ColAddReactor extends AbstractReactor {
 
 		// update the data id so FE knows data has been changed
 		frame.updateDataId();
-		
+
 		return null;
 	}
 
@@ -198,5 +210,48 @@ public class ColAddReactor extends AbstractReactor {
 		return values2SyncHash.get(input);
 	}
 
+//////////////setting the values for PKQL JSON for FE//////////////////////
+	
+	private List<HashMap<String, Object>> populatePKQLMetaDataInput(){
+		List<HashMap<String, Object>> input = new ArrayList<HashMap<String, Object>>();
+		HashMap<String, Object> inputMap = new HashMap<String, Object>();
+		Object restrictions = new Object();
+		//first variable in PKQL
+		inputMap.put("label", "New Column Name");
+		inputMap.put("varName", "c:newCol");
+		inputMap.put("dataType", "text");
+		inputMap.put("type", "dropdown");
+		inputMap.put("restrictions", restrictions);
+		inputMap.put("source", "");
+		input.add(inputMap);
+
+		//second variable in PKQL
+		inputMap = new HashMap<String, Object>();
+		inputMap.put("label", "New Column Value");
+		inputMap.put("varName", "(expression)");
+		inputMap.put("dataType", "expression");
+		inputMap.put("type", "dropdown");
+		inputMap.put("restrictions", restrictions);
+		inputMap.put("source", "");
+		input.add(inputMap);
+		return input;		
+	}
+	
+	private HashMap<String, Object> populatePKQLMetaDataConsole(){
+
+		HashMap<String, Object> console = new HashMap<String, Object>();
+		String[] groups = null;
+		Object buttonClass = new Object();
+		Object buttonActions = new Object();		
+
+		console.put("name", "Console Name");
+		console.put("groups", groups);
+		console.put("buttonContentLong", "");
+		console.put("buttonContent", "");
+		console.put("buttonTitle", "");
+		console.put("buttonClass", buttonClass);
+		console.put("buttonActions", buttonActions);
+		return console;
+	}
 
 }
