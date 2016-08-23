@@ -1,5 +1,6 @@
 package prerna.sablecc;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -13,46 +14,56 @@ import prerna.algorithm.api.ITableDataFrame;
 
 public class ColSplitReactor extends AbstractReactor {
 
-ITableDataFrame frame;
-	
+	ITableDataFrame frame;
+
 	public ColSplitReactor() {
 		String [] thisReacts = {PKQLEnum.COL_DEF, PKQLEnum.WORD_OR_NUM}; // these are the input columns - there is also expr Term which I will come to shortly
 		super.whatIReactTo = thisReacts;
 		super.whoAmI = PKQLEnum.COL_SPLIT;
+
+		//setting pkqlMetaData
+		String title = "Split a column";
+		String pkqlCommand = "col.split(c:col1, delimiter);";
+		String description = "Splits a column to multiple columns based on delimiter";
+		boolean showMenu = true;
+		boolean pinned = true;
+		super.setPKQLMetaData(title, pkqlCommand, description, showMenu, pinned);
+		super.setPKQLMetaDataInput(populatePKQLMetaDataInput());
+		super.setPKQLMetaDataConsole(populatePKQLMetaDataConsole());
 	}
-	
+
 	@Override
 	public Iterator process() {
-		
+
 		ITableDataFrame frame = (ITableDataFrame)myStore.get("G");
 		frame.getEdgeHash();
-		
+
 		List<String> columns = (List<String>)myStore.get(PKQLEnum.COL_DEF);
 		String column = columns.get(0);
-		
+
 		String colSplitBase = column+"_SPLIT_";
 		List<String> delimiters = (List<String>)myStore.get(PKQLEnum.WORD_OR_NUM);
 		String delimiter = delimiters.get(0);
-		
+
 		Iterator<Object> colIterator = frame.uniqueValueIterator(column, false, false);
-		
+
 		int highestIndex = 0;
 		//first update table
 		while(colIterator.hasNext()) {
-			
+
 			String nextVal = colIterator.next().toString();
 			String[] newVals = nextVal.split(delimiter);
-			
+
 			Map<String, Object> origMap = new LinkedHashMap<>();
 			Map<String, Object> newMap = new LinkedHashMap<>();
 			origMap.put(column, nextVal);
 			newMap.put(column, nextVal);
-			
+
 			if(newVals.length > highestIndex) {
 				Map<String, Set<String>> newEdgeHash = new LinkedHashMap<>();
 				Set<String> set = new LinkedHashSet<>();
 				for(int i = highestIndex; i < newVals.length; i++) {
-					
+
 					set.add(colSplitBase+i);
 				}
 				newEdgeHash.put(column, set);
@@ -61,19 +72,65 @@ ITableDataFrame frame;
 				frame.mergeEdgeHash(newEdgeHash, new HashMap<>());
 				highestIndex = newVals.length;
 			}
-			
-			
+
+
 			for(int i = 0; i < newVals.length; i++) {
 				newMap.put(colSplitBase+i, newVals[i]);
 			}
-			
+
 			frame.addRelationship(newMap, origMap);	//cleanRow, rawRow		
 		}	
 		//then update meta data
-		
+
 		//remove column
-//		frame.removeColumn(column);
+		//		frame.removeColumn(column);
 		frame.updateDataId();
 		return null;
 	}
+
+	//////////////setting the values for PKQL JSON for FE//////////////////////
+	
+	private List<HashMap<String, Object>> populatePKQLMetaDataInput(){
+		List<HashMap<String, Object>> input = new ArrayList<HashMap<String, Object>>();
+		HashMap<String, Object> inputMap = new HashMap<String, Object>();
+		Object restrictions = new Object();
+
+		//first variable in PKQL
+		inputMap.put("label", "Column to be split");
+		inputMap.put("varName", "c:Col1");
+		inputMap.put("dataType", "text");
+		inputMap.put("type", "dropdown");
+		inputMap.put("restrictions", restrictions);
+		inputMap.put("source", "");
+		input.add(inputMap);
+
+		//second variable in PKQL
+		inputMap = new HashMap<String, Object>();
+		inputMap.put("label", "Delimiter");
+		inputMap.put("varName", "delimiter");
+		inputMap.put("dataType", "text");
+		inputMap.put("type", "dropdown");
+		inputMap.put("restrictions", restrictions);
+		inputMap.put("source", "");
+		input.add(inputMap);
+
+		return input;		
+	}
+	
+	private HashMap<String, Object> populatePKQLMetaDataConsole(){
+
+		HashMap<String, Object> console = new HashMap<String, Object>();
+		String[] groups = null;
+		Object buttonClass = new Object();
+		Object buttonActions = new Object();				
+
+		console.put("name", "Console Name");
+		console.put("groups", groups);
+		console.put("buttonContentLong", "");
+		console.put("buttonContent", "");
+		console.put("buttonTitle", "");
+		console.put("buttonClass", buttonClass);
+		console.put("buttonActions", buttonActions);
+		return console;
+	}	
 }
