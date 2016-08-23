@@ -49,22 +49,22 @@ public class NativeFrame extends AbstractTableDataFrame {
 
 	public void setConnection(String engineName) {
 		this.builder.setConnection(engineName);
-		Connection connection = this.builder.getConnection();
+//		Connection connection = this.builder.getConnection();
 		
-		if (connection != null) {
-			try {
-				// working with Mairiadb
-				Statement stmt = connection.createStatement();
-				String query = "select * from director";
-				ResultSet rs = stmt.executeQuery(query);
-				while (rs.next()) {
-				 System.out.print(rs.toString());
-				}
-
-			} catch (SQLException e) {
-				e.printStackTrace();
-			}
-		}
+//		if (connection != null) {
+//			try {
+//				// working with Mairiadb
+//				Statement stmt = connection.createStatement();
+//				String query = "select * from director";
+//				ResultSet rs = stmt.executeQuery(query);
+//				while (rs.next()) {
+//				 System.out.print(rs.toString());
+//				}
+//
+//			} catch (SQLException e) {
+//				e.printStackTrace();
+//			}
+//		}
 	}
 
 
@@ -410,7 +410,8 @@ public class NativeFrame extends AbstractTableDataFrame {
 		}
 		String viewTable = this.builder.getNewTableName();
 		selectQuery = "("+selectQuery+")";
-		selectQuery = "CREATE OR REPLACE VIEW "+viewTable+" AS "+selectQuery;
+//		selectQuery = "CREATE OR REPLACE VIEW "+viewTable+" AS "+selectQuery;
+		selectQuery = "CREATE TEMPORARY TABLE "+viewTable+" AS "+selectQuery;
 		try {
 			builder.runExternalQuery(selectQuery);
 			builder.setView(viewTable);
