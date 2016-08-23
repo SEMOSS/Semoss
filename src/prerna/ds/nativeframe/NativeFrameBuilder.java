@@ -117,12 +117,12 @@ public class NativeFrameBuilder {
 		Class.forName("org.mariadb.jdbc.Driver");
 		conn = DriverManager
 				.getConnection(url + "?user=" + userName + "&password=" + new String(password));
-		Statement stmt = conn.createStatement();
-		String query = "select * from director";
-		ResultSet rs = stmt.executeQuery(query);
-		while (rs.next()) {
-		 System.out.print(rs.toString());
-		}
+//		Statement stmt = conn.createStatement();
+//		String query = "select * from director";
+//		ResultSet rs = stmt.executeQuery(query);
+//		while (rs.next()) {
+//		 System.out.print(rs.toString());
+//		}
 
 	}
 
@@ -214,7 +214,10 @@ public class NativeFrameBuilder {
 		try {
 			Statement stmt = getConnection().createStatement();
 			String selectQuery = makeSelect(tableName, selectors);
+			long startTime = System.currentTimeMillis();
 			ResultSet rs = stmt.executeQuery(selectQuery);
+			long endTime = System.currentTimeMillis();
+			LOGGER.info("Executed Select Query on NATIVE FRAME: "+(endTime - startTime)+" ms");
 			return new H2Iterator(rs);
 		} catch(SQLException s) {
 			s.printStackTrace();
@@ -299,7 +302,11 @@ public class NativeFrameBuilder {
 			selectQuery += " offset "+offset;
 		}
 
+		long startTime = System.currentTimeMillis();
 		ResultSet rs = executeQuery(selectQuery);
+		
+		long endTime = System.currentTimeMillis();
+		LOGGER.info("Executed Select Query on NATIVE FRAME: "+(endTime - startTime)+" ms");
 		return new H2Iterator(rs);
 	}
 	
@@ -1020,6 +1027,10 @@ public class NativeFrameBuilder {
 		} 
 
 		else if(query.startsWith("CREATE OR REPLACE VIEW")) {
+			runQuery(query);
+		}
+		
+		else if(query.startsWith("CREATE TEMPORARY TABLE")) {
 			runQuery(query);
 		}
 		//possibly need to drop view table externally as well
