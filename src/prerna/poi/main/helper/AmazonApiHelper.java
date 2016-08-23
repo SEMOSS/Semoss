@@ -252,13 +252,16 @@ public class AmazonApiHelper extends WebAPIHelper{
 					case "Brand":
 					case "Category":
 					case "Director":
-					case "Genre":
-					case "Manufacturer":
-					case "ProductGroup":
+					case "Genre":					
 					case "PublicationDate":
 					case "Publisher":
 					case "ReleaseDate":
-					case "Studio":	
+					case "Studio":
+						if(operationType.endsWith("ItemSearch"))
+							continue;
+						
+					case "Manufacturer":
+					case "ProductGroup":
 						header = name;
 						//dataMap.put(header, value);
 						dataMap.put(header, (value == null)? "" : value);
