@@ -1,5 +1,6 @@
 package prerna.sablecc;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Hashtable;
 import java.util.Iterator;
@@ -25,7 +26,10 @@ public abstract class AbstractReactor implements IScriptReactor {
 	protected HashMap <String, Object> myStore = new HashMap <String, Object>();
 	protected Vector <String> replacers = new Vector<String>();
 	
-	
+	//added for PKQL command definition to be sent to the FE
+	private String[] pkqlDefinition = {"title", "pkqlCommand", "description", "showMenu", "pinned", "input", "console"};
+	private HashMap <String, Object> pkqlMetaData = null;
+
 	@Override
 	public String[] getParams() {
 		// TODO Auto-generated method stub
@@ -187,6 +191,32 @@ public abstract class AbstractReactor implements IScriptReactor {
 		String [] colArr = new String[columns.size()];
 		for(int colIndex = 0;colIndex < columns.size();colArr[colIndex] = columns.get(colIndex),colIndex++);
 		return colArr;
+	}
+	
+	//returns the PKQL command structure for specific reactor
+	public HashMap <String, Object> getPKQLMetaData(){
+		return this.pkqlMetaData;
+	}
+	
+	public void setPKQLMetaData(String title, String pkqlCommand, String description, boolean showMenu, boolean pinned){
+		this.pkqlMetaData = new HashMap<String, Object>();
+		for(String pkqlDef: pkqlDefinition){
+			switch(pkqlDef){
+			case "title" : this.pkqlMetaData.put(pkqlDef, title);break;
+			case "pkqlCommand": this.pkqlMetaData.put(pkqlDef, pkqlCommand);break;
+			case "description": this.pkqlMetaData.put(pkqlDef, description);break;
+			case "showMenu": this.pkqlMetaData.put(pkqlDef, showMenu);break;
+			case "pinned": this.pkqlMetaData.put(pkqlDef, pinned);break;
+			}			
+		}
+	}
+	
+	public void setPKQLMetaDataInput(List<HashMap<String, Object>> input){
+		this.pkqlMetaData.put("input", input);
+	}
+	
+	public void setPKQLMetaDataConsole(HashMap<String, Object> console){
+		this.pkqlMetaData.put("console", console);
 	}
 
 
