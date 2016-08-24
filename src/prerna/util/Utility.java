@@ -37,6 +37,9 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.lang.reflect.InvocationTargetException;
 import java.net.URISyntaxException;
+import java.nio.file.Files;
+import java.nio.file.attribute.BasicFileAttributes;
+import java.nio.file.attribute.FileTime;
 import java.security.KeyManagementException;
 import java.security.KeyStoreException;
 import java.security.NoSuchAlgorithmException;
@@ -104,6 +107,8 @@ import prerna.engine.api.IEngine.ENGINE_TYPE;
 import prerna.engine.api.ISelectStatement;
 import prerna.engine.api.ISelectWrapper;
 import prerna.engine.impl.AbstractEngine;
+import prerna.engine.impl.MetaHelper;
+import prerna.engine.impl.rdbms.RDBMSNativeEngine;
 import prerna.engine.impl.rdf.InMemorySesameEngine;
 import prerna.nameserver.AddToMasterDB;
 import prerna.nameserver.DeleteFromMasterDB;
@@ -965,7 +970,221 @@ public class Utility {
 			}
 		}
 	}
+
 	
+	public static void addToSolrInsightCore2(String engineName) throws KeyManagementException, NoSuchAlgorithmException, KeyStoreException {
+		
+		//		// get the engine name		
+		// generate the appropriate query to execute on the local master engine to get the time stamp
+		System.out.println("SOLR'ing on " + engineName);
+		
+		String engineFile = DIHelper.getInstance().getCoreProp().getProperty(engineName + "_" + Constants.STORE);
+		
+		SolrIndexEngine solrE = SolrIndexEngine.getInstance();
+		Properties prop = new Properties();
+		String baseFolder = DIHelper.getInstance().getProperty("BaseFolder");
+		FileInputStream fis = null;
+		String engineDbTime = null;
+		String dbLocation = null;
+		
+		try {
+			fis = new FileInputStream(engineFile);
+			prop.load(fis);
+		
+			// find when the database was last modified to see the time
+			dbLocation = (String)prop.get(Constants.RDBMS_INSIGHTS);
+			String dbFileLocation = baseFolder + "/" + dbLocation + ".mv.db";
+			File dbfile = new File(dbFileLocation);
+			
+			BasicFileAttributes bfa = Files.readAttributes(dbfile.toPath(), BasicFileAttributes.class);
+			FileTime ft = bfa.lastModifiedTime();
+			DateFormat df = SolrIndexEngine.getDateFormat();
+			engineDbTime = df.format(ft.toMillis());
+		}catch(Exception ex)
+		{
+			ex.printStackTrace();
+		}
+
+		// make the engine compare if this is valid
+		if(!solrE.containsEngine2(engineName, engineDbTime))
+		{
+			
+			// this has all the details
+			// the engine file is primarily the SMSS that is going to be utilized for the purposes of retrieving all the data
+			//jdbc:h2:@BaseFolder@/db/@ENGINE@/database;query_timeout=180000;early_filter=true;query_cache_size=24;cache_size=32768
+			String jdbcURL = "jdbc:h2:" + baseFolder + "/" + dbLocation + ";query_timeout=180000;early_filter=true;query_cache_size=24;cache_size=32768";
+			System.out.println("Connecting to URL.. " + jdbcURL);
+			String userName = "sa";
+			String password = "";
+			if(prop.containsKey(Constants.USERNAME))
+				userName = prop.getProperty(Constants.USERNAME);
+			if(prop.containsKey(Constants.PASSWORD))
+				password = prop.getProperty(Constants.PASSWORD);
+			
+			RDBMSNativeEngine rne = new RDBMSNativeEngine();
+			rne.makeConnection(jdbcURL, userName, password);
+			MetaHelper helper = new MetaHelper(null, null, null, rne);
+	
+			// get the solr index engine
+			// if the solr is active...
+			if (solrE.serverActive()) {
+	
+				List<SolrInputDocument> docs = new ArrayList<SolrInputDocument>();
+				/*
+				 * The unique document is the engineName concatenated with the engine unique rdbms name (which is just a number)
+				 * 
+				 * Logic is as follows
+				 * 1) Delete all existing insights that are tagged by this engine 
+				 * 2) Execute a query to get all relevant information from the engine rdbms insights database
+				 * 3) For each insight, grab the relevant information and store into a solr document and add it to the docs list
+				 * 4) Index all the documents stored in docs list
+				 */
+				
+				// 1) delete any existing insights from this engine
+				solrE.deleteEngine(engineName);
+				
+				// also going to get some default field values since they are not captured anywhere...
+				
+				// get the current date which will be used to store in "created_on" and "modified_on" fields within schema
+				DateFormat dateFormat = SolrIndexEngine.getDateFormat();
+				Date date = new Date();
+				String currDate = engineDbTime;
+				// set all the users to be default...
+				String userID = "default";
+				
+				
+				// 2) execute the query and iterate through the insights
+				String query = "SELECT DISTINCT ID, QUESTION_NAME, QUESTION_LAYOUT, QUESTION_MAKEUP, QUESTION_PERSPECTIVE, QUESTION_DATA_MAKER FROM QUESTION_ID";
+				ISelectWrapper wrapper = WrapperManager.getInstance().getSWrapper(rne, query);
+				while(wrapper.hasNext()){
+					ISelectStatement ss = wrapper.next();
+					
+					// 3) start to get all the relevant metadata surrounding the insight
+					
+					// get the unique id of the insight within the engine
+					int id = (int) ss.getVar("ID");
+					// get the question name
+					String name = (String) ss.getVar("QUESTION_NAME");
+					// get the question layout
+					String layout = (String) ss.getVar("QUESTION_LAYOUT");
+					// get the data maker name
+					String dataMakerName = (String) ss.getVar("QUESTION_DATA_MAKER");
+	
+					// get the question perspective to use as a default tag
+					String perspective = (String) ss.getVar("QUESTION_PERSPECTIVE");
+					// sadly, at some point the perspective which we use as a tag has been added 
+					// using the following 3 ways...
+					// remove all 3 if found
+					String perspString1 ="-Perspective";
+					String perspString2 ="Perspective";
+					String perspString3 ="_Perspective";
+					if (perspective.contains(perspString1)) {
+						perspective = perspective.replace(perspString1, "").trim();
+					}
+					if(perspective.contains(perspString2)){
+						perspective = perspective.replace(perspString2, "").trim();
+					}
+					if(perspective.contains(perspString3)){
+						perspective = perspective.replace(perspString3, "").trim();
+					}
+					
+					// get the clob containing the question makeup
+					// TODO: we use this to query it and get the list of engines associated with an insight
+					// TODO: however, since the DMC is no longer valid and that logic is placed within the PKQL
+					// TODO: we need to not do this and figure out a way to get the engines that are used in the PKQL
+					
+					/////// START CLOB PROCESSING TO GET LIST OF ENGINES ///////
+					JdbcClob obj = (JdbcClob) ss.getVar("QUESTION_MAKEUP"); 
+					InputStream makeup = null;
+					try {
+						makeup = obj.getAsciiStream();
+					} catch (SQLException e) {
+						e.printStackTrace();
+					}
+	
+					//load the makeup input stream into a rc
+					RepositoryConnection rc = null;
+					try {
+						Repository myRepository = new SailRepository(new ForwardChainingRDFSInferencer(new MemoryStore()));
+						myRepository.initialize();
+						rc = myRepository.getConnection();
+						rc.add(makeup, "semoss.org", RDFFormat.NTRIPLES);
+					} catch (RuntimeException ignored) {
+						ignored.printStackTrace();
+					} catch (RDFParseException e) {
+						e.printStackTrace();
+					} catch (RepositoryException e) {
+						e.printStackTrace();
+					} catch (IOException e) {
+						e.printStackTrace();
+					}
+					// set the rc in the in-memory engine
+					InMemorySesameEngine myEng = new InMemorySesameEngine();
+					myEng.setRepositoryConnection(rc);
+	
+					Set<String> engineSet = new HashSet<String>();
+					// query the in-memory sesame engine to get the list of engines
+					String engineQuery = "SELECT DISTINCT ?EngineName WHERE {{?Engine a <http://semoss.org/ontologies/Concept/Engine>}{?Engine <http://semoss.org/ontologies/Relation/Contains/Name> ?EngineName} }";
+					ISelectWrapper engineWrapper = WrapperManager.getInstance().getSWrapper(myEng, engineQuery);
+					while(engineWrapper.hasNext()) {
+						ISelectStatement engineSS = engineWrapper.next();
+						engineSet.add(engineSS.getVar("EngineName") + "");
+					}
+					// since pkql adds only one dmc with engine being local master... we want to remove that
+					// and set engine into the set
+					engineSet.remove(Constants.LOCAL_MASTER_DB_NAME);
+					engineSet.add(engineName);
+					/////// END CLOB PROCESSING TO GET LIST OF ENGINES ///////
+	
+					// get the list of params associated with the insight and add that into the paramList
+					// TODO: this will also become out dated just like the list of engines logic above when it is shifted into PKQL
+					List<String> paramList = new ArrayList<String>();
+					List<SEMOSSParam> params = helper.getParams(id + "");
+					if(params != null && !params.isEmpty()) {
+						for(SEMOSSParam p : params) {
+							paramList.add(p.getName());
+						}
+					}
+	
+					// have all the relevant fields now, so store with appropriate schema name
+					// create solr document and add into docs list
+					Map<String, Object>  queryResults = new  HashMap<> ();
+					queryResults.put(SolrIndexEngine.STORAGE_NAME, name);
+					queryResults.put(SolrIndexEngine.INDEX_NAME, name);
+					queryResults.put(SolrIndexEngine.CREATED_ON, currDate);
+					queryResults.put(SolrIndexEngine.MODIFIED_ON, currDate);
+					queryResults.put(SolrIndexEngine.USER_ID, userID);
+					queryResults.put(SolrIndexEngine.ENGINES, engineSet);
+					queryResults.put(SolrIndexEngine.PARAMS, paramList);
+					queryResults.put(SolrIndexEngine.CORE_ENGINE, engineName);
+					queryResults.put(SolrIndexEngine.CORE_ENGINE_ID, id);
+					queryResults.put(SolrIndexEngine.LAYOUT, layout);
+					queryResults.put(SolrIndexEngine.TAGS, perspective);
+					queryResults.put(SolrIndexEngine.DATAMAKER_NAME, dataMakerName);
+					try {
+						docs.add(solrE.createDocument(engineName + "_" + id, queryResults));
+					} catch (Exception e) {
+						e.printStackTrace();
+					}
+				}
+	
+				// 4) index all the documents at the same time for efficiency
+				try {
+					solrE.addInsights(docs);
+					rne.closeDB();
+					fis.close();
+				} catch (SolrServerException | IOException e) {
+					e.printStackTrace();
+				}
+			}
+			System.out.println("Completed " + engineName);
+		}
+		else
+		{
+			System.out.println("Exists !!");
+		}
+	}
+
 	//force solr to load once 
 	//once engine is loaded, set boolean to false
 	/**
