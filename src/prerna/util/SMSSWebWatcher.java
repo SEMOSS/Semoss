@@ -62,7 +62,7 @@ public class SMSSWebWatcher extends AbstractFileWatcher {
 	 */
 	@Override
 	public void process(String fileName) {
-		loadNewDB(fileName);
+		catalogDB(fileName);
 	}
 
 	/**
