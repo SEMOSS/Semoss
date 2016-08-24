@@ -336,7 +336,11 @@ public class QuestionAdministrator {
 			LOGGER.info("Beginning to add parameters for insight ");
 			for(SEMOSSParam param : parameters) {
 				LOGGER.info("Adding parameter with details " + param.toString());
-				String paramID = insightID.concat("_").concat(param.getName());
+				String paramID = "";
+				if(!param.getName().startsWith(insightID.concat("_")))
+					paramID = insightID.concat("_").concat(param.getName());
+				else
+					paramID = param.getName();
 				String paramLabel = param.getName();
 				String paramType = param.getType();
 				String paramCompFilterId = param.getComponentFilterId();
@@ -350,7 +354,11 @@ public class QuestionAdministrator {
 				StringBuilder paramDependencyBuilder = new StringBuilder("");
 				if(paramDependencyArr != null) {
 					for(String dependency : paramDependencyArr) {
-						String dependencyKey = insightID.concat("_").concat(dependency);
+						String dependencyKey = "";
+						if(!dependency.startsWith(insightID.concat("_")))
+						dependencyKey = insightID.concat("_").concat(dependency);
+						else
+							dependencyKey = dependency;
 						paramDependencyBuilder.append(dependencyKey).append(";");
 					}
 				}
