@@ -183,6 +183,21 @@ public class RDBMSNativeEngine extends AbstractEngine {
 		}
 	}
 	
+	public void makeConnection(String url, String userName, String password)
+	{
+		try {
+			Class.forName("org.h2.Driver");
+			engineConn = DriverManager.getConnection(url, userName, password);
+			engineConnected = true;
+		} catch (ClassNotFoundException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (SQLException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+	}
+	
 	private Connection getConnection(){
 		Connection connObj = null;
 		if(isConnected()){
