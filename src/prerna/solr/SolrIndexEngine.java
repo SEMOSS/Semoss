@@ -1502,6 +1502,38 @@ public class SolrIndexEngine {
 		return (queryRet.size() != 0);
 	}
 
+
+	public boolean containsEngine2(String engineName, String engineDate) {
+		// check if db currently exists
+		LOGGER.info("checking if engine " + engineName + " needs to be added to solr");
+		SolrIndexEngineQueryBuilder builder = new SolrIndexEngineQueryBuilder();
+		builder.setSearchString(engineName);
+		builder.setDefaultSearchField(SolrIndexEngine.CORE_ENGINE);
+		builder.setLimit(1);
+		
+		String solrEngineDateStr = null;
+		SolrDocumentList queryRet = null;
+		try {
+			queryRet = queryDocument(builder);
+			Date solrEngineDate = (Date)queryRet.get(0).getFieldValue(SolrIndexEngine.MODIFIED_ON);
+			DateFormat df = SolrIndexEngine.getDateFormat();
+			solrEngineDateStr = df.format(solrEngineDate);
+			System.out.println("Current Date is " + solrEngineDateStr + " <<>> " + engineDate);
+		} catch (SolrServerException e) {
+			e.printStackTrace();
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+		if (queryRet != null && queryRet.size() != 0) {
+			LOGGER.info("Engine " + engineName + " already exists inside solr");
+		} else {
+			LOGGER.info("queryRet.size() = 0 ... so add engine");
+		}
+		//This is not working I need to keep the size of the file too
+		// going back to the old way
+		return (queryRet.size() != 0);  //&& engineDate.equalsIgnoreCase(solrEngineDateStr));
+	}
+
 	/**
 	 * Deletes all insights related to a specified engine
 	 * @param engineName      engine name to delete

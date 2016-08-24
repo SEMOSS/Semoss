@@ -144,7 +144,7 @@ public class SMSSWebWatcher extends AbstractFileWatcher {
 				// get that metadata I say
 				Utility.synchronizeEngineMetadata(engineName);
 				// get the solr too ? :)<-- this is the slow part.. so removing it for now
-				//Utility.addToSolrInsightCore2(engineName);
+				Utility.addToSolrInsightCore2(engineName);
 				System.out.println("Loaded Engine.. " + fileName);
 				//Utility.loadWebEngine(fileName, prop);
 			}
