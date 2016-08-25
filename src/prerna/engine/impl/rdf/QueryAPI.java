@@ -8,8 +8,8 @@ import java.security.NoSuchAlgorithmException;
 import java.util.Arrays;
 import java.util.Hashtable;
 import java.util.Iterator;
-
 import java.util.Properties;
+
 import prerna.ds.QueryStruct;
 import prerna.engine.api.IApi;
 import prerna.engine.api.IEngine;
@@ -35,18 +35,18 @@ public class QueryAPI implements IApi {
 		// get the engine
 		String engineName = (values.get(params[1]) + "").trim();
 		IEngine engine = null;
-		if(DIHelper.getInstance().getLocalProp(engineName) instanceof IEngine)
+		if(DIHelper.getInstance().getLocalProp(engineName) instanceof IEngine) {
 			engine = (IEngine) DIHelper.getInstance().getLocalProp(engineName);
-		else
-		{
+		} else {
 			// start up the engine
 			String smssFile = (String)DIHelper.getInstance().getCoreProp().getProperty(engineName + "_" + Constants.STORE);
+			FileInputStream fis = null;
 			// start it up
 			try {
 				Properties daProp = new Properties();
-				FileInputStream fis = new FileInputStream(smssFile);
+				fis = new FileInputStream(smssFile);
 				daProp.load(fis);
-				daProp.put("fis", fis);
+//				daProp.put("fis", fis);
 				engine = Utility.loadWebEngine(smssFile, daProp);
 			} catch (KeyManagementException e) {
 				// TODO Auto-generated catch block
@@ -60,6 +60,14 @@ public class QueryAPI implements IApi {
 			} catch (IOException e) {
 				// TODO Auto-generated catch block
 				e.printStackTrace();
+			} finally {
+				if(fis != null) {
+					try {
+						fis.close();
+					} catch (IOException e) {
+						e.printStackTrace();
+					}
+				}
 			}
 			
 		}
