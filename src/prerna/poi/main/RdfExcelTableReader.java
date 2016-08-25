@@ -65,8 +65,6 @@ public class RdfExcelTableReader extends AbstractFileReader {
 	private ArrayList<String> relationArrayList = new ArrayList<String>();
 	private ArrayList<String> nodePropArrayList = new ArrayList<String>();
 	private ArrayList<String> relPropArrayList = new ArrayList<String>();
-	private boolean propFileExist = true;
-	private Hashtable<String, String>[] rdfMapArr;
 
 	private int startRow = 1;
 	private int maxRows = 100000;
