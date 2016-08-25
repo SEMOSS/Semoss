@@ -111,21 +111,21 @@ public class VizReactor extends AbstractReactor {
 		boolean mathPerformed = keyColumns.length > 0;
 		
 		
-		//grab the iterator because we have columns that need data from the frame
-		if(columnsToGrab.size() > keyColumns.length) {
-//		if(columnsToGrab.size() > 0 && keyColumns.length > 0) {
-			Map<String, Object> options = new HashMap<>();
-			options.put(TinkerFrame.SELECTORS, columnsToGrab);
-			options.put(TinkerFrame.DE_DUP, true);
-			Iterator<Object[]> iterator = frame.iterator(false, options);
-			
-			//convert to map and merge
-			Map<Map<String, Object>, Object> newMap = convertIteratorDataToMap(iterator, columnsToGrab, keyColumns);
-			mainMap = mergeMap(mainMap, newMap);
-		} 
+//		//grab the iterator because we have columns that need data from the frame
+//		if(columnsToGrab.size() > keyColumns.length) {
+////		if(columnsToGrab.size() > 0 && keyColumns.length > 0) {
+//			Map<String, Object> options = new HashMap<>();
+//			options.put(TinkerFrame.SELECTORS, columnsToGrab);
+//			options.put(TinkerFrame.DE_DUP, true);
+//			Iterator<Object[]> iterator = frame.iterator(false, options);
+//			
+//			//convert to map and merge
+//			Map<Map<String, Object>, Object> newMap = convertIteratorDataToMap(iterator, columnsToGrab, keyColumns);
+//			mainMap = mergeMap(mainMap, newMap);
+//		} 
 		
 		//otherwise we only have column data to grab from the frame, no math was done
-		else if(columnsToGrab.size() > 0 && !mathPerformed) {
+		if(columnsToGrab.size() > 0 && !mathPerformed) {
 			Map<String, Object> options = new HashMap<>();
 			options.put(TinkerFrame.SELECTORS, columnsToGrab);
 			options.put(TinkerFrame.DE_DUP, true);
@@ -136,6 +136,18 @@ public class VizReactor extends AbstractReactor {
 				grid.add(iterator.next());
 			}
 		}
+		
+		else if(columnsToGrab.size() > keyColumns.length) {
+//			if(columnsToGrab.size() > 0 && keyColumns.length > 0) {
+			Map<String, Object> options = new HashMap<>();
+			options.put(TinkerFrame.SELECTORS, columnsToGrab);
+			options.put(TinkerFrame.DE_DUP, true);
+			Iterator<Object[]> iterator = frame.iterator(false, options);
+			
+			//convert to map and merge
+			Map<Map<String, Object>, Object> newMap = convertIteratorDataToMap(iterator, columnsToGrab, keyColumns);
+			mainMap = mergeMap(mainMap, newMap);
+		} 
 		
 		
 		for(String column : keyColumns) {

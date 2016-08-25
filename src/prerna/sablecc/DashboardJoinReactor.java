@@ -14,15 +14,11 @@ import prerna.om.InsightStore;
 import prerna.ui.components.playsheets.datamakers.IDataMaker;
 
 public class DashboardJoinReactor extends AbstractReactor {
-
-	
-	/*
-	 * TODO: THIS REACTOR IS NOT DONE YET... STILL IN INTIAL PHASE OF DEVELOPMENT...
-	 */
 	
 	public DashboardJoinReactor() {
 		// example join is data.join("insight1", "insight2", c:Title, c:Movie_Title, inner.join);
-		String [] thisReacts = {PKQLEnum.WORD_OR_NUM, PKQLEnum.COL_DEF, PKQLEnum.REL_TYPE, PKQLEnum.OPEN_DATA, PKQLEnum.OPEN_DATA+"insightid", "G"};
+		//TODO : changing back to table once we make the reactor
+		String [] thisReacts = {PKQLEnum.COL_CSV, PKQLEnum.REL_TYPE, PKQLEnum.OPEN_DATA, PKQLEnum.JOIN_PARAM};
 		super.whatIReactTo = thisReacts;
 		super.whoAmI = PKQLEnum.DASHBOARD_JOIN;
 	}
@@ -30,6 +26,7 @@ public class DashboardJoinReactor extends AbstractReactor {
 	@Override
 	public Iterator process() {
 
+		
 		System.out.println("entered dashboard join");
 		System.out.println("mystore has...");
 		for(String s : myStore.keySet()) {
@@ -42,66 +39,75 @@ public class DashboardJoinReactor extends AbstractReactor {
 		// the first entry in insightsToJoin corresponds with the first entry in colsForInsightsToJoin
 		
 		List<String> insightsToJoin;
-		List<String> colsForInsightsToJoin;
+		List<List<String>> colsForInsightsToJoin;
 		try {
-			//change this to join param list or something
-			insightsToJoin = (List<String>) myStore.get(PKQLEnum.WORD_OR_NUM);
-			if(insightsToJoin == null) {
-				insightsToJoin = (List<String>) myStore.get(PKQLEnum.OPEN_DATA+"insightid"); 
+			Dashboard dashboard = (Dashboard)myStore.get("G");
+			
+			insightsToJoin = (List<String>) myStore.get(PKQLEnum.JOIN_PARAM);			
+			colsForInsightsToJoin = (List<List<String>>) myStore.get(PKQLEnum.COL_CSV);
+			String joinType = (String) myStore.get(PKQLEnum.REL_TYPE);
+			
+			List<Insight> insights = new ArrayList<>();
+			for(String insightID : insightsToJoin) {
+				Insight insight = InsightStore.getInstance().get(insightID);
+				if(insight == null) {
+					System.err.println("insight "+ insightID+" not found...");
+					return null;
+				}
+				insights.add(insight);
 			}
-			colsForInsightsToJoin = (List<String>) myStore.get(PKQLEnum.COL_DEF);
+			
+			dashboard.joinInsights(insights, colsForInsightsToJoin);
+			setDashboardData(insightsToJoin, colsForInsightsToJoin, joinType);
 		} catch(Exception e) {
+			e.printStackTrace();
 			System.err.println("Error retrieving insights");
 			return null;
 		}
-		String joinType = (String) myStore.get(PKQLEnum.REL_TYPE);
 		
-		Insight in1 = InsightStore.getInstance().get(insightsToJoin.get(0));
-		Insight in2 = InsightStore.getInstance().get(insightsToJoin.get(1));
 		
-		if(in1 == null || in2 == null) {
-			System.err.println("insights not found...");
-			return null;
-		}
 		
-		Dashboard dashboard = (Dashboard)myStore.get("G");
-		dashboard.addInsight(in1);
-		dashboard.addInsight(in2);
 		
-		H2Frame frame1 = null;
-		String[] frame1Headers = null;
-		H2Frame frame2 = null;
-		String[] frame2Headers = null;
-
-		try {
-			frame1 = (H2Frame) in1.getDataMaker();
-			frame1Headers = frame1.getColumnHeaders();
-			
-			frame2 = (H2Frame) in2.getDataMaker();
-			frame2Headers = frame2.getColumnHeaders();
-			
-			Map<String, String> joinCols = new HashMap<String, String>(2);
-			joinCols.put(colsForInsightsToJoin.get(0), colsForInsightsToJoin.get(1));
-			
-			H2Joiner.joinFrames(frame1, frame2, joinCols);
-			
-			// update the data id so FE knows data has been changed
-			frame1.updateDataId();
-			frame2.updateDataId();
-		} catch (ClassCastException e) {
-			System.err.println("currently can only join h2 frames...");
-			return null;			
-		} catch (Exception e) {
-			System.err.println("Join error");
-			return null;
-		}
 		
-		setDashboardData(insightsToJoin, colsForInsightsToJoin, joinType);
+//		dashboard.joinInsights(null, colsForInsightsToJoin);
+//		dashboard.addInsight(in1);
+//		dashboard.addInsight(in2);
+//		
+//		H2Frame frame1 = null;
+//		String[] frame1Headers = null;
+//		H2Frame frame2 = null;
+//		String[] frame2Headers = null;
+//
+//		try {
+////			frame1 = (H2Frame) in1.getDataMaker();
+////			frame1Headers = frame1.getColumnHeaders();
+////			
+////			frame2 = (H2Frame) in2.getDataMaker();
+////			frame2Headers = frame2.getColumnHeaders();
+////			
+////			Map<String, String> joinCols = new HashMap<String, String>(2);
+////			joinCols.put(colsForInsightsToJoin.get(0)[0], colsForInsightsToJoin.get(0)[1]);
+////			
+//////			H2Joiner.joinFrames(frame1, frame2, joinCols);
+////			H2Joiner.joinFrames(colsForInsightsToJoin, new H2Frame[]{frame1, frame2});
+////			
+////			// update the data id so FE knows data has been changed
+////			frame1.updateDataId();
+////			frame2.updateDataId();
+//		} catch (ClassCastException e) {
+//			System.err.println("currently can only join h2 frames...");
+//			return null;			
+//		} catch (Exception e) {
+//			System.err.println("Join error");
+//			return null;
+//		}
+//		
+		
 		
 		return null;
 	}
 	
-	private void setDashboardData(List<String> insightIDs, List<String> joinCols, String joinType) {
+	private Map getDashboardData(List<String> insightIDs, List<String> joinCols, String joinType) {
 		
 		List<Object> joinList = new ArrayList<>();
 		for(int i = 0; i < insightIDs.size(); i++) {
@@ -124,11 +130,15 @@ public class DashboardJoinReactor extends AbstractReactor {
 //		
 //		Map<String, Object> DashboardMap = new HashMap<>();
 //		DashboardMap.put("Dashboard", dashboardMap);
-		this.myStore.put("DashboardData", joinDataList);
+//		this.myStore.put("DashboardData", joinDataList);
+		return joins;
 	}
 	
-	private void setDashboardData2(List<String> insightIDs, List<String[]> joinCols) {
-		
+	private void setDashboardData(List<String> insightIDs, List<List<String>> joinCols, String joinType) {
+		List joinDataList = new ArrayList();
+		for(List<String> nextJoinCols : joinCols) {
+			joinDataList.add(getDashboardData(insightIDs, nextJoinCols, joinType));
+		}
+		this.myStore.put("DashboardData", joinDataList);
 	}
-
 }

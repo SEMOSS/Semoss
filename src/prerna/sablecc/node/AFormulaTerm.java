@@ -5,46 +5,46 @@ package prerna.sablecc.node;
 import prerna.sablecc.analysis.*;
 
 @SuppressWarnings("nls")
-public final class AVarTerm extends PTerm
+public final class AFormulaTerm extends PTerm
 {
-    private PVarDef _var_;
+    private PFormula _formula_;
 
-    public AVarTerm()
+    public AFormulaTerm()
     {
         // Constructor
     }
 
-    public AVarTerm(
-        @SuppressWarnings("hiding") PVarDef _var_)
+    public AFormulaTerm(
+        @SuppressWarnings("hiding") PFormula _formula_)
     {
         // Constructor
-        setVar(_var_);
+        setFormula(_formula_);
 
     }
 
     @Override
     public Object clone()
     {
-        return new AVarTerm(
-            cloneNode(this._var_));
+        return new AFormulaTerm(
+            cloneNode(this._formula_));
     }
 
     @Override
     public void apply(Switch sw)
     {
-        ((Analysis) sw).caseAVarTerm(this);
+        ((Analysis) sw).caseAFormulaTerm(this);
     }
 
-    public PVarDef getVar()
+    public PFormula getFormula()
     {
-        return this._var_;
+        return this._formula_;
     }
 
-    public void setVar(PVarDef node)
+    public void setFormula(PFormula node)
     {
-        if(this._var_ != null)
+        if(this._formula_ != null)
         {
-            this._var_.parent(null);
+            this._formula_.parent(null);
         }
 
         if(node != null)
@@ -57,23 +57,23 @@ public final class AVarTerm extends PTerm
             node.parent(this);
         }
 
-        this._var_ = node;
+        this._formula_ = node;
     }
 
     @Override
     public String toString()
     {
         return ""
-            + toString(this._var_);
+            + toString(this._formula_);
     }
 
     @Override
     void removeChild(@SuppressWarnings("unused") Node child)
     {
         // Remove child
-        if(this._var_ == child)
+        if(this._formula_ == child)
         {
-            this._var_ = null;
+            this._formula_ = null;
             return;
         }
 
@@ -84,9 +84,9 @@ public final class AVarTerm extends PTerm
     void replaceChild(@SuppressWarnings("unused") Node oldChild, @SuppressWarnings("unused") Node newChild)
     {
         // Replace child
-        if(this._var_ == oldChild)
+        if(this._formula_ == oldChild)
         {
-            setVar((PVarDef) newChild);
+            setFormula((PFormula) newChild);
             return;
         }
 
