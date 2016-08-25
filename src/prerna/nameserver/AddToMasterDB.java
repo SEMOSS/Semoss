@@ -34,7 +34,6 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Date;
-import java.util.Enumeration;
 import java.util.HashMap;
 import java.util.Hashtable;
 import java.util.Iterator;
@@ -54,10 +53,14 @@ import org.openrdf.rio.RDFHandlerException;
 import org.openrdf.rio.RDFParseException;
 import org.openrdf.rio.rdfxml.RDFXMLWriter;
 
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
+import com.google.gson.reflect.TypeToken;
+import com.hp.hpl.jena.vocabulary.RDFS;
+
 import prerna.algorithm.impl.CentralityCalculator;
 import prerna.algorithm.nlp.TextHelper;
 import prerna.engine.api.IEngine;
-import prerna.engine.api.IEngine.ACTION_TYPE;
 import prerna.engine.api.ISelectStatement;
 import prerna.engine.api.ISelectWrapper;
 import prerna.engine.impl.MetaHelper;
@@ -70,11 +73,6 @@ import prerna.ui.components.playsheets.GraphPlaySheet;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
 import prerna.util.Utility;
-
-import com.google.gson.Gson;
-import com.google.gson.GsonBuilder;
-import com.google.gson.reflect.TypeToken;
-import com.hp.hpl.jena.vocabulary.RDFS;
 
 public class AddToMasterDB extends ModifyMasterDB {
 	
@@ -233,14 +231,18 @@ public class AddToMasterDB extends ModifyMasterDB {
 			e.printStackTrace();
 		}
 		
-		try {
-			FileInputStream fis = (FileInputStream)prop.get("fis");
-			fis.close();
-		} catch (IOException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
-		
+//		FileInputStream fis = null;
+//		try {
+//			fis = (FileInputStream)prop.get("fis");
+//		} finally {
+//			if(fis != null) {
+//				try {
+//					fis.close();
+//				} catch (IOException e) {
+//					e.printStackTrace();
+//				}
+//			}
+//		}
 		// write the engine to a file
 		//tryQueries(rfse);
 		
@@ -903,8 +905,9 @@ public class AddToMasterDB extends ModifyMasterDB {
 		//String smssFile2 = "C:/users/pkapaleeswaran/workspacej3/SemossWeb/db/Churn.smss";
 		Properties prop = new Properties();
 		
+		FileInputStream fis  = null;
 		try {
-			FileInputStream fis = new FileInputStream(new File(smssFile));
+			fis = new FileInputStream(new File(smssFile));
 			prop.load(fis);
 			prop.put("fis", fis);
 			
@@ -924,6 +927,14 @@ public class AddToMasterDB extends ModifyMasterDB {
 		} catch (IOException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
+		} finally {
+			if(fis != null) {
+				try {
+					fis.close();
+				} catch (IOException e) {
+					e.printStackTrace();
+				}
+			}
 		}
 	}
 	

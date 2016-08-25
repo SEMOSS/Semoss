@@ -33,7 +33,6 @@ import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.StringWriter;
 import java.lang.reflect.InvocationTargetException;
 import java.sql.SQLException;
 import java.util.HashMap;
@@ -50,9 +49,6 @@ import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 import org.h2.jdbc.JdbcClob;
 import org.openrdf.model.vocabulary.RDFS;
-import org.openrdf.repository.RepositoryException;
-import org.openrdf.rio.RDFHandlerException;
-import org.openrdf.rio.rdfxml.RDFXMLWriter;
 
 import prerna.ds.QueryStruct;
 import prerna.engine.api.IEngine;
@@ -773,7 +769,7 @@ public abstract class AbstractEngine implements IEngine {
 			}
 			logger.debug("Deleting smss " + this.propFile);
 			File smssFile = new File(this.propFile);
-			smssFile.delete();
+			FileUtils.forceDelete(smssFile);
 
 			//remove from DIHelper
 			String engineNames = (String)DIHelper.getInstance().getLocalProp(Constants.ENGINES);
@@ -1088,7 +1084,7 @@ public abstract class AbstractEngine implements IEngine {
 				in.setInsightID(id);
 				in.setDatabaseID(id);
 				// this is a boolean that is used to determine if the insight is a "drag and drop" insight
-				in.setIsNonDbInsight(true);
+				in.setIsDbInsight(false);
 				// 3) loads insight metadata from the solr core into the insight class
 				in.loadDataFromSolr();
 				insightV.insertElementAt(in, i);
@@ -1131,7 +1127,6 @@ public abstract class AbstractEngine implements IEngine {
 				in.setPerspective(perspective);
 				in.setOrder(order);
 				in.setDataTableAlign(dataTableAlign);
-				in.setIsNonDbInsight(false);
 				// adding semoss parameters to insight
 				in.setInsightParameters(getParams(insightID));
 				
