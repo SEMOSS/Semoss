@@ -52,7 +52,8 @@ public class RDBMSFlatExcelUploader extends AbstractFileReader {
 	/*
 	 * Store the new user defined excel file names
 	 * Format for this is:
-	 * [	{
+	 * [	
+	 * 		{
 	 * 		excel_1_sheet_1 -> {
 	 * 							fixed_header_name_1 -> user_changed_header_name_1,
 	 *	 						fixed_header_name_2 -> user_changed_header_name_2,
@@ -76,6 +77,7 @@ public class RDBMSFlatExcelUploader extends AbstractFileReader {
 	 * 							fixed_header_name_6 -> user_changed_header_name_6,
 	 * 						} 
 	 * 		}
+	 * ]
 	 */
 	private List<Map<String, Map<String, String>>> userHeaderNames;
 	private Map<String, Map<String, String>> excelHeaderNames;
