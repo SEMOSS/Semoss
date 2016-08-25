@@ -70,7 +70,10 @@ public class H2Builder {
 	//all Reads will be conducted on the view when this is true, all Creates, Updates, and Deletes will affect only the mainTable
 	private boolean joinMode;
 	private String viewTableName;
-
+	Map<String, String> joinColumnTranslation;
+	
+	H2Joiner joiner;
+	
 	//specifies the join types for an H2 frame
 	public enum Join {
 		INNER("INNER JOIN"), LEFT_OUTER("LEFT OUTER JOIN"), RIGHT_OUTER("RIGHT OUTER JOIN"), FULL_OUTER("FULL OUTER JOIN"), CROSS("CROSS JOIN");
@@ -386,23 +389,65 @@ public class H2Builder {
 	}
 
 	/*************************** END CONSTRUCTORS **********************************/
+	
+    /*************************** JOIN METHODS **********************************/
+    protected void setView(String viewTable) {
+    	this.viewTableName = viewTable;
+    	this.joinMode = true;
+    }
+    
+    protected void setView(String viewTable, Map<String, String> translationMap) {
+    	this.viewTableName = viewTable;
+    	this.joinMode = true;
+    	this.joinColumnTranslation = translationMap;
+    }
+    
+    protected void setTranslationMap(Map<String, String> translationMap) {
+    	this.joinColumnTranslation = translationMap;
+    }
+    
+    protected void addTranslation(String nameInTable, String nameInView) {
+    	if(this.joinColumnTranslation == null) {
+    		this.joinColumnTranslation = new HashMap<>();
+    	}
+    	this.joinColumnTranslation.put(nameInTable, nameInView);
+    }
+    
+    protected void unJoin() {
+    	this.viewTableName = null;
+    	this.joinMode = false;
+    	this.joinColumnTranslation = null;
+    }
+    
+    protected boolean getJoinMode() {
+    	return this.joinMode;
+    }
+    
+    protected List<String> translateColumns(List<String> columns) {
+    	List<String> translatedColumns = new ArrayList<>();
+    	for(String column : columns) {
+    		translatedColumns.add(translateColumn(column));
+    	}
+    	return translatedColumns;
+    }
+    
+    protected String[] translateColumns(String[] columns) {
+    	String[] translatedColumns = new String[columns.length];
+    	for(int i = 0; i < translatedColumns.length; i++) {
+    		translatedColumns[i] = translateColumn(columns[i]);
+    	}
+    	return translatedColumns;
+    }
+    
+    protected String translateColumn(String column) {
+    	return joinColumnTranslation.get(column);
+    }
+    
+    protected void setJoiner(H2Joiner joiner) {
+    	this.joiner = joiner;
+    }
+    /*************************** END JOIN METHODS ********************************/
 
-	/*************************** JOIN METHODS **********************************/
-	protected void setView(String viewTable) {
-		this.viewTableName = viewTable;
-		this.joinMode = true;
-	}
-
-	protected void unJoin() {
-		this.viewTableName = null;
-		this.joinMode = false;
-	}
-
-	protected boolean getJoinMode() {
-		return this.joinMode;
-	}
-
-	/*************************** END JOIN METHODS ********************************/
 
 	private Object[] castToType(String input){
 		return Utility.findTypes(input);
@@ -565,8 +610,21 @@ public class H2Builder {
 
 	//get scaled version of above method
 	public List<Object[]> getScaledData(String tableName, List<String> selectors, Map<String, String> headerTypeMap, String column, Object value, Double[] maxArr, Double[] minArr) {
-		tableName = joinMode ? this.viewTableName : this.tableName;
 
+		if(joinMode) {
+			tableName = this.viewTableName;
+			selectors = translateColumns(selectors);
+			column = translateColumn(column);
+			Map<String, String> newHeaderTypeMap = new HashMap<>();
+			for(String selector : headerTypeMap.keySet()) {
+				newHeaderTypeMap.put(translateColumn(selector), headerTypeMap.get(selector));
+			}
+			headerTypeMap = newHeaderTypeMap;
+		} else {
+			
+		}
+//		tableName = joinMode ? this.viewTableName : this.tableName;
+		
 		int cindex = selectors.indexOf(column);
 		if(tableName == null) tableName = this.tableName;
 
@@ -622,7 +680,14 @@ public class H2Builder {
 	 * @return
 	 */
 	public Object[] getColumn(String columnHeader, boolean distinct) {
-		String tableName = joinMode ? this.viewTableName : this.tableName;
+		String tableName = this.tableName;
+		if(joinMode) {
+			tableName = this.viewTableName;
+			columnHeader = translateColumn(columnHeader);
+		} else {
+			
+		}
+//		String tableName = joinMode ? this.viewTableName : this.tableName;
 
 		ArrayList<Object> column = new ArrayList<>();
 
@@ -657,7 +722,14 @@ public class H2Builder {
 	 * @return
 	 */
 	public Double getStat(String columnHeader, String statType) {
-		String tableName = joinMode ? this.viewTableName : this.tableName;
+		String tableName = this.tableName;
+		if(joinMode) {
+			tableName = this.viewTableName;
+			columnHeader = translateColumn(columnHeader);
+		} else {
+			
+		}
+//		String tableName = joinMode ? this.viewTableName : this.tableName;
 		columnHeader = cleanHeader(columnHeader);
 		ResultSet rs = executeQuery(makeFunction(columnHeader, statType, tableName));
 		try {
@@ -671,7 +743,15 @@ public class H2Builder {
 	}
 
 	public Map<Map<Object, Object>, Object> getStat(String columnHeader, String statType, List<String> groupByCols) {
-		String tableName = joinMode ? this.viewTableName : this.tableName;
+		String tableName = this.tableName;
+		if(joinMode) {
+			tableName = this.viewTableName;
+			columnHeader = translateColumn(columnHeader);
+			groupByCols = translateColumns(groupByCols);
+		} else {
+			
+		}
+//		String tableName = joinMode ? this.viewTableName : this.tableName;
 		ResultSet rs = executeQuery(makeFunction(columnHeader, statType, tableName, groupByCols));
 		try {
 			Map<Map<Object, Object>, Object> results = new Hashtable<Map<Object, Object>, Object>();
@@ -923,6 +1003,7 @@ public class H2Builder {
 	 * @return
 	 */
 	private String makeFilterSubQuery(Map<String, List<Object>> filterHash, Map<String, Comparator> filterComparator) {
+		//need translation of filter here
 		String filterStatement = "";
 		if(filterHash.keySet().size() > 0) {
 
@@ -930,50 +1011,53 @@ public class H2Builder {
 			for(int x = 0; x < filteredColumns.size(); x++) {
 
 				String header = filteredColumns.get(x);
+//				String tableHeader = joinMode ? translateColumn(header) : header;
+				String tableHeader = header;
+				
 				Comparator comparator = filterComparator.get(header);
 
 				switch(comparator) {
 				case EQUAL:{
 					List<Object> filterValues = filterHash.get(header);
 					String listString = getQueryStringList(filterValues);
-					filterStatement += header+" in " + listString;
+					filterStatement += tableHeader+" in " + listString;
 					break;
 				}
 				case NOT_EQUAL: {
 					List<Object> filterValues = filterHash.get(header);
 					String listString = getQueryStringList(filterValues);
-					filterStatement += header+" not in " + listString;
+					filterStatement += tableHeader+" not in " + listString;
 					break;
 				}
 				case LESS_THAN: {
 					List<Object> filterValues = filterHash.get(header);
 					String listString = filterValues.get(0).toString();
-					filterStatement += header+" < " + listString;
+					filterStatement += tableHeader+" < " + listString;
 					break;
 				}
 				case GREATER_THAN: {
 					List<Object> filterValues = filterHash.get(header);
 					String listString = filterValues.get(0).toString();
-					filterStatement += header+" > " + listString;
+					filterStatement += tableHeader+" > " + listString;
 					break;
 				}
 				case GREATER_THAN_EQUAL: {
 					List<Object> filterValues = filterHash.get(header);
 					String listString = filterValues.get(0).toString();
-					filterStatement += header+" >= " + listString;
+					filterStatement += tableHeader+" >= " + listString;
 					break;
 				}
 				case LESS_THAN_EQUAL: {
 					List<Object> filterValues = filterHash.get(header);
 					String listString = filterValues.get(0).toString();
-					filterStatement += header+" <= " + listString;
+					filterStatement += tableHeader+" <= " + listString;
 					break;
 				}
 				default: {
 					List<Object> filterValues = filterHash.get(header);
 					String listString = getQueryStringList(filterValues);
 
-					filterStatement += header+" in " + listString;
+					filterStatement += tableHeader+" in " + listString;
 				}
 				}
 
@@ -991,8 +1075,19 @@ public class H2Builder {
 		return filterStatement;
 	}
 
+	private String makeFilterSubQuery() {
+		Map<String, Map<Comparator, Set<Object>>> filterHash;
+		if(joinMode) {
+			filterHash = joiner.getJoinedFilterHash(viewTableName);
+		} else {
+			filterHash = this.filterHash2;
+		}
+		return makeFilterSubQuery(filterHash);
+	}
+	
 	private String makeFilterSubQuery(Map<String, Map<Comparator, Set<Object>>> filterHash) {
-		if(joinMode) filterHash = H2Joiner.getJoinedFilterHash(viewTableName);
+		//need to also pass in translationMap
+		if(joinMode) filterHash = joiner.getJoinedFilterHash(viewTableName);
 
 		String filterStatement = "";
 		if(filterHash.keySet().size() > 0) {
@@ -1001,6 +1096,9 @@ public class H2Builder {
 			for(int x = 0; x < filteredColumns.size(); x++) {
 
 				String header = filteredColumns.get(x);
+//				String tableHeader = joinMode ? translateColumn(header) : header;
+				String tableHeader = header;
+				
 				Map<Comparator, Set<Object>> innerMap = filterHash.get(header);
 				int i = 0;
 				for(Comparator comparator : innerMap.keySet()) {
@@ -1012,43 +1110,43 @@ public class H2Builder {
 					case EQUAL:{
 						Set<Object> filterValues = innerMap.get(comparator);
 						String listString = getQueryStringList(filterValues);
-						filterStatement += header+" in " + listString;
+						filterStatement += tableHeader+" in " + listString;
 						break;
 					}
 					case NOT_EQUAL: {
 						Set<Object> filterValues = innerMap.get(comparator);
 						String listString = getQueryStringList(filterValues);
-						filterStatement += header+" not in " + listString;
+						filterStatement += tableHeader+" not in " + listString;
 						break;
 					}
 					case LESS_THAN: {
 						Set<Object> filterValues = innerMap.get(comparator);
 						String listString = filterValues.iterator().next().toString();
-						filterStatement += header+" < " + listString;
+						filterStatement += tableHeader+" < " + listString;
 						break;
 					}
 					case GREATER_THAN: {
 						Set<Object> filterValues = innerMap.get(comparator);
 						String listString = filterValues.iterator().next().toString();
-						filterStatement += header+" > " + listString;
+						filterStatement += tableHeader+" > " + listString;
 						break;
 					}
 					case GREATER_THAN_EQUAL: {
 						Set<Object> filterValues = innerMap.get(comparator);
 						String listString = filterValues.iterator().next().toString();
-						filterStatement += header+" >= " + listString;
+						filterStatement += tableHeader+" >= " + listString;
 						break;
 					}
 					case LESS_THAN_EQUAL: {
 						Set<Object> filterValues = innerMap.get(comparator);
 						String listString = filterValues.iterator().next().toString();
-						filterStatement += header+" <= " + listString;
+						filterStatement += tableHeader+" <= " + listString;
 						break;
 					}
 					default: {
 						Set<Object> filterValues = innerMap.get(comparator);
 						String listString = getQueryStringList(filterValues);
-						filterStatement += header+" in " + listString;
+						filterStatement += tableHeader+" in " + listString;
 					}
 
 					}
@@ -1085,15 +1183,18 @@ public class H2Builder {
 		Map<String, Map<Comparator, Set<Object>>> filterHash = this.filterHash2;
 		if(joinMode) {
 			tableName = this.viewTableName;
-			filterHash = H2Joiner.getJoinedFilterHash(viewTableName);
+			filterHash = joiner.getJoinedFilterHash(viewTableName);
 		}
 
 		Map<String, List<Object>> returnFilterMap = new HashMap<>();
 
 		try {
 			for(String selector : selectors) {
-				if(filterHash.get(selector) != null) {
-					String query = makeNotSelect(tableName, selector);
+				
+				String thisSelector = joinMode ? translateColumn(selector) : selector;
+				
+				if(filterHash.get(thisSelector) != null) {
+					String query = makeNotSelect(tableName, thisSelector, filterHash);
 					ResultSet rs = executeQuery(query);
 
 					List<Object> filterData = null;
@@ -1430,12 +1531,24 @@ public class H2Builder {
 	 * returns an iterator that returns data from the selectors
 	 */
 	public Iterator buildIterator(List<String> selectors) {
-		String tableName = joinMode ? this.viewTableName : this.tableName;
+		String tableName;
+		if(joinMode) {
+			tableName = this.viewTableName;
+			selectors = translateColumns(selectors);
+		} else {
+			tableName = this.tableName;
+		}
+//		String tableName = joinMode ? this.viewTableName : this.tableName;
 
 		try {
 			Statement stmt = getConnection().createStatement();
 			String selectQuery = makeSelect(tableName, selectors);
+			
+			long startTime = System.currentTimeMillis();
 			ResultSet rs = stmt.executeQuery(selectQuery);
+			long endTime = System.currentTimeMillis();
+			LOGGER.info("Executed Select Query on H2 FRAME: "+(endTime - startTime)+" ms");
+			
 			return new H2Iterator(rs);
 		} catch(SQLException s) {
 			s.printStackTrace();
@@ -1455,6 +1568,7 @@ public class H2Builder {
 	public Iterator buildIterator(Map<String, Object> options) {
 		String tableName = joinMode ? this.viewTableName : this.tableName;
 
+		
 		String sortDir = (String)options.get(TinkerFrame.SORT_BY_DIRECTION);
 
 		//dedup = true indicates remove duplicates
@@ -1474,6 +1588,9 @@ public class H2Builder {
 		//selectors to gather
 		List<String> selectors = (List<String>) options.get(TinkerFrame.SELECTORS);
 		selectors = cleanHeaders(selectors);
+		if(joinMode) {
+			selectors = translateColumns(selectors);
+		}
 		String selectQuery;
 
 		if(dedup) {
@@ -1503,6 +1620,9 @@ public class H2Builder {
 		if(sortBy != null) {
 
 			sortBy = cleanHeader(sortBy);
+			if(joinMode) {
+				sortBy = translateColumn(sortBy);
+			}
 			selectQuery += " sort by " + sortBy;
 			//			if(sortDir != null) {
 			//				
@@ -1515,7 +1635,10 @@ public class H2Builder {
 			selectQuery += " offset "+offset;
 		}
 
+		long startTime = System.currentTimeMillis();
 		ResultSet rs = executeQuery(selectQuery);
+		long endTime = System.currentTimeMillis();
+		LOGGER.info("Executed Select Query on H2 FRAME: "+(endTime - startTime)+" ms");
 		return new H2Iterator(rs);
 	}
 
@@ -2054,11 +2177,12 @@ public class H2Builder {
 		}
 
 		//    	String filterSubQuery = makeFilterSubQuery(this.filterHash, this.filterComparator);
-		String filterSubQuery = makeFilterSubQuery(this.filterHash2);
+		String filterSubQuery = makeFilterSubQuery();
 		selectStatement += " FROM " + tableName + filterSubQuery;
 		return selectStatement;
 	}
 
+	
 	private String makeSpecificSelect(String tableName, List<String> selectors, String columnHeader, Object value) {
 		value = cleanInstance(value.toString());
 
@@ -2079,7 +2203,7 @@ public class H2Builder {
 		//SELECT column1, column2, column3 from table1
 		selectStatement += " FROM " + tableName;
 		//		String filterSubQuery = makeFilterSubQuery(this.filterHash, this.filterComparator);
-		String filterSubQuery = makeFilterSubQuery(this.filterHash2); 
+		String filterSubQuery = makeFilterSubQuery(); 
 		if(filterSubQuery.length() > 1) {
 			selectStatement += filterSubQuery;
 			selectStatement += " AND " + columnHeader + " = " + "'"+value+"'";
@@ -2108,7 +2232,7 @@ public class H2Builder {
 		}
 
 		//    	String filterSubQuery = makeFilterSubQuery(this.filterHash, this.filterComparator);
-		String filterSubQuery = makeFilterSubQuery(this.filterHash2);
+		String filterSubQuery = makeFilterSubQuery();
 		selectStatement += " FROM " + tableName + filterSubQuery;
 
 		return selectStatement;
@@ -2123,7 +2247,7 @@ public class H2Builder {
 	 * @param selector - column to grab values from
 	 * @return
 	 */
-	private String makeNotSelect(String tableName, String selector) {
+	private String makeNotSelect(String tableName, String selector, Map<String, Map<Comparator, Set<Object>>> filterHash) {
 		String selectStatement = "SELECT DISTINCT ";
 
 		selector = cleanHeader(selector);
@@ -2131,7 +2255,7 @@ public class H2Builder {
 
 		String filterStatement = "";
 
-		Map<Comparator, Set<Object>> filterMap = filterHash2.get(selector);
+		Map<Comparator, Set<Object>> filterMap = filterHash.get(selector);
 		int i = 0;
 		//what ever is listed in the filter hash, we want the get the values that would be the logical opposite
 		//i.e. if filter hash indicates 'X < 0.9 AND X > 0.8', return 'X > =0.9 OR X <= 0.8'
@@ -2253,7 +2377,7 @@ public class H2Builder {
 		}
 
 		//    	String filterSubQuery = makeFilterSubQuery(this.filterHash, this.filterComparator);
-		String filterSubQuery = makeFilterSubQuery(this.filterHash2);
+		String filterSubQuery = makeFilterSubQuery();
 		String groupByStatement = "SELECT " + column+", "+functionString + " AS " + alias +" FROM "+tableName + filterSubQuery + " GROUP BY "+ column;
 
 		return groupByStatement;
@@ -2290,7 +2414,7 @@ public class H2Builder {
 		}
 
 		//    	String filterSubQuery = makeFilterSubQuery(this.filterHash, this.filterComparator);
-		String filterSubQuery = makeFilterSubQuery(this.filterHash2);
+		String filterSubQuery = makeFilterSubQuery();
 		String groupByStatement = "SELECT " + column1+", "+column2+", "+functionString + " AS " + alias +" FROM "+tableName + filterSubQuery + " GROUP BY "+ column1+", "+column2;
 
 		return groupByStatement;
@@ -2474,6 +2598,7 @@ public class H2Builder {
 		}
 		return null;
 	}
+	
 	public void runExternalQuery(String query) throws Exception {
 		query = query.toUpperCase().trim();
 		if(query.startsWith("CREATE VIEW")) {

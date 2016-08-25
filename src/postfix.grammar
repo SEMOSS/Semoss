@@ -94,6 +94,12 @@ Tokens
  dataconnect_token = 'data.connect';
  dataconnectdb_token = 'data.connectdb';
  
+ //dashboard_join_token = 'dashboard.join';
+ //dashboard_rem_token = 'dashboard.removeInsight'
+ //dashboard_add_token = 'dashboard.addInsight'
+ //dashboard_unjoin_token = 'dashboard.unjoin'
+ 
+ 
 Ignored Tokens
  blank;
 
@@ -125,10 +131,10 @@ colop = // colOp is usually of the form of joinColumn / addColumn / removeColumn
 		| {unfiltercol} unfilter_column
 		| {remove_data} remove_data
 		| {data_frame} data_frame
-		| {dashboard_join} dashboard_join
 		| {open_data} open_data
 		| {renamecol} rename_column
 		| {splitcol} split_column
+		| {dashboard_join} dashboard_join
 		;
 
 panelop = // panelop is usually of the form of viz.change, viz.tools, viz.color
@@ -149,7 +155,13 @@ dataop = // dataop is usually of the form of data.frame, etc.
 		| {dataconnect} dataconnect
 		| {dataconnectdb} dataconnectdb
 		;
- 
+
+//dashboardop = // dashboardop is usually of the form dashboard.join, dashboard.add, dashboard.remove, etc.
+	//	{dashboard_join} dashboard_join
+		//| {dashboard_add}
+		//| {dashboard_rem}
+		//| {dashboard_unjoin}
+		//;
 
 panel_viz = // e.g. panel.viz(bar, [c:Title, c:Budget]); panelviz( vizType, ordered headers );
 		panelviz l_par [layout]:id [c1]:comma [datatablealign]:flex_selector_row [c2]:comma? [uioptions]:map_obj? r_par
@@ -297,9 +309,10 @@ col_def = colprefix [colname]:id;
 
 table_def = table_prefix [cardinality]:number; // if you want to add runtime formulas as you take the table in - instead of waiting
 
+var_def = valprefix [valname]:id;
+
 varop = // variable operation usually takes the form of a given variable taking ID = some stuff
-		 valprefix [valname]:id equal input_or_expr
-		;
+		 var_def equal input_or_expr;
 		
 //num_csv = l_bracket decimal num_csv_group+ r_bracket; 		
 
@@ -312,6 +325,8 @@ easy_group = comma word_or_num;
 csv_table = l_bracket csv_row+ r_bracket; //[[1,3][2,4][5,6]]
 
 col_csv = l_bracket col_def col_group* r_bracket; // this is typically of the form [c:col1, c:col2, c:col3]
+
+col_table = l_bracket col_csv+ r_bracket; //[[c:col1, c:col2][c:col3, c:col4][c:col5, c:col6]]
 
 word_or_num = {num} decimal | {alpha} word |{expr} [formula]:formula ; // I need some way putting an expression here
 
@@ -328,9 +343,13 @@ csv_group = comma [csv]:word_or_num; // , 3
 expr_row = l_bracket [expr]:expr expr_group* r_bracket;
 
 dashboard_join =  // data.join("insight1", "insight2", c:Title, c:Movie_Title, inner.join);
-	join l_par [insight1]:join_group [com1]:comma [insight2]:join_group [com2]:comma [insight1_col]:col_def [com3]:comma [insight2_col]:col_def [com4]:comma [rel]:rel_type r_par;
+	join l_par [insightlist]:join_param_list [com1]:comma [joincolslist]:col_table [com2]:comma? [rel]:rel_type? r_par;
 
-join_group = {open_data} open_data | {insightid} word_or_num;
+join_param = {open_data} open_data | {insightid} word | {variable} var_def;
+
+join_group = comma join_param+;
+
+join_param_list = l_bracket join_param join_group r_bracket;
 
 j_op = // this of the pattern j:{hola, hello etc.. }
 	java codeblock;
@@ -347,7 +366,7 @@ equal_or_compare = {comparator} comparator | {equal} equal;
 
 user_input = userinput l_par [options]:term comma [selections]:word_or_num r_par;
 
-input_or_expr = {expr} expr | {input} user_input;
+input_or_expr = {expr} expr | {input} user_input; //script;
 		
  expr =
   {term} term
@@ -368,8 +387,8 @@ input_or_expr = {expr} expr | {input} user_input;
  
  term =
   {number} decimal |
-  {expr} l_par expr r_par 
-  | {var} valprefix [var]:id
+  {formula} formula
+  | {var} [var]:var_def
   | {col} [col]:col_def
   | {api} api_block
   | {tab} [tab]:table_def

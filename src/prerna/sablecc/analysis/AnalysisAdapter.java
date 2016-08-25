@@ -201,12 +201,6 @@ public class AnalysisAdapter implements Analysis
     }
 
     @Override
-    public void caseADashboardJoinColop(ADashboardJoinColop node)
-    {
-        defaultCase(node);
-    }
-
-    @Override
     public void caseAOpenDataColop(AOpenDataColop node)
     {
         defaultCase(node);
@@ -220,6 +214,12 @@ public class AnalysisAdapter implements Analysis
 
     @Override
     public void caseASplitcolColop(ASplitcolColop node)
+    {
+        defaultCase(node);
+    }
+
+    @Override
+    public void caseADashboardJoinColop(ADashboardJoinColop node)
     {
         defaultCase(node);
     }
@@ -615,6 +615,12 @@ public class AnalysisAdapter implements Analysis
     }
 
     @Override
+    public void caseAVarDef(AVarDef node)
+    {
+        defaultCase(node);
+    }
+
+    @Override
     public void caseAVarop(AVarop node)
     {
         defaultCase(node);
@@ -646,6 +652,12 @@ public class AnalysisAdapter implements Analysis
 
     @Override
     public void caseAColCsv(AColCsv node)
+    {
+        defaultCase(node);
+    }
+
+    @Override
+    public void caseAColTable(AColTable node)
     {
         defaultCase(node);
     }
@@ -723,13 +735,31 @@ public class AnalysisAdapter implements Analysis
     }
 
     @Override
-    public void caseAOpenDataJoinGroup(AOpenDataJoinGroup node)
+    public void caseAOpenDataJoinParam(AOpenDataJoinParam node)
     {
         defaultCase(node);
     }
 
     @Override
-    public void caseAInsightidJoinGroup(AInsightidJoinGroup node)
+    public void caseAInsightidJoinParam(AInsightidJoinParam node)
+    {
+        defaultCase(node);
+    }
+
+    @Override
+    public void caseAVariableJoinParam(AVariableJoinParam node)
+    {
+        defaultCase(node);
+    }
+
+    @Override
+    public void caseAJoinGroup(AJoinGroup node)
+    {
+        defaultCase(node);
+    }
+
+    @Override
+    public void caseAJoinParamList(AJoinParamList node)
     {
         defaultCase(node);
     }
@@ -861,7 +891,7 @@ public class AnalysisAdapter implements Analysis
     }
 
     @Override
-    public void caseAExprTerm(AExprTerm node)
+    public void caseAFormulaTerm(AFormulaTerm node)
     {
         defaultCase(node);
     }
