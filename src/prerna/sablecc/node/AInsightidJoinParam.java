@@ -5,46 +5,46 @@ package prerna.sablecc.node;
 import prerna.sablecc.analysis.*;
 
 @SuppressWarnings("nls")
-public final class AVarTerm extends PTerm
+public final class AInsightidJoinParam extends PJoinParam
 {
-    private PVarDef _var_;
+    private TWord _word_;
 
-    public AVarTerm()
+    public AInsightidJoinParam()
     {
         // Constructor
     }
 
-    public AVarTerm(
-        @SuppressWarnings("hiding") PVarDef _var_)
+    public AInsightidJoinParam(
+        @SuppressWarnings("hiding") TWord _word_)
     {
         // Constructor
-        setVar(_var_);
+        setWord(_word_);
 
     }
 
     @Override
     public Object clone()
     {
-        return new AVarTerm(
-            cloneNode(this._var_));
+        return new AInsightidJoinParam(
+            cloneNode(this._word_));
     }
 
     @Override
     public void apply(Switch sw)
     {
-        ((Analysis) sw).caseAVarTerm(this);
+        ((Analysis) sw).caseAInsightidJoinParam(this);
     }
 
-    public PVarDef getVar()
+    public TWord getWord()
     {
-        return this._var_;
+        return this._word_;
     }
 
-    public void setVar(PVarDef node)
+    public void setWord(TWord node)
     {
-        if(this._var_ != null)
+        if(this._word_ != null)
         {
-            this._var_.parent(null);
+            this._word_.parent(null);
         }
 
         if(node != null)
@@ -57,23 +57,23 @@ public final class AVarTerm extends PTerm
             node.parent(this);
         }
 
-        this._var_ = node;
+        this._word_ = node;
     }
 
     @Override
     public String toString()
     {
         return ""
-            + toString(this._var_);
+            + toString(this._word_);
     }
 
     @Override
     void removeChild(@SuppressWarnings("unused") Node child)
     {
         // Remove child
-        if(this._var_ == child)
+        if(this._word_ == child)
         {
-            this._var_ = null;
+            this._word_ = null;
             return;
         }
 
@@ -84,9 +84,9 @@ public final class AVarTerm extends PTerm
     void replaceChild(@SuppressWarnings("unused") Node oldChild, @SuppressWarnings("unused") Node newChild)
     {
         // Replace child
-        if(this._var_ == oldChild)
+        if(this._word_ == oldChild)
         {
-            setVar((PVarDef) newChild);
+            setWord((TWord) newChild);
             return;
         }
 

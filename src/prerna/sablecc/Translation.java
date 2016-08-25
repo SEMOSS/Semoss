@@ -8,8 +8,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Vector;
 
-import com.google.gson.Gson;
-
 import prerna.algorithm.api.ITableDataFrame;
 import prerna.ds.TinkerFrame;
 import prerna.engine.api.IScriptReactor;
@@ -23,6 +21,7 @@ import prerna.sablecc.node.AApiImportBlock;
 import prerna.sablecc.node.AApiTerm;
 import prerna.sablecc.node.AColCsv;
 import prerna.sablecc.node.AColDef;
+import prerna.sablecc.node.AColTable;
 import prerna.sablecc.node.AColWhere;
 import prerna.sablecc.node.AColopScript;
 import prerna.sablecc.node.AConfiguration;
@@ -44,6 +43,7 @@ import prerna.sablecc.node.AFilterColumn;
 import prerna.sablecc.node.AFlexSelectorRow;
 import prerna.sablecc.node.AHelpScript;
 import prerna.sablecc.node.AImportData;
+import prerna.sablecc.node.AInsightidJoinParam;
 import prerna.sablecc.node.AKeyvalue;
 import prerna.sablecc.node.AMathFun;
 import prerna.sablecc.node.AMathFunTerm;
@@ -54,6 +54,7 @@ import prerna.sablecc.node.AMultExpr;
 import prerna.sablecc.node.ANumWordOrNum;
 import prerna.sablecc.node.ANumberTerm;
 import prerna.sablecc.node.AOpenData;
+import prerna.sablecc.node.AOpenDataJoinParam;
 import prerna.sablecc.node.APanelClone;
 import prerna.sablecc.node.APanelClose;
 import prerna.sablecc.node.APanelComment;
@@ -76,13 +77,17 @@ import prerna.sablecc.node.ATermExpr;
 import prerna.sablecc.node.ATermGroup;
 import prerna.sablecc.node.AUnfilterColumn;
 import prerna.sablecc.node.AUserInput;
+import prerna.sablecc.node.AVarDef;
 import prerna.sablecc.node.AVarTerm;
+import prerna.sablecc.node.AVariableJoinParam;
 import prerna.sablecc.node.AVarop;
 import prerna.sablecc.node.AVaropScript;
 import prerna.sablecc.node.Node;
 import prerna.sablecc.node.PScript;
 import prerna.ui.components.playsheets.datamakers.IDataMaker;
 import prerna.util.Constants;
+
+import com.google.gson.Gson;
 
 public class Translation extends DepthFirstAdapter {
 	// this is the third version of this shit I am building
@@ -625,6 +630,51 @@ public class Translation extends DepthFirstAdapter {
 
 	//**************************************** END PANEL OPERATIONS **********************************************//
 
+	//**************************************** START JOIN OPERATIONS **********************************************//
+	@Override
+	public void outAOpenDataJoinParam(AOpenDataJoinParam node)
+	{
+		String insightID = (String)curReactor.getValue(PKQLEnum.OPEN_DATA);
+		curReactor.set(PKQLEnum.JOIN_PARAM, insightID);
+	}
+	@Override
+	public void outAInsightidJoinParam(AInsightidJoinParam node)
+	{
+		String insightID = node.getWord().toString().trim();
+		String cleanedInsightID = insightID.substring(1, insightID.length()-1);
+		curReactor.set(PKQLEnum.JOIN_PARAM, cleanedInsightID);
+	}
+	@Override
+	public void outAVariableJoinParam(AVariableJoinParam node)
+	{
+		String varName = (String)curReactor.getValue(PKQLReactor.VAR.toString());
+		String insightID = (String)runner.getVariableValue(varName);
+		curReactor.set(PKQLEnum.JOIN_PARAM, insightID);
+	}
+	
+	public void inADashboardJoin(ADashboardJoin node)
+	{
+		System.out.println("Have dashboard join as " + node);
+		if(reactorNames.containsKey(PKQLEnum.DASHBOARD_JOIN)) {
+			initReactor(PKQLEnum.DASHBOARD_JOIN);
+			String nodeStr = node + "";
+			curReactor.put(PKQLEnum.DASHBOARD_JOIN, nodeStr.trim());
+			// rel type is a token, not a production, so no in/out to add it to the reactor
+			// need to add it here
+			curReactor.put(PKQLEnum.REL_TYPE, node.getRel().toString().trim());
+		}
+	}
+	public void outADashboardJoin(ADashboardJoin node)
+	{
+		String nodeStr = node.toString().trim();
+		IScriptReactor thisReactor = curReactor;
+		curReactor.put("G", this.frame);
+		Hashtable <String, Object> thisReactorHash = deinitReactor(PKQLEnum.DASHBOARD_JOIN, nodeStr, PKQLEnum.DASHBOARD_JOIN);
+		runner.setDashBoardData(thisReactor.getValue("DashboardData"));
+	}
+
+//**************************************** END JOIN OPERATIONS **********************************************//
+
 	@Override
 	public void inADataFrame(ADataFrame node) {
 		if(reactorNames.containsKey(PKQLEnum.DATA_FRAME)) {
@@ -785,6 +835,14 @@ public class Translation extends DepthFirstAdapter {
 	}
 
 	@Override
+	public void inAVarDef(AVarDef node) {
+		String valName = node.getValname().toString().trim();
+		// adding to the reactor
+		curReactor.set(PKQLReactor.VAR.toString(), valName);
+		curReactor.addReplacer((node + "").trim(), valName);
+    }
+	
+	@Override
 	public void inAFlexSelectorRow(AFlexSelectorRow node) {
 		// adding to the reactor
 		curReactor.set("TERM", node.getTerm()+"");
@@ -918,11 +976,7 @@ public class Translation extends DepthFirstAdapter {
 	@Override
 	public void inAOpenData(AOpenData node)
 	{
-		if(reactorNames.containsKey(PKQLEnum.OPEN_DATA)) {
-			initReactor(PKQLEnum.OPEN_DATA);
-			String nodeStr = node.toString().trim();
-			curReactor.put(PKQLEnum.OPEN_DATA, nodeStr);
-		}
+		initReactor(PKQLEnum.OPEN_DATA);
 	}
 
 	@Override
@@ -931,10 +985,10 @@ public class Translation extends DepthFirstAdapter {
 		String nodeOpen = node.getDataopentoken().toString().trim();
 		String nodeStr = node.toString().trim();
 		curReactor.put(PKQLEnum.EXPR_TERM, nodeOpen);
-		Object o = curReactor.getValue(PKQLEnum.OPEN_DATA+"insightID");
+		Object o = curReactor.getValue(PKQLEnum.OPEN_DATA);
 		Hashtable <String, Object> thisReactorHash = deinitReactor(PKQLEnum.OPEN_DATA, nodeOpen, nodeStr);
 		IScriptReactor previousReactor = (IScriptReactor)thisReactorHash.get(PKQLEnum.OPEN_DATA);
-		curReactor.set(PKQLEnum.OPEN_DATA+"insightid", previousReactor.getValue(PKQLEnum.OPEN_DATA+"insightid"));
+		curReactor.set(PKQLEnum.OPEN_DATA+"insightid", previousReactor.getValue(PKQLEnum.OPEN_DATA));
 		//		runner.setNewInsightID(previousReactor.getValue(PKQLEnum.OPEN_DATA).toString());
 	}
 
@@ -966,7 +1020,7 @@ public class Translation extends DepthFirstAdapter {
 	@Override
 	public void inAVarop(AVarop node){
 		if(reactorNames.containsKey(PKQLReactor.VAR.toString())) {
-			String varName = (node.getValname() + "").trim();
+			String varName = (node.getVarDef() + "").trim();
 			String expr = (node.getInputOrExpr() + "").trim();
 
 			initReactor(PKQLReactor.VAR.toString());
@@ -1247,7 +1301,11 @@ public class Translation extends DepthFirstAdapter {
 	@Override
 	public void outAColCsv(AColCsv node) {
 		String thisNode = node.toString().trim();
-		Hashtable <String, Object> thisReactorHash = deinitReactor(PKQLEnum.COL_CSV, thisNode, PKQLEnum.COL_CSV);
+		if(node.parent() != null && node.parent() instanceof AColTable) {
+			deinitReactor(PKQLEnum.COL_CSV, thisNode, PKQLEnum.COL_CSV, false);
+		} else {
+			deinitReactor(PKQLEnum.COL_CSV, thisNode, PKQLEnum.COL_CSV);
+		}
 
 	}
 
@@ -1323,30 +1381,6 @@ public class Translation extends DepthFirstAdapter {
 			synchronizeValues(PKQLEnum.PASTED_DATA, values2Sync, thisReactor);
 		}
 	}
-
-	public void inADashboardJoin(ADashboardJoin node)
-	{
-		System.out.println("Have dashboard join as " + node);
-		if(reactorNames.containsKey(PKQLEnum.DASHBOARD_JOIN)) {
-			initReactor(PKQLEnum.DASHBOARD_JOIN);
-			String nodeStr = node + "";
-			curReactor.put(PKQLEnum.DASHBOARD_JOIN, nodeStr.trim());
-			// rel type is a token, not a production, so no in/out to add it to the reactor
-			// need to add it here
-			curReactor.put(PKQLEnum.REL_TYPE, node.getRel().toString().trim());
-		}
-	}
-
-	public void outADashboardJoin(ADashboardJoin node)
-	{
-		String nodeStr = node.toString().trim();
-		IScriptReactor thisReactor = curReactor;
-		curReactor.put("G", this.frame);
-		Hashtable <String, Object> thisReactorHash = deinitReactor(PKQLEnum.DASHBOARD_JOIN, nodeStr, PKQLEnum.DASHBOARD_JOIN);
-		runner.setDashBoardData(thisReactor.getValue("DashboardData"));
-		
-	}
-
 
 	public IDataMaker getDataFrame() {
 		if(this.curReactor!=null){
