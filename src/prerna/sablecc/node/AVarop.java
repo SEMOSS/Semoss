@@ -7,8 +7,7 @@ import prerna.sablecc.analysis.*;
 @SuppressWarnings("nls")
 public final class AVarop extends PVarop
 {
-    private TValprefix _valprefix_;
-    private TId _valname_;
+    private PVarDef _varDef_;
     private TEqual _equal_;
     private PInputOrExpr _inputOrExpr_;
 
@@ -18,15 +17,12 @@ public final class AVarop extends PVarop
     }
 
     public AVarop(
-        @SuppressWarnings("hiding") TValprefix _valprefix_,
-        @SuppressWarnings("hiding") TId _valname_,
+        @SuppressWarnings("hiding") PVarDef _varDef_,
         @SuppressWarnings("hiding") TEqual _equal_,
         @SuppressWarnings("hiding") PInputOrExpr _inputOrExpr_)
     {
         // Constructor
-        setValprefix(_valprefix_);
-
-        setValname(_valname_);
+        setVarDef(_varDef_);
 
         setEqual(_equal_);
 
@@ -38,8 +34,7 @@ public final class AVarop extends PVarop
     public Object clone()
     {
         return new AVarop(
-            cloneNode(this._valprefix_),
-            cloneNode(this._valname_),
+            cloneNode(this._varDef_),
             cloneNode(this._equal_),
             cloneNode(this._inputOrExpr_));
     }
@@ -50,16 +45,16 @@ public final class AVarop extends PVarop
         ((Analysis) sw).caseAVarop(this);
     }
 
-    public TValprefix getValprefix()
+    public PVarDef getVarDef()
     {
-        return this._valprefix_;
+        return this._varDef_;
     }
 
-    public void setValprefix(TValprefix node)
+    public void setVarDef(PVarDef node)
     {
-        if(this._valprefix_ != null)
+        if(this._varDef_ != null)
         {
-            this._valprefix_.parent(null);
+            this._varDef_.parent(null);
         }
 
         if(node != null)
@@ -72,32 +67,7 @@ public final class AVarop extends PVarop
             node.parent(this);
         }
 
-        this._valprefix_ = node;
-    }
-
-    public TId getValname()
-    {
-        return this._valname_;
-    }
-
-    public void setValname(TId node)
-    {
-        if(this._valname_ != null)
-        {
-            this._valname_.parent(null);
-        }
-
-        if(node != null)
-        {
-            if(node.parent() != null)
-            {
-                node.parent().removeChild(node);
-            }
-
-            node.parent(this);
-        }
-
-        this._valname_ = node;
+        this._varDef_ = node;
     }
 
     public TEqual getEqual()
@@ -154,8 +124,7 @@ public final class AVarop extends PVarop
     public String toString()
     {
         return ""
-            + toString(this._valprefix_)
-            + toString(this._valname_)
+            + toString(this._varDef_)
             + toString(this._equal_)
             + toString(this._inputOrExpr_);
     }
@@ -164,15 +133,9 @@ public final class AVarop extends PVarop
     void removeChild(@SuppressWarnings("unused") Node child)
     {
         // Remove child
-        if(this._valprefix_ == child)
+        if(this._varDef_ == child)
         {
-            this._valprefix_ = null;
-            return;
-        }
-
-        if(this._valname_ == child)
-        {
-            this._valname_ = null;
+            this._varDef_ = null;
             return;
         }
 
@@ -195,15 +158,9 @@ public final class AVarop extends PVarop
     void replaceChild(@SuppressWarnings("unused") Node oldChild, @SuppressWarnings("unused") Node newChild)
     {
         // Replace child
-        if(this._valprefix_ == oldChild)
+        if(this._varDef_ == oldChild)
         {
-            setValprefix((TValprefix) newChild);
-            return;
-        }
-
-        if(this._valname_ == oldChild)
-        {
-            setValname((TId) newChild);
+            setVarDef((PVarDef) newChild);
             return;
         }
 

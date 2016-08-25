@@ -505,27 +505,6 @@ public class ReversedDepthFirstAdapter extends AnalysisAdapter
         outADataFrameColop(node);
     }
 
-    public void inADashboardJoinColop(ADashboardJoinColop node)
-    {
-        defaultIn(node);
-    }
-
-    public void outADashboardJoinColop(ADashboardJoinColop node)
-    {
-        defaultOut(node);
-    }
-
-    @Override
-    public void caseADashboardJoinColop(ADashboardJoinColop node)
-    {
-        inADashboardJoinColop(node);
-        if(node.getDashboardJoin() != null)
-        {
-            node.getDashboardJoin().apply(this);
-        }
-        outADashboardJoinColop(node);
-    }
-
     public void inAOpenDataColop(AOpenDataColop node)
     {
         defaultIn(node);
@@ -587,6 +566,27 @@ public class ReversedDepthFirstAdapter extends AnalysisAdapter
             node.getSplitColumn().apply(this);
         }
         outASplitcolColop(node);
+    }
+
+    public void inADashboardJoinColop(ADashboardJoinColop node)
+    {
+        defaultIn(node);
+    }
+
+    public void outADashboardJoinColop(ADashboardJoinColop node)
+    {
+        defaultOut(node);
+    }
+
+    @Override
+    public void caseADashboardJoinColop(ADashboardJoinColop node)
+    {
+        inADashboardJoinColop(node);
+        if(node.getDashboardJoin() != null)
+        {
+            node.getDashboardJoin().apply(this);
+        }
+        outADashboardJoinColop(node);
     }
 
     public void inAPanelVizPanelop(APanelVizPanelop node)
@@ -2650,6 +2650,31 @@ public class ReversedDepthFirstAdapter extends AnalysisAdapter
         outATableDef(node);
     }
 
+    public void inAVarDef(AVarDef node)
+    {
+        defaultIn(node);
+    }
+
+    public void outAVarDef(AVarDef node)
+    {
+        defaultOut(node);
+    }
+
+    @Override
+    public void caseAVarDef(AVarDef node)
+    {
+        inAVarDef(node);
+        if(node.getValname() != null)
+        {
+            node.getValname().apply(this);
+        }
+        if(node.getValprefix() != null)
+        {
+            node.getValprefix().apply(this);
+        }
+        outAVarDef(node);
+    }
+
     public void inAVarop(AVarop node)
     {
         defaultIn(node);
@@ -2672,13 +2697,9 @@ public class ReversedDepthFirstAdapter extends AnalysisAdapter
         {
             node.getEqual().apply(this);
         }
-        if(node.getValname() != null)
+        if(node.getVarDef() != null)
         {
-            node.getValname().apply(this);
-        }
-        if(node.getValprefix() != null)
-        {
-            node.getValprefix().apply(this);
+            node.getVarDef().apply(this);
         }
         outAVarop(node);
     }
@@ -2846,6 +2867,39 @@ public class ReversedDepthFirstAdapter extends AnalysisAdapter
             node.getLBracket().apply(this);
         }
         outAColCsv(node);
+    }
+
+    public void inAColTable(AColTable node)
+    {
+        defaultIn(node);
+    }
+
+    public void outAColTable(AColTable node)
+    {
+        defaultOut(node);
+    }
+
+    @Override
+    public void caseAColTable(AColTable node)
+    {
+        inAColTable(node);
+        if(node.getRBracket() != null)
+        {
+            node.getRBracket().apply(this);
+        }
+        {
+            List<PColCsv> copy = new ArrayList<PColCsv>(node.getColCsv());
+            Collections.reverse(copy);
+            for(PColCsv e : copy)
+            {
+                e.apply(this);
+            }
+        }
+        if(node.getLBracket() != null)
+        {
+            node.getLBracket().apply(this);
+        }
+        outAColTable(node);
     }
 
     public void inANumWordOrNum(ANumWordOrNum node)
@@ -3149,37 +3203,21 @@ public class ReversedDepthFirstAdapter extends AnalysisAdapter
         {
             node.getRel().apply(this);
         }
-        if(node.getCom4() != null)
-        {
-            node.getCom4().apply(this);
-        }
-        if(node.getInsight2Col() != null)
-        {
-            node.getInsight2Col().apply(this);
-        }
-        if(node.getCom3() != null)
-        {
-            node.getCom3().apply(this);
-        }
-        if(node.getInsight1Col() != null)
-        {
-            node.getInsight1Col().apply(this);
-        }
         if(node.getCom2() != null)
         {
             node.getCom2().apply(this);
         }
-        if(node.getInsight2() != null)
+        if(node.getJoincolslist() != null)
         {
-            node.getInsight2().apply(this);
+            node.getJoincolslist().apply(this);
         }
         if(node.getCom1() != null)
         {
             node.getCom1().apply(this);
         }
-        if(node.getInsight1() != null)
+        if(node.getInsightlist() != null)
         {
-            node.getInsight1().apply(this);
+            node.getInsightlist().apply(this);
         }
         if(node.getLPar() != null)
         {
@@ -3192,46 +3230,129 @@ public class ReversedDepthFirstAdapter extends AnalysisAdapter
         outADashboardJoin(node);
     }
 
-    public void inAOpenDataJoinGroup(AOpenDataJoinGroup node)
+    public void inAOpenDataJoinParam(AOpenDataJoinParam node)
     {
         defaultIn(node);
     }
 
-    public void outAOpenDataJoinGroup(AOpenDataJoinGroup node)
+    public void outAOpenDataJoinParam(AOpenDataJoinParam node)
     {
         defaultOut(node);
     }
 
     @Override
-    public void caseAOpenDataJoinGroup(AOpenDataJoinGroup node)
+    public void caseAOpenDataJoinParam(AOpenDataJoinParam node)
     {
-        inAOpenDataJoinGroup(node);
+        inAOpenDataJoinParam(node);
         if(node.getOpenData() != null)
         {
             node.getOpenData().apply(this);
         }
-        outAOpenDataJoinGroup(node);
+        outAOpenDataJoinParam(node);
     }
 
-    public void inAInsightidJoinGroup(AInsightidJoinGroup node)
+    public void inAInsightidJoinParam(AInsightidJoinParam node)
     {
         defaultIn(node);
     }
 
-    public void outAInsightidJoinGroup(AInsightidJoinGroup node)
+    public void outAInsightidJoinParam(AInsightidJoinParam node)
     {
         defaultOut(node);
     }
 
     @Override
-    public void caseAInsightidJoinGroup(AInsightidJoinGroup node)
+    public void caseAInsightidJoinParam(AInsightidJoinParam node)
     {
-        inAInsightidJoinGroup(node);
-        if(node.getWordOrNum() != null)
+        inAInsightidJoinParam(node);
+        if(node.getWord() != null)
         {
-            node.getWordOrNum().apply(this);
+            node.getWord().apply(this);
         }
-        outAInsightidJoinGroup(node);
+        outAInsightidJoinParam(node);
+    }
+
+    public void inAVariableJoinParam(AVariableJoinParam node)
+    {
+        defaultIn(node);
+    }
+
+    public void outAVariableJoinParam(AVariableJoinParam node)
+    {
+        defaultOut(node);
+    }
+
+    @Override
+    public void caseAVariableJoinParam(AVariableJoinParam node)
+    {
+        inAVariableJoinParam(node);
+        if(node.getVarDef() != null)
+        {
+            node.getVarDef().apply(this);
+        }
+        outAVariableJoinParam(node);
+    }
+
+    public void inAJoinGroup(AJoinGroup node)
+    {
+        defaultIn(node);
+    }
+
+    public void outAJoinGroup(AJoinGroup node)
+    {
+        defaultOut(node);
+    }
+
+    @Override
+    public void caseAJoinGroup(AJoinGroup node)
+    {
+        inAJoinGroup(node);
+        {
+            List<PJoinParam> copy = new ArrayList<PJoinParam>(node.getJoinParam());
+            Collections.reverse(copy);
+            for(PJoinParam e : copy)
+            {
+                e.apply(this);
+            }
+        }
+        if(node.getComma() != null)
+        {
+            node.getComma().apply(this);
+        }
+        outAJoinGroup(node);
+    }
+
+    public void inAJoinParamList(AJoinParamList node)
+    {
+        defaultIn(node);
+    }
+
+    public void outAJoinParamList(AJoinParamList node)
+    {
+        defaultOut(node);
+    }
+
+    @Override
+    public void caseAJoinParamList(AJoinParamList node)
+    {
+        inAJoinParamList(node);
+        if(node.getRBracket() != null)
+        {
+            node.getRBracket().apply(this);
+        }
+        if(node.getJoinGroup() != null)
+        {
+            node.getJoinGroup().apply(this);
+        }
+        if(node.getJoinParam() != null)
+        {
+            node.getJoinParam().apply(this);
+        }
+        if(node.getLBracket() != null)
+        {
+            node.getLBracket().apply(this);
+        }
+        outAJoinParamList(node);
     }
 
     public void inAJOp(AJOp node)
@@ -3811,33 +3932,25 @@ public class ReversedDepthFirstAdapter extends AnalysisAdapter
         outANumberTerm(node);
     }
 
-    public void inAExprTerm(AExprTerm node)
+    public void inAFormulaTerm(AFormulaTerm node)
     {
         defaultIn(node);
     }
 
-    public void outAExprTerm(AExprTerm node)
+    public void outAFormulaTerm(AFormulaTerm node)
     {
         defaultOut(node);
     }
 
     @Override
-    public void caseAExprTerm(AExprTerm node)
+    public void caseAFormulaTerm(AFormulaTerm node)
     {
-        inAExprTerm(node);
-        if(node.getRPar() != null)
+        inAFormulaTerm(node);
+        if(node.getFormula() != null)
         {
-            node.getRPar().apply(this);
+            node.getFormula().apply(this);
         }
-        if(node.getExpr() != null)
-        {
-            node.getExpr().apply(this);
-        }
-        if(node.getLPar() != null)
-        {
-            node.getLPar().apply(this);
-        }
-        outAExprTerm(node);
+        outAFormulaTerm(node);
     }
 
     public void inAVarTerm(AVarTerm node)
@@ -3857,10 +3970,6 @@ public class ReversedDepthFirstAdapter extends AnalysisAdapter
         if(node.getVar() != null)
         {
             node.getVar().apply(this);
-        }
-        if(node.getValprefix() != null)
-        {
-            node.getValprefix().apply(this);
         }
         outAVarTerm(node);
     }

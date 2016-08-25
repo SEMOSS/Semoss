@@ -9,14 +9,10 @@ public final class ADashboardJoin extends PDashboardJoin
 {
     private TJoin _join_;
     private TLPar _lPar_;
-    private PJoinGroup _insight1_;
+    private PJoinParamList _insightlist_;
     private TComma _com1_;
-    private PJoinGroup _insight2_;
+    private PColTable _joincolslist_;
     private TComma _com2_;
-    private PColDef _insight1Col_;
-    private TComma _com3_;
-    private PColDef _insight2Col_;
-    private TComma _com4_;
     private TRelType _rel_;
     private TRPar _rPar_;
 
@@ -28,14 +24,10 @@ public final class ADashboardJoin extends PDashboardJoin
     public ADashboardJoin(
         @SuppressWarnings("hiding") TJoin _join_,
         @SuppressWarnings("hiding") TLPar _lPar_,
-        @SuppressWarnings("hiding") PJoinGroup _insight1_,
+        @SuppressWarnings("hiding") PJoinParamList _insightlist_,
         @SuppressWarnings("hiding") TComma _com1_,
-        @SuppressWarnings("hiding") PJoinGroup _insight2_,
+        @SuppressWarnings("hiding") PColTable _joincolslist_,
         @SuppressWarnings("hiding") TComma _com2_,
-        @SuppressWarnings("hiding") PColDef _insight1Col_,
-        @SuppressWarnings("hiding") TComma _com3_,
-        @SuppressWarnings("hiding") PColDef _insight2Col_,
-        @SuppressWarnings("hiding") TComma _com4_,
         @SuppressWarnings("hiding") TRelType _rel_,
         @SuppressWarnings("hiding") TRPar _rPar_)
     {
@@ -44,21 +36,13 @@ public final class ADashboardJoin extends PDashboardJoin
 
         setLPar(_lPar_);
 
-        setInsight1(_insight1_);
+        setInsightlist(_insightlist_);
 
         setCom1(_com1_);
 
-        setInsight2(_insight2_);
+        setJoincolslist(_joincolslist_);
 
         setCom2(_com2_);
-
-        setInsight1Col(_insight1Col_);
-
-        setCom3(_com3_);
-
-        setInsight2Col(_insight2Col_);
-
-        setCom4(_com4_);
 
         setRel(_rel_);
 
@@ -72,14 +56,10 @@ public final class ADashboardJoin extends PDashboardJoin
         return new ADashboardJoin(
             cloneNode(this._join_),
             cloneNode(this._lPar_),
-            cloneNode(this._insight1_),
+            cloneNode(this._insightlist_),
             cloneNode(this._com1_),
-            cloneNode(this._insight2_),
+            cloneNode(this._joincolslist_),
             cloneNode(this._com2_),
-            cloneNode(this._insight1Col_),
-            cloneNode(this._com3_),
-            cloneNode(this._insight2Col_),
-            cloneNode(this._com4_),
             cloneNode(this._rel_),
             cloneNode(this._rPar_));
     }
@@ -140,16 +120,16 @@ public final class ADashboardJoin extends PDashboardJoin
         this._lPar_ = node;
     }
 
-    public PJoinGroup getInsight1()
+    public PJoinParamList getInsightlist()
     {
-        return this._insight1_;
+        return this._insightlist_;
     }
 
-    public void setInsight1(PJoinGroup node)
+    public void setInsightlist(PJoinParamList node)
     {
-        if(this._insight1_ != null)
+        if(this._insightlist_ != null)
         {
-            this._insight1_.parent(null);
+            this._insightlist_.parent(null);
         }
 
         if(node != null)
@@ -162,7 +142,7 @@ public final class ADashboardJoin extends PDashboardJoin
             node.parent(this);
         }
 
-        this._insight1_ = node;
+        this._insightlist_ = node;
     }
 
     public TComma getCom1()
@@ -190,16 +170,16 @@ public final class ADashboardJoin extends PDashboardJoin
         this._com1_ = node;
     }
 
-    public PJoinGroup getInsight2()
+    public PColTable getJoincolslist()
     {
-        return this._insight2_;
+        return this._joincolslist_;
     }
 
-    public void setInsight2(PJoinGroup node)
+    public void setJoincolslist(PColTable node)
     {
-        if(this._insight2_ != null)
+        if(this._joincolslist_ != null)
         {
-            this._insight2_.parent(null);
+            this._joincolslist_.parent(null);
         }
 
         if(node != null)
@@ -212,7 +192,7 @@ public final class ADashboardJoin extends PDashboardJoin
             node.parent(this);
         }
 
-        this._insight2_ = node;
+        this._joincolslist_ = node;
     }
 
     public TComma getCom2()
@@ -238,106 +218,6 @@ public final class ADashboardJoin extends PDashboardJoin
         }
 
         this._com2_ = node;
-    }
-
-    public PColDef getInsight1Col()
-    {
-        return this._insight1Col_;
-    }
-
-    public void setInsight1Col(PColDef node)
-    {
-        if(this._insight1Col_ != null)
-        {
-            this._insight1Col_.parent(null);
-        }
-
-        if(node != null)
-        {
-            if(node.parent() != null)
-            {
-                node.parent().removeChild(node);
-            }
-
-            node.parent(this);
-        }
-
-        this._insight1Col_ = node;
-    }
-
-    public TComma getCom3()
-    {
-        return this._com3_;
-    }
-
-    public void setCom3(TComma node)
-    {
-        if(this._com3_ != null)
-        {
-            this._com3_.parent(null);
-        }
-
-        if(node != null)
-        {
-            if(node.parent() != null)
-            {
-                node.parent().removeChild(node);
-            }
-
-            node.parent(this);
-        }
-
-        this._com3_ = node;
-    }
-
-    public PColDef getInsight2Col()
-    {
-        return this._insight2Col_;
-    }
-
-    public void setInsight2Col(PColDef node)
-    {
-        if(this._insight2Col_ != null)
-        {
-            this._insight2Col_.parent(null);
-        }
-
-        if(node != null)
-        {
-            if(node.parent() != null)
-            {
-                node.parent().removeChild(node);
-            }
-
-            node.parent(this);
-        }
-
-        this._insight2Col_ = node;
-    }
-
-    public TComma getCom4()
-    {
-        return this._com4_;
-    }
-
-    public void setCom4(TComma node)
-    {
-        if(this._com4_ != null)
-        {
-            this._com4_.parent(null);
-        }
-
-        if(node != null)
-        {
-            if(node.parent() != null)
-            {
-                node.parent().removeChild(node);
-            }
-
-            node.parent(this);
-        }
-
-        this._com4_ = node;
     }
 
     public TRelType getRel()
@@ -396,14 +276,10 @@ public final class ADashboardJoin extends PDashboardJoin
         return ""
             + toString(this._join_)
             + toString(this._lPar_)
-            + toString(this._insight1_)
+            + toString(this._insightlist_)
             + toString(this._com1_)
-            + toString(this._insight2_)
+            + toString(this._joincolslist_)
             + toString(this._com2_)
-            + toString(this._insight1Col_)
-            + toString(this._com3_)
-            + toString(this._insight2Col_)
-            + toString(this._com4_)
             + toString(this._rel_)
             + toString(this._rPar_);
     }
@@ -424,9 +300,9 @@ public final class ADashboardJoin extends PDashboardJoin
             return;
         }
 
-        if(this._insight1_ == child)
+        if(this._insightlist_ == child)
         {
-            this._insight1_ = null;
+            this._insightlist_ = null;
             return;
         }
 
@@ -436,39 +312,15 @@ public final class ADashboardJoin extends PDashboardJoin
             return;
         }
 
-        if(this._insight2_ == child)
+        if(this._joincolslist_ == child)
         {
-            this._insight2_ = null;
+            this._joincolslist_ = null;
             return;
         }
 
         if(this._com2_ == child)
         {
             this._com2_ = null;
-            return;
-        }
-
-        if(this._insight1Col_ == child)
-        {
-            this._insight1Col_ = null;
-            return;
-        }
-
-        if(this._com3_ == child)
-        {
-            this._com3_ = null;
-            return;
-        }
-
-        if(this._insight2Col_ == child)
-        {
-            this._insight2Col_ = null;
-            return;
-        }
-
-        if(this._com4_ == child)
-        {
-            this._com4_ = null;
             return;
         }
 
@@ -503,9 +355,9 @@ public final class ADashboardJoin extends PDashboardJoin
             return;
         }
 
-        if(this._insight1_ == oldChild)
+        if(this._insightlist_ == oldChild)
         {
-            setInsight1((PJoinGroup) newChild);
+            setInsightlist((PJoinParamList) newChild);
             return;
         }
 
@@ -515,39 +367,15 @@ public final class ADashboardJoin extends PDashboardJoin
             return;
         }
 
-        if(this._insight2_ == oldChild)
+        if(this._joincolslist_ == oldChild)
         {
-            setInsight2((PJoinGroup) newChild);
+            setJoincolslist((PColTable) newChild);
             return;
         }
 
         if(this._com2_ == oldChild)
         {
             setCom2((TComma) newChild);
-            return;
-        }
-
-        if(this._insight1Col_ == oldChild)
-        {
-            setInsight1Col((PColDef) newChild);
-            return;
-        }
-
-        if(this._com3_ == oldChild)
-        {
-            setCom3((TComma) newChild);
-            return;
-        }
-
-        if(this._insight2Col_ == oldChild)
-        {
-            setInsight2Col((PColDef) newChild);
-            return;
-        }
-
-        if(this._com4_ == oldChild)
-        {
-            setCom4((TComma) newChild);
             return;
         }
 
