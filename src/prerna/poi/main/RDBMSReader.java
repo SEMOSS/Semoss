@@ -93,7 +93,6 @@ public class RDBMSReader extends AbstractCSVFileReader {
 			{
 				try {
 					String fileName = files[i];
-
 					// open the csv file
 					// and get the headers
 					openCSVFile(fileName);
