@@ -1000,9 +1000,16 @@ public class Utility {
 			FileTime ft = bfa.lastModifiedTime();
 			DateFormat df = SolrIndexEngine.getDateFormat();
 			engineDbTime = df.format(ft.toMillis());
-		}catch(Exception ex)
-		{
+		} catch(Exception ex) {
 			ex.printStackTrace();
+		} finally {
+			if(fis != null) {
+				try {
+					fis.close();
+				} catch (IOException e) {
+					e.printStackTrace();
+				}
+			}
 		}
 
 		// make the engine compare if this is valid
@@ -2820,13 +2827,21 @@ public class Utility {
 		Properties prop = new Properties();
 		String baseFolder = DIHelper.getInstance().getProperty("BaseFolder");
 		
+		FileInputStream fis = null;
 		try {
-			FileInputStream fis = new FileInputStream(engineFile);
+			fis = new FileInputStream(engineFile);
 			prop.load(fis);
 			prop.put("fis", fis);
-		}catch(Exception ex)
-		{
+		} catch(Exception ex) {
 			ex.printStackTrace();
+		} finally {
+			if(fis != null) {
+				try {
+					fis.close();
+				} catch (IOException e) {
+					e.printStackTrace();
+				}
+			}
 		}
 		
 		String owlFileName = baseFolder + "/" + prop.getProperty(Constants.OWL);
