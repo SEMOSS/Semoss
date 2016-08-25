@@ -5,46 +5,46 @@ package prerna.sablecc.node;
 import prerna.sablecc.analysis.*;
 
 @SuppressWarnings("nls")
-public final class AVarTerm extends PTerm
+public final class AVariableJoinParam extends PJoinParam
 {
-    private PVarDef _var_;
+    private PVarDef _varDef_;
 
-    public AVarTerm()
+    public AVariableJoinParam()
     {
         // Constructor
     }
 
-    public AVarTerm(
-        @SuppressWarnings("hiding") PVarDef _var_)
+    public AVariableJoinParam(
+        @SuppressWarnings("hiding") PVarDef _varDef_)
     {
         // Constructor
-        setVar(_var_);
+        setVarDef(_varDef_);
 
     }
 
     @Override
     public Object clone()
     {
-        return new AVarTerm(
-            cloneNode(this._var_));
+        return new AVariableJoinParam(
+            cloneNode(this._varDef_));
     }
 
     @Override
     public void apply(Switch sw)
     {
-        ((Analysis) sw).caseAVarTerm(this);
+        ((Analysis) sw).caseAVariableJoinParam(this);
     }
 
-    public PVarDef getVar()
+    public PVarDef getVarDef()
     {
-        return this._var_;
+        return this._varDef_;
     }
 
-    public void setVar(PVarDef node)
+    public void setVarDef(PVarDef node)
     {
-        if(this._var_ != null)
+        if(this._varDef_ != null)
         {
-            this._var_.parent(null);
+            this._varDef_.parent(null);
         }
 
         if(node != null)
@@ -57,23 +57,23 @@ public final class AVarTerm extends PTerm
             node.parent(this);
         }
 
-        this._var_ = node;
+        this._varDef_ = node;
     }
 
     @Override
     public String toString()
     {
         return ""
-            + toString(this._var_);
+            + toString(this._varDef_);
     }
 
     @Override
     void removeChild(@SuppressWarnings("unused") Node child)
     {
         // Remove child
-        if(this._var_ == child)
+        if(this._varDef_ == child)
         {
-            this._var_ = null;
+            this._varDef_ = null;
             return;
         }
 
@@ -84,9 +84,9 @@ public final class AVarTerm extends PTerm
     void replaceChild(@SuppressWarnings("unused") Node oldChild, @SuppressWarnings("unused") Node newChild)
     {
         // Replace child
-        if(this._var_ == oldChild)
+        if(this._varDef_ == oldChild)
         {
-            setVar((PVarDef) newChild);
+            setVarDef((PVarDef) newChild);
             return;
         }
 

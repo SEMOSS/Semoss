@@ -12,6 +12,7 @@ import prerna.engine.impl.AbstractEngine;
 import prerna.om.Dashboard;
 import prerna.om.Insight;
 import prerna.om.InsightStore;
+import prerna.sablecc.PKQLEnum.PKQLReactor;
 import prerna.solr.SolrDocumentExportWriter;
 import prerna.solr.SolrIndexEngine;
 import prerna.ui.components.playsheets.datamakers.IDataMaker;
@@ -54,7 +55,7 @@ public class OpenDataReactor extends AbstractReactor {
 			IEngine coreEngine = (AbstractEngine)DIHelper.getInstance().getLocalProp(engine);
 			if(coreEngine == null) {
 				//store error message
-				myStore.put(PKQLEnum.OPEN_DATA+"insightid", "Error Opening Insight");
+				myStore.put(PKQLEnum.OPEN_DATA, "Error Opening Insight");
 				return null;
 			}
 			Insight insightObj = ((AbstractEngine)coreEngine).getInsight(engine_id).get(0);
@@ -63,43 +64,44 @@ public class OpenDataReactor extends AbstractReactor {
 	//		insightObj.setUserID( ((User) request.getSession().getAttribute(Constants.SESSION_USER)).getId() );
 			insightObj.setUserID("test");
 			
-			String vizData = CacheFactory.getInsightCache(CacheFactory.CACHE_TYPE.DB_INSIGHT_CACHE).getVizData(insightObj);
+//			String vizData = CacheFactory.getInsightCache(CacheFactory.CACHE_TYPE.DB_INSIGHT_CACHE).getVizData(insightObj);
 	
 			Object obj = null;
-			if(vizData != null) {
-				// insight has been cached, send it to the FE with a new insight id
-				String id = InsightStore.getInstance().put(insightObj);
-				
-				myStore.put(PKQLEnum.OPEN_DATA+"insightid", id);
-				
-				Map<String, Object> uploaded = gson.fromJson(vizData, new TypeToken<Map<String, Object>>() {}.getType());
-				uploaded.put("insightID", id);
-				
-			} else {
+//			if(vizData != null) {
+//				// insight has been cached, send it to the FE with a new insight id
+//				String id = InsightStore.getInstance().put(insightObj);
+//				
+//				myStore.put(PKQLEnum.OPEN_DATA, id);
+//				myStore.put(PKQLReactor.VAR.toString(), id);
+//				
+//				Map<String, Object> uploaded = gson.fromJson(vizData, new TypeToken<Map<String, Object>>() {}.getType());
+//				uploaded.put("insightID", id);
+//				
+//			} else {
 				// insight visualization data has not been cached, run the insight
 				try {
 					String id = InsightStore.getInstance().put(insightObj);
 					
-					myStore.put(PKQLEnum.OPEN_DATA+"insightid", id);
+					myStore.put(PKQLEnum.OPEN_DATA, id);
 					
 					InsightCreateRunner run = new InsightCreateRunner(insightObj);
 					obj = run.runWeb();
 					
-					String saveFileLocation = CacheFactory.getInsightCache(CacheFactory.CACHE_TYPE.DB_INSIGHT_CACHE).cacheInsight(insightObj, (Map<String, Object>) obj);
-					
-					saveFileLocation = saveFileLocation + "_Solr.txt";
-					File solrFile = new File(saveFileLocation);
-					String solrId = SolrIndexEngine.getSolrIdFromInsightEngineId(insightObj.getEngineName(), insightObj.getRdbmsId());
-					SolrDocumentExportWriter writer = new SolrDocumentExportWriter(solrFile);
-					writer.writeSolrDocument(SolrIndexEngine.getInstance().getInsight(solrId));
-					writer.closeExport();
+//					String saveFileLocation = CacheFactory.getInsightCache(CacheFactory.CACHE_TYPE.DB_INSIGHT_CACHE).cacheInsight(insightObj, (Map<String, Object>) obj);
+//					
+//					saveFileLocation = saveFileLocation + "_Solr.txt";
+//					File solrFile = new File(saveFileLocation);
+//					String solrId = SolrIndexEngine.getSolrIdFromInsightEngineId(insightObj.getEngineName(), insightObj.getRdbmsId());
+//					SolrDocumentExportWriter writer = new SolrDocumentExportWriter(solrFile);
+//					writer.writeSolrDocument(SolrIndexEngine.getInstance().getInsight(solrId));
+//					writer.closeExport();
 				} catch (Exception ex) { //need to specify the different exceptions 
 					ex.printStackTrace();
 					Hashtable<String, String> errorHash = new Hashtable<String, String>();
 					errorHash.put("Message", "Error occured processing question.");
 					errorHash.put("Class", "");
 				}
-			}
+//			}
 			
 		} else {
 			//put error mesage

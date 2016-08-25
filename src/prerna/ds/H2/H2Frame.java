@@ -82,6 +82,10 @@ public class H2Frame extends AbstractTableDataFrame {
 		}
 		this.builder.setSchema(this.userId);
 	}
+	
+//	public void setH2Joiner(H2Joiner joiner) {
+//		this.joiner = joiner;
+//	}
 
 	@Override
 	/**
@@ -552,7 +556,7 @@ public class H2Frame extends AbstractTableDataFrame {
 				if(!unfilteredList.isEmpty()) {
 					minMax.put("min", (Double)unfilteredArray[0]);
 					minMax.put("max", (Double)unfilteredArray[unfilteredArray.length-1]);
-		}
+				}
 				minMax.put("absMin", absMin);
 				minMax.put("absMax", absMax);
 
@@ -564,14 +568,14 @@ public class H2Frame extends AbstractTableDataFrame {
 					if(tenthPower < 0) {
 						// ex. if difference is 0.009, step should be 0.001
 						step = Math.pow(10, tenthPower);
-			} else {
+					} else {
 						step = 0.1;
-			}
-		}
+					}
+				}
 				minMax.put("step", step);
 
 				minMaxValues.put(selectors.get(i), minMax);
-	}
+			}
 		}
 
 		return new Object[] { visibleValues, filteredValues, minMaxValues };
@@ -636,8 +640,7 @@ public class H2Frame extends AbstractTableDataFrame {
 		}
 		options.put(TinkerFrame.SELECTORS, selectorValues);
 
-		Map<Object, Object> temporalBindings = (Map<Object, Object>) options
-				.get(TinkerFrame.TEMPORAL_BINDINGS);
+		Map<Object, Object> temporalBindings = (Map<Object, Object>) options.get(TinkerFrame.TEMPORAL_BINDINGS);
 		// clean values always put into list so bifurcation in logic doesn't
 		// need to exist elsewhere
 		Map<String, List<Object>> cleanTemporalBindings = new Hashtable<String, List<Object>>();
@@ -729,8 +732,7 @@ public class H2Frame extends AbstractTableDataFrame {
 	@Override
 	public Double getMin(String columnHeader) {
 		// make sure its a number
-		if (this.metaData.getDataType(columnHeader).equals(
-				IMetaData.DATA_TYPES.NUMBER)) {
+		if (this.metaData.getDataType(columnHeader).equals(IMetaData.DATA_TYPES.NUMBER)) {
 			columnHeader = this.getValueForUniqueName(columnHeader);
 			return builder.getStat(columnHeader, "MIN");
 		}
@@ -888,7 +890,7 @@ public class H2Frame extends AbstractTableDataFrame {
 			builder.updateTable(getH2Headers(), values, columnHeaders);
 		
 		if(this.isJoined()) {
-			H2Joiner.refreshView(this, builder.getViewTableName());
+			builder.joiner.refreshView(this, builder.getViewTableName());
 		}
 	}
 
@@ -1017,11 +1019,11 @@ public class H2Frame extends AbstractTableDataFrame {
 	}
 
 	private String getH2Header(String uniqueName) {
-		if(this.isJoined()) {
-			return joinHeaders.get(uniqueName);
-		} else {
+//		if(this.isJoined()) {
+//			return joinHeaders.get(uniqueName);
+//		} else {
 			return this.getValueForUniqueName(uniqueName);
-		}
+//		}
 	}
 
 	protected void setH2Headers(Map<String, String> headers) {
@@ -1201,7 +1203,7 @@ public class H2Frame extends AbstractTableDataFrame {
 
 		builder.updateTable(currHeaders, values, headers);
 		if(this.isJoined()) {
-			H2Joiner.refreshView(this, builder.getViewTableName());
+			builder.joiner.refreshView(this, builder.getViewTableName());
 		}
 	}
 
@@ -1262,6 +1264,7 @@ public class H2Frame extends AbstractTableDataFrame {
 		reactorNames.put(PKQLEnum.DATA_FRAME, "prerna.sablecc.DataFrameReactor");
 		reactorNames.put(PKQLEnum.DASHBOARD_JOIN, "prerna.sablecc.DashboardJoinReactor");
 		reactorNames.put(PKQLEnum.OPEN_DATA, "prerna.sablecc.OpenDataReactor");
+		reactorNames.put(PKQLEnum.COL_SPLIT, "prerna.sablecc.ColSplitReactor");
 		reactorNames.put(PKQLEnum.DATA_TYPE, "prerna.sablecc.DataTypeReactor");
 		reactorNames.put(PKQLEnum.DATA_CONNECT, "prerna.sablecc.DataConnectReactor");
 		reactorNames.put(PKQLEnum.COL_SPLIT, "prerna.sablecc.ColSplitReactor");
@@ -1341,8 +1344,9 @@ public class H2Frame extends AbstractTableDataFrame {
 		this.builder.processIterator(iterator, adjustedColHeaders,valueHeaders, types, jType);
 
 		if(this.isJoined()) {
-			H2Joiner.refreshView(this, builder.getViewTableName());
+			builder.joiner.refreshView(this, builder.getViewTableName());
 		}
+		
 	}
 
 	/**
@@ -1370,7 +1374,8 @@ public class H2Frame extends AbstractTableDataFrame {
 
 	public void dropTable() {
 		if(this.isJoined()) {
-			H2Joiner.unJoinFrame(this);
+			builder.joiner.unJoinFrame(this);
+			builder.joiner = null;
 		}
 		this.builder.dropTable();
 	}
@@ -1381,7 +1386,7 @@ public class H2Frame extends AbstractTableDataFrame {
 		return "H2Frame";
 	}
 
-	protected boolean isJoined() {
+	public boolean isJoined() {
 		return builder.getJoinMode();
 	}
 
@@ -1409,7 +1414,7 @@ public class H2Frame extends AbstractTableDataFrame {
 	 */
 	public void updateDataId() {
 		if(this.isJoined()) {
-			H2Joiner.updateDataId(this.builder.getViewTableName());
+			builder.joiner.updateDataId(this.builder.getViewTableName());
 		} else {
 			updateDataId(1);
 		}
