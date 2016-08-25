@@ -17,12 +17,9 @@ public abstract class AbstractCSVFileReader extends AbstractFileReader {
 
 	private static final Logger LOGGER = LogManager.getLogger(RDBMSReader.class.getName());
 
-	// stores a list of rdf maps created from the FE
-	protected Hashtable<String, String>[] rdfMapArr;
 	protected List<String> relationArrayList = new ArrayList<String>();
 	protected List<String> nodePropArrayList = new ArrayList<String>();
 	protected List<String> relPropArrayList = new ArrayList<String>();
-	protected boolean propFileExist = true;
 	
 	// fields around the csv file
 	protected CSVFileHelper csvHelper;
@@ -98,15 +95,6 @@ public abstract class AbstractCSVFileReader extends AbstractFileReader {
 		}
 	}
 
-	/**
-	 * Setter to store the metamodel created by user as a Hashtable
-	 * @param data	Hashtable<String, String> containing all the information in a properties file
-	 */
-	public void setRdfMapArr(Hashtable<String, String>[] rdfMapArr) {
-		this.rdfMapArr = rdfMapArr;
-		propFileExist = false;
-	}
-	
 	public void setNewCsvHeaders(Map<String, Map<String, String>> newCsvHeaders) {
 		this.userHeaderNames = newCsvHeaders;		
 	}
