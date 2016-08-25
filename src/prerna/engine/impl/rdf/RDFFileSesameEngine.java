@@ -72,7 +72,8 @@ import org.openrdf.sail.SailConnection;
 import org.openrdf.sail.SailException;
 import org.openrdf.sail.inferencer.fc.ForwardChainingRDFSInferencer;
 import org.openrdf.sail.memory.MemoryStore;
-import org.openrdf.sail.nativerdf.NativeStore;
+
+import com.bigdata.rdf.model.BigdataLiteralImpl;
 
 import prerna.engine.api.IEngine;
 import prerna.engine.api.ISelectStatement;
@@ -83,8 +84,6 @@ import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
 import prerna.util.Utility;
-
-import com.bigdata.rdf.model.BigdataLiteralImpl;
 
 /**
  * References the RDF source and uses the Sesame API to query a database stored in an RDF file (.jnl file).
@@ -553,11 +552,12 @@ public class RDFFileSesameEngine extends AbstractEngine implements IEngine {
 		}catch(IOException e) {
 			e.printStackTrace();
 		} finally {
-			try{
-				if(writer!=null)
+			if(writer!=null) {
+				try{
 					writer.close();
-			} catch (IOException e) {
-				e.printStackTrace();
+				} catch (IOException e) {
+					e.printStackTrace();
+				}
 			}
 		}
 	}
@@ -657,8 +657,10 @@ public class RDFFileSesameEngine extends AbstractEngine implements IEngine {
 	}
 	
 	public void writeBack(){
+		FileWriter fw = null;
 		try {
-			RDFXMLWriter writer = new RDFXMLWriter(new FileWriter(fileName));
+			fw = new FileWriter(fileName);
+			RDFXMLWriter writer = new RDFXMLWriter(fw);
 			writeData(writer);
 		} catch (RepositoryException e) {
 			e.printStackTrace();
@@ -667,6 +669,14 @@ public class RDFFileSesameEngine extends AbstractEngine implements IEngine {
 		} catch (IOException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
+		} finally {
+			if(fw != null) {
+				try {
+					fw.close();
+				} catch (IOException e) {
+					e.printStackTrace();
+				}
+			}
 		}
 	}
 	
