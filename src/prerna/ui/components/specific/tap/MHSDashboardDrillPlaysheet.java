@@ -122,6 +122,11 @@ public class MHSDashboardDrillPlaysheet extends TablePlaySheet implements IDataM
 	 */
 	@Override
 	public Map getDataMakerOutput(String... selectors) {
+		
+		String addColumnQuery = "ALTER TABLE SYSTEMACTIVITYUPLOAD ADD (ProjectedStart VARCHAR,  ProjectedEnd VARCHAR)";
+		dmComponent.getEngine().insertData(addColumnQuery);
+//		WrapperManager.getInstance().getRawWrapper(dmComponent.getEngine(), addColumnQuery);
+		
 		Map<String, Object> returnHashMap = aggregateDHAGroup();
 		List<Object> sdlcList = new ArrayList <Object> (Arrays.asList("Strategy", "Requirement", "Design", "Development", "Test", "Security", "Deployment", "Training"));
 		Map<String, String> dataTableAlign = new HashMap <String, String> ();
@@ -269,7 +274,6 @@ public class MHSDashboardDrillPlaysheet extends TablePlaySheet implements IDataM
 			innerMap.put(SDLC, sdlc);
 			innerMap.put(ActivityGroup, group);
 			innerMap.put(DHA, dha);
-			innerMap.put(HEAT_VALUE, createNewTinkerFrame(key));
 			
 			//calculate heat value and get min value per each heat value
 			Map<String, Object> valueMap = calculateValues(plannedStartDate, plannedEndDate, actualStartDate, actualEndDate);
@@ -281,6 +285,7 @@ public class MHSDashboardDrillPlaysheet extends TablePlaySheet implements IDataM
 				Map<String, Object> innerMapReturn = (Map<String, Object>) returnMap.get(key);
 				int numActivtyReturn = (int) innerMapReturn.get(ACTIVITY_NUM);
 				boolean isActive = (boolean) innerMapReturn.get(IS_ACTIVE);
+				double heatVal = (double) innerMapReturn.get(HEAT_VALUE);
 				
 				//check if block has active activities
 				if(isActive){
@@ -289,6 +294,7 @@ public class MHSDashboardDrillPlaysheet extends TablePlaySheet implements IDataM
 					innerMap.put(IS_ACTIVE, activityStatus);
 				}
 				
+				innerMap.put(HEAT_VALUE, heatVal);
 				innerMap.put(ACTIVITY_NUM, numActivtyReturn);
 				returnMap.put(key, innerMap);
 			} 
@@ -297,6 +303,7 @@ public class MHSDashboardDrillPlaysheet extends TablePlaySheet implements IDataM
 			else if (!returnMap.containsKey(key)) {
 				innerMap.put (ACTIVITY_NUM, 1);
 				innerMap.put (IS_ACTIVE, activityStatus);
+				innerMap.put(HEAT_VALUE, createNewTinkerFrame(key));
 				returnMap.put(key, innerMap);
 			}
 		}
@@ -613,6 +620,12 @@ public class MHSDashboardDrillPlaysheet extends TablePlaySheet implements IDataM
 					}
 
 					Date projectedEnd = addToDate(projectedStart, vertexDuration);
+					
+					String systemActivty = vert.value("NAME");
+					
+					String updateDBquery = "UPDATE SYSTEMACTIVITYUPLOAD SET PROJECTEDSTART = '"+ getDateFormat(projectedStart) +"', PROJECTEDEND = '"+ getDateFormat(projectedEnd) +"' WHERE SYSTEMACTIVITY_FK = '" + systemActivty + "'";
+					
+					dmComponent.getEngine().insertData(updateDBquery);
 
 					//calculate total amount of days this activity will be delayed
 					double delay= 0.0;
@@ -631,6 +644,8 @@ public class MHSDashboardDrillPlaysheet extends TablePlaySheet implements IDataM
 			return 0.0;
 		}
 	}
+	
+	
 	
 	private Date addToDate (Date date, Double duration){
 		Date projectedEnd = null;
@@ -771,11 +786,25 @@ public class MHSDashboardDrillPlaysheet extends TablePlaySheet implements IDataM
 		return returnMap;
 	}
 	
+	/**
+	 * Method to format date by month-day-year
+	 * @return
+	 */
 	public static DateFormat getDateFormat() {
-		//formating date by month-day-year
 		return new SimpleDateFormat("MM-dd-yyyy");
 	}
 
+	/**
+	 * Method to convert date to formated String
+	 * @param date
+	 * @return
+	 */
+	public String getDateFormat(Date date) {
+		DateFormat dateFormat = new SimpleDateFormat("MM-dd-yyyy");
+		String strDate = dateFormat.format(date);
+		
+		return strDate;
+	}
 
 	/**
 	 * Method to filter for the tools bar
