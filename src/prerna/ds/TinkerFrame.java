@@ -2079,6 +2079,66 @@ public class TinkerFrame extends AbstractTableDataFrame {
 		thread.start();
 	}
 	
+	public GraphTraversal runGremlin (String gremlinQuery){
+		//instead of running the openCommandLine we are going to specify the query that we want to return data for. 
+		GraphTraversal gt = null;
+		try {
+			if(gremlinQuery!=null){
+				long start = System.currentTimeMillis();
+				LOGGER.info("Gremlin is " + gremlinQuery);
+				try {
+					GremlinGroovyScriptEngine mengine = new GremlinGroovyScriptEngine();
+					mengine.getBindings(ScriptContext.ENGINE_SCOPE).put("g", g);
+
+					gt = (GraphTraversal)mengine.eval(gremlinQuery);
+					System.out.println("compiled gremlin :: " + gt);
+				} catch (ScriptException e) {
+					e.printStackTrace();
+				}
+				while(gt.hasNext()) {
+//					Object data = gt.next();
+//
+//					String node = "";
+//					if(data instanceof Map) {
+//						for(Object key : ((Map)data).keySet()) {
+//							Map<String, Object> mapData = (Map<String, Object>)data; //cast to map
+//							if(mapData.get(key) instanceof Vertex){
+//								Iterator it = ((Vertex)mapData.get(key)).properties();
+//								while (it.hasNext()){
+//									node = node + it.next();
+//								}
+//							} else {
+//								node = node + mapData.get(key);
+//							}
+//							node = node + "       ::::::::::::           ";
+//						}
+//					} else {
+//						if(data instanceof Vertex){
+//							Iterator it = ((Vertex)data).properties();
+//							while (it.hasNext()){
+//								node = node + it.next();
+//							}
+//						} else {
+//							node = node + data;
+//						}
+//					}
+//
+//					LOGGER.warn(node);
+//				}
+//
+//				long time2 = System.currentTimeMillis();
+//				LOGGER.warn("time to execute : " + (time2 - start )+ " ms");
+				return gt;
+			}
+			
+		}} catch (RuntimeException e) {
+			e.printStackTrace();
+		}
+		return gt;
+		
+
+	}
+	
     /**
      * Method printAllRelationship.
      */
