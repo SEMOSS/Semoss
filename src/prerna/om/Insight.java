@@ -812,6 +812,26 @@ public class Insight {
 		}
 		return this.dmComponents;
 	}
+	
+	public DataMakerComponent getDashboardDataMakerComponent() {
+		if(this.getDataMaker() instanceof Dashboard) {
+			Dashboard dashboard = (Dashboard)this.getDataMaker();
+			List<String> pkqls = dashboard.getSaveRecipe();
+			
+			DataMakerComponent dashboardComponent = new DataMakerComponent(Constants.LOCAL_MASTER_DB_NAME, Constants.EMPTY);
+			
+			for(String pkqlCmd : pkqls) {
+				PKQLTransformation pkql = new PKQLTransformation();
+				Map<String, Object> props = new HashMap<String, Object>();
+				props.put(PKQLTransformation.EXPRESSION, pkqlCmd);
+				pkql.setProperties(props);
+				dashboardComponent.addPostTrans(pkql);
+			}
+			
+			return dashboardComponent;
+		}
+		return null;
+	}
 
 	public List<DataMakerComponent> getOptimalDataMakerComponents() {
 		if(this.optimalComponents == null && this.makeupEngine != null){
@@ -1193,6 +1213,8 @@ public class Insight {
 				retHash.putAll(dm.getDataMakerOutput());
 //			if(dm instanceof ITableDataFrame && !selectors.isEmpty()) {
 //				retHash.putAll(dm.getDataMakerOutput(selectors.toArray(new String[]{})));
+			} else if(dm instanceof Dashboard) { 
+				
 			} else {
 				retHash.putAll(dm.getDataMakerOutput());
 			}

@@ -31,7 +31,7 @@ public class Dashboard implements IDataMaker {
 	private static String delimiter = ":::";
 	private String insightID;
 	private H2Joiner joiner;
-		
+	Object[] joinData = new Object[2];
 	//mapping from 2 frames to joinColumns
 	//InsightID1 + delimiter + InsightID2 ->[joinCols1[], joinCols2[]]}
 	private Map<String, List<String[]>> joinColsMap;
@@ -231,6 +231,9 @@ public class Dashboard implements IDataMaker {
 				addInsight(insight);
 			}
 			
+			joinData[0] = insights;
+			joinData[1] = joinColumns;
+			
 		} catch(Exception e) {
 			e.printStackTrace();
 		}
@@ -252,17 +255,25 @@ public class Dashboard implements IDataMaker {
 		List<String> saveRecipe = new ArrayList<>();
 		Map<String, String> varHash = new HashMap<>();
 		
+		//create all the pkqls that open insights and assign them to variables
 		int i = 1; 
-		for(String insightId : attachedInsights.keySet()) {
+		List<Insight> insights = (List<Insight>)joinData[0];
+		List<String> varNames = new ArrayList<>();
+		for(Insight insight : insights) {
+//		for(String insightId : attachedInsights.keySet()) {
 			
-			Insight insight = attachedInsights.get(insightId);
+//			Insight insight = attachedInsights.get(insightId);
 			String nextVar = "insightVar"+i;
-			String nextPkql = createVarPkql(nextVar, insight.getEngineName(), insight.getDatabaseID());
+			String nextPkql = createVarPkql(nextVar, insight.getEngineName(), insight.getRdbmsId());
 			
-			varHash.put(nextVar, insightId);
+			varHash.put(nextVar, insight.getInsightID());
+			varNames.add(nextVar);
 			i++;
 			saveRecipe.add(nextPkql);
 		}
+		
+		String joinPkql = createJoinPkql(varNames.toArray(new String[]{}), (List<List<String>>)joinData[1]);
+		saveRecipe.add(joinPkql);
 		
 		return saveRecipe;
 	}
@@ -271,6 +282,36 @@ public class Dashboard implements IDataMaker {
 		varName = "v:"+varName;
 		String varPkql = varName+" = data.open('"+engine+"', '"+id+"');";
 		return varPkql;
+	}
+	
+	private String createJoinPkql(String[] varNames, List<List<String>> joinCols) {
+		String joinPkql = "data.join([";
+		
+		for(int i = 0; i < varNames.length; i++) {
+			if(i == 0) {
+				joinPkql += varNames[i];
+			} else {
+				joinPkql += ", "+varNames[i];
+			}
+		}
+		
+		joinPkql += "],[";
+		for(int i = 0; i < joinCols.size(); i++) {
+			List<String> joinCol = joinCols.get(i);
+			joinPkql += "[";
+			for(int j = 0; j < joinCol.size(); j++) {
+				String jc = joinCol.get(j);
+				if(j==0) {
+					joinPkql += jc;
+				} else {
+					joinPkql += ", "+jc;
+				}
+			}
+			joinPkql += "]";
+		}
+		joinPkql += "]);";
+		
+		return joinPkql;
 	}
 	
 	/************************************* JOINING LOGIC **************************************/
