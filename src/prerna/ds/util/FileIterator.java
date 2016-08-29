@@ -44,7 +44,6 @@ public class FileIterator implements Iterator<IHeadersDataRow>{
 			}
 			
 			helper.parseColumns(headers);
-			helper.getNextRow(); // next row is a header
 		} else {
 			this.dataTypeMap = new HashMap<String, String>();
 			String[] allHeaders = helper.getHeaders();
@@ -56,12 +55,7 @@ public class FileIterator implements Iterator<IHeadersDataRow>{
 		
 		setSelectors(qs.getSelectors());
 		setFilters(qs.andfilters);
-		
 		headers = helper.getHeaders();
-		types = new String[headers.length];
-		for(int i = 0; i < types.length; i++) {
-			types[i] = this.dataTypeMap.get(headers[i]);
-		}
 		getNextRow(); // this will get the first row of the file
 //		nextRow = helper.getNextRow();
 	}
