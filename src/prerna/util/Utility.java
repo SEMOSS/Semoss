@@ -2954,5 +2954,44 @@ public class Utility {
 		return retString;
 	}
 	
+	/**
+	 * 
+	 * @param engineName - engine to get
+	 * @return
+	 * 
+	 * Use this method to get the engine when the engine hasn't been loaded
+	 */
+	public static IEngine getEngine(String engineName) {
+		IEngine engine = null;
+		if(DIHelper.getInstance().getLocalProp(engineName) instanceof IEngine)
+			engine = (IEngine) DIHelper.getInstance().getLocalProp(engineName);
+		else
+		{
+			// start up the engine
+			String smssFile = (String)DIHelper.getInstance().getCoreProp().getProperty(engineName + "_" + Constants.STORE);
+			// start it up
+			try {
+				Properties daProp = new Properties();
+				FileInputStream fis = new FileInputStream(smssFile);
+				daProp.load(fis);
+				daProp.put("fis", fis);
+				engine = Utility.loadWebEngine(smssFile, daProp);
+			} catch (KeyManagementException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			} catch (NoSuchAlgorithmException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			} catch (KeyStoreException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			} catch (IOException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+			
+		}
+		return engine;
+	}
 	
 }
