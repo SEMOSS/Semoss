@@ -34,7 +34,8 @@ public class GDMImportDataReactor extends ImportDataReactor{
 		gdm.overlayData(it, engine);
 		// this is actually what pushes the info from the rc in gdm into the vert and edge stores
 		gdm.fillStoresFromModel(engine);
-		
+		gdm.updateDataId();
+
 		inputResponseString(it, null);
 		myStore.put("STATUS", STATUS.SUCCESS);
 		
