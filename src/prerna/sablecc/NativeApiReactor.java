@@ -124,7 +124,7 @@ public class NativeApiReactor extends ApiReactor {
 //		api.set("QUERY_STRUCT", qs);
 		
 		// get the engine
-		IEngine eng = getEngine(engine.trim());//(IEngine) DIHelper.getInstance().getLocalProp(engine.trim());
+		IEngine eng = Utility.getEngine(engine.trim());//(IEngine) DIHelper.getInstance().getLocalProp(engine.trim());
 
 		// logic that if a person is trying to query an engine
 		// and if the query struct is empty
@@ -156,38 +156,5 @@ public class NativeApiReactor extends ApiReactor {
 		myStore.put("STATUS", PKQLRunner.STATUS.SUCCESS);
 
 		return null;
-	}
-	
-	private IEngine getEngine(String engineName) {
-		IEngine engine = null;
-		if(DIHelper.getInstance().getLocalProp(engineName) instanceof IEngine)
-			engine = (IEngine) DIHelper.getInstance().getLocalProp(engineName);
-		else
-		{
-			// start up the engine
-			String smssFile = (String)DIHelper.getInstance().getCoreProp().getProperty(engineName + "_" + Constants.STORE);
-			// start it up
-			try {
-				Properties daProp = new Properties();
-				FileInputStream fis = new FileInputStream(smssFile);
-				daProp.load(fis);
-				daProp.put("fis", fis);
-				engine = Utility.loadWebEngine(smssFile, daProp);
-			} catch (KeyManagementException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
-			} catch (NoSuchAlgorithmException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
-			} catch (KeyStoreException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
-			} catch (IOException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
-			}
-			
-		}
-		return engine;
 	}
 }
