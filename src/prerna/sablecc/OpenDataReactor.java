@@ -18,6 +18,7 @@ import prerna.solr.SolrIndexEngine;
 import prerna.ui.components.playsheets.datamakers.IDataMaker;
 import prerna.ui.helpers.InsightCreateRunner;
 import prerna.util.DIHelper;
+import prerna.util.Utility;
 
 import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
@@ -52,7 +53,7 @@ public class OpenDataReactor extends AbstractReactor {
 			String engine = engineAttributes.get(0);
 			String engine_id = engineAttributes.get(1);
 			
-			IEngine coreEngine = (AbstractEngine)DIHelper.getInstance().getLocalProp(engine);
+			IEngine coreEngine = Utility.getEngine(engine);
 			if(coreEngine == null) {
 				//store error message
 				myStore.put(PKQLEnum.OPEN_DATA, "Error Opening Insight");

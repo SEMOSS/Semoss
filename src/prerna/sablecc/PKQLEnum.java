@@ -63,6 +63,7 @@ public class PKQLEnum {
 	public static String JOIN_PARAM = "JOIN_PARAM";
 	public static String COL_TABLE = "COL_TABLE";
 	public static String DATA_CONNECTDB = "DATA_CONNECTDB";
+	public static String VAR_PARAM = "VAR_PARAM";
 //	public static String RELATION = "RELATION";
 
 }
