@@ -448,7 +448,6 @@ public class Insight {
 			}
 			
 			// okay, so its a pkql transformation so we can now do the check
-			
 			PKQLTransformation pkqlTrans = (PKQLTransformation) firstTrans;
 			List<String> listPkqlRun = pkqlTrans.getPkql();
 			for(int pkqlIdx = 0; pkqlIdx < listPkqlRun.size(); pkqlIdx++) {
@@ -459,14 +458,15 @@ public class Insight {
 					// cool, we got a drag/drop file
 					// need to store this info to save it properly
 					
-					String regex = "\\{'file':.*?\\}";
+					String regex = "\\'file':.*?\\}";
 					Pattern pattern = Pattern.compile(regex);
 					Matcher matcher = pattern.matcher(pkqlExp);
 					while(matcher.find()) {
 						String fileInfo = matcher.group();
-						fileInfo = fileInfo.replace("{'file':'", "");
+						fileInfo = fileInfo.replace("'file':'", "");
 						fileInfo = fileInfo.replace("'}", "");
-						
+						fileInfo = fileInfo.replace("',", "");
+
 						// this will have the file path location of the csv file
 						filesUsedInInsight.add(fileInfo);
 					}

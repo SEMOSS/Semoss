@@ -37,6 +37,9 @@ import java.util.StringTokenizer;
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
+
 import prerna.engine.api.IEngine;
 import prerna.engine.api.ISelectStatement;
 import prerna.engine.api.ISelectWrapper;
@@ -48,9 +51,6 @@ import prerna.ui.components.playsheets.BrowserPlaySheet;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
 import prerna.util.Utility;
-
-import com.google.gson.Gson;
-import com.google.gson.GsonBuilder;
 
 public class GraphTimePlaySheet extends BrowserPlaySheet{
 
@@ -86,7 +86,7 @@ public class GraphTimePlaySheet extends BrowserPlaySheet{
 		gdm.setPropSudowlSearch(false, false, false);
 		for (int qIdx = 0; qIdx < this.graphQueryArray.size(); qIdx ++ ){
 			String[] queryArray = this.graphQueryArray.get(qIdx);
-			gdm.processData(queryArray[0], (IEngine) DIHelper.getInstance().getLocalProp(queryArray[1]));
+			gdm.processData(queryArray[0], Utility.getEngine(queryArray[1]));
 		}
 
 		logger.info("Creating the base Graph");

@@ -44,7 +44,6 @@ import org.apache.log4j.Logger;
 import org.apache.solr.client.solrj.SolrServerException;
 
 import prerna.engine.api.IEngine;
-import prerna.engine.impl.rdf.RDFFileSesameEngine;
 import prerna.nameserver.DeleteFromMasterDB;
 import prerna.nameserver.MasterDBHelper;
 import prerna.solr.SolrIndexEngine;

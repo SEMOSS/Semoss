@@ -14,7 +14,6 @@ import prerna.ds.QueryStruct;
 import prerna.engine.api.IEngine;
 import prerna.engine.impl.rdbms.RDBMSNativeEngine;
 import prerna.rdf.query.builder.IQueryInterpreter;
-import prerna.util.DIHelper;
 import prerna.util.Utility;
 
 public class DataMakerComponent {
@@ -38,7 +37,7 @@ public class DataMakerComponent {
 	 * @param query						The query corresponding to the data maker component to be run on the engine
 	 */
 	public DataMakerComponent(String engine, String query){
-		IEngine theEngine = (IEngine) DIHelper.getInstance().getLocalProp(engine);
+		IEngine theEngine = Utility.getEngine(engine);
 		this.engine = theEngine;
 		this.query = query;
 	}
@@ -59,7 +58,7 @@ public class DataMakerComponent {
 	 * @param metamodelData				The map to build the query based on the OWL
 	 */
 	public DataMakerComponent(String engine, QueryStruct qs){
-		IEngine theEngine = (IEngine) DIHelper.getInstance().getLocalProp(engine);
+		IEngine theEngine = Utility.getEngine(engine);
 		this.engine = theEngine;
 		this.qs = qs;
 	}
