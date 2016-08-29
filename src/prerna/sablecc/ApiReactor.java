@@ -127,8 +127,8 @@ public class ApiReactor extends AbstractReactor {
 		} else if(engine.equals("csvFile")) {
 			api = new CSVApi();
 			if(myStore.containsKey("KEY_VALUE") && ((Map) ((Vector) myStore.get("KEY_VALUE")).get(0)).containsKey("file")){
-				String fileLocation = (String) ((Map) ((Vector) myStore.get("KEY_VALUE")).get(0)).get("file");
-				api.set("FILE", fileLocation);
+				Vector options = (Vector) myStore.get("KEY_VALUE");
+				api.set("MAP_OPTIONS_VECTOR", options);
 			}
 		} else {
 			api.set("ENGINE", engine);

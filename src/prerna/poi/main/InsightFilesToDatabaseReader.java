@@ -60,7 +60,7 @@ public class InsightFilesToDatabaseReader {
 		creator.processInsightFiles(in, newEngineName);
 	}
 
-	public void processInsightFiles(Insight in, String engineName) {
+	public IEngine processInsightFiles(Insight in, String engineName) {
 		/*
 		 * General flow
 		 * 1) create a .temp file which will become the .smss
@@ -72,13 +72,13 @@ public class InsightFilesToDatabaseReader {
 		 */
 		
 		if(in.isDbInsight()) {
-			return;
+			return null;
 		}
 		
 		IDataMaker dm = in.getDataMaker();
 		// can only convert to database if it is a ITableDataFrame
 		if(!(dm instanceof ITableDataFrame)) {
-			return;
+			return null;
 		}
 
 		// get the base folder to create the engine db in
@@ -196,6 +196,8 @@ public class InsightFilesToDatabaseReader {
 				Utility.deleteFromSolr(engineName);
 			}
 		}
+		
+		return engine;
 	}
 	
 	

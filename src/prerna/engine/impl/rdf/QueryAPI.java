@@ -1,14 +1,8 @@
 package prerna.engine.impl.rdf;
 
-import java.io.FileInputStream;
-import java.io.IOException;
-import java.security.KeyManagementException;
-import java.security.KeyStoreException;
-import java.security.NoSuchAlgorithmException;
 import java.util.Arrays;
 import java.util.Hashtable;
 import java.util.Iterator;
-import java.util.Properties;
 
 import prerna.ds.QueryStruct;
 import prerna.engine.api.IApi;
@@ -18,7 +12,6 @@ import prerna.engine.impl.rdbms.RDBMSNativeEngine;
 import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.rdf.query.builder.IQueryInterpreter;
 import prerna.test.TestUtilityMethods;
-import prerna.util.Constants;
 import prerna.util.DIHelper;
 import prerna.util.Utility;
 
@@ -34,43 +27,10 @@ public class QueryAPI implements IApi {
 		QueryStruct qs = (QueryStruct) values.get(params[0]); 
 		// get the engine
 		String engineName = (values.get(params[1]) + "").trim();
-		IEngine engine = null;
-		if(DIHelper.getInstance().getLocalProp(engineName) instanceof IEngine) {
-			engine = (IEngine) DIHelper.getInstance().getLocalProp(engineName);
-		} else {
-			// start up the engine
-			String smssFile = (String)DIHelper.getInstance().getCoreProp().getProperty(engineName + "_" + Constants.STORE);
-			FileInputStream fis = null;
-			// start it up
-			try {
-				Properties daProp = new Properties();
-				fis = new FileInputStream(smssFile);
-				daProp.load(fis);
-//				daProp.put("fis", fis);
-				engine = Utility.loadWebEngine(smssFile, daProp);
-			} catch (KeyManagementException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
-			} catch (NoSuchAlgorithmException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
-			} catch (KeyStoreException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
-			} catch (IOException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
-			} finally {
-				if(fis != null) {
-					try {
-						fis.close();
-					} catch (IOException e) {
-						e.printStackTrace();
-					}
-				}
-			}
-			
-		}
+		// if the engine is in DIHelper, it will grab it
+		// otherwise, it will load the engine using the smss and return it
+		IEngine engine = Utility.getEngine(engineName);
+
 		// logic that if a person is trying to query an engine
 		// and if the query struct is empty
 		// just pull all the information from the engine
