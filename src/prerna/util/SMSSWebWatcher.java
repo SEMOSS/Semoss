@@ -210,6 +210,13 @@ public class SMSSWebWatcher extends AbstractFileWatcher {
 		String localMasterDBName = Constants.LOCAL_MASTER_DB_NAME + this.extension;
 		// trying to figure out where the local master database is in the scheme of things
 		// and then letting it load first
+		
+		// store the file index to start at
+		// in case the files do not find the local master or security db
+		// we at least start at the right index
+		// although, things will not work out well if security or local master are not found
+		int fileIdx = 0;
+		
 		int localMasterIndex = ArrayUtilityMethods.calculateIndexOfArray(fileNames, localMasterDBName);
 		if(localMasterIndex != -1) {
 			String temp = fileNames[0];
@@ -218,9 +225,28 @@ public class SMSSWebWatcher extends AbstractFileWatcher {
 			localMasterIndex = 0;
 			// let us first load the master index
 			loadExistingDB(fileNames[0]);
+			// update file index
+			fileIdx++;
 		}
 		
-		for (int fileIdx = 1; fileIdx < fileNames.length; fileIdx++) {
+		// also need to load the security db
+		String securityDBName = Constants.SECURITY_DB + this.extension;
+		// trying to figure out where the security database is in the scheme of things
+		// and then letting it load second
+		int securityIndex = ArrayUtilityMethods.calculateIndexOfArray(fileNames, securityDBName);
+		if(securityIndex != -1) {
+			String temp = fileNames[1];
+			fileNames[1] = securityDBName;
+			fileNames[securityIndex] = temp;
+			localMasterIndex = 1;
+			// let us now load the security db
+			loadExistingDB(fileNames[1]);
+			// update file index
+			fileIdx++;
+		}
+		
+		// now we start at index 2 since we index 0 is the local master and index 1 is security db
+		for (; fileIdx < fileNames.length; fileIdx++) {
 			try {
 				// I really dont want to load anything here
 				// I only want to keep track of what are the engine names and their corresponding SMSS files
