@@ -2,6 +2,8 @@ package prerna.engine.impl.rdf;
 
 import java.util.Hashtable;
 import java.util.Iterator;
+import java.util.Map;
+import java.util.Vector;
 
 import prerna.ds.QueryStruct;
 import prerna.ds.util.FileIterator;
@@ -17,14 +19,29 @@ public class CSVApi implements IApi {
 	Hashtable <String, Object> values = new Hashtable<String, Object>();
 	// to use the CSV API you need the query struct and the file location
 	// if the query struct is empty, then it works are a prim_key file upload
-	String [] params = {"QUERY_STRUCT", "FILE"};
+	String [] params = {"QUERY_STRUCT", "MAP_OPTIONS_VECTOR"};
 
+	final String FILE_KEY = "file";
+	
 	@Override
 	public Iterator<IHeadersDataRow> process() {
 		// get the query struct
 		QueryStruct qs = (QueryStruct) values.get(params[0]); 
-		// get the file location
-		String fileName = values.get(params[1]) + "";
+		// get the map options that the user passed in
+		// even though we add options as a map through the pkql
+		// each key-value pair gets added separately into an array
+		Vector<Map<String, String>> options = (Vector<Map<String, String>>) values.get(params[1]);
+		
+		String fileName = "";
+		Map<String, String> dataTypeMap = new Hashtable<String, String>();
+		for(Map<String, String> keyVal : options) {
+			// note, each keyVal map should only contain a single key-value pair
+			if(keyVal.containsKey(FILE_KEY)) {
+				fileName = keyVal.get(FILE_KEY);
+			} else {
+				dataTypeMap.putAll(keyVal);
+			}
+		}
 
 		// OLD CODE - tried to have it such that the FE would never know the location of the file
 		// by using a key in the FileStore.. however, the FileStore is emptied every time the server starts
@@ -36,7 +53,7 @@ public class CSVApi implements IApi {
 
 		// pass in delimiter as a comma and return the FileIterator which uses the QS (if not empty) to 
 		// to determine what selectors to send
-		return new FileIterator(fileName, ',', qs, null); 
+		return new FileIterator(fileName, ',', qs, dataTypeMap); 
 	}
 
 	@Override

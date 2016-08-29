@@ -2963,34 +2963,38 @@ public class Utility {
 	 */
 	public static IEngine getEngine(String engineName) {
 		IEngine engine = null;
-		if(DIHelper.getInstance().getLocalProp(engineName) instanceof IEngine)
+		if(DIHelper.getInstance().getLocalProp(engineName) != null) {
 			engine = (IEngine) DIHelper.getInstance().getLocalProp(engineName);
-		else
-		{
+		} else {
 			// start up the engine
 			String smssFile = (String)DIHelper.getInstance().getCoreProp().getProperty(engineName + "_" + Constants.STORE);
 			// start it up
+			FileInputStream fis = null;
 			try {
 				Properties daProp = new Properties();
-				FileInputStream fis = new FileInputStream(smssFile);
+				fis = new FileInputStream(smssFile);
 				daProp.load(fis);
-				daProp.put("fis", fis);
 				engine = Utility.loadWebEngine(smssFile, daProp);
+				System.out.println("Loaded the engine.. !!!!! " + engineName);
 			} catch (KeyManagementException e) {
-				// TODO Auto-generated catch block
 				e.printStackTrace();
 			} catch (NoSuchAlgorithmException e) {
-				// TODO Auto-generated catch block
 				e.printStackTrace();
 			} catch (KeyStoreException e) {
-				// TODO Auto-generated catch block
 				e.printStackTrace();
 			} catch (IOException e) {
-				// TODO Auto-generated catch block
 				e.printStackTrace();
+			} finally {
+				if(fis != null) {
+					try {
+						fis.close();
+					} catch (IOException e) {
+						e.printStackTrace();
+					}
+				}
 			}
-			
 		}
+		
 		return engine;
 	}
 	
