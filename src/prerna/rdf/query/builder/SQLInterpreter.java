@@ -22,7 +22,12 @@ public class SQLInterpreter implements IQueryInterpreter{
 	// core class to convert the query struct into a sql query
 	QueryStruct qs = null;
 	
+	// this keeps the table aliases
 	private static Hashtable <String,String> aliases = new Hashtable<String,String>();
+	
+	// this keeps the column aliases
+	// contains {tableName -> {colName -> colAliasToUse} }
+	private Hashtable<String, Hashtable<String, String>> colAlias = new Hashtable<String, Hashtable<String, String>>();
 	
 	// keep track of processed tables used to ensure we don't re-add tables into the from string
 	private Hashtable <String, String> tableProcessed = new Hashtable<String, String>();
@@ -180,7 +185,7 @@ public class SQLInterpreter implements IQueryInterpreter{
 			// TODO: currently assuming the display name is the conceptual
 			//		once we have this in the OWL, we need to add this
 			String displayName = colName; 
-
+			
 			// if engine is not null, get the info from the engine
 			if(engine != null) {
 				// if the colName is the primary key placeholder
@@ -195,6 +200,15 @@ public class SQLInterpreter implements IQueryInterpreter{
 					physicalColName = getPhysicalPropertyNameFromConceptualName(colName);
 					displayName = colName;
 
+				}
+			}
+			
+			// if we are defining a specific alias to override the defaults
+			// in the code, use it.  example use is in dashboard
+			if(this.colAlias != null && this.colAlias.containsKey(table)) {
+				Hashtable<String, String> tableAliases = colAlias.get(table);
+				if(tableAliases.containsKey(colName)) {
+					displayName = tableAliases.get(colName);
 				}
 			}
 
@@ -795,6 +809,14 @@ public class SQLInterpreter implements IQueryInterpreter{
 		return new String[]{conceptPhysical, propertyPhysical};
 	}
 	
+	public void setColAlias(Hashtable<String, Hashtable<String, String>> colAlias) {
+		this.colAlias = colAlias;
+	}
+	
+	public Hashtable<String, Hashtable<String, String>> getColAlias() {
+		return this.colAlias;
+	}
+	
 	////////////////////////////////////////// end other utility methods ///////////////////////////////////////////
 	
 	
@@ -805,23 +827,25 @@ public class SQLInterpreter implements IQueryInterpreter{
 		TestUtilityMethods.loadDIHelper();
 
 		//TODO: put in correct path for your database
-		String engineProp = "C:\\workspace\\Semoss_Dev\\db\\test_this.smss";
+		String engineProp = "C:\\workspace\\Semoss_Dev\\db\\Movie_RDBMS.smss";
 		RDBMSNativeEngine coreEngine = new RDBMSNativeEngine();
-		coreEngine.setEngineName("test_this");
+		coreEngine.setEngineName("Movie_RDBMS");
 		coreEngine.openDB(engineProp);
-		DIHelper.getInstance().setLocalProperty("test_this", coreEngine);
+		DIHelper.getInstance().setLocalProperty("Movie_RDBMS", coreEngine);
 		
 		
 		QueryStruct qs = new QueryStruct();
-		qs.addSelector("MOVIE_RESULTS", null);
-		qs.addSelector("MOVIE_RESULTS", "Title");
-		qs.addSelector("MOVIE_RESULTS", "Movie_Budget");
-		qs.addSelector("MOVIE_CHARACTERISTICS", null);
-		qs.addSelector("MOVIE_CHARACTERISTICS", "Year");
-		qs.addRelation("MOVIE_RESULTS__Title", "MOVIE_CHARACTERISTICS__Title", "inner.join");
+		qs.addSelector("Title", "Title");
+		qs.addSelector("Title", "Movie_Budget");
+
+		Hashtable<String, Hashtable<String, String>> testAlias = new Hashtable<String, Hashtable<String, String>>();
+		Hashtable<String, String> colHash = new Hashtable<String, String>();
+		colHash.put("Movie_Budget", "Budget");
+		testAlias.put("Title", colHash);
 		
-		IQueryInterpreter qi = coreEngine.getQueryInterpreter();
+		SQLInterpreter qi = (SQLInterpreter) coreEngine.getQueryInterpreter();
 		qi.setQueryStruct(qs);
+		qi.setColAlias(testAlias);
 		String query = qi.composeQuery();
 		
 		System.out.println(query);
