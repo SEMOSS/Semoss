@@ -8,6 +8,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Vector;
 
+import com.google.gson.Gson;
+
 import prerna.algorithm.api.ITableDataFrame;
 import prerna.ds.TinkerFrame;
 import prerna.engine.api.IScriptReactor;
@@ -92,8 +94,6 @@ import prerna.sablecc.node.PScript;
 import prerna.ui.components.playsheets.datamakers.IDataMaker;
 import prerna.util.Constants;
 
-import com.google.gson.Gson;
-
 public class Translation extends DepthFirstAdapter {
 	// this is the third version of this shit I am building
 	// I need some way of having logical points for me to know when to start another reactor
@@ -118,16 +118,26 @@ public class Translation extends DepthFirstAdapter {
 	// a. Where to initiate
 	// b. What is the name of the reactor
 
-	Map <String, String> reactorNames = new Hashtable<String, String>();
+	// frame specific reactors are stored in reactorNames
+	// used for strategy pattern of pkql input to specific reactor class
+	Map<String, String> reactorNames = new Hashtable<String, String>();
+	
+	// used for strategy pattern of pkql input to specific api type
+	// this is not a part of reactor names since we have not defined these are constants
+	// within the postfix, but are passed as string values in the "engineName"
+	// component of a data.import.  It has to be defined as a string since the engine names
+	// that could exist should obviously not be stored within the postfix
+	Map<String, String> apiReactorNames = new Hashtable<String, String>();
+	
 	IDataMaker frame = null;
 	PKQLRunner runner = null;
 
 	public Translation() { // Test Constructor
 		frame = new TinkerFrame();
-		this.reactorNames = frame.getScriptReactors();
-		//		((TinkerFrame)frame).tryCustomGraph();
 		this.runner = new PKQLRunner();
-		//		fillReactors();
+
+		this.reactorNames = frame.getScriptReactors();
+		fillApiReactors();
 	}
 	/**
 	 * Constructor that takes in the dataframe that it will perform its calculations off of and the runner that invoked the translation
@@ -137,32 +147,23 @@ public class Translation extends DepthFirstAdapter {
 	public Translation(IDataMaker frame, PKQLRunner runner) {
 		// now get the data from tinker
 		this.frame = frame;
-		this.reactorNames = frame.getScriptReactors();
 		this.runner = runner;
-		//		fillReactors();
+
+		this.reactorNames = frame.getScriptReactors();
+		fillApiReactors();
 	}
 
-	// MOVED TO THE DATA FRAMES SO THEY HAVE CONTROL
-	//	private void fillReactors() { // TODO: use PKQLReactor enum
-	//		reactorNames.put(PKQLEnum.EXPR_TERM, "prerna.sablecc.ExprReactor");
-	//		reactorNames.put(PKQLEnum.EXPR_SCRIPT, "prerna.sablecc.ExprReactor");
-	//		reactorNames.put(PKQLReactor.MATH_FUN.toString(), "prerna.sablecc.MathReactor");
-	//		reactorNames.put(PKQLEnum.CSV_TABLE, "prerna.sablecc.CsvTableReactor");
-	//		reactorNames.put(PKQLEnum.COL_CSV, "prerna.sablecc.ColCsvReactor"); // it almost feels like I need a way to tell when to do this and when not but let me see
-	//		reactorNames.put(PKQLEnum.ROW_CSV, "prerna.sablecc.RowCsvReactor");
-	//		reactorNames.put(PKQLEnum.API, "prerna.sablecc.ApiReactor");
-	//		reactorNames.put(PKQLEnum.PASTED_DATA, "prerna.sablecc.PastedDataReactor");
-	//		reactorNames.put(PKQLEnum.WHERE, "prerna.sablecc.ColWhereReactor");
-	//		reactorNames.put(PKQLEnum.REL_DEF, "prerna.sablecc.RelReactor");
-	//		reactorNames.put(PKQLEnum.COL_ADD, "prerna.sablecc.ColAddReactor");
-	//		reactorNames.put(PKQLEnum.IMPORT_DATA, "prerna.sablecc.ImportDataReactor");
-	//		reactorNames.put(PKQLEnum.REMOVE_DATA, "prerna.sablecc.RemoveDataReactor");
-	//		reactorNames.put(PKQLEnum.FILTER_DATA, "prerna.sablecc.ColFilterReactor");
-	//		reactorNames.put(PKQLEnum.VIZ, "prerna.sablecc.VizReactor");
-	//		reactorNames.put(PKQLEnum.UNFILTER_DATA, "prerna.sablecc.ColUnfilterReactor");
-	//		reactorNames.put(PKQLEnum.DATA_FRAME, "prerna.sablecc.DataFrameReactor");
-	//	}
-
+	/**
+	 * We want to use a strategy pattern for instantiating the different API reactors
+	 */
+	private void fillApiReactors() {
+		apiReactorNames.put(PKQLEnum.QUERY_API, "prerna.engine.impl.rdf.QueryAPI");
+		apiReactorNames.put(PKQLEnum.CSV_API, "prerna.engine.impl.rdf.CSVApi");
+		//TODO: why are these stored in the same package which only contains Interfaces!!!
+		apiReactorNames.put(PKQLEnum.WEB_API, "prerna.engine.api.WebApi");
+		apiReactorNames.put(PKQLEnum.R_API, "prerna.engine.api.RApi");
+	}
+	
 	@Override
 	public void inAConfiguration(AConfiguration node){
 		System.out.println(node.toString());
@@ -291,10 +292,23 @@ public class Translation extends DepthFirstAdapter {
 			if(curReactor !=null && curReactor.getValue(PKQLEnum.JOINS)!=null){
 				myJoins = (List) curReactor.getValue(PKQLEnum.JOINS);
 			}
+			// grab the engine and use a strategy pattern to determine the appropriate 
+			// api instance to construct
+			String engine = node.getEngineName().toString().trim();
+			if(engine.equalsIgnoreCase("ImportIO") || engine.equalsIgnoreCase("AmazonProduct")){
+				// we have a web api
+				this.reactorNames.put(PKQLEnum.API, this.apiReactorNames.get(PKQLEnum.WEB_API));
+			} else if(engine.equalsIgnoreCase("csvFile")) {
+				// we have a csv api
+				this.reactorNames.put(PKQLEnum.API, this.apiReactorNames.get(PKQLEnum.CSV_API));
+			} else {
+				// default is a query api
+				this.reactorNames.put(PKQLEnum.API, this.apiReactorNames.get(PKQLEnum.QUERY_API));
+			}
 			initReactor(PKQLEnum.API);
+			
 			String nodeStr = node.toString().trim();
 			curReactor.put(PKQLEnum.API, nodeStr);
-			String engine = node.getEngineName().toString().trim();
 			curReactor.put("ENGINE", engine);
 			curReactor.put("INSIGHT", node.getInsight().toString());
 			Map<String, Map<String, Object>> varMap = runner.getVarMap();
@@ -309,7 +323,7 @@ public class Translation extends DepthFirstAdapter {
 			curReactor.put("VARMAP", varMapForReactor);
 			if(myJoins != null) {
 				curReactor.put("TABLE_JOINS", myJoins);
-			}		
+			}
 		}
 	}
 
@@ -1263,7 +1277,7 @@ public class Translation extends DepthFirstAdapter {
 			curReactor.put(PKQLEnum.G, frame);
 			curReactor.put(PKQLEnum.MATH_FUN, nodeStr.trim());
 
-			//for panel.viz
+			//for panel.viz2
 			curReactor.put("MATH_EXPRESSION", node.toString().trim());
 
 			curReactor.put(PKQLEnum.PROC_NAME, procedureName); // don't need once all algorithms have been refactored into Reactors
