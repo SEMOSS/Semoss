@@ -1,59 +1,71 @@
 package prerna.engine.api;
 
 import java.io.IOException;
-import java.util.Hashtable;
 import java.util.Iterator;
+import java.util.Map;
+import java.util.Vector;
 
+import prerna.ds.H2.H2Frame;
 import prerna.ds.util.WebApiIterator;
+import prerna.sablecc.AbstractReactor;
+import prerna.sablecc.PKQLEnum;
+import prerna.sablecc.PKQLRunner;
 
-public class WebApi implements IApi{
+public class WebApi extends AbstractReactor{
 	
-	Hashtable <String, Object> values = new Hashtable<String, Object>();
+	private String url = null;
+	private String itemSearch = null;
+	private String itemLookup = null;
 	
-	//String [] params = {"API_PARAM"};
-	String [] params = {"URL", "ITEM_SEARCH", "ITEM_LOOKUP"};
-
-	@Override
-	public String[] getParams() {
-		// TODO Auto-generated method stub
-		return params;
-	}
-
-	@Override
-	public void set(String key, Object value) {
-		// TODO Auto-generated method stub
-		values.put(key, value);
-	}
-
 	@Override
 	public Iterator process() {
-		// TODO Auto-generated method stub
+		// grab the engine from the my store
+		String engine = (String)myStore.get("ENGINE");
 		
-		String url = (String) values.get("URL");
-		String itemSearch = (String) values.get("ITEM_SEARCH");
-		String itemLookup = (String) values.get("ITEM_LOOKUP");
-		String key = (url != null)? "URL" : (itemSearch != null)? "ITEM_SEARCH" : "ITEM_LOOKUP";
+		// we currently have 2 different cases for the web api
+		if(engine.equalsIgnoreCase("ImportIO")){
+			if (myStore.get(PKQLEnum.G) instanceof H2Frame) {
+				if(myStore.containsKey("KEY_VALUE") && ((Map) ((Vector) myStore.get("KEY_VALUE")).get(0)).containsKey("url")){
+					this.url = (String) ((Map) ((Vector) myStore.get("KEY_VALUE")).get(0)).get("url");
+				} else {
+					System.out.println("Invalid PKQL: Missing URL. Required Syntax: data.import(api:ImportIO.Query({'url':'enter_your_url_here'})); ");
+					myStore.put("RESPONSE", "Error: Invalid PKQL: Missing URL. Required Syntax: data.import(api:ImportIO.Query({'url':'enter_your_url_here'}));");
+					myStore.put("STATUS", PKQLRunner.STATUS.ERROR);
+					return null;
+				}
+			}
+		} else if(engine.equalsIgnoreCase("AmazonProduct")){
+			if(myStore.get(PKQLEnum.G) instanceof H2Frame) {
+				if(myStore.containsKey("KEY_VALUE") && ((Map) ((Vector) myStore.get("KEY_VALUE")).get(0)).containsKey("itemSearch")){
+					this.itemSearch = (String) ((Map) ((Vector) myStore.get("KEY_VALUE")).get(0)).get("itemSearch");
+				} else if(myStore.containsKey("KEY_VALUE") && ((Map) ((Vector) myStore.get("KEY_VALUE")).get(0)).containsKey("itemLookup")){
+					this.itemLookup = (String) ((Map) ((Vector) myStore.get("KEY_VALUE")).get(0)).get("itemLookup");
+				} else {
+					System.out.println("Invalid PKQL: Required Syntax: data.import(api:AmazonProduct.Query({'itemSearch':'enter_search_keywords_here'})); OR data.import(api:AmazonProduct.Query({'itemLookup':'enter_item_ASIN_here'}));");
+					myStore.put("RESPONSE", "Error: Invalid PKQL: Required Syntax: data.import(api:AmazonProduct.Query({'itemSearch':'enter_search_keywords_here'})); OR data.import(api:AmazonProduct.Query({'itemLookup':'enter_item_ASIN_here'}));");
+					myStore.put("STATUS", PKQLRunner.STATUS.ERROR);
+					return null;
+				}
+			}
+		}
 		
-		Iterator<IHeadersDataRow> it;
+		String key = (this.url != null)? "URL" : (this.itemSearch != null)? "ITEM_SEARCH" : "ITEM_LOOKUP";
+		
+		Iterator<IHeadersDataRow> it = null;
 		try {
-			/*if(keyvalue.matches("^(https?|ftp)://.*$"))
-				it = new ImportApiIterator(keyvalue, null);
-			else
-				it = new ImportApiIterator(keyvalue);*/
-			
 			switch(key){
 			case "URL":	it = new WebApiIterator(url); break;
 			case "ITEM_SEARCH":	it = new WebApiIterator("ItemSearch", itemSearch); break;
 			case "ITEM_LOOKUP": it = new WebApiIterator("ItemLookup", itemLookup); break;
 			default: it = null; break;
 			}
-			
-
-			return it;
 		} catch (IOException e) {
-			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}		
+		
+		this.put((String) getValue(PKQLEnum.API), it);
+		this.put("RESPONSE", "success");
+		this.put("STATUS", PKQLRunner.STATUS.SUCCESS);
 		
 		return null;
 	}
