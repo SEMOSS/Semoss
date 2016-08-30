@@ -825,6 +825,12 @@ public class AnalysisAdapter implements Analysis
     }
 
     @Override
+    public void caseAOpenDataInputOrExpr(AOpenDataInputOrExpr node)
+    {
+        defaultCase(node);
+    }
+
+    @Override
     public void caseATermExpr(ATermExpr node)
     {
         defaultCase(node);

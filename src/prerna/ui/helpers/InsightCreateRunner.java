@@ -36,6 +36,7 @@ import javax.swing.JDesktopPane;
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
+import prerna.om.Dashboard;
 import prerna.om.Insight;
 import prerna.om.InsightStore;
 import prerna.sablecc.PKQLRunner;
@@ -284,7 +285,7 @@ public class InsightCreateRunner implements Runnable{
 		
 		// previous insights did not save the table data align
 		// if it is not present, we get the table data align by setting the data maker in the playsheet and grabbing it
-		if(tableDataAlign == null || tableDataAlign.isEmpty()) {
+		if((tableDataAlign == null || tableDataAlign.isEmpty()) && !(insight.getDataMaker() instanceof Dashboard)) {
 			IPlaySheet playSheet = insight.getPlaySheet();
 			tableDataAlign = (Map<String, String>) (((AbstractPlaySheet) playSheet).getDataTableAlign());
 			insight.setDataTableAlign(tableDataAlign);

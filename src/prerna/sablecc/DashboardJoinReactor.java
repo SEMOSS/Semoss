@@ -11,6 +11,7 @@ import prerna.ds.H2.H2Joiner;
 import prerna.om.Dashboard;
 import prerna.om.Insight;
 import prerna.om.InsightStore;
+import prerna.sablecc.PKQLEnum.PKQLReactor;
 import prerna.ui.components.playsheets.datamakers.IDataMaker;
 
 public class DashboardJoinReactor extends AbstractReactor {
@@ -18,7 +19,7 @@ public class DashboardJoinReactor extends AbstractReactor {
 	public DashboardJoinReactor() {
 		// example join is data.join("insight1", "insight2", c:Title, c:Movie_Title, inner.join);
 		//TODO : changing back to table once we make the reactor
-		String [] thisReacts = {PKQLEnum.COL_CSV, PKQLEnum.REL_TYPE, PKQLEnum.OPEN_DATA, PKQLEnum.JOIN_PARAM};
+		String [] thisReacts = {PKQLEnum.COL_CSV, PKQLEnum.REL_TYPE, PKQLEnum.OPEN_DATA, PKQLEnum.JOIN_PARAM, PKQLReactor.VAR.toString()};
 		super.whatIReactTo = thisReacts;
 		super.whoAmI = PKQLEnum.DASHBOARD_JOIN;
 	}
