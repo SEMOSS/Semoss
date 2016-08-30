@@ -20,6 +20,7 @@ public interface Analysis extends Switch
     void caseAPanelopScript(APanelopScript node);
     void caseAScript(AScript node);
     void caseADataopScript(ADataopScript node);
+    void caseADashboardopScript(ADashboardopScript node);
     void caseAAddColumnColop(AAddColumnColop node);
     void caseARemcolColop(ARemcolColop node);
     void caseASetcolColop(ASetcolColop node);
@@ -50,6 +51,7 @@ public interface Analysis extends Switch
     void caseADatatypeDataop(ADatatypeDataop node);
     void caseADataconnectDataop(ADataconnectDataop node);
     void caseADataconnectdbDataop(ADataconnectdbDataop node);
+    void caseADashboardConfigDashboardop(ADashboardConfigDashboardop node);
     void caseAPanelViz(APanelViz node);
     void caseAPanelComment(APanelComment node);
     void caseAPanelCommentEdit(APanelCommentEdit node);
@@ -60,6 +62,7 @@ public interface Analysis extends Switch
     void caseAPanelClone(APanelClone node);
     void caseAPanelClose(APanelClose node);
     void caseADataFrame(ADataFrame node);
+    void caseADashboardConfig(ADashboardConfig node);
     void caseAAddColumn(AAddColumn node);
     void caseARemColumn(ARemColumn node);
     void caseASetColumn(ASetColumn node);
@@ -234,6 +237,7 @@ public interface Analysis extends Switch
     void caseTDatatypeToken(TDatatypeToken node);
     void caseTDataconnectToken(TDataconnectToken node);
     void caseTDataconnectdbToken(TDataconnectdbToken node);
+    void caseTDashboardconfig(TDashboardconfig node);
     void caseEOF(EOF node);
     void caseInvalidToken(InvalidToken node);
 }
