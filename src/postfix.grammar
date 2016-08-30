@@ -94,6 +94,7 @@ Tokens
  dataconnect_token = 'data.connect';
  dataconnectdb_token = 'data.connectdb';
  
+ dashboardconfig = 'dashboard.config';
  //dashboard_join_token = 'dashboard.join';
  //dashboard_rem_token = 'dashboard.removeInsight'
  //dashboard_add_token = 'dashboard.addInsight'
@@ -115,6 +116,7 @@ script = {colop} colop  semicolon // column operations
 		 | {panelop} panelop semicolon
 		 | newline
 		 | {dataop} dataop semicolon
+		 | {dashboardop} dashboardop semicolon
 		 ;
 
 colop = // colOp is usually of the form of joinColumn / addColumn / removeColumn / setColumn
@@ -156,7 +158,9 @@ dataop = // dataop is usually of the form of data.frame, etc.
 		| {dataconnectdb} dataconnectdb
 		;
 
-//dashboardop = // dashboardop is usually of the form dashboard.join, dashboard.add, dashboard.remove, etc.
+dashboardop = // dashboardop is usually of the form dashboard.join, dashboard.add, dashboard.remove, etc.
+		{dashboard_config} dashboard_config
+		;
 	//	{dashboard_join} dashboard_join
 		//| {dashboard_add}
 		//| {dashboard_rem}
@@ -202,7 +206,11 @@ panel_close = // e.g. panel.close();
 data_frame = // e.g. panel.setBuilder('graph');
 		dataframe l_par [builder]:word_or_num r_par
 		;
-		
+
+dashboard_config = //e.g. dashboard.config({'someKey':'someValue'});
+		dashboardconfig l_par [map]:map_obj r_par
+		;
+			
 add_column = // follows the pattern of addColumn(columnName and optionally the expression) addColumn(c:NewCol, 'expression', [c:col1, c:col2]);
 		coladd l_par [newcol]:col_def comma [expr]:expr r_par 
 		;
