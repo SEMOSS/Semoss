@@ -614,9 +614,27 @@ public class MHSDashboardDrillPlaysheet extends TablePlaySheet implements IDataM
 							projectedStart = actualStartDate;
 						}
 	
-						Date projectedEnd = addToDate(projectedStart, vertexDuration);
+						String systemActivty = vert.value("NAME"); 
 						
-						String systemActivty = vert.value("NAME");
+						String projectedStartQuery = "SELECT PROJECTEDSTART from SYSTEMACTIVITYUPLOAD WHERE SYSTEMACTIVITY_FK = '" + systemActivty + "'";
+						IRawSelectWrapper iterator = WrapperManager.getInstance().getRawWrapper(dmComponent.getEngine(), projectedStartQuery);
+						while(iterator.hasNext()) {
+							IHeadersDataRow nextRow = iterator.next();
+							if(!(nextRow.getValues()[0] == null)){
+								Date containedProjectedStart;
+								try {
+									containedProjectedStart = (Date) getDateFormat().parse((String)nextRow.getValues()[0]);
+									if(containedProjectedStart.after(projectedStart)){
+										projectedStart = containedProjectedStart;
+									}
+								} catch (ParseException e) {
+									continue;
+								}
+							}
+						}
+						
+						
+						Date projectedEnd = addToDate(projectedStart, vertexDuration);
 						
 						//calculate total amount of days this activity will be delayed
 						double delay= 0.0;
@@ -628,7 +646,7 @@ public class MHSDashboardDrillPlaysheet extends TablePlaySheet implements IDataM
 						
 						String dateType = null;
 						//Completed
-						if(! (actualEndDate ==null)) {
+						if(! (actualEndDate ==null)) { 
 							if(actualEndDate.before(todaysDate)){
 								dateType = "Completed";
 							}
@@ -652,14 +670,13 @@ public class MHSDashboardDrillPlaysheet extends TablePlaySheet implements IDataM
 //						System.out.println("SysActivity Name's Delay ::: " + systemActivty + " = " + delay);
 						sum += delay;
 					}
-				pathSumList.add(sum);
+				pathSumList.add(-sum);
 				}
 //				System.out.println();
 //				System.out.println("NEXT PATHList::::::::");
 //				System.out.println();
 			}
-			System.out.println("Max Value:::: " +  Collections.max(pathSumList));
-			return Collections.max(pathSumList);
+			return Collections.min(pathSumList);
 		} else {
 			return 0.0;
 		}
@@ -695,19 +712,6 @@ public class MHSDashboardDrillPlaysheet extends TablePlaySheet implements IDataM
 		return Collections.max(pathSumList);
 	}
 	
-	
-	private double getPrimKeyActivitySum (Map<String, Double> ActivityDurationtHash) {
-		//...FOR NOW I WILL JUST ADD ALL THE ACTIVITES of the same primKey together...but that will probably change 
-		//because what if all the initial sub activies start at the same time...then it wouldn't make sense to add them (we should the look at the start date) 
-		Double sumAllCriticalPaths = 0.0;
-		for(String activityKey : ActivityDurationtHash.keySet()){
-			Double activityPathDuration = ActivityDurationtHash.get(activityKey);
-			sumAllCriticalPaths += activityPathDuration;
-		}
-		
-		System.out.println("Sum::::::: " + sumAllCriticalPaths);
-		return sumAllCriticalPaths;
-	}
 	
 	public Map<String, Date> convertStringDates (String plannedStartDate, String plannedEndDate, String actualStartDate, String actualEndDate) {
 		Date plannedStart = null;
