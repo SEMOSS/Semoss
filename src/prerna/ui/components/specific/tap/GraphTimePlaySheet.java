@@ -157,7 +157,7 @@ public class GraphTimePlaySheet extends BrowserPlaySheet{
 	{
 		for (int qIdx = 0; qIdx < this.timeQueryArray.size(); qIdx ++){
 			String[] queryArray = this.timeQueryArray.get(qIdx);
-			processTimeData(queryArray[0], (IEngine) DIHelper.getInstance().getLocalProp(queryArray[1]));
+			processTimeData(queryArray[0], Utility.getEngine(queryArray[1]));
 		}
 		Hashtable retHash = (Hashtable) this.getDataMakerOutput();
 		Gson gson = new GsonBuilder().disableHtmlEscaping().setPrettyPrinting().create();
