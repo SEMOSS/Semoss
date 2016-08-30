@@ -37,12 +37,14 @@ import prerna.sablecc.node.ADecimal;
 import prerna.sablecc.node.ADivExpr;
 import prerna.sablecc.node.AEExprExpr;
 import prerna.sablecc.node.AExprGroup;
+import prerna.sablecc.node.AExprInputOrExpr;
 import prerna.sablecc.node.AExprRow;
 import prerna.sablecc.node.AExprScript;
 import prerna.sablecc.node.AFilterColumn;
 import prerna.sablecc.node.AFlexSelectorRow;
 import prerna.sablecc.node.AHelpScript;
 import prerna.sablecc.node.AImportData;
+import prerna.sablecc.node.AInputInputOrExpr;
 import prerna.sablecc.node.AInsightidJoinParam;
 import prerna.sablecc.node.AKeyvalue;
 import prerna.sablecc.node.AMathFun;
@@ -54,6 +56,7 @@ import prerna.sablecc.node.AMultExpr;
 import prerna.sablecc.node.ANumWordOrNum;
 import prerna.sablecc.node.ANumberTerm;
 import prerna.sablecc.node.AOpenData;
+import prerna.sablecc.node.AOpenDataInputOrExpr;
 import prerna.sablecc.node.AOpenDataJoinParam;
 import prerna.sablecc.node.APanelClone;
 import prerna.sablecc.node.APanelClose;
@@ -637,6 +640,7 @@ public class Translation extends DepthFirstAdapter {
 		String insightID = (String)curReactor.getValue(PKQLEnum.OPEN_DATA);
 		curReactor.set(PKQLEnum.JOIN_PARAM, insightID);
 	}
+	
 	@Override
 	public void outAInsightidJoinParam(AInsightidJoinParam node)
 	{
@@ -644,10 +648,11 @@ public class Translation extends DepthFirstAdapter {
 		String cleanedInsightID = insightID.substring(1, insightID.length()-1);
 		curReactor.set(PKQLEnum.JOIN_PARAM, cleanedInsightID);
 	}
+	
 	@Override
 	public void outAVariableJoinParam(AVariableJoinParam node)
 	{
-		String varName = (String)curReactor.getValue(PKQLReactor.VAR.toString());
+		String varName = ((AVarDef)node.getVarDef()).getValname().toString().trim();
 		String insightID = (String)runner.getVariableValue(varName);
 		curReactor.set(PKQLEnum.JOIN_PARAM, insightID);
 	}
@@ -661,9 +666,11 @@ public class Translation extends DepthFirstAdapter {
 			curReactor.put(PKQLEnum.DASHBOARD_JOIN, nodeStr.trim());
 			// rel type is a token, not a production, so no in/out to add it to the reactor
 			// need to add it here
+			if(node.getRel() != null)
 			curReactor.put(PKQLEnum.REL_TYPE, node.getRel().toString().trim());
 		}
 	}
+	
 	public void outADashboardJoin(ADashboardJoin node)
 	{
 		String nodeStr = node.toString().trim();
@@ -673,8 +680,97 @@ public class Translation extends DepthFirstAdapter {
 		runner.setDashBoardData(thisReactor.getValue("DashboardData"));
 	}
 
-//**************************************** END JOIN OPERATIONS **********************************************//
+	//**************************************** END JOIN OPERATIONS **********************************************//
 
+	//**************************************** START VAR OPERATIONS **********************************************//
+	
+    public void outAExprInputOrExpr(AExprInputOrExpr node) {
+    	//need to get expr and set it to var_param
+    	String value = node.getExpr().toString().trim();
+    	curReactor.put(PKQLEnum.VAR_PARAM, value);
+    }
+
+    public void outAInputInputOrExpr(AInputInputOrExpr node) {
+    }
+
+    public void outAOpenDataInputOrExpr(AOpenDataInputOrExpr node) {
+    	String insightID = ((List)curReactor.getValue(PKQLEnum.OPEN_DATA)).get(0).toString();
+		curReactor.put(PKQLEnum.VAR_PARAM, insightID);
+    }
+	
+    @Override
+	public void inAVarop(AVarop node){
+		if(reactorNames.containsKey(PKQLReactor.VAR.toString())) {
+			String varName = (node.getVarDef() + "").trim();
+			String expr = (node.getInputOrExpr() + "").trim();
+
+			initReactor(PKQLReactor.VAR.toString());
+			curReactor.put(PKQLReactor.VAR.toString(), varName);
+			curReactor.put(PKQLEnum.EXPR_TERM, expr); // don't need once all algorithms have been refactored into Reactors
+		}	
+	}
+
+	//this is only used for setting a var (aka v:test = 'true')
+	//AVarTerm will be used in expressions (aka c:Budget + v:test)
+	@Override
+	public void outAVarop(AVarop node) {
+		if(reactorNames.containsKey(PKQLReactor.VAR.toString())) {
+			String nodeStr = PKQLReactor.VAR.toString();
+			
+			boolean updatingExistingVar = false;
+			Map<String, Object> thisReactorHash = deinitReactor(PKQLReactor.VAR.toString(), nodeStr, nodeStr);
+			IScriptReactor previousReactor = (IScriptReactor)thisReactorHash.get(PKQLReactor.VAR.toString());
+			String varName = previousReactor.getValue(PKQLReactor.VAR.toString()) + "";
+			Object inputNeeded = previousReactor.getValue(PKQLEnum.INPUT);
+			if(inputNeeded == null) // if no input needed for this var, set it and we are good
+			{
+				String varParam = curReactor.getValue(PKQLEnum.VAR_PARAM) + "";
+				runner.unassignedVars.remove(varName);
+				if(runner.getVariableData(varName) != null) {
+					updatingExistingVar = true;
+				}
+				runner.setVariableValue(varName, varParam.replaceAll("^\'|\'$", "").trim());
+				runner.setResponse("Set variable " + varName +" to " + varParam);
+				runner.setStatus(STATUS.SUCCESS);
+				curReactor.put(PKQLReactor.VAR.toString(), varName);
+			}
+			else {
+				runner.unassignedVars.add(varName);
+				if(runner.getVariableData(varName) == null) {
+					runner.addNewVariable(varName, previousReactor.getValue(Constants.ENGINE).toString(), ((Vector)previousReactor.getValue(Constants.TYPE)).get(0).toString());
+				}
+				runner.setResponse("Need input on variable " + varName);
+				Map<String, Object> paramMap = new HashMap<String,Object>();
+				paramMap.put("varToSet", varName);
+				paramMap.put("options", previousReactor.getValue("options"));
+				paramMap.put("selectAmount", previousReactor.getValue("selectAmount"));
+				runner.addBeData("var2define", paramMap, false);
+				runner.setStatus(STATUS.INPUT_NEEDED);
+			}
+		}	
+	}
+
+	@Override
+	public void inAVarTerm(AVarTerm node) {
+		String varName = node.getVar().toString().trim();
+		// get the value for the var from the runner
+		Object varVal = runner.getVariableValue(varName);
+		// adding to the reactor
+		curReactor.set(PKQLEnum.VAR_TERM, varVal);
+		curReactor.addReplacer((node + "").trim(), varVal);
+	}
+
+	@Override
+	public void inAVarDef(AVarDef node) {
+		String valName = node.getValname().toString().trim();
+		// adding to the reactor
+		curReactor.put(PKQLReactor.VAR.toString(), valName);
+		curReactor.addReplacer((node + "").trim(), valName);
+    }
+	
+	//**************************************** END VAR OPERATIONS **********************************************//
+	
+	
 	@Override
 	public void inADataFrame(ADataFrame node) {
 		if(reactorNames.containsKey(PKQLEnum.DATA_FRAME)) {
@@ -833,14 +929,6 @@ public class Translation extends DepthFirstAdapter {
 		curReactor.set("COL_DEF", colName);
 		curReactor.addReplacer((node + "").trim(), colName);
 	}
-
-	@Override
-	public void inAVarDef(AVarDef node) {
-		String valName = node.getValname().toString().trim();
-		// adding to the reactor
-		curReactor.set(PKQLReactor.VAR.toString(), valName);
-		curReactor.addReplacer((node + "").trim(), valName);
-    }
 	
 	@Override
 	public void inAFlexSelectorRow(AFlexSelectorRow node) {
@@ -988,8 +1076,7 @@ public class Translation extends DepthFirstAdapter {
 		Object o = curReactor.getValue(PKQLEnum.OPEN_DATA);
 		Hashtable <String, Object> thisReactorHash = deinitReactor(PKQLEnum.OPEN_DATA, nodeOpen, nodeStr);
 		IScriptReactor previousReactor = (IScriptReactor)thisReactorHash.get(PKQLEnum.OPEN_DATA);
-		curReactor.set(PKQLEnum.OPEN_DATA+"insightid", previousReactor.getValue(PKQLEnum.OPEN_DATA));
-		//		runner.setNewInsightID(previousReactor.getValue(PKQLEnum.OPEN_DATA).toString());
+		curReactor.set(PKQLEnum.OPEN_DATA, previousReactor.getValue(PKQLEnum.OPEN_DATA));
 	}
 
 	@Override
@@ -1017,66 +1104,7 @@ public class Translation extends DepthFirstAdapter {
 	public void outASetColumn(ASetColumn node) {
 	}
 
-	@Override
-	public void inAVarop(AVarop node){
-		if(reactorNames.containsKey(PKQLReactor.VAR.toString())) {
-			String varName = (node.getVarDef() + "").trim();
-			String expr = (node.getInputOrExpr() + "").trim();
-
-			initReactor(PKQLReactor.VAR.toString());
-			curReactor.put(PKQLReactor.VAR.toString(), varName);
-			curReactor.put(PKQLEnum.EXPR_TERM, expr); // don't need once all algorithms have been refactored into Reactors
-		}	
-	}
-
-	//this is only used for setting a var (aka v:test = 'true')
-	//AVarTerm will be used in expressions (aka c:Budget + v:test)
-	@Override
-	public void outAVarop(AVarop node) {
-		if(reactorNames.containsKey(PKQLReactor.VAR.toString())) {
-			String nodeStr = PKQLReactor.VAR.toString();
-			String expr = curReactor.getValue(PKQLEnum.EXPR_TERM) + "";
-			boolean updatingExistingVar = false;
-			Map<String, Object> thisReactorHash = deinitReactor(PKQLReactor.VAR.toString(), nodeStr, nodeStr);
-			IScriptReactor previousReactor = (IScriptReactor)thisReactorHash.get(PKQLReactor.VAR.toString());
-			String varName = previousReactor.getValue(PKQLReactor.VAR.toString()) + "";
-			Object inputNeeded = previousReactor.getValue(PKQLEnum.INPUT);
-			if(inputNeeded == null) // if no input needed for this var, set it and we are good
-			{
-				runner.unassignedVars.remove(varName);
-				if(runner.getVariableData(varName) != null) {
-					updatingExistingVar = true;
-				}
-				runner.setVariableValue(varName, expr.replaceAll("^\'|\'$", ""));
-				runner.setResponse("Set variable " + varName +" to " + expr);
-				runner.setStatus(STATUS.SUCCESS);
-			}
-			else {
-				runner.unassignedVars.add(varName);
-				if(runner.getVariableData(varName) == null) {
-					runner.addNewVariable(varName, previousReactor.getValue(Constants.ENGINE).toString(), ((Vector)previousReactor.getValue(Constants.TYPE)).get(0).toString());
-				}
-				runner.setResponse("Need input on variable " + varName);
-				Map<String, Object> paramMap = new HashMap<String,Object>();
-				paramMap.put("varToSet", varName);
-				paramMap.put("options", previousReactor.getValue("options"));
-				paramMap.put("selectAmount", previousReactor.getValue("selectAmount"));
-				runner.addBeData("var2define", paramMap, false);
-				runner.setStatus(STATUS.INPUT_NEEDED);
-			}
-		}	
-	}
-
-	@Override
-	public void inAVarTerm(AVarTerm node) {
-		String varName = node.getVar().toString().trim();
-		// get the value for the var from the runner
-		Object varVal = runner.getVariableValue(varName);
-		// adding to the reactor
-		curReactor.set(PKQLEnum.VAR_TERM, varVal);
-		curReactor.addReplacer((node + "").trim(), varVal);
-	}
-
+	
 	@Override
 	public void inAUserInput(AUserInput node) {
 		if(reactorNames.containsKey(PKQLReactor.INPUT.toString())) {
