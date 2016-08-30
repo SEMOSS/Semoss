@@ -1,38 +1,52 @@
 package prerna.engine.api;
 
+import java.sql.SQLException;
 import java.util.Hashtable;
 import java.util.Iterator;
 import java.util.Vector;
 
-import prerna.ds.QueryStruct;
+import org.rosuda.REngine.Rserve.RserveException;
+
+import prerna.ds.H2.H2Frame;
 import prerna.engine.impl.r.RRunner;
+import prerna.engine.impl.rdf.AbstractApiReactor;
+import prerna.sablecc.PKQLEnum;
+import prerna.sablecc.PKQLRunner;
 
 /**
  * Used in ApiReactor to create an R dataframe based off of only columns selected by the user
  * @author kepark
  *
  */
-public class RApi implements IApi{
+public class RApi extends AbstractApiReactor {
 	
-	Hashtable <String, Object> values = new Hashtable<String, Object>();
-	String [] params = {"QUERY_STRUCT", "R_RUNNER", "TABLE_NAME"};
-
-	@Override
-	public String[] getParams() {
-		return params;
-	}
-
-	@Override
-	public void set(String key, Object value) {
-		values.put(key, value);
-	}
+	private String tableName = null;
+	private RRunner rRunner = null;
 
 	@Override
 	public Iterator process() {
-		QueryStruct qs = (QueryStruct) values.get(params[0]); 
-		RRunner r = (RRunner)values.get(params[1]);
-
-		Hashtable<String, Vector<String>> selectors = qs.getSelectors();
+		if (myStore.get(PKQLEnum.G) instanceof H2Frame) {
+			H2Frame frame = (H2Frame) myStore.get(PKQLEnum.G);
+			try {
+				this.tableName = frame.getDatabaseMetaData().get("tableName");
+				this.rRunner = frame.getRRunner();
+			} catch (RserveException e) {
+				myStore.put("RESPONSE", "Error: R server is down.");
+				myStore.put("STATUS", PKQLRunner.STATUS.ERROR);
+				e.printStackTrace();
+			} catch (SQLException e) {
+				myStore.put("RESPONSE", "Error: Invalid database connection.");
+				myStore.put("STATUS", PKQLRunner.STATUS.ERROR);
+				e.printStackTrace();
+			}
+		} else {
+			myStore.put("RESPONSE", "Error: Dataframe must be in Grid format.");
+			myStore.put("STATUS", PKQLRunner.STATUS.ERROR);
+			return null;
+		} 
+		
+		
+		Hashtable<String, Vector<String>> selectors = this.qs.getSelectors();
 		String columns = "";
 		for(String column : selectors.keySet()) {
 			columns += column + ",";
@@ -41,15 +55,20 @@ public class RApi implements IApi{
 //		r.evaluateScript(connectionScript);
 //		SQLInterpreter interp = new SQLInterpreter();
 //		interp.setQueryStruct(qs); // currently constructs query as SELECT  M.PRIM_KEY_PLACEHOLDER AS MovieBudget , T.PRIM_KEY_PLACEHOLDER AS Title  FROM MovieBudget  M , Title, need to rework interpreter to be able to set table
-		String query = "SELECT " + columns.substring(0, columns.lastIndexOf(",")) + " FROM " + values.get(params[2]); // appending table name to end of query; see if there's a better way to set table/froms for interpreter
+		String query = "SELECT " + columns.substring(0, columns.lastIndexOf(",")) + " FROM " + this.tableName; // appending table name to end of query; see if there's a better way to set table/froms for interpreter
 		String queryScript = "dataframe<-as.data.frame(unclass(dbGetQuery(conn,'" + query + "')));"; // R script that stores query result in R variable named dataframe
 		
-		r.evaluateScript(queryScript);
-		if (r.getScriptRanSuccessfully()) {
-			r.setDataframeExists(true);
+		this.rRunner.evaluateScript(queryScript);
+		if (rRunner.getScriptRanSuccessfully()) {
+			rRunner.setDataframeExists(true);
 		}
+		
+		myStore.put("RESPONSE", "success");
+		myStore.put("STATUS", PKQLRunner.STATUS.SUCCESS);
 		
 		return null; // until H2Frame can run a query on itself, can't generate a wrapper from query
 	}
+		
+		
 
 }
