@@ -137,6 +137,7 @@ public interface Analysis extends Switch
     void caseAUserInput(AUserInput node);
     void caseAExprInputOrExpr(AExprInputOrExpr node);
     void caseAInputInputOrExpr(AInputInputOrExpr node);
+    void caseAOpenDataInputOrExpr(AOpenDataInputOrExpr node);
     void caseATermExpr(ATermExpr node);
     void caseAPlusExpr(APlusExpr node);
     void caseAMinusExpr(AMinusExpr node);

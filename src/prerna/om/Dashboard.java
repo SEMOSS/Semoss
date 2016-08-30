@@ -103,11 +103,11 @@ public class Dashboard implements IDataMaker {
 			transform.runMethod();
 		}
 		
-		for(String key : attachedInsights.keySet()) {
-			Insight insight = attachedInsights.get(key);
-			insight.setParentInsight(InsightStore.getInstance().get(this.insightID));
-//			insight.getDataMaker().processPostTransformations(dmc, transforms, dataFrame);
-		}
+//		for(String key : attachedInsights.keySet()) {
+//			Insight insight = attachedInsights.get(key);
+//			insight.setParentInsight(InsightStore.getInstance().get(this.insightID));
+////			insight.getDataMaker().processPostTransformations(dmc, transforms, dataFrame);
+//		}
 	}
 
 
@@ -289,9 +289,9 @@ public class Dashboard implements IDataMaker {
 		
 		for(int i = 0; i < varNames.length; i++) {
 			if(i == 0) {
-				joinPkql += varNames[i];
+				joinPkql += "v:"+varNames[i];
 			} else {
-				joinPkql += ", "+varNames[i];
+				joinPkql += ", "+"v:"+varNames[i];
 			}
 		}
 		
@@ -300,7 +300,7 @@ public class Dashboard implements IDataMaker {
 			List<String> joinCol = joinCols.get(i);
 			joinPkql += "[";
 			for(int j = 0; j < joinCol.size(); j++) {
-				String jc = joinCol.get(j);
+				String jc = "c:"+joinCol.get(j);
 				if(j==0) {
 					joinPkql += jc;
 				} else {
