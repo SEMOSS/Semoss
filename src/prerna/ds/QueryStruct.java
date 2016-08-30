@@ -184,9 +184,11 @@ public class QueryStruct {
 					downNodeTypes = new HashSet<String>();
 				}
 				edgeHash.put(selectorKey, downNodeTypes);
-				// make sure we don't add a node to itself (e.g. Title__Title)
-				props.remove(PRIM_KEY_PLACEHOLDER); 
 				for(String prop : props){
+					// make sure we don't add a node to itself (e.g. Title__Title)
+					if(prop.equals(PRIM_KEY_PLACEHOLDER)) {
+						continue;
+					}
 					// mergeQSEdgeHash needs this to be the concept__property... plus need to keep it consistent with relations
 					downNodeTypes.add(selectorKey + "__" + prop); 
 				}
