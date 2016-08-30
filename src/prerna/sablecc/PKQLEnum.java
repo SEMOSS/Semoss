@@ -66,4 +66,10 @@ public class PKQLEnum {
 	public static String VAR_PARAM = "VAR_PARAM";
 //	public static String RELATION = "RELATION";
 
+	
+	public static String QUERY_API = "QUERY_API";
+	public static String CSV_API = "CSV_API";
+	public static String R_API = "R_API";
+	public static String WEB_API = "WEB_API";
+	
 }
