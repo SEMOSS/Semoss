@@ -231,6 +231,31 @@ public class DepthFirstAdapter extends AnalysisAdapter
         outADataopScript(node);
     }
 
+    public void inADashboardopScript(ADashboardopScript node)
+    {
+        defaultIn(node);
+    }
+
+    public void outADashboardopScript(ADashboardopScript node)
+    {
+        defaultOut(node);
+    }
+
+    @Override
+    public void caseADashboardopScript(ADashboardopScript node)
+    {
+        inADashboardopScript(node);
+        if(node.getDashboardop() != null)
+        {
+            node.getDashboardop().apply(this);
+        }
+        if(node.getSemicolon() != null)
+        {
+            node.getSemicolon().apply(this);
+        }
+        outADashboardopScript(node);
+    }
+
     public void inAAddColumnColop(AAddColumnColop node)
     {
         defaultIn(node);
@@ -861,6 +886,27 @@ public class DepthFirstAdapter extends AnalysisAdapter
         outADataconnectdbDataop(node);
     }
 
+    public void inADashboardConfigDashboardop(ADashboardConfigDashboardop node)
+    {
+        defaultIn(node);
+    }
+
+    public void outADashboardConfigDashboardop(ADashboardConfigDashboardop node)
+    {
+        defaultOut(node);
+    }
+
+    @Override
+    public void caseADashboardConfigDashboardop(ADashboardConfigDashboardop node)
+    {
+        inADashboardConfigDashboardop(node);
+        if(node.getDashboardConfig() != null)
+        {
+            node.getDashboardConfig().apply(this);
+        }
+        outADashboardConfigDashboardop(node);
+    }
+
     public void inAPanelViz(APanelViz node)
     {
         defaultIn(node);
@@ -1245,6 +1291,39 @@ public class DepthFirstAdapter extends AnalysisAdapter
             node.getRPar().apply(this);
         }
         outADataFrame(node);
+    }
+
+    public void inADashboardConfig(ADashboardConfig node)
+    {
+        defaultIn(node);
+    }
+
+    public void outADashboardConfig(ADashboardConfig node)
+    {
+        defaultOut(node);
+    }
+
+    @Override
+    public void caseADashboardConfig(ADashboardConfig node)
+    {
+        inADashboardConfig(node);
+        if(node.getDashboardconfig() != null)
+        {
+            node.getDashboardconfig().apply(this);
+        }
+        if(node.getLPar() != null)
+        {
+            node.getLPar().apply(this);
+        }
+        if(node.getMap() != null)
+        {
+            node.getMap().apply(this);
+        }
+        if(node.getRPar() != null)
+        {
+            node.getRPar().apply(this);
+        }
+        outADashboardConfig(node);
     }
 
     public void inAAddColumn(AAddColumn node)

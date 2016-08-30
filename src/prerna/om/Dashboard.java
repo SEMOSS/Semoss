@@ -118,13 +118,51 @@ public class Dashboard implements IDataMaker {
 	 * TODO : Take into account selectors
 	 */
 	public Map<String, Object> getDataMakerOutput(String... selectors) {
+		
 		Map<String, Object> returnHash = new HashMap<>();
+		
+		List<String> insights = new ArrayList<>();
 		for(String insightID : attachedInsights.keySet()) {
-			Insight insight = attachedInsights.get(insightID);
-			ITableDataFrame frame = (ITableDataFrame)insight.getDataMaker();
-			Object output = insight.getDataMaker().getDataMakerOutput(frame.getColumnHeaders());
-			returnHash.put(insight.getInsightID(), output);
+			insights.add(insightID);
 		}
+		
+		List insightList = new ArrayList();
+		for(String insightID : insights) {
+			Map<String, Object> nextInsightMap = new HashMap<>();
+			
+			Insight insight = attachedInsights.get(insightID);
+			nextInsightMap.put("insightID", insightID);
+			nextInsightMap.put("engine", insight.getEngineName());
+			nextInsightMap.put("questionID", insight.getRdbmsId());
+			
+			List<String> joinedInsights = new ArrayList<>();
+			joinedInsights.addAll(insights);
+			joinedInsights.remove(insightID);
+			nextInsightMap.put("joinedInsights", joinedInsights);
+			
+			
+			Map<String, Object> insightOutput = insight.getWebData();
+			Map<String, Object> webData = new HashMap<>();
+			if(insightOutput.containsKey("uiOptions")) {
+				webData.put("uiOptions", insightOutput.get("uiOptions"));
+			}
+			
+			if(insightOutput.containsKey("layout")) {
+				webData.put("layout", insightOutput.get("layout"));
+			}
+			
+			if(insightOutput.containsKey("dataTableAlign")) {
+				webData.put("dataTableAlign", insightOutput.get("dataTableAlign"));
+			}
+
+			if(insightOutput.containsKey("title")) {
+				webData.put("title", insightOutput.get("title"));
+			}
+			nextInsightMap.put("layout", webData);
+			insightList.add(nextInsightMap);
+		}
+		returnHash.put("Dashboard", insightList);
+		
 		return returnHash;
 	}
 	
