@@ -1,6 +1,7 @@
 package prerna.sablecc;
 
 import java.io.File;
+import java.util.HashMap;
 import java.util.Hashtable;
 import java.util.Iterator;
 import java.util.List;
@@ -86,8 +87,29 @@ public class OpenDataReactor extends AbstractReactor {
 					myStore.put(PKQLEnum.OPEN_DATA, id);
 					
 					InsightCreateRunner run = new InsightCreateRunner(insightObj);
-					obj = run.runWeb();
+					Map<String, Object> insightOutput = run.runWeb();
+					Map<String, Object> webData = new HashMap<>();
+					if(insightOutput.containsKey("uiOptions")) {
+						webData.put("uiOptions", insightOutput.get("uiOptions"));
+					}
 					
+					if(insightOutput.containsKey("layout")) {
+						webData.put("layout", insightOutput.get("layout"));
+					}
+					
+					if(insightOutput.containsKey("dataTableAlign")) {
+						webData.put("dataTableAlign", insightOutput.get("dataTableAlign"));
+					}
+
+					if(insightOutput.containsKey("title")) {
+						webData.put("title", insightOutput.get("title"));
+					}
+
+					if(insightOutput.containsKey("insightID")) {
+						webData.put("insightID", insightOutput.get("insightID"));
+					}
+					
+					myStore.put("webData", webData);
 //					String saveFileLocation = CacheFactory.getInsightCache(CacheFactory.CACHE_TYPE.DB_INSIGHT_CACHE).cacheInsight(insightObj, (Map<String, Object>) obj);
 //					
 //					saveFileLocation = saveFileLocation + "_Solr.txt";

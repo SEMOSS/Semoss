@@ -42,6 +42,8 @@ public class PKQLRunner {
 	LinkedList<PScript> pkqlToRun = new LinkedList<PScript>();
 	List<String> unassignedVars = new Vector<String>();
 	
+	private Map<String, Object> dataMap = new HashMap<>();
+	
 	private String newInsightID;
 	private Object dashboardMap;
 	
@@ -381,4 +383,14 @@ public class PKQLRunner {
 	public void setDashBoardData(Object dashboardData) {
 		this.dashboardMap = dashboardData;
 	}
+	
+	public Object getDataMap() {
+		return this.dataMap;
+	}
+	
+	public void setDataMap(Map<String, Object> dataMap) {
+		this.dataMap = dataMap;
+	}
+	
+	
 }
