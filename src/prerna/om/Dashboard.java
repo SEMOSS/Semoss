@@ -264,9 +264,11 @@ public class Dashboard implements IDataMaker {
 		
 		try {
 			joiner.joinFrames(joinColumns, frames);
+			Insight parentInsight = InsightStore.getInstance().get(this.insightID);
 			for(Insight insight : insights) {
 				insight.getDataMaker().updateDataId();
 				addInsight(insight);
+				insight.setParentInsight(parentInsight);
 			}
 			
 			joinData[0] = insights;
