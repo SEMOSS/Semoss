@@ -366,7 +366,7 @@ equal_or_compare = {comparator} comparator | {equal} equal;
 
 user_input = userinput l_par [options]:term comma [selections]:word_or_num r_par;
 
-input_or_expr = {expr} expr | {input} user_input; //script;
+input_or_expr = {expr} expr | {input} user_input | {open_data} open_data; //script;
 		
  expr =
   {term} term

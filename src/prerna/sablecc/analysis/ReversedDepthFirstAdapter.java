@@ -3613,6 +3613,27 @@ public class ReversedDepthFirstAdapter extends AnalysisAdapter
         outAInputInputOrExpr(node);
     }
 
+    public void inAOpenDataInputOrExpr(AOpenDataInputOrExpr node)
+    {
+        defaultIn(node);
+    }
+
+    public void outAOpenDataInputOrExpr(AOpenDataInputOrExpr node)
+    {
+        defaultOut(node);
+    }
+
+    @Override
+    public void caseAOpenDataInputOrExpr(AOpenDataInputOrExpr node)
+    {
+        inAOpenDataInputOrExpr(node);
+        if(node.getOpenData() != null)
+        {
+            node.getOpenData().apply(this);
+        }
+        outAOpenDataInputOrExpr(node);
+    }
+
     public void inATermExpr(ATermExpr node)
     {
         defaultIn(node);
