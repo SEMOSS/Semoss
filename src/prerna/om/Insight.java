@@ -1214,7 +1214,7 @@ public class Insight {
 //			if(dm instanceof ITableDataFrame && !selectors.isEmpty()) {
 //				retHash.putAll(dm.getDataMakerOutput(selectors.toArray(new String[]{})));
 			} else if(dm instanceof Dashboard) { 
-				retHash.put("Dashboard", "Hey you opened a dashboard!");
+				retHash.putAll(dm.getDataMakerOutput());
 			} else {
 				retHash.putAll(dm.getDataMakerOutput());
 			}

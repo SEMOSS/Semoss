@@ -28,7 +28,9 @@ import prerna.sablecc.node.AConfiguration;
 import prerna.sablecc.node.ACsvRow;
 import prerna.sablecc.node.ACsvTable;
 import prerna.sablecc.node.ACsvTableImportBlock;
+import prerna.sablecc.node.ADashboardConfig;
 import prerna.sablecc.node.ADashboardJoin;
+import prerna.sablecc.node.ADashboardopScript;
 import prerna.sablecc.node.ADataFrame;
 import prerna.sablecc.node.ADataconnect;
 import prerna.sablecc.node.ADataconnectdb;
@@ -679,6 +681,30 @@ public class Translation extends DepthFirstAdapter {
 		Hashtable <String, Object> thisReactorHash = deinitReactor(PKQLEnum.DASHBOARD_JOIN, nodeStr, PKQLEnum.DASHBOARD_JOIN);
 		runner.setDashBoardData(thisReactor.getValue("DashboardData"));
 	}
+	
+	public void inADashboardopScript(ADashboardopScript node)
+    {
+		runner.openFeDataBlock("Dashboard");
+		runner.addFeData("panelId", "Dashboard", true);
+    }
+	
+    public void inADashboardConfig(ADashboardConfig node) {
+    	initReactor(PKQLEnum.VIZ);
+    }
+
+    public void outADashboardConfig(ADashboardConfig node) {
+    	System.out.println("out a panel config");
+    	deinitReactor(PKQLEnum.VIZ, "", "");
+		Map config = (Map) runner.getFeData("config");
+		if(config == null){
+			config = new HashMap();
+		}
+		config.putAll(new Gson().fromJson(node.getMap().toString(), HashMap.class));
+		runner.addFeData("config", config, true);
+		runner.setResponse("Successfully set config");
+		runner.setStatus(PKQLRunner.STATUS.SUCCESS);
+		
+    }
 
 	//**************************************** END JOIN OPERATIONS **********************************************//
 
@@ -1073,9 +1099,12 @@ public class Translation extends DepthFirstAdapter {
 		String nodeOpen = node.getDataopentoken().toString().trim();
 		String nodeStr = node.toString().trim();
 		curReactor.put(PKQLEnum.EXPR_TERM, nodeOpen);
-		Object o = curReactor.getValue(PKQLEnum.OPEN_DATA);
+		
 		Hashtable <String, Object> thisReactorHash = deinitReactor(PKQLEnum.OPEN_DATA, nodeOpen, nodeStr);
 		IScriptReactor previousReactor = (IScriptReactor)thisReactorHash.get(PKQLEnum.OPEN_DATA);
+		
+		Map<String, Object> webData = (Map<String, Object>)previousReactor.getValue("webData");
+		runner.setDataMap(webData);
 		curReactor.set(PKQLEnum.OPEN_DATA, previousReactor.getValue(PKQLEnum.OPEN_DATA));
 	}
 
