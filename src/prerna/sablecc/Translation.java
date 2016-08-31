@@ -157,6 +157,7 @@ public class Translation extends DepthFirstAdapter {
 	 * We want to use a strategy pattern for instantiating the different API reactors
 	 */
 	private void fillApiReactors() {
+		//TODO: should move all of these in RDF_MAP so that its easily updated
 		apiReactorNames.put(PKQLEnum.QUERY_API, "prerna.engine.impl.rdf.QueryAPI");
 		apiReactorNames.put(PKQLEnum.CSV_API, "prerna.engine.impl.rdf.CSVApi");
 		//TODO: why are these stored in the same package which only contains Interfaces!!!
