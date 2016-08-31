@@ -1,6 +1,8 @@
 package prerna.engine.impl.rdf;
 
 import java.util.Iterator;
+import java.util.Map;
+import java.util.Set;
 
 import prerna.ds.QueryStruct;
 import prerna.engine.api.IEngine;
@@ -34,6 +36,13 @@ public class QueryAPI extends AbstractApiReactor {
 			this.qs.selectors = newQs.selectors;
 			this.qs.relations = newQs.relations;
 			this.qs.andfilters = newQs.andfilters;
+			
+			// need to set a new edge hash using this information!!!
+			// since the abstract api reactor will set one where the edge hash
+			// will be empty
+			Map<String, Set<String>> edgeHash = this.qs.getReturnConnectionsHash();
+			// we store the edge hash in myStore
+			this.put("EDGE_HASH", edgeHash);
 		}
 		this.qs.print();
 		IQueryInterpreter interp = engine.getQueryInterpreter();
