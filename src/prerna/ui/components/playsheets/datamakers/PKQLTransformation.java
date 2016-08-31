@@ -145,4 +145,8 @@ public class PKQLTransformation extends AbstractTransformation {
 	public List<String> getPkql() {
 		return parsedPkqls;
 	}
+	
+	public void setPkql(List<String> parsedPkqls) {
+		this.parsedPkqls = parsedPkqls;
+	}
 }
