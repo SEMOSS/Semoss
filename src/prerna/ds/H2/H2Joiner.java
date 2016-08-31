@@ -219,7 +219,7 @@ public class H2Joiner {
 			for(String column : nextHash.keySet()) {
 				String translatedColumn = frame.builder.joinColumnTranslation.get(column);
 				if(filterHash.containsKey(translatedColumn)) {
-					Map<Comparator, Set<Object>> columnHash = filterHash.get(column);
+					Map<Comparator, Set<Object>> columnHash = filterHash.get(translatedColumn);
 					Map<Comparator, Set<Object>> nextColumnHash = nextHash.get(column);
 					for(Comparator comparator : nextColumnHash.keySet()) {
 						if(columnHash.containsKey(comparator)) {
