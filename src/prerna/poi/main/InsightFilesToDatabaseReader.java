@@ -31,7 +31,7 @@ public class InsightFilesToDatabaseReader {
 
 	}
 	
-	public static void main(String[] args) {
+	public static void main(String[] args) throws IOException {
 		TestUtilityMethods.loadDIHelper();
 
 		// load in the engine
@@ -60,7 +60,7 @@ public class InsightFilesToDatabaseReader {
 		creator.processInsightFiles(in, newEngineName);
 	}
 
-	public IEngine processInsightFiles(Insight in, String engineName) {
+	public IEngine processInsightFiles(Insight in, String engineName) throws IOException{
 		/*
 		 * General flow
 		 * 1) create a .temp file which will become the .smss
@@ -70,10 +70,6 @@ public class InsightFilesToDatabaseReader {
 		 * 5) add single table with properties into the owl
 		 * 6) make .temp into a .smss
 		 */
-		
-		if(in.isDbInsight()) {
-			return null;
-		}
 		
 		IDataMaker dm = in.getDataMaker();
 		// can only convert to database if it is a ITableDataFrame
@@ -194,6 +190,8 @@ public class InsightFilesToDatabaseReader {
 				}
 				// remove from engine from solr in case it was added
 				Utility.deleteFromSolr(engineName);
+				
+				throw new IOException("Error loading files from insight into database");
 			}
 		}
 		
