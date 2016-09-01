@@ -70,7 +70,7 @@ public class H2Builder {
 	//all Reads will be conducted on the view when this is true, all Creates, Updates, and Deletes will affect only the mainTable
 	private boolean joinMode;
 	private String viewTableName;
-	Map<String, String> joinColumnTranslation;
+	Hashtable<String, String> joinColumnTranslation;
 	
 	H2Joiner joiner;
 	
@@ -396,19 +396,19 @@ public class H2Builder {
     	this.joinMode = true;
     }
     
-    protected void setView(String viewTable, Map<String, String> translationMap) {
+    protected void setView(String viewTable, Hashtable<String, String> translationMap) {
     	this.viewTableName = viewTable;
     	this.joinMode = true;
     	this.joinColumnTranslation = translationMap;
     }
     
-    protected void setTranslationMap(Map<String, String> translationMap) {
+    protected void setTranslationMap(Hashtable<String, String> translationMap) {
     	this.joinColumnTranslation = translationMap;
     }
     
     protected void addTranslation(String nameInTable, String nameInView) {
     	if(this.joinColumnTranslation == null) {
-    		this.joinColumnTranslation = new HashMap<>();
+    		this.joinColumnTranslation = new Hashtable<>();
     	}
     	this.joinColumnTranslation.put(nameInTable, nameInView);
     }
