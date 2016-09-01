@@ -816,7 +816,7 @@ public class Insight {
 	public DataMakerComponent getDashboardDataMakerComponent() {
 		if(this.getDataMaker() instanceof Dashboard) {
 			Dashboard dashboard = (Dashboard)this.getDataMaker();
-			List<String> pkqls = dashboard.getSaveRecipe();
+			List<String> pkqls = dashboard.getSaveRecipe(getRecipe());
 			
 			DataMakerComponent dashboardComponent = new DataMakerComponent(Constants.LOCAL_MASTER_DB_NAME, Constants.EMPTY);
 			
@@ -1214,6 +1214,8 @@ public class Insight {
 //			if(dm instanceof ITableDataFrame && !selectors.isEmpty()) {
 //				retHash.putAll(dm.getDataMakerOutput(selectors.toArray(new String[]{})));
 			} else if(dm instanceof Dashboard) { 
+//				Dashboard dash = (Dashboard)dm;
+//				dash.setInsightID(insightID);
 				retHash.putAll(dm.getDataMakerOutput());
 			} else {
 				retHash.putAll(dm.getDataMakerOutput());

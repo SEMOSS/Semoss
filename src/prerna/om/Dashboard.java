@@ -27,22 +27,21 @@ import prerna.ui.helpers.InsightCreateRunner;
 public class Dashboard implements IDataMaker {
 
 	private static final Logger LOGGER = LogManager.getLogger(Dashboard.class.getName());
-	Map<String, Insight> attachedInsights = new LinkedHashMap<>(4);
-	private static String delimiter = ":::";
+//	Map<String, Insight> attachedInsights = new LinkedHashMap<>(4);
+//	private static String delimiter = ":::";
 	private String insightID;
 	private H2Joiner joiner;
-	Object[] joinData = new Object[2];
+//	Object[] joinData = new Object[2];
 	//mapping from 2 frames to joinColumns
 	//InsightID1 + delimiter + InsightID2 ->[joinCols1[], joinCols2[]]}
-	private Map<String, List<String[]>> joinColsMap;
 	
 	private String viewTableName;
 	
-	//this maps the insightID to the translation map for that insight
-	private Map<String, Map<String, String>> translationMap;
-	
 	//will need this when same insight can be on two different dashboards
 	private Map<String, Map<Comparator, Set<Object>>> filterHash = new HashMap<>();
+	
+	// viewTable -> List of Insights
+	private Map<String, List<Insight>> insightMap = new HashMap<>();
 	
 	public Dashboard() {
 		joiner = new H2Joiner(this);
@@ -51,37 +50,15 @@ public class Dashboard implements IDataMaker {
 	@Override
 	public void processDataMakerComponent(DataMakerComponent component) {
 		
-		Insight insight = null;
-		String insightID = component.getRdbmsId();
-		String engine = component.getEngine().getEngineName();
-		
-		String insightKey = engine+delimiter+insightID;
-		if(insightID != null) {
-//			Insight insight = InsightStore.getInstance().get(insightID);
-//			String engine = insight.getEngineName();
-//			String id = insight.getRdbmsId();
-//			String insightKey = engine+delimiter+id;
-		
-			//i know this is duplicative to the above code but we want to ensure the insight we are running on is in fact joined to this dashboard
-			insight = this.attachedInsights.get(insightKey);
-			insight.getDataMaker().processDataMakerComponent(component);
-		} else {
-			//if join then need to add open insight and param pkql
-			processPreTransformations(component, component.getPreTrans());
-			processPostTransformations(component, component.getPostTrans());
-			processActions(component, component.getActions());
+		processPreTransformations(component, component.getPreTrans());
+		processPostTransformations(component, component.getPostTrans());
+		processActions(component, component.getActions());
 			
-		}
 	}
 
 	@Override
 	public void processPreTransformations(DataMakerComponent dmc, List<ISEMOSSTransformation> transforms) {
-//		LOGGER.info("We are processing " + transforms.size() + " pre transformations");
-//		for(ISEMOSSTransformation transform : transforms) { 
-//			transform.setDataMakers(this);
-//			transform.setDataMakerComponent(dmc);
-//			transform.runMethod();
-//		}
+
 	}
 	
 	@Override
@@ -96,18 +73,12 @@ public class Dashboard implements IDataMaker {
 				extendedArray[i+1] = dataFrame[i];
 			}
 		}
-		for(ISEMOSSTransformation transform : transforms){
+		for(ISEMOSSTransformation transform : transforms) {
 			//get the id from the pkql transformation and run in on that join
 			transform.setDataMakers(extendedArray);
 			transform.setDataMakerComponent(dmc);
 			transform.runMethod();
 		}
-		
-//		for(String key : attachedInsights.keySet()) {
-//			Insight insight = attachedInsights.get(key);
-//			insight.setParentInsight(InsightStore.getInstance().get(this.insightID));
-////			insight.getDataMaker().processPostTransformations(dmc, transforms, dataFrame);
-//		}
 	}
 
 
@@ -120,56 +91,57 @@ public class Dashboard implements IDataMaker {
 	public Map<String, Object> getDataMakerOutput(String... selectors) {
 		
 		Map<String, Object> returnHash = new HashMap<>();
-		
-		List<String> insights = new ArrayList<>();
-		for(String insightID : attachedInsights.keySet()) {
-			insights.add(insightID);
-		}
-		
 		List insightList = new ArrayList();
-		for(String insightID : insights) {
-			Map<String, Object> nextInsightMap = new HashMap<>();
+		
+		for(String viewTableKey : insightMap.keySet()) {
 			
-			Insight insight = attachedInsights.get(insightID);
-			nextInsightMap.put("insightID", insightID);
-			nextInsightMap.put("engine", insight.getEngineName());
-			nextInsightMap.put("questionID", insight.getRdbmsId());
-			
-			List<String> joinedInsights = new ArrayList<>();
-			joinedInsights.addAll(insights);
-			joinedInsights.remove(insightID);
-			nextInsightMap.put("joinedInsights", joinedInsights);
-			
-			
-			Map<String, Object> insightOutput = insight.getWebData();
-			Map<String, Object> webData = new HashMap<>();
-			if(insightOutput.containsKey("uiOptions")) {
-				webData.put("uiOptions", insightOutput.get("uiOptions"));
+			List<Insight> insights = getInsights(viewTableKey);
+			List<String> insightIDs = new ArrayList<>();
+			for(Insight insight : insights) {
+				insightIDs.add(insight.getInsightID());
 			}
 			
-			if(insightOutput.containsKey("layout")) {
-				webData.put("layout", insightOutput.get("layout"));
+			for(Insight insight : insights) {
+				Map<String, Object> nextInsightMap = new HashMap<>();
+				
+				nextInsightMap.put("insightID", insight.getInsightID());
+				nextInsightMap.put("engine", insight.getEngineName());
+				nextInsightMap.put("questionID", insight.getRdbmsId());
+				
+				List<String> joinedInsights = new ArrayList<>();
+				
+				joinedInsights.addAll(insightIDs);
+				joinedInsights.remove(insight.getInsightID());
+				nextInsightMap.put("joinedInsights", joinedInsights);
+				
+				
+				Map<String, Object> insightOutput = insight.getWebData();
+				Map<String, Object> webData = new HashMap<>();
+				if(insightOutput.containsKey("uiOptions")) {
+					webData.put("uiOptions", insightOutput.get("uiOptions"));
+				}
+				
+				if(insightOutput.containsKey("layout")) {
+					webData.put("layout", insightOutput.get("layout"));
+				}
+				
+				if(insightOutput.containsKey("dataTableAlign")) {
+					webData.put("dataTableAlign", insightOutput.get("dataTableAlign"));
+				}
+	
+				if(insightOutput.containsKey("title")) {
+					webData.put("title", insightOutput.get("title"));
+				}
+				nextInsightMap.put("layout", webData);
+				insightList.add(nextInsightMap);
 			}
-			
-			if(insightOutput.containsKey("dataTableAlign")) {
-				webData.put("dataTableAlign", insightOutput.get("dataTableAlign"));
-			}
-
-			if(insightOutput.containsKey("title")) {
-				webData.put("title", insightOutput.get("title"));
-			}
-			nextInsightMap.put("layout", webData);
-			insightList.add(nextInsightMap);
 		}
 		returnHash.put("Dashboard", insightList);
 		
 		return returnHash;
 	}
 	
-	public List<Object> getInsightData() {
-		
-		
-		
+	public List<Object> getInsightData() {		
 		return null;
 	}
 
@@ -219,16 +191,26 @@ public class Dashboard implements IDataMaker {
 		return "DashBoard";
 	}
 	
-	private void addInsight(Insight insight) {
-		this.attachedInsights.put(insight.getInsightID(), insight);
+	private void addInsight(String viewTable, Insight insight) {
+		if(this.insightMap.containsKey(viewTable)) {
+			this.insightMap.get(viewTable).add(insight);
+		} else {
+			List<Insight> list = new ArrayList<>();
+			list.add(insight);
+			this.insightMap.put(viewTable, list);
+		}
 	}
 	
 	public List<Insight> getInsights() {
 		List<Insight> insightList = new ArrayList<>();
-		for(String key : attachedInsights.keySet()) {
-			insightList.add(attachedInsights.get(key));
+		for(String key : insightMap.keySet()) {
+			insightList.addAll(insightMap.get(key));
 		}
 		return insightList;
+	}
+	
+	public List<Insight> getInsights(String tableName) {
+		return insightMap.get(tableName);
 	}
 	
 	public void setInsightID(String insightID) {
@@ -258,21 +240,22 @@ public class Dashboard implements IDataMaker {
 			if(dm instanceof H2Frame) {
 				frames[i] = (H2Frame)dm;
 			} else {
-				throw new IllegalArgumentException("Cannot join Insight "+insight.getInsightID()+": Does not have H2Frame as datamaker");
+				throw new IllegalArgumentException("Cannot join Insight "+insight.getInsightID()+": Needs to be type 'GRID' to join");
 			}
 		}
 		
 		try {
-			joiner.joinFrames(joinColumns, frames);
+			String table = joiner.joinFrames(joinColumns, frames);
 			Insight parentInsight = InsightStore.getInstance().get(this.insightID);
 			for(Insight insight : insights) {
-				insight.getDataMaker().updateDataId();
-				addInsight(insight);
+				
+				addInsight(table, insight);
 				insight.setParentInsight(parentInsight);
 			}
 			
-			joinData[0] = insights;
-			joinData[1] = joinColumns;
+			insights.get(0).getDataMaker().updateDataId();
+//			joinData[0] = insights;
+//			joinData[1] = joinColumns;
 			
 		} catch(Exception e) {
 			e.printStackTrace();
@@ -280,29 +263,27 @@ public class Dashboard implements IDataMaker {
 	}
 	
 	public void unJoinInsights(Insight... insights) {
-		H2Frame[] frames = new H2Frame[insights.length];
-		for(int i = 0; i < insights.length; i++) {
-			Insight insight = insights[i];
-			frames[i] = (H2Frame)insight.getDataMaker();
-			String insightID = insight.getInsightID();
-			this.attachedInsights.remove(insightID);
-		}
-		joiner.unJoinFrame(frames);
+
 	}
 	
-	public List<String> getSaveRecipe() {
+	public List<String> getSaveRecipe(String recipe) {
+		
+		String[] recipeArr = recipe.split(System.getProperty("line.separator"));
+		List<String> curRecipe = new ArrayList<>();
+		for(String recipePkql : recipeArr) {
+			if(recipePkql.startsWith("data.join") || recipePkql.startsWith("dashboard")) {
+				curRecipe.add(recipePkql);
+			}
+		}
 		
 		List<String> saveRecipe = new ArrayList<>();
 		Map<String, String> varHash = new HashMap<>();
 		
 		//create all the pkqls that open insights and assign them to variables
 		int i = 1; 
-		List<Insight> insights = (List<Insight>)joinData[0];
+		List<Insight> insights = getInsights();//(List<Insight>)joinData[0];
 		List<String> varNames = new ArrayList<>();
 		for(Insight insight : insights) {
-//		for(String insightId : attachedInsights.keySet()) {
-			
-//			Insight insight = attachedInsights.get(insightId);
 			String nextVar = "insightVar"+i;
 			String nextPkql = createVarPkql(nextVar, insight.getEngineName(), insight.getRdbmsId());
 			
@@ -312,8 +293,17 @@ public class Dashboard implements IDataMaker {
 			saveRecipe.add(nextPkql);
 		}
 		
-		String joinPkql = createJoinPkql(varNames.toArray(new String[]{}), (List<List<String>>)joinData[1]);
-		saveRecipe.add(joinPkql);
+		//add the joins
+		for(String joinPkql : curRecipe) {
+			if(joinPkql.startsWith("data.join")) {
+				String newJoinPkql = createJoinPkql(varHash, joinPkql);
+				if(newJoinPkql != null) {
+					saveRecipe.add(newJoinPkql);
+				} else {
+					
+				}
+			}
+		}
 		
 		return saveRecipe;
 	}
@@ -354,5 +344,21 @@ public class Dashboard implements IDataMaker {
 		return joinPkql;
 	}
 	
-	/************************************* JOINING LOGIC **************************************/
+	private String createJoinPkql(Map<String, String> varHash, String pkql) {
+		String newPkql = pkql;
+		for(String varKey : varHash.keySet()) {
+			String insightID = varHash.get(varKey);
+			String insightID1 = "'"+insightID+"'";
+			String insightID2 = "\""+insightID+"\"";
+			if(pkql.contains(insightID1)) {
+				newPkql = newPkql.replace(insightID1, "v:"+varKey);
+			} else if(pkql.contains(insightID2)) {
+				newPkql = newPkql.replace(insightID2, "v:"+varKey);
+			}
+		}
+		
+		return newPkql;
+	}
+	
+	/************************************* END JOINING LOGIC **************************************/
 }
