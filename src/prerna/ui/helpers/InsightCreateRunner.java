@@ -105,6 +105,10 @@ public class InsightCreateRunner implements Runnable{
 	 */
 	private IDataMaker createData(){
 		IDataMaker dm = insight.getDataMaker();
+		if(dm instanceof Dashboard) {
+			Dashboard dash = (Dashboard)dm;
+			dash.setInsightID(insight.getInsightID());
+		}
 		
 		// get the list of data maker components from the insight
 		List<DataMakerComponent> dmComps = insight.getDataMakerComponents();
