@@ -677,6 +677,7 @@ public class Translation extends DepthFirstAdapter {
 		curReactor.set(PKQLEnum.JOIN_PARAM, insightID);
 	}
 	
+	@Override
 	public void inADashboardJoin(ADashboardJoin node)
 	{
 		System.out.println("Have dashboard join as " + node);
@@ -691,6 +692,7 @@ public class Translation extends DepthFirstAdapter {
 		}
 	}
 	
+	@Override
 	public void outADashboardJoin(ADashboardJoin node)
 	{
 		String nodeStr = node.toString().trim();
