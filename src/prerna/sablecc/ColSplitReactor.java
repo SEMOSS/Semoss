@@ -22,14 +22,15 @@ public class ColSplitReactor extends AbstractReactor {
 		super.whoAmI = PKQLEnum.COL_SPLIT;
 
 		//setting pkqlMetaData
-		String title = "Split a column";
+		String title = "Split a column by delimiter";
 		String pkqlCommand = "col.split(c:col1, delimiter);";
 		String description = "Splits a column to multiple columns based on delimiter";
 		boolean showMenu = true;
 		boolean pinned = true;
 		super.setPKQLMetaData(title, pkqlCommand, description, showMenu, pinned);
-		super.setPKQLMetaDataInput(populatePKQLMetaDataInput());
-		super.setPKQLMetaDataConsole(populatePKQLMetaDataConsole());
+		//super.setPKQLMetaDataInput(populatePKQLMetaDataInput());
+		super.setPKQLMetaDataInput();
+		//super.setPKQLMetaDataConsole(populatePKQLMetaDataConsole());
 	}
 
 	@Override
@@ -90,7 +91,7 @@ public class ColSplitReactor extends AbstractReactor {
 
 	//////////////setting the values for PKQL JSON for FE//////////////////////
 	
-	private List<HashMap<String, Object>> populatePKQLMetaDataInput(){
+	/*private List<HashMap<String, Object>> populatePKQLMetaDataInput(){
 		List<HashMap<String, Object>> input = new ArrayList<HashMap<String, Object>>();
 		HashMap<String, Object> inputMap = new HashMap<String, Object>();
 		Object restrictions = new Object();
@@ -115,9 +116,9 @@ public class ColSplitReactor extends AbstractReactor {
 		input.add(inputMap);
 
 		return input;		
-	}
+	}*/
 	
-	private HashMap<String, Object> populatePKQLMetaDataConsole(){
+	/*private HashMap<String, Object> populatePKQLMetaDataConsole(){
 
 		HashMap<String, Object> console = new HashMap<String, Object>();
 		String[] groups = null;
@@ -132,5 +133,5 @@ public class ColSplitReactor extends AbstractReactor {
 		console.put("buttonClass", buttonClass);
 		console.put("buttonActions", buttonActions);
 		return console;
-	}	
+	}	*/
 }

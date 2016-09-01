@@ -118,6 +118,7 @@ import prerna.nameserver.DeleteFromMasterDB;
 import prerna.om.SEMOSSParam;
 import prerna.poi.main.BaseDatabaseCreator;
 import prerna.rdf.engine.wrappers.WrapperManager;
+import prerna.sablecc.PKQLEnum;
 import prerna.solr.SolrIndexEngine;
 import prerna.ui.components.api.IPlaySheet;
 import prerna.ui.components.playsheets.datamakers.IDataMaker;
@@ -171,7 +172,7 @@ public class Utility {
 			data = data.substring(1,data.length()-1);
 			String paramName = data.substring(0, data.indexOf("-"));
 			String paramValue = data.substring(data.indexOf("-") + 1);
-			
+
 			LOGGER.debug(data);
 			// put something to strip the @
 			paramHash.put(paramName, paramValue);
@@ -197,7 +198,7 @@ public class Utility {
 			if(data.contains("-")) {
 				String paramName = data.substring(0, data.indexOf("-"));
 				String paramValue = data.substring(data.indexOf("-") + 1);
-				
+
 				LOGGER.debug(data);
 				// put something to strip the @
 				List<Object> retList = new ArrayList<Object>();
@@ -205,11 +206,11 @@ public class Utility {
 				paramHash.put(data, retList);
 			}
 		}
-		 
+
 		return fillParam(query, paramHash);
 	}
 
-	
+
 	/**
 	 * Gets the param hash and replaces certain queries
 	 * @param 	Original query
@@ -279,7 +280,7 @@ public class Utility {
 
 		return instanceName;
 	}
-	
+
 	/**
 	 * Splits up a URI into tokens based on "/" character and uses logic to return the primary key.
 	 * @param String		URI to be split into tokens. (BASE_URI/Concept/PRIMARY_KEY/INSTANCE_NAME
@@ -294,7 +295,7 @@ public class Utility {
 			return uri;
 		}
 	}
-	
+
 	public static String getFQNodeName(IEngine engine, String URI) {
 		if(engine.getEngineType().equals(IEngine.ENGINE_TYPE.RDBMS)) {
 			return getInstanceName(URI) + "__" + getPrimaryKeyFromURI(URI);
@@ -310,16 +311,16 @@ public class Utility {
 	public static String getBaseURI(String uri) {
 		int indexOf = uri.lastIndexOf("/");
 		String baseURI = uri.substring(0, indexOf);
-		
+
 		indexOf = baseURI.lastIndexOf("/");
 		baseURI = baseURI.substring(0, indexOf);
-		
+
 		indexOf = baseURI.lastIndexOf("/");
 		baseURI = baseURI.substring(0, indexOf);
-		
+
 		return baseURI;
 	}
-	
+
 	/**
 	 * Go through all URIs in list, splits them into tokens based on "/", and uses logic to return the instance names.
 	 * @param Vector<String>	List of URIs to be tokenized.
@@ -331,9 +332,9 @@ public class Utility {
 		if (uri.isEmpty()) {
 			return new Hashtable<String, String>();
 		}
-		
+
 		Hashtable<String, String> retHash = new Hashtable<String, String>();
-		
+
 		//		JList list = (JList)DIHelper.getInstance().getLocalProp(Constants.REPO_LIST);
 		//
 		//		// get the selected repository
@@ -385,7 +386,7 @@ public class Utility {
 		//			retHash.put(label,  uriValue);
 		//		}
 		//		
-		
+
 		for (int i=0;i<uri.size();i++) {
 			String uriValue = uri.get(i);
 			StringTokenizer tokens = new StringTokenizer(uriValue + "", "/");
@@ -417,7 +418,7 @@ public class Utility {
 		if(!subjectURI.startsWith("http://")) {
 			return "";
 		}
-		
+
 		String query = DIHelper.getInstance().getProperty(Constants.SUBJECT_TYPE_QUERY);
 		Map<String, List<Object>> paramHash = new Hashtable<String, List<Object>>();
 		List<Object> values = new ArrayList<Object>();
@@ -445,7 +446,7 @@ public class Utility {
 		if (returnType ==null) {
 			returnType = DIHelper.getInstance().getProperty(Constants.SEMOSS_URI)+"/Concept";
 		}
-		
+
 		return returnType;
 	}
 
@@ -463,7 +464,7 @@ public class Utility {
 		StringTokenizer tokens = new StringTokenizer(uri + "", "/");
 		int totalTok = tokens.countTokens();
 		String className = null;
-		
+
 		for (int tokIndex = 0; tokIndex <= totalTok && tokens.hasMoreElements(); tokIndex++) {
 			if (tokIndex + 2 == totalTok) {
 				className = tokens.nextToken();
@@ -474,7 +475,7 @@ public class Utility {
 			}
 
 		}
-		
+
 		return className;
 	}
 
@@ -505,7 +506,7 @@ public class Utility {
 		if(uri.indexOf("/") >= 0) {
 			instanceName = "/" + instanceName;
 		}
-		
+
 		// remove this in the end
 		if(className==null) {
 			qualUri = uri.replace(instanceName, "");
@@ -529,7 +530,7 @@ public class Utility {
 		while(tokens.hasMoreTokens() && !matched) {
 			matched = string.indexOf(tokens.nextToken()) >= 0;
 		}
-		
+
 		return matched;	
 	}
 
@@ -566,18 +567,18 @@ public class Utility {
 		for(String s : repos) {
 			IEngine engine = (IEngine)DIHelper.getInstance().getLocalProp(s);
 			selectWrapper = WrapperManager.getInstance().getSWrapper(engine, query);
-			
+
 			/*selectWrapper = new SesameJenaSelectWrapper();
 			selectWrapper.setEngine(engine);
 			selectWrapper.setQuery(query);
 			selectWrapper.executeQuery();*/
 		}
-		
+
 		//if the wrapper is not empty, calculations have already been performed.
 		if(!selectWrapper.hasNext()) {
 			check = false;
 		}
-		
+
 		return check;
 	}
 
@@ -589,7 +590,7 @@ public class Utility {
 		JFrame playPane = (JFrame) DIHelper.getInstance().getLocalProp(Constants.MAIN_FRAME);
 		JOptionPane.showMessageDialog(playPane, text, "Error", JOptionPane.ERROR_MESSAGE);
 	}
-	
+
 	/**
 	 * Displays confirmation message.
 	 * @param Text to be displayed.
@@ -599,7 +600,7 @@ public class Utility {
 		return JOptionPane.showConfirmDialog(playPane, text);
 
 	}
-	
+
 	/**
 	 * Displays a message on the screen.
 	 * @param Text to be displayed.
@@ -609,7 +610,7 @@ public class Utility {
 		JOptionPane.showMessageDialog(playPane, text);
 
 	}
-	
+
 	/**
 	 * Method round.
 	 * @param valueToRound double
@@ -636,29 +637,29 @@ public class Utility {
 		return retString;
 	}
 
-//	public static void main(String[] args) {
-//		String date = "qweqweqw";
-//		System.out.println(isStringDate(date));
-//	}
+	//	public static void main(String[] args) {
+	//		String date = "qweqweqw";
+	//		System.out.println(isStringDate(date));
+	//	}
 
 	public static boolean isStringDate(String inDate) {
 		List<SimpleDateFormat> dateFormatList = new ArrayList<SimpleDateFormat>();
 
 		dateFormatList.add(new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.sss'Z'"));
 		dateFormatList.add(new SimpleDateFormat("MM-dd-yyyy__HH:mm:ss_a"));
-		
+
 		for(SimpleDateFormat format : dateFormatList){
 			try {
 				format.setLenient(false);
 				format.parse(inDate);
 				return true;
 			} catch (ParseException e) {
-				
+
 			}
 		}
 		return false;
 	}
-		
+
 	/**
 	 * Add the engine instances into the solr index engine
 	 * @param engineToAdd					The IEngine to add into the solr index engine
@@ -674,7 +675,7 @@ public class Utility {
 		SolrIndexEngine solrE = SolrIndexEngine.getInstance();
 		// if the solr is active...
 		if (solrE.serverActive()) {
-			
+
 			List<SolrInputDocument> docs = new ArrayList<SolrInputDocument>();
 			/*
 			 * The unique document is the engineName concatenated with the concept
@@ -693,7 +694,7 @@ public class Utility {
 			 * If it is a RDBMS, getting the properties is pretty easy based on the way the IEngine is set up and how RDBMS queries work
 			 * However, for RDF, getting the properties requires us to create a query and execute that query to get the list of values :/
 			 */
-			
+
 			//TODO: WE NOW STORE THE DATA TYPES ON THE OWL!!! NO NEED TO PERFORM THE QUERY BEFORE CHECKING THE TYPE!!!!!
 			//TODO: will come back to this
 
@@ -704,7 +705,7 @@ public class Utility {
 				if(concept.equals("http://semoss.org/ontologies/Concept")) {
 					continue;
 				}
-				
+
 				// 2) get all the instances for the concept
 				// fieldData will store the instance document information when we add the concept
 				List<Object> instances = engineToAdd.getEntityOfType(concept);
@@ -715,7 +716,7 @@ public class Utility {
 				}
 				// create the concept unique id which is the engineName concatenated with the concept
 				String newId = engineName + "_" + concept;
-				
+
 				//use the method that you just made to save the concept
 				Map<String, Object> fieldData = new HashMap<String, Object>();
 				fieldData.put(SolrIndexEngine.CORE_ENGINE, engineName);
@@ -735,7 +736,7 @@ public class Utility {
 					// if no properties, go onto the next concept
 					continue;
 				}
-				
+
 				// we found properties, lets try to add those as well
 				// here we have the bifurcation based on the engine type
 				if(engineToAdd.getEngineType().equals(IEngine.ENGINE_TYPE.RDBMS)) {
@@ -754,7 +755,7 @@ public class Utility {
 								continue NEXT_PROP;
 							}
 						}
-						
+
 						// add if the property and its instances to the docs list
 						if(!isNumeric && !propertiesList.isEmpty()) {
 							String propId = newId + "_" + prop; // in case there are properties for the same engine, tie it to the concept
@@ -783,7 +784,7 @@ public class Utility {
 								propertiesList.add(property);
 							}
 						}
-						
+
 						// add if the property and its instances to the docs list
 						if(!propertiesList.isEmpty()) {
 							String propId = newId + "_" + prop; // in case there are properties for the same engine, tie it to the concept
@@ -798,7 +799,7 @@ public class Utility {
 					}
 				}
 			}
-			
+
 			// 6) index all the documents at the same time for efficiency
 			try {
 				solrE.addInstances(docs);
@@ -816,7 +817,7 @@ public class Utility {
 	 * @throws KeyStoreException
 	 */
 	public static void addToSolrInsightCore(IEngine engineToAdd) throws KeyManagementException, NoSuchAlgorithmException, KeyStoreException {
-//		// get the engine name
+		//		// get the engine name
 		String engineName = engineToAdd.getEngineName();
 		// get the solr index engine
 		SolrIndexEngine solrE = SolrIndexEngine.getInstance();
@@ -833,28 +834,28 @@ public class Utility {
 			 * 3) For each insight, grab the relevant information and store into a solr document and add it to the docs list
 			 * 4) Index all the documents stored in docs list
 			 */
-			
+
 			// 1) delete any existing insights from this engine
 			solrE.deleteEngine(engineName);
-			
+
 			// also going to get some default field values since they are not captured anywhere...
-			
+
 			// get the current date which will be used to store in "created_on" and "modified_on" fields within schema
 			DateFormat dateFormat = SolrIndexEngine.getDateFormat();
 			Date date = new Date();
 			String currDate = dateFormat.format(date);
 			// set all the users to be default...
 			String userID = "default";
-			
-			
+
+
 			// 2) execute the query and iterate through the insights
 			String query = "SELECT DISTINCT ID, QUESTION_NAME, QUESTION_LAYOUT, QUESTION_MAKEUP, QUESTION_PERSPECTIVE, QUESTION_DATA_MAKER FROM QUESTION_ID";
 			ISelectWrapper wrapper = WrapperManager.getInstance().getSWrapper(engineToAdd.getInsightDatabase(), query);
 			while(wrapper.hasNext()){
 				ISelectStatement ss = wrapper.next();
-				
+
 				// 3) start to get all the relevant metadata surrounding the insight
-				
+
 				// get the unique id of the insight within the engine
 				int id = (int) ss.getVar("ID");
 				// get the question name
@@ -881,12 +882,12 @@ public class Utility {
 				if(perspective.contains(perspString3)){
 					perspective = perspective.replace(perspString3, "").trim();
 				}
-				
+
 				// get the clob containing the question makeup
 				// TODO: we use this to query it and get the list of engines associated with an insight
 				// TODO: however, since the DMC is no longer valid and that logic is placed within the PKQL
 				// TODO: we need to not do this and figure out a way to get the engines that are used in the PKQL
-				
+
 				/////// START CLOB PROCESSING TO GET LIST OF ENGINES ///////
 				JdbcClob obj = (JdbcClob) ss.getVar("QUESTION_MAKEUP"); 
 				InputStream makeup = null;
@@ -1008,7 +1009,7 @@ public class Utility {
 					fis.close();
 				} catch (IOException e) {
 					e.printStackTrace();
-				}
+		}
 			}
 		}
 
@@ -1203,7 +1204,7 @@ public class Utility {
 	public static void changeSMSSValue(String smssPath, String keyToAlter, String valueToProvide) {
 		FileOutputStream fileOut = null;
 		File file = new File(smssPath);
-		
+
 		/*
 		 * 1) Loop through the smss file and add each line as a list of strings
 		 * 2) For each line, see if it starts with the key to alter
@@ -1258,7 +1259,7 @@ public class Utility {
 			}
 		}
 	}
-	
+
 	/**
 	 * Adds a new key-value pair into the SMSS file
 	 * @param smssPath					The path of the smss file
@@ -1276,7 +1277,7 @@ public class Utility {
 		 * 3) if the current line being printed starts with locInFile (hard coded as OWL)
 		 * 		then the new key-value pair will be written right after it
 		 */
-		
+
 		List<String> content = new ArrayList<String>();
 		BufferedReader reader = null;
 		FileReader fr = null;
@@ -1295,7 +1296,7 @@ public class Utility {
 				byte[] contentInBytes = content.get(i).getBytes();
 				fileOut.write(contentInBytes);
 				fileOut.write("\n".getBytes());
-				
+
 				// 3) if the last line printed matches that in locInFile, then write the new
 				// 		key-value pair after
 				if(content.get(i).contains(locInFile)){
@@ -1321,7 +1322,7 @@ public class Utility {
 			}
 		}
 	}
-	
+
 	/**
 	 * Delete all the insights surrounding a specified engine
 	 * @param engineName				
@@ -1337,7 +1338,7 @@ public class Utility {
 			e.printStackTrace();
 		}
 	}
-	
+
 
 	/**
 	 * Cleans a string based on certain patterns
@@ -1348,7 +1349,7 @@ public class Utility {
 	public static String cleanString(String original, boolean replaceForwardSlash){
 		return cleanString(original,replaceForwardSlash,true, false);
 	}
-	
+
 	/**
 	 * Cleans a string based on certain patterns
 	 * @param 	Original string
@@ -1358,7 +1359,7 @@ public class Utility {
 	 * @return 	Cleaned string */
 	public static String cleanString(String original, boolean replaceForwardSlash, boolean replaceForRDF, boolean property){
 		String retString = original;
-		
+
 		retString = retString.trim();
 		retString = retString.replaceAll("\t", " ");//replace tabs with spaces
 		while (retString.contains("  ")){
@@ -1385,7 +1386,7 @@ public class Utility {
 
 		return retString;
 	}
-	
+
 	public static String cleanVariableString(String original){
 		String cleaned = cleanString (original, true);
 		cleaned = cleaned.replaceAll("\\,", "");
@@ -1397,7 +1398,7 @@ public class Utility {
 		while(cleaned.contains("__")) {
 			cleaned = cleaned.replace("__", "_");
 		}
-		
+
 		return cleaned;
 	}
 
@@ -1409,7 +1410,7 @@ public class Utility {
 		cleaned = cleaned.replace("&", "");
 		return cleaned;
 	}
-	
+
 	/**
 	 * Creates an excel workbook
 	 * @param wb 		XSSFWorkbook to write to
@@ -1433,7 +1434,7 @@ public class Utility {
 			}
 		}
 	}
-	
+
 	public static Hashtable<String, Object> getParamsFromString(String params){
 		Hashtable <String, Object> paramHash = new Hashtable<String, Object>();
 		if(params != null)
@@ -1470,7 +1471,7 @@ public class Utility {
 		}
 		return paramHash;
 	}
-	
+
 	public static String retrieveResult(String api, Hashtable <String,String> params)
 	{
 		String output = "";
@@ -1480,16 +1481,16 @@ public class Utility {
 		try
 		{
 			URIBuilder uri = new URIBuilder(api);
-			
+
 			LOGGER.debug("Getting data from the API...  " + api);
 			LOGGER.debug("Params is " + params);
-			
+
 			SSLContextBuilder builder = new SSLContextBuilder();
-		    builder.loadTrustMaterial(null, new TrustSelfSignedStrategy());
-		    SSLConnectionSocketFactory sslsf = new SSLConnectionSocketFactory(
-		            builder.build(), SSLConnectionSocketFactory.ALLOW_ALL_HOSTNAME_VERIFIER);
-		    httpclient = HttpClients.custom().setSSLSocketFactory(
-		            sslsf).build();
+			builder.loadTrustMaterial(null, new TrustSelfSignedStrategy());
+			SSLConnectionSocketFactory sslsf = new SSLConnectionSocketFactory(
+					builder.build(), SSLConnectionSocketFactory.ALLOW_ALL_HOSTNAME_VERIFIER);
+			httpclient = HttpClients.custom().setSSLSocketFactory(
+					sslsf).build();
 
 			HttpPost get = new HttpPost(api);
 			if(params != null) // add the parameters
@@ -1505,10 +1506,10 @@ public class Utility {
 				get.setEntity(new UrlEncodedFormEntity(nvps));
 				//get = new HttpPost(uri.build());
 			}
-			
+
 			CloseableHttpResponse response = httpclient.execute(get);
 			HttpEntity entity = response.getEntity();
-			
+
 			if(entity != null)
 			{
 				inputStream = new InputStreamReader(entity.getContent());
@@ -1531,26 +1532,26 @@ public class Utility {
 		} catch (KeyManagementException e) {
 			LOGGER.debug(e);
 		} finally {
-				try {
-					if(inputStream!=null)
-						inputStream.close();
-					if(stream!=null)
-						stream.close();
-				} catch (IOException e) {
-					LOGGER.error("Error closing input stream for image");
-				}
-				try {
-					if(httpclient!=null)
-						httpclient.close();
-					if(stream!=null)
-						stream.close();
-				} catch (IOException e) {
-					LOGGER.error("Error closing socket for httpclient");
-				}
+			try {
+				if(inputStream!=null)
+					inputStream.close();
+				if(stream!=null)
+					stream.close();
+			} catch (IOException e) {
+				LOGGER.error("Error closing input stream for image");
+			}
+			try {
+				if(httpclient!=null)
+					httpclient.close();
+				if(stream!=null)
+					stream.close();
+			} catch (IOException e) {
+				LOGGER.error("Error closing socket for httpclient");
+			}
 		}
 		if(output.length() == 0)
 			output = null;
-		
+
 		return output;
 	}
 
@@ -1561,16 +1562,16 @@ public class Utility {
 		try
 		{
 			URIBuilder uri = new URIBuilder(api);
-			
+
 			LOGGER.info("Getting data from the API...  " + api);
 			LOGGER.info("Prams is " + params);
-			
+
 			SSLContextBuilder builder = new SSLContextBuilder();
-		    builder.loadTrustMaterial(null, new TrustSelfSignedStrategy());
-		    SSLConnectionSocketFactory sslsf = new SSLConnectionSocketFactory(
-		            builder.build(), SSLConnectionSocketFactory.ALLOW_ALL_HOSTNAME_VERIFIER);
-		    httpclient = HttpClients.custom().setSSLSocketFactory(
-		            sslsf).build();
+			builder.loadTrustMaterial(null, new TrustSelfSignedStrategy());
+			SSLConnectionSocketFactory sslsf = new SSLConnectionSocketFactory(
+					builder.build(), SSLConnectionSocketFactory.ALLOW_ALL_HOSTNAME_VERIFIER);
+			httpclient = HttpClients.custom().setSSLSocketFactory(
+					sslsf).build();
 
 			HttpPost get = new HttpPost(api);
 			if(params != null) // add the parameters
@@ -1586,11 +1587,11 @@ public class Utility {
 				get.setEntity(new UrlEncodedFormEntity(nvps));
 				//get = new HttpPost(uri.build());
 			}
-			
+
 			CloseableHttpResponse response = httpclient.execute(get);
 			entity = response.getEntity();
 			return entity.getContent();
-			
+
 		}catch(RuntimeException ex)
 		{
 			//connected = false;
@@ -1613,7 +1614,7 @@ public class Utility {
 		} 
 		return null;
 	}
-	
+
 	public static ISelectWrapper processQuery(IEngine engine, String query) {
 		LOGGER.debug("PROCESSING QUERY: " + query);
 
@@ -1627,18 +1628,18 @@ public class Utility {
 		return sjsw;*/
 		return wrapper;
 	}
-	
+
 	/**
 	 * Determines the type of a given value
 	 * @param s		The value to determine the type off
 	 * @return		The type of the value
 	 */
 	public static String processType(String s) {
-		
+
 		if(s == null) {
 			return null;
 		}
-		
+
 		boolean isDouble = true;
 		try {
 			double val = Double.parseDouble(s);
@@ -1699,12 +1700,12 @@ public class Utility {
 		}
 		return newNames;
 	}
-	
+
 	public static Date getCurrentTime() {
 		Calendar calendar = Calendar.getInstance();
 		TimeZone timeZone = calendar.getTimeZone();
 		calendar.setTimeZone(timeZone);
-		
+
 		return calendar.getTime();
 	}
 
@@ -1718,7 +1719,7 @@ public class Utility {
 	public static Vector<String> getVectorOfReturn(String query,IEngine engine, Boolean raw){
 		Vector<String> retString = new Vector<String>();
 		ISelectWrapper wrap = WrapperManager.getInstance().getSWrapper(engine, query);
-//		wrap.execute();
+		//		wrap.execute();
 
 		String[] names = wrap.getVariables();
 
@@ -1737,13 +1738,13 @@ public class Utility {
 			else{
 				val = value +"";
 			}
-				val = val.replace("\"", "");
+			val = val.replace("\"", "");
 			retString.addElement(val);
 		}
 		return retString;
 
 	}
-	
+
 	/**
 	 * Gets the vector of uris from first variable returned from the query
 	 * @param sparql
@@ -1755,7 +1756,7 @@ public class Utility {
 		ISelectWrapper wrap = WrapperManager.getInstance().getSWrapper(engine, query);
 
 		String[] names = wrap.getPhysicalVariables();
-		
+
 
 		while (wrap.hasNext()) {
 			String[] values = new String[names.length];
@@ -1796,10 +1797,10 @@ public class Utility {
 			}
 			paramHash.put(singleKey, newValuesList);
 		}
-		
+
 		return paramHash;
 	}
-	
+
 	public static IPlaySheet getPlaySheet(IEngine engine, String psName){
 		LOGGER.info("Trying to get playsheet for " + psName);
 		String psClassName = null;
@@ -1818,12 +1819,12 @@ public class Utility {
 		if(psClassName == null || psClassName.isEmpty()){
 			psClassName = psName;
 		}
-		
+
 		IPlaySheet playSheet = (IPlaySheet) getClassFromString(psClassName);
-		
+
 		return playSheet;
 	}
-	
+
 	public static IDataMaker getDataMaker(IEngine engine, String dataMakerName){
 		LOGGER.info("Trying to get data maker for " + dataMakerName);
 		String dmClassName = null;
@@ -1842,23 +1843,23 @@ public class Utility {
 		if(dmClassName == null || dmClassName.isEmpty()){
 			dmClassName = dataMakerName;
 		}
-		
+
 		IDataMaker dm = (IDataMaker) getClassFromString(dmClassName);
 
 		return dm;
 	}
-	
+
 	public static IPlaySheet preparePlaySheet(IEngine engine, String sparql, String psName, String playSheetTitle, String insightID)
 	{
 		IPlaySheet playSheet = getPlaySheet(engine, psName);
-//		QuestionPlaySheetStore.getInstance().put(insightID,  playSheet);
+		//		QuestionPlaySheetStore.getInstance().put(insightID,  playSheet);
 		playSheet.setQuery(sparql);
 		playSheet.setRDFEngine(engine);
 		playSheet.setQuestionID(insightID);
 		playSheet.setTitle(playSheetTitle);
 		return playSheet;
 	}
-	
+
 	public static ISEMOSSTransformation getTransformation(IEngine engine, String transName){
 		LOGGER.info("Trying to get transformation for " + transName);
 		String transClassName = (String) DIHelper.getInstance().getLocalProp(transName);
@@ -1868,11 +1869,11 @@ public class Utility {
 		if(transClassName == null || transClassName.isEmpty()){
 			transClassName = transName;
 		}
-		
+
 		ISEMOSSTransformation transformation = (ISEMOSSTransformation) getClassFromString(transClassName);
 		return transformation;
 	}
-	
+
 	public static ISEMOSSAction getAction(IEngine engine, String actionName){
 		LOGGER.info("Trying to get action for " + actionName);
 		String actionClassName = (String) DIHelper.getInstance().getLocalProp(actionName);
@@ -1882,11 +1883,11 @@ public class Utility {
 		if(actionClassName == null || actionClassName.isEmpty()){
 			actionClassName = actionName;
 		}
-		
+
 		ISEMOSSAction action = (ISEMOSSAction) getClassFromString(actionClassName);
 		return action;
 	}
-	
+
 	public static Object getClassFromString(String className){
 		Object obj = null;
 		try {
@@ -1916,16 +1917,16 @@ public class Utility {
 		}
 		return obj;
 	}
-	
+
 	public static String getKeyFromValue(Map<String, String> hm, String value){
-	    for (String o : hm.keySet()) {
-	        if (hm.get(o).equals(value)) {
-	          return o;
-	        }
-	      }
-	      return null;
+		for (String o : hm.keySet()) {
+			if (hm.get(o).equals(value)) {
+				return o;
+			}
+		}
+		return null;
 	}
-	
+
 	/**
 	 * 
 	 * @param engine
@@ -1935,7 +1936,7 @@ public class Utility {
 	 */
 	public static List getTransformedNodeNamesList(IEngine engine, List nodesList, boolean getDisplayNames){
 		//array, list or vector support only
-		
+
 		for(int i = 0; i< nodesList.size(); i++){
 			String currentUri =  nodesList.get(i).toString();
 			String finalUri = Utility.getTransformedNodeName(engine, currentUri , getDisplayNames);
@@ -1945,7 +1946,7 @@ public class Utility {
 		}
 		return nodesList;
 	}
-	
+
 	/**
 	 *  use for maps that map a string to a list of nodes...more commmonly used than I expected
 	 * @param engine
@@ -1961,8 +1962,8 @@ public class Utility {
 		}
 		return nodeMap;
 	}
-	
-	
+
+
 	/**
 	 * returns the physical or logical/display name
 	 * loop through the first time using the qualified class name ie this assumes you got something like http://semoss.org/ontologies/Concept/Director/Clint_Eastwood
@@ -1979,10 +1980,10 @@ public class Utility {
 		String finalUri = nodeUri;
 		boolean getClassName = true;
 		for(int j = 0; j < 2; j++){
-			
+
 			String fullUri = nodeUri;
 			String uri = fullUri;
-			
+
 			if(getClassName){
 				uri = Utility.getQualifiedClassName(uri);
 				getClassName = false;
@@ -1995,303 +1996,303 @@ public class Utility {
 		}
 		return finalUri;
 	}
-	
-	
-	
-    public static Object[] findTypes(String input)
-    {
-    	//System.out.println("String that came in.. " + input);
-    	Object [] retObject = null;
-    	if(input != null)
-    	{
-	    	Object retO = null;
-	    	if(input.equalsIgnoreCase("true") || input.equalsIgnoreCase("false"))
-	    	{
-	    		retObject = new Object[2];
-	    		retObject[0] = "boolean";
-	    		retObject[1] = retO;
-	    		
-	    	}
-	    	//all numbers are 
-//	    	else if(NumberUtils.isDigits(input))
-//	    	{
-//	    		retO = Integer.parseInt(input);
-//	    		retObject = new Object[2];
-//	    		retObject[0] = "int";
-//	    		retObject[1] = retO;
-//	    	}
-	    	else if((retO = getDouble(input)) != null )
-	    	{
-	    		retObject = new Object[2];
-	    		retObject[0] = "double";
-	    		retObject[1] = retO;
-	    	}
-	    	else if((retO = getDate(input)) != null )// try dates ? - yummy !!
-	    	{
-	    		retObject = new Object[2];
-	    		retObject[0] = "date";
-	    		retObject[1] = retO;
-	    		
-	    	}
-	    	else if((retO = getCurrency(input)) != null )
-	    	{
-	    		
-	    		retObject = new Object[2];
-	    		if(retO instanceof String)
-	    			retObject[0] = "varchar(800)";
-	    		else
-	    			retObject[0] = "double";
-	    		retObject[1] = retO;
-	    	}
-	    	else
-	    	{
-	    		retObject = new Object[2]; // need to do some more stuff to determine this
-	    		retObject[0] = "varchar(800)";
-	    		retObject[1] = input; 
-	    	}
-    	}
-    	return retObject;
-    }
-    
-    public static String getDate(String input)
-    {
-    	String[] date_formats = {
-    			"yyyy-MM-dd",
-    			//"dd/MM/yyyy",
-    			"MM/dd/yyyy",
-    			//"dd-MM-yyyy",
-    			"yyyy/MM/dd", 
-    			"yyyy MMM dd",
-    			"yyyy dd MMM",
-    			"dd MMM yyyy",
-    			"dd MMM",
-    			"MMM dd",
-    			"dd MMM yyyy",
-    	"MMM yyyy"};
 
-    	String output_date = null;
-    	boolean itsDate = false;
-    	for (String formatString : date_formats)
-    	{
-    		try
-    		{    
-    			Date mydate = new SimpleDateFormat(formatString).parse(input);
-    			SimpleDateFormat outdate = new SimpleDateFormat("yyyy-MM-dd");
-    			output_date = outdate.format(mydate);
-    			itsDate = true;
-    			break;
-    		}
-    		catch (ParseException e) {
-    			//System.out.println("Next!");
-    		}
-    	}
 
-    	return output_date;	
-    }
-    
-    public static String getTimeStamp(String input)
-    {
-    	String[] date_formats = {
-                //"dd/MM/yyyy",
-                "MM/dd/yyyy",
-                //"dd-MM-yyyy",
-                "yyyy-MM-dd",
-                "yyyy/MM/dd", 
-                "yyyy MMM dd",
-                "yyyy dd MMM",
-                "dd MMM yyyy",
-                "dd MMM",
-                "MMM dd",
-                "dd MMM yyyy",
-                "MMM yyyy"};
 
-				String output_date = null;
-				boolean itsDate = false;
-				for (String formatString : date_formats)
-				{
-				try
-				{    
-				 Date mydate = new SimpleDateFormat(formatString).parse(input);
-				 SimpleDateFormat outdate = new SimpleDateFormat("yyyy-MM-dd hh:mm:ss");
-				 output_date = outdate.format(mydate);
-				 itsDate = true;
-				 break;
-				}
-					catch (ParseException e) {
-						//System.out.println("Next!");
-					}
-				}
-				
-			return output_date;	
-    }
-    
-    public static Date getDateAsDateObj(String input) {
+	public static Object[] findTypes(String input)
+	{
+		//System.out.println("String that came in.. " + input);
+		Object [] retObject = null;
+		if(input != null)
+		{
+			Object retO = null;
+			if(input.equalsIgnoreCase("true") || input.equalsIgnoreCase("false"))
+			{
+				retObject = new Object[2];
+				retObject[0] = "boolean";
+				retObject[1] = retO;
+
+			}
+			//all numbers are 
+			//	    	else if(NumberUtils.isDigits(input))
+			//	    	{
+			//	    		retO = Integer.parseInt(input);
+			//	    		retObject = new Object[2];
+			//	    		retObject[0] = "int";
+			//	    		retObject[1] = retO;
+			//	    	}
+			else if((retO = getDouble(input)) != null )
+			{
+				retObject = new Object[2];
+				retObject[0] = "double";
+				retObject[1] = retO;
+			}
+			else if((retO = getDate(input)) != null )// try dates ? - yummy !!
+			{
+				retObject = new Object[2];
+				retObject[0] = "date";
+				retObject[1] = retO;
+
+			}
+			else if((retO = getCurrency(input)) != null )
+			{
+
+				retObject = new Object[2];
+				if(retO instanceof String)
+					retObject[0] = "varchar(800)";
+				else
+					retObject[0] = "double";
+				retObject[1] = retO;
+			}
+			else
+			{
+				retObject = new Object[2]; // need to do some more stuff to determine this
+				retObject[0] = "varchar(800)";
+				retObject[1] = input; 
+			}
+		}
+		return retObject;
+	}
+
+	public static String getDate(String input)
+	{
+		String[] date_formats = {
+				"yyyy-MM-dd",
+				//"dd/MM/yyyy",
+				"MM/dd/yyyy",
+				//"dd-MM-yyyy",
+				"yyyy/MM/dd", 
+				"yyyy MMM dd",
+				"yyyy dd MMM",
+				"dd MMM yyyy",
+				"dd MMM",
+				"MMM dd",
+				"dd MMM yyyy",
+		"MMM yyyy"};
+
+		String output_date = null;
+		boolean itsDate = false;
+		for (String formatString : date_formats)
+		{
+			try
+			{    
+				Date mydate = new SimpleDateFormat(formatString).parse(input);
+				SimpleDateFormat outdate = new SimpleDateFormat("yyyy-MM-dd");
+				output_date = outdate.format(mydate);
+				itsDate = true;
+				break;
+			}
+			catch (ParseException e) {
+				//System.out.println("Next!");
+			}
+		}
+
+		return output_date;	
+	}
+
+	public static String getTimeStamp(String input)
+	{
+		String[] date_formats = {
+				//"dd/MM/yyyy",
+				"MM/dd/yyyy",
+				//"dd-MM-yyyy",
+				"yyyy-MM-dd",
+				"yyyy/MM/dd", 
+				"yyyy MMM dd",
+				"yyyy dd MMM",
+				"dd MMM yyyy",
+				"dd MMM",
+				"MMM dd",
+				"dd MMM yyyy",
+		"MMM yyyy"};
+
+		String output_date = null;
+		boolean itsDate = false;
+		for (String formatString : date_formats)
+		{
+			try
+			{    
+				Date mydate = new SimpleDateFormat(formatString).parse(input);
+				SimpleDateFormat outdate = new SimpleDateFormat("yyyy-MM-dd hh:mm:ss");
+				output_date = outdate.format(mydate);
+				itsDate = true;
+				break;
+			}
+			catch (ParseException e) {
+				//System.out.println("Next!");
+			}
+		}
+
+		return output_date;	
+	}
+
+	public static Date getDateAsDateObj(String input) {
 		SimpleDateFormat outdate_formatter = new SimpleDateFormat("yyyy-MM-dd");
-    	String output_date = getDate(input);
-    	if(output_date == null) {
-    		return null;
-    	}
-    	
-    	Date outDate = null;
-    	try {
+		String output_date = getDate(input);
+		if(output_date == null) {
+			return null;
+		}
+
+		Date outDate = null;
+		try {
 			outDate = outdate_formatter.parse(output_date);
 		} catch (ParseException e) {
 			e.printStackTrace();
 		}
-    	
-    	return outDate;
-    }
-    
-    
-    public static Object getCurrency(String input)
-    {
-    	//COMMENTING THIS OUT BECAUSE CAST TO TYPES BREAKS IN CASES WHERE THIS RETURNS, NEED TO UPDATE THAT BUT WILL KEEP IT AS STRING FOR NOW
-    	// what is this check??? 
-    	// this is messing up the types since it works based on if there is a null pointer
-//    	if(input.matches("\\Q$\\E(\\d+)\\Q.\\E?(\\d+)?\\Q-\\E\\Q$\\E(\\d+)\\Q.\\E?(\\d+)?")) {
-//    		return input;
-//    	}
-//    	Number nm = null;
-//    	NumberFormat nf = NumberFormat.getCurrencyInstance();
-//    	try {
-//    		nm = nf.parse(input);
-//    		//System.out.println("Curr..  " + nm);
-//    	}catch (Exception ex)
-//    	{
-//    		
-//    	}
-//    	return nm;
-    	return null;
-    }
 
-    public static Double getDouble(String input) {
-    	try {
-    		Double num = Double.parseDouble(input);
-    		return num;
-    	} catch(NumberFormatException e) {
-    		return null;
-    	}
-    }
-    
-    //this doesn't consider 1.2E8 etc.
-//    public static boolean isNumber(String input) {
-//    	//has digits, followed by optional period followed by digits
-//    	return input.matches("(\\d+)\\Q.\\E?(\\d+)?"); 
-//    }
-    
-    public static String[] castToTypes(String [] thisOutput, String [] types)
-    {
-    	String [] values = new String[thisOutput.length];
-    	
-    	//System.out.println("OUTPUT"  + thisOutput);
-    	//System.out.println("TYPES" +  types);
-    	
-    	
-    	for(int outIndex = 0;outIndex < thisOutput.length;outIndex++)
-    	{
-    		//System.out.println(" Data [" + thisOutput[outIndex] + "]  >> [" + types[outIndex] + "]");
-    		//if the value is not null
-    		if(thisOutput[outIndex] != null && thisOutput[outIndex].length() > 0)
-    		{
-    			values[outIndex] = thisOutput[outIndex] + "";
-    		
-	    		if(thisOutput[outIndex] != null) // && castTargets.contains(outIndex + ""))
-	    		{
-	    			if(types[outIndex].equalsIgnoreCase("Date"))
-	    				values[outIndex] = getDate(thisOutput[outIndex]);
-	    			else if(types[outIndex].equalsIgnoreCase("Currency"))// this is a currency
-	    				values[outIndex] = getCurrency(thisOutput[outIndex])+"";
-	    			else if(types[outIndex].equalsIgnoreCase("varchar(800)"))
-	    			{
-	    				if(thisOutput[outIndex].length() >= 800)
-	    					thisOutput[outIndex] = thisOutput[outIndex].substring(0,798);
-	    				values[outIndex] = thisOutput[outIndex];
-	    			}
-	    		}
-    		}
-    		else if(types[outIndex] != null)
-    		{
-	    		if(types[outIndex].equalsIgnoreCase("Double"))
-	    			values[outIndex] = "NULL";
-	    		else if(types[outIndex].equalsIgnoreCase("varchar(800)")|| types[outIndex].equalsIgnoreCase("date"))
-	    			values[outIndex] = "";
-    		}
-    		else
-    		{
-    			values[outIndex] = "";
-    		}
-    	}
-    	
-//    	for(int i = 0; i < values.length; i++) {
-//    		values[i] = UriEncoder.encode(values[i]);
-//    	}
-    	
-    	for(int i = 0; i < values.length; i++) {
-    		values[i] = Utility.cleanString(values[i], true, true, false);
-    	}
-    	return values;
-    }
+		return outDate;
+	}
 
-    public static String castToTypes(String thisOutput, String type)
-    {
-    	String values = "";
-    	
-    	//System.out.println("OUTPUT"  + thisOutput);
-    	//System.out.println("TYPES" +  types);
-    	
-    	
-    		if(thisOutput != null && thisOutput.length() > 0)
-    		{
-    			values = thisOutput + "";
-    		
-	    		if(thisOutput != null) // && castTargets.contains(outIndex + ""))
-	    		{
-	    			if(type.equalsIgnoreCase("Date"))
-	    				values = getDate(thisOutput);
-	    			else if(type.equalsIgnoreCase("Currency"))// this is a currency
-	    				values = getCurrency(thisOutput) + "";
-	    			else if(type.equalsIgnoreCase("varchar(800)"))
-	    			{
-	    				if(thisOutput.length() >= 800)
-	    					thisOutput = thisOutput.substring(0,798);
-	    				values = thisOutput;
-	    			}
-	    		}
-    		}
-    		else if(type != null)
-    		{
-	    		if(type.equalsIgnoreCase("Double"))
-	    			values = "NULL";
-	    		else if(type.equalsIgnoreCase("varchar(800)") || type.equalsIgnoreCase("date"))
-	    			values = "";
-    		}
-    		else
-    		{
-    			values = "";
-    		}
-    	return values;
-    }
-    
+
+	public static Object getCurrency(String input)
+	{
+		//COMMENTING THIS OUT BECAUSE CAST TO TYPES BREAKS IN CASES WHERE THIS RETURNS, NEED TO UPDATE THAT BUT WILL KEEP IT AS STRING FOR NOW
+		// what is this check??? 
+		// this is messing up the types since it works based on if there is a null pointer
+		//    	if(input.matches("\\Q$\\E(\\d+)\\Q.\\E?(\\d+)?\\Q-\\E\\Q$\\E(\\d+)\\Q.\\E?(\\d+)?")) {
+		//    		return input;
+		//    	}
+		//    	Number nm = null;
+		//    	NumberFormat nf = NumberFormat.getCurrencyInstance();
+		//    	try {
+		//    		nm = nf.parse(input);
+		//    		//System.out.println("Curr..  " + nm);
+		//    	}catch (Exception ex)
+		//    	{
+		//    		
+		//    	}
+		//    	return nm;
+		return null;
+	}
+
+	public static Double getDouble(String input) {
+		try {
+			Double num = Double.parseDouble(input);
+			return num;
+		} catch(NumberFormatException e) {
+			return null;
+		}
+	}
+
+	//this doesn't consider 1.2E8 etc.
+	//    public static boolean isNumber(String input) {
+	//    	//has digits, followed by optional period followed by digits
+	//    	return input.matches("(\\d+)\\Q.\\E?(\\d+)?"); 
+	//    }
+
+	public static String[] castToTypes(String [] thisOutput, String [] types)
+	{
+		String [] values = new String[thisOutput.length];
+
+		//System.out.println("OUTPUT"  + thisOutput);
+		//System.out.println("TYPES" +  types);
+
+
+		for(int outIndex = 0;outIndex < thisOutput.length;outIndex++)
+		{
+			//System.out.println(" Data [" + thisOutput[outIndex] + "]  >> [" + types[outIndex] + "]");
+			//if the value is not null
+			if(thisOutput[outIndex] != null && thisOutput[outIndex].length() > 0)
+			{
+				values[outIndex] = thisOutput[outIndex] + "";
+
+				if(thisOutput[outIndex] != null) // && castTargets.contains(outIndex + ""))
+				{
+					if(types[outIndex].equalsIgnoreCase("Date"))
+						values[outIndex] = getDate(thisOutput[outIndex]);
+					else if(types[outIndex].equalsIgnoreCase("Currency"))// this is a currency
+						values[outIndex] = getCurrency(thisOutput[outIndex])+"";
+					else if(types[outIndex].equalsIgnoreCase("varchar(800)"))
+					{
+						if(thisOutput[outIndex].length() >= 800)
+							thisOutput[outIndex] = thisOutput[outIndex].substring(0,798);
+						values[outIndex] = thisOutput[outIndex];
+					}
+				}
+			}
+			else if(types[outIndex] != null)
+			{
+				if(types[outIndex].equalsIgnoreCase("Double"))
+					values[outIndex] = "NULL";
+				else if(types[outIndex].equalsIgnoreCase("varchar(800)")|| types[outIndex].equalsIgnoreCase("date"))
+					values[outIndex] = "";
+			}
+			else
+			{
+				values[outIndex] = "";
+			}
+		}
+
+		//    	for(int i = 0; i < values.length; i++) {
+		//    		values[i] = UriEncoder.encode(values[i]);
+		//    	}
+
+		for(int i = 0; i < values.length; i++) {
+			values[i] = Utility.cleanString(values[i], true, true, false);
+		}
+		return values;
+	}
+
+	public static String castToTypes(String thisOutput, String type)
+	{
+		String values = "";
+
+		//System.out.println("OUTPUT"  + thisOutput);
+		//System.out.println("TYPES" +  types);
+
+
+		if(thisOutput != null && thisOutput.length() > 0)
+		{
+			values = thisOutput + "";
+
+			if(thisOutput != null) // && castTargets.contains(outIndex + ""))
+			{
+				if(type.equalsIgnoreCase("Date"))
+					values = getDate(thisOutput);
+				else if(type.equalsIgnoreCase("Currency"))// this is a currency
+					values = getCurrency(thisOutput) + "";
+				else if(type.equalsIgnoreCase("varchar(800)"))
+				{
+					if(thisOutput.length() >= 800)
+						thisOutput = thisOutput.substring(0,798);
+					values = thisOutput;
+				}
+			}
+		}
+		else if(type != null)
+		{
+			if(type.equalsIgnoreCase("Double"))
+				values = "NULL";
+			else if(type.equalsIgnoreCase("varchar(800)") || type.equalsIgnoreCase("date"))
+				values = "";
+		}
+		else
+		{
+			values = "";
+		}
+		return values;
+	}
+
 	public static Map<Integer, Set<Integer>> getCardinalityOfValues(String[] newHeaders, Map<String, Set<String>> edgeHash) {
 		Map<Integer, Set<Integer>> retMapping = new Hashtable<Integer, Set<Integer>>();
-		
+
 		if(edgeHash == null) {
 			return retMapping;
 		}
-		
+
 		for(String startNode : edgeHash.keySet()) {
 			Integer startIndex = ArrayUtilityMethods.arrayContainsValueAtIndex(newHeaders, startNode);
-			
+
 			// for nulls and stuff
 			Set<String> set = edgeHash.get(startNode);
 			if(set==null) {
 				continue;
 			}
-			
+
 			// finish the mappings
 			for(String endNode : set) {
 				Integer endIndex = ArrayUtilityMethods.arrayContainsValueAtIndex(newHeaders, endNode);
-				
+
 				// add mapping
 				if(!retMapping.containsKey(startIndex)) {
 					Set<Integer> downstream = new HashSet<Integer>();
@@ -2306,42 +2307,42 @@ public class Utility {
 		}
 		return retMapping;
 	}
-	
+
 	public static String getRawDataType(String cleanDataType) {
 		if(cleanDataType == null || cleanDataType.isEmpty()) {
 			return "VARCHAR(800)";
 		}
 		cleanDataType = cleanDataType.toUpperCase();
-		
+
 		if(cleanDataType.equals("STRING")) {
 			return "VARCHAR(800)";
 		}
-		
+
 		// currently send double and date, which are the same as raw data type
 		return cleanDataType;
 	}
-	
+
 	public static String getCleanDataType(String origDataType) {
 		if(origDataType == null || origDataType.isEmpty()) {
 			return "STRING";
 		}
 		origDataType = origDataType.toUpperCase();
-		
+
 		if(origDataType.equals("DOUBLE") || origDataType.equals("INT")) {
 			return "DOUBLE";
 		}
-		
+
 		if(origDataType.contains("DATE")) {
 			return "DATE";
 		}
-		
+
 		if(origDataType.contains("VARCHAR")) {
 			return "STRING";
 		}
-		
+
 		return "STRING";
 	}
-	
+
 	public static String convertDataTypeToString(IMetaData.DATA_TYPES type) {
 		if(type.equals(IMetaData.DATA_TYPES.NUMBER)) { 
 			return "double";
@@ -2380,7 +2381,7 @@ public class Utility {
 		}
 		return fileName + ext;
 	}
-	
+
 	public static IEngine loadWebEngine(String fileName, Properties prop) throws KeyManagementException, NoSuchAlgorithmException, KeyStoreException {
 		// load the engine
 		IEngine engineToAdd = loadEngine(fileName, prop);
@@ -2413,7 +2414,7 @@ public class Utility {
 			 * 		if solr doesn't contain the engine (3 is false), then
 			 * 			add the engine into solr
 			 */
-			
+
 			// 1) get the boolean is the database is hidden
 			// 		default value is false if it is not found in the SMSS file
 			String hiddenString = engineToAdd.getProperty(Constants.HIDDEN_DATABASE);
@@ -2454,12 +2455,12 @@ public class Utility {
 				changeSMSSValue(fileName, Constants.SOLR_RELOAD, "false");
 			}
 		}
-		
+
 		// return the newly loaded engine
 		return engineToAdd;
 	}
-	
-	
+
+
 	/**
 	 * Loads an engine - sets the core properties, loads base data engine and ontology file.
 	 * @param 	Filename.
@@ -2470,19 +2471,19 @@ public class Utility {
 		IEngine engine = null;
 		try {
 			String engines = DIHelper.getInstance().getLocalProp(Constants.ENGINES) + "";
-//			boolean closeDB = false;
+			//			boolean closeDB = false;
 			String engineName = prop.getProperty(Constants.ENGINE);
 			String engineClass = prop.getProperty(Constants.ENGINE_TYPE);
-			
+
 			if(engines.startsWith(engineName) || engines.contains(";"+engineName+";") || engines.endsWith(";"+engineName)) {
 				LOGGER.debug("DB " + engineName + "<> is already loaded...");
-				
+
 				// engines are by default loaded so that we can keep track on the front end of engine/all call
 				// so eventhough it is added here there is a good possibility it is not loaded so check to see this
 				if(DIHelper.getInstance().getLocalProp(engineName) instanceof IEngine) 
 					return (IEngine) DIHelper.getInstance().getLocalProp(engineName);
 			}
-			
+
 			//TEMPORARY
 			// TODO: remove this
 			if(engineClass.equals("prerna.rdf.engine.impl.RDBMSNativeEngine")){
@@ -2491,9 +2492,9 @@ public class Utility {
 			else if(engineClass.startsWith("prerna.rdf.engine.impl.")){
 				engineClass = engineClass.replace("prerna.rdf.engine.impl.", "prerna.engine.impl.rdf.");
 			}
-//			if(engineClass.contains("RDBMSNativeEngine")){
-//				closeDB = true; //close db
-//			}
+			//			if(engineClass.contains("RDBMSNativeEngine")){
+			//				closeDB = true; //close db
+			//			}
 			engine = (IEngine)Class.forName(engineClass).newInstance();
 			engine.setEngineName(engineName);
 			if(prop.getProperty("MAP") != null) {
@@ -2501,24 +2502,24 @@ public class Utility {
 			}
 			engine.openDB(fileName);
 			//no point in doing this... it is set in the openDB call
-//			engine.setDreamer(prop.getProperty(Constants.DREAMER));
-//			engine.setOntology(prop.getProperty(Constants.ONTOLOGY));
-			
+			//			engine.setDreamer(prop.getProperty(Constants.DREAMER));
+			//			engine.setOntology(prop.getProperty(Constants.ONTOLOGY));
+
 			// set the core prop
 			if(prop.containsKey(Constants.DREAMER))
 				DIHelper.getInstance().getCoreProp().setProperty(engineName + "_" + Constants.DREAMER, prop.getProperty(Constants.DREAMER));
-//			if(prop.containsKey(Constants.ONTOLOGY))
-//				DIHelper.getInstance().getCoreProp().setProperty(engineName + "_" + Constants.ONTOLOGY, prop.getProperty(Constants.ONTOLOGY));
+			//			if(prop.containsKey(Constants.ONTOLOGY))
+			//				DIHelper.getInstance().getCoreProp().setProperty(engineName + "_" + Constants.ONTOLOGY, prop.getProperty(Constants.ONTOLOGY));
 			if(prop.containsKey(Constants.OWL)) {
 				DIHelper.getInstance().getCoreProp().setProperty(engineName + "_" + Constants.OWL, prop.getProperty(Constants.OWL));
 				//engine.setOWL(prop.getProperty(Constants.OWL));
 			}
-			
+
 			// set the engine finally
 			engines = engines + ";" + engineName;
 			DIHelper.getInstance().setLocalProperty(engineName, engine);
 			DIHelper.getInstance().setLocalProperty(Constants.ENGINES, engines);
-			
+
 			// now add or remove based on if it is hidden to local master
 			boolean hidden = (prop.getProperty(Constants.HIDDEN_DATABASE) != null && Boolean.parseBoolean(prop.getProperty(Constants.HIDDEN_DATABASE)));
 			boolean isLocal = engineName.equals(Constants.LOCAL_MASTER_DB_NAME);
@@ -2534,9 +2535,9 @@ public class Utility {
 			// still need to find a way to move this forward.. 
 			// but for now I am ignoring
 			Utility.loadDataTypesIfNotPresent(engine, fileName);
-			
-//			if(closeDB)
-//				engine.closeDB();
+
+			//			if(closeDB)
+			//				engine.closeDB();
 		} catch (InstantiationException e) {
 			e.printStackTrace();
 		} catch (IllegalAccessException e) {
@@ -2546,7 +2547,7 @@ public class Utility {
 		}
 		return engine;
 	}
-	
+
 	/**
 	 * Add data types into the OWL file for each concept and property for an engine 
 	 * @param engine				The IEngine to add datatypes for
@@ -2575,18 +2576,18 @@ public class Utility {
 		 * 5) grab all the properties for the given concept
 		 * 6) determine the type of the property IF a type is not already present
 		 * 
- 		 * There is a very annoying caveat.. we have an annoying bifurcation based on the engine type
+		 * There is a very annoying caveat.. we have an annoying bifurcation based on the engine type
 		 * If it is a RDBMS, getting the properties is pretty easy based on the way the IEngine is set up and how RDBMS queries work
 		 * However, for RDF, getting the properties requires us to create a query and execute that query to get the list of values :/
 		 */
-		
+
 		// 1) grab boolean value that was defined in the SMSS file to determine if we need to look at data types to add to owl
 		boolean fillEmpty = true;
 		String fillEmptyStr = engine.getProperty(Constants.FILL_EMPTY_DATATYPES);
 		if(fillEmptyStr != null) {
 			fillEmpty = Boolean.parseBoolean(fillEmptyStr);
 		}
-		
+
 		// 2) if the boolean is true, proceed to perform logic, else, nothing to do
 		if(fillEmpty) {
 			LOGGER.info(engine.getEngineName() + " is reloading data types into owl file");
@@ -2594,7 +2595,7 @@ public class Utility {
 			ENGINE_TYPE engineType = engine.getEngineType();
 			// use the super handy owler object to actual add the triples 
 			OWLER owler = new OWLER(engine, ((AbstractEngine) engine).getOWL());
-			
+
 			// 3) first grab all the concepts
 			// see if concept has a data type, if not, determine the type and then add it
 			Vector<String> concepts = engine.getConcepts2(false);;
@@ -2707,7 +2708,7 @@ public class Utility {
 		 * 			is set to be equal to that in the engine's OWL file (if the engine's OWL file time
 		 * 			stamp is null, it is set to the time when this routine started running)
 		 */
-		
+
 		// grab the local master engine
 		IEngine localMaster = (IEngine) DIHelper.getInstance().getLocalProp(Constants.LOCAL_MASTER_DB_NAME);
 		if(localMaster == null) {
@@ -2722,7 +2723,7 @@ public class Utility {
 		String engineName = engineToAdd.getEngineName();
 		String engineURL = "http://semoss.org/ontologies/Concept/Engine/" + Utility.cleanString(engineName, true);
 		String localDbQuery = "SELECT DISTINCT ?TIMESTAMP WHERE {<" + engineURL + "> <" + BaseDatabaseCreator.TIME_KEY + "> ?TIMESTAMP}";
-		
+
 		// generate the query to execute on the engine's OWL to get the time stamp
 		String engineQuery = "SELECT DISTINCT ?TIMESTAMP WHERE {<" + BaseDatabaseCreator.TIME_URL + "> <" + BaseDatabaseCreator.TIME_KEY + "> ?TIMESTAMP}";
 
@@ -2767,7 +2768,7 @@ public class Utility {
 		// 4.1) the local master doesn't have a time stamp which means the engine is not present
 		//		-> i.e. we do not need to remove the engine and re-add it
 		// 4.2) the time is present and we need to remove anything relating the engine that was in the engine and then re-add it
-		
+
 		if(localDbTimeForEngine == null) {
 			// here we add the engine's time stamp into the local master
 			localMaster.doAction(IEngine.ACTION_TYPE.ADD_STATEMENT, new Object[]{engineURL, BaseDatabaseCreator.TIME_KEY, engineDbTime, false});
@@ -2811,22 +2812,22 @@ public class Utility {
 		 * 			is set to be equal to that in the engine's OWL file (if the engine's OWL file time
 		 * 			stamp is null, it is set to the time when this routine started running)
 		 */
-		
+
 		// grab the local master engine
 		IEngine localMaster = (IEngine) DIHelper.getInstance().getLocalProp(Constants.LOCAL_MASTER_DB_NAME);
 		if(localMaster == null) {
 			LOGGER.info(">>>>>>>> Unable to find local master database in DIHelper.");
 			return;
 		}
-		
+
 		// generate the appropriate query to execute on the local master engine to get the time stamp
 		String engineFile = DIHelper.getInstance().getCoreProp().getProperty(engineName + "_" + Constants.STORE);
-		
+
 		// this has all the details
 		// the engine file is primarily the SMSS that is going to be utilized for the purposes of retrieving all the data
 		Properties prop = new Properties();
 		String baseFolder = DIHelper.getInstance().getProperty("BaseFolder");
-		
+
 		FileInputStream fis = null;
 		try {
 			fis = new FileInputStream(engineFile);
@@ -2840,18 +2841,18 @@ public class Utility {
 					fis.close();
 				} catch (IOException e) {
 					e.printStackTrace();
-				}
+		}
 			}
 		}
-		
+
 		String owlFileName = baseFolder + "/" + prop.getProperty(Constants.OWL);
 		File owlFile = new File(owlFileName);
 		DateFormat df = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss");
 		String engineDbTime = df.format(new Date(owlFile.lastModified()));
-		
+
 		String engineURL = "http://semoss.org/ontologies/meta/engine/" + Utility.cleanString(engineName, true);
 		String localDbQuery = "SELECT DISTINCT ?TIMESTAMP WHERE {<" + engineURL + "> <http://semoss.org/ontologies/Relation/modified> ?TIMESTAMP}";
-		
+
 		// 1) get the local master timestamp for engine
 		String localDbTimeForEngine = null;
 		ISelectWrapper wrapper = WrapperManager.getInstance().getSWrapper(localMaster, localDbQuery);
@@ -2886,7 +2887,7 @@ public class Utility {
 		// 4.1) the local master doesn't have a time stamp which means the engine is not present
 		//		-> i.e. we do not need to remove the engine and re-add it
 		// 4.2) the time is present and we need to remove anything relating the engine that was in the engine and then re-add it
-		
+
 		if(localDbTimeForEngine == null) {
 			// here we add the engine's time stamp into the local master
 			localMaster.doAction(IEngine.ACTION_TYPE.ADD_STATEMENT, new Object[]{engineURL, BaseDatabaseCreator.TIME_KEY, engineDbTime, false});
@@ -2921,7 +2922,7 @@ public class Utility {
 		StringTokenizer tokens = new StringTokenizer(uri + "", "/");
 		int totalTok = tokens.countTokens();
 		String instanceName = null;
-		
+
 		String secondLastToken = null;
 
 		for (int tokIndex = 0; tokIndex <= totalTok && tokens.hasMoreElements(); tokIndex++) {
@@ -2936,24 +2937,24 @@ public class Utility {
 
 		if(type == IEngine.ENGINE_TYPE.RDBMS)
 			instanceName = "Table_" + instanceName + "Column_" + secondLastToken;  
-		
+
 		return instanceName;
 	}
 
 	public static String getRandomString(int len)
 	{
 		String alpha = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ123456789";
-		
+
 		String retString = "a";
 		for(int i = 0;i< len;i++)
 		{
 			double num = Math.random()*alpha.length();
 			retString = retString + alpha.charAt(new Double(num).intValue());
 		}
-		
+
 		return retString;
 	}
-	
+
 	/**
 	 * 
 	 * @param engineName - engine to get
@@ -2998,4 +2999,49 @@ public class Utility {
 		return engine;
 	}
 	
+
+	public static HashMap<String, Object> getPKQLInputVar(String param, String reactor){
+		HashMap<String, Object> inputMap = new HashMap<String, Object>();
+		Object restrictions = new Object();
+		
+		switch(param){
+		case "COL_DEF" : inputMap.put("dataType", "text");
+						 
+						 inputMap.put("restrictions", restrictions);
+						 inputMap.put("source", "");
+						 switch(reactor){//COL_DEF specifies different var for some reactors - for COL_ADD its new column name, for COL_SPLIT, its existinmg column name
+							case "COL_ADD": inputMap.put("label", "New Column Name");
+											inputMap.put("varName", "c:newCol");
+											inputMap.put("type", "freetext");
+											inputMap.put("values", "");break;
+											
+							case "COL_SPLIT": inputMap.put("label", "Column to be split");
+											  inputMap.put("varName", "c:Col1");
+											  inputMap.put("type", "dropdown");
+											  inputMap.put("values", "");break;
+
+							}break;
+							
+		case "EXPR_TERM" : inputMap.put("label", "New Column Value");
+						   inputMap.put("varName", "(expression)");
+						   inputMap.put("dataType", "expression");
+						   inputMap.put("type", "dropdown");
+						   inputMap.put("restrictions", restrictions);
+						   inputMap.put("source", "");break;
+						   
+		case "WORD_OR_NUM" : inputMap.put("dataType", "text");
+		  					 
+		  					 inputMap.put("restrictions", restrictions);
+		  					 inputMap.put("source", "");
+		  					 switch(reactor){
+								case "COL_SPLIT": inputMap.put("label", "Delimiter");
+												  inputMap.put("varName", "delimiter");
+												  inputMap.put("type", "freetext");
+												  break;
+								}break;
+		}
+		return inputMap;
+	}
+
+
 }
