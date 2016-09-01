@@ -19,7 +19,7 @@ public class ColAddReactor extends AbstractReactor {
 	Hashtable <String, String[]> values2SyncHash = new Hashtable <String, String[]>();
 
 	public ColAddReactor() {
-		String [] thisReacts = {PKQLEnum.COL_DEF, PKQLEnum.COL_DEF + "_1", PKQLEnum.API}; // these are the input columns - there is also expr Term which I will come to shortly
+		String [] thisReacts = {PKQLEnum.COL_DEF, PKQLEnum.COL_DEF + "_1", PKQLEnum.API, PKQLEnum.EXPR_TERM}; // these are the input columns - there is also expr Term which I will come to shortly
 		super.whatIReactTo = thisReacts;
 		super.whoAmI = PKQLEnum.COL_ADD;
 
@@ -37,8 +37,9 @@ public class ColAddReactor extends AbstractReactor {
 		boolean showMenu = true;
 		boolean pinned = true;
 		super.setPKQLMetaData(title, pkqlCommand, description, showMenu, pinned);
-		super.setPKQLMetaDataInput(populatePKQLMetaDataInput());
-		super.setPKQLMetaDataConsole(populatePKQLMetaDataConsole());
+		//super.setPKQLMetaDataInput(populatePKQLMetaDataInput());
+		super.setPKQLMetaDataInput();
+		//super.setPKQLMetaDataConsole(populatePKQLMetaDataConsole());
 	}
 	
 
@@ -212,7 +213,7 @@ public class ColAddReactor extends AbstractReactor {
 
 //////////////setting the values for PKQL JSON for FE//////////////////////
 	
-	private List<HashMap<String, Object>> populatePKQLMetaDataInput(){
+	/*private List<HashMap<String, Object>> populatePKQLMetaDataInput(){
 		List<HashMap<String, Object>> input = new ArrayList<HashMap<String, Object>>();
 		HashMap<String, Object> inputMap = new HashMap<String, Object>();
 		Object restrictions = new Object();
@@ -235,9 +236,39 @@ public class ColAddReactor extends AbstractReactor {
 		inputMap.put("source", "");
 		input.add(inputMap);
 		return input;		
+	}*/
+	
+	private List<HashMap<String, Object>> populatePKQLMetaDataInput(){
+		List<HashMap<String, Object>> input = new ArrayList<HashMap<String, Object>>();
+		//HashMap<String, Object> inputMap = new HashMap<String, Object>();
+		//Object restrictions = new Object();
+		
+		for(String var: this.whatIReactTo){
+			//create a Utility method and pass whoAmI and whatIReactTo[i]/var
+			input.add(Utility.getPKQLInputVar(var, this.whoAmI));
+		}
+		/*//first variable in PKQL
+		inputMap.put("label", "New Column Name");
+		inputMap.put("varName", "c:newCol");
+		inputMap.put("dataType", "text");
+		inputMap.put("type", "dropdown");
+		inputMap.put("restrictions", restrictions);
+		inputMap.put("source", "");
+		input.add(inputMap);
+
+		//second variable in PKQL
+		inputMap = new HashMap<String, Object>();
+		inputMap.put("label", "New Column Value");
+		inputMap.put("varName", "(expression)");
+		inputMap.put("dataType", "expression");
+		inputMap.put("type", "dropdown");
+		inputMap.put("restrictions", restrictions);
+		inputMap.put("source", "");
+		input.add(inputMap);*/
+		return input;		
 	}
 	
-	private HashMap<String, Object> populatePKQLMetaDataConsole(){
+	/*private HashMap<String, Object> populatePKQLMetaDataConsole(){
 
 		HashMap<String, Object> console = new HashMap<String, Object>();
 		String[] groups = null;
@@ -252,6 +283,6 @@ public class ColAddReactor extends AbstractReactor {
 		console.put("buttonClass", buttonClass);
 		console.put("buttonActions", buttonActions);
 		return console;
-	}
+	}*/
 
 }
