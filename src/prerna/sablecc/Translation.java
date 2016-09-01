@@ -302,6 +302,9 @@ public class Translation extends DepthFirstAdapter {
 			} else if(engine.equalsIgnoreCase("csvFile")) {
 				// we have a csv api
 				this.reactorNames.put(PKQLEnum.API, this.apiReactorNames.get(PKQLEnum.CSV_API));
+			} else if(engine.equalsIgnoreCase("R")) {
+				// we have an R api to connect
+				this.reactorNames.put(PKQLEnum.API, this.apiReactorNames.get(PKQLEnum.R_API));
 			} else {
 				// default is a query api
 				this.reactorNames.put(PKQLEnum.API, this.apiReactorNames.get(PKQLEnum.QUERY_API));
