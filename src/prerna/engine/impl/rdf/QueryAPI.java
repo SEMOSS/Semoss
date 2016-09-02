@@ -66,6 +66,12 @@ public class QueryAPI extends AbstractApiReactor {
 		
 		return null;
 	}
+
+	@Override
+	public String explain() {
+		// TODO Auto-generated method stub
+		return "";
+	}
 	
 	///////////////// TEST ITERATOR CREATION //////////////////////
 //	public static void main(String[] args) {

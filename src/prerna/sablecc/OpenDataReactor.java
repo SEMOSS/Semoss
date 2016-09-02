@@ -38,7 +38,7 @@ public class OpenDataReactor extends AbstractReactor {
 	Hashtable <String, String[]> values2SyncHash = new Hashtable <String, String[]>();
 	
 	public OpenDataReactor() {
-		String [] thisReacts = {PKQLEnum.WORD_OR_NUM};
+		String [] thisReacts = {PKQLEnum.WORD_OR_NUM, PKQLEnum.EXPLAIN};
 		
 		super.whatIReactTo = thisReacts;
 		super.whoAmI = PKQLEnum.OPEN_DATA;
@@ -130,6 +130,8 @@ public class OpenDataReactor extends AbstractReactor {
 			//put error mesage
 			myStore.put(PKQLEnum.OPEN_DATA, "Error Opening Insight");
 		}
+		
+	
 		return null;
 	}
 
@@ -150,5 +152,11 @@ public class OpenDataReactor extends AbstractReactor {
 	 */
 	protected String createResponseString(String[] headers){
 		return "Successfully Opened Insight";
+	}
+	@Override
+	public String explain() {
+		String msg = "";
+		msg += "OpenDataReactor";
+		return msg;
 	}
 }

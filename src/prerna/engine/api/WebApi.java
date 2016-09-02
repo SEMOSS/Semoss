@@ -69,4 +69,10 @@ public class WebApi extends AbstractReactor{
 		
 		return null;
 	}
+
+	@Override
+	public String explain() {
+		// TODO Auto-generated method stub
+		return "";
+	}
 }
