@@ -8,7 +8,7 @@ import prerna.algorithm.api.ITableDataFrame;
 public class ColUnfilterReactor extends AbstractReactor{
 
 	public ColUnfilterReactor() {
-		String [] thisReacts = {PKQLEnum.COL_DEF}; // these are the input columns - there is also expr Term which I will come to shortly
+		String [] thisReacts = {PKQLEnum.COL_DEF, PKQLEnum.EXPLAIN}; // these are the input columns - there is also expr Term which I will come to shortly
 		super.whatIReactTo = thisReacts;
 		super.whoAmI = PKQLEnum.UNFILTER_DATA;
 	}
@@ -33,8 +33,16 @@ public class ColUnfilterReactor extends AbstractReactor{
 		
 		// update the data id so FE knows data has been changed
 		frame.updateDataId();
-				
+		
+
 		return null;
+	}
+
+	@Override
+	public String explain() {
+		String msg = "";
+//		msg += "ColUnfilterReactor";
+		return msg;
 	}
 
 }

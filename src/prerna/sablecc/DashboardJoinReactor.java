@@ -142,4 +142,12 @@ public class DashboardJoinReactor extends AbstractReactor {
 		}
 		this.myStore.put("DashboardData", joinDataList);
 	}
+
+	@Override
+	public String explain() {
+		// TODO Auto-generated method stub
+		String msg = "";
+//		msg += "DashboardJoinReactor";
+		return msg;
+	}
 }

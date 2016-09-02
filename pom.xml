@@ -541,6 +541,11 @@
 			</exclusions>
 		</dependency>
 		<dependency>
+    		<groupId>com.github.spullara.mustache.java</groupId>
+  			<artifactId>compiler</artifactId>
+  			<version>0.9.2</version>
+		</dependency>
+		<dependency>
 			<groupId>com.h2database</groupId>
 			<artifactId>h2</artifactId>
 			<version>1.4.185</version>

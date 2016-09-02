@@ -10,25 +10,25 @@ import prerna.ds.TinkerFrame;
 import prerna.ds.H2.H2Frame;
 import prerna.ds.spark.SparkDataFrame;
 
-public class DataConnectReactor  extends AbstractReactor{
+public class DataConnectReactor extends AbstractReactor {
 
 	public DataConnectReactor() {
-		String [] thisReacts = {PKQLEnum.WORD_OR_NUM};
+		String[] thisReacts = { PKQLEnum.WORD_OR_NUM, PKQLEnum.EXPLAIN };
 		super.whatIReactTo = thisReacts;
 		super.whoAmI = PKQLEnum.DATA_CONNECT;
 	}
-	
+
 	@Override
 	public Iterator process() {
-		
+
 		Object value = myStore.get(PKQLEnum.WORD_OR_NUM);
 		System.out.println(value);//Testing the value passed in pkql data.connect(value)
-		
+
 		AbstractTableDataFrame frame = (AbstractTableDataFrame) myStore.get("G");
-		if(frame instanceof H2Frame){
-			Connection currConn = ((H2Frame) frame).getBuilder().getConnection();			 
+		if (frame instanceof H2Frame) {
+			Connection currConn = ((H2Frame) frame).getBuilder().getConnection();
 			try {
-				DatabaseMetaData dmd = currConn.getMetaData();				
+				DatabaseMetaData dmd = currConn.getMetaData();
 				myStore.put("data.connect", dmd.getURL());
 				myStore.put("STATUS", PKQLRunner.STATUS.SUCCESS);
 			} catch (SQLException e) {
@@ -36,15 +36,24 @@ public class DataConnectReactor  extends AbstractReactor{
 				myStore.put("data.connect", currConn.toString());
 				myStore.put("STATUS", PKQLRunner.STATUS.ERROR);
 			}
-			
-		}else if(frame instanceof TinkerFrame){
+
+		} else if (frame instanceof TinkerFrame) {
 			myStore.put("data.connect", "JDBC URL not available for TinkerFrame");
 			myStore.put("STATUS", PKQLRunner.STATUS.ERROR);
-		}else if(frame instanceof SparkDataFrame){
+		} else if (frame instanceof SparkDataFrame) {
 			myStore.put("data.connect", "JDBC URL not available for SparkDataFrame");
 			myStore.put("STATUS", PKQLRunner.STATUS.ERROR);
 		}
+	
+
 		return null;
+	}
+
+	@Override
+	public String explain() {
+		String msg = "";
+		msg += "DataConnectReactor";
+		return msg;
 	}
 
 }
