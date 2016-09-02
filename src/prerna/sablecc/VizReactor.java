@@ -26,191 +26,195 @@ import prerna.util.ArrayUtilityMethods;
  */
 public class VizReactor extends AbstractReactor {
 
+	Hashtable<String, String[]> values2SyncHash = new Hashtable<String, String[]>();
 
-	Hashtable <String, String[]> values2SyncHash = new Hashtable <String, String[]>();
-	
-	public VizReactor()
-	{
-		//MATH_EXPRESSION = the formulas used 
-		//PKQLEnum.PROC_NAME = type of math, i.e. Average, Sum
-		//PKQLEnum.COL_DEF = columns to do math on
-		//PKQLEnum.COL_CSV = group by columns
-		String [] thisReacts = {PKQLEnum.WORD_OR_NUM, "TERM", "MATH_EXPRESSION", PKQLEnum.PROC_NAME+"2", PKQLEnum.COL_DEF+"2", PKQLEnum.COL_CSV+"2"};
+	public VizReactor() {
+		// MATH_EXPRESSION = the formulas used
+		// PKQLEnum.PROC_NAME = type of math, i.e. Average, Sum
+		// PKQLEnum.COL_DEF = columns to do math on
+		// PKQLEnum.COL_CSV = group by columns
+		String[] thisReacts = { PKQLEnum.WORD_OR_NUM, "TERM", "MATH_EXPRESSION", PKQLEnum.PROC_NAME + "2",
+				PKQLEnum.COL_DEF + "2", PKQLEnum.COL_CSV + "2", PKQLEnum.EXPLAIN };
 		super.whatIReactTo = thisReacts;
 		super.whoAmI = PKQLEnum.VIZ;
 	}
-	
+
 	@Override
 	public Iterator process() {
-		
-		//grab the data i need
+
+		// grab the data i need
 		Object termObject = myStore.get("VizTableData");
-		ITableDataFrame frame = (ITableDataFrame)myStore.get("G");
-		List<String> formulas = (List<String>)myStore.get("MATH_EXPRESSION");
-		List<String> procedureTypes = (List<String>)myStore.get(PKQLEnum.PROC_NAME+"2");
-		List<List<String>> groupBys = (List<List<String>>)myStore.get(PKQLEnum.COL_CSV+"2");
-		List<List<String>> calculatedBy = (List<List<String>>)myStore.get(PKQLEnum.COL_DEF+"2");
-		
-		
+		ITableDataFrame frame = (ITableDataFrame) myStore.get("G");
+		List<String> formulas = (List<String>) myStore.get("MATH_EXPRESSION");
+		List<String> procedureTypes = (List<String>) myStore.get(PKQLEnum.PROC_NAME + "2");
+		List<List<String>> groupBys = (List<List<String>>) myStore.get(PKQLEnum.COL_CSV + "2");
+		List<List<String>> calculatedBy = (List<List<String>>) myStore.get(PKQLEnum.COL_DEF + "2");
+
 		List<String> columns = new ArrayList<>();
-		List<String> columnsToGrab  = new ArrayList<>();
+		List<String> columnsToGrab = new ArrayList<>();
 		String[] keyColumns = new String[]{}; //group by columns for the calculated columns, assumed to be the same for all calculated columns
 		Map<Map<String, Object>, Object> mainMap = new HashMap<>();
 		List<Object[]> grid = new ArrayList<>(1);
-		
+
 		Map<Integer, String> indexMap = new HashMap<>();
-		
+
 		int index = 0;
-		if(termObject instanceof List) {
-			List<Object> listObject = (List<Object>)termObject;
+		if (termObject instanceof List) {
+			List<Object> listObject = (List<Object>) termObject;
 			int counter = 0;
-			for(Object nextObject : listObject) {
-				
-				//if its a map we know it came from a math reactor
-				if(nextObject instanceof Map) {
-					String newColName = "newCol"+counter++;
+			for (Object nextObject : listObject) {
+
+				// if its a map we know it came from a math reactor
+				if (nextObject instanceof Map) {
+					String newColName = "newCol" + counter++;
 					columns.add(newColName);
-//					indexMap.put(newColName, index);
+					// indexMap.put(newColName, index);
 					indexMap.put(index, newColName);
-					
-					//we assume key columns are the same for all math reactors, need to initialize
-					if(keyColumns.length == 0) {
-						//
-						keyColumns = ((Map<Map<String, Object>, Object>)nextObject).keySet().iterator().next().keySet().toArray(new String[]{});
+
+					// we assume key columns are the same for all math reactors,
+					// need to initialize
+					if (keyColumns.length == 0) {
+						keyColumns = ((Map<Map<String, Object>, Object>) nextObject).keySet().iterator().next().keySet()
+								.toArray(new String[] {});
 					}
-					
-					mainMap = mergeMap(mainMap, (Map<Map<String, Object>, Object>)nextObject);
-					
-				} 
-				
-				//this is a column header 
-				else if(nextObject instanceof String) {
-					columnsToGrab.add(nextObject.toString());
-//					indexMap.put(nextObject.toString(), index);
-					indexMap.put(index, nextObject.toString());
-				} 
-				
-				//this is an empty placeholder to maintain order, need to keep track
-				else if(nextObject == null){
-//					indexMap.put("EMPTY"+index, index);
-					indexMap.put(index, "EMPTY");
-				} 
-				
-				//this would be a formula that is not a group by, not accounting for these yet
-				//getting this would be huge for data visual, imagine scaling axis based on data...i.e. logs
-				else {
-					//formulas which are not group bys and not columns should be taken care of here
+
+					mainMap = mergeMap(mainMap, (Map<Map<String, Object>, Object>) nextObject);
+
 				}
-				
+
+				// this is a column header
+				else if (nextObject instanceof String) {
+					columnsToGrab.add(nextObject.toString());
+					// indexMap.put(nextObject.toString(), index);
+					indexMap.put(index, nextObject.toString());
+				}
+
+				//this is an empty placeholder to maintain order, need to keep track
+				else if (nextObject == null) {
+					// indexMap.put("EMPTY"+index, index);
+					indexMap.put(index, "EMPTY");
+				}
+
+				// this would be a formula that is not a group by, not
+				// accounting for these yet
+				// getting this would be huge for data visual, imagine scaling
+				// axis based on data...i.e. logs
+				else {
+					// formulas which are not group bys and not columns should
+					// be taken care of here
+				}
+
 				index++;
 			}
 		} else {
-			//if this is the case what are we displaying?
+			// if this is the case what are we displaying?
 		}
-		
+
 		boolean mathPerformed = keyColumns.length > 0;
-		
+
 		
 //		//grab the iterator because we have columns that need data from the frame
-//		if(columnsToGrab.size() > keyColumns.length) {
-////		if(columnsToGrab.size() > 0 && keyColumns.length > 0) {
-//			Map<String, Object> options = new HashMap<>();
-//			options.put(TinkerFrame.SELECTORS, columnsToGrab);
-//			options.put(TinkerFrame.DE_DUP, true);
-//			Iterator<Object[]> iterator = frame.iterator(false, options);
-//			
-//			//convert to map and merge
-//			Map<Map<String, Object>, Object> newMap = convertIteratorDataToMap(iterator, columnsToGrab, keyColumns);
-//			mainMap = mergeMap(mainMap, newMap);
-//		} 
-		
+		// if(columnsToGrab.size() > keyColumns.length) {
+		//// if(columnsToGrab.size() > 0 && keyColumns.length > 0) {
+		// Map<String, Object> options = new HashMap<>();
+		// options.put(TinkerFrame.SELECTORS, columnsToGrab);
+		// options.put(TinkerFrame.DE_DUP, true);
+		// Iterator<Object[]> iterator = frame.iterator(false, options);
+		//
+		// //convert to map and merge
+		// Map<Map<String, Object>, Object> newMap =
+		// convertIteratorDataToMap(iterator, columnsToGrab, keyColumns);
+		// mainMap = mergeMap(mainMap, newMap);
+		// }
+
 		//otherwise we only have column data to grab from the frame, no math was done
-		if(columnsToGrab.size() > 0 && !mathPerformed) {
+		if (columnsToGrab.size() > 0 && !mathPerformed) {
 			Map<String, Object> options = new HashMap<>();
 			options.put(TinkerFrame.SELECTORS, columnsToGrab);
 			options.put(TinkerFrame.DE_DUP, true);
 			Iterator<Object[]> iterator = frame.iterator(false, options);
-			
+
 			grid = new ArrayList<>(100);
-			while(iterator.hasNext()) {
+			while (iterator.hasNext()) {
 				grid.add(iterator.next());
 			}
 		}
-		
-		else if(columnsToGrab.size() > keyColumns.length) {
-//			if(columnsToGrab.size() > 0 && keyColumns.length > 0) {
+
+		else if (columnsToGrab.size() > keyColumns.length) {
+			// if(columnsToGrab.size() > 0 && keyColumns.length > 0) {
 			Map<String, Object> options = new HashMap<>();
 			options.put(TinkerFrame.SELECTORS, columnsToGrab);
 			options.put(TinkerFrame.DE_DUP, true);
 			Iterator<Object[]> iterator = frame.iterator(false, options);
-			
-			//convert to map and merge
+
+			// convert to map and merge
 			Map<Map<String, Object>, Object> newMap = convertIteratorDataToMap(iterator, columnsToGrab, keyColumns);
 			mainMap = mergeMap(mainMap, newMap);
-		} 
-		
-		
-		for(String column : keyColumns) {
+		}
+
+		for (String column : keyColumns) {
 			columnsToGrab.remove(column);
 		}
-		
-		//columnsToGrab is now all the columns that are not group bys columns
+
+		// columnsToGrab is now all the columns that are not group bys columns
 		columns.addAll(columnsToGrab);
-		
+
 		List<String> headerColumns = new ArrayList<>();
-		for(String column : keyColumns) {
+		for (String column : keyColumns) {
 			headerColumns.add(column);
 		}
 		headerColumns.addAll(columns);
-		
-		//order of header columns will be : key columns (grouped columns) in stable order, then new function columns, then other columns
-		
-		if(mathPerformed) {
+
+		// order of header columns will be : key columns (grouped columns) in
+		// stable order, then new function columns, then other columns
+
+		if (mathPerformed) {
 			grid = convertMapToGrid(mainMap, keyColumns);
 		}
-		
-		//add in the grouped columns
-//		List columnList = new ArrayList<>(headerColumns.size());
+
+		// add in the grouped columns
+		// List columnList = new ArrayList<>(headerColumns.size());
 		Map<String, Object> columnMap = new HashMap<>();
 		int i;
-		for(i = 0; i < keyColumns.length; i++) {
+		for (i = 0; i < keyColumns.length; i++) {
 			Map<String, Object> keyMap = new HashMap<>();
 			keyMap.put("varKey", keyColumns[i]);
 			keyMap.put("uri", keyColumns[i]);
 			keyMap.put("type", frame.getDataType(keyColumns[i]).toString());
 			keyMap.put("operation", new HashMap<>());
-//			columnList.add(keyMap);
+			// columnList.add(keyMap);
 			columnMap.put(keyColumns[i], keyMap);
 		}
-		
-		//add in the function columns
+
+		// add in the function columns
 		int formNum = 0;
-		if(procedureTypes != null) {
-			for(; i < procedureTypes.size()+keyColumns.length; i++) {
+		if (procedureTypes != null) {
+			for (; i < procedureTypes.size() + keyColumns.length; i++) {
 				Map<String, Object> keyMap = new HashMap<>();
 				String columnName = headerColumns.get(i);
-				if(keyColumns.length == 0) {
+				if (keyColumns.length == 0) {
 					keyMap.put("type", frame.getDataType(headerColumns.get(i)).toString());
 					keyMap.put("operation", new HashMap<>());
 				} else {
 					keyMap.put("type", "NUMBER");
 					Map<String, Object> operationMap = new HashMap<>();
-					String newColumnName = generateName(groupBys.get(formNum), calculatedBy.get(formNum), procedureTypes.get(formNum));
-					
-//					Integer val = indexMap.get(columnName);
-//					indexMap.remove(columnName);
-//					indexMap.put(newColumnName, val);
-					
-					for(Integer indexVal : indexMap.keySet()) {
+					String newColumnName = generateName(groupBys.get(formNum), calculatedBy.get(formNum),
+							procedureTypes.get(formNum));
+
+					// Integer val = indexMap.get(columnName);
+					// indexMap.remove(columnName);
+					// indexMap.put(newColumnName, val);
+
+					for (Integer indexVal : indexMap.keySet()) {
 						String column = indexMap.get(indexVal);
-						if(column.equals(columnName)) {
+						if (column.equals(columnName)) {
 							indexMap.put(indexVal, newColumnName);
 						}
 					}
-					
+
 					columnName = newColumnName;
 					headerColumns.set(i, columnName);
-					
+
 					operationMap.put("formula", formulas.get(formNum));
 					operationMap.put("groupedBy", groupBys.get(formNum));
 					operationMap.put("calculatedBy", calculatedBy.get(formNum));
@@ -219,68 +223,69 @@ public class VizReactor extends AbstractReactor {
 				}
 				keyMap.put("varKey", columnName);
 				keyMap.put("uri", columnName);
-//				columnList.add(keyMap);
+				// columnList.add(keyMap);
 				columnMap.put(columnName, keyMap);
 				formNum++;
 			}
 		}
-		
-		//add in the rest of the columns, non group and non function
-		for(; i < headerColumns.size(); i++) {
+
+		// add in the rest of the columns, non group and non function
+		for (; i < headerColumns.size(); i++) {
 			Map<String, Object> keyMap = new HashMap<>();
 			keyMap.put("varKey", headerColumns.get(i));
 			keyMap.put("uri", headerColumns.get(i));
 			keyMap.put("type", frame.getDataType(headerColumns.get(i)).toString());
 			keyMap.put("operation", new HashMap<>());
-//			columnList.add(keyMap);
+			// columnList.add(keyMap);
 			columnMap.put(headerColumns.get(i), keyMap);
 		}
-		
+
 		grid = reorderGrid(grid, headerColumns, indexMap);
 		Object[] finalHeaders = getColumnsInOrder(columnMap, indexMap);
 		myStore.put("VizTableKeys", finalHeaders);
 		myStore.put("VizTableValues", grid);
-		
+
 		return null;
 	}
-	
+
 	private String generateName(List<String> groupBys, List<String> calcBys, String math) {
 		String generatedName = "";
-		generatedName+= math;  //Average
-		
-		//AverageRevenue
-		for(int i = 0; i < calcBys.size(); i++) {
-			if(i > 0) {
-				generatedName+="And"+calcBys.get(i);
+		generatedName += math; // Average
+
+		// AverageRevenue
+		for (int i = 0; i < calcBys.size(); i++) {
+			if (i > 0) {
+				generatedName += "And" + calcBys.get(i);
 			} else {
-				generatedName+=calcBys.get(i);
+				generatedName += calcBys.get(i);
 			}
 		}
-		
-		//AverageRevenueOn
-		generatedName+="On";
-		
-		//AverageRevenueOnStudioAndBudget
-		for(int i = 0; i < groupBys.size(); i++) {
-			if(i > 0) {
-				generatedName+= "And"+groupBys.get(i);
+
+		// AverageRevenueOn
+		generatedName += "On";
+
+		// AverageRevenueOnStudioAndBudget
+		for (int i = 0; i < groupBys.size(); i++) {
+			if (i > 0) {
+				generatedName += "And" + groupBys.get(i);
 			} else {
-				generatedName+= groupBys.get(i);
+				generatedName += groupBys.get(i);
 			}
 		}
-		
+
 		return generatedName;
 	}
-	
-	private Map<Map<String, Object>, Object> convertIteratorDataToMap(Iterator<Object[]> iterator, List<String> columnsToGrab, String[] keyColumns) {
+
+	private Map<Map<String, Object>, Object> convertIteratorDataToMap(Iterator<Object[]> iterator,
+			List<String> columnsToGrab, String[] keyColumns) {
 		Map<Map<String, Object>, Object> retMap = new HashMap<>();
-		while(iterator.hasNext()) {
+		while (iterator.hasNext()) {
 			Map<String, Object> newKey = new HashMap<>();
 			List<Object> newValue = new ArrayList<>();
-			
+
 			Object[] row = iterator.next();
-			for(int i = 0; i < row.length; i++) {
-				if(ArrayUtilityMethods.arrayContainsValueIgnoreCase(keyColumns, columnsToGrab.get(i))) {
+			for (int i = 0; i < row.length; i++) {
+				if (ArrayUtilityMethods.arrayContainsValueIgnoreCase(keyColumns, columnsToGrab.get(i))) {
 					newKey.put(columnsToGrab.get(i), row[i]);
 				} else {
 					newValue.add(row[i]);
@@ -288,41 +293,44 @@ public class VizReactor extends AbstractReactor {
 			}
 			retMap.put(newKey, newValue);
 		}
-		
+
 		return retMap;
 	}
-	
+
 	/**
 	 * 
 	 * @param firstMap
 	 * @param secondMap
 	 * @return
 	 * 
-	 * merges two maps
+	 * 		merges two maps
 	 */
-	private Map<Map<String, Object>, Object> mergeMap(Map<Map<String, Object>, Object> firstMap, Map<Map<String, Object>, Object> secondMap) {
-		
-		if(firstMap == null || firstMap.isEmpty()) return secondMap;
-		if(secondMap == null || secondMap.isEmpty()) return firstMap;
-		
+	private Map<Map<String, Object>, Object> mergeMap(Map<Map<String, Object>, Object> firstMap,
+			Map<Map<String, Object>, Object> secondMap) {
+
+		if (firstMap == null || firstMap.isEmpty())
+			return secondMap;
+		if (secondMap == null || secondMap.isEmpty())
+			return firstMap;
+
 		Map<Map<String, Object>, Object> mergedMap = new HashMap<>();
-		
-		for(Map<String, Object> key : firstMap.keySet()) {
+
+		for (Map<String, Object> key : firstMap.keySet()) {
 			mergedMap.put(key, firstMap.get(key));
 		}
-		
-		for(Map<String, Object> key : secondMap.keySet()) {
-			if(mergedMap.containsKey(key)) {
+
+		for (Map<String, Object> key : secondMap.keySet()) {
+			if (mergedMap.containsKey(key)) {
 				Object obj = mergedMap.get(key);
-				if(obj instanceof List) {
-					((List)obj).add(secondMap.get(key));
-				} else if(obj != null) {
+				if (obj instanceof List) {
+					((List) obj).add(secondMap.get(key));
+				} else if (obj != null) {
 					List<Object> newList = new ArrayList<>();
 					newList.add(obj);
 					Object secondObj = secondMap.get(key);
-					if(secondObj instanceof List) {
-						newList.addAll((List)secondObj);
-					} else if(secondObj != null) {
+					if (secondObj instanceof List) {
+						newList.addAll((List) secondObj);
+					} else if (secondObj != null) {
 						newList.add(secondMap.get(key));
 					}
 					mergedMap.put(key, newList);
@@ -330,9 +338,9 @@ public class VizReactor extends AbstractReactor {
 					List<Object> newList = new ArrayList<>();
 					newList.add("");
 					Object secondObj = secondMap.get(key);
-					if(secondObj instanceof List) {
-						newList.addAll((List)secondObj);
-					} else if(secondObj != null) {
+					if (secondObj instanceof List) {
+						newList.addAll((List) secondObj);
+					} else if (secondObj != null) {
 						newList.add(secondMap.get(key));
 					} else {
 						newList.add("");
@@ -346,147 +354,277 @@ public class VizReactor extends AbstractReactor {
 				mergedMap.put(key, valList);
 			}
 		}
-		
+
 		return mergedMap;
 	}
-	
+
 	/**
 	 * 
 	 * @param mapData
 	 * @param headers
-	 * @return		  converts the return data from a group by math column into a grid format
+	 * @return converts the return data from a group by math column into a grid
+	 *         format
 	 * 
-	 * mapData is of the form:
-	 * {
-	 * 		{Title = T1, Studio = S1} -> [0.8, 0.5]
-	 * }
+	 *         mapData is of the form: { {Title = T1, Studio = S1} -> [0.8, 0.5]
+	 *         }
 	 */
-    private List<Object[]> convertMapToGrid(Map<Map<String, Object>, Object> mapData, String[] headers) {
-        List<Object[]> grid = new Vector<Object[]>();
-        
-        int numHeaders = headers.length;
-        
-        // iterate through each unique group
-        Set<Map<String, Object>> unqiueGroupSet = mapData.keySet();
-        for(Map<String, Object> group : unqiueGroupSet) {
+	private List<Object[]> convertMapToGrid(Map<Map<String, Object>, Object> mapData, String[] headers) {
+		List<Object[]> grid = new Vector<Object[]>();
 
-        	List<Object> row = new ArrayList<>();
-              // store each value of the group by
-              for(int colIdx = 0; colIdx < numHeaders; colIdx++) {
-                    row.add(group.get(headers[colIdx]));
-              }
-              // store the value for the group by result
-              Object val = mapData.get(group);
-              if(val instanceof List) {
-            	  row.addAll((List)val);
-              } else {
-            	  row.add(val);
-              }
-              
-              grid.add(row.toArray());
-        }
-        
-        return grid;
-    }
+		int numHeaders = headers.length;
 
+		// iterate through each unique group
+		Set<Map<String, Object>> unqiueGroupSet = mapData.keySet();
+		for (Map<String, Object> group : unqiueGroupSet) {
 
-//    /**
-//     * 
-//     * @param grid
-//     * @param columnList
-//     * @param indexMap
-//     * @return			need to reorder the grid :(
-//     */
-//    private List<Object[]> reorderGrid(List<Object[]> grid, List<String> columnList, Map<String, Integer> indexMap) {
-//    	List<Object[]> returnGrid = new ArrayList<>();
-//    	int length = indexMap.keySet().size();
-//    	
-//    	String[] columns = new String[columnList.size()];
-//    	for(int i = 0; i < columns.length; i++) {
-//    		columns[i] = columnList.get(i);
-//    	}
-//    	
-//    	for(Object[] row : grid) {
-//    		Object[] newRow = new Object[length];
-//    		for(String key : indexMap.keySet()) {
-//    			int val = indexMap.get(key);
-//    			if(key.toUpperCase().startsWith("EMPTY")) {
-//    				newRow[val] = "";
-//    			} else {
-//    				newRow[val] = row[ArrayUtilityMethods.arrayContainsValueAtIndex(columns, key)];
-//    			}
-//    		}
-//    		returnGrid.add(newRow);
-//    	}
-//    	
-//    	return returnGrid;
-//    }
-//    
-//    private Object[] getColumnsInOrder(Map<String, Object> columnMap, Map<String, Integer> indexMap) {
-//    	Object[] colArr = new Object[indexMap.keySet().size()];
-//    	for(String key : indexMap.keySet()) {
-//    		Integer val = indexMap.get(key);
-//    		if(key.toUpperCase().startsWith("EMPTY")) {
-//    			Map<String, Object> keyMap = new HashMap<>();
-//    			keyMap.put("varKey", "");
-//    			keyMap.put("uri", "");
-//    			keyMap.put("type", "");
-//    			keyMap.put("operation", new HashMap<>());
-//    			colArr[val] = keyMap;
-//    		} else {
-//    			colArr[val] = columnMap.get(key);
-//    		}
-//    	}
-//    	return colArr;
-//    }
-    
-    /**
-     * 
-     * @param grid
-     * @param columnList
-     * @param indexMap
-     * @return			need to reorder the grid :(
-     */
-    private List<Object[]> reorderGrid(List<Object[]> grid, List<String> columnList, Map<Integer, String> indexMap) {
-    	List<Object[]> returnGrid = new ArrayList<>();
-    	int length = indexMap.keySet().size();
-    	
-    	String[] columns = new String[columnList.size()];
-    	for(int i = 0; i < columns.length; i++) {
-    		columns[i] = columnList.get(i);
-    	}
-    	
-    	for(Object[] row : grid) {
-    		Object[] newRow = new Object[length];
-    		for(Integer key : indexMap.keySet()) {
-    			String column = indexMap.get(key);
-    			if(column.toUpperCase().startsWith("EMPTY")) {
-    				newRow[key] = "";
-    			} else {
-    				newRow[key] = row[ArrayUtilityMethods.arrayContainsValueAtIndex(columns, column)];
-    			}
-    		}
-    		returnGrid.add(newRow);
-    	}
-    	
-    	return returnGrid;
-    }
-    
-    private Object[] getColumnsInOrder(Map<String, Object> columnMap, Map<Integer, String> indexMap) {
-    	Object[] colArr = new Object[indexMap.keySet().size()];
-    	for(Integer key : indexMap.keySet()) {
-    		String column = indexMap.get(key);
-    		if(column.toUpperCase().startsWith("EMPTY")) {
-    			Map<String, Object> keyMap = new HashMap<>();
-    			keyMap.put("varKey", "");
-    			keyMap.put("uri", "");
-    			keyMap.put("type", "");
-    			keyMap.put("operation", new HashMap<>());
-    			colArr[key] = keyMap;
-    		} else {
-    			colArr[key] = columnMap.get(column);
-    		}
-    	}
-    	return colArr;
-    }
+			List<Object> row = new ArrayList<>();
+			// store each value of the group by
+			for (int colIdx = 0; colIdx < numHeaders; colIdx++) {
+				row.add(group.get(headers[colIdx]));
+			}
+			// store the value for the group by result
+			Object val = mapData.get(group);
+			if (val instanceof List) {
+				row.addAll((List) val);
+			} else {
+				row.add(val);
+			}
+
+			grid.add(row.toArray());
+		}
+
+		return grid;
+	}
+
+	// /**
+	// *
+	// * @param grid
+	// * @param columnList
+	// * @param indexMap
+	// * @return need to reorder the grid :(
+	// */
+	// private List<Object[]> reorderGrid(List<Object[]> grid, List<String>
+	// columnList, Map<String, Integer> indexMap) {
+	// List<Object[]> returnGrid = new ArrayList<>();
+	// int length = indexMap.keySet().size();
+	//
+	// String[] columns = new String[columnList.size()];
+	// for(int i = 0; i < columns.length; i++) {
+	// columns[i] = columnList.get(i);
+	// }
+	//
+	// for(Object[] row : grid) {
+	// Object[] newRow = new Object[length];
+	// for(String key : indexMap.keySet()) {
+	// int val = indexMap.get(key);
+	// if(key.toUpperCase().startsWith("EMPTY")) {
+	// newRow[val] = "";
+	// } else {
+	// newRow[val] = row[ArrayUtilityMethods.arrayContainsValueAtIndex(columns,
+	// key)];
+	// }
+	// }
+	// returnGrid.add(newRow);
+	// }
+	//
+	// return returnGrid;
+	// }
+	//
+	// private Object[] getColumnsInOrder(Map<String, Object> columnMap,
+	// Map<String, Integer> indexMap) {
+	// Object[] colArr = new Object[indexMap.keySet().size()];
+	// for(String key : indexMap.keySet()) {
+	// Integer val = indexMap.get(key);
+	// if(key.toUpperCase().startsWith("EMPTY")) {
+	// Map<String, Object> keyMap = new HashMap<>();
+	// keyMap.put("varKey", "");
+	// keyMap.put("uri", "");
+	// keyMap.put("type", "");
+	// keyMap.put("operation", new HashMap<>());
+	// colArr[val] = keyMap;
+	// } else {
+	// colArr[val] = columnMap.get(key);
+	// }
+	// }
+	// return colArr;
+	// }
+
+	/**
+	 * 
+	 * @param grid
+	 * @param columnList
+	 * @param indexMap
+	 * @return need to reorder the grid :(
+	 */
+	private List<Object[]> reorderGrid(List<Object[]> grid, List<String> columnList, Map<Integer, String> indexMap) {
+		List<Object[]> returnGrid = new ArrayList<>();
+		int length = indexMap.keySet().size();
+
+		String[] columns = new String[columnList.size()];
+		for (int i = 0; i < columns.length; i++) {
+			columns[i] = columnList.get(i);
+		}
+
+		for (Object[] row : grid) {
+			Object[] newRow = new Object[length];
+			for (Integer key : indexMap.keySet()) {
+				String column = indexMap.get(key);
+				if (column.toUpperCase().startsWith("EMPTY")) {
+					newRow[key] = "";
+				} else {
+					newRow[key] = row[ArrayUtilityMethods.arrayContainsValueAtIndex(columns, column)];
+				}
+			}
+			returnGrid.add(newRow);
+		}
+
+		return returnGrid;
+	}
+
+	private Object[] getColumnsInOrder(Map<String, Object> columnMap, Map<Integer, String> indexMap) {
+		Object[] colArr = new Object[indexMap.keySet().size()];
+		for (Integer key : indexMap.keySet()) {
+			String column = indexMap.get(key);
+			if (column.toUpperCase().startsWith("EMPTY")) {
+				Map<String, Object> keyMap = new HashMap<>();
+				keyMap.put("varKey", "");
+				keyMap.put("uri", "");
+				keyMap.put("type", "");
+				keyMap.put("operation", new HashMap<>());
+				colArr[key] = keyMap;
+			} else {
+				colArr[key] = columnMap.get(column);
+			}
+		}
+		return colArr;
+	}
+
+	@Override
+	public String explain() {
+		String msg = "";
+		// msg +="VizReactor" //Debugging
+
+		// if panel changes config
+		if (myStore.containsKey("configMap")) {
+			msg += configMap();
+		}
+		// if panel changes look and feel
+		if (myStore.containsKey("lookAndFeel")) {
+			msg += lookAndFeel();
+		}
+		// if new visualization is created
+		if (myStore.containsKey("layout")) {
+			msg += layout();
+		}
+		// if panel is cloned
+		if (myStore.containsKey("clone")) {
+			msg += clonePanel();
+		}
+		// if panel is closed
+		if (myStore.containsKey("closedPanel")) {
+			msg += closePanel();
+		}
+		// handle comments
+		if (myStore.containsKey("commentAdded")) {
+			msg += commentAdded();
+		}
+
+		return msg;
+	}
+
+	private String commentAdded() {
+		HashMap<String, Object> values = new HashMap<String, Object>();
+		Map commentMap = (HashMap) myStore.get("commentAdded");
+		values.put("text", (String) commentMap.get("text"));
+		values.put("whoAmI", whoAmI);
+		String template = "Added comment {{text}}.";
+		return generateExplain(template, values);
+	}
+
+	private String closePanel() {
+		HashMap<String, Object> values = new HashMap<String, Object>();
+		String closedPanel = (String) myStore.get("closedPanel");
+		closedPanel = closedPanel.substring(0, closedPanel.indexOf('.'));
+		values.put("closedPanel", closedPanel);
+		values.put("whoAmI", whoAmI);
+		String template = "Closed {{closedPanel}}.";
+		return generateExplain(template, values);
+	}
+
+	private String clonePanel() {
+		HashMap<String, Object> values = new HashMap<String, Object>();
+		String oldPanel = (String) myStore.get("oldPanel");
+		oldPanel = oldPanel.substring(0, oldPanel.indexOf('.'));
+		values.put("oldPanel", oldPanel);
+		values.put("panelID", myStore.get("clone"));
+		values.put("whoAmI", whoAmI);
+		String template = "Cloned {{oldPanel}} to panel[{{panelID}}].";
+		return generateExplain(template, values);
+	}
+
+	private String layout() {
+		HashMap<String, Object> values = new HashMap<String, Object>();
+		ArrayList<String> columns = new ArrayList<String>();
+		values.put("layout", myStore.get("layout"));
+		values.put("whoAmI", whoAmI);
+		String template = "Created {{layout}}visualization.";
+		// null in case of grid or for all columns
+		Vector term = (Vector) myStore.get(PKQLEnum.TERM);
+		if (!term.get(0).equals("null")) {
+			Vector terms = (Vector) myStore.get(PKQLEnum.TERM);
+			Iterator it = terms.iterator();
+			while (it.hasNext()) {
+				String key = ((String) it.next()).trim();
+				System.out.println(key);
+				if (key.substring(0, 2).equals("m:")) { // TODO need to do this
+														// better once
+														// exprReplacer is
+														// implemented
+					columns.add(((String) myStore.get(PKQLEnum.EXPLAIN)).replace(".", ""));
+					myStore.put(PKQLEnum.EXPLAIN, "");
+				} else if (myStore.containsKey(key)) {
+					columns.add((String) myStore.get(key));
+				}
+			}
+			values.put("columns", columns);
+			template = template.substring(0, template.indexOf('.'));
+			template += " using {{columns}}.";
+		}
+		// if(myStore.containsKey("VizTableData")){
+		// values.put("columns", myStore.get("VizTableData"));
+		// s += "VIZREACTOR {{columns}}.";
+		// }
+		return generateExplain(template, values);
+	}
+
+	private String lookAndFeel() {
+		HashMap<String, Object> values = new HashMap<String, Object>();
+		Map laf = (HashMap) myStore.get("lookAndFeel");
+		values.put("laf", laf);
+		values.put("whoAmI", whoAmI);
+		String template = "Changed look and feel {{laf}}.";
+		return generateExplain(template, values);
+	}
+
+	private String configMap() {
+		HashMap<String, Object> values = new HashMap<String, Object>();
+		Map config = (HashMap) myStore.get("configMap");
+		Map size = (Map) config.get("size");
+		Object position = config.get("position");
+		values.put("width", (String) size.get("width"));
+		values.put("height", (String) size.get("height"));
+		if(position instanceof Map) {
+			Map positionMap = (Map) position;
+			values.put("top", (String) positionMap.get("top"));
+			values.put("left", (String) positionMap.get("left"));
+		} else {
+			values.put("top", "auto");
+			values.put("left", "auto");
+		}
+		
+		values.put("whoAmI", whoAmI);
+		String template = "Panel width: {{width}}, height: {{height}}, top: {{top}}, left: {{left}}";
+		return generateExplain(template, values);
+
+	}
 }

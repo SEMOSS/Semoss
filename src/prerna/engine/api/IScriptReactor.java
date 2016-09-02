@@ -21,6 +21,8 @@ public interface IScriptReactor extends IApi {
 	// puts a particular value 
 	public void put(String key, Object value);
 
+	public String explain();
+
 	// I am not sure if I need anything else ?
 	// I will know once I implement the expr reactor
 }
