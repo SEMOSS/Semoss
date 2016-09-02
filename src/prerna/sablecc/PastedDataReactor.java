@@ -21,7 +21,7 @@ import prerna.util.DIHelper;
 public class PastedDataReactor extends AbstractReactor {
 
 	public PastedDataReactor() {
-		String [] thisReacts = {PKQLEnum.ROW_CSV, PKQLEnum.FILTER, PKQLEnum.JOINS, PKQLEnum.WORD_OR_NUM};
+		String [] thisReacts = {PKQLEnum.ROW_CSV, PKQLEnum.FILTER, PKQLEnum.JOINS, PKQLEnum.WORD_OR_NUM, PKQLEnum.EXPLAIN};
 		super.whatIReactTo = thisReacts;
 		super.whoAmI = PKQLEnum.PASTED_DATA;
 	}
@@ -108,6 +108,15 @@ public class PastedDataReactor extends AbstractReactor {
 //		myStore.put(nodeStr, new CsvTableWrapper(values));
 
 		// eventually I need this iterator to set this back for this particular node
+		
+	
 		return null;
+	}
+
+	@Override
+	public String explain() {
+		String msg = "";
+		msg += "PastedDataReactor";
+		return msg;
 	}
 }

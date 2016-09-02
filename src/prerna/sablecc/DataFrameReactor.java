@@ -14,7 +14,7 @@ public class DataFrameReactor extends AbstractReactor {
 	
 	public DataFrameReactor()
 	{
-		String [] thisReacts = {PKQLEnum.WORD_OR_NUM};
+		String [] thisReacts = {PKQLEnum.WORD_OR_NUM, PKQLEnum.EXPLAIN};
 		super.whatIReactTo = thisReacts;
 		super.whoAmI = PKQLEnum.DATA_FRAME;
 		
@@ -50,7 +50,21 @@ public class DataFrameReactor extends AbstractReactor {
 			
 			myStore.put(PKQLEnum.G, newFrame);
 		}
+		
 		return null;
+	}
+
+	@Override
+	public String explain() {
+		String msg = "";
+		HashMap<String, Object> values = new HashMap<String, Object>();
+		values.put("type", myStore.get(PKQLEnum.WORD_OR_NUM).toString());
+		values.put("whoAmI", whoAmI);
+		String template = "Created new {{type}}.";
+		msg = generateExplain(template, values)
+				.replace("[", "")
+				.replace("]", "");
+		return msg;
 	}
 
 }

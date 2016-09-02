@@ -14,7 +14,7 @@ public class CSVApi extends AbstractApiReactor {
 	// TODO: should modify this to be a bit more of a unique name so it does not
 	// relate to a column name
 	private final String FILE_KEY = "file";
-	
+
 	@Override
 	public Iterator<IHeadersDataRow> process() {
 		super.process();
@@ -23,23 +23,31 @@ public class CSVApi extends AbstractApiReactor {
 		// this will contain the fileName and the data types from each column
 		String fileName = "";
 		Map<String, String> dataTypeMap = new Hashtable<String, String>();
-		for(Map<String, String> keyVal : this.mapOptions) {
+		for (Map<String, String> keyVal : this.mapOptions) {
 			// note, each keyVal map should only contain a single key-value pair
-			if(keyVal.containsKey(FILE_KEY)) {
+			if (keyVal.containsKey(FILE_KEY)) {
 				fileName = keyVal.get(FILE_KEY);
 			} else {
 				dataTypeMap.putAll(keyVal);
 			}
 		}
 
-		// pass in delimiter as a comma and return the FileIterator which uses the QS (if not empty) to 
+		// pass in delimiter as a comma and return the FileIterator which uses
+		// the QS (if not empty) to
 		// to determine what selectors to send
-		
+
 		// the qs is passed from AbstractApiReactor
 		this.put((String) getValue(PKQLEnum.API), new FileIterator(fileName, ',', this.qs, dataTypeMap));
 		this.put("RESPONSE", "success");
 		this.put("STATUS", PKQLRunner.STATUS.SUCCESS);
-		
+
 		return null;
+	}
+
+	@Override
+	public String explain() {
+		String msg = "";
+//		msg += "CSVApiReactor";
+		return msg;
 	}
 }
