@@ -26,7 +26,7 @@ public class InputReactor extends AbstractReactor {
 	
 	public InputReactor()
 	{
-		String [] thisReacts = {PKQLEnum.VAR_TERM, PKQLEnum.EXPR_TERM, PKQLEnum.API, Constants.ENGINE};
+		String [] thisReacts = {PKQLEnum.VAR_TERM, PKQLEnum.EXPR_TERM, PKQLEnum.API, Constants.ENGINE, PKQLEnum.EXPLAIN};
 		super.whatIReactTo = thisReacts;
 		super.whoAmI = PKQLReactor.INPUT.toString();
 		
@@ -58,6 +58,7 @@ public class InputReactor extends AbstractReactor {
 			options = (List) myStore.get(PKQLEnum.ROW_CSV);
 		}
 		myStore.put("options", options);
+	
 		return null;
 	}
 	
@@ -71,6 +72,13 @@ public class InputReactor extends AbstractReactor {
 	public String[] getValues2Sync(String input)
 	{
 		return values2SyncHash.get(input);
+	}
+
+	@Override
+	public String explain() {
+		String msg = "";
+//		msg +=  "InputReactor";
+		return msg;
 	}
 	
 	

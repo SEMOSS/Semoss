@@ -68,6 +68,12 @@ public class RApi extends AbstractApiReactor {
 		
 		return null; // until H2Frame can run a query on itself, can't generate a wrapper from query
 	}
+
+	@Override
+	public String explain() {
+		// TODO Auto-generated method stub
+		return "";
+	}
 		
 		
 

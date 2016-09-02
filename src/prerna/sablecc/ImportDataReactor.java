@@ -35,7 +35,7 @@ public abstract class ImportDataReactor extends AbstractReactor {
 	 */
 	public ImportDataReactor()
 	{
-		String [] thisReacts = {PKQLEnum.API, PKQLEnum.JOINS, PKQLEnum.CSV_TABLE, PKQLEnum.PASTED_DATA};
+		String [] thisReacts = {PKQLEnum.API, PKQLEnum.JOINS, PKQLEnum.CSV_TABLE, PKQLEnum.PASTED_DATA, PKQLEnum.EXPLAIN};
 		super.whatIReactTo = thisReacts;
 		super.whoAmI = PKQLEnum.IMPORT_DATA;
 
@@ -289,5 +289,14 @@ public abstract class ImportDataReactor extends AbstractReactor {
 	protected String createResponseString(String[] headers){
 		return "Successfully added data using:\n headers= " + Arrays.toString(headers);
 	}
+	
+	public String explain() {
+		HashMap<String, Object> values = new HashMap<String, Object>();
+		values.put("columns", myStore.get("API_COL_CSV"));
+		values.put("whoAmI", whoAmI);
+		String template = "Importing {{columns}}.";
+		return generateExplain(template, values);
+	}
+
 	
 }
