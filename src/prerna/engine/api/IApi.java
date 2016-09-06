@@ -12,7 +12,7 @@ public interface IApi{
 	
 	// gets all the hashtable with things needed by this connector
 	public String[] getParams(); // this can be the same as listeners we are listening to
-	
+
 	// bunch of set data goes here
 	public void set(String key, Object value); // I wonder if the value can be string [] - which is the actual name and value
 		

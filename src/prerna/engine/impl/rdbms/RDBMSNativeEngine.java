@@ -540,7 +540,7 @@ public class RDBMSNativeEngine extends AbstractEngine {
 		// get the properties for the tables	
 		List <String> properties = new Vector<String>();
 		if(isProperties)
-			properties = getProperties4Concept(toType, new Boolean(false));
+			properties = getProperties4Concept2(toType, new Boolean(false));
 		
 		// string relation selector
 		String relationQuery = "SELECT ?relation WHERE {"

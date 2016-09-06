@@ -19,7 +19,7 @@ public class ColAddReactor extends AbstractReactor {
 
 	public ColAddReactor() {
 		// these are the input columns - there is also expr Term which I will come to shortly
-		String [] thisReacts = {PKQLEnum.COL_DEF, PKQLEnum.COL_DEF + "_1", PKQLEnum.API, PKQLEnum.EXPR_TERM, PKQLEnum.EXPLAIN};
+		String [] thisReacts = {PKQLEnum.COL_DEF, PKQLEnum.COL_DEF + "_1", PKQLEnum.API, PKQLEnum.EXPR_TERM};
 		super.whatIReactTo = thisReacts;
 		super.whoAmI = PKQLEnum.COL_ADD;
 

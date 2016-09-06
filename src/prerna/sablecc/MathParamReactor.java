@@ -10,7 +10,7 @@ public class MathParamReactor extends AbstractReactor{
 	public final String PARAM_OBJ_KEY = "mathParamObject";
 	
 	public MathParamReactor() {
-		String [] thisReacts = {PKQLEnum.EXPR_TERM, PKQLEnum.DECIMAL, PKQLEnum.NUMBER, PKQLEnum.WORD_OR_NUM, PKQLEnum.EXPLAIN};
+		String [] thisReacts = {PKQLEnum.EXPR_TERM, PKQLEnum.DECIMAL, PKQLEnum.NUMBER, PKQLEnum.WORD_OR_NUM};
 		super.whatIReactTo = thisReacts;
 		super.whoAmI = PKQLEnum.MATH_PARAM;
 	}
@@ -35,20 +35,7 @@ public class MathParamReactor extends AbstractReactor{
 			
 			myStore.put(PKQLEnum.MATH_PARAM, params);		
 		}
-		
-
 
 		return null;
 	}
-
-	@Override
-	public String explain() {
-		String msg = "";
-//		msg += "MathParamReactor";
-		return msg;
-	}
-	
-
-
-
 }

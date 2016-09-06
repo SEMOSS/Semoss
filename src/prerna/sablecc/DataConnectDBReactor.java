@@ -5,18 +5,16 @@ import java.util.List;
 
 import prerna.ds.nativeframe.NativeFrame;
 
-
 public class DataConnectDBReactor  extends AbstractReactor{
 
 	public DataConnectDBReactor() {
-		String [] thisReacts = {PKQLEnum.WORD_OR_NUM, PKQLEnum.EXPLAIN};
+		String [] thisReacts = {PKQLEnum.WORD_OR_NUM};
 		super.whatIReactTo = thisReacts;
 		super.whoAmI = PKQLEnum.DATA_CONNECTDB;
 	}
 	
 	@Override
 	public Iterator process() {
-		
 		List engine = (List)myStore.get(PKQLEnum.WORD_OR_NUM);
 		System.out.println(engine);
 		
@@ -25,13 +23,4 @@ public class DataConnectDBReactor  extends AbstractReactor{
 
 		return null;
 	}
-
-	@Override
-	public String explain() {
-		// TODO Auto-generated method stub
-		String msg = "";
-		msg += "DataConnectDBReactor";
-		return msg;
-	}
-
 }

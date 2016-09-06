@@ -7,8 +7,10 @@ import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Date;
 import java.util.Enumeration;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -27,7 +29,10 @@ import org.stringtemplate.v4.ST;
 import prerna.algorithm.api.IMetaData;
 import prerna.ds.TinkerFrame;
 import prerna.engine.api.IHeadersDataRow;
+import prerna.poi.main.RDBMSEngineCreationHelper;
 import prerna.util.ArrayUtilityMethods;
+import prerna.util.Constants;
+import prerna.util.DIHelper;
 import prerna.util.Utility;
 
 public class H2Builder {
@@ -43,7 +48,14 @@ public class H2Builder {
 	private static final String tempTable = "TEMP_TABLE98793";
 	static final String H2FRAME = "H2FRAME";
 	String brokenLines = "";
-
+	
+	// for writing the frame on disk
+	// currently not used
+	// would require reconsideration of dashboard, etc. 
+	// since frames are not in same schema
+	private boolean isInMem = true;
+	private final int MAX_IN_MEM_INSERT = 100_000;
+	
 	//Provides a translation for incoming types into something H2 can understand
 	private static Map<String, String> typeConversionMap = new HashMap<String, String>();
 	static {
@@ -1306,6 +1318,12 @@ public class H2Builder {
 		} catch(Exception e) {
 			e.printStackTrace();
 		}
+		
+		// shift to on disk if number of records is getting large
+//		if(isInMem && getNumRecords() > MAX_IN_MEM_INSERT) {
+//			this.conn = convertFromInMemToPhysical();
+//			isInMem = false;
+//		}
 	}
 
 	/**
@@ -1454,6 +1472,11 @@ public class H2Builder {
 
 		}
 
+		// shift to on disk if number of records is getting large
+//		if(isInMem && getNumRecords() > MAX_IN_MEM_INSERT) {
+//			this.conn = convertFromInMemToPhysical();
+//			isInMem = false;
+//		}
 	}
 
 	/**
@@ -1905,6 +1928,35 @@ public class H2Builder {
 				e.printStackTrace();
 			}
 		}
+		return this.conn;
+	}
+	
+	public Connection convertFromInMemToPhysical() {
+		try {
+			Class.forName("org.h2.Driver");
+
+			// first need get the data in the memory table
+			Date date = new Date();
+			String dateStr = new SimpleDateFormat("yyyy_MM_dd_HH_mm_ss_SSSS").format(date);
+			String folderToUse = DIHelper.getInstance().getProperty(Constants.INSIGHT_CACHE_DIR) + "\\" + RDBMSEngineCreationHelper.cleanTableName(this.schema);
+			String inMemScript = folderToUse + "_" + dateStr;
+			String saveScript = "SCRIPT TO '" + inMemScript + "' COMPRESSION GZIP TABLE "+ this.tableName;
+			runQuery(saveScript);
+			
+			String physicalDbLocation = folderToUse.replace('/', '\\') + "_" + dateStr + "_database";
+			this.conn = DriverManager.getConnection("jdbc:h2:" + physicalDbLocation, "sa", "");
+			
+			// we run the script
+			runQuery("RUNSCRIPT FROM '"+inMemScript+"' COMPRESSION GZIP ");
+			
+		} catch (ClassNotFoundException e) {
+			e.printStackTrace();
+		} catch (SQLException e) {
+			e.printStackTrace();
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+		
 		return this.conn;
 	}
 
@@ -2658,6 +2710,21 @@ public class H2Builder {
 		} catch (Exception e) {
 			e.printStackTrace();
 		}
+	}
+	
+	
+	public int getNumRecords() {
+		String query = "SELECT COUNT(*) FROM " + this.tableName;
+		ResultSet rs = executeQuery(query);
+		try {
+			while(rs.next()) {
+				return rs.getInt(1);
+			}
+		} catch (SQLException e) {
+			e.printStackTrace();
+		}
+		
+		return 0;
 	}
 
 	/*************************** ORIGINAL UNUSED CODE **************************************/

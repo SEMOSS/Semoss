@@ -2,11 +2,9 @@ package prerna.sablecc;
 
 import java.util.Iterator;
 
-import prerna.ds.AbstractTableDataFrame;
 import prerna.ds.TinkerFrame;
 import prerna.ds.H2.H2Frame;
 import prerna.ds.spark.SparkDataFrame;
-import prerna.sablecc.PKQLRunner.STATUS;
 
 public class DataTypeReactor extends AbstractReactor {
 
@@ -22,13 +20,6 @@ public class DataTypeReactor extends AbstractReactor {
 		}
 
 		return null;
-	}
-
-	@Override
-	public String explain() {
-		String msg = "";
-//		msg += "DataTypeReactor";
-		return msg;
 	}
 
 }

@@ -33,29 +33,35 @@ public class FileIterator implements Iterator<IHeadersDataRow>{
 		helper.setDelimiter(delimiter);
 		helper.parse(fileLoc);
 		
+		setSelectors(qs.getSelectors());
+		setFilters(qs.andfilters);
+		headers = helper.getHeaders();
+		
 		if(dataTypeMap != null && !dataTypeMap.isEmpty()) {
 			this.dataTypeMap = dataTypeMap;
-			headers = dataTypeMap.keySet().toArray(new String[]{});
-			headers = helper.orderHeadersToGet(headers);
 			
-			types = new String[headers.length];
+			this.types = new String[headers.length];
 			for(int j = 0; j < headers.length; j++) {
-				types[j] = dataTypeMap.get(headers[j]);
+				this.types[j] = dataTypeMap.get(headers[j]);
 			}
 			
 			helper.parseColumns(headers);
 		} else {
 			this.dataTypeMap = new HashMap<String, String>();
-			String[] allHeaders = helper.getHeaders();
-			types = helper.predictTypes();
+			String[] allHeaders = helper.getAllCSVHeaders();
+			this.types = helper.predictTypes();
 			for(int i = 0; i < types.length; i++) {
 				this.dataTypeMap.put(allHeaders[i], types[i]);
 			}
+			
+			// need to redo types to be only those in the selectors
+			this.types = new String[headers.length];
+			for(int i = 0; i < headers.length; i++) {
+				this.types[i] = this.dataTypeMap.get(headers[i]);
+			}
+			setSelectors(qs.getSelectors());
 		}
 		
-		setSelectors(qs.getSelectors());
-		setFilters(qs.andfilters);
-		headers = helper.getHeaders();
 		getNextRow(); // this will get the first row of the file
 //		nextRow = helper.getNextRow();
 	}
