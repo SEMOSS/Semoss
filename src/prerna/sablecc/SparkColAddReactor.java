@@ -10,10 +10,8 @@ import java.util.Vector;
 
 import prerna.algorithm.api.ITableDataFrame;
 import prerna.ds.ExpressionIterator;
-import prerna.ds.TinkerMetaHelper;
 import prerna.ds.spark.SparkDataFrame;
 import prerna.sablecc.PKQLRunner.STATUS;
-import prerna.util.ArrayUtilityMethods;
 import prerna.util.Utility;
 
 public class SparkColAddReactor extends AbstractReactor {
@@ -31,7 +29,6 @@ public class SparkColAddReactor extends AbstractReactor {
 
 		String[] dataFromApi = { PKQLEnum.COL_CSV };
 		values2SyncHash.put(PKQLEnum.API, dataFromApi);
-
 	}
 
 	@Override
@@ -152,12 +149,5 @@ public class SparkColAddReactor extends AbstractReactor {
 	// gets all the values to synchronize for this
 	public String[] getValues2Sync(String input) {
 		return values2SyncHash.get(input);
-	}
-
-	@Override
-	public String explain() {
-		String msg = "";
-//		msg += "SparkColAddReactor";
-		return msg;
 	}
 }

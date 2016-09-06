@@ -5,12 +5,8 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Vector;
 
-import prerna.ds.ExpressionReducer;
-import prerna.ds.TinkerFrame;
 import prerna.engine.api.IHeadersDataRow;
-import prerna.engine.api.IScriptReactor;
 import prerna.sablecc.PKQLEnum.PKQLReactor;
-import prerna.sablecc.PKQLRunner.STATUS;
 import prerna.util.Constants;
 
 public class InputReactor extends AbstractReactor {
@@ -18,15 +14,12 @@ public class InputReactor extends AbstractReactor {
 	// this is responsible for doing the replacing of variables in the script with their actual objects
 	// the map of vars to objects will either sit on runner or in insight
 	// for now we will put it on the insight since runner isn't singleton wrt insight
-	
 
 	// need to get the values to sync from the api
 	Hashtable <String, String[]> values2SyncHash = new Hashtable <String, String[]>();
 
-	
-	public InputReactor()
-	{
-		String [] thisReacts = {PKQLEnum.VAR_TERM, PKQLEnum.EXPR_TERM, PKQLEnum.API, Constants.ENGINE, PKQLEnum.EXPLAIN};
+	public InputReactor() {
+		String [] thisReacts = {PKQLEnum.VAR_TERM, PKQLEnum.EXPR_TERM, PKQLEnum.API, Constants.ENGINE};
 		super.whatIReactTo = thisReacts;
 		super.whoAmI = PKQLReactor.INPUT.toString();
 		
@@ -62,24 +55,12 @@ public class InputReactor extends AbstractReactor {
 		return null;
 	}
 	
-	
-	
 	/**
 	 * Gets the values to load into the reactor
 	 * This is used to synchronize between the various reactors that can feed into this reactor
 	 * @param input			The type of child reactor
 	 */
-	public String[] getValues2Sync(String input)
-	{
+	public String[] getValues2Sync(String input) {
 		return values2SyncHash.get(input);
 	}
-
-	@Override
-	public String explain() {
-		String msg = "";
-//		msg +=  "InputReactor";
-		return msg;
-	}
-	
-	
 }

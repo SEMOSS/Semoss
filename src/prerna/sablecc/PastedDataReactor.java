@@ -6,9 +6,9 @@ import java.io.IOException;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.List;
 
 import prerna.algorithm.api.ITableDataFrame;
 import prerna.ds.QueryStruct;
@@ -21,7 +21,7 @@ import prerna.util.DIHelper;
 public class PastedDataReactor extends AbstractReactor {
 
 	public PastedDataReactor() {
-		String [] thisReacts = {PKQLEnum.ROW_CSV, PKQLEnum.FILTER, PKQLEnum.JOINS, PKQLEnum.WORD_OR_NUM, PKQLEnum.EXPLAIN};
+		String [] thisReacts = {PKQLEnum.ROW_CSV, PKQLEnum.FILTER, PKQLEnum.JOINS, PKQLEnum.WORD_OR_NUM};
 		super.whatIReactTo = thisReacts;
 		super.whoAmI = PKQLEnum.PASTED_DATA;
 	}
@@ -74,49 +74,7 @@ public class PastedDataReactor extends AbstractReactor {
 		
 		String nodeStr = (String)myStore.get(whoAmI);
 		myStore.put(nodeStr, it);
-//		
-//		
-//		Vector <String> selectors = new Vector<String>();
-//		Vector<Object> headers = values.get(0);
-//		for(Object o : headers) {
-//			selectors.add(o + "");
-//		}
-//		
-//		Vector <Hashtable> filtersToBeElaborated = new Vector<Hashtable>();
-////		Vector <String> selectors = new Vector<String>();
-//		Vector <Hashtable> filters = new Vector<Hashtable>();
-//		Vector <Hashtable> joins = new Vector<Hashtable>();
-//
-//		if(myStore.containsKey(PKQLEnum.COL_CSV) && ((Vector)myStore.get(PKQLEnum.COL_CSV)).size() > 0)
-//			selectors = (Vector<String>) myStore.get(PKQLEnum.COL_CSV);
-//		if(myStore.containsKey(PKQLEnum.FILTER) && ((Vector)myStore.get(PKQLEnum.FILTER)).size() > 0)
-//			filters = (Vector<Hashtable>) myStore.get(PKQLEnum.FILTER);
-//		if(myStore.containsKey(PKQLEnum.JOINS) && ((Vector)myStore.get(PKQLEnum.JOINS)).size() > 0)
-//			joins = (Vector<Hashtable>) myStore.get(PKQLEnum.JOINS);
-//
-//		Map<String, Set<String>> edgeHash = null;
-//		if(qs.relations != null && !qs.relations.isEmpty()) {
-//			edgeHash = qs.getReturnConnectionsHash();
-//		} else {
-//			ITableDataFrame frame = (ITableDataFrame) myStore.get("G");
-//			edgeHash = frame.createPrimKeyEdgeHash(selectors.toArray(new String[]{}));
-//		}
-//		this.put("EDGE_HASH", edgeHash);
-//		this.put("QUERY_STRUCT", qs);
-//
-//		String nodeStr = (String)myStore.get(whoAmI);
-//		myStore.put(nodeStr, new CsvTableWrapper(values));
-
-		// eventually I need this iterator to set this back for this particular node
-		
 	
 		return null;
-	}
-
-	@Override
-	public String explain() {
-		String msg = "";
-		msg += "PastedDataReactor";
-		return msg;
 	}
 }

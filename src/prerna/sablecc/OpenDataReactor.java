@@ -1,28 +1,19 @@
 package prerna.sablecc;
 
-import java.io.File;
 import java.util.HashMap;
 import java.util.Hashtable;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
-import prerna.cache.CacheFactory;
+import com.google.gson.Gson;
+
 import prerna.engine.api.IEngine;
 import prerna.engine.impl.AbstractEngine;
-import prerna.om.Dashboard;
 import prerna.om.Insight;
 import prerna.om.InsightStore;
-import prerna.sablecc.PKQLEnum.PKQLReactor;
-import prerna.solr.SolrDocumentExportWriter;
-import prerna.solr.SolrIndexEngine;
-import prerna.ui.components.playsheets.datamakers.IDataMaker;
 import prerna.ui.helpers.InsightCreateRunner;
-import prerna.util.DIHelper;
 import prerna.util.Utility;
-
-import com.google.gson.Gson;
-import com.google.gson.reflect.TypeToken;
 
 /**
  * 
@@ -38,7 +29,7 @@ public class OpenDataReactor extends AbstractReactor {
 	Hashtable <String, String[]> values2SyncHash = new Hashtable <String, String[]>();
 	
 	public OpenDataReactor() {
-		String [] thisReacts = {PKQLEnum.WORD_OR_NUM, PKQLEnum.EXPLAIN};
+		String [] thisReacts = {PKQLEnum.WORD_OR_NUM};
 		
 		super.whatIReactTo = thisReacts;
 		super.whoAmI = PKQLEnum.OPEN_DATA;
@@ -152,11 +143,5 @@ public class OpenDataReactor extends AbstractReactor {
 	 */
 	protected String createResponseString(String[] headers){
 		return "Successfully Opened Insight";
-	}
-	@Override
-	public String explain() {
-		String msg = "";
-		msg += "OpenDataReactor";
-		return msg;
 	}
 }

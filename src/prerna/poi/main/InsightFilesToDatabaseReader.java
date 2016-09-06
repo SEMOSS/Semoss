@@ -6,7 +6,11 @@ import java.io.IOException;
 import java.security.KeyManagementException;
 import java.security.KeyStoreException;
 import java.security.NoSuchAlgorithmException;
+import java.util.Hashtable;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.Vector;
 
 import org.apache.commons.io.FileUtils;
 
@@ -18,6 +22,7 @@ import prerna.engine.impl.rdbms.RDBMSNativeEngine;
 import prerna.om.Insight;
 import prerna.poi.main.helper.ImportOptions;
 import prerna.sablecc.PKQLRunner;
+import prerna.sablecc.meta.FilePkqlMetadata;
 import prerna.test.TestUtilityMethods;
 import prerna.ui.components.playsheets.datamakers.IDataMaker;
 import prerna.util.Constants;
@@ -27,6 +32,8 @@ import prerna.util.sql.SQLQueryUtil;
 
 public class InsightFilesToDatabaseReader {
 
+	private Set<String> newTables;
+	
 	public InsightFilesToDatabaseReader() {
 
 	}
@@ -82,7 +89,35 @@ public class InsightFilesToDatabaseReader {
 		
 		// get the data frame object
 		// TODO: assumption all the files are csvs
-		List<String> files = in.getFilesUsedInInsight();
+		List<FilePkqlMetadata> filesMeta = in.getFilesUsedInInsight();
+		
+		String fileLocation = "";
+		List<Map<String, String[]>> dataTypeMapList = new Vector<Map<String, String[]>>();
+		for(FilePkqlMetadata meta : filesMeta) {
+			fileLocation += meta.getFileLoc() + ";";
+			
+			// format the types
+			Map<String, String> metaDataTypes = meta.getDataMap();
+			int numCols = metaDataTypes.size();
+			
+			// if no data types defined, skip
+			if(numCols == 0) {
+				dataTypeMapList.add(new Hashtable<String, String[]>());
+				continue;
+			}
+			
+			String[] headers = new String[numCols];
+			String[] types = new String[numCols];
+			int counter = 0;
+			for(String header : metaDataTypes.keySet()) {
+				headers[counter] = header;
+				types[counter] = metaDataTypes.get(header);
+			}
+			Map<String, String[]> dataTypes = new Hashtable<String, String[]>();
+			dataTypes.put(RDBMSFlatCSVUploader.CSV_HEADERS, headers);
+			dataTypes.put(RDBMSFlatCSVUploader.CSV_DATA_TYPES, types);
+			dataTypeMapList.add(dataTypes);
+		}
 		
 		boolean error = false;
 		IEngine engine = null;
@@ -102,13 +137,15 @@ public class InsightFilesToDatabaseReader {
 			// need to create the .temp file object before we upload so we can delete the file if an error occurs
 			tempPropFile = new File(smssLocation);
 
-			String fileLocation = "";
-			for(String fileLoc : files) {
-				fileLocation += fileLoc + ";";
-			}
 			RDBMSFlatCSVUploader uploader = new RDBMSFlatCSVUploader();
 			uploader.setAutoLoad(false);
+			uploader.setDataTypeMapList(dataTypeMapList);
 			engine = uploader.importFileWithOutConnection(smssLocation, engineName, fileLocation, "", owlPath, SQLQueryUtil.DB_TYPE.H2_DB, true);
+			
+			// need to store the new tables so we know which columns came from where
+			// when we update the data.import cvs file pkql to be data.import from the new
+			// engine that was created
+			this.newTables = uploader.getNewTables();
 			
 			engine.setOWL(owlPath);
 			engine.loadTransformedNodeNames();
@@ -198,6 +235,8 @@ public class InsightFilesToDatabaseReader {
 		return engine;
 	}
 	
-	
+	public Set<String> getNewTables() {
+		return this.newTables;
+	}
 	
 }

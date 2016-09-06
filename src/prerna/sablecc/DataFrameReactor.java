@@ -3,18 +3,21 @@ package prerna.sablecc;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
-import java.util.Vector;
 
 import prerna.algorithm.api.ITableDataFrame;
+import prerna.sablecc.meta.DataframeMetadata;
+import prerna.sablecc.meta.IPkqlMetadata;
 import prerna.util.Utility;
 
 public class DataFrameReactor extends AbstractReactor {
+	
+	public static final String DATA_FRAME_TYPE = "dataFrameType";
 	
 	Map<String, String> dfTranslation = new HashMap<String, String>();
 	
 	public DataFrameReactor()
 	{
-		String [] thisReacts = {PKQLEnum.WORD_OR_NUM, PKQLEnum.EXPLAIN};
+		String [] thisReacts = {PKQLEnum.WORD_OR_NUM};
 		super.whatIReactTo = thisReacts;
 		super.whoAmI = PKQLEnum.DATA_FRAME;
 		
@@ -33,7 +36,7 @@ public class DataFrameReactor extends AbstractReactor {
 		System.out.println("My Store on Data Frame Reactor " + myStore);
 		if(myStore.containsKey(PKQLEnum.WORD_OR_NUM))
 		{
-			String newDfName = ((Vector)myStore.get(PKQLEnum.WORD_OR_NUM)).get(0).toString();
+			String newDfName = (String) myStore.get(DATA_FRAME_TYPE);
 
 			System.out.println("Creating new datamaker with type : " + newDfName);
 			String translatedDf = dfTranslation.get(newDfName.toUpperCase());
@@ -54,17 +57,9 @@ public class DataFrameReactor extends AbstractReactor {
 		return null;
 	}
 
-	@Override
-	public String explain() {
-		String msg = "";
-		HashMap<String, Object> values = new HashMap<String, Object>();
-		values.put("type", myStore.get(PKQLEnum.WORD_OR_NUM).toString());
-		values.put("whoAmI", whoAmI);
-		String template = "Created new {{type}}.";
-		msg = generateExplain(template, values)
-				.replace("[", "")
-				.replace("]", "");
-		return msg;
+	public IPkqlMetadata getPkqlMetadata() {
+		DataframeMetadata metadata = new DataframeMetadata();
+		metadata.setFrameType((String) myStore.get(DATA_FRAME_TYPE));
+		return metadata;
 	}
-
 }

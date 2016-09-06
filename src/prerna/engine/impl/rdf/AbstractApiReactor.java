@@ -24,7 +24,7 @@ public abstract class AbstractApiReactor extends AbstractReactor{
 	 * This class will set the main variables used within the specific reactor in order to 
 	 * create the appropriate query.
 	 */
-
+	
 	// these are the params that are parsed from the abstract that is used by the specific instances
 	// of abstract api reactor
 	protected String engine = null;
@@ -45,7 +45,7 @@ public abstract class AbstractApiReactor extends AbstractReactor{
 	 * if present
 	 */
 	public AbstractApiReactor() {
-		String [] thisReacts = {PKQLEnum.COL_CSV, PKQLEnum.FILTER, PKQLEnum.JOINS, "KEY_VALUE", "TABLE_JOINS"};
+		String [] thisReacts = {PKQLEnum.COL_CSV, PKQLEnum.FILTER, PKQLEnum.JOINS, "KEY_VALUE", PKQLEnum.TABLE_JOINS};
 		super.whatIReactTo = thisReacts;
 		super.whoAmI = PKQLEnum.API;
 	}
@@ -223,5 +223,29 @@ public abstract class AbstractApiReactor extends AbstractReactor{
 			this.qs.addRelation(fromCol, toCol, relation);
 		}	
 	}
+	
+	
+//	/**
+//	 * Add a components and its value into the current reactor
+//	 * @param componenet			The type of component -> COL_DEF, COL_CSV, etc.
+//	 * @param value					The value of the component -> Title, [Title, Studio, Genre]
+//	 */
+//	public void addComponentValue(String componenet, Object value) {
+//		int counter = 1;
+//		String valueToStore = componenet;
+//		while(componentToValue.containsKey(valueToStore)) {
+//			valueToStore = componenet + "_" + counter;
+//			counter++;
+//		}
+//		componentToValue.put(valueToStore, value);
+//	}
+//	
+//	/**
+//	 * This reactor does not need to perform any expression replacements as its inputs are well defined
+//	 */
+//	public void addExpressionToValue(String componenet, Object value) {
+////		expressionStrToValue.put(componenet, value);
+//	}
+	
 	
 }

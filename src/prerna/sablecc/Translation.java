@@ -1,11 +1,11 @@
 package prerna.sablecc;
 
-import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.Hashtable;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.ListIterator;
 import java.util.Map;
 import java.util.Vector;
 
@@ -17,6 +17,7 @@ import prerna.engine.api.IScriptReactor;
 import prerna.sablecc.PKQLEnum.PKQLReactor;
 import prerna.sablecc.PKQLRunner.STATUS;
 import prerna.sablecc.analysis.DepthFirstAdapter;
+import prerna.sablecc.meta.IPkqlMetadata;
 import prerna.sablecc.node.AAddColumn;
 import prerna.sablecc.node.AAlphaWordOrNum;
 import prerna.sablecc.node.AApiBlock;
@@ -24,10 +25,12 @@ import prerna.sablecc.node.AApiImportBlock;
 import prerna.sablecc.node.AApiTerm;
 import prerna.sablecc.node.AColCsv;
 import prerna.sablecc.node.AColDef;
-import prerna.sablecc.node.AColTable;
+import prerna.sablecc.node.AColGroup;
+import prerna.sablecc.node.AColTerm;
 import prerna.sablecc.node.AColWhere;
 import prerna.sablecc.node.AColopScript;
 import prerna.sablecc.node.AConfiguration;
+import prerna.sablecc.node.ACsvGroup;
 import prerna.sablecc.node.ACsvRow;
 import prerna.sablecc.node.ACsvTable;
 import prerna.sablecc.node.ACsvTableImportBlock;
@@ -59,7 +62,6 @@ import prerna.sablecc.node.AMinusExpr;
 import prerna.sablecc.node.AModExpr;
 import prerna.sablecc.node.AMultExpr;
 import prerna.sablecc.node.ANumWordOrNum;
-import prerna.sablecc.node.ANumberTerm;
 import prerna.sablecc.node.AOpenData;
 import prerna.sablecc.node.AOpenDataInputOrExpr;
 import prerna.sablecc.node.AOpenDataJoinParam;
@@ -91,17 +93,18 @@ import prerna.sablecc.node.AVariableJoinParam;
 import prerna.sablecc.node.AVarop;
 import prerna.sablecc.node.AVaropScript;
 import prerna.sablecc.node.Node;
+import prerna.sablecc.node.PColGroup;
+import prerna.sablecc.node.PCsvGroup;
 import prerna.sablecc.node.PScript;
+import prerna.sablecc.node.TRelType;
 import prerna.ui.components.playsheets.datamakers.IDataMaker;
 import prerna.util.Constants;
 
 public class Translation extends DepthFirstAdapter {
 	// this is the third version of this shit I am building
-	// I need some way of having logical points for me to know when to start
-	// another reactor
-	// for instance I could have an expr term within a math function which
-	// itself could be within another expr term
-	// the question then is do I have 2 expr terms etc.
+	// I need some way of having logical points for me to know when to start another reactor
+	// for instance I could have an expr term within a math function which itself could be within another expr term
+	// the question then is do I have 2 expr terms etc. 
 	// so I start the first expr term
 	// I start assimilating
 	// get to a point where I start a new one
@@ -109,29 +112,34 @@ public class Translation extends DepthFirstAdapter {
 	// the init and deinit should take care of it I bet ?
 	// how do I know when I am done ?
 	// it has to be invoked at the last level
-	Hashtable<String, Object> reactorHash = null;
+	Hashtable <String, Object> reactorHash = null;
 	IScriptReactor curReactor = null;
 
 	// reactor vector
-	Vector<Hashtable<String, Object>> reactorHashHistory = new Vector<Hashtable<String, Object>>();
-	Vector<Hashtable<String, Object>> reactorStack = new Vector<Hashtable<String, Object>>();
+	Vector <Hashtable<String, Object>> reactorHashHistory = new Vector <Hashtable<String, Object>>(); 
+	Vector <Hashtable <String, Object>> reactorStack = new Vector<Hashtable <String, Object>>();
 
 	// set of reactors
-	// which serves 2 purposes
+	// which serves 2 purposes 
 	// a. Where to initiate
 	// b. What is the name of the reactor
 
 	// frame specific reactors are stored in reactorNames
 	// used for strategy pattern of pkql input to specific reactor class
 	Map<String, String> reactorNames = new Hashtable<String, String>();
-
+	
 	// used for strategy pattern of pkql input to specific api type
 	// this is not a part of reactor names since we have not defined these are constants
 	// within the postfix, but are passed as string values in the "engineName"
 	// component of a data.import.  It has to be defined as a string since the engine names
 	// that could exist should obviously not be stored within the postfix
 	Map<String, String> apiReactorNames = new Hashtable<String, String>();
-
+	
+	// keep a list of pkql metadata that is useful outside of translation
+	// currently only used for csv file imports since need this information to 
+	// later create an engine and modify a pkql string upon saving of insight
+	List<IPkqlMetadata> storePkqlMetadata = new Vector<IPkqlMetadata>();
+	
 	IDataMaker frame = null;
 	PKQLRunner runner = null;
 
@@ -142,16 +150,10 @@ public class Translation extends DepthFirstAdapter {
 		this.reactorNames = frame.getScriptReactors();
 		fillApiReactors();
 	}
-
 	/**
-	 * Constructor that takes in the dataframe that it will perform its
-	 * calculations off of and the runner that invoked the translation
-	 * 
-	 * @param frame
-	 *            IDataMaker
-	 * @param runner
-	 *            PKQLRunner: holds response from PKQL script and the status of
-	 *            whether the script errored or not
+	 * Constructor that takes in the dataframe that it will perform its calculations off of and the runner that invoked the translation
+	 * @param frame IDataMaker
+	 * @param runner PKQLRunner: holds response from PKQL script and the status of whether the script errored or not
 	 */
 	public Translation(IDataMaker frame, PKQLRunner runner) {
 		// now get the data from tinker
@@ -166,27 +168,29 @@ public class Translation extends DepthFirstAdapter {
 	 * We want to use a strategy pattern for instantiating the different API reactors
 	 */
 	private void fillApiReactors() {
-		// TODO: should move all of these in RDF_MAP so that its easily updated
+		//TODO: should move all of these in RDF_MAP so that its easily updated
 		apiReactorNames.put(PKQLEnum.QUERY_API, "prerna.engine.impl.rdf.QueryAPI");
 		apiReactorNames.put(PKQLEnum.CSV_API, "prerna.engine.impl.rdf.CSVApi");
 		//TODO: why are these stored in the same package which only contains Interfaces!!!
 		apiReactorNames.put(PKQLEnum.WEB_API, "prerna.engine.api.WebApi");
 		apiReactorNames.put(PKQLEnum.R_API, "prerna.engine.api.RApi");
 	}
-
+	
 	@Override
-	public void inAConfiguration(AConfiguration node) {
+	public void inAConfiguration(AConfiguration node){
 		System.out.println(node.toString());
 		runner.pkqlToRun.addAll(node.getScript());
 
 		int index = 0;
-		while (index < runner.pkqlToRun.size()) {
+		while(index < runner.pkqlToRun.size())
+		{
 			PScript script = runner.pkqlToRun.get(index);
 			if(runner.unassignedVars.isEmpty() || script instanceof AVaropScript){ // if no vars are unassigned.. we are good. otherwise we only look for their assignment
-				// PVarop varop = ((AVaropScript)script).getVarop();
+				//        		PVarop varop = ((AVaropScript)script).getVarop();
 				runner.pkqlToRun.remove(index).apply(this);
 				index = 0;
-			} else {
+			}
+			else{
 				System.out.println("Waiting for var(s) to be defined : " + runner.unassignedVars.toString());
 				runner.setCurrentString("Waiting for var(s) to be defined : " + runner.unassignedVars.toString());
 				runner.setStatus(STATUS.INPUT_NEEDED);
@@ -200,15 +204,21 @@ public class Translation extends DepthFirstAdapter {
 	}
 
 	public void initReactor(String myName) {
+		// want to keep track fo the main reactor
+		boolean isStartReactor = false;
+		if(reactorStack.size() == 0) {
+			isStartReactor = true;
+		}
+		
 		String parentName = null;
-		if (reactorHash != null)
+		if(reactorHash != null)
 			// I am not sure I need to add element here
 			// I need 2 things in here
 			// I need the name of a parent i.e. what is my name and my parent name
 			// actually I just need my name
-			parentName = (String) reactorHash.get("SELF");
+			parentName = (String)reactorHash.get("SELF");
 		reactorHash = new Hashtable<String, Object>();
-		if (parentName != null)
+		if(parentName != null)
 			reactorHash.put("PARENT_NAME", parentName);
 		reactorHash.put("SELF", myName);
 		reactorStack.addElement(reactorHash);
@@ -216,7 +226,7 @@ public class Translation extends DepthFirstAdapter {
 		// I should also possibly initialize the reactor here
 		try {
 			String reactorName = reactorNames.get(myName);
-			curReactor = (IScriptReactor) Class.forName(reactorName).newInstance();
+			curReactor = (IScriptReactor)Class.forName(reactorName).newInstance();
 			curReactor.put(PKQLEnum.G, frame);
 			// this is how I can get access to the parent when that happens
 			reactorHash.put(myName, curReactor);
@@ -224,102 +234,168 @@ public class Translation extends DepthFirstAdapter {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
-		curReactor.put(PKQLEnum.EXPLAIN, "");
 	}
 
-	public Hashtable<String, Object> deinitReactor(String myName, String input, String output, boolean put) {
-		Hashtable<String, Object> thisReactorHash = reactorStack.lastElement();
+	public Hashtable <String, Object> deinitReactor(String myName, String input, String output, boolean put) {
+		Hashtable <String, Object> thisReactorHash = reactorStack.lastElement();
 		reactorStack.remove(thisReactorHash);
-		IScriptReactor thisReactor = (IScriptReactor) thisReactorHash.get(myName);
+		IScriptReactor thisReactor = (IScriptReactor)thisReactorHash.get(myName);
 		// this is still one level up
 		thisReactor.process();
-		Object value = thisReactor.getValue(input);
+		Object value = 	thisReactor.getValue(input);
 		System.out.println("Value is .. " + value);
-		ArrayList<String> explainList = new ArrayList<String>();
 
-		if (reactorStack.size() > 0) {
+		if(reactorStack.size() > 0) {
 			reactorHash = reactorStack.lastElement();
 			// also set the cur reactor
-			String parent = (String) thisReactorHash.get("PARENT_NAME");
+			String parent = (String)thisReactorHash.get("PARENT_NAME");
 
 			// if the parent is not null
-			if (parent != null && reactorHash.containsKey(parent)) {
-				curReactor = (IScriptReactor) reactorHash.get(parent);
-				if (put)
+			if(parent != null && reactorHash.containsKey(parent)) {
+				curReactor = (IScriptReactor)reactorHash.get(parent);
+				if(put) {
 					curReactor.put(output, value);
-				else
+				} else {
 					curReactor.set(output, value);
-				//Explain arraylist
-				explainList.add(curReactor.explain());
+				}
 			}
-		}else if(reactorHash.size() > 0){ //if there is no parent reactor eg.: data.type
-			// String self = (String) thisReactorHash.get("SELF");
-			// if(self != null && reactorHash.containsKey(self)) {
-			// curReactor = (IScriptReactor)reactorHash.get(self);
-			
-			if (put)
+		} else if(reactorHash.size() > 0) { //if there is no parent reactor eg.: data.type
+			//String self = (String) thisReactorHash.get("SELF");
+			//if(self != null && reactorHash.containsKey(self)) {
+			//curReactor = (IScriptReactor)reactorHash.get(self);
+			if(put) {
 				curReactor.put(output, value);
-			else
+			} else {
 				curReactor.set(output, value);
-			// }
+			}
 		}
 		
-		String explain = thisReactor.explain().trim() + " " + ((String) thisReactor.getValue(PKQLEnum.EXPLAIN)).trim();
+//		String explain = thisReactor.explain().trim() + " " + ((String) thisReactor.getValue(PKQLEnum.EXPLAIN)).trim();
+//		curReactor.put(PKQLEnum.EXPLAIN, explain.trim());
+//		runner.setExplain((String)thisReactor.getValue(PKQLEnum.EXPLAIN));
 		
-		curReactor.put(PKQLEnum.EXPLAIN, explain.trim());
-//		System.out.println(curReactor.getValue(PKQLEnum.EXPLAIN));
+		// note that this method exists in the abstract
+		// currently only a few reactors override this method
+		// because the metadata is used outside translation
+		IPkqlMetadata pkqlMetadata = thisReactor.getPkqlMetadata();
+		if(pkqlMetadata != null) {
+			storePkqlMetadata.add(pkqlMetadata);
+			
+			String explanationStrTest = pkqlMetadata.getExplanation();
+			System.out.println(">>>>>>>>>>>>>> " + explanationStrTest);
+		}
 		
-//		runner.setResponse(thisReactor.getValue(input));
-		//runner.setStatus((STATUS) thisReactor.getValue("STATUS"));
-		runner.setExplain((String)thisReactor.getValue(PKQLEnum.EXPLAIN));
 		return thisReactorHash;
 	}
 
-	public Hashtable<String, Object> deinitReactor(String myName, String input, String output) {
+	public Hashtable <String, Object> deinitReactor(String myName, String input, String output) {
 		return deinitReactor(myName, input, output, true);
 	}
 
 	private void synchronizeValues(String input, String[] values2Sync, IScriptReactor thisReactor) {
-		for (int valIndex = 0; valIndex < values2Sync.length; valIndex++) {
+		for(int valIndex = 0;valIndex < values2Sync.length;valIndex++) {
 			Object value = thisReactor.getValue(values2Sync[valIndex]);
-			if (value != null) {
+			if(value != null) {
 				curReactor.put(input + "_" + values2Sync[valIndex], value);
 			}
-		}
+		}		
 	}
 
-	private String getCol(String colName) {
-		colName = colName.substring(colName.indexOf(":") + 1).trim();
-
-		return colName;
-	}
+//	private String getCol(String colName) {
+//		colName = colName.substring(colName.indexOf(":") + 1).trim();
+//
+//		return colName;
+//	}
 
 	// the highest level above all commands
 	// tracks the most basic things all pkql should have
-	private void postProcess(Node node) {
+	private void postProcess(Node node){
 		runner.setCurrentString(node.toString());
+		runner.setExplanation(this.storePkqlMetadata);
 		runner.storeResponse();
+		
+		// we need to clear the previous references to the metadata
+		// these get stored within the PKQLTransformation and pushed onto the 
+		// insight
+		// but the translation must lose the reference such that the recipe explanation
+		// which builds of all the internal explanations of embedded pkqls, doesn't need
+		// to use the previous ones
+		this.storePkqlMetadata = new Vector<IPkqlMetadata>();
 	}
-	// highest level preprocessing
-	private void preProcess(Node node) {
-		runner.setCurrentString(node.toString());
-		runner.storeResponse();
+
+	//	// highest level preprocessing
+	//	private void preProcess(Node node){
+	//		runner.setCurrentString(node.toString());
+	//		runner.storeResponse();
+	//	}
+
+	
+	@Override
+	public void caseAImportData(AImportData node)
+	{
+		inAImportData(node);
+		// NEED TO PROCESS THE TABLE JOINS FIRST
+		// THIS IS BECAUSE THE API REACTOR NEEDS THE
+		// TABLE JOINS TO OPTIMIZE THE QUERY BEING USED
+		if(node.getJoins() != null)
+		{
+			node.getJoins().apply(this);
+		}
+		
+		// everything else takes the normal execution route
+		if(node.getDataimporttoken() != null)
+		{
+			node.getDataimporttoken().apply(this);
+		}
+		if(node.getImport() != null)
+		{
+			node.getImport().apply(this);
+		}
+		outAImportData(node);
+	}
+
+	@Override
+	public void inAImportData(AImportData node){
+		if(reactorNames.containsKey(PKQLEnum.IMPORT_DATA)) {
+			// make the determination to say if this is a frame.. yes it is
+			/// if it is so change the reactor to the new reactor
+			initReactor(PKQLEnum.IMPORT_DATA);
+			String nodeStr = node.toString().trim();
+			curReactor.put(PKQLEnum.IMPORT_DATA, nodeStr);
+		}
+	}
+
+	@Override
+	public void outAImportData(AImportData node) {
+		String nodeImport = node.getImport().toString().trim();
+		String nodeStr = node.toString().trim();
+		curReactor.put(PKQLEnum.EXPR_TERM, nodeImport);
+		Hashtable <String, Object> thisReactorHash = deinitReactor(PKQLEnum.IMPORT_DATA, nodeImport, nodeStr);
+		IScriptReactor previousReactor = (IScriptReactor)thisReactorHash.get(PKQLReactor.IMPORT_DATA.toString());
+		runner.setNewColumns((Map<String, String>)previousReactor.getValue("logicalToValue"));
+		runner.setResponse(previousReactor.getValue(nodeStr));
+		runner.setStatus((STATUS)previousReactor.getValue("STATUS"));
 	}
 
 	@Override
 	public void inAApiBlock(AApiBlock node) {
-		if (reactorNames.containsKey(PKQLEnum.API)) {
-			List myJoins = null;
-			if (curReactor != null && curReactor.getValue(PKQLEnum.JOINS) != null) {
-				myJoins = (List) curReactor.getValue(PKQLEnum.JOINS);
+		if(reactorNames.containsKey(PKQLEnum.API)) {
+			// this is here because we are overriding the data.import order of execution to process the joins
+			// before we process the iterator
+			// curReactor at this point is still an ImportDataReactor
+			List tableJoins = null;
+			if(curReactor.getValue(PKQLEnum.JOINS) != null) {
+				tableJoins = (List) curReactor.getValue(PKQLEnum.JOINS);
 			}
-			// grab the engine and use a strategy pattern to determine the appropriate 
-			// api instance to construct
+						
+			// now the curReactor will be some kind of ApiReactor based on strategy pattern described below
+			// strategy pattern uses the engine to determine the type
+			// assumption if not predefined, it is an engine name that is query-able via a IQueryInterpreter
 			String engine = node.getEngineName().toString().trim();
-			if (engine.equalsIgnoreCase("ImportIO") || engine.equalsIgnoreCase("AmazonProduct")) {
+			if(engine.equalsIgnoreCase("ImportIO") || engine.equalsIgnoreCase("AmazonProduct")){
 				// we have a web api
 				this.reactorNames.put(PKQLEnum.API, this.apiReactorNames.get(PKQLEnum.WEB_API));
-			} else if (engine.equalsIgnoreCase("csvFile")) {
+			} else if(engine.equalsIgnoreCase("csvFile")) {
 				// we have a csv api
 				this.reactorNames.put(PKQLEnum.API, this.apiReactorNames.get(PKQLEnum.CSV_API));
 			} else if(engine.equalsIgnoreCase("R")) {
@@ -329,25 +405,31 @@ public class Translation extends DepthFirstAdapter {
 				// default is a query api
 				this.reactorNames.put(PKQLEnum.API, this.apiReactorNames.get(PKQLEnum.QUERY_API));
 			}
+			
+			// make the api type
+			// set in the values
 			initReactor(PKQLEnum.API);
-
+			
 			String nodeStr = node.toString().trim();
 			curReactor.put(PKQLEnum.API, nodeStr);
 			curReactor.put("ENGINE", engine);
+			
+			// something to do with parameters... need to look into this at some point...
 			curReactor.put("INSIGHT", node.getInsight().toString());
 			Map<String, Map<String, Object>> varMap = runner.getVarMap();
 			Map<String, Map<String, Object>> varMapForReactor = new HashMap<String, Map<String, Object>>();
-			// Grab any param data for the current engine so API reactor grabs
-			// those values as needed
-			for (String var : varMap.keySet()) {
+			// Grab any param data for the current engine so API reactor grabs those values as needed
+			for(String var : varMap.keySet()) {
 				Map<String, Object> paramValues = varMap.get(var);
-				if (paramValues.get(Constants.ENGINE).equals(engine)) {
+				if(paramValues.get(Constants.ENGINE).equals(engine)) {
 					varMapForReactor.put(var, varMap.get(var));
 				}
 			}
 			curReactor.put("VARMAP", varMapForReactor);
-			if (myJoins != null) {
-				curReactor.put("TABLE_JOINS", myJoins);
+			
+			// add in the table joins if present
+			if(tableJoins != null) {
+				curReactor.put(PKQLEnum.TABLE_JOINS, tableJoins);
 			}
 		}
 	}
@@ -358,39 +440,82 @@ public class Translation extends DepthFirstAdapter {
 		IScriptReactor thisReactor = curReactor;
 		Hashtable <String, Object> thisReactorHash = deinitReactor(PKQLEnum.API, nodeStr, PKQLEnum.API); // I need to make this into a string
 		if(curReactor != null && node.parent() != null && (node.parent() instanceof AApiImportBlock || node.parent() instanceof AApiTerm) && !node.getEngineName().toString().equalsIgnoreCase("ImportIO")) {
-			String[] values2Sync = curReactor.getValues2Sync(PKQLEnum.API);
+			String [] values2Sync = curReactor.getValues2Sync(PKQLEnum.API);
 			synchronizeValues(PKQLEnum.API, values2Sync, thisReactor);
 		}
+		
 		runner.setResponse(thisReactor.getValue("RESPONSE"));
 		runner.setStatus((STATUS) thisReactor.getValue("STATUS"));
 	}
+	
+	@Override
+	public void inAOpenData(AOpenData node)
+	{
+		initReactor(PKQLEnum.OPEN_DATA);
+	}
+
+	@Override
+	public void outAOpenData(AOpenData node)
+	{
+		String nodeOpen = node.getDataopentoken().toString().trim();
+		String nodeStr = node.toString().trim();
+		curReactor.put(PKQLEnum.EXPR_TERM, nodeOpen);
+		
+		Hashtable <String, Object> thisReactorHash = deinitReactor(PKQLEnum.OPEN_DATA, nodeOpen, nodeStr);
+		IScriptReactor previousReactor = (IScriptReactor)thisReactorHash.get(PKQLEnum.OPEN_DATA);
+		
+		Map<String, Object> webData = (Map<String, Object>)previousReactor.getValue("webData");
+		runner.setDataMap(webData);
+		curReactor.set(PKQLEnum.OPEN_DATA, previousReactor.getValue(PKQLEnum.OPEN_DATA));
+	}
+
+	@Override
+	public void inARemoveData(ARemoveData node) {
+		if(reactorNames.containsKey(PKQLEnum.REMOVE_DATA)) {
+			// simplify baby simplify baby simplify
+			initReactor(PKQLEnum.REMOVE_DATA);
+			String nodeStr = node + "";
+			curReactor.put(PKQLEnum.REMOVE_DATA, nodeStr.trim());
+		}	
+	}
+
+	@Override
+	public void outARemoveData(ARemoveData node) {
+		String nodeStr = node.getApiBlock() + "";
+		nodeStr = nodeStr.trim();
+		curReactor.put(PKQLEnum.EXPR_TERM, nodeStr);
+		Hashtable <String, Object> thisReactorHash = deinitReactor(PKQLEnum.REMOVE_DATA, nodeStr, (node + "").trim());
+		IScriptReactor previousReactor = (IScriptReactor)thisReactorHash.get(PKQLEnum.REMOVE_DATA);
+		runner.setResponse(previousReactor.getValue(node.toString().trim()));//
+		runner.setStatus((STATUS)previousReactor.getValue("STATUS"));
+	}
+
 
 	//////////// HIGHEST LEVEL SCRIPT IN AND OUT //////////////////////////////
 	@Override
 	public void inAExprScript(AExprScript node) {
-		if (reactorNames.containsKey(PKQLEnum.EXPR_SCRIPT)) {
+		if(reactorNames.containsKey(PKQLEnum.EXPR_SCRIPT)) {
 			initReactor(PKQLEnum.EXPR_SCRIPT);
 			String nodeExpr = node.getExpr().toString().trim();
 			curReactor.put(PKQLEnum.EXPR_TERM, nodeExpr);
-		}
+		}		
 	}
 
 	@Override
 	public void outAExprScript(AExprScript node) {
 		String nodeExpr = node.getExpr().toString().trim();
 		String nodeStr = node.toString().trim();
-		Hashtable<String, Object> thisReactorHash = deinitReactor(PKQLEnum.EXPR_SCRIPT, nodeExpr, nodeStr);
+		Hashtable <String, Object> thisReactorHash = deinitReactor(PKQLEnum.EXPR_SCRIPT, nodeExpr, nodeStr);
 		postProcess(node);
 	}
 
 	// at the highest level, make sure to save to the runner as a completed expression
 	@Override
 	public void inAHelpScript(AHelpScript node) {
-		// TODO: build out a String that explains PKQL and the commands
+		//TODO: build out a String that explains PKQL and the commands
 		runner.setResponse("Welcome to PKQL. Please look through documentation to find available functions.");
 		runner.setStatus(STATUS.SUCCESS);
 	}
-
 	@Override
 	public void outAHelpScript(AHelpScript node) {
 		postProcess(node);
@@ -402,27 +527,26 @@ public class Translation extends DepthFirstAdapter {
 		postProcess(node);
 	}
 
-	// at the highest level, make sure to save to the runner as a completed
-	// expression
+	// at the highest level, make sure to save to the runner as a completed expression
 	@Override
 	public void outAColopScript(AColopScript node) {
 		postProcess(node);
 	}
 
-	// at the highest level, make sure to save to the runner as a completed
-	// expression
+	// at the highest level, make sure to save to the runner as a completed expression
 	@Override
 	public void outAPanelopScript(APanelopScript node) {
 		postProcess(node);
 	}
 
 	//**************************************** START PANEL OPERATIONS **********************************************//
-	@Override
-	public void inAPanelopScript(APanelopScript node) {
+	
+	@Override 
+	public void inAPanelopScript(APanelopScript node){
 		String nodeString = node.toString();
 		String id = "0";
-		if (nodeString.startsWith("panel[")) {
-			nodeString = nodeString.substring(nodeString.indexOf("[") + 1);
+		if(nodeString.startsWith("panel[")){
+			nodeString = nodeString.substring(nodeString.indexOf("[")+1);
 			id = nodeString.substring(0, nodeString.indexOf("]"));
 		}
 		runner.openFeDataBlock(id);
@@ -433,30 +557,32 @@ public class Translation extends DepthFirstAdapter {
 	public void inAPanelViz(APanelViz node) {
 		System.out.println("in a viz change");
 		initReactor(PKQLEnum.VIZ);
-		curReactor.put("layout", node.getLayout());
+		curReactor.put(PKQLEnum.VIZ, node.toString());
+		curReactor.put("layout", node.getLayout().getText());
 	}
 
 	@Override
 	public void outAPanelViz(APanelViz node) {
 		System.out.println("out a viz comment");
 		String layout = node.getLayout().toString().trim();
-		// String alignment = node.getDatatablealign().toString().trim();
+		//		String alignment = node.getDatatablealign().toString().trim();
 		Object alignment = curReactor.getValue("TERM");
 		List<Object> alignTranslated = new Vector<Object>();
-		if (alignment instanceof Vector) {
-			for (Object obj : (Vector) alignment) {
-				alignTranslated.add(curReactor.getValue((obj + "").trim()));
+		if(alignment instanceof Vector){
+			for(Object obj : (Vector)alignment){
+				alignTranslated.add(curReactor.getValue((obj+"").trim()));
 			}
-		} else {
-			alignTranslated.add(curReactor.getValue(alignment + ""));
+		}
+		else {
+			alignTranslated.add(curReactor.getValue(alignment+""));
 		}
 
 		curReactor.put("VizTableData", alignTranslated);
 		Map<String, Object> chartDataObj = new HashMap<String, Object>();
 		chartDataObj.put("layout", layout);
-		// chartDataObj.put("dataTableKeys", alignTranslated);
-		// chartDataObj.put("dataTableValues", null);
-		if (node.getUioptions() != null) {
+		//		chartDataObj.put("dataTableKeys", alignTranslated);
+		//		chartDataObj.put("dataTableValues", null);
+		if(node.getUioptions() != null){
 			chartDataObj.put("uiOptions", node.getUioptions().toString().trim());
 		}
 		runner.addFeData("chartData", chartDataObj, true);
@@ -468,11 +594,12 @@ public class Translation extends DepthFirstAdapter {
 		chartDataObj.put("dataTableValues", curReactor.getValue("VizTableValues"));
 	}
 
-	@Override
+	@Override 
 	public void inAPanelComment(APanelComment node) {
 		System.out.println("in a viz comment");
 		initReactor(PKQLEnum.VIZ);
 	}
+
 
 	// this is just grabbing the comment information and storing it in the
 	// runner
@@ -493,8 +620,6 @@ public class Translation extends DepthFirstAdapter {
 		Map<String, Object> commentMap = new HashMap<String, Object>();
 		String textWithQuotes = node.getText().toString().trim();
 		commentMap.put("text", textWithQuotes.substring(1, textWithQuotes.length() - 1)); // remove
-																							// the
-																							// quotes
 		commentMap.put("group", node.getGroup().toString().trim());
 		commentMap.put("type", node.getType().toString().trim());
 		commentMap.put("location", node.getLocation().toString().trim());
@@ -510,6 +635,7 @@ public class Translation extends DepthFirstAdapter {
 		runner.setResponse("Successfully commented : " + node.getText().toString().trim());//
 		runner.setStatus(PKQLRunner.STATUS.SUCCESS);
 	}
+
 
 	@Override
 	public void inAPanelCommentEdit(APanelCommentEdit node) {
@@ -537,8 +663,6 @@ public class Translation extends DepthFirstAdapter {
 		Map<String, Object> commentMap = new HashMap<String, Object>();
 		String textWithQuotes = node.getText().toString().trim();
 		commentMap.put("text", textWithQuotes.substring(1, textWithQuotes.length() - 1)); // remove
-																							// the
-																							// quotes
 		commentMap.put("group", node.getGroup().toString().trim());
 		commentMap.put("type", node.getType().toString().trim());
 		commentMap.put("location", node.getLocation().toString().trim());
@@ -552,6 +676,7 @@ public class Translation extends DepthFirstAdapter {
 		runner.setResponse("Successfully edited comment " + cid + " : " + node.getText().toString().trim());
 		runner.setStatus(PKQLRunner.STATUS.SUCCESS);
 	}
+
 
 	@Override
 	public void inAPanelCommentRemove(APanelCommentRemove node) {
@@ -587,8 +712,9 @@ public class Translation extends DepthFirstAdapter {
 		runner.setStatus(PKQLRunner.STATUS.SUCCESS);
 	}
 
+
 	@Override
-	public void inAPanelClone(APanelClone node) {
+	public void inAPanelClone(APanelClone node){
 		System.out.println("in a panel clone");
 		initReactor(PKQLEnum.VIZ);
 	}
@@ -609,7 +735,7 @@ public class Translation extends DepthFirstAdapter {
 	}
 
 	@Override
-	public void inAPanelLookAndFeel(APanelLookAndFeel node) {
+	public void inAPanelLookAndFeel(APanelLookAndFeel node){
 		System.out.println("in a panel laf");
 		initReactor(PKQLEnum.VIZ);
 	}
@@ -630,11 +756,11 @@ public class Translation extends DepthFirstAdapter {
 	}
 
 	@Override
-	public void inAPanelTools(APanelTools node) {
+	public void inAPanelTools(APanelTools node){
 		System.out.println("in a panel tools");
 		initReactor(PKQLEnum.VIZ);
 	}
-
+	
 	@Override
 	public void outAPanelTools(APanelTools node) {
 		System.out.println("out a panel tools");
@@ -650,7 +776,7 @@ public class Translation extends DepthFirstAdapter {
 	}
 
 	@Override
-	public void inAPanelConfig(APanelConfig node) {
+	public void inAPanelConfig(APanelConfig node){
 		System.out.println("in a panel config");
 		initReactor(PKQLEnum.VIZ);
 	}
@@ -671,7 +797,7 @@ public class Translation extends DepthFirstAdapter {
 	}
 
 	@Override
-	public void inAPanelClose(APanelClose node) {
+	public void inAPanelClose(APanelClose node){
 		System.out.println("in a panel close");
 		initReactor(PKQLEnum.VIZ);
 	}
@@ -690,143 +816,145 @@ public class Translation extends DepthFirstAdapter {
 
 	//**************************************** START JOIN OPERATIONS **********************************************//
 	@Override
-	public void outAOpenDataJoinParam(AOpenDataJoinParam node) {
-		String insightID = (String) curReactor.getValue(PKQLEnum.OPEN_DATA);
+	public void outAOpenDataJoinParam(AOpenDataJoinParam node)
+	{
+		String insightID = (String)curReactor.getValue(PKQLEnum.OPEN_DATA);
 		curReactor.set(PKQLEnum.JOIN_PARAM, insightID);
 	}
-
+	
 	@Override
-	public void outAInsightidJoinParam(AInsightidJoinParam node) {
+	public void outAInsightidJoinParam(AInsightidJoinParam node)
+	{
 		String insightID = node.getWord().toString().trim();
-		String cleanedInsightID = insightID.substring(1, insightID.length() - 1);
+		String cleanedInsightID = insightID.substring(1, insightID.length()-1);
 		curReactor.set(PKQLEnum.JOIN_PARAM, cleanedInsightID);
 	}
-
+	
 	@Override
-	public void outAVariableJoinParam(AVariableJoinParam node) {
-		String varName = ((AVarDef) node.getVarDef()).getValname().toString().trim();
-		String insightID = (String) runner.getVariableValue(varName);
+	public void outAVariableJoinParam(AVariableJoinParam node)
+	{
+		String varName = ((AVarDef)node.getVarDef()).getValname().toString().trim();
+		String insightID = (String)runner.getVariableValue(varName);
 		curReactor.set(PKQLEnum.JOIN_PARAM, insightID);
 	}
-
+	
 	@Override
 	public void inADashboardJoin(ADashboardJoin node)
 	{
 		System.out.println("Have dashboard join as " + node);
-		if (reactorNames.containsKey(PKQLEnum.DASHBOARD_JOIN)) {
+		if(reactorNames.containsKey(PKQLEnum.DASHBOARD_JOIN)) {
 			initReactor(PKQLEnum.DASHBOARD_JOIN);
 			String nodeStr = node + "";
 			curReactor.put(PKQLEnum.DASHBOARD_JOIN, nodeStr.trim());
-			// rel type is a token, not a production, so no in/out to add it to
-			// the reactor
+			// rel type is a token, not a production, so no in/out to add it to the reactor
 			// need to add it here
-			if (node.getRel() != null)
-				curReactor.put(PKQLEnum.REL_TYPE, node.getRel().toString().trim());
+			if(node.getRel() != null)
+			curReactor.put(PKQLEnum.REL_TYPE, node.getRel().toString().trim());
 		}
 	}
-
+	
 	@Override
 	public void outADashboardJoin(ADashboardJoin node)
 	{
 		String nodeStr = node.toString().trim();
 		IScriptReactor thisReactor = curReactor;
 		curReactor.put("G", this.frame);
-		Hashtable<String, Object> thisReactorHash = deinitReactor(PKQLEnum.DASHBOARD_JOIN, nodeStr,
-				PKQLEnum.DASHBOARD_JOIN);
+		Hashtable <String, Object> thisReactorHash = deinitReactor(PKQLEnum.DASHBOARD_JOIN, nodeStr, PKQLEnum.DASHBOARD_JOIN);
 		runner.setDashBoardData(thisReactor.getValue("DashboardData"));
 	}
-
-	public void inADashboardopScript(ADashboardopScript node) {
+	
+	public void inADashboardopScript(ADashboardopScript node)
+    {
 		runner.openFeDataBlock("Dashboard");
 		runner.addFeData("panelId", "Dashboard", true);
-	}
+    }
+	
+    public void inADashboardConfig(ADashboardConfig node) {
+    	initReactor(PKQLEnum.VIZ);
+    }
 
-	public void inADashboardConfig(ADashboardConfig node) {
-		initReactor(PKQLEnum.VIZ);
-	}
-
-	public void outADashboardConfig(ADashboardConfig node) {
-		System.out.println("out a panel config");
-		deinitReactor(PKQLEnum.VIZ, "", "");
+    public void outADashboardConfig(ADashboardConfig node) {
+    	System.out.println("out a panel config");
+    	deinitReactor(PKQLEnum.VIZ, "", "");
 		Map config = (Map) runner.getFeData("config");
-		if (config == null) {
+		if(config == null){
 			config = new HashMap();
 		}
 		config.putAll(new Gson().fromJson(node.getMap().toString(), HashMap.class));
 		runner.addFeData("config", config, true);
 		runner.setResponse("Successfully set config");
 		runner.setStatus(PKQLRunner.STATUS.SUCCESS);
-
+		
     }
 
 	//**************************************** END JOIN OPERATIONS **********************************************//
 
 	//**************************************** START VAR OPERATIONS **********************************************//
+	
+    public void outAExprInputOrExpr(AExprInputOrExpr node) {
+    	//need to get expr and set it to var_param
+    	String value = node.getExpr().toString().trim();
+    	curReactor.put(PKQLEnum.VAR_PARAM, value);
+    }
 
-	public void outAExprInputOrExpr(AExprInputOrExpr node) {
-		// need to get expr and set it to var_param
-		String value = node.getExpr().toString().trim();
-		curReactor.put(PKQLEnum.VAR_PARAM, value);
-	}
+    public void outAInputInputOrExpr(AInputInputOrExpr node) {
+    }
 
-	public void outAInputInputOrExpr(AInputInputOrExpr node) {
-	}
-
-	public void outAOpenDataInputOrExpr(AOpenDataInputOrExpr node) {
-		String insightID = ((List) curReactor.getValue(PKQLEnum.OPEN_DATA)).get(0).toString();
+    public void outAOpenDataInputOrExpr(AOpenDataInputOrExpr node) {
+    	String insightID = ((List)curReactor.getValue(PKQLEnum.OPEN_DATA)).get(0).toString();
 		curReactor.put(PKQLEnum.VAR_PARAM, insightID);
-	}
-
-	@Override
-	public void inAVarop(AVarop node) {
-		if (reactorNames.containsKey(PKQLReactor.VAR.toString())) {
+    }
+	
+    @Override
+	public void inAVarop(AVarop node){
+		if(reactorNames.containsKey(PKQLReactor.VAR.toString())) {
 			String varName = (node.getVarDef() + "").trim();
 			String expr = (node.getInputOrExpr() + "").trim();
 
 			initReactor(PKQLReactor.VAR.toString());
 			curReactor.put(PKQLReactor.VAR.toString(), varName);
 			curReactor.put(PKQLEnum.EXPR_TERM, expr); // don't need once all algorithms have been refactored into Reactors
-		}
+		}	
 	}
 
-	// this is only used for setting a var (aka v:test = 'true')
-	// AVarTerm will be used in expressions (aka c:Budget + v:test)
+	//this is only used for setting a var (aka v:test = 'true')
+	//AVarTerm will be used in expressions (aka c:Budget + v:test)
 	@Override
 	public void outAVarop(AVarop node) {
-		if (reactorNames.containsKey(PKQLReactor.VAR.toString())) {
+		if(reactorNames.containsKey(PKQLReactor.VAR.toString())) {
 			String nodeStr = PKQLReactor.VAR.toString();
-
+			
 			boolean updatingExistingVar = false;
 			Map<String, Object> thisReactorHash = deinitReactor(PKQLReactor.VAR.toString(), nodeStr, nodeStr);
-			IScriptReactor previousReactor = (IScriptReactor) thisReactorHash.get(PKQLReactor.VAR.toString());
+			IScriptReactor previousReactor = (IScriptReactor)thisReactorHash.get(PKQLReactor.VAR.toString());
 			String varName = previousReactor.getValue(PKQLReactor.VAR.toString()) + "";
 			Object inputNeeded = previousReactor.getValue(PKQLEnum.INPUT);
 			if(inputNeeded == null) // if no input needed for this var, set it and we are good
 			{
 				String varParam = curReactor.getValue(PKQLEnum.VAR_PARAM) + "";
 				runner.unassignedVars.remove(varName);
-				if (runner.getVariableData(varName) != null) {
+				if(runner.getVariableData(varName) != null) {
 					updatingExistingVar = true;
 				}
 				runner.setVariableValue(varName, varParam.replaceAll("^\'|\'$", "").trim());
-				runner.setResponse("Set variable " + varName + " to " + varParam);
+				runner.setResponse("Set variable " + varName +" to " + varParam);
 				runner.setStatus(STATUS.SUCCESS);
 				curReactor.put(PKQLReactor.VAR.toString(), varName);
-			} else {
+			}
+			else {
 				runner.unassignedVars.add(varName);
-				if (runner.getVariableData(varName) == null) {
-					runner.addNewVariable(varName, previousReactor.getValue(Constants.ENGINE).toString(),
-							((Vector) previousReactor.getValue(Constants.TYPE)).get(0).toString());
+				if(runner.getVariableData(varName) == null) {
+					runner.addNewVariable(varName, previousReactor.getValue(Constants.ENGINE).toString(), ((Vector)previousReactor.getValue(Constants.TYPE)).get(0).toString());
 				}
 				runner.setResponse("Need input on variable " + varName);
-				Map<String, Object> paramMap = new HashMap<String, Object>();
+				Map<String, Object> paramMap = new HashMap<String,Object>();
 				paramMap.put("varToSet", varName);
 				paramMap.put("options", previousReactor.getValue("options"));
 				paramMap.put("selectAmount", previousReactor.getValue("selectAmount"));
 				runner.addBeData("var2define", paramMap, false);
 				runner.setStatus(STATUS.INPUT_NEEDED);
 			}
-		}
+		}	
 	}
 
 	@Override
@@ -845,15 +973,26 @@ public class Translation extends DepthFirstAdapter {
 		// adding to the reactor
 		curReactor.put(PKQLReactor.VAR.toString(), valName);
 		curReactor.addReplacer((node + "").trim(), valName);
-	}
+    }
 	
 	//**************************************** END VAR OPERATIONS **********************************************//
 	
+	
+	@Override
+    public void caseADataFrame(ADataFrame node)
+    {
+        inADataFrame(node);
+        outADataFrame(node);
+    }
+	
 	@Override
 	public void inADataFrame(ADataFrame node) {
-		if (reactorNames.containsKey(PKQLEnum.DATA_FRAME)) {
+		if(reactorNames.containsKey(PKQLEnum.DATA_FRAME)) {
 			// get the appropriate reactor
 			initReactor(PKQLEnum.DATA_FRAME);
+			String word = ((AAlphaWordOrNum) node.getBuilder()).getWord().getText().trim();
+			String cleanWord = word.substring(1, word.length()-1);// remove the quotes
+			curReactor.put(DataFrameReactor.DATA_FRAME_TYPE, cleanWord);
 			curReactor.put("G", frame);
 		}
 	}
@@ -861,24 +1000,23 @@ public class Translation extends DepthFirstAdapter {
 	@Override
 	public void outADataFrame(ADataFrame node) {
 		// then deinit
-		// grab the new G from the reactor
+		//grab the new G from the reactor
 		// set into this class
 
-		deinitReactor(PKQLEnum.DATA_FRAME, node.getBuilder().toString().trim(), node.toString().trim());
-
+		deinitReactor(PKQLEnum.DATA_FRAME, node.getBuilder().toString().trim(),  node.toString().trim());
 		this.frame = (ITableDataFrame) curReactor.getValue(PKQLEnum.G);
-
 		// set the script reactors for this new frame
 		this.reactorNames = frame.getScriptReactors();
 	}
 
 	@Override
 	public void inATermExpr(ATermExpr node) {
-		if (reactorNames.containsKey(PKQLEnum.EXPR_TERM)) {
+		if(reactorNames.containsKey(PKQLEnum.EXPR_TERM)) {
 			// get the appropriate reactor
 			initReactor(PKQLEnum.EXPR_TERM);
 			// get the name of reactor
-			String nodeTerm = node.getTerm().toString().trim();
+			AColTerm term = ((AColTerm) node.getTerm());
+			String nodeTerm = ((AColDef) term.getCol()).getColname().getText().trim();
 			curReactor.put("G", frame);
 			curReactor.put(PKQLEnum.EXPR_TERM, nodeTerm);
 		}
@@ -886,17 +1024,16 @@ public class Translation extends DepthFirstAdapter {
 
 	@Override
 	public void outATermExpr(ATermExpr node) {
-		Hashtable<String, Object> thisReactorHash = deinitReactor(PKQLEnum.EXPR_TERM, node.getTerm().toString().trim(),
-				node.toString().trim());
+		Hashtable <String, Object> thisReactorHash = deinitReactor(PKQLEnum.EXPR_TERM, node.getTerm().toString().trim(),  node.toString().trim());
 
 		if (thisReactorHash.get(PKQLEnum.EXPR_TERM) instanceof ExprReactor) {
-			ExprReactor thisReactor = (ExprReactor) thisReactorHash.get(PKQLEnum.EXPR_TERM);
-			String expr = (String) thisReactor.getValue(PKQLEnum.EXPR_TERM);
+			ExprReactor thisReactor = (ExprReactor)thisReactorHash.get(PKQLEnum.EXPR_TERM);
+			String expr = (String)thisReactor.getValue(PKQLEnum.EXPR_TERM);
 			Object objVal = thisReactor.getValue(PKQLEnum.COL_DEF);
-			if (objVal != null) {
-				if (objVal instanceof Collection) {
+			if(objVal != null) {
+				if(objVal instanceof Collection) {
 					Collection<? extends Object> values = (Collection<? extends Object>) objVal;
-					for (Object obj : values) {
+					for(Object obj : values) {
 						curReactor.set(PKQLEnum.COL_DEF, obj);
 					}
 				} else {
@@ -904,19 +1041,18 @@ public class Translation extends DepthFirstAdapter {
 				}
 			}
 
-			// this commented out code is part of the shift to getting derived
-			// calculation info
-			// objVal = thisReactor.getValue(PKQLEnum.COL_CSV);
-			// if(objVal != null) {
-			// curReactor.put(PKQLEnum.COL_CSV, objVal);
-			// }
-			// objVal = thisReactor.getValue(PKQLEnum.PROC_NAME);
-			// if(objVal != null) {
-			// curReactor.put(PKQLEnum.PROC_NAME, objVal);
-			// }
+			// this commented out code is part of the shift to getting derived calculation info
+			//			objVal = thisReactor.getValue(PKQLEnum.COL_CSV);
+			//			if(objVal != null) {
+			//				curReactor.put(PKQLEnum.COL_CSV, objVal);
+			//			}
+			//			objVal = thisReactor.getValue(PKQLEnum.PROC_NAME);
+			//			if(objVal != null) {
+			//				curReactor.put(PKQLEnum.PROC_NAME, objVal);
+			//			}
 			curReactor.addReplacer(expr, thisReactor.getValue(expr));
-			// runner.setResponse(thisReactor.getValue(expr));
-			// runner.setStatus((String)thisReactor.getValue("STATUS"));
+			//			runner.setResponse(thisReactor.getValue(expr));
+			//			runner.setStatus((String)thisReactor.getValue("STATUS"));
 		}
 	}
 
@@ -934,7 +1070,7 @@ public class Translation extends DepthFirstAdapter {
 		Object rightObj = curReactor.getValue(rightKeyName);
 		Object result = null;
 		if (rightObj instanceof Double && leftObj instanceof Double) {
-			result = (Double) (leftObj) + (Double) (rightObj);
+			result = (Double)(leftObj) + (Double)(rightObj);
 			// remove the left and right key
 			curReactor.addReplacer(node.toString().trim(), result);
 			curReactor.removeReplacer(leftKeyName.trim());
@@ -955,7 +1091,7 @@ public class Translation extends DepthFirstAdapter {
 		Object rightObj = curReactor.getValue(rightKeyName);
 		Object result = null;
 		if (rightObj instanceof Double && leftObj instanceof Double) {
-			result = (Double) (leftObj) - (Double) (rightObj);
+			result = (Double)(leftObj) - (Double)(rightObj);
 			// remove the left and right key
 			curReactor.addReplacer(node.toString().trim(), result);
 			curReactor.removeReplacer(leftKeyName);
@@ -972,7 +1108,7 @@ public class Translation extends DepthFirstAdapter {
 		Object rightObj = curReactor.getValue(rightKeyName);
 		Object result = null;
 		if (rightObj instanceof Double && leftObj instanceof Double) {
-			result = (Double) (leftObj) * (Double) (rightObj);
+			result = (Double)(leftObj) * (Double)(rightObj);
 			// remove the left and right key
 			curReactor.addReplacer(node.toString().trim(), result);
 			curReactor.removeReplacer(leftKeyName);
@@ -989,7 +1125,7 @@ public class Translation extends DepthFirstAdapter {
 		Object rightObj = curReactor.getValue(rightKeyName);
 		Object result = null;
 		if (rightObj instanceof Double && leftObj instanceof Double) {
-			result = (Double) (leftObj) / (Double) (rightObj);
+			result = (Double)(leftObj) / (Double)(rightObj);
 			// remove the left and right key
 			curReactor.addReplacer(node.toString().trim(), result);
 			curReactor.removeReplacer(leftKeyName);
@@ -1006,68 +1142,66 @@ public class Translation extends DepthFirstAdapter {
 	public void inAColDef(AColDef node) {
 		String colName = node.getColname().toString().trim();
 		// adding to the reactor
-		curReactor.set("COL_DEF", colName);
+		curReactor.set(PKQLEnum.COL_DEF, colName);
 		curReactor.addReplacer((node + "").trim(), colName);
 	}
-
+	
 	@Override
 	public void inAFlexSelectorRow(AFlexSelectorRow node) {
 		// adding to the reactor
-		curReactor.set("TERM", node.getTerm() + "");
+		curReactor.set("TERM", node.getTerm()+"");
 	}
 
 	@Override
 	public void inATermGroup(ATermGroup node) {
 		// adding to the reactor
-		curReactor.set("TERM", node.getTerm() + "");
+		curReactor.set("TERM", node.getTerm()+"");
 	}
 
 	@Override
 	public void inAAddColumn(AAddColumn node) {
-		if (reactorNames.containsKey(PKQLEnum.COL_ADD)) {
+		if(reactorNames.containsKey(PKQLEnum.COL_ADD)) {
 			initReactor(PKQLEnum.COL_ADD);
 			String nodeStr = node.toString().trim();
 			curReactor.put(PKQLEnum.COL_ADD, nodeStr);
 
 			String nodeExpr = node.getExpr().toString().trim();
 			curReactor.put(PKQLEnum.EXPR_TERM, nodeExpr);
-		}
+		}		
 	}
 
 	@Override
 	public void outAAddColumn(AAddColumn node) {
 		String nodeExpr = node.getExpr().toString().trim();
 		curReactor.put(PKQLEnum.EXPR_TERM, nodeExpr);
-		Hashtable<String, Object> thisReactorHash = deinitReactor(PKQLEnum.COL_ADD, nodeExpr, node.toString().trim());
-		IScriptReactor previousReactor = (IScriptReactor) thisReactorHash.get(PKQLEnum.COL_ADD.toString());
+		Hashtable <String, Object> thisReactorHash = deinitReactor(PKQLEnum.COL_ADD, nodeExpr, node.toString().trim());
+		IScriptReactor previousReactor = (IScriptReactor)thisReactorHash.get(PKQLEnum.COL_ADD.toString());
 		runner.setStatus((STATUS)previousReactor.getValue("STATUS"));
-		runner.setResponse((String) previousReactor.getValue("RESPONSE"));
+		runner.setResponse((String)previousReactor.getValue("RESPONSE"));
 	}
 
 	@Override
 	public void inAFilterColumn(AFilterColumn node) {
-		if (reactorNames.containsKey(PKQLEnum.FILTER_DATA)) {
+		if(reactorNames.containsKey(PKQLEnum.FILTER_DATA)) {
 			initReactor(PKQLEnum.FILTER_DATA);
 			String nodeStr = node + "";
 			curReactor.put(PKQLEnum.FILTER_DATA, nodeStr.trim());
 		}
 	}
-
-	//
+	//	
 	@Override
 	public void outAFilterColumn(AFilterColumn node) {
 		String nodeExpr = node.getWhere().toString().trim();
-		// curReactor.put(PKQLEnum.WHERE, nodeExpr);
-		Hashtable<String, Object> thisReactorHash = deinitReactor(PKQLEnum.FILTER_DATA, nodeExpr,
-				node.toString().trim());
-		IScriptReactor previousReactor = (IScriptReactor) thisReactorHash.get(PKQLEnum.FILTER_DATA.toString());
+		//		curReactor.put(PKQLEnum.WHERE, nodeExpr);
+		Hashtable <String, Object> thisReactorHash = deinitReactor(PKQLEnum.FILTER_DATA, nodeExpr, node.toString().trim());
+		IScriptReactor previousReactor = (IScriptReactor)thisReactorHash.get(PKQLEnum.FILTER_DATA.toString());
 		runner.setStatus((STATUS)previousReactor.getValue("STATUS"));
-		runner.setResponse((String) previousReactor.getValue("FILTER_RESPONSE"));
+		runner.setResponse((String)previousReactor.getValue("FILTER_RESPONSE"));
 	}
 
 	@Override
 	public void inAUnfilterColumn(AUnfilterColumn node) {
-		if (reactorNames.containsKey(PKQLEnum.UNFILTER_DATA)) {
+		if(reactorNames.containsKey(PKQLEnum.UNFILTER_DATA)) {
 			initReactor(PKQLEnum.UNFILTER_DATA);
 			String nodeStr = node + "";
 			curReactor.put(PKQLEnum.UNFILTER_DATA, nodeStr.trim());
@@ -1077,10 +1211,9 @@ public class Translation extends DepthFirstAdapter {
 	@Override
 	public void outAUnfilterColumn(AUnfilterColumn node) {
 		String nodeExpr = node.getColDef().toString().trim();
-		// curReactor.put(PKQLEnum.WHERE, nodeExpr);
-		Hashtable<String, Object> thisReactorHash = deinitReactor(PKQLEnum.UNFILTER_DATA, nodeExpr,
-				node.toString().trim());
-		IScriptReactor previousReactor = (IScriptReactor) thisReactorHash.get(PKQLEnum.UNFILTER_DATA.toString());
+		//		curReactor.put(PKQLEnum.WHERE, nodeExpr);
+		Hashtable <String, Object> thisReactorHash = deinitReactor(PKQLEnum.UNFILTER_DATA, nodeExpr, node.toString().trim());
+		IScriptReactor previousReactor = (IScriptReactor)thisReactorHash.get(PKQLEnum.UNFILTER_DATA.toString());
 		runner.setStatus((STATUS)previousReactor.getValue("STATUS"));
 		runner.setResponse("Unfiltered Column: " + (String)previousReactor.getValue("FILTER_COLUMN"));
 	}
@@ -1111,135 +1244,59 @@ public class Translation extends DepthFirstAdapter {
 	}
 
 	@Override
-	public void inAImportData(AImportData node) {
-		if (reactorNames.containsKey(PKQLEnum.IMPORT_DATA)) {
-			// make the determination to say if this is a frame.. yes it is
-			/// if it is so change the reactor to the new reactor
-			initReactor(PKQLEnum.IMPORT_DATA);
-			String nodeStr = node.toString().trim();
-			curReactor.put(PKQLEnum.IMPORT_DATA, nodeStr);
-
-			// String varName = node.getVar().toString().trim();
-			// // get the value for the var from the runner
-			// Object varVal = runner.getVariable(varName);
-			// // adding to the reactor
-			// curReactor.set(PKQLEnum.VAR_TERM, varVal);
-			// curReactor.addReplacer((node + "").trim(), varVal);
-
-			if (node.getJoins() != null) {
-				node.getJoins().apply(this); // need to process joins so that we can access them in the api block for preprocessing inner joins
-			}
-		}
-	}
-
-	@Override
-	public void outAImportData(AImportData node) {
-		String nodeImport = node.getImport().toString().trim();
-		String nodeStr = node.toString().trim();
-		curReactor.put(PKQLEnum.EXPR_TERM, nodeImport);
-		Hashtable<String, Object> thisReactorHash = deinitReactor(PKQLEnum.IMPORT_DATA, nodeImport, nodeStr);
-		IScriptReactor previousReactor = (IScriptReactor) thisReactorHash.get(PKQLReactor.IMPORT_DATA.toString());
-		runner.setNewColumns((Map<String, String>) previousReactor.getValue("logicalToValue"));
-		runner.setResponse(previousReactor.getValue(nodeStr));
-		runner.setStatus((STATUS)previousReactor.getValue("STATUS"));
-	}
-
-	@Override
-	public void inAOpenData(AOpenData node) {
-		initReactor(PKQLEnum.OPEN_DATA);
-	}
-
-	@Override
-	public void outAOpenData(AOpenData node) {
-		String nodeOpen = node.getDataopentoken().toString().trim();
-		String nodeStr = node.toString().trim();
-		curReactor.put(PKQLEnum.EXPR_TERM, nodeOpen);
-
-		Hashtable<String, Object> thisReactorHash = deinitReactor(PKQLEnum.OPEN_DATA, nodeOpen, nodeStr);
-		IScriptReactor previousReactor = (IScriptReactor) thisReactorHash.get(PKQLEnum.OPEN_DATA);
-
-		Map<String, Object> webData = (Map<String, Object>) previousReactor.getValue("webData");
-		runner.setDataMap(webData);
-		curReactor.set(PKQLEnum.OPEN_DATA, previousReactor.getValue(PKQLEnum.OPEN_DATA));
-	}
-
-	@Override
-	public void inARemoveData(ARemoveData node) {
-		if (reactorNames.containsKey(PKQLEnum.REMOVE_DATA)) {
-			// simplify baby simplify baby simplify
-			initReactor(PKQLEnum.REMOVE_DATA);
-			String nodeStr = node + "";
-			curReactor.put(PKQLEnum.REMOVE_DATA, nodeStr.trim());
-		}
-	}
-
-	@Override
-	public void outARemoveData(ARemoveData node) {
-		String nodeStr = node.getApiBlock() + "";
-		nodeStr = nodeStr.trim();
-		curReactor.put(PKQLEnum.EXPR_TERM, nodeStr);
-		Hashtable<String, Object> thisReactorHash = deinitReactor(PKQLEnum.REMOVE_DATA, nodeStr, (node + "").trim());
-		IScriptReactor previousReactor = (IScriptReactor) thisReactorHash.get(PKQLEnum.REMOVE_DATA);
-		runner.setResponse(previousReactor.getValue(node.toString().trim()));
-		runner.setStatus((STATUS)previousReactor.getValue("STATUS"));
-	}
-
-	@Override
 	public void outASetColumn(ASetColumn node) {
 	}
 
+	
 	@Override
 	public void inAUserInput(AUserInput node) {
-		if (reactorNames.containsKey(PKQLReactor.INPUT.toString())) {
-			// String options = node.getOptions().toString().trim();
-			// String selections = node.getSelections().toString().trim();
+		if(reactorNames.containsKey(PKQLReactor.INPUT.toString())) {
+			//			String options = node.getOptions().toString().trim();
+			//			String selections = node.getSelections().toString().trim();
 
 			initReactor(PKQLReactor.INPUT.toString());
 			curReactor.put(PKQLReactor.INPUT.toString(), node.toString());
-			// curReactor.put(PKQLEnum.EXPR_TERM, expr); // don't need once all
-			// algorithms have been refactored into Reactors
-		}
+			//			curReactor.put(PKQLEnum.EXPR_TERM, expr); // don't need once all algorithms have been refactored into Reactors
+		}	
 	}
 
 	@Override
 	public void outAUserInput(AUserInput node) {
-		if (reactorNames.containsKey(PKQLReactor.INPUT.toString())) {
+		if(reactorNames.containsKey(PKQLReactor.INPUT.toString())) {
 			String nodeStr = PKQLReactor.INPUT.toString();
 			Map<String, Object> thisReactorHash = deinitReactor(PKQLReactor.INPUT.toString(), nodeStr, nodeStr);
-			IScriptReactor previousReactor = (IScriptReactor) thisReactorHash.get(PKQLReactor.INPUT.toString());
+			IScriptReactor previousReactor = (IScriptReactor)thisReactorHash.get(PKQLReactor.INPUT.toString());
 			List options = (List) previousReactor.getValue("options");
 			String selections = node.getSelections().toString().trim();
 			// need to pause processing here........
 			// a user defined value must be retrieved from the front end
-			// this.unassignedVars.add(node.toString());
+			//		this.unassignedVars.add(node.toString());
 			curReactor.put("options", options);
 			curReactor.put("selectAmount", selections);
 			curReactor.put(Constants.ENGINE, previousReactor.getValue(PKQLEnum.API + "_" + Constants.ENGINE));
 			curReactor.put(Constants.TYPE, previousReactor.getValue(PKQLEnum.API + "_" + PKQLEnum.COL_CSV));
-			// node.replaceBy(null); // need to get out of finishing the
-			// processing of this pkql..... how do i just return out of this bad boy??
+			//		node.replaceBy(null); // need to get out of finishing the processing of this pkql..... how do i just return out of this bad boy??
 			// the plan is:
 			// return out of this bad boy
 			// allow for term = term which will be the way the front end sets it
-			// in the config we look for that type of script and allow it if our
-			// missing piece is there
+			// in the config we look for that type of script and allow it if our missing piece is there
 
 			// FOR NOW ASSUMING USER INPUT IS JUST FOR VAR ASSIGNMENT
 			// DONT NEED TO WORRY ABOUT RETURNING OUT OF ANYTHING
-			// node.
+			//		node.
 		}
 	}
 
-	@Override
-	public void inANumberTerm(ANumberTerm node) {
-		String number = node.getDecimal().toString().trim();
-	}
+//	@Override
+//	public void inANumberTerm(ANumberTerm node) {
+//		String number = node.getDecimal().toString().trim();
+//	}
 
 	@Override
 	public void inADecimal(ADecimal node) {
 		String fraction = node.getFraction() + "";
 		String number = node.getWhole().toString().trim();
-		if (node.getFraction() != null)
+		if(node.getFraction() != null)
 			number = number + "." + fraction;
 
 		curReactor.addReplacer(node.toString().trim(), Double.parseDouble(number));
@@ -1247,43 +1304,48 @@ public class Translation extends DepthFirstAdapter {
 
 	@Override
 	public void inAAlphaWordOrNum(AAlphaWordOrNum node) {
+		
 	}
 
 	@Override
 	public void outAAlphaWordOrNum(AAlphaWordOrNum node) {
 		String word = (node.getWord() + "").trim();
-		String cleaned = word.substring(1, word.length() - 1);// remove the quotes
-		curReactor.set(PKQLEnum.WORD_OR_NUM, cleaned);
+		String cleaned = word.substring(1, word.length()-1);// remove the quotes
+		curReactor.set(PKQLEnum.WORD_OR_NUM, cleaned); 
 		curReactor.addReplacer(word, cleaned);
 	}
 
 	@Override
 	public void outANumWordOrNum(ANumWordOrNum node) {
 		String number = node.getDecimal().toString().trim();
-		if (node.getDecimal() instanceof ADecimal) {
-			ADecimal dec = (ADecimal) node.getDecimal();
+		if(node.getDecimal() instanceof ADecimal) {
+			ADecimal dec = (ADecimal)node.getDecimal();
 			String fraction = dec.getFraction() + "";
 			number = dec.getWhole().toString().trim();
-			if (dec.getFraction() != null)
+			if(dec.getFraction() != null)
 				number = number + "." + fraction;
 		}
 		curReactor.set(PKQLEnum.WORD_OR_NUM, number);
 	}
 
 	@Override
-	public void outAKeyvalue(AKeyvalue node) {
+	//TODO: LOOK INTO THIS
+	public void outAKeyvalue(AKeyvalue node){
 		Object word1 = node.getWord1();
-		if (curReactor.getValue(word1.toString().trim()) != null) {
+		if(curReactor.getValue(word1.toString().trim())!=null){
 			word1 = curReactor.getValue(word1.toString().trim());
 		}
 
 		Object word2 = node.getWord2();
-		if (curReactor.getValue(word2.toString().trim()) != null) {
+		if(curReactor.getValue(word2.toString().trim())!=null){
 			word2 = curReactor.getValue(word2.toString().trim());
 		}
 
 		Map myMap = new HashMap();
 		myMap.put(word1, word2);
+		
+		//TODO: LOOK INTO THIS
+		//TODO: LOOK INTO THIS
 		curReactor.set("KEY_VALUE", myMap); // remove the quotes
 	}
 
@@ -1301,12 +1363,12 @@ public class Translation extends DepthFirstAdapter {
 
 	@Override
 	public void inAMathFun(AMathFun node) {
-		if (reactorNames.containsKey(PKQLEnum.MATH_FUN)) {
+		if(reactorNames.containsKey(PKQLEnum.MATH_FUN)) {
 			String procedureName = node.getId().toString().trim();
 			String nodeStr = node.getExpr().toString().trim();
 
 			String procedureAlgo = "";
-			if (reactorNames.containsKey(procedureName.toUpperCase())) {
+			if(reactorNames.containsKey(procedureName.toUpperCase())) {
 				// the frame has defined a specific reactor for this procedure
 				procedureAlgo = reactorNames.get(procedureName.toUpperCase());
 			} else {
@@ -1314,144 +1376,287 @@ public class Translation extends DepthFirstAdapter {
 			}
 
 			reactorNames.put(PKQLReactor.MATH_FUN.toString(), procedureAlgo);
-			String expr = (String) curReactor.getValue(PKQLEnum.EXPR_TERM);
+			String expr = (String)curReactor.getValue(PKQLEnum.EXPR_TERM);
 
 			initReactor(PKQLReactor.MATH_FUN.toString());
 			curReactor.put(PKQLEnum.G, frame);
 			curReactor.put(PKQLEnum.MATH_FUN, nodeStr.trim());
 
-			// for panel.viz2
+			//for panel.viz2
 			curReactor.put("MATH_EXPRESSION", node.toString().trim());
 
 			curReactor.put(PKQLEnum.PROC_NAME, procedureName); // don't need once all algorithms have been refactored into Reactors
-			if (expr != null)
+			if(expr != null)
 				curReactor.put(PKQLEnum.EXPR_TERM, expr);
-		}
+		}	
 	}
 
 	@Override
+	//TODO: LOOK INTO THIS
 	public void outAMathFun(AMathFun node) {
 		String nodeStr = node.toString().trim();
 		String expr = node.getExpr().toString().trim();
-		Hashtable<String, Object> thisReactorHash = deinitReactor(PKQLReactor.MATH_FUN.toString(), expr, nodeStr);
-		IScriptReactor previousReactor = (IScriptReactor) thisReactorHash.get(PKQLReactor.MATH_FUN.toString());
+		Hashtable <String, Object> thisReactorHash = deinitReactor(PKQLReactor.MATH_FUN.toString(), expr, nodeStr);
+		IScriptReactor previousReactor = (IScriptReactor)thisReactorHash.get(PKQLReactor.MATH_FUN.toString());
 		curReactor.put(PKQLEnum.COL_DEF, previousReactor.getValue(PKQLEnum.COL_DEF)); //TODO: use syncronize instead
 		curReactor.put(PKQLEnum.PROC_NAME, previousReactor.getValue(PKQLEnum.PROC_NAME));
 		curReactor.put(PKQLEnum.COL_CSV, previousReactor.getValue(PKQLEnum.COL_CSV));
 
-		// for panel.viz -- can't use the same, because i need set, not
-		// put...don't want to change because that might break something
-		// TODO : combine with above
+		//for panel.viz -- can't use the same, because i need set, not put...don't want to change because that might break something
+		//TODO : combine with above
 		curReactor.set("MATH_EXPRESSION", previousReactor.getValue("MATH_EXPRESSION"));
 		curReactor.set(PKQLEnum.COL_DEF+"2", previousReactor.getValue(PKQLEnum.COL_DEF)); //TODO: use syncronize instead
-		curReactor.set(PKQLEnum.PROC_NAME + "2", previousReactor.getValue(PKQLEnum.PROC_NAME));
-		curReactor.set(PKQLEnum.COL_CSV + "2", previousReactor.getValue(PKQLEnum.COL_CSV));
+		curReactor.set(PKQLEnum.PROC_NAME+"2", previousReactor.getValue(PKQLEnum.PROC_NAME));
+		curReactor.set(PKQLEnum.COL_CSV+"2", previousReactor.getValue(PKQLEnum.COL_CSV));
+
 
 		curReactor.addReplacer(nodeStr, previousReactor.getValue(expr));
-
 		runner.setResponse(previousReactor.getValue(expr));
 		runner.setStatus((STATUS)previousReactor.getValue("STATUS"));
 	}
 
 	@Override
+	//TODO: LOOK INTO THIS
 	public void inAMathParam(AMathParam node) {
-		if (reactorNames.containsKey(PKQLEnum.MATH_PARAM)) {
+		if(reactorNames.containsKey(PKQLEnum.MATH_PARAM)) {
 			initReactor(PKQLEnum.MATH_PARAM);
-		}
+		}	
 	}
 
 	@Override
+	//TODO: LOOK INTO THIS
 	public void outAMathParam(AMathParam node) {
 		String nodeStr = node.toString().trim();
 		String expr = node.getMapObj().toString().trim();
-		Hashtable<String, Object> thisReactorHash = deinitReactor(PKQLEnum.MATH_PARAM, expr, nodeStr);
-		IScriptReactor previousReactor = (IScriptReactor) thisReactorHash.get((PKQLEnum.MATH_PARAM));
+		Hashtable <String, Object> thisReactorHash = deinitReactor(PKQLEnum.MATH_PARAM, expr, nodeStr);
+		IScriptReactor previousReactor = (IScriptReactor)thisReactorHash.get((PKQLEnum.MATH_PARAM));
 		curReactor.put(PKQLEnum.MATH_PARAM, previousReactor.getValue(PKQLEnum.MATH_PARAM));
-
 	}
 
 	@Override
+	//TODO: LOOK INTO THIS
 	public void inAColWhere(AColWhere node) {
-		if (reactorNames.containsKey(PKQLEnum.WHERE)) {
+		if(reactorNames.containsKey(PKQLEnum.WHERE)) {
 			initReactor(PKQLEnum.WHERE);
 			String nodeStr = node + "";
 			curReactor.put(PKQLEnum.WHERE, nodeStr.trim());
-			curReactor.put(PKQLEnum.COMPARATOR, (node.getEqualOrCompare() + "").trim());
-		}
+			curReactor.put(PKQLEnum.COMPARATOR, (node.getEqualOrCompare()+"").trim());
+		}		
 	}
 
 	@Override
 	public void outAColWhere(AColWhere node) {
 		// I need to do some kind of action and pop out the last one on everything
 		String nodeStr = node.toString().trim();
-		Hashtable<String, Object> thisReactorHash = deinitReactor(PKQLEnum.WHERE, nodeStr, PKQLEnum.FILTER, false);
+		Hashtable <String, Object> thisReactorHash = deinitReactor(PKQLEnum.WHERE, nodeStr, PKQLEnum.FILTER, false);
 	}
 
+//	public void inARelationClause(ARelationClause node, String storeAs) {
+//		// note: this operation does not require a frame
+//		// therefore, we do not need a reactor
+//		// and we do not need an out method
+//		
+//		// we store each relationship as a hashtable in a vector
+//		Vector<Hashtable<String, Object>> relList = new Vector<Hashtable<String, Object>>();
+//		
+//		Hashtable<String, Object> relHash = new Hashtable<String, Object>();
+//		
+//		// need at least one relationship
+//		ARelationDef relDef = (ARelationDef) node.getRelationDef();
+//		// get the relationship type
+//		TRelType type = relDef.getRelType();
+//		relHash.put(PKQLEnum.REL_TYPE, type.getText());
+//		// get the from column
+//		AColDef from = (AColDef) relDef.getFrom();
+//		relHash.put(PKQLEnum.FROM_COL, from.getColname().getText());
+//		// get the from column
+//		AColDef to = (AColDef) relDef.getTo();
+//		relHash.put(PKQLEnum.TO_COL, to.getColname().getText());
+//		relList.add(relHash);
+//		
+//		LinkedList<PRelationGroup> optionalRels = node.getRelationGroup();
+//		if(optionalRels != null && !optionalRels.isEmpty()) {
+//			ListIterator<PRelationGroup> it = optionalRels.listIterator();
+//			while(it.hasNext()) {
+//				ARelationDef nextRel = (ARelationDef) ((ARelationGroup) it.next()).getRelationDef();
+//				
+//				relHash = new Hashtable<String, Object>();
+//				// get the relationship type
+//				type = nextRel.getRelType();
+//				relHash.put(PKQLEnum.REL_TYPE, type.getText());
+//				// get the from column
+//				from = (AColDef) nextRel.getFrom();
+//				relHash.put(PKQLEnum.FROM_COL, from.getColname().getText());
+//				// get the from column
+//				to = (AColDef) nextRel.getTo();
+//				relHash.put(PKQLEnum.TO_COL, to.getColname().getText());
+//				relList.add(relHash);
+//			}
+//		}
+//				
+//		//TODO: why do we define it as a RelDef and then every reactor to use it calls it Joins...
+//		curReactor.put(storeAs, relList);
+//		curReactor.addReplacer(node.toString(), relList);
+//	}
+	
+	
 	@Override
 	public void inARelationDef(ARelationDef node) {
-		if (reactorNames.containsKey(PKQLEnum.REL_DEF)) {
-			initReactor(PKQLEnum.REL_DEF);
-			String nodeStr = node.toString().trim();
-			curReactor.put(PKQLEnum.REL_DEF, nodeStr);
-			curReactor.put(PKQLEnum.REL_TYPE, (node.getRelType().toString()).trim());
-		}
+		// note: this operation does not require a frame
+		// therefore, we do not need a reactor
+		// and we do not need an out method
+		
+		// we store each relationship as a hashtable
+		Hashtable<String, Object> relHash = new Hashtable<String, Object>();
+		
+		// get the relationship type
+		TRelType type = node.getRelType();
+		relHash.put(PKQLEnum.REL_TYPE, type.getText());
+		
+		// get the from column
+		AColDef from = (AColDef) node.getFrom();
+		relHash.put(PKQLEnum.FROM_COL, from.getColname().getText());
+
+		// get the from column
+		AColDef to = (AColDef) node.getTo();
+		relHash.put(PKQLEnum.TO_COL, to.getColname().getText());
+		
+		//TODO: why do we define it as a RelDef and then every reactor to use it calls it Joins...
+		curReactor.set(PKQLEnum.JOINS, relHash);
+		curReactor.addReplacer(node.toString(), relHash);
+		
+//		curReactor.addComponentValue(PKQLEnum.REL_DEF, relHash);
+//		curReactor.addExpressionToValue(node.toString(), relHash);
+		
+//		if(reactorNames.containsKey(PKQLEnum.REL_DEF)) {
+//			initReactor(PKQLEnum.REL_DEF);
+//			String nodeStr = node.toString().trim();
+//			curReactor.put(PKQLEnum.REL_DEF, nodeStr);
+//			curReactor.put(PKQLEnum.REL_TYPE, (node.getRelType().toString()).trim());
+//		}		
 	}
 
-	@Override
-	public void outARelationDef(ARelationDef node) {
-		String nodeStr = node.toString().trim();
-		Hashtable<String, Object> thisReactorHash = deinitReactor(PKQLEnum.REL_DEF, nodeStr, PKQLEnum.JOINS, false);
-	}
+//	@Override
+//	public void outARelationDef(ARelationDef node) {
+//		String nodeStr = node.toString().trim();
+//		Hashtable <String, Object> thisReactorHash = deinitReactor(PKQLEnum.REL_DEF, nodeStr, PKQLEnum.JOINS, false);
+//	}
 
 	@Override
 	public void inAColCsv(AColCsv node) {
-		System.out.println("Directly lands into col csv " + node);
-		if (reactorNames.containsKey(PKQLEnum.COL_CSV)) {
-			initReactor(PKQLEnum.COL_CSV);
-			String nodeStr = node.toString().trim();
-			curReactor.put(PKQLEnum.COL_CSV, nodeStr);
+		// note: this operation does not require a frame
+		// therefore, we do not need a reactor
+		// and we do not need an out method
+
+		// create the array to store the list of values
+		List<String> colVec = new Vector<String>();
+		
+		// a col csv requires at least one input
+		// grab that input -> defined as a col def
+		AColDef col = (AColDef) node.getColDef();
+		colVec.add(col.getColname().getText());
+		
+		// the col csv may contain multiple other col defs
+		// grab that list and iterate through it to add the other
+		// cols that are defined
+		LinkedList<PColGroup> optionalCols = node.getColGroup();
+		if(optionalCols != null && !optionalCols.isEmpty()) {
+			ListIterator<PColGroup> it = optionalCols.listIterator();
+			while(it.hasNext()) {
+				AColGroup group = (AColGroup) it.next();
+				colVec.add( ((AColDef) group.getColDef()).getColname().getText() );
+			}
 		}
+		
+		curReactor.put(PKQLEnum.COL_CSV, colVec);
+		curReactor.addReplacer(node.toString(), colVec);
+		
+		
+//		// now we need to store this in the current reactor
+//		curReactor.addComponentValue(PKQLEnum.COL_CSV, colVec);
+//		curReactor.addExpressionToValue(node.toString(), colVec);
+
+		
+//		curReactor.put(PKQLEnum.COL_CSV, colVec);
+//		
+//		System.out.println("Directly lands into col csv " + node);
+//		if(reactorNames.containsKey(PKQLEnum.COL_CSV)) {
+//			initReactor(PKQLEnum.COL_CSV);
+//			String nodeStr = node.toString().trim();
+//			curReactor.put(PKQLEnum.COL_CSV, nodeStr);
+//		}
 	}
 
-	@Override
-	public void outAColCsv(AColCsv node) {
-		String thisNode = node.toString().trim();
-		if (node.parent() != null && node.parent() instanceof AColTable) {
-			deinitReactor(PKQLEnum.COL_CSV, thisNode, PKQLEnum.COL_CSV, false);
-		} else {
-			deinitReactor(PKQLEnum.COL_CSV, thisNode, PKQLEnum.COL_CSV);
-		}
-
-	}
+//	@Override
+//	public void outAColCsv(AColCsv node) {
+//		String thisNode = node.toString().trim();
+//		if(node.parent() != null && node.parent() instanceof AColTable) {
+//			deinitReactor(PKQLEnum.COL_CSV, thisNode, PKQLEnum.COL_CSV, false);
+//		} else {
+//			deinitReactor(PKQLEnum.COL_CSV, thisNode, PKQLEnum.COL_CSV);
+//		}
+//	}
 
 	@Override
 	public void inACsvRow(ACsvRow node) {
-		System.out.println("Directly lands into col csv " + node);
-		if (reactorNames.containsKey(PKQLEnum.ROW_CSV)) {
-			initReactor(PKQLEnum.ROW_CSV);
-			String nodeStr = node.toString().trim();
-			curReactor.put(PKQLEnum.ROW_CSV, nodeStr);
+		// note: this operation does not require a frame
+		// therefore, we do not need a reactor
+		// and we do not need an out method
+
+		// create the array to store the list of values
+		List<String> rowVec = new Vector<String>();
+		
+		// a csv row requires at least one input
+		// grab that input -> defined as a word or num
+		AAlphaWordOrNum wordOrNum = (AAlphaWordOrNum) node.getWordOrNum();
+		String word = wordOrNum.getWord().getText().trim();
+		word = word.substring(1, word.length()-1);// remove the quotes
+		rowVec.add(word);
+
+		// the csv row may contain multiple other inputs
+		// grab that list and iterate through it to add the other
+		// inputs that are defined
+		LinkedList<PCsvGroup> optionalCols = node.getCsvGroup();
+		if(optionalCols != null && !optionalCols.isEmpty()) {
+			ListIterator<PCsvGroup> it = optionalCols.listIterator();
+			while(it.hasNext()) {
+				ACsvGroup group = (ACsvGroup) it.next();
+				word =((AAlphaWordOrNum) group.getCsv()).getWord().getText().trim();
+				word = word.substring(1, word.length()-1);// remove the quotes
+				rowVec.add(word);
+			}
 		}
+		
+		curReactor.put(PKQLEnum.ROW_CSV, rowVec);
+		curReactor.addReplacer(node.toString(), rowVec);
+		
+//		System.out.println("Directly lands into col csv " + node);
+//		if(reactorNames.containsKey(PKQLEnum.ROW_CSV)) {
+//			initReactor(PKQLEnum.ROW_CSV);
+//			String nodeStr = node.toString().trim();
+//			curReactor.put(PKQLEnum.ROW_CSV, nodeStr);
+//		}
 	}
 
-	@Override
-	public void outACsvRow(ACsvRow node) {
-		// I need to do an action here
-		// get the action
-		// call to say this has happened and then reset it to null;
-		String thisNode = node.toString().trim();
+//	@Override
+//	public void outACsvRow(ACsvRow node) {
+//		// I need to do an action here
+//		// get the action
+//		// call to say this has happened and then reset it to null;
+//		String thisNode = node.toString().trim();
+//
+//		if(node.parent() != null && node.parent() instanceof ACsvTable) {
+//			deinitReactor(PKQLEnum.ROW_CSV, thisNode, PKQLEnum.ROW_CSV, false);
+//		} else {
+//			deinitReactor(PKQLEnum.ROW_CSV, thisNode, PKQLEnum.ROW_CSV);
+//		}
+//	}
 
-		if (node.parent() != null && node.parent() instanceof ACsvTable) {
-			deinitReactor(PKQLEnum.ROW_CSV, thisNode, PKQLEnum.ROW_CSV, false);
-		} else {
-			deinitReactor(PKQLEnum.ROW_CSV, thisNode, PKQLEnum.ROW_CSV);
-		}
-	}
-
 	@Override
+	//TODO: LOOK INTO THIS
 	public void inACsvTable(ACsvTable node) {
 		System.out.println("Directly lands into col table " + node);
-		if (reactorNames.containsKey(PKQLEnum.CSV_TABLE)) {
+		if(reactorNames.containsKey(PKQLEnum.CSV_TABLE)) {
 			initReactor(PKQLEnum.CSV_TABLE);
 			String nodeStr = node + "";
 			curReactor.put(PKQLEnum.CSV_TABLE, nodeStr.trim());
@@ -1459,20 +1664,23 @@ public class Translation extends DepthFirstAdapter {
 	}
 
 	@Override
+	//TODO: LOOK INTO THIS
 	public void outACsvTable(ACsvTable node) {
 		String thisNode = node.toString().trim();
 		IScriptReactor thisReactor = curReactor;
 		deinitReactor(PKQLEnum.CSV_TABLE, thisNode, PKQLEnum.CSV_TABLE);
 
-		if (curReactor != null && node.parent() != null && node.parent() instanceof ACsvTableImportBlock) {
-			String[] values2Sync = curReactor.getValues2Sync(PKQLEnum.CSV_TABLE);
+		if(curReactor != null && node.parent() != null && node.parent() instanceof ACsvTableImportBlock) {
+			String [] values2Sync = curReactor.getValues2Sync(PKQLEnum.CSV_TABLE);
 			synchronizeValues(PKQLEnum.CSV_TABLE, values2Sync, thisReactor);
 		}
 	}
 
-	public void inAPastedData(APastedData node) {
+	//TODO: LOOK INTO THIS
+	public void inAPastedData(APastedData node)
+	{
 		System.out.println("Directly lands into col table " + node);
-		if (reactorNames.containsKey(PKQLEnum.PASTED_DATA)) {
+		if(reactorNames.containsKey(PKQLEnum.PASTED_DATA)) {
 			initReactor(PKQLEnum.PASTED_DATA);
 			String nodeStr = node + "";
 			curReactor.put(PKQLEnum.PASTED_DATA, nodeStr.trim());
@@ -1484,84 +1692,91 @@ public class Translation extends DepthFirstAdapter {
 		}
 	}
 
-	public void outAPastedData(APastedData node) {
+	//TODO: LOOK INTO THIS
+	public void outAPastedData(APastedData node)
+	{
 		String thisNode = node.toString().trim();
 		IScriptReactor thisReactor = curReactor;
 		deinitReactor(PKQLEnum.PASTED_DATA, thisNode, PKQLEnum.PASTED_DATA);
 
-		if (curReactor != null && node.parent() != null && node.parent() instanceof APastedDataImportBlock) {
-			String[] values2Sync = curReactor.getValues2Sync(PKQLEnum.PASTED_DATA);
+		if(curReactor != null && node.parent() != null && node.parent() instanceof APastedDataImportBlock) {
+			String [] values2Sync = curReactor.getValues2Sync(PKQLEnum.PASTED_DATA);
 			synchronizeValues(PKQLEnum.PASTED_DATA, values2Sync, thisReactor);
 		}
 	}
 
 	public IDataMaker getDataFrame() {
-		if (this.curReactor != null) {
-			IDataMaker table = (IDataMaker) this.curReactor.getValue("G");
-			if (table == null) {
+		if(this.curReactor!=null){
+			IDataMaker table = (IDataMaker)this.curReactor.getValue("G");
+			if(table == null){
 				return this.frame;
 			}
 			return table;
-		} else {
+		}
+		else {
 			return null;
 		}
 	}
 
 	//**************************************** START DATA OPERATIONS **********************************************//
 
-	public void inADatatype(ADatatype node) {
-		System.out.println("Translation.inADatatype() with node = " + node);
-		if (reactorNames.containsKey(PKQLEnum.DATA_TYPE)) {
+	public void inADatatype(ADatatype node)
+	{
+		System.out.println("Translation.inADatatype() with node = "+ node );
+		if(reactorNames.containsKey(PKQLEnum.DATA_TYPE)) {
 			initReactor(PKQLEnum.DATA_TYPE);
 			String nodeStr = node.toString().trim();
 			curReactor.put(PKQLEnum.DATA_TYPE, nodeStr);
 		}
 	}
 
-	public void outADatatype(ADatatype node) {
-		System.out.println("Translation.outADatatype() with node = " + node);
+	public void outADatatype(ADatatype node)
+	{
+		System.out.println("Translation.outADatatype() with node = "+ node );
 		String thisNode = node.toString().trim();
 		IScriptReactor thisReactor = curReactor;
-		Hashtable<String, Object> thisReactorHash = deinitReactor(PKQLEnum.DATA_TYPE, thisNode, PKQLEnum.DATA_TYPE);
+		Hashtable <String, Object> thisReactorHash = deinitReactor(PKQLEnum.DATA_TYPE, thisNode, PKQLEnum.DATA_TYPE);
 		runner.setResponse(thisReactor.getValue(PKQLEnum.DATA_TYPE));
 		runner.setStatus(PKQLRunner.STATUS.SUCCESS);
 		runner.setCurrentString(PKQLEnum.DATA_TYPE);
 		runner.storeResponse();
 		System.out.println("");
 	}
-
-	public void inADataconnect(ADataconnect node) {
-		System.out.println("Translation.inADataconnect() with node = " + node);
-		if (reactorNames.containsKey(PKQLEnum.DATA_CONNECT)) {
+	
+	public void inADataconnect(ADataconnect node)
+    {
+    	System.out.println("Translation.inADataconnect() with node = "+ node );
+    	if(reactorNames.containsKey(PKQLEnum.DATA_CONNECT)) {
 			initReactor(PKQLEnum.DATA_CONNECT);
 			String nodeStr = node.toString().trim();
 			curReactor.put(PKQLEnum.DATA_CONNECT, nodeStr);
 		}
-	}
+    }
 
-	public void outADataconnect(ADataconnect node) {
-		System.out.println("Translation.outADataconnect() with node = " + node);
-		String thisNode = node.toString().trim();
-		IScriptReactor thisReactor = curReactor;
-		Hashtable<String, Object> thisReactorHash = deinitReactor(PKQLEnum.DATA_CONNECT, thisNode,
-				PKQLEnum.DATA_CONNECT);
+    public void outADataconnect(ADataconnect node)
+    {
+    	System.out.println("Translation.outADataconnect() with node = "+ node );
+    	String thisNode = node.toString().trim();
+    	IScriptReactor thisReactor = curReactor;
+		Hashtable <String, Object> thisReactorHash = deinitReactor(PKQLEnum.DATA_CONNECT, thisNode, PKQLEnum.DATA_CONNECT);
 		runner.setResponse(thisReactor.getValue(PKQLEnum.DATA_CONNECT));
 		runner.setStatus((STATUS) thisReactor.getValue("STATUS"));//
 		runner.setCurrentString(PKQLEnum.DATA_CONNECT);
 		runner.storeResponse();
-	}
-
-	public void inADataconnectdb(ADataconnectdb node) {
-		initReactor(PKQLEnum.DATA_CONNECTDB);
+    }
+    
+    public void inADataconnectdb(ADataconnectdb node)
+    {
+    	initReactor(PKQLEnum.DATA_CONNECTDB);
 		String nodeStr = node.toString().trim();
 		curReactor.put(PKQLEnum.DATA_CONNECTDB, nodeStr);
-	}
+    }
 
-	public void outADataconnectdb(ADataconnectdb node) {
-		String thisNode = node.toString().trim();
-		IScriptReactor thisReactor = curReactor;
-		Hashtable<String, Object> thisReactorHash = deinitReactor(PKQLEnum.DATA_CONNECTDB, thisNode,
-				PKQLEnum.DATA_CONNECTDB);
-	}
+    public void outADataconnectdb(ADataconnectdb node)
+    {
+    	String thisNode = node.toString().trim();
+    	IScriptReactor thisReactor = curReactor;
+		Hashtable <String, Object> thisReactorHash = deinitReactor(PKQLEnum.DATA_CONNECTDB, thisNode, PKQLEnum.DATA_CONNECTDB);
+    }
 
 }

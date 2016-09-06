@@ -44,8 +44,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.Vector;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 import org.apache.commons.io.IOUtils;
 import org.apache.log4j.LogManager;
@@ -77,6 +75,8 @@ import prerna.engine.impl.rdf.InMemorySesameEngine;
 import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.rdf.query.builder.QueryBuilderData;
 import prerna.sablecc.PKQLRunner;
+import prerna.sablecc.meta.FilePkqlMetadata;
+import prerna.sablecc.meta.IPkqlMetadata;
 import prerna.solr.SolrIndexEngine;
 import prerna.ui.components.api.IPlaySheet;
 import prerna.ui.components.playsheets.datamakers.DataMakerComponent;
@@ -133,11 +133,14 @@ public class Insight {
 	private PKQLRunner pkqlRunner; // unique to this insight that is responsible for tracking state and variables
 	
 	
+	
 	private static final String IS_DB_INSIGHT_KEY = "isDbInsight";				// is the insight from a db or copy/paste 
-	private List<String> filesUsedInInsight = new Vector<String>();				/* keep a list of all the files that are used to create this insight
-																					this is important so we can save those files into full databases
-																					if the insight is saved
-																				*/
+	
+	private List<IPkqlMetadata> pkqlMetadata = new Vector<IPkqlMetadata>();		// store the pkql metadata
+	private List<FilePkqlMetadata> filesUsedInInsight = new Vector<FilePkqlMetadata>();				/* keep a list of all the files that are used to create this insight
+																										this is important so we can save those files into full databases
+																										if the insight is saved
+																									*/
 	// database id where this insight is
 	// this may be a URL
 	// in memory
@@ -406,81 +409,87 @@ public class Insight {
 	}
 	
 	public boolean isDbInsight() {
-//		return (Boolean) this.propHash.get(IS_DB_INSIGHT_KEY);
-
-		// we are modifying this to not use the boolean
-		
-		// a user can add a csv/excel file to upload additional data at any time
-		// what we need to do is figure out if that has been done and create a db
-		// for each file they uploaded
-		// TODO: we need to store better metadata at the transformation in order
-		// to easily determine if that has occured...
-		// for the time being, i will make the following assumptions that data is
-		// only loaded from a single csv and it is the first operation performed 
-		// and use bad string manipulation to determine if that is the case :(
-		
-		// need to do a clear so we do not refill if this method is called multiple times
-		filesUsedInInsight.clear();
-		
-		if(this.dmComponents == null) {
-			getDataMakerComponents();
-		}
-		
-		if(this.dmComponents.isEmpty()) {
-			return true;
-		}
-		
-		// we are assuming that the csv/excel file load is the first thing
-		// a user has done... so we will get the first transformation and do
-		// this check
-		DataMakerComponent firstComp = dmComponents.get(0);
-		
-		// first we need to confirm that the first thing is a pkql transformation
-		List<ISEMOSSTransformation> postTrans = firstComp.getPostTrans();
-		if(postTrans.isEmpty()) {
-			return true;
-		}
-		
-		for(int transIdx = 0; transIdx < postTrans.size(); transIdx++) {
-			ISEMOSSTransformation firstTrans = postTrans.get(transIdx);
-			if(!(firstTrans instanceof PKQLTransformation)) {
-				continue;
-			}
-			
-			// okay, so its a pkql transformation so we can now do the check
-			PKQLTransformation pkqlTrans = (PKQLTransformation) firstTrans;
-			List<String> listPkqlRun = pkqlTrans.getPkql();
-			for(int pkqlIdx = 0; pkqlIdx < listPkqlRun.size(); pkqlIdx++) {
-				String pkqlExp = listPkqlRun.get(pkqlIdx);
-				pkqlExp = pkqlExp.replace(" ", "");
-				// ugh, the bad string manipulation check :(
-				if(pkqlExp.startsWith("data.import(api:csvFile.query")) {
-					// cool, we got a drag/drop file
-					// need to store this info to save it properly
-					
-					String regex = "\\'file':.*?\\}";
-					Pattern pattern = Pattern.compile(regex);
-					Matcher matcher = pattern.matcher(pkqlExp);
-					while(matcher.find()) {
-						String fileInfo = matcher.group();
-						fileInfo = fileInfo.replace("'file':'", "");
-						fileInfo = fileInfo.replace("'}", "");
-						fileInfo = fileInfo.replace("',", "");
-
-						// this will have the file path location of the csv file
-						filesUsedInInsight.add(fileInfo);
-					}
-				}
-			}
-		}
-		
-		// if we don't have any files, return true
 		if(filesUsedInInsight.isEmpty()) {
 			return true;
+		} else {
+			return false;
 		}
 		
-		// else, we got to save a new db, return false
-		return false;
+////		return (Boolean) this.propHash.get(IS_DB_INSIGHT_KEY);
+//
+//		// we are modifying this to not use the boolean
+//		
+//		// a user can add a csv/excel file to upload additional data at any time
+//		// what we need to do is figure out if that has been done and create a db
+//		// for each file they uploaded
+//		// TODO: we need to store better metadata at the transformation in order
+//		// to easily determine if that has occured...
+//		// for the time being, i will make the following assumptions that data is
+//		// only loaded from a single csv and it is the first operation performed 
+//		// and use bad string manipulation to determine if that is the case :(
+//		
+//		// need to do a clear so we do not refill if this method is called multiple times
+//		filesUsedInInsight.clear();
+//		
+//		if(this.dmComponents == null) {
+//			getDataMakerComponents();
+//		}
+//		
+//		if(this.dmComponents.isEmpty()) {
+//			return true;
+//		}
+//		
+//		// we are assuming that the csv/excel file load is the first thing
+//		// a user has done... so we will get the first transformation and do
+//		// this check
+//		DataMakerComponent firstComp = dmComponents.get(0);
+//		
+//		// first we need to confirm that the first thing is a pkql transformation
+//		List<ISEMOSSTransformation> postTrans = firstComp.getPostTrans();
+//		if(postTrans.isEmpty()) {
+//			return true;
+//		}
+//		
+//		for(int transIdx = 0; transIdx < postTrans.size(); transIdx++) {
+//			ISEMOSSTransformation firstTrans = postTrans.get(transIdx);
+//			if(!(firstTrans instanceof PKQLTransformation)) {
+//				continue;
+//			}
+//			
+//			// okay, so its a pkql transformation so we can now do the check
+//			PKQLTransformation pkqlTrans = (PKQLTransformation) firstTrans;
+//			List<String> listPkqlRun = pkqlTrans.getPkql();
+//			for(int pkqlIdx = 0; pkqlIdx < listPkqlRun.size(); pkqlIdx++) {
+//				String pkqlExp = listPkqlRun.get(pkqlIdx);
+//				pkqlExp = pkqlExp.replace(" ", "");
+//				// ugh, the bad string manipulation check :(
+//				if(pkqlExp.startsWith("data.import(api:csvFile.query")) {
+//					// cool, we got a drag/drop file
+//					// need to store this info to save it properly
+//					
+//					String regex = "\\'file':.*?\\}";
+//					Pattern pattern = Pattern.compile(regex);
+//					Matcher matcher = pattern.matcher(pkqlExp);
+//					while(matcher.find()) {
+//						String fileInfo = matcher.group();
+//						fileInfo = fileInfo.replace("'file':'", "");
+//						fileInfo = fileInfo.replace("'}", "");
+//						fileInfo = fileInfo.replace("',", "");
+//
+//						// this will have the file path location of the csv file
+//						filesUsedInInsight.add(fileInfo);
+//					}
+//				}
+//			}
+//		}
+//		
+//		// if we don't have any files, return true
+//		if(filesUsedInInsight.isEmpty()) {
+//			return true;
+//		}
+//		
+//		// else, we got to save a new db, return false
+//		return false;
 	}
 	
 	/**
@@ -1060,9 +1069,31 @@ public class Insight {
 					dmc.addPostTrans(postTrans.get(i));
 				}
 			}
+			
+			// grab and process the metadata response from each transformation
+			// currently, the only thing that we are parsing is the metadata around files that are manually added
+			if(postTransCopy.get(i) instanceof PKQLTransformation) {
+				List<IPkqlMetadata> metadataResponse = ((PKQLTransformation) postTransCopy.get(i)).getPkqlMetadataList();
+				if(metadataResponse != null && !metadataResponse.isEmpty()) {
+					parseMetadataResponse(metadataResponse);
+					this.pkqlMetadata.addAll(metadataResponse);
+				}
+			}
 		}
 	}
 	
+	// this is literally just aggregating the respones that i care about
+	// at the moment, i only care about those pertaining to files
+	// since i need to grab this info to save a full engine when this engine is saved
+	// using those files
+	private void parseMetadataResponse(List<IPkqlMetadata> metadataResponse) {
+		for(IPkqlMetadata meta : metadataResponse) {
+			if(meta instanceof FilePkqlMetadata) {
+				this.filesUsedInInsight.add( (FilePkqlMetadata) meta);
+			}
+		}
+	}
+
 	public DataMakerComponent getLastComponent() {
 		if(getDataMakerComponents().size()==0){
 			DataMakerComponent empty = new DataMakerComponent(Constants.LOCAL_MASTER_DB_NAME, Constants.EMPTY);
@@ -1792,7 +1823,7 @@ public class Insight {
 		this.parentInsight = insight;
 	}
 	
-	public List<String> getFilesUsedInInsight() {
+	public List<FilePkqlMetadata> getFilesMetadata() {
 		return this.filesUsedInInsight;
 	}
 
@@ -1807,6 +1838,10 @@ public class Insight {
 		if(getDataMaker() instanceof Dashboard) {
 			((Dashboard)this.dataMaker).unJoinInsights(insight);
 		}
+	}
+
+	public List<FilePkqlMetadata> getFilesUsedInInsight() {
+		return this.getFilesMetadata();
 	}
 
 }

@@ -5,7 +5,7 @@ import java.util.Iterator;
 public class ExprRowReactor extends AbstractReactor {
 
 	public ExprRowReactor() {
-		String[] thisReacts = { PKQLEnum.COL_DEF, PKQLEnum.DECIMAL, PKQLEnum.NUMBER, PKQLEnum.EXPLAIN };
+		String[] thisReacts = { PKQLEnum.COL_DEF, PKQLEnum.DECIMAL, PKQLEnum.NUMBER};
 		super.whatIReactTo = thisReacts;
 		super.whoAmI = PKQLEnum.EXPR_ROW;
 	}
@@ -30,12 +30,4 @@ public class ExprRowReactor extends AbstractReactor {
 
 		return null;
 	}
-
-	@Override
-	public String explain() {
-		String msg = "";
-//		msg += "ExprRowReactor";
-		return msg;
-	}
-
 }

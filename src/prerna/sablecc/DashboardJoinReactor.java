@@ -6,13 +6,10 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
-import prerna.ds.H2.H2Frame;
-import prerna.ds.H2.H2Joiner;
 import prerna.om.Dashboard;
 import prerna.om.Insight;
 import prerna.om.InsightStore;
 import prerna.sablecc.PKQLEnum.PKQLReactor;
-import prerna.ui.components.playsheets.datamakers.IDataMaker;
 
 public class DashboardJoinReactor extends AbstractReactor {
 	
@@ -65,10 +62,6 @@ public class DashboardJoinReactor extends AbstractReactor {
 			System.err.println("Error retrieving insights");
 			return null;
 		}
-		
-		
-		
-		
 		
 //		dashboard.joinInsights(null, colsForInsightsToJoin);
 //		dashboard.addInsight(in1);
@@ -141,13 +134,5 @@ public class DashboardJoinReactor extends AbstractReactor {
 			joinDataList.add(getDashboardData(insightIDs, nextJoinCols, joinType));
 		}
 		this.myStore.put("DashboardData", joinDataList);
-	}
-
-	@Override
-	public String explain() {
-		// TODO Auto-generated method stub
-		String msg = "";
-//		msg += "DashboardJoinReactor";
-		return msg;
 	}
 }

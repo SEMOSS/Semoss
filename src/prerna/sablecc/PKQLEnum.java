@@ -54,6 +54,7 @@ public class PKQLEnum {
 	public static String REL_TYPE = "REL_TYPE";
 	public static String REL_DEF = "REL_DEF";
 	public static String JOINS = "JOINS";
+	public static String TABLE_JOINS = "TABLE_JOINS";
 	public static String FROM_COL = "FROM_COL";
 	public static String TO_COL = "TO_COL";
 	public static String COL_ADD = "COL_ADD";
@@ -68,8 +69,6 @@ public class PKQLEnum {
 	public static String COL_TABLE = "COL_TABLE";
 	public static String DATA_CONNECTDB = "DATA_CONNECTDB";
 	public static String VAR_PARAM = "VAR_PARAM";
-//	public static String RELATION = "RELATION";
-	public static String EXPLAIN = "EXPLAIN";
 	public static String TERM = "TERM";
 	
 	public static String QUERY_API = "QUERY_API";

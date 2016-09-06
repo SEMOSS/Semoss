@@ -15,7 +15,7 @@ public class ColSplitReactor extends AbstractReactor {
 	ITableDataFrame frame;
 
 	public ColSplitReactor() {
-		String [] thisReacts = {PKQLEnum.COL_DEF, PKQLEnum.WORD_OR_NUM, PKQLEnum.EXPLAIN}; // these are the input columns - there is also expr Term which I will come to shortly
+		String [] thisReacts = {PKQLEnum.COL_DEF, PKQLEnum.WORD_OR_NUM}; // these are the input columns - there is also expr Term which I will come to shortly
 		super.whatIReactTo = thisReacts;
 		super.whoAmI = PKQLEnum.COL_SPLIT;
 
@@ -132,11 +132,4 @@ public class ColSplitReactor extends AbstractReactor {
 		console.put("buttonActions", buttonActions);
 		return console;
 	}	*/
-
-	@Override
-	public String explain() {
-		String msg = "";
-//		msg += "ColSplitReactor";
-		return msg;
-	}	
 }
