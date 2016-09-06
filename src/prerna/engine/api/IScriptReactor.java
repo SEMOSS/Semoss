@@ -1,5 +1,7 @@
 package prerna.engine.api;
 
+import prerna.sablecc.meta.IPkqlMetadata;
+
 public interface IScriptReactor extends IApi {
 	
 
@@ -21,8 +23,20 @@ public interface IScriptReactor extends IApi {
 	// puts a particular value 
 	public void put(String key, Object value);
 
-	public String explain();
+//	public String explain();
 
 	// I am not sure if I need anything else ?
 	// I will know once I implement the expr reactor
+	
+	public IPkqlMetadata getPkqlMetadata();
+	
+	// MAHER TEST CODE
+	// IGNORE
+//	// store the value for a specific pkql component
+//	void addComponentValue(String componenet, Object value);
+//	
+//	// store the value to replace a specific pkql portion with a value
+//	// will be used to replace addReplacer logic
+//	void addExpressionToValue(String componenet, Object value);
+	
 }

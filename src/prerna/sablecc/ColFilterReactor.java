@@ -18,7 +18,7 @@ public class ColFilterReactor extends AbstractReactor{
 	ITableDataFrame frame;
 
 	public ColFilterReactor() {
-		String [] thisReacts = {PKQLEnum.FILTER, PKQLEnum.EXPLAIN}; // these are the input columns - there is also expr Term which I will come to shortly
+		String [] thisReacts = {PKQLEnum.FILTER}; // these are the input columns - there is also expr Term which I will come to shortly
 		super.whatIReactTo = thisReacts;
 		super.whoAmI = PKQLEnum.FILTER_DATA;
 
@@ -185,12 +185,4 @@ public class ColFilterReactor extends AbstractReactor{
 	//			}
 	//		}
 	//	}
-
-	@Override
-	public String explain() {
-		String msg = "";
-		//		msg += "ColFilterReactor";
-		return msg;
-	}
-
 }

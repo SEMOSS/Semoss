@@ -2,6 +2,7 @@ package prerna.sablecc;
 
 import java.util.HashMap;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
 import java.util.Vector;
 
@@ -9,6 +10,8 @@ import prerna.algorithm.api.ITableDataFrame;
 import prerna.ds.AlgorithmStrategy;
 import prerna.ds.spark.SparkDataFrame;
 import prerna.sablecc.PKQLRunner.STATUS;
+import prerna.sablecc.meta.IPkqlMetadata;
+import prerna.sablecc.meta.MathPkqlMetadata;
 
 public abstract class MathReactor extends AbstractReactor {
 
@@ -28,7 +31,7 @@ public abstract class MathReactor extends AbstractReactor {
 
 	public MathReactor() {
 		String[] thisReacts = { PKQLEnum.EXPR_TERM, PKQLEnum.DECIMAL, PKQLEnum.NUMBER, PKQLEnum.GROUP_BY,
-				PKQLEnum.COL_DEF, PKQLEnum.MATH_PARAM, PKQLEnum.EXPLAIN };
+				PKQLEnum.COL_DEF, PKQLEnum.MATH_PARAM};
 		super.whatIReactTo = thisReacts;
 		super.whoAmI = PKQLEnum.MATH_FUN;
 	}
@@ -149,26 +152,13 @@ public abstract class MathReactor extends AbstractReactor {
 		return null;
 	}
 
-	/*
-	 * Explains the reactor using Mustache templating engine.
-	 * 
-	 * @return String explaining the reactor
-	 */
-	public String explain() {
-		// values that are added to template engine
-		HashMap<String, Object> values = new HashMap<String, Object>();
-		values.put("operationName", myStore.get("PROC_NAME"));
-		values.put("operation", myStore.get("MOD_MATH_FUN"));
-	    values.put("whoAmI", whoAmI);
-		String template = "Performed {{operationName}} on {{operation}}.";
-		// check for colCSV it's a group by
-		if (myStore.containsKey(PKQLEnum.COL_CSV)) {
-			// remove period from sentence
-			template = template.substring(0, template.indexOf('.'));
-			template += " grouped by";
-		}
-		return generateExplain(template, values);
-
+	
+	public IPkqlMetadata getPkqlMetadata() {
+		MathPkqlMetadata metadata = new MathPkqlMetadata();
+		metadata.setColumnsOperatedOn((Vector<String>) myStore.get(PKQLEnum.COL_DEF));
+		metadata.setProcedureName((String) myStore.get("PROC_NAME"));
+		metadata.setPkqlStr((String) myStore.get("MATH_EXPRESSION"));
+		metadata.setGroupByColumns((List<String>) myStore.get(PKQLEnum.COL_CSV)); 
+		return metadata;
 	}
-
 }

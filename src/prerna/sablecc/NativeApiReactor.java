@@ -50,11 +50,4 @@ public class NativeApiReactor extends AbstractApiReactor {
 
 		return null;
 	}
-
-	@Override
-	public String explain() {
-		String msg = "";
-		msg += "NativeApiReactor";
-		return msg;
-	}
 }

@@ -1,14 +1,8 @@
 package prerna.sablecc;
 
-import java.util.Hashtable;
 import java.util.Iterator;
-import java.util.Vector;
 
-import prerna.ds.ExpressionReducer;
-import prerna.ds.TinkerFrame;
-import prerna.engine.api.IScriptReactor;
 import prerna.sablecc.PKQLEnum.PKQLReactor;
-import prerna.sablecc.PKQLRunner.STATUS;
 import prerna.util.Constants;
 
 public class VarReactor extends AbstractReactor {
@@ -21,7 +15,7 @@ public class VarReactor extends AbstractReactor {
 
 	public VarReactor() {
 		String[] thisReacts = { PKQLEnum.VAR_TERM, PKQLEnum.EXPR_TERM, PKQLEnum.INPUT, Constants.ENGINE,
-				PKQLEnum.OPEN_DATA, PKQLEnum.VAR_PARAM, "VAR", PKQLEnum.EXPLAIN };
+				PKQLEnum.OPEN_DATA, PKQLEnum.VAR_PARAM, "VAR"};
 		super.whatIReactTo = thisReacts;
 		super.whoAmI = PKQLReactor.VAR.toString();
 	}
@@ -41,12 +35,4 @@ public class VarReactor extends AbstractReactor {
 		}
 		return null;
 	}
-
-	@Override
-	public String explain() {
-		String msg = "";
-//		msg += "VarReactor";
-		return msg;
-	}
-
 }
