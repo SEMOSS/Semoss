@@ -196,6 +196,11 @@ public abstract class AbstractReactor implements IScriptReactor {
 	public HashMap<String, Object> getPKQLMetaData() {
 		return this.pkqlMetaData;
 	}
+	
+	//returns the PKQL command for specific reactor
+	public String getPKQL(){
+		return (String) this.pkqlMetaData.get("title");
+	}
 
 	public void setPKQLMetaData(String title, String pkqlCommand, String description, boolean showMenu,
 			boolean pinned) {

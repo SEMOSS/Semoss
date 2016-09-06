@@ -1,8 +1,6 @@
 package prerna.sablecc;
 
-import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
@@ -23,14 +21,12 @@ public class ColSplitReactor extends AbstractReactor {
 
 		//setting pkqlMetaData
 		String title = "Split a column by delimiter";
-		String pkqlCommand = "col.split(c:col1, delimiter);";
+		String pkqlCommand = "col.split(c:col1,delimiter);";
 		String description = "Splits a column to multiple columns based on delimiter";
 		boolean showMenu = true;
 		boolean pinned = true;
 		super.setPKQLMetaData(title, pkqlCommand, description, showMenu, pinned);
-		//super.setPKQLMetaDataInput(populatePKQLMetaDataInput());
 		super.setPKQLMetaDataInput();
-		//super.setPKQLMetaDataConsole(populatePKQLMetaDataConsole());
 	}
 
 	@Override
