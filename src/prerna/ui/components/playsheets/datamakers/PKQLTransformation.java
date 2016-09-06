@@ -8,11 +8,8 @@ import java.util.Vector;
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
-import com.google.gson.Gson;
-import com.google.gson.GsonBuilder;
-import com.google.gson.reflect.TypeToken;
-
 import prerna.sablecc.PKQLRunner;
+import prerna.sablecc.meta.IPkqlMetadata;
 
 public class PKQLTransformation extends AbstractTransformation {
 
@@ -30,9 +27,7 @@ public class PKQLTransformation extends AbstractTransformation {
 	
 	boolean addToRecipe = true;
 	int recipeIndex = -1;
-	
-	private String sourceEngine;
-	private String sourceId;
+	List<IPkqlMetadata> metadataList;
 	
 	public boolean isAddToRecipe() {
 		return this.addToRecipe;
@@ -42,6 +37,10 @@ public class PKQLTransformation extends AbstractTransformation {
 		return this.recipeIndex;
 	}
 
+	public List<IPkqlMetadata> getPkqlMetadataList() {
+		return this.metadataList;
+	}
+	
 	@Override
 	public void setProperties(Map<String, Object> props) {
 		//TODO: validate hash and set values
@@ -98,6 +97,20 @@ public class PKQLTransformation extends AbstractTransformation {
 				LOGGER.error("this is weird... my runner response doesn't have a PKQL command stored. Skipping for now in terms of adding to recipe");
 			}
 		}
+		
+		// store the metadata list on the post transformation
+		// this will be consolidated at the insight lvl
+		// but since insight runs all the pkql post transformations at the same 
+		// time on the datamaker
+		// i want to separate each one out since i dont want to have to constantly
+		// loop through everything in order to determine the difference
+		// would be unnecessary operation to perform when doing through create
+		this.metadataList = runner.getMetadataResponse();
+		if(this.metadataList != null) {
+			for(IPkqlMetadata meta : metadataList) {
+				meta.setInvokingPkqlTransformation(this);
+			}
+		}
 	}
 
 	@Override
@@ -113,21 +126,22 @@ public class PKQLTransformation extends AbstractTransformation {
 
 	@Override
 	public PKQLTransformation copy() {
-		PKQLTransformation joinCopy = new PKQLTransformation();
-		joinCopy.setDataMakers(dm);
-		joinCopy.setId(id);
-		joinCopy.runner = this.runner; // keep this shallow so updates can be gotten
-		joinCopy.feData = this.feData; // keep this shallow so updates can be gotten
-		joinCopy.parsedPkqls = this.parsedPkqls; // keep this shallow so updates can be gotten
-
-		if(props != null) {
-			Gson gson = new GsonBuilder().disableHtmlEscaping().serializeSpecialFloatingPointValues().setPrettyPrinting().create();
-			String propCopy = gson.toJson(props);
-			Map<String, Object> newProps = gson.fromJson(propCopy, new TypeToken<Map<String, Object>>() {}.getType());
-			joinCopy.setProperties(newProps);
-		}
-
-		return joinCopy;
+		return this;
+//		PKQLTransformation joinCopy = new PKQLTransformation();
+//		joinCopy.setDataMakers(dm);
+//		joinCopy.setId(id);
+//		joinCopy.runner = this.runner; // keep this shallow so updates can be gotten
+//		joinCopy.feData = this.feData; // keep this shallow so updates can be gotten
+//		joinCopy.parsedPkqls = this.parsedPkqls; // keep this shallow so updates can be gotten
+//
+//		if(props != null) {
+//			Gson gson = new GsonBuilder().disableHtmlEscaping().serializeSpecialFloatingPointValues().setPrettyPrinting().create();
+//			String propCopy = gson.toJson(props);
+//			Map<String, Object> newProps = gson.fromJson(propCopy, new TypeToken<Map<String, Object>>() {}.getType());
+//			joinCopy.setProperties(newProps);
+//		}
+//
+//		return joinCopy;
 	}
 	
 	public Map<String, Object> getFeData(){

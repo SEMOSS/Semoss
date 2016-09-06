@@ -1246,7 +1246,44 @@ public abstract class AbstractEngine implements IEngine {
 			return node;
 		}
 		
+		// in new schema, try the conceptual
+		query = "SELECT DISTINCT ?concept WHERE { "
+				+ "{?concept <http://www.w3.org/2002/07/owl#DatatypeProperty> ?phyProp }"
+				+ "{?phyProp <http://semoss.org/ontologies/Relation/Conceptual> <" + prop + ">}"
+				+ "}";
+		
+		wrapper = WrapperManager.getInstance().getSWrapper(baseDataEngine, query);
+		names = wrapper.getPhysicalVariables();
+		while(wrapper.hasNext()) {
+			ISelectStatement ss = wrapper.next();
+			String node = ss.getRawVar(names[0]).toString();
+			return node;
+		}
 		return null;
+	}
+	
+	public List<String> getParentOfProperty2(String prop) {
+		List<String> retList = new Vector<String>();
+		
+		if(!prop.startsWith("http://")) {
+			prop = "http://semoss.org/ontologies/Relation/Contains/" + prop;
+		}
+
+		// in new schema, try the conceptual
+		String query = "SELECT DISTINCT ?concept WHERE { "
+				+ "{?concept <http://www.w3.org/2002/07/owl#DatatypeProperty> ?phyProp }"
+				+ "{?phyProp <http://semoss.org/ontologies/Relation/Conceptual> <" + prop + ">}"
+				+ "}";
+		
+		ISelectWrapper wrapper = WrapperManager.getInstance().getSWrapper(baseDataEngine, query);
+		String[] names = wrapper.getPhysicalVariables();
+		while(wrapper.hasNext()) {
+			ISelectStatement ss = wrapper.next();
+			String node = ss.getRawVar(names[0]).toString();
+			retList.add(node);
+		}
+		
+		return retList;
 	}
 	
 	

@@ -42,8 +42,8 @@ public class RDBMSFlatCSVUploader extends AbstractCSVFileReader {
 	
 	// these keys are used within the return of the parseCSVData to get the
 	// headers and data types from a given csv file
-	private final String CSV_HEADERS = "headers";
-	private final String CSV_DATA_TYPES = "dataTypes";
+	public final static String CSV_HEADERS = "headers";
+	public final static String CSV_DATA_TYPES = "dataTypes";
 	
 	// used as a default for the unique row id
 	private final String BASE_PRIM_KEY = "_UNIQUE_ROW_ID";
@@ -208,7 +208,7 @@ public class RDBMSFlatCSVUploader extends AbstractCSVFileReader {
 		
 		// if csvMeta is null, we are not getting data type information from the FE, and we need to create this
 		// using all the file info
-		if(csvMeta == null) {
+		if(csvMeta == null || csvMeta.isEmpty()) {
 			// parse the csv meta to get the headers and data types
 			// headers and data types arrays match based on position 
 			// currently assume we are loading all the columns
@@ -825,6 +825,10 @@ public class RDBMSFlatCSVUploader extends AbstractCSVFileReader {
 	 */
 	public void setDataTypeMapList(List<Map<String, String[]>> dataTypeMapList) {
 		this.dataTypeMapList = dataTypeMapList;
+	}
+	
+	public Set<String> getNewTables() {
+		return this.newTables;
 	}
 	
 	//////////////////////////////// end utility methods //////////////////////////////

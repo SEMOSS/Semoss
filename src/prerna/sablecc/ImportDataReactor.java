@@ -4,6 +4,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Hashtable;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.Vector;
@@ -12,6 +13,8 @@ import cern.colt.Arrays;
 import prerna.algorithm.api.ITableDataFrame;
 import prerna.engine.api.IEngine;
 import prerna.engine.api.IEngineWrapper;
+import prerna.sablecc.meta.IPkqlMetadata;
+import prerna.sablecc.meta.ImportDataMetadata;
 import prerna.util.ArrayUtilityMethods;
 import prerna.util.DIHelper;
 
@@ -35,7 +38,7 @@ public abstract class ImportDataReactor extends AbstractReactor {
 	 */
 	public ImportDataReactor()
 	{
-		String [] thisReacts = {PKQLEnum.API, PKQLEnum.JOINS, PKQLEnum.CSV_TABLE, PKQLEnum.PASTED_DATA, PKQLEnum.EXPLAIN};
+		String [] thisReacts = {PKQLEnum.API, PKQLEnum.JOINS, PKQLEnum.CSV_TABLE, PKQLEnum.PASTED_DATA};
 		super.whatIReactTo = thisReacts;
 		super.whoAmI = PKQLEnum.IMPORT_DATA;
 
@@ -85,7 +88,6 @@ public abstract class ImportDataReactor extends AbstractReactor {
 		 * but the other cases where a mergeEdgeHash method is called is done in the frame specific classes.... not consistent 
 		 * for no reason
 		 */
-		
 		
 		modExpression();
 		System.out.println("My Store on IMPORT DATA REACTOR: " + myStore);
@@ -290,13 +292,13 @@ public abstract class ImportDataReactor extends AbstractReactor {
 		return "Successfully added data using:\n headers= " + Arrays.toString(headers);
 	}
 	
-	public String explain() {
-		HashMap<String, Object> values = new HashMap<String, Object>();
-		values.put("columns", myStore.get("API_COL_CSV"));
-		values.put("whoAmI", whoAmI);
-		String template = "Importing {{columns}}.";
-		return generateExplain(template, values);
+	// TODO as a result of this approach to get the message to send to the FE
+	// no longer need the logic above for createResponseString()
+	// need to push this information into the api reactors
+	public IPkqlMetadata getPkqlMetadata() {
+		ImportDataMetadata metadata = new ImportDataMetadata();
+		metadata.setPkqlStr((String) myStore.get(PKQLEnum.IMPORT_DATA));
+		metadata.setColumns((List<String>) myStore.get("API_COL_CSV"));
+		return metadata;
 	}
-
-	
 }

@@ -23,7 +23,7 @@ public class SQLInterpreter implements IQueryInterpreter{
 	QueryStruct qs = null;
 	
 	// this keeps the table aliases
-	private static Hashtable <String,String> aliases = new Hashtable<String,String>();
+	private Hashtable <String,String> aliases = new Hashtable<String,String>();
 	
 	// this keeps the column aliases
 	// contains {tableName -> {colName -> colAliasToUse} }
@@ -373,9 +373,16 @@ public class SQLInterpreter implements IQueryInterpreter{
 			// when adding implicit filtering from the dataframe as a pretrans that gets appended into the QS
 			// we store the value without the parent__, so need to check here if it is stored as a prop in the engine
 			if(engine != null) {
-				String parent = engine.getParentOfProperty(concept_property);
-				if(parent != null) {
-					concept_property = Utility.getClassName(parent) + "__" + concept_property;
+				List<String> parents = engine.getParentOfProperty2(concept_property);
+				if(parents != null) {
+					// since we can have 2 tables that have the same column
+					// we need to pick one with the table that already exists
+					for(String parent : parents) {
+						if(aliases.containsKey(Utility.getInstanceName(parent))) {
+							concept_property = Utility.getInstanceName(parent) + "__" + concept_property;
+							break;
+						}
+					}
 				}
 			}
 			String[] conProp = getConceptProperty(concept_property);
@@ -403,6 +410,10 @@ public class SQLInterpreter implements IQueryInterpreter{
 				String dataType = null;
 				if(engine != null) {
 					dataType = this.engine.getDataTypes("http://semoss.org/ontologies/Concept/" + property + "/" + concept);
+					// ugh, need to try if it is a property
+					if(dataType == null) {
+						dataType = this.engine.getDataTypes("http://semoss.org/ontologies/Relation/Contains/" + property + "/" + concept);
+					}
 					dataType = dataType.replace("TYPE:", "");
 				}
 				

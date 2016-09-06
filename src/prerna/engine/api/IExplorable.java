@@ -182,6 +182,8 @@ public interface IExplorable {
 
 	public String getParentOfProperty(String property);
 	
+	public List<String> getParentOfProperty2(String property);
+	
 	public QueryStruct getDatabaseQueryStruct();
 	
 	public Map<String, Object> getMetamodel();
