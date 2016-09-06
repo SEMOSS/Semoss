@@ -16,7 +16,7 @@ public class RemoveDataReactor extends AbstractReactor {
 	Hashtable<String, String[]> values2SyncHash = new Hashtable<String, String[]>();
 
 	public RemoveDataReactor() {
-		String[] thisReacts = { PKQLEnum.API, PKQLEnum.JOINS, PKQLEnum.EXPLAIN };
+		String[] thisReacts = { PKQLEnum.API, PKQLEnum.JOINS};
 		super.whatIReactTo = thisReacts;
 		super.whoAmI = PKQLEnum.REMOVE_DATA;
 
@@ -85,7 +85,6 @@ public class RemoveDataReactor extends AbstractReactor {
 	}
 
 	private String createResponseString(ISelectWrapper it) {
-
 		Map<String, Object> map = it.getResponseMeta();
 		String mssg = "";
 		for (String key : map.keySet()) {
@@ -96,12 +95,5 @@ public class RemoveDataReactor extends AbstractReactor {
 		}
 		String retStr = "Sucessfully deleted data using : \n" + mssg;
 		return retStr;
-	}
-
-	@Override
-	public String explain() {
-		String msg = "";
-//		msg += "RemoveDataReactor";
-		return msg;
 	}
 }

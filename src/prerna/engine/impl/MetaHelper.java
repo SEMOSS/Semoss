@@ -607,6 +607,11 @@ public class MetaHelper implements IExplorable {
 
 		return retParam;
 	}
-	
+
+	@Override
+	public List<String> getParentOfProperty2(String property) {
+		// TODO Auto-generated method stub
+		return null;
+	}
 
 }

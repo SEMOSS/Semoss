@@ -1,6 +1,5 @@
 package prerna.sablecc;
 
-import java.util.HashMap;
 import java.util.Iterator;
 
 public class ExprReactor extends AbstractReactor {
@@ -14,7 +13,7 @@ public class ExprReactor extends AbstractReactor {
 	//
 
 	public ExprReactor() {
-		String[] thisReacts = { PKQLEnum.COL_DEF, PKQLEnum.DECIMAL, PKQLEnum.NUMBER, PKQLEnum.EXPLAIN };
+		String[] thisReacts = { PKQLEnum.COL_DEF, PKQLEnum.DECIMAL, PKQLEnum.NUMBER };
 		super.whatIReactTo = thisReacts;
 		super.whoAmI = PKQLEnum.EXPR_TERM;
 	}
@@ -39,18 +38,4 @@ public class ExprReactor extends AbstractReactor {
 
 		return null;
 	}
-
-	@Override
-	public String explain() {
-		String msg = "";
-		HashMap<String, Object> values = new HashMap<String, Object>();
-		if (!myStore.containsKey(PKQLEnum.EXPLAIN)) {
-		    String template = " using {{operation}}";
-			values.put("operation", myStore.get("MOD_EXPR_TERM"));
-		    values.put("whoAmI", whoAmI);
-		    msg += generateExplain(template, values);
-		}
-		return msg;
-	}
-
 }

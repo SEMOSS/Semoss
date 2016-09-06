@@ -5,8 +5,6 @@ import java.util.Iterator;
 import java.util.Vector;
 
 import prerna.ds.ExpressionReducer;
-import prerna.ds.TinkerFrame;
-import prerna.engine.api.IScriptReactor;
 
 public class ColWhereReactor extends AbstractReactor {
 
@@ -25,8 +23,7 @@ public class ColWhereReactor extends AbstractReactor {
 	ExpressionReducer red = null;
 
 	public ColWhereReactor() {
-		String[] thisReacts = { PKQLEnum.COL_DEF, PKQLEnum.COL_DEF + "_1", PKQLEnum.COL_DEF + "_2", PKQLEnum.ROW_CSV, PKQLEnum.EXPLAIN,
-				PKQLEnum.VAR_TERM };
+		String[] thisReacts = { PKQLEnum.COL_DEF, PKQLEnum.COL_DEF + "_1", PKQLEnum.COL_DEF + "_2", PKQLEnum.ROW_CSV, PKQLEnum.VAR_TERM };
 		super.whatIReactTo = thisReacts;
 		super.whoAmI = PKQLEnum.WHERE;
 	}
@@ -60,13 +57,6 @@ public class ColWhereReactor extends AbstractReactor {
 		// this is where I would create the iterator to do various things
 
 		return null;
-	}
-
-	@Override
-	public String explain() {
-		String msg = "";
-//		msg += "ColWhereReactor";
-		return msg;
 	}
 
 }

@@ -11,6 +11,8 @@ import java.util.Vector;
 
 import prerna.algorithm.api.ITableDataFrame;
 import prerna.ds.TinkerFrame;
+import prerna.sablecc.meta.IPkqlMetadata;
+import prerna.sablecc.meta.VizPkqlMetadata;
 import prerna.util.ArrayUtilityMethods;
 
 /**
@@ -34,14 +36,13 @@ public class VizReactor extends AbstractReactor {
 		// PKQLEnum.COL_DEF = columns to do math on
 		// PKQLEnum.COL_CSV = group by columns
 		String[] thisReacts = { PKQLEnum.WORD_OR_NUM, "TERM", "MATH_EXPRESSION", PKQLEnum.PROC_NAME + "2",
-				PKQLEnum.COL_DEF + "2", PKQLEnum.COL_CSV + "2", PKQLEnum.EXPLAIN };
+				PKQLEnum.COL_DEF + "2", PKQLEnum.COL_CSV + "2"};
 		super.whatIReactTo = thisReacts;
 		super.whoAmI = PKQLEnum.VIZ;
 	}
 
 	@Override
 	public Iterator process() {
-
 		// grab the data i need
 		Object termObject = myStore.get("VizTableData");
 		ITableDataFrame frame = (ITableDataFrame) myStore.get("G");
@@ -498,133 +499,147 @@ public class VizReactor extends AbstractReactor {
 		}
 		return colArr;
 	}
-
-	@Override
-	public String explain() {
-		String msg = "";
-		// msg +="VizReactor" //Debugging
-
-		// if panel changes config
+	
+	public IPkqlMetadata getPkqlMetadata() {
+		VizPkqlMetadata metadata = new VizPkqlMetadata();
+		metadata.setPkqlStr((String) myStore.get(PKQLEnum.VIZ));
 		if (myStore.containsKey("configMap")) {
-			msg += configMap();
+			configMap(metadata);
 		}
 		// if panel changes look and feel
 		if (myStore.containsKey("lookAndFeel")) {
-			msg += lookAndFeel();
+			lookAndFeel(metadata);
 		}
 		// if new visualization is created
 		if (myStore.containsKey("layout")) {
-			msg += layout();
+			layout(metadata);
 		}
 		// if panel is cloned
 		if (myStore.containsKey("clone")) {
-			msg += clonePanel();
+			clonePanel(metadata);
 		}
 		// if panel is closed
 		if (myStore.containsKey("closedPanel")) {
-			msg += closePanel();
+			closePanel(metadata);
 		}
 		// handle comments
 		if (myStore.containsKey("commentAdded")) {
-			msg += commentAdded();
+			commentAdded(metadata);
 		}
-
-		return msg;
+		
+		return metadata;
 	}
 
-	private String commentAdded() {
-		HashMap<String, Object> values = new HashMap<String, Object>();
+	/**
+	 * Add to metadta a comment add operation
+	 * @param metadata
+	 */
+	private void commentAdded(VizPkqlMetadata metadata) {
 		Map commentMap = (HashMap) myStore.get("commentAdded");
-		values.put("text", (String) commentMap.get("text"));
-		values.put("whoAmI", whoAmI);
-		String template = "Added comment {{text}}.";
-		return generateExplain(template, values);
+		String commentText = (String) commentMap.get("text");
+		metadata.addVizComment(commentText);
 	}
 
-	private String closePanel() {
-		HashMap<String, Object> values = new HashMap<String, Object>();
+	/**
+	 * Add to metadata a panel close operation
+	 * @param metadata
+	 * @return
+	 */
+	private void closePanel(VizPkqlMetadata metadata) {
 		String closedPanel = (String) myStore.get("closedPanel");
 		closedPanel = closedPanel.substring(0, closedPanel.indexOf('.'));
-		values.put("closedPanel", closedPanel);
-		values.put("whoAmI", whoAmI);
-		String template = "Closed {{closedPanel}}.";
-		return generateExplain(template, values);
+		metadata.addVizClose(closedPanel);
 	}
 
-	private String clonePanel() {
-		HashMap<String, Object> values = new HashMap<String, Object>();
+	/**
+	 * Add to metadata a close panel operation
+	 * @param metadata
+	 * @return
+	 */
+	private void clonePanel(VizPkqlMetadata metadata) {
 		String oldPanel = (String) myStore.get("oldPanel");
 		oldPanel = oldPanel.substring(0, oldPanel.indexOf('.'));
-		values.put("oldPanel", oldPanel);
-		values.put("panelID", myStore.get("clone"));
-		values.put("whoAmI", whoAmI);
-		String template = "Cloned {{oldPanel}} to panel[{{panelID}}].";
-		return generateExplain(template, values);
+		String newPanel = (String) myStore.get("clone");
+		metadata.addVizClone(oldPanel, newPanel);
 	}
 
-	private String layout() {
-		HashMap<String, Object> values = new HashMap<String, Object>();
-		ArrayList<String> columns = new ArrayList<String>();
-		values.put("layout", myStore.get("layout"));
-		values.put("whoAmI", whoAmI);
-		String template = "Created {{layout}}visualization.";
-		// null in case of grid or for all columns
-		Vector term = (Vector) myStore.get(PKQLEnum.TERM);
-		if (!term.get(0).equals("null")) {
-			Vector terms = (Vector) myStore.get(PKQLEnum.TERM);
-			Iterator it = terms.iterator();
-			while (it.hasNext()) {
-				String key = ((String) it.next()).trim();
-				System.out.println(key);
-				if (key.substring(0, 2).equals("m:")) { // TODO need to do this
-														// better once
-														// exprReplacer is
-														// implemented
-					columns.add(((String) myStore.get(PKQLEnum.EXPLAIN)).replace(".", ""));
-					myStore.put(PKQLEnum.EXPLAIN, "");
-				} else if (myStore.containsKey(key)) {
-					columns.add((String) myStore.get(key));
-				}
-			}
-			values.put("columns", columns);
-			template = template.substring(0, template.indexOf('.'));
-			template += " using {{columns}}.";
+	/**
+	 * Add to metadata a layout modification
+	 * @param metadata
+	 */
+	private void layout(VizPkqlMetadata metadata) {
+		String visualType = (String) myStore.get("layout");
+		Vector<String> columns = (Vector<String>) myStore.get(PKQLEnum.TERM);
+		if(columns == null || columns.isEmpty()) {
+			columns = new Vector<String>();
+			columns.add("USING ALL COLUMNS");
 		}
-		// if(myStore.containsKey("VizTableData")){
-		// values.put("columns", myStore.get("VizTableData"));
-		// s += "VIZREACTOR {{columns}}.";
-		// }
-		return generateExplain(template, values);
+		metadata.addVizLayout(visualType, columns);
+		
+//		HashMap<String, Object> values = new HashMap<String, Object>();
+//		ArrayList<String> columns = new ArrayList<String>();
+//		values.put("layout", );
+//		values.put("whoAmI", whoAmI);
+//		String template = "Created {{layout}}visualization.";
+//		// null in case of grid or for all columns
+//		
+//		if (!term.get(0).equals("null")) {
+//			Vector terms = (Vector) myStore.get(PKQLEnum.TERM);
+//			Iterator it = terms.iterator();
+//			while (it.hasNext()) {
+//				String key = ((String) it.next()).trim();
+//				System.out.println(key);
+//				if (key.substring(0, 2).equals("m:")) { // TODO need to do this
+//														// better once
+//														// exprReplacer is
+//														// implemented
+//					columns.add(((String) myStore.get(PKQLEnum.EXPLAIN)).replace(".", ""));
+//					myStore.put(PKQLEnum.EXPLAIN, "");
+//				} else if (myStore.containsKey(key)) {
+//					columns.add((String) myStore.get(key));
+//				}
+//			}
+//			values.put("columns", columns);
+//			template = template.substring(0, template.indexOf('.'));
+//			template += " using {{columns}}.";
+//		}
+//		// if(myStore.containsKey("VizTableData")){
+//		// values.put("columns", myStore.get("VizTableData"));
+//		// s += "VIZREACTOR {{columns}}.";
+//		// }
+//		return generateExplain(template, values);
 	}
 
-	private String lookAndFeel() {
-		HashMap<String, Object> values = new HashMap<String, Object>();
+	/**
+	 * Add to the metadata a look-and-feel operation
+	 * @param metadata
+	 */
+	private void lookAndFeel(VizPkqlMetadata metadata) {
 		Map laf = (HashMap) myStore.get("lookAndFeel");
-		values.put("laf", laf);
-		values.put("whoAmI", whoAmI);
-		String template = "Changed look and feel {{laf}}.";
-		return generateExplain(template, values);
+		metadata.AddVizLookAndFeel(laf);
 	}
 
-	private String configMap() {
-		HashMap<String, Object> values = new HashMap<String, Object>();
+	/**
+	 * Add to the metadata a config map operation
+	 * @param metadata
+	 */
+	private void configMap(VizPkqlMetadata metadata) {
 		Map config = (HashMap) myStore.get("configMap");
 		Map size = (Map) config.get("size");
 		Object position = config.get("position");
-		values.put("width", (String) size.get("width"));
-		values.put("height", (String) size.get("height"));
+		
+		String width = (String) size.get("width");
+		String height = (String) size.get("height");
+		String top = "";
+		String left = "";
 		if(position instanceof Map) {
 			Map positionMap = (Map) position;
-			values.put("top", (String) positionMap.get("top"));
-			values.put("left", (String) positionMap.get("left"));
+			top = (String) positionMap.get("top");
+			left = (String) positionMap.get("left");
 		} else {
-			values.put("top", "auto");
-			values.put("left", "auto");
+			top = left = "auto";
 		}
-		
-		values.put("whoAmI", whoAmI);
-		String template = "Panel width: {{width}}, height: {{height}}, top: {{top}}, left: {{left}}";
-		return generateExplain(template, values);
-
+		// add to the metadata here
+		metadata.addVizConfigMap(width, height, top, left);
 	}
 }

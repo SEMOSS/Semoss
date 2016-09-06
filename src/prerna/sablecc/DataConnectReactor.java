@@ -13,14 +13,13 @@ import prerna.ds.spark.SparkDataFrame;
 public class DataConnectReactor extends AbstractReactor {
 
 	public DataConnectReactor() {
-		String[] thisReacts = { PKQLEnum.WORD_OR_NUM, PKQLEnum.EXPLAIN };
+		String[] thisReacts = { PKQLEnum.WORD_OR_NUM};
 		super.whatIReactTo = thisReacts;
 		super.whoAmI = PKQLEnum.DATA_CONNECT;
 	}
 
 	@Override
 	public Iterator process() {
-
 		Object value = myStore.get(PKQLEnum.WORD_OR_NUM);
 		System.out.println(value);//Testing the value passed in pkql data.connect(value)
 
@@ -45,15 +44,6 @@ public class DataConnectReactor extends AbstractReactor {
 			myStore.put("STATUS", PKQLRunner.STATUS.ERROR);
 		}
 	
-
 		return null;
 	}
-
-	@Override
-	public String explain() {
-		String msg = "";
-		msg += "DataConnectReactor";
-		return msg;
-	}
-
 }
