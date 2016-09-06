@@ -3015,21 +3015,20 @@ public class Utility {
 											inputMap.put("values", "");break;
 											
 							case "COL_SPLIT": inputMap.put("label", "Column to be split");
-											  inputMap.put("varName", "c:Col1");											  
+											  inputMap.put("varName", "c:col1");											  
 											  inputMap.put("type", "dropdown");
 											  inputMap.put("values", "");break;
 
 							}break;
 							
 		case "EXPR_TERM" : inputMap.put("label", "New Column Value");
-						   inputMap.put("varName", "(expression)");
+						   inputMap.put("varName", "expression");
 						   inputMap.put("dataType", "expression");
-						   inputMap.put("type", "dropdown");
+						   inputMap.put("type", "freetext");
 						   inputMap.put("restrictions", restrictions);
 						   inputMap.put("source", "");break;
 						   
-		case "WORD_OR_NUM" : inputMap.put("dataType", "text");
-		  					 
+		case "WORD_OR_NUM" : inputMap.put("dataType", "text");		  					 
 		  					 inputMap.put("restrictions", restrictions);
 		  					 inputMap.put("source", "");
 		  					 switch(reactor){
@@ -3038,6 +3037,16 @@ public class Utility {
 												  inputMap.put("type", "freetext");
 												  break;
 								}break;
+								
+		case "FILTERS" : inputMap.put("label", "Column with unfiltered data");
+		   				 inputMap.put("varName", "c:col1=[instances]");
+		   				 inputMap.put("dataType", "column");
+		   				 inputMap.put("type", "filterDropdown");
+		   				 inputMap.put("restrictions", restrictions);
+		   				 inputMap.put("source", "");
+		   				 inputMap.put("values", "");break;
+								
+		default: break;
 		}
 		return inputMap;
 	}
