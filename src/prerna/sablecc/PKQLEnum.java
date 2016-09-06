@@ -18,6 +18,9 @@ public class PKQLEnum {
 	public static final String INPUT = "INPUT";
 
 
+	
+
+
 	public static String DATA_FRAME = "DATA_FRAME";
 	public static String DATA_TYPE = "DATA_TYPE";
 	public static String DATA_CONNECT = "DATA_CONNECT";
@@ -42,6 +45,7 @@ public class PKQLEnum {
 	public static String CSV_TABLE = "CSV_TABLE";
 	public static String PASTED_DATA = "PASTED_DATA";
 	public static String DASHBOARD_JOIN	 = "DASHBOARD_JOIN";
+	public static String DASHBOARD_ADD = "DASHBOARD_ADD";
 	public static String ROW_CSV = "ROW_CSV";
 	public static String IMPORT_DATA = "IMPORT_DATA";
 	public static String REMOVE_DATA = "REMOVE_DATA";
