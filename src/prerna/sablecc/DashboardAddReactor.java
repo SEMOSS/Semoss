@@ -47,4 +47,10 @@ public class DashboardAddReactor extends AbstractReactor {
 		
 		return null;
 	}
+
+	@Override
+	public String explain() {
+		// TODO Auto-generated method stub
+		return null;
+	}
 }
