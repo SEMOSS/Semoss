@@ -3005,8 +3005,7 @@ public class Utility {
 		Object restrictions = new Object();
 		
 		switch(param){
-		case "COL_DEF" : inputMap.put("dataType", "text");
-						 
+		case "COL_DEF" : inputMap.put("dataType", "column");						 
 						 inputMap.put("restrictions", restrictions);
 						 inputMap.put("source", "");
 						 switch(reactor){//COL_DEF specifies different var for some reactors - for COL_ADD its new column name, for COL_SPLIT, its existinmg column name
@@ -3016,7 +3015,7 @@ public class Utility {
 											inputMap.put("values", "");break;
 											
 							case "COL_SPLIT": inputMap.put("label", "Column to be split");
-											  inputMap.put("varName", "c:Col1");
+											  inputMap.put("varName", "c:Col1");											  
 											  inputMap.put("type", "dropdown");
 											  inputMap.put("values", "");break;
 
