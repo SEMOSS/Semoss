@@ -3018,6 +3018,11 @@ public class Utility {
 											  inputMap.put("varName", "c:col1");											  
 											  inputMap.put("type", "dropdown");
 											  inputMap.put("values", "");break;
+											  
+							case "UNFILTER_DATA": inputMap.put("label", "Column to be unfiltered");
+							  					  inputMap.put("varName", "c:col1");											  
+							  					  inputMap.put("type", "dropdown");
+							  					  inputMap.put("values", "");break;
 
 							}break;
 							
