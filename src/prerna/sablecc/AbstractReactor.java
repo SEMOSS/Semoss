@@ -322,4 +322,9 @@ public abstract class AbstractReactor implements IScriptReactor {
 		}
 		return msg;
 	}
+
+	//returns the PKQL command for specific reactor
+	public String getPKQL(){
+		return (String) this.pkqlMetaData.get("title");
+	}
 }
