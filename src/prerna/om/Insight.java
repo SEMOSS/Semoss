@@ -1712,9 +1712,13 @@ public class Insight {
 		Object dashboardData = null;
 		Map<String, Object> resultHash = new HashMap<String, Object>();
 		if((dashboardData = pkqlRunner.getDashboardData()) != null) {
-			
 			Map dashboardMap = new HashMap();
 			dashboardMap.put(this.insightID, dashboardData);
+			resultHash.put("Dashboard", dashboardMap);
+		} else {
+			//else just put the insight id
+			Map dashboardMap = new HashMap();
+			dashboardMap.put("insightID", this.insightID);
 			resultHash.put("Dashboard", dashboardMap);
 		}
 		return resultHash;

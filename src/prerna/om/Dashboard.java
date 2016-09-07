@@ -163,6 +163,7 @@ public class Dashboard implements IDataMaker {
 		reactorNames.put(PKQLReactor.VAR.toString(), "prerna.sablecc.VarReactor");
 		reactorNames.put(PKQLReactor.INPUT.toString(), "prerna.sablecc.InputReactor");
 		reactorNames.put(PKQLEnum.COL_CSV, "prerna.sablecc.ColCsvReactor");
+		reactorNames.put(PKQLEnum.DASHBOARD_ADD, "prerna.sablecc.DashboardAddReactor");
 		return reactorNames;
 	}
 
@@ -217,6 +218,10 @@ public class Dashboard implements IDataMaker {
 		this.insightID = insightID;
 	}
 
+	public String getInsightID() {
+		return this.insightID;
+	}
+	
 	@Override
 	public void resetDataId() {
 		

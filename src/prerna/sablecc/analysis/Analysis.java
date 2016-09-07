@@ -53,6 +53,7 @@ public interface Analysis extends Switch
     void caseADataconnectDataop(ADataconnectDataop node);
     void caseADataconnectdbDataop(ADataconnectdbDataop node);
     void caseADashboardConfigDashboardop(ADashboardConfigDashboardop node);
+    void caseADashboardAddDashboardop(ADashboardAddDashboardop node);
     void caseAPanelViz(APanelViz node);
     void caseAPanelComment(APanelComment node);
     void caseAPanelCommentEdit(APanelCommentEdit node);
@@ -126,6 +127,7 @@ public interface Analysis extends Switch
     void caseACsvGroup(ACsvGroup node);
     void caseAExprRow(AExprRow node);
     void caseADashboardJoin(ADashboardJoin node);
+    void caseADashboardAdd(ADashboardAdd node);
     void caseAOpenDataJoinParam(AOpenDataJoinParam node);
     void caseAInsightidJoinParam(AInsightidJoinParam node);
     void caseAVariableJoinParam(AVariableJoinParam node);
@@ -239,6 +241,7 @@ public interface Analysis extends Switch
     void caseTDataconnectToken(TDataconnectToken node);
     void caseTDataconnectdbToken(TDataconnectdbToken node);
     void caseTDashboardconfig(TDashboardconfig node);
+    void caseTDashboardAddToken(TDashboardAddToken node);
     void caseTWherestr(TWherestr node);
     void caseEOF(EOF node);
     void caseInvalidToken(InvalidToken node);
