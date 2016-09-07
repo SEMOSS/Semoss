@@ -4121,25 +4121,25 @@ public class DepthFirstAdapter extends AnalysisAdapter
         outATabTerm(node);
     }
 
-    public void inAWcsvTerm(AWcsvTerm node)
+    public void inACsvTerm(ACsvTerm node)
     {
         defaultIn(node);
     }
 
-    public void outAWcsvTerm(AWcsvTerm node)
+    public void outACsvTerm(ACsvTerm node)
     {
         defaultOut(node);
     }
 
     @Override
-    public void caseAWcsvTerm(AWcsvTerm node)
+    public void caseACsvTerm(ACsvTerm node)
     {
-        inAWcsvTerm(node);
+        inACsvTerm(node);
         if(node.getCsvRow() != null)
         {
             node.getCsvRow().apply(this);
         }
-        outAWcsvTerm(node);
+        outACsvTerm(node);
     }
 
     public void inATerm(ATerm node)
