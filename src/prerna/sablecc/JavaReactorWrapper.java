@@ -1,11 +1,10 @@
 package prerna.sablecc;
 
-import java.io.BufferedReader;
 import java.io.File;
-import java.io.InputStreamReader;
 import java.util.Iterator;
 
 import javassist.CannotCompileException;
+import javassist.ClassClassPath;
 import javassist.ClassPool;
 import javassist.CtClass;
 import javassist.CtNewMethod;
@@ -45,6 +44,7 @@ public class JavaReactorWrapper extends AbstractReactor {
 		
 		try {
 			ClassPool pool = ClassPool.getDefault();
+			pool.insertClassPath(new ClassClassPath(this.getClass())); 
 			String	packageName = "t" + System.currentTimeMillis(); // make it unique
 			CtClass cc = pool.makeClass(packageName + ".c" + System.currentTimeMillis()); // the only reason I do this is if the user wants to do seomthing else
 			cc.setSuperclass(pool.get("prerna.sablecc.BaseJavaReactor"));
