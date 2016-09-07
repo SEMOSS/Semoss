@@ -98,25 +98,29 @@ public class InsightFilesToDatabaseReader {
 			
 			// format the types
 			Map<String, String> metaDataTypes = meta.getDataMap();
-			int numCols = metaDataTypes.size();
-			
-			// if no data types defined, skip
-			if(numCols == 0) {
-				dataTypeMapList.add(new Hashtable<String, String[]>());
-				continue;
+			if(metaDataTypes != null) {
+				int numCols = metaDataTypes.size();
+				
+				// if no data types defined, skip
+				if(numCols == 0) {
+					dataTypeMapList.add(new Hashtable<String, String[]>());
+					continue;
+				}
+				
+				String[] headers = new String[numCols];
+				String[] types = new String[numCols];
+				int counter = 0;
+				for(String header : metaDataTypes.keySet()) {
+					headers[counter] = header;
+					types[counter] = metaDataTypes.get(header);
+				}
+				Map<String, String[]> dataTypes = new Hashtable<String, String[]>();
+				dataTypes.put(RDBMSFlatCSVUploader.CSV_HEADERS, headers);
+				dataTypes.put(RDBMSFlatCSVUploader.CSV_DATA_TYPES, types);
+				dataTypeMapList.add(dataTypes);
+			} else {
+				dataTypeMapList.add(null);
 			}
-			
-			String[] headers = new String[numCols];
-			String[] types = new String[numCols];
-			int counter = 0;
-			for(String header : metaDataTypes.keySet()) {
-				headers[counter] = header;
-				types[counter] = metaDataTypes.get(header);
-			}
-			Map<String, String[]> dataTypes = new Hashtable<String, String[]>();
-			dataTypes.put(RDBMSFlatCSVUploader.CSV_HEADERS, headers);
-			dataTypes.put(RDBMSFlatCSVUploader.CSV_DATA_TYPES, types);
-			dataTypeMapList.add(dataTypes);
 		}
 		
 		boolean error = false;

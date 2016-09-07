@@ -47,7 +47,7 @@ public abstract class ImportDataReactor extends AbstractReactor {
 		values2SyncHash.put(PKQLEnum.API, dataFromApi);
 
 		// when the data is coming from user copy/paste data into the tool
-		String [] dataFromPastedData = {"EDGE_HASH"};
+		String [] dataFromPastedData = {"EDGE_HASH", PKQLEnum.COL_CSV};
 		values2SyncHash.put(PKQLEnum.PASTED_DATA, dataFromPastedData);
 		
 		// TODO: don't really need this, should probably remove it since the format is
@@ -298,7 +298,13 @@ public abstract class ImportDataReactor extends AbstractReactor {
 	public IPkqlMetadata getPkqlMetadata() {
 		ImportDataMetadata metadata = new ImportDataMetadata();
 		metadata.setPkqlStr((String) myStore.get(PKQLEnum.IMPORT_DATA));
-		metadata.setColumns((List<String>) myStore.get("API_COL_CSV"));
+		if(myStore.containsKey("API_COL_CSV")) {
+			metadata.setColumns((List<String>) myStore.get("API_COL_CSV"));
+		} else if(myStore.containsKey("PASTED_DATA_COL_CSV")) {
+			metadata.setColumns((List<String>) myStore.get("PASTED_DATA_COL_CSV"));
+		} else if(myStore.containsKey("CSV_TABLE_COL_CSV")) {
+			metadata.setColumns((List<String>) myStore.get("CSV_TABLE_COL_CSV"));
+		}
 		return metadata;
 	}
 }

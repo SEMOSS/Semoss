@@ -1699,10 +1699,10 @@ public class Translation extends DepthFirstAdapter {
 		IScriptReactor thisReactor = curReactor;
 		deinitReactor(PKQLEnum.PASTED_DATA, thisNode, PKQLEnum.PASTED_DATA);
 
-		if(curReactor != null && node.parent() != null && node.parent() instanceof APastedDataImportBlock) {
+//		if(curReactor != null && node.parent() != null && node.parent() instanceof APastedDataImportBlock) {
 			String [] values2Sync = curReactor.getValues2Sync(PKQLEnum.PASTED_DATA);
 			synchronizeValues(PKQLEnum.PASTED_DATA, values2Sync, thisReactor);
-		}
+//		}
 	}
 
 	public IDataMaker getDataFrame() {
