@@ -26,15 +26,16 @@ public class CsvTableReactor extends AbstractReactor {
 			System.out.println("error, not enough data... how do i send this up to return to FE?");
 		}
 		
-		Vector <String> selectors = new Vector<String>();
-		Vector<Object> headers = values.get(0);
+		List<String> selectors = new Vector<String>();
+		List<Object> headers = values.get(0);
 		for(Object o : headers) {
 			selectors.add(o + "");
 		}
+		this.put(PKQLEnum.COL_CSV, selectors);
 		
 		Map<String, Set<String>> edgeHash = TinkerMetaHelper.createPrimKeyEdgeHash(selectors.toArray(new String[]{}));
 		this.put("EDGE_HASH", edgeHash);
-
+		
 		String nodeStr = (String)myStore.get(whoAmI);
 		myStore.put(nodeStr, new CsvTableWrapper(values));
 

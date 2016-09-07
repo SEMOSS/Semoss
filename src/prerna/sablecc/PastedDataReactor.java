@@ -4,22 +4,26 @@ import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.text.SimpleDateFormat;
+import java.util.Arrays;
 import java.util.Date;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import prerna.algorithm.api.ITableDataFrame;
 import prerna.ds.QueryStruct;
 import prerna.ds.TinkerMetaHelper;
 import prerna.ds.util.FileIterator;
 import prerna.poi.main.helper.CSVFileHelper;
+import prerna.sablecc.meta.FilePkqlMetadata;
+import prerna.sablecc.meta.IPkqlMetadata;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
 
 public class PastedDataReactor extends AbstractReactor {
 
+	private String fileName;
+	
 	public PastedDataReactor() {
 		String [] thisReacts = {PKQLEnum.ROW_CSV, PKQLEnum.FILTER, PKQLEnum.JOINS, PKQLEnum.WORD_OR_NUM};
 		super.whatIReactTo = thisReacts;
@@ -35,8 +39,8 @@ public class PastedDataReactor extends AbstractReactor {
 		String modifiedDate = new SimpleDateFormat("yyyy_MM_dd_HH_mm_ss_SSSS").format(date);
 		String fileInfo = myStore.get(PKQLEnum.PASTED_DATA).toString().replace("<startInput>", "").replace("<endInput>", "");
 	
-		String path = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER) + "\\copyPastedData" + modifiedDate;
-		File file = new File(path);
+		fileName = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER) + "\\PastedData" + modifiedDate;
+		File file = new File(fileName);
 		FileWriter fw = null;
 		try {
 			fw = new FileWriter(file);
@@ -53,16 +57,17 @@ public class PastedDataReactor extends AbstractReactor {
 				}
 			}
 		}
-		System.out.println( "Saved Filename: " + path);
+		System.out.println( "Saved Filename: " + fileName);
 		
 		// create a helper to get the headers for qs and edge hash
 		CSVFileHelper helper = new CSVFileHelper();
 		String delimiter = ( (List<Object>) myStore.get(PKQLEnum.WORD_OR_NUM)).get(0).toString(); // why does this come back as an array
 		helper.setDelimiter(delimiter.charAt(0));
-		helper.parse(path);
+		helper.parse(fileName);
 
 		String[] headers = helper.getHeaders();
-		ITableDataFrame frame = (ITableDataFrame) myStore.get("G");
+		this.put(PKQLEnum.COL_CSV, Arrays.asList(headers));
+		
 		Map<String, Set<String>> edgeHash = TinkerMetaHelper.createPrimKeyEdgeHash(headers);
 		this.put("EDGE_HASH", edgeHash);
 		
@@ -70,11 +75,22 @@ public class PastedDataReactor extends AbstractReactor {
 		for(String header : headers) {
 			qs.addSelector(header, null);
 		}
-		Iterator it = new FileIterator(path, delimiter.charAt(0), qs, null);
+		Iterator it = new FileIterator(fileName, delimiter.charAt(0), qs, null);
 		
-		String nodeStr = (String)myStore.get(whoAmI);
+		String nodeStr = (String) myStore.get(whoAmI);
 		myStore.put(nodeStr, it);
 	
 		return null;
+	}
+	
+	public IPkqlMetadata getPkqlMetadata() {
+		FilePkqlMetadata fileData = new FilePkqlMetadata();
+		fileData.setFileLoc(this.fileName);
+		fileData.setDataMap(null);
+		fileData.setSelectors((List<String>) getValue(PKQLEnum.COL_CSV));
+		fileData.setTableJoin((List<Map<String, Object>>) getValue(PKQLEnum.TABLE_JOINS));
+		fileData.setPkqlStr((String) getValue(PKQLEnum.PASTED_DATA));
+		
+		return fileData;
 	}
 }
