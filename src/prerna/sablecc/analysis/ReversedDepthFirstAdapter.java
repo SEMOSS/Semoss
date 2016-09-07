@@ -933,6 +933,27 @@ public class ReversedDepthFirstAdapter extends AnalysisAdapter
         outADashboardConfigDashboardop(node);
     }
 
+    public void inADashboardAddDashboardop(ADashboardAddDashboardop node)
+    {
+        defaultIn(node);
+    }
+
+    public void outADashboardAddDashboardop(ADashboardAddDashboardop node)
+    {
+        defaultOut(node);
+    }
+
+    @Override
+    public void caseADashboardAddDashboardop(ADashboardAddDashboardop node)
+    {
+        inADashboardAddDashboardop(node);
+        if(node.getDashboardAdd() != null)
+        {
+            node.getDashboardAdd().apply(this);
+        }
+        outADashboardAddDashboardop(node);
+    }
+
     public void inAPanelViz(APanelViz node)
     {
         defaultIn(node);
@@ -3334,6 +3355,39 @@ public class ReversedDepthFirstAdapter extends AnalysisAdapter
         outADashboardJoin(node);
     }
 
+    public void inADashboardAdd(ADashboardAdd node)
+    {
+        defaultIn(node);
+    }
+
+    public void outADashboardAdd(ADashboardAdd node)
+    {
+        defaultOut(node);
+    }
+
+    @Override
+    public void caseADashboardAdd(ADashboardAdd node)
+    {
+        inADashboardAdd(node);
+        if(node.getRPar() != null)
+        {
+            node.getRPar().apply(this);
+        }
+        if(node.getInsightlist() != null)
+        {
+            node.getInsightlist().apply(this);
+        }
+        if(node.getLPar() != null)
+        {
+            node.getLPar().apply(this);
+        }
+        if(node.getDashboardAddToken() != null)
+        {
+            node.getDashboardAddToken().apply(this);
+        }
+        outADashboardAdd(node);
+    }
+
     public void inAOpenDataJoinParam(AOpenDataJoinParam node)
     {
         defaultIn(node);
@@ -3411,13 +3465,9 @@ public class ReversedDepthFirstAdapter extends AnalysisAdapter
     public void caseAJoinGroup(AJoinGroup node)
     {
         inAJoinGroup(node);
+        if(node.getJoinParam() != null)
         {
-            List<PJoinParam> copy = new ArrayList<PJoinParam>(node.getJoinParam());
-            Collections.reverse(copy);
-            for(PJoinParam e : copy)
-            {
-                e.apply(this);
-            }
+            node.getJoinParam().apply(this);
         }
         if(node.getComma() != null)
         {
@@ -3444,9 +3494,13 @@ public class ReversedDepthFirstAdapter extends AnalysisAdapter
         {
             node.getRBracket().apply(this);
         }
-        if(node.getJoinGroup() != null)
         {
-            node.getJoinGroup().apply(this);
+            List<PJoinGroup> copy = new ArrayList<PJoinGroup>(node.getJoinGroup());
+            Collections.reverse(copy);
+            for(PJoinGroup e : copy)
+            {
+                e.apply(this);
+            }
         }
         if(node.getJoinParam() != null)
         {

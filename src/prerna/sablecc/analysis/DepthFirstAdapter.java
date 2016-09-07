@@ -932,6 +932,27 @@ public class DepthFirstAdapter extends AnalysisAdapter
         outADashboardConfigDashboardop(node);
     }
 
+    public void inADashboardAddDashboardop(ADashboardAddDashboardop node)
+    {
+        defaultIn(node);
+    }
+
+    public void outADashboardAddDashboardop(ADashboardAddDashboardop node)
+    {
+        defaultOut(node);
+    }
+
+    @Override
+    public void caseADashboardAddDashboardop(ADashboardAddDashboardop node)
+    {
+        inADashboardAddDashboardop(node);
+        if(node.getDashboardAdd() != null)
+        {
+            node.getDashboardAdd().apply(this);
+        }
+        outADashboardAddDashboardop(node);
+    }
+
     public void inAPanelViz(APanelViz node)
     {
         defaultIn(node);
@@ -3319,6 +3340,39 @@ public class DepthFirstAdapter extends AnalysisAdapter
         outADashboardJoin(node);
     }
 
+    public void inADashboardAdd(ADashboardAdd node)
+    {
+        defaultIn(node);
+    }
+
+    public void outADashboardAdd(ADashboardAdd node)
+    {
+        defaultOut(node);
+    }
+
+    @Override
+    public void caseADashboardAdd(ADashboardAdd node)
+    {
+        inADashboardAdd(node);
+        if(node.getDashboardAddToken() != null)
+        {
+            node.getDashboardAddToken().apply(this);
+        }
+        if(node.getLPar() != null)
+        {
+            node.getLPar().apply(this);
+        }
+        if(node.getInsightlist() != null)
+        {
+            node.getInsightlist().apply(this);
+        }
+        if(node.getRPar() != null)
+        {
+            node.getRPar().apply(this);
+        }
+        outADashboardAdd(node);
+    }
+
     public void inAOpenDataJoinParam(AOpenDataJoinParam node)
     {
         defaultIn(node);
@@ -3400,12 +3454,9 @@ public class DepthFirstAdapter extends AnalysisAdapter
         {
             node.getComma().apply(this);
         }
+        if(node.getJoinParam() != null)
         {
-            List<PJoinParam> copy = new ArrayList<PJoinParam>(node.getJoinParam());
-            for(PJoinParam e : copy)
-            {
-                e.apply(this);
-            }
+            node.getJoinParam().apply(this);
         }
         outAJoinGroup(node);
     }
@@ -3432,9 +3483,12 @@ public class DepthFirstAdapter extends AnalysisAdapter
         {
             node.getJoinParam().apply(this);
         }
-        if(node.getJoinGroup() != null)
         {
-            node.getJoinGroup().apply(this);
+            List<PJoinGroup> copy = new ArrayList<PJoinGroup>(node.getJoinGroup());
+            for(PJoinGroup e : copy)
+            {
+                e.apply(this);
+            }
         }
         if(node.getRBracket() != null)
         {
