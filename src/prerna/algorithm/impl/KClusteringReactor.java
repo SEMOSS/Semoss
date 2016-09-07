@@ -28,7 +28,6 @@ public class KClusteringReactor extends MathReactor{
 		String[] columnsArray = convertVectorToArray(columns);
 		Iterator itr = getTinkerData(columns, (ITableDataFrame)myStore.get("G"), true);
 		int numRows = ((ITableDataFrame)myStore.get("G")).getNumRows();
-		
 		if(myStore.containsKey(PKQLEnum.MATH_PARAM)) {
 			Map<String, Object> options = (Map<String, Object>) myStore.get(PKQLEnum.MATH_PARAM);
 			
@@ -49,6 +48,11 @@ public class KClusteringReactor extends MathReactor{
 			//TODO: need to throw an error saying parameters are required
 			this.numClusters = (int)Math.round(Math.pow(numRows, 0.33));;
 			this.numIterations = 100;
+		}		
+
+		String filterColumn = null;
+		if(myStore.containsKey(PKQLEnum.COL_CSV)) {
+			filterColumn = ((Vector<String>)myStore.get(PKQLEnum.COL_CSV)).firstElement();
 		}
 		
 		KMeansModel kMeans = new KMeansModel(itr, this.numClusters, this.numIterations);
