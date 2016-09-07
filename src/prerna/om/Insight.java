@@ -1245,7 +1245,8 @@ public class Insight {
 //			if(dm instanceof ITableDataFrame && !selectors.isEmpty()) {
 //				retHash.putAll(dm.getDataMakerOutput(selectors.toArray(new String[]{})));
 			} else if(dm instanceof Dashboard) { 
-//				Dashboard dash = (Dashboard)dm;
+				Dashboard dash = (Dashboard)dm;
+				retHash.put("config", dash.getConfig());
 //				dash.setInsightID(insightID);
 				retHash.putAll(dm.getDataMakerOutput());
 			} else {
