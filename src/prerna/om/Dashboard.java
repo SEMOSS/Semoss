@@ -43,6 +43,8 @@ public class Dashboard implements IDataMaker {
 	// viewTable -> List of Insights
 	private Map<String, List<Insight>> insightMap = new HashMap<>();
 	
+	String config = "";
+	
 	public Dashboard() {
 		joiner = new H2Joiner(this);
 	}
@@ -227,6 +229,13 @@ public class Dashboard implements IDataMaker {
 		
 	}
 	
+	public void setConfig(String config) {
+		this.config = config;
+	}
+	
+	public String getConfig() {
+		return this.config;
+	}
 	/************************************* JOINING LOGIC **************************************/
 	
 	/**

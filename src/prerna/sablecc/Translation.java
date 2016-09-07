@@ -15,6 +15,7 @@ import com.google.gson.Gson;
 import prerna.algorithm.api.ITableDataFrame;
 import prerna.ds.TinkerFrame;
 import prerna.engine.api.IScriptReactor;
+import prerna.om.Dashboard;
 import prerna.sablecc.PKQLEnum.PKQLReactor;
 import prerna.sablecc.PKQLRunner.STATUS;
 import prerna.sablecc.analysis.DepthFirstAdapter;
@@ -896,6 +897,9 @@ public class Translation extends DepthFirstAdapter {
 			config = new HashMap();
 		}
 		config.putAll(new Gson().fromJson(node.getMap().toString(), HashMap.class));
+		
+		Dashboard dm = (Dashboard)curReactor.getValue("G");
+		dm.setConfig(node.getMap().toString());
 		runner.addFeData("config", config, true);
 		runner.setResponse("Successfully set config");
 		runner.setStatus(PKQLRunner.STATUS.SUCCESS);
