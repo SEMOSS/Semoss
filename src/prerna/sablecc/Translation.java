@@ -1169,7 +1169,7 @@ public class Translation extends DepthFirstAdapter {
 	@Override
 	public void inAColDef(AColDef node) {
 		String colName = node.getColname().toString().trim();
-		curReactor.put(PKQLEnum.COL_DEF, colName);
+		curReactor.set(PKQLEnum.COL_DEF, colName);
 		curReactor.addReplacer((node + "").trim(), colName);
 	}
 	
