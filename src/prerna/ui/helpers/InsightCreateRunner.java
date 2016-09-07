@@ -289,7 +289,7 @@ public class InsightCreateRunner implements Runnable{
 		
 		// previous insights did not save the table data align
 		// if it is not present, we get the table data align by setting the data maker in the playsheet and grabbing it
-		if((tableDataAlign == null || tableDataAlign.isEmpty()) && !(insight.getDataMaker() instanceof Dashboard)) {
+		if((tableDataAlign == null || tableDataAlign.isEmpty()) && !(insight.getDataMaker() instanceof Dashboard) && !insight.getOutput().toLowerCase().equals("ckeditor")) {
 			IPlaySheet playSheet = insight.getPlaySheet();
 			tableDataAlign = (Map<String, String>) (((AbstractPlaySheet) playSheet).getDataTableAlign());
 			insight.setDataTableAlign(tableDataAlign);
