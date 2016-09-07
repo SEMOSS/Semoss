@@ -38,11 +38,13 @@ public class DashboardJoinReactor extends AbstractReactor {
 		
 		List<String> insightsToJoin;
 		List<List<String>> colsForInsightsToJoin;
+		
 		try {
 			Dashboard dashboard = (Dashboard)myStore.get("G");
 			
 			insightsToJoin = (List<String>) myStore.get(PKQLEnum.JOIN_PARAM);			
-			colsForInsightsToJoin = (List<List<String>>) myStore.get(PKQLEnum.COL_CSV);
+			colsForInsightsToJoin = new ArrayList<>();
+			colsForInsightsToJoin.add((List<String>) myStore.get(PKQLEnum.COL_CSV));
 			String joinType = (String) myStore.get(PKQLEnum.REL_TYPE);
 			
 			List<Insight> insights = new ArrayList<>();

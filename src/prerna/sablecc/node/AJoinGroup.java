@@ -2,14 +2,13 @@
 
 package prerna.sablecc.node;
 
-import java.util.*;
 import prerna.sablecc.analysis.*;
 
 @SuppressWarnings("nls")
 public final class AJoinGroup extends PJoinGroup
 {
     private TComma _comma_;
-    private final LinkedList<PJoinParam> _joinParam_ = new LinkedList<PJoinParam>();
+    private PJoinParam _joinParam_;
 
     public AJoinGroup()
     {
@@ -18,7 +17,7 @@ public final class AJoinGroup extends PJoinGroup
 
     public AJoinGroup(
         @SuppressWarnings("hiding") TComma _comma_,
-        @SuppressWarnings("hiding") List<?> _joinParam_)
+        @SuppressWarnings("hiding") PJoinParam _joinParam_)
     {
         // Constructor
         setComma(_comma_);
@@ -32,7 +31,7 @@ public final class AJoinGroup extends PJoinGroup
     {
         return new AJoinGroup(
             cloneNode(this._comma_),
-            cloneList(this._joinParam_));
+            cloneNode(this._joinParam_));
     }
 
     @Override
@@ -66,30 +65,29 @@ public final class AJoinGroup extends PJoinGroup
         this._comma_ = node;
     }
 
-    public LinkedList<PJoinParam> getJoinParam()
+    public PJoinParam getJoinParam()
     {
         return this._joinParam_;
     }
 
-    public void setJoinParam(List<?> list)
+    public void setJoinParam(PJoinParam node)
     {
-        for(PJoinParam e : this._joinParam_)
+        if(this._joinParam_ != null)
         {
-            e.parent(null);
+            this._joinParam_.parent(null);
         }
-        this._joinParam_.clear();
 
-        for(Object obj_e : list)
+        if(node != null)
         {
-            PJoinParam e = (PJoinParam) obj_e;
-            if(e.parent() != null)
+            if(node.parent() != null)
             {
-                e.parent().removeChild(e);
+                node.parent().removeChild(node);
             }
 
-            e.parent(this);
-            this._joinParam_.add(e);
+            node.parent(this);
         }
+
+        this._joinParam_ = node;
     }
 
     @Override
@@ -110,8 +108,9 @@ public final class AJoinGroup extends PJoinGroup
             return;
         }
 
-        if(this._joinParam_.remove(child))
+        if(this._joinParam_ == child)
         {
+            this._joinParam_ = null;
             return;
         }
 
@@ -128,22 +127,10 @@ public final class AJoinGroup extends PJoinGroup
             return;
         }
 
-        for(ListIterator<PJoinParam> i = this._joinParam_.listIterator(); i.hasNext();)
+        if(this._joinParam_ == oldChild)
         {
-            if(i.next() == oldChild)
-            {
-                if(newChild != null)
-                {
-                    i.set((PJoinParam) newChild);
-                    newChild.parent(this);
-                    oldChild.parent(null);
-                    return;
-                }
-
-                i.remove();
-                oldChild.parent(null);
-                return;
-            }
+            setJoinParam((PJoinParam) newChild);
+            return;
         }
 
         throw new RuntimeException("Not a child.");

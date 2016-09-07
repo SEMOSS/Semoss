@@ -33,6 +33,7 @@ import prerna.sablecc.node.AConfiguration;
 import prerna.sablecc.node.ACsvRow;
 import prerna.sablecc.node.ACsvTable;
 import prerna.sablecc.node.ACsvTerm;
+import prerna.sablecc.node.ADashboardAdd;
 import prerna.sablecc.node.ADashboardConfig;
 import prerna.sablecc.node.ADashboardJoin;
 import prerna.sablecc.node.ADashboardopScript;
@@ -859,8 +860,26 @@ public class Translation extends DepthFirstAdapter {
 		runner.setDashBoardData(thisReactor.getValue("DashboardData"));
 	}
 	
-	public void inADashboardopScript(ADashboardopScript node)
+	public void inADashboardAdd(ADashboardAdd node)
     {
+		System.out.println("Have dashboard join as " + node);
+		if (reactorNames.containsKey(PKQLEnum.DASHBOARD_ADD)) {
+			initReactor(PKQLEnum.DASHBOARD_ADD);
+			String nodeStr = node + "";
+			curReactor.put(PKQLEnum.DASHBOARD_ADD, nodeStr.trim());
+		}
+    }
+
+    public void outADashboardAdd(ADashboardAdd node)
+    {
+    	String nodeStr = node.toString().trim();
+		IScriptReactor thisReactor = curReactor;
+		curReactor.put("G", this.frame);
+		Hashtable<String, Object> thisReactorHash = deinitReactor(PKQLEnum.DASHBOARD_ADD, nodeStr,	PKQLEnum.DASHBOARD_ADD);
+		runner.setDashBoardData(thisReactor.getValue("DashboardData"));
+    }
+
+	public void inADashboardopScript(ADashboardopScript node) {
 		runner.openFeDataBlock("Dashboard");
 		runner.addFeData("panelId", "Dashboard", true);
     }
