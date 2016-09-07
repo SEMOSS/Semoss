@@ -99,7 +99,7 @@ Tokens
  //dashboard_rem_token = 'dashboard.removeInsight'
  //dashboard_add_token = 'dashboard.addInsight'
  //dashboard_unjoin_token = 'dashboard.unjoin'
- 
+wherestr = 'where=' ;
  
 Ignored Tokens
  blank;
@@ -109,7 +109,7 @@ configuration = script*;
 
 script = {colop} colop  semicolon // column operations
 		 | {varop} varop semicolon// row operations or setting up data
-		 //| {j_op} j_op semicolon// java operation
+		 | {j_op} j_op semicolon// java operation
 		 | {expr} expr semicolon
 		 //| statop
 		 | {help} help semicolon
