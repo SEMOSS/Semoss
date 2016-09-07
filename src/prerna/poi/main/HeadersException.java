@@ -291,7 +291,9 @@ public class HeadersException {
 	}
 	
 	public boolean containsIllegalCharacter(String checkHeader) {
-		if(checkHeader.contains("+") || checkHeader.contains("%") || checkHeader.contains("@") || checkHeader.contains(";")) {
+		if(checkHeader.contains("+") || checkHeader.contains("%") || checkHeader.contains("@") || 
+				checkHeader.contains(";") || checkHeader.contains(" ") || checkHeader.contains("-") || 
+				checkHeader.contains("__")) {
 			// we found an illegal value!
 			return true;
 		}
@@ -303,6 +305,14 @@ public class HeadersException {
 		checkHeader = checkHeader.replace("@", "");
 		checkHeader = checkHeader.replace("%", "");
 		checkHeader = checkHeader.replace(";", "");
+		checkHeader = checkHeader.replace(" ", "_");
+		checkHeader = checkHeader.replace("-", "_");
+		
+		// need to replace 2 "__" with a single "_"
+		while(checkHeader.contains("__")) {
+			checkHeader = checkHeader.replace("__", "_");
+		}
+		
 		return checkHeader;
 	}
 	
