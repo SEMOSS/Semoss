@@ -1,8 +1,10 @@
 package prerna.sablecc;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 
 import prerna.om.Dashboard;
 import prerna.om.Insight;
@@ -39,6 +41,9 @@ public class DashboardAddReactor extends AbstractReactor {
 			}
 			
 			dashboard.addInsights(insights);
+			Map retData = new HashMap();
+			retData.put("insightID", dashboard.getInsightID());
+			this.myStore.put("DashboardData", retData);
 		} catch(Exception e) {
 			e.printStackTrace();
 			System.err.println("Error retrieving insights");
@@ -46,5 +51,15 @@ public class DashboardAddReactor extends AbstractReactor {
 		}
 		
 		return null;
+	}
+	
+	private void setDashboardData(List<String> insightIDs) {
+		List joinDataList = new ArrayList();
+		for(String insightID : insightIDs) {
+			Map map = new HashMap();
+			map.put("insightID", insightID);
+			joinDataList.add(map);
+		}
+		this.myStore.put("DashboardData", joinDataList);
 	}
 }
