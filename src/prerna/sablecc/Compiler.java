@@ -43,6 +43,7 @@ public class Compiler
   // new InputStreamReader(new StringBufferInputStream(" 1 + 2 * (3 + 5); ")), 1024)));
    //new InputStreamReader(new StringBufferInputStream("j:{a b c d };")), 1024)));
     new InputStreamReader(new StringBufferInputStream(""
+    												+ "j:<code>System.out.println(\"Crabby Patty !! \"); String data = null; data.toString();<code>;"
     												//+ "(3.0 + 4) * c:t;"
     												//+ "(3 + 4, [c:bp, c:ab]);"
     												//+ "col.import([c:col1,c:col2], ([c:col1, inner.join, c:col2])) . [[\"a\",\"b\"][2,3]];"
@@ -58,7 +59,7 @@ public class Compiler
 //    												+ "data.import(api:Documents\\something.csv.query([c:Title, c:Year]), ([c:Title, inner.join, c:Title]));"
 //    												+ "data.import(api:csvFile.query([c:Title, c:Studio, c:Year], {'file':'C:\\Users\\rluthar\\Documents\\Movie Results.csv'}));"
 //    												+ "m:Sum([c:Year]);"
-    												+ "data.open(\"Movie_RDBMS\", \"1\");"
+//    												+ "data.open(\"Movie_RDBMS\", \"1\");"
 //    												+ "data.import(api:csvFile.query([c:column1, c:column3], {'file':'C:\\Users\\rluthar\\Documents\\test2.csv'}), ([c:column1, outer.join, c:column1]));"
 //    												+ "col.add(c:newCol, (c:MovieBudget + c:Revenue-Domestic));"
 //    												+ "panel[0].setbuilder('this');"

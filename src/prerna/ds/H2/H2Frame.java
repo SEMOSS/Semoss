@@ -1255,7 +1255,7 @@ public class H2Frame extends AbstractTableDataFrame {
 		reactorNames.put(PKQLEnum.DATA_TYPE, "prerna.sablecc.DataTypeReactor");
 		reactorNames.put(PKQLEnum.DATA_CONNECT, "prerna.sablecc.DataConnectReactor");
 		reactorNames.put(PKQLEnum.COL_SPLIT, "prerna.sablecc.ColSplitReactor");
-
+		reactorNames.put(PKQLEnum.JAVA_OP, "prerna.sablecc.JavaReactorWrapper");
 		// switch(reactorType) {
 		// case IMPORT_DATA : return new H2ImportDataReactor();
 		// case COL_ADD : return new ColAddReactor();

@@ -15,6 +15,7 @@ public interface Analysis extends Switch
     void caseAConfiguration(AConfiguration node);
     void caseAColopScript(AColopScript node);
     void caseAVaropScript(AVaropScript node);
+    void caseAJOpScript(AJOpScript node);
     void caseAExprScript(AExprScript node);
     void caseAHelpScript(AHelpScript node);
     void caseAPanelopScript(APanelopScript node);
@@ -238,6 +239,7 @@ public interface Analysis extends Switch
     void caseTDataconnectToken(TDataconnectToken node);
     void caseTDataconnectdbToken(TDataconnectdbToken node);
     void caseTDashboardconfig(TDashboardconfig node);
+    void caseTWherestr(TWherestr node);
     void caseEOF(EOF node);
     void caseInvalidToken(InvalidToken node);
 }

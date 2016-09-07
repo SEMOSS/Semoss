@@ -18,8 +18,7 @@ public class PKQLEnum {
 	public static final String INPUT = "INPUT";
 
 
-	
-
+	public static final String JAVA_OP = "JAVA_OP";
 
 	public static String DATA_FRAME = "DATA_FRAME";
 	public static String DATA_TYPE = "DATA_TYPE";

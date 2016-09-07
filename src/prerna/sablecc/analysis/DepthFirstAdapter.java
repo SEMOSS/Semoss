@@ -110,6 +110,31 @@ public class DepthFirstAdapter extends AnalysisAdapter
         outAVaropScript(node);
     }
 
+    public void inAJOpScript(AJOpScript node)
+    {
+        defaultIn(node);
+    }
+
+    public void outAJOpScript(AJOpScript node)
+    {
+        defaultOut(node);
+    }
+
+    @Override
+    public void caseAJOpScript(AJOpScript node)
+    {
+        inAJOpScript(node);
+        if(node.getJOp() != null)
+        {
+            node.getJOp().apply(this);
+        }
+        if(node.getSemicolon() != null)
+        {
+            node.getSemicolon().apply(this);
+        }
+        outAJOpScript(node);
+    }
+
     public void inAExprScript(AExprScript node)
     {
         defaultIn(node);
