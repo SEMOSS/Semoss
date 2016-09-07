@@ -23,6 +23,8 @@ public interface IScriptReactor extends IApi {
 	// puts a particular value 
 	public void put(String key, Object value);
 
+	public Object remove(String key);
+	
 //	public String explain();
 
 	// I am not sure if I need anything else ?
@@ -30,13 +32,16 @@ public interface IScriptReactor extends IApi {
 	
 	public IPkqlMetadata getPkqlMetadata();
 	
-	// MAHER TEST CODE
-	// IGNORE
-//	// store the value for a specific pkql component
-//	void addComponentValue(String componenet, Object value);
-//	
-//	// store the value to replace a specific pkql portion with a value
-//	// will be used to replace addReplacer logic
-//	void addExpressionToValue(String componenet, Object value);
+	/**
+	 * Get the last value added into mystore
+	 * @return
+	 */
+	public String getLastStoredKey();
+	
+	/**
+	 * Return and remove the last stored value in mystore
+	 * @return
+	 */
+	public Object removeLastStoredKey();
 	
 }

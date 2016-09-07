@@ -5,16 +5,16 @@ package prerna.sablecc.node;
 import prerna.sablecc.analysis.*;
 
 @SuppressWarnings("nls")
-public final class AWcsvTerm extends PTerm
+public final class ACsvTerm extends PTerm
 {
     private PCsvRow _csvRow_;
 
-    public AWcsvTerm()
+    public ACsvTerm()
     {
         // Constructor
     }
 
-    public AWcsvTerm(
+    public ACsvTerm(
         @SuppressWarnings("hiding") PCsvRow _csvRow_)
     {
         // Constructor
@@ -25,14 +25,14 @@ public final class AWcsvTerm extends PTerm
     @Override
     public Object clone()
     {
-        return new AWcsvTerm(
+        return new ACsvTerm(
             cloneNode(this._csvRow_));
     }
 
     @Override
     public void apply(Switch sw)
     {
-        ((Analysis) sw).caseAWcsvTerm(this);
+        ((Analysis) sw).caseACsvTerm(this);
     }
 
     public PCsvRow getCsvRow()

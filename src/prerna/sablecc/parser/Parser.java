@@ -1464,7 +1464,7 @@ public class Parser
                 push(goTo(87), list, false);
             }
             break;
-            case 211: /* reduce AWcsvTerm */
+            case 211: /* reduce ACsvTerm */
             {
                 ArrayList<Object> list = new211();
                 push(goTo(87), list, false);
@@ -7933,7 +7933,7 @@ public class Parser
 
 
     @SuppressWarnings({ "unchecked", "rawtypes" })
-    ArrayList<Object> new211() /* reduce AWcsvTerm */
+    ArrayList<Object> new211() /* reduce ACsvTerm */
     {
         @SuppressWarnings("hiding") ArrayList<Object> nodeList = new ArrayList<Object>();
 
@@ -7944,7 +7944,7 @@ public class Parser
         PCsvRow pcsvrowNode2;
         pcsvrowNode2 = (PCsvRow)nodeArrayList1.get(0);
 
-        ptermNode1 = new AWcsvTerm(pcsvrowNode2);
+        ptermNode1 = new ACsvTerm(pcsvrowNode2);
         }
 	nodeList.add(ptermNode1);
         return nodeList;

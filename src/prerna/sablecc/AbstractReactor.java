@@ -39,6 +39,7 @@ public abstract class AbstractReactor implements IScriptReactor {
 	private String[] pkqlDefinition = {"title", "pkqlCommand", "description", "showMenu", "pinned", "input", "console"};
 	private HashMap <String, Object> pkqlMetaData = null;
 
+	private String lastKeyAdded = null;
 	
 	
 	// MAHER TEST CODE
@@ -205,9 +206,8 @@ public abstract class AbstractReactor implements IScriptReactor {
 
 	@Override
 	public void put(String key, Object value) {
-		// TODO Auto-generated method stub
 		myStore.put(key, value);
-
+		this.lastKeyAdded = key;
 	}
 
 	protected Iterator getTinkerData(Vector <String> columns, ITableDataFrame frame, boolean dedup)
@@ -327,4 +327,20 @@ public abstract class AbstractReactor implements IScriptReactor {
 	public String getPKQL(){
 		return (String) this.pkqlMetaData.get("title");
 	}
+	
+	@Override
+	public String getLastStoredKey() {
+		return this.lastKeyAdded;
+	}
+	
+	@Override
+	public Object remove(String key) {
+		return this.myStore.remove(key);
+	}
+	
+	@Override
+	public Object removeLastStoredKey() {
+		return this.myStore.remove(this.lastKeyAdded);
+	}
+	
 }
