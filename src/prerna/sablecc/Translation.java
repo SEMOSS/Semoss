@@ -1,5 +1,6 @@
 package prerna.sablecc;
 
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.Hashtable;
@@ -26,14 +27,12 @@ import prerna.sablecc.node.AApiTerm;
 import prerna.sablecc.node.AColCsv;
 import prerna.sablecc.node.AColDef;
 import prerna.sablecc.node.AColGroup;
-import prerna.sablecc.node.AColTerm;
 import prerna.sablecc.node.AColWhere;
 import prerna.sablecc.node.AColopScript;
 import prerna.sablecc.node.AConfiguration;
-import prerna.sablecc.node.ACsvGroup;
 import prerna.sablecc.node.ACsvRow;
 import prerna.sablecc.node.ACsvTable;
-import prerna.sablecc.node.ACsvTableImportBlock;
+import prerna.sablecc.node.ACsvTerm;
 import prerna.sablecc.node.ADashboardConfig;
 import prerna.sablecc.node.ADashboardJoin;
 import prerna.sablecc.node.ADashboardopScript;
@@ -48,6 +47,7 @@ import prerna.sablecc.node.AExprGroup;
 import prerna.sablecc.node.AExprInputOrExpr;
 import prerna.sablecc.node.AExprRow;
 import prerna.sablecc.node.AExprScript;
+import prerna.sablecc.node.AExprWordOrNum;
 import prerna.sablecc.node.AFilterColumn;
 import prerna.sablecc.node.AFlexSelectorRow;
 import prerna.sablecc.node.AHelpScript;
@@ -77,7 +77,6 @@ import prerna.sablecc.node.APanelViz;
 import prerna.sablecc.node.APanelopScript;
 import prerna.sablecc.node.APastedData;
 import prerna.sablecc.node.APastedDataBlock;
-import prerna.sablecc.node.APastedDataImportBlock;
 import prerna.sablecc.node.APlusExpr;
 import prerna.sablecc.node.ARelationDef;
 import prerna.sablecc.node.ARemoveData;
@@ -95,6 +94,7 @@ import prerna.sablecc.node.AVaropScript;
 import prerna.sablecc.node.Node;
 import prerna.sablecc.node.PColGroup;
 import prerna.sablecc.node.PCsvGroup;
+import prerna.sablecc.node.PCsvRow;
 import prerna.sablecc.node.PScript;
 import prerna.sablecc.node.TRelType;
 import prerna.ui.components.playsheets.datamakers.IDataMaker;
@@ -204,22 +204,18 @@ public class Translation extends DepthFirstAdapter {
 	}
 
 	public void initReactor(String myName) {
-		// want to keep track fo the main reactor
-		boolean isStartReactor = false;
-		if(reactorStack.size() == 0) {
-			isStartReactor = true;
-		}
-		
 		String parentName = null;
-		if(reactorHash != null)
+		if(reactorHash != null) {
 			// I am not sure I need to add element here
 			// I need 2 things in here
 			// I need the name of a parent i.e. what is my name and my parent name
 			// actually I just need my name
 			parentName = (String)reactorHash.get("SELF");
+		}
 		reactorHash = new Hashtable<String, Object>();
-		if(parentName != null)
+		if(parentName != null) {
 			reactorHash.put("PARENT_NAME", parentName);
+		}
 		reactorHash.put("SELF", myName);
 		reactorStack.addElement(reactorHash);
 
@@ -231,7 +227,6 @@ public class Translation extends DepthFirstAdapter {
 			// this is how I can get access to the parent when that happens
 			reactorHash.put(myName, curReactor);
 		} catch (InstantiationException | IllegalAccessException | ClassNotFoundException e) {
-			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
 	}
@@ -1015,12 +1010,45 @@ public class Translation extends DepthFirstAdapter {
 			// get the appropriate reactor
 			initReactor(PKQLEnum.EXPR_TERM);
 			// get the name of reactor
-			AColTerm term = ((AColTerm) node.getTerm());
-			String nodeTerm = ((AColDef) term.getCol()).getColname().getText().trim();
+			String nodeTerm = node.getTerm().toString().trim();
 			curReactor.put("G", frame);
 			curReactor.put(PKQLEnum.EXPR_TERM, nodeTerm);
 		}
 	}
+	
+//	@Override
+//	public void inAFormulaTerm(AFormulaTerm node) {
+//        System.out.println("WHAT IS THIS CASE!!! AFormulaTerm");
+//        System.out.println("WHAT IS THIS CASE!!! AFormulaTerm");
+//        System.out.println("WHAT IS THIS CASE!!! AFormulaTerm");
+//        System.out.println("WHAT IS THIS CASE!!! AFormulaTerm");
+//        System.out.println("WHAT IS THIS CASE!!! AFormulaTerm");
+//    }
+//	
+//	@Override
+//	public void outAColTerm(AColTerm node) {
+//		curReactor.put(PKQLEnum.EXPR_TERM, curReactor.removeLastStoredKey());
+//	}
+	
+	@Override
+	public void inAApiTerm(AApiTerm node) {
+		System.out.println("WHAT IS THIS CASE!!! AApiTerm");
+        System.out.println("WHAT IS THIS CASE!!! AApiTerm");
+        System.out.println("WHAT IS THIS CASE!!! AApiTerm");
+        System.out.println("WHAT IS THIS CASE!!! AApiTerm");
+        System.out.println("WHAT IS THIS CASE!!! AApiTerm");
+	}
+	
+	@Override
+	public void inACsvTerm(ACsvTerm node) {
+		System.out.println("WHAT IS THIS CASE!!! AApiTerm");
+        System.out.println("WHAT IS THIS CASE!!! AApiTerm");
+        System.out.println("WHAT IS THIS CASE!!! AApiTerm");
+        System.out.println("WHAT IS THIS CASE!!! AApiTerm");
+        System.out.println("WHAT IS THIS CASE!!! AApiTerm");
+	}
+	
+	
 
 	@Override
 	public void outATermExpr(ATermExpr node) {
@@ -1141,8 +1169,7 @@ public class Translation extends DepthFirstAdapter {
 	@Override
 	public void inAColDef(AColDef node) {
 		String colName = node.getColname().toString().trim();
-		// adding to the reactor
-		curReactor.set(PKQLEnum.COL_DEF, colName);
+		curReactor.put(PKQLEnum.COL_DEF, colName);
 		curReactor.addReplacer((node + "").trim(), colName);
 	}
 	
@@ -1287,47 +1314,6 @@ public class Translation extends DepthFirstAdapter {
 		}
 	}
 
-//	@Override
-//	public void inANumberTerm(ANumberTerm node) {
-//		String number = node.getDecimal().toString().trim();
-//	}
-
-	@Override
-	public void inADecimal(ADecimal node) {
-		String fraction = node.getFraction() + "";
-		String number = node.getWhole().toString().trim();
-		if(node.getFraction() != null)
-			number = number + "." + fraction;
-
-		curReactor.addReplacer(node.toString().trim(), Double.parseDouble(number));
-	}
-
-	@Override
-	public void inAAlphaWordOrNum(AAlphaWordOrNum node) {
-		
-	}
-
-	@Override
-	public void outAAlphaWordOrNum(AAlphaWordOrNum node) {
-		String word = (node.getWord() + "").trim();
-		String cleaned = word.substring(1, word.length()-1);// remove the quotes
-		curReactor.set(PKQLEnum.WORD_OR_NUM, cleaned); 
-		curReactor.addReplacer(word, cleaned);
-	}
-
-	@Override
-	public void outANumWordOrNum(ANumWordOrNum node) {
-		String number = node.getDecimal().toString().trim();
-		if(node.getDecimal() instanceof ADecimal) {
-			ADecimal dec = (ADecimal)node.getDecimal();
-			String fraction = dec.getFraction() + "";
-			number = dec.getWhole().toString().trim();
-			if(dec.getFraction() != null)
-				number = number + "." + fraction;
-		}
-		curReactor.set(PKQLEnum.WORD_OR_NUM, number);
-	}
-
 	@Override
 	//TODO: LOOK INTO THIS
 	public void outAKeyvalue(AKeyvalue node){
@@ -1451,55 +1437,6 @@ public class Translation extends DepthFirstAdapter {
 		Hashtable <String, Object> thisReactorHash = deinitReactor(PKQLEnum.WHERE, nodeStr, PKQLEnum.FILTER, false);
 	}
 
-//	public void inARelationClause(ARelationClause node, String storeAs) {
-//		// note: this operation does not require a frame
-//		// therefore, we do not need a reactor
-//		// and we do not need an out method
-//		
-//		// we store each relationship as a hashtable in a vector
-//		Vector<Hashtable<String, Object>> relList = new Vector<Hashtable<String, Object>>();
-//		
-//		Hashtable<String, Object> relHash = new Hashtable<String, Object>();
-//		
-//		// need at least one relationship
-//		ARelationDef relDef = (ARelationDef) node.getRelationDef();
-//		// get the relationship type
-//		TRelType type = relDef.getRelType();
-//		relHash.put(PKQLEnum.REL_TYPE, type.getText());
-//		// get the from column
-//		AColDef from = (AColDef) relDef.getFrom();
-//		relHash.put(PKQLEnum.FROM_COL, from.getColname().getText());
-//		// get the from column
-//		AColDef to = (AColDef) relDef.getTo();
-//		relHash.put(PKQLEnum.TO_COL, to.getColname().getText());
-//		relList.add(relHash);
-//		
-//		LinkedList<PRelationGroup> optionalRels = node.getRelationGroup();
-//		if(optionalRels != null && !optionalRels.isEmpty()) {
-//			ListIterator<PRelationGroup> it = optionalRels.listIterator();
-//			while(it.hasNext()) {
-//				ARelationDef nextRel = (ARelationDef) ((ARelationGroup) it.next()).getRelationDef();
-//				
-//				relHash = new Hashtable<String, Object>();
-//				// get the relationship type
-//				type = nextRel.getRelType();
-//				relHash.put(PKQLEnum.REL_TYPE, type.getText());
-//				// get the from column
-//				from = (AColDef) nextRel.getFrom();
-//				relHash.put(PKQLEnum.FROM_COL, from.getColname().getText());
-//				// get the from column
-//				to = (AColDef) nextRel.getTo();
-//				relHash.put(PKQLEnum.TO_COL, to.getColname().getText());
-//				relList.add(relHash);
-//			}
-//		}
-//				
-//		//TODO: why do we define it as a RelDef and then every reactor to use it calls it Joins...
-//		curReactor.put(storeAs, relList);
-//		curReactor.addReplacer(node.toString(), relList);
-//	}
-	
-	
 	@Override
 	public void inARelationDef(ARelationDef node) {
 		// note: this operation does not require a frame
@@ -1524,24 +1461,13 @@ public class Translation extends DepthFirstAdapter {
 		//TODO: why do we define it as a RelDef and then every reactor to use it calls it Joins...
 		curReactor.set(PKQLEnum.JOINS, relHash);
 		curReactor.addReplacer(node.toString(), relHash);
-		
-//		curReactor.addComponentValue(PKQLEnum.REL_DEF, relHash);
-//		curReactor.addExpressionToValue(node.toString(), relHash);
-		
-//		if(reactorNames.containsKey(PKQLEnum.REL_DEF)) {
-//			initReactor(PKQLEnum.REL_DEF);
-//			String nodeStr = node.toString().trim();
-//			curReactor.put(PKQLEnum.REL_DEF, nodeStr);
-//			curReactor.put(PKQLEnum.REL_TYPE, (node.getRelType().toString()).trim());
-//		}		
 	}
 
-//	@Override
-//	public void outARelationDef(ARelationDef node) {
-//		String nodeStr = node.toString().trim();
-//		Hashtable <String, Object> thisReactorHash = deinitReactor(PKQLEnum.REL_DEF, nodeStr, PKQLEnum.JOINS, false);
-//	}
-
+    @Override
+    public void caseAColCsv(AColCsv node) {
+        inAColCsv(node);
+    }
+	
 	@Override
 	public void inAColCsv(AColCsv node) {
 		// note: this operation does not require a frame
@@ -1570,33 +1496,13 @@ public class Translation extends DepthFirstAdapter {
 		
 		curReactor.put(PKQLEnum.COL_CSV, colVec);
 		curReactor.addReplacer(node.toString(), colVec);
-		
-		
-//		// now we need to store this in the current reactor
-//		curReactor.addComponentValue(PKQLEnum.COL_CSV, colVec);
-//		curReactor.addExpressionToValue(node.toString(), colVec);
-
-		
-//		curReactor.put(PKQLEnum.COL_CSV, colVec);
-//		
-//		System.out.println("Directly lands into col csv " + node);
-//		if(reactorNames.containsKey(PKQLEnum.COL_CSV)) {
-//			initReactor(PKQLEnum.COL_CSV);
-//			String nodeStr = node.toString().trim();
-//			curReactor.put(PKQLEnum.COL_CSV, nodeStr);
-//		}
 	}
 
-//	@Override
-//	public void outAColCsv(AColCsv node) {
-//		String thisNode = node.toString().trim();
-//		if(node.parent() != null && node.parent() instanceof AColTable) {
-//			deinitReactor(PKQLEnum.COL_CSV, thisNode, PKQLEnum.COL_CSV, false);
-//		} else {
-//			deinitReactor(PKQLEnum.COL_CSV, thisNode, PKQLEnum.COL_CSV);
-//		}
-//	}
-
+    @Override
+    public void caseACsvRow(ACsvRow node) {
+        inACsvRow(node);
+    }
+	
 	@Override
 	public void inACsvRow(ACsvRow node) {
 		// note: this operation does not require a frame
@@ -1604,76 +1510,85 @@ public class Translation extends DepthFirstAdapter {
 		// and we do not need an out method
 
 		// create the array to store the list of values
-		List<String> rowVec = new Vector<String>();
+		List<Object> rowVec = new Vector<Object>();
 		
-		// a csv row requires at least one input
-		// grab that input -> defined as a word or num
-		AAlphaWordOrNum wordOrNum = (AAlphaWordOrNum) node.getWordOrNum();
-		String word = wordOrNum.getWord().getText().trim();
-		word = word.substring(1, word.length()-1);// remove the quotes
-		rowVec.add(word);
-
-		// the csv row may contain multiple other inputs
-		// grab that list and iterate through it to add the other
-		// inputs that are defined
-		LinkedList<PCsvGroup> optionalCols = node.getCsvGroup();
-		if(optionalCols != null && !optionalCols.isEmpty()) {
-			ListIterator<PCsvGroup> it = optionalCols.listIterator();
-			while(it.hasNext()) {
-				ACsvGroup group = (ACsvGroup) it.next();
-				word =((AAlphaWordOrNum) group.getCsv()).getWord().getText().trim();
-				word = word.substring(1, word.length()-1);// remove the quotes
-				rowVec.add(word);
-			}
-		}
+		// we use the logic defined in the general caseACsvRow
+		// to iterate through all the constituent parts
+		// these parts are put into the myStore and we grab them
+		// out and put them inside the rowVec
+		if(node.getWordOrNum() != null) {
+            node.getWordOrNum().apply(this);
+            rowVec.add(curReactor.removeLastStoredKey());
+        }
+        List<PCsvGroup> copy = new ArrayList<PCsvGroup>(node.getCsvGroup());
+        for(PCsvGroup e : copy) {
+            e.apply(this);
+            rowVec.add(curReactor.removeLastStoredKey());
+        }
 		
 		curReactor.put(PKQLEnum.ROW_CSV, rowVec);
 		curReactor.addReplacer(node.toString(), rowVec);
-		
-//		System.out.println("Directly lands into col csv " + node);
-//		if(reactorNames.containsKey(PKQLEnum.ROW_CSV)) {
-//			initReactor(PKQLEnum.ROW_CSV);
-//			String nodeStr = node.toString().trim();
-//			curReactor.put(PKQLEnum.ROW_CSV, nodeStr);
-//		}
+	}
+	
+	@Override
+	public void inAAlphaWordOrNum(AAlphaWordOrNum node) {
+		String word = (node.getWord() + "").trim();
+		String cleaned = word.substring(1, word.length()-1);// remove the quotes
+		curReactor.put(PKQLEnum.WORD_OR_NUM, cleaned); 
+		curReactor.addReplacer(word, cleaned);
+	}
+	
+	@Override
+	public void inANumWordOrNum(ANumWordOrNum node) {
+		ADecimal dec = (ADecimal) node.getDecimal();
+		String fraction = dec.getFraction() + "";
+		Number num = null;
+		String number = dec.getWhole().toString().trim();
+		if(dec.getFraction() != null) {
+			number = number + "." + fraction;
+			num = Double.parseDouble(number);
+		} else {
+			num = Integer.parseInt(number);
+		}
+		curReactor.put(PKQLEnum.WORD_OR_NUM, num);
+	}
+	
+	@Override
+	public void inAExprWordOrNum(AExprWordOrNum node) {
+		System.out.println("HOW DO I DEAL WITH THIS SITUATION!!! >>>>> inAExprWordOrNum");
+		System.out.println("HOW DO I DEAL WITH THIS SITUATION!!! >>>>> inAExprWordOrNum");
+		System.out.println("HOW DO I DEAL WITH THIS SITUATION!!! >>>>> inAExprWordOrNum");
+		System.out.println("HOW DO I DEAL WITH THIS SITUATION!!! >>>>> inAExprWordOrNum");
+		System.out.println("HOW DO I DEAL WITH THIS SITUATION!!! >>>>> inAExprWordOrNum");
+		System.out.println("HOW DO I DEAL WITH THIS SITUATION!!! >>>>> inAExprWordOrNum");
 	}
 
-//	@Override
-//	public void outACsvRow(ACsvRow node) {
-//		// I need to do an action here
-//		// get the action
-//		// call to say this has happened and then reset it to null;
-//		String thisNode = node.toString().trim();
-//
-//		if(node.parent() != null && node.parent() instanceof ACsvTable) {
-//			deinitReactor(PKQLEnum.ROW_CSV, thisNode, PKQLEnum.ROW_CSV, false);
-//		} else {
-//			deinitReactor(PKQLEnum.ROW_CSV, thisNode, PKQLEnum.ROW_CSV);
-//		}
-//	}
-
 	@Override
-	//TODO: LOOK INTO THIS
+	public void inADecimal(ADecimal node) {
+		String fraction = node.getFraction() + "";
+		String number = node.getWhole().toString().trim();
+		if(node.getFraction() != null) {
+			number = number + "." + fraction;
+		}
+		curReactor.addReplacer(node.toString().trim(), Double.parseDouble(number));
+	}
+
+	
+    @Override
+    public void caseACsvTable(ACsvTable node) {
+        inACsvTable(node);
+    }
+	
+	@Override
 	public void inACsvTable(ACsvTable node) {
-		System.out.println("Directly lands into col table " + node);
-		if(reactorNames.containsKey(PKQLEnum.CSV_TABLE)) {
-			initReactor(PKQLEnum.CSV_TABLE);
-			String nodeStr = node + "";
-			curReactor.put(PKQLEnum.CSV_TABLE, nodeStr.trim());
-		}
-	}
-
-	@Override
-	//TODO: LOOK INTO THIS
-	public void outACsvTable(ACsvTable node) {
-		String thisNode = node.toString().trim();
-		IScriptReactor thisReactor = curReactor;
-		deinitReactor(PKQLEnum.CSV_TABLE, thisNode, PKQLEnum.CSV_TABLE);
-
-		if(curReactor != null && node.parent() != null && node.parent() instanceof ACsvTableImportBlock) {
-			String [] values2Sync = curReactor.getValues2Sync(PKQLEnum.CSV_TABLE);
-			synchronizeValues(PKQLEnum.CSV_TABLE, values2Sync, thisReactor);
-		}
+		List<List<Object>> csvTable = new Vector<List<Object>>();
+		
+		List<PCsvRow> copy = new ArrayList<PCsvRow>(node.getCsvRow());
+        for(PCsvRow e : copy) {
+            e.apply(this);
+            csvTable.add((List<Object>) curReactor.removeLastStoredKey());
+        }
+        curReactor.put(PKQLEnum.CSV_TABLE, csvTable); 
 	}
 
 	//TODO: LOOK INTO THIS
@@ -1685,10 +1600,10 @@ public class Translation extends DepthFirstAdapter {
 			String nodeStr = node + "";
 			curReactor.put(PKQLEnum.PASTED_DATA, nodeStr.trim());
 			// is theere a more appropriate way to pass information between siblings
-			if(node.parent() != null && node.parent() instanceof APastedDataBlock) {
+//			if(node.parent() != null && node.parent() instanceof APastedDataBlock) {
 				String word = ((APastedDataBlock) node.parent()).getDelimitier().toString().trim();
 				curReactor.set(PKQLEnum.WORD_OR_NUM, (word.substring(1, word.length()-1))); // remove the quotes
-			}
+//			}
 		}
 	}
 
