@@ -93,6 +93,12 @@ public class AnalysisAdapter implements Analysis
     }
 
     @Override
+    public void caseAJOpScript(AJOpScript node)
+    {
+        defaultCase(node);
+    }
+
+    @Override
     public void caseAExprScript(AExprScript node)
     {
         defaultCase(node);
@@ -1420,6 +1426,12 @@ public class AnalysisAdapter implements Analysis
 
     @Override
     public void caseTDashboardconfig(TDashboardconfig node)
+    {
+        defaultCase(node);
+    }
+
+    @Override
+    public void caseTWherestr(TWherestr node)
     {
         defaultCase(node);
     }
