@@ -110,7 +110,7 @@ class BoundsIterator extends ExpressionIterator{
 			setOtherBindings();
 			double x = (double) otherBindings.get(columnsUsed[0]);
 			double y = (double) otherBindings.get(columnsUsed[1]);
-			double dist = (lRegSlope * x) + lRegIntercept - y;
+			double dist = y - (lRegSlope * x) - lRegIntercept;
 
 			retObject = 0;
 			if(Math.abs(dist*sinTheta) <= normalMaxRange)
