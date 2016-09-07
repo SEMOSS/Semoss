@@ -2,6 +2,7 @@
 
 package prerna.sablecc.node;
 
+import java.util.*;
 import prerna.sablecc.analysis.*;
 
 @SuppressWarnings("nls")
@@ -9,7 +10,7 @@ public final class AJoinParamList extends PJoinParamList
 {
     private TLBracket _lBracket_;
     private PJoinParam _joinParam_;
-    private PJoinGroup _joinGroup_;
+    private final LinkedList<PJoinGroup> _joinGroup_ = new LinkedList<PJoinGroup>();
     private TRBracket _rBracket_;
 
     public AJoinParamList()
@@ -20,7 +21,7 @@ public final class AJoinParamList extends PJoinParamList
     public AJoinParamList(
         @SuppressWarnings("hiding") TLBracket _lBracket_,
         @SuppressWarnings("hiding") PJoinParam _joinParam_,
-        @SuppressWarnings("hiding") PJoinGroup _joinGroup_,
+        @SuppressWarnings("hiding") List<?> _joinGroup_,
         @SuppressWarnings("hiding") TRBracket _rBracket_)
     {
         // Constructor
@@ -40,7 +41,7 @@ public final class AJoinParamList extends PJoinParamList
         return new AJoinParamList(
             cloneNode(this._lBracket_),
             cloneNode(this._joinParam_),
-            cloneNode(this._joinGroup_),
+            cloneList(this._joinGroup_),
             cloneNode(this._rBracket_));
     }
 
@@ -100,29 +101,30 @@ public final class AJoinParamList extends PJoinParamList
         this._joinParam_ = node;
     }
 
-    public PJoinGroup getJoinGroup()
+    public LinkedList<PJoinGroup> getJoinGroup()
     {
         return this._joinGroup_;
     }
 
-    public void setJoinGroup(PJoinGroup node)
+    public void setJoinGroup(List<?> list)
     {
-        if(this._joinGroup_ != null)
+        for(PJoinGroup e : this._joinGroup_)
         {
-            this._joinGroup_.parent(null);
+            e.parent(null);
         }
+        this._joinGroup_.clear();
 
-        if(node != null)
+        for(Object obj_e : list)
         {
-            if(node.parent() != null)
+            PJoinGroup e = (PJoinGroup) obj_e;
+            if(e.parent() != null)
             {
-                node.parent().removeChild(node);
+                e.parent().removeChild(e);
             }
 
-            node.parent(this);
+            e.parent(this);
+            this._joinGroup_.add(e);
         }
-
-        this._joinGroup_ = node;
     }
 
     public TRBracket getRBracket()
@@ -176,9 +178,8 @@ public final class AJoinParamList extends PJoinParamList
             return;
         }
 
-        if(this._joinGroup_ == child)
+        if(this._joinGroup_.remove(child))
         {
-            this._joinGroup_ = null;
             return;
         }
 
@@ -207,10 +208,22 @@ public final class AJoinParamList extends PJoinParamList
             return;
         }
 
-        if(this._joinGroup_ == oldChild)
+        for(ListIterator<PJoinGroup> i = this._joinGroup_.listIterator(); i.hasNext();)
         {
-            setJoinGroup((PJoinGroup) newChild);
-            return;
+            if(i.next() == oldChild)
+            {
+                if(newChild != null)
+                {
+                    i.set((PJoinGroup) newChild);
+                    newChild.parent(this);
+                    oldChild.parent(null);
+                    return;
+                }
+
+                i.remove();
+                oldChild.parent(null);
+                return;
+            }
         }
 
         if(this._rBracket_ == oldChild)

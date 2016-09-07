@@ -321,6 +321,12 @@ public class AnalysisAdapter implements Analysis
     }
 
     @Override
+    public void caseADashboardAddDashboardop(ADashboardAddDashboardop node)
+    {
+        defaultCase(node);
+    }
+
+    @Override
     public void caseAPanelViz(APanelViz node)
     {
         defaultCase(node);
@@ -754,6 +760,12 @@ public class AnalysisAdapter implements Analysis
 
     @Override
     public void caseADashboardJoin(ADashboardJoin node)
+    {
+        defaultCase(node);
+    }
+
+    @Override
+    public void caseADashboardAdd(ADashboardAdd node)
     {
         defaultCase(node);
     }
@@ -1426,6 +1438,12 @@ public class AnalysisAdapter implements Analysis
 
     @Override
     public void caseTDashboardconfig(TDashboardconfig node)
+    {
+        defaultCase(node);
+    }
+
+    @Override
+    public void caseTDashboardAddToken(TDashboardAddToken node)
     {
         defaultCase(node);
     }
