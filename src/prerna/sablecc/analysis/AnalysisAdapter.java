@@ -945,7 +945,7 @@ public class AnalysisAdapter implements Analysis
     }
 
     @Override
-    public void caseAWcsvTerm(AWcsvTerm node)
+    public void caseACsvTerm(ACsvTerm node)
     {
         defaultCase(node);
     }

@@ -400,7 +400,7 @@ input_or_expr = {expr} expr | {input} user_input | {open_data} open_data; //scri
   | {col} [col]:col_def
   | {api} api_block
   | {tab} [tab]:table_def
-  | {wcsv} csv_row
+  | {csv} csv_row
   | null
   |  {alpha} word
   | {math_fun} math_fun
