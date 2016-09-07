@@ -12,10 +12,6 @@ import java.util.Vector;
 
 import org.apache.commons.lang.StringEscapeUtils;
 
-import com.google.gson.Gson;
-import com.google.gson.reflect.TypeToken;
-
-import cern.colt.Arrays;
 import prerna.sablecc.lexer.Lexer;
 import prerna.sablecc.lexer.LexerException;
 import prerna.sablecc.meta.IPkqlMetadata;
@@ -25,6 +21,10 @@ import prerna.sablecc.parser.Parser;
 import prerna.sablecc.parser.ParserException;
 import prerna.ui.components.playsheets.datamakers.IDataMaker;
 import prerna.util.Constants;
+import cern.colt.Arrays;
+
+import com.google.gson.Gson;
+import com.google.gson.reflect.TypeToken;
 
 public class PKQLRunner {
 	
@@ -349,8 +349,24 @@ public class PKQLRunner {
 	}
 	
 	/*
+<<<<<<< .mine
+	 * Adds a variable to the var map so that it can be retrieved with other pkqls
+	 */
+	public void setVariableValue(String varName, Object expr) {
+		if (!this.varMap.containsKey(varName)) {
+			this.varMap.put(varName, new HashMap<>());
+		}
+		this.varMap.get(varName).put(Constants.VALUE, expr);
+	}
+
+	
+	/*
+	 * Sets a reference to the variable map into the runner so that Translation
+	 * can access it The main object sits on the Insight
+=======
 	 * Sets a reference to the variable map into the runner so that Translation can access it
 	 * The main object sits on the Insight
+>>>>>>> .r16223
 	 */
 	public void setVarMap(Map<String, Map<String, Object>> varMap){
 		this.varMap = varMap;

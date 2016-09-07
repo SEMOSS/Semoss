@@ -1,5 +1,9 @@
 package prerna.ds.H2;
 
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.InputStreamReader;
+import java.net.ServerSocket;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.PreparedStatement;
@@ -24,6 +28,7 @@ import java.util.Vector;
 import org.apache.commons.lang.text.StrSubstitutor;
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
+import org.h2.tools.Server;
 import org.stringtemplate.v4.ST;
 
 import prerna.algorithm.api.IMetaData;
@@ -48,6 +53,9 @@ public class H2Builder {
 	private static final String tempTable = "TEMP_TABLE98793";
 	static final String H2FRAME = "H2FRAME";
 	String brokenLines = "";
+	Server server = null;
+	String serverURL = null;
+	Hashtable <String, String[]> tablePermissions = new Hashtable <String, String []>();
 	
 	// for writing the frame on disk
 	// currently not used
@@ -2713,6 +2721,31 @@ public class H2Builder {
 	}
 	
 	
+	// Connects the frame
+	public String connectFrame()
+	{
+		if(server == null)
+		{
+	    	try {
+				String port = findOpenPort();
+				// create a random user and password 				
+				// get the connection object and start up the frame
+				server = Server.createTcpServer("-tcpPort", port);
+				//server = Server.createPgServer("-baseDir", "~", "-pgAllowOthers"); //("-tcpPort", "9999");	
+				serverURL = "jdbc:h2:" + server.getURL() + "/mem:" + this.schema;
+				//System.out.println("URL: jdbc:h2:" + server.getURL() + "/mem:test");
+				server.start();
+			} catch (SQLException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+		}
+		System.out.println("URL... " + serverURL);
+		return serverURL;
+	}
+
+	
+	
 	public int getNumRecords() {
 		String query = "SELECT COUNT(*) FROM " + this.tableName;
 		ResultSet rs = executeQuery(query);
@@ -2726,6 +2759,120 @@ public class H2Builder {
 		
 		return 0;
 	}
+
+
+	private String findOpenPort()
+	{
+		// start with 7677 and see if you can find any
+		System.out.println("Finding an open port.. ");
+		boolean found = false;
+		int port = 5355;int count = 0;
+		//String server = "10.13.229.203";
+		String server = "127.0.0.1";
+		for(;!found && count < 10000;port++, count++)
+		{
+			System.out.print("Trying.. " + port);
+			try
+			{
+				ServerSocket s = new ServerSocket(port) ;//"10.13.229.203", port);
+				//s.connect(new InetSocketAddress(server, port), 5000);//"localhost", port);
+				//s.accept();
+				found = true;
+				s.close();
+				System.out.println("  Success !!!!");
+				//no error, found an open port, we can stop
+				break;
+			}catch (Exception ex)
+			{
+				// do nothing
+				//ex.printStackTrace();
+				System.out.println("  Fail");
+				//System.exit(0);
+				found = false;
+				//ex.printStackTrace();
+			}finally
+			{
+			}
+		}
+		
+		//if we found a port, return that port
+		if(found) return port+"";
+				
+		port--;
+		BufferedReader br = new BufferedReader(new InputStreamReader(System.in));
+		String portStr = null;
+		if(!found) {
+			System.out.println("Unable to find an open port. Please provide a port.");
+			 try {
+				portStr = br.readLine();
+			} catch (IOException e) {
+				e.printStackTrace();
+			}
+			System.out.println("Using port: " + portStr);
+		} else {
+			portStr = port+"";
+		}
+		
+		return portStr;
+	}
+
+    public String[] createUser(String tableName)
+    {
+    	// really simple
+    	// find an open port
+    	// once found
+    	// create url with connection string and send it back
+    	
+    	// need to pass the username and password back
+    	// the username is specific to an insight and possibly gives access only to that insight
+    	// I need to get the insight table - i.e. the table backing the insight
+		String [] retString = new String[2];
+		
+		if(!tablePermissions.containsKey(tableName))
+		{
+	    	try {
+						
+				// create a random user and password 
+				Statement stmt = conn.createStatement();
+				String userName = Utility.getRandomString(23);
+				String password = Utility.getRandomString(23);
+				retString[0] = userName;
+				retString[1] = password;
+				String query = "CREATE USER " + userName + " PASSWORD '" + password + "'";
+				
+				stmt.executeUpdate(query);
+				
+				// should not give admin permission
+				//query = "ALTER USER " + userName + " ADMIN TRUE";
+				
+				// create a new role for this table
+				query = "CREATE ROLE IF NOT EXISTS " + tableName + "READONLY";
+				stmt.executeUpdate(query);
+				query = "GRANT SELECT, INSERT, UPDATE ON " +  tableName + " TO " + tableName + "READONLY";
+				stmt.executeUpdate(query);
+	
+				// assign this to our new user
+				query = "GRANT " + tableName  + "READONLY TO " + userName;
+				stmt.executeUpdate(query);
+						
+				System.out.println("username " + userName);
+				System.out.println("Pass word " + password);
+			
+				tablePermissions.put(tableName, retString);
+			} catch (SQLException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+		}
+		return tablePermissions.get(tableName);
+    }
+    
+    public void disconnectFrame()
+    {
+    	server.stop();
+    	server = null;
+    	serverURL = null;
+    }
 
 	/*************************** ORIGINAL UNUSED CODE **************************************/
 

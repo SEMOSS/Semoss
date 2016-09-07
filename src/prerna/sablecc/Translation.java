@@ -54,6 +54,7 @@ import prerna.sablecc.node.AHelpScript;
 import prerna.sablecc.node.AImportData;
 import prerna.sablecc.node.AInputInputOrExpr;
 import prerna.sablecc.node.AInsightidJoinParam;
+import prerna.sablecc.node.AJOp;
 import prerna.sablecc.node.AKeyvalue;
 import prerna.sablecc.node.AMathFun;
 import prerna.sablecc.node.AMathFunTerm;
@@ -1693,5 +1694,22 @@ public class Translation extends DepthFirstAdapter {
     	IScriptReactor thisReactor = curReactor;
 		Hashtable <String, Object> thisReactorHash = deinitReactor(PKQLEnum.DATA_CONNECTDB, thisNode, PKQLEnum.DATA_CONNECTDB);
     }
+	
+    public void inAJOp(AJOp node)
+    {
+		if (reactorNames.containsKey(PKQLEnum.JAVA_OP)) {
+			initReactor(PKQLEnum.JAVA_OP);
+			curReactor.put("PKQLRunner", runner);
+			String nodeExpr = node.getCodeblock().toString().trim();
+			curReactor.put(PKQLEnum.JAVA_OP, nodeExpr);
+		}
+    }
 
+    public void outAJOp(AJOp node)
+    {
+    	IScriptReactor thisReactor = curReactor;
+    	deinitReactor(PKQLEnum.JAVA_OP, node.getCodeblock()+"", null, false);
+		runner.setResponse(curReactor.getValue("RESPONSE"));
+		runner.setStatus((STATUS) curReactor.getValue("STATUS"));
+    }
 }
