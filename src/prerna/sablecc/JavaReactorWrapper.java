@@ -69,7 +69,6 @@ public class JavaReactorWrapper extends AbstractReactor {
 			// next step is calling it
 			BaseJavaReactor jR = (BaseJavaReactor)retClass.newInstance();
 			curManager =  System.getSecurityManager();
-		    System.setSecurityManager( securityManager ) ;		    
 		    
 		    // set the data frame first
 		    jR.setDataFrame((ITableDataFrame)myStore.get("G"));
@@ -78,14 +77,15 @@ public class JavaReactorWrapper extends AbstractReactor {
 		    jR.setPKQLRunner((PKQLRunner)myStore.get("PKQLRunner"));
 		    
 		    // call the process
+		    System.setSecurityManager( securityManager ) ;		    
 			jR.process();
+		    System.setSecurityManager( curManager) ;			
 			
 			// reset the frame
 			if(jR.frameChanged)
 				myStore.put("G", jR.dataframe);
 			System.out.println(jR.getValue("ERROR"));
 			daReactor = jR;
-		    System.setSecurityManager( curManager) ;			
 		} catch (RuntimeException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
