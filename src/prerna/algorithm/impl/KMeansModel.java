@@ -14,15 +14,22 @@ import java.util.Map;
 public class KMeansModel {
 	
 	private List<DataPoint> points;
+	private List<DataPoint> nonClusteredPoints;
 	private List<Cluster> clusters ;
 	
-	public KMeansModel(Iterator itr, int numClusters, int numIterations){
+	public KMeansModel(Iterator itr, int numClusters, int numIterations,boolean boundsPresent){
 		points = new ArrayList<>();
+		nonClusteredPoints = new ArrayList<>();
 		while(itr.hasNext()){
 			Object[] row = (Object[]) itr.next();
-			
-			double[] dim  = new double[row.length-1];
-			for(int col=1; col<row.length;col++){
+			if(boundsPresent && (double)row[row.length - 1] != 1){
+				DataPoint point = new DataPoint(row[0].toString(),null);
+				nonClusteredPoints.add(point);
+				continue;
+			}
+			int numDims = row.length - (boundsPresent? 2 : 1);
+			double[] dim  = new double[numDims];
+			for(int col=1; col<=numDims;col++){
 				dim[col-1] = (double)row[col];
 			}
 			DataPoint point = new DataPoint(row[0].toString(),dim);
@@ -65,6 +72,9 @@ public class KMeansModel {
 			e.printStackTrace();
 		}*/
 		for(DataPoint p : points){
+			result.put(p.id, p.clusterNum);
+		}
+		for(DataPoint p : nonClusteredPoints){
 			result.put(p.id, p.clusterNum);
 		}
 		return result;
