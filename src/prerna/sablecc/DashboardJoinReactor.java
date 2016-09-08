@@ -59,9 +59,16 @@ public class DashboardJoinReactor extends AbstractReactor {
 			
 			dashboard.joinInsights(insights, colsForInsightsToJoin);
 			setDashboardData(insightsToJoin, colsForInsightsToJoin, joinType);
+		} catch(IllegalArgumentException e) {
+			e.printStackTrace();
+			myStore.put("RESPONSE", e.getMessage());
+			myStore.put("STATUS", "fail");
+			return null;
 		} catch(Exception e) {
 			e.printStackTrace();
 			System.err.println("Error retrieving insights");
+			myStore.put("RESPONSE", "Error retrieving insights");
+			myStore.put("STATUS", "fail");
 			return null;
 		}
 		

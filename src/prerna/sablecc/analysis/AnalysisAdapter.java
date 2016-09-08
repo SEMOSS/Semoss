@@ -1329,6 +1329,12 @@ public class AnalysisAdapter implements Analysis
     }
 
     @Override
+    public void caseTJsonblock(TJsonblock node)
+    {
+        defaultCase(node);
+    }
+
+    @Override
     public void caseTWord(TWord node)
     {
         defaultCase(node);

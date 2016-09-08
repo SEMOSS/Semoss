@@ -13,6 +13,8 @@ Helpers
  panelprefix =  'panel' ( '[' digit ']' )?;
  panelcommentprefix = panelprefix '.comment' ( '[' digit ']' )?;
  code = '<code>';
+ startjson = '<json>';
+ endjson = '</json>';
  
 
 Tokens
@@ -75,6 +77,7 @@ Tokens
  literal = (letter_s | letter_b | digit | underscore)*;// | special)*;
  help_token = 'info.help';
  codeblock = code alphanumeric* code;
+ jsonblock = startjson alphanumeric* endjson;
  word = quote not_quote+ quote;
  panelviz =  panelprefix '.viz';
  panelclone = panelprefix '.clone';
@@ -207,8 +210,8 @@ data_frame = // e.g. panel.setBuilder('graph');
 		dataframe l_par [builder]:word_or_num r_par
 		;
 
-dashboard_config = //e.g. dashboard.config({'someKey':'someValue'});
-		dashboardconfig l_par [map]:map_obj r_par
+dashboard_config = //e.g. dashboard.config(<json>*configuration string*</json>);
+		dashboardconfig l_par jsonblock r_par
 		;
 			
 add_column = // follows the pattern of addColumn(columnName and optionally the expression) addColumn(c:NewCol, 'expression', [c:col1, c:col2]);
