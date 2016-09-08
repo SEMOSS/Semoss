@@ -264,6 +264,10 @@ public class Translation extends DepthFirstAdapter {
 	public void outAPanelopScript(APanelopScript node) {
 		postProcess(node);
 	}
+
+    public void outADashboardopScript(ADashboardopScript node) {
+    	postProcess(node);
+    }
 	
 	// the highest level above all commands
 	// tracks the most basic things all pkql should have
