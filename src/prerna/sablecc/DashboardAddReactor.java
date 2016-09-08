@@ -29,22 +29,30 @@ public class DashboardAddReactor extends AbstractReactor {
 			Dashboard dashboard = (Dashboard)myStore.get("G");
 			
 			insightsToJoin = (List<String>) myStore.get(PKQLEnum.JOIN_PARAM);			
+			String widgetId = insightsToJoin.get(0);
+			String insightId = insightsToJoin.get(1);
+			
+//			List<Insight> insights = new ArrayList<>();
+//			for(String insightID : insightsToJoin) {
+//				Insight insight = InsightStore.getInstance().get(insightID);
+//				if(insight == null) {
+//					System.err.println("insight "+ insightID+" not found...");
+//					return null;
+//				}
+//				insights.add(insight);
+//			}
 			
 			List<Insight> insights = new ArrayList<>();
-			for(String insightID : insightsToJoin) {
-				Insight insight = InsightStore.getInstance().get(insightID);
-				if(insight == null) {
-					System.err.println("insight "+ insightID+" not found...");
-					return null;
-				}
-				insights.add(insight);
+			Insight insight = InsightStore.getInstance().get(insightId);
+			if(insight == null) {
+				System.err.println("insight "+ insightId+" not found...");
+				return null;
 			}
+			insights.add(insight);
 			
 			dashboard.addInsights(insights);
+			dashboard.setWidgetId(insightId, widgetId);
 			setDashboardData(insightsToJoin);
-//			Map retData = new HashMap();
-//			retData.put("insightID", dashboard.getInsightID());
-//			this.myStore.put("DashboardData", retData);
 		} catch(Exception e) {
 			e.printStackTrace();
 			System.err.println("Error retrieving insights");
@@ -58,7 +66,8 @@ public class DashboardAddReactor extends AbstractReactor {
 		List joinDataList = new ArrayList();
 		for(String insightID : insightIDs) {
 			Map map = new HashMap();
-			map.put("insightID", insightID);
+			map.put("insightId", insightIDs.get(1));
+			map.put("widgetId", insightIDs.get(0));
 			joinDataList.add(map);
 		}
 		this.myStore.put("DashboardData", joinDataList);
