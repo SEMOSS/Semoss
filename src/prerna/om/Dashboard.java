@@ -43,6 +43,9 @@ public class Dashboard implements IDataMaker {
 	// viewTable -> List of Insights
 	private Map<String, List<Insight>> insightMap = new HashMap<>();
 	
+	// insight id -> frame id
+	private Map<String, String> insight2frameMap = new HashMap<>();
+	
 	String config = "";
 	
 	public Dashboard() {
@@ -110,6 +113,13 @@ public class Dashboard implements IDataMaker {
 				nextInsightMap.put("engine", insight.getEngineName());
 				nextInsightMap.put("questionID", insight.getRdbmsId());
 				
+				String widgetId = this.insight2frameMap.get(insight.getInsightID());
+				if(widgetId != null) {
+					nextInsightMap.put("widgetID", widgetId);
+				} else {
+					nextInsightMap.put("widgetID", "");
+				}
+				
 				List<String> joinedInsights = new ArrayList<>();
 				
 				joinedInsights.addAll(insightIDs);
@@ -166,6 +176,7 @@ public class Dashboard implements IDataMaker {
 		reactorNames.put(PKQLReactor.INPUT.toString(), "prerna.sablecc.InputReactor");
 		reactorNames.put(PKQLEnum.COL_CSV, "prerna.sablecc.ColCsvReactor");
 		reactorNames.put(PKQLEnum.DASHBOARD_ADD, "prerna.sablecc.DashboardAddReactor");
+		reactorNames.put(PKQLEnum.VIZ, "prerna.sablecc.VizReactor");
 		return reactorNames;
 	}
 
@@ -276,6 +287,12 @@ public class Dashboard implements IDataMaker {
 		}
 	}
 	
+	/**
+	 * 
+	 * @param insights
+	 * 
+	 * Method to add insights
+	 */
 	public void addInsights(List<Insight> insights) {
 		Insight parentInsight = InsightStore.getInstance().get(this.insightID);
 		for(Insight insight : insights) {
@@ -385,6 +402,11 @@ public class Dashboard implements IDataMaker {
 		}
 		
 		return newPkql;
+	}
+
+	public void setWidgetId(String insightId, String widgetId) {
+		this.insight2frameMap.put(insightId, widgetId);
+		
 	}
 	
 	/************************************* END JOINING LOGIC **************************************/
