@@ -502,8 +502,15 @@ public class Translation extends DepthFirstAdapter {
 	}
 	
 	@Override
-	//TODO: LOOK INTO THIS
 	public void inAColWhere(AColWhere node) {
+		// still need a reactor for this piece
+		// since a where clause can take in a term
+		// it could be based on a formula
+		// could be based on a api_blick
+		// could be baed on a math evaluation
+		// too many options... right now the reactor
+		// only considers a csv_row
+		// but could/should be expanded
 		if(reactorNames.containsKey(PKQLEnum.WHERE)) {
 			initReactor(PKQLEnum.WHERE);
 			String nodeStr = node + "";
@@ -514,9 +521,8 @@ public class Translation extends DepthFirstAdapter {
 
 	@Override
 	public void outAColWhere(AColWhere node) {
-		// I need to do some kind of action and pop out the last one on everything
 		String nodeStr = node.toString().trim();
-		Hashtable <String, Object> thisReactorHash = deinitReactor(PKQLEnum.WHERE, nodeStr, PKQLEnum.FILTER, false);
+		deinitReactor(PKQLEnum.WHERE, nodeStr, PKQLEnum.FILTER, false);
 	}
 
 	@Override
@@ -1113,20 +1119,25 @@ public class Translation extends DepthFirstAdapter {
 	
 	@Override
 	public void inAApiTerm(AApiTerm node) {
-		System.out.println("WHAT IS THIS CASE!!! AApiTerm");
-        System.out.println("WHAT IS THIS CASE!!! AApiTerm");
-        System.out.println("WHAT IS THIS CASE!!! AApiTerm");
-        System.out.println("WHAT IS THIS CASE!!! AApiTerm");
-        System.out.println("WHAT IS THIS CASE!!! AApiTerm");
+		// an example of this is when we use a term
+		// inside a user_input reactor to get the list
+		// of values for a parameter
+		// without adding to a frame
+		
+		// it just goes through the api block
+		// and will be grabbed that way
+		// this doesn't do anything else
 	}
 	
 	@Override
 	public void inACsvTerm(ACsvTerm node) {
-		System.out.println("WHAT IS THIS CASE!!! AApiTerm");
-        System.out.println("WHAT IS THIS CASE!!! AApiTerm");
-        System.out.println("WHAT IS THIS CASE!!! AApiTerm");
-        System.out.println("WHAT IS THIS CASE!!! AApiTerm");
-        System.out.println("WHAT IS THIS CASE!!! AApiTerm");
+		// an example of this is [ "WB" , "Fox" ] inside a 
+		// where clause of c:Studio = ["WB","Fox"] which is 
+		// used in col filter and data importing
+		
+		// it just goes through inACSVRow
+		// can grab it that way
+		// this doesn't do anything else
 	}
 	
 	@Override
