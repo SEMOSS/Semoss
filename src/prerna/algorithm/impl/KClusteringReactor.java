@@ -25,6 +25,13 @@ public class KClusteringReactor extends MathReactor{
 	public Iterator process() {
 		modExpression();
 		Vector<String> columns = (Vector <String>) myStore.get(PKQLEnum.COL_DEF);
+		String filterColumn = null;
+
+		if(myStore.containsKey(PKQLEnum.COL_CSV)) {
+			filterColumn = ((Vector<String>)myStore.get(PKQLEnum.COL_CSV)).firstElement();
+			columns.add(filterColumn);
+		}
+		
 		String[] columnsArray = convertVectorToArray(columns);
 		Iterator itr = getTinkerData(columns, (ITableDataFrame)myStore.get("G"), true);
 		int numRows = ((ITableDataFrame)myStore.get("G")).getNumRows();
@@ -49,13 +56,9 @@ public class KClusteringReactor extends MathReactor{
 			this.numClusters = (int)Math.round(Math.pow(numRows, 0.33));;
 			this.numIterations = 100;
 		}		
-
-		String filterColumn = null;
-		if(myStore.containsKey(PKQLEnum.COL_CSV)) {
-			filterColumn = ((Vector<String>)myStore.get(PKQLEnum.COL_CSV)).firstElement();
-		}
 		
-		KMeansModel kMeans = new KMeansModel(itr, this.numClusters, this.numIterations);
+		boolean boundsPresent = filterColumn != null;
+		KMeansModel kMeans = new KMeansModel(itr, this.numClusters, this.numIterations,boundsPresent);
 		
 		Map<Object,Integer> clusters =  kMeans.clusterResult();
 		
