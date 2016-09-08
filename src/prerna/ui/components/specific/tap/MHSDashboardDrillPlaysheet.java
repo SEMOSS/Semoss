@@ -65,11 +65,11 @@ public class MHSDashboardDrillPlaysheet extends TablePlaySheet implements IDataM
 	private final String LATE_START = "LateStart";
 	private final String LATE_FINISH = "LateFinish";
 	private final String SLACK = "Slack";
-	private final String CRITICALVAL = "criticalVal";
+	private final String CRITICAL_PATH = "CriticalPath";
 	
 	private final Date todaysDate = Calendar.getInstance().getTime();
-	static String engineName= "TAP_Readiness_Database_V1";
-//	static String engineName = "Dummy_1";
+//	static String engineName= "TAP_Readiness_Database_V1";
+	static String engineName = "Dummy_1";
 	static String masterPKQL = "data.import(api:"+ engineName +".query([c:SDLCPhase,c:SDLCPhase_ActivityGroup_DHAGroup,c:ActivityGroup,c:DHAGroup,c:SystemActivity,c:SystemActivity__ActualEnd,c:SystemActivity__Duration,c:SystemActivity__ProjectedEnd,c:SystemActivity__LateFinish,c:SystemActivity__Delay,c:SystemActivity__CriticalPath,c:SystemActivity__LateStart,c:SystemActivity__EarlyFinish,c:SystemActivity__EarlyStart,c:SystemActivity__ActualStart,c:SystemActivity__Slack,c:SystemActivity__ProjectedStart,c:SystemActivity__KeyStatus,c:System,c:System__PlannedStart,c:SystemOwner, c:Activity,c:DependencySystemActivity], ([c:SDLCPhase,left.outer.join,c:SDLCPhase_ActivityGroup_DHAGroup],[c:ActivityGroup,left.outer.join,c:SDLCPhase_ActivityGroup_DHAGroup],[c:DHAGroup,left.outer.join,c:SDLCPhase_ActivityGroup_DHAGroup],[c:SDLCPhase_ActivityGroup_DHAGroup,left.outer.join,c:SystemActivity],[c:SystemActivity,left.outer.join,c:System],[c:System,left.outer.join,c:SystemOwner], [c:SystemActivity,left.outer.join,c:Activity], [c:SystemActivity,left.outer.join,c:DependencySystemActivity])));";
 	
 	static String instanceOfPlaysheet = "prerna.ui.components.specific.tap.MHSDashboardDrillPlaysheet";
@@ -220,18 +220,14 @@ public class MHSDashboardDrillPlaysheet extends TablePlaySheet implements IDataM
 		IRawSelectWrapper iterator = WrapperManager.getInstance().getRawWrapper(dmComponent.getEngine(), query);
 		
 		Object slack = null;
-		Date earlyStart = null;
-		Date lateFinish = null;
+		String earlyStart = null;
+		String lateFinish = null;
 		while(iterator.hasNext()) {
 			IHeadersDataRow nextRow = iterator.next();
 			if(!(nextRow.getRawValues() == null)){		
 				slack = nextRow.getRawValues()[0];
-				try {
-					earlyStart = getDateFormat().parse((String) nextRow.getRawValues()[1]);
-					lateFinish =  getDateFormat().parse((String) nextRow.getRawValues()[2]);
-				} catch (ParseException e) {
-					e.printStackTrace();
-				}
+				earlyStart = (String) nextRow.getRawValues()[1];
+				lateFinish =  (String) nextRow.getRawValues()[2];
 			}
 		}
 
@@ -244,29 +240,34 @@ public class MHSDashboardDrillPlaysheet extends TablePlaySheet implements IDataM
 	}
 	
 	private Map<String, Object> getStatus (String primKey) {
-		String query = "SELECT KEYSTATUS FROM SYSTEMACTIVITY where SDLCPHASE_ACTIVITYGROUP_DHAGROUP_FK ='" + primKey + "'";
+		String query = "SELECT KEYSTATUS, DELAY FROM SYSTEMACTIVITY where SDLCPHASE_ACTIVITYGROUP_DHAGROUP_FK ='" + primKey + "'";
 		
 		IRawSelectWrapper iterator = WrapperManager.getInstance().getRawWrapper(dmComponent.getEngine(), query);
 		
 		String status = null;
+		String delay = null;
 		List<String> statusList = new ArrayList<String>();
+		List<String> delayList = new ArrayList<String>();
 		while(iterator.hasNext()) {
 			IHeadersDataRow nextRow = iterator.next();
 			if(!(nextRow.getRawValues() == null)){		
 				status = (String)nextRow.getRawValues()[0];
+				delay = (String)nextRow.getRawValues()[1];
 				statusList.add(status);
+				delayList.add(delay);
 			}
 		}
 		String groupStatus = null;
+		Map<String, Object> returnMap = new HashMap<String, Object> ();
+		
 		if(statusList.contains("active")) {
 			groupStatus = "active";
 		} else if (statusList.contains("projected")) {
 			groupStatus = "projected";
 		} else {
 			groupStatus = "completed";
+			returnMap.put(HEAT_VALUE, Collections.max(delayList));
 		}
-		
-		Map<String, Object> returnMap = new HashMap<String, Object> ();
 		returnMap.put(STATUS, groupStatus);
 		return returnMap;
 	}
@@ -616,6 +617,7 @@ public class MHSDashboardDrillPlaysheet extends TablePlaySheet implements IDataM
 					Iterator<Edge> actualEndEdgeIt = vert.edges(Direction.OUT, "TYPE", SYSTEM_ACTIVITY + "+++" + ACTUAL_END);
 					String vertexActualEnd = actualEndEdgeIt.next().inVertex().value("NAME");
 
+					Double delay = 0.0;
 					//if there is a actual start value
 					if(!(vertexActualStart == null ) && !(vertexActualStart.equals("_"))) {
 						try {
@@ -627,23 +629,18 @@ public class MHSDashboardDrillPlaysheet extends TablePlaySheet implements IDataM
 
 						//if activity is completed
 						if (!(vertexActualEnd.equals("_") && !(vertexActualEnd == null ))){
-//							Date plannedEF = null;
-//							if(i == 0) {
-//								try {
-//									plannedEF = addToDate((Date) getDateFormat().parse(vertexPlannedStart), vertexDuration);
-//								} catch (ParseException e) {
-//									e.printStackTrace();
-//								}
-//							} else {
-//								Date previousES = getDBFDateValue(systemActivity, EARLY_START);
-//								if(previousES == null || previousES.before(EF)){
-//									plannedEF = EF;
-//								}else{
-//									plannedEF = previousES;
-//								}
-//							}
+							Date plannedEF = null;
+							if(i == 0) {
+								try {
+									plannedEF = addToDate((Date) getDateFormat().parse(vertexPlannedStart), vertexDuration);
+								} catch (ParseException e) {
+									e.printStackTrace();
+								}
+							} else {
+									plannedEF = addToDate(EF, vertexDuration);
+							}
 							
-							
+							//get the actual end date
 							try {
 								EF = (Date) getDateFormat().parse(vertexActualEnd);
 							} catch (ParseException e) {
@@ -652,6 +649,7 @@ public class MHSDashboardDrillPlaysheet extends TablePlaySheet implements IDataM
 							status = "completed";	
 							
 							//use delay instead of slack
+							delay = (double) ((EF.getTime() - plannedEF.getTime())/(24 * 60 * 60 * 1000));
 							
 						}
 						//if activity is still active
@@ -682,8 +680,9 @@ public class MHSDashboardDrillPlaysheet extends TablePlaySheet implements IDataM
 						status = "projected";
 					}
 					
+					System.out.println("DELAY:::" + delay);
 					//update db
-					String updateDBquery = "UPDATE SYSTEMACTIVITY SET " + EARLY_START + " = '"+ getDateFormat(ES)  + "', " + EARLY_FINISH + " = '"+ getDateFormat(EF) + "',  KEYSTATUS = '"+ status + "' WHERE SYSTEMACTIVITY = '" + systemActivity + "'";
+					String updateDBquery = "UPDATE SYSTEMACTIVITY SET " + EARLY_START + " = '"+ getDateFormat(ES)  + "', " + EARLY_FINISH + " = '"+ getDateFormat(EF) + "',  KEYSTATUS = '"+ status + "',  DELAY = '"+ delay + "' WHERE SYSTEMACTIVITY = '" + systemActivity + "'";
 					dmComponent.getEngine().insertData(updateDBquery);
 					
 					sum += vertexDuration;
@@ -851,19 +850,20 @@ public class MHSDashboardDrillPlaysheet extends TablePlaySheet implements IDataM
 			System.out.println("EF VAL:::" + EFDate);
 			System.out.println("LS VAL:::" + LSDate);
 			System.out.println("LF VAL:::" + LFDate);
-			
 			///////////////////////////////
 			
 			Double slack = (double) ((LSDate.getTime() - ESDate.getTime())/(24 * 60 * 60 * 1000));
 			
 			System.out.println("SLACK VAL:::" + slack);
 			
+			boolean isCritical = true;
 			if(slack != 0) {
 				slackList.add(slack);
+				isCritical = false;
 			}
-			
+			System.out.println("IS CRITICAL:::" + isCritical);
 			//update db
-			String updateDBquery = "UPDATE SYSTEMACTIVITY SET " + SLACK + " = '"+ slack + "' WHERE SYSTEMACTIVITY = '" + systemActivty + "'";
+			String updateDBquery = "UPDATE SYSTEMACTIVITY SET " + SLACK + " = '"+ slack + "', " + CRITICAL_PATH + " = '"+ isCritical + "'  WHERE SYSTEMACTIVITY = '" + systemActivty + "'";
 			dmComponent.getEngine().insertData(updateDBquery);
 		}
 		
