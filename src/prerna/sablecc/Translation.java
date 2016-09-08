@@ -58,6 +58,8 @@ import prerna.sablecc.node.AInputInputOrExpr;
 import prerna.sablecc.node.AInsightidJoinParam;
 import prerna.sablecc.node.AJOp;
 import prerna.sablecc.node.AKeyvalue;
+import prerna.sablecc.node.AKeyvalueGroup;
+import prerna.sablecc.node.AMapObj;
 import prerna.sablecc.node.AMathFun;
 import prerna.sablecc.node.AMathFunTerm;
 import prerna.sablecc.node.AMathParam;
@@ -98,6 +100,7 @@ import prerna.sablecc.node.Node;
 import prerna.sablecc.node.PColGroup;
 import prerna.sablecc.node.PCsvGroup;
 import prerna.sablecc.node.PCsvRow;
+import prerna.sablecc.node.PKeyvalueGroup;
 import prerna.sablecc.node.PScript;
 import prerna.sablecc.node.TRelType;
 import prerna.ui.components.playsheets.datamakers.IDataMaker;
@@ -1339,27 +1342,6 @@ public class Translation extends DepthFirstAdapter {
 	}
 
 	@Override
-	//TODO: LOOK INTO THIS
-	public void outAKeyvalue(AKeyvalue node){
-		Object word1 = node.getWord1();
-		if(curReactor.getValue(word1.toString().trim())!=null){
-			word1 = curReactor.getValue(word1.toString().trim());
-		}
-
-		Object word2 = node.getWord2();
-		if(curReactor.getValue(word2.toString().trim())!=null){
-			word2 = curReactor.getValue(word2.toString().trim());
-		}
-
-		Map myMap = new HashMap();
-		myMap.put(word1, word2);
-		
-		//TODO: LOOK INTO THIS
-		//TODO: LOOK INTO THIS
-		curReactor.set("KEY_VALUE", myMap); // remove the quotes
-	}
-
-	@Override
 	public void inAExprRow(AExprRow node) {
 	}
 
@@ -1424,23 +1406,114 @@ public class Translation extends DepthFirstAdapter {
 		runner.setResponse(previousReactor.getValue(expr));
 		runner.setStatus((STATUS)previousReactor.getValue("STATUS"));
 	}
+	
+    @Override
+    public void caseAMathParam(AMathParam node) {
+    	// this is literally just a comma with a map object
+    	// we apply the map object
+    	node.getMapObj().apply(this);
+    	// the out will take that map object
+    	// and put it back with a Math_Param key
+    	outAMathParam(node);
+    }
+
+//	@Override
+//	//TODO: LOOK INTO THIS
+//	public void inAMathParam(AMathParam node) {
+//		AMapObj paramMap = (AMapObj) node.getMapObj();
+//		PKeyvalue keyVal = paramMap.getKeyvalue();
+//		
+//		if(reactorNames.containsKey(PKQLEnum.MATH_PARAM)) {
+//			initReactor(PKQLEnum.MATH_PARAM);
+//		}	
+//	}
+
+    @Override
+    public void caseAMapObj(AMapObj node) {
+    	inAMapObj(node);
+    }
+
+    public void inAMapObj(AMapObj node) {
+    	Map<Object, Object> values = new Hashtable<Object, Object>();
+    	AKeyvalue keyVal = (AKeyvalue) node.getKeyvalue();
+    	if(node.getKeyvalue() != null)
+    	{
+    		node.getKeyvalue().apply(this);
+    		values.putAll((Map<Object, Object>) curReactor.removeLastStoredKey());
+    	}
+    	List<PKeyvalueGroup> copy = new ArrayList<PKeyvalueGroup>(node.getKeyvalueGroup());
+    	for(PKeyvalueGroup e : copy)
+    	{
+    		e.apply(this);
+    		values.putAll((Map<Object, Object>) curReactor.removeLastStoredKey());
+    	}
+    	curReactor.put(PKQLEnum.MAP_OBJ, values);
+    }
 
 	@Override
-	//TODO: LOOK INTO THIS
-	public void inAMathParam(AMathParam node) {
-		if(reactorNames.containsKey(PKQLEnum.MATH_PARAM)) {
-			initReactor(PKQLEnum.MATH_PARAM);
-		}	
+    public void caseAKeyvalue(AKeyvalue node)
+    {
+        // the in will get the values required and put
+		// them as a map in current reactor
+		inAKeyvalue(node);
+    }
+	
+	@Override
+	public void inAKeyvalue(AKeyvalue node) {
+		node.getWord1().apply(this);;
+		Object mapKey = curReactor.removeLastStoredKey();
+		
+		node.getWord2().apply(this);
+		Object mapValue = curReactor.removeLastStoredKey();
+		
+		Map<Object, Object> map = new Hashtable<Object, Object>();
+		map.put(mapKey, mapValue);
+		curReactor.put(PKQLEnum.KEY_VALUE_PAIR, map);
 	}
+	
+	@Override
+	public void caseAKeyvalueGroup(AKeyvalueGroup node) {
+		// this code will only go through the key value
+		// anything that is using a keyValueGroup will be responsible
+		// for aggregating the keyValues into the proper structure they want
+		// currently, only thing using this is a MapObj and we get the last 
+		// key-value group after each apply
+		node.getKeyvalue().apply(this);
+	}
+	
+//	@Override
+//	//TODO: LOOK INTO THIS
+//	public void outAKeyvalue(AKeyvalue node){
+//		Object word1 = node.getWord1();
+//		if(curReactor.getValue(word1.toString().trim())!=null){
+//			word1 = curReactor.getValue(word1.toString().trim());
+//		}
+//
+//		Object word2 = node.getWord2();
+//		if(curReactor.getValue(word2.toString().trim())!=null){
+//			word2 = curReactor.getValue(word2.toString().trim());
+//		}
+//
+//		Map myMap = new HashMap();
+//		myMap.put(word1, word2);
+//		
+//		//TODO: LOOK INTO THIS
+//		//TODO: LOOK INTO THIS
+//		curReactor.set("KEY_VALUE", myMap); // remove the quotes
+//	}
 
 	@Override
-	//TODO: LOOK INTO THIS
 	public void outAMathParam(AMathParam node) {
-		String nodeStr = node.toString().trim();
-		String expr = node.getMapObj().toString().trim();
-		Hashtable <String, Object> thisReactorHash = deinitReactor(PKQLEnum.MATH_PARAM, expr, nodeStr);
-		IScriptReactor previousReactor = (IScriptReactor)thisReactorHash.get((PKQLEnum.MATH_PARAM));
-		curReactor.put(PKQLEnum.MATH_PARAM, previousReactor.getValue(PKQLEnum.MATH_PARAM));
+		// this is called right after a map object has just been placed into the current reactor
+		// just grab that map and put it back into the reactor but with a Math_Param key
+		Map<Object, Object> mathParamMapObj = (Map<Object, Object>) curReactor.removeLastStoredKey();
+		curReactor.put(PKQLEnum.MATH_PARAM, mathParamMapObj);
+//
+//		String nodeStr = node.toString().trim();
+//		String expr = node.getMapObj().toString().trim();
+//		Hashtable <String, Object> thisReactorHash = deinitReactor(PKQLEnum.MATH_PARAM, expr, nodeStr);
+//		IScriptReactor previousReactor = (IScriptReactor)thisReactorHash.get((PKQLEnum.MATH_PARAM));
+//		curReactor.put(PKQLEnum.MATH_PARAM, previousReactor.getValue(PKQLEnum.MATH_PARAM));
 	}
 
 	@Override

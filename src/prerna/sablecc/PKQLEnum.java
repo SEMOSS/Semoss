@@ -69,6 +69,8 @@ public class PKQLEnum {
 	public static String DATA_CONNECTDB = "DATA_CONNECTDB";
 	public static String VAR_PARAM = "VAR_PARAM";
 	public static String TERM = "TERM";
+	public static String MAP_OBJ = "MAP_OBJECT";
+	public static String KEY_VALUE_PAIR = "KEY_VALUE";
 	
 	public static String QUERY_API = "QUERY_API";
 	public static String CSV_API = "CSV_API";
