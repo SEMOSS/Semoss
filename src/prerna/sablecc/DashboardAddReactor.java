@@ -41,9 +41,10 @@ public class DashboardAddReactor extends AbstractReactor {
 			}
 			
 			dashboard.addInsights(insights);
-			Map retData = new HashMap();
-			retData.put("insightID", dashboard.getInsightID());
-			this.myStore.put("DashboardData", retData);
+			setDashboardData(insightsToJoin);
+//			Map retData = new HashMap();
+//			retData.put("insightID", dashboard.getInsightID());
+//			this.myStore.put("DashboardData", retData);
 		} catch(Exception e) {
 			e.printStackTrace();
 			System.err.println("Error retrieving insights");
