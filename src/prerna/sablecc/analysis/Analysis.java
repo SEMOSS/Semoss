@@ -222,6 +222,7 @@ public interface Analysis extends Switch
     void caseTLiteral(TLiteral node);
     void caseTHelpToken(THelpToken node);
     void caseTCodeblock(TCodeblock node);
+    void caseTJsonblock(TJsonblock node);
     void caseTWord(TWord node);
     void caseTPanelviz(TPanelviz node);
     void caseTPanelclone(TPanelclone node);

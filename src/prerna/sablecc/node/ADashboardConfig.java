@@ -9,7 +9,7 @@ public final class ADashboardConfig extends PDashboardConfig
 {
     private TDashboardconfig _dashboardconfig_;
     private TLPar _lPar_;
-    private PMapObj _map_;
+    private TJsonblock _jsonblock_;
     private TRPar _rPar_;
 
     public ADashboardConfig()
@@ -20,7 +20,7 @@ public final class ADashboardConfig extends PDashboardConfig
     public ADashboardConfig(
         @SuppressWarnings("hiding") TDashboardconfig _dashboardconfig_,
         @SuppressWarnings("hiding") TLPar _lPar_,
-        @SuppressWarnings("hiding") PMapObj _map_,
+        @SuppressWarnings("hiding") TJsonblock _jsonblock_,
         @SuppressWarnings("hiding") TRPar _rPar_)
     {
         // Constructor
@@ -28,7 +28,7 @@ public final class ADashboardConfig extends PDashboardConfig
 
         setLPar(_lPar_);
 
-        setMap(_map_);
+        setJsonblock(_jsonblock_);
 
         setRPar(_rPar_);
 
@@ -40,7 +40,7 @@ public final class ADashboardConfig extends PDashboardConfig
         return new ADashboardConfig(
             cloneNode(this._dashboardconfig_),
             cloneNode(this._lPar_),
-            cloneNode(this._map_),
+            cloneNode(this._jsonblock_),
             cloneNode(this._rPar_));
     }
 
@@ -100,16 +100,16 @@ public final class ADashboardConfig extends PDashboardConfig
         this._lPar_ = node;
     }
 
-    public PMapObj getMap()
+    public TJsonblock getJsonblock()
     {
-        return this._map_;
+        return this._jsonblock_;
     }
 
-    public void setMap(PMapObj node)
+    public void setJsonblock(TJsonblock node)
     {
-        if(this._map_ != null)
+        if(this._jsonblock_ != null)
         {
-            this._map_.parent(null);
+            this._jsonblock_.parent(null);
         }
 
         if(node != null)
@@ -122,7 +122,7 @@ public final class ADashboardConfig extends PDashboardConfig
             node.parent(this);
         }
 
-        this._map_ = node;
+        this._jsonblock_ = node;
     }
 
     public TRPar getRPar()
@@ -156,7 +156,7 @@ public final class ADashboardConfig extends PDashboardConfig
         return ""
             + toString(this._dashboardconfig_)
             + toString(this._lPar_)
-            + toString(this._map_)
+            + toString(this._jsonblock_)
             + toString(this._rPar_);
     }
 
@@ -176,9 +176,9 @@ public final class ADashboardConfig extends PDashboardConfig
             return;
         }
 
-        if(this._map_ == child)
+        if(this._jsonblock_ == child)
         {
-            this._map_ = null;
+            this._jsonblock_ = null;
             return;
         }
 
@@ -207,9 +207,9 @@ public final class ADashboardConfig extends PDashboardConfig
             return;
         }
 
-        if(this._map_ == oldChild)
+        if(this._jsonblock_ == oldChild)
         {
-            setMap((PMapObj) newChild);
+            setJsonblock((TJsonblock) newChild);
             return;
         }
 
