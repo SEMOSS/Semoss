@@ -964,21 +964,25 @@ public class Translation extends DepthFirstAdapter {
     }
 	
     public void inADashboardConfig(ADashboardConfig node) {
-    	initReactor(PKQLEnum.VIZ);
+//    	initReactor(PKQLEnum.VIZ);
     }
 
     public void outADashboardConfig(ADashboardConfig node) {
     	System.out.println("out a panel config");
-    	deinitReactor(PKQLEnum.VIZ, "", "");
-		Map config = (Map) runner.getFeData("config");
-		if(config == null){
-			config = new HashMap();
-		}
-		config.putAll(new Gson().fromJson(node.getMap().toString(), HashMap.class));
+//    	deinitReactor(PKQLEnum.VIZ, "", "");
+//		Map config = (Map) runner.getFeData("config");
+//		if(config == null){
+//			config = new HashMap();
+//		}
+//		config.putAll(new Gson().fromJson(node.getMap().toString(), HashMap.class));
 		
-		Dashboard dm = (Dashboard)curReactor.getValue("G");
-		dm.setConfig(node.getMap().toString());
-		runner.addFeData("config", config, true);
+		Dashboard dm = (Dashboard)this.frame;
+		
+		String json = node.getJsonblock().getText();
+		json = json.replace("<json>", "");
+		json = json.replace("</json>", "");
+		dm.setConfig(json);
+//		runner.addFeData("config", json, true);
 		runner.setResponse("Successfully set config");
 		runner.setStatus(PKQLRunner.STATUS.SUCCESS);
 		
