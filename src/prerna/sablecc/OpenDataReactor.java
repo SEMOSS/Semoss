@@ -38,12 +38,14 @@ public class OpenDataReactor extends AbstractReactor {
 	public Iterator process() {
 		
 		Gson gson = new Gson();
-		List<String> engineAttributes = (List<String>) myStore.get(PKQLEnum.WORD_OR_NUM);
+//		List<String> engineAttributes = (List<String>) myStore.get(PKQLEnum.WORD_OR_NUM);
 		
 		//open a saved insight if we have the data
-		if(engineAttributes != null && engineAttributes.size() >= 2) {
-			String engine = engineAttributes.get(0);
-			String engine_id = engineAttributes.get(1);
+//		if(engineAttributes != null && engineAttributes.size() >= 2) {
+			String engine = (String)myStore.get("DATA_OPEN_ENGINE");
+			engine = (String)myStore.get(engine);
+			String engine_id = (String)myStore.get("DATA_OPEN_ID");
+			engine_id = (String)myStore.get(engine_id);
 			
 			IEngine coreEngine = Utility.getEngine(engine);
 			if(coreEngine == null) {
@@ -117,10 +119,8 @@ public class OpenDataReactor extends AbstractReactor {
 				}
 //			}
 			
-		} else {
-			//put error mesage
-			myStore.put(PKQLEnum.OPEN_DATA, "Error Opening Insight");
-		}
+//		} 
+
 		
 	
 		return null;
