@@ -297,7 +297,7 @@ public class MHSDashboardDrillPlaysheet extends TablePlaySheet implements IDataM
 		return returnMap;
 	}
 	
-	public Map<String, Object> createNewTinkerFrame() {
+	public void createNewTinkerFrame() {
 
 		// create frame
 		TinkerFrame tFrame = new TinkerFrame();
@@ -388,7 +388,7 @@ public class MHSDashboardDrillPlaysheet extends TablePlaySheet implements IDataM
 			}
 		}
 
-		return calculateHeatValue(tFrame);
+		calculateHeatValue(tFrame);
 	}	
 	
 	private void addToFrame (TinkerFrame tFrame) {
@@ -454,9 +454,7 @@ public class MHSDashboardDrillPlaysheet extends TablePlaySheet implements IDataM
 		return initialNodeList;
 	}
 	
-	private Map<String, Object> calculateHeatValue (TinkerFrame tFrame){
-		
-		tFrame.openBackDoor();
+	private void calculateHeatValue (TinkerFrame tFrame){
 		
 		GraphTraversal ret = tFrame.runGremlin("g.traversal().V().has('TYPE','" + SYSTEM_ACTIVITY + "').outE().inV().has('TYPE','" + SYSTEM_ACTIVITY + "').path()");
 		ArraySet<List<Vertex>> pathSet = new ArraySet<List<Vertex>>();
@@ -485,7 +483,7 @@ public class MHSDashboardDrillPlaysheet extends TablePlaySheet implements IDataM
 			while (edgeiterator.hasNext()){
 				String parentstring = ((Vertex) parent).value("NAME");
 				String children = edgeiterator.next().inVertex().value("NAME");
-				System.out.println(parentstring + " : " + children);
+				System.out.println("Path:::::::" + parentstring + " : " + children);
 			}
 		}
 		
@@ -494,12 +492,7 @@ public class MHSDashboardDrillPlaysheet extends TablePlaySheet implements IDataM
 		calculateLateDates(pathSet, criticalVal, tFrame); 
 		
 		addToFrame(tFrame);
-		Double minSlack = calculateSlack(vertexSet);
-		
-		Map<String, Object> returnHash = new HashMap<String, Object>();
-		returnHash.put(HEAT_VALUE, minSlack);
-		
-		return returnHash;
+		calculateSlack(vertexSet);
 	}
 	
 	private ArraySet<List<Vertex>> getPathsRecursion2 (Vertex currentVertex, ArrayList<Vertex> path) {
@@ -522,7 +515,6 @@ public class MHSDashboardDrillPlaysheet extends TablePlaySheet implements IDataM
 				paths.addAll(getPathsRecursion2(childNode,newPath));
 			}
 		}
-		
 		return(paths);
 	}
 	
@@ -583,8 +575,6 @@ public class MHSDashboardDrillPlaysheet extends TablePlaySheet implements IDataM
 	}
 	
 	private Double calculateCriticalValue (Set<List<Vertex>> vertexPathSet, TinkerFrame tFrame){	
-		System.out.println("PATHS:::::::");
-		
 		List<Double> pathSumList = new ArrayList<Double> ();
 		
 		String status = null;
@@ -617,7 +607,6 @@ public class MHSDashboardDrillPlaysheet extends TablePlaySheet implements IDataM
 					if(!(vertexActualStart == null ) && !(vertexActualStart.equals("_"))) {
 						try {
 							ES = (Date) getDateFormat().parse(vertexActualStart);
-							System.out.println("ACTUAL EARLY START:::::: " + ES);
 						} catch (ParseException e) {
 							e.printStackTrace();
 						}
@@ -675,7 +664,7 @@ public class MHSDashboardDrillPlaysheet extends TablePlaySheet implements IDataM
 						status = "projected";
 					}
 					
-					System.out.println("DELAY:::" + delay);
+//					System.out.println("DELAY:::" + delay);
 					//update db
 					String updateDBquery = "UPDATE SYSTEMACTIVITY SET " + EARLY_START + " = '"+ getDateFormat(ES)  + "', " + EARLY_FINISH + " = '"+ getDateFormat(EF) + "',  KEYSTATUS = '"+ status + "',  DELAY = '"+ delay + "' WHERE SYSTEMACTIVITY = '" + systemActivity + "'";
 					dmComponent.getEngine().insertData(updateDBquery);
@@ -793,7 +782,7 @@ public class MHSDashboardDrillPlaysheet extends TablePlaySheet implements IDataM
 	
 	
 	//calculate and add the slack value to the excel
-	private Double calculateSlack (Set<Vertex> vertexSet) {
+	private void calculateSlack (Set<Vertex> vertexSet) {
 		
 		//for every single activity in the current tinkerframe get the LS and ES and then subtract them together to get the Slack value
 		
@@ -848,27 +837,18 @@ public class MHSDashboardDrillPlaysheet extends TablePlaySheet implements IDataM
 			///////////////////////////////
 			
 			Double slack = (double) ((LFDate.getTime() - EFDate.getTime())/(24 * 60 * 60 * 1000));
+			if(slack < 0.0){
+				slack = 0.0;
+			}
 			
 			System.out.println("SLACK VAL:::" + slack);
 			
 			boolean isCritical = true;
-			if(slack != 0) {
-				slackList.add(slack);
-				isCritical = false;
-			}
 			System.out.println("IS CRITICAL:::" + isCritical);
 			//update db
 			String updateDBquery = "UPDATE SYSTEMACTIVITY SET " + SLACK + " = '"+ slack + "', " + CRITICAL_PATH + " = '"+ isCritical + "'  WHERE SYSTEMACTIVITY = '" + systemActivty + "'";
 			dmComponent.getEngine().insertData(updateDBquery);
 		}
-		
-		Double minSlack = 0.0;
-		if(!slackList.isEmpty()){
-			minSlack = Collections.min(slackList);
-		} 
-		
-		return minSlack;
-		
 	}
 	
 	
