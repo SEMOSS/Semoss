@@ -526,8 +526,32 @@ public class VizReactor extends AbstractReactor {
 		if (myStore.containsKey("commentAdded")) {
 			commentAdded(metadata);
 		}
+		if(myStore.containsKey("commentEdited")) {
+			commentEdited(metadata);
+		}
+		if(myStore.containsKey("commentRemoved")) {
+			commentRemoved(metadata);
+		}
 		
 		return metadata;
+	}
+	
+	/**
+	 * Add to metadta a comment removed operation
+	 * @param metadata
+	 */
+	private void commentRemoved(VizPkqlMetadata metadata) {
+		metadata.removeVizComment();			
+	}
+
+	/**
+	 * Add to metadta a comment edit operation
+	 * @param metadata
+	 */
+	private void commentEdited(VizPkqlMetadata metadata) {
+		Map commentMap = (HashMap) myStore.get("commentEdited");
+		String commentText = (String) commentMap.get("text");
+		metadata.editVizComment(commentText);		
 	}
 
 	/**
@@ -572,7 +596,18 @@ public class VizReactor extends AbstractReactor {
 		Vector<String> columns = (Vector<String>) myStore.get(PKQLEnum.TERM);
 		if(columns == null || columns.isEmpty()) {
 			columns = new Vector<String>();
-			columns.add("USING ALL COLUMNS");
+			columns.add("All Columns Selected");
+		} 
+		// TODO: really need to not do this...
+		// super hack!
+		else {
+			for(int i = 0; i < columns.size(); i++) {
+				String col = columns.get(i);
+				if(col.startsWith("c:") && !col.contains("m:")) {
+					col = col.replace("c:", "").trim();
+				}
+				columns.set(i, col);
+			}
 		}
 		metadata.addVizLayout(visualType, columns);
 		

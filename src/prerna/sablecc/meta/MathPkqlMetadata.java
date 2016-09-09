@@ -24,12 +24,12 @@ public class MathPkqlMetadata  extends AbstractPkqlMetadata {
 	@Override
 	public String getExplanation() {
 		// values that are added to template engine
-		String template = "Performed {{procedureName}} on {{columnsOperatedOn}}.";
+		String template = "Performed {{procedureName}} on {{columnsOperatedOn}}";
 		// template gets modified if there are also join columns
 		if (groupByColumns != null && !groupByColumns.isEmpty()) {
 			// remove period from sentence
-			template = template.substring(0, template.indexOf('.'));
-			template += " grouped by {{groupByColumns}} ";
+			//template = template.substring(0, template.indexOf('.'));
+			template += " grouped by {{groupByColumns}}";
 		}
 		return generateExplaination(template, getMetadata());
 	}

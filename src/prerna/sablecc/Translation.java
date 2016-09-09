@@ -28,6 +28,7 @@ import prerna.sablecc.node.AApiTerm;
 import prerna.sablecc.node.AColCsv;
 import prerna.sablecc.node.AColDef;
 import prerna.sablecc.node.AColGroup;
+import prerna.sablecc.node.AColTerm;
 import prerna.sablecc.node.AColWhere;
 import prerna.sablecc.node.AColopScript;
 import prerna.sablecc.node.AConfiguration;
@@ -734,7 +735,6 @@ public class Translation extends DepthFirstAdapter {
 	@Override
 	public void outAPanelCommentEdit(APanelCommentEdit node) {
 		System.out.println("out a viz comment edit");
-		deinitReactor(PKQLEnum.VIZ, "", "");
 
 		// get the comment id
 		String nodeCommentString = node.getPanelcommentedit().toString();
@@ -757,6 +757,8 @@ public class Translation extends DepthFirstAdapter {
 			comments = new HashMap();
 		}
 		comments.put(cid, commentMap);
+		curReactor.put("commentEdited", commentMap);
+		deinitReactor(PKQLEnum.VIZ, "", "");
 		runner.addFeData("comments", comments, true);
 		runner.setResponse("Successfully edited comment " + cid + " : " + node.getText().toString().trim());
 		runner.setStatus(PKQLRunner.STATUS.SUCCESS);
@@ -773,6 +775,7 @@ public class Translation extends DepthFirstAdapter {
 	@Override
 	public void outAPanelCommentRemove(APanelCommentRemove node) {
 		System.out.println("out a viz comment remove");
+		curReactor.put("commentRemoved", true);
 		deinitReactor(PKQLEnum.VIZ, "", "");
 
 		// get the comment id
@@ -1151,6 +1154,7 @@ public class Translation extends DepthFirstAdapter {
 		// it just goes through inACSVRow
 		// can grab it that way
 		// this doesn't do anything else
+		System.out.println("in a csv term");
 	}
 	
 	@Override
@@ -1271,8 +1275,14 @@ public class Translation extends DepthFirstAdapter {
 
 	@Override
 	public void inAFlexSelectorRow(AFlexSelectorRow node) {
-		// adding to the reactor
-		curReactor.set("TERM", node.getTerm()+"");
+		//TODO: really need to build this out...
+		if(node.getTerm() != null) {
+			curReactor.set("TERM", node.getTerm()+"");
+		}
+	}
+	
+	public void inAColTerm(AColTerm node) {
+		System.out.println("in a col term");
 	}
 
 	@Override
@@ -1315,7 +1325,6 @@ public class Translation extends DepthFirstAdapter {
 	@Override
 	public void outAFilterColumn(AFilterColumn node) {
 		String nodeExpr = node.getWhere().toString().trim();
-		//		curReactor.put(PKQLEnum.WHERE, nodeExpr);
 		Hashtable <String, Object> thisReactorHash = deinitReactor(PKQLEnum.FILTER_DATA, nodeExpr, node.toString().trim());
 		IScriptReactor previousReactor = (IScriptReactor)thisReactorHash.get(PKQLEnum.FILTER_DATA.toString());
 		runner.setStatus((STATUS)previousReactor.getValue("STATUS"));
@@ -1334,7 +1343,6 @@ public class Translation extends DepthFirstAdapter {
 	@Override
 	public void outAUnfilterColumn(AUnfilterColumn node) {
 		String nodeExpr = node.getColDef().toString().trim();
-		//		curReactor.put(PKQLEnum.WHERE, nodeExpr);
 		Hashtable <String, Object> thisReactorHash = deinitReactor(PKQLEnum.UNFILTER_DATA, nodeExpr, node.toString().trim());
 		IScriptReactor previousReactor = (IScriptReactor)thisReactorHash.get(PKQLEnum.UNFILTER_DATA.toString());
 		runner.setStatus((STATUS)previousReactor.getValue("STATUS"));
@@ -1688,12 +1696,7 @@ public class Translation extends DepthFirstAdapter {
 	
 	@Override
 	public void inAExprWordOrNum(AExprWordOrNum node) {
-		System.out.println("HOW DO I DEAL WITH THIS SITUATION!!! >>>>> inAExprWordOrNum");
-		System.out.println("HOW DO I DEAL WITH THIS SITUATION!!! >>>>> inAExprWordOrNum");
-		System.out.println("HOW DO I DEAL WITH THIS SITUATION!!! >>>>> inAExprWordOrNum");
-		System.out.println("HOW DO I DEAL WITH THIS SITUATION!!! >>>>> inAExprWordOrNum");
-		System.out.println("HOW DO I DEAL WITH THIS SITUATION!!! >>>>> inAExprWordOrNum");
-		System.out.println("HOW DO I DEAL WITH THIS SITUATION!!! >>>>> inAExprWordOrNum");
+
 	}
 
 	@Override
