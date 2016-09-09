@@ -192,12 +192,12 @@ public class SMSSWebWatcher extends AbstractFileWatcher {
 //		WHEN COMMITTING YOUR CODE, PLEASE MAKE SURE THIS IS COMMENTED!!!!
 //		WHEN COMMITTING YOUR CODE, PLEASE MAKE SURE THIS IS COMMENTED!!!!
 //		WHEN COMMITTING YOUR CODE, PLEASE MAKE SURE THIS IS COMMENTED!!!!
-//		try {
-//			SolrIndexEngine.getInstance().deleteAllSolrData();
-//		} catch (KeyManagementException | NoSuchAlgorithmException | KeyStoreException | IOException e1) {
-//			// TODO Auto-generated catch block
-//			e1.printStackTrace();
-//		}
+		try {
+			SolrIndexEngine.getInstance().deleteAllSolrData();
+		} catch (KeyManagementException | NoSuchAlgorithmException | KeyStoreException | IOException e1) {
+			// TODO Auto-generated catch block
+			e1.printStackTrace();
+		}
 
 		// I need to get all the SMSS files
 		// Read the engine names and profile the SMSS files i.e. capture that in some kind of hashtable
