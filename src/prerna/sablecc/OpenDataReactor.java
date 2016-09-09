@@ -81,28 +81,28 @@ public class OpenDataReactor extends AbstractReactor {
 					
 					InsightCreateRunner run = new InsightCreateRunner(insightObj);
 					Map<String, Object> insightOutput = run.runWeb();
-					Map<String, Object> webData = new HashMap<>();
-					if(insightOutput.containsKey("uiOptions")) {
-						webData.put("uiOptions", insightOutput.get("uiOptions"));
-					}
+//					Map<String, Object> webData = new HashMap<>();
+//					if(insightOutput.containsKey("uiOptions")) {
+//						webData.put("uiOptions", insightOutput.get("uiOptions"));
+//					}
+//					
+//					if(insightOutput.containsKey("layout")) {
+//						webData.put("layout", insightOutput.get("layout"));
+//					}
+//					
+//					if(insightOutput.containsKey("dataTableAlign")) {
+//						webData.put("dataTableAlign", insightOutput.get("dataTableAlign"));
+//					}
+//
+//					if(insightOutput.containsKey("title")) {
+//						webData.put("title", insightOutput.get("title"));
+//					}
+//
+//					if(insightOutput.containsKey("insightID")) {
+//						webData.put("insightID", insightOutput.get("insightID"));
+//					}
 					
-					if(insightOutput.containsKey("layout")) {
-						webData.put("layout", insightOutput.get("layout"));
-					}
-					
-					if(insightOutput.containsKey("dataTableAlign")) {
-						webData.put("dataTableAlign", insightOutput.get("dataTableAlign"));
-					}
-
-					if(insightOutput.containsKey("title")) {
-						webData.put("title", insightOutput.get("title"));
-					}
-
-					if(insightOutput.containsKey("insightID")) {
-						webData.put("insightID", insightOutput.get("insightID"));
-					}
-					
-					myStore.put("webData", webData);
+					myStore.put("webData", insightOutput);
 //					String saveFileLocation = CacheFactory.getInsightCache(CacheFactory.CACHE_TYPE.DB_INSIGHT_CACHE).cacheInsight(insightObj, (Map<String, Object>) obj);
 //					
 //					saveFileLocation = saveFileLocation + "_Solr.txt";
