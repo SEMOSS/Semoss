@@ -71,7 +71,7 @@ public class KMeansModel {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}*/
-		//Collections.sort(clusters);
+		Collections.sort(clusters);
 		
 		for(DataPoint p : points){
 			for(int i=0; i < clusters.size(); i++){
