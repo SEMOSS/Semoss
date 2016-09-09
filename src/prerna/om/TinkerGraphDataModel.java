@@ -68,6 +68,8 @@ public class TinkerGraphDataModel {
 	private RDFFileSesameEngine baseRelEngine = null;
 	private Hashtable baseFilterHash = new Hashtable();
 	String containsRelation;
+	
+	// subjects and objects below is used as a bindings later on within queries	
 	private StringBuffer subjects = new StringBuffer("");
 	private StringBuffer objects = new StringBuffer("");
 
@@ -142,6 +144,7 @@ public class TinkerGraphDataModel {
 		logger.debug("creating the in memory jena model");
 
 		try {
+			// predicates is used later on in a binding string in a query
 			StringBuffer predicates = new StringBuffer("");
 			while(sjw.hasNext())
 			{
@@ -307,20 +310,28 @@ public class TinkerGraphDataModel {
 		storeVert(uri, Utility.getInstanceName(uri), tf);
 	}
 
-	private void storeEdge(String outvert, String inVert, String edgeName, TinkerFrame tf){
-		logger.info("storing edge "  + outvert + " and in " + inVert);
-		String typeOut = Utility.getClassName(outvert);
+	private void storeEdge(String outVert, String inVert, String edgeName, TinkerFrame tf, Map<Integer, Set<Integer>> cardinality){
+		logger.info("storing edge "  + outVert + " and in " + inVert);
+		String typeOut = Utility.getClassName(outVert);
 		String typeIn = Utility.getClassName(inVert);
-		Map<String, Object> clean = new HashMap<String, Object>();
-		clean.put(typeOut, outvert);
-		clean.put(typeIn, inVert);
-		
-		Map<String, Object> raw = new HashMap<String, Object>();
-		raw.put(typeOut, outvert);
-		raw.put(typeIn, inVert);
-
 		tf.connectTypes(typeOut, typeIn, null);
-		tf.addRelationship(clean, raw);
+
+//		Map<String, Object> clean = new HashMap<String, Object>();
+//		clean.put(typeOut, outVert);
+//		clean.put(typeIn, inVert);
+//		Map<String, Object> raw = new HashMap<String, Object>();
+//		raw.put(typeOut, outVert);
+//		raw.put(typeIn, inVert);
+
+		String[] headers = {typeOut, typeIn};
+		String[] cleanValues = {Utility.getInstanceName(outVert), Utility.getInstanceName(inVert)};
+		String[] rawValues = {outVert, inVert};
+		
+		Map<String, String> logicalToTypeMap = new HashMap<String, String>();
+		logicalToTypeMap.put(typeOut, typeOut);
+		logicalToTypeMap.put(typeIn, typeIn);
+
+		tf.addRelationship(headers, cleanValues, rawValues, cardinality, logicalToTypeMap);
 	}
 
 	/**
@@ -390,6 +401,11 @@ public class TinkerGraphDataModel {
 				
 		logger.debug(predicateSelectQuery);
 		
+		Map<Integer, Set<Integer>> cardinality = new HashMap<Integer, Set<Integer>>();
+		Set<Integer> cardinalitySet = new HashSet<Integer>();
+		cardinalitySet.add(1);
+		cardinality.put(0, cardinalitySet);
+		
 		try {
 			logger.warn("Execute compelete");
 
@@ -406,14 +422,14 @@ public class TinkerGraphDataModel {
 				{
 					// get the subject, predicate and object
 					// look for the appropriate vertices etc and paint it
-					storeVert(subjectName, tf);
+//					storeVert(subjectName, tf);
 					vert1Name = Utility.getInstanceName(subjectName);
 					if(sct.getObject() instanceof URI){
-						storeVert(objectName, tf);
+//						storeVert(objectName, tf);
 						vert2 = objectName;
 					}
 					else { // ok this is a literal
-						storeVert(predicateName, sct.getObject(), tf);
+//						storeVert(predicateName, sct.getObject(), tf);
 						vert2 = predicateName+"";
 					}
 					// check to see if this is another type of edge			
@@ -423,7 +439,10 @@ public class TinkerGraphDataModel {
 							predicateName = predicateName + "/" + vert1Name + ":" + Utility.getInstanceName(vert2);
 						}
 					}
-					storeEdge(subjectName, vert2, predicateName, tf);
+					// when we store edge
+					// if the vert does not yet exist
+					// it will be added
+					storeEdge(subjectName, vert2, predicateName, tf, cardinality);
 				}
 			}
 		} catch (RuntimeException e) {
