@@ -1,11 +1,10 @@
 package prerna.util.sql;
 
-import java.util.ArrayList;
 import java.util.List;
 
 public class MySQLQueryUtil extends SQLQueryUtil {
 	public static final String DATABASE_DRIVER = "com.mysql.jdbc.Driver";
-	private String connectionBase = "jdbc:mysql://HOST/SCHEMA";
+	private String connectionBase = "jdbc:mysql://HOST:PORT/SCHEMA";
 	private String connectionURL = "";
 
 	public MySQLQueryUtil(){
