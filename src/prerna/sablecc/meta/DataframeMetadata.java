@@ -21,7 +21,7 @@ public class DataframeMetadata extends AbstractPkqlMetadata {
 
 	@Override
 	public String getExplanation() {
-		String template = "Created new frame of type {{" + FRAME_TEMPLATE_KEY + "}}.";
+		String template = "Created new frame of type {{" + FRAME_TEMPLATE_KEY + "}}";
 		return generateExplaination(template, getMetadata());
 	}
 
