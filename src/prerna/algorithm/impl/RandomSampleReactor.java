@@ -20,108 +20,128 @@ public class RandomSampleReactor extends MathReactor{
 		modExpression();
 		Vector<String> columns = (Vector <String>) myStore.get(PKQLEnum.COL_DEF);
 
-		String filterColumn = null;
+		Vector<String> filterColumns = null;
 
 		if(myStore.containsKey(PKQLEnum.COL_CSV)) {
-			filterColumn = ((Vector<String>)myStore.get(PKQLEnum.COL_CSV)).firstElement();
-			columns.add(filterColumn);
+			filterColumns = ((Vector<String>)myStore.get(PKQLEnum.COL_CSV));
+			for(String filterCol : filterColumns){
+				columns.add(filterCol);
+			}
 		}
 		
 		String[] columnsArray = convertVectorToArray(columns);
 		Iterator itr = getTinkerData(columns, (ITableDataFrame)myStore.get("G"), false);
-		
 
 		ITableDataFrame df = (ITableDataFrame)myStore.get("G");
 		int numRows = df.getNumRows();
-		int numSamples = 0;
-		float aboveBoundPercent = -1, withinBoundPercent = -1, belowBoundPercent = -1;
-		if(myStore.containsKey(PKQLEnum.MATH_PARAM)) {
-			Map<String, Object> options = (Map<String, Object>) myStore.get(PKQLEnum.MATH_PARAM);
-			if(options.containsKey("numSamples".toUpperCase())) {
-				numSamples = Integer.parseInt(options.get("numSamples".toUpperCase()) + "");
-			}
-			if(options.containsKey("aboveBoundPercent".toUpperCase())) {
-				aboveBoundPercent = Float.parseFloat(options.get("aboveBoundPercent".toUpperCase()) + "")/100;
-			}
-			if(options.containsKey("withinBoundPercent".toUpperCase())) {
-				withinBoundPercent = Float.parseFloat(options.get("withinBoundPercent".toUpperCase()) + "")/100;
-			}
-			if(options.containsKey("belowBoundPercent".toUpperCase())) {
-				belowBoundPercent = Float.parseFloat(options.get("belowBoundPercent".toUpperCase()) + "")/100;
-			}
+		Map<String, Object> options = (Map<String, Object>) myStore.get(PKQLEnum.MATH_PARAM);
+		int numSamples = Integer.parseInt(options.get("numSamples".toUpperCase()) + "");
+		List<SampleRegion> regions = new ArrayList<>();
+		if(filterColumns == null)
+		{
+			SampleRegion region = new SampleRegion(0, numSamples, 0, null);
+			regions.add(region);
 		}
-		numSamples = numSamples == 0 ? numRows/5 : numSamples;
-		aboveBoundPercent = aboveBoundPercent < 0? 0.3f : aboveBoundPercent;
-		withinBoundPercent = withinBoundPercent < 0? 0.3f : withinBoundPercent;
-		belowBoundPercent = belowBoundPercent < 0? 0.3f : belowBoundPercent;
-		
-		String script = columnsArray[0];
+		else if(filterColumns.size() == 1){
+			if(filterColumns.contains("Bounds"))
+			{
+				float aboveBoundPercent = Float.parseFloat(options.get("aboveBoundPercent".toUpperCase()) + "")/100;
+				float withinBoundPercent = Float.parseFloat(options.get("withinBoundPercent".toUpperCase()) + "")/100;
+				float belowBoundPercent = Float.parseFloat(options.get("belowBoundPercent".toUpperCase()) + "")/100;
 
-		RandomSampleIterator expItr = null;
-		if(filterColumn == null){		
-			List<Integer> randomSamples = new ArrayList<>(numRows);
-			for(int i=0; i < numRows; i++){
-				int j = (i < numSamples) ? 1 : 0;
-				randomSamples.add(j);
+				int aboveTgtCount = Math.round(numSamples * aboveBoundPercent);
+				int withinTgtCount = Math.round(numSamples * withinBoundPercent);
+				int belowTgtCount = Math.round(numSamples * belowBoundPercent);
+				
+				SampleRegion aboveBounds = new SampleRegion(0, aboveTgtCount, 1, "0.0");
+				SampleRegion withinBounds = new SampleRegion(1, withinTgtCount, 1, "1.0");
+				SampleRegion belowBounds = new SampleRegion(2, belowTgtCount, 1, "2.0");
+				
+				regions.add(aboveBounds);
+				regions.add(withinBounds);
+				regions.add(belowBounds);
 			}
-			Collections.shuffle(randomSamples);
-			Iterator<Integer> randomIterator = randomSamples.iterator();
-			Map<Object,Integer> samples = new HashMap<>();
-			while(itr.hasNext()){
-				Object[] row = (Object[])itr.next();
-				samples.put(row[0],randomIterator.next());
-			}
-			Iterator resultItr = getTinkerData(columns, (ITableDataFrame)myStore.get("G"), false);
-			expItr = new RandomSampleIterator(resultItr, columnsArray,script, samples);
-		}else{
-			List<Integer> aboveBoundSamples = new ArrayList<>();
-			List<Integer> withinBoundSamples = new ArrayList<>();
-			List<Integer> belowBoundSamples = new ArrayList<>();
-			int aboveTgtCount = Math.round(numSamples * aboveBoundPercent);
-			int withinTgtCount = Math.round(numSamples * withinBoundPercent);
-			int belowTgtCount = Math.round(numSamples * belowBoundPercent);
-			while(itr.hasNext()){
-				Object[] row = (Object[])itr.next();
-				if((double)row[1] == 0){
-					int i = (aboveBoundSamples.size() < aboveTgtCount) ? 1 : 0;
-					aboveBoundSamples.add(i);
-				}
-				if((double)row[1] == 1){
-					int i = (withinBoundSamples.size() < withinTgtCount) ? 1 : 0;
-					withinBoundSamples.add(i);
-				}
-				if((double)row[1] == 2){
-					int i = (belowBoundSamples.size() < belowTgtCount) ? 1 : 0;
-					belowBoundSamples.add(i);
+			if(filterColumns.contains("Cluster"))
+			{
+				int clusterNum = options.keySet().size() - 3;
+				
+				for(int i=0; i<clusterNum; i++){
+					int clusterCount = Math.round(numSamples * Float.parseFloat(options.get("Cluster".toUpperCase() + i) + "")/100);
+					SampleRegion clusterRegion = new SampleRegion(i, clusterCount, 1, i + ".0");
+					regions.add(clusterRegion);
 				}
 			}
-			Collections.shuffle(aboveBoundSamples);
-			Collections.shuffle(withinBoundSamples);
-			Collections.shuffle(belowBoundSamples);
-			Map<Object,Integer> samples = new HashMap<>();
-			Iterator<Integer> aboveSamplesIterator = aboveBoundSamples.iterator();
-			Iterator<Integer> withinSamplesIterator = withinBoundSamples.iterator();
-			Iterator<Integer> belowSamplesIterator = belowBoundSamples.iterator();
-			Iterator itr2 = getTinkerData(columns, (ITableDataFrame)myStore.get("G"), false);
-			while(itr2.hasNext()){
-				Object[] row = (Object[])itr2.next();
-				if((double) row[1] == 0)
-					samples.put(row[0], aboveSamplesIterator.next());
-				if((double) row[1] == 1)
-					samples.put(row[0], withinSamplesIterator.next());
-				if((double) row[1] == 2)
-					samples.put(row[0], belowSamplesIterator.next());
-			}
-			Iterator resultItr = getTinkerData(columns, (ITableDataFrame)myStore.get("G"), false);
-			expItr = new RandomSampleIterator(resultItr, columnsArray,script, samples);
 		}
-		
+		else if(filterColumns.contains("Bounds") && filterColumns.contains("Cluster")){
+			float aboveBoundPercent = Float.parseFloat(options.get("aboveBoundPercent".toUpperCase()) + "")/100;
+			float belowBoundPercent = Float.parseFloat(options.get("belowBoundPercent".toUpperCase()) + "")/100;
+
+			int aboveTgtCount = Math.round(numSamples * aboveBoundPercent);
+			int belowTgtCount = Math.round(numSamples * belowBoundPercent);
+			
+			SampleRegion aboveBounds = new SampleRegion(0, aboveTgtCount, columns.indexOf("Bounds"), "0.0");
+			SampleRegion belowBounds = new SampleRegion(1, belowTgtCount, columns.indexOf("Bounds"), "2.0");
+			regions.add(aboveBounds);
+			regions.add(belowBounds);
+
+			int clusterNum = options.keySet().size() - 3;
+			int clusterColIndex = columns.indexOf("Cluster");
+			for(int i=0; i<clusterNum; i++){
+				int clusterCount = Math.round(numSamples * Float.parseFloat(options.get("Cluster".toUpperCase() + i) + "")/100);
+				SampleRegion clusterRegion = new SampleRegion(i+2, clusterCount, clusterColIndex, i + ".0");
+				regions.add(clusterRegion);
+			}
+		}
+		String script = columnsArray[0];
+		Iterator resultItr = getTinkerData(columns, (ITableDataFrame)myStore.get("G"), false);
+		Map<Object,Integer> samples = new HashMap<>();
+		while(itr.hasNext()){
+			Object[] row = (Object[]) itr.next();
+			int sampled = 0;
+			for(SampleRegion region : regions){
+				if(region.CheckAndAdd(row)){
+					sampled = 1;
+					break;
+				}
+			}
+			samples.put(row[0], sampled);
+		}
+		RandomSampleIterator expItr = new RandomSampleIterator(resultItr, columnsArray,script, samples);
 		
 		String nodeStr = myStore.get(whoAmI).toString();
 		myStore.put(nodeStr, expItr);
 		myStore.put("STATUS", STATUS.SUCCESS);
 		
 		return expItr;
+	}
+}
+
+class SampleRegion {
+	int regionNum = -1;
+	int colToCheck = -1;
+	String valueToMatch = null;
+	int samplesToTake = -1;
+	
+	public SampleRegion(int regionNum, int samplesToTake, int colToCheck,String valueToMatch ){
+		this.regionNum = regionNum;
+		this.samplesToTake = samplesToTake;
+		this.colToCheck = colToCheck;
+		this.valueToMatch = valueToMatch;
+	}
+	
+	public boolean CheckAndAdd(Object[] datapoint){
+		if(samplesToTake < 1)
+			return false;
+		if(valueToMatch != null && valueToMatch.equals(String.valueOf(datapoint[colToCheck]))){
+			samplesToTake--;
+			return true;
+		}
+		else if (valueToMatch == null && datapoint[colToCheck] != null){
+			samplesToTake--;
+			return true;
+		}
+		return false;
+			
 	}
 }
 
