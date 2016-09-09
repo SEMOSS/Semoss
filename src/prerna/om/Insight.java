@@ -1060,24 +1060,51 @@ public class Insight {
 			// TODO: Clean this up, possibly move the boolean and recipeindex to AbstractTrans
 			// If this is a PKQLTrans, see if it needs to be inserted at a specific index (user.input needs to go at the top)
 			// This should go away if we have metadata around each PKQLTrans so we know what to do with it
-			if(!(postTransCopy.get(i) instanceof PKQLTransformation) || (postTransCopy.get(i) instanceof PKQLTransformation && ((PKQLTransformation) postTransCopy.get(i)).isAddToRecipe())) {
-				if(postTransCopy.get(i) instanceof PKQLTransformation && ((PKQLTransformation) postTransCopy.get(i)).getRecipeIndex() != -1) {
-					postTrans.get(i).setId(dmc.getId() + ":" + POST_TRANS + (++lastPostTrans));
-					dmc.addPostTrans(postTrans.get(i), ((PKQLTransformation) postTransCopy.get(i)).getRecipeIndex());
-				} else {
-					postTrans.get(i).setId(dmc.getId() + ":" + POST_TRANS + (++lastPostTrans));
-					dmc.addPostTrans(postTrans.get(i));
-				}
-			}
 			
-			// grab and process the metadata response from each transformation
-			// currently, the only thing that we are parsing is the metadata around files that are manually added
 			if(postTransCopy.get(i) instanceof PKQLTransformation) {
-				List<IPkqlMetadata> metadataResponse = ((PKQLTransformation) postTransCopy.get(i)).getPkqlMetadataList();
-				if(metadataResponse != null && !metadataResponse.isEmpty()) {
-					parseMetadataResponse(metadataResponse);
-					this.pkqlMetadata.addAll(metadataResponse);
+				PKQLTransformation pkqlTrans = (PKQLTransformation) postTransCopy.get(i);
+				
+				boolean addToRecipe = pkqlTrans.isAddToRecipe();
+				// we get the pkql to tell us if we need to add it to recipe
+				// we would not want it to add when we have a parameter
+				// if parameter says "Studio = 'WB'" we dont want that to add is it would 
+				// obviously make the recipe useless the next time you save.. duh
+				
+				// however, we will completley override this if its a dashboard
+				// this is because we use the parameter to send a static insight id
+				// and we dont want that to change
+				// when we get to do parameter join on a dashboard, will rethink this...
+				if(getDataMaker() instanceof Dashboard) {
+					addToRecipe = true;
 				}
+				
+				if(addToRecipe) {
+					// TODO: need to confirm this
+					// i think the index needs to be used for pushing specific things like parameters
+					// to the beginning of a recipe
+					if(pkqlTrans.getRecipeIndex() != -1) {
+						postTrans.get(i).setId(dmc.getId() + ":" + POST_TRANS + (++lastPostTrans));
+						dmc.addPostTrans(postTrans.get(i), ((PKQLTransformation) postTransCopy.get(i)).getRecipeIndex());
+					} else {
+						postTrans.get(i).setId(dmc.getId() + ":" + POST_TRANS + (++lastPostTrans));
+						dmc.addPostTrans(postTrans.get(i));
+					}
+				}
+
+				
+				// grab and process the metadata response from each transformation
+				// currently, the only thing that we are parsing is the metadata around files that are manually added
+				if(postTransCopy.get(i) instanceof PKQLTransformation) {
+					List<IPkqlMetadata> metadataResponse = ((PKQLTransformation) postTransCopy.get(i)).getPkqlMetadataList();
+					if(metadataResponse != null && !metadataResponse.isEmpty()) {
+						parseMetadataResponse(metadataResponse);
+						this.pkqlMetadata.addAll(metadataResponse);
+					}
+				}
+			} else {
+				// not pkql, no checks needed, add that to recipe
+				postTrans.get(i).setId(dmc.getId() + ":" + POST_TRANS + (++lastPostTrans));
+				dmc.addPostTrans(postTrans.get(i));
 			}
 		}
 	}
