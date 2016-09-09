@@ -128,23 +128,24 @@ public class Dashboard implements IDataMaker {
 				
 				
 				Map<String, Object> insightOutput = insight.getWebData();
-				Map<String, Object> webData = new HashMap<>();
-				if(insightOutput.containsKey("uiOptions")) {
-					webData.put("uiOptions", insightOutput.get("uiOptions"));
-				}
-				
-				if(insightOutput.containsKey("layout")) {
-					webData.put("layout", insightOutput.get("layout"));
-				}
-				
-				if(insightOutput.containsKey("dataTableAlign")) {
-					webData.put("dataTableAlign", insightOutput.get("dataTableAlign"));
-				}
-	
-				if(insightOutput.containsKey("title")) {
-					webData.put("title", insightOutput.get("title"));
-				}
-				nextInsightMap.put("layout", webData);
+//				Map<String, Object> webData = new HashMap<>();
+//				if(insightOutput.containsKey("uiOptions")) {
+//					webData.put("uiOptions", insightOutput.get("uiOptions"));
+//				}
+//				
+//				if(insightOutput.containsKey("layout")) {
+//					webData.put("layout", insightOutput.get("layout"));
+//				}
+//				
+//				if(insightOutput.containsKey("dataTableAlign")) {
+//					webData.put("dataTableAlign", insightOutput.get("dataTableAlign"));
+//				}
+//	
+//				if(insightOutput.containsKey("title")) {
+//					webData.put("title", insightOutput.get("title"));
+//				}
+//				nextInsightMap.put("layout", webData);
+				nextInsightMap.putAll(insightOutput);
 				insightList.add(nextInsightMap);
 			}
 		}
