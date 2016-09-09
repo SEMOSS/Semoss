@@ -27,8 +27,6 @@ import prerna.ui.helpers.InsightCreateRunner;
 public class Dashboard implements IDataMaker {
 
 	private static final Logger LOGGER = LogManager.getLogger(Dashboard.class.getName());
-//	Map<String, Insight> attachedInsights = new LinkedHashMap<>(4);
-//	private static String delimiter = ":::";
 	private String insightID;
 	private H2Joiner joiner;
 //	Object[] joinData = new Object[2];
@@ -126,25 +124,10 @@ public class Dashboard implements IDataMaker {
 				joinedInsights.remove(insight.getInsightID());
 				nextInsightMap.put("joinedInsights", joinedInsights);
 				
-				
-				Map<String, Object> insightOutput = insight.getWebData();
-//				Map<String, Object> webData = new HashMap<>();
-//				if(insightOutput.containsKey("uiOptions")) {
-//					webData.put("uiOptions", insightOutput.get("uiOptions"));
-//				}
-//				
-//				if(insightOutput.containsKey("layout")) {
-//					webData.put("layout", insightOutput.get("layout"));
-//				}
-//				
-//				if(insightOutput.containsKey("dataTableAlign")) {
-//					webData.put("dataTableAlign", insightOutput.get("dataTableAlign"));
-//				}
-//	
-//				if(insightOutput.containsKey("title")) {
-//					webData.put("title", insightOutput.get("title"));
-//				}
-//				nextInsightMap.put("layout", webData);
+				//instead of doing this...have data.open save the output to the insight/dashboard
+				//grab that data from the insight/dashboard...then delete
+				//this doesn't have sufficient pkql data
+				Map<String, Object> insightOutput = insight.getWebData(); 
 				nextInsightMap.putAll(insightOutput);
 				insightList.add(nextInsightMap);
 			}
@@ -178,6 +161,10 @@ public class Dashboard implements IDataMaker {
 		reactorNames.put(PKQLEnum.COL_CSV, "prerna.sablecc.ColCsvReactor");
 		reactorNames.put(PKQLEnum.DASHBOARD_ADD, "prerna.sablecc.DashboardAddReactor");
 		reactorNames.put(PKQLEnum.VIZ, "prerna.sablecc.VizReactor");
+		reactorNames.put(PKQLEnum.EXPR_TERM, "prerna.sablecc.ExprReactor");
+		reactorNames.put(PKQLEnum.EXPR_SCRIPT, "prerna.sablecc.ExprReactor");
+		reactorNames.put(PKQLReactor.MATH_FUN.toString(),"prerna.sablecc.MathReactor");
+		reactorNames.put(PKQLEnum.MATH_PARAM, "prerna.sablecc.MathParamReactor");
 		return reactorNames;
 	}
 
