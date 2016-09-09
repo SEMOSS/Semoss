@@ -63,7 +63,7 @@ public class RandomSampleReactor extends MathReactor{
 			}
 			if(filterColumns.contains("Cluster"))
 			{
-				int clusterNum = options.keySet().size() - 3;
+				int clusterNum = options.keySet().size() - 1;
 				
 				for(int i=0; i<clusterNum; i++){
 					int clusterCount = Math.round(numSamples * Float.parseFloat(options.get("Cluster".toUpperCase() + i) + "")/100);
