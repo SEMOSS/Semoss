@@ -26,7 +26,7 @@ public class ImportDataMetadata extends AbstractPkqlMetadata {
 
 	@Override
 	public String getExplanation() {
-		String template = "Importing {{" + SELECTORS_TEMPLATE_KEY + "}}.";
+		String template = "Importing {{" + SELECTORS_TEMPLATE_KEY + "}}";
 		return generateExplaination(template, getMetadata());
 	}
 

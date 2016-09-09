@@ -1,18 +1,24 @@
 package prerna.sablecc;
 
+import java.util.Hashtable;
 import java.util.Iterator;
 import java.util.Vector;
 
 import prerna.algorithm.api.ITableDataFrame;
+import prerna.sablecc.meta.ColUnfilterMetadata;
+import prerna.sablecc.meta.IPkqlMetadata;
 
-public class ColUnfilterReactor extends AbstractReactor{
+public class ColUnfilterReactor extends AbstractReactor {
 
 	public ColUnfilterReactor() {
-		String [] thisReacts = {PKQLEnum.COL_DEF}; // these are the input columns - there is also expr Term which I will come to shortly
+		String[] thisReacts = { PKQLEnum.COL_DEF }; // these are the input
+													// columns - there is also
+													// expr Term which I will
+													// come to shortly
 		super.whatIReactTo = thisReacts;
 		super.whoAmI = PKQLEnum.UNFILTER_DATA;
 
-		//setting pkqlMetaData
+		// setting pkqlMetaData
 		String title = "Unfilter data in a column";
 		String pkqlCommand = "col.unfilter(c:col1);";
 		String description = "Unfilters the data in the selected column";
@@ -27,14 +33,14 @@ public class ColUnfilterReactor extends AbstractReactor{
 		// I need to take the col_def
 		// and put it into who am I
 		modExpression();
-		String nodeStr = (String)myStore.get(whoAmI);
-		//		System.out.println("My Store on COL CSV " + myStore);
+		String nodeStr = (String) myStore.get(whoAmI);
+		// System.out.println("My Store on COL CSV " + myStore);
 
 		ITableDataFrame frame = (ITableDataFrame) myStore.get("G");
 
 		Vector<String> column = (Vector<String>) myStore.get(PKQLEnum.COL_DEF);
 
-		for(String c : column) {
+		for (String c : column) {
 			frame.unfilter(c);
 			myStore.put("STATUS", PKQLRunner.STATUS.SUCCESS);
 			myStore.put("FILTER_COLUMN", c);
@@ -43,7 +49,12 @@ public class ColUnfilterReactor extends AbstractReactor{
 		// update the data id so FE knows data has been changed
 		frame.updateDataId();
 
-
 		return null;
 	}
+
+	public IPkqlMetadata getPkqlMetadata() {
+		ColUnfilterMetadata metadata = new ColUnfilterMetadata((String) myStore.get("FILTER_COLUMN"));
+		metadata.setPkqlStr((String) myStore.get(PKQLEnum.FILTER_DATA));
+		return metadata;
 	}
+}
