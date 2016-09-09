@@ -9,6 +9,8 @@ public class VizPkqlMetadata extends AbstractPkqlMetadata {
 	// each of the subcomponenets that comprise a viz pkql
 	
 	VizComment comment;
+	VizCommentEdit commentEdit;
+	VizCommentRemoved commentRemoved;
 	VizClose close;
 	VizClone clone;
 	VizLayout layout;
@@ -42,6 +44,12 @@ public class VizPkqlMetadata extends AbstractPkqlMetadata {
 		if (this.comment != null) {
 			metadata.put("comment", this.comment);
 		}
+		if(this.commentEdit != null) {
+			metadata.put("commentEdited", this.comment);
+		}
+		if(this.commentRemoved != null) {
+			metadata.put("commentRemoved", this.comment);
+		}
 		
 		return metadata;
 	}
@@ -74,6 +82,13 @@ public class VizPkqlMetadata extends AbstractPkqlMetadata {
 		if (this.comment != null) {
 			msg += generateExplaination(this.comment.getTemplate(), this.comment.getTemplateData());
 		}
+		if(this.commentEdit != null) {
+			msg += generateExplaination(this.commentEdit.getTemplate(), this.commentEdit.getTemplateData());
+		}
+		if(this.commentRemoved != null) {
+			msg += generateExplaination(this.commentRemoved.getTemplate(), this.commentRemoved.getTemplateData());
+		}
+			
 
 		return msg;
 	}
@@ -100,6 +115,13 @@ public class VizPkqlMetadata extends AbstractPkqlMetadata {
 	
 	public void addVizConfigMap(String width, String height, String top, String left) {
 		this.configMap = new VizConfigMap(width, height, top, left);
+	}
+
+	public void editVizComment(String commentText) {
+		this.commentEdit = new VizCommentEdit(commentText);		
+	}
+	public void removeVizComment() {
+		this.commentRemoved = new VizCommentRemoved();
 	}
 	
 }
@@ -143,7 +165,7 @@ class VizComment implements VizComponent{
 
 	@Override
 	public String getTemplate() {
-		return "Added comment {{" + TEXT_TEMPLATE_FIELD_NAME + "}}.";
+		return "Added comment {{" + TEXT_TEMPLATE_FIELD_NAME + "}}";
 	}
 
 	@Override
@@ -154,6 +176,51 @@ class VizComment implements VizComponent{
 	}
 }
 
+
+/**
+ * Viz component for editing a comment
+ */
+class VizCommentEdit implements VizComponent{
+	
+	String commentText;
+	final String TEXT_TEMPLATE_FIELD_NAME = "commentText";
+
+	public VizCommentEdit(String commentText) {
+		this.commentText = commentText;
+	}
+
+	@Override
+	public String getTemplate() {
+		return "Edited comment {{" + TEXT_TEMPLATE_FIELD_NAME + "}}";
+	}
+
+	@Override
+	public Map<String, Object> getTemplateData() {
+		Map<String, Object> templateData = new Hashtable<String, Object>();
+		templateData.put(TEXT_TEMPLATE_FIELD_NAME, commentText);
+		return templateData;
+	}
+}
+
+/**
+ * Viz component for removing a comment
+ */
+class VizCommentRemoved implements VizComponent{
+
+	public VizCommentRemoved() {
+	}
+
+	@Override
+	public String getTemplate() {
+		return "Removed comment";
+	}
+
+	@Override
+	public Map<String, Object> getTemplateData() {
+		Map<String, Object> templateData = new Hashtable<String, Object>();
+		return templateData;
+	}
+}
 /**
  * Viz component for a viz-close action
  */
@@ -168,7 +235,7 @@ class VizClose implements VizComponent {
 	
 	@Override
 	public String getTemplate() {
-		return "Closed {{"+TEXT_TEMPLATE_FIELD_NAME+"}}.";
+		return "Closed {{"+TEXT_TEMPLATE_FIELD_NAME+"}}";
 	}
 
 	@Override
@@ -198,7 +265,7 @@ class VizClone implements VizComponent {
 	@Override
 	public String getTemplate() {
 		return "Cloned {{" + OLD_PANEL_TEXT_TEMPLATE_FIELD_NAME + "}} to panel[{{" +
-				NEW_PANEL_TEXT_TEMPLATE_FIELD_NAME + "}}].";
+				NEW_PANEL_TEXT_TEMPLATE_FIELD_NAME + "}}]";
 	}
 
 	@Override
@@ -229,7 +296,7 @@ class VizLayout implements VizComponent {
 	@Override
 	public String getTemplate() {
 		return "Created {{" + LAYOUT_TEMPLATE_FIELD_NAME + "}} visualization using {{"
-				+ COLUMNS_TEMPLATE_FIELD_NAME + "}}.";
+				+ COLUMNS_TEMPLATE_FIELD_NAME + "}}";
 	}
 
 	@Override
@@ -255,7 +322,7 @@ class VizLookAndFeel implements VizComponent {
 	
 	@Override
 	public String getTemplate() {
-		return "Changed look and feel {{" + TEXT_TEMPLATE_FIELD_NAME + "}}.";
+		return "Changed look and feel {{" + TEXT_TEMPLATE_FIELD_NAME + "}}";
 	}
 
 	@Override
