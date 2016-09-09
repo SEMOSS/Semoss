@@ -1246,7 +1246,9 @@ public class Insight {
 //				retHash.putAll(dm.getDataMakerOutput(selectors.toArray(new String[]{})));
 			} else if(dm instanceof Dashboard) { 
 				Dashboard dash = (Dashboard)dm;
+				Gson gson = new Gson();
 				retHash.put("config", dash.getConfig());
+				retHash.put("varMap", this.pkqlVarMap);
 //				dash.setInsightID(insightID);
 				retHash.putAll(dm.getDataMakerOutput());
 			} else {
