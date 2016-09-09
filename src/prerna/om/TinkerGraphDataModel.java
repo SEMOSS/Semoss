@@ -49,8 +49,6 @@ public class TinkerGraphDataModel {
 
 	private static final Logger logger = LogManager.getLogger(TinkerGraphDataModel.class.getName());
 
-	private Hashtable<String, String> baseFilterHash = new Hashtable<String, String>();
-
 	public void fillModel(String query, IEngine engine, TinkerFrame tf){
 		long start = System.currentTimeMillis();
 		processData(query, engine, tf);
@@ -63,7 +61,7 @@ public class TinkerGraphDataModel {
 		// load the base filter hash
 		// this will be used to ignore the triples
 		// that are purely metdata oriented from the tinkerframe
-		this.baseFilterHash.putAll( ((AbstractEngine)engine).getBaseHash() );
+		Hashtable<String, String> baseFilterHash = ((AbstractEngine)engine).getBaseHash();
 
 		String queryCap = query.toUpperCase().trim();
 //		// this is just to remove the limit for some of the queries i have seen
@@ -125,7 +123,7 @@ public class TinkerGraphDataModel {
 				}
 				
 				// when we store edge
-				// if the vert does not yet exist
+				// if the vertex does not yet exist
 				// it will be added
 				storeRelationship(vert1, vert2, tf, cardinality);
 			} 
@@ -158,7 +156,8 @@ public class TinkerGraphDataModel {
 	}
 	
 	// this would be used if we are sending display names
-	private String getDisplayName(IEngine coreEngine, String subKey){
-		return Utility.getTransformedNodeName(coreEngine, subKey, true);
-	}
+//	private String getDisplayName(IEngine coreEngine, String subKey){
+//		return Utility.getTransformedNodeName(coreEngine, subKey, true);
+//	}
+	
 }
