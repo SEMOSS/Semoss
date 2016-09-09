@@ -71,8 +71,16 @@ public class KMeansModel {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}*/
+		//Collections.sort(clusters);
+		
 		for(DataPoint p : points){
-			result.put(p.id, p.clusterNum);
+			for(int i=0; i < clusters.size(); i++){
+				if(clusters.get(i).centre.clusterNum == p.clusterNum){
+					result.put(p.id, i);
+					break;
+				}
+			}
+			//result.put(p.id, p.clusterNum);
 		}
 		for(DataPoint p : nonClusteredPoints){
 			result.put(p.id, p.clusterNum);
@@ -152,11 +160,44 @@ class DataPoint implements Comparable<DataPoint>,Comparator<DataPoint> {
 	}
 }
 
-class Cluster{
+class Cluster implements Comparable<Cluster>,Comparator<Cluster>{
 	
 	DataPoint centre;
 	
 	public Cluster(DataPoint centre){
 		this.centre = centre;
+	}
+
+	@Override
+	public int compare(Cluster o1, Cluster o2) {
+		// TODO Auto-generated method stub
+		if(o1 == null)
+			return o2 == null? 0 : 1;
+		if (o2 == null)
+			return -1;
+		return o1.compareTo(o2);
+	}
+
+	@Override
+	public int compareTo(Cluster o) {
+		// TODO Auto-generated method stub
+		double myDist = 0;
+		for(double dim : centre.dimensions){
+			myDist += Math.pow(dim, 2);
+		}
+		myDist = Math.sqrt(myDist);
+		
+		double otherDist = 0;
+		for(double dim : o.centre.dimensions){
+			otherDist += Math.pow(dim, 2);
+		}
+		otherDist = Math.sqrt(otherDist);
+		
+		if(myDist > otherDist)
+			return 1;
+		else if (myDist == otherDist)
+			return 0;
+		else
+			return -1;
 	}
 }
