@@ -993,7 +993,9 @@ public class Translation extends DepthFirstAdapter {
 		String json = node.getJsonblock().getText();
 		json = json.replace("<json>", "");
 		json = json.replace("</json>", "");
-		dm.setConfig(json);
+		Map object = new Gson().fromJson(json, HashMap.class);
+//		String jsonObject = new Gson().toJson(object);
+		dm.setConfig(object);
 //		runner.addFeData("config", json, true);
 		runner.setResponse("Successfully set config");
 		runner.setStatus(PKQLRunner.STATUS.SUCCESS);

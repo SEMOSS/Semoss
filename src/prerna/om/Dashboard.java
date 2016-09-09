@@ -46,7 +46,7 @@ public class Dashboard implements IDataMaker {
 	// insight id -> frame id
 	private Map<String, String> insight2frameMap = new HashMap<>();
 	
-	String config = "";
+	Map config = new HashMap<>();
 	
 	public Dashboard() {
 		joiner = new H2Joiner(this);
@@ -241,11 +241,11 @@ public class Dashboard implements IDataMaker {
 		
 	}
 	
-	public void setConfig(String config) {
+	public void setConfig(Map config) {
 		this.config = config;
 	}
 	
-	public String getConfig() {
+	public Map getConfig() {
 		return this.config;
 	}
 	/************************************* JOINING LOGIC **************************************/
@@ -346,6 +346,8 @@ public class Dashboard implements IDataMaker {
 				} else {
 					
 				}
+			} else {
+				saveRecipe.add(joinPkql);
 			}
 		}
 		
