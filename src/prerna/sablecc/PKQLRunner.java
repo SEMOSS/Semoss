@@ -349,7 +349,6 @@ public class PKQLRunner {
 	}
 	
 	/*
-<<<<<<< .mine
 	 * Adds a variable to the var map so that it can be retrieved with other pkqls
 	 */
 	public void setVariableValue(String varName, Object expr) {
@@ -363,10 +362,6 @@ public class PKQLRunner {
 	/*
 	 * Sets a reference to the variable map into the runner so that Translation
 	 * can access it The main object sits on the Insight
-=======
-	 * Sets a reference to the variable map into the runner so that Translation can access it
-	 * The main object sits on the Insight
->>>>>>> .r16223
 	 */
 	public void setVarMap(Map<String, Map<String, Object>> varMap){
 		this.varMap = varMap;
@@ -434,7 +429,8 @@ public class PKQLRunner {
 	}
 	
 	public void setDataMap(Map<String, Object> dataMap) {
-		this.dataMap = dataMap;
+		String insightID = (String)dataMap.get("insightID");
+		this.dataMap.put(insightID, dataMap);
 	}
 	
 	public List<IPkqlMetadata> getMetadataResponse() {
