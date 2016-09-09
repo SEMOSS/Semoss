@@ -107,28 +107,54 @@ public class TinkerGraphDataModel {
 			// we need to ignore the metadata triples that get passed from the construct query
 			if(!baseFilterHash.containsKey(subjectName) && !baseFilterHash.containsKey(predicateName) && !baseFilterHash.containsKey(objectName))
 			{
-				// if we have a URI as the object
-				// we just grab it and that is the to vertex
-				if(sct.getObject() instanceof URI) 
-				{
-					vert2 = objectName;
+				// need to account when we have a return that is just the node itself
+				if(subjectName.equals(predicateName) && subjectName.equals(objectName)) {
+					storeVertex(subjectName, tf);
+				} else {
+					// if we have a URI as the object
+					// we just grab it and that is the to vertex
+					if(sct.getObject() instanceof URI) 
+					{
+						vert2 = objectName;
+					}
+					else 
+					{
+						// if it is not a URI, we have a literal
+						// given the way we store the triple
+						// { <http://semoss.org/ontologies/Concept/Title/Avatar> <http://semoss.org/ontologies/Relation/Contains/MovieBudget> "1000"}
+						// we construct the vertex to be the predicate + "/" + the literal value
+						vert2 = predicateName + "/" + objectName;
+					}
+					
+					// when we store edge
+					// if the vertex does not yet exist
+					// it will be added
+					storeRelationship(vert1, vert2, tf, cardinality);
 				}
-				else 
-				{
-					// if it is not a URI, we have a literal
-					// given the way we store the triple
-					// { <http://semoss.org/ontologies/Concept/Title/Avatar> <http://semoss.org/ontologies/Relation/Contains/MovieBudget> "1000"}
-					// we construct the vertex to be the predicate + "/" + the literal value
-					vert2 = predicateName + "/" + objectName;
-				}
-				
-				// when we store edge
-				// if the vertex does not yet exist
-				// it will be added
-				storeRelationship(vert1, vert2, tf, cardinality);
 			} 
 		}
 	}	
+	
+	private void storeVertex(String vert, TinkerFrame tf){
+		logger.info("storing vertex "  + vert);
+		String type = Utility.getClassName(vert);
+		
+		Map<String, Object> clean = new HashMap<String, Object>();
+		clean.put(type, Utility.getInstanceName(vert));
+		Map<String, Object> raw = new HashMap<String, Object>();
+		raw.put(type, vert);
+
+		// need to pass in a map
+		// this would be where we would take advantage of using display names
+		Map<String, String> logicalToTypeMap = new HashMap<String, String>();
+		logicalToTypeMap.put(type, type);
+		
+		// add relationship has a check to see there is no relationship
+		// so it just adds a node
+		// add an empty edge hash so it get that faster
+		tf.addRelationship(clean, raw, new Hashtable<String, Set<String>>(), logicalToTypeMap);
+	}
+	
 
 	private void storeRelationship(String outVert, String inVert, TinkerFrame tf, Map<Integer, Set<Integer>> cardinality){
 		logger.info("storing edge "  + outVert + " and in " + inVert);
