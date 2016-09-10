@@ -1649,15 +1649,11 @@ public class H2Builder {
 		}
 
 		if(sortBy != null) {
-
 			sortBy = cleanHeader(sortBy);
 			if(joinMode) {
 				sortBy = translateColumn(sortBy);
 			}
-			selectQuery += " sort by " + sortBy;
-			//			if(sortDir != null) {
-			//				
-			//			}
+			selectQuery += " order by " + sortBy;
 		}
 		if(limit != null && limit > 0) {
 			selectQuery += " limit "+limit;
