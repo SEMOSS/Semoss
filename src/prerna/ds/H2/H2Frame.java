@@ -619,6 +619,9 @@ public class H2Frame extends AbstractTableDataFrame {
 			if (name.startsWith(TinkerFrame.PRIM_KEY)) {
 				continue;
 			} else {
+				if(sortBy == null) {
+					sortBy = name;
+				}
 				if (name.equals(sortBy)) {
 					actualSortBy = this.getValueForUniqueName(name);
 				}
