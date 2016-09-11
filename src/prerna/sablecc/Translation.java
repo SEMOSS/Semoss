@@ -600,7 +600,13 @@ public class Translation extends DepthFirstAdapter {
 		IScriptReactor previousReactor = (IScriptReactor)thisReactorHash.get(PKQLEnum.OPEN_DATA);
 		
 		Map<String, Object> webData = (Map<String, Object>)previousReactor.getValue("webData");
-		runner.setDataMap(webData);
+//		runner.setDataMap(webData);
+		
+		IDataMaker dm = (IDataMaker)curReactor.getValue("G");
+		if(curReactor.getValue("G") instanceof Dashboard) {
+			Dashboard dash = (Dashboard)curReactor.getValue("G");
+			dash.setInsightOutput((String)webData.get("insightID"), webData);
+		}
 		curReactor.set(PKQLEnum.OPEN_DATA, previousReactor.getValue(PKQLEnum.OPEN_DATA));
 	}
 
