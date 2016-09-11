@@ -44,7 +44,11 @@ public class Dashboard implements IDataMaker {
 	// insight id -> frame id
 	private Map<String, String> insight2frameMap = new HashMap<>();
 	
+	//keeps track of config structure
 	Object config = new HashMap<>();
+	
+	//need to store the output for each insight and return later to capture pkql calls
+	private Map<String, Map<String, Object>> insightOutputMap = new HashMap<>();
 	
 	public Dashboard() {
 		joiner = new H2Joiner(this);
@@ -127,13 +131,18 @@ public class Dashboard implements IDataMaker {
 				//instead of doing this...have data.open save the output to the insight/dashboard
 				//grab that data from the insight/dashboard...then delete
 				//this doesn't have sufficient pkql data
-				Map<String, Object> insightOutput = insight.getWebData(); 
+				Map<String, Object> insightOutput;
+				if(this.insightOutputMap.containsKey(insight.getInsightID())) {
+					insightOutput = insightOutputMap.get(insight.getInsightID());
+				} else {
+					insightOutput = insight.getWebData();
+				}
 				nextInsightMap.putAll(insightOutput);
 				insightList.add(nextInsightMap);
 			}
 		}
 		returnHash.put("Dashboard", insightList);
-		
+		this.insightOutputMap.clear();
 		return returnHash;
 	}
 	
@@ -234,6 +243,10 @@ public class Dashboard implements IDataMaker {
 	
 	public Object getConfig() {
 		return this.config;
+	}
+	
+	public void setInsightOutput(String id, Map<String, Object> map) {
+		this.insightOutputMap.put(id, map);
 	}
 	/************************************* JOINING LOGIC **************************************/
 	
