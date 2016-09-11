@@ -44,7 +44,7 @@ public class Dashboard implements IDataMaker {
 	// insight id -> frame id
 	private Map<String, String> insight2frameMap = new HashMap<>();
 	
-	Map config = new HashMap<>();
+	Object config = new HashMap<>();
 	
 	public Dashboard() {
 		joiner = new H2Joiner(this);
@@ -228,11 +228,11 @@ public class Dashboard implements IDataMaker {
 		
 	}
 	
-	public void setConfig(Map config) {
+	public void setConfig(Object config) {
 		this.config = config;
 	}
 	
-	public Map getConfig() {
+	public Object getConfig() {
 		return this.config;
 	}
 	/************************************* JOINING LOGIC **************************************/
