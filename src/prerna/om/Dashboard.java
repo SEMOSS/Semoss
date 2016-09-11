@@ -295,16 +295,17 @@ public class Dashboard implements IDataMaker {
 	
 	public List<String> getSaveRecipe(String recipe) {
 		
-		String configPkql = "";
+//		String configPkql = "";
 		String[] recipeArr = recipe.split(System.getProperty("line.separator"));
 		List<String> curRecipe = new ArrayList<>();
 		for(String recipePkql : recipeArr) {
-			if(recipePkql.startsWith("data.join") || recipePkql.startsWith("dashboard")) {
-				if(recipePkql.startsWith("dashboard.config")) {
-					configPkql = recipePkql;
-				} else
-				curRecipe.add(recipePkql);
-			} 
+//			if(recipePkql.startsWith("data.join") || recipePkql.startsWith("dashboard")) {
+//				if(recipePkql.startsWith("dashboard.config")) {
+//					configPkql = recipePkql;
+//				} else
+//				curRecipe.add(recipePkql);
+//			} 
+			curRecipe.add(recipePkql);
 		}
 		
 		List<String> saveRecipe = new ArrayList<>();
@@ -317,7 +318,6 @@ public class Dashboard implements IDataMaker {
 		for(Insight insight : insights) {
 			String nextVar = "insightVar"+i;
 			String nextPkql = createVarPkql(nextVar, insight.getEngineName(), insight.getRdbmsId());
-			
 			varHash.put(nextVar, insight.getInsightID());
 			varNames.add(nextVar);
 			i++;
@@ -333,12 +333,12 @@ public class Dashboard implements IDataMaker {
 				} else {
 					
 				}
-			} else {
+			} else if(!joinPkql.isEmpty()) {
 				saveRecipe.add(joinPkql);
 			}
 		}
 		
-		saveRecipe.add(configPkql);
+//		saveRecipe.add(configPkql);
 		return saveRecipe;
 	}
 	
