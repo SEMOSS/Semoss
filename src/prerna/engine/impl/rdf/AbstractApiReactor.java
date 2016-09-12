@@ -29,7 +29,7 @@ public abstract class AbstractApiReactor extends AbstractReactor{
 	// of abstract api reactor
 	protected String engine = null;
 	protected QueryStruct qs = null;
-	protected Vector<Map<String, String>> mapOptions = null;
+	protected Map<String, String> mapOptions = null;
 	protected boolean useCheater = false;
 	
 	
@@ -45,7 +45,7 @@ public abstract class AbstractApiReactor extends AbstractReactor{
 	 * if present
 	 */
 	public AbstractApiReactor() {
-		String [] thisReacts = {PKQLEnum.COL_CSV, PKQLEnum.FILTER, PKQLEnum.JOINS, "KEY_VALUE", PKQLEnum.TABLE_JOINS};
+		String [] thisReacts = {PKQLEnum.COL_CSV, PKQLEnum.FILTER, PKQLEnum.MAP_OBJ, PKQLEnum.JOINS, "KEY_VALUE", PKQLEnum.TABLE_JOINS};
 		super.whatIReactTo = thisReacts;
 		super.whoAmI = PKQLEnum.API;
 	}
@@ -59,7 +59,7 @@ public abstract class AbstractApiReactor extends AbstractReactor{
 		if(engine.equals("csvFile")) {
 			// we are loading a csv file
 			// grab the input maps from the user
-			this.mapOptions = (Vector<Map<String, String>>) myStore.get("KEY_VALUE");
+			this.mapOptions = (Map<String, String>) myStore.get(PKQLEnum.MAP_OBJ);
 		}
 
 		// grab the appropriate information to create the proper query struct
