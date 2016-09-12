@@ -520,7 +520,8 @@ public class H2Frame extends AbstractTableDataFrame {
 
 		for (int i = 0; i < length; i++) {
 			// get filtered values
-			String h2key = H2Builder.cleanHeader(selectors.get(i));
+//			String h2key = H2Builder.cleanHeader(selectors.get(i));
+			String h2key = getH2Header(selectors.get(i));
 			List<Object> values = h2filteredValues.get(h2key);
 			if (values != null) {
 				filteredValues.put(selectors.get(i), values);
@@ -604,16 +605,21 @@ public class H2Frame extends AbstractTableDataFrame {
 		// return this.builder.buildIterator(query);
 		return this.builder.buildIterator(getH2Selectors());
 	}
+	
+	public Iterator<Object[]> iterator(boolean getRawData, boolean ignoreFilters) {
+		if(!ignoreFilters) {
+			return iterator(getRawData);
+		}
+		else return this.builder.buildIterator(getH2Selectors(), ignoreFilters);
+	}
 
 	@Override
-	public Iterator<Object[]> iterator(boolean getRawData,
-			Map<String, Object> options) {
+	public Iterator<Object[]> iterator(boolean getRawData, Map<String, Object> options) {
 		// sort by
 		String sortBy = (String) options.get(TinkerFrame.SORT_BY);
 		String actualSortBy = null;
 
-		List<String> selectors = (List<String>) options
-				.get(TinkerFrame.SELECTORS);
+		List<String> selectors = (List<String>) options.get(TinkerFrame.SELECTORS);
 		List<String> selectorValues = new Vector<String>();
 		for (String name : selectors) {
 			if (name.startsWith(TinkerFrame.PRIM_KEY)) {
@@ -988,7 +994,7 @@ public class H2Frame extends AbstractTableDataFrame {
 		return selectors;
 	}
 
-	private List<String> getH2Selectors() {
+	public List<String> getH2Selectors() {
 		List<String> selectors = getSelectors();
 		List<String> h2selectors = new ArrayList<>(selectors.size());
 		for (int i = 0; i < selectors.size(); i++) {

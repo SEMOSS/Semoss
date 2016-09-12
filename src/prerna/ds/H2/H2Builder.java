@@ -1239,6 +1239,9 @@ public class H2Builder {
 		return returnFilterMap;
 	}
 
+	public Map<String, Map<Comparator, Set<Object>>> getFilterHash() {
+		return this.filterHash2;
+	}
 	/*************************** END FILTER **************************************/
 
 
@@ -1588,6 +1591,44 @@ public class H2Builder {
 
 		return null;
 	}
+	
+	/**
+	 * 
+	 * @param selectors
+	 * @return
+	 * 
+	 * returns an iterator that returns data from the selectors
+	 */
+	public Iterator buildIterator(List<String> selectors, boolean ignoreFilters) {
+		String tableName;
+		if(joinMode) {
+			tableName = this.viewTableName;
+			selectors = translateColumns(selectors);
+		} else {
+			tableName = this.tableName;
+		}
+//		String tableName = joinMode ? this.viewTableName : this.tableName;
+
+		try {
+			Statement stmt = getConnection().createStatement();
+			String selectQuery = "";
+			if(ignoreFilters) {
+				selectQuery = makeSelectDistinctIgnoreFilters(tableName, selectors);
+			} else {
+				selectQuery = makeSelectDistinct(tableName, selectors);
+			}
+			long startTime = System.currentTimeMillis();
+			ResultSet rs = stmt.executeQuery(selectQuery);
+			long endTime = System.currentTimeMillis();
+			LOGGER.info("Executed Select Query on H2 FRAME: "+(endTime - startTime)+" ms");
+			
+			return new H2Iterator(rs);
+		} catch(SQLException s) {
+			s.printStackTrace();
+		}
+
+		return null;
+	}
 
 	//build the new way to create iterator with all the options
 	/**
@@ -1608,6 +1649,9 @@ public class H2Builder {
 		Boolean dedup = (Boolean) options.get(TinkerFrame.DE_DUP);
 		if(dedup == null) dedup = false;
 
+		Boolean ignoreFilters = (Boolean)options.get(TinkerFrame.IGNORE_FILTERS);
+		if(ignoreFilters == null) ignoreFilters = false;
+		
 		//how many rows to get
 		Integer limit = (Integer) options.get(TinkerFrame.LIMIT);
 
@@ -1626,9 +1670,17 @@ public class H2Builder {
 		String selectQuery;
 
 		if(dedup) {
-			selectQuery = makeSelectDistinct(tableName, selectors);
+			if(ignoreFilters) {
+				selectQuery = makeSelectDistinctIgnoreFilters(tableName, selectors);
+			} else {
+				selectQuery = makeSelectDistinct(tableName, selectors);
+			}
 		} else {
-			selectQuery = makeSelect(tableName, selectors);
+			if(ignoreFilters) {
+				selectQuery = makeSelectIgnoreFilters(tableName, selectors);
+			} else {
+				selectQuery = makeSelect(tableName, selectors);
+			}
 		}
 
 		//temporary filters to apply only to this iterator
@@ -2242,7 +2294,28 @@ public class H2Builder {
 		selectStatement += " FROM " + tableName + filterSubQuery;
 		return selectStatement;
 	}
+	
+	//make a select query
+	private String makeSelectIgnoreFilters(String tableName, List<String> selectors) {
 
+		String selectStatement = "SELECT ";
+
+		for(int i = 0; i < selectors.size(); i++) {
+			String selector = selectors.get(i);
+			//    		selector = cleanHeader(selector);
+
+			if(i < selectors.size() - 1) {
+				selectStatement += selector + ", ";
+			}
+			else {
+				selectStatement += selector;	
+			}
+		}
+
+		//    	String filterSubQuery = makeFilterSubQuery(this.filterHash, this.filterComparator);
+		selectStatement += " FROM " + tableName;
+		return selectStatement;
+	}
 	
 	private String makeSpecificSelect(String tableName, List<String> selectors, String columnHeader, Object value) {
 		value = cleanInstance(value.toString());
@@ -2299,6 +2372,28 @@ public class H2Builder {
 		return selectStatement;
 	}
 
+	//make a select query
+	private String makeSelectDistinctIgnoreFilters(String tableName, List<String> selectors) {
+
+		String selectStatement = "SELECT DISTINCT ";
+
+		for(int i = 0; i < selectors.size(); i++) {
+			String selector = selectors.get(i);
+			//    		selector = cleanHeader(selector);
+
+			if(i < selectors.size() - 1) {
+				selectStatement += selector + ", ";
+			}
+			else {
+				selectStatement += selector;	
+			}
+		}
+
+		//    	String filterSubQuery = makeFilterSubQuery(this.filterHash, this.filterComparator);
+//		String filterSubQuery = makeFilterSubQuery();
+		selectStatement += " FROM " + tableName;// + filterSubQuery;
+		return selectStatement;
+	}
 
 	/**
 	 * This method returns all the distinct values that are filtered out for a particular column
