@@ -1,13 +1,13 @@
 package prerna.sablecc;
 
-import java.util.HashMap;
 import java.util.Hashtable;
 import java.util.Iterator;
-import java.util.List;
 import java.util.Map;
 
 import com.google.gson.Gson;
+import com.google.gson.reflect.TypeToken;
 
+import prerna.cache.CacheFactory;
 import prerna.engine.api.IEngine;
 import prerna.engine.impl.AbstractEngine;
 import prerna.om.Insight;
@@ -41,88 +41,54 @@ public class OpenDataReactor extends AbstractReactor {
 //		List<String> engineAttributes = (List<String>) myStore.get(PKQLEnum.WORD_OR_NUM);
 		
 		//open a saved insight if we have the data
-//		if(engineAttributes != null && engineAttributes.size() >= 2) {
-			String engine = (String)myStore.get("DATA_OPEN_ENGINE");
-			engine = (String)myStore.get(engine);
-			String engine_id = (String)myStore.get("DATA_OPEN_ID");
-			engine_id = (String)myStore.get(engine_id);
-			
-			IEngine coreEngine = Utility.getEngine(engine);
-			if(coreEngine == null) {
-				//store error message
-				myStore.put(PKQLEnum.OPEN_DATA, "Error Opening Insight");
-				return null;
-			}
-			Insight insightObj = ((AbstractEngine)coreEngine).getInsight(engine_id).get(0);
-			
-			// set the user id into the insight --hardcoding this for now, need to somehow grab the id from session
-	//		insightObj.setUserID( ((User) request.getSession().getAttribute(Constants.SESSION_USER)).getId() );
-			insightObj.setUserID("test");
-			
-//			String vizData = CacheFactory.getInsightCache(CacheFactory.CACHE_TYPE.DB_INSIGHT_CACHE).getVizData(insightObj);
-	
-			Object obj = null;
-//			if(vizData != null) {
-//				// insight has been cached, send it to the FE with a new insight id
-//				String id = InsightStore.getInstance().put(insightObj);
-//				
-//				myStore.put(PKQLEnum.OPEN_DATA, id);
-//				myStore.put(PKQLReactor.VAR.toString(), id);
-//				
-//				Map<String, Object> uploaded = gson.fromJson(vizData, new TypeToken<Map<String, Object>>() {}.getType());
-//				uploaded.put("insightID", id);
-//				
-//			} else {
-				// insight visualization data has not been cached, run the insight
-				try {
-					String id = InsightStore.getInstance().put(insightObj);
-					
-					myStore.put(PKQLEnum.OPEN_DATA, id);
-					
-					InsightCreateRunner run = new InsightCreateRunner(insightObj);
-					Map<String, Object> insightOutput = run.runWeb();
-//					Map<String, Object> webData = new HashMap<>();
-//					if(insightOutput.containsKey("uiOptions")) {
-//						webData.put("uiOptions", insightOutput.get("uiOptions"));
-//					}
-//					
-//					if(insightOutput.containsKey("layout")) {
-//						webData.put("layout", insightOutput.get("layout"));
-//					}
-//					
-//					if(insightOutput.containsKey("dataTableAlign")) {
-//						webData.put("dataTableAlign", insightOutput.get("dataTableAlign"));
-//					}
-//
-//					if(insightOutput.containsKey("title")) {
-//						webData.put("title", insightOutput.get("title"));
-//					}
-//
-//					if(insightOutput.containsKey("insightID")) {
-//						webData.put("insightID", insightOutput.get("insightID"));
-//					}
-					
-					myStore.put("webData", insightOutput);
-//					String saveFileLocation = CacheFactory.getInsightCache(CacheFactory.CACHE_TYPE.DB_INSIGHT_CACHE).cacheInsight(insightObj, (Map<String, Object>) obj);
-//					
-//					saveFileLocation = saveFileLocation + "_Solr.txt";
-//					File solrFile = new File(saveFileLocation);
-//					String solrId = SolrIndexEngine.getSolrIdFromInsightEngineId(insightObj.getEngineName(), insightObj.getRdbmsId());
-//					SolrDocumentExportWriter writer = new SolrDocumentExportWriter(solrFile);
-//					writer.writeSolrDocument(SolrIndexEngine.getInstance().getInsight(solrId));
-//					writer.closeExport();
-				} catch (Exception ex) { //need to specify the different exceptions 
-					ex.printStackTrace();
-					Hashtable<String, String> errorHash = new Hashtable<String, String>();
-					errorHash.put("Message", "Error occured processing question.");
-					errorHash.put("Class", "");
-				}
-//			}
-			
-//		} 
-
+		String engine = (String)myStore.get("DATA_OPEN_ENGINE");
+		engine = (String)myStore.get(engine);
+		String engine_id = (String)myStore.get("DATA_OPEN_ID");
+		engine_id = (String)myStore.get(engine_id);
 		
-	
+		IEngine coreEngine = Utility.getEngine(engine);
+		if(coreEngine == null) {
+			//store error message
+			myStore.put(PKQLEnum.OPEN_DATA, "Error Opening Insight");
+			return null;
+		}
+		Insight insightObj = ((AbstractEngine)coreEngine).getInsight(engine_id).get(0);
+		
+		// set the user id into the insight --hardcoding this for now, need to somehow grab the id from session
+//		insightObj.setUserID( ((User) request.getSession().getAttribute(Constants.SESSION_USER)).getId() );
+		insightObj.setUserID("test");
+		
+		String vizData = CacheFactory.getInsightCache(CacheFactory.CACHE_TYPE.DB_INSIGHT_CACHE).getVizData(insightObj);
+
+		Object obj = null;
+		if(vizData != null) {
+			// insight has been cached, send it to the FE with a new insight id
+			String id = InsightStore.getInstance().put(insightObj);
+			
+			myStore.put(PKQLEnum.OPEN_DATA, id);
+			
+			Map<String, Object> uploaded = gson.fromJson(vizData, new TypeToken<Map<String, Object>>() {}.getType());
+			uploaded.put("insightID", id);
+			
+			myStore.put("webData", uploaded);
+		} else {
+			// insight visualization data has not been cached, run the insight
+			try {
+				String id = InsightStore.getInstance().put(insightObj);
+				myStore.put(PKQLEnum.OPEN_DATA, id);
+				
+				InsightCreateRunner run = new InsightCreateRunner(insightObj);
+				Map<String, Object> insightOutput = run.runWeb();
+				
+				myStore.put("webData", insightOutput);
+			} catch (Exception ex) { //need to specify the different exceptions 
+				ex.printStackTrace();
+				Hashtable<String, String> errorHash = new Hashtable<String, String>();
+				errorHash.put("Message", "Error occured processing question.");
+				errorHash.put("Class", "");
+			}
+		}
+			
 		return null;
 	}
 
