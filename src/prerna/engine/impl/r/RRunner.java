@@ -65,7 +65,6 @@ public class RRunner {
 		if (server == null) {
 			server = Server.createTcpServer("-tcpPort", "9999");
 		}
-		server.stop();
 		server.start();
 		return initializeRJDBCConnection();
 	}
@@ -80,7 +79,8 @@ public class RRunner {
 		String library = "RJDBC";
 		String driver = "org.h2.Driver";
 		String jar = "h2-1.4.185.jar"; // TODO: create an enum of available drivers and the necessary jar for each
-		String script = "drv <- JDBC('" + driver + "', '" + workingDir + "/RDFGraphLib/" + jar + "', identifier.quote='`');" // line of R that loads database driver and jar
+		// line of R that loads database driver and jar
+		String script = "drv <- JDBC('" + driver + "', '" + workingDir + "/RDFGraphLib/" + jar + "', identifier.quote='`');" 
 			+ "conn <- dbConnect(drv, '" + url + "', '" + username + "', '')"; // line of R script that connects to H2Frame
 		try {
 			loadPackage(library);
@@ -100,11 +100,16 @@ public class RRunner {
 	 * @throws RserveException Thrown if Rserve is not running/crashed
 	 */
 	public String createDefaultDataframe() throws RserveException {
+		// Can change "dataframe" to whatever name you want
 		String script = "dataframe<-as.data.frame(unclass(dbReadTable(conn,'" + tableName + "')));";
 		String result = evaluateScript(script);
 		if(!result.startsWith("Error ")) {
 			dataframeExists = true;
 		}
+		
+		// Don't need server anymore once data has been stored into dataframe
+		// Better to close to avoid port lockouts
+		stopServer();
 		
 		return result;
 	}
@@ -112,7 +117,7 @@ public class RRunner {
 	/**
 	 * Loads R package
 	 * @param library Name of package
-	 * @throws RserveException Thrown if RServe isn't running/crashed or if library doesn't exist locally
+	 * @throws RserveException RServe isn't running/crashed or if library doesn't exist locally
 	 */
 	public void loadPackage(String library) throws RserveException {
 		conn.voidEval("library(" + library + ")");
@@ -126,16 +131,25 @@ public class RRunner {
 	public String evaluateScript(String script) {
 		String result = null;
 		String[] scripts = null;
-		String semiColonRegex = ";(?=(?:[^'|\"]*('|\")[^'|\"]*('|\"))*[^'|\"]*$)"; // counts out pairs of quotes (single or double) in order to only obtain semicolons not between quotes
+		
+		// regex counts out pairs of quotes (single or double) in order to only obtain semicolons 
+		// that are not between quotes
+		String semiColonRegex = ";(?=(?:[^'|\"]*('|\")[^'|\"]*('|\"))*[^'|\"]*$)"; 
 		scripts = script.trim().split(semiColonRegex);
+		
 		int i = 0;
+		// Doesn't run the very last script because we want to extract the result from it
 		for(; i < scripts.length - 1; i++) {
 			runScript(scripts[i].trim());
 		}
+		
+		// Wrapping last script with this String returns the R output in String format
 		script = "paste(capture.output(print(" + scripts[i] + ")),collapse='\\n')";
 		result = runScript(script);
 		
-		scriptRanSuccessfully = !Boolean.parseBoolean(result); // result="true" if the script errored and parses to false otherwise, thus we set scriptRanSuccessfully to opposite of result boolean
+		// result="true" if the script errored and parses to false otherwise, thus we 
+		// set scriptRanSuccessfully to opposite of result boolean
+		scriptRanSuccessfully = !Boolean.parseBoolean(result); 
 		if(!scriptRanSuccessfully) {
 			result = runScript("geterrmessage()");
 		}
@@ -162,6 +176,11 @@ public class RRunner {
 		}
 		return result;
 	}
+	
+	public void stopServer() {
+		server.stop();
+		server = null;
+	}
 		
 	/**
 	 * Closes RConnection and TCP Server
@@ -169,8 +188,7 @@ public class RRunner {
 	public void close() {
 		conn.finalize();
 		conn = null;
-		server.stop();
-		server = null;
+		stopServer();
 		dataframeExists = false;
 	}
 	
