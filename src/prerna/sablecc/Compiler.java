@@ -43,7 +43,8 @@ public class Compiler
   // new InputStreamReader(new StringBufferInputStream(" 1 + 2 * (3 + 5); ")), 1024)));
    //new InputStreamReader(new StringBufferInputStream("j:{a b c d };")), 1024)));
     new InputStreamReader(new StringBufferInputStream(""
-    												+ "j:<code>System.out.println(\"Crabby Patty !! \"); String data = null; data.toString();<code>;"
+    												//+ "j:<code>import prerna.util.Console;import java.util.Hashtable;System.out.println(\"Crabby Patty !! \"); Hashtable myHash = new Hashtable();String data = null; data.toString();<code>;"
+    												+ "network.connect();network.disconnect();"
     												//+ "(3.0 + 4) * c:t;"
     												//+ "(3 + 4, [c:bp, c:ab]);"
     												//+ "col.import([c:col1,c:col2], ([c:col1, inner.join, c:col2])) . [[\"a\",\"b\"][2,3]];"

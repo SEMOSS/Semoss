@@ -1,12 +1,15 @@
 package prerna.sablecc;
 
 import java.io.File;
+import java.io.IOException;
 import java.util.Iterator;
+import java.util.StringTokenizer;
 
 import javassist.CannotCompileException;
 import javassist.ClassClassPath;
 import javassist.ClassPool;
 import javassist.CtClass;
+import javassist.CtField;
 import javassist.CtNewMethod;
 import javassist.NotFoundException;
 import prerna.algorithm.api.ITableDataFrame;
@@ -45,31 +48,71 @@ public class JavaReactorWrapper extends AbstractReactor {
 		try {
 			ClassPool pool = ClassPool.getDefault();
 			pool.insertClassPath(new ClassClassPath(this.getClass())); 
+			pool.insertClassPath(new ClassClassPath(prerna.util.Console.class)); 
+			//pool.importPackage("java.util");
+			pool.importPackage("java.sql");
+			pool.importPackage("prerna.util");
+			pool.importPackage("org.apache.tinkerpop.gremlin.process.traversal");
+			pool.importPackage("org.apache.tinkerpop.gremlin.structure");
+			
+
+			String data = myStore.get(PKQLEnum.JAVA_OP) + "";
+			data = data.replace("<code>", "");
+			
+			// the imports are sitting in the front
+			while(data.contains("import"))
+			{
+				String importStr = data.substring(data.indexOf("import"), data.indexOf(";") + 1);
+				// remove this from data
+				data = data.replace(importStr, "");
+				importStr = importStr.replace(";", "");
+				importStr = importStr.replace("import ", "");
+				importStr = importStr.replace(".", "$");
+				StringTokenizer importTokens = new StringTokenizer(importStr, "$");
+				String packageStr = "";
+				int tokenCount = importTokens.countTokens();
+				for(int tokenIndex = 1;tokenIndex < tokenCount;tokenIndex++)
+				{
+					packageStr = packageStr + importTokens.nextToken();
+					if(tokenIndex + 1 < tokenCount)
+						packageStr = packageStr + ".";
+				}
+				System.out.println("Importing.. [" + packageStr + "]");
+				pool.importPackage(packageStr);
+			}		
+			
 			String	packageName = "t" + System.currentTimeMillis(); // make it unique
+			//CtClass consoleClass = pool.get("prerna.util.Console");
+			
 			CtClass cc = pool.makeClass(packageName + ".c" + System.currentTimeMillis()); // the only reason I do this is if the user wants to do seomthing else
 			cc.setSuperclass(pool.get("prerna.sablecc.BaseJavaReactor"));
+			//cc.addField(new CtField(consoleClass, "System", cc));
 			Class retClass = null;
 			// this is what comes in from the front end
 			//BufferedReader reader = new BufferedReader(new InputStreamReader(System.in));
 			//String data = reader.readLine();
-			String data = myStore.get(PKQLEnum.JAVA_OP) + "";
-			data = data.replace("<code>", "");
 			String tryStr = "try {";
 			String catchStr = "}catch (Exception ex) { put(\"RESPONSE\", \"Failed\"); put(\"STATUS\" , prerna.sablecc.PKQLRunner.STATUS.ERROR); put(\"ERROR\", ex);return null;}";
 			String content = data;
 			// write the response
 			String response = "put(\"RESPONSE\", \"Complete\"); put(\"STATUS\" , prerna.sablecc.PKQLRunner.STATUS.SUCCESS); return null;";
+			//cc.addMethod(CtNewMethod.make("public void setConsole() { System = new prerna.util.Console();}", cc));
 			cc.addMethod(CtNewMethod.make("public java.util.Iterator process() {" + 
 											tryStr + 
 											content+ ";" + 
 											response + 
 											catchStr + "}", cc));
-			//cc.writeFile();
+//			try {
+//				cc.writeFile();
+//			} catch (IOException e) {
+//				// TODO Auto-generated catch block
+//				e.printStackTrace();
+//			}
 			retClass = cc.toClass();
 			// next step is calling it
 			BaseJavaReactor jR = (BaseJavaReactor)retClass.newInstance();
 			curManager =  System.getSecurityManager();
-		    
+		    //jR.setConsole();
 		    // set the data frame first
 		    jR.setDataFrame((ITableDataFrame)myStore.get("G"));
 		    
