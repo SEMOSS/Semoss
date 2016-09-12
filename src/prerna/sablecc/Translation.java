@@ -990,13 +990,7 @@ public class Translation extends DepthFirstAdapter {
     }
 
     public void outADashboardConfig(ADashboardConfig node) {
-    	System.out.println("out a panel config");
-//    	deinitReactor(PKQLEnum.VIZ, "", "");
-//		Map config = (Map) runner.getFeData("config");
-//		if(config == null){
-//			config = new HashMap();
-//		}
-//		config.putAll(new Gson().fromJson(node.getMap().toString(), HashMap.class));
+    	System.out.println("out a dashboard config");
 		
 		Dashboard dm = (Dashboard)this.frame;
 		
@@ -1009,12 +1003,9 @@ public class Translation extends DepthFirstAdapter {
 		} catch(Exception e) {
 			dm.setConfig(json);
 		}
-//		String jsonObject = new Gson().toJson(object);
-//		dm.setConfig(object);
-//		runner.addFeData("config", json, true);
+
 		runner.setResponse("Successfully set config");
 		runner.setStatus(PKQLRunner.STATUS.SUCCESS);
-		
     }
 
 	//**************************************** END JOIN OPERATIONS **********************************************//
