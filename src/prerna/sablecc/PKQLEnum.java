@@ -3,7 +3,7 @@ package prerna.sablecc;
 public class PKQLEnum {
 	
 	public enum PKQLToken {NUMBER, DECIMAL, COL_CSV, COL_DEF, WHERE, FILTER, SELECTOR, API, CODE}
-	public enum PKQLReactor {COL_ADD, IMPORT_DATA, MATH_FUN, EXPR, VIZ, VAR, INPUT}
+	public enum PKQLReactor {COL_ADD, IMPORT_DATA, MATH_FUN, EXPR, VIZ, VAR, INPUT, NETWORK_CONNECT, NETWORK_DISCONNECT}
 	public enum PKQLAlgorithm {SUM, AVERAGE, STANDARD_DEVIATION, MEDIAN, MIN, MAX, CONCAT}
 
 	public static final String COMPARATOR = "COMPARATOR";
@@ -71,6 +71,8 @@ public class PKQLEnum {
 	public static String TERM = "TERM";
 	public static String MAP_OBJ = "MAP_OBJECT";
 	public static String KEY_VALUE_PAIR = "KEY_VALUE";
+	public static final String NETWORK_CONNECT = "NETWORK_CONNECT";
+	public static final String NETWORK_DISCONNECT = "NETWORK_DISCONNECT";
 	
 	public static String QUERY_API = "QUERY_API";
 	public static String CSV_API = "CSV_API";

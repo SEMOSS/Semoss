@@ -315,6 +315,18 @@ public class AnalysisAdapter implements Analysis
     }
 
     @Override
+    public void caseADatanetworkconnectDataop(ADatanetworkconnectDataop node)
+    {
+        defaultCase(node);
+    }
+
+    @Override
+    public void caseADatanetworkdisconnectDataop(ADatanetworkdisconnectDataop node)
+    {
+        defaultCase(node);
+    }
+
+    @Override
     public void caseADashboardConfigDashboardop(ADashboardConfigDashboardop node)
     {
         defaultCase(node);
@@ -820,6 +832,18 @@ public class AnalysisAdapter implements Analysis
 
     @Override
     public void caseADataconnect(ADataconnect node)
+    {
+        defaultCase(node);
+    }
+
+    @Override
+    public void caseADatanetworkconnect(ADatanetworkconnect node)
+    {
+        defaultCase(node);
+    }
+
+    @Override
+    public void caseADatanetworkdisconnect(ADatanetworkdisconnect node)
     {
         defaultCase(node);
     }
@@ -1432,6 +1456,18 @@ public class AnalysisAdapter implements Analysis
 
     @Override
     public void caseTDataconnectToken(TDataconnectToken node)
+    {
+        defaultCase(node);
+    }
+
+    @Override
+    public void caseTDatanetworkconnectToken(TDatanetworkconnectToken node)
+    {
+        defaultCase(node);
+    }
+
+    @Override
+    public void caseTDatanetworkdisconnectToken(TDatanetworkdisconnectToken node)
     {
         defaultCase(node);
     }

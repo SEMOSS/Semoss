@@ -477,7 +477,7 @@ public class Constants {
 	public static final String SOLR_RELOAD = "SOLR_RELOAD";
 	public static final String SOLR_URL = "SOLR_BASE_URL";
 	public static final String SOLR_SYSTEM_VAR_KEY = "solr.solr.home";
-	public static final String SOLR_HOME_DIR = "SOLR";
+	public static final String SOLR_HOME_DIR = "solrdev";
 	
 	//TinkerFrame specific
 	public static final String HEADER_NAMES = "HEADER_NAMES";

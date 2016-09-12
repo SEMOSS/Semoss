@@ -53,6 +53,7 @@ public class H2Builder {
 	private static final String tempTable = "TEMP_TABLE98793";
 	static final String H2FRAME = "H2FRAME";
 	String brokenLines = "";
+	String options = ":LOG=0;CACHE_SIZE=65536;LOCK_MODE=1;UNDO_LOG=0";
 	Server server = null;
 	String serverURL = null;
 	Hashtable <String, String[]> tablePermissions = new Hashtable <String, String []>();
@@ -1919,7 +1920,9 @@ public class H2Builder {
 				//jdbc:h2:~/test
 
 				//this will have to update
-				this.conn = DriverManager.getConnection("jdbc:h2:mem:" + this.schema + ":LOG=0;CACHE_SIZE=65536;LOCK_MODE=1;UNDO_LOG=0", "sa", "");
+				String url = "jdbc:h2:mem:" + this.schema + options;
+				this.conn = DriverManager.getConnection(url, "sa", "");
+				System.out.println("The connection is.. " + url);
 				//	getConnection("jdbc:h2:C:/Users/pkapaleeswaran/h2/test.db;LOG=0;CACHE_SIZE=65536;LOCK_MODE=0;UNDO_LOG=0", "sa", "");
 
 				//Class.forName("nl.cwi.monetdb.jdbc.MonetDriver");
@@ -2104,7 +2107,9 @@ public class H2Builder {
 		if(schema != null) {
 			if(!this.schema.equals(schema)) {
 				LOGGER.info("Schema being modified from: '" +  this.schema + "' to new schema for user: '" + schema + "'");
+				System.err.println("SCHEMA NOW... >>> " + schema);
 				this.schema = schema;
+				if(schema.equalsIgnoreCase("-1")) this.schema = "test";
 				this.conn = null;
 				getConnection();
 			}
@@ -2726,9 +2731,9 @@ public class H2Builder {
 				String port = findOpenPort();
 				// create a random user and password 				
 				// get the connection object and start up the frame
-				server = Server.createTcpServer("-tcpPort", port);
+				server = Server.createTcpServer("-tcpPort", port, "-tcpAllowOthers");
 				//server = Server.createPgServer("-baseDir", "~", "-pgAllowOthers"); //("-tcpPort", "9999");	
-				serverURL = "jdbc:h2:" + server.getURL() + "/mem:" + this.schema;
+				serverURL = "jdbc:h2:" + server.getURL() + "/mem:" + this.schema + options;
 				//System.out.println("URL: jdbc:h2:" + server.getURL() + "/mem:test");
 				server.start();
 			} catch (SQLException e) {
@@ -2736,8 +2741,42 @@ public class H2Builder {
 				e.printStackTrace();
 			}
 		}
+		printSchemaTables();
 		System.out.println("URL... " + serverURL);
 		return serverURL;
+	}
+	
+	private void printSchemaTables()
+	{
+    	try {
+			Class.forName("org.h2.Driver");
+			String url = serverURL;
+			Connection conn = DriverManager.getConnection(url, "sa", "");
+			ResultSet rs = conn.createStatement().executeQuery("SELECT TABLE_NAME FROM INFORMATIOn_SCHEMA.TABLES WHERE TABLE_SCHEMA='PUBLIC'");
+			
+			while(rs.next())
+				System.out.println("Table name is " + rs.getString(1));
+			
+			url = "jdbc:h2:mem:test";
+			conn = this.conn;
+			rs = conn.createStatement().executeQuery("SELECT TABLE_NAME FROM INFORMATIOn_SCHEMA.TABLES WHERE TABLE_SCHEMA='PUBLIC'");
+			
+			//String schema = this.conn.getSchema();
+			System.out.println(".. " + conn.getMetaData().getURL());
+			System.out.println(".. " + conn.getMetaData().getUserName());
+		//	System.out.println(".. " + conn.getMetaData().getS);
+			
+			while(rs.next())
+				System.out.println("Table name is " + rs.getString(1));
+
+		} catch (ClassNotFoundException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (SQLException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+
 	}
 
 	
