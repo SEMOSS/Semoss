@@ -34,8 +34,7 @@ public class DataFrameReactor extends AbstractReactor {
 	public Iterator process() {
 		// All we do here is get the passed name, translate to RDF Map name and instantiate the new frame through utility
 		System.out.println("My Store on Data Frame Reactor " + myStore);
-		if(myStore.containsKey(PKQLEnum.WORD_OR_NUM))
-		{
+		if(myStore.containsKey(DATA_FRAME_TYPE)) {
 			String newDfName = (String) myStore.get(DATA_FRAME_TYPE);
 
 			System.out.println("Creating new datamaker with type : " + newDfName);
