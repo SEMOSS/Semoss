@@ -1,16 +1,19 @@
 package prerna.ds;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Hashtable;
 import java.util.Iterator;
 import java.util.LinkedHashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
 import prerna.algorithm.api.IMetaData.DATA_TYPES;
 import prerna.algorithm.api.ITableDataFrame;
+import prerna.ds.H2.H2Builder.Comparator;
 import prerna.ds.H2.H2Frame;
 import prerna.ds.util.TinkerCastHelper;
 import prerna.poi.main.helper.CSVFileHelper;
@@ -400,6 +403,11 @@ public class TableDataFrameFactory {
 		return null;
 	}
 	
+	public static TinkerFrame convertToTinkerFrame(ITableDataFrame table, Map<String, Set<String>> edgeHash) {
+		if(edgeHash == null) return convertToTinkerFrame(table);
+		
+		return null;
+	}
 	/**
 	 * 
 	 * @param table 	table to convert to a tinker frame
@@ -452,4 +460,78 @@ public class TableDataFrameFactory {
 		return null;
 	}
 	
+	public static TinkerFrame convertToTinkerFrameForGraph(ITableDataFrame table) {
+		if(table instanceof TinkerFrame) {
+			return (TinkerFrame)table;
+		}
+		
+		if(table instanceof H2Frame) {
+			
+			TinkerFrame frame;
+			
+			H2Frame h2frame = (H2Frame)table;
+			//get an iterator and skip duplicates
+			Map<String, Object> options = new HashMap<>();
+			options.put(TinkerFrame.DE_DUP, true);
+			options.put(TinkerFrame.SELECTORS, h2frame.getSelectors());
+			options.put(TinkerFrame.IGNORE_FILTERS, true);
+			Iterator<Object[]> iterator = h2frame.iterator(false, options);
+			
+			String[] columnHeaders  = h2frame.getSelectors().toArray(new String[]{});
+			Map<Integer, Set<Integer>> cardinality = Utility.getCardinalityOfValues(columnHeaders, h2frame.getEdgeHash());
+			Map<String, String> uniqueToValue = h2frame.metaData.getAllUniqueNamesToValues();
+			
+			String[] types = new String[columnHeaders.length];
+			int i = 0;
+			for(String header : columnHeaders) {
+				String headerType = h2frame.getDataType(header).toString();
+				types[i] = headerType;
+				i++;
+			}
+			
+			//for each row add that relationship to tinker
+			if(cardinality == null || cardinality.isEmpty()) {
+				frame = (TinkerFrame)createDataFrame(columnHeaders, "tinker", types, null);
+				while(iterator.hasNext()) {
+					Object[] row = iterator.next();
+					frame.addRow(row, row, columnHeaders);
+				}
+			} else{
+				frame = new TinkerFrame();
+				frame.metaData = h2frame.metaData; //set the meta data for the new frame
+				while(iterator.hasNext()) {
+					Object[] row = iterator.next();
+					frame.addRelationship(columnHeaders, row, row, cardinality, uniqueToValue);
+				}
+			}
+			
+//			Object[] filterModel = h2frame.getFilterModel();
+			Map<String, Map<Comparator, Set<Object>>> filterHash = h2frame.getBuilder().getFilterHash();
+			for(String key : filterHash.keySet()) {
+				Map<Comparator, Set<Object>> nextSet = filterHash.get(key);
+				Map<String, List<Object>> newSet = new HashMap<>();
+				for(Comparator comp : nextSet.keySet()) {
+					if(comp.equals(Comparator.EQUAL)) {
+						newSet.put("=", new ArrayList<>(nextSet.get(comp)));
+					} else if(comp.equals(Comparator.GREATER_THAN)) {
+						newSet.put(">", new ArrayList<>(nextSet.get(comp)));
+					} else if(comp.equals(Comparator.GREATER_THAN_EQUAL)) {
+						newSet.put(">=", new ArrayList<>(nextSet.get(comp)));
+					} else if(comp.equals(Comparator.LESS_THAN)) {
+						newSet.put("<", new ArrayList<>(nextSet.get(comp)));
+					} else if(comp.equals(Comparator.LESS_THAN_EQUAL)) {
+						newSet.put("<=", new ArrayList<>(nextSet.get(comp)));
+					} else if(comp.equals(Comparator.NOT_EQUAL)) {
+						newSet.put("!=", new ArrayList<>(nextSet.get(comp)));
+					} else {
+						newSet.put("=", new ArrayList<>(nextSet.get(comp)));
+					}
+				}
+				frame.filter(key, newSet);
+			}
+			
+			return frame;
+		}
+		return null;
+	}
 }

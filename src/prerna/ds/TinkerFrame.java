@@ -100,6 +100,8 @@ public class TinkerFrame extends AbstractTableDataFrame {
 	public static final String edgeLabelDelimeter = "+++";
 	protected static final String primKeyDelimeter = ":::";
 
+	public static final String IGNORE_FILTERS = "ignoreFilters";
+
 		/**********************    TESTING PLAYGROUND  ******************************************/
 	
 	public static void main(String [] args) throws Exception
@@ -1066,6 +1068,39 @@ public class TinkerFrame extends AbstractTableDataFrame {
 			Vertex outV = vertIt.next();
 			getSEMOSSVertex(vertStore, outV);
 		}
+		
+		Map retHash = new HashMap();
+		retHash.put("nodes", vertStore);
+		retHash.put("edges", edgeStore.values());
+		return retHash;
+	}
+	
+	private Map createVertStores2(){
+		Map<String, SEMOSSVertex> vertStore = new HashMap<String, SEMOSSVertex>();
+		Map<String, SEMOSSEdge> edgeStore = new HashMap<String, SEMOSSEdge>();
+		
+		//get all edges not attached to a filter node or is a filtered edge
+		GraphTraversal<Edge, Edge> edgesIt = g.traversal().E().not(__.or(__.has(Constants.TYPE, Constants.FILTER), __.bothV().in().has(Constants.TYPE, Constants.FILTER)));
+		while(edgesIt.hasNext()){
+			Edge e = edgesIt.next();
+			Vertex outV = e.outVertex();
+			Vertex inV = e.inVertex();
+			SEMOSSVertex outVert = getSEMOSSVertex(vertStore, outV);
+			SEMOSSVertex inVert = getSEMOSSVertex(vertStore, inV);
+			
+			edgeStore.put("https://semoss.org/Relation/"+e.property(Constants.ID).value() + "", new SEMOSSEdge(outVert, inVert, "https://semoss.org/Relation/"+e.property(Constants.ID).value() + ""));
+		}
+		// now i just need to get the verts with no edges
+//		GraphTraversal<Vertex, Vertex> vertIt = g.traversal().V().not(__.or(__.both(),__.has(Constants.TYPE, Constants.FILTER),__.in().has(Constants.TYPE, Constants.FILTER)));
+//		GraphTraversal<Vertex, Vertex> vertIt = g.traversal().V().not(__.or(__.has(Constants.TYPE, Constants.FILTER),__.in().has(Constants.TYPE, Constants.FILTER)));
+		GraphTraversal<Vertex, Vertex> vertIt = g.traversal().V().not(__.in().has(Constants.TYPE, Constants.FILTER));
+		while(vertIt.hasNext()) {
+			Vertex outV = vertIt.next();
+//			if(!outV.property("TYPE").equals(Constants.FILTER)) {
+				getSEMOSSVertex(vertStore, outV);
+//			}
+		}
+		
 		
 		Map retHash = new HashMap();
 		retHash.put("nodes", vertStore);
@@ -2283,6 +2318,7 @@ public class TinkerFrame extends AbstractTableDataFrame {
 
 	public Map<? extends String, ? extends Object> getGraphOutput() {
 		return createVertStores();
+//		return createVertStores2();
 	}
 	
 
