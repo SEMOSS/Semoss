@@ -7,6 +7,7 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.Vector;
 
 import prerna.algorithm.api.ITableDataFrame;
 
@@ -35,12 +36,11 @@ public class ColSplitReactor extends AbstractReactor {
 		ITableDataFrame frame = (ITableDataFrame)myStore.get("G");
 		frame.getEdgeHash();
 
-		List<String> columns = (List<String>)myStore.get(PKQLEnum.COL_DEF);
+		Vector<String> columns = (Vector<String>)myStore.get(PKQLEnum.COL_DEF);
 		String column = columns.get(0);
 
 		String colSplitBase = column+"_SPLIT_";
-		List<String> delimiters = (List<String>)myStore.get(PKQLEnum.WORD_OR_NUM);
-		String delimiter = delimiters.get(0);
+		String delimiter = (String)myStore.get(PKQLEnum.WORD_OR_NUM);
 
 		Iterator<Object> colIterator = frame.uniqueValueIterator(column, false, false);
 
