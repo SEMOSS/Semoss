@@ -1207,7 +1207,7 @@ public class H2Frame extends AbstractTableDataFrame {
 		DatabaseMetaData dbmd = builder.conn.getMetaData();
 		dbmdMap.put("username", dbmd.getUserName());
 		dbmdMap.put("tableName", builder.getTableName());
-		dbmdMap.put("schema", this.userId);
+		dbmdMap.put("schema", builder.getSchema());
 		return dbmdMap;
 	}
 
