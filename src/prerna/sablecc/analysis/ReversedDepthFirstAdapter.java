@@ -912,6 +912,48 @@ public class ReversedDepthFirstAdapter extends AnalysisAdapter
         outADataconnectdbDataop(node);
     }
 
+    public void inADatanetworkconnectDataop(ADatanetworkconnectDataop node)
+    {
+        defaultIn(node);
+    }
+
+    public void outADatanetworkconnectDataop(ADatanetworkconnectDataop node)
+    {
+        defaultOut(node);
+    }
+
+    @Override
+    public void caseADatanetworkconnectDataop(ADatanetworkconnectDataop node)
+    {
+        inADatanetworkconnectDataop(node);
+        if(node.getDatanetworkconnect() != null)
+        {
+            node.getDatanetworkconnect().apply(this);
+        }
+        outADatanetworkconnectDataop(node);
+    }
+
+    public void inADatanetworkdisconnectDataop(ADatanetworkdisconnectDataop node)
+    {
+        defaultIn(node);
+    }
+
+    public void outADatanetworkdisconnectDataop(ADatanetworkdisconnectDataop node)
+    {
+        defaultOut(node);
+    }
+
+    @Override
+    public void caseADatanetworkdisconnectDataop(ADatanetworkdisconnectDataop node)
+    {
+        inADatanetworkdisconnectDataop(node);
+        if(node.getDatanetworkdisconnect() != null)
+        {
+            node.getDatanetworkdisconnect().apply(this);
+        }
+        outADatanetworkdisconnectDataop(node);
+    }
+
     public void inADashboardConfigDashboardop(ADashboardConfigDashboardop node)
     {
         defaultIn(node);
@@ -3611,6 +3653,68 @@ public class ReversedDepthFirstAdapter extends AnalysisAdapter
             node.getDataconnectToken().apply(this);
         }
         outADataconnect(node);
+    }
+
+    public void inADatanetworkconnect(ADatanetworkconnect node)
+    {
+        defaultIn(node);
+    }
+
+    public void outADatanetworkconnect(ADatanetworkconnect node)
+    {
+        defaultOut(node);
+    }
+
+    @Override
+    public void caseADatanetworkconnect(ADatanetworkconnect node)
+    {
+        inADatanetworkconnect(node);
+        if(node.getRPar() != null)
+        {
+            node.getRPar().apply(this);
+        }
+        if(node.getTablename() != null)
+        {
+            node.getTablename().apply(this);
+        }
+        if(node.getLPar() != null)
+        {
+            node.getLPar().apply(this);
+        }
+        if(node.getDatanetworkconnectToken() != null)
+        {
+            node.getDatanetworkconnectToken().apply(this);
+        }
+        outADatanetworkconnect(node);
+    }
+
+    public void inADatanetworkdisconnect(ADatanetworkdisconnect node)
+    {
+        defaultIn(node);
+    }
+
+    public void outADatanetworkdisconnect(ADatanetworkdisconnect node)
+    {
+        defaultOut(node);
+    }
+
+    @Override
+    public void caseADatanetworkdisconnect(ADatanetworkdisconnect node)
+    {
+        inADatanetworkdisconnect(node);
+        if(node.getRPar() != null)
+        {
+            node.getRPar().apply(this);
+        }
+        if(node.getLPar() != null)
+        {
+            node.getLPar().apply(this);
+        }
+        if(node.getDatanetworkdisconnectToken() != null)
+        {
+            node.getDatanetworkdisconnectToken().apply(this);
+        }
+        outADatanetworkdisconnect(node);
     }
 
     public void inADataconnectdb(ADataconnectdb node)

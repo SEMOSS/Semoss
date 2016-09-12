@@ -42,6 +42,10 @@ import prerna.sablecc.node.ADashboardopScript;
 import prerna.sablecc.node.ADataFrame;
 import prerna.sablecc.node.ADataconnect;
 import prerna.sablecc.node.ADataconnectdb;
+import prerna.sablecc.node.ADatanetworkconnect;
+import prerna.sablecc.node.ADatanetworkconnectDataop;
+import prerna.sablecc.node.ADatanetworkdisconnect;
+import prerna.sablecc.node.ADatanetworkdisconnectDataop;
 import prerna.sablecc.node.ADatatype;
 import prerna.sablecc.node.ADecimal;
 import prerna.sablecc.node.ADivExpr;
@@ -1806,6 +1810,39 @@ public class Translation extends DepthFirstAdapter {
 		runner.setResponse(curReactor.getValue("RESPONSE"));
 		runner.setStatus((STATUS) curReactor.getValue("STATUS"));
     }
+    
+    public void inADatanetworkconnect(ADatanetworkconnect node)
+    {
+		if (reactorNames.containsKey(PKQLEnum.NETWORK_CONNECT)) {
+			initReactor(PKQLEnum.NETWORK_CONNECT);
+			//curReactor.put(PKQLEnum.NETWORK_CONNECT, "CONNECT");
+			if(node.getTablename() != null)
+				curReactor.put("TABLE_NAME", node.getTablename());
+		}
+    }
+
+    public void outADatanetworkconnect(ADatanetworkconnect node)
+    {
+		if (reactorNames.containsKey(PKQLEnum.NETWORK_CONNECT)) 
+		{
+	    	deinitReactor(PKQLEnum.NETWORK_CONNECT, PKQLEnum.NETWORK_CONNECT, null, false);
+			runner.setResponse(curReactor.getValue("RESPONSE"));
+			runner.setStatus((STATUS) curReactor.getValue("STATUS"));
+		}
+    }
+
+    public void inADatanetworkdisconnect(ADatanetworkdisconnect node)
+    {
+		if (reactorNames.containsKey(PKQLEnum.NETWORK_DISCONNECT)) {
+			initReactor(PKQLEnum.NETWORK_DISCONNECT);
+		}
+    }
+
+    public void outADatanetworkdisconnect(ADatanetworkdisconnect node)
+    {
+    	deinitReactor(PKQLEnum.NETWORK_DISCONNECT, PKQLEnum.NETWORK_DISCONNECT, null, false);
+    }
+
     
 	//**************************************** SYNCHRONIZATION OF DATAMAKER ****************************************//
     
