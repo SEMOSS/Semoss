@@ -95,6 +95,8 @@ Tokens
  join = 'data.join';
  datatype_token = 'data.type';
  dataconnect_token = 'data.connect';
+ datanetworkconnect_token = 'network.connect';
+ datanetworkdisconnect_token = 'network.disconnect';
  dataconnectdb_token = 'data.connectdb';
  
  dashboardconfig = 'dashboard.config';
@@ -159,6 +161,8 @@ dataop = // dataop is usually of the form of data.frame, etc.
 		{datatype} datatype
 		| {dataconnect} dataconnect
 		| {dataconnectdb} dataconnectdb
+		| {datanetworkconnect} datanetworkconnect
+		| {datanetworkdisconnect} datanetworkdisconnect
 		;
 
 dashboardop = // dashboardop is usually of the form dashboard.join, dashboard.add, dashboard.remove, etc.
@@ -373,6 +377,11 @@ help = help_token;
 datatype = datatype_token;
 
 dataconnect = dataconnect_token l_par word_or_num r_par;
+
+datanetworkconnect = datanetworkconnect_token l_par [tablename]:word_or_num? r_par;
+
+datanetworkdisconnect = datanetworkdisconnect_token l_par r_par;
+
 
 dataconnectdb = dataconnectdb_token l_par word_or_num r_par;
 
