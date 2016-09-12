@@ -63,8 +63,8 @@ public class MHSDashboardDrillPlaysheet extends TablePlaySheet implements IDataM
 	private final String CRITICAL_PATH = "CriticalPath";
 	
 	private final Date todaysDate = Calendar.getInstance().getTime();
-	static String engineName= "TAP_Readiness_Database";
-//	static String engineName = "Dummy_2";
+//	static String engineName= "TAP_Readiness_Database";
+	static String engineName = "TestDBnoActive";
 	static String masterPKQL = "data.import(api:"+ engineName +".query([c:SDLCPhase,c:SDLCPhase_ActivityGroup_DHAGroup,c:ActivityGroup,c:DHAGroup,c:SystemActivity,c:SystemActivity__ActualEnd,c:SystemActivity__Duration,c:SystemActivity__ProjectedEnd,c:SystemActivity__LateFinish,c:SystemActivity__Delay,c:SystemActivity__CriticalPath,c:SystemActivity__LateStart,c:SystemActivity__EarlyFinish,c:SystemActivity__EarlyStart,c:SystemActivity__ActualStart,c:SystemActivity__Slack,c:SystemActivity__ProjectedStart,c:SystemActivity__KeyStatus,c:SystemActivity__Deviation,c:System,c:System__PlannedStart,c:SystemOwner, c:Activity,c:DependencySystemActivity], ([c:SDLCPhase,left.outer.join,c:SDLCPhase_ActivityGroup_DHAGroup],[c:ActivityGroup,left.outer.join,c:SDLCPhase_ActivityGroup_DHAGroup],[c:DHAGroup,left.outer.join,c:SDLCPhase_ActivityGroup_DHAGroup],[c:SDLCPhase_ActivityGroup_DHAGroup,left.outer.join,c:SystemActivity],[c:SystemActivity,left.outer.join,c:System],[c:System,left.outer.join,c:SystemOwner], [c:SystemActivity,left.outer.join,c:Activity], [c:SystemActivity,left.outer.join,c:DependencySystemActivity])));";
 	
 	static String instanceOfPlaysheet = "prerna.ui.components.specific.tap.MHSDashboardDrillPlaysheet";
@@ -612,7 +612,9 @@ public class MHSDashboardDrillPlaysheet extends TablePlaySheet implements IDataM
 						}
 
 						//if activity is completed
-						if (!(vertexActualEnd.equals("_") && !(vertexActualEnd == null ))){
+						if (!(vertexActualEnd.equals("_")) && !(vertexActualEnd == null )){
+							
+							//get planned EF for the Delay value calculations
 							Date plannedEF = null;
 							if(i == 0) {
 								try {
@@ -843,7 +845,10 @@ public class MHSDashboardDrillPlaysheet extends TablePlaySheet implements IDataM
 			
 			System.out.println("SLACK VAL:::" + slack);
 			
-			boolean isCritical = true;
+			boolean isCritical = false;
+			if(slack == 0.0){
+				isCritical= true;
+			}
 			System.out.println("IS CRITICAL:::" + isCritical);
 			//update db
 			String updateDBquery = "UPDATE SYSTEMACTIVITY SET " + SLACK + " = '"+ slack + "', " + CRITICAL_PATH + " = '"+ isCritical + "'  WHERE SYSTEMACTIVITY = '" + systemActivty + "'";
