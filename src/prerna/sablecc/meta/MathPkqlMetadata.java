@@ -14,7 +14,9 @@ public class MathPkqlMetadata  extends AbstractPkqlMetadata {
 	public Map<String, Object> getMetadata() {
 		Map<String, Object> values = new Hashtable<String, Object>();
 		values.put("procedureName", procedureName);
-		values.put("columnsOperatedOn", columnsOperatedOn);
+		if(columnsOperatedOn != null) {
+			values.put("columnsOperatedOn", columnsOperatedOn);
+		}
 	    if(groupByColumns != null && !groupByColumns.isEmpty()) {
 			values.put("groupByColumns", groupByColumns);
 	    }
