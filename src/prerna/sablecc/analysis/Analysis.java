@@ -52,6 +52,8 @@ public interface Analysis extends Switch
     void caseADatatypeDataop(ADatatypeDataop node);
     void caseADataconnectDataop(ADataconnectDataop node);
     void caseADataconnectdbDataop(ADataconnectdbDataop node);
+    void caseADatanetworkconnectDataop(ADatanetworkconnectDataop node);
+    void caseADatanetworkdisconnectDataop(ADatanetworkdisconnectDataop node);
     void caseADashboardConfigDashboardop(ADashboardConfigDashboardop node);
     void caseADashboardAddDashboardop(ADashboardAddDashboardop node);
     void caseAPanelViz(APanelViz node);
@@ -137,6 +139,8 @@ public interface Analysis extends Switch
     void caseAHelp(AHelp node);
     void caseADatatype(ADatatype node);
     void caseADataconnect(ADataconnect node);
+    void caseADatanetworkconnect(ADatanetworkconnect node);
+    void caseADatanetworkdisconnect(ADatanetworkdisconnect node);
     void caseADataconnectdb(ADataconnectdb node);
     void caseAComparatorEqualOrCompare(AComparatorEqualOrCompare node);
     void caseAEqualEqualOrCompare(AEqualEqualOrCompare node);
@@ -240,6 +244,8 @@ public interface Analysis extends Switch
     void caseTJoin(TJoin node);
     void caseTDatatypeToken(TDatatypeToken node);
     void caseTDataconnectToken(TDataconnectToken node);
+    void caseTDatanetworkconnectToken(TDatanetworkconnectToken node);
+    void caseTDatanetworkdisconnectToken(TDatanetworkdisconnectToken node);
     void caseTDataconnectdbToken(TDataconnectdbToken node);
     void caseTDashboardconfig(TDashboardconfig node);
     void caseTDashboardAddToken(TDashboardAddToken node);

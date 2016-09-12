@@ -448,32 +448,44 @@ class TokenIndex extends AnalysisAdapter
     }
 
     @Override
-    public void caseTDataconnectdbToken(@SuppressWarnings("unused") TDataconnectdbToken node)
+    public void caseTDatanetworkconnectToken(@SuppressWarnings("unused") TDatanetworkconnectToken node)
     {
         this.index = 73;
     }
 
     @Override
-    public void caseTDashboardconfig(@SuppressWarnings("unused") TDashboardconfig node)
+    public void caseTDatanetworkdisconnectToken(@SuppressWarnings("unused") TDatanetworkdisconnectToken node)
     {
         this.index = 74;
     }
 
     @Override
-    public void caseTDashboardAddToken(@SuppressWarnings("unused") TDashboardAddToken node)
+    public void caseTDataconnectdbToken(@SuppressWarnings("unused") TDataconnectdbToken node)
     {
         this.index = 75;
     }
 
     @Override
-    public void caseTWherestr(@SuppressWarnings("unused") TWherestr node)
+    public void caseTDashboardconfig(@SuppressWarnings("unused") TDashboardconfig node)
     {
         this.index = 76;
     }
 
     @Override
-    public void caseEOF(@SuppressWarnings("unused") EOF node)
+    public void caseTDashboardAddToken(@SuppressWarnings("unused") TDashboardAddToken node)
     {
         this.index = 77;
+    }
+
+    @Override
+    public void caseTWherestr(@SuppressWarnings("unused") TWherestr node)
+    {
+        this.index = 78;
+    }
+
+    @Override
+    public void caseEOF(@SuppressWarnings("unused") EOF node)
+    {
+        this.index = 79;
     }
 }
