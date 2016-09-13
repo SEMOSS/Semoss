@@ -1743,7 +1743,7 @@ public class Insight {
 		Map<String, Object> resultHash = new HashMap<String, Object>();
 		if((dashboardData = pkqlRunner.getDashboardData()) != null) {
 			Map dashboardMap = new HashMap();
-			dashboardMap.put("addedInsights", dashboardData);
+			dashboardMap.putAll((Map)dashboardData);
 			dashboardMap.put("insightId", this.insightID);
 			resultHash.put("Dashboard", dashboardMap);
 		} else {

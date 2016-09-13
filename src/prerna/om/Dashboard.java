@@ -29,11 +29,6 @@ public class Dashboard implements IDataMaker {
 	private static final Logger LOGGER = LogManager.getLogger(Dashboard.class.getName());
 	private String insightID;
 	private H2Joiner joiner;
-//	Object[] joinData = new Object[2];
-	//mapping from 2 frames to joinColumns
-	//InsightID1 + delimiter + InsightID2 ->[joinCols1[], joinCols2[]]}
-	
-	private String viewTableName;
 	
 	//will need this when same insight can be on two different dashboards
 	private Map<String, Map<Comparator, Set<Object>>> filterHash = new HashMap<>();
