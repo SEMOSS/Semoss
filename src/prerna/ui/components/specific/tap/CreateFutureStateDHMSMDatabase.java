@@ -207,11 +207,11 @@ public class CreateFutureStateDHMSMDatabase extends AggregationHelper {
 		LPInterfaceDBModProcessor processor = new LPInterfaceDBModProcessor();
 		processor.setEngine(tapCore);
 
-		Map<String, Map<String, String[]>> providerFutureICDProp = DHMSMTransitionUtility.getProviderFutureICDProperties(tapCore);
-		Map<String, Map<String, String[]>> consumerFutureICDProp = DHMSMTransitionUtility.getConsumerFutureICDProperties(tapCore);
-		processor.setProviderFutureICDProp(providerFutureICDProp);
-		processor.setConsumerFutureICDProp(consumerFutureICDProp);
-
+		Map<String, Map<String, String>> providerFutureIcdFrequency = DHMSMTransitionUtility.getProviderFutureICDFrequency(tapCore);
+		Map<String, Map<String, String>> consumerFutureIcdFrequency = DHMSMTransitionUtility.getConsumerFutureICDFrequency(tapCore);
+		processor.setProviderFutureICDProp(providerFutureIcdFrequency);
+		processor.setConsumerFutureICDProp(consumerFutureIcdFrequency);
+		
 		processor.generateTriples();
 		relList = processor.getRelList();
 		relPropList = processor.getRelPropList();

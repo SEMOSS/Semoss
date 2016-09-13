@@ -38,14 +38,6 @@ public interface IAggregationHelper {
 	String semossRelationBaseURI = "http://semoss.org/ontologies/Relation/";
 	String semossPropertyBaseURI = "http://semoss.org/ontologies/Relation/Contains/";
 	
-	HashMap<String, HashMap<String, Object>> dataHash = new HashMap<String, HashMap<String, Object>>();
-	HashMap<String, HashMap<String, Object>> removeDataHash = new HashMap<String, HashMap<String, Object>>();
-
-	HashMap<String, Set<String>> allRelations = new HashMap<String, Set<String>>();
-	HashMap<String, Set<String>> allConcepts = new HashMap<String, Set<String>>();
-	
-	HashMap<String, String> allLabels = new HashMap<String, String>();
-	
 	// processing and aggregating methods
 	
 	void processData(IEngine engine, HashMap<String, HashMap<String, Object>> data);

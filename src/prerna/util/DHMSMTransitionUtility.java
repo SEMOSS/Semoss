@@ -30,6 +30,7 @@ package prerna.util;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Hashtable;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -75,11 +76,17 @@ public final class DHMSMTransitionUtility {
 	public static final String ALL_SELF_REPORTED_ICD_QUERY = "SELECT DISTINCT ?ICD WHERE { {?ICD <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/SystemInterface>} {?Data <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/DataObject>} {?Carries <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Payload>} {?ICD ?Carries ?Data} {?Carries <http://semoss.org/ontologies/Relation/Contains/Recommendation> 'Self_Reported'} }";
 	public static final String ALL_SELF_REPORTED_SYSTEMS = "SELECT DISTINCT ?System WHERE { {?System <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System>} { {?ICD <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/SystemInterface>} {?System <http://semoss.org/ontologies/Relation/Provide> ?ICD} {?Data <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/DataObject>} {?Carries <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Payload>} {?ICD ?Carries ?Data} {?Carries <http://semoss.org/ontologies/Relation/Contains/Recommendation> 'Self_Reported'} } UNION { {?ICD <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/SystemInterface>} {?ICD <http://semoss.org/ontologies/Relation/Consume> ?System} {?Data <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/DataObject>} {?Carries <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Payload>} {?ICD ?Carries ?Data} {?Carries <http://semoss.org/ontologies/Relation/Contains/Recommendation> 'Self_Reported'} } }";
 
-	public static final String DETERMINE_PROVIDER_FUTURE_ICD_PROPERTIES = "SELECT DISTINCT ?System ?Data (GROUP_CONCAT(DISTINCT ?format; SEPARATOR = ';') AS ?Format) (GROUP_CONCAT(DISTINCT ?frequency; SEPARATOR = ';') AS ?Frequency) (GROUP_CONCAT(DISTINCT ?protocol; SEPARATOR = ';') AS ?Protocol) WHERE{ {?System <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/ActiveSystem>} {?ICD <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/SystemInterface>} {?System <http://semoss.org/ontologies/Relation/Provide> ?ICD} {?carries <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Payload>} {?Data <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/DataObject>} {?ICD ?carries ?Data} OPTIONAL{?carries <http://semoss.org/ontologies/Relation/Contains/Format> ?format} OPTIONAL{?carries <http://semoss.org/ontologies/Relation/Contains/Frequency> ?frequency} OPTIONAL{?carries <http://semoss.org/ontologies/Relation/Contains/Protocol> ?protocol} } GROUP BY ?System ?Data ORDER BY ?System ?Data";
-	public static final String DETERMINE_CONSUMER_FUTURE_ICD_PROPERTIES = "SELECT DISTINCT ?System ?Data (GROUP_CONCAT(DISTINCT ?format; SEPARATOR = ';') AS ?Format) (GROUP_CONCAT(DISTINCT ?frequency; SEPARATOR = ';') AS ?Frequency) (GROUP_CONCAT(DISTINCT ?protocol; SEPARATOR = ';') AS ?Protocol) WHERE{ {?System <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/ActiveSystem>} {?ICD <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/SystemInterface>} {?ICD <http://semoss.org/ontologies/Relation/Consume> ?System} {?carries <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Payload>} {?Data <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/DataObject>} {?ICD ?carries ?Data} OPTIONAL{?carries <http://semoss.org/ontologies/Relation/Contains/Format> ?format} OPTIONAL{?carries <http://semoss.org/ontologies/Relation/Contains/Frequency> ?frequency} OPTIONAL{?carries <http://semoss.org/ontologies/Relation/Contains/Protocol> ?protocol} } GROUP BY ?System ?Data ORDER BY ?System ?Data";
+//	public static final String DETERMINE_PROVIDER_FUTURE_ICD_PROPERTIES = "SELECT DISTINCT ?System ?Data (GROUP_CONCAT(DISTINCT ?format; SEPARATOR = ';') AS ?Format) (GROUP_CONCAT(DISTINCT ?frequency; SEPARATOR = ';') AS ?Frequency) (GROUP_CONCAT(DISTINCT ?protocol; SEPARATOR = ';') AS ?Protocol) WHERE{ {?System <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/ActiveSystem>} {?ICD <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/SystemInterface>} {?System <http://semoss.org/ontologies/Relation/Provide> ?ICD} {?carries <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Payload>} {?Data <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/DataObject>} {?ICD ?carries ?Data} OPTIONAL{?carries <http://semoss.org/ontologies/Relation/Contains/Format> ?format} OPTIONAL{?carries <http://semoss.org/ontologies/Relation/Contains/Frequency> ?frequency} OPTIONAL{?carries <http://semoss.org/ontologies/Relation/Contains/Protocol> ?protocol} } GROUP BY ?System ?Data ORDER BY ?System ?Data";
+//	public static final String DETERMINE_CONSUMER_FUTURE_ICD_PROPERTIES = "SELECT DISTINCT ?System ?Data (GROUP_CONCAT(DISTINCT ?format; SEPARATOR = ';') AS ?Format) (GROUP_CONCAT(DISTINCT ?frequency; SEPARATOR = ';') AS ?Frequency) (GROUP_CONCAT(DISTINCT ?protocol; SEPARATOR = ';') AS ?Protocol) WHERE{ {?System <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/ActiveSystem>} {?ICD <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/SystemInterface>} {?ICD <http://semoss.org/ontologies/Relation/Consume> ?System} {?carries <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Payload>} {?Data <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/DataObject>} {?ICD ?carries ?Data} OPTIONAL{?carries <http://semoss.org/ontologies/Relation/Contains/Format> ?format} OPTIONAL{?carries <http://semoss.org/ontologies/Relation/Contains/Frequency> ?frequency} OPTIONAL{?carries <http://semoss.org/ontologies/Relation/Contains/Protocol> ?protocol} } GROUP BY ?System ?Data ORDER BY ?System ?Data";
 
+	public static final String DETERMINE_CONSUMER_FUTURE_ICD_FREQUENCY = "SELECT DISTINCT ?System ?Data ?DFreq WHERE { {?SystemInterface <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/SystemInterface>} {?System <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/ActiveSystem>} {?Data <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/DataObject>} {?SystemInterface <http://semoss.org/ontologies/Relation/Payload> ?Data} {?SystemInterface <http://semoss.org/ontologies/Relation/Consume> ?System} OPTIONAL { {?DFreq <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/DFreq>} {?SystemInterface <http://semoss.org/ontologies/Relation/Has> ?DFreq} } }";	
+	public static final String DETERMINE_PROVIDER_FUTURE_ICD_FREQUENCY = "SELECT DISTINCT ?System ?Data ?DFreq WHERE { {?SystemInterface <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/SystemInterface>} {?System <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/ActiveSystem>} {?Data <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/DataObject>} {?SystemInterface <http://semoss.org/ontologies/Relation/Payload> ?Data} {?System <http://semoss.org/ontologies/Relation/Provide> ?SystemInterface} OPTIONAL { {?DFreq <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/DFreq>} {?SystemInterface <http://semoss.org/ontologies/Relation/Has> ?DFreq} } }";
+
+	public static final String GET_EXISTING_ICD_RELS = "SELECT DISTINCT ?SystemInterface ?DForm ?DProt ?DFreq WHERE { BIND(<@SYSTEM_INTERFACE@> AS ?SystemInterface) {?SystemInterface <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/SystemInterface>} {?DProt <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/DProt>} {?DForm <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/DForm>} {?DFreq <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/DFreq>} {?SystemInterface <http://semoss.org/ontologies/Relation/Has> ?DProt} {?SystemInterface <http://semoss.org/ontologies/Relation/Has> ?DForm} {?SystemInterface <http://semoss.org/ontologies/Relation/Has> ?DFreq} }";
+	
 	public static final String SELF_REPORTED_SYSTEM_P2P_INTERFACE_COST = "SELECT DISTINCT ?System ?Data ?GLTag (SUM(?loe) AS ?Cost) WHERE { {?System a <http://semoss.org/ontologies/Concept/System>} {?GLItem a <http://semoss.org/ontologies/Concept/TransitionGLItem>} {?System <http://semoss.org/ontologies/Relation/Influences> ?GLItem} {?GLItem <http://semoss.org/ontologies/Relation/Contains/LOEcalc> ?loe} {?Data a <http://semoss.org/ontologies/Concept/DataObject>} {?Data <http://semoss.org/ontologies/Relation/Input> ?GLItem} {?GLTag a <http://semoss.org/ontologies/Concept/GLTag>} {?GLItem <http://semoss.org/ontologies/Relation/TaggedBy> ?GLTag} } GROUP BY ?System ?Data ?GLTag";
 	public static final String SELF_REPORTED_SYSTEM_P2P_INTERFACE_COST_BY_TAG_AND_PHASE = "SELECT DISTINCT ?System ?Data ?GLTag ?Phase (SUM(?loe) AS ?Cost) WHERE { {?System a <http://semoss.org/ontologies/Concept/System>} {?GLItem a <http://semoss.org/ontologies/Concept/TransitionGLItem>} {?System <http://semoss.org/ontologies/Relation/Influences> ?GLItem} {?GLItem <http://semoss.org/ontologies/Relation/Contains/LOEcalc> ?loe} {?Phase a <http://semoss.org/ontologies/Concept/SDLCPhase>} {?GLItem <http://semoss.org/ontologies/Relation/BelongsTo> ?Phase} {?GLTag a <http://semoss.org/ontologies/Concept/GLTag>} {?GLItem <http://semoss.org/ontologies/Relation/TaggedBy> ?GLTag} {?Data a <http://semoss.org/ontologies/Concept/DataObject>} {?Data <http://semoss.org/ontologies/Relation/Input> ?GLItem} } GROUP BY ?System ?GLTag ?Data ?Phase";
+	
 	
 	public static HashMap<String, ArrayList<String>> getDataToServiceHash(IEngine engine) {
 		HashMap<String, ArrayList<String>> retHash = new HashMap<String, ArrayList<String>>();
@@ -200,16 +207,146 @@ public final class DHMSMTransitionUtility {
 		return retHash;
 	}
 
-	public static Map<String, Map<String, String[]>> getProviderFutureICDProperties(IEngine engine) {
-		return runFutureICDProp(engine, DETERMINE_PROVIDER_FUTURE_ICD_PROPERTIES);
+//	public static Map<String, Map<String, String[]>> getProviderFutureICDProperties(IEngine engine) {
+//		return runFutureICDProp(engine, DETERMINE_PROVIDER_FUTURE_ICD_PROPERTIES);
+//	}
+//
+//	public static Map<String, Map<String, String[]>> getConsumerFutureICDProperties(IEngine engine) {
+//		return runFutureICDProp(engine, DETERMINE_CONSUMER_FUTURE_ICD_PROPERTIES);
+//	}
+//	
+//	public static Map<String, Map<String, String[]>> runFutureICDProp(IEngine engine, String query) {
+//		Map<String, Map<String, String[]>> retHash = new HashMap<String, Map<String, String[]>>();
+//
+//		ISelectWrapper sjsw = Utility.processQuery(engine, query);
+//		String[] varName = sjsw.getVariables();
+//		while(sjsw.hasNext()) {
+//			ISelectStatement sjss = sjsw.next();
+//			String system = sjss.getVar(varName[0]).toString();
+//			String data = sjss.getVar(varName[1]).toString();
+//			String format = sjss.getVar(varName[2]).toString();
+//			String frequency = sjss.getVar(varName[3]).toString();
+//			String protocol = sjss.getVar(varName[4]).toString();
+//
+//			frequency = determineHighestFrequency(frequency);
+//
+//			String[] valArr = new String[]{format, frequency, protocol};
+//			Map<String, String[]> innerHash = new HashMap<String, String[]>();
+//			if(retHash.containsKey(system)) {
+//				innerHash = retHash.get(system);
+//				innerHash.put(data, valArr);
+//			} else {
+//				innerHash.put(data, valArr);
+//				retHash.put(system, innerHash);
+//			}
+//		}
+//
+//		return retHash;
+//	}
+//	
+//	private static String determineHighestFrequency(String frequencyConcat) {
+//		if(frequencyConcat.contains("Real-time (user-initiated)")) return "Real-time (user-initiated)";
+//		else if(frequencyConcat.contains("Real-time")) return "Real-time";
+//		else if(frequencyConcat.contains("Real-time ")) return "Real-time ";
+//		else if(frequencyConcat.contains("Real Time")) return "Real Time";
+//		else if(frequencyConcat.contains("Transactional")) return "Transactional";
+//		else if(frequencyConcat.contains("On Demand")) return "On Demand";
+//		else if(frequencyConcat.contains("TheaterFramework")) return "TheaterFramework";
+//		else if(frequencyConcat.contains("Event Driven (Seconds)")) return "Event Driven (Seconds)";
+//		else if(frequencyConcat.contains("Web services")) return "Web services";
+//		else if(frequencyConcat.contains("TF")) return "TF";
+//		else if(frequencyConcat.contains("SFTP")) return "SFTP";
+//		else if(frequencyConcat.contains("Near Real-time")) return "Near Real-time";
+//		else if(frequencyConcat.contains("Batch")) return "Batch";
+//		else if(frequencyConcat.contains("TCP")) return "TCP";
+//		else if(frequencyConcat.contains("Interactive")) return "Interactive";
+//		else if(frequencyConcat.contains("NFS, Oracle connection")) return "NFS, Oracle connection";
+//		else if(frequencyConcat.contains("Near Real-time (transaction initiated)")) return "Near Real-time (transaction initiated)";
+//		else if(frequencyConcat.contains("Periodic")) return "Periodic";
+//		else if(frequencyConcat.contains("interactive")) return "interactive";
+//		else if(frequencyConcat.contains("On demad")) return "On demad";
+//		else if(frequencyConcat.contains("On-demand")) return "On-demand";
+//		else if(frequencyConcat.contains("user upload")) return "user upload";
+//		else if(frequencyConcat.contains("Each user login instance")) return "Each user login instance";
+//		else if(frequencyConcat.contains("DVD")) return "DVD";
+//
+//		else if(frequencyConcat.contains("1/hour (KML)/On demand (HTML)")) return "1/hour (KML)/On demand (HTML)";
+//		else if(frequencyConcat.contains("event-driven (Minutes-hours)")) return "event-driven (Minutes-hours)";
+//		else if(frequencyConcat.contains("Event Driven (Minutes-hours)")) return "Event Driven (Minutes-hours)";
+//		else if(frequencyConcat.contains("Hourly")) return "Hourly";
+//
+//		else if(frequencyConcat.contains("Batch (12/day)")) return "Batch (12/day)";
+//
+//		else if(frequencyConcat.contains("Batch (4/day)")) return "Batch (4/day)";
+//
+//		else if(frequencyConcat.contains("Every 8 hours (KML)/On demand (HTML)")) return "Every 8 hours (KML)/On demand (HTML)";
+//
+//		else if(frequencyConcat.contains("daily")) return "daily";
+//		else if(frequencyConcat.contains("Daily")) return "Daily";
+//		else if(frequencyConcat.contains("Batch (daily)")) return "Batch (daily)";
+//		else if(frequencyConcat.contains("Batch(Daily)")) return "Batch(Daily)";
+//		else if(frequencyConcat.contains("Daily at end of day")) return "Daily at end of day";
+//		else if(frequencyConcat.contains("Daily Interactive")) return "Daily Interactive";
+//
+//		else if(frequencyConcat.contains("Batch (three times a week)")) return "Batch (three times a week)";
+//
+//		else if(frequencyConcat.contains("Event Driven (seconds-minutes)")) return "Event Driven (seconds-minutes)";
+//
+//		else if(frequencyConcat.contains("Batch (weekly)")) return "Batch (weekly)";
+//		else if(frequencyConcat.contains("Batch(Weekly)")) return "Batch(Weekly)";
+//		else if(frequencyConcat.contains("Weekly")) return "Weekly";
+//		else if(frequencyConcat.contains("Weekly ")) return "Weekly ";
+//		else if(frequencyConcat.contains("Weekly Daily")) return "Weekly Daily";
+//		else if(frequencyConcat.contains("Weekly; Interactive; Interactive")) return "Weekly; Interactive; Interactive";
+//		else if(frequencyConcat.contains("Weekly Daily Weekly Weekly Weekly Weekly Daily Daily Daily")) return "Weekly Daily Weekly Weekly Weekly Weekly Daily Daily Daily";
+//
+//		else if(frequencyConcat.contains("Bi-Weekly")) return "Bi-Weekly";
+//
+//		else if(frequencyConcat.contains("Batch (twice monthly)")) return "Batch (twice monthly)";
+//
+//		else if(frequencyConcat.contains("Monthly")) return "Monthly";
+//		else if(frequencyConcat.contains("Batch (monthly)")) return "Batch (monthly)";
+//		else if(frequencyConcat.contains("Batch(Monthly)")) return "Batch(Monthly)";
+//		else if(frequencyConcat.contains("Batch(Daily/Monthly)")) return "Batch(Daily/Monthly)";
+//		else if(frequencyConcat.contains("Monthly at beginning of month, or as user initiated")) return "Monthly at beginning of month, or as user initiated";
+//		else if(frequencyConcat.contains("Monthly Bi-Monthly Weekly Weekly")) return "Monthly Bi-Monthly Weekly Weekly";
+//
+//		else if(frequencyConcat.contains("Batch (bi-monthly)")) return "Batch (bi-monthly)";
+//
+//		else if(frequencyConcat.contains("Quarterly")) return "Quarterly";
+//		else if(frequencyConcat.contains("Batch (quarterly)")) return "Batch (quarterly)";
+//		else if(frequencyConcat.contains("Batch(Quarterly)")) return "Batch(Quarterly)";
+//		else if(frequencyConcat.contains("Weekly Quarterly")) return "Weekly Quarterly";
+//
+//		else if(frequencyConcat.contains("Batch (semiannually)")) return "Batch (semiannually)";
+//
+//		else if(frequencyConcat.contains("Batch (yearly)")) return "Batch (yearly)";
+//		else if(frequencyConcat.contains("Annually")) return "Annually";
+//		else if(frequencyConcat.contains("Annual")) return "Annual";
+//
+//		return frequencyConcat;
+//	}
+	
+	
+	public static Map<String, Map<String, String>> getProviderFutureICDFrequency(IEngine engine) {
+		return runFutureICDFreq(engine, DETERMINE_PROVIDER_FUTURE_ICD_FREQUENCY);
 	}
 
-	public static Map<String, Map<String, String[]>> getConsumerFutureICDProperties(IEngine engine) {
-		return runFutureICDProp(engine, DETERMINE_CONSUMER_FUTURE_ICD_PROPERTIES);
+	public static Map<String, Map<String, String>> getConsumerFutureICDFrequency(IEngine engine) {
+		return runFutureICDFreq(engine, DETERMINE_CONSUMER_FUTURE_ICD_FREQUENCY);
 	}
-
-	public static Map<String, Map<String, String[]>> runFutureICDProp(IEngine engine, String query) {
-		Map<String, Map<String, String[]>> retHash = new HashMap<String, Map<String, String[]>>();
+	
+	public static Map<String, Map<String, String>> runFutureICDFreq(IEngine engine, String query) {
+		/*
+		 * This method is used to get the highest frequency for a given system with a data object
+		 * 
+		 * This is using the assumption that if DHMSM/MHS_Genesis is the SOR for these data objects
+		 * Then whatever the highest frequency is required for the system and the given data object
+		 * across all of it system interfaces should also be the rate of synchronization 
+		 * with DHMSM/MHS_Genesis
+		 */
+		
+		Map<String, Map<String, String>> retHash = new Hashtable<String, Map<String, String>>();
 
 		ISelectWrapper sjsw = Utility.processQuery(engine, query);
 		String[] varName = sjsw.getVariables();
@@ -217,107 +354,78 @@ public final class DHMSMTransitionUtility {
 			ISelectStatement sjss = sjsw.next();
 			String system = sjss.getVar(varName[0]).toString();
 			String data = sjss.getVar(varName[1]).toString();
-			String format = sjss.getVar(varName[2]).toString();
-			String frequency = sjss.getVar(varName[3]).toString();
-			String protocol = sjss.getVar(varName[4]).toString();
+			String frequency = sjss.getVar(varName[2]).toString();
 
-			frequency = determineHighestFrequency(frequency);
-
-			String[] valArr = new String[]{format, frequency, protocol};
-			Map<String, String[]> innerHash = new HashMap<String, String[]>();
+			Map<String, String> dataHash = new HashMap<String, String>();
 			if(retHash.containsKey(system)) {
-				innerHash = retHash.get(system);
-				innerHash.put(data, valArr);
+				dataHash = retHash.get(system);
+				
+				if(dataHash.containsKey(data)) {
+					String existingFreq = dataHash.get(data);
+					// need to compare the current frequency and the new one they want
+					if(frequency.equalsIgnoreCase("Real-Time") || existingFreq.equalsIgnoreCase("Real-Time")) {
+						dataHash.put(data, "Real-Time");
+					} else if(frequency.equalsIgnoreCase("On_Demand") || existingFreq.equalsIgnoreCase("On_Demand")) {
+						dataHash.put(data, "On_Demand");
+					} else if(frequency.equalsIgnoreCase("Daily") || existingFreq.equalsIgnoreCase("Daily")) {
+						dataHash.put(data, "Daily");
+					} else if(frequency.equalsIgnoreCase("Weekly") || existingFreq.equalsIgnoreCase("Weekly")) {
+						dataHash.put(data, "Weekly");
+					} else if(frequency.equalsIgnoreCase("Monthly") || existingFreq.equalsIgnoreCase("Monthly")) {
+						dataHash.put(data, "Monthly");
+					} else if(frequency.equalsIgnoreCase("Quarterly") || existingFreq.equalsIgnoreCase("Quarterly")) {
+						dataHash.put(data, "Quarterly");
+					} else if(frequency.equalsIgnoreCase("Yearly") || existingFreq.equalsIgnoreCase("Yearly")) {
+						dataHash.put(data, "Yearly");
+					} else if(frequency.equalsIgnoreCase("TBD") || existingFreq.equalsIgnoreCase("TBD")) {
+						dataHash.put(data, "TBD");
+					} else {
+						// default is to use the TBD
+						dataHash.put(data, "TBD");
+					}
+				} else {
+					// nothing to compare, just put it in there
+					// but if it does not have a frequency, put in TBD
+					if(frequency == null || frequency.isEmpty()) {
+						frequency = "TBD";
+					}
+					dataHash.put(data, frequency);
+				}
 			} else {
-				innerHash.put(data, valArr);
-				retHash.put(system, innerHash);
+				// nothing to compare, just put it in there
+				// but if it does not have a frequency, put in TBD
+				if(frequency == null || frequency.isEmpty()) {
+					frequency = "TBD";
+				}
+				dataHash.put(data, frequency);
+				retHash.put(system, dataHash);
 			}
 		}
 
 		return retHash;
 	}
-
-	private static String determineHighestFrequency(String frequencyConcat) {
-		if(frequencyConcat.contains("Real-time (user-initiated)")) return "Real-time (user-initiated)";
-		else if(frequencyConcat.contains("Real-time")) return "Real-time";
-		else if(frequencyConcat.contains("Real-time ")) return "Real-time ";
-		else if(frequencyConcat.contains("Real Time")) return "Real Time";
-		else if(frequencyConcat.contains("Transactional")) return "Transactional";
-		else if(frequencyConcat.contains("On Demand")) return "On Demand";
-		else if(frequencyConcat.contains("TheaterFramework")) return "TheaterFramework";
-		else if(frequencyConcat.contains("Event Driven (Seconds)")) return "Event Driven (Seconds)";
-		else if(frequencyConcat.contains("Web services")) return "Web services";
-		else if(frequencyConcat.contains("TF")) return "TF";
-		else if(frequencyConcat.contains("SFTP")) return "SFTP";
-		else if(frequencyConcat.contains("Near Real-time")) return "Near Real-time";
-		else if(frequencyConcat.contains("Batch")) return "Batch";
-		else if(frequencyConcat.contains("TCP")) return "TCP";
-		else if(frequencyConcat.contains("Interactive")) return "Interactive";
-		else if(frequencyConcat.contains("NFS, Oracle connection")) return "NFS, Oracle connection";
-		else if(frequencyConcat.contains("Near Real-time (transaction initiated)")) return "Near Real-time (transaction initiated)";
-		else if(frequencyConcat.contains("Periodic")) return "Periodic";
-		else if(frequencyConcat.contains("interactive")) return "interactive";
-		else if(frequencyConcat.contains("On demad")) return "On demad";
-		else if(frequencyConcat.contains("On-demand")) return "On-demand";
-		else if(frequencyConcat.contains("user upload")) return "user upload";
-		else if(frequencyConcat.contains("Each user login instance")) return "Each user login instance";
-		else if(frequencyConcat.contains("DVD")) return "DVD";
-
-		else if(frequencyConcat.contains("1/hour (KML)/On demand (HTML)")) return "1/hour (KML)/On demand (HTML)";
-		else if(frequencyConcat.contains("event-driven (Minutes-hours)")) return "event-driven (Minutes-hours)";
-		else if(frequencyConcat.contains("Event Driven (Minutes-hours)")) return "Event Driven (Minutes-hours)";
-		else if(frequencyConcat.contains("Hourly")) return "Hourly";
-
-		else if(frequencyConcat.contains("Batch (12/day)")) return "Batch (12/day)";
-
-		else if(frequencyConcat.contains("Batch (4/day)")) return "Batch (4/day)";
-
-		else if(frequencyConcat.contains("Every 8 hours (KML)/On demand (HTML)")) return "Every 8 hours (KML)/On demand (HTML)";
-
-		else if(frequencyConcat.contains("daily")) return "daily";
-		else if(frequencyConcat.contains("Daily")) return "Daily";
-		else if(frequencyConcat.contains("Batch (daily)")) return "Batch (daily)";
-		else if(frequencyConcat.contains("Batch(Daily)")) return "Batch(Daily)";
-		else if(frequencyConcat.contains("Daily at end of day")) return "Daily at end of day";
-		else if(frequencyConcat.contains("Daily Interactive")) return "Daily Interactive";
-
-		else if(frequencyConcat.contains("Batch (three times a week)")) return "Batch (three times a week)";
-
-		else if(frequencyConcat.contains("Event Driven (seconds-minutes)")) return "Event Driven (seconds-minutes)";
-
-		else if(frequencyConcat.contains("Batch (weekly)")) return "Batch (weekly)";
-		else if(frequencyConcat.contains("Batch(Weekly)")) return "Batch(Weekly)";
-		else if(frequencyConcat.contains("Weekly")) return "Weekly";
-		else if(frequencyConcat.contains("Weekly ")) return "Weekly ";
-		else if(frequencyConcat.contains("Weekly Daily")) return "Weekly Daily";
-		else if(frequencyConcat.contains("Weekly; Interactive; Interactive")) return "Weekly; Interactive; Interactive";
-		else if(frequencyConcat.contains("Weekly Daily Weekly Weekly Weekly Weekly Daily Daily Daily")) return "Weekly Daily Weekly Weekly Weekly Weekly Daily Daily Daily";
-
-		else if(frequencyConcat.contains("Bi-Weekly")) return "Bi-Weekly";
-
-		else if(frequencyConcat.contains("Batch (twice monthly)")) return "Batch (twice monthly)";
-
-		else if(frequencyConcat.contains("Monthly")) return "Monthly";
-		else if(frequencyConcat.contains("Batch (monthly)")) return "Batch (monthly)";
-		else if(frequencyConcat.contains("Batch(Monthly)")) return "Batch(Monthly)";
-		else if(frequencyConcat.contains("Batch(Daily/Monthly)")) return "Batch(Daily/Monthly)";
-		else if(frequencyConcat.contains("Monthly at beginning of month, or as user initiated")) return "Monthly at beginning of month, or as user initiated";
-		else if(frequencyConcat.contains("Monthly Bi-Monthly Weekly Weekly")) return "Monthly Bi-Monthly Weekly Weekly";
-
-		else if(frequencyConcat.contains("Batch (bi-monthly)")) return "Batch (bi-monthly)";
-
-		else if(frequencyConcat.contains("Quarterly")) return "Quarterly";
-		else if(frequencyConcat.contains("Batch (quarterly)")) return "Batch (quarterly)";
-		else if(frequencyConcat.contains("Batch(Quarterly)")) return "Batch(Quarterly)";
-		else if(frequencyConcat.contains("Weekly Quarterly")) return "Weekly Quarterly";
-
-		else if(frequencyConcat.contains("Batch (semiannually)")) return "Batch (semiannually)";
-
-		else if(frequencyConcat.contains("Batch (yearly)")) return "Batch (yearly)";
-		else if(frequencyConcat.contains("Annually")) return "Annually";
-		else if(frequencyConcat.contains("Annual")) return "Annual";
-
-		return frequencyConcat;
+	
+	/*
+	 * Return the DForm, DProt, and DFreq for a given icd
+	 */
+	public static String[] getExistingIcdRelUris(IEngine engine, String systemInterfaceUri) {
+		String[] values = new String[3];
+		
+		ISelectWrapper sjsw = Utility.processQuery(engine, GET_EXISTING_ICD_RELS.replace("@SYSTEM_INTERFACE@", systemInterfaceUri));
+		String[] varName = sjsw.getVariables();
+		while(sjsw.hasNext()) {
+			ISelectStatement sjss = sjsw.next();
+			String icd = sjss.getRawVar(varName[0]).toString();
+			String format = sjss.getRawVar(varName[1]).toString();
+			String protocol = sjss.getRawVar(varName[2]).toString();
+			String frequency = sjss.getRawVar(varName[3]).toString();
+			
+			values[0] = format;
+			values[1] = protocol;
+			values[2] = frequency;
+		}
+			
+		return values;
 	}
 
 	public static Set<String> getAllSelfReportedSystemURIs(IEngine engine) {
@@ -827,8 +935,7 @@ public final class DHMSMTransitionUtility {
 		return dataSet;
 	}
 
-	public static String[] removeSystemFromStringArray(String[] names)
-	{
+	public static String[] removeSystemFromStringArray(String[] names) {
 		String[] retArray = new String[names.length-1];
 		for(int j=0;j<retArray.length;j++)
 			retArray[j] = names[j+1];
