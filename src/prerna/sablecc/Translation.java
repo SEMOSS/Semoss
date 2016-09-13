@@ -956,7 +956,18 @@ public class Translation extends DepthFirstAdapter {
 		IScriptReactor thisReactor = curReactor;
 		curReactor.put("G", this.frame);
 		Hashtable <String, Object> thisReactorHash = deinitReactor(PKQLEnum.DASHBOARD_JOIN, nodeStr, PKQLEnum.DASHBOARD_JOIN);
-		runner.setDashBoardData(thisReactor.getValue("DashboardData"));
+		
+		Map dashboardData = (Map)runner.getDashboardData();
+		if(dashboardData == null) {
+			runner.setDashBoardData(thisReactor.getValue("DashboardData"));
+		} else {
+			Map<String, List> newDashboardData = (Map<String, List>)thisReactor.getValue("DashboardData");
+			if(dashboardData.containsKey("joinedInsights")) {
+				List list = (List)dashboardData.get("joinedInsights");
+				list.addAll(newDashboardData.get("joinedInsights"));
+			}
+			runner.setDashBoardData(dashboardData);
+		}
 	}
 	
 	public void inADashboardAdd(ADashboardAdd node)
@@ -975,7 +986,18 @@ public class Translation extends DepthFirstAdapter {
 		IScriptReactor thisReactor = curReactor;
 		curReactor.put("G", this.frame);
 		Hashtable<String, Object> thisReactorHash = deinitReactor(PKQLEnum.DASHBOARD_ADD, nodeStr,	PKQLEnum.DASHBOARD_ADD);
-		runner.setDashBoardData(thisReactor.getValue("DashboardData"));
+		
+		Map dashboardData = (Map)runner.getDashboardData();
+		if(dashboardData == null) {
+			runner.setDashBoardData(thisReactor.getValue("DashboardData"));
+		} else {
+			Map<String, List> newDashboardData = (Map<String, List>)thisReactor.getValue("DashboardData");
+			if(dashboardData.containsKey("addedInsights")) {
+				List list = (List)dashboardData.get("addedInsights");
+				list.addAll(newDashboardData.get("addedInsights"));
+			}
+			runner.setDashBoardData(newDashboardData);
+		}
     }
 
 	public void inADashboardopScript(ADashboardopScript node) {
@@ -1795,6 +1817,7 @@ public class Translation extends DepthFirstAdapter {
 
     public void outAJOp(AJOp node)
     {
+		if (reactorNames.containsKey(PKQLEnum.JAVA_OP)) {
     	deinitReactor(PKQLEnum.JAVA_OP, node.getCodeblock()+"", null, false);
 		runner.setResponse(curReactor.getValue("RESPONSE"));
 		runner.setStatus((STATUS) curReactor.getValue("STATUS"));

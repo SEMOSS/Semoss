@@ -70,7 +70,7 @@ public class DashboardAddReactor extends AbstractReactor {
 		map.put("widgetId", insightIDs.get(0));
 		joinDataList.add(map);
 
-		Map data = new HashMap();
+		Map<String, List> data = new HashMap<>();
 		data.put("addedInsights", joinDataList);
 		
 		this.myStore.put("DashboardData", data);
