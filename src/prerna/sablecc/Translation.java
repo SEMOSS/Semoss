@@ -965,6 +965,9 @@ public class Translation extends DepthFirstAdapter {
 			if(dashboardData.containsKey("joinedInsights")) {
 				List list = (List)dashboardData.get("joinedInsights");
 				list.addAll(newDashboardData.get("joinedInsights"));
+			} else {
+				List list = (List)newDashboardData.get("joinedInsights");
+				dashboardData.put("joinedInsights", list);
 			}
 			runner.setDashBoardData(dashboardData);
 		}
@@ -995,6 +998,9 @@ public class Translation extends DepthFirstAdapter {
 			if(dashboardData.containsKey("addedInsights")) {
 				List list = (List)dashboardData.get("addedInsights");
 				list.addAll(newDashboardData.get("addedInsights"));
+			} else {
+				List list = (List)newDashboardData.get("addedInsights");
+				dashboardData.put("addedInsights", list);
 			}
 			runner.setDashBoardData(dashboardData);
 		}
