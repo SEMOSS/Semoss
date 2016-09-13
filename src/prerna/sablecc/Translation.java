@@ -996,7 +996,7 @@ public class Translation extends DepthFirstAdapter {
 				List list = (List)dashboardData.get("addedInsights");
 				list.addAll(newDashboardData.get("addedInsights"));
 			}
-			runner.setDashBoardData(newDashboardData);
+			runner.setDashBoardData(dashboardData);
 		}
     }
 
