@@ -1631,9 +1631,12 @@ public class TinkerFrame extends AbstractTableDataFrame {
 		unfilter(columnHeader);
 		
 		Set<Object> removeSet = new HashSet<Object>();
-		Iterator<Object> iterator = uniqueValueIterator(columnHeader, false, false);
+//		Iterator<Object> iterator = uniqueValueIterator(columnHeader, false, false);
+		GraphTraversal<Vertex, Vertex> iterator = g.traversal().V().has(Constants.TYPE, columnHeader);
 		while(iterator.hasNext()) {
-			removeSet.add(iterator.next());
+			Vertex nextVert = iterator.next();
+			Object value = nextVert.property(Constants.VALUE).value();
+			removeSet.add(value);
 		}
 		
 		for(Object fv : filterValues) {
