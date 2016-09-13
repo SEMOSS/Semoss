@@ -62,6 +62,12 @@ public class AggregationHelper implements IAggregationHelper {
 
 	private static final Logger LOGGER = LogManager.getLogger(AggregationHelper.class.getName());
 
+	public HashMap<String, HashMap<String, Object>> dataHash = new HashMap<String, HashMap<String, Object>>();
+	public HashMap<String, HashMap<String, Object>> removeDataHash = new HashMap<String, HashMap<String, Object>>();
+	public HashMap<String, Set<String>> allRelations = new HashMap<String, Set<String>>();
+	public HashMap<String, Set<String>> allConcepts = new HashMap<String, Set<String>>();
+	public HashMap<String, String> allLabels = new HashMap<String, String>();
+	
 	public String errorMessage = "";
 
 	// Fundamental Methods
