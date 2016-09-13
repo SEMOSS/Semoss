@@ -43,9 +43,7 @@ import prerna.sablecc.node.ADataFrame;
 import prerna.sablecc.node.ADataconnect;
 import prerna.sablecc.node.ADataconnectdb;
 import prerna.sablecc.node.ADatanetworkconnect;
-import prerna.sablecc.node.ADatanetworkconnectDataop;
 import prerna.sablecc.node.ADatanetworkdisconnect;
-import prerna.sablecc.node.ADatanetworkdisconnectDataop;
 import prerna.sablecc.node.ADatatype;
 import prerna.sablecc.node.ADecimal;
 import prerna.sablecc.node.ADivExpr;
@@ -273,7 +271,7 @@ public class Translation extends DepthFirstAdapter {
     public void outADashboardopScript(ADashboardopScript node) {
     	postProcess(node);
     }
-	
+    
 	// the highest level above all commands
 	// tracks the most basic things all pkql should have
 	private void postProcess(Node node){
@@ -1800,6 +1798,10 @@ public class Translation extends DepthFirstAdapter {
     	deinitReactor(PKQLEnum.JAVA_OP, node.getCodeblock()+"", null, false);
 		runner.setResponse(curReactor.getValue("RESPONSE"));
 		runner.setStatus((STATUS) curReactor.getValue("STATUS"));
+		
+		// highest level of the grammar definition
+		// need to call post process to aggregate into runner
+		postProcess(node);
     }
     
     public void inADatanetworkconnect(ADatanetworkconnect node)
