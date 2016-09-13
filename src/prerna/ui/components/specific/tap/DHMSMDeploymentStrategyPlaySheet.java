@@ -59,7 +59,6 @@ import prerna.ui.main.listener.specific.tap.DHMSMDeploymentStrategySetRegionList
 import prerna.ui.main.listener.specific.tap.DHMSMDeploymentStrategySysBarChartListener;
 import prerna.ui.swing.custom.CustomButton;
 import prerna.ui.swing.custom.ToggleButton;
-import prerna.util.DIHelper;
 import prerna.util.Utility;
 import aurelienribon.ui.css.Style;
 
@@ -148,7 +147,7 @@ public class DHMSMDeploymentStrategyPlaySheet extends InputPanelPlaySheet {
 			this.portfolioEngineName = querySplit[1];
 			this.siteEngineName = querySplit[2];
 		}
-		coreEngine = (IEngine) DIHelper.getInstance().getLocalProp(coreEngineName);
+		coreEngine = (IEngine) Utility.getEngine(coreEngineName);
 
 	}
 	
