@@ -42,7 +42,6 @@ import org.apache.log4j.Logger;
 import prerna.engine.api.IEngine;
 import prerna.ui.components.playsheets.DualEngineGridPlaySheet;
 import prerna.util.ArrayUtilityMethods;
-import prerna.util.DIHelper;
 import prerna.util.Utility;
 
 public class DHMSMIntegrationSavingsPerFiscalYearProcessor {
@@ -716,9 +715,9 @@ private final String masterQuery = "SELECT DISTINCT ?Wave ?HostSiteAndFloater ?S
 	}
 
 	public void runSupportQueries(String portfolioDBName, String siteDBName, String coreDBName) {
-		this.tapPortfolio = (IEngine) DIHelper.getInstance().getLocalProp(portfolioDBName);
-		this.tapSite = (IEngine) DIHelper.getInstance().getLocalProp(siteDBName);
-		this.tapCore = (IEngine) DIHelper.getInstance().getLocalProp(coreDBName);
+		this.tapPortfolio = (IEngine) Utility.getEngine(portfolioDBName);
+		this.tapSite = (IEngine) Utility.getEngine(siteDBName);
+		this.tapCore = (IEngine) Utility.getEngine(coreDBName);
 		if(tapPortfolio == null) {
 			throw new NullPointerException("Need to add TAP_Portfolio db.");
 		}
