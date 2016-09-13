@@ -1,7 +1,6 @@
 package prerna.sablecc;
 
 import java.io.File;
-import java.io.IOException;
 import java.util.Iterator;
 import java.util.StringTokenizer;
 
@@ -9,12 +8,13 @@ import javassist.CannotCompileException;
 import javassist.ClassClassPath;
 import javassist.ClassPool;
 import javassist.CtClass;
-import javassist.CtField;
 import javassist.CtNewMethod;
 import javassist.NotFoundException;
 import prerna.algorithm.api.ITableDataFrame;
 import prerna.ds.H2.H2Frame;
 import prerna.engine.api.IScriptReactor;
+import prerna.sablecc.meta.ExecuteCodePkqlMetadata;
+import prerna.sablecc.meta.IPkqlMetadata;
 
 public class JavaReactorWrapper extends AbstractReactor {
 	
@@ -37,7 +37,6 @@ public class JavaReactorWrapper extends AbstractReactor {
 		super.setPKQLMetaData(title, pkqlCommand, description, showMenu, pinned);
 		//super.setPKQLMetaDataInput(populatePKQLMetaDataInput());
 		super.setPKQLMetaDataInput();
-
 	}
 	
 	@Override
@@ -97,7 +96,8 @@ public class JavaReactorWrapper extends AbstractReactor {
 			// write the response
 			String response = "put(\"RESPONSE\", \"Complete\"); put(\"STATUS\" , prerna.sablecc.PKQLRunner.STATUS.SUCCESS); return null;";
 			//cc.addMethod(CtNewMethod.make("public void setConsole() { System = new prerna.util.Console();}", cc));
-			cc.addMethod(CtNewMethod.make("public java.util.Iterator process() {" + 
+			cc.addMethod(CtNewMethod.make("public java.util.Iterator process() {" +
+											"super.process();" + 
 											tryStr + 
 											content+ ";" + 
 											response + 
@@ -187,6 +187,12 @@ public class JavaReactorWrapper extends AbstractReactor {
 		return daReactor.getValue(key);
 	}
 
+	public IPkqlMetadata getPkqlMetadata() {
+		ExecuteCodePkqlMetadata pkqlMetadata = new ExecuteCodePkqlMetadata();
+		pkqlMetadata.setExecutorType("Java");
+		pkqlMetadata.setExecutedCode(myStore.get(PKQLEnum.JAVA_OP).toString().replace("<code>", ""));
+		return pkqlMetadata;
+	}
 
 
 	//-------------- Test Methods ------------------
@@ -224,6 +230,8 @@ public class JavaReactorWrapper extends AbstractReactor {
 		//jr.tryExit();
 		//jr.tryPKQL();
 	}
+	
+	
 
 	
 }
