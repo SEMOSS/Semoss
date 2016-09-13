@@ -2,7 +2,6 @@ package prerna.ui.components.specific.tap;
 
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -24,7 +23,8 @@ public class LPInterfaceDBModProcessor extends AbstractLPInterfaceProcessor{
 	private FutureInterfaceCostProcessor processor;
 	private IEngine tapCost;
 	private IEngine futureDB;
-
+	private IEngine tapCore;
+	
 	private List<Object[]> relList = new ArrayList<Object[]>();
 	private List<Object[]> relPropList = new ArrayList<Object[]>();
 	private List<String> addedInterfaces = new ArrayList<String>();
@@ -42,10 +42,14 @@ public class LPInterfaceDBModProcessor extends AbstractLPInterfaceProcessor{
 	private final String DHMSM_URI = "http://health.mil/ontologies/Concept/System/MHS_GENESIS";
 	private final String GLTAG_URI = "http://health.mil/ontologies/Concept/GLTag/";
 	private final String SDLC_PHASE_URI = "http://health.mil/ontologies/Concept/SDLCPhase/";
+	private final String FORMAT_BASE_URI = "http://health.mil/ontologies/Concept/DForm/";
+	private final String FREQUENCY_BASE_URI = "http://health.mil/ontologies/Concept/DFreq/";
+	private final String PROTOCOL_BASE_URI = "http://health.mil/ontologies/Concept/DProt/";
 
 	private final String provideInstanceRel = "http://health.mil/ontologies/Relation/Provide/";
 	private final String consumeInstanceRel = "http://health.mil/ontologies/Relation/Consume/";
-
+	private final String hasInstanceRel = "http://health.mil/ontologies/Relation/Has/";
+	
 	private final String payloadInstanceRel = "http://health.mil/ontologies/Relation/Payload/";
 	private final String inputInstanceRel = "http://health.mil/ontologies/Relation/Input/";
 	private final String outputInstanceRel = "http://health.mil/ontologies/Relation/Output/";
@@ -57,19 +61,23 @@ public class LPInterfaceDBModProcessor extends AbstractLPInterfaceProcessor{
 	private final String semossPropURI = "http://semoss.org/ontologies/Relation/Contains/";
 	private final String newProp = "TypeWeight";
 	
-	private Map<String, Map<String, String[]>> providerFutureICDProp;
-	private Map<String, Map<String, String[]>> consumerFutureICDProp;
+	private Map<String, Map<String, String>> providerFutureIcdFrequency;
+	private Map<String, Map<String, String>> consumerFutureIcdFrequency;
 
-	//TODO: move enigne definitions outside class to keep reusable
+	//TODO: move engine definitions outside class to keep reusable
 	public LPInterfaceDBModProcessor() throws IOException {
 		super();
-		tapCost = (IEngine) DIHelper.getInstance().getLocalProp("TAP_Cost_Data");
+		tapCost = Utility.getEngine("TAP_Cost_Data");
 		if(tapCost == null) {
-			throw new IOException("TAP Cost Data not found.");
+			throw new IOException("TAP_Cost_Data not found.");
 		}
-		futureDB = (IEngine) DIHelper.getInstance().getLocalProp("FutureDB");
+		futureDB = Utility.getEngine("FutureDB");
 		if(futureDB == null) {
 			throw new IOException("FutureDB engine not found");
+		}
+		tapCore = Utility.getEngine("TAP_Core_Data");
+		if(tapCore == null) {
+			throw new IOException("TAP_Core_Data engine not found");
 		}
 		processor = new FutureInterfaceCostProcessor();
 		processor.setCostEngines(new IEngine[]{tapCost});
@@ -91,7 +99,6 @@ public class LPInterfaceDBModProcessor extends AbstractLPInterfaceProcessor{
 		Set<String> sorV = DHMSMTransitionUtility.processSysDataSOR(engine);
 		Map<String, String> sysTypeHash = DHMSMTransitionUtility.processReportTypeQuery(engine);
 
-		Map<String, Map<String, Double>> retMap = new HashMap<String, Map<String, Double>>();
 		// Process main query
 		ISelectWrapper wrapper1 = WrapperManager.getInstance().getSWrapper(engine, upstreamQuery);
 		ISelectWrapper wrapper2 = WrapperManager.getInstance().getSWrapper(engine, downstreamQuery);
@@ -226,11 +233,13 @@ public class LPInterfaceDBModProcessor extends AbstractLPInterfaceProcessor{
 						newICD = makeDHMSMProviderOfICD(icdURI, downstreamSysName, data);
 						payloadURI = payloadInstanceRel.concat(newICD.substring(newICD.lastIndexOf("/") + 1)).concat(":").concat(data);
 						addTripleWithDHMSMProvider(newICD, downstreamSystemURI, downstreamSysName, dataURI, data, payloadURI);
-						String[] propVals = getPropValsConsumer(downstreamSysName, data);
-						if (propVals == null) {
-							propVals = new String[] { format, freq, prot };
-						}
+						
+						// for new interfaces, the props and nodes for format, protocol, and frequency are the same
+						// and should match standardized nomenclature
+						String[] propVals = getIcdPropValsConsumer(downstreamSysName, data);
 						addPropTriples(payloadURI, propVals, comment, (double) 5);
+						addIcdPropRels(newICD, propVals);
+						
 						addFutureDBCostRelTriples(icdURI, newICD, DHMSM_URI, dataURI, data, "Consumer", costResults);
 						sysTrainingList.add(downstreamSystemURI);
 						
@@ -240,11 +249,13 @@ public class LPInterfaceDBModProcessor extends AbstractLPInterfaceProcessor{
 						newICD = makeDHMSMConsumerOfICD(icdURI, downstreamSysName, data);
 						payloadURI = payloadInstanceRel.concat(newICD.substring(newICD.lastIndexOf("/") + 1)).concat(":").concat(data);
 						addTripleWithDHMSMConsumer(newICD, downstreamSystemURI, downstreamSysName, dataURI, data, payloadURI);
-						String[] propVals = getPropValsProvider(downstreamSysName, data);
-						if (propVals == null) {
-							propVals = new String[] { format, freq, prot };
-						}
+						
+						// for new interfaces, the props and nodes for format, protocol, and frequency are the same
+						// and should match standardized nomenclature
+						String[] propVals = getIcdPropValsProvider(downstreamSysName, data);
 						addPropTriples(payloadURI, propVals, comment, (double) 5);
+						addIcdPropRels(newICD, propVals);
+						
 						addFutureDBCostRelTriples("", newICD, downstreamSystemURI, dataURI, data, "Provider", costResults);
 						sysTrainingList.add(downstreamSystemURI);
 	
@@ -254,11 +265,13 @@ public class LPInterfaceDBModProcessor extends AbstractLPInterfaceProcessor{
 						newICD = makeDHMSMProviderOfICD(icdURI, upstreamSysName, data);
 						payloadURI = payloadInstanceRel.concat(newICD.substring(newICD.lastIndexOf("/") + 1)).concat(":").concat(data);
 						addTripleWithDHMSMProvider(newICD, upstreamSystemURI, upstreamSysName, dataURI, data, payloadURI);
-						String[] propVals = getPropValsConsumer(upstreamSysName, data);
-						if (propVals == null) {
-							propVals = new String[] { format, freq, prot };
-						}
+						
+						// for new interfaces, the props and nodes for format, protocol, and frequency are the same
+						// and should match standardized nomenclature
+						String[] propVals = getIcdPropValsConsumer(upstreamSysName, data);
 						addPropTriples(payloadURI, propVals, comment, (double) 5);
+						addIcdPropRels(newICD, propVals);
+						
 						addFutureDBCostRelTriples(icdURI, newICD, DHMSM_URI, dataURI, data, "Consumer", costResults);
 						sysTrainingList.add(upstreamSystemURI);
 
@@ -268,20 +281,19 @@ public class LPInterfaceDBModProcessor extends AbstractLPInterfaceProcessor{
 						newICD = makeDHMSMConsumerOfICD(icdURI, upstreamSysName, data);
 						payloadURI = payloadInstanceRel.concat(newICD.substring(newICD.lastIndexOf("/") + 1)).concat(":").concat(data);
 						addTripleWithDHMSMConsumer(newICD, upstreamSystemURI, upstreamSysName, dataURI, data, payloadURI);
-						String[] propVals = getPropValsProvider(upstreamSysName, data);
-						if (propVals == null) {
-							propVals = new String[] { format, freq, prot };
-						}
+						
+						// for new interfaces, the props and nodes for format, protocol, and frequency are the same
+						// and should match standardized nomenclature
+						String[] propVals = getIcdPropValsProvider(upstreamSysName, data);
 						addPropTriples(payloadURI, propVals, comment, (double) 5);
+						addIcdPropRels(newICD, propVals);
+
 						addFutureDBCostRelTriples("", newICD, upstreamSystemURI, dataURI, data, "Provider", costResults);
 						sysTrainingList.add(upstreamSystemURI);
-
 					} 				
-					
 					if(!newICD.isEmpty()) {
 						addedInterfaces.add(newICD);
 					}
-				
 				}
 				
 				// triples associated with removing old interfaces
@@ -294,53 +306,166 @@ public class LPInterfaceDBModProcessor extends AbstractLPInterfaceProcessor{
 					removedInterfaces.add(icdURI);
 					String oldPayload = payloadInstanceRel.concat(icdURI.substring(icdURI.lastIndexOf("/") + 1)).concat(":").concat(data);
 					addTriples(icdURI, upstreamSystemURI, upstreamSysName, downstreamSystemURI, downstreamSysName, dataURI, data, oldPayload);
+					// this will add the information from the props
 					addPropTriples(oldPayload, format, freq, prot, comment, (double) 0);
+					// this will add the information from the nodes
+					addExistingIcdRels(icdURI);
 				}
-				
 			}
 		}
 	}
 
-	private String[] getPropValsConsumer(String system, String data) {
-		if (consumerFutureICDProp.get(system) != null) {
-			String[] propVals = consumerFutureICDProp.get(system).get(data);
-			if (propVals == null) {
-				if (providerFutureICDProp.get(system) != null) {
-					propVals = providerFutureICDProp.get(system).get(data);
-					return propVals;
-				}
-			}
-			return propVals;
-		} else if (providerFutureICDProp.get(system) != null) {
-			if (providerFutureICDProp.get(system) != null) {
-				String[] propVals = providerFutureICDProp.get(system).get(data);
-				return propVals;
-			}
+	/*
+	 * Add the existing format, protocol, and frequency for the interfaces
+	 * that are going to be decommissioned
+	 */
+	private void addExistingIcdRels(String icdURI) {
+		String icdName = Utility.getInstanceName(icdURI);
+		
+		String[] returnUris = DHMSMTransitionUtility.getExistingIcdRelUris(tapCore, icdURI);
+		
+		// icd -> has -> format
+		String formatUri = returnUris[0];
+		if(formatUri != null) {
+			Object[] values = new Object[3];
+			String hasURI = hasInstanceRel.concat(icdName).concat(":").concat(Utility.getInstanceName(formatUri));
+			values[0] = icdURI;
+			values[1] = hasURI;
+			values[2] = formatUri;
+			relList.add(values);
+			addToLabelList(labelList, values);
 		}
 
-		return null;
+		// icd -> has -> protocol
+		String protocolUri = returnUris[1];
+		if(protocolUri != null) {
+			Object[] values = new Object[3];
+			String hasURI = hasInstanceRel.concat(icdName).concat(":").concat(Utility.getInstanceName(protocolUri));
+			values[0] = icdURI;
+			values[1] = hasURI;
+			values[2] = protocolUri;
+			relList.add(values);
+			addToLabelList(labelList, values);
+		}
+		
+		// icd -> has -> frequency
+		String frequencyUri = returnUris[2];
+		if(frequencyUri != null) {
+			Object[] values = new Object[3];
+			String hasURI = hasInstanceRel.concat(icdName).concat(":").concat(Utility.getInstanceName(frequencyUri));
+			values[0] = icdURI;
+			values[1] = hasURI;
+			values[2] = frequencyUri;
+			relList.add(values);
+			addToLabelList(labelList, values);
+		}
 	}
 
-	private String[] getPropValsProvider(String system, String data) {
-		if (providerFutureICDProp.get(system) != null) {
-			String[] propVals = providerFutureICDProp.get(system).get(data);
-			if (propVals == null) {
-				if (consumerFutureICDProp.get(system) != null) {
-					propVals = consumerFutureICDProp.get(system).get(data);
-					return propVals;
-				}
-			}
-			return propVals;
-		} else if (consumerFutureICDProp.get(system) != null) {
-			if (consumerFutureICDProp.get(system) != null) {
-				String[] propVals = consumerFutureICDProp.get(system).get(data);
-				return propVals;
+	/*
+	 * Add DForm, DProt, and DFreq relationships for the new icd
+	 */
+	private void addIcdPropRels(String newICD, String[] propVals) {
+		Object[] values = new Object[3];
+		String icdName = Utility.getInstanceName(newICD);
+		
+		// icd -> has -> format
+		String format = propVals[0];
+		String hasURI = hasInstanceRel.concat(icdName).concat(":").concat(format);
+		values[0] = newICD;
+		values[1] = hasURI;
+		values[2] = FORMAT_BASE_URI.concat(format);
+		relList.add(values);
+		addToLabelList(labelList, values);
+
+		// icd -> has -> protocol
+		String protocol = propVals[1];
+		hasURI = hasInstanceRel.concat(icdName).concat(":").concat(protocol);
+		values = new Object[3];
+		values[0] = newICD;
+		values[1] = hasURI;
+		values[2] = PROTOCOL_BASE_URI.concat(protocol);
+		relList.add(values);
+		addToLabelList(labelList, values);
+		
+		// icd -> has -> frequency
+		String frequency = propVals[2];
+		hasURI = hasInstanceRel.concat(icdName).concat(":").concat(frequency);
+		values = new Object[3];
+		values[0] = newICD;
+		values[1] = hasURI;
+		values[2] = FREQUENCY_BASE_URI.concat(frequency);
+		relList.add(values);
+		addToLabelList(labelList, values);
+	}
+
+	/*
+	 * Get the estimate values for the consumer
+	 * Always assume TCPIP/HL7 -> but we determine the frequency based on the 
+	 * fastest frequency we have for this system-data object combination
+	 * else, we say it is TBD
+	 * 
+	 * return is [format, protocol, frequency]
+	 */
+	private String[] getIcdPropValsConsumer(String system, String data) {
+		String[] values = new String[3];
+		// index 0 is format HL7
+		values[0] = "HL7";
+		// index 1 is protocol TCPIP
+		values[1] = "TCPIP";
+		// try to find the frequency
+		// default is TBD
+		String frequency = "TBD";
+		if(consumerFutureIcdFrequency.containsKey(system)) {
+			Map<String, String> dataMap = consumerFutureIcdFrequency.get(system);
+			if(dataMap != null && dataMap.containsKey(data)) {
+				frequency = dataMap.get(data);
 			}
 		}
-
-		return null;
+		// if we dont have any consumer icds, check the provider ones
+		else if(providerFutureIcdFrequency.containsKey(system)) {
+			Map<String, String> dataMap = consumerFutureIcdFrequency.get(system);
+			if(dataMap != null && dataMap.containsKey(data)) {
+				frequency = dataMap.get(data);
+			}
+		}
+		values[2] = frequency;
+		return values;
 	}
 
+	/*
+	 * Get the estimate values for the provider icd
+	 * Always assume TCPIP/HL7 -> but we determine the frequency based on the 
+	 * fastest frequency we have for this system-data object combination
+	 * else, we say it is TBD
+	 * 
+ 	 * return is [format, protocol, frequency]
+	 */
+	private String[] getIcdPropValsProvider(String system, String data) {
+		String[] values = new String[3];
+		// index 0 is format HL7
+		values[0] = "HL7";
+		// index 1 is protocol TCPIP
+		values[1] = "TCPIP";
+		// try to find the frequency
+		// default is TBD
+		String frequency = "TBD";
+		if(providerFutureIcdFrequency.containsKey(system)) {
+			Map<String, String> dataMap = providerFutureIcdFrequency.get(system);
+			if(dataMap.containsKey(data)) {
+				frequency = dataMap.get(data);
+			}
+		}
+		// if we dont have any provider icds, check the consumer ones
+		else if(consumerFutureIcdFrequency.containsKey(system)) {
+			Map<String, String> dataMap = consumerFutureIcdFrequency.get(system);
+			if(dataMap.containsKey(data)) {
+				frequency = dataMap.get(data);
+			}
+		}
+		values[2] = frequency;
+		return values;
+	}
+	
 	private void addTripleWithDHMSMProvider(String icdURI, String downstreamSysURI, String downstreamSysName, String dataURI, String data,
 			String payloadURI) {
 		// change DHMSM to type System
@@ -470,13 +595,20 @@ public class LPInterfaceDBModProcessor extends AbstractLPInterfaceProcessor{
 	}
 
 	private void addPropTriples(String payloadURI, String[] propVals, String comment, double weight) {
+		Object[] values = null;
 		// payload -> contains -> prop
-		Object[] values = new Object[] { payloadURI, semossPropURI.concat("Format"), propVals[0] };
-		relPropList.add(values);
-		values = new Object[] { payloadURI, semossPropURI.concat("Frequency"), propVals[1] };
-		relPropList.add(values);
-		values = new Object[] { payloadURI, semossPropURI.concat("Protocol"), propVals[2] };
-		relPropList.add(values);
+		if(propVals[0] != null) {
+			values = new Object[] { payloadURI, semossPropURI.concat("Format"), propVals[0] };
+			relPropList.add(values);
+		}
+		if(propVals[1] != null) {
+			values = new Object[] { payloadURI, semossPropURI.concat("Protocol"), propVals[1] };
+			relPropList.add(values);
+		}
+		if(propVals[2] != null) {
+			values = new Object[] { payloadURI, semossPropURI.concat("Frequency"), propVals[2] };
+			relPropList.add(values);
+		}
 		values = new Object[] { payloadURI, semossPropURI.concat("Recommendation"), comment };
 		relPropList.add(values);
 		values = new Object[] { payloadURI, semossPropURI.concat(newProp), weight };
@@ -664,15 +796,16 @@ public class LPInterfaceDBModProcessor extends AbstractLPInterfaceProcessor{
 		this.relList = relList;
 	}
 
-	public void setProviderFutureICDProp(Map<String, Map<String, String[]>> providerFutureICDProp) {
-		this.providerFutureICDProp = providerFutureICDProp;
+	public void setProviderFutureICDProp(Map<String, Map<String, String>> providerFutureIcdFrequency) {
+		this.providerFutureIcdFrequency = providerFutureIcdFrequency;
 	}
 	
-	public void setConsumerFutureICDProp(Map<String, Map<String, String[]>> consumerFutureICDProp) {
-		this.consumerFutureICDProp = consumerFutureICDProp;
+	public void setConsumerFutureICDProp(Map<String, Map<String, String>> consumerFutureIcdFrequency) {
+		this.consumerFutureIcdFrequency = consumerFutureIcdFrequency;
 	}
 	
 	public Set<String> getSysTrainingList() {
 		return this.sysTrainingList;
 	}
+
 }

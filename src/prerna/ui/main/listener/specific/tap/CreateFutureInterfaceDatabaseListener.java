@@ -30,7 +30,6 @@ package prerna.ui.main.listener.specific.tap;
 import java.awt.event.ActionEvent;
 import java.io.IOException;
 
-import javax.swing.JComboBox;
 import javax.swing.JComponent;
 
 import org.apache.log4j.LogManager;
@@ -42,46 +41,88 @@ import prerna.engine.api.IEngine;
 import prerna.ui.components.specific.tap.CreateFutureStateDHMSMDatabase;
 import prerna.ui.components.specific.tap.GLItemGeneratorSelfReportedFutureInterfaces;
 import prerna.ui.main.listener.impl.AbstractListener;
-import prerna.util.ConstantsTAP;
-import prerna.util.DIHelper;
 import prerna.util.Utility;
 
 public class CreateFutureInterfaceDatabaseListener extends AbstractListener{
 
 	static final Logger LOGGER = LogManager.getLogger(CreateFutureInterfaceDatabaseListener.class.getName());
 
+	public static void main(String[] args) {
+//		TestUtilityMethods.loadDIHelper();
+//		
+//		String engineProp = "C:\\workspace\\Semoss_Dev\\db\\FutureDB.smss";
+//		BigDataEngine coreEngine = new BigDataEngine();
+//		coreEngine.setEngineName("FutureDB");
+//		coreEngine.openDB(engineProp);
+//		//TODO: put in correct db name
+//		coreEngine.setEngineName("FutureDB");
+//		DIHelper.getInstance().getCoreProp().setProperty("FutureDB_OWL", "C:\\workspace\\Semoss_Dev\\db\\FutureDB\\FutureDB_OWL.OWL");
+//		DIHelper.getInstance().setLocalProperty("FutureDB", coreEngine);
+//		
+//		engineProp = "C:\\workspace\\Semoss_Dev\\db\\FutureCostDB.smss";
+//		coreEngine = new BigDataEngine();
+//		coreEngine.setEngineName("FutureCostDB");
+//		coreEngine.openDB(engineProp);
+//		//TODO: put in correct db name
+//		coreEngine.setEngineName("FutureCostDB");
+//		DIHelper.getInstance().getCoreProp().setProperty("FutureCostDB_OWL", "C:\\workspace\\Semoss_Dev\\db\\FutureCostDB\\FutureCostDB_OWL.OWL");
+//		DIHelper.getInstance().setLocalProperty("FutureCostDB", coreEngine);
+//		
+//		engineProp = "C:\\workspace\\Semoss_Dev\\db\\TAP_Core_Data.smss";
+//		coreEngine = new BigDataEngine();
+//		coreEngine.setEngineName("TAP_Core_Data");
+//		coreEngine.openDB(engineProp);
+//		//TODO: put in correct db name
+//		coreEngine.setEngineName("TAP_Core_Data");
+//		DIHelper.getInstance().setLocalProperty("TAP_Core_Data", coreEngine);
+//		
+//		engineProp = "C:\\workspace\\Semoss_Dev\\db\\TAP_Cost_Data.smss";
+//		coreEngine = new BigDataEngine();
+//		coreEngine.setEngineName("TAP_Cost_Data");
+//		coreEngine.openDB(engineProp);
+//		//TODO: put in correct db name
+//		coreEngine.setEngineName("TAP_Cost_Data");
+//		DIHelper.getInstance().setLocalProperty("TAP_Cost_Data", coreEngine);
+//		
+//		CreateFutureInterfaceDatabaseListener l = new CreateFutureInterfaceDatabaseListener();
+//		l.actionPerformed(null);
+	}
+	
 	@Override
 	public void actionPerformed(ActionEvent arg0) {
 		//get selected values
-		JComboBox<String> hrCoreDBComboBox = (JComboBox<String>) DIHelper.getInstance().getLocalProp(ConstantsTAP.TAP_Core_Data_FUTURE_INTERFACE_DATABASE_CORE_COMBO_BOX);
-		String hrCoreDBName = hrCoreDBComboBox.getSelectedItem() + "";
+//		JComboBox<String> tapCoreDBComboBox = (JComboBox<String>) DIHelper.getInstance().getLocalProp(ConstantsTAP.TAP_Core_Data_FUTURE_INTERFACE_DATABASE_CORE_COMBO_BOX);
+//		String tapCoreName = tapCoreDBComboBox.getSelectedItem() + "";
+		String tapCoreName = "TAP_Core_Data"; //tapCoreDBComboBox.getSelectedItem() + "";
 		
-		JComboBox<String> futureStateDBComboBox = (JComboBox<String>) DIHelper.getInstance().getLocalProp(ConstantsTAP.TAP_FUTURE_INTERFACE_DATABASE_COMBO_BOX);
-		String futureDBName = futureStateDBComboBox.getSelectedItem() + "";
 		
-		JComboBox<String> futureStateCostDBComboBox = (JComboBox<String>) DIHelper.getInstance().getLocalProp(ConstantsTAP.TAP_FUTURE_COST_INTERFACE_DATABASE_COMBO_BOX);
-		String futureCostDBName = futureStateCostDBComboBox.getSelectedItem() + "";
+//		JComboBox<String> futureStateDBComboBox = (JComboBox<String>) DIHelper.getInstance().getLocalProp(ConstantsTAP.TAP_FUTURE_INTERFACE_DATABASE_COMBO_BOX);
+//		String futureDBName = futureStateDBComboBox.getSelectedItem() + "";
+		String futureDBName = "FutureDB";
+		
+//		JComboBox<String> futureStateCostDBComboBox = (JComboBox<String>) DIHelper.getInstance().getLocalProp(ConstantsTAP.TAP_FUTURE_COST_INTERFACE_DATABASE_COMBO_BOX);
+//		String futureCostDBName = futureStateCostDBComboBox.getSelectedItem() + "";
+		String futureCostDBName = "FutureCostDB";
 
 		//get associated engines
-		IEngine hrCoreDB = (IEngine) DIHelper.getInstance().getLocalProp(hrCoreDBName);
-		IEngine futureDB = (IEngine) DIHelper.getInstance().getLocalProp(futureDBName);
-		IEngine futureCostDB = (IEngine) DIHelper.getInstance().getLocalProp(futureCostDBName);
+		IEngine tapCoreDB = Utility.getEngine(tapCoreName);
+		IEngine futureDB = Utility.getEngine(futureDBName);
+		IEngine futureCostDB = Utility.getEngine(futureCostDBName);
 		
 		//send to processor
-		LOGGER.info("Creating " + futureDBName + " from " + hrCoreDBName);
-		LOGGER.info("Creating " + futureCostDBName + " from " + hrCoreDBName);
+		LOGGER.info("Creating " + futureDBName + " from " + tapCoreName);
+		LOGGER.info("Creating " + futureCostDBName + " from " + tapCoreName);
 		
 		try {
-			
-			IEngine tapCost = (IEngine) DIHelper.getInstance().getLocalProp("TAP_Cost_Data");
+			IEngine tapCost = Utility.getEngine("TAP_Cost_Data");
 			if(tapCost == null) {
 				throw new IOException("Cost Info Not Found");
 			}
 			
-			GLItemGeneratorSelfReportedFutureInterfaces glGen = new GLItemGeneratorSelfReportedFutureInterfaces(hrCoreDB, futureDB, futureCostDB);
+			GLItemGeneratorSelfReportedFutureInterfaces glGen = new GLItemGeneratorSelfReportedFutureInterfaces(tapCoreDB, futureDB, futureCostDB);
 			glGen.genData();
 			
-			CreateFutureStateDHMSMDatabase futureStateCreator = new CreateFutureStateDHMSMDatabase(hrCoreDB, futureDB, futureCostDB);
+			CreateFutureStateDHMSMDatabase futureStateCreator = new CreateFutureStateDHMSMDatabase(tapCoreDB, futureDB, futureCostDB);
 			futureStateCreator.addTriplesToExistingICDs();
 			futureStateCreator.generateData();
 			futureStateCreator.createDBs();
