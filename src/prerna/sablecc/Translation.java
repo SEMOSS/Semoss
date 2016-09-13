@@ -1821,7 +1821,7 @@ public class Translation extends DepthFirstAdapter {
     	deinitReactor(PKQLEnum.JAVA_OP, node.getCodeblock()+"", null, false);
 		runner.setResponse(curReactor.getValue("RESPONSE"));
 		runner.setStatus((STATUS) curReactor.getValue("STATUS"));
-		
+		}
 		// highest level of the grammar definition
 		// need to call post process to aggregate into runner
 		postProcess(node);
