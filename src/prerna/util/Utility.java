@@ -118,7 +118,6 @@ import prerna.nameserver.DeleteFromMasterDB;
 import prerna.om.SEMOSSParam;
 import prerna.poi.main.BaseDatabaseCreator;
 import prerna.rdf.engine.wrappers.WrapperManager;
-import prerna.sablecc.PKQLEnum;
 import prerna.solr.SolrIndexEngine;
 import prerna.ui.components.api.IPlaySheet;
 import prerna.ui.components.playsheets.datamakers.IDataMaker;
@@ -2484,6 +2483,10 @@ public class Utility {
 					return (IEngine) DIHelper.getInstance().getLocalProp(engineName);
 			}
 
+			// we need to store the smss location in DIHelper 
+			DIHelper.getInstance().getCoreProp().setProperty(engineName + "_" + Constants.STORE, fileName);
+
+			
 			//TEMPORARY
 			// TODO: remove this
 			if(engineClass.equals("prerna.rdf.engine.impl.RDBMSNativeEngine")){
