@@ -64,12 +64,15 @@ public class DashboardAddReactor extends AbstractReactor {
 	
 	private void setDashboardData(List<String> insightIDs) {
 		List joinDataList = new ArrayList();
-//		for(String insightID : insightIDs) {
-			Map map = new HashMap();
-			map.put("insightId", insightIDs.get(1));
-			map.put("widgetId", insightIDs.get(0));
-			joinDataList.add(map);
-//		}
-		this.myStore.put("DashboardData", joinDataList);
+
+		Map map = new HashMap();
+		map.put("insightId", insightIDs.get(1));
+		map.put("widgetId", insightIDs.get(0));
+		joinDataList.add(map);
+
+		Map data = new HashMap();
+		data.put("addedInsights", joinDataList);
+		
+		this.myStore.put("DashboardData", data);
 	}
 }
