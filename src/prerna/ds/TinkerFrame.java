@@ -1092,8 +1092,10 @@ public class TinkerFrame extends AbstractTableDataFrame {
 		}
 		// now i just need to get the verts with no edges
 //		GraphTraversal<Vertex, Vertex> vertIt = g.traversal().V().not(__.or(__.both(),__.has(Constants.TYPE, Constants.FILTER),__.in().has(Constants.TYPE, Constants.FILTER)));
-//		GraphTraversal<Vertex, Vertex> vertIt = g.traversal().V().not(__.or(__.has(Constants.TYPE, Constants.FILTER),__.in().has(Constants.TYPE, Constants.FILTER)));
-		GraphTraversal<Vertex, Vertex> vertIt = g.traversal().V().not(__.in().has(Constants.TYPE, Constants.FILTER));
+		
+		//Not (has type filter or has in node type filter)  = not has type filter OR not has in node type filter
+		GraphTraversal<Vertex, Vertex> vertIt = g.traversal().V().not(__.or(__.has(Constants.TYPE, Constants.FILTER),__.in().has(Constants.TYPE, Constants.FILTER)));
+//		GraphTraversal<Vertex, Vertex> vertIt = g.traversal().V().not(__.in().has(Constants.TYPE, Constants.FILTER));
 		while(vertIt.hasNext()) {
 			Vertex outV = vertIt.next();
 //			if(!outV.property("TYPE").equals(Constants.FILTER)) {
