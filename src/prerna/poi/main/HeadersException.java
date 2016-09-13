@@ -240,7 +240,7 @@ public class HeadersException {
 		int size = headers.length;
 		for(int headIdx = 0; headIdx < size; headIdx++) {
 			String thisHeader = headers[headIdx];
-			if(thisHeader.contains("+") || thisHeader.contains("%") || thisHeader.contains("@") || thisHeader.contains(";")) {
+			if(thisHeader.contains("+") || thisHeader.contains("%") || thisHeader.contains("@") || thisHeader.contains(";") || thisHeader.contains("-")) {
 				// we found an illegal value!
 				illegalCharacterHeaders.add(thisHeader);
 			}
@@ -301,6 +301,7 @@ public class HeadersException {
 	}
 	
 	public String removeIllegalCharacters(String checkHeader) {
+		checkHeader = checkHeader.trim();
 		checkHeader = checkHeader.replace("+", "");
 		checkHeader = checkHeader.replace("@", "");
 		checkHeader = checkHeader.replace("%", "");
