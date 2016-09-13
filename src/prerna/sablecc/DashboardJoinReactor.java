@@ -142,7 +142,7 @@ public class DashboardJoinReactor extends AbstractReactor {
 		for(List<String> nextJoinCols : joinCols) {
 			joinDataList.add(getDashboardData(insightIDs, nextJoinCols, joinType));
 		}
-		Map data = new HashMap();
+		Map<String, List> data = new HashMap<>();
 		data.put("joinedInsights", joinDataList);
 		this.myStore.put("DashboardData", data);
 	}
