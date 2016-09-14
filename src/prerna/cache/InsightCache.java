@@ -77,10 +77,18 @@ public abstract class InsightCache implements ICache {
 	 * @return				The path for the cached json
 	 */
 	public String getVizFilePath(Insight in) {
-		String baseFile = getBaseFolder(in) + FILE_SEPARATOR + createUniqueId(in);
-		return baseFile + JSON_EXTENSION;
+		return getBaseFilePath(in) + JSON_EXTENSION;
 	}
 	
+	/**
+	 * 
+	 * @param in
+	 * @return
+	 */
+	private String getBaseFilePath(Insight in) {
+		String baseFile = getBaseFolder(in) + FILE_SEPARATOR + createUniqueId(in);
+		return baseFile;
+	}
 	/////////////// START CACHEING CODE ///////////////
 	
 	/*
@@ -103,7 +111,7 @@ public abstract class InsightCache implements ICache {
 	 * @return				Returns the baseFile for the given insight
 	 */
 	public String cacheInsight(Insight in) {
-		String baseFile = getBaseFolder(in) + FILE_SEPARATOR + createUniqueId(in);
+		String baseFile = getBaseFilePath(in);
 		cacheDataMaker(in.getDataMakerName(), in.getDataMaker(), baseFile);
 		cacheJSONData(in.getWebData(), baseFile);
 		
@@ -118,7 +126,7 @@ public abstract class InsightCache implements ICache {
 	 * @return
 	 */
 	public String cacheInsight(Insight in, Map<String, Object> vizData) {
-		String baseFile = getBaseFolder(in) + FILE_SEPARATOR + createUniqueId(in);
+		String baseFile = getBaseFilePath(in);
 		cacheDataMaker(in.getDataMakerName(), in.getDataMaker(), baseFile);
 		cacheJSONData(vizData, baseFile);
 
