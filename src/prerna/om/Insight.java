@@ -1781,8 +1781,7 @@ public class Insight {
 				resultHash.put("pkqlData", pkqlData);
 			}
 			
-			resultHash.put("insightID", this.getInsightID());
-			resultHash.put("dataID", this.dataMaker.getDataId());
+			
 			resultHash.put("feData", feData);
 			resultHash.put("newColumns", pkqlRunner.getNewColumns());
 			
@@ -1796,6 +1795,8 @@ public class Insight {
 			pkqlRunner.clearResponses();// = new PKQLRunner();
 //			pkqlRunner.setVarMap(this.pkqlVarMap );
 		}
+		resultHash.put("insightID", this.getInsightID());
+		resultHash.put("dataID", this.dataMaker.getDataId());
 		return resultHash;
 	}
 	
