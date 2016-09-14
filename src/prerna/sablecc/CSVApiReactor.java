@@ -1,4 +1,4 @@
-package prerna.engine.impl.rdf;
+package prerna.sablecc;
 
 import java.util.Hashtable;
 import java.util.Iterator;
@@ -8,12 +8,11 @@ import java.util.Vector;
 
 import prerna.ds.util.FileIterator;
 import prerna.engine.api.IHeadersDataRow;
-import prerna.sablecc.PKQLEnum;
-import prerna.sablecc.PKQLRunner;
+import prerna.engine.impl.rdf.AbstractApiReactor;
 import prerna.sablecc.meta.FilePkqlMetadata;
 import prerna.sablecc.meta.IPkqlMetadata;
 
-public class CSVApi extends AbstractApiReactor {
+public class CSVApiReactor extends AbstractApiReactor {
 
 	// TODO: should modify this to be a bit more of a unique name so it does not
 	// relate to a column name
