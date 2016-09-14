@@ -22,7 +22,9 @@ import java.util.Hashtable;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Properties;
 import java.util.Set;
+import java.util.UUID;
 import java.util.Vector;
 
 import org.apache.commons.lang.text.StrSubstitutor;
@@ -48,7 +50,7 @@ public class H2Builder {
 	Connection conn = null;
 	private String schema = "test"; // assign a default schema which is test
 	//	boolean create = false;
-	static int tableRunNumber = 1;
+//	static int tableRunNumber = 1;
 	static int rowCount = 0;
 	private static final String tempTable = "TEMP_TABLE98793";
 	static final String H2FRAME = "H2FRAME";
@@ -405,8 +407,7 @@ public class H2Builder {
 	public H2Builder() {
 		//    	//initialize a connection
 		//    	getConnection();
-		tableName = H2FRAME+tableRunNumber;
-		tableRunNumber++;
+		tableName = getNewTableName();
 	}
 
 	/*************************** END CONSTRUCTORS **********************************/
@@ -1954,10 +1955,13 @@ public class H2Builder {
 		}
 	}
 
-	private int getNextNumber()
+	private String getNextNumber()
 	{
-		tableRunNumber++;
-		return tableRunNumber;
+//		tableRunNumber++;
+//		return tableRunNumber;
+		String uuid = UUID.randomUUID().toString();
+		uuid = uuid.replaceAll("-", "_");
+		return uuid;
 	}
 
 	//changing from private to public access to get connection url
@@ -2777,35 +2781,57 @@ public class H2Builder {
 
 	//save the main table
 	//need to update this if we are saving multiple tables
-	public void save(String fileName, String[] headers) {
+	public Properties save(String fileName, String[] headers) {
+		
+		Properties props = new Properties();
+		
 		List<String> selectors = new ArrayList<String>(headers.length);
 		for(String header : headers) {
 			selectors.add(header);
 		}
 		try {
-			String createQuery = "CREATE TABLE "+tempTable+" AS "+makeSelect(tableName, selectors);
+			String newTable = getNewTableName();
+			String createQuery = "CREATE TABLE "+newTable+" AS "+makeSelect(tableName, selectors);
 			runQuery(createQuery);
-			String saveScript = "SCRIPT TO '"+fileName+"' COMPRESSION GZIP TABLE "+tempTable;
+			String saveScript = "SCRIPT TO '"+fileName+"' COMPRESSION GZIP TABLE "+newTable;
 			runQuery(saveScript);
-			String dropQuery = makeDropTable(tempTable);
+			
+			props.setProperty("tableName", newTable);
+			
+			String dropQuery = makeDropTable(newTable);
 			runQuery(dropQuery);
+			
+			
 		} catch (Exception e) {
 			e.printStackTrace();
 		}
+		
+		return props;
 	}
 
 	/**
 	 * Runs the script for a cached Insight
 	 * @param fileName				The file containing the script to create the frame
 	 */
-	public void open(String fileName) {
+	public void open(String fileName, Properties prop) {
 		// get a unique table name
 		// set the table name for the instance
 		tableName = H2FRAME + getNextNumber(); 
+		
+		String tempTableName = null;
+		
+		if(prop != null) {
+			tempTableName = prop.getProperty("tableName");
+			if(tempTableName == null) {
+				tempTableName = H2Builder.tempTable;
+			}
+		} else {
+			tempTableName = H2Builder.tempTable;
+		}
 		// get the open sql script
 		String openScript = "RUNSCRIPT FROM '"+fileName+"' COMPRESSION GZIP ";
 		// get an alter table name sql
-		String createQuery = "ALTER TABLE " + tempTable + " RENAME TO " + tableName;
+		String createQuery = "ALTER TABLE " + tempTableName + " RENAME TO " + tableName;
 		try {
 			// we run the script in the file which automatically creates a temp temple
 			runQuery(openScript);
