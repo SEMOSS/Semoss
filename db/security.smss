@@ -1,16 +1,17 @@
 Base Properties 
-ONTOLOGY	db/security/security_Custom_Map.prop
-OWL	db/security/security_OWL.OWL
 ENGINE	security
 ENGINE_TYPE	prerna.engine.impl.rdbms.RDBMSNativeEngine
-RDBMS_INSIGHTS	db/security/insights_database
 RDBMS_TYPE	H2_DB
+OWL	db/security/security_OWL.OWL
+RDBMS_INSIGHTS	db/security/insights_database
 DREAMER	db/security/security_Questions.properties
+
 HIDDEN_DATABASE	true
+FILL_EMPTY_DATATYPES	false
 
 DRIVER	org.h2.Driver
 USERNAME	sa
 PASSWORD	
-CONNECTION_URL	jdbc:h2:C:/Development/workspace/SEMOSS-dev/db/security/database
+CONNECTION_URL	jdbc:h2:@BaseFolder@/db/@ENGINE@/database
 USE_OUTER_JOINS	false
 # USE_CONNECTION_POOLING	true
