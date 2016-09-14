@@ -178,11 +178,10 @@ public class Translation extends DepthFirstAdapter {
 	 */
 	private void fillApiReactors() {
 		//TODO: should move all of these in RDF_MAP so that its easily updated
-		apiReactorNames.put(PKQLEnum.QUERY_API, "prerna.engine.impl.rdf.QueryAPI");
-		apiReactorNames.put(PKQLEnum.CSV_API, "prerna.engine.impl.rdf.CSVApi");
-		//TODO: why are these stored in the same package which only contains Interfaces!!!
-		apiReactorNames.put(PKQLEnum.WEB_API, "prerna.engine.api.WebApi");
-		apiReactorNames.put(PKQLEnum.R_API, "prerna.engine.api.RApi");
+		apiReactorNames.put(PKQLEnum.QUERY_API, "prerna.sablecc.QueryApiReactor");
+		apiReactorNames.put(PKQLEnum.CSV_API, "prerna.sablecc.CsvApiReactor");
+		apiReactorNames.put(PKQLEnum.WEB_API, "prerna.sablecc.WebApiReactor");
+		apiReactorNames.put(PKQLEnum.R_API, "prerna.sablecc.RApiReactor");
 	}
 	
 	
