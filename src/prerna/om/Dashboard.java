@@ -207,6 +207,16 @@ public class Dashboard implements IDataMaker {
 		}
 	}
 	
+	private void removeInsight(String viewTable, Insight insight) {
+		if(this.insightMap.containsKey(viewTable)) {
+			List<Insight> insights = this.insightMap.get(viewTable);
+			insights.remove(insight);
+			if(insights.size() == 0) {
+				this.insightMap.remove(viewTable);
+			}
+		}
+	}
+	
 	public List<Insight> getInsights() {
 		List<Insight> insightList = new ArrayList<>();
 		for(String key : insightMap.keySet()) {
@@ -270,13 +280,15 @@ public class Dashboard implements IDataMaker {
 			Insight parentInsight = InsightStore.getInstance().get(this.insightID);
 			for(Insight insight : insights) {
 				
+				//add the insight to the view
 				addInsight(table, insight);
 				insight.setParentInsight(parentInsight);
+				
+				//remove the insight as a stand alone insight from the dashboard
+				removeInsight(insight.getInsightID(), insight);
 			}
 			
 			insights.get(0).getDataMaker().updateDataId();
-//			joinData[0] = insights;
-//			joinData[1] = joinColumns;
 			
 		} catch(Exception e) {
 			e.printStackTrace();
@@ -303,16 +315,9 @@ public class Dashboard implements IDataMaker {
 	
 	public List<String> getSaveRecipe(String recipe) {
 		
-//		String configPkql = "";
 		String[] recipeArr = recipe.split(System.getProperty("line.separator"));
 		List<String> curRecipe = new ArrayList<>();
 		for(String recipePkql : recipeArr) {
-//			if(recipePkql.startsWith("data.join") || recipePkql.startsWith("dashboard")) {
-//				if(recipePkql.startsWith("dashboard.config")) {
-//					configPkql = recipePkql;
-//				} else
-//				curRecipe.add(recipePkql);
-//			} 
 			curRecipe.add(recipePkql);
 		}
 		
@@ -346,7 +351,6 @@ public class Dashboard implements IDataMaker {
 			}
 		}
 		
-//		saveRecipe.add(configPkql);
 		return saveRecipe;
 	}
 	
