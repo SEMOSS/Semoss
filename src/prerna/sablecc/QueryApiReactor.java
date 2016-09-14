@@ -11,7 +11,7 @@ import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.rdf.query.builder.IQueryInterpreter;
 import prerna.util.Utility;
 
-public class QueryAPIReactor extends AbstractApiReactor {
+public class QueryApiReactor extends AbstractApiReactor {
 	
 	@Override
 	public Iterator process() {
