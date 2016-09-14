@@ -12,7 +12,7 @@ import prerna.engine.impl.rdf.AbstractApiReactor;
 import prerna.sablecc.meta.FilePkqlMetadata;
 import prerna.sablecc.meta.IPkqlMetadata;
 
-public class CSVApiReactor extends AbstractApiReactor {
+public class CsvApiReactor extends AbstractApiReactor {
 
 	// TODO: should modify this to be a bit more of a unique name so it does not
 	// relate to a column name
