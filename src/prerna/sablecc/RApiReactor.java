@@ -1,4 +1,4 @@
-package prerna.engine.api;
+package prerna.sablecc;
 
 import java.sql.SQLException;
 import java.util.Hashtable;
@@ -10,15 +10,13 @@ import org.rosuda.REngine.Rserve.RserveException;
 import prerna.ds.H2.H2Frame;
 import prerna.engine.impl.r.RRunner;
 import prerna.engine.impl.rdf.AbstractApiReactor;
-import prerna.sablecc.PKQLEnum;
-import prerna.sablecc.PKQLRunner;
 
 /**
  * Used in ApiReactor to create an R dataframe based off of only columns selected by the user
  * @author kepark
  *
  */
-public class RApi extends AbstractApiReactor {
+public class RApiReactor extends AbstractApiReactor {
 	
 	private String tableName = null;
 	private RRunner rRunner = null;
