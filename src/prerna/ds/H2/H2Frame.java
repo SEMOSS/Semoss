@@ -1,8 +1,12 @@
 package prerna.ds.H2;
 
 import java.io.BufferedReader;
+import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
+import java.io.FileReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.io.OutputStream;
 import java.math.BigInteger;
 import java.sql.DatabaseMetaData;
 import java.sql.ResultSet;
@@ -18,6 +22,7 @@ import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Properties;
 import java.util.Set;
 import java.util.Vector;
 
@@ -30,6 +35,7 @@ import prerna.algorithm.api.IMetaData;
 import prerna.algorithm.api.IMetaData.DATA_TYPES;
 import prerna.algorithm.api.ITableDataFrame;
 import prerna.ds.AbstractTableDataFrame;
+import prerna.ds.TableDataFrameFactory;
 import prerna.ds.TinkerFrame;
 import prerna.ds.TinkerMetaData;
 import prerna.ds.TinkerMetaHelper;
@@ -935,10 +941,29 @@ public class H2Frame extends AbstractTableDataFrame {
 
 	@Override
 	public void save(String fileName) {
-		this.metaData.save(fileName.substring(0, fileName.lastIndexOf(".")));
-		// fileName = fileName.substring(0, fileName.length() - 3) + ".gz";
+		String fileNameBase = fileName.substring(0, fileName.lastIndexOf("."));
+		this.metaData.save(fileNameBase);
 		if(fileName != null && !fileName.isEmpty() && getH2Headers() != null) {
-			builder.save(fileName, getH2Headers());
+			Properties props = builder.save(fileName, getH2Headers());
+			
+			OutputStream output = null;
+			try {
+				output = new FileOutputStream(fileNameBase+"_PROP.properties");
+				props.store(output, null);
+			} catch (FileNotFoundException e) {
+				e.printStackTrace();
+			} catch (IOException e) {
+				e.printStackTrace();
+			} finally {
+				try {
+					if(output != null) {
+						output.close();
+					}
+				} catch (IOException e) {
+					e.printStackTrace();
+				}
+			}
+			
 		}
 	}
 
@@ -961,14 +986,25 @@ public class H2Frame extends AbstractTableDataFrame {
 		// values
 		// the set user id is responsible for setting the correct schema inside
 		// the builder object
-		h2Frame.builder.open(fileName);
-
+		
+		String fileNameBase = fileName.substring(0, fileName.lastIndexOf("."));
+		Properties prop = new Properties();
+		try {
+			prop.load(new BufferedReader(new FileReader(fileNameBase+"_PROP.properties")));
+			h2Frame.builder.open(fileName, prop);
+		} catch (FileNotFoundException e) {
+			//need these here so legacy caches will still work, will transition this out as people's caches are deleted and recreated
+			h2Frame.builder.open(fileName, prop);
+		} catch (IOException e) {
+			h2Frame.builder.open(fileName, prop);
+		}
+		
 		// need to also set the metaData
 		// the meta data fileName parameter passed is going to be the same as
 		// the name as the file of the actual instances
 		// this isn't the actual fileName of the file, the metadata appends the
 		// predefined prefix for the file
-		h2Frame.metaData.open(fileName.substring(0, fileName.lastIndexOf(".")));
+		h2Frame.metaData.open(fileNameBase);
 		List<String> primKeys = h2Frame.metaData.getPrimKeys();
 		if (primKeys.size() == 1) {
 			h2Frame.metaData.setVertexValue(primKeys.get(0),
@@ -999,8 +1035,6 @@ public class H2Frame extends AbstractTableDataFrame {
 		List<String> h2selectors = new ArrayList<>(selectors.size());
 		for (int i = 0; i < selectors.size(); i++) {
 			h2selectors.add(getH2Header(selectors.get(i)));
-			//			h2selectors.add(this.getValueForUniqueName(selectors.get(i)));
-			// h2selectors.add(H2HeaderMap.get(selectors.get(i)));
 		}
 		return h2selectors;
 	}
@@ -1010,19 +1044,13 @@ public class H2Frame extends AbstractTableDataFrame {
 			return null;
 		String[] h2Headers = new String[headerNames.length];
 		for (int i = 0; i < headerNames.length; i++) {
-			// h2Headers[i] = H2HeaderMap.get(headerNames[i]);
-			//			h2Headers[i] = this.getValueForUniqueName(headerNames[i]);
 			h2Headers[i] = getH2Header(headerNames[i]);
 		}
 		return h2Headers;
 	}
 
 	private String getH2Header(String uniqueName) {
-//		if(this.isJoined()) {
-//			return joinHeaders.get(uniqueName);
-//		} else {
 			return this.getValueForUniqueName(uniqueName);
-//		}
 	}
 
 	protected void setH2Headers(Map<String, String> headers) {
@@ -1091,8 +1119,7 @@ public class H2Frame extends AbstractTableDataFrame {
 		return metaNodeValue;
 	}
 
-	private Map<String, String> getNode2ValueHash(
-			Map<String, Set<String>> edgeHash) {
+	private Map<String, String> getNode2ValueHash(Map<String, Set<String>> edgeHash) {
 		Set<String> masterSet = new HashSet<String>();
 		masterSet.addAll(edgeHash.keySet());
 		Collection<Set<String>> valSet = edgeHash.values();
@@ -1421,6 +1448,22 @@ public class H2Frame extends AbstractTableDataFrame {
 	protected void updateDataId(int val) {
 		this.dataId = this.dataId.add(BigInteger.valueOf(val));
 	}
+	
+//	public Map<? extends String, ? extends Object> getGraphOutput() {
+//		//possibly store a graph structure
+//		//create it lazily
+//		Map<? extends String, ? extends Object> graphOutput;
+//		if(graphCache == null) {
+//			graphCache = TableDataFrameFactory.convertToTinkerFrameForGraph(this);
+//		} else {
+//			//filter?
+//		}
+//		graphOutput = graphCache.getGraphOutput();
+//		//unfilter the graph?
+////		graphCache.unfilter();
+//		return graphOutput;
+//	}
+	
 	/**
 	 * Method printAllRelationship.
 	 */
