@@ -113,6 +113,7 @@ public class InsightFilesToDatabaseReader {
 				for(String header : metaDataTypes.keySet()) {
 					headers[counter] = header;
 					types[counter] = metaDataTypes.get(header);
+					counter++;
 				}
 				Map<String, String[]> dataTypes = new Hashtable<String, String[]>();
 				dataTypes.put(RDBMSFlatCSVUploader.CSV_HEADERS, headers);
