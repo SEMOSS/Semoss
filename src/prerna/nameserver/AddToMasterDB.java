@@ -61,6 +61,7 @@ import com.hp.hpl.jena.vocabulary.RDFS;
 import prerna.algorithm.impl.CentralityCalculator;
 import prerna.algorithm.nlp.TextHelper;
 import prerna.engine.api.IEngine;
+import prerna.engine.api.IRawSelectWrapper;
 import prerna.engine.api.ISelectStatement;
 import prerna.engine.api.ISelectWrapper;
 import prerna.engine.impl.MetaHelper;
@@ -160,7 +161,7 @@ public class AddToMasterDB extends ModifyMasterDB {
 			
 		}
 		if(baseFolder == null)
-			baseFolder = "C:/users/pkapaleeswaran/workspacej3/SemossWeb";
+			baseFolder = "C:/workspace/Semoss_Dev";
 		// load the engine OWL File
 		String owlFile = baseFolder + "/" + prop.getProperty(Constants.OWL);
 		
@@ -244,7 +245,7 @@ public class AddToMasterDB extends ModifyMasterDB {
 //			}
 //		}
 		// write the engine to a file
-		//tryQueries(rfse);
+//		tryQueries(rfse);
 		
 		//testMaster(rfse);
 		
@@ -319,8 +320,8 @@ public class AddToMasterDB extends ModifyMasterDB {
 		// change this to from and to neighbors
 		Vector <String> otherConcepts = helper.getFromNeighbors(physicalConcept, 0);		
 		masterOtherConcepts(engine, otherConcepts, previousConcepts, relationHash, engineInstance, conceptInstance, engineComposite, true, engineType);
-		otherConcepts = helper.getToNeighbors(physicalConcept, 0);		
-		masterOtherConcepts(engine, otherConcepts, previousConcepts, relationHash, engineInstance, conceptInstance, engineComposite, false, engineType);
+		//otherConcepts = helper.getToNeighbors(physicalConcept, 0);		
+		//masterOtherConcepts(engine, otherConcepts, previousConcepts, relationHash, engineInstance, conceptInstance, engineComposite, false, engineType);
 		// process all related concepts
 		// first time I create title. I dont have genre in previousConcepts
 		// next time when I create genre.. it will get title as a relationship
@@ -349,7 +350,7 @@ public class AddToMasterDB extends ModifyMasterDB {
 			String to = conceptInstance + "_" + iOtherConcept;
 			String fro = iOtherConcept + "_" + conceptInstance;
 			
-			if(!previousRelations.containsKey(to) && !previousRelations.containsKey(fro))
+			//if(!previousRelations.containsKey(to) && !previousRelations.containsKey(fro))
 			{
 				
 				// yes, I know I dont have the relationname and I am just insterting a random relation
@@ -457,8 +458,8 @@ public class AddToMasterDB extends ModifyMasterDB {
 				+ "{?conceptComposite <http://semoss.org/ontologies/Relation/presentin> ?someEngine}"
 				+ "{?toConceptComposite <http://semoss.org/ontologies/Relation/presentin> ?someEngine}"
 				+ "{?conceptComposite <" + RDF.TYPE + "> ?fromConcept}"
-				+ "{?conceptComposite <" + logical + "> ?fromLogical}"
-				+ "{?toConceptComposite <"+ logical + "> <" + conceptURI + ">}" // logical
+				+ "{?conceptComposite <http://semoss.org/ontologies/Relation/logical> ?fromLogical}"
+				+ "{?toConceptComposite <http://semoss.org/ontologies/Relation/logical> <" + conceptURI + ">}" // logical
 				+ "{?conceptComposite ?someRel ?toConceptComposite}"
 				+ "{?someRel <" + RDFS.subPropertyOf + "> <http://semoss.org/ontologies/Relation>}"
 				+ "{?conceptComposite <" + RDFS.subClassOf + "> <http://semoss.org/ontologies/Concept>}"
@@ -473,15 +474,14 @@ public class AddToMasterDB extends ModifyMasterDB {
 		System.out.println("Downstream.. ");
 		printQueryResult(engine,downstreamQuery);
 		
-		
 		String upstreamQuery = "SELECT DISTINCT ?someEngine ?fromConcept ?fromLogical WHERE {"
 				+ "{?conceptComposite <http://semoss.org/ontologies/Relation/presentin> ?someEngine}"
 				+ "{?toConceptComposite <http://semoss.org/ontologies/Relation/presentin> ?someEngine}"
 				+ "{?conceptComposite <" + RDF.TYPE + "> ?fromConcept}"
-				+ "{?conceptComposite <" + logical + "> ?fromLogical}"
-				+ "{?toConceptComposite <"+ logical + "> <" + conceptURI + ">}" // change this back to logical
+				+ "{?conceptComposite <http://semoss.org/ontologies/Relation/logical> ?fromLogical}"
+				+ "{?toConceptComposite <http://semoss.org/ontologies/Relation/logical> <" + conceptURI + ">}" // change this back to logical
 				+ "{?toConceptComposite ?someRel ?conceptComposite}"
-				//+ "{?someRel <" + RDFS.subPropertyOf + "> <http://semoss.org/ontologies/Relation>}"
+				+ "{?someRel <" + RDFS.subPropertyOf + "> <http://semoss.org/ontologies/Relation>}"
 				+ "{?conceptComposite <" + RDFS.subClassOf + "> <http://semoss.org/ontologies/Concept>}"
 				+ "{?toConceptComposite <" + RDFS.subClassOf + "> <http://semoss.org/ontologies/Concept>}"
 				+ "{?fromConcept <" + RDFS.subClassOf + "> <http://semoss.org/ontologies/Concept>}"
@@ -489,11 +489,14 @@ public class AddToMasterDB extends ModifyMasterDB {
 				+ "FILTER(?fromConcept != <http://semoss.org/ontologies/Concept> "
 				+ "&& ?toConcept != <http://semoss.org/ontologies/Concept>"
 				+ "&& ?someRel != <http://semoss.org/ontologies/Relation>"
-				+ "&& ?toConcept != ?someEngine)}";
+				+ "&& ?toConcept != ?someEngine"
+				+ "&& ?fromLogical != <" + conceptURI + ">"
+				+")}";
 
 			System.out.println("Upstream... ");
 			printQueryResult(engine,upstreamQuery);
-		
+			
+
 			String propQuery = "SELECT DISTINCT ?conceptProp ?engine WHERE {"
 				+ "{?conceptComposite <" + RDF.TYPE + "> <" + conceptURI + ">}"
 				+ "{?conceptComposite <" + RDFS.subClassOf + "> <http://semoss.org/ontologies/Concept>}"
@@ -504,7 +507,6 @@ public class AddToMasterDB extends ModifyMasterDB {
 				+ "FILTER(?concept != <http://semoss.org/ontologies/Concept>)"
 				+"}";
 
-			
 			
 			/*
 			tryQueries(null);
@@ -605,7 +607,7 @@ public class AddToMasterDB extends ModifyMasterDB {
 		 */
 		
 		// query to get all the engines
-		String engineQuery = "SELECT DISTINCT ?engine WHERE {?engine <" + RDF.TYPE + "> <http://semoss.org/ontologies/meta/engine>}";
+//		String engineQuery = "SELECT DISTINCT ?engine WHERE {?engine <" + RDF.TYPE + "> <http://semoss.org/ontologies/meta/engine>}";
 		//printQueryResult(engine, engineQuery);
 		
 		//tryQueries(null);
@@ -614,16 +616,16 @@ public class AddToMasterDB extends ModifyMasterDB {
 	
 	private void tryQueries(IEngine engine)
 	{
-		String fileName = "C:/users/pkapaleeswaran/workspacej3/SemossWeb/localmaster.xml";
+		String fileName = "C:/workspace/Semoss/localmaster.xml";
 		File file = new File(fileName);
 
 		writeEngine(engine, file);
 		
 		engine = new RDFFileSesameEngine();
-		((RDFFileSesameEngine)engine).openFile("C:/users/pkapaleeswaran/workspacej3/SemossWeb/db/LocalMasterDatabase/NFileLocalMaster.xml", null, null);
+		((RDFFileSesameEngine)engine).openFile("C:/workspace/Semoss/localmaster.xml", null, null);
 
-		fileName = "C:/users/pkapaleeswaran/workspacej3/SemossWeb/localMaster.xml";
-		((RDFFileSesameEngine)engine).openFile(fileName, null, null);
+		//fileName = "C:/users/pkapaleeswaran/workspacej3/SemossWeb/localMaster.xml";
+		//((RDFFileSesameEngine)engine).openFile(fileName, null, null);
 
 		// first write it to a file 
 		
@@ -651,7 +653,7 @@ public class AddToMasterDB extends ModifyMasterDB {
 		//printQueryResult(engine, engineQuery);
 		
 		
-		/*
+		
 		String query = query = "SELECT DISTINCT (COALESCE(?conceptual, ?concept) AS ?retConcept) WHERE { "
 				+ "{?concept <http://www.w3.org/2000/01/rdf-schema#subClassOf> <http://semoss.org/ontologies/Concept> }"
 				+ "OPTIONAL {"
@@ -661,16 +663,17 @@ public class AddToMasterDB extends ModifyMasterDB {
 		
 			printQueryResult(engine, query);
 		
-		String conceptURI = "http://semoss.org/ontologies/Concept/System";
+		String conceptURI = "http://semoss.org/ontologies/Concept/Title";
 		
-		String downstreamQuery = "SELECT DISTINCT ?someEngine ?fromConcept ?physical WHERE {"
+		// try connected
+		String downstreamQuery = "SELECT DISTINCT ?someEngine ?fromConcept ?fromLogical WHERE {"
 				+ "{?conceptComposite <http://semoss.org/ontologies/Relation/presentin> ?someEngine}"
 				+ "{?toConceptComposite <http://semoss.org/ontologies/Relation/presentin> ?someEngine}"
 				+ "{?conceptComposite <" + RDF.TYPE + "> ?fromConcept}"
-				+ "{?toConceptComposite <"+ RDF.TYPE + "> <" + conceptURI + ">}"
+				+ "{?conceptComposite <" + logical + "> ?fromLogical}"
+				+ "{?toConceptComposite <"+ logical + "> <" + conceptURI + ">}" // logical
 				+ "{?conceptComposite ?someRel ?toConceptComposite}"
-				//+ "{?someRel <" + RDFS.subPropertyOf + "> <http://semoss.org/ontologies/Relation>}"
-				+ "{<" + conceptURI + "> <http://semoss.org/ontologies/Relation/conceptual> ?physical}"				
+				+ "{?someRel <" + RDFS.subPropertyOf + "> <http://semoss.org/ontologies/Relation>}"
 				+ "{?conceptComposite <" + RDFS.subClassOf + "> <http://semoss.org/ontologies/Concept>}"
 				+ "{?toConceptComposite <" + RDFS.subClassOf + "> <http://semoss.org/ontologies/Concept>}"
 				+ "{?fromConcept <" + RDFS.subClassOf + "> <http://semoss.org/ontologies/Concept>}"
@@ -679,43 +682,46 @@ public class AddToMasterDB extends ModifyMasterDB {
 				+ "&& ?toConcept != <http://semoss.org/ontologies/Concept>"
 				+ "&& ?someRel != <http://semoss.org/ontologies/Relation>"
 				+ "&& ?toConcept != ?someEngine)}";
-		System.out.println("Downstream.... ");
+		
+		System.out.println("Downstream.. ");
 		printQueryResult(engine,downstreamQuery);
 		
 		
-		String upstreamQuery = "SELECT DISTINCT ?someEngine ?toConcept ?physical WHERE {"
+		String upstreamQuery = "SELECT DISTINCT ?someEngine ?fromConcept ?fromLogical WHERE {"
 				+ "{?conceptComposite <http://semoss.org/ontologies/Relation/presentin> ?someEngine}"
 				+ "{?toConceptComposite <http://semoss.org/ontologies/Relation/presentin> ?someEngine}"
-				+ "{?conceptComposite <" + RDF.TYPE + "> <" + conceptURI + ">}"
-				+ "{?toConceptComposite <"+ RDF.TYPE + "> ?toConcept}"
-				+ "{?conceptComposite ?someRel ?toConceptComposite}"
-				+ "{<" + conceptURI + "> <http://semoss.org/ontologies/Relation/Conceptual> ?physical}"				
-				//+ "{?someRel <" + RDFS.subPropertyOf + "> <http://semoss.org/ontologies/Relation>}"
+				+ "{?conceptComposite <" + RDF.TYPE + "> ?fromConcept}"
+				+ "{?conceptComposite <http://semoss.org/ontologies/Relation/logical> ?fromLogical}"
+				+ "{?toConceptComposite <http://semoss.org/ontologies/Relation/logical> <" + conceptURI + ">}" // change this back to logical
+				+ "{?toConceptComposite ?someRel ?conceptComposite}"
+				+ "{?someRel <" + RDFS.subPropertyOf + "> <http://semoss.org/ontologies/Relation>}"
 				+ "{?conceptComposite <" + RDFS.subClassOf + "> <http://semoss.org/ontologies/Concept>}"
 				+ "{?toConceptComposite <" + RDFS.subClassOf + "> <http://semoss.org/ontologies/Concept>}"
 				+ "{?fromConcept <" + RDFS.subClassOf + "> <http://semoss.org/ontologies/Concept>}"
 				+ "{?toConcept <" + RDFS.subClassOf + "> <http://semoss.org/ontologies/Concept>}"
 				+ "FILTER(?fromConcept != <http://semoss.org/ontologies/Concept> "
 				+ "&& ?toConcept != <http://semoss.org/ontologies/Concept>"
-				//+ "&& ?someRel != <http://semoss.org/ontologies/Relation>"
-				+ ")}";
-
-			System.out.println("Upstream.... ");
+				+ "&& ?someRel != <http://semoss.org/ontologies/Relation>"
+				+ "&& ?toConcept != ?someEngine"
+				//+ "&& ?fromLogical != <" + conceptURI + ">"
+				+")}";
+		
+			System.out.println("Upstream... ");
 			printQueryResult(engine,upstreamQuery);
 			
 			System.out.println("Hello");
-		*/
+		
 		
 		
 		
 		
 		// base query to get engine and concepts
-		String query = "SELECT ?engine ?conceptLogical ?concept WHERE {{?conceptComposite <http://semoss.org/ontologies/Relation/presentin> ?engine}"
+		/*String query = "SELECT ?engine ?conceptLogical ?concept WHERE {{?conceptComposite <http://semoss.org/ontologies/Relation/presentin> ?engine}"
 				//+ "{?conceptComposite ?rel2 <" + Constants.CONCEPT_URI + ">}"
 				+ "{?conceptComposite <" + RDF.TYPE + "> ?concept}"
 				+ "{?concept <http://semoss.org/ontologies/Relation/conceptual> ?conceptLogical}"
 				+ "}";
-		
+		*/
 		//printQueryResult(engine, query);
 		 
 		// get vertex and edges in a given engine
@@ -797,12 +803,13 @@ public class AddToMasterDB extends ModifyMasterDB {
 			while(tqr.hasNext())
 			{
 				BindingSet bs = tqr.next();
-				//System.out.println("Engine " + bs.getBinding("engine") + "<>" + bs.getBinding("conceptLogical") + "<>" + bs.getBinding("concept"));
+				//System.out.println("Engine " + bs.getBinding("engine") + "<>" + bs.getBinding("from") + "<>" + bs.getBinding("fromLogical"));
 				//System.out.println("Engine " + bs.getBinding("conceptProp") + "<>" + bs.getBinding("concept"));
 				System.out.println("Engine " + bs.getBinding("someEngine") + bs.getBinding("fromConcept") + "<>" + bs.getBinding("fromLogical"));
 				//System.out.println("Engine " + bs.getBinding("fromConcept") + "<>" + bs.getBinding("someEngine") + bs.getBinding("physical"));
 				//System.out.println("Engine " + bs.getBinding("conceptProp") + "<>" + bs.getBinding("engine") + bs.getBinding("physical"));
 				//System.out.println("Engine " + bs.getBinding("someEngine") + bs.getBinding("fromConcept") + bs.getBinding("anotherEngine"));
+
 			}
 		} catch (QueryEvaluationException e) {
 			// TODO Auto-generated catch block
@@ -901,7 +908,7 @@ public class AddToMasterDB extends ModifyMasterDB {
 	public static void main(String [] args)
 	{
 		// get an SMSS file and try to generate this
-		String smssFile = "C:/users/pkapaleeswaran/workspacej3/SemossWeb/db/Mov2.smss";
+		String smssFile = "C:/workspace/Semoss_Dev/db/TAP_Core_Data.smss";
 		//String smssFile2 = "C:/users/pkapaleeswaran/workspacej3/SemossWeb/db/Churn.smss";
 		Properties prop = new Properties();
 		
