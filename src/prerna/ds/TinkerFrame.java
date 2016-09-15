@@ -11,6 +11,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Hashtable;
 import java.util.Iterator;
+import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
@@ -108,14 +109,48 @@ public class TinkerFrame extends AbstractTableDataFrame {
 	
 	public static void main(String [] args) throws Exception
 	{
-		testDeleteRows();
+//		testDeleteRows();
 //		TinkerFrame t3 = new TinkerFrame();
 //		testPaths();
 		
 		//tinkerframe to test on
-//		String fileName = "C:\\Users\\rluthar\\Documents\\Movie Results.xlsx";
+		String fileName = "C:\\Users\\rluthar\\Documents\\Movie_Data.csv";
+		Map<String, Map<String, String>> dataTypeMap = new HashMap<>();
+		Map<String, String> innerMap = new LinkedHashMap<>();
+		
+		innerMap.put("Title", "VARCHAR");
+		innerMap.put("Genre", "VARCHAR");
+		innerMap.put("Studio", "VARCHAR");
+		innerMap.put("Director", "VARCHAR");
+		
+		dataTypeMap.put("CSV", innerMap);
+		TinkerFrame t = (TinkerFrame) TableDataFrameFactory.generateDataFrameFromFile(fileName, ",", "Tinker", dataTypeMap, new HashMap<>());
 //		TinkerFrame t = load2Graph4Testing(fileName);
 		
+		Iterator<Object[]> it = t.iterator(false);
+		int count = 0; 
+		while(it.hasNext()) {
+//			System.out.println(it.next());
+			it.next();
+			count++;
+		}
+		System.out.println("COUNT IS: "+count);
+		
+		List<Object> list = new ArrayList<>();
+		list.add("Drama");
+//		list.add("Gravity");
+//		list.add("Her");
+//		list.add("Admission");
+		t.remove("Genre", list);
+		
+		it = t.iterator(false);
+		count = 0; 
+		while(it.hasNext()) {
+//			System.out.println(it.next());
+			it.next();
+			count++;
+		}
+		System.out.println("COUNT IS: "+count);
 //		t.openSandbox();
 //		testGroupBy();
 //		testFilter();
@@ -1619,6 +1654,32 @@ public class TinkerFrame extends AbstractTableDataFrame {
 	
 	
 	/****************************** FILTER METHODS **********************************************/
+	
+	/**
+	 * 
+	 * @param columnHeader - column to remove values from
+	 * @param removeValues - values to be removed
+	 * 
+	 * removes vertices from the graph that are associated with the column and values
+	 */
+	public void remove(String columnHeader, List<Object> removeValues) {
+		String valueNode = this.metaData.getValueForUniqueName(columnHeader);
+		
+		//for each value
+		for(Object val : removeValues) {
+			String id = valueNode +":"+ val.toString();
+
+			//find the vertex
+			GraphTraversal<Vertex, Vertex> fgt = g.traversal().V().has(Constants.ID, id);
+			Vertex nextVertex = null;
+			if(fgt.hasNext()) {
+				//remove
+				nextVertex = fgt.next();
+				nextVertex.remove();
+			}
+		}
+	}
+	
 	
 	/**
 	 * String columnHeader - the column on which to filter on
