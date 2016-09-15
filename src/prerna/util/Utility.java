@@ -2973,30 +2973,35 @@ public class Utility {
 			// start up the engine
 			String smssFile = (String)DIHelper.getInstance().getCoreProp().getProperty(engineName + "_" + Constants.STORE);
 			// start it up
-			FileInputStream fis = null;
-			try {
-				Properties daProp = new Properties();
-				fis = new FileInputStream(smssFile);
-				daProp.load(fis);
-				engine = Utility.loadWebEngine(smssFile, daProp);
-				System.out.println("Loaded the engine.. !!!!! " + engineName);
-			} catch (KeyManagementException e) {
-				e.printStackTrace();
-			} catch (NoSuchAlgorithmException e) {
-				e.printStackTrace();
-			} catch (KeyStoreException e) {
-				e.printStackTrace();
-			} catch (IOException e) {
-				e.printStackTrace();
-			} finally {
-				if(fis != null) {
-					try {
-						fis.close();
-					} catch (IOException e) {
-						e.printStackTrace();
+			if(smssFile != null)
+			{
+				FileInputStream fis = null;
+				try {
+					Properties daProp = new Properties();
+					fis = new FileInputStream(smssFile);
+					daProp.load(fis);
+					engine = Utility.loadWebEngine(smssFile, daProp);
+					System.out.println("Loaded the engine.. !!!!! " + engineName);
+				} catch (KeyManagementException e) {
+					e.printStackTrace();
+				} catch (NoSuchAlgorithmException e) {
+					e.printStackTrace();
+				} catch (KeyStoreException e) {
+					e.printStackTrace();
+				} catch (IOException e) {
+					e.printStackTrace();
+				} finally {
+					if(fis != null) {
+						try {
+							fis.close();
+						} catch (IOException e) {
+							e.printStackTrace();
+						}
 					}
 				}
 			}
+			else
+				System.out.println("There is no SMSS File for this engine.. ");
 		}
 		
 		return engine;
