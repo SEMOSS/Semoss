@@ -29,8 +29,10 @@ import org.apache.poi.xssf.usermodel.XSSFRow;
 import org.apache.poi.xssf.usermodel.XSSFSheet;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import org.apache.tinkerpop.gremlin.groovy.jsr223.GremlinGroovyScriptEngine;
+import org.apache.tinkerpop.gremlin.process.traversal.Order;
 import org.apache.tinkerpop.gremlin.process.traversal.P;
 import org.apache.tinkerpop.gremlin.process.traversal.Path;
+import org.apache.tinkerpop.gremlin.process.traversal.Scope;
 import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.GraphTraversal;
 import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.GraphTraversalSource;
 import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.__;
@@ -2135,7 +2137,7 @@ public class TinkerFrame extends AbstractTableDataFrame {
 				} catch (ScriptException e) {
 					e.printStackTrace();
 				}
-				while(gt.hasNext()) {
+//				if(gt.hasNext()) {
 //					Object data = gt.next();
 //
 //					String node = "";
@@ -2168,8 +2170,8 @@ public class TinkerFrame extends AbstractTableDataFrame {
 //
 //				long time2 = System.currentTimeMillis();
 //				LOGGER.warn("time to execute : " + (time2 - start )+ " ms");
-				return gt;
-			}
+//				return gt;
+//			}
 			
 		}} catch (RuntimeException e) {
 			e.printStackTrace();
@@ -2179,6 +2181,84 @@ public class TinkerFrame extends AbstractTableDataFrame {
 
 	}
 	
+	public Object degree(String type, String data)
+	{
+		GraphTraversal <Vertex, Map<Object, Object>> gt = g.traversal().V().has("ID", type + ":" + data).group().by().by(__.bothE().count());
+		Object degree = null;
+		if(gt.hasNext())
+		{
+			Map <Object, Object> map = gt.next();
+			Iterator mapKeys = map.keySet().iterator();
+			while(mapKeys.hasNext())
+			{
+				Object key = mapKeys.next();
+				Object value = map.get(key);
+				degree = value;
+				
+				System.out.println(((Vertex)key).value("ID") + "<<>>" + value);				
+			}			
+		}
+		return degree;
+	}
+	
+	
+	public Long eigen(String type, String data)
+	{
+		Long retLong = null;
+		GraphTraversal<Vertex, Map<String, Object>> gt2 = g.traversal().V().repeat(__.groupCount("m").by("ID").out()).times(5).cap("m")
+				.V()
+				//.has("ID", type + ":" + data)
+				.select("m");
+				//.where("V);
+		if(gt2.hasNext())
+		{
+			Map <String, Object> map = gt2.next();
+			retLong = (Long)map.get(type + ":" +  data);
+			System.out.println(retLong);
+		}
+		
+		return retLong;
+	}
+
+	public void printEigenMatrix()
+	{
+		GraphTraversal <Vertex, Map<Object, Object>> gt = g.traversal().V().repeat(__.groupCount("m").by("ID").out()).times(5).cap("m"); //. //(1)
+        //order(Scope.local).by(__.values(), Order.decr).limit(Scope.local, 10); //.next(); //(2)
+		if(gt.hasNext())
+		{
+			Map <Object, Object> map = gt.next();
+			Iterator mapKeys = map.keySet().iterator();
+			while(mapKeys.hasNext())
+			{
+				Object key = mapKeys.next();
+				Object value = map.get(key);
+				System.out.println(key + "<<>>" + value);				
+				//System.out.println(((Vertex)key).value("ID") + "<<>>" + value);
+			}			
+		}
+	}
+
+	
+	public boolean isOrphan(String type, String data)
+	{
+		boolean retValue = false;
+		
+		GraphTraversal<Vertex, Edge> gt = g.traversal().V().has("ID", type + ":" + data).bothE();
+		if(gt.hasNext())
+		{
+			System.out.println(data + "  Not Orphan");
+			retValue = false;
+		}
+		else
+		{
+			System.out.println(data + "  is Orphan");
+			retValue = true;
+		}
+		
+		return retValue;
+	}
+	
+
     /**
      * Method printAllRelationship.
      */
@@ -2322,8 +2402,8 @@ public class TinkerFrame extends AbstractTableDataFrame {
 	}
 
 	public Map<? extends String, ? extends Object> getGraphOutput() {
-		return createVertStores();
-//		return createVertStores2();
+		//return createVertStores();
+		return createVertStores2();
 	}
 	
 
