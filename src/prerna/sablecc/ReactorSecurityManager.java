@@ -26,10 +26,10 @@ public class ReactorSecurityManager extends SecurityManager {
     	  
       }
       
-      public void checkPropertyAccess(String key)
+      /*public void checkPropertyAccess(String key)
       {
     	  throw new SecurityException("Property lookup not permitted.. " + key) ;	        	    	  
-      }
+      }*/
 	
       public void checkRead(String file)
       {
