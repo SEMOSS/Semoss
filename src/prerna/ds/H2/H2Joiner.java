@@ -33,6 +33,8 @@ public class H2Joiner {
 	// e.g. {H2Frame -> {Title -> H2Frame_Title}}
 	private Hashtable<String, Hashtable<String, String>> colAlias = new Hashtable<String, Hashtable<String, String>>();
 	
+	//this keeps a filterhash for each view table in the dashboard
+	//viewTable -> filterhash (for details on the structure see H2Builder.java)
 	private Hashtable<String, Map<String, Map<Comparator, Set<Object>>>> filterHashTable = new Hashtable<>();
 	
 	//pointer to the dashboard that is using this joiner
