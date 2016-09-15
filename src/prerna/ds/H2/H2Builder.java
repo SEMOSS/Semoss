@@ -968,10 +968,21 @@ public class H2Builder {
 		//    		filterComparator.put(columnHeader, comparator);
 		//    	}
 
-		if(filterHash2.get(columnHeader) == null) {
-			setFilters(columnHeader, values, comparator);
+		Map<String, Map<Comparator, Set<Object>>> filterHash;
+		String column;
+		if(joinMode) {
+			filterHash = this.joiner.getJoinedFilterHash(viewTableName);
+			column = translateColumn(columnHeader);
 		} else {
-			Map<Comparator, Set<Object>> innerMap = filterHash2.get(columnHeader);
+			filterHash = this.filterHash2;
+			column = columnHeader;
+		}
+		
+		
+		if(filterHash.get(column) == null) {
+			setFilters(column, values, comparator);
+		} else {
+			Map<Comparator, Set<Object>> innerMap = filterHash.get(column);
 			if(innerMap.get(comparator) == null || (comparator != Comparator.EQUAL && comparator != Comparator.NOT_EQUAL)) {
 				innerMap.put(comparator, new HashSet<>(values));
 			} else {
@@ -993,7 +1004,18 @@ public class H2Builder {
 
 		Map<Comparator, Set<Object>> innerMap = new HashMap<>();
 		innerMap.put(comparator, new HashSet<>(values));
-		filterHash2.put(columnHeader, innerMap);
+		
+		Map<String, Map<Comparator, Set<Object>>> filterHash;
+		String column;
+		if(joinMode) {
+			filterHash = this.joiner.getJoinedFilterHash(viewTableName);
+			column = translateColumn(columnHeader);
+		} else {
+			filterHash = this.filterHash2;
+			column = columnHeader;
+		}
+		
+		filterHash.put(column, innerMap);
 	}
 
 	/**
@@ -1005,7 +1027,17 @@ public class H2Builder {
 		//    	filterHash.remove(columnHeader);
 		//    	filterComparator.remove(columnHeader);
 
-		filterHash2.remove(columnHeader);
+		Map<String, Map<Comparator, Set<Object>>> filterHash;
+		String column;
+		if(joinMode) {
+			filterHash = this.joiner.getJoinedFilterHash(viewTableName);
+			column = translateColumn(columnHeader);
+		} else {
+			filterHash = this.filterHash2;
+			column = columnHeader;
+		}
+		
+		filterHash.remove(column);
 	}
 
 	/**
@@ -1015,7 +1047,14 @@ public class H2Builder {
 		//    	filterHash.clear();
 		//    	filterComparator.clear();
 
-		filterHash2.clear();
+		if(joinMode) {
+			Map<String, Map<Comparator, Set<Object>>> filterHash = this.joiner.getJoinedFilterHash(viewTableName);
+			for(String key : this.joinColumnTranslation.keySet()) {
+				filterHash.remove(joinColumnTranslation.get(key));
+			}
+		} else {
+			filterHash2.clear();
+		}
 	}
 
 	/**
