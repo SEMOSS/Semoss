@@ -153,16 +153,28 @@ public class H2Joiner {
 			return joinFrames(frames[0], frames[1], newjoinCols);
 		}
 		
-		return "";
 		
 		//Testing with 2...uncomment this when testing is successful...then update the code
 		//assuming for now we are only joining non joined insights for 3 or more insights
-//		for(H2Frame frame : frames) {
-//			if(frame.isJoined()) {
-//				throw new IllegalArgumentException("Frame already joined");
-//			}
-//		}
-//		
+		for(H2Frame frame : frames) {
+			if(frame.isJoined()) {
+				throw new IllegalArgumentException("Frame already joined");
+			}
+		}
+		
+		String retTable = "";
+		for(int i = 1; i < frames.length; i++) {
+			
+			List<String[]> nextNewJoinCols = new ArrayList<>(2);
+			for(int index = 0; index < newjoinCols.size(); index++) {
+				String[] cols = newjoinCols.get(index);
+				String[] nextCols = new String[]{cols[i-1], cols[i]};
+				nextNewJoinCols.add(nextCols);
+			}
+			
+			retTable = joinFrames(frames[i-1], frames[i], nextNewJoinCols);
+		}
+		return retTable;
 //		String[] tableNames = new String[frames.length];
 //		for(int i = 0; i < frames.length; i++) {
 //			tableNames[i] = frames[i].builder.getTableName();
@@ -183,6 +195,8 @@ public class H2Joiner {
 //		} catch (Exception e) {
 //			e.printStackTrace();
 //		}
+		
+//		return newTable;
 	}
 	
 	/**
