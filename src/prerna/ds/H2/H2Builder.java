@@ -1549,7 +1549,7 @@ public class H2Builder {
 	 * @return true if table with name tableName exists, false otherwise
 	 */
 	private boolean tableExists(String tableName) {
-		String query = "SELECT * FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_NAME = '"+tableName+"'";
+		String query = "SELECT * FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_NAME = '"+tableName.toUpperCase()+"'";
 		ResultSet rs = executeQuery(query);
 		try {
 			return rs.next();
