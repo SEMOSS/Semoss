@@ -94,10 +94,10 @@ public class JavaReactorWrapper extends AbstractReactor {
 			String catchStr = "}catch (Exception ex) { put(\"RESPONSE\", \"Failed\"); put(\"STATUS\" , prerna.sablecc.PKQLRunner.STATUS.ERROR); put(\"ERROR\", ex);return null;}";
 			String content = data;
 			// write the response
-			String response = "put(\"RESPONSE\", \"Complete\"); put(\"STATUS\" , prerna.sablecc.PKQLRunner.STATUS.SUCCESS); return null;";
+			String response = "put(\"RESPONSE\", System.out.output); put(\"STATUS\" , prerna.sablecc.PKQLRunner.STATUS.SUCCESS); return null;";
 			//cc.addMethod(CtNewMethod.make("public void setConsole() { System = new prerna.util.Console();}", cc));
 			cc.addMethod(CtNewMethod.make("public java.util.Iterator process() {" +
-											"super.process();" + 
+											//"super.process();" + 
 											tryStr + 
 											content+ ";" + 
 											response + 
