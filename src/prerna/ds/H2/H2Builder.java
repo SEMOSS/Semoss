@@ -478,7 +478,7 @@ public class H2Builder {
 	//get a new unique table name
 	public String getNewTableName() {
 		String name = H2FRAME + getNextNumber();
-		return name;
+		return name; 
 	}
 
 
@@ -1549,7 +1549,7 @@ public class H2Builder {
 	 * @return true if table with name tableName exists, false otherwise
 	 */
 	private boolean tableExists(String tableName) {
-		String query = "SELECT * FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_NAME = '"+tableName.toUpperCase()+"'";
+		String query = "SELECT * FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_NAME = '"+tableName+"'";
 		ResultSet rs = executeQuery(query);
 		try {
 			return rs.next();
@@ -1957,11 +1957,10 @@ public class H2Builder {
 
 	private String getNextNumber()
 	{
-//		tableRunNumber++;
-//		return tableRunNumber;
 		String uuid = UUID.randomUUID().toString();
 		uuid = uuid.replaceAll("-", "_");
-		return uuid;
+		// table names will be upper case because that is how it is set in information schema
+		return uuid.toUpperCase();
 	}
 
 	//changing from private to public access to get connection url
