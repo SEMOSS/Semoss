@@ -33,6 +33,8 @@ public class H2Joiner {
 	// e.g. {H2Frame -> {Title -> H2Frame_Title}}
 	private Hashtable<String, Hashtable<String, String>> colAlias = new Hashtable<String, Hashtable<String, String>>();
 	
+	private Hashtable<String, Map<String, Map<Comparator, Set<Object>>>> filterHashTable = new Hashtable<>();
+	
 	//pointer to the dashboard that is using this joiner
 	private Dashboard dashboard;
 	
@@ -65,33 +67,50 @@ public class H2Joiner {
 	 * @return					a merge of all the filter data from the frames associated with the tableName (view) parameter
 	 */
 	protected Map<String, Map<Comparator, Set<Object>>> getJoinedFilterHash(String tableName) {
-//		List<Insight> insights = dashboard.getInsights();
-		
-		List<H2Frame> frames = getJoinedFrames(tableName);
-		
-		//build the filter query from the frames
-		Map<String, Map<Comparator, Set<Object>>> filterHash = new HashMap<>();
-		for(H2Frame frame : frames) {
-			Map<String, Map<Comparator, Set<Object>>> nextHash = frame.builder.filterHash2;
-			for(String column : nextHash.keySet()) {
-				String translatedColumn = frame.builder.joinColumnTranslation.get(column);
-				if(filterHash.containsKey(translatedColumn)) {
-					Map<Comparator, Set<Object>> columnHash = filterHash.get(translatedColumn);
-					Map<Comparator, Set<Object>> nextColumnHash = nextHash.get(column);
-					for(Comparator comparator : nextColumnHash.keySet()) {
-						if(columnHash.containsKey(comparator)) {
-							columnHash.get(comparator).addAll(nextColumnHash.get(comparator));
-						} else {
-							columnHash.put(comparator, nextColumnHash.get(comparator));
-						}
-					}
-				} else {
-					filterHash.put(translatedColumn, nextHash.get(column));
-				}
-			}
+////		List<Insight> insights = dashboard.getInsights();
+//		
+//		List<H2Frame> frames = getJoinedFrames(tableName);
+//		
+//		//build the filter query from the frames
+//		Map<String, Map<Comparator, Set<Object>>> filterHash = new HashMap<>();
+//		for(H2Frame frame : frames) {
+//			Map<String, Map<Comparator, Set<Object>>> nextHash = frame.builder.filterHash2;
+//			for(String column : nextHash.keySet()) {
+//				String translatedColumn = frame.builder.joinColumnTranslation.get(column);
+//				if(filterHash.containsKey(translatedColumn)) {
+//					Map<Comparator, Set<Object>> columnHash = filterHash.get(translatedColumn);
+//					Map<Comparator, Set<Object>> nextColumnHash = nextHash.get(column);
+//					for(Comparator comparator : nextColumnHash.keySet()) {
+//						if(columnHash.containsKey(comparator)) {
+//							columnHash.get(comparator).addAll(nextColumnHash.get(comparator));
+//						} else {
+//							Set<Object> valList = new HashSet<>();
+//							valList.addAll(nextColumnHash.get(comparator));
+//							columnHash.put(comparator, valList);
+//						}
+//					}
+//				} else {
+//					//need to make a copy so that changes don't affect original hash by reference
+//					Map<Comparator, Set<Object>> map = new HashMap<>();
+//					Map<Comparator, Set<Object>> oldMap = nextHash.get(column);
+//					for(Comparator key : oldMap.keySet()) {
+//						Set<Object> setCopy = new HashSet<>();
+//						setCopy.addAll(oldMap.get(key));
+//						map.put(key, setCopy);
+//					}
+//					filterHash.put(translatedColumn, map);
+//				}
+//			}
+//		}
+//		
+//		return filterHash;
+		if(this.filterHashTable.containsKey(tableName)) {
+			return this.filterHashTable.get(tableName);
+		} else {
+			Map<String, Map<Comparator, Set<Object>>> newFilterHash = new HashMap<>();
+			this.filterHashTable.put(tableName, newFilterHash);
+			return newFilterHash;
 		}
-		
-		return filterHash;
 	}
 	
 	private List<H2Frame> getJoinedFrames(String tableName) {
