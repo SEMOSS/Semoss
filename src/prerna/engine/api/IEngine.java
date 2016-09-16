@@ -63,6 +63,12 @@ public interface IEngine extends IExplorable{
 	public void openDB(String propFile);
 
 	/**
+	 * Set the smss file within the engine
+	 * @param propFile
+	 */
+	public void setPropFile(String propFile);
+
+	/**
 	 * Closes the data base associated with the engine.  This will prevent further changes from being made in the data store and 
 	 * safely ends the active transactions and closes the engine.
 	 */
@@ -140,7 +146,7 @@ public interface IEngine extends IExplorable{
 	 * @return Object based on the type of action
 	 */
 	public Object doAction(IEngine.ACTION_TYPE actionType, Object[] args);
-	
+
 }
 
 
