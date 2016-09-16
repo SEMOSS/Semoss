@@ -84,7 +84,7 @@ public abstract class AbstractCSVFileReader extends AbstractFileReader {
 		LOGGER.info("Found headers: " + Arrays.toString(header));
 
 		// such that the thick client works if a prop file is passed in
-		this.propFile = this.header[this.header.length];
+		this.propFile = this.header[this.header.length-1];
 	}
 
 	/**
