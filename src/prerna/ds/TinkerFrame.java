@@ -1115,7 +1115,7 @@ public class TinkerFrame extends AbstractTableDataFrame {
 		Map<String, SEMOSSEdge> edgeStore = new HashMap<String, SEMOSSEdge>();
 		
 		//get all edges not attached to a filter node or is a filtered edge
-		GraphTraversal<Edge, Edge> edgesIt = g.traversal().E().not(__.or(__.has(Constants.TYPE, Constants.FILTER), __.inV().has(Constants.TYPE, Constants.FILTER), __.V().has(TinkerMetaData.PRIM_KEY, true)));
+		GraphTraversal<Edge, Edge> edgesIt = g.traversal().E().not(__.or(__.has(Constants.TYPE, Constants.FILTER), __.bothV().in().has(Constants.TYPE, Constants.FILTER), __.V().has(TinkerMetaData.PRIM_KEY, true)));
 		while(edgesIt.hasNext()) {
 			Edge e = edgesIt.next();
 			Vertex outV = e.outVertex();
