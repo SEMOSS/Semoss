@@ -99,38 +99,41 @@ public class GremlinInterpreter implements IQueryInterpreter {
 	 */
 	private void addFilters() {
 		if(this.filters == null) {
-			this.filters = new Hashtable<String, Hashtable<String, Vector>>();
-			Hashtable<String, Hashtable<String, Vector>> qsFilters = qs.andfilters;
-			for(String key : qsFilters.keySet()) {
-				Hashtable<String, Vector> filterMap = qsFilters.get(key);
-				Hashtable<String, Vector> cleanFilterMap = new Hashtable<String, Vector>();
-				
-				// need to loop through and make sure everything is clean
-				for(String comp: filterMap.keySet()) {
-					Vector filterValues = filterMap.get(comp);
-					Vector cleanFilterValues = new Vector();
-					
-					for(Object object : filterValues) {
-						Object myobject = object.toString().replace("\"", "");
-						String type = Utility.findTypes(myobject + "")[0] + "";
-						if(type.equalsIgnoreCase("Date")) {
-							myobject = Utility.getDate(myobject + "");
-						} else if(type.equalsIgnoreCase("Double")) {
-		    				myobject = Utility.getDouble(myobject + "");
-						}
-						cleanFilterValues.add(myobject);
-					}
-					
-					cleanFilterMap.put(comp, cleanFilterValues);
-				}
-				
-				if(key.contains("__")) {
-					this.filters.put(key.substring(key.indexOf("__")+2), cleanFilterMap);
-				} else {
-					this.filters.put(key,cleanFilterMap);
-				}
-				
-			}
+			this.filters = qs.andfilters;
+			
+			// should not need to clean up anymore...
+			
+//			this.filters = new Hashtable<String, Hashtable<String, Vector>>();
+//			Hashtable<String, Hashtable<String, Vector>> qsFilters = qs.andfilters;
+//			for(String key : qsFilters.keySet()) {
+//				Hashtable<String, Vector> filterMap = qsFilters.get(key);
+//				Hashtable<String, Vector> cleanFilterMap = new Hashtable<String, Vector>();
+//				
+//				// need to loop through and make sure everything is clean
+//				for(String comp: filterMap.keySet()) {
+//					Vector filterValues = filterMap.get(comp);
+//					Vector cleanFilterValues = new Vector();
+//					
+//					for(Object object : filterValues) {
+//						Object myobject = object.toString().replace("\"", "");
+//						String type = Utility.findTypes(myobject + "")[0] + "";
+//						if(type.equalsIgnoreCase("Date")) {
+//							myobject = Utility.getDate(myobject + "");
+//						} else if(type.equalsIgnoreCase("Double")) {
+//		    				myobject = Utility.getDouble(myobject + "");
+//						}
+//						cleanFilterValues.add(myobject);
+//					}
+//					
+//					cleanFilterMap.put(comp, cleanFilterValues);
+//				}
+//				
+//				if(key.contains("__")) {
+//					this.filters.put(key.substring(key.indexOf("__")+2), cleanFilterMap);
+//				} else {
+//					this.filters.put(key,cleanFilterMap);
+//				}
+//			}
 		}
 	}
 
