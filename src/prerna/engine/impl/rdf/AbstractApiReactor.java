@@ -29,7 +29,7 @@ public abstract class AbstractApiReactor extends AbstractReactor{
 	// of abstract api reactor
 	protected String engine = null;
 	protected QueryStruct qs = null;
-	protected Map<String, String> mapOptions = null;
+	protected Map<Object, Object> mapOptions = null;
 	protected boolean useCheater = false;
 	
 	
@@ -56,18 +56,20 @@ public abstract class AbstractApiReactor extends AbstractReactor{
 		this.engine = (String)myStore.get("ENGINE");
 		
 		// we have an engine name of "csvFile" when loading a csv file
-		if(engine.equals("csvFile")) {
+//		if(engine.equals("csvFile")) {
 			// we are loading a csv file
 			// grab the input maps from the user
-			this.mapOptions = (Map<String, String>) myStore.get(PKQLEnum.MAP_OBJ);
-		}
+			this.mapOptions = (Map<Object, Object>) myStore.get(PKQLEnum.MAP_OBJ);
+//		}
 
 		// grab the appropriate information to create the proper query struct
 		// the query struct is what will determine the query that is used during creation
 		Vector <String> selectors = new Vector<String>();
 		Vector <Hashtable> filters = new Vector<Hashtable>();
 		Vector <Hashtable> joins = new Vector<Hashtable>();
-
+		int limit = -1;
+		int offset = -1;
+		
 		if(myStore.containsKey(PKQLEnum.COL_CSV) && ((Vector)myStore.get(PKQLEnum.COL_CSV)).size() > 0)
 			selectors = (Vector<String>) myStore.get(PKQLEnum.COL_CSV);
 		if(myStore.containsKey(PKQLEnum.FILTER) && ((Vector)myStore.get(PKQLEnum.FILTER)).size() > 0)
@@ -75,6 +77,15 @@ public abstract class AbstractApiReactor extends AbstractReactor{
 		if(myStore.containsKey(PKQLEnum.JOINS) && ((Vector)myStore.get(PKQLEnum.JOINS)).size() > 0)
 			joins = (Vector<Hashtable>) myStore.get(PKQLEnum.JOINS);
 
+		if(this.mapOptions != null) {
+			if(this.mapOptions.containsKey("limit")) {
+				limit = (Integer)this.mapOptions.get("limit");
+			}
+			
+			if(this.mapOptions.containsKey("offset")) {
+				offset = (Integer)this.mapOptions.get("offset");
+			}
+		}
 		//for each inner join and left outer join we want to add filters to the query struct
 		//that way only the pieces we need come from the database
 		IDataMaker dm = (IDataMaker) myStore.get("G");
@@ -136,7 +147,7 @@ public abstract class AbstractApiReactor extends AbstractReactor{
 		}
 
 		this.qs = new QueryStruct();
-		processQueryStruct(selectors, filters, joins);
+		processQueryStruct(selectors, filters, joins, limit, offset);
 		
 		Map<String, Set<String>> edgeHash = this.qs.getReturnConnectionsHash();
 		// we store the edge hash in myStore
@@ -145,7 +156,7 @@ public abstract class AbstractApiReactor extends AbstractReactor{
 		return null;
 	}
 
-	public void processQueryStruct(Vector <String> selectors, Vector <Hashtable> filters, Vector <Hashtable> joins)
+	public void processQueryStruct(Vector <String> selectors, Vector <Hashtable> filters, Vector <Hashtable> joins, int limit, int offset)
 	{
 		Map<String, Map<String, Object>> varMap = (Map<String, Map<String, Object>>) myStore.get("VARMAP");
 		for(int selectIndex = 0;selectIndex < selectors.size();selectIndex++)
@@ -221,7 +232,10 @@ public abstract class AbstractApiReactor extends AbstractReactor{
 
 			String relation = (String)thisJoin.get("REL_TYPE");	
 			this.qs.addRelation(fromCol, toCol, relation);
-		}	
+		}
+		
+		this.qs.setLimit(limit);
+		this.qs.setOffSet(offset);
 	}
 	
 	

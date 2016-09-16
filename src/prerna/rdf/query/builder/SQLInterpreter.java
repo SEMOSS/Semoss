@@ -140,6 +140,17 @@ public class SQLInterpreter implements IQueryInterpreter{
 		}
 
 		System.out.println("QUERY....  " + query);
+		int limit = qs.getLimit();
+		int offset = qs.getOffset();
+		
+		if(limit > 0) {
+			query = query + " LIMIT "+limit;
+		} 
+		
+		if (offset > 0) {
+			query = query + " OFFSET "+offset;
+		}
+		
 		return query;
 	}
 
