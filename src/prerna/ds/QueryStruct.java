@@ -45,6 +45,10 @@ public class QueryStruct {
 	//			 OuterJoin Nominated
 	public Hashtable <String, Hashtable<String, Vector>> relations = new Hashtable<String, Hashtable<String, Vector>>();
 	
+	private int limit = -1;
+	private int offset = -1;
+	
+	
 	public static String PRIM_KEY_PLACEHOLDER = "PRIM_KEY_PLACEHOLDER";
 		
 	public void addCompoundSelector(String selector)
@@ -111,6 +115,22 @@ public class QueryStruct {
 		
 		// put it back
 		relations.put(fromConcept, compHash);
+	}
+	
+	public void setLimit(int limit) {
+		this.limit = limit;
+	}
+	
+	public int getLimit() {
+		return this.limit;
+	}
+	
+	public void setOffSet(int offset) {
+		this.offset = offset;
+	}
+	
+	public int getOffset() {
+		return this.offset;
 	}
 	
 	private void addToHash(String concept, String property, Hashtable <String, Vector<String>> hash)
