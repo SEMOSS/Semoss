@@ -3,6 +3,7 @@ package prerna.sablecc.meta;
 import java.util.Hashtable;
 import java.util.List;
 import java.util.Map;
+import java.util.Vector;
 
 public class ImportDataMetadata extends AbstractPkqlMetadata {
 
@@ -20,7 +21,17 @@ public class ImportDataMetadata extends AbstractPkqlMetadata {
 	@Override
 	public Map<String, Object> getMetadata() {
 		Map<String, Object> metadata = new Hashtable<String, Object>();
-		metadata.put(SELECTORS_TEMPLATE_KEY, this.selectors);
+		List<String> retSelectors = this.selectors;
+		// this is for when a user types in a import data
+		// without specifying the selectors
+		// it uses the engines full QueryStruct based on the owl
+		// and loads everything in
+		// shorthand designed for loading in a full flat db quickly
+		if(retSelectors == null) {
+			retSelectors = new Vector<String>();
+			retSelectors.add("Loading All Engine Data");
+		}
+		metadata.put(SELECTORS_TEMPLATE_KEY, retSelectors);
 		return metadata;
 	}
 
