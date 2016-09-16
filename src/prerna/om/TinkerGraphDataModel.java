@@ -136,7 +136,7 @@ public class TinkerGraphDataModel {
 	}	
 	
 	private void storeVertex(String vert, TinkerFrame tf){
-		logger.info("storing vertex "  + vert);
+//		logger.info("storing vertex "  + vert);
 		String type = Utility.getClassName(vert);
 		
 		Map<String, Object> clean = new HashMap<String, Object>();
@@ -157,7 +157,7 @@ public class TinkerGraphDataModel {
 	
 
 	private void storeRelationship(String outVert, String inVert, TinkerFrame tf, Map<Integer, Set<Integer>> cardinality){
-		logger.info("storing edge "  + outVert + " and in " + inVert);
+//		logger.info("storing edge "  + outVert + " and in " + inVert);
 		String typeOut = Utility.getClassName(outVert);
 		String typeIn = Utility.getClassName(inVert);
 		
