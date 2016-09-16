@@ -1112,13 +1112,13 @@ public class TinkerFrame extends AbstractTableDataFrame {
 		return retHash;
 	}
 	
-	private Map createVertStores2(){
+	private Map createVertStores2() {
 		Map<String, SEMOSSVertex> vertStore = new HashMap<String, SEMOSSVertex>();
 		Map<String, SEMOSSEdge> edgeStore = new HashMap<String, SEMOSSEdge>();
 		
 		//get all edges not attached to a filter node or is a filtered edge
-		GraphTraversal<Edge, Edge> edgesIt = g.traversal().E().not(__.or(__.has(Constants.TYPE, Constants.FILTER), __.bothV().in().has(Constants.TYPE, Constants.FILTER)));
-		while(edgesIt.hasNext()){
+		GraphTraversal<Edge, Edge> edgesIt = g.traversal().E().not(__.or(__.has(Constants.TYPE, Constants.FILTER), __.bothV().in().has(Constants.TYPE, Constants.FILTER), __.V().has(TinkerMetaData.PRIM_KEY, true)));
+		while(edgesIt.hasNext()) {
 			Edge e = edgesIt.next();
 			Vertex outV = e.outVertex();
 			Vertex inV = e.inVertex();
@@ -1131,7 +1131,7 @@ public class TinkerFrame extends AbstractTableDataFrame {
 //		GraphTraversal<Vertex, Vertex> vertIt = g.traversal().V().not(__.or(__.both(),__.has(Constants.TYPE, Constants.FILTER),__.in().has(Constants.TYPE, Constants.FILTER)));
 		
 		//Not (has type filter or has in node type filter)  = not has type filter OR not has in node type filter
-		GraphTraversal<Vertex, Vertex> vertIt = g.traversal().V().not(__.or(__.has(Constants.TYPE, Constants.FILTER),__.in().has(Constants.TYPE, Constants.FILTER)));
+		GraphTraversal<Vertex, Vertex> vertIt = g.traversal().V().not(__.or(__.has(Constants.TYPE, Constants.FILTER), __.in().has(Constants.TYPE, Constants.FILTER), __.has(TinkerMetaData.PRIM_KEY, true)));
 //		GraphTraversal<Vertex, Vertex> vertIt = g.traversal().V().not(__.in().has(Constants.TYPE, Constants.FILTER));
 		while(vertIt.hasNext()) {
 			Vertex outV = vertIt.next();
