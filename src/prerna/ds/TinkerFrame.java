@@ -30,10 +30,8 @@ import org.apache.poi.xssf.usermodel.XSSFRow;
 import org.apache.poi.xssf.usermodel.XSSFSheet;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import org.apache.tinkerpop.gremlin.groovy.jsr223.GremlinGroovyScriptEngine;
-import org.apache.tinkerpop.gremlin.process.traversal.Order;
 import org.apache.tinkerpop.gremlin.process.traversal.P;
 import org.apache.tinkerpop.gremlin.process.traversal.Path;
-import org.apache.tinkerpop.gremlin.process.traversal.Scope;
 import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.GraphTraversal;
 import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.GraphTraversalSource;
 import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.__;
@@ -1117,7 +1115,7 @@ public class TinkerFrame extends AbstractTableDataFrame {
 		Map<String, SEMOSSEdge> edgeStore = new HashMap<String, SEMOSSEdge>();
 		
 		//get all edges not attached to a filter node or is a filtered edge
-		GraphTraversal<Edge, Edge> edgesIt = g.traversal().E().not(__.or(__.has(Constants.TYPE, Constants.FILTER), __.bothV().in().has(Constants.TYPE, Constants.FILTER), __.V().has(TinkerMetaData.PRIM_KEY, true)));
+		GraphTraversal<Edge, Edge> edgesIt = g.traversal().E().not(__.or(__.has(Constants.TYPE, Constants.FILTER), __.inV().has(Constants.TYPE, Constants.FILTER), __.V().has(TinkerMetaData.PRIM_KEY, true)));
 		while(edgesIt.hasNext()) {
 			Edge e = edgesIt.next();
 			Vertex outV = e.outVertex();
