@@ -4,7 +4,6 @@ import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Hashtable;
 import java.util.List;
 import java.util.Map;
 
@@ -83,6 +82,9 @@ public abstract class AbstractCSVFileReader extends AbstractFileReader {
 		// get the headers for the csv
 		this.header = csvHelper.getHeaders();
 		LOGGER.info("Found headers: " + Arrays.toString(header));
+
+		// such that the thick client works if a prop file is passed in
+		this.propFile = this.header[this.header.length];
 	}
 
 	/**
