@@ -28,8 +28,6 @@
 package prerna.engine.impl.rdbms;
 
 import java.io.File;
-import java.io.FileNotFoundException;
-import java.io.IOException;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.ResultSet;
@@ -101,15 +99,9 @@ public class RDBMSNativeEngine extends AbstractEngine {
 			// I need to see if the connection pool has been initiated
 			// if not initiate the connection pool
 			if(prop == null) {
-				try {
-					prop = loadProp(propFile);
-					if(!prop.containsKey("TEMP")) {
-						super.openDB(propFile);
-					}
-				} catch (FileNotFoundException e1) {
-					logger.error("error in RDBMS openDB processing prop file", e1);
-				} catch (IOException e1) {
-					logger.error("error in RDBMS openDB processing prop file", e1);
+				prop = loadProp(propFile);
+				if(!prop.containsKey("TEMP")) {
+					super.openDB(propFile);
 				}
 			}
 			

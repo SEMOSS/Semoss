@@ -305,15 +305,26 @@ public abstract class AbstractEngine implements IEngine {
 	 * file.
 	 * @param fileName			String of the name of the properties file to be loaded.
 	 * @return Properties		The properties imported from the prop file.
-	 * @throws IOException 
-	 * @throws FileNotFoundException 
 	 */
-	public Properties loadProp(String fileName) throws FileNotFoundException, IOException {
+	public Properties loadProp(String fileName) {
 		Properties retProp = new Properties();
+		FileInputStream fis = null;
 		if(fileName != null) {
-			FileInputStream fis = new FileInputStream(fileName);
-			retProp.load(fis);
-			fis.close();
+			try {
+				fis = new FileInputStream(fileName);
+				retProp.load(fis);
+			} catch (IOException e) {
+				e.printStackTrace();
+			} finally {
+				if(fis != null) {
+					try {
+						fis.close();
+					} catch (IOException e) {
+						e.printStackTrace();
+					}
+				}
+			}
+			
 		}
 		logger.debug("Properties >>>>>>>>" + fileName);
 		return retProp;
@@ -517,7 +528,8 @@ public abstract class AbstractEngine implements IEngine {
 		return propFile;
 	}
 
-	public void setPropFile(String propFile) throws FileNotFoundException, IOException {
+	@Override
+	public void setPropFile(String propFile) {
 		this.propFile = propFile;
 		this.prop = loadProp(propFile);
 	}
