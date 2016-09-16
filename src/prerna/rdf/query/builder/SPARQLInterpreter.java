@@ -48,6 +48,7 @@ public class SPARQLInterpreter implements IQueryInterpreter {
 		addSelectors();
 		addFilters();
 		addJoins();
+		addLimitOffset();
 		
 		String query = null;
 		semossQuery.createQuery();
@@ -401,4 +402,16 @@ public class SPARQLInterpreter implements IQueryInterpreter {
 		}
 	}
 
+	private void addLimitOffset() {
+		int limit = qs.getLimit();
+		int offset = qs.getOffset();
+		
+		if(limit > 0) {
+			this.semossQuery.setLimit(limit);
+		}
+		
+		if(offset > 0) {
+			this.semossQuery.setOffset(offset);
+		}
+	}
 }
