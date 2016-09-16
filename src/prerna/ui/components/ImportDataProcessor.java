@@ -351,7 +351,10 @@ public class ImportDataProcessor {
 			} catch (IOException e) {
 				e.printStackTrace();
 				throw new IOException("Could not create .smss file for new database");
-			} 
+			}
+			
+			// set the prop file to be the smss
+			engine.setPropFile(smssLocation);
 		} catch(IOException e) {
 			error = true;
 			e.printStackTrace();
