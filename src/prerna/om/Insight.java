@@ -1043,11 +1043,11 @@ public class Insight {
 //		}
 		
 		DataMakerComponent dmc;
-		if(isJoined()) {
-			dmc = parentInsight.getLastComponent();
-		} else {
+//		if(isJoined()) {
+//			dmc = parentInsight.getLastComponent();
+//		} else {
 			dmc = getLastComponent();
-		}
+//		}
 		
 		List<ISEMOSSTransformation> postTransCopy = new Vector<ISEMOSSTransformation>(postTrans.size());
 		for(ISEMOSSTransformation trans : postTrans) {
@@ -1076,6 +1076,10 @@ public class Insight {
 				// when we get to do parameter join on a dashboard, will rethink this...
 				if(getDataMaker() instanceof Dashboard) {
 					addToRecipe = true;
+				}
+				
+				if(isJoined()) {
+					addToRecipe = false;
 				}
 				
 				if(addToRecipe) {
@@ -1805,7 +1809,7 @@ public class Insight {
 		Map<String, Object> retHash = new HashMap<>();
 		
 		if(this.isJoined()) {
-			return this.parentInsight.getJoinedPKQLData(includeClosed);
+			return this.getJoinedPKQLData(includeClosed);
 		} else if(this.dataMaker instanceof Dashboard) {
 			
 //			Map<String, List<String>> dashboardMap = new HashMap<>();
@@ -1830,25 +1834,33 @@ public class Insight {
 	
 	public Map getJoinedPKQLData(boolean includeClosed) {
 		if(this.isJoined()) {
-			return this.parentInsight.getJoinedPKQLData(includeClosed);
-		} else if(this.dataMaker instanceof Dashboard) {
-			Map<String, Object> retHash = new HashMap<>();
-			List insightList = new ArrayList();
-			Map<String, List<String>> dashboardMap = new HashMap<>();
-			List<String> insightIDList = new ArrayList<>();
-			dashboardMap.put(insightID, new ArrayList<>());
-			List<Insight> list = ((Dashboard)dataMaker).getInsights();
-			for(Insight insight : list) {
-				insightList.add(insight.getInsightData(includeClosed));
-				insightIDList.add(insight.getInsightID());
+			 if(this.parentInsight.getDataMaker() instanceof Dashboard) {				 
+				Map<String, Object> retHash = new HashMap<>();
+				List insightList = new ArrayList();
+				Map<String, List<String>> dashboardMap = new HashMap<>();
+				List<String> insightIDList = new ArrayList<>();
+				dashboardMap.put(insightID, new ArrayList<>());
+				List<Insight> list = ((Dashboard)this.parentInsight.getDataMaker()).getInsights();
+				for(Insight insight : list) {
+					if(insight.getInsightID().equals(this.insightID)) {
+						insightList.add(insight.getInsightData(includeClosed));
+					} else {
+						Map<String, Object> nextInsightRetHash = new HashMap<>();
+						nextInsightRetHash.put("insightID", insight.getInsightID());
+						nextInsightRetHash.put("dataID", insight.getDataMaker().getDataId());
+						insightList.add(nextInsightRetHash);
+					}
+					insightIDList.add(insight.getInsightID());
+				}
+				dashboardMap.put(insightID, insightIDList);
+				retHash.put("dashboard", dashboardMap);
+				retHash.put("insights", insightList);
+				return retHash;
 			}
-			dashboardMap.put(insightID, insightIDList);
-			retHash.put("dashboard", dashboardMap);
-			retHash.put("insights", insightList);
-			return retHash;
 		} else {
 			return null;
 		}
+		return null;
 	}
 	
 	public boolean isJoined() {
