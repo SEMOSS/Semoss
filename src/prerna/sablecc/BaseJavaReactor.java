@@ -1,14 +1,29 @@
 package prerna.sablecc;
 
+import java.io.File;
+import java.io.FileOutputStream;
+import java.io.OutputStream;
 import java.sql.Connection;
 import java.util.List;
 import java.util.Vector;
+
+import org.apache.tinkerpop.gremlin.structure.Graph;
+import org.apache.tinkerpop.gremlin.structure.io.IoCore;
+import org.rosuda.REngine.REXPDouble;
+import org.rosuda.REngine.REXPInteger;
+import org.rosuda.REngine.REXPMismatchException;
+import org.rosuda.REngine.REXPString;
+import org.rosuda.REngine.Rserve.RConnection;
+import org.rosuda.REngine.Rserve.RserveException;
 
 import prerna.algorithm.api.ITableDataFrame;
 import prerna.ds.TinkerFrame;
 import prerna.ds.H2.H2Frame;
 import prerna.engine.api.IEngine;
+import prerna.engine.impl.r.RSingleton;
 import prerna.util.Console;
+import prerna.util.DIHelper;
+import prerna.util.Utility;
 
 
 public abstract class BaseJavaReactor extends AbstractReactor{
@@ -18,6 +33,8 @@ public abstract class BaseJavaReactor extends AbstractReactor{
 	boolean frameChanged = false;
 	SecurityManager curManager = null;
 	SecurityManager reactorManager = null;
+	public static final String R_CONN = "R_CONN";
+	public RConnection rcon = null;
 	
 	public Console System = new Console();
 	
@@ -64,7 +81,7 @@ public abstract class BaseJavaReactor extends AbstractReactor{
 	
 
 	// get the variable back that was set
-	public Object getVariable(String varName)
+	public Object retrieveVariable(String varName)
 	{
 		return pkql.getVariableValue(varName);
 	}
@@ -230,5 +247,217 @@ public abstract class BaseJavaReactor extends AbstractReactor{
 			System.out.println(output);
 		}		
 		java.lang.System.setSecurityManager(reactorManager);
-	}	
+	}
+	
+	private String getBaseFolder()
+	{
+		String baseFolder = null;
+		try {
+			baseFolder = DIHelper.getInstance().getProperty("BaseFolder");
+		} catch (Exception ignored) {
+			// TODO Auto-generated catch block
+			
+		}
+		if(baseFolder == null)
+			baseFolder = "C:/users/pkapaleeswaran/workspacej3/SemossWeb";
+		
+		return baseFolder;
+
+	}
+	
+	private RConnection getR()
+	{
+		RConnection retCon = (RConnection)retrieveVariable(R_CONN);
+		java.lang.System.out.println("Connection right now is set to.. " + retCon);
+		if(retCon == null)
+			try {
+				RConnection masterCon = RSingleton.getConnection();
+	
+				String port = Utility.findOpenPort();
+				
+				java.lang.System.out.println("Starting it on port.. " + port);
+				// need to find a way to get a common name
+				//masterCon.eval("Rserve(" + port + ")");
+				retCon = masterCon; //new RConnection("localhost", Integer.parseInt(port));
+				storeVariable(R_CONN, retCon);
+				storeVariable("R_PORT", port);
+			} catch (Exception e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+		rcon = retCon;
+		return retCon;
+	}
+	
+	public void closeR()
+	{
+		String port = (String)retrieveVariable("R_PORT");
+		RConnection conn2 = (RConnection)retrieveVariable(R_CONN);
+		try {
+			conn2.close();
+		} catch (Exception e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+	}
+	
+	private String writeGraph(String directory)
+	{
+		String absoluteFileName = null;
+		if(dataframe instanceof TinkerFrame)
+		{
+	    	final Graph graph = ((TinkerFrame)dataframe).g;
+	    	absoluteFileName = "output" + java.lang.System.currentTimeMillis() + ".xml";
+	    	
+	    	String fileName = directory + "/" + absoluteFileName; 
+	    	try (final OutputStream os = new FileOutputStream(fileName)) {
+	    	    graph.io(IoCore.graphml()).writer().normalize(true).create().writeGraph(os, graph);
+	    	}catch(Exception ex)
+	    	{
+	    		ex.printStackTrace();
+	    	}
+		}
+		return absoluteFileName;
+	}
+	
+	public void synchronizeToR(String graphName) // I will get the format later.. for now.. writing graphml
+	{
+		java.lang.System.setSecurityManager(curManager);
+		String baseFolder = getBaseFolder();
+		String randomDir = Utility.getRandomString(22);
+		
+		String wd = baseFolder + "/" + randomDir;
+		java.io.File file = new File(wd);
+		try {
+			
+			// create this directory
+			file.mkdir();
+			String fileName = writeGraph(wd);
+			
+			java.lang.System.out.println("Trying to get Connection.. ");
+			RConnection rconn = getR();
+			java.lang.System.out.println("Successful.. ");
+			
+			wd = wd.replace("\\", "/");
+			
+			// set the working directory
+			rconn.eval("setwd(\"" + wd + "\")");
+			
+			// load the library
+			rconn.eval("library(\"igraph\");");
+						
+			String loadGraphScript = graphName + "<- read_graph(\"" + fileName + "\", \"graphml\");";
+			java.lang.System.out.println(" Load !! " + loadGraphScript);
+			// load the graph
+			rconn.eval(loadGraphScript);
+			
+			System.out.println("successfully synchronized, your graph is now available as " + graphName);
+			
+			//rconn.close();
+			storeVariable("GRAPH_NAME", graphName);	
+		}catch(Exception ex)
+		{
+			ex.printStackTrace();
+		}
+		java.lang.System.setSecurityManager(reactorManager);
+		
+	}
+	
+	public void runR(String script)
+	{
+		RConnection rcon = getR();
+		try {
+			Object output = rcon.eval(script);
+			java.lang.System.out.println("RCon data.. " + output);
+			if(output instanceof REXPInteger)
+			{
+				int [] ints =  ((REXPInteger)output).asIntegers();
+				if(ints.length > 1)
+				{
+					String intString = "";
+					
+					for(int intIndex = 0;intIndex < ints.length;intString = intString + " " + ints[intIndex], intIndex++);
+						
+					System.out.println("Output : " + intString);
+				}
+				else
+				{					
+					System.out.println(" Output :   " + ints[0]);
+				}
+			}
+			
+			// Doubles.. 
+			if(output instanceof REXPDouble)
+			{
+				double [] doubles =  ((REXPDouble)output).asDoubles();
+				if(doubles.length > 1)
+				{
+					String intString = "";
+					
+					for(int intIndex = 0;intIndex < doubles.length;intString = intString + " " + doubles[intIndex], intIndex++);
+						
+					System.out.println("Output : " + intString);
+				}
+				else
+				{					
+					System.out.println(" Output :   " + doubles[0]);
+				}
+			}
+			
+			if(output instanceof REXPString)
+			{
+				String [] ints =  ((REXPString)output).asStrings();
+				if(ints.length > 1)
+				{
+					String intString = "";
+					
+					for(int intIndex = 0;intIndex < ints.length;intString = intString + " " + ints[intIndex], intIndex++);
+						
+					System.out.println("Output : " + intString);
+				}
+				else
+				{					
+					System.out.println(" Output :   " + ints[0]);
+				}
+			}
+
+		} catch (RserveException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		// now is where the fun starts
+	}
+	
+	// remove the node on R
+	// get the number of clustered components
+	// perform a layout
+	// color a graph based on a formula
+	
+	public void key()
+	{
+		String graphName = (String)retrieveVariable("GRAPH_NAME");
+		String names = "";
+		RConnection con = getR();
+		try {
+			// get the articulation points
+			int [] vertices = con.eval("articulation.points(" + graphName + ")").asIntegers();
+			// now for each vertex get the name
+			for(int vertIndex = 0;vertIndex < vertices.length;  vertIndex++)
+			{
+				names = names + "  " + con.eval("vertex_attr(" + graphName + ", \"NAME\", " + vertices[vertIndex] + ")").asString();
+			}
+		} catch (RserveException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (REXPMismatchException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		
+		System.out.println(" Keys.. " + names);
+		
+	}
+	
+	
+	
 }

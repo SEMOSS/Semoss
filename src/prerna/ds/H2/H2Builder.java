@@ -2887,7 +2887,7 @@ public class H2Builder {
 		if(server == null)
 		{
 	    	try {
-				String port = findOpenPort();
+				String port = Utility.findOpenPort();
 				// create a random user and password 				
 				// get the connection object and start up the frame
 				server = Server.createTcpServer("-tcpPort", port, "-tcpAllowOthers");
@@ -2955,60 +2955,6 @@ public class H2Builder {
 	}
 
 
-	private String findOpenPort()
-	{
-		// start with 7677 and see if you can find any
-		System.out.println("Finding an open port.. ");
-		boolean found = false;
-		int port = 5355;int count = 0;
-		//String server = "10.13.229.203";
-		String server = "127.0.0.1";
-		for(;!found && count < 10000;port++, count++)
-		{
-			System.out.print("Trying.. " + port);
-			try
-			{
-				ServerSocket s = new ServerSocket(port) ;//"10.13.229.203", port);
-				//s.connect(new InetSocketAddress(server, port), 5000);//"localhost", port);
-				//s.accept();
-				found = true;
-				s.close();
-				System.out.println("  Success !!!!");
-				//no error, found an open port, we can stop
-				break;
-			}catch (Exception ex)
-			{
-				// do nothing
-				//ex.printStackTrace();
-				System.out.println("  Fail");
-				//System.exit(0);
-				found = false;
-				//ex.printStackTrace();
-			}finally
-			{
-			}
-		}
-		
-		//if we found a port, return that port
-		if(found) return port+"";
-				
-		port--;
-		BufferedReader br = new BufferedReader(new InputStreamReader(System.in));
-		String portStr = null;
-		if(!found) {
-			System.out.println("Unable to find an open port. Please provide a port.");
-			 try {
-				portStr = br.readLine();
-			} catch (IOException e) {
-				e.printStackTrace();
-			}
-			System.out.println("Using port: " + portStr);
-		} else {
-			portStr = port+"";
-		}
-		
-		return portStr;
-	}
 
     public String[] createUser(String tableName)
     {
