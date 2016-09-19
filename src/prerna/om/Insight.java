@@ -1789,10 +1789,10 @@ public class Insight {
 			resultHash.put("feData", feData);
 			resultHash.put("newColumns", pkqlRunner.getNewColumns());
 			
-			String insightID = null;
-			if((insightID = pkqlRunner.getNewInsightID()) != null) {
-				resultHash.put("generatedInsightID", insightID);
-			}
+//			String insightID = null;
+//			if((insightID = pkqlRunner.getNewInsightID()) != null) {
+//				resultHash.put("generatedInsightID", insightID);
+//			}
 			
 			// Clear the pkql runner of all existing results data
 			// No need for us to hold on to any of this at this point other than 1. variables 2. pkql yet to be run (user input prevented)

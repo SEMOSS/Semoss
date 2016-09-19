@@ -5,6 +5,7 @@ import java.io.FileOutputStream;
 import java.io.OutputStream;
 import java.sql.Connection;
 import java.util.List;
+import java.util.Map;
 import java.util.Vector;
 
 import org.apache.tinkerpop.gremlin.structure.Graph;
@@ -17,6 +18,7 @@ import org.rosuda.REngine.Rserve.RConnection;
 import org.rosuda.REngine.Rserve.RserveException;
 
 import prerna.algorithm.api.ITableDataFrame;
+import prerna.ds.DataFrameHelper;
 import prerna.ds.TinkerFrame;
 import prerna.ds.H2.H2Frame;
 import prerna.engine.api.IEngine;
@@ -460,4 +462,16 @@ public abstract class BaseJavaReactor extends AbstractReactor{
 	
 	
 	
+	
+	public void generateNewGraph(String[] selectors, Map<String, String> edges) {
+		java.lang.System.setSecurityManager(curManager);
+		if(dataframe instanceof TinkerFrame)
+		{
+			TinkerFrame newDataFrame = DataFrameHelper.generateNewGraph((TinkerFrame) dataframe, selectors, edges);
+			myStore.put("G", newDataFrame);
+			System.out.println("Generated new graph data frame");
+		}		
+		java.lang.System.setSecurityManager(reactorManager);
+		
+	}
 }
