@@ -12,6 +12,10 @@ import java.util.Vector;
 
 import org.apache.commons.lang.StringEscapeUtils;
 
+import com.google.gson.Gson;
+import com.google.gson.reflect.TypeToken;
+
+import cern.colt.Arrays;
 import prerna.sablecc.lexer.Lexer;
 import prerna.sablecc.lexer.LexerException;
 import prerna.sablecc.meta.IPkqlMetadata;
@@ -21,10 +25,6 @@ import prerna.sablecc.parser.Parser;
 import prerna.sablecc.parser.ParserException;
 import prerna.ui.components.playsheets.datamakers.IDataMaker;
 import prerna.util.Constants;
-import cern.colt.Arrays;
-
-import com.google.gson.Gson;
-import com.google.gson.reflect.TypeToken;
 
 public class PKQLRunner {
 	
@@ -37,7 +37,9 @@ public class PKQLRunner {
 	
 	private Map<String,String> newColumns = new HashMap<String,String>();
 	private Map<String, Map<String,Object>> masterFeMap = new HashMap<String, Map<String,Object>>(); // this holds all active front end data. in the form panelId --> prop --> value
-	private Map<String, List<Map<String, Object>>> expiredFeMaps =  new HashMap<String, List<Map<String,Object>>>();
+
+	//	private Map<String, List<Map<String, Object>>> expiredFeMaps =  new HashMap<String, List<Map<String,Object>>>();
+	
 	private Map<String, Object> activeFeMap; // temporally grabbed out of master
 	private Translation translation;
 	private List<Map> responseArray = new Vector<Map>();
@@ -45,10 +47,14 @@ public class PKQLRunner {
 	LinkedList<PScript> pkqlToRun = new LinkedList<PScript>();
 	List<String> unassignedVars = new Vector<String>();
 	
-	private Map<String, Object> dataMap = new HashMap<>();
+//	private Map<String, Object> dataMap = new HashMap<>();
+	
 	private List<IPkqlMetadata> metadataResponse = null;
 	
-	private String newInsightID;
+	// there is a getter for this
+	// but we never set this... so not used
+//	private String newInsightID;
+	
 	private Object dashboardMap;
 	
 	/**
@@ -277,25 +283,25 @@ public class PKQLRunner {
 		System.out.println("EXPLANATION IS ::: " + this.explain);
 	}
 	
-	/**
-	 * This method stores the current fe state and opens a new hash to store next state
-	 * This is called when a new state comes in and we don't want to lose the old one
-	 */
-	public void storeFeState() {
-		// remove the activeFeMap from masterFeMap
-		// put activeFeMap into expiredFeMap
-		// open new activeFeMap
-		
-		String panelId = (String) this.activeFeMap.get("panelId");
-		this.masterFeMap.remove(panelId);
-		List<Map<String, Object>> expiredMaps = new Vector<Map<String, Object>>();
-		if(this.expiredFeMaps.containsKey(panelId)){
-			expiredMaps = this.expiredFeMaps.get(panelId);
-		}
-		expiredMaps.add(this.activeFeMap);
-		this.activeFeMap = null;
-		this.openFeDataBlock(panelId);
-	}
+//	/**
+//	 * This method stores the current fe state and opens a new hash to store next state
+//	 * This is called when a new state comes in and we don't want to lose the old one
+//	 */
+//	public void storeFeState() {
+//		// remove the activeFeMap from masterFeMap
+//		// put activeFeMap into expiredFeMap
+//		// open new activeFeMap
+//		
+//		String panelId = (String) this.activeFeMap.get("panelId");
+//		this.masterFeMap.remove(panelId);
+//		List<Map<String, Object>> expiredMaps = new Vector<Map<String, Object>>();
+//		if(this.expiredFeMaps.containsKey(panelId)){
+//			expiredMaps = this.expiredFeMaps.get(panelId);
+//		}
+//		expiredMaps.add(this.activeFeMap);
+//		this.activeFeMap = null;
+//		this.openFeDataBlock(panelId);
+//	}
 
 	/**
 	 * This method is for putting the state of the current panel into a new panel
@@ -397,24 +403,25 @@ public class PKQLRunner {
 	}
 
 	public void clearResponses() {
-		this.currentStatus = PKQLRunner.STATUS.SUCCESS;
+//		this.currentStatus = PKQLRunner.STATUS.SUCCESS;
 		this.currentString = "";
 		this.response = "PKQL processing complete";
 		this.responseArray = new Vector<Map>();
-		this.newColumns = new HashMap<String,String>();
 		this.masterFeMap = new HashMap<String, Map<String,Object>>(); // this holds all active front end data. in the form panelId --> prop --> value
-		this.expiredFeMaps =  new HashMap<String, List<Map<String,Object>>>();
 		this.activeFeMap = null; // temporally grabbed out of master
 		this.translation = null;
+		this.newColumns = new HashMap<String,String>();
+		
+//		this.expiredFeMaps =  new HashMap<String, List<Map<String,Object>>>();
 	}
 
-	public String getNewInsightID() {
-		return newInsightID;
-	}
+//	public String getNewInsightID() {
+//		return newInsightID;
+//	}
 	
-	public void setNewInsightID(String id) {
-		this.newInsightID = id;
-	}
+//	public void setNewInsightID(String id) {
+//		this.newInsightID = id;
+//	}
 	
 	public Object getDashboardData() {
 		return this.dashboardMap;
@@ -424,14 +431,14 @@ public class PKQLRunner {
 		this.dashboardMap = dashboardData;
 	}
 	
-	public Object getDataMap() {
-		return this.dataMap;
-	}
+//	public Object getDataMap() {
+//		return this.dataMap;
+//	}
 	
-	public void setDataMap(Map<String, Object> dataMap) {
-		String insightID = (String)dataMap.get("insightID");
-		this.dataMap.put(insightID, dataMap);
-	}
+//	public void setDataMap(Map<String, Object> dataMap) {
+//		String insightID = (String)dataMap.get("insightID");
+//		this.dataMap.put(insightID, dataMap);
+//	}
 	
 	public List<IPkqlMetadata> getMetadataResponse() {
 		return this.metadataResponse;
