@@ -1,6 +1,5 @@
 package prerna.ui.components.playsheets.datamakers;
 
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Vector;
@@ -14,20 +13,21 @@ import prerna.sablecc.meta.IPkqlMetadata;
 public class PKQLTransformation extends AbstractTransformation {
 
 	private static final Logger LOGGER = LogManager.getLogger(PKQLTransformation.class.getName());
+	
 	public static final String METHOD_NAME = "pkql";
-	private PKQLRunner runner;
-
 	public static final String EXPRESSION = "EXPRESSION";
 
+	private PKQLRunner runner;
 	private List<String> parsedPkqls = new Vector<String>();
-	private Map<String, Object> feData = new HashMap<String, Object>();
-	private Map<String, String> newColumns = new HashMap<String, String>();
+	private List<IPkqlMetadata> metadataList;
+
+//	private Map<String, Object> feData = new HashMap<String, Object>();
+//	private Map<String, String> newColumns = new HashMap<String, String>();
 	
 	IDataMaker dm;
 	
 	boolean addToRecipe = true;
 	int recipeIndex = -1;
-	List<IPkqlMetadata> metadataList;
 	
 	public boolean isAddToRecipe() {
 		return this.addToRecipe;
@@ -69,15 +69,18 @@ public class PKQLTransformation extends AbstractTransformation {
 		
 		String expression = props.get(EXPRESSION) + "";		
 		runner.runPKQL(expression, (IDataMaker) this.dm);
+				
 //		this.dm = runner.getDataFrame();
-		this.feData.putAll(runner.getFeData());
-		if(runner.getNewColumns() != null) {
-			this.newColumns.putAll(runner.getNewColumns());
-		}
+		
+//		this.feData.putAll(runner.getFeData());
+		
+//		if(runner.getNewColumns() != null) {
+//			this.newColumns.putAll(runner.getNewColumns());
+//		}
 		
 		// running the pkql may have changed the datamaker:::::::::::::::::::::::::::::::::::::::::::::::::::::
 		// need to remember to set this back into the insight:::::::::::::::::::::::::::::::::::::::::::::::::
-		this.dm = runner.getDataFrame();
+//		this.dm = runner.getDataFrame();
 		
 		// store added responses
 		List<Map> allCmds = runner.getResults();
@@ -144,13 +147,13 @@ public class PKQLTransformation extends AbstractTransformation {
 //		return joinCopy;
 	}
 	
-	public Map<String, Object> getFeData(){
-		return this.feData;
-	}
+//	public Map<String, Object> getFeData(){
+//		return this.feData;
+//	}
 	
-	public Map<String, String> getNewColumns() {
-		return this.newColumns;
-	}
+//	public Map<String, String> getNewColumns() {
+//		return this.newColumns;
+//	}
 	
 	public void setRunner(PKQLRunner runner){
 		this.runner = runner;
