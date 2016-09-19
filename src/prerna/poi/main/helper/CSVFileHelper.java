@@ -48,6 +48,13 @@ public class CSVFileHelper {
 	// keep track of the current headers being used
 	private String [] currHeaders = null;
 
+	/*
+	 * THIS IS REALLY ANNOYING
+	 * In thick client, need to know if the last column is 
+	 * the path to the prop file location for csv upload
+	 */
+	private boolean propFileExists = false;
+
 	/**
 	 * Parse the new file passed
 	 * @param fileLocation		The String location of the fileName
@@ -97,6 +104,14 @@ public class CSVFileHelper {
 
 			// need to keep track and make sure our headers are good
 			int numCols = allCsvHeaders.length;
+			/*
+			 * THIS IS REALLY ANNOYING
+			 * In thick client, need to know if the last column is 
+			 * the path to the prop file location for csv upload
+			 */
+			if(propFileExists) {
+				numCols--;
+			}
 			newUniqueCSVHeaders = new Vector<String>(numCols);
 
 			// create the integer array s.t. we can reset the value to get in the future
@@ -130,6 +145,10 @@ public class CSVFileHelper {
 			return this.newUniqueCSVHeaders.toArray(new String[]{});
 		}
 		return this.currHeaders;
+	}
+	
+	public void setUsingPropFile(boolean propFileExist) {
+		this.propFileExists  = propFileExist;
 	}
 
 	/**
