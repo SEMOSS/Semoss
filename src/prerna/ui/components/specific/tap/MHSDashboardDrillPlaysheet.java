@@ -38,7 +38,6 @@ import prerna.ui.components.playsheets.datamakers.IDataMaker;
 
 public class MHSDashboardDrillPlaysheet extends TablePlaySheet implements IDataMaker {
 
-	private static final Logger logger = LogManager.getLogger(TablePlaySheet.class.getName());
 	private DataMakerComponent dmComponent;
 
 	private final String SDLC = "SDLCPhase";
@@ -52,7 +51,6 @@ public class MHSDashboardDrillPlaysheet extends TablePlaySheet implements IDataM
 	private final String PLANNED_START = "PlannedStart";
 	private final String ACTUAL_START = "ActualStart";
 	private final String ACTUAL_END = "ActualEnd";
-	private final String ACTIVITY_NUM = "ACTIVITY_NUM";
 	private final String STATUS = "STATUS";
 	private final String DURATION = "DURATION";
 	private final String DEVIATION = "Deviation";
@@ -319,10 +317,8 @@ public class MHSDashboardDrillPlaysheet extends TablePlaySheet implements IDataM
 			List<Object> innerList = new ArrayList<Object>();
 
 			for (Object innerVal : value.entrySet()) {
-				String returnKey = ((Entry<String, Object>) innerVal).getKey();
-
-					Object returnVal = ((Entry<String, Object>) innerVal).getValue();
-					innerList.add(returnVal);
+				Object returnVal = ((Entry<String, Object>) innerVal).getValue();
+				innerList.add(returnVal);
 			}
 			returnList.add(innerList);
 		}
@@ -590,6 +586,7 @@ public class MHSDashboardDrillPlaysheet extends TablePlaySheet implements IDataM
 //				System.out.println("Path:::::::" + parentstring + " : " + children);
 //			}
 //		}
+		
 		HashMap<String, Object> returnMap = new HashMap <String, Object> ();
 		returnMap.put("Path", pathSet);
 		returnMap.put("Vertex", vertexSet);
@@ -597,6 +594,12 @@ public class MHSDashboardDrillPlaysheet extends TablePlaySheet implements IDataM
 		return returnMap;
 	}
 
+	/**
+	 * Method to determine the path of the all the vertices 
+	 * @param currentVertex vertex
+	 * @param path list of all the previous paths 
+	 * @return A set of all the possible paths
+	 */
 	private ArraySet<List<Vertex>> getPathsRecursion (Vertex currentVertex, ArrayList<Vertex> path) {
 		path.add(currentVertex);
 		Iterator<Edge> edgeiterator = currentVertex.edges(Direction.OUT, "TYPE", SYSTEM_ACTIVITY + "+++" + SYSTEM_ACTIVITY);
@@ -616,8 +619,12 @@ public class MHSDashboardDrillPlaysheet extends TablePlaySheet implements IDataM
 		return paths;
 	}
 
-	
-	private Double getPlannedEarlyDates (Set<List<Vertex>> vertexPathSet) {
+	/**
+	 * Planned methods will be initially run to determine the earliest date of completion for the project without taking the actual dates into account
+	 * @param vertexPathSet Set of all the path lists
+	 * @return
+	 */
+	private void getPlannedEarlyDates (Set<List<Vertex>> vertexPathSet) {
 		List<Double> pathSumList = new ArrayList<Double>();
 
 		for (List<Vertex> vertexPathList : vertexPathSet) {
@@ -660,10 +667,14 @@ public class MHSDashboardDrillPlaysheet extends TablePlaySheet implements IDataM
 			}
 			pathSumList.add(sum);
 		}
-		return Collections.max(pathSumList);
+//		return Collections.max(pathSumList);
 	}
 	
-	
+	/**
+	 * Planned methods will be initially run to determine the earliest date of completion for the project without taking the actual dates into account
+	 * @param vertexPathSet Set of all the path lists
+	 * @return
+	 */
 	private void getPlannedLateDates(Set<List<Vertex>> vertexPathSet, TinkerFrame tFrame) {
 		for (List<Vertex> vertexPathList : vertexPathSet) {
 			Collections.reverse(vertexPathList);
@@ -674,7 +685,6 @@ public class MHSDashboardDrillPlaysheet extends TablePlaySheet implements IDataM
 
 			Date criticalDate = getLastestEFDate();
 			for (Vertex vert : vertexPathList) {
-				Date previousNodeLF = LF;
 				if (!vert.value("NAME").equals("_")) {
 
 					String systemActivty = vert.value("NAME");
@@ -701,9 +711,12 @@ public class MHSDashboardDrillPlaysheet extends TablePlaySheet implements IDataM
 		addPlannedLFToFrame(tFrame);
 	}
 
-	
-	
-	private Double getActualEarlyDates(Set<List<Vertex>> vertexPathSet, TinkerFrame tFrame) {
+	/**
+	 * Method to calculate the early start and end dates for all the nodes in each path, while taking into account the actual dates, and then add it to the DB
+	 * @param vertexPathSet Set of all the path lists
+	 * @param tFrame current tinkerFrame
+	 */
+	private void getActualEarlyDates(Set<List<Vertex>> vertexPathSet, TinkerFrame tFrame) {
 		List<Double> pathSumList = new ArrayList<Double>();
 
 		String status = null;
@@ -746,17 +759,6 @@ public class MHSDashboardDrillPlaysheet extends TablePlaySheet implements IDataM
 
 							Double delay = null;
 							Date plannedCompletedDate =null;
-							// get planned EF for the Delay value calculations
-							Date plannedEF = null;
-							if (i == 0) {
-								try {
-									plannedEF = addToDate((Date) getDateFormat().parse(vertexPlannedStart), vertexDuration);
-								} catch (ParseException e) {
-									e.printStackTrace();
-								}
-							} else {
-								plannedEF = addToDate(EF, vertexDuration);
-							}
 
 							// get the actual end date
 							try {
@@ -825,10 +827,13 @@ public class MHSDashboardDrillPlaysheet extends TablePlaySheet implements IDataM
 			pathSumList.add(sum);
 		}
 		addDevationToFrame(tFrame);
-		return Collections.max(pathSumList);
+//		return Collections.max(pathSumList);
 	}
 
-
+	/**
+	 * Method to calculate the late start and end dates for all the nodes in each path, while taking into account the actual dates, and then add it to the DB
+	 * @param vertexPathSet Set of all the path lists
+	 */
 	private void getActualLateDates(Set<List<Vertex>> vertexPathSet) {
 		for (List<Vertex> vertexPathList : vertexPathSet) {
 			Collections.reverse(vertexPathList);
@@ -839,7 +844,6 @@ public class MHSDashboardDrillPlaysheet extends TablePlaySheet implements IDataM
 
 			Date criticalDate = getLastestEFDate();
 			for (Vertex vert : vertexPathList) {
-				Date previousNodeLF = LF;
 				if (!vert.value("NAME").equals("_")) {
 
 					String systemActivity = vert.value("NAME");
@@ -850,8 +854,6 @@ public class MHSDashboardDrillPlaysheet extends TablePlaySheet implements IDataM
 					String vertexDeviation = deviationEdgeIt.next().inVertex().value("VALUE");
 					
 					if (i == 0) {
-						// TODO IF PLANNEDSTART IS AFTER CURRENT DATE THEN USE CURRENT DATE????
-
 						Vertex lastNodeInPath = vertexPathList.get(0);
 						System.out.println("last node in path " + lastNodeInPath.values("NAME"));
 						LF = criticalDate;
@@ -872,7 +874,6 @@ public class MHSDashboardDrillPlaysheet extends TablePlaySheet implements IDataM
 
 					// update db
 					String systemActivty = vert.value("NAME");
-					//TODO: check DEVIATION_START
 					String updateDBquery= null;
 					if(vertexDeviation.equals("slack")){
 						updateDBquery = "UPDATE SYSTEMACTIVITY SET " + LATE_START + " = '" + getDateFormat(LS) + "', " + LATE_FINISH + " = '" + getDateFormat(LF) + "', " + DEVIATION_FINISH + " = '" + getDateFormat(LF) + "' WHERE SYSTEMACTIVITY = '"	+ systemActivty + "'";
@@ -887,12 +888,14 @@ public class MHSDashboardDrillPlaysheet extends TablePlaySheet implements IDataM
 		}
 	}
 
-	// calculate and add the slack value to the excel
+	/**
+	 * Method to calculate and add the slack value to the DB
+	 * @param vertexSet a list of all the vertices in the tinkerframe 
+	 */
 	private void calculateSlack(Set<Vertex> vertexSet) {
 
 		// for every single activity in the current tinkerframe get the LS and ES and then subtract them together to get the Slack value
 
-		List<Double> slackList = new ArrayList<Double>();
 		for (Vertex vert : vertexSet) {
 			String systemActivty = vert.value("NAME");
 			System.out.println("SYSTEM NAME::::::" + systemActivty);
@@ -913,9 +916,6 @@ public class MHSDashboardDrillPlaysheet extends TablePlaySheet implements IDataM
 			} catch (ParseException e) {
 				e.printStackTrace();
 			}
-
-			/////
-			// TODO DELETE!
 
 			Iterator<Edge> earlyFinishIterator = vert.edges(Direction.OUT, "TYPE", SYSTEM_ACTIVITY + "+++" + EARLY_FINISH);
 			String EF = (String) earlyFinishIterator.next().inVertex().value("VALUE");
@@ -959,7 +959,12 @@ public class MHSDashboardDrillPlaysheet extends TablePlaySheet implements IDataM
 		}
 	}
 
-	
+	/**
+	 * Method to determine if the node has already been passed in another path. If it has then get the specified prop to be used in a check
+	 * @param systemActivity node name
+	 * @param prop Property of the node (mostly EarlyStart/LateStart)
+	 * @return date
+	 */
 	private Date getExistingDateValue(String systemActivity, String prop) {
 		String query = "SELECT DISTINCT " + prop + " from SYSTEMACTIVITY WHERE SYSTEMACTIVITY = '" + systemActivity + "'";
 
@@ -982,6 +987,10 @@ public class MHSDashboardDrillPlaysheet extends TablePlaySheet implements IDataM
 		return date;
 	}
 
+	/**
+	 * Method to get the largest/latest Early finish date which represents the finishing date of the last node on the critical path
+	 * @return last date
+	 */
 	private Date getLastestEFDate() {
 		String query = "SELECT EARLYFINISH FROM SYSTEMACTIVITY";
 
@@ -1007,6 +1016,12 @@ public class MHSDashboardDrillPlaysheet extends TablePlaySheet implements IDataM
 		return maxEF;
 	}
 
+	/**
+	 * Method to calculate a future date through the addition method
+	 * @param date initial date
+	 * @param duration number of days to add by
+	 * @return new date value 
+	 */
 	private Date addToDate(Date date, Double duration) {
 		Calendar cal = Calendar.getInstance();
 		cal.setTime(date);
@@ -1015,6 +1030,12 @@ public class MHSDashboardDrillPlaysheet extends TablePlaySheet implements IDataM
 		return cal.getTime();
 	}
 
+	/**
+	 * Method to calculate a past date through the subtraction method
+	 * @param date initial date
+	 * @param duration number of days to subtract by
+	 * @return new date value
+	 */
 	private Date subractFromDate(Date date, Double duration) {
 		Calendar cal = Calendar.getInstance();
 		cal.setTime(date);
@@ -1024,25 +1045,13 @@ public class MHSDashboardDrillPlaysheet extends TablePlaySheet implements IDataM
 		return cal.getTime();
 	}
 
-	private double getLongestPathSum(Set<List<Vertex>> vertexPathSet) {
-		List<Double> pathSumList = new ArrayList<Double>();
-		for (List<Vertex> vertexPathList : vertexPathSet) {
-
-			Double sum = 0.0;
-			for (Vertex vert : vertexPathList) {
-				String edge = SYSTEM_ACTIVITY + "+++" + DURATION;
-				Iterator<Edge> durationEdgeIt = vert.edges(Direction.OUT, "TYPE", edge);
-				Double vertexDuration = Double.parseDouble(durationEdgeIt.next().inVertex().value("VALUE"));
-				sum += vertexDuration;
-			}
-			pathSumList.add(sum);
-		}
-		return Collections.max(pathSumList);
-	}
-
+	/**
+	 * Method to convert a string to Date format, if we know the string is a date
+	 * @param stringDate date in a string format
+	 * @return date format 
+	 */
 	public Date convertStringDates(String stringDate) {
 		Date date = null;
-		Map<String, Date> dateHash = new HashMap<String, Date>();
 		// format string date to type Date
 		try {
 			if (!stringDate.equals("null") && !stringDate.equals("_")) {
@@ -1093,25 +1102,71 @@ public class MHSDashboardDrillPlaysheet extends TablePlaySheet implements IDataM
 			//dataFrame.filter(columnKey, insightList);
 			if(columnKey.equalsIgnoreCase("SDLCPHASE")|| columnKey.equalsIgnoreCase("ACTIVITYGROUP")|| columnKey.equalsIgnoreCase("DHAGROUP")){
 				String fk = columnKey + "_FK";
+				
+				int i= 0;
 				for(Object insight: insightList){
-					filterString.append(fk + "= '" + insight + "' OR ");
+					
+					if(insightList.size() > 1){
+						//first
+						if(i==0) {
+							filterString.append("(" + fk + "= '" + insight + "' OR ");
+						}
+						
+						//last
+						else if (i == insightList.size()-1) {
+							filterString.append(fk + "= '" + insight + "')");
+						}
+						//middle
+						else{
+							filterString.append(fk + "= '" + insight + "' OR ");
+						}
+					} else{
+						//if there is only one item to filter on
+						filterString.append("(" + fk + "= '" + insight + "')");
+					}
+					
+					i++;
 				}
 			}
 			else{
+				int i= 0;
 				for(Object insight: insightList){
-					filterString.append(columnKey + "= '" + insight + "' OR ");
+					
+					if(insightList.size() > 1){
+						//first
+						if(i==0) {
+							filterString.append("(" + columnKey + "= '" + insight + "' OR ");
+						}
+						
+						//last
+						else if (i == insightList.size()-1) {
+							filterString.append(columnKey + "= '" + insight + "')");
+						}
+						//middle
+						else{
+							filterString.append(columnKey + "= '" + insight + "' OR ");
+						}
+					} else{
+						//if there is only one item to filter on
+						filterString.append("(" + columnKey + "= '" + insight + "')");
+					}
+					
+					i++;
+					
 				}
 			}
-			//we need to filter on System, System Owner, SDLC, Group, DHA
+			
+			filterString.append(" AND ");
 		}
 		
-		filterString.delete(filterString.length()-3, filterString.length()-1);
+		filterString.delete(filterString.length()-4, filterString.length()-1);
 		
 		String query  = "SELECT SDLCPHASE_FK, ACTIVITYGROUP_FK, DHAGROUP_FK, SDLCPHASE_ACTIVITYGROUP_DHAGROUP, EARLYSTART , LATEFINISH, KEYSTATUS,  HEATVALUE  FROM SDLCPHASE_ACTIVITYGROUP_DHAGROUP "
 		+ "inner join SYSTEMACTIVITY on SDLCPHASE_ACTIVITYGROUP_DHAGROUP.SDLCPHASE_ACTIVITYGROUP_DHAGROUP=SYSTEMACTIVITY.SDLCPHASE_ACTIVITYGROUP_DHAGROUP_FK "
 		+ "inner join SYSTEM  on SYSTEMACTIVITY.SYSTEMACTIVITY =SYSTEM.SYSTEMACTIVITY_FK "
 		+ "inner join SYSTEMOWNER on SYSTEM.SYSTEM  = SYSTEMOWNER.SYSTEM_FK "
 		+ "where " + filterString;
+		
 		Map<String, Object> queryMap = new HashMap<String, Object>();
 		IRawSelectWrapper iterator = WrapperManager.getInstance().getRawWrapper(dmComponent.getEngine(), query);
 		while (iterator.hasNext()) {
