@@ -6,6 +6,9 @@ import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.locks.ReentrantLock;
 
 import prerna.algorithm.api.ITableDataFrame;
 import prerna.om.Insight;
@@ -19,6 +22,7 @@ public abstract class InsightCache implements ICache {
 	protected static Map<String, String> extensionMap = new HashMap<>();
 	public static final String JSON_EXTENSION = "_VizData.json";
 
+	private ConcurrentMap<String, ReentrantLock> locks = new ConcurrentHashMap<>();
 	/**
 	 * Default constructor for an insight cache
 	 * If there is a different type of data maker that needs to be cached
@@ -213,7 +217,12 @@ public abstract class InsightCache implements ICache {
 						Class frame = Class.forName(framePackageLocation);
 						Constructor<ITableDataFrame> cons = frame.getConstructor();
 						instanceFrame = cons.newInstance();
-						dataFrame = instanceFrame.open(fileName, in.getUserID());
+						synchronized(getLock(fileName)) {
+							dataFrame = instanceFrame.open(fileName, in.getUserID());
+							if(!getLock(fileName).hasQueuedThreads()) {
+								removeLock(fileName);
+							}
+						}
 					}
 				} catch(NoSuchMethodException e) {
 					e.printStackTrace();
@@ -277,6 +286,28 @@ public abstract class InsightCache implements ICache {
 		}
 	}
 	
+	/**
+	 * 
+	 * @param key
+	 * @return
+	 * 
+	 * get the thread lock for a key, create one if necessary
+	 */
+	private ReentrantLock getLock(String key) {
+		locks.putIfAbsent(key, new ReentrantLock());
+		return locks.get(key);
+	}
+	
+	/**
+	 * 
+	 * @param key
+	 * 
+	 * remove lock if no other threads have a handle on it
+	 */
+	private void removeLock(String key) {
+		locks.remove(key);
+		System.out.println("Removed Lock for key: "+key);
+	}
 	/////////////// END DELETE CACHE CODE ///////////////
 
 }
