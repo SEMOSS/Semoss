@@ -81,7 +81,7 @@ public class TinkerFrame extends AbstractTableDataFrame {
 	protected Map<String, Boolean> isNumericalMap = new HashMap<String, Boolean>(); //store on meta
 			
 	protected GremlinGroovyScriptEngine engine = new GremlinGroovyScriptEngine();
-	protected TinkerGraph g = null;
+	public TinkerGraph g = null;
 
 	// stores all of the metadata
 //	protected IMetaData metaData;
