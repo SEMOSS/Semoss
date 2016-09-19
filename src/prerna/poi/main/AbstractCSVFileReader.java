@@ -75,6 +75,7 @@ public abstract class AbstractCSVFileReader extends AbstractFileReader {
 
 		// use the csv file helper to load the data
 		csvHelper = new CSVFileHelper();
+		csvHelper.setUsingPropFile(this.propFileExist);
 		// assume csv
 		csvHelper.setDelimiter(',');
 		csvHelper.parse(FILE_LOCATION);
