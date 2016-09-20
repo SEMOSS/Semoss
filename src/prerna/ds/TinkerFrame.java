@@ -1051,6 +1051,8 @@ public class TinkerFrame extends AbstractTableDataFrame {
 		Object value = tinkerVert.property(Constants.VALUE).value();
 		String type = tinkerVert.property(Constants.TYPE).value() + "";
 		
+		
+			
 		// New logic to construct URI - don't need to take into account base URI beacuse it sits on OWL and is used upon query creation
 		String newValue = Utility.getInstanceName(value.toString());
 		String uri = "http://semoss.org/ontologies/Concept/" + type + "/" + newValue;
@@ -1078,6 +1080,9 @@ public class TinkerFrame extends AbstractTableDataFrame {
 		SEMOSSVertex semossVert = vertStore.get(uri);
 		if(semossVert == null){
 			semossVert = new SEMOSSVertex(uri);
+			// set the cluster
+			if(tinkerVert.property("CLUSTER").isPresent())
+				semossVert.propHash.put("CLUSTER", tinkerVert.property("CLUSTER").value());
 			vertStore.put(uri, semossVert);
 		}
 		return semossVert;
@@ -1119,6 +1124,7 @@ public class TinkerFrame extends AbstractTableDataFrame {
 		while(edgesIt.hasNext()) {
 			Edge e = edgesIt.next();
 			Vertex outV = e.outVertex();
+			
 			Vertex inV = e.inVertex();
 			SEMOSSVertex outVert = getSEMOSSVertex(vertStore, outV);
 			SEMOSSVertex inVert = getSEMOSSVertex(vertStore, inV);
