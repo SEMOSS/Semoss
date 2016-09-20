@@ -484,7 +484,33 @@ public abstract class BaseJavaReactor extends AbstractReactor{
 			ex.printStackTrace();
 		}
 	}
+
 	
+	public void walkInfo()
+	{
+		String graphName = (String)retrieveVariable("GRAPH_NAME");
+		
+		RConnection con = getR();
+		String clusters = "Component Information  \n";
+		try
+		{
+			// set the clusters
+			storeVariable("CLUSTER_NAME", "clus");
+			con.eval("clus <- cluster_walktrap(" + graphName +", membership=TRUE)");
+			/*Object output = con.eval("clus$no");
+			clusters = clusters + " No. Of Components : " + getResultAsString(output) + " \n";
+			output = con.eval("clus$csize");
+			clusters = clusters + " Component Sizes \n";
+			clusters = clusters + getResultAsString(output);*/
+			clusters = clusters + "Completed Walktrap";
+			System.out.println(clusters);
+			colorClusters();
+		}catch(Exception ex)
+		{
+			ex.printStackTrace();
+		}
+	}
+
 	// remove the node on R
 	// get the number of clustered components
 	// perform a layout
