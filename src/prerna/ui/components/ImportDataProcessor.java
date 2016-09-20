@@ -163,7 +163,7 @@ public class ImportDataProcessor {
 		IEngine engine = null;
 		try {		
 			// first write the prop file for the new engine
-			PropFileWriter propWriter = runPropWriter(engineName, defaultSmssLocation, defaultQuestionSheet, importType, dbType, rdbmsDriverType);
+			PropFileWriter propWriter = runPropWriter(options);
 			// TODO: grabbing these values from the prop writer is pretty crap...
 			// 		need to go back and clean the prop writer
 			String smssLocation = propWriter.propFileName;
@@ -737,8 +737,12 @@ public class ImportDataProcessor {
 	// TOOD: need to go through and make prop file writer cleaner
 	// TOOD: need to go through and make prop file writer cleaner
 	// TOOD: need to go through and make prop file writer cleaner
-	private PropFileWriter runPropWriter(String dbName, String dbPropFile, String questionFile, ImportOptions.IMPORT_TYPE importType, ImportOptions.DB_TYPE dbType, SQLQueryUtil.DB_TYPE dbDriverType) throws IOException {
+	private PropFileWriter runPropWriter(ImportOptions options) throws IOException {
 		PropFileWriter propWriter = new PropFileWriter();
+		String dbName = options.getDbName(), dbPropFile = options.getSMSSLocation(), questionFile = options.getQuestionFile();
+		ImportOptions.IMPORT_TYPE importType = options.getImportType();
+		ImportOptions.DB_TYPE dbType = options.getDbType();
+		
 
 		//DB_TYPE dbType = DB_TYPE.RDF;
 		if(importType == ImportOptions.IMPORT_TYPE.NLP) {
@@ -746,11 +750,21 @@ public class ImportDataProcessor {
 		}
 		// need to make provision for dbType
 		if(dbType == ImportOptions.DB_TYPE.RDBMS) {
-
+			SQLQueryUtil.DB_TYPE dbDriverType = options.getRDBMSDriverType();
+			if(options.getImportMethod().equals(ImportOptions.IMPORT_METHOD.CONNECT_TO_EXISTING_RDBMS)) { // TODO: check if this if check needs to be here
+				String host = options.getHost();
+				String port = options.getPort();
+				String schema = options.getSchema();
+				String username = options.getUsername();
+				String password = options.getPassword();
+				
+				SQLQueryUtil sqlQueryUtil = SQLQueryUtil.initialize(dbDriverType, host, port, schema, username, password);
+				propWriter.setSQLQueryUtil(sqlQueryUtil);
+			}
+			propWriter.setRDBMSType(dbDriverType);
 		}
 
 		propWriter.setBaseDir(baseDirectory);
-		propWriter.setRDBMSType(dbDriverType);
 		propWriter.runWriter(dbName, dbPropFile, questionFile, dbType);
 		return propWriter;
 	}
