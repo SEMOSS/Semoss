@@ -4,6 +4,8 @@ import java.io.File;
 import java.io.FileOutputStream;
 import java.io.OutputStream;
 import java.sql.Connection;
+import java.util.Enumeration;
+import java.util.Hashtable;
 import java.util.List;
 import java.util.Map;
 import java.util.Vector;
@@ -223,8 +225,29 @@ public abstract class BaseJavaReactor extends AbstractReactor{
 			String output = "Removed nodes for  " + data + " with values " + removeList;
 			System.out.println(output);
 			dataframe.updateDataId();
+			removeNodeFromR(type, removeList);
 		}
 		java.lang.System.setSecurityManager(reactorManager);
+	}
+	
+	public void removeNodeFromR(String type, List nodeList)
+	{
+		RConnection rcon = getR();
+		String graphName = (String)retrieveVariable("GRAPH_NAME");
+		for(int nodeIndex = 0;nodeIndex < nodeList.size();nodeIndex++)
+		{
+			
+			String name = type + ":" + nodeList.get(nodeIndex);
+			
+			try{
+				java.lang.System.out.println("Deleting.. " + name);
+				rcon.eval("newGraph <- delete_vertices(" + graphName + ", V(" + graphName + ")[ID == \"" + name + "\"])");				
+				rcon.eval(graphName + "<- newGraph");
+			}catch(Exception ex)
+			{
+				ex.printStackTrace();
+			}
+		}
 	}
 	
 	public void eigen(String type, String data)
@@ -365,69 +388,89 @@ public abstract class BaseJavaReactor extends AbstractReactor{
 		
 	}
 	
+	private String getResultAsString(Object output)
+	{
+		String intString = "";
+		if(output instanceof REXPInteger)
+		{
+			int [] ints =  ((REXPInteger)output).asIntegers();
+			if(ints.length > 1)
+			{
+				
+				for(int intIndex = 0;intIndex < ints.length;intString = intString + " " + ints[intIndex], intIndex++);
+					
+			}
+			else
+			{					
+				intString = ints[0] + "";
+			}
+		}
+		
+		// Doubles.. 
+		if(output instanceof REXPDouble)
+		{
+			double [] doubles =  ((REXPDouble)output).asDoubles();
+			if(doubles.length > 1)
+			{
+				
+				for(int intIndex = 0;intIndex < doubles.length;intString = intString + " " + doubles[intIndex], intIndex++);
+			}
+			else
+			{					
+				intString = doubles[0] + "";
+			}
+		}
+		// strings
+		if(output instanceof REXPString)
+		{
+			String [] ints =  ((REXPString)output).asStrings();
+			if(ints.length > 1)
+			{				
+				for(int intIndex = 0;intIndex < ints.length;intString = intString + " " + ints[intIndex], intIndex++);
+					
+			}
+			else
+			{					
+				intString = ints[0] + "";
+			}
+		}
+		
+		return intString;
+	}
+	
 	public void runR(String script)
 	{
 		RConnection rcon = getR();
 		try {
 			Object output = rcon.eval(script);
 			java.lang.System.out.println("RCon data.. " + output);
-			if(output instanceof REXPInteger)
-			{
-				int [] ints =  ((REXPInteger)output).asIntegers();
-				if(ints.length > 1)
-				{
-					String intString = "";
-					
-					for(int intIndex = 0;intIndex < ints.length;intString = intString + " " + ints[intIndex], intIndex++);
-						
-					System.out.println("Output : " + intString);
-				}
-				else
-				{					
-					System.out.println(" Output :   " + ints[0]);
-				}
-			}
-			
-			// Doubles.. 
-			if(output instanceof REXPDouble)
-			{
-				double [] doubles =  ((REXPDouble)output).asDoubles();
-				if(doubles.length > 1)
-				{
-					String intString = "";
-					
-					for(int intIndex = 0;intIndex < doubles.length;intString = intString + " " + doubles[intIndex], intIndex++);
-						
-					System.out.println("Output : " + intString);
-				}
-				else
-				{					
-					System.out.println(" Output :   " + doubles[0]);
-				}
-			}
-			
-			if(output instanceof REXPString)
-			{
-				String [] ints =  ((REXPString)output).asStrings();
-				if(ints.length > 1)
-				{
-					String intString = "";
-					
-					for(int intIndex = 0;intIndex < ints.length;intString = intString + " " + ints[intIndex], intIndex++);
-						
-					System.out.println("Output : " + intString);
-				}
-				else
-				{					
-					System.out.println(" Output :   " + ints[0]);
-				}
-			}
-
+			System.out.println("Output : " + getResultAsString(output));
 		} catch (RserveException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
 		// now is where the fun starts
+	}
+	
+	public void clusterInfo()
+	{
+		String graphName = (String)retrieveVariable("GRAPH_NAME");
+		RConnection con = getR();
+		String clusters = "Component Information  \n";
+		try
+		{
+			// set the clusters
+			con.eval("clus <- clusters(" + graphName +")");
+			Object output = con.eval("clus$no");
+			clusters = clusters + " No. Of Components : " + getResultAsString(output) + " \n";
+			output = con.eval("clus$csize");
+			clusters = clusters + " Component Sizes \n";
+			clusters = clusters + getResultAsString(output);
+			System.out.println(clusters);
+		}catch(Exception ex)
+		{
+			ex.printStackTrace();
+		}
 	}
 	
 	// remove the node on R
@@ -444,9 +487,23 @@ public abstract class BaseJavaReactor extends AbstractReactor{
 			// get the articulation points
 			int [] vertices = con.eval("articulation.points(" + graphName + ")").asIntegers();
 			// now for each vertex get the name
+			Hashtable <String, String> dataHash = new Hashtable<String, String>();
 			for(int vertIndex = 0;vertIndex < vertices.length;  vertIndex++)
 			{
-				names = names + "  " + con.eval("vertex_attr(" + graphName + ", \"NAME\", " + vertices[vertIndex] + ")").asString();
+				String output = con.eval("vertex_attr(" + graphName + ", \"ID\", " + vertices[vertIndex] + ")").asString();
+				String [] typeData = output.split(":");
+				String typeOutput = "";
+				if(dataHash.containsKey(typeData[0]))
+					typeOutput = dataHash.get(typeData[0]);
+				typeOutput = typeOutput + "  " + typeData[1];
+				dataHash.put(typeData[0], typeOutput);
+			}
+			
+			Enumeration <String> keys = dataHash.keys();
+			while(keys.hasMoreElements())
+			{
+				String thisKey = keys.nextElement();
+				names = names + thisKey + " : " + dataHash.get(thisKey) + "\n";
 			}
 		} catch (RserveException e) {
 			// TODO Auto-generated catch block
@@ -455,12 +512,18 @@ public abstract class BaseJavaReactor extends AbstractReactor{
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
-		
-		System.out.println(" Keys.. " + names);
-		
+		System.out.println(" Key Nodes \n " + names);
 	}
 	
-	
+	public void synchronizeFromR(String graphName)
+	{
+		// get the attributes
+		// and then synchronize all the different properties
+		// vertex_attr_names
+
+		
+		
+	}
 	
 	
 	public void generateNewGraph(String[] selectors, Map<String, String> edges) {
