@@ -25,7 +25,7 @@
  * 	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * 	GNU General Public License for more details.
  *******************************************************************************/
-package prerna.rdf.main;
+package prerna.rdf.main; // TODO: move to prerna.poi.main
 
 import java.io.File;
 import java.io.FileNotFoundException;
@@ -37,25 +37,25 @@ import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.Map;
+import java.util.Set;
 
 import org.apache.commons.io.FileUtils;
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
-import org.openrdf.model.vocabulary.RDF;
 
-import com.hp.hpl.jena.vocabulary.OWL;
-
-import prerna.poi.main.BaseDatabaseCreator;
+import prerna.engine.api.IEngine;
+import prerna.engine.impl.AbstractEngine;
+import prerna.poi.main.AbstractEngineCreator;
 import prerna.poi.main.PropFileWriter;
 import prerna.poi.main.RDBMSEngineCreationHelper;
 import prerna.poi.main.helper.ImportOptions;
 import prerna.util.AbstractFileWatcher;
-import prerna.util.Constants;
 import prerna.util.DIHelper;
 import prerna.util.SMSSWebWatcher;
 import prerna.util.sql.SQLQueryUtil;
 
-public class ImportRDBMSProcessor {
+public class ImportRDBMSProcessor extends AbstractEngineCreator {
 	static final Logger logger = LogManager.getLogger(ImportRDBMSProcessor.class.getName());
 	
 	private String connectionURL;
@@ -226,93 +226,68 @@ public class ImportRDBMSProcessor {
 		return allTablesAndColumns;
 	}
 	
-	public boolean addNewRDBMS(String type, String host, String port, String username, String password, String schema, String engineName, HashMap<String, Object> metamodel) {
-		boolean success = false;
+	public IEngine addNewRDBMS(ImportOptions options) throws IOException {
+		SQLQueryUtil.DB_TYPE sqlType = options.getRDBMSDriverType();
+		String host = options.getHost();
+		String port = options.getPort();
+		String schema = options.getSchema();
+		String username = options.getUsername();
+		String password = options.getPassword();
+		String engineName = options.getDbName();
+		HashMap<String, Object> externalMetamodel = options.getExternalMetamodel();
+		queryUtil = SQLQueryUtil.initialize(sqlType, host, port, schema, username, password);
+		prepEngineCreator(null, options.getOwlFileLocation(), options.getSMSSLocation());
+		openRdbmsEngineWithoutConnection(engineName);
+		HashMap<String, ArrayList<String>> nodesAndProps = (HashMap<String, ArrayList<String>>) externalMetamodel.get("nodes");
+		ArrayList<String[]> relationships = (ArrayList<String[]>) externalMetamodel.get("relationships");
+		Map<String, Map<String, String>> existingRDBMSStructure = RDBMSEngineCreationHelper.getExistingRDBMSStructure(engine,queryUtil);
+		Map<String, String> nodesAndPrimKeys = new HashMap<String, String>(); // Uncleaned concepts and their primkeys
 		
-		HashMap<String, ArrayList<String>> nodesAndProps = (HashMap<String, ArrayList<String>>) metamodel.get("nodes");
-		ArrayList<String[]> relationships = (ArrayList<String[]>) metamodel.get("relationships");
+		nodesAndPrimKeys = parseNodesAndProps(nodesAndProps, existingRDBMSStructure);
+		parseRelationships(relationships, existingRDBMSStructure, nodesAndPrimKeys);
+		createBaseRelations(); // TODO: this should be moved into ImportDataProcessor and removed from every subclass of AbstractEngineCreator
 		
-		SQLQueryUtil queryUtil = SQLQueryUtil.initialize(SQLQueryUtil.DB_TYPE.valueOf(type), host, port, schema, username, password);
-//		RDBMSReader reader = new RDBMSReader();
-//		reader.setQueryUtil(queryUtil);
-		File engineDir = new File(baseFolder + "/db/" + engineName);
-		engineDir.mkdir();
-		RDBMSEngineCreationHelper.writePropFile(engineName, queryUtil);
-//		reader.writePropFile(engineName);
+		RDBMSEngineCreationHelper.writeDefaultQuestionSheet(engineName, nodesAndPrimKeys.keySet());
 		
-		BaseDatabaseCreator bdc = new BaseDatabaseCreator(baseFolder + "/db/" + engineName + "/" + engineName + "_OWL.OWL");
-		String semossURI = "http://semoss.org/ontologies";
-		
-		String sub = semossURI + "/" + Constants.DEFAULT_NODE_CLASS;
-		String pred = RDF.TYPE.stringValue();
-		String obj = Constants.CLASS_URI;
-		bdc.addToBaseEngine(new Object[] {sub, pred, obj, true});
-		
-		// necessary triple saying Relation is a type of Property
-		sub =  semossURI + "/" + Constants.DEFAULT_RELATION_CLASS;
-		pred = RDF.TYPE.stringValue();
-		obj = Constants.DEFAULT_PROPERTY_URI;
-		bdc.addToBaseEngine(new Object[] {sub, pred, obj, true});
-		
-		String basePropURI = semossURI + "/" + Constants.DEFAULT_RELATION_CLASS + "/" + "Contains";
-		bdc.addToBaseEngine(new Object[] {basePropURI, Constants.SUBPROPERTY_URI, basePropURI, true});
-		
-		HashMap<String, String> tables = new HashMap<String, String>();
-		
-		for(String s : nodesAndProps.keySet()) {
-			String[] tableAndPrimaryKey = s.split("\\.");
+		return this.engine;
+	}
+	
+	private HashMap<String, String> parseNodesAndProps(HashMap<String, ArrayList<String>> nodesAndProps, Map<String, Map<String, String>> dataTypes) {
+		HashMap<String, String> nodesAndPrimKeys = new HashMap<String, String>(nodesAndProps.size());
+		for(String node : nodesAndProps.keySet()) {
+			String[] tableAndPrimaryKey = node.split("\\.");
 			String nodeName = tableAndPrimaryKey[0];
-			String PK = tableAndPrimaryKey[1];
+			String primaryKey = tableAndPrimaryKey[1];
+			nodesAndPrimKeys.put(nodeName, primaryKey);
 			
-			tables.put(nodeName, PK);
-			
-			sub = semossURI + "/" + Constants.DEFAULT_NODE_CLASS + "/" + PK + "/" + nodeName;
-			pred = Constants.SUBCLASS_URI;
-			obj = semossURI + "/Concept";
-			bdc.addToBaseEngine(new Object[] {sub, pred, obj, true});
-			
-			pred = semossURI + "/" + Constants.DEFAULT_PROPERTY_CLASS + "/" + "PRIMARY_KEY";
-			obj = PK;
-			bdc.addToBaseEngine(new Object[] {sub, pred, obj, false});
-			
-			for(String prop : nodesAndProps.get(s)) {
-				if(!prop.equals(PK)) {
-					sub = basePropURI + "/" + prop;
-					pred = RDF.TYPE +"";
-					obj = semossURI + "/" + Constants.DEFAULT_PROPERTY_CLASS;
-					bdc.addToBaseEngine(new Object[] {sub, pred, obj, true});
-					
-					sub = semossURI + "/" + Constants.DEFAULT_NODE_CLASS + "/" + PK + "/" + nodeName;
-					pred = OWL.DatatypeProperty+"";
-					obj = basePropURI + "/" + prop;
-					bdc.addToBaseEngine(new Object[] {sub, pred, obj, true});
+			String cleanConceptTableName = RDBMSEngineCreationHelper.cleanTableName(nodeName);
+			owler.addConcept(cleanConceptTableName, primaryKey, dataTypes.get(nodeName).get(primaryKey));
+			for(String prop: nodesAndProps.get(node)) {
+				if(!prop.equals(primaryKey)) {
+					String cleanProp = RDBMSEngineCreationHelper.cleanTableName(prop);
+					owler.addProp(cleanConceptTableName, primaryKey, cleanProp, dataTypes.get(nodeName).get(prop));
 				}
 			}
 		}
 		
-		for(String[] rel : relationships) {
-			sub = semossURI + "/" + Constants.DEFAULT_RELATION_CLASS + "/" + rel[0] + "." + rel[1].replace(".", "." + rel[2] + ".");
-			pred = Constants.SUBPROPERTY_URI;
-			obj = semossURI + "/" + Constants.DEFAULT_RELATION_CLASS;
-			bdc.addToBaseEngine(new Object[] {sub, pred, obj, true});
-			
-			sub = semossURI + "/" + Constants.DEFAULT_NODE_CLASS + "/" + tables.get(rel[0]) + "/" + rel[0];
-			pred = semossURI + "/" + Constants.DEFAULT_RELATION_CLASS + "/" + rel[0] + "." + rel[1].replace(".", "." + rel[2] + ".");
-			obj = semossURI + "/" + Constants.DEFAULT_NODE_CLASS + "/" + tables.get(rel[2]) + "/" + rel[2];
-			bdc.addToBaseEngine(new Object[] {sub, pred, obj, true});
+		return nodesAndPrimKeys;
+	}
+	
+	private void parseRelationships(ArrayList<String[]> relationships, Map<String, Map<String, String>> dataTypes, Map<String, String> nodesAndPrimKeys) {
+		for(String[] relationship: relationships) {
+			String subject = RDBMSEngineCreationHelper.cleanTableName(relationship[0]);
+			String object = RDBMSEngineCreationHelper.cleanTableName(relationship[2]);
+			String predicate = relationship[1]; //TODO: check if this needs to be cleaned
+			owler.addRelation(subject, nodesAndPrimKeys.get(subject), object, nodesAndPrimKeys.get(object), predicate);
 		}
-		bdc.addToBaseEngine(new Object[] {semossURI + "/" + Constants.DEFAULT_PROPERTY_CLASS, RDF.TYPE+"", semossURI + "/" + Constants.DEFAULT_RELATION_CLASS, true});
-		
-		bdc.commit();
-		try {
-			bdc.exportBaseEng(false);
-		} catch (IOException e) {
-			e.printStackTrace();
-		}
-		
-		RDBMSEngineCreationHelper.writeDefaultQuestionSheet(engineName, tables.keySet());
-//		reader.setTables(tables.keySet());
-//		reader.writeDefaultQuestionSheet(engineName);
+	}
+	
+	private boolean createPropFile(String engineName, Set<String> nodes) {
+		boolean success = false;
+		String engineDirectory = baseFolder + "/db/" + engineName;
+		File engineDir = new File(engineDirectory);
+		engineDir.mkdir();
+		RDBMSEngineCreationHelper.writePropFile(engineName, queryUtil);
 		
 		PropFileWriter propWriter = new PropFileWriter();
 		propWriter.setBaseDir(baseFolder);
@@ -329,6 +304,24 @@ public class ImportRDBMSProcessor {
 			
 			propWriter.runWriter(engineName, "", "", ImportOptions.DB_TYPE.RDBMS);
 			oldFile = new File(propWriter.propFileName);
+			
+			owler.commit();
+			try {
+				owler.export();
+			} catch (IOException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+			owler.closeOwl();
+			
+			RDBMSEngineCreationHelper.writeDefaultQuestionSheet(engineName, nodes);
+			try {
+				((AbstractEngine)this.engine).setPropFile(this.dbPropFile);
+				((AbstractEngine)this.engine).createInsights(this.baseFolder);
+			} catch (IOException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
 			
 			watcherInstance.process(propWriter.propFileName.substring(propWriter.propFileName.lastIndexOf("/"))); 
 			
@@ -349,6 +342,7 @@ public class ImportRDBMSProcessor {
 					e.printStackTrace();
 				}
 			}
+			
 			success = true;
 		}
 		
