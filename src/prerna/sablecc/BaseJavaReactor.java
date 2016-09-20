@@ -454,8 +454,14 @@ public abstract class BaseJavaReactor extends AbstractReactor{
 		}
 		// now is where the fun starts
 	}
-	
+
 	public void clusterInfo()
+	{
+		String clusters = "clusters";
+		clusterInfo(clusters);
+	}
+	
+	public void clusterInfo(String clusterRoutine)
 	{
 		String graphName = (String)retrieveVariable("GRAPH_NAME");
 		
@@ -465,13 +471,14 @@ public abstract class BaseJavaReactor extends AbstractReactor{
 		{
 			// set the clusters
 			storeVariable("CLUSTER_NAME", "clus");
-			con.eval("clus <- clusters(" + graphName +")");
+			con.eval("clus <- " + clusterRoutine + "(" + graphName +")");
 			Object output = con.eval("clus$no");
 			clusters = clusters + " No. Of Components : " + getResultAsString(output) + " \n";
 			output = con.eval("clus$csize");
 			clusters = clusters + " Component Sizes \n";
 			clusters = clusters + getResultAsString(output);
 			System.out.println(clusters);
+			colorClusters();
 		}catch(Exception ex)
 		{
 			ex.printStackTrace();
