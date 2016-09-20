@@ -10,7 +10,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.Vector;
 
+import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.GraphTraversal;
 import org.apache.tinkerpop.gremlin.structure.Graph;
+import org.apache.tinkerpop.gremlin.structure.Vertex;
 import org.apache.tinkerpop.gremlin.structure.io.IoCore;
 import org.rosuda.REngine.REXPDouble;
 import org.rosuda.REngine.REXPInteger;
@@ -26,6 +28,7 @@ import prerna.ds.H2.H2Frame;
 import prerna.engine.api.IEngine;
 import prerna.engine.impl.r.RSingleton;
 import prerna.util.Console;
+import prerna.util.Constants;
 import prerna.util.DIHelper;
 import prerna.util.Utility;
 
@@ -326,7 +329,7 @@ public abstract class BaseJavaReactor extends AbstractReactor{
 		}
 	}
 	
-	private String writeGraph(String directory)
+	public String writeGraph(String directory)
 	{
 		String absoluteFileName = null;
 		if(dataframe instanceof TinkerFrame)
@@ -455,11 +458,13 @@ public abstract class BaseJavaReactor extends AbstractReactor{
 	public void clusterInfo()
 	{
 		String graphName = (String)retrieveVariable("GRAPH_NAME");
+		
 		RConnection con = getR();
 		String clusters = "Component Information  \n";
 		try
 		{
 			// set the clusters
+			storeVariable("CLUSTER_NAME", "clus");
 			con.eval("clus <- clusters(" + graphName +")");
 			Object output = con.eval("clus$no");
 			clusters = clusters + " No. Of Components : " + getResultAsString(output) + " \n";
@@ -515,14 +520,73 @@ public abstract class BaseJavaReactor extends AbstractReactor{
 		System.out.println(" Key Nodes \n " + names);
 	}
 	
+	public void colorClusters()
+	{
+		String graphName = (String)retrieveVariable("GRAPH_NAME");
+		String clusterName = (String)retrieveVariable("CLUSTER_NAME");
+
+		RConnection con = getR();
+		// the color is saved as color
+		try
+		{
+			int [] memberships = rcon.eval(clusterName + "$membership").asIntegers();
+			String [] IDs = rcon.eval("V(" + graphName + ")$ID").asStrings();
+			
+			for(int memIndex = 0;memIndex < memberships.length;memIndex++)
+			{
+				String thisID = IDs[memIndex];
+
+				java.lang.System.out.println("ID...  " + thisID);
+				Vertex retVertex = null;
+				
+				GraphTraversal<Vertex, Vertex>  gt = ((TinkerFrame)dataframe).g.traversal().V().has(Constants.ID, thisID);
+				if(gt.hasNext()) {
+					retVertex = gt.next();
+				}
+				if(retVertex != null)
+				{
+					retVertex.property("CLUSTER", memberships[memIndex]);
+					java.lang.System.out.println("Set the cluster to " + memberships[memIndex]);
+				}
+			}
+		}catch (Exception ex)
+		{
+			ex.printStackTrace();
+		}
+	}
+	
 	public void synchronizeFromR(String graphName)
 	{
 		// get the attributes
 		// and then synchronize all the different properties
 		// vertex_attr_names
+		String names = "";
+		RConnection con = getR();
 
+		// get all the attributes first
+		try {
+			String [] strings = con.eval("vertex_attr_names(" + graphName + ")").asStrings();
+			// the question is do I get everything here and set tinker
+			// or for each get it and so I dont look up tinker many times ?!
+			
+			// now I need to get each of this string and then synchronize
+			
+			
+		} catch (RserveException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (REXPMismatchException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
 		
 		
+	}
+	
+	public void synchronizeFromR()
+	{
+		String graphName = (String)retrieveVariable("GRAPH_NAME");
+		synchronizeFromR(graphName);
 	}
 	
 	
