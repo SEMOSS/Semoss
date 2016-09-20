@@ -27,8 +27,6 @@
  *******************************************************************************/
 package prerna.rdf.main; // TODO: move to prerna.poi.main
 
-import java.io.File;
-import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.sql.Connection;
 import java.sql.DriverManager;
@@ -38,21 +36,15 @@ import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.Set;
 
-import org.apache.commons.io.FileUtils;
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
 import prerna.engine.api.IEngine;
-import prerna.engine.impl.AbstractEngine;
 import prerna.poi.main.AbstractEngineCreator;
-import prerna.poi.main.PropFileWriter;
 import prerna.poi.main.RDBMSEngineCreationHelper;
 import prerna.poi.main.helper.ImportOptions;
-import prerna.util.AbstractFileWatcher;
 import prerna.util.DIHelper;
-import prerna.util.SMSSWebWatcher;
 import prerna.util.sql.SQLQueryUtil;
 
 public class ImportRDBMSProcessor extends AbstractEngineCreator {
@@ -277,76 +269,9 @@ public class ImportRDBMSProcessor extends AbstractEngineCreator {
 		for(String[] relationship: relationships) {
 			String subject = RDBMSEngineCreationHelper.cleanTableName(relationship[0]);
 			String object = RDBMSEngineCreationHelper.cleanTableName(relationship[2]);
-			String predicate = relationship[1]; //TODO: check if this needs to be cleaned
+			String predicate = subject + "." + relationship[1] + "." + object; //TODO: check if this needs to be cleaned
 			owler.addRelation(subject, nodesAndPrimKeys.get(subject), object, nodesAndPrimKeys.get(object), predicate);
 		}
-	}
-	
-	private boolean createPropFile(String engineName, Set<String> nodes) {
-		boolean success = false;
-		String engineDirectory = baseFolder + "/db/" + engineName;
-		File engineDir = new File(engineDirectory);
-		engineDir.mkdir();
-		RDBMSEngineCreationHelper.writePropFile(engineName, queryUtil);
-		
-		PropFileWriter propWriter = new PropFileWriter();
-		propWriter.setBaseDir(baseFolder);
-		propWriter.setSQLQueryUtil(queryUtil);
-		propWriter.setShouldFillEmptyTypes("true");
-		File oldFile = null;
-		File newFile = null;
-		try {
-			String watcher = "SMSSWebWatcher";
-			String folder = DIHelper.getInstance().getProperty(watcher + "_DIR");
-			AbstractFileWatcher watcherInstance = new SMSSWebWatcher();
-			watcherInstance.setMonitor(new Object[]{});
-			watcherInstance.setFolderToWatch(folder);
-			
-			propWriter.runWriter(engineName, "", "", ImportOptions.DB_TYPE.RDBMS);
-			oldFile = new File(propWriter.propFileName);
-			
-			owler.commit();
-			try {
-				owler.export();
-			} catch (IOException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
-			}
-			owler.closeOwl();
-			
-			RDBMSEngineCreationHelper.writeDefaultQuestionSheet(engineName, nodes);
-			try {
-				((AbstractEngine)this.engine).setPropFile(this.dbPropFile);
-				((AbstractEngine)this.engine).createInsights(this.baseFolder);
-			} catch (IOException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
-			}
-			
-			watcherInstance.process(propWriter.propFileName.substring(propWriter.propFileName.lastIndexOf("/"))); 
-			
-			newFile = new File(propWriter.propFileName.replace("temp", "smss"));
-			FileUtils.copyFile(oldFile, newFile);
-			newFile.setReadable(true);
-		} catch (IllegalArgumentException e1) {
-			e1.printStackTrace();
-		} catch (FileNotFoundException e2) {
-			e2.printStackTrace();
-		} catch (IOException e3) {
-			e3.printStackTrace();
-		} finally {
-			if(oldFile != null && oldFile.exists()) {
-				try {
-					FileUtils.forceDelete(oldFile);
-				} catch (IOException e) {
-					e.printStackTrace();
-				}
-			}
-			
-			success = true;
-		}
-		
-		return success;
 	}
 	
 	private boolean isValidConnection(Connection con) {
