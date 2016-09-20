@@ -14,7 +14,7 @@ public class MySQLQueryUtil extends SQLQueryUtil {
 	}
 	
 	public MySQLQueryUtil(String hostname, String port, String schema, String username, String password) {
-		setDialect();
+		setDialect(schema);
 		connectionBase = connectionBase.replace("HOST", hostname).replace("SCHEMA", schema);
 		if(port != null && !port.isEmpty()) {
 			connectionBase = connectionBase.replace(":PORT", ":" + port);
@@ -40,6 +40,12 @@ public class MySQLQueryUtil extends SQLQueryUtil {
 		super.setResultAllColumnsColumnType("DATA_TYPE");
 		super.setDialectOuterJoinLeft(" LEFT OUTER JOIN ");
 		super.setDialectOuterJoinRight(" RIGHT OUTER JOIN ");
+	}
+	
+	private void setDialect(String schema) {
+		setDialect();
+		super.setDialectAllTables("SELECT table_name FROM information_schema.tables where table_schema='" + schema + "'");
+		super.setDialectAllColumns(" SELECT COLUMN_NAME, DATA_TYPE FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = '" + schema + "' AND TABLE_NAME = ");
 	}
 
 	@Override
