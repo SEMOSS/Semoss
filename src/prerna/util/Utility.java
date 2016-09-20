@@ -1024,10 +1024,10 @@ public class Utility {
 			System.out.println("Connecting to URL.. " + jdbcURL);
 			String userName = "sa";
 			String password = "";
-			if(prop.containsKey(Constants.USERNAME))
-				userName = prop.getProperty(Constants.USERNAME);
-			if(prop.containsKey(Constants.PASSWORD))
-				password = prop.getProperty(Constants.PASSWORD);
+//			if(prop.containsKey(Constants.USERNAME))
+//				userName = prop.getProperty(Constants.USERNAME);
+//			if(prop.containsKey(Constants.PASSWORD))
+//				password = prop.getProperty(Constants.PASSWORD);
 			
 			RDBMSNativeEngine rne = new RDBMSNativeEngine();
 			rne.makeConnection(jdbcURL, userName, password);

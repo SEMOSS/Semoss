@@ -1,5 +1,6 @@
 package prerna.poi.main.helper;
 
+import java.util.HashMap;
 import java.util.Hashtable;
 import java.util.List;
 import java.util.Map;
@@ -16,11 +17,12 @@ public class ImportOptions {
 	private Hashtable<ImportOptions.IMPORT_OPTIONS , Object> thisMap = new Hashtable<ImportOptions.IMPORT_OPTIONS , Object>();
 	
 	public enum IMPORT_METHOD {CREATE_NEW, ADD_TO_EXISTING, OVERRIDE, CONNECT_TO_EXISTING_RDBMS};
-	public enum IMPORT_TYPE {CSV, NLP, EXCEL_POI, EXCEL, OCR, CSV_FLAT_LOAD, EXCEL_FLAT_UPLOAD};
+	public enum IMPORT_TYPE {CSV, NLP, EXCEL_POI, EXCEL, OCR, CSV_FLAT_LOAD, EXCEL_FLAT_UPLOAD, EXTERNAL_RDBMS};
 	public enum DB_TYPE {RDF, RDBMS};
 	
 	public enum IMPORT_OPTIONS {
 		SMSS_LOCATION, 			// should point to string - location of smss file
+		OWL_FILE_LOCATION,
 		IMPORT_METHOD, 			// should point to IMPORT_METHOD - either create new, add to existing, override
 		IMPORT_TYPE, 			// should point to ImportDataProcessor.IMPORT_TYPE - csv, nlp, etc.
 		DB_TYPE, 				// should point to ImportDataProcess.DB_TYPE - rdf or rdbms
@@ -37,7 +39,13 @@ public class ImportOptions {
 		CSV_DATA_TYPE_MAP,		// should point to Map<String, Map<String, String>> - only valid for flat upload
 		EXCEL_DATA_TYPE_MAP,	// should point to List<Map<String, Map<String, String>> - only valid for flat upload
 		CSV_DATA_NEW_HEADERS,	// should point to Map<String, Map<String, String>
-		EXCEL_DATA_NEW_HEADERS	// should point to List<Map<String, Map<String, String>>>
+		EXCEL_DATA_NEW_HEADERS,	// should point to List<Map<String, Map<String, String>>>
+		HOST,
+		PORT,
+		SCHEMA,
+		USERNAME,
+		PASSWORD,
+		EXTERNAL_METAMODEL
 	};
 	
 	
@@ -55,6 +63,13 @@ public class ImportOptions {
 		thisMap.put(IMPORT_OPTIONS.SMSS_LOCATION, smssLocation);
 	}
 	
+	public String getOwlFileLocation() {
+		return (String) thisMap.get(IMPORT_OPTIONS.OWL_FILE_LOCATION);
+	}
+	
+	public void setOwlFileLocation(String owlFileLocation) {
+		thisMap.put(IMPORT_OPTIONS.OWL_FILE_LOCATION, owlFileLocation);
+	}
 	/**
 	 * Get the import method
 	 * @return
@@ -246,6 +261,54 @@ public class ImportOptions {
 	
 	public void setExcelNewHeaders(List<Map<String, Map<String, String>>> newExcelHeaders) {
 		thisMap.put(IMPORT_OPTIONS.EXCEL_DATA_NEW_HEADERS, newExcelHeaders);
+	}
+	
+	public String getHost() {
+		return (String) thisMap.get(IMPORT_OPTIONS.HOST);
+	}
+	
+	public void setHost(String host) {
+		thisMap.put(IMPORT_OPTIONS.HOST, host);
+	}
+	
+	public String getPort() {
+		return (String) thisMap.get(IMPORT_OPTIONS.PORT);
+	}
+	
+	public void setPort(String port) {
+		thisMap.put(IMPORT_OPTIONS.PORT, port);
+	}
+	
+	public String getSchema() {
+		return (String) thisMap.get(IMPORT_OPTIONS.SCHEMA);
+	}
+	
+	public void setSchema(String schema) {
+		thisMap.put(IMPORT_OPTIONS.SCHEMA, schema);
+	}
+	
+	public String getUsername() {
+		return (String) thisMap.get(IMPORT_OPTIONS.USERNAME);
+	}
+	
+	public void setUsername(String username) {
+		thisMap.put(IMPORT_OPTIONS.USERNAME, username);
+	}
+	
+	public String getPassword() {
+		return (String) thisMap.get(IMPORT_OPTIONS.PASSWORD);
+	}
+	
+	public void setPassword(String password) {
+		thisMap.put(IMPORT_OPTIONS.PASSWORD, password);
+	}
+	
+	public HashMap<String, Object> getExternalMetamodel() {
+		return (HashMap<String, Object>) thisMap.get(IMPORT_OPTIONS.EXTERNAL_METAMODEL);
+	}
+	
+	public void setExternalMetamodel(HashMap<String, Object> externalMetamodel) {
+		thisMap.put(IMPORT_OPTIONS.EXTERNAL_METAMODEL, externalMetamodel);
 	}
 	
 	///////////////////////////// end getters & setters /////////////////////////////////////

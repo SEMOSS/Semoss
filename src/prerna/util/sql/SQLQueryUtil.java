@@ -157,6 +157,11 @@ public abstract class SQLQueryUtil {
 	public String getDialectAllTables(){
 		return this.dialectAllTables;
 	}
+	
+	public String getDialectAllTables(String schema) {
+		return getDialectAllTables(); // uses schema to write more specific query in MySQLQueryUtil
+	}
+	
 	public String getResultAllTablesTableName(){
 		return this.resultAllTablesTableName;
 	}
