@@ -8,6 +8,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 
 import prerna.algorithm.api.ITableDataFrame;
@@ -217,12 +218,18 @@ public abstract class InsightCache implements ICache {
 						Class frame = Class.forName(framePackageLocation);
 						Constructor<ITableDataFrame> cons = frame.getConstructor();
 						instanceFrame = cons.newInstance();
-						synchronized(getLock(fileName)) {
+						
+						ReentrantLock lock = getLock(fileName);
+						lock.lock();
+						try {
 							dataFrame = instanceFrame.open(fileName, in.getUserID());
-							if(!getLock(fileName).hasQueuedThreads()) {
-								removeLock(fileName);
-							}
-						}
+						} finally {
+							//TODO : how to remove locks thread safely?
+//							if(!lock.hasQueuedThreads()) {
+//								removeLock(fileName);
+//							}
+							lock.unlock();
+						}						
 					}
 				} catch(NoSuchMethodException e) {
 					e.printStackTrace();
@@ -286,6 +293,8 @@ public abstract class InsightCache implements ICache {
 		}
 	}
 	
+	/////////////// END DELETE CACHE CODE ///////////////
+	
 	/**
 	 * 
 	 * @param key
@@ -308,6 +317,4 @@ public abstract class InsightCache implements ICache {
 		locks.remove(key);
 		System.out.println("Removed Lock for key: "+key);
 	}
-	/////////////// END DELETE CACHE CODE ///////////////
-
 }
