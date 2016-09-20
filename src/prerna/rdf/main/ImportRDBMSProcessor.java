@@ -269,7 +269,8 @@ public class ImportRDBMSProcessor extends AbstractEngineCreator {
 		for(String[] relationship: relationships) {
 			String subject = RDBMSEngineCreationHelper.cleanTableName(relationship[0]);
 			String object = RDBMSEngineCreationHelper.cleanTableName(relationship[2]);
-			String predicate = subject + "." + relationship[1] + "." + object; //TODO: check if this needs to be cleaned
+			String[] joinColumns = relationship[1].split("\\."); //TODO: check if this needs to be cleaned
+			String predicate = subject + "." + joinColumns[0]+ "." + object + "." + joinColumns[1]; // predicate is: "fromTable.fromJoinCol.toTable.toJoinCol"
 			owler.addRelation(subject, nodesAndPrimKeys.get(subject), object, nodesAndPrimKeys.get(object), predicate);
 		}
 	}
