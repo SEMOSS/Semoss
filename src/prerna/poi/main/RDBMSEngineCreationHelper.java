@@ -78,7 +78,7 @@ public class RDBMSEngineCreationHelper {
 		String layout = "prerna.ui.components.playsheets.GridPlaySheet";
 		for(String tableName : tables)
 		{
-			genericQueries += ";" + "GQ" + questionOrder;			
+			genericQueries += ";" + "GQ" + questionOrder;		
 			questionName = "Show all from " + tableName;
 			String sql = "SELECT * FROM " + tableName;
 			prop.put("GQ" + questionOrder, questionName);
@@ -181,7 +181,6 @@ public class RDBMSEngineCreationHelper {
 	
 	public static Map<String, Map<String, String>> getExistingRDBMSStructure(IEngine rdbmsEngine, SQLQueryUtil queryUtil) {
 		Map<String, Map<String, String>> retMap = new Hashtable<String, Map<String, String>>();
-
 		// get all the tables names in the H2 database
 		String getAllTablesQuery = "SHOW TABLES FROM PUBLIC";
 		// for databases other than H2
@@ -211,7 +210,7 @@ public class RDBMSEngineCreationHelper {
 				ISelectStatement ss = wrapper.next();
 				String colName = ss.getVar(names[0]) + "";
 				String colType = ss.getVar(names[1]) + "";
-				colTypeHash.put(colName, colType);
+				colTypeHash.put(colName, colType.toUpperCase());
 			}
 
 			// add the table name and column type for the table name
@@ -229,7 +228,7 @@ public class RDBMSEngineCreationHelper {
 	public static String cleanTableName(String s) {
 		s = s.trim();
 		s = s.replaceAll(" ", "_");
-		s = s.replaceAll("[^a-zA-Z0-9\\_]", "");
+		s = s.replaceAll("[^a-zA-Z0-9\\_]", ""); // matches anything that is not alphanumeric or underscore
 		while(s.contains("__")){
 			s = s.replace("__", "_");
 		}

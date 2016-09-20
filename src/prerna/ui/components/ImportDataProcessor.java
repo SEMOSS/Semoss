@@ -60,6 +60,7 @@ import prerna.poi.main.RDBMSReader;
 import prerna.poi.main.RdfExcelTableReader;
 import prerna.poi.main.helper.ImportOptions;
 import prerna.poi.main.helper.ImportOptions.IMPORT_TYPE;
+import prerna.rdf.main.ImportRDBMSProcessor;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
 import prerna.util.Utility;
@@ -100,11 +101,7 @@ public class ImportDataProcessor {
 		} else if(importMethod == ImportOptions.IMPORT_METHOD.OVERRIDE) {
 			overrideExistingDb(options);
 		} else if(importMethod == ImportOptions.IMPORT_METHOD.CONNECT_TO_EXISTING_RDBMS){
-			//TODO: need to expose this through import data processor instead of other class
-			//TODO: need to expose this through import data processor instead of other class
-			//TODO: need to expose this through import data processor instead of other class
-			//TODO: need to expose this through import data processor instead of other class
-//			processNewRDBMS(customBaseURI, fileNames, repoName, type, url, username, password)
+			createNewDb(options); // TODO: see if this should be refactored into create_new
 		} else {
 			errorMessage = "Import method, " + importMethod + ", is not supported.";
 			throw new IOException(errorMessage);
@@ -145,7 +142,7 @@ public class ImportDataProcessor {
 			errorMessage = "Database type is not specified.";
 			throw new IOException(errorMessage);
 		}
-		if(filePath == null || filePath.isEmpty()) {
+		if((filePath == null || filePath.isEmpty()) && !importType.equals(ImportOptions.IMPORT_TYPE.EXTERNAL_RDBMS)) {
 			errorMessage = "No files have been identified to upload.  Please select valid files to upload.";
 			throw new IOException(errorMessage);
 		}
@@ -171,6 +168,8 @@ public class ImportDataProcessor {
 			// 		need to go back and clean the prop writer
 			String smssLocation = propWriter.propFileName;
 			String owlPath = baseDirectory + "/" + propWriter.owlFile;
+			options.setSMSSLocation(smssLocation);
+			options.setOwlFileLocation(owlPath);
 			
 			// need to create the .temp file object before we upload so we can delete the file if an error occurs
 			propFile = new File(smssLocation);
@@ -299,6 +298,9 @@ public class ImportDataProcessor {
 					
 					reader.setAutoLoad(autoLoad);
 					engine = reader.importFileWithOutConnection(smssLocation, engineName, filePath, customBaseUri, owlPath, rdbmsDriverType, allowDups);
+				} else if (importType == ImportOptions.IMPORT_TYPE.EXTERNAL_RDBMS) {
+					ImportRDBMSProcessor reader = new ImportRDBMSProcessor();
+					engine = reader.addNewRDBMS(options);
 				}
 				
 				// no other options exist, throw an error
