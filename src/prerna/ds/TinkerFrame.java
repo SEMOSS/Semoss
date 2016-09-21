@@ -1708,7 +1708,7 @@ public class TinkerFrame extends AbstractTableDataFrame {
 		GraphTraversal<Vertex, Vertex> iterator = g.traversal().V().has(Constants.TYPE, columnHeader);
 		while(iterator.hasNext()) {
 			Vertex nextVert = iterator.next();
-			Object value = nextVert.property(Constants.VALUE).value();
+			Object value = nextVert.property(Constants.NAME).value();
 			removeSet.add(value);
 		}
 		
