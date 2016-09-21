@@ -451,13 +451,15 @@ Dashboard prerna.om.Dashboard
 NativeFrame prerna.ds.nativeframe.NativeFrame
 
 ##PLAYSHEETS DEFINED
-PLAYSHEETS_DEFINED	Grid;Graph;HeatMap;Line;Combo;Dendrogram;ParallelCoordinates;ParallelSets;Scatter;Column;Pie;3dBarchart;CirclePack;Clustering;Gantt;Sankey;ScatterplotMatrix;SingleAxisCluster;SystemSimilarity;USHeatMap;USMap;WorldHeatMap;WorldMap;RawGrid;
+PLAYSHEETS_DEFINED	Grid;Graph;VivaGraph;HeatMap;Line;Combo;Dendrogram;ParallelCoordinates;ParallelSets;Scatter;Column;Pie;3dBarchart;CirclePack;Clustering;Gantt;Sankey;ScatterplotMatrix;SingleAxisCluster;SystemSimilarity;USHeatMap;USMap;WorldHeatMap;WorldMap;RawGrid;
+
 CirclePack	prerna.ui.components.playsheets.CirclePackPlaySheet
 Clustering	prerna.ui.components.playsheets.ClusteringVizPlaySheet
 Column	prerna.ui.components.playsheets.ColumnChartPlaySheet
 Combo	prerna.ui.components.specific.ousd.RoadmapTimelineComboChartPlaySheet
 Dendrogram	prerna.ui.components.playsheets.DendrogramPlaySheet
 Graph	prerna.ui.components.playsheets.GraphPlaySheet
+VivaGraph	prerna.ui.components.playsheets.GraphPlaySheet
 Grid	prerna.ui.components.playsheets.GridPlaySheet
 RawGrid	prerna.ui.components.playsheets.GridRAWPlaySheet
 HeatMap	prerna.ui.components.playsheets.HeatMapPlaySheet
@@ -476,6 +478,7 @@ WorldMap	prerna.ui.components.playsheets.OCONUSMapPlaySheet
 
 Grid_HINT	GridPlaySheet Hint: SELECT ?x1 ?x2 ?x3 WHERE{ ... }
 Graph_HINT	GraphPlaySheet Hint: CONSTRUCT {?subject ?predicate ?object} WHERE{ ... }
+VivaGraph_HINT	GraphPlaySheet Hint: CONSTRUCT {?subject ?predicate ?object} WHERE{ ... }
 HeatMap_HINT	HeatMapPlaySheet Hint: SELECT ?xAxisList ?yAxisList ?numericHeatValue WHERE{ ... } GROUP BY ?xAxisList ?yAxisList
 Line_HINT	LineChartPlaySheet Hint: SELECT ?xAxis ?series1 (OPTIONAL) ?series2 ?series3 ... (where all series values are numbers) WHERE { ... }
 Dendrogram_HINT	DendrogramPlaySheet Hint: SELECT ?level1 ?level2 ?level3 WHERE{ ... }
@@ -492,6 +495,31 @@ USMap_HINT	CONUSMapPlaySheet Hint: SELECT ?label ?latitude ?longitude WHERE{ ...
 WorldHeatMap_HINT	OCONUSMapPlaySheet Hint: SELECT ?label ?latitude ?longitude WHERE{ ... }
 WorldMap_HINT	OCONUSMapPlaySheet Hint: SELECT ?label ?latitude ?longitude WHERE{ ... }
 
+Grid_DATAMAKER	TinkerFrame
+VivaGraph_DATAMAKER	TinkerFrame
+Graph_DATAMAKER	GraphDataModel
+HeatMap_DATAMAKER	TinkerFrame
+Line_DATAMAKER	TinkerFrame
+Combo_DATAMAKER prerna.ui.components.specific.ousd.RoadmapTimelineComboChartPlaySheet
+Dendrogram_DATAMAKER prerna.ui.components.playsheets.DendrogramPlaySheet
+ParallelCoordinates_DATAMAKER TinkerFrame
+ParallelSets_DATAMAKER TinkerFrame
+Scatter_DATAMAKER TinkerFrame
+Column_DATAMAKER TinkerFrame
+Pie_DATAMAKER TinkerFrame
+3dBarchart_DATAMAKER TinkerFrame
+CirclePack_DATAMAKER prerna.ui.components.playsheets.CirclePackPlaySheet
+Clustering_DATAMAKER TinkerFrame
+Gantt_DATAMAKER prerna.ui.components.playsheets.GanttPlaySheet
+Sankey_DATAMAKER prerna.ui.components.playsheets.SankeyPlaySheet
+ScatterplotMatrix_DATAMAKER TinkerFrame
+SingleAxisCluster_DATAMAKER TinkerFrame
+USHeatMap_DATAMAKER TinkerFrame
+USMap_DATAMAKER TinkerFrame
+WorldHeatMap_DATAMAKER TinkerFrame
+WorldMap_DATAMAKER TinkerFrame
+Mashup_DATAMAKER TinkerFrame
+
 Combo_CUSTOM	FALSE
 3dBarchart_CUSTOM	FALSE
 Gantt_CUSTOM	FALSE
@@ -500,14 +528,13 @@ Mashup_CUSTOM	FALSE
 
 Graph_DATA	getGraphOutput
 
-
 ##TRANSFORMATIONS DEFINED
 join	prerna.ui.components.playsheets.datamakers.JoinTransformation
-pkql	prerna.ui.components.playsheets.datamakers.PKQLTransformation
 filter	prerna.ui.components.playsheets.datamakers.FilterTransformation
 algorithmTransformation	prerna.algorithm.learning.AlgorithmTransformation
 algorithmAction	prerna.algorithm.learning.AlgorithmAction
 math	prerna.ui.components.playsheets.datamakers.MathTransformation
+pkql	prerna.ui.components.playsheets.datamakers.PKQLTransformation
 
 #DESIGNATED PORTS
 MARIADB_PORT 3306
