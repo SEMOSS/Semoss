@@ -502,7 +502,9 @@ public class Translation extends DepthFirstAdapter {
 		Hashtable <String, Object> thisReactorHash = deinitReactor(PKQLEnum.API, nodeStr, PKQLEnum.API); // I need to make this into a string
 		if(curReactor != null && node.parent() != null && (node.parent() instanceof AApiImportBlock || node.parent() instanceof AApiTerm) && !node.getEngineName().toString().equalsIgnoreCase("ImportIO")) {
 			String [] values2Sync = curReactor.getValues2Sync(PKQLEnum.API);
-			synchronizeValues(PKQLEnum.API, values2Sync, thisReactor);
+			if(values2Sync != null) {
+				synchronizeValues(PKQLEnum.API, values2Sync, thisReactor);
+			}
 		}
 		
 		runner.setResponse(thisReactor.getValue("RESPONSE"));
