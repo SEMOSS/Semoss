@@ -67,7 +67,9 @@ import com.google.gson.reflect.TypeToken;
 import prerna.algorithm.api.ITableDataFrame;
 import prerna.cache.CacheFactory;
 import prerna.ds.QueryStruct;
+import prerna.ds.TableDataFrameFactory;
 import prerna.ds.TinkerFrame;
+import prerna.ds.H2.H2Frame;
 import prerna.engine.api.IEngine;
 import prerna.engine.api.ISelectStatement;
 import prerna.engine.api.ISelectWrapper;
@@ -1268,13 +1270,16 @@ public class Insight {
 		// currently all actions return a map
 		if(dm.getActionOutput() != null && !dm.getActionOutput().isEmpty()) {
 			retHash.putAll( (Map) getDataMaker().getActionOutput().get(0));
-		} else if (getOutput().equals("Graph") && dm instanceof TinkerFrame){
-			retHash.putAll(((TinkerFrame)getDataMaker()).getGraphOutput());
+		} else if (getOutput().equals("Graph") || getOutput().equals("VivaGraph")) { //TODO: Remove hardcoded layout values
+			if(dm instanceof TinkerFrame) {
+				retHash.putAll(((TinkerFrame)getDataMaker()).getGraphOutput());
+			} else if(dm instanceof H2Frame) {
+				TinkerFrame tframe = TableDataFrameFactory.convertToTinkerFrameForGraph((H2Frame)dm);
+				retHash.putAll(tframe.getGraphOutput());
+			}
 		} else {
 			if(dm instanceof ITableDataFrame) {
 				retHash.putAll(dm.getDataMakerOutput());
-//			if(dm instanceof ITableDataFrame && !selectors.isEmpty()) {
-//				retHash.putAll(dm.getDataMakerOutput(selectors.toArray(new String[]{})));
 			} else if(dm instanceof Dashboard) { 
 				Dashboard dash = (Dashboard)dm;
 				Gson gson = new Gson();
