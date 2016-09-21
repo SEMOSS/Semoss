@@ -1083,6 +1083,10 @@ public class TinkerFrame extends AbstractTableDataFrame {
 			// set the cluster
 			if(tinkerVert.property("CLUSTER").isPresent())
 				semossVert.propHash.put("CLUSTER", tinkerVert.property("CLUSTER").value());
+			if(tinkerVert.property("X").isPresent())
+				semossVert.propHash.put("X", tinkerVert.property("X").value());
+			if(tinkerVert.property("Y").isPresent())
+				semossVert.propHash.put("Y", tinkerVert.property("Y").value());
 			vertStore.put(uri, semossVert);
 		}
 		return semossVert;
