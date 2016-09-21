@@ -588,6 +588,43 @@ public abstract class BaseJavaReactor extends AbstractReactor{
 		}
 	}
 	
+	public void doLayout(String layout)
+	{
+		String graphName = (String)retrieveVariable("GRAPH_NAME");
+
+		RConnection con = getR();
+		// the color is saved as color
+		try
+		{
+			con.eval("xy_layout <- " + layout + "(" + graphName +")");
+			
+			double [][] memberships = rcon.eval("xy_layout").asDoubleMatrix();
+			String [] IDs = rcon.eval("V(" + graphName + ")$ID").asStrings();
+			
+			for(int memIndex = 0;memIndex < memberships.length;memIndex++)
+			{
+				String thisID = IDs[memIndex];
+
+				java.lang.System.out.println("ID...  " + thisID);
+				Vertex retVertex = null;
+				
+				GraphTraversal<Vertex, Vertex>  gt = ((TinkerFrame)dataframe).g.traversal().V().has(Constants.ID, thisID);
+				if(gt.hasNext()) {
+					retVertex = gt.next();
+				}
+				if(retVertex != null)
+				{
+					retVertex.property("X", memberships[memIndex][0]);
+					retVertex.property("Y", memberships[memIndex][1]);
+					java.lang.System.out.println("Set the cluster to " + memberships[memIndex]);
+				}
+			}
+		}catch (Exception ex)
+		{
+			ex.printStackTrace();
+		}
+	}
+	
 	public void synchronizeFromR(String graphName)
 	{
 		// get the attributes
