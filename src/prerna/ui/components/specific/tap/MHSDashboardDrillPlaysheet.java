@@ -1066,7 +1066,6 @@ public class MHSDashboardDrillPlaysheet extends TablePlaySheet implements IDataM
 
 	/**
 	 * Method to format date by month-day-year
-	 * 
 	 * @return
 	 */
 	public static DateFormat getDateFormat() {
@@ -1075,7 +1074,6 @@ public class MHSDashboardDrillPlaysheet extends TablePlaySheet implements IDataM
 
 	/**
 	 * Method to convert date to formated String
-	 * 
 	 * @param date
 	 * @return
 	 */
@@ -1088,77 +1086,79 @@ public class MHSDashboardDrillPlaysheet extends TablePlaySheet implements IDataM
 
 	/**
 	 * Method to filter for the tools bar
-	 * 
-	 * @param filterActivityTable
-	 *            - HashTable: KEY should be the column that you want to filter
-	 *            on (ie: System), VALUE should be the list of insight you want
-	 *            to filter
+	 * @param filterActivityTable - HashTable: KEY should be the column that you want to filter on (ie: System), VALUE should be the list of insight you want to filter
 	 * @return Hashmap of filter values
 	 */
 	public Map filter(Hashtable<String, Object> filterTable) {
 		StringBuilder filterString = new StringBuilder();
+		
+		//append each filtering instance to where clause of the query
 		for (String columnKey : filterTable.keySet()) {
 			List<Object> insightList = (List<Object>) filterTable.get(columnKey);
-			//dataFrame.filter(columnKey, insightList);
-			if(columnKey.equalsIgnoreCase("SDLCPHASE")|| columnKey.equalsIgnoreCase("ACTIVITYGROUP")|| columnKey.equalsIgnoreCase("DHAGROUP")){
-				String fk = columnKey + "_FK";
-				
-				int i= 0;
-				for(Object insight: insightList){
-					
-					if(insightList.size() > 1){
-						//first
-						if(i==0) {
-							filterString.append("(" + fk + "= '" + insight + "' OR ");
-						}
-						
-						//last
-						else if (i == insightList.size()-1) {
-							filterString.append(fk + "= '" + insight + "')");
-						}
-						//middle
-						else{
-							filterString.append(fk + "= '" + insight + "' OR ");
-						}
-					} else{
-						//if there is only one item to filter on
-						filterString.append("(" + fk + "= '" + insight + "')");
-					}
-					
-					i++;
-				}
-			}
-			else{
-				int i= 0;
-				for(Object insight: insightList){
-					
-					if(insightList.size() > 1){
-						//first
-						if(i==0) {
-							filterString.append("(" + columnKey + "= '" + insight + "' OR ");
-						}
-						
-						//last
-						else if (i == insightList.size()-1) {
-							filterString.append(columnKey + "= '" + insight + "')");
-						}
-						//middle
-						else{
-							filterString.append(columnKey + "= '" + insight + "' OR ");
-						}
-					} else{
-						//if there is only one item to filter on
-						filterString.append("(" + columnKey + "= '" + insight + "')");
-					}
-					
-					i++;
-					
-				}
-			}
 			
-			filterString.append(" AND ");
+			if(!insightList.isEmpty()|| insightList !=null){
+			
+//				//if filtering on sdlc, activity group, dha then query using the foreign key
+//				if(columnKey.equalsIgnoreCase("SDLCPHASE")|| columnKey.equalsIgnoreCase("ACTIVITYGROUP")|| columnKey.equalsIgnoreCase("DHAGROUP")){
+//					String fk = columnKey + "_FK";
+//					
+//					int i= 0;
+//					for(Object insight: insightList){
+//						
+//						if(insightList.size() > 1){
+//							//first
+//							if(i==0) {
+//								filterString.append("(" + fk + "= '" + insight + "' OR ");
+//							}
+//							
+//							//last
+//							else if (i == insightList.size()-1) {
+//								filterString.append(fk + "= '" + insight + "')");
+//							}
+//							//middle
+//							else{
+//								filterString.append(fk + "= '" + insight + "' OR ");
+//							}
+//						} else{
+//							//if there is only one item to filter on
+//							filterString.append("(" + fk + "= '" + insight + "')");
+//						}
+//						
+//						i++;
+//					}
+//				}
+//				//if not one of the specified columns then use the name that FE passes
+//				else{
+					int i= 0;
+					for(Object insight: insightList){
+						
+						if(insightList.size() > 1){
+							//first
+							if(i==0) {
+								filterString.append("(" + columnKey + "= '" + insight + "' OR ");
+							}
+							
+							//last
+							else if (i == insightList.size()-1) {
+								filterString.append(columnKey + "= '" + insight + "')");
+							}
+							//middle
+							else{
+								filterString.append(columnKey + "= '" + insight + "' OR ");
+							}
+						} else{
+							//if there is only one item to filter on
+							filterString.append("(" + columnKey + "= '" + insight + "')");
+						}
+						
+						i++;
+					}
+//				}
+				filterString.append(" AND ");
+			}
 		}
 		
+		//delete the last appended 'and'
 		filterString.delete(filterString.length()-4, filterString.length()-1);
 		
 		String query  = "SELECT SDLCPHASE_FK, ACTIVITYGROUP_FK, DHAGROUP_FK, SDLCPHASE_ACTIVITYGROUP_DHAGROUP, EARLYSTART , LATEFINISH, KEYSTATUS,  HEATVALUE  FROM SDLCPHASE_ACTIVITYGROUP_DHAGROUP "
@@ -1167,6 +1167,7 @@ public class MHSDashboardDrillPlaysheet extends TablePlaySheet implements IDataM
 		+ "inner join SYSTEMOWNER on SYSTEM.SYSTEM  = SYSTEMOWNER.SYSTEM_FK "
 		+ "where " + filterString;
 		
+		System.out.println(query);
 		Map<String, Object> queryMap = new HashMap<String, Object>();
 		IRawSelectWrapper iterator = WrapperManager.getInstance().getRawWrapper(dmComponent.getEngine(), query);
 		while (iterator.hasNext()) {
@@ -1184,7 +1185,8 @@ public class MHSDashboardDrillPlaysheet extends TablePlaySheet implements IDataM
 				queryMap.put((String) nextRow.getRawValues()[3], innerMap);
 			}
 		}
-		//STATUS, SDLC, ActivityGroup, DHA, EARLY_START, LATE_FINISH, HEAT_VALUE
+		
+		//returnMap will contain {STATUS, SDLC, ActivityGroup, DHA, EARLY_START, LATE_FINISH, HEAT_VALUE} + general data
 		Map<String, Object> returnMap = manipulateData(queryMap);
 		returnMap.putAll(getData());
 		return returnMap;
