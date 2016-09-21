@@ -1087,6 +1087,8 @@ public class TinkerFrame extends AbstractTableDataFrame {
 				semossVert.propHash.put("X", tinkerVert.property("X").value());
 			if(tinkerVert.property("Y").isPresent())
 				semossVert.propHash.put("Y", tinkerVert.property("Y").value());
+			if(tinkerVert.property("Z").isPresent())
+				semossVert.propHash.put("Z", tinkerVert.property("Z").value());
 			vertStore.put(uri, semossVert);
 		}
 		return semossVert;
