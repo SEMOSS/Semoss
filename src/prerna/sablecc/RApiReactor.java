@@ -24,6 +24,7 @@ public class RApiReactor extends AbstractApiReactor {
 	@Override
 	public Iterator process() {
 		if (myStore.get(PKQLEnum.G) instanceof H2Frame) {
+			super.process();
 			H2Frame frame = (H2Frame) myStore.get(PKQLEnum.G);
 			try {
 				this.tableName = frame.getDatabaseMetaData().get("tableName");
