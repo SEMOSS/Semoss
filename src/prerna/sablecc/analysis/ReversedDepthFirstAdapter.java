@@ -282,6 +282,31 @@ public class ReversedDepthFirstAdapter extends AnalysisAdapter
         outADashboardopScript(node);
     }
 
+    public void inADatabaseopScript(ADatabaseopScript node)
+    {
+        defaultIn(node);
+    }
+
+    public void outADatabaseopScript(ADatabaseopScript node)
+    {
+        defaultOut(node);
+    }
+
+    @Override
+    public void caseADatabaseopScript(ADatabaseopScript node)
+    {
+        inADatabaseopScript(node);
+        if(node.getSemicolon() != null)
+        {
+            node.getSemicolon().apply(this);
+        }
+        if(node.getDatabaseop() != null)
+        {
+            node.getDatabaseop().apply(this);
+        }
+        outADatabaseopScript(node);
+    }
+
     public void inAAddColumnColop(AAddColumnColop node)
     {
         defaultIn(node);
@@ -994,6 +1019,48 @@ public class ReversedDepthFirstAdapter extends AnalysisAdapter
             node.getDashboardAdd().apply(this);
         }
         outADashboardAddDashboardop(node);
+    }
+
+    public void inADatabaseListDatabaseop(ADatabaseListDatabaseop node)
+    {
+        defaultIn(node);
+    }
+
+    public void outADatabaseListDatabaseop(ADatabaseListDatabaseop node)
+    {
+        defaultOut(node);
+    }
+
+    @Override
+    public void caseADatabaseListDatabaseop(ADatabaseListDatabaseop node)
+    {
+        inADatabaseListDatabaseop(node);
+        if(node.getDatabaseList() != null)
+        {
+            node.getDatabaseList().apply(this);
+        }
+        outADatabaseListDatabaseop(node);
+    }
+
+    public void inADatabaseConceptsDatabaseop(ADatabaseConceptsDatabaseop node)
+    {
+        defaultIn(node);
+    }
+
+    public void outADatabaseConceptsDatabaseop(ADatabaseConceptsDatabaseop node)
+    {
+        defaultOut(node);
+    }
+
+    @Override
+    public void caseADatabaseConceptsDatabaseop(ADatabaseConceptsDatabaseop node)
+    {
+        inADatabaseConceptsDatabaseop(node);
+        if(node.getDatabaseConcepts() != null)
+        {
+            node.getDatabaseConcepts().apply(this);
+        }
+        outADatabaseConceptsDatabaseop(node);
     }
 
     public void inAPanelViz(APanelViz node)
@@ -3748,6 +3815,60 @@ public class ReversedDepthFirstAdapter extends AnalysisAdapter
             node.getDataconnectdbToken().apply(this);
         }
         outADataconnectdb(node);
+    }
+
+    public void inADatabaseList(ADatabaseList node)
+    {
+        defaultIn(node);
+    }
+
+    public void outADatabaseList(ADatabaseList node)
+    {
+        defaultOut(node);
+    }
+
+    @Override
+    public void caseADatabaseList(ADatabaseList node)
+    {
+        inADatabaseList(node);
+        if(node.getDatabaselistToken() != null)
+        {
+            node.getDatabaselistToken().apply(this);
+        }
+        outADatabaseList(node);
+    }
+
+    public void inADatabaseConcepts(ADatabaseConcepts node)
+    {
+        defaultIn(node);
+    }
+
+    public void outADatabaseConcepts(ADatabaseConcepts node)
+    {
+        defaultOut(node);
+    }
+
+    @Override
+    public void caseADatabaseConcepts(ADatabaseConcepts node)
+    {
+        inADatabaseConcepts(node);
+        if(node.getRPar() != null)
+        {
+            node.getRPar().apply(this);
+        }
+        if(node.getWordOrNum() != null)
+        {
+            node.getWordOrNum().apply(this);
+        }
+        if(node.getLPar() != null)
+        {
+            node.getLPar().apply(this);
+        }
+        if(node.getDatabaseconceptsToken() != null)
+        {
+            node.getDatabaseconceptsToken().apply(this);
+        }
+        outADatabaseConcepts(node);
     }
 
     public void inAComparatorEqualOrCompare(AComparatorEqualOrCompare node)

@@ -98,6 +98,8 @@ Tokens
  datanetworkconnect_token = 'network.connect';
  datanetworkdisconnect_token = 'network.disconnect';
  dataconnectdb_token = 'data.connectdb';
+ databaselist_token = 'database.list';
+ databaseconcepts_token = 'database.concepts';
  
  dashboardconfig = 'dashboard.config';
  //dashboard_join_token = 'dashboard.join';
@@ -121,7 +123,8 @@ script = {colop} colop  semicolon // column operations
 		 | {panelop} panelop semicolon
 		 | newline
 		 | {dataop} dataop semicolon
-		 | {dashboardop} dashboardop semicolon
+		 | {dashboardop} dashboardop semicolon		 
+		 | {databaseop} databaseop semicolon
 		 ;
 
 colop = // colOp is usually of the form of joinColumn / addColumn / removeColumn / setColumn
@@ -173,6 +176,11 @@ dashboardop = // dashboardop is usually of the form dashboard.join, dashboard.ad
 		//| {dashboard_rem}
 		//| {dashboard_unjoin}
 		//;
+		
+databaseop = // databaseop is usually of the form database.list, database.concepts, etc.
+		{database_list} database_list
+		| {database_concepts} database_concepts
+		;
 
 panel_viz = // e.g. panel.viz(bar, [c:Title, c:Budget]); panelviz( vizType, ordered headers );
 		panelviz l_par [layout]:id [c1]:comma [datatablealign]:flex_selector_row [c2]:comma? [uioptions]:map_obj? r_par
@@ -384,6 +392,10 @@ datanetworkdisconnect = datanetworkdisconnect_token l_par r_par;
 
 
 dataconnectdb = dataconnectdb_token l_par word_or_num r_par;
+
+database_list = databaselist_token;
+
+database_concepts = databaseconcepts_token l_par word_or_num r_par;
 
 equal_or_compare = {comparator} comparator | {equal} equal;
 
