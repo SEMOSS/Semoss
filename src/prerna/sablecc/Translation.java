@@ -40,6 +40,7 @@ import prerna.sablecc.node.ADashboardConfig;
 import prerna.sablecc.node.ADashboardJoin;
 import prerna.sablecc.node.ADashboardopScript;
 import prerna.sablecc.node.ADataFrame;
+import prerna.sablecc.node.ADatabaseConcepts;
 import prerna.sablecc.node.ADatabaseList;
 import prerna.sablecc.node.ADataconnect;
 import prerna.sablecc.node.ADataconnectdb;
@@ -1788,9 +1789,10 @@ public class Translation extends DepthFirstAdapter {
     public void outADataconnect(ADataconnect node)
     {
     	System.out.println("Translation.outADataconnect() with node = "+ node );
+    	String nodeDataconnect = node.getDataconnectToken().toString().trim();
     	String thisNode = node.toString().trim();
     	IScriptReactor thisReactor = curReactor;
-		Hashtable <String, Object> thisReactorHash = deinitReactor(PKQLEnum.DATA_CONNECT, thisNode, PKQLEnum.DATA_CONNECT);
+		Hashtable <String, Object> thisReactorHash = deinitReactor(PKQLEnum.DATA_CONNECT, nodeDataconnect, PKQLEnum.DATA_CONNECT);
 		runner.setResponse(thisReactor.getValue(PKQLEnum.DATA_CONNECT));
 		runner.setStatus((STATUS) thisReactor.getValue("STATUS"));//
 		runner.setCurrentString(PKQLEnum.DATA_CONNECT);
@@ -1902,6 +1904,30 @@ public class Translation extends DepthFirstAdapter {
 		runner.setResponse(thisReactor.getValue(PKQLEnum.DATABASE_LIST));
 		runner.setStatus(PKQLRunner.STATUS.SUCCESS);
 		runner.setCurrentString(PKQLEnum.DATABASE_LIST);
+		runner.storeResponse();
+		System.out.println("");
+	}
+	
+	public void inADatabaseConcepts(ADatabaseConcepts node)
+	{
+		System.out.println("Translation.inADatabaseConcepts() with node = "+ node );
+		if(reactorNames.containsKey(PKQLEnum.DATABASE_CONCEPTS)) {
+			initReactor(PKQLEnum.DATABASE_CONCEPTS);
+			String nodeStr = node.toString().trim();
+			curReactor.put(PKQLEnum.DATABASE_CONCEPTS, nodeStr);
+		}
+	}
+
+	public void outADatabaseConcepts(ADatabaseConcepts node)
+	{
+		System.out.println("Translation.outADatabaseConcepts() with node = "+ node );
+		String nodeDatabaseConcepts = node.getDatabaseconceptsToken().toString().trim();
+		String thisNode = node.toString().trim();
+		IScriptReactor thisReactor = curReactor;
+		Hashtable <String, Object> thisReactorHash = deinitReactor(PKQLEnum.DATABASE_CONCEPTS, nodeDatabaseConcepts, PKQLEnum.DATABASE_CONCEPTS);
+		runner.setResponse(thisReactor.getValue(PKQLEnum.DATABASE_CONCEPTS));
+		runner.setStatus(PKQLRunner.STATUS.SUCCESS);
+		runner.setCurrentString(PKQLEnum.DATABASE_CONCEPTS);
 		runner.storeResponse();
 		System.out.println("");
 	}
