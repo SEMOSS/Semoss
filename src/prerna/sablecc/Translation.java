@@ -40,6 +40,7 @@ import prerna.sablecc.node.ADashboardConfig;
 import prerna.sablecc.node.ADashboardJoin;
 import prerna.sablecc.node.ADashboardopScript;
 import prerna.sablecc.node.ADataFrame;
+import prerna.sablecc.node.ADatabaseList;
 import prerna.sablecc.node.ADataconnect;
 import prerna.sablecc.node.ADataconnectdb;
 import prerna.sablecc.node.ADatanetworkconnect;
@@ -1878,6 +1879,31 @@ public class Translation extends DepthFirstAdapter {
 		else {
 			return null;
 		}
+	}
+	
+	//**************************************** DATABASE RELATED OPERATIONS ****************************************//
+	
+	public void inADatabaseList(ADatabaseList node)
+	{
+		System.out.println("Translation.inADatabaseList() with node = "+ node );
+		if(reactorNames.containsKey(PKQLEnum.DATABASE_LIST)) {
+			initReactor(PKQLEnum.DATABASE_LIST);
+			String nodeStr = node.toString().trim();
+			curReactor.put(PKQLEnum.DATABASE_LIST, nodeStr);
+		}
+	}
+
+	public void outADatabaseList(ADatabaseList node)
+	{
+		System.out.println("Translation.outADatabaseList() with node = "+ node );
+		String thisNode = node.toString().trim();
+		IScriptReactor thisReactor = curReactor;
+		Hashtable <String, Object> thisReactorHash = deinitReactor(PKQLEnum.DATABASE_LIST, thisNode, PKQLEnum.DATABASE_LIST);
+		runner.setResponse(thisReactor.getValue(PKQLEnum.DATABASE_LIST));
+		runner.setStatus(PKQLRunner.STATUS.SUCCESS);
+		runner.setCurrentString(PKQLEnum.DATABASE_LIST);
+		runner.storeResponse();
+		System.out.println("");
 	}
     
 }

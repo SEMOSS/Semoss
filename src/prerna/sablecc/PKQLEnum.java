@@ -23,6 +23,9 @@ public class PKQLEnum {
 	public static String DATA_FRAME = "DATA_FRAME";
 	public static String DATA_TYPE = "DATA_TYPE";
 	public static String DATA_CONNECT = "DATA_CONNECT";
+	
+	public static String DATABASE_LIST = "DATABASE_LIST";
+	public static String DATABASE_CONCEPTS = "DATABASE_CONCEPTS";
 
 	public static String NUMBER = "NUMBER";
 	public static String DECIMAL = "DECIMAL";

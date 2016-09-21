@@ -135,6 +135,12 @@ public class AnalysisAdapter implements Analysis
     }
 
     @Override
+    public void caseADatabaseopScript(ADatabaseopScript node)
+    {
+        defaultCase(node);
+    }
+
+    @Override
     public void caseAAddColumnColop(AAddColumnColop node)
     {
         defaultCase(node);
@@ -334,6 +340,18 @@ public class AnalysisAdapter implements Analysis
 
     @Override
     public void caseADashboardAddDashboardop(ADashboardAddDashboardop node)
+    {
+        defaultCase(node);
+    }
+
+    @Override
+    public void caseADatabaseListDatabaseop(ADatabaseListDatabaseop node)
+    {
+        defaultCase(node);
+    }
+
+    @Override
+    public void caseADatabaseConceptsDatabaseop(ADatabaseConceptsDatabaseop node)
     {
         defaultCase(node);
     }
@@ -850,6 +868,18 @@ public class AnalysisAdapter implements Analysis
 
     @Override
     public void caseADataconnectdb(ADataconnectdb node)
+    {
+        defaultCase(node);
+    }
+
+    @Override
+    public void caseADatabaseList(ADatabaseList node)
+    {
+        defaultCase(node);
+    }
+
+    @Override
+    public void caseADatabaseConcepts(ADatabaseConcepts node)
     {
         defaultCase(node);
     }
@@ -1474,6 +1504,18 @@ public class AnalysisAdapter implements Analysis
 
     @Override
     public void caseTDataconnectdbToken(TDataconnectdbToken node)
+    {
+        defaultCase(node);
+    }
+
+    @Override
+    public void caseTDatabaselistToken(TDatabaselistToken node)
+    {
+        defaultCase(node);
+    }
+
+    @Override
+    public void caseTDatabaseconceptsToken(TDatabaseconceptsToken node)
     {
         defaultCase(node);
     }
