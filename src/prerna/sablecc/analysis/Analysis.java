@@ -22,6 +22,7 @@ public interface Analysis extends Switch
     void caseAScript(AScript node);
     void caseADataopScript(ADataopScript node);
     void caseADashboardopScript(ADashboardopScript node);
+    void caseADatabaseopScript(ADatabaseopScript node);
     void caseAAddColumnColop(AAddColumnColop node);
     void caseARemcolColop(ARemcolColop node);
     void caseASetcolColop(ASetcolColop node);
@@ -56,6 +57,8 @@ public interface Analysis extends Switch
     void caseADatanetworkdisconnectDataop(ADatanetworkdisconnectDataop node);
     void caseADashboardConfigDashboardop(ADashboardConfigDashboardop node);
     void caseADashboardAddDashboardop(ADashboardAddDashboardop node);
+    void caseADatabaseListDatabaseop(ADatabaseListDatabaseop node);
+    void caseADatabaseConceptsDatabaseop(ADatabaseConceptsDatabaseop node);
     void caseAPanelViz(APanelViz node);
     void caseAPanelComment(APanelComment node);
     void caseAPanelCommentEdit(APanelCommentEdit node);
@@ -142,6 +145,8 @@ public interface Analysis extends Switch
     void caseADatanetworkconnect(ADatanetworkconnect node);
     void caseADatanetworkdisconnect(ADatanetworkdisconnect node);
     void caseADataconnectdb(ADataconnectdb node);
+    void caseADatabaseList(ADatabaseList node);
+    void caseADatabaseConcepts(ADatabaseConcepts node);
     void caseAComparatorEqualOrCompare(AComparatorEqualOrCompare node);
     void caseAEqualEqualOrCompare(AEqualEqualOrCompare node);
     void caseAUserInput(AUserInput node);
@@ -247,6 +252,8 @@ public interface Analysis extends Switch
     void caseTDatanetworkconnectToken(TDatanetworkconnectToken node);
     void caseTDatanetworkdisconnectToken(TDatanetworkdisconnectToken node);
     void caseTDataconnectdbToken(TDataconnectdbToken node);
+    void caseTDatabaselistToken(TDatabaselistToken node);
+    void caseTDatabaseconceptsToken(TDatabaseconceptsToken node);
     void caseTDashboardconfig(TDashboardconfig node);
     void caseTDashboardAddToken(TDashboardAddToken node);
     void caseTWherestr(TWherestr node);
