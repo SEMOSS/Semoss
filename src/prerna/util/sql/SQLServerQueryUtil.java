@@ -14,7 +14,7 @@ public class SQLServerQueryUtil extends SQLQueryUtil {
 	}
 	
 	public SQLServerQueryUtil(String hostname, String port, String schema, String username, String password) {
-		setDialect();
+		setDialect(schema);
 		connectionBase = connectionBase.replace("HOST", hostname).replace("SCHEMA", schema);
 		if(port != null && !port.isEmpty()) {
 			connectionBase = connectionBase.replace(":PORT", ":" + port);
@@ -41,6 +41,12 @@ public class SQLServerQueryUtil extends SQLQueryUtil {
 		super.setDialectAllIndexesInDB("SELECT DISTINCT NAME FROM SYS.INDEXES ORDER BY NAME");//
 		super.setDialectOuterJoinLeft(" LEFT OUTER JOIN ");
 		super.setDialectOuterJoinRight(" RIGHT OUTER JOIN ");
+	}
+	
+	private void setDialect(String schema) {
+		setDialect();
+		super.setDialectAllTables("SELECT table_name FROM " + schema + ".information_schema.tables where table_type='BASE TABLE'"); //TODO: check if we want only base tables
+		super.setDialectAllColumns(" SELECT COLUMN_NAME, DATA_TYPE FROM " + schema + ".INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME = ");
 	}
 
 	@Override
