@@ -107,15 +107,14 @@ public class RDBMSNativeEngine extends AbstractEngine {
 			
 			String tempEngineName = prop.getProperty(Constants.ENGINE);
 			String tempConnectionURL = prop.getProperty(Constants.TEMP_CONNECTION_URL);
-			String userName = prop.getProperty(Constants.USERNAME);
-			String password = "";
-			String dbTypeString = prop.getProperty(Constants.RDBMS_TYPE);
-			useConnectionPooling = Boolean.valueOf(prop.getProperty(Constants.USE_CONNECTION_POOLING));
-			dbType = SQLQueryUtil.DB_TYPE.H2_DB;
-			if (dbTypeString != null) {
-				dbType = (SQLQueryUtil.DB_TYPE.valueOf(dbTypeString));
-			}
 			String connectionURL = prop.getProperty(Constants.CONNECTION_URL);
+			String userName = prop.getProperty(Constants.USERNAME);
+			String password = (prop.containsKey(Constants.PASSWORD)) ? prop.getProperty(Constants.PASSWORD) : "";
+			String dbTypeString = prop.getProperty(Constants.RDBMS_TYPE);
+			String driver = prop.getProperty(Constants.DRIVER);
+			useConnectionPooling = Boolean.valueOf(prop.getProperty(Constants.USE_CONNECTION_POOLING));
+			dbType = (dbTypeString != null) ? (SQLQueryUtil.DB_TYPE.valueOf(dbTypeString)) : (SQLQueryUtil.DB_TYPE.H2_DB);			
+			
 			if(dbType == SQLQueryUtil.DB_TYPE.H2_DB) {
 				if(engineName != null) {
 					connectionURL = RDBMSUtility.fillH2ConnectionURL(connectionURL, engineName);
@@ -133,9 +132,7 @@ public class RDBMSNativeEngine extends AbstractEngine {
 				}
 				prop.setProperty(Constants.CONNECTION_URL, connectionURL);
 			}
-			if(prop.containsKey(Constants.PASSWORD))
-				password = prop.getProperty(Constants.PASSWORD);
-			String driver = prop.getProperty(Constants.DRIVER);
+			
 			try {
 				Class.forName(driver);
 				//if the tempConnectionURL is set, connect to mysql, create the database, disconnect then reconnect to the database you created
@@ -444,8 +441,8 @@ public class RDBMSNativeEngine extends AbstractEngine {
 				Object output = null;
 				for(int colIndex = 1;colIndex <= columns;colIndex++)
 				{					
-//					output = rs.getString(colIndex);
-					output = rs.getObject(colIndex);
+					output = rs.getString(colIndex);
+//					output = rs.getObject(colIndex);
 //					System.out.print(rs.getObject(colIndex));
 					list.add(output);
 				}
