@@ -1,26 +1,27 @@
 package prerna.util.sql;
 
-import java.util.ArrayList;
 import java.util.List;
+
+import prerna.util.Constants;
+import prerna.util.DIHelper;
 
 public class SQLServerQueryUtil extends SQLQueryUtil {	
 	public static final String DATABASE_DRIVER = "com.microsoft.sqlserver.jdbc.SQLServerDriver";
-	private String connectionBase = "jdbc:sqlserver://HOST:PORT;databaseName=SCHEMA"; // localhost using SQL Server authentication, default port number is 1433 or use jdbc:sqlserver://127.0.0.1:1433;databaseName=TestDB;user=root;Password=root
+	private String connectionBase = "jdbc:sqlserver://localhost:"+DIHelper.getInstance().getProperty(Constants.SQL_Server_PORT); // 127.0.0.1 or localhost using SQL Server authentication, default port number is 1433 or use jdbc:sqlserver://127.0.0.1:1433;databaseName=TestDB;user=root;Password=root
+
 
 	public SQLServerQueryUtil(){
 		setDialect();
-		super.setDefaultDbUserName("root");//
-		super.setDefaultDbPassword("password");//
+		super.setDefaultDbUserName("root");
+		super.setDefaultDbPassword("root");
 	}
 	
 	public SQLServerQueryUtil(String hostname, String port, String schema, String username, String password) {
 		setDialect(schema);
-		connectionBase = connectionBase.replace("HOST", hostname).replace("SCHEMA", schema);
-		if(port != null && !port.isEmpty()) {
-			connectionBase = connectionBase.replace(":PORT", ":" + port);
-		} else {
-			connectionBase = connectionBase.replace(":PORT", "");
-		}
+		connectionBase = connectionBase + ";databaseName=SCHEMA";
+		connectionBase = connectionBase.replace("localhost", hostname).replace("SCHEMA", schema);
+		
+		connectionBase = (port != null && !port.isEmpty()) ? connectionBase.replace(":"+DIHelper.getInstance().getProperty(Constants.SQL_Server_PORT), ":" + port) : connectionBase.replace(":"+DIHelper.getInstance().getProperty(Constants.SQL_Server_PORT), "");
 		super.setDefaultDbUserName(username);//
 		super.setDefaultDbPassword(password);//
 	}
@@ -34,7 +35,8 @@ public class SQLServerQueryUtil extends SQLQueryUtil {
 	
 	private void setDialect() {
 		super.setDialectAllTables(" SELECT * FROM INFORMATION_SCHEMA.TABLES ");//
-		super.setDialectAllColumns(" SELECT * FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME = ");//
+		super.setDialectAllColumns(" SELECT * FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME = ");
+		//super.setDialectAllColumns(" SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME = ");//
 		super.setResultAllTablesTableName("TABLE_NAME");//
 		super.setResultAllColumnsColumnName("COLUMN_NAME");
 		super.setResultAllColumnsColumnType("DATA_TYPE");
@@ -66,15 +68,18 @@ public class SQLServerQueryUtil extends SQLQueryUtil {
 		return SQLQueryUtil.USE_OUTER_JOINS_TRUE;
 	}
 
-	//jdbc:sqlserver://localhost:1433;databaseName=dbname;user=username;Password=password;selectMethod=cursor
+	//jdbc:sqlserver://127.0.0.1:1433;databaseName=dbname;user=username;Password=password;selectMethod=cursor
 	@Override
 	public String getConnectionURL(String baseFolder,String dbname){
+		connectionBase = connectionBase.contains(";databaseName=") ? connectionBase : (connectionBase + ";databaseName=SCHEMA");
+		connectionBase = connectionBase.replace("SCHEMA", dbname);
 		return connectionBase;
+		
 	}
 	
 	@Override
 	public String getTempConnectionURL(){
-		return connectionBase;
+		return "jdbc:sqlserver://localhost";
 	}
 
 	@Override
@@ -146,33 +151,24 @@ public class SQLServerQueryUtil extends SQLQueryUtil {
 
 		String selectStr = super.dialectSelect;
 		if(distinct) selectStr+= super.dialectDistinct;
-		//String query = super.dialectSelect + super.dialectDistinct;
+
 		if(top!=-1){
 			selectStr += " TOP " + top + " ";
 		}
 
-		String query = selectStr + selectors + "  FROM  " + leftOuterJoins + queryJoinsAndFilters; //+ " LIMIT " + limit ;
+		String query = selectStr + selectors + "  FROM  " + leftOuterJoins + queryJoinsAndFilters;
 		if(groupBy !=null && groupBy.length()>0){
 			query += " GROUP BY " + groupBy;
 		}
 
 		query += " UNION ";
-		query += selectStr + selectors + "  FROM  " + rightOuterJoins + queryJoinsAndFilters; //+ " LIMIT " + limit ;
+		query += selectStr + selectors + "  FROM  " + rightOuterJoins + queryJoinsAndFilters;
 
 		if(groupBy !=null && groupBy.length()>0){
 			query += " GROUP BY " + groupBy;
 		}
 		return query;
 
-	}
-
-//	@Override
-	public String getDialectFullOuterJoinQuery1(boolean distinct,
-			String selectors, ArrayList<String> rightJoinsArr,
-			ArrayList<String> leftJoinsArr, ArrayList<String> joinsArr,
-			String filters, int limit, String groupBy) {
-		// TODO Auto-generated method stub
-		return null;
 	}
 
 	@Override
