@@ -1096,7 +1096,7 @@ public class MHSDashboardDrillPlaysheet extends TablePlaySheet implements IDataM
 		for (String columnKey : filterTable.keySet()) {
 			List<Object> insightList = (List<Object>) filterTable.get(columnKey);
 			
-			if(!insightList.isEmpty()|| insightList !=null){
+			if(!insightList.isEmpty() && insightList !=null){
 			
 //				//if filtering on sdlc, activity group, dha then query using the foreign key
 //				if(columnKey.equalsIgnoreCase("SDLCPHASE")|| columnKey.equalsIgnoreCase("ACTIVITYGROUP")|| columnKey.equalsIgnoreCase("DHAGROUP")){
@@ -1198,7 +1198,6 @@ public class MHSDashboardDrillPlaysheet extends TablePlaySheet implements IDataM
 	 * @return Hashmap of unfiltered values 
 	 */
 	public Map unfilter(Hashtable<String, Object> unfilterDrillDownTable) {
-		dataFrame.unfilter();
 		String[] selector = new String[] {};
 		return getDataMakerOutput(selector);
 	}
