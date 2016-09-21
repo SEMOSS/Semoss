@@ -599,9 +599,16 @@ public abstract class BaseJavaReactor extends AbstractReactor{
 			con.eval("xy_layout <- " + layout + "(" + graphName +")");
 			
 			double [][] memberships = rcon.eval("xy_layout").asDoubleMatrix();
+			String [] axis = null;
+			if(memberships[0].length == 2) {
+				axis = new String[]{"X", "Y"};
+			} else if(memberships[0].length == 3) {
+				axis = new String[]{"X", "Y", "Z"};
+			}
+			
 			String [] IDs = rcon.eval("V(" + graphName + ")$ID").asStrings();
 			
-			for(int memIndex = 0;memIndex < memberships.length;memIndex++)
+			for(int memIndex = 0; memIndex < memberships.length; memIndex++)
 			{
 				String thisID = IDs[memIndex];
 
@@ -614,8 +621,9 @@ public abstract class BaseJavaReactor extends AbstractReactor{
 				}
 				if(retVertex != null)
 				{
-					retVertex.property("X", memberships[memIndex][0]);
-					retVertex.property("Y", memberships[memIndex][1]);
+					for(int i = 0; i < axis.length; i++) {
+						retVertex.property(axis[i], memberships[memIndex][i]);
+					}
 					java.lang.System.out.println("Set the cluster to " + memberships[memIndex]);
 				}
 			}
