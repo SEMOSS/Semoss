@@ -9,9 +9,9 @@ public class SQLServerQueryUtil extends SQLQueryUtil {
 	public static final String DATABASE_DRIVER = "com.microsoft.sqlserver.jdbc.SQLServerDriver";
 	private String connectionBase = "jdbc:sqlserver://localhost:"+DIHelper.getInstance().getProperty(Constants.SQL_Server_PORT); // 127.0.0.1 or localhost using SQL Server authentication, default port number is 1433 or use jdbc:sqlserver://127.0.0.1:1433;databaseName=TestDB;user=root;Password=root
 
-
 	public SQLServerQueryUtil(){
 		setDialect();
+		connectionBase = "jdbc:sqlserver://localhost";
 		super.setDefaultDbUserName("root");
 		super.setDefaultDbPassword("root");
 	}
@@ -22,8 +22,8 @@ public class SQLServerQueryUtil extends SQLQueryUtil {
 		connectionBase = connectionBase.replace("localhost", hostname).replace("SCHEMA", schema);
 		
 		connectionBase = (port != null && !port.isEmpty()) ? connectionBase.replace(":"+DIHelper.getInstance().getProperty(Constants.SQL_Server_PORT), ":" + port) : connectionBase.replace(":"+DIHelper.getInstance().getProperty(Constants.SQL_Server_PORT), "");
-		super.setDefaultDbUserName(username);//
-		super.setDefaultDbPassword(password);//
+		super.setDefaultDbUserName(username);
+		super.setDefaultDbPassword(password);
 	}
 	
 	public SQLServerQueryUtil(String connectionURL, String username, String password) {
@@ -47,7 +47,7 @@ public class SQLServerQueryUtil extends SQLQueryUtil {
 	
 	private void setDialect(String schema) {
 		setDialect();
-		super.setDialectAllTables("SELECT table_name FROM " + schema + ".information_schema.tables where table_type='BASE TABLE'"); //TODO: check if we want only base tables
+		super.setDialectAllTables("SELECT table_name FROM " + schema + ".information_schema.tables");
 		super.setDialectAllColumns(" SELECT COLUMN_NAME, DATA_TYPE FROM " + schema + ".INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME = ");
 	}
 
@@ -79,7 +79,7 @@ public class SQLServerQueryUtil extends SQLQueryUtil {
 	
 	@Override
 	public String getTempConnectionURL(){
-		return "jdbc:sqlserver://localhost";
+		return connectionBase;
 	}
 
 	@Override
