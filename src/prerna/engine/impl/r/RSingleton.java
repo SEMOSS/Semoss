@@ -13,7 +13,7 @@ public class RSingleton {
 	
 	public static RConnection getConnection()
 	{
-		if(rcon == null)
+		if(rcon == null || (rcon != null && !rcon.isConnected())) 
 		{
 			try {
 				
