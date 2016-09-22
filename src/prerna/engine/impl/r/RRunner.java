@@ -11,6 +11,7 @@ import org.rosuda.REngine.Rserve.RserveException;
 
 import prerna.util.Constants;
 import prerna.util.DIHelper;
+import prerna.util.Utility;
 
 public class RRunner {
 	
@@ -60,7 +61,13 @@ public class RRunner {
 	 */
 	public String start() throws RserveException, SQLException {
 		if (conn == null) {
-			conn = new RConnection();
+			//conn = new RConnection();
+			String port = Utility.findOpenPort();
+			RConnection masterCon = RSingleton.getConnection();
+			// we need to do the same routine here to start a new R Server
+			masterCon.eval("library(Rserve); Rserve(port = " + port + ")");
+			conn = new RConnection("127.0.0.1", Integer.parseInt(port));
+
 		} 
 		if (server == null) {
 			server = Server.createTcpServer("-tcpPort", "9999");
@@ -186,10 +193,16 @@ public class RRunner {
 	 * Closes RConnection and TCP Server
 	 */
 	public void close() {
-		conn.finalize();
-		conn = null;
-		stopServer();
-		dataframeExists = false;
+		try {
+			conn.shutdown();
+			conn.finalize();
+			conn = null;
+			stopServer();
+			dataframeExists = false;
+		} catch (RserveException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
 	}
 	
 	public void setDataframeExists(boolean dataframeExists) {
