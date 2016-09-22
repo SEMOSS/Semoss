@@ -364,6 +364,12 @@ public class PKQLRunner {
 		this.varMap.get(varName).put(Constants.VALUE, expr);
 	}
 
+	// need a removal too :)
+	public void removeVariable(String varName) {
+		this.varMap.remove(varName); //.put(Constants.VALUE, expr);
+	}
+	
+	
 	
 	/*
 	 * Sets a reference to the variable map into the runner so that Translation

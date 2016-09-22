@@ -41,6 +41,7 @@ public abstract class BaseJavaReactor extends AbstractReactor{
 	SecurityManager curManager = null;
 	SecurityManager reactorManager = null;
 	public static final String R_CONN = "R_CONN";
+	public static final String R_PORT = "R_PORT";
 	public RConnection rcon = null;
 	
 	public Console System = new Console();
@@ -84,9 +85,18 @@ public abstract class BaseJavaReactor extends AbstractReactor{
 	public void storeVariable(String varName, Object value)
 	{
 		pkql.setVariableValue(varName, value);
+		
 	}
 	
+	// set a variable
+	// use this variable if it is needed on the next call
+	public void removeVariable(String varName)
+	{
+		pkql.removeVariable(varName);
+		
+	}
 
+	
 	// get the variable back that was set
 	public Object retrieveVariable(String varName)
 	{
@@ -235,7 +245,7 @@ public abstract class BaseJavaReactor extends AbstractReactor{
 	
 	public void removeNodeFromR(String type, List nodeList)
 	{
-		RConnection rcon = getR();
+		RConnection rcon = startR();
 		String graphName = (String)retrieveVariable("GRAPH_NAME");
 		for(int nodeIndex = 0;nodeIndex < nodeList.size();nodeIndex++)
 		{
@@ -293,11 +303,11 @@ public abstract class BaseJavaReactor extends AbstractReactor{
 
 	}
 	
-	private RConnection getR()
+	public RConnection startR()
 	{
 		RConnection retCon = (RConnection)retrieveVariable(R_CONN);
 		java.lang.System.out.println("Connection right now is set to.. " + retCon);
-		if(retCon == null)
+		if(retCon == null) // <-- Trying to see if java works right here.. setting it to null and checking it!!
 			try {
 				RConnection masterCon = RSingleton.getConnection();
 	
@@ -305,10 +315,10 @@ public abstract class BaseJavaReactor extends AbstractReactor{
 				
 				java.lang.System.out.println("Starting it on port.. " + port);
 				// need to find a way to get a common name
-				//masterCon.eval("Rserve(" + port + ")");
-				retCon = masterCon; //new RConnection("localhost", Integer.parseInt(port));
+				masterCon.eval("library(Rserve); Rserve(port = " + port + ")");
+				retCon = new RConnection("127.0.0.1", Integer.parseInt(port));
 				storeVariable(R_CONN, retCon);
-				storeVariable("R_PORT", port);
+				storeVariable(R_PORT, port);
 			} catch (Exception e) {
 				// TODO Auto-generated catch block
 				e.printStackTrace();
@@ -317,17 +327,6 @@ public abstract class BaseJavaReactor extends AbstractReactor{
 		return retCon;
 	}
 	
-	public void closeR()
-	{
-		String port = (String)retrieveVariable("R_PORT");
-		RConnection conn2 = (RConnection)retrieveVariable(R_CONN);
-		try {
-			conn2.close();
-		} catch (Exception e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
-	}
 	
 	public String writeGraph(String directory)
 	{
@@ -363,7 +362,7 @@ public abstract class BaseJavaReactor extends AbstractReactor{
 			String fileName = writeGraph(wd);
 			
 			java.lang.System.out.println("Trying to get Connection.. ");
-			RConnection rconn = getR();
+			RConnection rconn = startR();
 			java.lang.System.out.println("Successful.. ");
 			
 			wd = wd.replace("\\", "/");
@@ -443,7 +442,7 @@ public abstract class BaseJavaReactor extends AbstractReactor{
 	
 	public void runR(String script)
 	{
-		RConnection rcon = getR();
+		RConnection rcon = startR();
 		try {
 			Object output = rcon.eval(script);
 			java.lang.System.out.println("RCon data.. " + output);
@@ -465,7 +464,7 @@ public abstract class BaseJavaReactor extends AbstractReactor{
 	{
 		String graphName = (String)retrieveVariable("GRAPH_NAME");
 		
-		RConnection con = getR();
+		RConnection con = startR();
 		String clusters = "Component Information  \n";
 		try
 		{
@@ -490,7 +489,7 @@ public abstract class BaseJavaReactor extends AbstractReactor{
 	{
 		String graphName = (String)retrieveVariable("GRAPH_NAME");
 		
-		RConnection con = getR();
+		RConnection con = startR();
 		String clusters = "Component Information  \n";
 		try
 		{
@@ -520,7 +519,7 @@ public abstract class BaseJavaReactor extends AbstractReactor{
 	{
 		String graphName = (String)retrieveVariable("GRAPH_NAME");
 		String names = "";
-		RConnection con = getR();
+		RConnection con = startR();
 		try {
 			// get the articulation points
 			int [] vertices = con.eval("articulation.points(" + graphName + ")").asIntegers();
@@ -553,12 +552,11 @@ public abstract class BaseJavaReactor extends AbstractReactor{
 		System.out.println(" Key Nodes \n " + names);
 	}
 	
-	public void colorClusters()
+	public void colorClusters(String clusterName)
 	{
 		String graphName = (String)retrieveVariable("GRAPH_NAME");
-		String clusterName = (String)retrieveVariable("CLUSTER_NAME");
 
-		RConnection con = getR();
+		RConnection con = startR();
 		// the color is saved as color
 		try
 		{
@@ -588,16 +586,35 @@ public abstract class BaseJavaReactor extends AbstractReactor{
 		}
 	}
 	
+	public void colorClusters()
+	{
+		String clusterName = (String)retrieveVariable("CLUSTER_NAME");
+		colorClusters(clusterName);
+	}
+	
 	public void doLayout(String layout)
 	{
 		String graphName = (String)retrieveVariable("GRAPH_NAME");
 
-		RConnection con = getR();
+		RConnection con = startR();
 		// the color is saved as color
 		try
 		{
 			con.eval("xy_layout <- " + layout + "(" + graphName +")");
-			
+			synchronizeXY("xy_layout");
+		}catch (Exception ex)
+		{
+			ex.printStackTrace();
+		}
+	}
+	
+	public void synchronizeXY(String rVariable)
+	{
+		String graphName = (String)retrieveVariable("GRAPH_NAME");
+
+		RConnection con = startR();
+		try
+		{
 			double [][] memberships = rcon.eval("xy_layout").asDoubleMatrix();
 			String [] axis = null;
 			if(memberships[0].length == 2) {
@@ -611,7 +628,7 @@ public abstract class BaseJavaReactor extends AbstractReactor{
 			for(int memIndex = 0; memIndex < memberships.length; memIndex++)
 			{
 				String thisID = IDs[memIndex];
-
+	
 				java.lang.System.out.println("ID...  " + thisID);
 				Vertex retVertex = null;
 				
@@ -627,19 +644,20 @@ public abstract class BaseJavaReactor extends AbstractReactor{
 					java.lang.System.out.println("Set the cluster to " + memberships[memIndex]);
 				}
 			}
-		}catch (Exception ex)
+		}catch(Exception ex)
 		{
 			ex.printStackTrace();
 		}
 	}
 	
+		
 	public void synchronizeFromR(String graphName)
 	{
 		// get the attributes
 		// and then synchronize all the different properties
 		// vertex_attr_names
 		String names = "";
-		RConnection con = getR();
+		RConnection con = startR();
 
 		// get all the attributes first
 		try {
@@ -648,8 +666,6 @@ public abstract class BaseJavaReactor extends AbstractReactor{
 			// or for each get it and so I dont look up tinker many times ?!
 			
 			// now I need to get each of this string and then synchronize
-			
-			
 		} catch (RserveException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
@@ -668,6 +684,7 @@ public abstract class BaseJavaReactor extends AbstractReactor{
 	}
 	
 	
+	
 	public void generateNewGraph(String[] selectors, Map<String, String> edges) {
 		java.lang.System.setSecurityManager(curManager);
 		if(dataframe instanceof TinkerFrame)
@@ -679,4 +696,32 @@ public abstract class BaseJavaReactor extends AbstractReactor{
 		java.lang.System.setSecurityManager(reactorManager);
 		
 	}
+	
+	public void endR()
+	{
+		java.lang.System.setSecurityManager(curManager);
+		RConnection con = startR();
+		try {
+			con.shutdown();
+//			System.out.println("R Shutdown!!");
+//			java.lang.System.setSecurityManager(reactorManager);
+/*		String port = (String)retrieveVariable("R_PORT");
+		System.out.println("Trying to connect to port.. " + port);
+		runR("library(RSclient);");
+		runR("library(Rserve);");
+		runR("rsc <- RSconnect(host=\"127.0.0.1\", port = "+ port + ");");
+		runR("RSshutdown(rsc);");
+		runR("RSclose();");
+*/		
+		// clean up other things
+		removeVariable(R_CONN);
+		removeVariable(R_PORT);
+		System.out.println("R Shutdown!!");
+		java.lang.System.setSecurityManager(reactorManager);
+		} catch (Exception e) {
+	// TODO Auto-generated catch block
+	e.printStackTrace();
+	}
+	}
+	
 }
