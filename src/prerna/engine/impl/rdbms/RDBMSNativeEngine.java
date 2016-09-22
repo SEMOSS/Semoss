@@ -441,8 +441,8 @@ public class RDBMSNativeEngine extends AbstractEngine {
 				Object output = null;
 				for(int colIndex = 1;colIndex <= columns;colIndex++)
 				{					
-					output = rs.getString(colIndex);
-//					output = rs.getObject(colIndex);
+//					output = rs.getString(colIndex);
+					output = rs.getObject(colIndex);
 //					System.out.print(rs.getObject(colIndex));
 					list.add(output);
 				}
