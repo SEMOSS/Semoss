@@ -7,11 +7,13 @@ import java.util.Map;
 import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
 
+import prerna.algorithm.api.ITableDataFrame;
 import prerna.cache.CacheFactory;
 import prerna.engine.api.IEngine;
 import prerna.engine.impl.AbstractEngine;
 import prerna.om.Insight;
 import prerna.om.InsightStore;
+import prerna.ui.components.playsheets.datamakers.IDataMaker;
 import prerna.ui.helpers.InsightCreateRunner;
 import prerna.util.Utility;
 
@@ -38,7 +40,6 @@ public class OpenDataReactor extends AbstractReactor {
 	public Iterator process() {
 		
 		Gson gson = new Gson();
-//		List<String> engineAttributes = (List<String>) myStore.get(PKQLEnum.WORD_OR_NUM);
 		
 		//open a saved insight if we have the data
 		String engine = (String)myStore.get("DATA_OPEN_ENGINE");
@@ -54,9 +55,8 @@ public class OpenDataReactor extends AbstractReactor {
 		}
 		Insight insightObj = ((AbstractEngine)coreEngine).getInsight(engine_id).get(0);
 		
-		// set the user id into the insight --hardcoding this for now, need to somehow grab the id from session
-//		insightObj.setUserID( ((User) request.getSession().getAttribute(Constants.SESSION_USER)).getId() );
-		insightObj.setUserID("test");
+		IDataMaker insight = (IDataMaker)myStore.get("G");
+		insightObj.setUserID(insight.getUserId());
 		
 		String vizData = CacheFactory.getInsightCache(CacheFactory.CACHE_TYPE.DB_INSIGHT_CACHE).getVizData(insightObj);
 
