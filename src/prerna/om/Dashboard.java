@@ -211,7 +211,7 @@ public class Dashboard implements IDataMaker {
 		}
 	}
 	
-	private void removeInsight(String viewTable, Insight insight) {
+	public void removeInsight(String viewTable, Insight insight) {
 		if(this.insightMap.containsKey(viewTable)) {
 			List<Insight> insights = this.insightMap.get(viewTable);
 			insights.remove(insight);
