@@ -28,6 +28,7 @@ public class Dashboard implements IDataMaker {
 
 	private static final Logger LOGGER = LogManager.getLogger(Dashboard.class.getName());
 	private String insightID;
+	private String userID;
 	private H2Joiner joiner;
 	
 	//will need this when same insight can be on two different dashboards
@@ -184,12 +185,12 @@ public class Dashboard implements IDataMaker {
 
 	@Override
 	public void setUserId(String userId) {
-		
+		this.userID = userId;
 	}
 
 	@Override
 	public String getUserId() {
-		return null;
+		return this.userID;
 	}
 
 	@Override
@@ -199,7 +200,10 @@ public class Dashboard implements IDataMaker {
 	
 	private void addInsight(String viewTable, Insight insight) {
 		if(this.insightMap.containsKey(viewTable)) {
-			this.insightMap.get(viewTable).add(insight);
+			List<Insight> insights = this.insightMap.get(viewTable);
+			if(!insights.contains(insight)){
+				insights.add(insight);
+			}
 		} else {
 			List<Insight> list = new ArrayList<>();
 			list.add(insight);
