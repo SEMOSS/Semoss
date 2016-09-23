@@ -113,8 +113,7 @@ public class H2Frame extends AbstractTableDataFrame {
 		}
 
 		// we really need another way to get the data types....
-		Map<String, IMetaData.DATA_TYPES> typesMap = this.metaData
-				.getColumnTypes();
+		Map<String, IMetaData.DATA_TYPES> typesMap = this.metaData.getColumnTypes();
 		builder.addRowsViaIterator(it, typesMap);
 	}
 
@@ -280,8 +279,7 @@ public class H2Frame extends AbstractTableDataFrame {
 	 *            on columns that do not have the same names
 	 * @return
 	 */
-	private boolean allHeadersAccounted(String[] headers1, String[] headers2,
-			List<Map<String, String>> joins) {
+	private boolean allHeadersAccounted(String[] headers1, String[] headers2, List<Map<String, String>> joins) {
 		if (headers1.length != headers2.length) {
 			return false;
 		}
@@ -330,59 +328,6 @@ public class H2Frame extends AbstractTableDataFrame {
 			builder.setFilters(columnHeader, filterValues, H2Builder.Comparator.EQUAL);
 		}
 	}
-
-	// @Override
-	// public void filter(String columnHeader, List<Object> filterValues, String
-	// comparator) {
-	// if(filterValues != null && filterValues.size() > 0) {
-	//
-	// if(comparator.equals("=")) {
-	// builder.setFilters(columnHeader, filterValues,
-	// H2Builder.Comparator.EQUAL);
-	// } else if(comparator.equals("!=")) {
-	// builder.setFilters(columnHeader, filterValues,
-	// H2Builder.Comparator.NOT_EQUAL);
-	// } else if(comparator.equals("<")) {
-	// if(isNumeric(columnHeader)) {
-	// builder.setFilters(columnHeader, filterValues,
-	// H2Builder.Comparator.LESS_THAN);
-	// } else {
-	// throw new IllegalArgumentException(columnHeader +
-	// " is not a numeric column, cannot use operator " + comparator);
-	// }
-	// } else if(comparator.equals(">")) {
-	// if(isNumeric(columnHeader)) {
-	// builder.setFilters(columnHeader, filterValues,
-	// H2Builder.Comparator.GREATER_THAN);
-	// } else {
-	// throw new IllegalArgumentException(columnHeader +
-	// " is not a numeric column, cannot use operator " + comparator);
-	// }
-	// } else if(comparator.equals("<=")) {
-	// if(isNumeric(columnHeader)) {
-	// builder.setFilters(columnHeader, filterValues,
-	// H2Builder.Comparator.LESS_THAN_EQUAL);
-	// } else {
-	// throw new IllegalArgumentException(columnHeader +
-	// " is not a numeric column, cannot use operator " + comparator);
-	// }
-	// } else if(comparator.equals(">=")) {
-	// if(isNumeric(columnHeader)) {
-	// builder.setFilters(columnHeader, filterValues,
-	// H2Builder.Comparator.GREATER_THAN_EQUAL);
-	// } else {
-	// throw new IllegalArgumentException(columnHeader +
-	// " is not a numeric column, cannot use operator " + comparator);
-	// }
-	// } else {
-	// //comparator not recognized...do equal by default? or do nothing? or
-	// throw error?
-	// builder.setFilters(columnHeader, filterValues,
-	// H2Builder.Comparator.EQUAL);
-	// }
-	// this.metaData.setFiltered(columnHeader, true);
-	// }
-	// }
 
 	@Override
 	public void filter(String columnHeader, Map<String, List<Object>> filterValues) {
@@ -546,14 +491,15 @@ public class H2Frame extends AbstractTableDataFrame {
 				Map<String, Double> minMax = new HashMap<String, Double>();
 
 				// sort unfiltered array to pull relative min and max of unfiltered data
-				Object[] unfilteredArray = unfilteredList.toArray();
-				Arrays.sort(unfilteredArray);
-				double absMin = getMin(selectors.get(i));
-				double absMax = getMax(selectors.get(i));
-				if(!unfilteredList.isEmpty()) {
-					minMax.put("min", (Double)unfilteredArray[0]);
-					minMax.put("max", (Double)unfilteredArray[unfilteredArray.length-1]);
-				}
+				double min = getMin(selectors.get(i));
+				double max = getMax(selectors.get(i));
+				
+				double absMin = builder.getStat(selectors.get(i), "MIN", true);
+				double absMax = builder.getStat(selectors.get(i), "MAX", true);
+
+				minMax.put("min", min);
+				minMax.put("max", max);
+
 				minMax.put("absMin", absMin);
 				minMax.put("absMax", absMax);
 
@@ -739,24 +685,22 @@ public class H2Frame extends AbstractTableDataFrame {
 		// make sure its a number
 		if (this.metaData.getDataType(columnHeader).equals(IMetaData.DATA_TYPES.NUMBER)) {
 			columnHeader = this.getValueForUniqueName(columnHeader);
-			return builder.getStat(columnHeader, "MIN");
+			return builder.getStat(columnHeader, "MIN", false);
 		}
 		return null;
 	}
 
 	@Override
 	public Double getMax(String columnHeader) {
-		if (this.metaData.getDataType(columnHeader).equals(
-				IMetaData.DATA_TYPES.NUMBER)) {
+		if (this.metaData.getDataType(columnHeader).equals(IMetaData.DATA_TYPES.NUMBER)) {
 			columnHeader = this.getValueForUniqueName(columnHeader);
-			return builder.getStat(columnHeader, "MAX");
+			return builder.getStat(columnHeader, "MAX", false);
 		}
 		return null;
 	}
 
 	@Override
-	public Iterator<List<Object[]>> scaledUniqueIterator(String columnHeader,
-			boolean getRawData, Map<String, Object> options) {
+	public Iterator<List<Object[]>> scaledUniqueIterator(String columnHeader, boolean getRawData, Map<String, Object> options) {
 		List<String> selectors = null;
 		Double[] max = null;
 		Double[] min = null;
@@ -784,9 +728,7 @@ public class H2Frame extends AbstractTableDataFrame {
 		if (builder.tableName == null) {
 			builder.tableName = getTableNameForUniqueColumn(this.headerNames[0]);
 		}
-		ScaledUniqueH2FrameIterator iterator = new ScaledUniqueH2FrameIterator(
-				columnHeader, getRawData, builder.tableName, builder, max, min,
-				headerTypes, selectors);
+		ScaledUniqueH2FrameIterator iterator = new ScaledUniqueH2FrameIterator(columnHeader, getRawData, builder.tableName, builder, max, min, headerTypes, selectors);
 		return iterator;
 	}
 

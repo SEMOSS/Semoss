@@ -743,7 +743,7 @@ public class H2Builder {
 	 * @param statType
 	 * @return
 	 */
-	public Double getStat(String columnHeader, String statType) {
+	public Double getStat(String columnHeader, String statType, boolean ignoreFilter) {
 		String tableName = this.tableName;
 		if(joinMode) {
 			tableName = this.viewTableName;
@@ -753,7 +753,15 @@ public class H2Builder {
 		}
 //		String tableName = joinMode ? this.viewTableName : this.tableName;
 		columnHeader = cleanHeader(columnHeader);
-		ResultSet rs = executeQuery(makeFunction(columnHeader, statType, tableName));
+		
+		String function;
+		if(ignoreFilter) {
+			function = makeFunctionIgnoreFilter(columnHeader, statType, tableName);
+		} else {
+			function = makeFunction(columnHeader, statType, tableName);
+		}
+		
+		ResultSet rs = executeQuery(function);
 		try {
 			if(rs.next()) {
 				return rs.getDouble(1);
@@ -764,47 +772,49 @@ public class H2Builder {
 		return null;
 	}
 
-	public Map<Map<Object, Object>, Object> getStat(String columnHeader, String statType, List<String> groupByCols) {
-		String tableName = this.tableName;
-		if(joinMode) {
-			tableName = this.viewTableName;
-			columnHeader = translateColumn(columnHeader);
-			groupByCols = translateColumns(groupByCols);
-		} else {
-			
-		}
-//		String tableName = joinMode ? this.viewTableName : this.tableName;
-		ResultSet rs = executeQuery(makeFunction(columnHeader, statType, tableName, groupByCols));
-		try {
-			Map<Map<Object, Object>, Object> results = new Hashtable<Map<Object, Object>, Object>();
-			ResultSetMetaData metaData = rs.getMetaData();
-			int numReturns = metaData.getColumnCount();
-
-			int[] typeArr = new int[numReturns];
-			// index starts at 1 for metaData
-			for(int i = 1; i <= numReturns; i++) {
-				typeArr[i-1] = metaData.getColumnType(i);
-			}
-
-			while(rs.next()) {
-				// first return is the stat routine
-				Double val = rs.getDouble(1);
-				// get the unique set of group by values
-				Map<Object, Object> groupByVals = new Hashtable<Object, Object>();
-				for(int i = 2; i <= numReturns; i++) {
-					// group by cols are added in the same position as the list passed in
-					groupByVals.put(groupByCols.get(i-2), rs.getObject(i));
-				}
-				// add the row into the result set
-				results.put(groupByVals, val);
-			}
-
-			return results;
-		} catch (SQLException e) {
-			e.printStackTrace();
-		}
-		return null;
-	}
+	//DO NOT ERASE
+	//CODE FOR DOING MATH WITH GROUP BY...MAY NEED THIS WHEN/IF WE SWITCH PKQL MATH TO MAKE SQL CALLS DIRECTLY
+//	public Map<Map<Object, Object>, Object> getStat(String columnHeader, String statType, List<String> groupByCols) {
+//		String tableName = this.tableName;
+//		if(joinMode) {
+//			tableName = this.viewTableName;
+//			columnHeader = translateColumn(columnHeader);
+//			groupByCols = translateColumns(groupByCols);
+//		} else {
+//			
+//		}
+////		String tableName = joinMode ? this.viewTableName : this.tableName;
+//		ResultSet rs = executeQuery(makeFunction(columnHeader, statType, tableName, groupByCols));
+//		try {
+//			Map<Map<Object, Object>, Object> results = new Hashtable<Map<Object, Object>, Object>();
+//			ResultSetMetaData metaData = rs.getMetaData();
+//			int numReturns = metaData.getColumnCount();
+//
+//			int[] typeArr = new int[numReturns];
+//			// index starts at 1 for metaData
+//			for(int i = 1; i <= numReturns; i++) {
+//				typeArr[i-1] = metaData.getColumnType(i);
+//			}
+//
+//			while(rs.next()) {
+//				// first return is the stat routine
+//				Double val = rs.getDouble(1);
+//				// get the unique set of group by values
+//				Map<Object, Object> groupByVals = new Hashtable<Object, Object>();
+//				for(int i = 2; i <= numReturns; i++) {
+//					// group by cols are added in the same position as the list passed in
+//					groupByVals.put(groupByCols.get(i-2), rs.getObject(i));
+//				}
+//				// add the row into the result set
+//				results.put(groupByVals, val);
+//			}
+//
+//			return results;
+//		} catch (SQLException e) {
+//			e.printStackTrace();
+//		}
+//		return null;
+//	}
 
 	/**
 	 * Adds new headers with associated types to the table
@@ -2631,9 +2641,25 @@ public class H2Builder {
 		}
 
 		functionString += "FROM "+tableName;
-		return functionString;
+		String filterSubQuery = makeFilterSubQuery();
+		return functionString + filterSubQuery;
 	}
 
+	private String makeFunctionIgnoreFilter(String column, String function, String tableName) {
+		column = cleanHeader(column);
+		String functionString = "SELECT ";
+		switch(function.toUpperCase()) {
+		case "COUNT": functionString += "COUNT("+column+")"; break;
+		case "AVERAGE": functionString += "AVG("+column+")"; break;
+		case "MIN": functionString += "MIN("+column+")"; break;
+		case "MAX": functionString += "MAX("+column+")"; break;
+		case "SUM": functionString += "SUM("+column+")"; break;
+		default: functionString += column;
+		}
+
+		functionString += "FROM "+tableName;
+		return functionString;
+	}
 	private String makeFunction(String column, String function, String tableName, List<String> groupByCols) {
 		if(groupByCols == null || groupByCols.isEmpty()) {
 			return makeFunction(column, function, tableName);

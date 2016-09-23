@@ -69,43 +69,6 @@ public class H2Joiner {
 	 * @return					a merge of all the filter data from the frames associated with the tableName (view) parameter
 	 */
 	protected Map<String, Map<Comparator, Set<Object>>> getJoinedFilterHash(String tableName) {
-////		List<Insight> insights = dashboard.getInsights();
-//		
-//		List<H2Frame> frames = getJoinedFrames(tableName);
-//		
-//		//build the filter query from the frames
-//		Map<String, Map<Comparator, Set<Object>>> filterHash = new HashMap<>();
-//		for(H2Frame frame : frames) {
-//			Map<String, Map<Comparator, Set<Object>>> nextHash = frame.builder.filterHash2;
-//			for(String column : nextHash.keySet()) {
-//				String translatedColumn = frame.builder.joinColumnTranslation.get(column);
-//				if(filterHash.containsKey(translatedColumn)) {
-//					Map<Comparator, Set<Object>> columnHash = filterHash.get(translatedColumn);
-//					Map<Comparator, Set<Object>> nextColumnHash = nextHash.get(column);
-//					for(Comparator comparator : nextColumnHash.keySet()) {
-//						if(columnHash.containsKey(comparator)) {
-//							columnHash.get(comparator).addAll(nextColumnHash.get(comparator));
-//						} else {
-//							Set<Object> valList = new HashSet<>();
-//							valList.addAll(nextColumnHash.get(comparator));
-//							columnHash.put(comparator, valList);
-//						}
-//					}
-//				} else {
-//					//need to make a copy so that changes don't affect original hash by reference
-//					Map<Comparator, Set<Object>> map = new HashMap<>();
-//					Map<Comparator, Set<Object>> oldMap = nextHash.get(column);
-//					for(Comparator key : oldMap.keySet()) {
-//						Set<Object> setCopy = new HashSet<>();
-//						setCopy.addAll(oldMap.get(key));
-//						map.put(key, setCopy);
-//					}
-//					filterHash.put(translatedColumn, map);
-//				}
-//			}
-//		}
-//		
-//		return filterHash;
 		if(this.filterHashTable.containsKey(tableName)) {
 			return this.filterHashTable.get(tableName);
 		} else {
@@ -145,7 +108,7 @@ public class H2Joiner {
 	}
 	
 	public void updateDataId(String viewTableName) {
-		List<H2Frame> frames = getJoinedFrames(viewTableName);//joinedFrames.get(viewTableName);
+		List<H2Frame> frames = getJoinedFrames(viewTableName);
 		
 		if(frames != null) {
 			for(H2Frame frame : frames) {
@@ -175,8 +138,6 @@ public class H2Joiner {
 		}
 		
 		
-		//Testing with 2...uncomment this when testing is successful...then update the code
-		//assuming for now we are only joining non joined insights for 3 or more insights
 		for(H2Frame frame : frames) {
 			if(frame.isJoined()) {
 				throw new IllegalArgumentException("Frame already joined");
@@ -196,28 +157,6 @@ public class H2Joiner {
 			retTable = joinFrames(frames[i-1], frames[i], nextNewJoinCols);
 		}
 		return retTable;
-//		String[] tableNames = new String[frames.length];
-//		for(int i = 0; i < frames.length; i++) {
-//			tableNames[i] = frames[i].builder.getTableName();
-//		}
-//		
-//		String newTable = getNewTableName();
-//		
-//		QueryStruct qs = buildNewQueryStruct(frames, newjoinCols);
-//		this.qsMap.put(newTable, qs);
-//		String newViewQuery = buildView(newTable);
-//		
-//		try {
-//			frames[0].builder.runExternalQuery(newViewQuery);
-//			for(H2Frame frame : frames) {
-//				frame.setJoin(newTable);
-//				frame.builder.setJoiner(this);
-//			}
-//		} catch (Exception e) {
-//			e.printStackTrace();
-//		}
-		
-//		return newTable;
 	}
 	
 	/**
