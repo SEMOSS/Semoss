@@ -39,7 +39,7 @@ public class DashboardRemoveReactor extends AbstractReactor {
 			}
 			
 			dashboard.removeInsight(insightId, insight);
-			dashboard.setWidgetId(insightId, widgetId);
+			dashboard.removeWidgetId(insightId, widgetId);
 			setDashboardData(insightToRemove);
 			
 		} catch(Exception e) {
