@@ -1897,4 +1897,16 @@ public class Insight {
 		return this.getFilesMetadata();
 	}
 
+	@Override
+	public boolean equals(Object insight) {
+		if(insight instanceof Insight && insight != null) {
+			return this.insightID.equals(((Insight)insight).getInsightID());
+		}
+		return false;
+	}
+	
+	@Override
+	public int hashCode() {
+		return this.insightID.hashCode();
+	}
 }
