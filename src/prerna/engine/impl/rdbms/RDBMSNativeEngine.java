@@ -146,9 +146,9 @@ public class RDBMSNativeEngine extends AbstractEngine {
 
 					this.engineConnected = true;
 					//create database
-					createDatabase(tempEngineName);
+//					createDatabase(tempEngineName);
 					//
-					closeEngine();
+//					closeEngine();
 					if(useConnectionPooling){
 						closeDataSource();
 					}
