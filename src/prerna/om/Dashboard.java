@@ -415,5 +415,10 @@ public class Dashboard implements IDataMaker {
 		
 	}
 	
+	public void removeWidgetId(String insightId, String widgetId) {
+		this.insight2frameMap.remove(insightId, widgetId);
+		
+	}
+	
 	/************************************* END JOINING LOGIC **************************************/
 }
