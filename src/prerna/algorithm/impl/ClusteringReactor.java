@@ -178,7 +178,7 @@ public class ClusteringReactor extends MathReactor {
 //		String nodeStr = myStore.get(whoAmI).toString();
 //		myStore.put(nodeStr, it);
 		myStore.put("STATUS",STATUS.SUCCESS);
-		
+
 		return null;
 	}
 	
