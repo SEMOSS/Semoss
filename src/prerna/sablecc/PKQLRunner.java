@@ -26,6 +26,10 @@ import prerna.sablecc.parser.ParserException;
 import prerna.ui.components.playsheets.datamakers.IDataMaker;
 import prerna.util.Constants;
 
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
+import com.google.gson.reflect.TypeToken;
+
 public class PKQLRunner {
 	
 	public enum STATUS {SUCCESS, ERROR, INPUT_NEEDED}
@@ -34,6 +38,7 @@ public class PKQLRunner {
 	private String currentString = ""; //TODO: what is this used for?
 	private Object response = "PKQL processing complete";
 	private String explain = "";
+	private String additionalInfoString = "";
 	
 	private Map<String,String> newColumns = new HashMap<String,String>();
 	private Map<String, Map<String,Object>> masterFeMap = new HashMap<String, Map<String,Object>>(); // this holds all active front end data. in the form panelId --> prop --> value
@@ -122,6 +127,9 @@ public class PKQLRunner {
 //			result.put("label", currentString);
 //		}
 		result.put("label", this.explain);
+		
+		// this is additional info passed to front-end for further processing.
+		result.put("additionalInfo", additionalInfoString);
 		
 		// add it to the data associated with this panel if this is a panel pkql
 		// also add the panel id to the master
@@ -266,11 +274,13 @@ public class PKQLRunner {
 	public void setExplanation(List<IPkqlMetadata> metadataResponses) {
 		// grab the metadata produced
 		this.metadataResponse = metadataResponses;
-		
-		// create the explanation using the metadata responses
+		HashMap<String,Object> allAdditionalInfo = new HashMap<>();
+		// create the explanation and populate additional info map using the metadata responses
 		if(this.metadataResponse != null && !this.metadataResponse.isEmpty()) {
 			int size = this.metadataResponse.size();
 			this.explain = this.metadataResponse.get(size-1).getExplanation();
+			if(this.metadataResponse.get(size-1).getAdditionalInfo() != null)
+				allAdditionalInfo.putAll(this.metadataResponse.get(size - 1).getAdditionalInfo());;
 			for(int i = size-2; i >= 0; i--) {
 				IPkqlMetadata innerMeta = this.metadataResponse.get(i);
 				String innerMetaPkql = innerMeta.getPkqlStr();
@@ -278,8 +288,12 @@ public class PKQLRunner {
 				if(this.explain.contains(innerMetaPkql)) {
 					this.explain = this.explain.replace(innerMetaPkql, innerExplanation);
 				}
+				if(innerMeta.getAdditionalInfo() != null)
+					allAdditionalInfo.putAll(innerMeta.getAdditionalInfo());
 			}
 		}
+		Gson gson = new GsonBuilder().create();
+		additionalInfoString = gson.toJson(allAdditionalInfo);
 		System.out.println("EXPLANATION IS ::: " + this.explain);
 	}
 	

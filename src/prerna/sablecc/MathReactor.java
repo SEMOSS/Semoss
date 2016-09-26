@@ -159,6 +159,7 @@ public abstract class MathReactor extends AbstractReactor {
 		metadata.setProcedureName((String) myStore.get("PROC_NAME"));
 		metadata.setPkqlStr((String) myStore.get("MATH_EXPRESSION"));
 		metadata.setGroupByColumns((List<String>) myStore.get(PKQLEnum.COL_CSV)); 
+		metadata.setAdditionalInfo(myStore.get("ADDITIONAL_INFO"));
 		return metadata;
 	}
 }

@@ -15,6 +15,7 @@ public abstract class AbstractPkqlMetadata implements IPkqlMetadata{
 
 	protected String pkqlStr;
 	protected PKQLTransformation trans;
+	protected Map<String,Object> additionalInfo;
 
 	@Override
 	public void setPkqlStr(String pkqlStr) {
@@ -34,6 +35,17 @@ public abstract class AbstractPkqlMetadata implements IPkqlMetadata{
 	@Override
 	public PKQLTransformation getInvokingPkqlTransformation() {
 		return this.trans;
+	}
+	
+	@Override
+	public void setAdditionalInfo(Object info){
+		if(info != null)
+			this.additionalInfo = (Map<String,Object>)info;
+	}
+	
+	@Override
+	public Map<String,Object> getAdditionalInfo(){
+		return this.additionalInfo;
 	}
 	
 	public String generateExplaination(String template, Map<String, Object> values) {
