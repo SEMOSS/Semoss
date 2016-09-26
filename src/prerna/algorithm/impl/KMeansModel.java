@@ -55,37 +55,34 @@ public class KMeansModel {
 	
 	public Map<Object,Integer> clusterResult(){
 		Map<Object, Integer> result = new HashMap<Object,Integer>();
-		/*try {
-			PrintWriter pw = new PrintWriter(new File("C:\\Users\\shantasingh\\Desktop\\clusterResult.txt"));
-			for(DataPoint p : points){
-				StringBuilder sb = new StringBuilder();
-				for(double d : p.dimensions){
-					sb.append(d+",");
-				}
-				sb.append(p.clusterNum + "\n");
-				pw.write(sb.toString());
-				result.put(p.id, p.clusterNum);
-			}
-			pw.close();
-		} catch (FileNotFoundException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}*/
 		Collections.sort(clusters);
 		
 		for(DataPoint p : points){
-			for(int i=0; i < clusters.size(); i++){
+			result.put(p.id, p.clusterNum);
+			/*for(int i=0; i < clusters.size(); i++){
 				if(clusters.get(i).centre.clusterNum == p.clusterNum){
 					result.put(p.id, i);
 					break;
 				}
-			}
-			//result.put(p.id, p.clusterNum);
+			}*/
 		}
 		for(DataPoint p : nonClusteredPoints){
 			result.put(p.id, p.clusterNum);
 		}
 		return result;
+	}
+	
+	public Map<String,String> getClusterCentres(){
+		Map<String, String> clusterCentres = new HashMap<String,String>();
+		for(Cluster c : clusters){
+			StringBuilder sb = new StringBuilder();
+			for(double d : c.centre.dimensions){
+				sb.append(String.format("%.2f,", d));
+			}
+			sb.replace(sb.length() - 1, sb.length(), "");
+		clusterCentres.put(String.valueOf(c.centre.clusterNum), sb.toString());
+		}
+		return clusterCentres;
 	}
 	
 	void Expectation(){

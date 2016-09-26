@@ -20,6 +20,18 @@ public interface IPkqlMetadata {
 	String getExplanation();
 	
 	/**
+	 * Sets additional info that will be passed to FE for further processing.
+	 * @return
+	 */	
+	void setAdditionalInfo(Object info);
+	
+	/**
+	 * Gets additional info, if present, that needs to be passed to FE
+	 * @return
+	 */
+	Map<String,Object> getAdditionalInfo();
+	
+	/**
 	 * Set the pkql transformation that invoked this pkql expression
 	 * Used when we need to update the pkql recipe
 	 * Change must be made in pkql transformation since that is used for saving

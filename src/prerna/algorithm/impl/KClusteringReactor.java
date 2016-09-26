@@ -1,5 +1,6 @@
 package prerna.algorithm.impl;
 
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Vector;
@@ -69,6 +70,9 @@ public class KClusteringReactor extends MathReactor{
 		ClusterIterator expItr = new ClusterIterator(resultItr, columnsArray,script, clusters);
 		String nodeStr = myStore.get(whoAmI).toString();
 		myStore.put(nodeStr, expItr);
+		Map<String,Object> additionalInfo = new HashMap<>();
+		additionalInfo.put("Centres", kMeans.getClusterCentres());
+		myStore.put("ADDITIONAL_INFO", additionalInfo);
 		myStore.put("STATUS", STATUS.SUCCESS);
 		
 		return expItr;
