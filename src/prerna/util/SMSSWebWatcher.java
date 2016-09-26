@@ -140,12 +140,21 @@ public class SMSSWebWatcher extends AbstractFileWatcher {
 					engineNames = engineNames + ";" + engineName;
 					DIHelper.getInstance().setLocalProperty(Constants.ENGINES, engineNames);
 				}
-				// get that metadata I say
-				Utility.synchronizeEngineMetadata(engineName);
-				// get the solr too ? :)<-- this is the slow part.. so removing it for now
-				Utility.addToSolrInsightCore2(engineName);
-				System.out.println("Loaded Engine.. " + fileName);
-				//Utility.loadWebEngine(fileName, prop);
+				
+				if(prop.containsKey(Constants.HIDDEN_DATABASE) && "true".equalsIgnoreCase(prop.get(Constants.HIDDEN_DATABASE).toString().trim()) ) {
+					// if the database is a hidden database
+					// do not add anything
+					// we return null and we will 
+					System.out.println("Engine " + engineName + " is a hidden database. Do not load into local master or solr.");
+					return null;
+				} else {
+					// get that metadata I say
+					Utility.synchronizeEngineMetadata(engineName);
+					// get the solr too ? :)<-- this is the slow part.. so removing it for now
+					Utility.addToSolrInsightCore2(engineName);
+					System.out.println("Loaded Engine.. " + fileName);
+					//Utility.loadWebEngine(fileName, prop);
+				}
 			}
 		}catch(Exception e){
 			e.printStackTrace();
@@ -240,6 +249,8 @@ public class SMSSWebWatcher extends AbstractFileWatcher {
 				// I only want to keep track of what are the engine names and their corresponding SMSS files
 				
 				String loadedEngineName = catalogDB(fileNames[fileIdx]);
+				// if the engine is hidden
+				// this will return null since no engine has been loaded
 				engineNames[fileIdx] = loadedEngineName;
 			} catch (RuntimeException ex) {
 				ex.printStackTrace();
