@@ -1141,6 +1141,7 @@ public class Translation extends DepthFirstAdapter {
 			initReactor(PKQLEnum.DATA_FRAME);
 			String word = ((AAlphaWordOrNum) node.getBuilder()).getWord().getText().trim();
 			String cleanWord = word.substring(1, word.length()-1);// remove the quotes
+			curReactor.put(PKQLEnum.DATA_FRAME, node.toString());
 			curReactor.put(DataFrameReactor.DATA_FRAME_TYPE, cleanWord);
 			curReactor.put("G", frame);
 		}
