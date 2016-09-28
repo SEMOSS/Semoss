@@ -58,7 +58,7 @@ public class GridScatterWithLinesSheet extends BrowserPlaySheet{
 	{
 		Hashtable<String,Object[][]> dataHash = new Hashtable<String,Object[][]>();
 		Object[][] dataSeries = new Object[dataFrame.getNumRows()][4];
-		Iterator<Object[]> it = dataFrame.iterator(false);
+		Iterator<Object[]> it = dataFrame.iterator();
 		
 		int counter = 0;
 		while(it.hasNext())

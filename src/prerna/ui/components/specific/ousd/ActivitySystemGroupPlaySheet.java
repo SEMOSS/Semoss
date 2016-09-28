@@ -116,7 +116,7 @@ public class ActivitySystemGroupPlaySheet extends GridPlaySheet{
 					}							
 				}
 			}
-	        this.dataFrame.addRow(newRow, newRow);
+	        this.dataFrame.addRow(newRow);
 		}
 	}
 	

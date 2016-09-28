@@ -196,8 +196,7 @@ public class MHSDashboardDrillPlaysheet extends TablePlaySheet implements IDataM
 		iteratorMap.put(TinkerFrame.DE_DUP, true);
 		iteratorMap.put(TinkerFrame.SELECTORS, selectorList);
 
-		boolean getRawData = false;
-		Iterator<Object[]> iterator = dataFrame.iterator(getRawData, iteratorMap);
+		Iterator<Object[]> iterator = dataFrame.iterator(iteratorMap);
 
 		
 		//Get the data with the actual dates
@@ -395,7 +394,7 @@ public class MHSDashboardDrillPlaysheet extends TablePlaySheet implements IDataM
 		// iterate through and add to the tinker frame
 		while (iterator1.hasNext()) {
 			IHeadersDataRow nextRow = iterator1.next();
-			tFrame.addRelationship(headers1, nextRow.getValues(), nextRow.getRawValues(), cardinality1, logicalToTypeMap);
+			tFrame.addRelationship(headers1, nextRow.getValues(), cardinality1, logicalToTypeMap);
 
 			// get a dependency list of all the non-null values for the second query
 			if (!(nextRow.getValues()[2] == null)) {
@@ -429,7 +428,7 @@ public class MHSDashboardDrillPlaysheet extends TablePlaySheet implements IDataM
 
 			while (iterator2.hasNext()) {
 				IHeadersDataRow nextRow = iterator2.next();
-				tFrame.addRelationship(headers2, nextRow.getValues(), nextRow.getRawValues(), cardinality2, logicalToTypeMap);
+				tFrame.addRelationship(headers2, nextRow.getValues(), cardinality2, logicalToTypeMap);
 			}
 		}
 
@@ -470,7 +469,7 @@ public class MHSDashboardDrillPlaysheet extends TablePlaySheet implements IDataM
 
 		while (iterator.hasNext()) {
 			IHeadersDataRow nextRow = iterator.next();
-			tFrame.addRelationship(headers, nextRow.getValues(), nextRow.getRawValues(), cardinality, logicalToTypeMap);
+			tFrame.addRelationship(headers, nextRow.getValues(), cardinality, logicalToTypeMap);
 		}
 	}
 	
@@ -508,7 +507,7 @@ public class MHSDashboardDrillPlaysheet extends TablePlaySheet implements IDataM
 
 		while (iterator.hasNext()) {
 			IHeadersDataRow nextRow = iterator.next();
-			tFrame.addRelationship(headers, nextRow.getValues(), nextRow.getRawValues(), cardinality, logicalToTypeMap);
+			tFrame.addRelationship(headers, nextRow.getValues(), cardinality, logicalToTypeMap);
 		}
 	}
 	
@@ -559,7 +558,7 @@ public class MHSDashboardDrillPlaysheet extends TablePlaySheet implements IDataM
 
 		while (iterator.hasNext()) {
 			IHeadersDataRow nextRow = iterator.next();
-			tFrame.addRelationship(headers, nextRow.getValues(), nextRow.getRawValues(), cardinality, logicalToTypeMap);
+			tFrame.addRelationship(headers, nextRow.getValues(), cardinality, logicalToTypeMap);
 		}
 	}
 

@@ -92,7 +92,7 @@ public class ClusteringDrillDownListener extends AbstractListener {
 		}
 		
 		List<Object[]> subsetValues = new ArrayList<Object[]>();
-		Iterator<List<Object[]>> it = dataFrame.uniqueIterator(clusterIDCol, false);
+		Iterator<List<Object[]>> it = dataFrame.uniqueIterator(clusterIDCol);
 		while(it.hasNext()) {
 			List<Object[]> clusterData = it.next();
 			int clusterNumber = (int) clusterData.get(0)[clusterIDIndex];
@@ -121,7 +121,7 @@ public class ClusteringDrillDownListener extends AbstractListener {
 					hashRow.put(columnHeaders[j], row[j]);
 				}
 			}
-			newDataFrame.addRow(hashRow, hashRow);
+			newDataFrame.addRow(hashRow);
 		}
 		
 		ClusteringVizPlaySheet drillDownPlaySheet = new ClusteringVizPlaySheet();

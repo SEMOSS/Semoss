@@ -102,7 +102,7 @@ public class ScatterChartPlaySheet extends BrowserPlaySheet{
 
 		String name = names[labelIdx];
 		
-		Iterator<Object[]> it = dataFrame.iterator(true);
+		Iterator<Object[]> it = dataFrame.iterator();
 		ArrayList<Hashtable<String, Object>> allData = new ArrayList<Hashtable<String, Object>>();
 		while(it.hasNext())
 		{

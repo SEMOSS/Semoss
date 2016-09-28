@@ -4,6 +4,7 @@ import java.io.File;
 import java.io.FileOutputStream;
 import java.io.OutputStream;
 import java.sql.Connection;
+import java.util.Arrays;
 import java.util.Enumeration;
 import java.util.Hashtable;
 import java.util.List;
@@ -14,10 +15,14 @@ import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.GraphTraversal;
 import org.apache.tinkerpop.gremlin.structure.Graph;
 import org.apache.tinkerpop.gremlin.structure.Vertex;
 import org.apache.tinkerpop.gremlin.structure.io.IoCore;
+import org.rosuda.REngine.REXP;
 import org.rosuda.REngine.REXPDouble;
+import org.rosuda.REngine.REXPGenericVector;
 import org.rosuda.REngine.REXPInteger;
+import org.rosuda.REngine.REXPList;
 import org.rosuda.REngine.REXPMismatchException;
 import org.rosuda.REngine.REXPString;
+import org.rosuda.REngine.RList;
 import org.rosuda.REngine.Rserve.RConnection;
 import org.rosuda.REngine.Rserve.RserveException;
 
@@ -31,7 +36,6 @@ import prerna.util.Console;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
 import prerna.util.Utility;
-
 
 public abstract class BaseJavaReactor extends AbstractReactor{
 
@@ -372,7 +376,7 @@ public abstract class BaseJavaReactor extends AbstractReactor{
 			
 			// load the library
 			rconn.eval("library(\"igraph\");");
-						
+			
 			String loadGraphScript = graphName + "<- read_graph(\"" + fileName + "\", \"graphml\");";
 			java.lang.System.out.println(" Load !! " + loadGraphScript);
 			// load the graph
@@ -390,54 +394,147 @@ public abstract class BaseJavaReactor extends AbstractReactor{
 		
 	}
 	
-	private String getResultAsString(Object output)
+	private void getResultAsString(Object output, StringBuilder builder)
 	{
-		String intString = "";
-		if(output instanceof REXPInteger)
+//		try {
+//			builder.append( ((REXP) output).asString() ) ;
+//			return;
+//		} catch (REXPMismatchException e) {
+//			// do nothing
+//		}
+		
+		// Generic vector..
+		if(output instanceof REXPGenericVector) 
+		{			
+			RList list = ((REXPGenericVector)output).asList();
+			
+			String[] attributeNames = getAttributeArr(((REXPGenericVector)output)._attr());
+			boolean matchesRows = false;
+			// output list attribute names if present
+			if(attributeNames != null) {
+				// Due to the way R sends back data
+				// When there is a list, it may contain a name label
+				matchesRows = list.size() == attributeNames.length;
+				if(!matchesRows) {
+					if(attributeNames.length == 1) {
+						builder.append("\n" + attributeNames[0] + "\n");
+					} else if(attributeNames.length > 1){
+						builder.append("\n" + Arrays.toString(attributeNames) + "\n");
+					}
+				}
+			}
+			int size = list.size();
+			for(int listIndex = 0; listIndex < size; listIndex++) {
+				if(matchesRows) {
+					builder.append("\n" + attributeNames[listIndex] + " : ");
+				}
+				getResultAsString(list.get(listIndex), builder);
+			}
+		}
+		
+		// List..
+		else if(output instanceof REXPList) {
+			RList list = ((REXPList)output).asList();
+			
+			String[] attributeNames = getAttributeArr(((REXPList)output)._attr());
+			boolean matchesRows = false;
+			// output list attribute names if present
+			if(attributeNames != null) {
+				// Due to the way R sends back data
+				// When there is a list, it may contain a name label
+				matchesRows = list.size() == attributeNames.length;
+				if(!matchesRows) {
+					if(attributeNames.length == 1) {
+						builder.append("\n" + attributeNames[0] + "\n");
+					} else if(attributeNames.length > 1){
+						builder.append("\n" + Arrays.toString(attributeNames) + "\n");
+					}
+				}
+			}
+			int size = list.size();
+			for(int listIndex = 0; listIndex < size; listIndex++) {
+				if(matchesRows) {
+					builder.append("\n" + attributeNames[listIndex] + " : ");
+				}
+				getResultAsString(list.get(listIndex), builder);
+			}
+		}
+		
+		// Integers..
+		else if(output instanceof REXPInteger)
 		{
 			int [] ints =  ((REXPInteger)output).asIntegers();
 			if(ints.length > 1)
 			{
-				
-				for(int intIndex = 0;intIndex < ints.length;intString = intString + " " + ints[intIndex], intIndex++);
-					
+				for(int intIndex = 0;intIndex < ints.length; intIndex++) {
+					if(intIndex == 0) {
+						builder.append(ints[intIndex]);
+					} else {
+						builder.append(" ").append(ints[intIndex]);
+					}
+				}
 			}
 			else
 			{					
-				intString = ints[0] + "";
+				builder.append(ints[0]);
 			}
 		}
 		
 		// Doubles.. 
-		if(output instanceof REXPDouble)
+		else if(output instanceof REXPDouble)
 		{
 			double [] doubles =  ((REXPDouble)output).asDoubles();
 			if(doubles.length > 1)
 			{
-				
-				for(int intIndex = 0;intIndex < doubles.length;intString = intString + " " + doubles[intIndex], intIndex++);
+				for(int intIndex = 0;intIndex < doubles.length; intIndex++) {
+					if(intIndex == 0) {
+						builder.append(doubles[intIndex]);
+					} else {
+						builder.append(" ").append(doubles[intIndex]);
+					}
+				}
 			}
 			else
 			{					
-				intString = doubles[0] + "";
-			}
-		}
-		// strings
-		if(output instanceof REXPString)
-		{
-			String [] ints =  ((REXPString)output).asStrings();
-			if(ints.length > 1)
-			{				
-				for(int intIndex = 0;intIndex < ints.length;intString = intString + " " + ints[intIndex], intIndex++);
-					
-			}
-			else
-			{					
-				intString = ints[0] + "";
+				builder.append(doubles[0]);
 			}
 		}
 		
-		return intString;
+		// Strings..
+		else if(output instanceof REXPString)
+		{
+			String [] strings =  ((REXPString)output).asStrings();
+			if(strings.length > 1)
+			{				
+				for(int intIndex = 0;intIndex < strings.length; intIndex++) {
+					if(intIndex == 0) {
+						builder.append(strings[intIndex]);
+					} else {
+						builder.append(" ").append(strings[intIndex]);
+					}
+				}
+			}
+			else
+			{					
+				builder.append(strings[0]);
+			}
+		}
+		
+		builder.append("\n");
+	}
+	
+	private String[] getAttributeArr(REXPList attrList) {
+		if(attrList == null) {
+			return null;
+		}
+		if(attrList.length() > 0) {	
+			Object attr = attrList.asList().get(0);
+			if(attr instanceof REXPString) {
+				String[] strAttr = ((REXPString)attr).asStrings();
+				return strAttr;
+			}
+		}
+		return null;
 	}
 	
 	public void runR(String script)
@@ -446,7 +543,9 @@ public abstract class BaseJavaReactor extends AbstractReactor{
 		try {
 			Object output = rcon.eval(script);
 			java.lang.System.out.println("RCon data.. " + output);
-			System.out.println("Output : " + getResultAsString(output));
+			StringBuilder builder = new StringBuilder();
+			getResultAsString(output, builder);
+			System.out.println("Output : " + builder.toString());
 		} catch (RserveException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
@@ -471,11 +570,21 @@ public abstract class BaseJavaReactor extends AbstractReactor{
 			// set the clusters
 			storeVariable("CLUSTER_NAME", "clus");
 			con.eval("clus <- " + clusterRoutine + "(" + graphName +")");
+			
+			StringBuilder builder = new StringBuilder();
+			
 			Object output = con.eval("clus$no");
-			clusters = clusters + " No. Of Components : " + getResultAsString(output) + " \n";
-			output = con.eval("clus$csize");
+			getResultAsString(output, builder);
+			clusters = clusters + " No. Of Components : " + builder.toString() + " \n";
+
+			//reset the output string
+			builder.setLength(0);
+
 			clusters = clusters + " Component Sizes \n";
-			clusters = clusters + getResultAsString(output);
+			output = con.eval("clus$csize");
+			getResultAsString(output, builder);
+			clusters = clusters + builder.toString();
+			
 			System.out.println(clusters);
 			colorClusters();
 		}catch(Exception ex)
@@ -722,6 +831,61 @@ public abstract class BaseJavaReactor extends AbstractReactor{
 	// TODO Auto-generated catch block
 	e.printStackTrace();
 	}
+	}
+	
+	public void runClustering(int instanceIndex, int numClusters, String[] selectors) {
+		java.lang.System.setSecurityManager(curManager);
+		
+		java.util.Map<String, Object> params = new java.util.Hashtable<String, Object>();
+		params.put(prerna.algorithm.impl.ClusteringReactor.INSTANCE_INDEX.toUpperCase(), instanceIndex);
+		params.put(prerna.algorithm.impl.ClusteringReactor.NUM_CLUSTERS.toUpperCase(), numClusters);
+		
+		prerna.algorithm.impl.ClusteringReactor alg = new prerna.algorithm.impl.ClusteringReactor();
+		alg.put("G", this.dataframe);
+		alg.put(PKQLEnum.MATH_PARAM, params);
+		alg.put(PKQLEnum.COL_DEF, java.util.Arrays.asList(selectors));
+		alg.process();
+		
+		this.dataframe.updateDataId();
+		
+		java.lang.System.setSecurityManager(reactorManager);
+	}
+	
+	public void runLOF(int instanceIndex, int k, String[] selectors) {
+		java.lang.System.setSecurityManager(curManager);
+		
+		java.util.Map<String, Object> params = new java.util.Hashtable<String, Object>();
+		params.put(prerna.algorithm.impl.LOFReactor.INSTANCE_INDEX.toUpperCase(), instanceIndex);
+		params.put(prerna.algorithm.impl.LOFReactor.K_NEIGHBORS.toUpperCase(), k);
+		
+		prerna.algorithm.impl.LOFReactor alg = new prerna.algorithm.impl.LOFReactor();
+		alg.put("G", this.dataframe);
+		alg.put(PKQLEnum.MATH_PARAM, params);
+		alg.put(PKQLEnum.COL_DEF, java.util.Arrays.asList(selectors));
+		alg.process();
+		
+		this.dataframe.updateDataId();
+		
+		java.lang.System.setSecurityManager(reactorManager);
+	}
+	
+	public void runOutlier(int instanceIndex, int numSubsetSize, int numRums, String[] selectors) {
+		java.lang.System.setSecurityManager(curManager);
+		
+		java.util.Map<String, Object> params = new java.util.Hashtable<String, Object>();
+		params.put(prerna.algorithm.impl.OutlierReactor.INSTANCE_INDEX.toUpperCase(), instanceIndex);
+		params.put(prerna.algorithm.impl.OutlierReactor.NUM_SAMPLE_SIZE.toUpperCase(), numSubsetSize);
+		params.put(prerna.algorithm.impl.OutlierReactor.NUMBER_OF_RUNS.toUpperCase(), numRums);
+		
+		prerna.algorithm.impl.OutlierReactor alg = new prerna.algorithm.impl.OutlierReactor();
+		alg.put("G", this.dataframe);
+		alg.put(PKQLEnum.MATH_PARAM, params);
+		alg.put(PKQLEnum.COL_DEF, java.util.Arrays.asList(selectors));
+		alg.process();
+		
+		this.dataframe.updateDataId();
+		
+		java.lang.System.setSecurityManager(reactorManager);
 	}
 	
 }

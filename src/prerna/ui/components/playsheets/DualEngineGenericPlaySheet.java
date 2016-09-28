@@ -103,7 +103,7 @@ public class DualEngineGenericPlaySheet extends DualEngineGridPlaySheet {
 			hash.put(name, name);
 		}
 		ITableDataFrame f = new BTreeDataFrame(finalNames);
-		f.addRow(hash, hash);
+		f.addRow(hash);
 		playSheet.setDataMaker(f);
 		playSheet.setQuestionID(this.questionNum);
 		playSheet.setTitle(this.title);
@@ -146,7 +146,7 @@ public class DualEngineGenericPlaySheet extends DualEngineGridPlaySheet {
 			hash.put(name, name);
 		}
 		ITableDataFrame f = new BTreeDataFrame(finalNames);
-		f.addRow(hash, hash);
+		f.addRow(hash);
 		playSheet.setDataMaker(f);
 		playSheet.setQuestionID(this.questionNum);
 		Map retHash = playSheet.getDataMakerOutput();
@@ -196,7 +196,7 @@ public class DualEngineGenericPlaySheet extends DualEngineGridPlaySheet {
 		//add it to the list
 		List<Object[]> finalList = new ArrayList<Object[]>();
 		for(Object[] finalRow : groupedRows.values()){
-			this.dataFrame.addRow(finalRow, finalRow);
+			this.dataFrame.addRow(finalRow);
 			finalList.add(finalRow);
 		}
 		this.list = finalList;

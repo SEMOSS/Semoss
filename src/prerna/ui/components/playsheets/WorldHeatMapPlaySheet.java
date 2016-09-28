@@ -63,7 +63,7 @@ public class WorldHeatMapPlaySheet extends BrowserPlaySheet {
 		
 		//Possibly filter out all US Facilities from the query?
 		
-		Iterator<Object[]> it = dataFrame.iterator(true);
+		Iterator<Object[]> it = dataFrame.iterator();
 		while(it.hasNext())
 		{	
 			LinkedHashMap<String, Object> elementHash = new LinkedHashMap<String, Object>();

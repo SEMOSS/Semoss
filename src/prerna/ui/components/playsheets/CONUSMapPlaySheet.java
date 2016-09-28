@@ -103,7 +103,7 @@ public class CONUSMapPlaySheet extends BrowserPlaySheet {
 			}
 		}
 		
-		Iterator<Object[]> it = dataFrame.iterator(true);
+		Iterator<Object[]> it = dataFrame.iterator();
 		
 		while(it.hasNext())
 		{	

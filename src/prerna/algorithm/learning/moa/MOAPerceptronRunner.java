@@ -191,7 +191,7 @@ public class MOAPerceptronRunner implements IAnalyticTransformationRoutine {
 			Map<String, Object> nextRow = new HashMap<>();
 			nextRow.put(newNames[0], dataTable.get(i)[0]);
 			nextRow.put(columnName, correctArray[i]);
-			newTable.addRow(nextRow, nextRow);
+			newTable.addRow(nextRow);
 		}
 		
 		return newTable;
@@ -211,7 +211,7 @@ public class MOAPerceptronRunner implements IAnalyticTransformationRoutine {
 		learner.setModelContext(header);
 		learner.prepareForUse();
 
-		Iterator<Object[]> iterator = trainingSet.scaledIterator(false);
+		Iterator<Object[]> iterator = trainingSet.scaledIterator();
 		while(iterator.hasNext()) {
 			Object[] row = iterator.next();
 			Instance trainInst = WekaUtilityMethods.createInstance(instanceData, row, isCategorical, trainingSet.getColumnHeaders().length - 1);

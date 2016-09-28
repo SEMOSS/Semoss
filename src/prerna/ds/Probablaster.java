@@ -133,7 +133,7 @@ public class Probablaster {
 				{
 					recMap.put(columns[colIndex], rec[colIndex]);
 				}
-				df.addRow(recMap, recMap);
+				df.addRow(recMap);
 			}
 		}	
 	}

@@ -101,7 +101,7 @@ public class RoadmapCleanTablePlaySheet extends GridPlaySheet{
 
 		list.add(totalRow);
 		for(Object[] row : list){
-			this.dataFrame.addRow(row, row);
+			this.dataFrame.addRow(row);
 		}
 	}
 }

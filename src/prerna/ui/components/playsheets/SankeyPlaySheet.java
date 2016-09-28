@@ -63,7 +63,7 @@ public class SankeyPlaySheet extends BrowserPlaySheet {
 		String[] var = this.dataFrame.getColumnHeaders(); //wrapper.getVariables();
 		int value = 1;
 		
-		Iterator<Object[]> it = dataFrame.iterator(true);
+		Iterator<Object[]> it = dataFrame.iterator();
 		while(it.hasNext()) {
 			LinkedHashMap<String, Object> elementLinks = new LinkedHashMap<String, Object>();
 			LinkedHashMap<String, Object> elementSource = new LinkedHashMap<String, Object>();

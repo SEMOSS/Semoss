@@ -89,7 +89,7 @@ public class MetamodelCentralityGridPlaySheet extends GridPlaySheet {
 			row.put(names[2], unDirBetweenness.get(vert));
 			row.put(names[3], unDirEccentricity.get(vert));
 			row.put(names[4], ranksTimesNodes.get(vert));
-			dataFrame.addRow(row, row);
+			dataFrame.addRow(row);
 		}
 	}
 }

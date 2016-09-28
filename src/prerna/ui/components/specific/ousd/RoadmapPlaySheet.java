@@ -86,7 +86,7 @@ public class RoadmapPlaySheet extends GridPlaySheet{
 							System.out.println();
 						}
 						if(!yearMap.keySet().contains(downstream.get(0)) && !decommissionedSystems.contains(downstream.get(0))){
-							this.dataFrame.addRow(row, row);
+							this.dataFrame.addRow(row);
 							if(!processedSystems.contains(system)){
 								processedSystems.add(system);
 							}
@@ -99,7 +99,7 @@ public class RoadmapPlaySheet extends GridPlaySheet{
 					row[2] = budgets.get(system);
 					row[3] = "-";
 					row[4] = "-";
-					this.dataFrame.addRow(row, row);
+					this.dataFrame.addRow(row);
 					if(!processedSystems.contains(system)){
 						processedSystems.add(system);
 					}
@@ -114,7 +114,7 @@ public class RoadmapPlaySheet extends GridPlaySheet{
 				row[3] = "-";
 				row[4] = "-";
 				if(!processedSystems.contains(system)){
-					this.dataFrame.addRow(row, row);
+					this.dataFrame.addRow(row);
 				}
 			}
 

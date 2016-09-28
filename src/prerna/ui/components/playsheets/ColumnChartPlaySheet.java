@@ -104,7 +104,7 @@ public class ColumnChartPlaySheet extends BrowserPlaySheet{
 		}
 
 		//series name - all objects in that series (x : ... , y : ...)
-		Iterator<Object[]> it = dataFrame.iterator(true);
+		Iterator<Object[]> it = dataFrame.iterator();
 		while(it.hasNext())
 		{
 			Object[] elemValues = it.next();

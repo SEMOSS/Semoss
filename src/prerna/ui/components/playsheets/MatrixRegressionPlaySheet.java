@@ -111,7 +111,7 @@ public class MatrixRegressionPlaySheet extends GridPlaySheet{
 		//add in estimated and residuals for each row determined using coefficients
 		List<Object[]> outputList = new ArrayList<Object []>();
 		
-		Iterator<Object[]> it = dataFrame.iterator(false);
+		Iterator<Object[]> it = dataFrame.iterator();
 		int i = 0;
 		int j = 0;
 		

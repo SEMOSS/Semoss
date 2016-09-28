@@ -77,7 +77,7 @@ public class ParallelSetsPlaySheet extends BrowserPlaySheet {
 			}
 		}
 		
-		Iterator<Object[]> it = dataFrame.iterator(true);
+		Iterator<Object[]> it = dataFrame.iterator();
 		while(it.hasNext())
 		{	
 			LinkedHashMap<String, Object> elementHash = new LinkedHashMap<String, Object>();

@@ -1,9 +1,6 @@
 package prerna.ds.nativeframe;
 
-import java.sql.Connection;
-import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -21,8 +18,8 @@ import org.apache.log4j.Logger;
 
 import prerna.algorithm.api.IMatcher;
 import prerna.algorithm.api.IMetaData;
-import prerna.algorithm.api.ITableDataFrame;
 import prerna.algorithm.api.IMetaData.DATA_TYPES;
+import prerna.algorithm.api.ITableDataFrame;
 import prerna.ds.AbstractTableDataFrame;
 import prerna.ds.TinkerFrame;
 import prerna.ds.TinkerMetaData;
@@ -85,12 +82,12 @@ public class NativeFrame extends AbstractTableDataFrame {
 	}
 
 	@Override
-	public Iterator<Object[]> iterator(boolean getRawData) {
+	public Iterator<Object[]> iterator() {
 		return this.builder.buildIterator(getSelectors());
 	}
 
 	@Override
-	public Iterator<Object[]> iterator(boolean getRawData, Map<String, Object> options) {
+	public Iterator<Object[]> iterator(Map<String, Object> options) {
 		String sortBy = (String) options.get(TinkerFrame.SORT_BY);
 		String actualSortBy = null;
 
@@ -174,12 +171,12 @@ public class NativeFrame extends AbstractTableDataFrame {
 	}
 
 	@Override
-	public Iterator<List<Object[]>> scaledUniqueIterator(String columnHeader, boolean getRawData, Map<String, Object> options) {
+	public Iterator<List<Object[]>> scaledUniqueIterator(String columnHeader, Map<String, Object> options) {
 		return null;
 	}
 
 	@Override
-	public Iterator<Object> uniqueValueIterator(String columnHeader, boolean getRawData, boolean iterateAll) {
+	public Iterator<Object> uniqueValueIterator(String columnHeader, boolean iterateAll) {
 		return null;
 	}
 
@@ -303,7 +300,7 @@ public class NativeFrame extends AbstractTableDataFrame {
 		Map<String, List<Object>> filteredValues = new HashMap<String, List<Object>>(length);
 		Map<String, List<Object>> visibleValues = new HashMap<String, List<Object>>(length);
 		Map<String, Map<String, Double>> minMaxValues = new HashMap<String, Map<String, Double>>(length);
-		Iterator<Object[]> iterator = this.iterator(true);
+		Iterator<Object[]> iterator = this.iterator();
 
 		// put instances into sets to remove duplicates
 		Set<Object>[] columnSets = new HashSet[length];
@@ -446,15 +443,15 @@ public class NativeFrame extends AbstractTableDataFrame {
 	}
 
 	@Override
-	public void addRelationship(Map<String, Object> cleanRow, Map<String, Object> rawRow) {
+	public void addRelationship(Map<String, Object> cleanRow) {
 	}
 
 	@Override
-	public void removeRelationship(Map<String, Object> cleanRow, Map<String, Object> rawRow) {
+	public void removeRelationship(Map<String, Object> cleanRow) {
 	}
 
 	@Override
-	public void addRelationship(Map<String, Object> rowCleanData, Map<String, Object> rowRawData, Map<String, Set<String>> edgeHash, Map<String, String> logicalToValMap) {
+	public void addRelationship(Map<String, Object> rowCleanData, Map<String, Set<String>> edgeHash, Map<String, String> logicalToValMap) {
 	}
 
 	@Override
@@ -467,15 +464,15 @@ public class NativeFrame extends AbstractTableDataFrame {
 	}
 	
 	@Override
-	public void addRow(Object[] rowCleanData, Object[] rowRawData) {
+	public void addRow(Object[] rowCleanData) {
 	}
 
 	@Override
-	public void addRow(Object[] cleanCells, Object[] rawCells, String[] headers) {
+	public void addRow(Object[] cleanCells, String[] headers) {
 	}
 
 	@Override
-	public void addRelationship(String[] headers, Object[] values, Object[] rawValues, Map<Integer, Set<Integer>> cardinality, Map<String, String> logicalToValMap) {
+	public void addRelationship(String[] headers, Object[] values, Map<Integer, Set<Integer>> cardinality, Map<String, String> logicalToValMap) {
 	}
 
 	@Override

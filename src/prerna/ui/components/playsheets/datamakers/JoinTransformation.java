@@ -98,7 +98,7 @@ public class JoinTransformation extends AbstractTransformation {
 			//if stringmap already contains the filters, then it is a hard filter
 			//otherwise, add based on what is currently in the tree
 			if(qs != null && !qs.hasFiltered(props.get(COLUMN_TWO_KEY) + "")) {
-				Iterator<Object> rowIt = ((ITableDataFrame) dm).uniqueValueIterator((String) props.get(COLUMN_ONE_KEY), false, false);
+				Iterator<Object> rowIt = ((ITableDataFrame) dm).uniqueValueIterator((String) props.get(COLUMN_ONE_KEY), false);
 				List<Object> uris = new Vector<Object>();
 				while(rowIt.hasNext()){
 					uris.add("\""+rowIt.next() + "\"");

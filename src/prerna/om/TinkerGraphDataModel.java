@@ -141,8 +141,6 @@ public class TinkerGraphDataModel {
 		
 		Map<String, Object> clean = new HashMap<String, Object>();
 		clean.put(type, Utility.getInstanceName(vert));
-		Map<String, Object> raw = new HashMap<String, Object>();
-		raw.put(type, vert);
 
 		// need to pass in a map
 		// this would be where we would take advantage of using display names
@@ -152,7 +150,7 @@ public class TinkerGraphDataModel {
 		// add relationship has a check to see there is no relationship
 		// so it just adds a node
 		// add an empty edge hash so it get that faster
-		tf.addRelationship(clean, raw, new Hashtable<String, Set<String>>(), logicalToTypeMap);
+		tf.addRelationship(clean, new Hashtable<String, Set<String>>(), logicalToTypeMap);
 	}
 	
 
@@ -168,7 +166,6 @@ public class TinkerGraphDataModel {
 
 		String[] headers = {typeOut, typeIn};
 		String[] cleanValues = {Utility.getInstanceName(outVert), Utility.getInstanceName(inVert)};
-		String[] rawValues = {outVert, inVert};
 
 		// need to pass in a map
 		// this would be where we would take advantage of using display names
@@ -178,7 +175,7 @@ public class TinkerGraphDataModel {
 
 		// add the relationship usign the cardinality
 		// this allows us to have self-loops in the graph
-		tf.addRelationship(headers, cleanValues, rawValues, cardinality, logicalToTypeMap);
+		tf.addRelationship(headers, cleanValues, cardinality, logicalToTypeMap);
 	}
 	
 	// this would be used if we are sending display names

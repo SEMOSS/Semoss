@@ -87,7 +87,7 @@ public class OUSDConstraintCountPlaySheet extends GridPlaySheet{
 				row[5] = remainingSystems(supSys);
 				row[6] = stoppedCount(supSys, decomThisYear);
 				row[7] = stoppedSystems(supSys, decomThisYear);
-				this.dataFrame.addRow(row, row);
+				this.dataFrame.addRow(row);
 			}
 
 			for(String dataObject: dataSystemMap.keySet()){
@@ -101,7 +101,7 @@ public class OUSDConstraintCountPlaySheet extends GridPlaySheet{
 				row[5] = remainingSystems(supSys);
 				row[6] = stoppedCount(supSys, decomThisYear);
 				row[7] = stoppedSystems(supSys, decomThisYear);
-				this.dataFrame.addRow(row, row);
+				this.dataFrame.addRow(row);
 
 			}
 

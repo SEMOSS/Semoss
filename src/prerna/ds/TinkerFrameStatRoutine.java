@@ -205,7 +205,7 @@ public class TinkerFrameStatRoutine implements IAnalyticTransformationRoutine {
 						newRow.put(cHeader, key);
 						newRow.put(newColumnName, groupByMap.get(key));
 						
-						tinker.addRelationship(newRow, newRow, newEdgeHash, logicalToUnique);
+						tinker.addRelationship(newRow, newEdgeHash, logicalToUnique);
 					}
 					
 					// add appropriate blanks
@@ -221,7 +221,6 @@ public class TinkerFrameStatRoutine implements IAnalyticTransformationRoutine {
 					String primKeyName = TinkerMetaHelper.getPrimaryKey(columnHeader);
 					for(Object key : groupByMap.keySet()) {
 						Map<String, Object> cleanRow = new HashMap<String, Object>(columnHeader.length+1);
-						Map<String, Object> rawRow = new HashMap<String, Object>(columnHeader.length+1);
 						Map<String, Object> mapKey = (Map<String, Object>)key;
 						
 						Object[] values = new Object[columnHeader.length];
@@ -233,9 +232,7 @@ public class TinkerFrameStatRoutine implements IAnalyticTransformationRoutine {
 						cleanRow.put(newColumnName, groupByMap.get(key));
 						cleanRow.put(primKeyName, TinkerMetaHelper.getPrimaryKey(values));
 						
-						rawRow.putAll(cleanRow);
-						rawRow.put(primKeyName, TinkerFrame.PRIM_KEY);
-						tinker.addRelationship(cleanRow, rawRow);
+						tinker.addRelationship(cleanRow);
 					}
 					
 					// add appropriate blanks
