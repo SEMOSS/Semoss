@@ -420,5 +420,26 @@ public class Dashboard implements IDataMaker {
 		
 	}
 	
+	public void dropDashboard() {
+		for(String view : insightMap.keySet()) {
+			List<Insight> insights = insightMap.get(view);
+			for(int i = 0; i < insights.size(); i++) {
+				
+				Insight insight = insights.get(i);
+				
+				//this will mean the insight is no longer joined
+				insight.setParentInsight(null);
+				
+				H2Frame frame = (H2Frame)insight.getDataMaker();
+				this.joiner.unJoinFrame(frame);
+				
+				//we have hit the last frame, drop the view
+				if(i == insights.size() - 1) {
+					this.joiner.dropView(view, frame);
+				}	
+			}
+		}
+	}
+	
 	/************************************* END JOINING LOGIC **************************************/
 }
