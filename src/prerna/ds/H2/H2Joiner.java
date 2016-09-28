@@ -367,48 +367,17 @@ public class H2Joiner {
 	 * 							Any affected views with remaning frames will be refreshed to be reflective of the loss of data 
 	 * 			
 	 */
-	public void unJoinFrame(H2Frame... frames){
-		
-		//set of views to refresh
-		Set<String> viewsToRefresh = new HashSet<String>(frames.length);
-		
-		//for each frame if the frame is joined
+	public void unJoinFrame(H2Frame... frames) {
 		for(H2Frame frame : frames) {
-			if(frame.isJoined()) {
-				
-				//remove the frame from the frame list
-				String viewTable = frame.builder.getViewTableName();
-				List<H2Frame> frameList = getJoinedFrames(viewTable);//joinedFrames.get(viewTable);
-				frameList.remove(frame);
-				
-				
-				//add the table to refresh set
-				viewsToRefresh.add(viewTable);
-				
-				//last frame can't be joined to anything so unjoin that as well
-				if(frameList.size() == 1) {
-					unJoinFrame(frameList.get(0));
-				} 
-				
-				//if no more frames left just drop the view
-				else if(frameList.isEmpty()) {
-					//drop the view table
-					frame.builder.dropView();
-//					joinedFrames.remove(viewTable);
-				}
-				
-				//finally call unjoin on the frame letting the frame know it is unjoined
-				frame.unJoin();
-			}
+			frame.unJoin();
 		}
-		
-		//for each view refresh if it is still associated with joined frames
-		for(String view : viewsToRefresh) {
-			List<H2Frame> frameList = getJoinedFrames(view);//joinedFrames.get(view);
-			if(frameList != null) {
-				H2Frame frame = frameList.get(0);
-				refreshView(frame, view);
-			}
+	}
+	
+	public void dropView(String viewTable, H2Frame frame) {
+		try {
+			frame.builder.runExternalQuery("DROP VIEW "+viewTable);
+		} catch (Exception e) {
+			e.printStackTrace();
 		}
 	}
 }
