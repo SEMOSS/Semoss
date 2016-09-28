@@ -1771,11 +1771,15 @@ public class Translation extends DepthFirstAdapter {
 		String thisNode = node.toString().trim();
 		IScriptReactor thisReactor = curReactor;
 		Hashtable <String, Object> thisReactorHash = deinitReactor(PKQLEnum.DATA_TYPE, thisNode, PKQLEnum.DATA_TYPE);
-		runner.setResponse(thisReactor.getValue(PKQLEnum.DATA_TYPE));
+		runner.setResponse("PKQL processing complete");
 		runner.setStatus(PKQLRunner.STATUS.SUCCESS);
 		runner.setCurrentString(PKQLEnum.DATA_TYPE);
 		runner.storeResponse();
-		System.out.println("");
+		//set feData
+		Map<String, Object> feDataMap = new HashMap<String, Object>();
+		feDataMap.put(PKQLEnum.DATA_TYPE, thisReactor.getValue(PKQLEnum.DATA_TYPE));
+		runner.openFeDataBlock(thisNode);
+		runner.addFeData("pkqlData", feDataMap, true);		
 	}
 	
 	public void inADataconnect(ADataconnect node)
@@ -1795,10 +1799,15 @@ public class Translation extends DepthFirstAdapter {
     	String thisNode = node.toString().trim();
     	IScriptReactor thisReactor = curReactor;
 		Hashtable <String, Object> thisReactorHash = deinitReactor(PKQLEnum.DATA_CONNECT, nodeDataconnect, PKQLEnum.DATA_CONNECT);
-		runner.setResponse(thisReactor.getValue(PKQLEnum.DATA_CONNECT));
+		runner.setResponse("PKQL processing complete");
 		runner.setStatus((STATUS) thisReactor.getValue("STATUS"));//
 		runner.setCurrentString(PKQLEnum.DATA_CONNECT);
 		runner.storeResponse();
+		//set feData
+		Map<String, Object> feDataMap = new HashMap<String, Object>();
+		feDataMap.put("connection", thisReactor.getValue(PKQLEnum.DATA_CONNECT));
+		runner.openFeDataBlock(thisNode);
+		runner.addFeData("pkqlData", feDataMap, true);		
     }
     
     public void inADataconnectdb(ADataconnectdb node)
@@ -1903,11 +1912,14 @@ public class Translation extends DepthFirstAdapter {
 		String thisNode = node.toString().trim();
 		IScriptReactor thisReactor = curReactor;
 		Hashtable <String, Object> thisReactorHash = deinitReactor(PKQLEnum.DATABASE_LIST, thisNode, PKQLEnum.DATABASE_LIST);
-		runner.setResponse(thisReactor.getValue(PKQLEnum.DATABASE_LIST));
+		runner.setResponse("Successfully returned list of databases");
 		runner.setStatus(PKQLRunner.STATUS.SUCCESS);
 		runner.setCurrentString(PKQLEnum.DATABASE_LIST);
 		runner.storeResponse();
-		System.out.println("");
+		//set feData
+		Map<String, Object> feDataMap = (Map<String, Object>) thisReactor.getValue(PKQLEnum.DATABASE_LIST);
+		runner.openFeDataBlock(thisNode);
+		runner.addFeData("pkqlData", feDataMap, true);
 	}
 	
 	public void inADatabaseConcepts(ADatabaseConcepts node)
@@ -1927,11 +1939,14 @@ public class Translation extends DepthFirstAdapter {
 		String thisNode = node.toString().trim();
 		IScriptReactor thisReactor = curReactor;
 		Hashtable <String, Object> thisReactorHash = deinitReactor(PKQLEnum.DATABASE_CONCEPTS, nodeDatabaseConcepts, PKQLEnum.DATABASE_CONCEPTS);
-		runner.setResponse(thisReactor.getValue(PKQLEnum.DATABASE_CONCEPTS));
+		runner.setResponse("Successfully returned list of concepts in "+thisReactor.getValue(PKQLEnum.WORD_OR_NUM)+" database");
 		runner.setStatus(PKQLRunner.STATUS.SUCCESS);
 		runner.setCurrentString(PKQLEnum.DATABASE_CONCEPTS);
 		runner.storeResponse();
-		System.out.println("");
+		//set feData
+		Map<String, Object> feDataMap = (Map<String, Object>) thisReactor.getValue(PKQLEnum.DATABASE_CONCEPTS);
+		runner.openFeDataBlock(thisNode);
+		runner.addFeData("pkqlData", feDataMap, true);
 	}
     
 }
