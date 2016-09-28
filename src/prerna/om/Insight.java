@@ -1876,6 +1876,10 @@ public class Insight {
 		this.parentInsight = insight;
 	}
 	
+	public Insight getParentInsight() {
+		return this.parentInsight;
+	}
+	
 	public List<FilePkqlMetadata> getFilesMetadata() {
 		return this.filesUsedInInsight;
 	}
