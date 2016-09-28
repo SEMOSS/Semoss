@@ -42,10 +42,12 @@ import prerna.sablecc.node.ADashboardopScript;
 import prerna.sablecc.node.ADataFrame;
 import prerna.sablecc.node.ADatabaseConcepts;
 import prerna.sablecc.node.ADatabaseList;
+import prerna.sablecc.node.ADatabaseopScript;
 import prerna.sablecc.node.ADataconnect;
 import prerna.sablecc.node.ADataconnectdb;
 import prerna.sablecc.node.ADatanetworkconnect;
 import prerna.sablecc.node.ADatanetworkdisconnect;
+import prerna.sablecc.node.ADataopScript;
 import prerna.sablecc.node.ADatatype;
 import prerna.sablecc.node.ADecimal;
 import prerna.sablecc.node.ADivExpr;
@@ -270,6 +272,16 @@ public class Translation extends DepthFirstAdapter {
 	}
 
     public void outADashboardopScript(ADashboardopScript node) {
+    	postProcess(node);
+    }
+    
+    public void outADataopScript(ADataopScript node)
+    {
+    	postProcess(node);
+    }
+    
+    public void outADatabaseopScript(ADatabaseopScript node)
+    {
     	postProcess(node);
     }
     
@@ -1774,13 +1786,12 @@ public class Translation extends DepthFirstAdapter {
 		Hashtable <String, Object> thisReactorHash = deinitReactor(PKQLEnum.DATA_TYPE, thisNode, PKQLEnum.DATA_TYPE);
 		runner.setResponse("PKQL processing complete");
 		runner.setStatus(PKQLRunner.STATUS.SUCCESS);
-		runner.setCurrentString(PKQLEnum.DATA_TYPE);
-		runner.storeResponse();
-		//set feData
-		Map<String, Object> feDataMap = new HashMap<String, Object>();
-		feDataMap.put(PKQLEnum.DATA_TYPE, thisReactor.getValue(PKQLEnum.DATA_TYPE));
-		runner.openFeDataBlock(thisNode);
-		runner.addFeData("pkqlData", feDataMap, true);		
+//		runner.setCurrentString(PKQLEnum.DATA_TYPE);
+		
+		//set retData
+		Map<String, Object> retDataMap = new HashMap<String, Object>();
+		retDataMap.put(PKQLEnum.DATA_TYPE, thisReactor.getValue(PKQLEnum.DATA_TYPE));
+		runner.setReturnData(retDataMap);
 	}
 	
 	public void inADataconnect(ADataconnect node)
@@ -1802,13 +1813,12 @@ public class Translation extends DepthFirstAdapter {
 		Hashtable <String, Object> thisReactorHash = deinitReactor(PKQLEnum.DATA_CONNECT, nodeDataconnect, PKQLEnum.DATA_CONNECT);
 		runner.setResponse("PKQL processing complete");
 		runner.setStatus((STATUS) thisReactor.getValue("STATUS"));//
-		runner.setCurrentString(PKQLEnum.DATA_CONNECT);
-		runner.storeResponse();
+//		runner.setCurrentString(PKQLEnum.DATA_CONNECT);
+		
 		//set feData
-		Map<String, Object> feDataMap = new HashMap<String, Object>();
-		feDataMap.put("connection", thisReactor.getValue(PKQLEnum.DATA_CONNECT));
-		runner.openFeDataBlock(thisNode);
-		runner.addFeData("pkqlData", feDataMap, true);		
+		Map<String, Object> retDataMap = new HashMap<String, Object>();
+		retDataMap.put("connection", thisReactor.getValue(PKQLEnum.DATA_CONNECT));
+		runner.setReturnData(retDataMap);
     }
     
     public void inADataconnectdb(ADataconnectdb node)
@@ -1915,12 +1925,10 @@ public class Translation extends DepthFirstAdapter {
 		Hashtable <String, Object> thisReactorHash = deinitReactor(PKQLEnum.DATABASE_LIST, thisNode, PKQLEnum.DATABASE_LIST);
 		runner.setResponse("Successfully returned list of databases");
 		runner.setStatus(PKQLRunner.STATUS.SUCCESS);
-		runner.setCurrentString(PKQLEnum.DATABASE_LIST);
-		runner.storeResponse();
-		//set feData
-		Map<String, Object> feDataMap = (Map<String, Object>) thisReactor.getValue(PKQLEnum.DATABASE_LIST);
-		runner.openFeDataBlock(thisNode);
-		runner.addFeData("pkqlData", feDataMap, true);
+		
+		//set retData
+		Map<String, Object> retDataMap = (Map<String, Object>) thisReactor.getValue(PKQLEnum.DATABASE_LIST);
+		runner.setReturnData(retDataMap);
 	}
 	
 	public void inADatabaseConcepts(ADatabaseConcepts node)
@@ -1942,12 +1950,10 @@ public class Translation extends DepthFirstAdapter {
 		Hashtable <String, Object> thisReactorHash = deinitReactor(PKQLEnum.DATABASE_CONCEPTS, nodeDatabaseConcepts, PKQLEnum.DATABASE_CONCEPTS);
 		runner.setResponse("Successfully returned list of concepts in "+thisReactor.getValue(PKQLEnum.WORD_OR_NUM)+" database");
 		runner.setStatus(PKQLRunner.STATUS.SUCCESS);
-		runner.setCurrentString(PKQLEnum.DATABASE_CONCEPTS);
-		runner.storeResponse();
-		//set feData
-		Map<String, Object> feDataMap = (Map<String, Object>) thisReactor.getValue(PKQLEnum.DATABASE_CONCEPTS);
-		runner.openFeDataBlock(thisNode);
-		runner.addFeData("pkqlData", feDataMap, true);
+		
+		//set retData
+		Map<String, Object> retDataMap = (Map<String, Object>) thisReactor.getValue(PKQLEnum.DATABASE_CONCEPTS);
+		runner.setReturnData(retDataMap);
 	}
     
 }
