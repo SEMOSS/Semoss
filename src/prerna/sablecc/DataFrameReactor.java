@@ -58,6 +58,7 @@ public class DataFrameReactor extends AbstractReactor {
 
 	public IPkqlMetadata getPkqlMetadata() {
 		DataframeMetadata metadata = new DataframeMetadata();
+		metadata.setPkqlStr((String) myStore.get(PKQLEnum.DATA_FRAME));
 		metadata.setFrameType((String) myStore.get(DATA_FRAME_TYPE));
 		return metadata;
 	}
