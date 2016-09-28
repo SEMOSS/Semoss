@@ -104,7 +104,7 @@ public abstract class AbstractApiReactor extends AbstractReactor{
 
 						//we want to add filters to the column that already exists in the table
 						if(fromColumn != null && toColumn != null) {
-							rowIt = frame.uniqueValueIterator(fromColumn, false, false);
+							rowIt = frame.uniqueValueIterator(fromColumn, false);
 							List<Object> uris = new Vector<Object>();
 
 							//collect all the filter values
@@ -178,7 +178,7 @@ public abstract class AbstractApiReactor extends AbstractReactor{
 				Map<String, Object> paramValues = varMap.get(var);
 				if(paramValues != null && paramValues.get(Constants.TYPE).equals(thisSelector)) {
 					Vector<String> filterValues = new Vector<String>();
-					filterValues.add(paramValues.get(Constants.VALUE).toString());
+					filterValues.add(paramValues.get(Constants.NAME).toString());
 					this.qs.addFilter(thisSelector, "=", filterValues);
 				}
 			}
@@ -216,7 +216,7 @@ public abstract class AbstractApiReactor extends AbstractReactor{
 					Map<String, Object> paramValues = varMap.get(var);
 					if(paramValues != null && paramValues.get(Constants.TYPE).equals(fromCol)) {
 						filterData.clear();
-						filterData.add(paramValues.get(Constants.VALUE).toString());
+						filterData.add(paramValues.get(Constants.NAME).toString());
 					}
 				}
 				

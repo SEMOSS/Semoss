@@ -174,7 +174,7 @@ public class MultiColumnTableStatCounter {
 			for(int x = 0; x < row.length; x++) {
 				newRow.put(newColHeaders[x], row[indexMap.get(newColHeaders[x])]);
 			}
-			statTable.addRow(newRow, newRow);
+			statTable.addRow(newRow);
 		}
 		
 		return statTable;

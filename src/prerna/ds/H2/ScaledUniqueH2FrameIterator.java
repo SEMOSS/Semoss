@@ -6,11 +6,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.NoSuchElementException;
 
-import prerna.util.Constants;
-
 public class ScaledUniqueH2FrameIterator implements Iterator<List<Object[]>> {
 
-	private String dataType;
+//	private String dataType;
 	private String columnName;
 	private int columnNameIndex;
 	private List<String> selectors;
@@ -29,7 +27,7 @@ public class ScaledUniqueH2FrameIterator implements Iterator<List<Object[]>> {
 	
 	public ScaledUniqueH2FrameIterator(
 		String columnName,
-		boolean getRawData, 
+//		boolean getRawData, 
 		String tableName, 
 		H2Builder builder, 
 		Double[] maxArr, 
@@ -39,7 +37,7 @@ public class ScaledUniqueH2FrameIterator implements Iterator<List<Object[]>> {
 		
 		this.selectors = selectors;
 		this.tableName = tableName;
-		this.dataType = getRawData ? Constants.VALUE : Constants.NAME;
+//		this.dataType = getRawData ? Constants.VALUE : Constants.NAME;
 		this.columnName = columnName;
 		this.columnNameIndex = selectors.indexOf(columnName);
 		this.maxArr = maxArr;

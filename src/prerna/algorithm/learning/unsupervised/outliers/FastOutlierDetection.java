@@ -132,7 +132,7 @@ public class FastOutlierDetection implements IAnalyticTransformationRoutine {
 		
 		for (int k = 0; k < numRuns; k++) {
 			// grab R random rows
-			Iterator<List<Object[]>> it = dataFrame.scaledUniqueIterator(attributeNames[instanceIndex], false, null);
+			Iterator<List<Object[]>> it = dataFrame.scaledUniqueIterator(attributeNames[instanceIndex], null);
 			List<List<Object[]>> rSubset = new ArrayList<List<Object[]>>();
 			for (int i = 0; i < numSubsetSize; i++) {
 				// skip over a number between 0 and random_skip rows
@@ -144,7 +144,7 @@ public class FastOutlierDetection implements IAnalyticTransformationRoutine {
 			}
 	
 			// for row in dataTable, grab R random rows
-			it = dataFrame.scaledUniqueIterator(attributeNames[instanceIndex], false, null);
+			it = dataFrame.scaledUniqueIterator(attributeNames[instanceIndex], null);
 			while(it.hasNext()) {
 				List<Object[]> instance = it.next();
 				Object instanceName = instance.get(0)[instanceIndex];
@@ -184,10 +184,6 @@ public class FastOutlierDetection implements IAnalyticTransformationRoutine {
 		for(Object instance : results.keySet()) {
 			Double val = (numRuns-results.get(instance))/numRuns;
 
-			Map<String, Object> raw = new HashMap<String, Object>();
-			raw.put(attributeName, instance);
-			raw.put(changedColumn, val);
-
 			Map<String, Object> clean = new HashMap<String, Object>();
 			if(instance.toString().startsWith("http://semoss.org/ontologies/Concept/")) {
 				instance = Utility.getInstanceName(instance.toString());
@@ -195,7 +191,7 @@ public class FastOutlierDetection implements IAnalyticTransformationRoutine {
 			clean.put(attributeName, instance);
 			clean.put(changedColumn, val);
 
-			dataFrame.addRelationship(clean, raw);
+			dataFrame.addRelationship(clean);
 		}
 
 		return null;

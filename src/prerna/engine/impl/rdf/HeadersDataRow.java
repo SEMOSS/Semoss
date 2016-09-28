@@ -35,4 +35,31 @@ public class HeadersDataRow implements IHeadersDataRow{
 	public Object[] getRawValues() {
 		return rawValues;
 	}
+	
+	public String toString() {
+		StringBuilder ret = new StringBuilder();
+		int size = headers.length;
+		int index = 0;
+		ret.append("START ROW\n");
+		for(; index < size; index++) {
+			ret.append("\tHEADER=").append(headers[index]).append("\tVALUE=").append(values[index]).append("\n");
+		}
+		ret.append("END ROW\n");
+		
+		return ret.toString();
+	}
+
+	@Override
+	public String toRawString() {
+		StringBuilder ret = new StringBuilder();
+		int size = headers.length;
+		int index = 0;
+		ret.append("START ROW\n");
+		for(; index < size; index++) {
+			ret.append("\tHEADER=").append(headers[index]).append("\tVALUE=").append(rawValues[index]).append("\n");
+		}
+		ret.append("END ROW\n");
+		
+		return ret.toString();
+	}
 }

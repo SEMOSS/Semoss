@@ -35,7 +35,6 @@ import prerna.algorithm.api.IMetaData;
 import prerna.algorithm.api.IMetaData.DATA_TYPES;
 import prerna.algorithm.api.ITableDataFrame;
 import prerna.ds.AbstractTableDataFrame;
-import prerna.ds.TableDataFrameFactory;
 import prerna.ds.TinkerFrame;
 import prerna.ds.TinkerMetaData;
 import prerna.ds.TinkerMetaHelper;
@@ -118,16 +117,12 @@ public class H2Frame extends AbstractTableDataFrame {
 	}
 
 	@Override
-	public void addRow(Object[] rowCleanData, Object[] rowRawData) {
+	public void addRow(Object[] rowCleanData) {
 		addRow(rowCleanData, getColumnHeaders());
 	}
 
 	@Override
-	public void addRow(Object[] cleanCells, Object[] rawCells, String[] headers) {
-		this.addRow(cleanCells, headers);
-	}
-
-	private void addRow(Object[] cells, String[] headers) {
+	public void addRow(Object[] cells, String[] headers) {
 		// TODO: differences between the tinker meta and the flat meta stored in
 		// the data frame
 		// TODO: results in us being unable to get the table name
@@ -230,7 +225,7 @@ public class H2Frame extends AbstractTableDataFrame {
 				if (addRow) {
 					while (wrapper.hasNext()) {
 						IHeadersDataRow ss = (IHeadersDataRow) wrapper.next();
-						addRow(ss.getValues(), ss.getRawValues(), headers);
+						addRow(ss.getValues(), headers);
 					}
 				} else {
 					processIterator(wrapper, wrapper.getDisplayVariables(), retMap[1], joinColList, joinType);
@@ -452,7 +447,7 @@ public class H2Frame extends AbstractTableDataFrame {
 		Map<String, List<Object>> filteredValues = new HashMap<String, List<Object>>(length);
 		Map<String, List<Object>> visibleValues = new HashMap<String, List<Object>>(length);
 		Map<String, Map<String, Double>> minMaxValues = new HashMap<String, Map<String, Double>>(length);
-		Iterator<Object[]> iterator = this.iterator(true);
+		Iterator<Object[]> iterator = this.iterator();
 
 		// put instances into sets to remove duplicates
 		Set<Object>[] columnSets = new HashSet[length];
@@ -543,7 +538,7 @@ public class H2Frame extends AbstractTableDataFrame {
 	/****************************** END FILTER METHODS ******************************************/
 
 	@Override
-	public Iterator<Object[]> iterator(boolean getRawData) {
+	public Iterator<Object[]> iterator() {
 		// List<String> h2selectors = new ArrayList<>();
 		// for(String selector : getSelectors()) {
 		// h2selectors.add(H2HeaderMap.get(selector));
@@ -560,13 +555,13 @@ public class H2Frame extends AbstractTableDataFrame {
 	
 	public Iterator<Object[]> iterator(boolean getRawData, boolean ignoreFilters) {
 		if(!ignoreFilters) {
-			return iterator(getRawData);
+			return iterator();
 		}
 		else return this.builder.buildIterator(getH2Selectors(), ignoreFilters);
 	}
 
 	@Override
-	public Iterator<Object[]> iterator(boolean getRawData, Map<String, Object> options) {
+	public Iterator<Object[]> iterator(Map<String, Object> options) {
 		// sort by
 		String sortBy = (String) options.get(TinkerFrame.SORT_BY);
 		String actualSortBy = null;
@@ -700,7 +695,7 @@ public class H2Frame extends AbstractTableDataFrame {
 	}
 
 	@Override
-	public Iterator<List<Object[]>> scaledUniqueIterator(String columnHeader, boolean getRawData, Map<String, Object> options) {
+	public Iterator<List<Object[]>> scaledUniqueIterator(String columnHeader, Map<String, Object> options) {
 		List<String> selectors = null;
 		Double[] max = null;
 		Double[] min = null;
@@ -728,7 +723,7 @@ public class H2Frame extends AbstractTableDataFrame {
 		if (builder.tableName == null) {
 			builder.tableName = getTableNameForUniqueColumn(this.headerNames[0]);
 		}
-		ScaledUniqueH2FrameIterator iterator = new ScaledUniqueH2FrameIterator(columnHeader, getRawData, builder.tableName, builder, max, min, headerTypes, selectors);
+		ScaledUniqueH2FrameIterator iterator = new ScaledUniqueH2FrameIterator(columnHeader, builder.tableName, builder, max, min, headerTypes, selectors);
 		return iterator;
 	}
 
@@ -757,8 +752,7 @@ public class H2Frame extends AbstractTableDataFrame {
 	}
 
 	@Override
-	public void addRelationship(Map<String, Object> cleanRow, Map<String, Object> rawRow) {
-
+	public void addRelationship(Map<String, Object> cleanRow) {
 		Object[] origValues = null;
 		String[] origColumnHeaders = null;	
 		boolean multiUpdates = false;
@@ -770,32 +764,31 @@ public class H2Frame extends AbstractTableDataFrame {
 		//remove original columns from new columns and keep them separated
 		//way to figure out if one new column is being updated or multiple
 		//specifically done when figuring out better approach for col split operation
-		if(!cleanRow.equals(rawRow)){
-			
-			//collect original columns and their respective values
-			origValues = new Object[rawRow.keySet().size()];
-			origColumnHeaders = rawRow.keySet().toArray(new String[] {});
-			
-			for (int i = 0; i < origColumnHeaders.length; i++) {
-				origValues[i] = rawRow.get(origColumnHeaders[i]);
-				origColumnHeaders[i] = H2Builder.cleanHeader(origColumnHeaders[i]);
-			}		
-						
-			Set<String> origKeySet = rawRow.keySet();
-			boolean exists = false;
-			for(String key : keySet){	
-				exists = false;
-				for(String origKey : origKeySet){
-					if(key.equals(origKey)){
-						exists = true;
-						multiUpdates = true;
-					}
-				}
-				if(!exists)
-					adjustedCleanRow.put(key, cleanRow.get(key));
-			}			
-			cleanRow = adjustedCleanRow;	
-		}
+//		if(!cleanRow.equals(rawRow)){
+//			//collect original columns and their respective values
+//			origValues = new Object[rawRow.keySet().size()];
+//			origColumnHeaders = rawRow.keySet().toArray(new String[] {});
+//			
+//			for (int i = 0; i < origColumnHeaders.length; i++) {
+//				origValues[i] = rawRow.get(origColumnHeaders[i]);
+//				origColumnHeaders[i] = H2Builder.cleanHeader(origColumnHeaders[i]);
+//			}		
+//						
+//			Set<String> origKeySet = rawRow.keySet();
+//			boolean exists = false;
+//			for(String key : keySet){	
+//				exists = false;
+//				for(String origKey : origKeySet){
+//					if(key.equals(origKey)){
+//						exists = true;
+//						multiUpdates = true;
+//					}
+//				}
+//				if(!exists)
+//					adjustedCleanRow.put(key, cleanRow.get(key));
+//			}			
+//			cleanRow = adjustedCleanRow;	
+//		}
 		
 		// if the sets contain keys not in header names, remove them
 		adjustedCleanRow = new LinkedHashMap<String, Object>();
@@ -867,8 +860,7 @@ public class H2Frame extends AbstractTableDataFrame {
 	}
 
 	@Override
-	public Iterator<Object> uniqueValueIterator(String columnHeader,
-			boolean getRawData, boolean iterateAll) {
+	public Iterator<Object> uniqueValueIterator(String columnHeader, boolean iterateAll) {
 
 		// Map<String, Object> options = new HashMap<String, Object>();
 		// options.put(DE_DUP, true);
@@ -1134,12 +1126,12 @@ public class H2Frame extends AbstractTableDataFrame {
 	}
 
 	@Override
-	public void addRelationship(Map<String, Object> rowCleanData,Map<String, Object> rowRawData, Map<String, Set<String>> edgeHash,	Map<String, String> logicalToTypeMap) {
-		addRelationship(rowCleanData, rowRawData);
+	public void addRelationship(Map<String, Object> rowCleanData, Map<String, Set<String>> edgeHash, Map<String, String> logicalToTypeMap) {
+		addRelationship(rowCleanData);
 	}
 
 	@Override
-	public void addRelationship(String[] headers, Object[] values,Object[] rawValues, Map<Integer, Set<Integer>> cardinality,Map<String, String> logicalToValMap) {
+	public void addRelationship(String[] headers, Object[] values, Map<Integer, Set<Integer>> cardinality,Map<String, String> logicalToValMap) {
 		for (int i = 0; i < headers.length; i++) {
 			headers[i] = H2Builder.cleanHeader(headers[i]);
 		}
@@ -1187,9 +1179,7 @@ public class H2Frame extends AbstractTableDataFrame {
 	}
 
 	@Override
-	public void removeRelationship(Map<String, Object> cleanRow,
-			Map<String, Object> rawRow) {
-
+	public void removeRelationship(Map<String, Object> cleanRow) {
 		Set<String> columnNames = cleanRow.keySet();
 		String[] columns = new String[columnNames.size()];
 		String[] values = new String[columnNames.size()];

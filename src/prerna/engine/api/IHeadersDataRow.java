@@ -9,4 +9,6 @@ public interface IHeadersDataRow {
 	public Object[] getValues();
 	
 	public Object[] getRawValues();
+	
+	public String toRawString();
 }

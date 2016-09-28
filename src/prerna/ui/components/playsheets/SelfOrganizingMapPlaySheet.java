@@ -151,7 +151,7 @@ public class SelfOrganizingMapPlaySheet extends GridPlaySheet{
 	@Override
 	public List<Object[]> getList() {
 		List<Object[]> allData = new ArrayList<Object[]>();
-		Iterator<Object[]> it = dataFrame.iterator(false);
+		Iterator<Object[]> it = dataFrame.iterator();
 		while(it.hasNext()) {
 			allData.add(it.next());
 		}

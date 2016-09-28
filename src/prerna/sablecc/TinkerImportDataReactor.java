@@ -86,9 +86,9 @@ public class TinkerImportDataReactor extends ImportDataReactor{
 
 			// TODO: need to have a smart way of determining when it is an "addRow" vs. "addRelationship"
 			if(isPrimKey) {
-				frame.addRow(ss.getValues(), ss.getRawValues(), headers);
+				frame.addRow(ss.getValues(), headers);
 			} else {
-				frame.addRelationship(ss.getHeaders(), ss.getValues(), ss.getRawValues(), cardinality, logicalToValue);
+				frame.addRelationship(ss.getHeaders(), ss.getValues(), cardinality, logicalToValue);
 			}
 		}
 		

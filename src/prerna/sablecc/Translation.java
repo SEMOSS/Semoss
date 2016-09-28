@@ -277,7 +277,7 @@ public class Translation extends DepthFirstAdapter {
 	// tracks the most basic things all pkql should have
 	private void postProcess(Node node){
 		runner.setCurrentString(node.toString());
-		runner.setExplanation(this.storePkqlMetadata);
+		runner.aggregateMetadata(this.storePkqlMetadata);
 		runner.storeResponse();
 		
 		// we need to clear the previous references to the metadata

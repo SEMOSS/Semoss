@@ -117,7 +117,7 @@ public class ColAddReactor extends AbstractReactor {
 					addMetaData = false;
 				}
 
-				frame.addRelationship(row, row);
+				frame.addRelationship(row);
 			}
 		} else {
 			if (value == null) {
@@ -186,7 +186,7 @@ public class ColAddReactor extends AbstractReactor {
 						addMetaData = false;
 					}
 
-					frame.addRelationship(row, row);
+					frame.addRelationship(row);
 				}
 				myStore.put("STATUS", STATUS.SUCCESS);
 			} else {
@@ -214,7 +214,7 @@ public class ColAddReactor extends AbstractReactor {
 						frame.setDerivedColumn(newCol, true);
 						addMetaData = false;
 					}
-					frame.addRelationship(row, row);
+					frame.addRelationship(row);
 				}
 				myStore.put("STATUS", STATUS.SUCCESS);
 			}

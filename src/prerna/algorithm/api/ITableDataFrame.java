@@ -22,24 +22,21 @@ public interface ITableDataFrame extends IDataMaker {
 	/**
 	 * Adds a row to the data-frame
 	 * @param rowCleanData			The map between the column and the clean value for the row being added
-	 * @param rowRawData			The map between the column and the raw value for the row being added
 	 */
-	void addRow(Map<String, Object> rowCleanData, Map<String, Object> rowRawData);
+	void addRow(Map<String, Object> rowCleanData);
 	
 	/**
 	 * Adds a row to the data-frame
 	 * @param rowCleanData			The array of clean values where indices match the columns in the data-frame
-	 * @param rowRawData			The array of raw values where indices match the columns in the data-frame
 	 */
-	void addRow(Object[] rowCleanData, Object[] rowRawData);
+	void addRow(Object[] rowCleanData);
 
 	/**
 	 * Adds a row to the data-frame
 	 * @param rowCleanData			The array of clean values where indices match the columns in the data-frame
-	 * @param rowRawData			The array of raw values where indices match the columns in the data-frame
 	 * @param headers				The headers corresponding to the new row to add
 	 */
-	void addRow(Object[] cleanCells, Object[] rawCells, String[] headers);
+	void addRow(Object[] cleanCells, String[] headers);
 
 	/**
 	 * 
@@ -49,7 +46,7 @@ public interface ITableDataFrame extends IDataMaker {
 	 * @param cardinality
 	 * @param logicalToValMap
 	 */
-	void addRelationship(String[] headers, Object[] values, Object[] rawValues, Map<Integer, Set<Integer>> cardinality, Map<String, String> logicalToValMap);
+	void addRelationship(String[] headers, Object[] values, Map<Integer, Set<Integer>> cardinality, Map<String, String> logicalToValMap);
 
 	/**
 	 * Joins the inputed data-frame to the current data-frame for the provided column names 
@@ -155,35 +152,35 @@ public interface ITableDataFrame extends IDataMaker {
 	 * The iterator will return an Object[] corresponding to the data in a row of the data-frame
 	 * @return						The iterator to go through all the rows
 	 */
-	Iterator<Object[]> iterator(boolean getRawData);
+	Iterator<Object[]> iterator();
 	
 	/**
 	 * Iterator to go through all the rows in the data-frame
 	 * The iterator will return an Object[] corresponding to the data in a row of the data-frame
 	 * @return						The iterator to go through all the rows
 	 */
-	Iterator<Object[]> iterator(boolean getRawData, Map<String, Object> options);
+	Iterator<Object[]> iterator(Map<String, Object> options);
 	
 	/**
 	 * Iterator to go through all the rows in the data-frame and return all the values in unique-valued groups based on a specific column
 	 * The iterator will return a List<Object[]> corresponding to the data in a row of the data-frame
 	 * @return						The iterator to go through all the rows
 	 */
-	Iterator<List<Object[]>> uniqueIterator(String columnHeader, boolean getRawData);
+	Iterator<List<Object[]>> uniqueIterator(String columnHeader);
 	
 	/**
 	 * 	 * Returns the iterator that will iterate through a numeric column
 	 * the iterator will return the each unique value in the column as a function -> x' = (x - min(columnHeader))/(max(columnHeader) - min(columnHeader))	 * @param columnHeader
 	 * @return
 	 */
-	Iterator<Object[]> scaledIterator(boolean getRawData);
+	Iterator<Object[]> scaledIterator();
 	
 	/**
 	 * 	 * Returns the iterator that will iterate through a numeric column
 	 * the iterator will return the each unique value in the column as a function -> x' = (x - min(columnHeader))/(max(columnHeader) - min(columnHeader))	 * @param columnHeader
 	 * @return
 	 */
-	Iterator<List<Object[]>> scaledUniqueIterator(String columnHeader, boolean getRawData, Map<String, Object> options);
+	Iterator<List<Object[]>> scaledUniqueIterator(String columnHeader, Map<String, Object> options);
 	
 	/**
 	 * Returns the iterator that iterates through unique values of a column
@@ -192,7 +189,7 @@ public interface ITableDataFrame extends IDataMaker {
 	 * @param iterateAll		iterate through filtered and unfiltered values if true, just unfiltered values otherwise
 	 * @return
 	 */
-	Iterator<Object> uniqueValueIterator(String columnHeader, boolean getRawData, boolean iterateAll);
+	Iterator<Object> uniqueValueIterator(String columnHeader, boolean iterateAll);
 	
 	/**
 	 * Get the values for a specific column in the data-frame
@@ -413,14 +410,14 @@ public interface ITableDataFrame extends IDataMaker {
 	 * @param cleanRow
 	 * @param rawRow
 	 */
-	void addRelationship(Map<String, Object> cleanRow, Map<String, Object> rawRow);
+	void addRelationship(Map<String, Object> cleanRow);
 
 	/**
 	 * 
 	 * @param cleanRow
 	 * @param rawRow
 	 */
-	void removeRelationship(Map<String, Object> cleanRow, Map<String, Object> rawRow);
+	void removeRelationship(Map<String, Object> cleanRow);
 	
 	/**
 	 * 
@@ -462,7 +459,7 @@ public interface ITableDataFrame extends IDataMaker {
 	 * @param edgeHash
 	 * @param logicalToValMap
 	 */
-	void addRelationship(Map<String, Object> rowCleanData, Map<String, Object> rowRawData, Map<String, Set<String>> edgeHash, Map<String, String> logicalToValMap);
+	void addRelationship(Map<String, Object> rowCleanData, Map<String, Set<String>> edgeHash, Map<String, String> logicalToValMap);
 	
 	/**
 	 * 

@@ -15,8 +15,6 @@ import org.apache.tinkerpop.gremlin.structure.Vertex;
 
 import prerna.algorithm.api.ITableDataFrame;
 import prerna.ds.ExpressionReducer;
-import prerna.ds.spark.SparkDataFrame;
-import prerna.sablecc.MathReactor;
 import prerna.sablecc.PKQLEnum;
 import prerna.sablecc.PKQLRunner.STATUS;
 import prerna.sablecc.SparkMathReactor;
@@ -32,7 +30,7 @@ public abstract class SparkBaseReducerReactor extends SparkMathReactor implement
 	protected boolean errored = false;
 	protected java.lang.Object baseException = null;
 	protected Bindings otherBindings = engine.getBindings(ScriptContext.ENGINE_SCOPE);
-	protected String propToGet = Constants.VALUE;
+	protected String propToGet = Constants.NAME;
 	
 	protected Vector<String> groupBys = null;
 	protected Vector<String> columns = null;
