@@ -1,16 +1,15 @@
 package prerna.util.sql;
 
-import java.util.ArrayList;
 import java.util.List;
 
 public class OracleQueryUtil extends SQLQueryUtil {
 	public static final String DATABASE_DRIVER = "oracle.jdbc.driver.OracleDriver";
-	private String connectionBase = "jdbc:oracle:thin:@HOST:PORT/SERVICE";
+	private String connectionBase = "jdbc:oracle:thin:@HOST:PORT:SERVICE";
 
 	public OracleQueryUtil(){
 		setDialect();
-		super.setDefaultDbUserName("root");//
-		super.setDefaultDbPassword("password");//
+		super.setDefaultDbUserName("root");
+		super.setDefaultDbPassword("password");
 	}
 	
 	public OracleQueryUtil(String hostname, String port, String schema, String username, String password) {
@@ -33,14 +32,18 @@ public class OracleQueryUtil extends SQLQueryUtil {
 	}
 	
 	private void setDialect() {
-		super.setDialectAllTables(" SELECT TABLE_NAME FROM INFORMATION_SCHEMA.TABLES ");
-		super.setDialectAllColumns(" SELECT * FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME = ");
-		super.setResultAllTablesTableName("TABLE_NAME");//
+		super.setDialectAllTables("SELECT DISTINCT OBJECT_NAME FROM USER_OBJECTS WHERE OBJECT_TYPE = 'TABLE'");
+		super.setDialectAllColumns("SELECT COLUMN_NAME, DATA_TYPE FROM user_tab_cols WHERE TABLE_NAME=");
+		super.setResultAllTablesTableName("TABLE_NAME");
 		super.setResultAllColumnsColumnName("COLUMN_NAME");
 		super.setResultAllColumnsColumnType("DATA_TYPE");
 		super.setDialectOuterJoinLeft(" LEFT OUTER JOIN ");
 		super.setDialectOuterJoinRight(" RIGHT OUTER JOIN ");
 	}
+	
+//	private void setDialect(String schema) {
+//		setDialect();
+//	}
 
 	@Override
 	public SQLQueryUtil.DB_TYPE getDatabaseType(){
@@ -48,7 +51,7 @@ public class OracleQueryUtil extends SQLQueryUtil {
 	}
 	
 	public String getDialectAllColumns(String tableName){
-		return super.getDialectAllColumns() + "'" + tableName + "'" ;
+		return super.getDialectAllColumns() + "'" + tableName.toUpperCase() + "'" ;
 	}
 	
 	@Override
@@ -59,7 +62,7 @@ public class OracleQueryUtil extends SQLQueryUtil {
 	//jdbc:oracle:thin:@<hostname>[:port]/<service or sid>[-schema name]
 	@Override
 	public String getConnectionURL(String baseFolder,String dbname){
-		return connectionBase + "-" + dbname;
+		return connectionBase;// + "-" + dbname;
 	}
 	
 	@Override
