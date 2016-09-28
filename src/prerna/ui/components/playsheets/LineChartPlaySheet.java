@@ -72,7 +72,7 @@ public class LineChartPlaySheet extends BrowserPlaySheet{
 			}
 		}
 
-		Iterator<Object[]> it = dataFrame.iterator(true);
+		Iterator<Object[]> it = dataFrame.iterator();
 		while(it.hasNext()) {
 			Object[] elemValues = it.next();
 			

@@ -102,10 +102,6 @@ public class MultiClusteringRoutine implements IAnalyticTransformationRoutine {
 		for(Object instance : results.keySet()) {
 			int val = results.get(instance);
 
-			Map<String, Object> raw = new HashMap<String, Object>();
-			raw.put(attributeName, instance);
-			raw.put(clusterColName, val);
-
 			Map<String, Object> clean = new HashMap<String, Object>();
 			if(instance.toString().startsWith("http://semoss.org/ontologies/Concept/")) {
 				instance = Utility.getInstanceName(instance.toString());
@@ -113,7 +109,7 @@ public class MultiClusteringRoutine implements IAnalyticTransformationRoutine {
 			clean.put(attributeName, instance);
 			clean.put(clusterColName, val);
 
-			dataFrame.addRelationship(clean, raw);
+			dataFrame.addRelationship(clean);
 		}
 
 		return null;
@@ -252,7 +248,7 @@ public class MultiClusteringRoutine implements IAnalyticTransformationRoutine {
 //				groupByMap = (Map<Object, Object>) gt.next();
 //			}
 			
-			Iterator<List<Object[]>> it = data.scaledUniqueIterator(instanceType, false, null);
+			Iterator<List<Object[]>> it = data.scaledUniqueIterator(instanceType, null);
 			while(it.hasNext()) {
 				List<Object[]> instance = it.next();
 				Object instanceName = instance.get(0)[instanceIndex];

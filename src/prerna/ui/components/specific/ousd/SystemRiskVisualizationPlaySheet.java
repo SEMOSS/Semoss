@@ -188,7 +188,7 @@ public class SystemRiskVisualizationPlaySheet extends GridPlaySheet{
 			if(criticalObjects!=null) {
 				newRow[7] = criticalObjects.toString();
 			}
-			this.dataFrame.addRow(newRow, newRow);
+			this.dataFrame.addRow(newRow);
 		}
 //		this.names = new String[]{"System", "BLU Risk Score", "BLU Percent Difference", "Data Risk Score", "Data Percent Difference", "BLU-Data Risk Score", "BLU-Data Percent Difference", "Lost BLU / Data"};
 	}

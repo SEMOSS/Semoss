@@ -34,23 +34,19 @@ import java.sql.SQLException;
 import java.sql.Statement;
 import java.sql.Types;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Hashtable;
 import java.util.Map;
-
-import com.hp.hpl.jena.query.QuerySolution;
 
 import prerna.algorithm.api.ITableDataFrame;
 import prerna.ds.BTreeDataFrame;
 import prerna.engine.api.ISelectStatement;
 import prerna.engine.api.ISelectWrapper;
 import prerna.engine.impl.rdbms.RDBMSNativeEngine;
-import prerna.util.ConnectionUtils;
 import prerna.rdf.query.builder.SQLQueryTableBuilder;
 import prerna.rdf.util.SQLQueryParser;
+import prerna.util.ConnectionUtils;
 import prerna.util.Constants;
-import prerna.util.Utility;
 import prerna.util.sql.SQLQueryUtil;
 
 public class RDBMSSelectWrapper extends AbstractWrapper implements ISelectWrapper {
@@ -300,14 +296,12 @@ public class RDBMSSelectWrapper extends AbstractWrapper implements ISelectWrappe
 				logger.debug("Adding a rdbms statement ");
 				
 				Object[] clean = new Object[this.displayVar.length];
-				Object[] raw = new Object[this.displayVar.length];
 				for(int colIndex = 0;colIndex < displayVar.length;colIndex++)
 				{
 					Object value = rs.getObject(var[colIndex]);
-					raw[colIndex] = getRawValue(value, displayVar[colIndex]);
 					clean[colIndex] = value;
 				}
-				dataFrame.addRow(clean, raw);
+				dataFrame.addRow(clean);
 			} 
 		} catch (SQLException e) {
 			// TODO Auto-generated catch block

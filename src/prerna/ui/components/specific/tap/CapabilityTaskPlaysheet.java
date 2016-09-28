@@ -91,7 +91,7 @@ public class CapabilityTaskPlaysheet extends BrowserPlaySheet {
 		
 		Hashtable <String, Integer> capHash = new Hashtable<String, Integer>();
 		
-		Iterator<Object[]> it = dataFrame.iterator(false);
+		Iterator<Object[]> it = dataFrame.iterator();
 		while(it.hasNext()) {	
 			Object[] listElement = it.next();
 			venName = (String) listElement[0];

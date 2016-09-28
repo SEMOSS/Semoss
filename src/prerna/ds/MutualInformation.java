@@ -293,7 +293,7 @@ public class MutualInformation {
 	private static ITableDataFrame createBTreeDataFrame(List<Object[]> values, String[] columnHeader) {
 		BTreeDataFrame table1 = new BTreeDataFrame(columnHeader);
 		for (Object[] value : values) {
-			table1.addRow(value, value);
+			table1.addRow(value);
 		}
 		return table1;
 	}

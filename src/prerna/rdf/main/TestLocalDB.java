@@ -1,79 +1,202 @@
 package prerna.rdf.main;
 
-import java.io.FileInputStream;
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
-
-import org.apache.poi.xssf.usermodel.XSSFCell;
-import org.apache.poi.xssf.usermodel.XSSFRow;
-import org.apache.poi.xssf.usermodel.XSSFSheet;
-import org.apache.poi.xssf.usermodel.XSSFWorkbook;
-
-import prerna.engine.api.IEngine.ACTION_TYPE;
-import prerna.engine.api.ISelectStatement;
-import prerna.engine.api.ISelectWrapper;
+import prerna.engine.api.IHeadersDataRow;
+import prerna.engine.api.IRawSelectWrapper;
 import prerna.engine.impl.rdf.BigDataEngine;
 import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.test.TestUtilityMethods;
 import prerna.util.DIHelper;
-import prerna.util.Utility;
 
 public class TestLocalDB {
 
-	public static void main(String[] args) throws IOException {
+	public static void main(String[] args) throws Exception {
+		
 		TestUtilityMethods.loadDIHelper();
 
-		String engineProp = "C:\\workspace\\Semoss_Dev\\db\\TAP_Core_Data.smss";
-		BigDataEngine tapCore = new BigDataEngine();
-		tapCore.openDB(engineProp);
-		tapCore.setEngineName("TAP_Core_Data");
-		DIHelper.getInstance().setLocalProperty("TAP_Core_Data", tapCore);
-
-		List<Object[]> triples = new ArrayList<Object[]>();
+//		//TODO: put in correct path for your database
+//		String engineProp = "C:\\workspace\\Semoss_Dev\\db\\LocalMasterDatabase.smss";
+//		IEngine coreEngine = new BigDataEngine();
+//		coreEngine.setEngineName(Constants.LOCAL_MASTER_DB_NAME);
+//		coreEngine.openDB(engineProp);
+//		//TODO: put in correct db name
+//		coreEngine.setEngineName(Constants.LOCAL_MASTER_DB_NAME);
+//		DIHelper.getInstance().setLocalProperty(Constants.LOCAL_MASTER_DB_NAME, coreEngine);
+//		
+//		String query = "SELECT DISTINCT ?s ?p ?o where { {?s ?p ?o} }";
+//		
+////		File f = new File("C:\\workspace\\Semoss_Dev\\LocalMasterTriples.txt");
+////		if(f.exists()) {
+////			f.delete();
+////		}
+////		f.createNewFile();
+////		FileWriter writer = new FileWriter(f);
+////		
+////		System.out.println("Start query...");
+//		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(coreEngine, query);
+////		while(wrapper.hasNext()) {
+////			IHeadersDataRow row = wrapper.next();
+////			writer.write(row.toRawString());
+////		}
+////		System.out.println("End query...");
+////
+////		writer.close();
+//
+//		String conceptURI = "http://semoss.org/ontologies/Concept/System";
+//		String upstreamQuery = "SELECT DISTINCT ?someEngine ?fromConcept ?fromLogical WHERE {"
+//				+ "{?conceptComposite <http://semoss.org/ontologies/Relation/presentin> ?someEngine}"
+//				+ "{?toConceptComposite <http://semoss.org/ontologies/Relation/presentin> ?someEngine}"
+//				+ "{?conceptComposite <" + RDF.TYPE + "> ?fromConcept}"
+//				+ "{?conceptComposite <http://semoss.org/ontologies/Relation/logical> ?fromLogical}"
+//				+ "{?toConceptComposite <http://semoss.org/ontologies/Relation/logical> <" + conceptURI + ">}" // change this back to logical
+//				+ "{?toConceptComposite ?someRel ?conceptComposite}"
+//				//+ "{?someRel <" + RDFS.subPropertyOf + "> <http://semoss.org/ontologies/Relation>}"
+//				+ "{?conceptComposite <" + RDFS.subClassOf + "> <http://semoss.org/ontologies/Concept>}"
+//				+ "{?toConceptComposite <" + RDFS.subClassOf + "> <http://semoss.org/ontologies/Concept>}"
+//				+ "{?fromConcept <" + RDFS.subClassOf + "> <http://semoss.org/ontologies/Concept>}"
+//				+ "{?toConcept <" + RDFS.subClassOf + "> <http://semoss.org/ontologies/Concept>}"
+//				+ "FILTER(?fromConcept != <http://semoss.org/ontologies/Concept> "
+//				+ "&& ?toConcept != <http://semoss.org/ontologies/Concept>"
+//				+ "&& ?someRel != <http://semoss.org/ontologies/Relation>"
+//				+ "&& ?toConcept != ?someEngine"
+//				+ "&& ?fromLogical != <" + conceptURI + ">"
+//				+")}";
+//		
+//		System.out.println("Start query...");
+//		wrapper = WrapperManager.getInstance().getRawWrapper(coreEngine, upstreamQuery);
+//		while(wrapper.hasNext()) {
+//			IHeadersDataRow row = wrapper.next();
+//			System.out.println(row.toRawString());
+//		}
+//		System.out.println("End query...");
+//
+//		String downstreamQuery = "SELECT DISTINCT ?someEngine ?fromConcept ?fromLogical WHERE {"
+//				+ "{?conceptComposite <http://semoss.org/ontologies/Relation/presentin> ?someEngine}"
+//				+ "{?toConceptComposite <http://semoss.org/ontologies/Relation/presentin> ?someEngine}"
+//				+ "{?conceptComposite <" + RDF.TYPE + "> ?fromConcept}"
+//				+ "{?conceptComposite <http://semoss.org/ontologies/Relation/logical> ?fromLogical}"
+//				+ "{?toConceptComposite <http://semoss.org/ontologies/Relation/logical> <" + conceptURI + ">}" // change this back to logical
+//				+ "{?conceptComposite ?someRel ?toConceptComposite}"
+//				//+ "{?someRel <" + RDFS.subPropertyOf + "> <http://semoss.org/ontologies/Relation>}"
+//				+ "{?conceptComposite <" + RDFS.subClassOf + "> <http://semoss.org/ontologies/Concept>}"
+//				+ "{?toConceptComposite <" + RDFS.subClassOf + "> <http://semoss.org/ontologies/Concept>}"
+//				+ "{?fromConcept <" + RDFS.subClassOf + "> <http://semoss.org/ontologies/Concept>}"
+//				+ "{?toConcept <" + RDFS.subClassOf + "> <http://semoss.org/ontologies/Concept>}"
+//				+ "FILTER(?fromConcept != <http://semoss.org/ontologies/Concept> "
+//				+ "&& ?toConcept != <http://semoss.org/ontologies/Concept>"
+//				+ "&& ?someRel != <http://semoss.org/ontologies/Relation>"
+//				+ "&& ?toConcept != ?someEngine"
+//				+ "&& ?fromLogical != <" + conceptURI + ">"
+//				+")}";
+//		
+//		System.out.println("Start query...");
+//		wrapper = WrapperManager.getInstance().getRawWrapper(coreEngine, downstreamQuery);
+//		while(wrapper.hasNext()) {
+//			IHeadersDataRow row = wrapper.next();
+//			System.out.println(row.toRawString());
+//		}
+//		System.out.println("End query...");
+//		
 		
-		Set<String> systemNames = new HashSet<String>();
-		String csvFileLocation = "C:\\Users\\mahkhalil\\Desktop\\For Maher.xlsx";
-		FileInputStream poiReader = new FileInputStream(csvFileLocation);
-		XSSFWorkbook workbook = new XSSFWorkbook(poiReader);
-		// load the Loader tab to determine which sheets to load
-		XSSFSheet lSheet = workbook.getSheet("Sheet1");
-		int lastRow = lSheet.getLastRowNum();
-		for (int rIndex = 0; rIndex <= lastRow; rIndex++) {
-			XSSFRow row = lSheet.getRow(rIndex);
-			if (row != null) {
-				XSSFCell cell = row.getCell(0);
-				if(cell != null) {
-					systemNames.add(Utility.cleanString(cell.getStringCellValue(), true));
-				}
-			}
-		}
+		//TODO: put in correct path for your database
+		String engineProp = "C:\\workspace\\Semoss_Dev\\db\\Forms_TAP_Core_Data.smss";
+		BigDataEngine coreEngine = new BigDataEngine();
+		coreEngine.setEngineName("FormsEngine");
+		coreEngine.openDB(engineProp);
+		//TODO: put in correct db name
+		coreEngine.setEngineName("FormsEngine");
+		DIHelper.getInstance().setLocalProperty("FormsEngine", coreEngine);
 		
-		String query = "SELECT DISTINCT ?System ?SustainmentBudget WHERE { {?System a <http://semoss.org/ontologies/Concept/System>} {?System <http://semoss.org/ontologies/Relation/Contains/SustainmentBudget> ?SustainmentBudget} } ";
+		String systemUri = "http://health.mil/ontologies/Concept/System/CIS-Essentris";
+		String propertyUri = "http://semoss.org/ontologies/Relation/Contains/User_Consoles";
+		Object propToRemove = "NA";
+//		coreEngine.removeStatement(new Object[]{systemUri, propertyUri, propToRemove, false});
+//		propToRemove = "NaN";
+//		coreEngine.removeStatement(new Object[]{systemUri, propertyUri, propToRemove, false});
+//		propToRemove = "\"NA\"";
+//		coreEngine.removeStatement(new Object[]{systemUri, propertyUri, propToRemove, false});
+//		
+//		
+//		propertyUri = "http://semoss.org/ontologies/Relation/Contains/Number_of_Users";
+//		propToRemove = "NA";
+//		coreEngine.removeStatement(new Object[]{systemUri, propertyUri, propToRemove, false});
+//		propToRemove = "NaN";
+//		coreEngine.removeStatement(new Object[]{systemUri, propertyUri, propToRemove, false});
+//		propToRemove = "\"NA\"";
+//		coreEngine.removeStatement(new Object[]{systemUri, propertyUri, propToRemove, false});
+//		propToRemove = 1.0;
+//		coreEngine.removeStatement(new Object[]{systemUri, propertyUri, propToRemove, false});
+//		propToRemove = 90.0;
+//		coreEngine.removeStatement(new Object[]{systemUri, propertyUri, propToRemove, false});
+//		propToRemove = 198.0;
+//		coreEngine.removeStatement(new Object[]{systemUri, propertyUri, propToRemove, false});
+		
+		propertyUri = "http://semoss.org/ontologies/Relation/Contains/Availability-Required";
+//		propToRemove = 99.9;
+//		coreEngine.removeStatement(new Object[]{systemUri, propertyUri, propToRemove, false});
+//		propToRemove = "99.9";
+//		coreEngine.removeStatement(new Object[]{systemUri, propertyUri, propToRemove, false});
+//		propToRemove = "\"99.0\"^^<http://www.w3.org/2001/XMLSchema#double>";
+//		coreEngine.removeStatement(new Object[]{systemUri, propertyUri, propToRemove, false});
+		
+		
+//		propToRemove = "NA";
+//		coreEngine.removeStatement(new Object[]{systemUri, propertyUri, propToRemove, false});
+//		propToRemove = "NaN";
+//		coreEngine.removeStatement(new Object[]{systemUri, propertyUri, propToRemove, false});
+//		coreEngine.addStatement(new Object[]{systemUri, propertyUri, 1.0, false});
+		
+//		propertyUri = "http://semoss.org/ontologies/Relation/Contains/Availability-Actual";
+//		propToRemove = "NA";
+//		coreEngine.removeStatement(new Object[]{systemUri, propertyUri, propToRemove, false});
+//		propToRemove = "NaN";
+//		coreEngine.removeStatement(new Object[]{systemUri, propertyUri, propToRemove, false});
+//		
 
-		ISelectWrapper wrapper = WrapperManager.getInstance().getSWrapper(tapCore, query);
-		String[] names = wrapper.getVariables();
+
+//		propertyUri = "http://semoss.org/ontologies/Relation/Contains/AvailabilityRequired";
+//		propToRemove = 99.9;
+//		coreEngine.removeStatement(new Object[]{systemUri, propertyUri, propToRemove, false});
+//		propToRemove = "NA";
+//		coreEngine.removeStatement(new Object[]{systemUri, propertyUri, propToRemove, false});
+//		propToRemove = "NaN";
+//		coreEngine.removeStatement(new Object[]{systemUri, propertyUri, propToRemove, false});
+//		coreEngine.addStatement(new Object[]{systemUri, propertyUri, 1.0, false});
+//		
+//		propertyUri = "http://semoss.org/ontologies/Relation/Contains/AvailabilityActual";
+//		propToRemove = "NA";
+//		coreEngine.removeStatement(new Object[]{systemUri, propertyUri, propToRemove, false});
+//		propToRemove = "NaN";
+//		coreEngine.removeStatement(new Object[]{systemUri, propertyUri, propToRemove, false});
+		
+		
+		
+//		propertyUri = "http://semoss.org/ontologies/Relation/Contains/Transaction_Count";
+//		propToRemove = "NA";
+//		coreEngine.removeStatement(new Object[]{systemUri, propertyUri, propToRemove, false});
+//		propToRemove = "NaN";
+//		coreEngine.removeStatement(new Object[]{systemUri, propertyUri, propToRemove, false});
+//		propToRemove = "\"NA\"";
+//		coreEngine.removeStatement(new Object[]{systemUri, propertyUri, propToRemove, false});
+//		propToRemove = 99.9;
+//		coreEngine.removeStatement(new Object[]{systemUri, propertyUri, propToRemove, false});
+//		propToRemove = 131000.0;
+//		coreEngine.removeStatement(new Object[]{systemUri, propertyUri, propToRemove, false});
+		
+//		coreEngine.commit();
+//		
+//		String deleteQ = "DELETE WHERE { <http://health.mil/ontologies/Concept/System/CIS-Essentris> <http://semoss.org/ontologies/Relation/Contains/Availability-Required> ?Val . }";
+//		coreEngine.removeData(deleteQ);
+//		coreEngine.commit();
+//		
+//		coreEngine.addStatement(new Object[]{systemUri, propertyUri, 1.0, false});
+//		coreEngine.commit();
+		
+		String query = "SELECT DISTINCT ?System ?Prop ?Val WHERE {BIND(<http://health.mil/ontologies/Concept/System/CIS-Essentris> AS ?System) {?Prop a <http://semoss.org/ontologies/Relation/Contains>} {?System ?Prop ?Val}}";
+		
+		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(coreEngine, query);
 		while(wrapper.hasNext()) {
-			ISelectStatement ss = wrapper.next();
-			Object sub = ss.getRawVar(names[0]);
-			String cleanSub = ss.getVar(names[0]) + "";
-			Object pred = "http://semoss.org/ontologies/Relation/Contains/SustainmentBudget";
-			Object obj = ss.getVar(names[1]);
-
-			if(systemNames.contains(cleanSub)) {
-				System.out.println(sub + " >>> " + pred + " >>>" + obj);
-				triples.add(new Object[]{sub, pred, obj, false});
-			}
+			IHeadersDataRow row = wrapper.next();
+			System.out.println(row.toRawString());
 		}
-		
-		System.out.println(triples.size());
-		
-		for(Object[] trip : triples) {
-			tapCore.doAction(ACTION_TYPE.REMOVE_STATEMENT, trip);
-		}
-		tapCore.commit();
 	}
-
 }

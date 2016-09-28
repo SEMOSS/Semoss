@@ -15,10 +15,12 @@ import prerna.sablecc.MathReactor;
 import prerna.sablecc.PKQLEnum;
 import prerna.sablecc.PKQLRunner.STATUS;
 import prerna.util.ArrayUtilityMethods;
-import prerna.util.Utility;
 
 public class ClusteringReactor extends MathReactor {
 
+	public static final String NUM_CLUSTERS = "numClusters";
+	public static final String INSTANCE_INDEX = "instanceIndex";
+	
 	private Map<Object, Integer> results = new HashMap<Object, Integer>();
 
 	// keeping track of cluster information
@@ -48,15 +50,15 @@ public class ClusteringReactor extends MathReactor {
 		///////////////// start of initializing some stuff... needs to be put away somewhere else
 		if(myStore.containsKey(PKQLEnum.MATH_PARAM)) {
 			Map<String, Object> options = (Map<String, Object>) myStore.get(PKQLEnum.MATH_PARAM);
-			if(options.containsKey("instanceIndex".toUpperCase())) {
-				this.instanceIndex = Integer.parseInt(options.get("instanceIndex".toUpperCase()) + "");
+			if(options.containsKey(INSTANCE_INDEX.toUpperCase())) {
+				this.instanceIndex = Integer.parseInt(options.get(INSTANCE_INDEX.toUpperCase()) + "");
 			} else {
 				// i think its a fair assumption that the first column written can be assumed to be the instance
 				this.instanceIndex = 0;
 			}
 			
-			if(options.containsKey("numClusters".toUpperCase())) {
-				this.numClusters = Integer.parseInt(options.get("numClusters".toUpperCase()) + "");
+			if(options.containsKey(NUM_CLUSTERS.toUpperCase())) {
+				this.numClusters = Integer.parseInt(options.get(NUM_CLUSTERS.toUpperCase()) + "");
 			} else {
 				// TODO: need to throw an error saying number of clusters is required
 				this.numClusters = 5;
@@ -65,6 +67,7 @@ public class ClusteringReactor extends MathReactor {
 			//TODO: need to throw an error saying parameters are required
 			return null;
 		}
+		
 		this.attributeNamesList = (List<String>)myStore.get(PKQLEnum.COL_DEF);
 		this.attributeNames = attributeNamesList.toArray(new String[]{});
 
@@ -140,10 +143,10 @@ public class ClusteringReactor extends MathReactor {
 		String attributeName = attributeNames[instanceIndex];
 		// to avoid adding columns with same name
 		int counter = 0;
-		this.clusterColName = attributeName + "_CLUSTER_" + counter;
+		this.clusterColName = attributeName + "_Cluster";
 		while(ArrayUtilityMethods.arrayContainsValue(dataFrame.getColumnHeaders(), clusterColName)) {
 			counter++;
-			this.clusterColName = attributeName + "_CLUSTER_" + counter;
+			this.clusterColName = attributeName + "_Cluster_" + counter;
 		}
 		
 		// TODO: need to return an iterator and not automatically append the data to the frame
@@ -153,18 +156,11 @@ public class ClusteringReactor extends MathReactor {
 		for(Object instance : results.keySet()) {
 			int val = results.get(instance);
 
-			Map<String, Object> raw = new HashMap<String, Object>();
-			raw.put(attributeName, instance);
-			raw.put(clusterColName, val);
-			
 			Map<String, Object> clean = new HashMap<String, Object>();
-			if(instance.toString().startsWith("http://semoss.org/ontologies/Concept/")) {
-				instance = Utility.getInstanceName(instance.toString());
-			}
 			clean.put(attributeName, instance);
 			clean.put(clusterColName, val);
 			
-			dataFrame.addRelationship(clean, raw);
+			dataFrame.addRelationship(clean);
 		}
 		
 //		SingleColAddIterator it = new SingleColAddIterator();

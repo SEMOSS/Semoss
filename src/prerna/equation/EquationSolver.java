@@ -324,7 +324,7 @@ public class EquationSolver {
 			else { myParser.parseExpression(expString); }
 			double value = myParser.getValue();
 			newRow[newRow.length-1] = value;
-			newTable.addRow(newRow, newRow);
+			newTable.addRow(newRow);
 		}
 		
 		tree.setColumnsToSkip(null);

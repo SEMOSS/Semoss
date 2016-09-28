@@ -138,7 +138,7 @@ public class SparkColAddReactor extends AbstractReactor {
 					addMetaData = false;
 				}
 
-				frame.addRelationship(row, row);
+				frame.addRelationship(row);
 			}
 			myStore.put("STATUS", STATUS.SUCCESS);
 		} else {

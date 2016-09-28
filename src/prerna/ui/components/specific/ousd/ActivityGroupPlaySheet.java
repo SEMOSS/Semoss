@@ -78,7 +78,7 @@ public class ActivityGroupPlaySheet extends GridPlaySheet{
 
 		this.dataFrame = new OrderedBTreeDataFrame(columnNames);
 		for(Object[] row : groupList){
-			this.dataFrame.addRow(row, row);
+			this.dataFrame.addRow(row);
 		}
 //		this.names = columnNames;
 //		this.list = groupList;

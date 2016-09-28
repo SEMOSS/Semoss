@@ -104,7 +104,7 @@ public class BudgetDecommissioningPlaySheet extends GridPlaySheet{
 		List<Object[]> orderedSystems = orderBudgetList(budgetSystemList, namesMap);
 
 		for(Object[] row: orderedSystems){
-			this.dataFrame.addRow(row, row);
+			this.dataFrame.addRow(row);
 //			list.add(row);
 		}		
 	}

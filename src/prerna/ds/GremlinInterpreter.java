@@ -27,7 +27,6 @@ import prerna.ui.components.playsheets.datamakers.ISEMOSSTransformation;
 import prerna.ui.components.playsheets.datamakers.PKQLTransformation;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
-import prerna.util.Utility;
 
 public class GremlinInterpreter implements IQueryInterpreter {
 
@@ -451,7 +450,7 @@ public class GremlinInterpreter implements IQueryInterpreter {
 		System.out.println(resultHash);
 		
 		TinkerFrame tf = (TinkerFrame) insight.getDataMaker();
-		Iterator<Object[]> it = tf.iterator(false);
+		Iterator<Object[]> it = tf.iterator();
 		
 		System.out.println("<<<<<<<");
 		System.out.println("<<<<<<<");

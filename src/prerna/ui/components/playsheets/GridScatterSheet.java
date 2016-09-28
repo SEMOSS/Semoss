@@ -68,7 +68,7 @@ public class GridScatterSheet extends BrowserPlaySheet{
 			offset = 1;
 		}
 		
-		Iterator<Object[]> it = dataFrame.iterator(true);
+		Iterator<Object[]> it = dataFrame.iterator();
 		while(it.hasNext())
 		{
 			Hashtable<String, Object> elementHash = new Hashtable<String, Object>();

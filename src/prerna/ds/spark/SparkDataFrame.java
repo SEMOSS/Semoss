@@ -1,9 +1,6 @@
 package prerna.ds.spark;
 
-import java.sql.Statement;
-import java.util.Enumeration;
 import java.util.HashMap;
-import java.util.Hashtable;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -15,16 +12,10 @@ import prerna.algorithm.api.IMetaData;
 import prerna.algorithm.api.ITableDataFrame;
 import prerna.ds.AbstractTableDataFrame;
 import prerna.ds.TinkerMetaData;
-import prerna.ds.H2.H2Builder.Join;
 import prerna.engine.api.IHeadersDataRow;
-import prerna.engine.api.IScriptReactor;
-import prerna.sablecc.ColAddReactor;
-import prerna.sablecc.H2ImportDataReactor;
 import prerna.sablecc.PKQLEnum;
-import prerna.sablecc.SparkImportDataReactor;
 import prerna.sablecc.PKQLEnum.PKQLReactor;
 import prerna.ui.components.playsheets.datamakers.DataMakerComponent;
-import prerna.ui.components.playsheets.datamakers.IDataMaker.DATA_FRAME_REACTORS;
 import prerna.util.ArrayUtilityMethods;
 public class SparkDataFrame extends AbstractTableDataFrame{
 
@@ -35,7 +26,7 @@ public class SparkDataFrame extends AbstractTableDataFrame{
 		this.metaData = new TinkerMetaData();
 	}
 	@Override
-	public void addRow(Object[] rowCleanData, Object[] rowRawData) {
+	public void addRow(Object[] rowCleanData) {
 		
 	}
 
@@ -69,17 +60,17 @@ public class SparkDataFrame extends AbstractTableDataFrame{
 	}
 
 	@Override
-	public Iterator<Object[]> iterator(boolean getRawData) {
+	public Iterator<Object[]> iterator() {
 		return new SparkFrameIterator(this.builder.frame);
 	}
 
 	@Override
-	public Iterator<Object[]> iterator(boolean getRawData, Map<String, Object> options) {
+	public Iterator<Object[]> iterator(Map<String, Object> options) {
 		return new SparkFrameIterator(this.builder.buildIterator(options));
 	}
 
 	@Override
-	public Iterator<Object> uniqueValueIterator(String columnHeader, boolean getRawData, boolean iterateAll) {
+	public Iterator<Object> uniqueValueIterator(String columnHeader, boolean iterateAll) {
 		return new UniqueValueSparkFrameIterator(this.builder.getUniqueValues(columnHeader));
 	}
 
@@ -130,23 +121,23 @@ public class SparkDataFrame extends AbstractTableDataFrame{
 	}
 
 	@Override
-	public void addRelationship(Map<String, Object> cleanRow, Map<String, Object> rawRow) {
+	public void addRelationship(Map<String, Object> cleanRow) {
 		//does this apply to spark?
 	}
 
 	@Override
-	public void removeRelationship(Map<String, Object> cleanRow, Map<String, Object> rawRow) {
+	public void removeRelationship(Map<String, Object> cleanRow) {
 		//does this apply to spark?
 	}
 
 	@Override
-	public void addRow(Object[] cleanCells, Object[] rawCells, String[] headers) {
+	public void addRow(Object[] cleanCells, String[] headers) {
 		// TODO Auto-generated method stub
 		
 	}
 
 	@Override
-	public void addRelationship(Map<String, Object> rowCleanData, Map<String, Object> rowRawData, Map<String, Set<String>> edgeHash, Map<String, String> logicalToValMap) {
+	public void addRelationship(Map<String, Object> rowCleanData, Map<String, Set<String>> edgeHash, Map<String, String> logicalToValMap) {
 		// TODO Auto-generated method stub
 		
 	}
@@ -158,7 +149,7 @@ public class SparkDataFrame extends AbstractTableDataFrame{
 	}
 
 	@Override
-	public void addRelationship(String[] headers, Object[] values, Object[] rawValues, Map<Integer, Set<Integer>> cardinality, Map<String, String> logicalToValMap) {
+	public void addRelationship(String[] headers, Object[] values, Map<Integer, Set<Integer>> cardinality, Map<String, String> logicalToValMap) {
 		// TODO Auto-generated method stub
 		
 	}
@@ -296,7 +287,7 @@ public class SparkDataFrame extends AbstractTableDataFrame{
 	}
 	
 	@Override
-	public Iterator<List<Object[]>> scaledUniqueIterator(String columnHeader, boolean getRawData, Map<String, Object> options) {
+	public Iterator<List<Object[]>> scaledUniqueIterator(String columnHeader, Map<String, Object> options) {
 		return null;
 	}
 	

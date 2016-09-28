@@ -1,12 +1,10 @@
 package prerna.ui.components.specific.ousd;
 
-import java.text.NumberFormat;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Hashtable;
 import java.util.List;
-import java.util.Locale;
 import java.util.Map;
 
 import prerna.ds.OrderedBTreeDataFrame;
@@ -148,32 +146,32 @@ public class RoadmapCleanTableComparisonPlaySheet extends GridPlaySheet{
 		Object[] migration = new Object[names.length];
 		migration[0] = "Data Migration";
 		fillWithTBD(migration);
-		this.dataFrame.addRow(migration, migration);
+		this.dataFrame.addRow(migration);
 
 		Object[] hw = new Object[names.length];
 		hw[0] = "Hardware Plus Ups";
 		fillWithTBD(hw);
-		this.dataFrame.addRow(hw, hw);
+		this.dataFrame.addRow(hw);
 
 		Object[] sw = new Object[names.length];
 		sw[0] = "Software Plus Ups";
 		fillWithTBD(sw);
-		this.dataFrame.addRow(sw, sw);
+		this.dataFrame.addRow(sw);
 
 		Object[] people = new Object[names.length];
 		people[0] = "People Training";
 		fillWithTBD(people);
-		this.dataFrame.addRow(people, people);
+		this.dataFrame.addRow(people);
 
 		Object[] infra = new Object[names.length];
 		infra[0] = "Infrastructure";
 		fillWithTBD(infra);
-		this.dataFrame.addRow(infra, infra);
+		this.dataFrame.addRow(infra);
 	}
 
 	private void addRowsToDataFrame(List<Object[]> rows){
 		for(int i = 0; i<rows.size(); i++){
-			this.dataFrame.addRow(rows.get(i), rows.get(i));
+			this.dataFrame.addRow(rows.get(i));
 		}
 	}
 

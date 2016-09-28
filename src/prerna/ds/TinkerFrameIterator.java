@@ -17,12 +17,12 @@ import prerna.util.Utility;
 
 public class TinkerFrameIterator implements Iterator<Object[]> {
 
-	private String dataType; //the data property to be used from the table
+//	private String dataType; //the data property to be used from the table
 	private GraphTraversal gt; //the traversal on the graph
 	private List<String> selectors; //the selectors on the table
 	
-	public TinkerFrameIterator(Graph g, Graph metaG, Map<String, Object> options, boolean getRawData) {
-		dataType = getRawData ? Constants.VALUE : Constants.NAME;
+	public TinkerFrameIterator(Graph g, Graph metaG, Map<String, Object> options) { //, boolean getRawData) {
+//		dataType = getRawData ? Constants.VALUE : Constants.NAME;
 		
 		GremlinBuilder.DIRECTION dir = null;
 		if(options.containsKey(TinkerFrame.SORT_BY_DIRECTION)) {
@@ -128,10 +128,10 @@ public class TinkerFrameIterator implements Iterator<Object[]> {
 		if(data instanceof Map) {
 			for(int colIndex = 0;colIndex < selectors.size();colIndex++) {
 				Map<String, Object> mapData = (Map<String, Object>)data; //cast to map
-				retObject[colIndex] = ((Vertex)mapData.get(selectors.get(colIndex))).property(dataType).value();
+				retObject[colIndex] = ((Vertex)mapData.get(selectors.get(colIndex))).property(Constants.NAME).value();
 			}
 		} else {
-			retObject[0] = ((Vertex)data).property(dataType).value();
+			retObject[0] = ((Vertex)data).property(Constants.NAME).value();
 		}
 
 		return retObject;

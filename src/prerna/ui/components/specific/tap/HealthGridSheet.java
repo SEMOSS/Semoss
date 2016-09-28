@@ -84,11 +84,11 @@ public class HealthGridSheet extends BrowserPlaySheet{
 		}
 		
 		//TODO: remove this logic once dataFrame.isEmpty() is implemented
-		try {
-			Iterator<Object[]> it = dataFrame.iterator(true);
-		} catch(NullPointerException e) {
-			return;
-		}
+//		try {
+//			Iterator<Object[]> it = dataFrame.iterator();
+//		} catch(NullPointerException e) {
+//			return;
+//		}
 		
 		//list will be of the form: system/vendor, xname, yname1, yname2 size of circle,lifecycle
 		ArrayList<Hashtable<String,Object>> allData = new ArrayList<Hashtable<String,Object>>();
@@ -99,7 +99,7 @@ public class HealthGridSheet extends BrowserPlaySheet{
 
 		double maxXAxis = 0.0;
 
-		Iterator<Object[]> it = dataFrame.iterator(true);
+		Iterator<Object[]> it = dataFrame.iterator();
 		int counter = 0;
 		while(it.hasNext()) {
 			Hashtable<String,Object> elementHash = new Hashtable<String,Object>();

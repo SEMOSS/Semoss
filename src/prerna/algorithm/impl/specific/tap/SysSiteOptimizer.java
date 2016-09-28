@@ -44,8 +44,6 @@ import org.apache.log4j.Logger;
 import prerna.algorithm.api.ITableDataFrame;
 import prerna.ds.BTreeDataFrame;
 import prerna.engine.api.IEngine;
-import prerna.engine.api.ISelectStatement;
-import prerna.engine.api.ISelectWrapper;
 import prerna.ui.components.playsheets.OCONUSMapPlaySheet;
 import prerna.ui.components.playsheets.datamakers.DataMakerComponent;
 import prerna.ui.components.specific.tap.HealthGridSheet;
@@ -880,7 +878,7 @@ public class SysSiteOptimizer extends UnivariateOpt {
 			}
 			row.put(names[4], makeString(getSustainedSystemsAtSiteList(i)));
 			row.put(names[5], makeString(getConsolidatedSystemsAtSiteList(i)));
-			data.addRow(row, row);
+			data.addRow(row);
 		}
 		
 		OCONUSMapPlaySheet ps = new OCONUSMapPlaySheet();
@@ -939,7 +937,7 @@ public class SysSiteOptimizer extends UnivariateOpt {
 			row.put(names[2], siteLon[i]);
 			row.put(names[3], percent);
 			row.put(names[4], makeString(getSustainedSystemsAtSiteList(i)));
-			data.addRow(row, row);
+			data.addRow(row);
 		}
 		
 		OCONUSMapPlaySheet ps = new OCONUSMapPlaySheet();
@@ -1126,7 +1124,7 @@ public class SysSiteOptimizer extends UnivariateOpt {
 					row.put(names[1], siteLat[i]);
 					row.put(names[2], siteLon[i]);
 					row.put(names[3], localSystemSiteRecMatrix[sysIndex][i]);
-					data.addRow(row, row);
+					data.addRow(row);
 				}
 			}
 
@@ -1147,7 +1145,7 @@ public class SysSiteOptimizer extends UnivariateOpt {
 					}else {
 						row.put(names[3], SUSTAINED_ACCESSIBLE_SITE);
 					}
-					data.addRow(row, row);
+					data.addRow(row);
 				}
 			}else {
 				//if central system was decommissioned
@@ -1161,7 +1159,7 @@ public class SysSiteOptimizer extends UnivariateOpt {
 					}else {
 						row.put(names[3], PREVIOUSLY_ACCESSIBLE_SITE);
 					}
-					data.addRow(row, row);
+					data.addRow(row);
 				}
 			}
 			

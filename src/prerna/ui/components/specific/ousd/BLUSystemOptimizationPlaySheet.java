@@ -104,7 +104,7 @@ public class BLUSystemOptimizationPlaySheet extends GridPlaySheet{
 		ITableDataFrame newFrame = new OrderedBTreeDataFrame(newNames);
 		
 //		for(Object[] curRow : this.list){
-		Iterator<Object[]> rowIt = this.dataFrame.iterator(false);
+		Iterator<Object[]> rowIt = this.dataFrame.iterator();
 		while (rowIt.hasNext()){
 			Object[] curRow = rowIt.next();
 			Object[] newRow = new Object[curRow.length+1];
@@ -115,7 +115,7 @@ public class BLUSystemOptimizationPlaySheet extends GridPlaySheet{
 			}
 			boolean kept = keptSystems.contains(sysName);
 			newRow[i] = kept;
-			newFrame.addRow(newRow, newRow);
+			newFrame.addRow(newRow);
 		}
 		this.dataFrame = newFrame;
 	}

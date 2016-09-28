@@ -81,7 +81,7 @@ public class RoadmapCleanTableComparisonBarChartPlaySheet extends RoadmapCleanTa
 		// get the two rows we are interested in
 		Object[] roadmapNewSavings = null;
 		Object[] compRoadmapNewSavings = null;
-		Iterator<Object[]> tableIt = this.dataFrame.iterator(false);
+		Iterator<Object[]> tableIt = this.dataFrame.iterator();
 		while(tableIt.hasNext()){
 			Object[] row = tableIt.next();
 			String rowName = row[0] + "";
@@ -100,7 +100,7 @@ public class RoadmapCleanTableComparisonBarChartPlaySheet extends RoadmapCleanTa
 			newRow[0] = prevHeaders[fyIdx];
 			newRow[1] = roadmapNewSavings[fyIdx] == null || roadmapNewSavings[fyIdx].toString().isEmpty() ? 0.0 : Double.parseDouble(roadmapNewSavings[fyIdx].toString().replace("$", "").replace(",", ""));
 			newRow[2] = compRoadmapNewSavings[fyIdx] == null || compRoadmapNewSavings[fyIdx].toString().isEmpty() ? 0.0 : Double.parseDouble(compRoadmapNewSavings[fyIdx].toString().replace("$", "").replace(",", ""));
-			newFrame.addRow(newRow, newRow);
+			newFrame.addRow(newRow);
 		}
 		this.dataFrame = newFrame;
 	}

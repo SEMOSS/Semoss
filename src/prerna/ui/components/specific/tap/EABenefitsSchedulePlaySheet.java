@@ -250,7 +250,7 @@ public class EABenefitsSchedulePlaySheet extends GridPlaySheet {
 				for(int j = 0; j < elem.length; j++) {
 					row.put(names[j], elem[j]);
 				}
-				data.addRow(row, row);
+				data.addRow(row);
 			}
 			graph.setDataMaker(data);
 			JDesktopPane pane = (JDesktopPane) DIHelper.getInstance().getLocalProp(Constants.DESKTOP_PANE);
