@@ -1,9 +1,5 @@
 package prerna.ds.H2;
 
-import java.io.BufferedReader;
-import java.io.IOException;
-import java.io.InputStreamReader;
-import java.net.ServerSocket;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.PreparedStatement;
@@ -41,6 +37,8 @@ import prerna.util.ArrayUtilityMethods;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
 import prerna.util.Utility;
+
+import com.google.gson.Gson;
 
 public class H2Builder {
 
@@ -115,7 +113,6 @@ public class H2Builder {
 	public enum Comparator {
 		EQUAL, LESS_THAN, GREATER_THAN, LESS_THAN_EQUAL, GREATER_THAN_EQUAL, NOT_EQUAL;
 	}
-
 
 	//These were used for adding extra numerical columns to tables so that they could be used when adding a numerical column such as a group by
 	//this process is no longer used since control of adding columns is performed in the same place as meta data which sits outside of this class
@@ -2855,12 +2852,15 @@ public class H2Builder {
 		}
 		try {
 			String newTable = getNewTableName();
-			String createQuery = "CREATE TABLE "+newTable+" AS "+makeSelect(tableName, selectors);
+			String createQuery = "CREATE TABLE "+newTable+" AS "+makeSelectIgnoreFilters(tableName, selectors);
 			runQuery(createQuery);
 			String saveScript = "SCRIPT TO '"+fileName+"' COMPRESSION GZIP TABLE "+newTable;
 			runQuery(saveScript);
 			
 			props.setProperty("tableName", newTable);
+
+			Gson gson = new Gson();
+			props.setProperty("filterHash", gson.toJson(filterHash2));
 			
 			String dropQuery = makeDropTable(newTable);
 			runQuery(dropQuery);
@@ -2901,6 +2901,20 @@ public class H2Builder {
 			runQuery(openScript);
 			// then we rename the temp table to the new unqiue table name
 			runQuery(createQuery);
+			
+			//call the set filter to get right insight cache filter
+			Gson gson = new Gson();
+			if(prop.containsKey("filterHash")) {
+				Map<String, Map<String, Set<Object>>> filter = gson.fromJson(prop.getProperty("filterHash"), new HashMap<>().getClass());
+				for (Map.Entry<String, Map<String, Set<Object>>> entry : filter.entrySet()) {
+					String columnName = entry.getKey();
+					Map<String, Set<Object>> value = entry.getValue();
+					for (Map.Entry<String, Set<Object>> filterList : value.entrySet()) {
+						List<Object> list = new ArrayList<Object>(filterList.getValue());
+						setFilters(columnName,list,Comparator.valueOf(filterList.getKey()));
+					}
+				}
+			}
 		} catch (Exception e) {
 			e.printStackTrace();
 		}
