@@ -10,9 +10,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Vector;
 
-import org.apache.commons.lang.StringEscapeUtils;
-
 import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
 import com.google.gson.reflect.TypeToken;
 
 import cern.colt.Arrays;
@@ -25,10 +24,6 @@ import prerna.sablecc.parser.Parser;
 import prerna.sablecc.parser.ParserException;
 import prerna.ui.components.playsheets.datamakers.IDataMaker;
 import prerna.util.Constants;
-
-import com.google.gson.Gson;
-import com.google.gson.GsonBuilder;
-import com.google.gson.reflect.TypeToken;
 
 public class PKQLRunner {
 	
@@ -101,17 +96,22 @@ public class PKQLRunner {
 		if(response instanceof Object[]) {
 			StringBuilder builder = new StringBuilder();
 			String retResponse = getStringFromObjectArray( (Object[]) response, builder);
-			result.put("result", StringEscapeUtils.escapeHtml(retResponse));
+//			result.put("result", StringEscapeUtils.escapeHtml(retResponse));
+			result.put("result", retResponse);
 		} else if(response instanceof List) {
 			StringBuilder builder = new StringBuilder();
 			String retResponse = getStringFromList( (List) response, builder);
-			result.put("result", StringEscapeUtils.escapeHtml(retResponse));
+//			result.put("result", StringEscapeUtils.escapeHtml(retResponse));
+			result.put("result", retResponse);
 		} else if(response instanceof double[]) {
-			result.put("result", StringEscapeUtils.escapeHtml(Arrays.toString( (double[]) response)));
+//			result.put("result", StringEscapeUtils.escapeHtml(Arrays.toString( (double[]) response)));
+			result.put("result", Arrays.toString( (double[]) response));
 		} else if(response instanceof int[]) {
-			result.put("result", StringEscapeUtils.escapeHtml(Arrays.toString( (int[]) response)));
-		} else { 
-			result.put("result", StringEscapeUtils.escapeHtml(response + ""));
+//			result.put("result", StringEscapeUtils.escapeHtml(Arrays.toString( (int[]) response)));
+			result.put("result", Arrays.toString( (int[]) response));
+		} else {
+//			result.put("result", StringEscapeUtils.escapeHtml(response + ""));
+			result.put("result", response + "");
 		}
 		result.put("status", currentStatus);
 		result.put("command", currentString);
@@ -271,7 +271,7 @@ public class PKQLRunner {
 		return null;
 	}
 
-	public void setExplanation(List<IPkqlMetadata> metadataResponses) {
+	public void aggregateMetadata(List<IPkqlMetadata> metadataResponses) {
 		// grab the metadata produced
 		this.metadataResponse = metadataResponses;
 		HashMap<String,Object> allAdditionalInfo = new HashMap<>();
@@ -294,6 +294,7 @@ public class PKQLRunner {
 		}
 		Gson gson = new GsonBuilder().create();
 		additionalInfoString = gson.toJson(allAdditionalInfo);
+//		addFeData("additionalInfo", additionalInfoString, true);
 		System.out.println("EXPLANATION IS ::: " + this.explain);
 	}
 	

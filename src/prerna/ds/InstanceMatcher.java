@@ -55,7 +55,7 @@ public class InstanceMatcher extends ExactStringMatcher {
 		LOGGER.info("New Col is node :::: " + newColIsNode + " and base uri is ::::: " + baseUri);
 		List<Object> retList = new Vector<Object>();
 
-		Iterator<Object> it = dm.uniqueValueIterator(columnNameInDM, false, false);
+		Iterator<Object> it = dm.uniqueValueIterator(columnNameInDM, false);
 		while(it.hasNext()) {
 			Object value = it.next();
 			if(newColIsNode){

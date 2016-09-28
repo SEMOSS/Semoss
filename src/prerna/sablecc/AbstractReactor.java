@@ -230,7 +230,7 @@ public abstract class AbstractReactor implements IScriptReactor {
 			options.put(TinkerFrame.DE_DUP, dedup);
 		}
 
-		Iterator iterator = frame.iterator(false, options);
+		Iterator iterator = frame.iterator(options);
 		if(iterator.hasNext())
 		{
 			//System.out.println(iterator.next());
@@ -238,10 +238,10 @@ public abstract class AbstractReactor implements IScriptReactor {
 		return iterator;
 	}
 
-	protected Iterator getUniqueScaledData(String instance, List<String> columns, ITableDataFrame frame) {
+	protected Iterator<List<Object[]>> getUniqueScaledData(String instance, List<String> columns, ITableDataFrame frame) {
 		Map<String, Object> options = new Hashtable<String, Object>();
 		options.put(TinkerFrame.SELECTORS, columns);
-		return frame.scaledUniqueIterator(instance, false, options);
+		return frame.scaledUniqueIterator(instance, options);
 	}
 
 	// move to utility

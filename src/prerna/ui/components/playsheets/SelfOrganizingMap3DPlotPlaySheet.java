@@ -87,7 +87,7 @@ public class SelfOrganizingMap3DPlotPlaySheet extends BrowserPlaySheet {
 		Hashtable<Integer, ArrayList<Object[]>> gridData = new Hashtable<Integer, ArrayList<Object[]>>();
 		
 		int numCol = dataFrame.getColumnHeaders().length;
-		Iterator<Object[]> it = dataFrame.iterator(false);
+		Iterator<Object[]> it = dataFrame.iterator();
 		while(it.hasNext()) {
 			Object[] dataRow = it.next();
 			int gridNum = (int) dataRow[numCol-3];
@@ -195,7 +195,7 @@ public class SelfOrganizingMap3DPlotPlaySheet extends BrowserPlaySheet {
 	@Override
 	public List<Object[]> getList() {
 		List<Object[]> allData = new ArrayList<Object[]>();
-		Iterator<Object[]> it = dataFrame.iterator(false);
+		Iterator<Object[]> it = dataFrame.iterator();
 		while(it.hasNext()) {
 			allData.add(it.next());
 		}

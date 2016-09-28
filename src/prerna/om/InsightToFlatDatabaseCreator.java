@@ -130,7 +130,7 @@ public class InsightToFlatDatabaseCreator extends AbstractEngineCreator {
 			createTable(tableName, headers, dataTypes);
 
 			// now loop through and add everything and insert into the table
-			bulkInsertIntoTable(tableName, headers, dataTypes, dataFrame.iterator(false));
+			bulkInsertIntoTable(tableName, headers, dataTypes, dataFrame.iterator());
 
 			// add the identity column to be the main concept
 			String identifyCol = tableName + "_ROW_ID"; 

@@ -162,7 +162,7 @@ public class SOMRoutine implements IAnalyticTransformationRoutine {
 		
 		// initialize the grid
 		int idx = 0;
-		Iterator<List<Object[]>> it = dataFrame.scaledUniqueIterator(attributeNames[instanceIndex], false, null);
+		Iterator<List<Object[]>> it = dataFrame.scaledUniqueIterator(attributeNames[instanceIndex], null);
 		for(; idx < numGrids; idx++) {
 			List<Object[]> instance = it.next();
 			// add value to cluster
@@ -185,7 +185,7 @@ public class SOMRoutine implements IAnalyticTransformationRoutine {
 			double radiusOfInfluence = initalRadius * Math.exp( -1.0 * currIt / tau);
 			// determine learning rate for this iteration
 			double learningInfluence = learningRate * Math.exp( -1.0 * currIt / tau);
-			it = dataFrame.scaledUniqueIterator(attributeNames[instanceIndex], false, null);
+			it = dataFrame.scaledUniqueIterator(attributeNames[instanceIndex], null);
 			while(it.hasNext()) {
 				List<Object[]> instance = it.next();
 				Object instanceName = instance.get(0)[instanceIndex];
@@ -253,7 +253,7 @@ public class SOMRoutine implements IAnalyticTransformationRoutine {
 			int[] coordinates = SelfOrganizingMapGrid.getCoordinatesOfCell(gridNum, this.gridLength);
 			row.put(somXPositionID, coordinates[0]);
 			row.put(somYPositionID, coordinates[1]);
-			returnTable.addRow(row, row);
+			returnTable.addRow(row);
 		}
 		
 		return returnTable;

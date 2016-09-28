@@ -136,6 +136,12 @@ public class SelectStatement implements ISelectStatement {
 		return rawPropHash.values().toArray();
 	}
 
+	@Override
+	public String toRawString() {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
 //	@Override
 //	public boolean equals(ISelectStatement other){
 //		boolean equal = false;

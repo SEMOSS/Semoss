@@ -30,7 +30,7 @@ public class DataFrameHelper {
 			while(it.hasNext()){
 				ISelectStatement ss = (ISelectStatement) it.next();
 				System.out.println(((ISelectStatement)ss).getPropHash());
-				frame.removeRelationship(ss.getPropHash(), ss.getRPropHash());
+				frame.removeRelationship(ss.getPropHash());
 			}
 			
 		} else if(frame instanceof TinkerFrame) {
@@ -41,19 +41,19 @@ public class DataFrameHelper {
 			while(it.hasNext()){
 				ISelectStatement ss = (ISelectStatement) it.next();
 				System.out.println(((ISelectStatement)ss).getPropHash());
-				tempFrame.removeRelationship(ss.getPropHash(), ss.getRPropHash());
+				tempFrame.removeRelationship(ss.getPropHash());
 			}
 			
 			TinkerFrame tframe = new TinkerFrame();
 			tframe.metaData = metaData;
-			Iterator<Object[]> iterator = tempFrame.iterator(false);
+			Iterator<Object[]> iterator = tempFrame.iterator();
 			while(iterator.hasNext()) {
 				Map<String, Object> nextRow = new HashMap<String, Object>();
 				Object[] row = iterator.next();
 				for(int i = 0; i < row.length; i++) {
 					nextRow.put(columnHeaders[i], row[i]);
 				}
-				tframe.addRelationship(nextRow, nextRow);
+				tframe.addRelationship(nextRow);
 			}
 			((TinkerFrame) frame).g= tframe.g;
 		}
@@ -143,7 +143,7 @@ public class DataFrameHelper {
 				values[0] = ((Vertex) row.get(retVars[0])).property(Constants.NAME).value();
 				values[1] = ((Vertex) row.get(retVars[1])).property(Constants.NAME).value();
 				
-				newTf.addRelationship(headers, values, values, cardinality, logicalToTypeMap);
+				newTf.addRelationship(headers, values, cardinality, logicalToTypeMap);
 			}
 		}
 		
@@ -165,7 +165,7 @@ public class DataFrameHelper {
 			Hashtable<String, String> logicalToTypeMap = new Hashtable<String, String>();
 			logicalToTypeMap.put(type, type);
 			
-			newTf.addRelationship(headers, values, values, cardinality, logicalToTypeMap);
+			newTf.addRelationship(headers, values, cardinality, logicalToTypeMap);
 		}
 		
 		int currId = tf.getDataId();
@@ -192,6 +192,22 @@ public class DataFrameHelper {
 			
 			List<String> path = new Vector<String>();
 			recursivelyBuildList(startNode, selectors, edgeTraversals, path);
+			traversals.add(path.toArray(new String[]{}));
+		}
+		
+		for(String startNode : edgeTraversals.values()) {
+			// we define the path starting at the current start node
+			// if the start node is not in the selectors, we can skip
+			// if it is, then we need to find the path starting at this
+			// node, going through all intermediate nodes, till we get
+			// to the next node that is returned
+			
+			if(!ArrayUtilityMethods.arrayContainsValue(selectors, startNode)) {
+				continue;
+			}
+			
+			List<String> path = new Vector<String>();
+			recursivelyBuildList2(startNode, selectors, edgeTraversals, path);
 			traversals.add(path.toArray(new String[]{}));
 		}
 		
@@ -230,6 +246,37 @@ public class DataFrameHelper {
 		}
 	}
 	
-	
+	private static void recursivelyBuildList2(String startNode, String[] selectors, Map<String, String> edgeTraversals, List<String> currentPath) {
+		// the current point is required in the path
+		// i.e. startNode is either the start of a path
+		// or it is a intermediate node
+		currentPath.add(startNode);
+		// regardless if it is a start node or intermediate node
+		// the edge traversal better define the next connection that 
+		// is required
+		String endNode = null;
+		for(String node : edgeTraversals.keySet()) {
+			if(edgeTraversals.get(node).equals(startNode)) {
+				endNode = node;
+			}
+		}
+
+		// if the edge traversals doesn't lead to a valid end point
+		// then there is an error
+		// this works because i require in main loop that my start is always a valid selector that needs
+		// to be returned
+		if(endNode == null) {
+			throw new IllegalArgumentException("Invalid path. Path does not have a valid end point.");
+		}
+		
+		if(ArrayUtilityMethods.arrayContainsValue(selectors, endNode)) {
+			// we got the end node
+			// we are done
+			currentPath.add(endNode);
+		} else {
+			// we need to recursively loop for the next one
+			recursivelyBuildList2(endNode, selectors, edgeTraversals, currentPath);
+		}
+	}
 	
 }

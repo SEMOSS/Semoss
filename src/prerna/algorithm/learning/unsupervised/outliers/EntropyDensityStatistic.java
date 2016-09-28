@@ -101,7 +101,7 @@ public class EntropyDensityStatistic implements IAnalyticTransformationRoutine {
 				int numInstances = dataFrame.getNumRows();
 				Object[] instances = new Object[numInstances];
 				Double[] values = new Double[numInstances];
-				Iterator<Object[]> it = dataFrame.iterator(false);
+				Iterator<Object[]> it = dataFrame.iterator();
 				int counter = 0;
 				while(it.hasNext()) {
 					Object[] row = it.next();
@@ -121,7 +121,7 @@ public class EntropyDensityStatistic implements IAnalyticTransformationRoutine {
 				for(int j = 0; j < values.length; j++) {
 					addBinValues.put(names[0], instances[j]);
 					addBinValues.put(names[1], binValues[j]);
-					table.addRow(addBinValues, addBinValues);
+					table.addRow(addBinValues);
 				}
 				addedCols.add(names[1]);
 				
@@ -152,7 +152,7 @@ public class EntropyDensityStatistic implements IAnalyticTransformationRoutine {
 			Map<String, Object> row = new HashMap<String, Object>();
 			row.put(attributeName, instance);
 			row.put(outlierVal, results.get(instance));
-			returnTable.addRow(row, row);
+			returnTable.addRow(row);
 		}
 		
 		return returnTable;
@@ -163,7 +163,7 @@ public class EntropyDensityStatistic implements IAnalyticTransformationRoutine {
 		double max = 0;
 		double min = Double.POSITIVE_INFINITY;
 		
-		Iterator<List<Object[]>> it = dataFrame.uniqueIterator(attributeNames[instanceIndex], false);
+		Iterator<List<Object[]>> it = dataFrame.uniqueIterator(attributeNames[instanceIndex]);
 		int numInstances = dataFrame.getNumRows();
 		while(it.hasNext()) {
 			List<Object[]> instance = it.next();

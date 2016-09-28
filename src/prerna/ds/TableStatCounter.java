@@ -140,7 +140,7 @@ public class TableStatCounter {
 				
 				newRow.put(columnHeaderMap.get(tempColHeaders.get(x)), row[x]);
 			}
-			statTable.addRow(newRow, newRow);
+			statTable.addRow(newRow);
 		}
 		return statTable;
 	}

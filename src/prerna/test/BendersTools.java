@@ -34,7 +34,7 @@ public class BendersTools {
 					tempHash.put(columnHeaders[i], data.get(l)[k]);
 				}
 			}
-			result.addRow(tempHash, tempHash);
+			result.addRow(tempHash);
 		}
 		return result;
 	}

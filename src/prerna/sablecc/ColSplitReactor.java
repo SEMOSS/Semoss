@@ -4,7 +4,6 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
-import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.Vector;
@@ -42,7 +41,7 @@ public class ColSplitReactor extends AbstractReactor {
 		String colSplitBase = column+"_SPLIT_";
 		String delimiter = (String)myStore.get(PKQLEnum.WORD_OR_NUM);
 
-		Iterator<Object> colIterator = frame.uniqueValueIterator(column, false, false);
+		Iterator<Object> colIterator = frame.uniqueValueIterator(column, false);
 
 		int highestIndex = 0;
 		//first update table
@@ -51,9 +50,7 @@ public class ColSplitReactor extends AbstractReactor {
 			String nextVal = colIterator.next().toString();
 			String[] newVals = nextVal.split(delimiter);
 
-			Map<String, Object> origMap = new LinkedHashMap<>();
 			Map<String, Object> newMap = new LinkedHashMap<>();
-			origMap.put(column, nextVal);
 			newMap.put(column, nextVal);
 
 			if(newVals.length > highestIndex) {
@@ -75,7 +72,7 @@ public class ColSplitReactor extends AbstractReactor {
 				newMap.put(colSplitBase+i, newVals[i]);
 			}
 
-			frame.addRelationship(newMap, origMap);	//cleanRow, rawRow		
+			frame.addRelationship(newMap);	//cleanRow, rawRow		
 		}	
 		//then update meta data
 

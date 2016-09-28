@@ -206,7 +206,7 @@ public class SystemRiskScatterVisualizationPlaySheet extends GridScatterSheet{
 			else {
 				newRow[0] = "Decommissioned System";
 			}
-			this.dataFrame.addRow(newRow, newRow);
+			this.dataFrame.addRow(newRow);
 		}
 //		this.names = new String[]{"System", "BLU Risk Score", "BLU Percent Difference", "Data Risk Score", "Data Percent Difference", "BLU-Data Risk Score", "BLU-Data Percent Difference", "Lost BLU / Data"};
 //		this.names = new String[]{"Series", "System", "BLU-Data Percent Difference", "Sustainment Budget"};

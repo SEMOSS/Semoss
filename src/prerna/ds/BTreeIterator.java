@@ -27,7 +27,7 @@ public class BTreeIterator implements Iterator<Object[]> {
 	
 	public BTreeIterator(TreeNode typeRoot, boolean getRawData, List<String> columns2skip) {
 		iterator = new ValueTreeColumnIterator(typeRoot);
-		useRawData = getRawData;
+//		useRawData = getRawData;
 		this.columns2skip = columns2skip == null ? new HashSet<String>(0) : new HashSet<String>(columns2skip);
 	}
 	

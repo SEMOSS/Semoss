@@ -43,7 +43,7 @@ public class AddColumnOperator implements IColumnOperator {
 					row.put(headersUsed[i], ((ExpressionIterator)it).getOtherBindings().get(headersUsed[i]));
 				}
 			}
-			frame.addRelationship(row, row);
+			frame.addRelationship(row);
 		}
 		
 		LOGGER.info("Added column '"+newCol+"': "+(System.currentTimeMillis() - startTime)+" ms");

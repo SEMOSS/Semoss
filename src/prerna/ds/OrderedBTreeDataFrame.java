@@ -54,8 +54,8 @@ public class OrderedBTreeDataFrame extends BTreeDataFrame {
 	}
 	
 	@Override
-	public Iterator<Object[]> iterator(boolean getRawData) {
-		return new OrderedBTreeIterator(this.orderedLeafs, getRawData, columnsToSkip);
+	public Iterator<Object[]> iterator() {
+		return new OrderedBTreeIterator(this.orderedLeafs, false, columnsToSkip);
 	}
 	
 	public Iterator<Object[]> iteratorAll(boolean getRawData){

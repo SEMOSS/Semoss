@@ -94,7 +94,7 @@ public class TinkerColAddReactor extends ColAddReactor {
 
 					Object newVal = vMap.get(mapKey);
 					row.put(newCol, newVal);
-					frame.addRelationship(row, row);
+					frame.addRelationship(row);
 				}
 			} else {
 				// this is a multi column join
@@ -116,7 +116,7 @@ public class TinkerColAddReactor extends ColAddReactor {
 					row.put(newCol, vMap.get(mapKey));
 					row.put(primKeyConceptName, TinkerMetaHelper.getPrimaryKey(values));
 
-					frame.addRelationship(row, row);
+					frame.addRelationship(row);
 				}
 				
 				// add appropriate blanks
@@ -181,7 +181,7 @@ public class TinkerColAddReactor extends ColAddReactor {
 						addMetaData = false;
 					}
 
-					frame.addRelationship(row, row);
+					frame.addRelationship(row);
 				}
 				myStore.put("STATUS", STATUS.SUCCESS);			
 			} else {
@@ -209,7 +209,7 @@ public class TinkerColAddReactor extends ColAddReactor {
 						frame.setDerivedColumn(newCol, true);
 						addMetaData = false;
 					}
-					frame.addRelationship(row, row);
+					frame.addRelationship(row);
 				}
 				myStore.put("STATUS", STATUS.SUCCESS);
 			}
