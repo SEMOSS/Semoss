@@ -34,6 +34,7 @@ public class PKQLRunner {
 	private Object response = "PKQL processing complete";
 	private String explain = "";
 	private String additionalInfoString = "";
+	private Object returnData = null;
 	
 	private Map<String,String> newColumns = new HashMap<String,String>();
 	private Map<String, Map<String,Object>> masterFeMap = new HashMap<String, Map<String,Object>>(); // this holds all active front end data. in the form panelId --> prop --> value
@@ -115,7 +116,7 @@ public class PKQLRunner {
 		}
 		result.put("status", currentStatus);
 		result.put("command", currentString);
-		
+		result.put("returnData", returnData);
 		// this is what frontend uses to diplay this piece in the recipe
 		// this will definitely have to be built out to be more encompassing
 		// maybe throw the current string through an English Translation class to get the label
@@ -196,6 +197,10 @@ public class PKQLRunner {
 	
 	public void setResponse(Object response) {
 		this.response = response;
+	}
+	
+	public void setReturnData(Object retData) {
+		this.returnData = retData;
 	}
 	
 	public void setStatus(PKQLRunner.STATUS currentStatus) {
