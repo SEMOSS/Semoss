@@ -133,7 +133,7 @@ public class VizReactor extends AbstractReactor {
 			Map<String, Object> options = new HashMap<>();
 			options.put(TinkerFrame.SELECTORS, columnsToGrab);
 			options.put(TinkerFrame.DE_DUP, true);
-			Iterator<Object[]> iterator = frame.iterator(false, options);
+			Iterator<Object[]> iterator = frame.iterator(options);
 
 			grid = new ArrayList<>(100);
 			while (iterator.hasNext()) {
@@ -146,7 +146,7 @@ public class VizReactor extends AbstractReactor {
 			Map<String, Object> options = new HashMap<>();
 			options.put(TinkerFrame.SELECTORS, columnsToGrab);
 			options.put(TinkerFrame.DE_DUP, true);
-			Iterator<Object[]> iterator = frame.iterator(false, options);
+			Iterator<Object[]> iterator = frame.iterator(options);
 
 			// convert to map and merge
 			Map<Map<String, Object>, Object> newMap = convertIteratorDataToMap(iterator, columnsToGrab, keyColumns);

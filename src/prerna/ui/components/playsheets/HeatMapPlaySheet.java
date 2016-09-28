@@ -85,7 +85,7 @@ public class HeatMapPlaySheet extends BrowserPlaySheet {
 		String xName = var[xIdx];
 		String yName = var[yIdx];
 		
-		Iterator<Object[]> it = dataFrame.iterator(true);
+		Iterator<Object[]> it = dataFrame.iterator();
 		while(it.hasNext())
 		{
 			Hashtable<String, Object> elementHash = new Hashtable<String, Object>();

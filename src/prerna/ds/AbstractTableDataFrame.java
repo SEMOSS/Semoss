@@ -279,7 +279,7 @@ public abstract class AbstractTableDataFrame implements ITableDataFrame {
 			Map<String, Object> options = new HashMap<String, Object>();
 			options.put(TinkerFrame.SELECTORS, Arrays.asList(selectors));
 			options.put(TinkerFrame.DE_DUP, true);
-			Iterator<Object[]> iterator = this.iterator(true, options);
+			Iterator<Object[]> iterator = this.iterator(options);
 			while(iterator.hasNext()) {
 				retVector.add(iterator.next());
 			}
@@ -438,12 +438,12 @@ public abstract class AbstractTableDataFrame implements ITableDataFrame {
 	}
 
 	@Override
-	public Iterator<List<Object[]>> uniqueIterator(String columnHeader,	boolean getRawData) {
+	public Iterator<List<Object[]>> uniqueIterator(String columnHeader) {
 		return null;
 	}
 
 	@Override
-	public Iterator<Object[]> scaledIterator(boolean getRawData) {
+	public Iterator<Object[]> scaledIterator() {
 		return null;
 	}
 
@@ -499,7 +499,7 @@ public abstract class AbstractTableDataFrame implements ITableDataFrame {
 			}
 		}
 		
-		Iterator<Object[]> it = iterator(false);
+		Iterator<Object[]> it = iterator();
 		while(it.hasNext()) {
 			Object[] row = it.next();
 			if(counts.containsKey(row[0] + "")) {
@@ -526,7 +526,7 @@ public abstract class AbstractTableDataFrame implements ITableDataFrame {
 	public List<Object[]> getData() {
 		
 		Vector<Object[]> retVector = new Vector<>();
-		Iterator<Object[]> iterator = this.iterator(false);
+		Iterator<Object[]> iterator = this.iterator();
 		while(iterator.hasNext()) {
 			retVector.add(iterator.next());
 		}
@@ -555,7 +555,7 @@ public abstract class AbstractTableDataFrame implements ITableDataFrame {
 		long startTime = System.currentTimeMillis();
 		
 		Vector<Object[]> retVector = new Vector<>();
-		Iterator<Object[]> iterator = this.iterator(true);
+		Iterator<Object[]> iterator = this.iterator();
 //		int count = 0;
 		if(iterator != null) {
 			while(iterator.hasNext()) {
@@ -570,7 +570,7 @@ public abstract class AbstractTableDataFrame implements ITableDataFrame {
 	
 	@Override
 	public boolean isEmpty() {
-		Iterator it = this.iterator(false);
+		Iterator it = this.iterator();
 		if(it != null) {
 			return !it.hasNext();
 		}
@@ -586,28 +586,25 @@ public abstract class AbstractTableDataFrame implements ITableDataFrame {
 
 	@Override
 	public void addRow(ISelectStatement statement) {
-		addRow(statement.getPropHash(), statement.getRPropHash());
+		addRow(statement.getPropHash());
 	}
 
 	@Override
-	public void addRow(Map<String, Object> rowCleanData, Map<String, Object> rowRawData) {
-
-		for(String key : rowCleanData.keySet()) {
+	public void addRow(Map<String, Object> rowData) {
+		for(String key : rowData.keySet()) {
 			if(!ArrayUtilityMethods.arrayContainsValue(headerNames, key)) {
 				LOGGER.error("Column name " + key + " does not exist in current tree");
 			}
 		}
 		
-		Object [] rowRawArr = new Object[headerNames.length];
-		Object [] rowCleanArr = new Object[headerNames.length];
+		Object [] rowArr = new Object[headerNames.length];
 		for(int index = 0; index < headerNames.length; index++) {
-			if(rowRawData.containsKey(headerNames[index])) {
-				rowRawArr[index] = rowRawData.get(headerNames[index]).toString();
-				rowCleanArr[index] = getParsedValue(rowCleanData.get(headerNames[index]));
+			if(rowData.containsKey(headerNames[index])) {
+				rowArr[index] = getParsedValue(rowData.get(headerNames[index]));
 			}
 		}
 		// not handling empty at this point
-		addRow(rowCleanArr, rowRawArr);
+		addRow(rowArr);
 	}
 
 	protected Object getParsedValue(Object value) {
@@ -656,7 +653,7 @@ public abstract class AbstractTableDataFrame implements ITableDataFrame {
 
 	@Override
 	public Object[] getUniqueRawValues(String columnHeader) {
-		Iterator<Object> uniqIterator = this.uniqueValueIterator(columnHeader, true, false);
+		Iterator<Object> uniqIterator = this.uniqueValueIterator(columnHeader, false);
 		Vector <Object> uniV = new Vector<Object>();
 		while(uniqIterator.hasNext())
 			uniV.add(uniqIterator.next());
@@ -717,7 +714,7 @@ public abstract class AbstractTableDataFrame implements ITableDataFrame {
 	
 	@Override
 	public int getNumRows() {
-		Iterator<Object[]> iterator = this.iterator(false);
+		Iterator<Object[]> iterator = this.iterator();
 		int count = 0;
 		while(iterator.hasNext()) {
 			count++;

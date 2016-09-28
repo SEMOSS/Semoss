@@ -71,7 +71,7 @@ public class PieChartPlaySheet extends BrowserPlaySheet{
 			}
 		}
 		
-		Iterator<Object[]> it = dataFrame.iterator(true);
+		Iterator<Object[]> it = dataFrame.iterator();
 		while(it.hasNext())
 		{
 			Object[] elemValues = it.next();

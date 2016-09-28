@@ -6,7 +6,6 @@ import java.util.Map;
 import java.util.Vector;
 
 import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.GraphTraversal;
-import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.__;
 import org.apache.tinkerpop.gremlin.structure.Graph;
 import org.apache.tinkerpop.gremlin.structure.Vertex;
 
@@ -15,7 +14,7 @@ import prerna.util.Constants;
 
 public class UniqueScaledTinkerFrameIterator implements Iterator<List<Object[]>> {
 
-	private String dataType;
+//	private String dataType;
 	private String columnName;
 	private GraphTraversal gt;
 	private int columnNameIndex;
@@ -35,13 +34,13 @@ public class UniqueScaledTinkerFrameIterator implements Iterator<List<Object[]>>
 	 */
 	public UniqueScaledTinkerFrameIterator(
 			String columnName,
-			boolean getRawData, 
+			//boolean getRawData, 
 			List<String> selectors, 
 			Graph g, Graph metaG,
 			Double[] maxArr, 
 			Double[] minArr) {
 		this.selectors = selectors;
-		this.dataType = getRawData ? Constants.VALUE : Constants.NAME;
+//		this.dataType = getRawData ? Constants.VALUE : Constants.NAME;
 		this.columnName = columnName;
 		this.columnNameIndex = selectors.indexOf(columnName);
 		this.maxArr = maxArr;
@@ -104,7 +103,7 @@ public class UniqueScaledTinkerFrameIterator implements Iterator<List<Object[]>>
 		if(data instanceof Map) {
 			for(int colIndex = 0; colIndex < finalColumns.length; colIndex++) {
 				Map<String, Object> mapData = (Map<String, Object>) data; //cast to map
-				Object value = ((Vertex)mapData.get(finalColumns[colIndex])).property(dataType).value();
+				Object value = ((Vertex)mapData.get(finalColumns[colIndex])).property(Constants.NAME).value();
 				if(colIndex != this.columnNameIndex && maxArr[colIndex] != null && minArr[colIndex] != null && value instanceof Number) {
 					if(value instanceof Number) {
 						row[colIndex] = ( ((Number)value).doubleValue() - minArr[colIndex])/(maxArr[colIndex] - minArr[colIndex]);
@@ -117,7 +116,7 @@ public class UniqueScaledTinkerFrameIterator implements Iterator<List<Object[]>>
 				}
 			}
 		} else {
-			row[0] = ((Vertex)data).property(dataType).value();
+			row[0] = ((Vertex)data).property(Constants.NAME).value();
 		}
 		
 		return row;

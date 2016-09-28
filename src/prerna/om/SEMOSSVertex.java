@@ -322,14 +322,14 @@ public class SEMOSSVertex{
 			else
 				tokens.nextToken();
 		}
-		uriHash.put(instanceName, propNameURI);
+//		uriHash.put(instanceName, propNameURI);
 		Hashtable <String, String> propUriHash = new Hashtable();
 		if(propHash.get("propUriHash") != null){
 			propUriHash = (Hashtable<String, String>) propHash.get("propUriHash");
 		}
 		
 		try {
-			propUriHash.put(instanceName, propNameURI);
+//			propUriHash.put(instanceName, propNameURI);
 		} catch(Exception e){
 			e.printStackTrace();
 		}

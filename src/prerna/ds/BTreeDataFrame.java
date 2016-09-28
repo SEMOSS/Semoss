@@ -46,7 +46,6 @@ import org.apache.log4j.Logger;
 import org.apache.poi.xssf.usermodel.XSSFRow;
 import org.apache.poi.xssf.usermodel.XSSFSheet;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
-import org.openrdf.model.Literal;
 
 import cern.colt.Arrays;
 import prerna.algorithm.api.IAnalyticActionRoutine;
@@ -117,7 +116,7 @@ public class BTreeDataFrame implements ITableDataFrame {
 	
 	@Override
 	public void addRow(ISelectStatement rowData) {
-		addRow(rowData.getPropHash(), rowData.getRPropHash());
+		addRow(rowData.getPropHash());
 	}
 	
 	protected void storeRowInTree(ISEMOSSNode[] row){
@@ -125,29 +124,25 @@ public class BTreeDataFrame implements ITableDataFrame {
 	}
 
 	@Override
-	public void addRow(Object[] rowCleanData, Object[] rowRawData) {
-		if(rowCleanData.length != levelNames.length && rowRawData.length != levelNames.length) {
+	public void addRow(Object[] rowCleanData) {
+		if(rowCleanData.length != levelNames.length) {
 			throw new IllegalArgumentException("Input row must have same dimensions as levels in dataframe.");
 		}
 		ISEMOSSNode[] row = new ISEMOSSNode[levelNames.length];
 		for(int index = 0; index < levelNames.length; index++) {
 			Object val = rowCleanData[index];
-			Object rawVal = rowRawData[index];
 			//TODO: better way of doing this????
 			if(val==null || val.toString().isEmpty()) {
 				val = SimpleTreeNode.EMPTY;
 			}
-			if(rawVal==null || rawVal.toString().isEmpty()) {
-				rawVal = SimpleTreeNode.EMPTY;
-			}
-			row[index] = createNodeObject(val, rawVal, levelNames[index]);
+			row[index] = createNodeObject(val, levelNames[index]);
 
 		}
 		storeRowInTree(row);
 	}
 	
 	@Override
-	public void addRow(Map<String, Object> rowCleanData, Map<String, Object> rowRawData) {
+	public void addRow(Map<String, Object> rowCleanData) {
 		// keys that are not in current tree level will not be used
 		for(String key : rowCleanData.keySet()) {
 			if(!ArrayUtilityMethods.arrayContainsValue(levelNames, key)) {
@@ -158,21 +153,17 @@ public class BTreeDataFrame implements ITableDataFrame {
 		ISEMOSSNode[] row = new ISEMOSSNode[levelNames.length];
 		for(int index = 0; index < levelNames.length; index++) {
 			Object val = rowCleanData.get(levelNames[index]);
-			Object rawVal = rowRawData.get(levelNames[index]);
 			//TODO: better way of doing this????
 			if(val==null || val.toString().isEmpty()) {
 				val = SimpleTreeNode.EMPTY;
 			}
-			if(rawVal==null || rawVal.toString().isEmpty()) {
-				rawVal = SimpleTreeNode.EMPTY;
-			}
-			row[index] = createNodeObject(val, rawVal, levelNames[index]);
+			row[index] = createNodeObject(val, levelNames[index]);
 
 		}
 		storeRowInTree(row);
 	}
 
-	protected ISEMOSSNode createNodeObject(Object value, Object rawValue, String level) {
+	protected ISEMOSSNode createNodeObject(Object value, String level) {
 		ISEMOSSNode node;
 
 		if(value == null) {
@@ -182,11 +173,7 @@ public class BTreeDataFrame implements ITableDataFrame {
 		} else if(value instanceof Number) {
 			node = new DoubleClass(((Number) value).doubleValue(), ((Number) value).doubleValue(), level);
 		} else if(value instanceof String) {
-			if(rawValue instanceof Literal) {
-				node = new StringClass((String)value, (String) value, level);
-			} else {
-				node = new StringClass((String)value, (String) rawValue.toString(), level);
-			}
+			node = new StringClass((String)value, (String) value.toString(), level);
 		}
 //		else if(value instanceof Boolean) {
 //			node = new BooleanClass((boolean)value, level);
@@ -201,7 +188,7 @@ public class BTreeDataFrame implements ITableDataFrame {
 	public List<Object[]> getData() {
 		List<Object[]> table = new ArrayList<Object[]>();
 
-		Iterator<Object[]> it = this.iterator(false);
+		Iterator<Object[]> it = this.iterator();
 		while(it.hasNext()) {
 			table.add(it.next());
 		}
@@ -212,7 +199,7 @@ public class BTreeDataFrame implements ITableDataFrame {
 	public List<Object[]> getAllData() {
 		List<Object[]> table = new ArrayList<Object[]>();
 //		TreeNode typeRoot = simpleTree.nodeIndexHash.get(levelNames[levelNames.length-1]);	
-		Iterator<Object[]> it = iteratorAll(false);
+		Iterator<Object[]> it = iteratorAll();
 		while(it.hasNext()) {
 			table.add(it.next());
 		}
@@ -256,7 +243,7 @@ public class BTreeDataFrame implements ITableDataFrame {
 	
 	public List<Object[]> getScaledData() {
 		List<Object[]> retData = new ArrayList<Object[]>();
-		Iterator<Object[]> iterator = this.scaledIterator(false);
+		Iterator<Object[]> iterator = this.scaledIterator();
 		while(iterator.hasNext()) {
 			retData.add(iterator.next());
 		}
@@ -286,7 +273,7 @@ public class BTreeDataFrame implements ITableDataFrame {
 	public List<Object[]> getRawData() {
 		List<Object[]> table = new ArrayList<Object[]>();
 
-		Iterator<Object[]> it = this.iterator(true);
+		Iterator<Object[]> it = this.iterator();
 		while(it.hasNext()) {
 			table.add(it.next());
 		}
@@ -679,7 +666,7 @@ public class BTreeDataFrame implements ITableDataFrame {
 		//go row by row and add the parent-child relationships to this table
 		for(int i = 0; i < numRows; i++) {
 			row = flatTable.get(i);
-			parent = createNodeObject(row[orderArray[0]], null, levels.get(i));
+			parent = createNodeObject(row[orderArray[0]], levels.get(i));
 			//parent = (ISEMOSSNode)row[orderArray[0]];
 			
 			if(columnLength == 1) {
@@ -687,7 +674,7 @@ public class BTreeDataFrame implements ITableDataFrame {
 			} 
 			else {
 				for(int j = 1; i < row.length; i++) {
-					child = createNodeObject(row[orderArray[j]], null, levels.get(j));
+					child = createNodeObject(row[orderArray[j]], levels.get(j));
 					//child = (ISEMOSSNode)row[orderArray[j]];
 					simpleTree.addNode(parent, child);
 					parent = child;
@@ -989,9 +976,9 @@ public class BTreeDataFrame implements ITableDataFrame {
 		}
 		
 		//first value returned by iterator is the 'least' value
-		Iterator<Object> iterator = this.uniqueValueIterator(columnHeader, false, false);
+		Iterator<Object> iterator = this.uniqueValueIterator(columnHeader, false);
 		if(iterator.hasNext()) {
-			Object value = this.uniqueValueIterator(columnHeader, false, false).next();
+			Object value = this.uniqueValueIterator(columnHeader, false).next();
 			if(value instanceof Number) {
 				return ((Number) value).doubleValue();
 			}
@@ -1169,20 +1156,20 @@ public class BTreeDataFrame implements ITableDataFrame {
 	}
 
 	@Override
-	public Iterator<Object[]> iterator(boolean getRawData) {
+	public Iterator<Object[]> iterator() {
 		TreeNode typeRoot = simpleTree.nodeIndexHash.get(levelNames[levelNames.length-1]);	
-		return new BTreeIterator(typeRoot, getRawData, columnsToSkip);
+		return new BTreeIterator(typeRoot, false, columnsToSkip);
 	}
 	
-	public Iterator<Object[]> iteratorAll(boolean getRawData){
+	public Iterator<Object[]> iteratorAll(){
 		TreeNode typeRoot = simpleTree.nodeIndexHash.get(levelNames[levelNames.length-1]);	
-		return new BTreeIterator(typeRoot, getRawData, columnsToSkip, true);
+		return new BTreeIterator(typeRoot, false, columnsToSkip, true);
 	}
 	
 	@Override
-	public Iterator<Object[]> scaledIterator(boolean getRawData) {
+	public Iterator<Object[]> scaledIterator() {
 		TreeNode typeRoot = simpleTree.nodeIndexHash.get(levelNames[levelNames.length-1]);
-		return new ScaledBTreeIterator(typeRoot, this.isNumeric(), this.getMin(), this.getMax(), getRawData, columnsToSkip);
+		return new ScaledBTreeIterator(typeRoot, this.isNumeric(), this.getMin(), this.getMax(), false, columnsToSkip);
 	}
 	
 //	public Iterator<Object[]> scaledIterator(boolean getRawData, List<String> exceptionColumns) {
@@ -1192,27 +1179,27 @@ public class BTreeDataFrame implements ITableDataFrame {
 //	}
 
 	@Override
-	public Iterator<List<Object[]>> uniqueIterator(String columnHeader, boolean getRawData) {
+	public Iterator<List<Object[]>> uniqueIterator(String columnHeader) {
 		columnHeader = this.getColumnName(columnHeader);
 
 		TreeNode typeRoot = simpleTree.nodeIndexHash.get(columnHeader);	
-		return new UniqueBTreeIterator(typeRoot, getRawData, columnsToSkip);
+		return new UniqueBTreeIterator(typeRoot, false, columnsToSkip);
 	}
 	
 	@Override
-	public Iterator<List<Object[]>> scaledUniqueIterator(String columnHeader, boolean getRawData, Map<String, Object> options) {
+	public Iterator<List<Object[]>> scaledUniqueIterator(String columnHeader, Map<String, Object> options) {
 		columnHeader = this.getColumnName(columnHeader);
 
 		TreeNode typeRoot = simpleTree.nodeIndexHash.get(columnHeader);
-		return new ScaledUniqueBTreeIterator(typeRoot, this.isNumeric(), this.getMin(), this.getMax(), getRawData, columnsToSkip);
+		return new ScaledUniqueBTreeIterator(typeRoot, this.isNumeric(), this.getMin(), this.getMax(), false, columnsToSkip);
 	}
 	
 	@Override
-	public Iterator<Object> uniqueValueIterator(String columnHeader, boolean getRawData, boolean iterateAll) {
+	public Iterator<Object> uniqueValueIterator(String columnHeader, boolean iterateAll) {
 		columnHeader = this.getColumnName(columnHeader);
 
 		TreeNode typeRoot = simpleTree.nodeIndexHash.get(columnHeader);
-		return new UniqueValueIterator(typeRoot, getRawData, iterateAll);
+		return new UniqueValueIterator(typeRoot, false, iterateAll);
 	}
 	
 	@Override
@@ -1358,7 +1345,7 @@ public class BTreeDataFrame implements ITableDataFrame {
 		columnHeader = this.getColumnName(columnHeader);
 		
 		for(Object o: filterValues) {
-			this.filterer.unfilterTree(this.createNodeObject(o, o, columnHeader));
+			this.filterer.unfilterTree(this.createNodeObject(o, columnHeader));
 		}
 
 	}
@@ -1388,7 +1375,7 @@ public class BTreeDataFrame implements ITableDataFrame {
 	
 	@Override
 	public boolean isEmpty() {
-		return !this.iterator(false).hasNext();
+		return !this.iterator().hasNext();
 	}
 	
 	@Override
@@ -1739,7 +1726,7 @@ public class BTreeDataFrame implements ITableDataFrame {
 				double v1 = row.getCell(cIndex).getNumericCellValue();
 				rowMap.put(headerList.get(cIndex), v1);
 			}
-			tester.addRow(rowMap, rowMap);
+			tester.addRow(rowMap);
 			System.out.println("added row " + rIndex);
 			System.out.println(rowMap.toString());
 		}
@@ -1881,7 +1868,7 @@ public class BTreeDataFrame implements ITableDataFrame {
 		for(int j = 0; j < values.length; j++) {
 			addBinValues.put(names[0], values[j]);
 			addBinValues.put(names[1], binValues[j]);
-			table.addRow(addBinValues, addBinValues);
+			table.addRow(addBinValues);
 		}
 		
 		this.join(table, column, column, 1.0, new ExactStringMatcher());
@@ -1971,7 +1958,7 @@ public class BTreeDataFrame implements ITableDataFrame {
 	}
 
 	@Override
-	public Iterator<Object[]> iterator(boolean getRawData, Map<String, Object> options) {
+	public Iterator<Object[]> iterator(Map<String, Object> options) {
 		// TODO Auto-generated method stub
 		return null;
 	}
@@ -2001,7 +1988,7 @@ public class BTreeDataFrame implements ITableDataFrame {
 	}
 
 	@Override
-	public void addRelationship(Map<String, Object> cleanRow, Map<String, Object> rawRow) {
+	public void addRelationship(Map<String, Object> cleanRow) {
 		// TODO Auto-generated method stub
 		
 	}
@@ -2043,7 +2030,7 @@ public class BTreeDataFrame implements ITableDataFrame {
 	}
 
 	@Override
-	public void addRow(Object[] cleanCells, Object[] rawCells, String[] headers) {
+	public void addRow(Object[] cleanCells, String[] headers) {
 		// TODO Auto-generated method stub
 		
 	}
@@ -2056,22 +2043,19 @@ public class BTreeDataFrame implements ITableDataFrame {
 	}
 
 	@Override
-	public void addRelationship(Map<String, Object> rowCleanData, Map<String, Object> rowRawData,
-			Map<String, Set<String>> edgeHash, Map<String, String> logicalToTypeMap) {
+	public void addRelationship(Map<String, Object> rowCleanData, Map<String, Set<String>> edgeHash, Map<String, String> logicalToTypeMap) {
 		// TODO Auto-generated method stub
 		
 	}
 
 	@Override
-	public void removeRelationship(Map<String, Object> cleanRow,
-			Map<String, Object> rawRow) {
+	public void removeRelationship(Map<String, Object> cleanRow) {
 		// TODO Auto-generated method stub
 		
 	}
 
 	@Override
-	public void addRelationship(String[] headers, Object[] values, Object[] rawValues,
-			Map<Integer, Set<Integer>> cardinality, Map<String, String> logicalToValMap) {
+	public void addRelationship(String[] headers, Object[] values, Map<Integer, Set<Integer>> cardinality, Map<String, String> logicalToValMap) {
 		// TODO Auto-generated method stub
 		
 	}

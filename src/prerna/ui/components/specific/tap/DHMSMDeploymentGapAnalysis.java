@@ -88,7 +88,7 @@ public class DHMSMDeploymentGapAnalysis extends GridPlaySheet{
 				Map<String, Object> row = new HashMap<String, Object>();
 				row.put(names[0], values1[0]);
 				row.put(names[1], values1[1]);
-				dataFrame.addRow(row, row);
+				dataFrame.addRow(row);
 			}
 		}
 	}

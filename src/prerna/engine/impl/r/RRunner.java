@@ -67,7 +67,6 @@ public class RRunner {
 			// we need to do the same routine here to start a new R Server
 			masterCon.eval("library(Rserve); Rserve(port = " + port + ")");
 			conn = new RConnection("127.0.0.1", Integer.parseInt(port));
-
 		} 
 		if (server == null) {
 			server = Server.createTcpServer("-tcpPort", "9999");

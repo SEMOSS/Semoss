@@ -68,7 +68,7 @@ public class ClusteringRoutine extends AbstractClusteringRoutine {
 		int currIt = 0;
 		while(go) {
 			go = false;
-			Iterator<List<Object[]>> it = dataFrame.scaledUniqueIterator(attributeNames[instanceIndex], false, null);
+			Iterator<List<Object[]>> it = dataFrame.scaledUniqueIterator(attributeNames[instanceIndex], null);
 			while(it.hasNext()) {
 				List<Object[]> instance = it.next();
 				Object instanceName = instance.get(0)[instanceIndex];
@@ -109,10 +109,6 @@ public class ClusteringRoutine extends AbstractClusteringRoutine {
 			for(Object instance : results.keySet()) {
 				int val = results.get(instance);
 
-				Map<String, Object> raw = new HashMap<String, Object>();
-				raw.put(attributeName, instance);
-				raw.put(clusterColName, val);
-				
 				Map<String, Object> clean = new HashMap<String, Object>();
 				if(instance.toString().startsWith("http://semoss.org/ontologies/Concept/")) {
 					instance = Utility.getInstanceName(instance.toString());
@@ -120,7 +116,7 @@ public class ClusteringRoutine extends AbstractClusteringRoutine {
 				clean.put(attributeName, instance);
 				clean.put(clusterColName, val);
 				
-				dataFrame.addRelationship(clean, raw);
+				dataFrame.addRelationship(clean);
 			}
 			
 		}
@@ -131,7 +127,7 @@ public class ClusteringRoutine extends AbstractClusteringRoutine {
 	 * Will generate the clusters by picking the most different instances
 	 */
 	private void initializeClusters() {
-		Iterator<List<Object[]>> it = dataFrame.scaledUniqueIterator(attributeNames[instanceIndex], false, null);
+		Iterator<List<Object[]>> it = dataFrame.scaledUniqueIterator(attributeNames[instanceIndex], null);
 		List<Object[]> firstInstance = it.next();
 
 		Cluster firstCluster = new Cluster(categoricalWeights, numericalWeights);
@@ -173,7 +169,7 @@ public class ClusteringRoutine extends AbstractClusteringRoutine {
 			numInstancesInCluster.add(1);
 
 			// generate new iterator
-			it = dataFrame.scaledUniqueIterator(attributeNames[instanceIndex], false, null);
+			it = dataFrame.scaledUniqueIterator(attributeNames[instanceIndex], null);
 		}
 	}
 

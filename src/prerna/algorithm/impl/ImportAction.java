@@ -32,7 +32,7 @@ public class ImportAction implements IAction {
 		Object [] vals = convertVectorToArrayO((Vector)data);
 		System.err.println("Will insert now.. " + cols + vals);
 		
-		thisFrame.addRow(vals, vals, cols);
+		thisFrame.addRow(vals, cols);
 		
 		
 	}

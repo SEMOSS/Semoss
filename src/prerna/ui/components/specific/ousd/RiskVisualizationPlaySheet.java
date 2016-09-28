@@ -88,7 +88,7 @@ public class RiskVisualizationPlaySheet extends GridPlaySheet{
 				newRow[0] = act;
 				newRow[1] = myGroup;
 				newRow[2] = results.get(myGroup);
-				this.dataFrame.addRow(newRow, newRow);
+				this.dataFrame.addRow(newRow);
 			}
 		}
 		//		this.names = new String[]{"Activity", "Activity Group", "Risk Score"};
@@ -112,7 +112,7 @@ public class RiskVisualizationPlaySheet extends GridPlaySheet{
 				newRow[2] = bluRes;
 				newRow[3] = dataSysRes;
 				newRow[4] = bluDataSysRes;
-				this.dataFrame.addRow(newRow, newRow);
+				this.dataFrame.addRow(newRow);
 			}
 		}
 		//this.names = new String[]{"Activity", "Activity Group", "BLU Risk Score", "Data Risk Score", "BLU-Data Risk Score"};

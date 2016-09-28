@@ -29,11 +29,9 @@ package prerna.rdf.engine.wrappers;
 
 import java.util.List;
 
-import org.openrdf.model.Literal;
-import org.openrdf.model.Value;
-import org.openrdf.query.BindingSet;
-import org.openrdf.query.QueryEvaluationException;
-import org.openrdf.query.algebra.evaluation.util.QueryEvaluationUtil;
+import com.hp.hpl.jena.query.QuerySolution;
+import com.hp.hpl.jena.query.ResultSet;
+import com.hp.hpl.jena.rdf.model.RDFNode;
 
 import prerna.algorithm.api.ITableDataFrame;
 import prerna.ds.BTreeDataFrame;
@@ -41,10 +39,6 @@ import prerna.engine.api.ISelectStatement;
 import prerna.engine.api.ISelectWrapper;
 import prerna.util.Constants;
 import prerna.util.Utility;
-
-import com.hp.hpl.jena.query.QuerySolution;
-import com.hp.hpl.jena.query.ResultSet;
-import com.hp.hpl.jena.rdf.model.RDFNode;
 
 public class JenaSelectWrapper extends AbstractWrapper implements ISelectWrapper {
 	
@@ -150,13 +144,11 @@ public class JenaSelectWrapper extends AbstractWrapper implements ISelectWrapper
 			QuerySolution row = rs.nextSolution();
 			
 			Object[] clean = new Object[this.displayVar.length];
-			Object[] raw = new Object[this.displayVar.length];
 			for(int colIndex = 0;colIndex < displayVar.length;colIndex++)
 			{
-				raw[colIndex] = row.get(var[colIndex] + "");
 				clean[colIndex] = getRealValue(row.get(var[colIndex]));
 			}
-			dataFrame.addRow(clean, raw);
+			dataFrame.addRow(clean);
 		}
 		
 		return dataFrame;

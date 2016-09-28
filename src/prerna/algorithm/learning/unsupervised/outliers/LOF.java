@@ -154,7 +154,7 @@ public class LOF implements IAnalyticTransformationRoutine {
 
 		this.Tree = new KDTree(dimensions);
 		// This code flattens out instances, incase there are repeat appearances of an identifier
-		Iterator<List<Object[]>> it = dataFrame.scaledUniqueIterator(attributeNames[instanceIndex], false, null);
+		Iterator<List<Object[]>> it = dataFrame.scaledUniqueIterator(attributeNames[instanceIndex], null);
 		int numInstance = 0;
 		while(it.hasNext()) {
 			List<Object[]> instance = it.next();
@@ -204,10 +204,6 @@ public class LOF implements IAnalyticTransformationRoutine {
 		for(Object instance : results.keySet()) {
 			Double val = results.get(instance);
 
-			Map<String, Object> raw = new HashMap<String, Object>();
-			raw.put(attributeName, instance);
-			raw.put(changedColumn, val);
-			
 			Map<String, Object> clean = new HashMap<String, Object>();
 			if(instance.toString().startsWith("http://semoss.org/ontologies/Concept/")) {
 				instance = Utility.getInstanceName(instance.toString());
@@ -215,7 +211,7 @@ public class LOF implements IAnalyticTransformationRoutine {
 			clean.put(attributeName, instance);
 			clean.put(changedColumn, val);
 			
-			dataFrame.addRelationship(clean, raw);
+			dataFrame.addRelationship(clean);
 		}
 		
 		return null;

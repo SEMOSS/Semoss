@@ -245,7 +245,7 @@ public class SequencingDecommissioningPlaySheet extends GridPlaySheet {
 				depObj[2] = group2DependActsMap.get(depGroup);
 
 				if(addtlCols.isEmpty()){
-					this.dataFrame.addRow(depObj, depObj);
+					this.dataFrame.addRow(depObj);
 				}
 				else {
 					for(Object[] row : addtlCols){
@@ -254,7 +254,7 @@ public class SequencingDecommissioningPlaySheet extends GridPlaySheet {
 							LOGGER.debug(row[addtlIdx]);
 							depObj2[addtlIdx] = row[addtlIdx];
 						}
-						this.dataFrame.addRow(depObj2, depObj2);
+						this.dataFrame.addRow(depObj2);
 					}
 				}
 				LOGGER.debug("Added object "+depGroup);

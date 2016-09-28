@@ -116,7 +116,7 @@ public class OCONUSMapPlaySheet extends BrowserPlaySheet {
 		
 		String name = names[labelIdx];
 		// Possibly filter out all US Facilities from the query?
-		Iterator<Object[]> it = dataFrame.iterator(true);
+		Iterator<Object[]> it = dataFrame.iterator();
 		ArrayList<Hashtable<String, Object>> allData = new ArrayList<Hashtable<String, Object>>();
 		while(it.hasNext()) {
 			Hashtable<String, Object> elementHash = new Hashtable<String, Object>();

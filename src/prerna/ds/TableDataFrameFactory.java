@@ -117,28 +117,20 @@ public class TableDataFrameFactory {
 			while( ( row = helper.getNextRow(sheetName, headers) ) != null) {
 				values = caster.castToTypes(row, types);
 				Map<String, Object> cleanRow = new HashMap<>();
-				Map<String, Object> rawRow = new HashMap<>();
 				for(int j = 0; j < headers.length; j++) {
-
-					String header = headers[j];
-					Object value = values[j];
-					String rawVal = "http://" + header + "/" + value;
-
 					cleanRow.put(headers[j], values[j]);
-					rawRow.put(header, rawVal);
 				}
 				if(tableCounter == 0) {
 					if(mainCol == null) {
-						tf.addRow(cleanRow, rawRow);
+						tf.addRow(cleanRow);
 					} else {
-						tf.addRelationship(cleanRow, rawRow);
+						tf.addRelationship(cleanRow);
 					}
 				} else {
 					String primKeyVal = values.hashCode() + "";
 					cleanRow.put(primKeyHeader, primKeyVal);
-					rawRow.put(primKeyHeader, primKeyVal);
 
-					tf.addRelationship(cleanRow, rawRow);
+					tf.addRelationship(cleanRow);
 				}
 			}
 			tableCounter++;
@@ -302,23 +294,15 @@ public class TableDataFrameFactory {
 		String[] cells = null;
 		Object[] values = null;
 		while((cells = helper.getNextRow()) != null) {
-
 			values = caster.castToTypes(cells, types);
 			Map<String, Object> row = new HashMap<>();
-			Map<String, Object> rawRow = new HashMap<>();
 			for(int i = 0; i < headers.length; i++) {
-
-				String header = headers[i];
-				Object value = values[i];
-				String rawVal = "http://" + header + "/" + value;
-
 				row.put(headers[i], values[i]);
-				rawRow.put(header, rawVal);
 			}
 			if(mainCol == null) {
-				dataFrame.addRow(row, rawRow);
+				dataFrame.addRow(row);
 			} else {
-				dataFrame.addRelationship(row, rawRow);
+				dataFrame.addRelationship(row);
 			}
 		}
 
@@ -389,7 +373,7 @@ public class TableDataFrameFactory {
 
 			String tableName = dataFrame.getTableNameForUniqueColumn(headers[0]);
 
-			Iterator<Object[]> iterator = atable.iterator(false);
+			Iterator<Object[]> iterator = atable.iterator();
 			while(iterator.hasNext()) {
 				Object[] row = iterator.next();
 				String[] cells = new String[row.length];
@@ -422,7 +406,7 @@ public class TableDataFrameFactory {
 			Map<String, Object> options = new HashMap<>();
 			options.put(TinkerFrame.DE_DUP, true);
 			options.put(TinkerFrame.SELECTORS, h2frame.getSelectors());
-			Iterator<Object[]> iterator = h2frame.iterator(false, options);
+			Iterator<Object[]> iterator = h2frame.iterator(options);
 
 			String[] columnHeaders  = h2frame.getSelectors().toArray(new String[]{});
 			Map<Integer, Set<Integer>> cardinality = Utility.getCardinalityOfValues(columnHeaders, h2frame.getEdgeHash());
@@ -440,14 +424,14 @@ public class TableDataFrameFactory {
 				frame = (TinkerFrame)createDataFrame(columnHeaders, "tinker", types, null);
 				while(iterator.hasNext()) {
 					Object[] row = iterator.next();
-					frame.addRow(row, row, columnHeaders);
+					frame.addRow(row, columnHeaders);
 				}
 			} else{
 				frame = new TinkerFrame();
 				frame.metaData = h2frame.metaData; //set the meta data for the new frame
 				while(iterator.hasNext()) {
 					Object[] row = iterator.next();
-					frame.addRelationship(columnHeaders, row, row, cardinality, uniqueToValue);
+					frame.addRelationship(columnHeaders, row, cardinality, uniqueToValue);
 				}
 			}
 			return frame;
@@ -468,7 +452,7 @@ public class TableDataFrameFactory {
 			options.put(TinkerFrame.DE_DUP, true);
 			options.put(TinkerFrame.SELECTORS, h2frame.getSelectors());
 			options.put(TinkerFrame.IGNORE_FILTERS, true);
-			Iterator<Object[]> iterator = h2frame.iterator(false, options);
+			Iterator<Object[]> iterator = h2frame.iterator(options);
 
 			String[] columnHeaders  = h2frame.getSelectors().toArray(new String[]{});
 			Map<Integer, Set<Integer>> cardinality = Utility.getCardinalityOfValues(columnHeaders, h2frame.getEdgeHash());
@@ -492,7 +476,7 @@ public class TableDataFrameFactory {
 			frame.metaData = h2frame.metaData; //set the meta data for the new frame
 			while(iterator.hasNext()) {
 				Object[] row = iterator.next();
-				frame.addRelationship(columnHeaders, row, row, cardinality, uniqueToValue);
+				frame.addRelationship(columnHeaders, row, cardinality, uniqueToValue);
 			}
 
 			// grab the existing filter data from the h2Frame

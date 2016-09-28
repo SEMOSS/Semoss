@@ -30,7 +30,7 @@ public abstract class BaseReducerReactor extends MathReactor implements Expressi
 	protected boolean errored = false;
 	protected java.lang.Object baseException = null;
 	protected Bindings otherBindings = engine.getBindings(ScriptContext.ENGINE_SCOPE);
-	protected String propToGet = Constants.VALUE;
+	protected String propToGet = Constants.NAME;
 	
 	
 	public abstract HashMap<HashMap<Object,Object>,Object> reduceGroupBy(Vector<String> groupBys, Vector<String> processedColumns, String[] columnsArray, Iterator it);

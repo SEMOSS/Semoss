@@ -229,13 +229,11 @@ public class SesameSelectWrapper extends AbstractWrapper implements ISelectWrapp
 				logger.debug("Adding a sesame statement ");
 				BindingSet bs = tqr.next();
 				Object[] clean = new Object[this.displayVar.length];
-				Object[] raw = new Object[this.displayVar.length];
 				for(int colIndex = 0;colIndex < displayVar.length;colIndex++)
 				{
-					raw[colIndex] = bs.getValue(var[colIndex]);
-					clean[colIndex] = getRealValue(raw[colIndex]);
+					clean[colIndex] = getRealValue(bs.getValue(var[colIndex]));
 				}
-				dataFrame.addRow(clean, raw);
+				dataFrame.addRow(clean);
 			} catch (QueryEvaluationException e) {
 				// TODO Auto-generated catch block
 				e.printStackTrace();

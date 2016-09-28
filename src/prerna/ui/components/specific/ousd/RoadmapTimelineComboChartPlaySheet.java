@@ -31,7 +31,7 @@ public class RoadmapTimelineComboChartPlaySheet extends RoadmapTimelineStatsPlay
 		String[] newHeaders = this.timelines.get(0).getCostSavingsHeaders();
 		//series name - all objects in that series (x : ... , y : ...)
 //		Iterator<Object[]> it = dataFrame.iterator(true);
-		Iterator<Object[]> it = this.dataFrame.iterator(false);
+		Iterator<Object[]> it = this.dataFrame.iterator();
 		List<Object> annlSavingsSeries = new ArrayList<Object>();
 		annlSavingsSeries.add(newHeaders[1]);
 		List<Object> annlExpensesSeries = new ArrayList<Object>();
@@ -133,7 +133,7 @@ public class RoadmapTimelineComboChartPlaySheet extends RoadmapTimelineStatsPlay
 		List<Object[]> data = time.getCostSavingsData();
 		this.dataFrame = new OrderedBTreeDataFrame(time.getCostSavingsHeaders());
 		for(Object[] row : data){
-			this.dataFrame.addRow(row, row);
+			this.dataFrame.addRow(row);
 		}
 	}
 }

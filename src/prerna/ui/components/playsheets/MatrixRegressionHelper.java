@@ -57,7 +57,7 @@ public final class MatrixRegressionHelper{
 		}
 		double[][] A = new double[listNumRows][outNumCols];
 
-		Iterator<Object[]> it = data.iterator(false);
+		Iterator<Object[]> it = data.iterator();
 		int i = 0;
 		int j = 0;
 		while(it.hasNext()) {
@@ -97,7 +97,7 @@ public final class MatrixRegressionHelper{
 		int listNumRows = data.getNumRows();
 		double[] b = new double[listNumRows];
 
-		Iterator<Object[]> it = data.iterator(false);
+		Iterator<Object[]> it = data.iterator();
 		int i = 0;
 		while(it.hasNext()) {
 			Object[] row = it.next();
