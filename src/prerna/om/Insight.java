@@ -1105,6 +1105,11 @@ public class Insight {
 					if(metadataResponse != null && !metadataResponse.isEmpty()) {
 						parseMetadataResponse(metadataResponse);
 						this.pkqlMetadata.addAll(metadataResponse);
+						
+						// clear the set of metadata inside the transformation
+						// which actually clears it inside the pkql runner as well
+						// since its all the same reference
+						metadataResponse.clear();
 					}
 				}
 			} else {

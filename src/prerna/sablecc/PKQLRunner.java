@@ -49,7 +49,7 @@ public class PKQLRunner {
 	
 //	private Map<String, Object> dataMap = new HashMap<>();
 	
-	private List<IPkqlMetadata> metadataResponse = null;
+	private List<IPkqlMetadata> metadataResponse = new Vector<IPkqlMetadata>();
 	
 	// there is a getter for this
 	// but we never set this... so not used
@@ -273,10 +273,10 @@ public class PKQLRunner {
 
 	public void aggregateMetadata(List<IPkqlMetadata> metadataResponses) {
 		// grab the metadata produced
-		this.metadataResponse = metadataResponses;
 		HashMap<String,Object> allAdditionalInfo = new HashMap<>();
-		// create the explanation and populate additional info map using the metadata responses
-		if(this.metadataResponse != null && !this.metadataResponse.isEmpty()) {
+		if(metadataResponses != null && !metadataResponses.isEmpty()) {
+			this.metadataResponse.addAll(metadataResponses);
+			// create the explanation and populate additional info map using the metadata responses
 			int size = this.metadataResponse.size();
 			this.explain = this.metadataResponse.get(size-1).getExplanation();
 			if(this.metadataResponse.get(size-1).getAdditionalInfo() != null)
