@@ -28,6 +28,7 @@ import org.apache.tinkerpop.gremlin.structure.Vertex;
 import edu.stanford.nlp.util.ArraySet;
 import prerna.ds.TinkerFrame;
 import prerna.ds.H2.H2Frame;
+import prerna.engine.api.IEngine;
 import prerna.engine.api.IHeadersDataRow;
 import prerna.engine.api.IRawSelectWrapper;
 import prerna.rdf.engine.wrappers.WrapperManager;
@@ -66,9 +67,8 @@ public class MHSDashboardDrillPlaysheet extends TablePlaySheet implements IDataM
 	private final String PLANNED_LF = "PlannedLF";
 
 	private final Date todaysDate = Calendar.getInstance().getTime();
-	static String engineName = "Tap_Readiness_Database";
 	
-	static String masterPKQL = "data.import(api:" + engineName + ". query ( [ c: SDLCPhase , c: SDLCPhase_ActivityGroup_DHAGroup ,  c: SDLCPhase_ActivityGroup_DHAGroup__HeatValue , c: ActivityGroup , c: DHAGroup , c: SystemActivity , c: SystemActivity__ActualEnd , c: SystemActivity__Duration , c: SystemActivity__LateFinish , c: SystemActivity__Delay , c: SystemActivity__CriticalPath , c: SystemActivity__LateStart , c: SystemActivity__EarlyFinish , c: SystemActivity__EarlyStart , c: SystemActivity__ActualStart , c: SystemActivity__Slack , c: SystemActivity__KeyStatus , c: SystemActivity__Deviation , c: SystemActivity__DeviationStart , c: SystemActivity__DeviationFinish , c: SystemActivity__PlannedLF , c: System , c: System__PlannedStart , c: SystemOwner , c: Activity , c: DependencySystemActivity ] , ( [ c: SDLCPhase , left.outer.join , c: SDLCPhase_ActivityGroup_DHAGroup ] , [ c: ActivityGroup , left.outer.join , c: SDLCPhase_ActivityGroup_DHAGroup ] , [ c: DHAGroup , left.outer.join , c: SDLCPhase_ActivityGroup_DHAGroup ] , [ c: SDLCPhase_ActivityGroup_DHAGroup , left.outer.join , c: SystemActivity ] , [ c: SystemActivity , left.outer.join , c: System ] , [ c: System , left.outer.join , c: SystemOwner ] , [ c: SystemActivity , left.outer.join , c: Activity ] , [ c: SystemActivity , left.outer.join , c: DependencySystemActivity ] ) ) ) ;";
+	static String masterPKQL = "data.import(api: %engineName%. query ( [ c: SDLCPhase , c: SDLCPhase_ActivityGroup_DHAGroup ,  c: SDLCPhase_ActivityGroup_DHAGroup__HeatValue , c: ActivityGroup , c: DHAGroup , c: SystemActivity , c: SystemActivity__ActualEnd , c: SystemActivity__Duration , c: SystemActivity__LateFinish , c: SystemActivity__Delay , c: SystemActivity__CriticalPath , c: SystemActivity__LateStart , c: SystemActivity__EarlyFinish , c: SystemActivity__EarlyStart , c: SystemActivity__ActualStart , c: SystemActivity__Slack , c: SystemActivity__KeyStatus , c: SystemActivity__Deviation , c: SystemActivity__DeviationStart , c: SystemActivity__DeviationFinish , c: SystemActivity__PlannedLF , c: System , c: System__PlannedStart , c: SystemOwner , c: Activity , c: DependencySystemActivity ] , ( [ c: SDLCPhase , left.outer.join , c: SDLCPhase_ActivityGroup_DHAGroup ] , [ c: ActivityGroup , left.outer.join , c: SDLCPhase_ActivityGroup_DHAGroup ] , [ c: DHAGroup , left.outer.join , c: SDLCPhase_ActivityGroup_DHAGroup ] , [ c: SDLCPhase_ActivityGroup_DHAGroup , left.outer.join , c: SystemActivity ] , [ c: SystemActivity , left.outer.join , c: System ] , [ c: System , left.outer.join , c: SystemOwner ] , [ c: SystemActivity , left.outer.join , c: Activity ] , [ c: SystemActivity , left.outer.join , c: DependencySystemActivity ] ) ) ) ;";
 	static String instanceOfPlaysheet = "prerna.ui.components.specific.tap.MHSDashboardDrillPlaysheet";
 
 	// /**
@@ -101,6 +101,9 @@ public class MHSDashboardDrillPlaysheet extends TablePlaySheet implements IDataM
 	@Override
 	public void processDataMakerComponent(DataMakerComponent component) {
 		this.dmComponent = component;
+		IEngine engine = component.getEngine();
+		String engineName = engine.getEngineName();
+		masterPKQL = masterPKQL.replace("%engineName%", engineName);
 		PKQLRunner run = new PKQLRunner();
 		if (this.dataFrame == null) {
 			this.dataFrame = new H2Frame();
@@ -109,9 +112,7 @@ public class MHSDashboardDrillPlaysheet extends TablePlaySheet implements IDataM
 	}
 
 	/**
-	 * Method to pass the FE the ordered list of SDLC phases and all values
-	 * necessary for the main table
-	 * 
+	 * Method to pass the FE the ordered list of SDLC phases and all values necessary for the main table
 	 * @return returns data, headers, dataTableAlign, systems, and upload date
 	 */
 	@Override
@@ -132,6 +133,10 @@ public class MHSDashboardDrillPlaysheet extends TablePlaySheet implements IDataM
 		returnHashMap.putAll(getSystemOwner());
 		return returnHashMap;
 	}
+	
+	/**
+	 * Method to pass FE the table alignment of the data
+	 */
 	public Map getDataTableAlign() {
 		Map<String, String> dataTableAlign = new HashMap<String, String>();
 		dataTableAlign.put("levelOne", SDLC);
@@ -146,8 +151,7 @@ public class MHSDashboardDrillPlaysheet extends TablePlaySheet implements IDataM
 
 	/**
 	 * Method to pass FE values for system which will be used for the filters
-	 * 
-	 * @return list of systems within a hashmap
+	 * @return system options
 	 */
 	public Map getSystem() {
 		Map<String, Object> returnHash = new HashMap<String, Object>();
@@ -159,6 +163,10 @@ public class MHSDashboardDrillPlaysheet extends TablePlaySheet implements IDataM
 		return returnHash;
 	}
 
+	/**
+	 * Method to pass FE values for systemOwner to filter on
+	 * @return systemOwner options
+	 */
 	public Map getSystemOwner() {
 		Map<String, Object> returnHash = new HashMap<String, Object>();
 
@@ -170,9 +178,7 @@ public class MHSDashboardDrillPlaysheet extends TablePlaySheet implements IDataM
 	}
 
 	/**
-	 * Method to iterated through specified selectors and calculate the heat
-	 * values per each DHA group
-	 * 
+	 * Method to iterated through specified selectors and calculate the heat values per each DHA group
 	 * @return Hashmap contain SDLC, Group, DHA, heat value, minimum heat value
 	 */
 	public Map aggregateDHAGroup() {
@@ -232,6 +238,11 @@ public class MHSDashboardDrillPlaysheet extends TablePlaySheet implements IDataM
 		return manipulateData(returnMap);
 	}
 
+	/**
+	 * Method to return all the values need to display on the white tile
+	 * @param primKey the unique key
+	 * @return map of early start, late start, heat value, status, etc
+	 */
 	private Map<String, Object> getTileInfo(String primKey) {
 		String query = "SELECT SLACK as SLACK, EARLYSTART AS EARLYSTART, LATEFINISH AS LATEFINISH, KEYSTATUS, DELAY FROM SYSTEMACTIVITY where SDLCPHASE_ACTIVITYGROUP_DHAGROUP_FK ='" + primKey + "'";
 		IRawSelectWrapper iterator = WrapperManager.getInstance().getRawWrapper(dmComponent.getEngine(), query);
@@ -292,7 +303,7 @@ public class MHSDashboardDrillPlaysheet extends TablePlaySheet implements IDataM
 			}
 		}
 		
-		String updateDBquery = "UPDATE SDLCPHASE_ACTIVITYGROUP_DHAGROUP SET HEATVALUE ="+ heatValue + " WHERE SDLCPHASE_ACTIVITYGROUP_DHAGROUP = '"+ primKey +"'";
+		String updateDBquery = "UPDATE SDLCPHASE_ACTIVITYGROUP_DHAGROUP SET HEATVALUE =" + heatValue + " WHERE SDLCPHASE_ACTIVITYGROUP_DHAGROUP = '"+ primKey +"'";
 		dmComponent.getEngine().insertData(updateDBquery);
 		
 		returnMap.put(HEAT_VALUE, heatValue);
@@ -302,10 +313,8 @@ public class MHSDashboardDrillPlaysheet extends TablePlaySheet implements IDataM
 	}
 
 	/**
-	 * Method to format date the way FE expects it...ie without the string keys
-	 * that objMap currently contains
-	 * 
-	 * @param objMap
+	 * Method to format date the way FE expects it...ie without the string keys that objMap currently contains
+	 * @param objMap 
 	 * @return Hashmap
 	 */
 	public Map manipulateData(Map<String, Object> objMap) {
@@ -328,6 +337,10 @@ public class MHSDashboardDrillPlaysheet extends TablePlaySheet implements IDataM
 		return returnMap;
 	}
 
+	/**
+	 * Method to create a tinkerframe
+	 * @return
+	 */
 	public TinkerFrame createNewTinkerFrame() {
 
 		// create frame
@@ -359,8 +372,7 @@ public class MHSDashboardDrillPlaysheet extends TablePlaySheet implements IDataM
 		// merge edge hash and data types
 		tFrame.mergeEdgeHash(edgeHash, dataTypeMap);
 
-		// this query will get all the distinct activities that belong to the
-		// specified primKey (SDLCPhase_ActivityGroup_DHAGroup)
+		// this query will get all the distinct activities that belong to the specified primKey (SDLCPhase_ActivityGroup_DHAGroup)
 		String query1 = "SELECT DISTINCT SYSTEMACTIVITY.SYSTEMACTIVITY as SystemActivity, SystemActivity.DURATION, DEPENDENCYSYSTEMACTIVITY.DEPENDENCYSYSTEMACTIVITY as SystemActivity, SystemActivity.ACTUALSTART as ActualStart, SystemActivity.ACTUALEND as ActualEnd, SYSTEM.PLANNEDSTART "
 				+ "FROM SYSTEMACTIVITY "
 				+ "Left Join DEPENDENCYSYSTEMACTIVITY ON SYSTEMACTIVITY.SYSTEMACTIVITY = DEPENDENCYSYSTEMACTIVITY.SYSTEMACTIVITY_FK "
@@ -385,8 +397,7 @@ public class MHSDashboardDrillPlaysheet extends TablePlaySheet implements IDataM
 			IHeadersDataRow nextRow = iterator1.next();
 			tFrame.addRelationship(headers1, nextRow.getValues(), nextRow.getRawValues(), cardinality1, logicalToTypeMap);
 
-			// get a dependency list of all the non-null values for the second
-			// query
+			// get a dependency list of all the non-null values for the second query
 			if (!(nextRow.getValues()[2] == null)) {
 				String dependency = (String) nextRow.getValues()[2];
 				dependencyList.add(dependency);
@@ -425,6 +436,10 @@ public class MHSDashboardDrillPlaysheet extends TablePlaySheet implements IDataM
 		return tFrame;
 	}
 
+	/**
+	 * Method to add the Devation property to frame
+	 * @param tFrame
+	 */
 	private void addDevationToFrame(TinkerFrame tFrame) {
 
 		// add to frame
@@ -444,21 +459,25 @@ public class MHSDashboardDrillPlaysheet extends TablePlaySheet implements IDataM
 
 		String query = "SELECT SYSTEMACTIVITY, SYSTEMACTIVITY.DEVIATION FROM SYSTEMACTIVITY Left Join SYSTEM ON SYSTEMACTIVITY.SYSTEMACTIVITY = SYSTEM .SYSTEMACTIVITY_FK ";
 
-		IRawSelectWrapper iterator2 = WrapperManager.getInstance().getRawWrapper(dmComponent.getEngine(), query);
+		IRawSelectWrapper iterator = WrapperManager.getInstance().getRawWrapper(dmComponent.getEngine(), query);
 
-		String[] headers2 = new String[] { SYSTEM_ACTIVITY, DEVIATION};
+		String[] headers = new String[] { SYSTEM_ACTIVITY, DEVIATION};
 
-		Map<Integer, Set<Integer>> cardinality2 = new HashMap<Integer, Set<Integer>>();
-		Set<Integer> cardSet2 = new HashSet<Integer>();
-		cardSet2.add(1);
-		cardinality2.put(0, cardSet2);
+		Map<Integer, Set<Integer>> cardinality = new HashMap<Integer, Set<Integer>>();
+		Set<Integer> cardSet = new HashSet<Integer>();
+		cardSet.add(1);
+		cardinality.put(0, cardSet);
 
-		while (iterator2.hasNext()) {
-			IHeadersDataRow nextRow = iterator2.next();
-			tFrame.addRelationship(headers2, nextRow.getValues(), nextRow.getRawValues(), cardinality2, logicalToTypeMap);
+		while (iterator.hasNext()) {
+			IHeadersDataRow nextRow = iterator.next();
+			tFrame.addRelationship(headers, nextRow.getValues(), nextRow.getRawValues(), cardinality, logicalToTypeMap);
 		}
 	}
 	
+	/**
+	 * Method to add planned late finish to tinkerframe
+	 * @param tFrame
+	 */
 	private void addPlannedLFToFrame(TinkerFrame tFrame) {
 
 		// add to frame
@@ -478,21 +497,25 @@ public class MHSDashboardDrillPlaysheet extends TablePlaySheet implements IDataM
 
 		String query = "SELECT SYSTEMACTIVITY, SYSTEMACTIVITY.PLANNEDLF FROM SYSTEMACTIVITY Left Join SYSTEM ON SYSTEMACTIVITY.SYSTEMACTIVITY = SYSTEM .SYSTEMACTIVITY_FK ";
 
-		IRawSelectWrapper iterator2 = WrapperManager.getInstance().getRawWrapper(dmComponent.getEngine(), query);
+		IRawSelectWrapper iterator = WrapperManager.getInstance().getRawWrapper(dmComponent.getEngine(), query);
 
-		String[] headers2 = new String[] { SYSTEM_ACTIVITY, PLANNED_LF};
+		String[] headers = new String[] { SYSTEM_ACTIVITY, PLANNED_LF};
 
-		Map<Integer, Set<Integer>> cardinality2 = new HashMap<Integer, Set<Integer>>();
-		Set<Integer> cardSet2 = new HashSet<Integer>();
-		cardSet2.add(1);
-		cardinality2.put(0, cardSet2);
+		Map<Integer, Set<Integer>> cardinality = new HashMap<Integer, Set<Integer>>();
+		Set<Integer> cardSet = new HashSet<Integer>();
+		cardSet.add(1);
+		cardinality.put(0, cardSet);
 
-		while (iterator2.hasNext()) {
-			IHeadersDataRow nextRow = iterator2.next();
-			tFrame.addRelationship(headers2, nextRow.getValues(), nextRow.getRawValues(), cardinality2, logicalToTypeMap);
+		while (iterator.hasNext()) {
+			IHeadersDataRow nextRow = iterator.next();
+			tFrame.addRelationship(headers, nextRow.getValues(), nextRow.getRawValues(), cardinality, logicalToTypeMap);
 		}
 	}
 	
+	/**
+	 * Method to add the newly calculated values to the frame
+	 * @param tFrame
+	 */
 	private void addToFrame(TinkerFrame tFrame) {
 
 		// add to frame
@@ -522,24 +545,28 @@ public class MHSDashboardDrillPlaysheet extends TablePlaySheet implements IDataM
 		String query = "SELECT SYSTEMACTIVITY, SYSTEMACTIVITY.EARLYSTART, SYSTEMACTIVITY.EARLYFINISH, SYSTEMACTIVITY.LATESTART, SYSTEMACTIVITY.LATEFINISH "
 				+ "FROM SYSTEMACTIVITY Left Join SYSTEM ON SYSTEMACTIVITY.SYSTEMACTIVITY = SYSTEM .SYSTEMACTIVITY_FK ";
 
-		IRawSelectWrapper iterator2 = WrapperManager.getInstance().getRawWrapper(dmComponent.getEngine(), query);
+		IRawSelectWrapper iterator = WrapperManager.getInstance().getRawWrapper(dmComponent.getEngine(), query);
 
-		String[] headers2 = new String[] { SYSTEM_ACTIVITY, EARLY_START, EARLY_FINISH, LATE_START, LATE_FINISH };
+		String[] headers = new String[] { SYSTEM_ACTIVITY, EARLY_START, EARLY_FINISH, LATE_START, LATE_FINISH };
 
-		Map<Integer, Set<Integer>> cardinality2 = new HashMap<Integer, Set<Integer>>();
-		Set<Integer> cardSet2 = new HashSet<Integer>();
-		cardSet2.add(1);
-		cardSet2.add(2);
-		cardSet2.add(3);
-		cardSet2.add(4);
-		cardinality2.put(0, cardSet2);
+		Map<Integer, Set<Integer>> cardinality = new HashMap<Integer, Set<Integer>>();
+		Set<Integer> cardSet = new HashSet<Integer>();
+		cardSet.add(1);
+		cardSet.add(2);
+		cardSet.add(3);
+		cardSet.add(4);
+		cardinality.put(0, cardSet);
 
-		while (iterator2.hasNext()) {
-			IHeadersDataRow nextRow = iterator2.next();
-			tFrame.addRelationship(headers2, nextRow.getValues(), nextRow.getRawValues(), cardinality2, logicalToTypeMap);
+		while (iterator.hasNext()) {
+			IHeadersDataRow nextRow = iterator.next();
+			tFrame.addRelationship(headers, nextRow.getValues(), nextRow.getRawValues(), cardinality, logicalToTypeMap);
 		}
 	}
 
+	/**
+	 * Method to get a set list of all the unique nodes that are the first of the paths
+	 * @return
+	 */
 	private List<String> getFirstNodeList() {
 		String query = "SELECT DISTINCT SYSTEMACTIVITY from SYSTEMACTIVITY WHERE SYSTEMACTIVITY.SYSTEMACTIVITY NOT IN (SELECT DEPENDENCYSYSTEMACTIVITY FROM DEPENDENCYSYSTEMACTIVITY)";
 		IRawSelectWrapper iterator = WrapperManager.getInstance().getRawWrapper(dmComponent.getEngine(), query);
@@ -554,6 +581,11 @@ public class MHSDashboardDrillPlaysheet extends TablePlaySheet implements IDataM
 		return initialNodeList;
 	}
 
+	/**
+	 * Get a set list of all the paths contained in the tinkerframe
+	 * @param tFrame
+	 * @return
+	 */
 	private HashMap<String, Object> getPath (TinkerFrame tFrame) {
 
 		GraphTraversal ret = tFrame.runGremlin("g.traversal().V().has('TYPE','" + SYSTEM_ACTIVITY + "').outE().inV().has('TYPE','" + SYSTEM_ACTIVITY + "').path()");
@@ -638,7 +670,6 @@ public class MHSDashboardDrillPlaysheet extends TablePlaySheet implements IDataM
 
 				if (!vert.value("NAME").equals("_")) {
 					String systemActivity = vert.value("NAME");
-					System.out.print(systemActivity);
 					Iterator<Edge> durationEdgeIt = vert.edges(Direction.OUT, "TYPE", SYSTEM_ACTIVITY + "+++" + DURATION);
 					Double vertexDuration = Double.parseDouble(durationEdgeIt.next().inVertex().value("VALUE"));
 
@@ -667,7 +698,6 @@ public class MHSDashboardDrillPlaysheet extends TablePlaySheet implements IDataM
 			}
 			pathSumList.add(sum);
 		}
-//		return Collections.max(pathSumList);
 	}
 	
 	/**
@@ -703,7 +733,6 @@ public class MHSDashboardDrillPlaysheet extends TablePlaySheet implements IDataM
 					String updateDBquery = "UPDATE SYSTEMACTIVITY SET " + PLANNED_LF + " = '" + getDateFormat(LF) + "' WHERE SYSTEMACTIVITY = '"	+ systemActivty + "'";
 					dmComponent.getEngine().insertData(updateDBquery);
 					i++;
-					
 				}
 			}
 
@@ -731,7 +760,6 @@ public class MHSDashboardDrillPlaysheet extends TablePlaySheet implements IDataM
 
 				if (!vert.value("NAME").equals("_")) {
 					String systemActivity = vert.value("NAME");
-					System.out.print(systemActivity);
 					Iterator<Edge> durationEdgeIt = vert.edges(Direction.OUT, "TYPE", SYSTEM_ACTIVITY + "+++" + DURATION);
 					Double vertexDuration = Double.parseDouble(durationEdgeIt.next().inVertex().value("VALUE"));
 
@@ -793,15 +821,12 @@ public class MHSDashboardDrillPlaysheet extends TablePlaySheet implements IDataM
 					else {
 						if (i == 0) {
 							try {
-								// if(((Date)getDateFormat().parse(vertexPlannedStart)).before(todaysDate)){ ES = todaysDate; }
-								// else{
 								Date plannedStart = (Date) getDateFormat().parse(vertexPlannedStart);
 								if (plannedStart.before(todaysDate)){
 									ES = todaysDate;
 								} else {
 									ES = plannedStart;
 								}
-								// }
 							} catch (ParseException e) {
 								e.printStackTrace();
 							}
@@ -832,7 +857,6 @@ public class MHSDashboardDrillPlaysheet extends TablePlaySheet implements IDataM
 			pathSumList.add(sum);
 		}
 		addDevationToFrame(tFrame);
-//		return Collections.max(pathSumList);
 	}
 
 	/**
@@ -859,8 +883,6 @@ public class MHSDashboardDrillPlaysheet extends TablePlaySheet implements IDataM
 					String vertexDeviation = deviationEdgeIt.next().inVertex().value("VALUE");
 					
 					if (i == 0) {
-						Vertex lastNodeInPath = vertexPathList.get(0);
-						System.out.println("last node in path " + lastNodeInPath.values("NAME"));
 						LF = criticalDate;
 					} else {
 						Date earliestLS = getExistingDateValue(systemActivity, LATE_START);
@@ -903,7 +925,6 @@ public class MHSDashboardDrillPlaysheet extends TablePlaySheet implements IDataM
 
 		for (Vertex vert : vertexSet) {
 			String systemActivty = vert.value("NAME");
-			System.out.println("SYSTEM NAME::::::" + systemActivty);
 			Iterator<Edge> lateStartIterator = vert.edges(Direction.OUT, "TYPE", SYSTEM_ACTIVITY + "+++" + LATE_START);
 			String LS = (String) lateStartIterator.next().inVertex().value("VALUE");
 			Date LSDate = null;
@@ -940,23 +961,18 @@ public class MHSDashboardDrillPlaysheet extends TablePlaySheet implements IDataM
 				e1.printStackTrace();
 			}
 
-			System.out.println("ES VAL:::" + ESDate);
-			System.out.println("EF VAL:::" + EFDate);
-			System.out.println("LS VAL:::" + LSDate);
-			System.out.println("LF VAL:::" + LFDate);
-			///////////////////////////////
+//			System.out.println("ES VAL:::" + ESDate);
+//			System.out.println("EF VAL:::" + EFDate);
+//			System.out.println("LS VAL:::" + LSDate);
+//			System.out.println("LF VAL:::" + LFDate);
 
 			Double slack = (double) ((LFDate.getTime() - EFDate.getTime()) / (24 * 60 * 60 * 1000));
-			if (slack < 0.0) {
-				System.out.println("SLACK VAL:::" + slack);
-			} else {
-				System.out.println("SLACK VAL:::" + slack);
-
+			if (slack >= 0.0) {
 				boolean isCritical = false;
 				if (slack == 0.0) {
 					isCritical = true;
 				}
-				System.out.println("IS CRITICAL:::" + isCritical);
+				
 				// update db
 				String updateDBquery = "UPDATE SYSTEMACTIVITY SET " + SLACK + " = '" + slack + "', " + CRITICAL_PATH + " = '" + isCritical + "'  WHERE SYSTEMACTIVITY = '" + systemActivty + "'";
 				dmComponent.getEngine().insertData(updateDBquery);
@@ -1102,63 +1118,31 @@ public class MHSDashboardDrillPlaysheet extends TablePlaySheet implements IDataM
 			List<Object> insightList = (List<Object>) filterTable.get(columnKey);
 			
 			if(!insightList.isEmpty() && insightList !=null){
-			
-//				//if filtering on sdlc, activity group, dha then query using the foreign key
-//				if(columnKey.equalsIgnoreCase("SDLCPHASE")|| columnKey.equalsIgnoreCase("ACTIVITYGROUP")|| columnKey.equalsIgnoreCase("DHAGROUP")){
-//					String fk = columnKey + "_FK";
-//					
-//					int i= 0;
-//					for(Object insight: insightList){
-//						
-//						if(insightList.size() > 1){
-//							//first
-//							if(i==0) {
-//								filterString.append("(" + fk + "= '" + insight + "' OR ");
-//							}
-//							
-//							//last
-//							else if (i == insightList.size()-1) {
-//								filterString.append(fk + "= '" + insight + "')");
-//							}
-//							//middle
-//							else{
-//								filterString.append(fk + "= '" + insight + "' OR ");
-//							}
-//						} else{
-//							//if there is only one item to filter on
-//							filterString.append("(" + fk + "= '" + insight + "')");
-//						}
-//						
-//						i++;
-//					}
-//				}
-//				//if not one of the specified columns then use the name that FE passes
-//				else{
-					int i= 0;
-					for(Object insight: insightList){
-						
-						if(insightList.size() > 1){
-							//first
-							if(i==0) {
-								filterString.append("(" + columnKey + "= '" + insight + "' OR ");
-							}
-							
-							//last
-							else if (i == insightList.size()-1) {
-								filterString.append(columnKey + "= '" + insight + "')");
-							}
-							//middle
-							else{
-								filterString.append(columnKey + "= '" + insight + "' OR ");
-							}
-						} else{
-							//if there is only one item to filter on
-							filterString.append("(" + columnKey + "= '" + insight + "')");
+
+				int i= 0;
+				for(Object insight: insightList){
+
+					if(insightList.size() > 1){
+						//first
+						if(i==0) {
+							filterString.append("(" + columnKey + "= '" + insight + "' OR ");
 						}
-						
-						i++;
+
+						//last
+						else if (i == insightList.size()-1) {
+							filterString.append(columnKey + "= '" + insight + "')");
+						}
+						//middle
+						else{
+							filterString.append(columnKey + "= '" + insight + "' OR ");
+						}
+					} else{
+						//if there is only one item to filter on
+						filterString.append("(" + columnKey + "= '" + insight + "')");
 					}
-//				}
+
+					i++;
+				}
 				filterString.append(" AND ");
 			}
 		}
