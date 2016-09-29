@@ -24,7 +24,7 @@ public class DatabaseListReactor  extends AbstractReactor {
 		Map<String, Object> result = new HashMap<String, Object>();
 		List<String> enginesList = Arrays.asList(engines);
 		
-		result.put("engines", enginesList);
+		result.put("list", enginesList);
 		
 		myStore.put("database.list", result);
 		myStore.put("STATUS", PKQLRunner.STATUS.SUCCESS);
