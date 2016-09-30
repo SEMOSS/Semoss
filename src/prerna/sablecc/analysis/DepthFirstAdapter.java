@@ -1062,6 +1062,27 @@ public class DepthFirstAdapter extends AnalysisAdapter
         outADatabaseConceptsDatabaseop(node);
     }
 
+    public void inADatabaseMetamodelDatabaseop(ADatabaseMetamodelDatabaseop node)
+    {
+        defaultIn(node);
+    }
+
+    public void outADatabaseMetamodelDatabaseop(ADatabaseMetamodelDatabaseop node)
+    {
+        defaultOut(node);
+    }
+
+    @Override
+    public void caseADatabaseMetamodelDatabaseop(ADatabaseMetamodelDatabaseop node)
+    {
+        inADatabaseMetamodelDatabaseop(node);
+        if(node.getDatabaseMetamodel() != null)
+        {
+            node.getDatabaseMetamodel().apply(this);
+        }
+        outADatabaseMetamodelDatabaseop(node);
+    }
+
     public void inAPanelViz(APanelViz node)
     {
         defaultIn(node);
@@ -3801,60 +3822,6 @@ public class DepthFirstAdapter extends AnalysisAdapter
         outADataconnectdb(node);
     }
 
-    public void inADatabaseList(ADatabaseList node)
-    {
-        defaultIn(node);
-    }
-
-    public void outADatabaseList(ADatabaseList node)
-    {
-        defaultOut(node);
-    }
-
-    @Override
-    public void caseADatabaseList(ADatabaseList node)
-    {
-        inADatabaseList(node);
-        if(node.getDatabaselistToken() != null)
-        {
-            node.getDatabaselistToken().apply(this);
-        }
-        outADatabaseList(node);
-    }
-
-    public void inADatabaseConcepts(ADatabaseConcepts node)
-    {
-        defaultIn(node);
-    }
-
-    public void outADatabaseConcepts(ADatabaseConcepts node)
-    {
-        defaultOut(node);
-    }
-
-    @Override
-    public void caseADatabaseConcepts(ADatabaseConcepts node)
-    {
-        inADatabaseConcepts(node);
-        if(node.getDatabaseconceptsToken() != null)
-        {
-            node.getDatabaseconceptsToken().apply(this);
-        }
-        if(node.getLPar() != null)
-        {
-            node.getLPar().apply(this);
-        }
-        if(node.getWordOrNum() != null)
-        {
-            node.getWordOrNum().apply(this);
-        }
-        if(node.getRPar() != null)
-        {
-            node.getRPar().apply(this);
-        }
-        outADatabaseConcepts(node);
-    }
-
     public void inAComparatorEqualOrCompare(AComparatorEqualOrCompare node)
     {
         defaultIn(node);
@@ -4528,5 +4495,92 @@ public class DepthFirstAdapter extends AnalysisAdapter
             node.getCodeblock().apply(this);
         }
         outACodeblockTerm(node);
+    }
+
+    public void inADatabaseList(ADatabaseList node)
+    {
+        defaultIn(node);
+    }
+
+    public void outADatabaseList(ADatabaseList node)
+    {
+        defaultOut(node);
+    }
+
+    @Override
+    public void caseADatabaseList(ADatabaseList node)
+    {
+        inADatabaseList(node);
+        if(node.getDatabaselistToken() != null)
+        {
+            node.getDatabaselistToken().apply(this);
+        }
+        outADatabaseList(node);
+    }
+
+    public void inADatabaseConcepts(ADatabaseConcepts node)
+    {
+        defaultIn(node);
+    }
+
+    public void outADatabaseConcepts(ADatabaseConcepts node)
+    {
+        defaultOut(node);
+    }
+
+    @Override
+    public void caseADatabaseConcepts(ADatabaseConcepts node)
+    {
+        inADatabaseConcepts(node);
+        if(node.getDatabaseconceptsToken() != null)
+        {
+            node.getDatabaseconceptsToken().apply(this);
+        }
+        if(node.getLPar() != null)
+        {
+            node.getLPar().apply(this);
+        }
+        if(node.getEngineName() != null)
+        {
+            node.getEngineName().apply(this);
+        }
+        if(node.getRPar() != null)
+        {
+            node.getRPar().apply(this);
+        }
+        outADatabaseConcepts(node);
+    }
+
+    public void inADatabaseMetamodel(ADatabaseMetamodel node)
+    {
+        defaultIn(node);
+    }
+
+    public void outADatabaseMetamodel(ADatabaseMetamodel node)
+    {
+        defaultOut(node);
+    }
+
+    @Override
+    public void caseADatabaseMetamodel(ADatabaseMetamodel node)
+    {
+        inADatabaseMetamodel(node);
+        if(node.getDatabasemetamodelToken() != null)
+        {
+            node.getDatabasemetamodelToken().apply(this);
+        }
+        if(node.getLPar() != null)
+        {
+            node.getLPar().apply(this);
+        }
+        if(node.getEngineName() != null)
+        {
+            node.getEngineName().apply(this);
+        }
+        if(node.getRPar() != null)
+        {
+            node.getRPar().apply(this);
+        }
+        outADatabaseMetamodel(node);
     }
 }

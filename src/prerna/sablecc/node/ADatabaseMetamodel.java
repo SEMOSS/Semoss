@@ -5,26 +5,26 @@ package prerna.sablecc.node;
 import prerna.sablecc.analysis.*;
 
 @SuppressWarnings("nls")
-public final class ADatabaseConcepts extends PDatabaseConcepts
+public final class ADatabaseMetamodel extends PDatabaseMetamodel
 {
-    private TDatabaseconceptsToken _databaseconceptsToken_;
+    private TDatabasemetamodelToken _databasemetamodelToken_;
     private TLPar _lPar_;
     private TId _engineName_;
     private TRPar _rPar_;
 
-    public ADatabaseConcepts()
+    public ADatabaseMetamodel()
     {
         // Constructor
     }
 
-    public ADatabaseConcepts(
-        @SuppressWarnings("hiding") TDatabaseconceptsToken _databaseconceptsToken_,
+    public ADatabaseMetamodel(
+        @SuppressWarnings("hiding") TDatabasemetamodelToken _databasemetamodelToken_,
         @SuppressWarnings("hiding") TLPar _lPar_,
         @SuppressWarnings("hiding") TId _engineName_,
         @SuppressWarnings("hiding") TRPar _rPar_)
     {
         // Constructor
-        setDatabaseconceptsToken(_databaseconceptsToken_);
+        setDatabasemetamodelToken(_databasemetamodelToken_);
 
         setLPar(_lPar_);
 
@@ -37,8 +37,8 @@ public final class ADatabaseConcepts extends PDatabaseConcepts
     @Override
     public Object clone()
     {
-        return new ADatabaseConcepts(
-            cloneNode(this._databaseconceptsToken_),
+        return new ADatabaseMetamodel(
+            cloneNode(this._databasemetamodelToken_),
             cloneNode(this._lPar_),
             cloneNode(this._engineName_),
             cloneNode(this._rPar_));
@@ -47,19 +47,19 @@ public final class ADatabaseConcepts extends PDatabaseConcepts
     @Override
     public void apply(Switch sw)
     {
-        ((Analysis) sw).caseADatabaseConcepts(this);
+        ((Analysis) sw).caseADatabaseMetamodel(this);
     }
 
-    public TDatabaseconceptsToken getDatabaseconceptsToken()
+    public TDatabasemetamodelToken getDatabasemetamodelToken()
     {
-        return this._databaseconceptsToken_;
+        return this._databasemetamodelToken_;
     }
 
-    public void setDatabaseconceptsToken(TDatabaseconceptsToken node)
+    public void setDatabasemetamodelToken(TDatabasemetamodelToken node)
     {
-        if(this._databaseconceptsToken_ != null)
+        if(this._databasemetamodelToken_ != null)
         {
-            this._databaseconceptsToken_.parent(null);
+            this._databasemetamodelToken_.parent(null);
         }
 
         if(node != null)
@@ -72,7 +72,7 @@ public final class ADatabaseConcepts extends PDatabaseConcepts
             node.parent(this);
         }
 
-        this._databaseconceptsToken_ = node;
+        this._databasemetamodelToken_ = node;
     }
 
     public TLPar getLPar()
@@ -154,7 +154,7 @@ public final class ADatabaseConcepts extends PDatabaseConcepts
     public String toString()
     {
         return ""
-            + toString(this._databaseconceptsToken_)
+            + toString(this._databasemetamodelToken_)
             + toString(this._lPar_)
             + toString(this._engineName_)
             + toString(this._rPar_);
@@ -164,9 +164,9 @@ public final class ADatabaseConcepts extends PDatabaseConcepts
     void removeChild(@SuppressWarnings("unused") Node child)
     {
         // Remove child
-        if(this._databaseconceptsToken_ == child)
+        if(this._databasemetamodelToken_ == child)
         {
-            this._databaseconceptsToken_ = null;
+            this._databasemetamodelToken_ = null;
             return;
         }
 
@@ -195,9 +195,9 @@ public final class ADatabaseConcepts extends PDatabaseConcepts
     void replaceChild(@SuppressWarnings("unused") Node oldChild, @SuppressWarnings("unused") Node newChild)
     {
         // Replace child
-        if(this._databaseconceptsToken_ == oldChild)
+        if(this._databasemetamodelToken_ == oldChild)
         {
-            setDatabaseconceptsToken((TDatabaseconceptsToken) newChild);
+            setDatabasemetamodelToken((TDatabasemetamodelToken) newChild);
             return;
         }
 
