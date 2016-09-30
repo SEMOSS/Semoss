@@ -39,12 +39,8 @@ public class PKQLMetaTranslation extends Translation {
 		}
 	}
 	
-	public PKQLMetaTranslation() { // Test Constructor
-		frame = new TinkerFrame();
-		this.reactorNames = frame.getScriptReactors();
-		//		((TinkerFrame)frame).tryCustomGraph();
-		this.runner = new PKQLRunner();
-		//		fillReactors();
+	public PKQLMetaTranslation(PKQLRunner runner) { // Test Constructor
+		super(runner);
 	}
 	
 	/**
@@ -53,11 +49,7 @@ public class PKQLMetaTranslation extends Translation {
 	 * @param runner PKQLRunner: holds response from PKQL script and the status of whether the script errored or not
 	 */
 	public PKQLMetaTranslation(IDataMaker frame, PKQLRunner runner) {
-		// now get the data from tinker
-		this.frame = frame;
-		this.reactorNames = frame.getScriptReactors();
-		this.runner = runner;
-		//		fillReactors();
+		super(frame, runner);
 	}
 	
 	public Hashtable <String, Object> deinitReactor(String myName, String input, String output, boolean put) {
