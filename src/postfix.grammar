@@ -98,8 +98,10 @@ Tokens
  datanetworkconnect_token = 'network.connect';
  datanetworkdisconnect_token = 'network.disconnect';
  dataconnectdb_token = 'data.connectdb';
+ 
  databaselist_token = 'database.list';
  databaseconcepts_token = 'database.concepts';
+ databasemetamodel_token = 'database.metamodel';
  
  dashboardconfig = 'dashboard.config';
  //dashboard_join_token = 'dashboard.join';
@@ -180,6 +182,7 @@ dashboardop = // dashboardop is usually of the form dashboard.join, dashboard.ad
 databaseop = // databaseop is usually of the form database.list, database.concepts, etc.
 		{database_list} database_list
 		| {database_concepts} database_concepts
+		| {database_metamodel} database_metamodel
 		;
 
 panel_viz = // e.g. panel.viz(bar, [c:Title, c:Budget]); panelviz( vizType, ordered headers );
@@ -390,12 +393,7 @@ datanetworkconnect = datanetworkconnect_token l_par [tablename]:word_or_num? r_p
 
 datanetworkdisconnect = datanetworkdisconnect_token l_par r_par;
 
-
 dataconnectdb = dataconnectdb_token l_par word_or_num r_par;
-
-database_list = databaselist_token;
-
-database_concepts = databaseconcepts_token l_par word_or_num r_par;
 
 equal_or_compare = {comparator} comparator | {equal} equal;
 
@@ -434,3 +432,17 @@ input_or_expr = {expr} expr | {input} user_input | {open_data} open_data; //scri
   | {codeblock} codeblock
   //| {input} user_input
   ;
+  
+  
+//////////////////////////////////////////
+//////////////////////////////////////////
+////////// DATABASE OPERATIONS ///////////
+
+// get list of databases
+database_list = databaselist_token;
+
+// get list of concepts within database
+database_concepts = databaseconcepts_token l_par [engine_name]:id r_par;
+
+// get the engine metamodel
+database_metamodel = databasemetamodel_token l_par [engine_name]:id r_par;

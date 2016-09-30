@@ -357,6 +357,12 @@ public class AnalysisAdapter implements Analysis
     }
 
     @Override
+    public void caseADatabaseMetamodelDatabaseop(ADatabaseMetamodelDatabaseop node)
+    {
+        defaultCase(node);
+    }
+
+    @Override
     public void caseAPanelViz(APanelViz node)
     {
         defaultCase(node);
@@ -873,18 +879,6 @@ public class AnalysisAdapter implements Analysis
     }
 
     @Override
-    public void caseADatabaseList(ADatabaseList node)
-    {
-        defaultCase(node);
-    }
-
-    @Override
-    public void caseADatabaseConcepts(ADatabaseConcepts node)
-    {
-        defaultCase(node);
-    }
-
-    @Override
     public void caseAComparatorEqualOrCompare(AComparatorEqualOrCompare node)
     {
         defaultCase(node);
@@ -1042,6 +1036,24 @@ public class AnalysisAdapter implements Analysis
 
     @Override
     public void caseACodeblockTerm(ACodeblockTerm node)
+    {
+        defaultCase(node);
+    }
+
+    @Override
+    public void caseADatabaseList(ADatabaseList node)
+    {
+        defaultCase(node);
+    }
+
+    @Override
+    public void caseADatabaseConcepts(ADatabaseConcepts node)
+    {
+        defaultCase(node);
+    }
+
+    @Override
+    public void caseADatabaseMetamodel(ADatabaseMetamodel node)
     {
         defaultCase(node);
     }
@@ -1516,6 +1528,12 @@ public class AnalysisAdapter implements Analysis
 
     @Override
     public void caseTDatabaseconceptsToken(TDatabaseconceptsToken node)
+    {
+        defaultCase(node);
+    }
+
+    @Override
+    public void caseTDatabasemetamodelToken(TDatabasemetamodelToken node)
     {
         defaultCase(node);
     }

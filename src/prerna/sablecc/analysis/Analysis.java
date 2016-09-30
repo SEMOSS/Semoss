@@ -59,6 +59,7 @@ public interface Analysis extends Switch
     void caseADashboardAddDashboardop(ADashboardAddDashboardop node);
     void caseADatabaseListDatabaseop(ADatabaseListDatabaseop node);
     void caseADatabaseConceptsDatabaseop(ADatabaseConceptsDatabaseop node);
+    void caseADatabaseMetamodelDatabaseop(ADatabaseMetamodelDatabaseop node);
     void caseAPanelViz(APanelViz node);
     void caseAPanelComment(APanelComment node);
     void caseAPanelCommentEdit(APanelCommentEdit node);
@@ -145,8 +146,6 @@ public interface Analysis extends Switch
     void caseADatanetworkconnect(ADatanetworkconnect node);
     void caseADatanetworkdisconnect(ADatanetworkdisconnect node);
     void caseADataconnectdb(ADataconnectdb node);
-    void caseADatabaseList(ADatabaseList node);
-    void caseADatabaseConcepts(ADatabaseConcepts node);
     void caseAComparatorEqualOrCompare(AComparatorEqualOrCompare node);
     void caseAEqualEqualOrCompare(AEqualEqualOrCompare node);
     void caseAUserInput(AUserInput node);
@@ -174,6 +173,9 @@ public interface Analysis extends Switch
     void caseAAlphaTerm(AAlphaTerm node);
     void caseAMathFunTerm(AMathFunTerm node);
     void caseACodeblockTerm(ACodeblockTerm node);
+    void caseADatabaseList(ADatabaseList node);
+    void caseADatabaseConcepts(ADatabaseConcepts node);
+    void caseADatabaseMetamodel(ADatabaseMetamodel node);
 
     void caseTNumber(TNumber node);
     void caseTId(TId node);
@@ -254,6 +256,7 @@ public interface Analysis extends Switch
     void caseTDataconnectdbToken(TDataconnectdbToken node);
     void caseTDatabaselistToken(TDatabaselistToken node);
     void caseTDatabaseconceptsToken(TDatabaseconceptsToken node);
+    void caseTDatabasemetamodelToken(TDatabasemetamodelToken node);
     void caseTDashboardconfig(TDashboardconfig node);
     void caseTDashboardAddToken(TDashboardAddToken node);
     void caseTWherestr(TWherestr node);

@@ -13,7 +13,6 @@ import java.util.Vector;
 import com.google.gson.Gson;
 
 import prerna.algorithm.api.ITableDataFrame;
-import prerna.ds.TinkerFrame;
 import prerna.engine.api.IScriptReactor;
 import prerna.om.Dashboard;
 import prerna.sablecc.PKQLEnum.PKQLReactor;
@@ -42,6 +41,7 @@ import prerna.sablecc.node.ADashboardopScript;
 import prerna.sablecc.node.ADataFrame;
 import prerna.sablecc.node.ADatabaseConcepts;
 import prerna.sablecc.node.ADatabaseList;
+import prerna.sablecc.node.ADatabaseMetamodel;
 import prerna.sablecc.node.ADatabaseopScript;
 import prerna.sablecc.node.ADataconnect;
 import prerna.sablecc.node.ADataconnectdb;
@@ -110,6 +110,7 @@ import prerna.sablecc.node.PCsvRow;
 import prerna.sablecc.node.PKeyvalueGroup;
 import prerna.sablecc.node.PScript;
 import prerna.sablecc.node.TRelType;
+import prerna.sablecc.services.DatabasePkqlService;
 import prerna.ui.components.playsheets.datamakers.IDataMaker;
 import prerna.util.Constants;
 
@@ -156,24 +157,38 @@ public class Translation extends DepthFirstAdapter {
 	IDataMaker frame = null;
 	PKQLRunner runner = null;
 
-	public Translation() { // Test Constructor
-		frame = new TinkerFrame();
-		this.runner = new PKQLRunner();
-
-		this.reactorNames = frame.getScriptReactors();
-		fillApiReactors();
+	/**
+	 * Constructor for translation
+	 * Used for PKQL operations where a frame is not required
+	 * @param runner
+	 */
+	public Translation(PKQLRunner runner) {
+		this.runner = runner;
+		this.reactorNames = getDefaultReactors();
+	}		
+	
+	
+	private Map<String, String> getDefaultReactors() {
+		Map<String, String> defaultReactors = new Hashtable<String, String>();
+		// should add some in here :)
+		
+		return defaultReactors;
 	}
+
 	/**
 	 * Constructor that takes in the dataframe that it will perform its calculations off of and the runner that invoked the translation
 	 * @param frame IDataMaker
 	 * @param runner PKQLRunner: holds response from PKQL script and the status of whether the script errored or not
 	 */
 	public Translation(IDataMaker frame, PKQLRunner runner) {
-		// now get the data from tinker
+		this(runner);
+		// set the dataframe and add frame specific reactors
 		this.frame = frame;
-		this.runner = runner;
-
-		this.reactorNames = frame.getScriptReactors();
+		Map<String, String> frameReactorNames = frame.getScriptReactors();
+		if(reactorNames != null) {
+			this.reactorNames.putAll(frameReactorNames);
+		}
+		
 		fillApiReactors();
 	}
 
@@ -1907,53 +1922,37 @@ public class Translation extends DepthFirstAdapter {
 	
 	//**************************************** DATABASE RELATED OPERATIONS ****************************************//
 	
-	public void inADatabaseList(ADatabaseList node)
-	{
-		System.out.println("Translation.inADatabaseList() with node = "+ node );
-		if(reactorNames.containsKey(PKQLEnum.DATABASE_LIST)) {
-			initReactor(PKQLEnum.DATABASE_LIST);
-			String nodeStr = node.toString().trim();
-			curReactor.put(PKQLEnum.DATABASE_LIST, nodeStr);
-		}
-	}
-
-	public void outADatabaseList(ADatabaseList node)
-	{
-		System.out.println("Translation.outADatabaseList() with node = "+ node );
-		String thisNode = node.toString().trim();
-		IScriptReactor thisReactor = curReactor;
-		Hashtable <String, Object> thisReactorHash = deinitReactor(PKQLEnum.DATABASE_LIST, thisNode, PKQLEnum.DATABASE_LIST);
-		runner.setResponse("Successfully returned list of databases");
+	@Override
+	public void outADatabaseList(ADatabaseList node) {
+		// just get the list of engines
+		List<String> dbList = DatabasePkqlService.getDatabaseList();
+		// put it in a map so the FE knows what it is looking at
+		Map<String, List<String>> returnData = new Hashtable<String, List<String>>();
+		returnData.put("engines", dbList);
+		runner.setReturnData(returnData);
 		runner.setStatus(PKQLRunner.STATUS.SUCCESS);
+    }
+	
+	@Override
+	public void outADatabaseConcepts(ADatabaseConcepts node) {
+		// get the engine
+		String engineName = node.getEngineName().toString().trim();
+		List<String> concepts = DatabasePkqlService.getConceptsWithinEngine(engineName);
 		
-		//set retData
-		Map<String, Object> retDataMap = (Map<String, Object>) thisReactor.getValue(PKQLEnum.DATABASE_LIST);
-		runner.setReturnData(retDataMap);
+		// put it in a map so the FE knows what it is looking at
+		Map<String, List<String>> returnData = new Hashtable<String, List<String>>();
+		returnData.put("concepts", concepts);
+		
+		runner.setReturnData(returnData);
+		runner.setStatus(PKQLRunner.STATUS.SUCCESS);
 	}
 	
-	public void inADatabaseConcepts(ADatabaseConcepts node)
-	{
-		System.out.println("Translation.inADatabaseConcepts() with node = "+ node );
-		if(reactorNames.containsKey(PKQLEnum.DATABASE_CONCEPTS)) {
-			initReactor(PKQLEnum.DATABASE_CONCEPTS);
-			String nodeStr = node.toString().trim();
-			curReactor.put(PKQLEnum.DATABASE_CONCEPTS, nodeStr);
-		}
-	}
-
-	public void outADatabaseConcepts(ADatabaseConcepts node)
-	{
-		System.out.println("Translation.outADatabaseConcepts() with node = "+ node );
-		String nodeDatabaseConcepts = node.getDatabaseconceptsToken().toString().trim();
-		String thisNode = node.toString().trim();
-		IScriptReactor thisReactor = curReactor;
-		Hashtable <String, Object> thisReactorHash = deinitReactor(PKQLEnum.DATABASE_CONCEPTS, nodeDatabaseConcepts, PKQLEnum.DATABASE_CONCEPTS);
-		runner.setResponse("Successfully returned list of concepts in "+thisReactor.getValue(PKQLEnum.WORD_OR_NUM)+" database");
+	@Override
+	public void outADatabaseMetamodel(ADatabaseMetamodel node) {
+		// get the engine
+		String engineName = node.getEngineName().toString().trim();
+		// get the metamodel for the engine
+		runner.setReturnData(DatabasePkqlService.getMetamodel(engineName));
 		runner.setStatus(PKQLRunner.STATUS.SUCCESS);
-		
-		//set retData
-		Map<String, Object> retDataMap = (Map<String, Object>) thisReactor.getValue(PKQLEnum.DATABASE_CONCEPTS);
-		runner.setReturnData(retDataMap);
-	}
-    
+    }
 }
