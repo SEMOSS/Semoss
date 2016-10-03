@@ -1928,7 +1928,7 @@ public class Translation extends DepthFirstAdapter {
 		List<String> dbList = DatabasePkqlService.getDatabaseList();
 		// put it in a map so the FE knows what it is looking at
 		Map<String, List<String>> returnData = new Hashtable<String, List<String>>();
-		returnData.put("engines", dbList);
+		returnData.put("list", dbList);
 		runner.setReturnData(returnData);
 		runner.setStatus(PKQLRunner.STATUS.SUCCESS);
     }
@@ -1941,7 +1941,7 @@ public class Translation extends DepthFirstAdapter {
 		
 		// put it in a map so the FE knows what it is looking at
 		Map<String, List<String>> returnData = new Hashtable<String, List<String>>();
-		returnData.put("concepts", concepts);
+		returnData.put("list", concepts);
 		
 		runner.setReturnData(returnData);
 		runner.setStatus(PKQLRunner.STATUS.SUCCESS);
