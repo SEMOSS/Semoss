@@ -39,6 +39,7 @@ import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
 import prerna.engine.api.IEngine;
+import prerna.poi.main.helper.ImportOptions;
 import prerna.util.Constants;
 import prerna.util.Utility;
 
@@ -62,8 +63,64 @@ public class CSVReader extends AbstractCSVFileReader {
 	 * @throws FileWriterException 
 	 * @throws HeaderClassException 
 	 */
-	public IEngine importFileWithOutConnection(String smssLocation, String engineName, String fileNames, String customBase, String owlFile) 
+	/*public IEngine importFileWithOutConnection(String smssLocation, String engineName, String fileNames, String customBase, String owlFile) 
 			throws FileNotFoundException, IOException {
+		boolean error = false;
+		logger.setLevel(Level.WARN);
+		String[] files = prepareReader(fileNames, customBase, owlFile, smssLocation);
+		try {
+			openRdfEngineWithoutConnection(engineName);
+			for(int i = 0; i<files.length;i++)
+			{
+				try {
+					String fileName = files[i];
+					// open the csv file
+					// and get the headers
+					openCSVFile(fileName);			
+					// load the prop file for the CSV file 
+					if(propFileExist){
+						openProp(propFile);
+					} else {
+						rdfMap = rdfMapArr[i];
+					}
+					// get the user selected datatypes for each header
+					preParseRdfCSVMetaData(rdfMap);
+					parseMetadata();
+					processDisplayNames();
+					skipRows();
+					processRelationShips();
+				} finally {
+					closeCSVFile();
+				}
+			}
+			loadMetadataIntoEngine();
+			createBaseRelations();
+		} catch(FileNotFoundException e) {
+			error = true;
+			throw new FileNotFoundException(e.getMessage());
+		} catch(IOException e) {
+			error = true;
+			throw new IOException(e.getMessage());
+		} finally {
+			if(error || autoLoad) {
+				closeDB();
+				closeOWL();
+			} else {
+				commitDB();
+			}
+		}
+
+		return engine;
+	}*/
+	//Restructuring
+	public IEngine importFileWithOutConnection(ImportOptions options) 
+			throws FileNotFoundException, IOException {
+		
+		String smssLocation = options.getSMSSLocation();
+		String engineName = options.getDbName();
+		String fileNames = options.getFileLocations();
+		String customBase = options.getBaseUrl();
+		String owlFile = options.getOwlFileLocation();
 		boolean error = false;
 		logger.setLevel(Level.WARN);
 		String[] files = prepareReader(fileNames, customBase, owlFile, smssLocation);
@@ -122,7 +179,45 @@ public class CSVReader extends AbstractCSVFileReader {
 	 * @throws FileNotFoundException 
 	 * @throws IOException 
 	 */
-	public void importFileWithConnection(String engineName, String fileNames, String customBase, String owlFile) throws FileNotFoundException, IOException {
+	/*public void importFileWithConnection(String engineName, String fileNames, String customBase, String owlFile) throws FileNotFoundException, IOException {
+		logger.setLevel(Level.WARN);
+		String[] files = prepareReader(fileNames, customBase, owlFile, engineName);
+		openEngineWithConnection(engineName);
+		for(int i = 0; i<files.length;i++)
+		{
+			String fileName = files[i];
+			// open the csv file
+			// and get the headers
+			openCSVFile(fileName);	
+			try {
+				// load the prop file for the CSV file 
+				if(propFileExist){
+					openProp(propFile);
+				} else {
+					rdfMap = rdfMapArr[i];
+				}
+				// get the user selected datatypes for each header
+				preParseRdfCSVMetaData(rdfMap);
+				parseMetadata();
+				processDisplayNames();
+				skipRows();
+				processRelationShips();
+			} finally {
+				closeCSVFile();
+			}
+		} 
+		loadMetadataIntoEngine();
+		createBaseRelations();
+		commitDB();
+		engine.loadTransformedNodeNames();
+	}*/
+	
+	public void importFileWithConnection(ImportOptions options) throws FileNotFoundException, IOException {
+		
+		String engineName = options.getDbName();
+		String fileNames = options.getFileLocations();
+		String customBase = options.getBaseUrl();
+		String owlFile = options.getOwlFileLocation();
 		logger.setLevel(Level.WARN);
 		String[] files = prepareReader(fileNames, customBase, owlFile, engineName);
 		openEngineWithConnection(engineName);
@@ -154,6 +249,8 @@ public class CSVReader extends AbstractCSVFileReader {
 		commitDB();
 		engine.loadTransformedNodeNames();
 	}
+	
+	
 
 	/**
 	 * Get the data types and the csvColumnToIndex maps ready for the file load

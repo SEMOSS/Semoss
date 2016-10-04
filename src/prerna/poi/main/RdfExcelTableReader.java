@@ -46,6 +46,7 @@ import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import org.openrdf.model.vocabulary.RDF;
 
 import prerna.engine.api.IEngine;
+import prerna.poi.main.helper.ImportOptions;
 import prerna.util.ArrayUtilityMethods;
 import prerna.util.Constants;
 import prerna.util.Utility;
@@ -79,7 +80,72 @@ public class RdfExcelTableReader extends AbstractFileReader {
 	 * @return 
 	 * @throws IOException 
 	 */
-	public IEngine importFileWithOutConnection(String smssLocation, String engineName, String fileNames, String customBase, String owlFile) throws IOException {
+	/*public IEngine importFileWithOutConnection(String smssLocation, String engineName, String fileNames, String customBase, String owlFile) throws IOException {
+		boolean error = false;
+		
+		logger.setLevel(Level.WARN);
+		String[] files = prepareReader(fileNames, customBase, owlFile, smssLocation);
+		try {
+			openRdfEngineWithoutConnection(engineName);
+			for(int i = 0; i<files.length;i++)
+			{
+				String fileName = files[i];
+				openExcelWorkbook(fileName);
+				try {
+					for(int j = 0; j < workbook.getNumberOfSheets(); j++)
+					{
+						XSSFSheet sheet = workbook.getSheetAt(j);
+						XSSFRow headRow = sheet.getRow(0);
+						headerList = new ArrayList<String>();
+						for(int k = 0; k < headRow.getLastCellNum(); k++) {
+							headerList.add(headRow.getCell(k).toString());
+						}
+						// Process your sheet here.
+						// load the prop file for the Excel file
+						if(propFileExist){
+							propFile = headerList.get(headerList.size()-1);
+							headerList.remove(headerList.size()-1);
+							openProp(propFile);
+						} else {
+							rdfMap = rdfMapArr[i];
+						}
+						//TODO: same method used in other classes
+						parseMetadata();
+						// determine the type of data in each column of Excel file
+//						processConceptRelationURIs(sheet);
+//						processNodePropURIs(sheet);
+//						processRelationPropURIs(sheet);
+						processRelationShips(sheet);
+					}
+				} finally {
+					closeExcelWorkbook();
+				}
+			}
+			createBaseRelations();
+		} catch(FileNotFoundException e) {
+			error = true;
+			throw new FileNotFoundException(e.getMessage());
+		} catch(IOException e) {
+			error = true;
+			throw new IOException(e.getMessage());
+		} finally {
+			if(error || autoLoad) {
+				closeDB();
+				closeOWL();
+			}
+		}
+		
+		return engine;
+	}*/
+	
+	//Restructuring
+	public IEngine importFileWithOutConnection(ImportOptions options) throws IOException {
+		
+		String smssLocation = options.getSMSSLocation();
+		String engineName = options.getDbName();
+		String fileNames = options.getFileLocations();
+		String customBase = options.getBaseUrl();
+		String owlFile = options.getOwlFileLocation();
 		boolean error = false;
 		
 		logger.setLevel(Level.WARN);
@@ -203,7 +269,47 @@ public class RdfExcelTableReader extends AbstractFileReader {
 	 * @param owlFile 		String automatically generated within SEMOSS to determine the location of the OWL file that is produced
 	 * @throws IOException 
 	 */
-	public void importFileWithConnection(String engineName, String fileNames, String customBase, String owlFile) throws IOException {
+	/*public void importFileWithConnection(String engineName, String fileNames, String customBase, String owlFile) throws IOException {
+		logger.setLevel(Level.WARN);
+		String[] files = prepareReader(fileNames, customBase, owlFile, engineName);
+		openEngineWithConnection(engineName);
+		
+		try {
+			for(int i = 0; i<files.length;i++) {
+				String fileName = files[i];
+				openExcelWorkbook(fileName);	
+				for(int j = 0; j < workbook.getNumberOfSheets(); j++)
+				{
+					XSSFSheet sheet = workbook.getSheetAt(j);
+					propFile = sheet.getRow(0).getCell(sheet.getRow(0).getLastCellNum()-1).toString();
+					// Process your sheet here.
+					// load the prop file for the Excel file
+					if(propFileExist){
+						openProp(propFile);
+					} else {
+						rdfMap = rdfMapArr[i];
+					}
+					// determine the type of data in each column of Excel file
+//					processConceptRelationURIs(sheet);
+//					processNodePropURIs(sheet);
+//					processRelationPropURIs(sheet);
+					processRelationShips(sheet);
+				}
+			}
+		} finally {
+			closeExcelWorkbook();
+		}
+		createBaseRelations();
+		commitDB();
+	}*/
+	
+	//Restructuring
+	public void importFileWithConnection(ImportOptions options) throws IOException {
+		
+		String engineName = options.getDbName();
+		String fileNames = options.getFileLocations();
+		String customBase = options.getBaseUrl();
+		String owlFile = options.getOwlFileLocation();
 		logger.setLevel(Level.WARN);
 		String[] files = prepareReader(fileNames, customBase, owlFile, engineName);
 		openEngineWithConnection(engineName);

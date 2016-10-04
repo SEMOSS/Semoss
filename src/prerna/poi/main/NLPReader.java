@@ -34,13 +34,50 @@ import java.util.Hashtable;
 import java.util.List;
 
 import prerna.engine.api.IEngine;
+import prerna.poi.main.helper.ImportOptions;
 
 public class NLPReader extends AbstractFileReader {
 
 	private List<TripleWrapper> triples = new ArrayList<TripleWrapper>();
 
-	public IEngine importFileWithOutConnection(String smssLocation, String engineName,  String fileNames, String customBase, String owlFile) 
+	/*public IEngine importFileWithOutConnection(String smssLocation, String engineName,  String fileNames, String customBase, String owlFile) 
 			throws FileNotFoundException, IOException {	
+		boolean error = false;
+		
+		String[] files = prepareReader(fileNames, customBase, owlFile, smssLocation);
+		openRdfEngineWithoutConnection(engineName);		
+		try {
+			//if user selected a map, load just as before--using the prop file to discover Excel->URI translation
+			ProcessNLP processor = new ProcessNLP();
+			triples = processor.generateTriples(files);
+			createNLPrelationships();
+			createBaseRelations();
+		} catch(FileNotFoundException e) {
+			error = true;
+			throw new FileNotFoundException(e.getMessage());
+		} catch(IOException e) {
+			error = true;
+			throw new IOException(e.getMessage());
+		} finally {
+			if(error || autoLoad) {
+				closeDB();
+				closeOWL();
+			} else {
+				commitDB();
+			}
+		}
+		
+		return engine;
+	}*/
+	//Restructuring
+	public IEngine importFileWithOutConnection(ImportOptions options) 
+			throws FileNotFoundException, IOException {	
+		
+		String smssLocation = options.getSMSSLocation();
+		String engineName = options.getDbName();
+		String fileNames = options.getFileLocations();
+		String customBase = options.getBaseUrl();
+		String owlFile = options.getOwlFileLocation();
 		boolean error = false;
 		
 		String[] files = prepareReader(fileNames, customBase, owlFile, smssLocation);
@@ -69,8 +106,24 @@ public class NLPReader extends AbstractFileReader {
 		return engine;
 	}
 
-	public void importFileWithConnection(String engineName, String fileNames, String customBase, String owlFile) 
+/*	public void importFileWithConnection(String engineName, String fileNames, String customBase, String owlFile) 
 			throws FileNotFoundException, IOException {
+		String[] files = prepareReader(fileNames, customBase, owlFile, engineName);
+		openEngineWithConnection(engineName);
+		ProcessNLP processor = new ProcessNLP();
+		triples = processor.generateTriples(files);
+		createNLPrelationships();
+		createBaseRelations();
+		commitDB();
+	}*/
+	
+	public void importFileWithConnection(ImportOptions options) 
+			throws FileNotFoundException, IOException {
+		
+		String engineName = options.getDbName();
+		String fileNames = options.getFileLocations();
+		String customBase = options.getBaseUrl();
+		String owlFile = options.getOwlFileLocation();
 		String[] files = prepareReader(fileNames, customBase, owlFile, engineName);
 		openEngineWithConnection(engineName);
 		ProcessNLP processor = new ProcessNLP();
