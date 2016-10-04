@@ -2,7 +2,6 @@ package prerna.ds.H2;
 
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.Hashtable;
 import java.util.List;
 import java.util.Map;
@@ -14,11 +13,6 @@ import prerna.om.Dashboard;
 import prerna.om.Insight;
 import prerna.rdf.query.builder.SQLInterpreter;
 
-/**
- * 
- * 
- *
- */
 public class H2Joiner {
 
 	private static int counter = 0;
@@ -130,14 +124,34 @@ public class H2Joiner {
 	public String joinFrames(List<List<String>> joinCols, H2Frame[] frames) {
 		List<String[]> newjoinCols = convertJoinColsToJoinVals(frames, joinCols);
 		
+		// we need to determine if one of the h2frames is not in-memory
+		// once we find one that is not in-mem, we will shift all of them to be in that schema
+		// which schema is chosen if more than one is not in-mem doesn't matter
+		String physicalSchema = null;
+		for(H2Frame frame : frames) {
+			if(!frame.isInMem()) {
+				physicalSchema = frame.getSchema();
+				break;
+			}
+		}
+		
+		// if physical schema is set
+		// now loop through and make sure there are all in the same location
+		if(physicalSchema != null) {
+			for(H2Frame frame : frames) {
+				if(!frame.getSchema().equals(physicalSchema)) {
+					frame.convertToOnDiskFrame(physicalSchema);
+				}
+			}
+		}
+		
 		if(frames.length < 2) {
 			throw new IllegalArgumentException("Must Pass in at least 2 Frames!!");
 		}
 		else if(frames.length == 2) {
 			return joinFrames(frames[0], frames[1], newjoinCols);
 		}
-		
-		
+
 		for(H2Frame frame : frames) {
 			if(frame.isJoined()) {
 				throw new IllegalArgumentException("Frame already joined");

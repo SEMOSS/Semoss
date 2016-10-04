@@ -363,6 +363,12 @@ public class AnalysisAdapter implements Analysis
     }
 
     @Override
+    public void caseADatabaseConceptPropertiesDatabaseop(ADatabaseConceptPropertiesDatabaseop node)
+    {
+        defaultCase(node);
+    }
+
+    @Override
     public void caseAPanelViz(APanelViz node)
     {
         defaultCase(node);
@@ -1053,6 +1059,12 @@ public class AnalysisAdapter implements Analysis
     }
 
     @Override
+    public void caseADatabaseConceptProperties(ADatabaseConceptProperties node)
+    {
+        defaultCase(node);
+    }
+
+    @Override
     public void caseADatabaseMetamodel(ADatabaseMetamodel node)
     {
         defaultCase(node);
@@ -1528,6 +1540,12 @@ public class AnalysisAdapter implements Analysis
 
     @Override
     public void caseTDatabaseconceptsToken(TDatabaseconceptsToken node)
+    {
+        defaultCase(node);
+    }
+
+    @Override
+    public void caseTDatabaseconceptpropertiesToken(TDatabaseconceptpropertiesToken node)
     {
         defaultCase(node);
     }

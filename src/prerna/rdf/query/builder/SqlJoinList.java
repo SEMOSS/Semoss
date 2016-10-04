@@ -153,4 +153,8 @@ public class SqlJoinList {
 		return this.joinList.isEmpty();
 	}
 
+	public void clear() {
+		this.joinList.clear();
+		this.joinPositionMap.clear();
+	}
 }
