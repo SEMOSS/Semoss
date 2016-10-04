@@ -141,11 +141,21 @@ public class InsightFilesToDatabaseReader {
 
 			// need to create the .temp file object before we upload so we can delete the file if an error occurs
 			tempPropFile = new File(smssLocation);
+			
+			ImportOptions options = new ImportOptions();
+			options.setSMSSLocation(smssLocation);
+			options.setDbName(engineName);
+			options.setFileLocation(fileLocation);
+			options.setBaseUrl("");
+			options.setOwlFileLocation(owlPath);
+			options.setRDBMSDriverType(SQLQueryUtil.DB_TYPE.H2_DB);
+			options.setAllowDuplicates(true);			
 
 			RDBMSFlatCSVUploader uploader = new RDBMSFlatCSVUploader();
 			uploader.setAutoLoad(false);
 			uploader.setDataTypeMapList(dataTypeMapList);
-			engine = uploader.importFileWithOutConnection(smssLocation, engineName, fileLocation, "", owlPath, SQLQueryUtil.DB_TYPE.H2_DB, true);
+			//engine = uploader.importFileWithOutConnection(smssLocation, engineName, fileLocation, "", owlPath, SQLQueryUtil.DB_TYPE.H2_DB, true);
+			engine = uploader.importFileWithOutConnection(options);
 			
 			// need to store the new tables so we know which columns came from where
 			// when we update the data.import cvs file pkql to be data.import from the new

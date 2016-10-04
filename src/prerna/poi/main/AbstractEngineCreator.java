@@ -94,6 +94,31 @@ public class AbstractEngineCreator {
 		obj = Constants.DEFAULT_PROPERTY_URI;
 		engine.doAction(IEngine.ACTION_TYPE.ADD_STATEMENT, new Object[]{sub, typeOf, obj, true});
 	}
+	
+	//added for connect to external RDBMS workflow
+	protected void openRdbmsEngineWithConnection(String schema, String dbName) {
+		connectToExternalRDBMSEngine(schema,dbName);
+		openOWLWithOutConnection(owlFile, IEngine.ENGINE_TYPE.RDBMS, this.customBaseURI);
+	}
+	//added for connect to external RDBMS workflow
+	private void connectToExternalRDBMSEngine(String schema, String dbName) {
+		engine = new RDBMSNativeEngine();
+		engine.setEngineName(dbName);
+		Properties prop = new Properties();
+		String dbBaseFolder = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER).replace("\\", System.getProperty("file.separator"));
+		prop.put(Constants.CONNECTION_URL, queryUtil.getConnectionURL(dbBaseFolder,dbName));
+		prop.put(Constants.ENGINE, dbName);
+		prop.put(Constants.USERNAME, queryUtil.getDefaultDBUserName());
+		prop.put(Constants.PASSWORD, queryUtil.getDefaultDBPassword());
+		prop.put(Constants.DRIVER,queryUtil.getDatabaseDriverClassName());
+		prop.put(Constants.TEMP_CONNECTION_URL, queryUtil.getTempConnectionURL());
+		prop.put(Constants.RDBMS_TYPE,queryUtil.getDatabaseType().toString());
+		prop.put(Constants.DREAMER, "db" + System.getProperty("file.separator") + dbName + System.getProperty("file.separator") + dbName + "_Questions.properties");
+		prop.put("TEMP", "TRUE");
+		prop.put("SCHEMA", schema);//schema comes from existing db (connect to external db(schema))
+		((AbstractEngine) engine).setProperties(prop);
+		engine.openDB(null);
+	}
 
 	protected void openEngineWithConnection(String engineName) {
 		engine = (IEngine)DIHelper.getInstance().getLocalProp(engineName);

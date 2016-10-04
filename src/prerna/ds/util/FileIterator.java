@@ -85,6 +85,8 @@ public class FileIterator implements Iterator<IHeadersDataRow>{
 			String type = types[i];
 			if(type.contains("DOUBLE")) {
 				try {
+					//added to remove $ and , in data and then try parsing as Double
+					row[i] = row[i].replaceAll("$,", "");
 					cleanRow[i] = Double.parseDouble(row[i].trim());
 				} catch(NumberFormatException ex) {
 					//do nothing

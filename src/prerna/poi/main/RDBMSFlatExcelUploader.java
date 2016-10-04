@@ -96,7 +96,71 @@ public class RDBMSFlatExcelUploader extends AbstractFileReader {
 	 * @return									The new engine created
 	 * @throws IOException 
 	 */
-	public IEngine importFileWithOutConnection(String smssLocation, String engineName, String fileLocations, String customBaseURI, String owlPath, SQLQueryUtil.DB_TYPE dbDriverType, boolean allowDuplicates) throws IOException {
+	/*public IEngine importFileWithOutConnection(String smssLocation, String engineName, String fileLocations, String customBaseURI, String owlPath, SQLQueryUtil.DB_TYPE dbDriverType, boolean allowDuplicates) throws IOException {
+		boolean error = false;
+		queryUtil = SQLQueryUtil.initialize(dbDriverType);
+		// sets the custom base uri, sets the owl path, sets the smss location
+		// and returns the fileLocations split into an array based on ';' character
+		String[] files = prepareReader(fileLocations, customBaseURI, owlPath, smssLocation);
+		LOGGER.setLevel(Level.WARN);
+		try {
+			// create the engine and the owler
+			openRdbmsEngineWithoutConnection(engineName);
+			for(int i = 0; i < files.length;i++)
+			{
+				String fileName = files[i];
+				// cause of stupid split adding empty values
+				if(fileName.isEmpty()) {
+					continue;
+				}
+				// get the user defined headers if present
+				if(userHeaderNames != null) {
+					excelHeaderNames = userHeaderNames.get(i);
+				}
+				// similar to other csv reading
+				// we load the user defined types
+				if(dataTypeMapList != null && !dataTypeMapList.isEmpty()) {
+					dataTypeMap = dataTypeMapList.get(i); 
+				}
+				processExcel(fileName, dataTypeMap);
+			}
+			// write the owl file
+			createBaseRelations();
+			// create the base question sheet
+			RDBMSEngineCreationHelper.writeDefaultQuestionSheet(engine, queryUtil);
+		} catch(IOException e) {
+			e.printStackTrace();
+			error = true;
+			String errorMessage = e.getMessage();
+			if(errorMessage == null || errorMessage.trim().isEmpty()) {
+				errorMessage = "Uknown error occured...";
+			}
+			throw new IOException(errorMessage);
+		} finally {
+			// close the helper
+			xlHelper.clear();
+			// close other stuff
+			if(error || autoLoad) {
+				closeDB();
+				closeOWL();
+			} else {
+				commitDB();
+			}
+		}
+
+		return engine;
+	}*/
+	
+	public IEngine importFileWithOutConnection(ImportOptions options) throws IOException {
+		
+		String smssLocation = options.getSMSSLocation();
+		String engineName = options.getDbName();
+		String fileLocations = options.getFileLocations();
+		String customBaseURI = options.getBaseUrl();
+		String owlPath = options.getOwlFileLocation();		
+		SQLQueryUtil.DB_TYPE dbDriverType = options.getRDBMSDriverType();
+		boolean allowDuplicates = options.isAllowDuplicates();
+		
 		boolean error = false;
 		queryUtil = SQLQueryUtil.initialize(dbDriverType);
 		// sets the custom base uri, sets the owl path, sets the smss location
@@ -161,7 +225,73 @@ public class RDBMSFlatExcelUploader extends AbstractFileReader {
 	 * @param allowDuplicates					Boolean to determine if we should delete duplicate rows
 	 * @throws IOException 
 	 */
-	public void importFileWithConnection(String smssLocation, String fileLocations, String customBaseURI, String owlPath, prerna.util.sql.SQLQueryUtil.DB_TYPE dbDriverType, boolean allowDuplicates) throws IOException {
+	/*public void importFileWithConnection(String smssLocation, String fileLocations, String customBaseURI, String owlPath, prerna.util.sql.SQLQueryUtil.DB_TYPE dbDriverType, boolean allowDuplicates) throws IOException {
+		boolean error = false;
+		
+		queryUtil = SQLQueryUtil.initialize(dbDriverType);
+		// sets the custom base uri, sets the owl path, sets the smss location
+		// and returns the fileLocations split into an array based on ';' character
+		String[] files = prepareReader(fileLocations, customBaseURI, owlPath, smssLocation);
+
+		LOGGER.setLevel(Level.WARN);
+		try {
+			// create the engine and the owler
+			openEngineWithConnection(smssLocation);
+			for(int i = 0; i < files.length;i++)
+			{
+				String fileName = files[i];
+				// cause of stupid split adding empty values
+				if(fileName.isEmpty()) {
+					continue;
+				}
+				// need to update to get the rdbms structure to determine how the new files should be added
+				existingRDBMSStructure = RDBMSEngineCreationHelper.getExistingRDBMSStructure(engine, queryUtil);
+				// get the user defined headers if present
+				if(userHeaderNames != null) {
+					excelHeaderNames = userHeaderNames.get(i);
+				}
+				// similar to other csv reading
+				// we load the user defined types
+				if(dataTypeMapList != null && !dataTypeMapList.isEmpty()) {
+					dataTypeMap = dataTypeMapList.get(i); 
+				}
+				processExcel(fileName, dataTypeMap);
+			}
+			// write the owl file
+			createBaseRelations();
+			// create the base question sheet
+			RDBMSEngineCreationHelper.addToExistingQuestionFile(this.engine, newTables, queryUtil);
+		} catch(IOException e) {
+			e.printStackTrace();
+			error = true;
+			String errorMessage = e.getMessage();
+			if(errorMessage == null || errorMessage.trim().isEmpty()) {
+				errorMessage = "Uknown error occured...";
+			}
+			throw new IOException(errorMessage);
+		} finally {
+			// close the helper
+			xlHelper.clear();
+			// close other stuff
+			if(error || autoLoad) {
+				closeDB();
+				closeOWL();
+			} else {
+				commitDB();
+			}
+		}
+	}*/
+	
+	public void importFileWithConnection(ImportOptions options) throws IOException {
+		
+		String smssLocation = options.getSMSSLocation();
+		String engineName = options.getDbName();
+		String fileLocations = options.getFileLocations();
+		String customBaseURI = options.getBaseUrl();
+		String owlPath = options.getOwlFileLocation();		
+		SQLQueryUtil.DB_TYPE dbDriverType = options.getRDBMSDriverType();
+		boolean allowDuplicates = options.isAllowDuplicates();
+
 		boolean error = false;
 		
 		queryUtil = SQLQueryUtil.initialize(dbDriverType);
@@ -760,7 +890,18 @@ public class RDBMSFlatExcelUploader extends AbstractFileReader {
 		// do the actual db loading
 		RDBMSFlatExcelUploader reader = new RDBMSFlatExcelUploader();
 		String owlFile = baseFolder + "/" + propWriter.owlFile;
-		reader.importFileWithOutConnection(propWriter.propFileName, engineName, fileNames, customBase, owlFile, dbType, false);
+		
+ImportOptions options = new ImportOptions();
+		
+		options.setSMSSLocation(propWriter.propFileName);
+		options.setDbName(engineName);
+		options.setFileLocation(fileNames);
+		options.setBaseUrl(customBase);
+		options.setOwlFileLocation(owlFile);		
+		options.setRDBMSDriverType(dbType);
+		options.setAllowDuplicates(false);
+		//reader.importFileWithOutConnection(propWriter.propFileName, engineName, fileNames, customBase, owlFile, dbType, false);
+		reader.importFileWithOutConnection(options);
 		
 		// create the smss file and drop temp file
 		File propFile = new File(propWriter.propFileName);

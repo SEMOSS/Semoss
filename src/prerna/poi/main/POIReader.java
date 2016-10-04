@@ -52,6 +52,7 @@ import org.openrdf.sail.SailException;
 import prerna.engine.api.IEngine;
 import prerna.engine.api.ISelectStatement;
 import prerna.engine.api.ISelectWrapper;
+import prerna.poi.main.helper.ImportOptions;
 import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.test.TestUtilityMethods;
 import prerna.util.Constants;
@@ -69,12 +70,12 @@ public class POIReader extends AbstractFileReader {
 	private Hashtable <String, Hashtable <String, String>> concepts = new Hashtable <String, Hashtable <String, String>>();
 	private Hashtable <String, Vector <String>> relations = new Hashtable <String, Vector<String>>();
 	private Hashtable <String, String> sheets = new Hashtable <String, String> ();
-	
+
 	private int indexUniqueId = 1;
-//	private List<String> recreateIndexList = new Vector<String>(); 
+	//	private List<String> recreateIndexList = new Vector<String>(); 
 	private List<String> tempIndexAddedList = new Vector<String>();
 	private List<String> tempIndexDropList = new Vector<String>();	
-	
+
 	/**
 	 * Load data into SEMOSS into an existing database
 	 * 
@@ -94,7 +95,7 @@ public class POIReader extends AbstractFileReader {
 	 * @throws InvalidUploadFormatException
 	 */
 	//	public void importFileWithConnection(String engineName, String fileNames, String customBase, String customMap, String owlFile)
-	public void importFileWithConnection(String engineName, String fileNames, String customBase, String owlFile)
+	/*	public void importFileWithConnection(String engineName, String fileNames, String customBase, String owlFile)
 			throws FileNotFoundException, IOException {
 		logger.setLevel(Level.ERROR);
 		String[] files = prepareReader(fileNames, customBase, owlFile, engineName);
@@ -111,7 +112,33 @@ public class POIReader extends AbstractFileReader {
 		createBaseRelations();
 		commitDB();
 		engine.loadTransformedNodeNames();
+	}*/
+
+	public void importFileWithConnection(ImportOptions options)
+			throws FileNotFoundException, IOException {		
+
+		String engineName = options.getDbName();
+		String fileNames = options.getFileLocations();
+		String customBase = options.getBaseUrl();
+		String owlFile = options.getOwlFileLocation();
+		logger.setLevel(Level.ERROR);
+		String[] files = prepareReader(fileNames, customBase, owlFile, engineName);
+		openEngineWithConnection(engineName);
+
+		// load map file for existing db
+		//		if (!customMap.isEmpty()) {
+		//			openProp(customMap);
+		//		}
+		for (String fileName : files) {
+			importFile(fileName);
+		}
+		loadMetadataIntoEngine();
+		createBaseRelations();
+		commitDB();
+		engine.loadTransformedNodeNames();
 	}
+
+
 
 	/**
 	 * Loading data into SEMOSS to create a new database
@@ -132,11 +159,11 @@ public class POIReader extends AbstractFileReader {
 	 * @throws InvalidUploadFormatException
 	 */
 	//	public void importFileWithOutConnection(String smssLocation, String engineName, String fileNames, String customBase, String customMap, String owlFile)
-	public IEngine importFileWithOutConnection(String smssLocation, String engineName, String fileNames, String customBase, String owlFile)
+	/*	public IEngine importFileWithOutConnection(String smssLocation, String engineName, String fileNames, String customBase, String owlFile)
 			throws FileNotFoundException, IOException {
 		boolean error = false;
 		logger.setLevel(Level.WARN);
-		
+
 		String[] files = prepareReader(fileNames, customBase, owlFile, smssLocation);
 		try {
 			openRdfEngineWithoutConnection(engineName);
@@ -164,11 +191,52 @@ public class POIReader extends AbstractFileReader {
 				commitDB();
 			}
 		}
-		
+
+		return engine;
+	}*/
+	//Restructuring
+	public IEngine importFileWithOutConnection(ImportOptions options)
+			throws FileNotFoundException, IOException {
+		String smssLocation = options.getSMSSLocation();
+		String engineName = options.getDbName();
+		String fileNames = options.getFileLocations();
+		String customBase = options.getBaseUrl();
+		String owlFile = options.getOwlFileLocation();
+		boolean error = false;
+		logger.setLevel(Level.WARN);
+
+		String[] files = prepareReader(fileNames, customBase, owlFile, smssLocation);
+		try {
+			openRdfEngineWithoutConnection(engineName);
+			// load map file for db if user wants to use specific URIs
+			//			if (!customMap.isEmpty()) {
+			//				openProp(customMap);
+			//			}
+			// if user selected a map, load just as before--using the prop file to discover Excel->URI translation
+			for (String fileName : files) {
+				importFile(fileName);
+			}
+			loadMetadataIntoEngine();
+			createBaseRelations();
+		}  catch(FileNotFoundException e) {
+			error = true;
+			throw new FileNotFoundException(e.getMessage());
+		} catch(IOException e) {
+			error = true;
+			throw new IOException(e.getMessage());
+		} finally {
+			if(error || autoLoad) {
+				closeDB();
+				closeOWL();
+			} else {
+				commitDB();
+			}
+		}
+
 		return engine;
 	}
 
-	public IEngine importFileWithOutConnectionRDBMS(String smssLocation, String engineName, String fileNames, String customBase, String owlFile, SQLQueryUtil.DB_TYPE dbType, boolean allowDuplicates)
+	/*public IEngine importFileWithOutConnectionRDBMS(String smssLocation, String engineName, String fileNames, String customBase, String owlFile, SQLQueryUtil.DB_TYPE dbType, boolean allowDuplicates)
 			throws FileNotFoundException, IOException {
 
 		boolean error = false;
@@ -197,10 +265,50 @@ public class POIReader extends AbstractFileReader {
 				commitDB();
 			}
 		}
-		
+
+		return engine;
+	}*/
+
+	//Restructing
+	public IEngine importFileWithOutConnectionRDBMS(ImportOptions options)
+			throws FileNotFoundException, IOException {
+
+		String smssLocation = options.getSMSSLocation();
+		String engineName = options.getDbName();
+		String fileNames = options.getFileLocations();
+		String customBase = options.getBaseUrl();
+		String owlFile = options.getOwlFileLocation();
+		SQLQueryUtil.DB_TYPE dbType = options.getRDBMSDriverType();
+		boolean allowDuplicates = options.isAllowDuplicates();
+		boolean error = false;
+		queryUtil = SQLQueryUtil.initialize(dbType);
+		String[] files = prepareReader(fileNames, customBase, owlFile, smssLocation);
+		try {
+			openRdbmsEngineWithoutConnection(engineName);
+			// if user selected a map, load just as before--using the prop file to discover Excel->URI translation
+			for (String fileName : files) {
+				importFileRDBMS(fileName);
+			}
+			commitDB();
+			createBaseRelations();
+			RDBMSEngineCreationHelper.writeDefaultQuestionSheet(engine, queryUtil);
+		} catch(FileNotFoundException e) {
+			error = true;
+			throw new FileNotFoundException(e.getMessage());
+		} catch(IOException e) {
+			error = true;
+			throw new IOException(e.getMessage());
+		} finally {
+			if(error || autoLoad) {
+				closeDB();
+				closeOWL();
+			} else {
+				commitDB();
+			}
+		}
+
 		return engine;
 	}
-
 	/**
 	 * Load subclassing information into the db and the owl file Requires the data to be in specific excel tab labeled "Subclass", with Parent nodes
 	 * in the first column and child nodes in the second column
@@ -234,7 +342,7 @@ public class POIReader extends AbstractFileReader {
 		int lastRow = subclassSheet.getLastRowNum();
 		for (int i = 1; i <= lastRow; i++) {
 			row = subclassSheet.getRow(i);
-			
+
 			String parentURI = owler.addConcept( Utility.cleanString(row.getCell(0).toString(), true) );
 			String childURI = owler.addConcept( Utility.cleanString(row.getCell(1).toString(), true) );
 			// add triples to engine
@@ -376,6 +484,11 @@ public class POIReader extends AbstractFileReader {
 
 		System.err.println("Processing Sheet..  " + sheetName);
 
+		// we need to convert from the generic data types from the FE to the sql specific types
+		if(sqlHash.isEmpty()) {
+			createSQLTypes();
+		}
+
 		if(lSheet != null)
 		{
 			XSSFRow header = lSheet.getRow(0);
@@ -389,12 +502,25 @@ public class POIReader extends AbstractFileReader {
 			if(header != null)
 			{
 				String type = header.getCell(0).getStringCellValue();
-				
+
 				// we need to perform the correct type check regardless if it is a relationship or a node
 				// we shouldn't be assuming a relationship can only exist for something of type string
 				// as a note, this is however the case in rdf since relationships use URIs which are strings
 				String [] initTypes = predictRowTypes(lSheet);
-				
+
+				// convert to sql types
+				int numCols = initTypes.length;
+				String[] sqlDataTypes = new String[numCols];
+				for(int colIdx = 0; colIdx < numCols; colIdx++) {
+					if(initTypes[colIdx] != null){	
+						if(sqlHash.get(initTypes[colIdx]) == null)
+							sqlDataTypes[colIdx] = initTypes[colIdx];
+						else
+							sqlDataTypes[colIdx] = sqlHash.get(initTypes[colIdx]);
+					}
+				}
+
+
 				if(type.equalsIgnoreCase("Relation"))
 				{
 					// process it as relation
@@ -414,7 +540,8 @@ public class POIReader extends AbstractFileReader {
 					if(!concepts.containsKey(fromName))
 					{
 						Hashtable <String, String> props = new Hashtable<String, String>();
-						props.put(fromName, initTypes[1]);
+						//props.put(fromName, initTypes[1]);
+						props.put(fromName, sqlDataTypes[1]);
 						concepts.put(fromName, props);
 					}
 
@@ -422,7 +549,8 @@ public class POIReader extends AbstractFileReader {
 					if(!concepts.containsKey(toName))
 					{
 						Hashtable <String, String> props = new Hashtable<String, String>();
-						props.put(toName, initTypes[2]);
+						//props.put(toName, initTypes[2]);
+						props.put(toName, sqlDataTypes[2]);
 						concepts.put(toName, props);
 					}
 
@@ -431,14 +559,16 @@ public class POIReader extends AbstractFileReader {
 				else
 				{
 					// now predict the columns
-//					String [] firstRowCells = getCells(colPredictor);
+					//					String [] firstRowCells = getCells(colPredictor);
 					String [] headers = getCells(header);
 					String [] types = new String[headers.length];
 
-//					int delta = types.length - initTypes.length;
-					System.arraycopy(initTypes, 0, types, 0, initTypes.length);
+					//					int delta = types.length - initTypes.length;
+					//System.arraycopy(initTypes, 0, types, 0, initTypes.length);
+					System.arraycopy(sqlDataTypes, 0, types, 0, sqlDataTypes.length);
 
-					for(int deltaIndex = initTypes.length;deltaIndex < types.length;deltaIndex++)
+					//for(int deltaIndex = initTypes.length;deltaIndex < types.length;deltaIndex++)
+					for(int deltaIndex = sqlDataTypes.length;deltaIndex < types.length;deltaIndex++)
 						types[deltaIndex] = "varchar(800)";
 
 					String conceptName = headers[1];
@@ -505,7 +635,7 @@ public class POIReader extends AbstractFileReader {
 
 		return cols;
 	}
-	
+
 	public String getCell(XSSFCell thisCell) {
 		if(thisCell != null && thisCell.getCellType() != Cell.CELL_TYPE_BLANK)
 		{
@@ -522,12 +652,12 @@ public class POIReader extends AbstractFileReader {
 	public String[] predictRowTypes(XSSFSheet lSheet)
 	{
 		int numRows = lSheet.getLastRowNum();
-		
+
 		XSSFRow header = lSheet.getRow(0);
 		int numCells = header.getLastCellNum();
-		
+
 		String [] types = new String[numCells];
-		
+
 		// need to loop through and make sure types are good
 		// we know the first col is always null as it is not used
 		for(int i = 1; i < numCells; i++) {
@@ -546,7 +676,7 @@ public class POIReader extends AbstractFileReader {
 							type = newTypePred;
 							break ROW_LOOP;
 						}
-						
+
 						// need to also add the type null check for the first row
 						if(!newTypePred.equals(type) && type != null) {
 							// this means there are multiple types in one column
@@ -579,10 +709,10 @@ public class POIReader extends AbstractFileReader {
 				types[i] = type;
 			}
 		}
-		
+
 		return types;
 	}
-	
+
 	public String[] predictRowTypes(String [] thisOutput)
 	{
 		String [] types = new String[thisOutput.length];
@@ -641,13 +771,13 @@ public class POIReader extends AbstractFileReader {
 					int sheetCounter = 0;
 					XSSFCell sheetNameCell = row.getCell(0);
 					// unlike rdf, we do not have multiple load types for sheets
-//					XSSFCell sheetTypeCell = row.getCell(1);				
+					//					XSSFCell sheetTypeCell = row.getCell(1);				
 					if (sheetNameCell != null) {
 						sheetCounter++;
 						// get the name of the sheet
 						String sheetToLoad = sheetNameCell.getStringCellValue();
 						// determine the type of load
-//						String loadTypeName = sheetTypeCell.getStringCellValue();
+						//						String loadTypeName = sheetTypeCell.getStringCellValue();
 
 						assimilateSheet(sheetToLoad, workbook);
 
@@ -688,10 +818,10 @@ public class POIReader extends AbstractFileReader {
 				if(!allRels.isEmpty()) {
 					createRelations(thisConcept, allRels, workbook);
 				}
-				
-//				for(int toIndex = 0;toIndex < allRels.size();toIndex++)
-//					// now process each one of these things
-//					createRelations(thisConcept, allRels.elementAt(toIndex), workbook);
+
+				//				for(int toIndex = 0;toIndex < allRels.size();toIndex++)
+				//					// now process each one of these things
+				//					createRelations(thisConcept, allRels.elementAt(toIndex), workbook);
 			}
 		} catch (FileNotFoundException e) {
 			e.printStackTrace();
@@ -755,21 +885,21 @@ public class POIReader extends AbstractFileReader {
 
 				// I also need to record who has this piece
 				// so when we get to the point of inserting I know what i am doing
-//				if(prop1.size() > prop2.size())
-//				{
-//					prop2.put(relKey + "_FK", prop1.get(relKey));
-//					concepts.put(thisConcept, prop2); // God am I ever sure of anything
-//					sheets.put(affinity, thisConcept);
-//				}
-//				else
-//				{
-				
+				//				if(prop1.size() > prop2.size())
+				//				{
+				//					prop2.put(relKey + "_FK", prop1.get(relKey));
+				//					concepts.put(thisConcept, prop2); // God am I ever sure of anything
+				//					sheets.put(affinity, thisConcept);
+				//				}
+				//				else
+				//				{
+
 				// due to loops, can't use the previous logic to determine FK based on who has less props
 				// TODO: need to enable using the * to determine the FK position like in CSV files
 				prop1.put(thisConcept+"_FK", prop2.get(thisConcept));
 				concepts.put(relKey, prop1); // God am I ever sure of anything
 				sheets.put(affinity, relKey);
-//				}
+				//				}
 			}
 		}
 
@@ -841,7 +971,7 @@ public class POIReader extends AbstractFileReader {
 					inserter = inserter + cells[cellIndex];
 				else
 					inserter = inserter + " , " + cells[cellIndex];
-				
+
 				types[cellIndex] = concepts.get(conceptName).get(cells[cellIndex]);
 			}
 			inserter = inserter + ") VALUES ";
@@ -929,7 +1059,7 @@ public class POIReader extends AbstractFileReader {
 			}
 			owler.addRelation(tableToSet, tableToInsert, predicate);
 
-			
+
 			createIndices(tableToSet, tableToSet);
 
 			for(int rowIndex = 1;rowIndex <= lastRow;rowIndex++)
@@ -943,7 +1073,7 @@ public class POIReader extends AbstractFileReader {
 
 				// need to determine if i am performing an update or an insert
 				String getRowCountQuery = "SELECT COUNT(*) as ROW_COUNT FROM " + tableToSet + " WHERE " + 
-									tableToSet + " = '" + cells[setter] + "' AND " + tableToInsert +  "_FK IS NULL";
+						tableToSet + " = '" + cells[setter] + "' AND " + tableToInsert +  "_FK IS NULL";
 				boolean isInsert = false;
 				ISelectWrapper wrapper = WrapperManager.getInstance().getSWrapper(engine, getRowCountQuery);
 				if(wrapper.hasNext()){
@@ -984,7 +1114,7 @@ public class POIReader extends AbstractFileReader {
 					// is it a straight insert since there are only two columns
 					if(cols.size() == 2) {
 						String insert = "INSERT INTO " + tableToSet + "(" + tableToSet + " ," +  tableToInsert + "_FK" + 
-										") VALUES ( '" + cells[setter] + "' , '" + cells[inserter] + "')";
+								") VALUES ( '" + cells[setter] + "' , '" + cells[inserter] + "')";
 						engine.insertData(insert);
 					} else {
 						// need to generate query to pull all existing information
@@ -1011,7 +1141,7 @@ public class POIReader extends AbstractFileReader {
 						}
 
 						String existingValues = "(SELECT DISTINCT " + unknownCols + " FROM " + tableToSet + 
-										" WHERE " + tableToSet + "='" + cells[setter] + "' ) AS TEMP_FK";
+								" WHERE " + tableToSet + "='" + cells[setter] + "' ) AS TEMP_FK";
 						StringBuilder selectingValues = new StringBuilder();
 						selectingValues.append("SELECT DISTINCT ");
 
@@ -1069,86 +1199,86 @@ public class POIReader extends AbstractFileReader {
 	}
 
 
-//	private void createRelations(String fromName, String toName, XSSFWorkbook workbook)
-//	{
-//		// now come the relations
-//		// I need 
-//		String sheetName = sheets.get(fromName + "-" + toName);
-//		String tableToSet = sheets.get(fromName + "-" + toName + "AFF");
-//
-//
-//		System.out.println("Affinity is " + tableToSet);
-//		String tableToInsert = toName;
-//		if(tableToSet.equalsIgnoreCase(tableToInsert))
-//			tableToInsert = fromName;
-//		owler.addRelation(tableToInsert, tableToSet, null);
-//		// I have told folks not to do implicit reification so therefore I will ignore everything
-//		// i.e. NOOOOOO properties on relations
-//
-//		// the aff is the table where I need to insert
-//		// which also means that is what I need to look up to insert
-//
-//		// huge assumption here but
-//		String updateString = "";
-//		boolean update = false;
-//		if(concepts.get(tableToSet).size() <= 2)
-//		{
-//			//updateString = "MERGE INTO  " + tableToSet + "  KEY(" + tableToSet +") VALUES "; // + ", " + tableToInsert + "_FK) VALUES "; //+ " SET ";
-//			updateString = "INSERT INTO " + tableToSet + "(" + tableToSet + " ," +  tableToInsert + "_FK" + ") VALUES ";
-//			// this is the case for insert really
-//		}
-//		else
-//		{
-//			// this is an update
-//			updateString = "Update " + tableToSet + "  SET "; // + ", " + tableToInsert + "_FK) VALUES "; //+ " SET ";
-//			update = true;
-//		}
-//
-//
-//		XSSFSheet lSheet = workbook.getSheet(sheetName);
-//		int lastRow = lSheet.getLastRowNum();
-//
-//		XSSFRow thisRow = lSheet.getRow(0);
-//		String [] headers = getCells(thisRow);
-//		// realistically it is only second and third
-//		headers[1] = Utility.cleanString(headers[1], true);
-//		headers[2] = Utility.cleanString(headers[2], true);
-//
-//		int setter, inserter;
-//		if(headers[1].equalsIgnoreCase(tableToSet))
-//		{
-//			setter = 1;
-//			inserter = 2;
-//		}
-//		else
-//		{
-//			setter = 2;
-//			inserter = 1;
-//		}
-//		String values = "";
-//		for(int rowIndex = 1;rowIndex <= lastRow;rowIndex++)
-//		{
-//			thisRow = lSheet.getRow(rowIndex);
-//			String [] cells = getCells(thisRow);
-//			//String [] cells = Utility.castToTypes(uCells, types);
-//			values = "";
-//			//values = "" + tableToSet + "," +  tableToInsert + " VALUES ";
-//			if(!update) {
-//				values = "( '" + cells[setter] + "' , '" + cells[inserter] + "')";
-//			} else {
-//				values = tableToSet + " = '" + cells[setter] + "' WHERE " + tableToInsert +  "_FK" + " = '" + cells[inserter] + "'";
-//			}
-//			try {
-//				engine.insertData(updateString + values);
-//			} catch (Exception e) {
-//				// TODO Auto-generated catch block
-//				e.printStackTrace();
-//				System.out.println("update query...  " + updateString + values);
-//				System.exit(1);
-//			}
-//		}
-//		System.out.println("update query...  " + updateString + values);
-//	}
+	//	private void createRelations(String fromName, String toName, XSSFWorkbook workbook)
+	//	{
+	//		// now come the relations
+	//		// I need 
+	//		String sheetName = sheets.get(fromName + "-" + toName);
+	//		String tableToSet = sheets.get(fromName + "-" + toName + "AFF");
+	//
+	//
+	//		System.out.println("Affinity is " + tableToSet);
+	//		String tableToInsert = toName;
+	//		if(tableToSet.equalsIgnoreCase(tableToInsert))
+	//			tableToInsert = fromName;
+	//		owler.addRelation(tableToInsert, tableToSet, null);
+	//		// I have told folks not to do implicit reification so therefore I will ignore everything
+	//		// i.e. NOOOOOO properties on relations
+	//
+	//		// the aff is the table where I need to insert
+	//		// which also means that is what I need to look up to insert
+	//
+	//		// huge assumption here but
+	//		String updateString = "";
+	//		boolean update = false;
+	//		if(concepts.get(tableToSet).size() <= 2)
+	//		{
+	//			//updateString = "MERGE INTO  " + tableToSet + "  KEY(" + tableToSet +") VALUES "; // + ", " + tableToInsert + "_FK) VALUES "; //+ " SET ";
+	//			updateString = "INSERT INTO " + tableToSet + "(" + tableToSet + " ," +  tableToInsert + "_FK" + ") VALUES ";
+	//			// this is the case for insert really
+	//		}
+	//		else
+	//		{
+	//			// this is an update
+	//			updateString = "Update " + tableToSet + "  SET "; // + ", " + tableToInsert + "_FK) VALUES "; //+ " SET ";
+	//			update = true;
+	//		}
+	//
+	//
+	//		XSSFSheet lSheet = workbook.getSheet(sheetName);
+	//		int lastRow = lSheet.getLastRowNum();
+	//
+	//		XSSFRow thisRow = lSheet.getRow(0);
+	//		String [] headers = getCells(thisRow);
+	//		// realistically it is only second and third
+	//		headers[1] = Utility.cleanString(headers[1], true);
+	//		headers[2] = Utility.cleanString(headers[2], true);
+	//
+	//		int setter, inserter;
+	//		if(headers[1].equalsIgnoreCase(tableToSet))
+	//		{
+	//			setter = 1;
+	//			inserter = 2;
+	//		}
+	//		else
+	//		{
+	//			setter = 2;
+	//			inserter = 1;
+	//		}
+	//		String values = "";
+	//		for(int rowIndex = 1;rowIndex <= lastRow;rowIndex++)
+	//		{
+	//			thisRow = lSheet.getRow(rowIndex);
+	//			String [] cells = getCells(thisRow);
+	//			//String [] cells = Utility.castToTypes(uCells, types);
+	//			values = "";
+	//			//values = "" + tableToSet + "," +  tableToInsert + " VALUES ";
+	//			if(!update) {
+	//				values = "( '" + cells[setter] + "' , '" + cells[inserter] + "')";
+	//			} else {
+	//				values = tableToSet + " = '" + cells[setter] + "' WHERE " + tableToInsert +  "_FK" + " = '" + cells[inserter] + "'";
+	//			}
+	//			try {
+	//				engine.insertData(updateString + values);
+	//			} catch (Exception e) {
+	//				// TODO Auto-generated catch block
+	//				e.printStackTrace();
+	//				System.out.println("update query...  " + updateString + values);
+	//				System.exit(1);
+	//			}
+	//		}
+	//		System.out.println("update query...  " + updateString + values);
+	//	}
 
 	/**
 	 * Load specific sheet in workbook
@@ -1403,18 +1533,21 @@ public class POIReader extends AbstractFileReader {
 	public static void main(String [] args) throws FileNotFoundException, IOException
 	{
 		TestUtilityMethods.loadDIHelper();
-		
+
 		POIReader reader = new POIReader();
+		ImportOptions options = new ImportOptions();
 		// DATABASE WILL BE WRITTEN WHERE YOUR DB FOLDER IS IN A FOLDER WITH THE ENGINE NAME
 		// SMSS file will not be created at the moment.. will add shortly
-		String fileNames = "C:\\Users\\mahkhalil\\Desktop\\Medical_Devices_Data.xlsx";
-		String smssLocation = "";
-		String engineName = "test";
-		String customBase = "http://semoss.org/ontologies";
-		String owlFile = DIHelper.getInstance().getProperty("BaseFolder") + "\\db\\" + engineName + "\\" + engineName + "_OWL.OWL";
-		SQLQueryUtil.DB_TYPE dbType = SQLQueryUtil.DB_TYPE.H2_DB;
-		
-		reader.importFileWithOutConnectionRDBMS(smssLocation, engineName, fileNames, customBase, owlFile, dbType, false);
+		String fileNames = "C:\\Users\\mahkhalil\\Desktop\\Medical_Devices_Data.xlsx";options.setFileLocation(fileNames);
+		String smssLocation = "";options.setSMSSLocation(smssLocation);
+		String engineName = "test";options.setDbName(engineName);
+		String customBase = "http://semoss.org/ontologies";options.setBaseUrl(customBase);
+		String owlFile = DIHelper.getInstance().getProperty("BaseFolder") + "\\db\\" + engineName + "\\" + engineName + "_OWL.OWL";options.setOwlFileLocation(owlFile);
+		SQLQueryUtil.DB_TYPE dbType = SQLQueryUtil.DB_TYPE.H2_DB;options.setRDBMSDriverType(dbType);
+		options.setAllowDuplicates(false);
+
+		//reader.importFileWithOutConnectionRDBMS(smssLocation, engineName, fileNames, customBase, owlFile, dbType, false);
+		reader.importFileWithOutConnectionRDBMS(options);
 	}
 
 }
