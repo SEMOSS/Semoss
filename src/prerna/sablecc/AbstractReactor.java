@@ -9,6 +9,7 @@ import java.util.Hashtable;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.Vector;
 
 import com.github.mustachejava.DefaultMustacheFactory;
@@ -343,4 +344,8 @@ public abstract class AbstractReactor implements IScriptReactor {
 		return this.myStore.remove(this.lastKeyAdded);
 	}
 	
+	@Override
+	public Set<String> getKeys() {
+		return myStore.keySet();
+	}
 }
