@@ -15,11 +15,11 @@ public class DataConnectDBReactor  extends AbstractReactor{
 	
 	@Override
 	public Iterator process() {
-		List engine = (List)myStore.get(PKQLEnum.WORD_OR_NUM);
+		String engine = (String)myStore.get(PKQLEnum.WORD_OR_NUM);
 		System.out.println(engine);
 		
 		NativeFrame frame = (NativeFrame)myStore.get("G");
-		frame.setConnection(engine.get(0).toString().trim());
+		frame.setConnection(engine.trim());
 
 		return null;
 	}
