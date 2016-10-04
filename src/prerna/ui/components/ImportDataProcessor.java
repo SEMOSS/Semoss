@@ -50,6 +50,8 @@ import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import prerna.engine.api.IEngine;
 import prerna.engine.api.IEngine.ENGINE_TYPE;
 import prerna.engine.impl.AbstractEngine;
+import prerna.poi.main.AbstractCSVFileReader;
+import prerna.poi.main.AbstractFileReader;
 import prerna.poi.main.CSVReader;
 import prerna.poi.main.NLPReader;
 import prerna.poi.main.POIReader;
@@ -71,22 +73,14 @@ public class ImportDataProcessor {
 	private static final Logger logger = LogManager.getLogger(ImportDataProcessor.class.getName());
 	private String baseDirectory;
 	
-	private IEngine engine;
-	private ImportOptions.IMPORT_METHOD importMethod;
-	private ImportOptions.IMPORT_TYPE importType;
-	private ImportOptions.DB_TYPE dbType;
-	private String engineName;
-	private String filePath;
-	private String customBaseUri;
-	
 	/**
 	 * Centralized point for performing a database upload
 	 * @param options					ImportOptions object containing all the necessary data for the upload
-	 * @throws IOException				If an error occurs, it is sent as an IOException
+	 * @throws Exception 
 	 */
-	public void runProcessor(ImportOptions options) throws IOException {
+	public void runProcessor(ImportOptions options) throws Exception {
 
-		importMethod = options.getImportMethod();
+		ImportOptions.IMPORT_METHOD importMethod = options.getImportMethod();
 		String baseDir = options.getBaseFolder();
 
 		// check for basic info that is required.. if not present, throw an error right away
@@ -120,17 +114,14 @@ public class ImportDataProcessor {
 	 * @throws IOException 
 	 */
 	private void createNewDb(ImportOptions options) throws IOException {
-		importType = options.getImportType();
-		dbType = options.getDbType();
-		engineName = options.getDbName();
-		filePath = options.getFileLocations();
-		customBaseUri = options.getBaseUrl();
-		String defaultSmssLocation = options.getSMSSLocation();
-		String defaultQuestionSheet = options.getQuestionFile();
+		IEngine engine = null;
+		ImportOptions.DB_TYPE dbType = options.getDbType();
+		String engineName = options.getDbName();
+		options.getBaseUrl();
 		// autoLoad = false ---> means we will close the engine and then start it up again using the smss file...
 		Boolean autoLoad = (options.isAutoLoad() != null) ? options.isAutoLoad() : true;	
 		
-		checkImportOptions();// perform checks on data being passed, if missing info, throws Exception
+		checkImportOptions(options);// perform checks on data being passed, if missing info, throws Exception
 		
 		File propFile = null;//file object for .temp file
 		File newProp = null;//file object for .smss file
@@ -153,8 +144,8 @@ public class ImportDataProcessor {
 			
 			//then process based on what type of database - RDF or RDBMS
 			switch(dbType){
-			case RDF : createNewRDF(autoLoad, smssLocation, owlPath, options);break;
-			case RDBMS : createNewRDBMS(autoLoad, smssLocation, owlPath, options);break;
+			case RDF : engine = createNewRDF(options);break;
+			case RDBMS : engine = createNewRDBMS(options);break;
 			default: String errorMessage = "Database type, " + dbType + ", is not recognized as a valid format";
 					 throw new IOException(errorMessage);
 			}
@@ -258,107 +249,122 @@ public class ImportDataProcessor {
 		}
 	}
 
-	private void createNewRDF(Boolean autoLoad, String smssLocation, String owlPath, ImportOptions options) throws Exception{		
+	private IEngine createNewRDF(ImportOptions options) throws Exception{	
+		// autoLoad = false ---> means we will close the engine and then start it up again using the smss file...
+		Boolean autoLoad = (options.isAutoLoad() != null) ? options.isAutoLoad() : true;
+		options.setAutoLoad(autoLoad);
+		ImportOptions.IMPORT_TYPE importType = options.getImportType();
 		Hashtable<String, String>[] metamodelInfo; 
+		AbstractFileReader reader = null;
+		IEngine engine;
 		
 		switch(importType){
 		// if it is POI excel using the loader sheet format
-		case EXCEL_POI : POIReader poiReader = new POIReader();
-		poiReader.setAutoLoad(autoLoad);
-						 engine = poiReader.importFileWithOutConnection(smssLocation, engineName, filePath, customBaseUri, owlPath);break;
+		case EXCEL_POI : reader = new POIReader();
+						 reader.setAutoLoad(autoLoad);
+						 engine = reader.importFileWithOutConnection(options);break;
 						 
 		// if it is a flat table excel to be loaded as a RDF
 		// this is similar to csv file but loops through each sheet
-		case EXCEL : RdfExcelTableReader rdfExcelReader = new RdfExcelTableReader();
-		rdfExcelReader.setAutoLoad(autoLoad);
-			 		 metamodelInfo = options.getMetamodelArray();
-			 		// if a metamodel has been defined set it for the reader to use; if not, it assumes a hand written prop file location is specified in the last column of each sheet
-			 		 if(metamodelInfo != null) {			 			 
-			 			rdfExcelReader.setRdfMapArr(metamodelInfo);
-			 		 }
-			 		 engine = rdfExcelReader.importFileWithOutConnection(smssLocation, engineName, filePath, customBaseUri, owlPath);break;
+		case EXCEL : reader = new RdfExcelTableReader();
+		reader.setAutoLoad(autoLoad);
+ 		 metamodelInfo = options.getMetamodelArray();
+ 		// if a metamodel has been defined set it for the reader to use; if not, it assumes a hand written prop file location is specified in the last column of each sheet
+ 		 if(metamodelInfo != null) {			 			 
+ 			reader.setRdfMapArr(metamodelInfo);
+ 		 }
+ 		 engine = reader.importFileWithOutConnection(options);break;
 			 		 
 		// if it is a flat csv table upload
-		case CSV : CSVReader csvReader = new CSVReader();
-				   csvReader.setAutoLoad(autoLoad);				   
-				   metamodelInfo = options.getMetamodelArray();
-				   if(metamodelInfo != null) {
-					   csvReader.setRdfMapArr(metamodelInfo);
-				   }
-				   engine = csvReader.importFileWithOutConnection(smssLocation, engineName, filePath, customBaseUri, owlPath);break;
+		case CSV : reader = new CSVReader();
+		reader.setAutoLoad(autoLoad);				   
+		   metamodelInfo = options.getMetamodelArray();
+		   if(metamodelInfo != null) {
+			   reader.setRdfMapArr(metamodelInfo);
+		   }
+		   
+		   engine = reader.importFileWithOutConnection(options);break;
 				   
-		case NLP : NLPReader nlpReader = new NLPReader();
-				   nlpReader.setAutoLoad(autoLoad);
-				   engine = nlpReader.importFileWithOutConnection(smssLocation, engineName, filePath, customBaseUri, owlPath);break;
-		
+		case NLP :reader = new NLPReader();
+		reader.setAutoLoad(autoLoad);
+		   engine = reader.importFileWithOutConnection(options);break; 
+		   
 		// no other options exist, throw an error
 		default : String errorMessage = "Import type, " + importType + ", in a RDF database format is not supported";
 				  throw new IOException(errorMessage);
-		}		
+		}	
+		return engine;
 
 	}
 	
-	private void createNewRDBMS(Boolean autoLoad, String smssLocation, String owlPath, ImportOptions options) throws Exception{
+	private IEngine createNewRDBMS(ImportOptions options) throws Exception{
 		
 		Hashtable<String, String>[] metamodelInfo;
-		// grab rdbms specific options
-		SQLQueryUtil.DB_TYPE rdbmsDriverType = options.getRDBMSDriverType();
 		// default is to just upload and keep duplications in data, i.e. what you put in is what you get
 		Boolean allowDups = (options.isAllowDuplicates() == null) ? true : options.isAllowDuplicates();
+		options.setAllowDuplicates(allowDups);
+		// autoLoad = false ---> means we will close the engine and then start it up again using the smss file...
+		Boolean autoLoad = (options.isAutoLoad() != null) ? options.isAutoLoad() : true;
+		options.setAutoLoad(autoLoad);
+		ImportOptions.IMPORT_TYPE importType = options.getImportType();
+		AbstractFileReader reader = null;
+		IEngine engine;
 
 		switch(importType){
 		// excel upload from a loader sheet format as a RDBMS
 		case EXCEL_POI: POIReader poiReader = new POIReader();
 						poiReader.setAutoLoad(autoLoad);
-						engine = poiReader.importFileWithOutConnectionRDBMS(smssLocation, engineName, filePath, customBaseUri, owlPath, rdbmsDriverType, allowDups);break;
+						engine = poiReader.importFileWithOutConnectionRDBMS(options);break;
+						
 		
 		// csv upload into rdbms
-		case CSV: RDBMSReader rdbmsReader = new RDBMSReader();
-				  rdbmsReader.setAutoLoad(autoLoad);
+		case CSV: reader = new RDBMSReader();
+		reader.setAutoLoad(autoLoad);
 
-				  // if a metamodel has been defined set it for the reader to use
-				  // if one is not defined, it assumes a hand written prop file location is specified in the last column of each sheet
-				  metamodelInfo = options.getMetamodelArray();
-				  if(metamodelInfo != null) {
-					  rdbmsReader.setRdfMapArr(metamodelInfo);
-				  }
-				  engine = rdbmsReader.importFileWithOutConnection(smssLocation, engineName, filePath, customBaseUri, owlPath, rdbmsDriverType, allowDups);break;
+		  // if a metamodel has been defined set it for the reader to use
+		  // if one is not defined, it assumes a hand written prop file location is specified in the last column of each sheet
+		  metamodelInfo = options.getMetamodelArray();
+		  if(metamodelInfo != null) {
+			  reader.setRdfMapArr(metamodelInfo);
+		  }
+		  
+		  engine = reader.importFileWithOutConnection(options);break; 
 		
 		// csv upload via flat
-		case CSV_FLAT_LOAD: RDBMSFlatCSVUploader rdbmsFlatCsvReader = new RDBMSFlatCSVUploader();
+		case CSV_FLAT_LOAD: reader = new RDBMSFlatCSVUploader();
 
-							// get new headers if user defined
-							Map<String, Map<String, String>> newCsvHeaders = options.getCsvNewHeaders();
-							if(newCsvHeaders != null) {
-								rdbmsFlatCsvReader.setNewCsvHeaders(newCsvHeaders);
-							}
+		// get new headers if user defined
+		Map<String, Map<String, String>> newCsvHeaders = options.getCsvNewHeaders();
+		if(newCsvHeaders != null) {
+			((AbstractCSVFileReader) reader).setNewCsvHeaders(newCsvHeaders);
+		}
 
-							// if the data type map has been created from the FE
-							List<Map<String, String[]>> csvDataTypeMap = options.getCsvDataTypeMap();
-							if(csvDataTypeMap != null) {
-								rdbmsFlatCsvReader.setDataTypeMapList(csvDataTypeMap);
-							}
+		// if the data type map has been created from the FE
+		List<Map<String, String[]>> csvDataTypeMap = options.getCsvDataTypeMap();
+		if(csvDataTypeMap != null) {
+			((RDBMSFlatCSVUploader) reader).setDataTypeMapList(csvDataTypeMap);
+		}
 
-							rdbmsFlatCsvReader.setAutoLoad(autoLoad);
-							engine = rdbmsFlatCsvReader.importFileWithOutConnection(smssLocation, engineName, filePath, customBaseUri, owlPath, rdbmsDriverType, allowDups);break;
+		reader.setAutoLoad(autoLoad);
+		engine = reader.importFileWithOutConnection(options);break;							
 		
 		// excel upload via flat 
-		case EXCEL_FLAT_UPLOAD: RDBMSFlatExcelUploader rdbmsFlatExcelReader = new RDBMSFlatExcelUploader();
+		case EXCEL_FLAT_UPLOAD: reader = new RDBMSFlatExcelUploader();
 
-								// get new headers if user defined
-								List<Map<String, Map<String, String>>> newExcelHeaders = options.getExcelNewHeaders();
-								if(newExcelHeaders != null) {
-									rdbmsFlatExcelReader.setNewExcelHeaders(newExcelHeaders);
-								}
+		// get new headers if user defined
+		List<Map<String, Map<String, String>>> newExcelHeaders = options.getExcelNewHeaders();
+		if(newExcelHeaders != null) {
+			((RDBMSFlatExcelUploader) reader).setNewExcelHeaders(newExcelHeaders);
+		}
 
-								// if the data type map has been created from the FE
-								List<Map<String, Map<String, String[]>>> excelDataTypeMap = options.getExcelDataTypeMap();
-								if(excelDataTypeMap != null) {
-									rdbmsFlatExcelReader.setDataTypeMapList(excelDataTypeMap);
-								}
+		// if the data type map has been created from the FE
+		List<Map<String, Map<String, String[]>>> excelDataTypeMap = options.getExcelDataTypeMap();
+		if(excelDataTypeMap != null) {
+			((RDBMSFlatExcelUploader) reader).setDataTypeMapList(excelDataTypeMap);
+		}
 
-								rdbmsFlatExcelReader.setAutoLoad(autoLoad);
-								engine = rdbmsFlatExcelReader.importFileWithOutConnection(smssLocation, engineName, filePath, customBaseUri, owlPath, rdbmsDriverType, allowDups);break;
+		reader.setAutoLoad(autoLoad);
+		engine = reader.importFileWithOutConnection(options);break;
 		
 		case EXTERNAL_RDBMS: ImportRDBMSProcessor importRDBMSReader = new ImportRDBMSProcessor();
 							 engine = importRDBMSReader.addNewRDBMS(options);break;
@@ -367,24 +373,24 @@ public class ImportDataProcessor {
 		default: String errorMessage = "Import type, " + importType + ", in a relational database format is not supported";
 				 throw new IOException(errorMessage);
 		}		
+		return engine;
 
 	}
 	/**
 	 * Update an existing database
 	 * @param options					ImportOptions object containing all the necessary data for the upload
-	 * @throws IOException
+	 * @throws Exception 
 	 */
-	private void addToExistingDb(ImportOptions options) throws IOException {
-		importType = options.getImportType();
-		engineName = options.getDbName();
-		filePath = options.getFileLocations();
-		customBaseUri = options.getBaseUrl();
+	private void addToExistingDb(ImportOptions options) throws Exception {
+		ImportOptions.IMPORT_TYPE importType = options.getImportType();
+		String engineName = options.getDbName();
+		AbstractFileReader reader = null;
 		
-		checkImportOptions();// perform checks on data being passed, if missing info, throws Exception
+		checkImportOptions(options);// perform checks on data being passed, if missing info, throws Exception
 		String errorMessage = "";
 		
 		// we need the engine because after upload, we need to update solr instances
-		engine = (IEngine) DIHelper.getInstance().getLocalProp(engineName); 
+		IEngine engine = (IEngine) DIHelper.getInstance().getLocalProp(engineName); 
 		if(engine == null) {
 			errorMessage = "Engine name, " + engineName + ", cannot be found to add new data";
 			throw new IOException(errorMessage);
@@ -392,87 +398,82 @@ public class ImportDataProcessor {
 		ENGINE_TYPE engineDbType = engine.getEngineType();
 		
 		String owlPath = engine.getOWL();
+		options.setOwlFileLocation(owlPath);
 		Hashtable<String, String>[] metamodelInfo;
 		
 		switch(engineDbType){
 		case SESAME: switch(importType){
-						case EXCEL_POI: POIReader poiReader = new POIReader();
-										poiReader.importFileWithConnection(engineName, filePath, customBaseUri, owlPath);break;
+						case EXCEL_POI: reader = new POIReader();
+						reader.importFileWithConnection(options);break;
 						
-						case EXCEL: RdfExcelTableReader excelReader = new RdfExcelTableReader();
+						case EXCEL: reader = new RdfExcelTableReader();
 
-									// if a metamodel has been defined set it for the reader to use
-									// if one is not defined, it assumes a hand written prop file location is specified in the last column of each sheet									
-									if(options.getMetamodelArray() != null) {
-										metamodelInfo = options.getMetamodelArray();
-										excelReader.setRdfMapArr(metamodelInfo);
-									}
-									excelReader.importFileWithConnection(engineName, filePath, customBaseUri, owlPath);break;
+						// if a metamodel has been defined set it for the reader to use
+						// if one is not defined, it assumes a hand written prop file location is specified in the last column of each sheet									
+						if(options.getMetamodelArray() != null) {
+							metamodelInfo = options.getMetamodelArray();
+							reader.setRdfMapArr(metamodelInfo);
+						}
+						reader.importFileWithConnection(options);break;
 		
-						case CSV: CSVReader csvReader = new CSVReader();
+						case CSV: reader = new CSVReader();
 
-								  // if a metamodel has been defined set it for the reader to use
-								  // if one is not defined, it assumes a hand written prop file location is specified in the last column of each sheet								  
-								  if(options.getMetamodelArray() != null) {
-									  metamodelInfo = options.getMetamodelArray();
-									  csvReader.setRdfMapArr(metamodelInfo);
-								  }
-								  csvReader.importFileWithConnection(engineName, filePath, customBaseUri, owlPath);break;
+						  // if a metamodel has been defined set it for the reader to use
+						  // if one is not defined, it assumes a hand written prop file location is specified in the last column of each sheet								  
+						  if(options.getMetamodelArray() != null) {
+							  metamodelInfo = options.getMetamodelArray();
+							  reader.setRdfMapArr(metamodelInfo);
+						  }
+						  reader.importFileWithConnection(options);break;
 		
-						case NLP: NLPReader nlpReader = new NLPReader();
-								  nlpReader.importFileWithConnection(engineName, filePath, customBaseUri, owlPath);break;
+						case NLP: reader = new NLPReader();
+						reader.importFileWithConnection(options);break;
 		
 						default: errorMessage = "Import type, " + importType + ", in a RDF database format is not supported";
 								 throw new IOException(errorMessage);
 					}
 					break;
 			
-		case RDBMS: // grab rdbms specific options
-					SQLQueryUtil.DB_TYPE rdbmsDriverType = options.getRDBMSDriverType();
-					// default true - just upload and keep duplications in data i.e. what you put in is what you get
-					Boolean allowDups = (options.isAllowDuplicates()==null) ? true : options.isAllowDuplicates();
+		case RDBMS: switch(importType){
+						case CSV: reader = new RDBMSReader();
 
-					switch(importType){
-						case CSV: RDBMSReader rdbmsReader = new RDBMSReader();
-
-								  // if a metamodel has been defined set it for the reader to use
-								  // if one is not defined, it assumes a hand written prop file location is specified in the last column of each sheet								  
-								  if(options.getMetamodelArray() != null) {
-									  metamodelInfo = options.getMetamodelArray();
-									  rdbmsReader.setRdfMapArr(metamodelInfo);
-								  }
-
-								  rdbmsReader.importFileWithConnection(engineName, filePath, customBaseUri, owlPath, rdbmsDriverType, allowDups);break;
+						  // if a metamodel has been defined set it for the reader to use
+						  // if one is not defined, it assumes a hand written prop file location is specified in the last column of each sheet								  
+						  if(options.getMetamodelArray() != null) {
+							  metamodelInfo = options.getMetamodelArray();
+							  reader.setRdfMapArr(metamodelInfo);
+						  }
+						  reader.importFileWithConnection(options);break;  							
 		
-						case CSV_FLAT_LOAD: RDBMSFlatCSVUploader rdbmsCsvReader = new RDBMSFlatCSVUploader();
+						case CSV_FLAT_LOAD: reader = new RDBMSFlatCSVUploader();
 
-											// get new headers if user defined											
-											if(options.getCsvNewHeaders() != null) {
-												Map<String, Map<String, String>> newCsvHeaders = options.getCsvNewHeaders();
-												rdbmsCsvReader.setNewCsvHeaders(newCsvHeaders);
-											}
+						// get new headers if user defined											
+						if(options.getCsvNewHeaders() != null) {
+							Map<String, Map<String, String>> newCsvHeaders = options.getCsvNewHeaders();
+							((AbstractCSVFileReader) reader).setNewCsvHeaders(newCsvHeaders);
+						}
 
-											// if the data type map has been created from the FE											
-											if(options.getCsvDataTypeMap() != null) {
-												List<Map<String, String[]>> csvDataTypeMap = options.getCsvDataTypeMap();
-												rdbmsCsvReader.setDataTypeMapList(csvDataTypeMap);
-											}
-											rdbmsCsvReader.importFileWithConnection(engineName, filePath, customBaseUri, owlPath, rdbmsDriverType, allowDups);break;
+						// if the data type map has been created from the FE											
+						if(options.getCsvDataTypeMap() != null) {
+							List<Map<String, String[]>> csvDataTypeMap = options.getCsvDataTypeMap();
+							((RDBMSFlatCSVUploader) reader).setDataTypeMapList(csvDataTypeMap);
+						}
+						reader.importFileWithConnection(options);break;							
 		
-						case EXCEL_FLAT_UPLOAD: RDBMSFlatExcelUploader rdbmsExcelReader = new RDBMSFlatExcelUploader();
+						case EXCEL_FLAT_UPLOAD: reader = new RDBMSFlatExcelUploader();
 
-												// get new headers if user defined												
-												if(options.getExcelNewHeaders() != null) {
-													List<Map<String, Map<String, String>>> newExcelHeaders = options.getExcelNewHeaders();
-													rdbmsExcelReader.setNewExcelHeaders(newExcelHeaders);
-												}
+						// get new headers if user defined												
+						if(options.getExcelNewHeaders() != null) {
+							List<Map<String, Map<String, String>>> newExcelHeaders = options.getExcelNewHeaders();
+							((RDBMSFlatExcelUploader) reader).setNewExcelHeaders(newExcelHeaders);
+						}
 
-												// if the data type map has been created from the FE												
-												if(options.getExcelDataTypeMap() != null) {
-													List<Map<String, Map<String, String[]>>> excelDataTypeMap = options.getExcelDataTypeMap();
-													rdbmsExcelReader.setDataTypeMapList(excelDataTypeMap);
-												}
-												rdbmsExcelReader.importFileWithConnection(engineName, filePath, customBaseUri, owlPath, rdbmsDriverType, allowDups);break;
+						// if the data type map has been created from the FE												
+						if(options.getExcelDataTypeMap() != null) {
+							List<Map<String, Map<String, String[]>>> excelDataTypeMap = options.getExcelDataTypeMap();
+							((RDBMSFlatExcelUploader) reader).setDataTypeMapList(excelDataTypeMap);
+						}
+						reader.importFileWithConnection(options);break;							
 		
 						default: errorMessage = "Import type, " + importType + ", in a relational database format is not supported";
 								 throw new IOException(errorMessage);
@@ -499,9 +500,9 @@ public class ImportDataProcessor {
 	// I CAN SEE THIS BEING USEFUL... BUT THIS NEEDS A LOT MORE THINKING WITH HOW IT SHOULD WORK
 	// AND NEEDS TO BE EXPANDED TO ALLOW FOR RDBMS
 	private boolean overrideExistingDb(ImportOptions options) {
-		importType = options.getImportType();
-		engineName = options.getDbName();
-		customBaseUri = options.getBaseUrl();
+		ImportOptions.IMPORT_TYPE importType = options.getImportType();
+		String engineName = options.getDbName();
+		options.getBaseUrl();
 		String fileNames = options.getFileLocations();
 		
 		if(importType == IMPORT_TYPE.EXCEL_POI){
@@ -600,7 +601,9 @@ public class ImportDataProcessor {
 					}
 
 					String owlFile = baseDirectory + "/" + DIHelper.getInstance().getProperty(engineName+"_"+Constants.OWL);
-					reader.importFileWithConnection(engineName, file, customBaseUri, owlFile);
+					options.setOwlFileLocation(owlFile);
+					//reader.importFileWithConnection(engineName, file, customBaseUri, owlFile);
+					reader.importFileWithConnection(options);//seems tricky, might break as only one file is passed at a time during the loop, however, this file is not used anywhere as such..need to find the real use in the workflow.
 				} catch (Exception ex) {
 					success = false;
 					ex.printStackTrace();
@@ -626,8 +629,8 @@ public class ImportDataProcessor {
 	private PropFileWriter runPropWriter(ImportOptions options) throws IOException {
 		PropFileWriter propWriter = new PropFileWriter();
 		String dbName = options.getDbName(), dbPropFile = options.getSMSSLocation(), questionFile = options.getQuestionFile();
-		importType = options.getImportType();
-		dbType = options.getDbType();		
+		ImportOptions.IMPORT_TYPE importType = options.getImportType();
+		ImportOptions.DB_TYPE dbType = options.getDbType();		
 
 		//DB_TYPE dbType = DB_TYPE.RDF;
 		if(importType == ImportOptions.IMPORT_TYPE.NLP) {
@@ -655,8 +658,17 @@ public class ImportDataProcessor {
 	}
 
 	//perform checks on import options, if error throw exception right away
-	private void checkImportOptions() throws IOException{
+	private void checkImportOptions(ImportOptions options) throws IOException{
 		String errorMessage = null;
+		String engineName = options.getDbName();
+		String filePath = options.getFileLocations();
+		ImportOptions.IMPORT_TYPE importType = options.getImportType();
+		ImportOptions.DB_TYPE dbType = options.getDbType();
+		ImportOptions.IMPORT_METHOD importMethod = options.getImportMethod();
+		if(DIHelper.getInstance().getLocalProp(engineName) != null && ((importType.equals(ImportOptions.IMPORT_TYPE.EXTERNAL_RDBMS) || importMethod.equals(ImportOptions.IMPORT_METHOD.CREATE_NEW)))) {
+			errorMessage = "Database name already exists. \nPlease make the database name unique \nor consider import method to \"Add To Existing\".";
+			throw new IOException(errorMessage);
+		}
 		if(engineName == null || engineName.isEmpty()) {
 			errorMessage = "Engine name is empty.  Require a valid engine name.";
 		}

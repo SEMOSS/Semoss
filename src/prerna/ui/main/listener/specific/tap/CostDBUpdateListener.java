@@ -47,6 +47,7 @@ import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import prerna.engine.api.IEngine;
 //import prerna.poi.main.OntologyFileWriter;
 import prerna.poi.main.POIReader;
+import prerna.poi.main.helper.ImportOptions;
 import prerna.ui.components.UpdateProcessor;
 import prerna.ui.components.specific.tap.GLItemGeneratorICDValidated;
 import prerna.ui.components.specific.tap.GLItemGeneratorICDValidated.CHANGED_DB;
@@ -206,10 +207,16 @@ public class CostDBUpdateListener extends AbstractListener {
 					}
 				}
 
+				ImportOptions options = new ImportOptions();
+				options.setDbName(costDB);
+				options.setFileLocation(file);
+				options.setBaseUrl(customBaseURI);
+				options.setOwlFileLocation(owlFile);
 				//run the reader
 //				reader.importFileWithConnection(costDB, file, customBaseURI, mapName, owlFile);
-				reader.importFileWithConnection(costDB, file, customBaseURI, owlFile);
-
+				//reader.importFileWithConnection(costDB, file, customBaseURI, owlFile);
+				reader.importFileWithConnection(options);
+				
 				//run the ontology augmentor
 
 //				OntologyFileWriter ontologyWriter = new OntologyFileWriter();

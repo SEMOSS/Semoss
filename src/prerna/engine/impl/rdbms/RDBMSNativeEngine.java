@@ -65,12 +65,12 @@ import prerna.util.sql.RDBMSUtility;
 import prerna.util.sql.SQLQueryUtil;
 
 public class RDBMSNativeEngine extends AbstractEngine {
-	
+
 	public static final String STATEMENT_OBJECT = "STATEMENT_OBJECT";
 	public static final String RESULTSET_OBJECT = "RESULTSET_OBJECT";
 	public static final String CONNECTION_OBJECT = "CONNECTION_OBJECT";
 	public static final String ENGINE_CONNECTION_OBJECT = "ENGINE_CONNECTION_OBJECT";
-	
+
 	static final Logger logger = LogManager.getLogger(RDBMSNativeEngine.class.getName());
 	DriverManager manager = null;
 	boolean engineConnected = false;
@@ -79,7 +79,7 @@ public class RDBMSNativeEngine extends AbstractEngine {
 	private BasicDataSource dataSource = null;
 	Connection engineConn = null;
 	private boolean useConnectionPooling = false;
-	
+
 	@Override
 	public void openDB(String propFile)
 	{
@@ -104,7 +104,7 @@ public class RDBMSNativeEngine extends AbstractEngine {
 					super.openDB(propFile);
 				}
 			}
-			
+
 			String tempEngineName = prop.getProperty(Constants.ENGINE);
 			String tempConnectionURL = prop.getProperty(Constants.TEMP_CONNECTION_URL);
 			String connectionURL = prop.getProperty(Constants.CONNECTION_URL);
@@ -114,7 +114,7 @@ public class RDBMSNativeEngine extends AbstractEngine {
 			String driver = prop.getProperty(Constants.DRIVER);
 			useConnectionPooling = Boolean.valueOf(prop.getProperty(Constants.USE_CONNECTION_POOLING));
 			dbType = (dbTypeString != null) ? (SQLQueryUtil.DB_TYPE.valueOf(dbTypeString)) : (SQLQueryUtil.DB_TYPE.H2_DB);			
-			
+
 			if(dbType == SQLQueryUtil.DB_TYPE.H2_DB) {
 				if(engineName != null) {
 					connectionURL = RDBMSUtility.fillH2ConnectionURL(connectionURL, engineName);
@@ -132,7 +132,7 @@ public class RDBMSNativeEngine extends AbstractEngine {
 				}
 				prop.setProperty(Constants.CONNECTION_URL, connectionURL);
 			}
-			
+
 			try {
 				Class.forName(driver);
 				//if the tempConnectionURL is set, connect to mysql, create the database, disconnect then reconnect to the database you created
@@ -145,10 +145,15 @@ public class RDBMSNativeEngine extends AbstractEngine {
 					}
 
 					this.engineConnected = true;
-					//create database
-//					createDatabase(tempEngineName);
-					//
-//					closeEngine();
+
+					//if workflow is coming from ImportRDBMSProcessor (i.e. connect to external/existing db, no need to create new db)
+					String externalDB = prop.getProperty("SCHEMA");
+					if(externalDB == null || externalDB.isEmpty()){
+						//create database
+						createDatabase(tempEngineName);
+						//
+						closeEngine();
+					}
 					if(useConnectionPooling){
 						closeDataSource();
 					}
@@ -156,7 +161,7 @@ public class RDBMSNativeEngine extends AbstractEngine {
 				if(!isConnected()){
 					if(useConnectionPooling){
 						dataSource = setupDataSource(driver, connectionURL, userName, password);
-//						engineConn = getConnection();
+						//						engineConn = getConnection();
 					} else if(userName != null && !userName.isEmpty()){
 						engineConn = DriverManager.getConnection(connectionURL, userName, password);
 					} else {
@@ -171,7 +176,12 @@ public class RDBMSNativeEngine extends AbstractEngine {
 			}
 		}
 	}
-	
+
+	//moving the logic for connection pooling from openDB() to this method 
+	private void poolConnection(){
+
+	}
+
 	public void makeConnection(String url, String userName, String password)
 	{
 		try {
@@ -186,7 +196,7 @@ public class RDBMSNativeEngine extends AbstractEngine {
 			e.printStackTrace();
 		}
 	}
-	
+
 	private Connection getConnection(){
 		Connection connObj = null;
 		if(isConnected()){
@@ -203,23 +213,23 @@ public class RDBMSNativeEngine extends AbstractEngine {
 		//System.out.println("use datasource connection");
 		return connObj;
 	}
-	
-    private BasicDataSource setupDataSource(String driver, String connectURI, String userName, String password) {
-    	//System.out.println("setupDataSource:: driver [" + driver +"] connectURI [" +  connectURI + "] userName ["+ userName+"] password [" + password + "]");
-        BasicDataSource ds = new BasicDataSource();
-        ds.setDriverClassName(driver);
-        ds.setUrl(connectURI);
-        ds.setUsername(userName);
-        ds.setPassword(password);
-        ds.setDefaultAutoCommit(true);//set autocommits to true...
-        this.datasourceConnected = true;
-        return ds;
-    }
-    
+
+	private BasicDataSource setupDataSource(String driver, String connectURI, String userName, String password) {
+		//System.out.println("setupDataSource:: driver [" + driver +"] connectURI [" +  connectURI + "] userName ["+ userName+"] password [" + password + "]");
+		BasicDataSource ds = new BasicDataSource();
+		ds.setDriverClassName(driver);
+		ds.setUrl(connectURI);
+		ds.setUsername(userName);
+		ds.setPassword(password);
+		ds.setDefaultAutoCommit(true);//set autocommits to true...
+		this.datasourceConnected = true;
+		return ds;
+	}
+
 	private void createDatabase(String engineName){
 		insertData(SQLQueryUtil.initialize(dbType).getDialectCreateDatabase(engineName));
 	}
-	
+
 	@Override
 	// need to clean up the exception it will never be thrown
 	public void insertData(String query) 
@@ -242,38 +252,38 @@ public class RDBMSNativeEngine extends AbstractEngine {
 			closeConnections(conn,null,stmt);
 		}
 	}
-	
+
 	private void closeConnections(Connection conn, ResultSet rs, Statement stmt){
 		if(isConnected()){
 			conn = null;
 		}
 		ConnectionUtils.closeAllConnections(conn, null, stmt);
 	}
-	
+
 	@Override
 	public ENGINE_TYPE getEngineType()
 	{
 		return IEngine.ENGINE_TYPE.RDBMS;
 	}
-	
+
 	@Override
 	public Vector<Object> getEntityOfType(String type)
 	{
-        String table; // table in RDBMS
-        String column; // column of table in RDBMS
-        String query;
+		String table; // table in RDBMS
+		String column; // column of table in RDBMS
+		String query;
 
-        // ugh... for legacy stuff, we do not have the table name on the property
-        // so we need to do the check that the type is not "contains"
-        if(type.contains("http://semoss.org/ontologies") && !Utility.getClassName(type).equals("Contains")){
-        	// we are dealing with the physical uri which is in the form ...Concept/Column/Table
-        	query = "SELECT DISTINCT " + Utility.getClassName(type) + " FROM " + Utility.getInstanceName(type);
-        }
-        else if(type.contains("http://semoss.org/ontologies/Relation/Contains")){// this is such a mess... 
-        	String xmlQuery = "SELECT ?concept WHERE { ?concept rdfs:subClassOf <http://semoss.org/ontologies/Concept>. ?concept <http://www.w3.org/2002/07/owl#DatatypeProperty> <"+type+">}";
-        	TupleQueryResult ret = (TupleQueryResult) this.execOntoSelectQuery(xmlQuery);
+		// ugh... for legacy stuff, we do not have the table name on the property
+		// so we need to do the check that the type is not "contains"
+		if(type.contains("http://semoss.org/ontologies") && !Utility.getClassName(type).equals("Contains")){
+			// we are dealing with the physical uri which is in the form ...Concept/Column/Table
+			query = "SELECT DISTINCT " + Utility.getClassName(type) + " FROM " + Utility.getInstanceName(type);
+		}
+		else if(type.contains("http://semoss.org/ontologies/Relation/Contains")){// this is such a mess... 
+			String xmlQuery = "SELECT ?concept WHERE { ?concept rdfs:subClassOf <http://semoss.org/ontologies/Concept>. ?concept <http://www.w3.org/2002/07/owl#DatatypeProperty> <"+type+">}";
+			TupleQueryResult ret = (TupleQueryResult) this.execOntoSelectQuery(xmlQuery);
 			String conceptURI = null;
-        	try {
+			try {
 				if(ret.hasNext()){
 					BindingSet row = ret.next();
 					conceptURI = row.getBinding("concept").getValue().toString();
@@ -282,46 +292,46 @@ public class RDBMSNativeEngine extends AbstractEngine {
 				// TODO Auto-generated catch block
 				e.printStackTrace();
 			}
-        	query = "SELECT DISTINCT " + Utility.getInstanceName(type) + " FROM " + Utility.getInstanceName(conceptURI);
-        }
-        else if(type.contains(":")) {
-            int tableStartIndex = type.indexOf("-") + 1;
-            int columnStartIndex = type.indexOf(":") + 1;
-            table = type.substring(tableStartIndex, columnStartIndex - 1);
-            column = type.substring(columnStartIndex);
-               query = "SELECT DISTINCT " + column + " FROM " + table;
-        } else {
-        	query = "SELECT DISTINCT " + type + " FROM " + type;
-        }
+			query = "SELECT DISTINCT " + Utility.getInstanceName(type) + " FROM " + Utility.getInstanceName(conceptURI);
+		}
+		else if(type.contains(":")) {
+			int tableStartIndex = type.indexOf("-") + 1;
+			int columnStartIndex = type.indexOf(":") + 1;
+			table = type.substring(tableStartIndex, columnStartIndex - 1);
+			column = type.substring(columnStartIndex);
+			query = "SELECT DISTINCT " + column + " FROM " + table;
+		} else {
+			query = "SELECT DISTINCT " + type + " FROM " + type;
+		}
 		Connection conn = null;
-        ResultSet rs = null;
-		Statement stmt = null;
-        try {
-			conn = getConnection();
-			stmt = conn.createStatement();
-        	rs = getResults(stmt, query);
-        	Vector<Object> columnsFromResult = getColumnsFromResultSet(1, rs);
-        	return columnsFromResult;
-        } catch (Exception e) {
-               // TODO Auto-generated catch block
-               e.printStackTrace();
-        } finally {
-        	closeConnections(conn,rs,stmt);
-        }
-        return null;
-
-	}
-	
-	public Vector<Object> getCleanSelect(String query){
-		Connection conn = null;
-        ResultSet rs = null;
+		ResultSet rs = null;
 		Statement stmt = null;
 		try {
 			conn = getConnection();
 			stmt = conn.createStatement();
 			rs = getResults(stmt, query);
-    		Vector<Object> columnsFromResult = getColumnsFromResultSet(1, rs);
-    		return columnsFromResult;
+			Vector<Object> columnsFromResult = getColumnsFromResultSet(1, rs);
+			return columnsFromResult;
+		} catch (Exception e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} finally {
+			closeConnections(conn,rs,stmt);
+		}
+		return null;
+
+	}
+
+	public Vector<Object> getCleanSelect(String query){
+		Connection conn = null;
+		ResultSet rs = null;
+		Statement stmt = null;
+		try {
+			conn = getConnection();
+			stmt = conn.createStatement();
+			rs = getResults(stmt, query);
+			Vector<Object> columnsFromResult = getColumnsFromResultSet(1, rs);
+			return columnsFromResult;
 		} catch (Exception e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
@@ -361,7 +371,7 @@ public class RDBMSNativeEngine extends AbstractEngine {
 		}
 		return null;
 	}
-	
+
 	/**
 	 * Method to execute Update/Delete statements with the option of closing the Statement object.
 	 * 
@@ -372,7 +382,7 @@ public class RDBMSNativeEngine extends AbstractEngine {
 	public Statement execUpdateAndRetrieveStatement(String query, boolean autoCloseStatement) {
 		Connection conn = null;
 		Statement stmt = null;
-		
+
 		try {
 			conn = getConnection();
 			stmt = conn.createStatement();
@@ -386,10 +396,10 @@ public class RDBMSNativeEngine extends AbstractEngine {
 				closeConnections(conn,null,null);
 			}
 		}
-		
+
 		return stmt;
 	}
-	
+
 	@Override
 	public boolean isConnected()
 	{
@@ -413,12 +423,12 @@ public class RDBMSNativeEngine extends AbstractEngine {
 			closeDataSource();
 		}
 	}
-	
+
 	private void closeEngine(){
 		this.engineConnected = false;
 		ConnectionUtils.closeConnection(engineConn);
 	}
-	
+
 	private void closeDataSource(){
 		if(dataSource != null) {
 			try {
@@ -429,7 +439,7 @@ public class RDBMSNativeEngine extends AbstractEngine {
 			}
 		}
 	}
-	
+
 	public Vector getColumnsFromResultSet(int columns, ResultSet rs)
 	{
 		Vector retVector = new Vector();
@@ -441,9 +451,9 @@ public class RDBMSNativeEngine extends AbstractEngine {
 				Object output = null;
 				for(int colIndex = 1;colIndex <= columns;colIndex++)
 				{					
-//					output = rs.getString(colIndex);
+					//					output = rs.getString(colIndex);
 					output = rs.getObject(colIndex);
-//					System.out.print(rs.getObject(colIndex));
+					//					System.out.print(rs.getObject(colIndex));
 					list.add(output);
 				}
 				if(columns == 1)
@@ -458,7 +468,7 @@ public class RDBMSNativeEngine extends AbstractEngine {
 		logger.info("Found " + retVector.size() + " elements in result set");
 		return retVector;
 	}
-	
+
 	/**
 	 * Private method that returns a ResultSet object. If you choose to make this method public it make it harder to keep track of the Result set
 	 * object and where you need to explicity close it
@@ -480,15 +490,15 @@ public class RDBMSNativeEngine extends AbstractEngine {
 		}
 		return rs;
 	}
-	
+
 	public IQueryBuilder getQueryBuilder(){
 		return new SQLQueryTableBuilder(this);
 	}
-	
+
 	public IQueryInterpreter getQueryInterpreter(){
 		return new SQLInterpreter(this);
 	}
-	
+
 	public AbstractQueryParser getQueryParser() {
 		return new SQLQueryParser();
 	}
@@ -510,7 +520,7 @@ public class RDBMSNativeEngine extends AbstractEngine {
 	public void commit() {
 		//we set autocommit when we init the data source, see setupDataSource
 	}
-	
+
 	// traverse from a type to a type, optionally include properties
 	public String traverseOutputQuery(String fromType, String toType, boolean isProperties, List <String> fromInstances)
 	{
@@ -525,12 +535,12 @@ public class RDBMSNativeEngine extends AbstractEngine {
 		 */
 		SQLQueryTableBuilder builder = (SQLQueryTableBuilder) getQueryBuilder();
 		Vector <String> neighBors = getNeighbors(fromType, 0);
-		
+
 		// get the properties for the tables	
 		List <String> properties = new Vector<String>();
 		if(isProperties)
 			properties = getProperties4Concept2(toType, new Boolean(false));
-		
+
 		// string relation selector
 		String relationQuery = "SELECT ?relation WHERE {"
 				+ "{" + "<" + fromType + "> ?relation <" + toType +">}"
@@ -538,7 +548,7 @@ public class RDBMSNativeEngine extends AbstractEngine {
 				+ "}";
 
 		String relationName = getRelation(relationQuery);
-		
+
 		if(relationName == null || relationName.length() == 0)
 		{
 			relationQuery = "SELECT ?relation WHERE {"
@@ -546,9 +556,9 @@ public class RDBMSNativeEngine extends AbstractEngine {
 					+ "{?relation <" + RDFS.SUBPROPERTYOF + "> <http://semoss.org/ontologies/Relation>}"
 					+ "}";
 			relationName = getRelation(relationQuery);
-			
+
 		}
-		
+
 		String fromTableName = Utility.getInstanceName(fromType);
 		builder.addSelector(fromTableName, fromTableName);
 
@@ -557,11 +567,11 @@ public class RDBMSNativeEngine extends AbstractEngine {
 		String relationClassName = Utility.getInstanceName(relationName);
 		builder.addRelation(relationClassName,relationName, " AND ", true);
 		builder.addTable(fromTableName, properties, properties);
-		
+
 		// need something that will identify the main identifier instead of it being always the same as table name
 		builder.addSelector(toTableName, toTableName);
-		
-		
+
+
 		if(fromInstances != null)
 		{
 			String propertyAsName = Utility.getInstanceName(fromType); // play on the type
@@ -575,7 +585,7 @@ public class RDBMSNativeEngine extends AbstractEngine {
 		String retQuery = builder.getQuery();
 		return retQuery;
 	}
-	
+
 	private String getRelation(String query)
 	{
 		String relation = null;
@@ -592,29 +602,29 @@ public class RDBMSNativeEngine extends AbstractEngine {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
-		
+
 		return relation;
 	}
-	
+
 	public void deleteDB() {
 		logger.debug("Deleting RDBMS Engine: " + this.engineName);
-		
+
 		// If this DB is not an H2, just delete the schema the data was added into, not the existing DB instance
 		if (this.getDbType() != SQLQueryUtil.DB_TYPE.H2_DB) {
 			String deleteText = SQLQueryUtil.initialize(dbType).getDialectDeleteDBSchema(this.engineName);
 			insertData(deleteText);
 		}
-		
+
 		// Close the Insights RDBMS connection, the actual connection, and delete the folders
 		try {
 			this.insightRDBMS.getConnection().close();
 			closeDB();
-			
+
 			DeleteDbFiles.execute(DIHelper.getInstance().getProperty(Constants.BASE_FOLDER) + "/db/" + this.engineName, "database", false);
 		} catch (SQLException e) {
 			e.printStackTrace();
 		}
-		
+
 		// Clean up SMSS and DB files/folder
 		super.deleteDB();
 	}
@@ -622,7 +632,7 @@ public class RDBMSNativeEngine extends AbstractEngine {
 	public SQLQueryUtil.DB_TYPE getDbType() {
 		return this.dbType;
 	}
-	
+
 	public void setAutoCommit(boolean autoCommit) {
 		if(engineConn != null) {
 			try {
@@ -632,12 +642,12 @@ public class RDBMSNativeEngine extends AbstractEngine {
 			}
 		}
 	}
-	
+
 	private String resetH2ConnectionURL() {
 		String baseH2URL = RDBMSUtility.getH2BaseConnectionURL();
 		return RDBMSUtility.fillH2ConnectionURL(baseH2URL, engineName);
 	}
-	
+
 	/**
 	 * This is intended to be executed via doAction
 	 * @param args			Object[] where the first index is the table name
@@ -650,7 +660,7 @@ public class RDBMSNativeEngine extends AbstractEngine {
 		if(args.length < 2) {
 			return null;
 		}
-		
+
 		// generate the sql for the prepared statement
 		StringBuilder sql = new StringBuilder("INSERT INTO ");
 		sql.append(args[0]).append(" (").append(args[1]);
@@ -663,7 +673,7 @@ public class RDBMSNativeEngine extends AbstractEngine {
 			sql.append(", ?");
 		}
 		sql.append(")");
-		
+
 		java.sql.PreparedStatement ps = null;
 		try {
 			// create the prepared statement using the sql query defined
@@ -671,8 +681,8 @@ public class RDBMSNativeEngine extends AbstractEngine {
 		} catch (SQLException e) {
 			e.printStackTrace();
 		}
-		
+
 		return ps;
 	}
-	
+
 }
