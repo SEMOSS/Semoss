@@ -44,6 +44,7 @@ import org.openrdf.model.vocabulary.RDF;
 import org.openrdf.model.vocabulary.RDFS;
 
 import prerna.engine.api.IEngine;
+import prerna.poi.main.helper.ImportOptions;
 import prerna.util.Constants;
 import prerna.util.OWLER;
 import prerna.util.Utility;
@@ -74,6 +75,10 @@ public abstract class AbstractFileReader extends AbstractEngineCreator {
 	protected Hashtable<String,String> displayNamesHash = new Hashtable<String,String>();
 	protected Hashtable<String, String[]> baseRelations = new Hashtable<String, String[]>();
 
+	
+	public abstract IEngine importFileWithOutConnection(ImportOptions options) throws Exception;
+	
+	public abstract void importFileWithConnection(ImportOptions options) throws Exception;
 	/**
 	 * Loads the prop file for the CSV file
 	 * @param fileName	Absolute path to the prop file specified in the last column of the CSV file

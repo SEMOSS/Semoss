@@ -229,7 +229,8 @@ public class ImportRDBMSProcessor extends AbstractEngineCreator {
 		HashMap<String, Object> externalMetamodel = options.getExternalMetamodel();
 		queryUtil = SQLQueryUtil.initialize(sqlType, host, port, schema, username, password);
 		prepEngineCreator(null, options.getOwlFileLocation(), options.getSMSSLocation());
-		openRdbmsEngineWithoutConnection(engineName);
+		//openRdbmsEngineWithoutConnection(engineName);
+		openRdbmsEngineWithConnection(schema,engineName);//added for testing connect to external wf
 		HashMap<String, ArrayList<String>> nodesAndProps = (HashMap<String, ArrayList<String>>) externalMetamodel.get("nodes");
 		ArrayList<String[]> relationships = (ArrayList<String[]>) externalMetamodel.get("relationships");
 		Map<String, Map<String, String>> existingRDBMSStructure = RDBMSEngineCreationHelper.getExistingRDBMSStructure(engine,queryUtil);
