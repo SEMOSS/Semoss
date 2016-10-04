@@ -71,10 +71,7 @@ public class SQLServerQueryUtil extends SQLQueryUtil {
 	//jdbc:sqlserver://127.0.0.1:1433;databaseName=dbname;user=username;Password=password;selectMethod=cursor
 	@Override
 	public String getConnectionURL(String baseFolder,String dbname){
-		connectionBase = connectionBase.contains(";databaseName=") ? connectionBase : (connectionBase + ";databaseName=SCHEMA");
-		connectionBase = connectionBase.replace("SCHEMA", dbname);
-		return connectionBase;
-		
+		return (connectionBase.contains(";databaseName=") ? connectionBase : (connectionBase + ";databaseName=SCHEMA")).replace("SCHEMA", dbname);		
 	}
 	
 	@Override
@@ -177,6 +174,7 @@ public class SQLServerQueryUtil extends SQLQueryUtil {
 		String engineName[] = splitConnectionURL[1].split(";");
 		return engineName[0];
 	}
+
 	
 	
 	/*@Override
