@@ -39,6 +39,7 @@ import prerna.sablecc.node.ADashboardConfig;
 import prerna.sablecc.node.ADashboardJoin;
 import prerna.sablecc.node.ADashboardopScript;
 import prerna.sablecc.node.ADataFrame;
+import prerna.sablecc.node.ADatabaseConceptProperties;
 import prerna.sablecc.node.ADatabaseConcepts;
 import prerna.sablecc.node.ADatabaseList;
 import prerna.sablecc.node.ADatabaseMetamodel;
@@ -1954,5 +1955,15 @@ public class Translation extends DepthFirstAdapter {
 		// get the metamodel for the engine
 		runner.setReturnData(DatabasePkqlService.getMetamodel(engineName));
 		runner.setStatus(PKQLRunner.STATUS.SUCCESS);
+    }
+	
+	@Override
+	public void outADatabaseConceptProperties(ADatabaseConceptProperties node) {
+		//TODO: finish this
+//		// get the engine
+//		String conceptName = node.getConceptName().toString().trim();
+//		// get the metamodel for the engine
+//		runner.setReturnData(DatabasePkqlService.getMetamodel(conceptName));
+//		runner.setStatus(PKQLRunner.STATUS.SUCCESS);
     }
 }

@@ -49,6 +49,9 @@ public class H2Iterator implements Iterator<Object[]>{
 	            	else
 	            		row[i-1] = "";
 	            }
+	        } else {
+	        	// make sure we close of the stream
+	        	resultSet.close();
 	        }
 	        return row;			
 		} catch (SQLException e) {

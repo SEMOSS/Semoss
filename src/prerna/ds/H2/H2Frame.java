@@ -1,6 +1,7 @@
 package prerna.ds.H2;
 
 import java.io.BufferedReader;
+import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.FileReader;
@@ -34,6 +35,7 @@ import prerna.algorithm.api.IMatcher;
 import prerna.algorithm.api.IMetaData;
 import prerna.algorithm.api.IMetaData.DATA_TYPES;
 import prerna.algorithm.api.ITableDataFrame;
+import prerna.cache.ICache;
 import prerna.ds.AbstractTableDataFrame;
 import prerna.ds.TinkerFrame;
 import prerna.ds.TinkerMetaData;
@@ -100,7 +102,7 @@ public class H2Frame extends AbstractTableDataFrame {
 		super.setUserId(userId);
 		this.setSchema();
 	}
-
+	
 	/*************************** AGGREGATION METHODS *************************/
 
 	public void addRowsViaIterator(Iterator<IHeadersDataRow> it) {
@@ -308,6 +310,46 @@ public class H2Frame extends AbstractTableDataFrame {
 		// return true if header sets matched, false otherwise
 		return header2Set.size() == 0;
 	}
+	
+	public boolean isInMem() {
+		return this.builder.isInMem();
+	}
+	
+	public void convertToOnDiskFrame(String schema) {
+		String previousPhysicalSchema = null;
+		if(!isInMem()) {
+			previousPhysicalSchema = getSchema();
+		}
+		
+		// if null is passed in
+		// we automatically create a new schema
+		this.builder.convertFromInMemToPhysical(schema);
+		
+		// if it was already an existing physical schema
+		// should delete the folder from the server
+		if(previousPhysicalSchema != null) {
+			File file = new File(previousPhysicalSchema);
+			String folder = file.getParent();
+			LOGGER.info("DELETING ON-DISK SCHEMA AT FOLDER PATH = " + folder);
+			ICache.deleteFolder(folder);
+		}
+	}
+	
+	public void dropOnDiskTemporalSchema() {
+		if(!isInMem()) {
+			this.builder.closeConnection();
+			String schema = getSchema();
+			File file = new File(schema);
+			String folder = file.getParent();
+			LOGGER.info("DELETING ON-DISK SCHEMA AT FOLDER PATH = " + folder);
+			ICache.deleteFolder(folder);
+		}
+	}
+	
+	public String getSchema() {
+		return this.builder.getSchema();
+	}
+	
 
 	/****************************** FILTER METHODS **********************************************/
 
@@ -1090,7 +1132,9 @@ public class H2Frame extends AbstractTableDataFrame {
 		}
 
 		// alter the table
-		builder.alterTableNewColumns(builder.tableName, this.headerNames, types);
+		// CHANGE! we do not alter the table in this instance because whenever we go through mergeQSEdgeHash
+		// the flow is determined to be adding new headers in method
+//		builder.alterTableNewColumns(builder.tableName, this.headerNames, types);
 
 		return ret;
 	}
@@ -1304,6 +1348,22 @@ public class H2Frame extends AbstractTableDataFrame {
 			builder.joiner.refreshView(this, builder.getViewTableName());
 		}
 		
+	}
+	
+	@Override
+	public boolean isEmpty() {
+		if (builder.tableName == null) {
+			builder.tableName = getTableNameForUniqueColumn(getColumnHeaders()[0]);
+		}
+		return this.builder.isEmpty(builder.tableName);
+	}
+	
+	@Override
+	public int getNumRows() {
+		if (builder.tableName == null) {
+			builder.tableName = getTableNameForUniqueColumn(getColumnHeaders()[0]);
+		}
+		return this.builder.getNumRecords();
 	}
 
 	/**
