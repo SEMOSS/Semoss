@@ -1,5 +1,7 @@
 package prerna.engine.api;
 
+import java.util.Set;
+
 import prerna.sablecc.meta.IPkqlMetadata;
 
 public interface IScriptReactor extends IApi {
@@ -19,6 +21,8 @@ public interface IScriptReactor extends IApi {
 		
 	// get me a particular value
 	public Object getValue(String key);
+	
+	public Set<String> getKeys();
 	
 	// puts a particular value 
 	public void put(String key, Object value);
