@@ -12,6 +12,9 @@ import java.util.Properties;
 import java.util.Set;
 import java.util.Vector;
 
+import com.google.gson.Gson;
+import com.google.gson.reflect.TypeToken;
+
 import prerna.util.DIHelper;
 import prerna.util.Utility;
 
@@ -381,6 +384,93 @@ public class QueryStruct {
 		return true;
 	}
 	
+	public void merge(QueryStruct incomingQS) {
+		mergeSelectors(incomingQS.selectors);
+		mergeFilters(incomingQS.andfilters);
+		mergeRelations(incomingQS.relations);		
+	}
+	
+	public void mergeSelectors(Hashtable<String, Vector<String>> incomingSelectors) {
+		for(String key : incomingSelectors.keySet()) {
+			if(this.selectors.containsKey(key)) {
+				this.selectors.get(key).addAll(incomingSelectors.get(key));
+			} else {
+				Vector<String> newVector = new Vector<>();
+				newVector.addAll(incomingSelectors.get(key));
+				this.selectors.put(key, newVector);
+			}
+		}
+	}
+	
+	public void mergeFilters(Hashtable<String, Hashtable<String, Vector>> incomingFilters) {
+		for(String key : incomingFilters.keySet()) {
+			Hashtable<String, Vector> incomingHash = incomingFilters.get(key);
+			if(this.andfilters.containsKey(key)) {
+				Hashtable<String, Vector> thisHash = this.andfilters.get(key);
+				for(String relationKey : incomingHash.keySet()) {
+					Vector v;
+					if(thisHash.containsKey(relationKey)) {
+						v = thisHash.get(relationKey);
+					} else {
+						v = new Vector();
+					}
+					v.addAll(incomingHash.get(relationKey));
+					thisHash.put(relationKey, v);
+				}
+			} else {
+				Hashtable<String, Vector> newHash = new Hashtable<>();
+				for(String relationKey : incomingHash.keySet()) {
+					Vector v = new Vector();
+					v.addAll(incomingHash.get(relationKey));
+					newHash.put(relationKey, v);
+				}
+				this.andfilters.put(key, newHash);
+			}
+		}
+	}
+	
+	public void mergeRelations(Hashtable<String, Hashtable<String, Vector>> incomingRelations) {
+		for(String key : incomingRelations.keySet()) {
+			Hashtable<String, Vector> incomingHash = incomingRelations.get(key);
+			if(this.relations.containsKey(key)) {
+				Hashtable<String, Vector> thisHash = this.relations.get(key);
+				for(String relationKey : incomingHash.keySet()) {
+					Vector v;
+					if(thisHash.containsKey(relationKey)) {
+						v = thisHash.get(relationKey);
+					} else {
+						v = new Vector();
+					}
+					v.addAll(incomingHash.get(relationKey));
+					thisHash.put(relationKey, v);
+				}
+			} else {
+				Hashtable<String, Vector> newHash = new Hashtable<>();
+				for(String relationKey : incomingHash.keySet()) {
+					Vector v = new Vector();
+					v.addAll(incomingHash.get(relationKey));
+					newHash.put(relationKey, v);
+				}
+				this.relations.put(key, newHash);
+			}
+		}
+	}
+	
+	public QueryStruct deepCopy() {
+		QueryStruct copy = new QueryStruct();
+		Gson gson = new Gson();
+		
+		String stringified_selectors = gson.toJson(this.selectors);
+		copy.selectors = gson.fromJson(stringified_selectors, new TypeToken<Hashtable<String, Vector<String>>>() {}.getType());
+		
+		String stringified_relations = gson.toJson(this.relations);
+		copy.relations = gson.fromJson(stringified_relations, new TypeToken<Hashtable <String, Hashtable<String, Vector>>>() {}.getType());
+		
+		String stringified_filters = gson.toJson(this.andfilters);
+		copy.andfilters = gson.fromJson(stringified_filters, new TypeToken<Hashtable <String, Hashtable<String, Vector>>>() {}.getType());
+		
+		return copy;
+	}
 	public static void main(String [] args) throws Exception
 	{
 		// test code for getting proper edge hash when there are intermediary nodes that
