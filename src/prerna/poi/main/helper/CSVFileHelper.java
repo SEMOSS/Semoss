@@ -177,9 +177,6 @@ public class CSVFileHelper {
 		settings.selectIndexes(values);
 		currHeaders = columns;
 		reset(false);
-
-		// this is to get the header row
-		getNextRow();
 	}
 
 	/**
@@ -200,8 +197,9 @@ public class CSVFileHelper {
 			currHeaders = null;
 			// setting the indices to be all the headers
 			settings.selectIndexes(headerIntegerArray);
-			getNextRow(); // to skip the header row
 		}
+		// this is to get the header row
+		getNextRow();
 	}
 
 	/**

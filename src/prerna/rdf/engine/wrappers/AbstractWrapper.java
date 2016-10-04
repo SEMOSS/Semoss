@@ -52,7 +52,6 @@ public abstract class AbstractWrapper implements IRemoteQueryable, IEngineWrappe
 	
 	@Override
 	public void setRemoteID(String id) {
-		// TODO Auto-generated method stub
 		this.ID = id;
 	}
 

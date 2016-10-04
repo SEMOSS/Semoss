@@ -27,6 +27,8 @@ public class FileIterator implements Iterator<IHeadersDataRow>{
 	private Map<String, Set<Object>> filters;
 	private Map<String, String> dataTypeMap;
 	
+	private int numRecords = -1;
+	
 	public FileIterator(String fileLoc, char delimiter, QueryStruct qs, Map<String, String> dataTypeMap) {
 		this.helper = new CSVFileHelper();
 		filters = new HashMap<String, Set<Object>>();
@@ -195,4 +197,34 @@ public class FileIterator implements Iterator<IHeadersDataRow>{
 	public char getDelimiter() {
 		return this.helper.getDelimiter();
 	}
+	
+	public boolean numberRowsOverLimit(int limit) {
+		boolean overLimit = false;
+		int counter = 0;
+		while(this.hasNext()) {
+			this.getNextRow();
+			counter++;
+			if(counter > limit) {
+				overLimit = true;
+				break;
+			}
+		}
+		
+		// we only keep the number of records
+		// if we actually iterated through everything
+		// and found it not larger than the limit set
+		if(!overLimit) {
+			numRecords = counter;
+		}
+		
+		// reset so we get the values again
+		this.helper.reset(false);
+		getNextRow();
+		return overLimit;
+	}
+	
+	public int getNumRecords() {
+		return this.numRecords;
+	}
+	
 }

@@ -16,7 +16,6 @@ import prerna.engine.api.IHeadersDataRow;
 import prerna.engine.api.IRawSelectWrapper;
 import prerna.engine.api.ISelectStatement;
 import prerna.engine.api.ISelectWrapper;
-import prerna.nameserver.MasterDatabaseQueries;
 import prerna.om.SEMOSSEdge;
 import prerna.om.SEMOSSVertex;
 import prerna.rdf.engine.wrappers.WrapperManager;
@@ -52,6 +51,8 @@ public class DatabasePkqlService {
 	
 	/**
 	 * Get the list of concepts for a given engine
+	 * @param engineName
+	 * @return
 	 */
 	public static List<String> getConceptsWithinEngine(String engineName) {
 		/*
@@ -64,9 +65,15 @@ public class DatabasePkqlService {
 		IEngine engine = (IEngine) DIHelper.getInstance().getLocalProp(Constants.LOCAL_MASTER_DB_NAME);
 
 		List<String> conceptsList = new ArrayList<String>();
-		
+
+		String query = "SELECT ?conceptLogical ?concept WHERE { "
+				+ "{?conceptComposite <http://semoss.org/ontologies/Relation/presentin> <http://semoss.org/ontologies/meta/engine/" + engineName + ">}"
+				+ "{?conceptComposite <" + RDF.TYPE + "> ?concept}"
+				+ "{?concept <http://semoss.org/ontologies/Relation/conceptual> ?conceptLogical}"
+				+ "}";
+
 		// iterate through the results and append onto the list
-		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(engine, MasterDatabaseQueries.GET_ALL_CONCEPTS_FOR_ENGINE.replace("@ENGINE@", engineName));
+		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(engine, query);
 		while(wrapper.hasNext()) {
 			IHeadersDataRow ss = wrapper.next();
 			Object[] values = ss.getValues();
@@ -75,6 +82,58 @@ public class DatabasePkqlService {
 		}
 		
 		return conceptsList;
+	}
+	
+	/**
+	 * Get the properties for a given concept across all the databases
+	 * @param conceptName
+	 * @return
+	 */
+	public static Map<String, Map<String, String>> getConceptProperties(String conceptName) {
+		String conceptURI = "http://semoss.org/ontologies/Concept/" + conceptName;
+
+		String propQuery = "SELECT DISTINCT ?engine ?conceptProp ?concept ?propLogical ?conceptLogical WHERE "
+				+ "{"
+				+ "{?conceptComposite <" + RDF.TYPE + "> ?concept}"
+				+ "{?conceptComposite <" + RDFS.subClassOf + "> <http://semoss.org/ontologies/Concept>}"
+				+ "{?conceptComposite <http://semoss.org/ontologies/Relation/logical> <"+conceptURI + ">}"
+				+ "{?conceptComposite <" + OWL.DATATYPEPROPERTY + "> ?propComposite}"
+				+ "{?propComposite <" + RDF.TYPE + "> ?conceptProp}"
+				+ "{?propComposite <http://semoss.org/ontologies/Relation/logical> ?propLogical}"
+				+ "{?propComposite <http://semoss.org/ontologies/Relation/presentin> ?engine}"
+				+ "FILTER(?concept != <http://semoss.org/ontologies/Concept> "
+				+ " && ?concept != <" + RDFS.Class + "> "
+				+ " && ?concept != <" + RDFS.Resource + "> "
+				+" && ?conceptProp != <http://www.w3.org/2000/01/rdf-schema#Resource>"
+				+")"
+				+ "}";
+
+		Map<String, Map<String, String>> returnHash = new Hashtable <String, Map<String, String>>();
+		
+		ISelectWrapper wrapper = WrapperManager.getInstance().getSWrapper((IEngine)DIHelper.getInstance().getLocalProp(Constants.LOCAL_MASTER_DB_NAME), propQuery);
+		String [] vars = wrapper.getDisplayVariables();
+		while(wrapper.hasNext())
+		{
+			ISelectStatement stmt = wrapper.next();
+			String engineURI = stmt.getRawVar(vars[0]) + "";
+			String engineName = Utility.getInstanceName(engineURI);
+			String prop = stmt.getRawVar(vars[1]) + ""; // << this is physical
+			String propLogical = stmt.getRawVar(vars[3])+ "";
+			
+			Map<String, String> propHash = new Hashtable <String, String>();
+			if(returnHash.containsKey(engineName))
+				propHash = returnHash.get(engineName);
+			
+			// need to find what the engine type for this engine is
+			// and then suggest what to do
+			String type = DIHelper.getInstance().getCoreProp().getProperty(engineName + "_" + Constants.TYPE);
+
+			String propInstance = null;
+			propInstance = Utility.getInstanceName(propLogical); // interestingly it is giving movie csv everytime
+			propHash.put(propInstance, propLogical);
+			returnHash.put(engineName, propHash);
+		}
+		return returnHash;
 	}
 	
 	

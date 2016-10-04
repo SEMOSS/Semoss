@@ -2,8 +2,6 @@ package prerna.om;
 
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.Hashtable;
-import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -11,18 +9,15 @@ import java.util.Set;
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
-import prerna.algorithm.api.ITableDataFrame;
-import prerna.cache.CacheFactory;
+import prerna.ds.H2.H2Builder.Comparator;
 import prerna.ds.H2.H2Frame;
 import prerna.ds.H2.H2Joiner;
-import prerna.ds.H2.H2Builder.Comparator;
 import prerna.sablecc.PKQLEnum;
 import prerna.sablecc.PKQLEnum.PKQLReactor;
 import prerna.ui.components.playsheets.datamakers.DataMakerComponent;
 import prerna.ui.components.playsheets.datamakers.IDataMaker;
 import prerna.ui.components.playsheets.datamakers.ISEMOSSAction;
 import prerna.ui.components.playsheets.datamakers.ISEMOSSTransformation;
-import prerna.ui.helpers.InsightCreateRunner;
 
 public class Dashboard implements IDataMaker {
 
@@ -424,7 +419,6 @@ public class Dashboard implements IDataMaker {
 		for(String view : insightMap.keySet()) {
 			List<Insight> insights = insightMap.get(view);
 			for(int i = 0; i < insights.size(); i++) {
-				
 				Insight insight = insights.get(i);
 				
 				//this will mean the insight is no longer joined
@@ -436,7 +430,7 @@ public class Dashboard implements IDataMaker {
 				//we have hit the last frame, drop the view
 				if(i == insights.size() - 1) {
 					this.joiner.dropView(view, frame);
-				}	
+				}
 			}
 		}
 	}

@@ -101,6 +101,7 @@ Tokens
  
  databaselist_token = 'database.list';
  databaseconcepts_token = 'database.concepts';
+ databaseconceptproperties_token = 'database.concept.properties';
  databasemetamodel_token = 'database.metamodel';
  
  dashboardconfig = 'dashboard.config';
@@ -183,6 +184,7 @@ databaseop = // databaseop is usually of the form database.list, database.concep
 		{database_list} database_list
 		| {database_concepts} database_concepts
 		| {database_metamodel} database_metamodel
+		| {database_concept_properties} database_concept_properties
 		;
 
 panel_viz = // e.g. panel.viz(bar, [c:Title, c:Budget]); panelviz( vizType, ordered headers );
@@ -444,5 +446,9 @@ database_list = databaselist_token;
 // get list of concepts within database
 database_concepts = databaseconcepts_token l_par [engine_name]:id r_par;
 
+// get all the properties for a concept across all engines
+database_concept_properties = databaseconceptproperties_token l_par [concept_name]:id r_par;
+
 // get the engine metamodel
 database_metamodel = databasemetamodel_token l_par [engine_name]:id r_par;
+

@@ -496,4 +496,8 @@ public class Constants {
 	public static final String PROBHIBITED_HEADERS = "PROBHIBITED_HEADERS";
 	public static final String MARIADB_PORT = "MARIADB_PORT";
 	public static final String SQL_Server_PORT = "SQLServer_PORT";
+	
+	// h2 frame limit size
+	public static final String H2_IN_MEM_SIZE = "H2_IN_MEM_SIZE";
+	
 }

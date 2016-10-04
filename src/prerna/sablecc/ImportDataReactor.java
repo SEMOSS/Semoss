@@ -43,7 +43,7 @@ public abstract class ImportDataReactor extends AbstractReactor {
 		super.whoAmI = PKQLEnum.IMPORT_DATA;
 
 		// when the data is coming from an API (i.e. an engine or a file)
-		String [] dataFromApi = {PKQLEnum.COL_CSV, "ENGINE", "EDGE_HASH"};
+		String [] dataFromApi = {PKQLEnum.COL_CSV, "ENGINE", "EDGE_HASH", "QUERY_NUM_CELLS"};
 		values2SyncHash.put(PKQLEnum.API, dataFromApi);
 
 		// when the data is coming from user copy/paste data into the tool
@@ -137,7 +137,7 @@ public abstract class ImportDataReactor extends AbstractReactor {
 				Map[] mergedMaps = frame.mergeQSEdgeHash(edgeHash, engine, joinCols);
 				myStore.put("edgeHash", mergedMaps[0]);
 				myStore.put("logicalToValue", mergedMaps[1]);
-			} 
+			}
 			// TODO: this is the logic we are ignoring
 			// the edge hash may contain specific information the user wants to load
 			// the logic needs to take into the fact that the default edge hash for when nothing 
