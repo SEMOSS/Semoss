@@ -6,6 +6,7 @@ import java.util.Set;
 
 import prerna.ds.QueryStruct;
 import prerna.engine.api.IEngine;
+import prerna.engine.api.IRawSelectWrapper;
 import prerna.engine.impl.rdf.AbstractApiReactor;
 import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.rdf.query.builder.IQueryInterpreter;
@@ -57,6 +58,18 @@ public class QueryApiReactor extends AbstractApiReactor {
 		} else {
 			// return the raw wrapper
 			thisIterator = WrapperManager.getInstance().getRawWrapper(engine, query);
+		}
+		
+		// now also perform a count on the query to determine if it is the right size
+		interp.clear();
+		interp.setPerformCount(true);
+		query = interp.composeQuery();
+		IRawSelectWrapper countIt = WrapperManager.getInstance().getRawWrapper(engine, query);
+		if(countIt.hasNext()) {
+			Object numCells = countIt.next().getValues()[0];
+			System.out.println("QUERY CONTAINS NUM_CELLS = " + numCells);
+			
+			this.put("QUERY_NUM_CELLS", numCells);
 		}
 		
 		this.put((String) getValue(PKQLEnum.API), thisIterator);

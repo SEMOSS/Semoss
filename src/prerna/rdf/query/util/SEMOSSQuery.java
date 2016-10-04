@@ -37,6 +37,7 @@ import prerna.util.Utility;
 import prerna.util.sql.SQLQueryUtil;
 
 public class SEMOSSQuery {
+	
 	private static final String main = "Main";
 	private List<SPARQLTriple> triples = new ArrayList<SPARQLTriple>();
 	private List<TriplePart> retVars = new ArrayList<TriplePart>();
@@ -58,6 +59,9 @@ public class SEMOSSQuery {
 	private SQLQueryUtil queryUtil = null;
 	private boolean useOuterJoins = false;
 	private List<String> returnVarOrder;
+	
+	// boolean to determine if we are trying to get the count of the query
+	private boolean performCount;
 
 	public SEMOSSQuery()
 	{
@@ -85,14 +89,23 @@ public class SEMOSSQuery {
 			query= query+ "DISTINCT ";
 		
 		String retVarString = "";
-		if(queryType.equals(SPARQLConstants.SELECT))
+		if(queryType.equals(SPARQLConstants.SELECT)) {
 			retVarString = createReturnVariableString();
-		else if(queryType.equals(SPARQLConstants.CONSTRUCT))
-			retVarString = createConstructReturnTriples();
-		
+		} else if(queryType.equals(SPARQLConstants.CONSTRUCT)) {
+			retVarString = createConstructReturnTriples(); 
+		}
 		String wherePatternString = createPatternClauses();
 		String postWhereString = createPostPatternString();
 		query=query+retVarString + wherePatternString +postWhereString;
+		
+		if(performCount) {
+			retVarString = retVarString.trim();
+			while(retVarString.contains("  ")) {
+				retVarString.replace("  ", " ");
+			}
+			String[] varSplit = retVarString.split(" ");
+			query = "SELECT ( (COUNT(" + varSplit[0] + ") * " + varSplit.length + ") AS ?COUNT ) { " + query + "}";
+		}
 	}
 	
 	public void createSQLQuery(String selectorsString, String tableString, String joinString, String groupBy,
@@ -643,6 +656,10 @@ public class SEMOSSQuery {
 	public void setReturnVarOrder(List<String> strings) {
 		this.returnVarOrder = strings;
 		
+	}
+
+	public void setPerformCount(boolean performCount) {
+		this.performCount = performCount;
 	}
 	
 }

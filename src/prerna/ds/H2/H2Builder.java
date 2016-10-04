@@ -1,5 +1,6 @@
 package prerna.ds.H2;
 
+import java.io.File;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.PreparedStatement;
@@ -29,7 +30,10 @@ import org.apache.log4j.Logger;
 import org.h2.tools.Server;
 import org.stringtemplate.v4.ST;
 
+import com.google.gson.Gson;
+
 import prerna.algorithm.api.IMetaData;
+import prerna.cache.ICache;
 import prerna.ds.TinkerFrame;
 import prerna.engine.api.IHeadersDataRow;
 import prerna.poi.main.RDBMSEngineCreationHelper;
@@ -38,13 +42,10 @@ import prerna.util.Constants;
 import prerna.util.DIHelper;
 import prerna.util.Utility;
 
-import com.google.gson.Gson;
-
 public class H2Builder {
 
 	private static final Logger LOGGER = LogManager.getLogger(H2Builder.class.getName());
 
-	Vector <String> castTargets = new Vector<String>();
 	Connection conn = null;
 	private String schema = "test"; // assign a default schema which is test
 	//	boolean create = false;
@@ -58,12 +59,15 @@ public class H2Builder {
 	String serverURL = null;
 	Hashtable <String, String[]> tablePermissions = new Hashtable <String, String []>();
 	
+	// keep track of the indices that exist in the table for optimal speed in sorting
+	Hashtable <String, String> columnIndexMap = new Hashtable<String, String>();
+	
 	// for writing the frame on disk
 	// currently not used
 	// would require reconsideration of dashboard, etc. 
 	// since frames are not in same schema
 	private boolean isInMem = true;
-	private final int MAX_IN_MEM_INSERT = 100_000;
+	private final int LIMIT_SIZE;
 	
 	//Provides a translation for incoming types into something H2 can understand
 	private static Map<String, String> typeConversionMap = new HashMap<String, String>();
@@ -405,6 +409,12 @@ public class H2Builder {
 		//    	//initialize a connection
 		//    	getConnection();
 		tableName = getNewTableName();
+		String limitSize = (String) DIHelper.getInstance().getProperty(Constants.H2_IN_MEM_SIZE);
+		if(limitSize == null) {
+			this.LIMIT_SIZE = 10_000;
+		} else {
+			this.LIMIT_SIZE = Integer.parseInt( limitSize.trim() );
+		}
 	}
 
 	/*************************** END CONSTRUCTORS **********************************/
@@ -553,7 +563,7 @@ public class H2Builder {
 			//			}
 
 		} catch(Exception e) {
-
+			
 		}
 	}
 
@@ -663,7 +673,6 @@ public class H2Builder {
 			ResultSet rs = executeQuery(selectQuery);
 
 			if(rs != null) {
-
 				ResultSetMetaData rsmd = rs.getMetaData();
 				int NumOfCol = rsmd.getColumnCount();
 				data = new ArrayList<>(NumOfCol);
@@ -680,6 +689,8 @@ public class H2Builder {
 					}
 					data.add(row);
 				}
+				// make sure to close the iterator upon completion
+				rs.close();
 
 				return data;
 			}
@@ -1379,10 +1390,10 @@ public class H2Builder {
 		}
 		
 		// shift to on disk if number of records is getting large
-//		if(isInMem && getNumRecords() > MAX_IN_MEM_INSERT) {
-//			this.conn = convertFromInMemToPhysical();
-//			isInMem = false;
-//		}
+		if(isInMem && getNumRecords() > LIMIT_SIZE) {
+			// let the method determine where the new schema will be
+			convertFromInMemToPhysical(null);
+		}
 	}
 
 	/**
@@ -1493,6 +1504,10 @@ public class H2Builder {
 					for(int i = 0; i < types.length; i++) {
 						types[i] = Utility.convertDataTypeToString(typesMap.get(headers[i]));
 					}
+					// alter the table to have the column information if not already present
+					// this will also create a new table if the table currently doesn't exist
+					alterTableNewColumns(tableName, headers, types);
+					
 					// set the PS based on the headers
 					ps = createInsertPreparedStatement(tableName, headers);
 				}
@@ -1532,10 +1547,10 @@ public class H2Builder {
 		}
 
 		// shift to on disk if number of records is getting large
-//		if(isInMem && getNumRecords() > MAX_IN_MEM_INSERT) {
-//			this.conn = convertFromInMemToPhysical();
-//			isInMem = false;
-//		}
+		if(isInMem && getNumRecords() > LIMIT_SIZE) {
+			// let the method determine where the new schema will be
+			convertFromInMemToPhysical(null);
+		}
 	}
 
 	/**
@@ -1598,9 +1613,21 @@ public class H2Builder {
 		String query = "SELECT * FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_NAME = '"+tableName+"'";
 		ResultSet rs = executeQuery(query);
 		try {
-			return rs.next();
+			if(rs.next()) {
+				return true;
+			} else {
+				return false;
+			}
 		} catch(SQLException e) {
 			return false;
+		} finally {
+			if(rs != null) {
+				try {
+					rs.close();
+				} catch (SQLException e) {
+					e.printStackTrace();
+				}
+			}
 		}
 	}
 
@@ -1752,6 +1779,10 @@ public class H2Builder {
 			sortBy = cleanHeader(sortBy);
 			if(joinMode) {
 				sortBy = translateColumn(sortBy);
+			} else {
+				// add an index to the table to make the sort much faster
+				// note h2 view does not support index
+				addColumnIndex(tableName, sortBy);
 			}
 			selectQuery += " order by " + sortBy;
 		}
@@ -1763,6 +1794,8 @@ public class H2Builder {
 		}
 
 		long startTime = System.currentTimeMillis();
+		System.out.println("TABLE NAME IS: " + this.tableName);
+		System.out.println("RUNNING QUERY : " + selectQuery);
 		ResultSet rs = executeQuery(selectQuery);
 		long endTime = System.currentTimeMillis();
 		LOGGER.info("Executed Select Query on H2 FRAME: "+(endTime - startTime)+" ms");
@@ -1875,7 +1908,7 @@ public class H2Builder {
 	private void processAlterData(String newTableName, String[] newHeaders, String[] headers, Join joinType)
 	{
 		// this currently doesnt handle many to many joins and such
-		try {
+//		try {
 			getConnection();
 
 			// I need to do an evaluation here to find if this one to many
@@ -1924,11 +1957,11 @@ public class H2Builder {
 			if(one2Many)
 				mergeTables(tableName1, newTableName, matchers, oldHeaders, newHeaders, joinType.getName());
 
-			testData();
+//			testData();
 
-		} catch (SQLException e) {
-			e.printStackTrace();
-		}
+//		} catch (SQLException e) {
+//			e.printStackTrace();
+//		}
 	}
 
 	// Obviously I need the table names
@@ -1942,6 +1975,34 @@ public class H2Builder {
 		String origTableName = tableName;
 		// now create a third table
 		tableName = H2FRAME+getNextNumber();
+		
+		String indexPostfix = "_INDEX_";
+		// want to create indices on the join columns to speed up the process
+		for(Integer table1JoinIndex : matchers.keySet()) {
+			Integer table2JoinIndex = matchers.get(table1JoinIndex);
+			
+			String table1JoinCol = newTypes[table1JoinIndex];
+			String table2JoinCol = oldTypes[table2JoinIndex];
+			
+			long start = System.currentTimeMillis();
+			
+			try {
+				runQuery("CREATE INDEX " + table1JoinCol + indexPostfix + getNextNumber() + " ON " + tableName1 + "(" + table1JoinCol + ")");
+				runQuery("CREATE INDEX " + table2JoinCol + indexPostfix + getNextNumber() + " ON " + tableName2 + "(" + table2JoinCol + ")");
+			} catch(Exception e) {
+				e.printStackTrace();
+			}
+			
+			long end = System.currentTimeMillis();
+
+			System.out.println("TIME FOR INDEX CREATION = " + (end-start) + " ms");
+			
+			// note that this creates indices on table1 and table2
+			// but these tables are later dropped so no indices are kept
+			// through the flow
+		}
+		
+		
 		String newCreate = "CREATE Table " + tableName +" AS (";
 
 		// now I need to create a join query
@@ -1959,7 +2020,6 @@ public class H2Builder {
 				joins = joins + "A." + oldTypes[oldIndex] + " = " + "B." + newTypes[newIndex];
 			else
 				joins = joins + " AND " + "A." + oldTypes[oldIndex] + " = " + "B." + newTypes[newIndex];
-
 		}
 		joins = joins + " )";
 
@@ -1985,9 +2045,14 @@ public class H2Builder {
 		System.out.println(finalQuery);
 
 		try {
-			Statement stmt = conn.createStatement();
-			stmt.execute(finalQuery);
-
+			long start = System.currentTimeMillis();
+			runQuery(finalQuery);
+			long end = System.currentTimeMillis();
+			System.out.println("TIME FOR JOINING TABLES = " + (end-start) + " ms");
+			
+//			Statement stmt = conn.createStatement();
+//			stmt.execute(finalQuery);
+			
 			runQuery(makeDropTable(tableName1));
 
 			//DONT DROP THIS due to need to preserve for outer joins, method outside will handle dropping new table 
@@ -1995,12 +2060,44 @@ public class H2Builder {
 
 			//rename back to the original table
 			runQuery("ALTER TABLE " + tableName + " RENAME TO " + origTableName);
+			
+			// this created a new table
+			// need to clear the index map
+			clearColumnIndexMap();
 			this.tableName = origTableName;
 		} catch (Exception e) {
 			e.printStackTrace();
 		}
 	}
+	
+	private void addColumnIndex(String tableName, String colName) {
+		if(!columnIndexMap.contains(tableName + colName)) {
+			try {
+				String indexName = colName + "_INDEX_" + getNextNumber();
+				String indexSql = "CREATE INDEX " + indexName + " ON " + tableName + "(" + colName + ")";
+				runQuery(indexSql);
+				columnIndexMap.put(tableName+colName, indexName);
+			} catch (Exception e) {
+				e.printStackTrace();
+			}
+		}
+	}
 
+	private void removeColumnIndex(String tableName, String colName) {
+		if(columnIndexMap.contains(tableName + colName)) {
+			String indexName = columnIndexMap.get(tableName + colName);
+			try {
+				runQuery("DROP INDEX " + indexName);
+			} catch (Exception e) {
+				e.printStackTrace();
+			}
+		}
+	}
+	
+	private void clearColumnIndexMap(){
+		this.columnIndexMap.clear();
+	}
+	
 	private String getNextNumber()
 	{
 		String uuid = UUID.randomUUID().toString();
@@ -2039,23 +2136,70 @@ public class H2Builder {
 		return this.conn;
 	}
 	
-	public Connection convertFromInMemToPhysical() {
+	public Connection convertFromInMemToPhysical(String physicalDbLocation) {
 		try {
+			File dbLocation = null;
+			Connection previousConnection = null;
+			if(isInMem) {
+				LOGGER.info("CONVERTING FROM IN-MEMORY H2-DATABASE TO ON-DISK H2-DATABASE!");
+			} else {
+				LOGGER.info("CHANGEING SCHEMA FOR EXISTING ON-DISK H2-DATABASE!");
+				if(physicalDbLocation == null || physicalDbLocation.isEmpty()) {
+					LOGGER.info("SCHEMA IS ALREADY ON DISK AND DID NOT PROVIDE NEW SCHEMA TO CHAGNE TO!");
+					return this.conn;
+				}
+
+				dbLocation = new File(physicalDbLocation);
+				previousConnection = this.conn;
+			}
 			Class.forName("org.h2.Driver");
 
 			// first need get the data in the memory table
 			Date date = new Date();
 			String dateStr = new SimpleDateFormat("yyyy_MM_dd_HH_mm_ss_SSSS").format(date);
-			String folderToUse = DIHelper.getInstance().getProperty(Constants.INSIGHT_CACHE_DIR) + "\\" + RDBMSEngineCreationHelper.cleanTableName(this.schema);
-			String inMemScript = folderToUse + "_" + dateStr;
-			String saveScript = "SCRIPT TO '" + inMemScript + "' COMPRESSION GZIP TABLE "+ this.tableName;
-			runQuery(saveScript);
 			
-			String physicalDbLocation = folderToUse.replace('/', '\\') + "_" + dateStr + "_database";
-			this.conn = DriverManager.getConnection("jdbc:h2:" + physicalDbLocation, "sa", "");
+			String folderToUse = null;
+			String inMemScript = null;
+			if(dbLocation == null) {
+				folderToUse = DIHelper.getInstance().getProperty(Constants.INSIGHT_CACHE_DIR) + "\\" + RDBMSEngineCreationHelper.cleanTableName(this.schema) + dateStr + "\\";
+				inMemScript = folderToUse + "_" + dateStr;
+				physicalDbLocation = folderToUse.replace('/', '\\') + "_" + dateStr + "_database";
+			} else {
+				folderToUse = dbLocation.getParent();
+				inMemScript = folderToUse + "_" + dateStr;
+			}
 			
-			// we run the script
-			runQuery("RUNSCRIPT FROM '"+inMemScript+"' COMPRESSION GZIP ");
+			// if there is a current frame that we need to push to on disk
+			// we need to save that data and then move it over
+			boolean existingTable = tableExists(this.tableName);
+			if(existingTable) {
+				String saveScript = "SCRIPT TO '" + inMemScript + "' COMPRESSION GZIP TABLE "+ this.tableName;
+				runQuery(saveScript);
+				
+				// drop the current table from in-memory or from old physical db 
+				runQuery(makeDropTable(this.tableName));
+			}
+			
+			// create the new conneciton
+			this.conn = DriverManager.getConnection("jdbc:h2:nio:" + physicalDbLocation, "sa", "");
+			
+			// if previous table existed
+			// we need to load it
+			if(existingTable) {
+				// we run the script
+				runQuery("RUNSCRIPT FROM '"+inMemScript+"' COMPRESSION GZIP ");
+				
+				// clean up and remove the script file
+				ICache.deleteFile(inMemScript);
+			}
+			
+			this.schema = physicalDbLocation;
+			this.isInMem = false;
+			// close the existing connection if it was a previous on disk connection
+			// so we can clean up the file
+			if(previousConnection != null) {
+				previousConnection.close();
+			}
 			
 		} catch (ClassNotFoundException e) {
 			e.printStackTrace();
@@ -2066,6 +2210,14 @@ public class H2Builder {
 		}
 		
 		return this.conn;
+	}
+	
+	public void closeConnection() {
+		try {
+			this.conn.close();
+		} catch (SQLException e) {
+			e.printStackTrace();
+		}
 	}
 
 	public String getTableName() {
@@ -2787,8 +2939,10 @@ public class H2Builder {
 	/*************************** END QUERY BUILDERS **************************************/
 
 	//use this when result set is not expected back
-	private void runQuery(String query) throws Exception{
-		getConnection().createStatement().execute(query);
+	private void runQuery(String query) throws Exception {
+		Statement stat = getConnection().createStatement();
+		stat.execute(query);
+		stat.close();
 	}
 
 	//use this when result set is expected
@@ -2843,7 +2997,6 @@ public class H2Builder {
 	//save the main table
 	//need to update this if we are saving multiple tables
 	public Properties save(String fileName, String[] headers) {
-		
 		Properties props = new Properties();
 		
 		List<String> selectors = new ArrayList<String>(headers.length);
@@ -2865,6 +3018,7 @@ public class H2Builder {
 			String dropQuery = makeDropTable(newTable);
 			runQuery(dropQuery);
 			
+			props.setProperty("inMemDb", this.isInMem + "");
 			
 		} catch (Exception e) {
 			e.printStackTrace();
@@ -2883,13 +3037,24 @@ public class H2Builder {
 		tableName = H2FRAME + getNextNumber(); 
 		
 		String tempTableName = null;
+		String isInMemStr = null;
 		
 		if(prop != null) {
 			tempTableName = prop.getProperty("tableName");
 			if(tempTableName == null) {
 				tempTableName = H2Builder.tempTable;
 			}
+			// determine if the cache should be loaded in mem or on disk
+			isInMemStr = prop.getProperty("inMemDb");
+			if(isInMemStr != null) {
+				boolean isInMemBool = Boolean.parseBoolean(isInMemStr.trim());
+				if(!isInMemBool) {
+					convertFromInMemToPhysical(null);
+				}
+				this.isInMem = isInMemBool;
+			}
 		} else {
+			// this is for things that are old do not have the props file
 			tempTableName = H2Builder.tempTable;
 		}
 		// get the open sql script
@@ -2981,7 +3146,7 @@ public class H2Builder {
 	
 	
 	public int getNumRecords() {
-		String query = "SELECT COUNT(*) FROM " + this.tableName;
+		String query = "SELECT COUNT(*) * " + getHeaders(this.tableName).length + " FROM " + this.tableName;
 		ResultSet rs = executeQuery(query);
 		try {
 			while(rs.next()) {
@@ -3053,6 +3218,38 @@ public class H2Builder {
     	server = null;
     	serverURL = null;
     }
+
+	public boolean isEmpty(String tableName) {
+		// first check if the table exists
+		if(tableExists(tableName)) {
+			// now check if there is at least one row
+			String query = "SELECT * FROM " + tableName + " LIMIT 1";
+			ResultSet rs = executeQuery(query);
+			try {
+				if(rs.next()) {
+					return false;
+				}
+			} catch (SQLException e) {
+				e.printStackTrace();
+			} finally {
+				if(rs != null) {
+					try {
+						rs.close();
+					} catch (SQLException e) {
+						e.printStackTrace();
+					}
+				}
+			}
+		}
+		return true;
+	}
+	
+	/**
+	 * Determine if the frame is in-memory or off-heap
+	 */
+	public boolean isInMem() {
+		return this.isInMem;
+	}
 
 	/*************************** ORIGINAL UNUSED CODE **************************************/
 

@@ -1084,6 +1084,27 @@ public class ReversedDepthFirstAdapter extends AnalysisAdapter
         outADatabaseMetamodelDatabaseop(node);
     }
 
+    public void inADatabaseConceptPropertiesDatabaseop(ADatabaseConceptPropertiesDatabaseop node)
+    {
+        defaultIn(node);
+    }
+
+    public void outADatabaseConceptPropertiesDatabaseop(ADatabaseConceptPropertiesDatabaseop node)
+    {
+        defaultOut(node);
+    }
+
+    @Override
+    public void caseADatabaseConceptPropertiesDatabaseop(ADatabaseConceptPropertiesDatabaseop node)
+    {
+        inADatabaseConceptPropertiesDatabaseop(node);
+        if(node.getDatabaseConceptProperties() != null)
+        {
+            node.getDatabaseConceptProperties().apply(this);
+        }
+        outADatabaseConceptPropertiesDatabaseop(node);
+    }
+
     public void inAPanelViz(APanelViz node)
     {
         defaultIn(node);
@@ -4565,6 +4586,39 @@ public class ReversedDepthFirstAdapter extends AnalysisAdapter
             node.getDatabaseconceptsToken().apply(this);
         }
         outADatabaseConcepts(node);
+    }
+
+    public void inADatabaseConceptProperties(ADatabaseConceptProperties node)
+    {
+        defaultIn(node);
+    }
+
+    public void outADatabaseConceptProperties(ADatabaseConceptProperties node)
+    {
+        defaultOut(node);
+    }
+
+    @Override
+    public void caseADatabaseConceptProperties(ADatabaseConceptProperties node)
+    {
+        inADatabaseConceptProperties(node);
+        if(node.getRPar() != null)
+        {
+            node.getRPar().apply(this);
+        }
+        if(node.getConceptName() != null)
+        {
+            node.getConceptName().apply(this);
+        }
+        if(node.getLPar() != null)
+        {
+            node.getLPar().apply(this);
+        }
+        if(node.getDatabaseconceptpropertiesToken() != null)
+        {
+            node.getDatabaseconceptpropertiesToken().apply(this);
+        }
+        outADatabaseConceptProperties(node);
     }
 
     public void inADatabaseMetamodel(ADatabaseMetamodel node)

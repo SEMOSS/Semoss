@@ -30,6 +30,8 @@ public class SPARQLInterpreter implements IQueryInterpreter {
 	Boolean addedJoins = false;
 	IEngine engine = null;
 
+	private boolean performCount = false;
+	
 	public SPARQLInterpreter(IEngine engine)
 	{
 		this.engine = engine;
@@ -44,6 +46,7 @@ public class SPARQLInterpreter implements IQueryInterpreter {
 	{
 		semossQuery.setQueryType(SPARQLConstants.SELECT);
 		semossQuery.setDisctinct(true);
+		semossQuery.setPerformCount(this.performCount);
 		
 		addSelectors();
 		addFilters();
@@ -413,5 +416,18 @@ public class SPARQLInterpreter implements IQueryInterpreter {
 		if(offset > 0) {
 			this.semossQuery.setOffset(offset);
 		}
+	}
+	
+	public boolean isPerformCount() {
+		return performCount;
+	}
+
+	public void setPerformCount(boolean performCount) {
+		this.performCount = performCount;
+	}
+	
+	public void clear() {
+		this.semossQuery = new SEMOSSQuery();
+		this.addedJoins = false;
 	}
 }

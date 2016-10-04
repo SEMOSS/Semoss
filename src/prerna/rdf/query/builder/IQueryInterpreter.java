@@ -8,4 +8,9 @@ public interface IQueryInterpreter {
 
 	String composeQuery();
 
+	void setPerformCount(boolean performCount);
+	
+	boolean isPerformCount();
+	
+	void clear();
 }
