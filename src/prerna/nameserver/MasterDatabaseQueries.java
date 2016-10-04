@@ -65,12 +65,6 @@ public final class MasterDatabaseQueries extends MasterDatabaseURIs {
 																+ "{?concept <http://semoss.org/ontologies/Relation/conceptual> ?conceptLogical}"
 																+ "}";
 	
-	public static final String GET_ALL_CONCEPTS_FOR_ENGINE = "SELECT ?conceptLogical ?concept WHERE { "
-			+ "{?conceptComposite <http://semoss.org/ontologies/Relation/presentin> <http://semoss.org/ontologies/meta/engine/@ENGINE@>}"
-			+ "{?conceptComposite <" + RDF.TYPE + "> ?concept}"
-			+ "{?concept <http://semoss.org/ontologies/Relation/conceptual> ?conceptLogical}"
-			+ "}";
-	
 	// ONLY USED IN DeleteFromMasterDB.java class
 	//queries for relations to delete
 	public static final String KEYWORDS_QUERY = "SELECT DISTINCT ?Keyword WHERE { BIND(<http://semoss.org/ontologies/Concept/Engine/@ENGINE@> AS ?Engine) {?Engine <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Engine>} {?Keyword <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Keyword>} {?Engine ?p ?Keyword}}";

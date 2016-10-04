@@ -8,7 +8,7 @@ import prerna.engine.api.IHeadersDataRow;
 import prerna.engine.impl.rdf.HeadersDataRow;
 import prerna.util.Utility;
 
-public class CsvTableWrapper implements Iterator{
+public class CsvTableWrapper implements Iterator<IHeadersDataRow>{
 
 	private List<Vector<Object>> values;
 	private String[] headers;
@@ -102,5 +102,9 @@ public class CsvTableWrapper implements Iterator{
 		IHeadersDataRow retObj = new HeadersDataRow(this.headers, cleanRow, currRow);
 		currIndex++;
 		return retObj;
+	}
+	
+	public int getNumRecords() {
+		return this.values.size();
 	}
 }

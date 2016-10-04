@@ -57,6 +57,9 @@ public class SQLInterpreter implements IQueryInterpreter{
 	// store the joins in the object for easy use
 	private SqlJoinList relationList = new SqlJoinList();
 	
+	// boolean to determine the count of the query being executed
+	private boolean performCount = false;
+	
 	public SQLInterpreter() {
 		
 	}
@@ -68,6 +71,14 @@ public class SQLInterpreter implements IQueryInterpreter{
 	@Override
 	public void setQueryStruct(QueryStruct qs) {
 		this.qs = qs;
+	}
+	
+	public void clear() {
+		this.selectors = "";
+		this.froms.clear();
+		this.relationList.clear();
+		this.whereHash.clear();
+		this.tableProcessed.clear();
 	}
 	
 	/**
@@ -93,8 +104,14 @@ public class SQLInterpreter implements IQueryInterpreter{
 		addSelectors();
 		addFilters();
 		
+		String query = "SELECT ";
 		// add the selectors
-		String query = "SELECT  DISTINCT " + selectors + "  FROM ";
+		// if this is meant to perform a count
+		if(performCount) {
+			query = query + " COUNT(*) * " + selectors.split(",").length + " FROM ";
+		} else {
+			query = query + " DISTINCT " + selectors + "  FROM ";
+		}
 		// if there is a join
 		// can only have one table in from in general sql case 
 		// thus, the order matters 
@@ -837,6 +854,14 @@ public class SQLInterpreter implements IQueryInterpreter{
 	
 	public Hashtable<String, Hashtable<String, String>> getColAlias() {
 		return this.colAlias;
+	}
+	
+	public boolean isPerformCount() {
+		return performCount;
+	}
+
+	public void setPerformCount(boolean performCount) {
+		this.performCount = performCount;
 	}
 	
 	////////////////////////////////////////// end other utility methods ///////////////////////////////////////////
