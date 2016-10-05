@@ -1401,215 +1401,77 @@ public class Insight {
 		if(!(dataMaker instanceof ITableDataFrame)) {
 			throw new IllegalArgumentException("This Insight is not eligible to navigate through Explore. The data maker is not of type ITableDataFrame.");
 		}
-//		ITableDataFrame dataFrame = (ITableDataFrame) dataMaker;
 		Hashtable<String, Object> returnHash = new Hashtable<String, Object>();
-//		List<DataMakerComponent> comps = getDataMakerComponents();
 		Map<String, Object> nodesHash = new Hashtable<String, Object>();
 		Map<String, Object> triplesHash = new Hashtable<String, Object>();
-//		if(!this.isNonDbInsight()){
-//			for (DataMakerComponent comp : comps){
-//				String query = comp.getQuery();
-//				if(query == null){
-//					QueryStruct data = comp.getQueryStruct();
-//					IEngine compEng = comp.getEngine();
-//					List<List<String>> rels = data.getRelTriples();
-//					System.out.println(rels);
-//					for(List<String> rel: rels){
-//						if(rel.size()>1){
-//							// store the triple
-//							Map<String, String> nodeTriples = new Hashtable<String, String>();
-//							nodeTriples.put("fromNode", compEng.getTransformedNodeName(rel.get(0), true));
-//							nodeTriples.put("relationshipTriple", rel.get(1));
-//							nodeTriples.put("toNode", compEng.getTransformedNodeName(rel.get(2), true));
-//							triplesHash.put(triplesHash.size()+"", nodeTriples);
-//							
-//							//store the object node
-//							String node2 = compEng.getTransformedNodeName(rel.get(2), true);
-//							String node2Name = Utility.getInstanceName(node2);
-//							if(!nodesHash.containsKey(node2Name)){
-//								List<String> node2Props = new Vector<String>();
-//								Map<String, Object> node2Details = new HashMap<String, Object>();
-//								node2Details.put("selectedProperties", node2Props);
-//								node2Details.put("uri", node2);
-//								node2Details.put("engineName", compEng.getEngineName());
-//								node2Details.put("engineType", compEng.getEngineType());
-//								nodesHash.put(node2Name, node2Details);
-//							}
-//						}
-//						//store the subject node
-//						String node1 = compEng.getTransformedNodeName(rel.get(0), true);
-//						String nodeName = Utility.getInstanceName(node1);
-//						if(!nodesHash.containsKey(nodeName)){
-//							List<String> nodeProps = new Vector<String>();
-//							Map<String, Object> nodeDetails = new HashMap<String, Object>();
-//							nodeDetails.put("selectedProperties", nodeProps);
-//							nodeDetails.put("uri", node1);
-//							nodeDetails.put("engineName", compEng.getEngineName());
-//							nodeDetails.put("engineType", compEng.getEngineType());
-//							nodesHash.put(nodeName, nodeDetails);
-//						}
-//					}
-//					
-//					List<Map<String, String>> nodeProps = data.getNodeProps();
-//					System.out.println(nodeProps);
-//					for(Map<String, String> propMap : nodeProps){
-//						String subjectVar = propMap.get("SubjectVar");
-//						List<String> nodeProps1 = (List<String>) ((Map<String, Object>) nodesHash.get(subjectVar)).get("selectedProperties");
-//						nodeProps1.add(Utility.getTransformedNodeName(compEng, (String) propMap.get("uriKey"), true));
-//					}
-//				}
-//				else { // Logic when coming from a preexisting insight that does not have metamodel data
-//					try{
-//						Hashtable<String, String> nodeTriples;
-//						Hashtable<String, Object> nodeDetails;
-//			
-//						//get the btree headers for comparison against what you want to display back to the user
-//						List<String> columnHeaders = new ArrayList<String>();
-//						Collections.addAll(columnHeaders, dataFrame.getColumnHeaders()); 
-//						//for RDBMS everything is uppercase in the btree
-//						boolean useUpperCase = false;
-//						if(ENGINE_TYPE.RDBMS == comp.getEngine().getEngineType()){
-//							useUpperCase = true;
-//						}
-//						AbstractQueryParser queryParser = ((AbstractEngine) comp.getEngine()).getQueryParser();
-//						queryParser.setQuery(query);
-//						queryParser.parseQuery();
-//						//aggregate functions not eligible for nagivation back through explore
-//						if(queryParser.hasAggregateFunction()){
-//							throw new IllegalArgumentException("This Insight is not eligible to navigate through Explore. The query uses aggregation.");
-//	//						Hashtable<String, String> errorHash = new Hashtable<String, String>();
-//	//						errorHash.put("Message", "This Insight is not eligible to navigate through Explore. The query uses aggregation.");
-//	//						return Response.status(400).entity(WebUtility.getSO(errorHash)).build();
-//						}
-//						Hashtable<String, String> nodes = queryParser.getNodesFromQuery();
-//						for (String key : nodes.keySet()) {
-//							String keyNode = key;
-//							if(useUpperCase){
-//								keyNode = key.toUpperCase();
-//							}
-//							nodeDetails = new Hashtable<String, Object>();
-//			
-//							Hashtable<String, Hashtable<String, String>> selectedPropsHash = queryParser.getReturnVariables();
-//							Hashtable<String, String> selectedProperties = (Hashtable<String,String>) selectedPropsHash.get(key);
-//							ArrayList<String> nodeProps = new ArrayList<String>();
-//							if (selectedProperties != null) {
-//								//selectedProperties is a map of the column alias and its column name the keyset has the alias.  
-//								for (String singleProperty : selectedProperties.keySet()) {
-//									nodeProps.add(selectedProperties.get(singleProperty));
-//								}
-//							}
-//							nodeDetails.put("selectedProperties", nodeProps);
-//							nodeDetails.put("uri", nodes.get(key));
-//			
-//							if(!columnHeaders.contains(keyNode)){
-//								//if the node doesnt exist in the btree, thats fine we just wont add it to the ui, so take no action
-//								//BUT if the node properties were included in the btree then we should error out
-//								if(nodeProps.size()>0){
-//									throw new IllegalArgumentException("This Insight is not eligible to navigate through Explore.");
-//	//								Hashtable<String, String> errorHash = new Hashtable<String, String>();
-//	//								errorHash.put("Message", "This Insight is not eligible to navigate through Explore.");
-//	//								return Response.status(400).entity(WebUtility.getSO(errorHash)).build();
-//								}
-//							} else {
-//								nodesHash.put(key, nodeDetails);
-//							}
-//						}
-//			
-//						ArrayList<String[]> triplesArr = (ArrayList<String[]>) queryParser.getTriplesData();
-//						int i = 0;
-//						for (String[] triples : triplesArr) {
-//							nodeTriples = new Hashtable<String, String>();
-//							nodeTriples.put("fromNode", triples[0]);
-//							nodeTriples.put("relationshipTriple", triples[1]);
-//							nodeTriples.put("toNode", triples[2]);
-//			
-//							//get instance from triple and capitalize it for rdbms since btree stores uppercase for rdbms
-//							String fromNodeInstance = Utility.getInstanceName(triples[0]);
-//							String toNodeInstance = Utility.getInstanceName(triples[2]);
-//							if(useUpperCase){
-//								fromNodeInstance = fromNodeInstance.toUpperCase();
-//								toNodeInstance = toNodeInstance.toUpperCase();
-//							}
-//							if(columnHeaders.contains(fromNodeInstance) && columnHeaders.contains(toNodeInstance)){
-//								triplesHash.put(Integer.toString(i++), nodeTriples);
-//							}
-//						}
-//			
-//						// don't need this anymore as insights and tables are not stored separately
-//		//				insightID = InsightStore.getInstance().put(existingInsight); // place btree into ITableDataFrameStore and generate a tableID so that user no longer uses insightID
-//					}catch(Exception e){
-//						e.printStackTrace();
-//					}
-//				}
-//			}
-//		}
-//		
-//		if(nodesHash.isEmpty()){
-			// Should always be getting metamodel information from tinker meta graph
-			// Need to enhance tinker meta graph to capture all necessary pieces
-			if(this.getDataMaker() instanceof ITableDataFrame){
-				ITableDataFrame tink = (ITableDataFrame) this.getDataMaker();
-				Map<String, Set<String>> edgeHash = tink.getEdgeHash();
-				Map<String, String> props = tink.getProperties();
-				for(String sub: edgeHash.keySet()){
-					Map<String, Object> nodeObj = new HashMap<String, Object>();
-//					nodeObj.put("uri", sub);
-					Set<String> subEngineNameSet = tink.getEnginesForUniqueName(sub);
+		if(this.getDataMaker() instanceof ITableDataFrame){
+			ITableDataFrame tink = (ITableDataFrame) this.getDataMaker();
+			Map<String, Set<String>> edgeHash = tink.getEdgeHash();
+			Map<String, String> props = tink.getProperties();
+			
+			for(String sub: edgeHash.keySet()){
+				Map<String, Object> nodeObj = new HashMap<String, Object>();
+				Set<String> subEngineNameSet = tink.getEnginesForUniqueName(sub);
+				// this is for the FE s.t. it doesn't break when no engines are sent back
+				if(subEngineNameSet == null || subEngineNameSet.isEmpty()) {
+					subEngineNameSet = new HashSet<String>();
+					subEngineNameSet.add(Constants.LOCAL_MASTER_DB_NAME);
+				}
+				nodeObj.put("engineName", subEngineNameSet);
+				HashMap<String, String> engineToSubPhysicalMap = new HashMap<String, String>();
+				for (String engine : subEngineNameSet) {
+					String physicalUri = tink.getPhysicalUriForNode(sub, engine);
+					String engineDisplay = null;
+					if(physicalUri.startsWith("http://semoss.org/ontologies/Relation/Contains/")) {
+						engineDisplay = Utility.getClassName(physicalUri);
+					} else {
+						engineDisplay = Utility.getInstanceName(physicalUri);
+					}
+					engineToSubPhysicalMap.put(engine, engineDisplay);
+				}
+				nodeObj.put("engineToPhysical", engineToSubPhysicalMap);
+				if(props.containsKey(sub)){
+					nodeObj.put("prop", props.get(sub));
+				}
+				nodesHash.put(sub, nodeObj);
+
+				Set<String> objs = edgeHash.get(sub);
+				for(String obj : objs){
+					Map<String, Object> nodeObj2 = new HashMap<String, Object>();
+					//						nodeObj2.put("uri", obj);
+					Set<String> objEngineNameSet = tink.getEnginesForUniqueName(obj);
 					// this is for the FE s.t. it doesn't break when no engines are sent back
-					if(subEngineNameSet == null || subEngineNameSet.isEmpty()) {
-						subEngineNameSet = new HashSet<String>();
-						subEngineNameSet.add(Constants.LOCAL_MASTER_DB_NAME);
+					if(objEngineNameSet == null || objEngineNameSet.isEmpty()) {
+						objEngineNameSet = new HashSet<String>();
+						objEngineNameSet.add(Constants.LOCAL_MASTER_DB_NAME);
 					}
-					nodeObj.put("engineName", subEngineNameSet);
-					nodeObj.put("engineName", subEngineNameSet);
-					HashMap<String, String> engineToSubPhysicalMap = new HashMap<String, String>();
-					for (String engine : subEngineNameSet) {
+					nodeObj2.put("engineName", objEngineNameSet);
+					HashMap<String, String> engineToObjPhysicalMap = new HashMap<String, String>();
+					for (String engine : objEngineNameSet) {
+						String physicalUri = tink.getPhysicalUriForNode(obj, engine);
 						String engineDisplay = null;
-						IEngine e = (IEngine)DIHelper.getInstance().getLocalProp(engine);
-						String physicalUri = tink.getPhysicalUriForNode(sub, engine);
-						engineDisplay = Utility.getInstanceName(e.getTransformedNodeName(physicalUri, true));
-						engineToSubPhysicalMap.put(engine, engineDisplay);
-					}
-					nodeObj.put("engineToPhysical", engineToSubPhysicalMap);
-					if(props.containsKey(sub)){
-						nodeObj.put("prop", props.get(sub));
-					}
-					nodesHash.put(sub, nodeObj);
-					
-					Set<String> objs = edgeHash.get(sub);
-					for(String obj : objs){
-						Map<String, Object> nodeObj2 = new HashMap<String, Object>();
-//						nodeObj2.put("uri", obj);
-						Set<String> objEngineNameSet = tink.getEnginesForUniqueName(obj);
-						// this is for the FE s.t. it doesn't break when no engines are sent back
-						if(objEngineNameSet == null || objEngineNameSet.isEmpty()) {
-							objEngineNameSet = new HashSet<String>();
-							objEngineNameSet.add(Constants.LOCAL_MASTER_DB_NAME);
+						if(physicalUri.startsWith("http://semoss.org/ontologies/Relation/Contains/")) {
+							engineDisplay = Utility.getClassName(physicalUri);
+						} else {
+							engineDisplay = Utility.getInstanceName(physicalUri);
 						}
-						nodeObj2.put("engineName", objEngineNameSet);
-						HashMap<String, String> engineToObjPhysicalMap = new HashMap<String, String>();
-						for (String engine : objEngineNameSet) {
-							String engineDisplay = null;
-							IEngine e = (IEngine)DIHelper.getInstance().getLocalProp(engine);
-							String physicalUri = tink.getPhysicalUriForNode(obj, engine);
-							engineDisplay = Utility.getInstanceName(e.getTransformedNodeName(physicalUri, true));
-							engineToObjPhysicalMap.put(engine, engineDisplay);
-						}
-						nodeObj2.put("engineToPhysical", engineToObjPhysicalMap);
-						if(props.containsKey(obj)){
-							nodeObj2.put("prop", props.get(obj));
-						}
-						nodesHash.put(obj, nodeObj2);
-						
-						Map<String, String> nodeTriples = new Hashtable<String, String>();
-						nodeTriples.put("fromNode", sub);
-						nodeTriples.put("relationshipTriple", "fake");
-						nodeTriples.put("toNode", obj);
-						triplesHash.put(triplesHash.size()+"", nodeTriples);
+						engineToObjPhysicalMap.put(engine, engineDisplay);
 					}
+					nodeObj2.put("engineToPhysical", engineToObjPhysicalMap);
+					if(props.containsKey(obj)){
+						nodeObj2.put("prop", props.get(obj));
+					}
+					nodesHash.put(obj, nodeObj2);
+
+					Map<String, String> nodeTriples = new Hashtable<String, String>();
+					nodeTriples.put("fromNode", sub);
+					nodeTriples.put("relationshipTriple", "fake");
+					nodeTriples.put("toNode", obj);
+					triplesHash.put(triplesHash.size()+"", nodeTriples);
 				}
 			}
-//		}
+		}
+		//		}
 		returnHash.put("nodes", nodesHash); // Nodes that will be used to build the metamodel in Single-View
 		returnHash.put("triples", triplesHash);
 
