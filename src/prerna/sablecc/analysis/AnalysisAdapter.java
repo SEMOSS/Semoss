@@ -921,6 +921,24 @@ public class AnalysisAdapter implements Analysis
     }
 
     @Override
+    public void caseACondition(ACondition node)
+    {
+        defaultCase(node);
+    }
+
+    @Override
+    public void caseAConditionGroup(AConditionGroup node)
+    {
+        defaultCase(node);
+    }
+
+    @Override
+    public void caseAConditionBlock(AConditionBlock node)
+    {
+        defaultCase(node);
+    }
+
+    @Override
     public void caseATermExpr(ATermExpr node)
     {
         defaultCase(node);
@@ -958,6 +976,12 @@ public class AnalysisAdapter implements Analysis
 
     @Override
     public void caseAEExprExpr(AEExprExpr node)
+    {
+        defaultCase(node);
+    }
+
+    @Override
+    public void caseAConditionExprExpr(AConditionExprExpr node)
     {
         defaultCase(node);
     }
@@ -1077,6 +1101,12 @@ public class AnalysisAdapter implements Analysis
     }
 
     @Override
+    public void caseTBoolean(TBoolean node)
+    {
+        defaultCase(node);
+    }
+
+    @Override
     public void caseTId(TId node)
     {
         defaultCase(node);
@@ -1138,6 +1168,12 @@ public class AnalysisAdapter implements Analysis
 
     @Override
     public void caseTComparator(TComparator node)
+    {
+        defaultCase(node);
+    }
+
+    @Override
+    public void caseTLogOperator(TLogOperator node)
     {
         defaultCase(node);
     }
