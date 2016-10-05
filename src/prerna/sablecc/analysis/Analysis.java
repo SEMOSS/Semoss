@@ -153,6 +153,9 @@ public interface Analysis extends Switch
     void caseAExprInputOrExpr(AExprInputOrExpr node);
     void caseAInputInputOrExpr(AInputInputOrExpr node);
     void caseAOpenDataInputOrExpr(AOpenDataInputOrExpr node);
+    void caseACondition(ACondition node);
+    void caseAConditionGroup(AConditionGroup node);
+    void caseAConditionBlock(AConditionBlock node);
     void caseATermExpr(ATermExpr node);
     void caseAPlusExpr(APlusExpr node);
     void caseAMinusExpr(AMinusExpr node);
@@ -160,6 +163,7 @@ public interface Analysis extends Switch
     void caseADivExpr(ADivExpr node);
     void caseAModExpr(AModExpr node);
     void caseAEExprExpr(AEExprExpr node);
+    void caseAConditionExprExpr(AConditionExprExpr node);
     void caseAMathFun(AMathFun node);
     void caseAMathParam(AMathParam node);
     void caseAExtendedExpr(AExtendedExpr node);
@@ -180,6 +184,7 @@ public interface Analysis extends Switch
     void caseADatabaseMetamodel(ADatabaseMetamodel node);
 
     void caseTNumber(TNumber node);
+    void caseTBoolean(TBoolean node);
     void caseTId(TId node);
     void caseTDot(TDot node);
     void caseTSemicolon(TSemicolon node);
@@ -191,6 +196,7 @@ public interface Analysis extends Switch
     void caseTDiv(TDiv node);
     void caseTCol(TCol node);
     void caseTComparator(TComparator node);
+    void caseTLogOperator(TLogOperator node);
     void caseTEqual(TEqual node);
     void caseTColadd(TColadd node);
     void caseTApi(TApi node);

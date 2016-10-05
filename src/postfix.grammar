@@ -19,6 +19,7 @@ Helpers
 
 Tokens
  number = ['0' .. '9']+;
+ boolean = ('TRUE' | 'FALSE');
  id = (letter_s | letter_b | digit | underscore)*;
  dot = '.';
  semicolon = ';';
@@ -30,6 +31,7 @@ Tokens
  div = '/';
  col = 'col';
  comparator = ('>' | '<' | '<=' | '>=' | '!=' | 'like');
+ log_operator = ( '||' | '&&' );
  equal = '=';
  coladd = 'col.add';
  api = ('api:'|'call:');
@@ -402,7 +404,13 @@ equal_or_compare = {comparator} comparator | {equal} equal;
 user_input = userinput l_par [options]:term comma [selections]:word_or_num r_par;
 
 input_or_expr = {expr} expr | {input} user_input | {open_data} open_data; //script;
-		
+
+condition = l_par [left]:term equal_or_compare [right]:term r_par;
+
+condition_group = log_operator condition;
+
+condition_block = l_par condition condition_group* r_par;
+
  expr =
   {term} term
   | {plus} [left]:term plus [right]:expr
@@ -410,11 +418,12 @@ input_or_expr = {expr} expr | {input} user_input | {open_data} open_data; //scri
   | {mult} [left]:term mult [right]:expr 
   | {div} [left]:term div [right]:expr 
   | {mod} [left]:term mod [right]:expr
-  | {e_expr} extended_expr
+  | {e_expr} extended_expr 
+  | {condition_expr} condition_block
   //|{math_fun} math_fun // I need to still resolve other mathematical functions
   ;
  
- math_fun = proc id l_par [expr]:expr_row comma? [group]:col_csv? [parameters]:math_param? r_par; // m.Sum([1 + c:Activity], /*groupBy*/(c:studio, c:genre));
+ math_fun = proc id l_par [expr]:expr_row comma? [group]:col_csv? [parameters]:math_param? r_par;  // m.Sum([1 + c:Activity], /*groupBy*/(c:studio, c:genre));
  
  math_param = comma map_obj; 
  
