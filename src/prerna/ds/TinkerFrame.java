@@ -2634,6 +2634,7 @@ public class TinkerFrame extends AbstractTableDataFrame {
 		reactorNames.put(PKQLEnum.WHERE, "prerna.sablecc.ColWhereReactor");
 		reactorNames.put(PKQLEnum.REL_DEF, "prerna.sablecc.RelReactor");
 		reactorNames.put(PKQLEnum.COL_ADD, "prerna.sablecc.TinkerColAddReactor");
+		reactorNames.put(PKQLEnum.COL_SPLIT, "prerna.sablecc.TinkerColSplitReactor");
 		reactorNames.put(PKQLEnum.IMPORT_DATA, "prerna.sablecc.TinkerImportDataReactor");
 		reactorNames.put(PKQLEnum.REMOVE_DATA, "prerna.sablecc.RemoveDataReactor");
 		reactorNames.put(PKQLEnum.FILTER_DATA, "prerna.sablecc.ColFilterReactor");
