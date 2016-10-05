@@ -35,13 +35,13 @@ public class ColAddReactor extends AbstractReactor {
 		values2SyncHash.put(PKQLEnum.API, dataFromApi);
 
 		// setting pkqlMetaData
-		String title = "Add a new column";
-		String pkqlCommand = "col.add(c:newCol,expression);";
-		String description = "Adds a new column named newCol, setting each cell to the result of the expression";
-		boolean showMenu = true;
-		boolean pinned = true;
-		super.setPKQLMetaData(title, pkqlCommand, description, showMenu, pinned);
-		super.setPKQLMetaDataInput();
+//		String title = "Add a new column";
+//		String pkqlCommand = "col.add(c:newCol,expression);";
+//		String description = "Adds a new column named newCol, setting each cell to the result of the expression";
+//		boolean showMenu = true;
+//		boolean pinned = true;
+//		super.setPKQLMetaData(title, pkqlCommand, description, showMenu, pinned);
+//		super.setPKQLMetaDataInput();
 	}
 
 	@Override
