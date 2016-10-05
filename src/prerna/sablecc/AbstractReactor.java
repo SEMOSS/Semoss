@@ -37,8 +37,8 @@ public abstract class AbstractReactor implements IScriptReactor {
 	protected Vector <String> replacers = new Vector<String>();
 
 	//added for PKQL command definition to be sent to the FE
-	private String[] pkqlDefinition = {"title", "pkqlCommand", "description", "showMenu", "pinned", "input", "console"};
-	private HashMap <String, Object> pkqlMetaData = null;
+//	private String[] pkqlDefinition = {"title", "pkqlCommand", "description", "showMenu", "pinned", "input", "console"};
+//	private HashMap <String, Object> pkqlMetaData = null;
 
 	private String lastKeyAdded = null;
 	
@@ -255,34 +255,34 @@ public abstract class AbstractReactor implements IScriptReactor {
 	}
 
 	//returns the PKQL command structure for specific reactor
-	public HashMap <String, Object> getPKQLMetaData(){
-		return this.pkqlMetaData;
-	}
+//	public HashMap <String, Object> getPKQLMetaData(){
+//		return this.pkqlMetaData;
+//	}
 
-	public void setPKQLMetaData(String title, String pkqlCommand, String description, boolean showMenu, boolean pinned){
-		this.pkqlMetaData = new HashMap<String, Object>();
-		for(String pkqlDef: pkqlDefinition){
-			switch(pkqlDef){
-			case "title" : this.pkqlMetaData.put(pkqlDef, title);break;
-			case "pkqlCommand": this.pkqlMetaData.put(pkqlDef, pkqlCommand);break;
-			case "description": this.pkqlMetaData.put(pkqlDef, description);break;
-			case "showMenu": this.pkqlMetaData.put(pkqlDef, showMenu);break;
-			case "pinned": this.pkqlMetaData.put(pkqlDef, pinned);break;
-			}			
-		}
-	}
+//	public void setPKQLMetaData(String title, String pkqlCommand, String description, boolean showMenu, boolean pinned){
+//		this.pkqlMetaData = new HashMap<String, Object>();
+//		for(String pkqlDef: pkqlDefinition){
+//			switch(pkqlDef){
+//			case "title" : this.pkqlMetaData.put(pkqlDef, title);break;
+//			case "pkqlCommand": this.pkqlMetaData.put(pkqlDef, pkqlCommand);break;
+//			case "description": this.pkqlMetaData.put(pkqlDef, description);break;
+//			case "showMenu": this.pkqlMetaData.put(pkqlDef, showMenu);break;
+//			case "pinned": this.pkqlMetaData.put(pkqlDef, pinned);break;
+//			}			
+//		}
+//	}
 
 	/*public void setPKQLMetaDataInput(List<HashMap<String, Object>> input){
 		this.pkqlMetaData.put("input", input);
 	}*/
 	
-	public void setPKQLMetaDataInput(){
-		List<HashMap<String, Object>> input = new ArrayList<HashMap<String, Object>>();
-		for(String var: this.whatIReactTo){
-			input.add(Utility.getPKQLInputVar(var, this.whoAmI));
-		}
-		this.pkqlMetaData.put("input", input);
-	}
+//	public void setPKQLMetaDataInput(){
+//		List<HashMap<String, Object>> input = new ArrayList<HashMap<String, Object>>();
+//		for(String var: this.whatIReactTo){
+//			input.add(Utility.getPKQLInputVar(var, this.whoAmI));
+//		}
+//		this.pkqlMetaData.put("input", input);
+//	}
 
 /*	public void setPKQLMetaDataConsole(HashMap<String, Object> console){
 		this.pkqlMetaData.put("console", console);
@@ -325,9 +325,9 @@ public abstract class AbstractReactor implements IScriptReactor {
 	}
 
 	//returns the PKQL command for specific reactor
-	public String getPKQL(){
-		return (String) this.pkqlMetaData.get("title");
-	}
+//	public String getPKQL(){
+//		return (String) this.pkqlMetaData.get("title");
+//	}
 	
 	@Override
 	public String getLastStoredKey() {
