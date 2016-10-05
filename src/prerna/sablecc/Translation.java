@@ -1959,11 +1959,10 @@ public class Translation extends DepthFirstAdapter {
 	
 	@Override
 	public void outADatabaseConceptProperties(ADatabaseConceptProperties node) {
-		//TODO: finish this
-//		// get the engine
-//		String conceptName = node.getConceptName().toString().trim();
-//		// get the metamodel for the engine
-//		runner.setReturnData(DatabasePkqlService.getMetamodel(conceptName));
-//		runner.setStatus(PKQLRunner.STATUS.SUCCESS);
+		// get the engine
+		String conceptName = node.getConceptName().toString().trim();
+		// get the properties for this concept across all engines
+		runner.setReturnData(DatabasePkqlService.getConceptProperties(conceptName));
+		runner.setStatus(PKQLRunner.STATUS.SUCCESS);
     }
 }
