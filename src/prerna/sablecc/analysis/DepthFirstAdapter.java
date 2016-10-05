@@ -3989,6 +3989,104 @@ public class DepthFirstAdapter extends AnalysisAdapter
         outAOpenDataInputOrExpr(node);
     }
 
+    public void inACondition(ACondition node)
+    {
+        defaultIn(node);
+    }
+
+    public void outACondition(ACondition node)
+    {
+        defaultOut(node);
+    }
+
+    @Override
+    public void caseACondition(ACondition node)
+    {
+        inACondition(node);
+        if(node.getLPar() != null)
+        {
+            node.getLPar().apply(this);
+        }
+        if(node.getLeft() != null)
+        {
+            node.getLeft().apply(this);
+        }
+        if(node.getEqualOrCompare() != null)
+        {
+            node.getEqualOrCompare().apply(this);
+        }
+        if(node.getRight() != null)
+        {
+            node.getRight().apply(this);
+        }
+        if(node.getRPar() != null)
+        {
+            node.getRPar().apply(this);
+        }
+        outACondition(node);
+    }
+
+    public void inAConditionGroup(AConditionGroup node)
+    {
+        defaultIn(node);
+    }
+
+    public void outAConditionGroup(AConditionGroup node)
+    {
+        defaultOut(node);
+    }
+
+    @Override
+    public void caseAConditionGroup(AConditionGroup node)
+    {
+        inAConditionGroup(node);
+        if(node.getLogOperator() != null)
+        {
+            node.getLogOperator().apply(this);
+        }
+        if(node.getCondition() != null)
+        {
+            node.getCondition().apply(this);
+        }
+        outAConditionGroup(node);
+    }
+
+    public void inAConditionBlock(AConditionBlock node)
+    {
+        defaultIn(node);
+    }
+
+    public void outAConditionBlock(AConditionBlock node)
+    {
+        defaultOut(node);
+    }
+
+    @Override
+    public void caseAConditionBlock(AConditionBlock node)
+    {
+        inAConditionBlock(node);
+        if(node.getLPar() != null)
+        {
+            node.getLPar().apply(this);
+        }
+        if(node.getCondition() != null)
+        {
+            node.getCondition().apply(this);
+        }
+        {
+            List<PConditionGroup> copy = new ArrayList<PConditionGroup>(node.getConditionGroup());
+            for(PConditionGroup e : copy)
+            {
+                e.apply(this);
+            }
+        }
+        if(node.getRPar() != null)
+        {
+            node.getRPar().apply(this);
+        }
+        outAConditionBlock(node);
+    }
+
     public void inATermExpr(ATermExpr node)
     {
         defaultIn(node);
@@ -4174,6 +4272,27 @@ public class DepthFirstAdapter extends AnalysisAdapter
             node.getExtendedExpr().apply(this);
         }
         outAEExprExpr(node);
+    }
+
+    public void inAConditionExprExpr(AConditionExprExpr node)
+    {
+        defaultIn(node);
+    }
+
+    public void outAConditionExprExpr(AConditionExprExpr node)
+    {
+        defaultOut(node);
+    }
+
+    @Override
+    public void caseAConditionExprExpr(AConditionExprExpr node)
+    {
+        inAConditionExprExpr(node);
+        if(node.getConditionBlock() != null)
+        {
+            node.getConditionBlock().apply(this);
+        }
+        outAConditionExprExpr(node);
     }
 
     public void inAMathFun(AMathFun node)
