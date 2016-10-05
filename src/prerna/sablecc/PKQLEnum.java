@@ -83,5 +83,6 @@ public class PKQLEnum {
 	public static String CSV_API = "CSV_API";
 	public static String R_API = "R_API";
 	public static String WEB_API = "WEB_API";
+	public static String NATIVE_QUERY_API = "NATIVE_QUERY_API";
 	
 }

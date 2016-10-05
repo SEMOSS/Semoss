@@ -1,5 +1,9 @@
 package prerna.ds.nativeframe;
 
+import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.OutputStream;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -10,6 +14,7 @@ import java.util.Hashtable;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Properties;
 import java.util.Set;
 import java.util.Vector;
 
@@ -21,6 +26,7 @@ import prerna.algorithm.api.IMetaData;
 import prerna.algorithm.api.IMetaData.DATA_TYPES;
 import prerna.algorithm.api.ITableDataFrame;
 import prerna.ds.AbstractTableDataFrame;
+import prerna.ds.QueryStruct;
 import prerna.ds.TinkerFrame;
 import prerna.ds.TinkerMetaData;
 import prerna.ds.H2.H2Builder;
@@ -34,6 +40,9 @@ public class NativeFrame extends AbstractTableDataFrame {
 	private static final Logger LOGGER = LogManager.getLogger(NativeFrame.class.getName());
 	NativeFrameBuilder builder;
 
+	//use this variable to store the current view query
+	String currentViewQuery = "";
+	
 	public NativeFrame() {
 		this.metaData = new TinkerMetaData();
 		this.builder = new NativeFrameBuilder();
@@ -46,38 +55,26 @@ public class NativeFrame extends AbstractTableDataFrame {
 
 	public void setConnection(String engineName) {
 		this.builder.setConnection(engineName);
-//		Connection connection = this.builder.getConnection();
-		
-//		if (connection != null) {
-//			try {
-//				// working with Mairiadb
-//				Statement stmt = connection.createStatement();
-//				String query = "select * from director";
-//				ResultSet rs = stmt.executeQuery(query);
-//				while (rs.next()) {
-//				 System.out.print(rs.toString());
-//				}
-//
-//			} catch (SQLException e) {
-//				e.printStackTrace();
-//			}
-//		}
 	}
-
-
 
 	@Override
 	public Integer getUniqueInstanceCount(String columnHeader) {
-		return null;
+		return builder.getColumn(columnHeader, true).length;
 	}
 
 	@Override
 	public Double getMax(String columnHeader) {
+		if (this.metaData.getDataType(columnHeader).equals(IMetaData.DATA_TYPES.NUMBER)) {
+			return builder.getStat(columnHeader, "MAX", false);
+		}
 		return null;
 	}
 
 	@Override
 	public Double getMin(String columnHeader) {
+		if (this.metaData.getDataType(columnHeader).equals(IMetaData.DATA_TYPES.NUMBER)) {
+			return builder.getStat(columnHeader, "MIN", false);
+		}
 		return null;
 	}
 
@@ -177,7 +174,7 @@ public class NativeFrame extends AbstractTableDataFrame {
 
 	@Override
 	public Iterator<Object> uniqueValueIterator(String columnHeader, boolean iterateAll) {
-		return null;
+		return Arrays.asList(builder.getColumn(columnHeader, true)).iterator();
 	}
 
 	@Override
@@ -185,9 +182,11 @@ public class NativeFrame extends AbstractTableDataFrame {
 		return null;
 	}
 
-
-
-
+	@Override
+	public Object[] getColumn(String columnHeader) {
+		Object[] array = builder.getColumn(columnHeader, false);
+		return array;
+	}
 
 	/**
 	 * String columnHeader - the column on which to filter on filterValues - the
@@ -218,20 +217,20 @@ public class NativeFrame extends AbstractTableDataFrame {
 			comparator = comparator.trim();
 			if(comparator.equals("=")) {
 
-				if(override) builder.setFilters(columnHeader, filters, H2Builder.Comparator.EQUAL);
-				else builder.addFilters(columnHeader, filters, H2Builder.Comparator.EQUAL);
+				if(override) builder.setFilters(columnHeader, filters, comparator);
+				else builder.addFilters(columnHeader, filters, comparator);
 
 			} else if(comparator.equals("!=")) { 
 
-				if(override) builder.setFilters(columnHeader, filters, H2Builder.Comparator.NOT_EQUAL);
-				else builder.addFilters(columnHeader, filters, H2Builder.Comparator.NOT_EQUAL);
+				if(override) builder.setFilters(columnHeader, filters, comparator);
+				else builder.addFilters(columnHeader, filters, comparator);
 
 			} else if(comparator.equals("<")) {
 
 				if(isOrdinal) {
 
-					if(override) builder.setFilters(columnHeader, filters, H2Builder.Comparator.LESS_THAN);
-					else builder.addFilters(columnHeader, filters, H2Builder.Comparator.LESS_THAN);
+					if(override) builder.setFilters(columnHeader, filters, comparator);
+					else builder.addFilters(columnHeader, filters, comparator);
 
 				} else {
 					throw new IllegalArgumentException(columnHeader
@@ -243,8 +242,8 @@ public class NativeFrame extends AbstractTableDataFrame {
 
 				if(isOrdinal) {
 
-					if(override) builder.setFilters(columnHeader, filters, H2Builder.Comparator.GREATER_THAN);
-					else builder.addFilters(columnHeader, filters, H2Builder.Comparator.GREATER_THAN);
+					if(override) builder.setFilters(columnHeader, filters, comparator);
+					else builder.addFilters(columnHeader, filters, comparator);
 
 				} else {
 					throw new IllegalArgumentException(columnHeader
@@ -255,8 +254,8 @@ public class NativeFrame extends AbstractTableDataFrame {
 			} else if(comparator.equals("<=")) {
 				if(isOrdinal) {
 
-					if(override) builder.setFilters(columnHeader, filters, H2Builder.Comparator.LESS_THAN_EQUAL);
-					else builder.addFilters(columnHeader, filters, H2Builder.Comparator.LESS_THAN_EQUAL);
+					if(override) builder.setFilters(columnHeader, filters, comparator);
+					else builder.addFilters(columnHeader, filters, comparator);
 
 				} else {
 					throw new IllegalArgumentException(columnHeader
@@ -266,8 +265,8 @@ public class NativeFrame extends AbstractTableDataFrame {
 			} else if(comparator.equals(">=")) {
 				if(isOrdinal) {
 
-					if(override) builder.setFilters(columnHeader, filters, H2Builder.Comparator.GREATER_THAN_EQUAL);
-					else builder.addFilters(columnHeader, filters, H2Builder.Comparator.GREATER_THAN_EQUAL);
+					if(override) builder.setFilters(columnHeader, filters, comparator);
+					else builder.addFilters(columnHeader, filters, comparator);
 
 				} else {
 					throw new IllegalArgumentException(columnHeader
@@ -405,22 +404,38 @@ public class NativeFrame extends AbstractTableDataFrame {
 		if(selectQuery == null || !selectQuery.startsWith("SELECT")) {
 			throw new IllegalArgumentException("Query must be a 'SELECT' query");
 		}
-		String viewTable = this.builder.getNewTableName();
-		selectQuery = "("+selectQuery+")";
-//		selectQuery = "CREATE OR REPLACE VIEW "+viewTable+" AS "+selectQuery;
-		selectQuery = "CREATE TEMPORARY TABLE "+viewTable+" AS "+selectQuery;
-		try {
-			builder.runExternalQuery(selectQuery);
-			builder.setView(viewTable);
-		} catch (Exception e) {
-			e.printStackTrace();
-		}
 		
+//		this.currentViewQuery = selectQuery;
+		String partialSelect = selectQuery.substring(selectQuery.indexOf(" FROM ")+6, selectQuery.length());
+//		builder.setView(partialSelect);
+		
+//		String viewTable = this.builder.getNewTableName();
+//		selectQuery = "("+selectQuery+")";
+////		selectQuery = "CREATE OR REPLACE VIEW "+viewTable+" AS "+selectQuery;
+//		selectQuery = "CREATE TEMPORARY TABLE "+viewTable+" AS "+selectQuery;
+//		try {
+//			builder.runExternalQuery(selectQuery);
+//			builder.setView(viewTable);
+//		} catch (Exception e) {
+//			e.printStackTrace();
+//		}
+	}
+	
+	public void mergeQueryStruct(QueryStruct qs) {
+		this.builder.mergeQueryStruct(qs);
+	}
+	
+	public String getEngineName() {
+		return builder.getEngineName();
+	}
+	
+	public String getView() {
+		return builder.getView();
 	}
 	
 	public void close() {
 		try {
-			this.builder.dropView();
+//			this.builder.dropView();
 			this.builder.getConnection().close();
 		} catch (SQLException e) {
 			e.printStackTrace();
@@ -431,10 +446,6 @@ public class NativeFrame extends AbstractTableDataFrame {
 	
 	@Override
 	public void processDataMakerComponent(DataMakerComponent component) {
-	}
-	
-	@Override
-	public void save(String fileName) {
 	}
 
 	@Override
@@ -479,5 +490,7 @@ public class NativeFrame extends AbstractTableDataFrame {
 	public void join(ITableDataFrame table, String colNameInTable, String colNameInJoiningTable, double confidenceThreshold, IMatcher routine) {
 	}
 
-
+	@Override
+	public void save(String fileName) {
+	}
 }

@@ -23,11 +23,15 @@ import java.util.Vector;
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
+import prerna.ds.QueryStruct;
 import prerna.ds.TinkerFrame;
 import prerna.ds.H2.H2Iterator;
+import prerna.engine.api.IEngine;
+import prerna.rdf.query.builder.IQueryInterpreter;
 import prerna.ds.H2.H2Builder.Comparator;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
+import prerna.util.Utility;
 
 public class NativeFrameBuilder {
 	private static final Logger LOGGER = LogManager.getLogger(NativeFrameBuilder.class.getName());
@@ -39,8 +43,14 @@ public class NativeFrameBuilder {
 	private String password = null;
 	private String url = null;
 
+	QueryStruct queryStruct;
+	
 	private String tableName;
 	Map<String, Map<Comparator, Set<Object>>> filterHash = new HashMap<>();
+	
+	//need to determine which filters are the more narrow filters
+	public Hashtable <String, Hashtable<String, Vector>> filters = new Hashtable<>();
+	public Hashtable <String, Hashtable<String, Vector>> dbfilters = new Hashtable<>();
 	
 	static final String NATIVEFRAME = "NATIVEFRAME";
 	private static final String viewTableName = "NativeView";
@@ -52,17 +62,26 @@ public class NativeFrameBuilder {
 	}
 
 	public void setConnection(String proFile) {
-		Properties prop= getEginge(proFile);
+		prop= getEginge(proFile);
 		this.url = prop.getProperty(Constants.CONNECTION_URL);
 		this.userName = prop.getProperty(Constants.USERNAME);
 		this.password = prop.getProperty(Constants.PASSWORD);
-		
+		String rdbms_type = prop.getProperty("RDBMS_TYPE");
+		String driver = prop.getProperty("DRIVER");
+		this.engineName = prop.getProperty("ENGINE");
+		String workingDir = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER);//.replace("\\", "/");
 		if (this.conn == null) {
 			try {
-				// working with Mariadb
-				Class.forName("org.mariadb.jdbc.Driver");
-				conn = DriverManager.getConnection(url + "?user=" + userName + "&password=" + new String(password));
-
+				
+				if(rdbms_type.contains("MARIA")) {
+					// working with Mariadb
+					Class.forName(driver);
+					conn = DriverManager.getConnection(url + "?user=" + userName + "&password=" + new String(password));
+				} else if(rdbms_type.contains("H2")) {
+					Class.forName(driver);
+					url = url.replace("@BaseFolder@", workingDir).replace("@ENGINE@", engineName);
+					this.conn = DriverManager.getConnection(url, "sa", "");
+				}
 			} catch (ClassNotFoundException e) {
 				e.printStackTrace();
 			} catch (SQLException e) {
@@ -73,7 +92,6 @@ public class NativeFrameBuilder {
 	
 	public Connection getConnection() {
 		return this.conn;
-		
 	}
 	
 	public String getNewTableName() {
@@ -83,6 +101,54 @@ public class NativeFrameBuilder {
 	
 	public void setView(String tableName) {
 		this.tableName = tableName;
+	}
+	
+	public String getView() {
+		return this.tableName;
+	}
+	
+	public void mergeQueryStruct(QueryStruct qs) {
+		if(this.queryStruct == null) {
+			this.queryStruct = qs;
+		} else {
+			//merge query struct
+			this.queryStruct.merge(qs);
+		}
+		
+//		IEngine engine = Utility.getEngine(this.engineName);
+//		IQueryInterpreter interpreter = engine.getQueryInterpreter();
+////		interpreter.setQueryStruct(this.queryStruct);
+//		interpreter.setQueryStruct(mergeQueryStructWithFilters());
+//		String selectQuery = interpreter.composeQuery();
+//		String partialSelect = selectQuery.substring(selectQuery.indexOf(" FROM ")+6, selectQuery.length());
+//		setView(partialSelect);
+		
+		refreshView();
+	}
+	
+	public QueryStruct getQueryStruct() {
+		return this.queryStruct;
+	}
+	
+	private QueryStruct mergeQueryStructWithFilters() {
+		QueryStruct qs = this.queryStruct.deepCopy();
+//		qs.mergeFilters(this.filters);
+		qs.andfilters = this.filters;
+		return qs;
+	}
+	
+	private void refreshView() {
+		IEngine engine = Utility.getEngine(this.engineName);
+		IQueryInterpreter interpreter = engine.getQueryInterpreter();
+		interpreter.setQueryStruct(mergeQueryStructWithFilters());
+		String selectQuery = interpreter.composeQuery();
+		String partialSelect = selectQuery.substring(selectQuery.indexOf(" FROM ")+6, selectQuery.length());
+		setView(partialSelect);
+	}
+	
+	public String getEngineName() {
+		if(prop == null) return null;
+		return prop.getProperty("ENGINE");
 	}
 
 	/**
@@ -115,8 +181,7 @@ public class NativeFrameBuilder {
 		String userName = prop.getProperty(Constants.USERNAME);
 		String password = prop.getProperty(Constants.PASSWORD);
 		Class.forName("org.mariadb.jdbc.Driver");
-		conn = DriverManager
-				.getConnection(url + "?user=" + userName + "&password=" + new String(password));
+		conn = DriverManager.getConnection(url + "?user=" + userName + "&password=" + new String(password));
 //		Statement stmt = conn.createStatement();
 //		String query = "select * from director";
 //		ResultSet rs = stmt.executeQuery(query);
@@ -213,6 +278,12 @@ public class NativeFrameBuilder {
 
 		try {
 			Statement stmt = getConnection().createStatement();
+//			IEngine engine = Utility.getEngine(engineName);
+//			IQueryInterpreter interp = engine.getQueryInterpreter();
+//			interp.setQueryStruct(queryStruct);
+//			String selectQuery = interp.composeQuery();
+			
+			
 			String selectQuery = makeSelect(tableName, selectors);
 			long startTime = System.currentTimeMillis();
 			ResultSet rs = stmt.executeQuery(selectQuery);
@@ -266,6 +337,11 @@ public class NativeFrameBuilder {
 		} else {
 			selectQuery = makeSelect(tableName, selectors);
 		}
+		
+//		IEngine engine = Utility.getEngine(engineName);
+//		IQueryInterpreter interp = engine.getQueryInterpreter();
+//		interp.setQueryStruct(queryStruct);
+//		selectQuery = interp.composeQuery();
 
 		//temporary filters to apply only to this iterator
 		Map<String, List<Object>> temporalBindings = (Map<String, List<Object>>) options.get(TinkerFrame.TEMPORAL_BINDINGS); 
@@ -487,6 +563,43 @@ public class NativeFrameBuilder {
 		}
 		return null;
 	}
+	
+	/**
+	 * This method returns the max/min/count/sum/avg of a column
+	 * returns null if statType parameter is invalid
+	 * 
+	 * @param columnHeader
+	 * @param statType
+	 * @return
+	 */
+	public Double getStat(String columnHeader, String statType, boolean ignoreFilter) {
+		String tableName = this.tableName;
+//		if(joinMode) {
+//			tableName = this.viewTableName;
+//			columnHeader = translateColumn(columnHeader);
+//		} else {
+//			
+//		}
+////		String tableName = joinMode ? this.viewTableName : this.tableName;
+//		columnHeader = cleanHeader(columnHeader);
+		
+		String function;
+		if(ignoreFilter) {
+			function = makeFunctionIgnoreFilter(columnHeader, statType, tableName);
+		} else {
+			function = makeFunction(columnHeader, statType, tableName);
+		}
+		
+		ResultSet rs = executeQuery(function);
+		try {
+			if(rs.next()) {
+				return rs.getDouble(1);
+			}
+		} catch (SQLException e) {
+			e.printStackTrace();
+		}
+		return null;
+	}
 
 	/*************************** END READ **********************************************/
 	
@@ -522,6 +635,27 @@ public class NativeFrameBuilder {
 		}
 	}
 
+	public void addFilters(String columnHeader, List<Object> values, String comparator) {
+		if(this.filters.containsKey(columnHeader)) {
+			Hashtable<String, Vector> curFilters = this.filters.get(columnHeader);
+			if(curFilters.containsKey(comparator)) {
+				Set<Object> set = new HashSet<>();
+				set.addAll(curFilters.get(comparator));
+				set.addAll(values);
+				Vector newVec = new Vector();
+				newVec.addAll(set);
+				curFilters.put(comparator, newVec);
+			} else {
+				Vector newVec = new Vector();
+				newVec.addAll(values);
+				curFilters.put(comparator, newVec);
+			}
+		} else {
+			setFilters(columnHeader, values, comparator);
+		}
+		
+		refreshView();
+	}
 	/**
 	 * Overwrites filters for a specific column with the values and comparator specified
 	 * @param columnHeader
@@ -536,6 +670,16 @@ public class NativeFrameBuilder {
 		innerMap.put(comparator, new HashSet<>(values));
 		filterHash.put(columnHeader, innerMap);
 	}
+	
+	public void setFilters(String columnHeader, List<Object> values, String comparator) {
+		Vector newVals = new Vector();
+		newVals.addAll(values);
+		Hashtable<String, Vector> newTable = new Hashtable<String, Vector>();
+		newTable.put(comparator, newVals);
+		this.filters.put(columnHeader, newTable);
+		
+		refreshView();
+	}
 
 	/**
 	 * Clears the filters for the columnHeader
@@ -546,6 +690,9 @@ public class NativeFrameBuilder {
 		//    	filterComparator.remove(columnHeader);
 
 		filterHash.remove(columnHeader);
+		filters.remove(columnHeader);
+		
+		refreshView();
 	}
 
 	/**
@@ -556,6 +703,9 @@ public class NativeFrameBuilder {
 		//    	filterComparator.clear();
 
 		filterHash.clear();
+		filters.clear();
+		
+		refreshView();
 	}
 
 	/**
@@ -950,6 +1100,21 @@ public class NativeFrameBuilder {
 		functionString += "FROM "+tableName;
 		return functionString;
 	}
+	
+	private String makeFunctionIgnoreFilter(String column, String function, String tableName) {
+		String functionString = "SELECT ";
+		switch(function.toUpperCase()) {
+		case "COUNT": functionString += "COUNT("+column+")"; break;
+		case "AVERAGE": functionString += "AVG("+column+")"; break;
+		case "MIN": functionString += "MIN("+column+")"; break;
+		case "MAX": functionString += "MAX("+column+")"; break;
+		case "SUM": functionString += "SUM("+column+")"; break;
+		default: functionString += column;
+		}
+
+		functionString += "FROM "+tableName;
+		return functionString;
+	}
 
 	private String makeFunction(String column, String function, String tableName, List<String> groupByCols) {
 		if(groupByCols == null || groupByCols.isEmpty()) {
@@ -1067,4 +1232,6 @@ public class NativeFrameBuilder {
 	}
 	
 	/*************************** END DELTE **********************************************/
+	
+	
 }

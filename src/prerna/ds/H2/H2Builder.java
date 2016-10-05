@@ -488,6 +488,9 @@ public class H2Builder {
 		return name; 
 	}
 
+	public void setTableName(String tableName) {
+		this.tableName = tableName;
+	}
 
 	/*************************** CREATE ******************************************/
 
@@ -879,6 +882,10 @@ public class H2Builder {
 					String alterQuery = makeAlter(tableName, newHeaders.toArray(new String[]{}), newTypes.toArray(new String[]{}));
 					System.out.println("altering table: " + alterQuery);
 					runQuery(alterQuery);
+					
+					if(this.joinMode) {
+						this.joiner.addHeaders(this, newHeaders);
+					}
 				}
 			} else {
 				//if table doesn't exist then create one with headers and types
@@ -966,6 +973,8 @@ public class H2Builder {
 	 * used to drop the table when the insight is closed
 	 */
 	protected void dropTable() {
+		if(tableName == null) return;
+		
 		String finalQuery = makeDropTable(tableName);
 		try {
 			runQuery(finalQuery);
@@ -973,6 +982,7 @@ public class H2Builder {
 			e.printStackTrace();
 		}
 		System.out.println("DROPPED H2 TABLE" + tableName);
+		tableName = null;
 	}
 
 	/**
@@ -1509,6 +1519,14 @@ public class H2Builder {
 	}
 
 	public void addRowsViaIterator(Iterator<IHeadersDataRow> iterator, Map<String, IMetaData.DATA_TYPES> typesMap) {
+		
+		//create table if doesn't exist
+		try {
+			runQuery("CREATE TABLE IF NOT EXISTS " + tableName);
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+		
 		try {
 			// keep a batch size so we dont get heapspace
 			final int batchSize = 5000;
