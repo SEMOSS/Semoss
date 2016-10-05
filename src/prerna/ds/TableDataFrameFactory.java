@@ -15,9 +15,14 @@ import prerna.algorithm.api.IMetaData.DATA_TYPES;
 import prerna.algorithm.api.ITableDataFrame;
 import prerna.ds.H2.H2Builder.Comparator;
 import prerna.ds.H2.H2Frame;
+import prerna.ds.nativeframe.NativeFrame;
 import prerna.ds.util.TinkerCastHelper;
+import prerna.engine.api.IEngine;
+import prerna.engine.api.IHeadersDataRow;
 import prerna.poi.main.helper.CSVFileHelper;
 import prerna.poi.main.helper.XLFileHelper;
+import prerna.rdf.engine.wrappers.WrapperManager;
+import prerna.rdf.query.builder.IQueryInterpreter;
 import prerna.util.Utility;
 
 public class TableDataFrameFactory {
@@ -353,7 +358,10 @@ public class TableDataFrameFactory {
 			return (H2Frame)table;
 		}
 
-		if(table instanceof AbstractTableDataFrame) {
+		if(table instanceof NativeFrame) {
+			return convertToH2FrameFromNativeFrame((NativeFrame)table);
+		}
+		else if(table instanceof AbstractTableDataFrame) {
 
 			AbstractTableDataFrame atable = (AbstractTableDataFrame)table;
 			String[] headers = atable.getColumnHeaders();
@@ -386,6 +394,23 @@ public class TableDataFrameFactory {
 			return dataFrame;
 		}
 		return null;
+	}
+	
+	public static H2Frame convertToH2FrameFromNativeFrame(NativeFrame frame) {
+		H2Frame newFrame = new H2Frame(frame.metaData);		
+		
+		//compose query via query struct and engine
+		QueryStruct queryStruct = frame.getBuilder().getQueryStruct();
+		IEngine nativeEngine = Utility.getEngine(frame.getEngineName());
+		IQueryInterpreter interpreter = nativeEngine.getQueryInterpreter();
+		interpreter.setQueryStruct(queryStruct);
+		String query = interpreter.composeQuery();
+				
+		//get iterator and pass to new frame to add data
+		Iterator<IHeadersDataRow> it = (WrapperManager.getInstance().getRawWrapper(nativeEngine, query));
+		newFrame.addRowsViaIterator(it);
+		
+		return newFrame;
 	}
 
 	/**
