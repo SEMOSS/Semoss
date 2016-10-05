@@ -20,13 +20,13 @@ public class ColSplitReactor extends AbstractReactor {
 		super.whoAmI = PKQLEnum.COL_SPLIT;
 
 		//setting pkqlMetaData
-		String title = "Split a column by delimiter";
-		String pkqlCommand = "col.split(c:col1,delimiter);";
-		String description = "Splits a column to multiple columns based on delimiter";
-		boolean showMenu = true;
-		boolean pinned = true;
-		super.setPKQLMetaData(title, pkqlCommand, description, showMenu, pinned);
-		super.setPKQLMetaDataInput();
+//		String title = "Split a column by delimiter";
+//		String pkqlCommand = "col.split(c:col1,delimiter);";
+//		String description = "Splits a column to multiple columns based on delimiter";
+//		boolean showMenu = true;
+//		boolean pinned = true;
+//		super.setPKQLMetaData(title, pkqlCommand, description, showMenu, pinned);
+//		super.setPKQLMetaDataInput();
 	}
 
 	@Override
@@ -57,12 +57,11 @@ public class ColSplitReactor extends AbstractReactor {
 				Map<String, Set<String>> newEdgeHash = new LinkedHashMap<>();
 				Set<String> set = new LinkedHashSet<>();
 				for(int i = highestIndex; i < newVals.length; i++) {
-
 					set.add(colSplitBase+i);
 				}
 				newEdgeHash.put(column, set);
-				//TODO: empty  hashmap will default types to string, need to also be able to create other type columns
-				//		in cases of splitting dates and decimals
+				// TODO: empty  HashMap will default types to string, need to also be able to create other type columns
+				// in cases of splitting dates and decimals
 				frame.mergeEdgeHash(newEdgeHash, new HashMap<>());
 				highestIndex = newVals.length;
 			}

@@ -30,13 +30,13 @@ public class ColFilterReactor extends AbstractReactor {
 		super.whoAmI = PKQLEnum.FILTER_DATA;
 
 		// setting pkqlMetaData
-		String title = "Filter data in a column";
-		String pkqlCommand = "col.filter(c:col1=[instances]);";
-		String description = "Filters the data in the selected column";
-		boolean showMenu = true;
-		boolean pinned = true;
-		super.setPKQLMetaData(title, pkqlCommand, description, showMenu, pinned);
-		super.setPKQLMetaDataInput();
+//		String title = "Filter data in a column";
+//		String pkqlCommand = "col.filter(c:col1=[instances]);";
+//		String description = "Filters the data in the selected column";
+//		boolean showMenu = true;
+//		boolean pinned = true;
+//		super.setPKQLMetaData(title, pkqlCommand, description, showMenu, pinned);
+//		super.setPKQLMetaDataInput();
 	}
 
 	@Override
