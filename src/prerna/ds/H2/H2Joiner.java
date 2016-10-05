@@ -3,6 +3,7 @@ package prerna.ds.H2;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Hashtable;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -23,7 +24,7 @@ public class H2Joiner {
 	private Map<String, QueryStruct> qsMap = new HashMap<>();
 		
 	// this keeps the column aliases
-	// contains {viewTable -> {colName -> colAliasToUse} }
+	// contains {frame table name -> {colName -> colAliasToUse} }
 	// e.g. {H2Frame -> {Title -> H2Frame_Title}}
 	private Hashtable<String, Hashtable<String, String>> colAlias = new Hashtable<String, Hashtable<String, String>>();
 	
@@ -325,6 +326,21 @@ public class H2Joiner {
 		
 		refreshView(frame1, viewTable);
 		return viewTable;
+	}
+	
+	public void addHeaders(H2Builder builder, List<String> newHeaders) {
+		if(builder.getJoinMode()) {
+			String viewTableName = builder.getViewTableName();
+			String tableName = builder.getTableName();
+			
+			QueryStruct qs = this.qsMap.get(viewTableName);
+			Hashtable<String, String> aliasMap = this.colAlias.get(tableName);
+			for(String header : newHeaders) {
+				qs.addSelector(tableName, header);
+				aliasMap.put(header, tableName+"_"+header);
+			}
+			builder.setTranslationMap(aliasMap);
+		}
 	}
 	
 	//Currently does not account for multi column join
