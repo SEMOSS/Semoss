@@ -29,14 +29,14 @@ public class JavaReactorWrapper extends AbstractReactor {
 		super.whoAmI = PKQLEnum.JAVA_OP;
 
 		// setting pkqlMetaData
-		String title = "Execute java code as a script";
-		String pkqlCommand = "j:<code>java_code<code>;";
-		String description = "Executes a piece of java code as a script";
-		boolean showMenu = true; // need to understand this
-		boolean pinned = true;
-		super.setPKQLMetaData(title, pkqlCommand, description, showMenu, pinned);
-		//super.setPKQLMetaDataInput(populatePKQLMetaDataInput());
-		super.setPKQLMetaDataInput();
+//		String title = "Execute java code as a script";
+//		String pkqlCommand = "j:<code>java_code<code>;";
+//		String description = "Executes a piece of java code as a script";
+//		boolean showMenu = true; // need to understand this
+//		boolean pinned = true;
+//		super.setPKQLMetaData(title, pkqlCommand, description, showMenu, pinned);
+//		//super.setPKQLMetaDataInput(populatePKQLMetaDataInput());
+//		super.setPKQLMetaDataInput();
 	}
 	
 	@Override
