@@ -573,7 +573,7 @@ public class H2Builder {
 	 * @param columns				The columns that will be used in the inserting
 	 * @return						The prepared statement
 	 */
-	private PreparedStatement createInsertPreparedStatement(final String TABLE_NAME, final String[] columns) {
+	public PreparedStatement createInsertPreparedStatement(final String TABLE_NAME, final String[] columns) {
 		// generate the sql for the prepared statement
 		StringBuilder sql = new StringBuilder("INSERT INTO ");
 		sql.append(TABLE_NAME).append(" (").append(columns[0]);
@@ -586,6 +586,32 @@ public class H2Builder {
 			sql.append(", ?");
 		}
 		sql.append(")");
+
+		PreparedStatement ps = null;
+		try {
+			// create the prepared statement using the sql query defined
+			ps = getConnection().prepareStatement(sql.toString());
+		} catch (SQLException e) {
+			e.printStackTrace();
+		}
+
+		return ps;
+	}
+	
+	public PreparedStatement createUpdatePreparedStatement(final String TABLE_NAME, final String[] columnsToUpdate, final String[] whereColumns) {
+		// generate the sql for the prepared statement
+		StringBuilder sql = new StringBuilder("UPDATE ");
+		sql.append(TABLE_NAME).append(" SET ").append(columnsToUpdate[0]).append(" = ?");
+		for(int colIndex = 1; colIndex < columnsToUpdate.length; colIndex++) {
+			sql.append(", ");
+			sql.append(columnsToUpdate[colIndex]).append(" = ?");
+		}
+		sql.append(" WHERE ").append(whereColumns[0]).append(" = ?");
+		for(int colIndex = 1; colIndex < whereColumns.length; colIndex++) {
+			sql.append(", ");
+			sql.append(whereColumns[1]).append(" = ?");
+		}
+		sql.append("");
 
 		PreparedStatement ps = null;
 		try {
@@ -1542,8 +1568,8 @@ public class H2Builder {
 			// well, we are done looping through now
 			ps.executeBatch(); // insert any remaining records
 			ps.close();
-		} catch(Exception e) {
-
+		} catch(SQLException e) {
+			e.printStackTrace();
 		}
 
 		// shift to on disk if number of records is getting large
