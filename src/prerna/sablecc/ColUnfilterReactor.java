@@ -19,13 +19,13 @@ public class ColUnfilterReactor extends AbstractReactor {
 		super.whoAmI = PKQLEnum.UNFILTER_DATA;
 
 		// setting pkqlMetaData
-		String title = "Unfilter data in a column";
-		String pkqlCommand = "col.unfilter(c:col1);";
-		String description = "Unfilters the data in the selected column";
-		boolean showMenu = true;
-		boolean pinned = true;
-		super.setPKQLMetaData(title, pkqlCommand, description, showMenu, pinned);
-		super.setPKQLMetaDataInput();
+//		String title = "Unfilter data in a column";
+//		String pkqlCommand = "col.unfilter(c:col1);";
+//		String description = "Unfilters the data in the selected column";
+//		boolean showMenu = true;
+//		boolean pinned = true;
+//		super.setPKQLMetaData(title, pkqlCommand, description, showMenu, pinned);
+//		super.setPKQLMetaDataInput();
 	}
 
 	@Override
