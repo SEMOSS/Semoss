@@ -10,6 +10,8 @@ import java.util.ListIterator;
 import java.util.Map;
 import java.util.Vector;
 
+import org.h2.expression.ValueExpression;
+
 import com.google.gson.Gson;
 
 import prerna.algorithm.api.ITableDataFrame;
@@ -21,6 +23,7 @@ import prerna.sablecc.PKQLRunner.STATUS;
 import prerna.sablecc.analysis.DepthFirstAdapter;
 import prerna.sablecc.meta.IPkqlMetadata;
 import prerna.sablecc.node.AAddColumn;
+import prerna.sablecc.node.AAlphaTerm;
 import prerna.sablecc.node.AAlphaWordOrNum;
 import prerna.sablecc.node.AApiBlock;
 import prerna.sablecc.node.AApiImportBlock;
@@ -31,6 +34,8 @@ import prerna.sablecc.node.AColGroup;
 import prerna.sablecc.node.AColTerm;
 import prerna.sablecc.node.AColWhere;
 import prerna.sablecc.node.AColopScript;
+import prerna.sablecc.node.ACondition;
+import prerna.sablecc.node.AConditionBlock;
 import prerna.sablecc.node.AConfiguration;
 import prerna.sablecc.node.ACsvRow;
 import prerna.sablecc.node.ACsvTable;
@@ -76,6 +81,7 @@ import prerna.sablecc.node.AMinusExpr;
 import prerna.sablecc.node.AModExpr;
 import prerna.sablecc.node.AMultExpr;
 import prerna.sablecc.node.ANumWordOrNum;
+import prerna.sablecc.node.ANumberTerm;
 import prerna.sablecc.node.AOpenData;
 import prerna.sablecc.node.AOpenDataInputOrExpr;
 import prerna.sablecc.node.AOpenDataJoinParam;
@@ -97,6 +103,7 @@ import prerna.sablecc.node.ARemoveData;
 import prerna.sablecc.node.ARenameColumn;
 import prerna.sablecc.node.ASetColumn;
 import prerna.sablecc.node.ASplitColumn;
+import prerna.sablecc.node.ATerm;
 import prerna.sablecc.node.ATermExpr;
 import prerna.sablecc.node.ATermGroup;
 import prerna.sablecc.node.AUnfilterColumn;
@@ -110,8 +117,10 @@ import prerna.sablecc.node.Node;
 import prerna.sablecc.node.PColGroup;
 import prerna.sablecc.node.PCsvGroup;
 import prerna.sablecc.node.PCsvRow;
+import prerna.sablecc.node.PEqualOrCompare;
 import prerna.sablecc.node.PKeyvalueGroup;
 import prerna.sablecc.node.PScript;
+import prerna.sablecc.node.PTerm;
 import prerna.sablecc.node.TRelType;
 import prerna.sablecc.services.DatabasePkqlService;
 import prerna.ui.components.playsheets.datamakers.IDataMaker;
@@ -1078,6 +1087,12 @@ public class Translation extends DepthFirstAdapter {
 
 	//**************************************** START VAR OPERATIONS **********************************************//
 	
+    
+    
+       
+    
+    
+    
     public void outAExprInputOrExpr(AExprInputOrExpr node) {
     	//need to get expr and set it to var_param
     	String value = node.getExpr().toString().trim();
@@ -1164,6 +1179,137 @@ public class Translation extends DepthFirstAdapter {
 	
 	//**************************************** END VAR OPERATIONS **********************************************//
 	
+	//****************************************Logical Operations Start************************************************//
+//    public void inAConditionBlock(AConditionBlock node){
+//    	// there should already be a condition reactor created from math
+//     	//String procedureName = node.getId().toString().trim();
+//     	//String procedureAlgo = "prerna.algorithm.impl." + procedureName + "Reactor";
+//    	
+//     	//reactorNames.put(PKQLReactor.MATH_FUN.toString(), procedureAlgo);
+//		//String expr = (String)curReactor.getValue(PKQLEnum.Condition);
+//
+//		initReactor(PKQLReactor.MATH_FUN.toString());
+//		//curReactor.put(PKQLEnum.Condition, expr);
+//		curReactor.put(PKQLEnum.G, frame);
+//		//curReactor.put(PKQLEnum.MATH_FUN, procedureName);
+//		
+//    	initReactor(PKQLEnum.ConditionBlock);
+//    }
+//    
+//    public void outAConditionBlock(AConditionBlock node){
+//    	deinitReactor(PKQLEnum.ConditionBlock, node.toString(), node.toString());
+//    	runner.setStatus(PKQLRunner.STATUS.SUCCESS);
+//        postProcess(node);
+//    }
+    
+//	@Override
+//    public void caseACondition(ACondition node)
+//    {
+//        inACondition(node);
+//        if(node.getLeft() != null)
+//        {
+//        	PTerm leftNode = node.getLeft();
+//        	leftNode.apply(this);
+//        	Object leftVal = this.curReactor.removeLastStoredKey();
+//        	this.curReactor.put("LEFT_VAL", leftVal);
+//        	if(leftNode instanceof AColTerm) {
+//        		this.curReactor.put("LEFT_TYPE", "VECTOR");
+//        	} 
+////        	else if(leftNode instanceof AAlphaTerm ||
+////        			leftNode instanceof ANumberTerm) {
+////        		this.curReactor.put("LEFT_TYPE", "SCALAR");
+////        	}
+//        }
+//        if(node.getEqualOrCompare() != null)
+//        {
+//            node.getEqualOrCompare().apply(this);
+//        }
+//        if(node.getRight() != null)
+//        {
+//        	PTerm rightNode = node.getRight();
+//            rightNode.apply(this);
+//        	Object rightVal = this.curReactor.removeLastStoredKey();
+//        	this.curReactor.put("RIGHT_VAL", rightVal);
+//        	if(rightNode instanceof AColTerm) {
+//        		this.curReactor.put("RIGHT_TYPE", "VECTOR");
+//        	} 
+////        	else if(rightNode instanceof AAlphaTerm ||
+////        			rightNode instanceof ANumberTerm) {
+////        		this.curReactor.put("RIGHT_TYPE", "SCALAR");
+////        	}
+//        }
+//        outACondition(node);
+//    }
+	
+	/*public void inACondition(ACondition node) {   	
+    	String comparator = node.getEqualOrCompare().toString().trim();
+    	this.curReactor.set("COMPARATOR", comparator);
+    	
+    	String left = node.getLeft().toString().trim();
+    	this.curReactor.set("LEFT_TERM", left);
+    	String right = node.getRight().toString().trim();
+    	this.curReactor.set("RIGHT_TERM", left);
+//    	
+//    	initReactor(PKQLEnum.Condition);
+////    	
+   }*/
+//	@Override
+//	public void caseACondition(ACondition node) {   	
+//    	String comparator = node.getEqualOrCompare().toString().trim();
+//    	this.curReactor.set("COMPARATOR", comparator);
+//    	
+//    	String left = node.getLeft().toString().trim();
+//    	this.curReactor.set("LEFT_TERM", left);
+//    	String right = node.getRight().toString().trim();
+//    	this.curReactor.set("RIGHT_TERM", left);
+////    	
+////    	initReactor(PKQLEnum.Condition);
+//////    	
+  // }
+//
+//
+//    public void outACondition(ACondition node) {
+//    	IScriptReactor thisConditionReactor = curReactor;
+//      deinitReactor(PKQLEnum.Condition, node.toString(), node.toString());
+//        // curReactor is now the parent class
+//        thisConditionReactor.getValue("COL_DEF_LIST");
+//    }
+    
+	//By SS
+	@Override
+  public void caseACondition(ACondition node)
+  {
+      inACondition(node);
+      if(node.getLeft() != null)
+      {
+      	PTerm leftNode = node.getLeft();
+      	leftNode.apply(this);
+      	this.curReactor.removeLastStoredKey();
+      	this.curReactor.put("LEFT_VAL", leftNode.toString());
+      	//this.curReactor.set("Left", leftVal);
+      }
+      if(node.getEqualOrCompare() != null)
+      {
+          PEqualOrCompare operator = node.getEqualOrCompare();
+          operator.apply(this);
+          this.curReactor.put("OPERATOR", operator.toString());
+      }
+      if(node.getRight() != null)
+      {
+      	PTerm rightNode = node.getRight();
+          rightNode.apply(this);
+      	this.curReactor.removeLastStoredKey();
+      	this.curReactor.put("RIGHT_VAL", rightNode.toString());
+      	
+      }
+     // outACondition(node);
+  }
+
+	
+	
+	
+  //**************************************** End Logical Operations************************************************//
+    
 	@Override
     public void caseADataFrame(ADataFrame node)
     {

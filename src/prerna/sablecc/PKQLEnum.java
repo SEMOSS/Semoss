@@ -78,6 +78,12 @@ public class PKQLEnum {
 	public static String KEY_VALUE_PAIR = "KEY_VALUE";
 	public static final String NETWORK_CONNECT = "NETWORK_CONNECT";
 	public static final String NETWORK_DISCONNECT = "NETWORK_DISCONNECT";
+
+
+	public static final String Condition = "CONDITION";
+
+
+	public static final String ConditionBlock = "CONDITIONBLOCK";
 	
 	public static String QUERY_API = "QUERY_API";
 	public static String CSV_API = "CSV_API";
