@@ -392,11 +392,21 @@ public class QueryStruct {
 	
 	public void mergeSelectors(Hashtable<String, Vector<String>> incomingSelectors) {
 		for(String key : incomingSelectors.keySet()) {
+			
+			Set<String> selectorSet = new HashSet<>();
 			if(this.selectors.containsKey(key)) {
-				this.selectors.get(key).addAll(incomingSelectors.get(key));
+				selectorSet.addAll(this.selectors.get(key));
+				selectorSet.addAll(incomingSelectors.get(key));
+				
+				Vector<String> allSelectors = new Vector<>();
+				allSelectors.addAll(selectorSet);
+				
+				this.selectors.put(key, allSelectors);
+//				this.selectors.get(key).addAll(incomingSelectors.get(key));
 			} else {
+				selectorSet.addAll(incomingSelectors.get(key));
 				Vector<String> newVector = new Vector<>();
-				newVector.addAll(incomingSelectors.get(key));
+				newVector.addAll(selectorSet);
 				this.selectors.put(key, newVector);
 			}
 		}
