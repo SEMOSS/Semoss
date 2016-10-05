@@ -163,16 +163,6 @@ public class ClusteringReactor extends MathReactor {
 			dataFrame.addRelationship(clean);
 		}
 		
-//		SingleColAddIterator it = new SingleColAddIterator();
-//		it.setExistingCol(attributeName);
-//		it.setNewCol(this.clusterColName);
-//		Map<String, String> dataTypeMap = new HashMap<>();
-//		dataTypeMap.put(this.clusterColName, "double");
-//		it.setDataTypeMap(dataTypeMap);
-//		it.setResults(results);
-//
-//		String nodeStr = myStore.get(whoAmI).toString();
-//		myStore.put(nodeStr, it);
 		myStore.put("STATUS",STATUS.SUCCESS);
 
 		return null;

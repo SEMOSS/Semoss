@@ -13,6 +13,7 @@ import prerna.algorithm.learning.util.DuplicationReconciliation.ReconciliationMo
 import prerna.algorithm.learning.util.InstanceSimilarity;
 import prerna.sablecc.MathReactor;
 import prerna.sablecc.PKQLEnum;
+import prerna.sablecc.PKQLRunner.STATUS;
 import prerna.util.ArrayUtilityMethods;
 
 public class OutlierReactor extends MathReactor {
@@ -164,6 +165,8 @@ public class OutlierReactor extends MathReactor {
 
 			dataFrame.addRelationship(clean);
 		}
+		
+		myStore.put("STATUS",STATUS.SUCCESS);
 
 		return null;
 	}

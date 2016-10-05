@@ -15,7 +15,6 @@ import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.GraphTraversal;
 import org.apache.tinkerpop.gremlin.structure.Graph;
 import org.apache.tinkerpop.gremlin.structure.Vertex;
 import org.apache.tinkerpop.gremlin.structure.io.IoCore;
-import org.rosuda.REngine.REXP;
 import org.rosuda.REngine.REXPDouble;
 import org.rosuda.REngine.REXPGenericVector;
 import org.rosuda.REngine.REXPInteger;
@@ -878,6 +877,23 @@ public abstract class BaseJavaReactor extends AbstractReactor{
 		params.put(prerna.algorithm.impl.OutlierReactor.NUMBER_OF_RUNS.toUpperCase(), numRums);
 		
 		prerna.algorithm.impl.OutlierReactor alg = new prerna.algorithm.impl.OutlierReactor();
+		alg.put("G", this.dataframe);
+		alg.put(PKQLEnum.MATH_PARAM, params);
+		alg.put(PKQLEnum.COL_DEF, java.util.Arrays.asList(selectors));
+		alg.process();
+		
+		this.dataframe.updateDataId();
+		
+		java.lang.System.setSecurityManager(reactorManager);
+	}
+	
+	public void runSimilarity(int instanceIndex, String[] selectors) {
+		java.lang.System.setSecurityManager(curManager);
+		
+		java.util.Map<String, Object> params = new java.util.Hashtable<String, Object>();
+		params.put(prerna.algorithm.impl.SimilarityReactor.INSTANCE_INDEX.toUpperCase(), instanceIndex);
+		
+		prerna.algorithm.impl.SimilarityReactor alg = new prerna.algorithm.impl.SimilarityReactor();
 		alg.put("G", this.dataframe);
 		alg.put(PKQLEnum.MATH_PARAM, params);
 		alg.put(PKQLEnum.COL_DEF, java.util.Arrays.asList(selectors));
