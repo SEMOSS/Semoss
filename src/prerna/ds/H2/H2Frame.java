@@ -78,6 +78,23 @@ public class H2Frame extends AbstractTableDataFrame {
 		this.metaData = new TinkerMetaData();
 		setSchema();
 	}
+	
+	public H2Frame(IMetaData metaData) {
+		this.metaData = metaData;
+		setSchema();
+		if (builder.tableName == null) {
+			builder.tableName = getTableNameForUniqueColumn(getColumnHeaders()[0]);
+			if(builder.tableName == null) {
+				builder.tableName = builder.getNewTableName();
+			}
+		}
+		String[] headers = this.getColumnHeaders();
+		String[] types = new String[headers.length];
+		for(int i = 0; i < headers.length; i++) {
+			types[i] = Utility.convertDataTypeToString(getDataType(headers[i]));
+		}
+		builder.alterTableNewColumns(builder.tableName, this.headerNames, types);
+	}
 
 	//added as a path to get connection url for current dataframe
 	public H2Builder getBuilder(){
@@ -677,8 +694,7 @@ public class H2Frame extends AbstractTableDataFrame {
 						} else if (type.equalsIgnoreCase("Double")) {
 							cleanObj = Utility.getDouble(strObj);
 						} else {
-							cleanObj = Utility.cleanString(strObj, true, true,
-									false);
+							cleanObj = Utility.cleanString(strObj, true, true, false);
 						}
 						((Vector) cleanVal).add(cleanObj);
 					}
@@ -693,8 +709,7 @@ public class H2Frame extends AbstractTableDataFrame {
 					} else if (type.equalsIgnoreCase("Double")) {
 						cleanObj = Utility.getDouble(strObj);
 					} else {
-						cleanObj = Utility.cleanString(strObj, true, true,
-								false);
+						cleanObj = Utility.cleanString(strObj, true, true, false);
 					}
 					cleanVal.add(cleanObj);
 					cleanTemporalBindings.put(cleanKey, cleanVal);
@@ -1416,10 +1431,11 @@ public class H2Frame extends AbstractTableDataFrame {
 	}
 
 	public void dropTable() {
-		if(this.isJoined()) {
-			builder.joiner.unJoinFrame(this);
-			builder.joiner = null;
-		}
+		//TODO : need to implement unjoin logic
+//		if(this.isJoined()) {
+//			builder.joiner.unJoinFrame(this);
+//			builder.joiner = null;
+//		}
 		this.builder.dropTable();
 	}
 
@@ -1433,6 +1449,10 @@ public class H2Frame extends AbstractTableDataFrame {
 		return builder.getJoinMode();
 	}
 
+	public H2Joiner getJoiner() {
+		return builder.joiner;
+	}
+	
 	protected void setJoin(String viewTable) {
 		builder.setView(viewTable);
 	}
