@@ -11,6 +11,7 @@ import java.util.Vector;
 
 import cern.colt.Arrays;
 import prerna.algorithm.api.ITableDataFrame;
+import prerna.ds.nativeframe.NativeFrame;
 import prerna.engine.api.IEngine;
 import prerna.engine.api.IEngineWrapper;
 import prerna.sablecc.meta.IPkqlMetadata;
@@ -134,9 +135,19 @@ public abstract class ImportDataReactor extends AbstractReactor {
 			if(engine != null) {
 				// put the edge hash and the logicalToValue maps within the myStore
 				// will be used when the data is actually imported
-				Map[] mergedMaps = frame.mergeQSEdgeHash(edgeHash, engine, joinCols);
-				myStore.put("edgeHash", mergedMaps[0]);
-				myStore.put("logicalToValue", mergedMaps[1]);
+				if(frame instanceof NativeFrame) {
+					if(((NativeFrame)frame).getEngineName().equals(engine.getEngineName())) {
+						Map[] mergedMaps = frame.mergeQSEdgeHash(edgeHash, engine, joinCols);
+						myStore.put("edgeHash", mergedMaps[0]);
+						myStore.put("logicalToValue", mergedMaps[1]);
+					} else {
+						myStore.put(PKQLEnum.JOINS, joins);
+					}
+				} else {
+					Map[] mergedMaps = frame.mergeQSEdgeHash(edgeHash, engine, joinCols);
+					myStore.put("edgeHash", mergedMaps[0]);
+					myStore.put("logicalToValue", mergedMaps[1]);
+				}
 			}
 			// TODO: this is the logic we are ignoring
 			// the edge hash may contain specific information the user wants to load

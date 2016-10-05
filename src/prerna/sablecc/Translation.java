@@ -13,6 +13,7 @@ import java.util.Vector;
 import com.google.gson.Gson;
 
 import prerna.algorithm.api.ITableDataFrame;
+import prerna.ds.nativeframe.NativeFrame;
 import prerna.engine.api.IScriptReactor;
 import prerna.om.Dashboard;
 import prerna.sablecc.PKQLEnum.PKQLReactor;
@@ -199,6 +200,7 @@ public class Translation extends DepthFirstAdapter {
 	private void fillApiReactors() {
 		//TODO: should move all of these in RDF_MAP so that its easily updated
 		apiReactorNames.put(PKQLEnum.QUERY_API, "prerna.sablecc.QueryApiReactor");
+		apiReactorNames.put(PKQLEnum.NATIVE_QUERY_API, "prerna.sablecc.NativeApiReactor");
 		apiReactorNames.put(PKQLEnum.CSV_API, "prerna.sablecc.CsvApiReactor");
 		apiReactorNames.put(PKQLEnum.WEB_API, "prerna.sablecc.WebApiReactor");
 		apiReactorNames.put(PKQLEnum.R_API, "prerna.sablecc.RApiReactor");
@@ -304,6 +306,7 @@ public class Translation extends DepthFirstAdapter {
 	// the highest level above all commands
 	// tracks the most basic things all pkql should have
 	private void postProcess(Node node){
+		this.frame = (IDataMaker) curReactor.getValue(PKQLEnum.G);
 		runner.setCurrentString(node.toString());
 		runner.aggregateMetadata(this.storePkqlMetadata);
 		runner.storeResponse();
@@ -464,6 +467,8 @@ public class Translation extends DepthFirstAdapter {
 		runner.setNewColumns((Map<String, String>)previousReactor.getValue("logicalToValue"));
 		runner.setResponse(previousReactor.getValue(nodeStr));
 		runner.setStatus((STATUS)previousReactor.getValue("STATUS"));
+		
+		this.frame = (IDataMaker) previousReactor.getValue(PKQLEnum.G);
 	}
 
 	@Override
@@ -490,6 +495,9 @@ public class Translation extends DepthFirstAdapter {
 			} else if(engine.equalsIgnoreCase("R")) {
 				// we have an R api to connect
 				this.reactorNames.put(PKQLEnum.API, this.apiReactorNames.get(PKQLEnum.R_API));
+			} else if(curReactor.getValue("G") instanceof NativeFrame){
+				// we have a native frame
+				this.reactorNames.put(PKQLEnum.API, this.apiReactorNames.get(PKQLEnum.NATIVE_QUERY_API));
 			} else {
 				// default is a query api
 				this.reactorNames.put(PKQLEnum.API, this.apiReactorNames.get(PKQLEnum.QUERY_API));
