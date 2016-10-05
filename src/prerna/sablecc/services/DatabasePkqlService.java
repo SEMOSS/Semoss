@@ -5,6 +5,7 @@ import java.util.Arrays;
 import java.util.Hashtable;
 import java.util.List;
 import java.util.Map;
+import java.util.TreeMap;
 
 import org.openrdf.model.vocabulary.OWL;
 import org.openrdf.model.vocabulary.RDF;
@@ -70,7 +71,7 @@ public class DatabasePkqlService {
 				+ "{?conceptComposite <http://semoss.org/ontologies/Relation/presentin> <http://semoss.org/ontologies/meta/engine/" + engineName + ">}"
 				+ "{?conceptComposite <" + RDF.TYPE + "> ?concept}"
 				+ "{?concept <http://semoss.org/ontologies/Relation/conceptual> ?conceptLogical}"
-				+ "}";
+				+ "} ORDER BY ?conceptLogical";
 
 		// iterate through the results and append onto the list
 		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(engine, query);
@@ -104,11 +105,11 @@ public class DatabasePkqlService {
 				+ "FILTER(?concept != <http://semoss.org/ontologies/Concept> "
 				+ " && ?concept != <" + RDFS.Class + "> "
 				+ " && ?concept != <" + RDFS.Resource + "> "
-				+" && ?conceptProp != <http://www.w3.org/2000/01/rdf-schema#Resource>"
-				+")"
+				+ " && ?conceptProp != <http://www.w3.org/2000/01/rdf-schema#Resource>"
+				+ ")"
 				+ "}";
 
-		Map<String, Map<String, String>> returnHash = new Hashtable <String, Map<String, String>>();
+		Map<String, Map<String, String>> returnHash = new TreeMap <String, Map<String, String>>();
 		
 		ISelectWrapper wrapper = WrapperManager.getInstance().getSWrapper((IEngine)DIHelper.getInstance().getLocalProp(Constants.LOCAL_MASTER_DB_NAME), propQuery);
 		String [] vars = wrapper.getDisplayVariables();
@@ -117,22 +118,19 @@ public class DatabasePkqlService {
 			ISelectStatement stmt = wrapper.next();
 			String engineURI = stmt.getRawVar(vars[0]) + "";
 			String engineName = Utility.getInstanceName(engineURI);
-			String prop = stmt.getRawVar(vars[1]) + ""; // << this is physical
 			String propLogical = stmt.getRawVar(vars[3])+ "";
 			
-			Map<String, String> propHash = new Hashtable <String, String>();
-			if(returnHash.containsKey(engineName))
+			Map<String, String> propHash = new TreeMap <String, String>();
+			if(returnHash.containsKey(engineName)) {
 				propHash = returnHash.get(engineName);
-			
-			// need to find what the engine type for this engine is
-			// and then suggest what to do
-			String type = DIHelper.getInstance().getCoreProp().getProperty(engineName + "_" + Constants.TYPE);
+			}
 
 			String propInstance = null;
 			propInstance = Utility.getInstanceName(propLogical); // interestingly it is giving movie csv everytime
 			propHash.put(propInstance, propLogical);
 			returnHash.put(engineName, propHash);
 		}
+		
 		return returnHash;
 	}
 	
