@@ -10,6 +10,7 @@ import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.math.BigInteger;
 import java.sql.DatabaseMetaData;
+import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
@@ -146,8 +147,7 @@ public class H2Frame extends AbstractTableDataFrame {
 	}
 
 	// need to make this private if we are going with single table h2
-	public void addRow(String tableName, String[] cells, String[] headers,
-			String[] types) {
+	public void addRow(String tableName, String[] cells, String[] headers, String[] types) {
 		String[] headerValues = new String[headers.length];
 		for (int j = 0; j < headers.length; j++) {
 			headerValues[j] = getValueForUniqueName(headers[j]);
@@ -161,7 +161,34 @@ public class H2Frame extends AbstractTableDataFrame {
 	public String getTableNameForUniqueColumn(String uniqueName) {
 		return this.metaData.getParentValueOfUniqueNode(uniqueName);
 	}
+	
+	/**
+	 * Create a prepared statement to efficiently update columns in a frame
+	 * @param TABLE_NAME
+	 * @param columnsToUpdate
+	 * @param whereColumns
+	 * @return
+	 */
+	public PreparedStatement createUpdatePreparedStatement(final String[] columnsToUpdate, final String[] whereColumns) {
+		if (builder.tableName == null) {
+			builder.tableName = getTableNameForUniqueColumn(getColumnHeaders()[0]);
+		}
+		return this.builder.createUpdatePreparedStatement(this.builder.tableName, columnsToUpdate, whereColumns);
+	}
+	
+	/**
+	 * Create a prepared statement to efficiently insert new rows in a frame
+	 * @param columns
+	 * @return
+	 */
+	public PreparedStatement createInsertPreparedStatement(final String[] columns) {
+		if (builder.tableName == null) {
+			builder.tableName = getTableNameForUniqueColumn(getColumnHeaders()[0]);
+		}
+		return this.builder.createInsertPreparedStatement(this.builder.tableName, columns);
+	}
 
+	
 	/************************** END AGGREGATION METHODS **********************/
 
 	@Override
