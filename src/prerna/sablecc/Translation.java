@@ -94,6 +94,7 @@ import prerna.sablecc.node.APastedDataBlock;
 import prerna.sablecc.node.APlusExpr;
 import prerna.sablecc.node.ARelationDef;
 import prerna.sablecc.node.ARemoveData;
+import prerna.sablecc.node.ARenameColumn;
 import prerna.sablecc.node.ASetColumn;
 import prerna.sablecc.node.ASplitColumn;
 import prerna.sablecc.node.ATermExpr;
@@ -1442,6 +1443,18 @@ public class Translation extends DepthFirstAdapter {
 		//		runner.setStatus((STATUS)previousReactor.getValue("STATUS"));
 		//		runner.setResponse("SplitColumn: " + (String)previousReactor.getValue("FILTER_COLUMN"));
 	}
+	
+	@Override
+    public void inARenameColumn(ARenameColumn node)
+    {
+       // make your reactor
+    }
+
+	@Override
+    public void outARenameColumn(ARenameColumn node)
+    {
+        // deinit your reactor
+    }
 
 	@Override
 	public void outAExprGroup(AExprGroup node) {
