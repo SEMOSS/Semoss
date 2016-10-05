@@ -1282,6 +1282,7 @@ public class H2Frame extends AbstractTableDataFrame {
 		reactorNames.put(PKQLEnum.WHERE, "prerna.sablecc.ColWhereReactor");
 		reactorNames.put(PKQLEnum.REL_DEF, "prerna.sablecc.RelReactor");
 		reactorNames.put(PKQLEnum.COL_ADD, "prerna.sablecc.ColAddReactor");
+		reactorNames.put(PKQLEnum.COL_SPLIT, "prerna.sablecc.H2ColSplitReactor");
 		reactorNames.put(PKQLEnum.IMPORT_DATA, "prerna.sablecc.H2ImportDataReactor");
 		reactorNames.put(PKQLEnum.REMOVE_DATA, "prerna.sablecc.RemoveDataReactor");
 		reactorNames.put(PKQLEnum.FILTER_DATA, "prerna.sablecc.ColFilterReactor");
@@ -1290,10 +1291,8 @@ public class H2Frame extends AbstractTableDataFrame {
 		reactorNames.put(PKQLEnum.DATA_FRAME, "prerna.sablecc.DataFrameReactor");
 		reactorNames.put(PKQLEnum.DASHBOARD_JOIN, "prerna.sablecc.DashboardJoinReactor");
 		reactorNames.put(PKQLEnum.OPEN_DATA, "prerna.sablecc.OpenDataReactor");
-		reactorNames.put(PKQLEnum.COL_SPLIT, "prerna.sablecc.ColSplitReactor");
 		reactorNames.put(PKQLEnum.DATA_TYPE, "prerna.sablecc.DataTypeReactor");
 		reactorNames.put(PKQLEnum.DATA_CONNECT, "prerna.sablecc.DataConnectReactor");
-		reactorNames.put(PKQLEnum.COL_SPLIT, "prerna.sablecc.ColSplitReactor");
 		reactorNames.put(PKQLEnum.JAVA_OP, "prerna.sablecc.JavaReactorWrapper");
 		reactorNames.put(PKQLEnum.NETWORK_CONNECT, "prerna.sablecc.ConnectReactor");
 		reactorNames.put(PKQLEnum.NETWORK_DISCONNECT, "prerna.sablecc.DisConnectReactor");
