@@ -1,8 +1,5 @@
 package prerna.ds.nativeframe;
 
-import java.io.FileInputStream;
-import java.io.FileNotFoundException;
-import java.io.IOException;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.ResultSet;
@@ -16,7 +13,6 @@ import java.util.Hashtable;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
-import java.util.Properties;
 import java.util.Set;
 import java.util.Vector;
 
@@ -25,86 +21,48 @@ import org.apache.log4j.Logger;
 
 import prerna.ds.QueryStruct;
 import prerna.ds.TinkerFrame;
+import prerna.ds.H2.H2Builder.Comparator;
 import prerna.ds.H2.H2Iterator;
 import prerna.engine.api.IEngine;
+import prerna.engine.impl.rdbms.RDBMSNativeEngine;
 import prerna.rdf.query.builder.IQueryInterpreter;
-import prerna.ds.H2.H2Builder.Comparator;
-import prerna.util.Constants;
-import prerna.util.DIHelper;
 import prerna.util.Utility;
 
 public class NativeFrameBuilder {
+	
 	private static final Logger LOGGER = LogManager.getLogger(NativeFrameBuilder.class.getName());
-	Connection conn = null;
-	protected String engineName = null;
-	private String propFile = null;
-	protected Properties prop = null;
-	private String userName = null;
-	private String password = null;
-	private String url = null;
-
+	
+	private String engineName;
+	private RDBMSNativeEngine coreEngine;
+	
 	QueryStruct queryStruct;
 	
-	private String tableName;
 	Map<String, Map<Comparator, Set<Object>>> filterHash = new HashMap<>();
 	
 	//need to determine which filters are the more narrow filters
 	public Hashtable <String, Hashtable<String, Vector>> filters = new Hashtable<>();
 	public Hashtable <String, Hashtable<String, Vector>> dbfilters = new Hashtable<>();
 	
-	static final String NATIVEFRAME = "NATIVEFRAME";
-	private static final String viewTableName = "NativeView";
-	private static long viewTableCount = 0;
-	
+	// TODO: this is a horrible variable name
+	// this actually holds a portion of the select query
+	private String tableName;
+
 	public NativeFrameBuilder() {
-		//initialize a connection
-		///getConnection();
+
 	}
 
-	public void setConnection(String proFile) {
-		prop= getEginge(proFile);
-		this.url = prop.getProperty(Constants.CONNECTION_URL);
-		this.userName = prop.getProperty(Constants.USERNAME);
-		this.password = prop.getProperty(Constants.PASSWORD);
-		String rdbms_type = prop.getProperty("RDBMS_TYPE");
-		String driver = prop.getProperty("DRIVER");
-		this.engineName = prop.getProperty("ENGINE");
-		String workingDir = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER);//.replace("\\", "/");
-		if (this.conn == null) {
-			try {
-				
-				if(rdbms_type.contains("MARIA")) {
-					// working with Mariadb
-					Class.forName(driver);
-					conn = DriverManager.getConnection(url + "?user=" + userName + "&password=" + new String(password));
-				} else if(rdbms_type.contains("H2")) {
-					Class.forName(driver);
-					url = url.replace("@BaseFolder@", workingDir).replace("@ENGINE@", engineName);
-					this.conn = DriverManager.getConnection(url, "sa", "");
-				}
-			} catch (ClassNotFoundException e) {
-				e.printStackTrace();
-			} catch (SQLException e) {
-				e.printStackTrace();
-			}
+	public void setConnection(String engineName) {
+		IEngine coreEngine = Utility.getEngine(engineName);
+		if(coreEngine instanceof RDBMSNativeEngine) {
+			this.engineName = engineName;
+			this.coreEngine = (RDBMSNativeEngine) coreEngine;
+		} else {
+			throw new IllegalArgumentException("Engine must be of type RDBMS");
 		}
-	}
-	
-	public Connection getConnection() {
-		return this.conn;
-	}
-	
-	public String getNewTableName() {
-		viewTableCount++;
-		return viewTableName+viewTableCount;
 	}
 	
 	public void setView(String tableName) {
 		this.tableName = tableName;
-	}
-	
-	public String getView() {
-		return this.tableName;
 	}
 	
 	public void mergeQueryStruct(QueryStruct qs) {
@@ -114,14 +72,6 @@ public class NativeFrameBuilder {
 			//merge query struct
 			this.queryStruct.merge(qs);
 		}
-		
-//		IEngine engine = Utility.getEngine(this.engineName);
-//		IQueryInterpreter interpreter = engine.getQueryInterpreter();
-////		interpreter.setQueryStruct(this.queryStruct);
-//		interpreter.setQueryStruct(mergeQueryStructWithFilters());
-//		String selectQuery = interpreter.composeQuery();
-//		String partialSelect = selectQuery.substring(selectQuery.indexOf(" FROM ")+6, selectQuery.length());
-//		setView(partialSelect);
 		
 		refreshView();
 	}
@@ -147,48 +97,13 @@ public class NativeFrameBuilder {
 	}
 	
 	public String getEngineName() {
-		if(prop == null) return null;
-		return prop.getProperty("ENGINE");
-	}
-
-	/**
-	 * Method loadProp. Loads the database properties from a specifed properties
-	 * file.
-	 * @param fileName			String of the name of the properties file to be loaded.
-	 * @return Properties		The properties imported from the prop file.
-	 * @throws IOException 
-	 * @throws FileNotFoundException 
-	 */
-	public Properties loadProp(String fileName) throws FileNotFoundException, IOException {
-		Properties retProp = new Properties();
-		if(fileName != null) {
-			FileInputStream fis = new FileInputStream(fileName);
-			retProp.load(fis);
-			fis.close();
-		}
-		LOGGER.debug("Properties >>>>>>>>" + fileName);
-		return retProp;
+		return this.engineName;
 	}
 
 	/*************************** TEST **********************************************/
 	public static void main(String[] a) throws Exception {
-		Connection conn = null;
 
-		//testDB();
-		Properties prop = new NativeFrameBuilder().loadProp("C:/Users/phok/workspace/SEMOSS/db/MariaDb.smss");
-//		System.out.print(prop.getProperty(Constants.USERNAME));
-		String url = prop.getProperty(Constants.CONNECTION_URL);
-		String userName = prop.getProperty(Constants.USERNAME);
-		String password = prop.getProperty(Constants.PASSWORD);
-		Class.forName("org.mariadb.jdbc.Driver");
-		conn = DriverManager.getConnection(url + "?user=" + userName + "&password=" + new String(password));
-//		Statement stmt = conn.createStatement();
-//		String query = "select * from director";
-//		ResultSet rs = stmt.executeQuery(query);
-//		while (rs.next()) {
-//		 System.out.print(rs.toString());
-//		}
-
+		
 	}
 
 	// Test method
@@ -230,29 +145,6 @@ public class NativeFrameBuilder {
 		conn.close();
 	}
 	
-	/**
-	 * Read the engine and properties from an exist file
-	 */
-	
-	public Properties getEginge (String engineName){ 
-		try{
-			String dbBaseFolder = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER).replace("\\", System.getProperty("file.separator"));
-			if(engineName != null){
-				this.propFile = engineName;
-				LOGGER.info("Opening DB - " + engineName);
-				prop = loadProp(dbBaseFolder + "/db/" + engineName +".smss");
-			}			
-		}catch (RuntimeException e) {
-			e.printStackTrace();
-		} catch (FileNotFoundException e) {
-			e.printStackTrace();
-		}catch (IOException e) {
-			e.printStackTrace();
-		}
-		return this.prop;
-		
-		
-	}
 	
 	/*************************** END TEST **********************************************/
 
@@ -267,34 +159,15 @@ public class NativeFrameBuilder {
 	 * returns an iterator that returns data from the selectors
 	 */
 	public Iterator buildIterator(List<String> selectors) {
-//		String tableName;
-//		if(joinMode) {
-//			tableName = this.viewTableName;
-//			selectors = translateColumns(selectors);
-//		} else {
-//			tableName = this.tableName;
-//		}
-//		String tableName = joinMode ? this.viewTableName : this.tableName;
-
-		try {
-			Statement stmt = getConnection().createStatement();
-//			IEngine engine = Utility.getEngine(engineName);
-//			IQueryInterpreter interp = engine.getQueryInterpreter();
-//			interp.setQueryStruct(queryStruct);
-//			String selectQuery = interp.composeQuery();
-			
-			
-			String selectQuery = makeSelect(tableName, selectors);
-			long startTime = System.currentTimeMillis();
-			ResultSet rs = stmt.executeQuery(selectQuery);
-			long endTime = System.currentTimeMillis();
-			LOGGER.info("Executed Select Query on NATIVE FRAME: "+(endTime - startTime)+" ms");
-			return new H2Iterator(rs);
-		} catch(SQLException s) {
-			s.printStackTrace();
-		}
-
-		return null;
+		String selectQuery = makeSelect(tableName, selectors);
+		
+		long startTime = System.currentTimeMillis();
+		ResultSet rs = executeQuery(selectQuery);
+		long endTime = System.currentTimeMillis();
+		
+		LOGGER.info("Executed Select Query on NATIVE FRAME: "+(endTime - startTime)+" ms");
+		
+		return new H2Iterator(rs);
 	}
 
 	//build the new way to create iterator with all the options
@@ -338,11 +211,6 @@ public class NativeFrameBuilder {
 			selectQuery = makeSelect(tableName, selectors);
 		}
 		
-//		IEngine engine = Utility.getEngine(engineName);
-//		IQueryInterpreter interp = engine.getQueryInterpreter();
-//		interp.setQueryStruct(queryStruct);
-//		selectQuery = interp.composeQuery();
-
 		//temporary filters to apply only to this iterator
 		Map<String, List<Object>> temporalBindings = (Map<String, List<Object>>) options.get(TinkerFrame.TEMPORAL_BINDINGS); 
 		Map<String, Comparator> compHash = new HashMap<String, Comparator>();
@@ -392,67 +260,52 @@ public class NativeFrameBuilder {
 	/*************************** READ **********************************************/
 	
 	//get scaled version of above method
-	public List<Object[]> getScaledData(String tableName, List<String> selectors, Map<String, String> headerTypeMap, String column, Object value, Double[] maxArr, Double[] minArr) {
-
-//		if(joinMode) {
-//			tableName = this.viewTableName;
-//			selectors = translateColumns(selectors);
-//			column = translateColumn(column);
-//			Map<String, String> newHeaderTypeMap = new HashMap<>();
-//			for(String selector : headerTypeMap.keySet()) {
-//				newHeaderTypeMap.put(translateColumn(selector), headerTypeMap.get(selector));
-//			}
-//			headerTypeMap = newHeaderTypeMap;
-//		} else {
-//			
+//	public List<Object[]> getScaledData(String tableName, List<String> selectors, Map<String, String> headerTypeMap, String column, Object value, Double[] maxArr, Double[] minArr) {
+//		int cindex = selectors.indexOf(column);
+//		if(tableName == null) tableName = this.tableName;
+//
+//		List<Object[]> data;
+//		String[] types = new String[headerTypeMap.size()];
+//
+//		int index = 0;
+//		for(String selector : selectors) {
+//			types[index] = headerTypeMap.get(selector);
+//			index++;
 //		}
-//		tableName = joinMode ? this.viewTableName : this.tableName;
-		
-		int cindex = selectors.indexOf(column);
-		if(tableName == null) tableName = this.tableName;
-
-		List<Object[]> data;
-		String[] types = new String[headerTypeMap.size()];
-
-		int index = 0;
-		for(String selector : selectors) {
-			types[index] = headerTypeMap.get(selector);
-			index++;
-		}
-
-
-		try {
-			String selectQuery = makeSpecificSelect(tableName, selectors, column, value);
-			ResultSet rs = executeQuery(selectQuery);
-
-			if(rs != null) {
-
-				ResultSetMetaData rsmd = rs.getMetaData();
-				int NumOfCol = rsmd.getColumnCount();
-				data = new ArrayList<>(NumOfCol);
-				while (rs.next()){
-					Object[] row = new Object[NumOfCol];
-
-					for(int i = 1; i <= NumOfCol; i++) {
-						Object val = rs.getObject(i);
-						if(cindex != (i-1) && (types[i-1].equalsIgnoreCase("int") || types[i-1].equalsIgnoreCase("double"))) {
-							row[i-1] = ( ((Number)val).doubleValue() - minArr[i-1])/(maxArr[i-1] - minArr[i-1]);
-						} else {
-							row[i-1] = val;
-						}
-					}
-					data.add(row);
-				}
-
-				return data;
-			}
-
-		} catch (SQLException e) {
-			e.printStackTrace();
-		}
-
-		return new ArrayList<Object[]>(0);
-	}
+//
+//
+//		try {
+//			String selectQuery = makeSpecificSelect(tableName, selectors, column, value);
+//			ResultSet rs = executeQuery(selectQuery);
+//
+//			if(rs != null) {
+//
+//				ResultSetMetaData rsmd = rs.getMetaData();
+//				int NumOfCol = rsmd.getColumnCount();
+//				data = new ArrayList<>(NumOfCol);
+//				while (rs.next()){
+//					Object[] row = new Object[NumOfCol];
+//
+//					for(int i = 1; i <= NumOfCol; i++) {
+//						Object val = rs.getObject(i);
+//						if(cindex != (i-1) && (types[i-1].equalsIgnoreCase("int") || types[i-1].equalsIgnoreCase("double"))) {
+//							row[i-1] = ( ((Number)val).doubleValue() - minArr[i-1])/(maxArr[i-1] - minArr[i-1]);
+//						} else {
+//							row[i-1] = val;
+//						}
+//					}
+//					data.add(row);
+//				}
+//
+//				return data;
+//			}
+//
+//		} catch (SQLException e) {
+//			e.printStackTrace();
+//		}
+//
+//		return new ArrayList<Object[]>(0);
+//	}
 
 	/**
 	 * Get the column values from the table as an Object array
@@ -463,13 +316,6 @@ public class NativeFrameBuilder {
 	 */
 	public Object[] getColumn(String columnHeader, boolean distinct) {
 		String tableName = this.tableName;
-//		if(joinMode) {
-//			tableName = this.viewTableName;
-//			columnHeader = translateColumn(columnHeader);
-//		} else {
-//			
-//		}
-//		String tableName = joinMode ? this.viewTableName : this.tableName;
 
 		ArrayList<Object> column = new ArrayList<>();
 
@@ -488,7 +334,6 @@ public class NativeFrameBuilder {
 				column.add(rs.getObject(1));
 			}
 		} catch (SQLException e) {
-			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
 		return column.toArray();
@@ -502,67 +347,67 @@ public class NativeFrameBuilder {
 	 * @param statType
 	 * @return
 	 */
-	public Double getStat(String columnHeader, String statType) {
-		String tableName = this.tableName;
-//		if(joinMode) {
-//			tableName = this.viewTableName;
-//			columnHeader = translateColumn(columnHeader);
-//		} else {
-//			
+//	public Double getStat(String columnHeader, String statType) {
+//		String tableName = this.tableName;
+////		if(joinMode) {
+////			tableName = this.viewTableName;
+////			columnHeader = translateColumn(columnHeader);
+////		} else {
+////			
+////		}
+////		String tableName = joinMode ? this.viewTableName : this.tableName;
+//		ResultSet rs = executeQuery(makeFunction(columnHeader, statType, tableName));
+//		try {
+//			if(rs.next()) {
+//				return rs.getDouble(1);
+//			}
+//		} catch (SQLException e) {
+//			e.printStackTrace();
 //		}
-//		String tableName = joinMode ? this.viewTableName : this.tableName;
-		ResultSet rs = executeQuery(makeFunction(columnHeader, statType, tableName));
-		try {
-			if(rs.next()) {
-				return rs.getDouble(1);
-			}
-		} catch (SQLException e) {
-			e.printStackTrace();
-		}
-		return null;
-	}
+//		return null;
+//	}
 
-	public Map<Map<Object, Object>, Object> getStat(String columnHeader, String statType, List<String> groupByCols) {
-		String tableName = this.tableName;
-//		if(joinMode) {
-//			tableName = this.viewTableName;
-//			columnHeader = translateColumn(columnHeader);
-//			groupByCols = translateColumns(groupByCols);
-//		} else {
-//			
+//	public Map<Map<Object, Object>, Object> getStat(String columnHeader, String statType, List<String> groupByCols) {
+//		String tableName = this.tableName;
+////		if(joinMode) {
+////			tableName = this.viewTableName;
+////			columnHeader = translateColumn(columnHeader);
+////			groupByCols = translateColumns(groupByCols);
+////		} else {
+////			
+////		}
+////		String tableName = joinMode ? this.viewTableName : this.tableName;
+//		ResultSet rs = executeQuery(makeFunction(columnHeader, statType, tableName, groupByCols));
+//		try {
+//			Map<Map<Object, Object>, Object> results = new Hashtable<Map<Object, Object>, Object>();
+//			ResultSetMetaData metaData = rs.getMetaData();
+//			int numReturns = metaData.getColumnCount();
+//
+//			int[] typeArr = new int[numReturns];
+//			// index starts at 1 for metaData
+//			for(int i = 1; i <= numReturns; i++) {
+//				typeArr[i-1] = metaData.getColumnType(i);
+//			}
+//
+//			while(rs.next()) {
+//				// first return is the stat routine
+//				Double val = rs.getDouble(1);
+//				// get the unique set of group by values
+//				Map<Object, Object> groupByVals = new Hashtable<Object, Object>();
+//				for(int i = 2; i <= numReturns; i++) {
+//					// group by cols are added in the same position as the list passed in
+//					groupByVals.put(groupByCols.get(i-2), rs.getObject(i));
+//				}
+//				// add the row into the result set
+//				results.put(groupByVals, val);
+//			}
+//
+//			return results;
+//		} catch (SQLException e) {
+//			e.printStackTrace();
 //		}
-//		String tableName = joinMode ? this.viewTableName : this.tableName;
-		ResultSet rs = executeQuery(makeFunction(columnHeader, statType, tableName, groupByCols));
-		try {
-			Map<Map<Object, Object>, Object> results = new Hashtable<Map<Object, Object>, Object>();
-			ResultSetMetaData metaData = rs.getMetaData();
-			int numReturns = metaData.getColumnCount();
-
-			int[] typeArr = new int[numReturns];
-			// index starts at 1 for metaData
-			for(int i = 1; i <= numReturns; i++) {
-				typeArr[i-1] = metaData.getColumnType(i);
-			}
-
-			while(rs.next()) {
-				// first return is the stat routine
-				Double val = rs.getDouble(1);
-				// get the unique set of group by values
-				Map<Object, Object> groupByVals = new Hashtable<Object, Object>();
-				for(int i = 2; i <= numReturns; i++) {
-					// group by cols are added in the same position as the list passed in
-					groupByVals.put(groupByCols.get(i-2), rs.getObject(i));
-				}
-				// add the row into the result set
-				results.put(groupByVals, val);
-			}
-
-			return results;
-		} catch (SQLException e) {
-			e.printStackTrace();
-		}
-		return null;
-	}
+//		return null;
+//	}
 	
 	/**
 	 * This method returns the max/min/count/sum/avg of a column
@@ -614,26 +459,26 @@ public class NativeFrameBuilder {
 	 * @param values - values to add to filters
 	 * @param comparator
 	 */
-	public void addFilters(String columnHeader, List<Object> values, Comparator comparator) {
-		//always overwrite for numerical filters (greater than, less than, etc.)
-		//    	if(filterHash.get(columnHeader) == null || (comparator != Comparator.EQUAL && comparator != Comparator.NOT_EQUAL)) {
-		//    		setFilters(columnHeader, values, comparator);
-		//    	} else {
-		//    		filterHash.get(columnHeader).addAll(values);
-		//    		filterComparator.put(columnHeader, comparator);
-		//    	}
-
-		if(filterHash.get(columnHeader) == null) {
-			setFilters(columnHeader, values, comparator);
-		} else {
-			Map<Comparator, Set<Object>> innerMap = filterHash.get(columnHeader);
-			if(innerMap.get(comparator) == null || (comparator != Comparator.EQUAL && comparator != Comparator.NOT_EQUAL)) {
-				innerMap.put(comparator, new HashSet<>(values));
-			} else {
-				innerMap.get(comparator).addAll(values);
-			}
-		}
-	}
+//	public void addFilters(String columnHeader, List<Object> values, Comparator comparator) {
+//		//always overwrite for numerical filters (greater than, less than, etc.)
+//		//    	if(filterHash.get(columnHeader) == null || (comparator != Comparator.EQUAL && comparator != Comparator.NOT_EQUAL)) {
+//		//    		setFilters(columnHeader, values, comparator);
+//		//    	} else {
+//		//    		filterHash.get(columnHeader).addAll(values);
+//		//    		filterComparator.put(columnHeader, comparator);
+//		//    	}
+//
+//		if(filterHash.get(columnHeader) == null) {
+//			setFilters(columnHeader, values, comparator);
+//		} else {
+//			Map<Comparator, Set<Object>> innerMap = filterHash.get(columnHeader);
+//			if(innerMap.get(comparator) == null || (comparator != Comparator.EQUAL && comparator != Comparator.NOT_EQUAL)) {
+//				innerMap.put(comparator, new HashSet<>(values));
+//			} else {
+//				innerMap.get(comparator).addAll(values);
+//			}
+//		}
+//	}
 
 	public void addFilters(String columnHeader, List<Object> values, String comparator) {
 		if(this.filters.containsKey(columnHeader)) {
@@ -948,35 +793,35 @@ public class NativeFrameBuilder {
 		return selectStatement;
 	}
 
-	private String makeSpecificSelect(String tableName, List<String> selectors, String columnHeader, Object value) {
-		value = cleanInstance(value.toString());
-
-		//SELECT column1, column2, column3
-		String selectStatement = "SELECT ";
-		for(int i = 0; i < selectors.size(); i++) {
-			String selector = selectors.get(i);
-
-			if(i < selectors.size() - 1) {
-				selectStatement += selector + ", ";
-			}
-			else {
-				selectStatement += selector;
-			}
-		}
-
-		//SELECT column1, column2, column3 from table1
-		selectStatement += " FROM " + tableName;
-		//		String filterSubQuery = makeFilterSubQuery(this.filterHash, this.filterComparator);
-		String filterSubQuery = makeFilterSubQuery(this.filterHash); 
-		if(filterSubQuery.length() > 1) {
-			selectStatement += filterSubQuery;
-			selectStatement += " AND " + columnHeader + " = " + "'"+value+"'";
-		} else {
-			selectStatement += " WHERE " + columnHeader + " = " + "'"+value+"'";
-		}
-
-		return selectStatement;
-	}
+//	private String makeSpecificSelect(String tableName, List<String> selectors, String columnHeader, Object value) {
+//		value = cleanInstance(value.toString());
+//
+//		//SELECT column1, column2, column3
+//		String selectStatement = "SELECT ";
+//		for(int i = 0; i < selectors.size(); i++) {
+//			String selector = selectors.get(i);
+//
+//			if(i < selectors.size() - 1) {
+//				selectStatement += selector + ", ";
+//			}
+//			else {
+//				selectStatement += selector;
+//			}
+//		}
+//
+//		//SELECT column1, column2, column3 from table1
+//		selectStatement += " FROM " + tableName;
+//		//		String filterSubQuery = makeFilterSubQuery(this.filterHash, this.filterComparator);
+//		String filterSubQuery = makeFilterSubQuery(this.filterHash); 
+//		if(filterSubQuery.length() > 1) {
+//			selectStatement += filterSubQuery;
+//			selectStatement += " AND " + columnHeader + " = " + "'"+value+"'";
+//		} else {
+//			selectStatement += " WHERE " + columnHeader + " = " + "'"+value+"'";
+//		}
+//
+//		return selectStatement;
+//	}
 
 	//make a select query
 	private String makeSelectDistinct(String tableName, List<String> selectors) {
@@ -1116,98 +961,106 @@ public class NativeFrameBuilder {
 		return functionString;
 	}
 
-	private String makeFunction(String column, String function, String tableName, List<String> groupByCols) {
-		if(groupByCols == null || groupByCols.isEmpty()) {
-			return makeFunction(column, function, tableName);
-		}
-
-		// clean all the headers and group by cols
-//		List<String> cleanGroupByCols = new Vector<String>();
-//		for(String col : groupByCols) {
-//			cleanGroupByCols.add(cleanHeader(col));
+//	private String makeFunction(String column, String function, String tableName, List<String> groupByCols) {
+//		if(groupByCols == null || groupByCols.isEmpty()) {
+//			return makeFunction(column, function, tableName);
 //		}
-
-		// the first return is the column you are modifying
-		String functionString = "SELECT DISTINCT ";
-		switch(function.toUpperCase()) {
-		case "COUNT": functionString += "COUNT("+column+")"; break;
-		case "AVERAGE": functionString += "AVG("+column+")"; break;
-		case "MIN": functionString += "MIN("+column+")"; break;
-		case "MAX": functionString += "MAX("+column+")"; break;
-		case "SUM": functionString += "SUM("+column+")"; break;
-		default: functionString += column;
-		}
-
-		// also want to return the group by cols
-		for(String col : groupByCols) {
-			functionString += ", " + col;
-		}
-
-		// add group by
-		functionString += " FROM " + tableName + " GROUP BY ";
-		boolean isFirst = true;
-		for(String col : groupByCols) {
-			if(isFirst) {
-				functionString += col;
-				isFirst = false;
-			} else {
-				functionString += ", " + col;
-			}
-		}
-
-		return functionString;
-	}
+//
+//		// clean all the headers and group by cols
+////		List<String> cleanGroupByCols = new Vector<String>();
+////		for(String col : groupByCols) {
+////			cleanGroupByCols.add(cleanHeader(col));
+////		}
+//
+//		// the first return is the column you are modifying
+//		String functionString = "SELECT DISTINCT ";
+//		switch(function.toUpperCase()) {
+//		case "COUNT": functionString += "COUNT("+column+")"; break;
+//		case "AVERAGE": functionString += "AVG("+column+")"; break;
+//		case "MIN": functionString += "MIN("+column+")"; break;
+//		case "MAX": functionString += "MAX("+column+")"; break;
+//		case "SUM": functionString += "SUM("+column+")"; break;
+//		default: functionString += column;
+//		}
+//
+//		// also want to return the group by cols
+//		for(String col : groupByCols) {
+//			functionString += ", " + col;
+//		}
+//
+//		// add group by
+//		functionString += " FROM " + tableName + " GROUP BY ";
+//		boolean isFirst = true;
+//		for(String col : groupByCols) {
+//			if(isFirst) {
+//				functionString += col;
+//				isFirst = false;
+//			} else {
+//				functionString += ", " + col;
+//			}
+//		}
+//
+//		return functionString;
+//	}
 	
 	/*************************** END QUERY BUILDERS **************************************/
 	
 	/*************************** QUERY EXECUTION **********************************************/
-	//use this when result set is not expected back
-	private void runQuery(String query) throws Exception{
-		query = query.trim().toUpperCase();
-		if(query.startsWith("DROP")) {
-			if(query.startsWith("DROP VIEW")) {
-				getConnection().createStatement().execute(query);
-			} else {
-				throw new IllegalArgumentException("CAN ONLY DROP VIEWS IN NATIVE MODE");
-			}
-		} else {
-			getConnection().createStatement().execute(query);
-		}
-	}
-
+	
 	//use this when result set is expected
 	private ResultSet executeQuery(String query) {
-		try {
-			return getConnection().createStatement().executeQuery(query);
-		} catch(SQLException e) {
-			e.printStackTrace();
-		}
-		return null;
+		Map<String, Object> execData = coreEngine.execQuery(query);
+		ResultSet rs = (ResultSet) execData.get(RDBMSNativeEngine.RESULTSET_OBJECT);
+		return rs;
 	}
 	
-	public void runExternalQuery(String query) throws Exception {
-		query = query.toUpperCase().trim();
-		if(query.startsWith("CREATE VIEW")) {
-			runQuery(query);
-		} 
-
-		else if(query.startsWith("CREATE OR REPLACE VIEW")) {
-			runQuery(query);
-		}
-		
-		else if(query.startsWith("CREATE TEMPORARY TABLE")) {
-			runQuery(query);
-		}
-		//possibly need to drop view table externally as well
-		else if(query.startsWith("DROP VIEW")) {
-			runQuery(query);
-		} 
-
-		else {
-			//could also run select queries directly
-			throw new IllegalArgumentException("Can only run 'create view/create or replace view/drop view' queries externally");
-		}
-	}
+	//use this when result set is not expected back
+//	private void runQuery(String query) throws Exception{
+//		query = query.trim().toUpperCase();
+//		if(query.startsWith("DROP")) {
+//			if(query.startsWith("DROP VIEW")) {
+//				getConnection().createStatement().execute(query);
+//			} else {
+//				throw new IllegalArgumentException("CAN ONLY DROP VIEWS IN NATIVE MODE");
+//			}
+//		} else {
+//			getConnection().createStatement().execute(query);
+//		}
+//	}
+//
+//	//use this when result set is expected
+//	private ResultSet executeQuery(String query) {
+//		try {
+//			return getConnection().createStatement().executeQuery(query);
+//		} catch(SQLException e) {
+//			e.printStackTrace();
+//		}
+//		return null;
+//	}
+//	
+//	public void runExternalQuery(String query) throws Exception {
+//		query = query.toUpperCase().trim();
+//		if(query.startsWith("CREATE VIEW")) {
+//			runQuery(query);
+//		} 
+//
+//		else if(query.startsWith("CREATE OR REPLACE VIEW")) {
+//			runQuery(query);
+//		}
+//		
+//		else if(query.startsWith("CREATE TEMPORARY TABLE")) {
+//			runQuery(query);
+//		}
+//		//possibly need to drop view table externally as well
+//		else if(query.startsWith("DROP VIEW")) {
+//			runQuery(query);
+//		} 
+//
+//		else {
+//			//could also run select queries directly
+//			throw new IllegalArgumentException("Can only run 'create view/create or replace view/drop view' queries externally");
+//		}
+//	}
 	/*************************** END QUERY EXECUTION **********************************************/
 
 	
@@ -1222,14 +1075,14 @@ public class NativeFrameBuilder {
 	/*----------------- ONLY WANT TO DELETE VIEWS HERE, NOT DATABASE DATA----------------------------------*/ 
 	/*************************** DELETE **********************************************/
 
-	protected void dropView() {
-		String dropViewQuery = "DROP VIEW "+this.tableName;
-		try {
-			runQuery(dropViewQuery);
-		} catch (Exception e) {
-			e.printStackTrace();
-		}
-	}
+//	protected void dropView() {
+//		String dropViewQuery = "DROP VIEW "+this.tableName;
+//		try {
+//			runQuery(dropViewQuery);
+//		} catch (Exception e) {
+//			e.printStackTrace();
+//		}
+//	}
 	
 	/*************************** END DELTE **********************************************/
 	

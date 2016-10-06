@@ -91,7 +91,15 @@ public class JavaReactorWrapper extends AbstractReactor {
 			//BufferedReader reader = new BufferedReader(new InputStreamReader(System.in));
 			//String data = reader.readLine();
 			String tryStr = "try {";
-			String catchStr = "}catch (Exception ex) { put(\"RESPONSE\", \"Failed\"); put(\"STATUS\" , prerna.sablecc.PKQLRunner.STATUS.ERROR); put(\"ERROR\", ex);return null;}";
+			String catchStr = "}catch (Exception ex) { "
+					+ "if( ex.getMessage() != null && !ex.getMessage().isEmpty() ) {"
+						+ "put(\"RESPONSE\", \"ERROR : \" + ex.getMessage()); "
+					+ "} else {"
+						+ "put(\"RESPONSE\", \"Failed\"); "
+					+ "}"
+					+ "put(\"STATUS\" , prerna.sablecc.PKQLRunner.STATUS.ERROR); "
+					+ "put(\"ERROR\", ex);return null;"
+					+ "}";
 			String content = data;
 			// write the response
 			String response = "put(\"RESPONSE\", System.out.output); put(\"STATUS\" , prerna.sablecc.PKQLRunner.STATUS.SUCCESS); return null;";
