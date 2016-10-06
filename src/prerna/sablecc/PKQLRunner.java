@@ -82,7 +82,11 @@ public class PKQLRunner {
 			e.printStackTrace();
 			currentStatus = PKQLRunner.STATUS.ERROR;
 			currentString = expression;
-			response = "Invalid PKQL Statement";
+			if(e.getMessage() != null && !e.getMessage().isEmpty()) {
+				response = "ERROR : " + e.getMessage();
+			} else {
+				response = "Invalid PKQL Statement";
+			}
 			storeResponse();
 		}
 		return;

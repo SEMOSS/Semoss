@@ -245,8 +245,7 @@ public class RDBMSNativeEngine extends AbstractEngine {
 			} else {
 				stmt.executeUpdate(query);
 			}
-		}catch(Exception ex)
-		{
+		} catch(Exception ex) {
 			ex.printStackTrace();
 		} finally {
 			closeConnections(conn,null,stmt);
