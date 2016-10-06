@@ -481,6 +481,7 @@ public class QueryStruct {
 		
 		return copy;
 	}
+	
 	public static void main(String [] args) throws Exception
 	{
 		// test code for getting proper edge hash when there are intermediary nodes that

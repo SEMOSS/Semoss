@@ -1,10 +1,5 @@
 package prerna.ds.nativeframe;
 
-import java.io.FileNotFoundException;
-import java.io.FileOutputStream;
-import java.io.IOException;
-import java.io.OutputStream;
-import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -14,7 +9,6 @@ import java.util.Hashtable;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
-import java.util.Properties;
 import java.util.Set;
 import java.util.Vector;
 
@@ -41,7 +35,7 @@ public class NativeFrame extends AbstractTableDataFrame {
 	NativeFrameBuilder builder;
 
 	//use this variable to store the current view query
-	String currentViewQuery = "";
+//	String currentViewQuery = "";
 	
 	public NativeFrame() {
 		this.metaData = new TinkerMetaData();
@@ -399,27 +393,27 @@ public class NativeFrame extends AbstractTableDataFrame {
 		return reactorNames;
 	}
 	
-	public void createView(String selectQuery) {
-		selectQuery = selectQuery.trim().toUpperCase();
-		if(selectQuery == null || !selectQuery.startsWith("SELECT")) {
-			throw new IllegalArgumentException("Query must be a 'SELECT' query");
-		}
-		
-//		this.currentViewQuery = selectQuery;
-		String partialSelect = selectQuery.substring(selectQuery.indexOf(" FROM ")+6, selectQuery.length());
-//		builder.setView(partialSelect);
-		
-//		String viewTable = this.builder.getNewTableName();
-//		selectQuery = "("+selectQuery+")";
-////		selectQuery = "CREATE OR REPLACE VIEW "+viewTable+" AS "+selectQuery;
-//		selectQuery = "CREATE TEMPORARY TABLE "+viewTable+" AS "+selectQuery;
-//		try {
-//			builder.runExternalQuery(selectQuery);
-//			builder.setView(viewTable);
-//		} catch (Exception e) {
-//			e.printStackTrace();
+//	public void createView(String selectQuery) {
+//		selectQuery = selectQuery.trim().toUpperCase();
+//		if(selectQuery == null || !selectQuery.startsWith("SELECT")) {
+//			throw new IllegalArgumentException("Query must be a 'SELECT' query");
 //		}
-	}
+//		
+////		this.currentViewQuery = selectQuery;
+//		String partialSelect = selectQuery.substring(selectQuery.indexOf(" FROM ")+6, selectQuery.length());
+////		builder.setView(partialSelect);
+//		
+////		String viewTable = this.builder.getNewTableName();
+////		selectQuery = "("+selectQuery+")";
+//////		selectQuery = "CREATE OR REPLACE VIEW "+viewTable+" AS "+selectQuery;
+////		selectQuery = "CREATE TEMPORARY TABLE "+viewTable+" AS "+selectQuery;
+////		try {
+////			builder.runExternalQuery(selectQuery);
+////			builder.setView(viewTable);
+////		} catch (Exception e) {
+////			e.printStackTrace();
+////		}
+//	}
 	
 	public void mergeQueryStruct(QueryStruct qs) {
 		this.builder.mergeQueryStruct(qs);
@@ -429,18 +423,18 @@ public class NativeFrame extends AbstractTableDataFrame {
 		return builder.getEngineName();
 	}
 	
-	public String getView() {
-		return builder.getView();
-	}
+//	public String getView() {
+//		return builder.getView();
+//	}
 	
-	public void close() {
-		try {
-//			this.builder.dropView();
-			this.builder.getConnection().close();
-		} catch (SQLException e) {
-			e.printStackTrace();
-		}
-	}
+//	public void close() {
+//		try {
+////			this.builder.dropView();
+//			this.builder.getConnection().close();
+//		} catch (SQLException e) {
+//			e.printStackTrace();
+//		}
+//	}
 	
 	/******************************* UNNECESSARY ON NATIVE FRAME FOR NOW BUT NEED TO OVERRIDE FOR NOW *************************************************/
 	
