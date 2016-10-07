@@ -2,18 +2,18 @@ package prerna.sablecc.meta;
 
 import java.util.Map;
 
-public class DataframeHeaderMetadata extends AbstractPkqlMetadata {
+public class DataframeHeaderMetadata extends AbstractPkqlMetadata{
 
 	@Override
 	public Map<String, Object> getMetadata() {
-		// TODO Auto-generated method stub
+		//No data needed.
 		return null;
 	}
 
 	@Override
 	public String getExplanation() {
-		// TODO Auto-generated method stub
-		return null;
+		String template = "Retrieved headers";
+		return generateExplaination(template, getMetadata());
 	}
 
 }
