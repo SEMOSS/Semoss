@@ -1,7 +1,9 @@
 package prerna.sablecc;
 
 import java.util.Arrays;
+import java.util.Hashtable;
 import java.util.Iterator;
+import java.util.Map;
 import java.util.Set;
 import java.util.TreeSet;
 
@@ -27,7 +29,9 @@ public class DataFrameHeaderReactor extends AbstractReactor {
 		if(includeAdditionalInfo == null || includeAdditionalInfo.equals(false)) {
 			Set<String> orderHeaders = new TreeSet<String>();
 			orderHeaders.addAll(Arrays.asList(table.getColumnHeaders()));
-			myStore.put("tableHeaders", orderHeaders);
+			Map<String, Set<String>> retMap = new Hashtable<String, Set<String>>();
+			retMap.put("list", orderHeaders);
+			myStore.put("tableHeaders", retMap);
 		} else {
 			myStore.put("tableHeaders", table.getTableHeaderObjects());
 		}
