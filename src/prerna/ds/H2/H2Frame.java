@@ -1256,7 +1256,7 @@ public class H2Frame extends AbstractTableDataFrame {
 	 */
 	public HashMap<String, String> getDatabaseMetaData() throws SQLException {
 		HashMap<String, String> dbmdMap = new HashMap<String, String>();
-		DatabaseMetaData dbmd = builder.conn.getMetaData();
+		DatabaseMetaData dbmd = builder.getBuilderMetadata();
 		dbmdMap.put("username", dbmd.getUserName());
 		dbmdMap.put("tableName", builder.getTableName());
 		dbmdMap.put("schema", builder.getSchema());
@@ -1544,5 +1544,9 @@ public class H2Frame extends AbstractTableDataFrame {
 
 	public List<Object[]> getFlatTableFromQuery(String query) {
 		return this.builder.getFlatTableFromQuery(query);
+	}
+	
+	public ResultSet execQuery(String query) {
+		return this.builder.executeQuery(query);
 	}
 }
