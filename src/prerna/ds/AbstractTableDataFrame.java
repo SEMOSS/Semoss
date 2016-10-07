@@ -35,6 +35,20 @@ public abstract class AbstractTableDataFrame implements ITableDataFrame {
 	
 	private static final Logger LOGGER = LogManager.getLogger(AbstractTableDataFrame.class.getName());
 
+	// types of comparators
+	public enum Comparator {
+		EQUAL, LESS_THAN, GREATER_THAN, LESS_THAN_EQUAL, GREATER_THAN_EQUAL, NOT_EQUAL;
+	}
+	
+	public static final String LIMIT = "limit";
+	public static final String OFFSET = "offset";
+	public static final String SELECTORS = "selectors";
+	public static final String SORT_BY = "sortColumn";
+	public static final String SORT_BY_DIRECTION = "sortDirection";
+	public static final String DE_DUP = "dedup";
+	public static final String TEMPORAL_BINDINGS = "temporalBindings";
+	public static final String IGNORE_FILTERS = "ignoreFilters";
+
 	// the meta data for the frame
 	protected IMetaData metaData;
 	
@@ -676,6 +690,8 @@ public abstract class AbstractTableDataFrame implements ITableDataFrame {
 		Map<String, String> reactorNames = new HashMap<String, String>();
 		reactorNames.put(PKQLReactor.VAR.toString(), "prerna.sablecc.VarReactor");
 		reactorNames.put(PKQLReactor.INPUT.toString(), "prerna.sablecc.InputReactor");
+		reactorNames.put(PKQLReactor.DATA_FRAME_HEADER.toString(), "prerna.sablecc.DataFrameHeaderReactor");
+		
 		
 		return reactorNames;
 	}

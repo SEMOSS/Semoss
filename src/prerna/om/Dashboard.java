@@ -9,7 +9,7 @@ import java.util.Set;
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
-import prerna.ds.H2.H2Builder.Comparator;
+import prerna.ds.AbstractTableDataFrame;
 import prerna.ds.H2.H2Frame;
 import prerna.ds.H2.H2Joiner;
 import prerna.sablecc.PKQLEnum;
@@ -27,7 +27,7 @@ public class Dashboard implements IDataMaker {
 	private H2Joiner joiner;
 	
 	//will need this when same insight can be on two different dashboards
-	private Map<String, Map<Comparator, Set<Object>>> filterHash = new HashMap<>();
+	private Map<String, Map<AbstractTableDataFrame.Comparator, Set<Object>>> filterHash = new HashMap<>();
 	
 	// viewTable -> List of Insights
 	private Map<String, List<Insight>> insightMap = new HashMap<>();
@@ -359,35 +359,35 @@ public class Dashboard implements IDataMaker {
 		return varPkql;
 	}
 	
-	private String createJoinPkql(String[] varNames, List<List<String>> joinCols) {
-		String joinPkql = "data.join([";
-		
-		for(int i = 0; i < varNames.length; i++) {
-			if(i == 0) {
-				joinPkql += "v:"+varNames[i];
-			} else {
-				joinPkql += ", "+"v:"+varNames[i];
-			}
-		}
-		
-		joinPkql += "],[";
-		for(int i = 0; i < joinCols.size(); i++) {
-			List<String> joinCol = joinCols.get(i);
-			joinPkql += "[";
-			for(int j = 0; j < joinCol.size(); j++) {
-				String jc = "c:"+joinCol.get(j);
-				if(j==0) {
-					joinPkql += jc;
-				} else {
-					joinPkql += ", "+jc;
-				}
-			}
-			joinPkql += "]";
-		}
-		joinPkql += "]);";
-		
-		return joinPkql;
-	}
+//	private String createJoinPkql(String[] varNames, List<List<String>> joinCols) {
+//		String joinPkql = "data.join([";
+//		
+//		for(int i = 0; i < varNames.length; i++) {
+//			if(i == 0) {
+//				joinPkql += "v:"+varNames[i];
+//			} else {
+//				joinPkql += ", "+"v:"+varNames[i];
+//			}
+//		}
+//		
+//		joinPkql += "],[";
+//		for(int i = 0; i < joinCols.size(); i++) {
+//			List<String> joinCol = joinCols.get(i);
+//			joinPkql += "[";
+//			for(int j = 0; j < joinCol.size(); j++) {
+//				String jc = "c:"+joinCol.get(j);
+//				if(j==0) {
+//					joinPkql += jc;
+//				} else {
+//					joinPkql += ", "+jc;
+//				}
+//			}
+//			joinPkql += "]";
+//		}
+//		joinPkql += "]);";
+//		
+//		return joinPkql;
+//	}
 	
 	private String createJoinPkql(Map<String, String> varHash, String pkql) {
 		String newPkql = pkql;
