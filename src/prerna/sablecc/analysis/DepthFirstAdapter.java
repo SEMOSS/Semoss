@@ -1550,6 +1550,18 @@ public class DepthFirstAdapter extends AnalysisAdapter
         {
             node.getDataframeheader().apply(this);
         }
+        if(node.getLPar() != null)
+        {
+            node.getLPar().apply(this);
+        }
+        if(node.getBoolean() != null)
+        {
+            node.getBoolean().apply(this);
+        }
+        if(node.getRPar() != null)
+        {
+            node.getRPar().apply(this);
+        }
         outADataFrameHeader(node);
     }
 
