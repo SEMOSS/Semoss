@@ -1270,6 +1270,7 @@ public class Translation extends DepthFirstAdapter {
 		IScriptReactor thisReactor = curReactor;
 		deinitReactor(PKQLEnum.DATA_FRAME_HEADER, node.toString().trim(), node.toString().trim());
 		this.runner.setResponse(thisReactor.getValue("tableHeaders"));
+		this.runner.setReturnData(thisReactor.getValue("tableHeaders"));
 	}
 
 	@Override
@@ -1285,6 +1286,7 @@ public class Translation extends DepthFirstAdapter {
 		IScriptReactor thisReactor = curReactor;
 		deinitReactor(PKQLEnum.DATA_FRAME_DUPLICATES, node.toString().trim(), node.toString().trim());
 		this.runner.setResponse(thisReactor.getValue("hasDuplicates"));
+		this.runner.setReturnData(thisReactor.getValue("hasDuplicates"));
 	}
 
 	@Override
