@@ -1538,15 +1538,64 @@ public class H2Frame extends AbstractTableDataFrame {
 		return this.builder.getFilterHash();
 	}
 
+	/**
+	 * Get the table name for the current frame
+	 * @return
+	 */
 	public String getTableName() {
+		// return the table name for the builder
+		// this is needed for specific reactors where operations are more efficient
+		// being performed directly via sql
 		return this.builder.getTableName();
 	}
 
+	/**
+	 * Execute a query and returns the results in a matrix
+	 * @param query			The query to execute on the frame
+	 * @return				List<Object[]> of the query data
+	 */
 	public List<Object[]> getFlatTableFromQuery(String query) {
+		// this is to execute a query and get all its results as a matrix
+		// this is useful when you know the number of results are pretty small
+		// nice because you do not need to handle the rs object directly
 		return this.builder.getFlatTableFromQuery(query);
 	}
 	
+	/**
+	 * Execute a query and returns the ResultSet
+	 * Responsibility of user to close the ResultSet
+	 * @param query			The query to execute on the frame
+	 * @return				ResultSet for the query
+	 */
 	public ResultSet execQuery(String query) {
+		// execute a query and get back its result set
 		return this.builder.executeQuery(query);
 	}
+	
+	/**
+	 * Return the set of columns which already have an index
+	 * @return
+	 */
+	public Set<String> getColumnsWithIndexes() {
+		return this.builder.columnIndexMap.keySet();
+	}
+	
+	/**
+	 * Add an index on a column
+	 * @param columnName
+	 */
+	public void addColumnIndex(String columnName) {
+		String tableName = getTableName();
+		this.builder.addColumnIndex(tableName, columnName);
+	}
+	
+	/**
+	 * Remove an index on a column
+	 * @param columnName
+	 */
+	public void removeColumnIndex(String columnName) {
+		String tableName = getTableName();
+		this.builder.removeColumnIndex(tableName, columnName);
+	}
+	
 }

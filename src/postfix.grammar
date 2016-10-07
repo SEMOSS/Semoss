@@ -19,7 +19,7 @@ Helpers
 
 Tokens
  number = ['0' .. '9']+;
- boolean = ('TRUE' | 'FALSE');
+ boolean = ('TRUE' | 'FALSE' | 'true' | 'false');
  id = (letter_s | letter_b | digit | underscore)*;
  dot = '.';
  semicolon = ';';
@@ -233,7 +233,7 @@ data_frame = // e.g. panel.setBuilder('graph');
 		dataframe l_par [builder]:word_or_num r_par
 		;
 data_frame_header = // e.g. data.frame.getHeaders();
-		dataframeheader
+		dataframeheader l_par boolean? r_par
 		;
 data_frame_duplicates = // e.g. data.frame.hasDuplicates(c:Col,); 
 		dataframeduplicates l_par col_csv r_par

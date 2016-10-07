@@ -2204,7 +2204,7 @@ public class H2Builder {
 		}
 	}
 
-	private void addColumnIndex(String tableName, String colName) {
+	protected void addColumnIndex(String tableName, String colName) {
 		if (!columnIndexMap.contains(tableName + colName)) {
 			try {
 				String indexName = colName + "_INDEX_" + getNextNumber();
@@ -2217,7 +2217,7 @@ public class H2Builder {
 		}
 	}
 
-	private void removeColumnIndex(String tableName, String colName) {
+	protected void removeColumnIndex(String tableName, String colName) {
 		if (columnIndexMap.contains(tableName + colName)) {
 			String indexName = columnIndexMap.get(tableName + colName);
 			try {
@@ -2228,7 +2228,7 @@ public class H2Builder {
 		}
 	}
 
-	private void clearColumnIndexMap() {
+	protected void clearColumnIndexMap() {
 		this.columnIndexMap.clear();
 	}
 
