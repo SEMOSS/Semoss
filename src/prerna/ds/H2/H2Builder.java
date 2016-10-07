@@ -33,6 +33,7 @@ import org.stringtemplate.v4.ST;
 
 import com.google.gson.Gson;
 
+import edu.cmu.lti.jawjaw.db.SQL;
 import prerna.algorithm.api.IMetaData;
 import prerna.cache.ICache;
 import prerna.ds.AbstractTableDataFrame;
@@ -1648,11 +1649,15 @@ public class H2Builder {
 						java.util.Date value = Utility.getDateAsDateObj(nextRow[colIndex] + "");
 						if (value != null) {
 							ps.setDate(colIndex + 1, new java.sql.Date(value.getTime()));
+						} else {
+							ps.setNull(colIndex + 1, java.sql.Types.DATE);
 						}
 					} else if (type.equalsIgnoreCase("DOUBLE") || type.equalsIgnoreCase("FLOAT")) {
 						Double value = Utility.getDouble(nextRow[colIndex] + "");
 						if (value != null) {
 							ps.setDouble(colIndex + 1, value);
+						} else {
+							ps.setNull(colIndex + 1, java.sql.Types.DOUBLE);
 						}
 					} else {
 						String value = nextRow[colIndex] + "";
