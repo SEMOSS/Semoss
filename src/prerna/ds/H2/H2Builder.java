@@ -2,6 +2,7 @@ package prerna.ds.H2;
 
 import java.io.File;
 import java.sql.Connection;
+import java.sql.DatabaseMetaData;
 import java.sql.DriverManager;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -35,7 +36,6 @@ import com.google.gson.Gson;
 import prerna.algorithm.api.IMetaData;
 import prerna.cache.ICache;
 import prerna.ds.AbstractTableDataFrame;
-import prerna.ds.TinkerFrame;
 import prerna.engine.api.IHeadersDataRow;
 import prerna.poi.main.RDBMSEngineCreationHelper;
 import prerna.util.ArrayUtilityMethods;
@@ -47,7 +47,7 @@ public class H2Builder {
 
 	private static final Logger LOGGER = LogManager.getLogger(H2Builder.class.getName());
 
-	Connection conn = null;
+	private Connection conn = null;
 	private String schema = "test"; // assign a default schema which is test
 	// boolean create = false;
 	// static int tableRunNumber = 1;
@@ -410,7 +410,7 @@ public class H2Builder {
 
 	/*************************** CONSTRUCTORS **************************************/
 
-	public H2Builder() {
+	protected H2Builder() {
 		// //initialize a connection
 		// getConnection();
 		tableName = getNewTableName();
@@ -755,7 +755,7 @@ public class H2Builder {
 			if (rs != null) {
 				ResultSetMetaData rsmd = rs.getMetaData();
 				int numOfCol = rsmd.getColumnCount();
-				List<Object[]> data = new ArrayList<>(numOfCol);
+				List<Object[]> data = new Vector<Object[]>(numOfCol);
 				while (rs.next()) {
 					Object[] row = new Object[numOfCol];
 					for (int i = 1; i <= numOfCol; i++) {
@@ -776,7 +776,7 @@ public class H2Builder {
 				}
 			}
 		}
-		return new ArrayList<Object[]>(0);
+		return new Vector<Object[]>(0);
 	}
 
 	/**
@@ -3171,7 +3171,7 @@ public class H2Builder {
 	}
 
 	// use this when result set is expected
-	private ResultSet executeQuery(String query) {
+	protected ResultSet executeQuery(String query) {
 		try {
 			return getConnection().createStatement().executeQuery(query);
 		} catch (SQLException e) {
@@ -3473,6 +3473,15 @@ public class H2Builder {
 	 */
 	public boolean isInMem() {
 		return this.isInMem;
+	}
+	
+	public DatabaseMetaData getBuilderMetadata() {
+		try {
+			return this.conn.getMetaData();
+		} catch (SQLException e) {
+			e.printStackTrace();
+		}
+		return null;
 	}
 
 	/***************************
