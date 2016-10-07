@@ -1673,6 +1673,10 @@ public class H2Builder {
 				}
 			}
 
+			if(ps == null) {
+				throw new IllegalArgumentException("Iterator generated returned no values");
+			}
+			
 			// well, we are done looping through now
 			ps.executeBatch(); // insert any remaining records
 			ps.close();
