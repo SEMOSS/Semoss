@@ -25,8 +25,8 @@ public class TinkerFrameIterator implements Iterator<Object[]> {
 //		dataType = getRawData ? Constants.VALUE : Constants.NAME;
 		
 		GremlinBuilder.DIRECTION dir = null;
-		if(options.containsKey(TinkerFrame.SORT_BY_DIRECTION)) {
-			String strDir = (String) options.get(TinkerFrame.SORT_BY_DIRECTION);
+		if(options.containsKey(AbstractTableDataFrame.SORT_BY_DIRECTION)) {
+			String strDir = (String) options.get(AbstractTableDataFrame.SORT_BY_DIRECTION);
 			if(strDir == "desc") {
 				dir = GremlinBuilder.DIRECTION.DECR;
 			} else {
@@ -35,11 +35,11 @@ public class TinkerFrameIterator implements Iterator<Object[]> {
 		}
 		
 		Boolean dedup = false;
-		if(options.containsKey(TinkerFrame.DE_DUP)) {
-			dedup = (Boolean) options.get(TinkerFrame.DE_DUP);
+		if(options.containsKey(AbstractTableDataFrame.DE_DUP)) {
+			dedup = (Boolean) options.get(AbstractTableDataFrame.DE_DUP);
 		}
 		
-		Map<Object, Object> temporalBindings = (Map<Object, Object>) options.get(TinkerFrame.TEMPORAL_BINDINGS); 
+		Map<Object, Object> temporalBindings = (Map<Object, Object>) options.get(AbstractTableDataFrame.TEMPORAL_BINDINGS); 
 		// clean values always put into list so bifurcation in logic doesn't need to exist elsewhere
 		Map<String, List<Object>> cleanTemporalBindings = new Hashtable<String, List<Object>>();
 		if(temporalBindings != null) {
@@ -84,11 +84,11 @@ public class TinkerFrameIterator implements Iterator<Object[]> {
 		}
 		
 		this.gt = openTraversal(
-				(List<String>) options.get(TinkerFrame.SELECTORS), 
+				(List<String>) options.get(AbstractTableDataFrame.SELECTORS), 
 				g, metaG,
-				(Integer) options.get(TinkerFrame.OFFSET), 
-				(Integer) options.get(TinkerFrame.LIMIT), 
-				(String) options.get(TinkerFrame.SORT_BY),
+				(Integer) options.get(AbstractTableDataFrame.OFFSET), 
+				(Integer) options.get(AbstractTableDataFrame.LIMIT), 
+				(String) options.get(AbstractTableDataFrame.SORT_BY),
 				cleanTemporalBindings,
 				dir, 
 				dedup);

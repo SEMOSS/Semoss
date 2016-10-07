@@ -3,13 +3,12 @@ package prerna.ds.H2;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Hashtable;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import prerna.ds.AbstractTableDataFrame;
 import prerna.ds.QueryStruct;
-import prerna.ds.H2.H2Builder.Comparator;
 import prerna.om.Dashboard;
 import prerna.om.Insight;
 import prerna.rdf.query.builder.SQLInterpreter;
@@ -30,7 +29,7 @@ public class H2Joiner {
 	
 	//this keeps a filterhash for each view table in the dashboard
 	//viewTable -> filterhash (for details on the structure see H2Builder.java)
-	private Hashtable<String, Map<String, Map<Comparator, Set<Object>>>> filterHashTable = new Hashtable<>();
+	private Hashtable<String, Map<String, Map<AbstractTableDataFrame.Comparator, Set<Object>>>> filterHashTable = new Hashtable<>();
 	
 	//pointer to the dashboard that is using this joiner
 	private Dashboard dashboard;
@@ -63,11 +62,11 @@ public class H2Joiner {
 	 * @param tableName			name of the view to get filters for
 	 * @return					a merge of all the filter data from the frames associated with the tableName (view) parameter
 	 */
-	protected Map<String, Map<Comparator, Set<Object>>> getJoinedFilterHash(String tableName) {
+	protected Map<String, Map<AbstractTableDataFrame.Comparator, Set<Object>>> getJoinedFilterHash(String tableName) {
 		if(this.filterHashTable.containsKey(tableName)) {
 			return this.filterHashTable.get(tableName);
 		} else {
-			Map<String, Map<Comparator, Set<Object>>> newFilterHash = new HashMap<>();
+			Map<String, Map<AbstractTableDataFrame.Comparator, Set<Object>>> newFilterHash = new HashMap<>();
 			this.filterHashTable.put(tableName, newFilterHash);
 			return newFilterHash;
 		}

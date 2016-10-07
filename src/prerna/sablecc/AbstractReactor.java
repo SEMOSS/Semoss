@@ -3,7 +3,6 @@ package prerna.sablecc;
 import java.io.IOException;
 import java.io.StringReader;
 import java.io.StringWriter;
-import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Hashtable;
 import java.util.Iterator;
@@ -17,10 +16,9 @@ import com.github.mustachejava.Mustache;
 import com.github.mustachejava.MustacheFactory;
 
 import prerna.algorithm.api.ITableDataFrame;
-import prerna.ds.TinkerFrame;
+import prerna.ds.AbstractTableDataFrame;
 import prerna.engine.api.IScriptReactor;
 import prerna.sablecc.meta.IPkqlMetadata;
-import prerna.util.Utility;
 
 public abstract class AbstractReactor implements IScriptReactor {
 
@@ -222,13 +220,13 @@ public abstract class AbstractReactor implements IScriptReactor {
 		// now I need to ask tinker to build me something for this
 
 		Map<String, Object> options = new HashMap<String, Object>();
-		options.put(TinkerFrame.SELECTORS, columns);
+		options.put(AbstractTableDataFrame.SELECTORS, columns);
 
 		if(valMap!=null){
-			options.put(TinkerFrame.TEMPORAL_BINDINGS, valMap);
+			options.put(AbstractTableDataFrame.TEMPORAL_BINDINGS, valMap);
 		}
 		if(dedup) {
-			options.put(TinkerFrame.DE_DUP, dedup);
+			options.put(AbstractTableDataFrame.DE_DUP, dedup);
 		}
 
 		Iterator iterator = frame.iterator(options);
@@ -241,7 +239,7 @@ public abstract class AbstractReactor implements IScriptReactor {
 
 	protected Iterator<List<Object[]>> getUniqueScaledData(String instance, List<String> columns, ITableDataFrame frame) {
 		Map<String, Object> options = new Hashtable<String, Object>();
-		options.put(TinkerFrame.SELECTORS, columns);
+		options.put(AbstractTableDataFrame.SELECTORS, columns);
 		return frame.scaledUniqueIterator(instance, options);
 	}
 

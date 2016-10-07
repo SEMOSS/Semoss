@@ -13,7 +13,6 @@ import java.util.Set;
 
 import prerna.algorithm.api.IMetaData.DATA_TYPES;
 import prerna.algorithm.api.ITableDataFrame;
-import prerna.ds.H2.H2Builder.Comparator;
 import prerna.ds.H2.H2Frame;
 import prerna.ds.nativeframe.NativeFrame;
 import prerna.ds.util.TinkerCastHelper;
@@ -429,8 +428,8 @@ public class TableDataFrameFactory {
 			H2Frame h2frame = (H2Frame)table;
 			//get an iterator and skip duplicates
 			Map<String, Object> options = new HashMap<>();
-			options.put(TinkerFrame.DE_DUP, true);
-			options.put(TinkerFrame.SELECTORS, h2frame.getSelectors());
+			options.put(AbstractTableDataFrame.DE_DUP, true);
+			options.put(AbstractTableDataFrame.SELECTORS, h2frame.getSelectors());
 			Iterator<Object[]> iterator = h2frame.iterator(options);
 
 			String[] columnHeaders  = h2frame.getSelectors().toArray(new String[]{});
@@ -474,9 +473,9 @@ public class TableDataFrameFactory {
 			H2Frame h2frame = (H2Frame)table;
 			//get an iterator and skip duplicates
 			Map<String, Object> options = new HashMap<>();
-			options.put(TinkerFrame.DE_DUP, true);
-			options.put(TinkerFrame.SELECTORS, h2frame.getSelectors());
-			options.put(TinkerFrame.IGNORE_FILTERS, true);
+			options.put(AbstractTableDataFrame.DE_DUP, true);
+			options.put(AbstractTableDataFrame.SELECTORS, h2frame.getSelectors());
+			options.put(AbstractTableDataFrame.IGNORE_FILTERS, true);
 			Iterator<Object[]> iterator = h2frame.iterator(options);
 
 			String[] columnHeaders  = h2frame.getSelectors().toArray(new String[]{});
@@ -506,22 +505,22 @@ public class TableDataFrameFactory {
 
 			// grab the existing filter data from the h2Frame
 			// apply the filtering to the tinker frame
-			Map<String, Map<Comparator, Set<Object>>> filterHash = h2frame.getBuilder().getFilterHash();
+			Map<String, Map<AbstractTableDataFrame.Comparator, Set<Object>>> filterHash = h2frame.getFilterHash();
 			for(String key : filterHash.keySet()) {
-				Map<Comparator, Set<Object>> nextSet = filterHash.get(key);
+				Map<AbstractTableDataFrame.Comparator, Set<Object>> nextSet = filterHash.get(key);
 				Map<String, List<Object>> newSet = new HashMap<>();
-				for(Comparator comp : nextSet.keySet()) {
-					if(comp.equals(Comparator.EQUAL)) {
+				for(AbstractTableDataFrame.Comparator comp : nextSet.keySet()) {
+					if(comp.equals(AbstractTableDataFrame.Comparator.EQUAL)) {
 						newSet.put("=", new ArrayList<>(nextSet.get(comp)));
-					} else if(comp.equals(Comparator.GREATER_THAN)) {
+					} else if(comp.equals(AbstractTableDataFrame.Comparator.GREATER_THAN)) {
 						newSet.put(">", new ArrayList<>(nextSet.get(comp)));
-					} else if(comp.equals(Comparator.GREATER_THAN_EQUAL)) {
+					} else if(comp.equals(AbstractTableDataFrame.Comparator.GREATER_THAN_EQUAL)) {
 						newSet.put(">=", new ArrayList<>(nextSet.get(comp)));
-					} else if(comp.equals(Comparator.LESS_THAN)) {
+					} else if(comp.equals(AbstractTableDataFrame.Comparator.LESS_THAN)) {
 						newSet.put("<", new ArrayList<>(nextSet.get(comp)));
-					} else if(comp.equals(Comparator.LESS_THAN_EQUAL)) {
+					} else if(comp.equals(AbstractTableDataFrame.Comparator.LESS_THAN_EQUAL)) {
 						newSet.put("<=", new ArrayList<>(nextSet.get(comp)));
-					} else if(comp.equals(Comparator.NOT_EQUAL)) {
+					} else if(comp.equals(AbstractTableDataFrame.Comparator.NOT_EQUAL)) {
 						newSet.put("!=", new ArrayList<>(nextSet.get(comp)));
 					} else {
 						newSet.put("=", new ArrayList<>(nextSet.get(comp)));

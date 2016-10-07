@@ -23,7 +23,6 @@ import prerna.ds.AbstractTableDataFrame;
 import prerna.ds.QueryStruct;
 import prerna.ds.TinkerFrame;
 import prerna.ds.TinkerMetaData;
-import prerna.ds.H2.H2Builder;
 import prerna.sablecc.PKQLEnum;
 import prerna.sablecc.PKQLEnum.PKQLReactor;
 import prerna.ui.components.playsheets.datamakers.DataMakerComponent;
@@ -190,7 +189,7 @@ public class NativeFrame extends AbstractTableDataFrame {
 	public void filter(String columnHeader, List<Object> filterValues) {
 		if (filterValues != null && filterValues.size() > 0) {
 			this.metaData.setFiltered(columnHeader, true);
-			builder.setFilters(columnHeader, filterValues, H2Builder.Comparator.EQUAL);
+			builder.setFilters(columnHeader, filterValues, AbstractTableDataFrame.Comparator.EQUAL);
 		}
 	}
 	
