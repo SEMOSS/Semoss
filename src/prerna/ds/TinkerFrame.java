@@ -89,18 +89,8 @@ public class TinkerFrame extends AbstractTableDataFrame {
 //	public static final String META = "META";
 	public static final String EMPTY = "_";
 
-	public static final String LIMIT = "limit";
-	public static final String OFFSET = "offset";
-	public static final String SELECTORS = "selectors";
-	public static final String SORT_BY = "sortColumn";
-	public static final String SORT_BY_DIRECTION = "sortDirection";
-	public static final String DE_DUP = "dedup";
-	public static final String TEMPORAL_BINDINGS = "temporalBindings";
-
 	public static final String edgeLabelDelimeter = "+++";
 	protected static final String primKeyDelimeter = ":::";
-
-	public static final String IGNORE_FILTERS = "ignoreFilters";
 
 		/**********************    TESTING PLAYGROUND  ******************************************/
 	
@@ -1907,7 +1897,7 @@ public class TinkerFrame extends AbstractTableDataFrame {
 	@Override
 	public Iterator<Object[]> iterator() {
 		Map<String, Object> options = new HashMap<String, Object>();
-		options.put(TinkerFrame.SELECTORS, getSelectors());
+		options.put(AbstractTableDataFrame.SELECTORS, getSelectors());
 		return new TinkerFrameIterator(g, ((TinkerMetaData)this.metaData).g, options);
 	}
 	
@@ -1921,8 +1911,8 @@ public class TinkerFrame extends AbstractTableDataFrame {
 		List<String> selectors = null;
 		Double[] max = null;
 		Double[] min = null;
-		if(options != null && options.containsKey(TinkerFrame.SELECTORS)) {
-			selectors = (List<String>) options.get(TinkerFrame.SELECTORS);
+		if(options != null && options.containsKey(AbstractTableDataFrame.SELECTORS)) {
+			selectors = (List<String>) options.get(AbstractTableDataFrame.SELECTORS);
 			int numSelected = selectors.size();
 			max = new Double[numSelected];
 			min = new Double[numSelected];
@@ -2045,7 +2035,7 @@ public class TinkerFrame extends AbstractTableDataFrame {
 			List<String> selectors = new Vector<String>();
 			selectors.add(columnHeader);
 			Map<String, Object> options = new HashMap<String, Object>();
-			options.put(TinkerFrame.SELECTORS, selectors);
+			options.put(AbstractTableDataFrame.SELECTORS, selectors);
 			List<Double> numericCol = new Vector<Double>();
 			Iterator<Object[]> it = iterator(options);
 			while(it.hasNext()) {
@@ -2644,6 +2634,8 @@ public class TinkerFrame extends AbstractTableDataFrame {
 		reactorNames.put(PKQLEnum.DATA_TYPE, "prerna.sablecc.DataTypeReactor");
 		reactorNames.put(PKQLEnum.DATA_CONNECT, "prerna.sablecc.DataConnectReactor");
 		reactorNames.put(PKQLEnum.JAVA_OP, "prerna.sablecc.JavaReactorWrapper");
+		reactorNames.put(PKQLEnum.DATA_FRAME_DUPLICATES, "prerna.sablecc.TinkerDataFrameDuplicatesReactor");
+
 //		switch(reactorType) {
 //			case IMPORT_DATA : return new TinkerImportDataReactor();
 //			case COL_ADD : return new TinkerColAddReactor();

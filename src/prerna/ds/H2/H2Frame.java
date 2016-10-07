@@ -16,7 +16,6 @@ import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
-import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Hashtable;
@@ -406,7 +405,7 @@ public class H2Frame extends AbstractTableDataFrame {
 		if (filterValues != null && filterValues.size() > 0) {
 			this.metaData.setFiltered(columnHeader, true);
 			columnHeader = this.getValueForUniqueName(columnHeader);
-			builder.setFilters(columnHeader, filterValues, H2Builder.Comparator.EQUAL);
+			builder.setFilters(columnHeader, filterValues, AbstractTableDataFrame.Comparator.EQUAL);
 		}
 	}
 
@@ -427,20 +426,20 @@ public class H2Frame extends AbstractTableDataFrame {
 			comparator = comparator.trim();
 			if(comparator.equals("=")) {
 
-				if(override) builder.setFilters(columnHeader, filters, H2Builder.Comparator.EQUAL);
-				else builder.addFilters(columnHeader, filters, H2Builder.Comparator.EQUAL);
+				if(override) builder.setFilters(columnHeader, filters, AbstractTableDataFrame.Comparator.EQUAL);
+				else builder.addFilters(columnHeader, filters, AbstractTableDataFrame.Comparator.EQUAL);
 
 			} else if(comparator.equals("!=")) { 
 
-				if(override) builder.setFilters(columnHeader, filters, H2Builder.Comparator.NOT_EQUAL);
-				else builder.addFilters(columnHeader, filters, H2Builder.Comparator.NOT_EQUAL);
+				if(override) builder.setFilters(columnHeader, filters, AbstractTableDataFrame.Comparator.NOT_EQUAL);
+				else builder.addFilters(columnHeader, filters, AbstractTableDataFrame.Comparator.NOT_EQUAL);
 
 			} else if(comparator.equals("<")) {
 
 				if(isOrdinal) {
 
-					if(override) builder.setFilters(columnHeader, filters, H2Builder.Comparator.LESS_THAN);
-					else builder.addFilters(columnHeader, filters, H2Builder.Comparator.LESS_THAN);
+					if(override) builder.setFilters(columnHeader, filters, AbstractTableDataFrame.Comparator.LESS_THAN);
+					else builder.addFilters(columnHeader, filters, AbstractTableDataFrame.Comparator.LESS_THAN);
 
 				} else {
 					throw new IllegalArgumentException(columnHeader
@@ -452,8 +451,8 @@ public class H2Frame extends AbstractTableDataFrame {
 
 				if(isOrdinal) {
 
-					if(override) builder.setFilters(columnHeader, filters, H2Builder.Comparator.GREATER_THAN);
-					else builder.addFilters(columnHeader, filters, H2Builder.Comparator.GREATER_THAN);
+					if(override) builder.setFilters(columnHeader, filters, AbstractTableDataFrame.Comparator.GREATER_THAN);
+					else builder.addFilters(columnHeader, filters, AbstractTableDataFrame.Comparator.GREATER_THAN);
 
 				} else {
 					throw new IllegalArgumentException(columnHeader
@@ -464,8 +463,8 @@ public class H2Frame extends AbstractTableDataFrame {
 			} else if(comparator.equals("<=")) {
 				if(isOrdinal) {
 
-					if(override) builder.setFilters(columnHeader, filters, H2Builder.Comparator.LESS_THAN_EQUAL);
-					else builder.addFilters(columnHeader, filters, H2Builder.Comparator.LESS_THAN_EQUAL);
+					if(override) builder.setFilters(columnHeader, filters, AbstractTableDataFrame.Comparator.LESS_THAN_EQUAL);
+					else builder.addFilters(columnHeader, filters, AbstractTableDataFrame.Comparator.LESS_THAN_EQUAL);
 
 				} else {
 					throw new IllegalArgumentException(columnHeader
@@ -475,8 +474,8 @@ public class H2Frame extends AbstractTableDataFrame {
 			} else if(comparator.equals(">=")) {
 				if(isOrdinal) {
 
-					if(override) builder.setFilters(columnHeader, filters, H2Builder.Comparator.GREATER_THAN_EQUAL);
-					else builder.addFilters(columnHeader, filters, H2Builder.Comparator.GREATER_THAN_EQUAL);
+					if(override) builder.setFilters(columnHeader, filters, AbstractTableDataFrame.Comparator.GREATER_THAN_EQUAL);
+					else builder.addFilters(columnHeader, filters, AbstractTableDataFrame.Comparator.GREATER_THAN_EQUAL);
 
 				} else {
 					throw new IllegalArgumentException(columnHeader
@@ -649,10 +648,10 @@ public class H2Frame extends AbstractTableDataFrame {
 	@Override
 	public Iterator<Object[]> iterator(Map<String, Object> options) {
 		// sort by
-		String sortBy = (String) options.get(TinkerFrame.SORT_BY);
+		String sortBy = (String) options.get(AbstractTableDataFrame.SORT_BY);
 		String actualSortBy = null;
 
-		List<String> selectors = (List<String>) options.get(TinkerFrame.SELECTORS);
+		List<String> selectors = (List<String>) options.get(AbstractTableDataFrame.SELECTORS);
 		List<String> selectorValues = new Vector<String>();
 		for (String name : selectors) {
 			if (name.startsWith(TinkerFrame.PRIM_KEY)) {
@@ -670,9 +669,9 @@ public class H2Frame extends AbstractTableDataFrame {
 				selectorValues.add(uniqueName);
 			}
 		}
-		options.put(TinkerFrame.SELECTORS, selectorValues);
+		options.put(AbstractTableDataFrame.SELECTORS, selectorValues);
 
-		Map<Object, Object> temporalBindings = (Map<Object, Object>) options.get(TinkerFrame.TEMPORAL_BINDINGS);
+		Map<Object, Object> temporalBindings = (Map<Object, Object>) options.get(AbstractTableDataFrame.TEMPORAL_BINDINGS);
 		// clean values always put into list so bifurcation in logic doesn't
 		// need to exist elsewhere
 		Map<String, List<Object>> cleanTemporalBindings = new Hashtable<String, List<Object>>();
@@ -716,7 +715,7 @@ public class H2Frame extends AbstractTableDataFrame {
 				}
 			}
 		}
-		options.put(TinkerFrame.TEMPORAL_BINDINGS, cleanTemporalBindings);
+		options.put(AbstractTableDataFrame.TEMPORAL_BINDINGS, cleanTemporalBindings);
 
 		// if(selectors != null) {
 		// List<String> h2selectors = new ArrayList<>();
@@ -727,7 +726,7 @@ public class H2Frame extends AbstractTableDataFrame {
 		// }
 
 		if (actualSortBy != null) {
-			options.put(TinkerFrame.SORT_BY, actualSortBy);
+			options.put(AbstractTableDataFrame.SORT_BY, actualSortBy);
 		}
 		return builder.buildIterator(options);
 	}
@@ -783,9 +782,9 @@ public class H2Frame extends AbstractTableDataFrame {
 		List<String> selectors = null;
 		Double[] max = null;
 		Double[] min = null;
-		if (options != null && options.containsKey(TinkerFrame.SELECTORS)) {
+		if (options != null && options.containsKey(AbstractTableDataFrame.SELECTORS)) {
 			// get the max and min values based on the order that is defined
-			selectors = (List<String>) options.get(TinkerFrame.SELECTORS);
+			selectors = (List<String>) options.get(AbstractTableDataFrame.SELECTORS);
 			int numSelected = selectors.size();
 			max = new Double[numSelected];
 			min = new Double[numSelected];
@@ -887,7 +886,7 @@ public class H2Frame extends AbstractTableDataFrame {
 		Object[] values = new Object[cleanRow.keySet().size()];
 		String[] columnHeaders = cleanRow.keySet().toArray(new String[] {});
 
-		Arrays.sort(columnHeaders, new Comparator<String>() {
+		Arrays.sort(columnHeaders, new java.util.Comparator<String>() {
 
 			@Override
 			public int compare(String o1, String o2) {
@@ -1311,6 +1310,8 @@ public class H2Frame extends AbstractTableDataFrame {
 		reactorNames.put(PKQLEnum.JAVA_OP, "prerna.sablecc.JavaReactorWrapper");
 		reactorNames.put(PKQLEnum.NETWORK_CONNECT, "prerna.sablecc.ConnectReactor");
 		reactorNames.put(PKQLEnum.NETWORK_DISCONNECT, "prerna.sablecc.DisConnectReactor");
+		reactorNames.put(PKQLEnum.DATA_FRAME_DUPLICATES, "prerna.sablecc.H2DataFrameDuplicatesReactor");
+		
 		// switch(reactorType) {
 		// case IMPORT_DATA : return new H2ImportDataReactor();
 		// case COL_ADD : return new ColAddReactor();
@@ -1531,5 +1532,17 @@ public class H2Frame extends AbstractTableDataFrame {
 			catch (IOException e) {e.printStackTrace();} 
 			catch (SQLException e) {e.printStackTrace();}
 		}
+	}
+
+	public Map<String, Map<AbstractTableDataFrame.Comparator, Set<Object>>> getFilterHash() {
+		return this.builder.getFilterHash();
+	}
+
+	public String getTableName() {
+		return this.builder.getTableName();
+	}
+
+	public List<Object[]> getFlatTableFromQuery(String query) {
+		return this.builder.getFlatTableFromQuery(query);
 	}
 }

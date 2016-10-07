@@ -219,6 +219,18 @@ public class AnalysisAdapter implements Analysis
     }
 
     @Override
+    public void caseADataFrameHeaderColop(ADataFrameHeaderColop node)
+    {
+        defaultCase(node);
+    }
+
+    @Override
+    public void caseADataFrameDuplicatesColop(ADataFrameDuplicatesColop node)
+    {
+        defaultCase(node);
+    }
+
+    @Override
     public void caseAOpenDataColop(AOpenDataColop node)
     {
         defaultCase(node);
@@ -424,6 +436,18 @@ public class AnalysisAdapter implements Analysis
 
     @Override
     public void caseADataFrame(ADataFrame node)
+    {
+        defaultCase(node);
+    }
+
+    @Override
+    public void caseADataFrameHeader(ADataFrameHeader node)
+    {
+        defaultCase(node);
+    }
+
+    @Override
+    public void caseADataFrameDuplicates(ADataFrameDuplicates node)
     {
         defaultCase(node);
     }
@@ -1474,6 +1498,18 @@ public class AnalysisAdapter implements Analysis
 
     @Override
     public void caseTDataframe(TDataframe node)
+    {
+        defaultCase(node);
+    }
+
+    @Override
+    public void caseTDataframeheader(TDataframeheader node)
+    {
+        defaultCase(node);
+    }
+
+    @Override
+    public void caseTDataframeduplicates(TDataframeduplicates node)
     {
         defaultCase(node);
     }

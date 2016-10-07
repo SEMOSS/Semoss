@@ -580,6 +580,48 @@ public class ReversedDepthFirstAdapter extends AnalysisAdapter
         outADataFrameColop(node);
     }
 
+    public void inADataFrameHeaderColop(ADataFrameHeaderColop node)
+    {
+        defaultIn(node);
+    }
+
+    public void outADataFrameHeaderColop(ADataFrameHeaderColop node)
+    {
+        defaultOut(node);
+    }
+
+    @Override
+    public void caseADataFrameHeaderColop(ADataFrameHeaderColop node)
+    {
+        inADataFrameHeaderColop(node);
+        if(node.getDataFrameHeader() != null)
+        {
+            node.getDataFrameHeader().apply(this);
+        }
+        outADataFrameHeaderColop(node);
+    }
+
+    public void inADataFrameDuplicatesColop(ADataFrameDuplicatesColop node)
+    {
+        defaultIn(node);
+    }
+
+    public void outADataFrameDuplicatesColop(ADataFrameDuplicatesColop node)
+    {
+        defaultOut(node);
+    }
+
+    @Override
+    public void caseADataFrameDuplicatesColop(ADataFrameDuplicatesColop node)
+    {
+        inADataFrameDuplicatesColop(node);
+        if(node.getDataFrameDuplicates() != null)
+        {
+            node.getDataFrameDuplicates().apply(this);
+        }
+        outADataFrameDuplicatesColop(node);
+    }
+
     public void inAOpenDataColop(AOpenDataColop node)
     {
         defaultIn(node);
@@ -1489,6 +1531,60 @@ public class ReversedDepthFirstAdapter extends AnalysisAdapter
             node.getDataframe().apply(this);
         }
         outADataFrame(node);
+    }
+
+    public void inADataFrameHeader(ADataFrameHeader node)
+    {
+        defaultIn(node);
+    }
+
+    public void outADataFrameHeader(ADataFrameHeader node)
+    {
+        defaultOut(node);
+    }
+
+    @Override
+    public void caseADataFrameHeader(ADataFrameHeader node)
+    {
+        inADataFrameHeader(node);
+        if(node.getDataframeheader() != null)
+        {
+            node.getDataframeheader().apply(this);
+        }
+        outADataFrameHeader(node);
+    }
+
+    public void inADataFrameDuplicates(ADataFrameDuplicates node)
+    {
+        defaultIn(node);
+    }
+
+    public void outADataFrameDuplicates(ADataFrameDuplicates node)
+    {
+        defaultOut(node);
+    }
+
+    @Override
+    public void caseADataFrameDuplicates(ADataFrameDuplicates node)
+    {
+        inADataFrameDuplicates(node);
+        if(node.getRPar() != null)
+        {
+            node.getRPar().apply(this);
+        }
+        if(node.getColCsv() != null)
+        {
+            node.getColCsv().apply(this);
+        }
+        if(node.getLPar() != null)
+        {
+            node.getLPar().apply(this);
+        }
+        if(node.getDataframeduplicates() != null)
+        {
+            node.getDataframeduplicates().apply(this);
+        }
+        outADataFrameDuplicates(node);
     }
 
     public void inADashboardConfig(ADashboardConfig node)

@@ -11,7 +11,6 @@ import java.util.Vector;
 
 import cern.colt.Arrays;
 import prerna.algorithm.api.ITableDataFrame;
-import prerna.ds.nativeframe.NativeFrame;
 import prerna.engine.api.IEngine;
 import prerna.engine.api.IEngineWrapper;
 import prerna.sablecc.meta.IPkqlMetadata;
@@ -135,19 +134,9 @@ public abstract class ImportDataReactor extends AbstractReactor {
 			if(engine != null) {
 				// put the edge hash and the logicalToValue maps within the myStore
 				// will be used when the data is actually imported
-				if(frame instanceof NativeFrame) {
-					if(((NativeFrame)frame).getEngineName().equals(engine.getEngineName())) {
-						Map[] mergedMaps = frame.mergeQSEdgeHash(edgeHash, engine, joinCols);
-						myStore.put("edgeHash", mergedMaps[0]);
-						myStore.put("logicalToValue", mergedMaps[1]);
-					} else {
-						myStore.put(PKQLEnum.JOINS, joins);
-					}
-				} else {
-					Map[] mergedMaps = frame.mergeQSEdgeHash(edgeHash, engine, joinCols);
-					myStore.put("edgeHash", mergedMaps[0]);
-					myStore.put("logicalToValue", mergedMaps[1]);
-				}
+				Map[] mergedMaps = frame.mergeQSEdgeHash(edgeHash, engine, joinCols);
+				myStore.put("edgeHash", mergedMaps[0]);
+				myStore.put("logicalToValue", mergedMaps[1]);
 			}
 			// TODO: this is the logic we are ignoring
 			// the edge hash may contain specific information the user wants to load
@@ -315,6 +304,17 @@ public abstract class ImportDataReactor extends AbstractReactor {
 			metadata.setColumns((List<String>) myStore.get("PASTED_DATA_COL_CSV"));
 		} else if(myStore.containsKey("CSV_TABLE_COL_CSV")) {
 			metadata.setColumns((List<String>) myStore.get("CSV_TABLE_COL_CSV"));
+		} else if(myStore.containsKey("API_ENGINE")) {
+			//create column info for api data
+			String data = (String) myStore.get("MOD_IMPORT_DATA");
+			data = data.substring(data.indexOf("{") + 1, data.indexOf("}")).trim();
+			String column = myStore.get("API_ENGINE") + "-" + data;
+			if(column.indexOf("\'url\'") > 0) {
+				column = "Columns from url";
+			}
+			List<String> c = new Vector<String>();
+			c.add(column);
+			metadata.setColumns(c);
 		}
 		return metadata;
 	}
