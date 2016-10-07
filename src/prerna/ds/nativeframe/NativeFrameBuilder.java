@@ -19,9 +19,9 @@ import java.util.Vector;
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
+import prerna.ds.AbstractTableDataFrame;
 import prerna.ds.QueryStruct;
 import prerna.ds.TinkerFrame;
-import prerna.ds.H2.H2Builder.Comparator;
 import prerna.ds.H2.H2Iterator;
 import prerna.engine.api.IEngine;
 import prerna.engine.impl.rdbms.RDBMSNativeEngine;
@@ -37,7 +37,7 @@ public class NativeFrameBuilder {
 	
 	QueryStruct queryStruct;
 	
-	Map<String, Map<Comparator, Set<Object>>> filterHash = new HashMap<>();
+	Map<String, Map<AbstractTableDataFrame.Comparator, Set<Object>>> filterHash = new HashMap<>();
 	
 	//need to determine which filters are the more narrow filters
 	public Hashtable <String, Hashtable<String, Vector>> filters = new Hashtable<>();
@@ -213,9 +213,9 @@ public class NativeFrameBuilder {
 		
 		//temporary filters to apply only to this iterator
 		Map<String, List<Object>> temporalBindings = (Map<String, List<Object>>) options.get(TinkerFrame.TEMPORAL_BINDINGS); 
-		Map<String, Comparator> compHash = new HashMap<String, Comparator>();
+		Map<String, AbstractTableDataFrame.Comparator> compHash = new HashMap<String, AbstractTableDataFrame.Comparator>();
 		for(String key : temporalBindings.keySet()) {
-			compHash.put(key, Comparator.EQUAL);
+			compHash.put(key, AbstractTableDataFrame.Comparator.EQUAL);
 		}
 
 		//create a new filter substring and add/replace old filter substring
@@ -507,11 +507,11 @@ public class NativeFrameBuilder {
 	 * @param values
 	 * @param comparator
 	 */
-	public void setFilters(String columnHeader, List<Object> values, Comparator comparator) {
+	public void setFilters(String columnHeader, List<Object> values, AbstractTableDataFrame.Comparator comparator) {
 		//    	filterHash.put(columnHeader, values);
 		//    	filterComparator.put(columnHeader, comparator);
 
-		Map<Comparator, Set<Object>> innerMap = new HashMap<>();
+		Map<AbstractTableDataFrame.Comparator, Set<Object>> innerMap = new HashMap<>();
 		innerMap.put(comparator, new HashSet<>(values));
 		filterHash.put(columnHeader, innerMap);
 	}
@@ -559,7 +559,7 @@ public class NativeFrameBuilder {
 	 * @param filterComparator
 	 * @return
 	 */
-	private String makeFilterSubQuery(Map<String, List<Object>> filterHash, Map<String, Comparator> filterComparator) {
+	private String makeFilterSubQuery(Map<String, List<Object>> filterHash, Map<String, AbstractTableDataFrame.Comparator> filterComparator) {
 		//need translation of filter here
 		String filterStatement = "";
 		if(filterHash.keySet().size() > 0) {
@@ -571,7 +571,7 @@ public class NativeFrameBuilder {
 //				String tableHeader = joinMode ? translateColumn(header) : header;
 				String tableHeader = header;
 				
-				Comparator comparator = filterComparator.get(header);
+				AbstractTableDataFrame.Comparator comparator = filterComparator.get(header);
 
 				switch(comparator) {
 				case EQUAL:{
@@ -632,7 +632,7 @@ public class NativeFrameBuilder {
 		return filterStatement;
 	}
 
-	private String makeFilterSubQuery(Map<String, Map<Comparator, Set<Object>>> filterHash) {
+	private String makeFilterSubQuery(Map<String, Map<AbstractTableDataFrame.Comparator, Set<Object>>> filterHash) {
 		//need to also pass in translationMap
 //		if(joinMode) filterHash = joiner.getJoinedFilterHash(viewTableName);
 
@@ -646,9 +646,9 @@ public class NativeFrameBuilder {
 //				String tableHeader = joinMode ? translateColumn(header) : header;
 				String tableHeader = header;
 				
-				Map<Comparator, Set<Object>> innerMap = filterHash.get(header);
+				Map<AbstractTableDataFrame.Comparator, Set<Object>> innerMap = filterHash.get(header);
 				int i = 0;
-				for(Comparator comparator : innerMap.keySet()) {
+				for(AbstractTableDataFrame.Comparator comparator : innerMap.keySet()) {
 					if(i > 0) {
 						filterStatement += " AND ";
 					}
@@ -862,30 +862,30 @@ public class NativeFrameBuilder {
 
 		String filterStatement = "";
 
-		Map<Comparator, Set<Object>> filterMap = filterHash.get(selector);
+		Map<AbstractTableDataFrame.Comparator, Set<Object>> filterMap = filterHash.get(selector);
 		int i = 0;
 		//what ever is listed in the filter hash, we want the get the values that would be the logical opposite
 		//i.e. if filter hash indicates 'X < 0.9 AND X > 0.8', return 'X > =0.9 OR X <= 0.8'
-		for(Comparator comparator : filterMap.keySet()) {
+		for(AbstractTableDataFrame.Comparator comparator : filterMap.keySet()) {
 			if(i > 0) {
 				filterStatement += " OR ";
 			}
 			Set<Object> filterValues = filterMap.get(comparator);
 			if(filterValues.size() == 0) continue;
 
-			if(comparator.equals(Comparator.EQUAL)) {
+			if(comparator.equals(AbstractTableDataFrame.Comparator.EQUAL)) {
 				String listString = getQueryStringList(filterValues);
 				filterStatement += selector+" NOT IN " + listString;
-			} else if(comparator.equals(Comparator.NOT_EQUAL)) {
+			} else if(comparator.equals(AbstractTableDataFrame.Comparator.NOT_EQUAL)) {
 				String listString = getQueryStringList(filterValues);
 				filterStatement += selector+" IN " + listString;
-			} else if(comparator.equals(Comparator.GREATER_THAN)) {
+			} else if(comparator.equals(AbstractTableDataFrame.Comparator.GREATER_THAN)) {
 				filterStatement += selector+" <= "+filterValues.iterator().next().toString();
-			} else if(comparator.equals(Comparator.GREATER_THAN_EQUAL)) {
+			} else if(comparator.equals(AbstractTableDataFrame.Comparator.GREATER_THAN_EQUAL)) {
 				filterStatement += selector+" < "+filterValues.iterator().next().toString();
-			} else if(comparator.equals(Comparator.LESS_THAN)) {
+			} else if(comparator.equals(AbstractTableDataFrame.Comparator.LESS_THAN)) {
 				filterStatement += selector+" >= "+filterValues.iterator().next().toString();
-			} else if(comparator.equals(Comparator.LESS_THAN_EQUAL)) {
+			} else if(comparator.equals(AbstractTableDataFrame.Comparator.LESS_THAN_EQUAL)) {
 				filterStatement += selector+" > "+filterValues.iterator().next().toString();
 			}
 			i++;

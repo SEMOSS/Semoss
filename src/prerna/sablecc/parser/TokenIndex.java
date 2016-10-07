@@ -388,140 +388,152 @@ class TokenIndex extends AnalysisAdapter
     }
 
     @Override
-    public void caseTFileText(@SuppressWarnings("unused") TFileText node)
+    public void caseTDataframeheader(@SuppressWarnings("unused") TDataframeheader node)
     {
         this.index = 63;
     }
 
     @Override
-    public void caseTPanelcommentremove(@SuppressWarnings("unused") TPanelcommentremove node)
+    public void caseTDataframeduplicates(@SuppressWarnings("unused") TDataframeduplicates node)
     {
         this.index = 64;
     }
 
     @Override
-    public void caseTPanelcommentedit(@SuppressWarnings("unused") TPanelcommentedit node)
+    public void caseTFileText(@SuppressWarnings("unused") TFileText node)
     {
         this.index = 65;
     }
 
     @Override
-    public void caseTPanelcommentadd(@SuppressWarnings("unused") TPanelcommentadd node)
+    public void caseTPanelcommentremove(@SuppressWarnings("unused") TPanelcommentremove node)
     {
         this.index = 66;
     }
 
     @Override
-    public void caseTPanellookandfeel(@SuppressWarnings("unused") TPanellookandfeel node)
+    public void caseTPanelcommentedit(@SuppressWarnings("unused") TPanelcommentedit node)
     {
         this.index = 67;
     }
 
     @Override
-    public void caseTPaneltools(@SuppressWarnings("unused") TPaneltools node)
+    public void caseTPanelcommentadd(@SuppressWarnings("unused") TPanelcommentadd node)
     {
         this.index = 68;
     }
 
     @Override
-    public void caseTPanelconfig(@SuppressWarnings("unused") TPanelconfig node)
+    public void caseTPanellookandfeel(@SuppressWarnings("unused") TPanellookandfeel node)
     {
         this.index = 69;
     }
 
     @Override
-    public void caseTOutputToken(@SuppressWarnings("unused") TOutputToken node)
+    public void caseTPaneltools(@SuppressWarnings("unused") TPaneltools node)
     {
         this.index = 70;
     }
 
     @Override
-    public void caseTUserinput(@SuppressWarnings("unused") TUserinput node)
+    public void caseTPanelconfig(@SuppressWarnings("unused") TPanelconfig node)
     {
         this.index = 71;
     }
 
     @Override
-    public void caseTJoin(@SuppressWarnings("unused") TJoin node)
+    public void caseTOutputToken(@SuppressWarnings("unused") TOutputToken node)
     {
         this.index = 72;
     }
 
     @Override
-    public void caseTDatatypeToken(@SuppressWarnings("unused") TDatatypeToken node)
+    public void caseTUserinput(@SuppressWarnings("unused") TUserinput node)
     {
         this.index = 73;
     }
 
     @Override
-    public void caseTDataconnectToken(@SuppressWarnings("unused") TDataconnectToken node)
+    public void caseTJoin(@SuppressWarnings("unused") TJoin node)
     {
         this.index = 74;
     }
 
     @Override
-    public void caseTDatanetworkconnectToken(@SuppressWarnings("unused") TDatanetworkconnectToken node)
+    public void caseTDatatypeToken(@SuppressWarnings("unused") TDatatypeToken node)
     {
         this.index = 75;
     }
 
     @Override
-    public void caseTDatanetworkdisconnectToken(@SuppressWarnings("unused") TDatanetworkdisconnectToken node)
+    public void caseTDataconnectToken(@SuppressWarnings("unused") TDataconnectToken node)
     {
         this.index = 76;
     }
 
     @Override
-    public void caseTDataconnectdbToken(@SuppressWarnings("unused") TDataconnectdbToken node)
+    public void caseTDatanetworkconnectToken(@SuppressWarnings("unused") TDatanetworkconnectToken node)
     {
         this.index = 77;
     }
 
     @Override
-    public void caseTDatabaselistToken(@SuppressWarnings("unused") TDatabaselistToken node)
+    public void caseTDatanetworkdisconnectToken(@SuppressWarnings("unused") TDatanetworkdisconnectToken node)
     {
         this.index = 78;
     }
 
     @Override
-    public void caseTDatabaseconceptsToken(@SuppressWarnings("unused") TDatabaseconceptsToken node)
+    public void caseTDataconnectdbToken(@SuppressWarnings("unused") TDataconnectdbToken node)
     {
         this.index = 79;
     }
 
     @Override
-    public void caseTDatabaseconceptpropertiesToken(@SuppressWarnings("unused") TDatabaseconceptpropertiesToken node)
+    public void caseTDatabaselistToken(@SuppressWarnings("unused") TDatabaselistToken node)
     {
         this.index = 80;
     }
 
     @Override
-    public void caseTDatabasemetamodelToken(@SuppressWarnings("unused") TDatabasemetamodelToken node)
+    public void caseTDatabaseconceptsToken(@SuppressWarnings("unused") TDatabaseconceptsToken node)
     {
         this.index = 81;
     }
 
     @Override
-    public void caseTDashboardconfig(@SuppressWarnings("unused") TDashboardconfig node)
+    public void caseTDatabaseconceptpropertiesToken(@SuppressWarnings("unused") TDatabaseconceptpropertiesToken node)
     {
         this.index = 82;
     }
 
     @Override
-    public void caseTDashboardAddToken(@SuppressWarnings("unused") TDashboardAddToken node)
+    public void caseTDatabasemetamodelToken(@SuppressWarnings("unused") TDatabasemetamodelToken node)
     {
         this.index = 83;
     }
 
     @Override
-    public void caseTWherestr(@SuppressWarnings("unused") TWherestr node)
+    public void caseTDashboardconfig(@SuppressWarnings("unused") TDashboardconfig node)
     {
         this.index = 84;
     }
 
     @Override
-    public void caseEOF(@SuppressWarnings("unused") EOF node)
+    public void caseTDashboardAddToken(@SuppressWarnings("unused") TDashboardAddToken node)
     {
         this.index = 85;
+    }
+
+    @Override
+    public void caseTWherestr(@SuppressWarnings("unused") TWherestr node)
+    {
+        this.index = 86;
+    }
+
+    @Override
+    public void caseEOF(@SuppressWarnings("unused") EOF node)
+    {
+        this.index = 87;
     }
 }
