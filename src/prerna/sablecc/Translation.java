@@ -40,7 +40,7 @@ import prerna.sablecc.node.ADashboardJoin;
 import prerna.sablecc.node.ADashboardopScript;
 import prerna.sablecc.node.ADataFrame;
 import prerna.sablecc.node.ADataFrameDuplicatesColop;
-import prerna.sablecc.node.ADataFrameHeaderColop;
+import prerna.sablecc.node.ADataFrameHeader;
 import prerna.sablecc.node.ADatabaseConceptProperties;
 import prerna.sablecc.node.ADatabaseConcepts;
 import prerna.sablecc.node.ADatabaseList;
@@ -1258,15 +1258,23 @@ public class Translation extends DepthFirstAdapter {
 	}
 
 	@Override
-	public void inADataFrameHeaderColop(ADataFrameHeaderColop node) {
+	public void inADataFrameHeader(ADataFrameHeader node) {
 		if (reactorNames.containsKey(PKQLEnum.DATA_FRAME_HEADER)) {
 			initReactor(PKQLEnum.DATA_FRAME_HEADER);
+			if(node.getBoolean() != null) {
+				try {
+					boolean includeAdditionalInfo = Boolean.parseBoolean(node.getBoolean().toString().trim());
+					curReactor.put(DataFrameHeaderReactor.ADDITIONAL_INFO_BOOL, includeAdditionalInfo);
+				} catch(ClassCastException e) {
+					// do nothing
+				}
+			}
 			curReactor.put(PKQLEnum.DATA_FRAME_HEADER, node.toString());
 		}
 	}
 
 	@Override
-	public void outADataFrameHeaderColop(ADataFrameHeaderColop node) {
+	public void outADataFrameHeader(ADataFrameHeader node) {
 		IScriptReactor thisReactor = curReactor;
 		deinitReactor(PKQLEnum.DATA_FRAME_HEADER, node.toString().trim(), node.toString().trim());
 		this.runner.setResponse(thisReactor.getValue("tableHeaders"));
