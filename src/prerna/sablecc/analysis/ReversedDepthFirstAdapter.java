@@ -1547,6 +1547,18 @@ public class ReversedDepthFirstAdapter extends AnalysisAdapter
     public void caseADataFrameHeader(ADataFrameHeader node)
     {
         inADataFrameHeader(node);
+        if(node.getRPar() != null)
+        {
+            node.getRPar().apply(this);
+        }
+        if(node.getBoolean() != null)
+        {
+            node.getBoolean().apply(this);
+        }
+        if(node.getLPar() != null)
+        {
+            node.getLPar().apply(this);
+        }
         if(node.getDataframeheader() != null)
         {
             node.getDataframeheader().apply(this);
