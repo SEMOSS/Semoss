@@ -6,11 +6,13 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
+import org.apache.log4j.LogManager;
+import org.apache.log4j.Logger;
+
 import prerna.algorithm.api.ITableDataFrame;
 import prerna.algorithm.learning.util.Cluster;
 import prerna.algorithm.learning.util.IClusterDistanceMode;
 import prerna.algorithm.learning.util.IClusterDistanceMode.DistanceMeasure;
-import prerna.math.SimilarityWeighting;
 import prerna.sablecc.MathReactor;
 import prerna.sablecc.PKQLEnum;
 import prerna.sablecc.PKQLRunner.STATUS;
@@ -18,6 +20,8 @@ import prerna.util.ArrayUtilityMethods;
 
 public class ClusteringReactor extends MathReactor {
 
+	private static final Logger LOGGER = LogManager.getLogger(ClusteringReactor.class.getName());
+	
 	public static final String NUM_CLUSTERS = "numClusters";
 	public static final String INSTANCE_INDEX = "instanceIndex";
 	
@@ -108,13 +112,29 @@ public class ClusteringReactor extends MathReactor {
 		
 		//TODO: process of getting these weights is outdated
 		// fills in numericalWeights and categoricalWeights maps
-		SimilarityWeighting.calculateWeights(dataFrame, instanceIndex, attributeNames, isNumeric, numericalWeights, categoricalWeights);
 		
+		
+		// TESTING
+		for(int i = 0; i < this.isNumeric.length; i++) {
+			if(isNumeric[i]) {
+				numericalWeights.put(attributeNames[i], 1.0);
+			} else {
+				categoricalWeights.put(attributeNames[i], 1.0);
+			}
+		}
+//		SimilarityWeighting.calculateWeights(dataFrame, instanceIndex, attributeNames, isNumeric, numericalWeights, categoricalWeights);
+		
+		LOGGER.info("Start creation of initial cluster centers...");		
 		initializeClusters(dataFrame, attributeNamesList);
+		LOGGER.info("Done creation of initial cluster centers...");		
+
 		int maxIt = 100_000;
 		boolean go = true;
 		int currIt = 0;
+		
+		LOGGER.info("Start iterating through dataset until convergence...");		
 		while(go) {
+			LOGGER.info("Start iteration number " + (currIt+1) + "...");		
 			go = false;
 			Iterator<List<Object[]>> it = this.getUniqueScaledData(attributeNames[instanceIndex], attributeNamesList, dataFrame);
 			while(it.hasNext()) {
@@ -136,9 +156,12 @@ public class ClusteringReactor extends MathReactor {
 			currIt++;
 			// break if taking too many iterations
 			if(currIt > maxIt) {
+				LOGGER.info("Convergence Error ::: clustering routine did not converge after " + maxIt + " iterations");		
 				go = false;
 			}
 		}
+
+		LOGGER.info("Done iterating ...");		
 
 		String attributeName = attributeNames[instanceIndex];
 		// to avoid adding columns with same name

@@ -10,7 +10,7 @@ import java.util.Set;
 import java.util.Vector;
 
 import prerna.algorithm.api.ITableDataFrame;
-import prerna.ds.TinkerFrame;
+import prerna.ds.AbstractTableDataFrame;
 import prerna.sablecc.meta.IPkqlMetadata;
 import prerna.sablecc.meta.VizPkqlMetadata;
 import prerna.util.ArrayUtilityMethods;
@@ -131,8 +131,8 @@ public class VizReactor extends AbstractReactor {
 		//otherwise we only have column data to grab from the frame, no math was done
 		if (columnsToGrab.size() > 0 && !mathPerformed) {
 			Map<String, Object> options = new HashMap<>();
-			options.put(TinkerFrame.SELECTORS, columnsToGrab);
-			options.put(TinkerFrame.DE_DUP, true);
+			options.put(AbstractTableDataFrame.SELECTORS, columnsToGrab);
+			options.put(AbstractTableDataFrame.DE_DUP, true);
 			Iterator<Object[]> iterator = frame.iterator(options);
 
 			grid = new ArrayList<>(100);
@@ -144,8 +144,8 @@ public class VizReactor extends AbstractReactor {
 		else if (columnsToGrab.size() > keyColumns.length) {
 			// if(columnsToGrab.size() > 0 && keyColumns.length > 0) {
 			Map<String, Object> options = new HashMap<>();
-			options.put(TinkerFrame.SELECTORS, columnsToGrab);
-			options.put(TinkerFrame.DE_DUP, true);
+			options.put(AbstractTableDataFrame.SELECTORS, columnsToGrab);
+			options.put(AbstractTableDataFrame.DE_DUP, true);
 			Iterator<Object[]> iterator = frame.iterator(options);
 
 			// convert to map and merge

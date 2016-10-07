@@ -2,9 +2,9 @@ package prerna.sablecc;
 
 public class PKQLEnum {
 	
-	public enum PKQLToken {NUMBER, DECIMAL, COL_CSV, COL_DEF, WHERE, FILTER, SELECTOR, API, CODE}
-	public enum PKQLReactor {COL_ADD, IMPORT_DATA, MATH_FUN, EXPR, VIZ, VAR, INPUT, NETWORK_CONNECT, NETWORK_DISCONNECT}
-	public enum PKQLAlgorithm {SUM, AVERAGE, STANDARD_DEVIATION, MEDIAN, MIN, MAX, CONCAT}
+//	public enum PKQLToken {NUMBER, DECIMAL, COL_CSV, COL_DEF, WHERE, FILTER, SELECTOR, API, CODE}
+	public enum PKQLReactor {COL_ADD, IMPORT_DATA, MATH_FUN, EXPR, VIZ, VAR, INPUT, NETWORK_CONNECT, NETWORK_DISCONNECT, DATA_FRAME_HEADER, DATA_FRAME_DUPLICATES}
+//	public enum PKQLAlgorithm {SUM, AVERAGE, STANDARD_DEVIATION, MEDIAN, MIN, MAX, CONCAT}
 
 	public static final String COMPARATOR = "COMPARATOR";
 
@@ -21,6 +21,8 @@ public class PKQLEnum {
 	public static final String JAVA_OP = "JAVA_OP";
 
 	public static String DATA_FRAME = "DATA_FRAME";
+	public static String DATA_FRAME_HEADER = "DATA_FRAME_HEADER";
+	public static String DATA_FRAME_DUPLICATES = "DATA_FRAME_DUPLICATES";
 	public static String DATA_TYPE = "DATA_TYPE";
 	public static String DATA_CONNECT = "DATA_CONNECT";
 	
@@ -78,17 +80,10 @@ public class PKQLEnum {
 	public static String KEY_VALUE_PAIR = "KEY_VALUE";
 	public static final String NETWORK_CONNECT = "NETWORK_CONNECT";
 	public static final String NETWORK_DISCONNECT = "NETWORK_DISCONNECT";
-
-
-	public static final String Condition = "CONDITION";
-
-
-	public static final String ConditionBlock = "CONDITIONBLOCK";
 	
 	public static String QUERY_API = "QUERY_API";
 	public static String CSV_API = "CSV_API";
 	public static String R_API = "R_API";
 	public static String WEB_API = "WEB_API";
-	public static String NATIVE_QUERY_API = "NATIVE_QUERY_API";
 	
 }

@@ -85,6 +85,8 @@ Tokens
  panelclone = panelprefix '.clone';
  panelclose = panelprefix '.close';
  dataframe = 'data.frame';
+ dataframeheader = 'data.frame.getHeaders';
+ dataframeduplicates = 'data.frame.hasDuplicates';
  file_text = '<startInput>' alphanumeric* '<endInput>';
  panelcommentremove = panelcommentprefix '.remove';
  panelcommentedit = panelcommentprefix '.edit';
@@ -111,7 +113,7 @@ Tokens
  //dashboard_rem_token = 'dashboard.removeInsight'
  dashboard_add_token = 'dashboard.add';
  //dashboard_unjoin_token = 'dashboard.unjoin'
-wherestr = 'where=' ;
+ wherestr = 'where=' ;
  
 Ignored Tokens
  blank;
@@ -146,6 +148,8 @@ colop = // colOp is usually of the form of joinColumn / addColumn / removeColumn
 		| {unfiltercol} unfilter_column
 		| {remove_data} remove_data
 		| {data_frame} data_frame
+		| {data_frame_header} data_frame_header
+		| {data_frame_duplicates} data_frame_duplicates
 		| {open_data} open_data
 		| {renamecol} rename_column
 		| {splitcol} split_column
@@ -227,6 +231,12 @@ panel_close = // e.g. panel.close();
 		
 data_frame = // e.g. panel.setBuilder('graph');
 		dataframe l_par [builder]:word_or_num r_par
+		;
+data_frame_header = // e.g. data.frame.getHeaders();
+		dataframeheader
+		;
+data_frame_duplicates = // e.g. data.frame.hasDuplicates(c:Col,); 
+		dataframeduplicates l_par col_csv r_par
 		;
 
 dashboard_config = //e.g. dashboard.config(<json>*configuration string*</json>);
@@ -410,7 +420,7 @@ condition = l_par [left]:term equal_or_compare [right]:term r_par;
 condition_group = log_operator condition;
 
 condition_block = l_par condition condition_group* r_par;
-
+		
  expr =
   {term} term
   | {plus} [left]:term plus [right]:expr
@@ -418,12 +428,12 @@ condition_block = l_par condition condition_group* r_par;
   | {mult} [left]:term mult [right]:expr 
   | {div} [left]:term div [right]:expr 
   | {mod} [left]:term mod [right]:expr
-  | {e_expr} extended_expr 
+  | {e_expr} extended_expr
   | {condition_expr} condition_block
   //|{math_fun} math_fun // I need to still resolve other mathematical functions
   ;
  
- math_fun = proc id l_par [expr]:expr_row comma? [group]:col_csv? [parameters]:math_param? r_par;  // m.Sum([1 + c:Activity], /*groupBy*/(c:studio, c:genre));
+ math_fun = proc id l_par [expr]:expr_row comma? [group]:col_csv? [parameters]:math_param? r_par; // m.Sum([1 + c:Activity], /*groupBy*/(c:studio, c:genre));
  
  math_param = comma map_obj; 
  
