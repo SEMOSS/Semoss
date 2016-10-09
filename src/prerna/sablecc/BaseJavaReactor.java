@@ -714,12 +714,18 @@ public abstract class BaseJavaReactor extends AbstractReactor{
 		// need to get the type of this
 		try {
 			String condition = " ,";
+			columnName = columnName.toUpperCase();
+
+			String output = rcon.eval("sapply(" + frameName + "$" + columnName.toUpperCase() + ", class);").asString();
+			String quote = "";
+			if(output.contains("character"))
+				quote = "\"";
 			if(curValue != null)
-				condition = columnName + " := \"" + curValue + "\", ";
-			String script = frameName + "[" + condition + columnName + " == " + newValue + "]";
+				condition = columnName + " == " + quote + curValue + quote + ", ";
+			String script = frameName + "[" + condition + columnName + " := " + quote + newValue + quote + "]";
 			rcon.eval(script);
 			System.out.println("Complete ");
-		} catch (RserveException e) {
+		} catch (RserveException | REXPMismatchException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
@@ -865,23 +871,25 @@ public abstract class BaseJavaReactor extends AbstractReactor{
 		String frame = (String)retrieveVariable("GRID_NAME");
 		getColumnCount(frame, column);
 	}
+
 	
-	public void joinColumns(String frameName, String newColumnName,  String separator, String... columns)
+	public void joinColumns(String frameName, String newColumnName,  String separator, String cols)
 	{
 		// reconstruct the column names
 		//paste(df1$a_1, df1$a_2, sep="$$")
 		try {
 			startR();
+			String [] columns = cols.split(";");
 			String concatString = "paste(";
 			for(int colIndex = 0;colIndex < columns.length;colIndex++)
 			{
-				concatString = concatString + frameName + "$" + columns[colIndex];
+				concatString = concatString + frameName + "$" + columns[colIndex].toUpperCase();
 				if(colIndex + 1 < columns.length)
 					concatString = concatString + ", ";
 			}
 			concatString = concatString + ", sep= \"" + separator + "\")";
 			
-			String script = frameName + "$" + newColumnName + " <- " + concatString;
+			String script = frameName + "$" + newColumnName.toUpperCase() + " <- " + concatString;
 			System.out.println(script);
 			rcon.eval(script);
 			System.out.println("Join Complete ");
