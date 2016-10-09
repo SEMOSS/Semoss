@@ -491,12 +491,38 @@ public abstract class BaseJavaReactor extends AbstractReactor{
 	{
 		// assumes this is a grid and tries to write back the table
 		// I need to make another data table with these specific columns and then write that
-		
+		startR();
+		try {
+			if(cols != null && cols.length() > 0)
+			{
+				String script = ".(";
+				String [] reqCols = cols.split(";");
+				// I need to take just these columns and then synchronize this back
+				for(int colIndex = 0;colIndex < reqCols.length;colIndex++)
+				{
+					script = script + reqCols[colIndex].toUpperCase();
+					if(colIndex + 1 < reqCols.length)
+						script = script + ", ";
+				}
+				script = script + ")";
+				String tempName = Utility.getRandomString(8);
+				
+				String finalScript = tempName + " <- " + frameName + "[, " + script + "]; dbWriteTable(conn,'" + tableName +"', " + tempName + ");";
+				rcon.eval(finalScript);		
+			}
+		} catch (RserveException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
 		//TBD
 		//runR("dbWriteTable(conn,'" + tableName +"', " + frameName + ");", false);
 		//System.out.println("Output is now available as " + tableName);
 	}
 
+	public void filterValues(String frameName, String columnName, String values)
+	{
+		
+	}
 	
 	public void synchronizeGridFromR(String frameName, boolean self)
 	{
