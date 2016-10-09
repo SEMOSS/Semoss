@@ -49,6 +49,7 @@ public class H2Builder {
 	private static final Logger LOGGER = LogManager.getLogger(H2Builder.class.getName());
 
 	private Connection conn = null;
+	
 	private String schema = "test"; // assign a default schema which is test
 	// boolean create = false;
 	// static int tableRunNumber = 1;
@@ -3334,7 +3335,10 @@ public class H2Builder {
 				server = Server.createTcpServer("-tcpPort", port, "-tcpAllowOthers");
 				// server = Server.createPgServer("-baseDir", "~",
 				// "-pgAllowOthers"); //("-tcpPort", "9999");
-				serverURL = "jdbc:h2:" + server.getURL() + "/mem:" + this.schema + options;
+				if(isInMem)
+					serverURL = "jdbc:h2:" + server.getURL() + "/mem:" + this.schema + options;
+				else
+					serverURL = "jdbc:h2:" + server.getURL() + "/nio:" + this.schema;
 				// System.out.println("URL: jdbc:h2:" + server.getURL() +
 				// "/mem:test");
 				server.start();
