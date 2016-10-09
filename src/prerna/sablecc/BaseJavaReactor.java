@@ -46,6 +46,8 @@ public abstract class BaseJavaReactor extends AbstractReactor{
 	public static final String R_CONN = "R_CONN";
 	public static final String R_PORT = "R_PORT";
 	public RConnection rcon = null;
+	String wd = null;
+	String fileName = null;
 	
 	public Console System = new Console();
 	
@@ -306,6 +308,11 @@ public abstract class BaseJavaReactor extends AbstractReactor{
 
 	}
 	
+	public void reconnectR(int port)
+	{
+		RSingleton.getConnection(port);
+	}
+	
 	public RConnection startR()
 	{
 		RConnection retCon = (RConnection)retrieveVariable(R_CONN);
@@ -320,6 +327,16 @@ public abstract class BaseJavaReactor extends AbstractReactor{
 				// need to find a way to get a common name
 				masterCon.eval("library(Rserve); Rserve(port = " + port + ")");
 				retCon = new RConnection("127.0.0.1", Integer.parseInt(port));
+				// load all the libraries
+				retCon.eval("library(splitstackshape);");
+				// data table
+				retCon.eval("library(data.table);");
+				// reshape2
+				retCon.eval("library(reshape2);");
+				// rjdbbc
+				retCon.eval("library(RJDBC);");
+
+				// not sure if I need dplyr too I will get to it
 				storeVariable(R_CONN, retCon);
 				storeVariable(R_PORT, port);
 			} catch (Exception e) {
@@ -350,19 +367,14 @@ public abstract class BaseJavaReactor extends AbstractReactor{
 		return absoluteFileName;
 	}
 	
-	public void synchronizeToR(String graphName) // I will get the format later.. for now.. writing graphml
+	private void synchronizeGraphToR(String graphName, String wd)
 	{
-		java.lang.System.setSecurityManager(curManager);
-		String baseFolder = getBaseFolder();
-		String randomDir = Utility.getRandomString(22);
-		
-		String wd = baseFolder + "/" + randomDir;
 		java.io.File file = new File(wd);
 		try {
 			
 			// create this directory
 			file.mkdir();
-			String fileName = writeGraph(wd);
+			fileName = writeGraph(wd);
 			
 			java.lang.System.out.println("Trying to get Connection.. ");
 			RConnection rconn = startR();
@@ -393,15 +405,141 @@ public abstract class BaseJavaReactor extends AbstractReactor{
 		
 	}
 	
+	
+	public void synchronizeToR(String graphName) // I will get the format later.. for now.. writing graphml
+	{
+		java.lang.System.setSecurityManager(curManager);
+		String baseFolder = getBaseFolder();
+		String randomDir = Utility.getRandomString(22);
+		wd = baseFolder + "/" + randomDir;		
+		if(dataframe instanceof TinkerFrame)
+			synchronizeGraphToR(graphName, wd);
+		else if(dataframe instanceof H2Frame)
+			synchronizeGridToR(graphName);
+	}
+	
+	private void initiateDriver(String url, String username)
+	{
+		String driver = "org.h2.Driver";
+		String jarLocation = "";
+		if(retrieveVariable("H2DRIVER_PATH") == null)
+		{
+			String workingDir = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER).replace("\\", "/");;
+			String library = "RJDBC";
+			String jar = "h2-1.4.185.jar"; // TODO: create an enum of available drivers and the necessary jar for each
+			jarLocation = workingDir + "/RDFGraphLib/" + jar;
+		// line of R that loads database driver and jar
+		}
+		else
+			jarLocation = (String)retrieveVariable("H2DRIVER_PATH");
+		java.lang.System.out.println("Loading driver.. " + jarLocation);
+		String script = "drv <- JDBC('" + driver + "', '" + jarLocation  + "', identifier.quote='`');" 
+			+ "conn <- dbConnect(drv, '" + url + "', '" + username + "', '')"; // line of R script that connects to H2Frame
+		runR(script);
+	}
+	
+	public void setH2Driver(String directory)
+	{
+		storeVariable("H2DRIVER_PATH", directory);
+	}
+	
+	public void synchronizeGridToR(String frameName)
+	{
+		synchronizeGridToR(frameName, null);
+	}
+	
+	private void synchronizeGridToR(String frameName, String cols)
+	{
+		H2Frame gridFrame = (H2Frame)dataframe;
+		String tableName = gridFrame.getBuilder().getTableName();
+		String url = gridFrame.getBuilder().connectFrame();
+
+		initiateDriver(url, "sa");
+		
+		String selectors = "*";
+		if(cols != null && cols.length() >= 0)
+		{
+			selectors = "";
+			String [] colSelectors = cols.split(";");
+			for(int selectIndex = 0;selectIndex < colSelectors.length;selectIndex++)
+			{
+				selectors = selectors + colSelectors[selectIndex];
+				if(selectIndex + 1 < colSelectors.length)
+					selectors = selectors + ", ";
+			}
+			
+		}
+		// make a selector based on col csv now
+		//runR(frameName + " <-as.data.table(unclass(dbReadTable(conn,'" + tableName + "')));", false);
+		runR(frameName + " <-as.data.table(unclass(dbGetQuery(conn,'SELECT " + selectors + " FROM " + tableName + "')));", false);
+		// should be dbGetQuery(conn, "Select colNames.. ")
+		runR("setDT(" + frameName + ")", false);
+
+		storeVariable("GRID_NAME", frameName);	
+		
+		System.out.println("Completed synchronization as " + frameName);
+	}
+	
+	public void synchronizeGridFromR(String frameName, String tableName)
+	{
+		// assumes this is a grid and tries to write back the table
+		runR("dbWriteTable(conn,'" + tableName +"', " + frameName + ");", false);
+		System.out.println("Output is now available as " + tableName);
+	}
+
+	public void synchronizeGridFromR(String frameName, String tableName, String cols)
+	{
+		// assumes this is a grid and tries to write back the table
+		// I need to make another data table with these specific columns and then write that
+		
+		//TBD
+		//runR("dbWriteTable(conn,'" + tableName +"', " + frameName + ");", false);
+		//System.out.println("Output is now available as " + tableName);
+	}
+
+	
+	public void synchronizeGridFromR(String frameName, boolean self)
+	{
+		// assumes this is a grid and tries to write back the table
+		H2Frame gridFrame = (H2Frame)dataframe;
+		String tableName = gridFrame.getBuilder().getTableName();
+		if(!self)
+			tableName = Utility.getRandomString(8);
+		runR("dbWriteTable(conn,'" + tableName +"', " + frameName + ");", false);
+		
+		System.out.println("Table Synchronized as " + tableName);
+	}
+	
+	public void synchronizeGridFromR()
+	{
+		String frameName = (String)retrieveVariable("GRID_NAME");
+		synchronizeGridFromR(frameName, false);
+	}
+
+	public void synchronizeCSVToR(String fileName, String frameName)
+	{
+		//runR(frameName + " <-as.data.table(unclass(dbReadTable(conn,'" + tableName + "')));");		
+		String javaFileName = fileName.replace("\\", "/");
+		String [] tokens = javaFileName.split("/");
+		String finalFileName = tokens[tokens.length - 1];
+		
+		String wd = "";
+		for(int i = 0;i < (tokens.length - 1); i++)
+		{
+			wd = tokens[i];
+			if(i + 1 < (tokens.length - 1))
+				wd = wd + "/";
+		}
+		
+		if(wd.length() > 0)
+			runR("setWD(" + wd + ");");
+		runR(frameName + " <- fread(\"" + finalFileName + "\")");
+		System.out.println("Completed synchronization of CSV " + fileName);
+	}
+	
+	
 	private void getResultAsString(Object output, StringBuilder builder)
 	{
-//		try {
-//			builder.append( ((REXP) output).asString() ) ;
-//			return;
-//		} catch (REXPMismatchException e) {
-//			// do nothing
-//		}
-		
 		// Generic vector..
 		if(output instanceof REXPGenericVector) 
 		{			
@@ -536,18 +674,28 @@ public abstract class BaseJavaReactor extends AbstractReactor{
 		return null;
 	}
 	
+	
 	public void runR(String script)
+	{
+		runR(script, true);
+	}
+	
+	public void runR(String script, boolean result)
 	{
 		RConnection rcon = startR();
 		try {
 			Object output = rcon.eval(script);
-			java.lang.System.out.println("RCon data.. " + output);
-			StringBuilder builder = new StringBuilder();
-			getResultAsString(output, builder);
-			System.out.println("Output : " + builder.toString());
+			if(result)
+			{
+				java.lang.System.out.println("RCon data.. " + output);
+				StringBuilder builder = new StringBuilder();
+				getResultAsString(output, builder);
+				System.out.println("Output : " + builder.toString());
+			}
 		} catch (RserveException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
+			System.err.println("Errored.. ");
 		}
 		// now is where the fun starts
 	}
@@ -556,6 +704,333 @@ public abstract class BaseJavaReactor extends AbstractReactor{
 	{
 		String clusters = "clusters";
 		clusterInfo(clusters);
+	}
+	
+	// replace the column value for a particular column
+	public void replaceColumnValue(String frameName, String columnName, String curValue, String newValue)
+	{
+		// * dt[PY == "hello", PY := "D"] replaces a column conditionally based on the value
+		startR();
+		// need to get the type of this
+		try {
+			String condition = " ,";
+			if(curValue != null)
+				condition = columnName + " := \"" + curValue + "\", ";
+			String script = frameName + "[" + condition + columnName + " == " + newValue + "]";
+			rcon.eval(script);
+			System.out.println("Complete ");
+		} catch (RserveException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+	}
+	
+	public void splitColumn(String frameName, String columnName, String separator)
+	{
+		splitColumn(frameName, columnName, separator, false, true);
+	}
+		
+	// split a column based on a value
+	public void splitColumn(String frameName, String columnName, String separator, boolean dropColumn, boolean frameReplace)
+	{
+		//  cSplit(dt, "PREFIX", "_")
+		startR();
+		// need to get the type of this
+		try {
+			String tempName = Utility.getRandomString(8);
+			
+			String frameReplaceScript = frameName + " <- " + tempName + ";";
+			if(!frameReplace)
+				frameReplaceScript = "";
+			String columnReplaceScript = "TRUE";
+			if(!dropColumn)
+				columnReplaceScript = "FALSE";
+			String script = tempName + " <- cSplit(" + frameName + ", \"" + columnName.toUpperCase() + "\", \"" + separator + "\", drop = " + columnReplaceScript+ ");" 
+				//+ tempName +" <- " + tempName + "[,lapply(.SD, as.character)];"  // this ends up converting numeric to factors too
+				//+ frameReplaceScript
+				;
+			rcon.eval(script);
+			System.out.println("Script " + script);
+			// get all the columns that are factors
+			script = "sapply(" + tempName + ", is.factor);";
+			String [] factors = rcon.eval(script).asStrings();			
+			String [] colNames = getColNames(tempName);
+			
+			// now I need to compose a string based on it
+			String conversionString = "";
+			for(int factorIndex = 0;factorIndex < factors.length;factorIndex++)
+			{
+				if(factors[factorIndex].equalsIgnoreCase("TRUE")) // this is a factor
+				{
+					conversionString = conversionString + 
+							tempName + "$" + colNames[factorIndex] + " <- "
+							+ "as.character(" + tempName + "$" +colNames[factorIndex] + ");";
+				}
+			}
+			rcon.eval(conversionString + frameReplaceScript);
+			
+			System.out.println("Script " + script);
+			System.out.println("Complete ");
+			// once this is done.. I need to find what the original type is and then apply a type to it
+			// may be as string
+			// or as numeric
+			// else this is not giving me what I want :(
+		} catch (RserveException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (REXPMismatchException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+	}
+		
+	// change column name
+	public void changeName(String oldName, String newName)
+	{
+		// this will be done through h2 piece ?
+		
+	}
+	
+	
+	public String[] getColNames(String frameName)
+	{
+		String [] colNames = null;
+		try {
+				String script = "matrix(colnames(" + frameName + "));";
+				colNames = rcon.eval(script).asStrings();
+				
+		} catch (RserveException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (REXPMismatchException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		return colNames;
+	}
+	
+	// gives the different types of columns that are there and how many are there of that type
+	// such as 5 integer columns
+	// 3 string columns
+	// 4 blank columns etc. 
+	public void getColumnTypeCount(String frameName)
+	{
+		startR();
+		Object [][] retOutput = null; // name and the number of items
+		
+		try {
+			String script = "";
+			
+			String [] colNames = getColNames(frameName);
+			// I am not sure if I need the colnames right now but...
+			
+			// get the column types
+			script = "matrix(sapply(" + frameName + ", class));"; 
+			String [] colTypes = rcon.eval(script).asStrings();
+			
+			// get the blank columns
+			script = "matrix( " + frameName + "[, colSums( " + frameName + " != \"\") !=0])";
+			String [] blankCols = rcon.eval(script).asStrings();
+			
+			Hashtable <String, Integer> colCount = new Hashtable <String, Integer>();
+			
+			for(int colIndex = 0;colIndex < colTypes.length;colIndex++)
+			{
+				String colType = colTypes[colIndex];
+				if(blankCols[colIndex].equalsIgnoreCase("FALSE"))
+					colType = "Empty";
+				int count = 0;
+				if(colCount.containsKey(colType))
+					count = colCount.get(colType);
+				
+				count++;
+				colCount.put(colType, count);
+			}
+			
+			StringBuilder builder = new StringBuilder();
+			builder.append(colCount + "");
+			System.out.println("Output : " + builder.toString());
+		} catch (RserveException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (REXPMismatchException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}		
+	}
+	
+	
+	public void getColumnCount(String column)
+	{
+		String frame = (String)retrieveVariable("GRID_NAME");
+		getColumnCount(frame, column);
+	}
+	
+	public void joinColumns(String frameName, String newColumnName,  String separator, String... columns)
+	{
+		// reconstruct the column names
+		//paste(df1$a_1, df1$a_2, sep="$$")
+		try {
+			startR();
+			String concatString = "paste(";
+			for(int colIndex = 0;colIndex < columns.length;colIndex++)
+			{
+				concatString = concatString + frameName + "$" + columns[colIndex];
+				if(colIndex + 1 < columns.length)
+					concatString = concatString + ", ";
+			}
+			concatString = concatString + ", sep= \"" + separator + "\")";
+			
+			String script = frameName + "$" + newColumnName + " <- " + concatString;
+			System.out.println(script);
+			rcon.eval(script);
+			System.out.println("Join Complete ");
+		
+		} catch (RserveException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+	}
+	
+	public Object[][] getColumnCount(String frameName, String column)
+	{
+		// get all the column names first
+		/*
+		 * colnames(frame) <-- this can probably be skipped because we have the metadata
+		 * class(frame$name)
+		 * frame[, .N, by="column"] <-- gives me all the counts of various values
+		 * matrix(sapply(DT, class), byrow=TRUE) <-- makes it into a full array so I can ick through the types
+		 * strsplit(x,".", fixed=T) splits the string based on a delimiter.. fixed says is it based on regex or not 
+		 * dt[PY == "hello", PY := "D"] replaces a column conditionally based on the value
+		 * dt[, val4:=""] <-- add a new column called val 4
+		 * matrix(dt[, colSums(dt != "") !=0]) <-- gives me if a column is blank or not.. 
+		 * 
+		 */
+		// start the R first
+		startR();
+		Object [][] retOutput = null; // name and the number of items
+		
+		try {
+			
+			String script = "colData <-  " + frameName + "[, .N, by=\"" + column.toUpperCase() +"\"];";
+			System.out.println("Script is " + script);
+			rcon.eval(script);
+			
+			script = "colData$" + column.toUpperCase();
+			String [] uniqueColumns = rcon.eval(script).asStrings();
+			script = "matrix(colData$N);"; 
+			int [] colCount = rcon.eval(script).asIntegers();
+			retOutput = new Object[uniqueColumns.length][2];
+			StringBuilder builder = new StringBuilder();
+			builder.append(column + "\t Count \n");
+			for(int outputIndex = 0;outputIndex < uniqueColumns.length;outputIndex++)
+			{
+				retOutput[outputIndex][0] = uniqueColumns[outputIndex];
+				retOutput[outputIndex][1] = colCount[outputIndex];
+				builder.append(retOutput[outputIndex][0] + "\t" + retOutput[outputIndex][1] + "\n");
+			}
+			System.out.println("Output : " + builder.toString());
+		} catch (RserveException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (REXPMismatchException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		return retOutput;
+	}
+	
+	public void unpivot()
+	{
+		String frameName = (String)retrieveVariable("GRID_NAME");
+		unpivot(frameName, null, true);
+	}
+	
+	public void unpivot(String frameName, String cols, boolean replace)
+	{
+		// makes the columns and converts them into rows
+		// need someway to indicate to our metadata as well that this is gone
+		//melt(dat, id.vars = "FactorB", measure.vars = c("Group1", "Group2"))
+		
+		String concatString = "";
+		startR();
+		String tempName = Utility.getRandomString(8);
+		
+		if(cols != null && cols.length() > 0)
+		{
+			String [] columnsToPivot = cols.split(";");
+			concatString = ", measure.vars = c(";
+			for(int colIndex = 0;colIndex < columnsToPivot.length;colIndex++)
+			{
+				concatString = concatString + "\"" + columnsToPivot[colIndex] + "\"";
+				if(colIndex + 1 < columnsToPivot.length)
+					concatString = concatString + ", ";
+			}
+			concatString = concatString + ")";
+		}
+		String replacer = "";
+		if(replace)
+			replacer = frameName + " <- " + tempName;
+		String script = tempName + "<- melt(" + frameName + concatString + ");" 
+						+ tempName + " <- " + tempName + "[,lapply(.SD, as.character)];"
+						+ replacer;
+		System.out.println("executing script " + script);
+		try {
+			rcon.eval(script);
+		}catch(Exception ex)
+		{
+			ex.printStackTrace();
+		}
+	}
+
+	public void pivot(String columnToPivot, String cols)
+	{
+		String frameName = (String)retrieveVariable("GRID_NAME");
+		pivot(frameName, true, columnToPivot, cols);
+	}
+
+	public void pivot(String frameName, boolean replace,String columnToPivot, String cols)
+	{
+		// makes the columns and converts them into rows
+		
+		//dcast(molten, formula = subject~ variable)
+		// I need columns to keep and columns to pivot
+		
+		startR();
+		String newFrame = Utility.getRandomString(8);
+		
+		String replaceString = "";
+		if(replace)
+			replaceString = frameName + " <- " + newFrame;
+		
+		String keepString = ""; 
+		if(cols != null && cols.length() > 0)
+		{
+			String [] columnsToKeep = cols.split(";");
+			keepString = ", formula = ";
+			for(int colIndex = 0;colIndex < columnsToKeep.length;colIndex++)
+			{
+				keepString = keepString + "\"" + columnsToKeep[colIndex] + "\"";
+				if(colIndex + 1 < columnsToKeep.length)
+					keepString = keepString + " + ";
+			}
+			keepString = keepString + " ~ " + columnToPivot;
+		}
+		
+		String script = newFrame + " <- dcast(" + frameName + keepString + ");"
+						+ replaceString ;
+		System.out.println("executing script " + script);
+		try {
+			rcon.eval(script);
+		}catch(Exception ex)
+		{
+			ex.printStackTrace();
+		}
+	}
+	
+	public void sampleR(String frameName)
+	{
+		//> DT[,i := .I][sample(i,3)] <-- number of samples here is 3
 	}
 	
 	public void clusterInfo(String clusterRoutine)
@@ -618,11 +1093,11 @@ public abstract class BaseJavaReactor extends AbstractReactor{
 		}
 	}
 
+	
 	// remove the node on R
 	// get the number of clustered components
 	// perform a layout
 	// color a graph based on a formula
-	
 	public void key()
 	{
 		String graphName = (String)retrieveVariable("GRAPH_NAME");
@@ -785,6 +1260,7 @@ public abstract class BaseJavaReactor extends AbstractReactor{
 		
 	}
 	
+	// need to figure this out
 	public void synchronizeFromR()
 	{
 		String graphName = (String)retrieveVariable("GRAPH_NAME");
@@ -808,9 +1284,10 @@ public abstract class BaseJavaReactor extends AbstractReactor{
 	public void endR()
 	{
 		java.lang.System.setSecurityManager(curManager);
-		RConnection con = startR();
+		RConnection retCon = (RConnection)retrieveVariable(R_CONN);
 		try {
-			con.shutdown();
+			if(retCon != null)
+				retCon.shutdown();
 //			System.out.println("R Shutdown!!");
 //			java.lang.System.setSecurityManager(reactorManager);
 /*		String port = (String)retrieveVariable("R_PORT");
@@ -830,6 +1307,28 @@ public abstract class BaseJavaReactor extends AbstractReactor{
 	// TODO Auto-generated catch block
 	e.printStackTrace();
 	}
+	}
+	
+	public void cleanup()
+	{
+		// introducing this method to clean up everything 
+		// remove all the stored variables
+		
+		
+		// clean up R connection
+		endR();
+		// cleanup the directory
+		java.lang.System.setSecurityManager(curManager);
+		File file = new File(fileName);
+		file.delete();
+		file = new File(wd);
+		file.delete();
+		java.lang.System.setSecurityManager(reactorManager);
+	}
+	
+	public void initR(int port)
+	{
+		RSingleton.getConnection(port);
 	}
 	
 	public void runClustering(int instanceIndex, int numClusters, String[] selectors) {
@@ -885,8 +1384,8 @@ public abstract class BaseJavaReactor extends AbstractReactor{
 		this.dataframe.updateDataId();
 		
 		java.lang.System.setSecurityManager(reactorManager);
-	}
-	
+	}	
+
 	public void runSimilarity(int instanceIndex, String[] selectors) {
 		java.lang.System.setSecurityManager(curManager);
 		

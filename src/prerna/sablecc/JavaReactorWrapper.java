@@ -128,7 +128,7 @@ public class JavaReactorWrapper extends AbstractReactor {
 		    jR.setPKQLRunner((PKQLRunner)myStore.get("PKQLRunner"));
 		    
 		    // call the process
-		    System.setSecurityManager( securityManager ) ;		    
+		    System.setSecurityManager( curManager) ;		    
 			jR.process();
 		    System.setSecurityManager( curManager) ;			
 			
