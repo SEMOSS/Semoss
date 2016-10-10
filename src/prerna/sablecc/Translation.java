@@ -147,14 +147,14 @@ public class Translation extends DepthFirstAdapter {
 	// used for strategy pattern of pkql input to specific reactor class
 	Map<String, String> reactorNames = new Hashtable<String, String>();
 
-	// used for strategy pattern of pkql input to specific api type
-	// this is not a part of reactor names since we have not defined these are
-	// constants
-	// within the postfix, but are passed as string values in the "engineName"
-	// component of a data.import. It has to be defined as a string since the
-	// engine names
-	// that could exist should obviously not be stored within the postfix
-	Map<String, String> apiReactorNames = new Hashtable<String, String>();
+//	// used for strategy pattern of pkql input to specific api type
+//	// this is not a part of reactor names since we have not defined these are
+//	// constants
+//	// within the postfix, but are passed as string values in the "engineName"
+//	// component of a data.import. It has to be defined as a string since the
+//	// engine names
+//	// that could exist should obviously not be stored within the postfix
+//	Map<String, String> apiReactorNames = new Hashtable<String, String>();
 
 	// keep a list of pkql metadata that is useful outside of translation
 	// currently only used for csv file imports since need this information to
@@ -201,20 +201,20 @@ public class Translation extends DepthFirstAdapter {
 			this.reactorNames.putAll(frameReactorNames);
 		}
 
-		fillApiReactors();
+//		fillApiReactors();
 	}
 
-	/**
-	 * We want to use a strategy pattern for instantiating the different API
-	 * reactors
-	 */
-	private void fillApiReactors() {
-		// TODO: should move all of these in RDF_MAP so that its easily updated
-		apiReactorNames.put(PKQLEnum.QUERY_API, "prerna.sablecc.QueryApiReactor");
-		apiReactorNames.put(PKQLEnum.CSV_API, "prerna.sablecc.CsvApiReactor");
-		apiReactorNames.put(PKQLEnum.WEB_API, "prerna.sablecc.WebApiReactor");
-		apiReactorNames.put(PKQLEnum.R_API, "prerna.sablecc.RApiReactor");
-	}
+//	/**
+//	 * We want to use a strategy pattern for instantiating the different API
+//	 * reactors
+//	 */
+//	private void fillApiReactors() {
+//		// TODO: should move all of these in RDF_MAP so that its easily updated
+//		apiReactorNames.put(PKQLEnum.QUERY_API, "prerna.sablecc.QueryApiReactor");
+//		apiReactorNames.put(PKQLEnum.CSV_API, "prerna.sablecc.CsvApiReactor");
+//		apiReactorNames.put(PKQLEnum.WEB_API, "prerna.sablecc.WebApiReactor");
+//		apiReactorNames.put(PKQLEnum.R_API, "prerna.sablecc.RApiReactor");
+//	}
 
 	/////////////////////////////////// HIGHLEST LEVEL PKQL IN AND OUT
 	/////////////////////////////////// OPERATIONS
@@ -541,16 +541,16 @@ public class Translation extends DepthFirstAdapter {
 			String engine = node.getEngineName().toString().trim();
 			if (engine.equalsIgnoreCase("ImportIO") || engine.equalsIgnoreCase("AmazonProduct")) {
 				// we have a web api
-				this.reactorNames.put(PKQLEnum.API, this.apiReactorNames.get(PKQLEnum.WEB_API));
+				this.reactorNames.put(PKQLEnum.API, this.reactorNames.get(PKQLEnum.WEB_API));
 			} else if (engine.equalsIgnoreCase("csvFile")) {
 				// we have a csv api
-				this.reactorNames.put(PKQLEnum.API, this.apiReactorNames.get(PKQLEnum.CSV_API));
+				this.reactorNames.put(PKQLEnum.API, this.reactorNames.get(PKQLEnum.CSV_API));
 			} else if (engine.equalsIgnoreCase("R")) {
 				// we have an R api to connect
-				this.reactorNames.put(PKQLEnum.API, this.apiReactorNames.get(PKQLEnum.R_API));
+				this.reactorNames.put(PKQLEnum.API, this.reactorNames.get(PKQLEnum.R_API));
 			} else {
 				// default is a query api
-				this.reactorNames.put(PKQLEnum.API, this.apiReactorNames.get(PKQLEnum.QUERY_API));
+				this.reactorNames.put(PKQLEnum.API, this.reactorNames.get(PKQLEnum.QUERY_API));
 			}
 
 			// make the api type
