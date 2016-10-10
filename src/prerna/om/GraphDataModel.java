@@ -1352,6 +1352,8 @@ public class GraphDataModel implements IDataMaker {
 		reactorNames.put(PKQLEnum.DATA_FRAME, "prerna.sablecc.DataFrameReactor");
 		reactorNames.put(PKQLReactor.VAR.toString(), "prerna.sablecc.VarReactor");
 		reactorNames.put(PKQLReactor.INPUT.toString(), "prerna.sablecc.InputReactor");
+		
+		reactorNames.put(PKQLEnum.QUERY_API, "prerna.sablecc.QueryApiReactor");
 //		switch(reactorType) {
 //			case IMPORT_DATA : return new GDMImportDataReactor();
 //			case COL_ADD : return new ColAddReactor();
