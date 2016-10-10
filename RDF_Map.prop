@@ -4,26 +4,26 @@ BROWSER_TYPE	Mozilla15
 ENGINE_WATCHER	SMSSWatcher
 ENGINE_WEB_WATCHER	SMSSWebWatcher
 
-URI_BASE	https://localhost:443/Monolith/api/engine/s-
+URI_BASE	https://localhost:443/Monolith_Dev/api/engine/s-
 SOLR_BASE_URL	https://localhost:443/solr
 
-INSIGHT_CACHE_DIR C:\\Users\\mahkhalil\\workspace\\Semoss\\InsightCache
+INSIGHT_CACHE_DIR C:\\workspace\\Semoss_Dev\\InsightCache
 CSV_INSIGHT_CACHE_FOLDER CSV_Insights
 
 SMSSWatcher	prerna.util.SMSSFileWatcher
-SMSSWatcher_DIR	C:\\Users\\mahkhalil\\workspace\\Semoss\\db
+SMSSWatcher_DIR	C:\\workspace\\Semoss_Dev\\db
 SMSSWatcher_EXT	.smss
 
 SMSSWebWatcher	prerna.util.SMSSWebWatcher
-SMSSWebWatcher_DIR	C:\\Users\\mahkhalil\\workspace\\Semoss\\db
+SMSSWebWatcher_DIR	C:\\workspace\\Semoss_Dev\\db
 SMSSWebWatcher_EXT	.smss
 
 CSVInsightsWebWatcher prerna.util.CSVInsightsWebWatcher
-CSVInsightsWebWatcher_DIR C:\\Users\\mahkhalil\\workspace\\Semoss\\InsightCache\\CSV_Insights
+CSVInsightsWebWatcher_DIR C:\\workspace\\Semoss_Dev\\InsightCache\\CSV_Insights
 CSVInsightsWebWatcher_EXT .tg
 
-LOG4J	C:\\Users\\mahkhalil\\workspace\\Semoss\\log4j.prop
-BaseFolder	C:\\Users\\mahkhalil\\workspace\\Semoss
+LOG4J	C:\\workspace\\Semoss_Dev\\log4j.prop
+BaseFolder	C:\\workspace\\Semoss_Dev
 
 SHOW_GOV_WARNING	false
 GPS_SUDOWL_DEFAULT	false
@@ -449,6 +449,8 @@ H2Frame	prerna.ds.H2.H2Frame
 SparkDataFrame	prerna.ds.spark.SparkDataFrame
 Dashboard prerna.om.Dashboard
 NativeFrame prerna.ds.nativeframe.NativeFrame
+RDataTable prerna.ds.R.RDataTable
+
 
 ##PLAYSHEETS DEFINED
 PLAYSHEETS_DEFINED	Grid;Graph;VivaGraph;HeatMap;Line;Combo;Dendrogram;ParallelCoordinates;ParallelSets;Scatter;Column;Pie;3dBarchart;CirclePack;Clustering;Gantt;Sankey;ScatterplotMatrix;SingleAxisCluster;SystemSimilarity;USHeatMap;USMap;WorldHeatMap;WorldMap;RawGrid;
@@ -528,6 +530,7 @@ Mashup_CUSTOM	FALSE
 
 Graph_DATA	getGraphOutput
 
+
 ##TRANSFORMATIONS DEFINED
 join	prerna.ui.components.playsheets.datamakers.JoinTransformation
 filter	prerna.ui.components.playsheets.datamakers.FilterTransformation
@@ -535,6 +538,7 @@ algorithmTransformation	prerna.algorithm.learning.AlgorithmTransformation
 algorithmAction	prerna.algorithm.learning.AlgorithmAction
 math	prerna.ui.components.playsheets.datamakers.MathTransformation
 pkql	prerna.ui.components.playsheets.datamakers.PKQLTransformation
+
 
 ##DESIGNATED PORTS
 MARIADB_PORT 3306
