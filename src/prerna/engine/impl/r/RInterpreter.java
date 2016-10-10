@@ -45,14 +45,12 @@ public class RInterpreter implements IQueryInterpreter {
 		addFilters();
 		addSelectors();
 		
+		StringBuilder query = new StringBuilder();
+		query.append(this.dataTableName).append("[ ").append(this.filterCriteria.toString()).append(", ").append(this.selectors).append(", with=FALSE ]");
 		
-		
-		return null;
+		return query.toString();
 	}
 
-	
-	
-	
 	
 	private void addSelectors() {
 		Hashtable<String, Vector<String>> selectors = qs.selectors;
