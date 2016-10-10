@@ -546,20 +546,7 @@ public abstract class BaseJavaReactor extends AbstractReactor{
 	{
 		//runR(frameName + " <-as.data.table(unclass(dbReadTable(conn,'" + tableName + "')));");		
 		String javaFileName = fileName.replace("\\", "/");
-		String [] tokens = javaFileName.split("/");
-		String finalFileName = tokens[tokens.length - 1];
-		
-		String wd = "";
-		for(int i = 0;i < (tokens.length - 1); i++)
-		{
-			wd = tokens[i];
-			if(i + 1 < (tokens.length - 1))
-				wd = wd + "/";
-		}
-		
-		if(wd.length() > 0)
-			runR("setWD(" + wd + ");");
-		runR(frameName + " <- fread(\"" + finalFileName + "\")");
+		runR(frameName + " <- fread(\"" + javaFileName + "\")", false);
 		System.out.println("Completed synchronization of CSV " + fileName);
 	}
 	
@@ -826,6 +813,7 @@ public abstract class BaseJavaReactor extends AbstractReactor{
 	
 	public String[] getColNames(String frameName)
 	{
+		startR();
 		String [] colNames = null;
 		try {
 				String script = "matrix(colnames(" + frameName + "));";
@@ -841,6 +829,24 @@ public abstract class BaseJavaReactor extends AbstractReactor{
 		return colNames;
 	}
 	
+
+	public String[] getColTypes(String frameName)
+	{
+		String [] colTypes = null;
+		try {
+				String script = "matrix(sapply(" + frameName + ", class));";
+				colTypes = rcon.eval(script).asStrings();
+				
+		} catch (RserveException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (REXPMismatchException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		return colTypes;
+	}
+
 	// gives the different types of columns that are there and how many are there of that type
 	// such as 5 integer columns
 	// 3 string columns
@@ -857,8 +863,7 @@ public abstract class BaseJavaReactor extends AbstractReactor{
 			// I am not sure if I need the colnames right now but...
 			
 			// get the column types
-			script = "matrix(sapply(" + frameName + ", class));"; 
-			String [] colTypes = rcon.eval(script).asStrings();
+			String [] colTypes = getColTypes(frameName);
 			
 			// get the blank columns
 			script = "matrix( " + frameName + "[, colSums( " + frameName + " != \"\") !=0])";
@@ -952,6 +957,7 @@ public abstract class BaseJavaReactor extends AbstractReactor{
 			
 			script = "colData$" + column.toUpperCase();
 			String [] uniqueColumns = rcon.eval(script).asStrings();
+			// need to limit this eventually to may be 10-15 and no more
 			script = "matrix(colData$N);"; 
 			int [] colCount = rcon.eval(script).asIntegers();
 			retOutput = new Object[uniqueColumns.length][2];
