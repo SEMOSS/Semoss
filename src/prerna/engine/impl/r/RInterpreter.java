@@ -32,6 +32,10 @@ public class RInterpreter implements IQueryInterpreter {
 	public void setDataTableName(String dataTableName) {
 		this.dataTableName = dataTableName;
 	}
+	
+	public void setColDataTypes(Map<String, IMetaData.DATA_TYPES> colDataTypes) {
+		this.colDataTypes = colDataTypes;
+	}
 
 	@Override
 	public String composeQuery() {
@@ -57,7 +61,13 @@ public class RInterpreter implements IQueryInterpreter {
 		Set<String> uniqueSet = new LinkedHashSet<String>();
 		for(String col : selectors.keySet()) {
 			uniqueSet.add(col);
-			uniqueSet.addAll(selectors.get(col));
+			Vector<String> otherCols = selectors.get(col);
+			for(String other : otherCols) {
+				if(other.equals(QueryStruct.PRIM_KEY_PLACEHOLDER)) {
+					continue;
+				}
+				uniqueSet.add(other);
+			}
 		}
 		
 		this.selectors = createStringRColVec(uniqueSet.toArray(new String[]{}));
@@ -167,6 +177,35 @@ public class RInterpreter implements IQueryInterpreter {
 	public void clear() {
 		// TODO Auto-generated method stub
 		
+	}
+	
+	
+	public static void main(String[] args) {
+		QueryStruct qs = new QueryStruct();
+		qs.addSelector("Title", null);
+		qs.addSelector("Nominated", null);
+		qs.addSelector("Movie_Budget", null);
+
+		Vector filterData1 = new Vector<>();
+		filterData1.add("American Hustle");
+		filterData1.add("Captain Phillips");
+		qs.addFilter("Title", "=", filterData1);
+		
+		Vector filterData2 = new Vector<>();
+		filterData2.add(50000000);
+		qs.addFilter("Movie_Budget", ">", filterData2);
+		
+		RInterpreter rI = new RInterpreter();
+		rI.setQueryStruct(qs);
+		
+		Map<String, IMetaData.DATA_TYPES> colDataTypes = new Hashtable<String, IMetaData.DATA_TYPES>();
+		colDataTypes.put("Title", IMetaData.DATA_TYPES.STRING);
+		colDataTypes.put("Nominated", IMetaData.DATA_TYPES.STRING);
+		colDataTypes.put("Movie_Budget", IMetaData.DATA_TYPES.NUMBER);
+		rI.setColDataTypes(colDataTypes);
+		
+		String query = rI.composeQuery();
+		System.out.println(query);
 	}
 
 }
