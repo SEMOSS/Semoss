@@ -389,6 +389,11 @@ public class NativeFrame extends AbstractTableDataFrame {
 		reactorNames.put(PKQLEnum.UNFILTER_DATA, "prerna.sablecc.ColUnfilterReactor");
 		reactorNames.put(PKQLEnum.DATA_CONNECT, "prerna.sablecc.DataConnectReactor");
 		
+		reactorNames.put(PKQLEnum.QUERY_API, "prerna.sablecc.NativeApiReactor");
+//		reactorNames.put(PKQLEnum.CSV_API, "prerna.sablecc.CsvApiReactor");
+//		reactorNames.put(PKQLEnum.WEB_API, "prerna.sablecc.WebApiReactor");
+//		reactorNames.put(PKQLEnum.R_API, "prerna.sablecc.RApiReactor");
+		
 		return reactorNames;
 	}
 	
