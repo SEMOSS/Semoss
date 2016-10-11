@@ -2152,4 +2152,22 @@ public class BTreeDataFrame implements ITableDataFrame {
 		// TODO Auto-generated method stub
 		
 	}
+
+	@Override
+	public void renameColumn(String oldColumnHeader, String newColumnHeader) {
+		// TODO Auto-generated method stub
+		
+	}
+
+	@Override
+	public String[] getColumnAliasName() {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+	@Override
+	public String getAliasForUniqueName(String metaNodeName) {
+		// TODO Auto-generated method stub
+		return null;
+	}
 }
