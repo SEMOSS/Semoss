@@ -178,7 +178,7 @@ public abstract class AbstractApiReactor extends AbstractReactor{
 				Map<String, Object> paramValues = varMap.get(var);
 				if(paramValues != null && paramValues.get(Constants.TYPE).equals(thisSelector)) {
 					Vector<String> filterValues = new Vector<String>();
-					filterValues.add(paramValues.get(Constants.NAME).toString());
+					filterValues.add(paramValues.get(Constants.VALUE).toString());
 					this.qs.addFilter(thisSelector, "=", filterValues);
 				}
 			}
@@ -216,7 +216,7 @@ public abstract class AbstractApiReactor extends AbstractReactor{
 					Map<String, Object> paramValues = varMap.get(var);
 					if(paramValues != null && paramValues.get(Constants.TYPE).equals(fromCol)) {
 						filterData.clear();
-						filterData.add(paramValues.get(Constants.NAME).toString());
+						filterData.add(paramValues.get(Constants.VALUE).toString());
 					}
 				}
 				
