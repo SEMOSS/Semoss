@@ -487,6 +487,7 @@ public class Constants {
 	public static final String FILTERS = "FILTERS";
 	public static final String DATA_TONS = "UI_OPTIONS";
 	public static final String STORE = "STORE";
+	public static final String ALIAS_NAME = "ALIAS_NAME";
 	
 	public static final String INSIGHTS_DB = "RDBMS_INSIGHTS";
 	public static final String DEFAULT_INSIGHT_DRIVER = "org.h2.Driver";

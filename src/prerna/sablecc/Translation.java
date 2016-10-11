@@ -95,6 +95,7 @@ import prerna.sablecc.node.APastedDataBlock;
 import prerna.sablecc.node.APlusExpr;
 import prerna.sablecc.node.ARelationDef;
 import prerna.sablecc.node.ARemoveData;
+import prerna.sablecc.node.ARenameColumn;
 import prerna.sablecc.node.ASetColumn;
 import prerna.sablecc.node.ASplitColumn;
 import prerna.sablecc.node.ATermExpr;
@@ -1550,6 +1551,27 @@ public class Translation extends DepthFirstAdapter {
 		// runner.setResponse("SplitColumn: " +
 		// (String)previousReactor.getValue("FILTER_COLUMN"));
 	}
+	
+	@Override
+    public void inARenameColumn(ARenameColumn node)
+    {
+		if(reactorNames.containsKey(PKQLEnum.COL_RENAME)) {
+			initReactor(PKQLEnum.COL_RENAME);
+			String nodeStr = node + "";
+			curReactor.put(PKQLEnum.COL_RENAME, nodeStr.trim());
+		}	
+    }
+
+	@Override
+    public void outARenameColumn(ARenameColumn node)
+    {
+		String nodeExpr = node.toString().trim();
+		curReactor.put(PKQLEnum.EXPR_TERM, nodeExpr);
+		Hashtable <String, Object> thisReactorHash = deinitReactor(PKQLEnum.COL_RENAME, nodeExpr, node.toString().trim());
+		IScriptReactor previousReactor = (IScriptReactor)thisReactorHash.get(PKQLEnum.COL_RENAME.toString());
+		runner.setStatus((STATUS)previousReactor.getValue("STATUS"));
+		runner.setResponse((String)previousReactor.getValue("RESPONSE"));
+    }
 
 	@Override
 	public void outAExprGroup(AExprGroup node) {

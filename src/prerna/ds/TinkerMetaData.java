@@ -130,6 +130,39 @@ public class TinkerMetaData implements IMetaData {
 		return metaNodeValue;
 	}
 	
+	
+	
+	@Override
+	public String getAliasForUniqueName (String metaNodeName) {
+		String metaNodeValue = null;
+		// get metamodel info for metaModeName
+		GraphTraversal<Vertex, Vertex> metaT = g.traversal().V().has(Constants.TYPE, META).has(Constants.NAME, metaNodeName);
+		
+		// if metaT has metaNodeName then find the value else return metaNodeName
+		if (metaT.hasNext()) {
+			Vertex startNode = metaT.next();
+			metaNodeValue = startNode.property(Constants.ALIAS_NAME).value() + "";
+		}
+
+		return metaNodeValue;
+	}
+	
+	@Override
+	public String getUniqueNameForAlias (String aliasName) {
+		String metaNodeValue = null;
+		// get metamodel info for metaModeName
+		GraphTraversal<Vertex, Vertex> metaT = g.traversal().V().has(Constants.TYPE, META).has(Constants.ALIAS_NAME, aliasName);
+		
+		// if metaT has metaNodeName then find the value else return metaNodeName
+		if (metaT.hasNext()) {
+			Vertex startNode = metaT.next();
+			metaNodeValue = startNode.property(Constants.NAME).value() + "";
+		}
+
+		return metaNodeValue;
+	}
+	
+	
 	/**
 	 * 
 	 * @param vert
@@ -275,8 +308,8 @@ public class TinkerMetaData implements IMetaData {
 		Vertex retVertex = getExistingVertex(uniqueName);
 		// if we were unable to get the existing vertex... time to create a new one
 		if (retVertex == null){
-			LOGGER.debug(" adding vertex ::: " + Constants.ID + " = " + type + ":" + uniqueName+ " & " + Constants.VALUE+ " = " + howItsCalledInDataFrame+ " & " + Constants.TYPE+ " = " + type+ " & " + Constants.NAME+ " = " + uniqueName);
-			retVertex = g.addVertex(Constants.ID, type + ":" + uniqueName, Constants.VALUE, howItsCalledInDataFrame, Constants.TYPE, type, Constants.NAME, uniqueName);// push the actual value as well who knows when you would need it
+			LOGGER.debug(" adding vertex ::: " + Constants.ID + " = " + type + ":" + uniqueName+ " & " + Constants.VALUE+ " = " + howItsCalledInDataFrame+ " & " + Constants.TYPE+ " = " + type+ " & " + Constants.NAME+ " = " + uniqueName + " & " + Constants.ALIAS_NAME + " = " + uniqueName);
+			retVertex = g.addVertex(Constants.ID, type + ":" + uniqueName, Constants.VALUE, howItsCalledInDataFrame, Constants.TYPE, type, Constants.NAME, uniqueName, Constants.ALIAS_NAME, uniqueName);// push the actual value as well who knows when you would need it
 			// all new meta nodes are defaulted as unfiltered and not prim keys
 			retVertex.property(Constants.FILTER, false);
 			if(uniqueName.toString().startsWith(TinkerFrame.PRIM_KEY)) {
@@ -738,6 +771,15 @@ public class TinkerMetaData implements IMetaData {
 		return uniqueList;
 	}
 	
+	public List<String> getColumnAliasName(){
+		List<String> uniqueList = new Vector<String>();
+		GraphTraversal<Vertex, Object> trav = g.traversal().V().has(Constants.TYPE, META).has(PRIM_KEY, false).order().by(ORDER, Order.incr).values(Constants.ALIAS_NAME);
+		while(trav.hasNext()){
+			uniqueList.add(trav.next().toString());
+		}
+		return uniqueList;
+	}
+	
 	private List<Vertex> getColumnVertices() {
 		List<Vertex> uniqueList = new Vector<Vertex>();
 		GraphTraversal<Vertex, Vertex> trav = g.traversal().V().has(Constants.TYPE, META).has(PRIM_KEY, false).order().by(ORDER, Order.incr);
@@ -934,7 +976,7 @@ public class TinkerMetaData implements IMetaData {
 			
 			// store the normal vertex info
 			Map<String, Object> innerMap = new HashMap<String, Object>();
-			String name = vert.value(Constants.NAME); 
+			String name = vert.value(Constants.ALIAS_NAME); 
 			innerMap.put("uri", name);
 			innerMap.put("varKey", name);
 			
@@ -1101,6 +1143,14 @@ public class TinkerMetaData implements IMetaData {
 	}
 
 	@Override
+	public void setVertexAlias (String uniqueName, String newValue) {
+		GraphTraversal<Vertex, Vertex> trav = g.traversal().V().has(Constants.TYPE, META).has(Constants.NAME, uniqueName);
+		while(trav.hasNext()){
+			trav.next().property(Constants.ALIAS_NAME, newValue);
+		}
+	}
+	
+	@Override
 	public String getLatestPrimKey() {
 		if(this.latestPrimKey!=null){
 			return this.latestPrimKey;
@@ -1110,4 +1160,11 @@ public class TinkerMetaData implements IMetaData {
 			return keys.get(keys.size()-1);
 		}
 	}
+
+//	@Override
+//	public void renameCol(String oldColumnHeader, String newColumnHeader) {
+//		//change on a meta level
+//		setVertexValue(oldColumnHeader, newColumnHeader);
+//	//		
+//	}
 }
