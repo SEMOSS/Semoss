@@ -586,16 +586,18 @@ public class RDBMSFlatExcelUploader extends AbstractFileReader {
 	private void generateNewTableForExcelSheet(final String SHEET_NAME, final String TABLE_NAME, Map<String, String[]> sheetMeta) throws IOException {
 		LOGGER.info("Creating a new table from " + SHEET_NAME);
 
+		// TODO: should this be static across all tables or made to be different?
+		final String UNIQUE_ROW_ID = TABLE_NAME + BASE_PRIM_KEY;
+		
 		// first create the table
-		createTable(TABLE_NAME, sheetMeta);
+		// make sure it has the identify column
+		createTable(TABLE_NAME, sheetMeta, UNIQUE_ROW_ID);
 		// this logic will be to do a bulk insert
 		bulkInsertSheet(SHEET_NAME, TABLE_NAME, sheetMeta);
 		
-		// now we need to append an identity column for the table, this will be the prim key
-		// TODO: should this be static across all tables or made to be different?
-		final String UNIQUE_ROW_ID = TABLE_NAME + BASE_PRIM_KEY;
+		// note: now doing this on table creation
 		// add the unique id for the table
-		addIdentityColumnToTable(TABLE_NAME, UNIQUE_ROW_ID);
+//		addIdentityColumnToTable(TABLE_NAME, UNIQUE_ROW_ID);
 		
 		// now need to add the table onto the owl file
 		addTableToOWL(TABLE_NAME, UNIQUE_ROW_ID, sheetMeta);
@@ -607,7 +609,7 @@ public class RDBMSFlatExcelUploader extends AbstractFileReader {
 	 * @param sheetMeta					Map containing the headers and column types
 	 * 									for the excel sheet being loaded
 	 */
-	private void createTable(final String TABLE_NAME, Map<String, String[]> sheetMeta) {
+	private void createTable(final String TABLE_NAME, Map<String, String[]> sheetMeta, final String UNIQUE_ROW_ID) {
 		// headers and data types arrays match based on position 
 		String[] headers = sheetMeta.get(XL_HEADERS);
 		String[] dataTypes = sheetMeta.get(XL_DATA_TYPES);
@@ -615,7 +617,7 @@ public class RDBMSFlatExcelUploader extends AbstractFileReader {
 		// need to first create the table
 		StringBuilder queryBuilder = new StringBuilder("CREATE TABLE ");
 		queryBuilder.append(TABLE_NAME);
-		queryBuilder.append(" (");
+		queryBuilder.append(" (").append(UNIQUE_ROW_ID).append(" IDENTITY, ");
 		for(int headerIndex = 0; headerIndex < headers.length; headerIndex++) {
 			String cleanHeader = RDBMSEngineCreationHelper.cleanTableName(headers[headerIndex]);
 			queryBuilder.append(cleanHeader.toUpperCase());
@@ -722,14 +724,14 @@ public class RDBMSFlatExcelUploader extends AbstractFileReader {
 	 * @param TABLE_NAME				The name of the table
 	 * @param IDENTITY_COL_NAME			The name of the identity column
 	 */
-	private void addIdentityColumnToTable(final String TABLE_NAME, final String IDENTITY_COL_NAME) {
-		StringBuilder queryBuilder = new StringBuilder("ALTER TABLE ");
-		queryBuilder.append(TABLE_NAME);
-		queryBuilder.append(" ADD ").append(IDENTITY_COL_NAME).append(" IDENTITY");
-		
-		System.out.println(queryBuilder.toString());
-		this.engine.insertData(queryBuilder.toString());
-	}
+//	private void addIdentityColumnToTable(final String TABLE_NAME, final String IDENTITY_COL_NAME) {
+//		StringBuilder queryBuilder = new StringBuilder("ALTER TABLE ");
+//		queryBuilder.append(TABLE_NAME);
+//		queryBuilder.append(" ADD ").append(IDENTITY_COL_NAME).append(" IDENTITY");
+//		
+//		System.out.println(queryBuilder.toString());
+//		this.engine.insertData(queryBuilder.toString());
+//	}
 	
 	/**
 	 * Adds the metadata of a new table onto the OWL.  The identity column name becomes the primary key for the table
