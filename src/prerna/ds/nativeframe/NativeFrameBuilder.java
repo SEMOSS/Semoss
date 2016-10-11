@@ -40,7 +40,7 @@ public class NativeFrameBuilder {
 	Map<String, Map<AbstractTableDataFrame.Comparator, Set<Object>>> filterHash = new HashMap<>();
 	
 	//need to determine which filters are the more narrow filters
-	public Hashtable <String, Hashtable<String, Vector>> filters = new Hashtable<>();
+	public Hashtable <String, Hashtable<String, Vector>> temporalFilters = new Hashtable<>();
 	public Hashtable <String, Hashtable<String, Vector>> dbfilters = new Hashtable<>();
 	
 	// TODO: this is a horrible variable name
@@ -76,14 +76,159 @@ public class NativeFrameBuilder {
 		refreshView();
 	}
 	
+	/**
+	 * 
+	 * @param filters
+	 * 
+	 * This method produces the most restrictive filter object during the merge
+	 */
+	public void mergeDBFilters(Hashtable <String, Hashtable<String, Vector>> filters) {
+		this.dbfilters = mergeFilters(this.dbfilters, filters);
+		
+		refreshView();
+	}
+	
+	/**
+	 * 
+	 * @param filters1
+	 * @param filters2
+	 * @return
+	 * 
+	 * return the combination of filters1 and filters2 such that it produces the most restrictive filtering
+	 */
+	private Hashtable<String, Hashtable<String, Vector>> mergeFilters(Hashtable <String, Hashtable<String, Vector>> filters1, Hashtable <String, Hashtable<String, Vector>> filters2) {
+		Hashtable<String, Hashtable<String, Vector>> retFilters = new Hashtable<>();
+		
+		retFilters.putAll(filters2);
+		
+		for(String key : filters1.keySet()) {
+			Hashtable<String, Vector> hash1 = filters1.get(key);
+			Hashtable<String, Vector> newHash = new Hashtable<String, Vector>();
+			retFilters.put(key, newHash);
+			//need to determine which set is more restrictive
+			//assumption is that smaller vector is a subset of bigger vector
+			if(filters2.containsKey(key)) {
+				Hashtable<String, Vector> hash2 = filters2.get(key);
+				for(String relationKey : hash1.keySet()) {
+					Vector v;
+					if(hash2.containsKey(relationKey)) {
+						Vector v2 = hash2.get(relationKey);
+						Vector v1 = hash1.get(relationKey);
+						switch(relationKey) {
+						case "=": {
+							//pick the smaller vector
+							if(v2.size() < v1.size()) {
+								newHash.put(relationKey, v2);
+							} else {
+								newHash.put(relationKey, v1);
+							}
+							break;
+						}
+						case "!=": {
+							//pick the bigger vector
+							if(v2.size() < v1.size()) {
+								newHash.put(relationKey, v1);
+							} else {
+								newHash.put(relationKey, v2);
+							}
+							break;
+						}
+						case "<=":
+						case "<": {
+							//pick the smaller number
+							Object thisObj = v2.get(0);
+							Object incomingObj = v1.get(0);
+							
+							Double thisDbl = Double.NEGATIVE_INFINITY;
+							Double incomingDbl = Double.POSITIVE_INFINITY;
+							
+							if(thisObj instanceof Double) {
+								thisDbl = (Double)thisObj;
+							} else {
+								//i shouldn't need to cast to string here, pkql should be taking care of that
+							}
+							
+							if(incomingObj instanceof Double) {
+								incomingObj = (Double)incomingObj;
+							} else {
+								//i shouldn't need to cast to string here, pkql should be taking care of that
+							}
+							
+							if(thisDbl > incomingDbl) {
+								Vector newVec = new Vector(0);
+								newVec.add(incomingObj);
+								hash2.put(relationKey, newVec);
+							} else {
+								Vector newVec = new Vector(0);
+								newVec.add(thisObj);
+								hash2.put(relationKey, newVec);
+							}
+							
+							break;
+						}
+						case ">=":
+						case ">": {
+							//pick the bigger number
+							Object thisObj = v2.get(0);
+							Object incomingObj = v1.get(0);
+							
+							Double thisDbl = Double.POSITIVE_INFINITY;
+							Double incomingDbl = Double.NEGATIVE_INFINITY;
+							
+							if(thisObj instanceof Double) {
+								thisDbl = (Double)thisObj;
+							} else {
+								//i shouldn't need to cast to string here, pkql should be taking care of that
+							}
+							
+							if(incomingObj instanceof Double) {
+								incomingObj = (Double)incomingObj;
+							} else {
+								//i shouldn't need to cast to string here, pkql should be taking care of that
+							}
+							
+							if(thisDbl < incomingDbl) {
+								Vector newVec = new Vector(0);
+								newVec.add(incomingObj);
+								newHash.put(relationKey, newVec);
+							} else {
+								Vector newVec = new Vector(0);
+								newVec.add(thisObj);
+								newHash.put(relationKey, newVec);
+							}
+							
+							break;
+						}						
+						}
+					} else {
+						v = new Vector();
+						v.addAll(hash1.get(relationKey));
+						newHash.put(relationKey, v);
+					}
+				}
+			} 
+			
+			//these are new filters, add them to the db filters
+			else {
+				for(String relationKey : hash1.keySet()) {
+					Vector v = new Vector();
+					v.addAll(hash1.get(relationKey));
+					newHash.put(relationKey, v);
+				}
+				retFilters.put(key, newHash);
+			}
+		}
+		
+		return retFilters;
+	}
+	
 	public QueryStruct getQueryStruct() {
 		return this.queryStruct;
 	}
 	
 	private QueryStruct mergeQueryStructWithFilters() {
 		QueryStruct qs = this.queryStruct.deepCopy();
-//		qs.mergeFilters(this.filters);
-		qs.andfilters = this.filters;
+		qs.andfilters = mergeFilters(this.dbfilters, this.temporalFilters);
 		return qs;
 	}
 	
@@ -481,8 +626,8 @@ public class NativeFrameBuilder {
 //	}
 
 	public void addFilters(String columnHeader, List<Object> values, String comparator) {
-		if(this.filters.containsKey(columnHeader)) {
-			Hashtable<String, Vector> curFilters = this.filters.get(columnHeader);
+		if(this.temporalFilters.containsKey(columnHeader)) {
+			Hashtable<String, Vector> curFilters = this.temporalFilters.get(columnHeader);
 			if(curFilters.containsKey(comparator)) {
 				Set<Object> set = new HashSet<>();
 				set.addAll(curFilters.get(comparator));
@@ -521,7 +666,7 @@ public class NativeFrameBuilder {
 		newVals.addAll(values);
 		Hashtable<String, Vector> newTable = new Hashtable<String, Vector>();
 		newTable.put(comparator, newVals);
-		this.filters.put(columnHeader, newTable);
+		this.temporalFilters.put(columnHeader, newTable);
 		
 		refreshView();
 	}
@@ -535,7 +680,7 @@ public class NativeFrameBuilder {
 		//    	filterComparator.remove(columnHeader);
 
 		filterHash.remove(columnHeader);
-		filters.remove(columnHeader);
+		temporalFilters.remove(columnHeader);
 		
 		refreshView();
 	}
@@ -548,7 +693,7 @@ public class NativeFrameBuilder {
 		//    	filterComparator.clear();
 
 		filterHash.clear();
-		filters.clear();
+		temporalFilters.clear();
 		
 		refreshView();
 	}
@@ -1009,6 +1154,7 @@ public class NativeFrameBuilder {
 	
 	//use this when result set is expected
 	private ResultSet executeQuery(String query) {
+		LOGGER.info("EXECUTING QUERY:	"+query);
 		Map<String, Object> execData = coreEngine.execQuery(query);
 		ResultSet rs = (ResultSet) execData.get(RDBMSNativeEngine.RESULTSET_OBJECT);
 		return rs;
