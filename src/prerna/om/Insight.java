@@ -1281,6 +1281,9 @@ public class Insight {
 			} else if(dm instanceof H2Frame) {
 				TinkerFrame tframe = TableDataFrameFactory.convertToTinkerFrameForGraph((H2Frame)dm);
 				retHash.putAll(tframe.getGraphOutput());
+			} else {
+				// this is for insights which are gdm
+				retHash.putAll(dm.getDataMakerOutput());
 			}
 		} else {
 			if(dm instanceof ITableDataFrame) {
