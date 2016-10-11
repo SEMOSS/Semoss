@@ -261,6 +261,8 @@ public interface ITableDataFrame extends IDataMaker {
 	 */
 	void unfilter();
 	
+	void renameColumn (String oldColumnHeader, String newColumnHeader);
+	
 	/**
 	 * Removes a column from the data-frame
 	 * @param columnHeader			The column header to remove from the data-frame
@@ -502,4 +504,8 @@ public interface ITableDataFrame extends IDataMaker {
 	 * @return
 	 */
 	DATA_TYPES getDataType(String uniqueName);
+
+	String[] getColumnAliasName();
+
+	String getAliasForUniqueName(String metaNodeName);
 }

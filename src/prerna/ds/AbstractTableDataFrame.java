@@ -24,6 +24,7 @@ import prerna.engine.api.IEngine;
 import prerna.engine.api.ISelectStatement;
 import prerna.math.BarChart;
 import prerna.math.StatisticsUtilityMethods;
+import prerna.sablecc.PKQLEnum;
 import prerna.sablecc.PKQLEnum.PKQLReactor;
 import prerna.ui.components.playsheets.datamakers.DataMakerComponent;
 import prerna.ui.components.playsheets.datamakers.IDataMaker;
@@ -83,6 +84,13 @@ public abstract class AbstractTableDataFrame implements ITableDataFrame {
 	 * 2) merge edge hash for new data coming from an engine
 	 * 		-> this does a lot more as it loads engine specific properties onto the metadata
 	 */
+	@Override
+	public void renameColumn(String oldColumnHeader, String newColumnHeader) {
+		metaData.setVertexAlias(oldColumnHeader, newColumnHeader);
+		
+		List<String> fullNames = this.metaData.getColumnNames();
+    	this.headerNames = fullNames.toArray(new String[fullNames.size()]);
+	}
 	
 	@Override
 	/**
@@ -328,6 +336,13 @@ public abstract class AbstractTableDataFrame implements ITableDataFrame {
 	public Map<String, Set<String>> getEdgeHash() {
 		return this.metaData.getEdgeHash();
 	}
+	
+	
+	@Override
+	public String getAliasForUniqueName(String metaNodeName) {
+		return this.metaData.getAliasForUniqueName(metaNodeName);
+	}
+	
 	@Override
 	public Set<String> getEnginesForUniqueName(String sub){
 		return this.metaData.getEnginesForUniqueName(sub);
@@ -491,6 +506,13 @@ public abstract class AbstractTableDataFrame implements ITableDataFrame {
 			return headers.toArray(new String[]{});
 		}
 		return headerNames;
+	}
+	
+	@Override
+	public String[] getColumnAliasName() {
+		List<String> uniqueNames = this.metaData.getColumnAliasName();
+		String[] headerValues = uniqueNames.toArray(new String[uniqueNames.size()]);
+		return headerValues;
 	}
 
 	@Override
@@ -691,6 +713,7 @@ public abstract class AbstractTableDataFrame implements ITableDataFrame {
 		reactorNames.put(PKQLReactor.VAR.toString(), "prerna.sablecc.VarReactor");
 		reactorNames.put(PKQLReactor.INPUT.toString(), "prerna.sablecc.InputReactor");
 		reactorNames.put(PKQLReactor.DATA_FRAME_HEADER.toString(), "prerna.sablecc.DataFrameHeaderReactor");
+		reactorNames.put(PKQLEnum.COL_RENAME, "prerna.sablecc.ColRenameReactor");
 		
 		
 		return reactorNames;

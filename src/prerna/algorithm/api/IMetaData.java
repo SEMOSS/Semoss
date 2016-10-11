@@ -138,7 +138,12 @@ public interface IMetaData {
 	
 	String getValueForUniqueName(String uniqueName);
 	
+	String getAliasForUniqueName(String uniqueName);
+	
+	String getUniqueNameForAlias(String aliasName);
+	
 	List<String> getColumnNames();
+	List<String> getColumnAliasName();
 	
 	/**
 	 * Get all aliases for the unique identifier and the source they came from
@@ -196,9 +201,10 @@ public interface IMetaData {
 	List<String> getPrimKeys();
 
 	void setVertexValue(String string, String tableName);
+	
+	void setVertexAlias(String string, String tableName);
 
 	String getLatestPrimKey();
 
 	Map<String, IMetaData.DATA_TYPES> getColumnTypes();
-	
 }
