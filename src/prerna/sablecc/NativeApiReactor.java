@@ -67,6 +67,9 @@ public class NativeApiReactor extends AbstractApiReactor {
 		//merge the query struct to the frame's querystruct if it is using the same engine
 		if(nativeFrame.getEngineName().equals(engine.getEngineName())) {
 			nativeFrame.mergeQueryStruct(this.qs);
+			
+			//merge the current db filters with the existing db filters on the frame
+			nativeFrame.mergeQueryStructAndFilters(this.qs);
 			this.put((String) getValue(PKQLEnum.API), query);
 		} 
 		

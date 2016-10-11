@@ -423,6 +423,11 @@ public class NativeFrame extends AbstractTableDataFrame {
 		this.builder.mergeQueryStruct(qs);
 	}
 	
+	//doing the case for inner joins only
+	public void mergeQueryStructAndFilters(QueryStruct qs) {
+		this.builder.mergeDBFilters(qs.andfilters);
+	}
+	
 	public String getEngineName() {
 		return builder.getEngineName();
 	}
