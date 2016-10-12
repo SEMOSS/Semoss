@@ -1,5 +1,6 @@
 package prerna.ds.R;
 
+import java.io.File;
 import java.util.Iterator;
 import java.util.ListIterator;
 import java.util.Map;
@@ -14,8 +15,8 @@ import org.rosuda.REngine.Rserve.RConnection;
 import org.rosuda.REngine.Rserve.RserveException;
 
 import prerna.algorithm.api.IMetaData;
-import prerna.algorithm.api.IMetaData.DATA_TYPES;
 import prerna.engine.api.IHeadersDataRow;
+import prerna.engine.impl.r.RFileWrapper;
 import prerna.engine.impl.r.RSingleton;
 import prerna.test.TestUtilityMethods;
 import prerna.util.Constants;
@@ -26,9 +27,9 @@ public class RBuilder {
 
 	private static final Logger LOGGER = LogManager.getLogger(RBuilder.class.getName());
 
-	private static final String CREATE_DATA_TABLE_METHOD = "createEmptyDataTable.123456";
-	private static final String ADD_ROW_TO_DATA_TABLE_METHOD = "appendToDataTable.123456";
-	private static final String REMOVE_EMPTY_ROWS = "removeEmptyRows.123456";
+//	private static final String CREATE_DATA_TABLE_METHOD = "createEmptyDataTable.123456";
+//	private static final String ADD_ROW_TO_DATA_TABLE_METHOD = "appendToDataTable.123456";
+//	private static final String REMOVE_EMPTY_ROWS = "removeEmptyRows.123456";
 
 	// holds the connection for RDataFrame to the instance of R running
 	private RConnection retCon;
@@ -49,15 +50,12 @@ public class RBuilder {
 		// load in the data.table package
 		retCon.eval("library(data.table)");
 		
+		// note: modified create flow, not using these methods
 		// load in the R script defining the functions we are using
-		String path = (String) DIHelper.getInstance().getProperty(Constants.BASE_FOLDER);
-		//TODO: we need to figure out how to do all of these paths OS specific...
-//		path = path.replace("\\", "\\\\");
-//		path = path  + "\\\\R\\\\RDataTableScripts\\\\baseFunctions.R";
-		path = path.replace("\\", "/");
-		path = path  + "/R/RDataTableScripts/baseFunctions.R";
-
-		retCon.eval("source('"+ path + "')");
+//		String path = (String) DIHelper.getInstance().getProperty(Constants.BASE_FOLDER);
+//		path = path.replace("\\", "/");
+//		path = path  + "/R/RDataTableScripts/baseFunctions.R";
+//		retCon.eval("source('"+ path + "')");
 	}
 	
 	public RBuilder(String dataTableName) throws RserveException {
@@ -130,82 +128,102 @@ public class RBuilder {
 		throw new IllegalArgumentException(defaultMessage);
 	}
 	
+//	/**
+//	 * Creates a new data table from an iterator
+//	 * @param it					The iterator to flush into a r data table
+//	 * @param typesMap				The data type of each column
+//	 */
+//	protected void createTableViaIterator(Iterator<IHeadersDataRow> it, Map<String, IMetaData.DATA_TYPES> typesMap) {
+//		String[] headers = null;
+//		IMetaData.DATA_TYPES[] types = null;
+//		if(it.hasNext()) {
+//			// the first iterator row needs to be processed differently to also create
+//			// the data table
+//			IHeadersDataRow row = it.next();
+//			
+//			// need to create the types array
+//			headers = row.getHeaders();
+//			types = new IMetaData.DATA_TYPES[headers.length];
+//			for(int i = 0; i < headers.length; i++) {
+//				types[i] = typesMap.get(headers[i]);
+//			}
+//			
+//			String r_row = createRColVec(row.getValues(), types);
+//			// the r function is createEmptyDataTable.123456
+//			// it takes in the first list of elements to add into the data frame
+//			executeR( addTryEvalToScript( this.dataTableName + " <- " + CREATE_DATA_TABLE_METHOD + "(" + r_row + ")"  ) );
+//			
+//			String header_row = RSyntaxHelper.createStringRColVec(headers);
+//			executeR( addTryEvalToScript( "setnames(" + this.dataTableName + " , " + header_row + ")" ) );
+//		}
+//		
+//		// now iterate through all the other rows
+//		while(it.hasNext()) {
+//			IHeadersDataRow row = it.next();
+//			String r_row = createRColVec(row.getValues(), types);
+//			// the r function is appendToDataTable.123456
+//			// it takes in the name of data table to append into and the list of elements to also add
+//			executeR( addTryEvalToScript( this.dataTableName + " <- " + ADD_ROW_TO_DATA_TABLE_METHOD + "(datatable, " + r_row + ")"  ) );
+//		}
+//		
+//		// TODO: should i trim automatically?
+//		executeR( addTryEvalToScript( this.dataTableName + " <- " + REMOVE_EMPTY_ROWS + "(datatable)"  ) );
+//		
+//		// modify columns such that they are numeric where needed
+//		alterColumnsToNumeric(typesMap);
+//	}
+	
 	/**
 	 * Creates a new data table from an iterator
 	 * @param it					The iterator to flush into a r data table
 	 * @param typesMap				The data type of each column
 	 */
-	protected void createTableViaIterator(Iterator<IHeadersDataRow> it, Map<String, DATA_TYPES> typesMap) {
-		String[] headers = null;
-		IMetaData.DATA_TYPES[] types = null;
-		if(it.hasNext()) {
-			// the first iterator row needs to be processed differently to also create
-			// the data table
-			IHeadersDataRow row = it.next();
-			
-			// need to create the types array
-			headers = row.getHeaders();
-			types = new IMetaData.DATA_TYPES[headers.length];
-			for(int i = 0; i < headers.length; i++) {
-				types[i] = typesMap.get(headers[i]);
-			}
-			
-			String r_row = createRColVec(row.getValues(), types);
-			// the r function is createEmptyDataTable.123456
-			// it takes in the first list of elements to add into the data frame
-			executeR( addTryEvalToScript( this.dataTableName + " <- " + CREATE_DATA_TABLE_METHOD + "(" + r_row + ")"  ) );
-			
-			String header_row = RSyntaxHelper.createStringRColVec(headers);
-			executeR( addTryEvalToScript( "setnames(" + this.dataTableName + " , " + header_row + ")" ) );
-		}
+	protected void createTableViaIterator(Iterator<IHeadersDataRow> it, Map<String, IMetaData.DATA_TYPES> typesMap) {
+		// we will flush the iterator results into a file
+		// and then we will read that file in
 		
-		// now iterate through all the other rows
-		while(it.hasNext()) {
-			IHeadersDataRow row = it.next();
-			String r_row = createRColVec(row.getValues(), types);
-			// the r function is appendToDataTable.123456
-			// it takes in the name of data table to append into and the list of elements to also add
-			executeR( addTryEvalToScript( this.dataTableName + " <- " + ADD_ROW_TO_DATA_TABLE_METHOD + "(datatable, " + r_row + ")"  ) );
-		}
+		String newFileLoc = DIHelper.getInstance().getProperty(Constants.INSIGHT_CACHE_DIR) + "/" + Utility.getRandomString(6) + ".csv";
+		File newFile = Utility.writeResultToFile(newFileLoc, it, typesMap);
 		
-		// TODO: should i trim automatically?
-		executeR( addTryEvalToScript( this.dataTableName + " <- " + REMOVE_EMPTY_ROWS + "(datatable)"  ) );
+		String loadFileRScript = RSyntaxHelper.getFReadSyntax(this.dataTableName, newFile.getAbsolutePath());
+		executeR(loadFileRScript);
 		
 		// modify columns such that they are numeric where needed
-		for(int i = 0; i < headers.length; i++) {
-			if(types[i] == IMetaData.DATA_TYPES.NUMBER) {
-				executeR( addTryEvalToScript( RSyntaxHelper.alterColumnTypeToNumeric(this.dataTableName, headers[i]) ) );
-			}
-		}
+		alterColumnsToNumeric(typesMap);
 		
+		newFile.delete();
 	}
 	
 	/**
-	 * Convert a java object[] into a r column vector
-	 * @param row				The object[] to convert
-	 * @param dataType			The data type for each entry in the object[]
-	 * @return					String containing the equivalent r column vector
+	 * Loads a file as the data table
+	 * @param fileWrapper			RFileWrapper used to contain the required information for the load
 	 */
-	private String createRColVec(Object[] row, IMetaData.DATA_TYPES[] dataType) {
-		StringBuilder str = new StringBuilder("c(");
-		int i = 0;
-		int size = row.length;
-		for(; i < size; i++) {
-			if(dataType[i] == IMetaData.DATA_TYPES.STRING) {
-				str.append("\"").append(row[i]).append("\"");
-			} else {
-				str.append(row[i]);
-			}
-			// if not the last entry, append a "," to separate entries
-			if( (i+1) != size) {
-				str.append(",");
-			}
+	protected void createTableViaCsvFile(RFileWrapper fileWrapper) {
+		String loadFileRScript = RSyntaxHelper.getFReadSyntax(this.dataTableName, fileWrapper.getFilePath());
+		executeR(loadFileRScript);
+		// this will modify the csv to contain the specified columns and rows based on selectors and filters
+		String filterScript = fileWrapper.getRScript();
+		if(!filterScript.isEmpty()) {
+			String modifyTableScript = this.dataTableName + "<- " + filterScript;
+			executeR(modifyTableScript);
 		}
-		str.append(")");
-		return str.toString();
+		// now modify column types to ensure they are all good
+		alterColumnsToNumeric(fileWrapper.getDataTypes());
 	}
 	
-
+	/**
+	 * Modify columns to make sure they are numeric for math operations
+	 * @param typesMap
+	 */
+	private void alterColumnsToNumeric(Map<String, IMetaData.DATA_TYPES> typesMap) {
+		for(String header : typesMap.keySet()) {
+			IMetaData.DATA_TYPES type = typesMap.get(header);
+			if(type == IMetaData.DATA_TYPES.NUMBER) {
+				executeR( addTryEvalToScript( RSyntaxHelper.alterColumnTypeToNumeric(this.dataTableName, header) ) );
+			}
+		}
+	}
+	
 	/**
 	 * Calculate the number of rows in the data table
 	 * @return

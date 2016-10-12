@@ -5,6 +5,7 @@ import java.util.Map;
 import java.util.Set;
 
 import prerna.ds.QueryStruct;
+import prerna.ds.H2.H2Frame;
 import prerna.engine.api.IEngine;
 import prerna.engine.api.IRawSelectWrapper;
 import prerna.engine.impl.rdf.AbstractApiReactor;
@@ -49,6 +50,22 @@ public class QueryApiReactor extends AbstractApiReactor {
 		interp.setQueryStruct(this.qs);
 		String query = interp.composeQuery();
 
+		// now also perform a count on the query to determine if it is the right size
+		// currently only use this in H2Importing
+		// TODO: move this logic out
+		if(myStore.get("G") != null && myStore.get("G") instanceof H2Frame) {
+			interp.clear();
+			interp.setPerformCount(true);
+			String countQuery = interp.composeQuery();
+			IRawSelectWrapper countIt = WrapperManager.getInstance().getRawWrapper(engine, countQuery);
+			if(countIt.hasNext()) {
+				Object numCells = countIt.next().getValues()[0];
+				System.out.println("QUERY CONTAINS NUM_CELLS = " + numCells);
+				
+				this.put("QUERY_NUM_CELLS", numCells);
+			}
+		}
+		
 		Iterator thisIterator = null;
 		// in order to support legacy GDM insights
 		// need to determine if we should get a select wrapper or a cheater wrapper
@@ -60,17 +77,7 @@ public class QueryApiReactor extends AbstractApiReactor {
 			thisIterator = WrapperManager.getInstance().getRawWrapper(engine, query);
 		}
 		
-		// now also perform a count on the query to determine if it is the right size
-		interp.clear();
-		interp.setPerformCount(true);
-		query = interp.composeQuery();
-		IRawSelectWrapper countIt = WrapperManager.getInstance().getRawWrapper(engine, query);
-		if(countIt.hasNext()) {
-			Object numCells = countIt.next().getValues()[0];
-			System.out.println("QUERY CONTAINS NUM_CELLS = " + numCells);
-			
-			this.put("QUERY_NUM_CELLS", numCells);
-		}
+		
 		
 		this.put((String) getValue(PKQLEnum.API), thisIterator);
 		this.put("RESPONSE", "success");
