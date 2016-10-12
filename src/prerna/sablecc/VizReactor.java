@@ -91,7 +91,7 @@ public class VizReactor extends AbstractReactor {
 				}
 
 				//this is an empty placeholder to maintain order, need to keep track
-				else if (nextObject == null) {
+				else if (nextObject == null && listObject.size() > 1) {
 					// indexMap.put("EMPTY"+index, index);
 					indexMap.put(index, "EMPTY");
 				}
