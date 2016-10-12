@@ -30,14 +30,23 @@ public class PKQLEnum {
 	public static final String DATABASE_CONCEPTS = "DATABASE_CONCEPTS";
 	public static final String DATABASE_METAMODEL = "DATABASE_METAMODEL";
 
+	public static final String MATH_FUN = "MATH_FUN";
+	// this is to override default sum reactor
+	// example of use is using R for calculation
+	public static final String SUM = "SUM";
+	public static final String MAX = "MAX";
+	public static final String MIN = "MIN";
+	public static final String AVERAGE = "AVERAGE";
+	public static final String STANDARD_DEVIATION = "STANDARDDEVIATION";
+	public static final String MEDIAN = "MEDIAN";
+	public static final String COUNT = "COUNT";
+
 	public static final String NUMBER = "NUMBER";
 	public static final String DECIMAL = "DECIMAL";
 	public static final String ALPHA = "ALPHA";
 	public static final String EXPR_TERM = "EXPR_TERM";
 	public static final String EXPR_SCRIPT = "EXPR_SCRIPT";
-	public static final String MATH_FUN = "MATH_FUN";
 	public static final String MATH_PARAM = "MATH_PARAM";
-	public static final String MOD_MATH_FUN = "MOD_MATH_FUN";
 	public static final String COL_CSV = "COL_CSV";
 	public static final String COL_DEF = "COL_DEF";
 	public static final String WHERE = "WHERE";

@@ -32,7 +32,12 @@ public class RBuilder {
 
 	// holds the connection for RDataFrame to the instance of R running
 	private RConnection retCon;
-
+	private String dataTableName = "datatable";
+	
+	public RConnection getConnection() {
+		return this.retCon;
+	}
+	
 	public RBuilder() throws RserveException {
 		RConnection masterCon = RSingleton.getConnection();
 		String port = Utility.findOpenPort();
@@ -55,11 +60,20 @@ public class RBuilder {
 		retCon.eval("source('"+ path + "')");
 	}
 	
+	public RBuilder(String dataTableName) throws RserveException {
+		this();
+		this.dataTableName = dataTableName;
+	}
+	
+	protected String getTableName() {
+		return this.dataTableName;
+	}
+	
 	protected Double executeStat(String colName, String statRoutine) {
 		Double val = null;
 		REXP result = null;
 		try {
-			result = retCon.parseAndEval( addTryEvalToScript( statRoutine + "(datatable[,c(\"" + colName + "\")])") );
+			result = retCon.parseAndEval( addTryEvalToScript( statRoutine + "(" + this.dataTableName + "[,c(\"" + colName + "\")])") );
 			val = result.asDouble();
 		} catch (REXPMismatchException | REngineException e) {
 			String defaultError = "Unexpected error in calculation of max for column = " + colName;
@@ -122,6 +136,7 @@ public class RBuilder {
 	 * @param typesMap				The data type of each column
 	 */
 	protected void createTableViaIterator(Iterator<IHeadersDataRow> it, Map<String, DATA_TYPES> typesMap) {
+		String[] headers = null;
 		IMetaData.DATA_TYPES[] types = null;
 		if(it.hasNext()) {
 			// the first iterator row needs to be processed differently to also create
@@ -129,7 +144,7 @@ public class RBuilder {
 			IHeadersDataRow row = it.next();
 			
 			// need to create the types array
-			String[] headers = row.getHeaders();
+			headers = row.getHeaders();
 			types = new IMetaData.DATA_TYPES[headers.length];
 			for(int i = 0; i < headers.length; i++) {
 				types[i] = typesMap.get(headers[i]);
@@ -138,11 +153,10 @@ public class RBuilder {
 			String r_row = createRColVec(row.getValues(), types);
 			// the r function is createEmptyDataTable.123456
 			// it takes in the first list of elements to add into the data frame
-			// here we assign it into the variable "dataframe"
-			executeR( addTryEvalToScript( "datatable <- " + CREATE_DATA_TABLE_METHOD + "(" + r_row + ")"  ) );
+			executeR( addTryEvalToScript( this.dataTableName + " <- " + CREATE_DATA_TABLE_METHOD + "(" + r_row + ")"  ) );
 			
-			String header_row = createStringRColVec(headers);
-			executeR( addTryEvalToScript( "setnames(datatable , " + header_row + ")" ) );
+			String header_row = RSyntaxHelper.createStringRColVec(headers);
+			executeR( addTryEvalToScript( "setnames(" + this.dataTableName + " , " + header_row + ")" ) );
 		}
 		
 		// now iterate through all the other rows
@@ -151,11 +165,19 @@ public class RBuilder {
 			String r_row = createRColVec(row.getValues(), types);
 			// the r function is appendToDataTable.123456
 			// it takes in the name of data table to append into and the list of elements to also add
-			executeR( addTryEvalToScript( "datatable <- " + ADD_ROW_TO_DATA_TABLE_METHOD + "(datatable, " + r_row + ")"  ) );
+			executeR( addTryEvalToScript( this.dataTableName + " <- " + ADD_ROW_TO_DATA_TABLE_METHOD + "(datatable, " + r_row + ")"  ) );
 		}
 		
 		// TODO: should i trim automatically?
-		executeR( addTryEvalToScript( "datatable <- " + REMOVE_EMPTY_ROWS + "(datatable)"  ) );
+		executeR( addTryEvalToScript( this.dataTableName + " <- " + REMOVE_EMPTY_ROWS + "(datatable)"  ) );
+		
+		// modify columns such that they are numeric where needed
+		for(int i = 0; i < headers.length; i++) {
+			if(types[i] == IMetaData.DATA_TYPES.NUMBER) {
+				executeR( addTryEvalToScript( RSyntaxHelper.alterColumnTypeToNumeric(this.dataTableName, headers[i]) ) );
+			}
+		}
+		
 	}
 	
 	/**
@@ -183,27 +205,7 @@ public class RBuilder {
 		return str.toString();
 	}
 	
-	/**
-	 * Convert a java object[] into a r column vector
-	 * @param row				The object[] to convert
-	 * @param dataType			The data type for each entry in the object[]
-	 * @return					String containing the equivalent r column vector
-	 */
-	private String createStringRColVec(Object[] row) {
-		StringBuilder str = new StringBuilder("c(");
-		int i = 0;
-		int size = row.length;
-		for(; i < size; i++) {
-			str.append("\"").append(row[i]).append("\"");
-			// if not the last entry, append a "," to separate entries
-			if( (i+1) != size) {
-				str.append(",");
-			}
-		}
-		str.append(")");
-		return str.toString();
-	}
-	
+
 	/**
 	 * Calculate the number of rows in the data table
 	 * @return

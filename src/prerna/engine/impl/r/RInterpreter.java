@@ -8,6 +8,7 @@ import java.util.Vector;
 
 import prerna.algorithm.api.IMetaData;
 import prerna.ds.QueryStruct;
+import prerna.ds.R.RSyntaxHelper;
 import prerna.rdf.query.builder.IQueryInterpreter;
 
 public class RInterpreter implements IQueryInterpreter {
@@ -19,10 +20,10 @@ public class RInterpreter implements IQueryInterpreter {
 	
 	// keep track of the filters
 	// do this in builder since it can be very large
-	private StringBuilder filterCriteria;
+	private StringBuilder filterCriteria = new StringBuilder();
 	
 	// keep the columns to export
-	private String selectors;
+	private String selectors = "";
 	
 	@Override
 	public void setQueryStruct(QueryStruct qs) {
@@ -70,7 +71,7 @@ public class RInterpreter implements IQueryInterpreter {
 			}
 		}
 		
-		this.selectors = createStringRColVec(uniqueSet.toArray(new String[]{}));
+		this.selectors = RSyntaxHelper.createStringRColVec(uniqueSet.toArray(new Object[]{}));
 	}
 
 	private void addFilters() {
@@ -89,10 +90,7 @@ public class RInterpreter implements IQueryInterpreter {
 	}
 
 	private void addFilter(String colName, String comparator, Vector vector) {
-		if(filterCriteria == null) {
-			// first time, this is null
-			filterCriteria = new StringBuilder();
-		} else {
+		if(filterCriteria.length() > 0) {
 			// need to aggregate the new filter criteria
 			filterCriteria.append(" & ");
 		}
@@ -145,20 +143,20 @@ public class RInterpreter implements IQueryInterpreter {
 		return str.toString();
 	}
 	
-	private String createStringRColVec(String[] selectors) {
-		StringBuilder str = new StringBuilder("c(");
-		int i = 0;
-		int size = selectors.length;
-		for(; i < size; i++) {
-			str.append("\"").append(selectors[i]).append("\"");
-			// if not the last entry, append a "," to separate entries
-			if( (i+1) != size) {
-				str.append(",");
-			}
-		}
-		str.append(")");
-		return str.toString();
-	}
+//	private String createStringRColVec(String[] selectors) {
+//		StringBuilder str = new StringBuilder("c(");
+//		int i = 0;
+//		int size = selectors.length;
+//		for(; i < size; i++) {
+//			str.append("\"").append(selectors[i]).append("\"");
+//			// if not the last entry, append a "," to separate entries
+//			if( (i+1) != size) {
+//				str.append(",");
+//			}
+//		}
+//		str.append(")");
+//		return str.toString();
+//	}
 	
 
 	@Override
