@@ -47,11 +47,13 @@ public class RInterpreter implements IQueryInterpreter {
 		// note, that the join info in the QS has no meaning for a R frame as 
 		// we cannot connect across data tables
 		
-		addFilters();
-		addSelectors();
-		
 		StringBuilder query = new StringBuilder();
-		query.append(this.dataTableName).append("[ ").append(this.filterCriteria.toString()).append(", ").append(this.selectors).append(", with=FALSE ]");
+		
+		if(this.qs != null) {
+			addFilters();
+			addSelectors();
+			query.append(this.dataTableName).append("[ ").append(this.filterCriteria.toString()).append(", ").append(this.selectors).append(", with=FALSE ]");
+		}
 		
 		return query.toString();
 	}
