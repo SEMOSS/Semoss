@@ -16,6 +16,9 @@ public class RFileWrapper {
 	// store the data types for each header
 	private String[] dataTypesArr;
 	
+	// store map of headers to data types
+	private Map<String, IMetaData.DATA_TYPES> dataTypes;
+	
 	// store the produced query to execute in order to apply
 	// the qs onto the dataframe
 	private String rScript;
@@ -28,7 +31,7 @@ public class RFileWrapper {
 		int size = dataTypeMap.keySet().size();
 		headersArr = new String[size];
 		dataTypesArr = new String[size];
-		Map<String, IMetaData.DATA_TYPES> dataTypes = new Hashtable<String, IMetaData.DATA_TYPES>();
+		dataTypes = new Hashtable<String, IMetaData.DATA_TYPES>();
 		
 		int counter = 0;
 		for(String header : dataTypeMap.keySet()) {
@@ -62,4 +65,7 @@ public class RFileWrapper {
 		return this.dataTypesArr;
 	}
 	
+	public Map<String, IMetaData.DATA_TYPES> getDataTypes() {
+		return this.dataTypes;
+	}
 }
