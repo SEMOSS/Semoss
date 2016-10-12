@@ -17,8 +17,7 @@ import prerna.sablecc.PKQLRunner.STATUS;
 public abstract class RBaseReducer extends AbstractReactor {
 
 	public RBaseReducer() {
-		String[] thisReacts = { PKQLEnum.EXPR_TERM, PKQLEnum.DECIMAL, PKQLEnum.NUMBER, PKQLEnum.GROUP_BY,
-				PKQLEnum.COL_DEF, PKQLEnum.MATH_PARAM};
+		String[] thisReacts = { PKQLEnum.EXPR_TERM, PKQLEnum.DECIMAL, PKQLEnum.NUMBER, PKQLEnum.GROUP_BY, PKQLEnum.COL_DEF, PKQLEnum.MATH_PARAM};
 		super.whatIReactTo = thisReacts;
 		super.whoAmI = PKQLEnum.MATH_FUN;
 	}
@@ -89,15 +88,15 @@ public abstract class RBaseReducer extends AbstractReactor {
 			}
 		} else {
 			String sumScript = process(varRFrame, columns.get(0));
-			REXP rSum = rFrame.executeRScript(sumScript);
-			double sum = 0;
+			REXP math = rFrame.executeRScript(sumScript);
+			double result = 0;
 			try {
-				sum = rSum.asDouble();
+				result = math.asDouble();
 			} catch (REXPMismatchException e) {
 				e.printStackTrace();
 			}
 			
-			myStore.put(nodeStr, sum);
+			myStore.put(nodeStr, result);
 			myStore.put("STATUS",STATUS.SUCCESS);
 		}
 		

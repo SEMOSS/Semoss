@@ -28,10 +28,12 @@
 package prerna.util;
 
 import java.io.BufferedReader;
+import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.FileReader;
+import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
@@ -108,6 +110,7 @@ import com.ibm.icu.text.DecimalFormat;
 import prerna.algorithm.api.IMetaData;
 import prerna.engine.api.IEngine;
 import prerna.engine.api.IEngine.ENGINE_TYPE;
+import prerna.engine.api.IHeadersDataRow;
 import prerna.engine.api.ISelectStatement;
 import prerna.engine.api.ISelectWrapper;
 import prerna.engine.impl.AbstractEngine;
@@ -3119,5 +3122,118 @@ public class Utility {
 		
 		return portStr;
 	}
+	
+	public static File writeResultToFile(String fileLocation, Iterator<IHeadersDataRow> it, Map<String, IMetaData.DATA_TYPES> typesMap) {
+		long start = System.currentTimeMillis();
+		
+		// make sure file is empty so we are only inserting the new values
+		File f = new File(fileLocation);
+		if(f.exists()) {
+			System.out.println("File currently exists.. deleting file");
+			f.delete();
+		}
+		try {
+			f.createNewFile();
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+		
+		FileWriter writer = null;
+		BufferedWriter bufferedWriter = null;
+		
+		try {
+			writer = new FileWriter(f);
+	        bufferedWriter = new BufferedWriter(writer);
+
+	        // store some variables and just reset
+	        // should be faster than creating new ones each time
+	        int i = 0;
+	        int size = 0;
+	        StringBuilder builder = null;
+	        // create typesArr as an array for faster searching
+	        String[] headers = null;
+	        IMetaData.DATA_TYPES[] typesArr = null;
+	        
+	        // we need to iterate and write the headers during the first time
+			if(it.hasNext()) {
+				IHeadersDataRow row = it.next();
+				
+				// generate the header row
+				// and define constants used throughout like size, and types
+				i = 0;
+				headers = row.getHeaders();
+				size = headers.length;
+				typesArr = new IMetaData.DATA_TYPES[size];
+				builder = new StringBuilder();
+				for(; i < size; i++) {
+					builder.append("\"").append(headers[i]).append("\"");
+					if( (i+1) != size) {
+						builder.append(",");
+					}
+					typesArr[i] = typesMap.get(headers[i]);
+				}
+				// write the header to the file
+				bufferedWriter.write(builder.append("\n").toString());
+				
+				// generate the data row
+				Object[] dataRow = row.getValues();
+				builder = new StringBuilder();
+				i = 0;
+				for(; i < size; i ++) {
+					if(typesArr[i] == IMetaData.DATA_TYPES.STRING) {
+						builder.append("\"").append(dataRow[i]).append("\"");
+					} else {
+						builder.append(dataRow[i]);
+					}
+					if( (i+1) != size) {
+						builder.append(",");
+					}
+				}
+				// write row to file
+				bufferedWriter.write(builder.append("\n").toString());
+			}
+			
+			// now loop through all the data
+			while(it.hasNext()) {
+				IHeadersDataRow row = it.next();
+				// generate the data row
+				Object[] dataRow = row.getValues();
+				builder = new StringBuilder();
+				i = 0;
+				for(; i < size; i ++) {
+					if(typesArr[i] == IMetaData.DATA_TYPES.STRING) {
+						builder.append("\"").append(dataRow[i]).append("\"");
+					} else {
+						builder.append(dataRow[i]);
+					}
+					if( (i+1) != size) {
+						builder.append(",");
+					}
+				}
+				// write row to file
+				bufferedWriter.write(builder.append("\n").toString());
+			}
+			
+		} catch (IOException e) {
+			e.printStackTrace();
+		} finally {
+			try {
+				if(bufferedWriter != null) {
+					bufferedWriter.close();
+				}
+				if(writer != null) {
+					writer.close();
+				}
+			} catch (IOException e) {
+				e.printStackTrace();
+			}
+		}
+		
+		long end = System.currentTimeMillis();
+		System.out.println("Time to output file = " + (end-start) + " ms");
+		
+		return f;
+	}
+	
 
 }
