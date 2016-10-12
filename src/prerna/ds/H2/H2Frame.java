@@ -1410,6 +1410,13 @@ public class H2Frame extends AbstractTableDataFrame {
 		if (builder.tableName == null) {
 			builder.tableName = getTableNameForUniqueColumn(getColumnHeaders()[0]);
 		}
+		return this.builder.getNumRows();
+	}
+	
+	public int getNumRecords() {
+		if (builder.tableName == null) {
+			builder.tableName = getTableNameForUniqueColumn(getColumnHeaders()[0]);
+		}
 		return this.builder.getNumRecords();
 	}
 
