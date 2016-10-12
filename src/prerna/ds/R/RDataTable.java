@@ -101,9 +101,7 @@ public class RDataTable extends AbstractTableDataFrame {
 	}
 	
 	public void createTableViaCsvFile(RFileWrapper fileWrapper) {
-		String loadFile = this.builder.getTableName() + "<- fread(\"" + fileWrapper.getFilePath().replace("\\", "/") + "\")";
-		this.builder.executeR(loadFile);
-		this.builder.executeR(this.builder.getTableName() + "<- " + fileWrapper.getRScript());
+		this.builder.createTableViaCsvFile(fileWrapper);
 	}
 	
 	public REXP executeRScript(String rScript) {
