@@ -10,9 +10,12 @@ import prerna.ds.TinkerMetaHelper;
 import prerna.ds.R.RDataTable;
 import prerna.ds.util.FileIterator;
 import prerna.ds.util.WebApiIterator;
+import prerna.engine.api.IEngine;
 import prerna.engine.api.IHeadersDataRow;
 import prerna.engine.api.IRawSelectWrapper;
+import prerna.engine.impl.r.RFileWrapper;
 import prerna.sablecc.PKQLRunner.STATUS;
+import prerna.util.Utility;
 
 public class RImportDataReactor extends ImportDataReactor {
 
@@ -21,31 +24,46 @@ public class RImportDataReactor extends ImportDataReactor {
 	 * R data table.  We will never be performing logic to 
 	 * @see prerna.sablecc.ImportDataReactor#process()
 	 */
-	
+
 	@Override
 	public Iterator process() {
-		// use the import data reactor to go thorugh teh logic to get the necessary data 
-		super.process();
+		modExpression();
+		System.out.println("My Store on IMPORT DATA REACTOR: " + myStore);
 		
-		// get the frame
-		RDataTable frame = (RDataTable) myStore.get("G");
-		// get the iterator containing the information to add
-		Iterator<IHeadersDataRow> it = (Iterator<IHeadersDataRow>) myStore.get("iterator");
-
-		// TODO: terrible use of the edgeHash... the values of the edgeHash are not actually used
-		// its purpose is a null check to determine if we need to call mergeEdgeHash
-		// stupid since if it wasn't null (i.e. API Reactor called with an engine), the super.process() will
-		// do the QSMergeEdgeHash but the super will never handle any case where a mergeEdgeHash needs to occur
-		Map<String, Set<String>> edgeHash = (Map<String, Set<String>>) myStore.get("edgeHash");
-		Map<String, String> logicalToValue = (Map<String, String>) myStore.get("logicalToValue");
-		
-		// get the join data 
 		Vector<Map<String, String>> joins = (Vector<Map<String, String>>) myStore.get(PKQLEnum.JOINS);
-		
-		if(!joins.isEmpty()) {
-			throw new IllegalArgumentException("Cannot extend an existing RDataTable. Must convert to a frame that can be extended.");
+		// currently not handling join logic
+		if(joins != null && !joins.isEmpty()) {
+			throw new IllegalArgumentException("R Frame cannot handle table join logic.");
 		}
 		
+		RDataTable frame = (RDataTable) myStore.get("G");
+		
+		boolean performMerge = true;
+		
+		Object it = null;
+		if(myStore.containsKey(PKQLEnum.API)) {			
+			Map<String, Set<String>> edgeHash = (Map<String, Set<String>>) this.getValue(PKQLEnum.API + "_EDGE_HASH");
+			IEngine engine = Utility.getEngine((this.getValue(PKQLEnum.API + "_ENGINE")+"").trim());
+			it  = myStore.get(PKQLEnum.API);
+
+			if(engine != null) {
+				// put the edge hash and the logicalToValue maps within the myStore
+				// will be used when the data is actually imported
+				Map[] mergedMaps = frame.mergeQSEdgeHash(edgeHash, engine, new Vector<Map<String, String>>());
+				performMerge = false;
+			} 
+		} else if(myStore.containsKey(PKQLEnum.PASTED_DATA)) {
+			it = myStore.get(PKQLEnum.PASTED_DATA);
+			
+		} else if(myStore.containsKey(PKQLEnum.CSV_TABLE)) {
+			it = myStore.get(PKQLEnum.CSV_TABLE);
+			
+		}
+		
+		// update the data id on the frame
+		frame.updateDataId();
+		
+
 		//TODO: need to make all these wrappers that give a IHeaderDataRow be the same type to get this info
 		// in a generic fashion instead of all this stupid casting
 		String[] types = null;
@@ -54,23 +72,27 @@ public class RImportDataReactor extends ImportDataReactor {
 		if(it instanceof WebApiIterator) {
 			types = ((WebApiIterator) it).getTypes();
 			headers = ((WebApiIterator) it).getHeaders();
-			
-		}else if(it instanceof FileIterator) {
+
+		} else if(it instanceof FileIterator) {
 			types = ((FileIterator) it).getTypes();
 			headers = ((FileIterator) it).getHeaders();
-			
+
 		} else if(it instanceof CsvTableWrapper) {
 			types = ((CsvTableWrapper) it).getTypes();
 			headers = ((CsvTableWrapper) it).getHeaders();
-			
+
 		} else if(it instanceof IRawSelectWrapper) {
 			headers = ((IRawSelectWrapper)it).getDisplayVariables();
+
+		} else if(it instanceof RFileWrapper) {			
+			types = ((RFileWrapper) it).getTypes();
+			headers = ((RFileWrapper) it).getHeaders();
 			
 		}
 		
-		// if the edge hash is not defined from when the super.process()
+		// if the edge hash is not defined
 		// we need to perform the mergeEdgeHash logic here
-		if(edgeHash == null) {
+		if(performMerge) {
 			Map<String, Set<String>> primKeyEdgeHash = TinkerMetaHelper.createPrimKeyEdgeHash(headers);
 			Map<String, String> dataType = new HashMap<>();
 			for(int i = 0; i < types.length; i++) {
@@ -80,12 +102,18 @@ public class RImportDataReactor extends ImportDataReactor {
 			frame.mergeEdgeHash(primKeyEdgeHash, dataType);
 		} 
 		
+		if(it instanceof Iterator) {
+			frame.createTableViaIterator((Iterator<IHeadersDataRow>) it);
+			inputResponseString((Iterator) it, headers);
+		} else if(it instanceof RFileWrapper) {
+			// this only happens when we have a csv file
+			frame.createTableViaCsvFile( (RFileWrapper) it);
+		}
+		
 		// metadata is stored in the frame to know the type of each column about to be added
 		// just pass the iterator and let the frame do its thing
-		frame.createTableViaIterator(it);
 		
 		// store the response string
-		inputResponseString(it, headers);
 		// set status to success
 		myStore.put("STATUS", STATUS.SUCCESS);
 		
