@@ -73,6 +73,9 @@ public class NativeFrameBuilder {
 			this.queryStruct.merge(qs);
 		}
 		
+		//no need to track filters here, they are tracked as db and temporal filters
+		this.queryStruct.andfilters = new Hashtable<>();
+		
 		refreshView();
 	}
 	
@@ -222,8 +225,20 @@ public class NativeFrameBuilder {
 		return retFilters;
 	}
 	
+	/**
+	 * 
+	 * @return
+	 * 
+	 * return a copy of the query struct with the db filters
+	 */
 	public QueryStruct getQueryStruct() {
-		return this.queryStruct;
+		QueryStruct copy = this.queryStruct.deepCopy();
+		copy.andfilters = this.dbfilters;
+		return copy;
+	}
+	
+	public Hashtable<String, Hashtable<String, Vector>> getTempFilters() {
+		return this.temporalFilters;
 	}
 	
 	private QueryStruct mergeQueryStructWithFilters() {
