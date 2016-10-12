@@ -18,6 +18,7 @@ import prerna.sablecc.meta.IPkqlMetadata;
 import prerna.sablecc.meta.ImportDataMetadata;
 import prerna.util.ArrayUtilityMethods;
 import prerna.util.DIHelper;
+import prerna.util.Utility;
 
 /**
  * This is the base class used by the frame specific import data reactors.
@@ -126,7 +127,7 @@ public abstract class ImportDataReactor extends AbstractReactor {
 		Object it = null;
 		if(myStore.containsKey(PKQLEnum.API)) {			
 			Map<String, Set<String>> edgeHash = (Map<String, Set<String>>) this.getValue(PKQLEnum.API + "_EDGE_HASH");
-			IEngine engine = (IEngine) DIHelper.getInstance().getLocalProp((this.getValue(PKQLEnum.API + "_ENGINE")+"").trim());
+			IEngine engine = (IEngine) Utility.getEngine((this.getValue(PKQLEnum.API + "_ENGINE")+"").trim());
 //			it  = (Iterator) myStore.get(PKQLEnum.API);
 			it  = myStore.get(PKQLEnum.API);
 

@@ -25,6 +25,13 @@ public class RIterator implements Iterator<Object[]>{
 		this.builder = builder;
 		this.headers = headers;
 		this.dataTableSize = this.builder.getNumRows();
+		
+		//TODO: this is because the FE keeps trying to grab the entire grid
+		//TODO: this is because the FE keeps trying to grab the entire grid
+		//TODO: this is because the FE keeps trying to grab the entire grid
+		if(this.dataTableSize > 500) {
+			this.dataTableSize = 500;
+		}
 	}
 	
 	@Override
@@ -52,7 +59,16 @@ public class RIterator implements Iterator<Object[]>{
 		// iterate through the list and fill into an object array to return
 		Object[] retArray = new Object[data.keySet().size()];
 		for(int colIndex = 0; colIndex < headers.length; colIndex++) {
-			retArray[colIndex] = data.get(headers[colIndex]);
+			Object val = data.get(headers[colIndex]);
+			if(val instanceof Object[]) {
+				retArray[colIndex] = ((Object[]) val)[0];
+			} else if(val instanceof double[]) {
+				retArray[colIndex] = ((double[]) val)[0];
+			} else if( val instanceof int[]) {
+				retArray[colIndex] = ((int[]) val)[0];
+			} else {
+				retArray[colIndex] = val;
+			}
 		}
 		
 		// update the row index
