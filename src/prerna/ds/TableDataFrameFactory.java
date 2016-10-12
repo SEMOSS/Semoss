@@ -10,6 +10,7 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.Vector;
 
 import prerna.algorithm.api.IMetaData.DATA_TYPES;
 import prerna.algorithm.api.ITableDataFrame;
@@ -408,6 +409,20 @@ public class TableDataFrameFactory {
 		//get iterator and pass to new frame to add data
 		Iterator<IHeadersDataRow> it = (WrapperManager.getInstance().getRawWrapper(nativeEngine, query));
 		newFrame.addRowsViaIterator(it);
+		
+		Hashtable<String, Hashtable<String, Vector>> tempFilters = frame.getBuilder().getTempFilters();
+		//reapply the temp filters to the h2 frame
+
+		for(String column : tempFilters.keySet()) {
+			Hashtable<String, Vector> curFilters = tempFilters.get(column);
+			Map<String, List<Object>> translatedFilters = new HashMap<>();
+			for(String comparator : curFilters.keySet()) {
+				List<Object> nextList = new ArrayList<>();
+				nextList.addAll(curFilters.get(comparator));
+				translatedFilters.put(comparator, nextList);
+			}
+			newFrame.filter(column, translatedFilters);
+		}
 		
 		return newFrame;
 	}
