@@ -5,6 +5,10 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import org.apache.log4j.LogManager;
+import org.apache.log4j.Logger;
+import org.rosuda.REngine.REXP;
+import org.rosuda.REngine.Rserve.RConnection;
 import org.rosuda.REngine.Rserve.RserveException;
 
 import prerna.algorithm.api.IMatcher;
@@ -13,12 +17,14 @@ import prerna.algorithm.api.ITableDataFrame;
 import prerna.ds.AbstractTableDataFrame;
 import prerna.ds.TinkerMetaData;
 import prerna.engine.api.IHeadersDataRow;
+import prerna.engine.impl.r.RFileWrapper;
 import prerna.sablecc.PKQLEnum;
 import prerna.sablecc.PKQLEnum.PKQLReactor;
 import prerna.ui.components.playsheets.datamakers.DataMakerComponent;
 
 public class RDataTable extends AbstractTableDataFrame {
 
+	private static final Logger LOGGER = LogManager.getLogger(RDataTable.class.getName());
 	public static final String R_DATA_FRAME = "RDataFrame";
 	
 	private RBuilder builder;
@@ -32,6 +38,10 @@ public class RDataTable extends AbstractTableDataFrame {
 			throw new IllegalStateException("Could not create valid connection to R. "
 					+ "Please make sure R is installed properly and running on machine.");
 		}
+	}
+	
+	public RConnection getConnection() {
+		return this.builder.getConnection();
 	}
 	
 	@Override
@@ -67,9 +77,17 @@ public class RDataTable extends AbstractTableDataFrame {
 		reactorNames.put(PKQLEnum.NETWORK_CONNECT, "prerna.sablecc.ConnectReactor");
 		reactorNames.put(PKQLEnum.NETWORK_DISCONNECT, "prerna.sablecc.DisConnectReactor");
 		reactorNames.put(PKQLEnum.DATA_FRAME_DUPLICATES, "prerna.sablecc.H2DataFrameDuplicatesReactor");
-		
+
+		reactorNames.put(PKQLEnum.SUM, "prerna.algorithm.impl.RSumReactor");
+		reactorNames.put(PKQLEnum.MAX, "prerna.algorithm.impl.RMaxReactor");
+		reactorNames.put(PKQLEnum.MIN, "prerna.algorithm.impl.RMinReactor");
+		reactorNames.put(PKQLEnum.AVERAGE, "prerna.algorithm.impl.RAverageReactor");
+		reactorNames.put(PKQLEnum.STANDARD_DEVIATION, "prerna.algorithm.impl.RStandardDeviationReactor");
+		reactorNames.put(PKQLEnum.MEDIAN, "prerna.algorithm.impl.RMedianReactor");
+		reactorNames.put(PKQLEnum.COUNT, "prerna.algorithm.impl.RCountReactor");
+
 		reactorNames.put(PKQLEnum.QUERY_API, "prerna.sablecc.QueryApiReactor");
-		reactorNames.put(PKQLEnum.CSV_API, "prerna.sablecc.CsvApiReactor");
+		reactorNames.put(PKQLEnum.CSV_API, "prerna.sablecc.RCsvApiReactor");
 		reactorNames.put(PKQLEnum.WEB_API, "prerna.sablecc.WebApiReactor");
 //		reactorNames.put(PKQLEnum.R_API, "prerna.sablecc.RApiReactor");
 
@@ -80,6 +98,16 @@ public class RDataTable extends AbstractTableDataFrame {
 		// we really need another way to get the data types....
 		Map<String, IMetaData.DATA_TYPES> typesMap = this.metaData.getColumnTypes();
 		this.builder.createTableViaIterator(it, typesMap);
+	}
+	
+	public void createTableViaCsvFile(RFileWrapper fileWrapper) {
+		String loadFile = this.builder.getTableName() + "<- fread(\"" + fileWrapper.getFilePath().replace("\\", "/") + "\")";
+		this.builder.executeR(loadFile);
+		this.builder.executeR(this.builder.getTableName() + "<- " + fileWrapper.getRScript());
+	}
+	
+	public REXP executeRScript(String rScript) {
+		return this.builder.executeR(rScript);
 	}
 	
 	@Override
@@ -112,6 +140,9 @@ public class RDataTable extends AbstractTableDataFrame {
 		return this.builder.isEmpty();
 	}
 	
+	public String getTableVarName() {
+		return this.builder.getTableName();
+	}
 	
 	@Override
 	public void addRow(Object[] rowCleanData) {
@@ -224,8 +255,14 @@ public class RDataTable extends AbstractTableDataFrame {
 	
 	@Override
 	public void processDataMakerComponent(DataMakerComponent component) {
-		// TODO Auto-generated method stub
-		
+		// we have only had RDataTable since PKQL was introduced
+		// lets not try to expand this to cover the old stuff
+		// assuming only pkql is used
+		long startTime = System.currentTimeMillis();
+		LOGGER.info("Processing Component..................................");
+		processPostTransformations(component, component.getPostTrans());
+		long endTime = System.currentTimeMillis();
+		LOGGER.info("Component Processed: " + (endTime - startTime) + " ms");		
 	}
 	
 	@Override

@@ -113,7 +113,7 @@ public class Compiler
    													+ "del:(c:colToRemove);"
    													+ "rm:(c:colToRemove, c:anotherColToRemove);"*/
 													//+ "jc"
-													+"database.metamodel(Movie_RDBMS)"	
+													+"database.concepts(Movie_RDBMS)"	
 													+ ";")), 1024)));
 			// new InputStreamReader(System.in), 1024)));
 

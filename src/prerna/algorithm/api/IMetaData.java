@@ -29,7 +29,23 @@ public interface IMetaData {
 	public static final String STRING = "STRING";
 	public static final String DATE = "DATE";
 
-
+	public static DATA_TYPES convertToDataTypeEnum(String dataType) {
+		dataType = dataType.toUpperCase();
+		if(dataType.contains("STRING") || dataType.contains("TEXT") || dataType.contains("VARCHAR")) {
+			return IMetaData.DATA_TYPES.STRING;
+		} 
+		else if(dataType.contains("INT") || dataType.contains("DECIMAL") || dataType.contains("DOUBLE") || dataType.contains("FLOAT") || dataType.contains("LONG") || dataType.contains("BIGINT")
+				|| dataType.contains("TINYINT") || dataType.contains("SMALLINT") || dataType.contains("NUMBER")){
+			return IMetaData.DATA_TYPES.NUMBER;
+		} 
+		else if(dataType.contains("DATE")) {
+			return IMetaData.DATA_TYPES.DATE;
+		}
+		
+		return null;
+	}
+	
+	
 //////////////////::::::::::::::::::::::: SETTER METHODS :::::::::::::::::::::::::::::::://////////////////////////////
 //	/**
 //	 * In RDBMS this is a table. In RDF/Tinker this is a node

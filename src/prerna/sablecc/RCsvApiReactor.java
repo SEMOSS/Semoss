@@ -1,13 +1,14 @@
 package prerna.sablecc;
 
+import java.io.File;
 import java.util.Hashtable;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Vector;
 
-import prerna.ds.util.FileIterator;
 import prerna.engine.api.IHeadersDataRow;
+import prerna.engine.impl.r.RFileWrapper;
 import prerna.engine.impl.rdf.AbstractApiReactor;
 import prerna.sablecc.meta.FilePkqlMetadata;
 import prerna.sablecc.meta.IPkqlMetadata;
@@ -24,7 +25,9 @@ public class RCsvApiReactor extends AbstractApiReactor {
 	
 	@Override
 	public Iterator<IHeadersDataRow> process() {
-
+		// this will create the QS
+		super.process();
+		
 		// the mapOptions stores all the information being passed from the user
 		// this will contain the fileName and the data types from each column
 		dataTypeMap = new Hashtable<String, String>();
@@ -33,6 +36,7 @@ public class RCsvApiReactor extends AbstractApiReactor {
 		for(Object key : this.mapOptions.keySet()) {
 			if(key.equals(FILE_KEY)) {
 				fileName = (String)this.mapOptions.get(FILE_KEY);
+				this.put("FILE_LOCATION", fileName);
 			} else {
 				dataTypeMap.put(key.toString(), (String)this.mapOptions.get(key));
 			}
@@ -41,8 +45,10 @@ public class RCsvApiReactor extends AbstractApiReactor {
 		// pass in delimiter as a comma and return the FileIterator which uses the QS (if not empty) to 
 		// to determine what selectors to send
 		
-		// the qs is passed from AbstractApiReactor
-		this.put((String) getValue(PKQLEnum.API), new FileIterator(fileName, ',', this.qs, dataTypeMap));
+		RFileWrapper fileWrapper = new RFileWrapper(this.fileName);
+		fileWrapper.composeRScript(this.qs, this.dataTypeMap);
+		
+		this.put((String) getValue(PKQLEnum.API), fileWrapper);
 		this.put("RESPONSE", "success");
 		this.put("STATUS", PKQLRunner.STATUS.SUCCESS);
 		

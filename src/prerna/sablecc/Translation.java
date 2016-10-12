@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.Hashtable;
+import java.util.LinkedHashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.ListIterator;
@@ -13,6 +14,7 @@ import java.util.Vector;
 import com.google.gson.Gson;
 
 import prerna.algorithm.api.ITableDataFrame;
+import prerna.ds.R.RDataTable;
 import prerna.engine.api.IScriptReactor;
 import prerna.om.Dashboard;
 import prerna.sablecc.PKQLEnum.PKQLReactor;
@@ -571,7 +573,7 @@ public class Translation extends DepthFirstAdapter {
 			// those values as needed
 			for (String var : varMap.keySet()) {
 				Map<String, Object> paramValues = varMap.get(var);
-				if (paramValues.get(Constants.ENGINE).equals(engine)) {
+				if (engine.equals(paramValues.get(Constants.ENGINE))) {
 					varMapForReactor.put(var, varMap.get(var));
 				}
 			}
@@ -1254,6 +1256,12 @@ public class Translation extends DepthFirstAdapter {
 
 		deinitReactor(PKQLEnum.DATA_FRAME, node.getBuilder().toString().trim(), node.toString().trim());
 		this.frame = (ITableDataFrame) curReactor.getValue(PKQLEnum.G);
+		
+		// we need to set the connection in the PKQLRunner so we can call it via Java Reactor
+		if(this.frame instanceof RDataTable) {
+			this.runner.setVariableValue(BaseJavaReactor.R_CONN, ((RDataTable) this.frame).getConnection());
+		}
+		
 		// set the script reactors for this new frame
 		this.reactorNames = frame.getScriptReactors();
 	}
@@ -1736,7 +1744,7 @@ public class Translation extends DepthFirstAdapter {
 	@Override
 	public void inAMapObj(AMapObj node) {
 		// values will store the user input map object
-		Map<Object, Object> values = new Hashtable<Object, Object>();
+		Map<Object, Object> values = new LinkedHashMap<Object, Object>();
 
 		// we specifically call the processing on each of the key-value
 		// groups such that we are responsible for the aggregation of

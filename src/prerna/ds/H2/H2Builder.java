@@ -33,7 +33,6 @@ import org.stringtemplate.v4.ST;
 
 import com.google.gson.Gson;
 
-import edu.cmu.lti.jawjaw.db.SQL;
 import prerna.algorithm.api.IMetaData;
 import prerna.cache.ICache;
 import prerna.ds.AbstractTableDataFrame;
@@ -3383,11 +3382,24 @@ public class H2Builder {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
-
 	}
 
 	public int getNumRecords() {
 		String query = "SELECT COUNT(*) * " + getHeaders(this.tableName).length + " FROM " + this.tableName;
+		ResultSet rs = executeQuery(query);
+		try {
+			while (rs.next()) {
+				return rs.getInt(1);
+			}
+		} catch (SQLException e) {
+			e.printStackTrace();
+		}
+
+		return 0;
+	}
+	
+	public int getNumRows() {
+		String query = "SELECT COUNT(*) FROM " + this.tableName;
 		ResultSet rs = executeQuery(query);
 		try {
 			while (rs.next()) {

@@ -25,5 +25,5 @@ appendToDataTable.123456<-function(dt, elems) {
 }
 
 removeEmptyRows.123456<-function(dt) {
-	dt <- dt[rowSums(is.na(dt)) != ncol(dt), ]
+	return(dt[rowSums(is.na(dt)) != ncol(dt), ])
 }
