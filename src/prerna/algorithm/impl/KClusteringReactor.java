@@ -1,7 +1,9 @@
 package prerna.algorithm.impl;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
 import java.util.Vector;
 
@@ -19,7 +21,6 @@ import prerna.util.Constants;
 
 public class KClusteringReactor extends MathReactor{
 	
-	private int numClusters;
 	private int numIterations;
 		
 	@Override
@@ -27,52 +28,33 @@ public class KClusteringReactor extends MathReactor{
 		modExpression();
 		Vector<String> columns = (Vector <String>) myStore.get(PKQLEnum.COL_DEF);
 		String filterColumn = null;
-
+		ITableDataFrame dataFrame = ((ITableDataFrame)myStore.get("G"));
 		if(myStore.containsKey(PKQLEnum.COL_CSV)) {
 			filterColumn = ((Vector<String>)myStore.get(PKQLEnum.COL_CSV)).firstElement();
-			columns.add(filterColumn);
+			if(filterColumn.equals("Bounds")){
+				List<Object> filterValues = new ArrayList<>();
+				filterValues.add(1);
+				dataFrame.filter("Bounds", filterValues);		
+			}
 		}
 		
 		String[] columnsArray = convertVectorToArray(columns);
-		Iterator itr = getTinkerData(columns, (ITableDataFrame)myStore.get("G"), true);
-		int numRows = ((ITableDataFrame)myStore.get("G")).getNumRows();
-		if(myStore.containsKey(PKQLEnum.MATH_PARAM)) {
-			Map<String, Object> options = (Map<String, Object>) myStore.get(PKQLEnum.MATH_PARAM);
-			
-			if(options.containsKey("numClusters".toUpperCase())) {
-				this.numClusters = Integer.parseInt(options.get("numClusters".toUpperCase()) + "");
-			} else {
-				// TODO: need to throw an error saying number of clusters is required
-				this.numClusters = (int)Math.round(Math.pow(numRows, 0.33));
-			}
-			if(options.containsKey("numIterations".toUpperCase())) {
-				this.numIterations = Integer.parseInt(options.get("numIterations".toUpperCase()) + "");
-			} else {
-				// TODO: need to throw an error saying number of clusters is required
-				this.numIterations = 100;
-			}
-			
-		} else {
-			//TODO: need to throw an error saying parameters are required
-			this.numClusters = (int)Math.round(Math.pow(numRows, 0.33));;
-			this.numIterations = 100;
-		}		
+		Iterator itr = getTinkerData(columns, dataFrame, false);	
+		this.numIterations = 10000;
+		KMeansModel kMeans = new KMeansModel(itr, this.numIterations);
 		
-		boolean boundsPresent = filterColumn != null;
-		KMeansModel kMeans = new KMeansModel(itr, this.numClusters, this.numIterations,boundsPresent);
-		
-		Map<Object,Integer> clusters =  kMeans.clusterResult();
+		Map<List<Object>,Integer> clusters = kMeans.clusterResult();
 		
 		String script = columnsArray[0];
-		
-		H2Frame frame = (H2Frame)myStore.get("G");
-		Iterator resultItr = getTinkerData(columns, frame, true);
+		if(filterColumn != null && filterColumn.equals("Bounds"))
+			dataFrame.unfilter("Bounds");
+		Iterator resultItr = getTinkerData(columns, dataFrame, false);
 		ClusterIterator expItr = new ClusterIterator(resultItr, columnsArray,script, clusters);
 		String nodeStr = myStore.get(whoAmI).toString();
 		myStore.put(nodeStr, expItr);
-		Map<String,Object> additionalInfo = new HashMap<>();
+		/*Map<String,Object> additionalInfo = new HashMap<>();
 		additionalInfo.put("Centres", kMeans.getClusterCentres());
-		myStore.put("ADDITIONAL_INFO", additionalInfo);
+		myStore.put("ADDITIONAL_INFO", additionalInfo);*/
 		myStore.put("STATUS", STATUS.SUCCESS);
 		
 		return expItr;
@@ -81,13 +63,13 @@ public class KClusteringReactor extends MathReactor{
 
 class ClusterIterator extends ExpressionIterator{
 	
-	protected Map<Object,Integer> clusters;
+	protected Map<List<Object>,Integer> clusters;
 	
 	protected ClusterIterator() {
 		
 	}
 	
-	public ClusterIterator(Iterator results, String [] columnsUsed, String script, Map<Object,Integer> clusters)
+	public ClusterIterator(Iterator results, String [] columnsUsed, String script, Map<List<Object>,Integer> clusters)
 	{
 		this.clusters = clusters;
 		setData(results, columnsUsed, script);
@@ -101,12 +83,16 @@ class ClusterIterator extends ExpressionIterator{
 	
 	@Override
 	public Object next() {
-		Object retObject = null;
+		Object retObject = new Integer(-1);
 		
 		if(results != null && !errored)
 		{
 			setOtherBindings();
-			retObject = clusters.get(otherBindings.get(columnsUsed[0]));
+			List<Object> key = new ArrayList<>(columnsUsed.length);
+			for(int i=0; i<columnsUsed.length; i++)
+				key.add(otherBindings.get(columnsUsed[i]));
+			if(clusters.containsKey(key))
+				retObject = clusters.get(key);
 		}
 		return retObject;
 	}
