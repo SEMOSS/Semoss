@@ -60,7 +60,7 @@ public class H2QueryUtil extends SQLQueryUtil {
 	@Override
 	public String getConnectionURL(String baseFolder, String dbname){
 		String engineDirectoryName = "db" + System.getProperty("file.separator") + dbname;
-		return "jdbc:h2:" + baseFolder + System.getProperty("file.separator") + engineDirectoryName
+		return "jdbc:h2:nio:" + baseFolder + System.getProperty("file.separator") + engineDirectoryName
 				+ System.getProperty("file.separator") + "database;query_timeout=180000;early_filter=true;query_cache_size=24;cache_size=32768";
 	}
 	@Override

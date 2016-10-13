@@ -4,11 +4,9 @@ import java.io.File;
 import java.io.IOException;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
-import java.util.HashSet;
 import java.util.Hashtable;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 
 import org.apache.commons.io.FileUtils;
 import org.apache.log4j.Level;
@@ -38,7 +36,7 @@ public class RDBMSFlatExcelUploader extends AbstractFileReader {
 	private Map<String, Map<String, String[]>> dataTypeMap;
 	
 	// need to keep track of the new tables added when doing addToExisting
-	private Set<String> newTables = new HashSet<String>();
+	private Map<String, String> newTables = new Hashtable<String, String>();
 	
 	// these keys are used within the return of the parse excel data to get the
 	// headers and data types from a given excel file
@@ -188,6 +186,8 @@ public class RDBMSFlatExcelUploader extends AbstractFileReader {
 				}
 				processExcel(fileName, dataTypeMap);
 			}
+			// add indexes for faster searching
+			addIndexes();
 			// write the owl file
 			createBaseRelations();
 			// create the base question sheet
@@ -326,7 +326,7 @@ public class RDBMSFlatExcelUploader extends AbstractFileReader {
 			// write the owl file
 			createBaseRelations();
 			// create the base question sheet
-			RDBMSEngineCreationHelper.addToExistingQuestionFile(this.engine, newTables, queryUtil);
+			RDBMSEngineCreationHelper.addToExistingQuestionFile(this.engine, newTables.keySet(), queryUtil);
 		} catch(IOException e) {
 			e.printStackTrace();
 			error = true;
@@ -633,7 +633,7 @@ public class RDBMSFlatExcelUploader extends AbstractFileReader {
 		LOGGER.info("CREATE TABLE QUERY : " + queryBuilder.toString());
 		this.engine.insertData(queryBuilder.toString());
 		
-		newTables.add(TABLE_NAME);
+		newTables.put(TABLE_NAME, UNIQUE_ROW_ID);
 	}
 	
 	
@@ -717,6 +717,23 @@ public class RDBMSFlatExcelUploader extends AbstractFileReader {
 			}
 			throw new IOException(errorMessage);
 		}
+	}
+	
+	private void addIndexes() {
+		for(String tableName : newTables.keySet()) {
+			addColumnIndex(tableName, newTables.get(tableName));
+		}
+	}
+	
+	/**
+	 * Add an index into the table for faster searching
+	 * @param tableName
+	 * @param colName
+	 */
+	protected void addColumnIndex(String tableName, String colName) {
+		String indexName = colName + "_INDEX" ;
+		String indexSql = "CREATE INDEX " + indexName + " ON " + tableName + "(" + colName + ")";
+		engine.insertData(indexSql);
 	}
 	
 	/**
