@@ -17,7 +17,6 @@ import prerna.engine.api.IEngineWrapper;
 import prerna.sablecc.meta.IPkqlMetadata;
 import prerna.sablecc.meta.ImportDataMetadata;
 import prerna.util.ArrayUtilityMethods;
-import prerna.util.DIHelper;
 import prerna.util.Utility;
 
 /**
@@ -319,7 +318,11 @@ public abstract class ImportDataReactor extends AbstractReactor {
 		} else if(myStore.containsKey("API_ENGINE")) {
 			//create column info for api data
 			String data = (String) myStore.get("MOD_IMPORT_DATA");
-			data = data.substring(data.indexOf("{") + 1, data.indexOf("}")).trim();
+			if(data.contains("{")) {
+				data = data.substring(data.indexOf("{") + 1, data.indexOf("}")).trim();
+			} else {
+				data = data.trim();
+			}
 			String column = myStore.get("API_ENGINE") + "-" + data;
 			if(column.indexOf("\'url\'") > 0) {
 				column = "Columns from url";
