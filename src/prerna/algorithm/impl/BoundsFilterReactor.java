@@ -1,5 +1,6 @@
 package prerna.algorithm.impl;
 
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Vector;
@@ -67,6 +68,9 @@ public class BoundsFilterReactor extends MathReactor{
 		BoundsIterator expItr = new BoundsIterator(resultItr, columnsArray, tolerance, lRegSlope, lRegIntercept, normalMaxRange);
 		String nodeStr = myStore.get(whoAmI).toString();
 		myStore.put(nodeStr, expItr);
+		HashMap<String,Object> additionalInfo = new HashMap<>();
+		additionalInfo.put("BoundsTolerance", tolerance);
+		myStore.put("ADDITIONAL_INFO", additionalInfo);
 		myStore.put("STATUS", STATUS.SUCCESS);
 		
 		return expItr;

@@ -33,6 +33,7 @@ public class PKQLRunner {
 	private String currentString = ""; //TODO: what is this used for?
 	private Object response = "PKQL processing complete";
 	private String explain = "";
+	private HashMap<String,Object> allAdditionalInfo = new HashMap<>();
 	private String additionalInfoString = "";
 	private Object returnData = null;
 	
@@ -139,6 +140,7 @@ public class PKQLRunner {
 		// add it to the data associated with this panel if this is a panel pkql
 		// also add the panel id to the master
 		if(this.activeFeMap != null){
+			//addFeData("additionalInfo", allAdditionalInfo, true);
 			List<Object> feResults = (List<Object>) this.activeFeMap.get("pkqlData");
 			feResults.add(result);
 			result.put("panelId", this.activeFeMap.get("panelId"));
@@ -282,7 +284,6 @@ public class PKQLRunner {
 
 	public void aggregateMetadata(List<IPkqlMetadata> metadataResponses) {
 		// grab the metadata produced
-		HashMap<String,Object> allAdditionalInfo = new HashMap<>();
 		if(metadataResponses != null && !metadataResponses.isEmpty()) {
 			this.metadataResponse.addAll(metadataResponses);
 			// create the explanation and populate additional info map using the metadata responses
