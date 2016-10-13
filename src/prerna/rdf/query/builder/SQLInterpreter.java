@@ -2,9 +2,11 @@ package prerna.rdf.query.builder;
 
 import java.util.Enumeration;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Hashtable;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.Vector;
 
 import org.openrdf.query.QueryEvaluationException;
@@ -52,6 +54,7 @@ public class SQLInterpreter implements IQueryInterpreter{
 	private transient Map<String, String[]> relationshipConceptPropertiesMap = new HashMap<String, String[]>();
 	
 	private String selectors = "";
+	private Set<String> selectorList = new HashSet<String>();
 //	private String froms = "";
 	private List<String[]> froms = new Vector<String[]>();
 	// store the joins in the object for easy use
@@ -110,7 +113,23 @@ public class SQLInterpreter implements IQueryInterpreter{
 		if(performCount) {
 			query = query + " COUNT(*) * " + selectors.split(",").length + " FROM ";
 		} else {
-			query = query + " DISTINCT " + selectors + "  FROM ";
+			if(this.engine != null && relationList.isEmpty()) {
+				// if there are no joins, we know we are querying from a single table
+				// the vast majority of the time, there shouldn't be any duplicates if
+				// we are selecting all the columns
+				String table = froms.get(0)[0];
+				if((engine.getProperties4Concept2(table, false).size() + 1) == selectorList.size()) {
+					// plus one is for the concept itself
+					// no distinct needed
+					query = query + selectors + "  FROM ";
+				} else {
+					// need a distinct
+					query = query + " DISTINCT " + selectors + "  FROM ";
+				}
+			} else {
+				// default is to use a distinct
+				query = query + " DISTINCT " + selectors + "  FROM ";
+			}
 		}
 		// if there is a join
 		// can only have one table in from in general sql case 
@@ -248,6 +267,7 @@ public class SQLInterpreter implements IQueryInterpreter{
 		} else {
 			selectors = selectors + " , " + selectorAddition;
 		}
+		selectorList.add(selectorAddition);
 	}
 	
 	//////////////////////////////////// end adding selectors /////////////////////////////////////

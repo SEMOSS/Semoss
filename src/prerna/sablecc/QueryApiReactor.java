@@ -74,7 +74,11 @@ public class QueryApiReactor extends AbstractApiReactor {
 			thisIterator = WrapperManager.getInstance().getChWrapper(engine, query);
 		} else {
 			// return the raw wrapper
+			long startTime = System.currentTimeMillis();
 			thisIterator = WrapperManager.getInstance().getRawWrapper(engine, query);
+			long endTime = System.currentTimeMillis();
+			
+			System.out.println("Query execution time = " + (endTime - startTime) + " ms");
 		}
 		
 		

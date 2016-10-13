@@ -221,7 +221,7 @@ public class RDBMSNativeEngine extends AbstractEngine {
 		ds.setUrl(connectURI);
 		ds.setUsername(userName);
 		ds.setPassword(password);
-		ds.setDefaultAutoCommit(true);//set autocommits to true...
+		ds.setDefaultAutoCommit(false);
 		this.datasourceConnected = true;
 		return ds;
 	}
@@ -347,7 +347,7 @@ public class RDBMSNativeEngine extends AbstractEngine {
 		ResultSet rs = null;
 		try {
 			conn = getConnection();
-			stmt = conn.createStatement(); 
+			stmt = conn.createStatement();
 			Map<String, Object> map = new HashMap();
 			System.out.println("RDBMS QUERY IS " + query);
 			rs = getResults(stmt, query);
@@ -517,7 +517,11 @@ public class RDBMSNativeEngine extends AbstractEngine {
 
 	@Override
 	public void commit() {
-		//we set autocommit when we init the data source, see setupDataSource
+		try {
+			getConnection().commit();
+		} catch (SQLException e) {
+			e.printStackTrace();
+		}
 	}
 
 	// traverse from a type to a type, optionally include properties
