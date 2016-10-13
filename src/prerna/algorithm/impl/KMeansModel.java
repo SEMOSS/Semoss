@@ -4,40 +4,34 @@ import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.PrintWriter;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.TreeSet;
 
 public class KMeansModel {
 	
 	private List<DataPoint> points;
-	private List<DataPoint> nonClusteredPoints;
 	private List<Cluster> clusters ;
 	
-	public KMeansModel(Iterator itr, int numClusters, int numIterations,boolean boundsPresent){
+	public KMeansModel(Iterator itr, int numIterations){
 		points = new ArrayList<>();
-		nonClusteredPoints = new ArrayList<>();
 		while(itr.hasNext()){
 			Object[] row = (Object[]) itr.next();
-			if(boundsPresent && (double)row[row.length - 1] != 1){
-				DataPoint point = new DataPoint(row[0].toString(),null);
-				nonClusteredPoints.add(point);
-				continue;
-			}
-			int numDims = row.length - (boundsPresent? 2 : 1);
+			int numDims = row.length - 1;
 			double[] dim  = new double[numDims];
 			for(int col=1; col<=numDims;col++){
 				dim[col-1] = (double)row[col];
 			}
-			DataPoint point = new DataPoint(row[0].toString(),dim);
+			DataPoint point = new DataPoint(row,dim);
 			points.add(point);				
 		}
 		Collections.sort(points);
-		clusters = new ArrayList<>(numClusters);
-		InitClusters(numClusters);
+		clusters = InitClusters();
 		Expectation();
 		while(numIterations > 0){
 			Maximization();
@@ -46,28 +40,32 @@ public class KMeansModel {
 		}
 	}
 	
-	void InitClusters(int numClusters){
-		for(int clusterNum = 0; clusterNum < numClusters; clusterNum++){
-			Cluster cluster = new Cluster(points.get((points.size()-1) * clusterNum/numClusters));
+	List<Cluster> InitClusters(){
+		List<double[]> pointData = new ArrayList<>();
+		for(DataPoint point : points)
+			pointData.add(point.dimensions);
+		KMeansNumClusters kmeansNumClusters = new KMeansNumClusters();
+		int numClusters = kmeansNumClusters.calcNumClusters(pointData);
+		KMeansInit kmeansInit = new KMeansInit(numClusters);
+		List<double[]>centres = kmeansInit.cluster(pointData);
+		List<Cluster> clusters = new ArrayList<Cluster>(numClusters);
+		for(double[] centrePos : centres){
+			DataPoint centre = new DataPoint(null, centrePos);
+			Cluster cluster = new Cluster(centre);
 			clusters.add(cluster);
 		}
+		return clusters;
 	}
 	
-	public Map<Object,Integer> clusterResult(){
-		Map<Object, Integer> result = new HashMap<Object,Integer>();
-		Collections.sort(clusters);
+	public Map<List<Object>,Integer> clusterResult(){
+		Map<List<Object>, Integer> result = new HashMap<List<Object>,Integer>();
+		TreeSet<Cluster> clusters2 = new  TreeSet<>();
+		for(DataPoint p : points){
+			clusters2.add(p.cluster);
+		}
 		
 		for(DataPoint p : points){
-			result.put(p.id, p.clusterNum);
-			/*for(int i=0; i < clusters.size(); i++){
-				if(clusters.get(i).centre.clusterNum == p.clusterNum){
-					result.put(p.id, i);
-					break;
-				}
-			}*/
-		}
-		for(DataPoint p : nonClusteredPoints){
-			result.put(p.id, p.clusterNum);
+			result.put(p.id, clusters2.headSet(p.cluster).size());
 		}
 		return result;
 	}
@@ -80,20 +78,20 @@ public class KMeansModel {
 				sb.append(String.format("%.2f,", d));
 			}
 			sb.replace(sb.length() - 1, sb.length(), "");
-		clusterCentres.put(String.valueOf(c.centre.clusterNum), sb.toString());
+		clusterCentres.put(String.valueOf(clusters.indexOf(c)), sb.toString());
 		}
 		return clusterCentres;
 	}
 	
 	void Expectation(){
 		for(DataPoint p : points){
-			p.clusterNum = -1;
+			p.cluster = null;
 			double minDist = Double.MAX_VALUE;
 			for(Cluster c : clusters){
 				double distance = DataPoint.EucledianDistance(c.centre, p);
 				if(distance < minDist){
 					minDist = distance;
-					p.clusterNum = clusters.indexOf(c);
+					p.cluster = c;
 				}
 			}
 		}
@@ -104,9 +102,9 @@ public class KMeansModel {
 		int[] numDataPointsPerCluster = new int[clusters.size()];
 		for(DataPoint point : points){
 			for(int dim=0; dim<point.dimensions.length; dim++){
-				sumDataPointDimPerCluster[point.clusterNum][dim] += point.dimensions[dim];
+				sumDataPointDimPerCluster[clusters.indexOf(point.cluster)][dim] += point.dimensions[dim];
 			}
-			numDataPointsPerCluster[point.clusterNum]++;
+			numDataPointsPerCluster[clusters.indexOf(point.cluster)]++;
 		}
 		for(Cluster cluster : clusters){
 			int index = clusters.indexOf(cluster);
@@ -115,7 +113,6 @@ public class KMeansModel {
 				newCentreDim[dim] = sumDataPointDimPerCluster[index][dim]/numDataPointsPerCluster[index];
 			}
 			DataPoint newCentre = new DataPoint(null,newCentreDim);
-			newCentre.clusterNum = cluster.centre.clusterNum;
 			cluster.centre = newCentre;
 		}
 	}
@@ -123,14 +120,14 @@ public class KMeansModel {
 }
 
 class DataPoint implements Comparable<DataPoint>,Comparator<DataPoint> {
-	final String id;
+	final List<Object> id;
 	final double[] dimensions;
-	int clusterNum;
+	Cluster cluster;
 	
-	public DataPoint(String id, double[] dimensions){
-		this.id = id;
+	public DataPoint(Object[] id, double[] dimensions){
+		this.id = (id != null)? Arrays.asList(id) : null;
 		this.dimensions = dimensions;
-		this.clusterNum = -1;
+		this.cluster = null;
 	}
 	
 	public static double EucledianDistance(DataPoint p1, DataPoint p2){
@@ -153,7 +150,7 @@ class DataPoint implements Comparable<DataPoint>,Comparator<DataPoint> {
 
 	@Override
 	public int compareTo(DataPoint arg0) {
-		return id.compareTo(arg0.id);
+		return id.get(0).toString().compareTo(arg0.id.get(0).toString());
 	}
 }
 
