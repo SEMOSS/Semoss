@@ -460,7 +460,7 @@ public class SQLInterpreter implements IQueryInterpreter{
 					dataType = this.engine.getDataTypes("http://semoss.org/ontologies/Concept/" + property + "/" + concept);
 					// ugh, need to try if it is a property
 					if(dataType == null) {
-						dataType = this.engine.getDataTypes("http://semoss.org/ontologies/Relation/Contains/" + property + "/" + concept);
+						dataType = this.engine.getDataTypes("http://semoss.org/ontologies/Relation/Contains/" + property);
 					}
 					dataType = dataType.replace("TYPE:", "");
 				}
