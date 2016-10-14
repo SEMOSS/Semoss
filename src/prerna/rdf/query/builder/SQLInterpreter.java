@@ -507,10 +507,14 @@ public class SQLInterpreter implements IQueryInterpreter{
 
 		// add it to a new where statement or an existing where statement
 		if(!whereHash.containsKey(key)) {
-			thisWhere = myObj;		
+			thisWhere = getAlias(concept) + "." + property + " " + thisComparator + " " + myObj;
+		} else if (thisComparator.equalsIgnoreCase(this.SEARCH_COMPARATOR)) {
+			//Search comparator => add a LIKE to the WHERE for the given prop
+			thisWhere = whereHash.get(key);
+			thisWhere = thisWhere + " AND " + getAlias(concept) + "." + property + " LIKE '%" + myObj + "%'";
 		} else {
 			thisWhere = whereHash.get(key);
-			thisWhere = thisWhere + ", " + myObj;						
+			thisWhere = thisWhere + " OR " + getAlias(concept) + "." + property + " " + thisComparator + " " + myObj;
 		}
 
 		whereHash.put(key, thisWhere);
