@@ -255,6 +255,12 @@ public class AnalysisAdapter implements Analysis
     }
 
     @Override
+    public void caseAQueryDataColop(AQueryDataColop node)
+    {
+        defaultCase(node);
+    }
+
+    @Override
     public void caseAPanelVizPanelop(APanelVizPanelop node)
     {
         defaultCase(node);
@@ -532,6 +538,12 @@ public class AnalysisAdapter implements Analysis
 
     @Override
     public void caseAImportData(AImportData node)
+    {
+        defaultCase(node);
+    }
+
+    @Override
+    public void caseAQueryData(AQueryData node)
     {
         defaultCase(node);
     }
@@ -1444,6 +1456,12 @@ public class AnalysisAdapter implements Analysis
 
     @Override
     public void caseTDataopentoken(TDataopentoken node)
+    {
+        defaultCase(node);
+    }
+
+    @Override
+    public void caseTDataquerytoken(TDataquerytoken node)
     {
         defaultCase(node);
     }
