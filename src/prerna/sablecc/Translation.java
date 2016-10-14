@@ -95,6 +95,7 @@ import prerna.sablecc.node.APanelopScript;
 import prerna.sablecc.node.APastedData;
 import prerna.sablecc.node.APastedDataBlock;
 import prerna.sablecc.node.APlusExpr;
+import prerna.sablecc.node.AQueryData;
 import prerna.sablecc.node.ARelationDef;
 import prerna.sablecc.node.ARemoveData;
 import prerna.sablecc.node.ARenameColumn;
@@ -246,21 +247,7 @@ public class Translation extends DepthFirstAdapter {
 		int index = 0;
 		while (index < runner.pkqlToRun.size()) {
 			PScript script = runner.pkqlToRun.get(index);
-			if (runner.unassignedVars.isEmpty() || script instanceof AVaropScript) { // if
-																						// no
-																						// vars
-																						// are
-																						// unassigned..
-																						// we
-																						// are
-																						// good.
-																						// otherwise
-																						// we
-																						// only
-																						// look
-																						// for
-																						// their
-																						// assignment
+			if (runner.unassignedVars.isEmpty() || script instanceof AVaropScript) { // if no vars are unassigned.. we are good. otherwise we only look for their assignment
 				// PVarop varop = ((AVaropScript)script).getVarop();
 				runner.pkqlToRun.remove(index).apply(this);
 				index = 0;
@@ -482,6 +469,55 @@ public class Translation extends DepthFirstAdapter {
 	/////////////////////////////////// //////////////////////////////////////
 
 	@Override
+	public void caseAQueryData(AQueryData node) {
+		inAQueryData(node);
+		// NEED TO PROCESS THE TABLE JOINS FIRST
+		// THIS IS BECAUSE THE API REACTOR NEEDS THE
+		// TABLE JOINS TO OPTIMIZE THE QUERY BEING USED
+		if (node.getJoins() != null) {
+			node.getJoins().apply(this);
+		}
+
+		// everything else takes the normal execution route
+		if (node.getDataquerytoken() != null) {
+			node.getDataquerytoken().apply(this);
+		}
+		if (node.getImport() != null) {
+			node.getImport().apply(this);
+		}
+        outAQueryData(node);
+	}
+	
+	@Override
+    public void inAQueryData(AQueryData node) {
+		if (reactorNames.containsKey(PKQLEnum.QUERY_DATA)) {
+			// make the determination to say if this is a frame.. yes it is
+			/// if it is so change the reactor to the new reactor
+			initReactor(PKQLEnum.QUERY_DATA);
+			String nodeStr = node.toString().trim();
+			curReactor.put(PKQLEnum.QUERY_DATA, nodeStr);
+			this.reactorNames.put(PKQLEnum.API, this.reactorNames.get(PKQLEnum.SEARCH_QUERY_API));
+		}
+    }
+
+	@Override
+    public void outAQueryData(AQueryData node) {
+		String nodeImport = node.getImport().toString().trim();
+		String nodeStr = node.toString().trim();
+		curReactor.put(PKQLEnum.EXPR_TERM, nodeImport);
+		Hashtable<String, Object> thisReactorHash = deinitReactor(PKQLEnum.QUERY_DATA, nodeImport, nodeStr);
+		IScriptReactor previousReactor = (IScriptReactor) thisReactorHash.get(PKQLEnum.QUERY_DATA);
+//		runner.setNewColumns((Map<String, String>) previousReactor.getValue("logicalToValue"));
+		runner.setResponse(previousReactor.getValue(nodeStr));
+		runner.setStatus((STATUS)previousReactor.getValue("STATUS"));
+		
+		Map<String, List> searchData = new HashMap<>(1);
+		searchData.put("list", (List)previousReactor.getValue("searchData"));
+		runner.setReturnData(searchData);
+		this.frame = (IDataMaker) previousReactor.getValue(PKQLEnum.G);
+    }
+    
+	@Override
 	public void caseAImportData(AImportData node) {
 		inAImportData(node);
 		// NEED TO PROCESS THE TABLE JOINS FIRST
@@ -521,12 +557,33 @@ public class Translation extends DepthFirstAdapter {
 		IScriptReactor previousReactor = (IScriptReactor) thisReactorHash.get(PKQLReactor.IMPORT_DATA.toString());
 		runner.setNewColumns((Map<String, String>) previousReactor.getValue("logicalToValue"));
 		runner.setResponse(previousReactor.getValue(nodeStr));
-		runner.setStatus((STATUS) previousReactor.getValue("STATUS"));
+		runner.setStatus((STATUS)previousReactor.getValue("STATUS"));
+		
+		this.frame = (IDataMaker) previousReactor.getValue(PKQLEnum.G);
 	}
 
 	@Override
 	public void inAApiBlock(AApiBlock node) {
-		if (reactorNames.containsKey(PKQLEnum.API)) {
+		// now the curReactor will be some kind of ApiReactor based on
+		// strategy pattern described below
+		// strategy pattern uses the engine to determine the type
+		// assumption if not predefined, it is an engine name that is
+		// query-able via a IQueryInterpreter
+		String engine = node.getEngineName().toString().trim();
+		if (engine.equalsIgnoreCase("ImportIO") || engine.equalsIgnoreCase("AmazonProduct")) {
+			// we have a web api
+			this.reactorNames.put(PKQLEnum.API, this.reactorNames.get(PKQLEnum.WEB_API));
+		} else if (engine.equalsIgnoreCase("csvFile")) {
+			// we have a csv api
+			this.reactorNames.put(PKQLEnum.API, this.reactorNames.get(PKQLEnum.CSV_API));
+		} else if (engine.equalsIgnoreCase("R")) {
+			// we have an R api to connect
+			this.reactorNames.put(PKQLEnum.API, this.reactorNames.get(PKQLEnum.R_API));
+		} else if(this.reactorNames.get(PKQLEnum.API) == null){
+			// default is a query api
+			this.reactorNames.put(PKQLEnum.API, this.reactorNames.get(PKQLEnum.QUERY_API));
+		}
+//		if (reactorNames.containsKey(PKQLEnum.API)) {
 			// this is here because we are overriding the data.import order of
 			// execution to process the joins
 			// before we process the iterator
@@ -536,25 +593,7 @@ public class Translation extends DepthFirstAdapter {
 				tableJoins = (List) curReactor.getValue(PKQLEnum.JOINS);
 			}
 
-			// now the curReactor will be some kind of ApiReactor based on
-			// strategy pattern described below
-			// strategy pattern uses the engine to determine the type
-			// assumption if not predefined, it is an engine name that is
-			// query-able via a IQueryInterpreter
-			String engine = node.getEngineName().toString().trim();
-			if (engine.equalsIgnoreCase("ImportIO") || engine.equalsIgnoreCase("AmazonProduct")) {
-				// we have a web api
-				this.reactorNames.put(PKQLEnum.API, this.reactorNames.get(PKQLEnum.WEB_API));
-			} else if (engine.equalsIgnoreCase("csvFile")) {
-				// we have a csv api
-				this.reactorNames.put(PKQLEnum.API, this.reactorNames.get(PKQLEnum.CSV_API));
-			} else if (engine.equalsIgnoreCase("R")) {
-				// we have an R api to connect
-				this.reactorNames.put(PKQLEnum.API, this.reactorNames.get(PKQLEnum.R_API));
-			} else {
-				// default is a query api
-				this.reactorNames.put(PKQLEnum.API, this.reactorNames.get(PKQLEnum.QUERY_API));
-			}
+			
 
 			// make the api type
 			// set in the values
@@ -583,21 +622,14 @@ public class Translation extends DepthFirstAdapter {
 			if (tableJoins != null) {
 				curReactor.put(PKQLEnum.TABLE_JOINS, tableJoins);
 			}
-		}
+//		}
 	}
 
 	@Override
 	public void outAApiBlock(AApiBlock node) {
 		String nodeStr = node.toString().trim();
 		IScriptReactor thisReactor = curReactor;
-		Hashtable<String, Object> thisReactorHash = deinitReactor(PKQLEnum.API, nodeStr, PKQLEnum.API); // I
-																										// need
-																										// to
-																										// make
-																										// this
-																										// into
-																										// a
-																										// string
+		Hashtable<String, Object> thisReactorHash = deinitReactor(PKQLEnum.API, nodeStr, PKQLEnum.API); // I need to make this into a string
 		if (curReactor != null && node.parent() != null
 				&& (node.parent() instanceof AApiImportBlock || node.parent() instanceof AApiTerm)
 				&& !node.getEngineName().toString().equalsIgnoreCase("ImportIO")) {
