@@ -705,6 +705,27 @@ public class DepthFirstAdapter extends AnalysisAdapter
         outADashboardJoinColop(node);
     }
 
+    public void inAQueryDataColop(AQueryDataColop node)
+    {
+        defaultIn(node);
+    }
+
+    public void outAQueryDataColop(AQueryDataColop node)
+    {
+        defaultOut(node);
+    }
+
+    @Override
+    public void caseAQueryDataColop(AQueryDataColop node)
+    {
+        inAQueryDataColop(node);
+        if(node.getQueryData() != null)
+        {
+            node.getQueryData().apply(this);
+        }
+        outAQueryDataColop(node);
+    }
+
     public void inAPanelVizPanelop(APanelVizPanelop node)
     {
         defaultIn(node);
@@ -2135,6 +2156,43 @@ public class DepthFirstAdapter extends AnalysisAdapter
             node.getRp2().apply(this);
         }
         outAImportData(node);
+    }
+
+    public void inAQueryData(AQueryData node)
+    {
+        defaultIn(node);
+    }
+
+    public void outAQueryData(AQueryData node)
+    {
+        defaultOut(node);
+    }
+
+    @Override
+    public void caseAQueryData(AQueryData node)
+    {
+        inAQueryData(node);
+        if(node.getDataquerytoken() != null)
+        {
+            node.getDataquerytoken().apply(this);
+        }
+        if(node.getLp1() != null)
+        {
+            node.getLp1().apply(this);
+        }
+        if(node.getImport() != null)
+        {
+            node.getImport().apply(this);
+        }
+        if(node.getJoins() != null)
+        {
+            node.getJoins().apply(this);
+        }
+        if(node.getRp2() != null)
+        {
+            node.getRp2().apply(this);
+        }
+        outAQueryData(node);
     }
 
     public void inAOpenData(AOpenData node)
