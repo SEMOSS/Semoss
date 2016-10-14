@@ -64,6 +64,7 @@ public class PKQLEnum {
 	public static final String ROW_CSV = "ROW_CSV";
 	public static final String IMPORT_DATA = "IMPORT_DATA";
 	public static final String REMOVE_DATA = "REMOVE_DATA";
+	public static final String QUERY_DATA = "QUERY_DATA";
 	public static final String VIZ = "VIZ";
 	public static final String WORD_OR_NUM = "WORD_OR_NUM";
 	public static final String REL_TYPE = "REL_TYPE";
@@ -95,5 +96,7 @@ public class PKQLEnum {
 	public static final String CSV_API = "CSV_API";
 	public static final String R_API = "R_API";
 	public static final String WEB_API = "WEB_API";
+	public static final String NATIVE_QUERY_API = "NATIVE_QUERY_API";
+	public static final String SEARCH_QUERY_API = "SEARCH_QUERY_API";
 	
 }
