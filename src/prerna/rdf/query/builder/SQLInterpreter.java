@@ -460,7 +460,7 @@ public class SQLInterpreter implements IQueryInterpreter{
 					dataType = this.engine.getDataTypes("http://semoss.org/ontologies/Concept/" + property + "/" + concept);
 					// ugh, need to try if it is a property
 					if(dataType == null) {
-						dataType = this.engine.getDataTypes("http://semoss.org/ontologies/Relation/Contains/" + property);
+						dataType = this.engine.getDataTypes("http://semoss.org/ontologies/Relation/Contains/" + property + "/" + concept);
 					}
 					dataType = dataType.replace("TYPE:", "");
 				}
@@ -488,11 +488,15 @@ public class SQLInterpreter implements IQueryInterpreter{
 
 		// add it to the where statement
 		if(!whereHash.containsKey(key)) {
-			thisWhere = getAlias(concept) + "." + property + " " + thisComparator + " " + myObj;		
+			thisWhere = getAlias(concept) + "." + property + " " + thisComparator + " " + myObj;
+		} else if (thisComparator.equalsIgnoreCase(this.SEARCH_COMPARATOR)) {
+			//Search comparator => add a LIKE to the WHERE for the given prop
+			thisWhere = whereHash.get(key);
+			thisWhere = thisWhere + " AND " + getAlias(concept) + "." + property + " LIKE '%" + myObj + "%'";
 		} else {
 			thisWhere = whereHash.get(key);
-			thisWhere = thisWhere + " OR " + getAlias(concept) + "." + property + " " + thisComparator + " " + myObj;						
-		}
+			thisWhere = thisWhere + " OR " + getAlias(concept) + "." + property + " " + thisComparator + " " + myObj;
+		} 
 
 		whereHash.put(key, thisWhere);
 	}
@@ -507,14 +511,10 @@ public class SQLInterpreter implements IQueryInterpreter{
 
 		// add it to a new where statement or an existing where statement
 		if(!whereHash.containsKey(key)) {
-			thisWhere = getAlias(concept) + "." + property + " " + thisComparator + " " + myObj;
-		} else if (thisComparator.equalsIgnoreCase(this.SEARCH_COMPARATOR)) {
-			//Search comparator => add a LIKE to the WHERE for the given prop
-			thisWhere = whereHash.get(key);
-			thisWhere = thisWhere + " AND " + getAlias(concept) + "." + property + " LIKE '%" + myObj + "%'";
+			thisWhere = myObj;		
 		} else {
 			thisWhere = whereHash.get(key);
-			thisWhere = thisWhere + " OR " + getAlias(concept) + "." + property + " " + thisComparator + " " + myObj;
+			thisWhere = thisWhere + ", " + myObj;						
 		}
 
 		whereHash.put(key, thisWhere);
