@@ -76,6 +76,7 @@ Tokens
  dataimporttoken = 'data.import';
  dataremovetoken = 'data.remove';
  dataopentoken = 'data.open';
+ dataquerytoken = 'data.query';
  literal = (letter_s | letter_b | digit | underscore)*;// | special)*;
  help_token = 'info.help';
  codeblock = code alphanumeric* code;
@@ -154,6 +155,7 @@ colop = // colOp is usually of the form of joinColumn / addColumn / removeColumn
 		| {renamecol} rename_column
 		| {splitcol} split_column
 		| {dashboard_join} dashboard_join
+		| {query_data} query_data
 		;
 
 panelop = // panelop is usually of the form of viz.change, viz.tools, viz.color
@@ -288,6 +290,9 @@ split_column = //splits a column based on a delimiter
 import_data = // imports from api query commands and other scripts
 		dataimporttoken [lp1]:l_par [import]:import_block [joins]:relation_clause? [rp2]:r_par;
 
+query_data = // imports from api query commands and other scripts
+		dataquerytoken [lp1]:l_par [import]:import_block [joins]:relation_clause? [rp2]:r_par;
+		
 open_data = //opens insight given an engine and id, e.g. "data.open("MovieDB", "3");
 		dataopentoken [lp]:l_par [engine]:word_or_num [comma]:comma [engine_id]:word_or_num [rp]: r_par;
 			
