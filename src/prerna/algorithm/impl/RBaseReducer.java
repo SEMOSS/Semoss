@@ -52,8 +52,8 @@ public abstract class RBaseReducer extends AbstractReactor {
 		Vector<String> groupBys = (Vector <String>)myStore.get(PKQLEnum.COL_CSV);
 		
 		if(groupBys != null && !groupBys.isEmpty()){
-			String sumScript = processGroupBy(varRFrame, columns.get(0), groupBys);
-			REXP math = rFrame.executeRScript(sumScript);
+			String script = processGroupBy(varRFrame, columns.get(0), groupBys);
+			REXP math = rFrame.executeRScript(script);
 			
 			try {
 				// note: the derived column comes back with header "V1"
@@ -87,8 +87,8 @@ public abstract class RBaseReducer extends AbstractReactor {
 				e.printStackTrace();
 			}
 		} else {
-			String sumScript = process(varRFrame, columns.get(0));
-			REXP math = rFrame.executeRScript(sumScript);
+			String script = process(varRFrame, columns.get(0));
+			REXP math = rFrame.executeRScript(script);
 			double result = 0;
 			try {
 				result = math.asDouble();

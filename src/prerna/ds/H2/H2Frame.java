@@ -1312,6 +1312,15 @@ public class H2Frame extends AbstractTableDataFrame {
 		reactorNames.put(PKQLEnum.NETWORK_DISCONNECT, "prerna.sablecc.DisConnectReactor");
 		reactorNames.put(PKQLEnum.DATA_FRAME_DUPLICATES, "prerna.sablecc.H2DataFrameDuplicatesReactor");
 		
+		reactorNames.put(PKQLEnum.SUM, "prerna.algorithm.impl.SqlSumReactor");
+		reactorNames.put(PKQLEnum.MAX, "prerna.algorithm.impl.SqlMaxReactor");
+		reactorNames.put(PKQLEnum.MIN, "prerna.algorithm.impl.SqlMinReactor");
+		reactorNames.put(PKQLEnum.AVERAGE, "prerna.algorithm.impl.SqlAverageReactor");
+		reactorNames.put(PKQLEnum.COUNT, "prerna.algorithm.impl.SqlCountReactor");
+//		reactorNames.put(PKQLEnum.STANDARD_DEVIATION, "prerna.algorithm.impl.SqlStandardDeviationReactor");
+//		reactorNames.put(PKQLEnum.MEDIAN, "prerna.algorithm.impl.SqlMedianReactor");
+
+		
 		reactorNames.put(PKQLEnum.QUERY_API, "prerna.sablecc.QueryApiReactor");
 		reactorNames.put(PKQLEnum.CSV_API, "prerna.sablecc.CsvApiReactor");
 		reactorNames.put(PKQLEnum.WEB_API, "prerna.sablecc.WebApiReactor");
