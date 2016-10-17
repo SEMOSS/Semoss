@@ -484,15 +484,19 @@ public class SQLInterpreter implements IQueryInterpreter{
 		String key = concept +":::"+ property +":::"+ thisComparator;
 
 		// this will hold the sql acceptable format of the object
-		String myObj = getFormatedObject(dataType, object);
+		String myObj = getFormatedObject(dataType, object, thisComparator);
 
 		// add it to the where statement
 		if(!whereHash.containsKey(key)) {
-			thisWhere = getAlias(concept) + "." + property + " " + thisComparator + " " + myObj;
+			if(thisComparator.equalsIgnoreCase(this.SEARCH_COMPARATOR)) {
+				thisWhere = getAlias(concept) + "." + property + " LIKE " + myObj;
+			} else {
+				thisWhere = getAlias(concept) + "." + property + " " + thisComparator + " " + myObj;
+			}
 		} else if (thisComparator.equalsIgnoreCase(this.SEARCH_COMPARATOR)) {
 			//Search comparator => add a LIKE to the WHERE for the given prop
 			thisWhere = whereHash.get(key);
-			thisWhere = thisWhere + " AND " + getAlias(concept) + "." + property + " LIKE '%" + myObj + "%'";
+			thisWhere = thisWhere + " AND " + getAlias(concept) + "." + property + " LIKE " + myObj;
 		} else {
 			thisWhere = whereHash.get(key);
 			thisWhere = thisWhere + " OR " + getAlias(concept) + "." + property + " " + thisComparator + " " + myObj;
@@ -507,7 +511,7 @@ public class SQLInterpreter implements IQueryInterpreter{
 		String key = concept +":::"+ property +":::"+ thisComparator;
 		
 		// this will hold the sql acceptable format of the object
-		String myObj = getFormatedObject(dataType, object);
+		String myObj = getFormatedObject(dataType, object, thisComparator);
 
 		// add it to a new where statement or an existing where statement
 		if(!whereHash.containsKey(key)) {
@@ -520,7 +524,7 @@ public class SQLInterpreter implements IQueryInterpreter{
 		whereHash.put(key, thisWhere);
 	}
 	
-	private String getFormatedObject(String dataType, Object object) {
+	private String getFormatedObject(String dataType, Object object, String comparator) {
 		// this will hold the sql acceptable format of the object
 		String myObj = null;
 
@@ -533,13 +537,21 @@ public class SQLInterpreter implements IQueryInterpreter{
 			} else if(dataType.contains("DATE") || dataType.contains("TIMESTAMP")) {
 				myObj = object.toString();
 				myObj = Utility.getDate(myObj);
-				myObj = "\'" + myObj + "\'";
+				if(!comparator.equalsIgnoreCase(this.SEARCH_COMPARATOR)) {
+					myObj = "\'" + myObj + "\'";
+				} else {
+					myObj = "'%" + myObj + "%'";
+				}
 			}else {
 				myObj = object.toString();
 				myObj = myObj.replace("\"", ""); // get rid of the space
 				myObj = myObj.replaceAll("'", "''");
 				myObj = myObj.trim();
-				myObj = "\'" + myObj + "\'";
+				if(!comparator.equalsIgnoreCase(this.SEARCH_COMPARATOR)) {
+					myObj = "\'" + myObj + "\'";
+				} else {
+					myObj = "'%" + myObj + "%'";
+				}
 			}
 		} else {
 			// do it based on type casting
@@ -548,18 +560,67 @@ public class SQLInterpreter implements IQueryInterpreter{
 			} else if(object instanceof java.util.Date || object instanceof java.sql.Date) {
 				myObj = object.toString();
 				myObj = Utility.getDate(myObj);
-				myObj = "\'" + myObj + "\'";
+				if(!comparator.equalsIgnoreCase(this.SEARCH_COMPARATOR)) {
+					myObj = "\'" + myObj + "\'";
+				} else {
+					myObj = "'%" + myObj + "%'";
+				}
 			} else {
 				myObj = object.toString();
 				myObj = myObj.replace("\"", ""); // get rid of the space
 				myObj = myObj.replaceAll("'", "''");
 				myObj = myObj.trim();
-				myObj = "\'" + myObj + "\'";
+				if(!comparator.equalsIgnoreCase(this.SEARCH_COMPARATOR)) {
+					myObj = "\'" + myObj + "\'";
+				} else {
+					myObj = "'%" + myObj + "%'";
+				}
 			}
 		}
 		
 		return myObj;
 	}
+	
+//	private String getFormatedObject(String dataType, Object object) {
+//		// this will hold the sql acceptable format of the object
+//		String myObj = null;
+//
+//		// if we can get the data type from the OWL, lets just use that
+//		// if we dont have it, we will do type casting...
+//		if(dataType != null) {
+//			dataType = dataType.toUpperCase();
+//			if(dataType.contains("DOUBLE") || dataType.contains("FLOAT") || dataType.contains("LONG")) {
+//				myObj = object.toString();
+//			} else if(dataType.contains("DATE") || dataType.contains("TIMESTAMP")) {
+//				myObj = object.toString();
+//				myObj = Utility.getDate(myObj);
+//				myObj = "\'" + myObj + "\'";
+//			}else {
+//				myObj = object.toString();
+//				myObj = myObj.replace("\"", ""); // get rid of the space
+//				myObj = myObj.replaceAll("'", "''");
+//				myObj = myObj.trim();
+//				myObj = "\'" + myObj + "\'";
+//			}
+//		} else {
+//			// do it based on type casting
+//			if(object instanceof Number) {
+//				myObj = object.toString();
+//			} else if(object instanceof java.util.Date || object instanceof java.sql.Date) {
+//				myObj = object.toString();
+//				myObj = Utility.getDate(myObj);
+//				myObj = "\'" + myObj + "\'";
+//			} else {
+//				myObj = object.toString();
+//				myObj = myObj.replace("\"", ""); // get rid of the space
+//				myObj = myObj.replaceAll("'", "''");
+//				myObj = myObj.trim();
+//				myObj = "\'" + myObj + "\'";
+//			}
+//		}
+//		
+//		return myObj;
+//	}
 	
 	////////////////////////////////////// end adding filters ////////////////////////////////////////////
 
