@@ -82,16 +82,22 @@ public class FileIterator implements Iterator<IHeadersDataRow>{
 		String[] row = nextRow;
 		getNextRow();
 
+		// couple of things to take care of here
+		
 		Object[] cleanRow = new Object[row.length];
 		for(int i = 0; i < row.length; i++) {
 			String type = types[i];
 			if(type.contains("DOUBLE")) {
 				try {
 					//added to remove $ and , in data and then try parsing as Double
-					row[i] = row[i].replaceAll("$,", "");
-					cleanRow[i] = Double.parseDouble(row[i].trim());
+					int mult = 1;
+					if(row[i].startsWith("(")) // this is a negativenumber
+						mult = -1;
+					row[i] = row[i].replaceAll("[^0-9\\.]", "");
+					cleanRow[i] = mult * Double.parseDouble(row[i].trim());
 				} catch(NumberFormatException ex) {
 					//do nothing
+					cleanRow[i] = null;
 				}
 			} else if(type.contains("DATE")) {
 				cleanRow[i] = row[i]; //TODO do i need to do anything for dates???
