@@ -30,7 +30,7 @@ Tokens
  comma = ',';
  div = '/';
  col = 'col';
- comparator = ('>' | '<' | '<=' | '>=' | '!=' | 'like');
+ comparator = ('>' | '<' | '<=' | '>=' | '!=' | '?like');
  log_operator = ( '||' | '&&' );
  equal = '=';
  coladd = 'col.add';
