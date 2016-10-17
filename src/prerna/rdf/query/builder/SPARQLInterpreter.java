@@ -209,11 +209,90 @@ public class SPARQLInterpreter implements IQueryInterpreter {
 				// usually these are or ?
 				// so I am saying if something is
 
-				addFilter(concept, property, thisComparator, options);
+				if(thisComparator.trim().equals("?like")) {
+					addRegexFiler(concept, property, thisComparator, options);
+				} else {
+					addFilter(concept, property, thisComparator, options);
+				}
 			}
 		}
 	}
 	
+	private void addRegexFiler(String concept, String property, String thisComparator, Vector objects) {
+		// need to tell the FE to not pass this... this currently occurs when you hit on the 
+		// concept when you try to traverse in graph
+		if(objects == null || objects.size() == 0) {
+			return;
+		}
+		
+		boolean useOr = false;
+		boolean isValueString = false;
+		
+		// should expose this on the engien itself
+		boolean isProp = false;
+		if(property != null || engine.getParentOfProperty(concept) != null)
+			isProp = true;
+		
+		concept = Utility.getInstanceName(engine.getTransformedNodeName(Constants.DISPLAY_URI+concept, false));
+		if(objects.get(0) instanceof String) 
+		{
+			isValueString = true;
+			List<Object> cleanedObjects = new Vector<Object>();
+			if(objects.get(0).toString().indexOf(engine.getNodeBaseUri()) >= 0 ) // then they are uris and don't need to be cleaned
+			{
+				cleanedObjects = objects;
+			}
+			else
+			{
+				if(!isProp) {
+					// then these are all uris that need to be cleaned
+					for(Object object : objects){
+						String myobject = (""+object).replace("\"", ""); 
+						// get rid of the space
+						// myobject = myobject.replaceAll("\\s+","_");
+						myobject = Utility.cleanString(myobject, true, true, false);
+						myobject = myobject.trim();
+						myobject = engine.getNodeBaseUri() + concept+"/"+ myobject;
+						cleanedObjects.add(myobject);
+					}
+				} else {
+					//TODO: this is null when it is a filter defined from the data and is stored as a concept
+					//TODO: need the add implicit filters based on parent/concept
+					if(property == null) {
+						property = concept;
+					}
+					// need to cast objects appropriately
+					for(Object object : objects) {
+						Object myobject = object.toString().replace("\"", "");
+						String type = Utility.findTypes(myobject + "")[0] + "";
+						if(type.equalsIgnoreCase("Date")) {
+							myobject = Utility.getDate(myobject + "");
+						} else if(type.equalsIgnoreCase("Double")) {
+		    				myobject = Utility.getDouble(myobject + "");
+						}
+						cleanedObjects.add(myobject);
+					}
+				}
+			}
+			
+			// optimize logic with bind and bindings
+			// even if we cannot use a bind or bindings
+			// still need to differentiate between using a literal or a URI
+			if(isProp) {
+				SEMOSSQueryHelper.addRegexFilterPhrase(getVarName(property, true), TriplePart.VARIABLE, objects, TriplePart.LITERAL, isValueString, useOr, semossQuery, false);
+			} else {
+				SEMOSSQueryHelper.addRegexFilterPhrase(getVarName(concept, true), TriplePart.VARIABLE, objects, TriplePart.LITERAL, isValueString, useOr, semossQuery, false);
+			}
+		}
+		else {
+			if(isProp) {
+				SEMOSSQueryHelper.addRegexFilterPhrase(getVarName(property, true), TriplePart.VARIABLE, objects, TriplePart.LITERAL, isValueString, useOr, semossQuery, false);
+			} else {
+				SEMOSSQueryHelper.addRegexFilterPhrase(getVarName(concept, true), TriplePart.VARIABLE, objects, TriplePart.LITERAL, isValueString, useOr, semossQuery, false);
+			}
+		}
+	}
+
 	private void addFilter(String concept, String property, String thisComparator, Vector objects) {
 		// Here are the rules for adding a filter to a sparql query
 		// 1. We want to use bind and bindings rather than filter whenever possible as it speeds up processing
@@ -244,7 +323,7 @@ public class SPARQLInterpreter implements IQueryInterpreter {
 			isProp = true;
 		
 		concept = Utility.getInstanceName(engine.getTransformedNodeName(Constants.DISPLAY_URI+concept, false));
-		if(objects.get(0) instanceof String) // ok this is a string ------ must be " = " comparator ... currently not handling regex
+		if(objects.get(0) instanceof String) // ok this is a string ------ must be " = " or " != " comparator ... regex handled in other section
 		{
 			List<Object> cleanedObjects = new Vector<Object>();
 			if(objects.get(0).toString().indexOf(engine.getNodeBaseUri()) >= 0 ) // then they are uris and don't need to be cleaned
