@@ -209,7 +209,7 @@ public class SPARQLInterpreter implements IQueryInterpreter {
 				// usually these are or ?
 				// so I am saying if something is
 
-				if(thisComparator.trim().equals("?like")) {
+				if(thisComparator.trim().equals(SEARCH_COMPARATOR)) {
 					addRegexFiler(concept, property, thisComparator, options);
 				} else {
 					addFilter(concept, property, thisComparator, options);
