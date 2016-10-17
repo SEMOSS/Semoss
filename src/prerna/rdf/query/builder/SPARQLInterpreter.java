@@ -236,7 +236,6 @@ public class SPARQLInterpreter implements IQueryInterpreter {
 		concept = Utility.getInstanceName(engine.getTransformedNodeName(Constants.DISPLAY_URI+concept, false));
 		if(objects.get(0) instanceof String) 
 		{
-			isValueString = true;
 			List<Object> cleanedObjects = new Vector<Object>();
 			if(objects.get(0).toString().indexOf(engine.getNodeBaseUri()) >= 0 ) // then they are uris and don't need to be cleaned
 			{
@@ -279,9 +278,10 @@ public class SPARQLInterpreter implements IQueryInterpreter {
 			// even if we cannot use a bind or bindings
 			// still need to differentiate between using a literal or a URI
 			if(isProp) {
-				SEMOSSQueryHelper.addRegexFilterPhrase(getVarName(property, true), TriplePart.VARIABLE, objects, TriplePart.LITERAL, isValueString, useOr, semossQuery, false);
+				isValueString = true;
+				SEMOSSQueryHelper.addRegexFilterPhrase(getVarName(property, true), TriplePart.VARIABLE, cleanedObjects, TriplePart.LITERAL, isValueString, useOr, semossQuery, false);
 			} else {
-				SEMOSSQueryHelper.addRegexFilterPhrase(getVarName(concept, true), TriplePart.VARIABLE, objects, TriplePart.LITERAL, isValueString, useOr, semossQuery, false);
+				SEMOSSQueryHelper.addRegexFilterPhrase(getVarName(concept, true), TriplePart.VARIABLE, cleanedObjects, TriplePart.LITERAL, isValueString, useOr, semossQuery, false);
 			}
 		}
 		else {
