@@ -251,7 +251,7 @@ public class SPARQLInterpreter implements IQueryInterpreter {
 						// myobject = myobject.replaceAll("\\s+","_");
 						myobject = Utility.cleanString(myobject, true, true, false);
 						myobject = myobject.trim();
-						myobject = engine.getNodeBaseUri() + concept+"/"+ myobject;
+						myobject = engine.getNodeBaseUri() + concept+"/.*"+ myobject;
 						cleanedObjects.add(myobject);
 					}
 				} else {
