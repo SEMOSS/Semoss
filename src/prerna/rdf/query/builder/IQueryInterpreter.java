@@ -4,7 +4,7 @@ import prerna.ds.QueryStruct;
 
 public interface IQueryInterpreter {
 	
-	static final String SEARCH_COMPARATOR = "like";
+	static final String SEARCH_COMPARATOR = "?like";
 
 	void setQueryStruct(QueryStruct qs);
 
