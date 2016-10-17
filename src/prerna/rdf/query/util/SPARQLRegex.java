@@ -57,7 +57,7 @@ public class SPARQLRegex implements ISPARQLFilterInput{
 		String subjectString = SPARQLQueryHelper.createComponentString(var);
 		String objectString = SPARQLQueryHelper.createComponentString(value);
 		String caseSensitivityClause = "";
-		if(isValueString) {
+		if(!isValueString) {
 			subjectString = "STR(" + subjectString + ")";
 		}
 		if(!isCaseSensitive){
