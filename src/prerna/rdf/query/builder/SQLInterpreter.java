@@ -488,12 +488,12 @@ public class SQLInterpreter implements IQueryInterpreter{
 
 		// add it to the where statement
 		if(!whereHash.containsKey(key)) {
-			if(thisComparator.equalsIgnoreCase(this.SEARCH_COMPARATOR)) {
+			if(thisComparator.equalsIgnoreCase(SEARCH_COMPARATOR)) {
 				thisWhere = "LOWER(" + getAlias(concept) + "." + property + ") LIKE " + myObj;
 			} else {
 				thisWhere = getAlias(concept) + "." + property + " " + thisComparator + " " + myObj;
 			}
-		} else if (thisComparator.equalsIgnoreCase(this.SEARCH_COMPARATOR)) {
+		} else if (thisComparator.equalsIgnoreCase(SEARCH_COMPARATOR)) {
 			//Search comparator => add a LIKE to the WHERE for the given prop
 			thisWhere = whereHash.get(key);
 			thisWhere = thisWhere + " AND LOWER(" + getAlias(concept) + "." + property + ") LIKE " + myObj;
@@ -537,7 +537,7 @@ public class SQLInterpreter implements IQueryInterpreter{
 			} else if(dataType.contains("DATE") || dataType.contains("TIMESTAMP")) {
 				myObj = object.toString();
 				myObj = Utility.getDate(myObj);
-				if(!comparator.equalsIgnoreCase(this.SEARCH_COMPARATOR)) {
+				if(!comparator.equalsIgnoreCase(SEARCH_COMPARATOR)) {
 					myObj = "\'" + myObj + "\'";
 				} else {
 					myObj = "'%" + myObj + "%'";
@@ -547,7 +547,7 @@ public class SQLInterpreter implements IQueryInterpreter{
 				myObj = myObj.replace("\"", ""); // get rid of the space
 				myObj = myObj.replaceAll("'", "''");
 				myObj = myObj.trim();
-				if(!comparator.equalsIgnoreCase(this.SEARCH_COMPARATOR)) {
+				if(!comparator.equalsIgnoreCase(SEARCH_COMPARATOR)) {
 					myObj = "\'" + myObj + "\'";
 				} else {
 					myObj = "'%" + myObj + "%'";
@@ -560,7 +560,7 @@ public class SQLInterpreter implements IQueryInterpreter{
 			} else if(object instanceof java.util.Date || object instanceof java.sql.Date) {
 				myObj = object.toString();
 				myObj = Utility.getDate(myObj);
-				if(!comparator.equalsIgnoreCase(this.SEARCH_COMPARATOR)) {
+				if(!comparator.equalsIgnoreCase(SEARCH_COMPARATOR)) {
 					myObj = "\'" + myObj + "\'";
 				} else {
 					myObj = "'%" + myObj + "%'";
@@ -570,7 +570,7 @@ public class SQLInterpreter implements IQueryInterpreter{
 				myObj = myObj.replace("\"", ""); // get rid of the space
 				myObj = myObj.replaceAll("'", "''");
 				myObj = myObj.trim();
-				if(!comparator.equalsIgnoreCase(this.SEARCH_COMPARATOR)) {
+				if(!comparator.equalsIgnoreCase(SEARCH_COMPARATOR)) {
 					myObj = "\'" + myObj + "\'";
 				} else {
 					myObj = "'%" + myObj + "%'";
