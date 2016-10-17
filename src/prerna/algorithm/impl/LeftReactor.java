@@ -1,6 +1,7 @@
 package prerna.algorithm.impl;
 
 import java.util.Iterator;
+import java.util.Map;
 import java.util.Vector;
 
 import prerna.algorithm.api.ITableDataFrame;
@@ -16,10 +17,11 @@ public class LeftReactor  extends MathReactor { // TODO create BaseMapperReactor
 		modExpression();
 		Vector <String> columns = (Vector <String>)myStore.get(PKQLEnum.COL_DEF);
 		String[] columnsArray = convertVectorToArray(columns);
+		Map<String, Object> options = (Map<String, Object>) myStore.get(PKQLEnum.MATH_PARAM);
 		String script = myStore.get("MOD_" + whoAmI).toString();
+		String indx = (options.get("CONDITION1") + "").toString();
 		Iterator iterator = getTinkerData(columns, (ITableDataFrame)myStore.get("G"), false);
-		String indx = myStore.get("MATH_PARAM").toString().replace("{\"CONDITION1\"=", "").replace("}", "");
-	    String str=script.replace(" ]", "")+".take("+indx+")]";
+		 String str=script.replace(" ]", "")+".take("+indx+")]";
 		String nodeStr = myStore.get(whoAmI).toString();
 		
 		ExpressionIterator expIt = new ExpressionIterator(iterator, columnsArray,str );
