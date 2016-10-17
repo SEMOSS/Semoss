@@ -28,7 +28,7 @@ public class SPARQLFilterURIParam implements ISPARQLFilterInput{
 		// example is ?Studio = <http://semoss.org/ontologies/Concept/Studio/Buena_Vista>
 		String subjectString = SPARQLQueryHelper.createComponentString(var);
 		String objectString = SPARQLQueryHelper.createComponentString(value);
-		paramString = subjectString + comparator + objectString;
+		paramString = subjectString + " " + comparator + " " + objectString;
 	}
 	
 	@Override
