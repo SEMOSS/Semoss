@@ -730,7 +730,20 @@ public class RDBMSFlatCSVUploader extends AbstractCSVFileReader {
 							ps.setObject(colIndex+1, null);
 						}
 					} else if(type.equalsIgnoreCase("DOUBLE") || type.equalsIgnoreCase("FLOAT") || type.equalsIgnoreCase("LONG")) {
-						Double value = Utility.getDouble(nextRow[colIndex]);
+
+						Double value = null;
+						try
+						{
+							int mult = 1;
+							if(nextRow[colIndex].startsWith("(")) // this is a negativenumber
+								mult = -1;
+							nextRow[colIndex] = nextRow[colIndex].replaceAll("[^0-9\\.]", "");
+	
+							value = mult * Double.parseDouble(nextRow[colIndex]);
+						}catch (Exception ex)
+						{
+							
+						}
 						if(value != null) {
 							ps.setDouble(colIndex+1, value);
 						} else {
