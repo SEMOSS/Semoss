@@ -214,7 +214,6 @@ public class SPARQLInterpreter implements IQueryInterpreter {
 		}
 	}
 	
-	
 	private void addFilter(String concept, String property, String thisComparator, Vector objects) {
 		// Here are the rules for adding a filter to a sparql query
 		// 1. We want to use bind and bindings rather than filter whenever possible as it speeds up processing
@@ -227,6 +226,14 @@ public class SPARQLInterpreter implements IQueryInterpreter {
 		// concept when you try to traverse in graph
 		if(objects == null || objects.size() == 0) {
 			return;
+		}
+		
+		
+		// need to know if we can optimize using bind and bindings
+		// this is only true for equals, can't use on other comparators
+		boolean optimizeWithBind = false;
+		if(thisComparator.trim().equals("=")) {
+			optimizeWithBind = true;
 		}
 
 		// should expose this on the engien itself
@@ -274,24 +281,37 @@ public class SPARQLInterpreter implements IQueryInterpreter {
 					}
 				}
 			}
-			if(isProp) {
-				// literals cannot use bind or bindings because we need to use the comparator
-				SEMOSSQueryHelper.addURIFilterPhrase(getVarName(property, true), TriplePart.VARIABLE, cleanedObjects, TriplePart.LITERAL, " = ", true, semossQuery);
-			} else if(cleanedObjects.size()==1){ // we can always just add a bind to the main clause... never want this to be optional
-				SEMOSSQueryHelper.addBindPhrase(cleanedObjects.get(0)+"", TriplePart.URI, concept, semossQuery);
-			}
-			else if (!semossQuery.hasBindings() && !semossQuery.clauseIsOptional(concept)){ // bindings is only valid if the clause isn't optional and bindings hasn't already been used
-				SEMOSSQueryHelper.addBindingsToQuery(cleanedObjects, TriplePart.URI, concept, semossQuery);
-			}
-			else { // filter can always be added the main clause... never want this to be optional
-				SEMOSSQueryHelper.addURIFilterPhrase(concept, TriplePart.VARIABLE, cleanedObjects, TriplePart.URI, " = ", true, semossQuery);
+			
+			// optimize logic with bind and bindings
+			if(optimizeWithBind) {
+				if(isProp) {
+					// literals cannot use bind or bindings because we need to use the comparator
+					SEMOSSQueryHelper.addURIFilterPhrase(getVarName(property, true), TriplePart.VARIABLE, cleanedObjects, TriplePart.LITERAL, thisComparator, true, semossQuery);
+				} else if(cleanedObjects.size()==1){ // we can always just add a bind to the main clause... never want this to be optional
+					SEMOSSQueryHelper.addBindPhrase(cleanedObjects.get(0)+"", TriplePart.URI, concept, semossQuery);
+				}
+				else if (!semossQuery.hasBindings() && !semossQuery.clauseIsOptional(concept)){ // bindings is only valid if the clause isn't optional and bindings hasn't already been used
+					SEMOSSQueryHelper.addBindingsToQuery(cleanedObjects, TriplePart.URI, concept, semossQuery);
+				}
+				else { // filter can always be added the main clause... never want this to be optional
+					SEMOSSQueryHelper.addURIFilterPhrase(concept, TriplePart.VARIABLE, cleanedObjects, TriplePart.URI, thisComparator, true, semossQuery);
+				}
+			} else {
+				// even if we cannot use a bind or bindings
+				// still need to differentiate between using a literal or a URI
+				if(isProp) {
+					// literals cannot use bind or bindings because we need to use the comparator
+					SEMOSSQueryHelper.addURIFilterPhrase(getVarName(property, true), TriplePart.VARIABLE, cleanedObjects, TriplePart.LITERAL, thisComparator, true, semossQuery);
+				} else { // filter can always be added the main clause... never want this to be optional
+					SEMOSSQueryHelper.addURIFilterPhrase(concept, TriplePart.VARIABLE, cleanedObjects, TriplePart.URI, thisComparator, true, semossQuery);
+				}
 			}
 		}
 		else { // literals cannot use bind or bindings because we need to use the comparator
 			if(isProp) {
-				SEMOSSQueryHelper.addURIFilterPhrase(getVarName(property, true), TriplePart.VARIABLE, objects, TriplePart.LITERAL, " = ", true, semossQuery);
+				SEMOSSQueryHelper.addURIFilterPhrase(getVarName(property, true), TriplePart.VARIABLE, objects, TriplePart.LITERAL, thisComparator, true, semossQuery);
 			} else {
-				SEMOSSQueryHelper.addURIFilterPhrase(getVarName(concept, true), TriplePart.VARIABLE, objects, TriplePart.LITERAL, " = ", true, semossQuery);
+				SEMOSSQueryHelper.addURIFilterPhrase(getVarName(concept, true), TriplePart.VARIABLE, objects, TriplePart.LITERAL, thisComparator, true, semossQuery);
 			}
 //			SEMOSSQueryHelper.addRegexFilterPhrase(getVarName(property, true), TriplePart.VARIABLE, objects, objType, false, true, semossQuery, true);
 		}
