@@ -11,6 +11,7 @@ import prerna.ds.H2.H2Frame;
 import prerna.sablecc.AbstractReactor;
 import prerna.sablecc.PKQLEnum;
 import prerna.sablecc.PKQLRunner.STATUS;
+import prerna.sablecc.SqlExpressionIterator;
 
 public abstract class SqlBaseReducer extends AbstractReactor {
 
@@ -44,6 +45,11 @@ public abstract class SqlBaseReducer extends AbstractReactor {
 	public Iterator process() {
 		String nodeStr = myStore.get(whoAmI).toString();
 
+		// if this is wrapping an existing expression iterator
+		if(myStore.get(whoAmI) instanceof SqlExpressionIterator) {
+			((SqlExpressionIterator) myStore.get(whoAmI)).closeRs();
+		}
+		
 		// modify the expression to get the sql syntax
 		modExpression();
 		
