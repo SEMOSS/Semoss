@@ -614,8 +614,7 @@ public class H2Builder {
 		return ps;
 	}
 
-	public PreparedStatement createUpdatePreparedStatement(final String TABLE_NAME, final String[] columnsToUpdate,
-			final String[] whereColumns) {
+	public PreparedStatement createUpdatePreparedStatement(final String TABLE_NAME, final String[] columnsToUpdate, final String[] whereColumns) {
 		// generate the sql for the prepared statement
 		StringBuilder sql = new StringBuilder("UPDATE ");
 		sql.append(TABLE_NAME).append(" SET ").append(columnsToUpdate[0]).append(" = ?");
@@ -2648,6 +2647,10 @@ public class H2Builder {
 		String filterSubQuery = makeFilterSubQuery();
 		selectStatement += " FROM " + tableName + filterSubQuery;
 		return selectStatement;
+	}
+	
+	protected String getSqlFitler() {
+		return makeFilterSubQuery();
 	}
 
 	// make a select query
