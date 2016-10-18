@@ -1295,8 +1295,8 @@ public class H2Frame extends AbstractTableDataFrame {
 		reactorNames.put(PKQLEnum.PASTED_DATA, "prerna.sablecc.PastedDataReactor");
 		reactorNames.put(PKQLEnum.WHERE, "prerna.sablecc.ColWhereReactor");
 		reactorNames.put(PKQLEnum.REL_DEF, "prerna.sablecc.RelReactor");
-		reactorNames.put(PKQLEnum.COL_ADD, "prerna.sablecc.ColAddReactor");
-//		reactorNames.put(PKQLEnum.COL_ADD, "prerna.sablecc.H2ColAddReactor");
+//		reactorNames.put(PKQLEnum.COL_ADD, "prerna.sablecc.ColAddReactor");
+		reactorNames.put(PKQLEnum.COL_ADD, "prerna.sablecc.H2ColAddReactor");
 		reactorNames.put(PKQLEnum.COL_SPLIT, "prerna.sablecc.H2ColSplitReactor");
 		reactorNames.put(PKQLEnum.IMPORT_DATA, "prerna.sablecc.H2ImportDataReactor");
 		reactorNames.put(PKQLEnum.REMOVE_DATA, "prerna.sablecc.RemoveDataReactor");
@@ -1318,6 +1318,9 @@ public class H2Frame extends AbstractTableDataFrame {
 		reactorNames.put(PKQLEnum.MIN, "prerna.algorithm.impl.SqlMinReactor");
 		reactorNames.put(PKQLEnum.AVERAGE, "prerna.algorithm.impl.SqlAverageReactor");
 		reactorNames.put(PKQLEnum.COUNT, "prerna.algorithm.impl.SqlCountReactor");
+		reactorNames.put(PKQLEnum.CONCAT, "prerna.algorithm.impl.SqlConcatReactor");
+		reactorNames.put(PKQLEnum.ABSOLUTE, "prerna.algorithm.impl.SqlAbsoluteReactor");
+		
 //		reactorNames.put(PKQLEnum.STANDARD_DEVIATION, "prerna.algorithm.impl.SqlStandardDeviationReactor");
 //		reactorNames.put(PKQLEnum.MEDIAN, "prerna.algorithm.impl.SqlMedianReactor");
 
