@@ -115,6 +115,26 @@ public class PKQLRunner {
 		} else if(response instanceof int[]) {
 //			result.put("result", StringEscapeUtils.escapeHtml(Arrays.toString( (int[]) response)));
 			result.put("result", Arrays.toString( (int[]) response));
+		} 
+		//TODO: should extrapolate this to a generic kind of expression iterator
+		else if(response instanceof SqlExpressionIterator) {
+			StringBuilder builder = new StringBuilder();
+			SqlExpressionIterator it = (SqlExpressionIterator) response;
+			List<Object[]> first500 = new Vector<Object[]>();
+			first500.add(it.getColumns());
+			int counter = 0;
+			while(it.hasNext() && counter < 500) {
+				first500.add(it.next());
+				counter++;
+			}
+			// if we only show a subset
+			if(counter < 500) {
+				builder.append("Only showing first 500 rows\n");
+				it.closeRs();
+			}
+			
+			String retResponse = getStringFromList( first500, builder);
+			result.put("result", retResponse);
 		} else {
 //			result.put("result", StringEscapeUtils.escapeHtml(response + ""));
 			result.put("result", response + "");

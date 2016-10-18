@@ -33,6 +33,7 @@ public class PKQLEnum {
 	public static final String MATH_FUN = "MATH_FUN";
 	// this is to override default sum reactor
 	// example of use is using R for calculation
+	public static final String ABSOLUTE = "ABSOLUTE";
 	public static final String SUM = "SUM";
 	public static final String MAX = "MAX";
 	public static final String MIN = "MIN";
@@ -40,6 +41,7 @@ public class PKQLEnum {
 	public static final String STANDARD_DEVIATION = "STANDARDDEVIATION";
 	public static final String MEDIAN = "MEDIAN";
 	public static final String COUNT = "COUNT";
+	public static final String CONCAT = "CONCAT";
 
 	public static final String NUMBER = "NUMBER";
 	public static final String DECIMAL = "DECIMAL";
