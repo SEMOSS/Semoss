@@ -57,7 +57,7 @@ public class RDBMSUtility {
 	}
 	
 	public static String getH2ConnectionURLAbsolutePath(String connectionURL) {
-		connectionURL = connectionURL.replace("jdbc:h2:", "");
+		connectionURL = connectionURL.replace("jdbc:h2:nio:", "");
 		if(connectionURL.contains("database;")) {
 			return connectionURL.substring(0, connectionURL.indexOf("database;")-1);
 		} else {
@@ -66,7 +66,7 @@ public class RDBMSUtility {
 	}
 	
 	public static String getH2BaseConnectionURL() {
-		return "jdbc:h2:" + "@" + Constants.BASE_FOLDER + "@" + System.getProperty("file.separator") + "db" + System.getProperty("file.separator") + "@" + Constants.ENGINE + "@"
+		return "jdbc:h2:nio:" + "@" + Constants.BASE_FOLDER + "@" + System.getProperty("file.separator") + "db" + System.getProperty("file.separator") + "@" + Constants.ENGINE + "@"
 				+ System.getProperty("file.separator") + "database;query_timeout=180000;early_filter=true;query_cache_size=24;cache_size=32768";
 	}
 	
