@@ -6,15 +6,18 @@ public class SqlBasicMathReactor extends SqlBaseReducer {
 
 	protected String mathRoutine = null;
 	
-	public String process(String tableName, String script) {
+	public String process(String tableName, String script, String filters) {
 		// generate a string similar to 
 		// select distinct mathRoutine ( col_name * 2 ) from tableName
 		StringBuilder builder = new StringBuilder();
-		builder.append("SELECT DISTINCT ").append(mathRoutine).append("(").append(script).append(")").append(" FROM ").append(tableName);		 
+		builder.append("SELECT DISTINCT ").append(mathRoutine).append("(").append(script).append(")").append(" FROM ").append(tableName);
+		if(filters != null && !filters.isEmpty()) {
+			builder.append(" ").append(filters);
+		}
 		return builder.toString();
 	}
 	
-	public String processGroupBy(String tableName, String script, List<String> groupByCols) {
+	public String processGroupBy(String tableName, String script, List<String> groupByCols, String filters) {
 		// generate a string similar to 
 		// select distinct mathRoutine ( col_name * 2 ) groupby1 groupby2 from tableName group by groupby1 groupby2 
 		StringBuilder groupBuilder = new StringBuilder();
@@ -29,7 +32,11 @@ public class SqlBasicMathReactor extends SqlBaseReducer {
 		
 		StringBuilder builder = new StringBuilder();
 		builder.append("SELECT DISTINCT ").append(mathRoutine).append("(").append(script).append(") , ").append(groupByStrings)
-			.append(" FROM ").append(tableName).append(" GROUP BY ").append(groupByStrings);
+			.append(" FROM ").append(tableName);
+		if(filters != null && !filters.isEmpty()) {
+			builder.append(" ").append(filters);
+		}
+		builder.append(" GROUP BY ").append(groupByStrings);
 		return builder.toString();
 	}
 	
