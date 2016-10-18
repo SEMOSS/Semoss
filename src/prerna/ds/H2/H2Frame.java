@@ -1296,6 +1296,7 @@ public class H2Frame extends AbstractTableDataFrame {
 		reactorNames.put(PKQLEnum.WHERE, "prerna.sablecc.ColWhereReactor");
 		reactorNames.put(PKQLEnum.REL_DEF, "prerna.sablecc.RelReactor");
 		reactorNames.put(PKQLEnum.COL_ADD, "prerna.sablecc.ColAddReactor");
+//		reactorNames.put(PKQLEnum.COL_ADD, "prerna.sablecc.H2ColAddReactor");
 		reactorNames.put(PKQLEnum.COL_SPLIT, "prerna.sablecc.H2ColSplitReactor");
 		reactorNames.put(PKQLEnum.IMPORT_DATA, "prerna.sablecc.H2ImportDataReactor");
 		reactorNames.put(PKQLEnum.REMOVE_DATA, "prerna.sablecc.RemoveDataReactor");
@@ -1617,6 +1618,14 @@ public class H2Frame extends AbstractTableDataFrame {
 	public void removeColumnIndex(String columnName) {
 		String tableName = getTableName();
 		this.builder.removeColumnIndex(tableName, columnName);
+	}
+
+	/**
+	 * Need to return the filters on the frame for reactors
+	 * @return
+	 */
+	public String getSqlFilter() {
+		return this.builder.getSqlFitler();
 	}
 	
 }

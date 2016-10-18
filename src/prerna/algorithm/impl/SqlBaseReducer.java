@@ -24,18 +24,20 @@ public abstract class SqlBaseReducer extends AbstractReactor {
 	 * This will generate the sql script for the routine
 	 * @param tableName			The name of the sql table
 	 * @param script			The script representing the column to get
+	 * @param fitlers			The filters on the H2Frame
 	 * @return					The full sql script to execute
 	 */
-	public abstract String process(String tableName, String script);
+	public abstract String process(String tableName, String script, String filters);
 	
 	/**
 	 * This will generate the sql script for the routine
 	 * @param tableName			The name of the sql table
 	 * @param script			The script representing the column to get
 	 * @param groupByCols		The columns to group by in the sql query
+	 * @param fitlers			The filters on the H2Frame
 	 * @return					The full sql script to execute
 	 */
-	public abstract String processGroupBy(String tableName, String script, List<String> groupByCols);
+	public abstract String processGroupBy(String tableName, String script, List<String> groupByCols, String filters);
 
 	
 	@Override
@@ -50,11 +52,12 @@ public abstract class SqlBaseReducer extends AbstractReactor {
 		
 		H2Frame h2Frame = (H2Frame)myStore.get("G");
 		String tableName = h2Frame.getTableName();
+		String filters = h2Frame.getSqlFilter();
 		
 		Vector<String> groupBys = (Vector <String>)myStore.get(PKQLEnum.COL_CSV);
 		
 		if(groupBys != null && !groupBys.isEmpty()){
-			String sqlScript = processGroupBy(tableName, script, groupBys);
+			String sqlScript = processGroupBy(tableName, script, groupBys, filters);
 			ResultSet rs = h2Frame.execQuery(sqlScript);
 			
 			// this is only here because this is what viz reactor expects
@@ -80,7 +83,7 @@ public abstract class SqlBaseReducer extends AbstractReactor {
 			myStore.put(nodeStr, groupByHash);
 			myStore.put("STATUS",STATUS.SUCCESS);
 		} else {
-			String sqlScript = process(tableName, script);
+			String sqlScript = process(tableName, script, filters);
 			ResultSet rs = h2Frame.execQuery(sqlScript);
 			Object result = null;
 			try {
