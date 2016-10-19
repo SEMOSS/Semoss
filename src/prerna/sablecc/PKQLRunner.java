@@ -15,6 +15,7 @@ import com.google.gson.GsonBuilder;
 import com.google.gson.reflect.TypeToken;
 
 import cern.colt.Arrays;
+import prerna.engine.api.IExpressionIterator;
 import prerna.sablecc.lexer.Lexer;
 import prerna.sablecc.lexer.LexerException;
 import prerna.sablecc.meta.IPkqlMetadata;
@@ -117,11 +118,11 @@ public class PKQLRunner {
 			result.put("result", Arrays.toString( (int[]) response));
 		} 
 		//TODO: should extrapolate this to a generic kind of expression iterator
-		else if(response instanceof SqlExpressionIterator) {
+		else if(response instanceof IExpressionIterator) {
 			StringBuilder builder = new StringBuilder();
-			SqlExpressionIterator it = (SqlExpressionIterator) response;
+			IExpressionIterator it = (IExpressionIterator) response;
 			List<Object[]> first500 = new Vector<Object[]>();
-			first500.add(it.getColumns());
+			first500.add(it.getHeaders());
 			int counter = 0;
 			while(it.hasNext() && counter < 500) {
 				first500.add(it.next());
@@ -130,7 +131,7 @@ public class PKQLRunner {
 			// if we only show a subset
 			if(counter < 500) {
 				builder.append("Only showing first 500 rows\n");
-				it.closeRs();
+				it.close();
 			}
 			
 			String retResponse = getStringFromList( first500, builder);

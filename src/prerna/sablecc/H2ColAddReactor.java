@@ -3,9 +3,11 @@ package prerna.sablecc;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.Vector;
 
 import org.apache.log4j.LogManager;
@@ -58,9 +60,12 @@ public class H2ColAddReactor extends AbstractReactor {
 		Object value = myStore.get(expr);
 
 		// joinColumns
+		// when there are multiple math routines, we need to make sure we get a unique set of join columns
 		Vector<String> cols = (Vector<String>) myStore.get(PKQLEnum.COL_DEF);
 		cols.remove(newCol);
-		String[] joinCols = convertVectorToArray(cols);
+		Set<String> uniqueCols = new HashSet<String>();
+		uniqueCols.addAll(cols);
+		String[] joinCols = uniqueCols.toArray(new String[]{});
 
 		// this corresponds to case 3
 		// we processed something and group information is processed
@@ -69,9 +74,9 @@ public class H2ColAddReactor extends AbstractReactor {
 			addColumnUsingMap(frame, (Map<Map<Object, Object>, Object>) value, newCol, joinCols);
 		} 
 
-		else if(value instanceof SqlExpressionIterator) 
+		else if(value instanceof H2SqlExpressionIterator) 
 		{
-			addColumnUsingExpression(frame, (SqlExpressionIterator) value, newCol, joinCols);
+			addColumnUsingExpression(frame, (H2SqlExpressionIterator) value, newCol, joinCols);
 		} 
 
 		// ugh... dont like this...
@@ -89,8 +94,8 @@ public class H2ColAddReactor extends AbstractReactor {
 				value = modExpression(expr);
 			}
 			
-			SqlExpressionIterator it = new SqlExpressionIterator(frame, value.toString(), newCol, joinCols);
-			addColumnUsingExpression(frame, (SqlExpressionIterator) it, newCol, joinCols);
+			H2SqlExpressionIterator it = new H2SqlExpressionIterator(frame, value.toString(), newCol, joinCols);
+			addColumnUsingExpression(frame, it, newCol, joinCols);
 		}
 		
 		frame.updateDataId();
@@ -101,13 +106,13 @@ public class H2ColAddReactor extends AbstractReactor {
 		return null;
 	}
 
-	private void addColumnUsingExpression(H2Frame frame, SqlExpressionIterator it, String newColumn, String[] joinColumns) {
+	private void addColumnUsingExpression(H2Frame frame, H2SqlExpressionIterator it, String newColumn, String[] joinColumns) {
 		// since we do not know the type of the new column we are adding
 		// we determine it based on the first value that is returned
 		PreparedStatement ps = null;
 		
 		// get the values returned
-		String[] columnsToGet = it.getColumns();
+		String[] columnsToGet = it.getHeaders();
 		
 		// generate a mapping to get the correct indices
 		// this is os we do not need to create a map and can use simple arrays
