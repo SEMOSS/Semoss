@@ -41,6 +41,7 @@ public class PKQLEnum {
 	public static final String STANDARD_DEVIATION = "STANDARDDEVIATION";
 	public static final String MEDIAN = "MEDIAN";
 	public static final String COUNT = "COUNT";
+	public static final String ROUND = "ROUND";
 	public static final String CONCAT = "CONCAT";
 
 	public static final String NUMBER = "NUMBER";
