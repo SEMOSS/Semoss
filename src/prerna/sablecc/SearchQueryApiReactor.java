@@ -2,6 +2,7 @@ package prerna.sablecc;
 
 import java.util.HashMap;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.Vector;
@@ -45,6 +46,22 @@ public class SearchQueryApiReactor extends AbstractApiReactor {
 			Map<String, Set<String>> edgeHash = this.qs.getReturnConnectionsHash();
 			// we store the edge hash in myStore
 			this.put("EDGE_HASH", edgeHash);
+		} else {
+			
+			//we want to set the order by column as the first selector
+			if(myStore.containsKey(PKQLEnum.COL_CSV) && ((Vector)myStore.get(PKQLEnum.COL_CSV)).size() > 0) {
+				List<String> selectors = (Vector<String>) myStore.get(PKQLEnum.COL_CSV);
+				String orderBy = selectors.get(0);
+				if(orderBy.contains("__")){
+					String concept = orderBy.substring(0, orderBy.indexOf("__"));
+					String property = orderBy.substring(orderBy.indexOf("__")+2);
+					this.qs.setOrderBy(concept, property);
+				}
+				else
+				{
+					this.qs.setOrderBy(orderBy, null);
+				}
+			}
 		}
 				
 		this.qs.print();
