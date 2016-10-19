@@ -47,20 +47,9 @@ public class SearchQueryApiReactor extends AbstractApiReactor {
 			// we store the edge hash in myStore
 			this.put("EDGE_HASH", edgeHash);
 		} else {
-			
-			//we want to set the order by column as the first selector
-			if(myStore.containsKey(PKQLEnum.COL_CSV) && ((Vector)myStore.get(PKQLEnum.COL_CSV)).size() > 0) {
-				List<String> selectors = (Vector<String>) myStore.get(PKQLEnum.COL_CSV);
-				String orderBy = selectors.get(0);
-				if(orderBy.contains("__")){
-					String concept = orderBy.substring(0, orderBy.indexOf("__"));
-					String property = orderBy.substring(orderBy.indexOf("__")+2);
-					this.qs.setOrderBy(concept, property);
-				}
-				else
-				{
-					this.qs.setOrderBy(orderBy, null);
-				}
+			boolean countSet = setCount();
+			if(!countSet) {
+				setOrderBy();
 			}
 		}
 				
@@ -73,6 +62,36 @@ public class SearchQueryApiReactor extends AbstractApiReactor {
 		return null;
 	}
 
+	private void setOrderBy() {
+		//we want to set the order by column as the first selector
+		if(myStore.containsKey(PKQLEnum.COL_CSV) && ((Vector)myStore.get(PKQLEnum.COL_CSV)).size() > 0) {
+			List<String> selectors = (Vector<String>) myStore.get(PKQLEnum.COL_CSV);
+			String orderBy = selectors.get(0);
+			if(orderBy.contains("__")){
+				String concept = orderBy.substring(0, orderBy.indexOf("__"));
+				String property = orderBy.substring(orderBy.indexOf("__")+2);
+				this.qs.setOrderBy(concept, property);
+			}
+			else
+			{
+				this.qs.setOrderBy(orderBy, null);
+			}
+		}
+	}
+	
+	private boolean setCount() {
+		if(this.mapOptions != null) {
+			String getCount = mapOptions.get("getCount").toString();
+			if(getCount.toLowerCase().equals("true")) {
+				this.qs.setPerformCount(true);
+				return true;
+			} else {
+				this.qs.setPerformCount(false);
+				return false;
+			}
+		}
+		return false;
+	}
 	///////////////// TEST ITERATOR CREATION //////////////////////
 //	public static void main(String[] args) {
 //		TestUtilityMethods.loadDIHelper();
