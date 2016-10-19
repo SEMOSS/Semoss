@@ -48,9 +48,10 @@ public class QueryStruct {
 	//			 OuterJoin Nominated
 	public Hashtable <String, Hashtable<String, Vector>> relations = new Hashtable<String, Hashtable<String, Vector>>();
 	
+	private Hashtable<String, String> orderBy = new Hashtable<>();
+	
 	private int limit = -1;
 	private int offset = -1;
-	
 	
 	public static String PRIM_KEY_PLACEHOLDER = "PRIM_KEY_PLACEHOLDER";
 		
@@ -134,6 +135,18 @@ public class QueryStruct {
 	
 	public int getOffset() {
 		return this.offset;
+	}
+	
+	public void setOrderBy(String concept, String property) {
+		if(property == null) {
+			property = PRIM_KEY_PLACEHOLDER;
+		}
+		
+		this.orderBy.put(concept, property);
+	}
+	
+	public Map<String, String> getOrderBy() {
+		return this.orderBy;
 	}
 	
 	private void addToHash(String concept, String property, Hashtable <String, Vector<String>> hash)
