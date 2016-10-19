@@ -1320,7 +1320,8 @@ public class H2Frame extends AbstractTableDataFrame {
 		reactorNames.put(PKQLEnum.COUNT, "prerna.algorithm.impl.SqlCountReactor");
 		reactorNames.put(PKQLEnum.CONCAT, "prerna.algorithm.impl.SqlConcatReactor");
 		reactorNames.put(PKQLEnum.ABSOLUTE, "prerna.algorithm.impl.SqlAbsoluteReactor");
-		
+		reactorNames.put(PKQLEnum.ROUND, "prerna.algorithm.impl.SqlRoundReactor");
+
 //		reactorNames.put(PKQLEnum.STANDARD_DEVIATION, "prerna.algorithm.impl.SqlStandardDeviationReactor");
 //		reactorNames.put(PKQLEnum.MEDIAN, "prerna.algorithm.impl.SqlMedianReactor");
 
