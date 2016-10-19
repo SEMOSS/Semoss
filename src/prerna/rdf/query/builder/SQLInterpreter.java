@@ -179,6 +179,19 @@ public class SQLInterpreter implements IQueryInterpreter{
 		int limit = qs.getLimit();
 		int offset = qs.getOffset();
 		
+		//grab the order by and get the corresponding display name for that order by column
+		Map<String, String> orderBy = qs.getOrderBy();
+		if(orderBy != null && !orderBy.isEmpty()) {
+			String displayName = null;
+			for(String key : orderBy.keySet()) {
+				displayName = getDisplayName(key, orderBy.get(key));
+				break; //use first one
+			}
+			if(displayName != null) {
+				query = query + " ORDER BY " + displayName;
+			}
+		}
+		
 		if(limit > 0) {
 			query = query + " LIMIT "+limit;
 		} 
@@ -262,12 +275,48 @@ public class SQLInterpreter implements IQueryInterpreter{
 			selectorAddition = tableAlias + "." + physicalColName + " AS " + displayName;
 		}
 
+
 		if(selectors.length() == 0) {
 			selectors = selectorAddition;
 		} else {
 			selectors = selectors + " , " + selectorAddition;
 		}
 		selectorList.add(selectorAddition);
+	}
+	
+	private String getDisplayName(String table, String colName) {
+		// not sure how we get to the point where table would be null..
+		// but this was here previously so i will just keep it I guess
+		String displayName = null;
+		
+		if(table != null) {
+			// TODO: currently assuming the display name is the conceptual
+			//		once we have this in the OWL, we need to add this
+			displayName = colName; 
+			
+			// if engine is not null, get the info from the engine
+			if(engine != null) {
+				// if the colName is the primary key placeholder
+				// we will go ahead and grab the primary key from the table
+				if(colName.equals(QueryStruct.PRIM_KEY_PLACEHOLDER)){
+					// the display name is defaulted to the table name
+					displayName = table;
+				} else {
+					// default assumption is the info being passed is the conceptual name
+					displayName = colName;
+				}
+			}
+			
+			// if we are defining a specific alias to override the defaults
+			// in the code, use it.  example use is in dashboard
+			if(this.colAlias != null && this.colAlias.containsKey(table)) {
+				Hashtable<String, String> tableAliases = colAlias.get(table);
+				if(tableAliases.containsKey(colName)) {
+					displayName = tableAliases.get(colName);
+				}
+			}
+		}
+		return displayName;
 	}
 	
 	//////////////////////////////////// end adding selectors /////////////////////////////////////
@@ -624,6 +673,9 @@ public class SQLInterpreter implements IQueryInterpreter{
 	
 	////////////////////////////////////// end adding filters ////////////////////////////////////////////
 
+	
+	//////////////////////////////////////append order by  ////////////////////////////////////////////
+	//////////////////////////////////////end adding filters ////////////////////////////////////////////
 	
 	//////////////////////////////////// caching utility methods /////////////////////////////////////////
 	
