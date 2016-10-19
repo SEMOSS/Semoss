@@ -3,15 +3,17 @@ package prerna.sablecc;
 import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
-import java.util.Iterator;
 
 import prerna.ds.H2.H2Frame;
+import prerna.engine.api.IExpressionIterator;
 
-public class SqlExpressionIterator implements Iterator<Object[]> {
+public class H2SqlExpressionIterator implements IExpressionIterator {
 
 	private ResultSet rs;
+	
 	private int numCols = 0;
 	private String[] columnsToGet;
+	private String[] joinCols;
 	
 	private String sqlExpression;
 	private String aliasForScript;
@@ -19,16 +21,14 @@ public class SqlExpressionIterator implements Iterator<Object[]> {
 	// iterator to wrap the result set from an expression
 	// so we do not need to hold additional information
 	// in memory and can grab each row as needed
-	public SqlExpressionIterator(H2Frame frame, String sqlExpression, String newCol, String[] joinCols) {
+	public H2SqlExpressionIterator(H2Frame frame, String sqlExpression, String newCol, String[] joinCols) {
 		this.sqlExpression = sqlExpression;
+		this.joinCols = joinCols;
 		this.aliasForScript = newCol;
+		
 		String sqlScript = generateSqlScript(sqlExpression, newCol, joinCols, frame.getTableName(), frame.getSqlFilter());
 		rs = frame.execQuery(sqlScript);
 		processMetadata();
-	}
-	
-	public String getAliasForScript() {
-		return this.aliasForScript;
 	}
 	
 	/**
@@ -67,10 +67,10 @@ public class SqlExpressionIterator implements Iterator<Object[]> {
 		}
 	}
 	
-	public String[] getColumns() {
-		return this.columnsToGet;
+	public String getAliasForScript() {
+		return this.aliasForScript;
 	}
-
+	
 	@Override
 	public boolean hasNext() {
 		boolean hasNext = false;
@@ -98,7 +98,13 @@ public class SqlExpressionIterator implements Iterator<Object[]> {
 		return values;
 	}
 	
-	public void closeRs() {
+	@Override
+	public String[] getHeaders() {
+		return this.columnsToGet;
+	}
+	
+	@Override
+	public void close() {
 		if(this.rs != null) {
 			try {
 				rs.close();
@@ -108,6 +114,11 @@ public class SqlExpressionIterator implements Iterator<Object[]> {
 		}
 	}
 	
+	@Override
+	public String[] getJoinColumns() {
+		return this.joinCols;
+	}
+
 	@Override
 	public String toString() {
 		return this.sqlExpression;
