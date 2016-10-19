@@ -79,7 +79,7 @@ public class TinkerFrame extends AbstractTableDataFrame {
 	//keeps the cache of whether a column is numerical or not, can this be stored on the meta model?
 	protected Map<String, Boolean> isNumericalMap = new HashMap<String, Boolean>(); //store on meta
 			
-	protected GremlinGroovyScriptEngine engine = new GremlinGroovyScriptEngine();
+//	protected GremlinGroovyScriptEngine engine = new GremlinGroovyScriptEngine();
 	public TinkerGraph g = null;
 
 	// stores all of the metadata
