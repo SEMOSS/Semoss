@@ -129,7 +129,7 @@ public class PKQLRunner {
 				counter++;
 			}
 			// if we only show a subset
-			if(counter < 500) {
+			if(counter == 500) {
 				builder.append("Only showing first 500 rows\n");
 				it.close();
 			}
