@@ -30,7 +30,7 @@ public class GremlinBuilder {
 	private Graph metaGraph;
 	private GraphTraversal gt;
 	private List<String> selector = new Vector<String>();	
-	private GremlinGroovyScriptEngine engine = new GremlinGroovyScriptEngine();
+//	private GremlinGroovyScriptEngine engine = new GremlinGroovyScriptEngine();
 	private Hashtable nodeHash = new Hashtable();
 	//the range of the graph to execute on
 	private int startRange = -1;
