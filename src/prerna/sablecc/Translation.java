@@ -283,6 +283,26 @@ public class Translation extends DepthFirstAdapter {
 		String nodeExpr = node.getExpr().toString().trim();
 		String nodeStr = node.toString().trim();
 		deinitReactor(PKQLEnum.EXPR_SCRIPT, nodeExpr, nodeStr);
+		// since an expression may not be fully executed
+		// ex. 55 * c:Movie_Budget / m:Sum([c:Revenue_International]) ;
+		// which will only execute the sum and do a replace without adding back a value
+		// we need to compute when necessary
+		// TODO: really need an expression iterator for other frames...
+		Object exprResult = curReactor.getValue(nodeStr);
+		if(exprResult instanceof String && !exprResult.toString().trim().isEmpty()) {
+			// since multiple math routines can be added together
+			// need to get a unique set of values used in the join
+			Vector<String> columns = (Vector <String>) curReactor.getValue(PKQLEnum.COL_DEF);
+			Set<String> joins = new HashSet<String>();
+			joins.addAll(columns);
+			
+			String newCol = "EXPRESSION_COL";
+			
+			if(frame instanceof H2Frame) {
+				H2SqlExpressionIterator it = new H2SqlExpressionIterator((H2Frame) curReactor.getValue("G"), exprResult.toString(), newCol, joins.toArray(new String[]{}));
+				this.runner.setResponse(it);
+			}
+		}
 		postProcess(node);
 	}
 
