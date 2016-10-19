@@ -48,10 +48,13 @@ public class QueryStruct {
 	//			 OuterJoin Nominated
 	public Hashtable <String, Hashtable<String, Vector>> relations = new Hashtable<String, Hashtable<String, Vector>>();
 	
+	//holds the selector we want to order by
+	//tableName -> ColName
 	private Hashtable<String, String> orderBy = new Hashtable<>();
 	
 	private int limit = -1;
 	private int offset = -1;
+	private boolean performCount = false;
 	
 	public static String PRIM_KEY_PLACEHOLDER = "PRIM_KEY_PLACEHOLDER";
 		
@@ -147,6 +150,14 @@ public class QueryStruct {
 	
 	public Map<String, String> getOrderBy() {
 		return this.orderBy;
+	}
+	
+	public boolean getPerformCount() {
+		return this.performCount;
+	}
+	
+	public void setPerformCount(boolean performCount) {
+		this.performCount = performCount;
 	}
 	
 	private void addToHash(String concept, String property, Hashtable <String, Vector<String>> hash)

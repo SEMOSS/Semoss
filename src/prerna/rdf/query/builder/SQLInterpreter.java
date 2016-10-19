@@ -74,6 +74,7 @@ public class SQLInterpreter implements IQueryInterpreter{
 	@Override
 	public void setQueryStruct(QueryStruct qs) {
 		this.qs = qs;
+		this.performCount = qs.getPerformCount();
 	}
 	
 	public void clear() {
@@ -182,13 +183,19 @@ public class SQLInterpreter implements IQueryInterpreter{
 		//grab the order by and get the corresponding display name for that order by column
 		Map<String, String> orderBy = qs.getOrderBy();
 		if(orderBy != null && !orderBy.isEmpty()) {
-			String displayName = null;
+			String orderByName = null;
 			for(String key : orderBy.keySet()) {
-				displayName = getDisplayName(key, orderBy.get(key));
+				String colName = orderBy.get(key);
+				if(colName.equals(QueryStruct.PRIM_KEY_PLACEHOLDER)){
+					colName = getPrimKey4Table(key);
+				} else {
+					colName = getPhysicalPropertyNameFromConceptualName(colName);
+				}
+				orderByName = getAlias(key) + "." + colName;
 				break; //use first one
 			}
-			if(displayName != null) {
-				query = query + " ORDER BY " + displayName;
+			if(orderByName != null) {
+				query = query + " ORDER BY " + orderByName;
 			}
 		}
 		
@@ -284,40 +291,40 @@ public class SQLInterpreter implements IQueryInterpreter{
 		selectorList.add(selectorAddition);
 	}
 	
-	private String getDisplayName(String table, String colName) {
-		// not sure how we get to the point where table would be null..
-		// but this was here previously so i will just keep it I guess
-		String displayName = null;
-		
-		if(table != null) {
-			// TODO: currently assuming the display name is the conceptual
-			//		once we have this in the OWL, we need to add this
-			displayName = colName; 
-			
-			// if engine is not null, get the info from the engine
-			if(engine != null) {
-				// if the colName is the primary key placeholder
-				// we will go ahead and grab the primary key from the table
-				if(colName.equals(QueryStruct.PRIM_KEY_PLACEHOLDER)){
-					// the display name is defaulted to the table name
-					displayName = table;
-				} else {
-					// default assumption is the info being passed is the conceptual name
-					displayName = colName;
-				}
-			}
-			
-			// if we are defining a specific alias to override the defaults
-			// in the code, use it.  example use is in dashboard
-			if(this.colAlias != null && this.colAlias.containsKey(table)) {
-				Hashtable<String, String> tableAliases = colAlias.get(table);
-				if(tableAliases.containsKey(colName)) {
-					displayName = tableAliases.get(colName);
-				}
-			}
-		}
-		return displayName;
-	}
+//	private String getDisplayName(String table, String colName) {
+//		// not sure how we get to the point where table would be null..
+//		// but this was here previously so i will just keep it I guess
+//		String displayName = null;
+//		
+//		if(table != null) {
+//			// TODO: currently assuming the display name is the conceptual
+//			//		once we have this in the OWL, we need to add this
+//			displayName = colName; 
+//			
+//			// if engine is not null, get the info from the engine
+//			if(engine != null) {
+//				// if the colName is the primary key placeholder
+//				// we will go ahead and grab the primary key from the table
+//				if(colName.equals(QueryStruct.PRIM_KEY_PLACEHOLDER)){
+//					// the display name is defaulted to the table name
+//					displayName = table;
+//				} else {
+//					// default assumption is the info being passed is the conceptual name
+//					displayName = colName;
+//				}
+//			}
+//			
+//			// if we are defining a specific alias to override the defaults
+//			// in the code, use it.  example use is in dashboard
+//			if(this.colAlias != null && this.colAlias.containsKey(table)) {
+//				Hashtable<String, String> tableAliases = colAlias.get(table);
+//				if(tableAliases.containsKey(colName)) {
+//					displayName = tableAliases.get(colName);
+//				}
+//			}
+//		}
+//		return displayName;
+//	}
 	
 	//////////////////////////////////// end adding selectors /////////////////////////////////////
 	
