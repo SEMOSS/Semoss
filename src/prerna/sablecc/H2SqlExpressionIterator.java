@@ -4,11 +4,18 @@ import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
 
+import org.apache.log4j.LogManager;
+import org.apache.log4j.Logger;
+
 import prerna.ds.H2.H2Frame;
 import prerna.engine.api.IExpressionIterator;
 
 public class H2SqlExpressionIterator implements IExpressionIterator {
 
+	private static final Logger LOGGER = LogManager.getLogger(H2SqlExpressionIterator.class.getName());
+	
+	private H2Frame frame;
+	
 	private ResultSet rs;
 	
 	private int numCols = 0;
@@ -18,15 +25,22 @@ public class H2SqlExpressionIterator implements IExpressionIterator {
 	private String sqlExpression;
 	private String aliasForScript;
 	
+	private String sqlScript;
+	
 	// iterator to wrap the result set from an expression
 	// so we do not need to hold additional information
 	// in memory and can grab each row as needed
 	public H2SqlExpressionIterator(H2Frame frame, String sqlExpression, String newCol, String[] joinCols) {
+		this.frame = frame;
 		this.sqlExpression = sqlExpression;
 		this.joinCols = joinCols;
 		this.aliasForScript = newCol;
 		
-		String sqlScript = generateSqlScript(sqlExpression, newCol, joinCols, frame.getTableName(), frame.getSqlFilter());
+		this.sqlScript = generateSqlScript(sqlExpression, newCol, joinCols, frame.getTableName(), frame.getSqlFilter());
+		LOGGER.info("GENERATED SQL EXPRESSION SCRIPT : " + this.sqlScript);
+	}
+	
+	private void runScript() {
 		rs = frame.execQuery(sqlScript);
 		processMetadata();
 	}
@@ -73,6 +87,9 @@ public class H2SqlExpressionIterator implements IExpressionIterator {
 	
 	@Override
 	public boolean hasNext() {
+		if(rs == null) {
+			runScript();
+		}
 		boolean hasNext = false;
 		try {
 			hasNext = rs.next();
@@ -87,6 +104,9 @@ public class H2SqlExpressionIterator implements IExpressionIterator {
 
 	@Override
 	public Object[] next() {
+		if(rs == null) {
+			runScript();
+		}
 		Object[] values = new Object[numCols];
 		try {
 			for(int i = 0; i < numCols; i++) {
@@ -100,6 +120,9 @@ public class H2SqlExpressionIterator implements IExpressionIterator {
 	
 	@Override
 	public String[] getHeaders() {
+		if(rs == null) {
+			runScript();
+		}
 		return this.columnsToGet;
 	}
 	
