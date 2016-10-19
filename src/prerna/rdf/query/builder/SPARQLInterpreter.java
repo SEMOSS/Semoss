@@ -40,6 +40,7 @@ public class SPARQLInterpreter implements IQueryInterpreter {
 	@Override
 	public void setQueryStruct(QueryStruct qs) {
 		this.qs = qs;
+		this.performCount = qs.getPerformCount();
 	}
 	
 	public String composeQuery()
