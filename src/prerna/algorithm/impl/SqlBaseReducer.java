@@ -9,9 +9,9 @@ import java.util.Vector;
 
 import prerna.ds.H2.H2Frame;
 import prerna.sablecc.AbstractReactor;
+import prerna.sablecc.H2SqlExpressionIterator;
 import prerna.sablecc.PKQLEnum;
 import prerna.sablecc.PKQLRunner.STATUS;
-import prerna.sablecc.SqlExpressionIterator;
 
 public abstract class SqlBaseReducer extends AbstractReactor {
 
@@ -46,8 +46,8 @@ public abstract class SqlBaseReducer extends AbstractReactor {
 		String nodeStr = myStore.get(whoAmI).toString();
 
 		// if this is wrapping an existing expression iterator
-		if(myStore.get(whoAmI) instanceof SqlExpressionIterator) {
-			((SqlExpressionIterator) myStore.get(whoAmI)).closeRs();
+		if(myStore.get(whoAmI) instanceof H2SqlExpressionIterator) {
+			((H2SqlExpressionIterator) myStore.get(whoAmI)).close();
 		}
 		
 		// modify the expression to get the sql syntax
