@@ -1,4 +1,4 @@
-package prerna.algorithm.impl;
+package prerna.sablecc.expressions.sql;
 
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -13,9 +13,9 @@ import prerna.sablecc.H2SqlExpressionIterator;
 import prerna.sablecc.PKQLEnum;
 import prerna.sablecc.PKQLRunner.STATUS;
 
-public abstract class SqlBaseReducer extends AbstractReactor {
+public abstract class AbstractSqlBaseReducer extends AbstractReactor {
 
-	public SqlBaseReducer() {
+	public AbstractSqlBaseReducer() {
 		String[] thisReacts = { PKQLEnum.EXPR_TERM, PKQLEnum.DECIMAL, PKQLEnum.NUMBER, PKQLEnum.GROUP_BY, PKQLEnum.COL_DEF, PKQLEnum.MATH_PARAM};
 		super.whatIReactTo = thisReacts;
 		super.whoAmI = PKQLEnum.MATH_FUN;
