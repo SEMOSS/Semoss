@@ -48,7 +48,7 @@ public class RDataTable extends AbstractTableDataFrame {
 	public Map<String, String> getScriptReactors() {
 		Map<String, String> reactorNames = super.getScriptReactors();
 		reactorNames.put(PKQLEnum.IMPORT_DATA, "prerna.sablecc.RImportDataReactor");
-		reactorNames.put(PKQLEnum.API, "prerna.sablecc.ApiReactor");
+//		reactorNames.put(PKQLEnum.API, "prerna.sablecc.ApiReactor");
 
 		//TODO: need to go through and modify these things so they are not H2 specific
 		
@@ -78,13 +78,13 @@ public class RDataTable extends AbstractTableDataFrame {
 		reactorNames.put(PKQLEnum.NETWORK_DISCONNECT, "prerna.sablecc.DisConnectReactor");
 		reactorNames.put(PKQLEnum.DATA_FRAME_DUPLICATES, "prerna.sablecc.H2DataFrameDuplicatesReactor");
 
-		reactorNames.put(PKQLEnum.SUM, "prerna.algorithm.impl.RSumReactor");
-		reactorNames.put(PKQLEnum.MAX, "prerna.algorithm.impl.RMaxReactor");
-		reactorNames.put(PKQLEnum.MIN, "prerna.algorithm.impl.RMinReactor");
-		reactorNames.put(PKQLEnum.AVERAGE, "prerna.algorithm.impl.RAverageReactor");
-		reactorNames.put(PKQLEnum.STANDARD_DEVIATION, "prerna.algorithm.impl.RStandardDeviationReactor");
-		reactorNames.put(PKQLEnum.MEDIAN, "prerna.algorithm.impl.RMedianReactor");
-		reactorNames.put(PKQLEnum.COUNT, "prerna.algorithm.impl.RCountReactor");
+		reactorNames.put(PKQLEnum.SUM, "prerna.sablecc.expressions.r.RSumReactor");
+		reactorNames.put(PKQLEnum.MAX, "prerna.sablecc.expressions.r.RMaxReactor");
+		reactorNames.put(PKQLEnum.MIN, "prerna.sablecc.expressions.r.RMinReactor");
+		reactorNames.put(PKQLEnum.AVERAGE, "prerna.sablecc.expressions.r.RAverageReactor");
+		reactorNames.put(PKQLEnum.STANDARD_DEVIATION, "prerna.sablecc.expressions.r.RStandardDeviationReactor");
+		reactorNames.put(PKQLEnum.MEDIAN, "prerna.sablecc.expressions.r.RMedianReactor");
+		reactorNames.put(PKQLEnum.COUNT, "prerna.sablecc.expressions.r.RCountReactor");
 
 		reactorNames.put(PKQLEnum.QUERY_API, "prerna.sablecc.QueryApiReactor");
 		reactorNames.put(PKQLEnum.CSV_API, "prerna.sablecc.RCsvApiReactor");

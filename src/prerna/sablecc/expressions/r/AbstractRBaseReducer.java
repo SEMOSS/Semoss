@@ -1,4 +1,4 @@
-package prerna.algorithm.impl;
+package prerna.sablecc.expressions.r;
 
 import java.util.HashMap;
 import java.util.Iterator;
@@ -14,9 +14,9 @@ import prerna.sablecc.AbstractReactor;
 import prerna.sablecc.PKQLEnum;
 import prerna.sablecc.PKQLRunner.STATUS;
 
-public abstract class RBaseReducer extends AbstractReactor {
+public abstract class AbstractRBaseReducer extends AbstractReactor {
 
-	public RBaseReducer() {
+	public AbstractRBaseReducer() {
 		String[] thisReacts = { PKQLEnum.EXPR_TERM, PKQLEnum.DECIMAL, PKQLEnum.NUMBER, PKQLEnum.GROUP_BY, PKQLEnum.COL_DEF, PKQLEnum.MATH_PARAM};
 		super.whatIReactTo = thisReacts;
 		super.whoAmI = PKQLEnum.MATH_FUN;
@@ -71,7 +71,18 @@ public abstract class RBaseReducer extends AbstractReactor {
 					for(String groupByName : groupBys) {
 						// all the values match by instance
 						// grab the i-th index for each of the lists
-						Object groupByValue = ((Object[]) groups.get(groupByName))[i];
+						
+						Object groupByValue = null;
+						Object group = groups.get(groupByName);
+						// ugh... need to do this casting
+						if(group instanceof Object[]) {
+							groupByValue = ((Object[]) groups.get(groupByName))[i];
+						} else if(group instanceof double[]) {
+							groupByValue = ((double[]) groups.get(groupByName))[i];
+						} else if(group instanceof int[]) {
+							groupByValue = ((int[]) groups.get(groupByName))[i];
+						}
+						
 						// store in the inner map
 						groupMap.put(groupByName, groupByValue);
 					}

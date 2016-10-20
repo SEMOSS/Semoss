@@ -18,6 +18,7 @@ import prerna.ds.ExpressionIterator;
 import prerna.ds.TinkerMetaHelper;
 import prerna.ds.H2.H2Frame;
 import prerna.sablecc.PKQLRunner.STATUS;
+import prerna.sablecc.expressions.sql.H2SqlExpressionIterator;
 import prerna.sablecc.meta.ColAddMetadata;
 import prerna.sablecc.meta.IPkqlMetadata;
 import prerna.util.ArrayUtilityMethods;
