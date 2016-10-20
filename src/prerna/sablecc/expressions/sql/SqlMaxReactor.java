@@ -1,4 +1,4 @@
-package prerna.algorithm.impl;
+package prerna.sablecc.expressions.sql;
 
 public class SqlMaxReactor extends SqlBasicMathReactor {
 
