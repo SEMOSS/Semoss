@@ -1,10 +1,10 @@
-package prerna.algorithm.impl;
+package prerna.sablecc.expressions.r;
 
 import java.util.List;
 
 import prerna.ds.R.RSyntaxHelper;
 
-public abstract class RBasicMathReactor extends RBaseReducer {
+public abstract class RBasicMathReactor extends AbstractRBaseReducer {
 
 	protected String mathRoutine = null;
 	

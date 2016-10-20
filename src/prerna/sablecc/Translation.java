@@ -24,6 +24,7 @@ import prerna.om.Dashboard;
 import prerna.sablecc.PKQLEnum.PKQLReactor;
 import prerna.sablecc.PKQLRunner.STATUS;
 import prerna.sablecc.analysis.DepthFirstAdapter;
+import prerna.sablecc.expressions.sql.H2SqlExpressionIterator;
 import prerna.sablecc.meta.IPkqlMetadata;
 import prerna.sablecc.node.AAddColumn;
 import prerna.sablecc.node.AAlphaWordOrNum;

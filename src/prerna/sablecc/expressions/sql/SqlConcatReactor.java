@@ -3,7 +3,6 @@ package prerna.sablecc.expressions.sql;
 import java.util.Iterator;
 
 import prerna.ds.H2.H2Frame;
-import prerna.sablecc.H2SqlExpressionIterator;
 import prerna.sablecc.PKQLRunner.STATUS;
 import prerna.util.Utility;
 
