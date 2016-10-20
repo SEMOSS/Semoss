@@ -1,8 +1,8 @@
-package prerna.algorithm.impl;
+package prerna.sablecc.expressions.sql;
 
 import java.util.List;
 
-public class SqlBasicMathReactor extends SqlBaseReducer {
+public class SqlBasicMathReactor extends AbstractSqlBaseReducer {
 
 	protected String mathRoutine = null;
 	
