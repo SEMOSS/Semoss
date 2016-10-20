@@ -80,6 +80,8 @@ public class ServicesAggregationProcessor extends AggregationHelper {
 	private String TAP_SERVICES_AGGREGATE_BLU_COMMENTS_QUERY = "SELECT DISTINCT ?system ?BLU ?provide ?pred ?prop1 ?user WHERE{{?system <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System>} {?systemService <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/SystemService>} {?user <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/SystemUser>} {?provide <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Provide>} {?BLU <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/BusinessLogicUnit>} {?system <http://semoss.org/ontologies/Relation/ConsistsOf> ?systemService} {?systemService <http://semoss.org/ontologies/Relation/UsedBy> ?user} {?systemService ?provide ?BLU} BIND(<http://semoss.org/ontologies/Relation/Contains/Comments> AS ?pred) {?provide ?pred ?prop1 } }";
 	private String TAP_CORE_AGGREGATE_BLU_COMMENTS_QUERY = "SELECT DISTINCT ?system ?BLU ?provide ?pred ?prop1 WHERE{{?system <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System>} {?provide <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Provide>} {?BLU <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/BusinessLogicUnit>} {?system ?provide ?BLU} BIND(<http://semoss.org/ontologies/Relation/Contains/Comments> AS ?pred) {?provide ?pred ?prop1 } }";
 
+	private String TAP_SERVICES_AGGREGATE_COMPONENT_SYSTEM_QUERY = "SELECT DISTINCT ?system ?ComprisedOf ?systemService WHERE{{?system <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System>}{?ComprisedOf <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/ComprisedOf>} {?systemService <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/SystemService>}{?system ?ComprisedOf ?systemService}}";
+	
 	private String TAP_SERVICES_AGGREGATE_LIFECYCLE_QUERY = "SELECT DISTINCT ?system ?phase ?lifeCycle WHERE{{?system <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System>} {?systemService <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/SystemService>} {?phase <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Phase>} {?lifeCycle <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/LifeCycle>} {?system <http://semoss.org/ontologies/Relation/ConsistsOf> ?systemService} {?systemService ?phase ?lifeCycle}}";
 
 	private String TAP_SERVICES_SYSTEM_PROVIDE_ICD_QUERY = "SELECT DISTINCT ?sys ?pred ?icd WHERE{{?sys <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System>} {?icd <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/SystemInterface>} {?pred <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Provide>} {?sys ?pred ?icd}}";
@@ -181,6 +183,9 @@ public class ServicesAggregationProcessor extends AggregationHelper {
 		LOGGER.info("PROCESSING ICD PHASE LIFECYCLE AND PUSHING INTO TAP CORE");
 		runRelationshipAggregation(TAP_SERVICER_AGGREGATE_ICD_LIFECYCLE_QUERY);
 
+		LOGGER.info("PROCESSING SYSTEM SERVICE COMPONENTS AND AGGREGATING INTO TAP CORE");
+		runSystemServiceLifeCylceAggregation(TAP_SERVICES_AGGREGATE_COMPONENT_SYSTEM_QUERY);
+		
 		LOGGER.info("PROCESSING SYSTEM SERVICE LIFE AND AGGREGATING INTO TAP CORE");
 		runSystemServiceLifeCylceAggregation(TAP_SERVICES_AGGREGATE_LIFECYCLE_QUERY);
 
@@ -565,7 +570,7 @@ public class ServicesAggregationProcessor extends AggregationHelper {
 				else if(prop.equals(semossPropertyBaseURI + "Transactional"))
 				{
 					
-					returnTriple = processTransactionalAndComponentOf(sub, prop, value);
+					returnTriple = processTransactionalAndComprisedOf(sub, prop, value);
 					aggregatedProp = true;
 				}
 				else if(prop.equals(semossPropertyBaseURI + "Comments"))
@@ -573,9 +578,14 @@ public class ServicesAggregationProcessor extends AggregationHelper {
 					returnTriple = processConcatString(sub, prop, value, user);
 					aggregatedProp = true;
 				}
-				else if(prop.equals(semossPropertyBaseURI + "Component_Of"))
+				else if(prop.equals(semossPropertyBaseURI + "ComprisedOf"))
 				{
-					returnTriple = processTransactionalAndComponentOf(sub, prop, value);
+					returnTriple = processTransactionalAndComprisedOf(sub, prop, value);
+					aggregatedProp = true;
+				}
+				else if(prop.equals(semossPropertyBaseURI + "SystemOfSystems"))
+				{
+					returnTriple = processSystemOfSystems(sub, prop, value);
 					aggregatedProp = true;
 				}
 
@@ -1300,14 +1310,14 @@ public class ServicesAggregationProcessor extends AggregationHelper {
 		return new Object[]{sub, prop, value};
 	}
 
-	private Object[] processTransactionalAndComponentOf(String sub, String prop, Object value)
+	private Object[] processTransactionalAndComprisedOf(String sub, String prop, Object value)
 	{
 		value = value.toString().replaceAll("\"", "");
 		HashMap<String, Object> innerHash = new HashMap<String, Object>();
 		if(!dataHash.containsKey(sub) || !dataHash.get(sub).containsKey(prop))
 		{
-			if( prop.contains("Component_Of") )
-				LOGGER.debug("ADDING Component_Of:     " + sub + " -----> {" + prop + " --- " + value + "}");
+			if( prop.contains("ComprisedOf") )
+				LOGGER.debug("ADDING ComprisedOf:     " + sub + " -----> {" + prop + " --- " + value + "}");
 			else
 				LOGGER.debug("ADDING TRANSACTIONAL:     " + sub + " -----> {" + prop + " --- " + value + "}");
 		}
@@ -1320,6 +1330,30 @@ public class ServicesAggregationProcessor extends AggregationHelper {
 			if(!currentTransactional.toString().toString().equalsIgnoreCase(value.toString()))
 			{
 				this.errorMessage = "Error Processing Transactional!  Conflicting report from systems. " 
+						+ "Error occured processing: " + sub + " >>>> " + prop + " >>>> " + value;				
+			}
+		}
+		return new Object[]{sub, prop, value};
+	}
+	
+	private Object[] processSystemOfSystems (String sub, String prop, Object value)
+	{
+		value = value.toString().replaceAll("\"", "");
+		HashMap<String, Object> innerHash = new HashMap<String, Object>();
+		if(!dataHash.containsKey(sub) || !dataHash.get(sub).containsKey(prop))
+		{
+			if( prop.contains("SystemOfSystems") )
+				LOGGER.debug("ADDING System_Of_Systems:     " + sub + " -----> {" + prop + " --- " + value + "}");
+		}
+		//Different SystemServices should not be sending different sysOfSys value
+		//perform check to make sure data is correct
+		else
+		{
+			innerHash = dataHash.get(sub);
+			Object currentSysOfSys = innerHash.get(prop);
+			if(!currentSysOfSys.toString().toString().equalsIgnoreCase(value.toString()))
+			{
+				this.errorMessage = "Error Processing SystemOfSystems!  Conflicting report from systems. " 
 						+ "Error occured processing: " + sub + " >>>> " + prop + " >>>> " + value;				
 			}
 		}
