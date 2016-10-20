@@ -1,6 +1,6 @@
 package prerna.sablecc.expressions.sql;
 
-public class SqlAverageReactor extends SqlBasicMathReactor {
+public class SqlAverageReactor extends H2SqlBasicMathReactor {
 
 	/*
 	 * Only need to set the Math Routine

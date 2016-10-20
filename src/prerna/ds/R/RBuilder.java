@@ -50,6 +50,9 @@ public class RBuilder {
 		// load in the data.table package
 		retCon.eval("library(data.table)");
 		
+		// load in the sqldf package to run sql queries
+		retCon.eval("library(sqldf)");
+		
 		// note: modified create flow, not using these methods
 		// load in the R script defining the functions we are using
 //		String path = (String) DIHelper.getInstance().getProperty(Constants.BASE_FOLDER);

@@ -16,6 +16,10 @@ import prerna.sablecc.PKQLRunner.STATUS;
 
 public abstract class AbstractRBaseReducer extends AbstractReactor {
 
+	//TODO:
+	//TODO:
+	//TODO: need to add in the filters on the RFrame
+	
 	public AbstractRBaseReducer() {
 		String[] thisReacts = { PKQLEnum.EXPR_TERM, PKQLEnum.DECIMAL, PKQLEnum.NUMBER, PKQLEnum.GROUP_BY, PKQLEnum.COL_DEF, PKQLEnum.MATH_PARAM};
 		super.whatIReactTo = thisReacts;
@@ -42,18 +46,22 @@ public abstract class AbstractRBaseReducer extends AbstractReactor {
 	
 	@Override
 	public Iterator process() {
-		modExpression();
 		String nodeStr = myStore.get(whoAmI).toString();
+
+		// modify the expression to get the sql syntax
+		modExpression();
+		
+		String script = myStore.get("MOD_" + whoAmI).toString();
+		script = script.replace("[", "").replace("]", "");
 		
 		RDataTable rFrame = (RDataTable)myStore.get("G");
 		String varRFrame = rFrame.getTableVarName();
 		
-		Vector<String> columns = (Vector <String>)myStore.get(PKQLEnum.COL_DEF);
 		Vector<String> groupBys = (Vector <String>)myStore.get(PKQLEnum.COL_CSV);
-		
+
 		if(groupBys != null && !groupBys.isEmpty()){
-			String script = processGroupBy(varRFrame, columns.get(0), groupBys);
-			REXP math = rFrame.executeRScript(script);
+			String rScript = processGroupBy(varRFrame, script, groupBys);
+			REXP math = rFrame.executeRScript(rScript);
 			
 			try {
 				// note: the derived column comes back with header "V1"
@@ -98,8 +106,8 @@ public abstract class AbstractRBaseReducer extends AbstractReactor {
 				e.printStackTrace();
 			}
 		} else {
-			String script = process(varRFrame, columns.get(0));
-			REXP math = rFrame.executeRScript(script);
+			String rScript = process(varRFrame, script);
+			REXP math = rFrame.executeRScript(rScript);
 			double result = 0;
 			try {
 				result = math.asDouble();
