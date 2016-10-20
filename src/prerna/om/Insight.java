@@ -1399,6 +1399,10 @@ public class Insight {
 		}
 	}
 	
+	public void setMainEngine(IEngine engine) {
+		this.mainEngine = engine;
+	} 
+	
 	public Map<String, Object> getInsightMetaModel() {
 		IDataMaker dataMaker = getDataMaker();
 		if(!(dataMaker instanceof ITableDataFrame)) {
