@@ -1,6 +1,6 @@
 package prerna.sablecc.expressions.sql;
 
-public class SqlCountReactor extends SqlBasicMathReactor {
+public class SqlCountReactor extends H2SqlBasicMathReactor {
 
 	/*
 	 * Only need to set the Math Routine
