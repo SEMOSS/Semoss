@@ -1313,17 +1313,17 @@ public class H2Frame extends AbstractTableDataFrame {
 		reactorNames.put(PKQLEnum.NETWORK_DISCONNECT, "prerna.sablecc.DisConnectReactor");
 		reactorNames.put(PKQLEnum.DATA_FRAME_DUPLICATES, "prerna.sablecc.H2DataFrameDuplicatesReactor");
 		
-		reactorNames.put(PKQLEnum.SUM, "prerna.algorithm.impl.SqlSumReactor");
-		reactorNames.put(PKQLEnum.MAX, "prerna.algorithm.impl.SqlMaxReactor");
-		reactorNames.put(PKQLEnum.MIN, "prerna.algorithm.impl.SqlMinReactor");
-		reactorNames.put(PKQLEnum.AVERAGE, "prerna.algorithm.impl.SqlAverageReactor");
-		reactorNames.put(PKQLEnum.COUNT, "prerna.algorithm.impl.SqlCountReactor");
-		reactorNames.put(PKQLEnum.CONCAT, "prerna.algorithm.impl.SqlConcatReactor");
-		reactorNames.put(PKQLEnum.ABSOLUTE, "prerna.algorithm.impl.SqlAbsoluteReactor");
-		reactorNames.put(PKQLEnum.ROUND, "prerna.algorithm.impl.SqlRoundReactor");
+		reactorNames.put(PKQLEnum.SUM, "prerna.sablecc.expressions.sql.SqlSumReactor");
+		reactorNames.put(PKQLEnum.MAX, "prerna.sablecc.expressions.sql.SqlMaxReactor");
+		reactorNames.put(PKQLEnum.MIN, "prerna.sablecc.expressions.sql.SqlMinReactor");
+		reactorNames.put(PKQLEnum.AVERAGE, "prerna.sablecc.expressions.sql.SqlAverageReactor");
+		reactorNames.put(PKQLEnum.COUNT, "prerna.sablecc.expressions.sql.SqlCountReactor");
+		reactorNames.put(PKQLEnum.CONCAT, "prerna.sablecc.expressions.sql.SqlConcatReactor");
+		reactorNames.put(PKQLEnum.ABSOLUTE, "prerna.sablecc.expressions.sql.SqlAbsoluteReactor");
+		reactorNames.put(PKQLEnum.ROUND, "prerna.sablecc.expressions.sql.SqlRoundReactor");
 
-//		reactorNames.put(PKQLEnum.STANDARD_DEVIATION, "prerna.algorithm.impl.SqlStandardDeviationReactor");
-//		reactorNames.put(PKQLEnum.MEDIAN, "prerna.algorithm.impl.SqlMedianReactor");
+//		reactorNames.put(PKQLEnum.STANDARD_DEVIATION, "prerna.sablecc.expressions.sql.SqlStandardDeviationReactor");
+//		reactorNames.put(PKQLEnum.MEDIAN, "prerna.sablecc.expressions.sql.SqlMedianReactor");
 
 		
 		reactorNames.put(PKQLEnum.QUERY_API, "prerna.sablecc.QueryApiReactor");
