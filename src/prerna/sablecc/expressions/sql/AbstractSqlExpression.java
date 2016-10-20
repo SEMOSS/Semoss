@@ -18,13 +18,18 @@ public abstract class AbstractSqlExpression extends AbstractReactor {
 	// storing the base columns used in the expression
 	protected String[] joinColumns;
 	
+	// this will store the group by columns 
+	protected String[] groupColumns;
+	
 	@Override
 	public Iterator process() {
 		String nodeStr = myStore.get(whoAmI).toString();
 
 		// if this is wrapping an existing expression iterator
-		if(myStore.get(nodeStr) instanceof H2SqlExpressionIterator) {
-			((H2SqlExpressionIterator) myStore.get(nodeStr)).close();
+		Object previousVal = myStore.get(nodeStr);
+		if(previousVal instanceof H2SqlExpressionIterator) {
+			this.groupColumns = ((H2SqlExpressionIterator) previousVal).getGroupColumns();
+			((H2SqlExpressionIterator) previousVal).close();			
 		}
 		
 		// get the new base expression

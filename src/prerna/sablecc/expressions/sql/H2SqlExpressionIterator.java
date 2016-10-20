@@ -1,50 +1,59 @@
 package prerna.sablecc.expressions.sql;
 
 import java.sql.ResultSet;
-import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
+import java.util.Iterator;
+import java.util.LinkedHashSet;
+import java.util.Set;
 
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
+import prerna.algorithm.api.ITableDataFrame;
 import prerna.ds.H2.H2Frame;
-import prerna.engine.api.IExpressionIterator;
+import prerna.sablecc.expressions.AbstractExpressionIterator;
 
-public class H2SqlExpressionIterator implements IExpressionIterator {
+public class H2SqlExpressionIterator extends AbstractExpressionIterator {
 
 	private static final Logger LOGGER = LogManager.getLogger(H2SqlExpressionIterator.class.getName());
-	
+
 	private H2Frame frame;
-	
 	private ResultSet rs;
-	
-	private int numCols = 0;
-	private String[] columnsToGet;
-	private String[] joinCols;
-	
-	private String sqlExpression;
-	private String aliasForScript;
-	
+
+	// This will hold the full sql expression to execute
 	private String sqlScript;
+
+	public H2SqlExpressionIterator() {
+		
+	}
 	
 	// iterator to wrap the result set from an expression
 	// so we do not need to hold additional information
 	// in memory and can grab each row as needed
-	public H2SqlExpressionIterator(H2Frame frame, String sqlExpression, String newCol, String[] joinCols) {
+	public H2SqlExpressionIterator(H2Frame frame, String sqlExpression, String newColumnName, String[] joinCols, String[] groupColumns) {
 		this.frame = frame;
-		this.sqlExpression = sqlExpression;
+		this.expression = sqlExpression;
+		this.newColumnName = newColumnName;
 		this.joinCols = joinCols;
-		this.aliasForScript = newCol;
-		
-		this.sqlScript = generateSqlScript(sqlExpression, newCol, joinCols, frame.getTableName(), frame.getSqlFilter());
+		this.groupColumns = groupColumns;
+
+		this.sqlScript = generateSqlScript(sqlExpression, newColumnName, joinCols, frame.getTableName(), frame.getSqlFilter(), groupColumns);
 		LOGGER.info("GENERATED SQL EXPRESSION SCRIPT : " + this.sqlScript);
 	}
 	
-	private void runScript() {
-		rs = frame.execQuery(sqlScript);
-		processMetadata();
+	@Override
+	public void generateExpression() {
+		this.sqlScript = generateSqlScript(this.expression, this.newColumnName, joinCols, frame.getTableName(), frame.getSqlFilter(), groupColumns);
 	}
-	
+
+	@Override
+	public void runExpression() {
+		if(this.sqlScript == null) {
+			generateExpression();
+		}
+		rs = frame.execQuery(sqlScript);
+	}
+
 	/**
 	 * Generate the appropriate sql script for execution
 	 * @param sqlExpression			The expression to process
@@ -53,42 +62,63 @@ public class H2SqlExpressionIterator implements IExpressionIterator {
 	 * @param tableName				The table name to execute on
 	 * @return
 	 */
-	private String generateSqlScript(String sqlExpression, String newCol, String[] joinCols, String tableName, String filters) {
+	private String generateSqlScript(String sqlExpression, String newCol, String[] joinCols, String tableName, String filters, String[] groupColumns) {
+		// this will generate the script
+		// but also keep track of the columns 
+		// can't use the rsmd since it will always return
+		// in upper case :(
+
 		StringBuilder builder = new StringBuilder("SELECT DISTINCT ");
 		builder.append("(").append(sqlExpression).append(") AS ").append(newCol);
-		for(int i = 0; i < joinCols.length; i++) {
-			builder.append(" , ").append(joinCols[i]);
+		// due to tracking of selectors, we need this set to keep track of order
+		Set<String> totalSelectors = new LinkedHashSet<String>();
+		if(joinCols != null) {
+			for(int i = 0; i < joinCols.length; i++) {
+				totalSelectors.add(joinCols[i]);
+			}
 		}
+		if(groupColumns != null) {
+			for(int i = 0; i < groupColumns.length; i++) {
+				totalSelectors.add(groupColumns[i]);
+			}
+		}
+		Iterator<String> returnHeaders = totalSelectors.iterator();
+		while(returnHeaders.hasNext()) {
+			builder.append(" , ").append(returnHeaders.next());
+		}
+
 		builder.append(" FROM ").append(tableName);
 		if(filters != null && !filters.isEmpty()) {
 			builder.append(" ").append(filters);
 		}
-		
+		if(groupColumns != null && groupColumns.length > 0) {
+			StringBuilder groupBuilder = new StringBuilder();
+			for(String groupBy : groupColumns) {
+				if(groupBuilder.length() == 0) {
+					groupBuilder.append(groupBy);
+				} else {
+					groupBuilder.append(" , ").append(groupBy);
+				}
+			}
+			builder.append(" GROUP BY ").append(groupBuilder.toString());
+		}
+
+		this.numCols = totalSelectors.size()+1;
+		this.headers = new String[numCols];
+		this.headers[0] = newCol;
+		int counter = 1;
+		for(String selector : totalSelectors) {
+			headers[counter] = selector;
+			counter++;
+		}
+
 		return builder.toString();
 	}
 
-	private void processMetadata() {
-		ResultSetMetaData rsmd;
-		try {
-			rsmd = rs.getMetaData();
-			this.numCols = rsmd.getColumnCount();
-			columnsToGet = new String[numCols];
-			for(int i = 0; i < numCols; i++) {
-				columnsToGet[i] = rsmd.getColumnName(i+1);
-			}			
-		} catch (SQLException e) {
-			e.printStackTrace();
-		}
-	}
-	
-	public String getAliasForScript() {
-		return this.aliasForScript;
-	}
-	
 	@Override
 	public boolean hasNext() {
 		if(rs == null) {
-			runScript();
+			runExpression();
 		}
 		boolean hasNext = false;
 		try {
@@ -105,7 +135,7 @@ public class H2SqlExpressionIterator implements IExpressionIterator {
 	@Override
 	public Object[] next() {
 		if(rs == null) {
-			runScript();
+			runExpression();
 		}
 		Object[] values = new Object[numCols];
 		try {
@@ -117,15 +147,7 @@ public class H2SqlExpressionIterator implements IExpressionIterator {
 		}
 		return values;
 	}
-	
-	@Override
-	public String[] getHeaders() {
-		if(rs == null) {
-			runScript();
-		}
-		return this.columnsToGet;
-	}
-	
+
 	@Override
 	public void close() {
 		if(this.rs != null) {
@@ -138,13 +160,8 @@ public class H2SqlExpressionIterator implements IExpressionIterator {
 	}
 	
 	@Override
-	public String[] getJoinColumns() {
-		return this.joinCols;
+	public void setFrame(ITableDataFrame frame) {
+		this.frame = (H2Frame) frame;
 	}
-
-	@Override
-	public String toString() {
-		return this.sqlExpression;
-	}
-
+	
 }
