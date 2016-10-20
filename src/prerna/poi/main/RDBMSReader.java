@@ -1170,7 +1170,17 @@ public class RDBMSReader extends AbstractCSVFileReader {
 		String type = dataTypes[colIndex];
 		String strVal = values[colIndex];
 		if(type.equals("FLOAT")) {
-			retObj = Utility.getDouble(strVal);
+			try {
+				//added to remove $ and , in data and then try parsing as Double
+				int mult = 1;
+				if(strVal.startsWith("(") || strVal.startsWith("-")) // this is a negativenumber
+					mult = -1;
+				strVal = strVal.replaceAll("[^0-9\\.]", "");
+				return mult * Double.parseDouble(strVal.trim());
+			} catch(NumberFormatException ex) {
+				//do nothing
+				return null;
+			}
 		} else if(type.equals("DATE")) {
 			retObj = Utility.getDate(strVal);
 		} 
