@@ -229,10 +229,12 @@ public class SPARQLInterpreter implements IQueryInterpreter {
 		boolean useOr = false;
 		boolean isValueString = false;
 		
-		// should expose this on the engien itself
+		// should expose this on the engine itself
 		boolean isProp = false;
-		if(property != null || engine.getParentOfProperty(concept) != null)
+		if(property != null || engine.getParentOfProperty(concept) != null) {
 			isProp = true;
+			addNodeProperty(concept, property);
+		}
 		
 		concept = Utility.getInstanceName(engine.getTransformedNodeName(Constants.DISPLAY_URI+concept, false));
 		if(objects.get(0) instanceof String) 
@@ -318,10 +320,12 @@ public class SPARQLInterpreter implements IQueryInterpreter {
 			useOr = true;
 		}
 
-		// should expose this on the engien itself
+		// should expose this on the engine itself
 		boolean isProp = false;
-		if(property != null || engine.getParentOfProperty(concept) != null)
+		if(property != null || engine.getParentOfProperty(concept) != null) {
 			isProp = true;
+			addNodeProperty(concept, property);
+		}
 		
 		concept = Utility.getInstanceName(engine.getTransformedNodeName(Constants.DISPLAY_URI+concept, false));
 		if(objects.get(0) instanceof String) // ok this is a string ------ must be " = " or " != " comparator ... regex handled in other section
