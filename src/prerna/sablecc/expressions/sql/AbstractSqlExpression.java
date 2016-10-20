@@ -6,7 +6,6 @@ import java.util.Set;
 import java.util.Vector;
 
 import prerna.sablecc.AbstractReactor;
-import prerna.sablecc.H2SqlExpressionIterator;
 import prerna.sablecc.PKQLEnum;
 
 public abstract class AbstractSqlExpression extends AbstractReactor {
