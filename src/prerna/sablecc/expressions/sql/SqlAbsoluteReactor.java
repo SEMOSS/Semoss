@@ -17,7 +17,12 @@ public class SqlAbsoluteReactor extends AbstractSqlExpression {
 		// get the expression
 		String expression = "ABS(" + this.baseScript + ")";
 		
-		H2SqlExpressionIterator it = new H2SqlExpressionIterator((H2Frame) myStore.get("G"), expression, aliasColumn, this.joinColumns);
+		H2SqlExpressionIterator it = new H2SqlExpressionIterator(
+				(H2Frame) myStore.get("G"), 
+				expression, 
+				aliasColumn, 
+				this.joinColumns, 
+				this.groupColumns);
 		
 		myStore.put(myStore.get(whoAmI).toString(), it);
 		myStore.put("STATUS",STATUS.SUCCESS);

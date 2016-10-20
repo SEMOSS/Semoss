@@ -625,7 +625,7 @@ public class H2Builder {
 		sql.append(" WHERE ").append(whereColumns[0]).append(" = ?");
 		for (int colIndex = 1; colIndex < whereColumns.length; colIndex++) {
 			sql.append(" AND ");
-			sql.append(whereColumns[1]).append(" = ?");
+			sql.append(whereColumns[colIndex]).append(" = ?");
 		}
 		sql.append("");
 

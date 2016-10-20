@@ -18,12 +18,13 @@ import com.google.gson.Gson;
 import prerna.algorithm.api.ITableDataFrame;
 import prerna.ds.H2.H2Frame;
 import prerna.ds.R.RDataTable;
-import prerna.engine.api.IExpressionIterator;
 import prerna.engine.api.IScriptReactor;
 import prerna.om.Dashboard;
 import prerna.sablecc.PKQLEnum.PKQLReactor;
 import prerna.sablecc.PKQLRunner.STATUS;
 import prerna.sablecc.analysis.DepthFirstAdapter;
+import prerna.sablecc.expressions.IExpressionIterator;
+import prerna.sablecc.expressions.sql.H2SqlExpressionGenerator;
 import prerna.sablecc.expressions.sql.H2SqlExpressionIterator;
 import prerna.sablecc.meta.IPkqlMetadata;
 import prerna.sablecc.node.AAddColumn;
@@ -69,6 +70,7 @@ import prerna.sablecc.node.AExprScript;
 import prerna.sablecc.node.AExprWordOrNum;
 import prerna.sablecc.node.AFilterColumn;
 import prerna.sablecc.node.AFlexSelectorRow;
+import prerna.sablecc.node.AFormula;
 import prerna.sablecc.node.AHelpScript;
 import prerna.sablecc.node.AImportData;
 import prerna.sablecc.node.AInputInputOrExpr;
@@ -124,6 +126,7 @@ import prerna.sablecc.node.PScript;
 import prerna.sablecc.node.TRelType;
 import prerna.sablecc.services.DatabasePkqlService;
 import prerna.ui.components.playsheets.datamakers.IDataMaker;
+import prerna.util.ArrayUtilityMethods;
 import prerna.util.Constants;
 import prerna.util.Utility;
 
@@ -289,22 +292,41 @@ public class Translation extends DepthFirstAdapter {
 		// which will only execute the sum and do a replace without adding back a value
 		// we need to compute when necessary
 		// TODO: really need an expression iterator for other frames...
+		// TODO: really need an expression iterator for other frames...
+		// TODO: really need an expression iterator for other frames...
+		// TODO: really need an expression iterator for other frames...
 		Object exprResult = curReactor.getValue(nodeStr);
 		if(exprResult instanceof String && !exprResult.toString().trim().isEmpty()) {
 			// since multiple math routines can be added together
 			// need to get a unique set of values used in the join
 			Vector<String> columns = (Vector <String>) curReactor.getValue(PKQLEnum.COL_DEF);
-			Set<String> joins = new HashSet<String>();
-			joins.addAll(columns);
-			
+			Set<String> joinCols = new HashSet<String>();
+			joinCols.addAll(columns);
+			String[] joins = joinCols.toArray(new String[]{});
+
 			String newCol = "EXPRESSION_COL";
 			
 			if(frame instanceof H2Frame) {
-				H2SqlExpressionIterator it = new H2SqlExpressionIterator((H2Frame) curReactor.getValue("G"), exprResult.toString(), newCol, joins.toArray(new String[]{}));
+				H2SqlExpressionIterator it = new H2SqlExpressionIterator((H2Frame) curReactor.getValue("G"), exprResult.toString(), newCol, joins, null);
 				this.runner.setResponse(it);
 			}
 		}
 		postProcess(node);
+	}
+
+	@Override
+	public void outAFormula(AFormula node)
+	{
+		// ugh... if there is a value associated with the expression
+		// we need to push it up to also match for the formula
+		// to fix when there are additional things like
+		// parenthesis and brackets
+		if(curReactor != null) {
+			String previousExpr = node.getExpr().toString().trim();
+			if(curReactor.getValue(previousExpr) != null) {
+				curReactor.put(node.toString().trim(), curReactor.getValue(previousExpr));
+			}
+		}
 	}
 
 	// at the highest level, make sure to save to the runner as a completed
@@ -1456,12 +1478,20 @@ public class Translation extends DepthFirstAdapter {
 			curReactor.removeReplacer(leftKeyName.trim());
 			curReactor.removeReplacer(rightKeyName.trim());
 		}
-		else if(rightObj instanceof IExpressionIterator || leftObj instanceof IExpressionIterator) {
+		else  
+		{
 			//TODO: need to make this generic and get the correct type of expression it
-			H2SqlExpressionIterator newIt = combineSimpleMathExpressions(leftObj, rightObj, node.getPlus().toString().trim());
-			curReactor.addReplacer(node.toString().trim(), newIt);
-			curReactor.removeReplacer(leftKeyName);
-			curReactor.removeReplacer(rightKeyName);
+			//TODO: need to make this generic and get the correct type of expression it
+			//TODO: need to make this generic and get the correct type of expression it
+			if(curReactor.getValue("G") instanceof H2Frame) {
+				H2Frame frame = (H2Frame) curReactor.getValue("G");
+				H2SqlExpressionIterator newIt = H2SqlExpressionGenerator.generateSimpleMathExpressions(frame, leftObj, rightObj, node.getPlus().toString().trim());
+				curReactor.addReplacer(node.toString().trim(), newIt);
+				curReactor.removeReplacer(leftKeyName);
+				curReactor.removeReplacer(rightKeyName);
+				curReactor.put(node.toString().trim(), newIt);
+				this.runner.setResponse(newIt);
+			}
 		}
 	}
 
@@ -1480,12 +1510,20 @@ public class Translation extends DepthFirstAdapter {
 			curReactor.removeReplacer(leftKeyName);
 			curReactor.removeReplacer(rightKeyName);
 		}
-		else if(rightObj instanceof IExpressionIterator || leftObj instanceof IExpressionIterator) {
+		else  
+		{
 			//TODO: need to make this generic and get the correct type of expression it
-			H2SqlExpressionIterator newIt = combineSimpleMathExpressions(leftObj, rightObj, node.getMinus().toString().trim());
-			curReactor.addReplacer(node.toString().trim(), newIt);
-			curReactor.removeReplacer(leftKeyName);
-			curReactor.removeReplacer(rightKeyName);
+			//TODO: need to make this generic and get the correct type of expression it
+			//TODO: need to make this generic and get the correct type of expression it
+			if(curReactor.getValue("G") instanceof H2Frame) {
+				H2Frame frame = (H2Frame) curReactor.getValue("G");
+				H2SqlExpressionIterator newIt = H2SqlExpressionGenerator.generateSimpleMathExpressions(frame, leftObj, rightObj, node.getMinus().toString().trim());
+				curReactor.addReplacer(node.toString().trim(), newIt);
+				curReactor.removeReplacer(leftKeyName);
+				curReactor.removeReplacer(rightKeyName);
+				curReactor.put(node.toString().trim(), newIt);
+				this.runner.setResponse(newIt);
+			}
 		}
 	}
 
@@ -1504,12 +1542,20 @@ public class Translation extends DepthFirstAdapter {
 			curReactor.removeReplacer(leftKeyName);
 			curReactor.removeReplacer(rightKeyName);
 		}
-		else if(rightObj instanceof IExpressionIterator || leftObj instanceof IExpressionIterator) {
+		else  
+		{
 			//TODO: need to make this generic and get the correct type of expression it
-			H2SqlExpressionIterator newIt = combineSimpleMathExpressions(leftObj, rightObj, node.getMult().toString().trim());
-			curReactor.addReplacer(node.toString().trim(), newIt);
-			curReactor.removeReplacer(leftKeyName);
-			curReactor.removeReplacer(rightKeyName);
+			//TODO: need to make this generic and get the correct type of expression it
+			//TODO: need to make this generic and get the correct type of expression it
+			if(curReactor.getValue("G") instanceof H2Frame) {
+				H2Frame frame = (H2Frame) curReactor.getValue("G");
+				H2SqlExpressionIterator newIt = H2SqlExpressionGenerator.generateSimpleMathExpressions(frame, leftObj, rightObj, node.getMult().toString().trim());
+				curReactor.addReplacer(node.toString().trim(), newIt);
+				curReactor.removeReplacer(leftKeyName);
+				curReactor.removeReplacer(rightKeyName);
+				curReactor.put(node.toString().trim(), newIt);
+				this.runner.setResponse(newIt);
+			}
 		}
 	}
 
@@ -1528,52 +1574,24 @@ public class Translation extends DepthFirstAdapter {
 			curReactor.removeReplacer(leftKeyName);
 			curReactor.removeReplacer(rightKeyName);
 		} 
-		else if(rightObj instanceof IExpressionIterator || leftObj instanceof IExpressionIterator) {
+		else  
+		{
 			//TODO: need to make this generic and get the correct type of expression it
-			H2SqlExpressionIterator newIt = combineSimpleMathExpressions(leftObj, rightObj, node.getDiv().toString().trim());
-			curReactor.addReplacer(node.toString().trim(), newIt);
-			curReactor.removeReplacer(leftKeyName);
-			curReactor.removeReplacer(rightKeyName);
+			//TODO: need to make this generic and get the correct type of expression it
+			//TODO: need to make this generic and get the correct type of expression it
+			if(curReactor.getValue("G") instanceof H2Frame) {
+				H2Frame frame = (H2Frame) curReactor.getValue("G");
+				H2SqlExpressionIterator newIt = H2SqlExpressionGenerator.generateSimpleMathExpressions(frame, leftObj, rightObj, node.getDiv().toString().trim());
+				curReactor.addReplacer(node.toString().trim(), newIt);
+				curReactor.removeReplacer(leftKeyName);
+				curReactor.removeReplacer(rightKeyName);
+				curReactor.put(node.toString().trim(), newIt);
+				this.runner.setResponse(newIt);
+			}
 		}
+
 	}
 	
-	// this should only be reachable when running expressions on the frame
-	private H2SqlExpressionIterator combineSimpleMathExpressions(Object leftObj, Object rightObj, String mathSymbol) {
-		// we override the toString method to return the script for the expression
-		// so doing string concatenation should provide the desired result
-		String combineExpression = leftObj.toString() + " " + mathSymbol + " " + rightObj;
-		
-		// will probably need the combination of the join columns for the new expression
-		Set<String> joinCols = new HashSet<String>();
-		if(leftObj instanceof H2SqlExpressionIterator) {
-			String[] joins = ((H2SqlExpressionIterator) leftObj).getJoinColumns();
-			if(joins != null) {
-				for(int i = 0; i < joins.length; i++) {
-					joinCols.add(joins[i]);
-				}
-			}
-
-			// should also close the rs
-			((H2SqlExpressionIterator) leftObj).close();
-		}
-		// repeat above for the rightObj
-		if(rightObj instanceof H2SqlExpressionIterator) {
-			String[] joins = ((H2SqlExpressionIterator) rightObj).getJoinColumns();
-			if(joins != null) {
-				for(int i = 0; i < joins.length; i++) {
-					joinCols.add(joins[i]);
-				}
-			}
-
-			// should also close the rs
-			((H2SqlExpressionIterator) rightObj).close();
-		}
-		
-		String newCol = "newCol_" + Utility.getRandomString(6);
-		
-		H2SqlExpressionIterator it = new H2SqlExpressionIterator((H2Frame) curReactor.getValue("G"), combineExpression, newCol, joinCols.toArray(new String[]{}));
-		return it;
-	}
 
 	@Override
 	public void outAModExpr(AModExpr node) {

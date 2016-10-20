@@ -1,6 +1,7 @@
 package prerna.sablecc;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Hashtable;
 import java.util.Iterator;
@@ -11,6 +12,7 @@ import java.util.Vector;
 
 import prerna.algorithm.api.ITableDataFrame;
 import prerna.ds.AbstractTableDataFrame;
+import prerna.sablecc.expressions.IExpressionIterator;
 import prerna.sablecc.meta.IPkqlMetadata;
 import prerna.sablecc.meta.VizPkqlMetadata;
 import prerna.util.ArrayUtilityMethods;
@@ -46,6 +48,8 @@ public class VizReactor extends AbstractReactor {
 		// grab the data i need
 		Object termObject = myStore.get("VizTableData");
 		ITableDataFrame frame = (ITableDataFrame) myStore.get("G");
+		
+		
 		List<String> formulas = (List<String>) myStore.get("MATH_EXPRESSION");
 		List<String> procedureTypes = (List<String>) myStore.get(PKQLEnum.PROC_NAME + "2");
 		List<List<String>> groupBys = (List<List<String>>) myStore.get(PKQLEnum.COL_CSV + "2");
@@ -58,15 +62,203 @@ public class VizReactor extends AbstractReactor {
 		List<Object[]> grid = new ArrayList<>(1);
 
 		Map<Integer, String> indexMap = new HashMap<>();
-
+		
+		// need to do an initial loop to go through all the columns that are just cols
 		int index = 0;
+		if (termObject instanceof List) {
+			List<Object> listObject = (List<Object>) termObject;
+			for (Object nextObject : listObject) {
+
+				// this is a column header
+				if (nextObject instanceof String) {
+					columnsToGrab.add(nextObject.toString());
+					// indexMap.put(nextObject.toString(), index);
+					indexMap.put(index, nextObject.toString());
+				}
+				
+				//this is an empty placeholder to maintain order, need to keep track
+				else if (nextObject == null && listObject.size() > 1) {
+					// indexMap.put("EMPTY"+index, index);
+					indexMap.put(index, "EMPTY");
+				}
+				
+				index++;
+			}
+		} else {
+			// if this is the case what are we displaying?
+		}
+		
+		// reset the index
+		index = 0;
 		if (termObject instanceof List) {
 			List<Object> listObject = (List<Object>) termObject;
 			int counter = 0;
 			for (Object nextObject : listObject) {
 
+				// shift to using an iterator
+				if (nextObject instanceof IExpressionIterator) {
+					IExpressionIterator it = (IExpressionIterator) nextObject;
+					String newColName = it.getNewColumnName();
+
+					String[] headers = it.getHeaders();
+					int newValIndex = ArrayUtilityMethods.arrayContainsValueAtIndexIgnoreCase(headers, newColName);
+					
+					List<String> allUsedHeaders = new Vector<String>();
+					for(int i = 0; i < headers.length; i++) {
+						allUsedHeaders.add(headers[i]);
+					}
+					allUsedHeaders.remove(newColName);
+					
+					columns.add(newColName);
+					// indexMap.put(newColName, index);
+					indexMap.put(index, newColName);
+					
+					// TODO: this is weird...
+					// this is what we use to know if we used math groups?
+					if(keyColumns.length == 0) {
+						keyColumns = allUsedHeaders.toArray(new String[]{});
+					}
+					
+					// TODO: we need a smarter way to do this
+					if(it.getGroupColumns() != null) {
+						// create map
+						// flushing this into memory...
+						Map<Map<String, Object>, Object> map = new Hashtable<Map<String, Object>, Object>();
+						while(it.hasNext()) {
+							Object[] values = it.next();
+							
+							Hashtable<String, Object> groupVal = new Hashtable<String, Object>();
+							Object calculatedVal = null;
+							for(int i = 0; i < values.length; i++) {
+								if(i == newValIndex) {
+									calculatedVal = values[i];
+								} else {
+									groupVal.put(headers[i], values[i]);
+								}
+							}
+							map.put(groupVal, calculatedVal);
+						}
+						
+						mainMap = mergeMap(mainMap, map);
+					} 
+					
+					//TODO: need to refactor entire class so it works for general expressions
+					//TODO: need to refactor entire class so it works for general expressions
+					//TODO: need to refactor entire class so it works for general expressions
+					//TODO: need to refactor entire class so it works for general expressions
+					//TODO: need to refactor entire class so it works for general expressions
+
+//					else {
+//						// well, cann't really merge without having something in common
+//						List<String> overlap = new Vector<String>();
+//						for(String column : columns) {
+//							if(allUsedHeaders.contains(column)) {
+//								overlap.add(column);
+//							}
+//						}
+//						
+//						// we got something!!!
+//						if(overlap.size() > 0) {
+//							// we will flush the overlap out with the new column
+//							Set<Integer> indicesToGet = new HashSet<Integer>();
+//							for(String column : overlap) {
+//								int indexIWant = ArrayUtilityMethods.arrayContainsValueAtIndexIgnoreCase(headers, column);
+//								indicesToGet.add(indexIWant);
+//							}
+//							
+//							// create map
+//							// flushing this into memory...
+//							Map<Map<String, Object>, Object> map = new Hashtable<Map<String, Object>, Object>();
+//							while(it.hasNext()) {
+//								Object[] values = it.next();
+//								
+//								Hashtable<String, Object> groupVal = new Hashtable<String, Object>();
+//								Object calculatedVal = null;
+//								for(int i = 0; i < values.length; i++) {
+//									if(i == newValIndex) {
+//										calculatedVal = values[i];
+//									} else if(indicesToGet.contains(new Integer(i))){
+//										groupVal.put(headers[i], values[i]);
+//									}
+//								}
+//								map.put(groupVal, calculatedVal);
+//							}
+//							
+//							mainMap = mergeMap(mainMap, map);
+//						} 
+//						else {
+//							if(procedureTypes == null) {
+//								procedureTypes = new Vector<String>();
+//								for(int i = 0; i < index; i++) {
+//									procedureTypes.add(null);
+//								}
+//							}
+//							procedureTypes.add(index, "Custom_Expression");
+//							
+//							// no match.... 
+//							// okay, we just need to append the current columns
+//							// and then do a merge
+//							Set<String> newJoinColumns = new HashSet<String>();
+//							for(String header : columnsToGrab) {
+//								newJoinColumns.add(header);
+//							}
+////							String[] currJoins = it.getJoinColumns();
+////							for(String header : currJoins) {
+////								newJoinColumns.add(header);
+////							}
+//							it.setJoinCols(newJoinColumns.toArray(new String[]{}));
+//
+//							it.generateExpression();
+//							it.runExpression();
+//
+//							// ughhh... now just flush to memory
+//							Map<Map<String, Object>, Object> map = new Hashtable<Map<String, Object>, Object>();
+//							while(it.hasNext()) {
+//								Object[] values = it.next();
+//								
+//								Hashtable<String, Object> groupVal = new Hashtable<String, Object>();
+//								Object calculatedVal = null;
+//								for(int i = 0; i < values.length; i++) {
+//									if(i == newValIndex) {
+//										calculatedVal = values[i];
+//									} else {
+//										groupVal.put(headers[i], values[i]);
+//									}
+//								}
+//								map.put(groupVal, calculatedVal);
+//							}
+//							
+//							mainMap = mergeMap(mainMap, map);
+//						}
+//					}
+					
+					// now that we have the data that we want
+					// since we pass in col_defs and everything
+					// in a very weird fashion with regards to how it
+					// goes through translation
+					
+					// get the accurate group columns
+					if(groupBys != null) {
+						List<String> thisGroups = groupBys.get(counter);
+						if(it.getGroupColumns() != null) {
+							thisGroups.clear();
+							thisGroups.addAll( Arrays.asList(it.getGroupColumns()) );
+						}
+					}
+					// get the accurate columns used
+					if(calculatedBy != null) {
+						List<String> colsUsedInCalc = calculatedBy.get(counter);
+						if(it.getJoinColumns() != null) {
+							colsUsedInCalc.clear();
+							colsUsedInCalc.addAll( Arrays.asList(it.getJoinColumns()) );
+						}
+					}
+					counter++;
+				}
+				
+				// this is the old way of doing math stuff
 				// if its a map we know it came from a math reactor
-				if (nextObject instanceof Map) {
+				else if (nextObject instanceof Map) {
 					String newColName = "newCol" + counter++;
 					columns.add(newColName);
 					// indexMap.put(newColName, index);
@@ -75,36 +267,12 @@ public class VizReactor extends AbstractReactor {
 					// we assume key columns are the same for all math reactors,
 					// need to initialize
 					if (keyColumns.length == 0) {
-						keyColumns = ((Map<Map<String, Object>, Object>) nextObject).keySet().iterator().next().keySet()
-								.toArray(new String[] {});
+						keyColumns = ((Map<Map<String, Object>, Object>) nextObject).keySet().iterator().next().keySet().toArray(new String[] {});
 					}
 
 					mainMap = mergeMap(mainMap, (Map<Map<String, Object>, Object>) nextObject);
-
 				}
-
-				// this is a column header
-				else if (nextObject instanceof String) {
-					columnsToGrab.add(nextObject.toString());
-					// indexMap.put(nextObject.toString(), index);
-					indexMap.put(index, nextObject.toString());
-				}
-
-				//this is an empty placeholder to maintain order, need to keep track
-				else if (nextObject == null && listObject.size() > 1) {
-					// indexMap.put("EMPTY"+index, index);
-					indexMap.put(index, "EMPTY");
-				}
-
-				// this would be a formula that is not a group by, not
-				// accounting for these yet
-				// getting this would be huge for data visual, imagine scaling
-				// axis based on data...i.e. logs
-				else {
-					// formulas which are not group bys and not columns should
-					// be taken care of here
-				}
-
+				
 				index++;
 			}
 		} else {
@@ -277,8 +445,7 @@ public class VizReactor extends AbstractReactor {
 		return generatedName;
 	}
 
-	private Map<Map<String, Object>, Object> convertIteratorDataToMap(Iterator<Object[]> iterator,
-			List<String> columnsToGrab, String[] keyColumns) {
+	private Map<Map<String, Object>, Object> convertIteratorDataToMap(Iterator<Object[]> iterator, List<String> columnsToGrab, String[] keyColumns) {
 		Map<Map<String, Object>, Object> retMap = new HashMap<>();
 		while (iterator.hasNext()) {
 			Map<String, Object> newKey = new HashMap<>();

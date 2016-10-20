@@ -95,7 +95,8 @@ public class H2ColAddReactor extends AbstractReactor {
 				value = modExpression(expr);
 			}
 			
-			H2SqlExpressionIterator it = new H2SqlExpressionIterator(frame, value.toString(), newCol, joinCols);
+			// no group by columns here
+			H2SqlExpressionIterator it = new H2SqlExpressionIterator(frame, value.toString(), newCol, joinCols, null);
 			addColumnUsingExpression(frame, it, newCol, joinCols);
 		}
 		
@@ -121,10 +122,10 @@ public class H2ColAddReactor extends AbstractReactor {
 		
 		// we us make index 0 the newColumn
 		// and then make each one in order
-		if(it.getAliasForScript() != null) {
+		if(it.getNewColumnName() != null) {
 			// if the alias is set, get there just in case it was defined outside of the colAddReactor
 			// to be a random value
-			indices[0] = ArrayUtilityMethods.arrayContainsValueAtIndexIgnoreCase(columnsToGet, it.getAliasForScript());	
+			indices[0] = ArrayUtilityMethods.arrayContainsValueAtIndexIgnoreCase(columnsToGet, it.getNewColumnName());	
 		} else {
 			indices[0] = ArrayUtilityMethods.arrayContainsValueAtIndexIgnoreCase(columnsToGet, newColumn);
 		}
