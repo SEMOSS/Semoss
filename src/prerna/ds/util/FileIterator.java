@@ -88,13 +88,14 @@ public class FileIterator implements Iterator<IHeadersDataRow>{
 		for(int i = 0; i < row.length; i++) {
 			String type = types[i];
 			if(type.contains("DOUBLE")) {
+				String val = row[i].trim();
 				try {
 					//added to remove $ and , in data and then try parsing as Double
 					int mult = 1;
-					if(row[i].startsWith("(")) // this is a negativenumber
+					if(val.startsWith("(") || val.startsWith("-")) // this is a negativenumber
 						mult = -1;
-					row[i] = row[i].replaceAll("[^0-9\\.]", "");
-					cleanRow[i] = mult * Double.parseDouble(row[i].trim());
+					val = val.replaceAll("[^0-9\\.]", "");
+					cleanRow[i] = mult * Double.parseDouble(val.trim());
 				} catch(NumberFormatException ex) {
 					//do nothing
 					cleanRow[i] = null;
