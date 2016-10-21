@@ -32,7 +32,6 @@ public class QueryDataReactor extends AbstractReactor {
 		// when the data is coming from an API (i.e. an engine or a file)
 		String [] dataFromApi = {PKQLEnum.COL_CSV, "ENGINE", "EDGE_HASH"};
 		values2SyncHash.put(PKQLEnum.API, dataFromApi);
-
 	}
 	
 	@Override
@@ -41,21 +40,15 @@ public class QueryDataReactor extends AbstractReactor {
 		modExpression();
 		System.out.println("My Store on IMPORT DATA REACTOR: " + myStore);
 		
-		ITableDataFrame frame = (ITableDataFrame) myStore.get("G");
-		
-		// 1) get the starting headers
-		// the starting headers is important to keep for the frame specific import data reactors 
-		// They are responsible for knowing when to perform an addRow vs. an addRelationship 
-		// (i.e. insert vs. update for H2ImportDataReactor)
-		String[] startingHeaders = frame.getColumnHeaders();
-		// store in mystore
-		myStore.put("startingHeaders", startingHeaders);
-
 		QueryStruct qs = (QueryStruct)myStore.get(PKQLEnum.API);
 		
 		// 2) format and process the join information
 		Vector<Map<String, String>> joins = (Vector<Map<String, String>>) myStore.get(PKQLEnum.JOINS);
-		if(joins!=null){
+		if(joins != null && !joins.isEmpty()){
+			ITableDataFrame frame = (ITableDataFrame) myStore.get("G");
+			if(frame == null) {
+				throw new IllegalArgumentException("Cannot have a table join in a state less PKQL call");
+			}
 			//do the logic here of getting the filters from the frame
 			for(Map<String,String> join : joins){
 				String joinType = join.get(PKQLEnum.REL_TYPE);

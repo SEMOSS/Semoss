@@ -94,6 +94,39 @@ public class PKQLRunner {
 		return;
 	}
 	
+	/**
+	 * Runs a given pkql expression (can be multiple if semicolon delimited) on a provided data maker 
+	 * @param expression			The sequence of semicolon delimited pkql expressions.
+	 * 								If just one expression, still must end with a semicolon
+	 * @param frame					The data maker to run the pkql expression on
+	 */
+	public void runPKQL(String expression) {
+		Parser p = new Parser(new Lexer(new PushbackReader(new InputStreamReader(new StringBufferInputStream(expression)), 1024)));
+		Start tree;
+		if(translation == null){
+			translation = new Translation(this);
+		}
+
+		try {
+			// parsing the pkql - this process also determines if expression is syntactically correct
+			tree = p.parse();
+			// apply the translation.
+			tree.apply(translation);
+			
+		} catch (ParserException | LexerException | IOException | RuntimeException e) {
+			e.printStackTrace();
+			currentStatus = PKQLRunner.STATUS.ERROR;
+			currentString = expression;
+			if(e.getMessage() != null && !e.getMessage().isEmpty()) {
+				response = "ERROR : " + e.getMessage();
+			} else {
+				response = "Invalid PKQL Statement";
+			}
+			storeResponse();
+		}
+		return;
+	}
+	
 	public List<Map> getResults(){
 		return this.responseArray;
 	}

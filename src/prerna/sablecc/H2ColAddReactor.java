@@ -57,7 +57,7 @@ public class H2ColAddReactor extends AbstractReactor {
 		// expr is the term
 		// and the value will be what that term points to inside myStore
 		String expr = (String) myStore.get(PKQLEnum.EXPR_TERM);
-		LOGGER.info("Running colAdd for expression: " + expr);
+		LOGGER.info("RUNNING COL ADD FOR EXPRESSION : " + expr);
 		Object value = myStore.get(expr);
 
 		// joinColumns
@@ -100,6 +100,8 @@ public class H2ColAddReactor extends AbstractReactor {
 			addColumnUsingExpression(frame, it, newCol, joinCols);
 		}
 		
+		LOGGER.info("DONE RUNNING COL ADD");
+
 		frame.updateDataId();
 		
 		myStore.put("RESPONSE", STATUS.SUCCESS.toString());
@@ -109,6 +111,12 @@ public class H2ColAddReactor extends AbstractReactor {
 	}
 
 	private void addColumnUsingExpression(H2Frame frame, H2SqlExpressionIterator it, String newColumn, String[] joinColumns) {
+		// drop any index for faster updating
+		Set<String> colsWithIndex = frame.getColumnsWithIndexes();
+		for(String col : colsWithIndex) {
+			frame.removeColumnIndex(col);
+		}
+		
 		// since we do not know the type of the new column we are adding
 		// we determine it based on the first value that is returned
 		PreparedStatement ps = null;
@@ -195,7 +203,12 @@ public class H2ColAddReactor extends AbstractReactor {
 		} catch(SQLException e) {
 			e.printStackTrace();
 		}
-
+		
+		
+		// add back index
+		for(String col : colsWithIndex) {
+			frame.addColumnIndex(col);
+		}
 	}
 
 	/**
@@ -220,7 +233,7 @@ public class H2ColAddReactor extends AbstractReactor {
 
 				Object newVal = dataToAdd.get(groupData);
 
-				// here we use the first value that is defined to create the first column
+				// here we use the first value that is defined to creat)e the first column
 				// since we need the type
 				if(ps == null) {
 					// here we create the new column
