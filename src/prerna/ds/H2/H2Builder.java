@@ -940,7 +940,7 @@ public class H2Builder {
 					// or this takes forever on big data
 					List<String[]> indicesToAdd = new Vector<String[]>();
 					for(String tableColConcat : this.columnIndexMap.keySet()) {
-						String[] tableCol = tableColConcat.split("+++");
+						String[] tableCol = tableColConcat.split("\\+\\+\\+");
 						indicesToAdd.add(tableCol);
 						removeColumnIndex(tableCol[0], tableCol[1]);
 					}
