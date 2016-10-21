@@ -2987,6 +2987,14 @@ public class Utility {
 				ReentrantLock lock = getEngineLock(engineName);
 				lock.lock();
 				try {
+					// need to do a double check
+					// so if a different thread was waiting for the engine to load
+					// it doesn't go through this process again
+					if(DIHelper.getInstance().getLocalProp(engineName) != null)  {
+						return (IEngine) DIHelper.getInstance().getLocalProp(engineName);
+					}
+					
+					// actual process to load
 					FileInputStream fis = null;
 					try {
 						Properties daProp = new Properties();
