@@ -132,34 +132,36 @@ public class H2ImportDataReactor extends ImportDataReactor {
 		headers = headersCopy; 
 
 		// move to an off-heap database if over limit of acceptable amount in memory
-		if(overLimit) {
-			// let the method determine where the new schema will be
-			frame.convertToOnDiskFrame(null);
-		} else if(!emptyFrame) {
-			// this is a very very rough approximation
-			int newRecordRows = numNewRecords / headers.length;
-			int currNumRows = frame.getNumRows();
-			
-			// we grab whichever has a larger number of rows
-			// and multiple by the total number of headers expected after we perform the join
-			
-			// 1) get the number of rows
-			int approxNumRows = Math.max(newRecordRows, currNumRows);
-			// 2) get the unique number of headers
-			Set<String> uniqueHeaders = new HashSet<String>();
-			for(String header : startingHeaders) {
-				uniqueHeaders.add(header);
-			}
-			// note: we do this after we update the headers to account for the join columns
-			// having different names to get the correct number of headers
-			for(String header : headers) {
-				uniqueHeaders.add(header);
-			}
-			
-			int approxNumCells = approxNumRows * uniqueHeaders.size();
-			if(approxNumCells > LIMIT_SIZE) {
+		if(frame.isInMem()) {
+			if(overLimit) {
 				// let the method determine where the new schema will be
 				frame.convertToOnDiskFrame(null);
+			} else if(!emptyFrame) {
+				// this is a very very rough approximation
+				int newRecordRows = numNewRecords / headers.length;
+				int currNumRows = frame.getNumRows();
+				
+				// we grab whichever has a larger number of rows
+				// and multiple by the total number of headers expected after we perform the join
+				
+				// 1) get the number of rows
+				int approxNumRows = Math.max(newRecordRows, currNumRows);
+				// 2) get the unique number of headers
+				Set<String> uniqueHeaders = new HashSet<String>();
+				for(String header : startingHeaders) {
+					uniqueHeaders.add(header);
+				}
+				// note: we do this after we update the headers to account for the join columns
+				// having different names to get the correct number of headers
+				for(String header : headers) {
+					uniqueHeaders.add(header);
+				}
+				
+				int approxNumCells = approxNumRows * uniqueHeaders.size();
+				if(approxNumCells > LIMIT_SIZE) {
+					// let the method determine where the new schema will be
+					frame.convertToOnDiskFrame(null);
+				}
 			}
 		}
 		
