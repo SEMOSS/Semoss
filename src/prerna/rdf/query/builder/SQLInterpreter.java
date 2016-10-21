@@ -108,11 +108,11 @@ public class SQLInterpreter implements IQueryInterpreter{
 		addSelectors();
 		addFilters();
 		
-		String query = "SELECT ";
+		StringBuilder query = new StringBuilder("SELECT ");
 		// add the selectors
 		// if this is meant to perform a count
 		if(performCount) {
-			query = query + " COUNT(*) * " + selectors.split(",").length + " FROM ";
+			query.append(" COUNT(*) * ").append(selectors.split(",").length).append(" FROM ");
 		} else {
 			if(this.engine != null && relationList.isEmpty()) {
 				// if there are no joins, we know we are querying from a single table
@@ -122,14 +122,14 @@ public class SQLInterpreter implements IQueryInterpreter{
 				if((engine.getProperties4Concept2(table, false).size() + 1) == selectorList.size()) {
 					// plus one is for the concept itself
 					// no distinct needed
-					query = query + selectors + "  FROM ";
+					query.append(selectors).append("  FROM ");
 				} else {
 					// need a distinct
-					query = query + " DISTINCT " + selectors + "  FROM ";
+					query.append(" DISTINCT ").append(selectors).append("  FROM ");
 				}
 			} else {
 				// default is to use a distinct
-				query = query + " DISTINCT " + selectors + "  FROM ";
+				query.append(" DISTINCT ").append(selectors).append(" FROM ");
 			}
 		}
 		// if there is a join
@@ -143,10 +143,10 @@ public class SQLInterpreter implements IQueryInterpreter{
 		} else {
 			startPoint = relationList.getTableNotDefinedInJoinList();
 		}
-		query = query + startPoint[0] + " " + startPoint[1];
+		query.append(startPoint[0]).append(" ").append(startPoint[1]);
 		
 		// add the join data
-		query = query + relationList.getJoinPath(startPoint[1]);
+		query.append(relationList.getJoinPath(startPoint[1]));
 		
 		boolean firstTime = true;
 		for (String key : whereHash.keySet())
@@ -169,14 +169,18 @@ public class SQLInterpreter implements IQueryInterpreter{
 			
 			if(firstTime)
 			{
-				query = query + " WHERE " + conceptString + value;
+				query.append(" WHERE ").append(conceptString).append(value);
 				firstTime = false;
 			}
 			else
-				query = query + " AND " + conceptString + value;
+				query.append(" AND ").append(conceptString).append(value);
 		}
 
-		System.out.println("QUERY....  " + query);
+		if(query.length() > 500) {
+			System.out.println("QUERY....  " + query.substring(0,  500) + "...");
+		} else {
+			System.out.println("QUERY....  " + query);
+		}
 		int limit = qs.getLimit();
 		int offset = qs.getOffset();
 		
@@ -195,19 +199,19 @@ public class SQLInterpreter implements IQueryInterpreter{
 				break; //use first one
 			}
 			if(orderByName != null) {
-				query = query + " ORDER BY " + orderByName;
+				query.append(" ORDER BY ").append(orderByName);
 			}
 		}
 		
 		if(limit > 0) {
-			query = query + " LIMIT "+limit;
+			query.append(" LIMIT ").append(limit);
 		} 
 		
 		if (offset > 0) {
-			query = query + " OFFSET "+offset;
+			query.append(" OFFSET ").append(offset);
 		}
 		
-		return query;
+		return query.toString();
 	}
 
 	//////////////////////////// adding selectors //////////////////////////////////////////
@@ -522,9 +526,7 @@ public class SQLInterpreter implements IQueryInterpreter{
 				}
 				
 				if(thisComparator == null || thisComparator.trim().equals("=")) {
-					for(int optIndex = 0;optIndex < options.size(); optIndex++){
-						addEqualsFilter(concept, property, thisComparator, dataType, options.get(optIndex));
-					}
+					addEqualsFilter(concept, property, thisComparator, dataType, options);
 				} else {
 					for(int optIndex = 0;optIndex < options.size(); optIndex++){
 						addFilter(concept, property, thisComparator, dataType, options.get(optIndex));
@@ -562,22 +564,151 @@ public class SQLInterpreter implements IQueryInterpreter{
 	}
 
 	//we want the filter query to be: "... where table.column in ('value1', 'value2', ...) when the comparator is '='
-	private void addEqualsFilter(String concept, String property, String thisComparator, String dataType, Object object) {
-		String thisWhere = "";
+	private void addEqualsFilter(String concept, String property, String thisComparator, String dataType, Vector<Object> object) {
 		String key = concept +":::"+ property +":::"+ thisComparator;
-		
-		// this will hold the sql acceptable format of the object
-		String myObj = getFormatedObject(dataType, object, thisComparator);
+		// this will hold the sql acceptable format for all the objects in the list
+		String thisWhere = getFormatedObject(dataType, object, thisComparator);
 
-		// add it to a new where statement or an existing where statement
-		if(!whereHash.containsKey(key)) {
-			thisWhere = myObj;		
-		} else {
-			thisWhere = whereHash.get(key);
-			thisWhere = thisWhere + ", " + myObj;						
-		}
-
+		// since we are passing in the entire list, there is no chance
+		// that the key will be replicated
 		whereHash.put(key, thisWhere);
+	}
+	
+	/**
+	 * This is an optimized version when we know we can get all the objects into 
+	 * the proper sql query string in one go
+	 * @param dataType
+	 * @param objects
+	 * @param comparator
+	 * @return
+	 */
+	private String getFormatedObject(String dataType, Vector<Object> objects, String comparator) {
+		// this will hold the sql acceptable format of the object
+		StringBuilder myObj = new StringBuilder();
+		
+		// defining variables for looping
+		int i = 0;
+		int size = objects.size();
+		
+		// if we can get the data type from the OWL, lets just use that
+		// if we dont have it, we will do type casting...
+		if(dataType != null) {
+			dataType = dataType.toUpperCase();
+			if(dataType.contains("DOUBLE") || dataType.contains("FLOAT") || dataType.contains("LONG")) {
+				// get the first value
+				myObj.append(objects.get(0));
+				i++;
+				// loop through all the other values
+				for(; i < size; i++) {
+					myObj.append(" , ").append(objects.get(i));
+				}
+			} else if(dataType.contains("DATE") || dataType.contains("TIMESTAMP")) {
+				String leftWrapper = null;
+				String rightWrapper = null;
+				if(!comparator.equalsIgnoreCase(SEARCH_COMPARATOR)) {
+					leftWrapper = "\'";
+					rightWrapper = "\'";
+				} else {
+					leftWrapper = "'%";
+					rightWrapper = "%'";
+				}
+				
+				// get the first value
+				String val = objects.get(0).toString();
+				String d = Utility.getDate(val);
+				// get the first value
+				myObj.append(leftWrapper).append(d).append(rightWrapper);
+				i++;
+				for(; i < size; i++) {
+					val = objects.get(i).toString();
+					d = Utility.getDate(val);
+					// get the first value
+					myObj.append(" , ").append(leftWrapper).append(d).append(rightWrapper);
+				}
+			}else {
+				String leftWrapper = null;
+				String rightWrapper = null;
+				if(!comparator.equalsIgnoreCase(SEARCH_COMPARATOR)) {
+					leftWrapper = "\'";
+					rightWrapper = "\'";
+				} else {
+					leftWrapper = "'%";
+					rightWrapper = "%'";
+				}
+				
+				// get the first value
+				String val = objects.get(0).toString().replace("\"", "").replaceAll("'", "''").trim();
+				// get the first value
+				myObj.append(leftWrapper).append(val).append(rightWrapper);
+				i++;
+				for(; i < size; i++) {
+					val = objects.get(i).toString().replace("\"", "").replaceAll("'", "''").trim();
+					// get the first value
+					myObj.append(" , ").append(leftWrapper).append(val).append(rightWrapper);
+				}
+			}
+		} 
+		else {
+			// do it based on type casting
+			// can't have mixed types
+			// so only using first value
+			Object object = objects.get(0);
+			if(object instanceof Number) {
+				// get the first value
+				myObj.append(objects.get(0));
+				i++;
+				// loop through all the other values
+				for(; i < size; i++) {
+					myObj.append(" , ").append(objects.get(i));
+				}
+			} else if(object instanceof java.util.Date || object instanceof java.sql.Date) {
+				String leftWrapper = null;
+				String rightWrapper = null;
+				if(!comparator.equalsIgnoreCase(SEARCH_COMPARATOR)) {
+					leftWrapper = "\'";
+					rightWrapper = "\'";
+				} else {
+					leftWrapper = "'%";
+					rightWrapper = "%'";
+				}
+				
+				// get the first value
+				String val = objects.get(0).toString();
+				String d = Utility.getDate(val);
+				// get the first value
+				myObj.append(leftWrapper).append(d).append(rightWrapper);
+				i++;
+				for(; i < size; i++) {
+					val = objects.get(i).toString();
+					d = Utility.getDate(val);
+					// get the first value
+					myObj.append(" , ").append(leftWrapper).append(d).append(rightWrapper);
+				}
+			} else {
+				String leftWrapper = null;
+				String rightWrapper = null;
+				if(!comparator.equalsIgnoreCase(SEARCH_COMPARATOR)) {
+					leftWrapper = "\'";
+					rightWrapper = "\'";
+				} else {
+					leftWrapper = "'%";
+					rightWrapper = "%'";
+				}
+				
+				// get the first value
+				String val = objects.get(0).toString().replace("\"", "").replaceAll("'", "''").trim();
+				// get the first value
+				myObj.append(leftWrapper).append(val).append(rightWrapper);
+				i++;
+				for(; i < size; i++) {
+					val = objects.get(i).toString().replace("\"", "").replaceAll("'", "''").trim();
+					// get the first value
+					myObj.append(" , ").append(leftWrapper).append(val).append(rightWrapper);
+				}
+			}
+		}
+		
+		return myObj.toString();
 	}
 	
 	private String getFormatedObject(String dataType, Object object, String comparator) {
@@ -633,7 +764,6 @@ public class SQLInterpreter implements IQueryInterpreter{
 				}
 			}
 		}
-		
 		return myObj;
 	}
 	

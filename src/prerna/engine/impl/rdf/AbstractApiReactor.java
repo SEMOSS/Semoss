@@ -185,11 +185,6 @@ public abstract class AbstractApiReactor extends AbstractReactor{
 		}
 		for(int filterIndex = 0;filterIndex < filters.size();filterIndex++)
 		{
-			Object thisObject = filters.get(filterIndex);
-			System.out.println(thisObject.getClass());
-			if(thisObject instanceof Hashtable)
-				System.out.println("I just dont what is wrong.. ");
-
 			Hashtable thisFilter = (Hashtable)filters.get(filterIndex);
 			String fromCol = (String)thisFilter.get("FROM_COL");
 			String toCol = null;
