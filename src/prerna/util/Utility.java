@@ -67,6 +67,9 @@ import java.util.Set;
 import java.util.StringTokenizer;
 import java.util.TimeZone;
 import java.util.Vector;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.locks.ReentrantLock;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -137,6 +140,8 @@ public class Utility {
 	public static int id = 0;
 	static Logger LOGGER = Logger.getLogger(prerna.util.Utility.class);
 
+	private static ConcurrentMap<String, ReentrantLock> engineLocks = new ConcurrentHashMap<String, ReentrantLock>();
+	
 	/**
 	 * Matches the given query against a specified pattern.
 	 * While the next substring of the query matches a part of the pattern, set substring as the key with EMPTY constants (@@) as the value
@@ -2973,45 +2978,55 @@ public class Utility {
 		IEngine engine = null;
 		if(DIHelper.getInstance().getLocalProp(engineName) != null) {
 			engine = (IEngine) DIHelper.getInstance().getLocalProp(engineName);
+			engineLocks.remove(engineName);
 		} else {
-			// start up the engine
+			// start the engine using the smss file
 			String smssFile = (String)DIHelper.getInstance().getCoreProp().getProperty(engineName + "_" + Constants.STORE);
 			// start it up
-			if(smssFile != null)
-			{
-				FileInputStream fis = null;
+			if(smssFile != null) {
+				ReentrantLock lock = getEngineLock(engineName);
+				lock.lock();
 				try {
-					Properties daProp = new Properties();
-					fis = new FileInputStream(smssFile);
-					daProp.load(fis);
-					engine = Utility.loadWebEngine(smssFile, daProp);
-					System.out.println("Loaded the engine.. !!!!! " + engineName);
-				} catch (KeyManagementException e) {
-					e.printStackTrace();
-				} catch (NoSuchAlgorithmException e) {
-					e.printStackTrace();
-				} catch (KeyStoreException e) {
-					e.printStackTrace();
-				} catch (IOException e) {
-					e.printStackTrace();
-				} finally {
-					if(fis != null) {
-						try {
-							fis.close();
-						} catch (IOException e) {
-							e.printStackTrace();
+					FileInputStream fis = null;
+					try {
+						Properties daProp = new Properties();
+						fis = new FileInputStream(smssFile);
+						daProp.load(fis);
+						engine = Utility.loadWebEngine(smssFile, daProp);
+						System.out.println("Loaded the engine.. !!!!! " + engineName);
+					} catch (KeyManagementException e) {
+						e.printStackTrace();
+					} catch (NoSuchAlgorithmException e) {
+						e.printStackTrace();
+					} catch (KeyStoreException e) {
+						e.printStackTrace();
+					} catch (IOException e) {
+						e.printStackTrace();
+					} finally {
+						if(fis != null) {
+							try {
+								fis.close();
+							} catch (IOException e) {
+								e.printStackTrace();
+							}
 						}
 					}
+				} finally {
+					lock.unlock();
 				}
-			}
-			else
-				System.out.println("There is no SMSS File for this engine.. ");
+			} else {
+				System.out.println("There is no SMSS File for this engine...");
+			} 
 		}
-		
+
 		return engine;
 	}
 	
-
+	private static ReentrantLock getEngineLock(String engineName) {
+		engineLocks.putIfAbsent(engineName, new ReentrantLock());
+		return engineLocks.get(engineName);
+	}
+	
 	public static HashMap<String, Object> getPKQLInputVar(String param, String reactor){
 		HashMap<String, Object> inputMap = new HashMap<String, Object>();
 		Object restrictions = new Object();
