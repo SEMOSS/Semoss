@@ -349,7 +349,6 @@ public class RDBMSNativeEngine extends AbstractEngine {
 			conn = getConnection();
 			stmt = conn.createStatement();
 			Map<String, Object> map = new HashMap();
-			System.out.println("RDBMS QUERY IS " + query);
 			rs = getResults(stmt, query);
 			//normally would use instance.getClass() but when we retrieve the 
 			//references from the object we can't guarantee that they will not be null
