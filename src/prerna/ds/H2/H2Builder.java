@@ -946,8 +946,9 @@ public class H2Builder {
 					}
 					
 					String alterQuery = makeAlter(tableName, newHeaders.toArray(new String[] {}), newTypes.toArray(new String[] {}));
-					System.out.println("altering table: " + alterQuery);
+					LOGGER.info("ALTERING TABLE: " + alterQuery);
 					runQuery(alterQuery);
+					LOGGER.info("DONE ALTER TABLE");
 					
 					for(String[] tableColIndex : indicesToAdd ) {
 						addColumnIndex(tableColIndex[0], tableColIndex[1]);
@@ -2139,19 +2140,8 @@ public class H2Builder {
 			String table1JoinCol = newTypes[table1JoinIndex];
 			String table2JoinCol = oldTypes[table2JoinIndex];
 
-			long start = System.currentTimeMillis();
-
-			try {
-				addColumnIndex(tableName1, table1JoinCol);
-				addColumnIndex(tableName2, table2JoinCol);
-			} catch (Exception e) {
-				e.printStackTrace();
-			}
-
-			long end = System.currentTimeMillis();
-
-			System.out.println("TIME FOR INDEX CREATION = " + (end - start) + " ms");
-
+			addColumnIndex(tableName1, table1JoinCol);
+			addColumnIndex(tableName2, table2JoinCol);
 			// note that this creates indices on table1 and table2
 			// but these tables are later dropped so no indices are kept
 			// through the flow
@@ -2224,12 +2214,18 @@ public class H2Builder {
 
 	protected void addColumnIndex(String tableName, String colName) {
 		if (!columnIndexMap.contains(tableName + "+++" + colName)) {
+			long start = System.currentTimeMillis();
+
 			LOGGER.info("CREATING INDEX ON TABLE = " + tableName + " ON COLUMN = " + colName);
 			try {
 				String indexName = colName + "_INDEX_" + getNextNumber();
 				String indexSql = "CREATE INDEX " + indexName + " ON " + tableName + "(" + colName + ")";
 				runQuery(indexSql);
 				columnIndexMap.put(tableName + "+++" + colName, indexName);
+				
+				long end = System.currentTimeMillis();
+
+				LOGGER.info("TIME FOR INDEX CREATION = " + (end - start) + " ms");
 			} catch (Exception e) {
 				e.printStackTrace();
 			}
