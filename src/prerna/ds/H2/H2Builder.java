@@ -935,10 +935,23 @@ public class H2Builder {
 
 				// if we have new headers add them to the table
 				if (!newHeaders.isEmpty()) {
-					String alterQuery = makeAlter(tableName, newHeaders.toArray(new String[] {}),
-							newTypes.toArray(new String[] {}));
+					// if there is an index
+					// definitely get rid of it
+					// or this takes forever on big data
+					List<String[]> indicesToAdd = new Vector<String[]>();
+					for(String tableColConcat : this.columnIndexMap.keySet()) {
+						String[] tableCol = tableColConcat.split("+++");
+						indicesToAdd.add(tableCol);
+						removeColumnIndex(tableCol[0], tableCol[1]);
+					}
+					
+					String alterQuery = makeAlter(tableName, newHeaders.toArray(new String[] {}), newTypes.toArray(new String[] {}));
 					System.out.println("altering table: " + alterQuery);
 					runQuery(alterQuery);
+					
+					for(String[] tableColIndex : indicesToAdd ) {
+						addColumnIndex(tableColIndex[0], tableColIndex[1]);
+					}
 				}
 			} else {
 				// if table doesn't exist then create one with headers and types
@@ -2119,7 +2132,6 @@ public class H2Builder {
 		// now create a third table
 		tableName = H2FRAME + getNextNumber();
 
-		String indexPostfix = "_INDEX_";
 		// want to create indices on the join columns to speed up the process
 		for (Integer table1JoinIndex : matchers.keySet()) {
 			Integer table2JoinIndex = matchers.get(table1JoinIndex);
@@ -2130,10 +2142,8 @@ public class H2Builder {
 			long start = System.currentTimeMillis();
 
 			try {
-				runQuery("CREATE INDEX " + table1JoinCol + indexPostfix + getNextNumber() + " ON " + tableName1 + "("
-						+ table1JoinCol + ")");
-				runQuery("CREATE INDEX " + table2JoinCol + indexPostfix + getNextNumber() + " ON " + tableName2 + "("
-						+ table2JoinCol + ")");
+				addColumnIndex(tableName1, table1JoinCol);
+				addColumnIndex(tableName2, table2JoinCol);
 			} catch (Exception e) {
 				e.printStackTrace();
 			}
@@ -2213,12 +2223,13 @@ public class H2Builder {
 	}
 
 	protected void addColumnIndex(String tableName, String colName) {
-		if (!columnIndexMap.contains(tableName + colName)) {
+		if (!columnIndexMap.contains(tableName + "+++" + colName)) {
+			LOGGER.info("CREATING INDEX ON TABLE = " + tableName + " ON COLUMN = " + colName);
 			try {
 				String indexName = colName + "_INDEX_" + getNextNumber();
 				String indexSql = "CREATE INDEX " + indexName + " ON " + tableName + "(" + colName + ")";
 				runQuery(indexSql);
-				columnIndexMap.put(tableName + colName, indexName);
+				columnIndexMap.put(tableName + "+++" + colName, indexName);
 			} catch (Exception e) {
 				e.printStackTrace();
 			}
@@ -2226,7 +2237,8 @@ public class H2Builder {
 	}
 
 	protected void removeColumnIndex(String tableName, String colName) {
-		if (columnIndexMap.contains(tableName + colName)) {
+		if (columnIndexMap.contains(tableName + "+++" + colName)) {
+			LOGGER.info("DROPPING INDEX ON TABLE = " + tableName + " ON COLUMN = " + colName);
 			String indexName = columnIndexMap.get(tableName + colName);
 			try {
 				runQuery("DROP INDEX " + indexName);
