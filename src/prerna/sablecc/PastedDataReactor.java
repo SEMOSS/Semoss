@@ -22,10 +22,12 @@ import prerna.util.DIHelper;
 
 public class PastedDataReactor extends AbstractReactor {
 
+	public static final String DELIMITER = "delimiter";
+	
 	private String fileName;
 	
 	public PastedDataReactor() {
-		String [] thisReacts = {PKQLEnum.ROW_CSV, PKQLEnum.FILTER, PKQLEnum.JOINS, PKQLEnum.WORD_OR_NUM};
+		String [] thisReacts = {PKQLEnum.ROW_CSV, PKQLEnum.FILTER, PKQLEnum.JOINS, DELIMITER};
 		super.whatIReactTo = thisReacts;
 		super.whoAmI = PKQLEnum.PASTED_DATA;
 	}
@@ -61,7 +63,7 @@ public class PastedDataReactor extends AbstractReactor {
 		
 		// create a helper to get the headers for qs and edge hash
 		CSVFileHelper helper = new CSVFileHelper();
-		String delimiter = ( (List<Object>) myStore.get(PKQLEnum.WORD_OR_NUM)).get(0).toString(); // why does this come back as an array
+		String delimiter = myStore.get(DELIMITER).toString();
 		helper.setDelimiter(delimiter.charAt(0));
 		helper.parse(fileName);
 
