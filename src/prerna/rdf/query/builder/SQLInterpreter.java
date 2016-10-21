@@ -12,6 +12,7 @@ import java.util.Vector;
 import org.openrdf.query.QueryEvaluationException;
 import org.openrdf.query.TupleQueryResult;
 
+import prerna.algorithm.api.IMetaData;
 import prerna.ds.QueryStruct;
 import prerna.engine.api.IEngine;
 import prerna.engine.impl.rdbms.RDBMSNativeEngine;
@@ -719,9 +720,10 @@ public class SQLInterpreter implements IQueryInterpreter{
 		// if we dont have it, we will do type casting...
 		if(dataType != null) {
 			dataType = dataType.toUpperCase();
-			if(dataType.contains("DOUBLE") || dataType.contains("FLOAT") || dataType.contains("LONG")) {
+			IMetaData.DATA_TYPES type = Utility.convertStringtoDataType(dataType);
+			if(IMetaData.DATA_TYPES.NUMBER.equals(type)) {
 				myObj = object.toString();
-			} else if(dataType.contains("DATE") || dataType.contains("TIMESTAMP")) {
+			} else if(IMetaData.DATA_TYPES.DATE.equals(type)) {
 				myObj = object.toString();
 				myObj = Utility.getDate(myObj);
 				if(!comparator.equalsIgnoreCase(SEARCH_COMPARATOR)) {
