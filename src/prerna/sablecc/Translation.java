@@ -23,7 +23,6 @@ import prerna.om.Dashboard;
 import prerna.sablecc.PKQLEnum.PKQLReactor;
 import prerna.sablecc.PKQLRunner.STATUS;
 import prerna.sablecc.analysis.DepthFirstAdapter;
-import prerna.sablecc.expressions.IExpressionIterator;
 import prerna.sablecc.expressions.sql.H2SqlExpressionGenerator;
 import prerna.sablecc.expressions.sql.H2SqlExpressionIterator;
 import prerna.sablecc.meta.IPkqlMetadata;
@@ -126,9 +125,7 @@ import prerna.sablecc.node.PScript;
 import prerna.sablecc.node.TRelType;
 import prerna.sablecc.services.DatabasePkqlService;
 import prerna.ui.components.playsheets.datamakers.IDataMaker;
-import prerna.util.ArrayUtilityMethods;
 import prerna.util.Constants;
-import prerna.util.Utility;
 
 public class Translation extends DepthFirstAdapter {
 	// this is the third version of this shit I am building
@@ -190,7 +187,12 @@ public class Translation extends DepthFirstAdapter {
 
 	private Map<String, String> getDefaultReactors() {
 		Map<String, String> defaultReactors = new Hashtable<String, String>();
-		// should add some in here :)
+		// this is the base so we can query on an engine without needing a frame
+		defaultReactors.put(PKQLEnum.QUERY_API, "prerna.sablecc.QueryApiReactor");
+		// this is for searching instances
+		defaultReactors.put(PKQLEnum.SEARCH_QUERY_API, "prerna.sablecc.SearchQueryApiReactor");
+		// this is the outside wrapper for the search query
+		defaultReactors.put(PKQLEnum.QUERY_DATA, "prerna.sablecc.QueryDataReactor");
 
 		return defaultReactors;
 	}
@@ -749,9 +751,8 @@ public class Translation extends DepthFirstAdapter {
 			String nodeStr = node + "";
 			curReactor.put(PKQLEnum.PASTED_DATA, nodeStr.trim());
 			String word = ((APastedDataBlock) node.parent()).getDelimitier().toString().trim();
-			curReactor.set(PKQLEnum.WORD_OR_NUM, (word.substring(1, word.length() - 1))); // remove
-																							// the
-																							// quotes
+			// remove the quotes via substring
+			curReactor.set(PastedDataReactor.DELIMITER, (word.substring(1, word.length() - 1))); 
 		}
 	}
 
