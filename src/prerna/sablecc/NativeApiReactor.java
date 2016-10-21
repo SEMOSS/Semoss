@@ -51,7 +51,7 @@ public class NativeApiReactor extends AbstractApiReactor {
 			// we store the edge hash in myStore
 			this.put("EDGE_HASH", edgeHash);
 		}
-		this.qs.print();
+//		this.qs.print();
 		
 		//compose the query associated with the querystruct
 		IQueryInterpreter interp = engine.getQueryInterpreter();

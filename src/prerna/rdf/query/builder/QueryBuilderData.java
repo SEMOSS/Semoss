@@ -422,9 +422,6 @@ public class QueryBuilderData {
 			}
 		}
 		
-		// Finally do the filters
-		
-		qs.print();
 		return qs;
 	}
 

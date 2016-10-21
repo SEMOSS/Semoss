@@ -4,6 +4,7 @@ import java.util.Iterator;
 import java.util.Map;
 import java.util.Set;
 
+import prerna.algorithm.api.ITableDataFrame;
 import prerna.ds.QueryStruct;
 import prerna.ds.H2.H2Frame;
 import prerna.engine.api.IEngine;
@@ -45,7 +46,8 @@ public class QueryApiReactor extends AbstractApiReactor {
 			// we store the edge hash in myStore
 			this.put("EDGE_HASH", edgeHash);
 		}
-		this.qs.print();
+//		this.qs.print();
+		
 		IQueryInterpreter interp = engine.getQueryInterpreter();
 		interp.setQueryStruct(this.qs);
 		String query = interp.composeQuery();
@@ -53,16 +55,20 @@ public class QueryApiReactor extends AbstractApiReactor {
 		// now also perform a count on the query to determine if it is the right size
 		// currently only use this in H2Importing
 		// TODO: move this logic out
-		if(myStore.get("G") != null && myStore.get("G") instanceof H2Frame) {
-			interp.clear();
-			interp.setPerformCount(true);
-			String countQuery = interp.composeQuery();
-			IRawSelectWrapper countIt = WrapperManager.getInstance().getRawWrapper(engine, countQuery);
-			if(countIt.hasNext()) {
-				Object numCells = countIt.next().getValues()[0];
-				System.out.println("QUERY CONTAINS NUM_CELLS = " + numCells);
-				
-				this.put("QUERY_NUM_CELLS", numCells);
+		if(myStore.get("G") != null) {
+			ITableDataFrame frame = (ITableDataFrame) myStore.get("G");
+			// only need to run query for count if frame is not in memory
+			if(frame instanceof H2Frame && ((H2Frame) frame).isInMem()) {
+				interp.clear();
+				interp.setPerformCount(true);
+				String countQuery = interp.composeQuery();
+				IRawSelectWrapper countIt = WrapperManager.getInstance().getRawWrapper(engine, countQuery);
+				if(countIt.hasNext()) {
+					Object numCells = countIt.next().getValues()[0];
+					System.out.println("QUERY CONTAINS NUM_CELLS = " + numCells);
+					
+					this.put("QUERY_NUM_CELLS", numCells);
+				}
 			}
 		}
 		

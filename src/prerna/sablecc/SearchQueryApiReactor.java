@@ -52,8 +52,7 @@ public class SearchQueryApiReactor extends AbstractApiReactor {
 				setOrderBy();
 			}
 		}
-				
-		this.qs.print();
+//		this.qs.print();
 		
 		this.put((String) getValue(PKQLEnum.API), this.qs);
 		this.put("RESPONSE", "success");
