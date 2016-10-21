@@ -2351,6 +2351,16 @@ public class Utility {
 		return "STRING";
 	}
 
+	public static String getH2DataType(String dataType) {
+		if(isH2DataType(dataType)) {
+			return dataType;
+		}
+		
+		String returnType = getH2TypeConversionMap().get(dataType);
+		
+		return returnType;
+	}
+	
 	public static String convertDataTypeToString(IMetaData.DATA_TYPES type) {
 		if(type.equals(IMetaData.DATA_TYPES.NUMBER)) { 
 			return "double";
@@ -2359,6 +2369,230 @@ public class Utility {
 		} else {
 			return "date";
 		}
+	}
+	
+	public static IMetaData.DATA_TYPES convertStringtoDataType(String dataType) {
+		if(isNumericType(dataType)) {
+			return IMetaData.DATA_TYPES.NUMBER;
+		} else if(isDateType(dataType)) {
+			return IMetaData.DATA_TYPES.DATE;
+		} else if(isStringType(dataType)) {
+			return IMetaData.DATA_TYPES.STRING;
+		}
+		return null;
+	}
+	
+	public static boolean isH2DataType(String dataType) {
+		if(
+				//INT TYPE
+				dataType.equals("INT")
+				|| dataType.equals("INTEGER")
+				|| dataType.equals("MEDIUMINT")
+				|| dataType.equals("INT4")
+				|| dataType.equals("SIGNED")
+				
+				//BOOLEAN TYPE
+				|| dataType.equals("BOOLEAN")
+				|| dataType.equals("BIT")
+				|| dataType.equals("BOOL")
+				
+				//TINYINT TYPE
+				|| dataType.equals("TINYINT")
+				
+				//SMALLINT TYPE
+				|| dataType.equals("SMALLINT")
+				|| dataType.equals("INT2")
+				|| dataType.equals("YEAR")
+				
+				//BIGINT TYPE
+				|| dataType.equals("BIGINT")
+				|| dataType.equals("INT8")
+				
+				//IDENTITY TYPE
+				|| dataType.equals("IDENTITY")
+				
+				//DECIMAL TYPE
+				|| dataType.equals("DECIMAL")
+				|| dataType.equals("NUMBER")
+				|| dataType.equals("DEC")
+				|| dataType.equals("NUMERIC")
+				
+				//DOUBLE TYPE
+				|| dataType.equals("DOUBLE")
+				|| dataType.equals("PRECISION")
+				|| dataType.equals("FLOAT")
+				|| dataType.equals("FLOAT8")
+				
+				//REAL TYPE
+				|| dataType.equals("REAL")
+				|| dataType.equals("FLOAT4")
+				
+				//TIME TYPE
+				|| dataType.equals("TIME")
+				
+				//DATE TYPE
+				|| dataType.equals("DATE")
+				
+				//TIMESTAMP TYPE
+				|| dataType.equals("TIMESTAMP")
+				|| dataType.equals("DATETIME")
+				|| dataType.equals("SMALLDATETIME")
+				
+				//BINARY TYPE
+				|| dataType.startsWith("BINARY")
+				|| dataType.startsWith("VARBINARY")
+				|| dataType.startsWith("LONGVARBINARY")
+				|| dataType.startsWith("RAW")
+				|| dataType.startsWith("BYTEA")
+				
+				//OTHER TYPE
+				|| dataType.equals("OTHER")
+				
+				//VARCHAR TYPE
+				|| dataType.startsWith("VARCHAR")
+				|| dataType.startsWith("LONGVARCHAR")
+				|| dataType.startsWith("VARCHAR2")
+				|| dataType.startsWith("NVARCHAR")
+				|| dataType.startsWith("NVARCHAR2")
+				|| dataType.startsWith("VARCHAR_CASESENSITIVE")
+				
+				//VARCHAR_IGNORECASE TYPE
+				|| dataType.startsWith("VARCHAR_IGNORECASE")
+				
+				//CHAR TYPE
+				|| dataType.startsWith("CHAR")
+				|| dataType.startsWith("CHARACTER")
+				|| dataType.startsWith("NCHAR")
+				
+				//BLOB TYPE
+				|| dataType.equals("BLOB")
+				|| dataType.equals("TINYBLOB")
+				|| dataType.equals("MEDIUMBLOB")
+				|| dataType.equals("LONGBLOB")
+				|| dataType.equals("IMAGE")
+				|| dataType.equals("OID")
+				
+				//CLOG TYPE
+				|| dataType.equals("CLOB")
+				|| dataType.equals("TINYTEXT")
+				|| dataType.equals("TEXT")
+				|| dataType.equals("MEDIUMTEXT")
+				|| dataType.equals("NTEXT")
+				|| dataType.equals("NCLOB")
+				
+				//UUID TYPE
+				|| dataType.equals("UUID")
+				
+				//ARRAY TYPE
+				|| dataType.equals("ARRAY")
+				
+				
+				//GEOMETRY TYPE
+				|| dataType.equals("GEOMETRY")
+
+				) {
+			return true;
+		}
+		return false;
+	}
+	
+	private static boolean isNumericType(String dataType) {
+		dataType = dataType.toUpperCase().trim();		
+		if(dataType.equals("NUMBER")
+				|| dataType.equals("BIT")
+				
+				|| dataType.equals("MONEY")
+				|| dataType.equals("SMALLMONEY")
+				|| dataType.equals("FLOAT")
+				|| dataType.equals("LONG")
+				
+				|| dataType.equals("INT")
+				|| dataType.equals("INTEGER")
+				|| dataType.equals("MEDIUMINT")
+				|| dataType.equals("INT4")
+				|| dataType.equals("SIGNED")
+				
+				//TINYINT TYPE
+				|| dataType.equals("TINYINT")
+				
+				//SMALLINT TYPE
+				|| dataType.equals("SMALLINT")
+				|| dataType.equals("INT2")
+				|| dataType.equals("YEAR")
+				
+				//BIGINT TYPE
+				|| dataType.equals("BIGINT")
+				|| dataType.equals("INT8")
+				
+				//DECIMAL TYPE
+				|| dataType.equals("DECIMAL")
+				|| dataType.equals("NUMBER")
+				|| dataType.equals("DEC")
+				|| dataType.equals("NUMERIC")
+				
+				//DOUBLE TYPE
+				|| dataType.equals("DOUBLE")
+				|| dataType.equals("PRECISION")
+				|| dataType.equals("FLOAT")
+				|| dataType.equals("FLOAT8")
+				
+				//REAL TYPE
+				|| dataType.equals("REAL")
+				|| dataType.equals("FLOAT4")
+				) {
+			return true;
+		}
+		
+		return false;
+	}
+	
+	private static boolean isStringType(String dataType) {
+		dataType = dataType.toUpperCase().trim();		
+		if(dataType.equals("STRING")
+				|| dataType.contains("CHAR")
+				|| dataType.equals("TEXT")
+				
+//				//VARCHAR TYPE
+//				|| dataType.startsWith("VARCHAR")
+//				|| dataType.startsWith("LONGVARCHAR")
+//				|| dataType.startsWith("VARCHAR2")
+//				|| dataType.startsWith("NVARCHAR")
+//				|| dataType.startsWith("NVARCHAR2")
+//				|| dataType.startsWith("VARCHAR_CASESENSITIVE")
+//				
+//				//VARCHAR_IGNORECASE TYPE
+//				|| dataType.startsWith("VARCHAR_IGNORECASE")
+//				
+//				//CHAR TYPE
+//				|| dataType.startsWith("CHAR")
+//				|| dataType.startsWith("CHARACTER")
+//				|| dataType.startsWith("NCHAR")
+//				
+				) {
+			return true;
+		}
+		
+		return false;
+	}
+	
+	private static boolean isDateType(String dataType) {
+		dataType = dataType.toUpperCase().trim();		
+		if(dataType.contains("DATE")){
+			return true;
+		}
+		
+		return false;
+	}
+	
+	//return the translation from sql types to h2 types
+	private static Map<String, String> getH2TypeConversionMap() {
+		Map<String, String> conversionMap = new HashMap<>();
+		
+		conversionMap.put("MONEY", "DECIMAL");
+		conversionMap.put("SMALLMONEY", "DECIMAL");
+		conversionMap.put("TEXT", "VARCHAR(800)");
+		
+		return conversionMap;
 	}
 
 	/**
