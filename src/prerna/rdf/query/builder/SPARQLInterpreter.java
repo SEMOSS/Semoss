@@ -1,8 +1,10 @@
 package prerna.rdf.query.builder;
 
+import java.util.ArrayList;
 import java.util.Enumeration;
 import java.util.Hashtable;
 import java.util.List;
+import java.util.Map;
 import java.util.Vector;
 
 import org.openrdf.query.QueryEvaluationException;
@@ -53,6 +55,7 @@ public class SPARQLInterpreter implements IQueryInterpreter {
 		addFilters();
 		addJoins();
 		addLimitOffset();
+		addOrderBy();
 		
 		String query = null;
 		semossQuery.createQuery();
@@ -521,6 +524,33 @@ public class SPARQLInterpreter implements IQueryInterpreter {
 		
 		if(offset > 0) {
 			this.semossQuery.setOffset(offset);
+		}
+	}
+	
+	private void addOrderBy() {
+		Map<String, String> orderBy = qs.getOrderBy();
+		List<TriplePart> orderBys = new ArrayList<>();
+		
+		if(orderBy != null && !orderBy.isEmpty()) {
+			for(String table : orderBy.keySet()) {
+				String colName = orderBy.get(table);
+				String varName = null;
+				if(colName != null && !colName.equals(QueryStruct.PRIM_KEY_PLACEHOLDER)) {
+					varName = getVarName(colName, true);
+				}
+				else if(colName == null || QueryStruct.PRIM_KEY_PLACEHOLDER.equals(colName)) {
+					varName = getVarName(table, false);
+				}
+				
+				if(varName != null) {
+					TriplePart var = new TriplePart(varName, TriplePart.VARIABLE);
+					orderBys.add(var);
+				}
+			}
+		}
+		
+		if(!orderBys.isEmpty()) {
+			this.semossQuery.addVarToOrderBy(orderBys);
 		}
 	}
 	
