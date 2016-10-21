@@ -55,12 +55,8 @@ public abstract class AbstractApiReactor extends AbstractReactor{
 		// grab the engine from the my store
 		this.engine = (String)myStore.get("ENGINE");
 		
-		// we have an engine name of "csvFile" when loading a csv file
-//		if(engine.equals("csvFile")) {
-			// we are loading a csv file
-			// grab the input maps from the user
-			this.mapOptions = (Map<Object, Object>) myStore.get(PKQLEnum.MAP_OBJ);
-//		}
+		// get additional options
+		this.mapOptions = (Map<Object, Object>) myStore.get(PKQLEnum.MAP_OBJ);
 
 		// grab the appropriate information to create the proper query struct
 		// the query struct is what will determine the query that is used during creation
@@ -89,7 +85,7 @@ public abstract class AbstractApiReactor extends AbstractReactor{
 		//for each inner join and left outer join we want to add filters to the query struct
 		//that way only the pieces we need come from the database
 		IDataMaker dm = (IDataMaker) myStore.get("G");
-		if(dm instanceof ITableDataFrame) {
+		if(dm != null && dm instanceof ITableDataFrame) {
 			ITableDataFrame frame = (ITableDataFrame)dm;
 			Vector<Hashtable> tableJoins = (Vector<Hashtable>) myStore.get("TABLE_JOINS");
 			if(tableJoins != null) {
