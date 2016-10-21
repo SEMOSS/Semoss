@@ -280,6 +280,10 @@ public class SEMOSSQuery {
 		orderBy = new SPARQLOrderBy(retVars);
 	}
 	
+	public void addVarToOrderBy(List<TriplePart> vars) {
+		orderBy = new SPARQLOrderBy(vars);
+	}
+	
 	public String createPostPatternString()
 	{
 		String postWhereString = "";
