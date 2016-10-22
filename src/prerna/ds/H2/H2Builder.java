@@ -940,6 +940,7 @@ public class H2Builder {
 					// or this takes forever on big data
 					List<String[]> indicesToAdd = new Vector<String[]>();
 					for(String tableColConcat : this.columnIndexMap.keySet()) {
+						// table name and col name are appended together with +++
 						String[] tableCol = tableColConcat.split("\\+\\+\\+");
 						indicesToAdd.add(tableCol);
 						removeColumnIndex(tableCol[0], tableCol[1]);
@@ -2213,13 +2214,14 @@ public class H2Builder {
 	}
 
 	protected void addColumnIndex(String tableName, String colName) {
-		if (!columnIndexMap.contains(tableName + "+++" + colName)) {
+		if (!columnIndexMap.containsKey(tableName + "+++" + colName)) {
 			long start = System.currentTimeMillis();
 
+			String indexSql = null;
 			LOGGER.info("CREATING INDEX ON TABLE = " + tableName + " ON COLUMN = " + colName);
 			try {
 				String indexName = colName + "_INDEX_" + getNextNumber();
-				String indexSql = "CREATE INDEX " + indexName + " ON " + tableName + "(" + colName + ")";
+				indexSql = "CREATE INDEX " + indexName + " ON " + tableName + "(" + colName + ")";
 				runQuery(indexSql);
 				columnIndexMap.put(tableName + "+++" + colName, indexName);
 				
@@ -2227,15 +2229,16 @@ public class H2Builder {
 
 				LOGGER.info("TIME FOR INDEX CREATION = " + (end - start) + " ms");
 			} catch (Exception e) {
+				LOGGER.info("ERROR WITH INDEX !!! " + indexSql);
 				e.printStackTrace();
 			}
 		}
 	}
 
 	protected void removeColumnIndex(String tableName, String colName) {
-		if (columnIndexMap.contains(tableName + "+++" + colName)) {
+		if (columnIndexMap.containsKey(tableName + "+++" + colName)) {
 			LOGGER.info("DROPPING INDEX ON TABLE = " + tableName + " ON COLUMN = " + colName);
-			String indexName = columnIndexMap.get(tableName + colName);
+			String indexName = columnIndexMap.remove(tableName +  "+++" + colName);
 			try {
 				runQuery("DROP INDEX " + indexName);
 			} catch (Exception e) {
