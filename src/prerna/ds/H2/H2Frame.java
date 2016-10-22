@@ -1603,7 +1603,12 @@ public class H2Frame extends AbstractTableDataFrame {
 	 * @return
 	 */
 	public Set<String> getColumnsWithIndexes() {
-		return this.builder.columnIndexMap.keySet();
+		Set<String> cols = new HashSet<String>();
+		for(String tableColKey : this.builder.columnIndexMap.keySet()) {
+			// table name and col name are appended together with +++
+			cols.add(tableColKey.split("\\+\\+\\+")[1]);
+		}
+		return cols;
 	}
 	
 	/**
