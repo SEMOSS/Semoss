@@ -1067,12 +1067,12 @@ public class H2Frame extends AbstractTableDataFrame {
 	}
 
 	private String getH2Header(String uniqueName) {
-			return this.getValueForUniqueName(uniqueName);
+		return this.getValueForUniqueName(uniqueName);
 	}
-
-	protected void setH2Headers(Map<String, String> headers) {
-		this.joinHeaders = headers;
-	}
+	
+//	protected void setH2Headers(Map<String, String> headers) {
+//		this.joinHeaders = headers;
+//	}
 
 	// private String[] getH2Types() {
 	// if(headerNames == null) return null;
@@ -1574,6 +1574,18 @@ public class H2Frame extends AbstractTableDataFrame {
 		// being performed directly via sql
 		return this.builder.getTableName();
 	}
+	
+	/**
+	 * 
+	 * @return
+	 */
+	public String getViewTableName() {
+		if(this.isJoined()) {
+			return this.builder.getViewTableName();
+		} else {
+			return getTableName();
+		}
+	}
 
 	/**
 	 * Execute a query and returns the results in a matrix
@@ -1635,6 +1647,19 @@ public class H2Frame extends AbstractTableDataFrame {
 	 */
 	public String getSqlFilter() {
 		return this.builder.getSqlFitler();
+	}
+
+	public String getTableColumnName(String colName) {
+		String colTableName = builder.translateColumn(colName);
+		if(colTableName != null) {
+			return colTableName;
+		} else {
+			String[] curHeaders = getColumnHeaders();
+			if(ArrayUtilityMethods.arrayContainsValue(curHeaders, colName)) {
+				return colName;
+			}
+		}
+		return null;
 	}
 	
 }

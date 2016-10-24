@@ -223,4 +223,6 @@ public interface IMetaData {
 	String getLatestPrimKey();
 
 	Map<String, IMetaData.DATA_TYPES> getColumnTypes();
+	
+	Map<String, String> getDBColumnTypes();
 }
