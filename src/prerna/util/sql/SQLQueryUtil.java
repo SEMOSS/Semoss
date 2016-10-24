@@ -422,4 +422,8 @@ public abstract class SQLQueryUtil {
 		return "CREATE DATABASE " + engineName ;
 	}
 	
+	public String addLimitToQuery(String query, int limit) {
+		return query.concat(" LIMIT " + limit);
+	}
+	
 }
