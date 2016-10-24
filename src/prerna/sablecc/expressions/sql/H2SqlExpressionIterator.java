@@ -37,13 +37,54 @@ public class H2SqlExpressionIterator extends AbstractExpressionIterator {
 		this.joinCols = joinCols;
 		this.groupColumns = groupColumns;
 
-		this.sqlScript = generateSqlScript(sqlExpression, newColumnName, joinCols, frame.getTableName(), frame.getSqlFilter(), groupColumns);
+		setHeaders();
+//		this.sqlScript = generateSqlScript(sqlExpression, newColumnName, joinCols, frame.getViewTableName(), frame.getSqlFilter(), groupColumns);
 		LOGGER.info("GENERATED SQL EXPRESSION SCRIPT : " + this.sqlScript);
+	}
+	
+	private void setHeaders() {
+		Set<String> totalSelectors = new LinkedHashSet<>();
+		
+		if(joinCols != null) {
+			for(int i = 0; i < joinCols.length; i++) {
+				totalSelectors.add(joinCols[i]);
+			}
+		}
+		if(groupColumns != null) {
+			for(int i = 0; i < groupColumns.length; i++) {
+				totalSelectors.add(groupColumns[i]);
+			}
+		}
+		
+		this.numCols = totalSelectors.size()+1;
+		this.headers = new String[numCols];
+		this.headers[0] = newColumnName;
+		int counter = 1;
+		for(String selector : totalSelectors) {
+			headers[counter] = selector;
+			counter++;
+		}
+		
 	}
 	
 	@Override
 	public void generateExpression() {
-		this.sqlScript = generateSqlScript(this.expression, this.newColumnName, joinCols, frame.getTableName(), frame.getSqlFilter(), groupColumns);
+		String[] translatedJoinCols = null;
+		if(joinCols != null) {
+			translatedJoinCols = new String[joinCols.length];
+			for(int i = 0; i < joinCols.length; i++) {
+				translatedJoinCols[i] = frame.getTableColumnName(joinCols[i]);
+			}
+		}
+		
+		String[] translatedGroupColumns = null;
+		if(groupColumns != null) {
+			translatedGroupColumns = new String[groupColumns.length];
+			for(int i = 0; i < groupColumns.length; i++) {
+				translatedGroupColumns[i] = frame.getTableColumnName(groupColumns[i]);
+			}
+		}
+		this.sqlScript = generateSqlScript(this.expression, this.newColumnName, translatedJoinCols, frame.getViewTableName(), frame.getSqlFilter(), translatedGroupColumns);
 	}
 
 	@Override
@@ -104,14 +145,15 @@ public class H2SqlExpressionIterator extends AbstractExpressionIterator {
 		}
 
 		this.numCols = totalSelectors.size()+1;
-		this.headers = new String[numCols];
-		this.headers[0] = newCol;
-		int counter = 1;
-		for(String selector : totalSelectors) {
-			headers[counter] = selector;
-			counter++;
-		}
+//		this.headers = new String[numCols];
+//		this.headers[0] = newCol;
+//		int counter = 1;
+//		for(String selector : totalSelectors) {
+//			headers[counter] = selector;
+//			counter++;
+//		}
 
+		setHeaders();
 		return builder.toString();
 	}
 

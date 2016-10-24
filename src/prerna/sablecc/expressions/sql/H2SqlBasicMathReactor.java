@@ -11,6 +11,10 @@ public class H2SqlBasicMathReactor extends AbstractSqlBaseReducer {
 		// generate a string similar to 
 		// select distinct mathRoutine ( col_name * 2 ) from tableName
 		StringBuilder builder = new StringBuilder();
+		
+		String colName = frame.getTableColumnName(script);
+		if(colName != null) script = colName;
+		
 		builder.append("SELECT DISTINCT ").append(mathRoutine).append("(").append(script).append(")").append(" FROM ").append(frame.getTableName());
 		String filters = frame.getSqlFilter();
 		if(filters != null && !filters.isEmpty()) {
@@ -21,6 +25,8 @@ public class H2SqlBasicMathReactor extends AbstractSqlBaseReducer {
 	
 	public H2SqlExpressionIterator processGroupBy(H2Frame frame, String script, String[] groupByCols) {
 		String newCol = "EXPRESSION_" + Utility.getRandomString(6);
+		String colName = frame.getTableColumnName(script.trim());
+		if(colName != null) script = colName;
 		String newScript = mathRoutine + "(" + script + ")";
 		H2SqlExpressionIterator it = new H2SqlExpressionIterator(frame, newScript, newCol, null, groupByCols);
 		return it;
