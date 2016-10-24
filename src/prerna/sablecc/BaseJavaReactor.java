@@ -31,6 +31,7 @@ import prerna.ds.TinkerFrame;
 import prerna.ds.H2.H2Frame;
 import prerna.engine.api.IEngine;
 import prerna.engine.impl.r.RSingleton;
+import prerna.util.ArrayUtilityMethods;
 import prerna.util.Console;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
@@ -1389,8 +1390,48 @@ public abstract class BaseJavaReactor extends AbstractReactor{
 		java.lang.System.setSecurityManager(reactorManager);
 	}
 	
+	public void runClustering(String columnName, int numClusters, String[] selectors) {
+		java.lang.System.setSecurityManager(curManager);
+		
+		int instanceIndex = ArrayUtilityMethods.arrayContainsValueAtIndex(selectors, columnName);
+		
+		java.util.Map<String, Object> params = new java.util.Hashtable<String, Object>();
+		params.put(prerna.algorithm.impl.ClusteringReactor.INSTANCE_INDEX.toUpperCase(), instanceIndex);
+		params.put(prerna.algorithm.impl.ClusteringReactor.NUM_CLUSTERS.toUpperCase(), numClusters);
+		
+		prerna.algorithm.impl.ClusteringReactor alg = new prerna.algorithm.impl.ClusteringReactor();
+		alg.put("G", this.dataframe);
+		alg.put(PKQLEnum.MATH_PARAM, params);
+		alg.put(PKQLEnum.COL_DEF, java.util.Arrays.asList(selectors));
+		alg.process();
+		
+		this.dataframe.updateDataId();
+		
+		java.lang.System.setSecurityManager(reactorManager);
+	}
+	
 	public void runLOF(int instanceIndex, int k, String[] selectors) {
 		java.lang.System.setSecurityManager(curManager);
+		
+		java.util.Map<String, Object> params = new java.util.Hashtable<String, Object>();
+		params.put(prerna.algorithm.impl.LOFReactor.INSTANCE_INDEX.toUpperCase(), instanceIndex);
+		params.put(prerna.algorithm.impl.LOFReactor.K_NEIGHBORS.toUpperCase(), k);
+		
+		prerna.algorithm.impl.LOFReactor alg = new prerna.algorithm.impl.LOFReactor();
+		alg.put("G", this.dataframe);
+		alg.put(PKQLEnum.MATH_PARAM, params);
+		alg.put(PKQLEnum.COL_DEF, java.util.Arrays.asList(selectors));
+		alg.process();
+		
+		this.dataframe.updateDataId();
+		
+		java.lang.System.setSecurityManager(reactorManager);
+	}
+	
+	public void runLOF(String columnName, int k, String[] selectors) {
+		java.lang.System.setSecurityManager(curManager);
+		
+		int instanceIndex = ArrayUtilityMethods.arrayContainsValueAtIndex(selectors, columnName);
 		
 		java.util.Map<String, Object> params = new java.util.Hashtable<String, Object>();
 		params.put(prerna.algorithm.impl.LOFReactor.INSTANCE_INDEX.toUpperCase(), instanceIndex);
@@ -1425,10 +1466,50 @@ public abstract class BaseJavaReactor extends AbstractReactor{
 		
 		java.lang.System.setSecurityManager(reactorManager);
 	}	
+	
+	public void runOutlier(String columnName, int numSubsetSize, int numRums, String[] selectors) {
+		java.lang.System.setSecurityManager(curManager);
+		
+		int instanceIndex = ArrayUtilityMethods.arrayContainsValueAtIndex(selectors, columnName);
+
+		java.util.Map<String, Object> params = new java.util.Hashtable<String, Object>();
+		params.put(prerna.algorithm.impl.OutlierReactor.INSTANCE_INDEX.toUpperCase(), instanceIndex);
+		params.put(prerna.algorithm.impl.OutlierReactor.NUM_SAMPLE_SIZE.toUpperCase(), numSubsetSize);
+		params.put(prerna.algorithm.impl.OutlierReactor.NUMBER_OF_RUNS.toUpperCase(), numRums);
+		
+		prerna.algorithm.impl.OutlierReactor alg = new prerna.algorithm.impl.OutlierReactor();
+		alg.put("G", this.dataframe);
+		alg.put(PKQLEnum.MATH_PARAM, params);
+		alg.put(PKQLEnum.COL_DEF, java.util.Arrays.asList(selectors));
+		alg.process();
+		
+		this.dataframe.updateDataId();
+		
+		java.lang.System.setSecurityManager(reactorManager);
+	}
 
 	public void runSimilarity(int instanceIndex, String[] selectors) {
 		java.lang.System.setSecurityManager(curManager);
 		
+		java.util.Map<String, Object> params = new java.util.Hashtable<String, Object>();
+		params.put(prerna.algorithm.impl.SimilarityReactor.INSTANCE_INDEX.toUpperCase(), instanceIndex);
+		
+		prerna.algorithm.impl.SimilarityReactor alg = new prerna.algorithm.impl.SimilarityReactor();
+		alg.put("G", this.dataframe);
+		alg.put(PKQLEnum.MATH_PARAM, params);
+		alg.put(PKQLEnum.COL_DEF, java.util.Arrays.asList(selectors));
+		alg.process();
+		
+		this.dataframe.updateDataId();
+		
+		java.lang.System.setSecurityManager(reactorManager);
+	}
+	
+	public void runSimilarity(String columnName, String[] selectors) {
+		java.lang.System.setSecurityManager(curManager);
+		
+		int instanceIndex = ArrayUtilityMethods.arrayContainsValueAtIndex(selectors, columnName);
+
 		java.util.Map<String, Object> params = new java.util.Hashtable<String, Object>();
 		params.put(prerna.algorithm.impl.SimilarityReactor.INSTANCE_INDEX.toUpperCase(), instanceIndex);
 		
