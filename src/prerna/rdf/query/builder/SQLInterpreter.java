@@ -19,6 +19,7 @@ import prerna.engine.impl.rdbms.RDBMSNativeEngine;
 import prerna.test.TestUtilityMethods;
 import prerna.util.DIHelper;
 import prerna.util.Utility;
+import prerna.util.sql.SQLQueryUtil;
 
 public class SQLInterpreter implements IQueryInterpreter{
 	
@@ -64,12 +65,15 @@ public class SQLInterpreter implements IQueryInterpreter{
 	// boolean to determine the count of the query being executed
 	private boolean performCount = false;
 	
+	private SQLQueryUtil queryUtil = SQLQueryUtil.initialize(SQLQueryUtil.DB_TYPE.H2_DB);
+	
 	public SQLInterpreter() {
 		
 	}
 
 	public SQLInterpreter(IEngine engine) {
 		this.engine = engine;
+		queryUtil = SQLQueryUtil.initialize(((RDBMSNativeEngine) engine).getDbType());
 	}
 
 	@Override
@@ -123,14 +127,14 @@ public class SQLInterpreter implements IQueryInterpreter{
 				if((engine.getProperties4Concept2(table, false).size() + 1) == selectorList.size()) {
 					// plus one is for the concept itself
 					// no distinct needed
-					query.append(selectors).append("  FROM ");
+					query.append(selectors).append(" FROM ");
 				} else {
 					// need a distinct
-					query.append(" DISTINCT ").append(selectors).append("  FROM ");
+					query.append("DISTINCT ").append(selectors).append(" FROM ");
 				}
 			} else {
 				// default is to use a distinct
-				query.append(" DISTINCT ").append(selectors).append(" FROM ");
+				query.append("DISTINCT ").append(selectors).append(" FROM ");
 			}
 		}
 		// if there is a join
@@ -205,7 +209,7 @@ public class SQLInterpreter implements IQueryInterpreter{
 		}
 		
 		if(limit > 0) {
-			query.append(" LIMIT ").append(limit);
+			query = new StringBuilder(this.queryUtil.addLimitToQuery(query.toString(), limit));
 		} 
 		
 		if (offset > 0) {

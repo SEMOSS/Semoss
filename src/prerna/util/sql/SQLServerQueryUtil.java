@@ -175,13 +175,12 @@ public class SQLServerQueryUtil extends SQLQueryUtil {
 		return engineName[0];
 	}
 
-	
-	
-	/*@Override
-	public String getDialectCreateDatabase(String engineName){
-		return "CREATE DATABASE " + engineName +  " COLLATE Latin1_General_BIN2 "; 
-		//originally I wanted to use Latin1_General_BIN2 which would allow case sensitive search, binary fastest for sort/ordering, ordering will sort upper case then lower case
-		//BUT that meant that when querying tables we had to use the exact case select * from Title is not the same as select * from TITLE in sql server with this collation.
-		//other collations considered also gave the same issue with table and column name sensitivity --Collate Latin1_General_CS_AS; --COLLATE Latin1_General_100_CS_AS_SC;
-	}*/
+	@Override
+	public String addLimitToQuery(String query, int limit) {
+		if(query.contains("DISTINCT ")) {
+			return query.replace("SELECT DISTINCT ", "SELECT DISTINCT TOP " + limit + " ");
+		} else {
+			return query.replace("SELECT ", "SELECT TOP " + limit + " ");
+		}
+	}
 }
