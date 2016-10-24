@@ -13,6 +13,7 @@ import prerna.engine.api.ISelectStatement;
 import prerna.engine.api.ISelectWrapper;
 import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.util.DIHelper;
+import prerna.util.Utility;
 
 public class OUSDQueryHelper {
 
@@ -63,7 +64,7 @@ public class OUSDQueryHelper {
 
 		costDbName = OUSDPlaysheetHelper.getCostDatabase(costDbName);
 
-		costDb = (IEngine) DIHelper.getInstance().getLocalProp(costDbName);
+		costDb = Utility.getEngine(costDbName);
 
 		boolean costDbExists = costDb!=null;
 		LOGGER.info("Cost db " + costDbName + " exists ::::  " + costDbExists);
