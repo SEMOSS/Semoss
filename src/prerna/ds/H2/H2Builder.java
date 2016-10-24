@@ -100,7 +100,7 @@ public class H2Builder {
 	// Updates, and Deletes will affect only the mainTable
 	private boolean joinMode;
 	private String viewTableName;
-	Hashtable<String, String> joinColumnTranslation;
+	Hashtable<String, String> joinColumnTranslation = new Hashtable<>();
 
 	H2Joiner joiner;
 
@@ -795,8 +795,6 @@ public class H2Builder {
 		} else {
 
 		}
-		// String tableName = joinMode ? this.viewTableName : this.tableName;
-
 		ArrayList<Object> column = new ArrayList<>();
 
 		columnHeader = cleanHeader(columnHeader);
@@ -837,7 +835,6 @@ public class H2Builder {
 		} else {
 
 		}
-		// String tableName = joinMode ? this.viewTableName : this.tableName;
 		columnHeader = cleanHeader(columnHeader);
 
 		String function;
@@ -1088,15 +1085,6 @@ public class H2Builder {
 	 */
 	public void addFilters(String columnHeader, List<Object> values, AbstractTableDataFrame.Comparator comparator) {
 		columnHeader = cleanHeader(columnHeader);
-		// always overwrite for numerical filters (greater than, less than,
-		// etc.)
-		// if(filterHash.get(columnHeader) == null || (comparator !=
-		// Comparator.EQUAL && comparator != Comparator.NOT_EQUAL)) {
-		// setFilters(columnHeader, values, comparator);
-		// } else {
-		// filterHash.get(columnHeader).addAll(values);
-		// filterComparator.put(columnHeader, comparator);
-		// }
 
 		Map<String, Map<AbstractTableDataFrame.Comparator, Set<Object>>> filterHash;
 		String column;
@@ -1131,8 +1119,6 @@ public class H2Builder {
 	 */
 	public void setFilters(String columnHeader, List<Object> values, AbstractTableDataFrame.Comparator comparator) {
 		columnHeader = cleanHeader(columnHeader);
-		// filterHash.put(columnHeader, values);
-		// filterComparator.put(columnHeader, comparator);
 
 		Map<AbstractTableDataFrame.Comparator, Set<Object>> innerMap = new HashMap<>();
 		innerMap.put(comparator, new HashSet<>(values));
@@ -1157,8 +1143,6 @@ public class H2Builder {
 	 */
 	public void removeFilter(String columnHeader) {
 		columnHeader = cleanHeader(columnHeader);
-		// filterHash.remove(columnHeader);
-		// filterComparator.remove(columnHeader);
 
 		Map<String, Map<AbstractTableDataFrame.Comparator, Set<Object>>> filterHash;
 		String column;
@@ -1177,8 +1161,6 @@ public class H2Builder {
 	 * Clears all filters associated with the main table
 	 */
 	public void clearFilters() {
-		// filterHash.clear();
-		// filterComparator.clear();
 
 		if (joinMode) {
 			Map<String, Map<AbstractTableDataFrame.Comparator, Set<Object>>> filterHash = this.joiner.getJoinedFilterHash(viewTableName);
@@ -1796,7 +1778,6 @@ public class H2Builder {
 		} else {
 			tableName = this.tableName;
 		}
-		// String tableName = joinMode ? this.viewTableName : this.tableName;
 
 		try {
 			Statement stmt = getConnection().createStatement();
@@ -1830,7 +1811,6 @@ public class H2Builder {
 		} else {
 			tableName = this.tableName;
 		}
-		// String tableName = joinMode ? this.viewTableName : this.tableName;
 
 		try {
 			Statement stmt = getConnection().createStatement();
@@ -2402,39 +2382,7 @@ public class H2Builder {
 		return headers.toArray(new String[] {});
 	}
 
-	// public String[] getTypes(String tableName) {
-	// List<String> headers = new ArrayList<String>();
-	//
-	// String columnQuery = "SHOW COLUMNS FROM "+tableName;
-	// ResultSet rs = executeQuery(columnQuery);
-	// try {
-	// while(rs.next()) {
-	// String header = rs.getString("TYPE");
-	// headers.add(header);
-	// }
-	// } catch (SQLException e) {
-	// // TODO Auto-generated catch block
-	// e.printStackTrace();
-	// }
-	// return headers.toArray(new String[]{});
-	// }
 
-	// public Map<String, String> getHeadersAndTypes(String tableName) {
-	// Map<String, String> typeMap = new HashMap<>();
-	// String columnQuery = "SHOW COLUMNS FROM "+tableName;
-	// ResultSet rs = executeQuery(columnQuery);
-	// try {
-	// while(rs.next()) {
-	// String header = rs.getString("FIELD");
-	// String type = rs.getString("TYPE");
-	// typeMap.put(header, type);
-	// }
-	// } catch (SQLException e) {
-	// // TODO Auto-generated catch block
-	// e.printStackTrace();
-	// }
-	// return typeMap;
-	// }
 
 	private String[] cleanHeaders(String[] headers) {
 		String[] cleanHeaders = new String[headers.length];
@@ -3322,8 +3270,7 @@ public class H2Builder {
 			// call the set filter to get right insight cache filter
 			Gson gson = new Gson();
 			if (prop.containsKey("filterHash")) {
-				Map<String, Map<String, Set<Object>>> filter = gson.fromJson(prop.getProperty("filterHash"),
-						new HashMap<>().getClass());
+				Map<String, Map<String, Set<Object>>> filter = gson.fromJson(prop.getProperty("filterHash"), new HashMap<>().getClass());
 				for (Map.Entry<String, Map<String, Set<Object>>> entry : filter.entrySet()) {
 					String columnName = entry.getKey();
 					Map<String, Set<Object>> value = entry.getValue();
@@ -4001,6 +3948,40 @@ public class H2Builder {
 	// }
 	//
 	// return new ArrayList<Object[]>(0);
+	// }
+	
+	// public String[] getTypes(String tableName) {
+	// List<String> headers = new ArrayList<String>();
+	//
+	// String columnQuery = "SHOW COLUMNS FROM "+tableName;
+	// ResultSet rs = executeQuery(columnQuery);
+	// try {
+	// while(rs.next()) {
+	// String header = rs.getString("TYPE");
+	// headers.add(header);
+	// }
+	// } catch (SQLException e) {
+	// // TODO Auto-generated catch block
+	// e.printStackTrace();
+	// }
+	// return headers.toArray(new String[]{});
+	// }
+
+	// public Map<String, String> getHeadersAndTypes(String tableName) {
+	// Map<String, String> typeMap = new HashMap<>();
+	// String columnQuery = "SHOW COLUMNS FROM "+tableName;
+	// ResultSet rs = executeQuery(columnQuery);
+	// try {
+	// while(rs.next()) {
+	// String header = rs.getString("FIELD");
+	// String type = rs.getString("TYPE");
+	// typeMap.put(header, type);
+	// }
+	// } catch (SQLException e) {
+	// // TODO Auto-generated catch block
+	// e.printStackTrace();
+	// }
+	// return typeMap;
 	// }
 
 }

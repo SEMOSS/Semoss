@@ -207,6 +207,9 @@ public class TinkerMetaData implements IMetaData {
 			vert.property(DB_DATATYPE, "VARCHAR(800)");
 			return;
 		}
+		if(dataType.contains("TYPE:")) {
+			dataType = dataType.replace("TYPE:", "");
+		}
 		vert.property(DB_DATATYPE, dataType);
 		
 		dataType = dataType.toUpperCase();
@@ -216,33 +219,36 @@ public class TinkerMetaData implements IMetaData {
 			currType = vert.value(DATATYPE);
 		}
 		
+		IMetaData.DATA_TYPES metaDataType = Utility.convertStringtoDataType(dataType);
+		
 		if(currType == null) {
-			if(dataType.contains("STRING") || dataType.contains("TEXT") || dataType.contains("VARCHAR")) {
+//			if(dataType.contains("STRING") || dataType.contains("TEXT") || dataType.contains("VARCHAR")) {
+			if(IMetaData.DATA_TYPES.STRING.equals(metaDataType)) {
 				vert.property(DATATYPE, IMetaData.DATA_TYPES.STRING);
 			} 
-			else if(dataType.contains("INT") || dataType.contains("DECIMAL") || dataType.contains("DOUBLE") || dataType.contains("FLOAT") || dataType.contains("LONG") || dataType.contains("BIGINT")
-					|| dataType.contains("TINYINT") || dataType.contains("SMALLINT") || dataType.contains("NUMBER")){
+//			else if(dataType.contains("INT") || dataType.contains("DECIMAL") || dataType.contains("DOUBLE") || dataType.contains("FLOAT") || dataType.contains("LONG") || dataType.contains("BIGINT")
+//					|| dataType.contains("TINYINT") || dataType.contains("SMALLINT") || dataType.contains("NUMBER")){
+			else if(IMetaData.DATA_TYPES.NUMBER.equals(metaDataType)) {
 				vert.property(DATATYPE, IMetaData.DATA_TYPES.NUMBER);
 			} 
-			else if(dataType.contains("DATE")) {
+			else if(IMetaData.DATA_TYPES.DATE.equals(metaDataType)) {
 				vert.property(DATATYPE, IMetaData.DATA_TYPES.DATE);
 			}
 		} else {
 			// if current is string or new col is string
 			// column must now be a string
-			if(currType.equals(IMetaData.DATA_TYPES.STRING) || dataType.contains("STRING") || dataType.contains("TEXT") || dataType.contains("VARCHAR")) {
+			if(currType.equals(IMetaData.DATA_TYPES.STRING) || IMetaData.DATA_TYPES.STRING.equals(metaDataType)) {
 				vert.property(DATATYPE, IMetaData.DATA_TYPES.STRING);
 			}
 			// if current is a number and new is a number
 			// column is still number
-			else if(currType.equals(IMetaData.DATA_TYPES.NUMBER) && ( dataType.contains("INT") || dataType.contains("DECIMAL") || dataType.contains("DOUBLE") || dataType.contains("FLOAT") || dataType.contains("LONG") || dataType.contains("BIGINT")
-					|| dataType.contains("TINYINT") || dataType.contains("SMALLINT") )){
+			else if(currType.equals(IMetaData.DATA_TYPES.NUMBER) && IMetaData.DATA_TYPES.NUMBER.equals(metaDataType)){
 				// no change
 				// vert.property(DATATYPE, "NUMBER");
 			}
 			// if current is date and new is date
 			// column is still date
-			else if(currType.equals(IMetaData.DATA_TYPES.DATE) && dataType.contains("DATE")) {
+			else if(currType.equals(IMetaData.DATA_TYPES.DATE) && IMetaData.DATA_TYPES.DATE.equals(metaDataType)) {
 				// no change
 				// vert.property(DATATYPE, "DATE");
 			}
@@ -250,9 +256,7 @@ public class TinkerMetaData implements IMetaData {
 			else {
 				vert.property(DATATYPE, IMetaData.DATA_TYPES.STRING);
 			}
-			
 		}
-		
 	}
 	
 	/**
@@ -589,6 +593,27 @@ public class TinkerMetaData implements IMetaData {
 			String name = vert.value(Constants.NAME);
 			System.out.println(name);
 			IMetaData.DATA_TYPES dataType = vert.value(DATATYPE);
+			retMap.put(name, dataType);
+		}
+		
+		return retMap;
+	}
+	
+	@Override
+	/**
+	 * Get the list of the vertices to their types
+	 * Ignores Prim_Keys
+	 * Returns the VALUE (i.e. what it is called in frame) to the type
+	 * @return
+	 */
+	public Map<String, String> getDBColumnTypes() {
+		List<Vertex> verts = getColumnVertices();
+		
+		Map<String, String> retMap = new Hashtable<>();
+		for(Vertex vert : verts) {
+			String name = vert.value(Constants.NAME);
+			System.out.println(name);
+			String dataType = vert.value(DB_DATATYPE);
 			retMap.put(name, dataType);
 		}
 		
