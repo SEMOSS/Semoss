@@ -609,14 +609,14 @@ public class MHSDashboardDrillPlaysheet extends TablePlaySheet implements IDataM
 		}
 	
 		// HERE Print statements of parent child relationship
-//		for (Vertex parent : vertexSet) {
-//			Iterator<Edge> edgeiterator = parent.edges(Direction.OUT, "TYPE", SYSTEM_ACTIVITY + "+++" + SYSTEM_ACTIVITY);
-//			while (edgeiterator.hasNext()) {
-//				String parentstring = ((Vertex) parent).value("NAME");
-//				String children = edgeiterator.next().inVertex().value("NAME");
-//				System.out.println("Path:::::::" + parentstring + " : " + children);
-//			}
-//		}
+		for (Vertex parent : vertexSet) {
+			Iterator<Edge> edgeiterator = parent.edges(Direction.OUT, "TYPE", SYSTEM_ACTIVITY + "+++" + SYSTEM_ACTIVITY);
+			while (edgeiterator.hasNext()) {
+				String parentstring = ((Vertex) parent).value("NAME");
+				String children = edgeiterator.next().inVertex().value("NAME");
+				System.out.println("Path:::::::" + parentstring + " : " + children);
+			}
+		}
 		
 		HashMap<String, Object> returnMap = new HashMap <String, Object> ();
 		returnMap.put("Path", pathSet);
@@ -670,7 +670,8 @@ public class MHSDashboardDrillPlaysheet extends TablePlaySheet implements IDataM
 				if (!vert.value("NAME").equals("_")) {
 					String systemActivity = vert.value("NAME");
 					Iterator<Edge> durationEdgeIt = vert.edges(Direction.OUT, "TYPE", SYSTEM_ACTIVITY + "+++" + DURATION);
-					Double vertexDuration = Double.parseDouble(durationEdgeIt.next().inVertex().value("VALUE"));
+					String durationString =durationEdgeIt.next().inVertex().value("NAME");
+					Double vertexDuration = Double.parseDouble(durationString);
 
 					Iterator<Edge> plannedStartEdgeIt = vert.edges(Direction.OUT, "TYPE", SYSTEM_ACTIVITY + "+++" + PLANNED_START);
 					String vertexPlannedStart = plannedStartEdgeIt.next().inVertex().value("NAME");
@@ -718,7 +719,8 @@ public class MHSDashboardDrillPlaysheet extends TablePlaySheet implements IDataM
 
 					String systemActivty = vert.value("NAME");
 					Iterator<Edge> durationEdgeIt = vert.edges(Direction.OUT, "TYPE", SYSTEM_ACTIVITY + "+++" + DURATION);
-					Double vertexDuration = Double.parseDouble(durationEdgeIt.next().inVertex().value("VALUE"));
+					String durationString = durationEdgeIt.next().inVertex().value("NAME");
+					Double vertexDuration = Double.parseDouble(durationString);
 					
 					if (i == 0) {
 						LF = criticalDate;
@@ -760,7 +762,7 @@ public class MHSDashboardDrillPlaysheet extends TablePlaySheet implements IDataM
 				if (!vert.value("NAME").equals("_")) {
 					String systemActivity = vert.value("NAME");
 					Iterator<Edge> durationEdgeIt = vert.edges(Direction.OUT, "TYPE", SYSTEM_ACTIVITY + "+++" + DURATION);
-					Double vertexDuration = Double.parseDouble(durationEdgeIt.next().inVertex().value("VALUE"));
+					Double vertexDuration = Double.parseDouble(durationEdgeIt.next().inVertex().value("NAME"));
 
 					Iterator<Edge> plannedStartEdgeIt = vert.edges(Direction.OUT, "TYPE", SYSTEM_ACTIVITY + "+++" + PLANNED_START);
 					String vertexPlannedStart = plannedStartEdgeIt.next().inVertex().value("NAME");
@@ -876,10 +878,10 @@ public class MHSDashboardDrillPlaysheet extends TablePlaySheet implements IDataM
 
 					String systemActivity = vert.value("NAME");
 					Iterator<Edge> durationEdgeIt = vert.edges(Direction.OUT, "TYPE", SYSTEM_ACTIVITY + "+++" + DURATION);
-					Double vertexDuration = Double.parseDouble(durationEdgeIt.next().inVertex().value("VALUE"));
+					Double vertexDuration = Double.parseDouble(durationEdgeIt.next().inVertex().value("NAME"));
 					
 					Iterator<Edge> deviationEdgeIt = vert.edges(Direction.OUT, "TYPE", SYSTEM_ACTIVITY + "+++" + DEVIATION);
-					String vertexDeviation = deviationEdgeIt.next().inVertex().value("VALUE");
+					String vertexDeviation = deviationEdgeIt.next().inVertex().value("NAME");
 					
 					if (i == 0) {
 						LF = criticalDate;
@@ -925,7 +927,7 @@ public class MHSDashboardDrillPlaysheet extends TablePlaySheet implements IDataM
 		for (Vertex vert : vertexSet) {
 			String systemActivty = vert.value("NAME");
 			Iterator<Edge> lateStartIterator = vert.edges(Direction.OUT, "TYPE", SYSTEM_ACTIVITY + "+++" + LATE_START);
-			String LS = (String) lateStartIterator.next().inVertex().value("VALUE");
+			String LS = (String) lateStartIterator.next().inVertex().value("NAME");
 			Date LSDate = null;
 			try {
 				LSDate = getDateFormat().parse(LS);
@@ -934,7 +936,7 @@ public class MHSDashboardDrillPlaysheet extends TablePlaySheet implements IDataM
 			}
 
 			Iterator<Edge> earlyStartIterator = vert.edges(Direction.OUT, "TYPE", SYSTEM_ACTIVITY + "+++" + EARLY_START);
-			String ES = (String) earlyStartIterator.next().inVertex().value("VALUE");
+			String ES = (String) earlyStartIterator.next().inVertex().value("NAME");
 			Date ESDate = null;
 			try {
 				ESDate = getDateFormat().parse(ES);
@@ -943,7 +945,7 @@ public class MHSDashboardDrillPlaysheet extends TablePlaySheet implements IDataM
 			}
 
 			Iterator<Edge> earlyFinishIterator = vert.edges(Direction.OUT, "TYPE", SYSTEM_ACTIVITY + "+++" + EARLY_FINISH);
-			String EF = (String) earlyFinishIterator.next().inVertex().value("VALUE");
+			String EF = (String) earlyFinishIterator.next().inVertex().value("NAME");
 			Date EFDate = null;
 			try {
 				EFDate = getDateFormat().parse(EF);
@@ -952,7 +954,7 @@ public class MHSDashboardDrillPlaysheet extends TablePlaySheet implements IDataM
 			}
 
 			Iterator<Edge> lateFinishIterator = vert.edges(Direction.OUT, "TYPE", SYSTEM_ACTIVITY + "+++" + LATE_FINISH);
-			String LF = (String) lateFinishIterator.next().inVertex().value("VALUE");
+			String LF = (String) lateFinishIterator.next().inVertex().value("NAME");
 			Date LFDate = null;
 			try {
 				LFDate = getDateFormat().parse(LF);
