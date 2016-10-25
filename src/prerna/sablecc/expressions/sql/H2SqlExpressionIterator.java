@@ -37,54 +37,93 @@ public class H2SqlExpressionIterator extends AbstractExpressionIterator {
 		this.joinCols = joinCols;
 		this.groupColumns = groupColumns;
 
-		setHeaders();
-//		this.sqlScript = generateSqlScript(sqlExpression, newColumnName, joinCols, frame.getViewTableName(), frame.getSqlFilter(), groupColumns);
+		this.sqlScript = generateSqlScript(this.frame, this.expression, this.newColumnName, joinCols, groupColumns);
 		LOGGER.info("GENERATED SQL EXPRESSION SCRIPT : " + this.sqlScript);
 	}
 	
-	private void setHeaders() {
-		Set<String> totalSelectors = new LinkedHashSet<>();
-		
+	@Override
+	public void generateExpression() {
+		this.sqlScript = generateSqlScript(this.frame, this.expression, this.newColumnName, joinCols, groupColumns);
+	}
+
+	private String generateSqlScript(H2Frame frame2, String sqlExpression, String newColumnName, String[] joinCols, String[] groupColumns) {
+		// this will generate the script
+		// but also keep track of the columns 
+		// can't use the rsmd since it will always return
+		// in upper case :(
+
+		boolean hasReturn = false;
+		StringBuilder builder = new StringBuilder("SELECT DISTINCT ");
+		if(sqlExpression != null && !sqlExpression.isEmpty()) { 
+			if(newColumnName != null && !newColumnName.isEmpty()) {
+				builder.append("(").append(sqlExpression).append(") AS ").append(newColumnName);
+			} else {
+				builder.append(sqlExpression);
+			}
+			hasReturn = true;
+		}
+		// due to tracking of selectors, we need this set to keep track of order
+		Set<String> totalSelectors = new LinkedHashSet<String>();
 		if(joinCols != null) {
 			for(int i = 0; i < joinCols.length; i++) {
-				totalSelectors.add(joinCols[i]);
+				totalSelectors.add(frame.getTableColumnName(joinCols[i]));
 			}
 		}
 		if(groupColumns != null) {
 			for(int i = 0; i < groupColumns.length; i++) {
-				totalSelectors.add(groupColumns[i]);
+				totalSelectors.add(frame.getTableColumnName(groupColumns[i]));
 			}
 		}
+		Iterator<String> returnHeaders = totalSelectors.iterator();
+		if(!hasReturn) {
+			if(returnHeaders.hasNext()) {
+				builder.append(returnHeaders.next());
+			}
+		}
+		while(returnHeaders.hasNext()) {
+			builder.append(" , ").append(returnHeaders.next());
+		}
 		
+		if(frame.isJoined()) {
+			builder.append(" FROM ").append(frame.getViewTableName());
+		} else {
+			builder.append(" FROM ").append(frame.getTableName());
+		}
+		
+		String filters = frame.getSqlFilter();
+		if(filters != null && !filters.isEmpty()) {
+			builder.append(" ").append(filters);
+		}
+		
+		if(groupColumns != null && groupColumns.length > 0) {
+			StringBuilder groupBuilder = new StringBuilder();
+			for(String groupBy : groupColumns) {
+				if(groupBuilder.length() == 0) {
+					groupBuilder.append(frame.getTableColumnName(groupBy));
+				} else {
+					groupBuilder.append(" , ").append(frame.getTableColumnName(groupBy));
+				}
+			}
+			builder.append(" GROUP BY ").append(groupBuilder.toString());
+		}
+
 		this.numCols = totalSelectors.size()+1;
 		this.headers = new String[numCols];
-		this.headers[0] = newColumnName;
+		
+		// if there is an alias, use it
+		// otherwise, just use the expression
+		if(newColumnName != null) {
+			this.headers[0] = newColumnName;
+		} else {
+			this.headers[0] = sqlExpression;
+		}
 		int counter = 1;
 		for(String selector : totalSelectors) {
 			headers[counter] = selector;
 			counter++;
 		}
-		
-	}
-	
-	@Override
-	public void generateExpression() {
-		String[] translatedJoinCols = null;
-		if(joinCols != null) {
-			translatedJoinCols = new String[joinCols.length];
-			for(int i = 0; i < joinCols.length; i++) {
-				translatedJoinCols[i] = frame.getTableColumnName(joinCols[i]);
-			}
-		}
-		
-		String[] translatedGroupColumns = null;
-		if(groupColumns != null) {
-			translatedGroupColumns = new String[groupColumns.length];
-			for(int i = 0; i < groupColumns.length; i++) {
-				translatedGroupColumns[i] = frame.getTableColumnName(groupColumns[i]);
-			}
-		}
-		this.sqlScript = generateSqlScript(this.expression, this.newColumnName, translatedJoinCols, frame.getViewTableName(), frame.getSqlFilter(), translatedGroupColumns);
+
+		return builder.toString();
 	}
 
 	@Override
@@ -93,68 +132,6 @@ public class H2SqlExpressionIterator extends AbstractExpressionIterator {
 			generateExpression();
 		}
 		rs = frame.execQuery(sqlScript);
-	}
-
-	/**
-	 * Generate the appropriate sql script for execution
-	 * @param sqlExpression			The expression to process
-	 * @param newCol				The alias to assign the expression
-	 * @param joinCols				The join columns to also return
-	 * @param tableName				The table name to execute on
-	 * @return
-	 */
-	private String generateSqlScript(String sqlExpression, String newCol, String[] joinCols, String tableName, String filters, String[] groupColumns) {
-		// this will generate the script
-		// but also keep track of the columns 
-		// can't use the rsmd since it will always return
-		// in upper case :(
-
-		StringBuilder builder = new StringBuilder("SELECT DISTINCT ");
-		builder.append("(").append(sqlExpression).append(") AS ").append(newCol);
-		// due to tracking of selectors, we need this set to keep track of order
-		Set<String> totalSelectors = new LinkedHashSet<String>();
-		if(joinCols != null) {
-			for(int i = 0; i < joinCols.length; i++) {
-				totalSelectors.add(joinCols[i]);
-			}
-		}
-		if(groupColumns != null) {
-			for(int i = 0; i < groupColumns.length; i++) {
-				totalSelectors.add(groupColumns[i]);
-			}
-		}
-		Iterator<String> returnHeaders = totalSelectors.iterator();
-		while(returnHeaders.hasNext()) {
-			builder.append(" , ").append(returnHeaders.next());
-		}
-
-		builder.append(" FROM ").append(tableName);
-		if(filters != null && !filters.isEmpty()) {
-			builder.append(" ").append(filters);
-		}
-		if(groupColumns != null && groupColumns.length > 0) {
-			StringBuilder groupBuilder = new StringBuilder();
-			for(String groupBy : groupColumns) {
-				if(groupBuilder.length() == 0) {
-					groupBuilder.append(groupBy);
-				} else {
-					groupBuilder.append(" , ").append(groupBy);
-				}
-			}
-			builder.append(" GROUP BY ").append(groupBuilder.toString());
-		}
-
-		this.numCols = totalSelectors.size()+1;
-//		this.headers = new String[numCols];
-//		this.headers[0] = newCol;
-//		int counter = 1;
-//		for(String selector : totalSelectors) {
-//			headers[counter] = selector;
-//			counter++;
-//		}
-
-		setHeaders();
-		return builder.toString();
 	}
 
 	@Override
