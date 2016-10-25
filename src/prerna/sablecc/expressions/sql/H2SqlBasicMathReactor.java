@@ -12,10 +12,19 @@ public class H2SqlBasicMathReactor extends AbstractSqlBaseReducer {
 		// select distinct mathRoutine ( col_name * 2 ) from tableName
 		StringBuilder builder = new StringBuilder();
 		
+		// changing the name to be using the view name
 		String colName = frame.getTableColumnName(script);
-		if(colName != null) script = colName;
+		if(colName != null) {
+			script = colName;
+		}
 		
-		builder.append("SELECT DISTINCT ").append(mathRoutine).append("(").append(script).append(")").append(" FROM ").append(frame.getTableName());
+		builder.append("SELECT DISTINCT ").append(mathRoutine).append("(").append(script).append(")").append(" FROM ");
+		if(frame.isJoined()) {
+			builder.append(frame.getViewTableName());
+		} else {
+			builder.append(frame.getTableName());
+		}
+		
 		String filters = frame.getSqlFilter();
 		if(filters != null && !filters.isEmpty()) {
 			builder.append(" ").append(filters);
@@ -30,26 +39,6 @@ public class H2SqlBasicMathReactor extends AbstractSqlBaseReducer {
 		String newScript = mathRoutine + "(" + script + ")";
 		H2SqlExpressionIterator it = new H2SqlExpressionIterator(frame, newScript, newCol, null, groupByCols);
 		return it;
-//		// generate a string similar to 
-//		// select distinct mathRoutine ( col_name * 2 ) groupby1 groupby2 from tableName group by groupby1 groupby2 
-//		StringBuilder groupBuilder = new StringBuilder();
-//		for(String groupBy : groupByCols) {
-//			if(groupBuilder.length() == 0) {
-//				groupBuilder.append(groupBy);
-//			} else {
-//				groupBuilder.append(" , ").append(groupBy);
-//			}
-//		}
-//		String groupByStrings = groupBuilder.toString();
-//		
-//		StringBuilder builder = new StringBuilder();
-//		builder.append("SELECT DISTINCT ").append(mathRoutine).append("(").append(script).append(") , ").append(groupByStrings)
-//			.append(" FROM ").append(tableName);
-//		if(filters != null && !filters.isEmpty()) {
-//			builder.append(" ").append(filters);
-//		}
-//		builder.append(" GROUP BY ").append(groupByStrings);
-//		return builder.toString();
 	}
 	
 	public void setMathRoutine(String mathRoutine) {
