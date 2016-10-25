@@ -50,6 +50,11 @@ public abstract class AbstractExpressionIterator implements IExpressionIterator{
 	}
 	
 	@Override
+	public void setHeaders(String[] headers) {
+		this.headers = headers;
+	}
+	
+	@Override
 	public void setExpression(String expression) {
 		this.expression = expression;
 	}
