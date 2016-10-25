@@ -2277,8 +2277,14 @@ public class H2Builder {
 			Connection previousConnection = null;
 			if (isInMem) {
 				LOGGER.info("CONVERTING FROM IN-MEMORY H2-DATABASE TO ON-DISK H2-DATABASE!");
+				
+				// if was in mem but want to push to specific existing location
+				if (physicalDbLocation == null || physicalDbLocation.isEmpty()) {
+					dbLocation = new File(physicalDbLocation);
+				}
 			} else {
 				LOGGER.info("CHANGEING SCHEMA FOR EXISTING ON-DISK H2-DATABASE!");
+				
 				if (physicalDbLocation == null || physicalDbLocation.isEmpty()) {
 					LOGGER.info("SCHEMA IS ALREADY ON DISK AND DID NOT PROVIDE NEW SCHEMA TO CHAGNE TO!");
 					return this.conn;
@@ -2295,12 +2301,16 @@ public class H2Builder {
 
 			String folderToUse = null;
 			String inMemScript = null;
+			// this is the case where i do not care where the on-disk is created
+			// so just create some random stuff
 			if (dbLocation == null) {
 				folderToUse = DIHelper.getInstance().getProperty(Constants.INSIGHT_CACHE_DIR) + "\\"
 						+ RDBMSEngineCreationHelper.cleanTableName(this.schema) + dateStr + "\\";
 				inMemScript = folderToUse + "_" + dateStr;
 				physicalDbLocation = folderToUse.replace('/', '\\') + "_" + dateStr + "_database";
 			} else {
+				// this is the case when we have a specific schema we want to move the frame into
+				// this is set when the physicalDbLocation parameter is not null or empty
 				folderToUse = dbLocation.getParent();
 				inMemScript = folderToUse + "_" + dateStr;
 			}
