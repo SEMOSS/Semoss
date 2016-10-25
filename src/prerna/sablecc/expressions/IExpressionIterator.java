@@ -25,6 +25,11 @@ public interface IExpressionIterator extends Iterator<Object[]> {
 	 * Get the headers returned from the expression
 	 */
 	String[] getHeaders();
+	
+	/**
+	 * Set the headers returned from the expression
+	 */
+	void setHeaders(String[] headers);
 
 	/**
 	 * Get the join columns (columns existing in the frame) used in the expression
