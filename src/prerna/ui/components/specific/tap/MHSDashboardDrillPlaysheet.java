@@ -122,6 +122,11 @@ public class MHSDashboardDrillPlaysheet extends TablePlaySheet implements IDataM
 		return returnHashMap;
 	}
 
+	/**
+	 * Method to pass FE all the other necessary date, including: sdlc list, the kind of styling to use (ie. MHS), 
+	 * data table align, and a set of the filterable system and system owners
+	 * @return Map
+	 */
 	private Map getData () {
 		Map<String, Object> returnHashMap = new HashMap<String, Object> ();
 		List<Object> sdlcList = new ArrayList<Object>(Arrays.asList("Strategy", "Requirement", "Design", "Development", "Test", "Security", "Deployment", "Training"));
@@ -147,34 +152,6 @@ public class MHSDashboardDrillPlaysheet extends TablePlaySheet implements IDataM
 		dataTableAlign.put("earlyStart", EARLY_START);
 		dataTableAlign.put("lateFinish", LATE_FINISH);
 		return dataTableAlign;
-	}
-
-	/**
-	 * Method to pass FE values for system which will be used for the filters
-	 * @return system options
-	 */
-	public Map getSystem() {
-		Map<String, Object> returnHash = new HashMap<String, Object>();
-
-		String[] selectors = new String[] { SYSTEM };
-		Map<String, Object> mainHash = super.getDataMakerOutput(selectors);
-		Object systems = mainHash.get("data");
-		returnHash.put(SYSTEM, systems);
-		return returnHash;
-	}
-
-	/**
-	 * Method to pass FE values for systemOwner to filter on
-	 * @return systemOwner options
-	 */
-	public Map getSystemOwner() {
-		Map<String, Object> returnHash = new HashMap<String, Object>();
-
-		String[] selectors = new String[] { SYSTEM_OWNER };
-		Map<String, Object> mainHash = super.getDataMakerOutput(selectors);
-		Object systemsOwner = mainHash.get("data");
-		returnHash.put(SYSTEM_OWNER, systemsOwner);
-		return returnHash;
 	}
 
 	/**
@@ -230,6 +207,7 @@ public class MHSDashboardDrillPlaysheet extends TablePlaySheet implements IDataM
 				innerMap.put(SDLC, sdlc);
 				innerMap.put(ActivityGroup, group);
 				innerMap.put(DHA, dha);
+				// get the rest of the information for the tile: early start, late start, heat value, status
 				innerMap.putAll(getTileInfo(key));
 				returnMap.put(key, innerMap);
 			}
@@ -240,9 +218,10 @@ public class MHSDashboardDrillPlaysheet extends TablePlaySheet implements IDataM
 	/**
 	 * Method to return all the values need to display on the white tile
 	 * @param primKey the unique key
-	 * @return map of early start, late start, heat value, status, etc
+	 * @return map of early start, late start, heat value, status
 	 */
 	private Map<String, Object> getTileInfo(String primKey) {
+		//query to get the slack, early start, late finish, status, and delay based on the prime key
 		String query = "SELECT SLACK as SLACK, EARLYSTART AS EARLYSTART, LATEFINISH AS LATEFINISH, KEYSTATUS, DELAY FROM SYSTEMACTIVITY where SDLCPHASE_ACTIVITYGROUP_DHAGROUP_FK ='" + primKey + "'";
 		IRawSelectWrapper iterator = WrapperManager.getInstance().getRawWrapper(dmComponent.getEngine(), query);
 
@@ -258,6 +237,7 @@ public class MHSDashboardDrillPlaysheet extends TablePlaySheet implements IDataM
 		List<String> statusList = new ArrayList<String>();
 		List<String> delayList = new ArrayList<String>();
 
+		//iterates and gets specified values in rows
 		while (iterator.hasNext()) {
 			IHeadersDataRow nextRow = iterator.next();
 			if (!(nextRow.getRawValues() == null)) {
@@ -302,6 +282,7 @@ public class MHSDashboardDrillPlaysheet extends TablePlaySheet implements IDataM
 			}
 		}
 		
+		//query to update H2
 		String updateDBquery = "UPDATE SDLCPHASE_ACTIVITYGROUP_DHAGROUP SET HEATVALUE =" + heatValue + " WHERE SDLCPHASE_ACTIVITYGROUP_DHAGROUP = '"+ primKey +"'";
 		dmComponent.getEngine().insertData(updateDBquery);
 		
@@ -407,9 +388,7 @@ public class MHSDashboardDrillPlaysheet extends TablePlaySheet implements IDataM
 		if (!dependencyList.isEmpty()) {
 			String dependencyConcat = String.join("', '", dependencyList);
 
-			// this query will get all the properties of the dependency
-			// activities
-
+			// this query will get all the properties of the dependency activities
 			String query2 = "SELECT SYSTEMACTIVITY, SYSTEMACTIVITY.DURATION, SYSTEMACTIVITY.ACTUALSTART as ActualStart, SYSTEMACTIVITY.ACTUALEND as ActualEnd, SYSTEM.PLANNEDSTART "
 					+ "FROM SYSTEMACTIVITY Left Join SYSTEM ON SYSTEMACTIVITY.SYSTEMACTIVITY = SYSTEM .SYSTEMACTIVITY_FK WHERE SYSTEMACTIVITY IN ('"
 					+ dependencyConcat + "')";
@@ -650,6 +629,8 @@ public class MHSDashboardDrillPlaysheet extends TablePlaySheet implements IDataM
 		return paths;
 	}
 
+	///////////////////////////////////////////          CALCULATE PLANNED & ACUTAL DATES            //////////////////////////////////////////////
+	
 	/**
 	 * Planned methods will be initially run to determine the earliest date of completion for the project without taking the actual dates into account
 	 * @param vertexPathSet Set of all the path lists
@@ -915,9 +896,12 @@ public class MHSDashboardDrillPlaysheet extends TablePlaySheet implements IDataM
 
 		}
 	}
+	
+	///////////////////////////////////////////          FORMATING DATES            //////////////////////////////////////////////
 
 	/**
 	 * Method to calculate and add the slack value to the DB
+	 * Slack = LATEFINISH - EARLYFINISH
 	 * @param vertexSet a list of all the vertices in the tinkerframe 
 	 */
 	private void calculateSlack(Set<Vertex> vertexSet) {
@@ -968,6 +952,7 @@ public class MHSDashboardDrillPlaysheet extends TablePlaySheet implements IDataM
 //			System.out.println("LF VAL:::" + LFDate);
 
 			Double slack = (double) ((LFDate.getTime() - EFDate.getTime()) / (24 * 60 * 60 * 1000));
+			//SLACK SHOULD NEVER BE A NEGATIVE VALUE
 			if (slack >= 0.0) {
 				boolean isCritical = false;
 				if (slack == 0.0) {
@@ -1038,35 +1023,9 @@ public class MHSDashboardDrillPlaysheet extends TablePlaySheet implements IDataM
 		return maxEF;
 	}
 
-	/**
-	 * Method to calculate a future date through the addition method
-	 * @param date initial date
-	 * @param duration number of days to add by
-	 * @return new date value 
-	 */
-	private Date addToDate(Date date, Double duration) {
-		Calendar cal = Calendar.getInstance();
-		cal.setTime(date);
-		cal.add(Calendar.DATE, duration.intValue());
-
-		return cal.getTime();
-	}
-
-	/**
-	 * Method to calculate a past date through the subtraction method
-	 * @param date initial date
-	 * @param duration number of days to subtract by
-	 * @return new date value
-	 */
-	private Date subractFromDate(Date date, Double duration) {
-		Calendar cal = Calendar.getInstance();
-		cal.setTime(date);
-		duration *= -1;
-		cal.add(Calendar.DATE, duration.intValue());
-
-		return cal.getTime();
-	}
-
+	
+	///////////////////////////////////////////          FORMATING DATES            //////////////////////////////////////////////
+	
 	/**
 	 * Method to convert a string to Date format, if we know the string is a date
 	 * @param stringDate date in a string format
@@ -1105,7 +1064,43 @@ public class MHSDashboardDrillPlaysheet extends TablePlaySheet implements IDataM
 
 		return strDate;
 	}
+	
+	///////////////////////////////////////////          DATE MANIPULATION            //////////////////////////////////////////////
+	
+	
+	/**
+	 * Method to calculate a future date through the addition method
+	 * @param date initial date
+	 * @param duration number of days to add by
+	 * @return new date value 
+	 */
+	private Date addToDate(Date date, Double duration) {
+		Calendar cal = Calendar.getInstance();
+		cal.setTime(date);
+		cal.add(Calendar.DATE, duration.intValue());
 
+		return cal.getTime();
+	}
+
+	/**
+	 * Method to calculate a past date through the subtraction method
+	 * @param date initial date
+	 * @param duration number of days to subtract by
+	 * @return new date value
+	 */
+	private Date subractFromDate(Date date, Double duration) {
+		Calendar cal = Calendar.getInstance();
+		cal.setTime(date);
+		duration *= -1;
+		cal.add(Calendar.DATE, duration.intValue());
+
+		return cal.getTime();
+	}
+	
+
+	
+	///////////////////////////////////////////          FILTERING            //////////////////////////////////////////////
+	
 	/**
 	 * Method to filter for the tools bar
 	 * @param filterActivityTable - HashTable: KEY should be the column that you want to filter on (ie: System), VALUE should be the list of insight you want to filter
@@ -1190,6 +1185,38 @@ public class MHSDashboardDrillPlaysheet extends TablePlaySheet implements IDataM
 	public Map unfilter(Hashtable<String, Object> unfilterDrillDownTable) {
 		String[] selector = new String[] {};
 		return getDataMakerOutput(selector);
+	}
+	
+	
+	
+	///////////////////////////////////////////          MISC            //////////////////////////////////////////////
+	
+	/**
+	 * Method to pass FE values for system which will be used for the filters
+	 * @return system options
+	 */
+	public Map getSystem() {
+		Map<String, Object> returnHash = new HashMap<String, Object>();
+
+		String[] selectors = new String[] { SYSTEM };
+		Map<String, Object> mainHash = super.getDataMakerOutput(selectors);
+		Object systems = mainHash.get("data");
+		returnHash.put(SYSTEM, systems);
+		return returnHash;
+	}
+
+	/**
+	 * Method to pass FE values for systemOwner to filter on
+	 * @return systemOwner options
+	 */
+	public Map getSystemOwner() {
+		Map<String, Object> returnHash = new HashMap<String, Object>();
+
+		String[] selectors = new String[] { SYSTEM_OWNER };
+		Map<String, Object> mainHash = super.getDataMakerOutput(selectors);
+		Object systemsOwner = mainHash.get("data");
+		returnHash.put(SYSTEM_OWNER, systemsOwner);
+		return returnHash;
 	}
 
 }
