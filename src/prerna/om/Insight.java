@@ -1787,4 +1787,26 @@ public class Insight {
 	public int hashCode() {
 		return this.insightID.hashCode();
 	}
+	
+   public Insight emptyCopyForSave() {
+
+       Insight insightCopy = new Insight(this.mainEngine,this.dataMakerName, this.getOutput());
+       insightCopy.paramHash = this.paramHash;
+       insightCopy.userID = this.userID;
+       insightCopy.propHash = this.propHash;
+       insightCopy.makeupEngine = this.makeupEngine;
+       insightCopy.playSheet = this.playSheet;
+       insightCopy.dataTableAlign = this.dataTableAlign;
+       insightCopy.dataMaker = this.dataMaker;
+       insightCopy.dataMakerName = this.dataMakerName;
+       insightCopy.dmComponents = new ArrayList<>();
+       insightCopy.paramHash = this.paramHash;                                                                                 // the parameters selected by user for filtering on insights
+       insightCopy.uiOptions = this.uiOptions;
+       insightCopy.pkqlRunner = this.pkqlRunner; // unique to this insight that is responsible for tracking state and variables
+       insightCopy.pkqlVarMap = this.pkqlVarMap;
+       insightCopy.parentInsight = this.parentInsight;
+       
+       return insightCopy;
+   }
+
 }
