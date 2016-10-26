@@ -936,7 +936,8 @@ public class H2Builder {
 					// definitely get rid of it
 					// or this takes forever on big data
 					List<String[]> indicesToAdd = new Vector<String[]>();
-					for(String tableColConcat : this.columnIndexMap.keySet()) {
+					Set<String> colIndexMapKeys = new HashSet<String>(this.columnIndexMap.keySet());
+					for(String tableColConcat : colIndexMapKeys) {
 						// table name and col name are appended together with +++
 						String[] tableCol = tableColConcat.split("\\+\\+\\+");
 						indicesToAdd.add(tableCol);
