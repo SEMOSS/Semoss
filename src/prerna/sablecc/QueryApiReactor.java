@@ -60,7 +60,7 @@ public class QueryApiReactor extends AbstractApiReactor {
 			// only need to run query for count if frame is not in memory
 			if(frame instanceof H2Frame && ((H2Frame) frame).isInMem()) {
 				interp.clear();
-				interp.setPerformCount(true);
+				interp.setPerformCount(QueryStruct.COUNT_CELLS);
 				String countQuery = interp.composeQuery();
 				IRawSelectWrapper countIt = WrapperManager.getInstance().getRawWrapper(engine, countQuery);
 				if(countIt.hasNext()) {

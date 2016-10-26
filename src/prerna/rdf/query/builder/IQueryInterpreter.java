@@ -10,9 +10,9 @@ public interface IQueryInterpreter {
 
 	String composeQuery();
 
-	void setPerformCount(boolean performCount);
+	void setPerformCount(int performCount);
 	
-	boolean isPerformCount();
+	int isPerformCount();
 	
 	void clear();
 }

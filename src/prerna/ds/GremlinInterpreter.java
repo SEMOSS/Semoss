@@ -522,20 +522,18 @@ public class GremlinInterpreter implements IQueryInterpreter {
 	}
 
 	@Override
-	public void setPerformCount(boolean performCount) {
+	public void setPerformCount(int performCount) {
 		// TODO Auto-generated method stub
 		
 	}
 
 	@Override
-	public boolean isPerformCount() {
-		// TODO Auto-generated method stub
-		return false;
+	public int isPerformCount() {
+		return QueryStruct.NO_COUNT;
 	}
 
 	@Override
 	public void clear() {
-		// TODO Auto-generated method stub
 		
 	}
 
