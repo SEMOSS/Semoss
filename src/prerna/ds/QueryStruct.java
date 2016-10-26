@@ -54,7 +54,12 @@ public class QueryStruct {
 	
 	private int limit = -1;
 	private int offset = -1;
-	private boolean performCount = false;
+	
+	public final static int COUNT_CELLS = 1; //use this when we want to count the number of total rows*selectors in the query
+	public final static int COUNT_DISTINCT_SELECTORS = 2; //use this when we want to count the number of distinct values for a selector in a query
+	public final static int NO_COUNT = 0; //use this when we don't want to do a count
+	
+	private int performCount = NO_COUNT;
 	
 	public static String PRIM_KEY_PLACEHOLDER = "PRIM_KEY_PLACEHOLDER";
 		
@@ -152,11 +157,11 @@ public class QueryStruct {
 		return this.orderBy;
 	}
 	
-	public boolean getPerformCount() {
+	public int getPerformCount() {
 		return this.performCount;
 	}
 	
-	public void setPerformCount(boolean performCount) {
+	public void setPerformCount(int performCount) {
 		this.performCount = performCount;
 	}
 	
