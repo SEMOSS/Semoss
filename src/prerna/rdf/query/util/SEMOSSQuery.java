@@ -33,6 +33,7 @@ import java.util.Enumeration;
 import java.util.Hashtable;
 import java.util.List;
 
+import prerna.ds.QueryStruct;
 import prerna.util.Utility;
 import prerna.util.sql.SQLQueryUtil;
 
@@ -61,7 +62,7 @@ public class SEMOSSQuery {
 	private List<String> returnVarOrder;
 	
 	// boolean to determine if we are trying to get the count of the query
-	private boolean performCount;
+	private int performCount;
 
 	public SEMOSSQuery()
 	{
@@ -98,7 +99,14 @@ public class SEMOSSQuery {
 		String postWhereString = createPostPatternString();
 		query=query+retVarString + wherePatternString +postWhereString;
 		
-		if(performCount) {
+		if(performCount == QueryStruct.COUNT_DISTINCT_SELECTORS) {
+			String countRetVarString = retVarString.trim();
+			while(countRetVarString.contains("  ")) {
+				countRetVarString.replace("  ", " ");
+			}
+			String[] varSplit = countRetVarString.split(" ");
+			query = "SELECT (COUNT(DISTINCT "+ varSplit[0]+") AS ?COUNT) " + wherePatternString + postWhereString;
+		} else if(performCount == QueryStruct.COUNT_CELLS) {
 			retVarString = retVarString.trim();
 			while(retVarString.contains("  ")) {
 				retVarString.replace("  ", " ");
@@ -662,7 +670,7 @@ public class SEMOSSQuery {
 		
 	}
 
-	public void setPerformCount(boolean performCount) {
+	public void setPerformCount(int performCount) {
 		this.performCount = performCount;
 	}
 	

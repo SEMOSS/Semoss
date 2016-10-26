@@ -2591,6 +2591,8 @@ public class Utility {
 		conversionMap.put("MONEY", "DECIMAL");
 		conversionMap.put("SMALLMONEY", "DECIMAL");
 		conversionMap.put("TEXT", "VARCHAR(800)");
+		conversionMap.put("STRING", "VARCHAR(800)");
+		conversionMap.put("NUMBER", "DOUBLE");
 		
 		return conversionMap;
 	}
