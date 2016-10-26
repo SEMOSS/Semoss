@@ -32,7 +32,7 @@ public class SPARQLInterpreter implements IQueryInterpreter {
 	Boolean addedJoins = false;
 	IEngine engine = null;
 
-	private boolean performCount = false;
+	private int performCount = QueryStruct.NO_COUNT;
 	
 	public SPARQLInterpreter(IEngine engine)
 	{
@@ -554,11 +554,11 @@ public class SPARQLInterpreter implements IQueryInterpreter {
 		}
 	}
 	
-	public boolean isPerformCount() {
+	public int isPerformCount() {
 		return performCount;
 	}
 
-	public void setPerformCount(boolean performCount) {
+	public void setPerformCount(int performCount) {
 		this.performCount = performCount;
 	}
 	

@@ -90,7 +90,7 @@ public class NativeApiReactor extends AbstractApiReactor {
 			this.put((String) getValue(PKQLEnum.API), thisIterator);
 			
 			interp.clear();
-			interp.setPerformCount(true);
+			interp.setPerformCount(QueryStruct.COUNT_CELLS);
 			query = interp.composeQuery();
 			IRawSelectWrapper countIt = WrapperManager.getInstance().getRawWrapper(engine, query);
 			if(countIt.hasNext()) {

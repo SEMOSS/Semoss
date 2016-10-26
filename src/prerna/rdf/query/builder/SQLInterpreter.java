@@ -63,7 +63,8 @@ public class SQLInterpreter implements IQueryInterpreter{
 	private SqlJoinList relationList = new SqlJoinList();
 	
 	// boolean to determine the count of the query being executed
-	private boolean performCount = false;
+	private int performCount = QueryStruct.NO_COUNT;
+//	private boolean performSelectorCount = false;
 	
 	private SQLQueryUtil queryUtil = SQLQueryUtil.initialize(SQLQueryUtil.DB_TYPE.H2_DB);
 	
@@ -116,8 +117,20 @@ public class SQLInterpreter implements IQueryInterpreter{
 		StringBuilder query = new StringBuilder("SELECT ");
 		// add the selectors
 		// if this is meant to perform a count
-		if(performCount) {
+		if(performCount == QueryStruct.COUNT_CELLS) {
 			query.append(" COUNT(*) * ").append(selectors.split(",").length).append(" FROM ");
+		} else if(performCount == QueryStruct.COUNT_DISTINCT_SELECTORS) { 
+			query.append(" COUNT(DISTINCT ");
+			String[] selectorArray = selectors.split(",");
+			for(int i = 0; i < selectorArray.length; i++) {
+				if(i > 0) {
+					query.append(", ");
+				}
+				String selectorWithoutAlias = selectorArray[i].split(" AS ")[0];
+				query.append(selectorWithoutAlias);
+				
+			}
+			query.append(") AS COUNT FROM ");
 		} else {
 			if(this.engine != null && relationList.isEmpty()) {
 				// if there are no joins, we know we are querying from a single table
@@ -1136,11 +1149,11 @@ public class SQLInterpreter implements IQueryInterpreter{
 		return this.colAlias;
 	}
 	
-	public boolean isPerformCount() {
+	public int isPerformCount() {
 		return performCount;
 	}
 
-	public void setPerformCount(boolean performCount) {
+	public void setPerformCount(int performCount) {
 		this.performCount = performCount;
 	}
 	
