@@ -82,10 +82,10 @@ public class SearchQueryApiReactor extends AbstractApiReactor {
 		if(this.mapOptions != null) {
 			String getCount = mapOptions.get("getCount").toString();
 			if(getCount.toLowerCase().equals("true")) {
-				this.qs.setPerformCount(true);
+				this.qs.setPerformCount(QueryStruct.COUNT_DISTINCT_SELECTORS);
 				return true;
 			} else {
-				this.qs.setPerformCount(false);
+				this.qs.setPerformCount(QueryStruct.NO_COUNT);
 				return false;
 			}
 		}
