@@ -5,17 +5,17 @@ package prerna.sablecc.node;
 import prerna.sablecc.analysis.*;
 
 @SuppressWarnings("nls")
-public final class AMathParam extends PMathParam
+public final class AOptionsMap extends POptionsMap
 {
     private TComma _comma_;
     private PMapObj _mapObj_;
 
-    public AMathParam()
+    public AOptionsMap()
     {
         // Constructor
     }
 
-    public AMathParam(
+    public AOptionsMap(
         @SuppressWarnings("hiding") TComma _comma_,
         @SuppressWarnings("hiding") PMapObj _mapObj_)
     {
@@ -29,7 +29,7 @@ public final class AMathParam extends PMathParam
     @Override
     public Object clone()
     {
-        return new AMathParam(
+        return new AOptionsMap(
             cloneNode(this._comma_),
             cloneNode(this._mapObj_));
     }
@@ -37,7 +37,7 @@ public final class AMathParam extends PMathParam
     @Override
     public void apply(Switch sw)
     {
-        ((Analysis) sw).caseAMathParam(this);
+        ((Analysis) sw).caseAOptionsMap(this);
     }
 
     public TComma getComma()
