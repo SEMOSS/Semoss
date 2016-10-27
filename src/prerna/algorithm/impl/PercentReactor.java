@@ -2,8 +2,10 @@ package prerna.algorithm.impl;
 
 import java.util.HashMap;
 import java.util.Iterator;
+import java.util.Map;
 import java.util.Vector;
 
+import prerna.sablecc.PKQLEnum;
 import prerna.util.ArrayUtilityMethods;
 
 public class PercentReactor extends BaseReducerReactor {
@@ -47,6 +49,11 @@ public class PercentReactor extends BaseReducerReactor {
 		}
 		
 	
-		return groupByHash;	}
+		return groupByHash;	
+	}
+	
+	public Map<String, Object> getColumnDataMap() {
+		return getBaseColumnDataMap("Percent");
+	}
 
 }

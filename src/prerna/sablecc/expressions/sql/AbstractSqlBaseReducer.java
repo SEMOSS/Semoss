@@ -4,6 +4,7 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.HashSet;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Set;
 import java.util.Vector;
 
@@ -11,8 +12,14 @@ import prerna.ds.H2.H2Frame;
 import prerna.sablecc.AbstractReactor;
 import prerna.sablecc.PKQLEnum;
 import prerna.sablecc.PKQLRunner.STATUS;
+import prerna.sablecc.expressions.sql.builder.SqlBuilder;
+import prerna.sablecc.expressions.sql.builder.SqlColumnSelector;
+import prerna.sablecc.expressions.sql.builder.SqlConstantSelector;
 
 public abstract class AbstractSqlBaseReducer extends AbstractReactor {
+
+	protected String mathRoutine = null;
+	protected String pkqlMathRoutine = null;
 
 	public AbstractSqlBaseReducer() {
 		String[] thisReacts = { PKQLEnum.EXPR_TERM, PKQLEnum.DECIMAL, PKQLEnum.NUMBER, PKQLEnum.GROUP_BY, PKQLEnum.COL_DEF, PKQLEnum.MATH_PARAM};
@@ -20,99 +27,111 @@ public abstract class AbstractSqlBaseReducer extends AbstractReactor {
 		super.whoAmI = PKQLEnum.MATH_FUN;
 	}
 	
-	/**
-	 * This will generate the sql script for the routine
-	 * @param tableName			The name of the sql table
-	 * @param script			The script representing the column to get
-	 * @param fitlers			The filters on the H2Frame
-	 * @return					The full sql script to execute
-	 */
-	public abstract String process(H2Frame frame, String script);
-	
-	/**
-	 * This will generate the sql script for the routine
-	 * @param tableName			The name of the sql table
-	 * @param script			The script representing the column to get
-	 * @param groupByCols		The columns to group by in the sql query
-	 * @param fitlers			The filters on the H2Frame
-	 * @return					The full sql script to execute
-	 */
-	public abstract H2SqlExpressionIterator processGroupBy(H2Frame frame, String script, String[] groupByCols);
+	public abstract SqlBuilder process(H2Frame frame, SqlBuilder builder);
 
-	
 	@Override
 	public Iterator process() {
 		String nodeStr = myStore.get(whoAmI).toString();
-
-		String[] existingGroups = null;
-		// if this is wrapping an existing expression iterator
-		if(myStore.get(whoAmI) instanceof H2SqlExpressionIterator) {
-			existingGroups = ((H2SqlExpressionIterator) myStore.get(whoAmI)).getGroupColumns();
-			((H2SqlExpressionIterator) myStore.get(whoAmI)).close();
-		}
-		
-		// modify the expression to get the sql syntax
-		modExpression();
-		
-		String script = myStore.get("MOD_" + whoAmI).toString();
-		script = script.replace("[", "").replace("]", "");
-		
 		H2Frame h2Frame = (H2Frame)myStore.get("G");
+
+		boolean hasGroups = false;
 		
-		// get all the groups
-		Vector<String> groupBys = (Vector <String>)myStore.get(PKQLEnum.COL_CSV);
-		if(groupBys == null) {
-			groupBys = new Vector<String>();
-		}
-		if(existingGroups != null) {
-			for(String group : existingGroups) {
-				groupBys.add(group);
+		SqlBuilder builder = null;
+		// if this is wrapping an existing expression iterator
+		if(myStore.get("TERM") instanceof SqlBuilder) {
+			builder = (SqlBuilder) myStore.get("TERM");
+			
+			// make sure groups are not contradicting
+			// get the current groups
+			Set<String> groups = new HashSet<String>();
+			List<String> existingGroups = builder.getGroupByColumns();
+			if(existingGroups != null && existingGroups.size() > 0) {
+				hasGroups = true;
+				groups.addAll(existingGroups);
+				int startSize = groups.size();
+				Vector<String> groupBys = (Vector <String>) myStore.get(PKQLEnum.COL_CSV);
+				// when i remove these new groups, the size better be 0
+				// meaning they are all already accounted for
+				if(groupBys != null && !groupBys.isEmpty()) {
+					groups.addAll(groupBys);
+					int endSize = groups.size();
+					if(startSize != endSize) {
+						throw new IllegalArgumentException("Expression contains group bys that are not the same.  Unable to process.");
+					}
+				}
+			} 
+			else {
+				// no existing group bys
+				// see if we need to add any new ones
+				hasGroups = addGroupBys(h2Frame, builder);
 			}
+		} else {
+			builder = new SqlBuilder(h2Frame);
+			// this case can only be if we pass in a column
+			
+			// modify the expression to get the sql syntax
+			modExpression();
+			// we have a new expression
+			// input is a new column
+			String column = myStore.get("MOD_" + whoAmI).toString();
+			column = column.replace("[", "").replace("]", "").trim();
+			
+			SqlColumnSelector cSelector = new SqlColumnSelector(h2Frame, column);
+			builder.addSelector(cSelector);
+			
+			// no existing group bys
+			// see if we need to add any new ones
+			hasGroups = addGroupBys(h2Frame, builder);
 		}
-		Set<String> groups = new HashSet<String>();
-		groups.addAll(groupBys);
-		
-		if(!groups.isEmpty()){
-			H2SqlExpressionIterator it = processGroupBy(h2Frame, script, groups.toArray(new String[]{}));
-//			ResultSet rs = h2Frame.execQuery(sqlScript);
-//			
-//			// this is only here because this is what viz reactor expects
-//			// TODO: when we get job ids, will be very happy to get rid of this
-//			// annoying object
-//			HashMap<HashMap<Object,Object>,Object> groupByHash = new HashMap<HashMap<Object,Object>,Object>();
-//			
-//			int numReturns = groupBys.size() + 1;
-//			
-//			try {
-//				while(rs.next()) {
-//					Object value = rs.getObject(1);
-//					HashMap<Object, Object> groupMap = new HashMap<Object, Object>();
-//					for(int i = 2; i <= numReturns; i++) {
-//						groupMap.put(groupBys.get(i-2), rs.getObject(i));
-//					}
-//					
-//					groupByHash.put(groupMap, value);
-//				}
-//			} catch (SQLException e) {
-//				e.printStackTrace();
-//			}
-			myStore.put(nodeStr, it);
+
+		builder = process(h2Frame, builder);
+
+		if(hasGroups){
+			myStore.put(nodeStr, builder);
 			myStore.put("STATUS",STATUS.SUCCESS);
 		} else {
-			String sqlScript = process(h2Frame, script);
-			ResultSet rs = h2Frame.execQuery(sqlScript);
+			ResultSet rs = h2Frame.execQuery(builder.toString());
 			Object result = null;
 			try {
 				rs.next();
 				result = rs.getObject(1);
+				SqlConstantSelector constant = new SqlConstantSelector(result);
+				builder.addSelector(constant);
 			} catch (SQLException e) {
 				e.printStackTrace();
 			}
 			
-			myStore.put(nodeStr, result);
+			myStore.put(nodeStr, builder);
 			myStore.put("STATUS",STATUS.SUCCESS);
 		}
 		
 		return null;
+	}
+	
+	/**
+	 * Adds the group bys and returns if groups bys were added
+	 * @param h2Frame
+	 * @param builder
+	 * @return
+	 */
+	private boolean addGroupBys(H2Frame h2Frame, SqlBuilder builder) {
+		boolean hasGroups = false;
+		Vector<String> groupBys = (Vector <String>) myStore.get(PKQLEnum.COL_CSV);
+		if(groupBys != null) {
+			for(String groupBy : groupBys) {
+				SqlColumnSelector gSelector = new SqlColumnSelector(h2Frame, groupBy);
+				builder.addGroupBy(gSelector);
+				hasGroups = true;
+			}
+		}
+		return hasGroups;
+	}
+	
+	public void setMathRoutine(String mathRoutine) {
+		this.mathRoutine = mathRoutine;
+	}
+	
+	public void setPkqlMathRoutine(String pkqlMathRoutine) {
+		this.pkqlMathRoutine  = pkqlMathRoutine;
 	}
 }

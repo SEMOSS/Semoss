@@ -8,5 +8,6 @@ public class SqlMinReactor extends H2SqlBasicMathReactor {
 	 */
 	public SqlMinReactor() {
 		this.setMathRoutine("MIN");
+		this.setPkqlMathRoutine("Min");
 	}
 }

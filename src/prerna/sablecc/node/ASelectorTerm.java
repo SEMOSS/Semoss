@@ -5,22 +5,22 @@ package prerna.sablecc.node;
 import prerna.sablecc.analysis.*;
 
 @SuppressWarnings("nls")
-public final class ATermGroup extends PTermGroup
+public final class ASelectorTerm extends PSelectorTerm
 {
-    private TComma _comma_;
+    private TVizType _vizType_;
     private PTerm _term_;
 
-    public ATermGroup()
+    public ASelectorTerm()
     {
         // Constructor
     }
 
-    public ATermGroup(
-        @SuppressWarnings("hiding") TComma _comma_,
+    public ASelectorTerm(
+        @SuppressWarnings("hiding") TVizType _vizType_,
         @SuppressWarnings("hiding") PTerm _term_)
     {
         // Constructor
-        setComma(_comma_);
+        setVizType(_vizType_);
 
         setTerm(_term_);
 
@@ -29,27 +29,27 @@ public final class ATermGroup extends PTermGroup
     @Override
     public Object clone()
     {
-        return new ATermGroup(
-            cloneNode(this._comma_),
+        return new ASelectorTerm(
+            cloneNode(this._vizType_),
             cloneNode(this._term_));
     }
 
     @Override
     public void apply(Switch sw)
     {
-        ((Analysis) sw).caseATermGroup(this);
+        ((Analysis) sw).caseASelectorTerm(this);
     }
 
-    public TComma getComma()
+    public TVizType getVizType()
     {
-        return this._comma_;
+        return this._vizType_;
     }
 
-    public void setComma(TComma node)
+    public void setVizType(TVizType node)
     {
-        if(this._comma_ != null)
+        if(this._vizType_ != null)
         {
-            this._comma_.parent(null);
+            this._vizType_.parent(null);
         }
 
         if(node != null)
@@ -62,7 +62,7 @@ public final class ATermGroup extends PTermGroup
             node.parent(this);
         }
 
-        this._comma_ = node;
+        this._vizType_ = node;
     }
 
     public PTerm getTerm()
@@ -94,7 +94,7 @@ public final class ATermGroup extends PTermGroup
     public String toString()
     {
         return ""
-            + toString(this._comma_)
+            + toString(this._vizType_)
             + toString(this._term_);
     }
 
@@ -102,9 +102,9 @@ public final class ATermGroup extends PTermGroup
     void removeChild(@SuppressWarnings("unused") Node child)
     {
         // Remove child
-        if(this._comma_ == child)
+        if(this._vizType_ == child)
         {
-            this._comma_ = null;
+            this._vizType_ = null;
             return;
         }
 
@@ -121,9 +121,9 @@ public final class ATermGroup extends PTermGroup
     void replaceChild(@SuppressWarnings("unused") Node oldChild, @SuppressWarnings("unused") Node newChild)
     {
         // Replace child
-        if(this._comma_ == oldChild)
+        if(this._vizType_ == oldChild)
         {
-            setComma((TComma) newChild);
+            setVizType((TVizType) newChild);
             return;
         }
 

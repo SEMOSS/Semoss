@@ -1,137 +1,59 @@
 package prerna.sablecc.expressions.sql;
 
 import java.sql.ResultSet;
+import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
+import java.util.HashMap;
 import java.util.Iterator;
-import java.util.LinkedHashSet;
-import java.util.Set;
+import java.util.List;
+import java.util.Map;
+import java.util.Vector;
 
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
-import prerna.algorithm.api.ITableDataFrame;
 import prerna.ds.H2.H2Frame;
-import prerna.sablecc.expressions.AbstractExpressionIterator;
+import prerna.sablecc.expressions.sql.builder.ISqlSelector;
+import prerna.sablecc.expressions.sql.builder.SqlBuilder;
+import prerna.sablecc.expressions.sql.builder.SqlColumnSelector;
+import prerna.sablecc.expressions.sql.builder.SqlConstantSelector;
+import prerna.sablecc.expressions.sql.builder.SqlMathSelector;
+import prerna.util.Utility;
 
-public class H2SqlExpressionIterator extends AbstractExpressionIterator {
+public class H2SqlExpressionIterator implements Iterator<Object[]> {
 
 	private static final Logger LOGGER = LogManager.getLogger(H2SqlExpressionIterator.class.getName());
 
 	private H2Frame frame;
+	private SqlBuilder builder;
 	private ResultSet rs;
+
+	private int numCols;
+	private Map<String, String> headerTypes;
 
 	// This will hold the full sql expression to execute
 	private String sqlScript;
 
-	public H2SqlExpressionIterator() {
-		
-	}
-	
-	// iterator to wrap the result set from an expression
-	// so we do not need to hold additional information
-	// in memory and can grab each row as needed
-	public H2SqlExpressionIterator(H2Frame frame, String sqlExpression, String newColumnName, String[] joinCols, String[] groupColumns) {
-		this.frame = frame;
-		this.expression = sqlExpression;
-		this.newColumnName = newColumnName;
-		this.joinCols = joinCols;
-		this.groupColumns = groupColumns;
-
-		this.sqlScript = generateSqlScript(this.frame, this.expression, this.newColumnName, joinCols, groupColumns);
+	public H2SqlExpressionIterator(SqlBuilder builder) {
+		this.builder = builder;
+		this.frame = builder.getFrame();
+		this.numCols = builder.selectorSize();
+		this.sqlScript = builder.toString();
 		LOGGER.info("GENERATED SQL EXPRESSION SCRIPT : " + this.sqlScript);
 	}
 	
-	@Override
+//	@Override
 	public void generateExpression() {
-		this.sqlScript = generateSqlScript(this.frame, this.expression, this.newColumnName, joinCols, groupColumns);
+		this.sqlScript = this.builder.toString();
 	}
 
-	private String generateSqlScript(H2Frame frame2, String sqlExpression, String newColumnName, String[] joinCols, String[] groupColumns) {
-		// this will generate the script
-		// but also keep track of the columns 
-		// can't use the rsmd since it will always return
-		// in upper case :(
-
-		boolean hasReturn = false;
-		StringBuilder builder = new StringBuilder("SELECT DISTINCT ");
-		if(sqlExpression != null && !sqlExpression.isEmpty()) { 
-			if(newColumnName != null && !newColumnName.isEmpty()) {
-				builder.append("(").append(sqlExpression).append(") AS ").append(newColumnName);
-			} else {
-				builder.append(sqlExpression);
-			}
-			hasReturn = true;
-		}
-		// due to tracking of selectors, we need this set to keep track of order
-		Set<String> totalSelectors = new LinkedHashSet<String>();
-		if(joinCols != null) {
-			for(int i = 0; i < joinCols.length; i++) {
-				totalSelectors.add(frame.getTableColumnName(joinCols[i]));
-			}
-		}
-		if(groupColumns != null) {
-			for(int i = 0; i < groupColumns.length; i++) {
-				totalSelectors.add(frame.getTableColumnName(groupColumns[i]));
-			}
-		}
-		Iterator<String> returnHeaders = totalSelectors.iterator();
-		if(!hasReturn) {
-			if(returnHeaders.hasNext()) {
-				builder.append(returnHeaders.next());
-			}
-		}
-		while(returnHeaders.hasNext()) {
-			builder.append(" , ").append(returnHeaders.next());
-		}
-		
-		if(frame.isJoined()) {
-			builder.append(" FROM ").append(frame.getViewTableName());
-		} else {
-			builder.append(" FROM ").append(frame.getTableName());
-		}
-		
-		String filters = frame.getSqlFilter();
-		if(filters != null && !filters.isEmpty()) {
-			builder.append(" ").append(filters);
-		}
-		
-		if(groupColumns != null && groupColumns.length > 0) {
-			StringBuilder groupBuilder = new StringBuilder();
-			for(String groupBy : groupColumns) {
-				if(groupBuilder.length() == 0) {
-					groupBuilder.append(frame.getTableColumnName(groupBy));
-				} else {
-					groupBuilder.append(" , ").append(frame.getTableColumnName(groupBy));
-				}
-			}
-			builder.append(" GROUP BY ").append(groupBuilder.toString());
-		}
-
-		this.numCols = totalSelectors.size()+1;
-		this.headers = new String[numCols];
-		
-		// if there is an alias, use it
-		// otherwise, just use the expression
-		if(newColumnName != null) {
-			this.headers[0] = newColumnName;
-		} else {
-			this.headers[0] = sqlExpression;
-		}
-		int counter = 1;
-		for(String selector : totalSelectors) {
-			headers[counter] = selector;
-			counter++;
-		}
-
-		return builder.toString();
-	}
-
-	@Override
+//	@Override
 	public void runExpression() {
 		if(this.sqlScript == null) {
 			generateExpression();
 		}
 		rs = frame.execQuery(sqlScript);
+		getHeaderTypes();
 	}
 
 	@Override
@@ -143,7 +65,7 @@ public class H2SqlExpressionIterator extends AbstractExpressionIterator {
 		try {
 			hasNext = rs.next();
 			if(!hasNext) {
-				rs.close();
+				close();
 			}
 		} catch (SQLException e) {
 			e.printStackTrace();
@@ -167,20 +89,94 @@ public class H2SqlExpressionIterator extends AbstractExpressionIterator {
 		return values;
 	}
 
-	@Override
+//	@Override
 	public void close() {
 		if(this.rs != null) {
 			try {
-				rs.close();
+				this.rs.close();
 			} catch (SQLException e) {
 				e.printStackTrace();
 			}
 		}
 	}
 	
-	@Override
-	public void setFrame(ITableDataFrame frame) {
-		this.frame = (H2Frame) frame;
+	private void getHeaderTypes() {
+		this.headerTypes = new HashMap<String, String>();
+		try {
+			ResultSetMetaData rsmd = this.rs.getMetaData();
+			for(int i = 1; i <= numCols; i++) {
+				String name = rsmd.getColumnName(i);
+				String type = Utility.getCleanDataType(rsmd.getColumnTypeName(i));
+				if(type.equals("DOUBLE")) {
+					type = "NUMBER";
+				}
+				// note, this will put everything upper case
+				headerTypes.put(name, type);
+			}
+		} catch (SQLException e) {
+			e.printStackTrace();
+		}
+	}
+	
+	
+	public List<Map<String, Object>> getHeaderInformation(Vector<String> vizTypes, Vector<String> vizFormula) {
+		List<Map<String, Object>> returnMap = new Vector<Map<String, Object>>();
+		
+		List<ISqlSelector> selectors = builder.getSelectors();
+		for(int i = 0; i < numCols; i++) {
+			ISqlSelector selector = selectors.get(i);
+
+			// map to store the info
+			Map<String, Object> headMap = new HashMap<String, Object>();
+
+			// the name of the column is set by its expression
+			String header = selector.toString();
+			
+			headMap.put("uri", header);
+			headMap.put("varKey", header);
+			headMap.put("type", headerTypes.get(header.toUpperCase()));
+			headMap.put("vizType", vizTypes.get(i).replace("=", ""));
+			
+			// TODO push this on the selector to provide its type
+			
+			// based on type, fill in the information
+			if(selector instanceof SqlColumnSelector || selector instanceof SqlConstantSelector) {
+				// we don't have a derivation
+				// just a normal column
+				// put in an empty map and you are done
+				headMap.put("operation", new HashMap<String, Object>());
+				
+			} else {
+				// if not a column or a constant
+				// it is some kind of expression
+				
+				// if its an expression and there is a group
+				// then the group must have been applied to this value
+				HashMap<String, Object> operationMap = new HashMap<String, Object>();
+				List<String> groupBys = builder.getGroupByColumns();
+				if(groupBys != null && !groupBys.isEmpty()) {
+					operationMap.put("groupBy", groupBys);
+				}
+
+				// get the columns used
+				List<String> colsUsed = selector.getTableColumns();
+				operationMap.put("calculatedBy", colsUsed);
+
+				if(selector instanceof SqlMathSelector) {
+					operationMap.put("math", ((SqlMathSelector) selector).getPkqlMath() );
+				}
+
+				// add the formula if it is not just a simple column
+				operationMap.put("formula", vizFormula.get(i));
+				
+				// add to main map
+				headMap.put("operation", operationMap);
+			}
+
+			returnMap.add(headMap);
+		}
+
+		return returnMap;
 	}
 	
 }

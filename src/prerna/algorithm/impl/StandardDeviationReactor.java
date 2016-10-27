@@ -3,11 +3,13 @@ package prerna.algorithm.impl;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Iterator;
+import java.util.Map;
 import java.util.Vector;
 
+import prerna.sablecc.PKQLEnum;
 import prerna.util.ArrayUtilityMethods;
 
-public class StandardDeviationReactor extends BaseReducerReactor{
+public class StandardDeviationReactor extends BaseReducerReactor {
 
 	@Override
 	public Object reduce() {
@@ -68,6 +70,11 @@ public class StandardDeviationReactor extends BaseReducerReactor{
 		}
 		
 		return groupByHash;
+	}
+	
+	@Override
+	public Map<String, Object> getColumnDataMap() {
+		return getBaseColumnDataMap("StandardDeviation");
 	}
 	
 }

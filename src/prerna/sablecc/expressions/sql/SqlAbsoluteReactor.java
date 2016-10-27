@@ -2,9 +2,9 @@ package prerna.sablecc.expressions.sql;
 
 import java.util.Iterator;
 
-import prerna.ds.H2.H2Frame;
 import prerna.sablecc.PKQLRunner.STATUS;
-import prerna.util.Utility;
+import prerna.sablecc.expressions.sql.builder.ISqlSelector;
+import prerna.sablecc.expressions.sql.builder.SqlMathSelector;
 
 public class SqlAbsoluteReactor extends AbstractSqlExpression {
 
@@ -12,21 +12,13 @@ public class SqlAbsoluteReactor extends AbstractSqlExpression {
 	public Iterator process() {
 		super.process();
 
-		String aliasColumn = "ABS_" + Utility.getRandomString(6);
-
-		// get the expression
-		String expression = "ABS(" + this.baseScript + ")";
-		
-		H2SqlExpressionIterator it = new H2SqlExpressionIterator(
-				(H2Frame) myStore.get("G"), 
-				expression, 
-				aliasColumn, 
-				this.joinColumns, 
-				this.groupColumns);
-		
-		myStore.put(myStore.get(whoAmI).toString(), it);
+		ISqlSelector previousSelector = this.builder.getLastSelector();
+		SqlMathSelector newSelector = new SqlMathSelector(previousSelector, "ABS", "Absolute");
+		this.builder.replaceSelector(previousSelector, newSelector);
+				
+		myStore.put(myStore.get(whoAmI).toString(), this.builder);
 		myStore.put("STATUS",STATUS.SUCCESS);
 			
-		return it;
+		return null;
 	}
 }

@@ -135,7 +135,8 @@ public interface Analysis extends Switch
     void caseANestedMapWordOrNumOrNestedObj(ANestedMapWordOrNumOrNestedObj node);
     void caseANestedCsvWordOrNumOrNestedObj(ANestedCsvWordOrNumOrNestedObj node);
     void caseAFlexSelectorRow(AFlexSelectorRow node);
-    void caseATermGroup(ATermGroup node);
+    void caseASelectorTerm(ASelectorTerm node);
+    void caseASelectorGroup(ASelectorGroup node);
     void caseAFormula(AFormula node);
     void caseACsvGroup(ACsvGroup node);
     void caseAExprRow(AExprRow node);
@@ -202,6 +203,7 @@ public interface Analysis extends Switch
     void caseTDiv(TDiv node);
     void caseTCol(TCol node);
     void caseTComparator(TComparator node);
+    void caseTVizType(TVizType node);
     void caseTLogOperator(TLogOperator node);
     void caseTEqual(TEqual node);
     void caseTColadd(TColadd node);

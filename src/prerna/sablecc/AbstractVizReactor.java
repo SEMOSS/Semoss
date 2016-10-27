@@ -1,7 +1,12 @@
 package prerna.sablecc;
 
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.Iterator;
+import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.Vector;
 
 import prerna.sablecc.meta.IPkqlMetadata;
@@ -9,6 +14,113 @@ import prerna.sablecc.meta.VizPkqlMetadata;
 
 public abstract class AbstractVizReactor extends AbstractReactor {
 
+	public AbstractVizReactor() {
+		String[] thisReacts = {PKQLEnum.WORD_OR_NUM, "VIZ_SELECTOR", "VIZ_TYPE", "VIZ_FORMULA", "MERGE_HEADER_INFO"};
+		super.whatIReactTo = thisReacts;
+		super.whoAmI = PKQLEnum.VIZ;
+	}
+	
+	protected Map<Map<String, Object>, Object> convertIteratorDataToMap(Iterator<Object[]> iterator, List<String> headers, List<String> groupCols) {
+		Map<Map<String, Object>, Object> retMap = new HashMap<>();
+		while (iterator.hasNext()) {
+			
+			Map<String, Object> newKey = new LinkedHashMap<>();
+			List<Object> newValue = new ArrayList<>();
+
+			Object[] row = iterator.next();
+			for (int i = 0; i < row.length; i++) {
+				if (groupCols.contains(headers.get(i))) {
+					newKey.put(headers.get(i), row[i]);
+				} else {
+					newValue.add(row[i]);
+				}
+			}
+			retMap.put(newKey, newValue);
+		}
+
+		return retMap;
+	}
+	
+	protected List<Object[]> convertMapToGrid(Map<Map<String, Object>, Object> mapData, String[] headers) {
+		List<Object[]> grid = new Vector<Object[]>();
+
+		int numHeaders = headers.length;
+
+		// iterate through each unique group
+		Set<Map<String, Object>> unqiueGroupSet = mapData.keySet();
+		for (Map<String, Object> group : unqiueGroupSet) {
+
+			List<Object> row = new ArrayList<>();
+			// store each value of the group by
+			for (int colIdx = 0; colIdx < numHeaders; colIdx++) {
+				row.add(group.get(headers[colIdx]));
+			}
+			// store the value for the group by result
+			Object val = mapData.get(group);
+			if (val instanceof List) {
+				row.addAll((List) val);
+			} else {
+				row.add(val);
+			}
+
+			grid.add(row.toArray());
+		}
+
+		return grid;
+	}
+	
+	protected Map<Map<String, Object>, Object> mergeMap(Map<Map<String, Object>, Object> firstMap, Map<Map<String, Object>, Object> secondMap) {
+
+		if (firstMap == null || firstMap.isEmpty())
+			return secondMap;
+		if (secondMap == null || secondMap.isEmpty())
+			return firstMap;
+
+		Map<Map<String, Object>, Object> mergedMap = new LinkedHashMap<>();
+
+		for (Map<String, Object> key : firstMap.keySet()) {
+			mergedMap.put(key, firstMap.get(key));
+		}
+
+		for (Map<String, Object> key : secondMap.keySet()) {
+			if (mergedMap.containsKey(key)) {
+				Object obj = mergedMap.get(key);
+				if (obj instanceof List) {
+					((List) obj).add(secondMap.get(key));
+				} else if (obj != null) {
+					List<Object> newList = new ArrayList<>();
+					newList.add(obj);
+					Object secondObj = secondMap.get(key);
+					if (secondObj instanceof List) {
+						newList.addAll((List) secondObj);
+					} else if (secondObj != null) {
+						newList.add(secondMap.get(key));
+					}
+					mergedMap.put(key, newList);
+				} else {
+					List<Object> newList = new ArrayList<>();
+					newList.add("");
+					Object secondObj = secondMap.get(key);
+					if (secondObj instanceof List) {
+						newList.addAll((List) secondObj);
+					} else if (secondObj != null) {
+						newList.add(secondMap.get(key));
+					} else {
+						newList.add("");
+					}
+					mergedMap.put(key, newList);
+				}
+			} else {
+				List<Object> valList = new ArrayList<Object>();
+				valList.add("");
+				valList.add(secondMap.get(key));
+				mergedMap.put(key, valList);
+			}
+		}
+
+		return mergedMap;
+	}
+	
 	public IPkqlMetadata getPkqlMetadata() {
 		VizPkqlMetadata metadata = new VizPkqlMetadata();
 		metadata.setPkqlStr((String) myStore.get(PKQLEnum.VIZ));

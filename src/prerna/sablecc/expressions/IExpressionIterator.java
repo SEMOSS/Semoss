@@ -1,6 +1,7 @@
 package prerna.sablecc.expressions;
 
 import java.util.Iterator;
+import java.util.List;
 
 import prerna.algorithm.api.ITableDataFrame;
 
@@ -60,13 +61,13 @@ public interface IExpressionIterator extends Iterator<Object[]> {
 	 * Get the column name created by the expression
 	 * @return
 	 */
-	String getNewColumnName();
+	List<String> getNewColumnName();
 	
 	/**
 	 * Set the column name created by the expression
 	 * @param newColumnName
 	 */
-	void setNewColumnName(String newColumnName);
+	void setNewColumnName(List<String> newColumnName);
 	
 	/**
 	 * Set the data farme to run the expression on
@@ -79,13 +80,13 @@ public interface IExpressionIterator extends Iterator<Object[]> {
 	 * Not intended to set the entire sql to execute
 	 * @param sqlExpression
 	 */
-	void setExpression(String sqlExpression);
+	void setExpression(List<String> sqlExpression);
 	
 	/**
 	 * The expression used for the new column being generated
 	 * @return
 	 */
-	String getExpression();
+	List<String> getExpression();
 	
 	/**
 	 * This will the same thing as getExpression
