@@ -2280,7 +2280,7 @@ public class H2Builder {
 				LOGGER.info("CONVERTING FROM IN-MEMORY H2-DATABASE TO ON-DISK H2-DATABASE!");
 				
 				// if was in mem but want to push to specific existing location
-				if (physicalDbLocation == null || physicalDbLocation.isEmpty()) {
+				if (physicalDbLocation != null && !physicalDbLocation.isEmpty()) {
 					dbLocation = new File(physicalDbLocation);
 				}
 			} else {
