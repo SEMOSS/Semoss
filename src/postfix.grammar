@@ -31,7 +31,7 @@ Tokens
  div = '/';
  col = 'col';
  comparator = ('>' | '<' | '<=' | '>=' | '!=' | '?like');
- viz_type = ('x=' | 'y=' | 'z=' | 'size=' | 'color=' | 'tooltip=' | 'cluster=' | 'latitude=' | 'longitude=' | 'startDate=' | 'endDate=' | 'heat=' | 'dimension=' | 'label=' | 'value=');
+ viz_type = ('x=' | 'y=' | 'z=' | 'size=' | 'color=' | 'tooltip=' | 'cluster=' | 'latitude=' | 'longitude=' | 'startDate=' | 'endDate=' | 'heat=' | 'dimension=' | 'label=' | 'value=' | 'series=');
  log_operator = ( '||' | '&&' );
  equal = '=';
  coladd = 'col.add';
@@ -97,6 +97,7 @@ Tokens
  paneltools = panelprefix '.tools';
  panelconfig = panelprefix '.config';
  output_token = panelprefix '.create';
+ panelmodel = panelprefix '.model';
  userinput = 'user.input';
  join = 'data.join';
  datatype_token = 'data.type';
@@ -170,6 +171,7 @@ panelop = // panelop is usually of the form of viz.change, viz.tools, viz.color
 		| {panel_clone} panel_clone
 		| {panel_close} panel_close
 		| {output_insight} output_insight
+		| {panel_model} panel_model
 		;
 		
 dataop = // dataop is usually of the form of data.frame, etc.
@@ -230,6 +232,9 @@ panel_clone = // e.g. panel.clone(1);
 		
 panel_close = // e.g. panel.close();
 		panelclose l_par r_par
+		;
+panel_model = // e.g. panel.model(<json>*default widget json*</json>);
+		panelmodel l_par jsonblock r_par
 		;
 		
 data_frame = // e.g. panel.setBuilder('graph');
