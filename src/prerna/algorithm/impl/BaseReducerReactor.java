@@ -32,6 +32,7 @@ public abstract class BaseReducerReactor extends MathReactor implements Expressi
 	protected Bindings otherBindings = engine.getBindings(ScriptContext.ENGINE_SCOPE);
 	protected String propToGet = Constants.NAME;
 	
+	public abstract Map<String, Object> getColumnDataMap();
 	
 	public abstract HashMap<HashMap<Object,Object>,Object> reduceGroupBy(Vector<String> groupBys, Vector<String> processedColumns, String[] columnsArray, Iterator it);
 
@@ -176,4 +177,41 @@ public abstract class BaseReducerReactor extends MathReactor implements Expressi
 		setData(iterator, columnsArray, myStore.get("MOD_" + whoAmI).toString());
 		return reduce();
 	}
+	
+	public Map<String, Object> getBaseColumnDataMap(String baseFunction) {
+		// map to store the info
+		Map<String, Object> headMap = new HashMap<String, Object>();
+
+		Vector <String> columns = (Vector <String>)myStore.get(PKQLEnum.COL_DEF);
+		Vector<String> groupBys = (Vector <String>)myStore.get(PKQLEnum.COL_CSV);
+		
+		String header = baseFunction + "(" + columns.get(0);
+		for(int i = 1; i < columns.size(); i++) {
+			header += ", " + columns.get(i);
+		}
+		header += ")";
+		
+		headMap.put("uri", header);
+		headMap.put("varKey", header);
+		headMap.put("type", "NUMBER");
+		
+		// if its an expression and there is a group
+		// then the group must have been applied to this value
+		HashMap<String, Object> operationMap = new HashMap<String, Object>();
+		if(groupBys != null && !groupBys.isEmpty()) {
+			operationMap.put("groupBy", groupBys);
+		}
+
+		// get the columns used
+		operationMap.put("calculatedBy", columns);
+		operationMap.put("math", baseFunction);
+
+		// add the formula if it is not just a simple column
+		operationMap.put("formula", myStore.get("FORMULA"));
+		
+		// add to main map
+		headMap.put("operation", operationMap);
+		return headMap;
+	}
+	
 }

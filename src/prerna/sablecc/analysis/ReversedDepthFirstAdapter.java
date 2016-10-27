@@ -3489,16 +3489,16 @@ public class ReversedDepthFirstAdapter extends AnalysisAdapter
             node.getRBracket().apply(this);
         }
         {
-            List<PTermGroup> copy = new ArrayList<PTermGroup>(node.getTermGroup());
+            List<PSelectorGroup> copy = new ArrayList<PSelectorGroup>(node.getSelectorGroup());
             Collections.reverse(copy);
-            for(PTermGroup e : copy)
+            for(PSelectorGroup e : copy)
             {
                 e.apply(this);
             }
         }
-        if(node.getTerm() != null)
+        if(node.getSelectorTerm() != null)
         {
-            node.getTerm().apply(this);
+            node.getSelectorTerm().apply(this);
         }
         if(node.getLBracket() != null)
         {
@@ -3507,29 +3507,54 @@ public class ReversedDepthFirstAdapter extends AnalysisAdapter
         outAFlexSelectorRow(node);
     }
 
-    public void inATermGroup(ATermGroup node)
+    public void inASelectorTerm(ASelectorTerm node)
     {
         defaultIn(node);
     }
 
-    public void outATermGroup(ATermGroup node)
+    public void outASelectorTerm(ASelectorTerm node)
     {
         defaultOut(node);
     }
 
     @Override
-    public void caseATermGroup(ATermGroup node)
+    public void caseASelectorTerm(ASelectorTerm node)
     {
-        inATermGroup(node);
+        inASelectorTerm(node);
         if(node.getTerm() != null)
         {
             node.getTerm().apply(this);
+        }
+        if(node.getVizType() != null)
+        {
+            node.getVizType().apply(this);
+        }
+        outASelectorTerm(node);
+    }
+
+    public void inASelectorGroup(ASelectorGroup node)
+    {
+        defaultIn(node);
+    }
+
+    public void outASelectorGroup(ASelectorGroup node)
+    {
+        defaultOut(node);
+    }
+
+    @Override
+    public void caseASelectorGroup(ASelectorGroup node)
+    {
+        inASelectorGroup(node);
+        if(node.getSelectorTerm() != null)
+        {
+            node.getSelectorTerm().apply(this);
         }
         if(node.getComma() != null)
         {
             node.getComma().apply(this);
         }
-        outATermGroup(node);
+        outASelectorGroup(node);
     }
 
     public void inAFormula(AFormula node)

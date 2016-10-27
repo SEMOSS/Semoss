@@ -6,7 +6,6 @@ import java.util.Iterator;
 import java.util.Map;
 import java.util.Vector;
 
-import prerna.algorithm.api.ITableDataFrame;
 import prerna.sablecc.PKQLEnum;
 
 public class VLookupReactor extends BaseReducerReactor {
@@ -90,6 +89,13 @@ public class VLookupReactor extends BaseReducerReactor {
 	public HashMap<HashMap<Object, Object>, Object> reduceGroupBy(Vector<String> groupBys,
 			Vector<String> processedColumns, String[] columnsArray, Iterator it) {
 		// TODO Auto-generated method stub
+		return null;
+	}
+	
+	@Override
+	public Map<String, Object> getColumnDataMap() {
+		// this operation cannot be visualized in 
+		// viz panel
 		return null;
 	}
 }

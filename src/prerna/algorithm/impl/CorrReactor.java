@@ -50,4 +50,10 @@ public class CorrReactor extends BaseReducerReactor {
 		return null;
 	}
 	
+	@Override
+	public Map<String, Object> getColumnDataMap() {
+		// this cannot be added into a frame
+		// just return null
+		return null;
+	}
 }

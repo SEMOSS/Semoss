@@ -3,8 +3,10 @@ package prerna.algorithm.impl;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Iterator;
+import java.util.Map;
 import java.util.Vector;
 
+import prerna.sablecc.PKQLEnum;
 import prerna.util.ArrayUtilityMethods;
 
 public class SumReactor extends BaseReducerReactor {
@@ -45,6 +47,11 @@ public class SumReactor extends BaseReducerReactor {
 		}
 		
 		return groupByHash;
+	}
+	
+	@Override
+	public Map<String, Object> getColumnDataMap() {
+		return getBaseColumnDataMap("Sum");
 	}
 	
 }

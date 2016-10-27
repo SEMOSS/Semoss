@@ -813,7 +813,13 @@ public class AnalysisAdapter implements Analysis
     }
 
     @Override
-    public void caseATermGroup(ATermGroup node)
+    public void caseASelectorTerm(ASelectorTerm node)
+    {
+        defaultCase(node);
+    }
+
+    @Override
+    public void caseASelectorGroup(ASelectorGroup node)
     {
         defaultCase(node);
     }
@@ -1204,6 +1210,12 @@ public class AnalysisAdapter implements Analysis
 
     @Override
     public void caseTComparator(TComparator node)
+    {
+        defaultCase(node);
+    }
+
+    @Override
+    public void caseTVizType(TVizType node)
     {
         defaultCase(node);
     }

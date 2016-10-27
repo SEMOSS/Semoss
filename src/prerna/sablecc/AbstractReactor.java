@@ -18,6 +18,7 @@ import com.github.mustachejava.MustacheFactory;
 import prerna.algorithm.api.ITableDataFrame;
 import prerna.ds.AbstractTableDataFrame;
 import prerna.engine.api.IScriptReactor;
+import prerna.sablecc.expressions.sql.builder.SqlBuilder;
 import prerna.sablecc.meta.IPkqlMetadata;
 
 public abstract class AbstractReactor implements IScriptReactor {
@@ -193,7 +194,7 @@ public abstract class AbstractReactor implements IScriptReactor {
 			if(myStore.containsKey(tobeReplaced))
 			{
 				Object replacedBy = myStore.get(tobeReplaced);
-				if(curExpression.equals(tobeReplaced) || replacedBy instanceof Iterator) {
+				if(curExpression.equals(tobeReplaced) || replacedBy instanceof Iterator || replacedBy instanceof SqlBuilder) {
 					curExpression = replacedBy;
 				} else{
 					curExpression = (curExpression+"").replace(tobeReplaced, replacedBy+"");

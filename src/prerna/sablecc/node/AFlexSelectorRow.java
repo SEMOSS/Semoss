@@ -9,8 +9,8 @@ import prerna.sablecc.analysis.*;
 public final class AFlexSelectorRow extends PFlexSelectorRow
 {
     private TLBracket _lBracket_;
-    private PTerm _term_;
-    private final LinkedList<PTermGroup> _termGroup_ = new LinkedList<PTermGroup>();
+    private PSelectorTerm _selectorTerm_;
+    private final LinkedList<PSelectorGroup> _selectorGroup_ = new LinkedList<PSelectorGroup>();
     private TRBracket _rBracket_;
 
     public AFlexSelectorRow()
@@ -20,16 +20,16 @@ public final class AFlexSelectorRow extends PFlexSelectorRow
 
     public AFlexSelectorRow(
         @SuppressWarnings("hiding") TLBracket _lBracket_,
-        @SuppressWarnings("hiding") PTerm _term_,
-        @SuppressWarnings("hiding") List<?> _termGroup_,
+        @SuppressWarnings("hiding") PSelectorTerm _selectorTerm_,
+        @SuppressWarnings("hiding") List<?> _selectorGroup_,
         @SuppressWarnings("hiding") TRBracket _rBracket_)
     {
         // Constructor
         setLBracket(_lBracket_);
 
-        setTerm(_term_);
+        setSelectorTerm(_selectorTerm_);
 
-        setTermGroup(_termGroup_);
+        setSelectorGroup(_selectorGroup_);
 
         setRBracket(_rBracket_);
 
@@ -40,8 +40,8 @@ public final class AFlexSelectorRow extends PFlexSelectorRow
     {
         return new AFlexSelectorRow(
             cloneNode(this._lBracket_),
-            cloneNode(this._term_),
-            cloneList(this._termGroup_),
+            cloneNode(this._selectorTerm_),
+            cloneList(this._selectorGroup_),
             cloneNode(this._rBracket_));
     }
 
@@ -76,16 +76,16 @@ public final class AFlexSelectorRow extends PFlexSelectorRow
         this._lBracket_ = node;
     }
 
-    public PTerm getTerm()
+    public PSelectorTerm getSelectorTerm()
     {
-        return this._term_;
+        return this._selectorTerm_;
     }
 
-    public void setTerm(PTerm node)
+    public void setSelectorTerm(PSelectorTerm node)
     {
-        if(this._term_ != null)
+        if(this._selectorTerm_ != null)
         {
-            this._term_.parent(null);
+            this._selectorTerm_.parent(null);
         }
 
         if(node != null)
@@ -98,32 +98,32 @@ public final class AFlexSelectorRow extends PFlexSelectorRow
             node.parent(this);
         }
 
-        this._term_ = node;
+        this._selectorTerm_ = node;
     }
 
-    public LinkedList<PTermGroup> getTermGroup()
+    public LinkedList<PSelectorGroup> getSelectorGroup()
     {
-        return this._termGroup_;
+        return this._selectorGroup_;
     }
 
-    public void setTermGroup(List<?> list)
+    public void setSelectorGroup(List<?> list)
     {
-        for(PTermGroup e : this._termGroup_)
+        for(PSelectorGroup e : this._selectorGroup_)
         {
             e.parent(null);
         }
-        this._termGroup_.clear();
+        this._selectorGroup_.clear();
 
         for(Object obj_e : list)
         {
-            PTermGroup e = (PTermGroup) obj_e;
+            PSelectorGroup e = (PSelectorGroup) obj_e;
             if(e.parent() != null)
             {
                 e.parent().removeChild(e);
             }
 
             e.parent(this);
-            this._termGroup_.add(e);
+            this._selectorGroup_.add(e);
         }
     }
 
@@ -157,8 +157,8 @@ public final class AFlexSelectorRow extends PFlexSelectorRow
     {
         return ""
             + toString(this._lBracket_)
-            + toString(this._term_)
-            + toString(this._termGroup_)
+            + toString(this._selectorTerm_)
+            + toString(this._selectorGroup_)
             + toString(this._rBracket_);
     }
 
@@ -172,13 +172,13 @@ public final class AFlexSelectorRow extends PFlexSelectorRow
             return;
         }
 
-        if(this._term_ == child)
+        if(this._selectorTerm_ == child)
         {
-            this._term_ = null;
+            this._selectorTerm_ = null;
             return;
         }
 
-        if(this._termGroup_.remove(child))
+        if(this._selectorGroup_.remove(child))
         {
             return;
         }
@@ -202,19 +202,19 @@ public final class AFlexSelectorRow extends PFlexSelectorRow
             return;
         }
 
-        if(this._term_ == oldChild)
+        if(this._selectorTerm_ == oldChild)
         {
-            setTerm((PTerm) newChild);
+            setSelectorTerm((PSelectorTerm) newChild);
             return;
         }
 
-        for(ListIterator<PTermGroup> i = this._termGroup_.listIterator(); i.hasNext();)
+        for(ListIterator<PSelectorGroup> i = this._selectorGroup_.listIterator(); i.hasNext();)
         {
             if(i.next() == oldChild)
             {
                 if(newChild != null)
                 {
-                    i.set((PTermGroup) newChild);
+                    i.set((PSelectorGroup) newChild);
                     newChild.parent(this);
                     oldChild.parent(null);
                     return;

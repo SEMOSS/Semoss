@@ -19,6 +19,8 @@ import prerna.ds.TinkerMetaHelper;
 import prerna.ds.H2.H2Frame;
 import prerna.sablecc.PKQLRunner.STATUS;
 import prerna.sablecc.expressions.sql.H2SqlExpressionIterator;
+import prerna.sablecc.expressions.sql.builder.SqlBuilder;
+import prerna.sablecc.expressions.sql.builder.SqlColumnSelector;
 import prerna.sablecc.meta.ColAddMetadata;
 import prerna.sablecc.meta.IPkqlMetadata;
 import prerna.util.ArrayUtilityMethods;
@@ -75,9 +77,25 @@ public class H2ColAddReactor extends AbstractReactor {
 			addColumnUsingMap(frame, (Map<Map<Object, Object>, Object>) value, newCol, joinCols);
 		} 
 
-		else if(value instanceof H2SqlExpressionIterator) 
+		else if(value instanceof SqlBuilder) 
 		{
-			addColumnUsingExpression(frame, (H2SqlExpressionIterator) value, newCol, joinCols);
+			SqlBuilder builder = (SqlBuilder) value;
+			List<String> groups = builder.getGroupByColumns();
+			if(groups == null || groups.isEmpty()) {
+				// if no groups
+				// use the existing columns to join on
+				for(String joinCol : joinCols) {
+					SqlColumnSelector selector = new SqlColumnSelector(frame, joinCol);
+					builder.addSelector(selector);
+				}
+			} else {
+				// use the group columns to join on
+				for(String group : groups) {
+					SqlColumnSelector selector = new SqlColumnSelector(frame, group);
+					builder.addSelector(selector);
+				}
+			}
+			addColumnUsingExpression(frame, (SqlBuilder) value, newCol);
 		} 
 
 		// ugh... dont like this...
@@ -90,14 +108,27 @@ public class H2ColAddReactor extends AbstractReactor {
 		
 		else 
 		{
+			System.out.println("WHAT PKQL GOES HERE!!!!");
+			System.out.println("WHAT PKQL GOES HERE!!!!");
+			System.out.println("WHAT PKQL GOES HERE!!!!");
+			System.out.println("WHAT PKQL GOES HERE!!!!");
+
 			// sometimes, the script has not undergone modExpresssion
-			if (value == null) {
-				value = modExpression(expr);
-			}
-			
-			// no group by columns here
-			H2SqlExpressionIterator it = new H2SqlExpressionIterator(frame, value.toString(), newCol, joinCols, null);
-			addColumnUsingExpression(frame, it, newCol, joinCols);
+//			if (value == null) {
+//				value = modExpression(expr);
+//			}
+//			
+//			SqlBuilder builder = new SqlBuilder(frame);
+//			
+//			
+//			for(String joinCol : joinCols) {
+//				SqlColumnSelector selector = new SqlColumnSelector(frame, joinCol);
+//				builder.addSelector(selector);
+//			}
+//			
+//			// no group by columns here
+//			H2SqlExpressionIterator it = new H2SqlExpressionIterator(frame, exprList, newColList, joinCols, null);
+//			addColumnUsingExpression(frame, it, newCol, joinCols);
 		}
 		
 		LOGGER.info("DONE RUNNING COL ADD");
@@ -110,7 +141,13 @@ public class H2ColAddReactor extends AbstractReactor {
 		return null;
 	}
 
-	private void addColumnUsingExpression(H2Frame frame, H2SqlExpressionIterator it, String newColumn, String[] joinColumns) {
+	private void addColumnUsingExpression(H2Frame frame, SqlBuilder builder, String newColName) {
+		String[] headers = frame.getColumnHeaders();
+		
+		// right now, even though the expression iterator
+		// can handle multiple columns to get
+		// col add syntax only allows for one
+		
 		// drop any index for faster updating
 		Set<String> colsWithIndex = frame.getColumnsWithIndexes();
 		for(String col : colsWithIndex) {
@@ -122,25 +159,20 @@ public class H2ColAddReactor extends AbstractReactor {
 		PreparedStatement ps = null;
 		
 		// get the values returned
-		String[] columnsToGet = it.getHeaders();
-		
-		// generate a mapping to get the correct indices
-		// this is os we do not need to create a map and can use simple arrays
-		int[] indices = new int[columnsToGet.length];
-		
-		// we us make index 0 the newColumn
-		// and then make each one in order
-		if(it.getNewColumnName() != null) {
-			// if the alias is set, get there just in case it was defined outside of the colAddReactor
-			// to be a random value
-			indices[0] = ArrayUtilityMethods.arrayContainsValueAtIndexIgnoreCase(columnsToGet, it.getNewColumnName());	
-		} else {
-			indices[0] = ArrayUtilityMethods.arrayContainsValueAtIndexIgnoreCase(columnsToGet, newColumn);
+		List<String> columnsToGet = builder.getSelectorNames();
+		List<String> joins = new Vector<String>();
+		for(String col : columnsToGet) {
+			if(ArrayUtilityMethods.arrayContainsValue(headers, col)) {
+				joins.add(col);
+			}
 		}
-		// NOTE: we follow the assumption that the columnsToGet is the combination of the new column and the join columns
-		for(int i = 1; i < columnsToGet.length; i++) {
-			indices[i] = ArrayUtilityMethods.arrayContainsValueAtIndexIgnoreCase(columnsToGet, joinColumns[i-1]);
-		}
+		String[] joinColumns = joins.toArray(new String[]{});
+		
+		// NOTE: FUNDAMENTAL ASSUMPTION THAT WE ARE ONLY ADDING IN A SINGLE COLUMN
+		// FIRST OUTPUT IN SQL QUERY WILL RETURN THE COLUMN TO ADD
+		// EVERYTHING ELSE IS A JOIN COLUMN
+		
+		H2SqlExpressionIterator it = new H2SqlExpressionIterator(builder);
 		
 		// doing this update in batches
 		final int BATCH_SIZE = 5000;
@@ -151,7 +183,7 @@ public class H2ColAddReactor extends AbstractReactor {
 			while(it.hasNext()) {
 				Object[] values = it.next();
 
-				Object newVal = values[indices[0]];
+				Object newVal = values[0];
 				
 				// here we use the first value that is defined to create the first column
 				// since we need the type
@@ -161,12 +193,12 @@ public class H2ColAddReactor extends AbstractReactor {
 					String type = "";
 					type = newType[0].toString();
 					Map<String, String> dataType = new HashMap<>(1);
-					dataType.put(newColumn, type);
-					frame.connectTypes(joinColumns, newColumn, dataType);
-					frame.setDerivedColumn(newColumn, true);
+					dataType.put(newColName, type);
+					frame.connectTypes(joinColumns, newColName, dataType);
+					frame.setDerivedColumn(newColName, true);
 
 					// and here we create the prepared statement 
-					String[] newColsArr = new String[]{newColumn};
+					String[] newColsArr = new String[]{newColName};
 					ps = frame.createUpdatePreparedStatement(newColsArr, joinColumns);
 				}
 
@@ -180,7 +212,7 @@ public class H2ColAddReactor extends AbstractReactor {
 				ps.setObject(1, newVal);
 				for(int i = 0; i < joinColumns.length; i++) {
 					// setting the where clause in the sql statement
-					ps.setObject(i+2, values[indices[i+1]]);
+					ps.setObject(i+2, values[i+1]);
 				}
 
 				// add it
@@ -364,8 +396,7 @@ public class H2ColAddReactor extends AbstractReactor {
 	
 	public IPkqlMetadata getPkqlMetadata() {
 		String expr =  (String) myStore.get(PKQLEnum.EXPR_TERM);
-		//remove ()'s
-		expr.trim();
+		expr = expr.trim();
 		if(expr.charAt(0) == '(') {
 			expr = expr.substring(1, expr.length()-1);
 		}
