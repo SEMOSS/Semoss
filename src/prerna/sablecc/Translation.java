@@ -1893,8 +1893,11 @@ public class Translation extends DepthFirstAdapter {
 		// above is all old stuff
 		// using new object to send new header info
 		// ughhhh... TODO: need to consolidate these to a common interface
-		if(previousReactor instanceof BaseReducerReactor || previousReactor instanceof AbstractRBaseReducer) {
+		if(previousReactor instanceof BaseReducerReactor) {
 			Map<String, Object> headerInfo = ((BaseReducerReactor) previousReactor).getColumnDataMap();
+			curReactor.set("MERGE_HEADER_INFO", headerInfo);
+		} else if(previousReactor instanceof AbstractRBaseReducer) {
+			Map<String, Object> headerInfo = ((AbstractRBaseReducer) previousReactor).getColumnDataMap();
 			curReactor.set("MERGE_HEADER_INFO", headerInfo);
 		}
 		
