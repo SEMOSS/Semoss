@@ -2,7 +2,7 @@
 
 package prerna.sablecc.node;
 
-public abstract class PTermGroup extends Node
+public abstract class PFilterModel extends Node
 {
     // Empty body
 }

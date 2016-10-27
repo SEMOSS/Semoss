@@ -26,103 +26,7 @@ import prerna.sablecc.expressions.r.AbstractRBaseReducer;
 import prerna.sablecc.expressions.sql.builder.SqlBuilder;
 import prerna.sablecc.expressions.sql.builder.SqlBuilderGenerator;
 import prerna.sablecc.meta.IPkqlMetadata;
-import prerna.sablecc.node.AAddColumn;
-import prerna.sablecc.node.AAlphaWordOrNum;
-import prerna.sablecc.node.AApiBlock;
-import prerna.sablecc.node.AApiImportBlock;
-import prerna.sablecc.node.AApiTerm;
-import prerna.sablecc.node.AColCsv;
-import prerna.sablecc.node.AColDef;
-import prerna.sablecc.node.AColGroup;
-import prerna.sablecc.node.AColTerm;
-import prerna.sablecc.node.AColWhere;
-import prerna.sablecc.node.AColopScript;
-import prerna.sablecc.node.AConfiguration;
-import prerna.sablecc.node.ACsvRow;
-import prerna.sablecc.node.ACsvTable;
-import prerna.sablecc.node.ACsvTerm;
-import prerna.sablecc.node.ADashboardAdd;
-import prerna.sablecc.node.ADashboardConfig;
-import prerna.sablecc.node.ADashboardJoin;
-import prerna.sablecc.node.ADashboardopScript;
-import prerna.sablecc.node.ADataFrame;
-import prerna.sablecc.node.ADataFrameDuplicatesColop;
-import prerna.sablecc.node.ADataFrameHeader;
-import prerna.sablecc.node.ADatabaseConceptProperties;
-import prerna.sablecc.node.ADatabaseConcepts;
-import prerna.sablecc.node.ADatabaseList;
-import prerna.sablecc.node.ADatabaseMetamodel;
-import prerna.sablecc.node.ADatabaseopScript;
-import prerna.sablecc.node.ADataconnect;
-import prerna.sablecc.node.ADataconnectdb;
-import prerna.sablecc.node.ADatanetworkconnect;
-import prerna.sablecc.node.ADatanetworkdisconnect;
-import prerna.sablecc.node.ADataopScript;
-import prerna.sablecc.node.ADatatype;
-import prerna.sablecc.node.ADecimal;
-import prerna.sablecc.node.ADivExpr;
-import prerna.sablecc.node.AEExprExpr;
-import prerna.sablecc.node.AExprGroup;
-import prerna.sablecc.node.AExprInputOrExpr;
-import prerna.sablecc.node.AExprRow;
-import prerna.sablecc.node.AExprScript;
-import prerna.sablecc.node.AExprWordOrNum;
-import prerna.sablecc.node.AFilterColumn;
-import prerna.sablecc.node.AFormula;
-import prerna.sablecc.node.AHelpScript;
-import prerna.sablecc.node.AImportData;
-import prerna.sablecc.node.AInputInputOrExpr;
-import prerna.sablecc.node.AInsightidJoinParam;
-import prerna.sablecc.node.AJOp;
-import prerna.sablecc.node.AKeyvalue;
-import prerna.sablecc.node.AKeyvalueGroup;
-import prerna.sablecc.node.AMapObj;
-import prerna.sablecc.node.AMathFun;
-import prerna.sablecc.node.AMathFunTerm;
-import prerna.sablecc.node.AMathParam;
-import prerna.sablecc.node.AMinusExpr;
-import prerna.sablecc.node.AModExpr;
-import prerna.sablecc.node.AMultExpr;
-import prerna.sablecc.node.ANumWordOrNum;
-import prerna.sablecc.node.AOpenData;
-import prerna.sablecc.node.AOpenDataInputOrExpr;
-import prerna.sablecc.node.AOpenDataJoinParam;
-import prerna.sablecc.node.APanelClone;
-import prerna.sablecc.node.APanelClose;
-import prerna.sablecc.node.APanelComment;
-import prerna.sablecc.node.APanelCommentEdit;
-import prerna.sablecc.node.APanelCommentRemove;
-import prerna.sablecc.node.APanelConfig;
-import prerna.sablecc.node.APanelLookAndFeel;
-import prerna.sablecc.node.APanelModel;
-import prerna.sablecc.node.APanelTools;
-import prerna.sablecc.node.APanelViz;
-import prerna.sablecc.node.APanelopScript;
-import prerna.sablecc.node.APastedData;
-import prerna.sablecc.node.APastedDataBlock;
-import prerna.sablecc.node.APlusExpr;
-import prerna.sablecc.node.AQueryData;
-import prerna.sablecc.node.ARelationDef;
-import prerna.sablecc.node.ARemoveData;
-import prerna.sablecc.node.ARenameColumn;
-import prerna.sablecc.node.ASelectorTerm;
-import prerna.sablecc.node.ASetColumn;
-import prerna.sablecc.node.ASplitColumn;
-import prerna.sablecc.node.ATermExpr;
-import prerna.sablecc.node.AUnfilterColumn;
-import prerna.sablecc.node.AUserInput;
-import prerna.sablecc.node.AVarDef;
-import prerna.sablecc.node.AVarTerm;
-import prerna.sablecc.node.AVariableJoinParam;
-import prerna.sablecc.node.AVarop;
-import prerna.sablecc.node.AVaropScript;
-import prerna.sablecc.node.Node;
-import prerna.sablecc.node.PColGroup;
-import prerna.sablecc.node.PCsvGroup;
-import prerna.sablecc.node.PCsvRow;
-import prerna.sablecc.node.PKeyvalueGroup;
-import prerna.sablecc.node.PScript;
-import prerna.sablecc.node.TRelType;
+import prerna.sablecc.node.*;
 import prerna.sablecc.services.DatabasePkqlService;
 import prerna.ui.components.playsheets.datamakers.IDataMaker;
 import prerna.util.Constants;
@@ -1711,6 +1615,26 @@ public class Translation extends DepthFirstAdapter {
 		runner.setStatus((STATUS) previousReactor.getValue("STATUS"));
 		runner.setResponse("Unfiltered Column: " + (String) previousReactor.getValue("FILTER_COLUMN"));
 	}
+	
+	@Override
+	public void inAFiltermodelColop(AFiltermodelColop node) {
+		if (reactorNames.containsKey(PKQLEnum.COL_FILTER_MODEL)) {
+			initReactor(PKQLEnum.COL_FILTER_MODEL);
+			curReactor.put(PKQLEnum.COL_FILTER_MODEL, node.toString());
+		}	}
+
+	@Override
+	public void outAFiltermodelColop(AFiltermodelColop node) {
+		IScriptReactor thisReactor = curReactor;
+		
+		PWordOrNum filter = ((AFilterModel) node.getFilterModel()).getWordOrNum();
+		if(filter != null) {
+		curReactor.put("filterWord", filter.toString());
+		}
+		deinitReactor(PKQLEnum.COL_FILTER_MODEL, node.toString().trim(), node.toString().trim());
+		this.runner.setResponse(thisReactor.getValue("filterRS"));
+		this.runner.setReturnData(thisReactor.getValue("filterRS"));		
+	}
 
 	@Override
 	public void inASplitColumn(ASplitColumn node) {
@@ -1919,13 +1843,13 @@ public class Translation extends DepthFirstAdapter {
 	/////////////////////////////////////////// ////////////////////////////////////////////////////
 
 	@Override
-	public void caseAMathParam(AMathParam node) {
+	public void caseAOptionsMap(AOptionsMap node) {
 		// this is literally just a comma with a map object
 		// we apply the map object
 		node.getMapObj().apply(this);
 		// the out will take that map object
 		// and put it back with a Math_Param key
-		outAMathParam(node);
+		outAOptionsMap(node);
 	}
 
 	@Override
@@ -1998,7 +1922,7 @@ public class Translation extends DepthFirstAdapter {
 	}
 
 	@Override
-	public void outAMathParam(AMathParam node) {
+	public void outAOptionsMap(AOptionsMap node) {
 		// this is called right after a map object has just been placed into the
 		// current reactor
 		// just grab that map and put it back into the reactor but with a

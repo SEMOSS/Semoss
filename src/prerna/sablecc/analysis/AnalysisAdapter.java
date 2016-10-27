@@ -171,6 +171,12 @@ public class AnalysisAdapter implements Analysis
     }
 
     @Override
+    public void caseAFiltermodelColop(AFiltermodelColop node)
+    {
+        defaultCase(node);
+    }
+
+    @Override
     public void caseAFocuscolColop(AFocuscolColop node)
     {
         defaultCase(node);
@@ -502,6 +508,12 @@ public class AnalysisAdapter implements Analysis
 
     @Override
     public void caseAFilterColumn(AFilterColumn node)
+    {
+        defaultCase(node);
+    }
+
+    @Override
+    public void caseAFilterModel(AFilterModel node)
     {
         defaultCase(node);
     }
@@ -1047,7 +1059,7 @@ public class AnalysisAdapter implements Analysis
     }
 
     @Override
-    public void caseAMathParam(AMathParam node)
+    public void caseAOptionsMap(AOptionsMap node)
     {
         defaultCase(node);
     }
@@ -1300,6 +1312,12 @@ public class AnalysisAdapter implements Analysis
 
     @Override
     public void caseTColunfilter(TColunfilter node)
+    {
+        defaultCase(node);
+    }
+
+    @Override
+    public void caseTColfiltermodel(TColfiltermodel node)
     {
         defaultCase(node);
     }

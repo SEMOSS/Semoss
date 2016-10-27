@@ -1842,7 +1842,106 @@ public class TinkerFrame extends AbstractTableDataFrame {
 		}
 		return new Object[] { visibleValues, filteredValues, minMaxValues};
 	}
-	
+
+	/**
+	 * This Method gets the filterModel information for filtered values
+	 */
+	public HashSet<String> filterModel(String col, String filterWord, Integer limit, Integer offset) {
+		HashSet<String> fvalues = new HashSet<>();
+		Map<String, Object[]> filterCombinations = getFilterTransformationValues();
+		GraphTraversal<Vertex, Vertex> gt = null;
+		// Create queryStruct
+		QueryStruct qs = new QueryStruct();
+		qs.addSelector(col, null);
+		// add limit and offset
+		if (limit >= 0) {
+			qs.setLimit(limit);
+			if (offset >= 0) {
+				qs.setOffSet(offset);
+			}
+		}
+		// add filter data to query
+		List filterData = null;
+		filterData = new ArrayList();
+
+		if (filterWord != null) {
+			filterData.add(filterWord);
+			qs.addFilter(col, "=", filterData);
+		}
+
+		for (String filterCol : filterCombinations.keySet()) {
+			Object[] row = filterCombinations.get(filterCol);
+
+			filterData = new ArrayList();
+			for (int i = 0; i < row.length; i++) {
+				String rowValue = (String) row[i];
+				String filterColName = this.metaData.getValueForUniqueName(filterCol);
+				filterData.add(rowValue);
+			}
+			if (!filterCol.equals(col)) {
+				qs.addFilter(filterCol, "=", filterData);
+			} else {
+				qs.addFilter(filterCol, "!=", filterData);
+			}
+		}
+
+		// execute query
+		if (filterData != null) {
+			GremlinInterpreter interpreter = new GremlinInterpreter(this.g, ((TinkerMetaData) this.metaData).g);
+			interpreter.setQueryStruct(qs);
+			interpreter.setEdgeHash(this.metaData.getEdgeHash());
+			GraphTraversal it = (GraphTraversal) interpreter.composeIteratorSpecificFilters();
+			List<Object> filterList = new ArrayList<>();
+			while (it.hasNext()) {
+				String value = ((Vertex) it.next()).value(Constants.NAME);
+				System.out.println(value);
+				fvalues.add(value);
+			}
+		}
+		return fvalues;
+
+	}
+
+	public Map<String, Map<String, Double>> getMinMaxValues(String col, Set<String> columnSets) {
+		Map<String, Map<String, Double>> minMaxValues = new HashMap<String, Map<String, Double>>();
+
+		if (this.metaData.getDataType(col) == IMetaData.DATA_TYPES.NUMBER) {
+			Map<String, Double> minMax = new HashMap<String, Double>();
+
+			// sort unfiltered array to pull relative min and max of unfiltered
+			// data
+			Object[] unfilteredArray = columnSets.toArray();
+			// Arrays.sort(unfilteredArray);
+			double absMin = getMin(col);
+			double absMax = getMax(col);
+			if (!columnSets.isEmpty()) {
+				minMax.put("min", Double.parseDouble((String) unfilteredArray[0]));
+				minMax.put("max", Double.parseDouble((String) unfilteredArray[unfilteredArray.length - 1]));
+			}
+			minMax.put("absMin", absMin);
+			minMax.put("absMax", absMax);
+
+			// calculate how large each step in the slider should be
+			double difference = absMax - absMin;
+			double step = 1;
+			if (difference < 1) {
+				double tenthPower = Math.floor(Math.log10(difference));
+				if (tenthPower < 0) {
+					// ex. if difference is 0.009, step should be 0.001
+					step = Math.pow(10, tenthPower);
+				} else {
+					step = 0.1;
+				}
+			}
+			minMax.put("step", step);
+
+			minMaxValues.put(col, minMax);
+
+		}
+		return minMaxValues;
+
+	}
+
 	public Map<String, Object[]> getFilterTransformationValues() {
 		Map<String, Object[]> retMap = new HashMap<String, Object[]>();
 		// get meta nodes that are tagged as filtered
@@ -1956,48 +2055,6 @@ public class TinkerFrame extends AbstractTableDataFrame {
 		GremlinBuilder builder = GremlinBuilder.prepareGenericBuilder(columns, g, ((TinkerMetaData)this.metaData).g, null);
 		return builder.executeScript();	
 	}
-	
-	/****************************** END TRAVERSAL METHODS ***************************************/
-	
-	
-//	/**
-//	 * 
-//	 * @param columnHeader - the column we are operating on
-//	 * @return
-//	 * 
-//	 * returns true if values in columnHeader are numeric, false otherwise
-//	 * 		skips values considered 'empty'
-//	 */
-//	@Override
-//	public boolean isNumeric(String columnHeader) {
-//
-//		//Grab from map if this value has been calculated before
-//		if(isNumericalMap.containsKey(columnHeader)) {
-//			Boolean isNum = isNumericalMap.get(columnHeader);
-//			if(isNum != null) {
-//				return isNum;
-//			}
-//		}
-//		
-//		boolean isNumeric = true;
-//		
-//		//if all values 
-//		Iterator<Object> iterator = this.uniqueValueIterator(columnHeader, false, false);
-//		while(iterator.hasNext()) {
-//			
-//			Object nextValue = iterator.next();
-//			if(!(nextValue instanceof Number)) {	
-//				//is nextValue represented by an empty?
-//					//if so continue
-//					//else store false in the isNumerical Map and break
-//				isNumeric = false;
-//				break;
-//			}
-//		}
-//		
-//		isNumericalMap.put(columnHeader, isNumeric);
-//		return isNumeric;
-//	}
 
 	@Override
 	public int getNumRows() {
@@ -2635,6 +2692,7 @@ public class TinkerFrame extends AbstractTableDataFrame {
 		reactorNames.put(PKQLEnum.DATA_CONNECT, "prerna.sablecc.DataConnectReactor");
 		reactorNames.put(PKQLEnum.JAVA_OP, "prerna.sablecc.JavaReactorWrapper");
 		reactorNames.put(PKQLEnum.DATA_FRAME_DUPLICATES, "prerna.sablecc.TinkerDuplicatesReactor");
+		reactorNames.put(PKQLEnum.COL_FILTER_MODEL, "prerna.sablecc.TinkerColFilterModelReactor");
 
 		reactorNames.put(PKQLEnum.QUERY_API, "prerna.sablecc.QueryApiReactor");
 		reactorNames.put(PKQLEnum.CSV_API, "prerna.sablecc.CsvApiReactor");
