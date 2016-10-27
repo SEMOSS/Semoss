@@ -14,8 +14,7 @@ public class TinkerDuplicatesReactor extends DataFrameDuplicatesReactor{
 
 	@Override
 	public Iterator process() {
-		ITableDataFrame table = null;
-		table = (ITableDataFrame) (ITableDataFrame) myStore.get("G");
+		ITableDataFrame table = (ITableDataFrame) myStore.get("G");
 
 		Vector<String> columns = (Vector) myStore.get(PKQLEnum.COL_CSV);
 		String[] columnHeaders = table.getColumnHeaders();
