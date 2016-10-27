@@ -5,44 +5,40 @@ package prerna.sablecc.node;
 import prerna.sablecc.analysis.*;
 
 @SuppressWarnings("nls")
-public final class AMathFun extends PMathFun
+public final class AFilterModel extends PFilterModel
 {
-    private TProc _proc_;
-    private TId _id_;
+    private TColfiltermodel _colfiltermodel_;
     private TLPar _lPar_;
-    private PExprRow _expr_;
-    private TComma _comma_;
-    private PColCsv _group_;
+    private PColDef _colDef_;
+    private TComma _com1_;
+    private PWordOrNum _wordOrNum_;
     private POptionsMap _parameters_;
     private TRPar _rPar_;
 
-    public AMathFun()
+    public AFilterModel()
     {
         // Constructor
     }
 
-    public AMathFun(
-        @SuppressWarnings("hiding") TProc _proc_,
-        @SuppressWarnings("hiding") TId _id_,
+    public AFilterModel(
+        @SuppressWarnings("hiding") TColfiltermodel _colfiltermodel_,
         @SuppressWarnings("hiding") TLPar _lPar_,
-        @SuppressWarnings("hiding") PExprRow _expr_,
-        @SuppressWarnings("hiding") TComma _comma_,
-        @SuppressWarnings("hiding") PColCsv _group_,
+        @SuppressWarnings("hiding") PColDef _colDef_,
+        @SuppressWarnings("hiding") TComma _com1_,
+        @SuppressWarnings("hiding") PWordOrNum _wordOrNum_,
         @SuppressWarnings("hiding") POptionsMap _parameters_,
         @SuppressWarnings("hiding") TRPar _rPar_)
     {
         // Constructor
-        setProc(_proc_);
-
-        setId(_id_);
+        setColfiltermodel(_colfiltermodel_);
 
         setLPar(_lPar_);
 
-        setExpr(_expr_);
+        setColDef(_colDef_);
 
-        setComma(_comma_);
+        setCom1(_com1_);
 
-        setGroup(_group_);
+        setWordOrNum(_wordOrNum_);
 
         setParameters(_parameters_);
 
@@ -53,13 +49,12 @@ public final class AMathFun extends PMathFun
     @Override
     public Object clone()
     {
-        return new AMathFun(
-            cloneNode(this._proc_),
-            cloneNode(this._id_),
+        return new AFilterModel(
+            cloneNode(this._colfiltermodel_),
             cloneNode(this._lPar_),
-            cloneNode(this._expr_),
-            cloneNode(this._comma_),
-            cloneNode(this._group_),
+            cloneNode(this._colDef_),
+            cloneNode(this._com1_),
+            cloneNode(this._wordOrNum_),
             cloneNode(this._parameters_),
             cloneNode(this._rPar_));
     }
@@ -67,19 +62,19 @@ public final class AMathFun extends PMathFun
     @Override
     public void apply(Switch sw)
     {
-        ((Analysis) sw).caseAMathFun(this);
+        ((Analysis) sw).caseAFilterModel(this);
     }
 
-    public TProc getProc()
+    public TColfiltermodel getColfiltermodel()
     {
-        return this._proc_;
+        return this._colfiltermodel_;
     }
 
-    public void setProc(TProc node)
+    public void setColfiltermodel(TColfiltermodel node)
     {
-        if(this._proc_ != null)
+        if(this._colfiltermodel_ != null)
         {
-            this._proc_.parent(null);
+            this._colfiltermodel_.parent(null);
         }
 
         if(node != null)
@@ -92,32 +87,7 @@ public final class AMathFun extends PMathFun
             node.parent(this);
         }
 
-        this._proc_ = node;
-    }
-
-    public TId getId()
-    {
-        return this._id_;
-    }
-
-    public void setId(TId node)
-    {
-        if(this._id_ != null)
-        {
-            this._id_.parent(null);
-        }
-
-        if(node != null)
-        {
-            if(node.parent() != null)
-            {
-                node.parent().removeChild(node);
-            }
-
-            node.parent(this);
-        }
-
-        this._id_ = node;
+        this._colfiltermodel_ = node;
     }
 
     public TLPar getLPar()
@@ -145,16 +115,16 @@ public final class AMathFun extends PMathFun
         this._lPar_ = node;
     }
 
-    public PExprRow getExpr()
+    public PColDef getColDef()
     {
-        return this._expr_;
+        return this._colDef_;
     }
 
-    public void setExpr(PExprRow node)
+    public void setColDef(PColDef node)
     {
-        if(this._expr_ != null)
+        if(this._colDef_ != null)
         {
-            this._expr_.parent(null);
+            this._colDef_.parent(null);
         }
 
         if(node != null)
@@ -167,19 +137,19 @@ public final class AMathFun extends PMathFun
             node.parent(this);
         }
 
-        this._expr_ = node;
+        this._colDef_ = node;
     }
 
-    public TComma getComma()
+    public TComma getCom1()
     {
-        return this._comma_;
+        return this._com1_;
     }
 
-    public void setComma(TComma node)
+    public void setCom1(TComma node)
     {
-        if(this._comma_ != null)
+        if(this._com1_ != null)
         {
-            this._comma_.parent(null);
+            this._com1_.parent(null);
         }
 
         if(node != null)
@@ -192,19 +162,19 @@ public final class AMathFun extends PMathFun
             node.parent(this);
         }
 
-        this._comma_ = node;
+        this._com1_ = node;
     }
 
-    public PColCsv getGroup()
+    public PWordOrNum getWordOrNum()
     {
-        return this._group_;
+        return this._wordOrNum_;
     }
 
-    public void setGroup(PColCsv node)
+    public void setWordOrNum(PWordOrNum node)
     {
-        if(this._group_ != null)
+        if(this._wordOrNum_ != null)
         {
-            this._group_.parent(null);
+            this._wordOrNum_.parent(null);
         }
 
         if(node != null)
@@ -217,7 +187,7 @@ public final class AMathFun extends PMathFun
             node.parent(this);
         }
 
-        this._group_ = node;
+        this._wordOrNum_ = node;
     }
 
     public POptionsMap getParameters()
@@ -274,12 +244,11 @@ public final class AMathFun extends PMathFun
     public String toString()
     {
         return ""
-            + toString(this._proc_)
-            + toString(this._id_)
+            + toString(this._colfiltermodel_)
             + toString(this._lPar_)
-            + toString(this._expr_)
-            + toString(this._comma_)
-            + toString(this._group_)
+            + toString(this._colDef_)
+            + toString(this._com1_)
+            + toString(this._wordOrNum_)
             + toString(this._parameters_)
             + toString(this._rPar_);
     }
@@ -288,15 +257,9 @@ public final class AMathFun extends PMathFun
     void removeChild(@SuppressWarnings("unused") Node child)
     {
         // Remove child
-        if(this._proc_ == child)
+        if(this._colfiltermodel_ == child)
         {
-            this._proc_ = null;
-            return;
-        }
-
-        if(this._id_ == child)
-        {
-            this._id_ = null;
+            this._colfiltermodel_ = null;
             return;
         }
 
@@ -306,21 +269,21 @@ public final class AMathFun extends PMathFun
             return;
         }
 
-        if(this._expr_ == child)
+        if(this._colDef_ == child)
         {
-            this._expr_ = null;
+            this._colDef_ = null;
             return;
         }
 
-        if(this._comma_ == child)
+        if(this._com1_ == child)
         {
-            this._comma_ = null;
+            this._com1_ = null;
             return;
         }
 
-        if(this._group_ == child)
+        if(this._wordOrNum_ == child)
         {
-            this._group_ = null;
+            this._wordOrNum_ = null;
             return;
         }
 
@@ -343,15 +306,9 @@ public final class AMathFun extends PMathFun
     void replaceChild(@SuppressWarnings("unused") Node oldChild, @SuppressWarnings("unused") Node newChild)
     {
         // Replace child
-        if(this._proc_ == oldChild)
+        if(this._colfiltermodel_ == oldChild)
         {
-            setProc((TProc) newChild);
-            return;
-        }
-
-        if(this._id_ == oldChild)
-        {
-            setId((TId) newChild);
+            setColfiltermodel((TColfiltermodel) newChild);
             return;
         }
 
@@ -361,21 +318,21 @@ public final class AMathFun extends PMathFun
             return;
         }
 
-        if(this._expr_ == oldChild)
+        if(this._colDef_ == oldChild)
         {
-            setExpr((PExprRow) newChild);
+            setColDef((PColDef) newChild);
             return;
         }
 
-        if(this._comma_ == oldChild)
+        if(this._com1_ == oldChild)
         {
-            setComma((TComma) newChild);
+            setCom1((TComma) newChild);
             return;
         }
 
-        if(this._group_ == oldChild)
+        if(this._wordOrNum_ == oldChild)
         {
-            setGroup((PColCsv) newChild);
+            setWordOrNum((PWordOrNum) newChild);
             return;
         }
 

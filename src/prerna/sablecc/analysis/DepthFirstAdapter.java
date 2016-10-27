@@ -411,6 +411,27 @@ public class DepthFirstAdapter extends AnalysisAdapter
         outAFiltercolColop(node);
     }
 
+    public void inAFiltermodelColop(AFiltermodelColop node)
+    {
+        defaultIn(node);
+    }
+
+    public void outAFiltermodelColop(AFiltermodelColop node)
+    {
+        defaultOut(node);
+    }
+
+    @Override
+    public void caseAFiltermodelColop(AFiltermodelColop node)
+    {
+        inAFiltermodelColop(node);
+        if(node.getFilterModel() != null)
+        {
+            node.getFilterModel().apply(this);
+        }
+        outAFiltermodelColop(node);
+    }
+
     public void inAFocuscolColop(AFocuscolColop node)
     {
         defaultIn(node);
@@ -1899,6 +1920,51 @@ public class DepthFirstAdapter extends AnalysisAdapter
             node.getRPar().apply(this);
         }
         outAFilterColumn(node);
+    }
+
+    public void inAFilterModel(AFilterModel node)
+    {
+        defaultIn(node);
+    }
+
+    public void outAFilterModel(AFilterModel node)
+    {
+        defaultOut(node);
+    }
+
+    @Override
+    public void caseAFilterModel(AFilterModel node)
+    {
+        inAFilterModel(node);
+        if(node.getColfiltermodel() != null)
+        {
+            node.getColfiltermodel().apply(this);
+        }
+        if(node.getLPar() != null)
+        {
+            node.getLPar().apply(this);
+        }
+        if(node.getColDef() != null)
+        {
+            node.getColDef().apply(this);
+        }
+        if(node.getCom1() != null)
+        {
+            node.getCom1().apply(this);
+        }
+        if(node.getWordOrNum() != null)
+        {
+            node.getWordOrNum().apply(this);
+        }
+        if(node.getParameters() != null)
+        {
+            node.getParameters().apply(this);
+        }
+        if(node.getRPar() != null)
+        {
+            node.getRPar().apply(this);
+        }
+        outAFilterModel(node);
     }
 
     public void inAUnfilterColumn(AUnfilterColumn node)
@@ -4589,20 +4655,20 @@ public class DepthFirstAdapter extends AnalysisAdapter
         outAMathFun(node);
     }
 
-    public void inAMathParam(AMathParam node)
+    public void inAOptionsMap(AOptionsMap node)
     {
         defaultIn(node);
     }
 
-    public void outAMathParam(AMathParam node)
+    public void outAOptionsMap(AOptionsMap node)
     {
         defaultOut(node);
     }
 
     @Override
-    public void caseAMathParam(AMathParam node)
+    public void caseAOptionsMap(AOptionsMap node)
     {
-        inAMathParam(node);
+        inAOptionsMap(node);
         if(node.getComma() != null)
         {
             node.getComma().apply(this);
@@ -4611,7 +4677,7 @@ public class DepthFirstAdapter extends AnalysisAdapter
         {
             node.getMapObj().apply(this);
         }
-        outAMathParam(node);
+        outAOptionsMap(node);
     }
 
     public void inAExtendedExpr(AExtendedExpr node)
