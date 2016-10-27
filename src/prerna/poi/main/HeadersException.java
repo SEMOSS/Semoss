@@ -240,7 +240,9 @@ public class HeadersException {
 		int size = headers.length;
 		for(int headIdx = 0; headIdx < size; headIdx++) {
 			String thisHeader = headers[headIdx];
-			if(thisHeader.contains("+") || thisHeader.contains("%") || thisHeader.contains("@") || thisHeader.contains(";") || thisHeader.contains("-")) {
+			if(thisHeader.contains("+") || thisHeader.contains("%") || thisHeader.contains("@") || 
+					thisHeader.contains(";") || thisHeader.contains(" ") || thisHeader.contains("-") || 
+					thisHeader.contains("__") || thisHeader.contains("/") || thisHeader.contains("\\") ) {
 				// we found an illegal value!
 				illegalCharacterHeaders.add(thisHeader);
 			}
@@ -293,7 +295,7 @@ public class HeadersException {
 	public boolean containsIllegalCharacter(String checkHeader) {
 		if(checkHeader.contains("+") || checkHeader.contains("%") || checkHeader.contains("@") || 
 				checkHeader.contains(";") || checkHeader.contains(" ") || checkHeader.contains("-") || 
-				checkHeader.contains("__")) {
+				checkHeader.contains("__") || checkHeader.contains("/") || checkHeader.contains("\\") ) {
 			// we found an illegal value!
 			return true;
 		}
@@ -308,7 +310,9 @@ public class HeadersException {
 		checkHeader = checkHeader.replace(";", "");
 		checkHeader = checkHeader.replace(" ", "_");
 		checkHeader = checkHeader.replace("-", "_");
-		
+		checkHeader = checkHeader.replace("/", "_");
+		checkHeader = checkHeader.replace("\\", "_");
+
 		// need to replace 2 "__" with a single "_"
 		while(checkHeader.contains("__")) {
 			checkHeader = checkHeader.replace("__", "_");
