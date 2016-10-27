@@ -8,5 +8,6 @@ public class SqlMaxReactor extends H2SqlBasicMathReactor {
 	 */
 	public SqlMaxReactor() {
 		this.setMathRoutine("MAX");
+		this.setPkqlMathRoutine("Max");
 	}
 }

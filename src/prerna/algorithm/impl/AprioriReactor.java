@@ -68,4 +68,9 @@ public class AprioriReactor extends BaseReducerReactor{
 		// TODO Auto-generated method stub
 		return null;
 	}
+
+	@Override
+	public Map<String, Object> getColumnDataMap() {
+		return null;
+	}
 }

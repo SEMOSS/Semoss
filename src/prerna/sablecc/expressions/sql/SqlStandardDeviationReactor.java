@@ -8,6 +8,7 @@ public class SqlStandardDeviationReactor extends H2SqlBasicMathReactor {
 	 */
 	public SqlStandardDeviationReactor() {
 		this.setMathRoutine("STDEV");
+		this.setPkqlMathRoutine("StandardDeviation");
 	}
 	
 }

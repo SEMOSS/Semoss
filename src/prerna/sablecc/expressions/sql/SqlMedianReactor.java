@@ -8,6 +8,7 @@ public class SqlMedianReactor extends H2SqlBasicMathReactor {
 	 */
 	public SqlMedianReactor() {
 		this.setMathRoutine("MEDIAN");
+		this.setPkqlMathRoutine("Median");
 	}
 	
 }

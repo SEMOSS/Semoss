@@ -31,6 +31,7 @@ Tokens
  div = '/';
  col = 'col';
  comparator = ('>' | '<' | '<=' | '>=' | '!=' | '?like');
+ viz_type = ('x=' | 'y=' | 'z=' | 'size=' | 'color=' | 'tooltip=' | 'cluster=' | 'latitude=' | 'longitude=' | 'startDate=' | 'endDate=' | 'heat=' | 'dimension=');
  log_operator = ( '||' | '&&' );
  equal = '=';
  coladd = 'col.add';
@@ -377,9 +378,11 @@ word_or_num = {num} decimal | {alpha} word |{expr} [formula]:formula ; // I need
 
 word_or_num_or_nested_obj = {word_or_num} word_or_num | {nested_map} map_obj | {nested_csv} csv_row;
 
-flex_selector_row = l_bracket term? term_group* r_bracket;
+flex_selector_row = l_bracket selector_term? selector_group* r_bracket;
 
-term_group = comma term?;
+selector_term = viz_type? term;
+
+selector_group = comma selector_term?;
 
 formula = l_par expr r_par;
 		

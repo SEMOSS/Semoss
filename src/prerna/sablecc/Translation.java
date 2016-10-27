@@ -3,19 +3,18 @@ package prerna.sablecc;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.Hashtable;
 import java.util.LinkedHashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.ListIterator;
 import java.util.Map;
-import java.util.Set;
 import java.util.Vector;
 
 import com.google.gson.Gson;
 
 import prerna.algorithm.api.ITableDataFrame;
+import prerna.algorithm.impl.BaseReducerReactor;
 import prerna.ds.H2.H2Frame;
 import prerna.ds.R.RDataTable;
 import prerna.engine.api.IScriptReactor;
@@ -23,8 +22,8 @@ import prerna.om.Dashboard;
 import prerna.sablecc.PKQLEnum.PKQLReactor;
 import prerna.sablecc.PKQLRunner.STATUS;
 import prerna.sablecc.analysis.DepthFirstAdapter;
-import prerna.sablecc.expressions.sql.H2SqlExpressionGenerator;
-import prerna.sablecc.expressions.sql.H2SqlExpressionIterator;
+import prerna.sablecc.expressions.sql.builder.SqlBuilder;
+import prerna.sablecc.expressions.sql.builder.SqlBuilderGenerator;
 import prerna.sablecc.meta.IPkqlMetadata;
 import prerna.sablecc.node.AAddColumn;
 import prerna.sablecc.node.AAlphaWordOrNum;
@@ -68,7 +67,6 @@ import prerna.sablecc.node.AExprRow;
 import prerna.sablecc.node.AExprScript;
 import prerna.sablecc.node.AExprWordOrNum;
 import prerna.sablecc.node.AFilterColumn;
-import prerna.sablecc.node.AFlexSelectorRow;
 import prerna.sablecc.node.AFormula;
 import prerna.sablecc.node.AHelpScript;
 import prerna.sablecc.node.AImportData;
@@ -105,10 +103,10 @@ import prerna.sablecc.node.AQueryData;
 import prerna.sablecc.node.ARelationDef;
 import prerna.sablecc.node.ARemoveData;
 import prerna.sablecc.node.ARenameColumn;
+import prerna.sablecc.node.ASelectorTerm;
 import prerna.sablecc.node.ASetColumn;
 import prerna.sablecc.node.ASplitColumn;
 import prerna.sablecc.node.ATermExpr;
-import prerna.sablecc.node.ATermGroup;
 import prerna.sablecc.node.AUnfilterColumn;
 import prerna.sablecc.node.AUserInput;
 import prerna.sablecc.node.AVarDef;
@@ -297,22 +295,25 @@ public class Translation extends DepthFirstAdapter {
 		// TODO: really need an expression iterator for other frames...
 		// TODO: really need an expression iterator for other frames...
 		// TODO: really need an expression iterator for other frames...
-		Object exprResult = curReactor.getValue(nodeStr);
-		if(exprResult instanceof String && !exprResult.toString().trim().isEmpty()) {
-			// since multiple math routines can be added together
-			// need to get a unique set of values used in the join
-			Vector<String> columns = (Vector <String>) curReactor.getValue(PKQLEnum.COL_DEF);
-			Set<String> joinCols = new HashSet<String>();
-			joinCols.addAll(columns);
-			String[] joins = joinCols.toArray(new String[]{});
-
-			String newCol = "EXPRESSION_COL";
-			
-			if(frame instanceof H2Frame) {
-				H2SqlExpressionIterator it = new H2SqlExpressionIterator((H2Frame) curReactor.getValue("G"), exprResult.toString(), newCol, joins, null);
-				this.runner.setResponse(it);
-			}
-		}
+//		Object exprResult = curReactor.getValue(nodeStr);
+//		if(exprResult instanceof String && !exprResult.toString().trim().isEmpty()) {
+//			// since multiple math routines can be added together
+//			// need to get a unique set of values used in the join
+//			Vector<String> columns = (Vector <String>) curReactor.getValue(PKQLEnum.COL_DEF);
+//			Set<String> joinCols = new HashSet<String>();
+//			joinCols.addAll(columns);
+//			String[] joins = joinCols.toArray(new String[]{});
+//
+//			List<String> exprList = new Vector<String>();
+//			exprList.add(exprResult.toString());
+//			List<String> newColList = new Vector<String>();
+//			newColList.add("EXPRESSION_COL");
+//
+//			if(frame instanceof H2Frame) {
+//				H2SqlExpressionIterator it = new H2SqlExpressionIterator((H2Frame) curReactor.getValue("G"), exprList, newColList, joins, null);
+//				this.runner.setResponse(it);
+//			}
+//		}
 		postProcess(node);
 	}
 
@@ -841,34 +842,32 @@ public class Translation extends DepthFirstAdapter {
 
 	@Override
 	public void outAPanelViz(APanelViz node) {
-		System.out.println("out a viz comment");
-		String layout = node.getLayout().toString().trim();
-		// String alignment = node.getDatatablealign().toString().trim();
-		Object alignment = curReactor.getValue("TERM");
-		List<Object> alignTranslated = new Vector<Object>();
-		if (alignment instanceof Vector) {
-			for (Object obj : (Vector) alignment) {
-				alignTranslated.add(curReactor.getValue((obj + "").trim()));
-			}
-		} else {
-			alignTranslated.add(curReactor.getValue(alignment + ""));
-		}
-
-		curReactor.put("VizTableData", alignTranslated);
 		Map<String, Object> chartDataObj = new HashMap<String, Object>();
+
+		deinitReactor(PKQLEnum.VIZ, "", "");
+		
+		// this will add in the necessary information around the expressions
+		// that are calculated temporally to return to the FE
+		chartDataObj.put("dataTableKeys", curReactor.getValue("VizTableKeys"));
+		chartDataObj.put("dataTableValues", curReactor.getValue("VizTableValues"));
+		
+		/*
+		 * This will hold the UI options that are passed in that do 
+		 * not go through any BE processing
+		 * We just send this to the FE.
+		 */
+		String layout = node.getLayout().toString().trim();
 		chartDataObj.put("layout", layout);
-		// chartDataObj.put("dataTableKeys", alignTranslated);
-		// chartDataObj.put("dataTableValues", null);
 		if (node.getUioptions() != null) {
 			chartDataObj.put("uiOptions", node.getUioptions().toString().trim());
 		}
+		// set the FE data to create the appropriate panel for the panel state
 		runner.addFeData("chartData", chartDataObj, true);
-		runner.setResponse("Successfully set layout to " + layout + " with alignment " + alignment);//
+		// set the console response
+		runner.setResponse("Successfully set layout to " + layout + " with alignment " + node.getDatatablealign());
 		runner.setStatus(PKQLRunner.STATUS.SUCCESS);
-		deinitReactor(PKQLEnum.VIZ, "", "");
 
-		chartDataObj.put("dataTableKeys", curReactor.getValue("VizTableKeys"));
-		chartDataObj.put("dataTableValues", curReactor.getValue("VizTableValues"));
+		
 	}
 
 	@Override
@@ -1486,12 +1485,12 @@ public class Translation extends DepthFirstAdapter {
 			//TODO: need to make this generic and get the correct type of expression it
 			if(curReactor.getValue("G") instanceof H2Frame) {
 				H2Frame frame = (H2Frame) curReactor.getValue("G");
-				H2SqlExpressionIterator newIt = H2SqlExpressionGenerator.generateSimpleMathExpressions(frame, leftObj, rightObj, node.getPlus().toString().trim());
-				curReactor.addReplacer(node.toString().trim(), newIt);
+				SqlBuilder builder = SqlBuilderGenerator.generateSimpleMathExpressions(frame, leftObj, rightObj, node.getPlus().toString().trim());
+				curReactor.addReplacer(node.toString().trim(), builder);
 				curReactor.removeReplacer(leftKeyName);
 				curReactor.removeReplacer(rightKeyName);
-				curReactor.put(node.toString().trim(), newIt);
-				this.runner.setResponse(newIt);
+				curReactor.put(node.toString().trim(), builder);
+				this.runner.setResponse(builder);
 			}
 		}
 	}
@@ -1518,12 +1517,12 @@ public class Translation extends DepthFirstAdapter {
 			//TODO: need to make this generic and get the correct type of expression it
 			if(curReactor.getValue("G") instanceof H2Frame) {
 				H2Frame frame = (H2Frame) curReactor.getValue("G");
-				H2SqlExpressionIterator newIt = H2SqlExpressionGenerator.generateSimpleMathExpressions(frame, leftObj, rightObj, node.getMinus().toString().trim());
-				curReactor.addReplacer(node.toString().trim(), newIt);
+				SqlBuilder builder = SqlBuilderGenerator.generateSimpleMathExpressions(frame, leftObj, rightObj, node.getMinus().toString().trim());
+				curReactor.addReplacer(node.toString().trim(), builder);
 				curReactor.removeReplacer(leftKeyName);
 				curReactor.removeReplacer(rightKeyName);
-				curReactor.put(node.toString().trim(), newIt);
-				this.runner.setResponse(newIt);
+				curReactor.put(node.toString().trim(), builder);
+				this.runner.setResponse(builder);
 			}
 		}
 	}
@@ -1550,12 +1549,12 @@ public class Translation extends DepthFirstAdapter {
 			//TODO: need to make this generic and get the correct type of expression it
 			if(curReactor.getValue("G") instanceof H2Frame) {
 				H2Frame frame = (H2Frame) curReactor.getValue("G");
-				H2SqlExpressionIterator newIt = H2SqlExpressionGenerator.generateSimpleMathExpressions(frame, leftObj, rightObj, node.getMult().toString().trim());
-				curReactor.addReplacer(node.toString().trim(), newIt);
+				SqlBuilder builder = SqlBuilderGenerator.generateSimpleMathExpressions(frame, leftObj, rightObj, node.getMult().toString().trim());
+				curReactor.addReplacer(node.toString().trim(), builder);
 				curReactor.removeReplacer(leftKeyName);
 				curReactor.removeReplacer(rightKeyName);
-				curReactor.put(node.toString().trim(), newIt);
-				this.runner.setResponse(newIt);
+				curReactor.put(node.toString().trim(), builder);
+				this.runner.setResponse(builder);
 			}
 		}
 	}
@@ -1582,12 +1581,12 @@ public class Translation extends DepthFirstAdapter {
 			//TODO: need to make this generic and get the correct type of expression it
 			if(curReactor.getValue("G") instanceof H2Frame) {
 				H2Frame frame = (H2Frame) curReactor.getValue("G");
-				H2SqlExpressionIterator newIt = H2SqlExpressionGenerator.generateSimpleMathExpressions(frame, leftObj, rightObj, node.getDiv().toString().trim());
-				curReactor.addReplacer(node.toString().trim(), newIt);
+				SqlBuilder builder = SqlBuilderGenerator.generateSimpleMathExpressions(frame, leftObj, rightObj, node.getDiv().toString().trim());
+				curReactor.addReplacer(node.toString().trim(), builder);
 				curReactor.removeReplacer(leftKeyName);
 				curReactor.removeReplacer(rightKeyName);
-				curReactor.put(node.toString().trim(), newIt);
-				this.runner.setResponse(newIt);
+				curReactor.put(node.toString().trim(), builder);
+				this.runner.setResponse(builder);
 			}
 		}
 
@@ -1599,22 +1598,36 @@ public class Translation extends DepthFirstAdapter {
 
 	}
 
+//	@Override
+//	public void inAFlexSelectorRow(AFlexSelectorRow node) {
+//		// TODO: really need to build this out...
+//		if (node.getSelectorTerm() != null) {
+//			curReactor.set("VIZ_SELECTOR", node.getSelectorTerm() + "");
+//		}
+//	}
+	
 	@Override
-	public void inAFlexSelectorRow(AFlexSelectorRow node) {
-		// TODO: really need to build this out...
-		if (node.getTerm() != null) {
-			curReactor.set("TERM", node.getTerm() + "");
-		}
-	}
+    public void caseASelectorTerm(ASelectorTerm node)
+    {
+        inASelectorTerm(node);
+        if(node.getVizType() != null)
+        {
+            curReactor.set("VIZ_TYPE", node.getVizType().toString().trim());
+        } else 
+        {
+            curReactor.set("VIZ_TYPE", "NOT_DEFINED");
+        }
+        if(node.getTerm() != null)
+        {
+            node.getTerm().apply(this);
+            curReactor.set("VIZ_SELECTOR", curReactor.getValue(node.getTerm().toString().trim()));
+            curReactor.set("VIZ_FORMULA", node.getTerm().toString().trim());
+        }
+        outASelectorTerm(node);
+    }
 
 	public void inAColTerm(AColTerm node) {
 		System.out.println("in a col term");
-	}
-
-	@Override
-	public void inATermGroup(ATermGroup node) {
-		// adding to the reactor
-		curReactor.set("TERM", node.getTerm() + "");
 	}
 
 	@Override
@@ -1777,6 +1790,12 @@ public class Translation extends DepthFirstAdapter {
 
 	@Override
 	public void outAExprRow(AExprRow node) {
+		if(curReactor != null) {
+			String previousExpr = node.getExpr().toString().trim();
+			if(curReactor.getValue(previousExpr) != null) {
+				curReactor.put(node.toString().trim(), curReactor.getValue(previousExpr));
+			}
+		}
 	}
 
 	@Override
@@ -1822,7 +1841,12 @@ public class Translation extends DepthFirstAdapter {
 	// TODO: LOOK INTO THIS
 	public void outAMathFun(AMathFun node) {
 		String nodeStr = node.toString().trim();
+		curReactor.put("FORMULA", nodeStr);
+		// set the term for the math fun to operate on
 		String expr = node.getExpr().toString().trim();
+		curReactor.put("TERM", curReactor.getValue(expr));
+		
+		
 		Hashtable<String, Object> thisReactorHash = deinitReactor(PKQLReactor.MATH_FUN.toString(), expr, nodeStr);
 		IScriptReactor previousReactor = (IScriptReactor) thisReactorHash.get(PKQLReactor.MATH_FUN.toString());
 		curReactor.put(PKQLEnum.COL_DEF, previousReactor.getValue(PKQLEnum.COL_DEF)); // TODO:
@@ -1844,6 +1868,14 @@ public class Translation extends DepthFirstAdapter {
 		curReactor.set(PKQLEnum.COL_CSV + "2", previousReactor.getValue(PKQLEnum.COL_CSV));
 
 		curReactor.addReplacer(nodeStr, previousReactor.getValue(expr));
+		
+		// above is all old stuff
+		// using new object to send new header info
+		if(previousReactor instanceof BaseReducerReactor) {
+			Map<String, Object> headerInfo = ((BaseReducerReactor) previousReactor).getColumnDataMap();
+			curReactor.set("MERGE_HEADER_INFO", headerInfo);
+		}
+		
 		runner.setResponse(previousReactor.getValue(expr));
 		runner.setStatus((STATUS) previousReactor.getValue("STATUS"));
 	}

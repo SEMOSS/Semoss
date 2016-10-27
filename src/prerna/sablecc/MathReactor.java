@@ -30,7 +30,7 @@ public abstract class MathReactor extends AbstractReactor {
 	AlgorithmStrategy strategy = null;
 
 	public MathReactor() {
-		String[] thisReacts = { PKQLEnum.EXPR_TERM, PKQLEnum.DECIMAL, PKQLEnum.NUMBER, PKQLEnum.GROUP_BY,
+		String[] thisReacts = { PKQLEnum.EXPR_TERM, "FORMULA", PKQLEnum.DECIMAL, PKQLEnum.NUMBER, PKQLEnum.GROUP_BY,
 				PKQLEnum.COL_DEF, PKQLEnum.MATH_PARAM};
 		super.whatIReactTo = thisReacts;
 		super.whoAmI = PKQLEnum.MATH_FUN;
