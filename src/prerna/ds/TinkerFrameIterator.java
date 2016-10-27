@@ -93,23 +93,30 @@ public class TinkerFrameIterator implements Iterator<Object[]> {
 				dir, 
 				dedup);
 	}
-	
-	private GraphTraversal openTraversal(List<String> selectors, Graph g, Graph metaG, Integer start, Integer end, String sortColumn, Map<String, List<Object>> cleanTemporalBindings, GremlinBuilder.DIRECTION orderByDirection, Boolean dedup) {
+
+	private GraphTraversal openTraversal(List<String> selectors, Graph g, Graph metaG, Integer offset, Integer limit,
+			String sortColumn, Map<String, List<Object>> cleanTemporalBindings,
+			GremlinBuilder.DIRECTION orderByDirection, Boolean dedup) {
 		this.selectors = selectors;
 		GremlinBuilder builder = GremlinBuilder.prepareGenericBuilder(selectors, g, metaG, cleanTemporalBindings);
 		builder.setOrderBySelector(sortColumn);
 		builder.setOrderByDirection(orderByDirection);
-		//finally execute it to get the executor
-		if(start != null && start != -1) {
-			builder.setRange(start, end);
-		}
-		
+
 		GraphTraversal gt = null;
 		if(dedup) {
 			gt = builder.executeScript().dedup();
 		} else {
 			gt = (GraphTraversal <Vertex, Map<String, Object>>) builder.executeScript();
 		}
+
+		// set limit and offset
+		if (limit != null && limit != -1) {
+			gt.range(0, limit);
+		}
+		if (offset != null && offset != -1) {
+			gt.range(offset, limit);
+		}
+
 		return gt;
 	}
 	

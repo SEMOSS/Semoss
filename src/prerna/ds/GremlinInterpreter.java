@@ -13,11 +13,13 @@ import java.util.Vector;
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 import org.apache.tinkerpop.gremlin.process.traversal.P;
+import org.apache.tinkerpop.gremlin.process.traversal.Scope;
 import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.GraphTraversal;
 import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.__;
 import org.apache.tinkerpop.gremlin.structure.Graph;
 import org.apache.tinkerpop.gremlin.structure.Vertex;
 
+import edu.stanford.nlp.io.EncodingPrintWriter.out;
 import prerna.engine.impl.rdbms.RDBMSNativeEngine;
 import prerna.om.Insight;
 import prerna.rdf.query.builder.IQueryInterpreter;
@@ -36,7 +38,7 @@ public class GremlinInterpreter implements IQueryInterpreter {
 	private Graph metaGraph;
 	private GraphTraversal gt;
 	private QueryStruct qs = null;
-	
+	Map<String, Set<String>> edgeHash;
 	private List<String> selector;
 	private Hashtable<String, Hashtable<String, Vector>> filters;
 	
@@ -49,6 +51,10 @@ public class GremlinInterpreter implements IQueryInterpreter {
 	@Override
 	public void setQueryStruct(QueryStruct qs) {
 		this.qs = qs;
+	}
+
+	public void setEdgeHash(Map<String, Set<String>> edgeHash) {
+		this.edgeHash = edgeHash;
 	}
 
 	/**
@@ -70,7 +76,36 @@ public class GremlinInterpreter implements IQueryInterpreter {
 		
 		return gt;
 	}
-	
+
+	/**
+	 * This allows getting data based on new filters created ignoring the
+	 * filterNode if it exists.
+	 * 
+	 * @return
+	 */
+	public Iterator composeIteratorSpecificFilters() {
+		addFilters();
+		addJoinsSpecificFilters();
+		addSelectors();
+		gt.dedup();
+		addLimitOffset();
+		return gt;
+	}
+
+	/**
+	 * gets the Limit/Offset and adds it to the traversal
+	 */
+	private void addLimitOffset() {
+		Integer limit = qs.getLimit();
+		Integer offset = qs.getOffset();
+		if (limit >= 0 && offset >= 0) {
+			gt = gt.range(offset, limit);
+		} else if (limit >= 0) {
+			gt = gt.range(0, limit);
+		} else {
+		}
+	}
+
 	/**
 	 * gets the selectors and adds it to the traversal
 	 */
@@ -143,11 +178,27 @@ public class GremlinInterpreter implements IQueryInterpreter {
 		// might want to consider doing some optimization in how i choose
 		// the first node, similar to what is done in gremlin builder
 		// but this will be a TODO
+		if (edgeHash == null || edgeHash.isEmpty()) {
+			edgeHash = generateEdgeMap();
+		}
+		addNodeEdge(edgeHash);
 
-		Map<String, Set<String>> edgeMap = generateEdgeMap();
-		addNodeEdge(edgeMap);
 	}
-	
+
+	private void addJoinsSpecificFilters() {
+		// process the specific joins wanted in the traversal
+		// this utilizes the previously definted filters
+
+		// might want to consider doing some optimization in how i choose
+		// the first node, similar to what is done in gremlin builder
+		// but this will be a TODO
+
+		if (edgeHash == null || edgeHash.isEmpty()) {
+			edgeHash = generateEdgeMap();
+		}
+		addNodeEdgeSpecificFilters(edgeHash);
+	}
+
 	/**
 	 * This is the bulk of the class
 	 * Uses the edgeMap to figure out what things are connected
@@ -195,10 +246,56 @@ public class GremlinInterpreter implements IQueryInterpreter {
 		}
 		
 	}
-	
-	private List<GraphTraversal<Object, Vertex>> visitNode(Vertex orig, List<String> travelledEdges, Map<String, Set<String>> edgeMap, List<GraphTraversal<Object, Vertex>> traversals) {
-		//Constants.NAME changes while Constants.VALUE stays constant
-		String origName = orig.value(Constants.NAME);  
+
+	/**
+	 * This is the bulk of the class Uses the edgeMap to figure out what things
+	 * are connected
+	 * 
+	 * @param edgeMap
+	 */
+	public void addNodeEdgeSpecificFilters(Map<String, Set<String>> edgeMap) {
+		if (edgeMap.isEmpty()) {
+			return;
+		}
+
+		List<String> travelledEdges = new Vector<String>();
+		List<GraphTraversal<Object, Vertex>> traversals = new Vector<GraphTraversal<Object, Vertex>>();
+
+		String startUniqueName = edgeMap.keySet().iterator().next();
+
+		Vertex startNode = this.metaGraph.traversal().V().has(Constants.NAME, startUniqueName).next();
+
+		// Constants.NAME changes while Constants.VALUE stays constant
+		String nameType = startNode.property(Constants.NAME).value() + "";
+		String valueType = startNode.property(Constants.VALUE).value() + "";
+
+		// remove prim_key when making a heatMap
+		if (valueType.equals(TinkerFrame.PRIM_KEY)) {
+			valueType = startNode.property(Constants.NAME).value() + "";
+		}
+
+		gt = gt.has(Constants.TYPE, valueType).as(nameType);
+		// there is a boolean at the metamodel level if this type has any
+		// filters
+
+		if (this.filters.containsKey(nameType)) {
+			addFilterInPath(gt, nameType, this.filters.get(nameType));
+		}
+
+		// add the logic to traverse
+		traversals = visitNodeSpecificFilters(startNode, travelledEdges, edgeMap, traversals);
+
+		if (traversals.size() > 0) {
+			GraphTraversal[] array = new GraphTraversal[traversals.size()];
+			gt = gt.match(traversals.toArray(array));
+		}
+
+	}
+
+	private List<GraphTraversal<Object, Vertex>> visitNode(Vertex orig, List<String> travelledEdges,
+			Map<String, Set<String>> edgeMap, List<GraphTraversal<Object, Vertex>> traversals) {
+		// Constants.NAME changes while Constants.VALUE stays constant
+		String origName = orig.value(Constants.NAME);
 		String origValue = orig.value(Constants.VALUE);
 		
 		//remove prim_key when making a heatMap
@@ -293,7 +390,109 @@ public class GremlinInterpreter implements IQueryInterpreter {
 		
 		return traversals;
 	}
-	
+
+	private List<GraphTraversal<Object, Vertex>> visitNodeSpecificFilters(Vertex orig, List<String> travelledEdges,
+			Map<String, Set<String>> edgeMap, List<GraphTraversal<Object, Vertex>> traversals) {
+		// Constants.NAME changes while Constants.VALUE stays constant
+		String origName = orig.value(Constants.NAME);
+		String origValue = orig.value(Constants.VALUE);
+
+		// remove prim_key when making a heatMap
+		if (origValue.equals(TinkerFrame.PRIM_KEY)) {
+			origValue = orig.property(Constants.NAME).value() + "";
+		}
+
+		Set<String> edgesToTraverse = edgeMap.get(origName);
+		if (edgesToTraverse != null) {
+			// for each downstream node of this meta node
+
+			// TODO: this can be optimized, using the edgeMap do determine the
+			// traversal instead of iterating and guessing
+			GraphTraversal<Vertex, Vertex> downstreamIt = this.metaGraph.traversal().V()
+					.has(Constants.TYPE, TinkerMetaData.META).has(Constants.ID, orig.property(Constants.ID).value())
+					.out(TinkerMetaData.META + TinkerFrame.edgeLabelDelimeter + TinkerMetaData.META);
+			while (downstreamIt.hasNext()) {
+				// for each downstream node of this meta node
+				Vertex nodeV = downstreamIt.next();
+
+				// Constants.NAME changes while Constants.VALUE stays constant
+				String nameNode = nodeV.property(Constants.NAME).value() + "";
+				String valueNode = nodeV.property(Constants.VALUE).value() + "";
+
+				// remove prim_key when making a heatMap
+				if (valueNode.equals(TinkerFrame.PRIM_KEY)) {
+					valueNode = nodeV.property(Constants.NAME).value() + "";
+				}
+
+				String edgeKey = origName + TinkerFrame.edgeLabelDelimeter + nameNode;
+
+				// if (!travelledEdges.contains(edgeKey) &&
+				// edgesToTraverse.contains(nameNode)) {
+				if (!travelledEdges.contains(edgeKey)) {
+					LOGGER.info("travelling down to " + nameNode);
+
+					GraphTraversal<Object, Vertex> twoStepT = __.as(origName).out(edgeKey).has(Constants.TYPE,
+							valueNode);
+
+					if (this.filters.containsKey(nameNode)) {
+						addFilterInPath(twoStepT, nameNode, this.filters.get(nameNode));
+					}
+
+					twoStepT = twoStepT.as(nameNode);
+					LOGGER.info("twoStepT downstream : " + twoStepT);
+					traversals.add(twoStepT);
+
+					travelledEdges.add(edgeKey);
+					// travel as far downstream as possible
+					traversals = visitNodeSpecificFilters(nodeV, travelledEdges, edgeMap, traversals);
+				}
+			}
+
+			// do the same thing for upstream
+			// TODO: this can be optimized, using the edgeMap do determine the
+			// traversal instead of iterating and guessing
+			GraphTraversal<Vertex, Vertex> upstreamIt = this.metaGraph.traversal().V()
+					.has(Constants.TYPE, TinkerMetaData.META).has(Constants.ID, orig.property(Constants.ID).value())
+					.in(TinkerMetaData.META + TinkerFrame.edgeLabelDelimeter + TinkerMetaData.META);
+			while (upstreamIt.hasNext()) {
+				Vertex nodeV = upstreamIt.next();
+
+				// Constants.NAME changes while Constants.VALUE stays constant
+				String nameNode = nodeV.property(Constants.NAME).value() + "";
+				String valueNode = nodeV.property(Constants.VALUE).value() + "";
+
+				// remove prim_key when making a heatMap
+				if (valueNode.equals(TinkerFrame.PRIM_KEY)) {
+					valueNode = nodeV.property(Constants.NAME).value() + "";
+				}
+
+				String edgeKey = nameNode + TinkerFrame.edgeLabelDelimeter + origName;
+				// if (!travelledEdges.contains(edgeKey) &&
+				// edgesToTraverse.contains(nameNode)) {
+				if (!travelledEdges.contains(edgeKey)) {
+					LOGGER.info("travelling down to " + nameNode);
+
+					GraphTraversal<Object, Vertex> twoStepT = __.as(origName).in(edgeKey).has(Constants.TYPE,
+							valueNode);
+
+					if (this.filters.containsKey(nameNode)) {
+						addFilterInPath(twoStepT, nameNode, this.filters.get(nameNode));
+					}
+
+					twoStepT = twoStepT.as(nameNode);
+					LOGGER.info("twoStepT upstream : " + twoStepT);
+					traversals.add(twoStepT);
+
+					travelledEdges.add(edgeKey);
+					// travel as far upstream as possible
+					traversals = visitNodeSpecificFilters(nodeV, travelledEdges, edgeMap, traversals);
+				}
+			}
+		}
+
+		return traversals;
+	}
+
 	void addFilterInPath(GraphTraversal<Object, Vertex> gt, String nameType, Hashtable<String, Vector> filterInfo) {
 		// TODO: right now, if its a math, assumption that vector only contains one value
 		for(String filterType : filterInfo.keySet()) {

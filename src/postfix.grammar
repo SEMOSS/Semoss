@@ -44,6 +44,7 @@ Tokens
  colremove = 'col.remove';
  colfilter = 'col.filter';
  colunfilter = 'col.unfilter';
+ colfiltermodel = 'col.filterModel';
  colimport = 'col.import';
  //('removeColumn:' | 'rm:' | 'del:' | 'rem:');
  colset = 'col.set';
@@ -143,6 +144,7 @@ colop = // colOp is usually of the form of joinColumn / addColumn / removeColumn
 		| {setcol} set_column
 		| {pivotcol} pivot_column
 		| {filtercol} filter_column
+		| {filtermodel} filter_model
 		| {focuscol} focus_column
 		| {unfocus} unfocus
 		| {import} import_column
@@ -268,7 +270,11 @@ pivot_column = // grouping based on multiple columns
 
 filter_column = // filter column using an expression
 		colfilter l_par [where]:where_clause r_par;
-
+		
+filter_model = // col.filterModel(c:col, word, {limit:#, offset:0})
+		colfiltermodel l_par col_def [com1]:comma? word_or_num? [parameters]:options_map? r_par
+		;
+		
 unfilter_column = //unfilter column using col_def
 		colunfilter l_par col_def r_par;
 		
@@ -446,9 +452,9 @@ condition_block = l_par condition condition_group* r_par;
   //|{math_fun} math_fun // I need to still resolve other mathematical functions
   ;
  
- math_fun = proc id l_par [expr]:expr_row comma? [group]:col_csv? [parameters]:math_param? r_par; // m.Sum([1 + c:Activity], /*groupBy*/(c:studio, c:genre));
+ math_fun = proc id l_par [expr]:expr_row comma? [group]:col_csv? [parameters]:options_map? r_par; // m.Sum([1 + c:Activity], /*groupBy*/(c:studio, c:genre));
  
- math_param = comma map_obj; 
+ options_map = comma map_obj; 
  
  extended_expr = l_par [expr]:expr comma? [group]:col_csv r_par; // I have no idea why I need this.. but !!
  

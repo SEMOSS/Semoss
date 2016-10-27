@@ -4,6 +4,10 @@ import java.util.Map;
 
 public class DataframeHeaderMetadata extends AbstractPkqlMetadata{
 
+	public DataframeHeaderMetadata() {
+		
+	}
+	
 	@Override
 	public Map<String, Object> getMetadata() {
 		//No data needed.
