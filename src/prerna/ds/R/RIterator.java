@@ -20,10 +20,12 @@ public class RIterator implements Iterator<Object[]>{
 	// R returns the vector as a map
 	// need to keep the headers so we know the order to return
 	private String[] headers;
+	private String headerString;
 	
 	public RIterator(RBuilder builder, String[] headers) {
 		this.builder = builder;
 		this.headers = headers;
+		this.headerString = RSyntaxHelper.createStringRColVec(headers);
 		this.dataTableSize = this.builder.getNumRows();
 		
 		//TODO: this is because the FE keeps trying to grab the entire grid
@@ -46,7 +48,7 @@ public class RIterator implements Iterator<Object[]>{
 	@Override
 	public Object[] next() {
 		// grab the rowIndex from the data table
-		REXP result = this.builder.executeR(   this.builder.addTryEvalToScript( "datatable[" + rowIndex + " , ]" )   );
+		REXP result = this.builder.executeR(   this.builder.addTryEvalToScript( "datatable[" + rowIndex + " , " + headerString + ", with=FALSE]" )   );
 		
 		Map<String, Object> data = null;
 		try {

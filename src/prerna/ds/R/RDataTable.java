@@ -130,7 +130,12 @@ public class RDataTable extends AbstractTableDataFrame {
 		// TODO Auto-generated method stub
 		// TODO Auto-generated method stub
 		// need to build this out
-		return this.builder.iterator(this.headerNames);
+		String[] headers = this.headerNames;
+		if(options.containsKey(AbstractTableDataFrame.SELECTORS)) {
+			List<String> headerList = (List<String>) options.get(AbstractTableDataFrame.SELECTORS);
+			headers = headerList.toArray(new String[]{});
+		}
+		return this.builder.iterator(headers);
 	}
 	
 	@Override
