@@ -39,6 +39,9 @@ public class PKQLEnum {
 	public static final String MIN = "MIN";
 	public static final String AVERAGE = "AVERAGE";
 	public static final String STANDARD_DEVIATION = "STANDARDDEVIATION";
+	public static final String POPULATION_STANDARD_DEVIATION = "POPULATIONSTANDARDDEVIATION";
+	public static final String SAMPLE_STANDARD_DEVIATION = "SAMPLESTANDARDDEVIATION";
+
 	public static final String MEDIAN = "MEDIAN";
 	public static final String COUNT = "COUNT";
 	public static final String ROUND = "ROUND";
