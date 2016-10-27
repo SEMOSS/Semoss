@@ -2043,6 +2043,15 @@ public class TinkerFrame extends AbstractTableDataFrame {
 		GremlinBuilder builder = GremlinBuilder.prepareGenericBuilder(column, g, ((TinkerMetaData)this.metaData).g, null);
 		return builder.executeScript().values(Constants.NAME).dedup();	
 	}
+	
+	public Object[] getColumn(String columnHeader) {
+		Iterator<Object> iterator = uniqueValueIterator(columnHeader, false);
+		List<Object> columnList = new ArrayList<>();
+		while(iterator.hasNext()) {
+			columnList.add(iterator.next());
+		}
+		return columnList.toArray();
+	}
 
 	private GraphTraversal<Vertex, Object> getGraphTraversal(String columnHeader) {
 		String columnType = this.metaData.getValueForUniqueName(columnHeader);
