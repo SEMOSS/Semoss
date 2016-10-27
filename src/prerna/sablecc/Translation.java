@@ -22,6 +22,7 @@ import prerna.om.Dashboard;
 import prerna.sablecc.PKQLEnum.PKQLReactor;
 import prerna.sablecc.PKQLRunner.STATUS;
 import prerna.sablecc.analysis.DepthFirstAdapter;
+import prerna.sablecc.expressions.r.AbstractRBaseReducer;
 import prerna.sablecc.expressions.sql.builder.SqlBuilder;
 import prerna.sablecc.expressions.sql.builder.SqlBuilderGenerator;
 import prerna.sablecc.meta.IPkqlMetadata;
@@ -1891,7 +1892,8 @@ public class Translation extends DepthFirstAdapter {
 		
 		// above is all old stuff
 		// using new object to send new header info
-		if(previousReactor instanceof BaseReducerReactor) {
+		// ughhhh... TODO: need to consolidate these to a common interface
+		if(previousReactor instanceof BaseReducerReactor || previousReactor instanceof AbstractRBaseReducer) {
 			Map<String, Object> headerInfo = ((BaseReducerReactor) previousReactor).getColumnDataMap();
 			curReactor.set("MERGE_HEADER_INFO", headerInfo);
 		}

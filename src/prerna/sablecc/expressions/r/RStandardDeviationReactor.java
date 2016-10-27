@@ -1,5 +1,7 @@
 package prerna.sablecc.expressions.r;
 
+import java.util.Map;
+
 public class RStandardDeviationReactor extends RBasicMathReactor {
 
 	/*
@@ -9,6 +11,11 @@ public class RStandardDeviationReactor extends RBasicMathReactor {
 	
 	public RStandardDeviationReactor() {
 		this.setMathRoutine("sd");
+	}
+	
+	@Override
+	public Map<String, Object> getColumnDataMap() {
+		return getBaseColumnDataMap("StandardDeviation");
 	}
 
 }
