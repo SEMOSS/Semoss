@@ -31,7 +31,7 @@ Tokens
  div = '/';
  col = 'col';
  comparator = ('>' | '<' | '<=' | '>=' | '!=' | '?like');
- viz_type = ('x=' | 'y=' | 'z=' | 'size=' | 'color=' | 'tooltip=' | 'cluster=' | 'latitude=' | 'longitude=' | 'startDate=' | 'endDate=' | 'heat=' | 'dimension=' | 'label=' | 'value=' | 'series=');
+ viz_type = ('x=' | 'y=' | 'z=' | 'size=' | 'color=' | 'tooltip=' | 'cluster=' | 'latitude=' | 'longitude=' | 'start=' | 'end=' | 'heat=' | 'dimension=' | 'label=' | 'value=' | 'series=' | 'group=');
  log_operator = ( '||' | '&&' );
  equal = '=';
  coladd = 'col.add';
