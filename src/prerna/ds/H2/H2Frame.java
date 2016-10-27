@@ -1307,7 +1307,7 @@ public class H2Frame extends AbstractTableDataFrame {
 		reactorNames.put(PKQLEnum.COL_ADD, "prerna.sablecc.H2ColAddReactor");
 		reactorNames.put(PKQLEnum.COL_SPLIT, "prerna.sablecc.H2ColSplitReactor");
 		reactorNames.put(PKQLEnum.IMPORT_DATA, "prerna.sablecc.H2ImportDataReactor");
-		reactorNames.put(PKQLEnum.DATA_FRAME_DUPLICATES, "prerna.sablecc.H2DataFrameDuplicatesReactor");
+		reactorNames.put(PKQLEnum.DATA_FRAME_DUPLICATES, "prerna.sablecc.H2DuplicatesReactor");
 		reactorNames.put(PKQLEnum.VIZ, "prerna.sablecc.H2VizReactor");
 //		reactorNames.put(PKQLEnum.VIZ, "prerna.sablecc.VizReactor");
 
