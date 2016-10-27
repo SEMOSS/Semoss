@@ -659,7 +659,7 @@ public class Translation extends DepthFirstAdapter {
 			curReactor.put(PKQLEnum.PASTED_DATA, nodeStr.trim());
 			String word = ((APastedDataBlock) node.parent()).getDelimitier().toString().trim();
 			// remove the quotes via substring
-			curReactor.set(PastedDataReactor.DELIMITER, (word.substring(1, word.length() - 1))); 
+			curReactor.put(PastedDataReactor.DELIMITER, (word.substring(1, word.length() - 1))); 
 		}
 	}
 
