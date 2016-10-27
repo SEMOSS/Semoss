@@ -3475,13 +3475,13 @@ public class DepthFirstAdapter extends AnalysisAdapter
         {
             node.getLBracket().apply(this);
         }
-        if(node.getTerm() != null)
+        if(node.getSelectorTerm() != null)
         {
-            node.getTerm().apply(this);
+            node.getSelectorTerm().apply(this);
         }
         {
-            List<PTermGroup> copy = new ArrayList<PTermGroup>(node.getTermGroup());
-            for(PTermGroup e : copy)
+            List<PSelectorGroup> copy = new ArrayList<PSelectorGroup>(node.getSelectorGroup());
+            for(PSelectorGroup e : copy)
             {
                 e.apply(this);
             }
@@ -3493,29 +3493,54 @@ public class DepthFirstAdapter extends AnalysisAdapter
         outAFlexSelectorRow(node);
     }
 
-    public void inATermGroup(ATermGroup node)
+    public void inASelectorTerm(ASelectorTerm node)
     {
         defaultIn(node);
     }
 
-    public void outATermGroup(ATermGroup node)
+    public void outASelectorTerm(ASelectorTerm node)
     {
         defaultOut(node);
     }
 
     @Override
-    public void caseATermGroup(ATermGroup node)
+    public void caseASelectorTerm(ASelectorTerm node)
     {
-        inATermGroup(node);
-        if(node.getComma() != null)
+        inASelectorTerm(node);
+        if(node.getVizType() != null)
         {
-            node.getComma().apply(this);
+            node.getVizType().apply(this);
         }
         if(node.getTerm() != null)
         {
             node.getTerm().apply(this);
         }
-        outATermGroup(node);
+        outASelectorTerm(node);
+    }
+
+    public void inASelectorGroup(ASelectorGroup node)
+    {
+        defaultIn(node);
+    }
+
+    public void outASelectorGroup(ASelectorGroup node)
+    {
+        defaultOut(node);
+    }
+
+    @Override
+    public void caseASelectorGroup(ASelectorGroup node)
+    {
+        inASelectorGroup(node);
+        if(node.getComma() != null)
+        {
+            node.getComma().apply(this);
+        }
+        if(node.getSelectorTerm() != null)
+        {
+            node.getSelectorTerm().apply(this);
+        }
+        outASelectorGroup(node);
     }
 
     public void inAFormula(AFormula node)

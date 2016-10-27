@@ -15,7 +15,8 @@ import com.google.gson.GsonBuilder;
 import com.google.gson.reflect.TypeToken;
 
 import cern.colt.Arrays;
-import prerna.sablecc.expressions.IExpressionIterator;
+import prerna.sablecc.expressions.sql.H2SqlExpressionIterator;
+import prerna.sablecc.expressions.sql.builder.SqlBuilder;
 import prerna.sablecc.lexer.Lexer;
 import prerna.sablecc.lexer.LexerException;
 import prerna.sablecc.meta.IPkqlMetadata;
@@ -151,11 +152,11 @@ public class PKQLRunner {
 			result.put("result", Arrays.toString( (int[]) response));
 		} 
 		//TODO: should extrapolate this to a generic kind of expression iterator
-		else if(response instanceof IExpressionIterator) {
+		else if(response instanceof SqlBuilder) {
 			StringBuilder builder = new StringBuilder();
-			IExpressionIterator it = (IExpressionIterator) response;
+			H2SqlExpressionIterator it = new H2SqlExpressionIterator((SqlBuilder) response);
 			List<Object[]> first500 = new Vector<Object[]>();
-			first500.add(it.getHeaders());
+//			first500.add(it.getHeaders());
 			int counter = 0;
 			while(it.hasNext() && counter < 500) {
 				first500.add(it.next());

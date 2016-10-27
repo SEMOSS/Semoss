@@ -3,12 +3,12 @@ package prerna.algorithm.impl;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Iterator;
-import java.util.List;
+import java.util.Map;
 import java.util.Vector;
 
 import org.apache.commons.math3.stat.correlation.PearsonsCorrelation;
 
-import prerna.algorithm.api.ITableDataFrame;
+import prerna.sablecc.PKQLEnum;
 import prerna.util.ArrayUtilityMethods;
 
 public class CorrelationCoefficientReactor extends BaseReducerReactor {
@@ -30,7 +30,8 @@ public class CorrelationCoefficientReactor extends BaseReducerReactor {
 	 	int numRows = x1.size();
 		double[] x = new double[numRows] ;
 		double[] y = new double[numRows] ;
-	for(int i=0; i< numRows;i++)
+		
+		for(int i=0; i< numRows;i++)
 		{
 		    x[i] = Double.parseDouble( x1.get(i).toString()) ;
 		    y[i] = Double.parseDouble( y1.get(i).toString()) ;
@@ -72,6 +73,11 @@ public class CorrelationCoefficientReactor extends BaseReducerReactor {
 		}
 		
 		return groupByHash;
+	}
+	
+	@Override
+	public Map<String, Object> getColumnDataMap() {
+		return getBaseColumnDataMap("CorrelationCoefficient");
 	}
 	
 }
