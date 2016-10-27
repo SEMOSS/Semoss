@@ -1,5 +1,7 @@
 package prerna.sablecc.expressions.r;
 
+import java.util.Map;
+
 public class RAverageReactor extends RBasicMathReactor {
 
 	/*
@@ -9,5 +11,10 @@ public class RAverageReactor extends RBasicMathReactor {
 	
 	public RAverageReactor() {
 		this.setMathRoutine("mean");
+	}
+	
+	@Override
+	public Map<String, Object> getColumnDataMap() {
+		return getBaseColumnDataMap("Average");
 	}
 }

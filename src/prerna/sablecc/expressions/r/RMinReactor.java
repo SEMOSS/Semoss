@@ -1,5 +1,7 @@
 package prerna.sablecc.expressions.r;
 
+import java.util.Map;
+
 public class RMinReactor extends RBasicMathReactor {
 
 	/*
@@ -11,4 +13,8 @@ public class RMinReactor extends RBasicMathReactor {
 		this.setMathRoutine("min");
 	}
 
+	@Override
+	public Map<String, Object> getColumnDataMap() {
+		return getBaseColumnDataMap("Min");
+	}
 }
