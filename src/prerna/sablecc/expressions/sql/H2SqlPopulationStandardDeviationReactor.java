@@ -1,13 +1,13 @@
 package prerna.sablecc.expressions.sql;
 
-public class SqlStandardDeviationReactor extends H2SqlBasicMathReactor {
+public class H2SqlPopulationStandardDeviationReactor extends H2SqlBasicMathReactor {
 
 	/*
 	 * Only need to set the Math Routine
 	 * Everything else is handled by inheritance
 	 */
-	public SqlStandardDeviationReactor() {
-		this.setMathRoutine("STDEV");
+	public H2SqlPopulationStandardDeviationReactor() {
+		this.setMathRoutine("STDDEV_POP");
 		this.setPkqlMathRoutine("StandardDeviation");
 	}
 	
