@@ -1,23 +1,26 @@
 package prerna.sablecc.expressions;
 
+import java.util.List;
+import java.util.Vector;
+
 public abstract class AbstractExpressionIterator implements IExpressionIterator{
 
 	protected int numCols = 0;
 	
-	protected String expression;
-	protected String newColumnName;
+	protected List<String> expression = new Vector<String>();
+	protected List<String> newColumnName = new Vector<String>();
 	
 	protected String[] headers;
 	protected String[] joinCols;
 	protected String[] groupColumns;
 
 	@Override
-	public void setNewColumnName(String newColumnName) {
+	public void setNewColumnName(List<String> newColumnName) {
 		this.newColumnName = newColumnName;
 	}
 	
 	@Override
-	public String getNewColumnName() {
+	public List<String> getNewColumnName() {
 		return this.newColumnName;
 	}
 	
@@ -41,7 +44,15 @@ public abstract class AbstractExpressionIterator implements IExpressionIterator{
 
 	@Override
 	public String toString() {
-		return this.expression;
+		StringBuilder exprBuilder = new StringBuilder();
+		int size = this.expression.size();
+		if(this.expression.size() > 0) {
+			exprBuilder.append(this.expression.get(0));
+			for(int i = 1; i < size; i++) {
+				exprBuilder.append(" , ").append(this.expression.get(i));
+			}
+		}
+		return exprBuilder.toString();
 	}
 	
 	@Override
@@ -55,12 +66,12 @@ public abstract class AbstractExpressionIterator implements IExpressionIterator{
 	}
 	
 	@Override
-	public void setExpression(String expression) {
+	public void setExpression(List<String> expression) {
 		this.expression = expression;
 	}
 	
 	@Override
-	public String getExpression() {
+	public List<String> getExpression() {
 		return this.expression;
 	}
 	

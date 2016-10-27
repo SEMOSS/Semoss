@@ -2336,7 +2336,7 @@ public class Utility {
 		}
 		origDataType = origDataType.toUpperCase();
 
-		if(origDataType.equals("DOUBLE") || origDataType.equals("INT")) {
+		if(origDataType.equals("DOUBLE") || origDataType.equals("INT") || origDataType.equals("FLOAT")) {
 			return "DOUBLE";
 		}
 

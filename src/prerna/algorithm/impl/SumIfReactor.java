@@ -95,4 +95,9 @@ public class SumIfReactor extends BaseReducerReactor {
 		return groupByHash;
 	}
 	
+	@Override
+	public Map<String, Object> getColumnDataMap() {
+		return getBaseColumnDataMap("SumIf");
+	}
+	
 }

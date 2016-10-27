@@ -4,8 +4,10 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Iterator;
+import java.util.Map;
 import java.util.Vector;
 
+import prerna.sablecc.PKQLEnum;
 import prerna.util.ArrayUtilityMethods;
 
 public class MedianReactor extends BaseReducerReactor {
@@ -76,6 +78,11 @@ public class MedianReactor extends BaseReducerReactor {
 		}
 		
 		return groupByHash;
+	}
+	
+	@Override
+	public Map<String, Object> getColumnDataMap() {
+		return getBaseColumnDataMap("Median");
 	}
 	
 }

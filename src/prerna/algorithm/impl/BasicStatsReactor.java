@@ -3,7 +3,10 @@ package prerna.algorithm.impl;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Iterator;
+import java.util.Map;
 import java.util.Vector;
+
+import prerna.sablecc.PKQLEnum;
 import prerna.sablecc.PKQLRunner.STATUS;
 import org.apache.commons.math3.stat.descriptive.SummaryStatistics;
 
@@ -69,6 +72,13 @@ public class BasicStatsReactor extends BaseReducerReactor {
 		HashMap<HashMap<Object,Object>, Object> groupByHash = new HashMap<HashMap<Object,Object>,Object>();
 		
 		
+		return null;
+	}
+	
+	@Override
+	public Map<String, Object> getColumnDataMap() {
+		// this cannot be added into a frame
+		// just return null
 		return null;
 	}
 	
