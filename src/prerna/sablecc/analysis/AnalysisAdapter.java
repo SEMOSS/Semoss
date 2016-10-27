@@ -321,6 +321,12 @@ public class AnalysisAdapter implements Analysis
     }
 
     @Override
+    public void caseAPanelModelPanelop(APanelModelPanelop node)
+    {
+        defaultCase(node);
+    }
+
+    @Override
     public void caseADatatypeDataop(ADatatypeDataop node)
     {
         defaultCase(node);
@@ -436,6 +442,12 @@ public class AnalysisAdapter implements Analysis
 
     @Override
     public void caseAPanelClose(APanelClose node)
+    {
+        defaultCase(node);
+    }
+
+    @Override
+    public void caseAPanelModel(APanelModel node)
     {
         defaultCase(node);
     }
@@ -1588,6 +1600,12 @@ public class AnalysisAdapter implements Analysis
 
     @Override
     public void caseTOutputToken(TOutputToken node)
+    {
+        defaultCase(node);
+    }
+
+    @Override
+    public void caseTPanelmodel(TPanelmodel node)
     {
         defaultCase(node);
     }
