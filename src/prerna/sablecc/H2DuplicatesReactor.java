@@ -7,7 +7,7 @@ import java.util.Vector;
 import prerna.ds.H2.H2Frame;
 import prerna.sablecc.PKQLRunner.STATUS;
 
-public class H2DataFrameDuplicatesReactor extends DataFrameDuplicatesReactor {
+public class H2DuplicatesReactor extends DataFrameDuplicatesReactor {
 
 	@Override
 	public Iterator process() {

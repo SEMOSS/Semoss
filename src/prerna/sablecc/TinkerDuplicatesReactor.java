@@ -10,7 +10,7 @@ import java.util.Vector;
 import prerna.algorithm.api.ITableDataFrame;
 import prerna.sablecc.PKQLRunner.STATUS;
 
-public class TinkerDataFrameDuplicatesReactor extends DataFrameDuplicatesReactor{
+public class TinkerDuplicatesReactor extends DataFrameDuplicatesReactor{
 
 	@Override
 	public Iterator process() {

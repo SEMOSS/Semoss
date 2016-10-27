@@ -2634,7 +2634,7 @@ public class TinkerFrame extends AbstractTableDataFrame {
 		reactorNames.put(PKQLEnum.DATA_TYPE, "prerna.sablecc.DataTypeReactor");
 		reactorNames.put(PKQLEnum.DATA_CONNECT, "prerna.sablecc.DataConnectReactor");
 		reactorNames.put(PKQLEnum.JAVA_OP, "prerna.sablecc.JavaReactorWrapper");
-		reactorNames.put(PKQLEnum.DATA_FRAME_DUPLICATES, "prerna.sablecc.TinkerDataFrameDuplicatesReactor");
+		reactorNames.put(PKQLEnum.DATA_FRAME_DUPLICATES, "prerna.sablecc.TinkerDuplicatesReactor");
 
 		reactorNames.put(PKQLEnum.QUERY_API, "prerna.sablecc.QueryApiReactor");
 		reactorNames.put(PKQLEnum.CSV_API, "prerna.sablecc.CsvApiReactor");
