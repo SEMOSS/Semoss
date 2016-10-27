@@ -936,6 +936,27 @@ public class DepthFirstAdapter extends AnalysisAdapter
         outAOutputInsightPanelop(node);
     }
 
+    public void inAPanelModelPanelop(APanelModelPanelop node)
+    {
+        defaultIn(node);
+    }
+
+    public void outAPanelModelPanelop(APanelModelPanelop node)
+    {
+        defaultOut(node);
+    }
+
+    @Override
+    public void caseAPanelModelPanelop(APanelModelPanelop node)
+    {
+        inAPanelModelPanelop(node);
+        if(node.getPanelModel() != null)
+        {
+            node.getPanelModel().apply(this);
+        }
+        outAPanelModelPanelop(node);
+    }
+
     public void inADatatypeDataop(ADatatypeDataop node)
     {
         defaultIn(node);
@@ -1518,6 +1539,39 @@ public class DepthFirstAdapter extends AnalysisAdapter
             node.getRPar().apply(this);
         }
         outAPanelClose(node);
+    }
+
+    public void inAPanelModel(APanelModel node)
+    {
+        defaultIn(node);
+    }
+
+    public void outAPanelModel(APanelModel node)
+    {
+        defaultOut(node);
+    }
+
+    @Override
+    public void caseAPanelModel(APanelModel node)
+    {
+        inAPanelModel(node);
+        if(node.getPanelmodel() != null)
+        {
+            node.getPanelmodel().apply(this);
+        }
+        if(node.getLPar() != null)
+        {
+            node.getLPar().apply(this);
+        }
+        if(node.getJsonblock() != null)
+        {
+            node.getJsonblock().apply(this);
+        }
+        if(node.getRPar() != null)
+        {
+            node.getRPar().apply(this);
+        }
+        outAPanelModel(node);
     }
 
     public void inADataFrame(ADataFrame node)
