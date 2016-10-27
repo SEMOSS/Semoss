@@ -43,7 +43,8 @@ public class PKQLEnum {
 	public static final String COUNT = "COUNT";
 	public static final String ROUND = "ROUND";
 	public static final String CONCAT = "CONCAT";
-
+	public static final String GROUP_CONCAT = "GROUPCONCAT";
+	
 	public static final String NUMBER = "NUMBER";
 	public static final String DECIMAL = "DECIMAL";
 	public static final String ALPHA = "ALPHA";

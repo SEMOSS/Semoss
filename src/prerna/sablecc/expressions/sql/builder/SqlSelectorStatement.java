@@ -15,6 +15,10 @@ public class SqlSelectorStatement {
 		selectors.add(selector);
 	}
 	
+	protected void addSelector(int index, ISqlSelector selector) {
+		selectors.add(index, selector);
+	}
+	
 	@Override
 	public String toString() {
 		StringBuilder builder = new StringBuilder();
