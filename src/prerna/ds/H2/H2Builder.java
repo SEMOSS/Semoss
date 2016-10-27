@@ -779,6 +779,32 @@ public class H2Builder {
 		return new Vector<Object[]>(0);
 	}
 
+	public HashSet<String> getHashSetFromQuery(String query) {
+		ResultSet rs = null;
+		try {
+			rs = executeQuery(query);
+			if (rs != null) {
+				ResultSetMetaData rsmd = rs.getMetaData();
+				HashSet<String> data = new HashSet<String>();
+				while (rs.next()) {
+					data.add(rs.getString(1));
+				}
+				return data;
+			}
+		} catch (SQLException e) {
+			e.printStackTrace();
+		} finally {
+			if (rs != null) {
+				try {
+					rs.close();
+				} catch (SQLException e) {
+					e.printStackTrace();
+				}
+			}
+		}
+		return new HashSet<String>();
+	}
+
 	/**
 	 * Get the column values from the table as an Object array
 	 * 
@@ -1347,6 +1373,15 @@ public class H2Builder {
 		return filterStatement;
 	}
 
+	public Object[] getFilterHashJoinedMode() {
+		Map<String, Map<AbstractTableDataFrame.Comparator, Set<Object>>> filterHash = this.filterHash2;
+		if (this.joinMode) {
+			tableName = this.viewTableName;
+			filterHash = joiner.getJoinedFilterHash(viewTableName);
+		}
+		return new Object[] { tableName, filterHash };
+	}
+
 	/**
 	 * 
 	 * @param selectors
@@ -1356,7 +1391,7 @@ public class H2Builder {
 	 * 		return the filtered values portion of the filter model that is
 	 *         returned by the H2Frame
 	 */
-	public Map<String, List<Object>> getFilteredValues(List<String> selectors) {
+	public Map<String, List<Object>> getFilteredValues(List<String> selectors, String limitOffset) {
 
 		// Header name -> [val1, val2, ...]
 		// Ex: Studio -> [WB, Universal]
@@ -1376,7 +1411,7 @@ public class H2Builder {
 				String thisSelector = joinMode ? translateColumn(selector) : selector;
 
 				if (filterHash.get(thisSelector) != null) {
-					String query = makeNotSelect(tableName, thisSelector, filterHash);
+					String query = makeNotSelect(tableName, thisSelector, filterHash) + limitOffset;
 					ResultSet rs = executeQuery(query);
 
 					List<Object> filterData = null;

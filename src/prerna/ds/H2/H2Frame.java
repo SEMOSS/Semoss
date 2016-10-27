@@ -547,7 +547,7 @@ public class H2Frame extends AbstractTableDataFrame {
 		}
 
 		//TODO: is this the same as filteredValues object?
-		Map<String, List<Object>> h2filteredValues = builder.getFilteredValues(getH2Selectors());
+		Map<String, List<Object>> h2filteredValues = builder.getFilteredValues(getH2Selectors(), "");
 
 		for (int i = 0; i < length; i++) {
 			// get filtered values
@@ -604,6 +604,43 @@ public class H2Frame extends AbstractTableDataFrame {
 		return new Object[] { visibleValues, filteredValues, minMaxValues };
 	}
 	
+	public Map<String, Map<String, Double>> getMinMaxValues(String col) {
+		Map<String, Map<String, Double>> minMaxValues = new HashMap<String, Map<String, Double>>();
+		if(this.metaData.getDataType(col) == IMetaData.DATA_TYPES.NUMBER) {
+			Map<String, Double> minMax = new HashMap<String, Double>();
+
+			// sort unfiltered array to pull relative min and max of unfiltered data
+			double min = getMin(col);
+			double max = getMax(col);
+			
+			double absMin = builder.getStat(col, "MIN", true);
+			double absMax = builder.getStat(col, "MAX", true);
+
+			minMax.put("min", min);
+			minMax.put("max", max);
+
+			minMax.put("absMin", absMin);
+			minMax.put("absMax", absMax);
+
+			// calculate how large each step in the slider should be
+			double difference = absMax - absMin;
+			double step = 1;
+			if(difference < 1) {
+				double tenthPower = Math.floor(Math.log10(difference));
+				if(tenthPower < 0) {
+					// ex. if difference is 0.009, step should be 0.001
+					step = Math.pow(10, tenthPower);
+				} else {
+					step = 0.1;
+				}
+			}
+			minMax.put("step", step);
+
+			minMaxValues.put(col, minMax);
+		}
+		return minMaxValues;
+	}
+
 	public Map<String, Object[]> getFilterTransformationValues() {
 		Map<String, Object[]> retMap = new HashMap<String, Object[]>();
 		// get meta nodes that are tagged as filtered
@@ -1315,6 +1352,9 @@ public class H2Frame extends AbstractTableDataFrame {
 		reactorNames.put(PKQLEnum.DASHBOARD_JOIN, "prerna.sablecc.DashboardJoinReactor");
 		reactorNames.put(PKQLEnum.NETWORK_CONNECT, "prerna.sablecc.ConnectReactor");
 		reactorNames.put(PKQLEnum.NETWORK_DISCONNECT, "prerna.sablecc.DisConnectReactor");
+		reactorNames.put(PKQLEnum.DATA_FRAME_DUPLICATES, "prerna.sablecc.H2DataFrameDuplicatesReactor");
+		reactorNames.put(PKQLEnum.COL_FILTER_MODEL, "prerna.sablecc.H2ColFilterModelReactor");
+		
 
 		// h2 specific expression handlers		
 		reactorNames.put(PKQLEnum.SUM, "prerna.sablecc.expressions.sql.SqlSumReactor");

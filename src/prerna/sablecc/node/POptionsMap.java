@@ -2,7 +2,7 @@
 
 package prerna.sablecc.node;
 
-public abstract class PMathParam extends Node
+public abstract class POptionsMap extends Node
 {
     // Empty body
 }

@@ -28,6 +28,7 @@ public interface Analysis extends Switch
     void caseASetcolColop(ASetcolColop node);
     void caseAPivotcolColop(APivotcolColop node);
     void caseAFiltercolColop(AFiltercolColop node);
+    void caseAFiltermodelColop(AFiltermodelColop node);
     void caseAFocuscolColop(AFocuscolColop node);
     void caseAUnfocusColop(AUnfocusColop node);
     void caseAImportColop(AImportColop node);
@@ -84,6 +85,7 @@ public interface Analysis extends Switch
     void caseASetColumn(ASetColumn node);
     void caseAPivotColumn(APivotColumn node);
     void caseAFilterColumn(AFilterColumn node);
+    void caseAFilterModel(AFilterModel node);
     void caseAUnfilterColumn(AUnfilterColumn node);
     void caseAFocusColumn(AFocusColumn node);
     void caseAUnfocus(AUnfocus node);
@@ -174,7 +176,7 @@ public interface Analysis extends Switch
     void caseAEExprExpr(AEExprExpr node);
     void caseAConditionExprExpr(AConditionExprExpr node);
     void caseAMathFun(AMathFun node);
-    void caseAMathParam(AMathParam node);
+    void caseAOptionsMap(AOptionsMap node);
     void caseAExtendedExpr(AExtendedExpr node);
     void caseANumberTerm(ANumberTerm node);
     void caseAFormulaTerm(AFormulaTerm node);
@@ -218,6 +220,7 @@ public interface Analysis extends Switch
     void caseTColremove(TColremove node);
     void caseTColfilter(TColfilter node);
     void caseTColunfilter(TColunfilter node);
+    void caseTColfiltermodel(TColfiltermodel node);
     void caseTColimport(TColimport node);
     void caseTColset(TColset node);
     void caseTColpivot(TColpivot node);
