@@ -24,6 +24,10 @@ public class SqlColumnSelector implements ISqlSelector{
 	
 	@Override
 	public String toString() {
-		return frame.getTableColumnName(columnName);
+		String retName = frame.getTableColumnName(columnName);
+		if(retName == null) {
+			throw new IllegalArgumentException("COLUMN NAME NOT FOUND IN FRAME!!! Cannot identify column name = \"" + columnName + "\"");
+		}
+		return retName;
 	}
 }

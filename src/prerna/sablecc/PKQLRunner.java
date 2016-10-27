@@ -15,8 +15,10 @@ import com.google.gson.GsonBuilder;
 import com.google.gson.reflect.TypeToken;
 
 import cern.colt.Arrays;
+import prerna.ds.H2.H2Frame;
 import prerna.sablecc.expressions.sql.H2SqlExpressionIterator;
 import prerna.sablecc.expressions.sql.builder.SqlBuilder;
+import prerna.sablecc.expressions.sql.builder.SqlColumnSelector;
 import prerna.sablecc.lexer.Lexer;
 import prerna.sablecc.lexer.LexerException;
 import prerna.sablecc.meta.IPkqlMetadata;
@@ -153,10 +155,32 @@ public class PKQLRunner {
 		} 
 		//TODO: should extrapolate this to a generic kind of expression iterator
 		else if(response instanceof SqlBuilder) {
-			StringBuilder builder = new StringBuilder();
-			H2SqlExpressionIterator it = new H2SqlExpressionIterator((SqlBuilder) response);
+			H2Frame frame = (H2Frame) translation.getDataFrame();
+			SqlBuilder builder = (SqlBuilder) response;
+			
+			// we add some selectors to make sure this output is more intuitive
+			List<String> groups = builder.getGroupByColumns();
+			if(groups == null || groups.isEmpty()) {
+				// if no groups
+				// use the existing columns to join on
+				List<String> joinCols = builder.getTableColumns();
+				for(String joinCol : joinCols) {
+					SqlColumnSelector selector = new SqlColumnSelector(frame, joinCol);
+					builder.addSelector(selector);
+				}
+			} else {
+				// use the group columns to join on
+				for(String group : groups) {
+					SqlColumnSelector selector = new SqlColumnSelector(frame, group);
+					builder.addSelector(selector);
+				}
+			}
+			
+			
+			StringBuilder retStringBuilder = new StringBuilder();
+			H2SqlExpressionIterator it = new H2SqlExpressionIterator(builder);
 			List<Object[]> first500 = new Vector<Object[]>();
-//			first500.add(it.getHeaders());
+			first500.add(builder.getSelectorNames().toArray());
 			int counter = 0;
 			while(it.hasNext() && counter < 500) {
 				first500.add(it.next());
@@ -164,11 +188,11 @@ public class PKQLRunner {
 			}
 			// if we only show a subset
 			if(counter == 500) {
-				builder.append("Only showing first 500 rows\n");
+				retStringBuilder.append("Only showing first 500 rows\n");
 				it.close();
 			}
 			
-			String retResponse = getStringFromList( first500, builder);
+			String retResponse = getStringFromList( first500, retStringBuilder);
 			result.put("result", retResponse);
 		} else {
 //			result.put("result", StringEscapeUtils.escapeHtml(response + ""));

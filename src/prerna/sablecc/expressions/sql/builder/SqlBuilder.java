@@ -29,6 +29,14 @@ public class SqlBuilder {
 	}
 	
 	/**
+	 * Add a new selector for the sql statement
+	 * @param selector
+	 */
+	public void addSelector(int index, ISqlSelector selector) {
+		selectors.addSelector(index, selector);
+	}
+	
+	/**
 	 * Get the list of selector objects
 	 * @return
 	 */
