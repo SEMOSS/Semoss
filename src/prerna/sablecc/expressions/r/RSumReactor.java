@@ -1,5 +1,7 @@
 package prerna.sablecc.expressions.r;
 
+import java.util.Map;
+
 public class RSumReactor extends RBasicMathReactor {
 
 	/*
@@ -11,4 +13,8 @@ public class RSumReactor extends RBasicMathReactor {
 		this.setMathRoutine("sum");
 	}
 	
+	@Override
+	public Map<String, Object> getColumnDataMap() {
+		return getBaseColumnDataMap("Sum");
+	}
 }
