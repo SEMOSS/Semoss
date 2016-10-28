@@ -1304,6 +1304,7 @@ public class Insight {
 			retHash.put("uiOptions", uiOptions);
 		}
 		retHash.put("pkqlOutput", this.getPKQLData(false));
+		retHash.put("recipe", this.getRecipe().split(System.getProperty("line.separator")));
 		return retHash;
 	}
 	
