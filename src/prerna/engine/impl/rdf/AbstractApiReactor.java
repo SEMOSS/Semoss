@@ -95,38 +95,38 @@ public abstract class AbstractApiReactor extends AbstractReactor{
 					String toColumn = (String)join.get(PKQLEnum.TO_COL); //what is coming to my table
 					String joinType = (String)join.get(PKQLEnum.REL_TYPE);
 					if(joinType.equalsIgnoreCase("inner.join") || joinType.equalsIgnoreCase("left.outer.join")) {
-						//figure out which is the new column and which already exists in the table
-						Iterator<Object> rowIt = null;
-
 						//we want to add filters to the column that already exists in the table
 						if(fromColumn != null && toColumn != null) {
-							rowIt = frame.uniqueValueIterator(fromColumn, false);
-							List<Object> uris = new Vector<Object>();
-
-							//collect all the filter values
-							while(rowIt.hasNext()){
-								uris.add(rowIt.next());
-							}
-
 							//see if this filter already exists
 							boolean addFilter = true;
 							for(Hashtable filter : filters) {
 								if(((String)filter.get("FROM_COL")).equals(toColumn)) {
 									Vector values = (Vector) filter.get("TO_DATA");
 									if(values != null && values.size() > 0) {
-										//									values.addAll(uris);
 										addFilter = false;
 										break;
 									}
 									break;
 								}
 							}
-
+							
 							//if not contained create a new table and add to filters
 							if(addFilter) {
+								//figure out which is the new column and which already exists in the table
+								Iterator<Object> rowIt = frame.uniqueValueIterator(fromColumn, false);
+								List<Object> filterInstances = new Vector<Object>();
+	
+								//collect all the filter values
+								while(rowIt.hasNext()){
+									Object val = rowIt.next();
+									if(val != null) {
+										filterInstances.add(rowIt.next());
+									}
+								}
+								
 								Hashtable joinfilter = new Hashtable();
 								joinfilter.put(PKQLEnum.FROM_COL, toColumn);
-								joinfilter.put("TO_DATA", uris);
+								joinfilter.put("TO_DATA", filterInstances);
 								joinfilter.put(PKQLEnum.COMPARATOR, "=");
 								filters.add(joinfilter);
 							}
