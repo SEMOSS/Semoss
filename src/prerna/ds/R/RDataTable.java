@@ -108,6 +108,10 @@ public class RDataTable extends AbstractTableDataFrame {
 		return this.builder.executeR(rScript);
 	}
 	
+	public String getROutput(String rScript) {
+		return this.builder.getROutput(rScript);
+	}
+	
 	@Override
 	public Double getMax(String columnHeader) {
 		return this.builder.executeStat(columnHeader, "max");
