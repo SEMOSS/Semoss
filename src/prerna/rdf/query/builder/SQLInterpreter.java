@@ -137,10 +137,14 @@ public class SQLInterpreter implements IQueryInterpreter{
 				// the vast majority of the time, there shouldn't be any duplicates if
 				// we are selecting all the columns
 				String table = froms.get(0)[0];
-				if((engine.getProperties4Concept2(table, false).size() + 1) == selectorList.size()) {
-					// plus one is for the concept itself
-					// no distinct needed
-					query.append(selectors).append(" FROM ");
+				if(engine != null) {
+					if( (engine.getConcepts2(false).size() == 1) && (engine.getProperties4Concept2(table, false).size() + 1) == selectorList.size()) {
+						// plus one is for the concept itself
+						// no distinct needed
+						query.append(selectors).append(" FROM ");
+					} else {
+						query.append("DISTINCT ").append(selectors).append(" FROM ");
+					}
 				} else {
 					// need a distinct
 					query.append("DISTINCT ").append(selectors).append(" FROM ");
