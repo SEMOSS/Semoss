@@ -4,7 +4,6 @@ import java.io.File;
 import java.io.FileOutputStream;
 import java.io.OutputStream;
 import java.sql.Connection;
-import java.util.Arrays;
 import java.util.Enumeration;
 import java.util.Hashtable;
 import java.util.List;
@@ -15,13 +14,9 @@ import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.GraphTraversal;
 import org.apache.tinkerpop.gremlin.structure.Graph;
 import org.apache.tinkerpop.gremlin.structure.Vertex;
 import org.apache.tinkerpop.gremlin.structure.io.IoCore;
-import org.rosuda.REngine.REXPDouble;
-import org.rosuda.REngine.REXPGenericVector;
-import org.rosuda.REngine.REXPInteger;
-import org.rosuda.REngine.REXPList;
+import org.rosuda.REngine.REXP;
 import org.rosuda.REngine.REXPMismatchException;
-import org.rosuda.REngine.REXPString;
-import org.rosuda.REngine.RList;
+import org.rosuda.REngine.REngineException;
 import org.rosuda.REngine.Rserve.RConnection;
 import org.rosuda.REngine.Rserve.RserveException;
 
@@ -552,141 +547,141 @@ public abstract class BaseJavaReactor extends AbstractReactor{
 	}
 	
 	
-	private void getResultAsString(Object output, StringBuilder builder)
-	{
-		// Generic vector..
-		if(output instanceof REXPGenericVector) 
-		{			
-			RList list = ((REXPGenericVector)output).asList();
-			
-			String[] attributeNames = getAttributeArr(((REXPGenericVector)output)._attr());
-			boolean matchesRows = false;
-			// output list attribute names if present
-			if(attributeNames != null) {
-				// Due to the way R sends back data
-				// When there is a list, it may contain a name label
-				matchesRows = list.size() == attributeNames.length;
-				if(!matchesRows) {
-					if(attributeNames.length == 1) {
-						builder.append("\n" + attributeNames[0] + "\n");
-					} else if(attributeNames.length > 1){
-						builder.append("\n" + Arrays.toString(attributeNames) + "\n");
-					}
-				}
-			}
-			int size = list.size();
-			for(int listIndex = 0; listIndex < size; listIndex++) {
-				if(matchesRows) {
-					builder.append("\n" + attributeNames[listIndex] + " : ");
-				}
-				getResultAsString(list.get(listIndex), builder);
-			}
-		}
-		
-		// List..
-		else if(output instanceof REXPList) {
-			RList list = ((REXPList)output).asList();
-			
-			String[] attributeNames = getAttributeArr(((REXPList)output)._attr());
-			boolean matchesRows = false;
-			// output list attribute names if present
-			if(attributeNames != null) {
-				// Due to the way R sends back data
-				// When there is a list, it may contain a name label
-				matchesRows = list.size() == attributeNames.length;
-				if(!matchesRows) {
-					if(attributeNames.length == 1) {
-						builder.append("\n" + attributeNames[0] + "\n");
-					} else if(attributeNames.length > 1){
-						builder.append("\n" + Arrays.toString(attributeNames) + "\n");
-					}
-				}
-			}
-			int size = list.size();
-			for(int listIndex = 0; listIndex < size; listIndex++) {
-				if(matchesRows) {
-					builder.append("\n" + attributeNames[listIndex] + " : ");
-				}
-				getResultAsString(list.get(listIndex), builder);
-			}
-		}
-		
-		// Integers..
-		else if(output instanceof REXPInteger)
-		{
-			int [] ints =  ((REXPInteger)output).asIntegers();
-			if(ints.length > 1)
-			{
-				for(int intIndex = 0;intIndex < ints.length; intIndex++) {
-					if(intIndex == 0) {
-						builder.append(ints[intIndex]);
-					} else {
-						builder.append(" ").append(ints[intIndex]);
-					}
-				}
-			}
-			else
-			{					
-				builder.append(ints[0]);
-			}
-		}
-		
-		// Doubles.. 
-		else if(output instanceof REXPDouble)
-		{
-			double [] doubles =  ((REXPDouble)output).asDoubles();
-			if(doubles.length > 1)
-			{
-				for(int intIndex = 0;intIndex < doubles.length; intIndex++) {
-					if(intIndex == 0) {
-						builder.append(doubles[intIndex]);
-					} else {
-						builder.append(" ").append(doubles[intIndex]);
-					}
-				}
-			}
-			else
-			{					
-				builder.append(doubles[0]);
-			}
-		}
-		
-		// Strings..
-		else if(output instanceof REXPString)
-		{
-			String [] strings =  ((REXPString)output).asStrings();
-			if(strings.length > 1)
-			{				
-				for(int intIndex = 0;intIndex < strings.length; intIndex++) {
-					if(intIndex == 0) {
-						builder.append(strings[intIndex]);
-					} else {
-						builder.append(" ").append(strings[intIndex]);
-					}
-				}
-			}
-			else
-			{					
-				builder.append(strings[0]);
-			}
-		}
-		
-		builder.append("\n");
-	}
+//	private void getResultAsString(Object output, StringBuilder builder)
+//	{
+//		// Generic vector..
+//		if(output instanceof REXPGenericVector) 
+//		{			
+//			RList list = ((REXPGenericVector)output).asList();
+//			
+//			String[] attributeNames = getAttributeArr(((REXPGenericVector)output)._attr());
+//			boolean matchesRows = false;
+//			// output list attribute names if present
+//			if(attributeNames != null) {
+//				// Due to the way R sends back data
+//				// When there is a list, it may contain a name label
+//				matchesRows = list.size() == attributeNames.length;
+//				if(!matchesRows) {
+//					if(attributeNames.length == 1) {
+//						builder.append("\n" + attributeNames[0] + "\n");
+//					} else if(attributeNames.length > 1){
+//						builder.append("\n" + Arrays.toString(attributeNames) + "\n");
+//					}
+//				}
+//			}
+//			int size = list.size();
+//			for(int listIndex = 0; listIndex < size; listIndex++) {
+//				if(matchesRows) {
+//					builder.append("\n" + attributeNames[listIndex] + " : ");
+//				}
+//				getResultAsString(list.get(listIndex), builder);
+//			}
+//		}
+//		
+//		// List..
+//		else if(output instanceof REXPList) {
+//			RList list = ((REXPList)output).asList();
+//			
+//			String[] attributeNames = getAttributeArr(((REXPList)output)._attr());
+//			boolean matchesRows = false;
+//			// output list attribute names if present
+//			if(attributeNames != null) {
+//				// Due to the way R sends back data
+//				// When there is a list, it may contain a name label
+//				matchesRows = list.size() == attributeNames.length;
+//				if(!matchesRows) {
+//					if(attributeNames.length == 1) {
+//						builder.append("\n" + attributeNames[0] + "\n");
+//					} else if(attributeNames.length > 1){
+//						builder.append("\n" + Arrays.toString(attributeNames) + "\n");
+//					}
+//				}
+//			}
+//			int size = list.size();
+//			for(int listIndex = 0; listIndex < size; listIndex++) {
+//				if(matchesRows) {
+//					builder.append("\n" + attributeNames[listIndex] + " : ");
+//				}
+//				getResultAsString(list.get(listIndex), builder);
+//			}
+//		}
+//		
+//		// Integers..
+//		else if(output instanceof REXPInteger)
+//		{
+//			int [] ints =  ((REXPInteger)output).asIntegers();
+//			if(ints.length > 1)
+//			{
+//				for(int intIndex = 0;intIndex < ints.length; intIndex++) {
+//					if(intIndex == 0) {
+//						builder.append(ints[intIndex]);
+//					} else {
+//						builder.append(" ").append(ints[intIndex]);
+//					}
+//				}
+//			}
+//			else
+//			{					
+//				builder.append(ints[0]);
+//			}
+//		}
+//		
+//		// Doubles.. 
+//		else if(output instanceof REXPDouble)
+//		{
+//			double [] doubles =  ((REXPDouble)output).asDoubles();
+//			if(doubles.length > 1)
+//			{
+//				for(int intIndex = 0;intIndex < doubles.length; intIndex++) {
+//					if(intIndex == 0) {
+//						builder.append(doubles[intIndex]);
+//					} else {
+//						builder.append(" ").append(doubles[intIndex]);
+//					}
+//				}
+//			}
+//			else
+//			{					
+//				builder.append(doubles[0]);
+//			}
+//		}
+//		
+//		// Strings..
+//		else if(output instanceof REXPString)
+//		{
+//			String [] strings =  ((REXPString)output).asStrings();
+//			if(strings.length > 1)
+//			{				
+//				for(int intIndex = 0;intIndex < strings.length; intIndex++) {
+//					if(intIndex == 0) {
+//						builder.append(strings[intIndex]);
+//					} else {
+//						builder.append(" ").append(strings[intIndex]);
+//					}
+//				}
+//			}
+//			else
+//			{					
+//				builder.append(strings[0]);
+//			}
+//		}
+//		
+//		builder.append("\n");
+//	}
 	
-	private String[] getAttributeArr(REXPList attrList) {
-		if(attrList == null) {
-			return null;
-		}
-		if(attrList.length() > 0) {	
-			Object attr = attrList.asList().get(0);
-			if(attr instanceof REXPString) {
-				String[] strAttr = ((REXPString)attr).asStrings();
-				return strAttr;
-			}
-		}
-		return null;
-	}
+//	private String[] getAttributeArr(REXPList attrList) {
+//		if(attrList == null) {
+//			return null;
+//		}
+//		if(attrList.length() > 0) {	
+//			Object attr = attrList.asList().get(0);
+//			if(attr instanceof REXPString) {
+//				String[] strAttr = ((REXPString)attr).asStrings();
+//				return strAttr;
+//			}
+//		}
+//		return null;
+//	}
 	
 	
 	public void runR(String script)
@@ -698,19 +693,40 @@ public abstract class BaseJavaReactor extends AbstractReactor{
 	{
 		RConnection rcon = startR();
 		try {
-			Object output = rcon.eval(script);
-			if(result)
-			{
-				java.lang.System.out.println("RCon data.. " + output);
-				StringBuilder builder = new StringBuilder();
-				getResultAsString(output, builder);
-				System.out.println("Output : " + builder.toString());
+			String newScript = "try(eval( paste(capture.output(print(" + script + ")),collapse='\n') ), silent=FALSE)";
+			REXP output = rcon.parseAndEval(newScript);
+			if(result) {
+				System.out.println(output.asString());
+//				java.lang.System.out.println("RCon data.. " + output.asString());
+//				StringBuilder builder = new StringBuilder();
+//				getResultAsString(output, builder);
+//				System.out.println("Output : " + builder.toString());
 			}
-		} catch (RserveException e) {
-			// TODO Auto-generated catch block
+		} catch (REngineException | REXPMismatchException e) {
 			e.printStackTrace();
-			System.err.println("Errored.. ");
+			String errorMessage = null;
+			if(e.getMessage() != null && !e.getMessage().isEmpty()) {
+				errorMessage = e.getMessage();
+			} else {
+				errorMessage = "Unexpected error in execution of R routine ::: " + script;
+			}
+			throw new IllegalArgumentException(errorMessage);
 		}
+		
+//		try {
+//			Object output = rcon.eval(script);
+//			if(result)
+//			{
+//				java.lang.System.out.println("RCon data.. " + output);
+//				StringBuilder builder = new StringBuilder();
+//				getResultAsString(output, builder);
+//				System.out.println("Output : " + builder.toString());
+//			}
+//		} catch (RserveException e) {
+//			// TODO Auto-generated catch block
+//			e.printStackTrace();
+//			System.err.println("Errored.. ");
+//		}
 		// now is where the fun starts
 	}
 
@@ -1079,28 +1095,33 @@ public abstract class BaseJavaReactor extends AbstractReactor{
 		String graphName = (String)retrieveVariable("GRAPH_NAME");
 		
 		RConnection con = startR();
-		String clusters = "Component Information  \n";
+//		String clusters = "Component Information  \n";
 		try
 		{
 			// set the clusters
 			storeVariable("CLUSTER_NAME", "clus");
 			con.eval("clus <- " + clusterRoutine + "(" + graphName +")");
 			
-			StringBuilder builder = new StringBuilder();
+//			StringBuilder builder = new StringBuilder();
 			
-			Object output = con.eval("clus$no");
-			getResultAsString(output, builder);
-			clusters = clusters + " No. Of Components : " + builder.toString() + " \n";
+			System.out.println("\n No. Of Components :");
+			runR("clus$no");
+//			Object output = con.eval("clus$no");
+//			getResultAsString(output, builder);
+//			clusters = clusters + " No. Of Components : " + builder.toString() + " \n";
 
 			//reset the output string
-			builder.setLength(0);
+//			builder.setLength(0);
 
-			clusters = clusters + " Component Sizes \n";
-			output = con.eval("clus$csize");
-			getResultAsString(output, builder);
-			clusters = clusters + builder.toString();
+			System.out.println("\n Component Sizes :");
+			runR("clus$csize");
+
+//			clusters = clusters + " Component Sizes \n";
+//			output = con.eval("clus$csize");
+//			getResultAsString(output, builder);
+//			clusters = clusters + builder.toString();
 			
-			System.out.println(clusters);
+//			System.out.println(clusters);
 			colorClusters();
 		}catch(Exception ex)
 		{
