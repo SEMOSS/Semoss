@@ -155,16 +155,28 @@ public class SQLInterpreter implements IQueryInterpreter{
 		// thus, the order matters 
 		// so get a good starting from table
 		// we can use any of the froms that is not part of the join
-		String[] startPoint = null;
+		List<String> startPoints = new Vector<String>();
 		if(relationList.isEmpty()) {
-			startPoint = froms.get(0);
+			String[] startPoint = froms.get(0);
+			query.append(startPoint[0]).append(" ").append(startPoint[1]).append(" ");
+			startPoints.add(startPoint[1]);
 		} else {
-			startPoint = relationList.getTableNotDefinedInJoinList();
+			List<String[]> tablesToDefine = relationList.getTablesNotDefinedInJoinList();
+			int i = 0;
+			int size = tablesToDefine.size();
+			for(; i < size; i++) {
+				String[] startPoint = tablesToDefine.get(i);
+				if( (i+1) == size) {
+					query.append(startPoint[0]).append(" ").append(startPoint[1]).append(" ");
+				} else {
+					query.append(startPoint[0]).append(" ").append(startPoint[1]).append(" , ");
+				}
+				startPoints.add(startPoint[1]);
+			}
 		}
-		query.append(startPoint[0]).append(" ").append(startPoint[1]);
 		
 		// add the join data
-		query.append(relationList.getJoinPath(startPoint[1]));
+		query.append(relationList.getJoinPath(startPoints));
 		
 		boolean firstTime = true;
 		for (String key : whereHash.keySet())
@@ -433,18 +445,21 @@ public class SQLInterpreter implements IQueryInterpreter{
 		// this is so we append the joins property
 		String key = toConcept;
 		
-		String queryString = "";
+//		String queryString = "";
 		String compName = thisComparator.replace(".", "  ");
 		if(!relationList.doesJoinAlreadyExist(key)) {
-			queryString = compName + "  " + toConcept+ " " + getAlias(toConcept) + " ON " + getAlias(concept) + "." + property + " = " + getAlias(toConcept) + "." + toProperty;
+//			queryString = compName + "  " + toConcept+ " " + getAlias(toConcept) + " ON " + getAlias(concept) + "." + property + " = " + getAlias(toConcept) + "." + toProperty;
 			
-			thisJoin = new SqlJoinObject(key);
+			thisJoin = new SqlJoinObject(key, relationList);
+			// this method will determine everything required
+			// the defined table and the required table
+			thisJoin.setQueryString(compName, toConcept, getAlias(toConcept), toProperty, concept, getAlias(concept), property);
+
 			// add the defined table
-			thisJoin.addTableAliasDefinedByJoin(getAlias(toConcept), toConcept);
-			// need to add the required aliases
-			thisJoin.addTableAliasRequired(getAlias(concept), concept);
+//			thisJoin.addTableAliasDefinedByJoin(getAlias(toConcept), toConcept);
+//			// need to add the required aliases
+//			thisJoin.addTableAliasRequired(getAlias(concept), concept);
 			// need to add the query string into the join object
-			thisJoin.addQueryString(queryString);
 //			// set the join type
 //			if(thisComparator.equalsIgnoreCase("inner.join")) {
 //				thisJoin.setSqlJoinType(SqlJoinObject.SqlJoinTypeEnum.inner);
@@ -460,13 +475,24 @@ public class SQLInterpreter implements IQueryInterpreter{
 			// add to the list
 			relationList.addSqlJoinObject(thisJoin);
 		} else {
-			queryString = concept + " " + getAlias(concept) + " ON " + getAlias(concept) +  "." + property + " = " + getAlias(toConcept) + "." + toProperty;			
+//			queryString = concept + " " + getAlias(concept) + " ON " + getAlias(concept) +  "." + property + " = " + getAlias(toConcept) + "." + toProperty;			
 
 			thisJoin = relationList.getExistingJoin(key);
+			// this method will determine everything required
+			// the defined table and the required table
+			
+			// if the concept is already defined
+			// we need to get a new alias for it
+			String conceptAlias = getAlias(concept);
+			if(relationList.allDefinedTableAlias().contains(conceptAlias)) {
+				conceptAlias = getNewAliasForExistingTable(concept);
+			}
+			thisJoin.addQueryString(compName, concept, conceptAlias , property, toConcept, getAlias(toConcept), toProperty);
+			
 			// add the defined table
-			thisJoin.addTableAliasDefinedByJoin(getAlias(concept), concept);
+//			thisJoin.addTableAliasDefinedByJoin(getAlias(concept), concept);
 			// need to add the query string into the join object
-			thisJoin.addQueryString(queryString, compName);
+//			thisJoin.addQueryString(queryString, compName);
 		}
 	}
 	
@@ -976,6 +1002,30 @@ public class SQLInterpreter implements IQueryInterpreter{
 			aliases.put(tableName, tryAlias);
 			return tryAlias;
 		}
+	}
+	
+	/**
+	 * This is used when we need a new alias for an existing table
+	 * @param tableName
+	 * @return
+	 */
+	public String getNewAliasForExistingTable(String tableName) {
+		// this will generate a new alias for an existing table
+		// but it will not set it as the default alias for the table
+		// alias already exists
+		boolean aliasComplete = false;
+		int count = 0;
+		String tryAlias = "";
+		while(!aliasComplete)
+		{
+			if(tryAlias.length()>0){
+				tryAlias+="_"; //prevent an error where you may create an alias that is a reserved word (ie, we did this with "as")
+			}
+			tryAlias = (tryAlias + tableName.charAt(count)).toUpperCase();
+			aliasComplete = !aliases.containsValue(tryAlias);
+			count++;
+		}
+		return tryAlias;
 	}
 	////////////////////////////// end caching utility methods //////////////////////////////////////
 	
