@@ -10,6 +10,9 @@ public class SqlJoinObject {
 
 	public enum SqlJoinTypeEnum {inner, left, right, outer, cross};
 	
+	// need to store a reference to the list to know which tables are already defined
+	private SqlJoinList allJoins;
+	
 	// unique id for easy identification of the join object
 	private String id;
 	
@@ -25,50 +28,92 @@ public class SqlJoinObject {
 	// contains the join type
 	private SqlJoinTypeEnum joinType;
 	
-	public SqlJoinObject(String id) {
+	public SqlJoinObject(String id, SqlJoinList allJoins) {
 		this.id = id;
+		this.allJoins = allJoins;
 	}
 	
-	// add the required information to get the appropriate query pertaining to the join
-	public void addQueryString(String additionalJoinInfo) {
-		if(queryString.length() == 0) {
-			queryString.append(additionalJoinInfo);
-		} else {
-//			if(SqlJoinTypeEnum.inner == joinType) {
-				queryString.append(" ").append(additionalJoinInfo);
-//			} else if(SqlJoinTypeEnum.left == joinType) {
-//				queryString.append(" left outer join ").append(additionalJoinInfo);
-//			} else if(SqlJoinTypeEnum.right == joinType) {
-//				queryString.append(" right outer join ").append(additionalJoinInfo);
-//			} else if(SqlJoinTypeEnum.outer == joinType) {
-//				queryString.append(" outer join ").append(additionalJoinInfo);
-//			} else if(SqlJoinTypeEnum.cross == joinType) {
-//				queryString.append(" cross join ").append(additionalJoinInfo);
-//			} else {
-//				queryString.append(" inner join ").append(additionalJoinInfo);
-//			}
+	public void setQueryString(String compName, String toConcept, String toConceptAlias, String toProperty, String concept, String conceptAlias, String conceptProperty) {
+		// get list of all defined alias
+		Set<String> aliasDefined = allJoins.allDefinedTableAlias();
+		
+		if(queryString.length() > 0) {
+			queryString.append(" ");
 		}
+		queryString.append(compName).append(" ");
+		// see if we need to define the concept
+		if(aliasDefined.contains(toConceptAlias)) {
+			queryString.append(toConceptAlias);
+		} else {
+			// never been defined before
+			// need to add its definition
+			queryString.append(toConcept).append(" ").append(toConceptAlias);
+			this.addTableAliasDefinedByJoin(toConceptAlias, toConcept);
+		}
+		queryString.append(" ON ").append(conceptAlias).append(".").append(conceptProperty).append(" = ").append(toConceptAlias).append(".").append(toProperty);
+		this.addTableAliasRequired(conceptAlias, concept);
 	}
 	
-	public void addQueryString(String additionalJoinInfo, String compName) {
-//		if(queryString.length() == 0) {
-//			queryString.append(" ").append(compName).append(" ").append(additionalJoinInfo);
-//		} else {
-//			if(SqlJoinTypeEnum.inner == joinType) {
-				queryString.append(" ").append(compName).append(" ").append(additionalJoinInfo);
-//			} else if(SqlJoinTypeEnum.left == joinType) {
-//				queryString.append(" left outer join ").append(additionalJoinInfo);
-//			} else if(SqlJoinTypeEnum.right == joinType) {
-//				queryString.append(" right outer join ").append(additionalJoinInfo);
-//			} else if(SqlJoinTypeEnum.outer == joinType) {
-//				queryString.append(" outer join ").append(additionalJoinInfo);
-//			} else if(SqlJoinTypeEnum.cross == joinType) {
-//				queryString.append(" cross join ").append(additionalJoinInfo);
-//			} else {
-//				queryString.append(" inner join ").append(additionalJoinInfo);
-//			}
-//		}
+	public void addQueryString(String compName, String concept, String conceptAlias, String conceptProperty, String toConcept, String toConceptAlias, String toProperty) {
+		// get list of all defined alias
+		Set<String> aliasDefined = allJoins.allDefinedTableAlias();
+		
+		if(queryString.length() > 0) {
+			queryString.append(" ");
+		}
+		queryString.append(compName).append(" ");
+		// see if we need to define the concept
+		if(aliasDefined.contains(conceptAlias)) {
+			queryString.append(conceptAlias);
+		} else {
+			// never been defined before
+			// need to add its definition
+			queryString.append(concept).append(" ").append(conceptAlias);
+			this.addTableAliasDefinedByJoin(conceptAlias, concept);
+		}
+		queryString.append(" ON ").append(conceptAlias).append(".").append(conceptProperty).append(" = ").append(toConceptAlias).append(".").append(toProperty);
 	}
+	
+//	// add the required information to get the appropriate query pertaining to the join
+//	public void addQueryString(String additionalJoinInfo) {
+//		if(queryString.length() == 0) {
+//			queryString.append(additionalJoinInfo);
+//		} else {
+////			if(SqlJoinTypeEnum.inner == joinType) {
+//				queryString.append(" ").append(additionalJoinInfo);
+////			} else if(SqlJoinTypeEnum.left == joinType) {
+////				queryString.append(" left outer join ").append(additionalJoinInfo);
+////			} else if(SqlJoinTypeEnum.right == joinType) {
+////				queryString.append(" right outer join ").append(additionalJoinInfo);
+////			} else if(SqlJoinTypeEnum.outer == joinType) {
+////				queryString.append(" outer join ").append(additionalJoinInfo);
+////			} else if(SqlJoinTypeEnum.cross == joinType) {
+////				queryString.append(" cross join ").append(additionalJoinInfo);
+////			} else {
+////				queryString.append(" inner join ").append(additionalJoinInfo);
+////			}
+//		}
+//	}
+//	
+//	public void addQueryString(String additionalJoinInfo, String compName) {
+////		if(queryString.length() == 0) {
+////			queryString.append(" ").append(compName).append(" ").append(additionalJoinInfo);
+////		} else {
+////			if(SqlJoinTypeEnum.inner == joinType) {
+//				queryString.append(" ").append(compName).append(" ").append(additionalJoinInfo);
+////			} else if(SqlJoinTypeEnum.left == joinType) {
+////				queryString.append(" left outer join ").append(additionalJoinInfo);
+////			} else if(SqlJoinTypeEnum.right == joinType) {
+////				queryString.append(" right outer join ").append(additionalJoinInfo);
+////			} else if(SqlJoinTypeEnum.outer == joinType) {
+////				queryString.append(" outer join ").append(additionalJoinInfo);
+////			} else if(SqlJoinTypeEnum.cross == joinType) {
+////				queryString.append(" cross join ").append(additionalJoinInfo);
+////			} else {
+////				queryString.append(" inner join ").append(additionalJoinInfo);
+////			}
+////		}
+//	}
 	
 	// add required table alias definitions to be used by the join
 	public void addTableAliasRequired(String tableAlias, String tableName) {

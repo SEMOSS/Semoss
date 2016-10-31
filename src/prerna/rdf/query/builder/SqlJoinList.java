@@ -48,16 +48,17 @@ public class SqlJoinList {
 	}
 	
 	// since we assume that the sql joins define a specific path
-	// lets find which table is not defined inside the join
-	// this will determine which table should be defined in the froms clause
-	public String[] getTableNotDefinedInJoinList() {
+	// lets find which tables are not defined inside the join
+	// this will determine which tables should be defined in the froms clause
+	public List<String[]> getTablesNotDefinedInJoinList() {
 		int joinIdx1 = 0;
 		int numJoins = joinList.size();
 		
 		// store the table not defined in any of the joins
-		String[] tableNotInJoin = null;
+		Set<String> alradyAccounted = new HashSet<String>();
+		List<String[]> tableNotInJoin = new Vector<String[]>();
 		
-		FOUND_TABLE_LOOP : for(; joinIdx1 < numJoins; joinIdx1++) {
+		for(; joinIdx1 < numJoins; joinIdx1++) {
 			// grab the first join
 			SqlJoinObject join1 = joinList.get(joinIdx1);
 			
@@ -89,23 +90,33 @@ public class SqlJoinList {
 				// if we get to this point, we did not enter the continue table loop
 				// while going through all of the other joins
 				// thus, this table is not defined
-				tableNotInJoin = reqTable;
-				break FOUND_TABLE_LOOP;
+				if(!alradyAccounted.contains(reqTable[0])) {
+					tableNotInJoin.add(reqTable);
+					alradyAccounted.add(reqTable[0]);
+				}
 			}
 		}
 		
 		return tableNotInJoin;
 	}
 	
+	public Set<String> allDefinedTableAlias() {
+		Set<String> allDefinedAlias = new HashSet<String>();
+		for(SqlJoinObject join : joinList) {
+			allDefinedAlias.addAll(join.getDefinedAliasWithinJoin());
+		}
+		return allDefinedAlias;
+	}
+	
 	// determine if appropriate path exists
-	public String getJoinPath(String startingTableAlias) throws RuntimeException{
+	public String getJoinPath(List<String> startingTableAlias) throws RuntimeException{
 		StringBuilder query = new StringBuilder();
 		// keep track of all the joins that we have already added
 		Set<String> usedJoins = new HashSet<String>();
 		// keep track of the set of available alias we have defined
 		// note that we start with the set defined in the from portion of the query
 		Set<String> availableAlias = new HashSet<String>();
-		availableAlias.add(startingTableAlias);
+		availableAlias.addAll(startingTableAlias);
 		// keep a counter showing the number of joins we have added and the total number
 		// so we know when we are done
 		int joinCounter = 0;
