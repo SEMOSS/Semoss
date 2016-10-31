@@ -120,7 +120,7 @@ public abstract class AbstractApiReactor extends AbstractReactor{
 								while(rowIt.hasNext()){
 									Object val = rowIt.next();
 									if(val != null) {
-										filterInstances.add(rowIt.next());
+										filterInstances.add(val);
 									}
 								}
 								
