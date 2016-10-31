@@ -454,7 +454,7 @@ public abstract class BaseJavaReactor extends AbstractReactor{
 		H2Frame gridFrame = (H2Frame)dataframe;
 		String tableName = gridFrame.getBuilder().getTableName();
 		String url = gridFrame.getBuilder().connectFrame();
-
+		url = url.replace("\\", "/");
 		initiateDriver(url, "sa");
 		
 		String selectors = "*";
