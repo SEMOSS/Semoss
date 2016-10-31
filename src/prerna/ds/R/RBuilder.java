@@ -84,6 +84,23 @@ public class RBuilder {
 		return val;
 	}
 	
+	protected String getROutput(String rScript) {
+		String newScript = "try(eval( paste(capture.output(print(" + rScript + ")),collapse='\n') ), silent=FALSE)";
+		try {
+			REXP result = retCon.parseAndEval(newScript);
+			return result.asString();
+		} catch (REngineException | REXPMismatchException e) {
+			e.printStackTrace();
+			String errorMessage = null;
+			if(e.getMessage() != null && !e.getMessage().isEmpty()) {
+				errorMessage = e.getMessage();
+			} else {
+				errorMessage = "Unexpected error in execution of R routine ::: " + rScript;
+			}
+			throw new IllegalArgumentException(errorMessage);
+		}
+	}
+	
 	protected REXP executeR(String r) {
 		try {
 			REXP result = retCon.parseAndEval(r);
