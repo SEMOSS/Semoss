@@ -642,7 +642,8 @@ public class SQLInterpreter implements IQueryInterpreter{
 		// if we dont have it, we will do type casting...
 		if(dataType != null) {
 			dataType = dataType.toUpperCase();
-			if(dataType.contains("DOUBLE") || dataType.contains("FLOAT") || dataType.contains("LONG")) {
+			IMetaData.DATA_TYPES type = Utility.convertStringtoDataType(dataType);
+			if(IMetaData.DATA_TYPES.NUMBER.equals(type)) {
 				// get the first value
 				myObj.append(objects.get(0));
 				i++;
@@ -650,7 +651,7 @@ public class SQLInterpreter implements IQueryInterpreter{
 				for(; i < size; i++) {
 					myObj.append(" , ").append(objects.get(i));
 				}
-			} else if(dataType.contains("DATE") || dataType.contains("TIMESTAMP")) {
+			} else if(IMetaData.DATA_TYPES.DATE.equals(type)) {
 				String leftWrapper = null;
 				String rightWrapper = null;
 				if(!comparator.equalsIgnoreCase(SEARCH_COMPARATOR)) {
