@@ -59,7 +59,7 @@ public class JavaReactorWrapper extends AbstractReactor {
 			data = data.replace("<code>", "");
 			
 			// the imports are sitting in the front
-			while(data.contains("import"))
+			while(data.contains("import "))
 			{
 				String importStr = data.substring(data.indexOf("import"), data.indexOf(";") + 1);
 				// remove this from data
