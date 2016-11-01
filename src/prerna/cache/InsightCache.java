@@ -22,6 +22,7 @@ public abstract class InsightCache implements ICache {
 	protected final String INSIGHT_CACHE_PATH;
 	protected static Map<String, String> extensionMap = new HashMap<>();
 	public static final String JSON_EXTENSION = "_VizData.json";
+	private static String cacheModeOn = DIHelper.getInstance().getProperty("CACHE_SETTING");
 
 	private ConcurrentMap<String, ReentrantLock> locks = new ConcurrentHashMap<>();
 	/**
@@ -116,10 +117,12 @@ public abstract class InsightCache implements ICache {
 	 * @return				Returns the baseFile for the given insight
 	 */
 	public String cacheInsight(Insight in) {
-		String baseFile = getBaseFilePath(in);
-		cacheDataMaker(in.getDataMakerName(), in.getDataMaker(), baseFile);
-		cacheJSONData(in.getWebData(), baseFile);
-		
+		String baseFile = null;
+		if("ON".equals(cacheModeOn)) {
+			baseFile = getBaseFilePath(in);
+			cacheDataMaker(in.getDataMakerName(), in.getDataMaker(), baseFile);
+			cacheJSONData(in.getWebData(), baseFile);
+		}
 		return baseFile;
 	}
 
@@ -131,10 +134,12 @@ public abstract class InsightCache implements ICache {
 	 * @return
 	 */
 	public String cacheInsight(Insight in, Map<String, Object> vizData) {
-		String baseFile = getBaseFilePath(in);
-		cacheDataMaker(in.getDataMakerName(), in.getDataMaker(), baseFile);
-		cacheJSONData(vizData, baseFile);
-
+		String baseFile = null;
+		if("ON".equals(cacheModeOn)) {
+			baseFile = getBaseFilePath(in);
+			cacheDataMaker(in.getDataMakerName(), in.getDataMaker(), baseFile);
+			cacheJSONData(vizData, baseFile);
+		}
 		return baseFile;
 	}	
 	
