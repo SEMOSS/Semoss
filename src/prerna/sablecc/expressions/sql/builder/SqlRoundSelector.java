@@ -2,16 +2,18 @@ package prerna.sablecc.expressions.sql.builder;
 
 import java.util.List;
 
-public class SqlRoundSelector implements ISqlSelector {
+import prerna.sablecc.expressions.IExpressionSelector;
+
+public class SqlRoundSelector implements IExpressionSelector {
 
 	private int precision;
-	private ISqlSelector selector;
+	private IExpressionSelector selector;
 	
 	/*
 	 * Rounds a specific math output
 	 */
 	
-	public SqlRoundSelector(ISqlSelector selector, int precision) {
+	public SqlRoundSelector(IExpressionSelector selector, int precision) {
 		this.selector = selector;
 		this.precision = precision;
 	}

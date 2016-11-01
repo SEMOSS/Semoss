@@ -252,7 +252,11 @@ public final class WekaUtilityMethods {
 					Object valAttr = dataRow[j];
 					if(!valAttr.toString().isEmpty() && !valAttr.equals(TinkerFrame.EMPTY) && !valAttr.toString().equals("?")) {
 						if(isCategorical[j]) {
+							try {
 							dataEntry.setValue(j, valAttr.toString());
+							} catch(Exception e) {
+								e.printStackTrace();
+							}
 						} else {
 							if(numericValues[j][i] != null) {
 								dataEntry.setValue(j, numericValues[j][i]); // take the numeric values to prevent re-casting
