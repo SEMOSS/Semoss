@@ -363,6 +363,12 @@ public class AnalysisAdapter implements Analysis
     }
 
     @Override
+    public void caseAOutputDataDataop(AOutputDataDataop node)
+    {
+        defaultCase(node);
+    }
+
+    @Override
     public void caseADashboardConfigDashboardop(ADashboardConfigDashboardop node)
     {
         defaultCase(node);
@@ -574,6 +580,12 @@ public class AnalysisAdapter implements Analysis
 
     @Override
     public void caseAOpenData(AOpenData node)
+    {
+        defaultCase(node);
+    }
+
+    @Override
+    public void caseAOutputData(AOutputData node)
     {
         defaultCase(node);
     }
@@ -1498,6 +1510,12 @@ public class AnalysisAdapter implements Analysis
 
     @Override
     public void caseTDataopentoken(TDataopentoken node)
+    {
+        defaultCase(node);
+    }
+
+    @Override
+    public void caseTDataoutputtoken(TDataoutputtoken node)
     {
         defaultCase(node);
     }
