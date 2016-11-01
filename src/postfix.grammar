@@ -78,6 +78,7 @@ Tokens
  dataimporttoken = 'data.import';
  dataremovetoken = 'data.remove';
  dataopentoken = 'data.open';
+ dataoutputtoken = 'data.output';
  dataquerytoken = 'data.query';
  literal = (letter_s | letter_b | digit | underscore)*;// | special)*;
  help_token = 'info.help';
@@ -182,6 +183,7 @@ dataop = // dataop is usually of the form of data.frame, etc.
 		| {dataconnectdb} dataconnectdb
 		| {datanetworkconnect} datanetworkconnect
 		| {datanetworkdisconnect} datanetworkdisconnect
+		| {output_data} output_data
 		;
 
 dashboardop = // dashboardop is usually of the form dashboard.join, dashboard.add, dashboard.remove, etc.
@@ -307,6 +309,9 @@ query_data = // imports from api query commands and other scripts
 		
 open_data = //opens insight given an engine and id, e.g. "data.open("MovieDB", "3");
 		dataopentoken [lp]:l_par [engine]:word_or_num [comma]:comma [engine_id]:word_or_num [rp]: r_par;
+		
+output_data = //opens insight given an engine and id and replaces that insight, e.g. "data.output("MovieDB", "3");
+		dataoutputtoken [lp]:l_par [engine]:word_or_num [comma]:comma [engine_id]:word_or_num [rp]: r_par;
 			
 import_block = {api} api_block | {csv_table} csv_table | {pasted_data} pasted_data_block; 
 

@@ -60,6 +60,7 @@ public interface Analysis extends Switch
     void caseADataconnectdbDataop(ADataconnectdbDataop node);
     void caseADatanetworkconnectDataop(ADatanetworkconnectDataop node);
     void caseADatanetworkdisconnectDataop(ADatanetworkdisconnectDataop node);
+    void caseAOutputDataDataop(AOutputDataDataop node);
     void caseADashboardConfigDashboardop(ADashboardConfigDashboardop node);
     void caseADashboardAddDashboardop(ADashboardAddDashboardop node);
     void caseADatabaseListDatabaseop(ADatabaseListDatabaseop node);
@@ -96,6 +97,7 @@ public interface Analysis extends Switch
     void caseAImportData(AImportData node);
     void caseAQueryData(AQueryData node);
     void caseAOpenData(AOpenData node);
+    void caseAOutputData(AOutputData node);
     void caseAApiImportBlock(AApiImportBlock node);
     void caseACsvTableImportBlock(ACsvTableImportBlock node);
     void caseAPastedDataImportBlock(APastedDataImportBlock node);
@@ -251,6 +253,7 @@ public interface Analysis extends Switch
     void caseTDataimporttoken(TDataimporttoken node);
     void caseTDataremovetoken(TDataremovetoken node);
     void caseTDataopentoken(TDataopentoken node);
+    void caseTDataoutputtoken(TDataoutputtoken node);
     void caseTDataquerytoken(TDataquerytoken node);
     void caseTLiteral(TLiteral node);
     void caseTHelpToken(THelpToken node);
