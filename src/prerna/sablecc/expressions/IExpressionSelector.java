@@ -1,13 +1,13 @@
-package prerna.sablecc.expressions.sql.builder;
+package prerna.sablecc.expressions;
 
 import java.util.List;
 
-public interface ISqlSelector {
+public interface IExpressionSelector {
 
 	/**
 	 * Get the columns used to create the internal piece
 	 * @return
 	 */
 	List<String> getTableColumns();
-	
+
 }

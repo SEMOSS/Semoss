@@ -2,16 +2,18 @@ package prerna.sablecc.expressions.sql.builder;
 
 import java.util.List;
 
-public class SqlGroupConcat implements ISqlSelector {
+import prerna.sablecc.expressions.IExpressionSelector;
 
-	private ISqlSelector selector;
+public class SqlGroupConcat implements IExpressionSelector {
+
+	private IExpressionSelector selector;
 	private String separator;
 	
 	/*
 	 * Create a math routine around an existing selector
 	 */
 	
-	public SqlGroupConcat(ISqlSelector selector, String separator) {
+	public SqlGroupConcat(IExpressionSelector selector, String separator) {
 		this.selector = selector;
 		this.separator = separator;
 	}

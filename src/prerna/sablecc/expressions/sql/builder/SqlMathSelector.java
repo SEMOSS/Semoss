@@ -2,9 +2,11 @@ package prerna.sablecc.expressions.sql.builder;
 
 import java.util.List;
 
-public class SqlMathSelector implements ISqlSelector {
+import prerna.sablecc.expressions.IExpressionSelector;
 
-	private ISqlSelector selector;
+public class SqlMathSelector implements IExpressionSelector {
+
+	private IExpressionSelector selector;
 	private String math;
 	private String pkqlMath;
 	
@@ -12,7 +14,7 @@ public class SqlMathSelector implements ISqlSelector {
 	 * Create a math routine around an existing selector
 	 */
 	
-	public SqlMathSelector(ISqlSelector selector, String math, String pkqlMath) {
+	public SqlMathSelector(IExpressionSelector selector, String math, String pkqlMath) {
 		this.selector = selector;
 		this.math = math;
 		this.pkqlMath = pkqlMath;

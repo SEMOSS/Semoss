@@ -2,16 +2,18 @@ package prerna.sablecc.expressions.sql.builder;
 
 import java.util.List;
 
-public class SqlCastSelector implements ISqlSelector {
+import prerna.sablecc.expressions.IExpressionSelector;
+
+public class SqlCastSelector implements IExpressionSelector {
 
 	private String type;
-	private ISqlSelector selector;
+	private IExpressionSelector selector;
 	
 	/*
 	 * Cast a return to a specific sql type
 	 */
 	
-	public SqlCastSelector(String type, ISqlSelector selector) {
+	public SqlCastSelector(String type, IExpressionSelector selector) {
 		this.type = type;
 		this.selector = selector;
 	}

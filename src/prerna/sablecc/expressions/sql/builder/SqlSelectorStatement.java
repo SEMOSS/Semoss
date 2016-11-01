@@ -3,26 +3,28 @@ package prerna.sablecc.expressions.sql.builder;
 import java.util.List;
 import java.util.Vector;
 
+import prerna.sablecc.expressions.IExpressionSelector;
+
 public class SqlSelectorStatement {
 
 	/*
 	 * This class will hold the list of selectors from the sql statement
 	 */
 	
-	protected List<ISqlSelector> selectors = new Vector<ISqlSelector>();
+	protected List<IExpressionSelector> selectors = new Vector<IExpressionSelector>();
 
-	protected void addSelector(ISqlSelector selector) {
+	protected void addSelector(IExpressionSelector selector) {
 		selectors.add(selector);
 	}
 	
-	protected void addSelector(int index, ISqlSelector selector) {
+	protected void addSelector(int index, IExpressionSelector selector) {
 		selectors.add(index, selector);
 	}
 	
 	@Override
 	public String toString() {
 		StringBuilder builder = new StringBuilder();
-		for(ISqlSelector selector : selectors) {
+		for(IExpressionSelector selector : selectors) {
 			if(builder.length() == 0) {
 				builder.append(selector);
 			} else {
@@ -33,7 +35,7 @@ public class SqlSelectorStatement {
 		return builder.toString();
 	}
 	
-	public List<ISqlSelector> getSelectors() {
+	public List<IExpressionSelector> getSelectors() {
 		return this.selectors;
 	}
 	
@@ -41,23 +43,23 @@ public class SqlSelectorStatement {
 		return selectors.size();
 	}
 	
-	public ISqlSelector get(int i) {
+	public IExpressionSelector get(int i) {
 		return selectors.get(i);
 	}
 
-	public void replaceSelector(ISqlSelector previousSelector, ISqlSelector newSelector) {
+	public void replaceSelector(IExpressionSelector previousSelector, IExpressionSelector newSelector) {
 		int index = selectors.indexOf(previousSelector);
 		selectors.remove(index);
 		selectors.add(index, newSelector);
 	}
 
-	public void remove(ISqlSelector previousSelector) {
+	public void remove(IExpressionSelector previousSelector) {
 		selectors.remove(previousSelector);
 	}
 
 	public List<String> getSelectorNames() {
 		List<String> selectorNames = new Vector<String>();
-		for(ISqlSelector selector : selectors) {
+		for(IExpressionSelector selector : selectors) {
 			selectorNames.add(selector.toString());
 		}
 		return selectorNames;
@@ -65,7 +67,7 @@ public class SqlSelectorStatement {
 	
 	public List<String> getTableColumns() {
 		List<String> tableColumns = new Vector<String>();
-		for(ISqlSelector selector : selectors) {
+		for(IExpressionSelector selector : selectors) {
 			tableColumns.addAll(selector.getTableColumns());
 		}
 		return tableColumns;

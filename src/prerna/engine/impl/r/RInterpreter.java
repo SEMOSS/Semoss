@@ -57,6 +57,10 @@ public class RInterpreter implements IQueryInterpreter {
 		
 		return query.toString();
 	}
+	
+	public StringBuilder getFilerCriteria() {
+		return this.filterCriteria;
+	}
 
 	
 	private void addSelectors() {

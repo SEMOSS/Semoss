@@ -3,15 +3,17 @@ package prerna.sablecc.expressions.sql.builder;
 import java.util.List;
 import java.util.Vector;
 
-public class SqlConcatSelector implements ISqlSelector {
+import prerna.sablecc.expressions.IExpressionSelector;
 
-	private ISqlSelector[] selectors;
+public class SqlConcatSelector implements IExpressionSelector {
+
+	private IExpressionSelector[] selectors;
 	
 	/*
 	 * Create a math routine around an existing selector
 	 */
 	
-	public SqlConcatSelector(ISqlSelector... selectors) {
+	public SqlConcatSelector(IExpressionSelector... selectors) {
 		this.selectors = selectors;
 	}
 	

@@ -5,6 +5,8 @@ import java.util.List;
 import java.util.Set;
 
 import prerna.ds.H2.H2Frame;
+import prerna.sablecc.expressions.IExpressionBuilder;
+import prerna.sablecc.expressions.IExpressionSelector;
 import prerna.util.ArrayUtilityMethods;
 
 public class SqlBuilderGenerator {
@@ -18,13 +20,13 @@ public class SqlBuilderGenerator {
 		// it is a header
 		// it is a constant
 		
-		ISqlSelector leftSelector = null;
-		List<SqlColumnSelector> leftGroups = null;
-		if(leftObj instanceof SqlBuilder) {
+		IExpressionSelector leftSelector = null;
+		List<IExpressionSelector> leftGroups = null;
+		if(leftObj instanceof IExpressionBuilder) {
 			// get the builder
 			// get the last selector
 			// get the group bys if present
-			SqlBuilder leftBuilder = (SqlBuilder) leftObj;
+			IExpressionBuilder leftBuilder = (IExpressionBuilder) leftObj;
 			leftSelector = leftBuilder.getLastSelector();
 			leftGroups = leftBuilder.getGroupBySelectors();
 		} else if(ArrayUtilityMethods.arrayContainsValue(headers, leftObj.toString())) {
@@ -35,13 +37,13 @@ public class SqlBuilderGenerator {
 			leftSelector = new SqlConstantSelector(leftObj.toString());
 		}
 		
-		ISqlSelector rightSelector = null;
-		List<SqlColumnSelector> rightGroups = null;
-		if(rightObj instanceof SqlBuilder) {
+		IExpressionSelector rightSelector = null;
+		List<IExpressionSelector> rightGroups = null;
+		if(rightObj instanceof IExpressionBuilder) {
 			// get the builder
 			// get the last selector
 			// get the group bys if present
-			SqlBuilder rightBuilder = (SqlBuilder) rightObj;
+			IExpressionBuilder rightBuilder = (IExpressionBuilder) rightObj;
 			rightSelector = rightBuilder.getLastSelector();
 			rightGroups = rightBuilder.getGroupBySelectors();
 		} else if(ArrayUtilityMethods.arrayContainsValue(headers, rightObj.toString())) {

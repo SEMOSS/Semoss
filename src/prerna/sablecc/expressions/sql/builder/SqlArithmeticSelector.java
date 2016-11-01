@@ -3,17 +3,19 @@ package prerna.sablecc.expressions.sql.builder;
 import java.util.List;
 import java.util.Vector;
 
-public class SqlArithmeticSelector implements ISqlSelector{
+import prerna.sablecc.expressions.IExpressionSelector;
 
-	private ISqlSelector leftObj;
-	private ISqlSelector rightObj;
+public class SqlArithmeticSelector implements IExpressionSelector{
+
+	private IExpressionSelector leftObj;
+	private IExpressionSelector rightObj;
 	private String arithmetic;
 	
 	/*
 	 * Perform arithmetic between a set of selectors
 	 */
 	
-	public SqlArithmeticSelector(ISqlSelector leftObj, ISqlSelector rightObj, String arithmetic) {
+	public SqlArithmeticSelector(IExpressionSelector leftObj, IExpressionSelector rightObj, String arithmetic) {
 		this.leftObj = leftObj;
 		this.rightObj = rightObj;
 		this.arithmetic = arithmetic;
@@ -22,11 +24,11 @@ public class SqlArithmeticSelector implements ISqlSelector{
 	@Override
 	public List<String> getTableColumns() {
 		List<String> tableColumns = new Vector<String>();
-		if(leftObj instanceof ISqlSelector) {
-			tableColumns.addAll( ((ISqlSelector) leftObj).getTableColumns() );
+		if(leftObj instanceof IExpressionSelector) {
+			tableColumns.addAll( ((IExpressionSelector) leftObj).getTableColumns() );
 		}
-		if(rightObj instanceof ISqlSelector) {
-			tableColumns.addAll( ((ISqlSelector) rightObj).getTableColumns() );
+		if(rightObj instanceof IExpressionSelector) {
+			tableColumns.addAll( ((IExpressionSelector) rightObj).getTableColumns() );
 		}
 		return tableColumns;
 	}
