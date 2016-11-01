@@ -3,9 +3,12 @@ package prerna.sablecc.expressions.sql.builder;
 import java.util.List;
 
 import prerna.ds.H2.H2Frame;
+import prerna.sablecc.expressions.IExpressionBuilder;
+import prerna.sablecc.expressions.IExpressionSelector;
 
-public class SqlBuilder {
+public class SqlBuilder implements IExpressionBuilder {
 
+	// the data frame to execute the expression on
 	protected H2Frame frame;
 	
 	// sql objects
@@ -16,128 +19,86 @@ public class SqlBuilder {
 		this.frame = frame;
 	}
 	
+	@Override
 	public H2Frame getFrame() {
 		return this.frame;
 	}
 	
-	/**
-	 * Add a new selector for the sql statement
-	 * @param selector
-	 */
-	public void addSelector(ISqlSelector selector) {
+	@Override
+	public void addSelector(IExpressionSelector selector) {
 		selectors.addSelector(selector);
 	}
 	
-	/**
-	 * Add a new selector for the sql statement
-	 * @param selector
-	 */
-	public void addSelector(int index, ISqlSelector selector) {
+	@Override
+	public void addSelector(int index, IExpressionSelector selector) {
 		selectors.addSelector(index, selector);
 	}
 	
-	/**
-	 * Get the list of selector objects
-	 * @return
-	 */
-	public List<ISqlSelector> getSelectors() {
+	@Override
+	public List<IExpressionSelector> getSelectors() {
 		return this.selectors.getSelectors();
 	}
 	
-	/**
-	 * Get the number of selectors
-	 * @return
-	 */
-	public int selectorSize() {
+	
+	@Override
+	public int numSelectors() {
 		return this.selectors.size();
 	}
 	
-	/**
-	 * Get the selector object at a specific index
-	 * @param index
-	 * @return
-	 */
-	public ISqlSelector getSelector(int index) {
-		return selectors.get(index);
-	}
-	
-	/**
-	 * Get the names of the selectors
-	 * @return
-	 */
-	public List<String> getSelectorNames() {
-		return selectors.getSelectorNames();
-	}
-	
-	/**
-	 * Get the last selector added
-	 * @return
-	 */
-	public ISqlSelector getLastSelector() {
-		return selectors.get(selectors.size()-1);
-	}
-	
-	/**
-	 * Replace an existing selector with a new selector
-	 * Used when we are building to modify a selector
-	 * @param previousSelector
-	 * @param newSelector
-	 */
-	public void replaceSelector(ISqlSelector previousSelector, ISqlSelector newSelector) {
-		this.selectors.replaceSelector(previousSelector, newSelector);
-	}
-	
-	/**
-	 * Replace an existing selector with a new selector
-	 * Used when we are building to modify a selector
-	 * @param previousSelector
-	 * @param newSelector
-	 */
-	public void removeSelector(ISqlSelector previousSelector) {
-		this.selectors.remove(previousSelector);
-	}
-	
-	/**
-	 * Add a new group by for the sql statement
-	 * @param groupBy
-	 */
-	public void addGroupBy(SqlColumnSelector groupBy) {
-		groups.addGroupBy(groupBy);
-	}
-	
-	/**
-	 * Get the columns used in the group by
-	 * @return
-	 */
+	@Override
 	public List<String> getGroupByColumns() {
 		return groups.getGroupByCols();
 	}
-	
-	/**
-	 * Get the columns used in the group by
-	 * @return
-	 */
-	public List<SqlColumnSelector> getGroupBySelectors() {
+
+	@Override
+	public List<IExpressionSelector> getGroupBySelectors() {
 		return groups.getGroupBySelectors();
 	}
 	
-	/**
-	 * Get the string for the selectors
-	 * @return
-	 */
+	
+	@Override
+	public IExpressionSelector getSelector(int index) {
+		return selectors.get(index);
+	}
+
+	@Override
+	public List<String> getSelectorNames() {
+		return selectors.getSelectorNames();
+	}
+
+	@Override
+	public IExpressionSelector getLastSelector() {
+		return selectors.get(selectors.size()-1);
+	}
+
+	@Override
+	public void replaceSelector(IExpressionSelector previousSelector, IExpressionSelector newSelector) {
+		this.selectors.replaceSelector(previousSelector, newSelector);
+	}
+
+	@Override
+	public void removeSelector(IExpressionSelector selector) {
+		this.selectors.remove(selector);
+	}
+
+	@Override
+	public void addGroupBy(IExpressionSelector groupBySelector) {
+		groups.addGroupBy(groupBySelector);
+	}
+
+	@Override
 	public String getSelectorString() {
 		return selectors.toString();
 	}
 	
-	/**
-	 * Get the string for the group by
-	 * @return
-	 */
+	@Override
 	public String getGroupByString() {
 		return groups.toString();
 	}
+
 	
-	public List<String> getTableColumns() {
+	@Override
+	public List<String> getAllTableColumnsUsed() {
 		return selectors.getTableColumns();
 	}
 	

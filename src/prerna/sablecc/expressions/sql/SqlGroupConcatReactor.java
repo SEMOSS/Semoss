@@ -4,7 +4,7 @@ import java.util.Map;
 
 import prerna.ds.H2.H2Frame;
 import prerna.sablecc.PKQLEnum;
-import prerna.sablecc.expressions.sql.builder.ISqlSelector;
+import prerna.sablecc.expressions.IExpressionSelector;
 import prerna.sablecc.expressions.sql.builder.SqlBuilder;
 import prerna.sablecc.expressions.sql.builder.SqlGroupConcat;
 
@@ -25,7 +25,7 @@ public class SqlGroupConcatReactor extends AbstractSqlBaseReducer {
 		if(options != null) {
 			separator = (String) options.get("SEPARATOR");
 		}
-		ISqlSelector previousSelector = builder.getLastSelector();
+		IExpressionSelector previousSelector = builder.getLastSelector();
 		SqlGroupConcat newSelector = new SqlGroupConcat(previousSelector, separator);
 		builder.replaceSelector(previousSelector, newSelector);
 		return builder;

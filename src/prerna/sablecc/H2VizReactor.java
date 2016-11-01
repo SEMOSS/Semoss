@@ -8,8 +8,8 @@ import java.util.Set;
 import java.util.Vector;
 
 import prerna.ds.H2.H2Frame;
+import prerna.sablecc.expressions.IExpressionSelector;
 import prerna.sablecc.expressions.sql.H2SqlExpressionIterator;
-import prerna.sablecc.expressions.sql.builder.ISqlSelector;
 import prerna.sablecc.expressions.sql.builder.SqlBuilder;
 import prerna.sablecc.expressions.sql.builder.SqlColumnSelector;
 import prerna.sablecc.expressions.sql.builder.SqlConstantSelector;
@@ -44,18 +44,18 @@ public class H2VizReactor extends AbstractVizReactor {
 			
 			Object term = selectors.get(i);
 			if(term instanceof SqlBuilder) {
-				List<SqlColumnSelector> mainGroups = mainBuilder.getGroupBySelectors();
+				List<IExpressionSelector> mainGroups = mainBuilder.getGroupBySelectors();
 				
 				SqlBuilder builder = (SqlBuilder) term;
-				List<ISqlSelector> builderSelectors = builder.getSelectors();
-				List<SqlColumnSelector> builderGroups = builder.getGroupBySelectors();
+				List<IExpressionSelector> builderSelectors = builder.getSelectors();
+				List<IExpressionSelector> builderGroups = builder.getGroupBySelectors();
 				
 				// add all the information together here
 				if(mainGroups == null || mainGroups.size() == 0) {
 					if(builderGroups != null && builderGroups.size()>0) {
 						// we have no selectors to start with
 						// just add everything
-						for(SqlColumnSelector group : builderGroups) {
+						for(IExpressionSelector group : builderGroups) {
 							mainBuilder.addGroupBy(group);
 						}
 					}
@@ -63,12 +63,12 @@ public class H2VizReactor extends AbstractVizReactor {
 					// we need to compare the values here and make sure they are right
 					
 					Set<String> groups = new HashSet<String>();
-					for(SqlColumnSelector group : mainGroups) {
+					for(IExpressionSelector group : mainGroups) {
 						groups.addAll(group.getTableColumns());
 					}
 					int startSize = groups.size();
 					
-					for(SqlColumnSelector group : builderGroups) {
+					for(IExpressionSelector group : builderGroups) {
 						groups.addAll(group.getTableColumns());
 					}
 					
@@ -79,7 +79,7 @@ public class H2VizReactor extends AbstractVizReactor {
 					}
 				}
 				
-				for(ISqlSelector selector : builderSelectors) {
+				for(IExpressionSelector selector : builderSelectors) {
 					mainBuilder.addSelector(selector);
 				}
 				
@@ -90,7 +90,7 @@ public class H2VizReactor extends AbstractVizReactor {
 				mergeVizFormula.add(vizFormula.get(i));
 				
 			} else {
-				ISqlSelector selector = null;
+				IExpressionSelector selector = null;
 				String val = term.toString().trim();
 				if(ArrayUtilityMethods.arrayContainsValue(headers, val)) {
 					// we have a header to return
@@ -121,7 +121,7 @@ public class H2VizReactor extends AbstractVizReactor {
 			// figure out the columns that were grabbed
 			
 			// this is all the selectors
-			List<ISqlSelector> querySelectors = mainBuilder.getSelectors();
+			List<IExpressionSelector> querySelectors = mainBuilder.getSelectors();
 			int selectorSize = querySelectors.size();
 			// get all the headers
 			List<String> queryHeaders = new Vector<String>();
