@@ -16,12 +16,12 @@ import prerna.sablecc.expressions.sql.builder.SqlBuilder;
 import prerna.sablecc.expressions.sql.builder.SqlColumnSelector;
 import prerna.sablecc.expressions.sql.builder.SqlConstantSelector;
 
-public abstract class AbstractSqlBaseReducer extends AbstractReactor {
+public abstract class AbstractH2SqlBaseReducer extends AbstractReactor {
 
 	protected String mathRoutine = null;
 	protected String pkqlMathRoutine = null;
 
-	public AbstractSqlBaseReducer() {
+	public AbstractH2SqlBaseReducer() {
 		String[] thisReacts = { PKQLEnum.EXPR_TERM, PKQLEnum.DECIMAL, PKQLEnum.NUMBER, PKQLEnum.GROUP_BY, PKQLEnum.COL_DEF, PKQLEnum.MATH_PARAM};
 		super.whatIReactTo = thisReacts;
 		super.whoAmI = PKQLEnum.MATH_FUN;
