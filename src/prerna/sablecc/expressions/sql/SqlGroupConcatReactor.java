@@ -8,7 +8,7 @@ import prerna.sablecc.expressions.IExpressionSelector;
 import prerna.sablecc.expressions.sql.builder.SqlBuilder;
 import prerna.sablecc.expressions.sql.builder.SqlGroupConcat;
 
-public class SqlGroupConcatReactor extends AbstractSqlBaseReducer {
+public class SqlGroupConcatReactor extends AbstractH2SqlBaseReducer {
 
 	/*
 	 * Only need to set the Math Routine

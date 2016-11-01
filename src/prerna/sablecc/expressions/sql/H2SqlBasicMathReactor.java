@@ -5,7 +5,7 @@ import prerna.sablecc.expressions.IExpressionSelector;
 import prerna.sablecc.expressions.sql.builder.SqlBuilder;
 import prerna.sablecc.expressions.sql.builder.SqlMathSelector;
 
-public abstract class H2SqlBasicMathReactor extends AbstractSqlBaseReducer {
+public abstract class H2SqlBasicMathReactor extends AbstractH2SqlBaseReducer {
 
 	public SqlBuilder process(H2Frame frame, SqlBuilder builder) {
 		IExpressionSelector previousSelector = builder.getLastSelector();

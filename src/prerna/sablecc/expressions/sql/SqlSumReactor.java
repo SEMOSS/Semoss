@@ -8,6 +8,6 @@ public class SqlSumReactor extends H2SqlBasicMathReactor {
 	 */
 	public SqlSumReactor() {
 		this.setMathRoutine("SUM");
-		this.setMathRoutine("Sum");
+		this.setPkqlMathRoutine("Sum");
 	}
 }
