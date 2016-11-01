@@ -13,7 +13,7 @@ import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
 import prerna.ds.H2.H2Frame;
-import prerna.sablecc.expressions.sql.builder.ISqlSelector;
+import prerna.sablecc.expressions.IExpressionSelector;
 import prerna.sablecc.expressions.sql.builder.SqlBuilder;
 import prerna.sablecc.expressions.sql.builder.SqlColumnSelector;
 import prerna.sablecc.expressions.sql.builder.SqlConstantSelector;
@@ -37,7 +37,7 @@ public class H2SqlExpressionIterator implements Iterator<Object[]> {
 	public H2SqlExpressionIterator(SqlBuilder builder) {
 		this.builder = builder;
 		this.frame = builder.getFrame();
-		this.numCols = builder.selectorSize();
+		this.numCols = builder.numSelectors();
 		this.sqlScript = builder.toString();
 		LOGGER.info("GENERATED SQL EXPRESSION SCRIPT : " + this.sqlScript);
 	}
@@ -118,13 +118,12 @@ public class H2SqlExpressionIterator implements Iterator<Object[]> {
 		}
 	}
 	
-	
 	public List<Map<String, Object>> getHeaderInformation(Vector<String> vizTypes, Vector<String> vizFormula) {
 		List<Map<String, Object>> returnMap = new Vector<Map<String, Object>>();
 		
-		List<ISqlSelector> selectors = builder.getSelectors();
+		List<IExpressionSelector> selectors = builder.getSelectors();
 		for(int i = 0; i < numCols; i++) {
-			ISqlSelector selector = selectors.get(i);
+			IExpressionSelector selector = selectors.get(i);
 
 			// map to store the info
 			Map<String, Object> headMap = new HashMap<String, Object>();

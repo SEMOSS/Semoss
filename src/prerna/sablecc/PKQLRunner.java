@@ -163,7 +163,7 @@ public class PKQLRunner {
 			if(groups == null || groups.isEmpty()) {
 				// if no groups
 				// use the existing columns to join on
-				List<String> joinCols = builder.getTableColumns();
+				List<String> joinCols = builder.getAllTableColumnsUsed();
 				for(String joinCol : joinCols) {
 					SqlColumnSelector selector = new SqlColumnSelector(frame, joinCol);
 					builder.addSelector(selector);
@@ -175,7 +175,6 @@ public class PKQLRunner {
 					builder.addSelector(selector);
 				}
 			}
-			
 			
 			StringBuilder retStringBuilder = new StringBuilder();
 			H2SqlExpressionIterator it = new H2SqlExpressionIterator(builder);

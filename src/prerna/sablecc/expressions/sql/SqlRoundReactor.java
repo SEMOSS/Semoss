@@ -5,7 +5,7 @@ import java.util.Map;
 
 import prerna.sablecc.PKQLEnum;
 import prerna.sablecc.PKQLRunner.STATUS;
-import prerna.sablecc.expressions.sql.builder.ISqlSelector;
+import prerna.sablecc.expressions.IExpressionSelector;
 import prerna.sablecc.expressions.sql.builder.SqlCastSelector;
 import prerna.sablecc.expressions.sql.builder.SqlRoundSelector;
 
@@ -19,7 +19,7 @@ public class SqlRoundReactor extends AbstractSqlExpression {
 		Map<String, Object> options = (Map<String, Object>) myStore.get(PKQLEnum.MATH_PARAM);
 		int significantDigit = Integer.parseInt(options.get("CONDITION1") + "");
 		
-		ISqlSelector previousSelector = this.builder.getLastSelector();
+		IExpressionSelector previousSelector = this.builder.getLastSelector();
 		
 		SqlRoundSelector roundSelector = new SqlRoundSelector(previousSelector, significantDigit);
 		if(significantDigit == 0) {

@@ -3,7 +3,9 @@ package prerna.sablecc.expressions.sql.builder;
 import java.util.List;
 import java.util.Vector;
 
-public class SqlConstantSelector implements ISqlSelector {
+import prerna.sablecc.expressions.IExpressionSelector;
+
+public class SqlConstantSelector implements IExpressionSelector {
 
 	Object value = null;
 	
