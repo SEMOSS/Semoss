@@ -4,8 +4,9 @@ import java.util.List;
 import java.util.Vector;
 
 import prerna.ds.H2.H2Frame;
+import prerna.sablecc.expressions.IExpressionSelector;
 
-public class SqlColumnSelector implements ISqlSelector{
+public class SqlColumnSelector implements IExpressionSelector{
 
 	private H2Frame frame;
 	private String columnName;
