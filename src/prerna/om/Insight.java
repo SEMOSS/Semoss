@@ -894,6 +894,38 @@ public class Insight {
 		return recipeList.toString();
 	}
 	
+	public String getPkqlRecipe() {
+		getDataMaker();
+		StringBuilder recipeList = new StringBuilder();
+		
+		for(DataMakerComponent dmc : getDataMakerComponents()) {
+			
+			//iterate through pretrans
+			for(ISEMOSSTransformation ist : dmc.getPreTrans()) {
+				if(ist instanceof PKQLTransformation) {
+					List<String> pkqls = ((PKQLTransformation)ist).getPkql();
+					for(String pkql : pkqls){
+						recipeList.append(System.getProperty("line.separator"));
+						recipeList.append(pkql);
+					}
+				}
+			}
+			
+			//iterate through the post trans
+			for(ISEMOSSTransformation ist : dmc.getPostTrans()) {
+				if(ist instanceof PKQLTransformation) {
+					List<String> pkqls = ((PKQLTransformation)ist).getPkql();
+					for(String pkql : pkqls){
+						recipeList.append(System.getProperty("line.separator"));
+						recipeList.append(pkql);
+					}
+				}
+			}
+		}
+		
+		return recipeList.toString();
+	}
+	
 	// Stores the pieces that make up a recipe block for the front end
 	private void storeTransInRecipe(ISEMOSSTransformation ist, StringBuilder list){
 		if(ist instanceof PKQLTransformation) {
@@ -1254,6 +1286,7 @@ public class Insight {
 		retHash.put("insightID", getInsightID());
 		retHash.put("layout", getOutput());
 		retHash.put("title", getInsightName());
+		retHash.put("dataMakerName", this.dataMakerName);
 //		List<String> selectors = new ArrayList<String>();
 		if(dataTableAlign != null){ // some playsheets don't require data table align, like grid play sheet. Should probably change this so they all have data table align (like if i want to change the order of my columns)
 			retHash.put("dataTableAlign", dataTableAlign);
@@ -1304,7 +1337,11 @@ public class Insight {
 			retHash.put("uiOptions", uiOptions);
 		}
 		retHash.put("pkqlOutput", this.getPKQLData(false));
-		retHash.put("recipe", this.getRecipe().split(System.getProperty("line.separator")));
+		
+		String pkqlRecipe = this.getPkqlRecipe();
+		if(pkqlRecipe != "") {
+			retHash.put("recipe", pkqlRecipe.split(System.getProperty("line.separator")));
+		}
 		return retHash;
 	}
 	
