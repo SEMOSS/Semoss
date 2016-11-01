@@ -85,6 +85,7 @@ public class PKQLEnum {
 	public static final String FILTER_DATA = "FILTER_DATA";
 	public static final String UNFILTER_DATA = "UNFILTER_DATA";
 	public static final String OPEN_DATA = "OPEN_DATA";
+	public static final String OUTPUT_DATA = "OUTPUT_DATA";
 	public static final String COL_SPLIT = "COL_SPLIT";
 	public static final String REGEX = "REGEX";
 	public static final String COL_RENAME = "COL_RENAME";

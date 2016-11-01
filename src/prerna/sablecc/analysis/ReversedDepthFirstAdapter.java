@@ -1084,6 +1084,27 @@ public class ReversedDepthFirstAdapter extends AnalysisAdapter
         outADatanetworkdisconnectDataop(node);
     }
 
+    public void inAOutputDataDataop(AOutputDataDataop node)
+    {
+        defaultIn(node);
+    }
+
+    public void outAOutputDataDataop(AOutputDataDataop node)
+    {
+        defaultOut(node);
+    }
+
+    @Override
+    public void caseAOutputDataDataop(AOutputDataDataop node)
+    {
+        inAOutputDataDataop(node);
+        if(node.getOutputData() != null)
+        {
+            node.getOutputData().apply(this);
+        }
+        outAOutputDataDataop(node);
+    }
+
     public void inADashboardConfigDashboardop(ADashboardConfigDashboardop node)
     {
         defaultIn(node);
@@ -2358,6 +2379,47 @@ public class ReversedDepthFirstAdapter extends AnalysisAdapter
             node.getDataopentoken().apply(this);
         }
         outAOpenData(node);
+    }
+
+    public void inAOutputData(AOutputData node)
+    {
+        defaultIn(node);
+    }
+
+    public void outAOutputData(AOutputData node)
+    {
+        defaultOut(node);
+    }
+
+    @Override
+    public void caseAOutputData(AOutputData node)
+    {
+        inAOutputData(node);
+        if(node.getRp() != null)
+        {
+            node.getRp().apply(this);
+        }
+        if(node.getEngineId() != null)
+        {
+            node.getEngineId().apply(this);
+        }
+        if(node.getComma() != null)
+        {
+            node.getComma().apply(this);
+        }
+        if(node.getEngine() != null)
+        {
+            node.getEngine().apply(this);
+        }
+        if(node.getLp() != null)
+        {
+            node.getLp().apply(this);
+        }
+        if(node.getDataoutputtoken() != null)
+        {
+            node.getDataoutputtoken().apply(this);
+        }
+        outAOutputData(node);
     }
 
     public void inAApiImportBlock(AApiImportBlock node)
