@@ -9,5 +9,12 @@ public interface IExpressionSelector {
 	 * @return
 	 */
 	List<String> getTableColumns();
+	
+	/**
+	 * This will override the existing toString method to get
+	 * the appropriate expression string for the selector to execute
+	 * @return
+	 */
+	String toString();
 
 }

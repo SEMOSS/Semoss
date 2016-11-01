@@ -1,25 +1,13 @@
 package prerna.sablecc.expressions.sql.builder;
 
-import java.util.List;
-import java.util.Vector;
-
+import prerna.sablecc.expressions.AbstractExpressionSelectorStatement;
 import prerna.sablecc.expressions.IExpressionSelector;
 
-public class SqlSelectorStatement {
+public class SqlSelectorStatement extends AbstractExpressionSelectorStatement{
 
 	/*
-	 * This class will hold the list of selectors from the sql statement
+	 * Only need to implement the toString method
 	 */
-	
-	protected List<IExpressionSelector> selectors = new Vector<IExpressionSelector>();
-
-	protected void addSelector(IExpressionSelector selector) {
-		selectors.add(selector);
-	}
-	
-	protected void addSelector(int index, IExpressionSelector selector) {
-		selectors.add(index, selector);
-	}
 	
 	@Override
 	public String toString() {
@@ -34,43 +22,4 @@ public class SqlSelectorStatement {
 		
 		return builder.toString();
 	}
-	
-	public List<IExpressionSelector> getSelectors() {
-		return this.selectors;
-	}
-	
-	public int size() {
-		return selectors.size();
-	}
-	
-	public IExpressionSelector get(int i) {
-		return selectors.get(i);
-	}
-
-	public void replaceSelector(IExpressionSelector previousSelector, IExpressionSelector newSelector) {
-		int index = selectors.indexOf(previousSelector);
-		selectors.remove(index);
-		selectors.add(index, newSelector);
-	}
-
-	public void remove(IExpressionSelector previousSelector) {
-		selectors.remove(previousSelector);
-	}
-
-	public List<String> getSelectorNames() {
-		List<String> selectorNames = new Vector<String>();
-		for(IExpressionSelector selector : selectors) {
-			selectorNames.add(selector.toString());
-		}
-		return selectorNames;
-	}
-	
-	public List<String> getTableColumns() {
-		List<String> tableColumns = new Vector<String>();
-		for(IExpressionSelector selector : selectors) {
-			tableColumns.addAll(selector.getTableColumns());
-		}
-		return tableColumns;
-	}
-
 }
