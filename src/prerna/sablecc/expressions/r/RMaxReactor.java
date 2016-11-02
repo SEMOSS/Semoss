@@ -1,7 +1,5 @@
 package prerna.sablecc.expressions.r;
 
-import java.util.Map;
-
 public class RMaxReactor extends RBasicMathReactor {
 
 	/*
@@ -11,11 +9,7 @@ public class RMaxReactor extends RBasicMathReactor {
 	
 	public RMaxReactor() {
 		this.setMathRoutine("max");
-	}
-	
-	@Override
-	public Map<String, Object> getColumnDataMap() {
-		return getBaseColumnDataMap("Max");
+		this.setPkqlMathRoutine("Max");
 	}
 
 }

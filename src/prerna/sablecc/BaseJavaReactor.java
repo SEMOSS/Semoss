@@ -699,7 +699,7 @@ public abstract class BaseJavaReactor extends AbstractReactor{
 	public void runR(String script, boolean result)
 	{
 		RConnection rcon = startR();
-		String newScript = "try(eval( paste(capture.output(print(" + script + ")),collapse='\n') ), silent=FALSE)";
+		String newScript = "paste(capture.output(print(" + script + ")),collapse='\n')";
 		try {
 			REXP output = rcon.parseAndEval(newScript);
 			if(result) {
