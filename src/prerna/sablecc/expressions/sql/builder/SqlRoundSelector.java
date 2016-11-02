@@ -33,5 +33,12 @@ public class SqlRoundSelector implements IExpressionSelector {
 	public List<String> getTableColumns() {
 		return this.selector.getTableColumns();
 	}
+
+	@Override
+	public String getName() {
+		StringBuilder builder = new StringBuilder();
+		builder.append("ROUND_").append(selector.getName());
+		return builder.toString();
+	}
 	
 }

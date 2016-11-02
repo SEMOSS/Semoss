@@ -3,7 +3,9 @@ package prerna.sablecc.expressions.r.builder;
 import java.util.List;
 import java.util.Vector;
 
-public class RColumnSelector implements IRExpressionSelector {
+import prerna.sablecc.expressions.IExpressionSelector;
+
+public class RColumnSelector implements IExpressionSelector {
 
 	private String columnName;
 	

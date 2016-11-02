@@ -18,14 +18,13 @@ public class RSelectorStatement extends AbstractExpressionSelectorStatement{
 		StringBuilder builder = new StringBuilder("{");
 		StringBuilder outputNames = new StringBuilder("list(");
 		for(IExpressionSelector selector : selectors) {
-			IRExpressionSelector rSelector = (IRExpressionSelector) selector;
 			String tempName = "V" + colId;
 			if(builder.length() == 1) {
-				builder.append(tempName).append("=").append(rSelector);
-				outputNames.append(rSelector.getName()).append("=").append(tempName);
+				builder.append(tempName).append("=").append(selector);
+				outputNames.append(selector.getName()).append("=").append(tempName);
 			} else {
-				builder.append(" ; ").append(tempName).append("=").append(rSelector);
-				outputNames.append(" , ").append(rSelector.getName()).append("=").append(tempName);
+				builder.append(" ; ").append(tempName).append("=").append(selector);
+				outputNames.append(" , ").append(selector.getName()).append("=").append(tempName);
 			}
 			// update the col id so everything is unique
 			colId++;
@@ -43,8 +42,7 @@ public class RSelectorStatement extends AbstractExpressionSelectorStatement{
 	public List<String> getSelectorNames() {
 		List<String> selectorNames = new Vector<String>();
 		for(IExpressionSelector selector : selectors) {
-			IRExpressionSelector rSelector = (IRExpressionSelector) selector;
-			selectorNames.add(rSelector.getName());
+			selectorNames.add(selector.getName());
 		}
 		return selectorNames;
 	}

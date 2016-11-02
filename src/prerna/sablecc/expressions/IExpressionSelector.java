@@ -16,5 +16,11 @@ public interface IExpressionSelector {
 	 * @return
 	 */
 	String toString();
+	
+	/**
+	 * Get the display name for the selector
+	 * @return
+	 */
+	String getName();
 
 }

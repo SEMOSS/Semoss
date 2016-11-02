@@ -294,7 +294,7 @@ public class SPARQLInterpreter implements IQueryInterpreter {
 			if(isProp) {
 				SEMOSSQueryHelper.addRegexFilterPhrase(getVarName(property, true), TriplePart.VARIABLE, objects, TriplePart.LITERAL, isValueString, useOr, semossQuery, false);
 			} else {
-				SEMOSSQueryHelper.addRegexFilterPhrase(getVarName(concept, true), TriplePart.VARIABLE, objects, TriplePart.LITERAL, isValueString, useOr, semossQuery, false);
+				SEMOSSQueryHelper.addRegexFilterPhrase(getVarName(concept, true), TriplePart.VARIABLE, objects, TriplePart.URI, isValueString, useOr, semossQuery, false);
 			}
 		}
 	}
@@ -400,7 +400,18 @@ public class SPARQLInterpreter implements IQueryInterpreter {
 			if(isProp) {
 				SEMOSSQueryHelper.addURIFilterPhrase(getVarName(property, true), TriplePart.VARIABLE, objects, TriplePart.LITERAL, thisComparator, useOr, semossQuery);
 			} else {
-				SEMOSSQueryHelper.addURIFilterPhrase(getVarName(concept, true), TriplePart.VARIABLE, objects, TriplePart.LITERAL, thisComparator, useOr, semossQuery);
+				List<Object> cleanedObjects = new Vector<Object>();
+				// then these are all uris that need to be cleaned
+				for(Object object : objects){
+					String myobject = (""+object).replace("\"", ""); 
+					// get rid of the space
+					// myobject = myobject.replaceAll("\\s+","_");
+					myobject = Utility.cleanString(myobject, true, true, false);
+					myobject = myobject.trim();
+					myobject = engine.getNodeBaseUri() + concept+"/"+ myobject;
+					cleanedObjects.add(myobject);
+				}
+				SEMOSSQueryHelper.addURIFilterPhrase(concept, TriplePart.VARIABLE, cleanedObjects, TriplePart.URI, thisComparator, useOr, semossQuery);
 			}
 //			SEMOSSQueryHelper.addRegexFilterPhrase(getVarName(property, true), TriplePart.VARIABLE, objects, objType, false, true, semossQuery, true);
 		}

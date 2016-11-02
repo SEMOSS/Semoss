@@ -22,4 +22,9 @@ public class SqlConstantSelector implements IExpressionSelector {
 		return new Vector<String>();
 	}
 
+	@Override
+	public String getName() {
+		return value + "";
+	}
+
 }
