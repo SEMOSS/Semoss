@@ -62,6 +62,7 @@ public class PKQLRunner {
 //	private String newInsightID;
 	
 	private Object dashboardMap;
+	private String insightId;
 	
 	/**
 	 * Runs a given pkql expression (can be multiple if semicolon delimited) on a provided data maker 
@@ -358,6 +359,13 @@ public class PKQLRunner {
 			return translation.getDataFrame();
 		}
 		return null;
+	}
+	
+	public void setInsightId(String insightId) {
+		this.insightId = insightId;
+	}
+	public String getInsightId() {
+		return this.insightId;
 	}
 
 	public void aggregateMetadata(List<IPkqlMetadata> metadataResponses) {
