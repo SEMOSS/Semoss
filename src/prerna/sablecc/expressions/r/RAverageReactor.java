@@ -11,10 +11,7 @@ public class RAverageReactor extends RBasicMathReactor {
 	
 	public RAverageReactor() {
 		this.setMathRoutine("mean");
+		this.setPkqlMathRoutine("Average");
 	}
 	
-	@Override
-	public Map<String, Object> getColumnDataMap() {
-		return getBaseColumnDataMap("Average");
-	}
 }
