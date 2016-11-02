@@ -31,4 +31,9 @@ public class SqlColumnSelector implements IExpressionSelector{
 		}
 		return retName;
 	}
+
+	@Override
+	public String getName() {
+		return this.columnName;
+	}
 }

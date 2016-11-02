@@ -2,9 +2,11 @@ package prerna.sablecc.expressions.r.builder;
 
 import java.util.List;
 
-public class RMathSelector implements IRExpressionSelector {
+import prerna.sablecc.expressions.IExpressionSelector;
 
-	private IRExpressionSelector selector;
+public class RMathSelector implements IExpressionSelector {
+
+	private IExpressionSelector selector;
 	private String math;
 	private String pkqlMath;
 	
@@ -12,7 +14,7 @@ public class RMathSelector implements IRExpressionSelector {
 	 * Create a math routine around an existing selector
 	 */
 	
-	public RMathSelector(IRExpressionSelector selector, String math, String pkqlMath) {
+	public RMathSelector(IExpressionSelector selector, String math, String pkqlMath) {
 		this.selector = selector;
 		this.math = math;
 		this.pkqlMath = pkqlMath;

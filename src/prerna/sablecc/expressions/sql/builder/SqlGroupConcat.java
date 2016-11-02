@@ -27,7 +27,6 @@ public class SqlGroupConcat implements IExpressionSelector {
 		StringBuilder builder = new StringBuilder();
 		if(separator != null && !separator.isEmpty()) {
 			builder.append("GROUP_CONCAT(").append(selector.toString()).append(" SEPARATOR '").append(separator).append("')");
-
 		} else {
 			builder.append("GROUP_CONCAT(").append(selector.toString()).append(")");
 		}
@@ -37,6 +36,13 @@ public class SqlGroupConcat implements IExpressionSelector {
 	@Override
 	public List<String> getTableColumns() {
 		return this.selector.getTableColumns();
+	}
+
+	@Override
+	public String getName() {
+		StringBuilder builder = new StringBuilder();
+		builder.append("GROUP_CONCAT(").append(selector.getName()).append(")");
+		return builder.toString();
 	}
 
 }
