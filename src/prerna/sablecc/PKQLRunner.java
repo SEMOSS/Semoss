@@ -16,9 +16,12 @@ import com.google.gson.reflect.TypeToken;
 
 import cern.colt.Arrays;
 import prerna.ds.H2.H2Frame;
+import prerna.sablecc.expressions.r.builder.RColumnSelector;
+import prerna.sablecc.expressions.r.builder.RExpressionBuilder;
+import prerna.sablecc.expressions.r.builder.RExpressionIterator;
 import prerna.sablecc.expressions.sql.H2SqlExpressionIterator;
-import prerna.sablecc.expressions.sql.builder.SqlBuilder;
 import prerna.sablecc.expressions.sql.builder.SqlColumnSelector;
+import prerna.sablecc.expressions.sql.builder.SqlExpressionBuilder;
 import prerna.sablecc.lexer.Lexer;
 import prerna.sablecc.lexer.LexerException;
 import prerna.sablecc.meta.IPkqlMetadata;
@@ -155,45 +158,93 @@ public class PKQLRunner {
 			result.put("result", Arrays.toString( (int[]) response));
 		} 
 		//TODO: should extrapolate this to a generic kind of expression iterator
-		else if(response instanceof SqlBuilder) {
+		else if(response instanceof SqlExpressionBuilder) {
 			H2Frame frame = (H2Frame) translation.getDataFrame();
-			SqlBuilder builder = (SqlBuilder) response;
+			SqlExpressionBuilder builder = (SqlExpressionBuilder) response;
 			
-			// we add some selectors to make sure this output is more intuitive
-			List<String> groups = builder.getGroupByColumns();
-			if(groups == null || groups.isEmpty()) {
-				// if no groups
-				// use the existing columns to join on
-				List<String> joinCols = builder.getAllTableColumnsUsed();
-				for(String joinCol : joinCols) {
-					SqlColumnSelector selector = new SqlColumnSelector(frame, joinCol);
-					builder.addSelector(selector);
-				}
+			// need to have a bifurcation when the expression is just a single scalar value
+			if(builder.isScalar()) {
+				result.put("result", builder.getScalarValue());
 			} else {
-				// use the group columns to join on
-				for(String group : groups) {
-					SqlColumnSelector selector = new SqlColumnSelector(frame, group);
-					builder.addSelector(selector);
+				// we add some selectors to make sure this output is more intuitive
+				List<String> groups = builder.getGroupByColumns();
+				if(groups == null || groups.isEmpty()) {
+					// if no groups
+					// use the existing columns to join on
+					List<String> joinCols = builder.getAllTableColumnsUsed();
+					for(String joinCol : joinCols) {
+						SqlColumnSelector selector = new SqlColumnSelector(frame, joinCol);
+						builder.addSelector(selector);
+					}
+				} else {
+					// use the group columns to join on
+					for(String group : groups) {
+						SqlColumnSelector selector = new SqlColumnSelector(frame, group);
+						builder.addSelector(selector);
+					}
 				}
+				
+				StringBuilder retStringBuilder = new StringBuilder();
+				H2SqlExpressionIterator it = new H2SqlExpressionIterator(builder);
+				List<Object[]> first500 = new Vector<Object[]>();
+				first500.add(builder.getSelectorNames().toArray());
+				int counter = 0;
+				while(it.hasNext() && counter < 500) {
+					first500.add(it.next());
+					counter++;
+				}
+				// if we only show a subset
+				if(counter == 500) {
+					retStringBuilder.append("Only showing first 500 rows\n");
+					it.close();
+				}
+				
+				String retResponse = getStringFromList( first500, retStringBuilder);
+				result.put("result", retResponse);
 			}
+		} else if(response instanceof RExpressionBuilder) {
+			RExpressionBuilder builder = (RExpressionBuilder) response;
 			
-			StringBuilder retStringBuilder = new StringBuilder();
-			H2SqlExpressionIterator it = new H2SqlExpressionIterator(builder);
-			List<Object[]> first500 = new Vector<Object[]>();
-			first500.add(builder.getSelectorNames().toArray());
-			int counter = 0;
-			while(it.hasNext() && counter < 500) {
-				first500.add(it.next());
-				counter++;
+			// need to have a bifurcation when the expression is just a single scalar value
+			if(builder.isScalar()) {
+				result.put("result", builder.getScalarValue());
+			} else {
+				// we add some selectors to make sure this output is more intuitive
+				List<String> groups = builder.getGroupByColumns();
+				if(groups == null || groups.isEmpty()) {
+					// if no groups
+					// use the existing columns to join on
+					List<String> joinCols = builder.getAllTableColumnsUsed();
+					for(String joinCol : joinCols) {
+						RColumnSelector selector = new RColumnSelector(joinCol);
+						builder.addSelector(selector);
+					}
+				} else {
+					// use the group columns to join on
+					for(String group : groups) {
+						RColumnSelector selector = new RColumnSelector(group);
+						builder.addSelector(selector);
+					}
+				}
+				
+				StringBuilder retStringBuilder = new StringBuilder();
+				RExpressionIterator it = new RExpressionIterator(builder);
+				List<Object[]> first500 = new Vector<Object[]>();
+				first500.add(builder.getSelectorNames().toArray());
+				int counter = 0;
+				while(it.hasNext() && counter < 500) {
+					first500.add(it.next());
+					counter++;
+				}
+				// if we only show a subset
+				if(counter == 500) {
+					retStringBuilder.append("Only showing first 500 rows\n");
+					it.close();
+				}
+				
+				String retResponse = getStringFromList( first500, retStringBuilder);
+				result.put("result", retResponse);
 			}
-			// if we only show a subset
-			if(counter == 500) {
-				retStringBuilder.append("Only showing first 500 rows\n");
-				it.close();
-			}
-			
-			String retResponse = getStringFromList( first500, retStringBuilder);
-			result.put("result", retResponse);
 		} else {
 //			result.put("result", StringEscapeUtils.escapeHtml(response + ""));
 			result.put("result", response + "");
