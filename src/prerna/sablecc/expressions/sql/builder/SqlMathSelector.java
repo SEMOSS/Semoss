@@ -40,4 +40,11 @@ public class SqlMathSelector implements IExpressionSelector {
 		return this.selector.getTableColumns();
 	}
 
+	@Override
+	public String getName() {
+		StringBuilder builder = new StringBuilder();
+		builder.append(pkqlMath).append("_").append(selector.getName());
+		return builder.toString();
+	}
+
 }
