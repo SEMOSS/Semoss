@@ -42,8 +42,21 @@ public class RArithmeticSelector implements IExpressionSelector{
 
 	@Override
 	public String getName() {
+		String arithmeticName = null;
+		if(arithmetic.equals("+")) {
+			arithmeticName = "Plus";
+		} else if(arithmetic.equals("-")) {
+			arithmeticName = "Minus";
+		} else if(arithmetic.equals("/") || arithmetic.equals("\\") ) {
+			arithmeticName = "Divide";
+		} else if(arithmetic.equals("*")) {
+			arithmeticName = "Multiply";
+		} else if(arithmetic.equals("%")) {
+			arithmeticName = "Mod";
+		}
+		
 		StringBuilder builder = new StringBuilder();
-		builder.append(leftObj.getName()).append("_").append(arithmetic).append("_").append(rightObj.getName());
+		builder.append(leftObj.getName()).append("_").append(arithmeticName).append("_").append(rightObj.getName());
 		return builder.toString();
 	}
 	

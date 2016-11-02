@@ -1,7 +1,11 @@
 package prerna.sablecc.expressions.r.builder;
 
+import java.util.List;
+
 import prerna.ds.R.RDataTable;
 import prerna.sablecc.expressions.AbstractExpressionBuilder;
+import prerna.sablecc.expressions.IExpressionSelector;
+import prerna.sablecc.expressions.sql.builder.SqlConstantSelector;
 
 public class RExpressionBuilder extends AbstractExpressionBuilder{
 
@@ -30,5 +34,26 @@ public class RExpressionBuilder extends AbstractExpressionBuilder{
 		}
 		builder.append(" ]");
 		return builder.toString();
+	}
+	
+	@Override
+	public boolean isScalar() {
+		List<IExpressionSelector> selectorList = selectors.getSelectors();
+		if(selectorList.size() == 1) {
+			if(selectorList.get(0) instanceof RConstantSelector) {
+				return true;
+			}
+		}
+		
+		return false;
+	}
+	
+	@Override
+	public Object getScalarValue() {
+		if(isScalar()) {
+			List<IExpressionSelector> selectorList = selectors.getSelectors();
+			return ((RConstantSelector) selectorList.get(0)).getValue();
+		}
+		return null;
 	}
 }

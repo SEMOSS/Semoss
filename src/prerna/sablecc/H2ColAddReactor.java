@@ -19,8 +19,8 @@ import prerna.ds.TinkerMetaHelper;
 import prerna.ds.H2.H2Frame;
 import prerna.sablecc.PKQLRunner.STATUS;
 import prerna.sablecc.expressions.sql.H2SqlExpressionIterator;
-import prerna.sablecc.expressions.sql.builder.SqlBuilder;
 import prerna.sablecc.expressions.sql.builder.SqlColumnSelector;
+import prerna.sablecc.expressions.sql.builder.SqlExpressionBuilder;
 import prerna.sablecc.meta.ColAddMetadata;
 import prerna.sablecc.meta.IPkqlMetadata;
 import prerna.util.ArrayUtilityMethods;
@@ -77,9 +77,9 @@ public class H2ColAddReactor extends AbstractReactor {
 			addColumnUsingMap(frame, (Map<Map<Object, Object>, Object>) value, newCol, joinCols);
 		} 
 
-		else if(value instanceof SqlBuilder) 
+		else if(value instanceof SqlExpressionBuilder) 
 		{
-			SqlBuilder builder = (SqlBuilder) value;
+			SqlExpressionBuilder builder = (SqlExpressionBuilder) value;
 			List<String> groups = builder.getGroupByColumns();
 			if(groups == null || groups.isEmpty()) {
 				// if no groups
@@ -95,7 +95,7 @@ public class H2ColAddReactor extends AbstractReactor {
 					builder.addSelector(selector);
 				}
 			}
-			addColumnUsingExpression(frame, (SqlBuilder) value, newCol);
+			addColumnUsingExpression(frame, (SqlExpressionBuilder) value, newCol);
 		} 
 
 		// ugh... dont like this...
@@ -141,7 +141,7 @@ public class H2ColAddReactor extends AbstractReactor {
 		return null;
 	}
 
-	private void addColumnUsingExpression(H2Frame frame, SqlBuilder builder, String newColName) {
+	private void addColumnUsingExpression(H2Frame frame, SqlExpressionBuilder builder, String newColName) {
 		String[] headers = frame.getColumnHeaders();
 		
 		// right now, even though the expression iterator

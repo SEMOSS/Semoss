@@ -12,9 +12,9 @@ import prerna.ds.H2.H2Frame;
 import prerna.sablecc.AbstractReactor;
 import prerna.sablecc.PKQLEnum;
 import prerna.sablecc.PKQLRunner.STATUS;
-import prerna.sablecc.expressions.sql.builder.SqlBuilder;
 import prerna.sablecc.expressions.sql.builder.SqlColumnSelector;
 import prerna.sablecc.expressions.sql.builder.SqlConstantSelector;
+import prerna.sablecc.expressions.sql.builder.SqlExpressionBuilder;
 
 public abstract class AbstractH2SqlBaseReducer extends AbstractReactor {
 
@@ -27,7 +27,7 @@ public abstract class AbstractH2SqlBaseReducer extends AbstractReactor {
 		super.whoAmI = PKQLEnum.MATH_FUN;
 	}
 	
-	public abstract SqlBuilder process(H2Frame frame, SqlBuilder builder);
+	public abstract SqlExpressionBuilder process(H2Frame frame, SqlExpressionBuilder builder);
 
 	@Override
 	public Iterator process() {
@@ -36,10 +36,10 @@ public abstract class AbstractH2SqlBaseReducer extends AbstractReactor {
 
 		boolean hasGroups = false;
 		
-		SqlBuilder builder = null;
+		SqlExpressionBuilder builder = null;
 		// if this is wrapping an existing expression iterator
-		if(myStore.get("TERM") instanceof SqlBuilder) {
-			builder = (SqlBuilder) myStore.get("TERM");
+		if(myStore.get("TERM") instanceof SqlExpressionBuilder) {
+			builder = (SqlExpressionBuilder) myStore.get("TERM");
 			
 			// make sure groups are not contradicting
 			// get the current groups
@@ -59,14 +59,14 @@ public abstract class AbstractH2SqlBaseReducer extends AbstractReactor {
 						throw new IllegalArgumentException("Expression contains group bys that are not the same.  Unable to process.");
 					}
 				}
-			} 
+			}
 			else {
 				// no existing group bys
 				// see if we need to add any new ones
 				hasGroups = addGroupBys(h2Frame, builder);
 			}
 		} else {
-			builder = new SqlBuilder(h2Frame);
+			builder = new SqlExpressionBuilder(h2Frame);
 			// this case can only be if we pass in a column
 			
 			// modify the expression to get the sql syntax
@@ -95,8 +95,9 @@ public abstract class AbstractH2SqlBaseReducer extends AbstractReactor {
 			try {
 				rs.next();
 				result = rs.getObject(1);
+				// we just added a selector which we can reduce into a scalar
 				SqlConstantSelector constant = new SqlConstantSelector(result);
-				builder.addSelector(constant);
+				builder.replaceSelector(builder.getLastSelector(), constant);
 			} catch (SQLException e) {
 				e.printStackTrace();
 			}
@@ -114,7 +115,7 @@ public abstract class AbstractH2SqlBaseReducer extends AbstractReactor {
 	 * @param builder
 	 * @return
 	 */
-	private boolean addGroupBys(H2Frame h2Frame, SqlBuilder builder) {
+	private boolean addGroupBys(H2Frame h2Frame, SqlExpressionBuilder builder) {
 		boolean hasGroups = false;
 		Vector<String> groupBys = (Vector <String>) myStore.get(PKQLEnum.COL_CSV);
 		if(groupBys != null) {
