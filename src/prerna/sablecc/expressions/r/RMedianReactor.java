@@ -1,7 +1,5 @@
 package prerna.sablecc.expressions.r;
 
-import java.util.Map;
-
 public class RMedianReactor extends RBasicMathReactor {
 	
 	/*
@@ -11,10 +9,7 @@ public class RMedianReactor extends RBasicMathReactor {
 	
 	public RMedianReactor() {
 		this.setMathRoutine("median");
+		this.setPkqlMathRoutine("Median");
 	}
-
-	@Override
-	public Map<String, Object> getColumnDataMap() {
-		return getBaseColumnDataMap("Median");
-	}
+	
 }

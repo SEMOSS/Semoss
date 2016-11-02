@@ -63,10 +63,8 @@ public class RDataTable extends AbstractTableDataFrame {
 		reactorNames.put(PKQLEnum.WHERE, "prerna.sablecc.ColWhereReactor");
 		reactorNames.put(PKQLEnum.REL_DEF, "prerna.sablecc.RelReactor");
 		reactorNames.put(PKQLEnum.COL_ADD, "prerna.sablecc.ColAddReactor");
-		reactorNames.put(PKQLEnum.COL_SPLIT, "prerna.sablecc.H2ColSplitReactor");
 		reactorNames.put(PKQLEnum.REMOVE_DATA, "prerna.sablecc.RemoveDataReactor");
 		reactorNames.put(PKQLEnum.FILTER_DATA, "prerna.sablecc.ColFilterReactor");
-		reactorNames.put(PKQLEnum.VIZ, "prerna.sablecc.VizReactor");
 		reactorNames.put(PKQLEnum.UNFILTER_DATA, "prerna.sablecc.ColUnfilterReactor");
 		reactorNames.put(PKQLEnum.DATA_FRAME, "prerna.sablecc.DataFrameReactor");
 		reactorNames.put(PKQLEnum.DASHBOARD_JOIN, "prerna.sablecc.DashboardJoinReactor");
@@ -76,7 +74,8 @@ public class RDataTable extends AbstractTableDataFrame {
 		reactorNames.put(PKQLEnum.JAVA_OP, "prerna.sablecc.JavaReactorWrapper");
 		reactorNames.put(PKQLEnum.NETWORK_CONNECT, "prerna.sablecc.ConnectReactor");
 		reactorNames.put(PKQLEnum.NETWORK_DISCONNECT, "prerna.sablecc.DisConnectReactor");
-		reactorNames.put(PKQLEnum.DATA_FRAME_DUPLICATES, "prerna.sablecc.H2DataFrameDuplicatesReactor");
+
+		reactorNames.put(PKQLEnum.VIZ, "prerna.sablecc.RVizReactor");
 
 		reactorNames.put(PKQLEnum.SUM, "prerna.sablecc.expressions.r.RSumReactor");
 		reactorNames.put(PKQLEnum.MAX, "prerna.sablecc.expressions.r.RMaxReactor");
@@ -92,6 +91,12 @@ public class RDataTable extends AbstractTableDataFrame {
 //		reactorNames.put(PKQLEnum.R_API, "prerna.sablecc.RApiReactor");
 
 		return reactorNames;
+	}
+	
+	public String getFilterString() {
+		//TODO:
+		//TODO:
+		return "";
 	}
 	
 	public void createTableViaIterator(Iterator<IHeadersDataRow> it) {
