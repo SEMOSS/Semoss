@@ -1,9 +1,9 @@
 package prerna.sablecc.expressions.r;
 
-import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
-import java.util.Map;
+import java.util.Set;
 import java.util.Vector;
 
 import org.rosuda.REngine.REXP;
@@ -13,6 +13,9 @@ import prerna.ds.R.RDataTable;
 import prerna.sablecc.AbstractReactor;
 import prerna.sablecc.PKQLEnum;
 import prerna.sablecc.PKQLRunner.STATUS;
+import prerna.sablecc.expressions.r.builder.RColumnSelector;
+import prerna.sablecc.expressions.r.builder.RConstantSelector;
+import prerna.sablecc.expressions.r.builder.RExpressionBuilder;
 
 public abstract class AbstractRBaseReducer extends AbstractReactor {
 
@@ -20,143 +23,120 @@ public abstract class AbstractRBaseReducer extends AbstractReactor {
 	//TODO:
 	//TODO: need to add in the filters on the RFrame
 	
+	protected String mathRoutine = null;
+	protected String pkqlMathRoutine = null;
+
 	public AbstractRBaseReducer() {
 		String[] thisReacts = { PKQLEnum.EXPR_TERM, PKQLEnum.DECIMAL, PKQLEnum.NUMBER, PKQLEnum.GROUP_BY, PKQLEnum.COL_DEF, PKQLEnum.MATH_PARAM};
 		super.whatIReactTo = thisReacts;
 		super.whoAmI = PKQLEnum.MATH_FUN;
 	}
 	
-	public abstract Map<String, Object> getColumnDataMap();
-	
-	/**
-	 * This will generate the process script for the routine
-	 * @param tableName			The name of the R datatable
-	 * @param column			The column in the R datatable
-	 * @return					The R-Script to execute
-	 */
-	public abstract String process(String tableName, String column);
-	
-	/**
-	 * This will generate the process script when group bys are present for the routine
-	 * @param tableName			The name of the R datatable
-	 * @param column			The column in the R datatable	 
-	 * @param groupByCols		The columns to group by in the R datatable
-	 * @return					The R-Script to execute
-	 */
-	public abstract String processGroupBy(String tableName, String column, List<String> groupByCols);
+	public abstract RExpressionBuilder process(RDataTable frame, RExpressionBuilder builder);
 
-	
 	@Override
 	public Iterator process() {
 		String nodeStr = myStore.get(whoAmI).toString();
+		RDataTable rDataTable = (RDataTable) myStore.get("G");
 
-		// modify the expression to get the sql syntax
-		modExpression();
+		boolean hasGroups = false;
 		
-		String script = myStore.get("MOD_" + whoAmI).toString();
-		script = script.replace("[", "").replace("]", "");
-		
-		RDataTable rFrame = (RDataTable)myStore.get("G");
-		String varRFrame = rFrame.getTableVarName();
-		
-		Vector<String> groupBys = (Vector <String>)myStore.get(PKQLEnum.COL_CSV);
-
-		if(groupBys != null && !groupBys.isEmpty()){
-			String rScript = processGroupBy(varRFrame, script, groupBys);
-			REXP math = rFrame.executeRScript(rScript);
+		RExpressionBuilder builder = null;
+		// if this is wrapping an existing expression iterator
+		if(myStore.get("TERM") instanceof RExpressionBuilder) {
+			builder = (RExpressionBuilder) myStore.get("TERM");
 			
-			try {
-				// note: the derived column comes back with header "V1"
-				Map<String, Object> groups = (Map<String, Object>) math.asNativeJavaObject();
-				double[] results = (double[]) groups.get("V1");
-
-				// this is only here because this is what viz reactor expects
-				// TODO: when we get job ids, will be very happy to get rid of this
-				// annoying object
-				HashMap<HashMap<Object,Object>,Object> groupByHash = new HashMap<HashMap<Object,Object>,Object>();
-				
-				// loop through and get everything
-				for(int i = 0; i < results.length; i++) {
-					HashMap<Object, Object> groupMap = new HashMap<Object, Object>();
-					for(String groupByName : groupBys) {
-						// all the values match by instance
-						// grab the i-th index for each of the lists
-						
-						Object groupByValue = null;
-						Object group = groups.get(groupByName);
-						// ugh... need to do this casting
-						if(group instanceof Object[]) {
-							groupByValue = ((Object[]) groups.get(groupByName))[i];
-						} else if(group instanceof double[]) {
-							groupByValue = ((double[]) groups.get(groupByName))[i];
-						} else if(group instanceof int[]) {
-							groupByValue = ((int[]) groups.get(groupByName))[i];
-						}
-						
-						// store in the inner map
-						groupMap.put(groupByName, groupByValue);
+			// make sure groups are not contradicting
+			// get the current groups
+			Set<String> groups = new HashSet<String>();
+			List<String> existingGroups = builder.getGroupByColumns();
+			if(existingGroups != null && existingGroups.size() > 0) {
+				hasGroups = true;
+				groups.addAll(existingGroups);
+				int startSize = groups.size();
+				Vector<String> groupBys = (Vector <String>) myStore.get(PKQLEnum.COL_CSV);
+				// when i remove these new groups, the size better be 0
+				// meaning they are all already accounted for
+				if(groupBys != null && !groupBys.isEmpty()) {
+					groups.addAll(groupBys);
+					int endSize = groups.size();
+					if(startSize != endSize) {
+						throw new IllegalArgumentException("Expression contains group bys that are not the same.  Unable to process.");
 					}
-					// now grab the i-th index of the results
-					// and put it as the value in the final hash
-					groupByHash.put(groupMap, results[i]);
 				}
-				
-				myStore.put(nodeStr, groupByHash);
-				myStore.put("STATUS",STATUS.SUCCESS);
-
-			} catch (REXPMismatchException e) {
-				e.printStackTrace();
+			} 
+			else {
+				// no existing group bys
+				// see if we need to add any new ones
+				hasGroups = addGroupBys(builder);
 			}
 		} else {
-			String rScript = process(varRFrame, script);
-			REXP math = rFrame.executeRScript(rScript);
-			double result = 0;
+			builder = new RExpressionBuilder(rDataTable);
+			// this case can only be if we pass in a column
+			
+			// modify the expression to get the sql syntax
+			modExpression();
+			// we have a new expression
+			// input is a new column
+			String column = myStore.get("MOD_" + whoAmI).toString();
+			column = column.replace("[", "").replace("]", "").trim();
+			
+			RColumnSelector cSelector = new RColumnSelector(column);
+			builder.addSelector(cSelector);
+			
+			// no existing group bys
+			// see if we need to add any new ones
+			hasGroups = addGroupBys(builder);
+		}
+
+		builder = process(rDataTable, builder);
+
+		if(hasGroups){
+			myStore.put(nodeStr, builder);
+			myStore.put("STATUS",STATUS.SUCCESS);
+		} else {
+			REXP rs = rDataTable.executeRScript(builder.toString());
+			Object result = null;
 			try {
-				result = math.asDouble();
+				result = rs.asNativeJavaObject();
+				RConstantSelector constant = new RConstantSelector(result);
+				builder.addSelector(constant);
 			} catch (REXPMismatchException e) {
 				e.printStackTrace();
 			}
 			
-			myStore.put(nodeStr, result);
+			myStore.put(nodeStr, builder);
 			myStore.put("STATUS",STATUS.SUCCESS);
 		}
 		
 		return null;
 	}
 	
-	public Map<String, Object> getBaseColumnDataMap(String baseFunction) {
-		// map to store the info
-		Map<String, Object> headMap = new HashMap<String, Object>();
-
-		Vector <String> columns = (Vector <String>)myStore.get(PKQLEnum.COL_DEF);
-		Vector<String> groupBys = (Vector <String>)myStore.get(PKQLEnum.COL_CSV);
-		
-		String header = baseFunction + "(" + columns.get(0);
-		for(int i = 1; i < columns.size(); i++) {
-			header += ", " + columns.get(i);
+	/**
+	 * Adds the group bys and returns if groups bys were added
+	 * @param h2Frame
+	 * @param builder
+	 * @return
+	 */
+	private boolean addGroupBys(RExpressionBuilder builder) {
+		boolean hasGroups = false;
+		Vector<String> groupBys = (Vector <String>) myStore.get(PKQLEnum.COL_CSV);
+		if(groupBys != null) {
+			for(String groupBy : groupBys) {
+				RColumnSelector gSelector = new RColumnSelector(groupBy);
+				builder.addGroupBy(gSelector);
+				hasGroups = true;
+			}
 		}
-		header += ")";
-		
-		headMap.put("uri", header);
-		headMap.put("varKey", header);
-		headMap.put("type", "NUMBER");
-		
-		// if its an expression and there is a group
-		// then the group must have been applied to this value
-		HashMap<String, Object> operationMap = new HashMap<String, Object>();
-		if(groupBys != null && !groupBys.isEmpty()) {
-			operationMap.put("groupBy", groupBys);
-		}
-
-		// get the columns used
-		operationMap.put("calculatedBy", columns);
-		operationMap.put("math", baseFunction);
-
-		// add the formula if it is not just a simple column
-		operationMap.put("formula", myStore.get("FORMULA"));
-		
-		// add to main map
-		headMap.put("operation", operationMap);
-		return headMap;
+		return hasGroups;
 	}
+	
+	public void setMathRoutine(String mathRoutine) {
+		this.mathRoutine = mathRoutine;
+	}
+	
+	public void setPkqlMathRoutine(String pkqlMathRoutine) {
+		this.pkqlMathRoutine  = pkqlMathRoutine;
+	}
+	
 }

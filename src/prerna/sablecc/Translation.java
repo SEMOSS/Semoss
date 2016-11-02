@@ -22,7 +22,6 @@ import prerna.om.Dashboard;
 import prerna.sablecc.PKQLEnum.PKQLReactor;
 import prerna.sablecc.PKQLRunner.STATUS;
 import prerna.sablecc.analysis.DepthFirstAdapter;
-import prerna.sablecc.expressions.r.AbstractRBaseReducer;
 import prerna.sablecc.expressions.sql.builder.SqlBuilder;
 import prerna.sablecc.expressions.sql.builder.SqlBuilderGenerator;
 import prerna.sablecc.meta.IPkqlMetadata;
@@ -1820,10 +1819,11 @@ public class Translation extends DepthFirstAdapter {
 		if(previousReactor instanceof BaseReducerReactor) {
 			Map<String, Object> headerInfo = ((BaseReducerReactor) previousReactor).getColumnDataMap();
 			curReactor.set("MERGE_HEADER_INFO", headerInfo);
-		} else if(previousReactor instanceof AbstractRBaseReducer) {
-			Map<String, Object> headerInfo = ((AbstractRBaseReducer) previousReactor).getColumnDataMap();
-			curReactor.set("MERGE_HEADER_INFO", headerInfo);
-		}
+		} 
+//		else if(previousReactor instanceof AbstractRBaseReducer) {
+//			Map<String, Object> headerInfo = ((AbstractRBaseReducer) previousReactor).getColumnDataMap();
+//			curReactor.set("MERGE_HEADER_INFO", headerInfo);
+//		}
 		
 		runner.setResponse(previousReactor.getValue(expr));
 		runner.setStatus((STATUS) previousReactor.getValue("STATUS"));
