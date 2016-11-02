@@ -39,6 +39,58 @@ public class OutputDataReactor extends AbstractReactor {
 	@Override
 	public Iterator process() {
 		
+Gson gson = new Gson();
+		
+		//open a saved insight if we have the data
+		String engine = (String)myStore.get("DATA_OPEN_ENGINE");
+		engine = (String)myStore.get(engine);
+		String engine_id = (String)myStore.get("DATA_OPEN_ID");
+		engine_id = (String)myStore.get(engine_id);
+		String insightId = (String)myStore.get("INSIGHT_ID");
+		
+		IEngine coreEngine = Utility.getEngine(engine);
+		if(coreEngine == null) {
+			//store error message
+			myStore.put(PKQLEnum.OPEN_DATA, "Error Opening Insight");
+			return null;
+		}
+		Insight insightObj = ((AbstractEngine)coreEngine).getInsight(engine_id).get(0);
+		
+		IDataMaker insight = (IDataMaker)myStore.get("G");
+		insightObj.setUserID(insight.getUserId());
+		
+		String vizData = CacheFactory.getInsightCache(CacheFactory.CACHE_TYPE.DB_INSIGHT_CACHE).getVizData(insightObj);
+
+		Object obj = null;
+		if(vizData != null) {
+			// insight has been cached, send it to the FE with a new insight id
+			String id = InsightStore.getInstance().put(insightObj);
+			
+			myStore.put(PKQLEnum.OPEN_DATA, id);
+			
+			Map<String, Object> uploaded = gson.fromJson(vizData, new TypeToken<Map<String, Object>>() {}.getType());
+			uploaded.put("insightID", id);
+			
+			myStore.put("webData", uploaded);
+		} else {
+			// insight visualization data has not been cached, run the insight
+			try {
+				insightObj.setInsightID(insightId);
+				InsightStore.getInstance().put(insightId, insightObj);
+				myStore.put(PKQLEnum.OPEN_DATA, insightId);
+				
+				InsightCreateRunner run = new InsightCreateRunner(insightObj);
+				Map<String, Object> insightOutput = run.runSavedRecipe();
+				
+				myStore.put("webData", insightOutput);
+			} catch (Exception ex) { //need to specify the different exceptions 
+				ex.printStackTrace();
+				Hashtable<String, String> errorHash = new Hashtable<String, String>();
+				errorHash.put("Message", "Error occured processing question.");
+				errorHash.put("Class", "");
+			}
+		}
+			
 		return null;
 	}
 

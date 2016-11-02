@@ -284,6 +284,23 @@ public class InsightCreateRunner implements Runnable{
 	 */
 	public Map<String, Object> runWeb()
 	{
+		if(insight.getPkqlRecipe().equals("")) { 
+			createData();
+		}
+		Map<String, String> tableDataAlign = insight.getDataTableAlign();
+		
+		// previous insights did not save the table data align
+		// if it is not present, we get the table data align by setting the data maker in the playsheet and grabbing it
+		if((tableDataAlign == null || tableDataAlign.isEmpty()) && !(insight.getDataMaker() instanceof Dashboard) && !insight.getOutput().toLowerCase().equals("ckeditor")) {
+			IPlaySheet playSheet = insight.getPlaySheet();
+			tableDataAlign = (Map<String, String>) (((AbstractPlaySheet) playSheet).getDataTableAlign());
+			insight.setDataTableAlign(tableDataAlign);
+		}
+		insight.getDataMaker().resetDataId();
+		return insight.getWebData();
+	}
+	
+	public Map<String, Object> runSavedRecipe() {
 		createData();
 		Map<String, String> tableDataAlign = insight.getDataTableAlign();
 		
@@ -295,6 +312,7 @@ public class InsightCreateRunner implements Runnable{
 			insight.setDataTableAlign(tableDataAlign);
 		}
 		insight.getDataMaker().resetDataId();
+//		return insight.getOutputWebData();
 		return insight.getWebData();
 	}
 	
