@@ -8,7 +8,7 @@ public class RCountReactor extends RBasicMathReactor {
 	 */
 	
 	public RCountReactor() {
-		this.setMathRoutine("uniqueN");
+		this.setMathRoutine("length");
 		this.setPkqlMathRoutine("Count");
 	}
 }
