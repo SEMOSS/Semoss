@@ -34,4 +34,11 @@ public class SqlCastSelector implements IExpressionSelector {
 		return this.selector.getTableColumns();
 	}
 
+	@Override
+	public String getName() {
+		StringBuilder builder = new StringBuilder();
+		builder.append("CAST_").append(selector.getName()).append("_AS_").append(this.type);
+		return builder.toString();
+	}
+
 }

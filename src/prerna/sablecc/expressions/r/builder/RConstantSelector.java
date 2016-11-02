@@ -3,7 +3,9 @@ package prerna.sablecc.expressions.r.builder;
 import java.util.List;
 import java.util.Vector;
 
-public class RConstantSelector implements IRExpressionSelector{
+import prerna.sablecc.expressions.IExpressionSelector;
+
+public class RConstantSelector implements IExpressionSelector{
 
 	Object value = null;
 	
@@ -22,7 +24,7 @@ public class RConstantSelector implements IRExpressionSelector{
 
 	@Override
 	public String getName() {
-		return value.toString();
+		return value + "";
 	}
 	
 }

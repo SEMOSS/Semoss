@@ -112,6 +112,13 @@ public abstract class AbstractApiReactor extends AbstractReactor{
 							
 							//if not contained create a new table and add to filters
 							if(addFilter) {
+								
+								// TODO:
+								// need to get the type of the column in the new database
+								// since the previous db could have had the data stored in a different format
+								// we need to convert it to the correct format
+								
+								
 								//figure out which is the new column and which already exists in the table
 								Iterator<Object> rowIt = frame.uniqueValueIterator(fromColumn, false);
 								List<Object> filterInstances = new Vector<Object>();
