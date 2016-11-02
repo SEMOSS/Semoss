@@ -692,6 +692,7 @@ public class Translation extends DepthFirstAdapter {
 
 		Map<String, Object> webData = (Map<String, Object>) previousReactor.getValue("webData");
 		// runner.setDataMap(webData);
+		this.runner.setReturnData(webData);
 
 		IDataMaker dm = (IDataMaker) curReactor.getValue("G");
 		if (curReactor.getValue("G") instanceof Dashboard) {
@@ -699,6 +700,40 @@ public class Translation extends DepthFirstAdapter {
 			dash.setInsightOutput((String) webData.get("insightID"), webData);
 		}
 		curReactor.set(PKQLEnum.OPEN_DATA, previousReactor.getValue(PKQLEnum.OPEN_DATA));
+	}
+	
+	@Override
+	public void inAOutputData(AOutputData node) {
+		initReactor(PKQLEnum.OUTPUT_DATA);
+	}
+
+	@Override
+	public void outAOutputData(AOutputData node) {
+		String nodeOpen = node.getDataoutputtoken().toString().trim();
+		String nodeStr = node.toString().trim();
+		curReactor.put(PKQLEnum.EXPR_TERM, nodeOpen);
+
+		String engine = node.getEngine().toString().trim();
+		String id = node.getEngineId().toString().trim();
+		curReactor.put("DATA_OPEN_ENGINE", engine);
+		curReactor.put("DATA_OPEN_ID", id);
+		curReactor.put("INSIGHT_ID", this.runner.getInsightId());
+		
+		Hashtable<String, Object> thisReactorHash = deinitReactor(PKQLEnum.OUTPUT_DATA, nodeOpen, nodeStr);
+		IScriptReactor previousReactor = (IScriptReactor) thisReactorHash.get(PKQLEnum.OUTPUT_DATA);
+
+		Map<String, Object> webData = (Map<String, Object>) previousReactor.getValue("webData");
+		// runner.setDataMap(webData);
+		this.runner.setReturnData(webData);
+		
+		Object[] pkqlData = (Object[])webData.get("pkqlData");
+		
+		IDataMaker dm = (IDataMaker) curReactor.getValue("G");
+		if (curReactor.getValue("G") instanceof Dashboard) {
+			Dashboard dash = (Dashboard) curReactor.getValue("G");
+			dash.setInsightOutput((String) webData.get("insightID"), webData);
+		}
+		curReactor.set(PKQLEnum.OUTPUT_DATA, previousReactor.getValue(PKQLEnum.OUTPUT_DATA));
 	}
 
 	@Override
