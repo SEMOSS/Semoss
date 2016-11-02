@@ -3,6 +3,7 @@ package prerna.sablecc.expressions.r;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.Vector;
 
@@ -16,6 +17,7 @@ import prerna.sablecc.PKQLRunner.STATUS;
 import prerna.sablecc.expressions.r.builder.RColumnSelector;
 import prerna.sablecc.expressions.r.builder.RConstantSelector;
 import prerna.sablecc.expressions.r.builder.RExpressionBuilder;
+import prerna.sablecc.expressions.sql.builder.SqlConstantSelector;
 
 public abstract class AbstractRBaseReducer extends AbstractReactor {
 
@@ -96,11 +98,24 @@ public abstract class AbstractRBaseReducer extends AbstractReactor {
 			myStore.put("STATUS",STATUS.SUCCESS);
 		} else {
 			REXP rs = rDataTable.executeRScript(builder.toString());
-			Object result = null;
+			Map<String, Object> result = null;
 			try {
-				result = rs.asNativeJavaObject();
-				RConstantSelector constant = new RConstantSelector(result);
-				builder.addSelector(constant);
+				result = (Map<String, Object>) rs.asNativeJavaObject();
+				// we assume there is only 1 value to return
+				Object value = result.get(result.keySet().iterator().next());
+				Object val = null;
+				if(value instanceof Object[]) {
+					val = ((Object[]) value)[0];
+				} else if(value instanceof double[]) {
+					val = ((double[]) value)[0];
+				} else if( value instanceof int[]) {
+					val = ((int[]) value)[0];
+				} else {
+					val = value;
+				}
+				// we just added a selector which we can reduce into a scalar
+				RConstantSelector constant = new RConstantSelector(val);
+				builder.replaceSelector(builder.getLastSelector(), constant);
 			} catch (REXPMismatchException e) {
 				e.printStackTrace();
 			}

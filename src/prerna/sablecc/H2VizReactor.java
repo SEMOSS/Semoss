@@ -10,9 +10,9 @@ import java.util.Vector;
 import prerna.ds.H2.H2Frame;
 import prerna.sablecc.expressions.IExpressionSelector;
 import prerna.sablecc.expressions.sql.H2SqlExpressionIterator;
-import prerna.sablecc.expressions.sql.builder.SqlBuilder;
 import prerna.sablecc.expressions.sql.builder.SqlColumnSelector;
 import prerna.sablecc.expressions.sql.builder.SqlConstantSelector;
+import prerna.sablecc.expressions.sql.builder.SqlExpressionBuilder;
 import prerna.util.ArrayUtilityMethods;
 
 public class H2VizReactor extends AbstractVizReactor {
@@ -37,16 +37,16 @@ public class H2VizReactor extends AbstractVizReactor {
 		List<String> mergeVizTypes = new Vector<String>();
 		List<String> mergeVizFormula = new Vector<String>();
 
-		SqlBuilder mainBuilder = new SqlBuilder(frame);
+		SqlExpressionBuilder mainBuilder = new SqlExpressionBuilder(frame);
 		// we have at least one selector
 		int size = selectors.size();
 		for(int i = 0; i < size; i++) {
 			
 			Object term = selectors.get(i);
-			if(term instanceof SqlBuilder) {
+			if(term instanceof SqlExpressionBuilder) {
 				List<IExpressionSelector> mainGroups = mainBuilder.getGroupBySelectors();
 				
-				SqlBuilder builder = (SqlBuilder) term;
+				SqlExpressionBuilder builder = (SqlExpressionBuilder) term;
 				List<IExpressionSelector> builderSelectors = builder.getSelectors();
 				List<IExpressionSelector> builderGroups = builder.getGroupBySelectors();
 				

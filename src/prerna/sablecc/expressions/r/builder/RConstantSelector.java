@@ -17,6 +17,10 @@ public class RConstantSelector implements IExpressionSelector{
 		return value + "";
 	}
 	
+	public Object getValue() {
+		return this.value;
+	}
+	
 	@Override
 	public List<String> getTableColumns() {
 		return new Vector<String>();
