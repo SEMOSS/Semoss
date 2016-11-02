@@ -71,6 +71,11 @@ public class RIterator implements Iterator<Object[]>{
 			} else {
 				retArray[colIndex] = val;
 			}
+			
+			// since FE cannot handle NaN values
+			if(retArray[colIndex].equals(Double.NaN)) {
+				retArray[colIndex] = "";
+			}
 		}
 		
 		// update the row index
