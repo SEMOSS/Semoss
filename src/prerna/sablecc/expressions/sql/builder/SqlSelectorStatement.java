@@ -14,9 +14,9 @@ public class SqlSelectorStatement extends AbstractExpressionSelectorStatement{
 		StringBuilder builder = new StringBuilder();
 		for(IExpressionSelector selector : selectors) {
 			if(builder.length() == 0) {
-				builder.append(selector);
+				builder.append(selector).append(" AS ").append(selector.getName());
 			} else {
-				builder.append(" , ").append(selector);
+				builder.append(" , ").append(selector).append(" AS ").append(selector.getName());
 			}
 		}
 		

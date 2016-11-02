@@ -129,7 +129,7 @@ public class H2SqlExpressionIterator implements Iterator<Object[]> {
 			Map<String, Object> headMap = new HashMap<String, Object>();
 
 			// the name of the column is set by its expression
-			String header = selector.toString();
+			String header = selector.getName();
 			
 			headMap.put("uri", header);
 			headMap.put("varKey", header);

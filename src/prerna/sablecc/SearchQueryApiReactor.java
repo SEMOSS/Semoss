@@ -1,6 +1,5 @@
 package prerna.sablecc;
 
-import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -9,10 +8,7 @@ import java.util.Vector;
 
 import prerna.ds.QueryStruct;
 import prerna.engine.api.IEngine;
-import prerna.engine.api.IRawSelectWrapper;
 import prerna.engine.impl.rdf.AbstractApiReactor;
-import prerna.rdf.engine.wrappers.WrapperManager;
-import prerna.rdf.query.builder.IQueryInterpreter;
 import prerna.util.Utility;
 
 public class SearchQueryApiReactor extends AbstractApiReactor {

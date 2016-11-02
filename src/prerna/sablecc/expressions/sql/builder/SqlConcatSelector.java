@@ -39,4 +39,15 @@ public class SqlConcatSelector implements IExpressionSelector {
 		
 		return tables;
 	}
+
+	@Override
+	public String getName() {
+		StringBuilder builder = new StringBuilder();
+		// we assume at least one value in selector
+		builder.append("CONCAT_").append(selectors[0].toString());
+		for(int i = 1; i < selectors.length; i++) {
+			builder.append("_AND_").append(selectors[i].toString());
+		}
+		return builder.toString();
+	}
 }
