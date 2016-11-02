@@ -316,6 +316,7 @@ public class Insight {
 			// Set in the variable map as this is kept on the insight
 			// Runner just holds reference to it so that translation can get/set
 			this.pkqlRunner.setVarMap(pkqlVarMap);
+			this.pkqlRunner.setInsightId(this.insightID);
 			return this.pkqlRunner;
 		}
 	}
