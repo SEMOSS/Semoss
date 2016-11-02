@@ -2176,10 +2176,56 @@ public class H2Builder {
 		for (int jIndex = 0; jIndex < matchers.size(); jIndex++) {
 			Integer newIndex = keys.nextElement();
 			Integer oldIndex = matchers.get(newIndex);
-			if (jIndex == 0)
-				joins = joins + "A." + oldTypes[oldIndex] + " = " + "B." + newTypes[newIndex];
-			else
-				joins = joins + " AND " + "A." + oldTypes[oldIndex] + " = " + "B." + newTypes[newIndex];
+			
+			String oldCol = oldTypes[oldIndex];
+			String newCol = newTypes[newIndex];
+			
+			// need to make sure the data types are good to go
+			String oldColType = getDataType(tableName1, oldCol);
+			String newColType = getDataType(tableName2, newCol);
+			
+			// syntax modification for each addition join column
+			if (jIndex != 0) {
+				joins = joins + " AND ";
+			}
+			
+			if(oldColType.equals(newColType)) {
+				// data types are the same, no need to do anything
+				joins = joins + "A." + oldCol + " = " + "B." + newCol;
+			} else {
+				// data types are different... 
+				// if both are different numbers -> convert both to double
+				// else -> convert to strings
+				
+				if( (oldColType.equals("DOUBLE") || oldColType.equals("INT") )
+					&& (newColType.equals("DOUBLE") || newColType.equals("INT") ) ) {
+					// both are numbers
+					if(!oldColType.equals("DOUBLE")) {
+						joins = joins + "A." + oldCol;
+					} else {
+						joins = joins + "CAST( A." + oldCol + " AS DOUBLE)";
+					}
+					joins = joins + " = ";
+					if(!newColType.equals("DOUBLE")) {
+						joins = joins + "B." + newCol;
+					} else {
+						joins = joins + "CAST(B." + newCol + " AS DOUBLE)";
+					}
+				} else {
+					// one is a string... or date... but ignoring dates for now...
+					if(oldColType.equals("VARCHAR")) {
+						joins = joins + "A." + oldCol;
+					} else {
+						joins = joins + "CAST( A." + oldCol + " AS VARCHAR(800))";
+					}
+					joins = joins + " = ";
+					if(newColType.equals("VARCHAR")) {
+						joins = joins + "B." + newCol;
+					} else {
+						joins = joins + "CAST(B." + newCol + " AS VARCHAR(800))";
+					}
+				}
+			}
 		}
 		joins = joins + " )";
 
@@ -2265,6 +2311,20 @@ public class H2Builder {
 
 	protected void clearColumnIndexMap() {
 		this.columnIndexMap.clear();
+	}
+	
+	protected String getDataType(String tableName, String colName) {
+		String query = "select type_name from information_schema.columns where table_name='" + 
+					tableName.toUpperCase() + "' and column_name='" + colName.toUpperCase() + "'";
+		ResultSet rs = executeQuery(query);
+		try {
+			if(rs.next()) {
+				return rs.getString(1);
+			}
+		} catch (SQLException e) {
+			e.printStackTrace();
+		}
+		return null;
 	}
 
 	private String getNextNumber() {
