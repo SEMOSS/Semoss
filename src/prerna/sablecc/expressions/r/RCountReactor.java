@@ -1,7 +1,5 @@
 package prerna.sablecc.expressions.r;
 
-import java.util.Map;
-
 public class RCountReactor extends RBasicMathReactor {
 
 	/*
@@ -11,11 +9,6 @@ public class RCountReactor extends RBasicMathReactor {
 	
 	public RCountReactor() {
 		this.setMathRoutine("uniqueN");
+		this.setPkqlMathRoutine("Count");
 	}
-	
-	@Override
-	public Map<String, Object> getColumnDataMap() {
-		return getBaseColumnDataMap("Count");
-	}
-	
 }
