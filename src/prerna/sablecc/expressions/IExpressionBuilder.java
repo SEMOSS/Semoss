@@ -112,4 +112,15 @@ public interface IExpressionBuilder {
 	 */
 	String toString();
 	
+	/**
+	 * Determines if the expression is actually just a scalar response
+	 * @return
+	 */
+	boolean isScalar();
+	
+	/**
+	 * Get the scalar value of the expression
+	 * @return
+	 */
+	Object getScalarValue();
 }

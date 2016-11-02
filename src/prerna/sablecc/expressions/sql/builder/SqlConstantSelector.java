@@ -14,7 +14,11 @@ public class SqlConstantSelector implements IExpressionSelector {
 	}
 	
 	public String toString() {
-		return value + "";
+		return "'" + value + "'";
+	}
+	
+	public Object getValue() {
+		return this.value;
 	}
 	
 	@Override
@@ -24,7 +28,7 @@ public class SqlConstantSelector implements IExpressionSelector {
 
 	@Override
 	public String getName() {
-		return value + "";
+		return "Constant_" + value.toString().replaceAll("[^a-zA-Z0-9]", "") + "";
 	}
 
 }

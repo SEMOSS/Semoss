@@ -44,7 +44,8 @@ public class RExpressionIterator implements Iterator<Object[]> {
 		this.dataTableName = "DT_" + Utility.getRandomString(6);
 
 		generateExpression();
-		
+		runExpression();
+
 		LOGGER.info("GENERATED R EXPRESSION SCRIPT : " + this.rScript);
 	}
 	
@@ -171,11 +172,13 @@ public class RExpressionIterator implements Iterator<Object[]> {
 			Map<String, Object> headMap = new HashMap<String, Object>();
 
 			// the name of the column is set by its expression
-			String header = selector.toString();
-			
+			String origHeader = selector.toString();
+			// the name of the column is set by its expression
+			String header = selector.getName();
+						
 			headMap.put("uri", header);
 			headMap.put("varKey", header);
-			headMap.put("type", headerTypes.get(header.toUpperCase()));
+			headMap.put("type", headerTypes.get(origHeader.toUpperCase()));
 			headMap.put("vizType", vizTypes.get(i).replace("=", ""));
 			
 			// TODO push this on the selector to provide its type

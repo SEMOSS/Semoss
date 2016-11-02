@@ -22,8 +22,9 @@ import prerna.om.Dashboard;
 import prerna.sablecc.PKQLEnum.PKQLReactor;
 import prerna.sablecc.PKQLRunner.STATUS;
 import prerna.sablecc.analysis.DepthFirstAdapter;
-import prerna.sablecc.expressions.sql.builder.SqlBuilder;
-import prerna.sablecc.expressions.sql.builder.SqlBuilderGenerator;
+import prerna.sablecc.expressions.r.builder.RExpressionBuilder;
+import prerna.sablecc.expressions.sql.builder.ExpressionGenerator;
+import prerna.sablecc.expressions.sql.builder.SqlExpressionBuilder;
 import prerna.sablecc.meta.IPkqlMetadata;
 import prerna.sablecc.node.*;
 import prerna.sablecc.services.DatabasePkqlService;
@@ -1444,7 +1445,15 @@ public class Translation extends DepthFirstAdapter {
 			//TODO: need to make this generic and get the correct type of expression it
 			if(curReactor.getValue("G") instanceof H2Frame) {
 				H2Frame frame = (H2Frame) curReactor.getValue("G");
-				SqlBuilder builder = SqlBuilderGenerator.generateSimpleMathExpressions(frame, leftObj, rightObj, node.getPlus().toString().trim());
+				SqlExpressionBuilder builder = ExpressionGenerator.sqlGenerateSimpleMathExpressions(frame, leftObj, rightObj, node.getPlus().toString().trim());
+				curReactor.addReplacer(node.toString().trim(), builder);
+				curReactor.removeReplacer(leftKeyName);
+				curReactor.removeReplacer(rightKeyName);
+				curReactor.put(node.toString().trim(), builder);
+				this.runner.setResponse(builder);
+			} else if(curReactor.getValue("G") instanceof RDataTable) {
+				RDataTable frame = (RDataTable) curReactor.getValue("G");
+				RExpressionBuilder builder = ExpressionGenerator.rGenerateSimpleMathExpressions(frame, leftObj, rightObj, node.getPlus().toString().trim());
 				curReactor.addReplacer(node.toString().trim(), builder);
 				curReactor.removeReplacer(leftKeyName);
 				curReactor.removeReplacer(rightKeyName);
@@ -1476,7 +1485,15 @@ public class Translation extends DepthFirstAdapter {
 			//TODO: need to make this generic and get the correct type of expression it
 			if(curReactor.getValue("G") instanceof H2Frame) {
 				H2Frame frame = (H2Frame) curReactor.getValue("G");
-				SqlBuilder builder = SqlBuilderGenerator.generateSimpleMathExpressions(frame, leftObj, rightObj, node.getMinus().toString().trim());
+				SqlExpressionBuilder builder = ExpressionGenerator.sqlGenerateSimpleMathExpressions(frame, leftObj, rightObj, node.getMinus().toString().trim());
+				curReactor.addReplacer(node.toString().trim(), builder);
+				curReactor.removeReplacer(leftKeyName);
+				curReactor.removeReplacer(rightKeyName);
+				curReactor.put(node.toString().trim(), builder);
+				this.runner.setResponse(builder);
+			} else if(curReactor.getValue("G") instanceof RDataTable) {
+				RDataTable frame = (RDataTable) curReactor.getValue("G");
+				RExpressionBuilder builder = ExpressionGenerator.rGenerateSimpleMathExpressions(frame, leftObj, rightObj, node.getMinus().toString().trim());
 				curReactor.addReplacer(node.toString().trim(), builder);
 				curReactor.removeReplacer(leftKeyName);
 				curReactor.removeReplacer(rightKeyName);
@@ -1508,7 +1525,15 @@ public class Translation extends DepthFirstAdapter {
 			//TODO: need to make this generic and get the correct type of expression it
 			if(curReactor.getValue("G") instanceof H2Frame) {
 				H2Frame frame = (H2Frame) curReactor.getValue("G");
-				SqlBuilder builder = SqlBuilderGenerator.generateSimpleMathExpressions(frame, leftObj, rightObj, node.getMult().toString().trim());
+				SqlExpressionBuilder builder = ExpressionGenerator.sqlGenerateSimpleMathExpressions(frame, leftObj, rightObj, node.getMult().toString().trim());
+				curReactor.addReplacer(node.toString().trim(), builder);
+				curReactor.removeReplacer(leftKeyName);
+				curReactor.removeReplacer(rightKeyName);
+				curReactor.put(node.toString().trim(), builder);
+				this.runner.setResponse(builder);
+			} else if(curReactor.getValue("G") instanceof RDataTable) {
+				RDataTable frame = (RDataTable) curReactor.getValue("G");
+				RExpressionBuilder builder = ExpressionGenerator.rGenerateSimpleMathExpressions(frame, leftObj, rightObj, node.getMult().toString().trim());
 				curReactor.addReplacer(node.toString().trim(), builder);
 				curReactor.removeReplacer(leftKeyName);
 				curReactor.removeReplacer(rightKeyName);
@@ -1540,7 +1565,15 @@ public class Translation extends DepthFirstAdapter {
 			//TODO: need to make this generic and get the correct type of expression it
 			if(curReactor.getValue("G") instanceof H2Frame) {
 				H2Frame frame = (H2Frame) curReactor.getValue("G");
-				SqlBuilder builder = SqlBuilderGenerator.generateSimpleMathExpressions(frame, leftObj, rightObj, node.getDiv().toString().trim());
+				SqlExpressionBuilder builder = ExpressionGenerator.sqlGenerateSimpleMathExpressions(frame, leftObj, rightObj, node.getDiv().toString().trim());
+				curReactor.addReplacer(node.toString().trim(), builder);
+				curReactor.removeReplacer(leftKeyName);
+				curReactor.removeReplacer(rightKeyName);
+				curReactor.put(node.toString().trim(), builder);
+				this.runner.setResponse(builder);
+			} else if(curReactor.getValue("G") instanceof RDataTable) {
+				RDataTable frame = (RDataTable) curReactor.getValue("G");
+				RExpressionBuilder builder = ExpressionGenerator.rGenerateSimpleMathExpressions(frame, leftObj, rightObj, node.getDiv().toString().trim());
 				curReactor.addReplacer(node.toString().trim(), builder);
 				curReactor.removeReplacer(leftKeyName);
 				curReactor.removeReplacer(rightKeyName);

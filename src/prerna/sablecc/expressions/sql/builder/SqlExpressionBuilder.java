@@ -1,14 +1,17 @@
 package prerna.sablecc.expressions.sql.builder;
 
+import java.util.List;
+
 import prerna.ds.H2.H2Frame;
 import prerna.sablecc.expressions.AbstractExpressionBuilder;
+import prerna.sablecc.expressions.IExpressionSelector;
 
-public class SqlBuilder extends AbstractExpressionBuilder {
+public class SqlExpressionBuilder extends AbstractExpressionBuilder {
 
 	// the data frame to execute the expression on
 	protected H2Frame frame;
 	
-	public SqlBuilder(H2Frame frame) {
+	public SqlExpressionBuilder(H2Frame frame) {
 		this.frame = frame;
 		this.selectors = new SqlSelectorStatement();
 		this.groups = new SqlGroupBy();
@@ -40,5 +43,26 @@ public class SqlBuilder extends AbstractExpressionBuilder {
 		builder.append(" ").append(groups.toString());
 		
 		return builder.toString();
+	}
+	
+	@Override
+	public boolean isScalar() {
+		List<IExpressionSelector> selectorList = selectors.getSelectors();
+		if(selectorList.size() == 1) {
+			if(selectorList.get(0) instanceof SqlConstantSelector) {
+				return true;
+			}
+		}
+		
+		return false;
+	}
+	
+	@Override
+	public Object getScalarValue() {
+		if(isScalar()) {
+			List<IExpressionSelector> selectorList = selectors.getSelectors();
+			return ((SqlConstantSelector) selectorList.get(0)).getValue();
+		}
+		return null;
 	}
 }

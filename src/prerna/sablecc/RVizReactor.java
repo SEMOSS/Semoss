@@ -107,7 +107,6 @@ public class RVizReactor extends AbstractVizReactor{
 		if(mergeMaps.size() == 0) {
 			// yay, we can just run the query and return it
 			RExpressionIterator it = new RExpressionIterator(mainBuilder);
-			it.runExpression();
 			List<Object[]> data = new Vector<Object[]>();
 			while(it.hasNext()) {
 				data.add(it.next());
