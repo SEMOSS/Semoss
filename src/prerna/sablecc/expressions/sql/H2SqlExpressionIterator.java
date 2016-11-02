@@ -14,9 +14,9 @@ import org.apache.log4j.Logger;
 
 import prerna.ds.H2.H2Frame;
 import prerna.sablecc.expressions.IExpressionSelector;
-import prerna.sablecc.expressions.sql.builder.SqlBuilder;
 import prerna.sablecc.expressions.sql.builder.SqlColumnSelector;
 import prerna.sablecc.expressions.sql.builder.SqlConstantSelector;
+import prerna.sablecc.expressions.sql.builder.SqlExpressionBuilder;
 import prerna.sablecc.expressions.sql.builder.SqlMathSelector;
 import prerna.util.Utility;
 
@@ -25,7 +25,7 @@ public class H2SqlExpressionIterator implements Iterator<Object[]> {
 	private static final Logger LOGGER = LogManager.getLogger(H2SqlExpressionIterator.class.getName());
 
 	private H2Frame frame;
-	private SqlBuilder builder;
+	private SqlExpressionBuilder builder;
 	private ResultSet rs;
 
 	private int numCols;
@@ -34,7 +34,7 @@ public class H2SqlExpressionIterator implements Iterator<Object[]> {
 	// This will hold the full sql expression to execute
 	private String sqlScript;
 
-	public H2SqlExpressionIterator(SqlBuilder builder) {
+	public H2SqlExpressionIterator(SqlExpressionBuilder builder) {
 		this.builder = builder;
 		this.frame = builder.getFrame();
 		this.numCols = builder.numSelectors();
