@@ -69,7 +69,7 @@ import prerna.cache.CacheFactory;
 import prerna.ds.QueryStruct;
 import prerna.ds.TableDataFrameFactory;
 import prerna.ds.TinkerFrame;
-import prerna.ds.H2.H2Frame;
+import prerna.ds.h2.H2Frame;
 import prerna.engine.api.IEngine;
 import prerna.engine.api.ISelectStatement;
 import prerna.engine.api.ISelectWrapper;

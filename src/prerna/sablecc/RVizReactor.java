@@ -7,7 +7,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.Vector;
 
-import prerna.ds.R.RDataTable;
+import prerna.ds.r.RDataTable;
 import prerna.sablecc.expressions.IExpressionSelector;
 import prerna.sablecc.expressions.r.builder.RColumnSelector;
 import prerna.sablecc.expressions.r.builder.RConstantSelector;

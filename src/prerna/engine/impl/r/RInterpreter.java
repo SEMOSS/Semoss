@@ -8,7 +8,7 @@ import java.util.Vector;
 
 import prerna.algorithm.api.IMetaData;
 import prerna.ds.QueryStruct;
-import prerna.ds.R.RSyntaxHelper;
+import prerna.ds.r.RSyntaxHelper;
 import prerna.rdf.query.builder.IQueryInterpreter;
 
 public class RInterpreter implements IQueryInterpreter {

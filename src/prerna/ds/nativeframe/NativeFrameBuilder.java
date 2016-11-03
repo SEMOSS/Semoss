@@ -22,7 +22,7 @@ import org.apache.log4j.Logger;
 import prerna.ds.AbstractTableDataFrame;
 import prerna.ds.QueryStruct;
 import prerna.ds.TinkerFrame;
-import prerna.ds.H2.H2Iterator;
+import prerna.ds.h2.H2Iterator;
 import prerna.engine.api.IEngine;
 import prerna.engine.impl.rdbms.RDBMSNativeEngine;
 import prerna.rdf.query.builder.IQueryInterpreter;

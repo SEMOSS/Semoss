@@ -1,4 +1,4 @@
-package prerna.ds.H2;
+package prerna.ds.h2;
 
 import java.io.BufferedReader;
 import java.io.File;
@@ -40,7 +40,7 @@ import prerna.ds.AbstractTableDataFrame;
 import prerna.ds.TinkerFrame;
 import prerna.ds.TinkerMetaData;
 import prerna.ds.TinkerMetaHelper;
-import prerna.ds.H2.H2Builder.Join;
+import prerna.ds.h2.H2Builder.Join;
 import prerna.engine.api.IEngine;
 import prerna.engine.api.IHeadersDataRow;
 import prerna.engine.api.ISelectWrapper;
