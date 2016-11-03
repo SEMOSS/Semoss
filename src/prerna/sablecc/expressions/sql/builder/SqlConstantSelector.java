@@ -14,7 +14,10 @@ public class SqlConstantSelector implements IExpressionSelector {
 	}
 	
 	public String toString() {
-		return "'" + value + "'";
+		if(value instanceof String) {
+			return "'" + value + "'";
+		}
+		return value + "";
 	}
 	
 	public Object getValue() {
