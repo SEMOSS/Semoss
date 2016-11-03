@@ -64,12 +64,13 @@ Gson gson = new Gson();
 		Object obj = null;
 		if(vizData != null) {
 			// insight has been cached, send it to the FE with a new insight id
-			String id = InsightStore.getInstance().put(insightObj);
-			
-			myStore.put(PKQLEnum.OPEN_DATA, id);
+//			String id = InsightStore.getInstance().put(insightObj);
+			insightObj.setInsightID(insightId);
+			InsightStore.getInstance().put(insightId, insightObj);
+			myStore.put(PKQLEnum.OPEN_DATA, insightId);
 			
 			Map<String, Object> uploaded = gson.fromJson(vizData, new TypeToken<Map<String, Object>>() {}.getType());
-			uploaded.put("insightID", id);
+			uploaded.put("insightID", insightId);
 			
 			myStore.put("webData", uploaded);
 		} else {
