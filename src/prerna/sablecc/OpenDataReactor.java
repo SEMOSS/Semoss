@@ -1,5 +1,6 @@
 package prerna.sablecc;
 
+import java.util.HashMap;
 import java.util.Hashtable;
 import java.util.Iterator;
 import java.util.Map;
@@ -68,9 +69,12 @@ public class OpenDataReactor extends AbstractReactor {
 			myStore.put(PKQLEnum.OPEN_DATA, id);
 			
 			Map<String, Object> uploaded = gson.fromJson(vizData, new TypeToken<Map<String, Object>>() {}.getType());
-			uploaded.put("insightID", id);
+//			uploaded.put("insightID", id);
+			Map<String, Object> webData = new HashMap<>();
+			webData.put("insightID", id);
+			webData.put("recipe", uploaded.get("recipe"));
 			
-			myStore.put("webData", uploaded);
+			myStore.put("webData", webData);
 		} else {
 			// insight visualization data has not been cached, run the insight
 			try {
@@ -78,9 +82,12 @@ public class OpenDataReactor extends AbstractReactor {
 				myStore.put(PKQLEnum.OPEN_DATA, id);
 				
 				InsightCreateRunner run = new InsightCreateRunner(insightObj);
-				Map<String, Object> insightOutput = run.runWeb();
+				Map<String, Object> insightOutput = run.runWeb();//runSavedRecipe();
 				
-				myStore.put("webData", insightOutput);
+				Map<String, Object> webData = new HashMap<>();
+				webData.put("insightID", insightOutput.get("insightID"));
+				webData.put("recipe", insightOutput.get("recipe"));
+				myStore.put("webData", webData);
 			} catch (Exception ex) { //need to specify the different exceptions 
 				ex.printStackTrace();
 				Hashtable<String, String> errorHash = new Hashtable<String, String>();
