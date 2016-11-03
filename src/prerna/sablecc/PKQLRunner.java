@@ -579,6 +579,7 @@ public class PKQLRunner {
 		this.activeFeMap = null; // temporally grabbed out of master
 		this.translation = null;
 		this.newColumns = new HashMap<String,String>();
+		this.returnData = null;
 		
 //		this.expiredFeMaps =  new HashMap<String, List<Map<String,Object>>>();
 	}
