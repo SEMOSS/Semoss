@@ -10,7 +10,7 @@ import java.util.Vector;
 import org.rosuda.REngine.REXP;
 import org.rosuda.REngine.REXPMismatchException;
 
-import prerna.ds.R.RDataTable;
+import prerna.ds.r.RDataTable;
 import prerna.sablecc.AbstractReactor;
 import prerna.sablecc.PKQLEnum;
 import prerna.sablecc.PKQLRunner.STATUS;

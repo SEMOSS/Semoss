@@ -16,7 +16,7 @@ import org.apache.log4j.Logger;
 import prerna.algorithm.api.ITableDataFrame;
 import prerna.ds.ExpressionIterator;
 import prerna.ds.TinkerMetaHelper;
-import prerna.ds.H2.H2Frame;
+import prerna.ds.h2.H2Frame;
 import prerna.sablecc.PKQLRunner.STATUS;
 import prerna.sablecc.expressions.sql.H2SqlExpressionIterator;
 import prerna.sablecc.expressions.sql.builder.SqlColumnSelector;

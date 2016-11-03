@@ -14,7 +14,7 @@ import java.util.Vector;
 
 import prerna.algorithm.api.IMetaData.DATA_TYPES;
 import prerna.algorithm.api.ITableDataFrame;
-import prerna.ds.H2.H2Frame;
+import prerna.ds.h2.H2Frame;
 import prerna.ds.nativeframe.NativeFrame;
 import prerna.ds.util.TinkerCastHelper;
 import prerna.engine.api.IEngine;

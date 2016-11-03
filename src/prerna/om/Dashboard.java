@@ -10,8 +10,8 @@ import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
 import prerna.ds.AbstractTableDataFrame;
-import prerna.ds.H2.H2Frame;
-import prerna.ds.H2.H2Joiner;
+import prerna.ds.h2.H2Frame;
+import prerna.ds.h2.H2Joiner;
 import prerna.sablecc.PKQLEnum;
 import prerna.sablecc.PKQLEnum.PKQLReactor;
 import prerna.ui.components.playsheets.datamakers.DataMakerComponent;

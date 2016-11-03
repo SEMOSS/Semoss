@@ -5,7 +5,7 @@ import java.util.Iterator;
 
 import org.rosuda.REngine.Rserve.RserveException;
 
-import prerna.ds.H2.H2Frame;
+import prerna.ds.h2.H2Frame;
 import prerna.engine.impl.r.RRunner;
 import prerna.sablecc.MathReactor;
 import prerna.sablecc.PKQLEnum;

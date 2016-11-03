@@ -1,4 +1,4 @@
-package prerna.ds.R;
+package prerna.ds.r;
 
 import prerna.algorithm.api.IMetaData;
 
