@@ -87,7 +87,7 @@ public class PKQLTransformation extends AbstractTransformation {
 		for(int i = numOldCmds ; i < allCmds.size(); i++){
 			String cmd = (String) allCmds.get(i).get("command");
 			if(cmd != null){
-				if(cmd.startsWith("v:")) {
+				if(cmd.startsWith("v:") || cmd.startsWith("data.query")) {
 					if(!cmd.contains("user.input")) {
 						this.addToRecipe = false;
 					} else {
