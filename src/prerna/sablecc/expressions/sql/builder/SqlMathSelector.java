@@ -6,9 +6,9 @@ import prerna.sablecc.expressions.IExpressionSelector;
 
 public class SqlMathSelector implements IExpressionSelector {
 
-	private IExpressionSelector selector;
-	private String math;
-	private String pkqlMath;
+	protected IExpressionSelector selector;
+	protected String math;
+	protected String pkqlMath;
 	
 	/*
 	 * Create a math routine around an existing selector
