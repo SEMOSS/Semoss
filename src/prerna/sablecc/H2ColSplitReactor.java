@@ -11,7 +11,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.Vector;
 
-import prerna.ds.H2.H2Frame;
+import prerna.ds.h2.H2Frame;
 
 public class H2ColSplitReactor extends AbstractReactor {
 

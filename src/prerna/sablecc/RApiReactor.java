@@ -7,7 +7,7 @@ import java.util.Vector;
 
 import org.rosuda.REngine.Rserve.RserveException;
 
-import prerna.ds.H2.H2Frame;
+import prerna.ds.h2.H2Frame;
 import prerna.engine.impl.r.RRunner;
 import prerna.engine.impl.rdf.AbstractApiReactor;
 

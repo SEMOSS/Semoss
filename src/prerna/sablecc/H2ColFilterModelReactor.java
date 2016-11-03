@@ -14,9 +14,9 @@ import prerna.algorithm.api.IMetaData;
 import prerna.algorithm.api.ITableDataFrame;
 import prerna.ds.AbstractTableDataFrame;
 import prerna.ds.AbstractTableDataFrame.Comparator;
-import prerna.ds.H2.H2Builder;
-import prerna.ds.H2.H2Frame;
-import prerna.ds.H2.H2Joiner;
+import prerna.ds.h2.H2Builder;
+import prerna.ds.h2.H2Frame;
+import prerna.ds.h2.H2Joiner;
 import prerna.sablecc.PKQLRunner.STATUS;
 import prerna.util.Utility;
 

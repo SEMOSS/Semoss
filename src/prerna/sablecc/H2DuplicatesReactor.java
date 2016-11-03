@@ -4,7 +4,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Vector;
 
-import prerna.ds.H2.H2Frame;
+import prerna.ds.h2.H2Frame;
 import prerna.sablecc.PKQLRunner.STATUS;
 
 public class H2DuplicatesReactor extends DataFrameDuplicatesReactor {
