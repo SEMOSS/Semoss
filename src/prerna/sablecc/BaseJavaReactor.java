@@ -30,7 +30,7 @@ import org.rosuda.REngine.Rserve.RserveException;
 import prerna.algorithm.api.ITableDataFrame;
 import prerna.ds.DataFrameHelper;
 import prerna.ds.TinkerFrame;
-import prerna.ds.H2.H2Frame;
+import prerna.ds.h2.H2Frame;
 import prerna.engine.api.IEngine;
 import prerna.engine.impl.r.RSingleton;
 import prerna.util.ArrayUtilityMethods;

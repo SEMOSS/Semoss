@@ -1,4 +1,4 @@
-package prerna.ds.R;
+package prerna.ds.r;
 
 import java.util.Iterator;
 import java.util.Map;

@@ -1,4 +1,4 @@
-package prerna.ds.H2;
+package prerna.ds.h2;
 
 import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
