@@ -11,7 +11,7 @@ import org.apache.log4j.Logger;
 import org.rosuda.REngine.REXP;
 import org.rosuda.REngine.REXPMismatchException;
 
-import prerna.ds.R.RDataTable;
+import prerna.ds.r.RDataTable;
 import prerna.sablecc.expressions.IExpressionSelector;
 import prerna.sablecc.expressions.sql.H2SqlExpressionIterator;
 import prerna.util.Utility;

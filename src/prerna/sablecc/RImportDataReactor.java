@@ -7,7 +7,7 @@ import java.util.Set;
 import java.util.Vector;
 
 import prerna.ds.TinkerMetaHelper;
-import prerna.ds.R.RDataTable;
+import prerna.ds.r.RDataTable;
 import prerna.ds.util.FileIterator;
 import prerna.ds.util.WebApiIterator;
 import prerna.engine.api.IEngine;

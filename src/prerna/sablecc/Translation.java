@@ -15,8 +15,8 @@ import com.google.gson.Gson;
 
 import prerna.algorithm.api.ITableDataFrame;
 import prerna.algorithm.impl.BaseReducerReactor;
-import prerna.ds.H2.H2Frame;
-import prerna.ds.R.RDataTable;
+import prerna.ds.h2.H2Frame;
+import prerna.ds.r.RDataTable;
 import prerna.engine.api.IScriptReactor;
 import prerna.om.Dashboard;
 import prerna.sablecc.PKQLEnum.PKQLReactor;

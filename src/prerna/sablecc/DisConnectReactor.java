@@ -2,7 +2,7 @@ package prerna.sablecc;
 
 import java.util.Iterator;
 
-import prerna.ds.H2.H2Frame;
+import prerna.ds.h2.H2Frame;
 import prerna.sablecc.PKQLEnum.PKQLReactor;
 
 public class DisConnectReactor extends AbstractReactor {

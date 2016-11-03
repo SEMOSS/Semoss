@@ -7,7 +7,7 @@ import java.util.Set;
 import prerna.algorithm.api.ITableDataFrame;
 import prerna.ds.QueryStruct;
 import prerna.ds.TableDataFrameFactory;
-import prerna.ds.H2.H2Frame;
+import prerna.ds.h2.H2Frame;
 import prerna.ds.nativeframe.NativeFrame;
 import prerna.engine.api.IEngine;
 import prerna.engine.api.IScriptReactor;

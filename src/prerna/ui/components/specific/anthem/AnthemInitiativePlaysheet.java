@@ -10,7 +10,7 @@ import java.util.Map;
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
-import prerna.ds.H2.H2Frame;
+import prerna.ds.h2.H2Frame;
 import prerna.ui.components.playsheets.TablePlaySheet;
 import prerna.ui.components.playsheets.datamakers.DataMakerComponent;
 import prerna.ui.components.playsheets.datamakers.IDataMaker;
