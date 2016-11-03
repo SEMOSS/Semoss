@@ -445,11 +445,11 @@ BTreeDataFrame	prerna.ds.BTreeDataFrame
 TinkerFrame	prerna.ds.TinkerFrame
 PrimaryKeyTinkerFrame	prerna.ds.TinkerFrame
 TinkerH2Frame	prerna.ds.H2.H2Frame
-H2Frame	prerna.ds.H2.H2Frame
+H2Frame	prerna.ds.h2.H2Frame
 SparkDataFrame	prerna.ds.spark.SparkDataFrame
 Dashboard prerna.om.Dashboard
 NativeFrame prerna.ds.nativeframe.NativeFrame
-RDataTable prerna.ds.R.RDataTable
+RDataTable prerna.ds.r.RDataTable
 
 
 ##PLAYSHEETS DEFINED
