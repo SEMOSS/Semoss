@@ -1673,23 +1673,23 @@ public class Insight {
 //		return resultHash;
 //	}
 	
-	private Map getDashboardInsightData() {
-		Object dashboardData = null;
-		Map<String, Object> resultHash = new HashMap<String, Object>();
-		if((dashboardData = pkqlRunner.getDashboardData()) != null) {
-			Map dashboardMap = new HashMap();
-			dashboardMap.putAll((Map)dashboardData);
-			dashboardMap.put("insightId", this.insightID);
-			resultHash.put("Dashboard", dashboardMap);
-			resultHash.put("Insights", pkqlRunner.getResults());
-		} else {
-			//else just put the insight id
-			Map dashboardMap = new HashMap();
-			dashboardMap.put("insightID", this.insightID);
-			resultHash.put("Dashboard", dashboardMap);
-		}
-		return resultHash;
-	}
+//	private Map getDashboardInsightData() {
+//		Object dashboardData = null;
+//		Map<String, Object> resultHash = new HashMap<String, Object>();
+//		if((dashboardData = pkqlRunner.getDashboardData()) != null) {
+//			Map dashboardMap = new HashMap();
+//			dashboardMap.putAll((Map)dashboardData);
+//			dashboardMap.put("insightId", this.insightID);
+//			resultHash.put("Dashboard", dashboardMap);
+//			resultHash.put("insights", pkqlRunner.getResults());
+//		} else {
+//			//else just put the insight id
+//			Map dashboardMap = new HashMap();
+//			dashboardMap.put("insightID", this.insightID);
+//			resultHash.put("Dashboard", dashboardMap);
+//		}
+//		return resultHash;
+//	}
 	
 	private Object getInsightData(boolean includeClosed) {
 		Map<String, Object> resultHash = new HashMap<String, Object>();
@@ -1734,6 +1734,13 @@ public class Insight {
 		}
 		resultHash.put("insightID", this.getInsightID());
 		resultHash.put("dataID", this.dataMaker.getDataId());
+		
+		if(pkqlRunner.getDashboardData() != null) {
+			Map dashboardMap = new HashMap();
+			dashboardMap.putAll((Map)pkqlRunner.getDashboardData());
+			resultHash.put("Dashboard", dashboardMap);
+		}
+		
 		return resultHash;
 	}
 	
@@ -1743,21 +1750,25 @@ public class Insight {
 		
 		if(this.isJoined()) {
 			return this.getJoinedPKQLData(includeClosed);
-		} else if(this.dataMaker instanceof Dashboard) {
-			
-//			Map<String, List<String>> dashboardMap = new HashMap<>();
-//			List<String> insightIDList = new ArrayList<>();
-//			dashboardMap.put(insightID, new ArrayList<>());
-//			List<Insight> list = ((Dashboard)dataMaker).getInsights();
-//			for(Insight insight : list) {
-////				insightList.add(insight.getInsightData(includeClosed));
-//				insightIDList.add(insight.getInsightID());
-//			}
-//			dashboardMap.put(insightID, insightIDList);
-//			retHash.put("dashboard", dashboardMap);
-			return getDashboardInsightData();
-			
-		} else {
+		} 
+		
+//		else if(this.dataMaker instanceof Dashboard) {
+//			
+////			Map<String, List<String>> dashboardMap = new HashMap<>();
+////			List<String> insightIDList = new ArrayList<>();
+////			dashboardMap.put(insightID, new ArrayList<>());
+////			List<Insight> list = ((Dashboard)dataMaker).getInsights();
+////			for(Insight insight : list) {
+//////				insightList.add(insight.getInsightData(includeClosed));
+////				insightIDList.add(insight.getInsightID());
+////			}
+////			dashboardMap.put(insightID, insightIDList);
+////			retHash.put("dashboard", dashboardMap);
+//			return getDashboardInsightData();
+//			
+//		} 
+		
+		else {
 			insightList.add(getInsightData(includeClosed));
 		}
 		
