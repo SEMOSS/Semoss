@@ -72,8 +72,8 @@ public class OpenDataReactor extends AbstractReactor {
 			Map<String, Object> webData = getWebData(uploaded);
 			
 			webData.put("insightID", id);
-			webData.put("engine", engine);
-			webData.put("engineID", engine_id);
+			webData.put("core_engine", engine);
+			webData.put("core_engine_id", engine_id);
 			myStore.put("webData", webData);
 		} else {
 			// insight visualization data has not been cached, run the insight
