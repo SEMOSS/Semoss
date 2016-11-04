@@ -4,6 +4,7 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.PushbackReader;
 import java.io.StringBufferInputStream;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
@@ -25,6 +26,7 @@ import prerna.sablecc.expressions.sql.builder.SqlExpressionBuilder;
 import prerna.sablecc.lexer.Lexer;
 import prerna.sablecc.lexer.LexerException;
 import prerna.sablecc.meta.IPkqlMetadata;
+import prerna.sablecc.node.AConfiguration;
 import prerna.sablecc.node.PScript;
 import prerna.sablecc.node.Start;
 import prerna.sablecc.parser.Parser;
@@ -43,6 +45,7 @@ public class PKQLRunner {
 	private HashMap<String,Object> allAdditionalInfo = new HashMap<>();
 	private String additionalInfoString = "";
 	private Object returnData = null;
+	private List<Map> newInsights = new ArrayList<>();
 	
 	private Map<String,String> newColumns = new HashMap<String,String>();
 	private Map<String, Map<String,Object>> masterFeMap = new HashMap<String, Map<String,Object>>(); // this holds all active front end data. in the form panelId --> prop --> value
@@ -67,6 +70,22 @@ public class PKQLRunner {
 	private Object dashboardMap;
 	private String insightId;
 	
+	
+	public static List<String> parsePKQL(String expression) {
+		Parser p = new Parser(new Lexer(new PushbackReader(new InputStreamReader(new StringBufferInputStream(expression)), 1024)));
+		try {
+			Start tree = p.parse();
+			AConfiguration configNode = (AConfiguration)tree.getPConfiguration();
+			List<String> pkqls = new ArrayList<>();
+			for(PScript script : configNode.getScript()) {
+				pkqls.add(script.toString());
+			}
+			return pkqls;
+		} catch (ParserException | LexerException | IOException e) {
+			e.printStackTrace();
+			return new ArrayList<>();
+		}
+	}
 	/**
 	 * Runs a given pkql expression (can be multiple if semicolon delimited) on a provided data maker 
 	 * @param expression			The sequence of semicolon delimited pkql expressions.
@@ -251,7 +270,12 @@ public class PKQLRunner {
 		}
 		result.put("status", currentStatus);
 		result.put("command", currentString);
-		result.put("returnData", returnData);
+		
+		Object retData = returnData;
+		result.put("returnData", retData);
+		returnData = null;
+		
+		
 		// this is what frontend uses to diplay this piece in the recipe
 		// this will definitely have to be built out to be more encompassing
 		// maybe throw the current string through an English Translation class to get the label
@@ -337,6 +361,14 @@ public class PKQLRunner {
 	
 	public void setReturnData(Object retData) {
 		this.returnData = retData;
+	}
+	
+	public void addNewInsight(Map<String, Object> newInsightData) {
+		this.newInsights.add(newInsightData);
+	}
+	
+	public List<Map> getNewInsights() {
+		return this.newInsights;
 	}
 	
 	public void setStatus(PKQLRunner.STATUS currentStatus) {
@@ -580,17 +612,10 @@ public class PKQLRunner {
 		this.translation = null;
 		this.newColumns = new HashMap<String,String>();
 		this.returnData = null;
+		this.newInsights = new ArrayList<>();
 		
 //		this.expiredFeMaps =  new HashMap<String, List<Map<String,Object>>>();
 	}
-
-//	public String getNewInsightID() {
-//		return newInsightID;
-//	}
-	
-//	public void setNewInsightID(String id) {
-//		this.newInsightID = id;
-//	}
 	
 	public Object getDashboardData() {
 		return this.dashboardMap;
