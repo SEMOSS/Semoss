@@ -2,6 +2,8 @@ package prerna.om;
 
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -33,7 +35,7 @@ public class Dashboard implements IDataMaker {
 	private Map<String, List<Insight>> insightMap = new HashMap<>();
 	
 	// insight id -> frame id
-	private Map<String, String> insight2frameMap = new HashMap<>();
+	private Map<String, String[]> insight2frameMap = new HashMap<>();
 	
 	//keeps track of config structure
 	Object config = new HashMap<>();
@@ -106,11 +108,13 @@ public class Dashboard implements IDataMaker {
 				nextInsightMap.put("engine", insight.getEngineName());
 				nextInsightMap.put("questionID", insight.getRdbmsId());
 				
-				String widgetId = this.insight2frameMap.get(insight.getInsightID());
-				if(widgetId != null) {
-					nextInsightMap.put("widgetID", widgetId);
+				String[] ids = this.insight2frameMap.get(insight.getInsightID());
+				if(ids != null) {
+					nextInsightMap.put("widgetID", ids[0]);
+					nextInsightMap.put("panelID", ids[1]);
 				} else {
 					nextInsightMap.put("widgetID", "");
+					nextInsightMap.put("panelID", "");
 				}
 				
 				List<String> joinedInsights = new ArrayList<>();
@@ -405,13 +409,13 @@ public class Dashboard implements IDataMaker {
 		return newPkql;
 	}
 
-	public void setWidgetId(String insightId, String widgetId) {
-		this.insight2frameMap.put(insightId, widgetId);
+	public void setWidgetId(String insightId, String[] ids) {
+		this.insight2frameMap.put(insightId, ids);
 		
 	}
 	
-	public void removeWidgetId(String insightId, String widgetId) {
-		this.insight2frameMap.remove(insightId, widgetId);
+	public void removeWidgetId(String insightId, String[] ids) {
+		this.insight2frameMap.remove(insightId, ids);
 		
 	}
 	

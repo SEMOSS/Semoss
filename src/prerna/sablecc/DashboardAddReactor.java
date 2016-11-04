@@ -13,6 +13,10 @@ import prerna.sablecc.PKQLEnum.PKQLReactor;
 
 public class DashboardAddReactor extends AbstractReactor {
 
+	private static int WIDGET_ID_INDEX = 0;
+	private static int INSIGHT_ID_INDEX = 1;
+	private static int PANEL_ID_INDEX = 2;
+	
 	public DashboardAddReactor() {
 		// example join is data.join("insight1", "insight2", c:Title, c:Movie_Title, inner.join);
 		//TODO : changing back to table once we make the reactor
@@ -29,8 +33,9 @@ public class DashboardAddReactor extends AbstractReactor {
 			Dashboard dashboard = (Dashboard)myStore.get("G");
 			
 			insightsToJoin = (List<String>) myStore.get(PKQLEnum.JOIN_PARAM);			
-			String widgetId = insightsToJoin.get(0);
-			String insightId = insightsToJoin.get(1);
+			String widgetId = insightsToJoin.get(WIDGET_ID_INDEX);
+			String insightId = insightsToJoin.get(INSIGHT_ID_INDEX);
+			String panelId = insightsToJoin.get(PANEL_ID_INDEX);
 			
 //			List<Insight> insights = new ArrayList<>();
 //			for(String insightID : insightsToJoin) {
@@ -51,7 +56,7 @@ public class DashboardAddReactor extends AbstractReactor {
 			insights.add(insight);
 			
 			dashboard.addInsights(insights);
-			dashboard.setWidgetId(insightId, widgetId);
+			dashboard.setWidgetId(insightId, new String[]{widgetId, panelId});
 			setDashboardData(insightsToJoin);
 		} catch(Exception e) {
 			e.printStackTrace();
@@ -66,8 +71,9 @@ public class DashboardAddReactor extends AbstractReactor {
 		List joinDataList = new ArrayList();
 
 		Map map = new HashMap();
-		map.put("insightId", insightIDs.get(1));
-		map.put("widgetId", insightIDs.get(0));
+		map.put("insightId", insightIDs.get(INSIGHT_ID_INDEX));
+		map.put("widgetId", insightIDs.get(WIDGET_ID_INDEX));
+		map.put("panelId", insightIDs.get(PANEL_ID_INDEX));
 		joinDataList.add(map);
 
 		Map<String, List> data = new HashMap<>();
