@@ -31,6 +31,7 @@ public class DashboardRemoveReactor extends AbstractReactor {
 			insightToRemove = (List<String>) myStore.get(PKQLEnum.JOIN_PARAM);			
 			String widgetId = insightToRemove.get(0);
 			String insightId = insightToRemove.get(1);
+			String panelId = insightToRemove.get(2);
 			
 			Insight insight = InsightStore.getInstance().get(insightId);
 			if(insight == null) {
@@ -39,7 +40,7 @@ public class DashboardRemoveReactor extends AbstractReactor {
 			}
 			
 			dashboard.removeInsight(insightId, insight);
-			dashboard.removeWidgetId(insightId, widgetId);
+			dashboard.removeWidgetId(insightId, new String[]{widgetId, panelId});
 			setDashboardData(insightToRemove);
 			
 		} catch(Exception e) {
