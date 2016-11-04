@@ -327,12 +327,6 @@ public class AnalysisAdapter implements Analysis
     }
 
     @Override
-    public void caseAPanelModelPanelop(APanelModelPanelop node)
-    {
-        defaultCase(node);
-    }
-
-    @Override
     public void caseADatatypeDataop(ADatatypeDataop node)
     {
         defaultCase(node);
@@ -364,6 +358,12 @@ public class AnalysisAdapter implements Analysis
 
     @Override
     public void caseAOutputDataDataop(AOutputDataDataop node)
+    {
+        defaultCase(node);
+    }
+
+    @Override
+    public void caseADataModelDataop(ADataModelDataop node)
     {
         defaultCase(node);
     }
@@ -454,12 +454,6 @@ public class AnalysisAdapter implements Analysis
 
     @Override
     public void caseAPanelClose(APanelClose node)
-    {
-        defaultCase(node);
-    }
-
-    @Override
-    public void caseAPanelModel(APanelModel node)
     {
         defaultCase(node);
     }
@@ -958,6 +952,12 @@ public class AnalysisAdapter implements Analysis
 
     @Override
     public void caseADataconnectdb(ADataconnectdb node)
+    {
+        defaultCase(node);
+    }
+
+    @Override
+    public void caseADataModel(ADataModel node)
     {
         defaultCase(node);
     }
@@ -1527,6 +1527,12 @@ public class AnalysisAdapter implements Analysis
     }
 
     @Override
+    public void caseTDatamodeltoken(TDatamodeltoken node)
+    {
+        defaultCase(node);
+    }
+
+    @Override
     public void caseTLiteral(TLiteral node)
     {
         defaultCase(node);
@@ -1636,12 +1642,6 @@ public class AnalysisAdapter implements Analysis
 
     @Override
     public void caseTOutputToken(TOutputToken node)
-    {
-        defaultCase(node);
-    }
-
-    @Override
-    public void caseTPanelmodel(TPanelmodel node)
     {
         defaultCase(node);
     }

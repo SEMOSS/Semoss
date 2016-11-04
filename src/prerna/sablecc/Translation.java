@@ -1009,7 +1009,7 @@ public class Translation extends DepthFirstAdapter {
 	}
 	
 	@Override
-	public void outAPanelModel(APanelModel node) {
+	public void outADataModel(ADataModel node) {
 		String json = node.getJsonblock().getText();
 		json = json.replace("<json>", "");
 		json = json.replace("</json>", "");
