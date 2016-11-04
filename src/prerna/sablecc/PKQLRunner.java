@@ -67,7 +67,7 @@ public class PKQLRunner {
 	// but we never set this... so not used
 //	private String newInsightID;
 	
-	private Object dashboardMap;
+	private Map dashboardMap;
 	private String insightId;
 	
 	
@@ -617,12 +617,19 @@ public class PKQLRunner {
 //		this.expiredFeMaps =  new HashMap<String, List<Map<String,Object>>>();
 	}
 	
-	public Object getDashboardData() {
+	public Map getDashboardData() {
 		return this.dashboardMap;
 	}
 	
-	public void setDashBoardData(Object dashboardData) {
+	public void setDashBoardData(Map dashboardData) {
 		this.dashboardMap = dashboardData;
+	}
+	
+	public void addToDashBoardData(Object key, Object value) {
+		if(this.dashboardMap == null) {
+			this.dashboardMap = new HashMap();
+		}
+		dashboardMap.put(key, value);
 	}
 	
 //	public Object getDataMap() {
