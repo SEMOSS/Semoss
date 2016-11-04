@@ -692,10 +692,8 @@ public class Translation extends DepthFirstAdapter {
 		IScriptReactor previousReactor = (IScriptReactor) thisReactorHash.get(PKQLEnum.OPEN_DATA);
 
 		Map<String, Object> webData = (Map<String, Object>) previousReactor.getValue("webData");
-		// runner.setDataMap(webData);
-		this.runner.setReturnData(webData);
+		this.runner.addNewInsight(webData);
 
-		IDataMaker dm = (IDataMaker) curReactor.getValue("G");
 		if (curReactor.getValue("G") instanceof Dashboard) {
 			Dashboard dash = (Dashboard) curReactor.getValue("G");
 			dash.setInsightOutput((String) webData.get("insightID"), webData);
@@ -727,7 +725,6 @@ public class Translation extends DepthFirstAdapter {
 		// runner.setDataMap(webData);
 		this.runner.setReturnData(webData);
 		
-		Object[] pkqlData = (Object[])webData.get("pkqlData");
 		
 		IDataMaker dm = (IDataMaker) curReactor.getValue("G");
 		if (curReactor.getValue("G") instanceof Dashboard) {
@@ -1162,11 +1159,12 @@ public class Translation extends DepthFirstAdapter {
 		try {
 			Map object = new Gson().fromJson(json, HashMap.class);
 			dm.setConfig(object);
+			runner.setReturnData(object);
 		} catch (Exception e) {
 			dm.setConfig(json);
+			runner.setReturnData(json);
 		}
 
-		runner.setResponse("Successfully set config");
 		runner.setStatus(PKQLRunner.STATUS.SUCCESS);
 	}
 
