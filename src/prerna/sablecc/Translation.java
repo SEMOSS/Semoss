@@ -1013,18 +1013,21 @@ public class Translation extends DepthFirstAdapter {
 		String json = node.getJsonblock().getText();
 		json = json.replace("<json>", "");
 		json = json.replace("</json>", "");
-		try {
-			Map object = new Gson().fromJson(json, HashMap.class);
-			Map<String, Object> returnData = new HashMap<>();
-			returnData.put("json", object);
-			runner.setReturnData(object);
-			
-			runner.setResponse("Successfully parsed default widget");
-			runner.setStatus(PKQLRunner.STATUS.SUCCESS);
-		} catch (Exception e) {
-			runner.setResponse("Error parsing default widget");
-			runner.setStatus(PKQLRunner.STATUS.ERROR);
-		}		
+		runner.setReturnData(json);
+		runner.setResponse("Successfully parsed default widget");
+		runner.setStatus(PKQLRunner.STATUS.SUCCESS);
+//		try {
+//			Map object = new Gson().fromJson(json, HashMap.class);
+//			Map<String, Object> returnData = new HashMap<>();
+//			returnData.put("json", object);
+//			runner.setReturnData(object);
+//			
+//			runner.setResponse("Successfully parsed default widget");
+//			runner.setStatus(PKQLRunner.STATUS.SUCCESS);
+//		} catch (Exception e) {
+//			runner.setResponse("Error parsing default widget");
+//			runner.setStatus(PKQLRunner.STATUS.ERROR);
+//		}		
 	}
 
 	@Override
