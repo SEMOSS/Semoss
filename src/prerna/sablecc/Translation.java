@@ -1226,7 +1226,7 @@ public class Translation extends DepthFirstAdapter {
 				if (runner.getVariableData(varName) != null) {
 					updatingExistingVar = true;
 				}
-				runner.setVariableValue(varName, varParam.replaceAll("^\'|\'$", "").trim());
+				runner.setVariableValue(varName, varParam.replaceAll("^\'|\"|\'$", "").trim());
 				runner.setResponse("Set variable " + varName + " to " + varParam);
 				runner.setStatus(STATUS.SUCCESS);
 				curReactor.put(PKQLReactor.VAR.toString(), varName);
