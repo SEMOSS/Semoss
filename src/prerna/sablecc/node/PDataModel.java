@@ -2,7 +2,7 @@
 
 package prerna.sablecc.node;
 
-public abstract class PPanelModel extends Node
+public abstract class PDataModel extends Node
 {
     // Empty body
 }

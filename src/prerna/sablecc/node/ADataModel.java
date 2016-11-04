@@ -5,26 +5,26 @@ package prerna.sablecc.node;
 import prerna.sablecc.analysis.*;
 
 @SuppressWarnings("nls")
-public final class APanelModel extends PPanelModel
+public final class ADataModel extends PDataModel
 {
-    private TPanelmodel _panelmodel_;
+    private TDatamodeltoken _datamodeltoken_;
     private TLPar _lPar_;
     private TJsonblock _jsonblock_;
     private TRPar _rPar_;
 
-    public APanelModel()
+    public ADataModel()
     {
         // Constructor
     }
 
-    public APanelModel(
-        @SuppressWarnings("hiding") TPanelmodel _panelmodel_,
+    public ADataModel(
+        @SuppressWarnings("hiding") TDatamodeltoken _datamodeltoken_,
         @SuppressWarnings("hiding") TLPar _lPar_,
         @SuppressWarnings("hiding") TJsonblock _jsonblock_,
         @SuppressWarnings("hiding") TRPar _rPar_)
     {
         // Constructor
-        setPanelmodel(_panelmodel_);
+        setDatamodeltoken(_datamodeltoken_);
 
         setLPar(_lPar_);
 
@@ -37,8 +37,8 @@ public final class APanelModel extends PPanelModel
     @Override
     public Object clone()
     {
-        return new APanelModel(
-            cloneNode(this._panelmodel_),
+        return new ADataModel(
+            cloneNode(this._datamodeltoken_),
             cloneNode(this._lPar_),
             cloneNode(this._jsonblock_),
             cloneNode(this._rPar_));
@@ -47,19 +47,19 @@ public final class APanelModel extends PPanelModel
     @Override
     public void apply(Switch sw)
     {
-        ((Analysis) sw).caseAPanelModel(this);
+        ((Analysis) sw).caseADataModel(this);
     }
 
-    public TPanelmodel getPanelmodel()
+    public TDatamodeltoken getDatamodeltoken()
     {
-        return this._panelmodel_;
+        return this._datamodeltoken_;
     }
 
-    public void setPanelmodel(TPanelmodel node)
+    public void setDatamodeltoken(TDatamodeltoken node)
     {
-        if(this._panelmodel_ != null)
+        if(this._datamodeltoken_ != null)
         {
-            this._panelmodel_.parent(null);
+            this._datamodeltoken_.parent(null);
         }
 
         if(node != null)
@@ -72,7 +72,7 @@ public final class APanelModel extends PPanelModel
             node.parent(this);
         }
 
-        this._panelmodel_ = node;
+        this._datamodeltoken_ = node;
     }
 
     public TLPar getLPar()
@@ -154,7 +154,7 @@ public final class APanelModel extends PPanelModel
     public String toString()
     {
         return ""
-            + toString(this._panelmodel_)
+            + toString(this._datamodeltoken_)
             + toString(this._lPar_)
             + toString(this._jsonblock_)
             + toString(this._rPar_);
@@ -164,9 +164,9 @@ public final class APanelModel extends PPanelModel
     void removeChild(@SuppressWarnings("unused") Node child)
     {
         // Remove child
-        if(this._panelmodel_ == child)
+        if(this._datamodeltoken_ == child)
         {
-            this._panelmodel_ = null;
+            this._datamodeltoken_ = null;
             return;
         }
 
@@ -195,9 +195,9 @@ public final class APanelModel extends PPanelModel
     void replaceChild(@SuppressWarnings("unused") Node oldChild, @SuppressWarnings("unused") Node newChild)
     {
         // Replace child
-        if(this._panelmodel_ == oldChild)
+        if(this._datamodeltoken_ == oldChild)
         {
-            setPanelmodel((TPanelmodel) newChild);
+            setDatamodeltoken((TDatamodeltoken) newChild);
             return;
         }
 
