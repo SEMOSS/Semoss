@@ -5,46 +5,46 @@ package prerna.sablecc.node;
 import prerna.sablecc.analysis.*;
 
 @SuppressWarnings("nls")
-public final class APanelModelPanelop extends PPanelop
+public final class ADataModelDataop extends PDataop
 {
-    private PPanelModel _panelModel_;
+    private PDataModel _dataModel_;
 
-    public APanelModelPanelop()
+    public ADataModelDataop()
     {
         // Constructor
     }
 
-    public APanelModelPanelop(
-        @SuppressWarnings("hiding") PPanelModel _panelModel_)
+    public ADataModelDataop(
+        @SuppressWarnings("hiding") PDataModel _dataModel_)
     {
         // Constructor
-        setPanelModel(_panelModel_);
+        setDataModel(_dataModel_);
 
     }
 
     @Override
     public Object clone()
     {
-        return new APanelModelPanelop(
-            cloneNode(this._panelModel_));
+        return new ADataModelDataop(
+            cloneNode(this._dataModel_));
     }
 
     @Override
     public void apply(Switch sw)
     {
-        ((Analysis) sw).caseAPanelModelPanelop(this);
+        ((Analysis) sw).caseADataModelDataop(this);
     }
 
-    public PPanelModel getPanelModel()
+    public PDataModel getDataModel()
     {
-        return this._panelModel_;
+        return this._dataModel_;
     }
 
-    public void setPanelModel(PPanelModel node)
+    public void setDataModel(PDataModel node)
     {
-        if(this._panelModel_ != null)
+        if(this._dataModel_ != null)
         {
-            this._panelModel_.parent(null);
+            this._dataModel_.parent(null);
         }
 
         if(node != null)
@@ -57,23 +57,23 @@ public final class APanelModelPanelop extends PPanelop
             node.parent(this);
         }
 
-        this._panelModel_ = node;
+        this._dataModel_ = node;
     }
 
     @Override
     public String toString()
     {
         return ""
-            + toString(this._panelModel_);
+            + toString(this._dataModel_);
     }
 
     @Override
     void removeChild(@SuppressWarnings("unused") Node child)
     {
         // Remove child
-        if(this._panelModel_ == child)
+        if(this._dataModel_ == child)
         {
-            this._panelModel_ = null;
+            this._dataModel_ = null;
             return;
         }
 
@@ -84,9 +84,9 @@ public final class APanelModelPanelop extends PPanelop
     void replaceChild(@SuppressWarnings("unused") Node oldChild, @SuppressWarnings("unused") Node newChild)
     {
         // Replace child
-        if(this._panelModel_ == oldChild)
+        if(this._dataModel_ == oldChild)
         {
-            setPanelModel((PPanelModel) newChild);
+            setDataModel((PDataModel) newChild);
             return;
         }
 

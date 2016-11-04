@@ -958,27 +958,6 @@ public class ReversedDepthFirstAdapter extends AnalysisAdapter
         outAOutputInsightPanelop(node);
     }
 
-    public void inAPanelModelPanelop(APanelModelPanelop node)
-    {
-        defaultIn(node);
-    }
-
-    public void outAPanelModelPanelop(APanelModelPanelop node)
-    {
-        defaultOut(node);
-    }
-
-    @Override
-    public void caseAPanelModelPanelop(APanelModelPanelop node)
-    {
-        inAPanelModelPanelop(node);
-        if(node.getPanelModel() != null)
-        {
-            node.getPanelModel().apply(this);
-        }
-        outAPanelModelPanelop(node);
-    }
-
     public void inADatatypeDataop(ADatatypeDataop node)
     {
         defaultIn(node);
@@ -1103,6 +1082,27 @@ public class ReversedDepthFirstAdapter extends AnalysisAdapter
             node.getOutputData().apply(this);
         }
         outAOutputDataDataop(node);
+    }
+
+    public void inADataModelDataop(ADataModelDataop node)
+    {
+        defaultIn(node);
+    }
+
+    public void outADataModelDataop(ADataModelDataop node)
+    {
+        defaultOut(node);
+    }
+
+    @Override
+    public void caseADataModelDataop(ADataModelDataop node)
+    {
+        inADataModelDataop(node);
+        if(node.getDataModel() != null)
+        {
+            node.getDataModel().apply(this);
+        }
+        outADataModelDataop(node);
     }
 
     public void inADashboardConfigDashboardop(ADashboardConfigDashboardop node)
@@ -1582,39 +1582,6 @@ public class ReversedDepthFirstAdapter extends AnalysisAdapter
             node.getPanelclose().apply(this);
         }
         outAPanelClose(node);
-    }
-
-    public void inAPanelModel(APanelModel node)
-    {
-        defaultIn(node);
-    }
-
-    public void outAPanelModel(APanelModel node)
-    {
-        defaultOut(node);
-    }
-
-    @Override
-    public void caseAPanelModel(APanelModel node)
-    {
-        inAPanelModel(node);
-        if(node.getRPar() != null)
-        {
-            node.getRPar().apply(this);
-        }
-        if(node.getJsonblock() != null)
-        {
-            node.getJsonblock().apply(this);
-        }
-        if(node.getLPar() != null)
-        {
-            node.getLPar().apply(this);
-        }
-        if(node.getPanelmodel() != null)
-        {
-            node.getPanelmodel().apply(this);
-        }
-        outAPanelModel(node);
     }
 
     public void inADataFrame(ADataFrame node)
@@ -4230,6 +4197,39 @@ public class ReversedDepthFirstAdapter extends AnalysisAdapter
             node.getDataconnectdbToken().apply(this);
         }
         outADataconnectdb(node);
+    }
+
+    public void inADataModel(ADataModel node)
+    {
+        defaultIn(node);
+    }
+
+    public void outADataModel(ADataModel node)
+    {
+        defaultOut(node);
+    }
+
+    @Override
+    public void caseADataModel(ADataModel node)
+    {
+        inADataModel(node);
+        if(node.getRPar() != null)
+        {
+            node.getRPar().apply(this);
+        }
+        if(node.getJsonblock() != null)
+        {
+            node.getJsonblock().apply(this);
+        }
+        if(node.getLPar() != null)
+        {
+            node.getLPar().apply(this);
+        }
+        if(node.getDatamodeltoken() != null)
+        {
+            node.getDatamodeltoken().apply(this);
+        }
+        outADataModel(node);
     }
 
     public void inAComparatorEqualOrCompare(AComparatorEqualOrCompare node)
