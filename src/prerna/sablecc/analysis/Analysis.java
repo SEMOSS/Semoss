@@ -54,13 +54,13 @@ public interface Analysis extends Switch
     void caseAPanelClonePanelop(APanelClonePanelop node);
     void caseAPanelClosePanelop(APanelClosePanelop node);
     void caseAOutputInsightPanelop(AOutputInsightPanelop node);
-    void caseAPanelModelPanelop(APanelModelPanelop node);
     void caseADatatypeDataop(ADatatypeDataop node);
     void caseADataconnectDataop(ADataconnectDataop node);
     void caseADataconnectdbDataop(ADataconnectdbDataop node);
     void caseADatanetworkconnectDataop(ADatanetworkconnectDataop node);
     void caseADatanetworkdisconnectDataop(ADatanetworkdisconnectDataop node);
     void caseAOutputDataDataop(AOutputDataDataop node);
+    void caseADataModelDataop(ADataModelDataop node);
     void caseADashboardConfigDashboardop(ADashboardConfigDashboardop node);
     void caseADashboardAddDashboardop(ADashboardAddDashboardop node);
     void caseADatabaseListDatabaseop(ADatabaseListDatabaseop node);
@@ -76,7 +76,6 @@ public interface Analysis extends Switch
     void caseAPanelConfig(APanelConfig node);
     void caseAPanelClone(APanelClone node);
     void caseAPanelClose(APanelClose node);
-    void caseAPanelModel(APanelModel node);
     void caseADataFrame(ADataFrame node);
     void caseADataFrameHeader(ADataFrameHeader node);
     void caseADataFrameDuplicates(ADataFrameDuplicates node);
@@ -160,6 +159,7 @@ public interface Analysis extends Switch
     void caseADatanetworkconnect(ADatanetworkconnect node);
     void caseADatanetworkdisconnect(ADatanetworkdisconnect node);
     void caseADataconnectdb(ADataconnectdb node);
+    void caseADataModel(ADataModel node);
     void caseAComparatorEqualOrCompare(AComparatorEqualOrCompare node);
     void caseAEqualEqualOrCompare(AEqualEqualOrCompare node);
     void caseAUserInput(AUserInput node);
@@ -255,6 +255,7 @@ public interface Analysis extends Switch
     void caseTDataopentoken(TDataopentoken node);
     void caseTDataoutputtoken(TDataoutputtoken node);
     void caseTDataquerytoken(TDataquerytoken node);
+    void caseTDatamodeltoken(TDatamodeltoken node);
     void caseTLiteral(TLiteral node);
     void caseTHelpToken(THelpToken node);
     void caseTCodeblock(TCodeblock node);
@@ -274,7 +275,6 @@ public interface Analysis extends Switch
     void caseTPaneltools(TPaneltools node);
     void caseTPanelconfig(TPanelconfig node);
     void caseTOutputToken(TOutputToken node);
-    void caseTPanelmodel(TPanelmodel node);
     void caseTUserinput(TUserinput node);
     void caseTJoin(TJoin node);
     void caseTDatatypeToken(TDatatypeToken node);

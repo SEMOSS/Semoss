@@ -80,6 +80,7 @@ Tokens
  dataopentoken = 'data.open';
  dataoutputtoken = 'data.output';
  dataquerytoken = 'data.query';
+ datamodeltoken = 'data.model';
  literal = (letter_s | letter_b | digit | underscore)*;// | special)*;
  help_token = 'info.help';
  codeblock = code alphanumeric* code;
@@ -99,7 +100,6 @@ Tokens
  paneltools = panelprefix '.tools';
  panelconfig = panelprefix '.config';
  output_token = panelprefix '.create';
- panelmodel = panelprefix '.model';
  userinput = 'user.input';
  join = 'data.join';
  datatype_token = 'data.type';
@@ -174,7 +174,6 @@ panelop = // panelop is usually of the form of viz.change, viz.tools, viz.color
 		| {panel_clone} panel_clone
 		| {panel_close} panel_close
 		| {output_insight} output_insight
-		| {panel_model} panel_model
 		;
 		
 dataop = // dataop is usually of the form of data.frame, etc.
@@ -184,6 +183,7 @@ dataop = // dataop is usually of the form of data.frame, etc.
 		| {datanetworkconnect} datanetworkconnect
 		| {datanetworkdisconnect} datanetworkdisconnect
 		| {output_data} output_data
+		| {data_model} data_model
 		;
 
 dashboardop = // dashboardop is usually of the form dashboard.join, dashboard.add, dashboard.remove, etc.
@@ -236,9 +236,6 @@ panel_clone = // e.g. panel.clone(1);
 		
 panel_close = // e.g. panel.close();
 		panelclose l_par r_par
-		;
-panel_model = // e.g. panel.model(<json>*default widget json*</json>);
-		panelmodel l_par jsonblock r_par
 		;
 		
 data_frame = // e.g. panel.setBuilder('graph');
@@ -432,6 +429,10 @@ datanetworkconnect = datanetworkconnect_token l_par [tablename]:word_or_num? r_p
 datanetworkdisconnect = datanetworkdisconnect_token l_par r_par;
 
 dataconnectdb = dataconnectdb_token l_par word_or_num r_par;
+
+data_model = // e.g. data.model(<json>*default widget json*</json>);
+		datamodeltoken l_par jsonblock r_par
+		;
 
 equal_or_compare = {comparator} comparator | {equal} equal;
 
