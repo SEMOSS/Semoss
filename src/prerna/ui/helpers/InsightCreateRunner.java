@@ -284,7 +284,7 @@ public class InsightCreateRunner implements Runnable{
 	 */
 	public Map<String, Object> runWeb()
 	{
-		if(insight.getPkqlRecipe().equals("")) { 
+		if(insight.getPkqlRecipe().length == 0) { 
 			createData();
 		}
 		Map<String, String> tableDataAlign = insight.getDataTableAlign();

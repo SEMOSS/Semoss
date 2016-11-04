@@ -69,11 +69,11 @@ public class OpenDataReactor extends AbstractReactor {
 			myStore.put(PKQLEnum.OPEN_DATA, id);
 			
 			Map<String, Object> uploaded = gson.fromJson(vizData, new TypeToken<Map<String, Object>>() {}.getType());
-//			uploaded.put("insightID", id);
-			Map<String, Object> webData = new HashMap<>();
-			webData.put("insightID", id);
-			webData.put("recipe", uploaded.get("recipe"));
+			Map<String, Object> webData = getWebData(uploaded);
 			
+			webData.put("insightID", id);
+			webData.put("engine", engine);
+			webData.put("engineID", engine_id);
 			myStore.put("webData", webData);
 		} else {
 			// insight visualization data has not been cached, run the insight
@@ -84,9 +84,9 @@ public class OpenDataReactor extends AbstractReactor {
 				InsightCreateRunner run = new InsightCreateRunner(insightObj);
 				Map<String, Object> insightOutput = run.runWeb();//runSavedRecipe();
 				
-				Map<String, Object> webData = new HashMap<>();
-				webData.put("insightID", insightOutput.get("insightID"));
-				webData.put("recipe", insightOutput.get("recipe"));
+				Map<String, Object> webData = getWebData(insightOutput);
+				webData.put("engine", engine);
+				webData.put("engineID", engine_id);
 				myStore.put("webData", webData);
 			} catch (Exception ex) { //need to specify the different exceptions 
 				ex.printStackTrace();
@@ -97,6 +97,24 @@ public class OpenDataReactor extends AbstractReactor {
 		}
 			
 		return null;
+	}
+	
+	private Map<String, Object> getWebData(Map<String, Object> output) {
+//		Map<String, Object> webData = new HashMap<>();
+//		webData.put("insightID", output.get("insightID"));
+//		webData.put("recipe", output.get("recipe"));
+//		webData.put("layout", output.get("layout"));
+//		webData.put("title", output.get("title"));
+//		webData.put("dataMakerName", output.get("dataMakerName"));
+//		webData.put("uiOptions", output.get("uiOptions"));
+		
+		//data, headers, config, varMap
+		
+		output.remove("pkqlOutput");
+		
+		
+		
+		return output;
 	}
 
 	/**

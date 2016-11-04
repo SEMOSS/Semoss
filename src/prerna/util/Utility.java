@@ -2336,15 +2336,15 @@ public class Utility {
 		}
 		origDataType = origDataType.toUpperCase();
 
-		if(origDataType.equals("DOUBLE") || origDataType.equals("INT") || origDataType.equals("FLOAT")) {
+		if(isNumericType(origDataType)) {
 			return "DOUBLE";
 		}
 
-		if(origDataType.contains("DATE")) {
+		if(isDateType(origDataType)) {
 			return "DATE";
 		}
 
-		if(origDataType.contains("VARCHAR")) {
+		if(isStringType(origDataType)) {
 			return "STRING";
 		}
 
