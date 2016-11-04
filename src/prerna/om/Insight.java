@@ -1859,6 +1859,7 @@ public class Insight {
        insightCopy.pkqlRunner = this.pkqlRunner; // unique to this insight that is responsible for tracking state and variables
        insightCopy.pkqlVarMap = this.pkqlVarMap;
        insightCopy.parentInsight = this.parentInsight;
+       insightCopy.insightID = this.insightID;
        
        return insightCopy;
    }
