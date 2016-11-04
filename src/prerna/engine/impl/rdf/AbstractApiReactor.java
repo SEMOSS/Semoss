@@ -7,12 +7,15 @@ import java.util.Map;
 import java.util.Set;
 import java.util.Vector;
 
+import prerna.algorithm.api.IMetaData.DATA_TYPES;
 import prerna.algorithm.api.ITableDataFrame;
 import prerna.ds.QueryStruct;
+import prerna.engine.api.IEngine;
 import prerna.sablecc.AbstractReactor;
 import prerna.sablecc.PKQLEnum;
 import prerna.ui.components.playsheets.datamakers.IDataMaker;
 import prerna.util.Constants;
+import prerna.util.Utility;
 
 public abstract class AbstractApiReactor extends AbstractReactor{
 
@@ -112,12 +115,30 @@ public abstract class AbstractApiReactor extends AbstractReactor{
 							
 							//if not contained create a new table and add to filters
 							if(addFilter) {
-								
-								// TODO:
 								// need to get the type of the column in the new database
-								// since the previous db could have had the data stored in a different format
-								// we need to convert it to the correct format
-								
+								// if we have different types, we cannot add the implicit filter
+								DATA_TYPES dataType = frame.getDataType(fromColumn);
+								// TODO: need to expose this for other things aside from engine
+								IEngine engine = Utility.getEngine(this.engine);
+								if(engine != null) {
+									String physicalUri = engine.getPhysicalUriFromConceptualUri(toColumn);
+									String eType = engine.getDataTypes(physicalUri);
+									
+									// for really old db's, they do not have conceptual names
+									// so the above logic is not valid....
+									// do not want this to break for old dbs though
+									if(eType != null) {
+										if(eType.contains("TYPE:")) {
+											eType = eType.replace("TYPE:", "");
+										}
+										
+										DATA_TYPES eDataType = Utility.convertStringtoDataType(eType);
+										if(eDataType != dataType) {
+											// this will loop to the next join
+											continue;
+										}
+									}
+								}
 								
 								//figure out which is the new column and which already exists in the table
 								Iterator<Object> rowIt = frame.uniqueValueIterator(fromColumn, false);
