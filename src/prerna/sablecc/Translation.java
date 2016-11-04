@@ -1096,7 +1096,7 @@ public class Translation extends DepthFirstAdapter {
 
 		Map dashboardData = (Map) runner.getDashboardData();
 		if (dashboardData == null) {
-			runner.setDashBoardData(thisReactor.getValue("DashboardData"));
+			runner.setDashBoardData((Map)thisReactor.getValue("DashboardData"));
 		} else {
 			Map<String, List> newDashboardData = (Map<String, List>) thisReactor.getValue("DashboardData");
 			if (dashboardData.containsKey("joinedInsights")) {
@@ -1128,7 +1128,7 @@ public class Translation extends DepthFirstAdapter {
 
 		Map dashboardData = (Map) runner.getDashboardData();
 		if (dashboardData == null) {
-			runner.setDashBoardData(thisReactor.getValue("DashboardData"));
+			runner.setDashBoardData((Map)thisReactor.getValue("DashboardData"));
 		} else {
 			Map<String, List> newDashboardData = (Map<String, List>) thisReactor.getValue("DashboardData");
 			if (dashboardData.containsKey("addedInsights")) {
@@ -1159,14 +1159,20 @@ public class Translation extends DepthFirstAdapter {
 		String json = node.getJsonblock().getText();
 		json = json.replace("<json>", "");
 		json = json.replace("</json>", "");
-		try {
-			Map object = new Gson().fromJson(json, HashMap.class);
-			dm.setConfig(object);
-			runner.setReturnData(object);
-		} catch (Exception e) {
-			dm.setConfig(json);
-			runner.setReturnData(json);
-		}
+		
+		dm.setConfig(json);
+		runner.addToDashBoardData("config", json);
+		
+//		try {
+//			Map object = new Gson().fromJson(json, HashMap.class);
+//			dm.setConfig(object);
+////			runner.setReturnData(object);
+//			runner.addToDashBoardData("config", object);
+//		} catch (Exception e) {
+//			dm.setConfig(json);
+////			runner.setReturnData(json);
+//			runner.addToDashBoardData("config", json);
+//		}
 
 		runner.setStatus(PKQLRunner.STATUS.SUCCESS);
 	}
