@@ -152,14 +152,33 @@ public class H2SqlExpressionIterator implements Iterator<Object[]> {
 				// if its an expression and there is a group
 				// then the group must have been applied to this value
 				HashMap<String, Object> operationMap = new HashMap<String, Object>();
-				List<String> groupBys = builder.getGroupByColumns();
+				List<IExpressionSelector> groupBys = builder.getGroupBySelectors();
 				if(groupBys != null && !groupBys.isEmpty()) {
-					operationMap.put("groupBy", groupBys);
+					List<String> groupByCleaned = new Vector<String>();
+					for(IExpressionSelector gSelector : groupBys) {
+						groupByCleaned.add(gSelector.getName());
+					}
+					operationMap.put("groupBy", groupByCleaned);
 				}
 
 				// get the columns used
 				List<String> colsUsed = selector.getTableColumns();
-				operationMap.put("calculatedBy", colsUsed);
+				// this is super annoying...
+				// TODO: need to come back to the interface and figure out how to return 
+				// the names we want to show and not the view table names
+				if(frame.isJoined()) {
+					List<String> cleanColsUsed = new Vector<String>();
+					String tname = frame.getTableName();
+					for(String colUsed : colsUsed) {
+						// this is because we know the column is the original table it came from
+						// concat with underscore concat with the column name in the frame
+						cleanColsUsed.add(colUsed.replace(tname + "_", ""));
+					} 
+					operationMap.put("calculatedBy", cleanColsUsed);
+				} else {
+					operationMap.put("calculatedBy", colsUsed);
+				}
+				
 
 				if(selector instanceof SqlMathSelector) {
 					operationMap.put("math", ((SqlMathSelector) selector).getPkqlMath() );
