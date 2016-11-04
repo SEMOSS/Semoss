@@ -895,19 +895,30 @@ public class Insight {
 		return recipeList.toString();
 	}
 	
-	public String getPkqlRecipe() {
+//	public String[] getPkqlArray() {
+//		String recipe = this.getPkqlRecipe();
+//		String[] pkqlRecipe = recipe.split(System.getProperty("line.separator"));
+//		List<String> pkqls = new ArrayList<>();
+//		for(String pkql : pkqlRecipe) {
+//			if(!pkql.equals("") && !pkql.equals("NULL")) {
+//				pkqls.add(pkql);
+//			}
+//		}
+//		return pkqls.toArray(new String[]{});
+//	}
+	
+	public String[] getPkqlRecipe() {
 		getDataMaker();
-		StringBuilder recipeList = new StringBuilder();
 		
+		List<String> pkqlRecipe = new ArrayList<>();
 		for(DataMakerComponent dmc : getDataMakerComponents()) {
 			
 			//iterate through pretrans
 			for(ISEMOSSTransformation ist : dmc.getPreTrans()) {
 				if(ist instanceof PKQLTransformation) {
-					List<String> pkqls = ((PKQLTransformation)ist).getPkql();
-					for(String pkql : pkqls){
-						recipeList.append(System.getProperty("line.separator"));
-						recipeList.append(pkql);
+					String pkql = ist.getProperties().get(PKQLTransformation.EXPRESSION).toString();
+					if(!pkql.equals("") && !pkql.equals("NULL")) {
+						pkqlRecipe.addAll(PKQLRunner.parsePKQL(pkql));
 					}
 				}
 			}
@@ -915,16 +926,15 @@ public class Insight {
 			//iterate through the post trans
 			for(ISEMOSSTransformation ist : dmc.getPostTrans()) {
 				if(ist instanceof PKQLTransformation) {
-					List<String> pkqls = ((PKQLTransformation)ist).getPkql();
-					for(String pkql : pkqls){
-						recipeList.append(System.getProperty("line.separator"));
-						recipeList.append(pkql);
+					String pkql = ist.getProperties().get(PKQLTransformation.EXPRESSION).toString();
+					if(!pkql.equals("") && !pkql.equals("NULL")) {
+						pkqlRecipe.addAll(PKQLRunner.parsePKQL(pkql));
 					}
 				}
 			}
 		}
 		
-		return recipeList.toString();
+		return pkqlRecipe.toArray(new String[0]);
 	}
 	
 	// Stores the pieces that make up a recipe block for the front end
@@ -1339,10 +1349,13 @@ public class Insight {
 		}
 		retHash.put("pkqlOutput", this.getPKQLData(false));
 		
-		String pkqlRecipe = this.getPkqlRecipe();
-		if(pkqlRecipe != "") {
-			retHash.put("recipe", pkqlRecipe.split(System.getProperty("line.separator")));
-		}
+//		String pkqlRecipe = this.getPkqlRecipe();
+//		if(pkqlRecipe != "") {
+//			retHash.put("recipe", pkqlRecipe.split(System.getProperty("line.separator")));
+//		}
+		
+		retHash.put("recipe", this.getPkqlRecipe());
+		
 		return retHash;
 	}
 	
@@ -1668,6 +1681,7 @@ public class Insight {
 			dashboardMap.putAll((Map)dashboardData);
 			dashboardMap.put("insightId", this.insightID);
 			resultHash.put("Dashboard", dashboardMap);
+			resultHash.put("Insights", pkqlRunner.getResults());
 		} else {
 			//else just put the insight id
 			Map dashboardMap = new HashMap();
@@ -1706,6 +1720,7 @@ public class Insight {
 			
 			resultHash.put("feData", feData);
 			resultHash.put("newColumns", pkqlRunner.getNewColumns());
+			resultHash.put("newInsights", pkqlRunner.getNewInsights());
 			
 //			String insightID = null;
 //			if((insightID = pkqlRunner.getNewInsightID()) != null) {
