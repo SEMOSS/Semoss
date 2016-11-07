@@ -1722,6 +1722,12 @@ public class Insight {
 			resultHash.put("newColumns", pkqlRunner.getNewColumns());
 			resultHash.put("newInsights", pkqlRunner.getNewInsights());
 			
+			if(pkqlRunner.getDashboardData() != null) {
+				Map dashboardMap = new HashMap();
+				dashboardMap.putAll((Map)pkqlRunner.getDashboardData());
+				resultHash.put("Dashboard", dashboardMap);
+			}
+			
 //			String insightID = null;
 //			if((insightID = pkqlRunner.getNewInsightID()) != null) {
 //				resultHash.put("generatedInsightID", insightID);
@@ -1735,11 +1741,7 @@ public class Insight {
 		resultHash.put("insightID", this.getInsightID());
 		resultHash.put("dataID", this.dataMaker.getDataId());
 		
-		if(pkqlRunner.getDashboardData() != null) {
-			Map dashboardMap = new HashMap();
-			dashboardMap.putAll((Map)pkqlRunner.getDashboardData());
-			resultHash.put("Dashboard", dashboardMap);
-		}
+		
 		
 		return resultHash;
 	}
