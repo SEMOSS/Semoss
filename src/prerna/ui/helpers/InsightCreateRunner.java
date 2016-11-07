@@ -105,10 +105,10 @@ public class InsightCreateRunner implements Runnable{
 	 */
 	private IDataMaker createData(){
 		IDataMaker dm = insight.getDataMaker();
-		if(dm instanceof Dashboard) {
-			Dashboard dash = (Dashboard)dm;
-			dash.setInsightID(insight.getInsightID());
-		}
+//		if(dm instanceof Dashboard) {
+//			Dashboard dash = (Dashboard)dm;
+//			dash.setInsightID(insight.getInsightID());
+//		}
 		
 		// get the list of data maker components from the insight
 		List<DataMakerComponent> dmComps = insight.getDataMakerComponents();
@@ -284,9 +284,9 @@ public class InsightCreateRunner implements Runnable{
 	 */
 	public Map<String, Object> runWeb()
 	{
-//		if(insight.getPkqlRecipe().length == 0) { 
+		if(insight.getPkqlRecipe().length == 0) { 
 			createData();
-//		}
+		}
 		Map<String, String> tableDataAlign = insight.getDataTableAlign();
 		
 		// previous insights did not save the table data align
@@ -296,7 +296,14 @@ public class InsightCreateRunner implements Runnable{
 			tableDataAlign = (Map<String, String>) (((AbstractPlaySheet) playSheet).getDataTableAlign());
 			insight.setDataTableAlign(tableDataAlign);
 		}
-		insight.getDataMaker().resetDataId();
+		
+		IDataMaker dm = insight.getDataMaker();
+		if(dm instanceof Dashboard) {
+			Dashboard dash = (Dashboard)dm;
+			dash.setInsightID(insight.getInsightID());
+		}
+		
+		dm.resetDataId();
 		return insight.getWebData();
 	}
 	
