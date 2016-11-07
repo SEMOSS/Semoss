@@ -85,8 +85,8 @@ public class OpenDataReactor extends AbstractReactor {
 				Map<String, Object> insightOutput = run.runWeb();//runSavedRecipe();
 				
 				Map<String, Object> webData = getWebData(insightOutput);
-				webData.put("engine", engine);
-				webData.put("engineID", engine_id);
+				webData.put("core_engine", engine);
+				webData.put("core_engine_id", engine_id);
 				myStore.put("webData", webData);
 			} catch (Exception ex) { //need to specify the different exceptions 
 				ex.printStackTrace();
