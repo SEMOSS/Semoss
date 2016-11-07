@@ -65,6 +65,7 @@ public interface Analysis extends Switch
     void caseADashboardAddDashboardop(ADashboardAddDashboardop node);
     void caseADatabaseListDatabaseop(ADatabaseListDatabaseop node);
     void caseADatabaseConceptsDatabaseop(ADatabaseConceptsDatabaseop node);
+    void caseADatabaseConnectedConceptsDatabaseop(ADatabaseConnectedConceptsDatabaseop node);
     void caseADatabaseMetamodelDatabaseop(ADatabaseMetamodelDatabaseop node);
     void caseADatabaseConceptPropertiesDatabaseop(ADatabaseConceptPropertiesDatabaseop node);
     void caseAPanelViz(APanelViz node);
@@ -193,6 +194,7 @@ public interface Analysis extends Switch
     void caseACodeblockTerm(ACodeblockTerm node);
     void caseADatabaseList(ADatabaseList node);
     void caseADatabaseConcepts(ADatabaseConcepts node);
+    void caseADatabaseConnectedConcepts(ADatabaseConnectedConcepts node);
     void caseADatabaseConceptProperties(ADatabaseConceptProperties node);
     void caseADatabaseMetamodel(ADatabaseMetamodel node);
 
@@ -284,6 +286,7 @@ public interface Analysis extends Switch
     void caseTDataconnectdbToken(TDataconnectdbToken node);
     void caseTDatabaselistToken(TDatabaselistToken node);
     void caseTDatabaseconceptsToken(TDatabaseconceptsToken node);
+    void caseTDatabaseconnectedconceptsToken(TDatabaseconnectedconceptsToken node);
     void caseTDatabaseconceptpropertiesToken(TDatabaseconceptpropertiesToken node);
     void caseTDatabasemetamodelToken(TDatabasemetamodelToken node);
     void caseTDashboardconfig(TDashboardconfig node);

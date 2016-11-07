@@ -110,6 +110,7 @@ Tokens
  
  databaselist_token = 'database.list';
  databaseconcepts_token = 'database.concepts';
+ databaseconnectedconcepts_token = 'database.getConnectedConcepts';
  databaseconceptproperties_token = 'database.concept.properties';
  databasemetamodel_token = 'database.metamodel';
  
@@ -198,6 +199,7 @@ dashboardop = // dashboardop is usually of the form dashboard.join, dashboard.ad
 databaseop = // databaseop is usually of the form database.list, database.concepts, etc.
 		{database_list} database_list
 		| {database_concepts} database_concepts
+		| {database_connected_concepts} database_connected_concepts
 		| {database_metamodel} database_metamodel
 		| {database_concept_properties} database_concept_properties
 		;
@@ -489,6 +491,9 @@ database_list = databaselist_token;
 
 // get list of concepts within database
 database_concepts = databaseconcepts_token l_par [engine_name]:id r_par;
+
+// get connected concepts
+database_connected_concepts = databaseconnectedconcepts_token l_par [concept_type]:id r_par; 
 
 // get all the properties for a concept across all engines
 database_concept_properties = databaseconceptproperties_token l_par [concept_name]:id r_par;
