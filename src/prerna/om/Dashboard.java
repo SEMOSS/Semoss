@@ -194,7 +194,7 @@ public class Dashboard implements IDataMaker {
 
 	@Override
 	public String getDataMakerName() {
-		return "DashBoard";
+		return this.getClass().getSimpleName();
 	}
 	
 	private void addInsight(String viewTable, Insight insight) {
