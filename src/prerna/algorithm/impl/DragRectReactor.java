@@ -33,6 +33,7 @@ public class DragRectReactor extends MathReactor{
 		double yA = Double.parseDouble(options.get("CONDITION2").toString());
 		double xC = Double.parseDouble(options.get("CONDITION3").toString());
 		double yC = Double.parseDouble(options.get("CONDITION4").toString());
+		String colName = options.get("CONDITION5").toString();
 		
 		/*double xB = xA;
 		double yB = yC;
@@ -57,9 +58,18 @@ public class DragRectReactor extends MathReactor{
 		Iterator resultItr = getTinkerData(columns, df, false);
 		DragColumnIterator expItr = new DragColumnIterator(resultItr,columnArray,script,clusters);
 		String nodeStr = myStore.get(whoAmI).toString();
+		
+
+		HashMap<String,Object> returnData = new HashMap<>();
+		returnData.put("xA", xA);
+		returnData.put("yA", yA);
+		returnData.put("xC", xC);
+		returnData.put("yC", yC);
+		returnData.put("ColName", colName);
 		HashMap<String,Object> additionalInfo = new HashMap<>();
-		//additionalInfo.put("Quantiles", quantileValues);
-		//myStore.put("ADDITIONAL_INFO", additionalInfo);
+		additionalInfo.put(colName, returnData);
+		myStore.put("ADDITIONAL_INFO", additionalInfo);
+		
 		myStore.put(nodeStr, expItr);
 		myStore.put("STATUS", STATUS.SUCCESS);
 			
