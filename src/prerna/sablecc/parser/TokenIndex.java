@@ -532,38 +532,44 @@ class TokenIndex extends AnalysisAdapter
     }
 
     @Override
-    public void caseTDatabaseconceptpropertiesToken(@SuppressWarnings("unused") TDatabaseconceptpropertiesToken node)
+    public void caseTDatabaseconnectedconceptsToken(@SuppressWarnings("unused") TDatabaseconnectedconceptsToken node)
     {
         this.index = 87;
     }
 
     @Override
-    public void caseTDatabasemetamodelToken(@SuppressWarnings("unused") TDatabasemetamodelToken node)
+    public void caseTDatabaseconceptpropertiesToken(@SuppressWarnings("unused") TDatabaseconceptpropertiesToken node)
     {
         this.index = 88;
     }
 
     @Override
-    public void caseTDashboardconfig(@SuppressWarnings("unused") TDashboardconfig node)
+    public void caseTDatabasemetamodelToken(@SuppressWarnings("unused") TDatabasemetamodelToken node)
     {
         this.index = 89;
     }
 
     @Override
-    public void caseTDashboardAddToken(@SuppressWarnings("unused") TDashboardAddToken node)
+    public void caseTDashboardconfig(@SuppressWarnings("unused") TDashboardconfig node)
     {
         this.index = 90;
     }
 
     @Override
-    public void caseTWherestr(@SuppressWarnings("unused") TWherestr node)
+    public void caseTDashboardAddToken(@SuppressWarnings("unused") TDashboardAddToken node)
     {
         this.index = 91;
     }
 
     @Override
-    public void caseEOF(@SuppressWarnings("unused") EOF node)
+    public void caseTWherestr(@SuppressWarnings("unused") TWherestr node)
     {
         this.index = 92;
+    }
+
+    @Override
+    public void caseEOF(@SuppressWarnings("unused") EOF node)
+    {
+        this.index = 93;
     }
 }
