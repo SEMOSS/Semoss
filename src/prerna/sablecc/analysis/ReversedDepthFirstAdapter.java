@@ -1189,6 +1189,27 @@ public class ReversedDepthFirstAdapter extends AnalysisAdapter
         outADatabaseConceptsDatabaseop(node);
     }
 
+    public void inADatabaseConnectedConceptsDatabaseop(ADatabaseConnectedConceptsDatabaseop node)
+    {
+        defaultIn(node);
+    }
+
+    public void outADatabaseConnectedConceptsDatabaseop(ADatabaseConnectedConceptsDatabaseop node)
+    {
+        defaultOut(node);
+    }
+
+    @Override
+    public void caseADatabaseConnectedConceptsDatabaseop(ADatabaseConnectedConceptsDatabaseop node)
+    {
+        inADatabaseConnectedConceptsDatabaseop(node);
+        if(node.getDatabaseConnectedConcepts() != null)
+        {
+            node.getDatabaseConnectedConcepts().apply(this);
+        }
+        outADatabaseConnectedConceptsDatabaseop(node);
+    }
+
     public void inADatabaseMetamodelDatabaseop(ADatabaseMetamodelDatabaseop node)
     {
         defaultIn(node);
@@ -5079,6 +5100,39 @@ public class ReversedDepthFirstAdapter extends AnalysisAdapter
             node.getDatabaseconceptsToken().apply(this);
         }
         outADatabaseConcepts(node);
+    }
+
+    public void inADatabaseConnectedConcepts(ADatabaseConnectedConcepts node)
+    {
+        defaultIn(node);
+    }
+
+    public void outADatabaseConnectedConcepts(ADatabaseConnectedConcepts node)
+    {
+        defaultOut(node);
+    }
+
+    @Override
+    public void caseADatabaseConnectedConcepts(ADatabaseConnectedConcepts node)
+    {
+        inADatabaseConnectedConcepts(node);
+        if(node.getRPar() != null)
+        {
+            node.getRPar().apply(this);
+        }
+        if(node.getConceptType() != null)
+        {
+            node.getConceptType().apply(this);
+        }
+        if(node.getLPar() != null)
+        {
+            node.getLPar().apply(this);
+        }
+        if(node.getDatabaseconnectedconceptsToken() != null)
+        {
+            node.getDatabaseconnectedconceptsToken().apply(this);
+        }
+        outADatabaseConnectedConcepts(node);
     }
 
     public void inADatabaseConceptProperties(ADatabaseConceptProperties node)
