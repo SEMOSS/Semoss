@@ -2310,6 +2310,20 @@ public class Translation extends DepthFirstAdapter {
 		runner.setReturnData(returnData);
 		runner.setStatus(PKQLRunner.STATUS.SUCCESS);
 	}
+	
+	@Override
+    public void outADatabaseConnectedConcepts(ADatabaseConnectedConcepts node) {
+		//        defaultOut(node);
+		String conceptType = node.getConceptType().toString().trim();
+		//remove quotes
+//		conceptType = conceptType.substring(1,conceptType.length()-2);
+		Map<String, Hashtable> returnData = new HashMap();
+		Hashtable concepts = DatabasePkqlService.getConnectedConcepts(conceptType);
+		returnData.put("concepts", concepts);
+
+		runner.setReturnData(returnData);
+		runner.setStatus(PKQLRunner.STATUS.SUCCESS);
+	}
 
 	@Override
 	public void outADatabaseMetamodel(ADatabaseMetamodel node) {
