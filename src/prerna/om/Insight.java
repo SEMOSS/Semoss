@@ -1355,8 +1355,23 @@ public class Insight {
 //		}
 		
 		retHash.put("recipe", this.getPkqlRecipe());
+		retHash.put("isPkqlRunnable", isPkqlRunnable());
 		
 		return retHash;
+	}
+	
+	private boolean isPkqlRunnable() {
+		//it is pkql runnable if there is a recipe or if it is an h2frame or dashboard
+		IDataMaker dm = this.getDataMaker();
+		if(this.getPkqlRecipe().length > 0 || 
+				dm instanceof H2Frame || 
+				dm instanceof TinkerFrame ||
+				dm instanceof Dashboard
+				) {
+			return true;
+		}
+		
+		return false;
 	}
 	
 	/**
