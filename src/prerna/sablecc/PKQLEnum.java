@@ -3,7 +3,8 @@ package prerna.sablecc;
 public class PKQLEnum {
 	
 //	public enum PKQLToken {NUMBER, DECIMAL, COL_CSV, COL_DEF, WHERE, FILTER, SELECTOR, API, CODE}
-	public enum PKQLReactor {COL_RENAME, COL_ADD, COL_FILTER_MODEL, IMPORT_DATA, MATH_FUN, EXPR, VIZ, VAR, INPUT, NETWORK_CONNECT, NETWORK_DISCONNECT, DATA_FRAME_HEADER, DATA_FRAME_DUPLICATES}
+	public enum PKQLReactor {COL_RENAME, COL_ADD, COL_FILTER_MODEL, IMPORT_DATA, MATH_FUN, EXPR, VIZ, VAR, INPUT, NETWORK_CONNECT, NETWORK_DISCONNECT, DATA_FRAME_HEADER, DATA_FRAME_DUPLICATES, 
+		SOLR_AUTOCOMPLETE, SOLR_SEARCH, SOLR_FACET, SOLR_GROUP_BY}
 //	public enum PKQLAlgorithm {SUM, AVERAGE, STANDARD_DEVIATION, MEDIAN, MIN, MAX, CONCAT}
 
 	public static final String COMPARATOR = "COMPARATOR";
@@ -28,6 +29,7 @@ public class PKQLEnum {
 	
 	public static final String DATABASE_LIST = "DATABASE_LIST";
 	public static final String DATABASE_CONCEPTS = "DATABASE_CONCEPTS";
+	public static final String DATABASE_CONNECTED_CONCEPTS = "DATABASE_CONNECTED_CONCEPTS";
 	public static final String DATABASE_METAMODEL = "DATABASE_METAMODEL";
 
 	public static final String MATH_FUN = "MATH_FUN";
@@ -37,6 +39,15 @@ public class PKQLEnum {
 	public static final String SUM = "SUM";
 	public static final String MAX = "MAX";
 	public static final String MIN = "MIN";
+	public static final String COS = "COS";
+	public static final String SIN = "SIN";
+	public static final String TAN = "TAN";
+	public static final String CEILING = "CEILING";
+	public static final String FLOOR = "FLOOR";
+	public static final String LOG = "LOG";
+	public static final String LOG10 = "LOG10";
+	public static final String SQRT = "SQRT";
+	public static final String POWER = "POWER";
 	public static final String AVERAGE = "AVERAGE";
 	public static final String STANDARD_DEVIATION = "STANDARDDEVIATION";
 	public static final String POPULATION_STANDARD_DEVIATION = "POPULATIONSTANDARDDEVIATION";
@@ -48,10 +59,12 @@ public class PKQLEnum {
 	public static final String ROUND = "ROUND";
 	public static final String CONCAT = "CONCAT";
 	public static final String GROUP_CONCAT = "GROUPCONCAT";
-	
+	public static final String UNIQUE_GROUP_CONCAT = "UNIQUEGROUPCONCAT";
+
 	public static final String NUMBER = "NUMBER";
 	public static final String DECIMAL = "DECIMAL";
 	public static final String ALPHA = "ALPHA";
+	public static final String SORT = "SORT";
 	public static final String EXPR_TERM = "EXPR_TERM";
 	public static final String EXPR_SCRIPT = "EXPR_SCRIPT";
 	public static final String MATH_PARAM = "MATH_PARAM";
@@ -107,5 +120,11 @@ public class PKQLEnum {
 	public static final String WEB_API = "WEB_API";
 	public static final String NATIVE_QUERY_API = "NATIVE_QUERY_API";
 	public static final String SEARCH_QUERY_API = "SEARCH_QUERY_API";
+	
+	//Solr
+	public static final String SOLR_AUTOCOMPLETE = "SOLR_AUTOCOMPLETE";
+	public static final String SOLR_SEARCH = "SOLR_SEARCH";
+	public static final String SOLR_FACET = "SOLR_FACET";
+	public static final String SOLR_GROUP_BY = "SOLR_GROUP_BY";
 	
 }
