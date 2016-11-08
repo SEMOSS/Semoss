@@ -53,7 +53,7 @@ public class FilePkqlMetadata extends AbstractPkqlMetadata {
 		StringBuilder pkqlStr = new StringBuilder("data.import(api:");
 		pkqlStr.append(engineName);
 		pkqlStr.append(".query( [");
-		
+		pkqlStr.append("c:").append(tableToUse).append(", ");
 		int numSelectors = this.selectors.size();
 		for(int i = 0; i < numSelectors; i++) {
 			String selector = this.selectors.get(i);
