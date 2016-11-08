@@ -6,8 +6,8 @@ import prerna.sablecc.expressions.IExpressionSelector;
 
 public class SqlGroupConcat implements IExpressionSelector {
 
-	private IExpressionSelector selector;
-	private String separator;
+	protected IExpressionSelector selector;
+	protected String separator;
 	
 	/*
 	 * Create a math routine around an existing selector
@@ -41,7 +41,7 @@ public class SqlGroupConcat implements IExpressionSelector {
 	@Override
 	public String getName() {
 		StringBuilder builder = new StringBuilder();
-		builder.append("GROUP_CONCAT(").append(selector.getName()).append(")");
+		builder.append("GROUP_CONCAT_").append(selector.getName());
 		return builder.toString();
 	}
 
