@@ -34,7 +34,7 @@ public class OutputDataReactor extends AbstractReactor {
 		String [] thisReacts = {PKQLEnum.WORD_OR_NUM};
 		
 		super.whatIReactTo = thisReacts;
-		super.whoAmI = PKQLEnum.OPEN_DATA;
+		super.whoAmI = PKQLEnum.OUTPUT_DATA;
 	}
 	@Override
 	public Iterator process() {
@@ -51,7 +51,7 @@ Gson gson = new Gson();
 		IEngine coreEngine = Utility.getEngine(engine);
 		if(coreEngine == null) {
 			//store error message
-			myStore.put(PKQLEnum.OPEN_DATA, "Error Opening Insight");
+			myStore.put(PKQLEnum.OUTPUT_DATA, "Error Opening Insight");
 			return null;
 		}
 		Insight insightObj = ((AbstractEngine)coreEngine).getInsight(engine_id).get(0);
@@ -67,23 +67,25 @@ Gson gson = new Gson();
 //			String id = InsightStore.getInstance().put(insightObj);
 			insightObj.setInsightID(insightId);
 			InsightStore.getInstance().put(insightId, insightObj);
-			myStore.put(PKQLEnum.OPEN_DATA, insightId);
+			myStore.put(PKQLEnum.OUTPUT_DATA, insightId);
 			
 			Map<String, Object> uploaded = gson.fromJson(vizData, new TypeToken<Map<String, Object>>() {}.getType());
 			uploaded.put("insightID", insightId);
 			
 			myStore.put("webData", uploaded);
+			myStore.put("G", insightObj.getDataMaker());
 		} else {
 			// insight visualization data has not been cached, run the insight
 			try {
 				insightObj.setInsightID(insightId);
 				InsightStore.getInstance().put(insightId, insightObj);
-				myStore.put(PKQLEnum.OPEN_DATA, insightId);
+				myStore.put(PKQLEnum.OUTPUT_DATA, insightId);
 				
 				InsightCreateRunner run = new InsightCreateRunner(insightObj);
 				Map<String, Object> insightOutput = run.runSavedRecipe();
 				
 				myStore.put("webData", insightOutput);
+				myStore.put("G", insightObj.getDataMaker());
 			} catch (Exception ex) { //need to specify the different exceptions 
 				ex.printStackTrace();
 				Hashtable<String, String> errorHash = new Hashtable<String, String>();
