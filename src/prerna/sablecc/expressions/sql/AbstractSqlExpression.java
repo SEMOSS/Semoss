@@ -1,6 +1,7 @@
 package prerna.sablecc.expressions.sql;
 
 import java.util.Iterator;
+import java.util.List;
 import java.util.Vector;
 
 import prerna.ds.h2.H2Frame;
@@ -8,6 +9,8 @@ import prerna.sablecc.AbstractReactor;
 import prerna.sablecc.PKQLEnum;
 import prerna.sablecc.expressions.sql.builder.SqlColumnSelector;
 import prerna.sablecc.expressions.sql.builder.SqlExpressionBuilder;
+import prerna.sablecc.meta.IPkqlMetadata;
+import prerna.sablecc.meta.MathPkqlMetadata;
 
 public abstract class AbstractSqlExpression extends AbstractReactor {
 
@@ -45,6 +48,15 @@ public abstract class AbstractSqlExpression extends AbstractReactor {
 		}
 		
 		return null;
+	}
+	
+	public IPkqlMetadata getPkqlMetadata() {
+		MathPkqlMetadata metadata = new MathPkqlMetadata();
+		metadata.setProcedureName((String) myStore.get("PROC_NAME"));
+		metadata.setPkqlStr((String) myStore.get("MATH_EXPRESSION"));
+		metadata.setColumnsOperatedOn((Vector<String>) myStore.get(PKQLEnum.COL_DEF));
+		metadata.setGroupByColumns((List<String>) myStore.get(PKQLEnum.COL_CSV)); 
+		return metadata;
 	}
 	
 }
