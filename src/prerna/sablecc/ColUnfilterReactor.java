@@ -54,7 +54,7 @@ public class ColUnfilterReactor extends AbstractReactor {
 
 	public IPkqlMetadata getPkqlMetadata() {
 		ColUnfilterMetadata metadata = new ColUnfilterMetadata((String) myStore.get("FILTER_COLUMN"));
-		metadata.setPkqlStr((String) myStore.get(PKQLEnum.FILTER_DATA));
+		metadata.setPkqlStr((String) myStore.get(PKQLEnum.UNFILTER_DATA));
 		return metadata;
 	}
 }
