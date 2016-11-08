@@ -1,5 +1,8 @@
 package prerna.algorithm.impl;
 
+import java.math.BigDecimal;
+import java.math.RoundingMode;
+import java.text.DecimalFormat;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -24,18 +27,32 @@ public class BasicStatsReactor extends BaseReducerReactor {
 		int positiveCount =0, negativeCount =0, zeroCount =0;
 		ArrayList<Double> values = new ArrayList<Double>();
 		
+		double posTotal = 0, negTotal = 0, absTotal = 0;
+		
+		Map<String, Object> options = (Map<String, Object>) myStore.get(PKQLEnum.MATH_PARAM);
+		
+		double greaterThreshold = options != null && options.containsKey(">") ? Double.valueOf(options.get(">").toString()) : 0.0;
+		double lesserThreshold = options != null && options.containsKey("<") ? Double.valueOf(options.get("<").toString()) : 0.0;
+		double equalValue = options != null && options.containsKey("=") ? Double.valueOf(options.get("=").toString()) : 0.0;
+		
 		while(inputIterator.hasNext() && !errored)
 		{
 			ArrayList dec = (ArrayList)getNextValue();
 				if(dec.get(0) instanceof Number) {
 					stats.addValue(((Number)dec.get(0)).doubleValue());
 					values.add(((Number)dec.get(0)).doubleValue());
-					if (((Number)dec.get(0)).doubleValue() > 0)
+					if (((Number)dec.get(0)).doubleValue() > greaterThreshold){
+						posTotal += ((Number)dec.get(0)).doubleValue();
 						positiveCount++;
-					else if(((Number)dec.get(0)).doubleValue() < 0)
+					}
+					else if(((Number)dec.get(0)).doubleValue() < lesserThreshold){
+						negTotal += Math.abs(((Number)dec.get(0)).doubleValue());
 						negativeCount++;
-					else
+					}
+					else if(((Number)dec.get(0)).doubleValue() == equalValue){
 						zeroCount++;
+					}
+					absTotal += Math.abs(((Number)dec.get(0)).doubleValue());
 				}
 		}
 		
@@ -67,20 +84,35 @@ public class BasicStatsReactor extends BaseReducerReactor {
 	            else
 	            {hm.put(values.get(i),1);}
 	        }
+	    
+	    
+
+		HashMap<String,Object> returnData = new HashMap<>();
+	    
+	    Object mean = Double.isNaN(stats.getMean()) ? "NaN" : new BigDecimal(stats.getMean()).setScale(2, RoundingMode.DOWN);
+		Object std = Double.isNaN(stats.getStandardDeviation()) ? "NaN" : new BigDecimal(stats.getStandardDeviation()).setScale(2, RoundingMode.DOWN);
+		Object min = Double.isNaN(stats.getMin()) ? "NaN" :  new BigDecimal(stats.getMin()).setScale(2, RoundingMode.DOWN);
+		Object maximum = Double.isNaN(stats.getMax()) ? "NaN" : new BigDecimal(stats.getMax()).setScale(2, RoundingMode.DOWN);
+		Object variance = Double.isNaN(stats.getVariance()) ? "NaN" :  new BigDecimal(stats.getVariance()).setScale(2, RoundingMode.DOWN);
+		Object geometricMean = Double.isNaN(stats.getGeometricMean()) ? "NaN" : new BigDecimal(stats.getGeometricMean()).setScale(2, RoundingMode.DOWN);
+		Object sum = Double.isNaN(stats.getSum()) ? "NaN" : new BigDecimal(stats.getSum()).setScale(2, RoundingMode.DOWN);
+		Object sumOfSquare = Double.isNaN(stats.getSumsq()) ? "NaN" : new BigDecimal(stats.getSumsq()).setScale(2, RoundingMode.DOWN);
 		
 		//Rest of Basic Stats
-		double mean = stats.getMean();
-		double std = stats.getStandardDeviation();
-		double min = stats.getMin();
-		double maximum = stats.getMax();
-		double variance = stats.getVariance();
-		double geometricMean = stats.getGeometricMean();
-		double sum = stats.getSum();
-		double sumOfSquare = stats.getSumsq();
+//	    DecimalFormat formatter = new DecimalFormat("#.00");
+//	    formatter.setRoundingMode(RoundingMode.DOWN);
+//		String mean = Double.isNaN(stats.getMean()) ? "NaN" : formatter.format(stats.getMean());
+//		String std = Double.isNaN(stats.getStandardDeviation()) ? "NaN" : formatter.format(stats.getStandardDeviation());
+//		String min = Double.isNaN(stats.getMin()) ? "NaN" :  formatter.format(stats.getMin());
+//		String maximum = Double.isNaN(stats.getMax()) ? "NaN" : formatter.format(stats.getMax());
+//		String variance = Double.isNaN(stats.getVariance()) ? "NaN" :  formatter.format(stats.getVariance());
+//		String geometricMean = Double.isNaN(stats.getGeometricMean()) ? "NaN" : formatter.format(stats.getGeometricMean());
+//		String sum = Double.isNaN(stats.getSum()) ? "NaN" : formatter.format(stats.getSum());
+//		String sumOfSquare = Double.isNaN(stats.getSumsq()) ? "NaN" : formatter.format(stats.getSumsq());
 		
-		HashMap<String,Object> returnData = new HashMap<>();
+		
 		returnData.put("mean", mean);
-		returnData.put("standardDeviation", std);
+		returnData.put("standardDeviation", std); 
 		returnData.put("min", min);
 		returnData.put("max", maximum);
 		returnData.put("variance", variance);
@@ -92,6 +124,9 @@ public class BasicStatsReactor extends BaseReducerReactor {
 		returnData.put("sumOfSquare", sumOfSquare);
 		returnData.put("median", median);
 		returnData.put("mode", mode);
+		returnData.put("posTotal", posTotal);
+		returnData.put("negTotal", negTotal);
+		returnData.put("absTotal", absTotal);
 		
 		HashMap<String,Object> basicStats = new HashMap<>();
 		basicStats.put("basicStats", returnData);
