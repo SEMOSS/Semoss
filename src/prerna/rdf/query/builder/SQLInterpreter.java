@@ -455,9 +455,15 @@ public class SQLInterpreter implements IQueryInterpreter{
 //			queryString = compName + "  " + toConcept+ " " + getAlias(toConcept) + " ON " + getAlias(concept) + "." + property + " = " + getAlias(toConcept) + "." + toProperty;
 			
 			thisJoin = new SqlJoinObject(key, relationList);
+			// if the concept is already defined
+			// we need to get a new alias for it
+			String toConceptAlias = getAlias(toConcept);
+			if(relationList.allDefinedTableAlias().contains(toConceptAlias)) {
+				toConceptAlias = getNewAliasForExistingTable(toConcept);
+			}
 			// this method will determine everything required
 			// the defined table and the required table
-			thisJoin.setQueryString(compName, toConcept, getAlias(toConcept), toProperty, concept, getAlias(concept), property);
+			thisJoin.setQueryString(compName, toConcept, toConceptAlias, toProperty, concept, getAlias(concept), property);
 
 			// add the defined table
 //			thisJoin.addTableAliasDefinedByJoin(getAlias(toConcept), toConcept);
