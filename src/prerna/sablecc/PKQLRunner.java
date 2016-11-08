@@ -613,6 +613,7 @@ public class PKQLRunner {
 		this.newColumns = new HashMap<String,String>();
 		this.returnData = null;
 		this.newInsights = new ArrayList<>();
+		this.dashboardMap = null;
 		
 //		this.expiredFeMaps =  new HashMap<String, List<Map<String,Object>>>();
 	}
