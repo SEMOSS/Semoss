@@ -713,8 +713,7 @@ public abstract class AbstractTableDataFrame implements ITableDataFrame {
 		reactorNames.put(PKQLReactor.VAR.toString(), "prerna.sablecc.VarReactor");
 		reactorNames.put(PKQLReactor.INPUT.toString(), "prerna.sablecc.InputReactor");
 		reactorNames.put(PKQLReactor.DATA_FRAME_HEADER.toString(), "prerna.sablecc.DataFrameHeaderReactor");
-		reactorNames.put(PKQLEnum.COL_RENAME, "prerna.sablecc.ColRenameReactor");
-		reactorNames.put(PKQLEnum.OUTPUT_DATA, "prerna.sablecc.OutputDataReactor"); 
+		reactorNames.put(PKQLEnum.COL_RENAME, "prerna.sablecc.ColRenameReactor"); 
 		return reactorNames;
 	}
 	
