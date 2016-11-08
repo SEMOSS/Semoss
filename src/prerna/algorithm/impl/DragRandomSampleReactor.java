@@ -36,24 +36,24 @@ public class DragRandomSampleReactor extends MathReactor{
 		
 		if(options.containsKey("aboveBoundSamples".toUpperCase())){
 			int numSamples = (int)options.get("aboveBoundSamples".toUpperCase());
-			Region region = new Region(cols.indexOf("Bounds"), numSamples, "0");
+			Region region = new Region(cols.indexOf("Bounds"), numSamples, "0.0");
 			regions.add(region);
 		}
 		if(options.containsKey("withinBoundSamples".toUpperCase())){
 			int numSamples = (int)options.get("withinBoundSamples".toUpperCase());
-			Region region = new Region(cols.indexOf("Bounds"), numSamples, "1");
+			Region region = new Region(cols.indexOf("Bounds"), numSamples, "1.0");
 			regions.add(region);
 		}
 		if(options.containsKey("belowBoundSamples".toUpperCase())){
 			int numSamples = (int)options.get("belowBoundSamples".toUpperCase());
-			Region region = new Region(cols.indexOf("Bounds"), numSamples, "2");
+			Region region = new Region(cols.indexOf("Bounds"), numSamples, "2.0");
 			regions.add(region);
 		}
 		int i =1;
 		while(options.containsKey(("Cluster"+i).toUpperCase()))
 		{
 			int numSamples = (int)options.get(("Cluster"+i).toUpperCase());
-			Region region = new Region(cols.indexOf("Cluster"), numSamples, String.valueOf(i));
+			Region region = new Region(cols.indexOf("Cluster"), numSamples, String.valueOf(new Double(i)));
 			regions.add(region);
 			i++;
 		}
@@ -62,23 +62,24 @@ public class DragRandomSampleReactor extends MathReactor{
 		while(options.containsKey(("DragCluster"+i).toUpperCase()))
 		{
 			int numSamples = (int)options.get(("DragCluster"+i).toUpperCase());
-			Region region = new Region(cols.indexOf("DragClusters"+i), numSamples, "1");
+			Region region = new Region(cols.indexOf("DragClusters"+i), numSamples, "1.0");
 			regions.add(region);
 			i++;
 		}
 		
-		List<Object[]> keys = new ArrayList<>(dataFrame.getNumRows());
+		List<List<Object>> keys = new ArrayList<>(dataFrame.getNumRows());
 		Iterator dataItr = getTinkerData(allCols, dataFrame, false);
 		
 		while(dataItr.hasNext()){
 			Object[] row = (Object[]) dataItr.next();
-			keys.add(row);
+			List<Object> rowList = Arrays.asList(row);
+			keys.add(rowList);
 		}
 
 		Collections.shuffle(keys);
-		HashMap<Object,Integer> result  =  new HashMap<>();
+		HashMap<List<Object>,Integer> result  =  new HashMap<>();
 		
-		for(Object[] key: keys){
+		for(List<Object> key: keys){
 			int sampled = 0;
 			for(Region r:regions){
 				if(r.needSamples(key))
@@ -117,13 +118,13 @@ public class DragRandomSampleReactor extends MathReactor{
 
 class DragRandomSampleIterator extends ExpressionIterator{
 	
-	protected Map<Object,Integer> result;
+	protected Map<List<Object>,Integer> result;
 	
 	protected DragRandomSampleIterator() {
 		
 	}
 	
-	public DragRandomSampleIterator(Iterator results, String [] columnsUsed, String script, Map<Object,Integer> result)
+	public DragRandomSampleIterator(Iterator results, String [] columnsUsed, String script, Map<List<Object>,Integer> result)
 	{
 		this.result = result;
 		setData(results, columnsUsed, script);
@@ -145,10 +146,7 @@ class DragRandomSampleIterator extends ExpressionIterator{
 			List<Object> keyList = new ArrayList<>(columnsUsed.length);
 			for(int i=0;i<columnsUsed.length;i++)
 				keyList.add(otherBindings.get(columnsUsed[i]));
-			Object[] key = keyList.toArray();
-			retObject = result.get(key);
-			boolean keyCheck = result.containsKey(key);
-			System.out.println();
+			retObject = result.get(keyList);
 			//retObject = result.get(otherBindings.get(columnsUsed[0]));
 		}
 		return retObject;
@@ -164,10 +162,10 @@ class Region{
 		this.numOfSamples = numOfSamples;
 		this.desiredValue = desiredValue;
 	}
-	public boolean needSamples(Object[] row){
+	public boolean needSamples(List<Object> row){
 		if(numOfSamples <= 0)
 			return false;
-		if(String.valueOf(row[colNum]).equals(desiredValue)){
+		if(String.valueOf(row.get(colNum)).equals(desiredValue)){
 			numOfSamples--;
 			return true;
 		}
