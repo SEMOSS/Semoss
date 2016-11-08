@@ -97,7 +97,10 @@ public class Translation extends DepthFirstAdapter {
 		defaultReactors.put(PKQLEnum.SEARCH_QUERY_API, "prerna.sablecc.SearchQueryApiReactor");
 		// this is the outside wrapper for the search query
 		defaultReactors.put(PKQLEnum.QUERY_DATA, "prerna.sablecc.QueryDataReactor");
-
+		// this is to get the recipe for a pkqled insight and initialize the insight with an id
+		defaultReactors.put(PKQLEnum.OPEN_DATA, "prerna.sablecc.OpenDataReactor");
+		// this is to run the recipe for an insight and replace the current insight by the insight returned from this output data
+		defaultReactors.put(PKQLEnum.OUTPUT_DATA, "prerna.sablecc.OutputDataReactor");
 		return defaultReactors;
 	}
 
@@ -727,6 +730,9 @@ public class Translation extends DepthFirstAdapter {
 		
 		
 		IDataMaker dm = (IDataMaker) curReactor.getValue("G");
+		if(dm != null) {
+			this.frame = dm;
+		}
 		if (curReactor.getValue("G") instanceof Dashboard) {
 			Dashboard dash = (Dashboard) curReactor.getValue("G");
 			dash.setInsightOutput((String) webData.get("insightID"), webData);
