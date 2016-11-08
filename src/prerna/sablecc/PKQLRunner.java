@@ -464,7 +464,7 @@ public class PKQLRunner {
 				IPkqlMetadata innerMeta = this.metadataResponse.get(i);
 				String innerMetaPkql = innerMeta.getPkqlStr();
 				String innerExplanation = innerMeta.getExplanation();
-				if(this.explain.contains(innerMetaPkql)) {
+				if(this.explain != null && this.explain.contains(innerMetaPkql)) {
 					this.explain = this.explain.replace(innerMetaPkql, innerExplanation);
 				}
 				if(innerMeta.getAdditionalInfo() != null)
