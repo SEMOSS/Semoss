@@ -47,6 +47,12 @@ public class ClusteringReactor extends MathReactor {
 	
 	private String clusterColName;
 	
+	// ughhhh... since we call this class within the 
+	// multi clustering reactor
+	// need to add this so each iteration of that routine
+	// does add to the frame
+	private boolean addToFrame = true;
+	
 	@Override
 	public Iterator process() {
 		modExpression();
@@ -163,27 +169,33 @@ public class ClusteringReactor extends MathReactor {
 
 		LOGGER.info("Done iterating ...");		
 
-		String attributeName = attributeNames[instanceIndex];
-		// to avoid adding columns with same name
-		int counter = 0;
-		this.clusterColName = attributeName + "_Cluster";
-		while(ArrayUtilityMethods.arrayContainsValue(dataFrame.getColumnHeaders(), clusterColName)) {
-			counter++;
-			this.clusterColName = attributeName + "_Cluster_" + counter;
-		}
-		
-		// TODO: need to return an iterator and not automatically append the data to the frame
-		Map<String, String> dataType = new HashMap<>();
-		dataType.put(clusterColName, "double");
-		dataFrame.connectTypes(attributeName, clusterColName, dataType);
-		for(Object instance : results.keySet()) {
-			int val = results.get(instance);
-
-			Map<String, Object> clean = new HashMap<String, Object>();
-			clean.put(attributeName, instance);
-			clean.put(clusterColName, val);
+		// ughhhh... since we call this class within the 
+		// multi clustering reactor
+		// need to add this so each iteration of that routine
+		// does add to the frame
+		if(addToFrame) {
+			String attributeName = attributeNames[instanceIndex];
+			// to avoid adding columns with same name
+			int counter = 0;
+			this.clusterColName = attributeName + "_Cluster";
+			while(ArrayUtilityMethods.arrayContainsValue(dataFrame.getColumnHeaders(), clusterColName)) {
+				counter++;
+				this.clusterColName = attributeName + "_Cluster_" + counter;
+			}
 			
-			dataFrame.addRelationship(clean);
+			// TODO: need to return an iterator and not automatically append the data to the frame
+			Map<String, String> dataType = new HashMap<>();
+			dataType.put(clusterColName, "double");
+			dataFrame.connectTypes(attributeName, clusterColName, dataType);
+			for(Object instance : results.keySet()) {
+				int val = results.get(instance);
+
+				Map<String, Object> clean = new HashMap<String, Object>();
+				clean.put(attributeName, instance);
+				clean.put(clusterColName, val);
+				
+				dataFrame.addRelationship(clean);
+			}
 		}
 		
 		myStore.put("STATUS",STATUS.SUCCESS);
@@ -275,5 +287,17 @@ public class ClusteringReactor extends MathReactor {
 
 	public void removeInstanceIndex(List<Object[]> instance, String[] attributeNames, boolean[] isNumeric, Cluster clusterToRemove) {
 		clusterToRemove.removeFromCluster(instance, attributeNames, isNumeric);
+	}
+	
+	public Map<Object, Integer> getResults() {
+		return this.results;
+	}
+
+	public List<Cluster> getClusters() {
+		return this.clusters;
+	}
+	
+	public void setAddToFrame(boolean addToFrame) {
+		this.addToFrame = addToFrame;
 	}
 }
