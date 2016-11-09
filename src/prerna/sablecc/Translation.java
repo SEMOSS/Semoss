@@ -167,7 +167,8 @@ public class Translation extends DepthFirstAdapter {
 			PScript script = runner.pkqlToRun.get(index);
 			if (runner.unassignedVars.isEmpty() || script instanceof AVaropScript) { // if no vars are unassigned.. we are good. otherwise we only look for their assignment
 				// PVarop varop = ((AVaropScript)script).getVarop();
-				runner.pkqlToRun.remove(index).apply(this);
+				PScript pkqlToExecute = runner.pkqlToRun.remove(index);
+				pkqlToExecute.apply(this);
 				index = 0;
 			} else {
 				System.out.println("Waiting for var(s) to be defined : " + runner.unassignedVars.toString());
@@ -285,6 +286,10 @@ public class Translation extends DepthFirstAdapter {
 	}
 
 	public void outADatabaseopScript(ADatabaseopScript node) {
+		postProcess(node);
+	}
+	
+	public void outAJOpScript(AJOpScript node) {
 		postProcess(node);
 	}
 
@@ -2242,9 +2247,6 @@ public class Translation extends DepthFirstAdapter {
 			runner.setResponse(curReactor.getValue("RESPONSE"));
 			runner.setStatus((STATUS) curReactor.getValue("STATUS"));
 		}
-		// highest level of the grammar definition
-		// need to call post process to aggregate into runner
-		postProcess(node);
 	}
 
 	public void inADatanetworkconnect(ADatanetworkconnect node) {
