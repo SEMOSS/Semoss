@@ -115,12 +115,13 @@ public class SimilarityReactor extends MathReactor {
 		generateClusterCenters(dataFrame, isNumeric);
 		getSimilarityValuesForInstances(dataFrame, isNumeric);
 		
+		String[] allColNames = dataFrame.getColumnHeaders();
 		String attributeName = attributeNames[instanceIndex];
 
 		// to avoid adding columns with same name
 		int counter = 0;
 		this.similarityColName = attributeName + "_SIMILARITY";
-		while(ArrayUtilityMethods.arrayContainsValue(attributeNames, similarityColName)) {
+		while(ArrayUtilityMethods.arrayContainsValue(allColNames, similarityColName)) {
 			counter++;
 			this.similarityColName = attributeName + "_SIMILARITY_" + counter;
 		}

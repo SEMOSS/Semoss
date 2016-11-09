@@ -93,11 +93,12 @@ public class MultiClusteringReactor extends MathReactor {
 			results = runClusteringRoutine(dataFrame, minNumClusters, new ArrayList<Cluster>(), new HashMap<Integer, Double>());
 		}
 
+		String[] allColNames = dataFrame.getColumnHeaders();
 		String attributeName = attributeNames[instanceIndex];
 		// to avoid adding columns with same name
 		int counter = 0;
 		this.clusterColName = attributeName + "_CLUSTER_" + counter;
-		while(ArrayUtilityMethods.arrayContainsValue(attributeNames, clusterColName)) {
+		while(ArrayUtilityMethods.arrayContainsValue(allColNames, clusterColName)) {
 			counter++;
 			this.clusterColName = attributeName + "_CLUSTER_" + counter;
 		}
