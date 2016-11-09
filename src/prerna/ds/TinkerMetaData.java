@@ -575,6 +575,32 @@ public class TinkerMetaData implements IMetaData {
 		v.property(DERIVED_USING, otherUniqueNames);
 	}
 	
+	@Override
+	public void modifyUniqueName(String uniqueName, String newName) {
+		Vertex v = getExistingVertex(uniqueName);
+
+		// set new ID
+		v.property(VertexProperty.Cardinality.single, Constants.ID, META + ":" + newName);
+		// set new VALUE
+		v.property(VertexProperty.Cardinality.single, Constants.VALUE, newName);
+		// set new NAME
+		v.property(VertexProperty.Cardinality.single, Constants.NAME, newName);
+		// set new ALIAS
+		v.property(VertexProperty.Cardinality.single, Constants.ALIAS_NAME, newName);
+		
+		
+		Iterator<Edge> outEdges = v.edges(Direction.OUT);
+		while(outEdges.hasNext()) {
+			Edge outEdge = outEdges.next();
+			outEdge.inVertex().property(VertexProperty.Cardinality.single, PARENT, newName);
+		}
+	}
+	
+	@Override
+	public void addEngineForUniqueName(String uniqueName, String engineName) {
+		Vertex v = getExistingVertex(uniqueName);
+		v.property(VertexProperty.Cardinality.list, DB_NAME, engineName);
+	}
 	
 //////////////////::::::::::::::::::::::: GETTER METHODS :::::::::::::::::::::::::::::::://////////////////////////////
 

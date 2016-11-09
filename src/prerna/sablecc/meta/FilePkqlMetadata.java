@@ -24,10 +24,8 @@ public class FilePkqlMetadata extends AbstractPkqlMetadata {
 		Map<String, Object> meta = new HashMap<String, Object>();
 		meta.put("fileLocation", this.fileLoc);
 		meta.put("selectors", this.selectors);
-		meta.put("fileLocation", this.fileLoc);
-		meta.put("fileLocation", this.fileLoc);
-		meta.put("fileLocation", this.fileLoc);
-
+		meta.put("dataMap", this.dataMap);
+		meta.put("tableJoin", this.tableJoin);
 		return meta;
 	}
 	
