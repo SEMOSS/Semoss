@@ -115,19 +115,18 @@ public class ClusteringReactor extends MathReactor {
 		}
 		///////////////// end basic checks
 
-		
-		//TODO: process of getting these weights is outdated
-		// fills in numericalWeights and categoricalWeights maps
-		
-		
-		// TESTING
-		for(int i = 0; i < this.isNumeric.length; i++) {
+		// making all columns equally weighted
+		int numAttributes = this.isNumeric.length;
+		for(int i = 0; i < numAttributes; i++) {
 			if(isNumeric[i]) {
-				numericalWeights.put(attributeNames[i], 1.0);
+				numericalWeights.put(attributeNames[i], 1.0 / (numAttributes-1));
 			} else {
-				categoricalWeights.put(attributeNames[i], 1.0);
+				categoricalWeights.put(attributeNames[i], 1.0 / (numAttributes-1));
 			}
 		}
+		// TODO: process of getting these weights is outdated
+		// fills in numericalWeights and categoricalWeights maps
+		// but is soooooo bad when it comes to performance
 //		SimilarityWeighting.calculateWeights(dataFrame, instanceIndex, attributeNames, isNumeric, numericalWeights, categoricalWeights);
 		
 		LOGGER.info("Start creation of initial cluster centers...");		
