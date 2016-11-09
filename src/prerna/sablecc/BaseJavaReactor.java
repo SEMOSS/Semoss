@@ -1444,6 +1444,46 @@ public abstract class BaseJavaReactor extends AbstractReactor{
 		java.lang.System.setSecurityManager(reactorManager);
 	}
 	
+	public void runMultiClustering(int instanceIndex, int minNumClusters, int maxNumClusters, String[] selectors) {
+		java.lang.System.setSecurityManager(curManager);
+		
+		java.util.Map<String, Object> params = new java.util.Hashtable<String, Object>();
+		params.put(prerna.algorithm.impl.MultiClusteringReactor.INSTANCE_INDEX.toUpperCase(), instanceIndex);
+		params.put(prerna.algorithm.impl.MultiClusteringReactor.MIN_NUM_CLUSTERS.toUpperCase(), minNumClusters);
+		params.put(prerna.algorithm.impl.MultiClusteringReactor.MAX_NUM_CLUSTERS.toUpperCase(), maxNumClusters);
+
+		prerna.algorithm.impl.MultiClusteringReactor alg = new prerna.algorithm.impl.MultiClusteringReactor();
+		alg.put("G", this.dataframe);
+		alg.put(PKQLEnum.MATH_PARAM, params);
+		alg.put(PKQLEnum.COL_DEF, java.util.Arrays.asList(selectors));
+		alg.process();
+		
+		this.dataframe.updateDataId();
+		
+		java.lang.System.setSecurityManager(reactorManager);
+	}
+	
+	public void runMultiClustering(String columnName, int minNumClusters, int maxNumClusters, String[] selectors) {
+		java.lang.System.setSecurityManager(curManager);
+		
+		int instanceIndex = ArrayUtilityMethods.arrayContainsValueAtIndex(selectors, columnName);
+		
+		java.util.Map<String, Object> params = new java.util.Hashtable<String, Object>();
+		params.put(prerna.algorithm.impl.MultiClusteringReactor.INSTANCE_INDEX.toUpperCase(), instanceIndex);
+		params.put(prerna.algorithm.impl.MultiClusteringReactor.MIN_NUM_CLUSTERS.toUpperCase(), minNumClusters);
+		params.put(prerna.algorithm.impl.MultiClusteringReactor.MAX_NUM_CLUSTERS.toUpperCase(), maxNumClusters);
+
+		prerna.algorithm.impl.MultiClusteringReactor alg = new prerna.algorithm.impl.MultiClusteringReactor();
+		alg.put("G", this.dataframe);
+		alg.put(PKQLEnum.MATH_PARAM, params);
+		alg.put(PKQLEnum.COL_DEF, java.util.Arrays.asList(selectors));
+		alg.process();
+		
+		this.dataframe.updateDataId();
+		
+		java.lang.System.setSecurityManager(reactorManager);
+	}
+	
 	public void runLOF(int instanceIndex, int k, String[] selectors) {
 		java.lang.System.setSecurityManager(curManager);
 		
