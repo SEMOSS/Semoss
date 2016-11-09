@@ -344,6 +344,16 @@ public abstract class AbstractTableDataFrame implements ITableDataFrame {
 	}
 	
 	@Override
+	public void modifyColumnName(String existingName, String newName) {
+		this.metaData.modifyUniqueName(existingName, newName);
+	}
+	
+	@Override
+	public void addEngineForColumnName(String columnName, String engineName) {
+		this.metaData.addEngineForUniqueName(columnName, engineName);
+	}
+	
+	@Override
 	public Set<String> getEnginesForUniqueName(String sub){
 		return this.metaData.getEnginesForUniqueName(sub);
 	}
