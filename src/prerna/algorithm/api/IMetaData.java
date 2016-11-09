@@ -225,4 +225,8 @@ public interface IMetaData {
 	Map<String, IMetaData.DATA_TYPES> getColumnTypes();
 	
 	Map<String, String> getDBColumnTypes();
+
+	void modifyUniqueName(String existingName, String newName);
+
+	void addEngineForUniqueName(String columnName, String engineName);
 }

@@ -508,4 +508,8 @@ public interface ITableDataFrame extends IDataMaker {
 	String[] getColumnAliasName();
 
 	String getAliasForUniqueName(String metaNodeName);
+
+	void modifyColumnName(String existingName, String newName);
+	
+	void addEngineForColumnName(String columnName, String engineName);
 }
