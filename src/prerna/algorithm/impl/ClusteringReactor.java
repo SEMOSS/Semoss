@@ -174,11 +174,12 @@ public class ClusteringReactor extends MathReactor {
 		// need to add this so each iteration of that routine
 		// does add to the frame
 		if(addToFrame) {
+			String[] allColNames = dataFrame.getColumnHeaders();
 			String attributeName = attributeNames[instanceIndex];
 			// to avoid adding columns with same name
 			int counter = 0;
 			this.clusterColName = attributeName + "_Cluster";
-			while(ArrayUtilityMethods.arrayContainsValue(dataFrame.getColumnHeaders(), clusterColName)) {
+			while(ArrayUtilityMethods.arrayContainsValue(allColNames, clusterColName)) {
 				counter++;
 				this.clusterColName = attributeName + "_Cluster_" + counter;
 			}

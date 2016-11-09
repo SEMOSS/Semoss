@@ -144,11 +144,12 @@ public class OutlierReactor extends MathReactor {
 			}
 		}
 
+		String[] allColNames = dataFrame.getColumnHeaders();
 		String attributeName = attributeNames[instanceIndex];
 		// to avoid adding columns with same name
 		int counter = 0;
 		this.outlierColName = attributeName + "_Outlier";
-		while(ArrayUtilityMethods.arrayContainsValue(attributeNames, outlierColName)) {
+		while(ArrayUtilityMethods.arrayContainsValue(allColNames, outlierColName)) {
 			counter++;
 			this.outlierColName = attributeName + "_Outlier_" + counter;
 		}
