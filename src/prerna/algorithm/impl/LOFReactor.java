@@ -152,11 +152,12 @@ public class LOFReactor extends MathReactor {
 		// run scoring algorithm
 		Hashtable<Object, Double> results = score(k);
 
+		String[] allColNames = dataFrame.getColumnHeaders();
 		String attributeName = attributeNames[instanceIndex];
 		// to avoid adding columns with same name
 		int counter = 0;
 		this.changedColumn = attributeName + "_LOP";
-		while(ArrayUtilityMethods.arrayContainsValue(attributeNames, changedColumn)) {
+		while(ArrayUtilityMethods.arrayContainsValue(allColNames, changedColumn)) {
 			counter++;
 			this.changedColumn = attributeName + "_LOP_" + counter;
 		}
