@@ -2170,4 +2170,16 @@ public class BTreeDataFrame implements ITableDataFrame {
 		// TODO Auto-generated method stub
 		return null;
 	}
+
+	@Override
+	public void modifyColumnName(String existingName, String newName) {
+		// TODO Auto-generated method stub
+		
+	}
+
+	@Override
+	public void addEngineForColumnName(String columnName, String engineName) {
+		// TODO Auto-generated method stub
+		
+	}
 }
