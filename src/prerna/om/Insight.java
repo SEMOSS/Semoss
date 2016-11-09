@@ -1497,7 +1497,13 @@ public class Insight {
 					String physicalUri = tink.getPhysicalUriForNode(sub, engine);
 					String engineDisplay = null;
 					if(physicalUri.startsWith("http://semoss.org/ontologies/Relation/Contains/")) {
-						engineDisplay = Utility.getClassName(physicalUri);
+						String trimUri = physicalUri.replace("http://semoss.org/ontologies/Relation/Contains/", "");
+						//TODO: because of different storage between OWL for RDF and RDBMS
+						if(trimUri.contains("/")) {
+							engineDisplay = trimUri.substring(0, trimUri.indexOf("/"));
+						} else {
+							engineDisplay = trimUri;
+						}
 					} else {
 						engineDisplay = Utility.getInstanceName(physicalUri);
 					}
@@ -1525,7 +1531,13 @@ public class Insight {
 						String physicalUri = tink.getPhysicalUriForNode(obj, engine);
 						String engineDisplay = null;
 						if(physicalUri.startsWith("http://semoss.org/ontologies/Relation/Contains/")) {
-							engineDisplay = Utility.getClassName(physicalUri);
+							String trimUri = physicalUri.replace("http://semoss.org/ontologies/Relation/Contains/", "");
+							//TODO: because of different storage between OWL for RDF and RDBMS
+							if(trimUri.contains("/")) {
+								engineDisplay = trimUri.substring(0, trimUri.indexOf("/"));
+							} else {
+								engineDisplay = trimUri;
+							}
 						} else {
 							engineDisplay = Utility.getInstanceName(physicalUri);
 						}
