@@ -457,52 +457,35 @@ public class SQLInterpreter implements IQueryInterpreter{
 			thisJoin = new SqlJoinObject(key, relationList);
 			// if the concept is already defined
 			// we need to get a new alias for it
+			int counter = 1;
 			String toConceptAlias = getAlias(toConcept);
-			if(relationList.allDefinedTableAlias().contains(toConceptAlias)) {
-				toConceptAlias = getNewAliasForExistingTable(toConcept);
+			String usedToConceptAlias = toConceptAlias;
+			while(relationList.allDefinedTableAlias().contains(usedToConceptAlias)) {
+				usedToConceptAlias = toConceptAlias + "_" + counter;
 			}
 			// this method will determine everything required
 			// the defined table and the required table
-			thisJoin.setQueryString(compName, toConcept, toConceptAlias, toProperty, concept, getAlias(concept), property);
+			thisJoin.setQueryString(compName, toConcept, usedToConceptAlias, toProperty, concept, getAlias(concept), property);
 
-			// add the defined table
-//			thisJoin.addTableAliasDefinedByJoin(getAlias(toConcept), toConcept);
-//			// need to add the required aliases
-//			thisJoin.addTableAliasRequired(getAlias(concept), concept);
-			// need to add the query string into the join object
-//			// set the join type
-//			if(thisComparator.equalsIgnoreCase("inner.join")) {
-//				thisJoin.setSqlJoinType(SqlJoinObject.SqlJoinTypeEnum.inner);
-//			} else if(thisComparator.equalsIgnoreCase("left.outer.join")) {
-//				thisJoin.setSqlJoinType(SqlJoinObject.SqlJoinTypeEnum.left);
-//			} else if(thisComparator.equalsIgnoreCase("right.outer.join")) {
-//				thisJoin.setSqlJoinType(SqlJoinObject.SqlJoinTypeEnum.right);
-//			} else if(thisComparator.equalsIgnoreCase("outer.join")) {
-//				thisJoin.setSqlJoinType(SqlJoinObject.SqlJoinTypeEnum.outer);
-//			} else if(thisComparator.equalsIgnoreCase("cross.join")) {
-//				thisJoin.setSqlJoinType(SqlJoinObject.SqlJoinTypeEnum.cross);
-//			}
 			// add to the list
 			relationList.addSqlJoinObject(thisJoin);
 		} else {
 //			queryString = concept + " " + getAlias(concept) + " ON " + getAlias(concept) +  "." + property + " = " + getAlias(toConcept) + "." + toProperty;			
 
 			thisJoin = relationList.getExistingJoin(key);
-			// this method will determine everything required
-			// the defined table and the required table
 			
 			// if the concept is already defined
 			// we need to get a new alias for it
+			int counter = 1;
 			String conceptAlias = getAlias(concept);
-			if(relationList.allDefinedTableAlias().contains(conceptAlias)) {
-				conceptAlias = getNewAliasForExistingTable(concept);
+			String usedConceptAlias = conceptAlias;
+			while(relationList.allDefinedTableAlias().contains(usedConceptAlias)) {
+				usedConceptAlias = conceptAlias + "_" + counter;
 			}
-			thisJoin.addQueryString(compName, concept, conceptAlias , property, toConcept, getAlias(toConcept), toProperty);
 			
-			// add the defined table
-//			thisJoin.addTableAliasDefinedByJoin(getAlias(concept), concept);
-			// need to add the query string into the join object
-//			thisJoin.addQueryString(queryString, compName);
+			// this method will determine everything required
+			// the defined table and the required table
+			thisJoin.addQueryString(compName, concept, usedConceptAlias , property, toConcept, getAlias(toConcept), toProperty);
 		}
 	}
 	
@@ -1015,29 +998,6 @@ public class SQLInterpreter implements IQueryInterpreter{
 		}
 	}
 	
-	/**
-	 * This is used when we need a new alias for an existing table
-	 * @param tableName
-	 * @return
-	 */
-	public String getNewAliasForExistingTable(String tableName) {
-		// this will generate a new alias for an existing table
-		// but it will not set it as the default alias for the table
-		// alias already exists
-		boolean aliasComplete = false;
-		int count = 0;
-		String tryAlias = "";
-		while(!aliasComplete)
-		{
-			if(tryAlias.length()>0){
-				tryAlias+="_"; //prevent an error where you may create an alias that is a reserved word (ie, we did this with "as")
-			}
-			tryAlias = (tryAlias + tableName.charAt(count)).toUpperCase();
-			aliasComplete = !aliases.containsValue(tryAlias);
-			count++;
-		}
-		return tryAlias;
-	}
 	////////////////////////////// end caching utility methods //////////////////////////////////////
 	
 	
