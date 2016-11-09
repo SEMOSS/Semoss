@@ -725,6 +725,10 @@ public class H2Builder {
 
 					for (int i = 1; i <= NumOfCol; i++) {
 						Object val = rs.getObject(i);
+						// if null, will stay null 
+						if(val == null) {
+							continue;
+						}
 						if (cindex != (i - 1)
 								&& (types[i - 1].equalsIgnoreCase("int") || types[i - 1].equalsIgnoreCase("double"))) {
 							row[i - 1] = (((Number) val).doubleValue() - minArr[i - 1])
