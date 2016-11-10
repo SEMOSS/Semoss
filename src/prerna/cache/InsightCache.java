@@ -14,6 +14,7 @@ import java.util.concurrent.locks.ReentrantLock;
 import prerna.algorithm.api.ITableDataFrame;
 import prerna.om.Insight;
 import prerna.ui.components.playsheets.datamakers.IDataMaker;
+import prerna.util.ArrayUtilityMethods;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
 
@@ -22,7 +23,7 @@ public abstract class InsightCache implements ICache {
 	protected final String INSIGHT_CACHE_PATH;
 	protected static Map<String, String> extensionMap = new HashMap<>();
 	public static final String JSON_EXTENSION = "_VizData.json";
-	private static String cacheModeOn = DIHelper.getInstance().getProperty("CACHE_SETTING");
+	private static String cacheMode = DIHelper.getInstance().getProperty("CACHE_SETTING");
 
 	private ConcurrentMap<String, ReentrantLock> locks = new ConcurrentHashMap<>();
 	/**
@@ -39,6 +40,14 @@ public abstract class InsightCache implements ICache {
 		// need to store the extensions for each data frame
 		extensionMap.put("TinkerFrame", ".tg");
 		extensionMap.put("H2Frame", ".gz");
+	}
+	
+	public void setCacheMode(boolean cacheSetting) {
+		if(cacheSetting) {
+			cacheMode = "ON";
+		} else {
+			cacheMode = "OFF";
+		}
 	}
 	
 	/**
@@ -118,7 +127,7 @@ public abstract class InsightCache implements ICache {
 	 */
 	public String cacheInsight(Insight in) {
 		String baseFile = null;
-		if("ON".equals(cacheModeOn)) {
+		if("ON".equals(cacheMode)) {
 			baseFile = getBaseFilePath(in);
 			cacheDataMaker(in.getDataMakerName(), in.getDataMaker(), baseFile);
 			cacheJSONData(in.getWebData(), baseFile);
@@ -135,7 +144,7 @@ public abstract class InsightCache implements ICache {
 	 */
 	public String cacheInsight(Insight in, Map<String, Object> vizData) {
 		String baseFile = null;
-		if("ON".equals(cacheModeOn)) {
+		if("ON".equals(cacheMode)) {
 			baseFile = getBaseFilePath(in);
 			cacheDataMaker(in.getDataMakerName(), in.getDataMaker(), baseFile);
 			cacheJSONData(vizData, baseFile);
@@ -263,7 +272,7 @@ public abstract class InsightCache implements ICache {
 	 * Delete all cached information for a given insight
 	 * @param in				The insight to delete the cached information for
 	 */
-	public void deleteCacheFolder(Insight in) {
+	public void deleteInsightCache(Insight in) {
 		ICache.deleteFolder(getBaseFolder(in));
 	}
 
@@ -294,6 +303,16 @@ public abstract class InsightCache implements ICache {
 			});
 			for(File f : files) {
 				ICache.deleteFile(f);
+			}
+		}
+	}
+	
+	public void deleteAllCache() {
+		File file = new File(INSIGHT_CACHE_PATH);
+		if(file.exists()) {
+			String[] cacheFolders = file.list();
+			for(String folder : cacheFolders) {
+				ICache.deleteFolder(INSIGHT_CACHE_PATH+FILE_SEPARATOR+folder);
 			}
 		}
 	}

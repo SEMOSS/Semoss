@@ -101,6 +101,8 @@ public class Translation extends DepthFirstAdapter {
 		defaultReactors.put(PKQLEnum.OPEN_DATA, "prerna.sablecc.OpenDataReactor");
 		// this is to run the recipe for an insight and replace the current insight by the insight returned from this output data
 		defaultReactors.put(PKQLEnum.OUTPUT_DATA, "prerna.sablecc.OutputDataReactor");
+		// this is used to clear the cache
+		defaultReactors.put(PKQLEnum.CLEAR_CACHE, "prerna.sablecc.CacheReactor");
 		return defaultReactors;
 	}
 
@@ -744,6 +746,27 @@ public class Translation extends DepthFirstAdapter {
 		}
 		curReactor.set(PKQLEnum.OUTPUT_DATA, previousReactor.getValue(PKQLEnum.OUTPUT_DATA));
 	}
+
+	public void inAClearCache(AClearCache node) {
+		initReactor(PKQLEnum.CLEAR_CACHE);
+	}
+	
+	public void outAClearCache(AClearCache node) {
+        
+		PWordOrNum engineName_Node = node.getEngine();
+        if(engineName_Node != null) {
+        	String engineName = removeQuotes(engineName_Node.toString().trim());
+        	curReactor.put("ENGINE_NAME", engineName);
+        }
+        
+        ACsvGroup engineID_Node = (ACsvGroup)node.getEngineId();
+        if(engineID_Node != null) {
+        	String engineID = removeQuotes(engineID_Node.getCsv().toString().trim());
+        	curReactor.put("ENGINE_ID", engineID);
+        }
+        
+        deinitReactor(PKQLEnum.CLEAR_CACHE, node.toString().trim(), PKQLEnum.CLEAR_CACHE);
+    }
 
 	@Override
 	public void inARemoveData(ARemoveData node) {
@@ -2352,5 +2375,12 @@ public class Translation extends DepthFirstAdapter {
 		// get the properties for this concept across all engines
 		runner.setReturnData(DatabasePkqlService.getConceptProperties(conceptName));
 		runner.setStatus(PKQLRunner.STATUS.SUCCESS);
+	}
+	
+	private String removeQuotes(String value) {
+		if(value.startsWith("'") || value.startsWith("\"")) {
+			value = value.trim().substring(1, value.length() - 1);
+		}
+		return value;
 	}
 }

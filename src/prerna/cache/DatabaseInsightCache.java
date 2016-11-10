@@ -11,6 +11,7 @@ import java.util.Map;
 import org.apache.commons.io.FileUtils;
 
 import prerna.om.Insight;
+import prerna.util.ArrayUtilityMethods;
 
 public class DatabaseInsightCache extends InsightCache {
 
@@ -29,13 +30,12 @@ public class DatabaseInsightCache extends InsightCache {
 
 	@Override
 	public String getBaseFolder(Insight in) {
-		String engineName = ICache.cleanFolderAndFileName(in.getEngineName());
 		String id = ICache.cleanFolderAndFileName(in.getRdbmsId());
 		String questionName = ICache.cleanFolderAndFileName(in.getInsightName());
 		if(questionName.length() > 25) {
 			questionName = questionName.substring(0, 25);
 		}
-		String base = INSIGHT_CACHE_PATH + FILE_SEPARATOR + engineName + FILE_SEPARATOR + id + "_" + questionName;
+		String base = getBaseDBFolder(in.getEngineName()) + FILE_SEPARATOR + id + "_" + questionName;
 		File basefolder = new File(base);
 		if(!basefolder.exists()) {
 			try {
@@ -45,6 +45,12 @@ public class DatabaseInsightCache extends InsightCache {
 			}
 		}
 		
+		return base;
+	}
+	
+	public String getBaseDBFolder(String engineName) {
+		engineName = ICache.cleanFolderAndFileName(engineName);
+		String base = INSIGHT_CACHE_PATH + FILE_SEPARATOR + engineName;
 		return base;
 	}
 
@@ -98,4 +104,7 @@ public class DatabaseInsightCache extends InsightCache {
 		return paramString.toString().hashCode()+"";
 	}
 	
+	public void deleteDBCache(String dbName) {
+		ICache.deleteFolder(getBaseDBFolder(dbName));
+	}
 }
