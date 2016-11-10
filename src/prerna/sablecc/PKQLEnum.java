@@ -120,6 +120,7 @@ public class PKQLEnum {
 	public static final String WEB_API = "WEB_API";
 	public static final String NATIVE_QUERY_API = "NATIVE_QUERY_API";
 	public static final String SEARCH_QUERY_API = "SEARCH_QUERY_API";
+	public static final String CLEAR_CACHE = "CLEAR_CACHE";
 	
 	//Solr
 	public static final String SOLR_AUTOCOMPLETE = "SOLR_AUTOCOMPLETE";

@@ -81,6 +81,7 @@ Tokens
  dataoutputtoken = 'data.output';
  dataquerytoken = 'data.query';
  datamodeltoken = 'data.model';
+ dataclearcachetoken = 'data.clearcache';
  literal = (letter_s | letter_b | digit | underscore)*;// | special)*;
  help_token = 'info.help';
  codeblock = code alphanumeric* code;
@@ -162,6 +163,7 @@ colop = // colOp is usually of the form of joinColumn / addColumn / removeColumn
 		| {splitcol} split_column
 		| {dashboard_join} dashboard_join
 		| {query_data} query_data
+		| {clear_cache} clear_cache
 		;
 
 panelop = // panelop is usually of the form of viz.change, viz.tools, viz.color
@@ -308,6 +310,9 @@ query_data = // imports from api query commands and other scripts
 		
 open_data = //opens insight given an engine and id, e.g. "data.open("MovieDB", "3");
 		dataopentoken [lp]:l_par [engine]:word_or_num [comma]:comma [engine_id]:word_or_num [rp]: r_par;
+		
+clear_cache = //deletes the cache for an insight, db, or all cache
+		dataclearcachetoken [lp]:l_par [engine]:word_or_num? [engine_id]:csv_group? [rp]: r_par;
 		
 output_data = //opens insight given an engine and id and replaces that insight, e.g. "data.output("MovieDB", "3");
 		dataoutputtoken [lp]:l_par [engine]:word_or_num [comma]:comma [engine_id]:word_or_num [rp]: r_par;
