@@ -12,7 +12,6 @@ import org.apache.tinkerpop.gremlin.structure.Graph;
 import org.apache.tinkerpop.gremlin.structure.Vertex;
 
 import prerna.rdf.query.builder.GremlinBuilder;
-import prerna.util.Constants;
 import prerna.util.Utility;
 
 public class TinkerFrameIterator implements Iterator<Object[]> {
@@ -22,7 +21,7 @@ public class TinkerFrameIterator implements Iterator<Object[]> {
 	private List<String> selectors; //the selectors on the table
 	
 	public TinkerFrameIterator(Graph g, Graph metaG, Map<String, Object> options) { //, boolean getRawData) {
-//		dataType = getRawData ? Constants.VALUE : Constants.NAME;
+//		dataType = getRawData ? TinkerFrame.TINKER_VALUE : TinkerFrame.TINKER_NAME;
 		
 		GremlinBuilder.DIRECTION dir = null;
 		if(options.containsKey(AbstractTableDataFrame.SORT_BY_DIRECTION)) {
@@ -135,10 +134,10 @@ public class TinkerFrameIterator implements Iterator<Object[]> {
 		if(data instanceof Map) {
 			for(int colIndex = 0;colIndex < selectors.size();colIndex++) {
 				Map<String, Object> mapData = (Map<String, Object>)data; //cast to map
-				retObject[colIndex] = ((Vertex)mapData.get(selectors.get(colIndex))).property(Constants.NAME).value();
+				retObject[colIndex] = ((Vertex)mapData.get(selectors.get(colIndex))).property(TinkerFrame.TINKER_NAME).value();
 			}
 		} else {
-			retObject[0] = ((Vertex)data).property(Constants.NAME).value();
+			retObject[0] = ((Vertex)data).property(TinkerFrame.TINKER_NAME).value();
 		}
 
 		return retObject;
