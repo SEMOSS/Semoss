@@ -15,10 +15,10 @@ import org.apache.tinkerpop.gremlin.structure.Vertex;
 
 import prerna.algorithm.api.ITableDataFrame;
 import prerna.ds.ExpressionReducer;
+import prerna.ds.TinkerFrame;
 import prerna.sablecc.MathReactor;
 import prerna.sablecc.PKQLEnum;
 import prerna.sablecc.PKQLRunner.STATUS;
-import prerna.util.Constants;
 
 public abstract class BaseReducerReactor extends MathReactor implements ExpressionReducer  {
 	
@@ -30,7 +30,7 @@ public abstract class BaseReducerReactor extends MathReactor implements Expressi
 	protected boolean errored = false;
 	protected java.lang.Object baseException = null;
 	protected Bindings otherBindings = engine.getBindings(ScriptContext.ENGINE_SCOPE);
-	protected String propToGet = Constants.NAME;
+	protected String propToGet = TinkerFrame.TINKER_NAME;
 	
 	public abstract Map<String, Object> getColumnDataMap();
 	

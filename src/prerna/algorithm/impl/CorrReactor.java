@@ -9,7 +9,7 @@ import java.util.Vector;
 import org.apache.commons.math3.stat.correlation.PearsonsCorrelation;
 import org.apache.tinkerpop.gremlin.structure.Vertex;
 
-import prerna.util.Constants;
+import prerna.ds.TinkerFrame;
 
 public class CorrReactor extends BaseReducerReactor {
 
@@ -26,7 +26,7 @@ public class CorrReactor extends BaseReducerReactor {
 			if(data instanceof Map) {
 				for(int colIndex = 0;colIndex < ids.length; colIndex++) {
 					Map<String, Object> mapData = (Map<String, Object>)data; //cast to map
-					retObject[colIndex] = (double) ((Vertex)mapData.get(ids[colIndex])).property(Constants.NAME).value();
+					retObject[colIndex] = (double) ((Vertex)mapData.get(ids[colIndex])).property(TinkerFrame.TINKER_NAME).value();
 				}
 			} else {
 				for(int colIndex = 0; colIndex < ids.length; colIndex++) {
