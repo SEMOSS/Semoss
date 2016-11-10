@@ -7,7 +7,6 @@ import java.util.Vector;
 
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
-import org.apache.tinkerpop.gremlin.groovy.jsr223.GremlinGroovyScriptEngine;
 import org.apache.tinkerpop.gremlin.process.traversal.Order;
 import org.apache.tinkerpop.gremlin.process.traversal.P;
 import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.GraphTraversal;
@@ -17,7 +16,6 @@ import org.apache.tinkerpop.gremlin.structure.Vertex;
 
 import prerna.ds.TinkerFrame;
 import prerna.ds.TinkerMetaData;
-import prerna.util.Constants;
 
 /**
  * Responsible for building a gremlin string script that can be executed on graph
@@ -62,7 +60,7 @@ public class GremlinBuilder {
 		if(!nodeHash.containsKey(type))
 		{
 			// adds a node as 
-			gt = gt.has(Constants.TYPE, type);
+			gt = gt.has(TinkerFrame.TINKER_TYPE, type);
 			String selector = type;
 			if(alias.length > 0) {
 				selector = alias[0];
@@ -100,7 +98,7 @@ public class GremlinBuilder {
 		
 		Vertex startNode = null;
 		// get the metamodel information from the graph
-		GraphTraversal<Vertex, Vertex> metaT = this.metaGraph.traversal().V().has(Constants.TYPE, TinkerMetaData.META);
+		GraphTraversal<Vertex, Vertex> metaT = this.metaGraph.traversal().V().has(TinkerFrame.TINKER_TYPE, TinkerMetaData.META);
 		if(metaT.hasNext()) { //note: this is an if statement, not a while loop
 			// the purpose of this is to just get the start node for the traversal
 
@@ -119,7 +117,7 @@ public class GremlinBuilder {
 				while(metaT.hasNext()) {
 					// this way, startNode will always be set
 					startNode = metaT.next();
-					if(startNode.value(Constants.NAME).equals(bestFilter)) {
+					if(startNode.value(TinkerFrame.TINKER_NAME).equals(bestFilter)) {
 						break;
 					}
 				}
@@ -129,31 +127,31 @@ public class GremlinBuilder {
 				while(metaT.hasNext()) {
 					// this way, startNode will always be set
 					startNode = metaT.next();
-					if(startNode.property(Constants.FILTER).isPresent() && (boolean) startNode.value(Constants.FILTER)) {
+					if(startNode.property(TinkerFrame.TINKER_FILTER).isPresent() && (boolean) startNode.value(TinkerFrame.TINKER_FILTER)) {
 						break;
 					}
 				}
 			}
 
-			//Constants.NAME changes while Constants.VALUE stays constant
-			String nameType = startNode.property(Constants.NAME).value()+""; 
-			String valueType = startNode.property(Constants.VALUE).value()+""; 
+			//TinkerFrame.TINKER_NAME changes while TinkerFrame.TINKER_VALUE stays constant
+			String nameType = startNode.property(TinkerFrame.TINKER_NAME).value()+""; 
+			String valueType = startNode.property(TinkerFrame.TINKER_VALUE).value()+""; 
 
 			//remove prim_key when making a heatMap
 			if(valueType.equals(TinkerFrame.PRIM_KEY)){
-				valueType = startNode.property(Constants.NAME).value() + "";
+				valueType = startNode.property(TinkerFrame.TINKER_NAME).value() + "";
 			}
 			
-			gt = gt.has(Constants.TYPE, valueType).as(nameType);
+			gt = gt.has(TinkerFrame.TINKER_TYPE, valueType).as(nameType);
 			
 			// there is a boolean at the metamodel level if this type has any filters
-			Object filtered = startNode.value(Constants.FILTER); 
+			Object filtered = startNode.value(TinkerFrame.TINKER_FILTER); 
 			if((Boolean)filtered == true) {
 				// filtered edges have a type of filter
-				gt = gt.not(__.in(Constants.FILTER + TinkerFrame.edgeLabelDelimeter + nameType).has(Constants.TYPE, Constants.FILTER));
+				gt = gt.not(__.in(TinkerFrame.TINKER_FILTER + TinkerFrame.EDGE_LABEL_DELIMETER + nameType).has(TinkerFrame.TINKER_TYPE, TinkerFrame.TINKER_FILTER));
 			}
 			if(temporalFilters.containsKey(nameType)) {
-				gt = gt.has(Constants.NAME, P.within(temporalFilters.get(nameType).toArray(new String[]{})));
+				gt = gt.has(TinkerFrame.TINKER_NAME, P.within(temporalFilters.get(nameType).toArray(new String[]{})));
 			}
 			
 			// add the logic to traverse
@@ -168,43 +166,43 @@ public class GremlinBuilder {
 
 	private List<GraphTraversal<Object, Vertex>> visitNode(Vertex orig, List<String> travelledEdges, List<GraphTraversal<Object, Vertex>> traversals) {
 		
-		//Constants.NAME changes while Constants.VALUE stays constant
-		String origName = orig.value(Constants.NAME);  
-		String origValue = orig.value(Constants.VALUE);
+		//TinkerFrame.TINKER_NAME changes while TinkerFrame.TINKER_VALUE stays constant
+		String origName = orig.value(TinkerFrame.TINKER_NAME);  
+		String origValue = orig.value(TinkerFrame.TINKER_VALUE);
 		
 		//remove prim_key when making a heatMap
 		if(origValue.equals(TinkerFrame.PRIM_KEY)){
-			origValue = orig.property(Constants.NAME).value() + "";
+			origValue = orig.property(TinkerFrame.TINKER_NAME).value() + "";
 		}
 		
 		// for each downstream node of this meta node
-		GraphTraversal<Vertex, Vertex> downstreamIt = this.metaGraph.traversal().V().has(Constants.TYPE, TinkerMetaData.META).has(Constants.ID, orig.property(Constants.ID).value()).out(TinkerMetaData.META + TinkerFrame.edgeLabelDelimeter + TinkerMetaData.META);
+		GraphTraversal<Vertex, Vertex> downstreamIt = this.metaGraph.traversal().V().has(TinkerFrame.TINKER_TYPE, TinkerMetaData.META).has(TinkerFrame.TINKER_ID, orig.property(TinkerFrame.TINKER_ID).value()).out(TinkerMetaData.META + TinkerFrame.EDGE_LABEL_DELIMETER + TinkerMetaData.META);
 		while (downstreamIt.hasNext()) {
 			// for each downstream node of this meta node
 			Vertex nodeV = downstreamIt.next();
 			
-			//Constants.NAME changes while Constants.VALUE stays constant
-			String nameNode = nodeV.property(Constants.NAME).value() + "";
-			String valueNode = nodeV.property(Constants.VALUE).value() + "";
+			//TinkerFrame.TINKER_NAME changes while TinkerFrame.TINKER_VALUE stays constant
+			String nameNode = nodeV.property(TinkerFrame.TINKER_NAME).value() + "";
+			String valueNode = nodeV.property(TinkerFrame.TINKER_VALUE).value() + "";
 			
 			//remove prim_key when making a heatMap
 			if(valueNode.equals(TinkerFrame.PRIM_KEY)){
-				valueNode = nodeV.property(Constants.NAME).value() + "";
+				valueNode = nodeV.property(TinkerFrame.TINKER_NAME).value() + "";
 			}
 			
-			String edgeKey = origName + TinkerFrame.edgeLabelDelimeter + nameNode;
+			String edgeKey = origName + TinkerFrame.EDGE_LABEL_DELIMETER + nameNode;
 
 			if (!travelledEdges.contains(edgeKey)) {
 				LOGGER.info("travelling down to " + nameNode);
 
-				GraphTraversal<Object, Vertex> twoStepT = __.as(origName).out(edgeKey).has(Constants.TYPE, valueNode);
+				GraphTraversal<Object, Vertex> twoStepT = __.as(origName).out(edgeKey).has(TinkerFrame.TINKER_TYPE, valueNode);
 
-				Object filtered = nodeV.value(Constants.FILTER);
+				Object filtered = nodeV.value(TinkerFrame.TINKER_FILTER);
 				if ((Boolean) filtered == true) {
-					twoStepT = twoStepT.not(__.in(Constants.FILTER + TinkerFrame.edgeLabelDelimeter + nameNode).has(Constants.TYPE, Constants.FILTER));
+					twoStepT = twoStepT.not(__.in(TinkerFrame.TINKER_FILTER + TinkerFrame.EDGE_LABEL_DELIMETER + nameNode).has(TinkerFrame.TINKER_TYPE, TinkerFrame.TINKER_FILTER));
 				}
 				if(temporalFilters.containsKey(nameNode)) {
-					twoStepT = twoStepT.has(Constants.NAME, P.within(temporalFilters.get(nameNode).toArray(new String[]{})));
+					twoStepT = twoStepT.has(TinkerFrame.TINKER_NAME, P.within(temporalFilters.get(nameNode).toArray(new String[]{})));
 				}
 
 				twoStepT = twoStepT.as(nameNode);
@@ -217,31 +215,31 @@ public class GremlinBuilder {
 			}
 		}
 		// do the same thing for upstream
-		GraphTraversal<Vertex, Vertex> upstreamIt = this.metaGraph.traversal().V().has(Constants.TYPE, TinkerMetaData.META).has(Constants.ID, orig.property(Constants.ID).value()).in(TinkerMetaData.META+TinkerFrame.edgeLabelDelimeter+TinkerMetaData.META);
+		GraphTraversal<Vertex, Vertex> upstreamIt = this.metaGraph.traversal().V().has(TinkerFrame.TINKER_TYPE, TinkerMetaData.META).has(TinkerFrame.TINKER_ID, orig.property(TinkerFrame.TINKER_ID).value()).in(TinkerMetaData.META+TinkerFrame.EDGE_LABEL_DELIMETER+TinkerMetaData.META);
 		while(upstreamIt.hasNext()) {
 			Vertex nodeV = upstreamIt.next();
 			
-			//Constants.NAME changes while Constants.VALUE stays constant
-			String nameNode = nodeV.property(Constants.NAME).value() + "";
-			String valueNode = nodeV.property(Constants.VALUE).value() + "";
+			//TinkerFrame.TINKER_NAME changes while TinkerFrame.TINKER_VALUE stays constant
+			String nameNode = nodeV.property(TinkerFrame.TINKER_NAME).value() + "";
+			String valueNode = nodeV.property(TinkerFrame.TINKER_VALUE).value() + "";
 			
 			//remove prim_key when making a heatMap
 			if(valueNode.equals(TinkerFrame.PRIM_KEY)){
-				valueNode = nodeV.property(Constants.NAME).value() + "";
+				valueNode = nodeV.property(TinkerFrame.TINKER_NAME).value() + "";
 			}
 			
-			String edgeKey = nameNode + TinkerFrame.edgeLabelDelimeter + origName;
+			String edgeKey = nameNode + TinkerFrame.EDGE_LABEL_DELIMETER + origName;
 			if (!travelledEdges.contains(edgeKey)) {
 				LOGGER.info("travelling down to " + nameNode);
 
-				GraphTraversal<Object, Vertex> twoStepT = __.as(origName).in(edgeKey).has(Constants.TYPE, valueNode);
+				GraphTraversal<Object, Vertex> twoStepT = __.as(origName).in(edgeKey).has(TinkerFrame.TINKER_TYPE, valueNode);
 
-				Object filtered = nodeV.value(Constants.FILTER);
+				Object filtered = nodeV.value(TinkerFrame.TINKER_FILTER);
 				if ((Boolean) filtered == true) {
-					twoStepT = twoStepT.not(__.in(Constants.FILTER + TinkerFrame.edgeLabelDelimeter + nameNode).has(Constants.TYPE, Constants.FILTER));
+					twoStepT = twoStepT.not(__.in(TinkerFrame.TINKER_FILTER + TinkerFrame.EDGE_LABEL_DELIMETER + nameNode).has(TinkerFrame.TINKER_TYPE, TinkerFrame.TINKER_FILTER));
 				}
 				if(temporalFilters.containsKey(nameNode)) {
-					twoStepT = twoStepT.has(Constants.NAME, P.within(temporalFilters.get(nameNode).toArray(new String[]{})));
+					twoStepT = twoStepT.has(TinkerFrame.TINKER_NAME, P.within(temporalFilters.get(nameNode).toArray(new String[]{})));
 				}
 				
 				twoStepT = twoStepT.as(nameNode);
@@ -268,7 +266,7 @@ public class GremlinBuilder {
 //		Vertex startNode;
 //		
 //		//get a random start node
-//		GraphTraversal<Vertex, Vertex> metaT = g.traversal().V().has(Constants.TYPE, TinkerFrame.META);
+//		GraphTraversal<Vertex, Vertex> metaT = g.traversal().V().has(TinkerFrame.TINKER_TYPE, TinkerFrame.META);
 //		if(metaT.hasNext()) {
 //			startNode = metaT.next();
 //			
@@ -291,29 +289,29 @@ public class GremlinBuilder {
 //	 */
 //	private List<GraphTraversal> getIncompleteVertices(List<GraphTraversal> orTraversals, Vertex orig, List<String> travelledEdges) {
 //		
-//		GraphTraversal<Vertex, Vertex> downstreamIt = g.traversal().V().has(Constants.TYPE, TinkerFrame.META).has(Constants.ID, orig.property(Constants.ID).value()).out(TinkerFrame.META);
-//		String origName = orig.property(Constants.NAME).value()+"";
+//		GraphTraversal<Vertex, Vertex> downstreamIt = g.traversal().V().has(TinkerFrame.TINKER_TYPE, TinkerFrame.META).has(Constants.ID, orig.property(Constants.ID).value()).out(TinkerFrame.META);
+//		String origName = orig.property(TinkerFrame.TINKER_NAME).value()+"";
 //		while(downstreamIt.hasNext()) {
 //			Vertex nodeV = downstreamIt.next();
-//			String node = nodeV.property(Constants.NAME).value()+"";
+//			String node = nodeV.property(TinkerFrame.TINKER_NAME).value()+"";
 //			
 //			String edgeKey = origName + ":::" + node;
 //			if(!travelledEdges.contains(edgeKey)) {
-//				GraphTraversal g = __.has(Constants.TYPE, origName).not(__.out().has(Constants.TYPE, node));
+//				GraphTraversal g = __.has(TinkerFrame.TINKER_TYPE, origName).not(__.out().has(TinkerFrame.TINKER_TYPE, node));
 //				orTraversals.add(g);
 //				travelledEdges.add(edgeKey);
 //				getIncompleteVertices(orTraversals, nodeV, travelledEdges);
 //			}
 //		}
 //		
-//		GraphTraversal<Vertex, Vertex> upstreamIt = g.traversal().V().has(Constants.TYPE, TinkerFrame.META).has(Constants.ID, orig.property(Constants.ID).value()).in(TinkerFrame.META);
+//		GraphTraversal<Vertex, Vertex> upstreamIt = g.traversal().V().has(TinkerFrame.TINKER_TYPE, TinkerFrame.META).has(Constants.ID, orig.property(Constants.ID).value()).in(TinkerFrame.META);
 //		while(upstreamIt.hasNext()) {
 //			Vertex nodeV = upstreamIt.next();
-//			String node = nodeV.property(Constants.NAME).value()+"";
+//			String node = nodeV.property(TinkerFrame.TINKER_NAME).value()+"";
 //			
 //			String edgeKey = origName + ":::" + node;
 //			if(!travelledEdges.contains(edgeKey)) {
-//				GraphTraversal g = __.has(Constants.TYPE, origName).not(__.in().has(Constants.TYPE, node));
+//				GraphTraversal g = __.has(TinkerFrame.TINKER_TYPE, origName).not(__.in().has(TinkerFrame.TINKER_TYPE, node));
 //				orTraversals.add(g);
 //				travelledEdges.add(edgeKey);
 //				getIncompleteVertices(orTraversals, nodeV, travelledEdges);
@@ -414,16 +412,16 @@ public class GremlinBuilder {
 	private void appendOrder() {
 		if(orderBySelector != null) {
 			if(DIRECTION.DECR.equals(orderByDirection)) {
-				gt = gt.order().by(__.select(orderBySelector).values(Constants.NAME), Order.decr);
+				gt = gt.order().by(__.select(orderBySelector).values(TinkerFrame.TINKER_NAME), Order.decr);
 			} else {
-				gt = gt.order().by(__.select(orderBySelector).values(Constants.NAME), Order.incr);
+				gt = gt.order().by(__.select(orderBySelector).values(TinkerFrame.TINKER_NAME), Order.incr);
 			}
 		}
 	}
 
 	public void addGroupBy() {
 		if(groupBySelector != null) {
-			gt.group().by(__.select(groupBySelector).values(Constants.NAME)).as("GROUP_BY");
+			gt.group().by(__.select(groupBySelector).values(TinkerFrame.TINKER_NAME)).as("GROUP_BY");
 		}
 	}
 	
@@ -487,18 +485,18 @@ public class GremlinBuilder {
 //		List<String> edgeSelectors = new Vector<String>();
 //		
 //		Vertex startNode;
-//		GraphTraversal<Vertex, Vertex> metaT = g.traversal().V().has(Constants.TYPE, TinkerFrame.META);
+//		GraphTraversal<Vertex, Vertex> metaT = g.traversal().V().has(TinkerFrame.TINKER_TYPE, TinkerFrame.META);
 //		
 //		// pick any meta node as a starting point
 //		if(metaT.hasNext()) {
 //			startNode = metaT.next();
-//			String startType = startNode.property(Constants.NAME).value()+"";
+//			String startType = startNode.property(TinkerFrame.TINKER_NAME).value()+"";
 //			
 //			// add that to our traversal and check the filter
-//			gt = gt.has(Constants.TYPE, startType).as(startType);
-//			Object filtered = startNode.value(Constants.FILTER);
+//			gt = gt.has(TinkerFrame.TINKER_TYPE, startType).as(startType);
+//			Object filtered = startNode.value(TinkerFrame.TINKER_FILTER);
 //			if((Boolean)filtered == true) {
-//				gt = gt.not(__.in().has(Constants.TYPE, Constants.FILTER));
+//				gt = gt.not(__.in().has(TinkerFrame.TINKER_TYPE, TinkerFrame.TINKER_FILTER));
 //			}
 //			// begin recursion
 //			gt = visitNodeForEdgeTraversal(startNode, gt, travelledEdges, new Integer(0), edgeSelectors);
@@ -508,12 +506,12 @@ public class GremlinBuilder {
 	
 //	private GraphTraversal visitNodeForEdgeTraversal(Vertex orig, GraphTraversal gt1, List<String> travelledEdges, Integer recursionCount, List<String> edgeSelectors) {
 //		recursionCount++;
-//		String origName = orig.property(Constants.NAME).value()+"";
-//		GraphTraversal<Vertex, Vertex> downstreamIt = g.traversal().V().has(Constants.TYPE, TinkerFrame.META).has(Constants.ID, orig.property(Constants.ID).value()).out(TinkerFrame.META);
+//		String origName = orig.property(TinkerFrame.TINKER_NAME).value()+"";
+//		GraphTraversal<Vertex, Vertex> downstreamIt = g.traversal().V().has(TinkerFrame.TINKER_TYPE, TinkerFrame.META).has(Constants.ID, orig.property(Constants.ID).value()).out(TinkerFrame.META);
 //		// for each meta vertex downstream of this meta vertex
 //		while (downstreamIt.hasNext()){
 //			Vertex nodeV = downstreamIt.next();
-//			String node = nodeV.property(Constants.NAME).value()+"";
+//			String node = nodeV.property(TinkerFrame.TINKER_NAME).value()+"";
 //			String edgeKey = origName + ":::" + node;
 //			// if we have never travelled that edge before
 //			if(!travelledEdges.contains(edgeKey)) {
@@ -522,11 +520,11 @@ public class GremlinBuilder {
 //				String edgeSelector = "Edge"+recursionCount;
 //				edgeSelectors.add(edgeSelector);
 //				// travel the edge in our graph traversal, adding our edge selector to keep track
-//				gt1 = gt1.outE().as(edgeSelector).inV().has(Constants.TYPE, node).as(node);
+//				gt1 = gt1.outE().as(edgeSelector).inV().has(TinkerFrame.TINKER_TYPE, node).as(node);
 //				
-//				Object filtered = nodeV.value(Constants.FILTER);
+//				Object filtered = nodeV.value(TinkerFrame.TINKER_FILTER);
 //				if((Boolean)filtered == true) {
-//					gt1 = gt1.not(__.in().has(Constants.TYPE, Constants.FILTER));
+//					gt1 = gt1.not(__.in().has(TinkerFrame.TINKER_TYPE, TinkerFrame.TINKER_FILTER));
 //				}
 //
 //				travelledEdges.add(edgeKey);
@@ -536,36 +534,36 @@ public class GremlinBuilder {
 //				
 //				// when we can't go any further downstream, need to return home
 //				LOGGER.debug("returning home to " + origName);
-//				gt1 = gt1.in().has(Constants.TYPE, origName).as(origName + (recursionCount));
+//				gt1 = gt1.in().has(TinkerFrame.TINKER_TYPE, origName).as(origName + (recursionCount));
 //				gt1 = gt1.where(origName, P.eq(origName + (recursionCount)));
 //				recursionCount++;
 //			}
 //		}
 //		
 //		// do the same for upstream
-//		GraphTraversal<Vertex, Vertex> upstreamIt = g.traversal().V().has(Constants.TYPE, TinkerFrame.META).has(Constants.ID, orig.property(Constants.ID).value()).in(TinkerFrame.META);
+//		GraphTraversal<Vertex, Vertex> upstreamIt = g.traversal().V().has(TinkerFrame.TINKER_TYPE, TinkerFrame.META).has(Constants.ID, orig.property(Constants.ID).value()).in(TinkerFrame.META);
 //		while(upstreamIt.hasNext()) {
 //			Vertex nodeV = upstreamIt.next();
-//			String node = nodeV.property(Constants.NAME).value()+"";
+//			String node = nodeV.property(TinkerFrame.TINKER_NAME).value()+"";
 //			String edgeKey = node + ":::" + origName;
 //			if(!travelledEdges.contains(edgeKey)){
 //				LOGGER.debug("travelling up to " + node);
 //
 //				String edgeSelector = "Edge"+recursionCount;
 //				edgeSelectors.add(edgeSelector);
-//				gt1 = gt1.inE().as(edgeSelector).outV().has(Constants.TYPE, node).as(node);
+//				gt1 = gt1.inE().as(edgeSelector).outV().has(TinkerFrame.TINKER_TYPE, node).as(node);
 //				
 //				
-//				Object filtered = nodeV.value(Constants.FILTER);
+//				Object filtered = nodeV.value(TinkerFrame.TINKER_FILTER);
 //				if((Boolean)filtered == true) {
-//					gt1 = gt1.not(__.in().has(Constants.TYPE, Constants.FILTER));
+//					gt1 = gt1.not(__.in().has(TinkerFrame.TINKER_TYPE, TinkerFrame.TINKER_FILTER));
 //				}
 //				
 //				travelledEdges.add(edgeKey);
 //				gt1 = visitNodeForEdgeTraversal(nodeV, gt1, travelledEdges, recursionCount, edgeSelectors);
 //				
 //				LOGGER.debug("returning home to " + origName);
-//				gt1 = gt1.out().has(Constants.TYPE, origName).as(origName + (recursionCount));
+//				gt1 = gt1.out().has(TinkerFrame.TINKER_TYPE, origName).as(origName + (recursionCount));
 //				gt1 = gt1.where(origName, P.eq(origName + (recursionCount)));
 //				recursionCount++;
 //			}
