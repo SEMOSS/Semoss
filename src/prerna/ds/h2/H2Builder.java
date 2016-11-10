@@ -1073,13 +1073,17 @@ public class H2Builder {
 	 * used to drop the table when the insight is closed
 	 */
 	protected void dropTable() {
-		String finalQuery = makeDropTable(tableName);
-		try {
-			runQuery(finalQuery);
-		} catch (Exception e) {
-			e.printStackTrace();
+		if(tableExists(tableName)) {
+			String finalQuery = makeDropTable(tableName);
+			try {
+				runQuery(finalQuery);
+			} catch (Exception e) {
+				e.printStackTrace();
+			}
+			LOGGER.info("DROPPED H2 TABLE ::: " + tableName);
+		} else {
+			LOGGER.info("TABLE " + tableName + " DOES NOT EXIST");
 		}
-		System.out.println("DROPPED H2 TABLE" + tableName);
 	}
 
 	/**
