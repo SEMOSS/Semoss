@@ -32,7 +32,7 @@ public class OracleQueryUtil extends SQLQueryUtil {
 	}
 	
 	private void setDialect() {
-		super.setDialectAllTables("SELECT DISTINCT OBJECT_NAME FROM USER_OBJECTS WHERE OBJECT_TYPE = 'TABLE'");
+		super.setDialectAllTables("SELECT DISTINCT OBJECT_NAME FROM USER_OBJECTS WHERE OBJECT_TYPE = 'TABLE' OR OBJECT_TYPE = 'VIEW'");
 		super.setDialectAllColumns("SELECT COLUMN_NAME, DATA_TYPE FROM user_tab_cols WHERE TABLE_NAME=");
 		super.setResultAllTablesTableName("TABLE_NAME");
 		super.setResultAllColumnsColumnName("COLUMN_NAME");
