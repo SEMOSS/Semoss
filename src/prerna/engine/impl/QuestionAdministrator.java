@@ -670,9 +670,10 @@ public class QuestionAdministrator {
 	}
 	
 	private String escapeForNTripleAndSQLStatement(String s) {
-		s = s.replaceAll("(\\\\\")", "'"); // replace escaped double quotes with single
+		s = s.replaceAll("(?<=\\\\)\\\"{1}", "\\\\\\\\\""); // positive look behind - if quote is already escaped, need to escape the \ again
+		s = s.replaceAll("(?<!\\\\)\\\"{1}", "\\\\\""); // negative look behind, escaped any double quote not already escaped needs to be escaped once
 		s = escapeForSQLStatement(s);
-		return s.replaceAll("\"", "\\\\\"");
+		return s;
 	}
 
 	private FilterTransformation buildEmptyFilterTrans(String paramName) {
