@@ -43,7 +43,7 @@ public class OutputDataReactor extends AbstractReactor {
 	@Override
 	public Iterator process() {
 		
-Gson gson = new Gson();
+		Gson gson = new Gson();
 		
 		//open a saved insight if we have the data
 		String engine = (String)myStore.get("DATA_OPEN_ENGINE");
