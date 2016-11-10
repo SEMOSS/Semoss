@@ -1228,7 +1228,7 @@ public abstract class BaseJavaReactor extends AbstractReactor{
 				java.lang.System.out.println("ID...  " + thisID);
 				Vertex retVertex = null;
 				
-				GraphTraversal<Vertex, Vertex>  gt = ((TinkerFrame)dataframe).g.traversal().V().has(Constants.ID, thisID);
+				GraphTraversal<Vertex, Vertex>  gt = ((TinkerFrame)dataframe).g.traversal().V().has(TinkerFrame.TINKER_ID, thisID);
 				if(gt.hasNext()) {
 					retVertex = gt.next();
 				}
@@ -1290,7 +1290,7 @@ public abstract class BaseJavaReactor extends AbstractReactor{
 				java.lang.System.out.println("ID...  " + thisID);
 				Vertex retVertex = null;
 				
-				GraphTraversal<Vertex, Vertex>  gt = ((TinkerFrame)dataframe).g.traversal().V().has(Constants.ID, thisID);
+				GraphTraversal<Vertex, Vertex>  gt = ((TinkerFrame)dataframe).g.traversal().V().has(TinkerFrame.TINKER_ID, thisID);
 				if(gt.hasNext()) {
 					retVertex = gt.next();
 				}

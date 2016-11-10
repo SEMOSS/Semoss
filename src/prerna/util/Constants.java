@@ -373,7 +373,6 @@ public class Constants {
 	public static final String PROPS = "PROPS";
 	// public static final String TYPE_URI = "TYPE_URI";
 	public static final String INSIGHT = "INSIGHT";
-	public static final String ID = "ID";
 	public static final String LABEL = "LABEL";
 	public static final String OUTPUT = "OUTPUT";
 	public static final String TYPE = "TYPE";
@@ -479,16 +478,10 @@ public class Constants {
 	public static final String SOLR_SYSTEM_VAR_KEY = "solr.solr.home";
 	public static final String SOLR_HOME_DIR = "solr";
 	
-	//TinkerFrame specific
-	public static final String HEADER_NAMES = "HEADER_NAMES";
 	public static final String VALUE = "VALUE";
-	public static final String COUNT = "COUNT";
 	public static final String NAME = "NAME";
-	public static final String FILTERS = "FILTERS";
-	public static final String DATA_TONS = "UI_OPTIONS";
-	public static final String STORE = "STORE";
-	public static final String ALIAS_NAME = "ALIAS_NAME";
 	
+	public static final String STORE = "STORE";
 	public static final String INSIGHTS_DB = "RDBMS_INSIGHTS";
 	public static final String DEFAULT_INSIGHT_DRIVER = "org.h2.Driver";
 	public static final String DEFAULT_RDBMS_TYPE = "H2_DB";
