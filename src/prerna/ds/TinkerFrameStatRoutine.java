@@ -16,7 +16,6 @@ import prerna.algorithm.api.ITableDataFrame;
 import prerna.ds.h2.H2Frame;
 import prerna.om.SEMOSSParam;
 import prerna.rdf.query.builder.GremlinBuilder;
-import prerna.util.Constants;
 
 public class TinkerFrameStatRoutine implements IAnalyticTransformationRoutine {
 	
@@ -140,32 +139,32 @@ public class TinkerFrameStatRoutine implements IAnalyticTransformationRoutine {
 		boolean singleColumn = columnHeader.length == 1;
 		
 		if(singleColumn) {
-			statIterator = statIterator.group().by(__.select(columnHeader[0]).values(Constants.NAME)).as(PRIMARY_SELECTOR);
+			statIterator = statIterator.group().by(__.select(columnHeader[0]).values(TinkerFrame.TINKER_NAME)).as(PRIMARY_SELECTOR);
 		} else if(columnHeader.length == 2) {
-			statIterator = statIterator.group().by(__.select(columnHeader[0], columnHeader[1]).by(Constants.NAME)).as(PRIMARY_SELECTOR);
+			statIterator = statIterator.group().by(__.select(columnHeader[0], columnHeader[1]).by(TinkerFrame.TINKER_NAME)).as(PRIMARY_SELECTOR);
 		} else {
 			String[] restOfHeaders = Arrays.copyOfRange(columnHeader, 2, columnHeader.length-1);
-			statIterator = statIterator.group().by(__.select(columnHeader[0], columnHeader[1], restOfHeaders).by(Constants.NAME)).as(PRIMARY_SELECTOR);
+			statIterator = statIterator.group().by(__.select(columnHeader[0], columnHeader[1], restOfHeaders).by(TinkerFrame.TINKER_NAME)).as(PRIMARY_SELECTOR);
 		}
 		
 		switch(mathType.toUpperCase()) {
 			case AVERAGE : {
-				statIterator = statIterator.by(__.select(valueColumn).values(Constants.NAME).mean()).as(SECONDARY_SELECTOR);break;
+				statIterator = statIterator.by(__.select(valueColumn).values(TinkerFrame.TINKER_NAME).mean()).as(SECONDARY_SELECTOR);break;
 			}
 			case MIN : {
-				statIterator = statIterator.by(__.select(valueColumn).values(Constants.NAME).min()).as(SECONDARY_SELECTOR);break;
+				statIterator = statIterator.by(__.select(valueColumn).values(TinkerFrame.TINKER_NAME).min()).as(SECONDARY_SELECTOR);break;
 			}
 			case MAX : {
-				statIterator = statIterator.by(__.select(valueColumn).values(Constants.NAME).max()).as(SECONDARY_SELECTOR);break;
+				statIterator = statIterator.by(__.select(valueColumn).values(TinkerFrame.TINKER_NAME).max()).as(SECONDARY_SELECTOR);break;
 			}
 			case SUM : {
-				statIterator = statIterator.by(__.select(valueColumn).values(Constants.NAME).sum()).as(SECONDARY_SELECTOR);break;
+				statIterator = statIterator.by(__.select(valueColumn).values(TinkerFrame.TINKER_NAME).sum()).as(SECONDARY_SELECTOR);break;
 			}
 			case COUNT : {
-				statIterator = statIterator.by(__.select(valueColumn).values(Constants.NAME).count()).as(SECONDARY_SELECTOR); break;
+				statIterator = statIterator.by(__.select(valueColumn).values(TinkerFrame.TINKER_NAME).count()).as(SECONDARY_SELECTOR); break;
 			}
 			default : {
-				statIterator = statIterator.by(__.select(valueColumn).values(Constants.NAME).mean()).as(SECONDARY_SELECTOR);break;
+				statIterator = statIterator.by(__.select(valueColumn).values(TinkerFrame.TINKER_NAME).mean()).as(SECONDARY_SELECTOR);break;
 			}
 		}
 		
