@@ -345,7 +345,7 @@ public final class WekaUtilityMethods {
 			if(data instanceof Map) {
 				for(int colIndex = 0;colIndex < names.length; colIndex++) {
 					Map<String, Object> mapData = (Map<String, Object>)data; //cast to map
-					retObject[colIndex] = ((Vertex)mapData.get(names[colIndex])).property(Constants.NAME).value();
+					retObject[colIndex] = ((Vertex)mapData.get(names[colIndex])).property(TinkerFrame.TINKER_NAME).value();
 				}
 			} else {
 				retObject = (Object[]) data;

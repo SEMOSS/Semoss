@@ -140,8 +140,8 @@ public class DataFrameHelper {
 			while(gt.hasNext()) {
 				Map<String, Object> row = (Map<String, Object>) gt.next();
 				Object[] values = new Object[2];
-				values[0] = ((Vertex) row.get(retVars[0])).property(Constants.NAME).value();
-				values[1] = ((Vertex) row.get(retVars[1])).property(Constants.NAME).value();
+				values[0] = ((Vertex) row.get(retVars[0])).property(TinkerFrame.TINKER_NAME).value();
+				values[1] = ((Vertex) row.get(retVars[1])).property(TinkerFrame.TINKER_NAME).value();
 				
 				newTf.addRelationship(headers, values, cardinality, logicalToTypeMap);
 			}
@@ -157,8 +157,8 @@ public class DataFrameHelper {
 		GraphTraversal<Vertex, Vertex> vertIt = tf.g.traversal().V().has(Constants.TYPE, P.within(selectors));
 		while(vertIt.hasNext()) {
 			Vertex vert = vertIt.next();
-			String type = vert.value(Constants.TYPE);
-			Object value = vert.value(Constants.NAME);
+			String type = vert.value(TinkerFrame.TINKER_TYPE);
+			Object value = vert.value(TinkerFrame.TINKER_NAME);
 			
 			String[] headers = {type};
 			Object[] values = {value};

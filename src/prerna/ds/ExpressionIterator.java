@@ -11,8 +11,6 @@ import javax.script.ScriptException;
 import org.apache.tinkerpop.gremlin.groovy.jsr223.GremlinGroovyScriptEngine;
 import org.apache.tinkerpop.gremlin.structure.Vertex;
 
-import prerna.util.Constants;
-
 public class ExpressionIterator implements ExpressionMapper, Iterator {
 	
 	protected Iterator results = null;
@@ -23,7 +21,7 @@ public class ExpressionIterator implements ExpressionMapper, Iterator {
 	protected Exception baseException = null;
 	protected Bindings otherBindings = engine.getBindings(ScriptContext.ENGINE_SCOPE);
 	protected CompiledScript cs = null;
-	protected String propToGet = Constants.NAME;
+	protected String propToGet = TinkerFrame.TINKER_NAME;
 	
 	protected ExpressionIterator() {
 		

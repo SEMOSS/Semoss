@@ -43,20 +43,20 @@ public class TinkerMetaData implements IMetaData {
 	protected GremlinGroovyScriptEngine engine = new GremlinGroovyScriptEngine();
 	protected TinkerGraph g = null;
 
-	public static final String ALIAS = "ALIAS";
-	public static final String DB_NAME = "DB_NAME";
-	public static final String ALIAS_TYPE = "ALIAS_TYPE";
-	public static final String PHYSICAL_NAME = "PHYSICAL_NAME";
-	public static final String PHYSICAL_URI = "PHYSICAL_URI";
-	public static final String LOGICAL_NAME = "LOGICAL_NAME";
-	public static final String PARENT = "PARENT";
-	public static final String DATATYPE = "DATATYPE";
-	public static final String ORDER = "ORDER";
-	public static final String DB_DATATYPE = "DB_DATATYPE";
-	public static final String DERIVED = "DERIVED_COLUMN";
-	public static final String DERIVED_CALCULATION = "DERIVED_CALCULATION";
-	public static final String DERIVED_USING = "DERIVED_USING";
-	public static final String ALIAS_NAME = "ALIAS_NAME";
+	public static final String ALIAS = "_T_ALIAS";
+	public static final String DB_NAME = "_T_DB_NAME";
+	public static final String ALIAS_TYPE = "_T_ALIAS_TYPE";
+	public static final String PHYSICAL_NAME = "_T_PHYSICAL_NAME";
+	public static final String PHYSICAL_URI = "_T_PHYSICAL_URI";
+	public static final String LOGICAL_NAME = "_T_LOGICAL_NAME";
+	public static final String PARENT = "_T_PARENT";
+	public static final String DATATYPE = "_T_DATATYPE";
+	public static final String ORDER = "_T_ORDER";
+	public static final String DB_DATATYPE = "_T_DB_DATATYPE";
+	public static final String DERIVED = "_T_DERIVED_COLUMN";
+	public static final String DERIVED_CALCULATION = "_T_DERIVED_CALCULATION";
+	public static final String DERIVED_USING = "_T_DERIVED_USING";
+	public static final String ALIAS_NAME = "_T_ALIAS_NAME";
 	
 	private String latestPrimKey;
 

@@ -10,7 +10,6 @@ import org.apache.tinkerpop.gremlin.structure.Graph;
 import org.apache.tinkerpop.gremlin.structure.Vertex;
 
 import prerna.rdf.query.builder.GremlinBuilder;
-import prerna.util.Constants;
 
 public class UniqueScaledTinkerFrameIterator implements Iterator<List<Object[]>> {
 
@@ -103,7 +102,7 @@ public class UniqueScaledTinkerFrameIterator implements Iterator<List<Object[]>>
 		if(data instanceof Map) {
 			for(int colIndex = 0; colIndex < finalColumns.length; colIndex++) {
 				Map<String, Object> mapData = (Map<String, Object>) data; //cast to map
-				Object value = ((Vertex)mapData.get(finalColumns[colIndex])).property(Constants.NAME).value();
+				Object value = ((Vertex)mapData.get(finalColumns[colIndex])).property(TinkerFrame.TINKER_NAME).value();
 				if(colIndex != this.columnNameIndex && maxArr[colIndex] != null && minArr[colIndex] != null && value instanceof Number) {
 					if(value instanceof Number) {
 						row[colIndex] = ( ((Number)value).doubleValue() - minArr[colIndex])/(maxArr[colIndex] - minArr[colIndex]);
@@ -116,7 +115,7 @@ public class UniqueScaledTinkerFrameIterator implements Iterator<List<Object[]>>
 				}
 			}
 		} else {
-			row[0] = ((Vertex)data).property(Constants.NAME).value();
+			row[0] = ((Vertex)data).property(TinkerFrame.TINKER_NAME).value();
 		}
 		
 		return row;

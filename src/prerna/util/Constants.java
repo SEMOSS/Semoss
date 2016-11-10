@@ -205,7 +205,6 @@ public class Constants {
 	public static final String EDGE_NAME = "EDGE_NAME";
 	public static final String EDGE_TYPE = "EDGE_TYPE";
 	public static final String OPTION = "OPTION"; // used by entity filler
-	public static final String FILTER = "FILTER_NAME";
 	public static final String EDGE_ADJUSTER_TABLE = "edgeAdjusterTable";
 	public static final String LABEL_TABLE = "labelTable";
 	public static final String TOOLTIP_TABLE = "tooltipTable";

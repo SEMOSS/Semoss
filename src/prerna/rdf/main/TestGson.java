@@ -1,5 +1,10 @@
 package prerna.rdf.main;
 
+import java.util.List;
+import java.util.Vector;
+
+import com.hp.hpl.jena.vocabulary.OWL;
+
 import prerna.engine.api.ISelectStatement;
 import prerna.engine.api.ISelectWrapper;
 import prerna.engine.impl.rdf.BigDataEngine;
@@ -12,24 +17,46 @@ class TestGson {
 	public static void main(String[] args) {
 		TestUtilityMethods.loadDIHelper();
 
-		String engineProp = "C:\\workspace\\Semoss_Dev\\db\\test5.smss";
+		String engineProp = "C:\\workspace\\Semoss_Dev_2\\db\\TestID.smss";
 		BigDataEngine test5 = new BigDataEngine();
 		test5.openDB(engineProp);
-		test5.setEngineName("test5");
-		DIHelper.getInstance().setLocalProperty("test5", test5);
+		test5.setEngineName("TestID");
+		DIHelper.getInstance().setLocalProperty("TestID", test5);
 
-		String query = "select distinct ?s ?p ?o where {?s ?p ?o}";
+//		Vector<String> concepts = test5.getConcepts2(false);
+//		concepts.remove("http://semoss.org/ontologies/Concept");
+//		System.out.println("HAVE CONCEPTS ::: " + concepts);
+//		for(String concept : concepts) {
+//			List<String> properties = test5.getProperties4Concept2(concept, false);
+//			if(properties != null && properties.size() > 0) {
+//				System.out.println("CONCEPT == " + concept + " ::: PROPERTIES = " + properties);
+//			}
+//		}
 		
-		ISelectWrapper wrapper = WrapperManager.getInstance().getSWrapper(test5, query);
-		while(wrapper.hasNext()) {
-			ISelectStatement ss = wrapper.next();
-			String sub = ss.getRawVar("s") + "";
-			String pred = ss.getRawVar("p") + "";
-			String obj = ss.getRawVar("o") + "";
+		
+		String query = "SELECT DISTINCT ?S ?P ?0 WHERE {?S ?P ?0}";
+		
+		query = "SELECT DISTINCT ?S ?predicate ?O WHERE { "
+				+ "BIND(<http://semoss.org/ontologies/Concept/DayOfWeek_1> AS ?S) "
+//				+ "BIND(<" + OWL.DatatypeProperty + "> AS ?P) "
 
-			System.out.println(sub + " >>> " + pred + " >>> " + obj);
+				+ "{?S <http://www.w3.org/2000/01/rdf-schema#subClassOf> <http://semoss.org/ontologies/Concept> } "
+				+ "{?O <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Relation/Contains> } "
+				+ "{?S <http://www.w3.org/2002/07/owl#DatatypeProperty> ?O } "
+
+//				+ "{?property <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Relation/Contains>} "
+//				+ "{?concept <http://www.w3.org/2002/07/owl#DatatypeProperty> ?property} "
+				+ "}";
+		
+		ISelectWrapper manager = WrapperManager.getInstance().getSWrapper(test5.getBaseDataEngine(), query);
+		while(manager.hasNext()) {
+			ISelectStatement row = manager.next();
+			System.out.println("S = " + row.getRawVar("S") + " ::: " + "P = " + row.getRawVar("P") + " ::: " + "O = " + row.getRawVar("O"));
+
+//			System.out.println("concept = " + row.getRawVar("concept") + " ::: " + "property = " + row.getRawVar("property"));
 		}
 		
+		System.out.println("DONE");
 	}
 	
 }
