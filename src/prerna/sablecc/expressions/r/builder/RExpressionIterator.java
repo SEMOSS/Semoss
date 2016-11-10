@@ -85,7 +85,7 @@ public class RExpressionIterator implements Iterator<Object[]> {
 
 	@Override
 	public boolean hasNext() {
-		if(rowIndex < numRows) {
+		if(rowIndex <= numRows) {
 			return true;
 		} else {
 			return false;
