@@ -748,6 +748,27 @@ public class ReversedDepthFirstAdapter extends AnalysisAdapter
         outAQueryDataColop(node);
     }
 
+    public void inAClearCacheColop(AClearCacheColop node)
+    {
+        defaultIn(node);
+    }
+
+    public void outAClearCacheColop(AClearCacheColop node)
+    {
+        defaultOut(node);
+    }
+
+    @Override
+    public void caseAClearCacheColop(AClearCacheColop node)
+    {
+        inAClearCacheColop(node);
+        if(node.getClearCache() != null)
+        {
+            node.getClearCache().apply(this);
+        }
+        outAClearCacheColop(node);
+    }
+
     public void inAPanelVizPanelop(APanelVizPanelop node)
     {
         defaultIn(node);
@@ -2367,6 +2388,43 @@ public class ReversedDepthFirstAdapter extends AnalysisAdapter
             node.getDataopentoken().apply(this);
         }
         outAOpenData(node);
+    }
+
+    public void inAClearCache(AClearCache node)
+    {
+        defaultIn(node);
+    }
+
+    public void outAClearCache(AClearCache node)
+    {
+        defaultOut(node);
+    }
+
+    @Override
+    public void caseAClearCache(AClearCache node)
+    {
+        inAClearCache(node);
+        if(node.getRp() != null)
+        {
+            node.getRp().apply(this);
+        }
+        if(node.getEngineId() != null)
+        {
+            node.getEngineId().apply(this);
+        }
+        if(node.getEngine() != null)
+        {
+            node.getEngine().apply(this);
+        }
+        if(node.getLp() != null)
+        {
+            node.getLp().apply(this);
+        }
+        if(node.getDataclearcachetoken() != null)
+        {
+            node.getDataclearcachetoken().apply(this);
+        }
+        outAClearCache(node);
     }
 
     public void inAOutputData(AOutputData node)

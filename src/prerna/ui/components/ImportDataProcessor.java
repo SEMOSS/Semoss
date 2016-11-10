@@ -684,7 +684,7 @@ public class ImportDataProcessor {
 			errorMessage = "Database type is not specified.";
 			throw new IOException(errorMessage);
 		}		
-		if(DIHelper.getInstance().getLocalProp(engineName) == null && importMethod.equals(ImportOptions.IMPORT_METHOD.ADD_TO_EXISTING)) {
+		if(Utility.getEngine(engineName) == null && importMethod.equals(ImportOptions.IMPORT_METHOD.ADD_TO_EXISTING)) {
 			errorMessage = "Database to add to cannot be found. \nPlease select an existing database or considering creating a new database.";
 			throw new IOException(errorMessage);
 		}
