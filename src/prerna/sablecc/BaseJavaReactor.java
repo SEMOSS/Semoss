@@ -262,7 +262,7 @@ public abstract class BaseJavaReactor extends AbstractReactor{
 			
 			try{
 				java.lang.System.out.println("Deleting.. " + name);
-				rcon.eval("newGraph <- delete_vertices(" + graphName + ", V(" + graphName + ")[ID == \"" + name + "\"])");				
+				rcon.eval("newGraph <- delete_vertices(" + graphName + ", V(" + graphName + ")[" + TinkerFrame.TINKER_ID + " == \"" + name + "\"])");				
 				rcon.eval(graphName + "<- newGraph");
 			}catch(Exception ex)
 			{
@@ -1185,7 +1185,7 @@ public abstract class BaseJavaReactor extends AbstractReactor{
 			Hashtable <String, String> dataHash = new Hashtable<String, String>();
 			for(int vertIndex = 0;vertIndex < vertices.length;  vertIndex++)
 			{
-				String output = con.eval("vertex_attr(" + graphName + ", \"ID\", " + vertices[vertIndex] + ")").asString();
+				String output = con.eval("vertex_attr(" + graphName + ", \"" + TinkerFrame.TINKER_ID + "\", " + vertices[vertIndex] + ")").asString();
 				String [] typeData = output.split(":");
 				String typeOutput = "";
 				if(dataHash.containsKey(typeData[0]))
@@ -1219,7 +1219,7 @@ public abstract class BaseJavaReactor extends AbstractReactor{
 		try
 		{
 			int [] memberships = rcon.eval(clusterName + "$membership").asIntegers();
-			String [] IDs = rcon.eval("V(" + graphName + ")$ID").asStrings();
+			String [] IDs = rcon.eval("vertex_attr(" + graphName + ", \"" + TinkerFrame.TINKER_ID + "\")").asStrings();
 			
 			for(int memIndex = 0;memIndex < memberships.length;memIndex++)
 			{
@@ -1281,7 +1281,7 @@ public abstract class BaseJavaReactor extends AbstractReactor{
 				axis = new String[]{"X", "Y", "Z"};
 			}
 			
-			String [] IDs = rcon.eval("V(" + graphName + ")$ID").asStrings();
+			String [] IDs = rcon.eval("vertex_attr(" + graphName + ", \"" + TinkerFrame.TINKER_ID + "\")").asStrings();
 			
 			for(int memIndex = 0; memIndex < memberships.length; memIndex++)
 			{
