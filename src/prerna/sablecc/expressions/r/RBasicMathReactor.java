@@ -9,7 +9,7 @@ public abstract class RBasicMathReactor extends AbstractRBaseReducer {
 
 	public RExpressionBuilder process(RDataTable frame, RExpressionBuilder builder) {
 		IExpressionSelector previousSelector = builder.getLastSelector();
-		RMathSelector newSelector = new RMathSelector(previousSelector, this.mathRoutine, this.pkqlMathRoutine);
+		RMathSelector newSelector = new RMathSelector(previousSelector, this.mathRoutine, this.pkqlMathRoutine, this.castAsNumber);
 		builder.replaceSelector(previousSelector, newSelector);
 		return builder;
 	}
