@@ -581,15 +581,6 @@ public class TableDataFrameFactory {
 		return frame;
 	}
 	
-	private static List<String> getEdgeHashSelectors(Map<String, Set<String>> edgeHash) {
-		Set<String> selectors = new HashSet<>();
-		for(String key : edgeHash.keySet()) {
-			selectors.add(key);
-			selectors.addAll(edgeHash.get(key));
-		}
-		return new ArrayList<String>(selectors);
-	}
-	
 	private static boolean isPrimKey(H2Frame frame) {
 		Map<String, Set<String>> edgeHash = frame.getEdgeHash();
 		for(String key : edgeHash.keySet()) {
