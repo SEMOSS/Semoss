@@ -1816,7 +1816,7 @@ public class Insight {
 				List<Insight> list = ((Dashboard)this.parentInsight.getDataMaker()).getInsights();
 				for(Insight insight : list) {
 					if(insight.getInsightID().equals(this.insightID)) {
-						insightList.add(insight.getInsightData(includeClosed));
+						insightList.add(0, insight.getInsightData(includeClosed));
 					} else {
 						Map<String, Object> nextInsightRetHash = new HashMap<>();
 						nextInsightRetHash.put("insightID", insight.getInsightID());
