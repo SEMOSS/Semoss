@@ -17,7 +17,6 @@ import prerna.sablecc.PKQLRunner.STATUS;
 import prerna.sablecc.expressions.r.builder.RColumnSelector;
 import prerna.sablecc.expressions.r.builder.RConstantSelector;
 import prerna.sablecc.expressions.r.builder.RExpressionBuilder;
-import prerna.sablecc.expressions.sql.builder.SqlConstantSelector;
 
 public abstract class AbstractRBaseReducer extends AbstractReactor {
 
@@ -27,6 +26,7 @@ public abstract class AbstractRBaseReducer extends AbstractReactor {
 	
 	protected String mathRoutine = null;
 	protected String pkqlMathRoutine = null;
+	protected boolean castAsNumber = true;
 
 	public AbstractRBaseReducer() {
 		String[] thisReacts = { PKQLEnum.EXPR_TERM, PKQLEnum.DECIMAL, PKQLEnum.NUMBER, PKQLEnum.GROUP_BY, PKQLEnum.COL_DEF, PKQLEnum.MATH_PARAM};
@@ -152,6 +152,10 @@ public abstract class AbstractRBaseReducer extends AbstractReactor {
 	
 	public void setPkqlMathRoutine(String pkqlMathRoutine) {
 		this.pkqlMathRoutine  = pkqlMathRoutine;
+	}
+	
+	public void setCastAsNumber(boolean castAsNumber) {
+		this.castAsNumber = castAsNumber;
 	}
 	
 }
