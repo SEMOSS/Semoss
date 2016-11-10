@@ -823,6 +823,7 @@ public class Translation extends DepthFirstAdapter {
 	public void inAPanelComment(APanelComment node) {
 		System.out.println("in a viz comment");
 		initReactor(PKQLEnum.VIZ);
+		curReactor.put(PKQLEnum.VIZ, node.toString());
 	}
 
 	// this is just grabbing the comment information and storing it in the
@@ -864,6 +865,7 @@ public class Translation extends DepthFirstAdapter {
 	public void inAPanelCommentEdit(APanelCommentEdit node) {
 		System.out.println("in a viz comment edit");
 		initReactor(PKQLEnum.VIZ);
+		curReactor.put(PKQLEnum.VIZ, node.toString());
 	}
 
 	// this is just grabbing the comment information and storing it in the
@@ -905,6 +907,7 @@ public class Translation extends DepthFirstAdapter {
 	public void inAPanelCommentRemove(APanelCommentRemove node) {
 		System.out.println("in a viz comment remove");
 		initReactor(PKQLEnum.VIZ);
+		curReactor.put(PKQLEnum.VIZ, node.toString());
 	}
 
 	// this sets a comment as closed
@@ -940,6 +943,7 @@ public class Translation extends DepthFirstAdapter {
 	public void inAPanelClone(APanelClone node) {
 		System.out.println("in a panel clone");
 		initReactor(PKQLEnum.VIZ);
+		curReactor.put(PKQLEnum.VIZ, node.toString());
 	}
 
 	@Override
@@ -961,6 +965,7 @@ public class Translation extends DepthFirstAdapter {
 	public void inAPanelLookAndFeel(APanelLookAndFeel node) {
 		System.out.println("in a panel laf");
 		initReactor(PKQLEnum.VIZ);
+		curReactor.put(PKQLEnum.VIZ, node.toString());
 	}
 
 	@Override
@@ -982,6 +987,7 @@ public class Translation extends DepthFirstAdapter {
 	public void inAPanelTools(APanelTools node) {
 		System.out.println("in a panel tools");
 		initReactor(PKQLEnum.VIZ);
+		curReactor.put(PKQLEnum.VIZ, node.toString());
 	}
 
 	@Override
@@ -1002,6 +1008,7 @@ public class Translation extends DepthFirstAdapter {
 	public void inAPanelConfig(APanelConfig node) {
 		System.out.println("in a panel config");
 		initReactor(PKQLEnum.VIZ);
+		curReactor.put(PKQLEnum.VIZ, node.toString());
 	}
 
 	@Override
@@ -1045,6 +1052,7 @@ public class Translation extends DepthFirstAdapter {
 	public void inAPanelClose(APanelClose node) {
 		System.out.println("in a panel close");
 		initReactor(PKQLEnum.VIZ);
+		curReactor.put(PKQLEnum.VIZ, node.toString());
 	}
 
 	@Override
