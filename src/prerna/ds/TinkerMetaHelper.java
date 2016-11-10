@@ -153,7 +153,7 @@ public class TinkerMetaHelper {
 		String primKeyString = "";
 		Arrays.sort(strings);
 		for(String s : strings) {
-			primKeyString += s + TinkerFrame.primKeyDelimeter;
+			primKeyString += s + TinkerFrame.PRIM_KEY_DELIMETER;
 		}
 		
 		//hash the primKeyString
@@ -175,7 +175,7 @@ public class TinkerMetaHelper {
 		Arrays.sort(newNodes);
 		String primKey = TinkerFrame.PRIM_KEY;
 		for(String node : newNodes) {
-			primKey += node + TinkerFrame.primKeyDelimeter;
+			primKey += node + TinkerFrame.PRIM_KEY_DELIMETER;
 		}
 		return primKey;
 	}
