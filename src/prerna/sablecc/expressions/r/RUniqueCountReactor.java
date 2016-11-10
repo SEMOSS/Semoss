@@ -10,5 +10,6 @@ public class RUniqueCountReactor extends RBasicMathReactor {
 	public RUniqueCountReactor() {
 		this.setMathRoutine("uniqueN");
 		this.setPkqlMathRoutine("UniqueCount");
+		this.setCastAsNumber(false);
 	}
 }

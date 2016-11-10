@@ -9,15 +9,17 @@ public class RMathSelector implements IExpressionSelector {
 	private IExpressionSelector selector;
 	private String math;
 	private String pkqlMath;
+	private boolean castAsNumber;
 	
 	/*
 	 * Create a math routine around an existing selector
 	 */
 	
-	public RMathSelector(IExpressionSelector selector, String math, String pkqlMath) {
+	public RMathSelector(IExpressionSelector selector, String math, String pkqlMath, boolean castAsNumber) {
 		this.selector = selector;
 		this.math = math;
 		this.pkqlMath = pkqlMath;
+		this.castAsNumber = castAsNumber;
 	}
 	
 	public String getPkqlMath() {
@@ -31,7 +33,11 @@ public class RMathSelector implements IExpressionSelector {
 	@Override
 	public String toString() {
 		StringBuilder builder = new StringBuilder();
-		builder.append(math).append("(as.numeric(na.omit(").append(selector.toString()).append(")))");
+		if(castAsNumber) {
+			builder.append(math).append("(as.numeric(na.omit(").append(selector.toString()).append(")))");
+		} else {
+			builder.append(math).append("(na.omit(").append(selector.toString()).append("))");
+		}
 		return builder.toString();
 	}
 	
