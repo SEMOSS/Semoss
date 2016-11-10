@@ -47,8 +47,8 @@ public class SQLServerQueryUtil extends SQLQueryUtil {
 	
 	private void setDialect(String schema) {
 		setDialect();
-		super.setDialectAllTables("SELECT table_name FROM " + schema + ".information_schema.tables");
-		super.setDialectAllColumns(" SELECT COLUMN_NAME, DATA_TYPE FROM " + schema + ".INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME = ");
+		super.setDialectAllTables("SELECT table_name FROM [" + schema + "].information_schema.tables");
+		super.setDialectAllColumns(" SELECT COLUMN_NAME, DATA_TYPE FROM [" + schema + "].INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME = ");
 	}
 
 	@Override
