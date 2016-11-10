@@ -487,37 +487,13 @@ public class TableDataFrameFactory {
 		if(table instanceof H2Frame) {
 			H2Frame h2frame = (H2Frame)table;
 			//get an iterator and skip duplicates
-			Map<String, Object> options = new HashMap<>();
-			options.put(AbstractTableDataFrame.DE_DUP, true);
-			options.put(AbstractTableDataFrame.SELECTORS, h2frame.getSelectors());
-			options.put(AbstractTableDataFrame.IGNORE_FILTERS, true);
-			Iterator<Object[]> iterator = h2frame.iterator(options);
-
-			String[] columnHeaders  = h2frame.getSelectors().toArray(new String[]{});
-			Map<Integer, Set<Integer>> cardinality = Utility.getCardinalityOfValues(columnHeaders, h2frame.getEdgeHash());
-			Map<String, String> uniqueToValue = h2frame.metaData.getAllUniqueNamesToValues();
-
-			String[] types = new String[columnHeaders.length];
-			int i = 0;
-			for(String header : columnHeaders) {
-				String headerType = h2frame.getDataType(header).toString();
-				types[i] = headerType;
-				i++;
-			}
-
-			/*
-			 * Create a new TinkerFrame from the existing H2Frame
-			 * Use the metadata from the h2frame and set it into the TinkerFrame
-			 * Use the addRelationship method which will go through and add
-			 * all of the data
-			 */
-			TinkerFrame frame = new TinkerFrame();
-			frame.metaData = h2frame.metaData; //set the meta data for the new frame
-			while(iterator.hasNext()) {
-				Object[] row = iterator.next();
-				frame.addRelationship(columnHeaders, row, cardinality, uniqueToValue);
-			}
-
+			TinkerFrame frame;
+			if(isPrimKey(h2frame)) {
+				frame = convertFlatH2ToTinker(h2frame);
+			} else {
+				frame = convertH2ToTinker(h2frame);
+			}	
+			
 			// grab the existing filter data from the h2Frame
 			// apply the filtering to the tinker frame
 			Map<String, Map<AbstractTableDataFrame.Comparator, Set<Object>>> filterHash = h2frame.getFilterHash();
@@ -547,5 +523,80 @@ public class TableDataFrameFactory {
 			return frame;
 		}
 		return null;
+	}
+
+	private static TinkerFrame convertFlatH2ToTinker(H2Frame h2frame) {
+		TinkerFrame frame;
+
+		//get an iterator and skip duplicates
+		Map<String, Object> options = new HashMap<>();
+		options.put(AbstractTableDataFrame.DE_DUP, true);
+		options.put(AbstractTableDataFrame.SELECTORS, h2frame.getSelectors());
+		Iterator<Object[]> iterator = h2frame.iterator(options);
+
+		String[] columnHeaders  = h2frame.getSelectors().toArray(new String[]{});
+
+		String[] types = new String[columnHeaders.length];
+		int i = 0;
+		for(String header : columnHeaders) {
+			String headerType = h2frame.getDataType(header).toString();
+			types[i] = headerType;
+			i++;
+		}
+		//for each row add that relationship to tinker
+		frame = (TinkerFrame)createDataFrame(columnHeaders, "tinker", types, null);
+		while(iterator.hasNext()) {
+			Object[] row = iterator.next();
+			frame.addRow(row, columnHeaders);
+		}
+	
+		return frame;
+	}
+	
+	private static TinkerFrame convertH2ToTinker(H2Frame h2frame) {
+		
+		//get an iterator and skip duplicates
+		Map<String, Object> options = new HashMap<>();
+		options.put(AbstractTableDataFrame.DE_DUP, true);
+		options.put(AbstractTableDataFrame.SELECTORS, h2frame.getSelectors());
+		options.put(AbstractTableDataFrame.IGNORE_FILTERS, true);
+		Iterator<Object[]> iterator = h2frame.iterator(options);
+		
+		String[] columnHeaders  = h2frame.getSelectors().toArray(new String[]{});
+		Map<Integer, Set<Integer>> cardinality = Utility.getCardinalityOfValues(columnHeaders, h2frame.getEdgeHash());
+		Map<String, String> uniqueToValue = h2frame.metaData.getAllUniqueNamesToValues();
+
+		/*
+		 * Create a new TinkerFrame from the existing H2Frame
+		 * Use the metadata from the h2frame and set it into the TinkerFrame
+		 * Use the addRelationship method which will go through and add
+		 * all of the data
+		 */
+		TinkerFrame frame = new TinkerFrame();
+		frame.metaData = h2frame.metaData; //set the meta data for the new frame
+		while(iterator.hasNext()) {
+			Object[] row = iterator.next();
+			frame.addRelationship(columnHeaders, row, cardinality, uniqueToValue);
+		}
+		return frame;
+	}
+	
+	private static List<String> getEdgeHashSelectors(Map<String, Set<String>> edgeHash) {
+		Set<String> selectors = new HashSet<>();
+		for(String key : edgeHash.keySet()) {
+			selectors.add(key);
+			selectors.addAll(edgeHash.get(key));
+		}
+		return new ArrayList<String>(selectors);
+	}
+	
+	private static boolean isPrimKey(H2Frame frame) {
+		Map<String, Set<String>> edgeHash = frame.getEdgeHash();
+		for(String key : edgeHash.keySet()) {
+			if(key.contains(TinkerFrame.PRIM_KEY)) {
+				return true;
+			}
+		}
+		return false;
 	}
 }
