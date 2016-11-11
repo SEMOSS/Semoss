@@ -4,10 +4,11 @@ import java.util.HashSet;
 import java.util.Hashtable;
 import java.util.Map;
 import java.util.Set;
-import java.util.UUID;
 
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
+
+import prerna.util.Utility;
 
 public class InsightStore extends Hashtable<String, Insight> {
 
@@ -49,9 +50,9 @@ public class InsightStore extends Hashtable<String, Insight> {
 	public String put(Insight data) {
 		String uniqueID = data.getInsightID();
 		if(uniqueID == null || uniqueID.isEmpty()) {
-			uniqueID = (++idCount) + ". " + UUID.randomUUID().toString();
+			uniqueID = (++idCount) + "_" + Utility.getRandomString(16);
 		} else {
-			uniqueID = (++idCount) + ". "  + uniqueID;
+			uniqueID = (++idCount) + "_"  + uniqueID;
 		}
 		super.put(uniqueID, data);
 		// update the new id inside the insight
