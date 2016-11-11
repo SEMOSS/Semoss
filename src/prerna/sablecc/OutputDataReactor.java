@@ -66,6 +66,7 @@ public class OutputDataReactor extends AbstractReactor {
 		String vizData = CacheFactory.getInsightCache(CacheFactory.CACHE_TYPE.DB_INSIGHT_CACHE).getVizData(insightObj);
 
 		Object obj = null;
+		boolean runInsightRecipe = true;
 		if(vizData != null) {
 			// insight has been cached, send it to the FE with a new insight id
 //			String id = InsightStore.getInstance().put(insightObj);
@@ -77,8 +78,15 @@ public class OutputDataReactor extends AbstractReactor {
 			uploaded.put("insightID", insightId);
 			
 			myStore.put("webData", uploaded);
-			myStore.put("G", insightObj.getDataMaker());
-		} else {
+			
+			IDataMaker dm = insightObj.loadDataMakerFromCache();
+			if(dm != null) {
+				myStore.put("G", dm);
+				runInsightRecipe = false;
+			}
+		} 
+		
+		if(runInsightRecipe) {
 			// insight visualization data has not been cached, run the insight
 			try {
 				insightObj.setInsightID(insightId);
