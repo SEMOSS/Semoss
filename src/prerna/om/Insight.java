@@ -767,7 +767,7 @@ public class Insight {
 			if(this.dataMakerName != null && !this.dataMakerName.isEmpty()) {
 				//first try and get it from cache, if doesn't exist then make default
 				try {
-					IDataMaker dm = CacheFactory.getInsightCache(CacheFactory.CACHE_TYPE.DB_INSIGHT_CACHE).getDMCache(this);
+					IDataMaker dm = null;//CacheFactory.getInsightCache(CacheFactory.CACHE_TYPE.DB_INSIGHT_CACHE).getDMCache(this);
 					if(dm != null) {
 						this.dataMaker = dm;
 					} else {
@@ -793,6 +793,12 @@ public class Insight {
 			this.dataMaker.setUserId(this.userID);
 		}
 		return this.dataMaker;
+	}
+	
+	public IDataMaker loadDataMakerFromCache() {
+		IDataMaker dm = CacheFactory.getInsightCache(CacheFactory.CACHE_TYPE.DB_INSIGHT_CACHE).getDMCache(this);
+		this.dataMaker = dm;
+		return dm;
 	}
 	
 	public boolean hasInstantiatedDataMaker() {
@@ -908,7 +914,7 @@ public class Insight {
 //	}
 	
 	public String[] getPkqlRecipe() {
-		getDataMaker();
+//		getDataMaker();
 		
 		List<String> pkqlRecipe = new ArrayList<>();
 		for(DataMakerComponent dmc : getDataMakerComponents()) {
