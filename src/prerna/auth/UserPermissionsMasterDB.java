@@ -547,7 +547,7 @@ public class UserPermissionsMasterDB {
 	// USER TRACKING METHODS BEGIN HERE
 	
 	public void trackInsightExecution(String user, String db, String insightId, String session) {
-		insightId = insightId.split(" ")[1];
+		insightId = insightId.split("_")[1];
 		String query = "SELECT Count FROM InsightExecution WHERE USER='" + user + "' AND DATABASE='" + db + "' AND INSIGHT='" + insightId + "' AND SESSION='" + session + "';";
 		try {
 			ArrayList<String[]> ret = runQuery(query);
