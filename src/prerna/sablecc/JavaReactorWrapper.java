@@ -197,6 +197,7 @@ public class JavaReactorWrapper extends AbstractReactor {
 
 	public IPkqlMetadata getPkqlMetadata() {
 		ExecuteCodePkqlMetadata pkqlMetadata = new ExecuteCodePkqlMetadata();
+		pkqlMetadata.setPkqlStr(myStore.get(PKQLEnum.JAVA_OP).toString());
 		pkqlMetadata.setExecutorType("Java");
 		pkqlMetadata.setExecutedCode(myStore.get(PKQLEnum.JAVA_OP).toString().replace("<code>", ""));
 		return pkqlMetadata;
