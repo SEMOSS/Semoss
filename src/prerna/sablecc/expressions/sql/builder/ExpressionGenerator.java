@@ -39,7 +39,7 @@ public class ExpressionGenerator {
 			leftSelector = new SqlColumnSelector(frame, leftObj.toString());
 		} else {
 			// selector is a constant
-			leftSelector = new SqlConstantSelector(leftObj.toString());
+			leftSelector = new SqlConstantSelector(leftObj);
 		}
 		
 		IExpressionSelector rightSelector = null;
@@ -56,7 +56,7 @@ public class ExpressionGenerator {
 			rightSelector = new SqlColumnSelector(frame, rightObj.toString());
 		} else {
 			// selector is a constant
-			rightSelector = new SqlConstantSelector(leftObj.toString());
+			rightSelector = new SqlConstantSelector(rightObj);
 		}
 
 		// just doing a check to make sure the groups are the same
@@ -128,7 +128,7 @@ public class ExpressionGenerator {
 			leftSelector = new RColumnSelector(leftObj.toString());
 		} else {
 			// selector is a constant
-			leftSelector = new RConstantSelector(leftObj.toString());
+			leftSelector = new RConstantSelector(leftObj);
 		}
 		
 		IExpressionSelector rightSelector = null;
@@ -145,7 +145,7 @@ public class ExpressionGenerator {
 			rightSelector = new RColumnSelector(rightObj.toString());
 		} else {
 			// selector is a constant
-			rightSelector = new RConstantSelector(leftObj.toString());
+			rightSelector = new RConstantSelector(rightObj);
 		}
 
 		// just doing a check to make sure the groups are the same
