@@ -946,6 +946,12 @@ public class Insight {
 	public boolean containsNonPkqlTransformations() {
 		for(DataMakerComponent dmc : getDataMakerComponents()) {
 			
+			if(dmc.getQuery() != null && !dmc.getQuery().equals(Constants.EMPTY)) {
+				if(dmc.getQueryStruct() != null || (dmc.getQuery() != null && !dmc.getQuery().equals(Constants.EMPTY))){
+					return true;
+				}
+			}
+			
 			//iterate through pretrans
 			for(ISEMOSSTransformation ist : dmc.getPreTrans()) {
 				if(!(ist instanceof PKQLTransformation)) {
@@ -1331,6 +1337,71 @@ public class Insight {
 //			for(String label : dataTableAlign.keySet()) {
 //				selectors.add(dataTableAlign.get(label));
 //			}
+		}
+		// TODO: how do i get this outside of here? we need to return incremental stores during traversing but not when recreating insight
+		IDataMaker dm = getDataMaker();
+		if(dm instanceof GraphDataModel) {
+			((GraphDataModel) getDataMaker()).setOverlay(false);
+		}
+		// this will return the data from the dataMaker
+		// if has a do-method, dataMaker is the playsheet and can use those methods but can also use a datamaker
+		// i.e.gdm would be used for the method below (to get the edges/nodes)
+		
+		// right now, assuming only one action is present
+		// TODO: should we update the interface to always return a map
+		// currently all actions return a map
+		if(dm.getActionOutput() != null && !dm.getActionOutput().isEmpty()) {
+			retHash.putAll( (Map) getDataMaker().getActionOutput().get(0));
+		} else if (getOutput().equals("Graph") || getOutput().equals("VivaGraph")) { //TODO: Remove hardcoded layout values
+			if(dm instanceof TinkerFrame) {
+				retHash.putAll(((TinkerFrame)getDataMaker()).getGraphOutput());
+			} else if(dm instanceof H2Frame) {
+				TinkerFrame tframe = TableDataFrameFactory.convertToTinkerFrameForGraph((H2Frame)dm);
+				retHash.putAll(tframe.getGraphOutput());
+			} else {
+				// this is for insights which are gdm
+				retHash.putAll(dm.getDataMakerOutput());
+			}
+		} else {
+			if(dm instanceof ITableDataFrame) {
+				retHash.putAll(dm.getDataMakerOutput());
+			} else if(dm instanceof Dashboard) { 
+				Dashboard dash = (Dashboard)dm;
+				Gson gson = new Gson();
+				retHash.put("config", dash.getConfig());
+				retHash.put("varMap", this.pkqlVarMap);
+//				dash.setInsightID(insightID);
+				retHash.putAll(dm.getDataMakerOutput());
+			} else {
+				retHash.putAll(dm.getDataMakerOutput());
+			}
+		}
+		String uiOptions = getUiOptions();
+		if(!uiOptions.isEmpty()) {
+			retHash.put("uiOptions", uiOptions);
+		}
+		retHash.put("pkqlOutput", this.getPKQLData(false));
+		
+//		String pkqlRecipe = this.getPkqlRecipe();
+//		if(pkqlRecipe != "") {
+//			retHash.put("recipe", pkqlRecipe.split(System.getProperty("line.separator")));
+//		}
+		
+		retHash.put("recipe", this.getPkqlRecipe());
+		retHash.put("isPkqlRunnable", isPkqlRunnable());
+		
+		return retHash;
+	}
+	
+	public Map<String, Object> getOutputWebData() {
+		Map<String, Object> retHash = new HashMap<String, Object>();
+		retHash.put("insightID", getInsightID());
+		retHash.put("layout", getOutput());
+		retHash.put("title", getInsightName());
+		retHash.put("dataMakerName", this.dataMakerName);
+//		List<String> selectors = new ArrayList<String>();
+		if(dataTableAlign != null){ // some playsheets don't require data table align, like grid play sheet. Should probably change this so they all have data table align (like if i want to change the order of my columns)
+			retHash.put("dataTableAlign", dataTableAlign);
 		}
 		// TODO: how do i get this outside of here? we need to return incremental stores during traversing but not when recreating insight
 		IDataMaker dm = getDataMaker();
