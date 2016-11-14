@@ -45,6 +45,7 @@ public interface Analysis extends Switch
     void caseADashboardJoinColop(ADashboardJoinColop node);
     void caseAQueryDataColop(AQueryDataColop node);
     void caseAClearCacheColop(AClearCacheColop node);
+    void caseAUseCacheColop(AUseCacheColop node);
     void caseAPanelVizPanelop(APanelVizPanelop node);
     void caseAPanelCommentPanelop(APanelCommentPanelop node);
     void caseAPanelCommentRemovePanelop(APanelCommentRemovePanelop node);
@@ -62,6 +63,7 @@ public interface Analysis extends Switch
     void caseADatanetworkdisconnectDataop(ADatanetworkdisconnectDataop node);
     void caseAOutputDataDataop(AOutputDataDataop node);
     void caseADataModelDataop(ADataModelDataop node);
+    void caseAClearDataDataop(AClearDataDataop node);
     void caseADashboardConfigDashboardop(ADashboardConfigDashboardop node);
     void caseADashboardAddDashboardop(ADashboardAddDashboardop node);
     void caseADatabaseListDatabaseop(ADatabaseListDatabaseop node);
@@ -99,7 +101,9 @@ public interface Analysis extends Switch
     void caseAQueryData(AQueryData node);
     void caseAOpenData(AOpenData node);
     void caseAClearCache(AClearCache node);
+    void caseAUseCache(AUseCache node);
     void caseAOutputData(AOutputData node);
+    void caseAClearData(AClearData node);
     void caseAApiImportBlock(AApiImportBlock node);
     void caseACsvTableImportBlock(ACsvTableImportBlock node);
     void caseAPastedDataImportBlock(APastedDataImportBlock node);
@@ -258,9 +262,11 @@ public interface Analysis extends Switch
     void caseTDataremovetoken(TDataremovetoken node);
     void caseTDataopentoken(TDataopentoken node);
     void caseTDataoutputtoken(TDataoutputtoken node);
+    void caseTDatacleartoken(TDatacleartoken node);
     void caseTDataquerytoken(TDataquerytoken node);
     void caseTDatamodeltoken(TDatamodeltoken node);
     void caseTDataclearcachetoken(TDataclearcachetoken node);
+    void caseTDatausecachetoken(TDatausecachetoken node);
     void caseTLiteral(TLiteral node);
     void caseTHelpToken(THelpToken node);
     void caseTCodeblock(TCodeblock node);
