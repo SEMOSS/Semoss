@@ -284,7 +284,8 @@ public class InsightCreateRunner implements Runnable{
 	 */
 	public Map<String, Object> runWeb()
 	{
-		if(insight.getPkqlRecipe().length == 0) { 
+		boolean HasNoPkqlRecipeOrcontainsNonPkqlTransformation = (insight.getPkqlRecipe().length == 0) || insight.containsNonPkqlTransformations();
+		if(HasNoPkqlRecipeOrcontainsNonPkqlTransformation) { 
 			createData();
 		}
 		Map<String, String> tableDataAlign = insight.getDataTableAlign();
@@ -304,7 +305,9 @@ public class InsightCreateRunner implements Runnable{
 		}
 		
 		dm.resetDataId();
-		return insight.getWebData();
+		Map<String, Object> retData = insight.getWebData();
+		retData.put("hasNonPkqlRecipe", insight.containsNonPkqlTransformations());
+		return retData;
 	}
 	
 	public Map<String, Object> runSavedRecipe() {
