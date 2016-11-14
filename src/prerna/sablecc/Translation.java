@@ -103,6 +103,8 @@ public class Translation extends DepthFirstAdapter {
 		defaultReactors.put(PKQLEnum.OUTPUT_DATA, "prerna.sablecc.OutputDataReactor");
 		// this is used to clear the cache
 		defaultReactors.put(PKQLEnum.CLEAR_CACHE, "prerna.sablecc.CacheReactor");
+		// this is used to set whether to use cache
+		defaultReactors.put(PKQLEnum.USE_CACHE, "prerna.sablecc.SetCacheReactor");
 		return defaultReactors;
 	}
 
@@ -746,11 +748,27 @@ public class Translation extends DepthFirstAdapter {
 		}
 		curReactor.set(PKQLEnum.OUTPUT_DATA, previousReactor.getValue(PKQLEnum.OUTPUT_DATA));
 	}
+	
+	@Override
+	public void inAClearData(AClearData node) {
+		if (reactorNames.containsKey(PKQLEnum.CLEAR_DATA)) {
+			initReactor(PKQLEnum.CLEAR_DATA);
+		}
+	}
+	
+	@Override
+	public void outAClearData(AClearData node) {
+		if (reactorNames.containsKey(PKQLEnum.CLEAR_DATA)) {
+			deinitReactor(PKQLEnum.CLEAR_DATA, node.toString().trim(), PKQLEnum.CLEAR_DATA);
+		}
+	}
 
+	@Override
 	public void inAClearCache(AClearCache node) {
 		initReactor(PKQLEnum.CLEAR_CACHE);
 	}
 	
+	@Override
 	public void outAClearCache(AClearCache node) {
         
 		PWordOrNum engineName_Node = node.getEngine();
@@ -767,6 +785,18 @@ public class Translation extends DepthFirstAdapter {
         
         deinitReactor(PKQLEnum.CLEAR_CACHE, node.toString().trim(), PKQLEnum.CLEAR_CACHE);
     }
+	
+	@Override
+	public void inAUseCache(AUseCache node) {
+		initReactor(PKQLEnum.USE_CACHE);
+	}
+	
+	@Override
+	public void outAUseCache(AUseCache node) {
+		String cacheSetting = node.getCacheSetting().toString();
+		curReactor.set("CACHE_SETTING", cacheSetting);
+		deinitReactor(PKQLEnum.USE_CACHE, node.toString(), PKQLEnum.USE_CACHE);
+	}
 
 	@Override
 	public void inARemoveData(ARemoveData node) {
