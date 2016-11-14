@@ -631,6 +631,7 @@ public class DIHelper {
 				coreProp = new Properties();
 				fileIn = new FileInputStream(fileName);
 				coreProp.load(fileIn);
+				coreProp.put(Constants.DIHELPER_PROP_FILE_LOCATION, fileName);
 			} catch (FileNotFoundException e) {
 				e.printStackTrace();
 			} catch (IOException e) {

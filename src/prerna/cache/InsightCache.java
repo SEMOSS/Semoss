@@ -17,6 +17,7 @@ import prerna.ui.components.playsheets.datamakers.IDataMaker;
 import prerna.util.ArrayUtilityMethods;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
+import prerna.util.Utility;
 
 public abstract class InsightCache implements ICache {
 
@@ -45,8 +46,10 @@ public abstract class InsightCache implements ICache {
 	public void setCacheMode(boolean cacheSetting) {
 		if(cacheSetting) {
 			cacheMode = "ON";
+			Utility.changePropMapFileValue(DIHelper.getInstance().getProperty(Constants.DIHELPER_PROP_FILE_LOCATION), "CACHE_SETTING", "ON");
 		} else {
 			cacheMode = "OFF";
+			Utility.changePropMapFileValue(DIHelper.getInstance().getProperty(Constants.DIHELPER_PROP_FILE_LOCATION), "CACHE_SETTING", "OFF");
 		}
 	}
 	
@@ -201,8 +204,10 @@ public abstract class InsightCache implements ICache {
 	 * @return				The string containing the view data
 	 */
 	public String getVizData(Insight in) {
+		if(!"ON".equals(cacheMode)) return null;
+		
 		String fileLoc = getBaseFolder(in) + FILE_SEPARATOR + createUniqueId(in) + JSON_EXTENSION;
-		return ICache.readFromFileString(fileLoc);
+		return ICache.readFromFileString(fileLoc);		
 	}
 
 	/**
@@ -211,6 +216,8 @@ public abstract class InsightCache implements ICache {
 	 * @return				The cached data maker
 	 */
 	public ITableDataFrame getDMCache(Insight in) {
+		if(!"ON".equals(cacheMode)) return null;
+		
 		ITableDataFrame dataFrame = null;
 		
 		// determine the cache location

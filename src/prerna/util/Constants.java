@@ -32,6 +32,7 @@ package prerna.util;
  */
 public class Constants {
 
+	public static final String DIHELPER_PROP_FILE_LOCATION = "DIHELPER_PROP_FILE_LOCATION";
 	public static final String PLAYSHEETS_DEFINED = "PLAYSHEETS_DEFINED";
 	public static final String SUBJECT = "SUBJECT";
 	public static final String OBJECT = "OBJECT";
