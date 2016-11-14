@@ -943,6 +943,27 @@ public class Insight {
 		return pkqlRecipe.toArray(new String[0]);
 	}
 	
+	public boolean containsNonPkqlTransformations() {
+		for(DataMakerComponent dmc : getDataMakerComponents()) {
+			
+			//iterate through pretrans
+			for(ISEMOSSTransformation ist : dmc.getPreTrans()) {
+				if(!(ist instanceof PKQLTransformation)) {
+					return true;
+				}
+			}
+			
+			//iterate through the post trans
+			for(ISEMOSSTransformation ist : dmc.getPostTrans()) {
+				if(!(ist instanceof PKQLTransformation)) {
+					return true;
+				}
+			}
+		}
+		
+		return false;
+	}
+	
 	// Stores the pieces that make up a recipe block for the front end
 	private void storeTransInRecipe(ISEMOSSTransformation ist, StringBuilder list){
 		if(ist instanceof PKQLTransformation) {
