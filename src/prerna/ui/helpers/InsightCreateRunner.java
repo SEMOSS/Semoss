@@ -306,7 +306,9 @@ public class InsightCreateRunner implements Runnable{
 		
 		dm.resetDataId();
 		Map<String, Object> retData = insight.getWebData();
-		retData.put("hasNonPkqlRecipe", HasNoPkqlRecipeOrcontainsNonPkqlTransformation);
+		if(HasNoPkqlRecipeOrcontainsNonPkqlTransformation) {
+			retData.put("recipe", new String[0]);
+		}
 		return retData;
 	}
 	
