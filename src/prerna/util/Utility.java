@@ -1209,7 +1209,7 @@ public class Utility {
 	 * @param keyToAlter				The key to alter
 	 * @param valueToProvide			The value to give the key
 	 */
-	public static void changeSMSSValue(String smssPath, String keyToAlter, String valueToProvide) {
+	public static void changePropMapFileValue(String smssPath, String keyToAlter, String valueToProvide) {
 		FileOutputStream fileOut = null;
 		File file = new File(smssPath);
 
@@ -2696,7 +2696,7 @@ public class Utility {
 			// then we want to change the boolean to be false such that this is only a one time solr reload
 			if(smssProp){
 				LOGGER.info(engineToAdd.getEngineName() + " is changing solr boolean on smss");
-				changeSMSSValue(fileName, Constants.SOLR_RELOAD, "false");
+				changePropMapFileValue(fileName, Constants.SOLR_RELOAD, "false");
 			}
 		}
 
@@ -2931,7 +2931,7 @@ public class Utility {
 
 			// update the smss file to contain the boolean as true to avoid this process on start up again
 			LOGGER.info(engine.getEngineName() + " is changing boolean on smss for filling empty datatypes");
-			changeSMSSValue(fileName, Constants.FILL_EMPTY_DATATYPES, "false");
+			changePropMapFileValue(fileName, Constants.FILL_EMPTY_DATATYPES, "false");
 		}
 	}
 

@@ -169,6 +169,7 @@ public class Dashboard implements IDataMaker {
 		reactorNames.put(PKQLEnum.EXPR_SCRIPT, "prerna.sablecc.ExprReactor");
 		reactorNames.put(PKQLReactor.MATH_FUN.toString(),"prerna.sablecc.MathReactor");
 		reactorNames.put(PKQLEnum.MATH_PARAM, "prerna.sablecc.MathParamReactor");
+		reactorNames.put(PKQLEnum.CLEAR_DATA, "prerna.sablecc.DashboardClearDataReactor");
 		return reactorNames;
 	}
 
@@ -437,6 +438,15 @@ public class Dashboard implements IDataMaker {
 				}
 			}
 		}
+	}
+	
+	public void clearData() {
+		filterHash = new HashMap<>();
+		insightMap = new HashMap<>();
+		insight2frameMap = new HashMap<>();
+		config = new HashMap<>();
+		insightOutputMap = new HashMap<>();
+		joiner = new H2Joiner(this);
 	}
 	
 	/************************************* END JOINING LOGIC **************************************/

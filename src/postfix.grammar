@@ -79,9 +79,11 @@ Tokens
  dataremovetoken = 'data.remove';
  dataopentoken = 'data.open';
  dataoutputtoken = 'data.output';
+ datacleartoken = 'data.clear';
  dataquerytoken = 'data.query';
  datamodeltoken = 'data.model';
  dataclearcachetoken = 'data.clearcache';
+ datausecachetoken = 'data.usecache';
  literal = (letter_s | letter_b | digit | underscore)*;// | special)*;
  help_token = 'info.help';
  codeblock = code alphanumeric* code;
@@ -164,6 +166,7 @@ colop = // colOp is usually of the form of joinColumn / addColumn / removeColumn
 		| {dashboard_join} dashboard_join
 		| {query_data} query_data
 		| {clear_cache} clear_cache
+		| {use_cache} use_cache
 		;
 
 panelop = // panelop is usually of the form of viz.change, viz.tools, viz.color
@@ -187,6 +190,7 @@ dataop = // dataop is usually of the form of data.frame, etc.
 		| {datanetworkdisconnect} datanetworkdisconnect
 		| {output_data} output_data
 		| {data_model} data_model
+		| {clear_data} clear_data
 		;
 
 dashboardop = // dashboardop is usually of the form dashboard.join, dashboard.add, dashboard.remove, etc.
@@ -311,12 +315,18 @@ query_data = // imports from api query commands and other scripts
 open_data = //opens insight given an engine and id, e.g. "data.open("MovieDB", "3");
 		dataopentoken [lp]:l_par [engine]:word_or_num [comma]:comma [engine_id]:word_or_num [rp]: r_par;
 		
-clear_cache = //deletes the cache for an insight, db, or all cache
+clear_cache = //deletes the cache for an insight, db, or all cache, e.g. "data.clearcache("MovieDB", "3")"
 		dataclearcachetoken [lp]:l_par [engine]:word_or_num? [engine_id]:csv_group? [rp]: r_par;
-		
+
+use_cache = //sets the cache setting, true to use cache, false otherwise
+		datausecachetoken [lp]:l_par [cache_setting]:boolean [rp]: r_par;
+	
 output_data = //opens insight given an engine and id and replaces that insight, e.g. "data.output("MovieDB", "3");
 		dataoutputtoken [lp]:l_par [engine]:word_or_num [comma]:comma [engine_id]:word_or_num [rp]: r_par;
-			
+
+clear_data = //clears the data from the insight
+		datacleartoken [lp]:l_par [rp]:r_par;
+					
 import_block = {api} api_block | {csv_table} csv_table | {pasted_data} pasted_data_block; 
 
 pasted_data_block = l_par pasted_data comma [delimitier]:word_or_num r_par;
