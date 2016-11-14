@@ -769,6 +769,27 @@ public class ReversedDepthFirstAdapter extends AnalysisAdapter
         outAClearCacheColop(node);
     }
 
+    public void inAUseCacheColop(AUseCacheColop node)
+    {
+        defaultIn(node);
+    }
+
+    public void outAUseCacheColop(AUseCacheColop node)
+    {
+        defaultOut(node);
+    }
+
+    @Override
+    public void caseAUseCacheColop(AUseCacheColop node)
+    {
+        inAUseCacheColop(node);
+        if(node.getUseCache() != null)
+        {
+            node.getUseCache().apply(this);
+        }
+        outAUseCacheColop(node);
+    }
+
     public void inAPanelVizPanelop(APanelVizPanelop node)
     {
         defaultIn(node);
@@ -1124,6 +1145,27 @@ public class ReversedDepthFirstAdapter extends AnalysisAdapter
             node.getDataModel().apply(this);
         }
         outADataModelDataop(node);
+    }
+
+    public void inAClearDataDataop(AClearDataDataop node)
+    {
+        defaultIn(node);
+    }
+
+    public void outAClearDataDataop(AClearDataDataop node)
+    {
+        defaultOut(node);
+    }
+
+    @Override
+    public void caseAClearDataDataop(AClearDataDataop node)
+    {
+        inAClearDataDataop(node);
+        if(node.getClearData() != null)
+        {
+            node.getClearData().apply(this);
+        }
+        outAClearDataDataop(node);
     }
 
     public void inADashboardConfigDashboardop(ADashboardConfigDashboardop node)
@@ -2427,6 +2469,39 @@ public class ReversedDepthFirstAdapter extends AnalysisAdapter
         outAClearCache(node);
     }
 
+    public void inAUseCache(AUseCache node)
+    {
+        defaultIn(node);
+    }
+
+    public void outAUseCache(AUseCache node)
+    {
+        defaultOut(node);
+    }
+
+    @Override
+    public void caseAUseCache(AUseCache node)
+    {
+        inAUseCache(node);
+        if(node.getRp() != null)
+        {
+            node.getRp().apply(this);
+        }
+        if(node.getCacheSetting() != null)
+        {
+            node.getCacheSetting().apply(this);
+        }
+        if(node.getLp() != null)
+        {
+            node.getLp().apply(this);
+        }
+        if(node.getDatausecachetoken() != null)
+        {
+            node.getDatausecachetoken().apply(this);
+        }
+        outAUseCache(node);
+    }
+
     public void inAOutputData(AOutputData node)
     {
         defaultIn(node);
@@ -2466,6 +2541,35 @@ public class ReversedDepthFirstAdapter extends AnalysisAdapter
             node.getDataoutputtoken().apply(this);
         }
         outAOutputData(node);
+    }
+
+    public void inAClearData(AClearData node)
+    {
+        defaultIn(node);
+    }
+
+    public void outAClearData(AClearData node)
+    {
+        defaultOut(node);
+    }
+
+    @Override
+    public void caseAClearData(AClearData node)
+    {
+        inAClearData(node);
+        if(node.getRp() != null)
+        {
+            node.getRp().apply(this);
+        }
+        if(node.getLp() != null)
+        {
+            node.getLp().apply(this);
+        }
+        if(node.getDatacleartoken() != null)
+        {
+            node.getDatacleartoken().apply(this);
+        }
+        outAClearData(node);
     }
 
     public void inAApiImportBlock(AApiImportBlock node)

@@ -121,11 +121,15 @@ public class PKQLEnum {
 	public static final String NATIVE_QUERY_API = "NATIVE_QUERY_API";
 	public static final String SEARCH_QUERY_API = "SEARCH_QUERY_API";
 	public static final String CLEAR_CACHE = "CLEAR_CACHE";
+	public static final String USE_CACHE = "USE_CACHE";
+	public static final String CLEAR_DATA = "CLEAR_DATA";
 	
 	//Solr
 	public static final String SOLR_AUTOCOMPLETE = "SOLR_AUTOCOMPLETE";
 	public static final String SOLR_SEARCH = "SOLR_SEARCH";
 	public static final String SOLR_FACET = "SOLR_FACET";
 	public static final String SOLR_GROUP_BY = "SOLR_GROUP_BY";
+
+
 	
 }
