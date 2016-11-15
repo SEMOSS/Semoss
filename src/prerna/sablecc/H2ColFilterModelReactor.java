@@ -134,7 +134,7 @@ public class H2ColFilterModelReactor extends ColFilterModelReactor {
 
 		// add filterWord to query
 		if (word != null && word.length() > 0) {
-			query += " WHERE UPPER(" + col + ") = UPPER(" + word.trim() + ")";
+			query += " WHERE UPPER(" + col + ") = \'" + word.trim().toUpperCase() + "\'";
 			whereUsed = true;
 		}
 
@@ -203,7 +203,7 @@ public class H2ColFilterModelReactor extends ColFilterModelReactor {
 
 		// add filterWord to query
 		if (word != null && word.length() > 0) {
-			query += " WHERE UPPER(" + col + ") = UPPER(" + word.trim() + ")";
+			query += " WHERE UPPER(" + col + ") = \'" + word.trim().toUpperCase() + "\'";
 			whereUsed = true;
 		}
 
