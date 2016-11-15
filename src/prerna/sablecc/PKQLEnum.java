@@ -52,7 +52,7 @@ public class PKQLEnum {
 	public static final String STANDARD_DEVIATION = "STANDARDDEVIATION";
 	public static final String POPULATION_STANDARD_DEVIATION = "POPULATIONSTANDARDDEVIATION";
 	public static final String SAMPLE_STANDARD_DEVIATION = "SAMPLESTANDARDDEVIATION";
-
+	
 	public static final String MEDIAN = "MEDIAN";
 	public static final String COUNT = "COUNT";
 	public static final String COUNT_DISTINCT = "UNIQUECOUNT";
@@ -61,13 +61,16 @@ public class PKQLEnum {
 	public static final String GROUP_CONCAT = "GROUPCONCAT";
 	public static final String UNIQUE_GROUP_CONCAT = "UNIQUEGROUPCONCAT";
 
+	public static final String CORRELATION_ALGORITHM = "CORRELATION";
+	
+	public static final String EXPR_TERM = "EXPR_TERM";
+	public static final String EXPR_SCRIPT = "EXPR_SCRIPT";
+	public static final String FORMULA = "FORMULA";
+	
 	public static final String NUMBER = "NUMBER";
 	public static final String DECIMAL = "DECIMAL";
 	public static final String ALPHA = "ALPHA";
 	public static final String SORT = "SORT";
-	public static final String EXPR_TERM = "EXPR_TERM";
-	public static final String EXPR_SCRIPT = "EXPR_SCRIPT";
-	public static final String MATH_PARAM = "MATH_PARAM";
 	public static final String COL_CSV = "COL_CSV";
 	public static final String COL_DEF = "COL_DEF";
 	public static final String WHERE = "WHERE";
@@ -75,7 +78,6 @@ public class PKQLEnum {
 	public static final String SELECTOR = "SELECTORS";
 	public static final String RELATION = "RELATION";
 	public static final String GROUP_BY = "GROUP_BY";
-	public static final String PROC_NAME = "PROC_NAME";
 	public static final String API = "API";
 	public static final String CSV_TABLE = "CSV_TABLE";
 	public static final String PASTED_DATA = "PASTED_DATA";

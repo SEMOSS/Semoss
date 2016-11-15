@@ -5,6 +5,7 @@ import java.util.Iterator;
 import java.util.Vector;
 
 import prerna.ds.ExpressionReducer;
+import prerna.sablecc.meta.IPkqlMetadata;
 
 public class ColWhereReactor extends AbstractReactor {
 
@@ -56,6 +57,12 @@ public class ColWhereReactor extends AbstractReactor {
 
 		// this is where I would create the iterator to do various things
 
+		return null;
+	}
+
+	@Override
+	public IPkqlMetadata getPkqlMetadata() {
+		// TODO Auto-generated method stub
 		return null;
 	}
 

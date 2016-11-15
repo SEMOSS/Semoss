@@ -8,10 +8,13 @@ import java.util.Vector;
 
 import org.apache.commons.math3.stat.correlation.PearsonsCorrelation;
 
-import prerna.sablecc.PKQLEnum;
 import prerna.util.ArrayUtilityMethods;
 
 public class CorrelationCoefficientReactor extends BaseReducerReactor {
+	
+	public CorrelationCoefficientReactor() {
+		setMathRoutine("CorrelationCoefficient");
+	}
 	
 	@Override
 	public Object reduce() {
@@ -77,7 +80,7 @@ public class CorrelationCoefficientReactor extends BaseReducerReactor {
 	
 	@Override
 	public Map<String, Object> getColumnDataMap() {
-		return getBaseColumnDataMap("CorrelationCoefficient");
+		return getBaseColumnDataMap();
 	}
 	
 }

@@ -6,10 +6,13 @@ import java.util.Iterator;
 import java.util.Map;
 import java.util.Vector;
 
-import prerna.sablecc.PKQLEnum;
 import prerna.util.ArrayUtilityMethods;
 
 public class AverageReactor extends BaseReducerReactor {
+	
+	public AverageReactor() {
+		setMathRoutine("Average");
+	}
 	
 	@Override
 	public Object reduce() {
@@ -64,7 +67,7 @@ public class AverageReactor extends BaseReducerReactor {
 
 	@Override
 	public Map<String, Object> getColumnDataMap() {
-		return getBaseColumnDataMap("Average");
+		return getBaseColumnDataMap();
 	}
 	
 }

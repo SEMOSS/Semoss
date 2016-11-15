@@ -10,6 +10,7 @@ import org.rosuda.REngine.Rserve.RserveException;
 import prerna.ds.h2.H2Frame;
 import prerna.engine.impl.r.RRunner;
 import prerna.engine.impl.rdf.AbstractApiReactor;
+import prerna.sablecc.meta.IPkqlMetadata;
 
 /**
  * Used in ApiReactor to create an R dataframe based off of only columns selected by the user
@@ -66,5 +67,11 @@ public class RApiReactor extends AbstractApiReactor {
 		myStore.put("STATUS", PKQLRunner.STATUS.SUCCESS);
 		
 		return null; // until H2Frame can run a query on itself, can't generate a wrapper from query
+	}
+
+	@Override
+	public IPkqlMetadata getPkqlMetadata() {
+		// TODO Auto-generated method stub
+		return null;
 	}
 }

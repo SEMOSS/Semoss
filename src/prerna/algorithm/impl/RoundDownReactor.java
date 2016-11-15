@@ -11,6 +11,11 @@ import prerna.sablecc.PKQLEnum;
 import prerna.sablecc.PKQLRunner.STATUS;
 
 public class RoundDownReactor extends MathReactor {
+	
+	public RoundDownReactor() {
+		setMathRoutine("Floor");
+	}
+	
 	@Override
 	public Iterator process(){
 		modExpression();
@@ -19,7 +24,7 @@ public class RoundDownReactor extends MathReactor {
 		Iterator itr = getTinkerData(columns, (ITableDataFrame)myStore.get("G") , false);
 				
 		
-		Map<String, Object> options = (Map<String, Object>) myStore.get(PKQLEnum.MATH_PARAM);
+		Map<String, Object> options = (Map<String, Object>) myStore.get(PKQLEnum.MAP_OBJ);
 		double significantDigit = Integer.parseInt(options.get("CONDITION1") + "");
 		double digit = Math.pow(10, significantDigit);
 		String script = "Math.floor("+columnArray[0] +"* "+ digit+")/" + digit;

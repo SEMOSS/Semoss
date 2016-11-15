@@ -9,6 +9,10 @@ import prerna.sablecc.expressions.sql.builder.SqlMathSelector;
 
 public class SqlSqrtReactor extends AbstractSqlExpression {
 
+	public SqlSqrtReactor() {
+		setProcedureName("Sqrt");
+	}
+	
 	@Override
 	public Iterator process() {
 		super.process();

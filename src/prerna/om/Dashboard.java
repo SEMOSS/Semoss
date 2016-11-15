@@ -2,8 +2,6 @@ package prerna.om;
 
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -168,12 +166,10 @@ public class Dashboard implements IDataMaker {
 		reactorNames.put(PKQLEnum.EXPR_TERM, "prerna.sablecc.ExprReactor");
 		reactorNames.put(PKQLEnum.EXPR_SCRIPT, "prerna.sablecc.ExprReactor");
 		reactorNames.put(PKQLReactor.MATH_FUN.toString(),"prerna.sablecc.MathReactor");
-		reactorNames.put(PKQLEnum.MATH_PARAM, "prerna.sablecc.MathParamReactor");
 		reactorNames.put(PKQLEnum.CLEAR_DATA, "prerna.sablecc.DashboardClearDataReactor");
 		return reactorNames;
 	}
 
-	@Override
 	public void updateDataId() {
 		
 	}

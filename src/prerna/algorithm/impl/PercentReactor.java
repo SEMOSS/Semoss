@@ -5,11 +5,14 @@ import java.util.Iterator;
 import java.util.Map;
 import java.util.Vector;
 
-import prerna.sablecc.PKQLEnum;
 import prerna.util.ArrayUtilityMethods;
 
 public class PercentReactor extends BaseReducerReactor {
 
+	public PercentReactor() {
+		setMathRoutine("Percent");
+	}
+	
 	@Override
 	public Object reduce() {
 		return 1;
@@ -53,7 +56,7 @@ public class PercentReactor extends BaseReducerReactor {
 	}
 	
 	public Map<String, Object> getColumnDataMap() {
-		return getBaseColumnDataMap("Percent");
+		return getBaseColumnDataMap();
 	}
 
 }

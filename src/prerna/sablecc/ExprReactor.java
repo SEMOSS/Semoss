@@ -2,6 +2,8 @@ package prerna.sablecc;
 
 import java.util.Iterator;
 
+import prerna.sablecc.meta.IPkqlMetadata;
+
 public class ExprReactor extends AbstractReactor {
 
 	// every single thing I am listening to
@@ -36,6 +38,12 @@ public class ExprReactor extends AbstractReactor {
 		}
 		// this is where I would create the iterator to do various things
 
+		return null;
+	}
+
+	@Override
+	public IPkqlMetadata getPkqlMetadata() {
+		// TODO Auto-generated method stub
 		return null;
 	}
 }

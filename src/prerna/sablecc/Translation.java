@@ -1914,15 +1914,6 @@ public class Translation extends DepthFirstAdapter {
 			curReactor.put(PKQLEnum.G, frame);
 			curReactor.put(PKQLEnum.MATH_FUN, nodeStr.trim());
 
-			// for panel.viz2
-			curReactor.put("MATH_EXPRESSION", node.toString().trim());
-
-			curReactor.put(PKQLEnum.PROC_NAME, procedureName); // don't need
-																// once all
-																// algorithms
-																// have been
-																// refactored
-																// into Reactors
 			if (expr != null)
 				curReactor.put(PKQLEnum.EXPR_TERM, expr);
 		}
@@ -1937,27 +1928,11 @@ public class Translation extends DepthFirstAdapter {
 		String expr = node.getExpr().toString().trim();
 		curReactor.put("TERM", curReactor.getValue(expr));
 		
-		
 		Hashtable<String, Object> thisReactorHash = deinitReactor(PKQLReactor.MATH_FUN.toString(), expr, nodeStr);
 		IScriptReactor previousReactor = (IScriptReactor) thisReactorHash.get(PKQLReactor.MATH_FUN.toString());
-		curReactor.put(PKQLEnum.COL_DEF, previousReactor.getValue(PKQLEnum.COL_DEF)); // TODO:
-																						// use
-																						// syncronize
-																						// instead
-		curReactor.put(PKQLEnum.PROC_NAME, previousReactor.getValue(PKQLEnum.PROC_NAME));
+		
+		curReactor.put(PKQLEnum.COL_DEF, previousReactor.getValue(PKQLEnum.COL_DEF));
 		curReactor.put(PKQLEnum.COL_CSV, previousReactor.getValue(PKQLEnum.COL_CSV));
-
-		// for panel.viz -- can't use the same, because i need set, not
-		// put...don't want to change because that might break something
-		// TODO : combine with above
-		curReactor.set("MATH_EXPRESSION", previousReactor.getValue("MATH_EXPRESSION"));
-		curReactor.set(PKQLEnum.COL_DEF + "2", previousReactor.getValue(PKQLEnum.COL_DEF)); // TODO:
-																							// use
-																							// syncronize
-																							// instead
-		curReactor.set(PKQLEnum.PROC_NAME + "2", previousReactor.getValue(PKQLEnum.PROC_NAME));
-		curReactor.set(PKQLEnum.COL_CSV + "2", previousReactor.getValue(PKQLEnum.COL_CSV));
-
 		curReactor.addReplacer(nodeStr, previousReactor.getValue(expr));
 		
 		// above is all old stuff
@@ -2070,7 +2045,7 @@ public class Translation extends DepthFirstAdapter {
 		// just grab that map and put it back into the reactor but with a
 		// Math_Param key
 		Map<Object, Object> mathParamMapObj = (Map<Object, Object>) curReactor.removeLastStoredKey();
-		curReactor.put(PKQLEnum.MATH_PARAM, mathParamMapObj);
+		curReactor.put(PKQLEnum.MAP_OBJ, mathParamMapObj);
 	}
 
 	/////////////////////////////////////////// MATRIX + VECTOR + SCALAR

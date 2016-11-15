@@ -4,6 +4,7 @@ import java.util.Iterator;
 
 import prerna.cache.CacheFactory;
 import prerna.cache.CacheFactory.CACHE_TYPE;
+import prerna.sablecc.meta.IPkqlMetadata;
 
 public class SetCacheReactor extends AbstractReactor{
 
@@ -18,6 +19,12 @@ public class SetCacheReactor extends AbstractReactor{
 		String cacheSetting = myStore.get("CACHE_SETTING").toString().trim().toUpperCase();
 		boolean setting = cacheSetting.contains("TRUE");
 		CacheFactory.getInsightCache(CACHE_TYPE.DB_INSIGHT_CACHE).setCacheMode(setting);
+		return null;
+	}
+
+	@Override
+	public IPkqlMetadata getPkqlMetadata() {
+		// TODO Auto-generated method stub
 		return null;
 	}
 

@@ -18,6 +18,10 @@ import prerna.sablecc.PKQLRunner.STATUS;
  */
 public class RReactor extends MathReactor{
 	
+	public RReactor() {
+		setMathRoutine("R");
+	}
+	
 	@Override
 	public Iterator process() {
 		String nodeStr = (String) myStore.get(whoAmI);

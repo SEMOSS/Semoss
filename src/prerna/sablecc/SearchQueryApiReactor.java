@@ -9,6 +9,7 @@ import java.util.Vector;
 import prerna.ds.QueryStruct;
 import prerna.engine.api.IEngine;
 import prerna.engine.impl.rdf.AbstractApiReactor;
+import prerna.sablecc.meta.IPkqlMetadata;
 import prerna.util.Utility;
 
 public class SearchQueryApiReactor extends AbstractApiReactor {
@@ -111,4 +112,10 @@ public class SearchQueryApiReactor extends AbstractApiReactor {
 //			System.out.println(Arrays.toString(row.getValues()));
 //		}
 //	}
+
+	@Override
+	public IPkqlMetadata getPkqlMetadata() {
+		// TODO Auto-generated method stub
+		return null;
+	}
 }

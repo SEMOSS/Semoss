@@ -9,6 +9,7 @@ import prerna.ds.AbstractTableDataFrame;
 import prerna.ds.TinkerFrame;
 import prerna.ds.h2.H2Frame;
 import prerna.ds.spark.SparkDataFrame;
+import prerna.sablecc.meta.IPkqlMetadata;
 
 public class DataConnectReactor extends AbstractReactor {
 
@@ -44,6 +45,12 @@ public class DataConnectReactor extends AbstractReactor {
 			myStore.put("STATUS", PKQLRunner.STATUS.ERROR);
 		}
 	
+		return null;
+	}
+
+	@Override
+	public IPkqlMetadata getPkqlMetadata() {
+		// TODO Auto-generated method stub
 		return null;
 	}
 }

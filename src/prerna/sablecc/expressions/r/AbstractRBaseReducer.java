@@ -14,9 +14,12 @@ import prerna.ds.r.RDataTable;
 import prerna.sablecc.AbstractReactor;
 import prerna.sablecc.PKQLEnum;
 import prerna.sablecc.PKQLRunner.STATUS;
+import prerna.sablecc.expressions.IExpressionSelector;
 import prerna.sablecc.expressions.r.builder.RColumnSelector;
 import prerna.sablecc.expressions.r.builder.RConstantSelector;
 import prerna.sablecc.expressions.r.builder.RExpressionBuilder;
+import prerna.sablecc.meta.IPkqlMetadata;
+import prerna.sablecc.meta.MathPkqlMetadata;
 
 public abstract class AbstractRBaseReducer extends AbstractReactor {
 
@@ -27,9 +30,10 @@ public abstract class AbstractRBaseReducer extends AbstractReactor {
 	protected String mathRoutine = null;
 	protected String pkqlMathRoutine = null;
 	protected boolean castAsNumber = true;
-
+	protected RExpressionBuilder builder = null;
+	
 	public AbstractRBaseReducer() {
-		String[] thisReacts = { PKQLEnum.EXPR_TERM, PKQLEnum.DECIMAL, PKQLEnum.NUMBER, PKQLEnum.GROUP_BY, PKQLEnum.COL_DEF, PKQLEnum.MATH_PARAM};
+		String[] thisReacts = { PKQLEnum.EXPR_TERM, PKQLEnum.DECIMAL, PKQLEnum.NUMBER, PKQLEnum.GROUP_BY, PKQLEnum.COL_DEF, PKQLEnum.MAP_OBJ};
 		super.whatIReactTo = thisReacts;
 		super.whoAmI = PKQLEnum.MATH_FUN;
 	}
@@ -43,10 +47,9 @@ public abstract class AbstractRBaseReducer extends AbstractReactor {
 
 		boolean hasGroups = false;
 		
-		RExpressionBuilder builder = null;
 		// if this is wrapping an existing expression iterator
 		if(myStore.get("TERM") instanceof RExpressionBuilder) {
-			builder = (RExpressionBuilder) myStore.get("TERM");
+			this.builder = (RExpressionBuilder) myStore.get("TERM");
 			
 			// make sure groups are not contradicting
 			// get the current groups
@@ -73,25 +76,24 @@ public abstract class AbstractRBaseReducer extends AbstractReactor {
 				hasGroups = addGroupBys(builder);
 			}
 		} else {
-			builder = new RExpressionBuilder(rDataTable);
+			this.builder = new RExpressionBuilder(rDataTable);
 			// this case can only be if we pass in a column
 			
-			// modify the expression to get the sql syntax
-			modExpression();
-			// we have a new expression
-			// input is a new column
-			String column = myStore.get("MOD_" + whoAmI).toString();
-			column = column.replace("[", "").replace("]", "").trim();
+			// only other possibility we account for is a column
+			// the input has to be a set of column as the starting point
+			Vector<String> columns = (Vector<String>) myStore.get(PKQLEnum.COL_DEF);
 			
-			RColumnSelector cSelector = new RColumnSelector(column);
-			builder.addSelector(cSelector);
+			for(String col : columns) {
+				RColumnSelector cSelector = new RColumnSelector(col);
+				this.builder.addSelector(cSelector);
+			}
 			
 			// no existing group bys
 			// see if we need to add any new ones
 			hasGroups = addGroupBys(builder);
 		}
 
-		builder = process(rDataTable, builder);
+		this.builder = process(rDataTable, builder);
 
 		if(hasGroups){
 			myStore.put(nodeStr, builder);
@@ -114,8 +116,12 @@ public abstract class AbstractRBaseReducer extends AbstractReactor {
 					val = value;
 				}
 				// we just added a selector which we can reduce into a scalar
+				
+				IExpressionSelector lastSelector = this.builder.getLastSelector();
 				RConstantSelector constant = new RConstantSelector(val);
-				builder.replaceSelector(builder.getLastSelector(), constant);
+				constant.setTableColumnsUsed(lastSelector.getTableColumns());
+				this.builder.replaceSelector(lastSelector, constant);
+				
 			} catch (REXPMismatchException e) {
 				e.printStackTrace();
 			}
@@ -156,6 +162,15 @@ public abstract class AbstractRBaseReducer extends AbstractReactor {
 	
 	public void setCastAsNumber(boolean castAsNumber) {
 		this.castAsNumber = castAsNumber;
+	}
+	
+	public IPkqlMetadata getPkqlMetadata() {
+		MathPkqlMetadata metadata = new MathPkqlMetadata();
+		metadata.setPkqlStr((String) myStore.get(PKQLEnum.MATH_FUN));
+		metadata.setProcedureName(pkqlMathRoutine);
+		metadata.setColumnsOperatedOn(this.builder.getAllTableColumnsUsed());
+		metadata.setGroupByColumns(this.builder.getGroupByColumns()); 
+		return metadata;
 	}
 	
 }

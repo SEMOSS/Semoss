@@ -3,6 +3,7 @@ package prerna.sablecc;
 import java.util.Iterator;
 
 import prerna.sablecc.PKQLEnum.PKQLReactor;
+import prerna.sablecc.meta.IPkqlMetadata;
 import prerna.util.Constants;
 
 public class VarReactor extends AbstractReactor {
@@ -33,6 +34,12 @@ public class VarReactor extends AbstractReactor {
 			System.out.println("Printing the myStore..  " + myStore);
 
 		}
+		return null;
+	}
+
+	@Override
+	public IPkqlMetadata getPkqlMetadata() {
+		// TODO Auto-generated method stub
 		return null;
 	}
 }

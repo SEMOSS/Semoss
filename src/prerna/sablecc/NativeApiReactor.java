@@ -11,6 +11,7 @@ import prerna.engine.api.IRawSelectWrapper;
 import prerna.engine.impl.rdf.AbstractApiReactor;
 import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.rdf.query.builder.IQueryInterpreter;
+import prerna.sablecc.meta.IPkqlMetadata;
 import prerna.util.Utility;
 
 public class NativeApiReactor extends AbstractApiReactor {
@@ -105,6 +106,12 @@ public class NativeApiReactor extends AbstractApiReactor {
 		this.put("RESPONSE", "success");
 		this.put("STATUS", PKQLRunner.STATUS.SUCCESS);
 
+		return null;
+	}
+
+	@Override
+	public IPkqlMetadata getPkqlMetadata() {
+		// TODO Auto-generated method stub
 		return null;
 	}
 }

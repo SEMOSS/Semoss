@@ -1415,7 +1415,7 @@ public abstract class BaseJavaReactor extends AbstractReactor{
 		
 		prerna.algorithm.impl.ClusteringReactor alg = new prerna.algorithm.impl.ClusteringReactor();
 		alg.put("G", this.dataframe);
-		alg.put(PKQLEnum.MATH_PARAM, params);
+		alg.put(PKQLEnum.MAP_OBJ, params);
 		alg.put(PKQLEnum.COL_DEF, java.util.Arrays.asList(selectors));
 		alg.process();
 		
@@ -1435,7 +1435,7 @@ public abstract class BaseJavaReactor extends AbstractReactor{
 		
 		prerna.algorithm.impl.ClusteringReactor alg = new prerna.algorithm.impl.ClusteringReactor();
 		alg.put("G", this.dataframe);
-		alg.put(PKQLEnum.MATH_PARAM, params);
+		alg.put(PKQLEnum.MAP_OBJ, params);
 		alg.put(PKQLEnum.COL_DEF, java.util.Arrays.asList(selectors));
 		alg.process();
 		
@@ -1454,7 +1454,7 @@ public abstract class BaseJavaReactor extends AbstractReactor{
 
 		prerna.algorithm.impl.MultiClusteringReactor alg = new prerna.algorithm.impl.MultiClusteringReactor();
 		alg.put("G", this.dataframe);
-		alg.put(PKQLEnum.MATH_PARAM, params);
+		alg.put(PKQLEnum.MAP_OBJ, params);
 		alg.put(PKQLEnum.COL_DEF, java.util.Arrays.asList(selectors));
 		alg.process();
 		
@@ -1475,7 +1475,7 @@ public abstract class BaseJavaReactor extends AbstractReactor{
 
 		prerna.algorithm.impl.MultiClusteringReactor alg = new prerna.algorithm.impl.MultiClusteringReactor();
 		alg.put("G", this.dataframe);
-		alg.put(PKQLEnum.MATH_PARAM, params);
+		alg.put(PKQLEnum.MAP_OBJ, params);
 		alg.put(PKQLEnum.COL_DEF, java.util.Arrays.asList(selectors));
 		alg.process();
 		
@@ -1493,7 +1493,7 @@ public abstract class BaseJavaReactor extends AbstractReactor{
 		
 		prerna.algorithm.impl.LOFReactor alg = new prerna.algorithm.impl.LOFReactor();
 		alg.put("G", this.dataframe);
-		alg.put(PKQLEnum.MATH_PARAM, params);
+		alg.put(PKQLEnum.MAP_OBJ, params);
 		alg.put(PKQLEnum.COL_DEF, java.util.Arrays.asList(selectors));
 		alg.process();
 		
@@ -1513,7 +1513,7 @@ public abstract class BaseJavaReactor extends AbstractReactor{
 		
 		prerna.algorithm.impl.LOFReactor alg = new prerna.algorithm.impl.LOFReactor();
 		alg.put("G", this.dataframe);
-		alg.put(PKQLEnum.MATH_PARAM, params);
+		alg.put(PKQLEnum.MAP_OBJ, params);
 		alg.put(PKQLEnum.COL_DEF, java.util.Arrays.asList(selectors));
 		alg.process();
 		
@@ -1532,7 +1532,7 @@ public abstract class BaseJavaReactor extends AbstractReactor{
 		
 		prerna.algorithm.impl.OutlierReactor alg = new prerna.algorithm.impl.OutlierReactor();
 		alg.put("G", this.dataframe);
-		alg.put(PKQLEnum.MATH_PARAM, params);
+		alg.put(PKQLEnum.MAP_OBJ, params);
 		alg.put(PKQLEnum.COL_DEF, java.util.Arrays.asList(selectors));
 		alg.process();
 		
@@ -1553,7 +1553,7 @@ public abstract class BaseJavaReactor extends AbstractReactor{
 		
 		prerna.algorithm.impl.OutlierReactor alg = new prerna.algorithm.impl.OutlierReactor();
 		alg.put("G", this.dataframe);
-		alg.put(PKQLEnum.MATH_PARAM, params);
+		alg.put(PKQLEnum.MAP_OBJ, params);
 		alg.put(PKQLEnum.COL_DEF, java.util.Arrays.asList(selectors));
 		alg.process();
 		
@@ -1570,7 +1570,7 @@ public abstract class BaseJavaReactor extends AbstractReactor{
 		
 		prerna.algorithm.impl.SimilarityReactor alg = new prerna.algorithm.impl.SimilarityReactor();
 		alg.put("G", this.dataframe);
-		alg.put(PKQLEnum.MATH_PARAM, params);
+		alg.put(PKQLEnum.MAP_OBJ, params);
 		alg.put(PKQLEnum.COL_DEF, java.util.Arrays.asList(selectors));
 		alg.process();
 		
@@ -1589,7 +1589,7 @@ public abstract class BaseJavaReactor extends AbstractReactor{
 		
 		prerna.algorithm.impl.SimilarityReactor alg = new prerna.algorithm.impl.SimilarityReactor();
 		alg.put("G", this.dataframe);
-		alg.put(PKQLEnum.MATH_PARAM, params);
+		alg.put(PKQLEnum.MAP_OBJ, params);
 		alg.put(PKQLEnum.COL_DEF, java.util.Arrays.asList(selectors));
 		alg.process();
 		

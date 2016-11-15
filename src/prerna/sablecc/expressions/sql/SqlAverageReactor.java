@@ -7,7 +7,7 @@ public class SqlAverageReactor extends H2SqlBasicMathReactor {
 	 * Everything else is handled by inheritance
 	 */
 	public SqlAverageReactor() {
-		this.setMathRoutine("AVG");
-		this.setPkqlMathRoutine("Average");
+		this.setRoutine("AVG");
+		this.setPkqlRoutine("Average");
 	}
 }

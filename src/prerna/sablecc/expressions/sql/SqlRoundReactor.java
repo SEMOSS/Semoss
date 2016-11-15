@@ -11,12 +11,16 @@ import prerna.sablecc.expressions.sql.builder.SqlRoundSelector;
 
 public class SqlRoundReactor extends AbstractSqlExpression {
 
+	public SqlRoundReactor() {
+		setProcedureName("Round");
+	}
+	
 	@Override
 	public Iterator process() {
 		super.process();
 		
 		// get the value at which the round should occur
-		Map<String, Object> options = (Map<String, Object>) myStore.get(PKQLEnum.MATH_PARAM);
+		Map<String, Object> options = (Map<String, Object>) myStore.get(PKQLEnum.MAP_OBJ);
 		int significantDigit = Integer.parseInt(options.get("CONDITION1") + "");
 		
 		IExpressionSelector previousSelector = this.builder.getLastSelector();
