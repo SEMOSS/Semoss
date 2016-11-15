@@ -40,6 +40,13 @@ public class FormsSourceFilesConsolidationListener extends AbstractListener {
 		IEngine selectedEngine = Utility.getEngine(selectedFormsDb);
 		
 		// TODO: CREATE NEW CLASS THAT TAKES IN ENGINE AND SOURCE FOLDER THAT DOES PROCESSING
+//		below is for example
+//		make NewClass in package prerna.ui.components.specific.tap
+//		NewClass x = new NewClass(selectedEngine, sourceFolder);
+//		x.processSourceFiles();
+//		String workbook1Path = sourceFolder + "/SourceFile1Name.xlsx";
+		
+		Utility.showMessage("Finished Consolidating Source Files");
 	}
 
 	@Override
