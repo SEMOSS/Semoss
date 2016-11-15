@@ -165,7 +165,13 @@ public class SMSSFileWatcher extends AbstractFileWatcher {
 			DefaultComboBoxModel autoGenerateQueriesForEngineComboboxModel = (DefaultComboBoxModel) autoGenerateQueriesForEngineCombobox.getModel();
 			autoGenerateQueriesForEngineComboboxModel.addElement(engineName);
 			autoGenerateQueriesForEngineCombobox.repaint();
-
+			
+			// initialize combo box for forms aggregation into source files
+			JComboBox selectFormsAggregationComboBox = (JComboBox) DIHelper.getInstance().getLocalProp(ConstantsTAP.FORMS_SOURCE_FILE_AGGREGATION_COMBO_BOX);
+			DefaultComboBoxModel selectFormsAggregationComboBoxModel = (DefaultComboBoxModel) selectFormsAggregationComboBox.getModel();
+			selectFormsAggregationComboBoxModel.addElement(engineName);
+			selectFormsAggregationComboBox.repaint();
+			
 			JFrame frame2 = (JFrame) DIHelper.getInstance().getLocalProp(Constants.MAIN_FRAME);
 			frame2.repaint();
 

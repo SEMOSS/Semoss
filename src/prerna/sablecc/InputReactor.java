@@ -7,6 +7,7 @@ import java.util.Vector;
 
 import prerna.engine.api.IHeadersDataRow;
 import prerna.sablecc.PKQLEnum.PKQLReactor;
+import prerna.sablecc.meta.IPkqlMetadata;
 import prerna.util.Constants;
 
 public class InputReactor extends AbstractReactor {
@@ -62,5 +63,11 @@ public class InputReactor extends AbstractReactor {
 	 */
 	public String[] getValues2Sync(String input) {
 		return values2SyncHash.get(input);
+	}
+
+	@Override
+	public IPkqlMetadata getPkqlMetadata() {
+		// TODO Auto-generated method stub
+		return null;
 	}
 }

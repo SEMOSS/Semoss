@@ -7,11 +7,14 @@ import java.util.Iterator;
 import java.util.Map;
 import java.util.Vector;
 
-import prerna.sablecc.PKQLEnum;
 import prerna.util.ArrayUtilityMethods;
 
 public class MedianReactor extends BaseReducerReactor {
 
+	public MedianReactor() {
+		setMathRoutine("Median");
+	}
+	
 	@Override
 	public Object reduce() {
 		double output = 0.0;
@@ -82,7 +85,7 @@ public class MedianReactor extends BaseReducerReactor {
 	
 	@Override
 	public Map<String, Object> getColumnDataMap() {
-		return getBaseColumnDataMap("Median");
+		return getBaseColumnDataMap();
 	}
 	
 }

@@ -3,6 +3,7 @@ package prerna.sablecc;
 import java.util.Iterator;
 
 import prerna.om.Dashboard;
+import prerna.sablecc.meta.IPkqlMetadata;
 
 public class DashboardClearDataReactor extends AbstractReactor {
 
@@ -17,6 +18,12 @@ public class DashboardClearDataReactor extends AbstractReactor {
 		Dashboard dashboard = (Dashboard)myStore.get("G");
 		dashboard.dropDashboard();
 		dashboard.clearData();
+		return null;
+	}
+
+	@Override
+	public IPkqlMetadata getPkqlMetadata() {
+		// TODO Auto-generated method stub
 		return null;
 	}
 }

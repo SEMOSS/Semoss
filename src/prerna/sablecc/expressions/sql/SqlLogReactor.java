@@ -9,6 +9,10 @@ import prerna.sablecc.expressions.sql.builder.SqlMathSelector;
 
 public class SqlLogReactor extends AbstractSqlExpression {
 
+	public SqlLogReactor() {
+		setProcedureName("Log");
+	}
+	
 	@Override
 	public Iterator process() {
 		super.process();

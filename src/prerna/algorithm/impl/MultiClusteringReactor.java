@@ -37,13 +37,17 @@ public class MultiClusteringReactor extends MathReactor {
 
 	private String clusterColName;
 
+	public MultiClusteringReactor() {
+		setMathRoutine("ClusteringOptimization");
+	}
+	
 	@Override
 	public Iterator process() {
 		modExpression();
 
 		///////////////// start of initializing some stuff... needs to be put away somewhere else
-		if(myStore.containsKey(PKQLEnum.MATH_PARAM)) {
-			Map<String, Object> options = (Map<String, Object>) myStore.get(PKQLEnum.MATH_PARAM);
+		if(myStore.containsKey(PKQLEnum.MAP_OBJ)) {
+			Map<String, Object> options = (Map<String, Object>) myStore.get(PKQLEnum.MAP_OBJ);
 			if(options.containsKey(INSTANCE_INDEX.toUpperCase())) {
 				this.instanceIndex = Integer.parseInt(options.get(INSTANCE_INDEX.toUpperCase()) + "");
 			} else {
@@ -265,7 +269,7 @@ public class MultiClusteringReactor extends MathReactor {
 		prerna.algorithm.impl.ClusteringReactor alg = new prerna.algorithm.impl.ClusteringReactor();
 		alg.setAddToFrame(false);
 		alg.put("G", dataframe);
-		alg.put(PKQLEnum.MATH_PARAM, params);
+		alg.put(PKQLEnum.MAP_OBJ, params);
 		alg.put(PKQLEnum.COL_DEF, this.attributeNamesList);
 		alg.process();
 		

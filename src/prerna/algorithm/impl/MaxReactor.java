@@ -6,10 +6,13 @@ import java.util.Iterator;
 import java.util.Map;
 import java.util.Vector;
 
-import prerna.sablecc.PKQLEnum;
 import prerna.util.ArrayUtilityMethods;
 
 public class MaxReactor extends BaseReducerReactor {
+	
+	public MaxReactor() {
+		setMathRoutine("Max");
+	}
 	
 	@Override
 	public Object reduce() {
@@ -61,7 +64,7 @@ public class MaxReactor extends BaseReducerReactor {
 	
 	@Override
 	public Map<String, Object> getColumnDataMap() {
-		return getBaseColumnDataMap("Max");
+		return getBaseColumnDataMap();
 	}
 	
 }

@@ -2,6 +2,8 @@ package prerna.sablecc;
 
 import java.util.Iterator;
 
+import prerna.sablecc.meta.IPkqlMetadata;
+
 public class ExprRowReactor extends AbstractReactor {
 
 	public ExprRowReactor() {
@@ -28,6 +30,12 @@ public class ExprRowReactor extends AbstractReactor {
 			myStore.put(nodeStr, myStore.get(PKQLEnum.EXPR_ROW));
 		}
 
+		return null;
+	}
+
+	@Override
+	public IPkqlMetadata getPkqlMetadata() {
+		// TODO Auto-generated method stub
 		return null;
 	}
 }

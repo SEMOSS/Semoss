@@ -44,6 +44,8 @@ import java.awt.Insets;
 import java.awt.LayoutManager;
 import java.awt.Panel;
 import java.awt.SystemColor;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
 import java.awt.event.FocusListener;
 import java.awt.event.InputEvent;
 import java.awt.event.KeyEvent;
@@ -68,6 +70,7 @@ import javax.swing.JCheckBox;
 import javax.swing.JComboBox;
 import javax.swing.JComponent;
 import javax.swing.JDesktopPane;
+import javax.swing.JFileChooser;
 import javax.swing.JFrame;
 import javax.swing.JInternalFrame;
 import javax.swing.JLabel;
@@ -98,11 +101,16 @@ import javax.swing.event.InternalFrameListener;
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
+import com.ibm.icu.util.StringTokenizer;
+
+import aurelienribon.ui.components.Button;
+import aurelienribon.ui.css.Style;
+import aurelienribon.ui.css.swing.SwingStyle;
 import prerna.engine.api.IEngine;
 import prerna.ui.components.api.IChakraListener;
-import prerna.ui.components.specific.tap.SystemListComboBox;
 import prerna.ui.components.specific.tap.ServiceSelectPanel;
 import prerna.ui.components.specific.tap.SourceSelectPanel;
+import prerna.ui.components.specific.tap.SystemListComboBox;
 import prerna.ui.main.listener.impl.ProcessQueryListener;
 import prerna.ui.main.listener.impl.RepoSelectionListener;
 import prerna.ui.main.listener.impl.ShowPlaySheetsButtonListener;
@@ -114,12 +122,8 @@ import prerna.ui.swing.custom.CustomDesktopPane;
 import prerna.ui.swing.custom.ToggleButton;
 import prerna.util.CSSApplication;
 import prerna.util.Constants;
+import prerna.util.ConstantsTAP;
 import prerna.util.DIHelper;
-import aurelienribon.ui.components.Button;
-import aurelienribon.ui.css.Style;
-import aurelienribon.ui.css.swing.SwingStyle;
-
-import com.ibm.icu.util.StringTokenizer;
 
 /**
  * The playpane houses all of the components that create the user interface in SEMOSS.
@@ -234,6 +238,11 @@ public class PlayPane extends JFrame {
 	//Additional Calculations -  Create Future Interface Database
 	public CustomButton btnCreateFutureInterfaceDatabase;
 	public JComboBox<String> selectFutureInterfaceComboBox, selectHRCoreForFutureInterfaceDBComboBox, selectFutureCostInterfaceComboBox;
+	
+	//Additonal Calculation - Aggregate Forms Source Data
+	public JTextField formsSourceFilesFolderText;
+	public JComboBox<String> selectFormsAggregationComboBox;
+	public JButton btnRunSourceFilesConsolidation;
 	
 	//Additional Calculations -  System-BP and System-Cap Insert
 	public CustomButton btnSysBPCapInsert;
@@ -3014,7 +3023,7 @@ public class PlayPane extends JFrame {
 		JPanel inferredRelationshipInsertPanel = new JPanel();
 		inferredRelationshipInsertPanel.setBackground(SystemColor.control);
 		GridBagConstraints gbc_inferredRelationshipInsertPanel = new GridBagConstraints();
-		gbc_inferredRelationshipInsertPanel.anchor = GridBagConstraints.EAST;
+		gbc_inferredRelationshipInsertPanel.anchor = GridBagConstraints.WEST;
 		gbc_inferredRelationshipInsertPanel.gridwidth = 6;
 		gbc_inferredRelationshipInsertPanel.insets = new Insets(0, 0, 5, 5);
 		gbc_inferredRelationshipInsertPanel.gridx = 0;
@@ -3033,7 +3042,7 @@ public class PlayPane extends JFrame {
 		gbc_inferredRelationshipInsertLabel.anchor = GridBagConstraints.WEST;
 		gbc_inferredRelationshipInsertLabel.gridwidth = 4;
 		gbc_inferredRelationshipInsertLabel.insets = new Insets(0, 10, 5, 5);
-		gbc_inferredRelationshipInsertLabel.gridx = 1;
+		gbc_inferredRelationshipInsertLabel.gridx = 0;
 		gbc_inferredRelationshipInsertLabel.gridy = 1;
 		inferredRelationshipInsertPanel.add(inferredRelationshipInsertLabel, gbc_inferredRelationshipInsertLabel);
 		
@@ -3091,7 +3100,7 @@ public class PlayPane extends JFrame {
 		lblBLUThresholdValue.setFont(new Font("Tahoma", Font.PLAIN, 12));
 		GridBagConstraints gbc_lblBLUThresholdValue = new GridBagConstraints();
 		gbc_lblBLUThresholdValue.anchor = GridBagConstraints.WEST;
-		gbc_lblBLUThresholdValue.insets = new Insets(0, 10, 5, 5);
+		gbc_lblBLUThresholdValue.insets = new Insets(0, 20, 5, 5);
 		gbc_lblBLUThresholdValue.gridx = 2;
 		gbc_lblBLUThresholdValue.gridy = 5;
 		inferredRelationshipInsertPanel.add(lblBLUThresholdValue, gbc_lblBLUThresholdValue);
@@ -3120,7 +3129,7 @@ public class PlayPane extends JFrame {
 		bluThresholdValueTextField.setMaximumSize(new Dimension(15, 2147483647));
 		GridBagConstraints gbc_bluThresholdValueTextField = new GridBagConstraints();
 		gbc_bluThresholdValueTextField.anchor = GridBagConstraints.EAST;
-		gbc_bluThresholdValueTextField.insets = new Insets(0, 0, 5, 5);
+		gbc_bluThresholdValueTextField.insets = new Insets(0, 20, 5, 5);
 		gbc_bluThresholdValueTextField.gridx = 2;
 		gbc_bluThresholdValueTextField.gridy = 6;
 		inferredRelationshipInsertPanel.add(bluThresholdValueTextField, gbc_bluThresholdValueTextField);
@@ -3159,6 +3168,15 @@ public class PlayPane extends JFrame {
 		Style.registerTargetClassName(btnSORInsert, ".standardButton");
 		
 		// EA Property Creator
+		JSeparator eaPropertySeparator = new JSeparator();
+		GridBagConstraints gbc_eaPropertySeparator = new GridBagConstraints();
+		gbc_eaPropertySeparator.fill = GridBagConstraints.HORIZONTAL;
+		gbc_eaPropertySeparator.gridwidth = 6;
+		gbc_eaPropertySeparator.insets = new Insets(5, 0, 5, 5);
+		gbc_eaPropertySeparator.gridx = 0;
+		gbc_eaPropertySeparator.gridy = 23;
+		tapCalcPanel.add(eaPropertySeparator, gbc_eaPropertySeparator);
+		
 		JPanel eaPropertyPanel = new JPanel();
 		eaPropertyPanel.setBackground(SystemColor.control);
 		GridBagConstraints gbc_eaPropertyPanel = new GridBagConstraints();
@@ -3166,7 +3184,7 @@ public class PlayPane extends JFrame {
 		gbc_eaPropertyPanel.gridwidth = 6;
 		gbc_eaPropertyPanel.insets = new Insets(0, 0, 5, 5);
 		gbc_eaPropertyPanel.gridx = 0;
-		gbc_eaPropertyPanel.gridy = 23;
+		gbc_eaPropertyPanel.gridy = 24;
 		tapCalcPanel.add(eaPropertyPanel, gbc_eaPropertyPanel);
 		GridBagLayout gbl_eaPropertyPanel = new GridBagLayout();
 		gbl_eaPropertyPanel.columnWidths = new int[] { 0, 75, 100, 75 };
@@ -3174,15 +3192,6 @@ public class PlayPane extends JFrame {
 		gbl_eaPropertyPanel.columnWeights = new double[] { 0.0, 0.0, 0.0, 1.0 };
 		gbl_eaPropertyPanel.rowWeights = new double[] { 0.0, 0.0, 0.0, 0.0, 1.0 };
 		eaPropertyPanel.setLayout(gbl_eaPropertyPanel);
-		
-		JSeparator eaPropertySeparator = new JSeparator();
-		GridBagConstraints gbc_eaPropertySeparator = new GridBagConstraints();
-		gbc_eaPropertySeparator.fill = GridBagConstraints.HORIZONTAL;
-		gbc_eaPropertySeparator.gridwidth = 6;
-		gbc_eaPropertySeparator.insets = new Insets(5, 0, 5, 5);
-		gbc_eaPropertySeparator.gridx = 0;
-		gbc_eaPropertySeparator.gridy = 13;
-		eaPropertyPanel.add(eaPropertySeparator, gbc_eaPropertySeparator);
 		
 		JLabel addEAPropertyLabel = new JLabel("Add Economic Analysis Properties to TAP_Core_Data");
 		addEAPropertyLabel.setFont(new Font("Tahoma", Font.BOLD, 12));
@@ -3216,6 +3225,119 @@ public class PlayPane extends JFrame {
 		tapReportPanelLayout.columnWeights = new double[] { 0.0, 1.0, 0.0 };
 		tapReportPanelLayout.columnWidths = new int[] { 10, 0, 0 };
 		tapReportPanel.setLayout(tapReportPanelLayout);
+		
+		
+		///////////////////////////////////////////////////////////////////////////////////////////////
+		// forms to source file modifications
+		JSeparator formsConsolidationSeparator = new JSeparator();
+		GridBagConstraints gbc_formsConsolidationSeparator = new GridBagConstraints();
+		gbc_formsConsolidationSeparator.fill = GridBagConstraints.HORIZONTAL;
+		gbc_formsConsolidationSeparator.gridwidth = 6;
+		gbc_formsConsolidationSeparator.insets = new Insets(0, 0, 0, 0);
+		gbc_formsConsolidationSeparator.gridx = 0;
+		gbc_formsConsolidationSeparator.gridy = 25;
+		tapCalcPanel.add(formsConsolidationSeparator, gbc_formsConsolidationSeparator);
+
+		JPanel formsConsolidationPanel = new JPanel();
+		formsConsolidationPanel.setBackground(SystemColor.control);
+		GridBagConstraints gbc_formsConsolidationPanel = new GridBagConstraints();
+		gbc_formsConsolidationPanel.anchor = GridBagConstraints.WEST;
+		gbc_formsConsolidationPanel.gridwidth = 6;
+		gbc_formsConsolidationPanel.insets = new Insets(0, 0, 5, 5);
+		gbc_formsConsolidationPanel.gridx = 0;
+		gbc_formsConsolidationPanel.gridy = 26;
+		tapCalcPanel.add(formsConsolidationPanel, gbc_formsConsolidationPanel);
+		GridBagLayout gbl_formsConsolidationPanel = new GridBagLayout();
+		gbl_formsConsolidationPanel.columnWidths = new int[] { 0, 75, 100, 100, 75 };
+		gbl_formsConsolidationPanel.rowHeights = new int[] { 10, 0, 0, 0, 0 };
+		gbl_formsConsolidationPanel.columnWeights = new double[] { 0.0, 0.0, 0.0, 0.0, 1.0 };
+		gbl_formsConsolidationPanel.rowWeights = new double[] { 0.0, 0.0, 0.0, 0.0, 1.0 };
+		formsConsolidationPanel.setLayout(gbl_formsConsolidationPanel);
+
+		JLabel lblFormsConsolidationPanelLabel = new JLabel("Consolidate Tap Core Forms Into Source Files");
+		lblFormsConsolidationPanelLabel.setFont(new Font("Tahoma", Font.BOLD, 12));
+		lblFormsConsolidationPanelLabel.setBackground(Color.WHITE);
+		GridBagConstraints gbc_lblFormsConsolidationPanelLabel = new GridBagConstraints();
+		gbc_lblFormsConsolidationPanelLabel.anchor = GridBagConstraints.WEST;
+		gbc_lblFormsConsolidationPanelLabel.gridwidth = 4;
+		gbc_lblFormsConsolidationPanelLabel.insets = new Insets(10, 10, 5, 5);
+		gbc_lblFormsConsolidationPanelLabel.gridx = 0;
+		gbc_lblFormsConsolidationPanelLabel.gridy = 14;
+		formsConsolidationPanel.add(lblFormsConsolidationPanelLabel, gbc_lblFormsConsolidationPanelLabel);
+
+		JLabel lblFormsDatabase = new JLabel("Select Forms Database:");
+		GridBagConstraints gbc_lblFormsDatabase = new GridBagConstraints();
+		gbc_lblFormsDatabase.anchor = GridBagConstraints.WEST;
+		gbc_lblFormsDatabase.insets = new Insets(0, 10, 5, 5);
+		gbc_lblFormsDatabase.gridx = 1;
+		gbc_lblFormsDatabase.gridy = 15;
+		formsConsolidationPanel.add(lblFormsDatabase, gbc_lblFormsDatabase);
+		
+		selectFormsAggregationComboBox = new JComboBox<String>();
+		selectFormsAggregationComboBox.setEditable(false);
+		GridBagConstraints gbc_selectFormsAggregationComboBox = new GridBagConstraints();
+		gbc_selectFormsAggregationComboBox.gridwidth = 2;
+		gbc_selectFormsAggregationComboBox.insets = new Insets(0, 10, 5, 5);
+		gbc_selectFormsAggregationComboBox.fill = GridBagConstraints.HORIZONTAL;
+		gbc_selectFormsAggregationComboBox.gridx = 2;
+		gbc_selectFormsAggregationComboBox.gridy = 15;
+		formsConsolidationPanel.add(selectFormsAggregationComboBox, gbc_selectFormsAggregationComboBox);
+		DIHelper.getInstance().setLocalProperty(ConstantsTAP.FORMS_SOURCE_FILE_AGGREGATION_COMBO_BOX, selectFormsAggregationComboBox);
+		
+		JButton sourceFilesFolderBtn = new JButton("Select Source Folder");
+		sourceFilesFolderBtn.setFont(new Font("Tahoma", Font.BOLD, 11));
+		GridBagConstraints gbc_sourceFilesFolderBtn = new GridBagConstraints();
+		gbc_sourceFilesFolderBtn.anchor = GridBagConstraints.WEST;
+		gbc_sourceFilesFolderBtn.insets = new Insets(0, 10, 5, 5);
+		gbc_sourceFilesFolderBtn.gridx = 1;
+		gbc_sourceFilesFolderBtn.gridy = 16;
+		formsConsolidationPanel.add(sourceFilesFolderBtn, gbc_sourceFilesFolderBtn);
+		
+		formsSourceFilesFolderText = new JTextField("Enter Source Folder");
+		formsSourceFilesFolderText.setPreferredSize(new Dimension(300, 30));
+		formsSourceFilesFolderText.setFont(new Font("Tahoma", Font.PLAIN, 11));
+		GridBagConstraints gbc_formsSourceFilesFolderText = new GridBagConstraints();
+		gbc_formsSourceFilesFolderText.anchor = GridBagConstraints.WEST;
+		gbc_formsSourceFilesFolderText.insets = new Insets(0, 10, 5, 5);
+		gbc_formsSourceFilesFolderText.gridx = 2;
+		gbc_formsSourceFilesFolderText.gridy = 16;
+		gbc_formsSourceFilesFolderText.gridwidth = 4;
+		formsConsolidationPanel.add(formsSourceFilesFolderText, gbc_formsSourceFilesFolderText);
+		DIHelper.getInstance().setLocalProperty(ConstantsTAP.FORMS_SOURCE_FILE_DIRECTORY, formsSourceFilesFolderText);
+
+		sourceFilesFolderBtn.addActionListener(new ActionListener()
+		{
+			public void actionPerformed(ActionEvent e)
+			{
+				JFileChooser jfc = new JFileChooser();
+				jfc.setCurrentDirectory(new java.io.File("."));
+				jfc.setFileSelectionMode(JFileChooser.DIRECTORIES_ONLY);
+				int retVal = jfc.showOpenDialog((JComponent) e.getSource());
+				// Handle open button action.
+				if (retVal == JFileChooser.APPROVE_OPTION)
+				{
+					File file = jfc.getSelectedFile();
+					formsSourceFilesFolderText.setText(file.getPath());
+					formsSourceFilesFolderText.setFont(new Font("Tahoma", Font.PLAIN, 11));
+					formsSourceFilesFolderText.repaint();
+				}
+			}
+		});
+		
+		btnRunSourceFilesConsolidation = new JButton("Run Forms-Source File Consolidation");
+		btnRunSourceFilesConsolidation.setFont(new Font("Tahoma", Font.BOLD, 11));
+		GridBagConstraints gbc_btnRunSourceFilesConsolidation = new GridBagConstraints();
+		gbc_btnRunSourceFilesConsolidation.anchor = GridBagConstraints.WEST;
+		gbc_btnRunSourceFilesConsolidation.insets = new Insets(0, 10, 5, 5);
+		gbc_btnRunSourceFilesConsolidation.gridx = 1;
+		gbc_btnRunSourceFilesConsolidation.gridy = 17;
+		formsConsolidationPanel.add(btnRunSourceFilesConsolidation, gbc_btnRunSourceFilesConsolidation);
+
+		//TODO:
+		//TODO:
+		//TODO:
+		//TODO:
+		//TODO:
 		
 		//Fact Sheets
 		JPanel factSheetPanel = new JPanel();

@@ -8,6 +8,10 @@ import prerna.sablecc.expressions.sql.builder.SqlMathSelector;
 
 public class SqlAbsoluteReactor extends AbstractSqlExpression {
 
+	public SqlAbsoluteReactor() {
+		setProcedureName("Absolute");
+	}
+	
 	@Override
 	public Iterator process() {
 		super.process();

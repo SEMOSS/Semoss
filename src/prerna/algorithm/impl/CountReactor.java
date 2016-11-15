@@ -9,6 +9,10 @@ import prerna.util.ArrayUtilityMethods;
 
 public class CountReactor extends BaseReducerReactor {
 
+	public CountReactor() {
+		setMathRoutine("Count");
+	}
+	
 	@Override
 	public Object reduce() {
 		double count = 0;
@@ -44,6 +48,6 @@ public class CountReactor extends BaseReducerReactor {
 	
 	@Override
 	public Map<String, Object> getColumnDataMap() {
-		return getBaseColumnDataMap("Count");
+		return getBaseColumnDataMap();
 	}
 }

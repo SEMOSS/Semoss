@@ -7,8 +7,8 @@ public class H2SqlPopulationStandardDeviationReactor extends H2SqlBasicMathReact
 	 * Everything else is handled by inheritance
 	 */
 	public H2SqlPopulationStandardDeviationReactor() {
-		this.setMathRoutine("STDDEV_POP");
-		this.setPkqlMathRoutine("StandardDeviation");
+		this.setRoutine("STDDEV_POP");
+		this.setPkqlRoutine("StandardDeviation");
 	}
 	
 }

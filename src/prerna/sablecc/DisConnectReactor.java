@@ -4,6 +4,7 @@ import java.util.Iterator;
 
 import prerna.ds.h2.H2Frame;
 import prerna.sablecc.PKQLEnum.PKQLReactor;
+import prerna.sablecc.meta.IPkqlMetadata;
 
 public class DisConnectReactor extends AbstractReactor {
 
@@ -35,6 +36,12 @@ public class DisConnectReactor extends AbstractReactor {
 	public void set(String key, Object value) {
 		// TODO Auto-generated method stub
 		
+	}
+
+	@Override
+	public IPkqlMetadata getPkqlMetadata() {
+		// TODO Auto-generated method stub
+		return null;
 	}
 
 }

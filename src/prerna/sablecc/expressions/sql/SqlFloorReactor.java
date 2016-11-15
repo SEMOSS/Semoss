@@ -9,6 +9,10 @@ import prerna.sablecc.expressions.sql.builder.SqlMathSelector;
 
 public class SqlFloorReactor extends AbstractSqlExpression {
 
+	public SqlFloorReactor() {
+		setProcedureName("Floor");
+	}
+	
 	@Override
 	public Iterator process() {
 		super.process();

@@ -9,7 +9,7 @@ public abstract class H2SqlBasicMathReactor extends AbstractH2SqlBaseReducer {
 
 	public SqlExpressionBuilder process(H2Frame frame, SqlExpressionBuilder builder) {
 		IExpressionSelector previousSelector = builder.getLastSelector();
-		SqlMathSelector newSelector = new SqlMathSelector(previousSelector, this.mathRoutine, this.pkqlMathRoutine);
+		SqlMathSelector newSelector = new SqlMathSelector(previousSelector, this.routine, this.pkqlRoutine);
 		builder.replaceSelector(previousSelector, newSelector);
 		return builder;
 	}

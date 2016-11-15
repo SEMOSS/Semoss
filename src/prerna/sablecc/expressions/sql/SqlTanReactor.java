@@ -9,6 +9,10 @@ import prerna.sablecc.expressions.sql.builder.SqlMathSelector;
 
 public class SqlTanReactor extends AbstractSqlExpression {
 
+	public SqlTanReactor() {
+		setProcedureName("Tangent");
+	}
+	
 	@Override
 	public Iterator process() {
 		super.process();

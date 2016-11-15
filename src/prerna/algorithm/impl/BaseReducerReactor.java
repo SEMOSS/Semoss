@@ -178,14 +178,14 @@ public abstract class BaseReducerReactor extends MathReactor implements Expressi
 		return reduce();
 	}
 	
-	public Map<String, Object> getBaseColumnDataMap(String baseFunction) {
+	public Map<String, Object> getBaseColumnDataMap() {
 		// map to store the info
 		Map<String, Object> headMap = new HashMap<String, Object>();
 
 		Vector <String> columns = (Vector <String>)myStore.get(PKQLEnum.COL_DEF);
 		Vector<String> groupBys = (Vector <String>)myStore.get(PKQLEnum.COL_CSV);
 		
-		String header = baseFunction + "(" + columns.get(0);
+		String header = this.mathRoutine + "(" + columns.get(0);
 		for(int i = 1; i < columns.size(); i++) {
 			header += ", " + columns.get(i);
 		}
@@ -204,10 +204,10 @@ public abstract class BaseReducerReactor extends MathReactor implements Expressi
 
 		// get the columns used
 		operationMap.put("calculatedBy", columns);
-		operationMap.put("math", baseFunction);
+		operationMap.put("math", this.mathRoutine);
 
 		// add the formula if it is not just a simple column
-		operationMap.put("formula", myStore.get("FORMULA"));
+		operationMap.put("formula", myStore.get(PKQLEnum.MATH_FUN));
 		
 		// add to main map
 		headMap.put("operation", operationMap);
