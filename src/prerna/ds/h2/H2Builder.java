@@ -456,6 +456,7 @@ public class H2Builder {
 		this.viewTableName = null;
 		this.joinMode = false;
 		this.joinColumnTranslation = null;
+		this.joiner = null;
 	}
 
 	protected boolean getJoinMode() {
@@ -2613,6 +2614,20 @@ public class H2Builder {
 		}
 	}
 
+	protected void renameTable(String newTable) {
+		if(tableExists(tableName)) {
+			String renameQuery = makeRenameTable(tableName, newTable);
+			try {
+				runQuery(renameQuery);
+				this.tableName = newTable;
+			} catch (Exception e) {
+				e.printStackTrace();
+			}
+		} else {
+			this.tableName = newTable;
+		}
+	}
+	
 	public String getSchema() {
 		return this.schema;
 	}
@@ -3276,6 +3291,9 @@ public class H2Builder {
 		return "ALTER TABLE " + tableName + " ALTER COLUMN " + fromColumn + " RENAME TO " + toColumn;
 	}
 
+	private String makeRenameTable(String oldTable, String newTable) {
+		return "ALTER TABLE " + oldTable + " RENAME TO " + newTable;
+	}
 	private String makeDeleteData(String tableName, String[] columnName, String[] values) {
 		String deleteQuery = "DELETE FROM " + tableName + " WHERE ";
 		for (int i = 0; i < columnName.length; i++) {
