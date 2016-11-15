@@ -8,9 +8,11 @@ import java.util.Vector;
 
 import org.apache.commons.math3.stat.descriptive.DescriptiveStatistics;
 
-import prerna.sablecc.PKQLEnum;
-
 public class KurtReactor extends BaseReducerReactor {
+	
+	public KurtReactor() {
+		setMathRoutine("Kurt");
+	}
 	
 	@Override
 	public Object reduce() {
@@ -36,7 +38,7 @@ public class KurtReactor extends BaseReducerReactor {
 	
 	@Override
 	public Map<String, Object> getColumnDataMap() {
-		return getBaseColumnDataMap("Kurt");
+		return getBaseColumnDataMap();
 	}
 }
 

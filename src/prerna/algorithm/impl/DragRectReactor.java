@@ -15,6 +15,10 @@ public class DragRectReactor extends MathReactor{
 	//This pkql is being created for creating clusters manually by dragging a rectangle on the plane
 	//pkql should be like m:DragRectangleCluster([xcolumn,ycolumn], {Condition1:x1,Condition2:y1,Condition3:x2,Condition4:y2})
 	
+	public DragRectReactor() {
+		setMathRoutine("DragRect");
+	}
+	
 	@Override
 	public Iterator process(){
 		modExpression();
@@ -28,7 +32,7 @@ public class DragRectReactor extends MathReactor{
 		//4 points in the rectangle are A, B, C and D where AB is perpendicular to AD
 		//Considering the rectangle's edges are parallel to x and y axis
 		//we are passing A and C coordinates from the front end
-		Map<String, Object> options = (Map<String, Object>) myStore.get(PKQLEnum.MATH_PARAM);
+		Map<String, Object> options = (Map<String, Object>) myStore.get(PKQLEnum.MAP_OBJ);
 		double xA = Double.parseDouble(options.get("CONDITION1").toString());
 		double yA = Double.parseDouble(options.get("CONDITION2").toString());
 		double xC = Double.parseDouble(options.get("CONDITION3").toString());

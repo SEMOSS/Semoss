@@ -1,7 +1,6 @@
 package prerna.sablecc.expressions.sql;
 
 import java.util.Iterator;
-import java.util.List;
 import java.util.Vector;
 
 import prerna.ds.h2.H2Frame;
@@ -17,13 +16,16 @@ public abstract class AbstractSqlExpression extends AbstractReactor {
 	// this contains the sql builder to modify
 	protected SqlExpressionBuilder builder;
 	
+	// store the name of the procedure
+	protected String procedureName;
+	
 	public AbstractSqlExpression() {
 		String[] thisReacts = { PKQLEnum.EXPR_TERM, 
 				PKQLEnum.DECIMAL, 
 				PKQLEnum.NUMBER, 
 				PKQLEnum.GROUP_BY, 
 				PKQLEnum.COL_DEF, 
-				PKQLEnum.MATH_PARAM};
+				PKQLEnum.MAP_OBJ};
 		
 		super.whatIReactTo = thisReacts;
 		super.whoAmI = PKQLEnum.MATH_FUN;
@@ -50,12 +52,16 @@ public abstract class AbstractSqlExpression extends AbstractReactor {
 		return null;
 	}
 	
+	protected void setProcedureName(String procedureName) {
+		this.procedureName = procedureName;
+	}
+	
 	public IPkqlMetadata getPkqlMetadata() {
 		MathPkqlMetadata metadata = new MathPkqlMetadata();
-		metadata.setProcedureName((String) myStore.get("PROC_NAME"));
-		metadata.setPkqlStr((String) myStore.get("MATH_EXPRESSION"));
-		metadata.setColumnsOperatedOn((Vector<String>) myStore.get(PKQLEnum.COL_DEF));
-		metadata.setGroupByColumns((List<String>) myStore.get(PKQLEnum.COL_CSV)); 
+		metadata.setPkqlStr((String) myStore.get(PKQLEnum.MATH_FUN));
+		metadata.setProcedureName(procedureName);
+		metadata.setColumnsOperatedOn(this.builder.getAllTableColumnsUsed());
+		metadata.setGroupByColumns(this.builder.getGroupByColumns()); 
 		return metadata;
 	}
 	

@@ -45,13 +45,16 @@ public class LOFReactor extends MathReactor {
 	private double[] LOP;             // This stores the LOP for each point in dataset
 	private double[][] dataFormatted; // This stores the formatted data from dataTable
 
-
+	public LOFReactor() {
+		setMathRoutine("LocalOutlierFactor");
+	}
+	
 	public Iterator process() {
 		modExpression();
 
 		///////////////// start of initializing some stuff... needs to be put away somewhere else
-		if(myStore.containsKey(PKQLEnum.MATH_PARAM)) {
-			Map<String, Object> options = (Map<String, Object>) myStore.get(PKQLEnum.MATH_PARAM);
+		if(myStore.containsKey(PKQLEnum.MAP_OBJ)) {
+			Map<String, Object> options = (Map<String, Object>) myStore.get(PKQLEnum.MAP_OBJ);
 			if(options.containsKey(INSTANCE_INDEX.toUpperCase())) {
 				this.instanceIndex = Integer.parseInt(options.get(INSTANCE_INDEX.toUpperCase()) + "");
 			} else {

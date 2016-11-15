@@ -7,7 +7,8 @@ import prerna.sablecc.expressions.IExpressionSelector;
 
 public class RConstantSelector implements IExpressionSelector{
 
-	Object value = null;
+	private Object value = null;
+	private List<String> tableColumnsUsed = new Vector<String>();
 	
 	public RConstantSelector(Object value) {
 		this.value = value;
@@ -23,9 +24,13 @@ public class RConstantSelector implements IExpressionSelector{
 	
 	@Override
 	public List<String> getTableColumns() {
-		return new Vector<String>();
+		return tableColumnsUsed;
 	}
 
+	public void setTableColumnsUsed(List<String> tableColumnsUsed) {
+		this.tableColumnsUsed = tableColumnsUsed;
+	}
+	
 	@Override
 	public String getName() {
 		return value + "";

@@ -12,6 +12,7 @@ import java.util.Set;
 import java.util.Vector;
 
 import prerna.ds.h2.H2Frame;
+import prerna.sablecc.meta.IPkqlMetadata;
 
 public class H2ColSplitReactor extends AbstractReactor {
 
@@ -107,6 +108,12 @@ public class H2ColSplitReactor extends AbstractReactor {
 		// so FE knows BE data has been modified
 		frame.updateDataId();
 		
+		return null;
+	}
+
+	@Override
+	public IPkqlMetadata getPkqlMetadata() {
+		// TODO Auto-generated method stub
 		return null;
 	}
 

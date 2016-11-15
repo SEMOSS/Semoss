@@ -10,6 +10,7 @@ import prerna.algorithm.api.ITableDataFrame;
 import prerna.ds.DataFrameHelper;
 import prerna.engine.api.ISelectWrapper;
 import prerna.sablecc.PKQLRunner.STATUS;
+import prerna.sablecc.meta.IPkqlMetadata;
 
 public class RemoveDataReactor extends AbstractReactor {
 
@@ -95,5 +96,11 @@ public class RemoveDataReactor extends AbstractReactor {
 		}
 		String retStr = "Sucessfully deleted data using : \n" + mssg;
 		return retStr;
+	}
+
+	@Override
+	public IPkqlMetadata getPkqlMetadata() {
+		// TODO Auto-generated method stub
+		return null;
 	}
 }

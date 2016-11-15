@@ -1,15 +1,12 @@
 package prerna.algorithm.impl;
 
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Random;
 import java.util.Vector;
-
-import org.apache.spark.sql.DataFrame;
 
 import prerna.algorithm.api.ITableDataFrame;
 import prerna.ds.ExpressionIterator;
@@ -30,6 +27,10 @@ public class MonetaryUnitSamplingReactor extends MathReactor{
 		allItems
 	}
 	
+	public MonetaryUnitSamplingReactor() {
+		setMathRoutine("MonetaryUnitSampling");
+	}
+	
 	@Override
 	public Iterator process() {
 		modExpression();
@@ -41,7 +42,7 @@ public class MonetaryUnitSamplingReactor extends MathReactor{
 		Iterator resultItr = getTinkerData(columns, dataFrame, false);
 		String script = columnsArray[0];
 		
-		Map<String, Object> options = (Map<String, Object>) myStore.get(PKQLEnum.MATH_PARAM);
+		Map<String, Object> options = (Map<String, Object>) myStore.get(PKQLEnum.MAP_OBJ);
 		
 		RiskClassificationType riskType = RiskClassificationType.valueOf((String)options.get("riskType".toUpperCase()));
 		String colName = columnsArray[1];

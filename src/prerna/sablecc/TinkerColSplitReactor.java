@@ -10,6 +10,7 @@ import java.util.Set;
 import java.util.Vector;
 
 import prerna.ds.TinkerFrame;
+import prerna.sablecc.meta.IPkqlMetadata;
 
 public class TinkerColSplitReactor extends AbstractReactor {
 
@@ -74,6 +75,12 @@ public class TinkerColSplitReactor extends AbstractReactor {
 		// so FE knows BE data has been modified
 		frame.updateDataId();
 		
+		return null;
+	}
+
+	@Override
+	public IPkqlMetadata getPkqlMetadata() {
+		// TODO Auto-generated method stub
 		return null;
 	}
 }

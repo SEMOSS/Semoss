@@ -6,11 +6,14 @@ import java.util.Iterator;
 import java.util.Map;
 import java.util.Vector;
 
-import prerna.sablecc.PKQLEnum;
 import prerna.util.ArrayUtilityMethods;
 
 public class SumReactor extends BaseReducerReactor {
 
+	public SumReactor() {
+		setMathRoutine("Sum");
+	}
+	
 	@Override
 	public Object reduce() {
 		double output = 0.0;
@@ -51,7 +54,7 @@ public class SumReactor extends BaseReducerReactor {
 	
 	@Override
 	public Map<String, Object> getColumnDataMap() {
-		return getBaseColumnDataMap("Sum");
+		return getBaseColumnDataMap();
 	}
 	
 }

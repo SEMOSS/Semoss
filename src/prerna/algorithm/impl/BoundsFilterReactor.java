@@ -16,7 +16,11 @@ public class BoundsFilterReactor extends MathReactor{
 	private double tolerance;
 	private double lRegSlope;
 	private double lRegIntercept;
-		
+	
+	public BoundsFilterReactor() {
+		setMathRoutine("BoundsFilter");
+	}
+	
 	@Override
 	public Iterator process() {
 		modExpression();
@@ -25,8 +29,8 @@ public class BoundsFilterReactor extends MathReactor{
 		Iterator itr = getTinkerData(columns, (ITableDataFrame)myStore.get("G"), true);
 		int numRows = ((ITableDataFrame)myStore.get("G")).getNumRows();
 		
-		if(myStore.containsKey(PKQLEnum.MATH_PARAM)) {
-			Map<String, Object> options = (Map<String, Object>) myStore.get(PKQLEnum.MATH_PARAM);
+		if(myStore.containsKey(PKQLEnum.MAP_OBJ)) {
+			Map<String, Object> options = (Map<String, Object>) myStore.get(PKQLEnum.MAP_OBJ);
 			
 			if(options.containsKey("tolerance".toUpperCase())) {
 				this.tolerance = Integer.parseInt(options.get("tolerance".toUpperCase()) + "");

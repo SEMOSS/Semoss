@@ -1,25 +1,17 @@
 package prerna.sablecc;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
-import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.Vector;
 
-import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.GraphTraversal;
-import org.apache.tinkerpop.gremlin.structure.Vertex;
-
 import prerna.algorithm.api.IMetaData;
-import prerna.algorithm.api.ITableDataFrame;
 import prerna.ds.AbstractTableDataFrame;
 import prerna.ds.TinkerFrame;
 import prerna.sablecc.PKQLRunner.STATUS;
-import prerna.ui.components.playsheets.datamakers.IDataMaker;
-import prerna.util.Constants;
 import prerna.util.Utility;
 
 /*
@@ -45,8 +37,8 @@ public class TinkerColFilterModelReactor extends ColFilterModelReactor {
 		// options for unfilter iterator
 		Map<String, Object> options = new HashMap<String, Object>();
 		// retrieve limit && offset options
-		if (myStore.containsKey(PKQLEnum.MATH_PARAM)) {
-			Map<String, Object> filterOptions = (Map<String, Object>) myStore.get(PKQLEnum.MATH_PARAM);
+		if (myStore.containsKey(PKQLEnum.MAP_OBJ)) {
+			Map<String, Object> filterOptions = (Map<String, Object>) myStore.get(PKQLEnum.MAP_OBJ);
 			for (String key : filterOptions.keySet()) {
 				if (key.toLowerCase().equals(AbstractTableDataFrame.LIMIT)) {
 					limit = Integer.parseInt((String) filterOptions.get(key));

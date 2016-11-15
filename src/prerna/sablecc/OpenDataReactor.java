@@ -1,6 +1,5 @@
 package prerna.sablecc;
 
-import java.util.HashMap;
 import java.util.Hashtable;
 import java.util.Iterator;
 import java.util.Map;
@@ -8,12 +7,12 @@ import java.util.Map;
 import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
 
-import prerna.algorithm.api.ITableDataFrame;
 import prerna.cache.CacheFactory;
 import prerna.engine.api.IEngine;
 import prerna.engine.impl.AbstractEngine;
 import prerna.om.Insight;
 import prerna.om.InsightStore;
+import prerna.sablecc.meta.IPkqlMetadata;
 import prerna.ui.components.playsheets.datamakers.IDataMaker;
 import prerna.ui.helpers.InsightCreateRunner;
 import prerna.util.Utility;
@@ -134,5 +133,10 @@ public class OpenDataReactor extends AbstractReactor {
 	 */
 	protected String createResponseString(String[] headers){
 		return "Successfully Opened Insight";
+	}
+	@Override
+	public IPkqlMetadata getPkqlMetadata() {
+		// TODO Auto-generated method stub
+		return null;
 	}
 }

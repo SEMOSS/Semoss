@@ -179,10 +179,13 @@ public final class ConstantsTAP {
 	public static final String CAP_PROVIDE_SYSTEM_PROVIDE_MISSING_DATA_COUNT_QUERY = "CAP_PROVIDE_SYSTEM_PROVIDE_MISSING_DATA_COUNT_QUERY";
 	public static final String CAP_CONSUME_SYSTEM_PROVIDE_MISSING_DATA_COUNT_QUERY = "CAP_CONSUME_SYSTEM_PROVIDE_MISSING_DATA_COUNT_QUERY";
 	
-
+	// forms source file aggregation
+	public static final String FORMS_SOURCE_FILE_AGGREGATION_COMBO_BOX = "FORMS_SOURCE_FILE_AGGREGATION_COMBO_BOX";
+	public static final String FORMS_SOURCE_FILE_DIRECTORY = "FORMS_SOURCE_FILE_DIRECTORY";
+	
 	// Relationship Insert Constants
 	public static final String LOGIC_TYPE = "relInferLogicTypeComboBox";
 	
-
+	
 	
 }

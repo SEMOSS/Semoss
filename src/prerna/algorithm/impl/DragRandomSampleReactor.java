@@ -15,7 +15,12 @@ import prerna.sablecc.MathReactor;
 import prerna.sablecc.PKQLEnum;
 import prerna.sablecc.PKQLRunner.STATUS;
 
-public class DragRandomSampleReactor extends MathReactor{
+public class DragRandomSampleReactor extends MathReactor {
+	
+	public DragRandomSampleReactor() {
+		setMathRoutine("DragRandomSample");
+	}
+	
 	@Override
 	public Iterator process() {
 		modExpression();
@@ -30,7 +35,7 @@ public class DragRandomSampleReactor extends MathReactor{
 		Map<String,Object> sampleDetails = new HashMap<>();
 		int totalSamples = 0;
 		
-		Map<String, Object> options = (Map<String, Object>) myStore.get(PKQLEnum.MATH_PARAM);
+		Map<String, Object> options = (Map<String, Object>) myStore.get(PKQLEnum.MAP_OBJ);
 		
 		List<Region> regions = new ArrayList<>();
 		

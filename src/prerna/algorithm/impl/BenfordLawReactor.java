@@ -1,10 +1,8 @@
 package prerna.algorithm.impl;
 
-import java.text.DecimalFormat;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Vector;
-
 
 import prerna.algorithm.api.ITableDataFrame;
 import prerna.sablecc.MathReactor;
@@ -12,6 +10,11 @@ import prerna.sablecc.PKQLEnum;
 import prerna.sablecc.PKQLRunner.STATUS;
 
 public class BenfordLawReactor extends MathReactor{
+	
+	public BenfordLawReactor() {
+		setMathRoutine("BenfordLaw");
+	}
+	
 	@Override
 	public Iterator process() {
 		modExpression();

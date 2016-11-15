@@ -13,7 +13,7 @@ public class SqlDistinctGroupConcatReactor extends AbstractH2SqlBaseReducer {
 	
 	@Override
 	public SqlExpressionBuilder process(H2Frame frame, SqlExpressionBuilder builder) {
-		Map<String, Object> options = (Map<String, Object>) myStore.get(PKQLEnum.MATH_PARAM);
+		Map<String, Object> options = (Map<String, Object>) myStore.get(PKQLEnum.MAP_OBJ);
 		String separator = null;
 		if(options != null) {
 			separator = (String) options.get("SEPARATOR");
