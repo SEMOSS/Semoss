@@ -759,7 +759,12 @@ public class Translation extends DepthFirstAdapter {
 	@Override
 	public void outAClearData(AClearData node) {
 		if (reactorNames.containsKey(PKQLEnum.CLEAR_DATA)) {
+			IScriptReactor prevReactor = curReactor;
 			deinitReactor(PKQLEnum.CLEAR_DATA, node.toString().trim(), PKQLEnum.CLEAR_DATA);
+			IDataMaker dm = (IDataMaker) prevReactor.getValue("G");
+			if(dm != null) {
+				this.frame = dm;
+			}
 		}
 	}
 
