@@ -9,6 +9,10 @@ import prerna.sablecc.expressions.sql.builder.SqlMathSelector;
 
 public class SqlCosReactor extends AbstractSqlExpression {
 
+	public SqlCosReactor() {
+		setProcedureName("Cosine");
+	}
+	
 	@Override
 	public Iterator process() {
 		super.process();

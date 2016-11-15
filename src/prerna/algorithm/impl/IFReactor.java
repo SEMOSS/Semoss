@@ -17,6 +17,11 @@ public class IFReactor extends MathReactor {
      * && and = should is hardcoded to identify the action taken according to condition
      * @see Translation.java
      */
+	
+	public IFReactor() {
+		setMathRoutine("If");
+	}
+	
     @Override
     public Iterator process() {
           modExpression();

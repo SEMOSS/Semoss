@@ -14,7 +14,12 @@ import prerna.sablecc.MathReactor;
 import prerna.sablecc.PKQLEnum;
 import prerna.sablecc.PKQLRunner.STATUS;
 
-public class RandomSampleReactor extends MathReactor{
+public class RandomSampleReactor extends MathReactor {
+	
+	public RandomSampleReactor() {
+		setMathRoutine("RandSample");
+	}
+	
 	@Override
 	public Iterator process() {
 		modExpression();
@@ -26,7 +31,7 @@ public class RandomSampleReactor extends MathReactor{
 		Map<String,Object> sampleDetails = new HashMap<>();
 		int totalSamples = 0;
 		
-		Map<String, Object> options = (Map<String, Object>) myStore.get(PKQLEnum.MATH_PARAM);
+		Map<String, Object> options = (Map<String, Object>) myStore.get(PKQLEnum.MAP_OBJ);
 		
 		List<Map<Object,Integer>> regions = new ArrayList<>();
 		if(options.containsKey("aboveBoundSamples".toUpperCase())){

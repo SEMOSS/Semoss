@@ -11,6 +11,11 @@ import prerna.sablecc.PKQLEnum;
 import prerna.sablecc.PKQLRunner.STATUS;
 
 public class RoundUpReactor extends MathReactor {
+	
+	public RoundUpReactor() {
+		setMathRoutine("Ceil");
+	}
+	
 	@Override
 	public Iterator process(){
 		modExpression();
@@ -19,7 +24,7 @@ public class RoundUpReactor extends MathReactor {
 		Iterator itr = getTinkerData(columns, (ITableDataFrame)myStore.get("G") , false);
 				
 		
-		Map<String, Object> options = (Map<String, Object>) myStore.get(PKQLEnum.MATH_PARAM);
+		Map<String, Object> options = (Map<String, Object>) myStore.get(PKQLEnum.MAP_OBJ);
 		double significantDigit = Integer.parseInt(options.get("CONDITION1") + "");
 		double digit = Math.pow(10, significantDigit);
 		String script = "Math.ceil("+columnArray[0] +"* "+ digit+")/" + digit;

@@ -12,11 +12,15 @@ import prerna.sablecc.PKQLRunner.STATUS;
 
 public class RightReactor  extends MathReactor { // TODO create BaseMapperReactor once more mapping algorithms have been added
 	
+	public RightReactor() {
+		setMathRoutine("Right");
+	}
+	
 	@Override
 	public Iterator process() {
 		modExpression();
 		Vector <String> columns = (Vector <String>)myStore.get(PKQLEnum.COL_DEF);
-		Map<String, Object> options = (Map<String, Object>) myStore.get(PKQLEnum.MATH_PARAM);
+		Map<String, Object> options = (Map<String, Object>) myStore.get(PKQLEnum.MAP_OBJ);
 		String[] columnsArray = convertVectorToArray(columns);
 		String script = myStore.get("MOD_" + whoAmI).toString();
 		Iterator iterator = getTinkerData(columns, (ITableDataFrame)myStore.get("G"), false);

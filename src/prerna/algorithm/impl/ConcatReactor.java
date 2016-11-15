@@ -11,6 +11,10 @@ import prerna.sablecc.PKQLRunner.STATUS;
 
 public class ConcatReactor extends MathReactor { // TODO create BaseMapperReactor once more mapping algorithms have been added
 	
+	public ConcatReactor() {
+		setMathRoutine("Concat");
+	}
+	
 	@Override
 	public Iterator process() {
 		modExpression();

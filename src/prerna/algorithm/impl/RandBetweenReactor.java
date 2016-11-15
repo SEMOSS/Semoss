@@ -11,6 +11,11 @@ import prerna.sablecc.PKQLEnum;
 import prerna.sablecc.PKQLRunner.STATUS;
 
 public class RandBetweenReactor extends MathReactor{
+	
+	public RandBetweenReactor() {
+		setMathRoutine("RandBetween");
+	}
+	
 	@Override
 	public Iterator process(){
 		modExpression();
@@ -23,7 +28,7 @@ public class RandBetweenReactor extends MathReactor{
 		String[] colArray = new String[1];
 		colArray[0] = cols[0];
 		
-		Map<String, Object> options = (Map<String, Object>) myStore.get(PKQLEnum.MATH_PARAM);
+		Map<String, Object> options = (Map<String, Object>) myStore.get(PKQLEnum.MAP_OBJ);
 		int rangeFrom = Integer.parseInt(options.get("CONDITION1") + "");
 		int rangeTo = Integer.parseInt(options.get("CONDITION2") + "") - rangeFrom;
 		String script = "Math.abs(new Random().nextInt() %" + rangeTo + ") + " + rangeFrom;

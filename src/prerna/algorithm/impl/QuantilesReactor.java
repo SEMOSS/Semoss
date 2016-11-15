@@ -6,27 +6,20 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
-import java.util.SortedSet;
-import java.util.TreeSet;
 import java.util.Vector;
-
-import javax.script.Bindings;
-import javax.script.CompiledScript;
-import javax.script.ScriptContext;
-import javax.script.ScriptException;
-
-import org.apache.tinkerpop.gremlin.groovy.jsr223.GremlinGroovyScriptEngine;
-import org.apache.tinkerpop.gremlin.structure.Vertex;
 
 import prerna.algorithm.api.ITableDataFrame;
 import prerna.ds.ExpressionIterator;
-import prerna.ds.TinkerFrame;
 import prerna.sablecc.MathReactor;
 import prerna.sablecc.PKQLEnum;
 import prerna.sablecc.PKQLRunner.STATUS;
-import prerna.util.Constants;
 
-public class QuantilesReactor extends MathReactor{
+public class QuantilesReactor extends MathReactor {
+	
+	public QuantilesReactor() {
+		setMathRoutine("Quartile");
+	}
+	
 	@Override
 	public Iterator process() {
 		modExpression();
@@ -44,7 +37,7 @@ public class QuantilesReactor extends MathReactor{
 		
 		Collections.sort(valuesList);
 		
-		Map<String, Object> options = (Map<String, Object>) myStore.get(PKQLEnum.MATH_PARAM);
+		Map<String, Object> options = (Map<String, Object>) myStore.get(PKQLEnum.MAP_OBJ);
 		int numTiles = Integer.parseInt(options.get("numTiles".toUpperCase()) + "");
 		List<Double> quantileValues = new ArrayList<>(numTiles - 1);
 		for(int i=1;i<numTiles;i++){

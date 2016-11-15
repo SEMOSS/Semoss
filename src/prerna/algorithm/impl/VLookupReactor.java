@@ -10,6 +10,10 @@ import prerna.sablecc.PKQLEnum;
 
 public class VLookupReactor extends BaseReducerReactor {
 	
+	public VLookupReactor() {
+		setMathRoutine("VLookUp");
+	}
+	
 	@Override
 	public Object reduce() {
 		String output=null;
@@ -23,7 +27,7 @@ public class VLookupReactor extends BaseReducerReactor {
 	    ArrayList<String> sArray  = new ArrayList<String>();
 	    ArrayList<String> rArray  = new ArrayList<String>();
 		//Vector<String> columns = (Vector <String>) myStore.get(PKQLEnum.COL_DEF);
-		Map<String, Object> options = (Map<String, Object>) myStore.get(PKQLEnum.MATH_PARAM);
+		Map<String, Object> options = (Map<String, Object>) myStore.get(PKQLEnum.MAP_OBJ);
 		int valPosition = Integer.parseInt(options.get("CONDITION1") + "");
 		int colPosition = Integer.parseInt(options.get("CONDITION2") + "");		
 		boolean exact_approx =Boolean.valueOf(options.get("CONDITION3") + "");

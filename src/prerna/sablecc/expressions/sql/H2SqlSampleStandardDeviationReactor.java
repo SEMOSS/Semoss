@@ -7,8 +7,8 @@ public class H2SqlSampleStandardDeviationReactor extends H2SqlBasicMathReactor {
 	 * Everything else is handled by inheritance
 	 */
 	public H2SqlSampleStandardDeviationReactor() {
-		this.setMathRoutine("STDDEV_SAMP");
-		this.setPkqlMathRoutine("StandardDeviation");
+		this.setRoutine("STDDEV_SAMP");
+		this.setPkqlRoutine("StandardDeviation");
 	}
 	
 }

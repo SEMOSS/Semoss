@@ -5,14 +5,14 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Vector;
-import org.apache.commons.math3.util.FastMath;
-import org.apache.commons.math3.util.MathUtils;
-import org.apache.commons.math3.stat.descriptive.SummaryStatistics.*;
 
-import prerna.sablecc.MathReactor;
-import prerna.sablecc.PKQLEnum;
+import org.apache.commons.math3.util.FastMath;
 
 public class SkewReactor extends BaseReducerReactor   {
+	
+	public SkewReactor() {
+		setMathRoutine("Skew");
+	}
 	
 	@Override
 	public Object reduce() {
@@ -77,6 +77,6 @@ public class SkewReactor extends BaseReducerReactor   {
 	
 	@Override
 	public Map<String, Object> getColumnDataMap() {
-		return getBaseColumnDataMap("Skew");
+		return getBaseColumnDataMap();
 	}
 }

@@ -5,6 +5,7 @@ import java.util.Iterator;
 import prerna.algorithm.api.ITableDataFrame;
 import prerna.ds.h2.H2Frame;
 import prerna.om.Dashboard;
+import prerna.sablecc.meta.IPkqlMetadata;
 import prerna.util.Utility;
 
 public class H2ClearDataReactor extends AbstractReactor {
@@ -26,6 +27,12 @@ public class H2ClearDataReactor extends AbstractReactor {
 		ITableDataFrame newFrame = (ITableDataFrame) Utility.getDataMaker(null, frame.getClass().getSimpleName());
 		newFrame.setUserId(frame.getUserId());
 		myStore.put(PKQLEnum.G, newFrame);
+		return null;
+	}
+
+	@Override
+	public IPkqlMetadata getPkqlMetadata() {
+		// TODO Auto-generated method stub
 		return null;
 	}
 }

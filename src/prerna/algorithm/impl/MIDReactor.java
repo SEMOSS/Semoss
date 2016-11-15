@@ -12,12 +12,16 @@ import prerna.sablecc.PKQLRunner.STATUS;
 
 public class MIDReactor   extends MathReactor { // TODO create BaseMapperReactor once more mapping algorithms have been added
 	
+	public MIDReactor() {
+		setMathRoutine("MID");
+	}
+	
 	@Override
 	public Iterator process() {
 		modExpression();
 		Vector <String> columns = (Vector <String>)myStore.get(PKQLEnum.COL_DEF);
 		String[] columnsArray = convertVectorToArray(columns);
-		Map<String, Object> options = (Map<String, Object>) myStore.get(PKQLEnum.MATH_PARAM);
+		Map<String, Object> options = (Map<String, Object>) myStore.get(PKQLEnum.MAP_OBJ);
 		int start_position = Integer.parseInt(options.get("CONDITION1") + "");
 		int number_of_characters = Integer.parseInt(options.get("CONDITION2") + "");
 		String script = myStore.get("MOD_" + whoAmI).toString().replace(" ]", "");

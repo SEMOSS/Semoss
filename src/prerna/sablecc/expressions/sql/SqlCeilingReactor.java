@@ -9,6 +9,10 @@ import prerna.sablecc.expressions.sql.builder.SqlMathSelector;
 
 public class SqlCeilingReactor extends AbstractSqlExpression {
 
+	public SqlCeilingReactor() {
+		setProcedureName("Ceiling");
+	}
+	
 	@Override
 	public Iterator process() {
 		super.process();

@@ -10,6 +10,7 @@ import prerna.om.Dashboard;
 import prerna.om.Insight;
 import prerna.om.InsightStore;
 import prerna.sablecc.PKQLEnum.PKQLReactor;
+import prerna.sablecc.meta.IPkqlMetadata;
 
 public class DashboardJoinReactor extends AbstractReactor {
 	
@@ -145,5 +146,11 @@ public class DashboardJoinReactor extends AbstractReactor {
 		Map<String, List> data = new HashMap<>();
 		data.put("joinedInsights", joinDataList);
 		this.myStore.put("DashboardData", data);
+	}
+
+	@Override
+	public IPkqlMetadata getPkqlMetadata() {
+		// TODO Auto-generated method stub
+		return null;
 	}
 }

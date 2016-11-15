@@ -10,10 +10,14 @@ import prerna.sablecc.PKQLEnum;
 
 public class SumIfReactor extends BaseReducerReactor {
 
+	public SumIfReactor() {
+		setMathRoutine("SumIf");
+	}
+	
 	@Override
 	public Object reduce() {
 		double sum = 0;
-		Map<String, Object> options = (Map<String, Object>) myStore.get(PKQLEnum.MATH_PARAM);
+		Map<String, Object> options = (Map<String, Object>) myStore.get(PKQLEnum.MAP_OBJ);
 		String condition = options.get("CONDITION1") + "";
 		double value =0;
 		if(condition.contains("<=")){	
@@ -97,7 +101,7 @@ public class SumIfReactor extends BaseReducerReactor {
 	
 	@Override
 	public Map<String, Object> getColumnDataMap() {
-		return getBaseColumnDataMap("SumIf");
+		return getBaseColumnDataMap();
 	}
 	
 }

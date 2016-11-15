@@ -7,6 +7,7 @@ import prerna.cache.DatabaseInsightCache;
 import prerna.engine.api.IEngine;
 import prerna.engine.impl.AbstractEngine;
 import prerna.om.Insight;
+import prerna.sablecc.meta.IPkqlMetadata;
 import prerna.util.Utility;
 
 public class CacheReactor extends AbstractReactor {
@@ -38,6 +39,12 @@ public class CacheReactor extends AbstractReactor {
 			CacheFactory.getInsightCache(CacheFactory.CACHE_TYPE.DB_INSIGHT_CACHE).deleteInsightCache(insightObj);
 		}
 		
+		return null;
+	}
+
+	@Override
+	public IPkqlMetadata getPkqlMetadata() {
+		// TODO Auto-generated method stub
 		return null;
 	}
 }

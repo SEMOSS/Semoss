@@ -264,9 +264,9 @@ public abstract class AbstractReactor implements IScriptReactor {
 	// AND WRITE OUT WHAT IT DOES
 	// ... WILL EVENTUALLY DO THAT, BUT CURRENTLY JUST OVERRIDING THIS METHOD
 	// IN THE SPECIFIC REACTORS THAT I NEED TO USE
-	public IPkqlMetadata getPkqlMetadata() {
-		return null;
-	}
+//	public IPkqlMetadata getPkqlMetadata() {
+//		return null;
+//	}
 	
 	public String generateExplain(String template, HashMap<String, Object> values) {
 		String msg = "";

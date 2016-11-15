@@ -1,21 +1,20 @@
 package prerna.algorithm.impl;
 
-import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Vector;
 
 import prerna.algorithm.api.ITableDataFrame;
 import prerna.ds.ExpressionIterator;
-import prerna.sablecc.PKQLEnum;
-import prerna.sablecc.PKQLRunner.STATUS;
-import prerna.util.ArrayUtilityMethods;
 import prerna.sablecc.MathReactor;
 import prerna.sablecc.PKQLEnum;
+import prerna.sablecc.PKQLRunner.STATUS;
 
 
 public class AbsoluteReactor extends MathReactor {
 
+	public AbsoluteReactor() {
+		setMathRoutine("Absolute");
+	}
 	
 	@Override
 	public Iterator process(){

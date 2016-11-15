@@ -2,7 +2,6 @@ package prerna.sablecc;
 
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.HashMap;
 import java.util.Hashtable;
 import java.util.Iterator;
 import java.util.List;
@@ -15,6 +14,7 @@ import prerna.engine.api.IEngine;
 import prerna.engine.api.IRawSelectWrapper;
 import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.rdf.query.builder.IQueryInterpreter;
+import prerna.sablecc.meta.IPkqlMetadata;
 import prerna.util.Utility;
 
 public class QueryDataReactor extends AbstractReactor {
@@ -87,5 +87,11 @@ public class QueryDataReactor extends AbstractReactor {
 	public String[] getValues2Sync(String input)
 	{
 		return values2SyncHash.get(input);
+	}
+
+	@Override
+	public IPkqlMetadata getPkqlMetadata() {
+		// TODO Auto-generated method stub
+		return null;
 	}
 }

@@ -15,12 +15,13 @@ public class SqlGroupConcatReactor extends AbstractH2SqlBaseReducer {
 	 * Everything else is handled by inheritance
 	 */
 	public SqlGroupConcatReactor() {
-		
+		this.setRoutine("GROUP_CONCAT");
+		this.setPkqlRoutine("GroupConcat");
 	}
 	
 	@Override
 	public SqlExpressionBuilder process(H2Frame frame, SqlExpressionBuilder builder) {
-		Map<String, Object> options = (Map<String, Object>) myStore.get(PKQLEnum.MATH_PARAM);
+		Map<String, Object> options = (Map<String, Object>) myStore.get(PKQLEnum.MAP_OBJ);
 		String separator = null;
 		if(options != null) {
 			separator = (String) options.get("SEPARATOR");
