@@ -29,7 +29,7 @@ public class BasicStatsReactor extends BaseReducerReactor {
 		
 		double posTotal = 0, negTotal = 0, absTotal = 0;
 		
-		Map<String, Object> options = (Map<String, Object>) myStore.get(PKQLEnum.MATH_PARAM);
+		Map<String, Object> options = (Map<String, Object>) myStore.get(PKQLEnum.MAP_OBJ);
 		
 		double greaterThreshold = options != null && options.containsKey(">") ? Double.valueOf(options.get(">").toString()) : 0.0;
 		double lesserThreshold = options != null && options.containsKey("<") ? Double.valueOf(options.get("<").toString()) : 0.0;

@@ -8,11 +8,14 @@ import java.util.Set;
 import java.util.TreeSet;
 import java.util.Vector;
 
-import prerna.sablecc.PKQLEnum;
 import prerna.util.ArrayUtilityMethods;
 
 public class CountAReactor extends BaseReducerReactor {
 
+	public CountAReactor() {
+		setMathRoutine("CountA");
+	}
+	
 	@Override
 	public Object reduce() {
 		double count = 0;
@@ -59,7 +62,7 @@ public class CountAReactor extends BaseReducerReactor {
 	
 	@Override
 	public Map<String, Object> getColumnDataMap() {
-		return getBaseColumnDataMap("CountA");
+		return getBaseColumnDataMap();
 	}
 	
 }

@@ -7,7 +7,7 @@ public class SqlSumReactor extends H2SqlBasicMathReactor {
 	 * Everything else is handled by inheritance
 	 */
 	public SqlSumReactor() {
-		this.setMathRoutine("SUM");
-		this.setPkqlMathRoutine("Sum");
+		this.setRoutine("SUM");
+		this.setPkqlRoutine("Sum");
 	}
 }

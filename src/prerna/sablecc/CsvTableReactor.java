@@ -7,6 +7,7 @@ import java.util.Set;
 import java.util.Vector;
 
 import prerna.ds.TinkerMetaHelper;
+import prerna.sablecc.meta.IPkqlMetadata;
 
 public class CsvTableReactor extends AbstractReactor {
 
@@ -40,6 +41,12 @@ public class CsvTableReactor extends AbstractReactor {
 		myStore.put(nodeStr, new CsvTableWrapper(values));
 
 		// eventually I need this iterator to set this back for this particular node
+		return null;
+	}
+
+	@Override
+	public IPkqlMetadata getPkqlMetadata() {
+		// TODO Auto-generated method stub
 		return null;
 	}
 }

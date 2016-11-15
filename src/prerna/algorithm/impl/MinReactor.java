@@ -6,10 +6,13 @@ import java.util.Iterator;
 import java.util.Map;
 import java.util.Vector;
 
-import prerna.sablecc.PKQLEnum;
 import prerna.util.ArrayUtilityMethods;
 
 public class MinReactor extends BaseReducerReactor {
+	
+	public MinReactor() {
+		setMathRoutine("Min");
+	}
 	
 	@Override
 	public Object reduce() {
@@ -60,7 +63,7 @@ public class MinReactor extends BaseReducerReactor {
 	}
 	
 	public Map<String, Object> getColumnDataMap() {
-		return getBaseColumnDataMap("Min");
+		return getBaseColumnDataMap();
 	}
 	
 }

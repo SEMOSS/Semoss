@@ -3,20 +3,15 @@ package prerna.sablecc;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.Hashtable;
 import java.util.Iterator;
-import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.Vector;
 
 import prerna.algorithm.api.IMetaData;
-import prerna.algorithm.api.ITableDataFrame;
 import prerna.ds.AbstractTableDataFrame;
 import prerna.ds.AbstractTableDataFrame.Comparator;
-import prerna.ds.h2.H2Builder;
 import prerna.ds.h2.H2Frame;
-import prerna.ds.h2.H2Joiner;
 import prerna.sablecc.PKQLRunner.STATUS;
 import prerna.util.Utility;
 
@@ -42,7 +37,7 @@ public class H2ColFilterModelReactor extends ColFilterModelReactor {
 		Map<String, HashSet<String>> visibleValues = new HashMap<>();
 
 		// if limit and offset options exists
-		if (myStore.containsKey(PKQLEnum.MATH_PARAM)) {
+		if (myStore.containsKey(PKQLEnum.MAP_OBJ)) {
 			limitOffset = getLimitOffset();
 		}
 		
@@ -250,7 +245,7 @@ public class H2ColFilterModelReactor extends ColFilterModelReactor {
 
 	private String getLimitOffset() {
 		String filters = "";
-		Map<String, Object> options = (Map<String, Object>) myStore.get(PKQLEnum.MATH_PARAM);
+		Map<String, Object> options = (Map<String, Object>) myStore.get(PKQLEnum.MAP_OBJ);
 		for (String key : options.keySet()) {
 			filters += " " + key.toUpperCase() + " " + options.get(key);
 		}

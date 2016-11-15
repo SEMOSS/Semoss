@@ -7,7 +7,7 @@ public class SqlCountReactor extends H2SqlBasicMathReactor {
 	 * Everything else is handled by inheritance
 	 */
 	public SqlCountReactor() {
-		this.setMathRoutine("COUNT");
-		this.setPkqlMathRoutine("Count");
+		this.setRoutine("COUNT");
+		this.setPkqlRoutine("Count");
 	}
 }

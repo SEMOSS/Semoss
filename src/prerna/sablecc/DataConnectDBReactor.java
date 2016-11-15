@@ -4,6 +4,7 @@ import java.util.Iterator;
 import java.util.List;
 
 import prerna.ds.nativeframe.NativeFrame;
+import prerna.sablecc.meta.IPkqlMetadata;
 
 public class DataConnectDBReactor  extends AbstractReactor{
 
@@ -21,6 +22,12 @@ public class DataConnectDBReactor  extends AbstractReactor{
 		NativeFrame frame = (NativeFrame)myStore.get("G");
 		frame.setConnection(engine.trim());
 
+		return null;
+	}
+
+	@Override
+	public IPkqlMetadata getPkqlMetadata() {
+		// TODO Auto-generated method stub
 		return null;
 	}
 }

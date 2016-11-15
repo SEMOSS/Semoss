@@ -9,6 +9,10 @@ import prerna.sablecc.expressions.sql.builder.SqlMathSelector;
 
 public class SqlSinReactor extends AbstractSqlExpression {
 
+	public SqlSinReactor() {
+		setProcedureName("Sine");
+	}
+	
 	@Override
 	public Iterator process() {
 		super.process();

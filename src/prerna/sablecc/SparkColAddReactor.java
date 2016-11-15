@@ -12,9 +12,11 @@ import prerna.algorithm.api.ITableDataFrame;
 import prerna.ds.ExpressionIterator;
 import prerna.ds.spark.SparkDataFrame;
 import prerna.sablecc.PKQLRunner.STATUS;
+import prerna.sablecc.meta.IPkqlMetadata;
 import prerna.util.Utility;
 
 public class SparkColAddReactor extends AbstractReactor {
+	
 	Hashtable<String, String[]> values2SyncHash = new Hashtable<String, String[]>();
 
 	public SparkColAddReactor() {
@@ -149,5 +151,11 @@ public class SparkColAddReactor extends AbstractReactor {
 	// gets all the values to synchronize for this
 	public String[] getValues2Sync(String input) {
 		return values2SyncHash.get(input);
+	}
+
+	@Override
+	public IPkqlMetadata getPkqlMetadata() {
+		// TODO Auto-generated method stub
+		return null;
 	}
 }

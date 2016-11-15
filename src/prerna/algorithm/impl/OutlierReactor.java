@@ -37,13 +37,17 @@ public class OutlierReactor extends MathReactor {
 
 	private HashMap<Object, Double> results;    // This stores the FastDistance for each point in dataset
 	
+	public OutlierReactor() {
+		setMathRoutine("OutlierDetection");
+	}
+	
 	@Override
 	public Iterator process() {
 		modExpression();
 		
 		///////////////// start of initializing some stuff... needs to be put away somewhere else
-		if(myStore.containsKey(PKQLEnum.MATH_PARAM)) {
-			Map<String, Object> options = (Map<String, Object>) myStore.get(PKQLEnum.MATH_PARAM);
+		if(myStore.containsKey(PKQLEnum.MAP_OBJ)) {
+			Map<String, Object> options = (Map<String, Object>) myStore.get(PKQLEnum.MAP_OBJ);
 			if(options.containsKey(INSTANCE_INDEX.toUpperCase())) {
 				this.instanceIndex = Integer.parseInt(options.get(INSTANCE_INDEX.toUpperCase()) + "");
 			} else {

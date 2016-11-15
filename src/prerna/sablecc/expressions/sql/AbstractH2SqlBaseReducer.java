@@ -12,17 +12,21 @@ import prerna.ds.h2.H2Frame;
 import prerna.sablecc.AbstractReactor;
 import prerna.sablecc.PKQLEnum;
 import prerna.sablecc.PKQLRunner.STATUS;
+import prerna.sablecc.expressions.IExpressionSelector;
 import prerna.sablecc.expressions.sql.builder.SqlColumnSelector;
 import prerna.sablecc.expressions.sql.builder.SqlConstantSelector;
 import prerna.sablecc.expressions.sql.builder.SqlExpressionBuilder;
+import prerna.sablecc.meta.IPkqlMetadata;
+import prerna.sablecc.meta.MathPkqlMetadata;
 
 public abstract class AbstractH2SqlBaseReducer extends AbstractReactor {
 
-	protected String mathRoutine = null;
-	protected String pkqlMathRoutine = null;
-
+	protected String routine = null;
+	protected String pkqlRoutine = null;
+	protected SqlExpressionBuilder builder = null;
+	
 	public AbstractH2SqlBaseReducer() {
-		String[] thisReacts = { PKQLEnum.EXPR_TERM, PKQLEnum.DECIMAL, PKQLEnum.NUMBER, PKQLEnum.GROUP_BY, PKQLEnum.COL_DEF, PKQLEnum.MATH_PARAM};
+		String[] thisReacts = { PKQLEnum.EXPR_TERM, PKQLEnum.DECIMAL, PKQLEnum.NUMBER, PKQLEnum.GROUP_BY, PKQLEnum.COL_DEF, PKQLEnum.MAP_OBJ};
 		super.whatIReactTo = thisReacts;
 		super.whoAmI = PKQLEnum.MATH_FUN;
 	}
@@ -36,10 +40,9 @@ public abstract class AbstractH2SqlBaseReducer extends AbstractReactor {
 
 		boolean hasGroups = false;
 		
-		SqlExpressionBuilder builder = null;
 		// if this is wrapping an existing expression iterator
 		if(myStore.get("TERM") instanceof SqlExpressionBuilder) {
-			builder = (SqlExpressionBuilder) myStore.get("TERM");
+			this.builder = (SqlExpressionBuilder) myStore.get("TERM");
 			
 			// make sure groups are not contradicting
 			// get the current groups
@@ -66,45 +69,45 @@ public abstract class AbstractH2SqlBaseReducer extends AbstractReactor {
 				hasGroups = addGroupBys(h2Frame, builder);
 			}
 		} else {
-			builder = new SqlExpressionBuilder(h2Frame);
+			this.builder = new SqlExpressionBuilder(h2Frame);
 			// this case can only be if we pass in a column
 			
-			// modify the expression to get the sql syntax
-			modExpression();
-			// we have a new expression
-			// input is a new column
-			String column = myStore.get("MOD_" + whoAmI).toString();
-			column = column.replace("[", "").replace("]", "").trim();
+			// only other possibility we account for is a column
+			// the input has to be a set of column as the starting point
+			Vector<String> columns = (Vector<String>) myStore.get(PKQLEnum.COL_DEF);
 			
-			SqlColumnSelector cSelector = new SqlColumnSelector(h2Frame, column);
-			builder.addSelector(cSelector);
+			for(String col : columns) {
+				SqlColumnSelector selector = new SqlColumnSelector(h2Frame, col);
+				this.builder.addSelector(selector);
+			}
 			
 			// no existing group bys
 			// see if we need to add any new ones
-			hasGroups = addGroupBys(h2Frame, builder);
+			hasGroups = addGroupBys(h2Frame, this.builder);
 		}
 
-		builder = process(h2Frame, builder);
+		this.builder = process(h2Frame, this.builder);
 
-		if(hasGroups){
-			myStore.put(nodeStr, builder);
-			myStore.put("STATUS",STATUS.SUCCESS);
-		} else {
-			ResultSet rs = h2Frame.execQuery(builder.toString());
+		// if no groups
+		// consolidate into a single value
+		if(!hasGroups){
+			ResultSet rs = h2Frame.execQuery(this.builder.toString());
 			Object result = null;
 			try {
 				rs.next();
 				result = rs.getObject(1);
 				// we just added a selector which we can reduce into a scalar
+				IExpressionSelector lastSelector = this.builder.getLastSelector();
 				SqlConstantSelector constant = new SqlConstantSelector(result);
-				builder.replaceSelector(builder.getLastSelector(), constant);
+				constant.setTableColumnsUsed(lastSelector.getTableColumns());
+				this.builder.replaceSelector(lastSelector, constant);
 			} catch (SQLException e) {
 				e.printStackTrace();
 			}
-			
-			myStore.put(nodeStr, builder);
-			myStore.put("STATUS",STATUS.SUCCESS);
 		}
+		
+		myStore.put(nodeStr, this.builder);
+		myStore.put("STATUS",STATUS.SUCCESS);
 		
 		return null;
 	}
@@ -128,11 +131,20 @@ public abstract class AbstractH2SqlBaseReducer extends AbstractReactor {
 		return hasGroups;
 	}
 	
-	public void setMathRoutine(String mathRoutine) {
-		this.mathRoutine = mathRoutine;
+	public void setRoutine(String routine) {
+		this.routine = routine;
 	}
 	
-	public void setPkqlMathRoutine(String pkqlMathRoutine) {
-		this.pkqlMathRoutine  = pkqlMathRoutine;
+	public void setPkqlRoutine(String pkqlRoutine) {
+		this.pkqlRoutine  = pkqlRoutine;
+	}
+	
+	public IPkqlMetadata getPkqlMetadata() {
+		MathPkqlMetadata metadata = new MathPkqlMetadata();
+		metadata.setPkqlStr((String) myStore.get(PKQLEnum.MATH_FUN));
+		metadata.setProcedureName(pkqlRoutine);
+		metadata.setColumnsOperatedOn(this.builder.getAllTableColumnsUsed());
+		metadata.setGroupByColumns(this.builder.getGroupByColumns()); 
+		return metadata;
 	}
 }

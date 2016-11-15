@@ -6,11 +6,14 @@ import java.util.Iterator;
 import java.util.Map;
 import java.util.Vector;
 
-import prerna.sablecc.PKQLEnum;
 import prerna.util.ArrayUtilityMethods;
 
 public class StandardDeviationReactor extends BaseReducerReactor {
 
+	public StandardDeviationReactor() {
+		setMathRoutine("StandardDeviation");
+	}
+	
 	@Override
 	public Object reduce() {
 		int count = 0;
@@ -74,7 +77,7 @@ public class StandardDeviationReactor extends BaseReducerReactor {
 	
 	@Override
 	public Map<String, Object> getColumnDataMap() {
-		return getBaseColumnDataMap("StandardDeviation");
+		return getBaseColumnDataMap();
 	}
 	
 }

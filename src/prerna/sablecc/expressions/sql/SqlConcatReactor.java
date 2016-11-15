@@ -8,6 +8,10 @@ import prerna.sablecc.expressions.sql.builder.SqlConcatSelector;
 
 public class SqlConcatReactor extends AbstractSqlExpression {
 
+	public SqlConcatReactor() {
+		setProcedureName("Concat");
+	}
+	
 	@Override
 	public Iterator process() {
 		super.process();

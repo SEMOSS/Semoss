@@ -6,6 +6,7 @@ import java.util.Map;
 
 import prerna.ds.util.WebApiIterator;
 import prerna.engine.api.IHeadersDataRow;
+import prerna.sablecc.meta.IPkqlMetadata;
 
 public class WebApiReactor extends AbstractReactor{
 
@@ -56,6 +57,12 @@ public class WebApiReactor extends AbstractReactor{
 			e.printStackTrace();			
 		}			
 
+		return null;
+	}
+
+	@Override
+	public IPkqlMetadata getPkqlMetadata() {
+		// TODO Auto-generated method stub
 		return null;
 	}
 }

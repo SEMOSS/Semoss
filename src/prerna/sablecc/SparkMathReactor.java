@@ -47,36 +47,36 @@ public abstract class SparkMathReactor extends AbstractReactor {
 
 	@Override
 	public Iterator process() {
-		try {
-			modExpression();
-			System.out.println("Printing the myStore..  " + myStore);
-
-			String procedureName = (String) myStore.get(PKQLEnum.PROC_NAME);
-			String procedureAlgo = "prerna.algorithm.impl." + "Spark" + procedureName + "Algorithm";
-			Object algorithm = Class.forName(procedureAlgo).newInstance();
-
-			Vector<String> columns = (Vector<String>) myStore.get(PKQLEnum.COL_DEF);
-			ITableDataFrame frame = (ITableDataFrame) myStore.get("G");
-			Vector<String> groupBys = (Vector<String>) myStore.get(PKQLEnum.COL_CSV);
-
-			Object finalValue = null;
-			// if(frame instanceof SparkDataFrame) {
-//				finalValue = ((SparkDataFrame)frame).mapReduce(columns, groupBys, procedureName);
-			// }
-			String nodeStr = myStore.get(whoAmI).toString();
-			myStore.put(nodeStr, finalValue);
-			myStore.put("STATUS", STATUS.SUCCESS);
-
-		} catch (InstantiationException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		} catch (IllegalAccessException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		} catch (ClassNotFoundException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
+//		try {
+//			modExpression();
+//			System.out.println("Printing the myStore..  " + myStore);
+//
+//			String procedureName = (String) myStore.get(PKQLEnum.PROC_NAME);
+//			String procedureAlgo = "prerna.algorithm.impl." + "Spark" + procedureName + "Algorithm";
+//			Object algorithm = Class.forName(procedureAlgo).newInstance();
+//
+//			Vector<String> columns = (Vector<String>) myStore.get(PKQLEnum.COL_DEF);
+//			ITableDataFrame frame = (ITableDataFrame) myStore.get("G");
+//			Vector<String> groupBys = (Vector<String>) myStore.get(PKQLEnum.COL_CSV);
+//
+//			Object finalValue = null;
+//			// if(frame instanceof SparkDataFrame) {
+////				finalValue = ((SparkDataFrame)frame).mapReduce(columns, groupBys, procedureName);
+//			// }
+//			String nodeStr = myStore.get(whoAmI).toString();
+//			myStore.put(nodeStr, finalValue);
+//			myStore.put("STATUS", STATUS.SUCCESS);
+//
+//		} catch (InstantiationException e) {
+//			// TODO Auto-generated catch block
+//			e.printStackTrace();
+//		} catch (IllegalAccessException e) {
+//			// TODO Auto-generated catch block
+//			e.printStackTrace();
+//		} catch (ClassNotFoundException e) {
+//			// TODO Auto-generated catch block
+//			e.printStackTrace();
+//		}
 
 		return null;
 	}
