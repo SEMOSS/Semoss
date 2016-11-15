@@ -111,6 +111,9 @@ public class H2Joiner {
 		}
 	}
 	
+	public Dashboard getDashboard() {
+		return this.dashboard;
+	}
 	
 	/**************************************** FOR MULTI COLUMN -- DEVELOP THIS GOING FORWARD *************************/
 	
