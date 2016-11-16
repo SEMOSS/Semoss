@@ -133,7 +133,7 @@ public class H2SqlExpressionIterator implements Iterator<Object[]> {
 			
 			headMap.put("uri", header);
 			headMap.put("varKey", header);
-			headMap.put("type", headerTypes.get(header.toUpperCase()));
+			headMap.put("type", headerTypes.get(selector.toString().toUpperCase()));
 			headMap.put("vizType", vizTypes.get(i).replace("=", ""));
 			
 			// TODO push this on the selector to provide its type
