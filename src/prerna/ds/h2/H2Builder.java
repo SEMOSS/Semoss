@@ -36,6 +36,7 @@ import com.google.gson.Gson;
 import prerna.algorithm.api.IMetaData;
 import prerna.cache.ICache;
 import prerna.ds.AbstractTableDataFrame;
+import prerna.ds.RdbmsQueryBuilder;
 import prerna.engine.api.IHeadersDataRow;
 import prerna.poi.main.RDBMSEngineCreationHelper;
 import prerna.util.ArrayUtilityMethods;
@@ -519,7 +520,7 @@ public class H2Builder {
 	 */
 	private void generateTable(Iterator<IHeadersDataRow> iterator, String[] headers, String[] types, String tableName) {
 		try {
-			String createTable = makeCreate(tableName, headers, types);
+			String createTable = RdbmsQueryBuilder.makeCreate(tableName, headers, types);
 			runQuery(createTable);
 
 			PreparedStatement ps = createInsertPreparedStatement(tableName, headers);
@@ -546,7 +547,7 @@ public class H2Builder {
 						}
 					} else {
 						String value = nextRow[colIndex] + "";
-						ps.setString(colIndex + 1, value + "");
+						ps.setString(colIndex + 1, value);
 					}
 				}
 				// add it
@@ -844,7 +845,6 @@ public class H2Builder {
 				column.add(rs.getObject(1));
 			}
 		} catch (SQLException e) {
-			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
 		return column.toArray();
@@ -975,7 +975,7 @@ public class H2Builder {
 						removeColumnIndex(tableCol[0], tableCol[1]);
 					}
 					
-					String alterQuery = makeAlter(tableName, newHeaders.toArray(new String[] {}), newTypes.toArray(new String[] {}));
+					String alterQuery = RdbmsQueryBuilder.makeAlter(tableName, newHeaders.toArray(new String[] {}), newTypes.toArray(new String[] {}));
 					LOGGER.info("ALTERING TABLE: " + alterQuery);
 					runQuery(alterQuery);
 					LOGGER.info("DONE ALTER TABLE");
@@ -986,7 +986,7 @@ public class H2Builder {
 				}
 			} else {
 				// if table doesn't exist then create one with headers and types
-				String createTable = makeCreate(tableName, headers, types);
+				String createTable = RdbmsQueryBuilder.makeCreate(tableName, headers, types);
 				System.out.println("creating table: " + createTable);
 				runQuery(createTable);
 			}
@@ -1049,7 +1049,7 @@ public class H2Builder {
 	public void dropColumn(String columnHeader) {
 
 		try {
-			runQuery(makeDropColumn(columnHeader, tableName));
+			runQuery(RdbmsQueryBuilder.makeDropColumn(columnHeader, tableName));
 		} catch (Exception e) {
 			e.printStackTrace();
 		}
@@ -1075,7 +1075,7 @@ public class H2Builder {
 	 */
 	protected void dropTable() {
 		if(tableExists(tableName)) {
-			String finalQuery = makeDropTable(tableName);
+			String finalQuery = RdbmsQueryBuilder.makeDropTable(tableName);
 			try {
 				runQuery(finalQuery);
 			} catch (Exception e) {
@@ -1094,7 +1094,7 @@ public class H2Builder {
 		if (viewTableName == null)
 			return;
 
-		String finalQuery = makeDropView(this.viewTableName);
+		String finalQuery = RdbmsQueryBuilder.makeDropView(this.viewTableName);
 		try {
 			runQuery(finalQuery);
 		} catch (Exception e) {
@@ -1464,8 +1464,7 @@ public class H2Builder {
 	 * @param types
 	 * @param joinType
 	 */
-	public void processIterator(Iterator<IHeadersDataRow> iterator, String[] oldHeaders, String[] newHeaders,
-			String[] types, Join joinType) {
+	public void processIterator(Iterator<IHeadersDataRow> iterator, String[] oldHeaders, String[] newHeaders, String[] types, Join joinType) {
 
 		newHeaders = cleanHeaders(newHeaders);
 		types = cleanTypes(types);
@@ -1537,7 +1536,7 @@ public class H2Builder {
 		}
 
 		try {
-			runQuery(makeDropTable(newTableName));
+			runQuery(RdbmsQueryBuilder.makeDropTable(newTableName));
 		} catch (Exception e) {
 			e.printStackTrace();
 		}
@@ -1561,8 +1560,7 @@ public class H2Builder {
 	 *            - the type of group by
 	 * @param headers
 	 */
-	public void processGroupBy(String column, String newColumnName, String valueColumn, String mathType,
-			String[] headers) {
+	public void processGroupBy(String column, String newColumnName, String valueColumn, String mathType, String[] headers) {
 
 		// String[] tableHeaders = getHeaders(tableName);
 		// String inserter = makeGroupBy(column, valueColumn, mathType,
@@ -1755,7 +1753,7 @@ public class H2Builder {
 		// create table if it does not already exist
 		try {
 			if (!tableExists(tableName)) {
-				String createTable = makeCreate(tableName, headers, types);
+				String createTable = RdbmsQueryBuilder.makeCreate(tableName, headers, types);
 				runQuery(createTable);
 			}
 		} catch (Exception ex) {
@@ -1942,10 +1940,7 @@ public class H2Builder {
 		}
 
 		// create a new filter substring and add/replace old filter substring
-		String temporalFiltering = makeFilterSubQuery(temporalBindings, compHash); // default
-																					// comparator
-																					// is
-																					// equals
+		String temporalFiltering = makeFilterSubQuery(temporalBindings, compHash); // default comparator is equals
 		if (temporalFiltering != null && temporalFiltering.length() > 0) {
 			if (selectQuery.contains(" WHERE ")) {
 				temporalFiltering = temporalFiltering.replaceFirst(" WHERE ", "");
@@ -2309,7 +2304,7 @@ public class H2Builder {
 			// Statement stmt = conn.createStatement();
 			// stmt.execute(finalQuery);
 
-			runQuery(makeDropTable(tableName1));
+			runQuery(RdbmsQueryBuilder.makeDropTable(tableName1));
 
 			// DONT DROP THIS due to need to preserve for outer joins, method
 			// outside will handle dropping new table
@@ -2471,7 +2466,7 @@ public class H2Builder {
 				runQuery(saveScript);
 
 				// drop the current table from in-memory or from old physical db
-				runQuery(makeDropTable(this.tableName));
+				runQuery(RdbmsQueryBuilder.makeDropTable(this.tableName));
 			}
 
 			// create the new conneciton
@@ -2658,8 +2653,7 @@ public class H2Builder {
 	 ******************************************/
 
 	// make an insert query
-	private String makeInsert(String[] headers, String[] types, String[] values,
-			Hashtable<String, String> defaultValues, String tableName) {
+	private String makeInsert(String[] headers, String[] types, String[] values, Hashtable<String, String> defaultValues, String tableName) {
 		StringBuilder inserter = new StringBuilder("INSERT INTO " + tableName + " (");
 		StringBuilder template = new StringBuilder("(");
 
@@ -2729,32 +2723,6 @@ public class H2Builder {
 
 		// return template.toString();
 		return inserter.toString();
-	}
-
-	private String makeAlter(String tableName, String[] newHeaders, String[] newTypes) {
-		String createString = "ALTER TABLE " + tableName + " ADD (";
-
-		for (int i = 0; i < newHeaders.length; i++) {
-			if (i == 0) {
-				createString = createString + newHeaders[i] + "  " + newTypes[i];
-			} else {
-				createString = createString + ", " + newHeaders[i] + "  " + newTypes[i];
-			}
-		}
-
-		createString = createString + ")";
-
-		return createString;
-	}
-
-	// drop a table
-	private String makeDropTable(String name) {
-		return "DROP TABLE " + name;
-	}
-
-	// drop a view
-	private String makeDropView(String name) {
-		return "DROP VIEW " + name;
 	}
 
 	// make a select query
@@ -2975,30 +2943,7 @@ public class H2Builder {
 		return listString;
 	}
 
-	// create a table with headers and name
-	private String makeCreate(String tableName, String[] headers, String[] types) {
-		String createString = "CREATE TABLE " + tableName + " (";
-
-		String[] capHeaders = new String[headers.length];
-
-		for (int headerIndex = 0; headerIndex < headers.length; headerIndex++) {
-			String header = cleanHeader(headers[headerIndex]);
-			capHeaders[headerIndex] = header;
-
-			if (headerIndex == 0)
-				createString = createString + header + "  " + types[headerIndex];
-			else
-				createString = createString + ", " + header + "  " + types[headerIndex];
-		}
-
-		// this.headers = capHeaders;
-		createString = createString + ");";
-
-		return createString;
-	}
-
-	private String makeGroupBy(String column, String valueColumn, String mathType, String alias, String tableName,
-			String[] headers) {
+	private String makeGroupBy(String column, String valueColumn, String mathType, String alias, String tableName, String[] headers) {
 
 		column = cleanHeader(column);
 		valueColumn = cleanHeader(valueColumn);
@@ -3051,8 +2996,7 @@ public class H2Builder {
 	}
 
 	// TODO : don't assume a double group by here
-	private String makeGroupBy(String[] column, String valueColumn, String mathType, String alias, String tableName,
-			String[] headers) {
+	private String makeGroupBy(String[] column, String valueColumn, String mathType, String alias, String tableName, String[] headers) {
 		if (column.length == 1)
 			return makeGroupBy(column[0], valueColumn, mathType, alias, tableName, headers);
 		String column1 = cleanHeader(column[0]);
@@ -3215,15 +3159,14 @@ public class H2Builder {
 		return functionString;
 	}
 
-	private String makeDropColumn(String column, String tableName) {
-		column = cleanHeader(column);
-		String dropColumnQuery = "ALTER TABLE " + tableName + " DROP COLUMN " + column;
-		return dropColumnQuery;
-	}
+//	private String makeDropColumn(String column, String tableName) {
+//		column = cleanHeader(column);
+//		String dropColumnQuery = "ALTER TABLE " + tableName + " DROP COLUMN " + column;
+//		return dropColumnQuery;
+//	}
 
 	// update only one column at a time
-	private String makeUpdate(String tableName, String[] joinColumn, String newColumn, Object[] joinValue,
-			Object newValue) {
+	private String makeUpdate(String tableName, String[] joinColumn, String newColumn, Object[] joinValue, Object newValue) {
 		// joinValue = cleanInstance(joinValue.toString());
 		newValue = cleanInstance(newValue.toString());
 		String updateQuery = "UPDATE " + tableName + " SET " + newColumn + "=" + "'" + newValue + "'" + " WHERE ";
@@ -3294,6 +3237,7 @@ public class H2Builder {
 	private String makeRenameTable(String oldTable, String newTable) {
 		return "ALTER TABLE " + oldTable + " RENAME TO " + newTable;
 	}
+	
 	private String makeDeleteData(String tableName, String[] columnName, String[] values) {
 		String deleteQuery = "DELETE FROM " + tableName + " WHERE ";
 		for (int i = 0; i < columnName.length; i++) {
@@ -3387,7 +3331,7 @@ public class H2Builder {
 			Gson gson = new Gson();
 			props.setProperty("filterHash", gson.toJson(filterHash2));
 
-			String dropQuery = makeDropTable(newTable);
+			String dropQuery = RdbmsQueryBuilder.makeDropTable(newTable);
 			runQuery(dropQuery);
 
 			props.setProperty("inMemDb", this.isInMem + "");
@@ -3535,7 +3479,7 @@ public class H2Builder {
 	}
 	
 	public int getNumRows() {
-		String query = "SELECT COUNT(*) FROM " + this.tableName;
+		String query = "SELECT COUNT(*) FROM " + getReadTable();
 		ResultSet rs = executeQuery(query);
 		try {
 			while (rs.next()) {
@@ -3546,6 +3490,14 @@ public class H2Builder {
 		}
 
 		return 0;
+	}
+	
+	public String getReadTable() {
+		if(joinMode) {
+			return this.viewTableName;
+		} else {
+			return this.tableName;
+		}
 	}
 
 	public String[] createUser(String tableName) {
