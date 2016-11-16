@@ -1,5 +1,6 @@
 package prerna.ds;
 
+import java.util.Hashtable;
 import java.util.List;
 
 public class RdbmsQueryBuilder {
@@ -61,6 +62,8 @@ public class RdbmsQueryBuilder {
 		return selectStatement.toString();
 	}
 	
+	
+	// SELECT AVERAGE(COLUMN1) FROM TABLE_NAME
 	public static String makeFunction(String column, String function, String tableName) {
 		String functionString = "SELECT ";
 		switch (function.toUpperCase()) {
@@ -86,6 +89,7 @@ public class RdbmsQueryBuilder {
 		functionString += "FROM " + tableName;
 		return functionString;
 	}
+	
 	/******************************
 	 * END READ QUERIES
 	 ******************************/
@@ -141,11 +145,86 @@ public class RdbmsQueryBuilder {
 		return updateQuery;
 	}
 	
-	
+	// make an insert query
+	public static String makeInsert(String[] headers, String[] types, String[] values, Hashtable<String, String> defaultValues, String tableName) {
+		StringBuilder inserter = new StringBuilder("INSERT INTO " + tableName + " (");
+		StringBuilder template = new StringBuilder("(");
+
+		for (int colIndex = 0; colIndex < headers.length; colIndex++) {
+			// I need to find the type and based on that adjust what I want
+			String type = types[colIndex];
+
+			// if null on integer - empty
+			// if null on string - ''
+			// if currenncy - empty
+			// if date - empty
+
+			String name = headers[colIndex];
+			StringBuilder thisTemplate = new StringBuilder(name);
+
+			if (type.equalsIgnoreCase("int") || type.equalsIgnoreCase("double")) {
+				// if(!defaultValues.containsKey(type))
+				String value = values[colIndex];
+				if (value == null || value.length() == 0) {
+					value = "null";
+				}
+				thisTemplate = new StringBuilder(value);
+				// else
+				// thisTemplate = new StringBuilder(defaultValues.get(type));
+			}
+
+			else if (type.equalsIgnoreCase("date")) {
+				String value = values[colIndex];
+				if (value == null || value.length() == 0) {
+					value = "null";
+					thisTemplate = new StringBuilder(value);
+				} else {
+					value = value.replace("'", "''");
+					thisTemplate = new StringBuilder("'" + value + "'");
+				}
+			} else {
+				// if(value != null)
+				// comments will come in handy some day
+				// if(!defaultValues.containsKey(type))
+				String value = values[colIndex];
+				value = value.replace("'", "''");
+				thisTemplate = new StringBuilder("'" + value + "'");
+				// else
+				// thisTemplate = new StringBuilder("'" +
+				// defaultValues.get(type) + "'");
+			}
+			if (colIndex == 0) {
+				inserter.append(name);// = new StringBuilder(inserter + name);
+				template.append(thisTemplate);// = new StringBuilder(template +
+												// "" + thisTemplate);
+			} else {
+				inserter.append(" , " + name);// = new StringBuilder(inserter +
+												// " , " + name );
+				template.append(" , " + thisTemplate); // = new
+														// StringBuilder(template
+														// + " , " +
+														// thisTemplate);
+			}
+		}
+
+		inserter.append(")  VALUES  ");// = new StringBuilder(inserter + ")
+										// VALUES ");
+		// template.append(inserter + "" + template + ")");// = new
+		// StringBuilder(inserter + "" + template + ")");
+		inserter.append(template + ")");
+		// System.out.println("Insert Values: " +template);
+
+		// return template.toString();
+		return inserter.toString();
+	}
+		
+	// ALTER TABLE TABLE_NAME ALTER COLUMN OLD_COLUMN RENAME TO NEW_COLUMN
 	public static String makeRenameColumn(String fromColumn, String toColumn, String tableName) {
 		return "ALTER TABLE " + tableName + " ALTER COLUMN " + fromColumn + " RENAME TO " + toColumn;
 	}
 
+	
+	// ALTER TABLE OLD_TABLE_NAME RENAME TO NEW_TABLE_NAME
 	public static String makeRenameTable(String oldTable, String newTable) {
 		return "ALTER TABLE " + oldTable + " RENAME TO " + newTable;
 	}
