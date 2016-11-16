@@ -46,6 +46,7 @@ public class PKQLRunner {
 	private String additionalInfoString = "";
 	private Object returnData = null;
 	private List<Map> newInsights = new ArrayList<>();
+	private boolean dataCleared = false;
 	
 	private Map<String,String> newColumns = new HashMap<String,String>();
 	private Map<String, Map<String,Object>> masterFeMap = new HashMap<String, Map<String,Object>>(); // this holds all active front end data. in the form panelId --> prop --> value
@@ -371,6 +372,18 @@ public class PKQLRunner {
 		return this.newInsights;
 	}
 	
+	public void setDataClear(boolean cleared) {
+		this.dataCleared = cleared;
+		if(cleared) {
+			//clear out the FE data map 
+			this.masterFeMap = new HashMap<String, Map<String,Object>>();
+		}
+	}
+	
+	public boolean getDataClear() {
+		return this.dataCleared;
+	}
+	
 	public void setStatus(PKQLRunner.STATUS currentStatus) {
 		this.currentStatus = currentStatus;
 	}
@@ -618,7 +631,7 @@ public class PKQLRunner {
 		this.returnData = null;
 		this.newInsights = new ArrayList<>();
 		this.dashboardMap = null;
-		
+		this.dataCleared = false;
 //		this.expiredFeMaps =  new HashMap<String, List<Map<String,Object>>>();
 	}
 	
