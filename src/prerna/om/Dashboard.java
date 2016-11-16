@@ -26,9 +26,6 @@ public class Dashboard implements IDataMaker {
 	private String userID;
 	private H2Joiner joiner;
 	
-	//will need this when same insight can be on two different dashboards
-	private Map<String, Map<AbstractTableDataFrame.Comparator, Set<Object>>> filterHash = new HashMap<>();
-	
 	// viewTable -> List of Insights
 	private Map<String, List<Insight>> insightMap = new HashMap<>();
 	
@@ -360,36 +357,6 @@ public class Dashboard implements IDataMaker {
 		return varPkql;
 	}
 	
-//	private String createJoinPkql(String[] varNames, List<List<String>> joinCols) {
-//		String joinPkql = "data.join([";
-//		
-//		for(int i = 0; i < varNames.length; i++) {
-//			if(i == 0) {
-//				joinPkql += "v:"+varNames[i];
-//			} else {
-//				joinPkql += ", "+"v:"+varNames[i];
-//			}
-//		}
-//		
-//		joinPkql += "],[";
-//		for(int i = 0; i < joinCols.size(); i++) {
-//			List<String> joinCol = joinCols.get(i);
-//			joinPkql += "[";
-//			for(int j = 0; j < joinCol.size(); j++) {
-//				String jc = "c:"+joinCol.get(j);
-//				if(j==0) {
-//					joinPkql += jc;
-//				} else {
-//					joinPkql += ", "+jc;
-//				}
-//			}
-//			joinPkql += "]";
-//		}
-//		joinPkql += "]);";
-//		
-//		return joinPkql;
-//	}
-	
 	private String createJoinPkql(Map<String, String> varHash, String pkql) {
 		String newPkql = pkql;
 		for(String varKey : varHash.keySet()) {
@@ -437,7 +404,7 @@ public class Dashboard implements IDataMaker {
 	}
 	
 	public void clearData() {
-		filterHash = new HashMap<>();
+//		filterHash = new HashMap<>();
 		insightMap = new HashMap<>();
 		insight2frameMap = new HashMap<>();
 		config = new HashMap<>();
