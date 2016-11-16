@@ -321,6 +321,10 @@ public class Insight {
 		}
 	}
 	
+	public void setPkqlRunner(PKQLRunner pkqlRunner) {
+		this.pkqlRunner = pkqlRunner;
+	}
+	
 //	/**
 //	 * Getter for the N-Triples string for the insight makeup
 //	 * @return
@@ -1415,43 +1419,20 @@ public class Insight {
 		// right now, assuming only one action is present
 		// TODO: should we update the interface to always return a map
 		// currently all actions return a map
-		if(dm.getActionOutput() != null && !dm.getActionOutput().isEmpty()) {
-			retHash.putAll( (Map) getDataMaker().getActionOutput().get(0));
-		} else if (getOutput().equals("Graph") || getOutput().equals("VivaGraph")) { //TODO: Remove hardcoded layout values
-			if(dm instanceof TinkerFrame) {
-				retHash.putAll(((TinkerFrame)getDataMaker()).getGraphOutput());
-			} else if(dm instanceof H2Frame) {
-				TinkerFrame tframe = TableDataFrameFactory.convertToTinkerFrameForGraph((H2Frame)dm);
-				retHash.putAll(tframe.getGraphOutput());
-			} else {
-				// this is for insights which are gdm
-				retHash.putAll(dm.getDataMakerOutput());
-			}
-		} else {
-			if(dm instanceof ITableDataFrame) {
-				retHash.putAll(dm.getDataMakerOutput());
-			} else if(dm instanceof Dashboard) { 
-				Dashboard dash = (Dashboard)dm;
-				Gson gson = new Gson();
-				retHash.put("config", dash.getConfig());
-				retHash.put("varMap", this.pkqlVarMap);
-//				dash.setInsightID(insightID);
-				retHash.putAll(dm.getDataMakerOutput());
-			} else {
-				retHash.putAll(dm.getDataMakerOutput());
-			}
+
+		if(dm instanceof Dashboard) { 
+			Dashboard dash = (Dashboard)dm;
+			Gson gson = new Gson();
+			retHash.put("config", dash.getConfig());
+			retHash.put("varMap", this.pkqlVarMap);
+			retHash.putAll(dm.getDataMakerOutput());
 		}
+		
 		String uiOptions = getUiOptions();
 		if(!uiOptions.isEmpty()) {
 			retHash.put("uiOptions", uiOptions);
 		}
-		retHash.put("pkqlOutput", this.getPKQLData(false));
-		
-//		String pkqlRecipe = this.getPkqlRecipe();
-//		if(pkqlRecipe != "") {
-//			retHash.put("recipe", pkqlRecipe.split(System.getProperty("line.separator")));
-//		}
-		
+		retHash.put("pkqlOutput", this.getPKQLData(false));		
 		retHash.put("recipe", this.getPkqlRecipe());
 		retHash.put("isPkqlRunnable", isPkqlRunnable());
 		
@@ -1846,6 +1827,9 @@ public class Insight {
 			resultHash.put("feData", feData);
 			resultHash.put("newColumns", pkqlRunner.getNewColumns());
 			resultHash.put("newInsights", pkqlRunner.getNewInsights());
+			if(pkqlRunner.getDataClear()) {
+				resultHash.put("clear", true);
+			}
 			
 			if(pkqlRunner.getDashboardData() != null) {
 				Map dashboardMap = new HashMap();
