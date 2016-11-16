@@ -736,6 +736,8 @@ public class Translation extends DepthFirstAdapter {
 		Map<String, Object> webData = (Map<String, Object>) previousReactor.getValue("webData");
 		// runner.setDataMap(webData);
 		this.runner.setReturnData(webData);
+//		this.runner.setFeData(feData);
+//		this.runner.setNewColumns(newColumns);
 		
 		
 		IDataMaker dm = (IDataMaker) curReactor.getValue("G");
@@ -765,6 +767,7 @@ public class Translation extends DepthFirstAdapter {
 			if(dm != null) {
 				this.frame = dm;
 			}
+			this.runner.setDataClear(true);
 		}
 	}
 

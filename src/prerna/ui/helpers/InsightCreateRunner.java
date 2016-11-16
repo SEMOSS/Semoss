@@ -324,8 +324,8 @@ public class InsightCreateRunner implements Runnable{
 			insight.setDataTableAlign(tableDataAlign);
 		}
 		insight.getDataMaker().resetDataId();
-//		return insight.getOutputWebData();
-		return insight.getWebData();
+		return insight.getOutputWebData();
+//		return insight.getWebData();
 	}
 	
 	private void preparePlaySheet(IPlaySheet playSheet, Insight insight){
