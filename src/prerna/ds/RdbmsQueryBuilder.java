@@ -72,6 +72,7 @@ public class RdbmsQueryBuilder {
 	 * UPDATE QUERIES
 	 ******************************/
 	
+	//ALTER TABLE TABLE_NAME ADD(COLUMN1 TYPE1, COLUMN2 TYPE2, ...);
 	public static String makeAlter(String tableName, String[] newHeaders, String[] newTypes) {
 		StringBuilder alterString = new StringBuilder("ALTER TABLE " + tableName + " ADD (");
 
@@ -86,6 +87,35 @@ public class RdbmsQueryBuilder {
 		return alterString.toString();
 	}
 	
+	
+	// UPDATE TABLE_NAME SET NEWCOL1 = NEWVAL1, NEWCOL2 = NEWVAL2 WHERE JOINCOL1 = JOINVAL1 AND JOINCOL2 = JOINVAL2
+	public static String makeUpdate(String tableName, Object[] joinColumn, Object[] newColumn, Object[] joinValue, Object[] newValue) {
+
+		String updateQuery = "UPDATE " + tableName + " SET ";
+
+		for (int i = 0; i < newColumn.length; i++) {
+			String valueInstance = RdbmsFrameUtility.cleanInstance(newValue[i].toString());
+			if (i == 0) {
+				updateQuery += newColumn[i].toString() + "=" + "'" + valueInstance + "'";
+			} else {
+				updateQuery += ", " + newColumn[i].toString() + "=" + "'" + valueInstance + "'";
+			}
+		}
+
+		updateQuery += " WHERE ";
+
+		for (int i = 0; i < joinColumn.length; i++) {
+			String joinInstance = RdbmsFrameUtility.cleanInstance(joinValue[i].toString());
+			if (i == 0) {
+				updateQuery += joinColumn[i].toString() + "=" + "'" + joinInstance + "'";
+			} else {
+				updateQuery += " AND " + joinColumn[i].toString() + "=" + "'" + joinInstance + "'";
+			}
+		}
+
+		return updateQuery;
+	}
+	
 	/******************************
 	 * END UPDATE QUERIES
 	 ******************************/
@@ -97,18 +127,34 @@ public class RdbmsQueryBuilder {
 	 * DELETE QUERIES
 	 ******************************/
 	
-	// drop a table
+	// DROP TABLE TABLE_NAME
 	public static String makeDropTable(String name) {
 		return "DROP TABLE " + name;
 	}
 
-	// drop a view
+	
+	// DROP VIEW VIEW_NAME
 	public static String makeDropView(String name) {
 		return "DROP VIEW " + name;
 	}
 	
+	
+	// ALTER TABLE TABLE_NAME DROP COLUMN COLUMN1
 	public static String makeDropColumn(String column, String tableName) {
 		return "ALTER TABLE " + tableName + " DROP COLUMN " + column;
+	}
+	
+	
+	// DELETE FROM TABLE_NAME WHERE COLUMN1 = VAL1 AND COLUMN2 = VAL2
+	public static String makeDeleteData(String tableName, String[] columnName, String[] values) {
+		StringBuilder deleteQuery = new StringBuilder("DELETE FROM " + tableName + " WHERE ");
+		for (int i = 0; i < columnName.length; i++) {
+			if (i > 0) {
+				deleteQuery.append(" AND ");
+			}
+			deleteQuery.append(columnName[i] + " = '" + values[i] + "'");
+		}
+		return deleteQuery.toString();
 	}
 	
 	/******************************
