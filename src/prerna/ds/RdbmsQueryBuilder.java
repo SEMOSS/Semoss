@@ -61,6 +61,31 @@ public class RdbmsQueryBuilder {
 		return selectStatement.toString();
 	}
 	
+	public static String makeFunction(String column, String function, String tableName) {
+		String functionString = "SELECT ";
+		switch (function.toUpperCase()) {
+		case "COUNT":
+			functionString += "COUNT(" + column + ")";
+			break;
+		case "AVERAGE":
+			functionString += "AVG(" + column + ")";
+			break;
+		case "MIN":
+			functionString += "MIN(" + column + ")";
+			break;
+		case "MAX":
+			functionString += "MAX(" + column + ")";
+			break;
+		case "SUM":
+			functionString += "SUM(" + column + ")";
+			break;
+		default:
+			functionString += column;
+		}
+
+		functionString += "FROM " + tableName;
+		return functionString;
+	}
 	/******************************
 	 * END READ QUERIES
 	 ******************************/
@@ -114,6 +139,15 @@ public class RdbmsQueryBuilder {
 		}
 
 		return updateQuery;
+	}
+	
+	
+	public static String makeRenameColumn(String fromColumn, String toColumn, String tableName) {
+		return "ALTER TABLE " + tableName + " ALTER COLUMN " + fromColumn + " RENAME TO " + toColumn;
+	}
+
+	public static String makeRenameTable(String oldTable, String newTable) {
+		return "ALTER TABLE " + oldTable + " RENAME TO " + newTable;
 	}
 	
 	/******************************
