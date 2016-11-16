@@ -1391,6 +1391,7 @@ public class Translation extends DepthFirstAdapter {
 		
 		// set the script reactors for this new frame
 		this.reactorNames = frame.getScriptReactors();
+		this.reactorNames.putAll(getDefaultReactors());
 	}
 
 	@Override
