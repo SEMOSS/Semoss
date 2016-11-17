@@ -1827,9 +1827,7 @@ public class Insight {
 			resultHash.put("feData", feData);
 			resultHash.put("newColumns", pkqlRunner.getNewColumns());
 			resultHash.put("newInsights", pkqlRunner.getNewInsights());
-			if(pkqlRunner.getDataClear()) {
-				resultHash.put("clear", true);
-			}
+			resultHash.put("clear", pkqlRunner.getDataClear());
 			
 			if(pkqlRunner.getDashboardData() != null) {
 				Map dashboardMap = new HashMap();
