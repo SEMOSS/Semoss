@@ -1547,15 +1547,15 @@ public class H2Frame extends AbstractTableDataFrame {
 		builder.unJoin();
 	}
 
-	public void openBackDoor() {
-		Thread thread = new Thread(){
-			public void run()
-			{
-				openCommandLine();				
-			}
-		};
-		thread.start();
-	}
+//	public void openBackDoor() {
+//		Thread thread = new Thread(){
+//			public void run()
+//			{
+//				openCommandLine();				
+//			}
+//		};
+//		thread.start();
+//	}
 
 	@Override
 	/**
@@ -1588,36 +1588,36 @@ public class H2Frame extends AbstractTableDataFrame {
 //		return graphOutput;
 //	}
 	
-	/**
-	 * Method printAllRelationship.
-	 */
-	private void openCommandLine() {
-		LOGGER.warn("<<<<");
-		String end = "";
-
-		while(!end.equalsIgnoreCase("end")) {
-			try {
-				BufferedReader reader = new BufferedReader(new InputStreamReader(System.in));
-				LOGGER.info("Enter SQL");
-				String query2 = reader.readLine();   
-				if(query2!=null){
-					long start = System.currentTimeMillis();
-					end = query2;
-					LOGGER.info("SQL is " + query2);
-
-					ResultSet set = this.builder.runBackDoorQuery(query2);
-					while(set != null && set.next()) {
-
-						long time2 = System.currentTimeMillis();
-						LOGGER.warn("time to execute : " + (time2 - start )+ " ms");
-					}
-				}
-			} 
-			catch (RuntimeException e) {e.printStackTrace();} 
-			catch (IOException e) {e.printStackTrace();} 
-			catch (SQLException e) {e.printStackTrace();}
-		}
-	}
+//	/**
+//	 * Method printAllRelationship.
+//	 */
+//	private void openCommandLine() {
+//		LOGGER.warn("<<<<");
+//		String end = "";
+//
+//		while(!end.equalsIgnoreCase("end")) {
+//			try {
+//				BufferedReader reader = new BufferedReader(new InputStreamReader(System.in));
+//				LOGGER.info("Enter SQL");
+//				String query2 = reader.readLine();   
+//				if(query2!=null){
+//					long start = System.currentTimeMillis();
+//					end = query2;
+//					LOGGER.info("SQL is " + query2);
+//
+//					ResultSet set = this.builder.runBackDoorQuery(query2);
+//					while(set != null && set.next()) {
+//
+//						long time2 = System.currentTimeMillis();
+//						LOGGER.warn("time to execute : " + (time2 - start )+ " ms");
+//					}
+//				}
+//			} 
+//			catch (RuntimeException e) {e.printStackTrace();} 
+//			catch (IOException e) {e.printStackTrace();} 
+//			catch (SQLException e) {e.printStackTrace();}
+//		}
+//	}
 
 	public Map<String, Map<AbstractTableDataFrame.Comparator, Set<Object>>> getFilterHash() {
 		return this.builder.getFilterHash();
