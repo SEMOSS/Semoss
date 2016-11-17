@@ -377,7 +377,7 @@ keyvalue = [word1]:word_or_num colon [word2]:word_or_num_or_nested_obj;
 
 keyvalue_group = comma keyvalue;
 
-map_obj = l_curl_bracket keyvalue keyvalue_group* r_curl_bracket;
+map_obj = l_curl_bracket keyvalue? keyvalue_group* r_curl_bracket;
 
 group_by = l_par col_def col_group* r_par; // this is to be included in various math calculations (Studio, Genre) - this is equivalent of saving pivot on this
 
