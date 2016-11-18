@@ -10,7 +10,7 @@ import java.util.Map;
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
-import prerna.ds.OrderedBTreeDataFrame;
+import prerna.ds.h2.H2Frame;
 import prerna.ui.components.playsheets.GridPlaySheet;
 import prerna.util.PlaySheetRDFMapBasedEnum;
 
@@ -76,7 +76,7 @@ public class ActivityGroupPlaySheet extends GridPlaySheet{
 
 		findSequence(homeTable, namesMap, new ArrayList<String>(), new ArrayList<String>(), 0, procActivityGroups, procSystemGroups);
 
-		this.dataFrame = new OrderedBTreeDataFrame(columnNames);
+		this.dataFrame = new H2Frame(columnNames);
 		for(Object[] row : groupList){
 			this.dataFrame.addRow(row);
 		}

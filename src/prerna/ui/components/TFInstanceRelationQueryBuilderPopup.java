@@ -30,12 +30,11 @@ package prerna.ui.components;
 import java.awt.event.MouseEvent;
 import java.awt.event.MouseListener;
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.HashMap;
-import java.util.Hashtable;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.Vector;
 
 import javax.swing.JLabel;
 import javax.swing.JList;
@@ -46,10 +45,8 @@ import org.apache.log4j.Logger;
 
 import prerna.ds.QueryStruct;
 import prerna.engine.api.IEngine;
-import prerna.nameserver.ConnectedConcepts;
-import prerna.nameserver.INameServer;
-import prerna.nameserver.NameServerProcessor;
 import prerna.om.SEMOSSVertex;
+import prerna.sablecc.services.DatabasePkqlService;
 import prerna.ui.components.api.IPlaySheet;
 import prerna.ui.components.playsheets.datamakers.DataMakerComponent;
 import prerna.ui.components.playsheets.datamakers.JoinTransformation;
@@ -111,76 +108,58 @@ public class TFInstanceRelationQueryBuilderPopup extends JMenu implements MouseL
 		// the listener should then trigger the graph play sheet possibly
 		// and for each relationship add the listener
 		
-		//if(ignoreURI == null)
 		for(int pi = 0;pi < pickedVertex.length;pi++)
 		{		
-
 			SEMOSSVertex thisVert = pickedVertex[pi];
-			String uri = thisVert.getURI();
-			uri = Utility.getTransformedNodeName(engine, uri, false);
-			String type = Utility.getClassName(uri);
-
-			String typeUri = Constants.DISPLAY_URI + type;
-			IEngine masterDB = (IEngine) DIHelper.getInstance().getLocalProp(Constants.LOCAL_MASTER_DB_NAME);
-			INameServer ns = new NameServerProcessor(masterDB);
-			ConnectedConcepts results = ns.searchConnectedConcepts(type);
+			String typeUri = thisVert.getURI();
+			String type = Utility.getClassName(typeUri);
 			
-			logger.debug("Found the engine for repository   " + repo);
+			List<String> traverseFromList = new Vector<String>();
+			traverseFromList.add(type);
+			Map<String, Map<String, Object>> connectedConcepts = DatabasePkqlService.getConnectedConcepts(traverseFromList);
 			
-			Map<String, Object> connected = results.getData();
-			
-			// for now we'll just deal with our one db
-			Map<String, Object> myDb = (Map<String, Object>) connected.get(repo);
-			
-			Collection<Object> equivUris = myDb.values();
-			for(Object equivUriHash : equivUris){
-//				String equivUri = ((Map<String, Object>) equivUriHash).keySet().iterator().next();
-				Map<String, Object> upstream = (Map<String, Object>) ((Map<String, Object>) ((Map<String, Object>)equivUriHash).get(typeUri)).get("upstream");
-				if(upstream!=null){
-					addLabel("From:");
-					Collection<String> upstreamRels = upstream.keySet();
-					for(String upstreamRel: upstreamRels){
-						Map<String,Hashtable> specificNodes = (Map<String,Hashtable>) ((Map<String, Object>) upstream).get(upstreamRel);
-						for(String logicalName : specificNodes.keySet()){
-							List<Object> filterList = new ArrayList<Object>();
-							filterList.add(uri);
-							
-//							String instance = Utility.getInstanceName(Utility.getTransformedNodeName(engine, node, true));
-							QueryStruct data = new QueryStruct();
-							data.addSelector(type, null);
-							data.addSelector(specificNodes.get(logicalName).get("physicalName") + "", null);
-							data.addRelation(specificNodes.get(logicalName).get("physicalName") + "", type, "inner.join");
-							data.addFilter(type, "=", filterList);
-							DataMakerComponent dmc = new DataMakerComponent(engine, data);
-							addJoinTransformation(dmc, type, type);
-							NeighborQueryBuilderMenuItem nItem = new NeighborQueryBuilderMenuItem(Utility.getInstanceName(logicalName), dmc, engine);
-							nItem.addActionListener(NeighborMenuListener.getInstance());
-							add(nItem);
+			if(connectedConcepts != null && !connectedConcepts.isEmpty()) {
+				Map<String, Object> myDbConnections = connectedConcepts.get(repo);
+				if(myDbConnections != null && !myDbConnections.isEmpty()) {
+					List<Object> filterList = new ArrayList<Object>();
+					filterList.add(Utility.getInstanceName(typeUri));
+					
+					// get the list of equivalent uris to a map containing keys upstream/downstream which point to the list of objects
+					Set<String> equivUris = myDbConnections.keySet();
+					// currently only going to show for our specific type
+					if(equivUris.contains(type)) {
+						Map<String, Set<String>> streamMap = (Map<String, Set<String>>) myDbConnections.get(type);
+						if(streamMap.containsKey("upstream")) {
+							addLabel("From:");
+							Set<String> upstreamRels = streamMap.get("upstream");
+							for(String upstreamRelType: upstreamRels){
+								QueryStruct data = new QueryStruct();
+								data.addSelector(type, null);
+								data.addSelector(upstreamRelType, null);
+								data.addRelation(type, upstreamRelType, "inner.join");
+								data.addFilter(type, "=", filterList);
+								DataMakerComponent dmc = new DataMakerComponent(engine, data);
+								addJoinTransformation(dmc, type, type);
+								NeighborQueryBuilderMenuItem nItem = new NeighborQueryBuilderMenuItem(upstreamRelType, dmc, engine);
+								nItem.addActionListener(NeighborMenuListener.getInstance());
+								add(nItem);
+							}
 						}
-					}
-				}
-
-				Map<String, Object> downstream = (Map<String, Object>) ((Map<String, Object>) ((Map<String, Object>)equivUriHash).get(typeUri)).get("downstream");
-				if(downstream!=null){
-					addLabel("To:");
-					Collection<String> downstreamRels = downstream.keySet();
-					for(String downstreamRel: downstreamRels){
-						Map<String,Hashtable> specificNodes = (Map<String,Hashtable>) ((Map<String, Object>) downstream).get(downstreamRel);
-						for(String logicalName : specificNodes.keySet()){
-							List<Object> filterList = new ArrayList<Object>();
-							filterList.add(uri);
-							
-//							String instance = Utility.getInstanceName(Utility.getTransformedNodeName(engine, node, true));
-							QueryStruct data = new QueryStruct();
-							data.addSelector(type, null);
-							data.addSelector(specificNodes.get(logicalName).get("physicalName") + "", null);
-							data.addRelation(type, specificNodes.get(logicalName).get("physicalName") + "", "inner.join");
-							data.addFilter(type, "=", filterList);
-							DataMakerComponent dmc = new DataMakerComponent(engine, data);
-							addJoinTransformation(dmc, type, type);
-							NeighborQueryBuilderMenuItem nItem = new NeighborQueryBuilderMenuItem(Utility.getInstanceName(logicalName), dmc, engine);
-							nItem.addActionListener(NeighborMenuListener.getInstance());
-							add(nItem);
+						if(streamMap.containsKey("downstream")) {
+							addLabel("To:");
+							Set<String> upstreamRels = streamMap.get("downstream");
+							for(String upstreamRelType: upstreamRels){
+								QueryStruct data = new QueryStruct();
+								data.addSelector(upstreamRelType, null);
+								data.addSelector(type, null);
+								data.addRelation(upstreamRelType, type, "inner.join");
+								data.addFilter(type, "=", filterList);
+								DataMakerComponent dmc = new DataMakerComponent(engine, data);
+								addJoinTransformation(dmc, type, type);
+								NeighborQueryBuilderMenuItem nItem = new NeighborQueryBuilderMenuItem(upstreamRelType, dmc, engine);
+								nItem.addActionListener(NeighborMenuListener.getInstance());
+								add(nItem);
+							}
 						}
 					}
 				}

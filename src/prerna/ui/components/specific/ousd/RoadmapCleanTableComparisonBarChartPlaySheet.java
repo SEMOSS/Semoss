@@ -10,7 +10,7 @@ import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
 import prerna.algorithm.api.ITableDataFrame;
-import prerna.ds.OrderedBTreeDataFrame;
+import prerna.ds.h2.H2Frame;
 import prerna.ui.components.playsheets.BrowserPlaySheet;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
@@ -93,7 +93,7 @@ public class RoadmapCleanTableComparisonBarChartPlaySheet extends RoadmapCleanTa
 			}
 		}
 		
-		ITableDataFrame newFrame = new OrderedBTreeDataFrame(newHeaders);
+		ITableDataFrame newFrame = new H2Frame(newHeaders);
 		for(int fyIdx = 1; fyIdx < prevHeaders.length; fyIdx++){
 
 			Object[] newRow = new Object[newHeaders.length];

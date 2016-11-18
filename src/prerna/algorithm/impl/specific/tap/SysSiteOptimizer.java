@@ -42,7 +42,8 @@ import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
 import prerna.algorithm.api.ITableDataFrame;
-import prerna.ds.BTreeDataFrame;
+import prerna.ds.TinkerMetaHelper;
+import prerna.ds.h2.H2Frame;
 import prerna.engine.api.IEngine;
 import prerna.ui.components.playsheets.OCONUSMapPlaySheet;
 import prerna.ui.components.playsheets.datamakers.DataMakerComponent;
@@ -862,8 +863,18 @@ public class SysSiteOptimizer extends UnivariateOpt {
 
 		siteSavingsFromCentralSystems = calculateSiteSavingsForCentralSystems(centralSysData.systemSiteMatrix, centralSysData.systemCentralMaintenanceCostArr, sustainedCentralSysIndiciesArr);
 		
+		ITableDataFrame data = new H2Frame();
 		String[] names = new String[]{"DCSite", "lat", "lon", "Site Savings", SUSTAINED_AND_DEPLOYED_SYSTEMS, CONSOLIDATED_SYSTEMS};
-		ITableDataFrame data = new BTreeDataFrame(names);
+		Map<String, Set<String>> primKeyEdgeHash = TinkerMetaHelper.createPrimKeyEdgeHash(names);
+		Map<String, String> dataTypeMap = new HashMap<String, String>();
+		dataTypeMap.put("DCSite", "STRING");
+		dataTypeMap.put("lat", "DOUBLE");
+		dataTypeMap.put("lon", "DOUBLE");
+		dataTypeMap.put("Site Savings", "DOUBLE");
+		dataTypeMap.put(SUSTAINED_AND_DEPLOYED_SYSTEMS, "STRING");
+		dataTypeMap.put(CONSOLIDATED_SYSTEMS, "STRING");
+		data.mergeEdgeHash(primKeyEdgeHash, dataTypeMap);
+
 		int i;
 		int numSites = siteList.size();
 		for(i=0; i<numSites; i++) {
@@ -913,7 +924,7 @@ public class SysSiteOptimizer extends UnivariateOpt {
 		}
 		
 		String[] names = new String[]{"DCSite", "lat", "lon", "Percent DOs and BLUs covered", SUSTAINED_AND_DEPLOYED_SYSTEMS};
-		ITableDataFrame data = new BTreeDataFrame(names);
+		ITableDataFrame data = new H2Frame(names);
 		int i;
 		int j;
 		int numSites = siteList.size();
@@ -1109,7 +1120,7 @@ public class SysSiteOptimizer extends UnivariateOpt {
 	
 	public Hashtable<String,Object> getSystemSiteMapData(String system) {
 		String[] names = new String[]{"DCSite", "lat", "lon", "Recommendation"};
-		ITableDataFrame data = new BTreeDataFrame(names);
+		ITableDataFrame data = new H2Frame(names);
 		
 		int i;
 		int numSites = siteList.size();

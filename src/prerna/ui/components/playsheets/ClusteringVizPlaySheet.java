@@ -58,7 +58,7 @@ import prerna.algorithm.api.ITableDataFrame;
 import prerna.algorithm.learning.unsupervised.clustering.ClusteringRoutine;
 import prerna.algorithm.learning.unsupervised.clustering.MultiClusteringRoutine;
 import prerna.algorithm.learning.util.IClusterDistanceMode;
-import prerna.ds.BTreeDataFrame;
+import prerna.ds.h2.H2Frame;
 import prerna.math.BarChart;
 import prerna.math.StatisticsUtilityMethods;
 import prerna.om.SEMOSSParam;
@@ -285,7 +285,7 @@ public class ClusteringVizPlaySheet extends BrowserPlaySheet {
 		setQuery(component.getQuery());
 		component.setQuery(this.query);
 		if(this.dataFrame == null){
-			this.dataFrame = new BTreeDataFrame();
+			this.dataFrame = new H2Frame();
 		}
 		this.dataFrame.processDataMakerComponent(component);
 		

@@ -7,7 +7,7 @@ import java.util.Iterator;
 import java.util.Map;
 
 import prerna.algorithm.api.ITableDataFrame;
-import prerna.ds.BTreeDataFrame;
+import prerna.ds.h2.H2Frame;
 import prerna.ui.components.playsheets.GridPlaySheet;
 
 public class AOACostGridPlaySheet extends GridPlaySheet {
@@ -126,7 +126,7 @@ public class AOACostGridPlaySheet extends GridPlaySheet {
 		}
 
 		//format to send to Front-End
-		dataFrame = new BTreeDataFrame(new String[]{headers[0], headers[2], headers[3], headers[4], headers[5], headers[6]});
+		dataFrame = new H2Frame(new String[]{headers[0], headers[2], headers[3], headers[4], headers[5], headers[6]});
 		for(String vendor : vendorHash.keySet()) {
 			Double license = vendorHash.get(vendor).get(LICENSE_KEY);
 			Double hardware = vendorHash.get(vendor).get(HARDWARE_KEY);

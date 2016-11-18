@@ -41,7 +41,6 @@ import javax.swing.JList;
 
 import prerna.engine.api.IEngine;
 import prerna.nameserver.DeleteFromMasterDB;
-import prerna.nameserver.MasterDBHelper;
 
 /**
  * This class opens a thread and watches a specific SMSS file.
@@ -239,11 +238,12 @@ public class SMSSFileWatcher extends AbstractFileWatcher {
 		if(localMasterIndex == 0) {
 			// remove unused databases
 			IEngine localMaster = (IEngine) DIHelper.getInstance().getLocalProp(Constants.LOCAL_MASTER_DB_NAME);
-			List<String> engines = MasterDBHelper.getAllEngines(localMaster);
+			String allEnginesQuery = "SELECT DISTINCT ?Engine WHERE { {?Engine <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/meta/engine>} }";
+			List<String> engines = Utility.getVectorOfReturn(allEnginesQuery, localMaster, false);
 			DeleteFromMasterDB remover = new DeleteFromMasterDB(Constants.LOCAL_MASTER_DB_NAME);
 			for(String engine : engines) {
 				if(!ArrayUtilityMethods.arrayContainsValue(engineNames, engine)) {
-					remover.deleteEngine2(engine);
+					remover.deleteEngine(engine);
 				}
 			}
 		}

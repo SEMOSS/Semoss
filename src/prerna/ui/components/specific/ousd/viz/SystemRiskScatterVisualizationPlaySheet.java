@@ -11,7 +11,7 @@ import java.util.Map;
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
-import prerna.ds.OrderedBTreeDataFrame;
+import prerna.ds.h2.H2Frame;
 import prerna.ui.components.playsheets.GridScatterSheet;
 import prerna.ui.components.specific.ousd.ActivityGroupRiskCalculator;
 import prerna.ui.components.specific.ousd.OUSDPlaysheetHelper;
@@ -167,7 +167,7 @@ public class SystemRiskScatterVisualizationPlaySheet extends GridScatterSheet{
 
 	private void createTable(Map<String, Double> bluSysResults, Map<String, Double> dataSysResults, Map<String, Double> bluDataSysResults, Map<String, List<String>> criticalSysMap){
 //		this.list = new ArrayList<Object[]>();
-		this.dataFrame = new OrderedBTreeDataFrame(new String[]{"Series", "System", "Enterprise Risk Score", "Sustainment Budget"});
+		this.dataFrame = new H2Frame(new String[]{"Series", "System", "Enterprise_Risk_Score", "Sustainment_Budget"});
 
 		Map<String, Double> sysBudget = OUSDQueryHelper.getBudgetData(engine, null);
 		List<String> enduringSys = OUSDQueryHelper.getEnduringSystems(engine);

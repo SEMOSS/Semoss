@@ -5,7 +5,7 @@ import java.util.Hashtable;
 import java.util.List;
 import java.util.Map;
 
-import prerna.ds.OrderedBTreeDataFrame;
+import prerna.ds.h2.H2Frame;
 import prerna.ui.components.playsheets.GridPlaySheet;
 
 public class RoadmapPlaySheet extends GridPlaySheet{
@@ -33,7 +33,7 @@ public class RoadmapPlaySheet extends GridPlaySheet{
 		columns[3] = "Affected System";
 		columns[4] = "Lost Data";
 
-		this.dataFrame = new OrderedBTreeDataFrame(columns);
+		this.dataFrame = new H2Frame(columns);
 
 		try{
 			if(owner == null){

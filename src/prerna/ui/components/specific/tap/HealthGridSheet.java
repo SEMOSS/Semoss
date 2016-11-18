@@ -32,7 +32,7 @@ import java.util.ArrayList;
 import java.util.Hashtable;
 import java.util.Iterator;
 
-import prerna.ds.BTreeDataFrame;
+import prerna.ds.TinkerFrame;
 import prerna.engine.api.ISelectWrapper;
 import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.ui.components.playsheets.BrowserPlaySheet;
@@ -222,7 +222,7 @@ public class HealthGridSheet extends BrowserPlaySheet{
 		output.clear();
 		allHash.clear();
 		dataHash.clear();
-		dataFrame = new BTreeDataFrame(dataFrame.getColumnHeaders()); //TODO: is this the best way to clear the data-frame???
+		dataFrame = new TinkerFrame(dataFrame.getColumnHeaders()); //TODO: is this the best way to clear the data-frame???
 	}
 	
 	

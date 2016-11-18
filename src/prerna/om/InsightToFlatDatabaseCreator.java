@@ -143,7 +143,7 @@ public class InsightToFlatDatabaseCreator extends AbstractEngineCreator {
 			RDBMSEngineCreationHelper.writeDefaultQuestionSheet(engine, queryUtil);
 			
 			engine.setOWL(owlPath);
-			engine.loadTransformedNodeNames();
+//			engine.loadTransformedNodeNames();
 			((AbstractEngine) engine).setPropFile(propWriter.propFileName);
 			((AbstractEngine) engine).createInsights(baseDirectory);
 

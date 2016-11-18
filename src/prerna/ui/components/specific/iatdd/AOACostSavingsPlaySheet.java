@@ -3,13 +3,10 @@ package prerna.ui.components.specific.iatdd;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Hashtable;
-import java.util.Iterator;
 import java.util.Map;
 
-import prerna.ds.BTreeDataFrame;
 import prerna.algorithm.api.ITableDataFrame;
-import prerna.engine.api.IEngine;
-import prerna.engine.api.IEngineWrapper;
+import prerna.ds.h2.H2Frame;
 import prerna.engine.api.ISelectStatement;
 import prerna.engine.api.ISelectWrapper;
 import prerna.rdf.engine.wrappers.WrapperManager;
@@ -642,7 +639,7 @@ public class AOACostSavingsPlaySheet extends GridPlaySheet {
 
 
 		//format to send to Front-End
-		dataFrame = new BTreeDataFrame(new String[]{"Vendor", "Year", "Hardware", "Software", "Deployment", "Maintenance", "Modification", "Total"});
+		dataFrame = new H2Frame(new String[]{"Vendor", "Year", "Hardware", "Software", "Deployment", "Maintenance", "Modification", "Total"});
 		String vendorFE="";
 		String yearFE="";
 		int hardwareFE =0;

@@ -6,13 +6,12 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
-import lpsolve.LpSolveException;
-
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
+import lpsolve.LpSolveException;
 import prerna.algorithm.api.ITableDataFrame;
-import prerna.ds.OrderedBTreeDataFrame;
+import prerna.ds.h2.H2Frame;
 import prerna.ui.components.playsheets.GridPlaySheet;
 
 public class BLUSystemOptimizationPlaySheet extends GridPlaySheet{
@@ -101,7 +100,7 @@ public class BLUSystemOptimizationPlaySheet extends GridPlaySheet{
 			newNames[i] = names[i];
 		}
 		newNames[names.length] = "Kept";
-		ITableDataFrame newFrame = new OrderedBTreeDataFrame(newNames);
+		ITableDataFrame newFrame = new H2Frame(newNames);
 		
 //		for(Object[] curRow : this.list){
 		Iterator<Object[]> rowIt = this.dataFrame.iterator();

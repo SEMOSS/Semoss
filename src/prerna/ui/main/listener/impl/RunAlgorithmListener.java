@@ -282,14 +282,6 @@ public class RunAlgorithmListener extends AbstractListener {
 			((OutlierVizPlaySheet)newPlaySheet).setJTab(jTab);
 			((OutlierVizPlaySheet)newPlaySheet).setJBar(jBar);			
 
-		} else if(algorithm.equals("Entropy Density Factor")) {
-			newPlaySheet = new OutlierVizPlaySheet();
-			newPlaySheet.setDataMaker(dataFrame);
-			((OutlierVizPlaySheet)newPlaySheet).setAlgorithmSelected(OutlierVizPlaySheet.EDS);
-			((OutlierVizPlaySheet)newPlaySheet).setSkipAttributes(skipColumns);
-			((OutlierVizPlaySheet)newPlaySheet).setJTab(jTab);
-			((OutlierVizPlaySheet)newPlaySheet).setJBar(jBar);		
-
 		} else if(algorithm.equals("Fast Outlier Detection")) {
 			newPlaySheet = new OutlierVizPlaySheet();
 			newPlaySheet.setDataMaker(dataFrame);
