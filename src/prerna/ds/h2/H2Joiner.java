@@ -9,6 +9,7 @@ import java.util.Set;
 
 import prerna.ds.AbstractTableDataFrame;
 import prerna.ds.QueryStruct;
+import prerna.ds.RdbmsFrameUtility;
 import prerna.om.Dashboard;
 import prerna.om.Insight;
 import prerna.rdf.query.builder.SQLInterpreter;
@@ -152,7 +153,9 @@ public class H2Joiner {
 			throw new IllegalArgumentException("Must Pass in at least 2 Frames!!");
 		}
 		else if(frames.length == 2) {
-			return joinFrames(frames[0], frames[1], newjoinCols);
+			String viewTable = joinFrames(frames[0], frames[1], newjoinCols);
+			setFiltersToDashboard(frames);
+			return viewTable;
 		}
 
 		for(H2Frame frame : frames) {
@@ -172,8 +175,31 @@ public class H2Joiner {
 			}
 			
 			retTable = joinFrames(frames[i-1], frames[i], nextNewJoinCols);
+			
 		}
+		
+		setFiltersToDashboard(frames);
+		
 		return retTable;
+	}
+	
+	private void setFiltersToDashboard(H2Frame[] frames) {
+		for(int i = 0; i < frames.length; i++) {
+			Map<String, Map<AbstractTableDataFrame.Comparator, Set<Object>>> nextFilterHash = frames[i].getFilterHash();
+			for(String column : nextFilterHash.keySet()) {
+				Map<AbstractTableDataFrame.Comparator, Set<Object>> innerMap = nextFilterHash.get(column);
+				for(AbstractTableDataFrame.Comparator nextComp : innerMap.keySet()) {
+					Set<Object> nextFilterVals = innerMap.get(nextComp);
+					List<Object> nextFilterValsList = new ArrayList<>(nextFilterVals);
+					Map<String, List<Object>> newFilterHash = new HashMap<>();
+					String compKey = RdbmsFrameUtility.getComparatorStringValue(nextComp);
+					newFilterHash.put(compKey, nextFilterValsList);
+					frames[i].filter(column, newFilterHash);
+				}
+			}
+		}
+		
+		refreshView(frames[0], frames[0].getViewTableName());
 	}
 	
 	/**
