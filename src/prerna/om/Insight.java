@@ -89,7 +89,6 @@ import prerna.ui.components.playsheets.datamakers.ISEMOSSTransformation;
 import prerna.ui.components.playsheets.datamakers.JoinTransformation;
 import prerna.ui.components.playsheets.datamakers.PKQLTransformation;
 import prerna.util.Constants;
-import prerna.util.DIHelper;
 import prerna.util.Utility;
 
 public class Insight {
@@ -647,7 +646,9 @@ public class Insight {
 							metamodelData = new QueryBuilderData(dataHash);
 						}
 					}
-					if(qsData == null) qsData = metamodelData.getQueryStruct(true);
+					if(qsData == null) {
+						qsData = metamodelData.getQueryStruct(true);
+					}
 					dmc = new DataMakerComponent(engine, qsData); 
 					dmCompVec.add(dmc);
 				}

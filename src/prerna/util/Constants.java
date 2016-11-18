@@ -119,15 +119,17 @@ public class Constants {
 	public static final String CLASS = "_CLASS";
 	public static final String TYPE_URI = "http://www.w3.org/1999/02/22-rdf-syntax-ns#type";
 	public static final String DEFAULT_PROPERTY_CLASS = "Relation/Contains";
-	public static final String DISPLAY_NAME = "DISPLAY_NAME";
-	public static final String DEFAULT_DISPLAY_CLASS = "DisplayName";
-	public static final String DEFAULT_DISPLAY_NAME = "DisplayName";
+	
+//	public static final String DISPLAY_NAME = "DISPLAY_NAME";
+//	public static final String DEFAULT_DISPLAY_CLASS = "DisplayName";
+//	public static final String DEFAULT_DISPLAY_NAME = "DisplayName";
+//	public static String DISPLAY_URI =  Constants.BASE_URI + Constants.DEFAULT_DISPLAY_CLASS + "/";
+
 	public static final String DEFAULT_PHYSICAL_NAME = "PhysicalName";
 	
 	public static String BASE_URI = "http://semoss.org/ontologies/";
 	public static String CONCEPT_URI = Constants.BASE_URI + Constants.DEFAULT_NODE_CLASS + "/";
 	public static String PROPERTY_URI =  Constants.BASE_URI + Constants.DEFAULT_PROPERTY_CLASS + "/";
-	public static String DISPLAY_URI =  Constants.BASE_URI + Constants.DEFAULT_DISPLAY_CLASS + "/";
 	
 	// layouts
 	public static final String FR = "Fruchterman-Reingold";

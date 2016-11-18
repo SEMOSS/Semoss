@@ -135,7 +135,7 @@ public class POIReader extends AbstractFileReader {
 		loadMetadataIntoEngine();
 		createBaseRelations();
 		commitDB();
-		engine.loadTransformedNodeNames();
+//		engine.loadTransformedNodeNames();
 	}
 
 

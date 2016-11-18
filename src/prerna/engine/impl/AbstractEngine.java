@@ -61,10 +61,8 @@ import prerna.om.SEMOSSEdge;
 import prerna.om.SEMOSSParam;
 import prerna.om.SEMOSSVertex;
 import prerna.rdf.engine.wrappers.WrapperManager;
-import prerna.rdf.query.builder.IQueryBuilder;
 import prerna.rdf.query.builder.IQueryInterpreter;
 import prerna.rdf.query.builder.SPARQLInterpreter;
-import prerna.rdf.query.builder.SPARQLQueryTableBuilder;
 import prerna.rdf.util.AbstractQueryParser;
 import prerna.rdf.util.SPARQLQueryParser;
 import prerna.ui.components.RDFEngineHelper;
@@ -82,7 +80,6 @@ public abstract class AbstractEngine implements IEngine {
 	//USE THIS INSTEAD OF GOING THROUGH EACH DB FOLDER TO DELETE THE INSIGHT_DATABASE AND SMSS RDMBS_INSIGHT LINE
 	//PLEASE REMEMBER TO TURN THIS TO FALSE AFTERWARDS!
 	private static final boolean RECREATE_INSIGHTS = false;
-
 
 	//THIS IS IN CASE YOU ARE MANUALLY MANIPULATING THE DB FOLDER AND WANT TO RE-ADD
 	//INSIGHTS INTO THE SOLR INSTANCE ON YOUR LOCAL MACHINE
@@ -139,9 +136,7 @@ public abstract class AbstractEngine implements IEngine {
 	private static final String GET_INFO_FOR_PARAM = "SELECT DISTINCT PARAMETER_LABEL, PARAMETER_TYPE, PARAMETER_OPTIONS, PARAMETER_QUERY, PARAMETER_DEPENDENCY, PARAMETER_IS_DB_QUERY, PARAMETER_MULTI_SELECT, PARAMETER_COMPONENT_FILTER_ID FROM PARAMETER_ID WHERE PARAMETER_ID = '" + PARAMETER_ID_PARAM_KEY + "'";
 	private static final String GET_INFO_FOR_PARAMS = "SELECT DISTINCT PARAMETER_LABEL, PARAMETER_TYPE, PARAMETER_OPTIONS, PARAMETER_QUERY, PARAMETER_DEPENDENCY, PARAMETER_IS_DB_QUERY, PARAMETER_MULTI_SELECT, PARAMETER_COMPONENT_FILTER_ID FROM PARAMETER_ID WHERE PARAMETER_ID IN (" + PARAMETER_ID_PARAM_KEY + ")";
 	
-	
-	private static final String GET_BASE_URI_FROM_OWL = "SELECT DISTINCT ?entity WHERE {"
-			+ "{ <SEMOSS:ENGINE_METADATA> <CONTAINS:BASE_URI> ?entity } } LIMIT 1";
+	private static final String GET_BASE_URI_FROM_OWL = "SELECT DISTINCT ?entity WHERE { { <SEMOSS:ENGINE_METADATA> <CONTAINS:BASE_URI> ?entity } } LIMIT 1";
 
 	/**
 	 * Opens a database as defined by its properties file. What is included in
@@ -232,7 +227,7 @@ public abstract class AbstractEngine implements IEngine {
 				
 			}
 			this.owlHelper = new MetaHelper(baseDataEngine, getEngineType(), this.engineName);
-			this.owlHelper.loadTransformedNodeNames();
+//			this.owlHelper.loadTransformedNodeNames();
 			//this.loadTransformedNodeNames();
 		} catch (RuntimeException e) {
 			e.printStackTrace();
@@ -457,7 +452,7 @@ public abstract class AbstractEngine implements IEngine {
 		this.owl = owl;
 		createBaseRelationEngine();
 		this.owlHelper = new MetaHelper(baseDataEngine, getEngineType(), this.engineName);
-		this.owlHelper.loadTransformedNodeNames();
+//		this.owlHelper.loadTransformedNodeNames();
 	}
 
 	public void setProperties(Properties prop) {
@@ -541,9 +536,6 @@ public abstract class AbstractEngine implements IEngine {
 		return owlHelper.getOWLDefinition();
 	}
 
-	public IQueryBuilder getQueryBuilder(){
-		return new SPARQLQueryTableBuilder(this);
-	}
 	public IQueryInterpreter getQueryInterpreter(){
 		return new SPARQLInterpreter(this);
 	}
@@ -562,14 +554,14 @@ public abstract class AbstractEngine implements IEngine {
 		if(owlHelper == null)
 			return null;
 		return owlHelper.getConcepts();
-}
+	}
 	
 	/**
 	 * Get the list of the concepts within the database
 	 * @param conceptualNames		Return the conceptualNames if present within the database
 	 */
-	public Vector<String> getConcepts2(boolean conceptualNames) {
-		return owlHelper.getConcepts2(conceptualNames);
+	public Vector<String> getConcepts(boolean conceptualNames) {
+		return owlHelper.getConcepts(conceptualNames);
 	}
 	
 	/**
@@ -581,7 +573,7 @@ public abstract class AbstractEngine implements IEngine {
 		if(tableUriCache.containsKey(physicalName)){
 			return tableUriCache.get(physicalName);
 		}
-		Vector<String> cons = this.getConcepts2(false);
+		Vector<String> cons = this.getConcepts(false);
 		for(String checkUri : cons){
 			if(Utility.getInstanceName(checkUri).equals(physicalName)){
 				tableUriCache.put(physicalName, checkUri);
@@ -592,30 +584,6 @@ public abstract class AbstractEngine implements IEngine {
 		return "unable to get table uri for " + physicalName;
 	}
 
-	public List<String> getProperties4Concept(String concept, Boolean logicalNames) {
-		String uri = concept;
-		if(!uri.contains("http://")){
-			uri = Constants.DISPLAY_URI + uri;
-		}
-		String query = "SELECT ?property WHERE { {?concept <http://www.w3.org/2000/01/rdf-schema#subClassOf> <http://semoss.org/ontologies/Concept> }"
-				+ "{?concept  <http://www.w3.org/2002/07/owl#DatatypeProperty> ?property}"
-				+ "{?property a <" + CONTAINS_BASE_URI + ">}}"
-				+ "BINDINGS ?concept {(<"+ this.getTransformedNodeName(uri, false) +">)}";
-		List<String> uriProps = Utility.getVectorOfReturn(query, baseDataEngine, true);
-		if(!logicalNames){
-			return uriProps;
-		}
-		else{
-			// need to go through each one and translate
-			List<String> propNames = new Vector<String>();
-			for(String uriProp : uriProps){
-				String logicalName = this.getTransformedNodeName(uriProp, true);
-				propNames.add(logicalName);
-			}
-			return propNames;
-		}
-	}
-	
 	/**
 	 * Returns the set of properties for a given concept
 	 * @param concept					The concept URI
@@ -624,8 +592,8 @@ public abstract class AbstractEngine implements IEngine {
 	 * 									conceptual names or physical names
 	 * @return							List containing the property URIs for the given concept
 	 */
-	public List<String> getProperties4Concept2(String concept, Boolean conceptualNames) {
-		return owlHelper.getProperties4Concept2(concept, conceptualNames);
+	public List<String> getProperties4Concept(String concept, Boolean conceptualNames) {
+		return owlHelper.getProperties4Concept(concept, conceptualNames);
 	}
 	
 	/**
@@ -634,35 +602,41 @@ public abstract class AbstractEngine implements IEngine {
 	 * 								If it is not a valid URI, we will assume it is the instance_name and create the URI
 	 * @return						Return the physical URI 					
 	 */
+	@Override
 	public String getPhysicalUriFromConceptualUri(String conceptualURI) {
 		return owlHelper.getPhysicalUriFromConceptualUri(conceptualURI);
 	}
 	
-	public String getConceptualUriFromPhysicalUri(String physicalURI) {
-		return owlHelper.getConceptualUriFromPhysicalUri(physicalURI);
-	}
-
-	
-	/**
-	 * query the owl to get the display name or the physical name
-	 */
-	public String getTransformedNodeName(String nodeURI, boolean getDisplayName){
-		//String returnNodeURI = nodeURI;
-		
-		//these validation peices are seperated out intentionally for readability.
-		if(owlHelper == null)
-			return nodeURI;
-		return owlHelper.getTransformedNodeName(nodeURI, getDisplayName);
-	}
-
-	public void setTransformedNodeNames(Hashtable transformedNodeNames){
-		owlHelper.setTransformedNodeNames(transformedNodeNames);
+	@Override
+	public String getPhysicalUriFromConceptualUri(String propertyName, String paretName) {
+		return owlHelper.getPhysicalUriFromConceptualUri(propertyName, paretName);
 	}
 	
 	@Override
-	public void loadTransformedNodeNames(){
-		owlHelper.loadTransformedNodeNames();
+	public String getConceptualUriFromPhysicalUri(String physicalURI) {
+		return owlHelper.getConceptualUriFromPhysicalUri(physicalURI);
 	}
+	
+//	/**
+//	 * query the owl to get the display name or the physical name
+//	 */
+//	public String getTransformedNodeName(String nodeURI, boolean getDisplayName){
+//		//String returnNodeURI = nodeURI;
+//		
+//		//these validation peices are seperated out intentionally for readability.
+//		if(owlHelper == null)
+//			return nodeURI;
+//		return owlHelper.getTransformedNodeName(nodeURI, getDisplayName);
+//	}
+//
+//	public void setTransformedNodeNames(Hashtable transformedNodeNames){
+//		owlHelper.setTransformedNodeNames(transformedNodeNames);
+//	}
+//	
+//	@Override
+//	public void loadTransformedNodeNames(){
+//		owlHelper.loadTransformedNodeNames();
+//	}
 	
 	
 	/**
@@ -1044,12 +1018,13 @@ public abstract class AbstractEngine implements IEngine {
 					if(isDbQuery) {
 						uris = this.getCleanSelect(paramQuery);
 					} else {
-						Vector<Object> baseUris = this.baseDataEngine.getCleanSelect(paramQuery);
-						if(baseUris != null) {
-							for(Object baseUri : baseUris) {
-								uris.add(this.getTransformedNodeName(baseUri + "", true));
-							}
-						}
+						uris = this.baseDataEngine.getCleanSelect(paramQuery);
+//						Vector<Object> baseUris = this.baseDataEngine.getCleanSelect(paramQuery);
+//						if(baseUris != null) {
+//							for(Object baseUri : baseUris) {
+//								uris.add(this.getTransformedNodeName(baseUri + "", true));
+//							}
+//						}
 					}
 				}else { 
 					// anything that is get Entity of Type must be on db
@@ -1201,7 +1176,8 @@ public abstract class AbstractEngine implements IEngine {
 	
 	@Override
 	public String getDataTypes(String uri) {
-		String cleanUri = getTransformedNodeName(uri, false);
+//		String cleanUri = getTransformedNodeName(uri, false);
+		String cleanUri = uri;
 		String query = "SELECT DISTINCT ?TYPE WHERE { {<" + cleanUri + "> <" + RDFS.CLASS.toString() + "> ?TYPE} }";
 			
 		ISelectWrapper wrapper = WrapperManager.getInstance().getSWrapper(baseDataEngine, query);
@@ -1220,7 +1196,8 @@ public abstract class AbstractEngine implements IEngine {
 		Map<String, String> retMap = new Hashtable<String, String>();
 		String bindings = "";
 		for(String uri : uris) {
-			String cleanUri = getTransformedNodeName(uri, false);
+//			String cleanUri = getTransformedNodeName(uri, false);
+			String cleanUri = uri;
 			bindings += "(<" + cleanUri + ">)";	
 		}
 		String query = null;
@@ -1238,7 +1215,8 @@ public abstract class AbstractEngine implements IEngine {
 			String node = ss.getRawVar(names[0]).toString();
 			String type = ss.getVar(names[1]).toString();
 			
-			retMap.put(getTransformedNodeName(node, true), type);
+//			retMap.put(getTransformedNodeName(node, true), type);
+			retMap.put(node, type);
 		}
 		
 		return retMap;
@@ -1298,7 +1276,6 @@ public abstract class AbstractEngine implements IEngine {
 		return retList;
 	}
 	
-	
 	/**
 	 * This method will return a query struct which when interpreted would produce a query to 
 	 * get all the data within the engine.  Will currently assume all joins to be inner.join
@@ -1306,44 +1283,20 @@ public abstract class AbstractEngine implements IEngine {
 	 */
 	public QueryStruct getDatabaseQueryStruct() {
 		QueryStruct qs = new QueryStruct();
-		
-		boolean oldOwl = true;
-		// TODO: need to get rid of this bifurcation in queries between having an OLD OWL vs.
-		// having a new OWL
-		String testOwlVersion = "SELECT DISTINCT ?conceptual WHERE {"
-				+ "{?concept <http://www.w3.org/2000/01/rdf-schema#subClassOf> <http://semoss.org/ontologies/Concept> }"
-				+ "{?concept <http://semoss.org/ontologies/Relation/Conceptual> ?conceptual }"
-			+ "}"; // end where
-		ISelectWrapper wrapper = WrapperManager.getInstance().getSWrapper(baseDataEngine, testOwlVersion);
-		if(wrapper.hasNext()) {
-			oldOwl = false;
-		}
-		
+
 		// query to get all the concepts and properties for selectors
-		String getSelectorsInformation = "";
-		//TODO: bifurcation because of different OWL versions
-		if(oldOwl) {
-			getSelectorsInformation = "SELECT DISTINCT ?concept ?property WHERE { "
-					+ "{?concept <http://www.w3.org/2000/01/rdf-schema#subClassOf> <http://semoss.org/ontologies/Concept>} "
-					+ "OPTIONAL {"
-						+ "{?property <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <" + CONTAINS_BASE_URI + "> } "
-						+ "{?concept <http://www.w3.org/2002/07/owl#DatatypeProperty> ?property } "
-					+ "}" // END OPTIONAL
-					+ "}"; // END WHERE
-		} else {
-			getSelectorsInformation = "SELECT DISTINCT ?conceptualConcept ?conceptualProperty WHERE { "
-					+ "{?concept2 <http://www.w3.org/2000/01/rdf-schema#subClassOf> <http://semoss.org/ontologies/Concept> }"
-					+ "{?concept2 <http://semoss.org/ontologies/Relation/Conceptual> ?conceptualConcept }"
-					+ "OPTIONAL {"
-						+ "{?property <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <" + CONTAINS_BASE_URI + "> } "
-						+ "{?concept2 <http://www.w3.org/2002/07/owl#DatatypeProperty> ?property } "
-						+ "{?property <http://semoss.org/ontologies/Relation/Conceptual> ?conceptualProperty }"
-					+ "}" // END OPTIONAL
-					+ "}"; // END WHERE
-		}
-	
+		String getSelectorsInformation = "SELECT DISTINCT ?conceptualConcept ?conceptualProperty WHERE { "
+				+ "{?concept2 <http://www.w3.org/2000/01/rdf-schema#subClassOf> <http://semoss.org/ontologies/Concept> }"
+				+ "{?concept2 <http://semoss.org/ontologies/Relation/Conceptual> ?conceptualConcept }"
+				+ "OPTIONAL {"
+				+ "{?property <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <" + CONTAINS_BASE_URI + "> } "
+				+ "{?concept2 <http://www.w3.org/2002/07/owl#DatatypeProperty> ?property } "
+				+ "{?property <http://semoss.org/ontologies/Relation/Conceptual> ?conceptualProperty }"
+				+ "}" // END OPTIONAL
+				+ "}"; // END WHERE
+
 		// execute the query and loop through and add it into the QS
-		wrapper = WrapperManager.getInstance().getSWrapper(baseDataEngine, getSelectorsInformation);
+		ISelectWrapper wrapper = WrapperManager.getInstance().getSWrapper(baseDataEngine, getSelectorsInformation);
 		String[] names = wrapper.getPhysicalVariables();
 		// we will keep a set of the concepts such that we know when we need to append a PRIM_KEY_PLACEHOLDER
 		Set<String> conceptSet = new HashSet<String>();
@@ -1353,7 +1306,7 @@ public abstract class AbstractEngine implements IEngine {
 			if(conceptURI.equals("http://semoss.org/ontologies/Concept")) {
 				continue;
 			}
-			
+
 			Object property = ss.getVar(names[1]);
 			String concept = conceptURI.replaceAll(".*/Concept/", "");
 			if(concept.contains("/")) {
@@ -1363,45 +1316,34 @@ public abstract class AbstractEngine implements IEngine {
 				qs.addSelector(concept, null);
 				conceptSet.add(concept);
 			}
-			
+
 			if(property != null && !property.toString().isEmpty()) {
 				qs.addSelector(concept, property.toString());
 			}
 		}
 		// no need to keep this anymore
 		conceptSet = null;
-		
+
 		// query to get all the relationships 
-		String getRelationshipsInformation = "";
-		//TODO: bifurcation because of different OWL versions
-		if(oldOwl) {
-			getRelationshipsInformation = "SELECT DISTINCT ?fromConcept ?toConcept WHERE { "
+		String getRelationshipsInformation = "SELECT DISTINCT ?fromConceptualConcept ?toConceptualConcept WHERE { "
 				+ "{?fromConcept <http://www.w3.org/2000/01/rdf-schema#subClassOf> <http://semoss.org/ontologies/Concept>} "
 				+ "{?toConcept <http://www.w3.org/2000/01/rdf-schema#subClassOf> <http://semoss.org/ontologies/Concept>} "
 				+ "{?rel <" + RDFS.SUBPROPERTYOF + "> <http://semoss.org/ontologies/Relation>} "
 				+ "{?fromConcept ?rel ?toConcept} "
+				+ "{?fromConcept <http://semoss.org/ontologies/Relation/Conceptual> ?fromConceptualConcept }"
+				+ "{?toConcept <http://semoss.org/ontologies/Relation/Conceptual> ?toConceptualConcept }"
 				+ "}"; // END WHERE
-		} else {
-			getRelationshipsInformation = "SELECT DISTINCT ?fromConceptualConcept ?toConceptualConcept WHERE { "
-					+ "{?fromConcept <http://www.w3.org/2000/01/rdf-schema#subClassOf> <http://semoss.org/ontologies/Concept>} "
-					+ "{?toConcept <http://www.w3.org/2000/01/rdf-schema#subClassOf> <http://semoss.org/ontologies/Concept>} "
-					+ "{?rel <" + RDFS.SUBPROPERTYOF + "> <http://semoss.org/ontologies/Relation>} "
-					+ "{?fromConcept ?rel ?toConcept} "
-					+ "{?fromConcept <http://semoss.org/ontologies/Relation/Conceptual> ?fromConceptualConcept }"
-					+ "{?toConcept <http://semoss.org/ontologies/Relation/Conceptual> ?toConceptualConcept }"
-					+ "}"; // END WHERE
-		}
-		
+
 		wrapper = WrapperManager.getInstance().getSWrapper(baseDataEngine, getRelationshipsInformation);
 		names = wrapper.getPhysicalVariables();
 		while(wrapper.hasNext()) {
 			ISelectStatement ss = wrapper.next();
 			String fromConcept = ss.getVar(names[0]) + "";
 			String toConcept = ss.getVar(names[1]) + "";
-			
+
 			qs.addRelation(fromConcept, toConcept, "inner.join");
 		}
-		
+
 		return qs;
 	}
 	
@@ -1476,7 +1418,6 @@ public abstract class AbstractEngine implements IEngine {
 				}
 			}
 		}
-		
 		
 		return retObj;
 	}

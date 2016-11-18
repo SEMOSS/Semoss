@@ -122,8 +122,10 @@ public class QueryBuilderHelper {
 			{
 				String propURI = propVector.get(propIdx);
 				
-				String propURIDisplayName = coreEngine.getTransformedNodeName(propURI,true); //flip back to display name if there is one
-				String physicalVarName = Utility.getInstanceName(coreEngine.getTransformedNodeName(Constants.CONCEPT_URI + varName, true));
+//				String propURIDisplayName = coreEngine.getTransformedNodeName(propURI,true); //flip back to display name if there is one
+//				String physicalVarName = Utility.getInstanceName(coreEngine.getTransformedNodeName(Constants.CONCEPT_URI + varName, true));
+				String propURIDisplayName = propURI; //flip back to display name if there is one
+				String physicalVarName = varName;
 				String propName = Utility.getInstanceName(propURIDisplayName);
 				totalVarList.add(propName);
 				//store node prop info
@@ -173,8 +175,11 @@ public class QueryBuilderHelper {
 				String propURI = propVector.get(propIdx);
 				//since propURI isnt a URI, we need to convert it to one so that we can 
 				
-				String propURIDisplayURI = coreEngine.getTransformedNodeName(uriPrefix + propURI,true); //flip back to display name if there is one
+//				String propURIDisplayURI = coreEngine.getTransformedNodeName(uriPrefix + propURI,true); //flip back to display name if there is one
+//				String propURIDisplayName = Utility.getInstanceName(propURIDisplayURI);
+				String propURIDisplayURI = uriPrefix + propURI; 
 				String propURIDisplayName = Utility.getInstanceName(propURIDisplayURI);
+
 				
 				totalVarList.add(propURIDisplayName); //EYI TBD
 				//store node prop info
@@ -237,8 +242,9 @@ public class QueryBuilderHelper {
 		{
 			List<String> thisTripleArray = tripleArray.get(tripleIdx);
 			String subjectURI = thisTripleArray.remove(subIdx);
-			String subjectName = Utility.getInstanceName(engine.getTransformedNodeName(subjectURI, true));
-			subjectURI = engine.getTransformedNodeName(subjectURI, false);
+//			String subjectName = Utility.getInstanceName(engine.getTransformedNodeName(subjectURI, true));
+//			subjectURI = engine.getTransformedNodeName(subjectURI, false);
+			String subjectName = Utility.getInstanceName(subjectURI);
 			thisTripleArray.add(subIdx, subjectURI);
 			// store node/rel info
 			if (!totalVarList.contains(subjectName))
@@ -255,9 +261,10 @@ public class QueryBuilderHelper {
 			{
 				String predURI = thisTripleArray.get(predIdx);
 				String objectURI = thisTripleArray.remove(objIdx);
-				objectURI = engine.getTransformedNodeName(objectURI, false);
+//				objectURI = engine.getTransformedNodeName(objectURI, false);
 				thisTripleArray.add(objIdx, objectURI);
-				String objectName = Utility.getInstanceName(engine.getTransformedNodeName(objectURI, true));
+//				String objectName = Utility.getInstanceName(engine.getTransformedNodeName(objectURI, true));
+				String objectName = Utility.getInstanceName(objectURI);
 				String predName = subjectName + "_" +Utility.getInstanceName(predURI) + "_" + objectName;
 				if (!totalVarList.contains(predName))
 				{
@@ -293,10 +300,10 @@ public class QueryBuilderHelper {
 		if(props!=null){
 			for(Map<String, String> prop: props){
 				String subjectURI = prop.get(uriKey);
-				subjectURI = engine.getTransformedNodeName(subjectURI, false);
+//				subjectURI = engine.getTransformedNodeName(subjectURI, false);
 				prop.put(uriKey, subjectURI);
 				String equivURI = prop.get("equivalentURI");
-				equivURI = engine.getTransformedNodeName(equivURI, false);
+//				equivURI = engine.getTransformedNodeName(equivURI, false);
 				prop.put("equivalentURI", equivURI);
 			}
 		}
@@ -348,13 +355,14 @@ public class QueryBuilderHelper {
 
 				//split uri
 				String subjectVar = (String) map.get("SubjectVar");
-				String physicalSubjectVar = Utility.getInstanceName(engine.getTransformedNodeName(Constants.DISPLAY_URI + subjectVar, false));
+//				String physicalSubjectVar = Utility.getInstanceName(engine.getTransformedNodeName(Constants.DISPLAY_URI + subjectVar, false));
+				String physicalSubjectVar = subjectVar;
 				String logicalPropName = (String) map.get("varKey");
 				String physicalVarKey = "";
 				if(logicalPropName.contains("__")){
 					String[] splitColAndTable = logicalPropName.split("__");
 					logicalPropName = splitColAndTable[1]; 
-					physicalVarKey = Utility.getInstanceName(engine.getTransformedNodeName(Constants.DISPLAY_URI + subjectVar + "/" + logicalPropName, false));
+					physicalVarKey = logicalPropName;
 				}
 				//translate subject var.... and mod it
 				if(!subjectVar.equals(physicalSubjectVar)||!logicalPropName.equals(physicalVarKey)){
@@ -371,10 +379,12 @@ public class QueryBuilderHelper {
 			for (int tripleIdx = 0; tripleIdx<tripleArray.size(); tripleIdx++){
 				List<String> thisTripleArray = tripleArray.get(tripleIdx);
 				
-				String physicalURI = engine.getTransformedNodeName(thisTripleArray.get(subIdx), false);
+//				String physicalURI = engine.getTransformedNodeName(thisTripleArray.get(subIdx), false);
+				String physicalURI = thisTripleArray.get(subIdx);
 				thisTripleArray.set(subIdx,physicalURI);
 				if(thisTripleArray.size()>1){
-					String objectURI = engine.getTransformedNodeName(thisTripleArray.get(objIdx),false);
+//					String objectURI = engine.getTransformedNodeName(thisTripleArray.get(objIdx),false);
+					String objectURI = thisTripleArray.get(objIdx);
 					thisTripleArray.set(objIdx,objectURI);
 				}
 				tripleArray.set(tripleIdx, thisTripleArray);
@@ -400,7 +410,7 @@ public class QueryBuilderHelper {
 						int slashIdx = instanceFullDisplayPath.lastIndexOf("/");
 						if(slashIdx!=-1){
 							instanceBaseUri = instanceFullDisplayPath.substring(0,slashIdx);
-							instanceBaseUri = engine.getTransformedNodeName(instanceBaseUri, false);
+//							instanceBaseUri = engine.getTransformedNodeName(instanceBaseUri, false);
 							String instance = instanceFullDisplayPath.substring(slashIdx+1);
 							if(instanceBaseUri.length() > 0 && !instanceBaseUri.endsWith("/"))
 								instanceBaseUri+="/";

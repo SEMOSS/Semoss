@@ -38,8 +38,6 @@ import java.util.HashSet;
 import java.util.Hashtable;
 import java.util.Map;
 
-import prerna.algorithm.api.ITableDataFrame;
-import prerna.ds.BTreeDataFrame;
 import prerna.engine.api.ISelectStatement;
 import prerna.engine.api.ISelectWrapper;
 import prerna.engine.impl.rdbms.RDBMSNativeEngine;
@@ -287,29 +285,5 @@ public class RDBMSSelectWrapper extends AbstractWrapper implements ISelectWrappe
 			return value;
 		}
 	}
-
-	@Override
-	public ITableDataFrame getTableDataFrame() {
-		BTreeDataFrame dataFrame = new BTreeDataFrame(this.displayVar);
-		try {
-			while (rs.next()){
-				logger.debug("Adding a rdbms statement ");
-				
-				Object[] clean = new Object[this.displayVar.length];
-				for(int colIndex = 0;colIndex < displayVar.length;colIndex++)
-				{
-					Object value = rs.getObject(var[colIndex]);
-					clean[colIndex] = value;
-				}
-				dataFrame.addRow(clean);
-			} 
-		} catch (SQLException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
-		
-		return dataFrame;
-	}
-
 	
 }

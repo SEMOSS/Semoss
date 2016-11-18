@@ -102,7 +102,6 @@ import org.openrdf.repository.RepositoryConnection;
 import org.openrdf.repository.RepositoryException;
 import org.openrdf.repository.sail.SailRepository;
 import org.openrdf.rio.RDFFormat;
-import org.openrdf.rio.RDFHandlerException;
 import org.openrdf.rio.RDFParseException;
 import org.openrdf.sail.inferencer.fc.ForwardChainingRDFSInferencer;
 import org.openrdf.sail.memory.MemoryStore;
@@ -707,7 +706,7 @@ public class Utility {
 			//TODO: will come back to this
 
 			// 1) grab all concepts that exist in the database
-			List<String> conceptList = engineToAdd.getConcepts2(false);
+			List<String> conceptList = engineToAdd.getConcepts(false);
 			for(String concept : conceptList) {
 				// we ignore the default concept node...
 				if(concept.equals("http://semoss.org/ontologies/Concept")) {
@@ -739,7 +738,7 @@ public class Utility {
 				docs.add(solrE.createDocument(newId, fieldData));
 
 				// 3) now see if the concept has properties
-				List<String> propName = engineToAdd.getProperties4Concept2(concept, false);
+				List<String> propName = engineToAdd.getProperties4Concept(concept, false);
 				if(propName.isEmpty()) {
 					// if no properties, go onto the next concept
 					continue;
@@ -1397,12 +1396,16 @@ public class Utility {
 
 	public static String cleanVariableString(String original){
 		String cleaned = cleanString (original, true);
-		cleaned = cleaned.replaceAll("\\,", "");
-		cleaned = cleaned.replaceAll("\\%", "");
-		cleaned = cleaned.replaceAll("\\-", "");
-		cleaned = cleaned.replaceAll("\\(", "");
-		cleaned = cleaned.replaceAll("\\)", "");
-		cleaned = cleaned.replaceAll("\\&", "and");
+		if(cleaned.contains("-")) {
+			System.out.println("be cleaned???");
+		}
+		
+		cleaned = cleaned.replace(",", "");
+		cleaned = cleaned.replace("%", "");
+		cleaned = cleaned.replace("-", "");
+		cleaned = cleaned.replace("(", "");
+		cleaned = cleaned.replace(")", "");
+		cleaned = cleaned.replace("&", "and");
 		while(cleaned.contains("__")) {
 			cleaned = cleaned.replace("__", "_");
 		}
@@ -1935,75 +1938,75 @@ public class Utility {
 		return null;
 	}
 
-	/**
-	 * 
-	 * @param engine
-	 * @param nodesList
-	 * @param getDisplayNames
-	 * @return
-	 */
-	public static List getTransformedNodeNamesList(IEngine engine, List nodesList, boolean getDisplayNames){
-		//array, list or vector support only
+//	/**
+//	 * 
+//	 * @param engine
+//	 * @param nodesList
+//	 * @param getDisplayNames
+//	 * @return
+//	 */
+//	public static List getTransformedNodeNamesList(IEngine engine, List nodesList, boolean getDisplayNames){
+//		//array, list or vector support only
+//
+//		for(int i = 0; i< nodesList.size(); i++){
+//			String currentUri =  nodesList.get(i).toString();
+//			String finalUri = Utility.getTransformedNodeName(engine, currentUri , getDisplayNames);
+//			if(!finalUri.equals(currentUri)){
+//				nodesList.set(i, finalUri);
+//			}
+//		}
+//		return nodesList;
+//	}
 
-		for(int i = 0; i< nodesList.size(); i++){
-			String currentUri =  nodesList.get(i).toString();
-			String finalUri = Utility.getTransformedNodeName(engine, currentUri , getDisplayNames);
-			if(!finalUri.equals(currentUri)){
-				nodesList.set(i, finalUri);
-			}
-		}
-		return nodesList;
-	}
-
-	/**
-	 *  use for maps that map a string to a list of nodes...more commmonly used than I expected
-	 * @param engine
-	 * @param nodeMap
-	 * @param getDisplayNames
-	 * @return
-	 */
-	public static Map<String, List<Object>> getTransformedNodeNamesMap(IEngine engine, Map<String, List<Object>> nodeMap, boolean getDisplayNames){
-		if(nodeMap!= null && nodeMap.size()>0){
-			for(Map.Entry<String, List<Object>> eachMap: nodeMap.entrySet()){
-				List<Object> binding = Utility.getTransformedNodeNamesList(engine, nodeMap.get(eachMap.getKey()),false);
-			}
-		}
-		return nodeMap;
-	}
+//	/**
+//	 *  use for maps that map a string to a list of nodes...more commmonly used than I expected
+//	 * @param engine
+//	 * @param nodeMap
+//	 * @param getDisplayNames
+//	 * @return
+//	 */
+//	public static Map<String, List<Object>> getTransformedNodeNamesMap(IEngine engine, Map<String, List<Object>> nodeMap, boolean getDisplayNames){
+//		if(nodeMap!= null && nodeMap.size()>0){
+//			for(Map.Entry<String, List<Object>> eachMap: nodeMap.entrySet()){
+//				List<Object> binding = Utility.getTransformedNodeNamesList(engine, nodeMap.get(eachMap.getKey()),false);
+//			}
+//		}
+//		return nodeMap;
+//	}
 
 
-	/**
-	 * returns the physical or logical/display name
-	 * loop through the first time using the qualified class name ie this assumes you got something like http://semoss.org/ontologies/Concept/Director/Clint_Eastwood
-	 *     so getting the qualified name will give you http://semoss.org/ontologies/Concept/Director
-	 * if the translated uri is the same (ie no translated name was found, so maybe you actually did come into this method with a nodeUri of http://semoss.org/ontologies/Concept/Director) 
-	 *     on the second loop use that nodeUri directly and try to find a translated Uri
-	 * 
-	 * @param engine
-	 * @param nodeUri
-	 * @param getDisplayNames
-	 * @return
-	 */
-	public static String getTransformedNodeName(IEngine engine, String nodeUri, boolean getDisplayNames){
-		String finalUri = nodeUri;
-		boolean getClassName = true;
-		for(int j = 0; j < 2; j++){
-
-			String fullUri = nodeUri;
-			String uri = fullUri;
-
-			if(getClassName){
-				uri = Utility.getQualifiedClassName(uri);
-				getClassName = false;
-			}
-			String physicalUri = engine.getTransformedNodeName(uri, getDisplayNames);
-			if(!uri.equals(physicalUri)){
-				finalUri = fullUri.replace(uri, physicalUri);
-				break;
-			}
-		}
-		return finalUri;
-	}
+//	/**
+//	 * returns the physical or logical/display name
+//	 * loop through the first time using the qualified class name ie this assumes you got something like http://semoss.org/ontologies/Concept/Director/Clint_Eastwood
+//	 *     so getting the qualified name will give you http://semoss.org/ontologies/Concept/Director
+//	 * if the translated uri is the same (ie no translated name was found, so maybe you actually did come into this method with a nodeUri of http://semoss.org/ontologies/Concept/Director) 
+//	 *     on the second loop use that nodeUri directly and try to find a translated Uri
+//	 * 
+//	 * @param engine
+//	 * @param nodeUri
+//	 * @param getDisplayNames
+//	 * @return
+//	 */
+//	public static String getTransformedNodeName(IEngine engine, String nodeUri, boolean getDisplayNames){
+//		String finalUri = nodeUri;
+//		boolean getClassName = true;
+//		for(int j = 0; j < 2; j++){
+//
+//			String fullUri = nodeUri;
+//			String uri = fullUri;
+//
+//			if(getClassName){
+//				uri = Utility.getQualifiedClassName(uri);
+//				getClassName = false;
+//			}
+//			String physicalUri = engine.getTransformedNodeName(uri, getDisplayNames);
+//			if(!uri.equals(physicalUri)){
+//				finalUri = fullUri.replace(uri, physicalUri);
+//				break;
+//			}
+//		}
+//		return finalUri;
+//	}
 
 
 
@@ -2846,7 +2849,7 @@ public class Utility {
 
 			// 3) first grab all the concepts
 			// see if concept has a data type, if not, determine the type and then add it
-			Vector<String> concepts = engine.getConcepts2(false);;
+			Vector<String> concepts = engine.getConcepts(false);;
 			for(String concept : concepts) {
 				// ignore stupid master concept
 				if(concept.equals("http://semoss.org/ontologies/Concept")) {
@@ -2877,7 +2880,7 @@ public class Utility {
 
 				// 5) For the concept, get all the properties
 				// see if property has a data type, if not, determine the type and then add it
-				List<String> propNames = engine.getProperties4Concept2(concept, false);
+				List<String> propNames = engine.getProperties4Concept(concept, false);
 				if(propNames != null && !propNames.isEmpty()) {
 					// need a bifurcation in logic between rdbms and rdf
 					// rdbms engine is smart enough to parse the table and column name from the uri in getEntityOfType call
@@ -2935,113 +2938,113 @@ public class Utility {
 		}
 	}
 
-	/**
-	 * Adds the engine into the local master database
-	 * @param engineToAdd				The engine to add into local master
-	 */
-	public static void addToLocalMaster(IEngine engineToAdd) {
-		/*
-		 * This determines when it is necessary to add an engine into the local master database
-		 * 
-		 * Logical Flow
-		 * 
-		 * 1) Get timestamp of the engine within local master -> call this time_local
-		 * 2) Get timestamp of last engine update, stored on engine's OWL file -> call this time_engine
-		 * 3) If time_local is equal to time_engine, local master is up to date
-		 * 4) In all other conditions, add the engine to the local master
-		 * 		-> all other conditions means if either time_local or time_engine are null or
-		 * 			if they do not equal
-		 * 
-		 * Note: that after the local master has the engine added, the timestamp in the local master
-		 * 			is set to be equal to that in the engine's OWL file (if the engine's OWL file time
-		 * 			stamp is null, it is set to the time when this routine started running)
-		 */
-
-		// grab the local master engine
-		IEngine localMaster = (IEngine) DIHelper.getInstance().getLocalProp(Constants.LOCAL_MASTER_DB_NAME);
-		if(localMaster == null) {
-			LOGGER.info(">>>>>>>> Unable to find local master database in DIHelper.");
-			return;
-		}
-		if(engineToAdd == null) {
-			throw new NullPointerException("Engine passed in is null... no engine to load");
-		}
-
-		// generate the appropriate query to execute on the local master engine to get the time stamp
-		String engineName = engineToAdd.getEngineName();
-		String engineURL = "http://semoss.org/ontologies/Concept/Engine/" + Utility.cleanString(engineName, true);
-		String localDbQuery = "SELECT DISTINCT ?TIMESTAMP WHERE {<" + engineURL + "> <" + BaseDatabaseCreator.TIME_KEY + "> ?TIMESTAMP}";
-
-		// generate the query to execute on the engine's OWL to get the time stamp
-		String engineQuery = "SELECT DISTINCT ?TIMESTAMP WHERE {<" + BaseDatabaseCreator.TIME_URL + "> <" + BaseDatabaseCreator.TIME_KEY + "> ?TIMESTAMP}";
-
-		// 1) get the local master timestamp for engine
-		String localDbTimeForEngine = null;
-		ISelectWrapper wrapper = WrapperManager.getInstance().getSWrapper(localMaster, localDbQuery);
-		String[] names = wrapper.getVariables();
-		while(wrapper.hasNext()) {
-			ISelectStatement ss = wrapper.next();
-			localDbTimeForEngine = ss.getVar(names[0]) + "";
-		}
-
-		// 2) get the engine timestamp from OWL 
-		String engineDbTime = null;
-		ISelectWrapper wrapper2 = WrapperManager.getInstance().getSWrapper( ((AbstractEngine)engineToAdd).getBaseDataEngine(), engineQuery);
-		String[] names2 = wrapper2.getVariables();
-		while(wrapper2.hasNext()) {
-			ISelectStatement ss = wrapper2.next();
-			engineDbTime = ss.getVar(names2[0]) + "";
-		}
-
-		// if the engine OWL file doesn't have a time stamp, add one into it
-		if(engineDbTime == null) {
-			DateFormat dateFormat = BaseDatabaseCreator.getFormatter();
-			Calendar cal = Calendar.getInstance();
-			engineDbTime = dateFormat.format(cal.getTime());
-			((AbstractEngine)engineToAdd).getBaseDataEngine().doAction(IEngine.ACTION_TYPE.ADD_STATEMENT, new Object[]{BaseDatabaseCreator.TIME_URL, BaseDatabaseCreator.TIME_KEY, engineDbTime, false});
-			((AbstractEngine)engineToAdd).getBaseDataEngine().commit();
-			try {
-				((AbstractEngine)engineToAdd).getBaseDataEngine().exportDB();
-			} catch (RepositoryException e) {
-				e.printStackTrace();
-			} catch (RDFHandlerException e) {
-				e.printStackTrace();
-			} catch (IOException e) {
-				e.printStackTrace();
-			}
-		}
-
-		// 4) perform the necessary additions if the time stamps do not equal
-		// this is broken out into 2 separate parts
-		// 4.1) the local master doesn't have a time stamp which means the engine is not present
-		//		-> i.e. we do not need to remove the engine and re-add it
-		// 4.2) the time is present and we need to remove anything relating the engine that was in the engine and then re-add it
-
-		if(localDbTimeForEngine == null) {
-			// here we add the engine's time stamp into the local master
-			localMaster.doAction(IEngine.ACTION_TYPE.ADD_STATEMENT, new Object[]{engineURL, BaseDatabaseCreator.TIME_KEY, engineDbTime, false});
-
-			// logic to register the engine into the local master
-			AddToMasterDB adder = new AddToMasterDB(Constants.LOCAL_MASTER_DB_NAME);
-			adder.registerEngineLocal(engineToAdd);
-			localMaster.commit();
-		} else if(!localDbTimeForEngine.equals(engineDbTime)) {
-			// remove the existing time stamp in the local master
-			localMaster.doAction(IEngine.ACTION_TYPE.REMOVE_STATEMENT, new Object[]{engineURL, BaseDatabaseCreator.TIME_KEY, localDbTimeForEngine, false});
-			// add the time stamp to be equal to that which is stored in the engine's OWL
-			localMaster.doAction(IEngine.ACTION_TYPE.ADD_STATEMENT, new Object[]{engineURL, BaseDatabaseCreator.TIME_KEY, engineDbTime, false});
-
-			// if it has a time stamp, it means it was previously in local master
-			// logic to delete an engine from the local master
-			DeleteFromMasterDB remover = new DeleteFromMasterDB(Constants.LOCAL_MASTER_DB_NAME);
-			remover.deleteEngine(engineName);
-
-			// logic to add the engine into the local master
-			AddToMasterDB adder = new AddToMasterDB(Constants.LOCAL_MASTER_DB_NAME);
-			adder.registerEngineLocal(engineToAdd);
-			localMaster.commit();
-		}
-	}
+//	/**
+//	 * Adds the engine into the local master database
+//	 * @param engineToAdd				The engine to add into local master
+//	 */
+//	public static void addToLocalMaster(IEngine engineToAdd) {
+//		/*
+//		 * This determines when it is necessary to add an engine into the local master database
+//		 * 
+//		 * Logical Flow
+//		 * 
+//		 * 1) Get timestamp of the engine within local master -> call this time_local
+//		 * 2) Get timestamp of last engine update, stored on engine's OWL file -> call this time_engine
+//		 * 3) If time_local is equal to time_engine, local master is up to date
+//		 * 4) In all other conditions, add the engine to the local master
+//		 * 		-> all other conditions means if either time_local or time_engine are null or
+//		 * 			if they do not equal
+//		 * 
+//		 * Note: that after the local master has the engine added, the timestamp in the local master
+//		 * 			is set to be equal to that in the engine's OWL file (if the engine's OWL file time
+//		 * 			stamp is null, it is set to the time when this routine started running)
+//		 */
+//
+//		// grab the local master engine
+//		IEngine localMaster = (IEngine) DIHelper.getInstance().getLocalProp(Constants.LOCAL_MASTER_DB_NAME);
+//		if(localMaster == null) {
+//			LOGGER.info(">>>>>>>> Unable to find local master database in DIHelper.");
+//			return;
+//		}
+//		if(engineToAdd == null) {
+//			throw new NullPointerException("Engine passed in is null... no engine to load");
+//		}
+//
+//		// generate the appropriate query to execute on the local master engine to get the time stamp
+//		String engineName = engineToAdd.getEngineName();
+//		String engineURL = "http://semoss.org/ontologies/Concept/Engine/" + Utility.cleanString(engineName, true);
+//		String localDbQuery = "SELECT DISTINCT ?TIMESTAMP WHERE {<" + engineURL + "> <" + BaseDatabaseCreator.TIME_KEY + "> ?TIMESTAMP}";
+//
+//		// generate the query to execute on the engine's OWL to get the time stamp
+//		String engineQuery = "SELECT DISTINCT ?TIMESTAMP WHERE {<" + BaseDatabaseCreator.TIME_URL + "> <" + BaseDatabaseCreator.TIME_KEY + "> ?TIMESTAMP}";
+//
+//		// 1) get the local master timestamp for engine
+//		String localDbTimeForEngine = null;
+//		ISelectWrapper wrapper = WrapperManager.getInstance().getSWrapper(localMaster, localDbQuery);
+//		String[] names = wrapper.getVariables();
+//		while(wrapper.hasNext()) {
+//			ISelectStatement ss = wrapper.next();
+//			localDbTimeForEngine = ss.getVar(names[0]) + "";
+//		}
+//
+//		// 2) get the engine timestamp from OWL 
+//		String engineDbTime = null;
+//		ISelectWrapper wrapper2 = WrapperManager.getInstance().getSWrapper( ((AbstractEngine)engineToAdd).getBaseDataEngine(), engineQuery);
+//		String[] names2 = wrapper2.getVariables();
+//		while(wrapper2.hasNext()) {
+//			ISelectStatement ss = wrapper2.next();
+//			engineDbTime = ss.getVar(names2[0]) + "";
+//		}
+//
+//		// if the engine OWL file doesn't have a time stamp, add one into it
+//		if(engineDbTime == null) {
+//			DateFormat dateFormat = BaseDatabaseCreator.getFormatter();
+//			Calendar cal = Calendar.getInstance();
+//			engineDbTime = dateFormat.format(cal.getTime());
+//			((AbstractEngine)engineToAdd).getBaseDataEngine().doAction(IEngine.ACTION_TYPE.ADD_STATEMENT, new Object[]{BaseDatabaseCreator.TIME_URL, BaseDatabaseCreator.TIME_KEY, engineDbTime, false});
+//			((AbstractEngine)engineToAdd).getBaseDataEngine().commit();
+//			try {
+//				((AbstractEngine)engineToAdd).getBaseDataEngine().exportDB();
+//			} catch (RepositoryException e) {
+//				e.printStackTrace();
+//			} catch (RDFHandlerException e) {
+//				e.printStackTrace();
+//			} catch (IOException e) {
+//				e.printStackTrace();
+//			}
+//		}
+//
+//		// 4) perform the necessary additions if the time stamps do not equal
+//		// this is broken out into 2 separate parts
+//		// 4.1) the local master doesn't have a time stamp which means the engine is not present
+//		//		-> i.e. we do not need to remove the engine and re-add it
+//		// 4.2) the time is present and we need to remove anything relating the engine that was in the engine and then re-add it
+//
+//		if(localDbTimeForEngine == null) {
+//			// here we add the engine's time stamp into the local master
+//			localMaster.doAction(IEngine.ACTION_TYPE.ADD_STATEMENT, new Object[]{engineURL, BaseDatabaseCreator.TIME_KEY, engineDbTime, false});
+//
+//			// logic to register the engine into the local master
+//			AddToMasterDB adder = new AddToMasterDB(Constants.LOCAL_MASTER_DB_NAME);
+//			adder.registerEngineLocal(engineToAdd);
+//			localMaster.commit();
+//		} else if(!localDbTimeForEngine.equals(engineDbTime)) {
+//			// remove the existing time stamp in the local master
+//			localMaster.doAction(IEngine.ACTION_TYPE.REMOVE_STATEMENT, new Object[]{engineURL, BaseDatabaseCreator.TIME_KEY, localDbTimeForEngine, false});
+//			// add the time stamp to be equal to that which is stored in the engine's OWL
+//			localMaster.doAction(IEngine.ACTION_TYPE.ADD_STATEMENT, new Object[]{engineURL, BaseDatabaseCreator.TIME_KEY, engineDbTime, false});
+//
+//			// if it has a time stamp, it means it was previously in local master
+//			// logic to delete an engine from the local master
+//			DeleteFromMasterDB remover = new DeleteFromMasterDB(Constants.LOCAL_MASTER_DB_NAME);
+//			remover.deleteEngine(engineName);
+//
+//			// logic to add the engine into the local master
+//			AddToMasterDB adder = new AddToMasterDB(Constants.LOCAL_MASTER_DB_NAME);
+//			adder.registerEngineLocal(engineToAdd);
+//			localMaster.commit();
+//		}
+//	}
 
 	public static void synchronizeEngineMetadata(String engineName) {
 		/*
@@ -3142,7 +3145,7 @@ public class Utility {
 
 			// logic to register the engine into the local master
 			AddToMasterDB adder = new AddToMasterDB(Constants.LOCAL_MASTER_DB_NAME);
-			adder.registerEngineLocal2(prop);
+			adder.registerEngineLocal(prop);
 			localMaster.commit(); 
 		} else if(!localDbTimeForEngine.startsWith(engineDbTime)) { // BIGData has idiosyncracy where it keeps date in a weird format 2016-05-12T12:23:07.000Z instead of 2016-05-12T12:23:07
 			// remove the existing time stamp in the local master
@@ -3157,10 +3160,11 @@ public class Utility {
 
 			// logic to add the engine into the local master
 			AddToMasterDB adder = new AddToMasterDB(Constants.LOCAL_MASTER_DB_NAME);
-			adder.registerEngineLocal2(prop);
+			adder.registerEngineLocal(prop);
 			localMaster.commit();
 		}
 	}
+	
 	/**
 	 * Splits up a URI into tokens based on "/" character and uses logic to return the instance name.
 	 * @param String		URI to be split into tokens.

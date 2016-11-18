@@ -197,7 +197,7 @@ public class RDBMSReader extends AbstractCSVFileReader {
 //					scriptFile.println("-- ********* begin load " + fileName + " ********* ");
 //					LOGGER.info("-- ********* begin load " + fileName + " ********* ");
 
-					processDisplayNames();
+//					processDisplayNames();
 					skipRows();
 					processData(i == 0);
 
@@ -350,7 +350,7 @@ public class RDBMSReader extends AbstractCSVFileReader {
 //					scriptFile.println("-- ********* begin load " + fileName + " ********* ");
 //					LOGGER.info("-- ********* begin load " + fileName + " ********* ");
 					
-					processDisplayNames();
+//					processDisplayNames();
 					skipRows();
 					processData(false);
 					

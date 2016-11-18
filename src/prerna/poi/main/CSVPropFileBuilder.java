@@ -52,8 +52,8 @@ public class CSVPropFileBuilder{
 	// string builder to contain the node_properties
 	private StringBuilder node_properties = new StringBuilder();
 	
-	// string builder to contain the display names
-	private StringBuilder node_displaynames = new StringBuilder();
+//	// string builder to contain the display names
+//	private StringBuilder node_displaynames = new StringBuilder();
 	
 	// map containing the data types for each column of the csv file
 	private Hashtable<String, String> dataTypeHash = new Hashtable<String, String>();
@@ -173,7 +173,7 @@ public class CSVPropFileBuilder{
 		// for a concept the structure is: concatenation of the concept, a colon, and the display name
 		// for a property the structure is: concatenation of the property_parent_concept, a percent sign, 
 		// 									the property, a colon, and the display name
-		node_displaynames.append(nodes+":"+displayName+";");
+//		node_displaynames.append(nodes+":"+displayName+";");
 	}
 
 	/**
@@ -230,7 +230,7 @@ public class CSVPropFileBuilder{
 		propHash.put("NOT_OPTIONAL", ";");
 		propHash.put("RELATION", relationships.toString());
 		propHash.put("NODE_PROP", node_properties.toString());
-		propHash.put(Constants.DISPLAY_NAME, node_displaynames.toString());
+//		propHash.put(Constants.DISPLAY_NAME, node_displaynames.toString());
 		propHash.put("RELATION_PROP", "");
 		
 		// and do the same and add it in the prop file
@@ -238,7 +238,7 @@ public class CSVPropFileBuilder{
 		propFile.append("END_ROW\t" + endRowNumAsString + "\n");
 		propFile.append("RELATION\t" + relationships.toString() + "\n");
 		propFile.append("NODE_PROP\t" + node_properties.toString() + "\n");
-		propFile.append(Constants.DISPLAY_NAME + "\t" + node_displaynames.toString() + "\n");
+//		propFile.append(Constants.DISPLAY_NAME + "\t" + node_displaynames.toString() + "\n");
 		propFile.append("RELATION_PROP\t \n");
 	}
 
