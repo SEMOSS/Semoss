@@ -2148,6 +2148,8 @@ public class H2Builder {
 	// as well as the new table
 	private void mergeTables(String tableName1, String tableName2, Hashtable<Integer, Integer> matchers,
 			String[] oldTypes, String[] newTypes, String join) {
+		getConnection();
+
 		String origTableName = tableName;
 		// now create a third table
 		tableName = H2FRAME + getNextNumber();
@@ -2157,6 +2159,20 @@ public class H2Builder {
 		// now I need to create a join query
 		// first the froms
 
+		// want to create indices on the join columns to speed up the process
+		for (Integer table1JoinIndex : matchers.keySet()) {
+			Integer table2JoinIndex = matchers.get(table1JoinIndex);
+
+			String table1JoinCol = newTypes[table1JoinIndex];
+			String table2JoinCol = oldTypes[table2JoinIndex];
+
+			addColumnIndex(tableName1, table1JoinCol);
+			addColumnIndex(tableName2, table2JoinCol);
+			// note that this creates indices on table1 and table2
+			// but these tables are later dropped so no indices are kept
+			// through the flow
+		}
+		
 		String froms = " FROM " + tableName1 + " AS  A ";
 		String joins = " " + join + " " + tableName2 + " AS B ON (";
 
@@ -2177,88 +2193,77 @@ public class H2Builder {
 				joins = joins + " AND ";
 			}
 			
-			joins = joins + "A." + oldCol + " = " + "B." + newCol;
-			
-			if(!oldColType.equals(newColType)) {
-				try {
-					// data types are different... 
-					// if both are different numbers -> convert both to double
-					// else if one is double and one is string -> convert both to double
-					// else -> convert both to strings
-					
+			if(oldColType.equals(newColType)) {
+				// data types are the same, no need to do anything
+				joins = joins + "A." + oldCol + " = " + "B." + newCol;
+			} else {
+				// data types are different... 
+				// if both are different numbers -> convert both to double
+				// else -> convert to strings
+				
+				if( (oldColType.equals("DOUBLE") || oldColType.equals("INT") )
+					&& (newColType.equals("DOUBLE") || newColType.equals("INT") ) ) {
 					// both are numbers
-					if( (oldColType.equals("DOUBLE") || oldColType.equals("INT") )
-						&& (newColType.equals("DOUBLE") || newColType.equals("INT") ) ) {
-						// both are numbers but one is a double and the other an int
-						// make both doubles
-						
-						if(!oldColType.equals("DOUBLE")) {
-							// alter such that it is a double
-							String query = "ALTER TABLE " + tableName1 + " ALTER COLUMN " + oldCol + " DOUBLE";
-							LOGGER.info(query);
-							runQuery(query);
-						}
-						if(!newColType.equals("DOUBLE")) {
-							// alter such that it is a double
-							String query = "ALTER TABLE " + tableName2 + " ALTER COLUMN " + newCol + " DOUBLE";
-							LOGGER.info(query);
-							runQuery(query);
-						}
-					} 
-					// case when old col type is double and new col type is string
-					else if( (oldColType.equals("DOUBLE") || oldColType.equals("INT") )
-							&& newColType.equals("VARCHAR") ) 
-					{
-						// if it is not a double, convert it
-						if(!oldColType.equals("DOUBLE")) {
-							// alter such that it is a double
-							String query = "ALTER TABLE " + tableName1 + " ALTER COLUMN " + oldCol + " DOUBLE";
-							LOGGER.info(query);
-							runQuery(query);
-						}
-						
-						// new col is a string
-						// so cast to double
-						String query = "ALTER TABLE " + tableName2 + " ALTER COLUMN " + newCol + " DOUBLE";
-						LOGGER.info(query);
-						runQuery(query);
+					if(!oldColType.equals("DOUBLE")) {
+						joins = joins + " A." + oldCol;
+					} else {
+						joins = joins + " CAST(A." + oldCol + " AS DOUBLE)";
 					}
-					// case when old col type is string and new col type is double
-					else if(  oldColType.equals("VARCHAR") && 
-							(newColType.equals("DOUBLE") || newColType.equals("INT") ) ) 
-					{
-						// if it is not a double, convert it keep as is
-						if(!newColType.equals("DOUBLE")) {
-							String query = "ALTER TABLE " + tableName2 + " ALTER COLUMN " + newCol + " DOUBLE";
-							LOGGER.info(query);
-							runQuery(query);
-						}
-						
-						// alter such that it is a double
-						String query = "ALTER TABLE " + tableName1 + " ALTER COLUMN " + oldCol + " DOUBLE";
-						LOGGER.info(query);
-						runQuery(query);
+					joins = joins + " = ";
+					if(!newColType.equals("DOUBLE")) {
+						joins = joins + " B." + newCol;
+					} else {
+						joins = joins + " CAST(B." + newCol + " AS DOUBLE)";
 					}
-					// idk.. just cast both to string
-					else {
-						if(!oldColType.equals("VARCHAR")) {
-							// if not a string, make it one
-							String query = "ALTER TABLE " + tableName1 + " ALTER COLUMN " + oldCol + " VARCHAR(800)";
-							LOGGER.info(query);
-							runQuery(query);
-						}
-						if(newColType.equals("VARCHAR")) {
-							// alter such that it is a double
-							String query = "ALTER TABLE " + tableName2 + " ALTER COLUMN " + newCol + " VARCHAR(800)";
-							LOGGER.info(query);
-							runQuery(query);
-						}
+				}
+				// case when old col type is double and new col type is string
+				else if( (oldColType.equals("DOUBLE") || oldColType.equals("INT") )
+						&& newColType.equals("VARCHAR") ) 
+				{
+					// if it is not a double, convert it
+					if(!oldColType.equals("DOUBLE")) {
+						joins = joins + " CAST(A." + oldCol + " AS DOUBLE)";
+					} else {
+						joins = joins + " A." + oldCol;
 					}
-				} catch(Exception e) {
-					e.printStackTrace();
+					joins = joins + " = ";
+
+					// new col is a string
+					// so cast to double
+					joins = joins + " CAST(B." + newCol + " AS DOUBLE)";
+				}
+				// case when old col type is string and new col type is double
+				else if(  oldColType.equals("VARCHAR") && 
+						(newColType.equals("DOUBLE") || newColType.equals("INT") ) ) 
+				{
+					// old col is a string
+					// so cast to double
+					joins = joins + " CAST(A." + oldCol + " AS DOUBLE)";
+					joins = joins + " = ";
+					// if it is not a double, convert it
+					if(!newColType.equals("DOUBLE")) {
+						joins = joins + " B." + newCol;
+					} else {
+						joins = joins + " CAST(B." + newCol + " AS DOUBLE)";
+					}
+				}
+				else {
+					// not sure... just make everything a string
+					if(oldColType.equals("VARCHAR")) {
+						joins = joins + " A." + oldCol;
+					} else {
+						joins = joins + " CAST( A." + oldCol + " AS VARCHAR(800))";
+					}
+					joins = joins + " = ";
+					if(newColType.equals("VARCHAR")) {
+						joins = joins + " B." + newCol;
+					} else {
+						joins = joins + " CAST(B." + newCol + " AS VARCHAR(800))";
+					}
 				}
 			}
 		}
+			
 		joins = joins + " )";
 
 		// first table A
@@ -2276,23 +2281,8 @@ public class H2Builder {
 				selectors = selectors + " , " + "B." + newTypes[newIndex];
 		}
 
-		// want to create indices on the join columns to speed up the process
-		// do this right before we execute because we alter the column types
-		// to be the same
-		for (Integer table1JoinIndex : matchers.keySet()) {
-			Integer table2JoinIndex = matchers.get(table1JoinIndex);
-
-			String table1JoinCol = newTypes[table1JoinIndex];
-			String table2JoinCol = oldTypes[table2JoinIndex];
-
-			addColumnIndex(tableName1, table1JoinCol);
-			addColumnIndex(tableName2, table2JoinCol);
-			// note that this creates indices on table1 and table2
-			// but these tables are later dropped so no indices are kept
-			// through the flow
-		}
-
 		String finalQuery = newCreate + "SELECT " + selectors + " " + froms + "  " + joins + " )";
+
 		System.out.println(finalQuery);
 
 		try {

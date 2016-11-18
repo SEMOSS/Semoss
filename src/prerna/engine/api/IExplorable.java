@@ -72,9 +72,6 @@ public interface IExplorable {
 	// sets the dreamer properties file
 	void setDreamer(String dreamer);
 	
-	// sets the ontology file
-//	void setOntology(String ontologyFile);
-	
 	// sets the owl
 	void setOWL(String owl);
 	
@@ -95,21 +92,15 @@ public interface IExplorable {
 	// gets the param values for a parameter
 	Vector<Object> getParamOptions(String parameterURI);
 
-	// gets the query builder
-	@Deprecated
-	IQueryBuilder getQueryBuilder();
 	IQueryInterpreter getQueryInterpreter();
-	
-	// gets a vector of all concepts that exist
-	Vector<String> getConcepts();
 	
 	/**
 	 * Returns the list of concepts as defined by the OWL file
+	 * @param conceptualNames 	boolean to return the conceptual URI or physical URI
+	 * @return
 	 */
-	Vector<String> getConcepts2(boolean conceptualNames);
+	Vector<String> getConcepts(boolean conceptualNames);
 
-	// gets all of the properties for a given concept
-	List<String> getProperties4Concept(String concept, Boolean logicalNames);
 	/**
 	 * Returns the set of properties for a given concept
 	 * @param concept					The concept URI
@@ -118,7 +109,7 @@ public interface IExplorable {
 	 * 									conceptual names or physical names
 	 * @return							List containing the property URIs for the given concept
 	 */
-	List<String> getProperties4Concept2(String concept, Boolean conceptualNames);
+	List<String> getProperties4Concept(String concept, Boolean conceptualNames);
 
 	// executes a query on the ontology engine
 	Object execOntoSelectQuery(String query);
@@ -137,8 +128,8 @@ public interface IExplorable {
 	
 	Vector<SEMOSSParam> getParams(String... paramIds);
 	
-	// gets the display or physical for a given concept
-	String getTransformedNodeName(String concept, boolean getDisplayName);
+//	// gets the display or physical for a given concept
+//	String getTransformedNodeName(String concept, boolean getDisplayName);
 	
 	/**
 	 * Get the physical URI from the conceptual URI
@@ -156,9 +147,6 @@ public interface IExplorable {
 	 */
 	String getConceptualUriFromPhysicalUri(String physicalURI);
 
-	//loads the logical and physical names
-	void loadTransformedNodeNames();
-
 	Vector<String> executeInsightQuery(String sparqlQuery, boolean isDbQuery);
 	
 	String getNodeBaseUri();
@@ -170,7 +158,7 @@ public interface IExplorable {
 	 * @param uris
 	 * @return
 	 */
-	public String getDataTypes(String uri);
+	String getDataTypes(String uri);
 	
 	/**
 	 * Get the datatypes for the uris from the associated owl file
@@ -178,13 +166,15 @@ public interface IExplorable {
 	 * @param uris
 	 * @return
 	 */
-	public Map<String, String> getDataTypes(String... uris);
+	Map<String, String> getDataTypes(String... uris);
 
-	public String getParentOfProperty(String property);
+	String getParentOfProperty(String property);
 	
-	public List<String> getParentOfProperty2(String property);
+	List<String> getParentOfProperty2(String property);
 	
-	public QueryStruct getDatabaseQueryStruct();
+	QueryStruct getDatabaseQueryStruct();
 	
-	public Map<String, Object> getMetamodel();
+	Map<String, Object> getMetamodel();
+
+	String getPhysicalUriFromConceptualUri(String propertyName, String parentName);
 }

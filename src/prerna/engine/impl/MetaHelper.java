@@ -186,12 +186,6 @@ public class MetaHelper implements IExplorable {
 	}
 
 	@Override
-	public IQueryBuilder getQueryBuilder() {
-		// TODO Auto-generated method stub
-		return null;
-	}
-
-	@Override
 	public IQueryInterpreter getQueryInterpreter() {
 		// TODO Auto-generated method stub
 		return null;
@@ -262,153 +256,6 @@ public class MetaHelper implements IExplorable {
 		return "unable to get table uri for " + physicalName;
 	}
 
-	public List<String> getProperties4Concept(String concept, Boolean logicalNames) {
-		String uri = concept;
-		if(!uri.contains("http://")){
-			uri = Constants.DISPLAY_URI + uri;
-		}
-		String query = "SELECT ?property WHERE { {?concept <http://www.w3.org/2000/01/rdf-schema#subClassOf> <http://semoss.org/ontologies/Concept> }"
-				+ "{?concept  <http://www.w3.org/2002/07/owl#DatatypeProperty> ?property}"
-				+ "{?property a <" + CONTAINS_BASE_URI + ">}}"
-				+ "BINDINGS ?concept {(<"+ this.getTransformedNodeName(uri, false) +">)}";
-		List<String> uriProps = Utility.getVectorOfReturn(query, baseDataEngine, true);
-		if(!logicalNames){
-			return uriProps;
-		}
-		else{
-			// need to go through each one and translate
-			List<String> propNames = new Vector<String>();
-			for(String uriProp : uriProps){
-				String logicalName = this.getTransformedNodeName(uriProp, true);
-				propNames.add(logicalName);
-			}
-			return propNames;
-		}
-	}
-	
-	/**
-	 * query the owl to get the display name or the physical name
-	 */
-	public String getTransformedNodeName(String nodeURI, boolean getDisplayName){
-		//String returnNodeURI = nodeURI;
-		
-		//these validation peices are seperated out intentionally for readability.
-		if(baseDataEngine == null || nodeURI == null || nodeURI.isEmpty() ){ 
-			return nodeURI;
-		}
-		
-		//for rdbms normalize the URI... for concepts and relation uris
-		if (nodeURI.startsWith(Constants.CONCEPT_URI) || nodeURI.startsWith(Constants.PROPERTY_URI) && engineType.equals(IEngine.ENGINE_TYPE.RDBMS)) {
-			for(String displayName: this.transformedNodeNames.keySet()){
-				String physicalName = this.transformedNodeNames.get(displayName);
-				if(physicalName.equalsIgnoreCase(nodeURI)){
-					nodeURI = physicalName;
-					break;
-				}
-			}
-		}
-		
-		//if you are trying to get the physical name, but you came in here with out the display name uri component, exit out
-		if(!nodeURI.startsWith(Constants.DISPLAY_URI) && !getDisplayName){
-			return nodeURI;
-		}
-		//if you are trying to get a display name but you came in with out the physical URI component, exit out
-		if(getDisplayName && !(nodeURI.startsWith(Constants.CONCEPT_URI) || nodeURI.startsWith(Constants.PROPERTY_URI))){
-			return nodeURI;
-		}
-		
-		//if uri coming in is just a base URI...
-		if(nodeURI.equals(Constants.DISPLAY_URI) || nodeURI.equals(Constants.CONCEPT_URI) || nodeURI.equals(Constants.PROPERTY_URI)){
-			return nodeURI;
-		}
-		
-		//first check the Hashtable to see if its already existing, so you dont need to query any databases.
-		//the key is the logical name since those can be unique (properties names may be the same across types)
-		return findTransformedNodeName(nodeURI, getDisplayName);
-
-	}
-
-	public void setTransformedNodeNames(Hashtable transformedNodeNames){
-		this.transformedNodeNames = transformedNodeNames;
-	}
-	
-	@Override
-	public void loadTransformedNodeNames(){
-		String query = "SELECT DISTINCT ?object (COALESCE(?DisplayName, ?object) AS ?Display) WHERE { "
-				+ " { {?object <http://www.w3.org/2000/01/rdf-schema#subClassOf> <http://semoss.org/ontologies/Concept>} "
-				+ "OPTIONAL{?object <http://semoss.org/ontologies/DisplayName> ?DisplayName } } UNION { "
-				+ "{ ?object <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Relation/Contains> } "
-				+ "OPTIONAL {?object <http://semoss.org/ontologies/DisplayName> ?DisplayName }"
-				+ "} }"; 
-		if(this.baseDataEngine!=null){
-			Vector<String[]> transformedNode = Utility.getVectorObjectOfReturn(query, this.baseDataEngine);
-		
-			if(transformedNode.size()!=0){
-				transformedNodeNames.clear();
-				for(String[] node: transformedNode){
-					String logicalName = node[1];
-					if(logicalName.equals("http://semoss.org/ontologies/Concept")) {
-						this.transformedNodeNames.put(logicalName, Constants.DISPLAY_URI + "Concept");
-						continue;
-					} else if(logicalName.startsWith("http://semoss.org/ontologies/Relation/Contains/")) {
-						logicalName = Utility.getInstanceName(logicalName);
-					} else {
-						logicalName = logicalName.replaceAll(".*/Concept/", "");
-					}
-					if(logicalName.contains("/")) {
-						// this is for RDBMS engine OWL file concepts
-						// this is for properties that are also "concepts"
-						logicalName = logicalName.substring(0, logicalName.lastIndexOf("/"));
-					} 
-					logicalName = Utility.cleanVariableString(logicalName);
-					logicalName = Constants.DISPLAY_URI + logicalName;
-					if(this.transformedNodeNames.containsKey(logicalName)) {
-						// this occurs when we have a property that is both a prop and a concept
-						// keep the concept one i guess?
-						if(node[0].contains("Relation/Contains")) {
-							continue;
-						}
-						this.transformedNodeNames.put(logicalName, node[0]); //map contains display name : physical name
-					} else {
-						this.transformedNodeNames.put(logicalName, node[0]); //map contains display name : physical name
-					}
-				}
-				this.baseDataEngine.setTransformedNodeNames(this.transformedNodeNames);
-			}
-		}
-	}
-	
-	public String findTransformedNodeName(String nodeURI, boolean getDisplayName){
-		
-		if(this.transformedNodeNames.containsKey(nodeURI) && !getDisplayName){
-			String physicalName = this.transformedNodeNames.get(nodeURI); 
-			if(!physicalName.equalsIgnoreCase(nodeURI)){ // I have to do this because of RDBMS and its inconsistency with capitalizing concepts
-				return physicalName;
-			} else {
-				return nodeURI;
-			}
-		} else if(this.transformedNodeNames.contains(nodeURI) && getDisplayName){
-			for(String displayName: this.transformedNodeNames.keySet()){
-				String physicalName = this.transformedNodeNames.get(displayName);
-				if(physicalName.equalsIgnoreCase(nodeURI)){
-					if(!displayName.equalsIgnoreCase(nodeURI)){ // I have to do this because of RDBMS and its inconsistency with capitalizing concepts
-						return displayName;
-					} else {
-						return nodeURI;
-					}
-				}
-			}
-		} else if (nodeURI.startsWith(Constants.DISPLAY_URI)) {
-			for(String displayName: this.transformedNodeNames.keySet()){
-				if(Utility.getInstanceName(displayName).equalsIgnoreCase(Utility.getInstanceName(nodeURI))){
-					return this.transformedNodeNames.get(displayName);
-				}
-			}
-		}
-		
-		return nodeURI;
-	}
-	
 	/**
 	 * Runs a select query on the base data engine of this engine
 	 */
@@ -437,7 +284,7 @@ public class MetaHelper implements IExplorable {
 	}
 
 	@Override
-	public Vector<String> getConcepts2(boolean conceptualNames) {
+	public Vector<String> getConcepts(boolean conceptualNames) {
 		String query = "";
 		if(!conceptualNames) {
 			query = "SELECT ?concept WHERE {?concept <http://www.w3.org/2000/01/rdf-schema#subClassOf> <http://semoss.org/ontologies/Concept> }";
@@ -446,19 +293,15 @@ public class MetaHelper implements IExplorable {
 					+ "{?concept <http://www.w3.org/2000/01/rdf-schema#subClassOf> <http://semoss.org/ontologies/Concept> }"
 						+ "OPTIONAL {"
 							+ "{?concept <http://semoss.org/ontologies/Relation/Conceptual> ?conceptual }"
-						+ "}" // end optional for conceputal names if present
+						+ "}" // end optional for conceptual names if present
 					+ "}"; // end where
-		}		
-		
-		
-		
+		}
 		
 		return Utility.getVectorOfReturn(query, baseDataEngine, true);
 	}
 
 	@Override
-	public List<String> getProperties4Concept2(String concept,
-			Boolean conceptualNames) {
+	public List<String> getProperties4Concept(String concept, Boolean conceptualNames) {
 		// get the physical URI for the concept
 		String conceptPhysical = getPhysicalUriFromConceptualUri(concept);
 		
@@ -515,6 +358,34 @@ public class MetaHelper implements IExplorable {
 		// if it is empty, either the URI is bad or it is already the physical URI
 		if(queryReturn.isEmpty()) {
 			return conceptualURI;
+		}
+		// there should only be one return in the vector since conceptual URIs are a one-to-one match with the physical URIs
+		return queryReturn.get(0);
+	}
+	
+	@Override
+	public String getPhysicalUriFromConceptualUri(String propertyName, String parentName) {
+		String conceptualURI = "http://semoss.org/ontologies/Concept/" + propertyName;
+		if(parentName != null && !parentName.isEmpty()) {
+			conceptualURI += "/" + parentName;
+		}
+		
+		// this query needs to take into account if the conceptual URI is a concept or a property
+		String query = "SELECT DISTINCT ?uri WHERE { "
+				+ "BIND(<" + conceptualURI + "> AS ?conceptual) "
+				+ "{"
+					+ "{?uri <http://www.w3.org/2000/01/rdf-schema#subClassOf> <http://semoss.org/ontologies/Concept> } "
+					+ "{?uri <http://semoss.org/ontologies/Relation/Conceptual> ?conceptual } "
+				+ "} UNION {"
+					+ "{?uri <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Relation/Contains> } "
+					+ "{?uri <http://semoss.org/ontologies/Relation/Conceptual> ?conceptual } "
+				+ "}"
+				+ "}";
+
+		Vector<String> queryReturn = Utility.getVectorOfReturn(query, baseDataEngine, true);
+		// if it is empty, either the URI is bad or it is already the physical URI
+		if(queryReturn.isEmpty()) {
+			return null;
 		}
 		// there should only be one return in the vector since conceptual URIs are a one-to-one match with the physical URIs
 		return queryReturn.get(0);

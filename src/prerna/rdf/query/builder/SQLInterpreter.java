@@ -138,7 +138,7 @@ public class SQLInterpreter implements IQueryInterpreter{
 				// we are selecting all the columns
 				String table = froms.get(0)[0];
 				if(engine != null) {
-					if( (engine.getConcepts2(false).size() == 1) && (engine.getProperties4Concept2(table, false).size() + 1) == selectorList.size()) {
+					if( (engine.getConcepts(false).size() == 1) && (engine.getProperties4Concept(table, false).size() + 1) == selectorList.size()) {
 						// plus one is for the concept itself
 						// no distinct needed
 						query.append(selectors).append(" FROM ");

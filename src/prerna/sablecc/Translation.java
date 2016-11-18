@@ -9,6 +9,7 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.ListIterator;
 import java.util.Map;
+import java.util.Set;
 import java.util.Vector;
 
 import com.google.gson.Gson;
@@ -2349,10 +2350,10 @@ public class Translation extends DepthFirstAdapter {
 	public void outADatabaseConcepts(ADatabaseConcepts node) {
 		// get the engine
 		String engineName = node.getEngineName().toString().trim();
-		List<String> concepts = DatabasePkqlService.getConceptsWithinEngine(engineName);
+		Set<String> concepts = DatabasePkqlService.getConceptsWithinEngine(engineName);
 
 		// put it in a map so the FE knows what it is looking at
-		Map<String, List<String>> returnData = new Hashtable<String, List<String>>();
+		Map<String, Set<String>> returnData = new Hashtable<String, Set<String>>();
 		returnData.put("list", concepts);
 
 		runner.setReturnData(returnData);
@@ -2361,15 +2362,16 @@ public class Translation extends DepthFirstAdapter {
 	
 	@Override
     public void outADatabaseConnectedConcepts(ADatabaseConnectedConcepts node) {
-		//        defaultOut(node);
-		String conceptType = node.getConceptType().toString().trim();
-		//remove quotes
-//		conceptType = conceptType.substring(1,conceptType.length()-2);
-		Map<String, Hashtable> returnData = new HashMap();
-		Hashtable concepts = DatabasePkqlService.getConnectedConcepts(conceptType);
-		returnData.put("concepts", concepts);
+		// TODO: this should technically take in a list
+		// TODO: currently only doing this for a single logical name
+		
+		String conceptLogicalName = node.getConceptType().toString().trim();
+		List<String> logicalNames = new Vector<String>();
+		logicalNames.add(conceptLogicalName);
+		
+		Map connectedConceptsData = DatabasePkqlService.getConnectedConcepts(logicalNames);
 
-		runner.setReturnData(returnData);
+		runner.setReturnData(connectedConceptsData);
 		runner.setStatus(PKQLRunner.STATUS.SUCCESS);
 	}
 
@@ -2384,10 +2386,15 @@ public class Translation extends DepthFirstAdapter {
 
 	@Override
 	public void outADatabaseConceptProperties(ADatabaseConceptProperties node) {
+		// TODO: this should technically take in a list
+		// TODO: currently only doing this for a single logical name
+		
 		// get the engine
-		String conceptName = node.getConceptName().toString().trim();
+		String conceptLogicalName = node.getConceptName().toString().trim();
+		List<String> logicalNames = new Vector<String>();
+		logicalNames.add(conceptLogicalName);
 		// get the properties for this concept across all engines
-		runner.setReturnData(DatabasePkqlService.getConceptProperties(conceptName));
+		runner.setReturnData(DatabasePkqlService.getConceptProperties(logicalNames));
 		runner.setStatus(PKQLRunner.STATUS.SUCCESS);
 	}
 	

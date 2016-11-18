@@ -142,7 +142,7 @@ public class CSVReader extends AbstractCSVFileReader {
 					// get the user selected datatypes for each header
 					preParseRdfCSVMetaData(rdfMap);
 					parseMetadata();
-					processDisplayNames();
+//					processDisplayNames();
 					skipRows();
 					processRelationShips();
 				} finally {
@@ -237,7 +237,7 @@ public class CSVReader extends AbstractCSVFileReader {
 				// get the user selected datatypes for each header
 				preParseRdfCSVMetaData(rdfMap);
 				parseMetadata();
-				processDisplayNames();
+//				processDisplayNames();
 				skipRows();
 				processRelationShips();
 			} finally {
@@ -247,7 +247,7 @@ public class CSVReader extends AbstractCSVFileReader {
 		loadMetadataIntoEngine();
 		createBaseRelations();
 		commitDB();
-		engine.loadTransformedNodeNames();
+//		engine.loadTransformedNodeNames();
 	}
 	
 	

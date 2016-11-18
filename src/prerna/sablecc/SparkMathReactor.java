@@ -1,14 +1,10 @@
 package prerna.sablecc;
 
-import java.util.HashMap;
 import java.util.Hashtable;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Vector;
 
-import prerna.algorithm.api.ITableDataFrame;
-import prerna.ds.AlgorithmStrategy;
-import prerna.sablecc.PKQLRunner.STATUS;
 import prerna.sablecc.meta.IPkqlMetadata;
 import prerna.sablecc.meta.MathPkqlMetadata;
 
@@ -26,7 +22,6 @@ public abstract class SparkMathReactor extends AbstractReactor {
 	// unless of course someone is trying to just sum the number
 
 	Vector<String> replacers = new Vector<String>();
-	AlgorithmStrategy strategy = null;
 	Hashtable<String, String[]> values2SyncHash = new Hashtable<String, String[]>();
 
 	public SparkMathReactor() {

@@ -30,28 +30,25 @@ package prerna.nameserver;
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
-import prerna.engine.impl.rdf.BigDataEngine;
-import prerna.util.DIHelper;
+import prerna.engine.api.IEngine;
+import prerna.util.Constants;
+import prerna.util.Utility;
 
 public abstract class ModifyMasterDB {
-	
-	protected static final Logger logger = LogManager.getLogger(ModifyMasterDB.class.getName());
+
+	protected static final Logger LOGGER = LogManager.getLogger(ModifyMasterDB.class.getName());
 
 	protected String masterDBName = "MasterDatabase";
-	protected BigDataEngine masterEngine;
-	
+	protected IEngine masterEngine;
+
 	public ModifyMasterDB() {
-		if(DIHelper.getInstance().getLocalProp(masterDBName) instanceof BigDataEngine)	
-			this.masterEngine = (BigDataEngine) DIHelper.getInstance().getLocalProp(masterDBName);
+		this.masterEngine = Utility.getEngine(Constants.LOCAL_MASTER_DB_NAME);
+
 	}
-	
+
 	public ModifyMasterDB(String masterDBName) {
 		this.masterDBName = masterDBName;
-		if(DIHelper.getInstance().getLocalProp(masterDBName) instanceof BigDataEngine)	
-			this.masterEngine = (BigDataEngine) DIHelper.getInstance().getLocalProp(masterDBName);
-		//if(this.masterEngine == null) {
-		//	throw new NullPointerException("Unable to find master database.");
-		//}
+		this.masterEngine = Utility.getEngine(Constants.LOCAL_MASTER_DB_NAME);
 	}
 
 	public String getMasterDBName() {
@@ -62,13 +59,13 @@ public abstract class ModifyMasterDB {
 		this.masterDBName = masterDBName;
 	}
 
-	public BigDataEngine getMasterEngine() {
+	public IEngine getMasterEngine() {
 		return masterEngine;
 	}
 
-	public void setMasterEngine(BigDataEngine masterEngine) {
+	public void setMasterEngine(IEngine masterEngine) {
 		this.masterEngine = masterEngine;
 	}
-	
-	
+
+
 }

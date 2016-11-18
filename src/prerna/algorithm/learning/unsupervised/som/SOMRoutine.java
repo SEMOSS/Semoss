@@ -12,7 +12,7 @@ import prerna.algorithm.api.ITableDataFrame;
 import prerna.algorithm.learning.util.Cluster;
 import prerna.algorithm.learning.util.IClusterDistanceMode;
 import prerna.algorithm.learning.util.IClusterDistanceMode.DistanceMeasure;
-import prerna.ds.BTreeDataFrame;
+import prerna.ds.h2.H2Frame;
 import prerna.math.SimilarityWeighting;
 import prerna.om.SEMOSSParam;
 import prerna.util.ArrayUtilityMethods;
@@ -243,7 +243,7 @@ public class SOMRoutine implements IAnalyticTransformationRoutine {
 			this.somXPositionID = attributeName + "_SOM_X_POSITION_" + counter;
 			this.somYPositionID = attributeName + "_SOM_Y_POSITION_" + counter;
 		}
-		ITableDataFrame returnTable = new BTreeDataFrame(new String[]{attributeNames[instanceIndex], somGridID, somHeightID, somXPositionID, somYPositionID});
+		ITableDataFrame returnTable = new H2Frame(new String[]{attributeNames[instanceIndex], somGridID, somHeightID, somXPositionID, somYPositionID});
 		for(Object instance : results.keySet()) {
 			Map<String, Object> row = new HashMap<String, Object>();
 			row.put(attributeNames[instanceIndex], instance);

@@ -1007,11 +1007,11 @@ public class GraphDataModel implements IDataMaker {
 	}
 	
 	public String getDisplayName(String subKey){
-		if(isPhysicalMetamodel){
+//		if(isPhysicalMetamodel){
 			return subKey;
-		} else {
-			return Utility.getTransformedNodeName(coreEngine, subKey, true);
-		}
+//		} else {
+//			return Utility.getTransformedNodeName(coreEngine, subKey, true);
+//		}
 	}
 
 

@@ -127,9 +127,9 @@ public abstract class AbstractFileReader extends AbstractEngineCreator {
 		}
 	}
 	
-	protected void processDisplayNames(){
-		displayNamesHash = DisplayNamesProcessor.generateDisplayNameMap(rdfMap, false);
-	}
+//	protected void processDisplayNames(){
+//		displayNamesHash = DisplayNamesProcessor.generateDisplayNameMap(rdfMap, false);
+//	}
 	
 	protected String[] prepareReader(String fileNames, String customBase, String owlFile, String bdPropFile){
 		String[] files = fileNames.trim().split(";");
