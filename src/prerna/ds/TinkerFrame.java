@@ -1010,11 +1010,44 @@ public class TinkerFrame extends AbstractTableDataFrame {
 			//else default to primary key tinker graph
 			else {
 				displayNames = wrapper.getDisplayVariables();
-				TinkerMetaHelper.mergeEdgeHash(this.metaData, TinkerMetaHelper.createPrimKeyEdgeHash(displayNames));
-				List<String> fullNames = this.metaData.getColumnNames();
-				this.headerNames = fullNames.toArray(new String[fullNames.size()]);
-				while(wrapper.hasNext()){
-					this.addRow(wrapper.next());
+				if(displayNames.length == 1) {
+					// dont create the prim key for a single column being pulled in a query
+					// example of this is SQL queries in explore an instance
+					// for create queries that flush into the TinkerGraphDataModel we already take this into consideration
+					String header = displayNames[0];
+					
+					Map<String, Set<String>> edgeHash = new Hashtable<String, Set<String>>();
+					edgeHash.put(header, new HashSet<String>());
+					Map<String, String> dataTypeMap = new Hashtable<String, String>();
+					dataTypeMap.put(header, "STRING");
+					mergeEdgeHash(edgeHash, dataTypeMap);
+					
+					List<String> fullNames = this.metaData.getColumnNames();
+					this.headerNames = fullNames.toArray(new String[fullNames.size()]);
+					
+					// need to pass in a map
+					// this would be where we would take advantage of using display names
+					Map<String, String> logicalToTypeMap = new HashMap<String, String>();
+					logicalToTypeMap.put(header, header);
+					
+					// clear the edge hash so the tinker frame knows right away
+					// to just add this as a single vertex
+					edgeHash.clear();
+					
+					// actually go through and add the data
+					while(wrapper.hasNext()) {
+						addRelationship(wrapper.next().getPropHash(), edgeHash, logicalToTypeMap);
+					}
+				} else {
+					// need to make a prim key
+					TinkerMetaHelper.mergeEdgeHash(this.metaData, TinkerMetaHelper.createPrimKeyEdgeHash(displayNames));
+					List<String> fullNames = this.metaData.getColumnNames();
+					this.headerNames = fullNames.toArray(new String[fullNames.size()]);
+					
+					// actually go through and add the data
+					while(wrapper.hasNext()) {
+						this.addRow(wrapper.next());
+					}
 				}
 			}
 		}
