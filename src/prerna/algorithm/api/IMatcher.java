@@ -30,11 +30,12 @@ package prerna.algorithm.api;
 import java.util.List;
 import java.util.Map;
 
-import prerna.ds.TreeNode;
 import prerna.engine.api.IEngine;
 import prerna.om.SEMOSSParam;
 
 public interface IMatcher {
+	
+	//TODO: delete this class and modify abstract table data frame interface
 	
 	enum MATCHER_ACTION {BIND, REGEX, NONE}
 	
@@ -78,7 +79,7 @@ public interface IMatcher {
 	 * @param data				An array of data-frame containing the input data for the analytical routine
 	 * @return					The resulting data-frame as a result of the analytical routine
 	 */
-	List<TreeNode[]> runAlgorithm(ITableDataFrame... data);
+//	List<TreeNode[]> runAlgorithm(ITableDataFrame... data);
 	
 	/**
 	 * Get the default visualization type for the algorithm output

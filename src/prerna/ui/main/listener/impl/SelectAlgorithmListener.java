@@ -166,8 +166,7 @@ public class SelectAlgorithmListener extends AbstractListener {
 			playSheet.showFastOutlierDetection(true);
 		} else if(selection.equals("Similarity") || 
 				selection.equals("Predictability") || 
-				selection.equals("Correlation") || 
-				selection.equals("Entropy Density Factor")) {
+				selection.equals("Correlation")) {
 			playSheet.showCluster(false);
 			playSheet.showClassify(false);
 			playSheet.showHOFClassify(false);

@@ -122,13 +122,13 @@ public class RDBMSSelectCheater extends AbstractWrapper implements IConstructWra
 				if(rs.getObject(var[0]) != null && columnTables.contains(var[0].toUpperCase()))
 				{
 					String displayName = displayVar[0];
-					subjectParent = engine.getTransformedNodeName(Constants.DISPLAY_URI + displayName, false);
+//					subjectParent = engine.getTransformedNodeName(Constants.DISPLAY_URI + displayName, false);
 					subject = Constants.CONCEPT_URI + displayName + "/"  + subject + ""; 
 				}
 				if(rs.getObject(var[2]) != null && columnTables.contains(var[2].toUpperCase()))
 				{
 					String displayName = displayVar[2];
-					objectParent = engine.getTransformedNodeName(Constants.DISPLAY_URI + displayName, false);
+//					objectParent = engine.getTransformedNodeName(Constants.DISPLAY_URI + displayName, false);
 					object = Constants.CONCEPT_URI + displayName + "/"  + object + ""; 
 				}
 				if(rs.getObject(var[1]) != null)

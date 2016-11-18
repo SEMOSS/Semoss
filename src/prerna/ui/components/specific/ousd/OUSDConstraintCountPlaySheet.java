@@ -7,7 +7,7 @@ import java.util.Map;
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
-import prerna.ds.OrderedBTreeDataFrame;
+import prerna.ds.h2.H2Frame;
 import prerna.ui.components.playsheets.GridPlaySheet;
 
 public class OUSDConstraintCountPlaySheet extends GridPlaySheet{
@@ -53,7 +53,7 @@ public class OUSDConstraintCountPlaySheet extends GridPlaySheet{
 		columns[6] = "Decommissioned Supporting Count";
 		columns[7] = "Decommissioned Supporting Systems";
 
-		this.dataFrame = new OrderedBTreeDataFrame(columns);
+		this.dataFrame = new H2Frame(columns);
 		
 		createTable();
 	}

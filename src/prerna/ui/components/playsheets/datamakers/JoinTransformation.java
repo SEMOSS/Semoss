@@ -104,10 +104,13 @@ public class JoinTransformation extends AbstractTransformation {
 					uris.add("\""+rowIt.next() + "\"");
 				}
 				
-				IEngine engine = dmc.getEngine();
+//				IEngine engine = dmc.getEngine();
+//				String columnTwo = props.get(COLUMN_TWO_KEY).toString();
+//				String columnTwoLogical = Utility.getInstanceName(engine.getTransformedNodeName(Constants.CONCEPT_URI+columnTwo, true));
+//				qs.addFilter(columnTwoLogical, "=", uris );
+				
 				String columnTwo = props.get(COLUMN_TWO_KEY).toString();
-				String columnTwoLogical = Utility.getInstanceName(engine.getTransformedNodeName(Constants.CONCEPT_URI+columnTwo, true));
-				qs.addFilter(columnTwoLogical, "=", uris );
+				qs.addFilter(columnTwo, "=", uris );
 			} 
 
 			// add the join as a post transformation

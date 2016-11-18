@@ -132,7 +132,7 @@ public class TFInstanceRelationPopup extends JMenu implements MouseListener{
 					SEMOSSVertex thisVert = pickedVertex[pi];
 					String uri = thisVert.getURI();
 					String displayUri = thisVert.getURI();
-					uri = Utility.getTransformedNodeName(engine, uri, false);
+//					uri = Utility.getTransformedNodeName(engine, uri, false);
 					
 					String query2 = "";
 					if(engine.getEngineType() == IEngine.ENGINE_TYPE.JENA) {
@@ -176,14 +176,17 @@ public class TFInstanceRelationPopup extends JMenu implements MouseListener{
 							for(int vertIndex = 0;vertIndex < pickedVertex.length;vertIndex++)
 							{
 								if (pickedVertex[vertIndex].getProperty(Constants.VERTEX_TYPE).toString().equals(thisVert.getProperty(Constants.VERTEX_TYPE).toString())){
-									fileName = fileName + "<" + Utility.getTransformedNodeName(engine, pickedVertex[vertIndex].getURI(), false) + ">";
+//									fileName = fileName + "<" + Utility.getTransformedNodeName(engine, pickedVertex[vertIndex].getURI(), false) + ">";
+									fileName = fileName + "<" + pickedVertex[vertIndex].getURI() + ">";
+
 								}
 							}
 						} else {
 							for(int vertIndex = 0;vertIndex < pickedVertex.length;vertIndex++)
 							{
 								if (pickedVertex[vertIndex].getProperty(Constants.VERTEX_TYPE).toString().equals(thisVert.getProperty(Constants.VERTEX_TYPE).toString())){
-									fileName = fileName + "(<" + Utility.getTransformedNodeName(engine, pickedVertex[vertIndex].getURI(), false) + ">)";
+//									fileName = fileName + "(<" + Utility.getTransformedNodeName(engine, pickedVertex[vertIndex].getURI(), false) + ">)";
+									fileName = fileName + "<" + pickedVertex[vertIndex].getURI() + ">";
 								}
 							}
 						}
@@ -230,7 +233,8 @@ public class TFInstanceRelationPopup extends JMenu implements MouseListener{
 									&& !pred.equals("http://semoss.org/ontologies/Relation")
 									&& (pred.equals("") || pred.startsWith("http://semoss.org")))
 							{
-								String instance = Utility.getInstanceName(Utility.getTransformedNodeName(engine, objClassName+"", true));
+//								String instance = Utility.getInstanceName(Utility.getTransformedNodeName(engine, objClassName+"", true));
+								String instance = Utility.getInstanceName(objClassName);
 								//add the to: and from: labels
 								if(count == 0){
 									if(this.getItemCount()>0)
@@ -284,8 +288,9 @@ public class TFInstanceRelationPopup extends JMenu implements MouseListener{
 						for(int nIndex = 0;nIndex < neighbors.size();nIndex++)
 						{
 							String neighbor = neighbors.get(nIndex);	
-							String instance = Utility.getInstanceName(Utility.getTransformedNodeName(engine, neighbor, true));
-							
+//							String instance = Utility.getInstanceName(Utility.getTransformedNodeName(engine, neighbor, true));
+							String instance = Utility.getInstanceName(neighbor);
+
 							// get the query here from engine and embed it
 							// It uses three things
 							// current class name, new type name, instance

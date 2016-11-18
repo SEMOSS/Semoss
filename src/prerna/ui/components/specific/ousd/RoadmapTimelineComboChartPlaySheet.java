@@ -11,7 +11,7 @@ import java.util.Map;
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
-import prerna.ds.OrderedBTreeDataFrame;
+import prerna.ds.h2.H2Frame;
 import prerna.ui.components.playsheets.BrowserPlaySheet;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
@@ -131,7 +131,7 @@ public class RoadmapTimelineComboChartPlaySheet extends RoadmapTimelineStatsPlay
 		buildTable(timelineNames, null);
 		OUSDTimeline time = this.timelines.get(0);
 		List<Object[]> data = time.getCostSavingsData();
-		this.dataFrame = new OrderedBTreeDataFrame(time.getCostSavingsHeaders());
+		this.dataFrame = new H2Frame(time.getCostSavingsHeaders());
 		for(Object[] row : data){
 			this.dataFrame.addRow(row);
 		}

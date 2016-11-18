@@ -131,7 +131,7 @@ public class EntityFiller implements Runnable {
 					String sparqlQuery = null;
 					Map<String, List<Object>> paramTable = new Hashtable<String, List<Object>>();
 					if(type != null) {
-						type = Utility.getTransformedNodeName(engine, type, false);
+//						type = Utility.getTransformedNodeName(engine, type, false);
 						//TODO: to many effects for making this work well for rdbms params
 						if(engine.getEngineType().equals(IEngine.ENGINE_TYPE.RDBMS)) {
 					        if(type.contains("http://semoss.org/ontologies/Concept")){
@@ -172,7 +172,7 @@ public class EntityFiller implements Runnable {
 					
 					if (extQuery != null) {
 						if(extQueryUnBound != null && extQueryBindings != null && extQueryBindings.size() > 0){
-							extQueryBindings = Utility.getTransformedNodeNamesMap(engine, extQueryBindings, false);
+//							extQueryBindings = Utility.getTransformedNodeNamesMap(engine, extQueryBindings, false);
 							if(engine.getEngineType() == ENGINE_TYPE.RDBMS){
 								for(String key: extQueryBindings.keySet()){
 									List<Object> valuesList = extQueryBindings.get(key);

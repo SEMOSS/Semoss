@@ -487,35 +487,35 @@ public class TinkerMetaData implements IMetaData {
 		//get the rest of the needed information off the owl
 		IEngine engine = (IEngine) DIHelper.getInstance().getLocalProp(engineName);
 		
+		// variable we define from the engine
+		
+		//TODO: this needs to be updated - used to be getting the logical from the engine
+		//TODO: this needs to be updated - used to be getting the logical from the engine
+		String logicalName = null;
+		String conceptualUri = null;
 		String physicalName = null;
 		String physicalUri = null;
+		
 		//check if property
 		if(queryStructName.contains("__")){
+			String parentName = queryStructName.substring(0, queryStructName.indexOf("__"));
 			physicalName = queryStructName.substring(queryStructName.indexOf("__")+2);
-			String conceptualUri = "http://semoss.org/ontologies/Relation/Contains/" + physicalName;
+			conceptualUri = "http://semoss.org/ontologies/Relation/Contains/" + physicalName + "/" + parentName;
 			physicalUri = engine.getPhysicalUriFromConceptualUri(conceptualUri);
+			logicalName = physicalName;
 		}
 		else{
 			physicalName = queryStructName;
-			String conceptualUri = "http://semoss.org/ontologies/Concept/" + physicalName;
+			conceptualUri = "http://semoss.org/ontologies/Concept/" + physicalName;
 			physicalUri = engine.getPhysicalUriFromConceptualUri(conceptualUri);
-			
-			//TODO: due to differences between old OWL and new OWL :(
-			if(physicalUri.equals(conceptualUri) && engine.getEngineType().equals(IEngine.ENGINE_TYPE.RDBMS)) {
-				// need to append based on them being the same... this only works for db's created through semoss
-				// this will not work for old OWL with connect to existing rdbms :(
-				physicalUri += "/" + physicalName; 
-			}
+			logicalName = physicalName;
 		}
 		
 		// stupid check
 		if(engineName.equals(Constants.LOCAL_MASTER_DB_NAME)) {
-			physicalUri = Constants.DISPLAY_URI + uniqueName;
+			physicalUri = "http://semoss.org/ontologies/Concept/" + uniqueName;
 		}
 		
-		//TODO: this needs to be updated - used to be getting the logical from the engine
-		//TODO: this needs to be updated - used to be getting the logical from the engine
-		String logicalName = Utility.getInstanceName(engine.getConceptualUriFromPhysicalUri(physicalUri));
 //		String physicalName = Utility.getInstanceName(physicalUri);
 		String dataType = engine.getDataTypes(physicalUri);
 
@@ -534,7 +534,7 @@ public class TinkerMetaData implements IMetaData {
 		addAliasMeta(vert, queryStructName, NAME_TYPE.DB_QUERY_STRUCT_NAME, engineName);
 		addAliasMeta(vert, physicalUri, NAME_TYPE.DB_PHYSICAL_URI, engineName);
 		
-		//store the datatype
+		//store the data type
 		storeDataType(uniqueName, dataType);
 		
 		if(uniqueParentNameIfProperty != null){

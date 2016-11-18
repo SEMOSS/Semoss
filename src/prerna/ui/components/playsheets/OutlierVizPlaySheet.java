@@ -45,7 +45,6 @@ import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
 import prerna.algorithm.api.IAnalyticTransformationRoutine;
-import prerna.algorithm.learning.unsupervised.outliers.EntropyDensityStatistic;
 import prerna.algorithm.learning.unsupervised.outliers.FastOutlierDetection;
 import prerna.algorithm.learning.unsupervised.outliers.LOF;
 import prerna.om.SEMOSSParam;
@@ -60,7 +59,6 @@ public class OutlierVizPlaySheet extends BrowserPlaySheet {
 	private static final Logger LOGGER = LogManager.getLogger(OutlierVizPlaySheet.class.getName());
 
 	public static final String LOF = "localOutlierFactor"; // local outlier factor
-	public static final String EDS = "entropyDensityStatistic"; // entropy density statistic
 	public static final String FOD = "fastOutlierDetection"; // fast outlier detection
 	
 	private String algorithmSelected = LOF;
@@ -95,13 +93,7 @@ public class OutlierVizPlaySheet extends BrowserPlaySheet {
 	public void runAnalytics() {
 		Map<String, Object> selectedOptions = new HashMap<String, Object>();
 
-		if(algorithmSelected.equalsIgnoreCase(EDS)) {
-			alg = new EntropyDensityStatistic();
-			List<SEMOSSParam> options = alg.getOptions();
-			selectedOptions.put(options.get(0).getName(), instanceIndex); // default of 0 is acceptable
-			selectedOptions.put(options.get(1).getName(), skipAttributes);
-			
-		} else if(algorithmSelected.equalsIgnoreCase(FOD)) {
+		if(algorithmSelected.equalsIgnoreCase(FOD)) {
 			alg = new FastOutlierDetection();
 			List<SEMOSSParam> options = alg.getOptions();
 			selectedOptions.put(options.get(0).getName(), instanceIndex); // default of 0 is acceptable
@@ -140,11 +132,7 @@ public class OutlierVizPlaySheet extends BrowserPlaySheet {
 		dataHash.put("headers", headers);
 		dataHash.put("data", dataFrame.getRawData());
 		List<String> changedCols = alg.getChangedColumns();
-		if(algorithmSelected.equalsIgnoreCase(EDS)) {
-			dataHash.put("changedColIndex", ArrayUtilityMethods.calculateIndexOfArray(headers, changedCols.get(changedCols.size() - 1)));
-		} else {
-			dataHash.put("changedColIndex", ArrayUtilityMethods.calculateIndexOfArray(headers, changedCols.get(0)));
-		}
+		dataHash.put("changedColIndex", ArrayUtilityMethods.calculateIndexOfArray(headers, changedCols.get(0)));
 		this.dataHash = dataHash;
 	}
 	

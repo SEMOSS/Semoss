@@ -916,7 +916,6 @@ public class TinkerFrame extends AbstractTableDataFrame {
 	/***********************************  CONSTRUCTORS  **********************************/
 	
 	public TinkerFrame(String[] headerNames) {
-		
 		this.headerNames = headerNames;
 		g = TinkerGraph.open();
 		g.createIndex(TINKER_TYPE, Vertex.class);
@@ -924,6 +923,8 @@ public class TinkerFrame extends AbstractTableDataFrame {
 		g.createIndex(T.label.toString(), Edge.class);
 		g.createIndex(TINKER_ID, Edge.class);
 		this.metaData = new TinkerMetaData();
+		Map<String, Set<String>> primKeyEdgeHash = TinkerMetaHelper.createPrimKeyEdgeHash(headerNames);
+		TinkerMetaHelper.mergeEdgeHash(this.metaData, primKeyEdgeHash, null);
 	}
 	
 	public TinkerFrame(String[] headerNames, Hashtable<String, Set<String>> edgeHash) {
@@ -987,13 +988,20 @@ public class TinkerFrame extends AbstractTableDataFrame {
 			//if component has data from which we can construct a meta model then construct it and merge it
 			boolean hasMetaModel = component.getQueryStruct() != null;
 			if(hasMetaModel) {
-
-				Map<String, Set<String>> edgeHash = component.getQueryStruct().getReturnConnectionsHash();
-				Map[] mergedMaps = TinkerMetaHelper.mergeQSEdgeHash(this.metaData, edgeHash, engine, joinColList);
-				List<String> fullNames = this.metaData.getColumnNames();
-				this.headerNames = fullNames.toArray(new String[fullNames.size()]);
-
+				
+				// sometimes, the query returns no data
+				// and we update the headers resulting in no information
+				// so only add it once
+				boolean addedMeta = false;
+				Map[] mergedMaps = null;
 				while(wrapper.hasNext()){
+					if(!addedMeta) {
+						Map<String, Set<String>> edgeHash = component.getQueryStruct().getReturnConnectionsHash();
+						mergedMaps = TinkerMetaHelper.mergeQSEdgeHash(this.metaData, edgeHash, engine, joinColList);
+						this.headerNames = this.metaData.getColumnNames().toArray(new String[]{});
+						addedMeta = true;
+					}
+					
 					ISelectStatement ss = wrapper.next();
 					this.addRelationship(ss.getPropHash(), mergedMaps[0], mergedMaps[1]);
 				}

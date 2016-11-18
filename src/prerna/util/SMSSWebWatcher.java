@@ -44,8 +44,8 @@ import org.apache.log4j.Logger;
 import org.apache.solr.client.solrj.SolrServerException;
 
 import prerna.engine.api.IEngine;
+import prerna.engine.impl.OwlConceptualNameModernizer;
 import prerna.nameserver.DeleteFromMasterDB;
-import prerna.nameserver.MasterDBHelper;
 import prerna.solr.SolrIndexEngine;
 
 /**
@@ -148,6 +148,14 @@ public class SMSSWebWatcher extends AbstractFileWatcher {
 					System.out.println("Engine " + engineName + " is a hidden database. Do not load into local master or solr.");
 					return null;
 				} else {
+					// THIS IS BECAUSE WE HAVE MADE A LOT OF MODIFICATIONS TO THE OWL
+					// GOTTA MAKE SURE IT IS MODERNIZED VERSION
+					// AS TIME GOES ON, THIS CODE CAN BE REMOVED
+					// IF IT DOES CHANGE THE OWL, THE TIMESTAMP WILL CHAGNE AND LOCAL MASTER
+					// WILL AUTOMATICALLY UPDATE
+					OwlConceptualNameModernizer modernizer = new OwlConceptualNameModernizer(prop);
+					modernizer.run();
+					
 					// get that metadata I say
 					Utility.synchronizeEngineMetadata(engineName);
 					// get the solr too ? :)<-- this is the slow part.. so removing it for now
@@ -265,8 +273,8 @@ public class SMSSWebWatcher extends AbstractFileWatcher {
 		// I dont know why we check this again ?
 		if(localMasterIndex == 0) {
 			// remove unused databases
-			//IEngine localMaster = (IEngine) DIHelper.getInstance().getLocalProp(Constants.LOCAL_MASTER_DB_NAME);
-			List<String> engines = MasterDBHelper.getAllEngines(localMaster);
+			String allEnginesQuery = "SELECT DISTINCT ?Engine WHERE { {?Engine <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/meta/engine>} }";
+			List<String> engines = Utility.getVectorOfReturn(allEnginesQuery, localMaster, false);
 			DeleteFromMasterDB remover = new DeleteFromMasterDB(Constants.LOCAL_MASTER_DB_NAME);
 			
 			// so delete the engines if the SMSS is not there anymore sure makes sense
@@ -274,7 +282,7 @@ public class SMSSWebWatcher extends AbstractFileWatcher {
 			for(String engine : engines) {
 				if(!ArrayUtilityMethods.arrayContainsValue(engineNames, engine)) {
 					System.out.println("Deleting the engine..... " + engine);
-					remover.deleteEngine2(engine);
+					remover.deleteEngine(engine);
 				}
 			}
 		}

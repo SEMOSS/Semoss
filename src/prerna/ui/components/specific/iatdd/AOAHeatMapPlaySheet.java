@@ -6,11 +6,9 @@ import java.util.HashMap;
 import java.util.Hashtable;
 import java.util.Iterator;
 import java.util.Map;
-import java.util.Set;
-import java.lang.Double;
 
 import prerna.algorithm.api.ITableDataFrame;
-import prerna.ds.BTreeDataFrame;
+import prerna.ds.h2.H2Frame;
 import prerna.engine.api.ISelectStatement;
 import prerna.engine.api.ISelectWrapper;
 import prerna.rdf.engine.wrappers.WrapperManager;
@@ -83,7 +81,7 @@ public class AOAHeatMapPlaySheet extends HeatMapPlaySheet{
 		}
 		
 		//re-order packages and format to send to front end 
-		dataFrame = new BTreeDataFrame(new String[]{headers[1], headers[3], "Package Score"});
+		dataFrame = new H2Frame(new String[]{headers[1], headers[3], "Package Score"});
 		for(String packages : packageMissionHash.keySet()) {
 			Map<String, Double> missionHash = packageMissionHash.get(packages);
 			for(String mission : missionHash.keySet()) {

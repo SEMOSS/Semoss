@@ -7,7 +7,7 @@ import java.util.Hashtable;
 import java.util.List;
 import java.util.Map;
 
-import prerna.ds.OrderedBTreeDataFrame;
+import prerna.ds.h2.H2Frame;
 import prerna.ui.components.playsheets.GridPlaySheet;
 
 public class RoadmapCleanTableComparisonPlaySheet extends GridPlaySheet{
@@ -104,7 +104,7 @@ public class RoadmapCleanTableComparisonPlaySheet extends GridPlaySheet{
 			count++;
 		}
 
-		this.dataFrame = new OrderedBTreeDataFrame(columns);
+		this.dataFrame = new H2Frame(columns);
 
 		for(String timelineName: timelineMap.keySet()){
 			createTable(yearList, timelineMap.get(timelineName), timelineName);										

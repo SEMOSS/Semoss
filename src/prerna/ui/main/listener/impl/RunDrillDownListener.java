@@ -44,7 +44,7 @@ import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
 import prerna.algorithm.api.ITableDataFrame;
-import prerna.ds.BTreeDataFrame;
+import prerna.ds.h2.H2Frame;
 import prerna.om.Insight;
 import prerna.om.InsightStore;
 import prerna.ui.components.api.IPlaySheet;
@@ -128,7 +128,7 @@ public class RunDrillDownListener extends AbstractListener {
 			}
 		}
 		
-		ITableDataFrame newDataFrame = new BTreeDataFrame(newColNames);
+		ITableDataFrame newDataFrame = new H2Frame(newColNames);
 		for(int i = 0; i < subsetValues.size(); i++) {
 			Map<String, Object> hashRow = new HashMap<String, Object>();
 			Object[] row = subsetValues.get(i);

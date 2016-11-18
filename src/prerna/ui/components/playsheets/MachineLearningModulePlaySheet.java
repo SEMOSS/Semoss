@@ -412,7 +412,6 @@ public class MachineLearningModulePlaySheet extends TablePlaySheet{
 				"Classify",
 				"Hoeffding Tree",
 				"Local Outlier Factor",
-				"Entropy Density Factor",
 				"Fast Outlier Detection",
 				"Association Learning","Similarity",
 				"Predictability",

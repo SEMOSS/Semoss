@@ -10,7 +10,7 @@ import java.util.Map;
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
-import prerna.ds.OrderedBTreeDataFrame;
+import prerna.ds.h2.H2Frame;
 import prerna.ui.components.playsheets.GridPlaySheet;
 import prerna.util.PlaySheetRDFMapBasedEnum;
 
@@ -78,7 +78,7 @@ public class BudgetDecommissioningPlaySheet extends GridPlaySheet{
 		String[] updatedNames = updateColumnNames(names);
 		List<Object[]> budgetSystemList = new ArrayList<Object[]>();
 
-		this.dataFrame = new OrderedBTreeDataFrame(updatedNames);
+		this.dataFrame = new H2Frame(updatedNames);
 //		this.names = updatedNames;
 //		this.list = new ArrayList<Object[]>();
 

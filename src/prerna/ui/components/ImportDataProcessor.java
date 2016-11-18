@@ -153,7 +153,7 @@ public class ImportDataProcessor {
 			// if not auto load... i.e. manually load here into DIHelper
 			if(!autoLoad) {
 				engine.setOWL(owlPath);
-				engine.loadTransformedNodeNames();
+//				engine.loadTransformedNodeNames();
 				if(dbType == ImportOptions.DB_TYPE.RDBMS) {
 					((AbstractEngine) engine).setPropFile(propWriter.propFileName);
 					((AbstractEngine) engine).createInsights(baseDirectory);
@@ -485,14 +485,16 @@ public class ImportDataProcessor {
 				 throw new IOException(errorMessage);
 		}	
 		
-		// should update solr instances
-		try {
-			Utility.addToSolrInstanceCore(engine);
-		} catch (KeyManagementException | NoSuchAlgorithmException | KeyStoreException | ParseException e) {
-			e.printStackTrace();
-			errorMessage = "Loaded data successfully, but error occured updating instances into solr";
-			throw new IOException(errorMessage);
-		}
+//		try {
+			// need to synchronize the metadata again since it might be out dated
+			Utility.synchronizeEngineMetadata(engineName);
+			// Do we need this?
+//			Utility.addToSolrInstanceCore(engine);
+//		} catch (KeyManagementException | NoSuchAlgorithmException | KeyStoreException | ParseException e) {
+//			e.printStackTrace();
+//			errorMessage = "Loaded data successfully, but error occured updating instances into solr";
+//			throw new IOException(errorMessage);
+//		}
 	}
 	
 	

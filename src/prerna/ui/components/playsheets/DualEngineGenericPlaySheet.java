@@ -39,7 +39,7 @@ import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
 import prerna.algorithm.api.ITableDataFrame;
-import prerna.ds.BTreeDataFrame;
+import prerna.ds.h2.H2Frame;
 import prerna.engine.api.IEngine;
 import prerna.util.DIHelper;
 import prerna.util.PlaySheetRDFMapBasedEnum;
@@ -102,7 +102,7 @@ public class DualEngineGenericPlaySheet extends DualEngineGridPlaySheet {
 		for(String name : finalNames){
 			hash.put(name, name);
 		}
-		ITableDataFrame f = new BTreeDataFrame(finalNames);
+		ITableDataFrame f = new H2Frame(finalNames);
 		f.addRow(hash);
 		playSheet.setDataMaker(f);
 		playSheet.setQuestionID(this.questionNum);
@@ -145,7 +145,7 @@ public class DualEngineGenericPlaySheet extends DualEngineGridPlaySheet {
 		for(String name : finalNames){
 			hash.put(name, name);
 		}
-		ITableDataFrame f = new BTreeDataFrame(finalNames);
+		ITableDataFrame f = new H2Frame(finalNames);
 		f.addRow(hash);
 		playSheet.setDataMaker(f);
 		playSheet.setQuestionID(this.questionNum);
@@ -155,7 +155,7 @@ public class DualEngineGenericPlaySheet extends DualEngineGridPlaySheet {
 	}
 	
 	private void createFinalList(String[] myNames){
-		this.dataFrame = new BTreeDataFrame(myNames);
+		this.dataFrame = new H2Frame(myNames);
 		int groupIdx = -1;
 		for(int i = 0; i<this.mathFunctions.length; i++){
 			if (this.mathFunctions[i].equals("GROUP")){

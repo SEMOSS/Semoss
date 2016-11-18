@@ -390,7 +390,7 @@ public class OWLER {
 	 * 1) { <semoss:Relation/Contains/P-P> <rdf:type> <semoss:Relation/Contains> }
 	 * 2) { <semoss:Concept/X> <semoss:Relation/Contains> <semoss:Relation/Contains/P-P> }
 	 * 3) { <semoss:Relation/Contains/P-P> <rdfs:Class> TYPE:DATA_TYPE_HERE }
-	 * 4) { <semoss:Relation/Contains/P-P> <semoss:Relation/Conceptual> <semoss:Relation/Contains/PP> }
+	 * 4) { <semoss:Relation/Contains/P-P> <semoss:Relation/Conceptual> <semoss:Relation/Contains/PP/X> }
 	 * TODO: no longer doing 5
 	 * 5) { <semoss:Relation/Contains/PP> <owl.DatatypeProperty> <semoss:Relation/Contains> }
 	 * 
@@ -400,7 +400,7 @@ public class OWLER {
 	 * 1) { <semoss:Relation/Contains/P/X> <rdf:type> <semoss:Relation/Contains> }
 	 * 2) { <semoss:Concept/Y/X> <semoss:Relation/Contains> <semoss:Relation/Contains/P/X> }
 	 * 3) { <semoss:Relation/Contains/P/X> <rdfs:Class> TYPE:DATA_TYPE_HERE }
-	 * 4) { <semoss:Relation/Contains/P/X> <semoss:Relation/Conceptual> <semoss:Relation/Contains/P> }
+	 * 4) { <semoss:Relation/Contains/P/X> <semoss:Relation/Conceptual> <semoss:Relation/Contains/P/X> }
 	 * TODO: no longer doing 5
 	 * 5) { <semoss:Relation/Contains/P> <owl.DatatypeProperty> <semoss:Relation/Contains> }
 	 */
@@ -443,6 +443,11 @@ public class OWLER {
 				property += propertyCol;
 			}
 			
+			// get the conceptual name
+			// always has the parent name so we only require properties to be unique 
+			// on a given concept and not throughout the entire db
+			String conceptualPropertyName = Utility.cleanVariableString(propertyCol) + "/" +  Utility.cleanVariableString(tableName);
+			
 			// now lets start to add the triples
 			// lets add the triples pertaining to those numbered above
 			
@@ -460,7 +465,6 @@ public class OWLER {
 			// if it contains any of the special characters that are not allowed in PKQL
 			// the conceptual property name is the clean version of the property name ... for now
 			String conceptualRelationship = baseRelation +  "/" + CONCEPTUAL_RELATION_NAME;
-			String conceptualPropertyName = Utility.cleanVariableString(propertyCol);
 			String conceptualProperty = basePropURI + "/" + conceptualPropertyName;
 			engine.addToBaseEngine(property, conceptualRelationship, conceptualProperty);
 //			engine.addToBaseEngine(conceptualProperty, RDF.TYPE.stringValue(), basePropURI);

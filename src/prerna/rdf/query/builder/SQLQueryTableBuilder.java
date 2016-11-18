@@ -226,7 +226,8 @@ public class SQLQueryTableBuilder extends AbstractQueryBuilder{
 			{
 				String currentFilters = "";
 				String logName = keys.next(); // This gets me the Logical Name
-				String columnValue = engine.getTransformedNodeName(Constants.DISPLAY_URI + logName, false);
+//				String columnValue = engine.getTransformedNodeName(Constants.DISPLAY_URI + logName, false);
+				String columnValue = "http://semoss.org/ontologies/Concept/" + logName;
 
 
 				String tableValue = Utility.getInstanceName(columnValue);
@@ -372,11 +373,14 @@ public class SQLQueryTableBuilder extends AbstractQueryBuilder{
 			String tableName = null;
 			String varURI = null;
 			String asName = columns[colIndex];
-			varURI = this.engine.getTransformedNodeName(Constants.DISPLAY_URI + asName, false);
+//			varURI = this.engine.getTransformedNodeName(Constants.DISPLAY_URI + asName, false);
+			varURI = "http://semoss.org/ontologies/Concept/" + asName;
+
 			if(!varURI.startsWith(Constants.CONCEPT_URI)) { //Means we are working with a property nows
 				for(Map<String, String> s : this.nodePropV) {
 					if(asName.equals(s.get("varKey"))) {
-						tableName = Utility.getInstanceName(this.engine.getTransformedNodeName(Constants.DISPLAY_URI + s.get("SubjectVar"), false));
+//						tableName = Utility.getInstanceName(this.engine.getTransformedNodeName(Constants.DISPLAY_URI + s.get("SubjectVar"), false));
+						tableName = s.get("SubjectVar");
 						varURI = Constants.CONCEPT_URI + Utility.getInstanceName(varURI) + "/" + tableName;
 						break;
 					}
