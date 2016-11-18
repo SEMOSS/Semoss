@@ -163,7 +163,7 @@ public class InsightFilesToDatabaseReader {
 			this.newTables = uploader.getNewTables();
 			
 			engine.setOWL(owlPath);
-			engine.loadTransformedNodeNames();
+//			engine.loadTransformedNodeNames();
 			((AbstractEngine) engine).setPropFile(propWriter.propFileName);
 			((AbstractEngine) engine).createInsights(baseDirectory);
 			DIHelper.getInstance().getCoreProp().setProperty(engineName + "_" + Constants.STORE, smssLocation);

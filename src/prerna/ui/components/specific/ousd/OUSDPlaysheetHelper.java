@@ -12,6 +12,8 @@ import org.apache.log4j.Logger;
 
 import prerna.algorithm.api.ITableDataFrame;
 import prerna.engine.api.IEngine;
+import prerna.engine.api.ISelectStatement;
+import prerna.engine.api.ISelectWrapper;
 import prerna.om.Insight;
 import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.ui.components.api.IPlaySheet;
@@ -375,9 +377,14 @@ public final class OUSDPlaysheetHelper {
 	public static IPlaySheet getPlaySheetFromName(String insightName, IEngine mainEngine){
 		IEngine qEng = mainEngine.getInsightDatabase();
 		String query = "SELECT ID FROM QUESTION_ID WHERE QUESTION_NAME = '"+insightName+"'";
-		ITableDataFrame frame = WrapperManager.getInstance().getSWrapper(qEng, query).getTableDataFrame();
-		Integer qID = (Integer) frame.getAllData().get(0)[0];
-		Insight in = mainEngine.getInsight(qID+"").get(0);
+		ISelectWrapper it = WrapperManager.getInstance().getSWrapper(qEng, query);
+//		Integer qID = (Integer) frame.getAllData().get(0)[0];
+		String qID = "";
+		if(it.hasNext()) {
+			ISelectStatement val = it.next();
+			qID = val.getValues()[0] + "";
+		}
+		Insight in = mainEngine.getInsight(qID).get(0);
 		
 
 //		ExecuteQueryProcessor proc = new ExecuteQueryProcessor();

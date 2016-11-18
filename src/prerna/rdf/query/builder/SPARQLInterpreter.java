@@ -80,15 +80,16 @@ public class SPARQLInterpreter implements IQueryInterpreter {
 	}
 	
 	private String getVarName(String physName, boolean property){
-		String logName = "";
-		physName = Utility.getInstanceName(engine.getTransformedNodeName("http://semoss.org/ontologies/DisplayName/" + physName, false));
-		if(!property){
-			logName = engine.getTransformedNodeName("http://semoss.org/ontologies/Concept/" + physName, true);
-		}
-		else {
-			logName = engine.getTransformedNodeName("http://semoss.org/ontologies/Relation/Contains/" + physName, true);
-		}
-		return Utility.getInstanceName(logName);
+//		String logName = "";
+//		physName = Utility.getInstanceName(engine.getTransformedNodeName("http://semoss.org/ontologies/DisplayName/" + physName, false));
+//		if(!property){
+//			logName = engine.getTransformedNodeName("http://semoss.org/ontologies/Concept/" + physName, true);
+//		}
+//		else {
+//			logName = engine.getTransformedNodeName("http://semoss.org/ontologies/Relation/Contains/" + physName, true);
+//		}
+//		return Utility.getInstanceName(logName);
+		return physName;
 	}
 	
 	public void addSelector(String table, String colName)
@@ -239,7 +240,7 @@ public class SPARQLInterpreter implements IQueryInterpreter {
 			addNodeProperty(concept, property);
 		}
 		
-		concept = Utility.getInstanceName(engine.getTransformedNodeName(Constants.DISPLAY_URI+concept, false));
+//		concept = Utility.getInstanceName(engine.getTransformedNodeName(Constants.DISPLAY_URI+concept, false));
 		if(objects.get(0) instanceof String) 
 		{
 			List<Object> cleanedObjects = new Vector<Object>();
@@ -257,7 +258,7 @@ public class SPARQLInterpreter implements IQueryInterpreter {
 						// myobject = myobject.replaceAll("\\s+","_");
 						myobject = Utility.cleanString(myobject, true, true, false);
 						myobject = myobject.trim();
-						myobject = engine.getNodeBaseUri() + concept+"/.*"+ myobject;
+						myobject = engine.getNodeBaseUri() + concept + "/.*" + myobject;
 						cleanedObjects.add(myobject);
 					}
 				} else {
@@ -330,7 +331,7 @@ public class SPARQLInterpreter implements IQueryInterpreter {
 			addNodeProperty(concept, property);
 		}
 		
-		concept = Utility.getInstanceName(engine.getTransformedNodeName(Constants.DISPLAY_URI+concept, false));
+//		concept = Utility.getInstanceName(engine.getTransformedNodeName(Constants.DISPLAY_URI+concept, false));
 		if(objects.get(0) instanceof String) // ok this is a string ------ must be " = " or " != " comparator ... regex handled in other section
 		{
 			List<Object> cleanedObjects = new Vector<Object>();

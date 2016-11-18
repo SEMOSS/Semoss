@@ -31,7 +31,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import prerna.ds.BTreeDataFrame;
+import prerna.ds.TinkerFrame;
 import prerna.ui.components.playsheets.DualEngineGridPlaySheet;
 import prerna.ui.components.playsheets.GridPlaySheet;
 
@@ -61,7 +61,7 @@ public class DHMSMDeploymentGapAnalysis extends GridPlaySheet{
 		List<Object[]> sitesWithHPSystems = dugp2.getList();
 		
 		String[] names = new String[]{"HostSite","System"};
-		this.dataFrame = new BTreeDataFrame(names);
+		this.dataFrame = new TinkerFrame(names);
 		
 		int i;
 		int j;

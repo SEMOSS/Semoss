@@ -29,8 +29,6 @@ package prerna.ui.components;
 
 import java.awt.event.MouseEvent;
 import java.awt.event.MouseListener;
-import java.util.ArrayList;
-import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -46,12 +44,9 @@ import org.apache.log4j.Logger;
 
 import prerna.ds.QueryStruct;
 import prerna.engine.api.IEngine;
-import prerna.nameserver.ConnectedConcepts;
-import prerna.nameserver.INameServer;
-import prerna.nameserver.NameServerProcessor;
 import prerna.om.SEMOSSVertex;
+import prerna.sablecc.services.DatabasePkqlService;
 import prerna.ui.components.api.IPlaySheet;
-import prerna.ui.components.playsheets.GraphPlaySheet;
 import prerna.ui.components.playsheets.datamakers.DataMakerComponent;
 import prerna.ui.components.playsheets.datamakers.JoinTransformation;
 import prerna.ui.main.listener.impl.NeighborMenuListener;
@@ -101,83 +96,55 @@ public class TFRelationQueryBuilderPopup extends JMenu implements MouseListener{
 		String repo = repos[0] +"";
 		IEngine engine = (IEngine)DIHelper.getInstance().getLocalProp(repo);
 		
-		//Vector typeV = new Vector();
 		for(int pi = 0;pi < pickedVertex.length;pi++)
-		{
-			
+		{		
 			SEMOSSVertex thisVert = pickedVertex[pi];
-			String uri = thisVert.getURI();
-			uri = Utility.getTransformedNodeName(engine, uri, false);
-
-			String type = Utility.getClassName(uri);
+			String typeUri = thisVert.getURI();
+			String type = Utility.getClassName(typeUri);
 			
-			// get the filter values
-			List<Object> filterList = new ArrayList<Object>();
-			Vector <SEMOSSVertex> vertVector = ((GraphPlaySheet)ps).filterData.getNodes(type); // in reality this should work now
-			//Vector <SEMOSSVertex> vertVector = new Vector<SEMOSSVertex>();
-			logger.info("Vert vector size is " + vertVector.size());
-			for(int vertIndex = 0;vertIndex < vertVector.size();vertIndex++)
-			{
-				filterList.add(Utility.getTransformedNodeName(engine, vertVector.elementAt(vertIndex).getURI(), false));
-			}
-
-			IEngine masterDB = (IEngine) DIHelper.getInstance().getLocalProp(Constants.LOCAL_MASTER_DB_NAME);
-			INameServer ns = new NameServerProcessor(masterDB);
-			String typeUri = Constants.DISPLAY_URI + type;
-			ConnectedConcepts results = ns.searchConnectedConcepts(type);
+			List<String> traverseFromList = new Vector<String>();
+			traverseFromList.add(type);
+			Map<String, Map<String, Object>> connectedConcepts = DatabasePkqlService.getConnectedConcepts(traverseFromList);
 			
 			logger.debug("Found the engine for repository   " + repo);
-			
-			Map<String, Object> connected = results.getData();
-			
-			// for now we'll just deal with our one db
-			Map<String, Object> myDb = (Map<String, Object>) connected.get(repo);
-			
-			Collection<Object> equivUris = myDb.values();
-			for(Object equivUriHash : equivUris){
-//				String equivUri = ((Map<String, Object>) equivUriHash).keySet().iterator().next();
-				Map<String, Object> upstream = (Map<String, Object>) ((Map<String, Object>) ((Map<String, Object>)equivUriHash).get(typeUri)).get("upstream");
-				if(upstream!=null){
-					addLabel("From:");
-					Collection<String> upstreamRels = upstream.keySet();
-					for(String upstreamRel: upstreamRels){
-						Map<String, Map> specificNodes = (Map<String, Map>) ((Map<String, Object>) upstream).get(upstreamRel);
-						for(String logicalName : specificNodes.keySet()){
-//							String instance = Utility.getInstanceName(Utility.getTransformedNodeName(engine, node, true));
-							QueryStruct data = new QueryStruct();
-							data.addSelector(type, null);
-							data.addSelector(specificNodes.get(logicalName).get("physicalName") + "", null);
-							data.addRelation(specificNodes.get(logicalName).get("physicalName") + "", type, "inner.join");
-							data.addFilter(type, "=", filterList);
-							
-							DataMakerComponent dmc = new DataMakerComponent(engine, data);
-							addJoinTransformation(dmc, type, type);
-							NeighborQueryBuilderMenuItem nItem = new NeighborQueryBuilderMenuItem(Utility.getInstanceName(logicalName), dmc, engine);
-							nItem.addActionListener(NeighborMenuListener.getInstance());
-							add(nItem);
+			// for now we'll just show the values in this specific db
+			if(connectedConcepts != null && !connectedConcepts.isEmpty()) {
+				Map<String, Object> myDbConnections = connectedConcepts.get(repo);
+				if(myDbConnections != null && !myDbConnections.isEmpty()) {
+					// get the list of equivalent uris to a map containing keys upstream/downstream which point to the list of objects
+					Set<String> equivUris = myDbConnections.keySet();
+					// currently only going to show for our specific type
+					if(equivUris.contains(type)) {
+						Map<String, Set<String>> streamMap = (Map<String, Set<String>>) myDbConnections.get(type);
+						if(streamMap.containsKey("upstream")) {
+							addLabel("From:");
+							Set<String> upstreamRels = streamMap.get("upstream");
+							for(String upstreamRelType: upstreamRels){
+								QueryStruct data = new QueryStruct();
+								data.addSelector(type, null);
+								data.addSelector(upstreamRelType, null);
+								data.addRelation(type, upstreamRelType, "inner.join");
+								DataMakerComponent dmc = new DataMakerComponent(engine, data);
+								addJoinTransformation(dmc, type, type);
+								NeighborQueryBuilderMenuItem nItem = new NeighborQueryBuilderMenuItem(upstreamRelType, dmc, engine);
+								nItem.addActionListener(NeighborMenuListener.getInstance());
+								add(nItem);
+							}
 						}
-					}
-				}
-
-				Map<String, Object> downstream = (Map<String, Object>) ((Map<String, Object>) ((Map<String, Object>)equivUriHash).get(typeUri)).get("downstream");
-				if(downstream!=null){
-					addLabel("To:");
-					Collection<String> downstreamRels = downstream.keySet();
-					for(String downstreamRel: downstreamRels){
-						Map<String,Map> specificNodes = (Map<String, Map>) ((Map<String, Object>) downstream).get(downstreamRel);
-						for(String logicalName : specificNodes.keySet()){
-//							String instance = Utility.getInstanceName(Utility.getTransformedNodeName(engine, node, true));
-							QueryStruct data = new QueryStruct();
-							data.addSelector(type, null);
-							data.addSelector(specificNodes.get(logicalName).get("physicalName") + "", null);
-							data.addRelation(type, specificNodes.get(logicalName).get("physicalName") + "", "inner.join");
-							data.addFilter(type, "=", filterList);
-							
-							DataMakerComponent dmc = new DataMakerComponent(engine, data);
-							addJoinTransformation(dmc, type, type);
-							NeighborQueryBuilderMenuItem nItem = new NeighborQueryBuilderMenuItem(Utility.getInstanceName(logicalName), dmc, engine);
-							nItem.addActionListener(NeighborMenuListener.getInstance());
-							add(nItem);
+						if(streamMap.containsKey("downstream")) {
+							addLabel("To:");
+							Set<String> upstreamRels = streamMap.get("downstream");
+							for(String upstreamRelType: upstreamRels){
+								QueryStruct data = new QueryStruct();
+								data.addSelector(type, null);
+								data.addSelector(upstreamRelType, null);
+								data.addRelation(upstreamRelType, type, "inner.join");
+								DataMakerComponent dmc = new DataMakerComponent(engine, data);
+								addJoinTransformation(dmc, type, type);
+								NeighborQueryBuilderMenuItem nItem = new NeighborQueryBuilderMenuItem(upstreamRelType, dmc, engine);
+								nItem.addActionListener(NeighborMenuListener.getInstance());
+								add(nItem);
+							}
 						}
 					}
 				}

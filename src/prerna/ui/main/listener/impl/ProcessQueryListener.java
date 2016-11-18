@@ -120,7 +120,8 @@ public class ProcessQueryListener extends AbstractAction implements IChakraListe
 			else { // if it is not custom, we need to get dmc list off of selected insight
 				Insight selectedInsight = getSelectedInsight(engine);
 				dmcList.addAll(selectedInsight.getDataMakerComponents());
-				paramHash = Utility.getTransformedNodeNamesMap(engine, getParamHash(), false);
+//				paramHash = Utility.getTransformedNodeNamesMap(engine, getParamHash(), false);
+				paramHash = getParamHash();
 			}
 			insight.setDataMakerComponents(dmcList);
 		}
@@ -135,7 +136,8 @@ public class ProcessQueryListener extends AbstractAction implements IChakraListe
 			}
 			else { // if it is not custom, we need to get dmc list off of selected insight
 				insight = getSelectedInsight(engine);
-				paramHash = Utility.getTransformedNodeNamesMap(engine, getParamHash(), false);
+//				paramHash = Utility.getTransformedNodeNamesMap(engine, getParamHash(), false);
+				paramHash = getParamHash();
 			}
 		}
 

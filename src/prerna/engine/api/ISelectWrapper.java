@@ -42,6 +42,4 @@ public interface ISelectWrapper extends IEngineWrapper, Iterator {
 	
 	public String [] getPhysicalVariables();
 	
-	public ITableDataFrame getTableDataFrame();
-	
 }

@@ -532,8 +532,6 @@ public class RDBMSNativeEngine extends AbstractEngine {
 		 * 3. If Properties are included get the properties
 		 * 4. Add the properties
 		 * 5. For every, type 
-		 * 
-		 * 
 		 */
 		SQLQueryTableBuilder builder = (SQLQueryTableBuilder) getQueryBuilder();
 		Vector <String> neighBors = getNeighbors(fromType, 0);
@@ -541,7 +539,7 @@ public class RDBMSNativeEngine extends AbstractEngine {
 		// get the properties for the tables	
 		List <String> properties = new Vector<String>();
 		if(isProperties)
-			properties = getProperties4Concept2(toType, new Boolean(false));
+			properties = getProperties4Concept(toType, false);
 
 		// string relation selector
 		String relationQuery = "SELECT ?relation WHERE {"

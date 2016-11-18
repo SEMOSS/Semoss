@@ -35,7 +35,7 @@ import java.util.Map;
 import javax.swing.JDesktopPane;
 
 import prerna.algorithm.api.ITableDataFrame;
-import prerna.ds.BTreeDataFrame;
+import prerna.ds.TinkerFrame;
 import prerna.engine.api.IEngine;
 import prerna.ui.components.playsheets.ColumnChartPlaySheet;
 import prerna.ui.components.playsheets.GridPlaySheet;
@@ -243,7 +243,7 @@ public class EABenefitsSchedulePlaySheet extends GridPlaySheet {
 			}
 			// if (query.contains("barGraph")) {
 			ColumnChartPlaySheet graph = new ColumnChartPlaySheet();
-			ITableDataFrame data = new BTreeDataFrame(names);
+			ITableDataFrame data = new TinkerFrame(names);
 			for(int i = 0; i < list.size(); i++) {
 				Map<String, Object> row = new HashMap<String, Object>();
 				Object[] elem = list.get(i);

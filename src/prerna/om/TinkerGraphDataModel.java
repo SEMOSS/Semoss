@@ -142,6 +142,13 @@ public class TinkerGraphDataModel {
 		Map<String, Object> clean = new HashMap<String, Object>();
 		clean.put(type, Utility.getInstanceName(vert));
 
+		// need to do the whole edge hash thing so we have headers
+		Map<String, Set<String>> edgeHash = new Hashtable<String, Set<String>>();
+		edgeHash.put(type, new HashSet<String>());
+		Map<String, String> dataTypeMap = new Hashtable<String, String>();
+		dataTypeMap.put(type, "STRING");
+		tf.mergeEdgeHash(edgeHash, dataTypeMap);
+		
 		// need to pass in a map
 		// this would be where we would take advantage of using display names
 		Map<String, String> logicalToTypeMap = new HashMap<String, String>();

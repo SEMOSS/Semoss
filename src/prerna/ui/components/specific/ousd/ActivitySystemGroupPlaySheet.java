@@ -7,7 +7,7 @@ import java.util.List;
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
-import prerna.ds.OrderedBTreeDataFrame;
+import prerna.ds.h2.H2Frame;
 import prerna.ui.components.playsheets.GridPlaySheet;
 import prerna.util.PlaySheetRDFMapBasedEnum;
 
@@ -90,7 +90,7 @@ public class ActivitySystemGroupPlaySheet extends GridPlaySheet{
 
 //		this.names = updatedNames;
 //		this.list = new ArrayList<Object[]>();
-		this.dataFrame = new OrderedBTreeDataFrame(updatedNames);
+		this.dataFrame = new H2Frame(updatedNames);
 
 		for(Object[] row: activities){
 			Object[] newRow = new Object[8];

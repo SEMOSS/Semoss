@@ -27,24 +27,21 @@
  *******************************************************************************/
 package prerna.nameserver;
 
-import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.Hashtable;
-import java.util.Iterator;
-import java.util.Set;
+import java.util.List;
+import java.util.Vector;
 
-import org.openrdf.model.Literal;
 import org.openrdf.model.vocabulary.RDF;
 import org.openrdf.sail.SailException;
 
-import com.bigdata.rdf.model.BigdataLiteralImpl;
 import com.hp.hpl.jena.vocabulary.RDFS;
 
+import cern.colt.Arrays;
 import prerna.engine.api.IEngine;
-import prerna.engine.api.ISelectStatement;
-import prerna.engine.api.ISelectWrapper;
+import prerna.engine.api.IEngine.ACTION_TYPE;
+import prerna.engine.api.IHeadersDataRow;
+import prerna.engine.api.IRawSelectWrapper;
+import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.util.Constants;
-import prerna.util.DIHelper;
 import prerna.util.Utility;
 
 public class DeleteFromMasterDB extends ModifyMasterDB {
@@ -56,414 +53,362 @@ public class DeleteFromMasterDB extends ModifyMasterDB {
 	public DeleteFromMasterDB() {
 		super();
 	}
-	
-	public boolean deleteEngine2(String engineName)
+
+	public boolean deleteEngine(String engineName)
 	{
 		boolean success = false;
 		try
 		{
-			IEngine localMaster = (IEngine)DIHelper.getInstance().getLocalProp(Constants.LOCAL_MASTER_DB_NAME);
-			deleteEngineConceptsWithProperties(engineName, localMaster);
-			deleteEngineConceptsWithoutProperties(engineName, localMaster);
-			deleteRelations(engineName, localMaster);
-			deleteCoreConcepts(engineName, localMaster);
-			deleteEngineMetadata(engineName, localMaster);
+			IEngine localMaster = Utility.getEngine(Constants.LOCAL_MASTER_DB_NAME);
+			// delete queries are sooooooo slow :(
+			// need to store the triples and directly delete 
+			// from the rc
+
+			long getTriplesStartTime = System.currentTimeMillis();
+
+			List<Object[]> removeData = new Vector<Object[]>();
+			addEngineConceptTriplesToRemove(engineName, localMaster, removeData);
+			addAllEnginePropertyTriplesToDelete(engineName, localMaster, removeData);
+			addEngineRelationshipTriplesToDelete(engineName, localMaster, removeData);
+			addEngineMetadataToDelete(engineName, localMaster, removeData);
+
+			long getTriplesEndTime = System.currentTimeMillis();
+
+			LOGGER.info("TIME TO GET ALL TRIPLES TO REMOVE::: " + (getTriplesEndTime - getTriplesStartTime) + " ms" );
+
+
+			long removeDataStartTime = System.currentTimeMillis();
+
+			int i = 0;
+			int size = removeData.size();
+			for(; i < size; i++) {
+				localMaster.doAction(ACTION_TYPE.REMOVE_STATEMENT, removeData.get(i));
+			}
+
+			long removeDataEndTime = System.currentTimeMillis();
+
+			LOGGER.info("TIME TO DELETE ALL TRIPLES ::: " + (removeDataEndTime - removeDataStartTime) + " ms" );
+
 			success = true;
-		}catch(Exception ex)
-		{
+		} catch(Exception ex) {
 			ex.printStackTrace();
 		}
-		
-		return success;
-	}
-
-	/**
-	 * Deletes an engine from the master database.
-	 * Uses QuestionAdministrator to remove all perspectives, insights, and params associated with the engine from Master DB.
-	 * Removes any keywords, master concept connections, and master concepts that no other engines use, otherwise leaves them alone.
-	 * @param engineName	String instance name of the engine to be deleted
-	 */
-	public boolean deleteEngine(String engineName) {
-		boolean success = false;
-
-		//instantiate the master database based on default, or what name is given for it
-//		masterEngine = (BigDataEngine) DIHelper.getInstance().getLocalProp(masterDBName);
-
-		try {
-			//delete all engine - keyword relationships
-			deleteEngineKeywords(engineName);
-
-			//delete all engine - relationship relationships
-			deleteEngineRelationships(engineName);
-			
-			//delete the insights
-//			deleteEngineInsights(engineName);
-
-			//delete the engine
-			MasterDBHelper.removeNode(masterEngine, MasterDatabaseURIs.ENGINE_BASE_URI + "/" + engineName);
-
-			logger.info("Finished deleting engine " + engineName);
-			success = true;
-		} catch (Exception e) {
-			success = false;
-		}
-		
-		try {
-			deleteKeywordsWithoutEngines();
-			success = true;
-		} catch (Exception e) {
-			e.printStackTrace();
-			success = false;
-		}
-
-		masterEngine.commit();
-		masterEngine.infer();
 
 		return success;
 	}
-	
-	/**
-	 * Deletes an engine from the master database.
-	 * Uses QuestionAdministrator to remove all perspectives, insights, and params associated with the engine from Master DB.
-	 * Removes any keywords, master concept connections, and master concepts that no other engines use, otherwise leaves them alone.
-	 * @param engineName	String instance name of the engine to be deleted
-	 */
-	public Hashtable<String, Boolean> deleteEngine(ArrayList<String> dbArray) {
-		Hashtable<String, Boolean> successHash = new Hashtable<String, Boolean>();
-
-		//instantiate the master database based on default, or what name is given for it
-//		masterEngine = (BigDataEngine) DIHelper.getInstance().getLocalProp(masterDBName);
-
-		for(String engineName : dbArray) {
-			try {
-				//delete all engine - keyword relationships
-				deleteEngineKeywords(engineName);
-
-				//delete all engine - relationship relationships
-				deleteEngineRelationships(engineName);
-				
-				//delete the insights
-//				deleteEngineInsights(engineName);
-
-				//delete the engine
-				MasterDBHelper.removeNode(masterEngine, MasterDatabaseURIs.ENGINE_BASE_URI + "/" + engineName);
-
-				logger.info("Finished deleting engine " + engineName);
-				successHash.put(engineName, true);
-			} catch (Exception e) {
-				successHash.put(engineName, false);
-			}
-		}
-		
-		try {
-			deleteKeywordsWithoutEngines();
-			successHash.put("keywordDeletion", true);
-		} catch (Exception e) {
-			successHash.put("keywordDeletion", false);
-		}
-
-		masterEngine.commit();
-		masterEngine.infer();
-
-		return successHash;
-	}
 
 	/**
-	 * Deletes an engine from the master database.
-	 * Uses QuestionAdministrator to remove all perspectives, insights, and params associated with the engine from Master DB.
-	 * Removes any keywords, master concept connections, and master concepts that no other engines use, otherwise leaves them alone.
-	 * @param engineName	String instance name of the engine to be deleted
+	 * Query to get all the concept triples to remove
+	 * @param engineName
+	 * @param localMaster
+	 * @param deleteTriplesList
 	 */
-	public Hashtable<String, Boolean> deleteEngineWeb(ArrayList<String> dbArray) {
-		Hashtable<String, Boolean> successHash = new Hashtable<String, Boolean>();
-
-		//instantiate the master database based on default, or what name is given for it
-//		masterEngine = (BigDataEngine) DIHelper.getInstance().getLocalProp(masterDBName);
-
-		for(String engineName : dbArray) {
-			//delete all engine - keyword relationships
-			try {
-				deleteEngineKeywords(engineName);
-
-				//delete engine URL
-				deleteEngineAPI(engineName);
-
-				//delete all engine - relationship relationships
-				deleteEngineRelationships(engineName);
-				
-				//delete insights
-//				deleteEngineInsights(engineName);
-
-				//delete the engine
-				MasterDBHelper.removeNode(masterEngine, MasterDatabaseURIs.ENGINE_BASE_URI + "/" + engineName);
-
-				logger.info("Finished deleting engine " + engineName);
-				successHash.put(engineName, true);
-			} catch (Exception e) {
-				successHash.put(engineName, false);
-			}
-		}
-		
-		try {
-			deleteKeywordsWithoutEngines();
-			successHash.put("keywordDeletion", true);
-		} catch(Exception e) {
-			successHash.put("keywordDeletion", false);
+	private void addEngineConceptTriplesToRemove(String engineName, IEngine localMaster, List<Object[]> deleteTriplesList) {
+		// delete unique engine-concept composite subclass of stuff
+		String query = "SELECT ?conceptComposite ?subclass ?rdfConcept WHERE {"
+				+ "BIND(<" + RDFS.subClassOf + "> AS ?subclass) "
+				// unique engine-concept present in engine we are deleting
+				+ "{?conceptComposite <http://semoss.org/ontologies/Relation/presentin> <http://semoss.org/ontologies/meta/engine/" + engineName + ">}"
+				// unique engine-concept composite subclass of stuff
+				+ "{?conceptComposite ?subclass ?rdfConcept}"
+//				+ "FILTER("
+//				// filters for concept relationships
+//				+ 	" ?subclass = <" + RDFS.subClassOf + "> "
+//				+ 	")"
+				+ "}";
+		IRawSelectWrapper manager = WrapperManager.getInstance().getRawWrapper(localMaster, query);
+		while(manager.hasNext()) {
+			IHeadersDataRow stmt = manager.next();
+			// make a new array to hold the object
+			Object[] data = new Object[4];
+			// copy the triple from the query into the data array
+			System.arraycopy(stmt.getRawValues(), 0, data, 0, 3);
+			// set the last boolean so the remove method knows this is a URI vs. Literal
+			data[3] = true;
+			deleteTriplesList.add(data);
 		}
 
-		masterEngine.commit();
-		masterEngine.infer();
-
-		return successHash;
-	}
-
-	public void deleteEngineKeywords(String engineName) {
-		String filledKeywordsQuery = MasterDatabaseQueries.KEYWORDS_QUERY.replaceAll("@ENGINE@", engineName);
-		ISelectWrapper wrapper = Utility.processQuery(masterEngine,filledKeywordsQuery);
-		String[] names = wrapper.getVariables();
-		while(wrapper.hasNext())
-		{
-			//grab query results
-			ISelectStatement sjss = wrapper.next();
-			String keywordURI = sjss.getRawVar(names[0]) + "";
-			String keyword = sjss.getVar(names[0]) + "";
-			MasterDBHelper.removeRelationship(masterEngine, MasterDatabaseURIs.ENGINE_BASE_URI + "/" + engineName, keywordURI, MasterDatabaseURIs.SEMOSS_RELATION_URI + "/Has/" + engineName + ":" +keyword);
+		// delete unique engine-concept composite to its physical URI
+		query = "SELECT ?conceptComposite ?conceptType ?conceptPhysical WHERE {"
+				+ "BIND(<" + RDF.TYPE + "> AS ?conceptType) "
+				// unique engine-concept present in engine we are deleting
+				+ "{?conceptComposite <http://semoss.org/ontologies/Relation/presentin> <http://semoss.org/ontologies/meta/engine/" + engineName + ">}"
+				// unique engine-concept composite is a type of a physical uri
+				+ "{?conceptComposite ?conceptType ?conceptPhysical}"
+//				+ "FILTER("
+//				// filters for concept relationships
+//				+ 	" ?conceptType = <" + RDF.TYPE + "> "
+//				+ 	")"
+				+ "}";
+		manager = WrapperManager.getInstance().getRawWrapper(localMaster, query);
+		while(manager.hasNext()) {
+			IHeadersDataRow stmt = manager.next();
+			// make a new array to hold the object
+			Object[] data = new Object[4];
+			// copy the triple from the query into the data array
+			System.arraycopy(stmt.getRawValues(), 0, data, 0, 3);
+			// set the last boolean so the remove method knows this is a URI vs. Literal
+			data[3] = true;
+//			System.out.println(Arrays.toString(data));
+			deleteTriplesList.add(data);
 		}
-	}
 
-	//TODO refactor question administrator so we dont have to create a new engine
-//	private void deleteEngineInsights(String engineName) {
-//
-//		String filledInsightsQuery = MasterDatabaseQueries.INSIGHTS_QUERY.replaceAll("@ENGINE@", engineName);
-//		ISelectWrapper wrapper1 = Utility.processQuery(masterEngine,filledInsightsQuery);
-//		String[] names1 = wrapper1.getVariables();
-//		while(wrapper1.hasNext())
-//		{
-//			//grab query results
-//			ISelectStatement sjss = wrapper1.next();
-//			String insight = (String)sjss.getVar(names1[0]);
-//			MasterDBHelper.removeRelationship(masterEngine, MasterDatabaseURIs.ENGINE_BASE_URI + "/" + engineName, MasterDatabaseURIs.INSIGHT_BASE_URI + "/" + insight, MasterDatabaseURIs.SEMOSS_RELATION_URI + "/Engine:Insight/" + engineName + ":" +insight);
-//		}
-//
-//		ArrayList<String> perspectiveList = new ArrayList<String>();
-//		String filledPerspectivesQuery = MasterDatabaseQueries.PERSPECTIVES_QUERY.replaceAll("@ENGINE@", engineName);
-//		ISelectWrapper wrapper2 = Utility.processQuery(masterEngine,filledPerspectivesQuery);
-//		String[] names2 = wrapper2.getVariables();
-//		while(wrapper2.hasNext())
-//		{
-//			//grab query results
-//			ISelectStatement sjss = wrapper2.next();
-//			String perspective = (String)sjss.getVar(names2[0]);
-//			MasterDBHelper.removeRelationship(masterEngine, MasterDatabaseURIs.ENGINE_BASE_URI + "/" + engineName, MasterDatabaseURIs.PERSPECTIVE_BASE_URI + "/" + perspective, MasterDatabaseURIs.SEMOSS_RELATION_URI + "/Engine:Perspective/" + engineName + ":" +perspective);
-//			perspectiveList.add(perspective);
-//		}
-//
-//		//Use question administrator to remove all the perspectives, insights, and params for this database
-//		//set the engine, delete all from each perspective and then store the rc and sc.
-//		///////////////////////////////
-//		//TODO: FIX LOGIC UNDERNEATH FOR DELETING PERSPECTIVES IN MASTER_ENGINE
-////		RDFFileSesameEngine eng = new RDFFileSesameEngine();
-////		eng.setEngineName(engineName);
-////		eng.setEngineURI2Name(MasterDatabaseURIs.ENGINE_BASE_URI+"/"+engineName);
-////		eng.createInsightBase();
-////
-////		QuestionAdministrator qa = new QuestionAdministrator(eng);
-////		qa.setEngineURI2(MasterDatabaseURIs.ENGINE_BASE_URI + "/" + engineName);
-////		for(String perspective : perspectiveList) {
-////			qa.deleteAllFromPerspective(MasterDatabaseURIs.PERSPECTIVE_BASE_URI + "/" +perspective);
-////		}
-//
-//	}
+		// delete all logical names assigned to this engine-concept composite
+		query = "SELECT ?conceptComposite ?conceptLogicalRel ?conceptLogical WHERE {"
+				+ "BIND(<http://semoss.org/ontologies/Relation/logical> AS ?conceptLogicalRel) "
+				+ "{?conceptComposite <http://semoss.org/ontologies/Relation/presentin> <http://semoss.org/ontologies/meta/engine/" + engineName + ">}"
+				// unique engine-concept composite to its conceptual name
+				+ "{?conceptComposite ?conceptLogicalRel ?conceptLogical}"
+//				+ "FILTER("
+//				// filters for concept relationships
+//				+ 	" ?conceptLogicalRel = <http://semoss.org/ontologies/Relation/logical> "
+//				+ 	")"
+				+"}";
+		manager = WrapperManager.getInstance().getRawWrapper(localMaster, query);
+		while(manager.hasNext()) {
+			IHeadersDataRow stmt = manager.next();
+			// make a new array to hold the object
+			Object[] data = new Object[4];
+			// copy the triple from the query into the data array
+			System.arraycopy(stmt.getRawValues(), 0, data, 0, 3);
+			// set the last boolean so the remove method knows this is a URI vs. Literal
+			data[3] = true;
+//			System.out.println(Arrays.toString(data));
+			deleteTriplesList.add(data);
+		}
 
-	private void deleteEngineAPI(String engineName) {
-		String filledURLQuery = MasterDatabaseQueries.API_QUERY.replaceAll("@ENGINE@", engineName);
-		ISelectWrapper wrapper = Utility.processQuery(masterEngine,filledURLQuery);
-		String[] names = wrapper.getVariables();
-		while(wrapper.hasNext())
-		{
-			//grab query results
-			ISelectStatement sjss = wrapper.next();
-			String url = (String)sjss.getVar(names[0]);
-			MasterDBHelper.removeProperty(masterEngine, MasterDatabaseURIs.ENGINE_BASE_URI + "/" + engineName, MasterDatabaseURIs.PROP_URI + "/" + "API",url,true);
-		}
-	}
-	
-	/**
-	 * Removes all of the keywords that are no longer associated with engines.
-	 * Deletes the relationships from keyword to type, keyword to MC and the keyword itself
-	 * Run whenever a user deletes an engine.
-	 */
-	private void deleteKeywordsWithoutEngines() {
-		//create a list of keywords that do not have associated engines
-		Set<String> keywordsWithoutEnginesList = new HashSet<String>();
-		//create a binding string for queries
-		String bindingsStr = "";
-		ISelectWrapper wrapper = Utility.processQuery(masterEngine, MasterDatabaseQueries.KEYWORDS_WITHOUT_ENGINES_QUERY);
-		String[] names = wrapper.getVariables();
-		while(wrapper.hasNext())
-		{
-			//grab query results
-			ISelectStatement sjss = wrapper.next();
-			String keywordURI = sjss.getRawVar(names[0]) + "";
-			keywordsWithoutEnginesList.add(keywordURI);
-			bindingsStr = bindingsStr.concat("(<").concat(keywordURI).concat(">)");
-		}
-		
-		if(!bindingsStr.isEmpty()) {
-			//delete the keyword type relationships
-			String boundKeywordTypeQuery = MasterDatabaseQueries.KEYWORDS_TYPE_QUERY.replaceAll("@BINDINGS@", bindingsStr);
-			ISelectWrapper wrapper2 = Utility.processQuery(masterEngine,boundKeywordTypeQuery);
-			String[] names2 = wrapper2.getVariables();
-			while(wrapper2.hasNext())
-			{
-				ISelectStatement sjss = wrapper2.next();
-				String keywordURI = sjss.getRawVar(names2[0]) + "";
-				String keyword = sjss.getVar(names2[0]) + "";
-				String typeURI = sjss.getRawVar(names2[1]).toString();
-				MasterDBHelper.removeRelationship(masterEngine, keywordURI, typeURI, MasterDatabaseURIs.SEMOSS_RELATION_URI + "/Has/" + keyword + ":" + keyword);
-				masterEngine.removeStatement(new Object[]{typeURI, RDF.TYPE.stringValue(), MasterDatabaseURIs.RESOURCE_URI, true});
-			}
-			
-			//delete the mc keyword relationships
-			String boundMCKeywordsQuery = MasterDatabaseQueries.MC_KEYWORDS_QUERY.replaceAll("@BINDINGS@", bindingsStr);
-			ISelectWrapper wrapper3 = Utility.processQuery(masterEngine,boundMCKeywordsQuery);
-			String[] names3 = wrapper3.getVariables();
-			while(wrapper3.hasNext())
-			{
-				//grab query results
-				ISelectStatement sjss = wrapper3.next();
-				String mcURI = sjss.getRawVar(names3[0]) + "";
-				String mc = sjss.getVar(names3[0]) + "";
-				String keywordURI = sjss.getRawVar(names2[0]) + "";
-				String keyword = sjss.getVar(names3[1]) + "";
-				MasterDBHelper.removeRelationship(masterEngine, keywordURI, mcURI, MasterDatabaseURIs.SEMOSS_RELATION_URI + "/ComposedOf/" + keyword + ":" +mc);
-			}
-			
-			//delete the keywords
-			Iterator<String> keywordIt = keywordsWithoutEnginesList.iterator();
-			while(keywordIt.hasNext()) {
-				String keyword = keywordIt.next();
-				MasterDBHelper.removeNode(masterEngine, MasterDatabaseURIs.KEYWORD_BASE_URI + "/" + keyword);
-			}
+		// delete the conceptual name for the engine-concept composite
+		query = "SELECT ?conceptComposite ?conceptConceptualRel ?conceptualName WHERE {"
+				+ "BIND(<http://semoss.org/ontologies/Relation/conceptual> AS ?conceptConceptualRel) "
+				+ "{?conceptComposite <http://semoss.org/ontologies/Relation/presentin> <http://semoss.org/ontologies/meta/engine/" + engineName + ">}"
+				// unique engine-concept composite its its logical names
+				+ "{?conceptComposite ?conceptConceptualRel ?conceptualName}"
+//				+ "FILTER("
+//				// filters for concept relationships
+//				+ 	" ?conceptConceptualRel = <http://semoss.org/ontologies/Relation/conceptual> "
+//				+ 	")"
+				+"}";
+		manager = WrapperManager.getInstance().getRawWrapper(localMaster, query);
+		while(manager.hasNext()) {
+			IHeadersDataRow stmt = manager.next();
+			// make a new array to hold the object
+			Object[] data = new Object[4];
+			// copy the triple from the query into the data array
+			System.arraycopy(stmt.getRawValues(), 0, data, 0, 3);
+			// set the last boolean so the remove method knows this is a URI vs. Literal
+			data[3] = true;
+//			System.out.println(Arrays.toString(data));
+			deleteTriplesList.add(data);
 		}
 	}
 
 	/**
-	 * Removes all of the master concepts that are no longer associated with keywords.
-	 * For any master concept that does not have a keyword
-	 * AND does not have a child master concept that has a keyword,
-	 * deletes the relationships from the master concept to its parent master concept and the mc itself.
-	 * This is a deep clean run. NOT run every time an engine is deleted
+	 * Get all the property triples to delete
+	 * @param engineName
+	 * @param localMaster
+	 * @param deleteTriplesList
 	 */
-	public void deleteMCsWithoutKeywords() {
-		//create a list of mcs that do not have keywords associated
-		Set<String> mcsWithoutKeywords = new HashSet<String>();
-		//create a binding string for queries
-		String bindingsStr = "";
-		ISelectWrapper wrapper = Utility.processQuery(masterEngine, MasterDatabaseQueries.MCS_WITHOUT_KEYWORDS_QUERY);
-		String[] names = wrapper.getVariables();
-		while(wrapper.hasNext())
-		{
-			//grab query results
-			ISelectStatement sjss = wrapper.next();
-			String mc = (String)sjss.getVar(names[0]);
-			mcsWithoutKeywords.add(mc);
-			bindingsStr = bindingsStr.concat("(<").concat(MasterDatabaseURIs.MC_BASE_URI).concat("/").concat(mc).concat(">)");
+	private void addAllEnginePropertyTriplesToDelete(String engineName, IEngine localMaster, List<Object[]> deleteTriplesList) {
+		// delete the relationship between the engine-concept composite to engine-concept-property composite
+		String query = "SELECT ?conceptComposite ?prop ?propertyComposite WHERE {"
+				+ "BIND( <http://www.w3.org/2002/07/owl#DatatypeProperty> AS ?prop) "
+				// unique engine-concept present in engine we are deleting
+				+ "{?conceptComposite <http://semoss.org/ontologies/Relation/presentin> <http://semoss.org/ontologies/meta/engine/" + engineName + ">}"
+				// unique engine-concept composite to all its unique engine-concept-property composite
+				+ "{?conceptComposite ?prop ?propertyComposite}"
+//				+ "FILTER("
+//				// filters for relationships
+//				+ 	" ?prop = <http://www.w3.org/2002/07/owl#DatatypeProperty> "
+//				+ 	")"
+				+ "}";
+		IRawSelectWrapper manager = WrapperManager.getInstance().getRawWrapper(localMaster, query);
+		while(manager.hasNext()) {
+			IHeadersDataRow stmt = manager.next();
+			// make a new array to hold the object
+			Object[] data = new Object[4];
+			// copy the triple from the query into the data array
+			System.arraycopy(stmt.getRawValues(), 0, data, 0, 3);
+			// set the last boolean so the remove method knows this is a URI vs. Literal
+			data[3] = true;
+//			System.out.println(Arrays.toString(data));
+			deleteTriplesList.add(data);
+		}
 
+		// delete unique engine-concept-property composite to its physical URI
+		query = "SELECT ?propertyComposite ?propertyType ?propertyPhysical WHERE {"
+				+ "BIND( <http://www.w3.org/2002/07/owl#DatatypeProperty> AS ?prop) "
+				+ "BIND( <" + RDF.TYPE + "> AS ?propertyType ) "
+				// unique engine-concept present in engine we are deleting
+				+ "{?conceptComposite <http://semoss.org/ontologies/Relation/presentin> <http://semoss.org/ontologies/meta/engine/" + engineName + ">}"
+				// unique engine-concept composite to all its unique engine-concept-property composite
+				+ "{?conceptComposite ?prop ?propertyComposite}"
+				// unique engine-concept-property composite is a type of a physical uri
+				+ "{?propertyComposite ?propertyType ?propertyPhysical}"
+//				+ "FILTER("
+//				// filters for relationships
+//				+ 	" ?prop = <http://www.w3.org/2002/07/owl#DatatypeProperty> && "
+//				+ 	" ?propertyType = <" + RDF.TYPE + "> "
+//				+ 	")"
+				+ "}";
+		manager = WrapperManager.getInstance().getRawWrapper(localMaster, query);
+		while(manager.hasNext()) {
+			IHeadersDataRow stmt = manager.next();
+			// make a new array to hold the object
+			Object[] data = new Object[4];
+			// copy the triple from the query into the data array
+			System.arraycopy(stmt.getRawValues(), 0, data, 0, 3);
+			// set the last boolean so the remove method knows this is a URI vs. Literal
+			data[3] = true;
+//			System.out.println(Arrays.toString(data));
+			deleteTriplesList.add(data);
 		}
-		
-		//delete the parent mcs to any mc that no longer has any keywords bounded
-		String boundParentChildMCQuery = MasterDatabaseQueries.PARENT_CHILD_MC_QUERY.replaceAll("@BINDINGS@", bindingsStr);
-		ISelectWrapper wrapper2 = Utility.processQuery(masterEngine,boundParentChildMCQuery);
-		String[] names2 = wrapper2.getVariables();
-		while(wrapper2.hasNext())
-		{
-			ISelectStatement sjss = wrapper2.next();
-			String parentMC = (String)sjss.getVar(names2[0]);
-			String childMC = (String)sjss.getVar(names2[1]);
-			MasterDBHelper.removeRelationship(masterEngine, MasterDatabaseURIs.MC_BASE_URI + "/" + parentMC, MasterDatabaseURIs.MC_BASE_URI + "/" + childMC, MasterDatabaseURIs.SEMOSS_RELATION_URI + "/ParentOf/" + parentMC + ":" + childMC);
+
+		// // delete all logical names assigned to this engine-concept-property composite
+		query = "SELECT DISTINCT ?propertyComposite ?propertyLogicalRel ?propertyLogical WHERE {"
+				+ "BIND( <http://www.w3.org/2002/07/owl#DatatypeProperty> AS ?prop) "
+				+ "BIND( <http://semoss.org/ontologies/Relation/logical> AS ?propertyLogicalRel ) "
+				// unique engine-concept present in engine we are deleting
+				+ "{?conceptComposite <http://semoss.org/ontologies/Relation/presentin> <http://semoss.org/ontologies/meta/engine/" + engineName + ">}"
+				// unique engine-concept composite to all its unique engine-concept-property composite
+				+ "{?conceptComposite ?prop ?propertyComposite}"
+				// unique engine-concept-property composite its its logical names
+				+ "{?propertyComposite ?propertyLogicalRel ?propertyLogical}"
+//				+ "FILTER("
+//				// filters for relationships
+//				+ 	" ?prop = <http://www.w3.org/2002/07/owl#DatatypeProperty> &&  "
+//				+ 	" ?propertyLogicalRel = <http://semoss.org/ontologies/Relation/logical> "
+//				+ 	")"
+				+ "}";
+		manager = WrapperManager.getInstance().getRawWrapper(localMaster, query);
+		while(manager.hasNext()) {
+			IHeadersDataRow stmt = manager.next();
+			// make a new array to hold the object
+			Object[] data = new Object[4];
+			// copy the triple from the query into the data array
+			System.arraycopy(stmt.getRawValues(), 0, data, 0, 3);
+			// set the last boolean so the remove method knows this is a URI vs. Literal
+			data[3] = true;
+//			System.out.println(Arrays.toString(data));
+			deleteTriplesList.add(data);
 		}
-		
-		//delete the top hypernyms associated with the mcs that no longer have keywords bounded
-		String boundTopHypernymQuery = MasterDatabaseQueries.MC_TOP_HYPERNYM_MC_QUERY.replaceAll("@BINDINGS@", bindingsStr);
-		ISelectWrapper wrapper3 = Utility.processQuery(masterEngine,boundTopHypernymQuery);
-		String[] names3 = wrapper3.getVariables();
-		while(wrapper3.hasNext())
-		{
-			ISelectStatement sjss = wrapper3.next();
-			String mc = (String)sjss.getVar(names3[0]);
-			String topHypernymMC = (String)sjss.getVar(names3[1]);
-			MasterDBHelper.removeRelationship(masterEngine, MasterDatabaseURIs.MC_BASE_URI + "/" + mc, MasterDatabaseURIs.MC_BASE_URI + "/" + topHypernymMC, MasterDatabaseURIs.SEMOSS_RELATION_URI + "/HasTopHypernym/" + mc + ":" + topHypernymMC);
-		}		
-		
-		//delete the master concepts
-		Iterator<String> mcItr = mcsWithoutKeywords.iterator();
-		while(mcItr.hasNext()) {
-			String mc = mcItr.next();
-			MasterDBHelper.removeNode(masterEngine, MasterDatabaseURIs.MC_BASE_URI + "/" + mc);
+
+		// delete the conceptual name for the engine-concept-property composite
+		query = "SELECT DISTINCT ?propertyComposite ?propertyConceptualRel ?propertyConceptual WHERE {"
+				+ "BIND( <http://www.w3.org/2002/07/owl#DatatypeProperty> AS ?prop) "
+				+ "BIND( <http://semoss.org/ontologies/Relation/conceptual> AS ?propertyConceptualRel ) "
+				// unique engine-concept present in engine we are deleting
+				+ "{?conceptComposite <http://semoss.org/ontologies/Relation/presentin> <http://semoss.org/ontologies/meta/engine/" + engineName + ">}"
+				// unique engine-concept composite to all its unique engine-concept-property composite
+				+ "{?conceptComposite ?prop ?propertyComposite}"
+				// unique engine-concept composite to its conceptual name
+				+ "{?propertyComposite ?propertyConceptualRel ?propertyConceptual}"
+//				+ "FILTER("
+//				// filters for relationships
+//				+ 	" ?prop = <http://www.w3.org/2002/07/owl#DatatypeProperty> && "
+//				+ 	" ?propertyConceptualRel = <http://semoss.org/ontologies/Relation/conceptual>"
+//				+ 	")"
+				+ "}";
+		manager = WrapperManager.getInstance().getRawWrapper(localMaster, query);
+		while(manager.hasNext()) {
+			IHeadersDataRow stmt = manager.next();
+			// make a new array to hold the object
+			Object[] data = new Object[4];
+			// copy the triple from the query into the data array
+			System.arraycopy(stmt.getRawValues(), 0, data, 0, 3);
+			// set the last boolean so the remove method knows this is a URI vs. Literal
+			data[3] = true;
+//			System.out.println(Arrays.toString(data));
+			deleteTriplesList.add(data);
 		}
 	}
-	
-	private void deleteEngineRelationships(String engineName) {
-		Set<String> engineRels = new HashSet<String>();
-		//create a binding string for queries
-		String bindingsStr = "";
-		ISelectWrapper wrapper = Utility.processQuery(masterEngine, MasterDatabaseQueries.ENGINE_RELATIONS.replace("@ENGINE@", engineName));
-		String[] names = wrapper.getVariables();
-		while(wrapper.hasNext())
-		{
-			//grab query results
-			ISelectStatement sjss = wrapper.next();
-			String engineURI = sjss.getRawVar(names[0]) + "";
-			String hasURI = sjss.getRawVar(names[1]) + "";
-			String engineRelURI = sjss.getRawVar(names[2]) + "";
-			engineRels.add(engineRelURI);
-			
-			MasterDBHelper.removeRelationship(masterEngine, engineURI, engineRelURI, hasURI);
-			bindingsStr = bindingsStr.concat("(<").concat(engineRelURI).concat(">)");
+
+	/**
+	 * Remove engine relationships
+	 * @param engineName
+	 * @param localMaster
+	 * @param deleteTriplesList
+	 */
+	private void addEngineRelationshipTriplesToDelete(String engineName, IEngine localMaster, List<Object[]> deleteTriplesList) {
+		String whereStatement = " WHERE { "
+				// make sure node is in the engine
+				+ "{?conceptComposite <http://semoss.org/ontologies/Relation/presentin> <http://semoss.org/ontologies/meta/engine/" + engineName + ">}"
+				// make sure other node is in the engine
+				+ "{?anotherConceptConcept <http://semoss.org/ontologies/Relation/presentin> <http://semoss.org/ontologies/meta/engine/" + engineName + ">}"
+				// relationship between the two nodes
+				+ "{?conceptComposite ?rel ?anotherConceptConcept}"
+				// any inferencing crap that is associated with the relationship between the nodes
+				+ "{?rel ?anyPred ?anyObj}"
+				+ "}";
+
+		String query = "SELECT DISTINCT ?conceptComposite ?rel ?anotherConceptConcept " + whereStatement;
+		IRawSelectWrapper manager = WrapperManager.getInstance().getRawWrapper(localMaster, query);
+		while(manager.hasNext()) {
+			IHeadersDataRow stmt = manager.next();
+			// make a new array to hold the object
+			Object[] data = new Object[4];
+			// copy the triple from the query into the data array
+			System.arraycopy(stmt.getRawValues(), 0, data, 0, 3);
+			// set the last boolean so the remove method knows this is a URI vs. Literal
+			data[3] = true;
+//			System.out.println(Arrays.toString(data));
+			deleteTriplesList.add(data);
 		}
-		
-		if(!bindingsStr.isEmpty()) {
-			String q1 = "SELECT DISTINCT ?s ?p ?o WHERE { {?s ?p ?o} {?s a <http://semoss.org/ontologies/Concept/EngineRelation>} {?p <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Consumes> } } BINDINGS ?s {@BINDINGS@}";
-			String q2 = "SELECT DISTINCT ?s ?p ?o WHERE { {?s ?p ?o} {?o a <http://semoss.org/ontologies/Concept/EngineRelation>} {?p <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Provides> } } BINDINGS ?o {@BINDINGS@}";
-			q1 = q1.replace("@BINDINGS@", bindingsStr);
-			q2 = q2.replace("@BINDINGS@", bindingsStr);
-			
-			wrapper = Utility.processQuery(masterEngine, q1);
-			removeTriples(wrapper);
-			wrapper = Utility.processQuery(masterEngine, q2);
-			removeTriples(wrapper);
-			
-			for(String engineRelURI : engineRels) {
-				MasterDBHelper.removeNode(masterEngine, engineRelURI);
-			}
+
+		query = "SELECT DISTINCT ?rel ?anyPred ?anyObj " + whereStatement;
+		manager = WrapperManager.getInstance().getRawWrapper(localMaster, query);
+		while(manager.hasNext()) {
+			IHeadersDataRow stmt = manager.next();
+			// make a new array to hold the object
+			Object[] data = new Object[4];
+			// copy the triple from the query into the data array
+			System.arraycopy(stmt.getRawValues(), 0, data, 0, 3);
+			// set the last boolean so the remove method knows this is a URI vs. Literal
+			data[3] = true;
+//			System.out.println(Arrays.toString(data));
+			deleteTriplesList.add(data);
 		}
 	}
-	
-	private void removeTriples(ISelectWrapper wrapper) {
-		String[] names = wrapper.getVariables();
-		while(wrapper.hasNext()) {
-			//grab query results
-			ISelectStatement sjss = wrapper.next();
-			String s = sjss.getRawVar(names[0]) + "";
-			String p = sjss.getRawVar(names[1]) + "";
-			Object o = sjss.getRawVar(names[2]);
-			
-			boolean isConcept = true;
-			if(o instanceof Literal) {
-				isConcept = false;
-			}
-			
-			if (o instanceof BigdataLiteralImpl && ((BigdataLiteralImpl) o).getDatatype() != null) {
-				try {
-					o = ((BigdataLiteralImpl)o).doubleValue();
-				} catch(NumberFormatException ex) {
-					o = ((BigdataLiteralImpl) o).getLabel();
-				}
-			} else if(o instanceof Literal){
-				o = ((Literal)o).getLabel();
-			}
-			masterEngine.doAction(IEngine.ACTION_TYPE.REMOVE_STATEMENT, new Object[]{s, p, o, isConcept});
+
+	/**
+	 * Wipe out anything left with the engine
+	 * @param engineName
+	 * @param fromEngine
+	 */
+	private void addEngineMetadataToDelete(String engineName, IEngine localMaster, List<Object[]> deleteTriplesList) {
+		String query = "SELECT DISTINCT ?engine ?anyPred ?anyObj WHERE {"
+				+ "BIND(<http://semoss.org/ontologies/meta/engine/" + engineName + "> AS ?engine) "
+				+ "{?engine ?anyPred ?anyObj}"
+//				+ "FILTER(?engine = <http://semoss.org/ontologies/meta/engine/" + engineName + ">)"
+				+ "}";
+		IRawSelectWrapper manager = WrapperManager.getInstance().getRawWrapper(localMaster, query);
+		while(manager.hasNext()) {
+			IHeadersDataRow stmt = manager.next();
+			// make a new array to hold the object
+			Object[] data = new Object[4];
+			// copy the triple from the query into the data array
+			System.arraycopy(stmt.getRawValues(), 0, data, 0, 3);
+			// set the last boolean so the remove method knows this is a URI vs. Literal
+			data[3] = true;
+//			System.out.println(Arrays.toString(data));
+			deleteTriplesList.add(data);
+		}
+
+		query = "SELECT DISTINCT ?anysub ?anyPred ?engine WHERE {"
+				+ "BIND(<http://semoss.org/ontologies/meta/engine/" + engineName + "> AS ?engine) "
+				+ "{?anysub ?anyPred ?engine}"
+//				+ "FILTER(?engine = <http://semoss.org/ontologies/meta/engine/" + engineName + ">)"
+				+ "}";
+		manager = WrapperManager.getInstance().getRawWrapper(localMaster, query);
+		while(manager.hasNext()) {
+			IHeadersDataRow stmt = manager.next();
+			// make a new array to hold the object
+			Object[] data = new Object[4];
+			// copy the triple from the query into the data array
+			System.arraycopy(stmt.getRawValues(), 0, data, 0, 3);
+			// set the last boolean so the remove method knows this is a URI vs. Literal
+			data[3] = true;
+//			System.out.println(Arrays.toString(data));
+			deleteTriplesList.add(data);
 		}
 	}
 
@@ -473,130 +418,204 @@ public class DeleteFromMasterDB extends ModifyMasterDB {
 	 */
 	public void deleteAll() throws SailException{
 		masterEngine.removeData("DELETE {?x ?y ?z}");
-//		masterEngine.sc.clear();
 	}
+
 	
-	// Delete the properties and concepts
+	///////////////////////////////////////////////////////////////////////////////
+	///////////////////////////////////////////////////////////////////////////////
+	////////////////////////// using delete query logic ///////////////////////////
+	///////////////////////////////////////////////////////////////////////////////
+	///////////////////////////////////////////////////////////////////////////////
+	
+	/**
+	 * Delete concepts with properties triples
+	 * @param engineName
+	 * @param fromEngine
+	 */
 	private void deleteEngineConceptsWithProperties(String engineName, IEngine fromEngine)
 	{
-        // first get rid of concept with properties
-        // need to delete logical
-        String deleteQuery = "DELETE "
-                    + "{"
-                    + "?concept ?prop ?conceptProp."
-                    + "?conceptProp ?type ?semossProp. "
-                    + "?conceptProp ?logical ?propLogical. "
-                    + "?concept ?type ?semossConcept."
-                    + "?concept ?subclass ?rdfConcept."
-                    + "} "
-                    + "WHERE"
-                    + "{"
-                    + "{?concept <http://semoss.org/ontologies/Relation/presentin>  <http://semoss.org/ontologies/meta/engine/" + engineName + ">}"
-                    + "{?concept ?in ?engine}"
-                    + "{?concept ?prop ?conceptProp}"
-                    + "{?concept ?type ?semossConcept}"
-                    + "{?concept ?subclass ?rdfConcept}"
-                    + "{?conceptProp ?logical ?propLogical}"
-                    + "{?conceptProp ?type ?semossProp}"
-                    + "FILTER(?in = <http://semoss.org/ontologies/Relation/presentin> &&"
-                    + "           ?prop = <http://www.w3.org/2002/07/owl#DatatypeProperty> &&"
-                    + "           ?type = <" + RDF.TYPE + "> &&"
-                    + "           ?subclass = <" + RDFS.subClassOf + "> &&"
-                    + "       ?logical = <http://semoss.org/ontologies/Relation/logical>"
-                    + ")"
-                    +"}";
+		// first get rid of concept with properties
+		// need to delete logical
+		// need to delete conceptual
+		String deleteQuery = "DELETE "
+				// TRIPLES TO DELETE
+				+ "{"
+				// delete unique engine-concept composite subclass of stuff
+				+ "?conceptComposite ?subclass ?rdfConcept . "
+				// delete unique engine-concept composite to its physical URI
+				+ "?conceptComposite ?conceptType ?conceptPhysical . "
+				// delete all logical names assigned to this engine-concept composite
+				+ "?conceptComposite ?conceptLogicalRel ?conceptLogical . "
+				// delete the conceptual name for the engine-concept composite
+				+ "?conceptComposite ?conceptConceptualRel ?conceptualName . "
+				// delete the relationship between the engine-concept composite to engine-concept-property composite
+				+ "?conceptComposite ?prop ?propertyComposite . "
+				// delete unique engine-concept-property composite to its physical URI
+				+ "?propertyComposite ?propertyType ?propertyPhysical . "
+				// delete all logical names assigned to this engine-concept-property composite
+				+ "?propertyComposite ?propertyLogicalRel ?propertyLogical . "
+				// delete the conceptual name for the engine-concept composite
+				+ "?propertyComposite ?propertyConceptualRel ?propertyConceptual . "
+
+				// PATTERN TO MATCH
+				+ "} WHERE { "
+				// SECTION TO GET CONCEPT TRIPLES
+				// unique engine-concept composite subclass of stuff
+				+ "{?conceptComposite ?subclass ?rdfConcept}"
+				// unique engine-concept composite is a type of a physical uri
+				+ "{?conceptComposite ?conceptType ?conceptPhysical}"
+				// unique engine-concept present in engine we are deleting
+				+ "{?conceptComposite <http://semoss.org/ontologies/Relation/presentin> <http://semoss.org/ontologies/meta/engine/" + engineName + ">}"
+				// unique engine-concept composite its its logical names
+				+ "{?conceptComposite ?conceptLogicalRel ?conceptLogical}"
+				// unique engine-concept composite to its conceptual name
+				+ "{?conceptComposite ?conceptConceptualRel ?conceptualName}"
+				// unique engine-concept composite to all its unique engine-concept-property composite
+				+ "{?conceptComposite ?prop ?propertyComposite}"
+
+				// SECTION TO GET PROPERTY TRIPLES
+				// unique engine-concept-property composite is a type of a physical uri
+				+ "{?propertyComposite ?propertyType ?propertyPhysical}"
+				// unique engine-concept-property composite its its logical names
+				+ "{?propertyComposite ?propertyLogicalRel ?propertyLogical}"
+				// unique engine-concept-property composite to its conceptual name
+				+ "{?propertyComposite ?propertyConceptualRel ?propertyConceptual}"
+
+				// SECTION TO MAKE SURE RELATIONSHIPS ARE WHAT WE WANT
+				+ "FILTER("
+				// filters for concept relationships
+				+ 	" ?subclass = <" + RDFS.subClassOf + "> && "
+				+ 	" ?conceptType = <" + RDF.TYPE + "> && "
+				+ 	" ?conceptLogicalRel = <http://semoss.org/ontologies/Relation/logical> && "
+				+ 	" ?conceptConceptualRel = <http://semoss.org/ontologies/Relation/conceptual> && "
+				+ 	" ?prop = <http://www.w3.org/2002/07/owl#DatatypeProperty> && "
+				// filters for concept properties
+				+ 	" ?propertyType = <" + RDF.TYPE + "> && "
+				+ 	" ?propertyLogicalRel = <http://semoss.org/ontologies/Relation/logical> && "
+				+ 	" ?propertyConceptualRel = <http://semoss.org/ontologies/Relation/conceptual>"
+				+ 	")"
+				+ "}";
+
+		long startTime = System.currentTimeMillis();
 
 		fromEngine.insertData(deleteQuery);	
+
+		long endTime = System.currentTimeMillis();
+
+		LOGGER.info("TIME TO DELETE CONCEPTS W/ PROPERTIES ::: " + (endTime - startTime) + " ms" );
 	}
-	
-	// delete concepts without properties
+
+	/**
+	 * Delete concepts without properties
+	 * @param engineName
+	 * @param fromEngine
+	 */
 	private void deleteEngineConceptsWithoutProperties(String engineName, IEngine fromEngine)
 	{
 		// delete concepts without properties
-        // need to delete logical
+		// need to delete logical
 		String deleteQuery = "DELETE "
-                + "{"
-                + "?concept ?type ?semossConcept."
-                + "?concept ?subclass ?rdfConcept."
-                + "} "
-                + "WHERE"
-                + "{"
-                + "{?concept <http://semoss.org/ontologies/Relation/presentin>  <http://semoss.org/ontologies/meta/engine/" + engineName + ">}"
-                + "{?concept ?in ?engine}"
-                + "{?concept ?type ?semossConcept}"
-                + "{?concept ?subclass ?rdfConcept}"
-                + "FILTER(?in = <http://semoss.org/ontologies/Relation/presentin> &&"
-                + "           ?type = <" + RDF.TYPE + "> &&"
-                + "           ?subclass = <" + RDFS.subClassOf + ">"
-                + ")"
-                +"}";
+				// TRIPLES TO DELETE
+				+ "{"
+				// delete unique engine-concept composite subclass of stuff
+				+ "?conceptComposite ?subclass ?rdfConcept . "
+				// delete unique engine-concept composite to its physical URI
+				+ "?conceptComposite ?conceptType ?conceptPhysical . "
+				// delete all logical names assigned to this engine-concept composite
+				+ "?conceptComposite ?conceptLogicalRel ?conceptLogical . "
+				// delete the conceptual name for the engine-concept composite
+				+ "?conceptComposite ?conceptConceptualRel ?conceptualName . "               
 
-		fromEngine.insertData(deleteQuery);
+				// PATTERN TO MATCH
+				+ "} WHERE { "
+				// SECTION TO GET CONCEPT TRIPLES
+				// unique engine-concept composite subclass of stuff
+				+ "{?conceptComposite ?subclass ?rdfConcept}"
+				// unique engine-concept composite is a type of a physical uri
+				+ "{?conceptComposite ?conceptType ?conceptPhysical}"
+				// unique engine-concept present in engine we are deleting
+				+ "{?conceptComposite <http://semoss.org/ontologies/Relation/presentin> <http://semoss.org/ontologies/meta/engine/" + engineName + ">}"
+				// unique engine-concept composite its its logical names
+				+ "{?conceptComposite ?conceptLogicalRel ?conceptLogical}"
+				// unique engine-concept composite to its conceptual name
+				+ "{?conceptComposite ?conceptConceptualRel ?conceptualName}"
+
+				// SECTION TO MAKE SURE RELATIONSHIPS ARE WHAT WE WANT
+				+ "FILTER("
+				// filters for concept relationships
+				+ 	" ?subclass = <" + RDFS.subClassOf + "> && "
+				+ 	" ?conceptType = <" + RDF.TYPE + "> && "
+				+ 	" ?conceptLogicalRel = <http://semoss.org/ontologies/Relation/logical> && "
+				+ 	" ?conceptConceptualRel = <http://semoss.org/ontologies/Relation/conceptual> && "
+				+ 	" ?prop = <http://www.w3.org/2002/07/owl#DatatypeProperty>"
+				+ 	")"
+				+"}";
+
+		long startTime = System.currentTimeMillis();
+
+		fromEngine.insertData(deleteQuery);	
+
+		long endTime = System.currentTimeMillis();
+
+		LOGGER.info("TIME TO DELETE CONCEPTS W/O PROPERTIES ::: " + (endTime - startTime) + " ms" );
 	}
-	
-	// delete concept relationships
+
+	/**
+	 * Delete relationships
+	 * @param engineName
+	 * @param fromEngine
+	 */
 	private void deleteRelations(String engineName, IEngine fromEngine)
 	{
 		String deleteQuery = "DELETE "
-                + "{"
-                + "?concept ?rel ?anotherConcept."
-                + "?rel ?subprop ?semRel."
-                //+ "?rel ?in ?engine"
-                + "} "
-                + "WHERE"
-                + "{"
-                + "{?concept ?in  <http://semoss.org/ontologies/meta/engine/" + engineName + ">}"
-                + "{?anotherConcept ?in  <http://semoss.org/ontologies/meta/engine/" + engineName + ">}"
-                //+ "{?rel <" + RDFS.subPropertyOf + "> <http://semoss.org/ontologies/Relation>}"
-                + "{?concept ?rel ?anotherConcept}"
-                + "{?rel ?subprop ?semRel}"
-                //+ "{?rel ?in ?engine}"
-                + "FILTER(?subprop = <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> &&"
-                + "           ?semRel = <http://semoss.org/ontologies/Relation> &&"
-                + "           ?in = <http://semoss.org/ontologies/Relation/presentin> "
-                + ")"
-                +"}";
-		
-		fromEngine.insertData(deleteQuery);	
-	}
-	
-	// cleanup everything else
-	private void deleteCoreConcepts(String engineName, IEngine fromEngine)
-	{
-		String deleteQuery = "DELETE "
-                + "{"
-                + "?concept ?in ?engine."
-                + "?concept ?conceptual ?conceptConceptual."
-                + "?concept ?logical ?conceptLogical."
-                + "} "
-                + "WHERE"
-                + "{"
-                + "{?concept ?in  <http://semoss.org/ontologies/meta/engine/" + engineName + ">}"
-                + "{?concept ?in ?engine}"
-                + "{?concept ?conceptual ?conceptConceptual}"
-                + "{?concept ?logical ?conceptLogical}"
-                + "FILTER(?in = <http://semoss.org/ontologies/Relation/presentin> &&"
-                + "?conceptual = <http://semoss.org/ontologies/Relation/conceptual> &&"
-                + "?logical = <http://semoss.org/ontologies/Relation/logical>"
-                + ")"
-                +"}";
+				+ "{"
+				// delete any triple between two unique engine-concept composite nodes
+				+ "?conceptComposite ?rel ?anotherConceptConcept . "
+				// delete any triples associated with the predicate above
+				+ "?rel ?anyPred ?anyObj . "
+				+ "} WHERE { "
+				// make sure node is in the engine
+				+ "{?conceptComposite ?in  <http://semoss.org/ontologies/meta/engine/" + engineName + ">}"
+				// make sure other node is in the engine
+				+ "{?anotherConceptConcept ?in  <http://semoss.org/ontologies/meta/engine/" + engineName + ">}"
+				// relationship between the two nodes
+				+ "{?concept ?rel ?anotherConcept}"
+				// any inferencing crap that is associated with the relationship between the nodes
+				+ "{?rel ?anyPred ?anyObj}"
+				+ "}";
+
+		long startTime = System.currentTimeMillis();
 
 		fromEngine.insertData(deleteQuery);	
+
+		long endTime = System.currentTimeMillis();
+
+		LOGGER.info("TIME TO DELETE RELATIONSHIPS ::: " + (endTime - startTime) + " ms" );
 	}
 
-	// finally wipe out the engine
+	/**
+	 * Wipe out anything left with the engine
+	 * @param engineName
+	 * @param fromEngine
+	 */
 	private void deleteEngineMetadata(String engineName, IEngine fromEngine)
 	{
 		String deleteQuery = "DELETE {"
-                + "?engine ?anyPred ?anyObj."
-                + "?anysub ?anypred2 ?engine."
-                + "} WHERE {"
-                + "{?engine ?anyPred ?anyObj}"
-                + "{?anysub ?anypred2 ?engine}"
-                + "FILTER(?engine = <http://semoss.org/ontologies/meta/engine/" + engineName + ">)"
-                + "}";
+				+ "?engine ?anyPred ?anyObj."
+				+ "?anysub ?anyPred2 ?engine."
+				+ "} WHERE {"
+				+ "{?engine ?anyPred ?anyObj}"
+				+ "{?anysub ?anyPred2 ?engine}"
+				+ "FILTER(?engine = <http://semoss.org/ontologies/meta/engine/" + engineName + ">)"
+				+ "}";
+
+		long startTime = System.currentTimeMillis();
 
 		fromEngine.insertData(deleteQuery);	
+
+		long endTime = System.currentTimeMillis();
+
+		LOGGER.info("TIME TO DELETE ENGINE NODE ::: " + (endTime - startTime) + " ms" );
 	}
-	
+
 }

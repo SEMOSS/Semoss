@@ -76,11 +76,7 @@ import org.openrdf.sail.memory.MemoryStore;
 import com.bigdata.rdf.model.BigdataLiteralImpl;
 
 import prerna.engine.api.IEngine;
-import prerna.engine.api.ISelectStatement;
-import prerna.engine.api.ISelectWrapper;
 import prerna.engine.impl.AbstractEngine;
-import prerna.nameserver.MasterDatabaseQueries;
-import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
 import prerna.util.Utility;
@@ -679,35 +675,4 @@ public class RDFFileSesameEngine extends AbstractEngine implements IEngine {
 			}
 		}
 	}
-	
-	public static void main(String [] args)
-	{
-		RDFFileSesameEngine engine = new RDFFileSesameEngine();
-		
-		String rdfFile = "C:/Users/pkapaleeswaran/workspacej3/SemossWeb/db/LocalMasterDatabase/FileLocalMaster.xml";
-		engine.openFile(rdfFile, null, null);
-		
-		IEngine iEngine = engine;
-		String query = MasterDatabaseQueries.GET_ALL_KEYWORDS_AND_ENGINES2;
-		//query = "SELECT ?s ?p ?o where { ?s ?p ?o}";
-		ISelectWrapper wrapper = WrapperManager.getInstance().getSWrapper(iEngine, query);
-		
-		String [] names = wrapper.getDisplayVariables();
-		while(wrapper.hasNext())
-		{
-			// this actually has three things within it
-			// engineName
-			// concept name - This will end up being physical
-			// Logical Name - this is the concept name really
-			ISelectStatement iss = wrapper.next();
-			
-			String engineName = iss.getVar(names[0]) + "";
-			String conceptURI = iss.getRawVar(names[1]) + ""; // logical name
-			String physicalURI = iss.getRawVar(names[2]) + ""; // physical name
-			
-			System.out.println(engineName + "<>" + conceptURI + "<>" + physicalURI);	
-		}
-	}
-
-
 }

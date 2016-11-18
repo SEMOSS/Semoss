@@ -29,7 +29,7 @@ import moa.core.InstancesHeader;
 import prerna.algorithm.api.IAnalyticTransformationRoutine;
 import prerna.algorithm.api.ITableDataFrame;
 import prerna.algorithm.learning.weka.WekaUtilityMethods;
-import prerna.ds.BTreeDataFrame;
+import prerna.ds.h2.H2Frame;
 import prerna.om.SEMOSSParam;
 import weka.core.Attribute;
 import weka.core.Instance;
@@ -186,7 +186,7 @@ public class MOAPerceptronRunner implements IAnalyticTransformationRoutine {
 		String columnName = "Correctly_Classified -- "+(int)accuracy+"%";
 		//table.setColumnsToSkip(null);
 		String[] newNames = {names[0], columnName};
-		ITableDataFrame newTable = new BTreeDataFrame(newNames);
+		ITableDataFrame newTable = new H2Frame(newNames);
 		for(int i = 0; i < dataTable.size(); i++) {
 			Map<String, Object> nextRow = new HashMap<>();
 			nextRow.put(newNames[0], dataTable.get(i)[0]);

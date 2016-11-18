@@ -38,8 +38,6 @@ import org.openrdf.query.QueryEvaluationException;
 import org.openrdf.query.TupleQueryResult;
 import org.openrdf.query.algebra.evaluation.util.QueryEvaluationUtil;
 
-import prerna.algorithm.api.ITableDataFrame;
-import prerna.ds.BTreeDataFrame;
 import prerna.engine.api.ISelectStatement;
 import prerna.engine.api.ISelectWrapper;
 import prerna.util.Constants;
@@ -183,8 +181,8 @@ public class SesameSelectWrapper extends AbstractWrapper implements ISelectWrapp
 					tableLabelURI += tableLabel;
 					columnLabelURI += columnLabel;
 					//now get the display name 
-					tableLabelURI = engine.getTransformedNodeName(tableLabelURI, true);
-					columnLabelURI = engine.getTransformedNodeName(columnLabelURI, true);
+//					tableLabelURI = engine.getTransformedNodeName(tableLabelURI, true);
+//					columnLabelURI = engine.getTransformedNodeName(columnLabelURI, true);
 					tableLabel = Utility.getInstanceName(tableLabelURI);
 					columnLabel = Utility.getInstanceName(columnLabelURI);
 					if(columnIsProperty){
@@ -220,26 +218,5 @@ public class SesameSelectWrapper extends AbstractWrapper implements ISelectWrapp
 		}
 		return var;
 	}
-
-	@Override
-	public ITableDataFrame getTableDataFrame() {
-		BTreeDataFrame dataFrame = new BTreeDataFrame(this.displayVar);
-		while (hasNext()){
-			try {
-				logger.debug("Adding a sesame statement ");
-				BindingSet bs = tqr.next();
-				Object[] clean = new Object[this.displayVar.length];
-				for(int colIndex = 0;colIndex < displayVar.length;colIndex++)
-				{
-					clean[colIndex] = getRealValue(bs.getValue(var[colIndex]));
-				}
-				dataFrame.addRow(clean);
-			} catch (QueryEvaluationException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
-			}
-		}
-		
-		return dataFrame;
-	}
+	
 }

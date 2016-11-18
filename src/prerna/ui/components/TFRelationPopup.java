@@ -130,7 +130,7 @@ public class TFRelationPopup extends JMenu implements MouseListener{
 			SEMOSSVertex thisVert = pickedVertex[pi];
 			String uri = thisVert.getURI();
 			String displayUri = thisVert.getURI();
-			uri = Utility.getTransformedNodeName(engine, uri, false);
+//			uri = Utility.getTransformedNodeName(engine, uri, false);
 
 			String query2 = "";
 			if(engine.getEngineType() == IEngine.ENGINE_TYPE.JENA) {
@@ -178,18 +178,22 @@ public class TFRelationPopup extends JMenu implements MouseListener{
 					for(int vertIndex = 0;vertIndex < vertVector.size();vertIndex++)
 					{
 						if(vertIndex == 0){
-							fileName = "<" + Utility.getTransformedNodeName(engine, vertVector.elementAt(vertIndex).getURI(), false) + ">";
+//							fileName = "<" + Utility.getTransformedNodeName(engine, vertVector.elementAt(vertIndex).getURI(), false) + ">";
+							fileName = "<" +vertVector.elementAt(vertIndex).getURI() + ">";
 						} else {
-							fileName = fileName + "<" + Utility.getTransformedNodeName(engine, vertVector.elementAt(vertIndex).getURI(), false) + ">";
+//							fileName = fileName + "<" + Utility.getTransformedNodeName(engine, vertVector.elementAt(vertIndex).getURI(), false) + ">";
+							fileName = fileName + "<" + vertVector.elementAt(vertIndex).getURI() + ">";
 						}
 					}
 				} else {
 					for(int vertIndex = 0;vertIndex < vertVector.size();vertIndex++)
 					{
 						if(vertIndex == 0){
-							fileName = "(<" + Utility.getTransformedNodeName(engine, vertVector.elementAt(vertIndex).getURI(), false) + ">)";
+//							fileName = "(<" + Utility.getTransformedNodeName(engine, vertVector.elementAt(vertIndex).getURI(), false) + ">)";
+							fileName = "(<" + vertVector.elementAt(vertIndex).getURI() + ">)";
 						} else {
-							fileName = fileName + "(<" + Utility.getTransformedNodeName(engine, vertVector.elementAt(vertIndex).getURI(), false) + ">)";
+//							fileName = fileName + "(<" + Utility.getTransformedNodeName(engine, vertVector.elementAt(vertIndex).getURI(), false) + ">)";
+							fileName = "(<" + vertVector.elementAt(vertIndex).getURI() + ">)";
 						}
 					}
 				}
@@ -242,8 +246,9 @@ public class TFRelationPopup extends JMenu implements MouseListener{
 						count++;
 	
 						logger.debug("Adding Relation " + objClassName);
-						String instance = Utility.getInstanceName(Utility.getTransformedNodeName(engine, objClassName+"", true));
-	
+//						String instance = Utility.getInstanceName(Utility.getTransformedNodeName(engine, objClassName+"", true));
+						String instance = Utility.getInstanceName(objClassName);
+
 						if(prefix.equals("")) {
 							List<Object> typeList = new ArrayList<Object>();
 							typeList.add(objClassName);
@@ -283,8 +288,9 @@ public class TFRelationPopup extends JMenu implements MouseListener{
 				for(int nIndex = 0;nIndex < neighbors.size();nIndex++)
 				{
 					String neighbor = neighbors.get(nIndex);	
-					String instance = Utility.getInstanceName(Utility.getTransformedNodeName(engine, neighbor, true));
-					
+//					String instance = Utility.getInstanceName(Utility.getTransformedNodeName(engine, neighbor, true));
+					String instance = Utility.getInstanceName(neighbor);
+
 					// get the query here from engine and embed it
 					// It uses three things
 					// current class name, new type name, instance

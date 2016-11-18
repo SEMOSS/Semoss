@@ -373,10 +373,7 @@ public abstract class AbstractTableDataFrame implements ITableDataFrame {
 
 	@Override
 	public void performAnalyticTransformation(IAnalyticTransformationRoutine routine) throws RuntimeException {
-		ITableDataFrame newTable = routine.runAlgorithm(this);
-		if(newTable != null) {
-			this.join(newTable, newTable.getColumnHeaders()[0], newTable.getColumnHeaders()[0], 1, new ExactStringMatcher());
-		}
+		routine.runAlgorithm(this);
 	}
 
 	@Override

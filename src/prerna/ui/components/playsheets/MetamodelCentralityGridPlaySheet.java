@@ -38,7 +38,7 @@ import edu.uci.ics.jung.graph.DelegateForest;
 import prerna.algorithm.impl.CentralityCalculator;
 import prerna.algorithm.impl.PageRankCalculator;
 import prerna.algorithm.impl.SubclassingMapGenerator;
-import prerna.ds.BTreeDataFrame;
+import prerna.ds.h2.H2Frame;
 import prerna.om.GraphDataModel;
 import prerna.om.SEMOSSEdge;
 import prerna.om.SEMOSSVertex;
@@ -64,7 +64,7 @@ public class MetamodelCentralityGridPlaySheet extends GridPlaySheet {
 		edgeStore = subclassGen.getEdgeStore();
 		
 		String[] names = new String[]{"Type","Undirected Closeness Centrality","Undirected Betweeness Centrality","Undirected Eccentricity Centrality","Undirected Page Rank"};
-		dataFrame = new BTreeDataFrame(names);
+		dataFrame = new H2Frame(names);
 		
 		Hashtable<SEMOSSVertex, Double> unDirCloseness = CentralityCalculator.calculateCloseness(vertStore, false);
 		Hashtable<SEMOSSVertex, Double> unDirBetweenness = CentralityCalculator.calculateBetweenness(vertStore, false);

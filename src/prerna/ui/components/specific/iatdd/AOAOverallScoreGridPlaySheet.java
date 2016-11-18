@@ -10,8 +10,7 @@ import java.util.Set;
 
 import com.ibm.icu.text.DecimalFormat;
 
-import prerna.algorithm.api.ITableDataFrame;
-import prerna.ds.BTreeDataFrame;
+import prerna.ds.h2.H2Frame;
 import prerna.engine.api.ISelectStatement;
 import prerna.engine.api.ISelectWrapper;
 import prerna.rdf.engine.wrappers.WrapperManager;
@@ -98,7 +97,7 @@ public class AOAOverallScoreGridPlaySheet extends GridPlaySheet {
 		//format to send to Front-End
 		DecimalFormat formatter = new DecimalFormat("#.##");
 		Map<String, Set<String>> vendorReqHash = scoreMap.getVendorReqHash();
-		dataFrame = new BTreeDataFrame(new String[]{"Vendor","Score"});
+		dataFrame = new H2Frame(new String[]{"Vendor","Score"});
 		for(String vendor : vendorReqHash.keySet()){
 			Object[] row = new Object[]{vendor, formatter.format(overallVendorScore(vendor, vendorReqHash.get(vendor)))};
 			dataFrame.addRow(row);

@@ -33,8 +33,6 @@ import com.hp.hpl.jena.query.QuerySolution;
 import com.hp.hpl.jena.query.ResultSet;
 import com.hp.hpl.jena.rdf.model.RDFNode;
 
-import prerna.algorithm.api.ITableDataFrame;
-import prerna.ds.BTreeDataFrame;
 import prerna.engine.api.ISelectStatement;
 import prerna.engine.api.ISelectWrapper;
 import prerna.util.Constants;
@@ -93,8 +91,8 @@ public class JenaSelectWrapper extends AbstractWrapper implements ISelectWrapper
 			tableLabelURI += tableLabel;
 			columnLabelURI += columnLabel;
 			//now get the display name 
-			tableLabelURI = engine.getTransformedNodeName(tableLabelURI, true);
-			columnLabelURI = engine.getTransformedNodeName(columnLabelURI, true);
+//			tableLabelURI = engine.getTransformedNodeName(tableLabelURI, true);
+//			columnLabelURI = engine.getTransformedNodeName(columnLabelURI, true);
 			tableLabel = Utility.getInstanceName(tableLabelURI);
 			columnLabel = Utility.getInstanceName(columnLabelURI);
 			if(columnIsProperty){
@@ -134,24 +132,4 @@ public class JenaSelectWrapper extends AbstractWrapper implements ISelectWrapper
 			return Utility.getInstanceName(node + "");
 		}
 	}
-
-
-	@Override
-	public ITableDataFrame getTableDataFrame() {
-		BTreeDataFrame dataFrame = new BTreeDataFrame(this.displayVar);
-		while (hasNext()){
-			logger.debug("Adding a jena statement ");
-			QuerySolution row = rs.nextSolution();
-			
-			Object[] clean = new Object[this.displayVar.length];
-			for(int colIndex = 0;colIndex < displayVar.length;colIndex++)
-			{
-				clean[colIndex] = getRealValue(row.get(var[colIndex]));
-			}
-			dataFrame.addRow(clean);
-		}
-		
-		return dataFrame;
-	}
-
 }
