@@ -121,20 +121,22 @@ public class SesameSelectWrapper extends AbstractWrapper implements ISelectWrapp
 						return new Double(((Literal)val).doubleValue());
 					}
 				} else {
+					// update, if no datatype present, just send back the label
+					
 					// no datatype present need to try and see based on casting
-					try {
-						XMLGregorianCalendar calendar = ((Literal)val).calendarValue();
-						return calendar.toGregorianCalendar().getTime(); // return date object
-					} catch(IllegalArgumentException ex) {
-						// do nothing
-					}
-
-					try {
-						double dVal = ((Literal)val).doubleValue();
-						return dVal;
-					} catch(NumberFormatException ex) {
-						// do nothing
-					}
+//					try {
+//						XMLGregorianCalendar calendar = ((Literal)val).calendarValue();
+//						return calendar.toGregorianCalendar().getTime(); // return date object
+//					} catch(IllegalArgumentException ex) {
+//						// do nothing
+//					}
+//
+//					try {
+//						double dVal = ((Literal)val).doubleValue();
+//						return dVal;
+//					} catch(NumberFormatException ex) {
+//						// do nothing
+//					}
 					
 					return ((Literal)val).getLabel();
 				}
