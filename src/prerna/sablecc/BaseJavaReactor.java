@@ -253,20 +253,23 @@ public abstract class BaseJavaReactor extends AbstractReactor{
 	
 	public void removeNodeFromR(String type, List nodeList)
 	{
-		RConnection rcon = startR();
-		String graphName = (String)retrieveVariable("GRAPH_NAME");
-		for(int nodeIndex = 0;nodeIndex < nodeList.size();nodeIndex++)
-		{
-			
-			String name = type + ":" + nodeList.get(nodeIndex);
-			
-			try{
-				java.lang.System.out.println("Deleting.. " + name);
-				rcon.eval("newGraph <- delete_vertices(" + graphName + ", V(" + graphName + ")[" + TinkerFrame.TINKER_ID + " == \"" + name + "\"])");				
-				rcon.eval(graphName + "<- newGraph");
-			}catch(Exception ex)
+		RConnection retCon = (RConnection)retrieveVariable(R_CONN);
+		// make sure current connection exists
+		if(retCon != null) {
+			String graphName = (String)retrieveVariable("GRAPH_NAME");
+			for(int nodeIndex = 0;nodeIndex < nodeList.size();nodeIndex++)
 			{
-				ex.printStackTrace();
+				
+				String name = type + ":" + nodeList.get(nodeIndex);
+				
+				try{
+					java.lang.System.out.println("Deleting.. " + name);
+					rcon.eval("newGraph <- delete_vertices(" + graphName + ", V(" + graphName + ")[vertex_attr(" + graphName + ", \"" + TinkerFrame.TINKER_ID + "\" == \"" + name + "\"])");				
+					rcon.eval(graphName + "<- newGraph");
+				}catch(Exception ex)
+				{
+					ex.printStackTrace();
+				}
 			}
 		}
 	}
