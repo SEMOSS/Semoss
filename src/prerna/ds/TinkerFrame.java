@@ -2335,7 +2335,7 @@ public class TinkerFrame extends AbstractTableDataFrame {
 	
 	public Object degree(String type, String data)
 	{
-		GraphTraversal <Vertex, Map<Object, Object>> gt = g.traversal().V().has("ID", type + ":" + data).group().by().by(__.bothE().count());
+		GraphTraversal <Vertex, Map<Object, Object>> gt = g.traversal().V().has(TINKER_ID, type + ":" + data).group().by().by(__.bothE().count());
 		Object degree = null;
 		if(gt.hasNext())
 		{
@@ -2347,7 +2347,7 @@ public class TinkerFrame extends AbstractTableDataFrame {
 				Object value = map.get(key);
 				degree = value;
 				
-				System.out.println(((Vertex)key).value("ID") + "<<>>" + value);				
+				System.out.println(((Vertex)key).value(TINKER_ID) + "<<>>" + value);				
 			}			
 		}
 		return degree;
@@ -2357,9 +2357,9 @@ public class TinkerFrame extends AbstractTableDataFrame {
 	public Long eigen(String type, String data)
 	{
 		Long retLong = null;
-		GraphTraversal<Vertex, Map<String, Object>> gt2 = g.traversal().V().repeat(__.groupCount("m").by("ID").out()).times(5).cap("m")
+		GraphTraversal<Vertex, Map<String, Object>> gt2 = g.traversal().V().repeat(__.groupCount("m").by(TINKER_ID).out()).times(5).cap("m")
 				.V()
-				//.has("ID", type + ":" + data)
+				//.has(TINKER_ID, type + ":" + data)
 				.select("m");
 				//.where("V);
 		if(gt2.hasNext())
@@ -2374,7 +2374,7 @@ public class TinkerFrame extends AbstractTableDataFrame {
 
 	public void printEigenMatrix()
 	{
-		GraphTraversal <Vertex, Map<Object, Object>> gt = g.traversal().V().repeat(__.groupCount("m").by("ID").out()).times(5).cap("m"); //. //(1)
+		GraphTraversal <Vertex, Map<Object, Object>> gt = g.traversal().V().repeat(__.groupCount("m").by(TINKER_ID).out()).times(5).cap("m"); //. //(1)
         //order(Scope.local).by(__.values(), Order.decr).limit(Scope.local, 10); //.next(); //(2)
 		if(gt.hasNext())
 		{
@@ -2385,7 +2385,7 @@ public class TinkerFrame extends AbstractTableDataFrame {
 				Object key = mapKeys.next();
 				Object value = map.get(key);
 				System.out.println(key + "<<>>" + value);				
-				//System.out.println(((Vertex)key).value("ID") + "<<>>" + value);
+				//System.out.println(((Vertex)key).value(TINKER_ID) + "<<>>" + value);
 			}			
 		}
 	}
@@ -2395,7 +2395,7 @@ public class TinkerFrame extends AbstractTableDataFrame {
 	{
 		boolean retValue = false;
 		
-		GraphTraversal<Vertex, Edge> gt = g.traversal().V().has("ID", type + ":" + data).bothE();
+		GraphTraversal<Vertex, Edge> gt = g.traversal().V().has(TINKER_ID, type + ":" + data).bothE();
 		if(gt.hasNext())
 		{
 			System.out.println(data + "  Not Orphan");
