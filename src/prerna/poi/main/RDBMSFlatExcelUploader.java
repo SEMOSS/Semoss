@@ -302,7 +302,7 @@ public class RDBMSFlatExcelUploader extends AbstractFileReader {
 		LOGGER.setLevel(Level.WARN);
 		try {
 			// create the engine and the owler
-			openEngineWithConnection(smssLocation);
+			openEngineWithConnection(engineName);
 			for(int i = 0; i < files.length;i++)
 			{
 				String fileName = files[i];
