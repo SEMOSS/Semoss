@@ -78,89 +78,16 @@ public class RDBMSReader extends AbstractCSVFileReader {
 	 * @throws SailException
 	 * @throws Exception
 	 */
-/*	public IEngine importFileWithOutConnection(String smssLocation, String engineName, String fileNames, String customBase, String owlFile, SQLQueryUtil.DB_TYPE dbType, boolean allowDuplicates) 
-			throws RepositoryException, FileNotFoundException, IOException, SailException, Exception {
-		long start = System.currentTimeMillis();
-
-		boolean error = false;
-		queryUtil = SQLQueryUtil.initialize(dbType);
-		String[] files = prepareReader(fileNames, customBase, owlFile, smssLocation);
-		LOGGER.setLevel(Level.WARN);
-		try {
-			openRdbmsEngineWithoutConnection(engineName);
-			openScriptFile(engineName);
-			for(int i = 0; i<files.length;i++)
-			{
-				try {
-					String fileName = files[i];
-					// open the csv file
-					// and get the headers
-					openCSVFile(fileName);
-					// load the prop file for the CSV file 
-					if(propFileExist){
-						openProp(propFile);
-					} else {
-						rdfMap = rdfMapArr[i];
-					}
-					// use the rdf map to get the data types
-					// that match the headers
-					preParseRdbmsCSVMetaData(rdfMap);
-					parseMetadata();
-
-//					if(i ==0 ) {
-//						scriptFile.println("-- ********* begin load process ********* ");
-//					}
-//					scriptFile.println("-- ********* begin load " + fileName + " ********* ");
-//					LOGGER.info("-- ********* begin load " + fileName + " ********* ");
-
-					processDisplayNames();
-					skipRows();
-					processData(i == 0);
-
-//					scriptFile.println("-- ********* completed processing file " + fileName + " ********* ");
-//					LOGGER.info("-- ********* completed processing file " + fileName + " ********* ");
-
-				} finally {
-					closeCSVFile();
-					clearTables();
-				}
-			}
-			cleanUpDBTables(engineName, allowDuplicates);
-			createBaseRelations();
-			RDBMSEngineCreationHelper.writeDefaultQuestionSheet(engine, queryUtil);
-		} catch(FileNotFoundException e) {
-			error = true;
-			throw new FileNotFoundException(e.getMessage());
-		} catch(IOException e) {
-			error = true;
-			throw new IOException(e.getMessage());
-		} finally {
-			if(error || autoLoad) {
-				closeDB();
-				closeOWL();
-			} else {
-				commitDB();
-			}
-//			if(scriptFile != null) {
-//				scriptFile.println("-- ********* completed load process ********* ");
-//				scriptFile.close();
-//			}
-		}
-
-		long end = System.currentTimeMillis();
-		LOGGER.info((end - start)/1000 + " seconds to load...");
-
-		return engine;
-	}*/
-	//Restructuring
 	public IEngine importFileWithOutConnection(ImportOptions options) 
 			throws RepositoryException, FileNotFoundException, IOException, SailException, Exception {
-		
+		LOGGER.setLevel(Level.WARN);
+
 		String smssLocation = options.getSMSSLocation();
 		String engineName = options.getDbName();
 		String fileNames = options.getFileLocations();
 		String customBase = options.getBaseUrl();
-		String owlFile = options.getOwlFileLocation();		
+		String owlFile = options.getOwlFileLocation();
+		String propertyFiles = options.getPropertyFiles();
 		SQLQueryUtil.DB_TYPE dbType = options.getRDBMSDriverType();
 		boolean allowDuplicates = options.isAllowDuplicates();
 		
@@ -168,8 +95,8 @@ public class RDBMSReader extends AbstractCSVFileReader {
 
 		boolean error = false;
 		queryUtil = SQLQueryUtil.initialize(dbType);
-		String[] files = prepareReader(fileNames, customBase, owlFile, smssLocation);
-		LOGGER.setLevel(Level.WARN);
+		String[] files = prepareCsvReader(fileNames, customBase, owlFile, smssLocation, propertyFiles);
+
 		try {
 			openRdbmsEngineWithoutConnection(engineName);
 			openScriptFile(engineName);
@@ -182,6 +109,10 @@ public class RDBMSReader extends AbstractCSVFileReader {
 					openCSVFile(fileName);
 					// load the prop file for the CSV file 
 					if(propFileExist){
+						// if we have multiple files, load the correct one
+						if(propFiles != null) {
+							propFile = propFiles[i];
+						}
 						openProp(propFile);
 					} else {
 						rdfMap = rdfMapArr[i];
@@ -247,81 +178,21 @@ public class RDBMSReader extends AbstractCSVFileReader {
 	 * @param allowDuplicates			Boolean to allow duplicate rows in the tables
 	 * @throws IOException
 	 */
-/*	public void importFileWithConnection(String engineName, String fileNames, String customBase, String owlFile, SQLQueryUtil.DB_TYPE dbType, boolean allowDuplicates) 
-			throws IOException {
-
-		long start = System.currentTimeMillis();
-
-		queryUtil = SQLQueryUtil.initialize(dbType);
-		String[] files = prepareReader(fileNames, customBase, owlFile, engineName);
-
-		LOGGER.setLevel(Level.WARN);
-		try {
-			openEngineWithConnection(engineName);
-			openScriptFile(engineName);
-			findIndexes(engine.getEngineName());
-			for(int i = 0; i<files.length;i++)
-			{
-				try {
-					String fileName = files[i];
-
-					// open the csv file
-					openCSVFile(fileName);
-					// load the prop file for the CSV file 
-					if(propFileExist){
-						openProp(propFile);
-					} else {
-						rdfMap = rdfMapArr[i];
-					}
-					preParseRdbmsCSVMetaData(rdfMap);
-					parseMetadata();
-
-//					if(i ==0 ) {
-//						scriptFile.println("-- ********* begin load process ********* ");
-//					}
-//					scriptFile.println("-- ********* begin load " + fileName + " ********* ");
-//					LOGGER.info("-- ********* begin load " + fileName + " ********* ");
-					
-					processDisplayNames();
-					skipRows();
-					processData(false);
-					
-//					scriptFile.println("-- ********* completed processing file " + fileName + " ********* ");
-//					LOGGER.info("-- ********* completed processing file " + fileName + " ********* ");
-				} finally {
-					closeCSVFile();
-					clearTables();
-				}
-			}
-			createBaseRelations();
-			addOriginalIndices();
-			cleanUpDBTables(engineName, allowDuplicates);
-			RDBMSEngineCreationHelper.addToExistingQuestionFile(engine, addedTables, queryUtil);
-		} finally {
-//			if(scriptFile != null) {
-//				scriptFile.println("-- ********* completed load process ********* ");
-//				scriptFile.close();
-//			}
-		}
-
-		long end = System.currentTimeMillis();
-		LOGGER.info((end - start)/1000 + " seconds to load...");
-	}*/
-	//Restructuring
 	public void importFileWithConnection(ImportOptions options) 
 			throws IOException {
 
 		String engineName = options.getDbName();
 		String fileNames = options.getFileLocations();
 		String customBase = options.getBaseUrl();
-		String owlFile = options.getOwlFileLocation();		
+		String owlFile = options.getOwlFileLocation();
 		SQLQueryUtil.DB_TYPE dbType = options.getRDBMSDriverType();
+		String propertyFiles = options.getPropertyFiles();
 		boolean allowDuplicates = options.isAllowDuplicates();
 
 		long start = System.currentTimeMillis();
 
 		queryUtil = SQLQueryUtil.initialize(dbType);
-		String[] files = prepareReader(fileNames, customBase, owlFile, engineName);
+		String[] files = prepareCsvReader(fileNames, customBase, owlFile, engineName, propertyFiles);
 
 		LOGGER.setLevel(Level.WARN);
 		try {
@@ -337,6 +208,10 @@ public class RDBMSReader extends AbstractCSVFileReader {
 					openCSVFile(fileName);
 					// load the prop file for the CSV file 
 					if(propFileExist){
+						// if we have multiple files, load the correct one
+						if(propFiles != null) {
+							propFile = propFiles[i];
+						}
 						openProp(propFile);
 					} else {
 						rdfMap = rdfMapArr[i];
