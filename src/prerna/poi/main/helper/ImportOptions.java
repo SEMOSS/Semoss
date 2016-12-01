@@ -36,6 +36,7 @@ public class ImportOptions {
 		AUTO_LOAD, 				// should point to boolean - determine if we should load the database directly or shut it down and have
 								// have the smss watcher find the engine and load it
 		DEFINED_METAMODEL,		// should point to Hashtable<String, String>[] - only valid for csv upload
+		DEFINED_PROPERTY_FILES,	// should be a ";" delimited string array containing the full path to the files
 		CSV_DATA_TYPE_MAP,		// should point to Map<String, Map<String, String>> - only valid for flat upload
 		EXCEL_DATA_TYPE_MAP,	// should point to List<Map<String, Map<String, String>> - only valid for flat upload
 		CSV_DATA_NEW_HEADERS,	// should point to Map<String, Map<String, String>
@@ -213,6 +214,18 @@ public class ImportOptions {
 	
 	public void setMetamodelArray(Hashtable<String, String>[] metamodelArray) {
 		thisMap.put(IMPORT_OPTIONS.DEFINED_METAMODEL, metamodelArray);
+	}
+	
+	/**
+	 * Get the metamodel for a set of csv files
+	 * @return
+	 */
+	public String getPropertyFiles() {
+		return (String) thisMap.get(IMPORT_OPTIONS.DEFINED_PROPERTY_FILES);
+	}
+	
+	public void setPropertyFiles(String propertyFiles) {
+		thisMap.put(IMPORT_OPTIONS.DEFINED_PROPERTY_FILES, propertyFiles);
 	}
 	
 	/**
