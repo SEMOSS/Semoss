@@ -107,7 +107,8 @@
 		<field name="algorithms" type="text_en_splitting" indexed="true" stored="true" required="false" multiValued="true" /> 
 		<!-- need to keep track if this insight exists from a db or is a cached tinkerframe -->
 		<field name="non_db_insight" type="boolean" indexed="false" stored="true" required="false" multiValued="false" />
-
+		<!-- need to keep track if this insight exists from a db or is a cached tinkerframe -->
+		<field name="image" type="string" indexed="false" stored="true" required="false" multiValued="false" />
 		
 		<!-- holds the actual insight definition that is used by BE to generate the insight, holds information regarding queries, joins, params, etc. -->
 		<!-- <field name="insight_definition" type="string" indexed="false" stored="true" required="true" multiValued="true" /> -->
