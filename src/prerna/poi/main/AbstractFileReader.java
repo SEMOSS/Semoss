@@ -53,8 +53,10 @@ public abstract class AbstractFileReader extends AbstractEngineCreator {
 
 	private static final Logger logger = LogManager.getLogger(AbstractFileReader.class.getName());
 
+	// path to the set of propFiles for automated
+	protected String[] propFiles;
 	// the path to the prop file being used to load the engine
-	protected String propFile; // only the case on thick
+	protected String propFile;
 		
 	// stores a list of rdf maps created from the FE
 	protected Hashtable<String, String>[] rdfMapArr;

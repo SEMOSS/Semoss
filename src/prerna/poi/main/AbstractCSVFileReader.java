@@ -85,9 +85,20 @@ public abstract class AbstractCSVFileReader extends AbstractFileReader {
 		LOGGER.info("Found headers: " + Arrays.toString(header));
 
 		// such that the thick client works if a prop file is passed in
-		this.propFile = this.header[this.header.length-1];
+		// we also need to adjust for when there are multiple files
+		if(this.propFiles != null) {
+			this.propFile = this.header[this.header.length-1];
+		}
 	}
 
+	protected String[] prepareCsvReader(String fileNames, String customBase, String owlFile, String bdPropFile, String propFile){
+		if(propFile != null && !propFile.isEmpty()) {
+			this.propFileExist = true;
+			this.propFiles = propFile.split(";");
+		}
+		return prepareReader(fileNames, customBase, owlFile, bdPropFile);
+	} 
+	
 	/**
 	 * Closes the CSV file streams
 	 * @throws IOException 
