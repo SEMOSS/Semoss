@@ -318,4 +318,14 @@ public abstract class AbstractFileReader extends AbstractEngineCreator {
 		this.rdfMapArr = rdfMapArr;
 		this.propFileExist = false;
 	}
+	
+	/**
+	 * Set the prop file location
+	 * @param propFileLocation
+	 */
+	public void setPropFile(String propFileLocation) {
+		this.propFile = propFileLocation;
+		this.propFileExist = true;
+	}
+	
 }
