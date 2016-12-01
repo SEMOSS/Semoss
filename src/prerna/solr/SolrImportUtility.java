@@ -42,6 +42,7 @@ public final class SolrImportUtility {
 	private static final String PARAMS_FINDER = SolrIndexEngine.PARAMS + " : ";
 	private static final String ALGORITHMS_FINDER = SolrIndexEngine.ALGORITHMS + " : "; 
 	private static final String IS_NON_DB_INSIGHT_FINDER = SolrIndexEngine.NON_DB_INSIGHT + " : ";
+	private static final String IMAGE_FINDER = SolrIndexEngine.IMAGE + " : ";
 
 	// this is a utility class
 	// not meant to create an instance
@@ -153,6 +154,8 @@ public final class SolrImportUtility {
 			String params = null;
 			String algorithms = null;
 			Boolean isNonDbInsight = null;
+			String image = null;
+
 			List<String> enginesList = new ArrayList<String>();
 			List<String> tagsList = new ArrayList<String>();
 			List<String> commentsList = new ArrayList<String>();
@@ -221,7 +224,10 @@ public final class SolrImportUtility {
 					algorithmsList.add(algorithms);
 				} else if (currentLine.startsWith(IS_NON_DB_INSIGHT_FINDER)) {
 					isNonDbInsight = Boolean.parseBoolean(currentLine.substring(currentLine.indexOf(':') + 2).trim());
-				} 
+				} else if (currentLine.startsWith(IMAGE_FINDER)) {
+					image = currentLine.substring(currentLine.indexOf(':') + 2).trim();
+				}  
+				
 			}
 			
 			// once we have stored all the values
@@ -331,7 +337,9 @@ public final class SolrImportUtility {
 			if(isNonDbInsight != null) {
 				insightQueryResults.put(SolrIndexEngine.NON_DB_INSIGHT, isNonDbInsight);
 			}
-			
+			if(image != null && !image.isEmpty()) {
+				insightQueryResults.put(SolrIndexEngine.IMAGE, image);
+			}
 			// now we are done with adding all the fields
 			// lets go ahead and add it to the engine
 			solrE.addInsight(id, insightQueryResults);
