@@ -46,7 +46,9 @@ import java.nio.file.attribute.FileTime;
 import java.security.KeyManagementException;
 import java.security.KeyStoreException;
 import java.security.NoSuchAlgorithmException;
+import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.sql.Statement;
 import java.text.DateFormat;
 import java.text.NumberFormat;
 import java.text.ParseException;
@@ -117,6 +119,7 @@ import prerna.engine.api.ISelectStatement;
 import prerna.engine.api.ISelectWrapper;
 import prerna.engine.impl.AbstractEngine;
 import prerna.engine.impl.MetaHelper;
+import prerna.engine.impl.QuestionAdministrator;
 import prerna.engine.impl.rdbms.RDBMSNativeEngine;
 import prerna.engine.impl.rdf.InMemorySesameEngine;
 import prerna.nameserver.AddToMasterDB;
@@ -126,9 +129,11 @@ import prerna.poi.main.BaseDatabaseCreator;
 import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.solr.SolrIndexEngine;
 import prerna.ui.components.api.IPlaySheet;
+import prerna.ui.components.playsheets.datamakers.DataMakerComponent;
 import prerna.ui.components.playsheets.datamakers.IDataMaker;
 import prerna.ui.components.playsheets.datamakers.ISEMOSSAction;
 import prerna.ui.components.playsheets.datamakers.ISEMOSSTransformation;
+import prerna.ui.components.playsheets.datamakers.PKQLTransformation;
 
 /**
  * The Utility class contains a variety of miscellaneous functions implemented extensively throughout SEMOSS.
@@ -3498,5 +3503,91 @@ public class Utility {
 		return f;
 	}
 	
+	
+	// i hope this doesn't need to stay here for long
+	// only because we have a dumb way of passing insights as old question file
+	// instead of keeping what is in the insights rdbms
+	public static void updateExploreInstanceInsight(IEngine engine) {
+		// ignore local master db
+		// this is important since DataMakerComponent will try to load the engine
+		// but the engine is already in a lock since this is called when the engine is called
+		// this will be cleaned up once we get rid of DMC
+		String engineName = engine.getEngineName();
+		if(engineName.equals(Constants.LOCAL_MASTER_DB_NAME)) {
+			return;
+		}
+		
+		String insightId = null;
+		
+		// need to get the insight
+		IEngine insightRDBMS = engine.getInsightDatabase();
+		
+		// to delete from solr, we need to get the insight id
+		Map<String, Object> queryMap = (Map<String, Object>) insightRDBMS.execQuery("SELECT ID FROM QUESTION_ID p WHERE p.QUESTION_NAME = 'Explore an instance of a selected node type' OR p.QUESTION_NAME = 'Explore a concept from the database'");
+		try {
+			ResultSet rs = (ResultSet) queryMap.get(RDBMSNativeEngine.RESULTSET_OBJECT);
+			while(rs.next()) {
+				insightId = rs.getObject(1) + "";
+			}
+			// close the streams
+			Statement stmt = (Statement) queryMap.get(RDBMSNativeEngine.STATEMENT_OBJECT);
+			rs.close();
+			stmt.close();
+		} catch (SQLException e) {
+			e.printStackTrace();
+		}
+		
+		if(insightId == null) {
+			LOGGER.info(engineName + " does not have explore an instance query in database to update");
+			return;
+		}
+		
+		// now we need to modify the insight DMC list to be the new values
+		QuestionAdministrator questionAdmin = new QuestionAdministrator(engine);
+		
+		String insightName = "Explore an instance of a selected node type";
+		String perspective = "Generic-Perspective";
+		String layout = "Graph";
+		String order = "1";
+		String dmName = "TinkerFrame";
+		boolean isDbQuery = false;
+		Map<String, String> dataTableAlign = new HashMap<String, String>();
+		List<SEMOSSParam> params = new Vector<SEMOSSParam>();
+		String uiOptions = "";
+		
+		// create an empty comp and add the pkqls 
+		Vector<DataMakerComponent> dmcList = new Vector<DataMakerComponent>();
+		DataMakerComponent emptyComp = new DataMakerComponent(Constants.LOCAL_MASTER_DB_NAME, Constants.EMPTY);
+		dmcList.add(emptyComp);
+
+		// add the data.model pkql
+		PKQLTransformation trans = new PKQLTransformation();
+		Map<String, Object> prop = new HashMap<String, Object>();
+		String pkqlCmd = "data.model(<json>{\"jsonView\":[{\"title\":\"Select Parameters:\",\"Description\":\"Explore instances of selected concept\",\"pkqlCommand\":\""
+				+ "data.frame('graph');data.import(api:<engine>.query([c:<concept>],(c:<concept>=[<instance>])));panel[0].viz(Graph,[]);\",\"input\": {\"concept\": "
+				+ "{\"name\": \"concept\",\"type\":\"dropdown\",\"required\": true,\"label\": \"Concept\",\"optionsGetter\": {\"command\": \"database.concepts(<engine>);"
+				+ "\",\"dependInput\": []},\"options\": [],\"value\": \"\"},\"instance\": {\"name\": \"instance\",\"type\": \"checkBox\",\"required\": true,\"label\": "
+				+ "\"Instance\",\"optionsGetter\": {\"command\": \"data.query(api:<engine>.query([c:<concept>],{'limit':50, 'offset':0, 'getCount': 'false'}));\","
+				+ "\"dependInput\": [\"concept\"]},\"options\": [],\"value\": \"\"},\"execute\": {\"name\": \"execute\",\"type\": \"buttonGroup\",\"required\": true,"
+				+ "\"position\": \"bottom\",\"label\": \"\",\"optionsGetter\": [],\"options\": [\"Execute\"],\"value\": \"\",\"attribute\": {\"buttonGroupAttr\": "
+				+ "\"style='display:block'\"}}}}]}</json>);";		
+		pkqlCmd = pkqlCmd.replace("<engine>", engine.getEngineName());
+		prop.put(PKQLTransformation.EXPRESSION, pkqlCmd);
+		trans.setProperties(prop);
+		emptyComp.addPostTrans(trans);
+		
+		questionAdmin.modifyQuestion(insightId, insightName, perspective, dmcList, layout, order, dmName, isDbQuery, dataTableAlign, params, uiOptions);
+		
+		Map<String, Object> solrMap = new HashMap<String, Object>();
+		// in case we modified the explore instance name since some legacy insights have difference in naming between rdf and rdbms
+		solrMap.put(SolrIndexEngine.INDEX_NAME, insightName);
+		solrMap.put(SolrIndexEngine.STORAGE_NAME, insightName);
+		try {
+			SolrIndexEngine.getInstance().modifyInsight(engineName + "_" + insightId, solrMap);
+		} catch (KeyManagementException | NoSuchAlgorithmException | KeyStoreException | SolrServerException
+				| IOException e) {
+			e.printStackTrace();
+		}
+	}
 
 }
