@@ -202,6 +202,11 @@ public abstract class AbstractEngine implements IEngine {
 					// set the necessary fun stuff
 					createInsights(baseFolder);
 				}
+				// UPDATE INSIGHTS EXPLORE INSTANCE QUERY
+				// TO BE A PKQL DEFAULT WIDGET INSTEAD OF 
+				// HARD CODED QUERY
+				Utility.updateExploreInstanceInsight(this);
+				
 				// load the rdf owl db
 				String owlFile = prop.getProperty(Constants.OWL);
 				if (owlFile != null) {
@@ -268,7 +273,7 @@ public abstract class AbstractEngine implements IEngine {
 			converter.updateSMSSFile();
 		}
 	}
-
+	
 	@Override
 	public void closeDB() {
 		if(this.baseDataEngine != null) {
