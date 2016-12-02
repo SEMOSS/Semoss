@@ -75,7 +75,7 @@ public abstract class AbstractCSVFileReader extends AbstractFileReader {
 
 		// use the csv file helper to load the data
 		csvHelper = new CSVFileHelper();
-		csvHelper.setUsingPropFile(this.propFileExist);
+		csvHelper.setUsingPropFile(this.propFileDefinedInsideCsv);
 		// assume csv
 		csvHelper.setDelimiter(',');
 		csvHelper.parse(FILE_LOCATION);
@@ -94,6 +94,7 @@ public abstract class AbstractCSVFileReader extends AbstractFileReader {
 	protected String[] prepareCsvReader(String fileNames, String customBase, String owlFile, String bdPropFile, String propFile){
 		if(propFile != null && !propFile.isEmpty()) {
 			this.propFileExist = true;
+			this.propFileDefinedInsideCsv = false;
 			this.propFiles = propFile.split(";");
 		}
 		return prepareReader(fileNames, customBase, owlFile, bdPropFile);
