@@ -1089,6 +1089,24 @@ public class Translation extends DepthFirstAdapter {
 	}
 	
 	@Override
+	public void inAPanelHandle(APanelHandle node) {
+		System.out.println("in a panel handle");
+		initReactor(PKQLEnum.VIZ);
+		curReactor.put(PKQLEnum.VIZ, node.toString());
+	}
+
+	@Override
+	public void outAPanelHandle(APanelHandle node) {
+		System.out.println("out a panel handle");
+		List handleKeys = (List)curReactor.getValue(PKQLEnum.ROW_CSV);
+
+		runner.addFeData("handle", handleKeys, true);
+		deinitReactor(PKQLEnum.VIZ, "", "");
+		runner.setResponse("Successfully set handle keys");
+		runner.setStatus(PKQLRunner.STATUS.SUCCESS);
+	}
+	
+	@Override
 	public void outADataModel(ADataModel node) {
 		String json = node.getJsonblock().getText();
 		json = json.replace("<json>", "");
