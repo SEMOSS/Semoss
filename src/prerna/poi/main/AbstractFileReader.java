@@ -65,6 +65,8 @@ public abstract class AbstractFileReader extends AbstractEngineCreator {
 
 	// boolean to determine if we are looking for a prop file or assuming user defined metamodel via ui
 	protected boolean propFileExist = true;
+	// boolean to differentiate when prop file is defined within csv file
+	protected boolean propFileDefinedInsideCsv = true;
 	
 	// the base URI for properties when loading rdf engines
 	protected String basePropURI= "";
@@ -77,7 +79,6 @@ public abstract class AbstractFileReader extends AbstractEngineCreator {
 	protected Hashtable<String,String> displayNamesHash = new Hashtable<String,String>();
 	protected Hashtable<String, String[]> baseRelations = new Hashtable<String, String[]>();
 
-	
 	public abstract IEngine importFileWithOutConnection(ImportOptions options) throws Exception;
 	
 	public abstract void importFileWithConnection(ImportOptions options) throws Exception;
@@ -328,6 +329,7 @@ public abstract class AbstractFileReader extends AbstractEngineCreator {
 	public void setPropFile(String propFileLocation) {
 		this.propFile = propFileLocation;
 		this.propFileExist = true;
+		this.propFileDefinedInsideCsv = false;
 	}
 	
 }
