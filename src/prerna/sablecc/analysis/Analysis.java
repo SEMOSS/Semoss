@@ -56,6 +56,7 @@ public interface Analysis extends Switch
     void caseAPanelClonePanelop(APanelClonePanelop node);
     void caseAPanelClosePanelop(APanelClosePanelop node);
     void caseAOutputInsightPanelop(AOutputInsightPanelop node);
+    void caseAPanelHandlePanelop(APanelHandlePanelop node);
     void caseADatatypeDataop(ADatatypeDataop node);
     void caseADataconnectDataop(ADataconnectDataop node);
     void caseADataconnectdbDataop(ADataconnectdbDataop node);
@@ -80,6 +81,7 @@ public interface Analysis extends Switch
     void caseAPanelConfig(APanelConfig node);
     void caseAPanelClone(APanelClone node);
     void caseAPanelClose(APanelClose node);
+    void caseAPanelHandle(APanelHandle node);
     void caseADataFrame(ADataFrame node);
     void caseADataFrameHeader(ADataFrameHeader node);
     void caseADataFrameDuplicates(ADataFrameDuplicates node);
@@ -275,6 +277,7 @@ public interface Analysis extends Switch
     void caseTPanelviz(TPanelviz node);
     void caseTPanelclone(TPanelclone node);
     void caseTPanelclose(TPanelclose node);
+    void caseTPanelhandle(TPanelhandle node);
     void caseTDataframe(TDataframe node);
     void caseTDataframeheader(TDataframeheader node);
     void caseTDataframeduplicates(TDataframeduplicates node);
