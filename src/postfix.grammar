@@ -92,6 +92,7 @@ Tokens
  panelviz =  panelprefix '.viz';
  panelclone = panelprefix '.clone';
  panelclose = panelprefix '.close';
+ panelhandle = panelprefix '.handle';
  dataframe = 'data.frame';
  dataframeheader = 'data.frame.getHeaders';
  dataframeduplicates = 'data.frame.hasDuplicates';
@@ -180,6 +181,7 @@ panelop = // panelop is usually of the form of viz.change, viz.tools, viz.color
 		| {panel_clone} panel_clone
 		| {panel_close} panel_close
 		| {output_insight} output_insight
+		| {panel_handle} panel_handle
 		;
 		
 dataop = // dataop is usually of the form of data.frame, etc.
@@ -210,6 +212,7 @@ databaseop = // databaseop is usually of the form database.list, database.concep
 		| {database_concept_properties} database_concept_properties
 		;
 
+		
 panel_viz = // e.g. panel.viz(bar, [c:Title, c:Budget]); panelviz( vizType, ordered headers );
 		panelviz l_par [layout]:id [c1]:comma [datatablealign]:flex_selector_row [c2]:comma? [uioptions]:map_obj? r_par
 		;
@@ -244,6 +247,10 @@ panel_clone = // e.g. panel.clone(1);
 		
 panel_close = // e.g. panel.close();
 		panelclose l_par r_par
+		;
+		
+panel_handle = // e.g. panel.handle(['console', 'open']);
+		panelhandle l_par [handlekeys]: csv_row? r_par
 		;
 		
 data_frame = // e.g. panel.setBuilder('graph');
