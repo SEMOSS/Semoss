@@ -38,7 +38,7 @@ public class RDBMSEngineCreationHelper {
 		Properties prop = new Properties();
 		prop.put("PERSPECTIVE", "Generic-Perspective");
 		String genericQueries = "GQ0";
-		String questionName = "Explore a concept from the database";
+		String questionName = "Explore an instance of a selected node type";
 		String exploreQuery = "SELECT X.@Concept-Concept:Concept@ AS @Concept-Concept:Concept@ "
 				+ "From @Concept-Concept:Concept@ X WHERE X.@Concept-Concept:Concept@='@Instance-Instance:Instance@'";
 		String conceptParamQuery = "SELECT DISTINCT (COALESCE(?DisplayName, ?PhysicalName) AS ?entity) WHERE "
