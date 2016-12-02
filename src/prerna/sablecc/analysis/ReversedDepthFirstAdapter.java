@@ -1000,6 +1000,27 @@ public class ReversedDepthFirstAdapter extends AnalysisAdapter
         outAOutputInsightPanelop(node);
     }
 
+    public void inAPanelHandlePanelop(APanelHandlePanelop node)
+    {
+        defaultIn(node);
+    }
+
+    public void outAPanelHandlePanelop(APanelHandlePanelop node)
+    {
+        defaultOut(node);
+    }
+
+    @Override
+    public void caseAPanelHandlePanelop(APanelHandlePanelop node)
+    {
+        inAPanelHandlePanelop(node);
+        if(node.getPanelHandle() != null)
+        {
+            node.getPanelHandle().apply(this);
+        }
+        outAPanelHandlePanelop(node);
+    }
+
     public void inADatatypeDataop(ADatatypeDataop node)
     {
         defaultIn(node);
@@ -1666,6 +1687,39 @@ public class ReversedDepthFirstAdapter extends AnalysisAdapter
             node.getPanelclose().apply(this);
         }
         outAPanelClose(node);
+    }
+
+    public void inAPanelHandle(APanelHandle node)
+    {
+        defaultIn(node);
+    }
+
+    public void outAPanelHandle(APanelHandle node)
+    {
+        defaultOut(node);
+    }
+
+    @Override
+    public void caseAPanelHandle(APanelHandle node)
+    {
+        inAPanelHandle(node);
+        if(node.getRPar() != null)
+        {
+            node.getRPar().apply(this);
+        }
+        if(node.getHandlekeys() != null)
+        {
+            node.getHandlekeys().apply(this);
+        }
+        if(node.getLPar() != null)
+        {
+            node.getLPar().apply(this);
+        }
+        if(node.getPanelhandle() != null)
+        {
+            node.getPanelhandle().apply(this);
+        }
+        outAPanelHandle(node);
     }
 
     public void inADataFrame(ADataFrame node)
