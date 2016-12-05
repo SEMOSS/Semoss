@@ -10,6 +10,8 @@ public final class APanelTools extends PPanelTools
     private TPaneltools _paneltools_;
     private TLPar _lPar_;
     private PMapObj _map_;
+    private TComma _comma_;
+    private PWordOrNum _state_;
     private TRPar _rPar_;
 
     public APanelTools()
@@ -21,6 +23,8 @@ public final class APanelTools extends PPanelTools
         @SuppressWarnings("hiding") TPaneltools _paneltools_,
         @SuppressWarnings("hiding") TLPar _lPar_,
         @SuppressWarnings("hiding") PMapObj _map_,
+        @SuppressWarnings("hiding") TComma _comma_,
+        @SuppressWarnings("hiding") PWordOrNum _state_,
         @SuppressWarnings("hiding") TRPar _rPar_)
     {
         // Constructor
@@ -29,6 +33,10 @@ public final class APanelTools extends PPanelTools
         setLPar(_lPar_);
 
         setMap(_map_);
+
+        setComma(_comma_);
+
+        setState(_state_);
 
         setRPar(_rPar_);
 
@@ -41,6 +49,8 @@ public final class APanelTools extends PPanelTools
             cloneNode(this._paneltools_),
             cloneNode(this._lPar_),
             cloneNode(this._map_),
+            cloneNode(this._comma_),
+            cloneNode(this._state_),
             cloneNode(this._rPar_));
     }
 
@@ -125,6 +135,56 @@ public final class APanelTools extends PPanelTools
         this._map_ = node;
     }
 
+    public TComma getComma()
+    {
+        return this._comma_;
+    }
+
+    public void setComma(TComma node)
+    {
+        if(this._comma_ != null)
+        {
+            this._comma_.parent(null);
+        }
+
+        if(node != null)
+        {
+            if(node.parent() != null)
+            {
+                node.parent().removeChild(node);
+            }
+
+            node.parent(this);
+        }
+
+        this._comma_ = node;
+    }
+
+    public PWordOrNum getState()
+    {
+        return this._state_;
+    }
+
+    public void setState(PWordOrNum node)
+    {
+        if(this._state_ != null)
+        {
+            this._state_.parent(null);
+        }
+
+        if(node != null)
+        {
+            if(node.parent() != null)
+            {
+                node.parent().removeChild(node);
+            }
+
+            node.parent(this);
+        }
+
+        this._state_ = node;
+    }
+
     public TRPar getRPar()
     {
         return this._rPar_;
@@ -157,6 +217,8 @@ public final class APanelTools extends PPanelTools
             + toString(this._paneltools_)
             + toString(this._lPar_)
             + toString(this._map_)
+            + toString(this._comma_)
+            + toString(this._state_)
             + toString(this._rPar_);
     }
 
@@ -179,6 +241,18 @@ public final class APanelTools extends PPanelTools
         if(this._map_ == child)
         {
             this._map_ = null;
+            return;
+        }
+
+        if(this._comma_ == child)
+        {
+            this._comma_ = null;
+            return;
+        }
+
+        if(this._state_ == child)
+        {
+            this._state_ = null;
             return;
         }
 
@@ -210,6 +284,18 @@ public final class APanelTools extends PPanelTools
         if(this._map_ == oldChild)
         {
             setMap((PMapObj) newChild);
+            return;
+        }
+
+        if(this._comma_ == oldChild)
+        {
+            setComma((TComma) newChild);
+            return;
+        }
+
+        if(this._state_ == oldChild)
+        {
+            setState((PWordOrNum) newChild);
             return;
         }
 
