@@ -881,7 +881,7 @@ public class RDBMSReader extends AbstractCSVFileReader {
 				nodePropArrayList.add(relation);
 
 				String[] strSplit = relation.split("%");
-				String concept = strSplit[0];
+				String concept = strSplit[0].trim();
 				String cleanConceptTableName = RDBMSEngineCreationHelper.cleanTableName(concept);
 				Map<String, String> propMap = null;
 				if(concepts.containsKey(concept)) {
@@ -895,7 +895,7 @@ public class RDBMSReader extends AbstractCSVFileReader {
 					} else {
 						propMap.put(concept, dataTypes[csvColumnToIndex.get(concept)]);
 					}
-					owler.addConcept(cleanConceptTableName, propMap.get(concept));
+					owler.addConcept(cleanConceptTableName, propMap.get(concept).trim());
 				}
 				for(int i = 1; i < strSplit.length; i++) {
 					String prop = strSplit[i];
@@ -907,7 +907,7 @@ public class RDBMSReader extends AbstractCSVFileReader {
 					} else {
 						propMap.put(prop, dataTypes[csvColumnToIndex.get(prop)]);
 					}
-					owler.addProp(cleanConceptTableName, cleanProp, propMap.get(prop));
+					owler.addProp(cleanConceptTableName, cleanProp, propMap.get(prop).trim());
 				}
 
 				concepts.put(concept, propMap);
@@ -930,11 +930,13 @@ public class RDBMSReader extends AbstractCSVFileReader {
 				relationArrayList.add(relation);
 
 				String[] strSplit = relation.split("@");
-				String fromConcept = strSplit[0];
-				String rel = strSplit[1];
-				String toConcept = strSplit[2];
+				String fromConcept = strSplit[0].trim();
+				String rel = strSplit[1].trim();
+				String toConcept = strSplit[2].trim();
+				
 				String cleanFromConceptTableName = RDBMSEngineCreationHelper.cleanTableName(fromConcept);
 				String cleanToConceptTableName = RDBMSEngineCreationHelper.cleanTableName(toConcept);
+				
 				// need to make sure all concepts are there
 				if(!concepts.containsKey(fromConcept)) {
 					Map<String, String> propMap = new LinkedHashMap<String, String>();
