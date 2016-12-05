@@ -3526,8 +3526,10 @@ public class Utility {
 		Map<String, Object> queryMap = (Map<String, Object>) insightRDBMS.execQuery("SELECT ID FROM QUESTION_ID p WHERE p.QUESTION_NAME = 'Explore an instance of a selected node type' OR p.QUESTION_NAME = 'Explore a concept from the database'");
 		try {
 			ResultSet rs = (ResultSet) queryMap.get(RDBMSNativeEngine.RESULTSET_OBJECT);
-			while(rs.next()) {
-				insightId = rs.getObject(1) + "";
+			if(rs != null) {
+				while(rs.next()) {
+					insightId = rs.getObject(1) + "";
+				}
 			}
 			// close the streams
 			Statement stmt = (Statement) queryMap.get(RDBMSNativeEngine.STATEMENT_OBJECT);
