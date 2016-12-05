@@ -426,11 +426,11 @@ public class FactSheetWriter {
 		XSSFColor lightBlue = new XSSFColor();
 		int r = 0, g = 112, b = 192;
 		byte[] lightBlueByte = {(byte)r, (byte)g, (byte)b};
-		lightBlue.setRgb(lightBlueByte);
+		lightBlue.setRGB(lightBlueByte);
 		XSSFColor darkBlue = new XSSFColor();
 		int rr = 0, gg = 32, bb = 96;
 		byte[] darkBlueByte = {(byte)rr, (byte)gg, (byte)bb};
-		darkBlue.setRgb(darkBlueByte);
+		darkBlue.setRGB(darkBlueByte);
 
 		writeHeader(wb, sheetToWriteOver);
 
@@ -967,12 +967,12 @@ public class FactSheetWriter {
 		XSSFColor red = new XSSFColor();
 		int r = 255, g = 0, b = 0;
 		byte[] redByte = {(byte)r, (byte)g, (byte)b};
-		red.setRgb(redByte);
+		red.setRGB(redByte);
 
 		XSSFColor white = new XSSFColor();
 		int rr = 255, gg = 255, bb = 255;
 		byte[] whiteByte = {(byte)rr, (byte)gg, (byte)bb};
-		white.setRgb(whiteByte);
+		white.setRGB(whiteByte);
 
 		font.setFontHeightInPoints((short)10);
 		font.setFontName("Calibri");
