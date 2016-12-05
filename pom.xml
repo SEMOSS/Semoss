@@ -1186,7 +1186,7 @@
 		<dependency>
 			<groupId>org.apache.poi</groupId>
 			<artifactId>poi</artifactId>
-			<version>3.8</version>
+			<version>3.15</version>
 			<exclusions>
 				<exclusion>
 					<groupId>*</groupId>
@@ -1197,7 +1197,7 @@
 		<dependency>
 			<groupId>org.apache.poi</groupId>
 			<artifactId>poi-ooxml</artifactId>
-			<version>3.8</version>
+			<version>3.15</version>
 			<exclusions>
 				<exclusion>
 					<groupId>*</groupId>
@@ -1908,5 +1908,13 @@
 		    <artifactId>javassist</artifactId>
 		    <version>3.20.0-GA</version>
 		</dependency>
+		
+		<!-- zip file jars -->
+		<dependency>
+    		<groupId>net.lingala.zip4j</groupId>
+    		<artifactId>zip4j</artifactId>
+    		<version>1.3.2</version>
+		</dependency>
+		
 	</dependencies>
 </project>
