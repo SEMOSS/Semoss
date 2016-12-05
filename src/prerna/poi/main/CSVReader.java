@@ -294,10 +294,10 @@ public class CSVReader extends AbstractCSVFileReader {
 				String relation = relationArrayList.get(relIndex);
 				String[] strSplit = relation.split("@");
 				// get the subject and object for triple (the two indexes)
-				String sub = strSplit[0];
+				String sub = strSplit[0].trim();
 				String subject = "";
-				String predicate = strSplit[1];
-				String obj = strSplit[2];
+				String predicate = strSplit[1].trim();
+				String obj = strSplit[2].trim();
 				String object = "";
 
 				// see if subject node URI exists in prop file
@@ -393,7 +393,7 @@ public class CSVReader extends AbstractCSVFileReader {
 				String relation = nodePropArrayList.get(relIndex);
 				String[] strSplit = relation.split("%");
 				// get the subject (the first index) and objects for triple
-				String sub = strSplit[0];
+				String sub = strSplit[0].trim();
 				String subject = "";
 				// see if subject node URI exists in prop file
 				if(rdfMap.containsKey(sub))
@@ -419,7 +419,7 @@ public class CSVReader extends AbstractCSVFileReader {
 				// loop through all properties on the node
 				for(int i = 1; i < strSplit.length; i++)
 				{
-					String prop = strSplit[i];
+					String prop = strSplit[i].trim();
 					String property = "";
 					// see if property node URI exists in prop file
 					if(rdfMap.containsKey(prop))
@@ -465,7 +465,7 @@ public class CSVReader extends AbstractCSVFileReader {
 		String output = "";
 		for (int i=0;i<split.length;i++)
 		{
-			output = output+split[i];
+			output = output+split[i].trim();
 		}
 		return Utility.cleanString(output, true);
 	}

@@ -3521,6 +3521,11 @@ public class Utility {
 		
 		// need to get the insight
 		IEngine insightRDBMS = engine.getInsightDatabase();
+		if(insightRDBMS == null) {
+			LOGGER.info(engineName + " does not have an insight rdbms");
+			return;
+		}
+		
 		
 		// to delete from solr, we need to get the insight id
 		Map<String, Object> queryMap = (Map<String, Object>) insightRDBMS.execQuery("SELECT ID FROM QUESTION_ID p WHERE p.QUESTION_NAME = 'Explore an instance of a selected node type' OR p.QUESTION_NAME = 'Explore a concept from the database'");
@@ -3530,11 +3535,13 @@ public class Utility {
 				while(rs.next()) {
 					insightId = rs.getObject(1) + "";
 				}
+				
+				// close the streams
+				Statement stmt = (Statement) queryMap.get(RDBMSNativeEngine.STATEMENT_OBJECT);
+				rs.close();
+				stmt.close();
 			}
-			// close the streams
-			Statement stmt = (Statement) queryMap.get(RDBMSNativeEngine.STATEMENT_OBJECT);
-			rs.close();
-			stmt.close();
+			
 		} catch (SQLException e) {
 			e.printStackTrace();
 		}
