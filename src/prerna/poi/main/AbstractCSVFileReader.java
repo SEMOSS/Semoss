@@ -96,6 +96,8 @@ public abstract class AbstractCSVFileReader extends AbstractFileReader {
 			this.propFileExist = true;
 			this.propFileDefinedInsideCsv = false;
 			this.propFiles = propFile.split(";");
+		} else if(rdfMapArr != null) {
+			this.propFileDefinedInsideCsv = false;
 		}
 		return prepareReader(fileNames, customBase, owlFile, bdPropFile);
 	} 
