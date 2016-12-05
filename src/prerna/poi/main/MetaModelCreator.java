@@ -23,8 +23,8 @@ import prerna.util.Utility;
  */
 public class MetaModelCreator {
 
-	private CSVFileHelper helper;
-	//column headers
+	// private CSVFileHelper helper;
+	// column headers
 	private String[] columnHeaders;
 	private String[] dataTypes;
 	private Map<String, String> dataTypeMap;
@@ -66,7 +66,7 @@ public class MetaModelCreator {
 	}
 
 	public MetaModelCreator(CSVFileHelper helper, CreatorMode setting) {
-		this.helper = helper;
+//		this.helper = helper;
 		this.mode = setting;
 
 		this.columnHeaders = helper.getHeaders();
@@ -223,12 +223,32 @@ public class MetaModelCreator {
 							String[] components = relation.split("@");
 							String subject = components[0].trim();
 							String object = components[2].trim();
-							if(!ArrayUtilityMethods.arrayContainsValueIgnoreCase(columnHeaders, subject)) {
-								throw new NoSuchFieldException("CSV does not contain header : "+subject+".  Please update RELATION in .prop file");
+							
+							// do some header checks
+							if(subject.contains("+")) {
+								String[] subSplit = subject.split("\\+");
+								for(String sub : subSplit) {
+									if(!ArrayUtilityMethods.arrayContainsValueIgnoreCase(columnHeaders, sub)) {
+										throw new NoSuchFieldException("CSV does not contain header : "+sub+".  Please update RELATION in .prop file");
+									}
+								}
+							} else {
+								if(!ArrayUtilityMethods.arrayContainsValueIgnoreCase(columnHeaders, subject)) {
+									throw new NoSuchFieldException("CSV does not contain header : "+subject+".  Please update RELATION in .prop file");
+								}
 							}
 
-							if(!ArrayUtilityMethods.arrayContainsValueIgnoreCase(columnHeaders, object)) {
-								throw new NoSuchFieldException("CSV does not contain header : "+object+".  Please update RELATION in .prop file");
+							if(object.contains("+")) {
+								String[] objSplit = object.split("\\+");
+								for(String obj : objSplit) {
+									if(!ArrayUtilityMethods.arrayContainsValueIgnoreCase(columnHeaders, obj)) {
+										throw new NoSuchFieldException("CSV does not contain header : "+obj+".  Please update RELATION in .prop file");
+									}
+								}
+							} else {
+								if(!ArrayUtilityMethods.arrayContainsValueIgnoreCase(columnHeaders, object)) {
+									throw new NoSuchFieldException("CSV does not contain header : "+object+".  Please update RELATION in .prop file");
+								}
 							}
 
 							String[] subjectArr = {subject};
@@ -258,12 +278,31 @@ public class MetaModelCreator {
 							String subject = components[0].trim();
 							String object = components[1].trim();
 
-							if(!ArrayUtilityMethods.arrayContainsValueIgnoreCase(columnHeaders, subject)) {
-								throw new NoSuchFieldException("CSV does not contain header : "+subject+".  Please update NODE_PROP in .prop file");
+							// do some header checks
+							if(subject.contains("+")) {
+								String[] subSplit = subject.split("\\+");
+								for(String sub : subSplit) {
+									if(!ArrayUtilityMethods.arrayContainsValueIgnoreCase(columnHeaders, sub)) {
+										throw new NoSuchFieldException("CSV does not contain header : "+sub+".  Please update RELATION in .prop file");
+									}
+								}
+							} else {
+								if(!ArrayUtilityMethods.arrayContainsValueIgnoreCase(columnHeaders, subject)) {
+									throw new NoSuchFieldException("CSV does not contain header : "+subject+".  Please update RELATION in .prop file");
+								}
 							}
 
-							if(!ArrayUtilityMethods.arrayContainsValueIgnoreCase(columnHeaders, object)) {
-								throw new NoSuchFieldException("CSV does not contain header : "+object+".  Please update NODE_PROP in .prop file");
+							if(object.contains("+")) {
+								String[] objSplit = object.split("\\+");
+								for(String obj : objSplit) {
+									if(!ArrayUtilityMethods.arrayContainsValueIgnoreCase(columnHeaders, obj)) {
+										throw new NoSuchFieldException("CSV does not contain header : "+obj+".  Please update RELATION in .prop file");
+									}
+								}
+							} else {
+								if(!ArrayUtilityMethods.arrayContainsValueIgnoreCase(columnHeaders, object)) {
+									throw new NoSuchFieldException("CSV does not contain header : "+object+".  Please update RELATION in .prop file");
+								}
 							}
 
 							String[] subjectArr = {subject};
@@ -285,53 +324,53 @@ public class MetaModelCreator {
 
 				//Parses text written as : 
 				//DISPLAY_NAME	Title:Moovie_Title;Title%RevenueInternational:InternationalRevenueMovie;Title%Nominated:MoovieNominated;Studio:Stoodio;
-				if(prop.containsKey("DISPLAY_NAME")) {
-					String displayNameText = prop.getProperty("DISPLAY_NAME").trim(); 
-					if(!displayNameText.isEmpty()) {
-						List<Map<String, Object>> displayList = new ArrayList<>();
-						this.propFileData.put("itemDisplayName", displayList);
-
-
-						String[] displayNames = displayNameText.split(";");
-						for(String displayName : displayNames) {
-							String[] display = displayName.split(":");
-							String[] selectedDisplayNameArr = {display[1].trim()};
-							String[] selectedPropertyArr;
-							String[] selectedNodeArr;
-							if(display[0].contains("%")) {
-								String[] prop_node = display[0].split("%");
-
-								String subject = prop_node[0].trim();
-								String object = prop_node[1].trim(); 
-
-								if(!ArrayUtilityMethods.arrayContainsValueIgnoreCase(columnHeaders, subject)) {
-									throw new NoSuchFieldException("CSV does not contain header : "+subject+".  Please update DISPLAY_NAME in .prop file");
-								}
-
-								if(!ArrayUtilityMethods.arrayContainsValueIgnoreCase(columnHeaders, object)) {
-									throw new NoSuchFieldException("CSV does not contain header : "+object+".  Please update DISPLAY_NAME in .prop file");
-								}
-
-								selectedNodeArr = new String[]{subject};
-								selectedPropertyArr = new String[]{object};
-							} else {
-
-								String subject = display[0].trim();
-								if(!ArrayUtilityMethods.arrayContainsValueIgnoreCase(columnHeaders, subject)) {
-									throw new NoSuchFieldException("CSV does not contain header : "+subject+".  Please update DISPLAY_NAME in .prop file");
-								}
-								selectedPropertyArr = selectedNodeArr = new String[]{subject};
-							}
-
-							Map<String, Object> displayMap = new HashMap<>();
-
-							displayMap.put("selectedNode", selectedNodeArr);
-							displayMap.put("selectedProperty", selectedPropertyArr);
-							displayMap.put("selectedDisplayName", selectedDisplayNameArr);
-						}
-					}
-					//itemDisplayName -> [{selectedNode: [title], selectedProperty: [title], selectedDisplayName : [moovietitles]}, {selectedNode : title, selectedProperty : budget}]
-				} 
+//				if(prop.containsKey("DISPLAY_NAME")) {
+//					String displayNameText = prop.getProperty("DISPLAY_NAME").trim(); 
+//					if(!displayNameText.isEmpty()) {
+//						List<Map<String, Object>> displayList = new ArrayList<>();
+//						this.propFileData.put("itemDisplayName", displayList);
+//
+//
+//						String[] displayNames = displayNameText.split(";");
+//						for(String displayName : displayNames) {
+//							String[] display = displayName.split(":");
+//							String[] selectedDisplayNameArr = {display[1].trim()};
+//							String[] selectedPropertyArr;
+//							String[] selectedNodeArr;
+//							if(display[0].contains("%")) {
+//								String[] prop_node = display[0].split("%");
+//
+//								String subject = prop_node[0].trim();
+//								String object = prop_node[1].trim(); 
+//
+//								if(!ArrayUtilityMethods.arrayContainsValueIgnoreCase(columnHeaders, subject)) {
+//									throw new NoSuchFieldException("CSV does not contain header : "+subject+".  Please update DISPLAY_NAME in .prop file");
+//								}
+//
+//								if(!ArrayUtilityMethods.arrayContainsValueIgnoreCase(columnHeaders, object)) {
+//									throw new NoSuchFieldException("CSV does not contain header : "+object+".  Please update DISPLAY_NAME in .prop file");
+//								}
+//
+//								selectedNodeArr = new String[]{subject};
+//								selectedPropertyArr = new String[]{object};
+//							} else {
+//
+//								String subject = display[0].trim();
+//								if(!ArrayUtilityMethods.arrayContainsValueIgnoreCase(columnHeaders, subject)) {
+//									throw new NoSuchFieldException("CSV does not contain header : "+subject+".  Please update DISPLAY_NAME in .prop file");
+//								}
+//								selectedPropertyArr = selectedNodeArr = new String[]{subject};
+//							}
+//
+//							Map<String, Object> displayMap = new HashMap<>();
+//
+//							displayMap.put("selectedNode", selectedNodeArr);
+//							displayMap.put("selectedProperty", selectedPropertyArr);
+//							displayMap.put("selectedDisplayName", selectedDisplayNameArr);
+//						}
+//					}
+//					//itemDisplayName -> [{selectedNode: [title], selectedProperty: [title], selectedDisplayName : [moovietitles]}, {selectedNode : title, selectedProperty : budget}]
+//				} 
 
 				if(prop.containsKey("START_ROW")) {
 					String startRow = prop.getProperty("START_ROW");
