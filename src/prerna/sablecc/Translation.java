@@ -1055,11 +1055,31 @@ public class Translation extends DepthFirstAdapter {
 	@Override
 	public void outAPanelTools(APanelTools node) {
 		System.out.println("out a panel tools");
-		Map tools = (Map) runner.getFeData("tools");
+		
+		
+		List tools = (List) runner.getFeData("tools");
 		if (tools == null) {
-			tools = new HashMap();
+			tools = new ArrayList();
 		}
-		tools.putAll(new Gson().fromJson(node.getMap().toString(), HashMap.class));
+		Map thisTools = new Gson().fromJson(node.getMap().toString(), HashMap.class);
+		PWordOrNum state = node.getState();
+		String stateName;
+		if(state == null) {
+			stateName = "defaultState";
+		} else {
+			stateName = state.toString().trim();
+			stateName = removeQuotes(stateName);
+		}
+		Map newToolMap = new HashMap();
+		newToolMap.put(stateName, thisTools);
+		
+		tools.add(newToolMap);
+				
+//		Map tools = (Map) runner.getFeData("tools");
+//		if (tools == null) {
+//			tools = new HashMap();
+//		}
+//		tools.putAll(new Gson().fromJson(node.getMap().toString(), HashMap.class));
 		runner.addFeData("tools", tools, true);
 		deinitReactor(PKQLEnum.VIZ, "", "");
 		runner.setResponse("Successfully set tools");

@@ -234,7 +234,7 @@ panel_look_and_feel = // e.g. panel.lookandfeel({'color':'red'});
 		;
 		
 panel_tools = // e.g. panel.tools({'flippedaxis':'true'});
-		paneltools l_par [map]:map_obj r_par
+		paneltools l_par [map]:map_obj comma? [state]:word_or_num? r_par
 		;
 		
 panel_config = // e.g. panel.config({'positon':'leftside'});
