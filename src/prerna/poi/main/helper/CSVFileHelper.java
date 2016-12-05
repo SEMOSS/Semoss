@@ -120,6 +120,8 @@ public class CSVFileHelper {
 			HeadersException headerChecker = HeadersException.getInstance();
 
 			for(int colIdx = 0; colIdx < numCols; colIdx++) {
+				// just trim all the headers
+				allCsvHeaders[colIdx] = allCsvHeaders[colIdx].trim();
 				String origHeader = allCsvHeaders[colIdx];
 				if(origHeader.trim().isEmpty()) {
 					origHeader = "BLANK_HEADER";

@@ -533,7 +533,7 @@ public class CSVReader extends AbstractCSVFileReader {
 			StringBuilder strBuilder = new StringBuilder();
 			String[] objList = object.split("\\+");
 			for(int i = 0; i < objList.length; i++){
-				strBuilder.append(values[colNameToIndex.get(object)]); 
+				strBuilder.append(values[colNameToIndex.get(objList[i])]); 
 			}
 			return Utility.cleanString(strBuilder.toString(), true);
 		}
