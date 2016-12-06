@@ -44,6 +44,6 @@ public class GridRAWPlaySheet extends GridPlaySheet {
 	
 	@Override
 	public List<Object[]> getList() {
-		return dataFrame.getRawData();
+		return dataFrame.getData();
 	}
 }

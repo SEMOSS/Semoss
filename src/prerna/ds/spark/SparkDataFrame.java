@@ -7,7 +7,6 @@ import java.util.Map;
 import java.util.Set;
 import java.util.Vector;
 
-import prerna.algorithm.api.IMatcher;
 import prerna.algorithm.api.IMetaData;
 import prerna.algorithm.api.ITableDataFrame;
 import prerna.ds.AbstractTableDataFrame;
@@ -27,11 +26,6 @@ public class SparkDataFrame extends AbstractTableDataFrame{
 	}
 	@Override
 	public void addRow(Object[] rowCleanData) {
-		
-	}
-
-	@Override
-	public void join(ITableDataFrame table, String colNameInTable, String colNameInJoiningTable, double confidenceThreshold, IMatcher routine) {
 		
 	}
 

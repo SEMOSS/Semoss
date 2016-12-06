@@ -289,7 +289,7 @@ public abstract class AbstractTableDataFrame implements ITableDataFrame {
 			List<Object[]> retVector = new Vector<Object[]>();
 			String[] headers = new String[1];
 			if(this.headerNames != null && this.headerNames.length > 0) {
-				retVector = this.getRawData();
+				retVector = this.getData();
 				headers = this.headerNames;
 			}
 			retHash.put("data", retVector);
@@ -459,21 +459,6 @@ public abstract class AbstractTableDataFrame implements ITableDataFrame {
 	}
 	
 	@Override
-	public void binNumericColumn(String column) {
-		
-	}
-
-	@Override
-	public void binNumericalColumns(String[] columns) {
-		
-	}
-
-	@Override
-	public void binAllNumericColumns() {
-		
-	}
-
-	@Override
 	public Iterator<List<Object[]>> uniqueIterator(String columnHeader) {
 		return null;
 	}
@@ -528,11 +513,6 @@ public abstract class AbstractTableDataFrame implements ITableDataFrame {
 	}
 
 	@Override
-	public Object[] getRawColumn(String columnHeader) {
-		return null;
-	}
-
-	@Override
 	public Map<String, Integer> getUniqueValuesAndCount(String columnHeader) {
 		Map<String, Integer> counts = new Hashtable<String, Integer>();
 		List<String> columnsToSkip = new Vector<String>();
@@ -557,34 +537,19 @@ public abstract class AbstractTableDataFrame implements ITableDataFrame {
 	}
 
 	@Override
-	public Map<String, Map<String, Integer>> getUniqueColumnValuesAndCount() {
-		Map<String, Map<String, Integer>> counts = new Hashtable<String, Map<String, Integer>>();
-		for(String header : headerNames) {
-			counts.put(header, getUniqueValuesAndCount(header));
-		}
-		return counts;
-	}
-
-	@Override
 	public List<Object[]> getData() {
+		long startTime = System.currentTimeMillis();
 		
 		Vector<Object[]> retVector = new Vector<>();
 		Iterator<Object[]> iterator = this.iterator();
-		while(iterator.hasNext()) {
-			retVector.add(iterator.next());
+		if(iterator != null) {
+			while(iterator.hasNext()) {
+				retVector.add(iterator.next());
+			}
 		}
+			
+		LOGGER.info("Collected All Data in : " +(System.currentTimeMillis() - startTime));
 		return retVector;
-	}
-
-	@Override
-	public List<Object[]> getAllData() {
-		return null;
-		//needed?
-	}
-
-	@Override
-	public List<Object[]> getScaledData() {
-		return null;
 	}
 
 	@Override
@@ -592,25 +557,6 @@ public abstract class AbstractTableDataFrame implements ITableDataFrame {
 		return null;
 	}
 
-	@Override
-	public List<Object[]> getRawData() {
-		
-		long startTime = System.currentTimeMillis();
-		
-		Vector<Object[]> retVector = new Vector<>();
-		Iterator<Object[]> iterator = this.iterator();
-//		int count = 0;
-		if(iterator != null) {
-			while(iterator.hasNext()) {
-				retVector.add(iterator.next());
-	//			System.out.println("added row " + count++);
-			}
-		}
-			
-		LOGGER.info("Collected Raw Data: "+(System.currentTimeMillis() - startTime));
-		return retVector;
-	}
-	
 	@Override
 	public boolean isEmpty() {
 		Iterator it = this.iterator();
@@ -694,16 +640,6 @@ public abstract class AbstractTableDataFrame implements ITableDataFrame {
 		return min;
 	}
 
-	@Override
-	public Object[] getUniqueRawValues(String columnHeader) {
-		Iterator<Object> uniqIterator = this.uniqueValueIterator(columnHeader, false);
-		Vector <Object> uniV = new Vector<Object>();
-		while(uniqIterator.hasNext())
-			uniV.add(uniqIterator.next());
-
-		return uniV.toArray();
-	}
-	
 	public List<String> getSelectors() {
 		List<String> selectors = new ArrayList<String>();
 		for(int i = 0; i < headerNames.length; i++) {

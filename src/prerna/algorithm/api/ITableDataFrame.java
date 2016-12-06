@@ -49,16 +49,6 @@ public interface ITableDataFrame extends IDataMaker {
 	void addRelationship(String[] headers, Object[] values, Map<Integer, Set<Integer>> cardinality, Map<String, String> logicalToValMap);
 
 	/**
-	 * Joins the inputed data-frame to the current data-frame for the provided column names 
-	 * @param table					The data-frame to join with the current data-frame
-	 * @param colNameInTable		The column name in the original data-frame to join
-	 * @param colNameInJoiningTable	The column name in the inputed data-frame to join
-	 * @param confidenceThreshold	The confidence interval for the joining algorithm, should be in range [0,1]
-	 * @param routine				The analytical routine to perform the joining
-	 */
-	void join(ITableDataFrame table, String colNameInTable, String colNameInJoiningTable, double confidenceThreshold, IMatcher routine);
-	
-	/**
 	 * Perform the inputed analytical routine onto the data frame. The routine does not necessarily have to 
 	 * alter/modify the existing data-frame
 	 * @param routine				The IAnalytics routine to perform onto the data-frame
@@ -208,38 +198,11 @@ public interface ITableDataFrame extends IDataMaker {
 	Double[] getColumnAsNumeric(String columnHeader);
 	
 	/**
-	 * Get the raw values for a specific column in the data-frame
-	 * @param columnHeader			The column header to get the values for
-	 * @return						The raw values for the specific column header in the data-frame
-	 */
-	Object[] getRawColumn(String columnHeader);
-		
-//	/**
-//	 * Get the unique column values for a specific column in the data-frame
-//	 * @param columnHeader			The column header to get the values for
-//	 * @return						The unique values for the specific column header in the data-frame
-//	 */
-//	Object[] getUniqueValues(String columnHeader);
-	
-	/**
-	 * Get the unique raw column values for a specific column in the data-frame
-	 * @param columnHeader			The column header to get the values for
-	 * @return						The unique raw values for the specific column header in the data-frame
-	 */
-	Object[] getUniqueRawValues(String columnHeader);
-	
-	/**
 	 * Get the counts for each unique value in a specific column in the data-frame
 	 * @param columnHeader			The column header to get the values and counts for
 	 * @return						A mapping between the unique instance values and the count of the value
 	 */
 	Map<String, Integer> getUniqueValuesAndCount(String columnHeader);
-	
-	/**
-	 * Get the counts for all the unique values in all the columns of the data-frame
-	 * @return						A mapping between the column headers to a map between the unique instances of the column header to the count of the value
-	 */
-	Map<String, Map<String, Integer>> getUniqueColumnValuesAndCount();
 	
 	/**
 	 * Filter table based on passed in values
@@ -249,22 +212,34 @@ public interface ITableDataFrame extends IDataMaker {
 	void filter(String columnHeader, List<Object> filterValues);
 
 	/**
+	 * 
+	 * @param columnHeader
+	 * @param filterValues
+	 * @param comparator
+	 */
+	void filter(String columnHeader, Map<String, List<Object>> filterValues);
+	
+	/**
 	 * Unfilter all values for the passed in column header
 	 * @param columnHeader			The column header to remove the filter on
 	 * @return						The data-frame with the filtering applied
 	 */
 	void unfilter(String columnHeader);
 
-//	void unfilter(String columnHeader, List<Object> unfilterValues);
 	/**
 	 * Unfilter all columns for the data frame
 	 */
 	void unfilter();
 	
-	void renameColumn (String oldColumnHeader, String newColumnHeader);
+	/**
+	 * Rename an existing column in the data frame
+	 * @param oldColumnHeader
+	 * @param newColumnHeader
+	 */
+	void renameColumn(String oldColumnHeader, String newColumnHeader);
 	
 	/**
-	 * Removes a column from the data-frame
+	 * Removes a column from the data frame
 	 * @param columnHeader			The column header to remove from the data-frame
 	 */
 	void removeColumn(String columnHeader);
@@ -276,59 +251,17 @@ public interface ITableDataFrame extends IDataMaker {
 	List<Object[]> getData();
 	
 	/**
-	 * Get all the data contained in the data-frame including filteredData
-	 * @return					An ArrayList of Object arrays containing all the data
-	 */
-	List<Object[]> getAllData();
-	
-	/**
-	 * Get all the data with numeric columns scaled
-	 * @return
-	 */
-	List<Object[]> getScaledData();
-	
-	/**
 	 * Get all the data with numeric columns scaled with exceptions
 	 * @param exceptionColumns
 	 * @return
 	 */
 	List<Object[]> getScaledData(List<String> exceptionColumns);
-	/**
-	 * Get all the raw data contained in the data-frame
-	 * @return						An ArrayList of Object arrays containing all the raw data
-	 */
-	List<Object[]> getRawData();
-	
-//	/**
-//	 * 
-//	 * @param value
-//	 * @return
-//	 */
-//	List<Object[]> getData(String columnHeader, Object value);
 	
 	/**
 	 * Returns if the ITable is empty
 	 * @return
 	 */
 	boolean isEmpty();
-	
-	/**
-	 * Bins a numeric column and adds it to the tree
-	 * @param column
-	 */
-	void binNumericColumn(String column);
-	
-	/**
-	 * Bins numeric columns and adds it to the tree
-	 * @param columns
-	 */
-	void binNumericalColumns(String[] columns);
-	
-	/**
-	 * Bins all numeric columns
-	 * @param columns
-	 */
-	void binAllNumericColumns();
 	
 	/**
 	 * 
@@ -469,14 +402,6 @@ public interface ITableDataFrame extends IDataMaker {
 	 */
 	Map<String, Object[]> getFilterTransformationValues();
 
-	/**
-	 * 
-	 * @param columnHeader
-	 * @param filterValues
-	 * @param comparator
-	 */
-	void filter(String columnHeader, Map<String, List<Object>> filterValues);
-	
 	/**
 	 * 
 	 * @param uniqueName

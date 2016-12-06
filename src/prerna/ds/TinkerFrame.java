@@ -48,7 +48,6 @@ import org.apache.tinkerpop.gremlin.structure.io.gryo.GryoIo;
 import org.apache.tinkerpop.gremlin.tinkergraph.structure.TinkerFactory;
 import org.apache.tinkerpop.gremlin.tinkergraph.structure.TinkerGraph;
 
-import prerna.algorithm.api.IMatcher;
 import prerna.algorithm.api.IMetaData;
 import prerna.algorithm.api.ITableDataFrame;
 import prerna.engine.api.IEngine;
@@ -266,8 +265,12 @@ public class TinkerFrame extends AbstractTableDataFrame {
 		TinkerFrame tinker = load2Graph4Testing(fileName);
 		tinker.printTinker();
 		
+		Iterator<Object> uniqIterator = tinker.uniqueValueIterator("Studio", false);
+		List<Object> uniqValues = new Vector<Object>();
+		while(uniqIterator.hasNext()) {
+			uniqValues.add(uniqIterator.next());
+		}
 		
-		Object[] uniqValues = tinker.getUniqueValues("Studio");
 		List<Object> filterValues = new ArrayList<Object>();
 		for(Object o : uniqValues) {
 			if(!(o.toString().equals("CBS"))) {
@@ -277,8 +280,12 @@ public class TinkerFrame extends AbstractTableDataFrame {
 		tinker.filter("Studio", filterValues);		
 		tinker.printTinker();
 		
+		uniqIterator = tinker.uniqueValueIterator("Genre Updated", false);
+		uniqValues = new Vector<Object>();
+		while(uniqIterator.hasNext()) {
+			uniqValues.add(uniqIterator.next());
+		}
 		
-		uniqValues = tinker.getUniqueValues("Genre Updated");
 		filterValues = new ArrayList<Object>();
 		filterValues.add("Drama");
 		tinker.filter("Genre Updated", filterValues);
@@ -1542,49 +1549,6 @@ public class TinkerFrame extends AbstractTableDataFrame {
 //		}
 //	}
 
-	@Override
-	public void join(ITableDataFrame table, String colNameInTable, String colNameInJoiningTable, double confidenceThreshold, IMatcher routine) {
-		// for now I am going to ignore the matcher routine
-		// the incoming table has all the data that I need
-		// I just need to get the graph from it and join it with the new one
-		// in this case, it is coming in as the 2 columns that I want the column 1 is what I want for joining
-		
-		List <Object[]> output = table.getData();
-		// also get the level names
-		String []  joiningTableHeaders = table.getColumnHeaders();
-		
-		// now the job is really simple
-		// I need to find the node that I want based on the headers and then add it
-		for(int outIndex = 0;outIndex < output.size();outIndex++)
-		{
-			Object [] row = output.get(outIndex);
-			Vertex v2Add = null;
-			GraphTraversal<Vertex, Vertex> gt = g.traversal().V().has(TINKER_ID, colNameInTable + ":" + row[0]);
-			if(gt.hasNext())
-			{
-				v2Add = gt.next();
-			}
-			/*
-			else // if the join type is outer then add an empty
-			{
-				v2Add = upsertVertex(colNameInTable, colNameInTable, TINKER_EMPTY); // create an empty
-			}
-			*/
-			for(int colIndex = 1;colIndex < row.length;colIndex++)
-			{
-				// see if this exists
-				// now just add everthing
-				Vertex newVertex = upsertVertex(joiningTableHeaders[colIndex], row[colIndex]);
-				upsertEdge(v2Add, colNameInTable, newVertex, joiningTableHeaders[colIndex]);
-			}
-		}
-		
-		// add the new set of levels
-		redoLevels(joiningTableHeaders);
-		TinkerMetaHelper.mergeEdgeHash(this.metaData, ((TinkerFrame)table).getEdgeHash()); //need more information but can assume exact string matching for now
-	}
-
-	
 //	public void removeConnection(String outType, String inType) {
 //		g.traversal().V().has(TINKER_TYPE, META).has(TINKER_VALUE, outType).outE();
 //		

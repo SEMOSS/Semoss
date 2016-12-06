@@ -100,7 +100,7 @@ public class NumericalCorrelationAlgorithm implements IAnalyticActionRoutine {
 
 		Hashtable<String, Object> allHash = new Hashtable<String, Object>();
 		allHash.put("specificData", dataHash);
-		allHash.put("data", this.dataFrame.getRawData());
+		allHash.put("data", this.dataFrame.getData());
 		allHash.put("headers", columnHeaders);
 		allHash.put("layout", getDefaultViz());
 		allHash.put("dataTableAlign", dataTableAlign);
