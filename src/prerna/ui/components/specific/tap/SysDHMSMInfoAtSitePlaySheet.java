@@ -51,7 +51,7 @@ public class SysDHMSMInfoAtSitePlaySheet extends GridPlaySheet {
 	private String tapSiteDB = "TAP_Site_Data";
 	private IEngine tapSiteEngine;
 
-	private String GET_SYSTEM_INFO = "SELECT DISTINCT ?System ?Disposition WHERE { {?System <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/ActiveSystem>} {?System <http://semoss.org/ontologies/Relation/Contains/Disposition> ?Disposition} {?System <http://semoss.org/ontologies/Relation/Contains/Device> 'N'} {?System <http://semoss.org/ontologies/Relation/Contains/Review_Status> ?Review_Status}FILTER (?Review_Status in('FAC Approved','FCLG Approved'))}";
+	private String GET_SYSTEM_INFO = "SELECT DISTINCT ?System ?Disposition WHERE { {?System <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/ActiveSystem>} {?System <http://semoss.org/ontologies/Relation/Contains/Disposition> ?Disposition} {?System <http://semoss.org/ontologies/Relation/Contains/Device> 'N'} {?System <http://semoss.org/ontologies/Relation/Contains/Review_Status> ?Review_Status}FILTER (?Review_Status in('FAC_Approved','FCLG_Approved'))}";
 	private String tapCoreDB = "TAP_Core_Data";
 	private IEngine tapCoreEngine;
 
