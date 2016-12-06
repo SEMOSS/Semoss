@@ -182,11 +182,11 @@ public class SystemPropertyGridPlaySheet extends GridPlaySheet {
 			
 			//if all, don't need to add any conditions
 			if (dispositionUserResponse.equals("High")) {
-				addConditions = addConditions.concat("{?System <http://semoss.org/ontologies/Relation/Contains/Disposition> 'High'} {?System <http://semoss.org/ontologies/Relation/Contains/Device> 'N'} {?System <http://semoss.org/ontologies/Relation/Contains/Review_Status> ?Review_Status}FILTER (?Review_Status in('FAC Approved','FCLG Approved'))");
+				addConditions = addConditions.concat("{?System <http://semoss.org/ontologies/Relation/Contains/Disposition> 'High'} {?System <http://semoss.org/ontologies/Relation/Contains/Device> 'N'} {?System <http://semoss.org/ontologies/Relation/Contains/Review_Status> ?Review_Status}FILTER (?Review_Status in('FAC_Approved','FCLG_Approved'))");
 			} else if (dispositionUserResponse.equals("LPI")) {
-				addConditions = addConditions.concat("{?System <http://semoss.org/ontologies/Relation/Contains/Disposition> 'LPI'}  {?System <http://semoss.org/ontologies/Relation/Contains/Device> 'N'} {?System <http://semoss.org/ontologies/Relation/Contains/Review_Status> ?Review_Status}FILTER (?Review_Status in('FAC Approved','FCLG Approved'))");
+				addConditions = addConditions.concat("{?System <http://semoss.org/ontologies/Relation/Contains/Disposition> 'LPI'}  {?System <http://semoss.org/ontologies/Relation/Contains/Device> 'N'} {?System <http://semoss.org/ontologies/Relation/Contains/Review_Status> ?Review_Status}FILTER (?Review_Status in('FAC_Approved','FCLG_Approved'))");
 			} else if (dispositionUserResponse.equals("LPNI")) {
-				addConditions = addConditions.concat("{?System <http://semoss.org/ontologies/Relation/Contains/Disposition> 'LPNI'}  {?System <http://semoss.org/ontologies/Relation/Contains/Device> 'N'} {?System <http://semoss.org/ontologies/Relation/Contains/Review_Status> ?Review_Status}FILTER (?Review_Status in('FAC Approved','FCLG Approved'))");
+				addConditions = addConditions.concat("{?System <http://semoss.org/ontologies/Relation/Contains/Disposition> 'LPNI'}  {?System <http://semoss.org/ontologies/Relation/Contains/Device> 'N'} {?System <http://semoss.org/ontologies/Relation/Contains/Review_Status> ?Review_Status}FILTER (?Review_Status in('FAC_Approved','FCLG_Approved'))");
 			}
 			
 			if (archiveUserResponse.equals("Yes")) {

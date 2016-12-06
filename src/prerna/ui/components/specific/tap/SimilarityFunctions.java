@@ -349,7 +349,15 @@ public class SimilarityFunctions {
 		{
 			Object[] listElement = list.get(i);
 			String comparisonObjectName = (String) listElement[0];
-			String elementName = (String) listElement[1];
+			String elementName = "";
+			if( listElement[1] instanceof  Double )
+			{
+				elementName = "";
+			}
+			else
+			{
+				elementName = (String) listElement[1];
+			}
 			if(dataStoreHash.get(comparisonObjectName) != null)
 			{
 				ArrayList<String> elementArray= dataStoreHash.get(comparisonObjectName);

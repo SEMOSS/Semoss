@@ -240,7 +240,7 @@ public class ResidualSystemOptFillData{
 		systemDisposition = new String[sysList.size()];
 		Arrays.fill(systemDisposition, "");
 		
-		String query = "SELECT DISTINCT ?System ?Disposition WHERE { {?System <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/ActiveSystem>}OPTIONAL{?System <http://semoss.org/ontologies/Relation/Contains/Disposition> ?Disposition}{?System <http://semoss.org/ontologies/Relation/Contains/Device> 'N'} {?System <http://semoss.org/ontologies/Relation/Contains/Review_Status> ?Review_Status}FILTER (?Review_Status in('FAC Approved','FCLG Approved'))} BINDINGS ?System @SYSTEM-BINDINGS@";
+		String query = "SELECT DISTINCT ?System ?Disposition WHERE { {?System <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/ActiveSystem>}OPTIONAL{?System <http://semoss.org/ontologies/Relation/Contains/Disposition> ?Disposition}{?System <http://semoss.org/ontologies/Relation/Contains/Device> 'N'} {?System <http://semoss.org/ontologies/Relation/Contains/Review_Status> ?Review_Status}FILTER (?Review_Status in('FAC_Approved','FCLG_Approved'))} BINDINGS ?System @SYSTEM-BINDINGS@";
 		query = query.replace("@SYSTEM-BINDINGS@",sysListBindings);
 		systemDisposition = fillVectorFromQuery(systemEngine,query,systemDisposition,sysList,false);
 	}
