@@ -6,8 +6,10 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Hashtable;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Vector;
 
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
@@ -57,7 +59,11 @@ public class FilterTransformation extends AbstractTransformation {
 		if(values == null){
 			LOGGER.info("VALUES FOR THIS FILTER HAS NOT BEEN SET.... THIS IS MOST LIKELY A FILTER PAIRED WITH A JOIN.... GRABBING VALUES FROM DATAMAKER");
 			if(dm instanceof ITableDataFrame){
-				values = Arrays.asList( ((ITableDataFrame) dm).getUniqueRawValues(props.get(COLUMN_HEADER_KEY)+""));
+				Iterator<Object> uniqIterator = ((ITableDataFrame) dm).uniqueValueIterator(props.get(COLUMN_HEADER_KEY) + "", false);
+				values = new Vector<Object>();
+				while(uniqIterator.hasNext()) {
+					values.add(uniqIterator.next());
+				}
 			}
 		}
 		
