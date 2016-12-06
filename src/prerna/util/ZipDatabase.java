@@ -16,13 +16,17 @@ public final class ZipDatabase {
 	// buffer for read and write data to file
 	private static byte[] buffer = new byte[2048];
 	
+	private static final String FILE_SEPARATOR = "/";//System.getProperty("file.separator");
+	
+	private static final String OUTPUT_PATH = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER) + "/export/ZIPs";
+	
 	private ZipDatabase() {
 
 	}
 
 	public static void main(String[] args) {
-		String path = "C:\\Users\\mahkhalil\\Desktop\\TAP_Core_Data.zip";
-		String destination = "C:\\Users\\mahkhalil\\Desktop";
+		String path = "C:\\Development\\ZipDB\\AR_Quarterly.zip";
+		String destination = "C:\\Development\\ZipDB";
 		ZipDatabase.unZipEngine(destination, path);
 	}
 
@@ -44,19 +48,20 @@ public final class ZipDatabase {
 			ZipEntry entry = zipInput.getNextEntry();
 			while(entry != null){
 				String entryName = entry.getName();
+				System.out.println(entryName);
 				File file = null;
 				if(entryName.endsWith(".smss")) {
-					tempAbsolutePath = destinationFolder + File.separator + entryName.replace(".smss", ".temp");
+					tempAbsolutePath = destinationFolder + FILE_SEPARATOR + entryName.replace(".smss", ".temp");
 					file = new File(tempAbsolutePath);
 				} else {
-					file = new File(destinationFolder + File.separator + entryName);
+					file = new File(destinationFolder + FILE_SEPARATOR + entryName);
 				}
 				System.out.println("Unzip file " + entryName + " to " + file.getAbsolutePath());
 				// create the directory for the next entry
-				if(entryName.contains("\\")) {
-					String[] dirStructure = entryName.split("\\\\");
-					String absolutePath = destinationFolder + File.separator + dirStructure[0];
-					for(int i = 0; i < dirStructure.length - 1; i++) {
+				if(entryName.contains(FILE_SEPARATOR)) {
+					String[] dirStructure = entryName.split(FILE_SEPARATOR);
+					String absolutePath = destinationFolder + FILE_SEPARATOR + dirStructure[0];
+					for(int i = 0; i < dirStructure.length; i++) {
 						File newDir = new File(absolutePath);
 						if(!newDir.exists()) {
 							boolean success = newDir.mkdirs();
@@ -64,12 +69,14 @@ public final class ZipDatabase {
 								System.out.println("Problem creating Folder");
 							}
 						}
-						absolutePath = absolutePath + File.separator + dirStructure[i+1];
+//						absolutePath = absolutePath + FILE_SEPARATOR + dirStructure[i+1];
 					}
 				}
-				// load the file
-				FileOutputStream fOutput = new FileOutputStream(file);
-				writeFromZipFile(fOutput, zipInput);
+				if(!entryName.endsWith(FILE_SEPARATOR)){
+					// load the file
+					FileOutputStream fOutput = new FileOutputStream(file);
+					writeFromZipFile(fOutput, zipInput);
+				}
 
 				// close ZipEntry and take the next one
 				zipInput.closeEntry();
@@ -131,12 +138,15 @@ public final class ZipDatabase {
 		}
 	}
 
-	public static void zipEngine(String engineDir, String smssFile, String outputPath) 
+	public static File zipEngine(String engineName) 
 	{
+		String engineDir = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER) + "/db/" + engineName;
+		String zipFilePath = OUTPUT_PATH + "/" + engineName + ".zip";
+		
 		FileOutputStream fos = null;
 		ZipOutputStream zos = null;
 		try {
-			fos = new FileOutputStream(outputPath);
+			fos = new FileOutputStream(zipFilePath);
 			zos = new ZipOutputStream(fos);
 
 			// add every file in engine dir folder
@@ -150,7 +160,7 @@ public final class ZipDatabase {
 			}
 
 			// add smss file
-			File smss = new File(smssFile);
+			File smss = new File(engineDir + "/../" + engineName + ".smss");
 			System.out.println("Saving file " + smss.getName());
 			addToZipFile(smss, zos);
 		} catch (FileNotFoundException e) {
@@ -160,6 +170,7 @@ public final class ZipDatabase {
 		} finally {
 			try {
 				if(zos != null) {
+					zos.flush();
 					zos.close();
 				}
 			} catch (IOException e) {
@@ -167,17 +178,20 @@ public final class ZipDatabase {
 			}
 			try {
 				if(fos != null) {
+					fos.flush();
 					fos.close();
 				}
 			} catch (IOException e) {
 				e.printStackTrace();
 			}
 		}
+		
+		return new File(zipFilePath);
 	}
 
 	private static void addFolderToZipFile(File file, ZipOutputStream zos) throws FileNotFoundException, IOException {
 		FileInputStream fis = new FileInputStream(file);
-		ZipEntry zipEntry = new ZipEntry(file.getParent().substring(file.getParent().lastIndexOf("\\") + 1) + File.separator + file.getName());
+		ZipEntry zipEntry = new ZipEntry(file.getParent().substring(file.getParent().lastIndexOf("\\") + 1) + FILE_SEPARATOR + file.getName());
 		zos.putNextEntry(zipEntry);
 
 		int length;
