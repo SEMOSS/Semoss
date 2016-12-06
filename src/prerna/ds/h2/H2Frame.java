@@ -6,7 +6,6 @@ import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.FileReader;
 import java.io.IOException;
-import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.math.BigInteger;
 import java.sql.DatabaseMetaData;
@@ -31,10 +30,8 @@ import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 import org.rosuda.REngine.Rserve.RserveException;
 
-import prerna.algorithm.api.IMatcher;
 import prerna.algorithm.api.IMetaData;
 import prerna.algorithm.api.IMetaData.DATA_TYPES;
-import prerna.algorithm.api.ITableDataFrame;
 import prerna.cache.ICache;
 import prerna.ds.AbstractTableDataFrame;
 import prerna.ds.TinkerFrame;
@@ -1242,11 +1239,6 @@ public class H2Frame extends AbstractTableDataFrame {
 			builder.tableName = getTableNameForUniqueColumn(this.headerNames[0]);
 		}
 		builder.alterTableNewColumns(builder.tableName, cleanHeaders, types);
-	}
-
-	@Override
-	public void join(ITableDataFrame table, String colNameInTable, String colNameInJoiningTable, double confidenceThreshold, IMatcher routine) {
-		LOGGER.error("join method has not been implemented for H2Frame");
 	}
 
 	public String getValueForUniqueName(String name) {

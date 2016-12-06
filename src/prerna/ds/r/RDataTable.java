@@ -11,7 +11,6 @@ import org.rosuda.REngine.REXP;
 import org.rosuda.REngine.Rserve.RConnection;
 import org.rosuda.REngine.Rserve.RserveException;
 
-import prerna.algorithm.api.IMatcher;
 import prerna.algorithm.api.IMetaData;
 import prerna.algorithm.api.ITableDataFrame;
 import prerna.ds.AbstractTableDataFrame;
@@ -156,6 +155,9 @@ public class RDataTable extends AbstractTableDataFrame {
 		return this.builder.getTableName();
 	}
 	
+	
+	
+	
 	@Override
 	public void addRow(Object[] rowCleanData) {
 		// TODO Auto-generated method stub
@@ -259,12 +261,6 @@ public class RDataTable extends AbstractTableDataFrame {
 		
 	}
 
-	@Override
-	public void join(ITableDataFrame table, String colNameInTable, String colNameInJoiningTable, double confidenceThreshold, IMatcher routine) {
-		// TODO Auto-generated method stub
-		
-	}
-	
 	@Override
 	public void processDataMakerComponent(DataMakerComponent component) {
 		// we have only had RDataTable since PKQL was introduced

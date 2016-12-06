@@ -190,7 +190,7 @@ public class MatrixRegressionAlgorithm extends OLSMultipleLinearRegression imple
 		
 		Hashtable<String, Object> allHash = new Hashtable<String, Object>();
 		allHash.put("specificData", dataHash);
-		allHash.put("data", this.dataFrame.getRawData());
+		allHash.put("data", this.dataFrame.getData());
 		allHash.put("headers", names);
 		allHash.put("layout", getDefaultViz());
 		allHash.put("dataTableAlign", dataTableAlign);
