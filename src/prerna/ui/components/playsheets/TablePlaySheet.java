@@ -172,7 +172,7 @@ public class TablePlaySheet extends AbstractPlaySheet implements IDataMaker{
 		if(dataFrame == null) {
 			return null;
 		}
-		return dataFrame.getRawData();
+		return dataFrame.getData();
 	}
 	
 	public String[] getNames() {
