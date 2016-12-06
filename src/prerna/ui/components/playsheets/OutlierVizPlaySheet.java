@@ -130,7 +130,7 @@ public class OutlierVizPlaySheet extends BrowserPlaySheet {
 		Hashtable<String, Object> dataHash = new Hashtable<String, Object>();
 		String[] headers = dataFrame.getColumnHeaders();
 		dataHash.put("headers", headers);
-		dataHash.put("data", dataFrame.getRawData());
+		dataHash.put("data", dataFrame.getData());
 		List<String> changedCols = alg.getChangedColumns();
 		dataHash.put("changedColIndex", ArrayUtilityMethods.calculateIndexOfArray(headers, changedCols.get(0)));
 		this.dataHash = dataHash;
