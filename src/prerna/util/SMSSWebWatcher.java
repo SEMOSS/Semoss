@@ -329,13 +329,6 @@ public class SMSSWebWatcher extends AbstractFileWatcher {
 		logger.info("Starting SMSSWebWatcher thread");
 		synchronized(monitor) {
 			loadFirst();
-			
-			CSVInsightsWebWatcher watcher = new CSVInsightsWebWatcher();
-			String path = DIHelper.getInstance().getProperty(Constants.INSIGHT_CACHE_DIR) + "\\" + DIHelper.getInstance().getProperty(Constants.CSV_INSIGHT_CACHE_FOLDER);
-			watcher.setFolderToWatch(path);
-			watcher.setExtension(".tg");
-			watcher.loadFirst();
-			
 			super.run();
 		}
 	}
