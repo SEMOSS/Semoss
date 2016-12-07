@@ -34,7 +34,6 @@ import java.util.Vector;
 import prerna.ds.QueryStruct;
 import prerna.om.Insight;
 import prerna.om.SEMOSSParam;
-import prerna.rdf.query.builder.IQueryBuilder;
 import prerna.rdf.query.builder.IQueryInterpreter;
 
 public interface IExplorable {
@@ -127,9 +126,6 @@ public interface IExplorable {
 	String getInsightDefinition();
 	
 	Vector<SEMOSSParam> getParams(String... paramIds);
-	
-//	// gets the display or physical for a given concept
-//	String getTransformedNodeName(String concept, boolean getDisplayName);
 	
 	/**
 	 * Get the physical URI from the conceptual URI
