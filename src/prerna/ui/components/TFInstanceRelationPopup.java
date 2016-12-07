@@ -301,7 +301,7 @@ public class TFInstanceRelationPopup extends JMenu implements MouseListener{
 							if(engine instanceof RDBMSNativeEngine)
 							{
 								rEngine = (RDBMSNativeEngine)engine;
-								traverseQuery = rEngine.traverseOutputQuery(typeName, neighbor, false, fromInstances);
+								traverseQuery = rEngine.traverseOutputQuery(typeName, neighbor, fromInstances);
 								System.out.println("Query is...  " + traverseQuery);
 								
 							}

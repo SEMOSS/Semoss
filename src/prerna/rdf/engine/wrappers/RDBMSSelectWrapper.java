@@ -33,35 +33,28 @@ import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.sql.Types;
-import java.util.ArrayList;
-import java.util.HashSet;
 import java.util.Hashtable;
 import java.util.Map;
 
 import prerna.engine.api.ISelectStatement;
 import prerna.engine.api.ISelectWrapper;
 import prerna.engine.impl.rdbms.RDBMSNativeEngine;
-import prerna.rdf.query.builder.SQLQueryTableBuilder;
 import prerna.rdf.util.SQLQueryParser;
 import prerna.util.ConnectionUtils;
 import prerna.util.Constants;
-import prerna.util.sql.SQLQueryUtil;
 
 public class RDBMSSelectWrapper extends AbstractWrapper implements ISelectWrapper {
 
-	private ArrayList<ISelectStatement> queryResults = new ArrayList();
-	ResultSet rs = null;
-	Connection conn = null;
-	Statement stmt = null;
-	boolean hasMore = false;
-	Hashtable columnTypes = new Hashtable();
-	Hashtable columnTables = new Hashtable();
+	private ResultSet rs = null;
+	private Connection conn = null;
+	private Statement stmt = null;
+	private Hashtable columnTypes = new Hashtable();
+	private Hashtable columnTables = new Hashtable();
 	private ISelectStatement curStmt = null;
 	private boolean useEngineConnection = false;
-		
+
 	@Override
 	public void execute() {
-		// TODO Auto-generated method stub
 		try{
 			Map<String, Object> map = (Map<String, Object>) engine.execQuery(query);
 			stmt = (Statement) map.get(RDBMSNativeEngine.STATEMENT_OBJECT);
@@ -89,7 +82,7 @@ public class RDBMSSelectWrapper extends AbstractWrapper implements ISelectWrappe
 		boolean hasMore = false;
 		curStmt = populateQueryResults();
 		if(curStmt != null) {
-				hasMore = true;
+			hasMore = true;
 		} else {
 			if(useEngineConnection)
 				ConnectionUtils.closeAllConnections(null, rs, stmt);
@@ -98,30 +91,25 @@ public class RDBMSSelectWrapper extends AbstractWrapper implements ISelectWrappe
 		}
 		return hasMore;
 	}
-	
+
 	private ISelectStatement populateQueryResults(){
 		ISelectStatement stmt = null;
-		HashSet<String> dupCheck = new HashSet();
-		boolean added = false;
-		int rsCount = 0;
 		try {
-				rsCount++;
-				if(rs.next())
+			if(rs.next())
+			{
+				stmt = new SelectStatement();
+
+				for(int colIndex = 0;colIndex < displayVar.length;colIndex++)
 				{
-					stmt = new SelectStatement();
-	
-					for(int colIndex = 0;colIndex < displayVar.length;colIndex++)
-					{
-						Object value = rs.getObject(displayVar[colIndex]);
-						if(value == null) {
-							value = "";
-						}
-						stmt.setVar(displayVar[colIndex], value);
-						stmt.setRawVar(displayVar[colIndex], getRawValue(value, displayVar[colIndex]));
+					Object value = rs.getObject(displayVar[colIndex]);
+					if(value == null) {
+						value = "";
 					}
+					stmt.setVar(displayVar[colIndex], value);
+					stmt.setRawVar(displayVar[colIndex], getRawValue(value, displayVar[colIndex]));
 				}
+			}
 		} catch (SQLException e) {
-			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
 		return stmt;
@@ -129,7 +117,6 @@ public class RDBMSSelectWrapper extends AbstractWrapper implements ISelectWrappe
 
 	@Override
 	public ISelectStatement next() {
-		// TODO Auto-generated method stub
 		ISelectStatement stmt = curStmt;
 		curStmt = null;
 		return stmt;
@@ -137,30 +124,29 @@ public class RDBMSSelectWrapper extends AbstractWrapper implements ISelectWrappe
 
 	private void setVariables(){
 		try {
-			
 			//get rdbms type
-			SQLQueryUtil.DB_TYPE dbType = SQLQueryUtil.DB_TYPE.H2_DB;
-			String dbTypeString = engine.getProperty(Constants.RDBMS_TYPE);
-			if (dbTypeString != null) {
-				dbType = (SQLQueryUtil.DB_TYPE.valueOf(dbTypeString));
-			}
-			
+			//			SQLQueryUtil.DB_TYPE dbType = SQLQueryUtil.DB_TYPE.H2_DB;
+			//			String dbTypeString = engine.getProperty(Constants.RDBMS_TYPE);
+			//			if (dbTypeString != null) {
+			//				dbType = (SQLQueryUtil.DB_TYPE.valueOf(dbTypeString));
+			//			}
+
 			ResultSetMetaData rsmd = rs.getMetaData();
 			int numColumns = rsmd.getColumnCount();
-			
+
 			var = new String[numColumns];
 			displayVar = new String[numColumns];
-			
+
 			for(int colIndex = 1;colIndex <= numColumns;colIndex++)
 			{
 				String tableName = rsmd.getTableName(colIndex);
 				String colName = rsmd.getColumnName(colIndex);
 				String logName = colName;
-				
+
 				if(query.startsWith("SELECT")) {
 					SQLQueryParser p = new SQLQueryParser(query);
 					Hashtable<String, Hashtable<String, String>> h = p.getReturnVarsFromQuery(query);
-					
+
 					if(h != null && !h.isEmpty()) {
 						for(String tab : h.keySet()) {
 							if(tab.equalsIgnoreCase(tableName)) {
@@ -174,91 +160,45 @@ public class RDBMSSelectWrapper extends AbstractWrapper implements ISelectWrappe
 						}
 					}
 				}
-//				if(columnLabel.isEmpty() && dbType == SQLQueryUtil.DB_TYPE.SQL_Server){
-//					columnLabel = deriveTableName(columnLabel, columnLabel);
-//				}
-				
+				// if(columnLabel.isEmpty() && dbType == SQLQueryUtil.DB_TYPE.SQL_Server){
+				//		columnLabel = deriveTableName(columnLabel, columnLabel);
+				// }
+
 				var[colIndex-1] = colName;
 				displayVar[colIndex-1] = logName;
-				
+
 				int type = rsmd.getColumnType(colIndex);
 				columnTypes.put(displayVar[colIndex-1], type);
-				
+
 				if(logName != null && logName.length() != 0) // will use this to find what is the type to strap it together
 				{
 					columnTables.put(displayVar[colIndex-1], logName);
 				}
 			}
 		} catch (SQLException e) {
-			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
 	}
-	
-	private String deriveTableName(String tableName, String columnLabel){
 
-		//Originally written for Maria db as it was having trouble getting the table name using the result set metadata method getTableName, 
-		//this logic is for us to work around this issue (ie it used to get the alias and we would be able to get the table name from backtracking the alias
-		boolean getTableNameFromColumn = tableName.equals("");
-		if(!getTableNameFromColumn){
-			//first see if this really is a table name, so if an alias exists then you can use this tableName
-			String tableAlias = SQLQueryTableBuilder.getAlias(tableName);
-			if(tableAlias.length()==0){
-				//if no alias was returned, assume that maybe the value you got was an alias, 
-				//so try to use the alias to get the tableName
-				String tableNameFromAlias = SQLQueryTableBuilder.getTableNameByAlias(tableName);
-				if(tableNameFromAlias.length()>0){
-					tableName = tableNameFromAlias;
-				} else {
-					getTableNameFromColumn = true;//if you still have no tableName, try to use the columnLabel to get your tableName
-				}
-			}
-		}
-		
-		//use columnName to derive table name
-		if(getTableNameFromColumn){
-			tableName = columnLabel;
-			if(columnLabel.contains("__")){
-				String[] splitColAndTable = tableName.split("__");
-				tableName = splitColAndTable[0];
-			}
-		}
-		return tableName;
-	}
-	
 	@Override
 	public String[] getVariables() {
 		// get the result set metadata to get the column names
 		return displayVar;
 	}
-	
+
 	@Override
 	public String[] getDisplayVariables() {
 		// get the result set metadata to get the column names
 		return displayVar;
 	}
-	
+
 	@Override
 	public String[] getPhysicalVariables() {
 		// get the result set metadata to get the column names
 		return var;
 	}
-	
-	private Object typeConverter(Object input, int type)
-	{
-		Object retObject = input;
-		switch(type)
-		{
-			
-		// to be implemented later
-		
-		}
-		
-		return retObject;
-	}
-	
-	private Object getRawValue(Object value, String header){
 
+	private Object getRawValue(Object value, String header){
 		if(value==null){
 			return ""; //prevent null pointer exception.
 		}
@@ -269,13 +209,13 @@ public class RDBMSSelectWrapper extends AbstractWrapper implements ISelectWrappe
 		if(tableObj != null){
 			table = tableObj + "";
 		}
-		
+
 		String pk = "";
 		if(header.contains("__")) {
 			table = header.split("__")[0];
 			pk = header.split("__")[1] + "/";
 		}
-		
+
 		// there has to some way where I can say.. this is valid column type
 		// we dont have this at this point.. for now I am just saying if this is 
 		if(!value.toString().isEmpty() && (type == Types.LONGNVARCHAR || type == Types.VARCHAR || type == Types.CHAR || type == Types.LONGNVARCHAR || type == Types.NCHAR) && table!=null)
@@ -285,5 +225,5 @@ public class RDBMSSelectWrapper extends AbstractWrapper implements ISelectWrappe
 			return value;
 		}
 	}
-	
+
 }

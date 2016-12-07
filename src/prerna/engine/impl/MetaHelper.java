@@ -19,7 +19,6 @@ import prerna.engine.impl.rdf.RDFFileSesameEngine;
 import prerna.om.Insight;
 import prerna.om.SEMOSSParam;
 import prerna.rdf.engine.wrappers.WrapperManager;
-import prerna.rdf.query.builder.IQueryBuilder;
 import prerna.rdf.query.builder.IQueryInterpreter;
 import prerna.util.Constants;
 import prerna.util.Utility;
