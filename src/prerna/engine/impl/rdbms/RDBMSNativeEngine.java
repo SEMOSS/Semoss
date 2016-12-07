@@ -48,12 +48,11 @@ import org.openrdf.query.BindingSet;
 import org.openrdf.query.QueryEvaluationException;
 import org.openrdf.query.TupleQueryResult;
 
+import prerna.ds.QueryStruct;
 import prerna.engine.api.IEngine;
 import prerna.engine.impl.AbstractEngine;
-import prerna.rdf.query.builder.IQueryBuilder;
 import prerna.rdf.query.builder.IQueryInterpreter;
 import prerna.rdf.query.builder.SQLInterpreter;
-import prerna.rdf.query.builder.SQLQueryTableBuilder;
 import prerna.rdf.util.AbstractQueryParser;
 import prerna.rdf.util.SQLQueryParser;
 import prerna.util.ConnectionUtils;
@@ -489,10 +488,6 @@ public class RDBMSNativeEngine extends AbstractEngine {
 		return rs;
 	}
 
-	public IQueryBuilder getQueryBuilder(){
-		return new SQLQueryTableBuilder(this);
-	}
-
 	public IQueryInterpreter getQueryInterpreter(){
 		return new SQLInterpreter(this);
 	}
@@ -523,8 +518,8 @@ public class RDBMSNativeEngine extends AbstractEngine {
 		}
 	}
 
-	// traverse from a type to a type, optionally include properties
-	public String traverseOutputQuery(String fromType, String toType, boolean isProperties, List <String> fromInstances)
+	// traverse from a type to a type
+	public String traverseOutputQuery(String fromType, String toType, List <String> fromInstances)
 	{
 		/*
 		 * 1. Get the relation for the type
@@ -533,56 +528,37 @@ public class RDBMSNativeEngine extends AbstractEngine {
 		 * 4. Add the properties
 		 * 5. For every, type 
 		 */
-		SQLQueryTableBuilder builder = (SQLQueryTableBuilder) getQueryBuilder();
-		Vector <String> neighBors = getNeighbors(fromType, 0);
+		IQueryInterpreter builder = getQueryInterpreter();
+		QueryStruct qs = new QueryStruct();
+		
+		String fromTableName = Utility.getInstanceName(fromType);
+		String toTableName = Utility.getInstanceName(toType);
+		qs.addSelector(fromTableName, QueryStruct.PRIM_KEY_PLACEHOLDER);
+		qs.addSelector(toTableName, QueryStruct.PRIM_KEY_PLACEHOLDER);
 
-		// get the properties for the tables	
-		List <String> properties = new Vector<String>();
-		if(isProperties)
-			properties = getProperties4Concept(toType, false);
-
-		// string relation selector
+		// determine relationship order
 		String relationQuery = "SELECT ?relation WHERE {"
 				+ "{" + "<" + fromType + "> ?relation <" + toType +">}"
 				+ "{?relation <" + RDFS.SUBPROPERTYOF + "> <http://semoss.org/ontologies/Relation>}"
 				+ "}";
 
 		String relationName = getRelation(relationQuery);
-
-		if(relationName == null || relationName.length() == 0)
-		{
-			relationQuery = "SELECT ?relation WHERE {"
-					+ "{" + "<" + toType + "> ?relation <" + fromType +">}"
-					+ "{?relation <" + RDFS.SUBPROPERTYOF + "> <http://semoss.org/ontologies/Relation>}"
-					+ "}";
-			relationName = getRelation(relationQuery);
-
+		if(relationName != null && relationName.length() != 0) {
+			qs.addRelation(fromTableName, toTableName, "inner.join");
+		} else {
+			qs.addRelation(toTableName, fromTableName, "inner.join");
 		}
 
-		String fromTableName = Utility.getInstanceName(fromType);
-		builder.addSelector(fromTableName, fromTableName);
-
-		String toTableName = Utility.getInstanceName(toType);
-		// get the relation name for this from and to
-		String relationClassName = Utility.getInstanceName(relationName);
-		builder.addRelation(relationClassName,relationName, " AND ", true);
-		builder.addTable(fromTableName, properties, properties);
-
-		// need something that will identify the main identifier instead of it being always the same as table name
-		builder.addSelector(toTableName, toTableName);
-
-
-		if(fromInstances != null)
-		{
-			String propertyAsName = Utility.getInstanceName(fromType); // play on the type
+		if(fromInstances != null) {
 			// convert instances to simple instance
 			Vector <String> simpleFromInstances = new Vector<String>();
-			for(int fromIndex = 0;fromIndex <fromInstances.size();fromIndex++)
+			for(int fromIndex = 0;fromIndex < fromInstances.size();fromIndex++) {
 				simpleFromInstances.add(Utility.getInstanceName(fromInstances.get(fromIndex)));
-			builder.addStringFilter(propertyAsName, propertyAsName, simpleFromInstances);
-		}		
-		builder.makeQuery();
-		String retQuery = builder.getQuery();
+			}
+			qs.addFilter(fromTableName, "=", simpleFromInstances);
+		}
+		
+		String retQuery = builder.composeQuery();
 		return retQuery;
 	}
 
