@@ -301,7 +301,12 @@ public class SolrIndexEngine {
 			QueryResponse res = getQueryResponse(queryBuilder.getSolrQuery(), SOLR_PATHS.SOLR_INSIGHTS_PATH);
 			// the results object is defaulted to a list.. but with the ID bind (which is unique) there should
 			// be exactly one solr document returned
-			SolrDocument origDoc = res.getResults().get(0);
+			SolrDocumentList docList = res.getResults();
+			if(docList.size() == 0) {
+				LOGGER.error("COULD NOT FIND QUESITON WITH ID = " + uniqueID + " INSIDE SOLR TO MODIFY");
+				return null;
+			}
+			SolrDocument origDoc = docList.get(0);
 			
 			// 2) create an iterator to go through the existing fields
 			Iterator<Entry<String, Object>> iterator = origDoc.iterator();
