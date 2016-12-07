@@ -183,7 +183,9 @@ public class H2SqlExpressionIterator implements Iterator<Object[]> {
 				if(selector instanceof SqlMathSelector) {
 					operationMap.put("math", ((SqlMathSelector) selector).getPkqlMath() );
 				}
-
+				if (headerTypes.containsKey(selector.getName().toUpperCase())) {
+					headMap.put("type", headerTypes.get(selector.getName().toUpperCase()));
+				}
 				// add the formula if it is not just a simple column
 				operationMap.put("formula", vizFormula.get(i));
 				
