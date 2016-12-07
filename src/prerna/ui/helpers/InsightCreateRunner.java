@@ -178,114 +178,13 @@ public class InsightCreateRunner implements Runnable{
 		return false;
 	}
 	
-//	public void optimizeDataMakerComponents(DataMakerComponent copyDmc, List<DataMakerComponent> dmcList) {
-//		// if this dmc is processed, do nothing
-//		if(copyDmc.isProcessed()) {
-//			return;
-//		}
-//		
-//		// note, the dmcList does not contain copies
-//		int dmcIndex = -1;
-//		for(int i = 0 ; i < dmcList.size(); i++) {
-//			if(dmcList.get(i).getId().equals(copyDmc.getId())) {
-//				dmcIndex = i;
-//				break;
-//			}
-//		}
-//		// for debugging
-//		if(dmcIndex == -1) {
-//			System.out.println("ERROR!!!! dmc is not found. dmc copy did not properly get the index");
-//		}
-//		
-//		// could be empty if it is the first dmc
-//		if(copyDmc.getPreTrans() == null || copyDmc.getPreTrans().isEmpty() ) {
-//			// this is the first dmc
-//		} else {
-//			List<ISEMOSSTransformation> preTrans = copyDmc.getPreTrans();
-//			// need to check if this dmc is a join trans that is not inner, if so, need to process by itself
-//			for(int i = 0; i < preTrans.size(); i++) {
-//				ISEMOSSTransformation trans = preTrans.get(i);
-//				if(trans instanceof JoinTransformation) {
-//					JoinTransformation joinTrans = (JoinTransformation) trans;
-//					String joinType = (String) joinTrans.getProperties().get(JoinTransformation.JOIN_TYPE);
-//					if(JoinTransformation.PARTIAL.equals(joinType) || JoinTransformation.OUTER.equals(joinType)) {
-//						return;
-//					}
-//				}
-//			}
-//		}
-//		
-//		int startIndex = dmcIndex + 1;
-//		DMC_LOOP : for(int i = startIndex; i < dmcList.size(); i++) {
-//			// grab the next dmc
-//			DataMakerComponent nextDmc = dmcList.get(i);
-//			// when we hit the first dmc that is not the same engine, break
-//			if(nextDmc.getEngine() != copyDmc.getEngine()) {
-//				break DMC_LOOP;
-//			}
-//			// for every dmc (except the first one which is fine since startIndex always larger than 1) assume first preTrans is a join
-//			List<ISEMOSSTransformation> nextDmcPreTrans = nextDmc.getPreTrans();
-//			int joinTransIndex = -1;
-//			JoinTransformation joinTrans = null;
-//			for(int j = 0; j < nextDmcPreTrans.size(); j++) {
-//				ISEMOSSTransformation trans = nextDmcPreTrans.get(j);
-//				if(trans instanceof JoinTransformation) {
-//					joinTransIndex = j;
-//					joinTrans = (JoinTransformation) trans;
-//				}
-//			}
-//			
-//			Map<String, Object> joinProps = joinTrans.getProperties();
-//			String joinType = (String) joinProps.get(JoinTransformation.JOIN_TYPE);
-//			if(joinType == null || JoinTransformation.INNER.equals(joinType)) {
-//				LOGGER.info("Combining dmc # " + i + " into dmc # " + dmcIndex);
-//				
-//				// we need to combine all the query data
-//				QueryBuilderData thisDmcBuilderData = copyDmc.getBuilderData();
-//				QueryBuilderData nextDmcBuilderData = nextDmc.getBuilderData();
-//
-//				// this method should be moved to the builder data itself
-//				boolean isEligable = thisDmcBuilderData.determineEligibleForCombining(nextDmcBuilderData, joinProps);
-//				if(!isEligable) {
-//					break DMC_LOOP;
-//				}
-//				thisDmcBuilderData.combineBuilderData(nextDmcBuilderData);
-//				
-//				// we need to combine all the preTrans - but need copies
-//				for(int k = 0; k < nextDmcPreTrans.size(); k++) {
-//					if(k == joinTransIndex) {
-//						continue;
-//					}
-//					copyDmc.getPreTrans().add(nextDmcPreTrans.get(k).copy());
-//				}
-//				
-//				// we need to combine all the postTrans - but need copies
-//				List<ISEMOSSTransformation> nextDmcPostTrans = nextDmc.getPostTrans();
-//				for(int k = 0; k < nextDmcPostTrans.size(); k++) {
-//					copyDmc.getPostTrans().add(nextDmcPostTrans.get(k).copy());
-//				}
-//				
-//				// we need to combine all the actions - but need copies
-//				List<ISEMOSSAction> nextDmcActions = nextDmc.getActions();
-//				for(int k = 0; k < nextDmcActions.size(); k++) {
-//					copyDmc.getActions().add(nextDmcActions.get(k).copy());
-//				}
-//				
-//				// this sets the boolean in the non-copy dmc list, which gets passed into the copy-dmc
-//				nextDmc.setProcessed(true);
-//			} else {
-//				break DMC_LOOP;
-//			}
-//		}
-//	}
-	
 	/**
 	 * Runs the insight and returns the data table align for FE to view
 	 */
 	public Map<String, Object> runWeb()
 	{
-		boolean HasNoPkqlRecipeOrcontainsNonPkqlTransformation = (insight.getPkqlRecipe().length == 0) || insight.containsNonPkqlTransformations();
-		if(HasNoPkqlRecipeOrcontainsNonPkqlTransformation) { 
+		boolean hasNoPkqlRecipeOrcontainsNonPkqlTransformation = (insight.getPkqlRecipe().length == 0) || insight.containsNonPkqlTransformations();
+		if(hasNoPkqlRecipeOrcontainsNonPkqlTransformation) { 
 			createData();
 		}
 		Map<String, String> tableDataAlign = insight.getDataTableAlign();
@@ -306,7 +205,7 @@ public class InsightCreateRunner implements Runnable{
 		
 		dm.resetDataId();
 		Map<String, Object> retData = insight.getWebData();
-		if(HasNoPkqlRecipeOrcontainsNonPkqlTransformation) {
+		if(hasNoPkqlRecipeOrcontainsNonPkqlTransformation) {
 			retData.put("recipe", new String[0]);
 		}
 		return retData;

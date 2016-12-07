@@ -65,7 +65,7 @@ public class OutputDataReactor extends AbstractReactor {
 		
 		String vizData = CacheFactory.getInsightCache(CacheFactory.CACHE_TYPE.DB_INSIGHT_CACHE).getVizData(insightObj);
 
-		Object obj = null;
+//		Object obj = null;
 		boolean runInsightRecipe = true;
 		if(vizData != null) {
 			// insight has been cached, send it to the FE with a new insight id
