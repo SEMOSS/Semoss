@@ -12,6 +12,9 @@ import java.util.Vector;
 
 import prerna.sablecc.PKQLEnum;
 import prerna.sablecc.PKQLRunner.STATUS;
+import prerna.sablecc.meta.IPkqlMetadata;
+import prerna.sablecc.meta.MathPkqlMetadata;
+
 import org.apache.commons.math3.stat.descriptive.SummaryStatistics;
 
 import prerna.util.ArrayUtilityMethods;
@@ -84,7 +87,13 @@ public class BasicStatsReactor extends BaseReducerReactor {
 	            else
 	            {hm.put(values.get(i),1);}
 	        }
-	    
+	    int maxMode =  Collections.max(hm.values());
+	    for(double key : hm.keySet()){
+	    	if(maxMode ==  hm.get(key)){
+	    		mode = key;
+	    		break;
+	    	}
+	    }
 	    
 
 		HashMap<String,Object> returnData = new HashMap<>();
@@ -134,6 +143,15 @@ public class BasicStatsReactor extends BaseReducerReactor {
 		myStore.put("STATUS", STATUS.SUCCESS);
 		System.out.println(output);
 		return returnData;
+	}
+	
+	public IPkqlMetadata getPkqlMetadata() {
+		MathPkqlMetadata metadata = new MathPkqlMetadata();
+		metadata.setPkqlStr((String) myStore.get(PKQLEnum.MATH_FUN));
+		metadata.setColumnsOperatedOn((Vector<String>) myStore.get(PKQLEnum.COL_DEF));
+		metadata.setProcedureName("Basic Statistics");
+		metadata.setAdditionalInfo(myStore.get("ADDITIONAL_INFO"));
+		return metadata;
 	}
 	
 	@Override
