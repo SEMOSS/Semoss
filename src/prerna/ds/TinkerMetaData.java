@@ -1060,6 +1060,10 @@ public class TinkerMetaData implements IMetaData {
 				}
 			}
 			
+			if(vert.property(PARENT).isPresent()) {
+				String parent = vert.value(PARENT);
+				innerMap.put("parent", parent);
+			}
 			
 			tableHeaders.add(innerMap);
 		}
