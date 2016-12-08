@@ -482,7 +482,7 @@ public class Translation extends DepthFirstAdapter {
 		runner.setStatus((STATUS)previousReactor.getValue("STATUS"));
 		
 		Map<String, List> searchData = new HashMap<>(1);
-		searchData.put("list", (List)previousReactor.getValue("searchData"));
+		searchData.put("list", convertListToListMaps((List)previousReactor.getValue("searchData")));
 		runner.setReturnData(searchData);
 		this.frame = (IDataMaker) previousReactor.getValue(PKQLEnum.G);
     }
@@ -1454,7 +1454,10 @@ public class Translation extends DepthFirstAdapter {
 		IScriptReactor thisReactor = curReactor;
 		deinitReactor(PKQLEnum.DATA_FRAME_HEADER, node.toString().trim(), node.toString().trim());
 		this.runner.setResponse(thisReactor.getValue("tableHeaders"));
-		this.runner.setReturnData(thisReactor.getValue("tableHeaders"));
+		
+		Map retData = new HashMap();
+		retData.put("list", thisReactor.getValue("tableHeaders"));
+		this.runner.setReturnData(retData);
 	}
 
 	@Override
@@ -1472,7 +1475,7 @@ public class Translation extends DepthFirstAdapter {
 		this.runner.setResponse(thisReactor.getValue("hasDuplicates"));
 		this.runner.setReturnData(thisReactor.getValue("hasDuplicates"));
 	}
-
+	
 	@Override
 	public void inATermExpr(ATermExpr node) {
 		if (reactorNames.containsKey(PKQLEnum.EXPR_TERM)) {
@@ -2378,8 +2381,8 @@ public class Translation extends DepthFirstAdapter {
 		// just get the list of engines
 		List<String> dbList = DatabasePkqlService.getDatabaseList();
 		// put it in a map so the FE knows what it is looking at
-		Map<String, List<String>> returnData = new Hashtable<String, List<String>>();
-		returnData.put("list", dbList);
+		Map returnData = new HashMap();
+		returnData.put("list", convertListToListMaps(dbList));
 		runner.setReturnData(returnData);
 		runner.setStatus(PKQLRunner.STATUS.SUCCESS);
 	}
@@ -2391,8 +2394,8 @@ public class Translation extends DepthFirstAdapter {
 		Set<String> concepts = DatabasePkqlService.getConceptsWithinEngine(engineName);
 
 		// put it in a map so the FE knows what it is looking at
-		Map<String, Set<String>> returnData = new Hashtable<String, Set<String>>();
-		returnData.put("list", concepts);
+		Map returnData = new HashMap();
+		returnData.put("list", convertListToListMaps(new ArrayList<>(concepts)));
 
 		runner.setReturnData(returnData);
 		runner.setStatus(PKQLRunner.STATUS.SUCCESS);
@@ -2441,5 +2444,17 @@ public class Translation extends DepthFirstAdapter {
 			value = value.trim().substring(1, value.length() - 1);
 		}
 		return value;
+	}
+	
+	private List<Map<String, Object>> convertListToListMaps(List valueList) {
+		if (valueList == null) return new ArrayList<>();
+		
+		List<Map<String, Object>> listMaps = new ArrayList<>(valueList.size());
+		for(Object value : valueList) {
+			Map<String, Object> map = new HashMap<>(1);
+			map.put("name", value);
+			listMaps.add(map);
+		}
+		return listMaps;
 	}
 }
