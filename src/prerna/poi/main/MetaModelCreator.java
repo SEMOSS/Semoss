@@ -6,6 +6,7 @@ import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Hashtable;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -23,87 +24,108 @@ import prerna.util.Utility;
  */
 public class MetaModelCreator {
 
-	// private CSVFileHelper helper;
 	// column headers
 	private String[] columnHeaders;
-	private String[] dataTypes;
 	private Map<String, String> dataTypeMap;
 	private int[] processOrder; //order in which to process columns 
 	private CreatorMode mode;
 
 	//start and end row to read, won't be less than 2
-	int endRow = 2; 
-	int startRow = 2;
-
-	//the amount of rows we will use for prediction
-	int limit = 500;
-
+	private int endRow = 2; 
+	private int startRow = 2;
+	
 	//the instance data we will use for prediction
-	List<String[]> data;
+	private List<String[]> data;
+	private int limit = 500;
 
 	//AUTO GENERATE META MODEL VARIABLES
-	Map<String, Set<String>> matches;
-	Map<String, Boolean> columnPropMap;
+	private Map<String, Set<String>> matches;
+	private Map<String, Boolean> columnPropMap;
 
 	//PROP FILE VARIABLE
-	String propFile;
+	private Properties propMap;
+	private Hashtable<String, String> additionalInfo = new Hashtable<String, String>();
 
-
-	//RETURN DATA
-	//allowableDataTypes - what each column is allowed to be, i.e. MovieBudget can be String or Number
-	//						so map will have {MovieBudget -> [STRING, NUMBER]} 
-	Map<String, List<String>> allowableDataTypes;
 	private Map<String, List<Map<String, Object>>> propFileData = new HashMap<>();
 	//*************************************************
 
-	//AUTO = auto generate/predict a metamodel
-	//PROP = generate a meta model from a prop file
-	//TABLE = generate a table with the column of most unique instances as the metamodel
-	public enum CreatorMode {AUTO, PROP, TABLE};
-
-	public MetaModelCreator() {
-
-	}
+	// AUTO = auto generate/predict a metamodel
+	// PROP = generate a meta model from a prop file
+	
+	public enum CreatorMode {AUTO, PROP};
 
 	public MetaModelCreator(CSVFileHelper helper, CreatorMode setting) {
-//		this.helper = helper;
 		this.mode = setting;
-
 		this.columnHeaders = helper.getHeaders();
-		this.dataTypes = helper.predictTypes();
-		this.dataTypeMap = new LinkedHashMap<String, String>();
 
+		this.dataTypeMap = new LinkedHashMap<String, String>();
+		String[] dataTypes = helper.predictTypes();
+		
 		int size = columnHeaders.length;
 		for(int colIdx = 0; colIdx < size; colIdx++) {
 			dataTypeMap.put(columnHeaders[colIdx], Utility.getCleanDataType(dataTypes[colIdx]));
 		}
-
+		
 		// if the mode is not set
 		// it means we are dealing with the new flat table
-		// old flat table was putting everything a property on a single node
-		// new flat table is not using any of this and making everything equal
-		if(!CreatorMode.TABLE.equals(this.mode)) {
-			this.data = new ArrayList<>(500);
+		this.data = new ArrayList<>(500);
 
-			String [] cells = null;
-			int count = 1;
-			while((cells = helper.getNextRow()) != null) {
-				if(count <= limit) {
-					data.add(cells);
-				}
-				count++;
+		String [] cells = null;
+		int count = 1;
+		while((cells = helper.getNextRow()) != null) {
+			if(count <= limit) {
+				data.add(cells);
 			}
-			this.endRow = count;
+			count++;
 		}
+		this.endRow = count;
 	}
+	
+	public MetaModelCreator(CSVFileHelper helper, CreatorMode setting, String propFile) {
+		InputStream input = null;
+		try {
+			input = new FileInputStream(propFile);
+			propMap = new Properties();
+			propMap.load(input);
+		} catch (IOException e) {
+			e.printStackTrace();
+		} finally {
+			if(input != null) {
+				try {
+					input.close();
+				} catch (IOException e) {
+					e.printStackTrace();
+				}
+			}
+		}
+		
+		this.mode = setting;
+		this.columnHeaders = helper.getHeaders();
+		int size = columnHeaders.length;
 
-
-	/**
-	 * 
-	 * @param propFile
-	 */
-	public void addPropFile(String propFile) {
-		this.propFile = propFile;
+		this.dataTypeMap = new LinkedHashMap<String, String>();
+		
+		// use the prop file to get the data types
+		for(int colIdx = 0; colIdx < size; colIdx++) {
+			String dataType = propMap.getProperty( (colIdx + 1) + "");
+			if(dataType == null) {
+				dataType = "STRING";
+			}
+			dataTypeMap.put(columnHeaders[colIdx], dataType);
+		}
+		
+		// if the mode is not set
+		// it means we are dealing with the new flat table
+		this.data = new ArrayList<>(500);
+		String [] cells = null;
+		int count = 1;
+		while((cells = helper.getNextRow()) != null) {
+			if(count <= limit) {
+				data.add(cells);
+			}
+			count++;
+		}
+		this.endRow = count;
 	}
 
 	/**
@@ -119,11 +141,8 @@ public class MetaModelCreator {
 			generateMetaModelFromProp(); break;
 		}
 
-		case TABLE: {
-			generateTableMetaModel(); break;
-		}
-
 		default: break;
+		
 		}
 	}
 
@@ -196,276 +215,166 @@ public class MetaModelCreator {
 	/**
 	 * Generates the Meta model data based on the definition of the prop file
 	 */
-	private void generateMetaModelFromProp() throws Exception{
-		//TODO: check if prop file headers and csv headers match
-		if(this.propFile != null) {
-			//			String[] columnHeaders = frame.getColumnHeaders();
-			try {
-				InputStream input = new FileInputStream(propFile);
-				Properties prop = new Properties();
-				prop.load(input);
+	private void generateMetaModelFromProp() throws Exception {
+		if(propMap == null) {
+			return;
+		}
 
-				List<Map<String, Object>> initList1 = new ArrayList<>();
-				List<Map<String, Object>> initList2 = new ArrayList<>();
-				this.propFileData.put("propFileRel", initList1);
-				this.propFileData.put("propFileNodeProp", initList2);
+		List<Map<String, Object>> relList = new ArrayList<>();
+		List<Map<String, Object>> nodePropList = new ArrayList<>();
+		this.propFileData.put("propFileRel", relList);
+		this.propFileData.put("propFileNodeProp", nodePropList);
 
-				//Parses text written as:
-				//RELATION	Title@BelongsTo@Genre;Title@DirectedBy@Director;Title@DirectedAt@Studio;
-				if(prop.containsKey("RELATION")) {
-					String relationText = prop.getProperty("RELATION").trim();
-					if(!relationText.isEmpty()) {
+		// loop through everything in the prop file
+		// if it is a special key, we will do some processing
+		// otherwise, we just add it as it
+		for(Object propKey : propMap.keySet()) {
+			String propKeyS = propKey.toString().trim();
 
-						String[] relations = relationText.split(";");
+			//Parses text written as:
+			//RELATION	Title@BelongsTo@Genre;Title@DirectedBy@Director;Title@DirectedAt@Studio;
+			if(propKeyS.equals("RELATION")) {
+				String relationText = propMap.getProperty(propKeyS).trim();
+				if(!relationText.isEmpty()) {
 
-						for(String relation : relations) {
+					String[] relations = relationText.split(";");
 
-							String[] components = relation.split("@");
-							String subject = components[0].trim();
-							String object = components[2].trim();
-							
-							// do some header checks
-							if(subject.contains("+")) {
-								String[] subSplit = subject.split("\\+");
-								for(String sub : subSplit) {
-									if(!ArrayUtilityMethods.arrayContainsValueIgnoreCase(columnHeaders, sub)) {
-										throw new NoSuchFieldException("CSV does not contain header : "+sub+".  Please update RELATION in .prop file");
-									}
-								}
-							} else {
-								if(!ArrayUtilityMethods.arrayContainsValueIgnoreCase(columnHeaders, subject)) {
-									throw new NoSuchFieldException("CSV does not contain header : "+subject+".  Please update RELATION in .prop file");
+					for(String relation : relations) {
+
+						String[] components = relation.split("@");
+						String subject = components[0].trim();
+						String object = components[2].trim();
+
+						// do some header checks
+						if(subject.contains("+")) {
+							String[] subSplit = subject.split("\\+");
+							for(String sub : subSplit) {
+								if(!ArrayUtilityMethods.arrayContainsValueIgnoreCase(columnHeaders, sub)) {
+									throw new NoSuchFieldException("CSV does not contain header : "+sub+".  Please update RELATION in .prop file");
 								}
 							}
-
-							if(object.contains("+")) {
-								String[] objSplit = object.split("\\+");
-								for(String obj : objSplit) {
-									if(!ArrayUtilityMethods.arrayContainsValueIgnoreCase(columnHeaders, obj)) {
-										throw new NoSuchFieldException("CSV does not contain header : "+obj+".  Please update RELATION in .prop file");
-									}
-								}
-							} else {
-								if(!ArrayUtilityMethods.arrayContainsValueIgnoreCase(columnHeaders, object)) {
-									throw new NoSuchFieldException("CSV does not contain header : "+object+".  Please update RELATION in .prop file");
-								}
+						} else {
+							if(!ArrayUtilityMethods.arrayContainsValueIgnoreCase(columnHeaders, subject)) {
+								throw new NoSuchFieldException("CSV does not contain header : "+subject+".  Please update RELATION in .prop file");
 							}
-
-							String[] subjectArr = {subject};
-							String predicate = components[1];
-							String[] objectArr = {object};
-
-							Map<String, Object> predMap = new HashMap<>();
-							predMap.put("sub", subjectArr);
-							predMap.put("pred", predicate);
-							predMap.put("obj", objectArr);
-							this.propFileData.get("propFileRel").add(predMap);
 						}
-					}
-				}
 
-				//Parses text written as :
-				//NODE_PROP	Title%RevenueDomestic;Title%RevenueInternational;Title%MovieBudget;Title%RottenTomatoesCritics;Title%RottenTomatoesAudience;Title%Nominated;
-				if(prop.containsKey("NODE_PROP")) {
-					String nodePropText = prop.getProperty("NODE_PROP").trim();
-					if(!nodePropText.isEmpty()) {
-						String[] nodeProps = nodePropText.split(";");
-
-						for(String nodeProp : nodeProps) {
-
-							String[] components = nodeProp.split("%");
-
-							String subject = components[0].trim();
-							String object = components[1].trim();
-
-							// do some header checks
-							if(subject.contains("+")) {
-								String[] subSplit = subject.split("\\+");
-								for(String sub : subSplit) {
-									if(!ArrayUtilityMethods.arrayContainsValueIgnoreCase(columnHeaders, sub)) {
-										throw new NoSuchFieldException("CSV does not contain header : "+sub+".  Please update RELATION in .prop file");
-									}
-								}
-							} else {
-								if(!ArrayUtilityMethods.arrayContainsValueIgnoreCase(columnHeaders, subject)) {
-									throw new NoSuchFieldException("CSV does not contain header : "+subject+".  Please update RELATION in .prop file");
+						if(object.contains("+")) {
+							String[] objSplit = object.split("\\+");
+							for(String obj : objSplit) {
+								if(!ArrayUtilityMethods.arrayContainsValueIgnoreCase(columnHeaders, obj)) {
+									throw new NoSuchFieldException("CSV does not contain header : "+obj+".  Please update RELATION in .prop file");
 								}
 							}
-
-							if(object.contains("+")) {
-								String[] objSplit = object.split("\\+");
-								for(String obj : objSplit) {
-									if(!ArrayUtilityMethods.arrayContainsValueIgnoreCase(columnHeaders, obj)) {
-										throw new NoSuchFieldException("CSV does not contain header : "+obj+".  Please update RELATION in .prop file");
-									}
-								}
-							} else {
-								if(!ArrayUtilityMethods.arrayContainsValueIgnoreCase(columnHeaders, object)) {
-									throw new NoSuchFieldException("CSV does not contain header : "+object+".  Please update RELATION in .prop file");
-								}
+						} else {
+							if(!ArrayUtilityMethods.arrayContainsValueIgnoreCase(columnHeaders, object)) {
+								throw new NoSuchFieldException("CSV does not contain header : "+object+".  Please update RELATION in .prop file");
 							}
-
-							String[] subjectArr = {subject};
-							String[] objectArr = {object};
-
-							Map<String, Object> predMap = new HashMap<>();
-							predMap.put("sub", subjectArr);
-							predMap.put("prop", objectArr);
-
-							String dataType = this.dataTypeMap.get(object);
-							//						if(dataType.equals("DOUBLE")) {
-							//							dataType = "NUMBER";
-							//						}
-							predMap.put("dataType", dataType);
-							this.propFileData.get("propFileNodeProp").add(predMap);
 						}
-					}
-				} 
 
-				//Parses text written as : 
-				//DISPLAY_NAME	Title:Moovie_Title;Title%RevenueInternational:InternationalRevenueMovie;Title%Nominated:MoovieNominated;Studio:Stoodio;
-//				if(prop.containsKey("DISPLAY_NAME")) {
-//					String displayNameText = prop.getProperty("DISPLAY_NAME").trim(); 
-//					if(!displayNameText.isEmpty()) {
-//						List<Map<String, Object>> displayList = new ArrayList<>();
-//						this.propFileData.put("itemDisplayName", displayList);
-//
-//
-//						String[] displayNames = displayNameText.split(";");
-//						for(String displayName : displayNames) {
-//							String[] display = displayName.split(":");
-//							String[] selectedDisplayNameArr = {display[1].trim()};
-//							String[] selectedPropertyArr;
-//							String[] selectedNodeArr;
-//							if(display[0].contains("%")) {
-//								String[] prop_node = display[0].split("%");
-//
-//								String subject = prop_node[0].trim();
-//								String object = prop_node[1].trim(); 
-//
-//								if(!ArrayUtilityMethods.arrayContainsValueIgnoreCase(columnHeaders, subject)) {
-//									throw new NoSuchFieldException("CSV does not contain header : "+subject+".  Please update DISPLAY_NAME in .prop file");
-//								}
-//
-//								if(!ArrayUtilityMethods.arrayContainsValueIgnoreCase(columnHeaders, object)) {
-//									throw new NoSuchFieldException("CSV does not contain header : "+object+".  Please update DISPLAY_NAME in .prop file");
-//								}
-//
-//								selectedNodeArr = new String[]{subject};
-//								selectedPropertyArr = new String[]{object};
-//							} else {
-//
-//								String subject = display[0].trim();
-//								if(!ArrayUtilityMethods.arrayContainsValueIgnoreCase(columnHeaders, subject)) {
-//									throw new NoSuchFieldException("CSV does not contain header : "+subject+".  Please update DISPLAY_NAME in .prop file");
-//								}
-//								selectedPropertyArr = selectedNodeArr = new String[]{subject};
-//							}
-//
-//							Map<String, Object> displayMap = new HashMap<>();
-//
-//							displayMap.put("selectedNode", selectedNodeArr);
-//							displayMap.put("selectedProperty", selectedPropertyArr);
-//							displayMap.put("selectedDisplayName", selectedDisplayNameArr);
-//						}
-//					}
-//					//itemDisplayName -> [{selectedNode: [title], selectedProperty: [title], selectedDisplayName : [moovietitles]}, {selectedNode : title, selectedProperty : budget}]
-//				} 
+						String[] subjectArr = {subject};
+						String predicate = components[1];
+						String[] objectArr = {object};
 
-				if(prop.containsKey("START_ROW")) {
-					String startRow = prop.getProperty("START_ROW");
-					try {
-						this.startRow = Integer.parseInt(startRow);
-					} catch(NumberFormatException e) {
-						this.startRow = 2;
+						Map<String, Object> predMap = new HashMap<>();
+						predMap.put("sub", subjectArr);
+						predMap.put("pred", predicate);
+						predMap.put("obj", objectArr);
+						this.propFileData.get("propFileRel").add(predMap);
 					}
 				}
+			}
 
-				if(prop.containsKey("END_ROW")) {
-					String endRow = prop.getProperty("END_ROW");
-					try {
-						this.endRow = Integer.parseInt(endRow);
-					} catch(NumberFormatException e) {
+			//Parses text written as :
+			//NODE_PROP	Title%RevenueDomestic;Title%RevenueInternational;Title%MovieBudget;Title%RottenTomatoesCritics;Title%RottenTomatoesAudience;Title%Nominated;
+			else if(propKeyS.equals("NODE_PROP")) {
+				String nodePropText = propMap.getProperty(propKeyS).trim();
+				if(!nodePropText.isEmpty()) {
+					String[] nodeProps = nodePropText.split(";");
 
+					for(String nodeProp : nodeProps) {
+
+						String[] components = nodeProp.split("%");
+
+						String subject = components[0].trim();
+						String object = components[1].trim();
+
+						// do some header checks
+						if(subject.contains("+")) {
+							String[] subSplit = subject.split("\\+");
+							for(String sub : subSplit) {
+								if(!ArrayUtilityMethods.arrayContainsValueIgnoreCase(columnHeaders, sub)) {
+									throw new NoSuchFieldException("CSV does not contain header : "+sub+".  Please update RELATION in .prop file");
+								}
+							}
+						} else {
+							if(!ArrayUtilityMethods.arrayContainsValueIgnoreCase(columnHeaders, subject)) {
+								throw new NoSuchFieldException("CSV does not contain header : "+subject+".  Please update RELATION in .prop file");
+							}
+						}
+
+						if(object.contains("+")) {
+							String[] objSplit = object.split("\\+");
+							for(String obj : objSplit) {
+								if(!ArrayUtilityMethods.arrayContainsValueIgnoreCase(columnHeaders, obj)) {
+									throw new NoSuchFieldException("CSV does not contain header : "+obj+".  Please update RELATION in .prop file");
+								}
+							}
+						} else {
+							if(!ArrayUtilityMethods.arrayContainsValueIgnoreCase(columnHeaders, object)) {
+								throw new NoSuchFieldException("CSV does not contain header : "+object+".  Please update RELATION in .prop file");
+							}
+						}
+
+						String[] subjectArr = {subject};
+						String[] objectArr = {object};
+
+						Map<String, Object> predMap = new HashMap<>();
+						predMap.put("sub", subjectArr);
+						predMap.put("prop", objectArr);
+
+						String dataType = this.dataTypeMap.get(object);
+						predMap.put("dataType", dataType);
+						this.propFileData.get("propFileNodeProp").add(predMap);
 					}
 				}
+			} 
 
-			} catch (IOException e) {
-				e.printStackTrace();
+			else if(propKeyS.equals("START_ROW")) {
+				String startRow = propMap.getProperty(propKeyS);
+				try {
+					this.startRow = Integer.parseInt(startRow);
+				} catch(NumberFormatException e) {
+					this.startRow = 2;
+				}
 			}
-		}	
 
-	}
+			else if(propKeyS.equals("END_ROW")) {
+				String endRow = propMap.getProperty(propKeyS);
+				try {
+					this.endRow = Integer.parseInt(endRow);
+				} catch(NumberFormatException e) {
 
-	/**
-	 * generate a metamodel in which the column with the most unique instances is the primary key and all other columns are properties of that column
-	 */
-	private void generateTableMetaModel() {
-
-		//initialize the order of columns from highest unique instances to lowest
-		populateProcessOrder();
-
-		//initialize the prop file data
-		List<Map<String, Object>> initList1 = new ArrayList<>();
-		List<Map<String, Object>> initList2 = new ArrayList<>();
-		this.propFileData.put("propFileRel", initList1);
-		this.propFileData.put("propFileNodeProp", initList2);
-
-		//we want to grab the value which has the highest unique instances and is also a string
-		boolean findPrimKey = true;
-		String subject = null;
-		int count = 0;
-		while(findPrimKey && count < processOrder.length) {
-			subject = columnHeaders[processOrder[count]];
-			if(this.dataTypeMap.get(subject).equals("STRING")) {
-				findPrimKey = false;
+				}
 			}
-			count++;
-		}
 
-		//if all columns are numbers use the first number
-		if(subject == null) {
-			subject = columnHeaders[processOrder[0]];
-		}
-
-
-		//make all other columns properties of the main column
-		for(int i = 0; i < processOrder.length; i++) {
-			String object = columnHeaders[processOrder[i]];
-
-			//skip, don't want property equal to itself
-			if(subject.equals(object)) continue;
-
-			//add the data
-			String dataType = this.dataTypeMap.get(object);
-			Map<String, Object> predMap = new HashMap<>();
-
-			String[] subjectArr = {subject};
-			String[] objectArr = {object};
-
-			predMap.put("sub", subjectArr);
-			predMap.put("prop", objectArr);
-			dataType = dataType == "DOUBLE" ? "NUMBER" : dataType;
-			predMap.put("dataType", dataType);
-			this.propFileData.get("propFileNodeProp").add(predMap);
+			else {
+				// WE WANT TO IGNORE SOME THINGS THAT WE DO NOT COUNT AS ADDITIONAL PROPERTIES
+				// THIS IS BECAUSE WE WRITE THE DATA TYPES IN THE PROP FILE
+				// 1) if the key is NUM_COLUMNS
+				if(propKeyS.equals("NUM_COLUMNS")) {
+					continue;
+				}
+				// 2) if the value is STRING, NUMBER, or DATE
+				String value = propMap.getProperty(propKeyS);
+				if(value.equals("STRING") || value.equals("NUMBER") || value.equals("DATE")) {
+					continue;
+				}
+				additionalInfo.put(propKeyS, propMap.getProperty(propKeyS));
+			}
 		}
 	}
 
-	public Map<String, List<Map<String, Object>>> getMetaModelData() {
-		return propFileData;
-	}
-
-	public int getEndRow() {
-		return this.endRow;
-	}
-
-	public int getStartRow() {
-		return this.startRow;
-	}
-
-	public Map<String, String> getDataTypeMap() {
-		return this.dataTypeMap;
-	}
 
 	/**
 	 * 
@@ -598,13 +507,33 @@ public class MetaModelCreator {
 	 * initialize the column property map, each column defaulted to false
 	 */
 	private void populateColumnPropMap() {
-		//		String[] columnHeaders = frame.getColumnHeaders();
 		columnPropMap = new HashMap<>(columnHeaders.length);
 		for(String header : columnHeaders) {
 			columnPropMap.put(header, false);
 		}
 	}
+	
+	public Map<String, List<Map<String, Object>>> getMetaModelData() {
+		return propFileData;
+	}
 
+	public int getEndRow() {
+		return this.endRow;
+	}
+
+	public int getStartRow() {
+		return this.startRow;
+	}
+
+	public Map<String, String> getAdditionalInfo() {
+		return this.additionalInfo;
+	}
+	
+	public Map<String, String> getDataTypeMap() {
+		return this.dataTypeMap;
+	}
+
+	
 	//Use this to test metamodel creator
 	public static void main(String[] args) {
 

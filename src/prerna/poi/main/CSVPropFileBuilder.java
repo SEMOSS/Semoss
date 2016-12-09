@@ -27,11 +27,12 @@
  *******************************************************************************/
 package prerna.poi.main;
 
+import java.util.HashMap;
 import java.util.Hashtable;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 
-import prerna.util.Constants;
 import prerna.util.Utility;
 
 public class CSVPropFileBuilder{
@@ -51,9 +52,6 @@ public class CSVPropFileBuilder{
 	
 	// string builder to contain the node_properties
 	private StringBuilder node_properties = new StringBuilder();
-	
-//	// string builder to contain the display names
-//	private StringBuilder node_displaynames = new StringBuilder();
 	
 	// map containing the data types for each column of the csv file
 	private Hashtable<String, String> dataTypeHash = new Hashtable<String, String>();
@@ -128,55 +126,6 @@ public class CSVPropFileBuilder{
 	}
 	
 	/**
-	 * Adds the display name (or logical name) for each concept and property into the prop file
-	 * @param node					List containing the column headers to concatenate representing the concept 
-	 * @param prop					List containing the column headers to concatenate representing a property
-	 * 								Properties require the concept node as well to add the proper display name
-	 * @param dspName				List containing the display name for the concept/property...
-	 * 								TODO: not sure who set this up and why they thought this should be a list as
-	 * 								opposed to just a string... :/
-	 */
-	public void addDisplayName(List<String> node, List<String> prop, List<String> dspName){
-		// concatenate the concept column headers using a plus sign
-		Iterator<String> nodeIt = node.iterator();
-		String nodeSubject = nodeIt.next();
-		while(nodeIt.hasNext()){
-			nodeSubject = nodeSubject + "+" + nodeIt.next();
-		}
-		
-		// if present, concatenate the property column headers using a plus sign
-		// this is present if we are adding the display name for a property
-		// 		which will use utilize the node string as well
-		// this is not present if the display name is for a concept
-		Iterator<String> nodePropIt = prop.iterator();
-		String nodeProperty = nodePropIt.next();
-		while(nodeIt.hasNext()){
-			nodeProperty = nodeProperty + "+" + nodePropIt.next();
-		}
-		
-		// grab the first value in the display name list
-		// that is going to be the logical name for the concept/property
-		// TODO: again, not sure why a list is passed instead of a string
-		Iterator<String> displayNameIt = dspName.iterator();
-		String displayName = displayNameIt.next();
-		
-		// concatenate the property string with the node string 
-		// this concatenation is done with a percent sign between the concept and the property
-		String nodes = nodeSubject;
-		if(nodeProperty.length() >0 && !nodeProperty.equals(nodeSubject)){
-			nodes += "%" + nodeProperty;
-		}
-		
-		// add the display name to the string builder
-		// all the display names are combined in a string which is semicolon delimited
-		// display name format is slightly different if it is for a concept vs. a property
-		// for a concept the structure is: concatenation of the concept, a colon, and the display name
-		// for a property the structure is: concatenation of the property_parent_concept, a percent sign, 
-		// 									the property, a colon, and the display name
-//		node_displaynames.append(nodes+":"+displayName+";");
-	}
-
-	/**
 	 * TODO: there is a fundamental assumption in this code that concepts are always going to be loaded in as strings
 	 * This dependency was added since URIs are always strings and upload used to be only for RDF.  This code only
 	 * considers the data types for the columns passed in as properties.  These are the only columns stored within 
@@ -223,14 +172,13 @@ public class CSVPropFileBuilder{
 	 * @param startRowNumAsString			The value for the start row to load in the file during the data loading process
 	 * @param endRowNumAsString				The value for the end row to load in the file during the data loading process
 	 */
-	public void constructPropHash(String startRowNumAsString, String endRowNumAsString){
+	public void constructPropHash(String startRowNumAsString, String endRowNumAsString, Map<String, String> additionalMods){
 		// just add everything into the prop hash
 		propHash.put("START_ROW", startRowNumAsString);
 		propHash.put("END_ROW", endRowNumAsString);
 		propHash.put("NOT_OPTIONAL", ";");
 		propHash.put("RELATION", relationships.toString());
 		propHash.put("NODE_PROP", node_properties.toString());
-//		propHash.put(Constants.DISPLAY_NAME, node_displaynames.toString());
 		propHash.put("RELATION_PROP", "");
 		
 		// and do the same and add it in the prop file
@@ -238,20 +186,30 @@ public class CSVPropFileBuilder{
 		propFile.append("END_ROW\t" + endRowNumAsString + "\n");
 		propFile.append("RELATION\t" + relationships.toString() + "\n");
 		propFile.append("NODE_PROP\t" + node_properties.toString() + "\n");
-//		propFile.append(Constants.DISPLAY_NAME + "\t" + node_displaynames.toString() + "\n");
 		propFile.append("RELATION_PROP\t \n");
+		
+		for(String key : additionalMods.keySet()) {
+			String val = additionalMods.get(key);
+			propHash.put(key, val);
+			propFile.append(key + "\t" + val + "\n");
+		}
 	}
 
 	/**
 	 * TODO: name is not consistent with functionality... this also constructs the propFile!!!
 	 * 
-	 * Finishes construction of the prop hash and prop fileand returns it
+	 * Finishes construction of the prop hash and prop file and returns it
 	 * @param startRowNumAsString			The value for the start row to load in the file during the data loading process
 	 * @param endRowNumAsString				The value for the end row to load in the file during the data loading process
+	 * @param additionalMods				Map containing additional modifications to add into the prop file
+	 * 										Example is renaming of column for RDF loading
 	 * @return								The prop hash
 	 */
-	public Hashtable<String, String> getPropHash(String startRowNumAsString, String endRowNumAsString) {
-		constructPropHash(startRowNumAsString, endRowNumAsString);
+	public Hashtable<String, String> getPropHash(String startRowNumAsString, String endRowNumAsString, Map<String, String> additionalMods) {
+		if(additionalMods == null) {
+			additionalMods = new HashMap<String, String>();
+		}
+		constructPropHash(startRowNumAsString, endRowNumAsString, additionalMods);
 		return propHash;
 	}
 
