@@ -55,6 +55,10 @@ public class CSVFileHelper {
 	 */
 	private boolean propFileExists = false;
 
+	// api stores max values for security reasons
+	private int maxColumns = 100_000;
+	private int maxCharsPerColumn = 100_000;
+	
 	/**
 	 * Parse the new file passed
 	 * @param fileLocation		The String location of the fileName
@@ -74,6 +78,9 @@ public class CSVFileHelper {
 		settings.getFormat().setDelimiter(delimiter);
 		settings.setEmptyValue("");
 		settings.setSkipEmptyLines(true);
+		// override default values
+		settings.setMaxColumns(maxColumns);
+		settings.setMaxCharsPerColumn(maxCharsPerColumn);
 	}
 
 	/**
