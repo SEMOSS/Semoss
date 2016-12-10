@@ -24,6 +24,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
+import java.util.TreeMap;
+import java.util.TreeSet;
 import java.util.Vector;
 
 import org.apache.log4j.LogManager;
@@ -532,15 +534,15 @@ public class H2Frame extends AbstractTableDataFrame {
 	public Object[] getFilterModel() {
 		List<String> selectors = this.getSelectors();
 		int length = selectors.size();
-		Map<String, List<Object>> filteredValues = new HashMap<String, List<Object>>(length);
-		Map<String, List<Object>> visibleValues = new HashMap<String, List<Object>>(length);
-		Map<String, Map<String, Double>> minMaxValues = new HashMap<String, Map<String, Double>>(length);
+		Map<String, Set<Object>> filteredValues = new TreeMap<String, Set<Object>>();
+		Map<String, Set<Object>> visibleValues = new TreeMap<String, Set<Object>>();
+		Map<String, Map<String, Double>> minMaxValues = new TreeMap<String, Map<String, Double>>();
 		Iterator<Object[]> iterator = this.iterator();
 
 		// put instances into sets to remove duplicates
-		Set<Object>[] columnSets = new HashSet[length];
+		Set<Object>[] columnSets = new TreeSet[length];
 		for (int i = 0; i < length; i++) {
-			columnSets[i] = new HashSet<Object>();
+			columnSets[i] = new TreeSet<Object>();
 		}
 		while (iterator.hasNext()) {
 			Object[] nextRow = iterator.next();
@@ -558,14 +560,15 @@ public class H2Frame extends AbstractTableDataFrame {
 			String h2key = getH2Header(selectors.get(i));
 			List<Object> values = h2filteredValues.get(h2key);
 			if (values != null) {
-				filteredValues.put(selectors.get(i), values);
+				Set<Object> sortedVals = new TreeSet<Object>();
+				sortedVals.addAll(values);
+				filteredValues.put(selectors.get(i), sortedVals);
 			} else {
-			filteredValues.put(selectors.get(i), new ArrayList<Object>());
+				filteredValues.put(selectors.get(i), new TreeSet<Object>());
 			}
 
 			// get unfiltered values
-			ArrayList<Object> unfilteredList = new ArrayList<Object>(columnSets[i]);
-			visibleValues.put(selectors.get(i), unfilteredList);
+			visibleValues.put(selectors.get(i), columnSets[i]);
 
 			// store data type for header
 			// get min and max values for numerical columns
