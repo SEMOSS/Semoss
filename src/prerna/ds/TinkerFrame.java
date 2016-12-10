@@ -16,6 +16,8 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.TreeMap;
+import java.util.TreeSet;
 import java.util.Vector;
 
 import javax.script.ScriptContext;
@@ -49,7 +51,6 @@ import org.apache.tinkerpop.gremlin.tinkergraph.structure.TinkerFactory;
 import org.apache.tinkerpop.gremlin.tinkergraph.structure.TinkerGraph;
 
 import prerna.algorithm.api.IMetaData;
-import prerna.algorithm.api.ITableDataFrame;
 import prerna.engine.api.IEngine;
 import prerna.engine.api.ISelectStatement;
 import prerna.engine.api.ISelectWrapper;
@@ -1767,15 +1768,15 @@ public class TinkerFrame extends AbstractTableDataFrame {
 	 */
 	public Object[] getFilterModel() {
 		int length = this.headerNames.length;
-		Map<String, List<Object>> filteredValues = new HashMap<String, List<Object>>(length);
-		Map<String, List<Object>> visibleValues = new HashMap<String, List<Object>>(length);
-		Map<String, Map<String, Double>> minMaxValues = new HashMap<String, Map<String, Double>>(length);
+		Map<String, Set<Object>> filteredValues = new TreeMap<String, Set<Object>>();
+		Map<String, Set<Object>> visibleValues = new TreeMap<String, Set<Object>>();
+		Map<String, Map<String, Double>> minMaxValues = new TreeMap<String, Map<String, Double>>();
 		Iterator<Object[]> iterator = this.iterator();
 		
 		//put instances into sets to remove duplicates
-		Set<Object>[] columnSets = new HashSet[length];
+		Set<Object>[] columnSets = new TreeSet[length];
 		for(int i = 0; i < length; i++) {
-			columnSets[i] = new HashSet<Object>();
+			columnSets[i] = new TreeSet<Object>();
 		}
 		while(iterator.hasNext()) {
 			Object[] nextRow = iterator.next();
@@ -1786,8 +1787,8 @@ public class TinkerFrame extends AbstractTableDataFrame {
 		
 		for(int i = 0; i < length; i++) {
 			// initialize lists for each header for unfiltered/filtered values and store data type
-			visibleValues.put(headerNames[i], new ArrayList<Object>(columnSets[i]));
-			filteredValues.put(headerNames[i], new ArrayList<Object>());
+			visibleValues.put(headerNames[i], columnSets[i]);
+			filteredValues.put(headerNames[i], new TreeSet<Object>());
 
 			// store data type for header
 			// get min and max values for numerical columns
@@ -1834,7 +1835,7 @@ public class TinkerFrame extends AbstractTableDataFrame {
 			while (gt.hasNext()) {
 				Vertex value = gt.next();
 				// get the type of the node
-				List fvalues = filteredValues.get(nameNode);
+				Set<Object> fvalues = filteredValues.get(nameNode);
 				fvalues.add(value.value(TINKER_NAME));
 			}
 		}
