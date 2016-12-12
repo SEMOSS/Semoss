@@ -101,15 +101,17 @@ public class DataFrameHelper {
 		index.add(1);
 		cardinality.put(0, index);
 		
-		Set<String> uniqueNames = new HashSet<String>();
-		
 		for(String[] path : paths) {
 			String[] headers = {path[0], path[path.length-1]};
+
+			// keep track to ensure names are unique in a given path
+			Set<String> uniqueNames = new HashSet<String>();
+
 			// create the traversal
 			// will go through each vertex in the path for the traversal
 			GraphTraversal gt = tf.g.traversal().V();
 			String startType = path[0];
-			gt = gt.has(Constants.TYPE, startType).as(startType);
+			gt = gt.has(TinkerFrame.TINKER_TYPE, startType).as(startType);
 			uniqueNames.add(startType);
 			String[] retVars = new String[2];
 			retVars[0] = startType;
@@ -119,15 +121,14 @@ public class DataFrameHelper {
 			for(; i < numTraverse; i++) {
 				String uniqueName = path[i];
 				int counter = 1;
+				// need to continuously update the last header
+				// since we might have to modify it to be unique
 				while(uniqueNames.contains(uniqueName)) {
 					uniqueName = path[i] + "_" + counter;
 					counter++;
-					
-					// need to continuously update the last header
-					// since we might have to modify it to be unique
-					retVars[1] = uniqueName;
 				}
-				gt = gt.out().has(Constants.TYPE, path[i]).as(uniqueName);
+				retVars[1] = uniqueName;
+				gt = gt.out().has(TinkerFrame.TINKER_TYPE, path[i]).as(uniqueName);
 			}
 			gt = gt.select(retVars[0], retVars[1]);
 			System.out.println(gt);
@@ -154,7 +155,7 @@ public class DataFrameHelper {
 		cardinality = new Hashtable<Integer, Set<Integer>>();
 		cardinality.put(0, new HashSet<Integer>());
 		
-		GraphTraversal<Vertex, Vertex> vertIt = tf.g.traversal().V().has(Constants.TYPE, P.within(selectors));
+		GraphTraversal<Vertex, Vertex> vertIt = tf.g.traversal().V().has(TinkerFrame.TINKER_TYPE, P.within(selectors));
 		while(vertIt.hasNext()) {
 			Vertex vert = vertIt.next();
 			String type = vert.value(TinkerFrame.TINKER_TYPE);
