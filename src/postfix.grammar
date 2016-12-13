@@ -21,6 +21,7 @@ Helpers
 Tokens
  number = ['0' .. '9']+;
  boolean = ('TRUE' | 'FALSE' | 'true' | 'false');
+ null = ('null' | 'NULL');
  id = (letter_s | letter_b | digit | underscore)*;
  dot = '.';
  semicolon = ';';
@@ -73,7 +74,6 @@ Tokens
  python = 'p:';
  proc = 'm:';
  this = 'this';
- null = 'null';
  import_type = ('flat' | 'tree');
  rel_type = ('inner.join' | 'outer.join' | 'right.outer.join' | 'left.outer.join' | 'cross.join' | 'self.join' ); 
  dataimporttoken = 'data.import';
@@ -415,7 +415,7 @@ col_csv = l_bracket col_def col_group* r_bracket; // this is typically of the fo
 
 col_table = l_bracket col_csv+ r_bracket; //[[c:col1, c:col2][c:col3, c:col4][c:col5, c:col6]]
 
-word_or_num = {num} decimal | {alpha} word |{expr} [formula]:formula ; // I need some way putting an expression here
+word_or_num = {empty} null | {num} decimal | {alpha} word | {expr} [formula]:formula ; // I need some way putting an expression here
 
 word_or_num_or_nested_obj = {word_or_num} word_or_num | {nested_map} map_obj | {nested_csv} csv_row;
 
@@ -500,8 +500,7 @@ condition_block = l_par condition condition_group* r_par;
   | {api} api_block
   | {tab} [tab]:table_def
   | {csv} csv_row
-  | null
-  |  {alpha} word
+  | {alpha} word
   | {math_fun} math_fun
   | {codeblock} codeblock
   //| {input} user_input
