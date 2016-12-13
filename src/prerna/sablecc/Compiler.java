@@ -120,8 +120,8 @@ public class Compiler
    													+ "rm:(c:colToRemove, c:anotherColToRemove);"*/
 													//+ "jc"
 //													+"database.concepts(Movie_RDBMS)"	
-													+ "data.import( api:Movie_RDBMS.query( <query>SELECT * FROM TITLE</query> ) )"
-													+ ";")), 1024)));
+													+ "data.import( api:Movie_RDBMS.query( <query>SELECT * FROM TITLE</query> ) );"
+													+ "col.filter ( c: TITLE != [null] ) ;")), 1024)));
 			// new InputStreamReader(System.in), 1024)));
 
 			// Parse the input.
