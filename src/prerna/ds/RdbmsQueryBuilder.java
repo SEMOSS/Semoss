@@ -1,7 +1,9 @@
 package prerna.ds;
 
+import java.util.ArrayList;
 import java.util.Hashtable;
 import java.util.List;
+import java.util.Map;
 
 public class RdbmsQueryBuilder {
 
@@ -273,4 +275,111 @@ public class RdbmsQueryBuilder {
 	/******************************
 	 * END DELETE QUERIES
 	 ******************************/
+
+	
+	
+	
+	/******************************
+	 * FILTER QUERIES
+	 ******************************/
+	
+	
+	/**
+	 * 
+	 * @param filterHash
+	 * @param filterComparator
+	 * @return
+	 */
+	public static String makeFilterSubQuery(Map<String, List<Object>> filterHash, Map<String, AbstractTableDataFrame.Comparator> filterComparator) {
+		// need translation of filter here
+		String filterStatement = "";
+		if (filterHash.keySet().size() > 0) {
+
+			List<String> filteredColumns = new ArrayList<String>(filterHash.keySet());
+			for (int x = 0; x < filteredColumns.size(); x++) {
+
+				String header = filteredColumns.get(x);
+				String tableHeader = header;
+
+				AbstractTableDataFrame.Comparator comparator = filterComparator.get(header);
+
+				switch (comparator) {
+				case EQUAL: {
+					List<Object> filterValues = filterHash.get(header);
+					String listString = getQueryStringList(filterValues);
+					filterStatement += tableHeader + " in " + listString;
+					break;
+				}
+				case NOT_EQUAL: {
+					List<Object> filterValues = filterHash.get(header);
+					String listString = getQueryStringList(filterValues);
+					filterStatement += tableHeader + " not in " + listString;
+					break;
+				}
+				case LESS_THAN: {
+					List<Object> filterValues = filterHash.get(header);
+					String listString = filterValues.get(0).toString();
+					filterStatement += tableHeader + " < " + listString;
+					break;
+				}
+				case GREATER_THAN: {
+					List<Object> filterValues = filterHash.get(header);
+					String listString = filterValues.get(0).toString();
+					filterStatement += tableHeader + " > " + listString;
+					break;
+				}
+				case GREATER_THAN_EQUAL: {
+					List<Object> filterValues = filterHash.get(header);
+					String listString = filterValues.get(0).toString();
+					filterStatement += tableHeader + " >= " + listString;
+					break;
+				}
+				case LESS_THAN_EQUAL: {
+					List<Object> filterValues = filterHash.get(header);
+					String listString = filterValues.get(0).toString();
+					filterStatement += tableHeader + " <= " + listString;
+					break;
+				}
+				default: {
+					List<Object> filterValues = filterHash.get(header);
+					String listString = getQueryStringList(filterValues);
+
+					filterStatement += tableHeader + " in " + listString;
+				}
+				}
+
+				// put appropriate ands
+				if (x < filteredColumns.size() - 1) {
+					filterStatement += " AND ";
+				}
+			}
+
+			if (filterStatement.length() > 0) {
+				filterStatement = " WHERE " + filterStatement;
+			}
+		}
+
+		return filterStatement;
+	}
+	
+	public static String getQueryStringList(List<Object> values) {
+		String listString = "(";
+
+		for (int i = 0; i < values.size(); i++) {
+			Object value = values.get(i);
+			value = RdbmsFrameUtility.cleanInstance(value.toString());
+			listString += "'" + value + "'";
+			if (i < values.size() - 1) {
+				listString += ", ";
+			}
+		}
+
+		listString += ")";
+		return listString;
+	}
+
+	/******************************
+	 * FILTER QUERIES
+	 ******************************/
 }
+
