@@ -144,6 +144,7 @@ public interface Analysis extends Switch
     void caseACsvTable(ACsvTable node);
     void caseAColCsv(AColCsv node);
     void caseAColTable(AColTable node);
+    void caseAEmptyWordOrNum(AEmptyWordOrNum node);
     void caseANumWordOrNum(ANumWordOrNum node);
     void caseAAlphaWordOrNum(AAlphaWordOrNum node);
     void caseAExprWordOrNum(AExprWordOrNum node);
@@ -198,7 +199,6 @@ public interface Analysis extends Switch
     void caseAApiTerm(AApiTerm node);
     void caseATabTerm(ATabTerm node);
     void caseACsvTerm(ACsvTerm node);
-    void caseATerm(ATerm node);
     void caseAAlphaTerm(AAlphaTerm node);
     void caseAMathFunTerm(AMathFunTerm node);
     void caseACodeblockTerm(ACodeblockTerm node);
@@ -210,6 +210,7 @@ public interface Analysis extends Switch
 
     void caseTNumber(TNumber node);
     void caseTBoolean(TBoolean node);
+    void caseTNull(TNull node);
     void caseTId(TId node);
     void caseTDot(TDot node);
     void caseTSemicolon(TSemicolon node);
@@ -259,7 +260,6 @@ public interface Analysis extends Switch
     void caseTPython(TPython node);
     void caseTProc(TProc node);
     void caseTThis(TThis node);
-    void caseTNull(TNull node);
     void caseTImportType(TImportType node);
     void caseTRelType(TRelType node);
     void caseTDataimporttoken(TDataimporttoken node);
