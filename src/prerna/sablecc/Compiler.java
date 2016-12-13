@@ -4,13 +4,13 @@ import java.io.InputStreamReader;
 import java.io.PushbackReader;
 import java.io.StringBufferInputStream;
 
+import prerna.ds.h2.H2Frame;
 import prerna.engine.api.IEngine;
-import prerna.engine.impl.rdf.BigDataEngine;
+import prerna.engine.impl.rdbms.RDBMSNativeEngine;
 import prerna.sablecc.lexer.Lexer;
 import prerna.sablecc.node.Start;
 import prerna.sablecc.parser.Parser;
 import prerna.test.TestUtilityMethods;
-import prerna.util.Constants;
 import prerna.util.DIHelper;
 
 public class Compiler
@@ -27,14 +27,20 @@ public class Compiler
 		//	DIHelper.getInstance().loadCoreProp(propFile);
 
 		TestUtilityMethods.loadDIHelper();
-		String engineProp = "C:\\workspace\\Semoss_Dev\\db\\LocalMasterDatabase.smss";
-		IEngine coreEngine = new BigDataEngine();
-		coreEngine.setEngineName(Constants.LOCAL_MASTER_DB_NAME);
-		coreEngine.openDB(engineProp);
-		//TODO: put in correct db name
-		coreEngine.setEngineName(Constants.LOCAL_MASTER_DB_NAME);
-		DIHelper.getInstance().setLocalProperty(Constants.LOCAL_MASTER_DB_NAME, coreEngine);
+//		String engineProp = "C:\\workspace\\Semoss_Dev\\db\\LocalMasterDatabase.smss";
+//		IEngine coreEngine = new BigDataEngine();
+//		coreEngine.setEngineName(Constants.LOCAL_MASTER_DB_NAME);
+//		coreEngine.openDB(engineProp);
+//		//TODO: put in correct db name
+//		coreEngine.setEngineName(Constants.LOCAL_MASTER_DB_NAME);
+//		DIHelper.getInstance().setLocalProperty(Constants.LOCAL_MASTER_DB_NAME, coreEngine);
 
+		String engineProp = "C:\\workspace\\Semoss_Dev\\db\\Movie_RDBMS.smss";
+		IEngine coreEngine = new RDBMSNativeEngine();
+		coreEngine.setEngineName("Movie_RDBMS");
+		coreEngine.openDB(engineProp);
+		DIHelper.getInstance().setLocalProperty("Movie_RDBMS", coreEngine);
+		
 		try
 		{
 
@@ -113,7 +119,8 @@ public class Compiler
    													+ "del:(c:colToRemove);"
    													+ "rm:(c:colToRemove, c:anotherColToRemove);"*/
 													//+ "jc"
-													+"database.concepts(Movie_RDBMS)"	
+//													+"database.concepts(Movie_RDBMS)"	
+													+ "data.import( api:Movie_RDBMS.query( <query>SELECT * FROM TITLE</query> ) )"
 													+ ";")), 1024)));
 			// new InputStreamReader(System.in), 1024)));
 
@@ -123,7 +130,7 @@ public class Compiler
 
 			// Apply the translation.
 			PKQLRunner runner = new PKQLRunner();
-			tree.apply(new Translation(runner));
+			tree.apply(new Translation(new H2Frame(), runner));
 			System.out.println(runner.getResults());
 		}
 		catch(Exception e)

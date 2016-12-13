@@ -15,7 +15,8 @@ Helpers
  code = '<code>';
  startjson = '<json>';
  endjson = '</json>';
- 
+ startquery = '<query>';
+ endquery = '</query>';
 
 Tokens
  number = ['0' .. '9']+;
@@ -88,6 +89,7 @@ Tokens
  help_token = 'info.help';
  codeblock = code alphanumeric* code;
  jsonblock = startjson alphanumeric* endjson;
+ queryblock = startquery alphanumeric* endquery;
  word = quote not_quote+ quote;
  panelviz =  panelprefix '.viz';
  panelclone = panelprefix '.clone';
@@ -334,7 +336,7 @@ output_data = //opens insight given an engine and id and replaces that insight, 
 clear_data = //clears the data from the insight
 		datacleartoken [lp]:l_par [rp]:r_par;
 					
-import_block = {api} api_block | {csv_table} csv_table | {pasted_data} pasted_data_block; 
+import_block = {api} api_block | {csv_table} csv_table | {pasted_data} pasted_data_block | {raw_api} raw_api_block; 
 
 pasted_data_block = l_par pasted_data comma [delimitier]:word_or_num r_par;
 
@@ -355,6 +357,8 @@ api_block = api [engine_name]:id dot [insight]:id l_par [selectors]:col_csv? [wh
 // relations
 // selector sibling selector comes from the same table
 // selector equal_or_compare selector
+
+raw_api_block = api [engine_name]:id dot [insight]:id l_par queryblock r_par;
 
 selector = l_bracket col_csv r_bracket;
 
