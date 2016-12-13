@@ -1,7 +1,11 @@
 package prerna.ds;
 
+import java.util.UUID;
+
 public class RdbmsFrameUtility {
 
+	private static final String H2FRAME = "H2FRAME";
+	
 	public static String cleanInstance(String value) {
 		return value.replace("'", "''");
 	}
@@ -32,6 +36,37 @@ public class RdbmsFrameUtility {
 		} else {
 			return null;
 		}
+	}
+	
+	public static AbstractTableDataFrame.Comparator getStringComparatorValue(String comparator) {
 		
+		if("=".equals(comparator)) {
+			return AbstractTableDataFrame.Comparator.EQUAL;
+		} else if(">".equals(comparator)) {
+			return AbstractTableDataFrame.Comparator.GREATER_THAN;
+		} else if(">=".equals(comparator)) {
+			return AbstractTableDataFrame.Comparator.GREATER_THAN_EQUAL;
+		} else if("<".equals(comparator)) {
+			return AbstractTableDataFrame.Comparator.LESS_THAN;
+		} else if("<=".equals(comparator)) {
+			return AbstractTableDataFrame.Comparator.LESS_THAN_EQUAL;
+		} else if("!=".equals(comparator)) {
+			return AbstractTableDataFrame.Comparator.NOT_EQUAL;
+		} else {
+			return null;
+		}
+	}
+	
+	// get a new unique table name
+	public static String getNewTableName() {
+		String name = H2FRAME + getUUID();
+		return name;
+	}
+	
+	public static String getUUID() {
+		String uuid = UUID.randomUUID().toString();
+		uuid = uuid.replaceAll("-", "_");
+		// table names will be upper case because that is how it is set in information schema
+		return uuid.toUpperCase();
 	}
 }

@@ -16,6 +16,7 @@ import com.google.gson.Gson;
 
 import prerna.algorithm.api.ITableDataFrame;
 import prerna.algorithm.impl.BaseReducerReactor;
+import prerna.ds.AbstractTableDataFrame;
 import prerna.ds.h2.H2Frame;
 import prerna.ds.r.RDataTable;
 import prerna.engine.api.IScriptReactor;
@@ -2265,6 +2266,12 @@ public class Translation extends DepthFirstAdapter {
 		curReactor.put(PKQLEnum.WORD_OR_NUM, num);
 	}
 
+    public void inAEmptyWordOrNum(AEmptyWordOrNum node)
+    {
+    	TNull nullVal = (TNull) node.getNull();
+		curReactor.put(PKQLEnum.WORD_OR_NUM, AbstractTableDataFrame.VALUE.NULL);
+    }
+  
 	@Override
 	public void inAExprWordOrNum(AExprWordOrNum node) {
 
