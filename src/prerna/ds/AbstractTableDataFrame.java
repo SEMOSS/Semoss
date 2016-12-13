@@ -38,7 +38,11 @@ public abstract class AbstractTableDataFrame implements ITableDataFrame {
 
 	// types of comparators
 	public enum Comparator {
-		EQUAL, LESS_THAN, GREATER_THAN, LESS_THAN_EQUAL, GREATER_THAN_EQUAL, NOT_EQUAL;
+		EQUAL, LESS_THAN, GREATER_THAN, LESS_THAN_EQUAL, GREATER_THAN_EQUAL, NOT_EQUAL, IS_NULL, IS_NOT_NULL;
+	}
+	
+	public enum VALUE {
+		NULL;
 	}
 	
 	public static final String LIMIT = "limit";
