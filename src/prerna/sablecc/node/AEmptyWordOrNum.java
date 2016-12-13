@@ -5,16 +5,16 @@ package prerna.sablecc.node;
 import prerna.sablecc.analysis.*;
 
 @SuppressWarnings("nls")
-public final class ATerm extends PTerm
+public final class AEmptyWordOrNum extends PWordOrNum
 {
     private TNull _null_;
 
-    public ATerm()
+    public AEmptyWordOrNum()
     {
         // Constructor
     }
 
-    public ATerm(
+    public AEmptyWordOrNum(
         @SuppressWarnings("hiding") TNull _null_)
     {
         // Constructor
@@ -25,14 +25,14 @@ public final class ATerm extends PTerm
     @Override
     public Object clone()
     {
-        return new ATerm(
+        return new AEmptyWordOrNum(
             cloneNode(this._null_));
     }
 
     @Override
     public void apply(Switch sw)
     {
-        ((Analysis) sw).caseATerm(this);
+        ((Analysis) sw).caseAEmptyWordOrNum(this);
     }
 
     public TNull getNull()
