@@ -94,6 +94,8 @@ public class Translation extends DepthFirstAdapter {
 		Map<String, String> defaultReactors = new Hashtable<String, String>();
 		// this is the base so we can query on an engine without needing a frame
 		defaultReactors.put(PKQLEnum.QUERY_API, "prerna.sablecc.QueryApiReactor");
+		// this is the base so we can run a custom query on an engine without needing a frame
+		defaultReactors.put(PKQLEnum.RAW_API, "prerna.sablecc.RawQueryApiReactor");
 		// this is for searching instances
 		defaultReactors.put(PKQLEnum.SEARCH_QUERY_API, "prerna.sablecc.SearchQueryApiReactor");
 		// this is the outside wrapper for the search query
@@ -563,8 +565,6 @@ public class Translation extends DepthFirstAdapter {
 				tableJoins = (List) curReactor.getValue(PKQLEnum.JOINS);
 			}
 
-			
-
 			// make the api type
 			// set in the values
 			initReactor(PKQLEnum.API);
@@ -613,6 +613,45 @@ public class Translation extends DepthFirstAdapter {
 		runner.setStatus((STATUS) thisReactor.getValue("STATUS"));
 	}
 
+	@Override
+	public void inARawApiBlock(ARawApiBlock node)
+    {
+		// make a raw api import block which will
+		// take in a user query and execute it to construct the frame
+		initReactor(PKQLEnum.RAW_API);
+		
+		String engineName = node.getEngineName().getText().trim();
+		curReactor.put(RawQueryApiReactor.ENGINE_KEY, engineName);
+		String query = node.getQueryblock().getText().trim().replace("<query>", "").replace("</query>", "");
+		curReactor.put(RawQueryApiReactor.QUERY_KEY, query);
+
+		String nodeStr = node.toString().trim();
+		curReactor.put(PKQLEnum.RAW_API, nodeStr);
+    }
+	
+	@Override
+	public void outARawApiBlock(ARawApiBlock node)
+    {
+		IScriptReactor thisReactor = curReactor;
+		String nodeStr = node.toString().trim();
+
+		// make a raw api import block which will
+		// take in a user query and execute it to construct the frame
+		deinitReactor(PKQLEnum.RAW_API, node.toString().trim(), PKQLEnum.RAW_API);
+		
+		// set the iterator in the parent
+		curReactor.put(PKQLEnum.RAW_API, thisReactor.getValue(nodeStr));
+		
+		// merge values with parent
+		String[] values2Sync = curReactor.getValues2Sync(PKQLEnum.RAW_API);
+		if (values2Sync != null) {
+			synchronizeValues(PKQLEnum.RAW_API, values2Sync, thisReactor);
+		}
+		
+		runner.setResponse(thisReactor.getValue("RESPONSE"));
+		runner.setStatus((STATUS) thisReactor.getValue("STATUS"));
+    }
+	
 	@Override
 	public void inAColWhere(AColWhere node) {
 		// still need a reactor for this piece

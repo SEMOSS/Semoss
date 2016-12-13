@@ -2697,6 +2697,27 @@ public class ReversedDepthFirstAdapter extends AnalysisAdapter
         outAPastedDataImportBlock(node);
     }
 
+    public void inARawApiImportBlock(ARawApiImportBlock node)
+    {
+        defaultIn(node);
+    }
+
+    public void outARawApiImportBlock(ARawApiImportBlock node)
+    {
+        defaultOut(node);
+    }
+
+    @Override
+    public void caseARawApiImportBlock(ARawApiImportBlock node)
+    {
+        inARawApiImportBlock(node);
+        if(node.getRawApiBlock() != null)
+        {
+            node.getRawApiBlock().apply(this);
+        }
+        outARawApiImportBlock(node);
+    }
+
     public void inAPastedDataBlock(APastedDataBlock node)
     {
         defaultIn(node);
@@ -2946,6 +2967,51 @@ public class ReversedDepthFirstAdapter extends AnalysisAdapter
             node.getApi().apply(this);
         }
         outAApiBlock(node);
+    }
+
+    public void inARawApiBlock(ARawApiBlock node)
+    {
+        defaultIn(node);
+    }
+
+    public void outARawApiBlock(ARawApiBlock node)
+    {
+        defaultOut(node);
+    }
+
+    @Override
+    public void caseARawApiBlock(ARawApiBlock node)
+    {
+        inARawApiBlock(node);
+        if(node.getRPar() != null)
+        {
+            node.getRPar().apply(this);
+        }
+        if(node.getQueryblock() != null)
+        {
+            node.getQueryblock().apply(this);
+        }
+        if(node.getLPar() != null)
+        {
+            node.getLPar().apply(this);
+        }
+        if(node.getInsight() != null)
+        {
+            node.getInsight().apply(this);
+        }
+        if(node.getDot() != null)
+        {
+            node.getDot().apply(this);
+        }
+        if(node.getEngineName() != null)
+        {
+            node.getEngineName().apply(this);
+        }
+        if(node.getApi() != null)
+        {
+            node.getApi().apply(this);
+        }
+        outARawApiBlock(node);
     }
 
     public void inASelector(ASelector node)
