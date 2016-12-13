@@ -196,4 +196,7 @@ public class RawRDBMSSelectWrapper extends AbstractWrapper implements IRawSelect
 		return var;
 	}
 
+	public ResultSetMetaData getMetaData() throws SQLException {
+		return this.rs.getMetaData();
+	}
 }
