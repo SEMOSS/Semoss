@@ -88,8 +88,6 @@ public class QueryApiReactor extends AbstractApiReactor {
 			System.out.println("Query execution time = " + (endTime - startTime) + " ms");
 		}
 		
-		
-		
 		this.put((String) getValue(PKQLEnum.API), thisIterator);
 		this.put("RESPONSE", "success");
 		this.put("STATUS", PKQLRunner.STATUS.SUCCESS);

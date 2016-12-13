@@ -79,6 +79,7 @@ public class PKQLEnum {
 	public static final String RELATION = "RELATION";
 	public static final String GROUP_BY = "GROUP_BY";
 	public static final String API = "API";
+	public static final String RAW_API = "RAW_API";
 	public static final String CSV_TABLE = "CSV_TABLE";
 	public static final String PASTED_DATA = "PASTED_DATA";
 	public static final String DASHBOARD_JOIN	 = "DASHBOARD_JOIN";
@@ -88,7 +89,6 @@ public class PKQLEnum {
 	public static final String IMPORT_DATA = "IMPORT_DATA";
 	public static final String REMOVE_DATA = "REMOVE_DATA";
 	public static final String QUERY_DATA = "QUERY_DATA";
-	public static final String RAW_QUERY = "RAW_QUERY";
 	public static final String VIZ = "VIZ";
 	public static final String WORD_OR_NUM = "WORD_OR_NUM";
 	public static final String REL_TYPE = "REL_TYPE";

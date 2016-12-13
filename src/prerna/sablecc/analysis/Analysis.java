@@ -109,6 +109,7 @@ public interface Analysis extends Switch
     void caseAApiImportBlock(AApiImportBlock node);
     void caseACsvTableImportBlock(ACsvTableImportBlock node);
     void caseAPastedDataImportBlock(APastedDataImportBlock node);
+    void caseARawApiImportBlock(ARawApiImportBlock node);
     void caseAPastedDataBlock(APastedDataBlock node);
     void caseAPastedData(APastedData node);
     void caseARemoveData(ARemoveData node);
@@ -116,6 +117,7 @@ public interface Analysis extends Switch
     void caseAExprGroup(AExprGroup node);
     void caseAOutputInsight(AOutputInsight node);
     void caseAApiBlock(AApiBlock node);
+    void caseARawApiBlock(ARawApiBlock node);
     void caseASelector(ASelector node);
     void caseAColWhere(AColWhere node);
     void caseAColDefColDefOrCsvRow(AColDefColDefOrCsvRow node);
@@ -273,6 +275,7 @@ public interface Analysis extends Switch
     void caseTHelpToken(THelpToken node);
     void caseTCodeblock(TCodeblock node);
     void caseTJsonblock(TJsonblock node);
+    void caseTQueryblock(TQueryblock node);
     void caseTWord(TWord node);
     void caseTPanelviz(TPanelviz node);
     void caseTPanelclone(TPanelclone node);
