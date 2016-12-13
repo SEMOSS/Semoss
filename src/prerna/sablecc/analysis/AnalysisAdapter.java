@@ -657,6 +657,12 @@ public class AnalysisAdapter implements Analysis
     }
 
     @Override
+    public void caseARawApiImportBlock(ARawApiImportBlock node)
+    {
+        defaultCase(node);
+    }
+
+    @Override
     public void caseAPastedDataBlock(APastedDataBlock node)
     {
         defaultCase(node);
@@ -694,6 +700,12 @@ public class AnalysisAdapter implements Analysis
 
     @Override
     public void caseAApiBlock(AApiBlock node)
+    {
+        defaultCase(node);
+    }
+
+    @Override
+    public void caseARawApiBlock(ARawApiBlock node)
     {
         defaultCase(node);
     }
@@ -1630,6 +1642,12 @@ public class AnalysisAdapter implements Analysis
 
     @Override
     public void caseTJsonblock(TJsonblock node)
+    {
+        defaultCase(node);
+    }
+
+    @Override
+    public void caseTQueryblock(TQueryblock node)
     {
         defaultCase(node);
     }

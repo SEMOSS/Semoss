@@ -95,11 +95,14 @@ public class H2ImportDataReactor extends ImportDataReactor {
 		} else if(it instanceof IRawSelectWrapper) {
 			headers = ((IRawSelectWrapper)it).getDisplayVariables();
 			
-			// only need to do these checks if we are currently in-mem h2 db
-			if(frame.isInMem()) {
-				// get if the frame is over the limit of acceptable values
-				numNewRecords = ((Double) this.getValue(PKQLEnum.API + "_QUERY_NUM_CELLS")).intValue();
-				overLimit = numNewRecords > LIMIT_SIZE ;
+			// TODO: need to add count for hand written queries
+			if(myStore.containsKey(PKQLEnum.API)) {
+				// only need to do these checks if we are currently in-mem h2 db
+				if(frame.isInMem()) {
+					// get if the frame is over the limit of acceptable values
+					numNewRecords = ((Double) this.getValue(PKQLEnum.API + "_QUERY_NUM_CELLS")).intValue();
+					overLimit = numNewRecords > LIMIT_SIZE ;
+				}
 			}
 		}
 		

@@ -51,6 +51,10 @@ public abstract class ImportDataReactor extends AbstractReactor {
 		String [] dataFromPastedData = {"EDGE_HASH", PKQLEnum.COL_CSV};
 		values2SyncHash.put(PKQLEnum.PASTED_DATA, dataFromPastedData);
 		
+		String [] dataFromRawQuery = {"EDGE_HASH", "DATA_TYPE_MAP", "LOGICAL_TO_VALUE"};
+		// same thing when hard coded query
+		values2SyncHash.put(PKQLEnum.RAW_API, dataFromRawQuery);
+				
 		// TODO: don't really need this, should probably remove it since the format is
 		// not user friendly at all
 		//
@@ -156,11 +160,20 @@ public abstract class ImportDataReactor extends AbstractReactor {
 //			else {
 //
 //			}
-		} else if(myStore.containsKey(PKQLEnum.PASTED_DATA)) {
-//			it = (Iterator) myStore.get(PKQLEnum.PASTED_DATA);
+		} else if(myStore.containsKey(PKQLEnum.RAW_API)) {
+			Map<String, Set<String>> edgeHash = (Map<String, Set<String>>) this.getValue(PKQLEnum.RAW_API + "_EDGE_HASH");
+			Map<String, String> dataTypeMap = (Map<String, String>) this.getValue(PKQLEnum.RAW_API + "_DATA_TYPE_MAP");
+			Map<String, String> logicalToValue = (Map<String, String>) this.getValue(PKQLEnum.RAW_API + "_LOGICAL_TO_VALUE");
+			
+			frame.mergeEdgeHash(edgeHash, dataTypeMap);
+			myStore.put("edgeHash", edgeHash);
+			myStore.put("logicalToValue", logicalToValue);
+
+			it = myStore.get(PKQLEnum.RAW_API);
+
+		}else if(myStore.containsKey(PKQLEnum.PASTED_DATA)) {
 			it = myStore.get(PKQLEnum.PASTED_DATA);
 		} else if(myStore.containsKey(PKQLEnum.CSV_TABLE)) {
-//			it = (Iterator) myStore.get(PKQLEnum.CSV_TABLE);
 			it = myStore.get(PKQLEnum.CSV_TABLE);
 		}
 		
