@@ -3791,6 +3791,27 @@ public class DepthFirstAdapter extends AnalysisAdapter
         outAColTable(node);
     }
 
+    public void inAEmptyWordOrNum(AEmptyWordOrNum node)
+    {
+        defaultIn(node);
+    }
+
+    public void outAEmptyWordOrNum(AEmptyWordOrNum node)
+    {
+        defaultOut(node);
+    }
+
+    @Override
+    public void caseAEmptyWordOrNum(AEmptyWordOrNum node)
+    {
+        inAEmptyWordOrNum(node);
+        if(node.getNull() != null)
+        {
+            node.getNull().apply(this);
+        }
+        outAEmptyWordOrNum(node);
+    }
+
     public void inANumWordOrNum(ANumWordOrNum node)
     {
         defaultIn(node);
@@ -5235,27 +5256,6 @@ public class DepthFirstAdapter extends AnalysisAdapter
             node.getCsvRow().apply(this);
         }
         outACsvTerm(node);
-    }
-
-    public void inATerm(ATerm node)
-    {
-        defaultIn(node);
-    }
-
-    public void outATerm(ATerm node)
-    {
-        defaultOut(node);
-    }
-
-    @Override
-    public void caseATerm(ATerm node)
-    {
-        inATerm(node);
-        if(node.getNull() != null)
-        {
-            node.getNull().apply(this);
-        }
-        outATerm(node);
     }
 
     public void inAAlphaTerm(AAlphaTerm node)

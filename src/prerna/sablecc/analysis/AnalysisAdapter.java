@@ -867,6 +867,12 @@ public class AnalysisAdapter implements Analysis
     }
 
     @Override
+    public void caseAEmptyWordOrNum(AEmptyWordOrNum node)
+    {
+        defaultCase(node);
+    }
+
+    @Override
     public void caseANumWordOrNum(ANumWordOrNum node)
     {
         defaultCase(node);
@@ -1191,12 +1197,6 @@ public class AnalysisAdapter implements Analysis
     }
 
     @Override
-    public void caseATerm(ATerm node)
-    {
-        defaultCase(node);
-    }
-
-    @Override
     public void caseAAlphaTerm(AAlphaTerm node)
     {
         defaultCase(node);
@@ -1252,6 +1252,12 @@ public class AnalysisAdapter implements Analysis
 
     @Override
     public void caseTBoolean(TBoolean node)
+    {
+        defaultCase(node);
+    }
+
+    @Override
+    public void caseTNull(TNull node)
     {
         defaultCase(node);
     }
@@ -1546,12 +1552,6 @@ public class AnalysisAdapter implements Analysis
 
     @Override
     public void caseTThis(TThis node)
-    {
-        defaultCase(node);
-    }
-
-    @Override
-    public void caseTNull(TNull node)
     {
         defaultCase(node);
     }
