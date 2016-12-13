@@ -7,6 +7,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.TreeMap;
 import java.util.TreeSet;
+import java.util.Vector;
 
 import org.openrdf.model.vocabulary.OWL;
 import org.openrdf.model.vocabulary.RDF;
@@ -144,6 +145,48 @@ public class DatabasePkqlService {
 	}
 	
 	/**
+	 * Return all the logical names for a given conceptual name
+	 * @param conceptualName
+	 * @return
+	 */
+	public static Set<String> getAllLogicalNamesFromConceptual(List<String> conceptualName, List<String> parentConceptualName) {
+		IEngine engine = (IEngine) DIHelper.getInstance().getLocalProp(Constants.LOCAL_MASTER_DB_NAME);
+
+		// create list of bindings
+		List<String> conceptualUriSuffix = new Vector<String>();
+		int size = conceptualName.size();
+		for(int i = 0; i < size; i++) {
+			String uriSuffix = conceptualName.get(i);
+			if(parentConceptualName != null && parentConceptualName.get(i) != null && !parentConceptualName.get(i).trim().isEmpty()) {
+				uriSuffix += "/" + parentConceptualName.get(i);
+			}
+			// add to list
+			conceptualUriSuffix.add(uriSuffix);
+		}
+		
+		StringBuilder bindings = createUriBindings("conceptualUri", conceptualUriSuffix);
+		
+		String query = "SELECT DISTINCT ?conceptLogical WHERE { "
+				+ "{?conceptComposite <" + RDFS.subClassOf + "> <http://semoss.org/ontologies/Concept>}"
+				+ "{?conceptComposite <http://semoss.org/ontologies/Relation/logical> ?conceptLogical}"
+				+ "{?conceptComposite <http://semoss.org/ontologies/Relation/conceptual> ?conceptualUri}"
+				+ "} ORDER BY ?conceptLogical " + bindings.toString();
+		
+		Set<String> logicalNames = new TreeSet<String>();
+
+		// iterate through the results and append onto the list
+		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(engine, query);
+		while(wrapper.hasNext()) {
+			IHeadersDataRow ss = wrapper.next();
+			Object[] values = ss.getValues();
+			// this will be the logical names
+			logicalNames.add(values[0] + "");
+		}
+		
+		return logicalNames;
+	}
+	
+	/**
 	 * Get the list of concepts for a given engine
 	 * @param engineName
 	 * @return
@@ -182,7 +225,7 @@ public class DatabasePkqlService {
 	 */
 	public static Map<String, Object[]> getConceptProperties(List<String> conceptLogicalNames) {
 		// get the bindings based on the input list
-		StringBuilder logicalNameBindings = createLogicalNamesBindings("conceptLogical", conceptLogicalNames);
+		StringBuilder logicalNameBindings = createUriBindings("conceptLogical", conceptLogicalNames);
 		
 		String propQuery = "SELECT DISTINCT ?engine ?conceptConceptual ?propConceptual WHERE "
 				+ "{"
@@ -264,7 +307,7 @@ public class DatabasePkqlService {
 	 */
 	public static Map getConnectedConcepts(List<String> conceptLogicalNames) {
 		// get the bindings based on the input list
-		StringBuilder logicalNameBindings = createLogicalNamesBindings("toLogical", conceptLogicalNames);
+		StringBuilder logicalNameBindings = createUriBindings("toLogical", conceptLogicalNames);
 		
 		IEngine masterDB = (IEngine) DIHelper.getInstance().getLocalProp(Constants.LOCAL_MASTER_DB_NAME);
 
@@ -390,11 +433,11 @@ public class DatabasePkqlService {
 		return enginesHash;
 	}
 	
-	private static StringBuilder createLogicalNamesBindings(String varName, List<String> conceptLogicalNames) {
+	private static StringBuilder createUriBindings(String varName, List<String> nameBindings) {
 		StringBuilder logicalNameBindings = new StringBuilder(" BINDINGS ?" + varName + " {");
-		int size = conceptLogicalNames.size();
+		int size = nameBindings.size();
 		for(int i = 0; i < size; i++) {
-			logicalNameBindings.append("(<http://semoss.org/ontologies/Concept/").append(conceptLogicalNames.get(i)).append(">)");
+			logicalNameBindings.append("(<http://semoss.org/ontologies/Concept/").append(nameBindings.get(i)).append(">)");
 		}
 		logicalNameBindings.append("}");
 		return logicalNameBindings;
