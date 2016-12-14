@@ -197,6 +197,7 @@ public interface Analysis extends Switch
     void caseAVarTerm(AVarTerm node);
     void caseAColTerm(AColTerm node);
     void caseAApiTerm(AApiTerm node);
+    void caseARawApiTerm(ARawApiTerm node);
     void caseATabTerm(ATabTerm node);
     void caseACsvTerm(ACsvTerm node);
     void caseAAlphaTerm(AAlphaTerm node);

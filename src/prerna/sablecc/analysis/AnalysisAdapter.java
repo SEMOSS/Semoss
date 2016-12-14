@@ -1185,6 +1185,12 @@ public class AnalysisAdapter implements Analysis
     }
 
     @Override
+    public void caseARawApiTerm(ARawApiTerm node)
+    {
+        defaultCase(node);
+    }
+
+    @Override
     public void caseATabTerm(ATabTerm node)
     {
         defaultCase(node);

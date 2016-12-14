@@ -5233,6 +5233,27 @@ public class ReversedDepthFirstAdapter extends AnalysisAdapter
         outAApiTerm(node);
     }
 
+    public void inARawApiTerm(ARawApiTerm node)
+    {
+        defaultIn(node);
+    }
+
+    public void outARawApiTerm(ARawApiTerm node)
+    {
+        defaultOut(node);
+    }
+
+    @Override
+    public void caseARawApiTerm(ARawApiTerm node)
+    {
+        inARawApiTerm(node);
+        if(node.getRawApiBlock() != null)
+        {
+            node.getRawApiBlock().apply(this);
+        }
+        outARawApiTerm(node);
+    }
+
     public void inATabTerm(ATabTerm node)
     {
         defaultIn(node);
