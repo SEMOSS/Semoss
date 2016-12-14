@@ -18,6 +18,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Hashtable;
 import java.util.Iterator;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
@@ -36,6 +37,8 @@ import com.google.gson.Gson;
 import prerna.algorithm.api.IMetaData;
 import prerna.cache.ICache;
 import prerna.ds.AbstractTableDataFrame;
+import prerna.ds.AbstractTableDataFrame.Comparator;
+import prerna.ds.RdbmsFrameUtility;
 import prerna.ds.RdbmsQueryBuilder;
 import prerna.engine.api.IHeadersDataRow;
 import prerna.poi.main.RDBMSEngineCreationHelper;
@@ -1135,12 +1138,22 @@ public class H2Builder {
 		if (filterHash.get(column) == null) {
 			setFilters(column, values, comparator);
 		} else {
+			Set<Object> set = new HashSet<>(values);
+			boolean addNull = set.remove(AbstractTableDataFrame.VALUE.NULL);
+			
 			Map<AbstractTableDataFrame.Comparator, Set<Object>> innerMap = filterHash.get(column);
-			if (innerMap.get(comparator) == null
-					|| (comparator != AbstractTableDataFrame.Comparator.EQUAL && comparator != AbstractTableDataFrame.Comparator.NOT_EQUAL)) {
-				innerMap.put(comparator, new HashSet<>(values));
-			} else {
-				innerMap.get(comparator).addAll(values);
+			if (innerMap.get(comparator) == null || (comparator != AbstractTableDataFrame.Comparator.EQUAL && comparator != AbstractTableDataFrame.Comparator.NOT_EQUAL) && set.size() > 0) {
+				innerMap.put(comparator, set);
+			} else if(set.size() > 0) {
+				innerMap.get(comparator).addAll(set);
+			}
+			
+			
+			if(addNull) {
+				if(comparator.equals(AbstractTableDataFrame.Comparator.EQUAL))
+					innerMap.put(AbstractTableDataFrame.Comparator.IS_NULL, new HashSet<>());
+				else if(comparator.equals(AbstractTableDataFrame.Comparator.NOT_EQUAL))
+					innerMap.put(AbstractTableDataFrame.Comparator.IS_NOT_NULL, new HashSet<>());
 			}
 		}
 	}
@@ -1156,9 +1169,6 @@ public class H2Builder {
 	public void setFilters(String columnHeader, List<Object> values, AbstractTableDataFrame.Comparator comparator) {
 		columnHeader = cleanHeader(columnHeader);
 
-		Map<AbstractTableDataFrame.Comparator, Set<Object>> innerMap = new HashMap<>();
-		innerMap.put(comparator, new HashSet<>(values));
-
 		Map<String, Map<AbstractTableDataFrame.Comparator, Set<Object>>> filterHash;
 		String column;
 		if (joinMode) {
@@ -1167,6 +1177,19 @@ public class H2Builder {
 		} else {
 			filterHash = this.filterHash2;
 			column = columnHeader;
+		}
+		Map<AbstractTableDataFrame.Comparator, Set<Object>> innerMap = new LinkedHashMap<>();
+		
+		Set<Object> set = new HashSet<>(values);
+		boolean containsNull = set.remove(AbstractTableDataFrame.VALUE.NULL);
+		if(set.size() > 0) {
+			innerMap.put(comparator, set);
+		}
+		if(containsNull) {
+			if(comparator.equals(AbstractTableDataFrame.Comparator.EQUAL))
+				innerMap.put(AbstractTableDataFrame.Comparator.IS_NULL, new HashSet<>());
+			else if(comparator.equals(AbstractTableDataFrame.Comparator.NOT_EQUAL))
+				innerMap.put(AbstractTableDataFrame.Comparator.IS_NOT_NULL, new HashSet<>());
 		}
 
 		filterHash.put(column, innerMap);
@@ -1310,28 +1333,37 @@ public class H2Builder {
 			for (int x = 0; x < filteredColumns.size(); x++) {
 
 				String header = filteredColumns.get(x);
-				// String tableHeader = joinMode ? translateColumn(header) :
-				// header;
-				String tableHeader = header;
+				 String tableHeader = joinMode ? translateColumn(header) : header;
+//				String tableHeader = header;
 
 				Map<AbstractTableDataFrame.Comparator, Set<Object>> innerMap = filterHash.get(header);
 				int i = 0;
+				boolean addOr = false;
 				for (AbstractTableDataFrame.Comparator comparator : innerMap.keySet()) {
+					if(i==0) {
+						filterStatement += "(";
+					}
 					if (i > 0) {
-						filterStatement += " AND ";
+						if(comparator.equals(AbstractTableDataFrame.Comparator.IS_NULL) || addOr) {
+							filterStatement += " OR ";
+						} else {
+							filterStatement += " AND ";
+						}
+					} else if(comparator.equals(AbstractTableDataFrame.Comparator.IS_NULL)) {
+						addOr = true;
 					}
 					switch (comparator) {
 
 					case EQUAL: {
 						Set<Object> filterValues = innerMap.get(comparator);
 						String listString = getQueryStringList(filterValues);
-						filterStatement += tableHeader + " in " + listString;
+						filterStatement += tableHeader + " IN " + listString;
 						break;
 					}
 					case NOT_EQUAL: {
 						Set<Object> filterValues = innerMap.get(comparator);
 						String listString = getQueryStringList(filterValues);
-						filterStatement += tableHeader + " not in " + listString;
+						filterStatement += tableHeader + " NOT IN " + listString;
 						break;
 					}
 					case LESS_THAN: {
@@ -1358,6 +1390,14 @@ public class H2Builder {
 						filterStatement += tableHeader + " <= " + listString;
 						break;
 					}
+					case IS_NOT_NULL: {
+						filterStatement += tableHeader + " IS NOT NULL ";
+						break;
+					}
+					case IS_NULL: {
+						filterStatement += tableHeader + " IS NULL ";
+						break;
+					}
 					default: {
 						Set<Object> filterValues = innerMap.get(comparator);
 						String listString = getQueryStringList(filterValues);
@@ -1369,6 +1409,7 @@ public class H2Builder {
 				}
 
 				// put appropriate ands
+				filterStatement += ")";
 				if (x < filteredColumns.size() - 1) {
 					filterStatement += " AND ";
 				}
@@ -2863,32 +2904,69 @@ public class H2Builder {
 
 		Map<AbstractTableDataFrame.Comparator, Set<Object>> filterMap = filterHash.get(selector);
 		int i = 0;
+		
+		//if the filterMap does not contain a comparator referring to null (is not null or is null) we will asssume to include them
+		//for the following comparators
+		//equal, greater than, greater than equal, less than, less than equal
+		//we want to do this because the following query does not return null values 
+		//	SELECT DISTINCT column FROM table WHERE value IN ('val1', 'val2', ..., 'valn');
+		Set<Comparator> keySet = filterMap.keySet();
+		boolean addNulls = false;
+		if(!keySet.contains(AbstractTableDataFrame.Comparator.IS_NOT_NULL) || !keySet.contains(AbstractTableDataFrame.Comparator.IS_NULL)) {
+			addNulls = true;
+		}
+		
+		
 		// what ever is listed in the filter hash, we want the get the values
 		// that would be the logical opposite
 		// i.e. if filter hash indicates 'X < 0.9 AND X > 0.8', return 'X > =0.9
 		// OR X <= 0.8'
 		for (AbstractTableDataFrame.Comparator comparator : filterMap.keySet()) {
 			if (i > 0) {
-				filterStatement += " OR ";
+				if(comparator.equals(AbstractTableDataFrame.Comparator.IS_NULL)) {
+					filterStatement += " AND ";
+				} else {
+					filterStatement += " OR ";
+				}
 			}
 			Set<Object> filterValues = filterMap.get(comparator);
-			if (filterValues.size() == 0)
+			if (filterValues.size() == 0 && !comparator.equals(AbstractTableDataFrame.Comparator.IS_NOT_NULL) && !comparator.equals(AbstractTableDataFrame.Comparator.IS_NULL)) {
 				continue;
+			}
 
 			if (comparator.equals(AbstractTableDataFrame.Comparator.EQUAL)) {
 				String listString = getQueryStringList(filterValues);
 				filterStatement += selector + " NOT IN " + listString;
+				if(addNulls) {
+					filterStatement += " OR " + selector + " IS NULL";
+				}
 			} else if (comparator.equals(AbstractTableDataFrame.Comparator.NOT_EQUAL)) {
 				String listString = getQueryStringList(filterValues);
 				filterStatement += selector + " IN " + listString;
 			} else if (comparator.equals(AbstractTableDataFrame.Comparator.GREATER_THAN)) {
 				filterStatement += selector + " <= " + filterValues.iterator().next().toString();
+				if(addNulls) {
+					filterStatement += " OR " + selector + " IS NULL";
+				}
 			} else if (comparator.equals(AbstractTableDataFrame.Comparator.GREATER_THAN_EQUAL)) {
 				filterStatement += selector + " < " + filterValues.iterator().next().toString();
+				if(addNulls) {
+					filterStatement += " OR " + selector + " IS NULL";
+				}
 			} else if (comparator.equals(AbstractTableDataFrame.Comparator.LESS_THAN)) {
 				filterStatement += selector + " >= " + filterValues.iterator().next().toString();
+				if(addNulls) {
+					filterStatement += " OR " + selector + " IS NULL";
+				}
 			} else if (comparator.equals(AbstractTableDataFrame.Comparator.LESS_THAN_EQUAL)) {
 				filterStatement += selector + " > " + filterValues.iterator().next().toString();
+				if(addNulls) {
+					filterStatement += " OR " + selector + " IS NULL";
+				}
+			} else if (comparator.equals(AbstractTableDataFrame.Comparator.IS_NOT_NULL)) {
+				filterStatement += selector + " IS NULL ";
+			} else if (comparator.equals(AbstractTableDataFrame.Comparator.IS_NULL)) {
+				filterStatement += selector + " IS NOT NULL ";
 			}
 			i++;
 		}
@@ -2896,6 +2974,10 @@ public class H2Builder {
 		selectStatement += " WHERE " + filterStatement;
 
 		return selectStatement;
+	}
+	
+	private String addOrNullFilter() {
+		return "";
 	}
 
 	private String getQueryStringList(List<Object> values) {
