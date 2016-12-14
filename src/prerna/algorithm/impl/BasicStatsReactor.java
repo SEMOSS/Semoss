@@ -15,6 +15,7 @@ import prerna.sablecc.PKQLRunner.STATUS;
 import prerna.sablecc.meta.IPkqlMetadata;
 import prerna.sablecc.meta.MathPkqlMetadata;
 
+import org.apache.commons.math3.stat.descriptive.DescriptiveStatistics;
 import org.apache.commons.math3.stat.descriptive.SummaryStatistics;
 
 import prerna.util.ArrayUtilityMethods;
@@ -25,6 +26,7 @@ public class BasicStatsReactor extends BaseReducerReactor {
 	@Override
 	public Object reduce() {
 		SummaryStatistics stats = new SummaryStatistics();
+		DescriptiveStatistics descStats = new DescriptiveStatistics();
 		double output = 0.0;
 		int count = 0;
 		int positiveCount =0, negativeCount =0, zeroCount =0;
@@ -43,6 +45,7 @@ public class BasicStatsReactor extends BaseReducerReactor {
 			ArrayList dec = (ArrayList)getNextValue();
 				if(dec.get(0) instanceof Number) {
 					stats.addValue(((Number)dec.get(0)).doubleValue());
+					descStats.addValue(((Number)dec.get(0)).doubleValue());
 					values.add(((Number)dec.get(0)).doubleValue());
 					if (((Number)dec.get(0)).doubleValue() > greaterThreshold){
 						posTotal += ((Number)dec.get(0)).doubleValue();
@@ -94,6 +97,9 @@ public class BasicStatsReactor extends BaseReducerReactor {
 	    		break;
 	    	}
 	    }
+	    //Kurt
+	    double kurt;
+        kurt=descStats.getKurtosis();
 	    
 
 		HashMap<String,Object> returnData = new HashMap<>();
@@ -136,6 +142,7 @@ public class BasicStatsReactor extends BaseReducerReactor {
 		returnData.put("posTotal", posTotal);
 		returnData.put("negTotal", negTotal);
 		returnData.put("absTotal", absTotal);
+		returnData.put("Kurtosis", kurt);
 		
 		HashMap<String,Object> basicStats = new HashMap<>();
 		basicStats.put("basicStats", returnData);
