@@ -2,9 +2,10 @@ package prerna.sablecc;
 
 import java.util.Hashtable;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Vector;
 
-import prerna.ds.ExpressionReducer;
+import prerna.engine.api.IHeadersDataRow;
 import prerna.sablecc.meta.IPkqlMetadata;
 
 public class ColWhereReactor extends AbstractReactor {
@@ -20,11 +21,11 @@ public class ColWhereReactor extends AbstractReactor {
 	// oh wait.. array of expr_term
 	// unless of course someone is trying to just sum the number
 
-	Vector<String> replacers = new Vector<String>();
-	ExpressionReducer red = null;
+	private static String fromColVal = PKQLEnum.COL_DEF + "_1";
+	private static String toColVal = PKQLEnum.COL_DEF + "_2";
 
 	public ColWhereReactor() {
-		String[] thisReacts = { PKQLEnum.COL_DEF, PKQLEnum.COL_DEF + "_1", PKQLEnum.COL_DEF + "_2", PKQLEnum.ROW_CSV, PKQLEnum.VAR_TERM };
+		String[] thisReacts = { PKQLEnum.COL_DEF, fromColVal, toColVal, PKQLEnum.ROW_CSV, PKQLEnum.VAR_TERM, PKQLEnum.API, PKQLEnum.RAW_API };
 		super.whatIReactTo = thisReacts;
 		super.whoAmI = PKQLEnum.WHERE;
 	}
@@ -42,27 +43,46 @@ public class ColWhereReactor extends AbstractReactor {
 		// just for the sake of clarity..
 		// I should take the stuff out and get it set right
 		Hashtable<String, Object> finalHash = new Hashtable<String, Object>();
-		finalHash.put(PKQLEnum.FROM_COL, myStore.get(whatIReactTo[1]));
-		if (myStore.containsKey(whatIReactTo[2]))
-			finalHash.put(PKQLEnum.TO_COL, myStore.get(whatIReactTo[2]));
-		if (myStore.containsKey(whatIReactTo[3]))
-			finalHash.put("TO_DATA", myStore.get(whatIReactTo[3]));
-		if (myStore.containsKey(whatIReactTo[4]))
-			finalHash.put("TO_DATA", myStore.get(whatIReactTo[4]));
+		// put the from column
+		finalHash.put(PKQLEnum.FROM_COL, myStore.get(fromColVal));
+		
+		// put the to column
+		// not there when this is for a variable... i think
+		if (myStore.containsKey(toColVal)) {
+			finalHash.put(PKQLEnum.TO_COL, myStore.get(toColVal));
+		}
+		
+		// based on input type, put the to_data
+		if (myStore.containsKey(PKQLEnum.ROW_CSV)) {
+			finalHash.put("TO_DATA", myStore.get(PKQLEnum.ROW_CSV));
+		} else if (myStore.containsKey(PKQLEnum.VAR_TERM)) {
+			finalHash.put("TO_DATA", myStore.get(PKQLEnum.VAR_TERM));
+		} else if(myStore.containsKey(PKQLEnum.API)) {
+			// flush out iterator
+			finalHash.put("TO_DATA", flushOutIterator( (Iterator<IHeadersDataRow>) myStore.get(PKQLEnum.API)));
+		} else if(myStore.containsKey(PKQLEnum.RAW_API)) {
+			// flush out iterator
+			finalHash.put("TO_DATA", flushOutIterator( (Iterator<IHeadersDataRow>) myStore.get(PKQLEnum.RAW_API)));
+		}
+		
+		// put in the comparator
 		finalHash.put("COMPARATOR", myStore.get("COMPARATOR"));
 		myStore.put(nodeStr, finalHash);
 
-		// create the iterator and keep it moving
-		// this is where I do the out math fun
-
-		// this is where I would create the iterator to do various things
-
 		return null;
+	}
+	
+	public List<Object> flushOutIterator(Iterator<IHeadersDataRow> it) {
+		// ASSUMPTION - ONLY ONE COLUMN BEING RETURNED!!!
+		List<Object> values = new Vector<Object>();
+		while(it.hasNext()) {
+			values.add(it.next().getValues()[0]);
+		}
+		return values;
 	}
 
 	@Override
 	public IPkqlMetadata getPkqlMetadata() {
-		// TODO Auto-generated method stub
 		return null;
 	}
 
