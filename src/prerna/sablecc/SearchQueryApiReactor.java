@@ -77,13 +77,15 @@ public class SearchQueryApiReactor extends AbstractApiReactor {
 	
 	private boolean setCount() {
 		if(this.mapOptions != null) {
-			String getCount = mapOptions.get("getCount").toString();
-			if(getCount.toLowerCase().equals("true")) {
-				this.qs.setPerformCount(QueryStruct.COUNT_DISTINCT_SELECTORS);
-				return true;
-			} else {
-				this.qs.setPerformCount(QueryStruct.NO_COUNT);
-				return false;
+			if(mapOptions.get("getCount") != null) {
+				String getCount = mapOptions.get("getCount").toString();
+				if(getCount.toLowerCase().equals("true")) {
+					this.qs.setPerformCount(QueryStruct.COUNT_DISTINCT_SELECTORS);
+					return true;
+				} else {
+					this.qs.setPerformCount(QueryStruct.NO_COUNT);
+					return false;
+				}
 			}
 		}
 		return false;
