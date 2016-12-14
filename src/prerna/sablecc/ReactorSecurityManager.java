@@ -31,7 +31,7 @@ public class ReactorSecurityManager extends SecurityManager {
     	  throw new SecurityException("Property lookup not permitted.. " + key) ;	        	    	  
       }*/
 	
-      public void checkRead(String file)
+    /*  public void checkRead(String file)
       {
     	  throw new SecurityException("File access not permitted.. " ) ;	        	    	      	  
       }
@@ -50,4 +50,4 @@ public class ReactorSecurityManager extends SecurityManager {
       {
     	  throw new SecurityException("File access not permitted.. " ) ;	        	    	      	  
       }
-}
+*/}
