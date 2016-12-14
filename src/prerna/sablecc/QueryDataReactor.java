@@ -49,17 +49,18 @@ public class QueryDataReactor extends AbstractReactor {
 			if(frame == null) {
 				throw new IllegalArgumentException("Cannot have a table join in a state less PKQL call");
 			}
-			//do the logic here of getting the filters from the frame
-			for(Map<String,String> join : joins){
-				String joinType = join.get(PKQLEnum.REL_TYPE);
-				if(joinType.contains("inner") || joinType.contains("left")) {
-					String toCol = join.get(PKQLEnum.TO_COL);
-					String fromCol = join.get(PKQLEnum.FROM_COL);
-				
-					Object[] bindings = frame.getColumn(fromCol);
-					qs.addFilter(toCol, "=", Arrays.asList(bindings));
-				}
-			}
+//			//do the logic here of getting the filters from the frame
+//			for(Map<String,String> join : joins){
+//				String joinType = join.get(PKQLEnum.REL_TYPE);
+//				if(joinType.contains("inner") || joinType.contains("left")) {
+//					
+//					String toCol = join.get(PKQLEnum.TO_COL);
+//					String fromCol = join.get(PKQLEnum.FROM_COL);
+//				
+//					Object[] bindings = frame.getColumn(fromCol);
+//					qs.addFilter(toCol, "=", Arrays.asList(bindings));
+//				}
+//			}
 		}
 		
 		IEngine engine = Utility.getEngine((this.getValue(PKQLEnum.API + "_ENGINE")+"").trim());		
