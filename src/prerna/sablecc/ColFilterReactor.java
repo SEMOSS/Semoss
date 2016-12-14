@@ -10,6 +10,8 @@ import java.util.Vector;
 
 import prerna.algorithm.api.IMetaData;
 import prerna.algorithm.api.ITableDataFrame;
+import prerna.ds.AbstractTableDataFrame;
+import prerna.ds.h2.H2Frame;
 import prerna.sablecc.meta.ColFilterMetadata;
 import prerna.sablecc.meta.IPkqlMetadata;
 import prerna.sablecc.meta.VizPkqlMetadata;
@@ -77,23 +79,26 @@ public class ColFilterReactor extends AbstractReactor {
 				for (Object data : filterData) {
 					String inputData = data.toString().trim();
 					Object cleanData = null;
+					if(data.equals(AbstractTableDataFrame.VALUE.NULL)) {
+						cleanData = data;
+					}
 
 					// if the column type in the frame is a string and a
 					// property simply cast it to a string
 					if (frame != null && frame.getDataType(fromCol).equals(IMetaData.DATA_TYPES.STRING)
-							&& properties.containsKey(fromCol)) {
+							&& properties.containsKey(fromCol) && cleanData == null) {
 						cleanData = inputData;
 					}
 
 					else if (frame != null && frame.getDataType(fromCol).equals(IMetaData.DATA_TYPES.STRING)
-							&& !properties.containsKey(fromCol)) {
+							&& !properties.containsKey(fromCol) && cleanData == null) {
 						cleanData = Utility.cleanString(inputData, true, true, false);
 					}
 
 					// else go through the current flow
 					// TODO : we should use the types on the frame to determine
 					// how to cast instead of guessing what came from pkql
-					else {
+					else if(cleanData == null) {
 						String type = Utility.findTypes(inputData)[0] + "";
 						if (type.equalsIgnoreCase("Date")) {
 							cleanData = Utility.getDate(inputData);
