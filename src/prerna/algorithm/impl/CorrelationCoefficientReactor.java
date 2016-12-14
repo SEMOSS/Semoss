@@ -8,6 +8,7 @@ import java.util.Vector;
 
 import org.apache.commons.math3.stat.correlation.PearsonsCorrelation;
 
+import prerna.sablecc.PKQLRunner.STATUS;
 import prerna.util.ArrayUtilityMethods;
 
 public class CorrelationCoefficientReactor extends BaseReducerReactor {
@@ -41,42 +42,52 @@ public class CorrelationCoefficientReactor extends BaseReducerReactor {
 		}
 		double corr = new PearsonsCorrelation().correlation(y,x);	
 		System.out.println(corr);
+		HashMap<String,Object> CorrelationCoefficient = new HashMap<>();
+		CorrelationCoefficient.put("CorrelationCoefficient", corr);
+		myStore.put("ADDITIONAL_INFO", CorrelationCoefficient);
+		myStore.put("STATUS", STATUS.SUCCESS);
 		return corr;
 	}
-	
 	@Override
-	public HashMap<HashMap<Object, Object>,Object> reduceGroupBy(Vector<String> groupBys, Vector<String> processedColumns, String[] columnsArray, Iterator it) {
-		HashMap<HashMap<Object,Object>, Object> groupByHash = new HashMap<HashMap<Object,Object>,Object>();
-		
-		while(it.hasNext()){
-			Object[] row = (Object[]) it.next();
-			HashMap<Object, Object> key = new HashMap<Object, Object>();
-			for(String groupBy : groupBys) {
-				int groupByIndex = ArrayUtilityMethods.arrayContainsValueAtIndexIgnoreCase(columnsArray, groupBy);
-				Object instance = row[groupByIndex];
-				key.put(groupBy, instance);
-			}
-			int processedIndex = ArrayUtilityMethods.arrayContainsValueAtIndexIgnoreCase(columnsArray, processedColumns.get(0));
-			if (row[processedIndex] instanceof Number) {
-				double value = ((Number)row[processedIndex]).doubleValue();
-				HashMap<String,Object> paramMap = (HashMap<String,Object>)groupByHash.get(key);
-				if(paramMap == null) {
-					paramMap = new HashMap<String,Object>();
-					groupByHash.put(key, paramMap);
-					paramMap.put("SUM", 0.0);
-					paramMap.put("COUNT", 0);
-				}
-				paramMap.put("SUM", (Double)paramMap.get("SUM") + value);
-				paramMap.put("COUNT", (Integer)paramMap.get("COUNT")+1);
-			}
-		}
-		for(HashMap<Object,Object> key: groupByHash.keySet()) {
-			HashMap<Object,Object> paramMap = (HashMap<Object,Object>)groupByHash.get(key);
-			groupByHash.put(key, (Double)paramMap.get("SUM")/(Integer)paramMap.get("COUNT"));
-		}
-		
-		return groupByHash;
+	public HashMap<HashMap<Object, Object>, Object> reduceGroupBy(Vector<String> groupBys,
+			Vector<String> processedColumns, String[] columnsArray, Iterator it) {
+		// TODO Auto-generated method stub
+		return null;
 	}
+	
+//	@Override
+	//public HashMap<HashMap<Object, Object>,Object> reduceGroupBy(Vector<String> groupBys, Vector<String> processedColumns, String[] columnsArray, Iterator it) {
+		//HashMap<HashMap<Object,Object>, Object> groupByHash = new HashMap<HashMap<Object,Object>,Object>();
+		
+//		while(it.hasNext()){
+//			Object[] row = (Object[]) it.next();
+//			HashMap<Object, Object> key = new HashMap<Object, Object>();
+//			for(String groupBy : groupBys) {
+//				int groupByIndex = ArrayUtilityMethods.arrayContainsValueAtIndexIgnoreCase(columnsArray, groupBy);
+//				Object instance = row[groupByIndex];
+//				key.put(groupBy, instance);
+//			}
+//			int processedIndex = ArrayUtilityMethods.arrayContainsValueAtIndexIgnoreCase(columnsArray, processedColumns.get(0));
+//			if (row[processedIndex] instanceof Number) {
+//				double value = ((Number)row[processedIndex]).doubleValue();
+//				HashMap<String,Object> paramMap = (HashMap<String,Object>)groupByHash.get(key);
+//				if(paramMap == null) {
+//					paramMap = new HashMap<String,Object>();
+//					groupByHash.put(key, paramMap);
+//					paramMap.put("SUM", 0.0);
+//					paramMap.put("COUNT", 0);
+//				}
+//				paramMap.put("SUM", (Double)paramMap.get("SUM") + value);
+//				paramMap.put("COUNT", (Integer)paramMap.get("COUNT")+1);
+//			}
+//		}
+//		for(HashMap<Object,Object> key: groupByHash.keySet()) {
+//			HashMap<Object,Object> paramMap = (HashMap<Object,Object>)groupByHash.get(key);
+//			groupByHash.put(key, (Double)paramMap.get("SUM")/(Integer)paramMap.get("COUNT"));
+//		}
+//		
+	//	return groupByHash;
+	//}
 	
 	@Override
 	public Map<String, Object> getColumnDataMap() {
