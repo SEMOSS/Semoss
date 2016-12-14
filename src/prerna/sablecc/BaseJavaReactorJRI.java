@@ -1,7 +1,11 @@
 package prerna.sablecc;
 
+import java.awt.FileDialog;
+import java.awt.Frame;
+import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileOutputStream;
+import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.sql.Connection;
 import java.util.Arrays;
@@ -16,7 +20,7 @@ import org.apache.tinkerpop.gremlin.structure.Graph;
 import org.apache.tinkerpop.gremlin.structure.Vertex;
 import org.apache.tinkerpop.gremlin.structure.io.IoCore;
 import org.rosuda.JRI.REXP;
-import org.rosuda.JRI.RList;
+import org.rosuda.JRI.RMainLoopCallbacks;
 import org.rosuda.JRI.Rengine;
 import org.rosuda.REngine.REXPDouble;
 import org.rosuda.REngine.REXPGenericVector;
@@ -39,6 +43,53 @@ import prerna.util.Console;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
 import prerna.util.Utility;
+
+
+class TextConsole implements RMainLoopCallbacks
+{
+    public void rWriteConsole(Rengine re, String text, int oType) {
+        System.out.print(text);
+    }
+    
+    public void rBusy(Rengine re, int which) {
+        System.out.println("rBusy("+which+")");
+    }
+    
+    public String rReadConsole(Rengine re, String prompt, int addToHistory) {
+        System.out.print(prompt);
+        try {
+            BufferedReader br=new BufferedReader(new InputStreamReader(System.in));
+            String s=br.readLine();
+            return (s==null||s.length()==0)?s:s+"\n";
+        } catch (Exception e) {
+            System.out.println("jriReadConsole exception: "+e.getMessage());
+        }
+        return null;
+    }
+    
+    public void rShowMessage(Rengine re, String message) {
+        System.out.println("rShowMessage \""+message+"\"");
+    }
+	
+    public String rChooseFile(Rengine re, int newFile) {
+	FileDialog fd = new FileDialog(new Frame(), (newFile==0)?"Select a file":"Select a new file", (newFile==0)?FileDialog.LOAD:FileDialog.SAVE);
+	fd.show();
+	String res=null;
+	if (fd.getDirectory()!=null) res=fd.getDirectory();
+	if (fd.getFile()!=null) res=(res==null)?fd.getFile():(res+fd.getFile());
+	return res;
+    }
+    
+    public void   rFlushConsole (Rengine re) {
+    }
+	
+    public void   rLoadHistory  (Rengine re, String filename) {
+    }			
+    
+    public void   rSaveHistory  (Rengine re, String filename) {
+    }			
+}
+
 
 public abstract class BaseJavaReactorJRI extends BaseJavaReactor{
 
@@ -332,7 +383,7 @@ public abstract class BaseJavaReactorJRI extends BaseJavaReactor{
 				
 				// start the R Engine
 				String args1[] = new String[10];
-				retEngine = new Rengine(args1, false, null);
+				retEngine = new Rengine(null, true, null); //false, new TextConsole());
 				System.out.println("Created Engine.. ");
 				//retEngine = new Rengine();
 				
@@ -441,9 +492,11 @@ public abstract class BaseJavaReactorJRI extends BaseJavaReactor{
 		else
 			jarLocation = (String)retrieveVariable("H2DRIVER_PATH");
 		java.lang.System.out.println("Loading driver.. " + jarLocation);
-		String script = "drv <- JDBC('" + driver + "', '" + jarLocation  + "', identifier.quote='`');" 
-			+ "conn <- dbConnect(drv, '" + url + "', '" + username + "', '')"; // line of R script that connects to H2Frame
-		runR(script);
+		String script = "drv <- JDBC('" + driver + "', '" + jarLocation  + "', identifier.quote='`');" ;
+		Rengine engine = (Rengine)startR();
+		engine.eval(script);
+		script = "conn <- dbConnect(drv, '" + url + "', '" + username + "', '')"; // line of R script that connects to H2Frame
+		engine.eval(script);
 	}
 	
 	public void setH2Driver(String directory)
@@ -479,9 +532,10 @@ public abstract class BaseJavaReactorJRI extends BaseJavaReactor{
 		}
 		// make a selector based on col csv now
 		//runR(frameName + " <-as.data.table(unclass(dbReadTable(conn,'" + tableName + "')));", false);
-		runR(frameName + " <-as.data.table(unclass(dbGetQuery(conn,'SELECT " + selectors + " FROM " + tableName + "')));", false);
+		Rengine engine = (Rengine)startR();
+		engine.eval(frameName + " <-as.data.table(unclass(dbGetQuery(conn,'SELECT " + selectors + " FROM " + tableName + "')));", false);
 		// should be dbGetQuery(conn, "Select colNames.. ")
-		runR("setDT(" + frameName + ")", false);
+		engine.eval("setDT(" + frameName + ")", false);
 
 		storeVariable("GRID_NAME", frameName);	
 		
@@ -711,6 +765,7 @@ public abstract class BaseJavaReactorJRI extends BaseJavaReactor{
 	{
 		Rengine retEngine = (Rengine)startR();
 		String newScript = "paste(capture.output(print(" + script + ")),collapse='\n')";
+		java.lang.System.out.println("Executing script \n" + newScript + "\n");
 		try {
 			REXP output = retEngine.eval(newScript);
 			if(result) {
@@ -718,7 +773,7 @@ public abstract class BaseJavaReactorJRI extends BaseJavaReactor{
 			}
 		} catch(Exception e) {
 			try {
-				Object output = rcon.eval(script);
+				Object output = retEngine.eval(script);
 				if(result)
 				{
 					java.lang.System.out.println("RCon data.. " + output);
@@ -726,7 +781,7 @@ public abstract class BaseJavaReactorJRI extends BaseJavaReactor{
 					getResultAsString(output, builder);
 					System.out.println("Output : " + builder.toString());
 				}
-			} catch (REngineException e2) {
+			} catch (Exception e2) {
 				e2.printStackTrace();
 				String errorMessage = null;
 				if(e2.getMessage() != null && !e2.getMessage().isEmpty()) {
