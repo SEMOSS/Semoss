@@ -15,7 +15,9 @@ import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.GraphTraversal;
 import org.apache.tinkerpop.gremlin.structure.Graph;
 import org.apache.tinkerpop.gremlin.structure.Vertex;
 import org.apache.tinkerpop.gremlin.structure.io.IoCore;
-import org.rosuda.REngine.REXP;
+import org.rosuda.JRI.REXP;
+import org.rosuda.JRI.RList;
+import org.rosuda.JRI.Rengine;
 import org.rosuda.REngine.REXPDouble;
 import org.rosuda.REngine.REXPGenericVector;
 import org.rosuda.REngine.REXPInteger;
@@ -23,7 +25,6 @@ import org.rosuda.REngine.REXPList;
 import org.rosuda.REngine.REXPMismatchException;
 import org.rosuda.REngine.REXPString;
 import org.rosuda.REngine.REngineException;
-import org.rosuda.REngine.RList;
 import org.rosuda.REngine.Rserve.RConnection;
 import org.rosuda.REngine.Rserve.RserveException;
 
@@ -39,14 +40,15 @@ import prerna.util.Constants;
 import prerna.util.DIHelper;
 import prerna.util.Utility;
 
-public abstract class BaseJavaReactor extends AbstractReactor{
+public abstract class BaseJavaReactorJRI extends BaseJavaReactor{
 
 	ITableDataFrame dataframe = null;
 	PKQLRunner pkql = new PKQLRunner();
 	boolean frameChanged = false;
 	SecurityManager curManager = null;
 	SecurityManager reactorManager = null;
-	public static final String R_CONN = "R_CONN";
+	public static final String R_CONN2 = "R_CONN";
+	public static final String R_ENGINE = "R_ENGINE";
 	public static final String R_PORT = "R_PORT";
 	public RConnection rcon = null;
 	String wd = null;
@@ -55,7 +57,7 @@ public abstract class BaseJavaReactor extends AbstractReactor{
 	public Console System = new Console();
 	
 	
-	public BaseJavaReactor()
+	public BaseJavaReactorJRI()
 	{
 		// empty constructor creates a frame
 		dataframe = new H2Frame();
@@ -82,7 +84,7 @@ public abstract class BaseJavaReactor extends AbstractReactor{
 		this.System = new Console();
 	}
 
-	public BaseJavaReactor(ITableDataFrame frame)
+	public BaseJavaReactorJRI(ITableDataFrame frame)
 	{
 		// empty constructor creates a frame
 		dataframe = frame;
@@ -253,7 +255,8 @@ public abstract class BaseJavaReactor extends AbstractReactor{
 	
 	public void removeNodeFromR(String type, List nodeList)
 	{
-		RConnection rcon = (RConnection)retrieveVariable(R_CONN);
+		Rengine rengine = (Rengine)retrieveVariable(R_ENGINE);
+		
 		// make sure current connection exists
 		if(rcon != null) {
 			String graphName = (String)retrieveVariable("GRAPH_NAME");
@@ -262,7 +265,7 @@ public abstract class BaseJavaReactor extends AbstractReactor{
 				String name = type + ":" + nodeList.get(nodeIndex);
 				try{
 					java.lang.System.out.println("Deleting.. " + name);
-					rcon.eval(graphName + " <- delete_vertices(" + graphName + ", V(" + graphName + ")[vertex_attr(" + graphName + ", \"" + TinkerFrame.TINKER_ID + "\") == \"" + name + "\"])");				
+					rengine.eval(graphName + " <- delete_vertices(" + graphName + ", V(" + graphName + ")[vertex_attr(" + graphName + ", \"" + TinkerFrame.TINKER_ID + "\") == \"" + name + "\"])");				
 				}catch(Exception ex)
 				{
 					ex.printStackTrace();
@@ -318,36 +321,38 @@ public abstract class BaseJavaReactor extends AbstractReactor{
 	
 	public Object startR()
 	{
-		RConnection retCon = (RConnection)retrieveVariable(R_CONN);
-		java.lang.System.out.println("Connection right now is set to.. " + retCon);
-		if(retCon == null) // <-- Trying to see if java works right here.. setting it to null and checking it!!
+		
+		Rengine retEngine = Rengine.getMainEngine();
+		java.lang.System.out.println("Connection right now is set to.. " + retEngine);
+		// i need to find if this is rserve or JRI
+		
+		if(retEngine == null) // <-- Trying to see if java works right here.. setting it to null and checking it!!
+		{
 			try {
-				RConnection masterCon = RSingleton.getConnection();
-	
-				String port = Utility.findOpenPort();
 				
-				java.lang.System.out.println("Starting it on port.. " + port);
-				// need to find a way to get a common name
-				masterCon.eval("library(Rserve); Rserve(port = " + port + ")");
-				retCon = new RConnection("127.0.0.1", Integer.parseInt(port));
+				// start the R Engine
+				String args1[] = new String[10];
+				retEngine = new Rengine(args1, false, null);
+				System.out.println("Created Engine.. ");
+				//retEngine = new Rengine();
+				
 				// load all the libraries
-				retCon.eval("library(splitstackshape);");
+				retEngine.eval("library(splitstackshape);");
 				// data table
-				retCon.eval("library(data.table);");
+				retEngine.eval("library(data.table);");
 				// reshape2
-				retCon.eval("library(reshape2);");
+				retEngine.eval("library(reshape2);");
 				// rjdbbc
-				retCon.eval("library(RJDBC);");
+				retEngine.eval("library(RJDBC);");
 
 				// not sure if I need dplyr too I will get to it
-				storeVariable(R_CONN, retCon);
-				storeVariable(R_PORT, port);
+				storeVariable(R_ENGINE, retEngine);
 			} catch (Exception e) {
 				// TODO Auto-generated catch block
 				e.printStackTrace();
 			}
-		rcon = retCon;
-		return retCon;
+		}
+		return retEngine;
 	}
 	
 	
@@ -380,21 +385,21 @@ public abstract class BaseJavaReactor extends AbstractReactor{
 			fileName = writeGraph(wd);
 			
 			java.lang.System.out.println("Trying to get Connection.. ");
-			RConnection rconn = (RConnection)startR();
+			Rengine retEngine = (Rengine)startR();
 			java.lang.System.out.println("Successful.. ");
 			
 			wd = wd.replace("\\", "/");
 			
 			// set the working directory
-			rconn.eval("setwd(\"" + wd + "\")");
+			retEngine.eval("setwd(\"" + wd + "\")");
 			
 			// load the library
-			rconn.eval("library(\"igraph\");");
+			retEngine.eval("library(\"igraph\");");
 			
 			String loadGraphScript = graphName + "<- read_graph(\"" + fileName + "\", \"graphml\");";
 			java.lang.System.out.println(" Load !! " + loadGraphScript);
 			// load the graph
-			rconn.eval(loadGraphScript);
+			retEngine.eval(loadGraphScript);
 			
 			System.out.println("successfully synchronized, your graph is now available as " + graphName);
 			
@@ -549,6 +554,12 @@ public abstract class BaseJavaReactor extends AbstractReactor{
 	{
 		//runR(frameName + " <-as.data.table(unclass(dbReadTable(conn,'" + tableName + "')));");		
 		String javaFileName = fileName.replace("\\", "/");
+		// lapply(lapply(dfs,get),function(x) {colnames(x) <- tolower(colnames(x));x})
+		String script = frameName + " <- fread(\"" + javaFileName + "\")"
+				+ "lapply(lapply(" + frameName + " , get), function(x) {colnames(x) <- toupper(colnames(x));x}" // change all to upper case
+				+ ""; // replace space with underscore
+		
+		
 		runR(frameName + " <- fread(\"" + javaFileName + "\")", false);
 		System.out.println("Completed synchronization of CSV " + fileName);
 	}
@@ -559,7 +570,7 @@ public abstract class BaseJavaReactor extends AbstractReactor{
 		// Generic vector..
 		if(output instanceof REXPGenericVector) 
 		{			
-			RList list = ((REXPGenericVector)output).asList();
+			org.rosuda.REngine.RList list = ((REXPGenericVector)output).asList();
 			
 			String[] attributeNames = getAttributeArr(((REXPGenericVector)output)._attr());
 			boolean matchesRows = false;
@@ -587,7 +598,7 @@ public abstract class BaseJavaReactor extends AbstractReactor{
 		
 		// List..
 		else if(output instanceof REXPList) {
-			RList list = ((REXPList)output).asList();
+			org.rosuda.REngine.RList list = ((REXPList)output).asList();
 			
 			String[] attributeNames = getAttributeArr(((REXPList)output)._attr());
 			boolean matchesRows = false;
@@ -698,14 +709,14 @@ public abstract class BaseJavaReactor extends AbstractReactor{
 	
 	public void runR(String script, boolean result)
 	{
-		RConnection rcon = (RConnection)startR();
+		Rengine retEngine = (Rengine)startR();
 		String newScript = "paste(capture.output(print(" + script + ")),collapse='\n')";
 		try {
-			REXP output = rcon.parseAndEval(newScript);
+			REXP output = retEngine.eval(newScript);
 			if(result) {
 				System.out.println(output.asString());
 			}
-		} catch(REngineException | REXPMismatchException e) {
+		} catch(Exception e) {
 			try {
 				Object output = rcon.eval(script);
 				if(result)
@@ -841,14 +852,19 @@ public abstract class BaseJavaReactor extends AbstractReactor{
 	}
 	
 	
-	public String[] getColNames(String frameName)
+	public String[] getColNames(String frameName, boolean print)
 	{
 		startR();
 		String [] colNames = null;
 		try {
 				String script = "matrix(colnames(" + frameName + "));";
 				colNames = rcon.eval(script).asStrings();
-				
+				if(print)
+				{
+					System.out.println("Columns..");
+					for(int colIndex = 0;colIndex < colNames.length;colIndex++)
+						System.out.println(colNames[colIndex] + "\n");
+				}
 		} catch (RserveException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
@@ -859,13 +875,25 @@ public abstract class BaseJavaReactor extends AbstractReactor{
 		return colNames;
 	}
 	
-
-	public String[] getColTypes(String frameName)
+	public String[] getColNames(String frameName)
 	{
+		return getColNames(frameName, true);
+	}
+	
+
+	public String[] getColTypes(String frameName, boolean print)
+	{
+		startR();
 		String [] colTypes = null;
 		try {
 				String script = "matrix(sapply(" + frameName + ", class));";
 				colTypes = rcon.eval(script).asStrings();
+				if(print)
+				{
+					System.out.println("Columns..");
+					for(int colIndex = 0;colIndex < colTypes.length;colIndex++)
+						System.out.println(colTypes[colIndex] + "\n");
+				}
 				
 		} catch (RserveException e) {
 			// TODO Auto-generated catch block
@@ -889,11 +917,11 @@ public abstract class BaseJavaReactor extends AbstractReactor{
 		try {
 			String script = "";
 			
-			String [] colNames = getColNames(frameName);
+			String [] colNames = getColNames(frameName, false);
 			// I am not sure if I need the colnames right now but...
 			
 			// get the column types
-			String [] colTypes = getColTypes(frameName);
+			String [] colTypes = getColTypes(frameName, false);
 			
 			// get the blank columns
 			script = "matrix( " + frameName + "[, colSums( " + frameName + " != \"\") !=0])";
@@ -929,6 +957,7 @@ public abstract class BaseJavaReactor extends AbstractReactor{
 	
 	public void getColumnCount(String column)
 	{
+		startR();
 		String frame = (String)retrieveVariable("GRID_NAME");
 		getColumnCount(frame, column);
 	}
@@ -1014,6 +1043,11 @@ public abstract class BaseJavaReactor extends AbstractReactor{
 	{
 		String frameName = (String)retrieveVariable("GRID_NAME");
 		unpivot(frameName, null, true);
+	}
+	
+	public void cleanColumns()
+	{
+		//colnames(movies)[colnames(movies)=="Hello 1"] <- sub(" ", "_", "Hello 1") // moves the spaces to underscores
 	}
 	
 	public void unpivot(String frameName, String cols, boolean replace)
@@ -1107,13 +1141,13 @@ public abstract class BaseJavaReactor extends AbstractReactor{
 	{
 		String graphName = (String)retrieveVariable("GRAPH_NAME");
 		
-		RConnection con = (RConnection)startR();
+		Rengine retEngine = (Rengine)startR();
 //		String clusters = "Component Information  \n";
 		try
 		{
 			// set the clusters
 			storeVariable("CLUSTER_NAME", "clus");
-			con.eval("clus <- " + clusterRoutine + "(" + graphName +")");
+			retEngine.eval("clus <- " + clusterRoutine + "(" + graphName +")");
 			
 //			StringBuilder builder = new StringBuilder();
 			
@@ -1147,13 +1181,13 @@ public abstract class BaseJavaReactor extends AbstractReactor{
 	{
 		String graphName = (String)retrieveVariable("GRAPH_NAME");
 		
-		RConnection con = (RConnection)startR();
+		Rengine retEngine = (Rengine)startR();
 		String clusters = "Component Information  \n";
 		try
 		{
 			// set the clusters
 			storeVariable("CLUSTER_NAME", "clus");
-			con.eval("clus <- cluster_walktrap(" + graphName +", membership=TRUE)");
+			retEngine.eval("clus <- cluster_walktrap(" + graphName +", membership=TRUE)");
 			/*Object output = con.eval("clus$no");
 			clusters = clusters + " No. Of Components : " + getResultAsString(output) + " \n";
 			output = con.eval("clus$csize");
@@ -1177,15 +1211,15 @@ public abstract class BaseJavaReactor extends AbstractReactor{
 	{
 		String graphName = (String)retrieveVariable("GRAPH_NAME");
 		String names = "";
-		RConnection con = (RConnection)startR();
+		Rengine retEngine = (Rengine)startR();
 		try {
 			// get the articulation points
-			int [] vertices = con.eval("articulation.points(" + graphName + ")").asIntegers();
+			int [] vertices = retEngine.eval("articulation.points(" + graphName + ")").asIntArray();
 			// now for each vertex get the name
 			Hashtable <String, String> dataHash = new Hashtable<String, String>();
 			for(int vertIndex = 0;vertIndex < vertices.length;  vertIndex++)
 			{
-				String output = con.eval("vertex_attr(" + graphName + ", \"" + TinkerFrame.TINKER_ID + "\", " + vertices[vertIndex] + ")").asString();
+				String output = retEngine.eval("vertex_attr(" + graphName + ", \"" + TinkerFrame.TINKER_ID + "\", " + vertices[vertIndex] + ")").asString();
 				String [] typeData = output.split(":");
 				String typeOutput = "";
 				if(dataHash.containsKey(typeData[0]))
@@ -1200,13 +1234,10 @@ public abstract class BaseJavaReactor extends AbstractReactor{
 				String thisKey = keys.nextElement();
 				names = names + thisKey + " : " + dataHash.get(thisKey) + "\n";
 			}
-		} catch (RserveException e) {
+		} catch (Exception e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
-		} catch (REXPMismatchException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
+		} 
 		System.out.println(" Key Nodes \n " + names);
 	}
 	
@@ -1214,7 +1245,7 @@ public abstract class BaseJavaReactor extends AbstractReactor{
 	{
 		String graphName = (String)retrieveVariable("GRAPH_NAME");
 
-		RConnection con = (RConnection)startR();
+		Rengine retEngine = (Rengine)startR();
 		// the color is saved as color
 		try
 		{
@@ -1254,11 +1285,11 @@ public abstract class BaseJavaReactor extends AbstractReactor{
 	{
 		String graphName = (String)retrieveVariable("GRAPH_NAME");
 
-		RConnection con = (RConnection)startR();
+		Rengine retEngine = (Rengine)startR();
 		// the color is saved as color
 		try
 		{
-			con.eval("xy_layout <- " + layout + "(" + graphName +")");
+			retEngine.eval("xy_layout <- " + layout + "(" + graphName +")");
 			synchronizeXY("xy_layout");
 		}catch (Exception ex)
 		{
@@ -1270,7 +1301,7 @@ public abstract class BaseJavaReactor extends AbstractReactor{
 	{
 		String graphName = (String)retrieveVariable("GRAPH_NAME");
 
-		RConnection con = (RConnection)startR();
+		Rengine retEngine = (Rengine)startR();
 		try
 		{
 			double [][] memberships = rcon.eval("xy_layout").asDoubleMatrix();
@@ -1315,24 +1346,19 @@ public abstract class BaseJavaReactor extends AbstractReactor{
 		// and then synchronize all the different properties
 		// vertex_attr_names
 		String names = "";
-		RConnection con = (RConnection)startR();
+		Rengine retEngine = (Rengine)startR();
 
 		// get all the attributes first
 		try {
-			String [] strings = con.eval("vertex_attr_names(" + graphName + ")").asStrings();
+			String [] strings = retEngine.eval("vertex_attr_names(" + graphName + ")").asStringArray();
 			// the question is do I get everything here and set tinker
 			// or for each get it and so I dont look up tinker many times ?!
 			
 			// now I need to get each of this string and then synchronize
-		} catch (RserveException e) {
+		} catch (Exception e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
-		} catch (REXPMismatchException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
-		
-		
+		} 
 	}
 	
 	// need to figure this out
@@ -1359,10 +1385,10 @@ public abstract class BaseJavaReactor extends AbstractReactor{
 	public void endR()
 	{
 		java.lang.System.setSecurityManager(curManager);
-		RConnection retCon = (RConnection)retrieveVariable(R_CONN);
+		Rengine retCon = (Rengine)retrieveVariable(R_ENGINE);
 		try {
 			if(retCon != null)
-				retCon.shutdown();
+				retCon.end();;
 //			System.out.println("R Shutdown!!");
 //			java.lang.System.setSecurityManager(reactorManager);
 /*		String port = (String)retrieveVariable("R_PORT");
@@ -1374,7 +1400,7 @@ public abstract class BaseJavaReactor extends AbstractReactor{
 		runR("RSclose();");
 */		
 		// clean up other things
-		removeVariable(R_CONN);
+		removeVariable(R_ENGINE);
 		removeVariable(R_PORT);
 		System.out.println("R Shutdown!!");
 		java.lang.System.setSecurityManager(reactorManager);
