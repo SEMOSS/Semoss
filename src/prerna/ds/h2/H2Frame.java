@@ -15,6 +15,7 @@ import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Hashtable;
@@ -534,11 +535,14 @@ public class H2Frame extends AbstractTableDataFrame {
 	public Object[] getFilterModel() {
 		List<String> selectors = this.getSelectors();
 		int length = selectors.size();
-		Map<String, Set<Object>> filteredValues = new TreeMap<String, Set<Object>>();
-		Map<String, Set<Object>> visibleValues = new TreeMap<String, Set<Object>>();
+		Map<String, List<Object>> filteredValues = new TreeMap<>();
+		Map<String, List<Object>> visibleValues = new TreeMap<>();
 		Map<String, Map<String, Double>> minMaxValues = new TreeMap<String, Map<String, Double>>();
 		Iterator<Object[]> iterator = this.iterator();
 
+		boolean addFilteredNull = false;
+		boolean addVisibleNull = false;
+		
 		// put instances into sets to remove duplicates
 		Set<Object>[] columnSets = new TreeSet[length];
 		for (int i = 0; i < length; i++) {
@@ -547,7 +551,12 @@ public class H2Frame extends AbstractTableDataFrame {
 		while (iterator.hasNext()) {
 			Object[] nextRow = iterator.next();
 			for (int i = 0; i < length; i++) {
-				columnSets[i].add(nextRow[i]);
+				Object val = nextRow[i];
+				if(val == null) {
+					addVisibleNull = true;
+				} else {
+					columnSets[i].add(val);
+				}
 			}
 		}
 
@@ -561,14 +570,28 @@ public class H2Frame extends AbstractTableDataFrame {
 			List<Object> values = h2filteredValues.get(h2key);
 			if (values != null) {
 				Set<Object> sortedVals = new TreeSet<Object>();
-				sortedVals.addAll(values);
-				filteredValues.put(selectors.get(i), sortedVals);
+				for(Object val : values) {
+					if(val == null) {
+						addFilteredNull = true;
+					} else {
+						sortedVals.add(val);
+					}
+				}
+				values = new ArrayList<>(sortedVals);
+				if(addFilteredNull) {
+					values.add(null);
+				}
+				filteredValues.put(selectors.get(i), values);
 			} else {
-				filteredValues.put(selectors.get(i), new TreeSet<Object>());
+				filteredValues.put(selectors.get(i), new ArrayList<Object>());
 			}
 
 			// get unfiltered values
-			visibleValues.put(selectors.get(i), columnSets[i]);
+			List<Object> visValues = new ArrayList<>(columnSets[i]);
+			if(addVisibleNull) {
+				visValues.add(null);
+			}
+			visibleValues.put(selectors.get(i), visValues);
 
 			// store data type for header
 			// get min and max values for numerical columns
