@@ -210,14 +210,6 @@ public class SQLInterpreter implements IQueryInterpreter{
 				query.append(" AND ").append(conceptString).append(value);
 		}
 
-		if(query.length() > 500) {
-			System.out.println("QUERY....  " + query.substring(0,  500) + "...");
-		} else {
-			System.out.println("QUERY....  " + query);
-		}
-		int limit = qs.getLimit();
-		int offset = qs.getOffset();
-		
 		//grab the order by and get the corresponding display name for that order by column
 		Map<String, String> orderBy = qs.getOrderBy();
 		if(orderBy != null && !orderBy.isEmpty()) {
@@ -237,6 +229,9 @@ public class SQLInterpreter implements IQueryInterpreter{
 			}
 		}
 		
+		int limit = qs.getLimit();
+		int offset = qs.getOffset();
+		
 		if(limit > 0) {
 			query = new StringBuilder(this.queryUtil.addLimitToQuery(query.toString(), limit));
 		} 
@@ -245,6 +240,12 @@ public class SQLInterpreter implements IQueryInterpreter{
 			query.append(" OFFSET ").append(offset);
 		}
 		
+		if(query.length() > 500) {
+			System.out.println("QUERY....  " + query.substring(0,  500) + "...");
+		} else {
+			System.out.println("QUERY....  " + query);
+		}
+
 		return query.toString();
 	}
 

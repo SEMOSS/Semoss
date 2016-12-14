@@ -498,6 +498,7 @@ condition_block = l_par condition condition_group* r_par;
   | {var} [var]:var_def
   | {col} [col]:col_def
   | {api} api_block
+  | {raw_api} raw_api_block
   | {tab} [tab]:table_def
   | {csv} csv_row
   | {alpha} word
