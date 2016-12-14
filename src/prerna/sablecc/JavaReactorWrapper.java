@@ -84,6 +84,9 @@ public class JavaReactorWrapper extends AbstractReactor {
 			//CtClass consoleClass = pool.get("prerna.util.Console");
 			
 			CtClass cc = pool.makeClass(packageName + ".c" + System.currentTimeMillis()); // the only reason I do this is if the user wants to do seomthing else
+			// need to find what is the configuration 
+			// and then wrap specific class
+			//cc.setSuperclass(pool.get("prerna.sablecc.BaseJavaReactorJRI"));
 			cc.setSuperclass(pool.get("prerna.sablecc.BaseJavaReactor"));
 			//cc.addField(new CtField(consoleClass, "System", cc));
 			Class retClass = null;
@@ -128,7 +131,7 @@ public class JavaReactorWrapper extends AbstractReactor {
 		    jR.setPKQLRunner((PKQLRunner)myStore.get("PKQLRunner"));
 		    
 		    // call the process
-		    System.setSecurityManager( curManager) ;		    
+		    System.setSecurityManager( new ReactorSecurityManager()) ;		    
 			jR.process();
 		    System.setSecurityManager( curManager) ;			
 			
