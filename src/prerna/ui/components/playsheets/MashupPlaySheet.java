@@ -164,7 +164,6 @@ public class MashupPlaySheet extends AbstractPlaySheet implements IDataMaker {
 		reactorNames.put(PKQLEnum.EXPR_TERM, "prerna.sablecc.ExprReactor");
 		reactorNames.put(PKQLEnum.EXPR_SCRIPT, "prerna.sablecc.ExprReactor");
 		reactorNames.put(PKQLReactor.MATH_FUN.toString(), "prerna.sablecc.MathReactor");
-		reactorNames.put(PKQLEnum.CSV_TABLE, "prerna.sablecc.CsvTableReactor");
 //		reactorNames.put(PKQLEnum.COL_CSV, "prerna.sablecc.TinkerColAddReactor");
 		reactorNames.put(PKQLEnum.ROW_CSV, "prerna.sablecc.RowCsvReactor");
 		reactorNames.put(PKQLEnum.API, "prerna.sablecc.ApiReactor");

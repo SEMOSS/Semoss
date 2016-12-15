@@ -107,7 +107,6 @@ public interface Analysis extends Switch
     void caseAOutputData(AOutputData node);
     void caseAClearData(AClearData node);
     void caseAApiImportBlock(AApiImportBlock node);
-    void caseACsvTableImportBlock(ACsvTableImportBlock node);
     void caseAPastedDataImportBlock(APastedDataImportBlock node);
     void caseARawApiImportBlock(ARawApiImportBlock node);
     void caseAPastedDataBlock(APastedDataBlock node);
