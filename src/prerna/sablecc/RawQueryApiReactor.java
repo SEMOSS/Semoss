@@ -62,7 +62,17 @@ public class RawQueryApiReactor extends AbstractReactor {
 			}
 			
 		} else {
-			throw new IllegalArgumentException("CURRENTLY UNABLE TO PARSE SPARQL QUERIES");
+			// HOW DO I DETERMINE THE DATA TYPES PROPERLY??? :(
+			int numCols = headers.length;
+			Map<String, String> dataTypeMap = new HashMap<String, String>();
+			Map<String, String> logicalToValueMap = new HashMap<String, String>();
+			
+			for(int i = 0; i < numCols; i++) {
+				dataTypeMap.put(headers[1], "STRING");
+				logicalToValueMap.put(headers[1], headers[1]);
+			}
+			this.put("DATA_TYPE_MAP", dataTypeMap);
+			this.put("LOGICAL_TO_VALUE", logicalToValueMap);
 		}
 		
 		this.put((String) getValue(PKQLEnum.RAW_API), it);
