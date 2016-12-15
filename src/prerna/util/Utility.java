@@ -2379,17 +2379,19 @@ public class Utility {
 		}
 	}
 	
-	public static IMetaData.DATA_TYPES convertStringtoDataType(String dataType) {
+	public static IMetaData.DATA_TYPES convertStringToDataType(String dataType) {
 		if(isNumericType(dataType)) {
 			return IMetaData.DATA_TYPES.NUMBER;
 		} else if(isDateType(dataType)) {
 			return IMetaData.DATA_TYPES.DATE;
 		} else if(isStringType(dataType)) {
 			return IMetaData.DATA_TYPES.STRING;
+		} else {
+			LOGGER.info(" >>> COULDN'T DETERMINE THE DATA TYPE CONVERSION FOR VALUE : " + dataType);
+			return IMetaData.DATA_TYPES.STRING;
 		}
-		return null;
 	}
-	
+
 	public static boolean isH2DataType(String dataType) {
 		if(
 				//INT TYPE
@@ -2398,64 +2400,64 @@ public class Utility {
 				|| dataType.equals("MEDIUMINT")
 				|| dataType.equals("INT4")
 				|| dataType.equals("SIGNED")
-				
+
 				//BOOLEAN TYPE
 				|| dataType.equals("BOOLEAN")
 				|| dataType.equals("BIT")
 				|| dataType.equals("BOOL")
-				
+
 				//TINYINT TYPE
 				|| dataType.equals("TINYINT")
-				
+
 				//SMALLINT TYPE
 				|| dataType.equals("SMALLINT")
 				|| dataType.equals("INT2")
 				|| dataType.equals("YEAR")
-				
+
 				//BIGINT TYPE
 				|| dataType.equals("BIGINT")
 				|| dataType.equals("INT8")
-				
+
 				//IDENTITY TYPE
 				|| dataType.equals("IDENTITY")
-				
+
 				//DECIMAL TYPE
 				|| dataType.equals("DECIMAL")
 				|| dataType.equals("NUMBER")
 				|| dataType.equals("DEC")
 				|| dataType.equals("NUMERIC")
-				
+
 				//DOUBLE TYPE
 				|| dataType.equals("DOUBLE")
 				|| dataType.equals("PRECISION")
 				|| dataType.equals("FLOAT")
 				|| dataType.equals("FLOAT8")
-				
+
 				//REAL TYPE
 				|| dataType.equals("REAL")
 				|| dataType.equals("FLOAT4")
-				
+
 				//TIME TYPE
 				|| dataType.equals("TIME")
-				
+
 				//DATE TYPE
 				|| dataType.equals("DATE")
-				
+
 				//TIMESTAMP TYPE
 				|| dataType.equals("TIMESTAMP")
 				|| dataType.equals("DATETIME")
 				|| dataType.equals("SMALLDATETIME")
-				
+
 				//BINARY TYPE
 				|| dataType.startsWith("BINARY")
 				|| dataType.startsWith("VARBINARY")
 				|| dataType.startsWith("LONGVARBINARY")
 				|| dataType.startsWith("RAW")
 				|| dataType.startsWith("BYTEA")
-				
+
 				//OTHER TYPE
 				|| dataType.equals("OTHER")
-				
+
 				//VARCHAR TYPE
 				|| dataType.startsWith("VARCHAR")
 				|| dataType.startsWith("LONGVARCHAR")
@@ -2463,15 +2465,15 @@ public class Utility {
 				|| dataType.startsWith("NVARCHAR")
 				|| dataType.startsWith("NVARCHAR2")
 				|| dataType.startsWith("VARCHAR_CASESENSITIVE")
-				
+
 				//VARCHAR_IGNORECASE TYPE
 				|| dataType.startsWith("VARCHAR_IGNORECASE")
-				
+
 				//CHAR TYPE
 				|| dataType.startsWith("CHAR")
 				|| dataType.startsWith("CHARACTER")
 				|| dataType.startsWith("NCHAR")
-				
+
 				//BLOB TYPE
 				|| dataType.equals("BLOB")
 				|| dataType.equals("TINYBLOB")
@@ -2479,7 +2481,7 @@ public class Utility {
 				|| dataType.equals("LONGBLOB")
 				|| dataType.equals("IMAGE")
 				|| dataType.equals("OID")
-				
+
 				//CLOG TYPE
 				|| dataType.equals("CLOB")
 				|| dataType.equals("TINYTEXT")
@@ -2487,14 +2489,14 @@ public class Utility {
 				|| dataType.equals("MEDIUMTEXT")
 				|| dataType.equals("NTEXT")
 				|| dataType.equals("NCLOB")
-				
+
 				//UUID TYPE
 				|| dataType.equals("UUID")
-				
+
 				//ARRAY TYPE
 				|| dataType.equals("ARRAY")
-				
-				
+
+
 				//GEOMETRY TYPE
 				|| dataType.equals("GEOMETRY")
 
@@ -2503,92 +2505,90 @@ public class Utility {
 		}
 		return false;
 	}
-	
+
 	private static boolean isNumericType(String dataType) {
+		// we use startsWith because the type may have ()
 		dataType = dataType.toUpperCase().trim();		
-		if(dataType.equals("NUMBER")
-				|| dataType.equals("BIT")
-				
-				|| dataType.equals("MONEY")
-				|| dataType.equals("SMALLMONEY")
-				|| dataType.equals("FLOAT")
-				|| dataType.equals("LONG")
-				
-				|| dataType.equals("INT")
-				|| dataType.equals("INTEGER")
-				|| dataType.equals("MEDIUMINT")
-				|| dataType.equals("INT4")
-				|| dataType.equals("SIGNED")
-				
+		if(dataType.startsWith("NUMBER")
+				|| dataType.startsWith("BIT")
+
+				|| dataType.startsWith("MONEY")
+				|| dataType.startsWith("SMALLMONEY")
+				|| dataType.startsWith("FLOAT")
+				|| dataType.startsWith("LONG")
+
+				|| dataType.startsWith("INT")
+				|| dataType.startsWith("INTEGER")
+				|| dataType.startsWith("MEDIUMINT")
+				|| dataType.startsWith("INT4")
+				|| dataType.startsWith("SIGNED")
+
 				//TINYINT TYPE
-				|| dataType.equals("TINYINT")
-				
+				|| dataType.startsWith("TINYINT")
+
 				//SMALLINT TYPE
-				|| dataType.equals("SMALLINT")
-				|| dataType.equals("INT2")
-				|| dataType.equals("YEAR")
-				
+				|| dataType.startsWith("SMALLINT")
+				|| dataType.startsWith("INT2")
+				|| dataType.startsWith("YEAR")
+
 				//BIGINT TYPE
-				|| dataType.equals("BIGINT")
-				|| dataType.equals("INT8")
-				
+				|| dataType.startsWith("BIGINT")
+				|| dataType.startsWith("INT8")
+
 				//DECIMAL TYPE
-				|| dataType.equals("DECIMAL")
-				|| dataType.equals("NUMBER")
-				|| dataType.equals("DEC")
-				|| dataType.equals("NUMERIC")
-				
+				|| dataType.startsWith("DECIMAL")
+				|| dataType.startsWith("NUMBER")
+				|| dataType.startsWith("DEC")
+				|| dataType.startsWith("NUMERIC")
+
 				//DOUBLE TYPE
-				|| dataType.equals("DOUBLE")
-				|| dataType.equals("PRECISION")
-				|| dataType.equals("FLOAT")
-				|| dataType.equals("FLOAT8")
-				
+				|| dataType.startsWith("DOUBLE")
+				|| dataType.startsWith("PRECISION")
+				|| dataType.startsWith("FLOAT")
+				|| dataType.startsWith("FLOAT8")
+
 				//REAL TYPE
-				|| dataType.equals("REAL")
-				|| dataType.equals("FLOAT4")
+				|| dataType.startsWith("REAL")
+				|| dataType.startsWith("FLOAT4")
 				) {
 			return true;
 		}
-		
+
 		return false;
 	}
-	
+
 	private static boolean isStringType(String dataType) {
 		dataType = dataType.toUpperCase().trim();		
 		if(dataType.equals("STRING")
-				|| dataType.contains("CHAR")
-				|| dataType.equals("TEXT")
-				
-//				//VARCHAR TYPE
-//				|| dataType.startsWith("VARCHAR")
-//				|| dataType.startsWith("LONGVARCHAR")
-//				|| dataType.startsWith("VARCHAR2")
-//				|| dataType.startsWith("NVARCHAR")
-//				|| dataType.startsWith("NVARCHAR2")
-//				|| dataType.startsWith("VARCHAR_CASESENSITIVE")
-//				
-//				//VARCHAR_IGNORECASE TYPE
-//				|| dataType.startsWith("VARCHAR_IGNORECASE")
-//				
-//				//CHAR TYPE
-//				|| dataType.startsWith("CHAR")
-//				|| dataType.startsWith("CHARACTER")
-//				|| dataType.startsWith("NCHAR")
-//				
+				//VARCHAR TYPE
+				|| dataType.startsWith("VARCHAR")
+				|| dataType.startsWith("TEXT")
+				|| dataType.startsWith("LONGVARCHAR")
+				|| dataType.startsWith("VARCHAR2")
+				|| dataType.startsWith("NVARCHAR")
+				|| dataType.startsWith("NVARCHAR2")
+				|| dataType.startsWith("VARCHAR_CASESENSITIVE")
+
+				//VARCHAR_IGNORECASE TYPE
+				|| dataType.startsWith("VARCHAR_IGNORECASE")
+
+				//CHAR TYPE
+				|| dataType.startsWith("CHAR")
+				|| dataType.startsWith("CHARACTER")
+				|| dataType.startsWith("NCHAR")
 				) {
 			return true;
 		}
-		
+
 		return false;
 	}
-	
+
 	private static boolean isDateType(String dataType) {
 		dataType = dataType.toUpperCase().trim();		
-		if(dataType.contains("DATE")){
+		if(dataType.startsWith("DATE")){
 			return true;
 		}
-		
+
 		return false;
 	}
 	

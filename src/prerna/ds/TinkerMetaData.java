@@ -218,7 +218,7 @@ public class TinkerMetaData implements IMetaData {
 			currType = vert.value(DATATYPE);
 		}
 		
-		IMetaData.DATA_TYPES metaDataType = Utility.convertStringtoDataType(dataType);
+		IMetaData.DATA_TYPES metaDataType = Utility.convertStringToDataType(dataType);
 		
 		if(currType == null) {
 //			if(dataType.contains("STRING") || dataType.contains("TEXT") || dataType.contains("VARCHAR")) {
