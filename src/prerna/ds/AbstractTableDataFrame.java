@@ -646,9 +646,11 @@ public abstract class AbstractTableDataFrame implements ITableDataFrame {
 
 	public List<String> getSelectors() {
 		List<String> selectors = new ArrayList<String>();
-		for(int i = 0; i < headerNames.length; i++) {
-			if(!columnsToSkip.contains(headerNames[i])) {
-				selectors.add(headerNames[i]);
+		if(this.headerNames != null) {
+			for(int i = 0; i < headerNames.length; i++) {
+				if(!columnsToSkip.contains(headerNames[i])) {
+					selectors.add(headerNames[i]);
+				}
 			}
 		}
 		return selectors;
