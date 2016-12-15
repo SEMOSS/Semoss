@@ -449,7 +449,7 @@ public abstract class ImportDataReactor extends AbstractReactor {
 		// get rid of this bifurcation
 		// push this into the iterators
 
-		String nodeStr = (String)myStore.get(whoAmI);
+		String nodeStr = (String)myStore.get(PKQLEnum.EXPR_TERM);
 		// if the iterator is the return from an engine
 		// get the query return response to send back
 		if(it instanceof IEngineWrapper) {
