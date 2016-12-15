@@ -95,7 +95,7 @@ public abstract class ImportDataReactor extends AbstractReactor {
 	 */
 	public ImportDataReactor()
 	{
-		String [] thisReacts = {PKQLEnum.API, PKQLEnum.JOINS, PKQLEnum.CSV_TABLE, PKQLEnum.PASTED_DATA};
+		String [] thisReacts = {PKQLEnum.API, PKQLEnum.JOINS, PKQLEnum.PASTED_DATA};
 		super.whatIReactTo = thisReacts;
 		super.whoAmI = PKQLEnum.IMPORT_DATA;
 
@@ -107,16 +107,9 @@ public abstract class ImportDataReactor extends AbstractReactor {
 		String [] dataFromPastedData = {"EDGE_HASH", PKQLEnum.COL_CSV};
 		values2SyncHash.put(PKQLEnum.PASTED_DATA, dataFromPastedData);
 
-		String [] dataFromRawQuery = {"EDGE_HASH", "DATA_TYPE_MAP", "LOGICAL_TO_VALUE"};
+		String [] dataFromRawQuery = {"DATA_TYPE_MAP", "LOGICAL_TO_VALUE"};
 		// same thing when hard coded query
 		values2SyncHash.put(PKQLEnum.RAW_API, dataFromRawQuery);
-
-		// TODO: don't really need this, should probably remove it since the format is
-		// not user friendly at all
-		//
-		// when the data is coming from a "csv table"
-		String [] dataFromTable = {"EDGE_HASH"};
-		values2SyncHash.put(PKQLEnum.CSV_TABLE, dataFromTable);
 	}
 
 	@Override

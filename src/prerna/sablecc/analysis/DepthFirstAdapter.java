@@ -2651,27 +2651,6 @@ public class DepthFirstAdapter extends AnalysisAdapter
         outAApiImportBlock(node);
     }
 
-    public void inACsvTableImportBlock(ACsvTableImportBlock node)
-    {
-        defaultIn(node);
-    }
-
-    public void outACsvTableImportBlock(ACsvTableImportBlock node)
-    {
-        defaultOut(node);
-    }
-
-    @Override
-    public void caseACsvTableImportBlock(ACsvTableImportBlock node)
-    {
-        inACsvTableImportBlock(node);
-        if(node.getCsvTable() != null)
-        {
-            node.getCsvTable().apply(this);
-        }
-        outACsvTableImportBlock(node);
-    }
-
     public void inAPastedDataImportBlock(APastedDataImportBlock node)
     {
         defaultIn(node);
