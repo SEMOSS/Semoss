@@ -3,47 +3,40 @@ package prerna.ds.h2;
 import java.util.Arrays;
 import java.util.Iterator;
 import java.util.List;
-import java.util.Map;
 import java.util.NoSuchElementException;
+
+import prerna.algorithm.api.IMetaData.DATA_TYPES;
 
 public class ScaledUniqueH2FrameIterator implements Iterator<List<Object[]>> {
 
-//	private String dataType;
-	private String columnName;
-	private int columnNameIndex;
-	private List<String> selectors;
 	private String tableName;
-	private String[] finalColumns;
-	
+	private String columnName;
+
+	private List<String> selectors;
+	private List<DATA_TYPES> dataTypes;
+
 	private Double[] maxArr;
 	private Double[] minArr;
-	
-	private List<Object[]> nextBatch;
 	
 	private H2Builder builder;
 	private Iterator<Object> valueIterator;
 	
-	private Map<String, String> headerTypeMap;
-	
 	public ScaledUniqueH2FrameIterator(
 		String columnName,
-//		boolean getRawData, 
 		String tableName, 
 		H2Builder builder, 
 		Double[] maxArr, 
 		Double[] minArr,
-		Map<String, String> headerTypeMap,
+		List<DATA_TYPES> dataTypes,
 		List<String> selectors) {
 		
 		this.selectors = selectors;
 		this.tableName = tableName;
-//		this.dataType = getRawData ? Constants.VALUE : Constants.NAME;
 		this.columnName = columnName;
-		this.columnNameIndex = selectors.indexOf(columnName);
 		this.maxArr = maxArr;
 		this.minArr = minArr;
 		this.builder = builder;
-		this.headerTypeMap = headerTypeMap;
+		this.dataTypes = dataTypes;
 		
 		Object[] column = builder.getColumn(columnName, true);
 		valueIterator = Arrays.asList(column).iterator();
@@ -58,7 +51,7 @@ public class ScaledUniqueH2FrameIterator implements Iterator<List<Object[]>> {
 		
 		if(hasNext()) {
 			Object nextVal = valueIterator.next();
-			List<Object[]> retData = builder.getScaledData(tableName, selectors, headerTypeMap, columnName, nextVal, maxArr, minArr);
+			List<Object[]> retData = builder.getScaledData(tableName, selectors, dataTypes, columnName, nextVal, maxArr, minArr);
 			return retData;
 		} else {
 			throw new NoSuchElementException("No more elements"); 
