@@ -29,6 +29,7 @@ package prerna.rdf.main; // TODO: move to prerna.poi.main
 
 import java.io.IOException;
 import java.sql.Connection;
+import java.sql.DatabaseMetaData;
 import java.sql.DriverManager;
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -301,6 +302,66 @@ public class ImportRDBMSProcessor extends AbstractEngineCreator {
 		}
 		
 		return success+"";
+	}
+	
+	public HashMap<String, Object> getSchemaDetails(String type, String host, String port, String username, String password, String schema) throws SQLException {
+		Connection con = buildConnection(type, host, port, username, password, schema);
+		HashMap<String, ArrayList<HashMap>> tableDetails = new HashMap<String, ArrayList<HashMap>>(); // tablename: [colDetails]
+		HashMap<String, ArrayList<HashMap>> relations = new HashMap<String, ArrayList<HashMap>>(); // sub_table: [(obj_table, fromCol, toCol)]
+		
+		DatabaseMetaData meta = con.getMetaData();
+		ResultSet tables = meta.getTables(null, null, null, new String[]{"TABLE"});
+		while(tables.next()) {
+			ArrayList<String> primaryKeys = new ArrayList<String>();
+			HashMap<String, String> colDetails = new HashMap<String, String>(); // name: , type: , isPK:
+			ArrayList<HashMap> allCols = new ArrayList<HashMap>();
+			HashMap<String, String> fkDetails = new HashMap<String, String>();
+			ArrayList<HashMap> allRels = new ArrayList<HashMap>();
+			
+			String table = tables.getString("table_name");
+			System.out.println("Table: " + table);
+			ResultSet keys = meta.getPrimaryKeys(null, null, table);
+			while(keys.next()) {
+				primaryKeys.add(keys.getString("column_name"));
+				
+				System.out.println(keys.getString("table_name") + ": " + keys.getString("column_name") + " added.");
+			}
+			
+			System.out.println("COLUMNS " + primaryKeys);
+			keys = meta.getColumns(null, null, table, null);
+			while(keys.next()) {
+				colDetails = new HashMap<String, String>();
+				colDetails.put("name", keys.getString("column_name"));
+				colDetails.put("type", keys.getString("type_name"));
+				if(primaryKeys.contains(keys.getString("column_name"))) {
+					colDetails.put("isPK", "true");
+				} else {
+					colDetails.put("isPK", "false");
+				}
+				allCols.add(colDetails);
+				
+				System.out.println("\t" + keys.getString("column_name") + " (" + keys.getString("type_name") + ") added.");
+			}
+			tableDetails.put(table, allCols);
+			
+			System.out.println("FOREIGN KEYS");
+			keys = meta.getExportedKeys(null, null, table);
+			while(keys.next()) {
+				fkDetails.put("fromCol", keys.getString("PKCOLUMN_NAME"));
+				fkDetails.put("toTable", keys.getString("FKTABLE_NAME"));
+				fkDetails.put("toCol", keys.getString("FKCOLUMN_NAME"));
+				allRels.add(fkDetails);
+				
+				System.out.println(keys.getString("PKTABLE_NAME") + ": " + keys.getString("PKCOLUMN_NAME") 
+					+ " -> " + keys.getString("FKTABLE_NAME") + ": " + keys.getString("FKCOLUMN_NAME") + " added.");
+			}
+			relations.put(table, allRels);
+		}
+		
+		HashMap<String, Object> ret = new HashMap<String, Object>();
+		ret.put("tables", tableDetails);
+		ret.put("relationships", relations);
+		return ret;
 	}
 	
 	public void setConnectionURL(String connectionURL) {
