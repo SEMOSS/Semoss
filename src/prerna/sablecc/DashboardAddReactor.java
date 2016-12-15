@@ -38,15 +38,6 @@ public class DashboardAddReactor extends AbstractReactor {
 			String insightId = insightsToJoin.get(INSIGHT_ID_INDEX);
 			String panelId = insightsToJoin.get(PANEL_ID_INDEX);
 			
-//			List<Insight> insights = new ArrayList<>();
-//			for(String insightID : insightsToJoin) {
-//				Insight insight = InsightStore.getInstance().get(insightID);
-//				if(insight == null) {
-//					System.err.println("insight "+ insightID+" not found...");
-//					return null;
-//				}
-//				insights.add(insight);
-//			}
 			
 			List<Insight> insights = new ArrayList<>();
 			Insight insight = InsightStore.getInstance().get(insightId);

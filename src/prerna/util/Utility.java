@@ -2506,7 +2506,7 @@ public class Utility {
 		return false;
 	}
 
-	private static boolean isNumericType(String dataType) {
+	public static boolean isNumericType(String dataType) {
 		// we use startsWith because the type may have ()
 		dataType = dataType.toUpperCase().trim();		
 		if(dataType.startsWith("NUMBER")
@@ -2557,7 +2557,7 @@ public class Utility {
 		return false;
 	}
 
-	private static boolean isStringType(String dataType) {
+	public static boolean isStringType(String dataType) {
 		dataType = dataType.toUpperCase().trim();		
 		if(dataType.equals("STRING")
 				//VARCHAR TYPE
@@ -2583,7 +2583,7 @@ public class Utility {
 		return false;
 	}
 
-	private static boolean isDateType(String dataType) {
+	public static boolean isDateType(String dataType) {
 		dataType = dataType.toUpperCase().trim();		
 		if(dataType.startsWith("DATE")
 				|| dataType.startsWith("TIMESTAMP")){
