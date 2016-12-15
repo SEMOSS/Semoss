@@ -49,9 +49,9 @@ public class RawQueryApiReactor extends AbstractReactor {
 				
 				Map<String, String> dataTypeMap = new HashMap<String, String>();
 				Map<String, String> logicalToValueMap = new HashMap<String, String>();
-				for(int i = 0; i < numCols; i++) {
-					dataTypeMap.put(meta.getColumnLabel(i+1), meta.getColumnTypeName(i+1));
-					logicalToValueMap.put(meta.getColumnLabel(i+1), meta.getColumnLabel(i+1));
+				for(int index = 0; index < numCols; index++) {
+					dataTypeMap.put(meta.getColumnLabel(index+1), meta.getColumnTypeName(index+1));
+					logicalToValueMap.put(meta.getColumnLabel(index+1), meta.getColumnLabel(index+1));
 				}
 				
 				this.put("DATA_TYPE_MAP", dataTypeMap);
@@ -67,9 +67,9 @@ public class RawQueryApiReactor extends AbstractReactor {
 			Map<String, String> dataTypeMap = new HashMap<String, String>();
 			Map<String, String> logicalToValueMap = new HashMap<String, String>();
 			
-			for(int i = 0; i < numCols; i++) {
-				dataTypeMap.put(headers[1], "STRING");
-				logicalToValueMap.put(headers[1], headers[1]);
+			for(int index = 0; index < numCols; index++) {
+				dataTypeMap.put(headers[index], "STRING");
+				logicalToValueMap.put(headers[index], headers[index]);
 			}
 			this.put("DATA_TYPE_MAP", dataTypeMap);
 			this.put("LOGICAL_TO_VALUE", logicalToValueMap);
