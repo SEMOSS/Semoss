@@ -151,7 +151,7 @@ public abstract class AbstractApiReactor extends AbstractReactor{
 											eType = eType.replace("TYPE:", "");
 										}
 										
-										DATA_TYPES eDataType = Utility.convertStringtoDataType(eType);
+										DATA_TYPES eDataType = Utility.convertStringToDataType(eType);
 										if(eDataType != dataType) {
 											// this will loop to the next join
 											continue;
