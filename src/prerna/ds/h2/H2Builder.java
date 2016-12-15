@@ -35,10 +35,10 @@ import org.stringtemplate.v4.ST;
 import com.google.gson.Gson;
 
 import prerna.algorithm.api.IMetaData;
+import prerna.algorithm.api.IMetaData.DATA_TYPES;
 import prerna.cache.ICache;
 import prerna.ds.AbstractTableDataFrame;
 import prerna.ds.AbstractTableDataFrame.Comparator;
-import prerna.ds.RdbmsFrameUtility;
 import prerna.ds.RdbmsQueryBuilder;
 import prerna.engine.api.IHeadersDataRow;
 import prerna.poi.main.RDBMSEngineCreationHelper;
@@ -685,37 +685,23 @@ public class H2Builder {
 	/*************************** READ ********************************************/
 
 	// get scaled version of above method
-	public List<Object[]> getScaledData(String tableName, List<String> selectors, Map<String, String> headerTypeMap,
+	public List<Object[]> getScaledData(String tableName, List<String> selectors, List<DATA_TYPES> dataTypes,
 			String column, Object value, Double[] maxArr, Double[] minArr) {
 
+		// modify names if it is joined so query is correct
 		if (joinMode) {
 			tableName = this.viewTableName;
 			selectors = translateColumns(selectors);
 			column = translateColumn(column);
-			Map<String, String> newHeaderTypeMap = new HashMap<>();
-			for (String selector : headerTypeMap.keySet()) {
-				newHeaderTypeMap.put(translateColumn(selector), headerTypeMap.get(selector));
-			}
-			headerTypeMap = newHeaderTypeMap;
-		} else {
-
+			// note, no need to modify data types since order is preserved
 		}
-		// tableName = joinMode ? this.viewTableName : this.tableName;
 
 		int cindex = selectors.indexOf(column);
-		if (tableName == null)
+		if (tableName == null) {
 			tableName = this.tableName;
-
-		List<Object[]> data;
-		String[] types = new String[headerTypeMap.size()];
-
-		int index = 0;
-		for (String selector : selectors) {
-			types[index] = headerTypeMap.get(selector);
-			index++;
 		}
-
-		types = cleanTypes(types);
+		
+		List<Object[]> data;
 
 		try {
 			String selectQuery = makeSpecificSelect(tableName, selectors, column, value);
@@ -734,8 +720,7 @@ public class H2Builder {
 						if(val == null) {
 							continue;
 						}
-						if (cindex != (i - 1)
-								&& (types[i - 1].equalsIgnoreCase("int") || types[i - 1].equalsIgnoreCase("double"))) {
+						if (cindex != (i - 1) && (dataTypes.get(i - 1).equals(IMetaData.DATA_TYPES.NUMBER))) {
 							row[i - 1] = (((Number) val).doubleValue() - minArr[i - 1])
 									/ (maxArr[i - 1] - minArr[i - 1]);
 						} else {
