@@ -2585,7 +2585,8 @@ public class Utility {
 
 	private static boolean isDateType(String dataType) {
 		dataType = dataType.toUpperCase().trim();		
-		if(dataType.startsWith("DATE")){
+		if(dataType.startsWith("DATE")
+				|| dataType.startsWith("TIMESTAMP")){
 			return true;
 		}
 

@@ -15,7 +15,6 @@ import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Hashtable;
@@ -846,12 +845,14 @@ public class H2Frame extends AbstractTableDataFrame {
 	@Override
 	public Iterator<List<Object[]>> scaledUniqueIterator(String columnHeader, Map<String, Object> options) {
 		List<String> selectors = null;
+		List<IMetaData.DATA_TYPES> dataTypes = null;
 		Double[] max = null;
 		Double[] min = null;
 		if (options != null && options.containsKey(AbstractTableDataFrame.SELECTORS)) {
 			// get the max and min values based on the order that is defined
 			selectors = (List<String>) options.get(AbstractTableDataFrame.SELECTORS);
 			int numSelected = selectors.size();
+			dataTypes = new Vector<IMetaData.DATA_TYPES>(numSelected);
 			max = new Double[numSelected];
 			min = new Double[numSelected];
 			for (int i = 0; i < numSelected; i++) {
@@ -859,20 +860,25 @@ public class H2Frame extends AbstractTableDataFrame {
 				// calculate max/min with each loop
 				max[i] = getMax(selectors.get(i));
 				min[i] = getMin(selectors.get(i));
+				dataTypes.add(metaData.getDataType(selectors.get(i)));
 			}
 		} else {
 			// order of selectors will match order of max and min arrays
 			selectors = getH2Selectors();
 			max = getMax();
 			min = getMin();
+			int numSelected = selectors.size();
+			dataTypes = new Vector<IMetaData.DATA_TYPES>(numSelected);
+			for (int i = 0; i < numSelected; i++) {
+				dataTypes.add(metaData.getDataType(selectors.get(i)));
+			}
 		}
 
 		columnHeader = this.getValueForUniqueName(columnHeader);
-		Map<String, String> headerTypes = this.getH2HeadersAndTypes();
 		if (builder.tableName == null) {
 			builder.tableName = getTableNameForUniqueColumn(this.headerNames[0]);
 		}
-		ScaledUniqueH2FrameIterator iterator = new ScaledUniqueH2FrameIterator(columnHeader, builder.tableName, builder, max, min, headerTypes, selectors);
+		ScaledUniqueH2FrameIterator iterator = new ScaledUniqueH2FrameIterator(columnHeader, builder.tableName, builder, max, min, dataTypes, selectors);
 		return iterator;
 	}
 
@@ -1149,20 +1155,17 @@ public class H2Frame extends AbstractTableDataFrame {
 	// return h2Types;
 	// }
 
-	private Map<String, String> getH2HeadersAndTypes() {
-
-		if (headerNames == null)
-			return null;
-		Map<String, String> retMap = new HashMap<String, String>(
-				headerNames.length);
-		for (String header : headerNames) {
-			String h2Header = this.getH2Header(header);
-			String h2Type = Utility.convertDataTypeToString(this.metaData
-					.getDataType(header));
-			retMap.put(h2Header, h2Type);
-		}
-		return retMap;
-	}
+//	private Map<String, String> getH2HeadersAndTypes() {
+//		if (headerNames == null)
+//			return null;
+//		Map<String, String> retMap = new HashMap<String, String>(headerNames.length);
+//		for (String header : headerNames) {
+//			String h2Header = this.getH2Header(header);
+//			String h2Type = Utility.convertDataTypeToString(this.metaData.getDataType(header));
+//			retMap.put(h2Header, h2Type);
+//		}
+//		return retMap;
+//	}
 
 	// relationships in the form tableA.columnA.tableB.columnB
 	public void setRelations(List<String> relations) {
