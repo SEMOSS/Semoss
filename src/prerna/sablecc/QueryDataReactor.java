@@ -1,7 +1,6 @@
 package prerna.sablecc;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Hashtable;
 import java.util.Iterator;
 import java.util.List;
@@ -11,6 +10,7 @@ import java.util.Vector;
 import prerna.algorithm.api.ITableDataFrame;
 import prerna.ds.QueryStruct;
 import prerna.engine.api.IEngine;
+import prerna.engine.api.IEngineWrapper;
 import prerna.engine.api.IRawSelectWrapper;
 import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.rdf.query.builder.IQueryInterpreter;
@@ -74,6 +74,8 @@ public class QueryDataReactor extends AbstractReactor {
 		while(thisIterator.hasNext()) {
 			searchData.add(thisIterator.next().getValues()[0]);
 		}
+		
+		createResponseString(thisIterator);
 		// store the search data
 		myStore.put("searchData", searchData);
 		myStore.put("STATUS", PKQLRunner.STATUS.SUCCESS);
@@ -90,6 +92,28 @@ public class QueryDataReactor extends AbstractReactor {
 		return values2SyncHash.get(input);
 	}
 
+	/**
+	 * Create the return response from a engine wrapper
+	 * @param it				The iterator used to insert data
+	 * @return					String returning the response
+	 */
+	protected void createResponseString(IEngineWrapper it){
+		String nodeStr = (String)myStore.get(PKQLEnum.EXPR_TERM);
+
+		// get map containing the response metadata from the iterator
+		Map<String, Object> map = it.getResponseMeta();
+		// format fields from meta data map into a string
+		String mssg = "";
+		for(String key : map.keySet()){
+			if(!mssg.isEmpty()){
+				mssg = mssg + " \n";
+			}
+			mssg = mssg + key + ": " + map.get(key).toString();
+		}
+		String retStr = "Sucessfully added data using : \n" + mssg;
+		myStore.put(nodeStr, retStr);
+	}
+	
 	@Override
 	public IPkqlMetadata getPkqlMetadata() {
 		// TODO Auto-generated method stub
