@@ -9,7 +9,7 @@ import java.util.Map;
 import java.util.Set;
 
 import prerna.ds.AbstractTableDataFrame;
-import prerna.ds.AbstractTableDataFrame.Comparator;
+import prerna.ds.RdbmsFrameUtility;
 
 public class H2FilterHash {
 
