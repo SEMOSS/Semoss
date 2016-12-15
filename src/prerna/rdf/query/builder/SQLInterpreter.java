@@ -236,7 +236,6 @@ public class SQLInterpreter implements IQueryInterpreter{
 		int offset = qs.getOffset();
 		
 		if(limit > 0) {
-
 			query = new StringBuilder(this.queryUtil.addLimitToQuery(query.toString(), limit));
 		} 
 		
@@ -636,7 +635,7 @@ public class SQLInterpreter implements IQueryInterpreter{
 		// if we dont have it, we will do type casting...
 		if(dataType != null) {
 			dataType = dataType.toUpperCase();
-			IMetaData.DATA_TYPES type = Utility.convertStringtoDataType(dataType);
+			IMetaData.DATA_TYPES type = Utility.convertStringToDataType(dataType);
 			if(IMetaData.DATA_TYPES.NUMBER.equals(type)) {
 				// get the first value
 				myObj.append(objects.get(0));
@@ -762,7 +761,7 @@ public class SQLInterpreter implements IQueryInterpreter{
 		// if we dont have it, we will do type casting...
 		if(dataType != null) {
 			dataType = dataType.toUpperCase();
-			IMetaData.DATA_TYPES type = Utility.convertStringtoDataType(dataType);
+			IMetaData.DATA_TYPES type = Utility.convertStringToDataType(dataType);
 			if(IMetaData.DATA_TYPES.NUMBER.equals(type)) {
 				myObj = object.toString();
 			} else if(IMetaData.DATA_TYPES.DATE.equals(type)) {
