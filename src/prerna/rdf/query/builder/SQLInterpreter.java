@@ -115,6 +115,9 @@ public class SQLInterpreter implements IQueryInterpreter{
 		addFilters();
 		
 		StringBuilder query = new StringBuilder("SELECT ");
+		
+		// I need to put the limit here
+		
 		// add the selectors
 		// if this is meant to perform a count
 		if(performCount == QueryStruct.COUNT_CELLS) {
@@ -233,6 +236,7 @@ public class SQLInterpreter implements IQueryInterpreter{
 		int offset = qs.getOffset();
 		
 		if(limit > 0) {
+
 			query = new StringBuilder(this.queryUtil.addLimitToQuery(query.toString(), limit));
 		} 
 		
@@ -976,8 +980,14 @@ public class SQLInterpreter implements IQueryInterpreter{
 	 * @param tableName				The table name
 	 * @return						The alias for the table name
 	 */
-	public String getAlias(String tableName)
+	public String getAlias(String curTableName)
 	{
+		// try to find if the table name has schema in it
+		String [] tableTokens = curTableName.split("[.]");
+	
+		// now just take the latest one
+		String tableName = tableTokens[tableTokens.length - 1];
+		
 		// alias already exists
 		if(aliases.containsKey(tableName)) {
 			return aliases.get(tableName);
@@ -1119,10 +1129,22 @@ public class SQLInterpreter implements IQueryInterpreter{
 				System.out.println(predURI);
 			}
 			String[] predPieces = Utility.getInstanceName(predURI).split("[.]");
-			fromTable = predPieces[0];
-			fromCol = predPieces[1];
-			toTable = predPieces[2];
-			toCol = predPieces[3];
+			if(predPieces.length == 4)
+			{
+				fromTable = predPieces[0];
+				fromCol = predPieces[1];
+				toTable = predPieces[2];
+				toCol = predPieces[3];
+			}
+			else if(predPieces.length == 6) // this is coming in with the schema
+			{
+				// EHUB_CLM_SDS . EHUB_CLM_EVNT . CLM_EVNT_KEY . EHUB_CLM_SDS . EHUB_CLM_PROV_DMGRPHC . CLM_EVNT_KEY
+				// [0]               [1]            [2]             [3]             [4]                    [5]
+				fromTable = predPieces[0] + "." + predPieces[1];
+				fromCol = predPieces[2];
+				toTable = predPieces[3] + "." + predPieces[4];
+				toCol = predPieces[5];
+			}
 		}
 		
 		String[] retArr = new String[]{fromTable, fromCol, toTable, toCol};
