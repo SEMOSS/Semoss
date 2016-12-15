@@ -336,7 +336,7 @@ output_data = //opens insight given an engine and id and replaces that insight, 
 clear_data = //clears the data from the insight
 		datacleartoken [lp]:l_par [rp]:r_par;
 					
-import_block = {api} api_block | {csv_table} csv_table | {pasted_data} pasted_data_block | {raw_api} raw_api_block; 
+import_block = {api} api_block | {pasted_data} pasted_data_block | {raw_api} raw_api_block; 
 
 pasted_data_block = l_par pasted_data comma [delimitier]:word_or_num r_par;
 
