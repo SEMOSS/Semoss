@@ -1,7 +1,6 @@
 package prerna.sablecc;
 
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.Hashtable;
 import java.util.Iterator;
 import java.util.List;
@@ -9,31 +8,88 @@ import java.util.Map;
 import java.util.Set;
 import java.util.Vector;
 
+import org.apache.log4j.LogManager;
+import org.apache.log4j.Logger;
+
 import cern.colt.Arrays;
 import prerna.algorithm.api.ITableDataFrame;
+import prerna.ds.TinkerMetaHelper;
 import prerna.ds.nativeframe.NativeFrame;
+import prerna.ds.util.FileIterator;
 import prerna.engine.api.IEngine;
 import prerna.engine.api.IEngineWrapper;
+import prerna.engine.api.IHeadersDataRow;
+import prerna.engine.api.IRawSelectWrapper;
 import prerna.sablecc.meta.IPkqlMetadata;
 import prerna.sablecc.meta.ImportDataMetadata;
 import prerna.util.ArrayUtilityMethods;
 import prerna.util.Utility;
 
-/**
- * This is the base class used by the frame specific import data reactors.
- * This class doesn't perform any adding of data in the frames
- * It does however input specific pieces of information into the myStore map
- * such that the frame specific import data reactors can optimally 
- * add the data into the frame
- *
- */
 public abstract class ImportDataReactor extends AbstractReactor {
+
+	protected static final Logger LOGGER = LogManager.getLogger(ImportDataReactor.class.getName());
+	
+//	protected enum LOAD_TYPE {ENGINE_IMPORT, FILE_IMPORT}
 
 	// this stores the specific values that need to be aggregated from the child reactors
 	// based on the child, different information is needed in order to properly add the 
 	// data into the frame
-	Hashtable <String, String[]> values2SyncHash = new Hashtable <String, String[]>();
+	protected Hashtable <String, String[]> values2SyncHash = new Hashtable <String, String[]>();
 
+	
+	///////////////////////////////// SHARED VARIABLES //////////////////////////////////////
+	// useful variables needed in order to properly perform the importing of data into the frame
+	
+//	// keep track of the type of import being performed based on enum type
+//	protected LOAD_TYPE loadType = null;
+	// keep track of the starting headers in the frame
+	protected String[] startingHeaders = null;
+	/*
+	 * keep track of the list of table joins used for this operation
+	 * example format
+	 * [
+	 * 		// {NAME IN CURRENT TABLE -> NAME IN QUERY}
+	 * 		{Title -> Movie},
+	 * 		{Genre_Updated -> Genre}
+	 * ]
+	 */
+	protected Vector<Map<String,String>> joinCols = null;
+	/*
+	 * keep track of the edge hash 
+	 * this is only needed so we know how to insert data for graphical databases
+	 * example format
+	 * {
+	 * 		Title -> [Genre, Studio],
+	 * 		Actor -> [Title]
+	 * }
+	 */
+	protected Map<String, Set<String>> edgeHash = null;
+	/*
+	 * keep track of modifications that need to be made to the headers
+	 * this is important when you're starting frame is [Title, Studio, Genre]
+	 * and you are connecting to [Movie, Movie_Budget] and you want the Title and Movie
+	 * to be reconciled into the same column
+	 * example format
+	 * {
+	 * 		Title -> Movie,
+	 * 		Movie_Budget -> Movie_Budget
+	 * }
+	 */
+	protected Map<String, String> modifyNamesMap = null;
+	// keep track of the headers we are adding
+	// this will be cleaned to take into consideration the join column modifications
+	protected String[] newHeaders = null;
+	// keep track of the table join type
+	protected String joinType = null;
+	// store the iterator being used
+	protected Iterator<IHeadersDataRow> dataIterator = null;
+	// store if the edge hash is a generated prim key edge hash
+	protected boolean isPrimKey = false;
+	// store if all new headers are accounted
+	protected boolean allHeadersAccounted = false;
+	// store if the current frame is empty
+	protected boolean isFrameEmpty = false;
+	
 	/**
 	 * Constructor for the abstract class
 	 */
@@ -50,11 +106,11 @@ public abstract class ImportDataReactor extends AbstractReactor {
 		// when the data is coming from user copy/paste data into the tool
 		String [] dataFromPastedData = {"EDGE_HASH", PKQLEnum.COL_CSV};
 		values2SyncHash.put(PKQLEnum.PASTED_DATA, dataFromPastedData);
-		
+
 		String [] dataFromRawQuery = {"EDGE_HASH", "DATA_TYPE_MAP", "LOGICAL_TO_VALUE"};
 		// same thing when hard coded query
 		values2SyncHash.put(PKQLEnum.RAW_API, dataFromRawQuery);
-				
+
 		// TODO: don't really need this, should probably remove it since the format is
 		// not user friendly at all
 		//
@@ -74,187 +130,312 @@ public abstract class ImportDataReactor extends AbstractReactor {
 		 * Process for getting the base information from the child reactors to then be used by the
 		 * frame specific import data reactors
 		 * 
-		 * 1) get the starting headers in the frame -> this is only used by H2ImportDataReactor and SparkImportDataReactor
-		 * 2) get the join information
-		 * 3) based on the type of child reactor, get the iterator
-		 * only if the child reactor is an api reactor
-		 * if there is an engine
-		 * 4) perform the metadata update using the engine and edgeHash
-		 * 5) store edgeHash and logicalToValueMap
-		 * 6) update the data id on the frame so FE knows new data is being added
+		 * We are going to go ahead and collect the meta data needed in order to determine the most
+		 * optimal way of inserting data into the frame
+		 * 
+		 * 1) grab the frame
+		 * 2) see if frame is empty
+		 * 3) grab existing column headers in the frame
+		 * 4) grab the table join column
+		 * 5) based on the import type grab the appropriate iterator and pieces required
+		 * *** look inside each import type to see steps used for processing
 		 * 
 		 * TODO:
 		 * if no engine, it is a drag and drop file
 		 * the user can still define an edge hash to load
-		 * why are we just ignoring this :(
 		 * 
-		 * TODO:
-		 * also super weird that the QSMergeEdgeHash occurs here (i.e. when its an engine api within the ImportDataReactor)
-		 * but the other cases where a mergeEdgeHash method is called is done in the frame specific classes.... not consistent 
-		 * for no reason
 		 */
+
+		LOGGER.info("STARTING TO PROCESS INFORMATION FOR DATA LOADING....");
 		
-		modExpression();
-		System.out.println("My Store on IMPORT DATA REACTOR: " + myStore);
-		
+		// 1) grab the frame
 		ITableDataFrame frame = (ITableDataFrame) myStore.get("G");
 		
-		// 1) get the starting headers
-		// the starting headers is important to keep for the frame specific import data reactors 
-		// They are responsible for knowing when to perform an addRow vs. an addRelationship 
-		// (i.e. insert vs. update for H2ImportDataReactor)
-		String[] startingHeaders = frame.getColumnHeaders();
-		// store in mystore
-		myStore.put("startingHeaders", startingHeaders);
+		// 2) see if frame is empty
+		// this will benefit us if we know we can simply just perform inserts
+		// or more complex logic is needed
+		// mainly used for H2Frame
+		isFrameEmpty = frame.isEmpty();
+		LOGGER.info(" >>> IS FRAME EMPTY? " + isFrameEmpty);
 
-		// 2) format and process the join information
-		Vector<Map<String,String>> joinCols = new Vector<Map<String,String>>();
+		// 3) grab existing column headers in the frame
+		// technically only need this if the frame is not empty
+		// this is also important to help if we need simply perform an insert
+		// or update existing data
+		startingHeaders = frame.getColumnHeaders();
+		
+		// 4) grab the table join column information if present
+		joinCols = new Vector<Map<String,String>>();
+		joinType = "";
+
 		Vector<Map<String, String>> joins = (Vector<Map<String, String>>) myStore.get(PKQLEnum.JOINS);
-		String joinType = "";
 		if(joins!=null){
-			for(Map<String,String> join : joins){
+			for(Map<String,String> join : joins) {
 				Map<String,String> joinMap = new HashMap<String,String>();
 				joinMap.put(join.get(PKQLEnum.TO_COL), join.get(PKQLEnum.FROM_COL));
 				joinCols.add(joinMap);
 				joinType = join.get(PKQLEnum.REL_TYPE);
 			}
+			LOGGER.info(" >>> TABLE JOIN DEFINED AS " + joinCols);
+		} else {
+			LOGGER.info(" >>> NO TABLE JOIN DEFINED");
 		}
-		// store in mystore
-		myStore.put(PKQLEnum.JOINS, joinCols);
-		myStore.put(PKQLEnum.REL_TYPE, joinType);
 		
-		
-		// 3) grab the iterator
-		// the iterator is stored based on the type of child reactor was part of the import data reactor
-//		Iterator it = null;
-		Object it = null;
-		if(myStore.containsKey(PKQLEnum.API)) {			
-			Map<String, Set<String>> edgeHash = (Map<String, Set<String>>) this.getValue(PKQLEnum.API + "_EDGE_HASH");
+		// 5) grab the appropriate pieces based on the import type
+		if(myStore.containsKey(PKQLEnum.API)) {
+			// this is the case when we have an API import
+			// there are 2 possibilities in this situation
+			// 1 - this is a query via a QueryStruct on an engine
+			// 2 - this is an import via a file
+			
+			// try to grab the engine
+			// if it is not null, we have a query we are loading
+			// if it is null, we have a file
 			IEngine engine = (IEngine) Utility.getEngine((this.getValue(PKQLEnum.API + "_ENGINE")+"").trim());
-//			it  = (Iterator) myStore.get(PKQLEnum.API);
-			it  = myStore.get(PKQLEnum.API);
 
-			// 4 & 5) if engine is not null, merge the data into the frame
-			// the engine is null when the api is actually a csv file
+			// this is the first possibility when it is a query
 			if(engine != null) {
+				
+				
+				// note, this edge hash will need to be cleansed based on the join informaiton
+				// so this is just a local variable, not the class variable
+				Map<String, Set<String>> edgeHash = (Map<String, Set<String>>) this.getValue(PKQLEnum.API + "_EDGE_HASH");
+				
 				// put the edge hash and the logicalToValue maps within the myStore
 				// will be used when the data is actually imported
 				if(frame instanceof NativeFrame) {
+					// note, this only updates the QS, doesn't need an iterator
+					
 					if(((NativeFrame)frame).getEngineName().equals(engine.getEngineName())) {
+						// if the frame is a native frame and we want to append additional
+						// information, we need to combine the current qs with the new qs
+						// this method cleans the information based on the join and updates
+						// the frame metadata
 						Map[] mergedMaps = frame.mergeQSEdgeHash(edgeHash, engine, joinCols);
-						myStore.put("edgeHash", mergedMaps[0]);
-						myStore.put("logicalToValue", mergedMaps[1]);
+						// set the class edge hash
+						this.edgeHash = mergedMaps[0];
+						// set the class modify names map
+						this.modifyNamesMap = mergedMaps[1];
+						// update the header names
+//						this.newHeaders = updateNamesForJoins( ((IRawSelectWrapper) dataIterator).getDisplayVariables(), joinCols); 
+						
+						LOGGER.info(" >>> NATIVE FRAME IS MODIFYING EXISTING ENGINE QUERY STRUCT");
 					} else {
-						myStore.put(PKQLEnum.JOINS, joins);
+						LOGGER.info(" >>> NATIVE FRAME IS SWITCHING INTO ANOTHER ENGINE!!!!");
 					}
 				} else {
+					// grab the iterator to use for importing
+					dataIterator  = (IRawSelectWrapper) myStore.get(PKQLEnum.API);
+					
+					LOGGER.info(" >>> FRAME IS LOADING DATA FROM AN ENGINE!!!!");
+					// update the metadata in the frame
 					Map[] mergedMaps = frame.mergeQSEdgeHash(edgeHash, engine, joinCols);
-					myStore.put("edgeHash", mergedMaps[0]);
-					myStore.put("logicalToValue", mergedMaps[1]);
+					this.edgeHash = mergedMaps[0];
+					// set the class modify names map
+					this.modifyNamesMap = mergedMaps[1];
+					// update the header names
+					this.newHeaders = updateNamesForJoins( ((IRawSelectWrapper) dataIterator).getDisplayVariables(), joinCols); 
 				}
 			}
-			// TODO: this is the logic we are ignoring
-			// the edge hash may contain specific information the user wants to load
-			// the logic needs to take into the fact that the default edge hash for when nothing 
-			// is specified is each header pointing to an empty set
-//			else {
-//
-//			}
+			// this is the second possibility when it is a file
+			else {
+				// grab the iterator to use for importing
+				dataIterator  = (FileIterator) myStore.get(PKQLEnum.API);
+				
+				LOGGER.info(" >>> FRAME IS LOADING FROM A FILE!!!!");
+				
+				String[] types = ((FileIterator) dataIterator).getTypes();
+				String[] headers = ((FileIterator) dataIterator).getHeaders();
+				Map<String, String> dataTypes = new HashMap<>();
+				for(int i = 0; i < types.length; i++) {
+					dataTypes.put(headers[i], types[i]);
+				}
+				
+				this.newHeaders = updateNamesForJoins(headers, joinCols);
+				dataTypes = updateKeysForMap(dataTypes, joinCols, false);
+				this.edgeHash = TinkerMetaHelper.createPrimKeyEdgeHash(this.newHeaders);
+				this.isPrimKey = true;
+				// update the metadata in the frame
+				frame.mergeEdgeHash(edgeHash, dataTypes);
+			}
 		} else if(myStore.containsKey(PKQLEnum.RAW_API)) {
-			Map<String, Set<String>> edgeHash = (Map<String, Set<String>>) this.getValue(PKQLEnum.RAW_API + "_EDGE_HASH");
-			Map<String, String> dataTypeMap = (Map<String, String>) this.getValue(PKQLEnum.RAW_API + "_DATA_TYPE_MAP");
+			LOGGER.info(" >>> FRAME IS LOADING DATA FROM AN INPUT QUERY!!!!");
+
+			dataIterator = (IRawSelectWrapper) myStore.get(PKQLEnum.RAW_API);
+
+			Map<String, String> dataTypes = (Map<String, String>) this.getValue(PKQLEnum.RAW_API + "_DATA_TYPE_MAP");
 			Map<String, String> logicalToValue = (Map<String, String>) this.getValue(PKQLEnum.RAW_API + "_LOGICAL_TO_VALUE");
 			
-			frame.mergeEdgeHash(edgeHash, dataTypeMap);
-			myStore.put("edgeHash", edgeHash);
-			myStore.put("logicalToValue", logicalToValue);
+			this.newHeaders = updateNamesForJoins( ((IRawSelectWrapper) dataIterator).getDisplayVariables(), joinCols); 
+			this.modifyNamesMap = updateKeysForMap(logicalToValue, joinCols, true);
+			dataTypes = updateKeysForMap(dataTypes, joinCols, false);
 
-			it = myStore.get(PKQLEnum.RAW_API);
+			this.edgeHash = TinkerMetaHelper.createPrimKeyEdgeHash(newHeaders);
+			this.isPrimKey = true;
+			// update the metadata in the frame
+			frame.mergeEdgeHash(edgeHash, dataTypes);
 
-		}else if(myStore.containsKey(PKQLEnum.PASTED_DATA)) {
-			it = myStore.get(PKQLEnum.PASTED_DATA);
-		} else if(myStore.containsKey(PKQLEnum.CSV_TABLE)) {
-			it = myStore.get(PKQLEnum.CSV_TABLE);
+		} else if(myStore.containsKey(PKQLEnum.PASTED_DATA)) {
+			LOGGER.info(" >>> FRAME IS LOADING FROM PASTED TEXT!!!!");
+
+			// grab the iterator to use for importing
+			dataIterator  = (FileIterator) myStore.get(PKQLEnum.API);
+			
+			String[] types = ((FileIterator) dataIterator).getTypes();
+			String[] headers = ((FileIterator) dataIterator).getHeaders();
+			Map<String, String> dataTypes = new HashMap<>();
+			for(int i = 0; i < types.length; i++) {
+				dataTypes.put(headers[i], types[i]);
+			}
+			
+			this.newHeaders = updateNamesForJoins(headers, joinCols);
+			dataTypes = updateKeysForMap(dataTypes, joinCols, false);
+			this.edgeHash = TinkerMetaHelper.createPrimKeyEdgeHash(this.newHeaders);
+			this.isPrimKey = true;
+			// update the metadata in the frame
+			frame.mergeEdgeHash(edgeHash, dataTypes);
 		}
 		
-		
-		// 6) update the data id on the frame
+		// update the data id on the frame
 		frame.updateDataId();
-		
-		// store the iterator
-		myStore.put("iterator", it);
-		
+
 		return null;
 	}
 
 	/**
-	 * Method to update the values present in the edge hash, data type map, and headers based on the join cols
-	 * @param primKeyEdgeHash					The edge hash to clean up based on the join columns
-	 * @param dataType							The data type map to clean up based on the join columns
-	 * @param headers							The header array to clean up based on the join columns
-	 * @param joinCols							The set of join columns
+	 * Update the names array based on the join columns
+	 * Modifies 
+	 * @param headers			The headers to be imported
+	 * @param joinCols			The join columns
 	 */
-	protected void updateDataForJoins(Map<String, Set<String>> primKeyEdgeHash, Map<String, String> dataType, String[] headers, Vector<Map<String, String>> joinCols) {
+	protected String[] updateNamesForJoins(String[] headers, Vector<Map<String, String>> joinCols) {
 		if(joinCols != null && !joinCols.isEmpty()){
-			Map<String, Set<String>> fixedEdgeMap = new HashMap<String, Set<String>>(); // used to add new keys since cannot update existing map while looping
-			
-			Set<String> processedJoins = new HashSet<String>(); // due to stupid doubling of joins that occurs need to keep track to not process twice
+			String[] newHeaders = new String[headers.length];
+			for(int i = 0; i < newHeaders.length; i++) {
+				newHeaders[i] = headers[i];
+			}
 			for(Map<String, String> join : joinCols) { // grab each join map, mapping is new name to existing name
-				Set<String> removeNames = new HashSet<String>(); // the new keys that were added since cannot update existing map while looping
-				
 				for(String otherName : join.keySet()) {
 					String existingName = join.get(otherName);
-
-					// to keep from doing stupid doubling
-					processedJoins.add(existingName + otherName);
-					
-					if(!otherName.equals(existingName)) { // if names not the same, modify both prim key edge hash and data type map
-						// loop through prim keys
-						for(String key : primKeyEdgeHash.keySet()) {
-							if(key.equals(otherName)) { // found a key, this requires us to add to new map to avoid concurrent modification
-								fixedEdgeMap.put(existingName, primKeyEdgeHash.get(otherName)); // swap new name for old one
-								removeNames.add(otherName); // add old key to remove
-								
-								// update data type map
-								String dataValue = dataType.remove(otherName);
-								if(dataValue != null) {
-									dataType.put(existingName, dataValue);
-								}
-								// update the header
-								int index = ArrayUtilityMethods.arrayContainsValueAtIndex(headers, otherName);
-								if(index > -1) {
-									headers[index] = existingName;
-								}
-							} else {
-								// need to test the children
-								Set<String> values = primKeyEdgeHash.get(key);
-								if(values.contains(otherName)) {
-									values.remove(otherName);
-									values.add(existingName);
-									
-									// update data type map
-									String dataValue = dataType.remove(otherName);
-									if(dataValue != null) {
-										dataType.put(existingName, dataValue);
-									}
-									// update the header
-									int index = ArrayUtilityMethods.arrayContainsValueAtIndex(headers, otherName);
-									if(index > -1) {
-										headers[index] = existingName;
-									}
-								}
-							}
-						}
-						
-						// remove old keys, add new ones using existing values
-						primKeyEdgeHash.keySet().removeAll(removeNames);
-						primKeyEdgeHash.putAll(fixedEdgeMap);
+					// if we find the new name inside the current header array
+					// update it to be the old name which is currently inside the frame
+					int index = ArrayUtilityMethods.arrayContainsValueAtIndex(headers, otherName);
+					if(index > -1) {
+						newHeaders[index] = existingName;
 					}
 				}
 			}
+			// override the existing reference
+			headers = newHeaders;
 		}
+		return headers;
 	}
 	
+	/**
+	 * Update any keys for a map where they need to have modifications based on joins
+	 * @param dataTypes
+	 * @param joinCols
+	 */
+	protected Map<String, String> updateKeysForMap(Map<String, String> map, Vector<Map<String, String>> joinCols, boolean flipKeyValue) {
+		if(joinCols != null && !joinCols.isEmpty()){
+			Map<String, String> editedMap = new Hashtable<String, String>();
+
+			// loop through the data types and perform a replacement where necessary
+			for(String colName : map.keySet()) {
+				String value = map.get(colName);
+				boolean foundMatchingName = false;
+
+				JOIN_LOOP : for(Map<String, String> join : joinCols) { // grab each join map, mapping is new name to existing name
+					for(String otherName : join.keySet()) {
+						String existingName = join.get(otherName);
+						
+						if(colName.equals(otherName)) {
+							if(flipKeyValue) {
+								editedMap.put(existingName, existingName);
+							} else {
+								editedMap.put(existingName, value);
+							}
+							foundMatchingName = true;
+							break JOIN_LOOP;
+						}
+					}
+				}
+				
+				// if we didn't perform a swap after searching through all the join columns
+				// add in the original value
+				if(!foundMatchingName) {
+					editedMap.put(colName, value);
+				}
+			}
+			
+			// override the method reference
+			map = editedMap;
+		}
+		return map;
+	}
+	
+//	/**
+//	 * Update the edge hash based on the join information
+//	 * @param egdeHash
+//	 * @param joinCols
+//	 * @return
+//	 */
+//	protected Map<String, Set<String>> updateEdgeHashForJoins(Map<String, Set<String>> egdeHash, Vector<Map<String, String>> joinCols) {
+//		if(joinCols != null && !joinCols.isEmpty()){
+//			Map<String, Set<String>> newEdgeHash = new Hashtable<String, Set<String>>(); // used to add new keys since cannot update existing map while looping
+//			
+//			for(String parentName : edgeHash.keySet()) {
+//				Set<String> childrenName = edgeHash.get(parentName);
+//				
+//				// first edit the children
+//				Set<String> newChildrenName = new HashSet<String>();
+//				for(String child : childrenName) {
+//					boolean foundChild = false;
+//					JOIN_LOOP : for(Map<String, String> join : joinCols) {
+//						for(String otherName : join.keySet()) {
+//							String existingName = join.get(otherName);
+//							
+//							// swap out the name if it is there
+//							if(childrenName.contains(otherName)) {
+//								newChildrenName.add(existingName);
+//								foundChild = true;
+//								break JOIN_LOOP;
+//							}
+//						}
+//					}
+//					// if we didn't find a name change
+//					// add the name as is
+//					if(!foundChild) {
+//						newChildrenName.add(child);
+//					}
+//				}
+//				
+//				// once we got the children
+//				// do the parent
+//				boolean foundParent = false;
+//				JOIN_LOOP : for(Map<String, String> join : joinCols) {
+//					for(String otherName : join.keySet()) {
+//						String existingName = join.get(otherName);
+//						
+//						// swap out the name if it is there
+//						if(parentName.equals(otherName)) {
+//							newEdgeHash.put(existingName, newChildrenName);
+//							foundParent = true;
+//							break JOIN_LOOP;
+//						}
+//					}
+//				}
+//				// if we didn't find a name change for the parent
+//				// add parent in with edited children set
+//				if(!foundParent) {
+//					newEdgeHash.put(parentName, newChildrenName);
+//				}
+//			}
+//			// override the existing reference
+//			edgeHash = newEdgeHash;
+//		}
+//		return edgeHash;
+//	}
 	
 	/**
 	 * Gets the values to load into the reactor
@@ -274,7 +455,7 @@ public abstract class ImportDataReactor extends AbstractReactor {
 	protected void inputResponseString(Iterator it, String[] headers) {
 		// get rid of this bifurcation
 		// push this into the iterators
-		
+
 		String nodeStr = (String)myStore.get(whoAmI);
 		// if the iterator is the return from an engine
 		// get the query return response to send back
@@ -286,7 +467,7 @@ public abstract class ImportDataReactor extends AbstractReactor {
 			myStore.put(nodeStr, createResponseString(headers));
 		}
 	}
-	
+
 	/**
 	 * Create the return response from a engine wrapper
 	 * @param it				The iterator used to insert data
@@ -306,7 +487,7 @@ public abstract class ImportDataReactor extends AbstractReactor {
 		String retStr = "Sucessfully added data using : \n" + mssg;
 		return retStr;
 	}
-	
+
 	/**
 	 * Create the return response based on the headers
 	 * @param headers			The headers of the data used to insert data
@@ -315,7 +496,7 @@ public abstract class ImportDataReactor extends AbstractReactor {
 	protected String createResponseString(String[] headers){
 		return "Successfully added data using:\n headers= " + Arrays.toString(headers);
 	}
-	
+
 	// TODO as a result of this approach to get the message to send to the FE
 	// no longer need the logic above for createResponseString()
 	// need to push this information into the api reactors
