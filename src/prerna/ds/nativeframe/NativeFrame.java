@@ -430,6 +430,15 @@ public class NativeFrame extends AbstractTableDataFrame {
 		return builder.getEngineName();
 	}
 	
+	@Override
+	public boolean isEmpty() {
+		if(getSelectors().isEmpty()) {
+			return true;
+		} else {
+			return super.isEmpty();
+		}
+	}
+	
 //	public String getView() {
 //		return builder.getView();
 //	}

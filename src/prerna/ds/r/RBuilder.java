@@ -280,6 +280,14 @@ public class RBuilder {
 				}
 			}
 		} catch (REXPMismatchException e) {
+			try {
+				if(result.asString().contains("object 'datatable' not found")) {
+					return true;
+				}
+			} catch (REXPMismatchException e1) {
+				// just handle the first exception that was thrown
+				handleRException(result, e, "Couldn't check if datatable exists");
+			}
 			handleRException(result, e, "Couldn't check if datatable exists");
 		}
 		
