@@ -62,7 +62,12 @@ public abstract class AbstractWrapper implements IRemoteQueryable, IEngineWrappe
 			resp.put("engine", engine.getEngineName());
 		}
 		if(query != null){
-			resp.put("query", query);
+			// if super long... only show first 500 values
+			if(query.length() > 500) {
+				resp.put("query", query.substring(0, 500) + " ...");
+			} else {
+				resp.put("query", query);
+			}
 		}
 		return resp;
 	}
