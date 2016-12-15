@@ -41,9 +41,15 @@ public class Me {
 			System.out.println("Usage: java prerna.configure.Me <semoss home dir>");
 			System.exit(0);
 		}
-		if(args != null && args.length > 0)
+		if(args != null && args.length == 1) {
+			System.out.println("Argument passed into method is: " + args[0]);
 			homePath = args[0].replace("\\", "/");
-		
+		} else if(args != null && args.length > 0){
+			System.out.println("CAUTION!!! MULTIPLE ARGUEMENTS BEING PASSED, MIGHT BE ERROR.. WILL TRY TO RUN WITH FIRST ARGUMENT\n"
+					+ "POSSIBLE ISSUE WITH SEMOSS HOME DIRECTORY HAVING SPACES...");
+			System.out.println("First argument passed into method is: " + args[0]);
+			homePath = args[0].replace("\\", "/");
+		}
 		System.out.println("Using home folder: " + homePath);
 		
 //		if(homePath == null)
