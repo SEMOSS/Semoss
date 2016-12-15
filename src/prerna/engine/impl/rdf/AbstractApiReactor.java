@@ -35,6 +35,8 @@ public abstract class AbstractApiReactor extends AbstractReactor{
 	protected Map<Object, Object> mapOptions = null;
 	protected boolean useCheater = false;
 	
+	// key to determine if api wants to add filters based on existing values within the frame
+	protected static final String ADD_TABLE_FITLERS = "addTableFilters";
 	
 	/**
 	 * The abstract reactor reacts to the following:
@@ -48,7 +50,7 @@ public abstract class AbstractApiReactor extends AbstractReactor{
 	 * if present
 	 */
 	public AbstractApiReactor() {
-		String [] thisReacts = {PKQLEnum.COL_CSV, PKQLEnum.FILTER, PKQLEnum.MAP_OBJ, PKQLEnum.JOINS, "KEY_VALUE", PKQLEnum.TABLE_JOINS};
+		String [] thisReacts = {PKQLEnum.COL_CSV, PKQLEnum.FILTER, PKQLEnum.MAP_OBJ, PKQLEnum.JOINS, PKQLEnum.TABLE_JOINS};
 		super.whatIReactTo = thisReacts;
 		super.whoAmI = PKQLEnum.API;
 	}
@@ -90,6 +92,23 @@ public abstract class AbstractApiReactor extends AbstractReactor{
 		IDataMaker dm = (IDataMaker) myStore.get("G");
 		if(dm != null && dm instanceof ITableDataFrame) {
 			ITableDataFrame frame = (ITableDataFrame)dm;
+			/*
+			 * We try to add implicit filters based on the values already existing within the frame
+			 * In addition, you can push filtering based on values existing within the frame
+			 * through the options map
+			 * 
+			 */
+
+			// try to add filtering based on options map
+			if(mapOptions != null && mapOptions.containsKey(ADD_TABLE_FITLERS)) {
+				Map<String, String> filtersMapObj = (Map<String, String>) mapOptions.get(ADD_TABLE_FITLERS);
+				for(String fromColumn : filtersMapObj.keySet()) {
+					String toColumn = filtersMapObj.get(fromColumn);
+					addTableValuesAsFilter(frame, filters, fromColumn, toColumn);
+				}
+			}
+			
+			// try to add implicit filtering based on table joins
 			Vector<Hashtable> tableJoins = (Vector<Hashtable>) myStore.get("TABLE_JOINS");
 			if(tableJoins != null) {
 				for(Hashtable join : tableJoins) {
@@ -140,28 +159,12 @@ public abstract class AbstractApiReactor extends AbstractReactor{
 									}
 								}
 								
-								//figure out which is the new column and which already exists in the table
-								Iterator<Object> rowIt = frame.uniqueValueIterator(fromColumn, false);
-								List<Object> filterInstances = new Vector<Object>();
-	
-								//collect all the filter values
-								while(rowIt.hasNext()){
-									Object val = rowIt.next();
-									if(val != null) {
-										filterInstances.add(val);
-									}
-								}
-								
-								Hashtable joinfilter = new Hashtable();
-								joinfilter.put(PKQLEnum.FROM_COL, toColumn);
-								joinfilter.put("TO_DATA", filterInstances);
-								joinfilter.put(PKQLEnum.COMPARATOR, "=");
-								filters.add(joinfilter);
+								addTableValuesAsFilter(frame, filters, fromColumn, toColumn);
 							}
 						}
 					}
 				}
-			}
+			} 
 		}
 		// really bad bifurcation here :(
 		// this is entered when the data maker is a legacy GDM
@@ -178,6 +181,26 @@ public abstract class AbstractApiReactor extends AbstractReactor{
 		this.put("EDGE_HASH", edgeHash);
 		
 		return null;
+	}
+	
+	public void addTableValuesAsFilter(ITableDataFrame frame, Vector <Hashtable> filters, String fromColumn, String toColumn) {
+		//figure out which is the new column and which already exists in the table
+		Iterator<Object> rowIt = frame.uniqueValueIterator(fromColumn, false);
+		List<Object> filterInstances = new Vector<Object>();
+
+		//collect all the filter values
+		while(rowIt.hasNext()){
+			Object val = rowIt.next();
+			if(val != null) {
+				filterInstances.add(val);
+			}
+		}
+		
+		Hashtable joinfilter = new Hashtable();
+		joinfilter.put(PKQLEnum.FROM_COL, toColumn);
+		joinfilter.put("TO_DATA", filterInstances);
+		joinfilter.put(PKQLEnum.COMPARATOR, "=");
+		filters.add(joinfilter);
 	}
 
 	public void processQueryStruct(Vector <String> selectors, Vector <Hashtable> filters, Vector <Hashtable> joins, int limit, int offset)
