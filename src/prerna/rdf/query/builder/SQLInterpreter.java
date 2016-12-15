@@ -198,9 +198,11 @@ public class SQLInterpreter implements IQueryInterpreter{
 			String conceptString = "";
 			if(comparator.trim().equals("=")) {
 				conceptString = getAlias(concept) + "." + property +" IN ";
+			} else if(comparator.trim().equals("!=")) {
+				conceptString = getAlias(concept) + "." + property +" NOT IN ";
 			}
 			
-			if(comparator.trim().equals("=") || value.contains(" OR ")) {
+			if(comparator.trim().equals("=") || comparator.trim().equals("!=") || value.contains(" OR ")) {
 				value = " ( " + value + " ) ";
 			}
 			
@@ -566,7 +568,7 @@ public class SQLInterpreter implements IQueryInterpreter{
 					dataType = dataType.replace("TYPE:", "");
 				}
 				
-				if(thisComparator == null || thisComparator.trim().equals("=")) {
+				if(thisComparator == null || thisComparator.trim().equals("=") || thisComparator.trim().equals("!=")) {
 					addEqualsFilter(concept, property, thisComparator, dataType, options);
 				} else {
 					for(int optIndex = 0;optIndex < options.size(); optIndex++){
@@ -604,7 +606,7 @@ public class SQLInterpreter implements IQueryInterpreter{
 		whereHash.put(key, thisWhere);
 	}
 
-	//we want the filter query to be: "... where table.column in ('value1', 'value2', ...) when the comparator is '='
+	//we want the filter query to be: "... where table.column in ('value1', 'value2', ...) when the comparator is '=' or "!="
 	private void addEqualsFilter(String concept, String property, String thisComparator, String dataType, Vector<Object> object) {
 		String key = concept +":::"+ property +":::"+ thisComparator;
 		// this will hold the sql acceptable format for all the objects in the list
