@@ -2,13 +2,12 @@ package prerna.sablecc;
 
 import java.util.HashSet;
 import java.util.Iterator;
-import java.util.Map;
 import java.util.Set;
-import java.util.Vector;
 
 import prerna.ds.h2.H2Frame;
 import prerna.ds.util.FileIterator;
 import prerna.engine.api.IRawSelectWrapper;
+import prerna.util.ArrayUtilityMethods;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
 
@@ -85,48 +84,62 @@ public class MetaH2ImportDataReactor extends ImportDataReactor{
 		return null;
 	}
 	
-	
-	/**
-	 * Determine if all the headers are taken into consideration within the iterator
-	 * This helps to determine if we need to perform an insert vs. an update query to fill the frame
-	 * @param headers1				The original set of headers in the frame
-	 * @param headers2				The new set of headers from the iterator
-	 * @param joins					Needs to take into consideration the joins since we can join on 
-	 * 								columns that do not have the same names
-	 * @return
-	 */
-	protected boolean allHeadersAccounted(String[] headers1, String[] headers2, Vector<Map<String, String>> joins) {
-		if(headers1.length != headers2.length) {
-			return false;
-		}
-		
-		//add values to a set and compare
-		Set<String> header1Set = new HashSet<>();
-		Set<String> header2Set = new HashSet<>();
-
-		//make a set with headers1
-		for(String header : headers1) {
-			header1Set.add(header);
-		}
-		
-		//make a set with headers2
-		for(String header : headers2) {
-			header2Set.add(header);
-		}
-		
-		//add headers1 headers to headers2set if there is a matching join and remove the other header
-		for(Map<String, String> join : joins) {
-			for(String key : join.keySet()) {
-				header2Set.add(key);
-				header2Set.remove(join.get(key));
+	protected boolean allHeadersAccounted(String[] startHeaders, String[] newHeaders) {
+		int newHeadersSize = newHeaders.length;
+		for(int i = 0; i <  newHeadersSize; i++) {
+			// need each of the new headers to be included in the start headers
+			if(!ArrayUtilityMethods.arrayContainsValue(startHeaders, newHeaders[i])) {
+				return false;
 			}
 		}
-		
-		//take the difference
-		header2Set.removeAll(header1Set);
-		
-		//return true if header sets matched, false otherwise
-		return header2Set.size() == 0;
+		// we were able to iterate through all the new headers
+		// and each one exists in the starting headers
+		// so all of them are taking into consideration
+		return true;
 	}
+	
+	
+//	/**
+//	 * Determine if all the headers are taken into consideration within the iterator
+//	 * This helps to determine if we need to perform an insert vs. an update query to fill the frame
+//	 * @param headers1				The original set of headers in the frame
+//	 * @param headers2				The new set of headers from the iterator
+//	 * @param joins					Needs to take into consideration the joins since we can join on 
+//	 * 								columns that do not have the same names
+//	 * @return
+//	 */
+//	protected boolean allHeadersAccounted(String[] headers1, String[] headers2, Vector<Map<String, String>> joins) {
+//		if(headers1.length != headers2.length) {
+//			return false;
+//		}
+//		
+//		//add values to a set and compare
+//		Set<String> header1Set = new HashSet<>();
+//		Set<String> header2Set = new HashSet<>();
+//
+//		//make a set with headers1
+//		for(String header : headers1) {
+//			header1Set.add(header);
+//		}
+//		
+//		//make a set with headers2
+//		for(String header : headers2) {
+//			header2Set.add(header);
+//		}
+//		
+//		//add headers1 headers to headers2set if there is a matching join and remove the other header
+//		for(Map<String, String> join : joins) {
+//			for(String key : join.keySet()) {
+//				header2Set.add(key);
+//				header2Set.remove(join.get(key));
+//			}
+//		}
+//		
+//		//take the difference
+//		header2Set.removeAll(header1Set);
+//		
+//		//return true if header sets matched, false otherwise
+//		return header2Set.size() == 0;
+//	}
 	
 }

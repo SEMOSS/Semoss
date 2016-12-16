@@ -2004,118 +2004,85 @@ public class H2Builder {
 		return new H2Iterator(rs);
 	}
 
-	// process to join the data and new headers to existing table
-	// private void processAlterData(String[][] data, String[] newHeaders,
-	// String[] headers, Join joinType)
-	// {
-	// // this currently doesnt handle many to many joins and such
-	// String[] types = null;
-	// try {
-	// getConnection();
-	//
-	// // I need to do an evaluation here to find if this one to many
-	// String [] oldHeaders = headers;
-	//
-	// //headers for the joining table
-	//
-	//// int curHeadCount = headers.length;
-	// Vector <String> newHeaderIndices = new Vector<String>();
-	// Vector <String> oldHeaderIndices = new Vector<String>();
-	// Hashtable<Integer, Integer> matchers = new Hashtable<Integer, Integer>();
-	//// if(matchers == null || matchers.isEmpty()) {
-	//// matchers = new Hashtable<Integer, Integer>();
-	//
-	// // I need to find which ones are already there and which ones are new
-	// for(int hIndex = 0;hIndex < newHeaders.length;hIndex++)
-	// {
-	// String uheader = newHeaders[hIndex];
-	// uheader = cleanHeader(uheader);
-	//
-	// boolean old = false;
-	// for(int oIndex = 0;oIndex < headers.length;oIndex++)
-	// {
-	// if(headers[oIndex].equalsIgnoreCase(uheader))
-	// {
-	// old = true;
-	// oldHeaderIndices.add(hIndex+"");
-	// matchers.put(hIndex, oIndex);
-	// break;
-	// }
-	// }
-	//
-	// if(!old)
-	// newHeaderIndices.add((hIndex) + "");
-	// }
-	//// }
-	//
-	//// headers = newHeaders;
-	//
-	//// String [] oldTypes = types; // I am not sure if I need this we will see
-	// - yes I do now yipee
-	//
-	//// String[] cells = data[0];
-	//// predictRowTypes(cells);
-	//
-	//// String[] newTypes = types;
-	//
-	// //stream.close();
-	//
-	// boolean one2Many = false;
-	// // I also need to accomodate when there are no common ones
-	//// if(oldHeaderIndices.size() == 0)
-	// if(matchers.isEmpty())
-	// {
-	// // this is the case where it has not been created yet
-	// tableName = getNewTableName();
-	// generateTable(data, newHeaders, tableName);
-	// }
-	// else
-	// {
-	// // close the stream and open it again
-	//
-	// // do a different process here
-	// // I need to create a new database here
-	// one2Many = true;
-	// generateTable(data, newHeaders, H2FRAME + getNextNumber());
-	// // not bad -- this does it ?
-	// // whoa hang on I need to handle the older headers and such
-	// // done in reset headers
-	// }
-	//
-	// // need to create a new database with everything now
-	// // reset all the headers
-	//// if(one2Many)
-	//// resetHeaders(oldHeaders, headers, newHeaderIndices, oldTypes, types,
-	// curHeadCount);
-	// // just test to see if it finally came through
-	//
-	// // now I need to assimilate everything into one
-	// String tableName2 = H2FRAME + tableRunNumber;
-	// String tableName1 = tableName;
-	//
-	// if(one2Many)
-	// mergeTables(tableName1, tableName2, matchers, oldHeaders, newHeaders,
-	// joinType.getName());
-	//
-	// testData();
-	//
-	// } catch (SQLException e) {
-	// e.printStackTrace();
-	// }
-	// }
-	//
 	/**
 	 * 
-	 * @param newTableName
-	 *            - new table to join onto main table
-	 * @param newHeaders
-	 *            - headers in new table
-	 * @param headers
-	 *            - headers in current table
-	 * @param joinType
-	 *            - how to join
+	 * @param iterator
+	 * @param typesMap
+	 * @param updateColumns
+	 * @throws Exception 
+	 */
+	public void mergeRowsViaIterator(Iterator<IHeadersDataRow> iterator, String[] newHeaders, DATA_TYPES[] types, String[] startingHeaders, String[] joinColumns) throws Exception {
+		//step 1
+		//generate a table from the iterator
+		String tempTable = getNewTableName();
+		int size = types.length;
+		String[] cleanTypes = new String[size];
+		for(int i = 0; i < size; i++) {
+			cleanTypes[i] = cleanType(types[i].name());
+		}
+		generateTable(iterator, newHeaders, cleanTypes, tempTable);
+
+		//Step 2
+		//inner join the curTable with the tempTable
+		String curTable = getTableName();
+		
+		// for the alter to work,
+		// i want to merge the existing columns in the table
+		// with the new columns we want to get
+		// so we need to remove it as if it doesn't currenlty exist in the frame
+		if(startingHeaders.length != newHeaders.length) {
+			// so we only need to pass in the join columns
+			Set<String> curColsToUse = new HashSet<String>();
+			// add all the join columns
+			for(int i = 0; i < joinColumns.length; i++) {
+				curColsToUse.add(joinColumns[i]);
+			}
+			// add any column not in newHeaders
+			for(int i = 0; i < startingHeaders.length; i++) {
+				if(!ArrayUtilityMethods.arrayContainsValue(newHeaders, startingHeaders[i])) {
+					curColsToUse.add(startingHeaders[i]);
+				}
+			}
+			processAlterData(tempTable, curTable, curColsToUse.toArray(new String[]{}), newHeaders, Join.INNER);
+		}
+		
+		// get all the curTable headers
+		// so the insert into does it in the right order
+		String[] curTableHeaders = getHeaders(curTable);
+		
+		//Step 3
+		//merge the rows of the table with main table
+		StringBuilder mergeQuery = new StringBuilder("MERGE INTO ");
+		mergeQuery.append(curTable).append(" KEY(").append(joinColumns[0]);
+		int keySize = joinColumns.length;
+		for(int i = 1; i < keySize; i++) {
+			mergeQuery.append(", ").append(joinColumns[i]);
+		}
+		mergeQuery.append(") (SELECT ").append(curTableHeaders[0]);
+		for(int i = 1; i < curTableHeaders.length; i++) {
+			mergeQuery.append(", ").append(curTableHeaders[i]);
+		}
+		mergeQuery.append(" FROM ").append(tempTable).append(")");
+		System.out.println(mergeQuery);
+		runQuery(mergeQuery.toString());
+		
+		//Step 4
+		//drop tempTable
+		runQuery(RdbmsQueryBuilder.makeDropTable(tempTable));
+	}
+
+	/**
+	 * 
+	 * @param newTableName				new table to join onto main table
+	 * @param newHeaders				headers in new table
+	 * @param headers					headers in current table
+	 * @param joinType					how to join
 	 */
 	private void processAlterData(String newTableName, String[] newHeaders, String[] headers, Join joinType) {
+		processAlterData(this.tableName, newTableName, newHeaders, headers, joinType);
+	}
+
+	private void processAlterData(String table1, String table2, String[] newHeaders, String[] headers, Join joinType) {
 		// this currently doesnt handle many to many joins and such
 		// try {
 		getConnection();
@@ -2156,16 +2123,9 @@ public class H2Builder {
 		// I also need to accomodate when there are no common ones
 
 		// now I need to assimilate everything into one
-		String tableName1 = tableName;
-
-		if (one2Many)
-			mergeTables(tableName1, newTableName, matchers, oldHeaders, newHeaders, joinType.getName());
-
-		// testData();
-
-		// } catch (SQLException e) {
-		// e.printStackTrace();
-		// }
+		if (one2Many) {
+			mergeTables(table1, table2, matchers, oldHeaders, newHeaders, joinType.getName());
+		}
 	}
 
 	// Obviously I need the table names
@@ -2173,7 +2133,7 @@ public class H2Builder {
 	// I have found that out upfront- I need to also keep what it is called in
 	// the old table
 	// as well as the new table
-	private void mergeTables(String tableName1, String tableName2, Hashtable<Integer, Integer> matchers, String[] oldTypes, String[] newTypes, String join) {
+	private void mergeTables(String tableName1, String tableName2, Hashtable<Integer, Integer> matchers, String[] oldHeaders, String[] newHeaders, String join) {
 		getConnection();
 
 		String origTableName = tableName1;
@@ -2189,8 +2149,8 @@ public class H2Builder {
 		for (Integer table1JoinIndex : matchers.keySet()) {
 			Integer table2JoinIndex = matchers.get(table1JoinIndex);
 
-			String table1JoinCol = newTypes[table1JoinIndex];
-			String table2JoinCol = oldTypes[table2JoinIndex];
+			String table1JoinCol = newHeaders[table1JoinIndex];
+			String table2JoinCol = oldHeaders[table2JoinIndex];
 
 			addColumnIndex(tableName1, table1JoinCol);
 			addColumnIndex(tableName2, table2JoinCol);
@@ -2207,8 +2167,8 @@ public class H2Builder {
 			Integer newIndex = keys.nextElement();
 			Integer oldIndex = matchers.get(newIndex);
 
-			String oldCol = oldTypes[oldIndex];
-			String newCol = newTypes[newIndex];
+			String oldCol = oldHeaders[oldIndex];
+			String newCol = newHeaders[newIndex];
 
 			// need to make sure the data types are good to go
 			String oldColType = getDataType(tableName1, oldCol);
@@ -2294,17 +2254,17 @@ public class H2Builder {
 
 		// first table A
 		String selectors = "";
-		for (int oldIndex = 0; oldIndex < oldTypes.length; oldIndex++) {
+		for (int oldIndex = 0; oldIndex < oldHeaders.length; oldIndex++) {
 			if (oldIndex == 0)
-				selectors = "A." + oldTypes[oldIndex];
+				selectors = "A." + oldHeaders[oldIndex];
 			else
-				selectors = selectors + " , " + "A." + oldTypes[oldIndex];
+				selectors = selectors + " , " + "A." + oldHeaders[oldIndex];
 		}
 
 		// next table 2
-		for (int newIndex = 0; newIndex < newTypes.length; newIndex++) {
+		for (int newIndex = 0; newIndex < newHeaders.length; newIndex++) {
 			if (!matchers.containsKey(newIndex))
-				selectors = selectors + " , " + "B." + newTypes[newIndex];
+				selectors = selectors + " , " + "B." + newHeaders[newIndex];
 		}
 
 		String finalQuery = newCreate + "SELECT " + selectors + " " + froms + "  " + joins + " )";
