@@ -309,6 +309,7 @@ public class ImportRDBMSProcessor extends AbstractEngineCreator {
 			System.out.println("FOREIGN KEYS");
 			keys = meta.getExportedKeys(null, null, table);
 			while(keys.next()) {
+				fkDetails = new HashMap<String, String>();
 				fkDetails.put("fromCol", keys.getString("PKCOLUMN_NAME"));
 				fkDetails.put("toTable", keys.getString("FKTABLE_NAME"));
 				fkDetails.put("toCol", keys.getString("FKCOLUMN_NAME"));
