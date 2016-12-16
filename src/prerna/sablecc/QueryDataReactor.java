@@ -110,7 +110,7 @@ public class QueryDataReactor extends AbstractReactor {
 			}
 			mssg = mssg + key + ": " + map.get(key).toString();
 		}
-		String retStr = "Sucessfully added data using : \n" + mssg;
+		String retStr = "Sucessfully retrieved data using : \n" + mssg;
 		myStore.put(nodeStr, retStr);
 	}
 	
