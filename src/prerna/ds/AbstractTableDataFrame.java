@@ -171,10 +171,10 @@ public abstract class AbstractTableDataFrame implements ITableDataFrame {
 	 * 											index 0 of the map array) pointing to the unique name of the column within the 
 	 * 											metadata
 	 */
-	public Map[] mergeQSEdgeHash(Map<String, Set<String>> edgeHash, IEngine engine, Vector<Map<String, String>> joinCols) {
+	public Map[] mergeQSEdgeHash(Map<String, Set<String>> edgeHash, IEngine engine, Vector<Map<String, String>> joinCols, Map<String, Boolean> makeUniqueNameMap) {
 		// this method handles all the complexity of adding the new headers, adding the engine properties, and returning the 
 		// map array which is utilized by ImportDataReactor to add data onto the frame
-		Map[] ret =  TinkerMetaHelper.mergeQSEdgeHash(this.metaData, edgeHash, engine, joinCols);
+		Map[] ret =  TinkerMetaHelper.mergeQSEdgeHash(this.metaData, edgeHash, engine, joinCols, makeUniqueNameMap);
 
 		// update the list of header names inside the data frame
     	List<String> fullNames = this.metaData.getColumnNames();
