@@ -1005,7 +1005,7 @@ public class TinkerFrame extends AbstractTableDataFrame {
 				while(wrapper.hasNext()){
 					if(!addedMeta) {
 						Map<String, Set<String>> edgeHash = component.getQueryStruct().getReturnConnectionsHash();
-						mergedMaps = TinkerMetaHelper.mergeQSEdgeHash(this.metaData, edgeHash, engine, joinColList);
+						mergedMaps = TinkerMetaHelper.mergeQSEdgeHash(this.metaData, edgeHash, engine, joinColList, null);
 						this.headerNames = this.metaData.getColumnNames().toArray(new String[]{});
 						addedMeta = true;
 					}
@@ -2030,17 +2030,26 @@ public class TinkerFrame extends AbstractTableDataFrame {
 
 	@Override
 	public Iterator<Object> uniqueValueIterator(String columnHeader, boolean iterateAll) {
-
-//		GraphTraversal<Vertex, Vertex> gt = g.traversal().V().has(TINKER_TYPE, columnHeader);
-//		if(!iterateAll){
-//			gt = gt.not(__.in().has(TINKER_TYPE, TINKER_FILTER)); //TODO: this isn't exactly right.. doesnt' handle transitive filters..
-//		}
-//		return gt.values(TINKER_NAME);
+		/*
+		 * Lots of discussion around here...
+		 * Since we use tinker differently than we use graph
+		 * Should we return all vertices?
+		 * Or should we return the vertices that you see only when you are on a grid?
+		 */
 		
-		Vector<String> column = new Vector<>();
-		column.add(columnHeader);
-		GremlinBuilder builder = GremlinBuilder.prepareGenericBuilder(column, g, ((TinkerMetaData)this.metaData).g, null);
-		return builder.executeScript().values(TINKER_NAME).dedup();	
+		// we decided to show all vertices, not only the ones you see on a grid
+		
+		GraphTraversal<Vertex, Vertex> gt = g.traversal().V().has(TINKER_TYPE, columnHeader);
+		if(!iterateAll) {
+			// this only filters out vertices that are explicitly filtered out
+			gt = gt.not(__.in().has(TINKER_TYPE, TINKER_FILTER)); 
+		}
+		return gt.values(TINKER_NAME);
+		
+//		Vector<String> column = new Vector<>();
+//		column.add(columnHeader);
+//		GremlinBuilder builder = GremlinBuilder.prepareGenericBuilder(column, g, ((TinkerMetaData)this.metaData).g, null);
+//		return builder.executeScript().values(TINKER_NAME).dedup();	
 	}
 	
 	public Object[] getColumn(String columnHeader) {
@@ -2134,18 +2143,18 @@ public class TinkerFrame extends AbstractTableDataFrame {
 	}
 
 //	@Override
-	public Object[] getUniqueValues(String columnHeader) {
-
-		Iterator<Object> uniqIterator = this.uniqueValueIterator(columnHeader, false);
-//		GraphTraversal<Vertex, Object> gt = g.traversal().V().has(TINKER_TYPE, columnHeader).values(TINKER_VALUE);
-		Vector <Object> uniV = new Vector<Object>();
-		while(uniqIterator.hasNext()) {
-//			Vertex v = (Vertex)uniqIterator.next();
-			uniV.add(uniqIterator.next());
-		}
-
-		return uniV.toArray();
-	}
+//	public Object[] getUniqueValues(String columnHeader) {
+//
+//		Iterator<Object> uniqIterator = this.uniqueValueIterator(columnHeader, false);
+////		GraphTraversal<Vertex, Object> gt = g.traversal().V().has(TINKER_TYPE, columnHeader).values(TINKER_VALUE);
+//		Vector <Object> uniV = new Vector<Object>();
+//		while(uniqIterator.hasNext()) {
+////			Vertex v = (Vertex)uniqIterator.next();
+//			uniV.add(uniqIterator.next());
+//		}
+//
+//		return uniV.toArray();
+//	}
 
 	@Override
 	public void removeColumn(String columnHeader) {

@@ -194,7 +194,7 @@ public interface IMetaData {
 	
 	boolean isDerived(String uniqueName);
 	
-	Map<String, String[]> getPhysical2LogicalTranslations(Map<String,Set<String>> edgeHash, List<Map<String,String>> joins);
+	Map<String, String[]> getPhysical2LogicalTranslations(Map<String,Set<String>> edgeHash, List<Map<String,String>> joins, Map<String, Boolean> makeUniqueNameMap);
 
 	String getLogicalNameForUniqueName(String uniqueName, String engineName);
 

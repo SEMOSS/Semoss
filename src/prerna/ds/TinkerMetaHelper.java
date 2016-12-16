@@ -24,6 +24,7 @@ public class TinkerMetaHelper {
 	 * 										Example edge hash is:
 	 * 										{ Title -> [Title__Movie_Budget, Studio] } ; where Movie_Budget is a property on Title
 	 * @param engine						The engine where all the columns in the edge hash come from
+	 * @param makeUniqueNameMap 
 	 * @param joinCols						The join columns for the merging
 	 * 										This enables that we can declare columns to be equivalent between the existing frame
 	 * 										and those we are going to add to the frame via the merge without them needing to be 
@@ -35,7 +36,7 @@ public class TinkerMetaHelper {
 	 * 											index 0 of the map array) pointing to the unique name of the column within the 
 	 * 											metadata
 	 */
-	public static Map[] mergeQSEdgeHash(IMetaData metaData, Map<String, Set<String>> newEdgeHash, IEngine engine, List<Map<String,String>> joinColList) {
+	public static Map[] mergeQSEdgeHash(IMetaData metaData, Map<String, Set<String>> newEdgeHash, IEngine engine, List<Map<String,String>> joinColList, Map<String, Boolean> makeUniqueNameMap) {
 		// if the engine is null, we will just grab the local master
 		if(engine == null) {
 			engine = (IEngine) DIHelper.getInstance().getLocalProp(Constants.LOCAL_MASTER_DB_NAME);
@@ -57,7 +58,7 @@ public class TinkerMetaHelper {
 		//	Title__Movie_Budget => [Movie_Budget, Title],
 		//	Studio -> [Studio, null]
 		// }
-		Map<String, String[]> physicalToLogical = metaData.getPhysical2LogicalTranslations(newEdgeHash, joinColList);
+		Map<String, String[]> physicalToLogical = metaData.getPhysical2LogicalTranslations(newEdgeHash, joinColList, makeUniqueNameMap);
 		
 		/*
 		 * Logic for loop around edge hash:

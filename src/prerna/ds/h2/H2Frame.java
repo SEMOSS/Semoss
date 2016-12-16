@@ -262,7 +262,7 @@ public class H2Frame extends AbstractTableDataFrame {
 					startHeaders = new String[0];
 				}
 				Map<String, Set<String>> edgeHash = component.getQueryStruct().getReturnConnectionsHash();
-				Map[] retMap = this.mergeQSEdgeHash(edgeHash, engine, joinColList);
+				Map[] retMap = this.mergeQSEdgeHash(edgeHash, engine, joinColList, null);
 
 				// set the addRow logic to false
 				boolean addRow = false;
@@ -1224,9 +1224,9 @@ public class H2Frame extends AbstractTableDataFrame {
 	}
 
 	@Override
-	public Map[] mergeQSEdgeHash(Map<String, Set<String>> edgeHash, IEngine engine,	Vector<Map<String, String>> joinCols) {
+	public Map[] mergeQSEdgeHash(Map<String, Set<String>> edgeHash, IEngine engine,	Vector<Map<String, String>> joinCols, Map<String, Boolean> makeUniqueNameMap) {
 		// process the meta data
-		Map[] ret = super.mergeQSEdgeHash(edgeHash, engine, joinCols);
+		Map[] ret = super.mergeQSEdgeHash(edgeHash, engine, joinCols, makeUniqueNameMap);
 
 		// its a bit inefficient to loop through all the headers...
 		// but this is better than looping through the edge hash
