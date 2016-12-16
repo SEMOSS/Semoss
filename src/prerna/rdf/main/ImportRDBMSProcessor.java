@@ -63,6 +63,8 @@ public class ImportRDBMSProcessor extends AbstractEngineCreator {
 	private final String SQLSERVER_DRIVER = "com.microsoft.sqlserver.jdbc.SQLServerDriver";
 	private final String ASTER = "Aster Database";
 	private final String ASTER_DRIVER = "com.asterdata.ncluster.jdbc.core.NClusterJDBCDriver";
+	private final String HANA = "SAP HANA";
+	private final String HANA_DRIVER = "com.sap.db.jdbc.Driver";
 	
 	private Connection buildConnection(String type, String host, String port, String username, String password, String schema) throws SQLException {
 		Connection con = null;
@@ -132,46 +134,6 @@ public class ImportRDBMSProcessor extends AbstractEngineCreator {
 		}
 
 		return con;
-	}
-	
-	public HashMap<String, String> getForeignKeyRelationships(String type, String host, String port, String username, String password, String schema) {
-		Statement stmt;
-		ResultSet rs;
-		String query = "";
-		HashMap<String, String> allFKRelationships = new HashMap<String, String>();
-
-		try {
-			Connection con = buildConnection(type, host, port, username, password, schema);
-
-			if(type.equals(this.MYSQL)) {
-				query = "SELECT DISTINCT u.TABLE_NAME, u.COLUMN_NAME, u.REFERENCED_TABLE_NAME, u.REFERENCED_COLUMN_NAME FROM INFORMATION_SCHEMA.TABLE_CONSTRAINTS c, INFORMATION_SCHEMA.KEY_COLUMN_USAGE u WHERE c.CONSTRAINT_NAME=u.CONSTRAINT_NAME AND c.CONSTRAINT_TYPE='FOREIGN KEY' AND u.TABLE_SCHEMA='" + this.schema + "';";
-
-				stmt = con.createStatement();
-				rs = stmt.executeQuery(query);
-
-				while(rs.next()) {
-					String tableName = "";
-					String columnName = "";
-					String refTable = "";
-					String refColumn = "";
-
-					tableName = rs.getString("TABLE_NAME");
-					columnName = rs.getString("COLUMN_NAME");
-					refTable = rs.getString("REFERENCED_TABLE_NAME");
-					refColumn = rs.getString("REFERENCED_COLUMN_NAME");
-
-					allFKRelationships.put(tableName + "." + columnName, refTable + "." + refColumn);
-				}
-
-				System.out.println("All Foreign Key Relationships: " + allFKRelationships);
-
-
-			}
-		} catch (SQLException e) {
-			e.printStackTrace();
-		}
-		
-		return allFKRelationships;
 	}
 	
 	public HashMap<String, ArrayList<String>> getAllFields(String type, String host, String port, String username, String password, String schema) {
@@ -313,7 +275,7 @@ public class ImportRDBMSProcessor extends AbstractEngineCreator {
 		ResultSet tables = meta.getTables(null, null, null, new String[]{"TABLE"});
 		while(tables.next()) {
 			ArrayList<String> primaryKeys = new ArrayList<String>();
-			HashMap<String, String> colDetails = new HashMap<String, String>(); // name: , type: , isPK:
+			HashMap<String, Object> colDetails = new HashMap<String, Object>(); // name: , type: , isPK:
 			ArrayList<HashMap> allCols = new ArrayList<HashMap>();
 			HashMap<String, String> fkDetails = new HashMap<String, String>();
 			ArrayList<HashMap> allRels = new ArrayList<HashMap>();
@@ -330,13 +292,13 @@ public class ImportRDBMSProcessor extends AbstractEngineCreator {
 			System.out.println("COLUMNS " + primaryKeys);
 			keys = meta.getColumns(null, null, table, null);
 			while(keys.next()) {
-				colDetails = new HashMap<String, String>();
+				colDetails = new HashMap<String, Object>();
 				colDetails.put("name", keys.getString("column_name"));
 				colDetails.put("type", keys.getString("type_name"));
 				if(primaryKeys.contains(keys.getString("column_name"))) {
-					colDetails.put("isPK", "true");
+					colDetails.put("isPK", true);
 				} else {
-					colDetails.put("isPK", "false");
+					colDetails.put("isPK", false);
 				}
 				allCols.add(colDetails);
 				
