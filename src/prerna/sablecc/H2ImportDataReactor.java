@@ -14,16 +14,18 @@ public class H2ImportDataReactor extends MetaH2ImportDataReactor {
 		// use the import data reactor to go through the logic to get the necessary data 
 		super.process();
 		
-		// set the addRow logic to false
-		boolean addRow = false;
-		// if all the headers are accounted or the frame is empty, then the logic should only be inserting
-		// the values from the iterator into the frame
-		if(isFrameEmpty || allHeadersAccounted(startingHeaders, newHeaders, joinCols) ) {
-			addRow = true;
-		}
-		if(addRow) {
+		// can we optimize by just doing an insert?
+		if(isFrameEmpty) {
 			frame.addRowsViaIterator(dataIterator);
-		} else {
+		// are we revisiting paths already traveled and need to update existing values?
+		} else if(allHeadersAccounted(startingHeaders, newHeaders)) {
+			// we can just do a merge
+			joinCols = updateJoinsCols(joinCols);
+			frame.mergeRowsViaIterator(dataIterator, newHeaders, startingHeaders, joinCols);
+		}
+		// we are expanding to new paths not recently traveled
+		else {
+			
 			// if logicalToValue is null, it will create it within the processIterator method
 			
 			//TODO: figure out processIterator to not have to do this...
