@@ -590,14 +590,14 @@ public class SQLInterpreter implements IQueryInterpreter{
 		// add it to the where statement
 		if(!whereHash.containsKey(key)) {
 			if(thisComparator.equalsIgnoreCase(SEARCH_COMPARATOR)) {
-				thisWhere = "LOWER(" + getAlias(concept) + "." + property + ") LIKE " + myObj;
+				thisWhere = "LOWER(" + getAlias(concept) + "." + property + ") LIKE LOWER(" + myObj + ")";
 			} else {
 				thisWhere = getAlias(concept) + "." + property + " " + thisComparator + " " + myObj;
 			}
 		} else if (thisComparator.equalsIgnoreCase(SEARCH_COMPARATOR)) {
 			//Search comparator => add a LIKE to the WHERE for the given prop
 			thisWhere = whereHash.get(key);
-			thisWhere = thisWhere + " AND LOWER(" + getAlias(concept) + "." + property + ") LIKE " + myObj;
+			thisWhere = thisWhere + " AND LOWER(" + getAlias(concept) + "." + property + ") LIKE LOWER(" + myObj + ")";
 		} else {
 			thisWhere = whereHash.get(key);
 			thisWhere = thisWhere + " OR " + getAlias(concept) + "." + property + " " + thisComparator + " " + myObj;
