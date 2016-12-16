@@ -206,9 +206,9 @@ public class DataFrameJoiner {
 		insight2.getDataMaker().updateDataId();
 		
 		H2Frame frame1 = (H2Frame)insight1.getDataMaker();
-		frame1.setJoiner(this);
+//		frame1.setJoiner(this);
 		H2Frame frame2 = (H2Frame)insight2.getDataMaker();
-		frame2.setJoiner(this);
+//		frame2.setJoiner(this);
 	}
 	
 	
@@ -485,10 +485,11 @@ public class DataFrameJoiner {
 	}
 	
 	public boolean isHardFiltered(ITableDataFrame frame) {
-		Map<String, Map<Comparator, Set<Object>>> obj = ((H2Frame)frame).getBuilder().getHardFilterHash();
-		if(obj == null || obj.isEmpty()) {
-			return false;
-		} return true;
+//		Map<String, Map<Comparator, Set<Object>>> obj = ((H2Frame)frame).getBuilder().getHardFilterHash();
+//		if(obj == null || obj.isEmpty()) {
+//			return false;
+//		} return true;
+		return false;
 	}
 	
 	public boolean isSoftFiltered(ITableDataFrame frame) {
