@@ -320,9 +320,10 @@ public interface ITableDataFrame extends IDataMaker {
 	 * @param edgeHash
 	 * @param engine
 	 * @param joinCols
+	 * @param makeUniqueNameMap 
 	 * @return
 	 */
-	Map[] mergeQSEdgeHash(Map<String, Set<String>> edgeHash, IEngine engine, Vector<Map<String, String>> joinCols);
+	Map[] mergeQSEdgeHash(Map<String, Set<String>> edgeHash, IEngine engine, Vector<Map<String, String>> joinCols, Map<String, Boolean> makeUniqueNameMap);
 
 	/**
 	 * 

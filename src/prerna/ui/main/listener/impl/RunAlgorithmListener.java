@@ -55,7 +55,6 @@ import prerna.engine.api.IEngine;
 import prerna.om.SEMOSSParam;
 import prerna.ui.components.api.IPlaySheet;
 import prerna.ui.components.playsheets.ClusteringVizPlaySheet;
-import prerna.ui.components.playsheets.CorrelationPlaySheet;
 import prerna.ui.components.playsheets.MOAClassificationPlaySheet;
 import prerna.ui.components.playsheets.MachineLearningModulePlaySheet;
 import prerna.ui.components.playsheets.MatrixRegressionVizPlaySheet;
@@ -441,16 +440,19 @@ public class RunAlgorithmListener extends AbstractListener {
 			((NumericalCorrelationVizPlaySheet)newPlaySheet).setJTab(jTab);
 			((NumericalCorrelationVizPlaySheet)newPlaySheet).setJBar(jBar);
 
-		} else if(algorithm.equals("Correlation")) {
-
-			newPlaySheet = new CorrelationPlaySheet();
-			newPlaySheet.setDataMaker(dataFrame);
-
-			((CorrelationPlaySheet)newPlaySheet).setSkipAttributes(skipColumns);
-			((CorrelationPlaySheet)newPlaySheet).setJTab(jTab);
-			((CorrelationPlaySheet)newPlaySheet).setJBar(jBar);
-
-		} else if(algorithm.equals("Self Organizing Map")) {
+		} 
+		// NEVER FINISHED GENERIC CORRELATION
+//		else if(algorithm.equals("Correlation")) {
+//
+//			newPlaySheet = new CorrelationPlaySheet();
+//			newPlaySheet.setDataMaker(dataFrame);
+//
+//			((CorrelationPlaySheet)newPlaySheet).setSkipAttributes(skipColumns);
+//			((CorrelationPlaySheet)newPlaySheet).setJTab(jTab);
+//			((CorrelationPlaySheet)newPlaySheet).setJBar(jBar);
+//
+//		} 
+		else if(algorithm.equals("Self Organizing Map")) {
 			newPlaySheet = new SelfOrganizingMap3DBarChartPlaySheet();
 			newPlaySheet.setDataMaker(dataFrame);
 

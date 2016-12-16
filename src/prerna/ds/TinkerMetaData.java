@@ -861,8 +861,7 @@ public class TinkerMetaData implements IMetaData {
 	 * }
 	 */
 	@Override
-	public Map<String, String[]> getPhysical2LogicalTranslations(Map<String, Set<String>> edgeHash,
-			List<Map<String, String>> joins) {
+	public Map<String, String[]> getPhysical2LogicalTranslations(Map<String, Set<String>> edgeHash, List<Map<String, String>> joins, Map<String, Boolean> makeUniqueNameMap) {
 		Map<String, String[]> retMap = new HashMap<String, String[]>();
 		
 		List<String> uniqueNames = getColumnNames();
@@ -877,11 +876,42 @@ public class TinkerMetaData implements IMetaData {
 		
 		// first go through just for the concepts
 		for(String key: masterSet){
-			String myParentsUniqueName = getUniqueName(key.contains("__")? key.substring(0, key.indexOf("__")): null, uniqueNames, joins);
-			String myUniqueName = getUniqueName(key.contains("__")? key.substring(key.indexOf("__")+2): key, uniqueNames, joins);
-            retMap.put(key, new String[]{myUniqueName, myParentsUniqueName});
+			String myParentName = null;
+			String myNodeName = null;
+			
+			String parentName = key.contains("__") ? key.substring(0, key.indexOf("__")) : null;
+			String nodeName = key.contains("__") ? key.substring(key.indexOf("__")+2) : key;
+			
+			/*
+			 * Use the map to determine if we should make the name unique or use the existing value
+			 */
+			
+			if(parentName != null) {
+				if(makeUniqueNameMap != null && makeUniqueNameMap.get(parentName) != null && makeUniqueNameMap.get(parentName) ) {
+					myParentName = getUniqueName(parentName, uniqueNames, joins);
+				} else {
+					myParentName = getName(parentName, joins);
+				}
+			}
+			if(makeUniqueNameMap != null && makeUniqueNameMap.get(nodeName) != null && makeUniqueNameMap.get(nodeName) ) {
+				myNodeName = getUniqueName(nodeName, uniqueNames, joins);
+			} else {
+				myNodeName = getName(nodeName, joins);
+			}
+			
+            retMap.put(key, new String[]{myNodeName, myParentName});
 		}
 		return retMap;
+	}
+	
+	private String getName(String name, List<Map<String, String>> joins) {
+		if (name == null) return null;
+		for(Map<String, String> join: joins) {
+			if(join.containsKey(name)){
+				return join.get(name);
+			}
+		}
+		return name;
 	}
 	
 	private String getUniqueName(String name, List<String> uniqueNames, List<Map<String, String>> joins){

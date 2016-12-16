@@ -1,6 +1,7 @@
 package prerna.sablecc;
 
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Hashtable;
 import java.util.Iterator;
 import java.util.List;
@@ -189,8 +190,12 @@ public abstract class ImportDataReactor extends AbstractReactor {
 			// this is the first possibility when it is a query
 			if(engine != null) {
 				
+				// note, we do not update the edge hash
+				// if we modify the names for the join columns
+				// we will be screwed when we try to get metadata around that column name
+				// from the engine owl file ...
 				
-				// note, this edge hash will need to be cleansed based on the join informaiton
+				// note, this edge hash will need to be cleansed based on the join information
 				// so this is just a local variable, not the class variable
 				Map<String, Set<String>> edgeHash = (Map<String, Set<String>>) this.getValue(PKQLEnum.API + "_EDGE_HASH");
 				
@@ -204,7 +209,7 @@ public abstract class ImportDataReactor extends AbstractReactor {
 						// information, we need to combine the current qs with the new qs
 						// this method cleans the information based on the join and updates
 						// the frame metadata
-						Map[] mergedMaps = frame.mergeQSEdgeHash(edgeHash, engine, joinCols);
+						Map[] mergedMaps = frame.mergeQSEdgeHash(edgeHash, engine, joinCols, null);
 						// set the class edge hash
 						this.edgeHash = mergedMaps[0];
 						// set the class modify names map
@@ -220,14 +225,122 @@ public abstract class ImportDataReactor extends AbstractReactor {
 					// grab the iterator to use for importing
 					dataIterator  = (IRawSelectWrapper) myStore.get(PKQLEnum.API);
 					
+					// update the header names
+					String[] origNewHeaders = ((IRawSelectWrapper) dataIterator).getDisplayVariables();
+					this.newHeaders = updateNamesForJoins(origNewHeaders, joinCols); 
+					
+					Boolean[] makeHeaderUniqueArr = new Boolean[this.newHeaders.length];
+					Map<String, Boolean> makeUniqueNameMap = new Hashtable<String, Boolean>();
+					if(frame.isEmpty()) {
+						// yeah, everything is new -> make unique
+						for(String header : newHeaders) {
+							makeUniqueNameMap.put(header, true);
+						}
+					} else {
+						// this is the logic we need to figure out how to deal with loops
+						// logic is as follows
+						// for each connection in the edge hash
+						// if the start and end node both exist in the frame currently
+						// and if a connection exists between them already
+						// and the new connection imported is in a different order than the connection currently there
+						// then we need to enforce uniqueness, otherwise, add as is
+						
+						// easier implementation
+						// if there is a connection already between the nodes
+						// set the map to make unique to false
+						// otherwise, keep as true as it won't matter
+						
+						// another note
+						// we know based on the join information which column will actually become unique
+						// and which one will not and will use the existing name from the frame
+						
+						// get the current edge hash
+						Map<String, Set<String>> currentEdgeHash = frame.getEdgeHash();
+						
+						// sadly, will need to clean the edge hash here as well...
+						// this is a pain because i cannot pass it into the mergeQSEdgeHash
+						Map<String, Set<String>> cleanImportEdgeHash = updateEdgeHashForJoin(edgeHash, joinCols);
+						
+						int numHeaders = this.newHeaders.length;
+						for(int index = 0; index < numHeaders; index++) {
+							String headerName = this.newHeaders[index];
+							
+							// see if it exists as a header in the clean import
+							if(cleanImportEdgeHash.containsKey(headerName)) {
+								// must also be a parent in the current edge hash to care
+								if(currentEdgeHash.containsKey(headerName)) {
+									// okay, both are there
+									// need to compare the children
+
+									// get the list of current children
+									Set<String> currentChildren = currentEdgeHash.get(headerName);
+
+									// get the list of children we are adding
+									Set<String> importingChildren = cleanImportEdgeHash.get(headerName);
+
+									// the overlapping children should not be unique
+									if(importingChildren.isEmpty()) {
+										// make sure to note override values set when we go through the
+										// children logic up above
+										if(makeHeaderUniqueArr[index] == null) {
+											// do not care if it is unique or not
+											// just keep as true
+											makeHeaderUniqueArr[index] = true;
+										}
+									} else {
+										for(String importingChild : importingChildren) {
+											if(currentChildren.contains(importingChild)) {
+												// the path in the import already exists
+												// do not make a unique header!!!
+												int importIndex = ArrayUtilityMethods.arrayContainsValueAtIndex(this.newHeaders, importingChild);
+												makeHeaderUniqueArr[importIndex] = false;
+	
+												importIndex = ArrayUtilityMethods.arrayContainsValueAtIndex(this.newHeaders, headerName);
+												makeHeaderUniqueArr[importIndex] = false;
+											} else {
+												// make sure to note override values set when we go through the
+												// children logic up above
+												if(makeHeaderUniqueArr[index] == null) {
+													// do not care if it is unique or not
+													// just keep as true
+													makeHeaderUniqueArr[index] = true;
+												}
+											}
+										}
+									}
+								} else {
+									// make sure to note override values set when we go through the
+									// children logic up above
+									if(makeHeaderUniqueArr[index] == null) {
+										// do not care if it is unique or not
+										// just keep as true
+										makeHeaderUniqueArr[index] = true;
+									}
+								}
+								
+							} else {
+								// make sure to note override values set when we go through the
+								// children logic up above
+								if(makeHeaderUniqueArr[index] == null) {
+									// do not care if it is unique or not
+									// just keep as true
+									makeHeaderUniqueArr[index] = true;
+								}
+							}
+						}
+						
+						// now that i have determined which headers need the unique 
+						for(int index = 0; index < numHeaders; index++) {
+							makeUniqueNameMap.put(origNewHeaders[index], makeHeaderUniqueArr[index]);
+						}
+					}
+					
 					LOGGER.info(" >>> FRAME IS LOADING DATA FROM AN ENGINE!!!!");
 					// update the metadata in the frame
-					Map[] mergedMaps = frame.mergeQSEdgeHash(edgeHash, engine, joinCols);
+					Map[] mergedMaps = frame.mergeQSEdgeHash(edgeHash, engine, joinCols, makeUniqueNameMap);
 					this.edgeHash = mergedMaps[0];
 					// set the class modify names map
 					this.modifyNamesMap = mergedMaps[1];
-					// update the header names
-					this.newHeaders = updateNamesForJoins( ((IRawSelectWrapper) dataIterator).getDisplayVariables(), joinCols); 
 				}
 			}
 			// this is the second possibility when it is a file
@@ -245,7 +358,7 @@ public abstract class ImportDataReactor extends AbstractReactor {
 				}
 				
 				this.newHeaders = updateNamesForJoins(headers, joinCols);
-				dataTypes = updateKeysForMap(dataTypes, joinCols, false);
+				dataTypes = updateDataTypesForJoins(dataTypes, joinCols);
 				this.edgeHash = TinkerMetaHelper.createPrimKeyEdgeHash(this.newHeaders);
 				this.isPrimKey = true;
 				// update the metadata in the frame
@@ -260,8 +373,8 @@ public abstract class ImportDataReactor extends AbstractReactor {
 			Map<String, String> logicalToValue = (Map<String, String>) this.getValue(PKQLEnum.RAW_API + "_LOGICAL_TO_VALUE");
 			
 			this.newHeaders = updateNamesForJoins( ((IRawSelectWrapper) dataIterator).getDisplayVariables(), joinCols); 
-			this.modifyNamesMap = updateKeysForMap(logicalToValue, joinCols, true);
-			dataTypes = updateKeysForMap(dataTypes, joinCols, false);
+			this.modifyNamesMap = updateModifyNamesForJoins(logicalToValue, joinCols);
+			dataTypes = updateDataTypesForJoins(dataTypes, joinCols);
 
 			this.edgeHash = TinkerMetaHelper.createPrimKeyEdgeHash(newHeaders);
 			this.isPrimKey = true;
@@ -282,7 +395,7 @@ public abstract class ImportDataReactor extends AbstractReactor {
 			}
 			
 			this.newHeaders = updateNamesForJoins(headers, joinCols);
-			dataTypes = updateKeysForMap(dataTypes, joinCols, false);
+			dataTypes = updateDataTypesForJoins(dataTypes, joinCols);
 			this.edgeHash = TinkerMetaHelper.createPrimKeyEdgeHash(this.newHeaders);
 			this.isPrimKey = true;
 			// update the metadata in the frame
@@ -329,7 +442,7 @@ public abstract class ImportDataReactor extends AbstractReactor {
 	 * @param dataTypes
 	 * @param joinCols
 	 */
-	protected Map<String, String> updateKeysForMap(Map<String, String> map, Vector<Map<String, String>> joinCols, boolean flipKeyValue) {
+	protected Map<String, String> updateModifyNamesForJoins(Map<String, String> map, Vector<Map<String, String>> joinCols) {
 		if(joinCols != null && !joinCols.isEmpty()){
 			Map<String, String> editedMap = new Hashtable<String, String>();
 
@@ -343,11 +456,7 @@ public abstract class ImportDataReactor extends AbstractReactor {
 						String existingName = join.get(otherName);
 						
 						if(colName.equals(otherName)) {
-							if(flipKeyValue) {
-								editedMap.put(existingName, existingName);
-							} else {
-								editedMap.put(existingName, value);
-							}
+							editedMap.put(existingName, existingName);
 							foundMatchingName = true;
 							break JOIN_LOOP;
 						}
@@ -365,6 +474,108 @@ public abstract class ImportDataReactor extends AbstractReactor {
 			map = editedMap;
 		}
 		return map;
+	}
+	
+	/**
+	 * Update any keys for a map where they need to have modifications based on joins
+	 * @param dataTypes
+	 * @param joinCols
+	 */
+	protected Map<String, String> updateDataTypesForJoins(Map<String, String> map, Vector<Map<String, String>> joinCols) {
+		if(joinCols != null && !joinCols.isEmpty()){
+			Map<String, String> editedMap = new Hashtable<String, String>();
+
+			// loop through the data types and perform a replacement where necessary
+			for(String colName : map.keySet()) {
+				String value = map.get(colName);
+				boolean foundMatchingName = false;
+
+				JOIN_LOOP : for(Map<String, String> join : joinCols) { // grab each join map, mapping is new name to existing name
+					for(String otherName : join.keySet()) {
+						String existingName = join.get(otherName);
+						
+						if(colName.equals(otherName)) {
+							editedMap.put(existingName, value);
+							foundMatchingName = true;
+							break JOIN_LOOP;
+						}
+					}
+				}
+				
+				// if we didn't perform a swap after searching through all the join columns
+				// add in the original value
+				if(!foundMatchingName) {
+					editedMap.put(colName, value);
+				}
+			}
+			
+			// override the method reference
+			map = editedMap;
+		}
+		return map;
+	}
+	
+	protected Map<String, Set<String>> updateEdgeHashForJoin(Map<String, Set<String>> edgeHash, Vector<Map<String, String>> joinCols) {
+		if(joinCols != null && !joinCols.isEmpty()){
+			Map<String, Set<String>> cleanEdgeHash = new Hashtable<String, Set<String>>();
+
+			// loop through the edge hash... first the parents and then the children
+			for(String parentName : edgeHash.keySet()) {
+				
+				// see if we can clean the parent
+				// start with assumption current one is good
+				String effectiveParentName = parentName;
+				
+				JOIN_LOOP : for(Map<String, String> join : joinCols) { // grab each join map, mapping is new name to existing name
+					for(String otherName : join.keySet()) {
+						String existingName = join.get(otherName);
+						
+						if(parentName.equals(otherName)) { // grab each join map, mapping is new name to existing name
+							// we found the name in the loop
+							// override the effective parent
+							effectiveParentName = existingName;
+							break JOIN_LOOP;
+						}
+					}
+				}
+				
+				// see if the children are clean
+				Set<String> effectiveChildrenSet = new HashSet<String>();
+				
+				// loop through the current children in the edge hash
+				Set<String> currentChildren = edgeHash.get(parentName);
+				for(String child : currentChildren) {
+					
+					// see if we can clean the child
+					// start with the assumption the current child is the good one
+					String effectiveChild = child;
+					
+					JOIN_LOOP : for(Map<String, String> join : joinCols) { // grab each join map, mapping is new name to existing name
+						for(String otherName : join.keySet()) {
+							String existingName = join.get(otherName);
+							
+							if(child.equals(otherName)) { // grab each join map, mapping is new name to existing name
+								// we found the name in the loop
+								// override the effective parent
+								effectiveChild = existingName;
+								break JOIN_LOOP;
+							}
+						}
+					}
+					
+					// add to the list
+					effectiveChildrenSet.add(effectiveChild);
+				}
+				
+				// now that we can cleaned the parent and its children
+				// add to the edge hash
+				cleanEdgeHash.put(effectiveParentName, effectiveChildrenSet);
+			}
+			
+			// override the reference
+			edgeHash = cleanEdgeHash;
+		}
+		return edgeHash;
 	}
 	
 //	/**
