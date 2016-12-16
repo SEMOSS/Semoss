@@ -39,6 +39,7 @@ import prerna.algorithm.api.IMetaData.DATA_TYPES;
 import prerna.cache.ICache;
 import prerna.ds.AbstractTableDataFrame;
 import prerna.ds.AbstractTableDataFrame.Comparator;
+import prerna.ds.RdbmsFrameUtility;
 import prerna.ds.RdbmsQueryBuilder;
 import prerna.engine.api.IHeadersDataRow;
 import prerna.poi.main.RDBMSEngineCreationHelper;
@@ -2172,15 +2173,14 @@ public class H2Builder {
 	// I have found that out upfront- I need to also keep what it is called in
 	// the old table
 	// as well as the new table
-	private void mergeTables(String tableName1, String tableName2, Hashtable<Integer, Integer> matchers,
-			String[] oldTypes, String[] newTypes, String join) {
+	private void mergeTables(String tableName1, String tableName2, Hashtable<Integer, Integer> matchers, String[] oldTypes, String[] newTypes, String join) {
 		getConnection();
 
-		String origTableName = tableName;
+		String origTableName = tableName1;
 		// now create a third table
-		tableName = H2FRAME + getNextNumber();
+		String tempTableName = RdbmsFrameUtility.getNewTableName();
 
-		String newCreate = "CREATE Table " + tableName + " AS (";
+		String newCreate = "CREATE Table " + tempTableName + " AS (";
 
 		// now I need to create a join query
 		// first the froms
@@ -2198,7 +2198,7 @@ public class H2Builder {
 			// but these tables are later dropped so no indices are kept
 			// through the flow
 		}
-		
+
 		String froms = " FROM " + tableName1 + " AS  A ";
 		String joins = " " + join + " " + tableName2 + " AS B ON (";
 
@@ -2206,19 +2206,19 @@ public class H2Builder {
 		for (int jIndex = 0; jIndex < matchers.size(); jIndex++) {
 			Integer newIndex = keys.nextElement();
 			Integer oldIndex = matchers.get(newIndex);
-			
+
 			String oldCol = oldTypes[oldIndex];
 			String newCol = newTypes[newIndex];
-			
+
 			// need to make sure the data types are good to go
 			String oldColType = getDataType(tableName1, oldCol);
 			String newColType = getDataType(tableName2, newCol);
-			
+
 			// syntax modification for each addition join column
 			if (jIndex != 0) {
 				joins = joins + " AND ";
 			}
-			
+
 			if(oldColType.equals(newColType)) {
 				// data types are the same, no need to do anything
 				joins = joins + "A." + oldCol + " = " + "B." + newCol;
@@ -2226,9 +2226,9 @@ public class H2Builder {
 				// data types are different... 
 				// if both are different numbers -> convert both to double
 				// else -> convert to strings
-				
+
 				if( (oldColType.equals("DOUBLE") || oldColType.equals("INT") )
-					&& (newColType.equals("DOUBLE") || newColType.equals("INT") ) ) {
+						&& (newColType.equals("DOUBLE") || newColType.equals("INT") ) ) {
 					// both are numbers
 					if(!oldColType.equals("DOUBLE")) {
 						joins = joins + " A." + oldCol;
@@ -2289,7 +2289,7 @@ public class H2Builder {
 				}
 			}
 		}
-			
+
 		joins = joins + " )";
 
 		// first table A
@@ -2327,12 +2327,11 @@ public class H2Builder {
 			// runQuery(makeDropTable(tableName2));
 
 			// rename back to the original table
-			runQuery("ALTER TABLE " + tableName + " RENAME TO " + origTableName);
+			runQuery("ALTER TABLE " + tempTableName + " RENAME TO " + origTableName);
 
 			// this created a new table
 			// need to clear the index map
 			clearColumnIndexMap();
-			this.tableName = origTableName;
 		} catch (Exception e) {
 			e.printStackTrace();
 		}
