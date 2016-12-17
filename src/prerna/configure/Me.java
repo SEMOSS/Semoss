@@ -10,6 +10,7 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.OutputStreamWriter;
+import java.io.PrintStream;
 import java.net.ServerSocket;
 import java.nio.file.Files;
 import java.nio.file.StandardCopyOption;
@@ -36,20 +37,26 @@ public class Me {
 	{
 		// get in the args what the base folder is
 		String homePath = null;
+		String rHome = null;
+		String rLib = null;
+		String jriHome = null;
+		String rdll = null;
 		
-		if(args.length == 0) {
-			System.out.println("Usage: java prerna.configure.Me <semoss home dir>");
+		if(args == null || args.length < 5) {
+			System.out.println("Usage: java prerna.configure.Me <semoss home dir> <r home> <r library> <Location to R Library dll/so> <Location to JRI library dll/so>");
 			System.exit(0);
 		}
-		if(args != null && args.length == 1) {
-			System.out.println("Argument passed into method is: " + args[0]);
-			homePath = args[0].replace("\\", "/");
-		} else if(args != null && args.length > 0){
-			System.out.println("CAUTION!!! MULTIPLE ARGUEMENTS BEING PASSED, MIGHT BE ERROR.. WILL TRY TO RUN WITH FIRST ARGUMENT\n"
-					+ "POSSIBLE ISSUE WITH SEMOSS HOME DIRECTORY HAVING SPACES...");
+		else if(args != null && args.length == 5){
+			//System.out.println("CAUTION!!! MULTIPLE ARGUEMENTS BEING PASSED, MIGHT BE ERROR.. WILL TRY TO RUN WITH FIRST ARGUMENT\n"
+			//		+ "POSSIBLE ISSUE WITH SEMOSS HOME DIRECTORY HAVING SPACES...");
 			System.out.println("First argument passed into method is: " + args[0]);
 			homePath = args[0].replace("\\", "/");
+			rHome = args[1].replace("\\", "/");
+			rLib = args[2].replace("\\", "/");
+			rdll = args[3].replace("\\", "/");
+			jriHome = args[4].replace("\\", "/");
 		}
+		
 		System.out.println("Using home folder: " + homePath);
 		
 //		if(homePath == null)
@@ -88,9 +95,65 @@ public class Me {
 		
 		cm.writeConfigureFile(homePath, port);
 		
+		// write base env such as
+		// path
+		//  
+		
+		// need to write classpath and home files
+		// need to change the loadpath on catalina to include the library path
+		cm.writeTomcatEnv(homePath, rdll, jriHome);		
+		
 		System.out.println("------------------------");
 		System.out.println("SEMOSS configured! Run startSEMOSS.bat and point your browser to http://localhost:" + port + "/SemossWeb/ to access SEMOSS!");
 		System.out.println("------------------------");
+	}
+	
+	public void writePath(String semossHome, String rHome, String rDll, String jriDll, String rLib)
+	{
+		String fileName = semossHome + "/setPath.bat";
+		try{
+			BufferedWriter bw = new BufferedWriter(new OutputStreamWriter(new FileOutputStream(fileName)));
+			String path = "set path = %path%"; 
+			path = path + ";" + semossHome;
+			path = path + ";" + rHome;
+			path = path + ";" + rDll;
+			path = path + ";" + jriDll;
+			
+			String rHomePath = "set R_HOME=" + rHome;
+			String rlibPath = "set R_LIBS=" + rLib;
+			bw.write("echo Modifying classpath");
+			bw.write(path);
+			bw.write(rHomePath);
+			bw.write("echo R_HOME IS %R_HOME%");
+			bw.write(rlibPath);
+			bw.write("echo R_LIBS IS %R_LIBS%");
+			bw.write("echo:");
+			bw.write("echo:");
+		}catch(Exception ex)
+		{
+			
+		}
+	}
+	
+	public void writeTomcatEnv(String semossHome, String rHome, String jriHome)
+	{
+		//-Djava.library.path=C:\Users\pkapaleeswaran\Documents\R\win-library\3.1\rJava\jri\x64;"C:\Program Files\R\R-3.2.4revised\bin\x64"
+		String fileName = semossHome + "/tomcat/bin" + "setenv.bat";
+		try {
+			//BufferedWriter bw = new BufferedWriter(new OutputStreamWriter(new PrintStream(System.out)));
+			BufferedWriter bw = new BufferedWriter(new OutputStreamWriter(new FileOutputStream(fileName)));
+			
+			String options = "-Djava.library.path=\"" + rHome + "\";\"" + jriHome + "\"";
+			// should we also set the memory here ?
+			// to get max memory ?
+			//options = options + " " + "-Xms256m -Xmx512m";
+			bw.write("set JAVA_OPTS=" + options);
+			
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		
 	}
 	
 	public void writeConfigureFile(String homePath, String port)
