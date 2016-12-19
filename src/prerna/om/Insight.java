@@ -744,25 +744,25 @@ public class Insight {
 		return this.dmComponents;
 	}
 	
-	public DataMakerComponent getDashboardDataMakerComponent() {
-		if(this.getDataMaker() instanceof Dashboard) {
-			Dashboard dashboard = (Dashboard)this.getDataMaker();
-			List<String> pkqls = dashboard.getSaveRecipe(getRecipe());
-			
-			DataMakerComponent dashboardComponent = new DataMakerComponent(Constants.LOCAL_MASTER_DB_NAME, Constants.EMPTY);
-			
-			for(String pkqlCmd : pkqls) {
-				PKQLTransformation pkql = new PKQLTransformation();
-				Map<String, Object> props = new HashMap<String, Object>();
-				props.put(PKQLTransformation.EXPRESSION, pkqlCmd);
-				pkql.setProperties(props);
-				dashboardComponent.addPostTrans(pkql);
-			}
-			
-			return dashboardComponent;
-		}
-		return null;
-	}
+//	public DataMakerComponent getDashboardDataMakerComponent() {
+//		if(this.getDataMaker() instanceof Dashboard) {
+//			Dashboard dashboard = (Dashboard)this.getDataMaker();
+//			List<String> pkqls = dashboard.getSaveRecipe(getRecipe());
+//			
+//			DataMakerComponent dashboardComponent = new DataMakerComponent(Constants.LOCAL_MASTER_DB_NAME, Constants.EMPTY);
+//			
+//			for(String pkqlCmd : pkqls) {
+//				PKQLTransformation pkql = new PKQLTransformation();
+//				Map<String, Object> props = new HashMap<String, Object>();
+//				props.put(PKQLTransformation.EXPRESSION, pkqlCmd);
+//				pkql.setProperties(props);
+//				dashboardComponent.addPostTrans(pkql);
+//			}
+//			
+//			return dashboardComponent;
+//		}
+//		return null;
+//	}
 
 	public List<DataMakerComponent> getOptimalDataMakerComponents() {
 		if(this.optimalComponents == null && this.makeupEngine != null){
@@ -1069,7 +1069,7 @@ public class Insight {
 					addToRecipe = true;
 				}
 				
-				if(isJoined()) {
+				if(hasParent()) {
 					addToRecipe = false;
 				}
 				
@@ -1136,7 +1136,7 @@ public class Insight {
 	 * @param dataMaker					Additional dataMakers if required by the actions
 	 */
 	public List<Object> processActions(List<ISEMOSSAction> actions, IDataMaker... dataMaker) throws RuntimeException {
-		if(isJoined()) {
+		if(hasParent()) {
 			return this.parentInsight.processActions(actions, dataMaker);
 		}
 		DataMakerComponent dmc = getDataMakerComponents().get(this.dmComponents.size() - 1);
@@ -1766,7 +1766,7 @@ public class Insight {
 		List insightList = new ArrayList<>();
 		Map<String, Object> retHash = new HashMap<>();
 		
-		if(this.isJoined()) {
+		if(this.hasParent()) {
 			return this.getJoinedPKQLData(includeClosed);
 		} 
 		
@@ -1795,7 +1795,7 @@ public class Insight {
 	}
 	
 	public Map getJoinedPKQLData(boolean includeClosed) {
-		if(this.isJoined()) {
+		if(this.hasParent()) {
 			 if(this.parentInsight.getDataMaker() instanceof Dashboard) {				 
 				Map<String, Object> retHash = new HashMap<>();
 				List insightList = new ArrayList();
@@ -1826,6 +1826,17 @@ public class Insight {
 	}
 	
 	public boolean isJoined() {
+		if(hasParent()) {
+			IDataMaker parentDm = getParentInsight().getDataMaker();
+			
+			if(parentDm instanceof Dashboard) {
+				((Dashboard)parentDm).isJoined(this);
+			}
+		}
+		return false;
+	}
+	
+	public boolean hasParent() {
 		return this.parentInsight != null;
 	}
 	
@@ -1842,7 +1853,7 @@ public class Insight {
 	}
 
 	public void unJoin() {
-		if(this.isJoined()) {
+		if(this.hasParent()) {
 			this.parentInsight.unJoin(this);
 			this.parentInsight = null;
 		}
@@ -1850,7 +1861,7 @@ public class Insight {
 	
 	public void unJoin(Insight insight) {
 		if(getDataMaker() instanceof Dashboard) {
-			((Dashboard)this.dataMaker).unJoinInsights(insight);
+//			((Dashboard)this.dataMaker).unJoinInsights(insight);
 		}
 	}
 
