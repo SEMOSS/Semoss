@@ -18,20 +18,20 @@ public class KMeansModel {
 	private List<DataPoint> points;
 	private List<Cluster> clusters ;
 	
-	public KMeansModel(Iterator itr, int numIterations){
+	public KMeansModel(Iterator itr,List<Integer> clusteringAttributeIndices, int numIterations, int maxClusters){
 		points = new ArrayList<>();
 		while(itr.hasNext()){
 			Object[] row = (Object[]) itr.next();
-			int numDims = row.length - 1;
+			int numDims = clusteringAttributeIndices.size();
 			double[] dim  = new double[numDims];
-			for(int col=1; col<=numDims;col++){
-				dim[col-1] = (double)row[col];
+			for(int i=0; i<numDims; i++){
+				dim[i] = (double)row[clusteringAttributeIndices.get(i)];
 			}
 			DataPoint point = new DataPoint(row,dim);
 			points.add(point);				
 		}
 		Collections.sort(points);
-		clusters = InitClusters();
+		clusters = InitClusters(maxClusters);
 		Expectation();
 		while(numIterations > 0){
 			Maximization();
@@ -40,12 +40,14 @@ public class KMeansModel {
 		}
 	}
 	
-	List<Cluster> InitClusters(){
+	List<Cluster> InitClusters(int maxClusters){
 		List<double[]> pointData = new ArrayList<>();
 		for(DataPoint point : points)
 			pointData.add(point.dimensions);
 		KMeansNumClusters kmeansNumClusters = new KMeansNumClusters();
 		int numClusters = kmeansNumClusters.calcNumClusters(pointData);
+		if (maxClusters > 0)
+			numClusters = Math.min(numClusters, maxClusters);
 		KMeansInit kmeansInit = new KMeansInit(numClusters);
 		List<double[]>centres = kmeansInit.cluster(pointData);
 		List<Cluster> clusters = new ArrayList<Cluster>(numClusters);
@@ -70,17 +72,35 @@ public class KMeansModel {
 		return result;
 	}
 	
-	public Map<String,String> getClusterCentres(){
-		Map<String, String> clusterCentres = new HashMap<String,String>();
-		for(Cluster c : clusters){
-			StringBuilder sb = new StringBuilder();
-			for(double d : c.centre.dimensions){
-				sb.append(String.format("%.2f,", d));
-			}
-			sb.replace(sb.length() - 1, sb.length(), "");
-		clusterCentres.put(String.valueOf(clusters.indexOf(c)), sb.toString());
+	public Map<String,Object> getMetaData(){
+		TreeSet<Cluster> clusters2 = new  TreeSet<>();
+		for(DataPoint p : points){
+			clusters2.add(p.cluster);
 		}
-		return clusterCentres;
+		
+		Map<String, Object> clustersMetaData = new HashMap<String,Object>();
+		for(Cluster c: clusters){
+			HashMap<String,Object> clusterData= new HashMap<>();
+			clusterData.put("numPoints", 0);
+			String key = "Autocalculated " + clusters2.headSet(c).size();
+			clustersMetaData.put(key, clusterData);
+		}
+		
+		for(DataPoint p : points){
+			String key = "Autocalculated " + clusters2.headSet(p.cluster).size();
+			HashMap<String,Object> clusterData = (HashMap<String,Object>)clustersMetaData.get(key);
+			clusterData.put("numPoints",(Integer)clusterData.get("numPoints") + 1);
+		}
+		
+//		for(Cluster c : clusters){
+//			StringBuilder sb = new StringBuilder();
+//			for(double d : c.centre.dimensions){
+//				sb.append(String.format("%.2f,", d));
+//			}
+//			sb.replace(sb.length() - 1, sb.length(), "");
+//		clusterCentres.put(String.valueOf(clusters.indexOf(c)), sb.toString());
+//		}
+		return clustersMetaData;
 	}
 	
 	void Expectation(){

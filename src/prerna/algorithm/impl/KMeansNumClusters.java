@@ -12,9 +12,13 @@ public class KMeansNumClusters {
 	}
 	
 	void SplitAndAnalyze(List<double[]> dataPoints, SplitDetails splitDetails){
-		if(dataPoints.size() < 2)
-		{
-			numClusters+= dataPoints.size();
+//		if(dataPoints.size() < 2)
+//		{
+//			numClusters+= dataPoints.size();
+//			return;
+//		}
+		if (splitDetails.splitAttribute == -1){
+			System.out.println("No need for split.");
 			return;
 		}
 		
@@ -40,34 +44,34 @@ public class KMeansNumClusters {
 		
 		//double centreDist = Math.sqrt(Math.pow(bound1Centre[0] - bound2Centre[0], 2) + Math.pow(bound1Centre[1] - bound2Centre[1], 2));
 		double bound1radius = 0.0, bound2radius = 0.0;
-		/*for(double[] point : bound1)
+		for(double[] point : bound1)
 			bound1radius += Math.sqrt(Math.pow(bound1Centre[0] - point[0], 2) + Math.pow(bound1Centre[1] - point[1], 2))/(1.0 * bound1.size());
 		for(double[] point : bound2)
-			bound2radius += Math.sqrt(Math.pow(bound2Centre[0] - point[0], 2) + Math.pow(bound2Centre[1] - point[1], 2))/(1.0 * bound1.size());*/
+			bound2radius += Math.sqrt(Math.pow(bound2Centre[0] - point[0], 2) + Math.pow(bound2Centre[1] - point[1], 2))/(1.0 * bound1.size());
 		
 		double bound1Scatter = 0.0, bound2Scatter = 0.0;
-		int points = 0;
+//		int points = 0;
 		for(int i=0; i<bound1.size() - 1;i++){
-			for(int j=i+1; j<bound1.size();j++){
-				bound1radius += Math.sqrt(Math.pow(bound1.get(i)[0] - bound1.get(j)[0], 2) + Math.pow(bound1.get(i)[1] - bound1.get(j)[1], 2));
-				points++;
-			}
-			bound1Scatter += 1.0/Math.sqrt(Math.pow(bound1.get(i)[0] - bound1Centre[0], 2) + Math.pow(bound1.get(i)[1] - bound1Centre[1], 2));
+//			for(int j=i+1; j<bound1.size();j++){
+//				bound1radius += Math.sqrt(Math.pow(bound1.get(i)[0] - bound1.get(j)[0], 2) + Math.pow(bound1.get(i)[1] - bound1.get(j)[1], 2));
+//				points++;
+//			}
+			bound1Scatter += Math.sqrt(Math.pow(bound1.get(i)[0] - bound1Centre[0], 2) + Math.pow(bound1.get(i)[1] - bound1Centre[1], 2));
 		}
-		bound1radius = (points != 0) ? bound1radius/(1.0 * points) : 0;
-		points = 0;
+//		bound1radius = (points != 0) ? bound1radius/(1.0 * points) : 0;
+//		points = 0;
 		for(int i=0; i<bound2.size() - 1;i++){
-			for(int j=i+1; j<bound2.size();j++){
-				bound2radius += Math.sqrt(Math.pow(bound2.get(i)[0] - bound2.get(j)[0], 2) + Math.pow(bound2.get(i)[1] - bound2.get(j)[1], 2));
-				points++;
-			}
-			bound2Scatter += 1.0/Math.sqrt(Math.pow(bound2.get(i)[0] - bound2Centre[0], 2) + Math.pow(bound2.get(i)[1] - bound2Centre[1], 2));
+//			for(int j=i+1; j<bound2.size();j++){
+//				bound2radius += Math.sqrt(Math.pow(bound2.get(i)[0] - bound2.get(j)[0], 2) + Math.pow(bound2.get(i)[1] - bound2.get(j)[1], 2));
+//				points++;
+//			}
+			bound2Scatter += Math.sqrt(Math.pow(bound2.get(i)[0] - bound2Centre[0], 2) + Math.pow(bound2.get(i)[1] - bound2Centre[1], 2));
 		}
-		bound2radius = (points != 0) ? bound2radius/(1.0 * points) : 0;
+//		bound2radius = (points != 0) ? bound2radius/(1.0 * points) : 0;
 		
 		double radius = Math.max(bound1radius, bound2radius);
 		double centreDist = Math.sqrt(Math.pow(bound1Centre[0] - bound2Centre[0], 2) + Math.pow(bound1Centre[1] - bound2Centre[1], 2));
-		double scatterRatio = Math.min(bound1Scatter, bound2Scatter)/Math.max(bound1Scatter, bound2Scatter);
+		double scatterRatio = Math.max(bound1Scatter, bound2Scatter)/Math.min(bound1Scatter, bound2Scatter);
 		
 		//double maxRadius = Math.max(bound1radius, bound2radius);
 		//double ratio = Math.min(centreDist, maxRadius)/Math.max(centreDist, maxRadius);
@@ -85,7 +89,7 @@ public class KMeansNumClusters {
 		System.out.println("Bound 2 average distance: " + bound2radius);
 		System.out.println("Bounds Inter-Centre Distance " + centreDist);
 		System.out.println("Bounds ScatterRatio " + scatterRatio);
-		if(radius/centreDist > 0.8 && scatterRatio > 0.01){
+		if(Math.log(centreDist/radius) < 0.7 && Math.log(scatterRatio) < 1.2){ 
 			System.out.println("No need for split ");
 			return;
 		}
@@ -121,8 +125,10 @@ public class KMeansNumClusters {
 		splitDetails.centre = centre;
 		if(splitX < splitY)
 			splitDetails.splitAttribute = 0;
-		else
+		else if(splitX > splitY)
 			splitDetails.splitAttribute = 1;
+		else
+			splitDetails.splitAttribute = -1;
 		return splitDetails;
 	}
 }
