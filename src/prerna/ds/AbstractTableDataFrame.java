@@ -519,7 +519,7 @@ public abstract class AbstractTableDataFrame implements ITableDataFrame {
 	@Override
 	public Map<String, Integer> getUniqueValuesAndCount(String columnHeader) {
 		Map<String, Integer> counts = new Hashtable<String, Integer>();
-		List<String> columnsToSkip = new Vector<String>();
+		/*List<String> columnsToSkip = new Vector<String>();
 		for(String header : headerNames) {
 			if(!header.equals(columnHeader)) {
 				columnsToSkip.add(header);
@@ -534,6 +534,19 @@ public abstract class AbstractTableDataFrame implements ITableDataFrame {
 				counts.put(row[0] + "", newCount);
 			} else {
 				counts.put(row[0] + "", 1);
+			}
+		}*/
+		
+		Iterator<Object[]> it = iterator();
+		int tgtIndex = Arrays.asList(headerNames).indexOf(columnHeader);
+		while(it.hasNext()) {
+			Object[] row = it.next();
+			String key = row[tgtIndex] + "";
+			if(counts.containsKey(key)) {
+				int newCount = counts.get(key) + 1;
+				counts.put(key, newCount);
+			} else {
+				counts.put(key, 1);
 			}
 		}
 		
