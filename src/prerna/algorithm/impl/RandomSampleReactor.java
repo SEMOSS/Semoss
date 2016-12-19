@@ -1,6 +1,7 @@
 package prerna.algorithm.impl;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -23,54 +24,27 @@ public class RandomSampleReactor extends MathReactor {
 	@Override
 	public Iterator process() {
 		modExpression();
-		Vector<String> columns = (Vector <String>) myStore.get(PKQLEnum.COL_DEF);
 		
-		String[] columnsArray = convertVectorToArray(columns);
 		ITableDataFrame dataFrame = (ITableDataFrame)myStore.get("G");
 		
+		String[] columnsArray = dataFrame.getColumnHeaders(); //convertVectorToArray(columns);
+		
+		Vector<String> columns = new Vector<>(Arrays.asList(columnsArray));//(Vector <String>) myStore.get(PKQLEnum.COL_DEF);
+			
 		Map<String,Object> sampleDetails = new HashMap<>();
-		int totalSamples = 0;
 		
 		Map<String, Object> options = (Map<String, Object>) myStore.get(PKQLEnum.MAP_OBJ);
 		
-		List<Map<Object,Integer>> regions = new ArrayList<>();
-		if(options.containsKey("aboveBoundSamples".toUpperCase())){
-			int numSamples = (int)options.get("aboveBoundSamples".toUpperCase());
-			sampleDetails.put("aboveBoundSamples",numSamples);
-			totalSamples += numSamples;
-			regions.add(fetchSamplesForRegion(dataFrame, columns, numSamples, "Bounds", 0));
-		}
-		if(options.containsKey("withinBoundSamples".toUpperCase())){
-			int numSamples = (int)options.get("withinBoundSamples".toUpperCase());
-			sampleDetails.put("withinBoundSamples",numSamples);
-			totalSamples += numSamples;
-			regions.add(fetchSamplesForRegion(dataFrame, columns, numSamples, "Bounds", 1));
-		}
-		if(options.containsKey("belowBoundSamples".toUpperCase())){
-			int numSamples = (int)options.get("belowBoundSamples".toUpperCase());
-			sampleDetails.put("belowBoundSamples",numSamples);
-			totalSamples += numSamples;
-			regions.add(fetchSamplesForRegion(dataFrame, columns, numSamples, "Bounds", 2));
-		}
-		int clusterNum = 0;
-		List<Integer> clusterSamples = new ArrayList<>();
-		while(true){
-			if(!options.containsKey("CLUSTER"+ clusterNum))
-				break;
-			int numSamples = (int)options.get("CLUSTER"+clusterNum);
-			clusterSamples.add(numSamples);
-			totalSamples += numSamples;
-			regions.add(fetchSamplesForRegion(dataFrame, columns, numSamples, "Cluster", clusterNum));
-			clusterNum++;
-		}
-		sampleDetails.put("clusterSamples", clusterSamples);
+		String samplingRegionColumn = null;
+		if (columns.contains("Region"))
+			samplingRegionColumn = "Region";
 		
-		if(options.containsKey("all".toUpperCase())){
-			int numSamples = (int)options.get("all".toUpperCase());
-			totalSamples += numSamples;
-			regions.add(fetchSamplesForRegion(dataFrame, columns, numSamples, null, null));
+		List<Map<Object,Integer>> regions = new ArrayList<>();
+		for(String regionName : options.keySet()){
+			int numSamples = (int)options.get(regionName);
+			sampleDetails.put(regionName,numSamples);
+			regions.add(fetchSamplesForRegion(dataFrame, columns, numSamples, samplingRegionColumn, regionName));
 		}
-		sampleDetails.put("numSamples", totalSamples);
 		
 		Iterator resultItr = getTinkerData(columns, dataFrame, false);
 		String script = columnsArray[0];
