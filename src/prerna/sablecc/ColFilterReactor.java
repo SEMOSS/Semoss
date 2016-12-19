@@ -141,7 +141,15 @@ public class ColFilterReactor extends AbstractReactor {
 		Map<String, Map<String, List<Object>>> processedFilters = getFilters(filters);
 		for (String columnHeader : processedFilters.keySet()) {
 			try {
-				frame.filter(columnHeader, processedFilters.get(columnHeader));
+				if(frame instanceof H2Frame) {
+					if(((H2Frame)frame).isJoined()) {
+						((H2Frame) frame).getJoiner().filter(frame, columnHeader, processedFilters.get(columnHeader));
+					} else {
+						frame.filter(columnHeader, processedFilters.get(columnHeader));
+					}
+				} else {
+					frame.filter(columnHeader, processedFilters.get(columnHeader));
+				}
 				myStore.put("STATUS", PKQLRunner.STATUS.SUCCESS);
 				myStore.put("FILTER_RESPONSE", "Filtered Column: " + columnHeader);
 			} catch (IllegalArgumentException e) {

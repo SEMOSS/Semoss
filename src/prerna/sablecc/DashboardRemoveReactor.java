@@ -40,7 +40,7 @@ public class DashboardRemoveReactor extends AbstractReactor {
 				return null;
 			}
 			
-			dashboard.removeInsight(insightId, insight);
+			dashboard.removeInsight(insight);
 			dashboard.removeWidgetId(insightId, new String[]{widgetId, panelId});
 			setDashboardData(insightToRemove);
 			

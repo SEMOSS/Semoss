@@ -39,8 +39,10 @@ import prerna.algorithm.api.IMetaData.DATA_TYPES;
 import prerna.cache.ICache;
 import prerna.ds.AbstractTableDataFrame;
 import prerna.ds.AbstractTableDataFrame.Comparator;
-import prerna.ds.RdbmsFrameUtility;
-import prerna.ds.RdbmsQueryBuilder;
+import prerna.ds.util.H2FilterHash;
+import prerna.ds.util.RdbmsFrameUtility;
+import prerna.ds.util.RdbmsQueryBuilder;
+import prerna.ds.DataFrameJoiner;
 import prerna.engine.api.IHeadersDataRow;
 import prerna.poi.main.RDBMSEngineCreationHelper;
 import prerna.util.ArrayUtilityMethods;
@@ -53,6 +55,8 @@ public class H2Builder {
 	private static final Logger LOGGER = LogManager.getLogger(H2Builder.class.getName());
 
 	private Connection conn = null;
+	
+	private String NULL_VALUE = "null";
 	
 	private String schema = "test"; // assign a default schema which is test
 	// boolean create = false;
@@ -100,19 +104,13 @@ public class H2Builder {
 	// name of the main table for H2
 	String tableName;
 
-	// use to determine if we are joined to another viz or not
-	// all Reads will be conducted on the view when this is true, all Creates,
-	// Updates, and Deletes will affect only the mainTable
-	private boolean joinMode;
-	private String viewTableName;
-	Hashtable<String, String> joinColumnTranslation = new Hashtable<>();
 
-	H2Joiner joiner;
+
+	DataFrameJoiner joiner;
 
 	// specifies the join types for an H2 frame
 	public enum Join {
-		INNER("INNER JOIN"), LEFT_OUTER("LEFT OUTER JOIN"), RIGHT_OUTER("RIGHT OUTER JOIN"), FULL_OUTER(
-				"FULL OUTER JOIN"), CROSS("CROSS JOIN");
+		INNER("INNER JOIN"), LEFT_OUTER("LEFT OUTER JOIN"), RIGHT_OUTER("RIGHT OUTER JOIN"), FULL_OUTER("FULL OUTER JOIN"), CROSS("CROSS JOIN");
 		String name;
 
 		Join(String n) {
@@ -435,62 +433,62 @@ public class H2Builder {
 	/***************************
 	 * JOIN METHODS
 	 **********************************/
-	protected void setView(String viewTable) {
-		this.viewTableName = viewTable;
-		this.joinMode = true;
-	}
-
-	protected void setView(String viewTable, Hashtable<String, String> translationMap) {
-		this.viewTableName = viewTable;
-		this.joinMode = true;
-		this.joinColumnTranslation = translationMap;
-	}
-
-	protected void setTranslationMap(Hashtable<String, String> translationMap) {
-		this.joinColumnTranslation = translationMap;
-	}
-
-	protected void addTranslation(String nameInTable, String nameInView) {
-		if (this.joinColumnTranslation == null) {
-			this.joinColumnTranslation = new Hashtable<>();
-		}
-		this.joinColumnTranslation.put(nameInTable, nameInView);
-	}
-
-	protected void unJoin() {
-		this.viewTableName = null;
-		this.joinMode = false;
-		this.joinColumnTranslation = null;
-		this.joiner = null;
-	}
-
-	protected boolean getJoinMode() {
-		return this.joinMode;
-	}
-
-	protected List<String> translateColumns(List<String> columns) {
-		List<String> translatedColumns = new ArrayList<>();
-		for (String column : columns) {
-			translatedColumns.add(translateColumn(column));
-		}
-		return translatedColumns;
-	}
-
-	protected String[] translateColumns(String[] columns) {
-		String[] translatedColumns = new String[columns.length];
-		for (int i = 0; i < translatedColumns.length; i++) {
-			translatedColumns[i] = translateColumn(columns[i]);
-		}
-		return translatedColumns;
-	}
-
-	protected String translateColumn(String column) {
-		return joinColumnTranslation.get(column);
-	}
-
-	protected void setJoiner(H2Joiner joiner) {
-		this.joiner = joiner;
-	}
+//	protected void setView(String viewTable) {
+//		this.viewTableName = viewTable;
+//		this.joinMode = true;
+//	}
+//
+//	protected void setView(String viewTable, Hashtable<String, String> translationMap) {
+//		this.viewTableName = viewTable;
+//		this.joinMode = true;
+//		this.joinColumnTranslation = translationMap;
+//	}
+//
+//	protected void setTranslationMap(Hashtable<String, String> translationMap) {
+//		this.joinColumnTranslation = translationMap;
+//	}
+//
+//	protected void addTranslation(String nameInTable, String nameInView) {
+//		if (this.joinColumnTranslation == null) {
+//			this.joinColumnTranslation = new Hashtable<>();
+//		}
+//		this.joinColumnTranslation.put(nameInTable, nameInView);
+//	}
+//
+//	protected void unJoin() {
+//		this.viewTableName = null;
+//		this.joinMode = false;
+//		this.joinColumnTranslation = null;
+//		this.joiner = null;
+//	}
+//
+//	protected boolean getJoinMode() {
+//		return this.joinMode;
+//	}
+//
+//	protected List<String> translateColumns(List<String> columns) {
+//		List<String> translatedColumns = new ArrayList<>();
+//		for (String column : columns) {
+//			translatedColumns.add(translateColumn(column));
+//		}
+//		return translatedColumns;
+//	}
+//
+//	protected String[] translateColumns(String[] columns) {
+//		String[] translatedColumns = new String[columns.length];
+//		for (int i = 0; i < translatedColumns.length; i++) {
+//			translatedColumns[i] = translateColumn(columns[i]);
+//		}
+//		return translatedColumns;
+//	}
+//
+//	protected String translateColumn(String column) {
+//		return joinColumnTranslation.get(column);
+//	}
+//
+//	protected void setJoiner(H2Joiner joiner) {
+//		this.joiner = joiner;
+//	}
 
 	/***************************
 	 * END JOIN METHODS
@@ -506,7 +504,9 @@ public class H2Builder {
 		return name;
 	}
 
-	/*************************** CREATE ******************************************/
+	/*************************** 
+	 * 	CREATE 
+	 * *************************/
 
 	/**
 	 * Generates a new H2 table from the paramater data
@@ -645,58 +645,74 @@ public class H2Builder {
 
 		return ps;
 	}
-
-	private void addEmptyDerivedColumns() {
-		// make query
-		if (extraColumn.size() == 0) {
-			populateExtraColumns();
-			for (String column : extraColumn) {
-				String addColumnQuery = "ALTER TABLE " + tableName + " ADD " + column + " double";
-				try {
-					runQuery(addColumnQuery);
-				} catch (Exception e) {
-					e.printStackTrace();
-				}
+	
+	public PreparedStatement createMergePreparedStatement(final String TABLE_NAME, final String[] keyColumns, final String[] updateColumns) {
+		
+		StringBuilder sql = new StringBuilder("MERGE INTO ");
+		sql.append(TABLE_NAME);
+		
+		//Add update columns
+		sql.append("(");
+		for(int i = 0; i < updateColumns.length; i++) {
+			if(i > 0) {
+				sql.append(", ");
 			}
+			sql.append(updateColumns[i]);
 		}
+		sql.append(") ");
+		
+		//Add key columns
+		if(keyColumns != null && keyColumns.length > 0) {
+			sql.append("KEY(");
+			for(int i = 0; i < keyColumns.length; i++) {
+				if(i > 0) {
+					sql.append(", ");
+				}
+				sql.append(keyColumns[i]);
+				
+			}
+			sql.append(") ");
+		}
+		
+		//Add values
+//		sql.append("VALUES (?"); // remember, we already assumed one col
+//		for (int colIndex = 0; colIndex < updateColumns.length; colIndex++) {
+//			sql.append(", ?");
+//		}
+//		sql.append(")");
+		
+		
+		return createPreparedStatement(sql.toString());
 	}
 
-	private void populateExtraColumns() {
-		if (this.extraColumn == null) {
-			this.extraColumn = new ArrayList<String>();
+	
+	private PreparedStatement createPreparedStatement(String sql) {
+		PreparedStatement ps = null;
+		try {
+			// create the prepared statement using the sql query defined
+			ps = getConnection().prepareStatement(sql.toString());
+		} catch (SQLException e) {
+			e.printStackTrace();
 		}
 
-		for (int i = columnCount; i < 10; i++) {
-			String nextColumn = extraColumnBase + "_" + i;
-			extraColumn.add(nextColumn);
-		}
+		return ps;
 	}
+	/*************************** 
+	 * 	END CREATE 
+	 * *************************/
 
-	private String getExtraColumn() {
-		if (extraColumn.size() > 0)
-			return extraColumn.remove(0);
-		else
-			return null;
-	}
-
-	/***************************
-	 * END CREATE
-	 **************************************/
-
-	/*************************** READ ********************************************/
+	
+	
+	
+	/*************************** 
+	 * 	READ
+	 * *************************/
 
 	// get scaled version of above method
 	public List<Object[]> getScaledData(String tableName, List<String> selectors, List<DATA_TYPES> dataTypes,
 			String column, Object value, Double[] maxArr, Double[] minArr) {
 
-		// modify names if it is joined so query is correct
-		if (joinMode) {
-			tableName = this.viewTableName;
-			selectors = translateColumns(selectors);
-			column = translateColumn(column);
-			// note, no need to modify data types since order is preserved
-		}
-
+	
 		int cindex = selectors.indexOf(column);
 		if (tableName == null) {
 			tableName = this.tableName;
@@ -809,25 +825,17 @@ public class H2Builder {
 	 * @return
 	 */
 	public Object[] getColumn(String columnHeader, boolean distinct) {
-		String tableName = this.tableName;
-		if (joinMode) {
-			tableName = this.viewTableName;
-			columnHeader = translateColumn(columnHeader);
-		} else {
+		String tableName = getReadTable();
 
-		}
+		
 		ArrayList<Object> column = new ArrayList<>();
 
 		columnHeader = cleanHeader(columnHeader);
 		List<String> headers = new ArrayList<String>(1);
 		headers.add(columnHeader);
 		ResultSet rs;
-		String selectQuery;
-		if (distinct) {
-			selectQuery = makeSelectDistinct(tableName, headers);
-		} else {
-			selectQuery = makeSelect(tableName, headers);
-		}
+		String selectQuery = RdbmsQueryBuilder.makeSelect(tableName, headers, distinct) + makeFilterSubQuery();
+
 		try {
 			rs = executeQuery(selectQuery);
 			while (rs.next()) {
@@ -848,20 +856,12 @@ public class H2Builder {
 	 * @return
 	 */
 	public Double getStat(String columnHeader, String statType, boolean ignoreFilter) {
-		String tableName = this.tableName;
-		if (joinMode) {
-			tableName = this.viewTableName;
-			columnHeader = translateColumn(columnHeader);
-		} else {
+		String tableName = getReadTable();
 
-		}
-		columnHeader = cleanHeader(columnHeader);
 
-		String function;
-		if (ignoreFilter) {
-			function = makeFunctionIgnoreFilter(columnHeader, statType, tableName);
-		} else {
-			function = makeFunction(columnHeader, statType, tableName);
+		String function = RdbmsQueryBuilder.makeFunction(columnHeader, statType, tableName);
+		if (!ignoreFilter) {
+			function += makeFilterSubQuery();
 		}
 
 		ResultSet rs = executeQuery(function);
@@ -875,54 +875,17 @@ public class H2Builder {
 		return null;
 	}
 
-	// DO NOT ERASE
-	// CODE FOR DOING MATH WITH GROUP BY...MAY NEED THIS WHEN/IF WE SWITCH PKQL
-	// MATH TO MAKE SQL CALLS DIRECTLY
-	// public Map<Map<Object, Object>, Object> getStat(String columnHeader,
-	// String statType, List<String> groupByCols) {
-	// String tableName = this.tableName;
-	// if(joinMode) {
-	// tableName = this.viewTableName;
-	// columnHeader = translateColumn(columnHeader);
-	// groupByCols = translateColumns(groupByCols);
-	// } else {
-	//
-	// }
-	//// String tableName = joinMode ? this.viewTableName : this.tableName;
-	// ResultSet rs = executeQuery(makeFunction(columnHeader, statType,
-	// tableName, groupByCols));
-	// try {
-	// Map<Map<Object, Object>, Object> results = new Hashtable<Map<Object,
-	// Object>, Object>();
-	// ResultSetMetaData metaData = rs.getMetaData();
-	// int numReturns = metaData.getColumnCount();
-	//
-	// int[] typeArr = new int[numReturns];
-	// // index starts at 1 for metaData
-	// for(int i = 1; i <= numReturns; i++) {
-	// typeArr[i-1] = metaData.getColumnType(i);
-	// }
-	//
-	// while(rs.next()) {
-	// // first return is the stat routine
-	// Double val = rs.getDouble(1);
-	// // get the unique set of group by values
-	// Map<Object, Object> groupByVals = new Hashtable<Object, Object>();
-	// for(int i = 2; i <= numReturns; i++) {
-	// // group by cols are added in the same position as the list passed in
-	// groupByVals.put(groupByCols.get(i-2), rs.getObject(i));
-	// }
-	// // add the row into the result set
-	// results.put(groupByVals, val);
-	// }
-	//
-	// return results;
-	// } catch (SQLException e) {
-	// e.printStackTrace();
-	// }
-	// return null;
-	// }
+	/*************************** 
+	 * 	END READ 
+	 * *************************/
 
+	
+	
+	
+	/*************************** 
+	 * 	UPDATE
+	 * *************************/
+	
 	/**
 	 * Adds new headers with associated types to the table
 	 * 
@@ -989,7 +952,9 @@ public class H2Builder {
 	// the last values and the last columnHeaders are what is updated
 	// used only for updating one column
 	public void updateTable(String[] headers, Object[] values, String[] columnHeaders) {
-
+		headers = cleanHeaders(headers);
+		columnHeaders = cleanHeaders(columnHeaders);
+		
 		try {
 
 			Object[] joinColumn = new Object[columnHeaders.length - 1];
@@ -1002,7 +967,7 @@ public class H2Builder {
 			Object[] newValue = new Object[1];
 			newValue[0] = values[columnHeaders.length - 1];
 
-			String updateQuery = makeUpdate2(tableName, joinColumn, newColumn, joinValue, newValue);
+			String updateQuery = RdbmsQueryBuilder.makeUpdate(tableName, joinColumn, newColumn, joinValue, newValue);
 			runQuery(updateQuery);
 
 		} catch (Exception e) {
@@ -1013,21 +978,267 @@ public class H2Builder {
 	// used only for Col Split PKQL for now to update multiple columns - more
 	// generic to updateTable() method
 	public void updateTable2(String[] origColumns, Object[] origValues, String[] newColumns, Object[] newValues) {
-
+		origColumns = cleanHeaders(origColumns);
+		newColumns = cleanHeaders(newColumns);
+		
 		try {
-			String updateQuery = makeUpdate2(tableName, origColumns, newColumns, origValues, newValues);
+			String updateQuery = RdbmsQueryBuilder.makeUpdate(tableName, origColumns, newColumns, origValues, newValues);
 			runQuery(updateQuery);
 
 		} catch (Exception e) {
 			e.printStackTrace();
 		}
 	}
+	
+	
+	/**
+	 * This method is responsible for processing the data associated with an
+	 * iterator and adding it to the H2 table
+	 * 
+	 * @param iterator
+	 * @param oldHeaders
+	 * @param newHeaders
+	 * @param types
+	 * @param joinType
+	 */
+	public void processIterator(Iterator<IHeadersDataRow> iterator, String[] oldHeaders, String[] newHeaders, String[] types, Join joinType) {
 
-	/***************************
-	 * END READ
-	 ****************************************/
+		newHeaders = cleanHeaders(newHeaders);
+		types = cleanTypes(types);
+		String newTableName = getNewTableName();
+		generateTable(iterator, newHeaders, types, newTableName);
 
-	/*************************** DELETE ******************************************/
+		// create table if doesn't exist
+		try {
+			runQuery("CREATE TABLE IF NOT EXISTS " + tableName);
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+
+		// add the data
+		if (joinType.equals(Join.FULL_OUTER)) {
+			processAlterData(newTableName, newHeaders, oldHeaders, Join.LEFT_OUTER);
+		} else {
+			processAlterData(newTableName, newHeaders, oldHeaders, joinType);
+		}
+
+		// if we are doing a full outer join (which h2 does not natively have)
+		// we have done the left outer join above
+		// now just add the rows we are missing via a merge query for each row
+		// not efficient but don't see another way to do it
+		// Ex: merge into table (column1, column2) key (column1, column2) values
+		// ('value1', 'value2')
+		// TODO: change this to be a union of right outer and left outer instead
+		// of inserting values
+		if (joinType.equals(Join.FULL_OUTER)) {
+
+			try {
+				Statement stmt = getConnection().createStatement();
+				String selectQuery = RdbmsQueryBuilder.makeSelect(newTableName, Arrays.asList(newHeaders), false) + makeFilterSubQuery();
+				ResultSet rs = stmt.executeQuery(selectQuery);
+				H2Iterator h2iterator = new H2Iterator(rs);
+
+				String mergeQuery = "MERGE INTO " + tableName;
+				String columns = "(";
+				for (int i = 0; i < newHeaders.length; i++) {
+					if (i != 0) {
+						columns += ", ";
+					}
+					columns += newHeaders[i];
+
+				}
+				columns += ")";
+
+				mergeQuery += columns + " KEY " + columns;
+
+				while (h2iterator.hasNext()) {
+					Object[] row = h2iterator.next();
+					String values = " VALUES(";
+					for (int i = 0; i < row.length; i++) {
+						if (i != 0) {
+							values += ", ";
+						}
+						values += " '" + row[i].toString() + "' ";
+					}
+					values += ")";
+					try {
+						runQuery(mergeQuery + values);
+					} catch (Exception e) {
+						e.printStackTrace();
+					}
+				}
+			} catch (Exception e) {
+				e.printStackTrace();
+			}
+		}
+
+		try {
+			runQuery(RdbmsQueryBuilder.makeDropTable(newTableName));
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+
+		// shift to on disk if number of records is getting large
+		if (isInMem && getNumRecords() > LIMIT_SIZE) {
+			// let the method determine where the new schema will be
+			convertFromInMemToPhysical(null);
+		}
+	}
+
+	public void addRowsViaIterator(Iterator<IHeadersDataRow> iterator, Map<String, IMetaData.DATA_TYPES> typesMap) {
+		try {
+			// keep a batch size so we dont get heapspace
+			final int batchSize = 5000;
+			int count = 0;
+
+			PreparedStatement ps = null;
+			String[] types = null;
+
+			// we loop through every row of the csv
+			while (iterator.hasNext()) {
+				IHeadersDataRow headerRow = iterator.next();
+				Object[] nextRow = headerRow.getValues();
+
+				// need to set values on the first iteration
+				if (ps == null) {
+					String[] headers = headerRow.getHeaders();
+					// get the data types
+					types = new String[headers.length];
+					for (int i = 0; i < types.length; i++) {
+						types[i] = Utility.convertDataTypeToString(typesMap.get(headers[i]));
+					}
+					// alter the table to have the column information if not
+					// already present
+					// this will also create a new table if the table currently
+					// doesn't exist
+					alterTableNewColumns(tableName, headers, types);
+
+					// set the PS based on the headers
+					ps = createInsertPreparedStatement(tableName, headers);
+				}
+
+				// we need to loop through every value and cast appropriately
+				for (int colIndex = 0; colIndex < nextRow.length; colIndex++) {
+					String type = types[colIndex];
+					if (type.equalsIgnoreCase("DATE")) {
+						java.util.Date value = Utility.getDateAsDateObj(nextRow[colIndex] + "");
+						if (value != null) {
+							ps.setDate(colIndex + 1, new java.sql.Date(value.getTime()));
+						} else {
+							ps.setNull(colIndex + 1, java.sql.Types.DATE);
+						}
+					} else if (type.equalsIgnoreCase("DOUBLE") || type.equalsIgnoreCase("FLOAT")) {
+						Double value = Utility.getDouble(nextRow[colIndex] + "");
+						if (value != null) {
+							ps.setDouble(colIndex + 1, value);
+						} else {
+							ps.setNull(colIndex + 1, java.sql.Types.DOUBLE);
+						}
+					} else {
+						String value = nextRow[colIndex] + "";
+						ps.setString(colIndex + 1, value + "");
+					}
+				}
+				// add it
+				ps.addBatch();
+
+				// batch commit based on size
+				if (++count % batchSize == 0) {
+					ps.executeBatch();
+				}
+			}
+
+			if(ps == null) {
+				throw new IllegalArgumentException("Iterator generated returned no values");
+			}
+			
+			// well, we are done looping through now
+			ps.executeBatch(); // insert any remaining records
+			ps.close();
+		} catch (SQLException e) {
+			e.printStackTrace();
+		}
+
+		// shift to on disk if number of records is getting large
+		if (isInMem && getNumRecords() > LIMIT_SIZE) {
+			// let the method determine where the new schema will be
+			convertFromInMemToPhysical(null);
+		}
+	}
+
+	
+	/**
+	 * 
+	 * adds new row to the table
+	 * 
+	 * @param tableName
+	 *            - name of table to add to
+	 * @param cells
+	 *            - values to add to table
+	 * @param headers
+	 *            - headers for the table
+	 * @param types
+	 *            - types of the table
+	 * 
+	 *            will add new row to the table, will create table if table does
+	 *            not already exist
+	 */
+	public void addRow(String tableName, String[] cells, String[] headers, String[] types) {
+		boolean create = true;
+		types = cleanTypes(types);
+
+		// create table if it does not already exist
+		try {
+			if (!tableExists(tableName)) {
+				String createTable = RdbmsQueryBuilder.makeCreate(tableName, headers, types);
+				runQuery(createTable);
+			}
+		} catch (Exception ex) {
+			ex.printStackTrace();
+			brokenLines = "Headers are not properly formatted - Discontinued processing";
+			create = false;
+		}
+
+		// add the row to the table
+		try {
+			if (create) {
+				rowCount++;
+				cells = Utility.castToTypes(cells, types);
+				String inserter = RdbmsQueryBuilder.makeInsert(headers, types, cells, new Hashtable<String, String>(), tableName);
+				runQuery(inserter);
+			}
+		} catch (SQLException ex) {
+			System.out.println("SQL error while inserting row at " + rowCount);
+			System.out.println("Exception: " + ex);
+		} catch (Exception ex) {
+			System.out.println("Errored.. nothing to do");
+			brokenLines = brokenLines + " : " + rowCount;
+		}
+	}
+	
+	// rename a column
+	private void renameColumn(String fromColumn, String toColumn) {
+		String renameQuery = RdbmsQueryBuilder.makeRenameColumn(fromColumn, toColumn, tableName);
+		try {
+			runQuery(renameQuery);
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+	}
+
+	
+	
+	/*************************** 
+	 * 	END UPDATE 
+	 * *************************/
+	
+	
+	
+	
+	/*************************** 
+	 * 	DELETE
+	 * *************************/
+	
 
 	/**
 	 * Drops the column from the main table
@@ -1036,9 +1247,10 @@ public class H2Builder {
 	 *            - column to drop
 	 */
 	public void dropColumn(String columnHeader) {
-
 		try {
-			runQuery(RdbmsQueryBuilder.makeDropColumn(columnHeader, tableName));
+			columnHeader = cleanHeader(columnHeader);
+			String dropColumnQuery = RdbmsQueryBuilder.makeDropColumn(columnHeader, tableName);
+			runQuery(dropColumnQuery);
 		} catch (Exception e) {
 			e.printStackTrace();
 		}
@@ -1052,7 +1264,8 @@ public class H2Builder {
 	 */
 	public void deleteRow(String[] columns, String[] values) {
 		try {
-			String deleteRowQuery = makeDeleteData(tableName, columns, values);
+			columns = cleanHeaders(columns);
+			String deleteRowQuery = RdbmsQueryBuilder.makeDeleteData(tableName, columns, values);
 			runQuery(deleteRowQuery);
 		} catch (Exception e) {
 			e.printStackTrace();
@@ -1064,9 +1277,9 @@ public class H2Builder {
 	 */
 	protected void dropTable() {
 		if(tableExists(tableName)) {
-			String finalQuery = RdbmsQueryBuilder.makeDropTable(tableName);
 			try {
-				runQuery(finalQuery);
+				String dropTableQuery = RdbmsQueryBuilder.makeDropTable(tableName);
+				runQuery(dropTableQuery);
 			} catch (Exception e) {
 				e.printStackTrace();
 			}
@@ -1076,27 +1289,17 @@ public class H2Builder {
 		}
 	}
 
-	/**
-	 * used to drop the table when the insight is closed
-	 */
-	protected void dropView() {
-		if (viewTableName == null)
-			return;
+	
+	/*************************** 
+	 * 	END DELETE
+	 * *************************/
 
-		String finalQuery = RdbmsQueryBuilder.makeDropView(this.viewTableName);
-		try {
-			runQuery(finalQuery);
-		} catch (Exception e) {
-			e.printStackTrace();
-		}
-		System.out.println("DROPPED H2 TABLE" + tableName);
-	}
-
-	/***************************
-	 * END DELETE
-	 **************************************/
-
-	/*************************** FILTER ******************************************/
+	
+	
+	
+	/*************************** 
+	 * 	FILTER
+	 * *************************/
 
 	/**
 	 * Aggregates filters for a columnheader In the case of a numerical filter
@@ -1111,15 +1314,10 @@ public class H2Builder {
 	public void addFilters(String columnHeader, List<Object> values, AbstractTableDataFrame.Comparator comparator) {
 		columnHeader = cleanHeader(columnHeader);
 
-		Map<String, Map<AbstractTableDataFrame.Comparator, Set<Object>>> filterHash;
-		String column;
-		if (joinMode) {
-			filterHash = this.joiner.getJoinedFilterHash(viewTableName);
-			column = translateColumn(columnHeader);
-		} else {
-			filterHash = this.filterHash2;
-			column = columnHeader;
-		}
+		
+		
+		Map<String, Map<AbstractTableDataFrame.Comparator, Set<Object>>> filterHash = getFilterHash();
+		String column = columnHeader;
 
 		if (filterHash.get(column) == null) {
 			setFilters(column, values, comparator);
@@ -1155,15 +1353,6 @@ public class H2Builder {
 	public void setFilters(String columnHeader, List<Object> values, AbstractTableDataFrame.Comparator comparator) {
 		columnHeader = cleanHeader(columnHeader);
 
-		Map<String, Map<AbstractTableDataFrame.Comparator, Set<Object>>> filterHash;
-		String column;
-		if (joinMode) {
-			filterHash = this.joiner.getJoinedFilterHash(viewTableName);
-			column = translateColumn(columnHeader);
-		} else {
-			filterHash = this.filterHash2;
-			column = columnHeader;
-		}
 		Map<AbstractTableDataFrame.Comparator, Set<Object>> innerMap = new LinkedHashMap<>();
 		
 		Set<Object> set = new HashSet<>(values);
@@ -1178,7 +1367,7 @@ public class H2Builder {
 				innerMap.put(AbstractTableDataFrame.Comparator.IS_NOT_NULL, new HashSet<>());
 		}
 
-		filterHash.put(column, innerMap);
+		filterHash2.put(columnHeader, innerMap);
 	}
 
 	/**
@@ -1188,33 +1377,14 @@ public class H2Builder {
 	 */
 	public void removeFilter(String columnHeader) {
 		columnHeader = cleanHeader(columnHeader);
-
-		Map<String, Map<AbstractTableDataFrame.Comparator, Set<Object>>> filterHash;
-		String column;
-		if (joinMode) {
-			filterHash = this.joiner.getJoinedFilterHash(viewTableName);
-			column = translateColumn(columnHeader);
-		} else {
-			filterHash = this.filterHash2;
-			column = columnHeader;
-		}
-
-		filterHash.remove(column);
+		filterHash2.remove(columnHeader);
 	}
 
 	/**
 	 * Clears all filters associated with the main table
 	 */
 	public void clearFilters() {
-
-		if (joinMode) {
-			Map<String, Map<AbstractTableDataFrame.Comparator, Set<Object>>> filterHash = this.joiner.getJoinedFilterHash(viewTableName);
-			for (String key : this.joinColumnTranslation.keySet()) {
-				filterHash.remove(joinColumnTranslation.get(key));
-			}
-		} else {
-			filterHash2.clear();
-		}
+		filterHash2.clear();
 	}
 
 	/**
@@ -1298,19 +1468,13 @@ public class H2Builder {
 	}
 
 	private String makeFilterSubQuery() {
-		Map<String, Map<AbstractTableDataFrame.Comparator, Set<Object>>> filterHash;
-		if (joinMode) {
-			filterHash = joiner.getJoinedFilterHash(viewTableName);
-		} else {
-			filterHash = this.filterHash2;
-		}
+		Map<String, Map<AbstractTableDataFrame.Comparator, Set<Object>>> filterHash = getFilterHash();
 		return makeFilterSubQuery(filterHash);
 	}
 
 	private String makeFilterSubQuery(Map<String, Map<AbstractTableDataFrame.Comparator, Set<Object>>> filterHash) {
 		// need to also pass in translationMap
-		if (joinMode)
-			filterHash = joiner.getJoinedFilterHash(viewTableName);
+
 
 		String filterStatement = "";
 		if (filterHash.keySet().size() > 0) {
@@ -1319,8 +1483,9 @@ public class H2Builder {
 			for (int x = 0; x < filteredColumns.size(); x++) {
 
 				String header = filteredColumns.get(x);
-				 String tableHeader = joinMode ? translateColumn(header) : header;
-//				String tableHeader = header;
+				// String tableHeader = joinMode ? translateColumn(header) :
+				// header;
+				String tableHeader = header;
 
 				Map<AbstractTableDataFrame.Comparator, Set<Object>> innerMap = filterHash.get(header);
 				int i = 0;
@@ -1410,11 +1575,7 @@ public class H2Builder {
 	}
 
 	public Object[] getFilterHashJoinedMode() {
-		Map<String, Map<AbstractTableDataFrame.Comparator, Set<Object>>> filterHash = this.filterHash2;
-		if (this.joinMode) {
-			tableName = this.viewTableName;
-			filterHash = joiner.getJoinedFilterHash(viewTableName);
-		}
+		Map<String, Map<AbstractTableDataFrame.Comparator, Set<Object>>> filterHash = getFilterHash();
 		return new Object[] { tableName, filterHash };
 	}
 
@@ -1433,20 +1594,16 @@ public class H2Builder {
 		// Ex: Studio -> [WB, Universal]
 		// WB and Universal are filtered from Studio column
 		String tableName = this.tableName;
-		Map<String, Map<AbstractTableDataFrame.Comparator, Set<Object>>> filterHash = this.filterHash2;
-		if (joinMode) {
-			tableName = this.viewTableName;
-			filterHash = joiner.getJoinedFilterHash(viewTableName);
-		}
-
+		Map<String, Map<AbstractTableDataFrame.Comparator, Set<Object>>> filterHash = getFilterHash();
+		Map<String, Map<AbstractTableDataFrame.Comparator, Set<Object>>> hardfilterHash = getHardFilterHash();//FilterHash();
 		Map<String, List<Object>> returnFilterMap = new HashMap<>();
 
 		try {
 			for (String selector : selectors) {
 
-				String thisSelector = joinMode ? translateColumn(selector) : selector;
+				String thisSelector = selector;
 
-				if (filterHash.get(thisSelector) != null) {
+				if (hardfilterHash.get(thisSelector) != null) {
 					String query = makeNotSelect(tableName, thisSelector, filterHash) + limitOffset;
 					ResultSet rs = executeQuery(query);
 
@@ -1472,339 +1629,129 @@ public class H2Builder {
 	}
 
 	public Map<String, Map<AbstractTableDataFrame.Comparator, Set<Object>>> getFilterHash() {
+		if(joiner != null) {
+			H2FilterHash joinerFilters = joiner.getFilters(getTableName());
+			return mergeFilters(this.filterHash2, joinerFilters);
+		}
+		return this.filterHash2;
+	}
+	
+	public Map<String, Map<AbstractTableDataFrame.Comparator, Set<Object>>> getHardFilterHash() {
 		return this.filterHash2;
 	}
 
-	/***************************
-	 * END FILTER
-	 **************************************/
+	//This is a mess but will be merged into H2FilterHash and much simpler once we use that and not the long map
+	//also will rely upon strings moving forward, shifting away from comparator
+	private Map<String, Map<AbstractTableDataFrame.Comparator, Set<Object>>> mergeFilters(Map<String, Map<AbstractTableDataFrame.Comparator, Set<Object>>> curFilters, H2FilterHash filters) {
+		
+		Map<String, Map<String, Set<Object>>> filterHash = filters.getFilterHash();
+		if(filterHash.isEmpty()) return curFilters;
 
-	/*************************** UPDATE ******************************************/
-
-	/**
-	 * This method is responsible for processing the data associated with an
-	 * iterator and adding it to the H2 table
-	 * 
-	 * @param iterator
-	 * @param oldHeaders
-	 * @param newHeaders
-	 * @param types
-	 * @param joinType
-	 */
-	public void processIterator(Iterator<IHeadersDataRow> iterator, String[] oldHeaders, String[] newHeaders, String[] types, Join joinType) {
-
-		newHeaders = cleanHeaders(newHeaders);
-		types = cleanTypes(types);
-		String newTableName = getNewTableName();
-		generateTable(iterator, newHeaders, types, newTableName);
-
-		// create table if doesn't exist
-		try {
-			runQuery("CREATE TABLE IF NOT EXISTS " + tableName);
-		} catch (Exception e) {
-			e.printStackTrace();
-		}
-
-		// add the data
-		if (joinType.equals(Join.FULL_OUTER)) {
-			processAlterData(newTableName, newHeaders, oldHeaders, Join.LEFT_OUTER);
-		} else {
-			processAlterData(newTableName, newHeaders, oldHeaders, joinType);
-		}
-
-		// if we are doing a full outer join (which h2 does not natively have)
-		// we have done the left outer join above
-		// now just add the rows we are missing via a merge query for each row
-		// not efficient but don't see another way to do it
-		// Ex: merge into table (column1, column2) key (column1, column2) values
-		// ('value1', 'value2')
-		// TODO: change this to be a union of right outer and left outer instead
-		// of inserting values
-		if (joinType.equals(Join.FULL_OUTER)) {
-
-			try {
-				Statement stmt = getConnection().createStatement();
-				String selectQuery = makeSelect(newTableName, Arrays.asList(newHeaders));
-				ResultSet rs = stmt.executeQuery(selectQuery);
-				H2Iterator h2iterator = new H2Iterator(rs);
-
-				String mergeQuery = "MERGE INTO " + tableName;
-				String columns = "(";
-				for (int i = 0; i < newHeaders.length; i++) {
-					if (i != 0) {
-						columns += ", ";
-					}
-					columns += newHeaders[i];
-
-				}
-				columns += ")";
-
-				mergeQuery += columns + " KEY " + columns;
-
-				while (h2iterator.hasNext()) {
-					Object[] row = h2iterator.next();
-					String values = " VALUES(";
-					for (int i = 0; i < row.length; i++) {
-						if (i != 0) {
-							values += ", ";
-						}
-						values += " '" + row[i].toString() + "' ";
-					}
-					values += ")";
-					try {
-						runQuery(mergeQuery + values);
-					} catch (Exception e) {
-						e.printStackTrace();
-					}
-				}
-			} catch (Exception e) {
-				e.printStackTrace();
-			}
-		}
-
-		try {
-			runQuery(RdbmsQueryBuilder.makeDropTable(newTableName));
-		} catch (Exception e) {
-			e.printStackTrace();
-		}
-
-		// shift to on disk if number of records is getting large
-		if (isInMem && getNumRecords() > LIMIT_SIZE) {
-			// let the method determine where the new schema will be
-			convertFromInMemToPhysical(null);
-		}
-	}
-
-	/**
-	 * 
-	 * @param column
-	 *            - the column to join on
-	 * @param newColumnName
-	 *            - new column name with group by values
-	 * @param valueColumn
-	 *            - the column to do calculations on
-	 * @param mathType
-	 *            - the type of group by
-	 * @param headers
-	 */
-	public void processGroupBy(String column, String newColumnName, String valueColumn, String mathType, String[] headers) {
-
-		// String[] tableHeaders = getHeaders(tableName);
-		// String inserter = makeGroupBy(column, valueColumn, mathType,
-		// newColumnName, this.tableName, headers);
-		// processAlterAsNewTable(inserter, Join.LEFT_OUTER.getName(),
-		// tableHeaders);
-
-		String reservedColumn = getExtraColumn();
-		if (reservedColumn == null) {
-			addEmptyDerivedColumns();
-			reservedColumn = getExtraColumn();
-		}
-		renameColumn(reservedColumn, newColumnName);
-
-		// String[] tableHeaders = getHeaders(tableName);
-		String inserter = makeGroupBy(column, valueColumn, mathType, newColumnName, this.tableName, headers);
-		try {
-			ResultSet groupBySet = executeQuery(inserter);
-			while (groupBySet.next()) {
-				Object[] values = { groupBySet.getObject(column), groupBySet.getObject(newColumnName) };
-				String[] columnHeaders = { column, newColumnName };
-				updateTable(headers, values, columnHeaders);
-
-				// String updateQuery = makeUpdate(tableName, column,
-				// newColumnName, groupBySet.getObject(column),
-				// groupBySet.getObject(newColumnName));
-				// runQuery(updateQuery);
-			}
-		} catch (Exception e) {
-
-		}
-		// makeUpdate(mathType, joinColumn, newColumn, joinValue, newValue)
-		// processAlterAsNewTable(inserter, Join.LEFT_OUTER.getName(),
-		// tableHeaders);
-
-		// all group bys are doubles?
-		// addHeader(newColumnName, "double", tableHeaders);
-		// addType("double");
-	}
-
-	// process a group by - calculate then make a table then merge the table
-	public void processGroupBy(String[] column, String newColumnName, String valueColumn, String mathType,
-			String[] headers) {
-		String tableName = joinMode ? this.viewTableName : this.tableName;
-		if (column.length == 1) {
-			processGroupBy(column[0], newColumnName, valueColumn, mathType, headers);
-			return;
-		}
-		// String[] tableHeaders = getHeaders(tableName);
-		// String inserter = makeGroupBy(column, valueColumn, mathType,
-		// newColumnName, this.tableName, headers);
-		// processAlterAsNewTable(inserter, Join.LEFT_OUTER.getName(),
-		// tableHeaders);
-
-		// all group bys are doubles?
-		String reservedColumn = getExtraColumn();
-		if (reservedColumn == null) {
-			addEmptyDerivedColumns();
-			reservedColumn = getExtraColumn();
-		}
-		renameColumn(reservedColumn, newColumnName);
-
-		// String[] tableHeaders = getHeaders(tableName);
-		String inserter = makeGroupBy(column, valueColumn, mathType, newColumnName, tableName, headers);
-		try {
-			ResultSet groupBySet = executeQuery(inserter);
-			while (groupBySet.next()) {
-				List<Object> values = new ArrayList<>();
-				List<Object> columnHeaders = new ArrayList<>();
-				for (String c : column) {
-					values.add(groupBySet.getObject(c));// {groupBySet.getObject(column),
-														// groupBySet.getObject(newColumnName)};
-					columnHeaders.add(c);
-				}
-				values.add(groupBySet.getObject(newColumnName));
-				columnHeaders.add(newColumnName);
-				updateTable(headers, values.toArray(), columnHeaders.toArray(new String[] {}));
-
-				// String updateQuery = makeUpdate(tableName, column,
-				// newColumnName, groupBySet.getObject(column),
-				// groupBySet.getObject(newColumnName));
-				// runQuery(updateQuery);
-			}
-		} catch (Exception e) {
-
-		}
-	}
-
-	public void addRowsViaIterator(Iterator<IHeadersDataRow> iterator, Map<String, IMetaData.DATA_TYPES> typesMap) {
-		try {
-			// keep a batch size so we dont get heapspace
-			final int batchSize = 5000;
-			int count = 0;
-
-			PreparedStatement ps = null;
-			String[] types = null;
-
-			// we loop through every row of the csv
-			while (iterator.hasNext()) {
-				IHeadersDataRow headerRow = iterator.next();
-				Object[] nextRow = headerRow.getValues();
-
-				// need to set values on the first iteration
-				if (ps == null) {
-					String[] headers = headerRow.getHeaders();
-					// get the data types
-					types = new String[headers.length];
-					for (int i = 0; i < types.length; i++) {
-						types[i] = Utility.convertDataTypeToString(typesMap.get(headers[i]));
-					}
-					// alter the table to have the column information if not
-					// already present
-					// this will also create a new table if the table currently
-					// doesn't exist
-					alterTableNewColumns(tableName, headers, types);
-
-					// set the PS based on the headers
-					ps = createInsertPreparedStatement(tableName, headers);
-				}
-
-				// we need to loop through every value and cast appropriately
-				for (int colIndex = 0; colIndex < nextRow.length; colIndex++) {
-					String type = types[colIndex];
-					if (type.equalsIgnoreCase("DATE")) {
-						java.util.Date value = Utility.getDateAsDateObj(nextRow[colIndex] + "");
-						if (value != null) {
-							ps.setDate(colIndex + 1, new java.sql.Date(value.getTime()));
-						} else {
-							ps.setNull(colIndex + 1, java.sql.Types.DATE);
-						}
-					} else if (type.equalsIgnoreCase("DOUBLE") || type.equalsIgnoreCase("FLOAT")) {
-						Double value = Utility.getDouble(nextRow[colIndex] + "");
-						if (value != null) {
-							ps.setDouble(colIndex + 1, value);
-						} else {
-							ps.setNull(colIndex + 1, java.sql.Types.DOUBLE);
-						}
+		List<String> addedKeys = new ArrayList<String>();
+		
+		Map<String, Map<AbstractTableDataFrame.Comparator, Set<Object>>> mergedFilters = new HashMap<>();
+		for(String key : filterHash.keySet()) {
+			addedKeys.add(key);
+			if(curFilters.containsKey(key)) {
+				//pick the more restrictive filters
+				Map<AbstractTableDataFrame.Comparator, Set<Object>> curFilterMap = curFilters.get(key);
+				Map<String, Set<Object>> filterMap = filterHash.get(key);
+				List<Comparator> addedFilterKeys = new ArrayList<>();
+				
+				Map<AbstractTableDataFrame.Comparator, Set<Object>> newInnerMap = new HashMap<>();
+				for(String filterKey : filterMap.keySet()) {
+					Comparator comp = RdbmsFrameUtility.getStringComparatorValue(filterKey);
+					addedFilterKeys.add(comp);
+					if(curFilterMap.containsKey(comp)) {
+						Set<Object> set1 = curFilterMap.get(comp);
+						Set<Object> set2 = filterMap.get(filterKey);
+						Set<Object> restrictiveSet = getMoreRestrictiveSet(comp, set1, set2);
+						newInnerMap.put(comp, restrictiveSet);
 					} else {
-						String value = nextRow[colIndex] + "";
-						ps.setString(colIndex + 1, value + "");
+						newInnerMap.put(comp, filterMap.get(filterKey));
 					}
 				}
-				// add it
-				ps.addBatch();
-
-				// batch commit based on size
-				if (++count % batchSize == 0) {
-					ps.executeBatch();
+				
+				for(Comparator comparator : curFilterMap.keySet()) {
+					if(!addedFilterKeys.contains(comparator)) {
+						newInnerMap.put(comparator, curFilterMap.get(comparator));
+					}
 				}
+				mergedFilters.put(key, newInnerMap);
+			} else {
+				Map<String, Set<Object>> innerFilterHash = filterHash.get(key);
+				Map<AbstractTableDataFrame.Comparator, Set<Object>> newInnerMap = new HashMap<>();
+				for(String comparator : innerFilterHash.keySet()) {
+					Set<Object> set = innerFilterHash.get(comparator);
+					Comparator comp = RdbmsFrameUtility.getStringComparatorValue(comparator);
+					newInnerMap.put(comp, set);
+				}
+				mergedFilters.put(key, newInnerMap);
 			}
-
-			if(ps == null) {
-				throw new IllegalArgumentException("Iterator generated returned no values");
+		}
+		
+		for(String key : curFilters.keySet()) {
+			if(!addedKeys.contains(key)) {
+				mergedFilters.put(key, curFilters.get(key));
 			}
+		}
+		
+		return mergedFilters;
+	}
+	
+	//assumes one set is a subset of the other
+	private Set<Object> getMoreRestrictiveSet(Comparator comparator, Set<Object> set1, Set<Object> set2) {
+		
+		if(set1 == null || set1.isEmpty()) return set2;
+		if(set2 == null || set2.isEmpty()) return set1;
+		
+		switch(comparator) {
+		case EQUAL: {
+			if(set1.size() < set2.size()) {
+				return set1;
+			} else return set2;
+		}
+		case NOT_EQUAL: {
+			if(set1.size() > set2.size()) {
+				return set1;
+			} else return set2;
+		}
+		
+		//TODO : need to revisit how we do this
+//		case LESS_THAN: {
+//			Object firstObj = set1.iterator().next();
+//			Object secondObj = set2.iterator().next();
+//			if()
+//			break;
+//		}
+//		case GREATER_THAN: {
+//			Object firstObj = set1.iterator().next();
+//			Object secondObj = set2.iterator().next();
+//			break;
+//		}
+//		case GREATER_THAN_EQUAL: {
+//			Object firstObj = set1.iterator().next();
+//			Object secondObj = set2.iterator().next();
+//			break;
+//		}
+//		case LESS_THAN_EQUAL: {
+//			Object firstObj = set1.iterator().next();
+//			Object secondObj = set2.iterator().next();
+//			break;
+//		} 
+		default : {
 			
-			// well, we are done looping through now
-			ps.executeBatch(); // insert any remaining records
-			ps.close();
-		} catch (SQLException e) {
-			e.printStackTrace();
 		}
-
-		// shift to on disk if number of records is getting large
-		if (isInMem && getNumRecords() > LIMIT_SIZE) {
-			// let the method determine where the new schema will be
-			convertFromInMemToPhysical(null);
-		}
+		return set1;
 	}
-
-	/**
-	 * 
-	 * adds new row to the table
-	 * 
-	 * @param tableName
-	 *            - name of table to add to
-	 * @param cells
-	 *            - values to add to table
-	 * @param headers
-	 *            - headers for the table
-	 * @param types
-	 *            - types of the table
-	 * 
-	 *            will add new row to the table, will create table if table does
-	 *            not already exist
-	 */
-	public void addRow(String tableName, String[] cells, String[] headers, String[] types) {
-		boolean create = true;
-		types = cleanTypes(types);
-
-		// create table if it does not already exist
-		try {
-			if (!tableExists(tableName)) {
-				String createTable = RdbmsQueryBuilder.makeCreate(tableName, headers, types);
-				runQuery(createTable);
-			}
-		} catch (Exception ex) {
-			ex.printStackTrace();
-			brokenLines = "Headers are not properly formatted - Discontinued processing";
-			create = false;
-		}
-
-		// add the row to the table
-		try {
-			if (create) {
-				rowCount++;
-				cells = Utility.castToTypes(cells, types);
-				String inserter = makeInsert(headers, types, cells, new Hashtable<String, String>(), tableName);
-				runQuery(inserter);
-			}
-		} catch (SQLException ex) {
-			System.out.println("SQL error while inserting row at " + rowCount);
-			System.out.println("Exception: " + ex);
-		} catch (Exception ex) {
-			System.out.println("Errored.. nothing to do");
-			brokenLines = brokenLines + " : " + rowCount;
-		}
 	}
+	
+	/*************************** 
+	 * 	END FILTER
+	 * *************************/
+
+
+	
 
 	/**
 	 * 
@@ -1841,17 +1788,11 @@ public class H2Builder {
 	 * 		returns an iterator that returns data from the selectors
 	 */
 	public Iterator buildIterator(List<String> selectors) {
-		String tableName;
-		if (joinMode) {
-			tableName = this.viewTableName;
-			selectors = translateColumns(selectors);
-		} else {
-			tableName = this.tableName;
-		}
+		String tableName = getReadTable();
 
 		try {
 			Statement stmt = getConnection().createStatement();
-			String selectQuery = makeSelect(tableName, selectors);
+			String selectQuery = RdbmsQueryBuilder.makeSelect(tableName, selectors, false) + makeFilterSubQuery();
 
 			long startTime = System.currentTimeMillis();
 			ResultSet rs = stmt.executeQuery(selectQuery);
@@ -1874,21 +1815,13 @@ public class H2Builder {
 	 * 		returns an iterator that returns data from the selectors
 	 */
 	public Iterator buildIterator(List<String> selectors, boolean ignoreFilters) {
-		String tableName;
-		if (joinMode) {
-			tableName = this.viewTableName;
-			selectors = translateColumns(selectors);
-		} else {
-			tableName = this.tableName;
-		}
+		String tableName = getReadTable();
 
 		try {
 			Statement stmt = getConnection().createStatement();
-			String selectQuery = "";
-			if (ignoreFilters) {
-				selectQuery = makeSelectDistinctIgnoreFilters(tableName, selectors);
-			} else {
-				selectQuery = makeSelectDistinct(tableName, selectors);
+			String selectQuery = RdbmsQueryBuilder.makeSelect(tableName, selectors, true);;
+			if (!ignoreFilters) {
+				selectQuery += makeFilterSubQuery();
 			}
 			long startTime = System.currentTimeMillis();
 			ResultSet rs = stmt.executeQuery(selectQuery);
@@ -1913,7 +1846,7 @@ public class H2Builder {
 	 * 		returns an iterator based on the options parameter
 	 */
 	public Iterator buildIterator(Map<String, Object> options) {
-		String tableName = joinMode ? this.viewTableName : this.tableName;
+		String tableName = getReadTable();
 
 		String sortDir = (String) options.get(AbstractTableDataFrame.SORT_BY_DIRECTION);
 
@@ -1940,23 +1873,10 @@ public class H2Builder {
 		// selectors to gather
 		List<String> selectors = (List<String>) options.get(AbstractTableDataFrame.SELECTORS);
 		selectors = cleanHeaders(selectors);
-		if (joinMode) {
-			selectors = translateColumns(selectors);
-		}
-		String selectQuery;
 
-		if (dedup) {
-			if (ignoreFilters) {
-				selectQuery = makeSelectDistinctIgnoreFilters(tableName, selectors);
-			} else {
-				selectQuery = makeSelectDistinct(tableName, selectors);
-			}
-		} else {
-			if (ignoreFilters) {
-				selectQuery = makeSelectIgnoreFilters(tableName, selectors);
-			} else {
-				selectQuery = makeSelect(tableName, selectors);
-			}
+		String selectQuery = RdbmsQueryBuilder.makeSelect(tableName, selectors, dedup);
+		if(!ignoreFilters) {
+			selectQuery += makeFilterSubQuery();
 		}
 
 		// temporary filters to apply only to this iterator
@@ -1979,13 +1899,9 @@ public class H2Builder {
 
 		if (sortBy != null) {
 			sortBy = cleanHeader(sortBy);
-			if (joinMode) {
-				sortBy = translateColumn(sortBy);
-			} else {
-				// add an index to the table to make the sort much faster
-				// note h2 view does not support index
-				addColumnIndex(tableName, sortBy);
-			}
+			// add an index to the table to make the sort much faster
+			// note h2 view does not support index
+			addColumnIndex(tableName, sortBy);
 			selectQuery += " order by " + sortBy;
 		}
 		if (limit != null && limit > 0) {
@@ -2489,10 +2405,6 @@ public class H2Builder {
 		return tableName;
 	}
 
-	protected String getViewTableName() {
-		return this.viewTableName;
-	}
-
 	// TODO: should this be private?
 	public String[] getHeaders(String tableName) {
 		List<String> headers = new ArrayList<String>();
@@ -2509,8 +2421,6 @@ public class H2Builder {
 		}
 		return headers.toArray(new String[] {});
 	}
-
-
 
 	private String[] cleanHeaders(String[] headers) {
 		String[] cleanHeaders = new String[headers.length];
@@ -2569,34 +2479,6 @@ public class H2Builder {
 
 		return cleanTypes;
 	}
-
-	private String cleanInstance(String value) {
-		return value.replace("'", "''");
-	}
-
-	// rename a column
-	private void renameColumn(String fromColumn, String toColumn) {
-		String renameQuery = makeRenameColumn(fromColumn, toColumn, tableName);
-		try {
-			runQuery(renameQuery);
-		} catch (Exception e) {
-			e.printStackTrace();
-		}
-	}
-
-	protected void renameTable(String newTable) {
-		if(tableExists(tableName)) {
-			String renameQuery = makeRenameTable(tableName, newTable);
-			try {
-				runQuery(renameQuery);
-				this.tableName = newTable;
-			} catch (Exception e) {
-				e.printStackTrace();
-			}
-		} else {
-			this.tableName = newTable;
-		}
-	}
 	
 	public String getSchema() {
 		return this.schema;
@@ -2627,130 +2509,12 @@ public class H2Builder {
 	 * QUERY BUILDERS
 	 ******************************************/
 
-	// make an insert query
-	private String makeInsert(String[] headers, String[] types, String[] values, Hashtable<String, String> defaultValues, String tableName) {
-		StringBuilder inserter = new StringBuilder("INSERT INTO " + tableName + " (");
-		StringBuilder template = new StringBuilder("(");
-
-		for (int colIndex = 0; colIndex < headers.length; colIndex++) {
-			// I need to find the type and based on that adjust what I want
-			String type = types[colIndex];
-
-			// if null on integer - empty
-			// if null on string - ''
-			// if currenncy - empty
-			// if date - empty
-
-			String name = cleanHeader(headers[colIndex]);
-			StringBuilder thisTemplate = new StringBuilder(name);
-
-			if (type.equalsIgnoreCase("int") || type.equalsIgnoreCase("double")) {
-				// if(!defaultValues.containsKey(type))
-				String value = values[colIndex];
-				if (value == null || value.length() == 0) {
-					value = "null";
-				}
-				thisTemplate = new StringBuilder(value);
-				// else
-				// thisTemplate = new StringBuilder(defaultValues.get(type));
-			}
-
-			else if (type.equalsIgnoreCase("date")) {
-				String value = values[colIndex];
-				if (value == null || value.length() == 0) {
-					value = "null";
-					thisTemplate = new StringBuilder(value);
-				} else {
-					value = value.replace("'", "''");
-					thisTemplate = new StringBuilder("'" + value + "'");
-				}
-			} else {
-				// if(value != null)
-				// comments will come in handy some day
-				// if(!defaultValues.containsKey(type))
-				String value = values[colIndex];
-				value = value.replace("'", "''");
-				thisTemplate = new StringBuilder("'" + value + "'");
-				// else
-				// thisTemplate = new StringBuilder("'" +
-				// defaultValues.get(type) + "'");
-			}
-			if (colIndex == 0) {
-				inserter.append(name);// = new StringBuilder(inserter + name);
-				template.append(thisTemplate);// = new StringBuilder(template +
-												// "" + thisTemplate);
-			} else {
-				inserter.append(" , " + name);// = new StringBuilder(inserter +
-												// " , " + name );
-				template.append(" , " + thisTemplate); // = new
-														// StringBuilder(template
-														// + " , " +
-														// thisTemplate);
-			}
-		}
-
-		inserter.append(")  VALUES  ");// = new StringBuilder(inserter + ")
-										// VALUES ");
-		// template.append(inserter + "" + template + ")");// = new
-		// StringBuilder(inserter + "" + template + ")");
-		inserter.append(template + ")");
-		// System.out.println("Insert Values: " +template);
-
-		// return template.toString();
-		return inserter.toString();
-	}
-
-	// make a select query
-	private String makeSelect(String tableName, List<String> selectors) {
-
-		String selectStatement = "SELECT ";
-
-		for (int i = 0; i < selectors.size(); i++) {
-			String selector = selectors.get(i);
-			// selector = cleanHeader(selector);
-
-			if (i < selectors.size() - 1) {
-				selectStatement += selector + ", ";
-			} else {
-				selectStatement += selector;
-			}
-		}
-
-		// String filterSubQuery = makeFilterSubQuery(this.filterHash,
-		// this.filterComparator);
-		String filterSubQuery = makeFilterSubQuery();
-		selectStatement += " FROM " + tableName + filterSubQuery;
-		return selectStatement;
-	}
-	
 	protected String getSqlFitler() {
 		return makeFilterSubQuery();
 	}
 
-	// make a select query
-	private String makeSelectIgnoreFilters(String tableName, List<String> selectors) {
-
-		String selectStatement = "SELECT ";
-
-		for (int i = 0; i < selectors.size(); i++) {
-			String selector = selectors.get(i);
-			// selector = cleanHeader(selector);
-
-			if (i < selectors.size() - 1) {
-				selectStatement += selector + ", ";
-			} else {
-				selectStatement += selector;
-			}
-		}
-
-		// String filterSubQuery = makeFilterSubQuery(this.filterHash,
-		// this.filterComparator);
-		selectStatement += " FROM " + tableName;
-		return selectStatement;
-	}
-
 	private String makeSpecificSelect(String tableName, List<String> selectors, String columnHeader, Object value) {
-		value = cleanInstance(value.toString());
+		value = RdbmsFrameUtility.cleanInstance(value.toString());
 
 		// SELECT column1, column2, column3
 		String selectStatement = "SELECT ";
@@ -2767,8 +2531,6 @@ public class H2Builder {
 
 		// SELECT column1, column2, column3 from table1
 		selectStatement += " FROM " + tableName;
-		// String filterSubQuery = makeFilterSubQuery(this.filterHash,
-		// this.filterComparator);
 		String filterSubQuery = makeFilterSubQuery();
 		if (filterSubQuery.length() > 1) {
 			selectStatement += filterSubQuery;
@@ -2777,53 +2539,6 @@ public class H2Builder {
 			selectStatement += " WHERE " + columnHeader + " = " + "'" + value + "'";
 		}
 
-		return selectStatement;
-	}
-
-	// make a select query
-	private String makeSelectDistinct(String tableName, List<String> selectors) {
-
-		String selectStatement = "SELECT DISTINCT ";
-
-		for (int i = 0; i < selectors.size(); i++) {
-			String selector = selectors.get(i);
-			selector = cleanHeader(selector);
-
-			if (i < selectors.size() - 1) {
-				selectStatement += selector + ",";
-			} else {
-				selectStatement += selector;
-			}
-		}
-
-		// String filterSubQuery = makeFilterSubQuery(this.filterHash,
-		// this.filterComparator);
-		String filterSubQuery = makeFilterSubQuery();
-		selectStatement += " FROM " + tableName + filterSubQuery;
-
-		return selectStatement;
-	}
-
-	// make a select query
-	private String makeSelectDistinctIgnoreFilters(String tableName, List<String> selectors) {
-
-		String selectStatement = "SELECT DISTINCT ";
-
-		for (int i = 0; i < selectors.size(); i++) {
-			String selector = selectors.get(i);
-			// selector = cleanHeader(selector);
-
-			if (i < selectors.size() - 1) {
-				selectStatement += selector + ", ";
-			} else {
-				selectStatement += selector;
-			}
-		}
-
-		// String filterSubQuery = makeFilterSubQuery(this.filterHash,
-		// this.filterComparator);
-		// String filterSubQuery = makeFilterSubQuery();
-		selectStatement += " FROM " + tableName;// + filterSubQuery;
 		return selectStatement;
 	}
 
@@ -2915,21 +2630,34 @@ public class H2Builder {
 			i++;
 		}
 
-		selectStatement += " WHERE " + filterStatement;
+		Map<String, Map<Comparator, Set<Object>>> copyHash = copyFilterHash(filterHash);
+		copyHash.remove(selector);
+		String additionalFilters = makeFilterSubQuery(copyHash);
+		if(additionalFilters.length() > 0) {
+			additionalFilters = additionalFilters.replace("WHERE", "AND");
+		}
+		
+				
+		selectStatement += " WHERE " + filterStatement+" "+additionalFilters;
 
 		return selectStatement;
 	}
 	
-	private String addOrNullFilter() {
-		return "";
+	private Map<String, Map<AbstractTableDataFrame.Comparator, Set<Object>>> copyFilterHash(Map<String, Map<AbstractTableDataFrame.Comparator, Set<Object>>> filterHash) {
+	
+		Map<String, Map<AbstractTableDataFrame.Comparator, Set<Object>>> copy = new HashMap<>();
+		for(String key : filterHash.keySet()) {
+			copy.put(key, filterHash.get(key));
+		}
+		return copy;
 	}
 
 	private String getQueryStringList(List<Object> values) {
 		String listString = "(";
-
+ 
 		for (int i = 0; i < values.size(); i++) {
 			Object value = values.get(i);
-			value = cleanInstance(value.toString());
+			value = RdbmsFrameUtility.cleanInstance(value.toString());
 			listString += "'" + value + "'";
 			if (i < values.size() - 1) {
 				listString += ", ";
@@ -2947,7 +2675,7 @@ public class H2Builder {
 		int i = 0;
 		while (iterator.hasNext()) {
 			Object value = iterator.next();
-			value = cleanInstance(value.toString());
+			value = RdbmsFrameUtility.cleanInstance(value.toString());
 			listString += "'" + value + "'";
 			if (i < values.size() - 1) {
 				listString += ", ";
@@ -2957,312 +2685,6 @@ public class H2Builder {
 
 		listString += ")";
 		return listString;
-	}
-
-	private String makeGroupBy(String column, String valueColumn, String mathType, String alias, String tableName, String[] headers) {
-
-		column = cleanHeader(column);
-		valueColumn = cleanHeader(valueColumn);
-		alias = cleanHeader(alias);
-
-		String functionString = "";
-
-		String type = getType(tableName, column);
-
-		switch (mathType.toUpperCase()) {
-		case "COUNT": {
-			String func = "COUNT(";
-			if (type.toUpperCase().startsWith("VARCHAR"))
-				func = "COUNT( DISTINCT ";
-			functionString = func + valueColumn + ")";
-			break;
-		}
-		case "AVERAGE": {
-			functionString = "AVG(" + valueColumn + ")";
-			break;
-		}
-		case "MIN": {
-			functionString = "MIN(" + valueColumn + ")";
-			break;
-		}
-		case "MAX": {
-			functionString = "MAX(" + valueColumn + ")";
-			break;
-		}
-		case "SUM": {
-			functionString = "SUM(" + valueColumn + ")";
-			break;
-		}
-		default: {
-			String func = "COUNT(";
-			if (type.toUpperCase().startsWith("VARCHAR"))
-				func = "COUNT( DISTINCT ";
-			functionString = func + valueColumn + ")";
-			break;
-		}
-		}
-
-		// String filterSubQuery = makeFilterSubQuery(this.filterHash,
-		// this.filterComparator);
-		String filterSubQuery = makeFilterSubQuery();
-		String groupByStatement = "SELECT " + column + ", " + functionString + " AS " + alias + " FROM " + tableName
-				+ filterSubQuery + " GROUP BY " + column;
-
-		return groupByStatement;
-	}
-
-	// TODO : don't assume a double group by here
-	private String makeGroupBy(String[] column, String valueColumn, String mathType, String alias, String tableName, String[] headers) {
-		if (column.length == 1)
-			return makeGroupBy(column[0], valueColumn, mathType, alias, tableName, headers);
-		String column1 = cleanHeader(column[0]);
-		String column2 = cleanHeader(column[1]);
-		valueColumn = cleanHeader(valueColumn);
-		alias = cleanHeader(alias);
-
-		String functionString = "";
-
-		String type = getType(tableName, valueColumn);
-
-		switch (mathType.toUpperCase()) {
-		case "COUNT": {
-			String func = "COUNT(";
-			if (type.toUpperCase().startsWith("VARCHAR"))
-				func = "COUNT( DISTINCT ";
-			functionString = func + valueColumn + ")";
-			break;
-		}
-		case "AVERAGE": {
-			functionString = "AVG(" + valueColumn + ")";
-			break;
-		}
-		case "MIN": {
-			functionString = "MIN(" + valueColumn + ")";
-			break;
-		}
-		case "MAX": {
-			functionString = "MAX(" + valueColumn + ")";
-			break;
-		}
-		case "SUM": {
-			functionString = "SUM(" + valueColumn + ")";
-			break;
-		}
-		default: {
-			String func = "COUNT(";
-			if (type.toUpperCase().startsWith("VARCHAR"))
-				func = "COUNT( DISTINCT ";
-			functionString = func + valueColumn + ")";
-			break;
-		}
-		}
-
-		// String filterSubQuery = makeFilterSubQuery(this.filterHash,
-		// this.filterComparator);
-		String filterSubQuery = makeFilterSubQuery();
-		String groupByStatement = "SELECT " + column1 + ", " + column2 + ", " + functionString + " AS " + alias
-				+ " FROM " + tableName + filterSubQuery + " GROUP BY " + column1 + ", " + column2;
-
-		return groupByStatement;
-	}
-
-	private String makeFunction(String column, String function, String tableName) {
-		column = cleanHeader(column);
-		String functionString = "SELECT ";
-		switch (function.toUpperCase()) {
-		case "COUNT":
-			functionString += "COUNT(" + column + ")";
-			break;
-		case "AVERAGE":
-			functionString += "AVG(" + column + ")";
-			break;
-		case "MIN":
-			functionString += "MIN(" + column + ")";
-			break;
-		case "MAX":
-			functionString += "MAX(" + column + ")";
-			break;
-		case "SUM":
-			functionString += "SUM(" + column + ")";
-			break;
-		default:
-			functionString += column;
-		}
-
-		functionString += "FROM " + tableName;
-		String filterSubQuery = makeFilterSubQuery();
-		return functionString + filterSubQuery;
-	}
-
-	private String makeFunctionIgnoreFilter(String column, String function, String tableName) {
-		column = cleanHeader(column);
-		String functionString = "SELECT ";
-		switch (function.toUpperCase()) {
-		case "COUNT":
-			functionString += "COUNT(" + column + ")";
-			break;
-		case "AVERAGE":
-			functionString += "AVG(" + column + ")";
-			break;
-		case "MIN":
-			functionString += "MIN(" + column + ")";
-			break;
-		case "MAX":
-			functionString += "MAX(" + column + ")";
-			break;
-		case "SUM":
-			functionString += "SUM(" + column + ")";
-			break;
-		default:
-			functionString += column;
-		}
-
-		functionString += "FROM " + tableName;
-		return functionString;
-	}
-
-	private String makeFunction(String column, String function, String tableName, List<String> groupByCols) {
-		if (groupByCols == null || groupByCols.isEmpty()) {
-			return makeFunction(column, function, tableName);
-		}
-
-		// clean all the headers and group by cols
-		column = cleanHeader(column);
-		List<String> cleanGroupByCols = new Vector<String>();
-		for (String col : groupByCols) {
-			cleanGroupByCols.add(cleanHeader(col));
-		}
-
-		// the first return is the column you are modifying
-		String functionString = "SELECT DISTINCT ";
-		switch (function.toUpperCase()) {
-		case "COUNT":
-			functionString += "COUNT(" + column + ")";
-			break;
-		case "AVERAGE":
-			functionString += "AVG(" + column + ")";
-			break;
-		case "MIN":
-			functionString += "MIN(" + column + ")";
-			break;
-		case "MAX":
-			functionString += "MAX(" + column + ")";
-			break;
-		case "SUM":
-			functionString += "SUM(" + column + ")";
-			break;
-		default:
-			functionString += column;
-		}
-
-		// also want to return the group by cols
-		for (String col : groupByCols) {
-			functionString += ", " + col;
-		}
-
-		// add group by
-		functionString += " FROM " + tableName + " GROUP BY ";
-		boolean isFirst = true;
-		for (String col : groupByCols) {
-			if (isFirst) {
-				functionString += col;
-				isFirst = false;
-			} else {
-				functionString += ", " + col;
-			}
-		}
-
-		return functionString;
-	}
-
-//	private String makeDropColumn(String column, String tableName) {
-//		column = cleanHeader(column);
-//		String dropColumnQuery = "ALTER TABLE " + tableName + " DROP COLUMN " + column;
-//		return dropColumnQuery;
-//	}
-
-	// update only one column at a time
-	private String makeUpdate(String tableName, String[] joinColumn, String newColumn, Object[] joinValue, Object newValue) {
-		// joinValue = cleanInstance(joinValue.toString());
-		newValue = cleanInstance(newValue.toString());
-		String updateQuery = "UPDATE " + tableName + " SET " + newColumn + "=" + "'" + newValue + "'" + " WHERE ";
-		for (int i = 0; i < joinColumn.length; i++) {
-			String joinInstance = cleanInstance(joinValue[i].toString());
-			if (i == 0) {
-				updateQuery += joinColumn[i] + "=" + "'" + joinInstance + "'";
-			} else {
-				updateQuery += " AND " + joinColumn[i] + "=" + "'" + joinInstance + "'";
-			}
-		}
-
-		return updateQuery;
-	}
-
-	// as for now used only for col split PKQL, to update multiple new split
-	// columns using one update query
-	// more generic to makeUpdate() method - should eventually replace it
-	private String makeUpdate2(String tableName, Object[] joinColumn, Object[] newColumn, Object[] joinValue,
-			Object[] newValue) {
-
-		String updateQuery = "UPDATE " + tableName + " SET ";
-
-		for (int i = 0; i < newColumn.length; i++) {
-			String valueInstance = cleanInstance(newValue[i].toString());
-			if (i == 0) {
-				updateQuery += newColumn[i].toString() + "=" + "'" + valueInstance + "'";
-			} else {
-				updateQuery += ", " + newColumn[i].toString() + "=" + "'" + valueInstance + "'";
-			}
-		}
-
-		updateQuery += " WHERE ";
-
-		for (int i = 0; i < joinColumn.length; i++) {
-			String joinInstance = cleanInstance(joinValue[i].toString());
-			if (i == 0) {
-				updateQuery += joinColumn[i].toString() + "=" + "'" + joinInstance + "'";
-			} else {
-				updateQuery += " AND " + joinColumn[i].toString() + "=" + "'" + joinInstance + "'";
-			}
-		}
-
-		return updateQuery;
-	}
-
-	private String getType(String tableName, String column) {
-		String type = null;
-		String typeQuery = "SELECT TABLE_NAME, COLUMN_NAME, TYPE_NAME FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME = '"
-				+ tableName.toUpperCase() + "' AND COLUMN_NAME = '" + column.toUpperCase() + "'";
-		ResultSet rs = executeQuery(typeQuery);
-		try {
-			if (rs.next()) {
-				type = rs.getString("TYPE_NAME");
-			}
-		} catch (SQLException e) {
-			e.printStackTrace();
-		}
-		return type;
-
-	}
-
-	// rename column
-	private String makeRenameColumn(String fromColumn, String toColumn, String tableName) {
-		return "ALTER TABLE " + tableName + " ALTER COLUMN " + fromColumn + " RENAME TO " + toColumn;
-	}
-
-	private String makeRenameTable(String oldTable, String newTable) {
-		return "ALTER TABLE " + oldTable + " RENAME TO " + newTable;
-	}
-	
-	private String makeDeleteData(String tableName, String[] columnName, String[] values) {
-		String deleteQuery = "DELETE FROM " + tableName + " WHERE ";
-		for (int i = 0; i < columnName.length; i++) {
-			if (i > 0) {
-				deleteQuery += " AND ";
-			}
-			deleteQuery += columnName[i] + " = '" + values[i] + "'";
-		}
-		return deleteQuery;
 	}
 
 	/***************************
@@ -3286,44 +2708,18 @@ public class H2Builder {
 		return null;
 	}
 
-	protected ResultSet runBackDoorQuery(String query) {
-		try {
-			System.out.println("RUNNING executeQuery....");
-			return getConnection().createStatement().executeQuery(query);
-		} catch (Exception e) {
-			try {
-				System.out.println("FAILED...RUNNING execute...");
-				getConnection().createStatement().execute(query);
-			} catch (Exception ee) {
-				System.out.println("FAILED AGAIN..");
-				System.out.print("executeQuery Error:  ");
-				e.printStackTrace();
-				System.out.print("\nexecute Error: ");
-				ee.printStackTrace();
-			}
-		}
-		return null;
-	}
-
 	public void runExternalQuery(String query) throws Exception {
 		query = query.toUpperCase().trim();
-		if (query.startsWith("CREATE VIEW")) {
+		if (checkQuery(query)) {
 			runQuery(query);
+		} else {
+			throw new IllegalArgumentException("Can only run 'create view/create or replace view/drop view' queries externally");
 		}
-
-		else if (query.startsWith("CREATE OR REPLACE VIEW")) {
-			runQuery(query);
-		}
-		// possibly need to drop view table externally as well
-		else if (query.startsWith("DROP VIEW")) {
-			runQuery(query);
-		}
-
-		else {
-			// could also run select queries directly
-			throw new IllegalArgumentException(
-					"Can only run 'create view/create or replace view/drop view' queries externally");
-		}
+	}
+	
+	private boolean checkQuery(String query) {
+//		return query.startsWith("CREATE ") || query.startsWith("CREATE OR REPLACE VIEW ") || query.startsWith("DROP VIEW ");
+		return true;
 	}
 
 	// save the main table
@@ -3337,7 +2733,7 @@ public class H2Builder {
 		}
 		try {
 			String newTable = getNewTableName();
-			String createQuery = "CREATE TABLE " + newTable + " AS " + makeSelectIgnoreFilters(tableName, selectors);
+			String createQuery = "CREATE TABLE " + newTable + " AS " + RdbmsQueryBuilder.makeSelect(tableName, selectors, false);
 			runQuery(createQuery);
 			String saveScript = "SCRIPT TO '" + fileName + "' COMPRESSION GZIP TABLE " + newTable;
 			runQuery(saveScript);
@@ -3368,7 +2764,7 @@ public class H2Builder {
 	public void open(String fileName, Properties prop) {
 		// get a unique table name
 		// set the table name for the instance
-		tableName = H2FRAME + getNextNumber();
+//		tableName = H2FRAME + getNextNumber();
 
 		String tempTableName = null;
 		String isInMemStr = null;
@@ -3509,11 +2905,7 @@ public class H2Builder {
 	}
 	
 	public String getReadTable() {
-		if(joinMode) {
-			return this.viewTableName;
-		} else {
-			return this.tableName;
-		}
+		return this.tableName;
 	}
 
 	public String[] createUser(String tableName) {
@@ -3613,6 +3005,270 @@ public class H2Builder {
 		return null;
 	}
 
+	
+	
+	
+	/********************************************************************************************************
+	 * 			LEGACY CODE FOR OLD/NON PKQL DMC INSIGHTS
+	 ********************************************************************************************************/
+	
+	private void addEmptyDerivedColumns() {
+		// make query
+		if (extraColumn.size() == 0) {
+			populateExtraColumns();
+			for (String column : extraColumn) {
+				String addColumnQuery = "ALTER TABLE " + tableName + " ADD " + column + " double";
+				try {
+					runQuery(addColumnQuery);
+				} catch (Exception e) {
+					e.printStackTrace();
+				}
+			}
+		}
+	}
+
+	private void populateExtraColumns() {
+		if (this.extraColumn == null) {
+			this.extraColumn = new ArrayList<String>();
+		}
+
+		for (int i = columnCount; i < 10; i++) {
+			String nextColumn = extraColumnBase + "_" + i;
+			extraColumn.add(nextColumn);
+		}
+	}
+
+	private String getExtraColumn() {
+		if (extraColumn.size() > 0)
+			return extraColumn.remove(0);
+		else
+			return null;
+	}
+	
+	/**
+	 * 
+	 * @param column
+	 *            - the column to join on
+	 * @param newColumnName
+	 *            - new column name with group by values
+	 * @param valueColumn
+	 *            - the column to do calculations on
+	 * @param mathType
+	 *            - the type of group by
+	 * @param headers
+	 */
+	public void processGroupBy(String column, String newColumnName, String valueColumn, String mathType, String[] headers) {
+
+		// String[] tableHeaders = getHeaders(tableName);
+		// String inserter = makeGroupBy(column, valueColumn, mathType,
+		// newColumnName, this.tableName, headers);
+		// processAlterAsNewTable(inserter, Join.LEFT_OUTER.getName(),
+		// tableHeaders);
+
+		String reservedColumn = getExtraColumn();
+		if (reservedColumn == null) {
+			addEmptyDerivedColumns();
+			reservedColumn = getExtraColumn();
+		}
+		renameColumn(reservedColumn, newColumnName);
+
+		// String[] tableHeaders = getHeaders(tableName);
+		String inserter = makeGroupBy(column, valueColumn, mathType, newColumnName, this.tableName, headers);
+		try {
+			ResultSet groupBySet = executeQuery(inserter);
+			while (groupBySet.next()) {
+				Object[] values = { groupBySet.getObject(column), groupBySet.getObject(newColumnName) };
+				String[] columnHeaders = { column, newColumnName };
+				updateTable(headers, values, columnHeaders);
+
+				// String updateQuery = makeUpdate(tableName, column,
+				// newColumnName, groupBySet.getObject(column),
+				// groupBySet.getObject(newColumnName));
+				// runQuery(updateQuery);
+			}
+		} catch (Exception e) {
+
+		}
+		// makeUpdate(mathType, joinColumn, newColumn, joinValue, newValue)
+		// processAlterAsNewTable(inserter, Join.LEFT_OUTER.getName(),
+		// tableHeaders);
+
+		// all group bys are doubles?
+		// addHeader(newColumnName, "double", tableHeaders);
+		// addType("double");
+	}
+
+	// process a group by - calculate then make a table then merge the table
+	public void processGroupBy(String[] column, String newColumnName, String valueColumn, String mathType,
+			String[] headers) {
+		String tableName = getTableName();
+		if (column.length == 1) {
+			processGroupBy(column[0], newColumnName, valueColumn, mathType, headers);
+			return;
+		}
+		// String[] tableHeaders = getHeaders(tableName);
+		// String inserter = makeGroupBy(column, valueColumn, mathType,
+		// newColumnName, this.tableName, headers);
+		// processAlterAsNewTable(inserter, Join.LEFT_OUTER.getName(),
+		// tableHeaders);
+
+		// all group bys are doubles?
+		String reservedColumn = getExtraColumn();
+		if (reservedColumn == null) {
+			addEmptyDerivedColumns();
+			reservedColumn = getExtraColumn();
+		}
+		renameColumn(reservedColumn, newColumnName);
+
+		// String[] tableHeaders = getHeaders(tableName);
+		String inserter = makeGroupBy(column, valueColumn, mathType, newColumnName, tableName, headers);
+		try {
+			ResultSet groupBySet = executeQuery(inserter);
+			while (groupBySet.next()) {
+				List<Object> values = new ArrayList<>();
+				List<Object> columnHeaders = new ArrayList<>();
+				for (String c : column) {
+					values.add(groupBySet.getObject(c));// {groupBySet.getObject(column),
+														// groupBySet.getObject(newColumnName)};
+					columnHeaders.add(c);
+				}
+				values.add(groupBySet.getObject(newColumnName));
+				columnHeaders.add(newColumnName);
+				updateTable(headers, values.toArray(), columnHeaders.toArray(new String[] {}));
+
+				// String updateQuery = makeUpdate(tableName, column,
+				// newColumnName, groupBySet.getObject(column),
+				// groupBySet.getObject(newColumnName));
+				// runQuery(updateQuery);
+			}
+		} catch (Exception e) {
+
+		}
+	}
+	
+	private String makeGroupBy(String column, String valueColumn, String mathType, String alias, String tableName, String[] headers) {
+
+		column = cleanHeader(column);
+		valueColumn = cleanHeader(valueColumn);
+		alias = cleanHeader(alias);
+
+		String functionString = "";
+
+		String type = getType(tableName, column);
+
+		switch (mathType.toUpperCase()) {
+		case "COUNT": {
+			String func = "COUNT(";
+			if (type.toUpperCase().startsWith("VARCHAR"))
+				func = "COUNT( DISTINCT ";
+			functionString = func + valueColumn + ")";
+			break;
+		}
+		case "AVERAGE": {
+			functionString = "AVG(" + valueColumn + ")";
+			break;
+		}
+		case "MIN": {
+			functionString = "MIN(" + valueColumn + ")";
+			break;
+		}
+		case "MAX": {
+			functionString = "MAX(" + valueColumn + ")";
+			break;
+		}
+		case "SUM": {
+			functionString = "SUM(" + valueColumn + ")";
+			break;
+		}
+		default: {
+			String func = "COUNT(";
+			if (type.toUpperCase().startsWith("VARCHAR"))
+				func = "COUNT( DISTINCT ";
+			functionString = func + valueColumn + ")";
+			break;
+		}
+		}
+
+		// String filterSubQuery = makeFilterSubQuery(this.filterHash,
+		// this.filterComparator);
+		String filterSubQuery = makeFilterSubQuery();
+		String groupByStatement = "SELECT " + column + ", " + functionString + " AS " + alias + " FROM " + tableName
+				+ filterSubQuery + " GROUP BY " + column;
+
+		return groupByStatement;
+	}
+
+	// TODO : don't assume a double group by here
+	private String makeGroupBy(String[] column, String valueColumn, String mathType, String alias, String tableName, String[] headers) {
+		if (column.length == 1)
+			return makeGroupBy(column[0], valueColumn, mathType, alias, tableName, headers);
+		String column1 = cleanHeader(column[0]);
+		String column2 = cleanHeader(column[1]);
+		valueColumn = cleanHeader(valueColumn);
+		alias = cleanHeader(alias);
+
+		String functionString = "";
+
+		String type = getType(tableName, valueColumn);
+
+		switch (mathType.toUpperCase()) {
+		case "COUNT": {
+			String func = "COUNT(";
+			if (type.toUpperCase().startsWith("VARCHAR"))
+				func = "COUNT( DISTINCT ";
+			functionString = func + valueColumn + ")";
+			break;
+		}
+		case "AVERAGE": {
+			functionString = "AVG(" + valueColumn + ")";
+			break;
+		}
+		case "MIN": {
+			functionString = "MIN(" + valueColumn + ")";
+			break;
+		}
+		case "MAX": {
+			functionString = "MAX(" + valueColumn + ")";
+			break;
+		}
+		case "SUM": {
+			functionString = "SUM(" + valueColumn + ")";
+			break;
+		}
+		default: {
+			String func = "COUNT(";
+			if (type.toUpperCase().startsWith("VARCHAR"))
+				func = "COUNT( DISTINCT ";
+			functionString = func + valueColumn + ")";
+			break;
+		}
+		}
+
+		// String filterSubQuery = makeFilterSubQuery(this.filterHash,
+		// this.filterComparator);
+		String filterSubQuery = makeFilterSubQuery();
+		String groupByStatement = "SELECT " + column1 + ", " + column2 + ", " + functionString + " AS " + alias
+				+ " FROM " + tableName + filterSubQuery + " GROUP BY " + column1 + ", " + column2;
+
+		return groupByStatement;
+	}
+	
+	private String getType(String tableName, String column) {
+		String type = null;
+		String typeQuery = "SELECT TABLE_NAME, COLUMN_NAME, TYPE_NAME FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME = '"
+				+ tableName.toUpperCase() + "' AND COLUMN_NAME = '" + column.toUpperCase() + "'";
+		ResultSet rs = executeQuery(typeQuery);
+		try {
+			if (rs.next()) {
+				type = rs.getString("TYPE_NAME");
+			}
+		} catch (SQLException e) {
+			e.printStackTrace();
+		}
+		return type;
+
+	}
+	
 	/***************************
 	 * ORIGINAL UNUSED CODE
 	 **************************************/
@@ -4127,4 +3783,104 @@ public class H2Builder {
 	// return typeMap;
 	// }
 
+	// process to join the data and new headers to existing table
+	// private void processAlterData(String[][] data, String[] newHeaders,
+	// String[] headers, Join joinType)
+	// {
+	// // this currently doesnt handle many to many joins and such
+	// String[] types = null;
+	// try {
+	// getConnection();
+	//
+	// // I need to do an evaluation here to find if this one to many
+	// String [] oldHeaders = headers;
+	//
+	// //headers for the joining table
+	//
+	//// int curHeadCount = headers.length;
+	// Vector <String> newHeaderIndices = new Vector<String>();
+	// Vector <String> oldHeaderIndices = new Vector<String>();
+	// Hashtable<Integer, Integer> matchers = new Hashtable<Integer, Integer>();
+	//// if(matchers == null || matchers.isEmpty()) {
+	//// matchers = new Hashtable<Integer, Integer>();
+	//
+	// // I need to find which ones are already there and which ones are new
+	// for(int hIndex = 0;hIndex < newHeaders.length;hIndex++)
+	// {
+	// String uheader = newHeaders[hIndex];
+	// uheader = cleanHeader(uheader);
+	//
+	// boolean old = false;
+	// for(int oIndex = 0;oIndex < headers.length;oIndex++)
+	// {
+	// if(headers[oIndex].equalsIgnoreCase(uheader))
+	// {
+	// old = true;
+	// oldHeaderIndices.add(hIndex+"");
+	// matchers.put(hIndex, oIndex);
+	// break;
+	// }
+	// }
+	//
+	// if(!old)
+	// newHeaderIndices.add((hIndex) + "");
+	// }
+	//// }
+	//
+	//// headers = newHeaders;
+	//
+	//// String [] oldTypes = types; // I am not sure if I need this we will see
+	// - yes I do now yipee
+	//
+	//// String[] cells = data[0];
+	//// predictRowTypes(cells);
+	//
+	//// String[] newTypes = types;
+	//
+	// //stream.close();
+	//
+	// boolean one2Many = false;
+	// // I also need to accomodate when there are no common ones
+	//// if(oldHeaderIndices.size() == 0)
+	// if(matchers.isEmpty())
+	// {
+	// // this is the case where it has not been created yet
+	// tableName = getNewTableName();
+	// generateTable(data, newHeaders, tableName);
+	// }
+	// else
+	// {
+	// // close the stream and open it again
+	//
+	// // do a different process here
+	// // I need to create a new database here
+	// one2Many = true;
+	// generateTable(data, newHeaders, H2FRAME + getNextNumber());
+	// // not bad -- this does it ?
+	// // whoa hang on I need to handle the older headers and such
+	// // done in reset headers
+	// }
+	//
+	// // need to create a new database with everything now
+	// // reset all the headers
+	//// if(one2Many)
+	//// resetHeaders(oldHeaders, headers, newHeaderIndices, oldTypes, types,
+	// curHeadCount);
+	// // just test to see if it finally came through
+	//
+	// // now I need to assimilate everything into one
+	// String tableName2 = H2FRAME + tableRunNumber;
+	// String tableName1 = tableName;
+	//
+	// if(one2Many)
+	// mergeTables(tableName1, tableName2, matchers, oldHeaders, newHeaders,
+	// joinType.getName());
+	//
+	// testData();
+	//
+	// } catch (SQLException e) {
+	// e.printStackTrace();
+	// }
+	// }
+	//
 }
