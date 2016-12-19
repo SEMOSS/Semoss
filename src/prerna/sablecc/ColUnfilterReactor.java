@@ -5,6 +5,7 @@ import java.util.Iterator;
 import java.util.Vector;
 
 import prerna.algorithm.api.ITableDataFrame;
+import prerna.ds.h2.H2Frame;
 import prerna.sablecc.meta.ColUnfilterMetadata;
 import prerna.sablecc.meta.IPkqlMetadata;
 
@@ -41,7 +42,15 @@ public class ColUnfilterReactor extends AbstractReactor {
 		Vector<String> column = (Vector<String>) myStore.get(PKQLEnum.COL_DEF);
 
 		for (String c : column) {
-			frame.unfilter(c);
+			if(frame instanceof H2Frame) {
+				if(((H2Frame)frame).isJoined()) {
+					((H2Frame) frame).getJoiner().unfilter(frame, c);
+				} else {
+					frame.unfilter(c);
+				}
+			} else {
+				frame.unfilter(c);
+			}
 			myStore.put("STATUS", PKQLRunner.STATUS.SUCCESS);
 			myStore.put("FILTER_COLUMN", c);
 		}

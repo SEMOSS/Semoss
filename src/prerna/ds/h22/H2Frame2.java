@@ -1,4 +1,4 @@
-package prerna.ds.h2;
+package prerna.ds.h22;
 
 import java.io.BufferedReader;
 import java.io.File;
@@ -17,30 +17,29 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.Hashtable;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
-import java.util.TreeMap;
-import java.util.TreeSet;
 import java.util.Vector;
 
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
-import org.rosuda.REngine.Rserve.RserveException;
 
 import prerna.algorithm.api.IMetaData;
 import prerna.algorithm.api.IMetaData.DATA_TYPES;
+import prerna.algorithm.api.ITableDataFrame;
 import prerna.cache.ICache;
 import prerna.ds.AbstractTableDataFrame;
-import prerna.ds.DataFrameJoiner;
+import prerna.ds.RdbmsTableMetaData;
 import prerna.ds.TinkerFrame;
 import prerna.ds.TinkerMetaData;
 import prerna.ds.TinkerMetaHelper;
-import prerna.ds.h2.H2Builder.Join;
+import prerna.ds.h22.H2Builder2.Join;
+import prerna.ds.util.H2FilterHash;
+import prerna.ds.util.RdbmsFrameUtility;
 import prerna.engine.api.IEngine;
 import prerna.engine.api.IHeadersDataRow;
 import prerna.engine.api.ISelectWrapper;
@@ -56,17 +55,19 @@ import prerna.util.ArrayUtilityMethods;
 import prerna.util.Constants;
 import prerna.util.Utility;
 
-public class H2Frame extends AbstractTableDataFrame {
+public class H2Frame2 extends AbstractTableDataFrame {
 
-	private static final Logger LOGGER = LogManager.getLogger(H2Frame.class.getName());
+	private static final Logger LOGGER = LogManager.getLogger(H2Frame2.class.getName());
 
-	H2Builder builder;
+	H2Builder2 builder;
+	RdbmsTableMetaData tableMeta;
 
 	// this was being used when we wanted the sql interpreter to create the
 	// traverse query
+	// IQueryInterpreter interp = new SQLInterpreter();
 	RRunner r = null;
 
-	public H2Frame(String[] headers) {
+	public H2Frame2(String[] headers) {
 		for(int i = 0; i < headers.length; i++) {
 			headers[i] = RDBMSEngineCreationHelper.cleanTableName(headers[i]);
 		}
@@ -75,38 +76,34 @@ public class H2Frame extends AbstractTableDataFrame {
 		Map<String, Set<String>> primKeyEdge = TinkerMetaHelper.createPrimKeyEdgeHash(headers);
 		TinkerMetaHelper.mergeEdgeHash(this.metaData, primKeyEdge);
 		setSchema();
+		tableMeta = new RdbmsTableMetaData(builder.getConnection());
 	}
 
-	public H2Frame() {
+	public H2Frame2() {
 		this.metaData = new TinkerMetaData();
 		setSchema();
 	}
 	
-	public H2Frame(IMetaData metaData) {
+	public H2Frame2(IMetaData metaData) {
 		this.metaData = metaData;
 		setSchema();
-		if (builder.tableName == null) {
-			builder.tableName = getTableNameForUniqueColumn(getColumnHeaders()[0]);
-			if(builder.tableName == null) {
-				builder.tableName = builder.getNewTableName();
-			}
-		}
+		tableMeta = new RdbmsTableMetaData(builder.getConnection());
 		String[] headers = this.getColumnHeaders();
 		String[] types = new String[headers.length];
 		for(int i = 0; i < headers.length; i++) {
 			types[i] = Utility.convertDataTypeToString(getDataType(headers[i]));
 		}
-		builder.alterTableNewColumns(builder.tableName, this.headerNames, types);
+		builder.alterTableNewColumns(tableMeta.getTableName(), this.headerNames, types);
 	}
 
 	//added as a path to get connection url for current dataframe
-	public H2Builder getBuilder(){
+	public H2Builder2 getBuilder(){
 		return this.builder;
 	}
 
 	private void setSchema() {
 		if (this.builder == null) {
-			this.builder = new H2Builder();
+			this.builder = new H2Builder2();
 		}
 		this.builder.setSchema(this.userId);
 	}
@@ -126,10 +123,6 @@ public class H2Frame extends AbstractTableDataFrame {
 		// TODO: differences between the tinker meta and the flat meta stored in
 		// the data frame
 		// TODO: results in us being unable to get the table name
-		if (builder.tableName == null) {
-			builder.tableName = getTableNameForUniqueColumn(getColumnHeaders()[0]);
-		}
-
 		// we really need another way to get the data types....
 		Map<String, IMetaData.DATA_TYPES> typesMap = this.metaData.getColumnTypes();
 		builder.addRowsViaIterator(it, typesMap);
@@ -145,64 +138,25 @@ public class H2Frame extends AbstractTableDataFrame {
 		// TODO: differences between the tinker meta and the flat meta stored in
 		// the data frame
 		// TODO: results in us being unable to get the table name
-		if (builder.tableName == null) {
-			builder.tableName = getTableNameForUniqueColumn(headers[0]);
-		}
+
 		String[] types = new String[headers.length];
 		for (int i = 0; i < types.length; i++) {
-			types[i] = Utility.convertDataTypeToString(this.metaData
-					.getDataType(headers[i]));
+			types[i] = Utility.convertDataTypeToString(this.metaData.getDataType(headers[i]));
 			// need to stringify everything
-			cells[i] = cells[i] + "";
+			cells[i] = cells[i].toString();
 		}
-		String[] stringArray = Arrays.copyOf(cells, cells.length,
-				String[].class);
+		String[] stringArray = Arrays.copyOf(cells, cells.length, String[].class);
 
 		// get table for headers
-		this.addRow(builder.tableName, stringArray, headers, types);
+		this.addRow(stringArray, headers, types);
 	}
 
 	// need to make this private if we are going with single table h2
-	public void addRow(String tableName, String[] cells, String[] headers, String[] types) {
-		String[] headerValues = new String[headers.length];
-		for (int j = 0; j < headers.length; j++) {
-			headerValues[j] = getValueForUniqueName(headers[j]);
-		}
-
-		this.builder.tableName = tableName;
-		this.builder.addRow(tableName, cells, headerValues, types);
+	public void addRow(String[] cells, String[] headers, String[] types) {
+		this.builder.addRow(cells, headers, types);
 	}
 
-	// TODO : this won't with main column table
-	public String getTableNameForUniqueColumn(String uniqueName) {
-		return this.metaData.getParentValueOfUniqueNode(uniqueName);
-	}
-	
-	/**
-	 * Create a prepared statement to efficiently update columns in a frame
-	 * @param TABLE_NAME
-	 * @param columnsToUpdate
-	 * @param whereColumns
-	 * @return
-	 */
-	public PreparedStatement createUpdatePreparedStatement(final String[] columnsToUpdate, final String[] whereColumns) {
-		if (builder.tableName == null) {
-			builder.tableName = getTableNameForUniqueColumn(getColumnHeaders()[0]);
-		}
-		return this.builder.createUpdatePreparedStatement(this.builder.tableName, columnsToUpdate, whereColumns);
-	}
-	
-	/**
-	 * Create a prepared statement to efficiently insert new rows in a frame
-	 * @param columns
-	 * @return
-	 */
-	public PreparedStatement createInsertPreparedStatement(final String[] columns) {
-		if (builder.tableName == null) {
-			builder.tableName = getTableNameForUniqueColumn(getColumnHeaders()[0]);
-		}
-		return this.builder.createInsertPreparedStatement(this.builder.tableName, columns);
-	}
+
 
 	
 	/************************** END AGGREGATION METHODS **********************/
@@ -252,7 +206,7 @@ public class H2Frame extends AbstractTableDataFrame {
 			// then construct it and merge it
 			boolean hasMetaModel = component.getQueryStruct() != null;
 			if (hasMetaModel) {
-				String[] startHeaders = getH2Headers();
+				String[] startHeaders = getColumnHeaders();//getH2Headers();
 				if (startHeaders == null) {
 					startHeaders = new String[0];
 				}
@@ -354,44 +308,7 @@ public class H2Frame extends AbstractTableDataFrame {
 		return header2Set.size() == 0;
 	}
 	
-	public boolean isInMem() {
-		return this.builder.isInMem();
-	}
-	
-	public void convertToOnDiskFrame(String schema) {
-		String previousPhysicalSchema = null;
-		if(!isInMem()) {
-			previousPhysicalSchema = getSchema();
-		}
-		
-		// if null is passed in
-		// we automatically create a new schema
-		this.builder.convertFromInMemToPhysical(schema);
-		
-		// if it was already an existing physical schema
-		// should delete the folder from the server
-		if(previousPhysicalSchema != null) {
-			File file = new File(previousPhysicalSchema);
-			String folder = file.getParent();
-			LOGGER.info("DELETING ON-DISK SCHEMA AT FOLDER PATH = " + folder);
-			ICache.deleteFolder(folder);
-		}
-	}
-	
-	public void dropOnDiskTemporalSchema() {
-		if(!isInMem()) {
-			this.builder.closeConnection();
-			String schema = getSchema();
-			File file = new File(schema);
-			String folder = file.getParent();
-			LOGGER.info("DELETING ON-DISK SCHEMA AT FOLDER PATH = " + folder);
-			ICache.deleteFolder(folder);
-		}
-	}
-	
-	public String getSchema() {
-		return this.builder.getSchema();
-	}
+
 	
 
 	/****************************** FILTER METHODS **********************************************/
@@ -404,8 +321,7 @@ public class H2Frame extends AbstractTableDataFrame {
 	public void filter(String columnHeader, List<Object> filterValues) {
 		if (filterValues != null && filterValues.size() > 0) {
 			this.metaData.setFiltered(columnHeader, true);
-			columnHeader = this.getValueForUniqueName(columnHeader);
-			builder.setFilters(columnHeader, filterValues, AbstractTableDataFrame.Comparator.EQUAL);
+			this.tableMeta.getFilters().setFilters(columnHeader, filterValues, "=");
 		}
 	}
 
@@ -413,6 +329,7 @@ public class H2Frame extends AbstractTableDataFrame {
 	public void filter(String columnHeader, Map<String, List<Object>> filterValues) {
 		if(columnHeader == null || filterValues == null) return;
 
+		H2FilterHash filterHash = this.tableMeta.getFilters();
 		DATA_TYPES type = this.metaData.getDataType(columnHeader);
 		boolean isOrdinal = type != null && (type == DATA_TYPES.DATE || type == DATA_TYPES.NUMBER);
 
@@ -426,208 +343,45 @@ public class H2Frame extends AbstractTableDataFrame {
 			comparator = comparator.trim();
 			if(comparator.equals("=")) {
 
-				if(override) builder.setFilters(columnHeader, filters, AbstractTableDataFrame.Comparator.EQUAL);
-				else builder.addFilters(columnHeader, filters, AbstractTableDataFrame.Comparator.EQUAL);
+				if(override) filterHash.setFilters(columnHeader, filters, comparator);
+				else filterHash.addFilters(columnHeader, filters, comparator);
 
 			} else if(comparator.equals("!=")) { 
 
-				if(override) builder.setFilters(columnHeader, filters, AbstractTableDataFrame.Comparator.NOT_EQUAL);
-				else builder.addFilters(columnHeader, filters, AbstractTableDataFrame.Comparator.NOT_EQUAL);
+				if(override) filterHash.setFilters(columnHeader, filters, comparator);
+				else filterHash.addFilters(columnHeader, filters, comparator);
 
-			} else if(comparator.equals("<")) {
-
-				if(isOrdinal) {
-
-					if(override) builder.setFilters(columnHeader, filters, AbstractTableDataFrame.Comparator.LESS_THAN);
-					else builder.addFilters(columnHeader, filters, AbstractTableDataFrame.Comparator.LESS_THAN);
-
-				} else {
-					throw new IllegalArgumentException(columnHeader
-							+ " is not a numeric column, cannot use operator "
-							+ comparator);
-				}
-
-			} else if(comparator.equals(">")) {
+			} else if(comparator.equals("<") || comparator.equals(">") || comparator.equals("<=") || comparator.equals(">=")) {
 
 				if(isOrdinal) {
 
-					if(override) builder.setFilters(columnHeader, filters, AbstractTableDataFrame.Comparator.GREATER_THAN);
-					else builder.addFilters(columnHeader, filters, AbstractTableDataFrame.Comparator.GREATER_THAN);
+					if(override) filterHash.setFilters(columnHeader, filters, comparator);
+					else filterHash.addFilters(columnHeader, filters, comparator);
 
 				} else {
-					throw new IllegalArgumentException(columnHeader
-							+ " is not a numeric column, cannot use operator "
-							+ comparator);
+					throw new IllegalArgumentException(columnHeader	+ " is not a numeric column, cannot use operator "	+ comparator);
 				}
 
-			} else if(comparator.equals("<=")) {
-				if(isOrdinal) {
-
-					if(override) builder.setFilters(columnHeader, filters, AbstractTableDataFrame.Comparator.LESS_THAN_EQUAL);
-					else builder.addFilters(columnHeader, filters, AbstractTableDataFrame.Comparator.LESS_THAN_EQUAL);
-
-				} else {
-					throw new IllegalArgumentException(columnHeader
-							+ " is not a numeric column, cannot use operator "
-							+ comparator);
-				}
-			} else if(comparator.equals(">=")) {
-				if(isOrdinal) {
-
-					if(override) builder.setFilters(columnHeader, filters, AbstractTableDataFrame.Comparator.GREATER_THAN_EQUAL);
-					else builder.addFilters(columnHeader, filters, AbstractTableDataFrame.Comparator.GREATER_THAN_EQUAL);
-
-				} else {
-					throw new IllegalArgumentException(columnHeader
-							+ " is not a numeric column, cannot use operator "
-							+ comparator);
-				}
 			} else {
 				// comparator not recognized...do equal by default? or do
 				// nothing? or throw error?
+				return;
 			}
 			this.metaData.setFiltered(columnHeader, true);
 		}
 	}
-	
 
 	@Override
 	public void unfilter(String columnHeader) {
 		this.metaData.setFiltered(columnHeader, false);
-		columnHeader = this.getValueForUniqueName(columnHeader);
-		builder.removeFilter(columnHeader);
+		this.tableMeta.getFilters().removeFilter(columnHeader);
 	}
 
 	@Override
 	public void unfilter() {
-		builder.clearFilters();
+		this.tableMeta.getFilters().clearFilters();
 	}
 
-	@Override
-	/**
-	 * This method returns the filter model for the graph in the form:
-	 * 
-	 * [
-	 * 		{
-	 * 			header_1 -> [UF_instance_01, UF_instance_02, ..., UF_instance_0N]
-	 * 			header_2 -> [UF_instance_11, UF_instance_12, ..., UF_instance_1N]
-	 * 			...
-	 * 			header_M -> [UF_instance_M1, UF_instance_M2, ..., UF_instance_MN]
-	 * 		}, 
-	 * 
-	 * 		{
-	 * 			header_1 -> [F_instance_01, F_instance_02, ..., F_instance_0N]
-	 * 			header_2 -> [F_instance_11, F_instance_12, ..., F_instance_1N]
-	 * 			...
-	 * 			header_M -> [F_instance_M1, F_instance_M2, ..., F_instance_MN]
-	 * 		}	
-	 * ]
-	 * 
-	 * First object in array is Map<String, List<String>> where each header points to the list of UNFILTERED or VISIBLE values for that header.
-	 * Second object in array is Map<String, List<String>> where each header points to the list of FILTERED values for that header.
-	 * Third object in array only exists if column has numerical data in format Map<String, Map<String, Double>> containing relative min/max and absolute min/max for column.
-	 */
-	public Object[] getFilterModel() {
-		List<String> selectors = this.getSelectors();
-		int length = selectors.size();
-		Map<String, List<Object>> filteredValues = new TreeMap<>();
-		Map<String, List<Object>> visibleValues = new TreeMap<>();
-		Map<String, Map<String, Double>> minMaxValues = new TreeMap<String, Map<String, Double>>();
-		Iterator<Object[]> iterator = this.iterator();
-
-		boolean addFilteredNull = false;
-		boolean addVisibleNull = false;
-		
-		// put instances into sets to remove duplicates
-		Set<Object>[] columnSets = new TreeSet[length];
-		for (int i = 0; i < length; i++) {
-			columnSets[i] = new TreeSet<Object>();
-		}
-		while (iterator.hasNext()) {
-			Object[] nextRow = iterator.next();
-			for (int i = 0; i < length; i++) {
-				Object val = nextRow[i];
-				if(val == null) {
-					addVisibleNull = true;
-				} else {
-					columnSets[i].add(val);
-				}
-			}
-		}
-
-		//TODO: is this the same as filteredValues object?
-		Map<String, List<Object>> h2filteredValues = builder.getFilteredValues(getH2Selectors(), "");
-
-		for (int i = 0; i < length; i++) {
-			// get filtered values
-//			String h2key = H2Builder.cleanHeader(selectors.get(i));
-			String h2key = getH2Header(selectors.get(i));
-			List<Object> values = h2filteredValues.get(h2key);
-			if (values != null) {
-				Set<Object> sortedVals = new TreeSet<Object>();
-				for(Object val : values) {
-					if(val == null) {
-						addFilteredNull = true;
-					} else {
-						sortedVals.add(val);
-					}
-				}
-				values = new ArrayList<>(sortedVals);
-				if(addFilteredNull) {
-					values.add(null);
-				}
-				filteredValues.put(selectors.get(i), values);
-			} else {
-				filteredValues.put(selectors.get(i), new ArrayList<Object>());
-			}
-
-			// get unfiltered values
-			List<Object> visValues = new ArrayList<>(columnSets[i]);
-			if(addVisibleNull) {
-				visValues.add(null);
-			}
-			visibleValues.put(selectors.get(i), visValues);
-
-			// store data type for header
-			// get min and max values for numerical columns
-			// TODO: need to include date type
-			if(this.metaData.getDataType(selectors.get(i)) == IMetaData.DATA_TYPES.NUMBER) {
-				Map<String, Double> minMax = new HashMap<String, Double>();
-
-				// sort unfiltered array to pull relative min and max of unfiltered data
-				double min = getMin(selectors.get(i));
-				double max = getMax(selectors.get(i));
-				
-				double absMin = builder.getStat(selectors.get(i), "MIN", true);
-				double absMax = builder.getStat(selectors.get(i), "MAX", true);
-
-				minMax.put("min", min);
-				minMax.put("max", max);
-
-				minMax.put("absMin", absMin);
-				minMax.put("absMax", absMax);
-
-				// calculate how large each step in the slider should be
-				double difference = absMax - absMin;
-				double step = 1;
-				if(difference < 1) {
-					double tenthPower = Math.floor(Math.log10(difference));
-					if(tenthPower < 0) {
-						// ex. if difference is 0.009, step should be 0.001
-						step = Math.pow(10, tenthPower);
-					} else {
-						step = 0.1;
-					}
-				}
-				minMax.put("step", step);
-
-				minMaxValues.put(selectors.get(i), minMax);
-			}
-		}
-
-		return new Object[] { visibleValues, filteredValues, minMaxValues };
-	}
-	
 	public Map<String, Map<String, Double>> getMinMaxValues(String col) {
 		Map<String, Map<String, Double>> minMaxValues = new HashMap<String, Map<String, Double>>();
 		if(this.metaData.getDataType(col) == IMetaData.DATA_TYPES.NUMBER) {
@@ -665,165 +419,80 @@ public class H2Frame extends AbstractTableDataFrame {
 		return minMaxValues;
 	}
 
-	public Map<String, Object[]> getFilterTransformationValues() {
-		Map<String, Object[]> retMap = new HashMap<String, Object[]>();
-		// get meta nodes that are tagged as filtered
-		// Map<String, String> filters = this.metaData.getFilteredColumns();
-		// Map<String, List<Object>> filteredData = this.builder.filterHash;
-		//
-		// for(String name: filters.keySet()){
-		//
-		// //for each filtered column
-		// String h2Name = this.getValueForUniqueName(name);
-		// retMap.put(name, filteredData.get(h2Name).toArray());
-		// }
-
-		return retMap;
-	}
 
 	/****************************** END FILTER METHODS ******************************************/
 
 	@Override
 	public Iterator<Object[]> iterator() {
-		// List<String> h2selectors = new ArrayList<>();
-		// for(String selector : getSelectors()) {
-		// h2selectors.add(H2HeaderMap.get(selector));
-		// }
-		// QueryStruct struct = this.metaData.getQueryStruct(null);
-		// for(String header : this.builder.filterHash.keySet()){
-		// struct.addFilter(header, "=", this.builder.filterHash.get(header));
-		// }
-		// interp.setQueryStruct(struct);//
-		// String query = interp.composeQuery();
-		// return this.builder.buildIterator(query);
-		return this.builder.buildIterator(getH2Selectors());
+		H2IteratorOptions options = new H2IteratorOptions();
+		options.setSelectors(getSelectors());
+		return iterator(options);
 	}
 	
-	public Iterator<Object[]> iterator(boolean getRawData, boolean ignoreFilters) {
-		if(!ignoreFilters) {
-			return iterator();
-		}
-		else return this.builder.buildIterator(getH2Selectors(), ignoreFilters);
+	public Iterator<Object[]> iterator(H2IteratorOptions options) {
+		options.setTableMeta(tableMeta);
+		RdbmsIteratorBuilder builder = new RdbmsIteratorBuilder();
+		return (Iterator<Object[]>)builder.buildIterator(options);
 	}
 
 	@Override
-	public Iterator<Object[]> iterator(Map<String, Object> options) {
-		// sort by
-		String sortBy = (String) options.get(AbstractTableDataFrame.SORT_BY);
-		String actualSortBy = null;
-
-		List<String> selectors = (List<String>) options.get(AbstractTableDataFrame.SELECTORS);
-		List<String> selectorValues = new Vector<String>();
-		for (String name : selectors) {
-			if (name.startsWith(TinkerFrame.PRIM_KEY)) {
-				continue;
-			} else {
-				if(sortBy == null) {
-					sortBy = name;
-				}
-				if (name.equals(sortBy)) {
-					actualSortBy = this.getValueForUniqueName(name);
-				}
-				String uniqueName = this.getValueForUniqueName(name);
-				if (uniqueName == null)
-					uniqueName = name;
-				selectorValues.add(uniqueName);
-			}
-		}
-		options.put(AbstractTableDataFrame.SELECTORS, selectorValues);
-
-		Map<Object, Object> temporalBindings = (Map<Object, Object>) options.get(AbstractTableDataFrame.TEMPORAL_BINDINGS);
-		// clean values always put into list so bifurcation in logic doesn't
-		// need to exist elsewhere
-		Map<String, List<Object>> cleanTemporalBindings = new Hashtable<String, List<Object>>();
-		if (temporalBindings != null) {
-			for (Object key : temporalBindings.keySet()) {
-				String cleanKey = this.getValueForUniqueName(key + "");
-
-				Object val = temporalBindings.get(key);
-				List<Object> cleanVal = new Vector<Object>();
-				// if passed back a list
-				if (val instanceof Collection) {
-					Collection<? extends Object> collectionVal = (Collection<? extends Object>) val;
-					for (Object valObj : collectionVal) {
-						Object cleanObj = null;
-						String strObj = valObj.toString().trim();
-						String type = Utility.findTypes(strObj)[0] + "";
-						if (type.equalsIgnoreCase("Date")) {
-							cleanObj = Utility.getDate(strObj);
-						} else if (type.equalsIgnoreCase("Double")) {
-							cleanObj = Utility.getDouble(strObj);
-						} else {
-							cleanObj = Utility.cleanString(strObj, true, true, false);
-						}
-						((Vector) cleanVal).add(cleanObj);
-					}
-					cleanTemporalBindings.put(cleanKey, cleanVal);
-				} else {
-					// this means it is a single value
-					Object cleanObj = null;
-					String strObj = val.toString().trim();
-					String type = Utility.findTypes(strObj)[0] + "";
-					if (type.equalsIgnoreCase("Date")) {
-						cleanObj = Utility.getDate(strObj);
-					} else if (type.equalsIgnoreCase("Double")) {
-						cleanObj = Utility.getDouble(strObj);
-					} else {
-						cleanObj = Utility.cleanString(strObj, true, true, false);
-					}
-					cleanVal.add(cleanObj);
-					cleanTemporalBindings.put(cleanKey, cleanVal);
-				}
-			}
-		}
-		options.put(AbstractTableDataFrame.TEMPORAL_BINDINGS, cleanTemporalBindings);
-
-		// if(selectors != null) {
-		// List<String> h2selectors = new ArrayList<>();
-		// for(String selector : selectors) {
-		// h2selectors.add(H2HeaderMap.get(selector));
-		// }
-		// options.put(TinkerFrame.SELECTORS, h2selectors);
-		// }
-
-		if (actualSortBy != null) {
-			options.put(AbstractTableDataFrame.SORT_BY, actualSortBy);
-		}
-		return builder.buildIterator(options);
+	public Iterator<Object> uniqueValueIterator(String columnHeader, boolean iterateAll) {
+		
+		H2IteratorOptions options = new H2IteratorOptions();
+		options.setSelectors(Arrays.asList(columnHeader));
+		options.withSingleColumn(true);
+		options.setTableMeta(tableMeta);
+		
+		RdbmsIteratorBuilder builder = new RdbmsIteratorBuilder();
+		return (Iterator<Object>)builder.buildIterator(options);
 	}
-
-	public void applyGroupBy(String[] column, String newColumnName,
-			String valueColumn, String mathType) {
-		// column = H2HeaderMap.get(column);
-		// valueColumn = H2HeaderMap.get(valueColumn);
-		// newColumnName = H2HeaderMap.get(newColumnName);
-		for (int i = 0; i < column.length; i++) {
-			column[i] = this.getValueForUniqueName(column[i]);
-		}
-		valueColumn = this.getValueForUniqueName(valueColumn);
-		newColumnName = this.getValueForUniqueName(newColumnName);
-		builder.processGroupBy(column, newColumnName, valueColumn, mathType,
-				getH2Headers());
-	}
-
+	
 	@Override
 	public Object[] getColumn(String columnHeader) {
-		columnHeader = this.getValueForUniqueName(columnHeader);
-		Object[] array = builder.getColumn(columnHeader, false);
-		return array;
+		Iterator<Object> iterator = uniqueValueIterator(columnHeader, false);
+		List<Object> valuesList = new ArrayList<Object>();
+		while(iterator.hasNext()) {
+			valuesList.add(iterator.next());
+		}
+		return valuesList.toArray();
 	}
 
 	@Override
+	public Double[] getColumnAsNumeric(String columnHeader) {
+		if (isNumeric(columnHeader)) {
+			Object[] array = getColumn(columnHeader);
+
+			List<Double> numericCol = new ArrayList<Double>();
+			for (Object row : array) {
+				try {
+					Double dval = ((Number) row).doubleValue();
+					numericCol.add(dval);
+				} catch (NumberFormatException e) {
+
+				}
+			}
+			return numericCol.toArray(new Double[] {});
+		}
+
+		return null;
+	}
+	
+	@Override
 	public Integer getUniqueInstanceCount(String columnHeader) {
-		columnHeader = this.getValueForUniqueName(columnHeader);
-		return builder.getColumn(columnHeader, true).length;
+		try {
+			String query = "SELECT COUNT(DISTINCT "+columnHeader+") FROM " + this.tableMeta.getViewTableName();
+			ResultSet rs = this.tableMeta.getConnection().createStatement().executeQuery(query);
+			return rs.getInt(1);
+		} catch (SQLException e) {
+			e.printStackTrace();
+		}
+		return null;
 	}
 
 	@Override
 	public Double getMin(String columnHeader) {
 		// make sure its a number
 		if (this.metaData.getDataType(columnHeader).equals(IMetaData.DATA_TYPES.NUMBER)) {
-			columnHeader = this.getValueForUniqueName(columnHeader);
 			return builder.getStat(columnHeader, "MIN", false);
 		}
 		return null;
@@ -832,7 +501,6 @@ public class H2Frame extends AbstractTableDataFrame {
 	@Override
 	public Double getMax(String columnHeader) {
 		if (this.metaData.getDataType(columnHeader).equals(IMetaData.DATA_TYPES.NUMBER)) {
-			columnHeader = this.getValueForUniqueName(columnHeader);
 			return builder.getStat(columnHeader, "MAX", false);
 		}
 		return null;
@@ -841,14 +509,12 @@ public class H2Frame extends AbstractTableDataFrame {
 	@Override
 	public Iterator<List<Object[]>> scaledUniqueIterator(String columnHeader, Map<String, Object> options) {
 		List<String> selectors = null;
-		List<IMetaData.DATA_TYPES> dataTypes = null;
 		Double[] max = null;
 		Double[] min = null;
 		if (options != null && options.containsKey(AbstractTableDataFrame.SELECTORS)) {
 			// get the max and min values based on the order that is defined
 			selectors = (List<String>) options.get(AbstractTableDataFrame.SELECTORS);
 			int numSelected = selectors.size();
-			dataTypes = new Vector<IMetaData.DATA_TYPES>(numSelected);
 			max = new Double[numSelected];
 			min = new Double[numSelected];
 			for (int i = 0; i < numSelected; i++) {
@@ -856,49 +522,18 @@ public class H2Frame extends AbstractTableDataFrame {
 				// calculate max/min with each loop
 				max[i] = getMax(selectors.get(i));
 				min[i] = getMin(selectors.get(i));
-				dataTypes.add(metaData.getDataType(selectors.get(i)));
 			}
 		} else {
 			// order of selectors will match order of max and min arrays
-			selectors = getH2Selectors();
+			selectors = getSelectors();
 			max = getMax();
 			min = getMin();
-			int numSelected = selectors.size();
-			dataTypes = new Vector<IMetaData.DATA_TYPES>(numSelected);
-			for (int i = 0; i < numSelected; i++) {
-				dataTypes.add(metaData.getDataType(selectors.get(i)));
-			}
 		}
 
-		columnHeader = this.getValueForUniqueName(columnHeader);
-		if (builder.tableName == null) {
-			builder.tableName = getTableNameForUniqueColumn(this.headerNames[0]);
-		}
-		ScaledUniqueH2FrameIterator iterator = new ScaledUniqueH2FrameIterator(columnHeader, builder.tableName, builder, max, min, dataTypes, selectors);
-		return iterator;
-	}
+		Map<String, String> headerTypes = this.getH2HeadersAndTypes();
 
-	@Override
-	public Double[] getColumnAsNumeric(String columnHeader) {
-		if (isNumeric(columnHeader)) {
-			columnHeader = this.getValueForUniqueName(columnHeader);
-			Object[] array = builder.getColumn(columnHeader, false);
-
-			List<Double> numericCol = new ArrayList<Double>();
-			Iterator<Object> it = Arrays.asList(array).iterator();
-			while (it.hasNext()) {
-				Object row = it.next();
-				try {
-					Double dval = ((Number) row).doubleValue();
-					numericCol.add(dval);
-				} catch (NumberFormatException e) {
-
-				}
-			}
-
-			return numericCol.toArray(new Double[] {});
-		}
-
+//		ScaledUniqueH2FrameIterator iterator = new ScaledUniqueH2FrameIterator(columnHeader, builder.tableName, builder, max, min, headerTypes, selectors);
+//		return iterator;
 		return null;
 	}
 
@@ -910,36 +545,6 @@ public class H2Frame extends AbstractTableDataFrame {
 		
 		Set<String> keySet = cleanRow.keySet();
 		Map<String, Object> adjustedCleanRow = new LinkedHashMap<String, Object>();
-		
-		//distinguish between new columns (cleanRow) and original columns (rawRow)
-		//remove original columns from new columns and keep them separated
-		//way to figure out if one new column is being updated or multiple
-		//specifically done when figuring out better approach for col split operation
-//		if(!cleanRow.equals(rawRow)){
-//			//collect original columns and their respective values
-//			origValues = new Object[rawRow.keySet().size()];
-//			origColumnHeaders = rawRow.keySet().toArray(new String[] {});
-//			
-//			for (int i = 0; i < origColumnHeaders.length; i++) {
-//				origValues[i] = rawRow.get(origColumnHeaders[i]);
-//				origColumnHeaders[i] = H2Builder.cleanHeader(origColumnHeaders[i]);
-//			}		
-//						
-//			Set<String> origKeySet = rawRow.keySet();
-//			boolean exists = false;
-//			for(String key : keySet){	
-//				exists = false;
-//				for(String origKey : origKeySet){
-//					if(key.equals(origKey)){
-//						exists = true;
-//						multiUpdates = true;
-//					}
-//				}
-//				if(!exists)
-//					adjustedCleanRow.put(key, cleanRow.get(key));
-//			}			
-//			cleanRow = adjustedCleanRow;	
-//		}
 		
 		// if the sets contain keys not in header names, remove them
 		adjustedCleanRow = new LinkedHashMap<String, Object>();
@@ -972,25 +577,23 @@ public class H2Frame extends AbstractTableDataFrame {
 
 		for (int i = 0; i < columnHeaders.length; i++) {
 			values[i] = cleanRow.get(columnHeaders[i]);
-			columnHeaders[i] = H2Builder.cleanHeader(columnHeaders[i]);
+//			columnHeaders[i] = H2Builder2.cleanHeader(columnHeaders[i]);
 		}		
 		
 		if(multiUpdates)			
 			builder.updateTable2(origColumnHeaders, origValues, columnHeaders, values);		
 		else
-			builder.updateTable(getH2Headers(), values, columnHeaders);
-		
+			builder.updateTable(getColumnHeaders(), values, columnHeaders);
 	}
 
 	@Override
 	public void removeColumn(String columnHeader) {
-		if (!ArrayUtilityMethods.arrayContainsValue(this.headerNames,
-				columnHeader)) {
+		if (!ArrayUtilityMethods.arrayContainsValue(this.headerNames, columnHeader)) {
 			return;
 		}
 
 		// drop the column from the h2 table
-		builder.dropColumn(this.getValueForUniqueName(columnHeader));
+		builder.dropColumn(columnHeader);
 		// remove the column name from the metadata
 		this.metaData.dropVertex(columnHeader);
 
@@ -1008,25 +611,11 @@ public class H2Frame extends AbstractTableDataFrame {
 	}
 
 	@Override
-	public Iterator<Object> uniqueValueIterator(String columnHeader, boolean iterateAll) {
-
-		// Map<String, Object> options = new HashMap<String, Object>();
-		// options.put(DE_DUP, true);
-		//
-		// List<String> selectors = new ArrayList<String>();
-		// selectors.add(columnHeader);
-		// options.put(SELECTORS, selectors);
-		// columnHeader = H2HeaderMap.get(columnHeader);
-		columnHeader = this.getValueForUniqueName(columnHeader);
-		return Arrays.asList(builder.getColumn(columnHeader, true)).iterator();
-	}
-
-	@Override
 	public void save(String fileName) {
 		String fileNameBase = fileName.substring(0, fileName.lastIndexOf("."));
 		this.metaData.save(fileNameBase);
-		if(fileName != null && !fileName.isEmpty() && getH2Headers() != null) {
-			Properties props = builder.save(fileName, getH2Headers());
+		if(fileName != null && !fileName.isEmpty() && getColumnHeaders() != null) {
+			Properties props = builder.save(fileName, getColumnHeaders());
 			
 			OutputStream output = null;
 			try {
@@ -1049,6 +638,7 @@ public class H2Frame extends AbstractTableDataFrame {
 		}
 	}
 
+	
 	/**
 	 * Open a serialized TinkerFrame This is used with in InsightCache class
 	 * 
@@ -1058,9 +648,9 @@ public class H2Frame extends AbstractTableDataFrame {
 	 *            The userId who is creating this instance of the frame
 	 * @return
 	 */
-	public H2Frame open(String fileName, String userId) {
+	public H2Frame2 open(String fileName, String userId) {
 		// create the new H2Frame instance
-		H2Frame h2Frame = new H2Frame();
+		H2Frame2 h2Frame = new H2Frame2();
 		// set the user id who invoked this new instance
 		// this also sets the correct schema for the in memory connection
 		h2Frame.setUserId(userId);
@@ -1073,17 +663,11 @@ public class H2Frame extends AbstractTableDataFrame {
 		Properties prop = new Properties();
 		try {
 			prop.load(new BufferedReader(new FileReader(fileNameBase+"_PROP.properties")));
-			H2Builder builder = new H2Builder();
-			h2Frame.builder = builder;
 			h2Frame.builder.open(fileName, prop);
 		} catch (FileNotFoundException e) {
 			//need these here so legacy caches will still work, will transition this out as people's caches are deleted and recreated
-			H2Builder builder = new H2Builder();
-			h2Frame.builder = builder;
 			h2Frame.builder.open(fileName, prop);
 		} catch (IOException e) {
-			H2Builder builder = new H2Builder();
-			h2Frame.builder = builder;
 			h2Frame.builder.open(fileName, prop);
 		}
 		
@@ -1095,8 +679,7 @@ public class H2Frame extends AbstractTableDataFrame {
 		h2Frame.metaData.open(fileNameBase);
 		List<String> primKeys = h2Frame.metaData.getPrimKeys();
 		if (primKeys.size() == 1) {
-			h2Frame.metaData.setVertexValue(primKeys.get(0),
-					h2Frame.builder.tableName);
+			h2Frame.metaData.setVertexValue(primKeys.get(0), h2Frame.builder.tableMetaData.getTableName());
 		}
 		// set the list of headers in the class variable
 		List<String> fullNames = h2Frame.metaData.getColumnNames();
@@ -1117,56 +700,24 @@ public class H2Frame extends AbstractTableDataFrame {
 		}
 		return selectors;
 	}
+	
+	private Map<String, String> getH2HeadersAndTypes() {
 
-	public List<String> getH2Selectors() {
-		List<String> selectors = getSelectors();
-		List<String> h2selectors = new ArrayList<>(selectors.size());
-		for (int i = 0; i < selectors.size(); i++) {
-			h2selectors.add(getH2Header(selectors.get(i)));
-		}
-		return h2selectors;
-	}
-
-	private String[] getH2Headers() {
 		if (headerNames == null)
 			return null;
-		String[] h2Headers = new String[headerNames.length];
-		for (int i = 0; i < headerNames.length; i++) {
-			h2Headers[i] = getH2Header(headerNames[i]);
+		Map<String, String> retMap = new HashMap<String, String>(
+				headerNames.length);
+		for (String header : headerNames) {
+			String h2Header = header;
+			String h2Type = Utility.convertDataTypeToString(this.metaData
+					.getDataType(header));
+			retMap.put(h2Header, h2Type);
 		}
-		return h2Headers;
+		return retMap;
 	}
-
-	private String getH2Header(String uniqueName) {
-		return this.getValueForUniqueName(uniqueName);
-	}
-	
-//	protected void setH2Headers(Map<String, String> headers) {
-//		this.joinHeaders = headers;
-//	}
-
-	// private String[] getH2Types() {
-	// if(headerNames == null) return null;
-	// String[] h2Types = new String[headerNames.length];
-	// for(int i = 0; i < headerNames.length; i++) {
-	// h2Types[i] = this.metaData.getDBDataType(headerNames[i]);
-	// }
-	// return h2Types;
-	// }
-
-//	private Map<String, String> getH2HeadersAndTypes() {
-//		if (headerNames == null)
-//			return null;
-//		Map<String, String> retMap = new HashMap<String, String>(headerNames.length);
-//		for (String header : headerNames) {
-//			String h2Header = this.getH2Header(header);
-//			String h2Type = Utility.convertDataTypeToString(this.metaData.getDataType(header));
-//			retMap.put(h2Header, h2Type);
-//		}
-//		return retMap;
-//	}
 
 	// relationships in the form tableA.columnA.tableB.columnB
+	
 	public void setRelations(List<String> relations) {
 		// use this to set the relationships gathered from the xl file helper
 		Map<String, Set<String>> edgeHash = new HashMap<>();
@@ -1193,17 +744,6 @@ public class H2Frame extends AbstractTableDataFrame {
 				getNode2ValueHash(edgeHash));
 	}
 
-	protected String getCleanHeader(String metaNodeName) {
-		String metaNodeValue;
-		if (metaNodeName.equals(TinkerFrame.PRIM_KEY)) {
-			metaNodeValue = builder.getNewTableName();
-		} else {
-			metaNodeValue = H2Builder.cleanHeader(metaNodeName);
-		}
-
-		return metaNodeValue;
-	}
-
 	private Map<String, String> getNode2ValueHash(Map<String, Set<String>> edgeHash) {
 		Set<String> masterSet = new HashSet<String>();
 		masterSet.addAll(edgeHash.keySet());
@@ -1214,9 +754,9 @@ public class H2Frame extends AbstractTableDataFrame {
 		Map<String, String> trans = new HashMap<String, String>();
 		for (String name : masterSet) {
 			if (name.startsWith(TinkerFrame.PRIM_KEY)) {
-				trans.put(name, builder.getNewTableName());
+				trans.put(name, RdbmsFrameUtility.getNewTableName());
 			} else {
-				trans.put(name, getCleanHeader(name));
+				trans.put(name, name);
 			}
 		}
 		return trans;
@@ -1256,35 +796,17 @@ public class H2Frame extends AbstractTableDataFrame {
 		// has all the necessary columns
 
 		// create a map of column to data type
-		String[] cleanHeaders = new String[this.headerNames.length];
 		String[] types = new String[this.headerNames.length];
 		for (int i = 0; i < types.length; i++) {
 			types[i] = Utility.convertDataTypeToString(this.metaData.getDataType(this.headerNames[i]));
-			cleanHeaders[i] = this.getValueForUniqueName(this.headerNames[i]);
 		}
 
-		if (builder.tableName == null) {
-			builder.tableName = getTableNameForUniqueColumn(this.headerNames[0]);
-		}
-		builder.alterTableNewColumns(builder.tableName, cleanHeaders, types);
-	}
-
-	public String getValueForUniqueName(String name) {
-		return this.metaData.getValueForUniqueName(name);
-	}
-
-	@Override
-	public void addRelationship(Map<String, Object> rowCleanData, Map<String, Set<String>> edgeHash, Map<String, String> logicalToTypeMap) {
-		addRelationship(rowCleanData);
+		builder.alterTableNewColumns(tableMeta.getTableName(), headerNames, types);
 	}
 
 	@Override
 	public void addRelationship(String[] headers, Object[] values, Map<Integer, Set<Integer>> cardinality,Map<String, String> logicalToValMap) {
-		for (int i = 0; i < headers.length; i++) {
-			headers[i] = H2Builder.cleanHeader(headers[i]);
-		}
-
-		String[] currHeaders = getH2Headers();
+		String[] currHeaders = getColumnHeaders();
 
 		for (int i = 0; i < headers.length - 1; i++) {
 			String header1 = headers[i];
@@ -1309,6 +831,7 @@ public class H2Frame extends AbstractTableDataFrame {
 		builder.updateTable(currHeaders, values, headers);
 	}
 
+	
 	/**
 	 * Provides a HashMap containing metadata of the db connection: username, tableName, and schema.
 	 * @return HashMap of database metadata.
@@ -1330,11 +853,10 @@ public class H2Frame extends AbstractTableDataFrame {
 		String[] values = new String[columnNames.size()];
 		int i = 0;
 		for (String column : cleanRow.keySet()) {
-			String col = this.getValueForUniqueName(column);
-			Object value = cleanRow.get(col);
+			Object value = cleanRow.get(column);
 			String val = Utility.cleanString(value.toString(), true, true,
 					false);
-			columns[i] = col;
+			columns[i] = column;
 			values[i] = val;
 			i++;
 		}
@@ -1347,6 +869,7 @@ public class H2Frame extends AbstractTableDataFrame {
 		reactorNames.put(PKQLEnum.EXPR_TERM, "prerna.sablecc.ExprReactor");
 		reactorNames.put(PKQLEnum.EXPR_SCRIPT, "prerna.sablecc.ExprReactor");
 		reactorNames.put(PKQLReactor.MATH_FUN.toString(),"prerna.sablecc.MathReactor");
+		reactorNames.put(PKQLEnum.CSV_TABLE, "prerna.sablecc.CsvTableReactor");
 		reactorNames.put(PKQLEnum.COL_CSV, "prerna.sablecc.ColCsvReactor"); // it almost feels like I need a way to tell when to do this and when not but let me see
 		reactorNames.put(PKQLEnum.ROW_CSV, "prerna.sablecc.RowCsvReactor");
 		reactorNames.put(PKQLEnum.PASTED_DATA, "prerna.sablecc.PastedDataReactor");
@@ -1372,7 +895,7 @@ public class H2Frame extends AbstractTableDataFrame {
 		reactorNames.put(PKQLEnum.DASHBOARD_JOIN, "prerna.sablecc.DashboardJoinReactor");
 		reactorNames.put(PKQLEnum.NETWORK_CONNECT, "prerna.sablecc.ConnectReactor");
 		reactorNames.put(PKQLEnum.NETWORK_DISCONNECT, "prerna.sablecc.DisConnectReactor");
-		reactorNames.put(PKQLEnum.DATA_FRAME_DUPLICATES, "prerna.sablecc.H2DuplicatesReactor");
+		reactorNames.put(PKQLEnum.DATA_FRAME_DUPLICATES, "prerna.sablecc.H2DataFrameDuplicatesReactor");
 		reactorNames.put(PKQLEnum.COL_FILTER_MODEL, "prerna.sablecc.H2ColFilterModelReactor");
 		
 		// h2 specific expression handlers		
@@ -1413,40 +936,8 @@ public class H2Frame extends AbstractTableDataFrame {
 		
 		return reactorNames;
 	}
-	
-	public void mergeRowsViaIterator(Iterator<IHeadersDataRow> iterator, String[] newHeaders, String[] startingHeaders, Vector<Map<String, String>> joinCols) {
-		int size = newHeaders.length;
-		IMetaData.DATA_TYPES[] types = new IMetaData.DATA_TYPES[size];
-		for (int i = 0; i < newHeaders.length; i++) {
-			types[i] = this.metaData.getDataType(newHeaders[i]);
-		}
 
-		// update column is every column not part of the join
-		List<String> joinHeaders = new Vector<String>();
-		for(Map<String, String> join : joinCols) {
-			joinHeaders.addAll(join.keySet());
-		}
-
-		try {
-			this.builder.mergeRowsViaIterator(iterator, newHeaders, types, startingHeaders, joinHeaders.toArray(new String[]{}));
-		} catch (Exception e) {
-			e.printStackTrace();
-		}
-		
-	}
 	public void processIterator(Iterator<IHeadersDataRow> iterator,	String[] newHeaders, Map<String, String> logicalToValue, List<Map<String, String>> joins, String joinType) {
-
-		// convert the new headers into value headers
-		String[] valueHeaders = new String[newHeaders.length];
-		if (logicalToValue == null) {
-			for (int i = 0; i < newHeaders.length; i++) {
-				valueHeaders[i] = this.getValueForUniqueName(newHeaders[i]);
-			}
-		} else {
-			for (int i = 0; i < newHeaders.length; i++) {
-				valueHeaders[i] = logicalToValue.get(newHeaders[i]);
-			}
-		}
 
 		String[] types = new String[newHeaders.length];
 		for (int i = 0; i < newHeaders.length; i++) {
@@ -1468,11 +959,11 @@ public class H2Frame extends AbstractTableDataFrame {
 		List<String> adjustedColHeadersList = new Vector<String>();
 		for (String header : columnHeaders) {
 			if (!ArrayUtilityMethods.arrayContainsValueIgnoreCase(newHeaders,header)) {
-				adjustedColHeadersList.add(this.getValueForUniqueName(header));
+				adjustedColHeadersList.add(header);
 			} else {
 				joinLoop: for (Map<String, String> join : joins) {
 					if (join.keySet().contains(header)) {
-						adjustedColHeadersList.add(this.getValueForUniqueName(header));
+						adjustedColHeadersList.add(header);
 						break joinLoop;
 					}
 				}
@@ -1498,84 +989,30 @@ public class H2Frame extends AbstractTableDataFrame {
 			}
 		}
 
-		this.builder.processIterator(iterator, adjustedColHeaders,valueHeaders, types, jType);
-	
+		this.builder.processIterator(iterator, adjustedColHeaders, newHeaders, types, jType);		
 	}
 	
 	@Override
 	public boolean isEmpty() {
-		if (builder.tableName == null) {
-			builder.tableName = getTableNameForUniqueColumn(getColumnHeaders()[0]);
-		}
-		return this.builder.isEmpty(builder.tableName);
+		return this.builder.isEmpty();
 	}
 	
 	@Override
 	public int getNumRows() {
-		if (builder.tableName == null) {
-			builder.tableName = getTableNameForUniqueColumn(getColumnHeaders()[0]);
-		}
 		return this.builder.getNumRows();
 	}
 	
 	public int getNumRecords() {
-		if (builder.tableName == null) {
-			builder.tableName = getTableNameForUniqueColumn(getColumnHeaders()[0]);
-		}
-		return this.builder.getNumRecords();
-	}
-
-	/**
-	 * Getter for RRunner. Instantiates a new RRunner if none exists based off current database metadata.
-	 * @return RRunner
-	 * @throws RserveException Most likely RServe was not started in local R
-	 * @throws SQLException Could not access H2Builder data
-	 */
-	public RRunner getRRunner() throws RserveException, SQLException {
-		if (this.r == null) {
-			this.r = new RRunner(this.getDatabaseMetaData());
-		}
-
-		return this.r;
-	}
-
-	/**
-	 * Closes out RConnection and stops server connection to H2Frame
-	 */
-	public void closeRRunner() {
-		if (r != null) {
-			this.r.close();
-		}
+		return getNumRows() * getColumnHeaders().length;
 	}
 
 	public void dropTable() {
-		//TODO : need to implement unjoin logic
-//		if(this.isJoined()) {
-//			builder.joiner.unJoinFrame(this);
-//			builder.joiner = null;
-//		}
 		this.builder.dropTable();
 	}
 
 	@Override
 	public String getDataMakerName() {
-		// could we just do "return this.class.toString();" ?
-		return "H2Frame";
-	}
-
-	public boolean isJoined() {
-		return getJoiner() != null;
-	}
-
-	public DataFrameJoiner getJoiner() {
-		return builder.joiner;
-	}
-	
-	public void setJoiner(DataFrameJoiner joiner) {
-		this.builder.joiner = joiner;
-	}
-
-	protected void unJoin() {
+		return this.getClass().getSimpleName();
 	}
 
 	@Override
@@ -1583,51 +1020,44 @@ public class H2Frame extends AbstractTableDataFrame {
 	 * Used to update the data id when data has changed within the frame
 	 */
 	public void updateDataId() {
-		updateDataId(1);
+			updateDataId(1);
 	}
 
 	protected void updateDataId(int val) {
 		this.dataId = this.dataId.add(BigInteger.valueOf(val));
 	}
-	
-//	public Map<? extends String, ? extends Object> getGraphOutput() {
-//		//possibly store a graph structure
-//		//create it lazily
-//		Map<? extends String, ? extends Object> graphOutput;
-//		if(graphCache == null) {
-//			graphCache = TableDataFrameFactory.convertToTinkerFrameForGraph(this);
-//		} else {
-//			//filter?
-//		}
-//		graphOutput = graphCache.getGraphOutput();
-//		//unfilter the graph?
-////		graphCache.unfilter();
-//		return graphOutput;
-//	}
-	
-	public Map<String, Map<AbstractTableDataFrame.Comparator, Set<Object>>> getFilterHash() {
-		return this.builder.getFilterHash();
+
+	public Map<String, Map<String, Set<Object>>> getFilterHash() {
+		return this.tableMeta.getFilters().getFilterHash();
 	}
 
-	/**
-	 * Get the table name for the current frame
-	 * @return
-	 */
-	public String getTableName() {
-		// return the table name for the builder
-		// this is needed for specific reactors where operations are more efficient
-		// being performed directly via sql
-		return this.builder.getTableName();
-	}
+
+		
+	/******************************
+	 * METHODS NO LONGER NECESSARY
+	 ******************************/
 	
-	/**
-	 * 
-	 * @return
-	 */
-	public String getViewTableName() {
-		return getTableName();
+	@Override
+	public void addRelationship(Map<String, Object> rowCleanData, Map<String, Set<String>> edgeHash, Map<String, String> logicalToTypeMap) {
+		addRelationship(rowCleanData);
 	}
 
+	@Override
+	public Iterator<Object[]> iterator(Map<String, Object> options) {
+		return null;
+	}
+	
+	public Map<String, Object[]> getFilterTransformationValues() {
+		Map<String, Object[]> retMap = new HashMap<String, Object[]>();
+		return retMap;
+	}
+
+	@Override
+	public Object[] getFilterModel() {
+		return null;
+	}
+	
+	//SHOULDN'T BE HERE...PUT IN SOME SORT OF HELPER CLASS
 	/**
 	 * Execute a query and returns the results in a matrix
 	 * @param query			The query to execute on the frame
@@ -1640,66 +1070,67 @@ public class H2Frame extends AbstractTableDataFrame {
 		return this.builder.getFlatTableFromQuery(query);
 	}
 	
-	/**
-	 * Execute a query and returns the ResultSet
-	 * Responsibility of user to close the ResultSet
-	 * @param query			The query to execute on the frame
-	 * @return				ResultSet for the query
-	 */
-	public ResultSet execQuery(String query) {
-		// execute a query and get back its result set
-		return this.builder.executeQuery(query);
-	}
+//	// TODO : this won't with main column table
+//	public String getTableNameForUniqueColumn(String uniqueName) {
+//		return this.metaData.getParentValueOfUniqueNode(uniqueName);
+//	}
 	
-	/**
-	 * Return the set of columns which already have an index
-	 * @return
-	 */
-	public Set<String> getColumnsWithIndexes() {
-		Set<String> cols = new HashSet<String>();
-		for(String tableColKey : this.builder.columnIndexMap.keySet()) {
-			// table name and col name are appended together with +++
-			cols.add(tableColKey.split("\\+\\+\\+")[1]);
-		}
-		return cols;
-	}
+//	/**
+//	 * Create a prepared statement to efficiently update columns in a frame
+//	 * @param TABLE_NAME
+//	 * @param columnsToUpdate
+//	 * @param whereColumns
+//	 * @return
+//	 */
+//	public PreparedStatement createUpdatePreparedStatement(final String[] columnsToUpdate, final String[] whereColumns) {
+//		return this.builder.createUpdatePreparedStatement(this.tableMeta.getTableName(), columnsToUpdate, whereColumns);
+//	}
+//	
+//	/**
+//	 * Create a prepared statement to efficiently insert new rows in a frame
+//	 * @param columns
+//	 * @return
+//	 */
+//	public PreparedStatement createInsertPreparedStatement(final String[] columns) {
+//		return this.builder.createInsertPreparedStatement(this.tableMeta.getTableName(), columns);
+//	}
 	
-	/**
-	 * Add an index on a column
-	 * @param columnName
-	 */
-	public void addColumnIndex(String columnName) {
-		String tableName = getTableName();
-		this.builder.addColumnIndex(tableName, columnName);
-	}
-	
-	/**
-	 * Remove an index on a column
-	 * @param columnName
-	 */
-	public void removeColumnIndex(String columnName) {
-		String tableName = getTableName();
-		this.builder.removeColumnIndex(tableName, columnName);
-	}
+//	public boolean isInMem() {
+//	return this.tableMeta.isInMem();
+//}
 
-	/**
-	 * Need to return the filters on the frame for reactors
-	 * @return
-	 */
-	public String getSqlFilter() {
-		return this.builder.getSqlFitler();
-	}
-
-	public String getTableColumnName(String colName) {
-		String colTableName = colName;
-		if(colTableName != null) {
-			return colTableName;
-		} else {
-			String[] curHeaders = getColumnHeaders();
-			if(ArrayUtilityMethods.arrayContainsValue(curHeaders, colName)) {
-				return colName;
-			}
-		}
-		return null;
-	}	
+//public void convertToOnDiskFrame(String schema) {
+//	String previousPhysicalSchema = null;
+//	if(!isInMem()) {
+//		previousPhysicalSchema = getSchema();
+//	}
+//	
+//	// if null is passed in
+//	// we automatically create a new schema
+//	this.builder.convertFromInMemToPhysical(schema);
+//	
+//	// if it was already an existing physical schema
+//	// should delete the folder from the server
+//	if(previousPhysicalSchema != null) {
+//		File file = new File(previousPhysicalSchema);
+//		String folder = file.getParent();
+//		LOGGER.info("DELETING ON-DISK SCHEMA AT FOLDER PATH = " + folder);
+//		ICache.deleteFolder(folder);
+//	}
+//}
+//
+//public void dropOnDiskTemporalSchema() {
+//	if(!isInMem()) {
+//		this.builder.closeConnection();
+//		String schema = getSchema();
+//		File file = new File(schema);
+//		String folder = file.getParent();
+//		LOGGER.info("DELETING ON-DISK SCHEMA AT FOLDER PATH = " + folder);
+//		ICache.deleteFolder(folder);
+//	}
+//}
+//
+//public String getSchema() {
+//	return this.builder.getSchema();
+//}
 }
