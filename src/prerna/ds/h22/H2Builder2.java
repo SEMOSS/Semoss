@@ -1322,7 +1322,7 @@ public class H2Builder2 {
 
 	/***************************
 	 * QUERY BUILDERS
-	 ******************************************/
+	 ***************************/
 
 	//TODO : This is not necessary if we add temporal filters
 	private String makeSpecificSelect(String tableName, List<String> selectors, String columnHeader, Object value) {
@@ -1355,7 +1355,7 @@ public class H2Builder2 {
 
 	/***************************
 	 * END QUERY BUILDERS
-	 **************************************/
+	 ***************************/
 
 	// use this when result set is not expected back
 	private void runQuery(String query) throws Exception {
