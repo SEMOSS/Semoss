@@ -13,6 +13,8 @@ import prerna.ds.ExpressionIterator;
 import prerna.sablecc.MathReactor;
 import prerna.sablecc.PKQLEnum;
 import prerna.sablecc.PKQLRunner.STATUS;
+import prerna.sablecc.meta.IPkqlMetadata;
+import prerna.sablecc.meta.MathPkqlMetadata;
 
 public class MonetaryUnitSamplingReactor extends MathReactor{
 	
@@ -220,6 +222,15 @@ public class MonetaryUnitSamplingReactor extends MathReactor{
 	        	result.put(rowKey, 0);
 	    }
 	    return result;
+	}
+	
+	public IPkqlMetadata getPkqlMetadata() {
+		MathPkqlMetadata metadata = new MathPkqlMetadata();
+		metadata.setPkqlStr((String) myStore.get(PKQLEnum.MATH_FUN));
+		metadata.setColumnsOperatedOn((Vector<String>) myStore.get(PKQLEnum.COL_DEF));
+		metadata.setProcedureName("Monetary Unit Sampling");
+		metadata.setAdditionalInfo(myStore.get("ADDITIONAL_INFO"));
+		return metadata;
 	}
 }
 
