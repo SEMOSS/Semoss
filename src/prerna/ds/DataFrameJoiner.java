@@ -22,6 +22,7 @@ import org.apache.tinkerpop.gremlin.tinkergraph.structure.TinkerGraph;
 import prerna.algorithm.api.ITableDataFrame;
 import prerna.om.Dashboard;
 import prerna.om.Insight;
+import prerna.om.InsightStore;
 import prerna.ui.components.playsheets.datamakers.IDataMaker;
 import prerna.ds.AbstractTableDataFrame.Comparator;
 import prerna.ds.h2.H2Frame;
@@ -44,7 +45,7 @@ public class DataFrameJoiner {
 	private static final String EDGE_ID = "EDGE_ID";
 	private static final String EDGE_DELIMITER = ":::";
 	private static final String FILTERHASH = "FILTERHASH";
-	private static final String INSIGHT_KEY = "INSIGHT_KEY";
+//	private static final String INSIGHT_KEY = "INSIGHT_KEY";
 	private static final String JOIN_COLUMNS = "JOIN_COLUMNS";
 	
 	
@@ -74,7 +75,8 @@ public class DataFrameJoiner {
 		GraphTraversal<Vertex, Vertex> gt = dataFrameMetaGraph.traversal().V();
 		
 		while(gt.hasNext()) {
-			Insight nextInsight = gt.next().value(INSIGHT_KEY);
+			String nextInsightId = (String)gt.next().value(VERTEX_ID);
+			Insight nextInsight = InsightStore.getInstance().get(nextInsightId);
 			insights.add(nextInsight);
 		}
 		return insights;
@@ -110,7 +112,8 @@ public class DataFrameJoiner {
 		GraphTraversal<Vertex, Vertex> vertexTraversal = this.dataFrameMetaGraph.traversal().V();
 		while(vertexTraversal.hasNext()) {
 			Vertex startVertex = vertexTraversal.next();
-			String insightId = ((Insight)startVertex.value(INSIGHT_KEY)).getInsightID();
+//			String insightId = ((Insight)startVertex.value(INSIGHT_KEY)).getInsightID();
+			String insightId = startVertex.value(VERTEX_ID);
 			if(!joinedInsightMap.containsKey(insightId)) {
 				Set<Vertex> vertexIsland = new HashSet<>();
 				vertexIsland.add(startVertex);
@@ -136,7 +139,7 @@ public class DataFrameJoiner {
 	private void addIslandToJoinedInsightMap(Map<String, List<String>> joinedInsightMap, Set<Vertex> vertexIsland) {
 		
 		Set<String> vertexIslandIds = vertexIsland.stream()
-													.map(v -> {return ((Insight)v.value(INSIGHT_KEY)).getInsightID();})
+													.map(v -> {return (String)v.value(VERTEX_ID);})
 													.collect(Collectors.toSet());
 		for(String insightId : vertexIslandIds) {
 			List<String> joinedInsights = new ArrayList<>(vertexIslandIds);
@@ -206,9 +209,9 @@ public class DataFrameJoiner {
 		insight2.getDataMaker().updateDataId();
 		
 		H2Frame frame1 = (H2Frame)insight1.getDataMaker();
-//		frame1.setJoiner(this);
+		frame1.setJoiner(this);
 		H2Frame frame2 = (H2Frame)insight2.getDataMaker();
-//		frame2.setJoiner(this);
+		frame2.setJoiner(this);
 	}
 	
 	
@@ -479,17 +482,26 @@ public class DataFrameJoiner {
 		return (H2FilterHash)vert.value(FILTERHASH);
 	}
 	
+	//the key will be the table name
 	public H2FilterHash getFilters(String key) {
-		Vertex vert = getVertex(key);
-		return (H2FilterHash)vert.value(FILTERHASH);
+		GraphTraversal<Vertex, Vertex> traversal = this.dataFrameMetaGraph.traversal().V();
+		while(traversal.hasNext()) {
+			Vertex vert = traversal.next();
+			String insightId = vert.value(VERTEX_ID);
+			Insight insight = InsightStore.getInstance().get(insightId);
+			H2Frame frame = (H2Frame)insight.getDataMaker();
+			if(frame.getBuilder().getTableName().equals(key)) {
+				return (H2FilterHash)vert.value(FILTERHASH);
+			}
+		}
+		return new H2FilterHash();
 	}
 	
 	public boolean isHardFiltered(ITableDataFrame frame) {
-//		Map<String, Map<Comparator, Set<Object>>> obj = ((H2Frame)frame).getBuilder().getHardFilterHash();
-//		if(obj == null || obj.isEmpty()) {
-//			return false;
-//		} return true;
-		return false;
+		Map<String, Map<Comparator, Set<Object>>> obj = ((H2Frame)frame).getBuilder().getHardFilterHash();
+		if(obj == null || obj.isEmpty()) {
+			return false;
+		} return true;
 	}
 	
 	public boolean isSoftFiltered(ITableDataFrame frame) {
@@ -537,7 +549,14 @@ public class DataFrameJoiner {
 	}
 	
 	private Vertex getVertex(ITableDataFrame frame) {
-		return getVertex(getVertexId(frame));
+		GraphTraversal<Vertex, Vertex> gt = dataFrameMetaGraph.traversal().V();
+		while(gt.hasNext()) {
+			Vertex vert = gt.next();
+			String insightId = vert.value(VERTEX_ID);
+			Insight insight = InsightStore.getInstance().get(insightId);
+			if(insight.getDataMaker() == frame) return vert;
+		}
+		return null;
 	}
 	
 	private Vertex getVertex(String vertexId) {
@@ -567,7 +586,7 @@ public class DataFrameJoiner {
 		else {
 			String frameId = getVertexId(insight);
 			newVert = dataFrameMetaGraph.addVertex(VERTEX_ID, frameId);
-			newVert.property(INSIGHT_KEY, insight);
+//			newVert.property(INSIGHT_KEY, insight);
 			newVert.property(FILTERHASH, new H2FilterHash());
 		}
 		
@@ -644,11 +663,12 @@ public class DataFrameJoiner {
 	 * Returns the unique ID associated with the Insight
 	 */
 	private String getVertexId(Insight insight) {
-		IDataMaker dm = insight.getDataMaker();
-		if(dm instanceof ITableDataFrame) {
-			return getVertexId((ITableDataFrame)dm);
-		}
 		return insight.getInsightID();
+//		IDataMaker dm = insight.getDataMaker();
+//		if(dm instanceof ITableDataFrame) {
+//			return getVertexId((ITableDataFrame)dm);
+//		}
+//		return insight.getInsightID();
 	}
 	
 	/**
@@ -661,14 +681,13 @@ public class DataFrameJoiner {
 	 * 			this is not ideal because it requires the assumption the table name for the frame won't change
 	 */
 	private String getVertexId(ITableDataFrame frame) {
-		if(frame instanceof H2Frame) {
-			return ((H2Frame)frame).getTableName();
-		}
-		return "";
+		Vertex vert = getVertex(frame);
+		return vert.value(VERTEX_ID);
 	}
 	
 	private ITableDataFrame getDataFrame(Vertex vert) {
-		Insight insight = (Insight)vert.value(INSIGHT_KEY);
+		String insightId = vert.value(VERTEX_ID);
+		Insight insight = InsightStore.getInstance().get(insightId);
 		return (ITableDataFrame)insight.getDataMaker();
 	}
 	
