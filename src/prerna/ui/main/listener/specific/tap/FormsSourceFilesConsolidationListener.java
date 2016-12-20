@@ -11,6 +11,7 @@ import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
 import prerna.engine.api.IEngine;
+import prerna.ui.components.specific.tap.forms.FormsDataProcessor;
 import prerna.ui.main.listener.impl.AbstractListener;
 import prerna.util.ConstantsTAP;
 import prerna.util.DIHelper;
@@ -39,12 +40,8 @@ public class FormsSourceFilesConsolidationListener extends AbstractListener {
 
 		IEngine selectedEngine = Utility.getEngine(selectedFormsDb);
 		
-		// TODO: CREATE NEW CLASS THAT TAKES IN ENGINE AND SOURCE FOLDER THAT DOES PROCESSING
-//		below is for example
-//		make NewClass in package prerna.ui.components.specific.tap
-//		NewClass x = new NewClass(selectedEngine, sourceFolder);
-//		x.processSourceFiles();
-//		String workbook1Path = sourceFolder + "/SourceFile1Name.xlsx";
+		FormsDataProcessor processor = new FormsDataProcessor();
+		processor.processData(selectedEngine, sourceFolder);
 		
 		Utility.showMessage("Finished Consolidating Source Files");
 	}
@@ -55,3 +52,5 @@ public class FormsSourceFilesConsolidationListener extends AbstractListener {
 	}
 
 }
+
+
