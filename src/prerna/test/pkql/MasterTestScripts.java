@@ -8,6 +8,7 @@ import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.io.PrintWriter;
 import java.io.PushbackReader;
 import java.io.StringBufferInputStream;
 import java.nio.file.Path;
@@ -48,11 +49,12 @@ public class MasterTestScripts {
 	private String engine;
 	private String expectedOutput;
 	private String currentTestScriptPath;
+	private ArrayList<String> errors;
 
 	@Test
 	public void test() {
 		TestUtilityMethods.loadDIHelper();
-
+		errors = new ArrayList<String>();
 		// Get test scripts from current directory
 		String testScriptPackage = getTestPath();
 		ArrayList<String> scriptPaths = getTestScripts(testScriptPackage);
@@ -83,15 +85,39 @@ public class MasterTestScripts {
 						compareDataTableValues(actualDtValues, expectedDtValues);
 					}
 				} catch (AssertionError e) {
-					System.out.println("size of dataTableValues is incorrect");
+					errors.add("Error in " + currentTestScriptPath);
+					errors.add("size of dataTableValues is incorrect");
 					// throw e;
 				}
 			}
+		}
+
+		if (errors.size() > 0) {
+			logErrors();
+		}
+	}
+
+	/**
+	 * Logging errors to file
+	 */
+	private void logErrors() {
+		try {
+			String errorPath = this.getTestPath() + "\\errors.txt";
+			errorPath = errorPath.substring(1, errorPath.length());
+			System.out.println("Errors check " + errorPath);
+			PrintWriter writer = new PrintWriter(errorPath, "UTF-8");
+			for (String e : errors) {
+				writer.println(e);
+			}
+			writer.close();
+		} catch (IOException e) {
+			e.printStackTrace();
 		}
 	}
 
 	/**
 	 * This method unbundles the actual DataTable Values from feData
+	 * 
 	 * @param actualFeData
 	 * @return
 	 */
@@ -106,6 +132,7 @@ public class MasterTestScripts {
 
 	/**
 	 * This method unbundles the expected DataTableValues from fe insight object
+	 * 
 	 * @param insight
 	 * @return expected DataTableValues
 	 */
@@ -123,6 +150,7 @@ public class MasterTestScripts {
 
 	/**
 	 * This method compares DataTable values
+	 * 
 	 * @param actualDtValues
 	 * @param expectedDtValues
 	 */
@@ -132,12 +160,28 @@ public class MasterTestScripts {
 			Object[] dt = actualDtValues.get(i);
 			ArrayList<Object> ev = expectedDtValues.get(i);
 
-			for (int j = 0; i < dt.length; i++) {
+			for (int j = 0; j < dt.length; j++) {
 				try {
-					Assert.assertEquals(description, dt[j], ev.get(j));
+
+					// compare types casting
+					if (dt[j].getClass() == Double.class) {
+						double actualD = (double) dt[j];
+						double expectedD = (double) ev.get(j);
+						Assert.assertEquals(description, actualD, expectedD);
+
+					} else if (dt[j].getClass() == Long.class) {
+						Long actualL = (Long) dt[j];
+						double actualD = actualL;
+						double expectedD = (double) ev.get(j);
+						Assert.assertEquals(description, actualD, expectedD);
+					} else {
+						String actual = (String) dt[j];
+						String expected = (String) ev.get(j);
+						Assert.assertEquals(description, actual, expected);
+					}
 				} catch (AssertionError e) {
-					System.out.println("Error from test file: " + currentTestScriptPath);
-					System.out.println("Values are incorrect:" + dt[j] + " expected Value" + ev.get(j));
+					errors.add("Error from test file: " + currentTestScriptPath);
+					errors.add("Values are incorrect:" + dt[j] + " expected Value" + ev.get(j));
 					// throw e;
 				}
 			}
@@ -146,6 +190,7 @@ public class MasterTestScripts {
 
 	/**
 	 * This method runs the pqklScript from the test script
+	 * 
 	 * @return runner fe data
 	 */
 	private Map<String, Object> runPKQL() {
@@ -189,7 +234,8 @@ public class MasterTestScripts {
 	}
 
 	/**
-	 * This method reads the properties from the file 
+	 * This method reads the properties from the file
+	 * 
 	 * @param filePath
 	 */
 	private void getProperties(String filePath) {
@@ -209,9 +255,10 @@ public class MasterTestScripts {
 		}
 
 	}
-	
+
 	/**
 	 * This method gets the path of the .properties file for each test script
+	 * 
 	 * @param directoryLocation
 	 * @return scriptPathList
 	 */
@@ -234,6 +281,7 @@ public class MasterTestScripts {
 
 	/**
 	 * This method gets the path of the test scripts
+	 * 
 	 * @return testScriptPackage location
 	 */
 	private String getTestPath() {
