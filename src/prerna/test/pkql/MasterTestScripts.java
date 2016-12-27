@@ -15,8 +15,11 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Properties;
+import java.util.Set;
 import java.util.Vector;
 
 import org.junit.AfterClass;
@@ -57,28 +60,35 @@ public class MasterTestScripts {
 		errors = new ArrayList<String>();
 		// Get test scripts from current directory
 		String testScriptPackage = getTestPath();
-		ArrayList<String> scriptPaths = getTestScripts(testScriptPackage);
+		ArrayList<String> scriptPaths = new ArrayList<>();
+		// Test all Scripts
+		scriptPaths = getTestScripts(testScriptPackage);
+
+		// Test one script
+		// scriptPaths.add("C:\\Users\\rramirezjimenez\\workspace\\Semoss\\target\\classes\\prerna\\test\\pkql\\filterModel.properties");
 
 		for (String scriptPath : scriptPaths) {
+			System.out.println("Current Script Being Tested: " + scriptPath);
+
 			currentTestScriptPath = scriptPath;
 			// get test properties
 			getProperties(scriptPath);
 
 			// get expectedOutput data from test script
-			Map<String, Object> expGson = getExpectedOutputGson();
+			Map<String, Object> expGson = getExpectedOutputGson(expectedOutput);
 			ArrayList<Object> insightsArr = (ArrayList<Object>) expGson.get("insights");
 			Map<String, Object> insight = (Map<String, Object>) insightsArr.get(0);
 
 			// get return data from pqklScript
 			setUpEngine();
-			Map<String, Object> actualFeData = runPKQL();
+			PKQLRunner actualRunner = runPKQL();
 
 			// handle return data from panel.viz in expectedOutput script
-			if (insight.containsKey("feData")) {
+			if (insight.containsKey("feData") && ((Map) insight.get("feData")).get("0") != null) {
 				ArrayList<ArrayList<Object>> expectedDtValues = new ArrayList();
 				Vector<Object[]> actualDtValues;
 				expectedDtValues = getExpectedDataTableValues(insight);
-				actualDtValues = getActualDataTableValues(actualFeData);
+				actualDtValues = getActualDataTableValues(actualRunner.getFeData().get("0"));
 				try {
 					assertEquals("Testing size of DataTableValues", actualDtValues.size(), expectedDtValues.size());
 					if (actualDtValues.size() == expectedDtValues.size()) {
@@ -89,11 +99,57 @@ public class MasterTestScripts {
 					errors.add("size of dataTableValues is incorrect");
 					// throw e;
 				}
+			} else if (insight.containsKey("pkqlData") && insight.get("pkqlData") != null) {
+				// expectedOutput
+				ArrayList<ArrayList<Object>> expectedDtValues = new ArrayList();
+				Vector<Object[]> actualDtValues;
+				ArrayList<Object> expectedPkqlData = (ArrayList<Object>) insight.get("pkqlData");
+				Map<String, Object> expectedResultsMap = (Map<String, Object>) expectedPkqlData.get(0);
+				Map<String, Object> expectedResults = getExpectedOutputGson((String) expectedResultsMap.get("result"));
+
+				Map<String, Object> expUnfilteredValues = (Map<String, Object>) expectedResults.get("unfilteredValues");
+				Map<String, Object> expFilteredValues = (Map<String, Object>) expectedResults.get("filteredValues");
+				Map<String, Object> expMinMax = (Map<String, Object>) expectedResults.get("minMax");
+
+				// actual data from pkqlScript
+				List<Map> resultsList = actualRunner.getResults();
+				Map<String, Object> returnData = (Map<String, Object>) resultsList.get(2).get("returnData");
+				Map<String, Object> aUnfilteredValues = (Map<String, Object>) returnData.get("unfilteredValues");
+				Map<String, Object> aFilteredValues = (Map<String, Object>) returnData.get("filteredValues");
+				Map<String, Object> aMinMax = (Map<String, Object>) returnData.get("minMax");
+
+				// compare Data
+				compareMaps(expUnfilteredValues, aUnfilteredValues);
+				compareMaps(expFilteredValues, aFilteredValues);
+				compareMaps(expMinMax, aMinMax);
+
+			} else {
+				errors.add("Not able to compare : " + scriptPath);
 			}
 		}
 
 		if (errors.size() > 0) {
 			logErrors();
+		}
+	}
+
+	/**
+	 * This method compares the key value pairs from each map
+	 * @param expectedMap
+	 * @param actualMap
+	 */
+	private void compareMaps(Map<String, Object> expectedMap, Map<String, Object> actualMap) {
+		for (String key : expectedMap.keySet()) {
+			ArrayList<Object> exp = (ArrayList<Object>) expectedMap.get(key);
+			HashSet<Object> actual = (HashSet<Object>) actualMap.get(key);
+			Object[] actualArr = actual.toArray();
+			if (exp.size() == actual.size()) {
+				for (int i = 0; i < exp.size(); i++) {
+					assertEquals(exp.get(i), actualArr[i]);
+					// System.out.println("comparing: " + exp.get(i) + " " +
+					// actualArr[i]);
+				}
+			}
 		}
 	}
 
@@ -193,7 +249,7 @@ public class MasterTestScripts {
 	 * 
 	 * @return runner fe data
 	 */
-	private Map<String, Object> runPKQL() {
+	private PKQLRunner runPKQL() {
 		Parser p = new Parser(
 				new Lexer(new PushbackReader(new InputStreamReader(new StringBufferInputStream(pkqlScript)), 1024)));
 		// Parse the input.
@@ -207,7 +263,7 @@ public class MasterTestScripts {
 			System.out.println("Error with pkqlScript: " + pkqlScript);
 			e.printStackTrace();
 		}
-		return runner.getFeData().get("0");
+		return runner;
 	}
 
 	/**
@@ -221,14 +277,16 @@ public class MasterTestScripts {
 	}
 
 	/**
-	 * This method is used to parse the expectedOutput from the properties file
+	 * This method is used to parse a string
 	 * 
-	 * @return Map object with return data
+	 * @param string
+	 *            the string to create a map from
+	 * @return Map<String, Object>
 	 */
-	private Map<String, Object> getExpectedOutputGson() {
+	private Map<String, Object> getExpectedOutputGson(String string) {
 		Map<String, Object> expGson = new HashMap();
 		Gson gson = new Gson();
-		expGson = gson.fromJson(expectedOutput, new TypeToken<Map<String, Object>>() {
+		expGson = gson.fromJson(string, new TypeToken<Map<String, Object>>() {
 		}.getType());
 		return expGson;
 	}
@@ -271,7 +329,7 @@ public class MasterTestScripts {
 			for (File child : directoryListing) {
 				String testScript = child.getName();
 				if (testScript.endsWith(".properties")) {
-					System.out.println("fileName" + child.getName());
+					System.out.println("fileName " + child.getName());
 					scripts.add(child.getAbsolutePath());
 				}
 			}
