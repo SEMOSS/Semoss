@@ -78,35 +78,43 @@ public class MasterTestScripts {
 			Map<String, Object> expGson = getExpectedOutputGson(expectedOutput);
 			ArrayList<Object> insightsArr = (ArrayList<Object>) expGson.get("insights");
 			Map<String, Object> insight = (Map<String, Object>) insightsArr.get(0);
+			ArrayList<Object> expectedPkqlData = (ArrayList<Object>) insight.get("pkqlData");
+			Map<String, Object> expectedResultsMap = (Map<String, Object>) expectedPkqlData.get(0);
+			String command = (String) expectedResultsMap.get("command");
 
 			// get return data from pqklScript
 			setUpEngine();
 			PKQLRunner actualRunner = runPKQL();
 
 			// handle return data from panel.viz in expectedOutput script
-			if (insight.containsKey("feData") && ((Map) insight.get("feData")).get("0") != null) {
-				ArrayList<ArrayList<Object>> expectedDtValues = new ArrayList();
-				Vector<Object[]> actualDtValues;
-				expectedDtValues = getExpectedDataTableValues(insight);
-				actualDtValues = getActualDataTableValues(actualRunner.getFeData().get("0"));
-				try {
-					assertEquals("Testing size of DataTableValues", actualDtValues.size(), expectedDtValues.size());
-					if (actualDtValues.size() == expectedDtValues.size()) {
-						compareDataTableValues(actualDtValues, expectedDtValues);
+			if (command.contains(".viz") || command.contains("col.unfilter") || command.contains("col.filter")) {
+				if (insight.containsKey("feData") && ((Map) insight.get("feData")).get("0") != null) {
+					ArrayList<ArrayList<Object>> expectedDtValues = new ArrayList();
+					Vector<Object[]> actualDtValues;
+					expectedDtValues = getExpectedDataTableValues(insight);
+					actualDtValues = getActualDataTableValues(actualRunner.getFeData().get("0"));
+					try {
+						assertEquals("Testing size of DataTableValues", actualDtValues.size(), expectedDtValues.size());
+						if (actualDtValues.size() == expectedDtValues.size()) {
+							compareDataTableValues(actualDtValues, expectedDtValues);
+						}
+					} catch (AssertionError e) {
+						errors.add("Error in " + currentTestScriptPath);
+						errors.add("size of dataTableValues is incorrect");
+						// throw e;
 					}
-				} catch (AssertionError e) {
-					errors.add("Error in " + currentTestScriptPath);
-					errors.add("size of dataTableValues is incorrect");
-					// throw e;
 				}
-			} else if (insight.containsKey("pkqlData") && insight.get("pkqlData") != null) {
-				// expectedOutput
-				ArrayList<ArrayList<Object>> expectedDtValues = new ArrayList();
-				Vector<Object[]> actualDtValues;
-				ArrayList<Object> expectedPkqlData = (ArrayList<Object>) insight.get("pkqlData");
-				Map<String, Object> expectedResultsMap = (Map<String, Object>) expectedPkqlData.get(0);
-				Map<String, Object> expectedResults = getExpectedOutputGson((String) expectedResultsMap.get("result"));
+			} else if (command.contains("data.frame.getHeaders")) {
+				Map<String, Object> returnData = (Map<String, Object>) expectedResultsMap.get("returnData");
+				ArrayList<Object> expectedList = (ArrayList<Object>) returnData.get("list");
 
+				List<Map> resultsList = actualRunner.getResults();
+				Map<String, Object> actualReturnData = (Map<String, Object>) resultsList.get(3).get("returnData");
+				ArrayList<Object> actualList = (ArrayList<Object>) actualReturnData.get("list");
+
+				compareArrayList(expectedList, actualList);
+			} else if (command.contains("col.filterModel")) {
+				Map<String, Object> expectedResults = getExpectedOutputGson((String) expectedResultsMap.get("result"));
 				Map<String, Object> expUnfilteredValues = (Map<String, Object>) expectedResults.get("unfilteredValues");
 				Map<String, Object> expFilteredValues = (Map<String, Object>) expectedResults.get("filteredValues");
 				Map<String, Object> expMinMax = (Map<String, Object>) expectedResults.get("minMax");
@@ -122,7 +130,6 @@ public class MasterTestScripts {
 				compareMaps(expUnfilteredValues, aUnfilteredValues);
 				compareMaps(expFilteredValues, aFilteredValues);
 				compareMaps(expMinMax, aMinMax);
-
 			} else {
 				errors.add("Not able to compare : " + scriptPath);
 			}
@@ -134,7 +141,26 @@ public class MasterTestScripts {
 	}
 
 	/**
+	 * This method compares two ArrayList<Object>
+	 * 
+	 * @param expectedList
+	 * @param actualList
+	 */
+	private void compareArrayList(ArrayList<Object> expectedList, ArrayList<Object> actualList) {
+		if (expectedList.size() == actualList.size()) {
+			for (int i = 0; i < expectedList.size() && i < actualList.size(); i++) {
+				Assert.assertEquals(expectedList.get(i), actualList.get(i));
+				// System.out.println("comparing: " + expectedList.get(i) + " "
+				// + actualList.get(i));
+			}
+		} else {
+			errors.add("Unable to compare size not the same: " + this.currentTestScriptPath);
+		}
+	}
+
+	/**
 	 * This method compares the key value pairs from each map
+	 * 
 	 * @param expectedMap
 	 * @param actualMap
 	 */
