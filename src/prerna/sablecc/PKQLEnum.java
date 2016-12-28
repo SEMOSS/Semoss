@@ -83,6 +83,7 @@ public class PKQLEnum {
 	public static final String CSV_TABLE = "CSV_TABLE";
 	public static final String PASTED_DATA = "PASTED_DATA";
 	public static final String DASHBOARD_JOIN	 = "DASHBOARD_JOIN";
+	public static final String DASHBOARD_UNJOIN = "DASHBOARD_UNJOIN";
 	public static final String DASHBOARD_ADD = "DASHBOARD_ADD";
 	public static final String DASHBOARD_REMOVE = "DASHBOARD_REMOVE";
 	public static final String ROW_CSV = "ROW_CSV";

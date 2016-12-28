@@ -727,6 +727,27 @@ public class ReversedDepthFirstAdapter extends AnalysisAdapter
         outADashboardJoinColop(node);
     }
 
+    public void inADashboardUnjoinColop(ADashboardUnjoinColop node)
+    {
+        defaultIn(node);
+    }
+
+    public void outADashboardUnjoinColop(ADashboardUnjoinColop node)
+    {
+        defaultOut(node);
+    }
+
+    @Override
+    public void caseADashboardUnjoinColop(ADashboardUnjoinColop node)
+    {
+        inADashboardUnjoinColop(node);
+        if(node.getDashboardUnjoin() != null)
+        {
+            node.getDashboardUnjoin().apply(this);
+        }
+        outADashboardUnjoinColop(node);
+    }
+
     public void inAQueryDataColop(AQueryDataColop node)
     {
         defaultIn(node);
@@ -4150,9 +4171,9 @@ public class ReversedDepthFirstAdapter extends AnalysisAdapter
         {
             node.getLPar().apply(this);
         }
-        if(node.getJoin() != null)
+        if(node.getDataJoin() != null)
         {
-            node.getJoin().apply(this);
+            node.getDataJoin().apply(this);
         }
         outADashboardJoin(node);
     }
@@ -4188,6 +4209,39 @@ public class ReversedDepthFirstAdapter extends AnalysisAdapter
             node.getDashboardAddToken().apply(this);
         }
         outADashboardAdd(node);
+    }
+
+    public void inADashboardUnjoin(ADashboardUnjoin node)
+    {
+        defaultIn(node);
+    }
+
+    public void outADashboardUnjoin(ADashboardUnjoin node)
+    {
+        defaultOut(node);
+    }
+
+    @Override
+    public void caseADashboardUnjoin(ADashboardUnjoin node)
+    {
+        inADashboardUnjoin(node);
+        if(node.getRPar() != null)
+        {
+            node.getRPar().apply(this);
+        }
+        if(node.getInsightlist() != null)
+        {
+            node.getInsightlist().apply(this);
+        }
+        if(node.getLPar() != null)
+        {
+            node.getLPar().apply(this);
+        }
+        if(node.getDataUnjoin() != null)
+        {
+            node.getDataUnjoin().apply(this);
+        }
+        outADashboardUnjoin(node);
     }
 
     public void inAOpenDataJoinParam(AOpenDataJoinParam node)
