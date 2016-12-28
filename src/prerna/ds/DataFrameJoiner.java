@@ -214,6 +214,26 @@ public class DataFrameJoiner {
 		frame2.setJoiner(this);
 	}
 	
+	public void unjoinInsights(List<Insight> insights) {
+		if(insights.size() < 2) {
+			throw new IllegalArgumentException("Must Pass in at least 2 Frames!!");
+		}
+		
+		for(int i = 0; i < insights.size(); i++) {
+			Insight insight1 = insights.get(i);
+			Vertex v1 = getVertex(insight1);
+			for(int j = i+1; j < insights.size(); j++) {
+				Insight insight2 = insights.get(j);
+				Vertex v2 = getVertex(insight2);
+				Edge joinEdge = getEdge(v1, v2);
+				if(joinEdge != null) {
+					joinEdge.remove();
+					insight1.getDataMaker().updateDataId();
+					insight2.getDataMaker().updateDataId();
+				}
+			}
+		}
+	}
 	
 	/****************************************
 	 * END ADDING, REMOVING, JOINING METHODS
@@ -727,6 +747,8 @@ public class DataFrameJoiner {
 			return id2+EDGE_DELIMITER+id1;
 		}
 	}
+
+
 	
 
 	/****************************************

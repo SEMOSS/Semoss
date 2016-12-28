@@ -1268,6 +1268,37 @@ public class Translation extends DepthFirstAdapter {
 			runner.setDashBoardData(dashboardData);
 		}
 	}
+	
+	@Override
+	public void inADashboardUnjoin(ADashboardUnjoin node) {
+		System.out.println("Have dashboard join as " + node);
+		if (reactorNames.containsKey(PKQLEnum.DASHBOARD_UNJOIN)) {
+			initReactor(PKQLEnum.DASHBOARD_UNJOIN);
+		}
+	}
+	
+	@Override
+	public void outADashboardUnjoin(ADashboardUnjoin node) {
+		String nodeStr = node.toString().trim();
+		IScriptReactor thisReactor = curReactor;
+		curReactor.put("G", this.frame);
+		Hashtable<String, Object> thisReactorHash = deinitReactor(PKQLEnum.DASHBOARD_UNJOIN, nodeStr, PKQLEnum.DASHBOARD_UNJOIN);
+
+//		Map dashboardData = (Map) runner.getDashboardData();
+//		if (dashboardData == null) {
+//			runner.setDashBoardData((Map)thisReactor.getValue("DashboardData"));
+//		} else {
+//			Map<String, List> newDashboardData = (Map<String, List>) thisReactor.getValue("DashboardData");
+//			if (dashboardData.containsKey("joinedInsights")) {
+//				List list = (List) dashboardData.get("joinedInsights");
+//				list.addAll(newDashboardData.get("joinedInsights"));
+//			} else {
+//				List list = (List) newDashboardData.get("joinedInsights");
+//				dashboardData.put("joinedInsights", list);
+//			}
+//			runner.setDashBoardData(dashboardData);
+//		}
+	}
 
 	public void inADashboardAdd(ADashboardAdd node) {
 		System.out.println("Have dashboard join as " + node);

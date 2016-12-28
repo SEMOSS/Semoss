@@ -43,6 +43,7 @@ public interface Analysis extends Switch
     void caseARenamecolColop(ARenamecolColop node);
     void caseASplitcolColop(ASplitcolColop node);
     void caseADashboardJoinColop(ADashboardJoinColop node);
+    void caseADashboardUnjoinColop(ADashboardUnjoinColop node);
     void caseAQueryDataColop(AQueryDataColop node);
     void caseAClearCacheColop(AClearCacheColop node);
     void caseAUseCacheColop(AUseCacheColop node);
@@ -158,6 +159,7 @@ public interface Analysis extends Switch
     void caseAExprRow(AExprRow node);
     void caseADashboardJoin(ADashboardJoin node);
     void caseADashboardAdd(ADashboardAdd node);
+    void caseADashboardUnjoin(ADashboardUnjoin node);
     void caseAOpenDataJoinParam(AOpenDataJoinParam node);
     void caseAInsightidJoinParam(AInsightidJoinParam node);
     void caseAVariableJoinParam(AVariableJoinParam node);
@@ -293,7 +295,8 @@ public interface Analysis extends Switch
     void caseTPanelconfig(TPanelconfig node);
     void caseTOutputToken(TOutputToken node);
     void caseTUserinput(TUserinput node);
-    void caseTJoin(TJoin node);
+    void caseTDataJoin(TDataJoin node);
+    void caseTDataUnjoin(TDataUnjoin node);
     void caseTDatatypeToken(TDatatypeToken node);
     void caseTDataconnectToken(TDataconnectToken node);
     void caseTDatanetworkconnectToken(TDatanetworkconnectToken node);
