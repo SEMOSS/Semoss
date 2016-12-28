@@ -261,6 +261,12 @@ public class AnalysisAdapter implements Analysis
     }
 
     @Override
+    public void caseADashboardUnjoinColop(ADashboardUnjoinColop node)
+    {
+        defaultCase(node);
+    }
+
+    @Override
     public void caseAQueryDataColop(AQueryDataColop node)
     {
         defaultCase(node);
@@ -946,6 +952,12 @@ public class AnalysisAdapter implements Analysis
 
     @Override
     public void caseADashboardAdd(ADashboardAdd node)
+    {
+        defaultCase(node);
+    }
+
+    @Override
+    public void caseADashboardUnjoin(ADashboardUnjoin node)
     {
         defaultCase(node);
     }
@@ -1755,7 +1767,13 @@ public class AnalysisAdapter implements Analysis
     }
 
     @Override
-    public void caseTJoin(TJoin node)
+    public void caseTDataJoin(TDataJoin node)
+    {
+        defaultCase(node);
+    }
+
+    @Override
+    public void caseTDataUnjoin(TDataUnjoin node)
     {
         defaultCase(node);
     }

@@ -7,7 +7,7 @@ import prerna.sablecc.analysis.*;
 @SuppressWarnings("nls")
 public final class ADashboardJoin extends PDashboardJoin
 {
-    private TJoin _join_;
+    private TDataJoin _dataJoin_;
     private TLPar _lPar_;
     private PJoinParamList _insightlist_;
     private TComma _com1_;
@@ -22,7 +22,7 @@ public final class ADashboardJoin extends PDashboardJoin
     }
 
     public ADashboardJoin(
-        @SuppressWarnings("hiding") TJoin _join_,
+        @SuppressWarnings("hiding") TDataJoin _dataJoin_,
         @SuppressWarnings("hiding") TLPar _lPar_,
         @SuppressWarnings("hiding") PJoinParamList _insightlist_,
         @SuppressWarnings("hiding") TComma _com1_,
@@ -32,7 +32,7 @@ public final class ADashboardJoin extends PDashboardJoin
         @SuppressWarnings("hiding") TRPar _rPar_)
     {
         // Constructor
-        setJoin(_join_);
+        setDataJoin(_dataJoin_);
 
         setLPar(_lPar_);
 
@@ -54,7 +54,7 @@ public final class ADashboardJoin extends PDashboardJoin
     public Object clone()
     {
         return new ADashboardJoin(
-            cloneNode(this._join_),
+            cloneNode(this._dataJoin_),
             cloneNode(this._lPar_),
             cloneNode(this._insightlist_),
             cloneNode(this._com1_),
@@ -70,16 +70,16 @@ public final class ADashboardJoin extends PDashboardJoin
         ((Analysis) sw).caseADashboardJoin(this);
     }
 
-    public TJoin getJoin()
+    public TDataJoin getDataJoin()
     {
-        return this._join_;
+        return this._dataJoin_;
     }
 
-    public void setJoin(TJoin node)
+    public void setDataJoin(TDataJoin node)
     {
-        if(this._join_ != null)
+        if(this._dataJoin_ != null)
         {
-            this._join_.parent(null);
+            this._dataJoin_.parent(null);
         }
 
         if(node != null)
@@ -92,7 +92,7 @@ public final class ADashboardJoin extends PDashboardJoin
             node.parent(this);
         }
 
-        this._join_ = node;
+        this._dataJoin_ = node;
     }
 
     public TLPar getLPar()
@@ -274,7 +274,7 @@ public final class ADashboardJoin extends PDashboardJoin
     public String toString()
     {
         return ""
-            + toString(this._join_)
+            + toString(this._dataJoin_)
             + toString(this._lPar_)
             + toString(this._insightlist_)
             + toString(this._com1_)
@@ -288,9 +288,9 @@ public final class ADashboardJoin extends PDashboardJoin
     void removeChild(@SuppressWarnings("unused") Node child)
     {
         // Remove child
-        if(this._join_ == child)
+        if(this._dataJoin_ == child)
         {
-            this._join_ = null;
+            this._dataJoin_ = null;
             return;
         }
 
@@ -343,9 +343,9 @@ public final class ADashboardJoin extends PDashboardJoin
     void replaceChild(@SuppressWarnings("unused") Node oldChild, @SuppressWarnings("unused") Node newChild)
     {
         // Replace child
-        if(this._join_ == oldChild)
+        if(this._dataJoin_ == oldChild)
         {
-            setJoin((TJoin) newChild);
+            setDataJoin((TDataJoin) newChild);
             return;
         }
 
