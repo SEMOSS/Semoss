@@ -5,16 +5,16 @@ package prerna.sablecc.node;
 import prerna.sablecc.analysis.*;
 
 @SuppressWarnings("nls")
-public final class TJoin extends Token
+public final class TDataUnjoin extends Token
 {
-    public TJoin()
+    public TDataUnjoin()
     {
-        super.setText("data.join");
+        super.setText("data.unjoin");
     }
 
-    public TJoin(int line, int pos)
+    public TDataUnjoin(int line, int pos)
     {
-        super.setText("data.join");
+        super.setText("data.unjoin");
         setLine(line);
         setPos(pos);
     }
@@ -22,18 +22,18 @@ public final class TJoin extends Token
     @Override
     public Object clone()
     {
-      return new TJoin(getLine(), getPos());
+      return new TDataUnjoin(getLine(), getPos());
     }
 
     @Override
     public void apply(Switch sw)
     {
-        ((Analysis) sw).caseTJoin(this);
+        ((Analysis) sw).caseTDataUnjoin(this);
     }
 
     @Override
     public void setText(@SuppressWarnings("unused") String text)
     {
-        throw new RuntimeException("Cannot change TJoin text.");
+        throw new RuntimeException("Cannot change TDataUnjoin text.");
     }
 }

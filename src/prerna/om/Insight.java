@@ -1801,7 +1801,8 @@ public class Insight {
 				List insightList = new ArrayList();
 				Map<String, List<String>> dashboardMap = new HashMap<>();
 				List<String> insightIDList = new ArrayList<>();
-				dashboardMap.put(insightID, new ArrayList<>());
+				String parentInsightId = this.parentInsight.getInsightID();
+//				dashboardMap.put(parentInsightId, new ArrayList<>());
 				List<Insight> list = ((Dashboard)this.parentInsight.getDataMaker()).getInsights();
 				for(Insight insight : list) {
 					if(insight.getInsightID().equals(this.insightID)) {
@@ -1814,7 +1815,7 @@ public class Insight {
 					}
 					insightIDList.add(insight.getInsightID());
 				}
-				dashboardMap.put(insightID, insightIDList);
+				dashboardMap.put(parentInsightId, insightIDList);
 				retHash.put("dashboard", dashboardMap);
 				retHash.put("insights", insightList);
 				return retHash;

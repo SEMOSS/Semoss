@@ -222,6 +222,10 @@ public class Dashboard implements IDataMaker {
 		}
 	}
 	
+	public void unjoinInsights(List<Insight> insights) {
+		joiner.unjoinInsights(insights);
+	}
+	
 	/**
 	 * 
 	 * @param insights
