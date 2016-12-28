@@ -107,7 +107,8 @@ Tokens
  panelconfig = panelprefix '.config';
  output_token = panelprefix '.create';
  userinput = 'user.input';
- join = 'data.join';
+ data_join = 'data.join';
+ data_unjoin = 'data.unjoin';
  datatype_token = 'data.type';
  dataconnect_token = 'data.connect';
  datanetworkconnect_token = 'network.connect';
@@ -167,6 +168,7 @@ colop = // colOp is usually of the form of joinColumn / addColumn / removeColumn
 		| {renamecol} rename_column
 		| {splitcol} split_column
 		| {dashboard_join} dashboard_join
+		| {dashboard_unjoin} dashboard_unjoin
 		| {query_data} query_data
 		| {clear_cache} clear_cache
 		| {use_cache} use_cache
@@ -432,11 +434,14 @@ csv_group = comma [csv]:word_or_num; // , 3
 expr_row = l_bracket [expr]:expr expr_group* r_bracket;
 
 dashboard_join =  // data.join("insight1", "insight2", c:Title, c:Movie_Title, inner.join);
-	join l_par [insightlist]:join_param_list [com1]:comma [joincolslist]:col_table [com2]:comma? [rel]:rel_type? r_par;
+	data_join l_par [insightlist]:join_param_list [com1]:comma [joincolslist]:col_table [com2]:comma? [rel]:rel_type? r_par;
 
 dashboard_add = //dashboard.add("insight1", "insight2");
 	dashboard_add_token l_par [insightlist]: join_param_list r_par;
 
+dashboard_unjoin = //data.unjoin(["insight1", "insight2"])
+	data_unjoin l_par [insightlist]:join_param_list r_par;
+	
 join_param = {open_data} open_data | {insightid} word | {variable} var_def;
 
 join_group = comma join_param;
