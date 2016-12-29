@@ -11,24 +11,16 @@ import java.io.InputStreamReader;
 import java.io.PrintWriter;
 import java.io.PushbackReader;
 import java.io.StringBufferInputStream;
-import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
-import java.util.Set;
 import java.util.Vector;
-
-import org.junit.AfterClass;
-import org.junit.BeforeClass;
 import org.junit.Test;
-
 import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
-
 import junit.framework.Assert;
 import prerna.ds.h2.H2Frame;
 import prerna.engine.api.IEngine;
@@ -65,7 +57,7 @@ public class MasterTestScripts {
 		scriptPaths = getTestScripts(testScriptPackage);
 
 		// Test one script
-		// scriptPaths.add("C:\\Users\\rramirezjimenez\\workspace\\Semoss\\target\\classes\\prerna\\test\\pkql\\filterModel.properties");
+		// scriptPaths.add("C:\\Users\\rramirezjimenez\\workspace\\Semoss\\target\\classes\\prerna\\test\\pkql\\data-frame-hasDuplicates-False.properties");
 
 		for (String scriptPath : scriptPaths) {
 			System.out.println("Current Script Being Tested: " + scriptPath);
@@ -80,11 +72,13 @@ public class MasterTestScripts {
 			Map<String, Object> insight = (Map<String, Object>) insightsArr.get(0);
 			ArrayList<Object> expectedPkqlData = (ArrayList<Object>) insight.get("pkqlData");
 			Map<String, Object> expectedResultsMap = (Map<String, Object>) expectedPkqlData.get(0);
-			String command = (String) expectedResultsMap.get("command");
+			String[] pkqlCommands = this.pkqlScript.split(";");
+			String command = (String) pkqlCommands[pkqlCommands.length - 1];
 
 			// get return data from pqklScript
 			setUpEngine();
 			PKQLRunner actualRunner = runPKQL();
+			actualRunner.getResults();
 
 			// handle return data from panel.viz in expectedOutput script
 			if (command.contains(".viz") || command.contains("col.unfilter") || command.contains("col.filter")) {
@@ -112,6 +106,9 @@ public class MasterTestScripts {
 				Map<String, Object> actualReturnData = (Map<String, Object>) resultsList.get(3).get("returnData");
 				ArrayList<Object> actualList = (ArrayList<Object>) actualReturnData.get("list");
 
+				// Assert.assertEquals(expectedList.toString(),
+				// actualList.toString());
+
 				compareArrayList(expectedList, actualList);
 			} else if (command.contains("col.filterModel")) {
 				Map<String, Object> expectedResults = getExpectedOutputGson((String) expectedResultsMap.get("result"));
@@ -130,8 +127,29 @@ public class MasterTestScripts {
 				compareMaps(expUnfilteredValues, aUnfilteredValues);
 				compareMaps(expFilteredValues, aFilteredValues);
 				compareMaps(expMinMax, aMinMax);
+			} else if (command.contains(".comment")) {
+				Map<String, Object> actualResultsList = actualRunner.getFeData().get("0");
+				Map<String, Object> actualComments = (Map<String, Object>) actualResultsList.get("comments");
+
+				Map<String, Object> expectedFeData = (Map<String, Object>) insight.get("feData");
+				Map<String, Object> blah = (Map<String, Object>) expectedFeData.get("0");
+				Map<String, Object> expectedComments = (Map<String, Object>) blah.get("comments");
+
+				Assert.assertEquals(actualComments, expectedComments);
+				// System.out.println("comparing: " + actualComments + " " +
+				// expectedComments);
+
+			} else if (command.contains("data.frame.hasDuplicates")) {
+				Map<String, Object> results = (Map<String, Object>) expectedPkqlData.get(2);
+				List<Map> resultsList = actualRunner.getResults();
+				Map<String, Object> actualResults = resultsList.get(2);
+				System.out.println("comparing: " + results + "\n " + actualResults);
+
+				Assert.assertEquals(results.toString(), actualResults.toString());
 			} else {
-				errors.add("Not able to compare : " + scriptPath);
+				errors.add("Not able to Test : " + scriptPath);
+				errors.add("Missing test command: " + command);
+				System.out.println("Missing test command: " + command);
 			}
 		}
 
@@ -172,8 +190,7 @@ public class MasterTestScripts {
 			if (exp.size() == actual.size()) {
 				for (int i = 0; i < exp.size(); i++) {
 					assertEquals(exp.get(i), actualArr[i]);
-					// System.out.println("comparing: " + exp.get(i) + " " +
-					// actualArr[i]);
+					System.out.println("comparing: " + exp.get(i) + " " + actualArr[i]);
 				}
 			}
 		}
@@ -326,11 +343,11 @@ public class MasterTestScripts {
 		Properties prop = new Properties();
 		try {
 			prop.load(new BufferedReader(new FileReader(filePath)));
-			engineProp = prop.getProperty("engineProp");
-			engine = prop.getProperty("engine");
-			pkqlScript = prop.getProperty("pkqlScript");
-			expectedOutput = prop.getProperty("expectedOutput");
-			description = prop.getProperty("description");
+			engineProp = prop.getProperty("engineProp").trim();
+			engine = prop.getProperty("engine").trim();
+			pkqlScript = prop.getProperty("pkqlScript").trim();
+			expectedOutput = prop.getProperty("expectedOutput").trim();
+			description = prop.getProperty("description").trim();
 		} catch (FileNotFoundException e1) {
 			System.out.println("Test file not found in: " + filePath);
 			e1.printStackTrace();
