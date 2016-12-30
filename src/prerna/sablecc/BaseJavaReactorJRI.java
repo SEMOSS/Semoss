@@ -1,11 +1,7 @@
 package prerna.sablecc;
 
-import java.awt.FileDialog;
-import java.awt.Frame;
-import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileOutputStream;
-import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.sql.Connection;
 import java.util.Arrays;
@@ -20,17 +16,12 @@ import org.apache.tinkerpop.gremlin.structure.Graph;
 import org.apache.tinkerpop.gremlin.structure.Vertex;
 import org.apache.tinkerpop.gremlin.structure.io.IoCore;
 import org.rosuda.JRI.REXP;
-import org.rosuda.JRI.RMainLoopCallbacks;
 import org.rosuda.JRI.Rengine;
 import org.rosuda.REngine.REXPDouble;
 import org.rosuda.REngine.REXPGenericVector;
 import org.rosuda.REngine.REXPInteger;
 import org.rosuda.REngine.REXPList;
-import org.rosuda.REngine.REXPMismatchException;
 import org.rosuda.REngine.REXPString;
-import org.rosuda.REngine.REngineException;
-import org.rosuda.REngine.Rserve.RConnection;
-import org.rosuda.REngine.Rserve.RserveException;
 
 import prerna.algorithm.api.ITableDataFrame;
 import prerna.ds.DataFrameHelper;
@@ -45,50 +36,6 @@ import prerna.util.DIHelper;
 import prerna.util.Utility;
 
 
-class TextConsole implements RMainLoopCallbacks
-{
-    public void rWriteConsole(Rengine re, String text, int oType) {
-        System.out.print(text);
-    }
-    
-    public void rBusy(Rengine re, int which) {
-        System.out.println("rBusy("+which+")");
-    }
-    
-    public String rReadConsole(Rengine re, String prompt, int addToHistory) {
-        System.out.print(prompt);
-        try {
-            BufferedReader br=new BufferedReader(new InputStreamReader(System.in));
-            String s=br.readLine();
-            return (s==null||s.length()==0)?s:s+"\n";
-        } catch (Exception e) {
-            System.out.println("jriReadConsole exception: "+e.getMessage());
-        }
-        return null;
-    }
-    
-    public void rShowMessage(Rengine re, String message) {
-        System.out.println("rShowMessage \""+message+"\"");
-    }
-	
-    public String rChooseFile(Rengine re, int newFile) {
-	FileDialog fd = new FileDialog(new Frame(), (newFile==0)?"Select a file":"Select a new file", (newFile==0)?FileDialog.LOAD:FileDialog.SAVE);
-	fd.show();
-	String res=null;
-	if (fd.getDirectory()!=null) res=fd.getDirectory();
-	if (fd.getFile()!=null) res=(res==null)?fd.getFile():(res+fd.getFile());
-	return res;
-    }
-    
-    public void   rFlushConsole (Rengine re) {
-    }
-	
-    public void   rLoadHistory  (Rengine re, String filename) {
-    }			
-    
-    public void   rSaveHistory  (Rengine re, String filename) {
-    }			
-}
 
 
 public abstract class BaseJavaReactorJRI extends BaseJavaReactor{
@@ -101,7 +48,6 @@ public abstract class BaseJavaReactorJRI extends BaseJavaReactor{
 	public static final String R_CONN2 = "R_CONN";
 	public static final String R_ENGINE = "R_ENGINE";
 	public static final String R_PORT = "R_PORT";
-	public RConnection rcon = null;
 	String wd = null;
 	String fileName = null;
 	
@@ -309,7 +255,7 @@ public abstract class BaseJavaReactorJRI extends BaseJavaReactor{
 		Rengine rengine = (Rengine)retrieveVariable(R_ENGINE);
 		
 		// make sure current connection exists
-		if(rcon != null) {
+		if(rengine != null) {
 			String graphName = (String)retrieveVariable("GRAPH_NAME");
 			for(int nodeIndex = 0;nodeIndex < nodeList.size();nodeIndex++)
 			{
@@ -509,6 +455,19 @@ public abstract class BaseJavaReactorJRI extends BaseJavaReactor{
 		synchronizeGridToR(frameName, null);
 	}
 	
+	public Object eval(String script)
+	{
+		Rengine engine = (Rengine)startR();
+		try {
+			REXP rexp = engine.eval(script);
+			return rexp;
+		} catch (Exception e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		};
+		return null;
+	}
+	
 	private void synchronizeGridToR(String frameName, String cols)
 	{
 		H2Frame gridFrame = (H2Frame)dataframe;
@@ -553,7 +512,7 @@ public abstract class BaseJavaReactorJRI extends BaseJavaReactor{
 	{
 		// assumes this is a grid and tries to write back the table
 		// I need to make another data table with these specific columns and then write that
-		startR();
+		Rengine engine = (Rengine)startR();
 		try {
 			if(cols != null && cols.length() > 0)
 			{
@@ -570,9 +529,9 @@ public abstract class BaseJavaReactorJRI extends BaseJavaReactor{
 				String tempName = Utility.getRandomString(8);
 				
 				String finalScript = tempName + " <- " + frameName + "[, " + script + "]; dbWriteTable(conn,'" + tableName +"', " + tempName + ");";
-				rcon.eval(finalScript);		
+				engine.eval(finalScript);		
 			}
-		} catch (RserveException e) {
+		} catch (Exception e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
@@ -593,7 +552,7 @@ public abstract class BaseJavaReactorJRI extends BaseJavaReactor{
 		String tableName = gridFrame.getBuilder().getTableName();
 		if(!self)
 			tableName = Utility.getRandomString(8);
-		runR("dbWriteTable(conn,'" + tableName +"', " + frameName + ");", false);
+		eval("dbWriteTable(conn,'" + tableName +"', " + frameName + ");");
 		
 		System.out.println("Table Synchronized as " + tableName);
 	}
@@ -614,7 +573,7 @@ public abstract class BaseJavaReactorJRI extends BaseJavaReactor{
 				+ ""; // replace space with underscore
 		
 		
-		runR(frameName + " <- fread(\"" + javaFileName + "\")", false);
+		eval(frameName + " <- fread(\"" + javaFileName + "\")");
 		System.out.println("Completed synchronization of CSV " + fileName);
 	}
 	
@@ -819,22 +778,22 @@ public abstract class BaseJavaReactorJRI extends BaseJavaReactor{
 	public void replaceColumnValue(String frameName, String columnName, String curValue, String newValue)
 	{
 		// * dt[PY == "hello", PY := "D"] replaces a column conditionally based on the value
-		startR();
+		Rengine engine = (Rengine)startR();
 		// need to get the type of this
 		try {
 			String condition = " ,";
 			columnName = columnName.toUpperCase();
 
-			String output = rcon.eval("sapply(" + frameName + "$" + columnName.toUpperCase() + ", class);").asString();
+			String output = engine.eval("sapply(" + frameName + "$" + columnName.toUpperCase() + ", class);").asString();
 			String quote = "";
 			if(output.contains("character"))
 				quote = "\"";
 			if(curValue != null)
 				condition = columnName + " == " + quote + curValue + quote + ", ";
 			String script = frameName + "[" + condition + columnName + " := " + quote + newValue + quote + "]";
-			rcon.eval(script);
+			engine.eval(script);
 			System.out.println("Complete ");
-		} catch (RserveException | REXPMismatchException e) {
+		} catch (Exception e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
@@ -849,7 +808,7 @@ public abstract class BaseJavaReactorJRI extends BaseJavaReactor{
 	public void splitColumn(String frameName, String columnName, String separator, boolean dropColumn, boolean frameReplace)
 	{
 		//  cSplit(dt, "PREFIX", "_")
-		startR();
+		Rengine engine = (Rengine)startR();
 		// need to get the type of this
 		try {
 			String tempName = Utility.getRandomString(8);
@@ -864,11 +823,11 @@ public abstract class BaseJavaReactorJRI extends BaseJavaReactor{
 				//+ tempName +" <- " + tempName + "[,lapply(.SD, as.character)];"  // this ends up converting numeric to factors too
 				//+ frameReplaceScript
 				;
-			rcon.eval(script);
+			eval(script);
 			System.out.println("Script " + script);
 			// get all the columns that are factors
 			script = "sapply(" + tempName + ", is.factor);";
-			String [] factors = rcon.eval(script).asStrings();			
+			String [] factors = engine.eval(script).asStringArray();			
 			String [] colNames = getColNames(tempName);
 			
 			// now I need to compose a string based on it
@@ -882,7 +841,8 @@ public abstract class BaseJavaReactorJRI extends BaseJavaReactor{
 							+ "as.character(" + tempName + "$" +colNames[factorIndex] + ");";
 				}
 			}
-			rcon.eval(conversionString + frameReplaceScript);
+			engine.eval(conversionString);
+			engine.eval(frameReplaceScript);
 			
 			System.out.println("Script " + script);
 			System.out.println("Complete ");
@@ -890,13 +850,10 @@ public abstract class BaseJavaReactorJRI extends BaseJavaReactor{
 			// may be as string
 			// or as numeric
 			// else this is not giving me what I want :(
-		} catch (RserveException e) {
+		} catch (Exception e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
-		} catch (REXPMismatchException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
+		} 
 	}
 		
 	// change column name
@@ -909,24 +866,21 @@ public abstract class BaseJavaReactorJRI extends BaseJavaReactor{
 	
 	public String[] getColNames(String frameName, boolean print)
 	{
-		startR();
+		Rengine engine = (Rengine)startR();
 		String [] colNames = null;
 		try {
 				String script = "matrix(colnames(" + frameName + "));";
-				colNames = rcon.eval(script).asStrings();
+				colNames = engine.eval(script).asStringArray();
 				if(print)
 				{
 					System.out.println("Columns..");
 					for(int colIndex = 0;colIndex < colNames.length;colIndex++)
 						System.out.println(colNames[colIndex] + "\n");
 				}
-		} catch (RserveException e) {
+		} catch (Exception e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
-		} catch (REXPMismatchException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
+		} 
 		return colNames;
 	}
 	
@@ -938,11 +892,11 @@ public abstract class BaseJavaReactorJRI extends BaseJavaReactor{
 
 	public String[] getColTypes(String frameName, boolean print)
 	{
-		startR();
+		Rengine engine = (Rengine)startR();
 		String [] colTypes = null;
 		try {
-				String script = "matrix(sapply(" + frameName + ", class));";
-				colTypes = rcon.eval(script).asStrings();
+				String script = "sapply(" + frameName + ", class);";
+				colTypes = engine.eval(script).asStringArray();
 				if(print)
 				{
 					System.out.println("Columns..");
@@ -950,13 +904,10 @@ public abstract class BaseJavaReactorJRI extends BaseJavaReactor{
 						System.out.println(colTypes[colIndex] + "\n");
 				}
 				
-		} catch (RserveException e) {
+		} catch (Exception e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
-		} catch (REXPMismatchException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
+		} 
 		return colTypes;
 	}
 
@@ -966,7 +917,7 @@ public abstract class BaseJavaReactorJRI extends BaseJavaReactor{
 	// 4 blank columns etc. 
 	public void getColumnTypeCount(String frameName)
 	{
-		startR();
+		Rengine engine = (Rengine)startR();
 		Object [][] retOutput = null; // name and the number of items
 		
 		try {
@@ -979,15 +930,17 @@ public abstract class BaseJavaReactorJRI extends BaseJavaReactor{
 			String [] colTypes = getColTypes(frameName, false);
 			
 			// get the blank columns
-			script = "matrix( " + frameName + "[, colSums( " + frameName + " != \"\") !=0])";
-			String [] blankCols = rcon.eval(script).asStrings();
+			script = "" + frameName + "[, colSums( " + frameName + " != \"\") !=0]";
+			script = "sapply(" + frameName + ", function (k) all(is.na(k)))"; // all the zeros are non empty
+			REXP rexp = engine.eval(script);
+			int [] blankCols = rexp.asIntArray();
 			
 			Hashtable <String, Integer> colCount = new Hashtable <String, Integer>();
 			
 			for(int colIndex = 0;colIndex < colTypes.length;colIndex++)
 			{
 				String colType = colTypes[colIndex];
-				if(blankCols[colIndex].equalsIgnoreCase("FALSE"))
+				if(blankCols[colIndex] == 1)
 					colType = "Empty";
 				int count = 0;
 				if(colCount.containsKey(colType))
@@ -1000,10 +953,7 @@ public abstract class BaseJavaReactorJRI extends BaseJavaReactor{
 			StringBuilder builder = new StringBuilder();
 			builder.append(colCount + "");
 			System.out.println("Output : " + builder.toString());
-		} catch (RserveException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		} catch (REXPMismatchException e) {
+		} catch (Exception e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}		
@@ -1023,7 +973,7 @@ public abstract class BaseJavaReactorJRI extends BaseJavaReactor{
 		// reconstruct the column names
 		//paste(df1$a_1, df1$a_2, sep="$$")
 		try {
-			startR();
+			Rengine engine = (Rengine)startR();
 			String [] columns = cols.split(";");
 			String concatString = "paste(";
 			for(int colIndex = 0;colIndex < columns.length;colIndex++)
@@ -1036,10 +986,10 @@ public abstract class BaseJavaReactorJRI extends BaseJavaReactor{
 			
 			String script = frameName + "$" + newColumnName.toUpperCase() + " <- " + concatString;
 			System.out.println(script);
-			rcon.eval(script);
+			engine.eval(script);
 			System.out.println("Join Complete ");
 		
-		} catch (RserveException e) {
+		} catch (Exception e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
@@ -1060,20 +1010,20 @@ public abstract class BaseJavaReactorJRI extends BaseJavaReactor{
 		 * 
 		 */
 		// start the R first
-		startR();
+		Rengine engine = (Rengine)startR();
 		Object [][] retOutput = null; // name and the number of items
 		
 		try {
 			
 			String script = "colData <-  " + frameName + "[, .N, by=\"" + column.toUpperCase() +"\"];";
 			System.out.println("Script is " + script);
-			rcon.eval(script);
-			
+			engine.eval(script);
 			script = "colData$" + column.toUpperCase();
-			String [] uniqueColumns = rcon.eval(script).asStrings();
+			String [] uniqueColumns = engine.eval(script).asStringArray();
 			// need to limit this eventually to may be 10-15 and no more
 			script = "matrix(colData$N);"; 
-			int [] colCount = rcon.eval(script).asIntegers();
+			int [] colCount = engine.eval(script).asIntArray();
+			int total = 0;
 			retOutput = new Object[uniqueColumns.length][2];
 			StringBuilder builder = new StringBuilder();
 			builder.append(column + "\t Count \n");
@@ -1081,16 +1031,16 @@ public abstract class BaseJavaReactorJRI extends BaseJavaReactor{
 			{
 				retOutput[outputIndex][0] = uniqueColumns[outputIndex];
 				retOutput[outputIndex][1] = colCount[outputIndex];
+				total += colCount[outputIndex];
 				builder.append(retOutput[outputIndex][0] + "\t" + retOutput[outputIndex][1] + "\n");
 			}
+			builder.append("===============");
+			builder.append("Total \t " + total);
 			System.out.println("Output : " + builder.toString());
-		} catch (RserveException e) {
+		} catch (Exception e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
-		} catch (REXPMismatchException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
+		} 
 		return retOutput;
 	}
 	
@@ -1130,12 +1080,15 @@ public abstract class BaseJavaReactorJRI extends BaseJavaReactor{
 		String replacer = "";
 		if(replace)
 			replacer = frameName + " <- " + tempName;
-		String script = tempName + "<- melt(" + frameName + concatString + ");" 
-						+ tempName + " <- " + tempName + "[,lapply(.SD, as.character)];"
-						+ replacer;
-		System.out.println("executing script " + script);
 		try {
-			rcon.eval(script);
+			// modifying this to execute single script at a time
+			String script = tempName + "<- melt(" + frameName + concatString + ");" ;
+			eval(script);
+			script = tempName + " <- " + tempName + "[,lapply(.SD, as.character)];";
+			eval(script);
+			script = replacer;
+			eval(script);
+			System.out.println("executing script " + script);
 		}catch(Exception ex)
 		{
 			ex.printStackTrace();
@@ -1176,15 +1129,11 @@ public abstract class BaseJavaReactorJRI extends BaseJavaReactor{
 			keepString = keepString + " ~ " + columnToPivot;
 		}
 		
-		String script = newFrame + " <- dcast(" + frameName + keepString + ");"
-						+ replaceString ;
-		System.out.println("executing script " + script);
-		try {
-			rcon.eval(script);
-		}catch(Exception ex)
-		{
-			ex.printStackTrace();
-		}
+		String script = newFrame + " <- dcast(" + frameName + keepString + ");";
+		eval(script);
+		script = replaceString ;
+		eval(script);
+		System.out.println("Completed Pivoting..");
 	}
 	
 	public void sampleR(String frameName)
@@ -1304,8 +1253,8 @@ public abstract class BaseJavaReactorJRI extends BaseJavaReactor{
 		// the color is saved as color
 		try
 		{
-			int [] memberships = rcon.eval(clusterName + "$membership").asIntegers();
-			String [] IDs = rcon.eval("vertex_attr(" + graphName + ", \"" + TinkerFrame.TINKER_ID + "\")").asStrings();
+			int [] memberships = retEngine.eval(clusterName + "$membership").asIntArray();
+			String [] IDs = retEngine.eval("vertex_attr(" + graphName + ", \"" + TinkerFrame.TINKER_ID + "\")").asStringArray();
 			
 			for(int memIndex = 0;memIndex < memberships.length;memIndex++)
 			{
@@ -1359,7 +1308,7 @@ public abstract class BaseJavaReactorJRI extends BaseJavaReactor{
 		Rengine retEngine = (Rengine)startR();
 		try
 		{
-			double [][] memberships = rcon.eval("xy_layout").asDoubleMatrix();
+			double [][] memberships = retEngine.eval("xy_layout").asDoubleMatrix();
 			String [] axis = null;
 			if(memberships[0].length == 2) {
 				axis = new String[]{"X", "Y"};
@@ -1367,7 +1316,7 @@ public abstract class BaseJavaReactorJRI extends BaseJavaReactor{
 				axis = new String[]{"X", "Y", "Z"};
 			}
 			
-			String [] IDs = rcon.eval("vertex_attr(" + graphName + ", \"" + TinkerFrame.TINKER_ID + "\")").asStrings();
+			String [] IDs = retEngine.eval("vertex_attr(" + graphName + ", \"" + TinkerFrame.TINKER_ID + "\")").asStringArray();
 			
 			for(int memIndex = 0; memIndex < memberships.length; memIndex++)
 			{
@@ -1679,4 +1628,61 @@ public abstract class BaseJavaReactorJRI extends BaseJavaReactor{
 		java.lang.System.setSecurityManager(reactorManager);
 	}
 	
+	public void installR(String packageName)
+	{
+		Rengine engine = (Rengine)startR();
+		try {
+			engine.eval("install.packages('" + packageName + "', repos='http://cran.us.r-project.org');");
+		} catch (Exception e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+	}
 }
+/*
+
+class TextConsole implements RMainLoopCallbacks
+{
+    public void rWriteConsole(Rengine re, String text, int oType) {
+        System.out.print(text);
+    }
+    
+    public void rBusy(Rengine re, int which) {
+        System.out.println("rBusy("+which+")");
+    }
+    
+    public String rReadConsole(Rengine re, String prompt, int addToHistory) {
+        System.out.print(prompt);
+        try {
+            BufferedReader br=new BufferedReader(new InputStreamReader(System.in));
+            String s=br.readLine();
+            return (s==null||s.length()==0)?s:s+"\n";
+        } catch (Exception e) {
+            System.out.println("jriReadConsole exception: "+e.getMessage());
+        }
+        return null;
+    }
+    
+    public void rShowMessage(Rengine re, String message) {
+        System.out.println("rShowMessage \""+message+"\"");
+    }
+	
+    public String rChooseFile(Rengine re, int newFile) {
+	FileDialog fd = new FileDialog(new Frame(), (newFile==0)?"Select a file":"Select a new file", (newFile==0)?FileDialog.LOAD:FileDialog.SAVE);
+	fd.show();
+	String res=null;
+	if (fd.getDirectory()!=null) res=fd.getDirectory();
+	if (fd.getFile()!=null) res=(res==null)?fd.getFile():(res+fd.getFile());
+	return res;
+    }
+    
+    public void   rFlushConsole (Rengine re) {
+    }
+	
+    public void   rLoadHistory  (Rengine re, String filename) {
+    }			
+    
+    public void   rSaveHistory  (Rengine re, String filename) {
+    }			
+}
+*/

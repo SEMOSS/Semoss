@@ -696,6 +696,18 @@ public abstract class BaseJavaReactor extends AbstractReactor{
 		runR(script, true);
 	}
 	
+	public Object eval(String script)
+	{
+		RConnection rcon = (RConnection)startR();
+		try {
+			return rcon.eval(script);
+		} catch (RserveException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		};
+		return null;
+	}
+	
 	public void runR(String script, boolean result)
 	{
 		RConnection rcon = (RConnection)startR();
@@ -1596,6 +1608,17 @@ public abstract class BaseJavaReactor extends AbstractReactor{
 		this.dataframe.updateDataId();
 		
 		java.lang.System.setSecurityManager(reactorManager);
+	}
+	
+	public void installR(String packageName)
+	{
+		startR();
+		try {
+			rcon.eval("install.packages('" + packageName + "', repos='http://cran.us.r-project.org');");
+		} catch (RserveException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
 	}
 	
 }
