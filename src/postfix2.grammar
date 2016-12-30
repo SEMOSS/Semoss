@@ -1,0 +1,206 @@
+Package prerna.sablecc2;
+
+Helpers
+ alpha = [['a' .. 'z'] + ['A' .. 'Z']];
+ letter_s = ['a' .. 'z'];
+ letter_b = ['A' .. 'Z'];
+ digit = ['0' .. '9'];
+ underscore = '_';
+ hdot = '.';
+ alphanumeric = [0 .. 0xFFFF];
+ quote = ('"' | ''');
+ not_quote = [alphanumeric - ['"' + ''']];
+ panelprefix =  'panel' ( '[' digit ']' )?;
+ panelcommentprefix = panelprefix '.comment' ( '[' digit ']' )?;
+ code = '<code>';
+ startjson = '<json>';
+ endjson = '</json>';
+ 
+
+Tokens
+ number = ['0' .. '9']+;
+ boolean = ('TRUE' | 'FALSE' | 'true' | 'false');
+ sort = ('up' | 'down' | 'asc' | 'dsc');
+ id = (letter_s | letter_b | digit | underscore)*;
+ dot = '.';
+ semicolon = ';';
+ colon = ':';
+ plus = '+';
+ minus = '-';
+ mod = '%';
+ quote = ('"' | ''' | '~');
+ word = quote not_quote+ quote;
+ mult = '*';
+ comma = ',';
+ div = '/';
+ comparator = ('>' | '<' | '<=' | '>=' | '!=' | '?like' | '==');
+ viz_type = ('x=' | 'y=' | 'z=' | 'size=' | 'color=' | 'tooltip=' | 'cluster=' | 'latitude=' | 'longitude=' | 'start=' | 'end=' | 'heat=' | 'dimension=' | 'label=' | 'value=' | 'series=' | 'group=');
+ log_operator = ( '||' | '&&' );
+ equal = '=';
+ selectorid = ('s='| 's');
+ groupid = 'g=';
+ optionid = 'o';
+ projectid = 'p=';
+ labelid = 'l=';
+ joinid = 'j=';
+ tooltipid = 't=';
+ frameid = 'f';
+ l_par = '(';
+ r_par = ')';
+ l_brac = '[';
+ r_brac = ']';
+ frameprefix = 'f$';
+ blank = (' ' | 13 | 10);
+ colprefix = 'c:';
+ key = 'key';
+ option_key = ('sort=' | 'persist=' | 'replace=' | 'separator=' | 'prefix=' | 'key=');
+ tolookup = 'toLookup';
+ api = 'api'; 
+ output = 'output';
+ codeblock = code alphanumeric* code;
+ java = '<j>' alphanumeric* '</j>';
+ r = '<j> runR(' alphanumeric* ')</j>';
+ mk = 'mk';
+ mv = 'mv';
+ ftype = ('Graph' | 'Grid' | 'RTable');
+ frame_verbs = ('add' | 'rem' | 'alias' | 'ren' ); // not sure if we need this 
+ custom = '|';
+ 
+Ignored Tokens
+blank;
+
+ 
+Productions 
+
+ configuration = scriptchain*;
+
+ // Basic definitions for columns
+ // columns can be a reference column / basic literal or just an expression
+ col_def = {ref}rcol | {literal}literal | {expr}expr | {dotcol} dotcol | {frameop} frameop  | {filter} filter; // need to include something for expression
+ 
+ // reference - this means the 4th column in the current frame
+ rcol = frameprefix number; // f$4
+ dotcol = frameid dot [column_name]:id;
+ literal = word;
+ decimal = [whole]:number dot? [fraction]:number?;
+ 
+ 
+ expr =
+  {term} term
+  | {plus} [left]:term plus [right]:expr
+  | {minus} [left]:term minus [right]:expr
+  | {mult} [left]:term mult [right]:expr 
+  | {div} [left]:term div [right]:expr 
+  | {mod} [left]:term mod [right]:expr
+  | {e_expr} extended_expr
+  //| {condition_expr} condition_block
+  //|{math_fun} math_fun // I need to still resolve other mathematical functions
+  ;
+ 
+ extended_expr = l_par [expr]:expr comma? [group]:gen_row r_par; // I have no idea why I need this.. but !!
+ //math_fun = proc id l_par [expr]:expr_row comma? [group]:col_csv? [parameters]:options_map? r_par; // m.Sum([1 + c:Activity], /*groupBy*/(c:studio, c:genre)); - I may not need this
+
+ // formula is typically being used when there are other things within it example
+ // (2 *3) - 13
+ formula = l_par expr r_par;
+
+ // example - output of any operation
+ operation_formula = id l_par plain_row r_par; // this is the formula with an operation in it. Although one could argue this could be a frameop - this can also be the output
+ 
+ term =
+    {number} decimal 
+	| {formula} formula
+	| {opformula} operation_formula
+	| {boolean} boolean
+  //| {var} [var]:var_def <-- should automatically identify
+	| {col} [col]:id 
+  //| {api} api_block
+  //| {tab} [tab]:table_def
+	| {csv} gen_row
+  //| null
+  //|  {alpha} word
+  //| {math_fun} math_fun
+  //| {codeblock} codeblock
+  //| {input} user_input
+  ;
+ 
+ // creating another column
+ othercol =  comma  col_def;
+ //otherliteral =  comma  literal;
+ 
+  comparecol = l_par [col1]:col_def  comparator  [col2]:col_def r_par;
+ // othercomparecol =  comma  comparecol;
+ 
+  // options
+ // option key = option value
+ 
+ // [col, col, col... ]
+ gen_row = l_brac  col_def othercol*  r_brac; // generic row
+ plain_row = col_def othercol*;
+ another_gen_row =  comma  gen_row;
+ 
+ //compare_row = l_brac  comparecol othercomparecol*  r_brac;
+ //literal_row = l_brac  literal otherliteral  r_brac;
+ gen_table = l_brac  gen_row another_gen_row  r_brac; // generic table
+ 
+ 
+ // s=[col, col, col...]
+ selectors = selectorid  gen_row;
+ projectors = projectid  gen_row;
+ labels = labelid  gen_row;
+ tooltips = tooltipid  gen_row;
+ joins = joinid  gen_row;
+ generic = id equal  gen_row;
+ 
+ // join format
+  
+ assignment = id equal col_def;
+ 
+ noun = {select} selectors | {project} projectors | {labels} labels | {tooltips} tooltips | {others} generic;
+ othernoun =  comma noun;
+ 
+ script = {frameop} frameop | {java_op} java_op | {r_op} r_op | {op} operation_formula | {make} make_op | {assign} assignment;
+ 
+ otherscript = custom script;
+
+ scriptchain = script otherscript* semicolon;
+ 
+
+ frameop = id l_par noun othernoun* r_par; // any operation on the frame. we will pick up the name through reflection
+  
+ 
+ // lookup format
+ // lookup(current frame, destination, lookup what column in the current frame, get what columns in the destination frame, comparator)
+ // I should be able to take a frame query and convert it as a lookup
+ // - I am not sure we need this.. this could be an import followed by a query csv_lookup = tolookup l_par  gen_table  comma  key equal digit  r_par;  
+ //lookup_op = tolookup l_par  frameop  comma key equal id r_par;
+ 
+ // filter
+ // col_def comparator value
+ filter = l_par [lcol]:col_def  comparator  [rcol]:col_def r_par; // need to ask if we should make this multiple or not
+ 
+ 
+ // things I need to worry about in the visual panel
+ // s=[MB, Studio, ABCD]
+ // viz.panel.plot(cluster, label=[whatever], cluster=[whatever], somethingelse=[abcd])
+ // viz.panel.query(
+ java_op = java;
+ r_op = r;
+ 
+ // import data
+ // api block
+  api_block = api [engine_name]:id dot [insight]:id l_par [selectors]:gen_row? [where]:gen_row? [relations]:gen_row? /*comma? [properties]:map_obj?*/ r_par; // not sure if we still need //the map obj - generic row is consists of joins and filters as well so we should be all set
+ 
+ // right.. I know make love not data however
+ // make_data = mk(name of the frame, type of frame optional, api | csv | something else) 
+ //import_table = [api]:api | [csv_table]:gen_table; // come to pasted data shortly 
+ 
+ frame_type = comma ftype;
+ 
+ make_data = mk l_par id frame_type? comma api; // if you give the same name it will overwrite it
+ make_data2 = mk l_par id frame_type? comma gen_table;
+ move_frame = mv l_par [from]:id [c1]:comma [to]:id frame_type? [c2]:comma? selectors? r_par; // if the frame type is not specified, it will make a frame with the same name
+ 
+ // all the make operations
+ make_op = {data_make} make_data | {data2_make} make_data2 | {frame_move} move_frame;
+ 
