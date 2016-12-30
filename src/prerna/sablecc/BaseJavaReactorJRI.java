@@ -1034,7 +1034,7 @@ public abstract class BaseJavaReactorJRI extends BaseJavaReactor{
 				total += colCount[outputIndex];
 				builder.append(retOutput[outputIndex][0] + "\t" + retOutput[outputIndex][1] + "\n");
 			}
-			builder.append("===============");
+			builder.append("===============\n");
 			builder.append("Total \t " + total);
 			System.out.println("Output : " + builder.toString());
 		} catch (Exception e) {
@@ -1253,7 +1253,7 @@ public abstract class BaseJavaReactorJRI extends BaseJavaReactor{
 		// the color is saved as color
 		try
 		{
-			int [] memberships = retEngine.eval(clusterName + "$membership").asIntArray();
+			double [] memberships = retEngine.eval(clusterName + "$membership").asDoubleArray();
 			String [] IDs = retEngine.eval("vertex_attr(" + graphName + ", \"" + TinkerFrame.TINKER_ID + "\")").asStringArray();
 			
 			for(int memIndex = 0;memIndex < memberships.length;memIndex++)
@@ -1285,6 +1285,14 @@ public abstract class BaseJavaReactorJRI extends BaseJavaReactor{
 		colorClusters(clusterName);
 	}
 	
+	// possible values 
+	// Fruchterman - layout_with_fr
+	// KK - layout_with_kk
+	// sugiyama - layout_with_sugiyama
+	// layout_as_tree
+	// layout_as_star
+	// layout.auto
+	// http://igraph.org/r/doc/layout_with_fr.html
 	public void doLayout(String layout)
 	{
 		String graphName = (String)retrieveVariable("GRAPH_NAME");
