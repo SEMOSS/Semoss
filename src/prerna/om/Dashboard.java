@@ -144,6 +144,7 @@ public class Dashboard implements IDataMaker {
 	public Map<String, String> getScriptReactors() {
 		Map<String, String> reactorNames = new HashMap<>();
 		reactorNames.put(PKQLEnum.DASHBOARD_JOIN, "prerna.sablecc.DashboardJoinReactor");
+		reactorNames.put(PKQLEnum.DASHBOARD_UNJOIN, "prerna.sablecc.DashboardUnjoinReactor");
 		reactorNames.put(PKQLEnum.OPEN_DATA, "prerna.sablecc.OpenDataReactor");
 		reactorNames.put(PKQLReactor.VAR.toString(), "prerna.sablecc.VarReactor");
 		reactorNames.put(PKQLReactor.INPUT.toString(), "prerna.sablecc.InputReactor");
