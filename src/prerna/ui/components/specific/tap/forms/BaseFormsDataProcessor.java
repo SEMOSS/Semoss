@@ -110,6 +110,8 @@ public class BaseFormsDataProcessor {
 		
 	//update the corresponding HEADER_CACHE to contain all of the strings from the first row of the wb
 	protected HashMap<String, Integer> updateHeaderCache(XSSFWorkbook wb, XSSFSheet lSheet, HashMap<String, Integer> headerCache, int count)throws IOException{
+		return updateHeaderCache(wb, lSheet, headerCache, count, -1);
+		/*
 		LOGGER.info("************* Begin updateHeaderCache for " + lSheet.getSheetName());
 		
 		if (headerCache == null){
@@ -121,8 +123,41 @@ public class BaseFormsDataProcessor {
 			!headerRow.getCell(count).getStringCellValue().equals("")){
 				String cleanedString = trimSpecialCharacters(headerRow.getCell(count).getStringCellValue());
 				headerCache.put(cleanedString, new Integer(count));
-				//LOGGER.info("************* Adding " + cleanedString  + " to HEADER_CACHE");
 				count++;
+			}
+			LOGGER.info("************* headerCache size: " + headerCache.size());
+		}
+		LOGGER.info("************* End updateHeaderCache for " + lSheet.getSheetName());
+		return headerCache;
+		*/
+	}
+	
+	//update the corresponding HEADER_CACHE to contain all of the strings from the first row of the wb
+	protected HashMap<String, Integer> updateHeaderCache(XSSFWorkbook wb, XSSFSheet lSheet, HashMap<String, 
+			Integer> headerCache, int startingCol, int endingCol)throws IOException{
+		LOGGER.info("************* Begin updateHeaderCache for " + lSheet.getSheetName());
+		//LOGGER.info("************* startingCol: " + startingCol + " endingCol: " + endingCol);
+		
+		if (headerCache == null){
+			headerCache = new HashMap<String, Integer>();
+			XSSFRow headerRow = lSheet.getRow(0);
+			if(endingCol == -1){
+				int count = startingCol;
+				while (headerRow.getCell(count)!=null && 
+						headerRow.getCell(count).getStringCellValue()!=null && 
+						!headerRow.getCell(count).getStringCellValue().equals("")){
+					String cleanedString = trimSpecialCharacters(headerRow.getCell(count).getStringCellValue());
+					headerCache.put(cleanedString, new Integer(count));
+					count++;
+				}
+			}
+			else {
+				for(int i=startingCol-1; i<endingCol; i++){
+					//LOGGER.info("************* i: " + i );
+					String cleanedString = trimSpecialCharacters(headerRow.getCell(i).getStringCellValue());
+					//LOGGER.info("************* Adding cleanedString: " + cleanedString + " ColNum: " + i);
+					headerCache.put(cleanedString, new Integer(i));				
+				}
 			}
 			LOGGER.info("************* headerCache size: " + headerCache.size());
 		}
@@ -130,6 +165,18 @@ public class BaseFormsDataProcessor {
 		return headerCache;
 	}
 
+	protected int getColNumFromCache(String value, HashMap<String, Integer> headerCache){
+		String cleanedString = trimSpecialCharacters(value);
+		if(headerCache.get(cleanedString)!=null) {
+	    	int n = headerCache.get(cleanedString);
+	    	return n;
+	    } 
+    	else {
+    		LOGGER.info("Could not find " + cleanedString + " in sheet");
+    	}
+		return -1;
+	}
+	
 	protected String trimSpecialCharacters(String str){
 		//LOGGER.info("************* Begin trimSpecialCharacters: " + str);
 		str = str.replaceAll(" ", "");
@@ -140,9 +187,9 @@ public class BaseFormsDataProcessor {
 	}
 	
 	protected void removeRowsForSystem(XSSFSheet lSheet, String systemName, int systemNameColNum){
-		LOGGER.info("********* in removeRowsForSystem ");
+		//LOGGER.info("********* in removeRowsForSystem ");
 		int lastRow = lSheet.getLastRowNum();
-		LOGGER.info("********* lastRow: " + lastRow);
+		//LOGGER.info("********* lastRow: " + lastRow);
 		for (int rIndex = 1; rIndex <= lastRow; rIndex++) {
 	    	//LOGGER.info("********* rIndex: " + rIndex);
 			XSSFRow row = lSheet.getRow(rIndex);
@@ -226,13 +273,13 @@ public class BaseFormsDataProcessor {
 	protected ArrayList<String> getReviewedSystems(IEngine engine, String queryToRun){
 		//get the list of reviewed systems
 		ArrayList<String> listToPopulate = QueryProcessor.getStringList(queryToRun, engine.getEngineName());
-		System.out.println(listToPopulate.toString());
+		LOGGER.info(listToPopulate.toString());
 		return listToPopulate;
 	}
 	
 	protected HashMap<String, HashMap<String,String>> getSystemInfoForSystems(IEngine engine){
 		HashMap<String, HashMap<String,String>> systemInfoMap = queryDataForProperties(SYSTEM_INFORMATION_QUERY, NONSERVICES_REVIEWED_SYSTEMS_LIST, engine);
-		System.out.println("The info pulled for system information is: " + systemInfoMap.toString());
+		LOGGER.info("The info pulled for system information is: " + systemInfoMap.toString());
 		return systemInfoMap;
 	}
 
@@ -327,7 +374,7 @@ public class BaseFormsDataProcessor {
 		//make a query with the chosen systems and pull the information for the query
 		localQuery = query.replace("@SYSTEM@", systemsToQueryFor);
 		consolidatedMapping = getMapOfStringMapOfStrings(localQuery, engine.getEngineName());
-		System.out.println("Adding this to the map: " + consolidatedMapping.toString());
+		//LOGGER.info("Adding this to the map: " + consolidatedMapping.toString());
 
 		return consolidatedMapping;
 	}
@@ -351,7 +398,7 @@ public class BaseFormsDataProcessor {
 		//make a query with the chosen systems and pull the information for the query
 		localQuery = query.replace("@SYSTEM@", systemsToQueryFor);
 		consolidatedMapping = QueryProcessor.getStringListMap(localQuery, engine.getEngineName());
-		System.out.println("Adding this to the map: " + consolidatedMapping.toString());
+		LOGGER.info("Adding this to the map: " + consolidatedMapping.toString());
 
 		return consolidatedMapping;
 	}
@@ -375,7 +422,7 @@ public class BaseFormsDataProcessor {
 		//make a query with the chosen systems and pull the information for the query
 		localQuery = query.replace("@SYSTEM@", systemsToQueryFor);
 		consolidatedMapping = getMapOfTable(localQuery, engine.getEngineName());
-		System.out.println("Adding this to the map: " + consolidatedMapping.toString());
+		LOGGER.info("Adding this to the map: " + consolidatedMapping.toString());
 
 		return consolidatedMapping;
 	}
@@ -393,13 +440,13 @@ public class BaseFormsDataProcessor {
 		for (String outerKey: mapToPrint.keySet()){
 			count++;
             String key = outerKey.toString();
-            System.out.println("Outer key #" + count + " is: " + key);  
+            LOGGER.info("Outer key #" + count + " is: " + key);  
             //loop through each inner key and print the key + value
             for (String innerKey: mapToPrint.get(key).keySet()) {
             	String key1 = innerKey.toString();
-            	System.out.println(">>>>>>" + key1 + " = " + mapToPrint.get(key).get(key1));
+            	LOGGER.info(">>>>>>" + key1 + " = " + mapToPrint.get(key).get(key1));
             }
-            System.out.println("");
+            LOGGER.info("");
 		} 
 	}
 	
@@ -417,14 +464,14 @@ public class BaseFormsDataProcessor {
 			//counter to count the values for printing
 			int countValue = 0;
             String keyString = key.toString();
-            System.out.println("Key #" + count + " is: " + key);  
+            LOGGER.info("Key #" + count + " is: " + key);  
             //loop through each inner key and print the key + value
             for (String value: mapToPrint.get(key)) {
             	String valueString = value.toString();
-            	System.out.println(">>>>>>Value #" + countValue + " = " + valueString);
+            	LOGGER.info(">>>>>>Value #" + countValue + " = " + valueString);
             	countValue++;
             }
-            System.out.println("");
+            LOGGER.info("");
 		} 
 	}
 	
@@ -440,20 +487,20 @@ public class BaseFormsDataProcessor {
 			int secondcount = 0;
 			firstcount++;
             String firstkeyString = firstKey.toString();
-            System.out.println("Outer key #" + firstcount + " is: " + firstkeyString);  
+            LOGGER.info("Outer key #" + firstcount + " is: " + firstkeyString);  
             //loop through each inner key and print the key + value
             
             for (String secondKey: mapToPrint.get(firstkeyString).keySet()) {
             	secondcount++;
             	String secondkeyString = secondKey.toString();
-            	System.out.println("   Inner Key #" + secondcount + " for " + firstkeyString + " is " + secondkeyString);
+            	LOGGER.info("   Inner Key #" + secondcount + " for " + firstkeyString + " is " + secondkeyString);
             	for (String thirdKey: mapToPrint.get(firstkeyString).get(secondkeyString).keySet()) {
                 	String thirdkeyString = thirdKey.toString();
-                	System.out.println("      >>>" + thirdkeyString + " = " + mapToPrint.get(firstkeyString).get(secondkeyString).get(thirdkeyString));
+                	LOGGER.info("      >>>" + thirdkeyString + " = " + mapToPrint.get(firstkeyString).get(secondkeyString).get(thirdkeyString));
                 }
             	
             }
-            System.out.println("");
+            LOGGER.info("");
 		} 
 	}	
 	
@@ -539,7 +586,7 @@ public class BaseFormsDataProcessor {
 					finalMap.get(firstKey).put(secondKey, tempSmallMap);
 					
 				} else {
-					System.out.println("You are repeating a value that should be unique. Occuring in:" + firstKey + " ,"+ secondKey);
+					LOGGER.info("You are repeating a value that should be unique. Occuring in:" + firstKey + " ,"+ secondKey);
 				}
 				//here is the change not in the QueryProcessor.java file
 				//loops through the column headers from the query and stores everything for the row (except the key) in an arraylist
