@@ -9,6 +9,7 @@ import java.util.Enumeration;
 import java.util.Hashtable;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.Vector;
 
 import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.GraphTraversal;
@@ -1381,7 +1382,10 @@ public abstract class BaseJavaReactorJRI extends BaseJavaReactor{
 	}
 	
 	
-	
+	/**
+	 * Generate a new graph using the selectors and simplistic edge hash to determine the connections
+	 * TODO: this is still preliminary and requires additional work
+	 */
 	public void generateNewGraph(String[] selectors, Map<String, String> edges) {
 		java.lang.System.setSecurityManager(curManager);
 		if(dataframe instanceof TinkerFrame)
@@ -1391,7 +1395,17 @@ public abstract class BaseJavaReactorJRI extends BaseJavaReactor{
 			System.out.println("Generated new graph data frame");
 		}		
 		java.lang.System.setSecurityManager(reactorManager);
-		
+	}
+	
+	
+	public void shiftToNodeProperty(String conceptName, String propertyName, Map<String, Set<String>> traversal) {
+		java.lang.System.setSecurityManager(curManager);
+		if(dataframe instanceof TinkerFrame)
+		{
+			DataFrameHelper.shiftToNodeProperty((TinkerFrame) dataframe, conceptName, propertyName, traversal);
+			System.out.println("Modified graph data frame");
+		}		
+		java.lang.System.setSecurityManager(reactorManager);
 	}
 	
 	public void endR()
