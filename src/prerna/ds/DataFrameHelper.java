@@ -9,8 +9,11 @@ import java.util.Map;
 import java.util.Set;
 import java.util.Vector;
 
+import org.apache.log4j.LogManager;
+import org.apache.log4j.Logger;
 import org.apache.tinkerpop.gremlin.process.traversal.P;
 import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.GraphTraversal;
+import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.__;
 import org.apache.tinkerpop.gremlin.structure.Vertex;
 
 import prerna.algorithm.api.IMetaData;
@@ -19,11 +22,12 @@ import prerna.ds.h2.H2Frame;
 import prerna.engine.api.ISelectStatement;
 import prerna.engine.api.ISelectWrapper;
 import prerna.util.ArrayUtilityMethods;
-import prerna.util.Constants;
 import prerna.util.Utility;
 
 public class DataFrameHelper {
 
+	private static final Logger LOGGER = LogManager.getLogger(DataFrameHelper.class.getName());
+	
 	public static void removeData(ITableDataFrame frame, ISelectWrapper it) {
 		if(frame instanceof H2Frame) {
 			
@@ -278,6 +282,120 @@ public class DataFrameHelper {
 			// we need to recursively loop for the next one
 			recursivelyBuildList2(endNode, selectors, edgeTraversals, currentPath);
 		}
+	}
+
+	/**
+	 * Used to shift a given node to a property on another node
+	 * @param tf
+	 * @param conceptName
+	 * @param propertyName
+	 * @param edgeHash
+	 */
+	public static void shiftToNodeProperty(
+			TinkerFrame tf, 
+			String conceptName, 
+			String propertyName,
+			Map<String, Set<String>> edgeHash) 
+	{
+		List<GraphTraversal<Object, Vertex>> traversals = new Vector<GraphTraversal<Object, Vertex>>();
+		List<String> travelledEdges = new Vector<String>();
+		
+		// select an arbitrary start type from the defined edge hash
+		String startType = edgeHash.keySet().iterator().next();
+		GraphTraversal gt = tf.g.traversal().V().has(TinkerFrame.TINKER_TYPE, startType);
+		
+		// add the logic to traverse the desired path
+		traversals = visitNode(gt, startType, edgeHash, travelledEdges, traversals);
+		if(traversals.size()>0){
+			GraphTraversal[] array = new GraphTraversal[traversals.size()];
+			gt = gt.match(traversals.toArray(array));
+		}
+		
+		// only need to return the concept and the property
+        gt = gt.select(conceptName, propertyName);
+        
+        while(gt.hasNext()) {
+        	Map<String, Object> path = (Map<String, Object>) gt.next();
+        	Vertex conceptVertex = (Vertex) path.get(conceptName);
+        	Vertex propertyVertex = (Vertex) path.get(propertyName);
+        	
+        	// set the property name as a vertex on the concept
+        	conceptVertex.property(propertyName, propertyVertex.value(TinkerFrame.TINKER_NAME));
+        }
+        
+        // now remove the property as a node
+        // we can only do this at the end because the same property vertex may be shared in the above traversal
+        // so we can't remove until the end
+        tf.removeColumn(propertyName);
+	}
+	
+	private static List<GraphTraversal<Object, Vertex>> visitNode(GraphTraversal gt, String startName, Map<String, Set<String>> edgeHash, List<String> travelledEdges, List<GraphTraversal<Object, Vertex>> traversals) {
+		
+		// first see if there are downstream nodes
+		if(edgeHash.containsKey(startName)) {
+			Iterator<String> downstreamIt = edgeHash.get(startName).iterator();
+			while (downstreamIt.hasNext()) {
+				// for each downstream node of this node
+				String downstreamNode = downstreamIt.next();
+				
+				String edgeKey = startName + TinkerFrame.EDGE_LABEL_DELIMETER + downstreamNode;
+				if (!travelledEdges.contains(edgeKey)) {
+					LOGGER.info("travelling from node = '" + startName + "' to node = '" + downstreamNode + "'");
+					
+					// get the traversal and store the necessary info
+					GraphTraversal<Object, Vertex> twoStepT = __.as(startName).out(edgeKey).has(TinkerFrame.TINKER_TYPE, downstreamNode).as(downstreamNode);
+					traversals.add(twoStepT);
+					travelledEdges.add(edgeKey);
+					
+					// recursively travel as far downstream as possible
+					traversals = visitNode(gt, downstreamNode, edgeHash, travelledEdges, traversals);
+				}
+			}
+		}
+		
+		// do the same thing for upstream
+		// slightly more annoying to get upstream nodes...
+		Set<String> upstreamNodes = getUpstreamNodes(startName, edgeHash);
+		if(upstreamNodes != null && upstreamNodes.isEmpty()) {
+			Iterator<String> upstreamIt = upstreamNodes.iterator();
+			while(upstreamIt.hasNext()) {
+				String upstreamNode = upstreamIt.next();
+				
+				String edgeKey = upstreamNode + TinkerFrame.EDGE_LABEL_DELIMETER + startName;
+				if (!travelledEdges.contains(edgeKey)) {
+					LOGGER.info("travelling from node = '" + upstreamNode + "' to node = '" + startName + "'");
+
+					// get the traversal and store the necessary info
+					GraphTraversal<Object, Vertex> twoStepT = __.as(startName).in(edgeKey).has(TinkerFrame.TINKER_TYPE, upstreamNode).as(upstreamNode);
+					traversals.add(twoStepT);
+					travelledEdges.add(edgeKey);
+					
+					// recursively travel as far upstream as possible
+					traversals = visitNode(gt, upstreamNode, edgeHash, travelledEdges, traversals);
+				}
+			}
+		}
+		
+		return traversals;
+	}
+
+	/**
+	 * Get the upstream nodes for a given downstream node
+	 * @param downstreamNodeToFind
+	 * @param edgeHash
+	 * @return
+	 */
+	private static Set<String> getUpstreamNodes(String downstreamNodeToFind, Map<String, Set<String>> edgeHash) {
+		Set<String> upstreamNodes = new HashSet<String>();
+		for(String possibleUpstreamNode : edgeHash.keySet()) {
+			Set<String> downstreamNodes = edgeHash.get(possibleUpstreamNode);
+			if(downstreamNodes.contains(downstreamNodeToFind)) {
+				// the node we want to find is listed as downstream
+				upstreamNodes.add(possibleUpstreamNode);
+			}
+		}
+		
+		return upstreamNodes;
 	}
 	
 }

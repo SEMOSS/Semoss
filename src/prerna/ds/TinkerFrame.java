@@ -43,6 +43,7 @@ import org.apache.tinkerpop.gremlin.structure.Edge;
 import org.apache.tinkerpop.gremlin.structure.Graph;
 import org.apache.tinkerpop.gremlin.structure.T;
 import org.apache.tinkerpop.gremlin.structure.Vertex;
+import org.apache.tinkerpop.gremlin.structure.VertexProperty;
 import org.apache.tinkerpop.gremlin.structure.io.Io.Builder;
 import org.apache.tinkerpop.gremlin.structure.io.IoCore;
 import org.apache.tinkerpop.gremlin.structure.io.IoRegistry;
@@ -1109,15 +1110,21 @@ public class TinkerFrame extends AbstractTableDataFrame {
 		SEMOSSVertex semossVert = vertStore.get(uri);
 		if(semossVert == null){
 			semossVert = new SEMOSSVertex(uri);
+			// generic - move anything that is a property on the node
+			Iterator<VertexProperty<Object>> vertexProperties = tinkerVert.properties();
+			while(vertexProperties.hasNext()) {
+				VertexProperty<Object> prop = vertexProperties.next();
+				semossVert.propHash.put(prop.label(), prop.value());
+			}
 			// set the cluster
-			if(tinkerVert.property("CLUSTER").isPresent())
-				semossVert.propHash.put("CLUSTER", tinkerVert.property("CLUSTER").value());
-			if(tinkerVert.property("X").isPresent())
-				semossVert.propHash.put("X", tinkerVert.property("X").value());
-			if(tinkerVert.property("Y").isPresent())
-				semossVert.propHash.put("Y", tinkerVert.property("Y").value());
-			if(tinkerVert.property("Z").isPresent())
-				semossVert.propHash.put("Z", tinkerVert.property("Z").value());
+//			if(tinkerVert.property("CLUSTER").isPresent())
+//				semossVert.propHash.put("CLUSTER", tinkerVert.property("CLUSTER").value());
+//			if(tinkerVert.property("X").isPresent())
+//				semossVert.propHash.put("X", tinkerVert.property("X").value());
+//			if(tinkerVert.property("Y").isPresent())
+//				semossVert.propHash.put("Y", tinkerVert.property("Y").value());
+//			if(tinkerVert.property("Z").isPresent())
+//				semossVert.propHash.put("Z", tinkerVert.property("Z").value());
 			vertStore.put(uri, semossVert);
 		}
 		return semossVert;
