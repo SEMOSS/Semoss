@@ -1397,7 +1397,12 @@ public abstract class BaseJavaReactorJRI extends BaseJavaReactor{
 		java.lang.System.setSecurityManager(reactorManager);
 	}
 	
-	
+	/**
+	 * Shifts a tinker node into a node property
+	 * @param conceptName
+	 * @param propertyName
+	 * @param traversal
+	 */
 	public void shiftToNodeProperty(String conceptName, String propertyName, Map<String, Set<String>> traversal) {
 		java.lang.System.setSecurityManager(curManager);
 		if(dataframe instanceof TinkerFrame)
@@ -1407,6 +1412,23 @@ public abstract class BaseJavaReactorJRI extends BaseJavaReactor{
 		}		
 		java.lang.System.setSecurityManager(reactorManager);
 	}
+	
+	/**
+	 * Shifts a tinker node into an edge property
+	 * @param conceptName
+	 * @param propertyName
+	 * @param traversal
+	 */
+	public void shiftToEdgeProperty(String[] relationship, String propertyName, Map<String, Set<String>> traversal) {
+		java.lang.System.setSecurityManager(curManager);
+		if(dataframe instanceof TinkerFrame)
+		{
+			DataFrameHelper.shiftToEdgeProperty((TinkerFrame) dataframe, relationship, propertyName, traversal);
+			System.out.println("Modified graph data frame");
+		}		
+		java.lang.System.setSecurityManager(reactorManager);
+	}
+	
 	
 	public void endR()
 	{

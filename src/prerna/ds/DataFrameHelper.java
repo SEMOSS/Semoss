@@ -14,6 +14,8 @@ import org.apache.log4j.Logger;
 import org.apache.tinkerpop.gremlin.process.traversal.P;
 import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.GraphTraversal;
 import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.__;
+import org.apache.tinkerpop.gremlin.structure.Direction;
+import org.apache.tinkerpop.gremlin.structure.Edge;
 import org.apache.tinkerpop.gremlin.structure.Vertex;
 
 import prerna.algorithm.api.IMetaData;
@@ -321,6 +323,62 @@ public class DataFrameHelper {
         	
         	// set the property name as a vertex on the concept
         	conceptVertex.property(propertyName, propertyVertex.value(TinkerFrame.TINKER_NAME));
+        }
+        
+        // now remove the property as a node
+        // we can only do this at the end because the same property vertex may be shared in the above traversal
+        // so we can't remove until the end
+        tf.removeColumn(propertyName);
+	}
+	
+	public static void shiftToEdgeProperty(
+			TinkerFrame tf, 
+			String[] relationship, 
+			String propertyName,
+			Map<String, Set<String>> edgeHash) 
+	{
+		List<GraphTraversal<Object, Vertex>> traversals = new Vector<GraphTraversal<Object, Vertex>>();
+		List<String> travelledEdges = new Vector<String>();
+		
+		// select an arbitrary start type from the defined edge hash
+		String startType = edgeHash.keySet().iterator().next();
+		GraphTraversal gt = tf.g.traversal().V().has(TinkerFrame.TINKER_TYPE, startType);
+		
+		// add the logic to traverse the desired path
+		traversals = visitNode(gt, startType, edgeHash, travelledEdges, traversals);
+		if(traversals.size()>0){
+			GraphTraversal[] array = new GraphTraversal[traversals.size()];
+			gt = gt.match(traversals.toArray(array));
+		}
+		
+		String startName = relationship[0];
+		String endName = relationship[1];
+		// only need to return the concept and the property
+        gt = gt.select(relationship[0], relationship[1], propertyName);
+        
+        while(gt.hasNext()) {
+        	Map<String, Object> path = (Map<String, Object>) gt.next();
+        	Vertex startVertex = (Vertex) path.get(startName);
+        	Vertex endVertex = (Vertex) path.get(endName);
+        	Vertex propertyVertex = (Vertex) path.get(propertyName);
+        	
+        	//TODO: improve this...
+        	Iterator<Edge> edgeIt = startVertex.edges(Direction.OUT);
+        	boolean foundEdge = false;
+        	while(edgeIt.hasNext()) {
+        		Edge e = edgeIt.next();
+        		if(e.inVertex().equals(endVertex)) {
+        			foundEdge = true;
+        			e.property(propertyName,  propertyVertex.value(TinkerFrame.TINKER_NAME));
+        		}
+        	}
+        	
+        	if(!foundEdge) {
+        		String type = "new";
+        		String edgeId = type + "/new";
+        		Edge e = startVertex.addEdge(type, endVertex, TinkerFrame.TINKER_ID, edgeId, TinkerFrame.TINKER_COUNT, 1);
+    			e.property(propertyName,  propertyVertex.value(TinkerFrame.TINKER_NAME));
+        	}
         }
         
         // now remove the property as a node
