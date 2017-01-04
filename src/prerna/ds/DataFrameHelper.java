@@ -285,7 +285,24 @@ public class DataFrameHelper {
 			recursivelyBuildList2(endNode, selectors, edgeTraversals, currentPath);
 		}
 	}
-
+	
+	/**
+	 * Used to shift a given node to a property on another node
+	 * @param tf
+	 * @param conceptName
+	 * @param propertyName
+	 * @param edgeHash
+	 */
+	public static void shiftToNodeProperty(
+			TinkerFrame tf, 
+			String conceptName, 
+			String propertyName,
+			String edgeHashStr) 
+	{
+		Map<String, Set<String>> edgeHash = generateEdgeHashFromStr(edgeHashStr);
+		shiftToNodeProperty(tf, conceptName, propertyName, edgeHash);
+	}
+	
 	/**
 	 * Used to shift a given node to a property on another node
 	 * @param tf
@@ -334,6 +351,17 @@ public class DataFrameHelper {
         // we can only do this at the end because the same property vertex may be shared in the above traversal
         // so we can't remove until the end
         tf.removeColumn(propertyName);
+	}
+	
+	public static void shiftToEdgeProperty(
+			TinkerFrame tf, 
+			String relationshipStr, 
+			String propertyName,
+			String edgeHashStr) 
+	{
+		String[] relationship = relationshipStr.split("\\.");
+		Map<String, Set<String>> edgeHash = generateEdgeHashFromStr(edgeHashStr);
+		shiftToEdgeProperty(tf, relationship, propertyName, edgeHash);
 	}
 	
 	public static void shiftToEdgeProperty(
@@ -467,6 +495,36 @@ public class DataFrameHelper {
 		}
 		
 		return upstreamNodes;
+	}
+	
+	private static Map<String, Set<String>> generateEdgeHashFromStr(String edgeHashStr) {
+		Map<String, Set<String>> edgeHash = new Hashtable<String, Set<String>>();
+		// each path is separated by a semicolon
+		String[] paths = edgeHashStr.split(";");
+		for(String path : paths) {
+			if(path.contains(".")) {
+				String[] pathVertex = path.split("\\.");
+				// we start at index 1 and take the index prior for ease of looping
+				for(int i = 1; i < pathVertex.length; i++) {
+					String startNode = pathVertex[i-1];
+					String endNode = pathVertex[i];
+					
+					// update the edge hash correctly
+					Set<String> downstreamNodes = null;
+					if(edgeHash.containsKey(startNode)) {
+						downstreamNodes = edgeHash.get(startNode);
+						downstreamNodes.add(endNode);
+					} else {
+						downstreamNodes = new HashSet<String>();
+						downstreamNodes.add(endNode);
+						edgeHash.put(startNode, downstreamNodes);
+					}
+				}
+			} else {
+				// ugh... when would this happen?
+			}
+		}
+		return edgeHash;
 	}
 	
 }
