@@ -301,13 +301,18 @@ public class DataFrameHelper {
 	{
 		List<GraphTraversal<Object, Vertex>> traversals = new Vector<GraphTraversal<Object, Vertex>>();
 		List<String> travelledEdges = new Vector<String>();
+
+		// to allow for loops
+		// we need the user to pass in the information using the unique names
+		Map<String, String> uniqueNameToValue = tf.metaData.getAllUniqueNamesToValues();
 		
 		// select an arbitrary start type from the defined edge hash
-		String startType = edgeHash.keySet().iterator().next();
-		GraphTraversal gt = tf.g.traversal().V().has(TinkerFrame.TINKER_TYPE, startType);
+		String startName = edgeHash.keySet().iterator().next();
+		String startType = uniqueNameToValue.get(startName);
+		GraphTraversal gt = tf.g.traversal().V().has(TinkerFrame.TINKER_TYPE, startType).as(uniqueNameToValue.get(startName));
 		
 		// add the logic to traverse the desired path
-		traversals = visitNode(gt, startType, edgeHash, travelledEdges, traversals);
+		traversals = visitNode(gt, startName, uniqueNameToValue, edgeHash, travelledEdges, traversals);
 		if(traversals.size()>0){
 			GraphTraversal[] array = new GraphTraversal[traversals.size()];
 			gt = gt.match(traversals.toArray(array));
@@ -340,30 +345,37 @@ public class DataFrameHelper {
 		List<GraphTraversal<Object, Vertex>> traversals = new Vector<GraphTraversal<Object, Vertex>>();
 		List<String> travelledEdges = new Vector<String>();
 		
+		// to allow for loops
+		// we need the user to pass in the information using the unique names
+		Map<String, String> uniqueNameToValue = tf.metaData.getAllUniqueNamesToValues();
+		
 		// select an arbitrary start type from the defined edge hash
-		String startType = edgeHash.keySet().iterator().next();
-		GraphTraversal gt = tf.g.traversal().V().has(TinkerFrame.TINKER_TYPE, startType);
+		String startName = edgeHash.keySet().iterator().next();
+		String startType = uniqueNameToValue.get(startName);
+		GraphTraversal gt = tf.g.traversal().V().has(TinkerFrame.TINKER_TYPE, startType).as(uniqueNameToValue.get(startName));
 		
 		// add the logic to traverse the desired path
-		traversals = visitNode(gt, startType, edgeHash, travelledEdges, traversals);
+		traversals = visitNode(gt, startName, uniqueNameToValue, edgeHash, travelledEdges, traversals);
 		if(traversals.size()>0){
 			GraphTraversal[] array = new GraphTraversal[traversals.size()];
 			gt = gt.match(traversals.toArray(array));
 		}
 		
-		String startName = relationship[0];
-		String endName = relationship[1];
+		String startSelector = relationship[0];
+		String endSelector = relationship[1];
 		// only need to return the concept and the property
         gt = gt.select(relationship[0], relationship[1], propertyName);
         
         while(gt.hasNext()) {
         	Map<String, Object> path = (Map<String, Object>) gt.next();
-        	Vertex startVertex = (Vertex) path.get(startName);
-        	Vertex endVertex = (Vertex) path.get(endName);
+        	Vertex startVertex = (Vertex) path.get(startSelector);
+        	Vertex endVertex = (Vertex) path.get(endSelector);
         	Vertex propertyVertex = (Vertex) path.get(propertyName);
         	
-        	//TODO: improve this...
-        	Iterator<Edge> edgeIt = startVertex.edges(Direction.OUT);
+        	// remember, the start and end being passed are the unique names to allow for loops!
+        	String edgeLabel = startSelector + TinkerFrame.EDGE_LABEL_DELIMETER + endSelector;
+
+        	Iterator<Edge> edgeIt = startVertex.edges(Direction.OUT, edgeLabel);
         	boolean foundEdge = false;
         	while(edgeIt.hasNext()) {
         		Edge e = edgeIt.next();
@@ -374,9 +386,9 @@ public class DataFrameHelper {
         	}
         	
         	if(!foundEdge) {
-        		String type = "new";
-        		String edgeId = type + "/new";
-        		Edge e = startVertex.addEdge(type, endVertex, TinkerFrame.TINKER_ID, edgeId, TinkerFrame.TINKER_COUNT, 1);
+        		// if not found, then we will just make a new edge and add the property onto it
+        		String edgeId = edgeLabel + "/" + startVertex.value(TinkerFrame.TINKER_NAME) + ":" + endVertex.value(TinkerFrame.TINKER_NAME);
+        		Edge e = startVertex.addEdge(edgeLabel, endVertex, TinkerFrame.TINKER_ID, edgeId, TinkerFrame.TINKER_COUNT, 1);
     			e.property(propertyName,  propertyVertex.value(TinkerFrame.TINKER_NAME));
         	}
         }
@@ -387,26 +399,26 @@ public class DataFrameHelper {
         tf.removeColumn(propertyName);
 	}
 	
-	private static List<GraphTraversal<Object, Vertex>> visitNode(GraphTraversal gt, String startName, Map<String, Set<String>> edgeHash, List<String> travelledEdges, List<GraphTraversal<Object, Vertex>> traversals) {
-		
+	private static List<GraphTraversal<Object, Vertex>> visitNode(GraphTraversal gt, String startName, Map<String, String> uniqueNameToValue, Map<String, Set<String>> edgeHash, List<String> travelledEdges, List<GraphTraversal<Object, Vertex>> traversals) {
 		// first see if there are downstream nodes
 		if(edgeHash.containsKey(startName)) {
 			Iterator<String> downstreamIt = edgeHash.get(startName).iterator();
 			while (downstreamIt.hasNext()) {
 				// for each downstream node of this node
-				String downstreamNode = downstreamIt.next();
-				
-				String edgeKey = startName + TinkerFrame.EDGE_LABEL_DELIMETER + downstreamNode;
+				String downstreamNodeName = downstreamIt.next();
+				String downstreamNodeType = uniqueNameToValue.get(downstreamNodeName);
+
+				String edgeKey = startName + TinkerFrame.EDGE_LABEL_DELIMETER + downstreamNodeName;
 				if (!travelledEdges.contains(edgeKey)) {
-					LOGGER.info("travelling from node = '" + startName + "' to node = '" + downstreamNode + "'");
+					LOGGER.info("travelling from node = '" + startName + "' to node = '" + downstreamNodeName + "'");
 					
 					// get the traversal and store the necessary info
-					GraphTraversal<Object, Vertex> twoStepT = __.as(startName).out(edgeKey).has(TinkerFrame.TINKER_TYPE, downstreamNode).as(downstreamNode);
+					GraphTraversal<Object, Vertex> twoStepT = __.as(startName).out(edgeKey).has(TinkerFrame.TINKER_TYPE, downstreamNodeType).as(downstreamNodeName);
 					traversals.add(twoStepT);
 					travelledEdges.add(edgeKey);
 					
 					// recursively travel as far downstream as possible
-					traversals = visitNode(gt, downstreamNode, edgeHash, travelledEdges, traversals);
+					traversals = visitNode(gt, downstreamNodeName, uniqueNameToValue, edgeHash, travelledEdges, traversals);
 				}
 			}
 		}
@@ -414,22 +426,23 @@ public class DataFrameHelper {
 		// do the same thing for upstream
 		// slightly more annoying to get upstream nodes...
 		Set<String> upstreamNodes = getUpstreamNodes(startName, edgeHash);
-		if(upstreamNodes != null && upstreamNodes.isEmpty()) {
+		if(upstreamNodes != null && !upstreamNodes.isEmpty()) {
 			Iterator<String> upstreamIt = upstreamNodes.iterator();
 			while(upstreamIt.hasNext()) {
-				String upstreamNode = upstreamIt.next();
-				
-				String edgeKey = upstreamNode + TinkerFrame.EDGE_LABEL_DELIMETER + startName;
+				String upstreamNodeName = upstreamIt.next();
+				String upstreamNodeType = uniqueNameToValue.get(upstreamNodeName);
+
+				String edgeKey = upstreamNodeName + TinkerFrame.EDGE_LABEL_DELIMETER + startName;
 				if (!travelledEdges.contains(edgeKey)) {
-					LOGGER.info("travelling from node = '" + upstreamNode + "' to node = '" + startName + "'");
+					LOGGER.info("travelling from node = '" + upstreamNodeName + "' to node = '" + startName + "'");
 
 					// get the traversal and store the necessary info
-					GraphTraversal<Object, Vertex> twoStepT = __.as(startName).in(edgeKey).has(TinkerFrame.TINKER_TYPE, upstreamNode).as(upstreamNode);
+					GraphTraversal<Object, Vertex> twoStepT = __.as(startName).in(edgeKey).has(TinkerFrame.TINKER_TYPE, upstreamNodeType).as(upstreamNodeName);
 					traversals.add(twoStepT);
 					travelledEdges.add(edgeKey);
 					
 					// recursively travel as far upstream as possible
-					traversals = visitNode(gt, upstreamNode, edgeHash, travelledEdges, traversals);
+					traversals = visitNode(gt, upstreamNodeName,uniqueNameToValue, edgeHash, travelledEdges, traversals);
 				}
 			}
 		}
