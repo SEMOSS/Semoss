@@ -67,8 +67,14 @@ public class FormsSiteICDDataProcessor extends FormsICDDataProcessor {
 		ICD_DATA_OBJECT_STARTING_COL_NUM = 35;
 		MY_QUERY = SYSTEM_INTERFACE_SITE_SPECIFIC_QUERY;
 		INTERFACES_FILE = "\\ICD SiteSpecific.xlsm";
+		
+		ICD_FREQUENCY_STARTING_COL_NUM = 17;
+		ICD_FREQUENCY_ENDING_COL_NUM = 24;
+		ICD_PROTOCOL_STARTING_COL_NUM = 25;
+		ICD_PROTOCOL_ENDING_COL_NUM = 29;
+		ICD_FORMAT_STARTING_COL_NUM = 30;
+		ICD_FORMAT_ENDING_COL_NUM = 34;
 	}
-
 	
 	public int getICDColumnNumber(String name){
 		if(name.equalsIgnoreCase("Site")){
@@ -77,5 +83,17 @@ public class FormsSiteICDDataProcessor extends FormsICDDataProcessor {
 		else {
 			return super.getICDColumnNumber(name);
 		}
+	}
+	
+	public void addInterfaceName(XSSFRow row, String key1){
+		//LOGGER.info("*********** key1: " + key1);
+		String[] strs = key1.split("%");
+		//LOGGER.info("*********** strs 1: " + strs[0]);
+		//LOGGER.info("*********** strs 2: " + strs[1]);
+		XSSFCell cell = row.createCell(INTERFACE_NAME_COL_NUM);
+		cell.setCellValue(strs[0]);
+		
+		XSSFCell cell1 = row.createCell(SITE_COL_NUM);
+		cell1.setCellValue(strs[1]);
 	}
 }
