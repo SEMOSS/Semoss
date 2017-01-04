@@ -437,7 +437,9 @@ public class TinkerMetaData implements IMetaData {
 	@Override
 	public void dropVertex(String uniqueName) {
 		Vertex vert = getExistingVertex(uniqueName);
-		vert.remove();
+		if(vert != null) {
+			vert.remove();
+		}
 	}
 	
 	
