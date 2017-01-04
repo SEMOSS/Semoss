@@ -1074,63 +1074,6 @@ public class TinkerFrame extends AbstractTableDataFrame {
 		LOGGER.info("Component Processed: " +(time4 - startTime)+" ms");
 	}
 	
-    /**
-     * 
-     * @param vertStore
-     * @param tinkerVert
-     * @return
-     */
-	private SEMOSSVertex getSEMOSSVertex(Map<String, SEMOSSVertex> vertStore, Vertex tinkerVert){
-		Object value = tinkerVert.property(TINKER_NAME).value();
-		String type = tinkerVert.property(TINKER_TYPE).value() + "";
-		
-		// New logic to construct URI - don't need to take into account base URI beacuse it sits on OWL and is used upon query creation
-		String newValue = Utility.getInstanceName(value.toString());
-		String uri = "http://semoss.org/ontologies/Concept/" + type + "/" + newValue;
-		
-		// Old logic
-//		if this vertex is a literal, need to build the uri
-//		otherwise the semoss vertex will not be able to get the type of the node (it parses the uri to get type)
-//		start with the assumption that the value is already a uri... but we can't be positive
-//		let us perform some checks
-//		String uri = value + "";
-//		check 1
-//		if it is not a value of string, most definitely need to create a uri
-//		if(!(value instanceof String)) {
-//			uri = "http://semoss.org/ontologies/Concept/" + type + "/" + value;
-//		} else {
-//			// check 2
-//			// but even if it is a string, we might still need to create a uri
-//			// well, if it isn't already a URI with the concatenation of the base semoss concept, a forward slash, and the type
-//			// then create a uri
-//			if(!value.toString().startsWith("http://semoss.org/ontologies/Concept/" + type) && !((String)value).contains(((String)type))) {
-//				uri = "http://semoss.org/ontologies/Concept/" + type + "/" + value;
-//			}
-//		}
-			
-		SEMOSSVertex semossVert = vertStore.get(uri);
-		if(semossVert == null){
-			semossVert = new SEMOSSVertex(uri);
-			// generic - move anything that is a property on the node
-			Iterator<VertexProperty<Object>> vertexProperties = tinkerVert.properties();
-			while(vertexProperties.hasNext()) {
-				VertexProperty<Object> prop = vertexProperties.next();
-				semossVert.propHash.put(prop.key(), prop.value());
-			}
-			// set the cluster
-//			if(tinkerVert.property("CLUSTER").isPresent())
-//				semossVert.propHash.put("CLUSTER", tinkerVert.property("CLUSTER").value());
-//			if(tinkerVert.property("X").isPresent())
-//				semossVert.propHash.put("X", tinkerVert.property("X").value());
-//			if(tinkerVert.property("Y").isPresent())
-//				semossVert.propHash.put("Y", tinkerVert.property("Y").value());
-//			if(tinkerVert.property("Z").isPresent())
-//				semossVert.propHash.put("Z", tinkerVert.property("Z").value());
-			vertStore.put(uri, semossVert);
-		}
-		return semossVert;
-	}
-	
 	private Map createVertStores(){
 		Map<String, SEMOSSVertex> vertStore = new HashMap<String, SEMOSSVertex>();
 		Map<String, SEMOSSEdge> edgeStore = new HashMap<String, SEMOSSEdge>();
@@ -1174,14 +1117,18 @@ public class TinkerFrame extends AbstractTableDataFrame {
 			
 			SEMOSSEdge semossE = new SEMOSSEdge(outVert, inVert, "https://semoss.org/Relation/"+e.property(TINKER_ID).value() + "");
 			edgeStore.put("https://semoss.org/Relation/"+e.property(TINKER_ID).value() + "", semossE);
+			
 			// need to add edge properties
 			Iterator<Property<Object>> edgeProperties = e.properties();
 			while(edgeProperties.hasNext()) {
 				Property<Object> prop = edgeProperties.next();
-				semossE.propHash.put(prop.key(), prop.value());
+				String propName = prop.key();
+				if(!propName.equals(TINKER_ID) && !propName.equals(TINKER_NAME) && !propName.equals(TINKER_TYPE)) {
+					semossE.propHash.put(propName, prop.value());
+				}
 			}
-			
 		}
+		
 		// now i just need to get the verts with no edges
 //		GraphTraversal<Vertex, Vertex> vertIt = g.traversal().V().not(__.or(__.both(),__.has(TINKER_TYPE, TINKER_FILTER),__.in().has(TINKER_TYPE, TINKER_FILTER)));
 		
@@ -1200,6 +1147,37 @@ public class TinkerFrame extends AbstractTableDataFrame {
 		retHash.put("nodes", vertStore);
 		retHash.put("edges", edgeStore.values());
 		return retHash;
+	}
+	
+    /**
+     * 
+     * @param vertStore
+     * @param tinkerVert
+     * @return
+     */
+	private SEMOSSVertex getSEMOSSVertex(Map<String, SEMOSSVertex> vertStore, Vertex tinkerVert){
+		Object value = tinkerVert.property(TINKER_NAME).value();
+		String type = tinkerVert.property(TINKER_TYPE).value() + "";
+		
+		// New logic to construct URI - don't need to take into account base URI beacuse it sits on OWL and is used upon query creation
+		String newValue = Utility.getInstanceName(value.toString());
+		String uri = "http://semoss.org/ontologies/Concept/" + type + "/" + newValue;
+		
+		SEMOSSVertex semossVert = vertStore.get(uri);
+		if(semossVert == null){
+			semossVert = new SEMOSSVertex(uri);
+			// generic - move anything that is a property on the node
+			Iterator<VertexProperty<Object>> vertexProperties = tinkerVert.properties();
+			while(vertexProperties.hasNext()) {
+				VertexProperty<Object> prop = vertexProperties.next();
+				String propName = prop.key();
+				if(!propName.equals(TINKER_ID) && !propName.equals(TINKER_NAME) && !propName.equals(TINKER_TYPE)) {
+					semossVert.propHash.put(propName, prop.value());
+				}
+			}
+			vertStore.put(uri, semossVert);
+		}
+		return semossVert;
 	}
 	
 	/******************************  END DATA MAKER METHODS ******************************/

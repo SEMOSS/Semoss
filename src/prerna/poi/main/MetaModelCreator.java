@@ -357,6 +357,10 @@ public class MetaModelCreator {
 
 				}
 			}
+			
+			else if(propKeyS.equals("RELATION_PROP")) {
+				// do nothing, we don't do anything with relationship props at the moment
+			}
 
 			else {
 				// WE WANT TO IGNORE SOME THINGS THAT WE DO NOT COUNT AS ADDITIONAL PROPERTIES
