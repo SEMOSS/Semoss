@@ -54,6 +54,7 @@ public class DashboardUnjoinReactor extends AbstractReactor {
 			}
 			
 			dashboard.unjoinInsights(insights);
+			setDashboardData(insightsToUnjoin);
 		} catch(IllegalArgumentException e) {
 			e.printStackTrace();
 			myStore.put("RESPONSE", e.getMessage());
@@ -70,40 +71,42 @@ public class DashboardUnjoinReactor extends AbstractReactor {
 		return null;
 	}
 	
-	private Map getDashboardData(List<String> insightIDs, List<String> joinCols, String joinType) {
-		
-		List<Object> joinList = new ArrayList<>();
-		for(int i = 0; i < insightIDs.size(); i++) {
-			String insightID = insightIDs.get(i);
-			Map<String, String> joinMap = new HashMap<>();
-			joinMap.put("insightID", insightID);
-			joinMap.put("column", joinCols.get(i));
-			joinList.add(joinMap);
-		}
-		
-		Map joins = new HashMap();
-		joins.put("joins", joinList);
-		joins.put("type", joinType);
-		
-		List joinDataList = new ArrayList();
-		joinDataList.add(joins);
-		
-//		Map dashboardMap = new HashMap();
-//		dashboardMap.put(dashboardID, joinDataList);
+//	private Map getDashboardData(List<String> insightIDs, List<String> joinCols, String joinType) {
 //		
-//		Map<String, Object> DashboardMap = new HashMap<>();
-//		DashboardMap.put("Dashboard", dashboardMap);
-//		this.myStore.put("DashboardData", joinDataList);
-		return joins;
-	}
+//		List<Object> joinList = new ArrayList<>();
+//		for(int i = 0; i < insightIDs.size(); i++) {
+//			String insightID = insightIDs.get(i);
+//			Map<String, String> joinMap = new HashMap<>();
+//			joinMap.put("insightID", insightID);
+//			joinMap.put("column", joinCols.get(i));
+//			joinList.add(joinMap);
+//		}
+//		
+//		Map joins = new HashMap();
+//		joins.put("joins", joinList);
+//		joins.put("type", joinType);
+//		
+//		List joinDataList = new ArrayList();
+//		joinDataList.add(joins);
+//		
+////		Map dashboardMap = new HashMap();
+////		dashboardMap.put(dashboardID, joinDataList);
+////		
+////		Map<String, Object> DashboardMap = new HashMap<>();
+////		DashboardMap.put("Dashboard", dashboardMap);
+////		this.myStore.put("DashboardData", joinDataList);
+//		return joins;
+//	}
 	
-	private void setDashboardData(List<String> insightIDs, List<List<String>> joinCols, String joinType) {
+	private void setDashboardData(List<String> insightIDs) {
 		List joinDataList = new ArrayList();
-		for(List<String> nextJoinCols : joinCols) {
-			joinDataList.add(getDashboardData(insightIDs, nextJoinCols, joinType));
+		for(String insightID : insightIDs) {
+			Map<String, String> unjoinedMap = new HashMap<>();
+			unjoinedMap.put("insightID", insightID);
+			joinDataList.add(unjoinedMap);
 		}
 		Map<String, List> data = new HashMap<>();
-		data.put("joinedInsights", joinDataList);
+		data.put("unJoinedInsights", joinDataList);
 		this.myStore.put("DashboardData", data);
 	}
 

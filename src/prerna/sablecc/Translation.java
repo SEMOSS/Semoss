@@ -1284,20 +1284,20 @@ public class Translation extends DepthFirstAdapter {
 		curReactor.put("G", this.frame);
 		Hashtable<String, Object> thisReactorHash = deinitReactor(PKQLEnum.DASHBOARD_UNJOIN, nodeStr, PKQLEnum.DASHBOARD_UNJOIN);
 
-//		Map dashboardData = (Map) runner.getDashboardData();
-//		if (dashboardData == null) {
-//			runner.setDashBoardData((Map)thisReactor.getValue("DashboardData"));
-//		} else {
-//			Map<String, List> newDashboardData = (Map<String, List>) thisReactor.getValue("DashboardData");
-//			if (dashboardData.containsKey("joinedInsights")) {
-//				List list = (List) dashboardData.get("joinedInsights");
-//				list.addAll(newDashboardData.get("joinedInsights"));
-//			} else {
-//				List list = (List) newDashboardData.get("joinedInsights");
-//				dashboardData.put("joinedInsights", list);
-//			}
-//			runner.setDashBoardData(dashboardData);
-//		}
+		Map dashboardData = (Map) runner.getDashboardData();
+		if (dashboardData == null) {
+			runner.setDashBoardData((Map)thisReactor.getValue("DashboardData"));
+		} else {
+			Map<String, List> newDashboardData = (Map<String, List>) thisReactor.getValue("DashboardData");
+			if (dashboardData.containsKey("unJoinedInsights")) {
+				List list = (List) dashboardData.get("unJoinedInsights");
+				list.addAll(newDashboardData.get("unJoinedInsights"));
+			} else {
+				List list = (List) newDashboardData.get("unJoinedInsights");
+				dashboardData.put("unJoinedInsights", list);
+			}
+			runner.setDashBoardData(dashboardData);
+		}
 	}
 
 	public void inADashboardAdd(ADashboardAdd node) {
