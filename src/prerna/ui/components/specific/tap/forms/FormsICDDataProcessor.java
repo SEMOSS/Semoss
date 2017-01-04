@@ -69,10 +69,19 @@ public class FormsICDDataProcessor extends BaseFormsDataProcessor {
 	public int ICD_DATA_OBJECT_STARTING_COL_NUM = 60;
 	public int SHEET_LAST_COLUMN = 60;
 	
+	public int ICD_FREQUENCY_STARTING_COL_NUM = 19;
+	public int ICD_FREQUENCY_ENDING_COL_NUM = 26;
+	public int ICD_PROTOCOL_STARTING_COL_NUM = 27;
+	public int ICD_PROTOCOL_ENDING_COL_NUM = 43;
+	public int ICD_FORMAT_STARTING_COL_NUM = 44;
+	public int ICD_FORMAT_ENDING_COL_NUM = 59;
 	
 	public static final String SYSTEM_INTERFACES_SHEET_NAME = "ICD";
 		
 	public static HashMap<String, Integer> ICD_DATA_OBJECT_HEADER_CACHE = null;
+	public static HashMap<String, Integer> ICD_FREQUENCY_HEADER_CACHE = null;
+	public static HashMap<String, Integer> ICD_PROTOCOL_HEADER_CACHE = null;
+	public static HashMap<String, Integer> ICD_FORMAT_HEADER_CACHE = null;
 	
 	public FormsICDDataProcessor(){
 	}
@@ -84,7 +93,7 @@ public class FormsICDDataProcessor extends BaseFormsDataProcessor {
 					getDataForTables(MY_QUERY, systemsList, engine);
 			//LOGGER.info("********** interfaces size: " + map.size());
 			
-			tableToString(map);
+			//tableToString(map);
 			String fileName = sourceFolder.getAbsolutePath() + INTERFACES_FILE;
 			XSSFWorkbook wb = getWorkBook(fileName);
 			
@@ -103,7 +112,14 @@ public class FormsICDDataProcessor extends BaseFormsDataProcessor {
 		XSSFSheet lSheet = getSheet(wb, SYSTEM_INTERFACES_SHEET_NAME);
 		//lSheet = cleanupSheet(lSheet);
 		ICD_DATA_OBJECT_HEADER_CACHE = updateHeaderCache(wb, lSheet, ICD_DATA_OBJECT_HEADER_CACHE, ICD_DATA_OBJECT_STARTING_COL_NUM);
-		
+		LOGGER.info("********* Laoding ICD_FREQUENCY_HEADER_CACHE");
+		ICD_FREQUENCY_HEADER_CACHE = updateHeaderCache(wb, lSheet, ICD_FREQUENCY_HEADER_CACHE, 
+																ICD_FREQUENCY_STARTING_COL_NUM, ICD_FREQUENCY_ENDING_COL_NUM);
+		LOGGER.info("********* Done Laoding ICD_FREQUENCY_HEADER_CACHE");
+		ICD_PROTOCOL_HEADER_CACHE = updateHeaderCache(wb, lSheet, ICD_PROTOCOL_HEADER_CACHE, 
+																	ICD_PROTOCOL_STARTING_COL_NUM, ICD_PROTOCOL_ENDING_COL_NUM);
+		ICD_FORMAT_HEADER_CACHE = updateHeaderCache(wb, lSheet, ICD_FORMAT_HEADER_CACHE, 
+																			ICD_FORMAT_STARTING_COL_NUM, ICD_FORMAT_ENDING_COL_NUM);
 		
 		// determine number of rows to load
 		int lastRow = lSheet.getLastRowNum();
@@ -146,17 +162,18 @@ public class FormsICDDataProcessor extends BaseFormsDataProcessor {
 				cell0.setCellValue(count-1);
 				
 				//setting interface name in col 5
-		    	XSSFCell cell = row.createCell(INTERFACE_NAME_COL_NUM);
-				cell.setCellValue(key1);
+		    	//XSSFCell cell = row.createCell(INTERFACE_NAME_COL_NUM);
+				//cell.setCellValue(key1);
+				addInterfaceName(row, key1);
 				
 				HashMap<String,String> valueMap2 = valueMap1.get(key1);
 			    for (String key2 : valueMap2.keySet()) {
 			    	//LOGGER.info("********* key2: " + key2);
 			    	HashMap<String,String> valueMap3 = valueMap1.get(key1);
 			    	for (String key3 : valueMap3.keySet()) {
+			    		String value = valueMap3.get(key3);
 			    		if(key3.equalsIgnoreCase("DataObject")){
-			    			String value = valueMap3.get(key3);
-				    		int n = getDataObjectColNum(value);
+			    			int n = getDataObjectColNum(value);
 				    		if(n!= -1){
 				    			XSSFCell cell1 = row.createCell(n);
 				    			//LOGGER.info("********* valueMap3.get(key3): " +value);
@@ -164,7 +181,16 @@ public class FormsICDDataProcessor extends BaseFormsDataProcessor {
 				    		}
 			    		}
 			    		else {
-				    		String value = valueMap3.get(key3);
+				    		//String value = valueMap3.get(key3);
+				    		if(key3.equalsIgnoreCase("Frequency")){
+				    			tagValue(row, value, ICD_FREQUENCY_HEADER_CACHE);
+				    		}
+				    		else if(key3.equalsIgnoreCase("Protocol")){
+				    			tagValue(row, value, ICD_PROTOCOL_HEADER_CACHE);
+				    		}
+				    		else if(key3.equalsIgnoreCase("Format")){
+				    			tagValue(row, value, ICD_FORMAT_HEADER_CACHE);
+				    		}
 				    		int n = getICDColumnNumber(key3);
 				    		//LOGGER.info("********* key3: " + key3 + " Col Num: " + n);
 				    		if(n!= -1){
@@ -177,7 +203,19 @@ public class FormsICDDataProcessor extends BaseFormsDataProcessor {
 			    }
 		    }
 		}
-		//cleanupSheet(lSheet);
+	}
+	
+	public void tagValue(XSSFRow row, String value, HashMap<String, Integer> headerCache){
+		int n = getColNumFromCache(value, headerCache);
+		if(n!= -1){
+			XSSFCell cell1 = row.createCell(n);
+			cell1.setCellValue("S");
+		}
+	}
+	
+	public void addInterfaceName(XSSFRow row, String key1){
+		XSSFCell cell = row.createCell(INTERFACE_NAME_COL_NUM);
+		cell.setCellValue(key1);
 	}
 	
 	public int getICDColumnNumber(String name){
