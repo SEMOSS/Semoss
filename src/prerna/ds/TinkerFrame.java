@@ -41,6 +41,7 @@ import org.apache.tinkerpop.gremlin.process.traversal.strategy.decoration.Subgra
 import org.apache.tinkerpop.gremlin.structure.Direction;
 import org.apache.tinkerpop.gremlin.structure.Edge;
 import org.apache.tinkerpop.gremlin.structure.Graph;
+import org.apache.tinkerpop.gremlin.structure.Property;
 import org.apache.tinkerpop.gremlin.structure.T;
 import org.apache.tinkerpop.gremlin.structure.Vertex;
 import org.apache.tinkerpop.gremlin.structure.VertexProperty;
@@ -1114,7 +1115,7 @@ public class TinkerFrame extends AbstractTableDataFrame {
 			Iterator<VertexProperty<Object>> vertexProperties = tinkerVert.properties();
 			while(vertexProperties.hasNext()) {
 				VertexProperty<Object> prop = vertexProperties.next();
-				semossVert.propHash.put(prop.label(), prop.value());
+				semossVert.propHash.put(prop.key(), prop.value());
 			}
 			// set the cluster
 //			if(tinkerVert.property("CLUSTER").isPresent())
@@ -1171,7 +1172,15 @@ public class TinkerFrame extends AbstractTableDataFrame {
 			SEMOSSVertex outVert = getSEMOSSVertex(vertStore, outV);
 			SEMOSSVertex inVert = getSEMOSSVertex(vertStore, inV);
 			
-			edgeStore.put("https://semoss.org/Relation/"+e.property(TINKER_ID).value() + "", new SEMOSSEdge(outVert, inVert, "https://semoss.org/Relation/"+e.property(TINKER_ID).value() + ""));
+			SEMOSSEdge semossE = new SEMOSSEdge(outVert, inVert, "https://semoss.org/Relation/"+e.property(TINKER_ID).value() + "");
+			edgeStore.put("https://semoss.org/Relation/"+e.property(TINKER_ID).value() + "", semossE);
+			// need to add edge properties
+			Iterator<Property<Object>> edgeProperties = e.properties();
+			while(edgeProperties.hasNext()) {
+				Property<Object> prop = edgeProperties.next();
+				semossE.propHash.put(prop.key(), prop.value());
+			}
+			
 		}
 		// now i just need to get the verts with no edges
 //		GraphTraversal<Vertex, Vertex> vertIt = g.traversal().V().not(__.or(__.both(),__.has(TINKER_TYPE, TINKER_FILTER),__.in().has(TINKER_TYPE, TINKER_FILTER)));
