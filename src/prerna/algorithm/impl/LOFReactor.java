@@ -120,7 +120,7 @@ public class LOFReactor extends MathReactor {
 
 		this.Tree = new KDTree(dimensions);
 		// This code flattens out instances, incase there are repeat appearances of an identifier
-		Iterator<List<Object[]>> it = dataFrame.scaledUniqueIterator(attributeNames[instanceIndex], null);
+		Iterator<List<Object[]>> it = this.getUniqueScaledData(attributeNames[instanceIndex], attributeNamesList, dataFrame);
 		int numInstance = 0;
 		while(it.hasNext()) {
 			List<Object[]> instance = it.next();
