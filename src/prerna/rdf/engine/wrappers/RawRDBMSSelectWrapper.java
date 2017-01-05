@@ -103,6 +103,9 @@ public class RawRDBMSSelectWrapper extends AbstractWrapper implements IRawSelect
 				int type = colTypes[colNum-1];
 				if(type == Types.INTEGER || type == Types.FLOAT || type == Types.DOUBLE || type == Types.NUMERIC || type == Types.DECIMAL || type == Types.BIGINT) {
 					val = rs.getDouble(colNum);
+					if (rs.wasNull()) {
+						val = null;
+					}
 				} else if(type == Types.DATE || type == Types.TIMESTAMP || type == Types.TIME) {
 					val = rs.getDate(colNum);
 				} else {

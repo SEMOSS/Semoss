@@ -128,20 +128,23 @@ public class OutlierReactor extends MathReactor {
 				List<Object[]> instance = it.next();
 				Object instanceName = instance.get(0)[instanceIndex];
 				double maxSim = 0;
-				for(int i= 0; i < numSubsetSize; i++) {
+				for (int i = 0; i < numSubsetSize; i++) {
 					List<Object[]> subsetInstance = rSubset.get(i);
-					if(subsetInstance.get(0)[instanceIndex].equals(instance.get(0)[instanceIndex])) {
-						continue;
-					}
-					double sim = InstanceSimilarity.getInstanceSimilarity(instance, subsetInstance, isNumeric, attributeNames, dups);
-					if(maxSim < sim) {
-						maxSim = sim;
+					Object subsetObj = subsetInstance.get(0)[instanceIndex];
+					if (subsetObj != null && instanceName != null) {
+						if (subsetInstance.get(0)[instanceIndex].equals(instance.get(0)[instanceIndex])) {
+							continue;
+						}
+						double sim = InstanceSimilarity.getInstanceSimilarity(instance, subsetInstance, isNumeric,
+								attributeNames, dups);
+						if (maxSim < sim) {
+							maxSim = sim;
+						}
 					}
 				}
 				if (results.get(instanceName) == null) {
 					results.put(instanceName, maxSim);
-				}
-				else {
+				} else {
 					double oldVal = results.get(instanceName);
 					results.put(instanceName, oldVal+maxSim);
 				}

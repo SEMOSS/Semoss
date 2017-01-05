@@ -3,12 +3,18 @@ package prerna.sablecc.expressions.sql.builder;
 import java.util.List;
 import java.util.Vector;
 
+import org.apache.log4j.LogManager;
+import org.apache.log4j.Logger;
+
+import prerna.algorithm.impl.ClusteringReactor;
 import prerna.sablecc.expressions.IExpressionSelector;
 
 public class SqlConstantSelector implements IExpressionSelector {
+	private static final Logger LOGGER = LogManager.getLogger(SqlConstantSelector.class.getName());
 
 	private Object value = null;
 	private List<String> tableColumnsUsed = new Vector<String>();
+	
 	
 	public SqlConstantSelector(Object value) {
 		this.value = value;
@@ -36,7 +42,13 @@ public class SqlConstantSelector implements IExpressionSelector {
 
 	@Override
 	public String getName() {
+		if(value != null) {
 		return "Constant_" + value.toString().replaceAll("[^a-zA-Z0-9]", "") + "";
+		}
+		else {
+			LOGGER.info("Constant value is NULL");
+			return "Constant_" + value + "";
+		}
 	}
 
 }
