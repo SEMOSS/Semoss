@@ -888,11 +888,13 @@ public class H2Frame extends AbstractTableDataFrame {
 			Iterator<Object> it = Arrays.asList(array).iterator();
 			while (it.hasNext()) {
 				Object row = it.next();
+				if(row != null) { 
 				try {
 					Double dval = ((Number) row).doubleValue();
 					numericCol.add(dval);
 				} catch (NumberFormatException e) {
 
+				}
 				}
 			}
 

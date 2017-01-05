@@ -2514,7 +2514,9 @@ public class H2Builder {
 	}
 
 	private String makeSpecificSelect(String tableName, List<String> selectors, String columnHeader, Object value) {
-		value = RdbmsFrameUtility.cleanInstance(value.toString());
+		if(value != null) {
+			value = RdbmsFrameUtility.cleanInstance(value.toString());
+		}
 
 		// SELECT column1, column2, column3
 		String selectStatement = "SELECT ";
@@ -2534,9 +2536,17 @@ public class H2Builder {
 		String filterSubQuery = makeFilterSubQuery();
 		if (filterSubQuery.length() > 1) {
 			selectStatement += filterSubQuery;
-			selectStatement += " AND " + columnHeader + " = " + "'" + value + "'";
+			if (value != null) {
+				selectStatement += " AND " + columnHeader + " = " + "'" + value + "'";
+			} else {
+				selectStatement += " AND " + columnHeader + " IS NULL";
+			}
 		} else {
-			selectStatement += " WHERE " + columnHeader + " = " + "'" + value + "'";
+			if (value != null) {
+				selectStatement += " WHERE " + columnHeader + " = " + "'" + value + "'";
+			} else {
+				selectStatement += " WHERE " + columnHeader + " IS NULL";
+			}
 		}
 
 		return selectStatement;
