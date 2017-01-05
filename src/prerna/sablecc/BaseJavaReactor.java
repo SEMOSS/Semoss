@@ -237,6 +237,18 @@ public abstract class BaseJavaReactor extends AbstractReactor{
 		java.lang.System.setSecurityManager(reactorManager);
 	}
 	
+	public void removeNode(String type) {
+		java.lang.System.setSecurityManager(curManager);
+		if(dataframe instanceof TinkerFrame)
+		{
+			((TinkerFrame)dataframe).removeColumn(type);
+			String output = "Removed nodes for " + type;
+			System.out.println(output);
+			dataframe.updateDataId();
+		}
+		java.lang.System.setSecurityManager(reactorManager);
+	}
+	
 	public void removeNode(String type, String data) {
 		java.lang.System.setSecurityManager(curManager);
 		if(dataframe instanceof TinkerFrame)
@@ -1633,6 +1645,7 @@ public abstract class BaseJavaReactor extends AbstractReactor{
 		if(dataframe instanceof TinkerFrame)
 		{
 			DataFrameHelper.shiftToNodeProperty((TinkerFrame) dataframe, conceptName, propertyName, traversal);
+			dataframe.updateDataId();
 			System.out.println("Modified graph data frame");
 		}		
 		java.lang.System.setSecurityManager(reactorManager);
@@ -1643,6 +1656,7 @@ public abstract class BaseJavaReactor extends AbstractReactor{
 		if(dataframe instanceof TinkerFrame)
 		{
 			DataFrameHelper.shiftToNodeProperty((TinkerFrame) dataframe, conceptName, propertyName, traversal);
+			dataframe.updateDataId();
 			System.out.println("Modified graph data frame");
 		}		
 		java.lang.System.setSecurityManager(reactorManager);
@@ -1659,6 +1673,7 @@ public abstract class BaseJavaReactor extends AbstractReactor{
 		if(dataframe instanceof TinkerFrame)
 		{
 			DataFrameHelper.shiftToEdgeProperty((TinkerFrame) dataframe, relationship, propertyName, traversal);
+			dataframe.updateDataId();
 			System.out.println("Modified graph data frame");
 		}		
 		java.lang.System.setSecurityManager(reactorManager);
@@ -1669,6 +1684,7 @@ public abstract class BaseJavaReactor extends AbstractReactor{
 		if(dataframe instanceof TinkerFrame)
 		{
 			DataFrameHelper.shiftToEdgeProperty((TinkerFrame) dataframe, relationship, propertyName, traversal);
+			dataframe.updateDataId();
 			System.out.println("Modified graph data frame");
 		}		
 		java.lang.System.setSecurityManager(reactorManager);
