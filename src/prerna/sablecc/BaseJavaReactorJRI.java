@@ -558,7 +558,7 @@ public abstract class BaseJavaReactorJRI extends BaseJavaReactor{
 	public void synchronizeGridFromR()
 	{
 		String frameName = (String)retrieveVariable("GRID_NAME");
-		synchronzieGridFromR(frameName, false);
+		synchronzieGridFromR(frameName, true);
 	}
 	
 	public void synchronzieGridFromR(String frameName, boolean self) {
@@ -620,9 +620,10 @@ public abstract class BaseJavaReactorJRI extends BaseJavaReactor{
 		if(!self) {
 			tableName = Utility.getRandomString(8);
 		}
-		eval("dbWriteTable(conn,'" + tableName +"', " + frameName + ", append=TRUE, overwrite = TRUE);");
+		eval("dbWriteTable(conn,'" + tableName +"', " + frameName + ", append=TRUE);");
 
 		System.out.println("Table Synchronized as " + tableName);
+		gridFrame.updateDataId();
 	}
 	
 	public void synchronizeCSVToR(String fileName, String frameName)
