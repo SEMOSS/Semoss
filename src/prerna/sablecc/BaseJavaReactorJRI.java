@@ -27,6 +27,7 @@ import org.rosuda.REngine.REXPString;
 import prerna.algorithm.api.ITableDataFrame;
 import prerna.ds.DataFrameHelper;
 import prerna.ds.TinkerFrame;
+import prerna.ds.TinkerMetaHelper;
 import prerna.ds.h2.H2Frame;
 import prerna.engine.api.IEngine;
 import prerna.engine.impl.r.RSingleton;
@@ -35,9 +36,6 @@ import prerna.util.Console;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
 import prerna.util.Utility;
-
-
-
 
 public abstract class BaseJavaReactorJRI extends BaseJavaReactor{
 
@@ -53,7 +51,6 @@ public abstract class BaseJavaReactorJRI extends BaseJavaReactor{
 	String fileName = null;
 	
 	public Console System = new Console();
-	
 	
 	public BaseJavaReactorJRI()
 	{
@@ -558,24 +555,76 @@ public abstract class BaseJavaReactorJRI extends BaseJavaReactor{
 		
 	}
 	
-	public void synchronizeGridFromR(String frameName, boolean self)
-	{
-		// assumes this is a grid and tries to write back the table
-		H2Frame gridFrame = (H2Frame)dataframe;
-		String tableName = gridFrame.getBuilder().getTableName();
-		if(!self)
-			tableName = Utility.getRandomString(8);
-		eval("dbWriteTable(conn,'" + tableName +"', " + frameName + ");");
-		
-		System.out.println("Table Synchronized as " + tableName);
-	}
-	
 	public void synchronizeGridFromR()
 	{
 		String frameName = (String)retrieveVariable("GRID_NAME");
-		synchronizeGridFromR(frameName, false);
+		synchronzieGridFromR(frameName, false);
 	}
+	
+	public void synchronzieGridFromR(String frameName, boolean self) {
+		H2Frame gridFrame = (H2Frame)dataframe;
+		String schemaName = null;
+		if(!gridFrame.isInMem()) {
+			schemaName = gridFrame.getSchema();
+		}
+		
+		// drop any index or this will take forevvvvvveeeeeeeerrrrrrr
+		Set<String> columnIndices = gridFrame.getColumnsWithIndexes();
+		if(columnIndices != null) {
+			for(String colName : columnIndices) {
+				gridFrame.removeColumnIndex(colName);
+			}
+		}
+		
+		String[] currHeaders = gridFrame.getColumnHeaders();
+		
+		// get the names and types
+		// will need to make a flat meta model
+		// should expand to determine if things have changed from default if we need to do this
+		// vs. just need to update the values....
+		String[] colNames = getColNames(frameName, false);
+		String[] colTypes = getColTypes(frameName, false);
+		
+		// only create a new frame if the columns have changed
+		boolean createNew = false;
+		for(String currHeader : currHeaders) {
+			if(!ArrayUtilityMethods.arrayContainsValueIgnoreCase(colNames, currHeader)) {
+				createNew = true;
+			}
+		}
+		
+		if(createNew) {
+			H2Frame frame = new H2Frame();
+			Map<String, Set<String>> edgeHash = TinkerMetaHelper.createPrimKeyEdgeHash(colNames);
+			Map<String, String> dataTypeMap = new Hashtable<String, String>();
+			for(int i = 0; i < colNames.length; i++) {
+				dataTypeMap.put(colNames[i], colTypes[i]);
+			}
+			frame.mergeEdgeHash(edgeHash, dataTypeMap);
+			
+			if(schemaName != null) {
+				frame.setUserId(schemaName);
+			}
+			// delete the current table
+			gridFrame.dropTable();
+			
+			// override frame references
+			this.put("G", frame);
+			dataframe = frame;
+			gridFrame = frame;
+		}
+		
+		// this will override the existing data in the frame
+		// note that when we create new, gridFrame reference becomes the new frame
+		String tableName = gridFrame.getTableName();
+		if(!self) {
+			tableName = Utility.getRandomString(8);
+		}
+		eval("dbWriteTable(conn,'" + tableName +"', " + frameName + ", append=TRUE, overwrite = TRUE);");
 
+		System.out.println("Table Synchronized as " + tableName);
+	}
+	
 	public void synchronizeCSVToR(String fileName, String frameName)
 	{
 		//runR(frameName + " <-as.data.table(unclass(dbReadTable(conn,'" + tableName + "')));");		
