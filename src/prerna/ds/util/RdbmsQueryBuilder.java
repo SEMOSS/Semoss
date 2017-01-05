@@ -138,11 +138,23 @@ public class RdbmsQueryBuilder {
 		updateQuery += " WHERE ";
 
 		for (int i = 0; i < joinColumn.length; i++) {
-			String joinInstance = RdbmsFrameUtility.cleanInstance(joinValue[i].toString());
+			String joinInstance = null;
+			if (joinValue[i] != null) {
+				joinInstance = RdbmsFrameUtility.cleanInstance(joinValue[i].toString());
+			}
 			if (i == 0) {
-				updateQuery += joinColumn[i].toString() + "=" + "'" + joinInstance + "'";
+				if (joinInstance != null) {
+					updateQuery += joinColumn[i].toString() + "=" + "'" + joinInstance + "'";
+				} else {
+					updateQuery += joinColumn[i].toString() + " IS NULL";
+				}
 			} else {
-				updateQuery += " AND " + joinColumn[i].toString() + "=" + "'" + joinInstance + "'";
+				if (joinInstance != null) {
+					updateQuery += " AND " + joinColumn[i].toString() + "=" + "'" + joinInstance + "'";
+				} else {
+					updateQuery += " AND " + joinColumn[i].toString() + " IS NULL";
+
+				}
 			}
 		}
 

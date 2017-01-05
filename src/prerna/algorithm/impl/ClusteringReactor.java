@@ -218,7 +218,13 @@ public class ClusteringReactor extends MathReactor {
 		firstCluster.setDistanceMode(this.distanceMeasure);
 		firstCluster.addToCluster(firstInstance, attributeNames, isNumeric);
 		clusters.add(firstCluster);
-		results.put(firstInstance.get(0)[instanceIndex].toString(), 0);
+		
+		if (firstInstance.get(0)[instanceIndex] == null) {
+			results.put(null, 0);
+
+		} else {
+			results.put(firstInstance.get(0)[instanceIndex].toString(), 0);
+		}
 		// update cluster instance count
 		numInstancesInCluster.add(1);
 
