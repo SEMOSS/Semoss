@@ -176,18 +176,20 @@ public final class WekaUtilityMethods {
 			for(j = 0; j < numInstances; j++) {
 				Object dataElement = dataList.get(j)[i];
 				// ignore missing values to determine data type of column
-				if(!dataElement.toString().isEmpty() && !dataElement.toString().equals("?")) {
-					String type = Utility.processType(dataElement.toString());
-					if(type.equals("STRING")) {
-						nominalValues[i].add(dataElement.toString());
-						numNominal++;
-					} else {
-						try {
-							numericValues[i][j] = (double) dataElement;
-						} catch(ClassCastException ex) {
-							numericValues[i][j] = Double.parseDouble(dataElement.toString());
+				if (dataElement != null) {
+					if (!dataElement.toString().isEmpty() && !dataElement.toString().equals("?")) {
+						String type = Utility.processType(dataElement.toString());
+						if (type.equals("STRING")) {
+							nominalValues[i].add(dataElement.toString());
+							numNominal++;
+						} else {
+							try {
+								numericValues[i][j] = (double) dataElement;
+							} catch (ClassCastException ex) {
+								numericValues[i][j] = Double.parseDouble(dataElement.toString());
+							}
+							numNumeric++;
 						}
-						numNumeric++;
 					}
 				}
 			}
@@ -250,16 +252,21 @@ public final class WekaUtilityMethods {
 					}
 				} else {
 					Object valAttr = dataRow[j];
-					if(!valAttr.toString().isEmpty() && !valAttr.equals(TinkerFrame.EMPTY) && !valAttr.toString().equals("?")) {
-						if(isCategorical[j]) {
-							try {
-							dataEntry.setValue(j, valAttr.toString());
-							} catch(Exception e) {
-								e.printStackTrace();
-							}
-						} else {
-							if(numericValues[j][i] != null) {
-								dataEntry.setValue(j, numericValues[j][i]); // take the numeric values to prevent re-casting
+					if (valAttr != null) {
+						if (!valAttr.toString().isEmpty() && !valAttr.equals(TinkerFrame.EMPTY)
+								&& !valAttr.toString().equals("?")) {
+							if (isCategorical[j]) {
+								try {
+									dataEntry.setValue(j, valAttr.toString());
+								} catch (Exception e) {
+									e.printStackTrace();
+								}
+							} else {
+								if (numericValues[j][i] != null) {
+									// take the numeric values to prevent
+									// re-casting
+									dataEntry.setValue(j, numericValues[j][i]);
+								}
 							}
 						}
 					}
