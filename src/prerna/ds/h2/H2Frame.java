@@ -134,6 +134,17 @@ public class H2Frame extends AbstractTableDataFrame {
 		Map<String, IMetaData.DATA_TYPES> typesMap = this.metaData.getColumnTypes();
 		builder.addRowsViaIterator(it, typesMap);
 	}
+	
+	public void addRowsViaIterator(Iterator<IHeadersDataRow> it, Map<String, IMetaData.DATA_TYPES> typesMap) {
+		// TODO: differences between the tinker meta and the flat meta stored in
+		// the data frame
+		// TODO: results in us being unable to get the table name
+		if (builder.tableName == null) {
+			builder.tableName = getTableNameForUniqueColumn(getColumnHeaders()[0]);
+		}
+
+		builder.addRowsViaIterator(it, typesMap);
+	}
 
 	@Override
 	public void addRow(Object[] rowCleanData) {
@@ -1703,5 +1714,11 @@ public class H2Frame extends AbstractTableDataFrame {
 			}
 		}
 		return null;
-	}	
+	}
+	
+	public void deleteAllRows() {
+		String tableName = getTableName();
+		this.builder.deleteAllRows(tableName);
+	}
+	
 }
