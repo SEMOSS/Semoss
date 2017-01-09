@@ -24,11 +24,15 @@ import org.rosuda.REngine.REXPInteger;
 import org.rosuda.REngine.REXPList;
 import org.rosuda.REngine.REXPString;
 
+import prerna.algorithm.api.IMetaData;
 import prerna.algorithm.api.ITableDataFrame;
 import prerna.ds.DataFrameHelper;
+import prerna.ds.QueryStruct;
 import prerna.ds.TinkerFrame;
 import prerna.ds.TinkerMetaHelper;
 import prerna.ds.h2.H2Frame;
+import prerna.ds.util.FileIterator;
+import prerna.ds.util.FileIterator.FILE_DATA_TYPE;
 import prerna.engine.api.IEngine;
 import prerna.engine.impl.r.RSingleton;
 import prerna.util.ArrayUtilityMethods;
@@ -561,19 +565,30 @@ public abstract class BaseJavaReactorJRI extends BaseJavaReactor{
 		synchronzieGridFromR(frameName, true);
 	}
 	
-	public void synchronzieGridFromR(String frameName, boolean self) {
+	public void synchronzieGridFromR(String frameName, boolean overrideExistingTable) {
+		/*
+		 * There are 2 booleans we need to keep track of
+		 * 1) are we overriding the existing table - this is passed in
+		 * 2) do we need to create a new table on our end
+		 * 
+		 * These are different because if i am overriding the existing table
+		 * I may need to create a new frame altogether and drop the existing one 
+		 * if and only if the metadata has changed
+		 * 
+		 * If i am not overriding, i need to create a new one regardless
+		 * 
+		 */
+		
 		H2Frame gridFrame = (H2Frame)dataframe;
 		String schemaName = null;
 		if(!gridFrame.isInMem()) {
 			schemaName = gridFrame.getSchema();
 		}
 		
-		// drop any index or this will take forevvvvvveeeeeeeerrrrrrr
-		Set<String> columnIndices = gridFrame.getColumnsWithIndexes();
-		if(columnIndices != null) {
-			for(String colName : columnIndices) {
-				gridFrame.removeColumnIndex(colName);
-			}
+		String tableName = gridFrame.getTableName();
+		// need to get a new table name if not overriding the existing frame
+		if(!overrideExistingTable) {
+			tableName = Utility.getRandomString(8);
 		}
 		
 		String[] currHeaders = gridFrame.getColumnHeaders();
@@ -585,22 +600,32 @@ public abstract class BaseJavaReactorJRI extends BaseJavaReactor{
 		String[] colNames = getColNames(frameName, false);
 		String[] colTypes = getColTypes(frameName, false);
 		
+		// need to create a data type map and a query struct
+		QueryStruct qs = new QueryStruct();
+		// TODO: REALLY NEED TO CONSOLIDATE THE STRING VS. METADATA TYPE DATAMAPS
+		
+		Map<String, IMetaData.DATA_TYPES> dataTypeMap = new Hashtable<String, IMetaData.DATA_TYPES>();
+		Map<String, String> dataTypeMapStr = new Hashtable<String, String>();
+		for(int i = 0; i < colNames.length; i++) {
+			dataTypeMapStr.put(colNames[i], colTypes[i]);
+			dataTypeMap.put(colNames[i], Utility.convertStringToDataType(colTypes[i]));
+			qs.addSelector(colNames[i], null);
+		}
+		
 		// only create a new frame if the columns have changed
-		boolean createNew = false;
+		boolean sameMetadata = true;
 		for(String currHeader : currHeaders) {
 			if(!ArrayUtilityMethods.arrayContainsValueIgnoreCase(colNames, currHeader)) {
-				createNew = true;
+				sameMetadata = false;
 			}
 		}
 		
-		if(createNew) {
+		// if i am not overriding -> create a new table
+		// if the metadata doesn't match -> create a new table
+		if(!overrideExistingTable || !sameMetadata) {
 			H2Frame frame = new H2Frame();
 			Map<String, Set<String>> edgeHash = TinkerMetaHelper.createPrimKeyEdgeHash(colNames);
-			Map<String, String> dataTypeMap = new Hashtable<String, String>();
-			for(int i = 0; i < colNames.length; i++) {
-				dataTypeMap.put(colNames[i], colTypes[i]);
-			}
-			frame.mergeEdgeHash(edgeHash, dataTypeMap);
+			frame.mergeEdgeHash(edgeHash, dataTypeMapStr);
 			
 			if(schemaName != null) {
 				frame.setUserId(schemaName);
@@ -608,20 +633,37 @@ public abstract class BaseJavaReactorJRI extends BaseJavaReactor{
 			// delete the current table
 			gridFrame.dropTable();
 			
-			// override frame references
+			// override frame references & table name reference
 			this.put("G", frame);
 			dataframe = frame;
 			gridFrame = frame;
+			tableName = frame.getTableName();
+		}
+		// if i am overriding -> remove indices and all exisitng data
+		else if(overrideExistingTable) {
+			// drop any index if altering the existing frame
+			Set<String> columnIndices = gridFrame.getColumnsWithIndexes();
+			if(columnIndices != null) {
+				for(String colName : columnIndices) {
+					gridFrame.removeColumnIndex(colName);
+				}
+			}
+			
+			// drop all existing data
+			gridFrame.deleteAllRows();
 		}
 		
-		// this will override the existing data in the frame
-		// note that when we create new, gridFrame reference becomes the new frame
-		String tableName = gridFrame.getTableName();
-		if(!self) {
-			tableName = Utility.getRandomString(8);
-		}
-		eval("dbWriteTable(conn,'" + tableName +"', " + frameName + ", append=TRUE);");
+		// we will make a temp file
+		String tempFileLocation = DIHelper.getInstance().getProperty(Constants.INSIGHT_CACHE_DIR) + "\\" + DIHelper.getInstance().getProperty(Constants.CSV_INSIGHT_CACHE_FOLDER);
+		tempFileLocation += "\\" + Utility.getRandomString(10) + ".csv";
+		tempFileLocation = tempFileLocation.replace("\\", "/");
+		eval("fwrite(" + frameName + ", file='" + tempFileLocation + "')");
 
+		// iterate through file and insert values
+		FileIterator dataIterator = FileIterator.createInstance(FILE_DATA_TYPE.META_DATA_ENUM, tempFileLocation, ',', qs, dataTypeMap);
+		gridFrame.addRowsViaIterator(dataIterator, dataTypeMap);
+		dataIterator.deleteFile();
+		
 		System.out.println("Table Synchronized as " + tableName);
 		gridFrame.updateDataId();
 	}

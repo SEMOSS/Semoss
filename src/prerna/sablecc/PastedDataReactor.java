@@ -14,6 +14,7 @@ import java.util.Set;
 import prerna.ds.QueryStruct;
 import prerna.ds.TinkerMetaHelper;
 import prerna.ds.util.FileIterator;
+import prerna.ds.util.FileIterator.FILE_DATA_TYPE;
 import prerna.poi.main.helper.CSVFileHelper;
 import prerna.sablecc.meta.FilePkqlMetadata;
 import prerna.sablecc.meta.IPkqlMetadata;
@@ -77,7 +78,7 @@ public class PastedDataReactor extends AbstractReactor {
 		for(String header : headers) {
 			qs.addSelector(header, null);
 		}
-		Iterator it = new FileIterator(fileName, delimiter.charAt(0), qs, null);
+		Iterator it = FileIterator.createInstance(FILE_DATA_TYPE.STRING, fileName, delimiter.charAt(0), qs, null);
 		
 		String nodeStr = (String) myStore.get(whoAmI);
 		myStore.put(nodeStr, it);
