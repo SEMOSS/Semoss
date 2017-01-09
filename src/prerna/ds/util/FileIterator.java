@@ -10,6 +10,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.Vector;
 
+import prerna.algorithm.api.IMetaData;
 import prerna.ds.QueryStruct;
 import prerna.engine.api.IHeadersDataRow;
 import prerna.engine.impl.rdf.HeadersDataRow;
@@ -29,43 +30,121 @@ public class FileIterator implements Iterator<IHeadersDataRow>{
 	
 	private int numRecords = -1;
 	
-	public FileIterator(String fileLoc, char delimiter, QueryStruct qs, Map<String, String> dataTypeMap) {
-		this.helper = new CSVFileHelper();
-		filters = new HashMap<String, Set<Object>>();
-		helper.setDelimiter(delimiter);
-		helper.parse(fileLoc);
+	public enum FILE_DATA_TYPE {STRING, META_DATA_ENUM}
+	
+	private FileIterator() {
 		
-		setSelectors(qs.getSelectors());
-		setFilters(qs.andfilters);
-		headers = helper.getHeaders();
+	}
+	
+	/**
+	 * Shifting this to a new framework
+	 * Java cannot distinguish between the data inside a Map
+	 * But we want to differentiate between a map with all strings or with the formal IMetaData types
+	 * TODO: Should go to only using IMetaData types
+	 * @param type
+	 * @param fileLoc
+	 * @param delimiter
+	 * @param qs
+	 * @param dataTypeMap
+	 * @return
+	 */
+	public static FileIterator createInstance(FILE_DATA_TYPE type, String fileLoc, char delimiter, QueryStruct qs, Map<String, ?> dataTypeMap) {
+		if(type == FILE_DATA_TYPE.STRING) {
+			return createStringFileIterator(fileLoc, delimiter, qs, (Map<String, String>) dataTypeMap);
+		} else if(type == FILE_DATA_TYPE.META_DATA_ENUM) {
+			return createEnumFileIterator(fileLoc, delimiter, qs, (Map<String, IMetaData.DATA_TYPES>) dataTypeMap);
+		} else {
+			throw new IllegalArgumentException("Unknown FileIterator type to generate");
+		}
+	}
+	
+	private static FileIterator createStringFileIterator(String fileLoc, char delimiter, QueryStruct qs, Map<String, String> dataTypeMap) {
+		FileIterator fileIterator = createDefualtFileIteratorParameters(fileLoc, qs, delimiter);
 		
 		if(dataTypeMap != null && !dataTypeMap.isEmpty()) {
-			this.dataTypeMap = dataTypeMap;
+			fileIterator.dataTypeMap = dataTypeMap;
 			
-			this.types = new String[headers.length];
-			for(int j = 0; j < headers.length; j++) {
-				this.types[j] = dataTypeMap.get(headers[j]);
+			fileIterator.types = new String[fileIterator.headers.length];
+			for(int j = 0; j < fileIterator.headers.length; j++) {
+				fileIterator.types[j] = dataTypeMap.get(fileIterator.headers[j]);
 			}
 			
-			helper.parseColumns(headers);
+			fileIterator.helper.parseColumns(fileIterator.headers);
 		} else {
-			this.dataTypeMap = new HashMap<String, String>();
-			String[] allHeaders = helper.getAllCSVHeaders();
-			this.types = helper.predictTypes();
-			for(int i = 0; i < types.length; i++) {
-				this.dataTypeMap.put(allHeaders[i], types[i]);
-			}
-			
-			// need to redo types to be only those in the selectors
-			this.types = new String[headers.length];
-			for(int i = 0; i < headers.length; i++) {
-				this.types[i] = this.dataTypeMap.get(headers[i]);
-			}
-			setSelectors(qs.getSelectors());
+			setUnknownTypes(fileIterator);
+			fileIterator.setSelectors(qs.getSelectors());
 		}
 		
-		getNextRow(); // this will get the first row of the file
+		fileIterator.getNextRow(); // this will get the first row of the file
 //		nextRow = helper.getNextRow();
+		
+		return fileIterator;
+	}
+	
+	private static FileIterator createEnumFileIterator(String fileLoc, char delimiter, QueryStruct qs, Map<String, IMetaData.DATA_TYPES> dataTypeMap) {
+		FileIterator fileIterator = createDefualtFileIteratorParameters(fileLoc, qs, delimiter);
+
+		if(dataTypeMap != null && !dataTypeMap.isEmpty()) {
+			fileIterator.types = new String[fileIterator.headers.length];
+			for(int j = 0; j < fileIterator.headers.length; j++) {
+				String header =  fileIterator.headers[j];
+				String dataType = Utility.convertDataTypeToString(dataTypeMap.get(header));
+				fileIterator.dataTypeMap.put(header, dataType);
+				fileIterator.types[j] = dataType;
+			}
+			
+			fileIterator.helper.parseColumns(fileIterator.headers);
+		} else {
+			setUnknownTypes(fileIterator);
+			fileIterator.setSelectors(qs.getSelectors());
+		}
+		
+		fileIterator.getNextRow(); // this will get the first row of the file
+//		nextRow = helper.getNextRow();
+		
+		return fileIterator;
+	}
+	
+	/**
+	 * Creates the defualt file iterator
+	 * @param fileLoc
+	 * @param qs
+	 * @param delimiter
+	 * @return
+	 */
+	private static FileIterator createDefualtFileIteratorParameters(String fileLoc, QueryStruct qs, char delimiter) {
+		FileIterator fileIterator = new FileIterator();
+
+		fileIterator.helper = new CSVFileHelper();
+		fileIterator.filters = new HashMap<String, Set<Object>>();
+		fileIterator.helper.setDelimiter(delimiter);
+		fileIterator.helper.parse(fileLoc);
+		
+		fileIterator.setSelectors(qs.getSelectors());
+		fileIterator.setFilters(qs.andfilters);
+		fileIterator.headers = fileIterator.helper.getHeaders();
+		fileIterator.dataTypeMap = new HashMap<String, String>();
+
+		return fileIterator;
+	}
+	
+	/**
+	 * Determine the data types by parsing through the file
+	 * @param fileIterator
+	 */
+	private static void setUnknownTypes(FileIterator fileIterator) {
+		fileIterator.dataTypeMap = new HashMap<String, String>();
+		String[] allHeaders = fileIterator.helper.getAllCSVHeaders();
+		fileIterator.types = fileIterator.helper.predictTypes();
+		for(int i = 0; i < fileIterator.types.length; i++) {
+			fileIterator.dataTypeMap.put(allHeaders[i], fileIterator.types[i]);
+		}
+		
+		// need to redo types to be only those in the selectors
+		fileIterator.types = new String[fileIterator.headers.length];
+		for(int i = 0; i < fileIterator.headers.length; i++) {
+			fileIterator.types[i] = fileIterator.dataTypeMap.get(fileIterator.headers[i]);
+		}
 	}
 	
 	@Override

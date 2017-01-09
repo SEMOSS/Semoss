@@ -39,10 +39,10 @@ import prerna.algorithm.api.IMetaData.DATA_TYPES;
 import prerna.cache.ICache;
 import prerna.ds.AbstractTableDataFrame;
 import prerna.ds.AbstractTableDataFrame.Comparator;
+import prerna.ds.DataFrameJoiner;
 import prerna.ds.util.H2FilterHash;
 import prerna.ds.util.RdbmsFrameUtility;
 import prerna.ds.util.RdbmsQueryBuilder;
-import prerna.ds.DataFrameJoiner;
 import prerna.engine.api.IHeadersDataRow;
 import prerna.poi.main.RDBMSEngineCreationHelper;
 import prerna.util.ArrayUtilityMethods;
@@ -3276,7 +3276,15 @@ public class H2Builder {
 			e.printStackTrace();
 		}
 		return type;
+	}
 
+	public void deleteAllRows(String tableName) {
+		String query = "DELETE FROM " + tableName + " WHERE 1 != 0";
+		try {
+			runQuery(query);
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
 	}
 	
 	/***************************
