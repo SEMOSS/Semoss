@@ -351,6 +351,8 @@ public class TinkerCsvReader extends AbstractCSVFileReader {
 						}
 					}
 				}
+				// TODO: override this
+				// default is RDF
 				createRelationship(subject, object, subjectValue, objectValue, predicate, propHash);
 			}
 
@@ -415,6 +417,8 @@ public class TinkerCsvReader extends AbstractCSVFileReader {
 					}
 					nodePropHash.put(property, propObj);
 				}
+				// TODO: override this
+				// default is RDF
 				addNodeProperties(subject, subjectValue, nodePropHash);
 			}
 		}
@@ -435,6 +439,11 @@ public class TinkerCsvReader extends AbstractCSVFileReader {
 		instanceSubjectName = Utility.cleanString(instanceSubjectName, true);
 		instanceObjectName = Utility.cleanString(instanceObjectName, true);
 
+		// TODO: we should only parse and add to owler at one point in time
+		// below is still RDF version where we need to get the parent base URI
+		// don't need to do this for tinker
+		// TODO: in preParseMetadata -> add nodes and node properties to OWLER
+		
 		// get base URIs for subject node at instance and semoss level
 		String subjectSemossBaseURI = owler.addConcept(subjectNodeType);
 		// get base URIs for object node at instance and semoss level
