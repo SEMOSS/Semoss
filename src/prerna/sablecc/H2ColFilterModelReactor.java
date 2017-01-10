@@ -33,6 +33,9 @@ public class H2ColFilterModelReactor extends ColFilterModelReactor {
 		String limitOffset = "";
 		String filteredQuery = "";
 		String unfilterQuery = "";
+		boolean nullValue = false;
+		String nullChecks = "";
+
 		Map<String, HashSet<String>> filteredValues = new HashMap<>();
 		Map<String, HashSet<String>> visibleValues = new HashMap<>();
 
@@ -40,8 +43,8 @@ public class H2ColFilterModelReactor extends ColFilterModelReactor {
 		if (myStore.containsKey(PKQLEnum.MAP_OBJ)) {
 			limitOffset = getLimitOffset();
 		}
-		
-		//clean filter word
+
+		// clean filter word
 		if (table != null && filterWord != null && table.getDataType(col).equals(IMetaData.DATA_TYPES.STRING)) {
 			filterWord = Utility.cleanString(filterWord, true, true, false);
 		}
@@ -66,13 +69,31 @@ public class H2ColFilterModelReactor extends ColFilterModelReactor {
 				for (Comparator compKey : comp.keySet()) {
 					String sqlComparison = getQueryCompString(compKey);
 					Set<Object> values = comp.get(compKey);
+					if (values.isEmpty()
+							&& (compKey.equals(Comparator.IS_NULL) || compKey.equals(Comparator.IS_NOT_NULL))) {
+						nullValue = true;
+						Object s = null;
+						if (key.equals(col)) {
+							filterCol.add(key + getQueryNegationCompString(compKey));
+						} else {
+							filterCol.add(key + sqlComparison);
+						}
+						unfilterCol.add(key + sqlComparison);
+					}
+					int i = 0;
 					for (Object s : values) {
 						s = "\'" + s + "\'";
-						//filterCol negates the comparison in the filterHash to exclude the column from the query
-						if (key.equals(col)) {
-							filterCol.add(key + getQueryNegationCompString(compKey) + s);
-						} else {
-							filterCol.add(key + sqlComparison + s);
+						// filterCol negates the comparison in the filterHash to
+						// exclude the column from the query
+						if (!nullValue) {
+							if (key.equals(col)) {
+								filterCol.add(key + getQueryNegationCompString(compKey) + s);
+							} else {
+								filterCol.add(key + sqlComparison + s);
+							}
+							if (i == 0) {
+								nullChecks += " OR " + key + " IS NULL ";
+							}
 						}
 						unfilterCol.add(key + sqlComparison + s);
 					}
@@ -83,7 +104,7 @@ public class H2ColFilterModelReactor extends ColFilterModelReactor {
 		}
 		// Create queries
 		unfilterQuery = buildQuery2(col, tableName, filterWord, unfilteredMap, limitOffset);
-		filteredQuery = buildQuery(col, tableName, filterWord, filteredMap, limitOffset);
+		filteredQuery = buildQuery(col, tableName, filterWord, filteredMap, limitOffset, nullChecks);
 
 		// Get values from queries
 		HashSet<String> unfilteredList = table.getBuilder().getHashSetFromQuery(unfilterQuery);
@@ -126,15 +147,19 @@ public class H2ColFilterModelReactor extends ColFilterModelReactor {
 	 * @return query string
 	 */
 	private String buildQuery(String col, String tableName, String word, Map<String, ArrayList<String>> conditions,
-			String limitOffset) {
+			String limitOffset, String nullChecks) {
 
-		String query = "SELECT DISTINCT " + col + " FROM " + tableName;
+		String query = "SELECT " + col + " FROM " + tableName;
 		boolean whereUsed = false;
 		boolean trailingWhere = false;
 
 		// add filterWord to query
 		if (word != null && word.length() > 0) {
-			query += " WHERE UPPER(" + col + ") = \'" + word.trim().toUpperCase() + "\'";
+			if (word.equalsIgnoreCase("null ")) {
+				query += " WHERE UPPER(" + col + ") IS NULL";
+			} else {
+				query += " WHERE UPPER(" + col + ") = \'" + word.trim().toUpperCase() + "\'";
+			}
 			whereUsed = true;
 		}
 
@@ -171,6 +196,7 @@ public class H2ColFilterModelReactor extends ColFilterModelReactor {
 				query = query.substring(0, query.length() - " AND ".length());
 			}
 		}
+		query += nullChecks;
 
 		// limit and offset
 		query += limitOffset + ";";
@@ -203,7 +229,13 @@ public class H2ColFilterModelReactor extends ColFilterModelReactor {
 
 		// add filterWord to query
 		if (word != null && word.length() > 0) {
-			query += " WHERE UPPER(" + col + ") = \'" + word.trim().toUpperCase() + "\'";
+			if (word.equalsIgnoreCase("null ")) {
+				query += " WHERE UPPER(" + col + ") IS NULL";
+
+			} else {
+				query += " WHERE UPPER(" + col + ") = \'" + word.trim().toUpperCase() + "\'";
+
+			}
 			whereUsed = true;
 		}
 
@@ -221,7 +253,7 @@ public class H2ColFilterModelReactor extends ColFilterModelReactor {
 					trailingWhere = false;
 					query += " ( ";
 					for (int i = 0; i < ors.size(); i++) {
-							query += ors.get(i) + " OR  ";
+						query += ors.get(i) + " OR  ";
 					}
 					// remove last OR chars
 					query = query.substring(0, query.length() - " OR  ".length());
@@ -279,6 +311,14 @@ public class H2ColFilterModelReactor extends ColFilterModelReactor {
 			sqlComparison = " <= ";
 			break;
 		}
+		case IS_NULL: {
+			sqlComparison = " IS NULL ";
+			break;
+		}
+		case IS_NOT_NULL: {
+			sqlComparison = " IS NOT NULL ";
+			break;
+		}
 		default: {
 			sqlComparison = " = ";
 
@@ -313,6 +353,14 @@ public class H2ColFilterModelReactor extends ColFilterModelReactor {
 		}
 		case LESS_THAN_EQUAL: {
 			sqlComparison = " > ";
+			break;
+		}
+		case IS_NULL: {
+			sqlComparison = " IS NOT NULL ";
+			break;
+		}
+		case IS_NOT_NULL: {
+			sqlComparison = " IS NULL ";
 			break;
 		}
 		default: {
