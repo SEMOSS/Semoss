@@ -478,7 +478,12 @@ public class ImportDataProcessor {
 								 throw new IOException(errorMessage);
 					}
 					break;
-			
+		
+		case TINKER : switch(importType) {
+			//TODO: build out adding to an existing tinker engine
+		
+		
+		}
 		case RDBMS: switch(importType){
 						case CSV: reader = new RDBMSReader();
 

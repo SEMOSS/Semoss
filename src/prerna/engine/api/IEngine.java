@@ -43,7 +43,7 @@ public interface IEngine extends IExplorable{
 	 * @author karverma
 	 * @version $Revision: 1.0 $
 	 */
-	public enum ENGINE_TYPE {JENA, SESAME, SEMOSS_SESAME_REMOTE, RDBMS};
+	public enum ENGINE_TYPE {JENA, SESAME, SEMOSS_SESAME_REMOTE, RDBMS, TINKER};
 	
 	/**
 	 * This standardizes the optional method calls that engines can choose to implement.
