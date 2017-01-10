@@ -16,6 +16,7 @@ import prerna.engine.impl.AbstractEngine;
 import prerna.engine.impl.rdbms.RDBMSNativeEngine;
 import prerna.engine.impl.rdf.BigDataEngine;
 import prerna.engine.impl.rdf.RDFFileSesameEngine;
+import prerna.engine.impl.tinker.TinkerEngine;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
 import prerna.util.OWLER;
@@ -62,6 +63,11 @@ public class AbstractEngineCreator {
 		openOWLWithOutConnection(owlFile, IEngine.ENGINE_TYPE.RDBMS, this.customBaseURI);
 	}
 	
+	protected void openTinkerEngineWithoutConnection(String dbName) {
+		createNewTinkerEngine(dbName);
+		openOWLWithOutConnection(owlFile, IEngine.ENGINE_TYPE.SESAME, this.customBaseURI);
+	}
+	
 	private void createNewRDBMSEngine(String dbName) {
 		engine = new RDBMSNativeEngine();
 		engine.setEngineName(dbName);
@@ -93,6 +99,12 @@ public class AbstractEngineCreator {
 		sub =  semossURI + "/" + Constants.DEFAULT_RELATION_CLASS;
 		obj = Constants.DEFAULT_PROPERTY_URI;
 		engine.doAction(IEngine.ACTION_TYPE.ADD_STATEMENT, new Object[]{sub, typeOf, obj, true});
+	}
+	
+	private void createNewTinkerEngine(String dbName) {
+		engine = new TinkerEngine();
+		engine.setEngineName(dbName);
+		engine.openDB(dbPropFile);
 	}
 	
 	//added for connect to external RDBMS workflow

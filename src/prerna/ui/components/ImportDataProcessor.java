@@ -56,6 +56,7 @@ import prerna.poi.main.RDBMSFlatCSVUploader;
 import prerna.poi.main.RDBMSFlatExcelUploader;
 import prerna.poi.main.RDBMSReader;
 import prerna.poi.main.RdfExcelTableReader;
+import prerna.poi.main.TinkerCsvReader;
 import prerna.poi.main.helper.ImportOptions;
 import prerna.poi.main.helper.ImportOptions.IMPORT_TYPE;
 import prerna.rdf.main.ImportRDBMSProcessor;
@@ -141,6 +142,7 @@ public class ImportDataProcessor {
 			//then process based on what type of database - RDF or RDBMS
 			switch(dbType){
 			case RDF : engine = createNewRDF(options);break;
+			case TINKER : engine = createNewTinker(options);break;
 			case RDBMS : engine = createNewRDBMS(options);break;
 			default: String errorMessage = "Database type, " + dbType + ", is not recognized as a valid format";
 					 throw new IOException(errorMessage);
@@ -243,6 +245,53 @@ public class ImportDataProcessor {
 				}
 			}
 		}
+	}
+
+	private IEngine createNewTinker(ImportOptions options) throws Exception {
+		// autoLoad = false ---> means we will close the engine and then start it up again using the smss file...
+		Boolean autoLoad = (options.isAutoLoad() != null) ? options.isAutoLoad() : true;
+		options.setAutoLoad(autoLoad);
+		ImportOptions.IMPORT_TYPE importType = options.getImportType();
+		Hashtable<String, String>[] metamodelInfo; 
+		AbstractFileReader reader = null;
+		IEngine engine;
+		
+		switch(importType){
+		// if it is POI excel using the loader sheet format
+//		case EXCEL_POI : reader = new POIReader();
+//						 reader.setAutoLoad(autoLoad);
+//						 engine = reader.importFileWithOutConnection(options);break;
+//						 
+//		// if it is a flat table excel to be loaded as a RDF
+//		// this is similar to csv file but loops through each sheet
+//		case EXCEL : reader = new RdfExcelTableReader();
+//		reader.setAutoLoad(autoLoad);
+// 		 metamodelInfo = options.getMetamodelArray();
+// 		// if a metamodel has been defined set it for the reader to use; if not, it assumes a hand written prop file location is specified in the last column of each sheet
+// 		 if(metamodelInfo != null) {			 			 
+// 			reader.setRdfMapArr(metamodelInfo);
+// 		 }
+// 		 engine = reader.importFileWithOutConnection(options);break;
+			 		 
+		// if it is a flat csv table upload
+		case CSV : reader = new TinkerCsvReader();
+		reader.setAutoLoad(autoLoad);				   
+		   metamodelInfo = options.getMetamodelArray();
+		   if(metamodelInfo != null) {
+			   reader.setRdfMapArr(metamodelInfo);
+		   }
+		   
+		   engine = reader.importFileWithOutConnection(options);break;
+				   
+//		case NLP :reader = new NLPReader();
+//		reader.setAutoLoad(autoLoad);
+//		   engine = reader.importFileWithOutConnection(options);break; 
+		   
+		// no other options exist, throw an error
+		default : String errorMessage = "Import type, " + importType + ", in a RDF database format is not supported";
+				  throw new IOException(errorMessage);
+		}	
+		return engine;
 	}
 
 	private IEngine createNewRDF(ImportOptions options) throws Exception{	
