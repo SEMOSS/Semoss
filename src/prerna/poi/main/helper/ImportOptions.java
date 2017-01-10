@@ -18,7 +18,7 @@ public class ImportOptions {
 	
 	public enum IMPORT_METHOD {CREATE_NEW, ADD_TO_EXISTING, OVERRIDE, CONNECT_TO_EXISTING_RDBMS};
 	public enum IMPORT_TYPE {CSV, NLP, EXCEL_POI, EXCEL, OCR, CSV_FLAT_LOAD, EXCEL_FLAT_UPLOAD, EXTERNAL_RDBMS};
-	public enum DB_TYPE {RDF, RDBMS};
+	public enum DB_TYPE {RDF, RDBMS, TINKER};
 	
 	public enum IMPORT_OPTIONS {
 		SMSS_LOCATION, 			// should point to string - location of smss file
