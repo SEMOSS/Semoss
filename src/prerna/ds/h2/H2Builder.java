@@ -792,13 +792,20 @@ public class H2Builder {
 
 	public HashSet<String> getHashSetFromQuery(String query) {
 		ResultSet rs = null;
+
 		try {
 			rs = executeQuery(query);
 			if (rs != null) {
 				ResultSetMetaData rsmd = rs.getMetaData();
 				HashSet<String> data = new HashSet<String>();
 				while (rs.next()) {
-					data.add(rs.getString(1));
+					
+					String result = rs.getString(1);
+					if(rs.wasNull()){
+						data.add(null);
+					} else {
+						data.add(rs.getString(1));
+					}
 				}
 				return data;
 			}
