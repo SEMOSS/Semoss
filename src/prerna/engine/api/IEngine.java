@@ -51,7 +51,13 @@ public interface IEngine extends IExplorable{
 	 * @author bisutton
 	 *
 	 */
-	public enum ACTION_TYPE {ADD_STATEMENT, REMOVE_STATEMENT, BULK_INSERT};
+	public enum ACTION_TYPE {
+		ADD_STATEMENT, // this is for rdf
+		REMOVE_STATEMENT, // this is for rdf
+		BULK_INSERT,  // this is for rdbms
+		VERTEX_UPSERT, // this is for tinker
+		EDGE_UPSERT // this is for tinker
+	}; 
 	
 	/**
 	 * Opens a database as defined by its properties file.  What is included in the properties file is dependent on the type of 
