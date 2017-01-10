@@ -515,44 +515,44 @@ public abstract class BaseJavaReactorJRI extends BaseJavaReactor{
 		System.out.println("Completed synchronization as " + frameName);
 	}
 	
-	public void synchronizeGridFromR(String frameName, String tableName)
-	{
-		// assumes this is a grid and tries to write back the table
-		runR("dbWriteTable(conn,'" + tableName +"', " + frameName + ");", false);
-		System.out.println("Output is now available as " + tableName);
-	}
-
-	public void synchronizeGridFromR(String frameName, String tableName, String cols)
-	{
-		// assumes this is a grid and tries to write back the table
-		// I need to make another data table with these specific columns and then write that
-		Rengine engine = (Rengine)startR();
-		try {
-			if(cols != null && cols.length() > 0)
-			{
-				String script = ".(";
-				String [] reqCols = cols.split(";");
-				// I need to take just these columns and then synchronize this back
-				for(int colIndex = 0;colIndex < reqCols.length;colIndex++)
-				{
-					script = script + reqCols[colIndex].toUpperCase();
-					if(colIndex + 1 < reqCols.length)
-						script = script + ", ";
-				}
-				script = script + ")";
-				String tempName = Utility.getRandomString(8);
-				
-				String finalScript = tempName + " <- " + frameName + "[, " + script + "]; dbWriteTable(conn,'" + tableName +"', " + tempName + ");";
-				engine.eval(finalScript);		
-			}
-		} catch (Exception e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
-		//TBD
-		//runR("dbWriteTable(conn,'" + tableName +"', " + frameName + ");", false);
-		//System.out.println("Output is now available as " + tableName);
-	}
+//	public void synchronizeGridFromR(String frameName, String tableName)
+//	{
+//		// assumes this is a grid and tries to write back the table
+//		runR("dbWriteTable(conn,'" + tableName +"', " + frameName + ");", false);
+//		System.out.println("Output is now available as " + tableName);
+//	}
+//
+//	public void synchronizeGridFromR(String frameName, String tableName, String cols)
+//	{
+//		// assumes this is a grid and tries to write back the table
+//		// I need to make another data table with these specific columns and then write that
+//		Rengine engine = (Rengine)startR();
+//		try {
+//			if(cols != null && cols.length() > 0)
+//			{
+//				String script = ".(";
+//				String [] reqCols = cols.split(";");
+//				// I need to take just these columns and then synchronize this back
+//				for(int colIndex = 0;colIndex < reqCols.length;colIndex++)
+//				{
+//					script = script + reqCols[colIndex].toUpperCase();
+//					if(colIndex + 1 < reqCols.length)
+//						script = script + ", ";
+//				}
+//				script = script + ")";
+//				String tempName = Utility.getRandomString(8);
+//				
+//				String finalScript = tempName + " <- " + frameName + "[, " + script + "]; dbWriteTable(conn,'" + tableName +"', " + tempName + ");";
+//				engine.eval(finalScript);		
+//			}
+//		} catch (Exception e) {
+//			// TODO Auto-generated catch block
+//			e.printStackTrace();
+//		}
+//		//TBD
+//		//runR("dbWriteTable(conn,'" + tableName +"', " + frameName + ");", false);
+//		//System.out.println("Output is now available as " + tableName);
+//	}
 
 	public void filterValues(String frameName, String columnName, String values)
 	{
@@ -614,12 +614,15 @@ public abstract class BaseJavaReactorJRI extends BaseJavaReactor{
 		
 		// only create a new frame if the columns have changed
 		boolean sameMetadata = true;
-		for(String currHeader : currHeaders) {
-			if(!ArrayUtilityMethods.arrayContainsValueIgnoreCase(colNames, currHeader)) {
-				sameMetadata = false;
+		if(colNames.length != currHeaders.length) {
+			sameMetadata = false;
+		} else {
+			for(String currHeader : currHeaders) {
+				if(!ArrayUtilityMethods.arrayContainsValueIgnoreCase(colNames, currHeader)) {
+					sameMetadata = false;
+				}
 			}
 		}
-		
 		// if i am not overriding -> create a new table
 		// if the metadata doesn't match -> create a new table
 		if(!overrideExistingTable || !sameMetadata) {
