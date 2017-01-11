@@ -385,7 +385,7 @@ public abstract class ImportDataReactor extends AbstractReactor {
 			LOGGER.info(" >>> FRAME IS LOADING FROM PASTED TEXT!!!!");
 
 			// grab the iterator to use for importing
-			dataIterator  = (FileIterator) myStore.get(PKQLEnum.API);
+			dataIterator  = (FileIterator) myStore.get(PKQLEnum.PASTED_DATA);
 			
 			String[] types = ((FileIterator) dataIterator).getTypes();
 			String[] headers = ((FileIterator) dataIterator).getHeaders();
