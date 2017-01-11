@@ -35,6 +35,7 @@ import prerna.ds.util.FileIterator;
 import prerna.ds.util.FileIterator.FILE_DATA_TYPE;
 import prerna.engine.api.IEngine;
 import prerna.engine.impl.r.RSingleton;
+import prerna.poi.main.HeadersException;
 import prerna.util.ArrayUtilityMethods;
 import prerna.util.Console;
 import prerna.util.Constants;
@@ -566,44 +567,29 @@ public abstract class BaseJavaReactorJRI extends BaseJavaReactor{
 	}
 	
 	public void synchronzieGridFromR(String frameName, boolean overrideExistingTable) {
-		/*
-		 * There are 2 booleans we need to keep track of
-		 * 1) are we overriding the existing table - this is passed in
-		 * 2) do we need to create a new table on our end
-		 * 
-		 * These are different because if i am overriding the existing table
-		 * I may need to create a new frame altogether and drop the existing one 
-		 * if and only if the metadata has changed
-		 * 
-		 * If i am not overriding, i need to create a new one regardless
-		 * 
-		 */
-		
-		H2Frame gridFrame = (H2Frame)dataframe;
-		String schemaName = null;
-		if(!gridFrame.isInMem()) {
-			schemaName = gridFrame.getSchema();
-		}
-		
-		String tableName = gridFrame.getTableName();
-		// need to get a new table name if not overriding the existing frame
-		if(!overrideExistingTable) {
-			tableName = Utility.getRandomString(8);
-		}
-		
-		String[] currHeaders = gridFrame.getColumnHeaders();
+		// get the necessary information from the r frame
+		// to be able to add the data correclty
 		
 		// get the names and types
-		// will need to make a flat meta model
-		// should expand to determine if things have changed from default if we need to do this
-		// vs. just need to update the values....
 		String[] colNames = getColNames(frameName, false);
+		// since R has less restrictions than we do regarding header names
+		// we will clean the header names to match what the cleaning would be when we load
+		// in a file
+		// note: the clean routine will only do something if the metadata has changed
+		// otherwise, the headers would already be good to go
+		List<String> cleanColNames = new Vector<String>();
+		HeadersException headerException = HeadersException.getInstance();
+		for(int i = 0; i < colNames.length; i++) {
+			String cleanHeader = headerException.recursivelyFixHeaders(colNames[i], cleanColNames);
+			cleanColNames.add(cleanHeader);
+		}
+		colNames = cleanColNames.toArray(new String[]{});
+		
 		String[] colTypes = getColTypes(frameName, false);
 		
 		// need to create a data type map and a query struct
 		QueryStruct qs = new QueryStruct();
 		// TODO: REALLY NEED TO CONSOLIDATE THE STRING VS. METADATA TYPE DATAMAPS
-		
 		Map<String, IMetaData.DATA_TYPES> dataTypeMap = new Hashtable<String, IMetaData.DATA_TYPES>();
 		Map<String, String> dataTypeMapStr = new Hashtable<String, String>();
 		for(int i = 0; i < colNames.length; i++) {
@@ -612,48 +598,81 @@ public abstract class BaseJavaReactorJRI extends BaseJavaReactor{
 			qs.addSelector(colNames[i], null);
 		}
 		
-		// only create a new frame if the columns have changed
-		boolean sameMetadata = true;
-		if(colNames.length != currHeaders.length) {
-			sameMetadata = false;
+		/*
+		 * logic to determine where we are adding this data...
+		 * 1) First, make sure the existing frame is a grid
+		 * 		-> If it is not a grid, we already know we need to make a new h2frame
+		 * 2) Second, if it is a grid, check the meta data and see if it has changed
+		 * 		-> if it has changed, we need to make a new h2frame
+		 * 3) Regardless of #2 -> user can decide what they want to create a new frame
+		 * 			even if the meta data hasn't changed
+		 */
+		
+		boolean frameIsH2 = false;
+		String schemaName = null;
+		String tableName = null;
+		boolean determineNewFrameNeeded = false;
+		
+		// if we dont even have a h2frame currently, make a new one
+		if( !(dataframe instanceof H2Frame) ) {
+			determineNewFrameNeeded = true;
 		} else {
-			for(String currHeader : currHeaders) {
-				if(!ArrayUtilityMethods.arrayContainsValueIgnoreCase(colNames, currHeader)) {
-					sameMetadata = false;
+			frameIsH2 = true;
+			schemaName = ((H2Frame) dataframe).getSchema();
+			tableName = ((H2Frame) dataframe).getTableName();
+			
+			// if we do have an h2frame, look at headers to figure 
+			// out if the metadata has changed
+			
+			String[] currHeaders = dataframe.getColumnHeaders();
+			
+			if(colNames.length != currHeaders.length) {
+				determineNewFrameNeeded = true;
+			} else {
+				for(String currHeader : currHeaders) {
+					if(!ArrayUtilityMethods.arrayContainsValueIgnoreCase(colNames, currHeader)) {
+						determineNewFrameNeeded = true;
+					}
 				}
 			}
 		}
-		// if i am not overriding -> create a new table
-		// if the metadata doesn't match -> create a new table
-		if(!overrideExistingTable || !sameMetadata) {
-			H2Frame frame = new H2Frame();
+		
+		H2Frame frameToUse = null;
+		if(!overrideExistingTable || determineNewFrameNeeded) {
+			frameToUse = new H2Frame();
+			
+			// set the correct schema in the new frame
+			// drop the existing table
+			if(frameIsH2) {
+				frameToUse.setUserId(schemaName);
+				((H2Frame) dataframe).dropTable();
+			}
+			
 			Map<String, Set<String>> edgeHash = TinkerMetaHelper.createPrimKeyEdgeHash(colNames);
-			frame.mergeEdgeHash(edgeHash, dataTypeMapStr);
+			frameToUse.mergeEdgeHash(edgeHash, dataTypeMapStr);
 			
 			if(schemaName != null) {
-				frame.setUserId(schemaName);
 			}
-			// delete the current table
-			gridFrame.dropTable();
 			
 			// override frame references & table name reference
-			this.put("G", frame);
-			dataframe = frame;
-			gridFrame = frame;
-			tableName = frame.getTableName();
-		}
-		// if i am overriding -> remove indices and all exisitng data
-		else if(overrideExistingTable) {
+			this.put("G", frameToUse);
+			dataframe = frameToUse;
+			tableName = frameToUse.getTableName();
+			
+		} else if(overrideExistingTable && frameIsH2){
+			frameToUse = ((H2Frame) dataframe);
+
+			// can only enter here we are overriding the existing H2Frame
 			// drop any index if altering the existing frame
-			Set<String> columnIndices = gridFrame.getColumnsWithIndexes();
+			Set<String> columnIndices = frameToUse.getColumnsWithIndexes();
 			if(columnIndices != null) {
 				for(String colName : columnIndices) {
-					gridFrame.removeColumnIndex(colName);
+					frameToUse.removeColumnIndex(colName);
 				}
 			}
 			
 			// drop all existing data
-			gridFrame.deleteAllRows();
+			frameToUse.deleteAllRows();
 		}
 		
 		// we will make a temp file
@@ -664,11 +683,11 @@ public abstract class BaseJavaReactorJRI extends BaseJavaReactor{
 
 		// iterate through file and insert values
 		FileIterator dataIterator = FileIterator.createInstance(FILE_DATA_TYPE.META_DATA_ENUM, tempFileLocation, ',', qs, dataTypeMap);
-		gridFrame.addRowsViaIterator(dataIterator, dataTypeMap);
+		frameToUse.addRowsViaIterator(dataIterator, dataTypeMap);
 		dataIterator.deleteFile();
 		
 		System.out.println("Table Synchronized as " + tableName);
-		gridFrame.updateDataId();
+		frameToUse.updateDataId();
 	}
 	
 	public void synchronizeCSVToR(String fileName, String frameName)
