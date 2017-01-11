@@ -7,6 +7,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.TreeSet;
+import java.util.regex.Pattern;
 
 import prerna.util.Constants;
 import prerna.util.DIHelper;
@@ -188,69 +189,6 @@ public class HeadersException {
 		return headers;
 	}
 	
-	/**
-	 * Determine the duplicate values in an array
-	 * @param headers				The headers to find the duplicates
-	 * @return						Set containing the duplicates
-	 */
-	public Set<String> findDuplicateHeaders(String[] headers) {
-		// store duplicate values.. and make it an ordered set
-		Set<String> duplicateHeaders = new TreeSet<String>();
-		
-		// keep a list of the headers current seen
-		Set<String> currHeadersProcessed = new HashSet<String>();
-		
-		int size = headers.length;
-		for(int headIdx = 0; headIdx < size; headIdx++) {
-			String thisHeader = headers[headIdx];
-			if(currHeadersProcessed.contains(thisHeader)) {
-				// we found a duplicate value!
-				duplicateHeaders.add(thisHeader);
-			} else {
-				// add it to the set to see if we run into it again
-				currHeadersProcessed.add(thisHeader);
-			}
-		}
-		
-		return duplicateHeaders;
-	}
-	
-	public Set<String> findIllegalHeaders(String[] headers) {
-		// store the illegal headers... make it an ordered set
-		Set<String> illegalHeaders = new TreeSet<String>();
-
-		// iterate through and find which headers are illegal
-		int size = headers.length;
-		for(int headIdx = 0; headIdx < size; headIdx++) {
-			String thisHeader = headers[headIdx];
-			if(prohibitedHeaders.contains(thisHeader)) {
-				// we found an illegal value!
-				illegalHeaders.add(thisHeader);
-			}
-		}
-		
-		return illegalHeaders;
-	}
-	
-	public Set<String> findIllegalCharacters(String[] headers) {
-		// store the illegal headers... make it an ordered set
-		Set<String> illegalCharacterHeaders = new TreeSet<String>();
-
-		// iterate through and find which headers are illegal
-		int size = headers.length;
-		for(int headIdx = 0; headIdx < size; headIdx++) {
-			String thisHeader = headers[headIdx];
-			if(thisHeader.contains("+") || thisHeader.contains("%") || thisHeader.contains("@") || 
-					thisHeader.contains(";") || thisHeader.contains(" ") || thisHeader.contains("-") || 
-					thisHeader.contains("__") || thisHeader.contains("/") || thisHeader.contains("\\") ) {
-				// we found an illegal value!
-				illegalCharacterHeaders.add(thisHeader);
-			}
-		}
-		
-		return illegalCharacterHeaders;
-	}
-	
 	public boolean isDuplicated(String checkHeader, String[] allHeaders) {
 		checkHeader = checkHeader.toUpperCase();
 		for(String currHeaders : allHeaders) {
@@ -293,13 +231,13 @@ public class HeadersException {
 	}
 	
 	public boolean containsIllegalCharacter(String checkHeader) {
-		if(checkHeader.contains("+") || checkHeader.contains("%") || checkHeader.contains("@") || 
-				checkHeader.contains(";") || checkHeader.contains(" ") || checkHeader.contains("-") || 
-				checkHeader.contains("__") || checkHeader.contains("/") || checkHeader.contains("\\") ) {
-			// we found an illegal value!
-			return true;
-		}
-		return false;
+		// match any character not alpha, numeric, or underscore AND
+		// match 2 or more consecutive underscores AND
+		// match if starts with underscore AND
+		// match if ends with underscore
+		Pattern p = Pattern.compile("[^a-zA-Z0-9-_]|_{2,}|^_|_$");
+		boolean hasIllegalChar = p.matcher(checkHeader).find();
+		return hasIllegalChar;
 	}
 	
 	public String removeIllegalCharacters(String checkHeader) {
@@ -308,19 +246,23 @@ public class HeadersException {
 		checkHeader = checkHeader.replace("@", "");
 		checkHeader = checkHeader.replace("%", "");
 		checkHeader = checkHeader.replace(";", "");
-		checkHeader = checkHeader.replace(" ", "_");
-		checkHeader = checkHeader.replace("-", "_");
-		checkHeader = checkHeader.replace("/", "_");
-		checkHeader = checkHeader.replace("\\", "_");
+		checkHeader = checkHeader.replaceAll("[^a-zA-Z0-9]", "_");
 
 		// need to replace 2 "__" with a single "_"
 		while(checkHeader.contains("__")) {
 			checkHeader = checkHeader.replace("__", "_");
 		}
 		
+		if(checkHeader.startsWith("_")) {
+			checkHeader = checkHeader.substring(1, checkHeader.length());
+		}
+		
+		if(checkHeader.endsWith("_")) {
+			checkHeader = checkHeader.substring(0, checkHeader.length()-1);
+		}
+		
 		return checkHeader;
 	}
-	
 	
 	public String recursivelyFixHeaders(String origHeader, List<String> currCleanHeaders) {
 		boolean isAltered = false;
