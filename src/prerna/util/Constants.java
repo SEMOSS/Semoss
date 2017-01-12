@@ -496,4 +496,6 @@ public class Constants {
 	// h2 frame limit size
 	public static final String H2_IN_MEM_SIZE = "H2_IN_MEM_SIZE";
 	
+	// which type of R connection to use
+	public static final String R_CONNECTION_JRI = "R_CONNECTION_JRI";
 }
