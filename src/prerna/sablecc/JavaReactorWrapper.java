@@ -15,6 +15,8 @@ import prerna.ds.h2.H2Frame;
 import prerna.engine.api.IScriptReactor;
 import prerna.sablecc.meta.ExecuteCodePkqlMetadata;
 import prerna.sablecc.meta.IPkqlMetadata;
+import prerna.util.Constants;
+import prerna.util.DIHelper;
 
 public class JavaReactorWrapper extends AbstractReactor {
 	
@@ -42,6 +44,12 @@ public class JavaReactorWrapper extends AbstractReactor {
 	@Override
 	public Iterator process() {
 
+		String useJriStr = DIHelper.getInstance().getProperty(Constants.R_CONNECTION_JRI);
+		boolean useJri = false;
+		if(useJriStr != null) {
+			useJri = Boolean.valueOf(useJriStr);
+		}
+		
 		System.out.println(myStore);
 		
 		try {
@@ -86,8 +94,11 @@ public class JavaReactorWrapper extends AbstractReactor {
 			CtClass cc = pool.makeClass(packageName + ".c" + System.currentTimeMillis()); // the only reason I do this is if the user wants to do seomthing else
 			// need to find what is the configuration 
 			// and then wrap specific class
-			//cc.setSuperclass(pool.get("prerna.sablecc.BaseJavaReactorJRI"));
-			cc.setSuperclass(pool.get("prerna.sablecc.BaseJavaReactor"));
+			if(useJri) {
+				cc.setSuperclass(pool.get("prerna.sablecc.BaseJavaReactorJRI"));
+			} else {
+				cc.setSuperclass(pool.get("prerna.sablecc.BaseJavaReactor"));
+			}
 			//cc.addField(new CtField(consoleClass, "System", cc));
 			Class retClass = null;
 			// this is what comes in from the front end
