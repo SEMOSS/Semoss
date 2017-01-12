@@ -2,6 +2,7 @@ package prerna.sablecc;
 
 import java.io.File;
 import java.io.FileOutputStream;
+import java.io.IOException;
 import java.io.OutputStream;
 import java.sql.Connection;
 import java.util.Arrays;
@@ -12,6 +13,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.Vector;
 
+import org.apache.commons.io.FileUtils;
 import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.GraphTraversal;
 import org.apache.tinkerpop.gremlin.structure.Graph;
 import org.apache.tinkerpop.gremlin.structure.Vertex;
@@ -821,6 +823,45 @@ public abstract class BaseJavaReactorJRI extends BaseJavaReactor{
 			}
 		}
 		
+		// JRI
+		else if(output instanceof org.rosuda.JRI.REXP) {
+			int typeInt = ((org.rosuda.JRI.REXP) output).getType();
+			if(typeInt == REXP.XT_DOUBLE) {
+				builder.append( ((org.rosuda.JRI.REXP) output).asDouble()  );
+				
+			} else if(typeInt == REXP.XT_ARRAY_DOUBLE) {
+				builder.append(Arrays.toString( ((org.rosuda.JRI.REXP) output).asDoubleArray() ));
+
+			} else if(typeInt == REXP.XT_ARRAY_DOUBLE + 1) {
+				builder.append(Arrays.toString( ((org.rosuda.JRI.REXP) output).asDoubleMatrix() ));
+
+			} else if(typeInt == REXP.XT_INT) {
+				builder.append( ((org.rosuda.JRI.REXP) output).asInt()  );
+				
+			} else if(typeInt == REXP.XT_ARRAY_INT) {
+				builder.append(Arrays.toString( ((org.rosuda.JRI.REXP) output).asIntArray() ));
+				
+			} else if(typeInt == REXP.XT_STR) {
+				builder.append( ((org.rosuda.JRI.REXP) output).asString()  );
+				
+			} else if(typeInt == REXP.XT_ARRAY_STR) {
+				builder.append(Arrays.toString( ((org.rosuda.JRI.REXP) output).asStringArray() ));
+				
+			} else if(typeInt == REXP.XT_BOOL) {
+				builder.append( ((org.rosuda.JRI.REXP) output).asBool()  );
+				
+			} else if(typeInt == REXP.XT_ARRAY_BOOL) {
+				
+			} else if(typeInt == REXP.XT_LIST) {
+				builder.append( ((org.rosuda.JRI.REXP) output).asString()  );
+				
+			} else if(typeInt == REXP.XT_VECTOR) {
+				builder.append(Arrays.toString( ((org.rosuda.JRI.REXP) output).asStringArray() ));
+				
+			} 
+			
+		}
+		
 		builder.append("\n");
 	}
 	
@@ -846,11 +887,24 @@ public abstract class BaseJavaReactorJRI extends BaseJavaReactor{
 	
 	public void runR(String script, boolean result)
 	{
-		Rengine retEngine = (Rengine)startR();
-		String newScript = "paste(capture.output(print(" + script + ")),collapse='\n')";
-		java.lang.System.out.println("Executing script \n" + newScript + "\n");
+		String tempFileLocation = DIHelper.getInstance().getProperty(Constants.INSIGHT_CACHE_DIR) + "\\" + DIHelper.getInstance().getProperty(Constants.CSV_INSIGHT_CACHE_FOLDER);
+		tempFileLocation += "\\" + Utility.getRandomString(15) + ".R";
+		tempFileLocation = tempFileLocation.replace("\\", "/");
+		
+		File f = new File(tempFileLocation);
 		try {
-			REXP output = retEngine.eval(newScript);
+			FileUtils.writeStringToFile(f, script);
+		} catch (IOException e1) {
+			System.out.println("Error in writing R script for execution!");
+			e1.printStackTrace();
+		}
+
+		Rengine retEngine = (Rengine)startR();
+		try {
+			REXP output = retEngine.eval("paste( capture.output(print( source(\"" + tempFileLocation + "\")$value ) ), collapse='\n')");
+			if(output.getType() == REXP.XT_NULL) {
+				throw new IllegalArgumentException("Unable to wrap method in paste/capture");
+			}
 			if(result) {
 				System.out.println(output.asString());
 			}
@@ -874,22 +928,9 @@ public abstract class BaseJavaReactorJRI extends BaseJavaReactor{
 				}
 				throw new IllegalArgumentException(errorMessage);
 			}
+		} finally {
+			f.delete();
 		}
-//		try {
-//			Object output = rcon.eval(script);
-//			if(result)
-//			{
-//				java.lang.System.out.println("RCon data.. " + output);
-//				StringBuilder builder = new StringBuilder();
-//				getResultAsString(output, builder);
-//				System.out.println("Output : " + builder.toString());
-//			}
-//		} catch (RserveException e) {
-//			// TODO Auto-generated catch block
-//			e.printStackTrace();
-//			System.err.println("Errored.. ");
-//		}
-		// now is where the fun starts
 	}
 
 	public void clusterInfo()
