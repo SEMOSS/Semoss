@@ -137,7 +137,7 @@ public class ClusteringReactor extends MathReactor {
 		initializeClusters(dataFrame, attributeNamesList);
 		LOGGER.info("Done creation of initial cluster centers...");		
 
-		int maxIt = 100_000;
+		int maxIt = 10_000;
 		boolean go = true;
 		int currIt = 0;
 		
