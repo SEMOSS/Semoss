@@ -16,6 +16,7 @@ import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.GraphTraversal;
 import org.apache.tinkerpop.gremlin.structure.Graph;
 import org.apache.tinkerpop.gremlin.structure.Vertex;
 import org.apache.tinkerpop.gremlin.structure.io.IoCore;
+import org.rosuda.JRI.Rengine;
 import org.rosuda.REngine.REXP;
 import org.rosuda.REngine.REXPDouble;
 import org.rosuda.REngine.REXPGenericVector;
@@ -28,12 +29,18 @@ import org.rosuda.REngine.RList;
 import org.rosuda.REngine.Rserve.RConnection;
 import org.rosuda.REngine.Rserve.RserveException;
 
+import prerna.algorithm.api.IMetaData;
 import prerna.algorithm.api.ITableDataFrame;
 import prerna.ds.DataFrameHelper;
+import prerna.ds.QueryStruct;
 import prerna.ds.TinkerFrame;
+import prerna.ds.TinkerMetaHelper;
 import prerna.ds.h2.H2Frame;
+import prerna.ds.util.FileIterator;
+import prerna.ds.util.FileIterator.FILE_DATA_TYPE;
 import prerna.engine.api.IEngine;
 import prerna.engine.impl.r.RSingleton;
+import prerna.poi.main.HeadersException;
 import prerna.util.ArrayUtilityMethods;
 import prerna.util.Console;
 import prerna.util.Constants;
@@ -496,45 +503,156 @@ public abstract class BaseJavaReactor extends AbstractReactor{
 		System.out.println("Completed synchronization as " + frameName);
 	}
 	
-	public void synchronizeGridFromR(String frameName, String tableName)
+	public void synchronizeGridFromR()
 	{
-		// assumes this is a grid and tries to write back the table
-		runR("dbWriteTable(conn,'" + tableName +"', " + frameName + ");", false);
-		System.out.println("Output is now available as " + tableName);
+		String frameName = (String)retrieveVariable("GRID_NAME");
+		synchronzieGridFromR(frameName, true);
+	}
+	
+	public void synchronzieGridFromR(String frameName, boolean overrideExistingTable) {
+		// get the necessary information from the r frame
+		// to be able to add the data correclty
+		
+		// get the names and types
+		String[] colNames = getColNames(frameName);
+		// since R has less restrictions than we do regarding header names
+		// we will clean the header names to match what the cleaning would be when we load
+		// in a file
+		// note: the clean routine will only do something if the metadata has changed
+		// otherwise, the headers would already be good to go
+		List<String> cleanColNames = new Vector<String>();
+		HeadersException headerException = HeadersException.getInstance();
+		for(int i = 0; i < colNames.length; i++) {
+			String cleanHeader = headerException.recursivelyFixHeaders(colNames[i], cleanColNames);
+			cleanColNames.add(cleanHeader);
+		}
+		colNames = cleanColNames.toArray(new String[]{});
+		
+		String[] colTypes = getColTypes(frameName);
+		
+		// need to create a data type map and a query struct
+		QueryStruct qs = new QueryStruct();
+		// TODO: REALLY NEED TO CONSOLIDATE THE STRING VS. METADATA TYPE DATAMAPS
+		Map<String, IMetaData.DATA_TYPES> dataTypeMap = new Hashtable<String, IMetaData.DATA_TYPES>();
+		Map<String, String> dataTypeMapStr = new Hashtable<String, String>();
+		for(int i = 0; i < colNames.length; i++) {
+			dataTypeMapStr.put(colNames[i], colTypes[i]);
+			dataTypeMap.put(colNames[i], Utility.convertStringToDataType(colTypes[i]));
+			qs.addSelector(colNames[i], null);
+		}
+		
+		/*
+		 * logic to determine where we are adding this data...
+		 * 1) First, make sure the existing frame is a grid
+		 * 		-> If it is not a grid, we already know we need to make a new h2frame
+		 * 2) Second, if it is a grid, check the meta data and see if it has changed
+		 * 		-> if it has changed, we need to make a new h2frame
+		 * 3) Regardless of #2 -> user can decide what they want to create a new frame
+		 * 			even if the meta data hasn't changed
+		 */
+		
+		boolean frameIsH2 = false;
+		String schemaName = null;
+		String tableName = null;
+		boolean determineNewFrameNeeded = false;
+		
+		// if we dont even have a h2frame currently, make a new one
+		if( !(dataframe instanceof H2Frame) ) {
+			determineNewFrameNeeded = true;
+		} else {
+			frameIsH2 = true;
+			schemaName = ((H2Frame) dataframe).getSchema();
+			tableName = ((H2Frame) dataframe).getTableName();
+			
+			// if we do have an h2frame, look at headers to figure 
+			// out if the metadata has changed
+			
+			String[] currHeaders = dataframe.getColumnHeaders();
+			
+			if(colNames.length != currHeaders.length) {
+				determineNewFrameNeeded = true;
+			} else {
+				for(String currHeader : currHeaders) {
+					if(!ArrayUtilityMethods.arrayContainsValueIgnoreCase(colNames, currHeader)) {
+						determineNewFrameNeeded = true;
+					}
+				}
+			}
+		}
+		
+		H2Frame frameToUse = null;
+		if(!overrideExistingTable || determineNewFrameNeeded) {
+			frameToUse = new H2Frame();
+			
+			// set the correct schema in the new frame
+			// drop the existing table
+			if(frameIsH2) {
+				frameToUse.setUserId(schemaName);
+				((H2Frame) dataframe).dropTable();
+			}
+			
+			Map<String, Set<String>> edgeHash = TinkerMetaHelper.createPrimKeyEdgeHash(colNames);
+			frameToUse.mergeEdgeHash(edgeHash, dataTypeMapStr);
+			
+			if(schemaName != null) {
+			}
+			
+			// override frame references & table name reference
+			this.put("G", frameToUse);
+			dataframe = frameToUse;
+			tableName = frameToUse.getTableName();
+			
+		} else if(overrideExistingTable && frameIsH2){
+			frameToUse = ((H2Frame) dataframe);
+
+			// can only enter here we are overriding the existing H2Frame
+			// drop any index if altering the existing frame
+			Set<String> columnIndices = frameToUse.getColumnsWithIndexes();
+			if(columnIndices != null) {
+				for(String colName : columnIndices) {
+					frameToUse.removeColumnIndex(colName);
+				}
+			}
+			
+			// drop all existing data
+			frameToUse.deleteAllRows();
+		}
+		
+		// we will make a temp file
+		String tempFileLocation = DIHelper.getInstance().getProperty(Constants.INSIGHT_CACHE_DIR) + "\\" + DIHelper.getInstance().getProperty(Constants.CSV_INSIGHT_CACHE_FOLDER);
+		tempFileLocation += "\\" + Utility.getRandomString(10) + ".csv";
+		tempFileLocation = tempFileLocation.replace("\\", "/");
+		eval("fwrite(" + frameName + ", file='" + tempFileLocation + "')");
+
+		// iterate through file and insert values
+		FileIterator dataIterator = FileIterator.createInstance(FILE_DATA_TYPE.META_DATA_ENUM, tempFileLocation, ',', qs, dataTypeMap);
+		frameToUse.addRowsViaIterator(dataIterator, dataTypeMap);
+		dataIterator.deleteFile();
+		
+		System.out.println("Table Synchronized as " + tableName);
+		frameToUse.updateDataId();
 	}
 
-	public void synchronizeGridFromR(String frameName, String tableName, String cols)
+	public String[] getColNames(String frameName, boolean print)
 	{
-		// assumes this is a grid and tries to write back the table
-		// I need to make another data table with these specific columns and then write that
-		startR();
+		Rengine engine = (Rengine)startR();
+		String [] colNames = null;
 		try {
-			if(cols != null && cols.length() > 0)
-			{
-				String script = ".(";
-				String [] reqCols = cols.split(";");
-				// I need to take just these columns and then synchronize this back
-				for(int colIndex = 0;colIndex < reqCols.length;colIndex++)
+				String script = "matrix(colnames(" + frameName + "));";
+				colNames = engine.eval(script).asStringArray();
+				if(print)
 				{
-					script = script + reqCols[colIndex].toUpperCase();
-					if(colIndex + 1 < reqCols.length)
-						script = script + ", ";
+					System.out.println("Columns..");
+					for(int colIndex = 0;colIndex < colNames.length;colIndex++)
+						System.out.println(colNames[colIndex] + "\n");
 				}
-				script = script + ")";
-				String tempName = Utility.getRandomString(8);
-				
-				String finalScript = tempName + " <- " + frameName + "[, " + script + "]; dbWriteTable(conn,'" + tableName +"', " + tempName + ");";
-				rcon.eval(finalScript);		
-			}
-		} catch (RserveException e) {
+		} catch (Exception e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
-		}
-		//TBD
-		//runR("dbWriteTable(conn,'" + tableName +"', " + frameName + ");", false);
-		//System.out.println("Output is now available as " + tableName);
+		} 
+		return colNames;
 	}
-
+	
 	public void filterValues(String frameName, String columnName, String values)
 	{
 		
@@ -550,12 +668,6 @@ public abstract class BaseJavaReactor extends AbstractReactor{
 		runR("dbWriteTable(conn,'" + tableName +"', " + frameName + ");", false);
 		
 		System.out.println("Table Synchronized as " + tableName);
-	}
-	
-	public void synchronizeGridFromR()
-	{
-		String frameName = (String)retrieveVariable("GRID_NAME");
-		synchronizeGridFromR(frameName, false);
 	}
 
 	public void synchronizeCSVToR(String fileName, String frameName)
