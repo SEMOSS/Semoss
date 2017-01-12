@@ -651,9 +651,6 @@ public abstract class BaseJavaReactorJRI extends BaseJavaReactor{
 			Map<String, Set<String>> edgeHash = TinkerMetaHelper.createPrimKeyEdgeHash(colNames);
 			frameToUse.mergeEdgeHash(edgeHash, dataTypeMapStr);
 			
-			if(schemaName != null) {
-			}
-			
 			// override frame references & table name reference
 			this.put("G", frameToUse);
 			dataframe = frameToUse;
