@@ -25,6 +25,8 @@ CSVInsightsWebWatcher_EXT .tg
 LOG4J	C:\\workspace\\Semoss_Dev\\log4j.prop
 BaseFolder	C:\\workspace\\Semoss_Dev
 
+R_CONNECTION_JRI	false
+
 SHOW_GOV_WARNING	false
 GPS_SUDOWL_DEFAULT	false
 GPS_SEARCH_DEFAULT	true
