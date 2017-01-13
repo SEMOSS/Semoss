@@ -115,7 +115,7 @@ public class JavaReactorWrapper extends AbstractReactor {
 					+ "put(\"ERROR\", ex);return null;"
 					+ "}";
 			String content = data;
-			content = content.replace("\r", " ").replace("\n", " ");
+			content = content.replace("\n", "\\n").replace("\r", "\\r");
 			// write the response
 			String response = "put(\"RESPONSE\", System.out.output); put(\"STATUS\" , prerna.sablecc.PKQLRunner.STATUS.SUCCESS); return null;";
 			//cc.addMethod(CtNewMethod.make("public void setConsole() { System = new prerna.util.Console();}", cc));
