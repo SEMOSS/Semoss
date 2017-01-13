@@ -302,7 +302,7 @@ public class WekaAprioriAlgorithm implements IAnalyticActionRoutine {
 	
 	public Map<String, String> getDataTableAlign() {
 		Map<String, String> dataTableAlign = new HashMap<String, String>();
-		dataTableAlign.put("x-axis", X_AXIS_NAME);
+		dataTableAlign.put("x", X_AXIS_NAME);
 		dataTableAlign.put("size", Z_AXIS_NAME);
 		return dataTableAlign;
 	}
