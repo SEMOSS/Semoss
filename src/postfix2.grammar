@@ -12,7 +12,8 @@ Helpers
  not_quote = [alphanumeric - ['"' + ''']];
  panelprefix =  'panel' ( '[' digit ']' )?;
  panelcommentprefix = panelprefix '.comment' ( '[' digit ']' )?;
- code = '<code>';
+ code = '<c>';
+ import = '<i>';
  startjson = '<json>';
  endjson = '</json>';
  
@@ -57,11 +58,14 @@ Tokens
  tolookup = 'toLookup';
  api = 'api'; 
  output = 'output';
+ importblock = import alphanumeric* import;
  codeblock = code alphanumeric* code;
  java = '<j>' alphanumeric* '</j>';
  r = '<j> runR(' alphanumeric* ')</j>';
  mk = 'mk';
  mv = 'mv';
+ as_op = '.as';
+ map = 'map';
  ftype = ('Graph' | 'Grid' | 'RTable');
  frame_verbs = ('add' | 'rem' | 'alias' | 'ren' ); // not sure if we need this 
  custom = '|';
@@ -76,6 +80,8 @@ Productions
 
  // Basic definitions for columns
  // columns can be a reference column / basic literal or just an expression
+ // I have a feeling frame_op should not be part of col def
+ // mostly because it is difficult to implement *GRIN*
  col_def = {ref}rcol | {literal}literal | {expr}expr | {dotcol} dotcol | {frameop} frameop  | {filter} filter; // need to include something for expression
  
  // reference - this means the 4th column in the current frame
@@ -105,7 +111,8 @@ Productions
  formula = l_par expr r_par;
 
  // example - output of any operation
- operation_formula = id l_par plain_row r_par; // this is the formula with an operation in it. Although one could argue this could be a frameop - this can also be the output
+ operation_formula = id l_par plain_row r_par asop?; // this is the formula with an operation in it. Although one could argue this could be a frameop - this can also be the output
+ 
  
  term =
     {number} decimal 
@@ -159,15 +166,22 @@ Productions
  noun = {select} selectors | {project} projectors | {labels} labels | {tooltips} tooltips | {others} generic;
  othernoun =  comma noun;
  
- script = {frameop} frameop | {java_op} java_op | {r_op} r_op | {op} operation_formula | {make} make_op | {assign} assignment;
+ script = {frameop} frameop | {java_op} java_op | {r_op} r_op | {op} operation_formula | {make} make_op | {assign} assignment | {map} map_op;
  
  otherscript = custom script;
 
  scriptchain = script otherscript* semicolon;
  
 
- frameop = id l_par noun othernoun* r_par; // any operation on the frame. we will pick up the name through reflection
-  
+ frameop = id l_par noun othernoun* r_par asop?; // any operation on the frame. we will pick up the name through reflection
+ 
+ asop = as_op l_par gen_row r_par;
+ // of the type
+ // map(<c>a + b<c>, s=[a,b], o=["includeColumns", "map/reduce", "something else", language="java"] <-- over a period of time we can normalize these 
+ // map(<c>title.toUpper(title),s=[title])
+ map_op = map l_par pimport? codeblock pnoun* r_par;
+ pimport = importblock comma;
+ pnoun = comma noun;
  
  // lookup format
  // lookup(current frame, destination, lookup what column in the current frame, get what columns in the destination frame, comparator)
