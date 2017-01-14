@@ -460,7 +460,7 @@ public abstract class BaseJavaReactor extends AbstractReactor{
 			+ "conn <- dbConnect(drv, '" + url + "', '" + username + "', '')"; // line of R script that connects to H2Frame
 		runR(script);
 	}
-	
+		
 	public void setH2Driver(String directory)
 	{
 		storeVariable("H2DRIVER_PATH", directory);

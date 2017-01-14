@@ -5,16 +5,16 @@ package prerna.sablecc2.node;
 import prerna.sablecc2.analysis.*;
 
 @SuppressWarnings("nls")
-public final class TOptionid extends Token
+public final class TPropid extends Token
 {
-    public TOptionid()
+    public TPropid()
     {
-        super.setText("o=");
+        super.setText("props=");
     }
 
-    public TOptionid(int line, int pos)
+    public TPropid(int line, int pos)
     {
-        super.setText("o=");
+        super.setText("props=");
         setLine(line);
         setPos(pos);
     }
@@ -22,18 +22,18 @@ public final class TOptionid extends Token
     @Override
     public Object clone()
     {
-      return new TOptionid(getLine(), getPos());
+      return new TPropid(getLine(), getPos());
     }
 
     @Override
     public void apply(Switch sw)
     {
-        ((Analysis) sw).caseTOptionid(this);
+        ((Analysis) sw).caseTPropid(this);
     }
 
     @Override
     public void setText(@SuppressWarnings("unused") String text)
     {
-        throw new RuntimeException("Cannot change TOptionid text.");
+        throw new RuntimeException("Cannot change TPropid text.");
     }
 }
