@@ -45,18 +45,21 @@ import prerna.util.Utility;
 
 public abstract class BaseJavaReactorJRI extends BaseJavaReactor{
 
-	ITableDataFrame dataframe = null;
-	PKQLRunner pkql = new PKQLRunner();
-	boolean frameChanged = false;
-	SecurityManager curManager = null;
-	SecurityManager reactorManager = null;
-	public static final String R_CONN2 = "R_CONN";
 	public static final String R_ENGINE = "R_ENGINE";
-	public static final String R_PORT = "R_PORT";
-	String wd = null;
-	String fileName = null;
-	
-	public Console System = new Console();
+	// FOR PROPER SUBCLASSING
+	// WE CANNOT REDEFINE THESE VARIABLES SINCE THEY EXIST
+	// IN BASEJAVAREACTOR
+//	ITableDataFrame dataframe = null;
+//	PKQLRunner pkql = new PKQLRunner();
+//	boolean frameChanged = false;
+//	SecurityManager curManager = null;
+//	SecurityManager reactorManager = null;
+//	public static final String R_CONN2 = "R_CONN";
+//	public static final String R_PORT = "R_PORT";
+//	String wd = null;
+//	String fileName = null;
+//	
+//	public Console System = new Console();
 	
 	public BaseJavaReactorJRI()
 	{
