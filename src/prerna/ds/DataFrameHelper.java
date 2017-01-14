@@ -526,5 +526,82 @@ public class DataFrameHelper {
 		}
 		return edgeHash;
 	}
+
+
+	public static TinkerFrame findSharedVertices(TinkerFrame tf, String type, String[] instances, int degree) {
+		// keep set of all vertices to keep
+		Set<Vertex> instancesToKeep = new HashSet<Vertex>();
+		
+		int numInstances = instances.length;
+		for(int index = 0; index < numInstances; index++) {
+			String instance = instances[index];
+			// find set of end positions
+			String[] instancesToBind = new String[numInstances-1];
+			int counter = 0;
+			for(int i = 0; i < numInstances; i++) {
+				if(index != i) {
+					instancesToBind[counter] = instances[i];
+					counter++;
+				}
+			}
+			
+			GraphTraversal t1 = tf.g.traversal().V().has(TinkerFrame.TINKER_TYPE, type).has(TinkerFrame.TINKER_NAME, instance).as("start");
+			for(int i = 0; i < degree; i++) {
+				t1 = t1.both().as( (char) i + "");
+			}
+			t1 = t1.has(TinkerFrame.TINKER_NAME, P.within(instancesToBind));
+			if(degree == 1) {
+				t1 = t1.select("start", (char) 0 + "");
+			} else if(degree >= 2) {
+				String[] degreesToSelect = new String[degree - 1];
+				for(int degreeCount = 1; degreeCount < degree; degreeCount++) {
+					degreesToSelect[degreeCount-1] = (char) degreeCount + "";
+				}
+				t1 = t1.select("start", (char) 0 + "", degreesToSelect);
+			}
+			
+			while(t1.hasNext()) {
+				Object data = t1.next();
+				if(data instanceof Map) {
+					Vertex start = (Vertex) ((Map) data).get("start");
+					instancesToKeep.add(start);
+					for(int i = 0; i < degree; i++) {
+						Vertex v = (Vertex) ((Map) data).get( (char) i + "");
+						instancesToKeep.add(v);
+					}
+				} else {
+					System.out.println("shouldn't get here");
+				}
+			}
+			
+			System.out.println(instancesToKeep);
+		}
+		
+		// store types filtered out
+		Set<String> typesFiltered = new HashSet<String>();
+		
+		GraphTraversal<Vertex, Vertex> traversal = tf.g.traversal().V().not(__.has(TinkerFrame.TINKER_TYPE, TinkerFrame.TINKER_FILTER));
+		Vertex filterNode = tf.upsertVertex(TinkerFrame.TINKER_FILTER, TinkerFrame.TINKER_FILTER);
+		while(traversal.hasNext()) {
+			Vertex vert = traversal.next();
+			if(!instancesToKeep.contains(vert)) {
+				// we want to filter this
+				String vertType = vert.value(TinkerFrame.TINKER_TYPE);
+				tf.upsertEdge(filterNode, TinkerFrame.TINKER_FILTER, vert, vertType);
+				
+				typesFiltered.add(vertType);
+			}
+		}
+		
+		// set them filtered at meta level
+		Map<String, String> metaToType = tf.metaData.getAllUniqueNamesToValues();
+		for(String uniqueName : metaToType.keySet()) {
+			if(typesFiltered.contains( metaToType.get(uniqueName)) ) {
+				tf.metaData.setFiltered(uniqueName, true);
+			}
+		}
+		
+		return tf;
+	}
 	
 }
