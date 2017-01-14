@@ -1476,20 +1476,6 @@ public abstract class BaseJavaReactor extends AbstractReactor{
 		synchronizeFromR(graphName);
 	}
 	
-	
-	
-	public void generateNewGraph(String[] selectors, Map<String, String> edges) {
-		java.lang.System.setSecurityManager(curManager);
-		if(dataframe instanceof TinkerFrame)
-		{
-			TinkerFrame newDataFrame = DataFrameHelper.generateNewGraph((TinkerFrame) dataframe, selectors, edges);
-			myStore.put("G", newDataFrame);
-			System.out.println("Generated new graph data frame");
-		}		
-		java.lang.System.setSecurityManager(reactorManager);
-		
-	}
-	
 	public void endR()
 	{
 		java.lang.System.setSecurityManager(curManager);
@@ -1538,6 +1524,28 @@ public abstract class BaseJavaReactor extends AbstractReactor{
 	public void initR(int port)
 	{
 		RSingleton.getConnection(port);
+	}
+	
+	public void generateNewGraph(String[] selectors, Map<String, String> edges) {
+		java.lang.System.setSecurityManager(curManager);
+		if(dataframe instanceof TinkerFrame)
+		{
+			TinkerFrame newDataFrame = DataFrameHelper.generateNewGraph((TinkerFrame) dataframe, selectors, edges);
+			myStore.put("G", newDataFrame);
+			System.out.println("Generated new graph data frame");
+		}		
+		java.lang.System.setSecurityManager(reactorManager);
+	}
+	
+	public void findSharedVertices(String type, String[] instances, int degree) {
+		java.lang.System.setSecurityManager(curManager);
+		if(dataframe instanceof TinkerFrame)
+		{	
+			TinkerFrame newDataFrame = DataFrameHelper.findSharedVertices((TinkerFrame) dataframe, type, instances, degree);
+			myStore.put("G", newDataFrame);
+			System.out.println("Filtered to keep only vertices which are shared between defined instances");
+		}		
+		java.lang.System.setSecurityManager(reactorManager);
 	}
 	
 	public void runClustering(int instanceIndex, int numClusters, String[] selectors) {
