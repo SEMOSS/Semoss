@@ -16,6 +16,7 @@ import prerna.sablecc2.node.AOpScript;
 import prerna.sablecc2.node.AOperationFormula;
 import prerna.sablecc2.node.AOtherscript;
 import prerna.sablecc2.node.APlusExpr;
+import prerna.sablecc2.node.AProp;
 import prerna.sablecc2.node.ARcol;
 import prerna.sablecc2.node.AScriptchain;
 import prerna.sablecc2.node.ASelectNoun;
@@ -354,6 +355,11 @@ public class Translation extends DepthFirstAdapter {
     public void outATermExpr(ATermExpr node)
     {
         defaultOut(node);
+    }
+    
+    public void inAProp(AProp node)
+    {
+        curReactor.setProp((node.getId()+"").trim(), node.getNumberOrLiteral());
     }
     
 //----------------------------- Private methods

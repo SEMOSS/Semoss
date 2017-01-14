@@ -187,6 +187,27 @@ public class ReversedDepthFirstAdapter extends AnalysisAdapter
         outAFilterColDef(node);
     }
 
+    public void inAPropColDef(APropColDef node)
+    {
+        defaultIn(node);
+    }
+
+    public void outAPropColDef(APropColDef node)
+    {
+        defaultOut(node);
+    }
+
+    @Override
+    public void caseAPropColDef(APropColDef node)
+    {
+        inAPropColDef(node);
+        if(node.getProp() != null)
+        {
+            node.getProp().apply(this);
+        }
+        outAPropColDef(node);
+    }
+
     public void inARcol(ARcol node)
     {
         defaultIn(node);
@@ -289,6 +310,77 @@ public class ReversedDepthFirstAdapter extends AnalysisAdapter
             node.getWhole().apply(this);
         }
         outADecimal(node);
+    }
+
+    public void inANumNumberOrLiteral(ANumNumberOrLiteral node)
+    {
+        defaultIn(node);
+    }
+
+    public void outANumNumberOrLiteral(ANumNumberOrLiteral node)
+    {
+        defaultOut(node);
+    }
+
+    @Override
+    public void caseANumNumberOrLiteral(ANumNumberOrLiteral node)
+    {
+        inANumNumberOrLiteral(node);
+        if(node.getDecimal() != null)
+        {
+            node.getDecimal().apply(this);
+        }
+        outANumNumberOrLiteral(node);
+    }
+
+    public void inAStrNumberOrLiteral(AStrNumberOrLiteral node)
+    {
+        defaultIn(node);
+    }
+
+    public void outAStrNumberOrLiteral(AStrNumberOrLiteral node)
+    {
+        defaultOut(node);
+    }
+
+    @Override
+    public void caseAStrNumberOrLiteral(AStrNumberOrLiteral node)
+    {
+        inAStrNumberOrLiteral(node);
+        if(node.getLiteral() != null)
+        {
+            node.getLiteral().apply(this);
+        }
+        outAStrNumberOrLiteral(node);
+    }
+
+    public void inAProp(AProp node)
+    {
+        defaultIn(node);
+    }
+
+    public void outAProp(AProp node)
+    {
+        defaultOut(node);
+    }
+
+    @Override
+    public void caseAProp(AProp node)
+    {
+        inAProp(node);
+        if(node.getNumberOrLiteral() != null)
+        {
+            node.getNumberOrLiteral().apply(this);
+        }
+        if(node.getEqual() != null)
+        {
+            node.getEqual().apply(this);
+        }
+        if(node.getId() != null)
+        {
+            node.getId().apply(this);
+        }
+        outAProp(node);
     }
 
     public void inATermExpr(ATermExpr node)
@@ -968,6 +1060,31 @@ public class ReversedDepthFirstAdapter extends AnalysisAdapter
         outALabels(node);
     }
 
+    public void inAProps(AProps node)
+    {
+        defaultIn(node);
+    }
+
+    public void outAProps(AProps node)
+    {
+        defaultOut(node);
+    }
+
+    @Override
+    public void caseAProps(AProps node)
+    {
+        inAProps(node);
+        if(node.getGenRow() != null)
+        {
+            node.getGenRow().apply(this);
+        }
+        if(node.getPropid() != null)
+        {
+            node.getPropid().apply(this);
+        }
+        outAProps(node);
+    }
+
     public void inATooltips(ATooltips node)
     {
         defaultIn(node);
@@ -1179,6 +1296,27 @@ public class ReversedDepthFirstAdapter extends AnalysisAdapter
             node.getGeneric().apply(this);
         }
         outAOthersNoun(node);
+    }
+
+    public void inAPropsNoun(APropsNoun node)
+    {
+        defaultIn(node);
+    }
+
+    public void outAPropsNoun(APropsNoun node)
+    {
+        defaultOut(node);
+    }
+
+    @Override
+    public void caseAPropsNoun(APropsNoun node)
+    {
+        inAPropsNoun(node);
+        if(node.getProps() != null)
+        {
+            node.getProps().apply(this);
+        }
+        outAPropsNoun(node);
     }
 
     public void inAOthernoun(AOthernoun node)
