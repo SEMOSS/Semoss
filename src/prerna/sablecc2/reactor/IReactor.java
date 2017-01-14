@@ -83,6 +83,11 @@ public interface IReactor {
 	// sets the string for alias i.e. as
 	public void setAs(String [] asName);
 	
+	// adds a property
+	public void setProp(String key, Object value);
+	
+	// gets the property
+	public Object getProp(String key);;
 	
 	/**
 	 * elements <- Generic Row <- Generic Noun <- Reactor

@@ -40,8 +40,9 @@ Tokens
  equal = '=';
  selectorid = ('s='| 's');
  groupid = 'g=';
- optionid = 'o';
+ optionid = 'o=';
  projectid = 'p=';
+ propid = 'props=';
  labelid = 'l=';
  joinid = 'j=';
  tooltipid = 't=';
@@ -82,13 +83,17 @@ Productions
  // columns can be a reference column / basic literal or just an expression
  // I have a feeling frame_op should not be part of col def
  // mostly because it is difficult to implement *GRIN*
- col_def = {ref}rcol | {literal}literal | {expr}expr | {dotcol} dotcol | {frameop} frameop  | {filter} filter; // need to include something for expression
+ col_def = {ref}rcol | {literal}literal | {expr}expr | {dotcol} dotcol | {frameop} frameop  | {filter} filter | {prop} prop; // need to include something for expression
  
  // reference - this means the 4th column in the current frame
  rcol = frameprefix number; // f$4
  dotcol = frameid dot [column_name]:id;
  literal = word;
  decimal = [whole]:number dot? [fraction]:number?;
+ 
+ number_or_literal = {num} decimal | {str} literal;
+ 
+ prop = id equal number_or_literal;
  
  
  expr =
@@ -155,6 +160,7 @@ Productions
  selectors = selectorid  gen_row;
  projectors = projectid  gen_row;
  labels = labelid  gen_row;
+ props = propid gen_row;
  tooltips = tooltipid  gen_row;
  joins = joinid  gen_row;
  generic = id equal  gen_row;
@@ -163,7 +169,7 @@ Productions
   
  assignment = id equal col_def;
  
- noun = {select} selectors | {project} projectors | {labels} labels | {tooltips} tooltips | {others} generic;
+ noun = {select} selectors | {project} projectors | {labels} labels | {tooltips} tooltips | {others} generic | {props} props;
  othernoun =  comma noun;
  
  script = {frameop} frameop | {java_op} java_op | {r_op} r_op | {op} operation_formula | {make} make_op | {assign} assignment | {map} map_op;

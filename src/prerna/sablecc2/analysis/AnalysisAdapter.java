@@ -117,6 +117,12 @@ public class AnalysisAdapter implements Analysis
     }
 
     @Override
+    public void caseAPropColDef(APropColDef node)
+    {
+        defaultCase(node);
+    }
+
+    @Override
     public void caseARcol(ARcol node)
     {
         defaultCase(node);
@@ -136,6 +142,24 @@ public class AnalysisAdapter implements Analysis
 
     @Override
     public void caseADecimal(ADecimal node)
+    {
+        defaultCase(node);
+    }
+
+    @Override
+    public void caseANumNumberOrLiteral(ANumNumberOrLiteral node)
+    {
+        defaultCase(node);
+    }
+
+    @Override
+    public void caseAStrNumberOrLiteral(AStrNumberOrLiteral node)
+    {
+        defaultCase(node);
+    }
+
+    @Override
+    public void caseAProp(AProp node)
     {
         defaultCase(node);
     }
@@ -291,6 +315,12 @@ public class AnalysisAdapter implements Analysis
     }
 
     @Override
+    public void caseAProps(AProps node)
+    {
+        defaultCase(node);
+    }
+
+    @Override
     public void caseATooltips(ATooltips node)
     {
         defaultCase(node);
@@ -340,6 +370,12 @@ public class AnalysisAdapter implements Analysis
 
     @Override
     public void caseAOthersNoun(AOthersNoun node)
+    {
+        defaultCase(node);
+    }
+
+    @Override
+    public void caseAPropsNoun(APropsNoun node)
     {
         defaultCase(node);
     }
@@ -634,6 +670,12 @@ public class AnalysisAdapter implements Analysis
 
     @Override
     public void caseTProjectid(TProjectid node)
+    {
+        defaultCase(node);
+    }
+
+    @Override
+    public void caseTPropid(TPropid node)
     {
         defaultCase(node);
     }
