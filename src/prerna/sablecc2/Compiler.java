@@ -50,7 +50,7 @@ public class Compiler
 											new InputStreamReader(new StringBufferInputStream(""
 													//+ "j:<code>import prerna.util.Console;import java.util.Hashtable;System.out.println(\"Crabby Patty !! \"); Hashtable myHash = new Hashtable();String data = null; data.toString();<code>;"
 													//    												+ "network.connect();network.disconnect();"
-													+ "select(a,b,c).as([select_a]) |  groupby(select_a).as([group_b]) | filter(a,b,select_a, group_b);"
+													+ "select(a,b,c).as([select_a]) |  groupby(select_a).as([group_b]) | filter(a,b,select_a, group_b) | trial(s=[a,b,c],props=[name=\"samiksha\"]);"
 													//+ "sum((2*abc)+5*2);sum(s=[hello, 'hello world', sum(hello, world)], k=[(name != 'gh'), (somethingelse == 5)])|product(s=[demo]) | product2(s=[demo]); sum(2 + 3); sum2(2 + 3); sum3(a,b,c,d) | sum4(a,b,c); sum7(s=[a,b,c, sum6(a,b,c)]); name = 'pk';"
 													//+ "(3 + 4, [c:bp, c:ab]);"
 													//+ "col.import([c:col1,c:col2], ([c:col1, inner.join, c:col2])) . [[\"a\",\"b\"][2,3]];"

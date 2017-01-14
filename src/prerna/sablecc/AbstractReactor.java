@@ -34,6 +34,8 @@ public abstract class AbstractReactor implements IScriptReactor {
 	protected String whoAmI = null;
 	protected HashMap <String, Object> myStore = new HashMap <String, Object>();
 	protected Vector <String> replacers = new Vector<String>();
+	
+	private PKQLRunner runner = null;
 
 	//added for PKQL command definition to be sent to the FE
 //	private String[] pkqlDefinition = {"title", "pkqlCommand", "description", "showMenu", "pinned", "input", "console"};
@@ -302,5 +304,12 @@ public abstract class AbstractReactor implements IScriptReactor {
 	@Override
 	public Set<String> getKeys() {
 		return myStore.keySet();
+	}
+	
+	public void emit(String message)
+	{
+		PKQLRunner runner = (PKQLRunner)myStore.get("PKQL_RUNNER");
+		//runner.emit(whoAmI + " : " + message);
+		// eventually I should do this with thread
 	}
 }

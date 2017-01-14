@@ -19,10 +19,14 @@ public interface Analysis extends Switch
     void caseADotcolColDef(ADotcolColDef node);
     void caseAFrameopColDef(AFrameopColDef node);
     void caseAFilterColDef(AFilterColDef node);
+    void caseAPropColDef(APropColDef node);
     void caseARcol(ARcol node);
     void caseADotcol(ADotcol node);
     void caseALiteral(ALiteral node);
     void caseADecimal(ADecimal node);
+    void caseANumNumberOrLiteral(ANumNumberOrLiteral node);
+    void caseAStrNumberOrLiteral(AStrNumberOrLiteral node);
+    void caseAProp(AProp node);
     void caseATermExpr(ATermExpr node);
     void caseAPlusExpr(APlusExpr node);
     void caseAMinusExpr(AMinusExpr node);
@@ -48,6 +52,7 @@ public interface Analysis extends Switch
     void caseASelectors(ASelectors node);
     void caseAProjectors(AProjectors node);
     void caseALabels(ALabels node);
+    void caseAProps(AProps node);
     void caseATooltips(ATooltips node);
     void caseAJoins(AJoins node);
     void caseAGeneric(AGeneric node);
@@ -57,6 +62,7 @@ public interface Analysis extends Switch
     void caseALabelsNoun(ALabelsNoun node);
     void caseATooltipsNoun(ATooltipsNoun node);
     void caseAOthersNoun(AOthersNoun node);
+    void caseAPropsNoun(APropsNoun node);
     void caseAOthernoun(AOthernoun node);
     void caseAFrameopScript(AFrameopScript node);
     void caseAJavaOpScript(AJavaOpScript node);
@@ -107,6 +113,7 @@ public interface Analysis extends Switch
     void caseTGroupid(TGroupid node);
     void caseTOptionid(TOptionid node);
     void caseTProjectid(TProjectid node);
+    void caseTPropid(TPropid node);
     void caseTLabelid(TLabelid node);
     void caseTJoinid(TJoinid node);
     void caseTTooltipid(TTooltipid node);
