@@ -2,12 +2,13 @@ package prerna.sablecc2.reactor;
 
 import java.util.Arrays;
 import java.util.Enumeration;
+import java.util.Hashtable;
 import java.util.Vector;
 
 import prerna.sablecc2.om.GenRowStruct;
+import prerna.sablecc2.om.GenRowStruct.COLUMN_TYPE;
 import prerna.sablecc2.om.NounMetadata;
 import prerna.sablecc2.om.NounStore;
-import prerna.sablecc2.om.GenRowStruct.COLUMN_TYPE;
 
 public class SampleReactor implements IReactor {
 
@@ -24,6 +25,8 @@ public class SampleReactor implements IReactor {
 	String reactorName = "Sample";
 	String [] asName = null;
 	Vector <String> outputFields = null;
+	
+	Hashtable <String, Object> propStore = new Hashtable<String, Object>();
 	
 	PKSLPlanner planner = null;
 	
@@ -249,6 +252,18 @@ public class SampleReactor implements IReactor {
 		return this.outputFields;
 	}
 	
+	@Override
+	public void setProp(String key, Object value) {
+		propStore.put(key, value);
+		
+	}
+
+	@Override
+	public Object getProp(String key) {
+		return propStore.get(key);
+	}
+
+	
 	// get noun
 	private GenRowStruct makeNoun(String noun)
 	{
@@ -308,4 +323,5 @@ public class SampleReactor implements IReactor {
 		// also add properties to these outputfields
 		//planner.addProperty(opName, propertyName, value);
 	}
+
 }
