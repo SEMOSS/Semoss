@@ -570,11 +570,13 @@ public class DataFrameHelper {
 						instancesToKeep.add(v);
 					}
 				} else {
-					System.out.println("shouldn't get here");
+					System.err.println("Ughhh.... shouldn't get here");
 				}
 			}
-			
-			System.out.println(instancesToKeep);
+		}
+		
+		if(instancesToKeep.isEmpty()) {
+			throw new IllegalStateException("Cannot create any path given the instances and the degrees of separation");
 		}
 		
 		// store types filtered out
