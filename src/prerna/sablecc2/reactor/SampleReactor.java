@@ -119,6 +119,9 @@ public class SampleReactor implements IReactor {
 	@Override
 	public TYPE getType() {
 		// TODO Auto-generated method stub
+		Object typeProp = getProp("type");
+		if(typeProp != null && ((String)typeProp).contains("reduce"))
+			this.type = TYPE.REDUCE;
 		return this.type;
 	}
 
@@ -277,6 +280,7 @@ public class SampleReactor implements IReactor {
 	{
 		// add the inputs from the store as well as this operation
 		// first is all the inputs
+		getType();
 		Enumeration <String> keys = store.nounRow.keys();
 		
 		
