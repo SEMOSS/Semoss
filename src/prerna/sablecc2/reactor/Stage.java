@@ -1,5 +1,6 @@
 package prerna.sablecc2.reactor;
 
+import java.util.Enumeration;
 import java.util.Hashtable;
 import java.util.Vector;
 
@@ -13,10 +14,14 @@ public class Stage extends Hashtable <String, Hashtable> {
 	public static final String DEPENDS = "DEPENDS";
 	public static final String CODE = "CODE";
 	
+	int stageNum = 0;
 	// Vector of all the operations for purposes of sequence
 	Vector <String> operationSequence = new Vector <String>();
 	
 	Vector <String> stageInputs = new Vector<String>();
+	Vector <String> opVector = null;
+	
+	int numOps = 1;
 	
 	// should keep another hash of lowest dependency just in case things come in later
 	Hashtable <String, Integer> lowestDependency = new Hashtable<String, Integer>();
@@ -24,6 +29,7 @@ public class Stage extends Hashtable <String, Hashtable> {
 		
 	public void addOperation(String operationName, Hashtable codeHash)
 	{
+		numOps++;
 		// this code hash replaces the 
 		put(operationName, codeHash);
 		if(operationSequence.indexOf(operationName) < 0)
@@ -138,7 +144,9 @@ public class Stage extends Hashtable <String, Hashtable> {
 	
 	public String getCode()
 	{
-		String retString = "{";
+		System.out.println("====================================");
+
+		String retString = "// STAGE - " + stageNum + "\n{";
 		
 		// print all the inputs as a query
 		String selectors = "";
@@ -151,7 +159,8 @@ public class Stage extends Hashtable <String, Hashtable> {
 		}
 		
 		retString = retString + "\n";
-		retString = retString + selectors + "\n\n\n";
+		retString = retString + "// QUERY SELECTORS NEEDED for this STAGE " + selectors + "\n";
+		retString = retString + selectors + "\n\n";
 		
 		for(int opIndex = 0;opIndex < operationSequence.size();opIndex++)
 		{
@@ -173,7 +182,23 @@ public class Stage extends Hashtable <String, Hashtable> {
 		}
 		
 		retString = retString + "\n }";
+		System.out.println("====================================");
+
 		return retString;
+	}
+	
+	public Vector<String> getOperationsInStage()
+	{
+		if(opVector == null)
+		{
+			opVector = new Vector<String>();
+			Enumeration<String> keys = keys();
+			Vector <String> retVector = new Vector<String>();
+			
+			while(keys.hasMoreElements())
+				retVector.addElement(keys.nextElement());
+		}		
+		return opVector;
 	}
 
 }
