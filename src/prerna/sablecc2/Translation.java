@@ -359,7 +359,7 @@ public class Translation extends DepthFirstAdapter {
     
     public void inAProp(AProp node)
     {
-        curReactor.setProp((node.getId()+"").trim(), node.getNumberOrLiteral());
+        curReactor.setProp((node.getId()+"").trim(), node.getNumberOrLiteral()+"");
     }
     
 //----------------------------- Private methods
