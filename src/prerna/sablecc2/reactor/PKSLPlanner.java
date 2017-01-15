@@ -292,7 +292,7 @@ public class PKSLPlanner {
 			thisStage.removeOperation(operationName);
 			Stage newStage = new Stage();
 			codeStack.push(thisStage);
-			newStage.addOperation(operationName);			
+			newStage.addOperation(operationName, opHash);			
 			//codeStack.push(newStage);
 			thisStage = newStage;
 		}
@@ -306,10 +306,10 @@ public class PKSLPlanner {
 		
 		// walk through the code stack poping one by one
 		// and asking it to getcode
-		for(int stageIndex = 0;stageIndex < codeStack.size();stageIndex++)
+		for(int stageIndex = codeStack.size()-1;stageIndex >= 0;stageIndex--)
 		{
 			System.out.println("====================================");
-			Stage stage = codeStack.remove(stageIndex);
+			Stage stage = codeStack.elementAt(stageIndex);
 			System.out.println(" STAGE " + stageIndex + " \n\n" + stage.getCode());
 			System.out.println("====================================");
 		}
