@@ -547,7 +547,13 @@ public class DataFrameHelper {
 			
 			GraphTraversal t1 = tf.g.traversal().V().has(TinkerFrame.TINKER_TYPE, type).has(TinkerFrame.TINKER_NAME, instance).as("start");
 			for(int i = 0; i < degree; i++) {
-				t1 = t1.both().as( (char) i + "");
+				if(i == 0) {
+					t1 = t1.both().as( (char) i + "");
+				} else if(i == 1) {
+					t1 = t1.both().as( (char) i + "").where( (char) i + "", P.neq("start"));
+				} else {
+					t1 = t1.both().as( (char) i + "").where( (char) i + "", P.neq((char) (i-2) + ""));
+				}
 			}
 			t1 = t1.has(TinkerFrame.TINKER_NAME, P.within(instancesToBind));
 			if(degree == 1) {
@@ -561,17 +567,22 @@ public class DataFrameHelper {
 			}
 			
 			while(t1.hasNext()) {
+				StringBuilder linkage = new StringBuilder();
 				Object data = t1.next();
 				if(data instanceof Map) {
 					Vertex start = (Vertex) ((Map) data).get("start");
 					instancesToKeep.add(start);
+					linkage.append(start.value(TinkerFrame.TINKER_NAME) + "").append(" ->");
 					for(int i = 0; i < degree; i++) {
 						Vertex v = (Vertex) ((Map) data).get( (char) i + "");
 						instancesToKeep.add(v);
+						linkage.append(v.value(TinkerFrame.TINKER_NAME) + "").append(" ->");
 					}
 				} else {
 					System.err.println("Ughhh.... shouldn't get here");
 				}
+				
+				System.out.println(linkage.toString());
 			}
 		}
 		
