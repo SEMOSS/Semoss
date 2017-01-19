@@ -426,4 +426,17 @@ public abstract class SQLQueryUtil {
 		return query.concat(" LIMIT " + limit);
 	}
 	
+	public String addLimitOffsetToQuery(String query, int limit, int offset) {
+		
+		if(limit > 0) {
+			query = query.concat(" LIMIT "+limit);
+		}
+		
+		if(offset > 0) {
+			query = query.concat(" OFFSET "+offset);
+		}
+		
+		return query;
+	}
+	
 }
