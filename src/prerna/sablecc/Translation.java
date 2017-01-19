@@ -30,6 +30,7 @@ import prerna.sablecc.expressions.sql.builder.SqlExpressionBuilder;
 import prerna.sablecc.meta.IPkqlMetadata;
 import prerna.sablecc.node.*;
 import prerna.sablecc.services.DatabasePkqlService;
+import prerna.sablecc.services.MetamodelVertex;
 import prerna.ui.components.playsheets.datamakers.IDataMaker;
 import prerna.util.Constants;
 
@@ -2507,12 +2508,37 @@ public class Translation extends DepthFirstAdapter {
 		// TODO: this should technically take in a list
 		// TODO: currently only doing this for a single logical name
 		
-		// get the engine
+		// get the concept name
 		String conceptLogicalName = node.getConceptName().toString().trim();
 		List<String> logicalNames = new Vector<String>();
 		logicalNames.add(conceptLogicalName);
+	
+		//see if we need to get for a specific engine
+		boolean hasEngine = node.getEngineName() != null;
+		String engineName = null;
+		if(hasEngine) {
+			engineName = node.getEngineName().toString().trim();
+			Map<String, Object[]> retData = DatabasePkqlService.getConceptProperties(logicalNames, engineName);
+			//iterate through cause not sure if engine key will get reformatted
+			for(String engineKey : retData.keySet()) {
+				Object[] props = retData.get(engineKey);
+				
+				if(props.length > 0) {
+					Map propMap = ((MetamodelVertex)props[0]).toMap();
+					Object values = propMap.get("propSet");//should be an array or list
+					Map<String, Object> formattedRetData = new HashMap<>();
+					formattedRetData.put("list", values);
+					runner.setReturnData(formattedRetData);
+				}
+				break;
+			}
+		} else {
+			Map<String, Object[]> retData = DatabasePkqlService.getConceptProperties(logicalNames, null);
+			runner.setReturnData(retData);
+		}
+		
 		// get the properties for this concept across all engines
-		runner.setReturnData(DatabasePkqlService.getConceptProperties(logicalNames, null));
+//		runner.setReturnData(DatabasePkqlService.getConceptProperties(logicalNames, null));
 		runner.setStatus(PKQLRunner.STATUS.SUCCESS);
 	}
 	

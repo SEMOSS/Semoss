@@ -5488,6 +5488,14 @@ public class DepthFirstAdapter extends AnalysisAdapter
         {
             node.getConceptName().apply(this);
         }
+        if(node.getComma() != null)
+        {
+            node.getComma().apply(this);
+        }
+        if(node.getEngineName() != null)
+        {
+            node.getEngineName().apply(this);
+        }
         if(node.getRPar() != null)
         {
             node.getRPar().apply(this);
