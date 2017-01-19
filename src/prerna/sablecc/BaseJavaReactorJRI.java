@@ -570,7 +570,7 @@ public abstract class BaseJavaReactorJRI extends BaseJavaReactor{
 		synchronzieGridFromR(frameName, true);
 	}
 	
-	public void synchronzieGridFromR(String frameName, boolean overrideExistingTable) {
+	public void synchronizeGridFromR(String frameName, boolean overrideExistingTable) {
 		// get the necessary information from the r frame
 		// to be able to add the data correclty
 		
