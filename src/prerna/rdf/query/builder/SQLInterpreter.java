@@ -237,13 +237,16 @@ public class SQLInterpreter implements IQueryInterpreter{
 		int limit = qs.getLimit();
 		int offset = qs.getOffset();
 		
-		if(limit > 0) {
-			query = new StringBuilder(this.queryUtil.addLimitToQuery(query.toString(), limit));
-		} 
+				
+//		if(limit > 0) {
+//			query = new StringBuilder(this.queryUtil.addLimitToQuery(query.toString(), limit));
+//		}
+//		
+//		if (offset > 0) {
+//			query = new StringBuilder(this.queryUtil.addOffsetToQuery(query.toString(), offset));
+//		}
 		
-		if (offset > 0) {
-			query.append(" OFFSET ").append(offset);
-		}
+		query = new StringBuilder(this.queryUtil.addLimitOffsetToQuery(query.toString(), limit, offset));
 		
 		if(query.length() > 500) {
 			System.out.println("QUERY....  " + query.substring(0,  500) + "...");
@@ -251,6 +254,7 @@ public class SQLInterpreter implements IQueryInterpreter{
 			System.out.println("QUERY....  " + query);
 		}
 
+		query.append(";");
 		return query.toString();
 	}
 

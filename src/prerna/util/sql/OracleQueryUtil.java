@@ -102,4 +102,18 @@ public class OracleQueryUtil extends SQLQueryUtil {
 		// TODO Auto-generated method stub
 		return null;
 	}
+	
+	@Override
+	public String addLimitOffsetToQuery(String query, int limit, int offset) {
+		
+		if(offset > 0) {
+			query = query.concat(" OFFSET "+offset+" ROWS ");
+		}
+		
+		if(limit > 0) {
+			query = query.concat(" FETCH NEXT " + limit+" ROWS ONLY ");
+		}
+		
+		return query;
+	}
 }
