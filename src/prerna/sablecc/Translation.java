@@ -2512,7 +2512,7 @@ public class Translation extends DepthFirstAdapter {
 		List<String> logicalNames = new Vector<String>();
 		logicalNames.add(conceptLogicalName);
 		// get the properties for this concept across all engines
-		runner.setReturnData(DatabasePkqlService.getConceptProperties(logicalNames));
+		runner.setReturnData(DatabasePkqlService.getConceptProperties(logicalNames, null));
 		runner.setStatus(PKQLRunner.STATUS.SUCCESS);
 	}
 	
