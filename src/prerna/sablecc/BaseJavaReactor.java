@@ -506,10 +506,10 @@ public abstract class BaseJavaReactor extends AbstractReactor{
 	public void synchronizeGridFromR()
 	{
 		String frameName = (String)retrieveVariable("GRID_NAME");
-		synchronzieGridFromR(frameName, true);
+		synchronizeGridFromR(frameName, true);
 	}
 	
-	public void synchronzieGridFromR(String frameName, boolean overrideExistingTable) {
+	public void synchronizeGridFromR(String frameName, boolean overrideExistingTable) {
 		// get the necessary information from the r frame
 		// to be able to add the data correclty
 		
@@ -655,18 +655,6 @@ public abstract class BaseJavaReactor extends AbstractReactor{
 		
 	}
 	
-	public void synchronizeGridFromR(String frameName, boolean self)
-	{
-		// assumes this is a grid and tries to write back the table
-		H2Frame gridFrame = (H2Frame)dataframe;
-		String tableName = gridFrame.getBuilder().getTableName();
-		if(!self)
-			tableName = Utility.getRandomString(8);
-		runR("dbWriteTable(conn,'" + tableName +"', " + frameName + ");", false);
-		
-		System.out.println("Table Synchronized as " + tableName);
-	}
-
 	public void synchronizeCSVToR(String fileName, String frameName)
 	{
 		//runR(frameName + " <-as.data.table(unclass(dbReadTable(conn,'" + tableName + "')));");		
