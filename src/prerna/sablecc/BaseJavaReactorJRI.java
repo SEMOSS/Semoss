@@ -567,7 +567,7 @@ public abstract class BaseJavaReactorJRI extends BaseJavaReactor{
 	public void synchronizeGridFromR()
 	{
 		String frameName = (String)retrieveVariable("GRID_NAME");
-		synchronzieGridFromR(frameName, true);
+		synchronizeGridFromR(frameName, true);
 	}
 	
 	public void synchronizeGridFromR(String frameName, boolean overrideExistingTable) {
