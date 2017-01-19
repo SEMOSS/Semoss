@@ -527,7 +527,7 @@ database_concepts = databaseconcepts_token l_par [engine_name]:id r_par;
 database_connected_concepts = databaseconnectedconcepts_token l_par [concept_type]:id r_par; 
 
 // get all the properties for a concept across all engines
-database_concept_properties = databaseconceptproperties_token l_par [concept_name]:id r_par;
+database_concept_properties = databaseconceptproperties_token l_par [concept_name]:id comma? [engine_name]:id? r_par;
 
 // get the engine metamodel
 database_metamodel = databasemetamodel_token l_par [engine_name]:id r_par;
