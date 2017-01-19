@@ -2525,9 +2525,10 @@ public class Translation extends DepthFirstAdapter {
 				
 				if(props.length > 0) {
 					Map propMap = ((MetamodelVertex)props[0]).toMap();
-					Object values = propMap.get("propSet");//should be an array or list
+					Set<String> values = (Set<String>)propMap.get("propSet");//should be an array or list
+					List<String> valuesList = new ArrayList<>(values);
 					Map<String, Object> formattedRetData = new HashMap<>();
-					formattedRetData.put("list", values);
+					formattedRetData.put("list", convertListToListMaps(valuesList));
 					runner.setReturnData(formattedRetData);
 				}
 				break;
