@@ -10,6 +10,8 @@ public final class ADatabaseConceptProperties extends PDatabaseConceptProperties
     private TDatabaseconceptpropertiesToken _databaseconceptpropertiesToken_;
     private TLPar _lPar_;
     private TId _conceptName_;
+    private TComma _comma_;
+    private TId _engineName_;
     private TRPar _rPar_;
 
     public ADatabaseConceptProperties()
@@ -21,6 +23,8 @@ public final class ADatabaseConceptProperties extends PDatabaseConceptProperties
         @SuppressWarnings("hiding") TDatabaseconceptpropertiesToken _databaseconceptpropertiesToken_,
         @SuppressWarnings("hiding") TLPar _lPar_,
         @SuppressWarnings("hiding") TId _conceptName_,
+        @SuppressWarnings("hiding") TComma _comma_,
+        @SuppressWarnings("hiding") TId _engineName_,
         @SuppressWarnings("hiding") TRPar _rPar_)
     {
         // Constructor
@@ -29,6 +33,10 @@ public final class ADatabaseConceptProperties extends PDatabaseConceptProperties
         setLPar(_lPar_);
 
         setConceptName(_conceptName_);
+
+        setComma(_comma_);
+
+        setEngineName(_engineName_);
 
         setRPar(_rPar_);
 
@@ -41,6 +49,8 @@ public final class ADatabaseConceptProperties extends PDatabaseConceptProperties
             cloneNode(this._databaseconceptpropertiesToken_),
             cloneNode(this._lPar_),
             cloneNode(this._conceptName_),
+            cloneNode(this._comma_),
+            cloneNode(this._engineName_),
             cloneNode(this._rPar_));
     }
 
@@ -125,6 +135,56 @@ public final class ADatabaseConceptProperties extends PDatabaseConceptProperties
         this._conceptName_ = node;
     }
 
+    public TComma getComma()
+    {
+        return this._comma_;
+    }
+
+    public void setComma(TComma node)
+    {
+        if(this._comma_ != null)
+        {
+            this._comma_.parent(null);
+        }
+
+        if(node != null)
+        {
+            if(node.parent() != null)
+            {
+                node.parent().removeChild(node);
+            }
+
+            node.parent(this);
+        }
+
+        this._comma_ = node;
+    }
+
+    public TId getEngineName()
+    {
+        return this._engineName_;
+    }
+
+    public void setEngineName(TId node)
+    {
+        if(this._engineName_ != null)
+        {
+            this._engineName_.parent(null);
+        }
+
+        if(node != null)
+        {
+            if(node.parent() != null)
+            {
+                node.parent().removeChild(node);
+            }
+
+            node.parent(this);
+        }
+
+        this._engineName_ = node;
+    }
+
     public TRPar getRPar()
     {
         return this._rPar_;
@@ -157,6 +217,8 @@ public final class ADatabaseConceptProperties extends PDatabaseConceptProperties
             + toString(this._databaseconceptpropertiesToken_)
             + toString(this._lPar_)
             + toString(this._conceptName_)
+            + toString(this._comma_)
+            + toString(this._engineName_)
             + toString(this._rPar_);
     }
 
@@ -179,6 +241,18 @@ public final class ADatabaseConceptProperties extends PDatabaseConceptProperties
         if(this._conceptName_ == child)
         {
             this._conceptName_ = null;
+            return;
+        }
+
+        if(this._comma_ == child)
+        {
+            this._comma_ = null;
+            return;
+        }
+
+        if(this._engineName_ == child)
+        {
+            this._engineName_ = null;
             return;
         }
 
@@ -210,6 +284,18 @@ public final class ADatabaseConceptProperties extends PDatabaseConceptProperties
         if(this._conceptName_ == oldChild)
         {
             setConceptName((TId) newChild);
+            return;
+        }
+
+        if(this._comma_ == oldChild)
+        {
+            setComma((TComma) newChild);
+            return;
+        }
+
+        if(this._engineName_ == oldChild)
+        {
+            setEngineName((TId) newChild);
             return;
         }
 
