@@ -221,34 +221,37 @@ public class DatabasePkqlService {
 	/**
 	 * Get the properties for a given concept across all the databases
 	 * @param conceptName
+	 * @param engineName		optional filter for the properties
 	 * @return
 	 */
-	public static Map<String, Object[]> getConceptProperties(List<String> conceptLogicalNames) {
+	public static Map<String, Object[]> getConceptProperties(List<String> conceptLogicalNames, String engineFilter) {
 		// get the bindings based on the input list
 		StringBuilder logicalNameBindings = createUriBindings("conceptLogical", conceptLogicalNames);
-		
-		String propQuery = "SELECT DISTINCT ?engine ?conceptConceptual ?propConceptual WHERE "
-				+ "{"
-				+ "{?conceptComposite <" + RDFS.subClassOf + "> <http://semoss.org/ontologies/Concept>}"
+
+		String propQuery = "SELECT DISTINCT ?engine ?conceptConceptual ?propConceptual WHERE {";
+		if(engineFilter != null && !engineFilter.isEmpty()) {
+			propQuery += "BIND(<http://semoss.org/ontologies/Concept/meta/engine/" + engineFilter + "> AS ?engine) ";
+		}
+		propQuery += "{?conceptComposite <" + RDFS.subClassOf + "> <http://semoss.org/ontologies/Concept>}"
 				+ "{?conceptComposite <" + RDF.TYPE + "> ?concept}"
 				+ "{?conceptComposite <http://semoss.org/ontologies/Relation/logical> ?conceptLogical}"
 				+ "{?conceptComposite <http://semoss.org/ontologies/Relation/conceptual> ?conceptConceptual}"
-				
-				+ "{?conceptComposite <" + OWL.DATATYPEPROPERTY + "> ?propComposite}"
-				+ "{?propComposite <" + RDF.TYPE + "> ?conceptProp}"
-				+ "{?propComposite <http://semoss.org/ontologies/Relation/presentin> ?engine}"
-				+ "{?propComposite <http://semoss.org/ontologies/Relation/conceptual> ?propConceptual}"
 
-				+ "FILTER(?concept != <http://semoss.org/ontologies/Concept> "
-				+ " && ?concept != <" + RDFS.Class + "> "
-				+ " && ?concept != <" + RDFS.Resource + "> "
-				+ " && ?conceptProp != <http://www.w3.org/2000/01/rdf-schema#Resource>"
-				+ ")"
-				+ "}"
-				+ logicalNameBindings.toString();
-		
+					+ "{?conceptComposite <" + OWL.DATATYPEPROPERTY + "> ?propComposite}"
+					+ "{?propComposite <" + RDF.TYPE + "> ?conceptProp}"
+					+ "{?propComposite <http://semoss.org/ontologies/Relation/presentin> ?engine}"
+					+ "{?propComposite <http://semoss.org/ontologies/Relation/conceptual> ?propConceptual}"
+
+					+ "FILTER(?concept != <http://semoss.org/ontologies/Concept> "
+					+ " && ?concept != <" + RDFS.Class + "> "
+					+ " && ?concept != <" + RDFS.Resource + "> "
+					+ " && ?conceptProp != <http://www.w3.org/2000/01/rdf-schema#Resource>"
+					+ ")"
+					+ "}"
+					+ logicalNameBindings.toString();
+
 		Map<String, Map<String, MetamodelVertex>> queryData = new TreeMap<String, Map<String, MetamodelVertex>>();
-		
+
 		IEngine engine = (IEngine) DIHelper.getInstance().getLocalProp(Constants.LOCAL_MASTER_DB_NAME);
 		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(engine, propQuery);
 		while(wrapper.hasNext())
