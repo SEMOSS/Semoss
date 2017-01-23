@@ -37,6 +37,8 @@ import prerna.algorithm.api.IMetaData.DATA_TYPES;
 import prerna.cache.ICache;
 import prerna.ds.AbstractTableDataFrame;
 import prerna.ds.DataFrameJoiner;
+import prerna.ds.QueryStruct;
+import prerna.ds.TableDataFrameFactory;
 import prerna.ds.TinkerFrame;
 import prerna.ds.TinkerMetaData;
 import prerna.ds.TinkerMetaHelper;
@@ -47,6 +49,7 @@ import prerna.engine.api.ISelectWrapper;
 import prerna.engine.impl.r.RRunner;
 import prerna.poi.main.RDBMSEngineCreationHelper;
 import prerna.rdf.engine.wrappers.WrapperManager;
+import prerna.rdf.query.builder.SQLInterpreter;
 import prerna.sablecc.PKQLEnum;
 import prerna.sablecc.PKQLEnum.PKQLReactor;
 import prerna.ui.components.playsheets.datamakers.DataMakerComponent;
@@ -54,6 +57,7 @@ import prerna.ui.components.playsheets.datamakers.ISEMOSSTransformation;
 import prerna.ui.components.playsheets.datamakers.JoinTransformation;
 import prerna.util.ArrayUtilityMethods;
 import prerna.util.Constants;
+import prerna.util.DIHelper;
 import prerna.util.Utility;
 
 public class H2Frame extends AbstractTableDataFrame {
@@ -77,6 +81,37 @@ public class H2Frame extends AbstractTableDataFrame {
 		setSchema();
 	}
 
+	public static void main(String[] args) {
+		DIHelper.getInstance().loadCoreProp("C:\\Workspace\\Semoss_Dev\\RDF_Map.prop");
+		String fileName = "C:\\Users\\rluthar\\Documents\\Movie_Data.csv";
+		Map<String, Map<String, String>> dataTypeMap = new HashMap<>();
+		Map<String, String> innerMap = new LinkedHashMap<>();
+		
+		innerMap.put("Title", "VARCHAR");
+		innerMap.put("Genre", "VARCHAR");
+		innerMap.put("Studio", "VARCHAR");
+		innerMap.put("Director", "VARCHAR");
+		
+		dataTypeMap.put("CSV", innerMap);
+		
+		Map<String, String> mainColMap = new HashMap<>();
+		mainColMap.put("CSV", "Title");
+		H2Frame t = (H2Frame) TableDataFrameFactory.generateDataFrameFromFile(fileName, ",", "H2", dataTypeMap, mainColMap);
+		String tableName = t.builder.getTableName();
+		
+		QueryStruct qs = new QueryStruct();
+		qs.addSelector(tableName, "Title");
+		qs.addSelector(tableName, "Genre");
+		List<String> values = new ArrayList<>();
+		values.add("Arthur");
+		qs.addFilter(tableName+"__Title", "=", values);
+		
+		Iterator<IHeadersDataRow> it = t.query(qs);
+		while(it.hasNext()) {
+			System.out.print(it.next());
+		}
+	}
+	
 	public H2Frame() {
 		this.metaData = new TinkerMetaData();
 		setSchema();
@@ -708,6 +743,24 @@ public class H2Frame extends AbstractTableDataFrame {
 		// String query = interp.composeQuery();
 		// return this.builder.buildIterator(query);
 		return this.builder.buildIterator(getH2Selectors());
+	}
+	
+	@Override
+	public Iterator<IHeadersDataRow> query(String query) {
+		H2Iterator iterator = this.builder.buildIteratorFromQuery(query);
+		if(iterator != null) {
+			return new H2HeadersDataRowIterator(iterator);
+		}
+		return null;
+	}
+	
+	@Override
+	public Iterator<IHeadersDataRow> query(QueryStruct queryStruct) {
+		SQLInterpreter interp = new SQLInterpreter();//default query util is H2
+		//TODO : here we need to merge filters
+		interp.setQueryStruct(queryStruct);
+		String iteratorQuery = interp.composeQuery();
+		return query(iteratorQuery);
 	}
 	
 	public Iterator<Object[]> iterator(boolean getRawData, boolean ignoreFilters) {
