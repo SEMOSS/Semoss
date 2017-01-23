@@ -21,6 +21,7 @@ import prerna.algorithm.api.IMetaData;
 import prerna.algorithm.api.IMetaData.DATA_TYPES;
 import prerna.algorithm.api.ITableDataFrame;
 import prerna.engine.api.IEngine;
+import prerna.engine.api.IHeadersDataRow;
 import prerna.engine.api.ISelectStatement;
 import prerna.engine.api.ISelectWrapper;
 import prerna.math.BarChart;
@@ -728,10 +729,13 @@ public abstract class AbstractTableDataFrame implements ITableDataFrame {
 	}
 	
 	// TODO
-	public ISelectWrapper query(String query)
+	public Iterator<IHeadersDataRow> query(String query)
 	{
 		return null;
 	}
 
+	public Iterator<IHeadersDataRow> query(QueryStruct queryStruct) {
+		return null;
+	}
 	
 }
