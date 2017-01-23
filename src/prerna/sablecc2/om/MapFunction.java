@@ -46,7 +46,7 @@ public class MapFunction {
 		// need something to get the headers so I know the cardinality eventually
 		while(iter.hasNext())
 		{
-			Hashtable <String, Object> row = (Hashtable<String, Object>)iter.next();
+			IHeadersDataRow row = (IHeadersDataRow)iter.next();
 		}
 	}
 	
