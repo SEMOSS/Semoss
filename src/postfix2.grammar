@@ -12,7 +12,6 @@ Helpers
  not_quote = [alphanumeric - ['"' + ''']];
  panelprefix =  'panel' ( '[' digit ']' )?;
  panelcommentprefix = panelprefix '.comment' ( '[' digit ']' )?;
- code = '<c>';
  import = '<i>';
  startjson = '<json>';
  endjson = '</json>';
@@ -24,6 +23,7 @@ Tokens
  sort = ('up' | 'down' | 'asc' | 'dsc');
  id = (letter_s | letter_b | digit | underscore)*;
  dot = '.';
+ code_alpha='<c>' alphanumeric* '<c>';
  semicolon = ';';
  colon = ':';
  plus = '+';
@@ -60,7 +60,6 @@ Tokens
  api = 'api'; 
  output = 'output';
  importblock = import alphanumeric* import;
- codeblock = code alphanumeric* code;
  java = '<j>' alphanumeric* '</j>';
  r = '<j> runR(' alphanumeric* ')</j>';
  mk = 'mk';
@@ -83,7 +82,7 @@ Productions
  // columns can be a reference column / basic literal or just an expression
  // I have a feeling frame_op should not be part of col def
  // mostly because it is difficult to implement *GRIN*
- col_def = {ref}rcol | {literal}literal | {expr}expr | {dotcol} dotcol | {frameop} frameop  | {filter} filter | {prop} prop; // need to include something for expression
+ col_def = {ref}rcol | {literal}literal | {expr}expr | {dotcol} dotcol | {frameop} frameop  | {filter} filter | {prop} prop ; // need to include something for expression
  
  // reference - this means the 4th column in the current frame
  rcol = frameprefix number; // f$4
@@ -169,10 +168,10 @@ Productions
   
  assignment = id equal col_def;
  
- noun = {select} selectors | {project} projectors | {labels} labels | {tooltips} tooltips | {others} generic | {props} props;
+ noun = {select} selectors | {project} projectors | {labels} labels | {tooltips} tooltips | {others} generic | {props} props | {code} code_alpha;
  othernoun =  comma noun;
  
- script = {frameop} frameop | {java_op} java_op | {r_op} r_op | {op} operation_formula | {make} make_op | {assign} assignment | {map} map_op;
+ script = {frameop} frameop | {java_op} java_op | {r_op} r_op | {op} operation_formula | {make} make_op | {assign} assignment ;
  
  otherscript = custom script;
 
@@ -185,7 +184,7 @@ Productions
  // of the type
  // map(<c>a + b<c>, s=[a,b], o=["includeColumns", "map/reduce", "something else", language="java"] <-- over a period of time we can normalize these 
  // map(<c>title.toUpper(title),s=[title])
- map_op = map l_par pimport? codeblock pnoun* r_par;
+// map_op = map l_par pimport? codeblock pnoun* r_par;
  pimport = importblock comma;
  pnoun = comma noun;
  

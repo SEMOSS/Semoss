@@ -5,46 +5,46 @@ package prerna.sablecc2.node;
 import prerna.sablecc2.analysis.*;
 
 @SuppressWarnings("nls")
-public final class AMapScript extends PScript
+public final class ACodeNoun extends PNoun
 {
-    private PMapOp _mapOp_;
+    private TCodeAlpha _codeAlpha_;
 
-    public AMapScript()
+    public ACodeNoun()
     {
         // Constructor
     }
 
-    public AMapScript(
-        @SuppressWarnings("hiding") PMapOp _mapOp_)
+    public ACodeNoun(
+        @SuppressWarnings("hiding") TCodeAlpha _codeAlpha_)
     {
         // Constructor
-        setMapOp(_mapOp_);
+        setCodeAlpha(_codeAlpha_);
 
     }
 
     @Override
     public Object clone()
     {
-        return new AMapScript(
-            cloneNode(this._mapOp_));
+        return new ACodeNoun(
+            cloneNode(this._codeAlpha_));
     }
 
     @Override
     public void apply(Switch sw)
     {
-        ((Analysis) sw).caseAMapScript(this);
+        ((Analysis) sw).caseACodeNoun(this);
     }
 
-    public PMapOp getMapOp()
+    public TCodeAlpha getCodeAlpha()
     {
-        return this._mapOp_;
+        return this._codeAlpha_;
     }
 
-    public void setMapOp(PMapOp node)
+    public void setCodeAlpha(TCodeAlpha node)
     {
-        if(this._mapOp_ != null)
+        if(this._codeAlpha_ != null)
         {
-            this._mapOp_.parent(null);
+            this._codeAlpha_.parent(null);
         }
 
         if(node != null)
@@ -57,23 +57,23 @@ public final class AMapScript extends PScript
             node.parent(this);
         }
 
-        this._mapOp_ = node;
+        this._codeAlpha_ = node;
     }
 
     @Override
     public String toString()
     {
         return ""
-            + toString(this._mapOp_);
+            + toString(this._codeAlpha_);
     }
 
     @Override
     void removeChild(@SuppressWarnings("unused") Node child)
     {
         // Remove child
-        if(this._mapOp_ == child)
+        if(this._codeAlpha_ == child)
         {
-            this._mapOp_ = null;
+            this._codeAlpha_ = null;
             return;
         }
 
@@ -84,9 +84,9 @@ public final class AMapScript extends PScript
     void replaceChild(@SuppressWarnings("unused") Node oldChild, @SuppressWarnings("unused") Node newChild)
     {
         // Replace child
-        if(this._mapOp_ == oldChild)
+        if(this._codeAlpha_ == oldChild)
         {
-            setMapOp((PMapOp) newChild);
+            setCodeAlpha((TCodeAlpha) newChild);
             return;
         }
 

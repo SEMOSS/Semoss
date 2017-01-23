@@ -1316,6 +1316,27 @@ public class DepthFirstAdapter extends AnalysisAdapter
         outAPropsNoun(node);
     }
 
+    public void inACodeNoun(ACodeNoun node)
+    {
+        defaultIn(node);
+    }
+
+    public void outACodeNoun(ACodeNoun node)
+    {
+        defaultOut(node);
+    }
+
+    @Override
+    public void caseACodeNoun(ACodeNoun node)
+    {
+        inACodeNoun(node);
+        if(node.getCodeAlpha() != null)
+        {
+            node.getCodeAlpha().apply(this);
+        }
+        outACodeNoun(node);
+    }
+
     public void inAOthernoun(AOthernoun node)
     {
         defaultIn(node);
@@ -1467,27 +1488,6 @@ public class DepthFirstAdapter extends AnalysisAdapter
         outAAssignScript(node);
     }
 
-    public void inAMapScript(AMapScript node)
-    {
-        defaultIn(node);
-    }
-
-    public void outAMapScript(AMapScript node)
-    {
-        defaultOut(node);
-    }
-
-    @Override
-    public void caseAMapScript(AMapScript node)
-    {
-        inAMapScript(node);
-        if(node.getMapOp() != null)
-        {
-            node.getMapOp().apply(this);
-        }
-        outAMapScript(node);
-    }
-
     public void inAOtherscript(AOtherscript node)
     {
         defaultIn(node);
@@ -1620,50 +1620,6 @@ public class DepthFirstAdapter extends AnalysisAdapter
             node.getRPar().apply(this);
         }
         outAAsop(node);
-    }
-
-    public void inAMapOp(AMapOp node)
-    {
-        defaultIn(node);
-    }
-
-    public void outAMapOp(AMapOp node)
-    {
-        defaultOut(node);
-    }
-
-    @Override
-    public void caseAMapOp(AMapOp node)
-    {
-        inAMapOp(node);
-        if(node.getMap() != null)
-        {
-            node.getMap().apply(this);
-        }
-        if(node.getLPar() != null)
-        {
-            node.getLPar().apply(this);
-        }
-        if(node.getPimport() != null)
-        {
-            node.getPimport().apply(this);
-        }
-        if(node.getCodeblock() != null)
-        {
-            node.getCodeblock().apply(this);
-        }
-        {
-            List<PPnoun> copy = new ArrayList<PPnoun>(node.getPnoun());
-            for(PPnoun e : copy)
-            {
-                e.apply(this);
-            }
-        }
-        if(node.getRPar() != null)
-        {
-            node.getRPar().apply(this);
-        }
-        outAMapOp(node);
     }
 
     public void inAPimport(APimport node)
