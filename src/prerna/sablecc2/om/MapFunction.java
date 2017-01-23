@@ -42,7 +42,7 @@ public class MapFunction {
 		// get the headerrow
 		// call the map with every headerrow
 		// this iterator needs to be chhanged to something different
-		Iterator <IHeadersDataRow> iter = frame.iterator();
+		Iterator <IHeadersDataRow> iter = frame.query("abcd");
 		// need something to get the headers so I know the cardinality eventually
 		while(iter.hasNext())
 		{
