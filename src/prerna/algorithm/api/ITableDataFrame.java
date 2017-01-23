@@ -7,7 +7,9 @@ import java.util.Set;
 import java.util.Vector;
 
 import prerna.algorithm.api.IMetaData.DATA_TYPES;
+import prerna.ds.QueryStruct;
 import prerna.engine.api.IEngine;
+import prerna.engine.api.IHeadersDataRow;
 import prerna.engine.api.ISelectStatement;
 import prerna.engine.api.ISelectWrapper;
 import prerna.ui.components.playsheets.datamakers.IDataMaker;
@@ -440,5 +442,8 @@ public interface ITableDataFrame extends IDataMaker {
 	
 	void addEngineForColumnName(String columnName, String engineName);
 	
-	ISelectWrapper query(String query);
+	Iterator<IHeadersDataRow> query(String query);
+	
+	Iterator<IHeadersDataRow> query(QueryStruct qs);
+	
 }
