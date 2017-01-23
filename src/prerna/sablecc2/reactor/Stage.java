@@ -4,8 +4,12 @@ import java.util.Enumeration;
 import java.util.Hashtable;
 import java.util.Vector;
 
+import prerna.sablecc2.om.CodeBlock;
+import prerna.util.Utility;
+
 public class Stage extends Hashtable <String, Hashtable> {
 	
+	// stage can also be broken into more specific bolts but for now
 	
 	public static final String INPUTS = "INPUTS";
 	public static final String DERIVED_INPUTS = "DERIVED_INPUTS";
@@ -26,7 +30,7 @@ public class Stage extends Hashtable <String, Hashtable> {
 	// should keep another hash of lowest dependency just in case things come in later
 	Hashtable <String, Integer> lowestDependency = new Hashtable<String, Integer>();
 	Hashtable <String, String> fromToDependency = new Hashtable <String, String>();
-		
+			
 	public void addOperation(String operationName, Hashtable codeHash)
 	{
 		numOps++;
@@ -43,14 +47,34 @@ public class Stage extends Hashtable <String, Hashtable> {
 	public void synchronizeInput(String operationName)
 	{
 		Hashtable codeHash = getOperation(operationName);
-		String inputString = " OPERATION COLUMNS  NEEDED ";
-		Vector <String> inputs = (Vector<String>)codeHash.get(INPUTS);
+		String inputString = "{";
+		Vector <String> inputs = (Vector<String>)codeHash.get("INPUT_ORDER");
+		
 		for(int inputIndex = 0;inputIndex < inputs.size();inputIndex++)
 		{
-			inputString = inputString + "\t" + inputs.elementAt(inputIndex);
+			if(inputIndex == 0)
+				inputString = inputString + "\"" + inputs.elementAt(inputIndex) + "\"";
+			else
+				inputString = inputString + ", \"" + inputs.elementAt(inputIndex) + "\"";
 			addStageInput(inputs.elementAt(inputIndex));
 		}
+		
+		/*
 		// need to add the derived inputs here as well
+		inputs = (Vector<String>)codeHash.get(this.DERIVED_INPUTS);
+		for(int inputIndex = 0;inputIndex < inputs.size();inputIndex++)
+		{
+			if(inputIndex == 0)
+				inputString = "\"" + inputs.elementAt(inputIndex) + "\"";
+			else
+				inputString = inputString + ", \"" + inputs.elementAt(inputIndex) + "\"";
+			addStageInput(inputs.elementAt(inputIndex));
+		}
+		*/
+		inputString = inputString + "};";
+		if(inputString.equalsIgnoreCase("{};"))
+			inputString = "";
+
 		codeHash.put(INPUT_STRING, inputString);
 		
 		// also need to synchronize the dependencies
@@ -74,7 +98,9 @@ public class Stage extends Hashtable <String, Hashtable> {
 			Hashtable codeHash = new Hashtable();
 			codeHash.put(INPUTS, new Vector<String>());
 			codeHash.put(DERIVED_INPUTS, new Vector<String>());
-			codeHash.put(CODE, "// CODE Follows \n");
+			String [] codeFollows = new String[2];
+			codeFollows[0] = "";
+			codeHash.put(CODE, codeFollows);
 			codeHash.put(DEPENDS, new Vector<String>());
 			addOperation(operationName, codeHash);
 			return codeHash;
@@ -145,8 +171,12 @@ public class Stage extends Hashtable <String, Hashtable> {
 	public String getCode()
 	{
 		System.out.println("====================================");
+		
+		StringBuffer declarations = new StringBuffer("// STAGE - " + stageNum + "\n { \n");
+		
+		StringBuffer endBlock = new StringBuffer("");
 
-		String retString = "// STAGE - " + stageNum + "\n{";
+		StringBuffer retString = new StringBuffer("");
 		
 		// print all the inputs as a query
 		String selectors = "";
@@ -158,9 +188,9 @@ public class Stage extends Hashtable <String, Hashtable> {
 				selectors = selectors + "," + stageInputs.elementAt(inputIndex);
 		}
 		
-		retString = retString + "\n";
-		retString = retString + "// QUERY SELECTORS NEEDED for this STAGE " + selectors + "\n";
-		retString = retString + selectors + "\n\n";
+		retString = retString.append("\n");
+		retString = retString.append("// QUERY SELECTORS NEEDED for this STAGE " + selectors + "\n");
+		retString = retString.append(selectors);
 		
 		for(int opIndex = 0;opIndex < operationSequence.size();opIndex++)
 		{
@@ -170,23 +200,41 @@ public class Stage extends Hashtable <String, Hashtable> {
 				Hashtable codeHash = (Hashtable)get(thisOperation);
 				
 				// get the inputs
-				retString = retString +"\n //----------" + thisOperation + "--------------";
-				retString = retString + "\n //" + codeHash.get(INPUT_STRING);
+				retString = retString.append("\n //----------" + thisOperation + "--------------");
+				retString = retString.append("\n //" + codeHash.get(INPUT_STRING));
+				
+				String inputStringName = Utility.getRandomString(8) + "Inputs";
+				String inputString = (String)codeHash.get(INPUT_STRING);
+				if(inputString.length() > 0 ) //accomodates for {}
+				declarations = declarations.append("\n String [] " + inputStringName + " = " + inputString + "");
+				
+				// I need to do these pieces on for every
+				String rowObjectName = Utility.getRandomString(8) + "RowObject"; 
+				retString = retString.append("\n Object [] " + rowObjectName + " = " + "getRow(" + inputStringName + ", curRow);");
+				
 				// specify them here
 				// get the code
 				// add the code
-				retString = retString + "\n" + codeHash.get(CODE);
-				retString = retString +"\n //---------" + thisOperation + "---------------";				
+				String [] code = (String[])codeHash.get(CODE);
+				if(code[0] != null && code[0].length() != 0)
+				{
+					retString = retString.append("\n run" + code[0] + "(" + rowObjectName + ");");
+					endBlock = endBlock.append("\n" + code[1]);
+				}
+				retString = retString.append("\n //---------" + thisOperation + "---------------");				
 			}
-			retString = retString + "\n\n";
+			retString = retString.append("\n\n");
 		}
 		
-		retString = retString + "\n }";
-		System.out.println("====================================");
+		retString = retString.append("\n } ");
+		retString = retString.insert(0,declarations + "\n"); // insert all tthe declarations upfront
+		retString = retString.append("\n // Other code functions follow ");
+		retString = retString.append("\n" + endBlock);
+		retString.append("====================================\n");
 
-		return retString;
+		return retString.toString();
 	}
-	
+		
 	public Vector<String> getOperationsInStage()
 	{
 		if(opVector == null)
@@ -200,5 +248,4 @@ public class Stage extends Hashtable <String, Hashtable> {
 		}		
 		return opVector;
 	}
-
 }

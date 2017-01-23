@@ -37,6 +37,7 @@ public class PKSLPlanner {
 		Vertex opVertex = upsertVertex(OPERATION, opName);
 		opVertex.property("OP_TYPE", opType);
 		opVertex.property("CODE", "NONE");
+		opVertex.property("INPUT_ORDER", inputs);
 		for(int inputIndex = 0;inputIndex < inputs.size();inputIndex++)
 		{
 			Vertex inpVertex = upsertVertex(NOUN, inputs.elementAt(inputIndex));
@@ -62,8 +63,6 @@ public class PKSLPlanner {
 		// find the vertex for each of the input
 		// wonder if this should be a full fledged block of java ?
 		Vertex opVertex = upsertVertex(OPERATION, opName);
-		opVertex.property("OP_TYPE", opType);
-		opVertex.property("CODE", "NONE");
 		for(int outputIndex = 0;outputIndex < outputs.size();outputIndex++)
 		{
 			Vertex outpVertex = upsertVertex(NOUN, outputs.elementAt(outputIndex));
@@ -83,6 +82,7 @@ public class PKSLPlanner {
 		Vertex opVertex = upsertVertex(OPERATION, opName);
 		opVertex.property("OP_TYPE", opType);
 		opVertex.property("CODE", codeBlock);
+		opVertex.property("INPUT_ORDER", inputs);
 		for(int inputIndex = 0;inputIndex < inputs.size();inputIndex++)
 		{
 			Vertex inpVertex = upsertVertex(NOUN, inputs.elementAt(inputIndex));
@@ -216,7 +216,7 @@ public class PKSLPlanner {
 		if(codeBlock instanceof CodeBlock)
 		{
 			// I need to print this code
-			String code = ((CodeBlock)codeBlock).getCode();
+			String [] code = ((CodeBlock)codeBlock).getCode();
 			curCode = curCode + "\n" + code; // building from the bottom
 			opHash.put(Stage.CODE, curCode);
 		}
@@ -358,7 +358,8 @@ public class PKSLPlanner {
 		Vector <String> opInputs = (Vector<String>)opHash.get(Stage.INPUTS);
 		Vector <String> deInputs = (Vector<String>)opHash.get(Stage.DERIVED_INPUTS);
 		Vector <String> depends = (Vector<String>)opHash.get(Stage.DEPENDS);
-		String curCode = (String)opHash.get(Stage.CODE);
+		opHash.put("INPUT_ORDER", thisVertex.property("INPUT_ORDER").value());
+		//String [] curCode = (String [])opHash.get(Stage.CODE);
 		// we will refine this code piece later
 
 		// run through each input 
@@ -382,9 +383,9 @@ public class PKSLPlanner {
 		if(codeBlock instanceof CodeBlock)
 		{
 			// I need to print this code
-			String code = ((CodeBlock)codeBlock).getCode();
-			curCode = curCode + "\n" + code; // building from the bottom
-			opHash.put(Stage.CODE, curCode);
+			String [] code = ((CodeBlock)codeBlock).getCode();
+			//curCode = curCode + "\n" + code; // building from the bottom
+			opHash.put(Stage.CODE, code);
 		}
 
 		// find if this is a reduce operation
@@ -437,7 +438,10 @@ public class PKSLPlanner {
 					deInputs.add(nounName);
 			}
 			else // this is the base input with no parent operation
-				opInputs.add(nounName);
+			{
+				if(opInputs.indexOf(nounName) < 0)
+					opInputs.add(nounName);
+			}
 		}
 		
 
@@ -449,7 +453,7 @@ public class PKSLPlanner {
 		// this is all sit on the input Cols
 		opHash.put(Stage.INPUTS, opInputs);
 		opHash.put(Stage.DERIVED_INPUTS, deInputs);
-		opHash.put(Stage.CODE, curCode);	
+		//opHash.put(Stage.CODE, curCode);	
 		opHash.put(Stage.DEPENDS, depends);
 		
 		if(opType == IReactor.TYPE.REDUCE) // this is a reduce operation
@@ -488,8 +492,8 @@ public class PKSLPlanner {
 		// and asking it to getcode
 		
 		System.out.println("Final CODE..\n\n\n\n");
-		System.out.println(curCode);	
-		return curCode;
+		//System.out.println(curCode);	
+		return "";
 	}
 
 	
@@ -552,7 +556,7 @@ public class PKSLPlanner {
 		if(codeBlock instanceof CodeBlock)
 		{
 			// I need to print this code
-			String code = ((CodeBlock)codeBlock).getCode();
+			String [] code = ((CodeBlock)codeBlock).getCode();
 			curCode = code + curCode; // building from the bottom
 		}
 

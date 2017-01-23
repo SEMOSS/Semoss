@@ -1,8 +1,10 @@
 package prerna.sablecc2.om;
 
 import java.util.Hashtable;
+import java.util.Vector;
 
 import prerna.sablecc2.reactor.IReactor;
+import prerna.util.Utility;
 
 public class CodeBlock {
 
@@ -22,6 +24,7 @@ public class CodeBlock {
 	String code = null;// this is the code that will go into the map block or reduce block or something else
 	LANG language = LANG.JAVA; // default yeah baby
 	IReactor.TYPE type = IReactor.TYPE.MAP;
+	String methodName = Utility.getRandomString(8);
 	
 	public void setLanguage(LANG language)
 	{
@@ -32,12 +35,7 @@ public class CodeBlock {
 	{
 		return this.language;
 	}
-	
-	public String getCode()
-	{
-		return this.code;
-	}
-	
+		
 	public void setType(IReactor.TYPE type)
 	{
 		this.type = type;
@@ -74,9 +72,25 @@ public class CodeBlock {
 		this.options = options;
 	}
 	
+	public void setName(String methodName)
+	{
+		this.methodName = methodName;
+	}
+	
 	public Class makeCode()
 	{
 		// this is the final call that makes the code to be executed
 		return null;
+	}
+	
+	public String[] getCode()
+	{
+		String [] retString = new String[2];
+		String method = "public void run" + methodName + "(Object [] row) \n{";
+		method = method + "\n" + code;
+		method = method + "\n } \n";  
+		retString[0] = this.methodName;
+		retString[1] = method;
+		return retString;
 	}
 }
