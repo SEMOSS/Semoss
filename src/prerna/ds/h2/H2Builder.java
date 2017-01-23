@@ -1813,6 +1813,32 @@ public class H2Builder {
 
 		return null;
 	}
+	
+	/**
+	 * 
+	 * @param selectors
+	 * @return
+	 * 
+	 * 		returns an iterator that returns data from the selectors
+	 */
+	public H2Iterator buildIteratorFromQuery(String query) {
+		String tableName = getReadTable();
+
+		try {
+			Statement stmt = getConnection().createStatement();
+
+			long startTime = System.currentTimeMillis();
+			ResultSet rs = stmt.executeQuery(query);
+			long endTime = System.currentTimeMillis();
+			LOGGER.info("Executed Select Query on H2 FRAME: " + (endTime - startTime) + " ms");
+
+			return new H2Iterator(rs);
+		} catch (SQLException s) {
+			s.printStackTrace();
+		}
+
+		return null;
+	}
 
 	/**
 	 * 

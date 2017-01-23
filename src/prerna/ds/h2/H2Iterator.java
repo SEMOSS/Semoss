@@ -9,6 +9,7 @@ import java.util.NoSuchElementException;
 public class H2Iterator implements Iterator<Object[]>{
 
 	ResultSet resultSet;
+	String[] headers;
 	Object[] nextRow;
 	
 	public H2Iterator(ResultSet resultSet) {
@@ -16,6 +17,7 @@ public class H2Iterator implements Iterator<Object[]>{
 		if(this.resultSet != null){
 			nextRow = getNextRow();
 		}
+		setHeaders();
 	}
 	
 	@Override
@@ -57,5 +59,26 @@ public class H2Iterator implements Iterator<Object[]>{
 		} catch (SQLException e) {
 			return null;
 		}    	
+	}
+	
+	public String[] getHeaders() {
+		if(this.headers == null) {
+			setHeaders();
+		}
+		return this.headers;
+	}
+	
+	private void setHeaders() {
+		ResultSetMetaData rsmd;
+		try {
+			rsmd = this.resultSet.getMetaData();
+			int columnCount = rsmd.getColumnCount();
+			this.headers = new String[columnCount];
+			for (int i = 1; i <= columnCount; i++ ) {
+				headers[i-1] = rsmd.getColumnName(i);
+			}
+		} catch (SQLException e) {
+			e.printStackTrace();
+		}
 	}
 }
