@@ -142,6 +142,30 @@ public class SelectStatement implements ISelectStatement {
 		return null;
 	}
 
+	@Override
+	public String toJson() {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+	@Override
+	public void open() {
+		// TODO Auto-generated method stub
+		
+	}
+
+	@Override
+	public void addField(String fieldName, Object value) {
+		// TODO Auto-generated method stub
+		
+	}
+
+	@Override
+	public Object getField(String fieldName) {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
 //	@Override
 //	public boolean equals(ISelectStatement other){
 //		boolean equal = false;
