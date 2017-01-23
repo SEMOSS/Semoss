@@ -22,6 +22,7 @@ import prerna.algorithm.api.IMetaData.DATA_TYPES;
 import prerna.algorithm.api.ITableDataFrame;
 import prerna.engine.api.IEngine;
 import prerna.engine.api.ISelectStatement;
+import prerna.engine.api.ISelectWrapper;
 import prerna.math.BarChart;
 import prerna.math.StatisticsUtilityMethods;
 import prerna.sablecc.PKQLEnum;
@@ -726,5 +727,11 @@ public abstract class AbstractTableDataFrame implements ITableDataFrame {
 		this.dataId = BigInteger.valueOf(0);
 	}
 	
+	// TODO
+	public ISelectWrapper query(String query)
+	{
+		return null;
+	}
 
+	
 }

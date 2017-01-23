@@ -2,6 +2,7 @@ package prerna.sablecc2;
 
 import prerna.sablecc2.analysis.DepthFirstAdapter;
 import prerna.sablecc2.node.AAsop;
+import prerna.sablecc2.node.ACodeNoun;
 import prerna.sablecc2.node.AColTerm;
 import prerna.sablecc2.node.ADecimal;
 import prerna.sablecc2.node.ADotcol;
@@ -15,7 +16,6 @@ import prerna.sablecc2.node.ALiteralColDef;
 import prerna.sablecc2.node.AOpScript;
 import prerna.sablecc2.node.AOperationFormula;
 import prerna.sablecc2.node.AOtherscript;
-import prerna.sablecc2.node.APlusExpr;
 import prerna.sablecc2.node.AProp;
 import prerna.sablecc2.node.ARcol;
 import prerna.sablecc2.node.AScriptchain;
@@ -295,7 +295,23 @@ public class Translation extends DepthFirstAdapter {
         // TODO need to do the operation of assimilating here
         deInitReactor();
     }
-    
+
+    // code sits here
+/*    public void inACodeColDef(ACodeColDef node)
+    {
+        IReactor codeReactor = new CodeReactor();
+        String code = (node.getCode2()+"").trim();
+        codeReactor.setName("Code");
+        codeReactor.setPKSL("code", code);
+        initReactor(codeReactor);
+    }
+
+    public void outACodeColDef(ACodeColDef node)
+    {
+        defaultOut(node);
+        deInitReactor();
+    }
+*/
     
     // atomic level stuff goes in here
     
@@ -361,6 +377,21 @@ public class Translation extends DepthFirstAdapter {
     {
         curReactor.setProp((node.getId()+"").trim(), node.getNumberOrLiteral()+"");
     }
+    
+    public void inACodeNoun(ACodeNoun node)
+    {
+        defaultIn(node);
+        String code = (node.getCodeAlpha() + "");
+        code = code.replace("<c>","");
+        code = code.trim();
+        curReactor.setProp("CODE", code);
+    }
+
+    public void outACodeNoun(ACodeNoun node)
+    {
+        defaultOut(node);
+    }
+
     
 //----------------------------- Private methods
 
