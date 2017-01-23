@@ -53,9 +53,10 @@ import prerna.ui.main.listener.specific.tap.FormsSourceFilesConsolidationListene
 import prerna.util.DIHelper;
 import prerna.util.Utility;
 
-public class FormsICDDataProcessor extends BaseFormsDataProcessor {
+public class FormsICDDataProcessor extends BaseFormsICDDataProcessor {
 	public static final Logger LOGGER = LogManager.getLogger(FormsICDDataProcessor.class.getName());	
-	public String INTERFACES_FILE = "\\ICD Consolidated to Service Mapping_Validated.xlsm";
+	
+	/*public String INTERFACES_FILE = "\\ICD Consolidated to Service Mapping_Validated.xlsm";
 	
 	public String MY_QUERY = SYSTEM_INTERFACE_ENTERPRISE_QUERY;
 	
@@ -69,12 +70,12 @@ public class FormsICDDataProcessor extends BaseFormsDataProcessor {
 	public int ICD_DATA_OBJECT_STARTING_COL_NUM = 60;
 	public int SHEET_LAST_COLUMN = 60;
 	
-	public int ICD_FREQUENCY_STARTING_COL_NUM = 19;
-	public int ICD_FREQUENCY_ENDING_COL_NUM = 26;
-	public int ICD_PROTOCOL_STARTING_COL_NUM = 27;
-	public int ICD_PROTOCOL_ENDING_COL_NUM = 43;
-	public int ICD_FORMAT_STARTING_COL_NUM = 44;
-	public int ICD_FORMAT_ENDING_COL_NUM = 59;
+	public int ICD_FREQUENCY_STARTING_COL_NUM = 0;
+	public int ICD_FREQUENCY_ENDING_COL_NUM = 0;
+	public int ICD_PROTOCOL_STARTING_COL_NUM = 0;
+	public int ICD_PROTOCOL_ENDING_COL_NUM = 0;
+	public int ICD_FORMAT_STARTING_COL_NUM = 0;
+	public int ICD_FORMAT_ENDING_COL_NUM = 0;
 	
 	public static final String SYSTEM_INTERFACES_SHEET_NAME = "ICD";
 		
@@ -82,10 +83,29 @@ public class FormsICDDataProcessor extends BaseFormsDataProcessor {
 	public static HashMap<String, Integer> ICD_FREQUENCY_HEADER_CACHE = null;
 	public static HashMap<String, Integer> ICD_PROTOCOL_HEADER_CACHE = null;
 	public static HashMap<String, Integer> ICD_FORMAT_HEADER_CACHE = null;
-	
+	*/
 	public FormsICDDataProcessor(){
+		INTERFACE_NAME_COL_NUM = 5;
+		PROTOCOL_COL_NUM = 8;
+		FORMAT_COL_NUM = 10;
+		FREQUENCY_COL_NUM = 9;
+		PROVIDER_COL_NUM = 2;
+		CONSUMER_COL_NUM = 3;
+		ICD_DATA_OBJECT_STARTING_COL_NUM = 60;
+		SHEET_LAST_COLUMN = 60;
+		
+		MY_QUERY = SYSTEM_INTERFACE_ENTERPRISE_QUERY;
+		INTERFACES_FILE = "\\ICD Consolidated to Service Mapping_Validated.xlsm";
+		
+		ICD_FREQUENCY_STARTING_COL_NUM = 19;
+		ICD_FREQUENCY_ENDING_COL_NUM = 26;
+		ICD_PROTOCOL_STARTING_COL_NUM = 27;
+		ICD_PROTOCOL_ENDING_COL_NUM = 43;
+		ICD_FORMAT_STARTING_COL_NUM = 44;
+		ICD_FORMAT_ENDING_COL_NUM = 59;
+		
 	}
-	
+	/*
 	public void processICDFile(IEngine engine, File sourceFolder, ArrayList<String> systemsList){
 		try{
 			LOGGER.info("********** Querying for System Interfaces");
@@ -247,6 +267,7 @@ public class FormsICDDataProcessor extends BaseFormsDataProcessor {
     	}
 		return -1;
 	}
+	*/
 /*
 	private XSSFSheet cleanupSheet(XSSFSheet lSheet){
 		int lastRowNum = lSheet.getLastRowNum();

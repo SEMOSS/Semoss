@@ -53,7 +53,7 @@ import prerna.ui.main.listener.specific.tap.FormsSourceFilesConsolidationListene
 import prerna.util.DIHelper;
 import prerna.util.Utility;
 
-public class FormsSiteICDDataProcessor extends FormsICDDataProcessor {
+public class FormsSiteICDDataProcessor extends BaseFormsICDDataProcessor {
 	public static final Logger LOGGER = LogManager.getLogger(FormsSiteICDDataProcessor.class.getName());	
 	public int SITE_COL_NUM = 4;
 	
