@@ -9,6 +9,7 @@ import java.util.Vector;
 import prerna.algorithm.api.IMetaData.DATA_TYPES;
 import prerna.engine.api.IEngine;
 import prerna.engine.api.ISelectStatement;
+import prerna.engine.api.ISelectWrapper;
 import prerna.ui.components.playsheets.datamakers.IDataMaker;
 
 public interface ITableDataFrame extends IDataMaker {
@@ -438,4 +439,6 @@ public interface ITableDataFrame extends IDataMaker {
 	void modifyColumnName(String existingName, String newName);
 	
 	void addEngineForColumnName(String columnName, String engineName);
+	
+	ISelectWrapper query(String query);
 }

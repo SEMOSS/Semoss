@@ -5,6 +5,7 @@ import java.util.Enumeration;
 import java.util.Hashtable;
 import java.util.Vector;
 
+import prerna.sablecc2.om.CodeBlock;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.GenRowStruct.COLUMN_TYPE;
 import prerna.sablecc2.om.NounMetadata;
@@ -25,6 +26,7 @@ public class SampleReactor implements IReactor {
 	String reactorName = "Sample";
 	String [] asName = null;
 	Vector <String> outputFields = null;
+	Vector <String> outputTypes = null;
 	
 	Hashtable <String, Object> propStore = new Hashtable<String, Object>();
 	
@@ -296,7 +298,31 @@ public class SampleReactor implements IReactor {
 			if(asName == null)
 				reactorOutput = reactorOutput + "_" + struct.getColumns();
 
-			planner.addInputs(signature, inputs, type);
+			// find if code exists
+			if(!propStore.containsKey("CODE"))
+				planner.addInputs(signature, inputs, type);
+			else
+			{
+				// this is a code block
+				String code = (String)propStore.get("CODE");
+				
+				CodeBlock.LANG thisLang = CodeBlock.LANG.JAVA; // default
+				// need a if loop to convert language to java
+				if(propStore.containsKey("LANGUAGE"))
+				{
+					String language = (String)propStore.get("LANGUAGE");
+					if(language.toLowerCase().contains("python"))
+						thisLang = CodeBlock.LANG.PYTHON;
+					if(language.toLowerCase().contains("r")) // good luck if you want prolog it will still be R :)
+						thisLang = CodeBlock.LANG.R;
+				}
+				CodeBlock thisBlock = new CodeBlock();
+				thisBlock.setLanguage(CodeBlock.LANG.JAVA);
+				thisBlock.addCode(code);
+				
+				// add it as a code block
+				planner.addInputs(signature, thisBlock, inputs, IReactor.TYPE.MAP);
+			}
 		}
 		
 		// give it a variable name

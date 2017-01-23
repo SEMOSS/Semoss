@@ -31,7 +31,8 @@ public class ExprReactor extends SampleReactor {
 		if(this.parentReactor != null && !this.parentReactor.getName().equalsIgnoreCase("OPERATION_FORMULA"))
 		{
 			// align to plan
-			updatePlan();
+			// not sure I need this right now to add something to itself ?
+			// updatePlan();
 		}
 		if(this.type != IReactor.TYPE.REDUCE && this.store.isSQL() && this.parentReactor != null && !this.parentReactor.getName().equalsIgnoreCase("OPERATION_FORMULA"))
 		{
