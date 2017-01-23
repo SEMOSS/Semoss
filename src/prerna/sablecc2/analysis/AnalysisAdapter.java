@@ -381,6 +381,12 @@ public class AnalysisAdapter implements Analysis
     }
 
     @Override
+    public void caseACodeNoun(ACodeNoun node)
+    {
+        defaultCase(node);
+    }
+
+    @Override
     public void caseAOthernoun(AOthernoun node)
     {
         defaultCase(node);
@@ -423,12 +429,6 @@ public class AnalysisAdapter implements Analysis
     }
 
     @Override
-    public void caseAMapScript(AMapScript node)
-    {
-        defaultCase(node);
-    }
-
-    @Override
     public void caseAOtherscript(AOtherscript node)
     {
         defaultCase(node);
@@ -448,12 +448,6 @@ public class AnalysisAdapter implements Analysis
 
     @Override
     public void caseAAsop(AAsop node)
-    {
-        defaultCase(node);
-    }
-
-    @Override
-    public void caseAMapOp(AMapOp node)
     {
         defaultCase(node);
     }
@@ -562,6 +556,12 @@ public class AnalysisAdapter implements Analysis
 
     @Override
     public void caseTDot(TDot node)
+    {
+        defaultCase(node);
+    }
+
+    @Override
+    public void caseTCodeAlpha(TCodeAlpha node)
     {
         defaultCase(node);
     }
@@ -778,12 +778,6 @@ public class AnalysisAdapter implements Analysis
 
     @Override
     public void caseTImportblock(TImportblock node)
-    {
-        defaultCase(node);
-    }
-
-    @Override
-    public void caseTCodeblock(TCodeblock node)
     {
         defaultCase(node);
     }

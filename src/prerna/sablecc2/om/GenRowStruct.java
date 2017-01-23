@@ -29,6 +29,7 @@ public class GenRowStruct extends Vector {
 	
 	public void addColumn(String column)
 	{
+		column = column.trim();
 		super.addElement(column);
 		metaVector.add(COLUMN_TYPE.COLUMN);
 		columns = columns + "_" + column;

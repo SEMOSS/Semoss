@@ -63,6 +63,7 @@ public interface Analysis extends Switch
     void caseATooltipsNoun(ATooltipsNoun node);
     void caseAOthersNoun(AOthersNoun node);
     void caseAPropsNoun(APropsNoun node);
+    void caseACodeNoun(ACodeNoun node);
     void caseAOthernoun(AOthernoun node);
     void caseAFrameopScript(AFrameopScript node);
     void caseAJavaOpScript(AJavaOpScript node);
@@ -70,12 +71,10 @@ public interface Analysis extends Switch
     void caseAOpScript(AOpScript node);
     void caseAMakeScript(AMakeScript node);
     void caseAAssignScript(AAssignScript node);
-    void caseAMapScript(AMapScript node);
     void caseAOtherscript(AOtherscript node);
     void caseAScriptchain(AScriptchain node);
     void caseAFrameop(AFrameop node);
     void caseAAsop(AAsop node);
-    void caseAMapOp(AMapOp node);
     void caseAPimport(APimport node);
     void caseAPnoun(APnoun node);
     void caseAFilter(AFilter node);
@@ -95,6 +94,7 @@ public interface Analysis extends Switch
     void caseTSort(TSort node);
     void caseTId(TId node);
     void caseTDot(TDot node);
+    void caseTCodeAlpha(TCodeAlpha node);
     void caseTSemicolon(TSemicolon node);
     void caseTColon(TColon node);
     void caseTPlus(TPlus node);
@@ -131,7 +131,6 @@ public interface Analysis extends Switch
     void caseTApi(TApi node);
     void caseTOutput(TOutput node);
     void caseTImportblock(TImportblock node);
-    void caseTCodeblock(TCodeblock node);
     void caseTJava(TJava node);
     void caseTR(TR node);
     void caseTMk(TMk node);
