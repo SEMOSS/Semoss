@@ -2293,7 +2293,11 @@ public class Translation extends DepthFirstAdapter {
 			number = number + "." + fraction;
 			num = Double.parseDouble(number);
 		} else {
-			num = Integer.parseInt(number);
+			try {
+				num = Integer.parseInt(number);
+			} catch(NumberFormatException e) {
+				num = Long.parseLong(number);//if number is too big for integer parse it as a long
+			}
 		}
 		curReactor.put(PKQLEnum.WORD_OR_NUM, num);
 	}
