@@ -97,8 +97,17 @@ public class H2Frame extends AbstractTableDataFrame {
 		Map<String, String> mainColMap = new HashMap<>();
 		mainColMap.put("CSV", "Title");
 		H2Frame t = (H2Frame) TableDataFrameFactory.generateDataFrameFromFile(fileName, ",", "H2", dataTypeMap, mainColMap);
-		String tableName = t.builder.getTableName();
 		
+		System.out.println("NUMBER OF ROWS WITHOUT FILTER: "+t.getNumRows());
+		//initial filter
+		List<Object> values1 = new ArrayList<>();
+		values1.add("Arthur");
+		values1.add("127_Hours");
+		t.filter("Title", values1);
+		System.out.println("ROWS WITH INITIAL FILTER: "+t.getData().size());
+		
+		//query with secondary filter
+		String tableName = t.builder.getTableName();
 		QueryStruct qs = new QueryStruct();
 		qs.addSelector(tableName, "Title");
 		qs.addSelector(tableName, "Genre");
@@ -748,16 +757,13 @@ public class H2Frame extends AbstractTableDataFrame {
 	@Override
 	public Iterator<IHeadersDataRow> query(String query) {
 		H2Iterator iterator = this.builder.buildIteratorFromQuery(query);
-		if(iterator != null) {
-			return new H2HeadersDataRowIterator(iterator);
-		}
-		return null;
+		return new H2HeadersDataRowIterator(iterator);		
 	}
 	
 	@Override
 	public Iterator<IHeadersDataRow> query(QueryStruct queryStruct) {
 		SQLInterpreter interp = new SQLInterpreter();//default query util is H2
-		//TODO : here we need to merge filters
+		queryStruct = builder.mergeFilters(queryStruct);
 		interp.setQueryStruct(queryStruct);
 		String iteratorQuery = interp.composeQuery();
 		return query(iteratorQuery);
