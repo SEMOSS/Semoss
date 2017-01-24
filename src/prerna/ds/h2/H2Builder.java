@@ -40,6 +40,7 @@ import prerna.cache.ICache;
 import prerna.ds.AbstractTableDataFrame;
 import prerna.ds.AbstractTableDataFrame.Comparator;
 import prerna.ds.DataFrameJoiner;
+import prerna.ds.QueryStruct;
 import prerna.ds.util.H2FilterHash;
 import prerna.ds.util.RdbmsFrameUtility;
 import prerna.ds.util.RdbmsQueryBuilder;
@@ -1753,7 +1754,174 @@ public class H2Builder {
 	}
 	}
 	
-	/*************************** 
+	/**
+	 * 
+	 * @param filters
+	 * @return
+	 * 
+	 * This method is used to convert the current filter hash to an object that can be used within a querystruct
+	 */
+	private Hashtable<String,Hashtable<String,Vector>> convertToQueryStuctFilter(Map<String, Map<AbstractTableDataFrame.Comparator, Set<Object>>> filters) {
+		Hashtable<String, Hashtable<String, Vector>> qsFilters = new Hashtable<>();
+		String tableName = getTableName();
+		for(String key : filters.keySet()) {
+			Map<AbstractTableDataFrame.Comparator, Set<Object>> innerFilters = filters.get(key);
+			Hashtable innerQsFilters = new Hashtable<String, Vector>();
+			for(Comparator innerKey : innerFilters.keySet()) {
+				
+				String stringInnerKey = RdbmsFrameUtility.getComparatorStringValue(innerKey);
+				
+				Vector v = new Vector(innerFilters.get(innerKey));
+				innerQsFilters.put(stringInnerKey, v);
+			}
+			qsFilters.put(tableName+"__"+key, innerQsFilters);
+		}
+		return qsFilters;
+	}
+	
+	/**
+	 * 
+	 * @param filters1
+	 * @param filters2
+	 * @return
+	 * 
+	 * return the combination of filters1 and filters2 such that it produces the most restrictive filtering
+	 * 
+	 * ASSUMPTION: for equivalent filters such as (Title = list1) in filters1 and (Title = list2) in filters2, list1 is a sublist of list2 or vice versa
+	 */
+	private Hashtable<String, Hashtable<String, Vector>> mergeFilters(Hashtable <String, Hashtable<String, Vector>> filters1, Hashtable <String, Hashtable<String, Vector>> filters2) {
+		Hashtable<String, Hashtable<String, Vector>> retFilters = new Hashtable<>();
+		
+		retFilters.putAll(filters2);
+		
+		for(String key : filters1.keySet()) {
+			Hashtable<String, Vector> hash1 = filters1.get(key);
+			Hashtable<String, Vector> newHash = new Hashtable<String, Vector>();
+			retFilters.put(key, newHash);
+			//need to determine which set is more restrictive
+			//assumption is that smaller vector is a subset of bigger vector
+			if(filters2.containsKey(key)) {
+				Hashtable<String, Vector> hash2 = filters2.get(key);
+				for(String relationKey : hash1.keySet()) {
+					Vector v;
+					if(hash2.containsKey(relationKey)) {
+						Vector v2 = hash2.get(relationKey);
+						Vector v1 = hash1.get(relationKey);
+						switch(relationKey) {
+						case "=": {
+							//pick the smaller vector
+							if(v2.size() < v1.size()) {
+								newHash.put(relationKey, v2);
+							} else {
+								newHash.put(relationKey, v1);
+							}
+							break;
+						}
+						case "!=": {
+							//pick the bigger vector
+							if(v2.size() < v1.size()) {
+								newHash.put(relationKey, v1);
+							} else {
+								newHash.put(relationKey, v2);
+							}
+							break;
+						}
+						case "<=":
+						case "<": {
+							//pick the smaller number
+							Object thisObj = v2.get(0);
+							Object incomingObj = v1.get(0);
+							
+							Double thisDbl = Double.NEGATIVE_INFINITY;
+							Double incomingDbl = Double.POSITIVE_INFINITY;
+							
+							if(thisObj instanceof Double) {
+								thisDbl = (Double)thisObj;
+							} else {
+								//i shouldn't need to cast to string here, pkql should be taking care of that
+							}
+							
+							if(incomingObj instanceof Double) {
+								incomingObj = (Double)incomingObj;
+							} else {
+								//i shouldn't need to cast to string here, pkql should be taking care of that
+							}
+							
+							if(thisDbl > incomingDbl) {
+								Vector newVec = new Vector(0);
+								newVec.add(incomingObj);
+								hash2.put(relationKey, newVec);
+							} else {
+								Vector newVec = new Vector(0);
+								newVec.add(thisObj);
+								hash2.put(relationKey, newVec);
+							}
+							
+							break;
+						}
+						case ">=":
+						case ">": {
+							//pick the bigger number
+							Object thisObj = v2.get(0);
+							Object incomingObj = v1.get(0);
+							
+							Double thisDbl = Double.POSITIVE_INFINITY;
+							Double incomingDbl = Double.NEGATIVE_INFINITY;
+							
+							if(thisObj instanceof Double) {
+								thisDbl = (Double)thisObj;
+							} else {
+								//i shouldn't need to cast to string here, pkql should be taking care of that
+							}
+							
+							if(incomingObj instanceof Double) {
+								incomingObj = (Double)incomingObj;
+							} else {
+								//i shouldn't need to cast to string here, pkql should be taking care of that
+							}
+							
+							if(thisDbl < incomingDbl) {
+								Vector newVec = new Vector(0);
+								newVec.add(incomingObj);
+								newHash.put(relationKey, newVec);
+							} else {
+								Vector newVec = new Vector(0);
+								newVec.add(thisObj);
+								newHash.put(relationKey, newVec);
+							}
+							
+							break;
+						}						
+						}
+					} else {
+						v = new Vector();
+						v.addAll(hash1.get(relationKey));
+						newHash.put(relationKey, v);
+					}
+				}
+			} 
+			
+			//these are new filters, add them to the db filters
+			else {
+				for(String relationKey : hash1.keySet()) {
+					Vector v = new Vector();
+					v.addAll(hash1.get(relationKey));
+					newHash.put(relationKey, v);
+				}
+				retFilters.put(key, newHash);
+			}
+		}
+		
+		return retFilters;
+	}
+	
+	public QueryStruct mergeFilters(QueryStruct queryStruct) {
+		Hashtable<String, Hashtable<String, Vector>> curFilters = convertToQueryStuctFilter(this.filterHash2);
+		Hashtable<String, Hashtable<String, Vector>> mergedFilters = mergeFilters(queryStruct.andfilters, curFilters);
+		queryStruct.andfilters = mergedFilters;
+		return queryStruct;
+	}
+ 	/*************************** 
 	 * 	END FILTER
 	 * *************************/
 
