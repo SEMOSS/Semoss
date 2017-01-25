@@ -33,6 +33,8 @@ import prerna.engine.api.IConstructWrapper;
 import prerna.engine.api.IEngine;
 import prerna.engine.api.IRawSelectWrapper;
 import prerna.engine.api.ISelectWrapper;
+import prerna.engine.impl.tinker.RawTinkerSelectWrapper;
+import prerna.engine.impl.tinker.TinkerSelectWrapper;
 
 public class WrapperManager {
 
@@ -82,6 +84,9 @@ public class WrapperManager {
 					returnWrapper = new RDBMSSelectWrapper();
 					break;
 					//TBD
+				}
+				case TINKER: {
+					returnWrapper = new TinkerSelectWrapper();
 				}
 				default: {
 					
@@ -188,6 +193,10 @@ public class WrapperManager {
 			System.err.println("NEED TO IMPLEMENT RAW QUERY FOR REMOTE SESAME SELECT WRAPPER!!!!!");
 //			returnWrapper = new RemoteSesameSelectWrapper();
 //			break;
+		}
+		case TINKER: {
+			returnWrapper = new RawTinkerSelectWrapper();
+			break;
 		}
 		default: {
 

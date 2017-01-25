@@ -178,7 +178,11 @@ public class AddToMasterDB extends ModifyMasterDB {
 		if(prop.getProperty("ENGINE_TYPE").contains("RDBMS")) {
 			engineType = IEngine.ENGINE_TYPE.RDBMS;
 			engineTypeString = "TYPE:RDBMS";
-		} else {
+		} else if(prop.getProperty("ENGINE_TYPE").contains("Tinker")) {
+			engineType = IEngine.ENGINE_TYPE.TINKER;
+			engineTypeString = "TYPE:TINKER";
+		}
+		else {
 			engineType = IEngine.ENGINE_TYPE.SESAME;
 			engineTypeString = "TYPE:RDF";
 		}
