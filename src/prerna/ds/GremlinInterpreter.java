@@ -19,6 +19,7 @@ import org.apache.tinkerpop.gremlin.structure.Graph;
 import org.apache.tinkerpop.gremlin.structure.Vertex;
 
 import prerna.engine.impl.rdbms.RDBMSNativeEngine;
+import prerna.engine.impl.tinker.TinkerEngine;
 import prerna.om.Insight;
 import prerna.rdf.query.builder.IQueryInterpreter;
 import prerna.sablecc.PKQLRunner;
@@ -26,6 +27,7 @@ import prerna.test.TestUtilityMethods;
 import prerna.ui.components.playsheets.datamakers.ISEMOSSTransformation;
 import prerna.ui.components.playsheets.datamakers.PKQLTransformation;
 import prerna.util.DIHelper;
+import prerna.util.OWLER;
 
 public class GremlinInterpreter implements IQueryInterpreter {
 
@@ -45,6 +47,12 @@ public class GremlinInterpreter implements IQueryInterpreter {
 		this.gt = g.traversal().V();
 	}
 	
+	public GremlinInterpreter(TinkerEngine tinkerEngine) {
+		this.g = tinkerEngine.getGraph();
+		this.gt = g.traversal().V();
+		this.edgeHash = this.qs.getReturnConnectionsHash();
+	}
+
 	@Override
 	public void setQueryStruct(QueryStruct qs) {
 		this.qs = qs;
@@ -490,7 +498,7 @@ public class GremlinInterpreter implements IQueryInterpreter {
 		return traversals;
 	}
 
-	void addFilterInPath(GraphTraversal<Object, Vertex> gt, String nameType, Hashtable<String, Vector> filterInfo) {
+	public void addFilterInPath(GraphTraversal<Object, Vertex> gt, String nameType, Hashtable<String, Vector> filterInfo) {
 		// TODO: right now, if its a math, assumption that vector only contains one value
 		for(String filterType : filterInfo.keySet()) {
 			Vector filterVals = filterInfo.get(filterType);
