@@ -68,6 +68,7 @@ public class PropFileWriter {
 	public String owlFile;
 	public String defaultEngine = "prerna.engine.impl.rdf.BigDataEngine";
 	public String defaultRDBMSEngine = "prerna.engine.impl.rdbms.RDBMSNativeEngine";
+	public String defaultTinkerEngine = "prerna.engine.impl.tinker.TinkerEngine";
 	public boolean hasMap = false;
 
 	private SQLQueryUtil.DB_TYPE dbDriverType = SQLQueryUtil.DB_TYPE.H2_DB;
@@ -325,6 +326,10 @@ public class PropFileWriter {
 					}
 					pw.write(currentLine + "\n");
 				}
+			}
+			if(dbType == ImportOptions.DB_TYPE.TINKER) {
+				pw.write(Constants.TINKER_FILE + " @BaseFolder@/db/@ENGINE@/@ENGINE@.tg" + "\n");
+				pw.write(Constants.ENGINE_TYPE + "\t" + this.defaultTinkerEngine + "\n");
 			}
 		} catch (IOException ex) {
 			ex.printStackTrace();

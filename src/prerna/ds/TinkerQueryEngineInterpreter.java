@@ -85,12 +85,18 @@ public class TinkerQueryEngineInterpreter extends AbstractTinkerInterpreter impl
 		// Vertex startNode =
 		// this.metaGraph.traversal().V().has(TinkerFrame.TINKER_NAME,
 		// startUniqueName).next();
+		
+		//check node properties
 		GraphTraversal gt = g.traversal().V().has(TinkerFrame.TINKER_TYPE, startUniqueName);
-//		for(String s: sel.keySet()) {
-//			if(!s.contains("PRIM")) {
-//				gt.has(s);
-//			}
-//		}
+		for(String s: sel.keySet()) {
+			Vector<String> props = sel.get(s);
+			for(String property: props) {
+				if(property.equals("PRIME_KEY_HOLDER")) {
+					
+				}
+				
+			}
+		}
 		Vertex startNode = (Vertex) gt.next();
 //		Vertex startNode = g.traversal().V().has(TinkerFrame.TINKER_TYPE, startUniqueName).next();
 
