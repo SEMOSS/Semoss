@@ -37,19 +37,18 @@ import prerna.engine.api.IEngine;
 import prerna.engine.api.IEngineWrapper;
 import prerna.engine.api.IRemoteQueryable;
 
-public abstract class AbstractWrapper implements IRemoteQueryable, IEngineWrapper{
+public abstract class AbstractWrapper implements IRemoteQueryable, IEngineWrapper {
 
 	String ID = null;
 	String api = null;
 	boolean remote = false;
 	static final Logger logger = LogManager.getLogger(AbstractWrapper.class.getName());
-	transient IEngine engine = null;
+	protected transient IEngine engine = null;
 	transient Enum engineType;
 	transient String query = null;
-	String [] var = null;
-	String [] displayVar = null;
+	String[] var = null;
+	protected String[] displayVar = null;
 
-	
 	@Override
 	public void setRemoteID(String id) {
 		this.ID = id;

@@ -686,6 +686,15 @@ public abstract class AbstractEngine implements IEngine {
 			retString = "bulkInsertPreparedStatement";
 			break;
 		}
+		case VERTEX_UPSERT: {
+			retString = "upsertVertex";
+			break;
+		}
+		case EDGE_UPSERT: {
+			retString = "upsertEdge";
+			break;
+		}
+		
 		default: {
 
 		}
