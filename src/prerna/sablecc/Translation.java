@@ -19,6 +19,7 @@ import prerna.algorithm.impl.BaseReducerReactor;
 import prerna.ds.AbstractTableDataFrame;
 import prerna.ds.h2.H2Frame;
 import prerna.ds.r.RDataTable;
+import prerna.engine.api.IEngine;
 import prerna.engine.api.IScriptReactor;
 import prerna.om.Dashboard;
 import prerna.sablecc.PKQLEnum.PKQLReactor;
@@ -33,6 +34,7 @@ import prerna.sablecc.services.DatabasePkqlService;
 import prerna.sablecc.services.MetamodelVertex;
 import prerna.ui.components.playsheets.datamakers.IDataMaker;
 import prerna.util.Constants;
+import prerna.util.Utility;
 
 public class Translation extends DepthFirstAdapter {
 	// this is the third version of this shit I am building
@@ -555,7 +557,13 @@ public class Translation extends DepthFirstAdapter {
 			this.reactorNames.put(PKQLEnum.API, this.reactorNames.get(PKQLEnum.R_API));
 		} else if(this.reactorNames.get(PKQLEnum.API) == null){
 			// default is a query api
+			if(Utility.getEngine(engine).getEngineType() == IEngine.ENGINE_TYPE.TINKER) {
+				this.reactorNames.put(PKQLEnum.API, this.reactorNames.get(PKQLEnum.TINKER_QUERY_API));
+
+			} else {
 			this.reactorNames.put(PKQLEnum.API, this.reactorNames.get(PKQLEnum.QUERY_API));
+			}
+			
 		}
 //		if (reactorNames.containsKey(PKQLEnum.API)) {
 			// this is here because we are overriding the data.import order of
