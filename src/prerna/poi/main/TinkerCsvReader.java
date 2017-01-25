@@ -11,8 +11,12 @@ import org.apache.log4j.Level;
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 import org.apache.tinkerpop.gremlin.structure.Vertex;
+import org.openrdf.model.vocabulary.RDF;
+import org.openrdf.model.vocabulary.RDFS;
 
+import prerna.ds.TinkerFrame;
 import prerna.engine.api.IEngine;
+import prerna.engine.impl.tinker.TinkerEngine;
 import prerna.poi.main.helper.ImportOptions;
 import prerna.util.Constants;
 import prerna.util.Utility;
@@ -76,7 +80,7 @@ public class TinkerCsvReader extends AbstractCSVFileReader {
 					closeCSVFile();
 				}
 			}
-			loadMetadataIntoEngine();
+//			loadMetadataIntoEngine();
 			createBaseRelations();
 		} catch(FileNotFoundException e) {
 			error = true;
@@ -145,7 +149,6 @@ public class TinkerCsvReader extends AbstractCSVFileReader {
 				closeCSVFile();
 			}
 		} 
-		loadMetadataIntoEngine();
 		createBaseRelations();
 		commitDB();
 	}
@@ -162,6 +165,7 @@ public class TinkerCsvReader extends AbstractCSVFileReader {
 		this.dataTypes = new String[numCols];
 		// create a map from column name to index
 		// this will be used to help speed up finding the location of values
+		//TODO OWLER
 		this.csvColumnToIndex = new Hashtable<String, Integer>();
 
 		for(int colIndex = 1; colIndex <= numCols; colIndex++) {
@@ -191,7 +195,12 @@ public class TinkerCsvReader extends AbstractCSVFileReader {
 				// just in case the end of the prop string is empty string or spaces
 				if(!relation.contains("@"))
 					continue;
-
+				String subject = relation.substring(0, relation.indexOf("@"));
+				String object = relation.substring(relation.lastIndexOf("@") + 1);
+				String predicate = relation.substring(relation.indexOf("@") + 1, relation.lastIndexOf("@"));
+				this.owler.addConcept(subject);
+				this.owler.addConcept(object);
+				this.owler.addRelation(subject, object, predicate);
 				relationArrayList.add(relation);
 			}
 		}
@@ -204,14 +213,17 @@ public class TinkerCsvReader extends AbstractCSVFileReader {
 			if(basePropURI.equals("")){
 				basePropURI = semossURI + "/" + Constants.DEFAULT_RELATION_CLASS + "/" + CONTAINS;
 			}
-			while(nodePropTokens.hasMoreElements())
-			{
+			while (nodePropTokens.hasMoreElements()) {
 				String relation = nodePropTokens.nextToken();
 				// in case the end of the prop string is empty string or spaces
-				if(!relation.contains("%"))
+				if (!relation.contains("%"))
 					continue;
-
+				String concept = relation.substring(0, relation.indexOf("%"));
+				String property = relation.substring(relation.lastIndexOf("%") + 1);
+				// TODO this.owler.addProp(tableName, relation, "STRING")
 				nodePropArrayList.add(relation);
+				owler.addProp(concept, property, dataTypes[csvColumnToIndex.get(property)]);
+
 			}
 		}
 
@@ -243,6 +255,7 @@ public class TinkerCsvReader extends AbstractCSVFileReader {
 	{
 		// get all the relation
 		// overwrite this value if user specified the max rows to load
+		
 		if (rdfMap.get("END_ROW") != null)
 		{
 			maxRows =  Integer.parseInt(rdfMap.get("END_ROW"));
@@ -425,6 +438,28 @@ public class TinkerCsvReader extends AbstractCSVFileReader {
 		System.out.println("FINAL COUNT " + count);
 	}
 	
+	public void addNodeProperties(String nodeType, String instanceName, Hashtable<String, Object> propHash) {
+		//create the node in case its not in a relationship
+		instanceName = Utility.cleanString(instanceName, true);
+		nodeType = Utility.cleanString(nodeType, true); 
+		String semossBaseURI = owler.addConcept(nodeType);
+		String instanceBaseURI = getInstanceURI(nodeType);
+		String subjectNodeURI = instanceBaseURI + "/" + instanceName;
+//		engine.doAction(IEngine.ACTION_TYPE.ADD_STATEMENT, new Object[]{subjectNodeURI, RDF.TYPE, semossBaseURI, true});
+//		engine.doAction(IEngine.ACTION_TYPE.ADD_STATEMENT, new Object[]{subjectNodeURI, RDFS.LABEL, instanceName, false});
+		Vertex vert = (Vertex) engine.doAction(IEngine.ACTION_TYPE.VERTEX_UPSERT, new Object[]{nodeType, instanceName, propHash});
+
+		for (String key : propHash.keySet()) {
+			//TODO
+//			owler.addProp(key, propHash.get(key) + "", nodeType);
+			vert.property(key, propHash.get(key));
+		}
+			
+//		engine.doAction(IEngine.ACTION_TYPE.ADD_NODE_PROPERTY, new Object[]{subjectNodeURI, TinkerFrame.LABEL, instanceName, false});
+
+//		addProperties(nodeType, subjectNodeURI, propHash);
+	}
+	
 	public void createRelationship(
 			String subjectNodeType, // Title
 			String objectNodeType,  // Producer
@@ -448,15 +483,16 @@ public class TinkerCsvReader extends AbstractCSVFileReader {
 		String subjectSemossBaseURI = owler.addConcept(subjectNodeType);
 		// get base URIs for object node at instance and semoss level
 		String objectSemossBaseURI = owler.addConcept(objectNodeType);
-
+		
 		// upsert the subject vertex
 		Vertex startV = (Vertex) engine.doAction(IEngine.ACTION_TYPE.VERTEX_UPSERT, new Object[]{subjectNodeType, instanceSubjectName});
 		// upsert the object vertex
 		Vertex endV = (Vertex) engine.doAction(IEngine.ACTION_TYPE.VERTEX_UPSERT, new Object[]{objectNodeType, instanceObjectName});
 
 		// upsert the edge between them
-		
-//		addProperties("", instanceRelURI, propHash);
+		engine.doAction(IEngine.ACTION_TYPE.EDGE_UPSERT, new Object[]{startV, subjectNodeType, endV, objectNodeType, propHash});	
+//		owler.addRelation(fromConcept, toConcept, predicate)
+		// addProperties("", instanceRelURI, propHash);
 	}
 	
 

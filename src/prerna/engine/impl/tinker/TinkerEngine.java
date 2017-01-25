@@ -36,7 +36,6 @@ public class TinkerEngine extends AbstractEngine {
 
 	private TinkerGraph g = null;
 	private QueryStruct queryStruct;
-	private HashMap<String, String> propHash;
 
 	public void openDB(String propFile) {
 		g = TinkerGraph.open();
@@ -212,30 +211,6 @@ public class TinkerEngine extends AbstractEngine {
 
 	public void setQueryStruct(QueryStruct queryStruct) {
 		this.queryStruct = queryStruct;
-		createPropHash();
-	}
-
-	private void createPropHash() {
-		propHash = new HashMap<String, String>();
-		if(queryStruct!= null) {
-			Hashtable <String, Vector<String>> selectors = queryStruct.selectors;
-			for(String s: selectors.keySet()) {
-				Vector<String> props = selectors.get(s);
-				for(String property:props) {
-					if(property.equals("PRIM_KEY_PLACEHOLDER")) {
-						propHash.put(s, property);
-					}
-				}
-			}
-		}
-	}
-
-	public Map<String, String> getPropHash() {
-		return propHash;
-	}
-
-	public void setPropHash(HashMap<String, String> propHash) {
-		this.propHash = propHash;
 	}
 
 }
