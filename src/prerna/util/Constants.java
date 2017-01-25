@@ -498,4 +498,7 @@ public class Constants {
 	
 	// which type of R connection to use
 	public static final String R_CONNECTION_JRI = "R_CONNECTION_JRI";
+	
+	//Tinker engine
+	public static final String TINKER_FILE = "TINKER_FILE";
 }
