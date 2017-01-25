@@ -19,7 +19,6 @@ import org.apache.tinkerpop.gremlin.structure.Graph;
 import org.apache.tinkerpop.gremlin.structure.Vertex;
 
 import prerna.engine.impl.rdbms.RDBMSNativeEngine;
-import prerna.engine.impl.tinker.TinkerEngine;
 import prerna.om.Insight;
 import prerna.rdf.query.builder.IQueryInterpreter;
 import prerna.sablecc.PKQLRunner;
@@ -27,7 +26,6 @@ import prerna.test.TestUtilityMethods;
 import prerna.ui.components.playsheets.datamakers.ISEMOSSTransformation;
 import prerna.ui.components.playsheets.datamakers.PKQLTransformation;
 import prerna.util.DIHelper;
-import prerna.util.OWLER;
 
 public class GremlinInterpreter implements IQueryInterpreter {
 
@@ -45,12 +43,6 @@ public class GremlinInterpreter implements IQueryInterpreter {
 		this.g = g;
 		this.metaGraph = metaGraph;
 		this.gt = g.traversal().V();
-	}
-	
-	public GremlinInterpreter(TinkerEngine tinkerEngine) {
-		this.g = tinkerEngine.getGraph();
-		this.gt = g.traversal().V();
-		this.edgeHash = this.qs.getReturnConnectionsHash();
 	}
 
 	@Override
