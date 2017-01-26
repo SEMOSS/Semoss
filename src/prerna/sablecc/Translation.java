@@ -2415,7 +2415,12 @@ public class Translation extends DepthFirstAdapter {
 
 	public void outAJOp(AJOp node) {
 		if (reactorNames.containsKey(PKQLEnum.JAVA_OP)) {
+			IScriptReactor thisReactor = curReactor;
 			deinitReactor(PKQLEnum.JAVA_OP, node.getCodeblock() + "", null, false);
+			IDataMaker newFrame = (IDataMaker) thisReactor.getValue("G");
+			if(newFrame != null) {
+				this.frame = newFrame;
+			}
 			runner.setResponse(curReactor.getValue("RESPONSE"));
 			runner.setStatus((STATUS) curReactor.getValue("STATUS"));
 		}

@@ -36,6 +36,7 @@ import prerna.ds.QueryStruct;
 import prerna.ds.TinkerFrame;
 import prerna.ds.TinkerMetaHelper;
 import prerna.ds.h2.H2Frame;
+import prerna.ds.sqlserver.SqlServerFrame;
 import prerna.ds.util.FileIterator;
 import prerna.ds.util.FileIterator.FILE_DATA_TYPE;
 import prerna.engine.api.IEngine;
@@ -1792,6 +1793,21 @@ public abstract class BaseJavaReactor extends AbstractReactor{
 			dataframe.updateDataId();
 			System.out.println("Modified graph data frame");
 		}		
+		java.lang.System.setSecurityManager(reactorManager);
+	}
+	
+	public void setSqlServerFrame(String tableName) {
+		java.lang.System.setSecurityManager(curManager);
+		SqlServerFrame frame = new SqlServerFrame();
+		frame.connectToExistingTable(tableName);
+		
+		// ugh... why are there so many references to this thing!!!!!
+		this.dataframe = frame;
+		this.dataframe.updateDataId();
+		this.frameChanged = true;
+		myStore.put("G", frame);
+		
+		System.out.println("Successfully connected to table name = '" + tableName + "'");
 		java.lang.System.setSecurityManager(reactorManager);
 	}
 	
