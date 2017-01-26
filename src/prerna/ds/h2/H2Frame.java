@@ -64,7 +64,7 @@ public class H2Frame extends AbstractTableDataFrame {
 
 	private static final Logger LOGGER = LogManager.getLogger(H2Frame.class.getName());
 
-	H2Builder builder;
+	protected H2Builder builder;
 
 	// this was being used when we wanted the sql interpreter to create the
 	// traverse query

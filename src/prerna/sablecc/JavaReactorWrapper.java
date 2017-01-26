@@ -148,8 +148,9 @@ public class JavaReactorWrapper extends AbstractReactor {
 		    System.setSecurityManager( curManager) ;			
 			
 			// reset the frame
-			if(jR.frameChanged)
+			if(jR.frameChanged) {
 				myStore.put("G", jR.dataframe);
+			}
 			System.out.println(jR.getValue("ERROR"));
 			daReactor = jR;
 		} catch (RuntimeException e) {
@@ -206,7 +207,6 @@ public class JavaReactorWrapper extends AbstractReactor {
 
 	@Override
 	public Object getValue(String key) {
-		// TODO Auto-generated method stub
 		return daReactor.getValue(key);
 	}
 

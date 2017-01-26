@@ -1,8 +1,12 @@
 package prerna.sablecc;
 
+import java.util.HashMap;
 import java.util.Iterator;
+import java.util.Map;
 
+import prerna.ds.TinkerMetaHelper;
 import prerna.ds.r.RDataTable;
+import prerna.ds.util.FileIterator;
 import prerna.engine.api.IHeadersDataRow;
 import prerna.engine.impl.r.RFileWrapper;
 import prerna.sablecc.PKQLRunner.STATUS;
@@ -21,9 +25,20 @@ public class RImportDataReactor extends ImportDataReactor {
 		
 		RDataTable frame = (RDataTable) myStore.get("G");
 		
-		if(dataIterator instanceof RFileWrapper) {
+		if(dataIterator == null) {
+			Map<String, String> dataTypes = new HashMap<>();
+
+			this.newHeaders = ((RFileWrapper) myStore.get(PKQLEnum.API)).getHeaders();
+			String[] types = ((RFileWrapper) myStore.get(PKQLEnum.API)).getTypes();
+			for(int i = 0; i < types.length; i++) {
+				dataTypes.put(newHeaders[i], types[i]);
+			}
+			
+			this.edgeHash = TinkerMetaHelper.createPrimKeyEdgeHash(this.newHeaders);
+			frame.mergeEdgeHash(edgeHash, dataTypes);
+
 			// this only happens when we have a csv file
-			frame.createTableViaCsvFile( (RFileWrapper) dataIterator);
+			frame.createTableViaCsvFile( (RFileWrapper) myStore.get(PKQLEnum.API));
 		} else if(dataIterator instanceof Iterator) {
 			frame.createTableViaIterator((Iterator<IHeadersDataRow>) dataIterator);
 			inputResponseString((Iterator) dataIterator, newHeaders);
