@@ -50,7 +50,7 @@ public class RdbmsQueryBuilder {
 
 		StringBuilder selectStatement = new StringBuilder("SELECT ");
 		if(distinct) {
-			selectStatement.append(" DISTINCT ");
+			selectStatement.append("DISTINCT ");
 		}
 
 		for (int i = 0; i < selectors.size(); i++) {

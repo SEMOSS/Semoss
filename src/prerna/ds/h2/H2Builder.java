@@ -55,44 +55,42 @@ public class H2Builder {
 
 	private static final Logger LOGGER = LogManager.getLogger(H2Builder.class.getName());
 
-	private Connection conn = null;
+	protected Connection conn = null;
 	
-	private String NULL_VALUE = "null";
-	
-	private String schema = "test"; // assign a default schema which is test
+	protected String schema = "test"; // assign a default schema which is test
 	// boolean create = false;
 	// static int tableRunNumber = 1;
 	static int rowCount = 0;
-	private static final String tempTable = "TEMP_TABLE98793";
-	static final String H2FRAME = "H2FRAME";
-	String brokenLines = "";
-	String options = ":LOG=0;CACHE_SIZE=65536;LOCK_MODE=1;UNDO_LOG=0";
-	Server server = null;
-	String serverURL = null;
-	Hashtable<String, String[]> tablePermissions = new Hashtable<String, String[]>();
+	protected static final String tempTable = "TEMP_TABLE98793";
+	protected final String H2FRAME = "H2FRAME";
+	protected String brokenLines = "";
+	protected String options = ":LOG=0;CACHE_SIZE=65536;LOCK_MODE=1;UNDO_LOG=0";
+	protected Server server = null;
+	protected String serverURL = null;
+	protected Hashtable<String, String[]> tablePermissions = new Hashtable<String, String[]>();
 
 	// keep track of the indices that exist in the table for optimal speed in
 	// sorting
-	Hashtable<String, String> columnIndexMap = new Hashtable<String, String>();
+	protected Hashtable<String, String> columnIndexMap = new Hashtable<String, String>();
 
 	// for writing the frame on disk
 	// currently not used
 	// would require reconsideration of dashboard, etc.
 	// since frames are not in same schema
-	private boolean isInMem = true;
-	private final int LIMIT_SIZE;
+	protected boolean isInMem = true;
+	protected final int LIMIT_SIZE;
 
 	// Provides a translation for incoming types into something H2 can
 	// understand
-	private static Map<String, String> typeConversionMap = new HashMap<String, String>();
-	static {
+	protected Map<String, String> typeConversionMap = new HashMap<String, String>();
+	{
+		typeConversionMap.clear();
 		typeConversionMap.put("NUMBER", "DOUBLE");
-		typeConversionMap.put("STRING", "VARCHAR(800)");
-		typeConversionMap.put("DATE", "DATE");
-		// TODO: for now, also assume timestamp as date
-		typeConversionMap.put("TIMESTAMP", "DATE");
 		typeConversionMap.put("FLOAT", "DOUBLE");
 		typeConversionMap.put("LONG", "DOUBLE");
+		typeConversionMap.put("STRING", "VARCHAR(800)");
+		typeConversionMap.put("DATE", "DATE");
+		typeConversionMap.put("TIMESTAMP", "DATE");
 	}
 
 	// consists of which values to keep for each header when gathering data
@@ -100,14 +98,12 @@ public class H2Builder {
 	// we want to focus on only Studios which are WB and Universal
 	// RottenTomatoesCritics -> {LESS_THAN -> [0.9], GREATER_THAN -> [0.8]}
 	// we want to focus on RottenTomatoesCritics < 0.9 AND > 0.8
-	Map<String, Map<AbstractTableDataFrame.Comparator, Set<Object>>> filterHash2 = new HashMap<>();
+	protected Map<String, Map<AbstractTableDataFrame.Comparator, Set<Object>>> filterHash2 = new HashMap<>();
 
 	// name of the main table for H2
-	String tableName;
+	protected String tableName;
 
-
-
-	DataFrameJoiner joiner;
+	protected DataFrameJoiner joiner;
 
 	// specifies the join types for an H2 frame
 	public enum Join {
@@ -539,13 +535,13 @@ public class H2Builder {
 				Object[] nextRow = headerRow.getValues();
 				// we need to loop through every value and cast appropriately
 				for (int colIndex = 0; colIndex < nextRow.length; colIndex++) {
-					String type = types[colIndex];
-					if (type.equalsIgnoreCase("DATE")) {
+					String type = types[colIndex].toUpperCase();
+					if (type.contains("DATE")) {
 						java.util.Date value = Utility.getDateAsDateObj(nextRow[colIndex] + "");
 						if (value != null) {
 							ps.setDate(colIndex + 1, new java.sql.Date(value.getTime()));
 						}
-					} else if (type.equalsIgnoreCase("DOUBLE") || type.equalsIgnoreCase("FLOAT")) {
+					} else if (type.contains("DOUBLE") || type.contains("DECIMAL") || type.contains("FLOAT")) {
 						Double value = Utility.getDouble(nextRow[colIndex] + "");
 						if (value != null) {
 							ps.setDouble(colIndex + 1, value);
@@ -560,11 +556,13 @@ public class H2Builder {
 
 				// batch commit based on size
 				if (++count % batchSize == 0) {
+					LOGGER.info("Executing batch .... row num = " + count);
 					ps.executeBatch();
 				}
 			}
 
 			// well, we are done looping through now
+			LOGGER.info("Executing final batch .... row num = " + count);
 			ps.executeBatch(); // insert any remaining records
 			ps.close();
 
@@ -914,7 +912,7 @@ public class H2Builder {
 
 				// determine the new headers and types
 				for (int i = 0; i < headers.length; i++) {
-					if (!ArrayUtilityMethods.arrayContainsValue(getHeaders(tableName), headers[i].toUpperCase())) {
+					if (!ArrayUtilityMethods.arrayContainsValueIgnoreCase(getHeaders(tableName), headers[i].toUpperCase())) {
 						// these are the columns to create
 						newHeaders.add(headers[i]);
 						newTypes.add(types[i]);
@@ -1017,11 +1015,11 @@ public class H2Builder {
 		generateTable(iterator, newHeaders, types, newTableName);
 
 		// create table if doesn't exist
-		try {
-			runQuery("CREATE TABLE IF NOT EXISTS " + tableName);
-		} catch (Exception e) {
-			e.printStackTrace();
-		}
+//		try {
+//			runQuery("CREATE TABLE IF NOT EXISTS " + tableName);
+//		} catch (Exception e) {
+//			e.printStackTrace();
+//		}
 
 		// add the data
 		if (joinType.equals(Join.FULL_OUTER)) {
@@ -1127,15 +1125,15 @@ public class H2Builder {
 
 				// we need to loop through every value and cast appropriately
 				for (int colIndex = 0; colIndex < nextRow.length; colIndex++) {
-					String type = types[colIndex];
-					if (type.equalsIgnoreCase("DATE")) {
+					String type = types[colIndex].toUpperCase();
+					if (type.contains("DATE")) {
 						java.util.Date value = Utility.getDateAsDateObj(nextRow[colIndex] + "");
 						if (value != null) {
 							ps.setDate(colIndex + 1, new java.sql.Date(value.getTime()));
 						} else {
 							ps.setNull(colIndex + 1, java.sql.Types.DATE);
 						}
-					} else if (type.equalsIgnoreCase("DOUBLE") || type.equalsIgnoreCase("FLOAT")) {
+					} else if (type.contains("DOUBLE") || type.contains("DECIMAL") || type.contains("FLOAT")) {
 						Double value = Utility.getDouble(nextRow[colIndex] + "");
 						if (value != null) {
 							ps.setDouble(colIndex + 1, value);
@@ -1152,6 +1150,7 @@ public class H2Builder {
 
 				// batch commit based on size
 				if (++count % batchSize == 0) {
+					LOGGER.info("Executing batch .... row num = " + count);
 					ps.executeBatch();
 				}
 			}
@@ -1161,6 +1160,7 @@ public class H2Builder {
 			}
 			
 			// well, we are done looping through now
+			LOGGER.info("Executing final batch .... row num = " + count);
 			ps.executeBatch(); // insert any remaining records
 			ps.close();
 		} catch (SQLException e) {
@@ -1401,7 +1401,7 @@ public class H2Builder {
 	 * @param filterComparator
 	 * @return
 	 */
-	private String makeFilterSubQuery(Map<String, List<Object>> filterHash, Map<String, AbstractTableDataFrame.Comparator> filterComparator) {
+	protected String makeFilterSubQuery(Map<String, List<Object>> filterHash, Map<String, AbstractTableDataFrame.Comparator> filterComparator) {
 		// need translation of filter here
 		String filterStatement = "";
 		if (filterHash.keySet().size() > 0) {
@@ -1475,7 +1475,7 @@ public class H2Builder {
 		return filterStatement;
 	}
 
-	private String makeFilterSubQuery() {
+	protected String makeFilterSubQuery() {
 		Map<String, Map<AbstractTableDataFrame.Comparator, Set<Object>>> filterHash = getFilterHash();
 		return makeFilterSubQuery(filterHash);
 	}
@@ -1933,7 +1933,7 @@ public class H2Builder {
 	 * @param tableName
 	 * @return true if table with name tableName exists, false otherwise
 	 */
-	private boolean tableExists(String tableName) {
+	protected boolean tableExists(String tableName) {
 		String query = "SELECT * FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_NAME = '" + tableName + "'";
 		ResultSet rs = executeQuery(query);
 		try {
@@ -2250,7 +2250,7 @@ public class H2Builder {
 	// I have found that out upfront- I need to also keep what it is called in
 	// the old table
 	// as well as the new table
-	private void mergeTables(String tableName1, String tableName2, Hashtable<Integer, Integer> matchers, String[] oldHeaders, String[] newHeaders, String join) {
+	protected void mergeTables(String tableName1, String tableName2, Hashtable<Integer, Integer> matchers, String[] oldHeaders, String[] newHeaders, String join) {
 		getConnection();
 
 		String origTableName = tableName1;
@@ -2631,7 +2631,7 @@ public class H2Builder {
 		return cleanHeaders;
 	}
 
-	private List<String> cleanHeaders(List<String> headers) {
+	protected List<String> cleanHeaders(List<String> headers) {
 		List<String> cleanedHeaders = new ArrayList<>(headers.size());
 		for (String header : headers) {
 			cleanedHeaders.add(cleanHeader(header));
@@ -2657,7 +2657,7 @@ public class H2Builder {
 		return header;
 	}
 
-	protected static String cleanType(String type) {
+	protected String cleanType(String type) {
 		if (type == null)
 			type = "VARCHAR(800)";
 		type = type.toUpperCase();
@@ -2672,7 +2672,7 @@ public class H2Builder {
 		return type;
 	}
 
-	protected static String[] cleanTypes(String[] types) {
+	protected String[] cleanTypes(String[] types) {
 		String[] cleanTypes = new String[types.length];
 		for (int i = 0; i < types.length; i++) {
 			cleanTypes[i] = cleanType(types[i]);
@@ -2903,7 +2903,7 @@ public class H2Builder {
 	 **************************************/
 
 	// use this when result set is not expected back
-	private void runQuery(String query) throws Exception {
+	protected void runQuery(String query) throws Exception {
 		Statement stat = getConnection().createStatement();
 		stat.execute(query);
 		stat.close();
@@ -3479,13 +3479,46 @@ public class H2Builder {
 		return type;
 	}
 
-	public void deleteAllRows(String tableName) {
+	protected void deleteAllRows(String tableName) {
 		String query = "DELETE FROM " + tableName + " WHERE 1 != 0";
 		try {
 			runQuery(query);
 		} catch (Exception e) {
 			e.printStackTrace();
 		}
+	}
+	
+	public LinkedHashMap<String, String> connectToExistingTable(String tableName) {
+		String query = "SELECT COLUMN_NAME, TYPE_NAME FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME='"
+				+ tableName + "'";
+		this.conn = getConnection();
+		try {
+			if(this.conn.isClosed()) {
+				this.conn = null;
+				this.conn = getConnection();
+			}
+		} catch (SQLException e) {
+			e.printStackTrace();
+		}
+		
+		LinkedHashMap<String, String> dataTypeMap = new LinkedHashMap<String, String>();
+		ResultSet rs = executeQuery(query);
+		try {
+			while(rs.next()) {
+				String colName = rs.getString(1).toUpperCase();
+				String dataType = rs.getString(2).toUpperCase();
+				dataTypeMap.put(colName, dataType);
+			}
+		} catch (SQLException e) {
+			e.printStackTrace();
+		}
+		
+		if(dataTypeMap.isEmpty()) {
+			throw new IllegalArgumentException("Table name " + tableName + " does not exist or is empty");
+		}
+		
+		this.tableName = tableName;
+		return dataTypeMap;
 	}
 	
 	/***************************
