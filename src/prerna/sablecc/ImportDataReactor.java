@@ -344,7 +344,7 @@ public abstract class ImportDataReactor extends AbstractReactor {
 				}
 			}
 			// this is the second possibility when it is a file
-			else {
+			else if(myStore.get(PKQLEnum.API) instanceof FileIterator) {
 				// grab the iterator to use for importing
 				dataIterator  = (FileIterator) myStore.get(PKQLEnum.API);
 				

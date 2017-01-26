@@ -50,8 +50,8 @@ public class H2DuplicatesReactor extends DataFrameDuplicatesReactor {
 		List<Object[]> queryTable2 = dataframe.getFlatTableFromQuery(distinctQuery);
 
 		// check if values are the same if so no duplicates
-		Long val1 = (Long) queryTable.get(0)[0];
-		Long val2 = (Long) queryTable2.get(0)[0];
+		Long val1 = ((Number) queryTable.get(0)[0]).longValue();
+		Long val2 = ((Number) queryTable2.get(0)[0]).longValue();
 		hasDuplicates = (long) val1 != (long) val2;
 
 		myStore.put("hasDuplicates", hasDuplicates);
