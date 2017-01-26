@@ -105,7 +105,7 @@ public class H2SqlExpressionIterator implements Iterator<Object[]> {
 		try {
 			ResultSetMetaData rsmd = this.rs.getMetaData();
 			for(int i = 1; i <= numCols; i++) {
-				String name = rsmd.getColumnName(i);
+				String name = rsmd.getColumnName(i).toUpperCase();
 				String type = Utility.getCleanDataType(rsmd.getColumnTypeName(i));
 				if(type.equals("DOUBLE")) {
 					type = "NUMBER";

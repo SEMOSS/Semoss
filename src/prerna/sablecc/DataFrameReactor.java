@@ -29,7 +29,7 @@ public class DataFrameReactor extends AbstractReactor {
 		dfTranslation.put("SPARK", "SparkDataFrame");
 		dfTranslation.put("NATIVE", "NativeFrame");
 		dfTranslation.put("RFRAME", "RDataTable");
-
+		dfTranslation.put("MSSQLSERVER", "SqlServerFrame");
 	}
 
 	@Override
