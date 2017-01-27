@@ -4,6 +4,7 @@ import java.io.IOException;
 import java.util.HashMap;
 import java.util.Hashtable;
 import java.util.Map;
+import java.util.Set;
 import java.util.Vector;
 
 import org.apache.log4j.LogManager;
@@ -187,13 +188,15 @@ public class TinkerEngine extends AbstractEngine {
 		Hashtable<String, Object> propHash = (Hashtable<String, Object>) args[4];
 
 		String type = fromVertexUniqueName + TinkerFrame.EDGE_LABEL_DELIMETER + toVertexUniqueName;
-		// String edgeID = type + "/" +
-		// fromVertex.value(TinkerFrame.TINKER_NAME) + ":"
-		// + toVertex.value(TinkerFrame.TINKER_NAME);
+		String edgeID = type + "/" + fromVertex.value(TinkerFrame.TINKER_NAME) + ":"+ toVertex.value(TinkerFrame.TINKER_NAME);
 
 		retEdge = fromVertex.addEdge(type, toVertex);
+		retEdge.property(TinkerFrame.TINKER_ID, edgeID);
+		Set<String> edgeProp = retEdge.keys();
 		for (String key : propHash.keySet()) {
-			retEdge.property(key, propHash.get(key));
+			if (!edgeProp.contains(key)) {
+				retEdge.property(key, propHash.get(key));
+			}
 		}
 
 		// return retEdge;

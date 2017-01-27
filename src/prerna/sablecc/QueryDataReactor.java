@@ -12,6 +12,7 @@ import prerna.ds.QueryStruct;
 import prerna.engine.api.IEngine;
 import prerna.engine.api.IEngineWrapper;
 import prerna.engine.api.IRawSelectWrapper;
+import prerna.engine.impl.tinker.TinkerEngine;
 import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.rdf.query.builder.IQueryInterpreter;
 import prerna.sablecc.meta.IPkqlMetadata;
@@ -63,11 +64,14 @@ public class QueryDataReactor extends AbstractReactor {
 //			}
 		}
 		
-		IEngine engine = Utility.getEngine((this.getValue(PKQLEnum.API + "_ENGINE")+"").trim());		
+		IEngine engine = Utility.getEngine((this.getValue(PKQLEnum.API + "_ENGINE")+"").trim());	
 		IQueryInterpreter interp = engine.getQueryInterpreter();
 		interp.setQueryStruct(qs);
 		String query = interp.composeQuery();
 		
+		if(engine instanceof TinkerEngine) {
+			((TinkerEngine) engine).setQueryStruct(qs);
+		}
 		IRawSelectWrapper thisIterator = WrapperManager.getInstance().getRawWrapper(engine, query);
 		
 		List searchData = new ArrayList();
