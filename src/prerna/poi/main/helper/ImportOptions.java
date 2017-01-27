@@ -46,9 +46,36 @@ public class ImportOptions {
 		SCHEMA,
 		USERNAME,
 		PASSWORD,
-		EXTERNAL_METAMODEL
+		EXTERNAL_METAMODEL,
+		OBJECT_VALUE_MAP,		// RDBMSReader will look in these maps for objects that are specified in the prop file,
+								// but do not exist as headers in a CSV
+		OBJECT_TYPE_MAP,		
+		ROW_KEY,				// What to put in a prop file to grab the current row number
+		CREATE_INDEXES			// If true, RDBMSReader will create indexes when cleaning up tables
 	};
 	
+	/**
+	 * Set default values when instantiating
+	 */
+	public ImportOptions() {
+		setDefaultValues();
+	}
+	
+	/**
+	 * Set defaults
+	 */
+	private void setDefaultValues() {
+		
+		// Set these as empty maps to begin with,
+		// So that classes can check objectValueMap.containsKey(key) without throwing an error
+		setObjectValueMap(new HashMap<String, String>());
+		setObjectTypeMap(new HashMap<String, String>());
+		
+		// By default, create indexes (business as usual)
+		// In some special cases, a class may want to set this to false,
+		// For example, when uploading several files in succession
+		setCreateIndexes(true);
+	}
 	
 	///////////////////////////// getters & setters /////////////////////////////////////
 	
@@ -322,6 +349,54 @@ public class ImportOptions {
 	
 	public void setExternalMetamodel(HashMap<String, Object> externalMetamodel) {
 		thisMap.put(IMPORT_OPTIONS.EXTERNAL_METAMODEL, externalMetamodel);
+	}
+	
+	/**
+	 * Get the map that defines the value of objects specified in a prop file, but do not exist as a header
+	 * @return
+	 */
+	public Map<String, String> getObjectValueMap() {
+		return (Map<String, String>) thisMap.get(IMPORT_OPTIONS.OBJECT_VALUE_MAP);
+	}
+	
+	public void setObjectValueMap(Map<String, String> objectValueMap) {
+		thisMap.put(IMPORT_OPTIONS.OBJECT_VALUE_MAP, objectValueMap);
+	}
+	
+	/**
+	 * Get the map that defines the type of objects specified in a prop file, but do not exist as a header
+	 * @return
+	 */
+	public Map<String, String> getObjectTypeMap() {
+		return (Map<String, String>) thisMap.get(IMPORT_OPTIONS.OBJECT_TYPE_MAP);
+	}
+	
+	public void setObjectTypeMap(Map<String, String> objectTypeMap) {
+		thisMap.put(IMPORT_OPTIONS.OBJECT_TYPE_MAP, objectTypeMap);
+	}
+	
+	/**
+	 * Get the key that can be specified in a prop file to store the row number in a column
+	 * @return
+	 */
+	public String getRowKey() {
+		return (String) thisMap.get(IMPORT_OPTIONS.ROW_KEY);
+	}
+	
+	public void setRowKey(String rowKey) {
+		thisMap.put(IMPORT_OPTIONS.ROW_KEY, rowKey);
+	}
+	
+	/**
+	 * Get whether or not indexes should be created on the upload
+	 * @return
+	 */
+	public boolean getCreateIndexes() {
+		return (boolean) thisMap.get(IMPORT_OPTIONS.CREATE_INDEXES);
+	}
+	
+	public void setCreateIndexes(boolean createIndexes) {
+		thisMap.put(IMPORT_OPTIONS.CREATE_INDEXES, createIndexes);
 	}
 	
 	///////////////////////////// end getters & setters /////////////////////////////////////
