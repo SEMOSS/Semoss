@@ -57,8 +57,8 @@ public final class DHMSMDeploymentHelper {
 
 	public static final String WAVES_IN_REGION_QUERY = "SELECT DISTINCT ?Region ?Wave WHERE {{?Region <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Region>}{?Wave <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Wave>}{?Region <http://semoss.org/ontologies/Relation/Deploys> ?Wave}}";
 	
-	public static final String WAVE_ORDER_QUERY = "SELECT DISTINCT ?Wave1 ?Wave2 WHERE {{?Wave1 <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Wave>} {?Wave2 <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Wave>} {?Wave1 <http://semoss.org/ontologies/Relation/Precedes> ?Wave2}} ";
-	public static final String FIRST_WAVE_QUERY = "SELECT DISTINCT ?Wave1 WHERE { {?Wave1 <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Wave>} MINUS{ {?Wave2 <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Wave>} {?Wave2 <http://semoss.org/ontologies/Relation/Precedes> ?Wave1}} }";
+//	public static final String WAVE_ORDER_QUERY = "SELECT DISTINCT ?Wave1 ?Wave2 WHERE {{?Wave1 <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Wave>} {?Wave2 <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Wave>} {?Wave1 <http://semoss.org/ontologies/Relation/Precedes> ?Wave2}} ";
+//	public static final String FIRST_WAVE_QUERY = "SELECT DISTINCT ?Wave1 WHERE { {?Wave1 <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Wave>} MINUS{ {?Wave2 <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Wave>} {?Wave2 <http://semoss.org/ontologies/Relation/Precedes> ?Wave1}} }";
 	public static final String WAVE_START_END_DATE = "SELECT DISTINCT ?Wave ?StartDate ?EndDate WHERE { {?Wave <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Wave>} {?StartDate <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Year-Quarter>} {?Wave <http://semoss.org/ontologies/Relation/BeginsOn> ?StartDate} {?EndDate <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Year-Quarter>} {?Wave <http://semoss.org/ontologies/Relation/EndsOn> ?EndDate} }";
 	public static final String SYS_IN_WAVES_QUERY = "SELECT DISTINCT ?System ?Wave WHERE { {?Wave <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Wave>} {?HostSite <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/DCSite>} {?Wave <http://semoss.org/ontologies/Relation/Contains> ?HostSite} {?SystemDCSite <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/SystemDCSite>} {?SystemDCSite <http://semoss.org/ontologies/Relation/DeployedAt> ?HostSite} {?System <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System>} {?System <http://semoss.org/ontologies/Relation/DeployedAt> ?SystemDCSite} }";
 
@@ -139,11 +139,11 @@ public final class DHMSMDeploymentHelper {
 	}
 	
 	public static HashMap<String, String> getFirstWaveForEachSystem(IEngine engine) {
-		ArrayList<String> waveOrder = getWaveOrder(engine);
+		List<String> waveOrder = getWaveOrder(engine);
 		return getFirstWaveForEachSystem(engine, waveOrder);
 	}
 	
-	public static HashMap<String, String> getFirstWaveForEachSystem(IEngine engine, ArrayList<String> waveOrder) {
+	public static HashMap<String, String> getFirstWaveForEachSystem(IEngine engine, List<String> waveOrder) {
 		HashMap<String, List<String>> inputHash = new HashMap<String, List<String>>();
 		
 		ISelectWrapper sjsw = Utility.processQuery(engine, SYS_IN_WAVES_QUERY);
@@ -167,11 +167,11 @@ public final class DHMSMDeploymentHelper {
 	}
 	
 	public static HashMap<String, String> getLastWaveForEachSystem(IEngine engine) {
-		ArrayList<String> waveOrder = getWaveOrder(engine);
+		List<String> waveOrder = getWaveOrder(engine);
 		return getLastWaveForEachSystem(engine, waveOrder);
 	}
 	
-	public static HashMap<String, String> getLastWaveForEachSystem(IEngine engine, ArrayList<String> waveOrder) {
+	public static HashMap<String, String> getLastWaveForEachSystem(IEngine engine, List<String> waveOrder) {
 		HashMap<String, List<String>> inputHash = new HashMap<String, List<String>>();
 		
 		ISelectWrapper sjsw = Utility.processQuery(engine, SYS_IN_WAVES_QUERY);
@@ -194,7 +194,7 @@ public final class DHMSMDeploymentHelper {
 		return determineLastWaveForInput(waveOrder, inputHash);
 	}
 	
-	public static HashMap<String, String> determineLastWaveForInput(ArrayList<String> waveOrder, HashMap<String, List<String>> waveHash) {
+	public static HashMap<String, String> determineLastWaveForInput(List<String> waveOrder, HashMap<String, List<String>> waveHash) {
 		HashMap<String, String> retHash = new HashMap<String, String>();
 
 		for(String entity : waveHash.keySet()) {
@@ -214,7 +214,7 @@ public final class DHMSMDeploymentHelper {
 		return retHash;
 	}
 	
-	public static HashMap<String, String> determineFirstWaveForInput(ArrayList<String> waveOrder, HashMap<String, List<String>> waveHash) {
+	public static HashMap<String, String> determineFirstWaveForInput(List<String> waveOrder, HashMap<String, List<String>> waveHash) {
 		HashMap<String, String> retHash = new HashMap<String, String>();
 
 		for(String entity : waveHash.keySet()) {
@@ -461,29 +461,88 @@ public final class DHMSMDeploymentHelper {
 		return regionOrder;
 	}
 	
-	public static ArrayList<String> getWaveOrder(IEngine engine) {
-		ISelectWrapper sjsw = Utility.processQuery(engine, FIRST_WAVE_QUERY);
+	public static List<String> getWaveOrder(IEngine engine) {
+		List<String> waveOrder = new ArrayList<String>();
+
+		ISelectWrapper sjsw = Utility.processQuery(engine, WAVE_START_END_DATE);
 		String[] names = sjsw.getVariables();
-		String firstWave = sjsw.next().getVar(names[0]).toString();
-	
-	
-		sjsw = Utility.processQuery(engine, WAVE_ORDER_QUERY);
-		names = sjsw.getVariables();
-		HashMap<String, String> regionHash = new HashMap<String, String>();
-		int counter = 0;
+		
+		// we are going to store each wave with its end date
+		// because this order is really what tells us when savings will occur
+		// which is based on when a wave ends, not when it starts
+		HashMap<String, String> dateMap = new HashMap<String, String>();
 		while(sjsw.hasNext()) {
 			ISelectStatement sjss = sjsw.next();
-			String region1 = sjss.getVar(names[0]).toString();
-			String region2 = sjss.getVar(names[1]).toString();
-			regionHash.put(region1, region2);
-			counter++;
+			String wave = sjss.getVar(names[0]).toString();
+			String endQY = sjss.getVar(names[2]).toString();
+			dateMap.put(wave, endQY);
 		}
-		String nextWave = firstWave;
-		ArrayList<String> waveOrder = new ArrayList<String>();
-		waveOrder.add(nextWave);
-		for(int i = 0; i < counter; i++) {
-			nextWave = regionHash.get(nextWave);
-			waveOrder.add(nextWave);
+		
+		// now we need to order the waves
+		
+		// add the first wave into the list
+		for(String wave : dateMap.keySet()) {
+			// first one, just add it in
+			if(waveOrder.isEmpty()) {
+				waveOrder.add(wave);
+			}
+			// everything else, we need to loop
+			// through exiting values and compare
+			else {
+				int insertionIndex = -1;
+				String QFY = dateMap.get(wave);
+				FIND_LOCATION : for(int curIndex = 0; curIndex < waveOrder.size(); curIndex++) {
+					// note that the insertion is making sure that the wave order
+					// is always sotrted
+					String curWave = waveOrder.get(curIndex);
+					String curQFY = dateMap.get(curWave);
+					
+					// need to compare the QFY and see if it is before or after
+					// once i hit it is before, that is the insertion index
+					String[] splitQFY = QFY.split("FY");
+					int Q = Integer.parseInt( splitQFY[0].substring(1) );
+					int FY = Integer.parseInt( splitQFY[1] );
+					
+					String[] splitCurQFY = curQFY.split("FY");
+					int curQ = Integer.parseInt( splitCurQFY[0].substring(1) );
+					int curFY = Integer.parseInt( splitCurQFY[1] );
+					
+					// if the current FY is further out than the FY of the wave
+					// we are trying to insert
+					// we need to insert the wave at this index
+					if(curFY > FY) {
+						insertionIndex = curIndex;
+						break FIND_LOCATION;
+					} 
+					// if the FYs are equal, we need to compare the quarters
+					else if(curFY == FY) {
+						if(curQ > Q) {
+							// the current Q is furhter out than the Q of the wave
+							// we are trying to insert
+							// we need to insert the wave at this index
+							insertionIndex = curIndex;
+							break FIND_LOCATION;
+						} else if(curQ == Q) {
+							System.out.println(" >>>> WE HAVE A TIE IN DEPLOYMENT BETWEEN : " + wave + " and " + curWave);
+							// insertion at this point shouldn't matter
+							insertionIndex = curIndex;
+							break FIND_LOCATION;
+						}
+						// the current wave is further out
+						// need to continue loop
+					}
+					// the current wave is further out
+					// need to continue loop
+				}
+				
+				// now we need to add the wave to the wave list
+				if(insertionIndex == -1) {
+					// we insert at the end since it is after all existing waves
+					waveOrder.add(wave);
+				} else {
+					waveOrder.add(insertionIndex, wave);
+				}
+			}
 		}
 		
 		return waveOrder;
