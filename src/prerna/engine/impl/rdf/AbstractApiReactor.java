@@ -184,6 +184,17 @@ public abstract class AbstractApiReactor extends AbstractReactor{
 	}
 	
 	public void addTableValuesAsFilter(ITableDataFrame frame, Vector <Hashtable> filters, String fromColumn, String toColumn) {
+		
+		for(Hashtable filter : filters) {
+			try {
+				if(filter.get(PKQLEnum.FROM_COL).equals(toColumn) && filter.get(PKQLEnum.COMPARATOR).equals("=")) {
+					return; //we don't want to add filters if they already exist in the query struct
+				}
+			} catch(Exception e) {
+				//just in case for now
+			}
+		}
+		
 		//figure out which is the new column and which already exists in the table
 		Iterator<Object> rowIt = frame.uniqueValueIterator(fromColumn, false);
 		List<Object> filterInstances = new Vector<Object>();
