@@ -28,6 +28,9 @@ public class RawTinkerSelectWrapper extends AbstractWrapper implements IRawSelec
 	public IHeadersDataRow next() {
 		// TODO Auto-generated method stub
 		Object[] row = it.next();
+		if(displayVar == null) {
+			getDisplayVariables();
+		}
 		return new HeadersDataRow(displayVar, row, row);
 	}
 

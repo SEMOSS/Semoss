@@ -5,6 +5,7 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Hashtable;
 import java.util.Map;
+import java.util.Set;
 import java.util.StringTokenizer;
 
 import org.apache.log4j.Level;
@@ -447,12 +448,15 @@ public class TinkerCsvReader extends AbstractCSVFileReader {
 		String subjectNodeURI = instanceBaseURI + "/" + instanceName;
 //		engine.doAction(IEngine.ACTION_TYPE.ADD_STATEMENT, new Object[]{subjectNodeURI, RDF.TYPE, semossBaseURI, true});
 //		engine.doAction(IEngine.ACTION_TYPE.ADD_STATEMENT, new Object[]{subjectNodeURI, RDFS.LABEL, instanceName, false});
-		Vertex vert = (Vertex) engine.doAction(IEngine.ACTION_TYPE.VERTEX_UPSERT, new Object[]{nodeType, instanceName, propHash});
-
+		Vertex vert = (Vertex) engine.doAction(IEngine.ACTION_TYPE.VERTEX_UPSERT, new Object[]{nodeType, instanceName});
+		
+		Set<String> vertProps = vert.keys();
 		for (String key : propHash.keySet()) {
 			//TODO
 //			owler.addProp(key, propHash.get(key) + "", nodeType);
+			if(!vertProps.contains(key)) {
 			vert.property(key, propHash.get(key));
+			}
 		}
 			
 //		engine.doAction(IEngine.ACTION_TYPE.ADD_NODE_PROPERTY, new Object[]{subjectNodeURI, TinkerFrame.LABEL, instanceName, false});
@@ -576,7 +580,7 @@ public class TinkerCsvReader extends AbstractCSVFileReader {
 			StringBuilder strBuilder = new StringBuilder();
 			String[] objList = object.split("\\+");
 			for(int i = 0; i < objList.length; i++){
-				strBuilder.append(values[colNameToIndex.get(objList[i])]); 
+				strBuilder.append(values[colNameToIndex.get(objList[i])]);
 			}
 			return Utility.cleanString(strBuilder.toString(), true);
 		}
