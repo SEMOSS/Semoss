@@ -303,10 +303,18 @@ public class DHMSMDeploymentStrategyRunBtnListener implements ActionListener {
 		if(defaultValuesSelected) {
 			//grab the original values for deployment schedule
 			int oBeginQuarter = ps.getqBeginDefault();
-			int oBeginYear = ps.getyBeginDefault() - 2000;
+			int oBeginYear = ps.getyBeginDefault(); 
+			// ugh... not sure if this is 2017 or just 17....
+			if(oBeginYear > 2000) {
+				oBeginYear =- 2000;
+			}
 			int oEndQuarter = ps.getqEndDefault();
-			int oEndYear = ps.getyEndDefault() - 2000;
-
+			int oEndYear = ps.getyEndDefault();
+			// ugh... not sure if this is 2017 or just 17
+			if(oEndYear > 2000) {
+				oEndYear =- 2000;
+			}
+			
 			//pull from begin / end and fill the regions accordingly
 			int beginQuarter, beginYear, endQuarter, endYear;
 			if (initialLoad) {
