@@ -39,9 +39,23 @@ import org.apache.log4j.Logger;
 
 public class DHMSMDeploymentStrategyProcessor {
 	
+	private static final Logger LOGGER = LogManager.getLogger(DHMSMDeploymentStrategyProcessor.class.getName());
+	
+	private static final String YEAR_ERROR = "field is not an integer between 00 and 99, inclusive.";
+	private static final String QUARTER_ERROR = "field is not an integer between 1 and 4, inclusive.";
+	private static final String NON_INT_ERROR = "field contains a non-integer value.";
+	
+	private Hashtable<String, List<String>> regionWaveHash;
+	private List<String> waveOrder;
+	private HashMap<String, String[]> waveStartEndDate;
+	private JTextArea consoleArea;
+	
+	private HashMap<String, String[]> waveStartEndHash = new HashMap<String, String[]>();
+	private ArrayList<String> regionsList;
+	
 	public DHMSMDeploymentStrategyProcessor(
 			Hashtable<String, List<String>> regionWaveHash,
-			ArrayList<String> waveOrder,
+			List<String> waveOrder,
 			HashMap<String, String[]> waveStartEndDate,
 			JTextArea consoleArea) {
 		super();
@@ -55,20 +69,6 @@ public class DHMSMDeploymentStrategyProcessor {
 			waveOrder.remove("FOC");
 		}
 	}
-
-	private static final Logger LOGGER = LogManager.getLogger(DHMSMDeploymentStrategyProcessor.class.getName());
-	
-	private static final String YEAR_ERROR = "field is not an integer between 00 and 99, inclusive.";
-	private static final String QUARTER_ERROR = "field is not an integer between 1 and 4, inclusive.";
-	private static final String NON_INT_ERROR = "field contains a non-integer value.";
-	
-	private Hashtable<String, List<String>> regionWaveHash;
-	private ArrayList<String> waveOrder;
-	private HashMap<String, String[]> waveStartEndDate;
-	private JTextArea consoleArea;
-	
-	private HashMap<String, String[]> waveStartEndHash = new HashMap<String, String[]>();
-	private ArrayList<String> regionsList;
 	
 	public ArrayList<String> getRegionsList() {
 		return regionsList;

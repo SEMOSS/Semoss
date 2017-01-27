@@ -36,7 +36,6 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Hashtable;
 import java.util.List;
-import java.util.StringTokenizer;
 
 import javax.swing.JButton;
 import javax.swing.JLabel;
@@ -48,9 +47,7 @@ import javax.swing.border.BevelBorder;
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
-import com.google.gson.Gson;
-import com.google.gson.reflect.TypeToken;
-
+import aurelienribon.ui.css.Style;
 import prerna.engine.api.IEngine;
 import prerna.ui.components.BrowserGraphPanel;
 import prerna.ui.main.listener.specific.tap.DHMSMDeploymentStrategyRestoreDefaultsListener;
@@ -60,7 +57,6 @@ import prerna.ui.main.listener.specific.tap.DHMSMDeploymentStrategySysBarChartLi
 import prerna.ui.swing.custom.CustomButton;
 import prerna.ui.swing.custom.ToggleButton;
 import prerna.util.Utility;
-import aurelienribon.ui.css.Style;
 
 
 /**
@@ -84,7 +80,7 @@ public class DHMSMDeploymentStrategyPlaySheet extends InputPanelPlaySheet {
 	private ArrayList<String> regionOrder;
 	//waves in each region and their order
 	private Hashtable<String, List<String>> regionWaveHash;
-	private ArrayList<String> waveOrder;
+	private List<String> waveOrder;
 	//start and end of each wave
 	private HashMap<String, String[]> waveStartEndDate;
 	

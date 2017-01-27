@@ -739,7 +739,7 @@ private final String masterQuery = "SELECT DISTINCT ?Wave ?HostSiteAndFloater ?S
 		systemsForSiteHash = DHMSMDeploymentHelper.getSysAtSitesInDeploymentPlan(tapSite);
 		siteLocationHash = DHMSMDeploymentHelper.getSiteLocation(tapSite);
 		
-		ArrayList<String> waveOrder = DHMSMDeploymentHelper.getWaveOrder(tapSite);
+		List<String> waveOrder = DHMSMDeploymentHelper.getWaveOrder(tapSite);
 		HashMap<String, List<String>> sitesInMultipleWavesHash = DHMSMDeploymentHelper.getSitesAndMultipleWaves(tapSite);
 		lastWaveForSitesAndFloatersInMultipleWavesHash = DHMSMDeploymentHelper.determineLastWaveForInput(waveOrder, sitesInMultipleWavesHash);
 		

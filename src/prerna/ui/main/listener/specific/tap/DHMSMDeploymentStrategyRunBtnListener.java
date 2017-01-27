@@ -48,15 +48,15 @@ import javax.swing.JToggleButton;
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
+import com.google.gson.Gson;
+import com.google.gson.reflect.TypeToken;
+import com.teamdev.jxbrowser.chromium.JSValue;
+
 import prerna.ui.components.GridScrollPane;
 import prerna.ui.components.specific.tap.DHMSMDeploymentStrategyPlaySheet;
 import prerna.ui.components.specific.tap.DHMSMDeploymentStrategyProcessor;
 import prerna.ui.components.specific.tap.DHMSMIntegrationSavingsPerFiscalYearProcessor;
 import prerna.util.Utility;
-
-import com.google.gson.Gson;
-import com.google.gson.reflect.TypeToken;
-import com.teamdev.jxbrowser.chromium.JSValue;
 
 /**
  */
@@ -71,7 +71,7 @@ public class DHMSMDeploymentStrategyRunBtnListener implements ActionListener {
 	private JTextArea consoleArea;
 
 	private Hashtable<String, List<String>> regionWaveHash;
-	private ArrayList<String> waveOrder;
+	private List<String> waveOrder;
 	private HashMap<String, String[]> waveStartEndDate;
 	private Hashtable webValuesHash;
 
@@ -575,11 +575,11 @@ public class DHMSMDeploymentStrategyRunBtnListener implements ActionListener {
 		this.regionWaveHash = regionWaveHash;
 	}
 
-	public void setWaveOrder(ArrayList<String> waveOrder) {
+	public void setWaveOrder(List<String> waveOrder) {
 		this.waveOrder = waveOrder;
 	}
 
-	public ArrayList<String> getWaveOrder() {
+	public List<String> getWaveOrder() {
 		return waveOrder;
 	}
 
