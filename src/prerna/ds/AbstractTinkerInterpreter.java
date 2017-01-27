@@ -24,7 +24,7 @@ public abstract class AbstractTinkerInterpreter {
 	protected GraphTraversal gt;
 	protected QueryStruct qs = null;
 	Map<String, Set<String>> edgeHash;
-	private List<String> selector;
+	protected List<String> selector;
 	protected Hashtable<String, Hashtable<String, Vector>> filters;
 
 	/**
@@ -60,11 +60,6 @@ public abstract class AbstractTinkerInterpreter {
 	 */
 	protected void addSelectors() {
 		List<String> selector = getSelector(); // get the selectors
-
-
-
-
-		
 		// cause gremlin interface is weird... 
 		// need to determine which method to use based on size of selectors
 		if(selector.size() == 1){
