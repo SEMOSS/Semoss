@@ -35,7 +35,9 @@ import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.Enumeration;
+import java.util.HashMap;
 import java.util.Hashtable;
+import java.util.Map;
 import java.util.Properties;
 
 import org.apache.log4j.LogManager;
@@ -53,6 +55,16 @@ public abstract class AbstractFileReader extends AbstractEngineCreator {
 
 	private static final Logger logger = LogManager.getLogger(AbstractFileReader.class.getName());
 
+	// RDBMSReader will look in this map for objects that are specified in the prop file,
+	// but do not exist as headers in a CSV
+	protected Map<String, String> objectValueMap = new HashMap<String, String>();
+	protected Map<String, String> objectTypeMap = new HashMap<String, String>();
+	protected String rowKey; // What to put in a prop file to grab the current row number
+	
+	// If true, RDBMSReader will create indexes when cleaning up tables  
+	// Default to true
+	protected boolean createIndexes = true;
+	
 	// path to the set of propFiles for automated
 	protected String[] propFiles;
 	// the path to the prop file being used to load the engine
@@ -330,6 +342,22 @@ public abstract class AbstractFileReader extends AbstractEngineCreator {
 		this.propFile = propFileLocation;
 		this.propFileExist = true;
 		this.propFileDefinedInsideCsv = false;
+	}
+	
+	public void setObjectValueMap(Map<String, String> objectValueMap) {
+		this.objectValueMap = objectValueMap;
+	}
+	
+	public void setObjectTypeMap(Map<String, String> objectTypeMap) {
+		this.objectTypeMap = objectTypeMap;
+	}
+
+	public void setRowKey(String rowKey) {
+		this.rowKey = rowKey;
+	}
+	
+	public void setCreateIndexes(boolean createIndexes) {
+		this.createIndexes = createIndexes;
 	}
 	
 }
