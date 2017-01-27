@@ -47,7 +47,6 @@ public class DHMSMDeploymentStrategyProcessor {
 	
 	private Hashtable<String, List<String>> regionWaveHash;
 	private List<String> waveOrder;
-	private HashMap<String, String[]> waveStartEndDate;
 	private JTextArea consoleArea;
 	
 	private HashMap<String, String[]> waveStartEndHash = new HashMap<String, String[]>();
@@ -61,7 +60,7 @@ public class DHMSMDeploymentStrategyProcessor {
 		super();
 		this.regionWaveHash = regionWaveHash;
 		this.waveOrder = waveOrder;
-		this.waveStartEndDate = waveStartEndDate;
+		this.waveStartEndHash = waveStartEndDate;
 		this.consoleArea = consoleArea;
 		
 		//TODO: figure out where to put this
