@@ -31,6 +31,7 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.Hashtable;
 import java.util.List;
 import java.util.Map;
@@ -365,7 +366,10 @@ public class ImportDataProcessor {
 		// csv upload into rdbms
 		case CSV: reader = new RDBMSReader();
 		reader.setAutoLoad(autoLoad);
-
+		reader.setObjectValueMap(options.getObjectValueMap());
+		reader.setObjectTypeMap(options.getObjectTypeMap());
+		reader.setRowKey(options.getRowKey());
+		reader.setCreateIndexes(options.getCreateIndexes());
 		  // if a metamodel has been defined set it for the reader to use
 		  // if one is not defined, it assumes a hand written prop file location is specified in the last column of each sheet
 		  metamodelInfo = options.getMetamodelArray();
@@ -486,6 +490,10 @@ public class ImportDataProcessor {
 		}
 		case RDBMS: switch(importType){
 						case CSV: reader = new RDBMSReader();
+						reader.setObjectValueMap(options.getObjectValueMap());
+						reader.setObjectTypeMap(options.getObjectTypeMap());
+						reader.setRowKey(options.getRowKey());
+						reader.setCreateIndexes(options.getCreateIndexes());
 
 						  // if a metamodel has been defined set it for the reader to use
 						  // if one is not defined, it assumes a hand written prop file location is specified in the last column of each sheet								  
@@ -767,10 +775,6 @@ public class ImportDataProcessor {
 		return success;
 	}
 	
-	
-	
-	
-
 //	/**
 //	 * Method executeDeleteAndLoad.  Executes the deleting and loading of files.
 //	 * @param repo String
