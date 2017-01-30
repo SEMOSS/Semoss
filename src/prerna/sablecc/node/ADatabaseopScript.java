@@ -7,6 +7,7 @@ import prerna.sablecc.analysis.*;
 @SuppressWarnings("nls")
 public final class ADatabaseopScript extends PScript
 {
+    private TMetatag _metatag_;
     private PDatabaseop _databaseop_;
     private TSemicolon _semicolon_;
 
@@ -16,10 +17,13 @@ public final class ADatabaseopScript extends PScript
     }
 
     public ADatabaseopScript(
+        @SuppressWarnings("hiding") TMetatag _metatag_,
         @SuppressWarnings("hiding") PDatabaseop _databaseop_,
         @SuppressWarnings("hiding") TSemicolon _semicolon_)
     {
         // Constructor
+        setMetatag(_metatag_);
+
         setDatabaseop(_databaseop_);
 
         setSemicolon(_semicolon_);
@@ -30,6 +34,7 @@ public final class ADatabaseopScript extends PScript
     public Object clone()
     {
         return new ADatabaseopScript(
+            cloneNode(this._metatag_),
             cloneNode(this._databaseop_),
             cloneNode(this._semicolon_));
     }
@@ -38,6 +43,31 @@ public final class ADatabaseopScript extends PScript
     public void apply(Switch sw)
     {
         ((Analysis) sw).caseADatabaseopScript(this);
+    }
+
+    public TMetatag getMetatag()
+    {
+        return this._metatag_;
+    }
+
+    public void setMetatag(TMetatag node)
+    {
+        if(this._metatag_ != null)
+        {
+            this._metatag_.parent(null);
+        }
+
+        if(node != null)
+        {
+            if(node.parent() != null)
+            {
+                node.parent().removeChild(node);
+            }
+
+            node.parent(this);
+        }
+
+        this._metatag_ = node;
     }
 
     public PDatabaseop getDatabaseop()
@@ -94,6 +124,7 @@ public final class ADatabaseopScript extends PScript
     public String toString()
     {
         return ""
+            + toString(this._metatag_)
             + toString(this._databaseop_)
             + toString(this._semicolon_);
     }
@@ -102,6 +133,12 @@ public final class ADatabaseopScript extends PScript
     void removeChild(@SuppressWarnings("unused") Node child)
     {
         // Remove child
+        if(this._metatag_ == child)
+        {
+            this._metatag_ = null;
+            return;
+        }
+
         if(this._databaseop_ == child)
         {
             this._databaseop_ = null;
@@ -121,6 +158,12 @@ public final class ADatabaseopScript extends PScript
     void replaceChild(@SuppressWarnings("unused") Node oldChild, @SuppressWarnings("unused") Node newChild)
     {
         // Replace child
+        if(this._metatag_ == oldChild)
+        {
+            setMetatag((TMetatag) newChild);
+            return;
+        }
+
         if(this._databaseop_ == oldChild)
         {
             setDatabaseop((PDatabaseop) newChild);

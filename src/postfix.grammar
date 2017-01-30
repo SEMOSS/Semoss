@@ -127,6 +127,7 @@ Tokens
  dashboard_add_token = 'dashboard.add';
  //dashboard_unjoin_token = 'dashboard.unjoin'
  wherestr = 'where=' ;
+ metatag = 'meta.';
  
 Ignored Tokens
  blank;
@@ -134,17 +135,17 @@ Ignored Tokens
 Productions
 configuration = script*;
 
-script = {colop} colop  semicolon // column operations
-		 | {varop} varop semicolon// row operations or setting up data
-		 | {j_op} j_op semicolon// java operation
-		 | {expr} expr semicolon
+script = {colop} metatag? colop  semicolon // column operations
+		 | {varop} metatag? varop semicolon// row operations or setting up data
+		 | {j_op} metatag? j_op semicolon// java operation
+		 | {expr} metatag? expr semicolon
 		 //| statop
-		 | {help} help semicolon
-		 | {panelop} panelop semicolon
-		 | newline
-		 | {dataop} dataop semicolon
-		 | {dashboardop} dashboardop semicolon		 
-		 | {databaseop} databaseop semicolon
+		 | {help} metatag? help semicolon
+		 | {panelop} metatag? panelop semicolon
+		 | metatag? newline
+		 | {dataop} metatag? dataop semicolon
+		 | {dashboardop} metatag? dashboardop semicolon		 
+		 | {databaseop} metatag? databaseop semicolon
 		 ;
 
 colop = // colOp is usually of the form of joinColumn / addColumn / removeColumn / setColumn
