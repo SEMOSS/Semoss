@@ -1857,6 +1857,12 @@ public class AnalysisAdapter implements Analysis
     }
 
     @Override
+    public void caseTMetatag(TMetatag node)
+    {
+        defaultCase(node);
+    }
+
+    @Override
     public void caseEOF(EOF node)
     {
         defaultCase(node);

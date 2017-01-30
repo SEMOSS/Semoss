@@ -7,6 +7,7 @@ import prerna.sablecc.analysis.*;
 @SuppressWarnings("nls")
 public final class AScript extends PScript
 {
+    private TMetatag _metatag_;
     private TNewline _newline_;
 
     public AScript()
@@ -15,9 +16,12 @@ public final class AScript extends PScript
     }
 
     public AScript(
+        @SuppressWarnings("hiding") TMetatag _metatag_,
         @SuppressWarnings("hiding") TNewline _newline_)
     {
         // Constructor
+        setMetatag(_metatag_);
+
         setNewline(_newline_);
 
     }
@@ -26,6 +30,7 @@ public final class AScript extends PScript
     public Object clone()
     {
         return new AScript(
+            cloneNode(this._metatag_),
             cloneNode(this._newline_));
     }
 
@@ -33,6 +38,31 @@ public final class AScript extends PScript
     public void apply(Switch sw)
     {
         ((Analysis) sw).caseAScript(this);
+    }
+
+    public TMetatag getMetatag()
+    {
+        return this._metatag_;
+    }
+
+    public void setMetatag(TMetatag node)
+    {
+        if(this._metatag_ != null)
+        {
+            this._metatag_.parent(null);
+        }
+
+        if(node != null)
+        {
+            if(node.parent() != null)
+            {
+                node.parent().removeChild(node);
+            }
+
+            node.parent(this);
+        }
+
+        this._metatag_ = node;
     }
 
     public TNewline getNewline()
@@ -64,6 +94,7 @@ public final class AScript extends PScript
     public String toString()
     {
         return ""
+            + toString(this._metatag_)
             + toString(this._newline_);
     }
 
@@ -71,6 +102,12 @@ public final class AScript extends PScript
     void removeChild(@SuppressWarnings("unused") Node child)
     {
         // Remove child
+        if(this._metatag_ == child)
+        {
+            this._metatag_ = null;
+            return;
+        }
+
         if(this._newline_ == child)
         {
             this._newline_ = null;
@@ -84,6 +121,12 @@ public final class AScript extends PScript
     void replaceChild(@SuppressWarnings("unused") Node oldChild, @SuppressWarnings("unused") Node newChild)
     {
         // Replace child
+        if(this._metatag_ == oldChild)
+        {
+            setMetatag((TMetatag) newChild);
+            return;
+        }
+
         if(this._newline_ == oldChild)
         {
             setNewline((TNewline) newChild);
