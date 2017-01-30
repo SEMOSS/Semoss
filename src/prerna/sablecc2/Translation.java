@@ -9,6 +9,7 @@ import prerna.sablecc2.node.ADotcol;
 import prerna.sablecc2.node.ADotcolColDef;
 import prerna.sablecc2.node.AEExprExpr;
 import prerna.sablecc2.node.AExprColDef;
+import prerna.sablecc2.node.AFilter;
 import prerna.sablecc2.node.AFrameop;
 import prerna.sablecc2.node.AFrameopColDef;
 import prerna.sablecc2.node.AFrameopScript;
@@ -18,11 +19,13 @@ import prerna.sablecc2.node.AOperationFormula;
 import prerna.sablecc2.node.AOtherscript;
 import prerna.sablecc2.node.AProp;
 import prerna.sablecc2.node.ARcol;
+import prerna.sablecc2.node.ARelationship;
 import prerna.sablecc2.node.AScriptchain;
 import prerna.sablecc2.node.ASelectNoun;
 import prerna.sablecc2.node.ATermExpr;
 import prerna.sablecc2.reactor.AsReactor;
 import prerna.sablecc2.reactor.ExprReactor;
+import prerna.sablecc2.reactor.FilterReactor;
 import prerna.sablecc2.reactor.IReactor;
 import prerna.sablecc2.reactor.PKSLPlanner;
 import prerna.sablecc2.reactor.SampleReactor;
@@ -228,7 +231,11 @@ public class Translation extends DepthFirstAdapter {
 
     public void inALiteralColDef(ALiteralColDef node)
     {
-        curReactor.getCurRow().addLiteral(node.getLiteral()+"");
+    	String thisLiteral = node.getLiteral()+"";
+    	thisLiteral = thisLiteral.replace("'","");
+    	thisLiteral = thisLiteral.replace("\"","");
+    	thisLiteral = thisLiteral.trim();
+        curReactor.getCurRow().addLiteral(thisLiteral);
     }
 
     public void outALiteralColDef(ALiteralColDef node)
@@ -392,7 +399,42 @@ public class Translation extends DepthFirstAdapter {
         defaultOut(node);
     }
 
+    // you definitely need the other party to be in a relationship :)
+    // this is of the form colDef followed by type of relation and another col def
     
+    public void inARelationship(ARelationship node)
+    {
+        defaultIn(node);    
+        // Need some way to track the state to say all the other things are interim
+        // so I can interpret the dot notation etc for frame columns
+    }
+
+    public void outARelationship(ARelationship node)
+    {
+    	curReactor.getCurRow().addRelation((node.getLcol() + "").trim(), (node.getRelType() + "").trim(), (node.getRcol() + "").trim());
+        defaultOut(node);
+    }
+
+    public void inAFilter(AFilter node)
+    {
+        defaultIn(node);
+        IReactor opReactor = new FilterReactor();
+        opReactor.setName("Filter");
+        opReactor.setPKSL("Filter",(node + "").trim());
+        opReactor.setProp("LCOL", (node.getLcol()+"").trim());
+        opReactor.setProp("COMPARATOR", (node.getComparator()+"").trim());
+        initReactor(opReactor);
+        // Need some way to track the state to say all the other things are interim
+        // so I can interpret the dot notation etc for frame columns
+    }
+
+    public void outAFilter(AFilter node)
+    {
+    	//curReactor.getCurRow().addFilter((node.getLcol() + "").trim(), (node.getComparator() + "").trim(), (node.getRcol() + "").trim());
+        defaultOut(node);
+        deInitReactor();
+    }
+
 //----------------------------- Private methods
 
     private void initReactor(IReactor reactor)

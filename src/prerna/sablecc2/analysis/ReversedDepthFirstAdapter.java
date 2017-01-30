@@ -208,6 +208,27 @@ public class ReversedDepthFirstAdapter extends AnalysisAdapter
         outAPropColDef(node);
     }
 
+    public void inARelationColDef(ARelationColDef node)
+    {
+        defaultIn(node);
+    }
+
+    public void outARelationColDef(ARelationColDef node)
+    {
+        defaultOut(node);
+    }
+
+    @Override
+    public void caseARelationColDef(ARelationColDef node)
+    {
+        inARelationColDef(node);
+        if(node.getRelationship() != null)
+        {
+            node.getRelationship().apply(this);
+        }
+        outARelationColDef(node);
+    }
+
     public void inARcol(ARcol node)
     {
         defaultIn(node);
@@ -1695,9 +1716,17 @@ public class ReversedDepthFirstAdapter extends AnalysisAdapter
         {
             node.getRPar().apply(this);
         }
-        if(node.getRcol() != null)
+        if(node.getRBrac() != null)
         {
-            node.getRcol().apply(this);
+            node.getRBrac().apply(this);
+        }
+        if(node.getPlainRow() != null)
+        {
+            node.getPlainRow().apply(this);
+        }
+        if(node.getLBrac() != null)
+        {
+            node.getLBrac().apply(this);
         }
         if(node.getComparator() != null)
         {
@@ -1712,6 +1741,43 @@ public class ReversedDepthFirstAdapter extends AnalysisAdapter
             node.getLPar().apply(this);
         }
         outAFilter(node);
+    }
+
+    public void inARelationship(ARelationship node)
+    {
+        defaultIn(node);
+    }
+
+    public void outARelationship(ARelationship node)
+    {
+        defaultOut(node);
+    }
+
+    @Override
+    public void caseARelationship(ARelationship node)
+    {
+        inARelationship(node);
+        if(node.getRPar() != null)
+        {
+            node.getRPar().apply(this);
+        }
+        if(node.getRcol() != null)
+        {
+            node.getRcol().apply(this);
+        }
+        if(node.getRelType() != null)
+        {
+            node.getRelType().apply(this);
+        }
+        if(node.getLcol() != null)
+        {
+            node.getLcol().apply(this);
+        }
+        if(node.getLPar() != null)
+        {
+            node.getLPar().apply(this);
+        }
+        outARelationship(node);
     }
 
     public void inAJavaOp(AJavaOp node)

@@ -5,28 +5,24 @@ package prerna.sablecc2.node;
 import prerna.sablecc2.analysis.*;
 
 @SuppressWarnings("nls")
-public final class AFilter extends PFilter
+public final class ARelationship extends PRelationship
 {
     private TLPar _lPar_;
     private PColDef _lcol_;
-    private TComparator _comparator_;
-    private TLBrac _lBrac_;
-    private PPlainRow _plainRow_;
-    private TRBrac _rBrac_;
+    private TRelType _relType_;
+    private PColDef _rcol_;
     private TRPar _rPar_;
 
-    public AFilter()
+    public ARelationship()
     {
         // Constructor
     }
 
-    public AFilter(
+    public ARelationship(
         @SuppressWarnings("hiding") TLPar _lPar_,
         @SuppressWarnings("hiding") PColDef _lcol_,
-        @SuppressWarnings("hiding") TComparator _comparator_,
-        @SuppressWarnings("hiding") TLBrac _lBrac_,
-        @SuppressWarnings("hiding") PPlainRow _plainRow_,
-        @SuppressWarnings("hiding") TRBrac _rBrac_,
+        @SuppressWarnings("hiding") TRelType _relType_,
+        @SuppressWarnings("hiding") PColDef _rcol_,
         @SuppressWarnings("hiding") TRPar _rPar_)
     {
         // Constructor
@@ -34,13 +30,9 @@ public final class AFilter extends PFilter
 
         setLcol(_lcol_);
 
-        setComparator(_comparator_);
+        setRelType(_relType_);
 
-        setLBrac(_lBrac_);
-
-        setPlainRow(_plainRow_);
-
-        setRBrac(_rBrac_);
+        setRcol(_rcol_);
 
         setRPar(_rPar_);
 
@@ -49,20 +41,18 @@ public final class AFilter extends PFilter
     @Override
     public Object clone()
     {
-        return new AFilter(
+        return new ARelationship(
             cloneNode(this._lPar_),
             cloneNode(this._lcol_),
-            cloneNode(this._comparator_),
-            cloneNode(this._lBrac_),
-            cloneNode(this._plainRow_),
-            cloneNode(this._rBrac_),
+            cloneNode(this._relType_),
+            cloneNode(this._rcol_),
             cloneNode(this._rPar_));
     }
 
     @Override
     public void apply(Switch sw)
     {
-        ((Analysis) sw).caseAFilter(this);
+        ((Analysis) sw).caseARelationship(this);
     }
 
     public TLPar getLPar()
@@ -115,16 +105,16 @@ public final class AFilter extends PFilter
         this._lcol_ = node;
     }
 
-    public TComparator getComparator()
+    public TRelType getRelType()
     {
-        return this._comparator_;
+        return this._relType_;
     }
 
-    public void setComparator(TComparator node)
+    public void setRelType(TRelType node)
     {
-        if(this._comparator_ != null)
+        if(this._relType_ != null)
         {
-            this._comparator_.parent(null);
+            this._relType_.parent(null);
         }
 
         if(node != null)
@@ -137,19 +127,19 @@ public final class AFilter extends PFilter
             node.parent(this);
         }
 
-        this._comparator_ = node;
+        this._relType_ = node;
     }
 
-    public TLBrac getLBrac()
+    public PColDef getRcol()
     {
-        return this._lBrac_;
+        return this._rcol_;
     }
 
-    public void setLBrac(TLBrac node)
+    public void setRcol(PColDef node)
     {
-        if(this._lBrac_ != null)
+        if(this._rcol_ != null)
         {
-            this._lBrac_.parent(null);
+            this._rcol_.parent(null);
         }
 
         if(node != null)
@@ -162,57 +152,7 @@ public final class AFilter extends PFilter
             node.parent(this);
         }
 
-        this._lBrac_ = node;
-    }
-
-    public PPlainRow getPlainRow()
-    {
-        return this._plainRow_;
-    }
-
-    public void setPlainRow(PPlainRow node)
-    {
-        if(this._plainRow_ != null)
-        {
-            this._plainRow_.parent(null);
-        }
-
-        if(node != null)
-        {
-            if(node.parent() != null)
-            {
-                node.parent().removeChild(node);
-            }
-
-            node.parent(this);
-        }
-
-        this._plainRow_ = node;
-    }
-
-    public TRBrac getRBrac()
-    {
-        return this._rBrac_;
-    }
-
-    public void setRBrac(TRBrac node)
-    {
-        if(this._rBrac_ != null)
-        {
-            this._rBrac_.parent(null);
-        }
-
-        if(node != null)
-        {
-            if(node.parent() != null)
-            {
-                node.parent().removeChild(node);
-            }
-
-            node.parent(this);
-        }
-
-        this._rBrac_ = node;
+        this._rcol_ = node;
     }
 
     public TRPar getRPar()
@@ -246,10 +186,8 @@ public final class AFilter extends PFilter
         return ""
             + toString(this._lPar_)
             + toString(this._lcol_)
-            + toString(this._comparator_)
-            + toString(this._lBrac_)
-            + toString(this._plainRow_)
-            + toString(this._rBrac_)
+            + toString(this._relType_)
+            + toString(this._rcol_)
             + toString(this._rPar_);
     }
 
@@ -269,27 +207,15 @@ public final class AFilter extends PFilter
             return;
         }
 
-        if(this._comparator_ == child)
+        if(this._relType_ == child)
         {
-            this._comparator_ = null;
+            this._relType_ = null;
             return;
         }
 
-        if(this._lBrac_ == child)
+        if(this._rcol_ == child)
         {
-            this._lBrac_ = null;
-            return;
-        }
-
-        if(this._plainRow_ == child)
-        {
-            this._plainRow_ = null;
-            return;
-        }
-
-        if(this._rBrac_ == child)
-        {
-            this._rBrac_ = null;
+            this._rcol_ = null;
             return;
         }
 
@@ -318,27 +244,15 @@ public final class AFilter extends PFilter
             return;
         }
 
-        if(this._comparator_ == oldChild)
+        if(this._relType_ == oldChild)
         {
-            setComparator((TComparator) newChild);
+            setRelType((TRelType) newChild);
             return;
         }
 
-        if(this._lBrac_ == oldChild)
+        if(this._rcol_ == oldChild)
         {
-            setLBrac((TLBrac) newChild);
-            return;
-        }
-
-        if(this._plainRow_ == oldChild)
-        {
-            setPlainRow((PPlainRow) newChild);
-            return;
-        }
-
-        if(this._rBrac_ == oldChild)
-        {
-            setRBrac((TRBrac) newChild);
+            setRcol((PColDef) newChild);
             return;
         }
 
