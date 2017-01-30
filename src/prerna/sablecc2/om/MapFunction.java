@@ -2,8 +2,10 @@ package prerna.sablecc2.om;
 
 import java.util.Hashtable;
 import java.util.Iterator;
+import java.util.Vector;
 
 import prerna.algorithm.api.ITableDataFrame;
+import prerna.ds.QueryStruct;
 import prerna.engine.api.IHeadersDataRow;
 
 public class MapFunction {
@@ -22,6 +24,14 @@ public class MapFunction {
 	public Hashtable <String, Object> store = new Hashtable <String, Object>();
 	public String query = null;
 	public ITableDataFrame frame = null;
+	public QueryStruct qs = null;
+	Iterator <IHeadersDataRow> thisIterator = null;
+	public Vector<String> strVector = null;
+	public Vector<Double> decVector = null;
+	
+	
+	// all the input strings are stored here
+	public Hashtable <String, String[]> inputStore = new Hashtable<String, String[]>();
 	
 	
 	public IHeadersDataRow RESULT = null;
@@ -42,17 +52,17 @@ public class MapFunction {
 		// get the headerrow
 		// call the map with every headerrow
 		// this iterator needs to be chhanged to something different
-		Iterator <IHeadersDataRow> iter = frame.query("abcd");
 		// need something to get the headers so I know the cardinality eventually
-		while(iter.hasNext())
+		while(thisIterator.hasNext())
 		{
-			IHeadersDataRow row = (IHeadersDataRow)iter.next();
+			IHeadersDataRow row = (IHeadersDataRow)thisIterator.next();
 		}
 	}
 	
 	// for now I am assuming the curRow is a hashtable
-	public Object[] getRow(String [] inputStrings, IHeadersDataRow curRow)
+	public Object[] getRow(String inputStringRef, IHeadersDataRow curRow)
 	{
+		String [] inputStrings = inputStore.get(inputStringRef);
 		Object [] retRow = new Object[inputStrings.length];
 		// aligns it based on the input string
 		// need to take all the data and align the values based on inputStrings

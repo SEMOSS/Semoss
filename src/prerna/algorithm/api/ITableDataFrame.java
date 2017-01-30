@@ -446,4 +446,7 @@ public interface ITableDataFrame extends IDataMaker {
 	
 	Iterator<IHeadersDataRow> query(QueryStruct qs);
 	
+	// gets the table name
+	String getTableName();
+	
 }
