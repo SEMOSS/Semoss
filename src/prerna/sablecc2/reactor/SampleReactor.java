@@ -80,7 +80,7 @@ public class SampleReactor implements IReactor {
 	@Override
 	public void closeNoun(String noun)
 	{
-		this.curRow = null;
+		curRow = store.getNoun("all");
 	}
 	
 	@Override
@@ -292,7 +292,9 @@ public class SampleReactor implements IReactor {
 		{
 			String singleKey = keys.nextElement();
 			GenRowStruct struct = store.nounRow.get(singleKey);
-			Vector <String> inputs = struct.getType(COLUMN_TYPE.COLUMN);
+			Vector <String> inputs = struct.getAllColumns();
+			Vector <Object> filters = struct.getColumnsOfType(GenRowStruct.COLUMN_TYPE.FILTER);
+			Vector <Object> joins = struct.getColumnsOfType(GenRowStruct.COLUMN_TYPE.JOIN);
 			
 			// need a better way to do it
 			if(asName == null)
@@ -300,7 +302,14 @@ public class SampleReactor implements IReactor {
 
 			// find if code exists
 			if(!propStore.containsKey("CODE"))
-				planner.addInputs(signature, inputs, type);
+			{
+				if(inputs.size() > 0)
+					planner.addInputs(signature, inputs, type);
+				if(filters != null && filters.size() > 0)
+					planner.addProperty(signature, "FILTERS", filters);
+				if(joins != null && joins.size() > 0)
+					planner.addProperty(signature, "JOINS", joins);
+			}
 			else
 			{
 				// this is a code block
@@ -322,7 +331,18 @@ public class SampleReactor implements IReactor {
 				
 				// add it as a code block
 				planner.addInputs(signature, thisBlock, inputs, IReactor.TYPE.MAP);
+				if(filters != null && filters.size() > 0)
+					planner.addProperty(signature, "FILTERS", filters);
+				if(joins != null && joins.size() > 0)
+					planner.addProperty(signature, "JOINS", joins);
 			}
+			
+			// also need to take care of filters here
+			// as well as joins
+			// the more I think.. there is no abstraction it is just a spout
+			// GOD  !!
+			// may be we should keep query struct at reactor level
+			// may be not
 		}
 		
 		// give it a variable name

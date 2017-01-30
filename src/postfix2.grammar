@@ -64,12 +64,13 @@ Tokens
  r = '<j> runR(' alphanumeric* ')</j>';
  mk = 'mk';
  mv = 'mv';
- as_op = '.as';
+ as_op = ('.as' | '.out');
  map = 'map';
  ftype = ('Graph' | 'Grid' | 'RTable');
  frame_verbs = ('add' | 'rem' | 'alias' | 'ren' ); // not sure if we need this 
  custom = '|';
- 
+ rel_type = ('inner.join' | 'outer.join' | 'right.outer.join' | 'left.outer.join' | 'cross.join' | 'self.join' ); 
+
 Ignored Tokens
 blank;
 
@@ -82,7 +83,7 @@ Productions
  // columns can be a reference column / basic literal or just an expression
  // I have a feeling frame_op should not be part of col def
  // mostly because it is difficult to implement *GRIN*
- col_def = {ref}rcol | {literal}literal | {expr}expr | {dotcol} dotcol | {frameop} frameop  | {filter} filter | {prop} prop ; // need to include something for expression
+ col_def = {ref}rcol | {literal}literal | {expr}expr | {dotcol} dotcol | {frameop} frameop  | {filter} filter | {prop} prop | {relation} relationship ; // need to include something for expression
  
  // reference - this means the 4th column in the current frame
  rcol = frameprefix number; // f$4
@@ -195,8 +196,10 @@ Productions
  //lookup_op = tolookup l_par  frameop  comma key equal id r_par;
  
  // filter
- // col_def comparator value
- filter = l_par [lcol]:col_def  comparator  [rcol]:col_def r_par; // need to ask if we should make this multiple or not
+ // col_def comparator value[rcol]:col_def
+ filter = l_par [lcol]:col_def  comparator  l_brac plain_row r_brac r_par; // need to ask if we should make this multiple or not
+ 
+ relationship = l_par [lcol]:col_def rel_type [rcol]:col_def r_par;
  
  
  // things I need to worry about in the visual panel

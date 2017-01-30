@@ -123,6 +123,12 @@ public class AnalysisAdapter implements Analysis
     }
 
     @Override
+    public void caseARelationColDef(ARelationColDef node)
+    {
+        defaultCase(node);
+    }
+
+    @Override
     public void caseARcol(ARcol node)
     {
         defaultCase(node);
@@ -466,6 +472,12 @@ public class AnalysisAdapter implements Analysis
 
     @Override
     public void caseAFilter(AFilter node)
+    {
+        defaultCase(node);
+    }
+
+    @Override
+    public void caseARelationship(ARelationship node)
     {
         defaultCase(node);
     }
@@ -832,6 +844,12 @@ public class AnalysisAdapter implements Analysis
 
     @Override
     public void caseTCustom(TCustom node)
+    {
+        defaultCase(node);
+    }
+
+    @Override
+    public void caseTRelType(TRelType node)
     {
         defaultCase(node);
     }

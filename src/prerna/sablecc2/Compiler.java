@@ -51,7 +51,7 @@ public class Compiler
 													//+ "j:<code>import prerna.util.Console;import java.util.Hashtable;System.out.println(\"Crabby Patty !! \"); Hashtable myHash = new Hashtable();String data = null; data.toString();<code>;"
 													//    												+ "network.connect();network.disconnect();"
 													//+ "pig(s=[a,b,v], s=[t,t,p], <c>System.out.println(\"Hello World\"); 3+ 5;<c>);" 
-													+ "pig(s=[a,b,c], <c>System.out.println(\"Hello World\");<c>).as([select_a]) |  monkey(s=[select_a], props=[type=\"reduce\"]).as([group_b]) | donkey(a,select_a, group_b);" // | trial(s=[a,b,c],props=[name=\"samiksha\"]);"
+													+ "pig(s=[a,b,c], filter=[(s == ['ab', 'cd','ef']), (a > [1])], join=[(a inner.join b)], <c>System.out.println(\"Hello World\");<c>).as([select_a]) |  monkey(s=[select_a], props=[type=\"reduce\"]).as([group_b]) | donkey(a,select_a, group_b);" // | trial(s=[a,b,c],props=[name=\"samiksha\"]);"
 													//+ "sum((2*abc)+5*2);sum(s=[hello, 'hello world', sum(hello, world)], k=[(name != 'gh'), (somethingelse == 5)])|product(s=[demo]) | product2(s=[demo]); sum(2 + 3); sum2(2 + 3); sum3(a,b,c,d) | sum4(a,b,c); sum7(s=[a,b,c, sum6(a,b,c)]); name = 'pk';"
 													//+ "(3 + 4, [c:bp, c:ab]);"
 													//+ "col.import([c:col1,c:col2], ([c:col1, inner.join, c:col2])) . [[\"a\",\"b\"][2,3]];"

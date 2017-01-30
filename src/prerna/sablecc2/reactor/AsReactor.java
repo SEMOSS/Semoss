@@ -32,7 +32,7 @@ public class AsReactor extends SampleReactor {
 		{
 			String singleKey = keys.nextElement();
 			GenRowStruct struct = store.nounRow.get(singleKey);
-			Vector <String> inputs = struct.getType(COLUMN_TYPE.COLUMN); // ideally this should get only one coolumn for now
+			Vector <String> inputs = struct.getAllColumns(); // ideally this should get only one coolumn for now
 
 			asNames = new String[1];
 			asNames[0] = inputs.elementAt(0).trim() + "";

@@ -4,7 +4,8 @@ import java.util.Enumeration;
 import java.util.Hashtable;
 import java.util.Vector;
 
-import prerna.sablecc2.om.CodeBlock;
+import prerna.sablecc2.om.GenRowStruct;
+import prerna.sablecc2.om.Join;
 import prerna.util.Utility;
 
 public class Stage extends Hashtable <String, Hashtable> {
@@ -18,6 +19,9 @@ public class Stage extends Hashtable <String, Hashtable> {
 	public static final String DEPENDS = "DEPENDS";
 	public static final String CODE = "CODE";
 	
+	StringBuffer queryStructString = new StringBuffer("public void makeQuery() \n{ \n qs = new QueryStruct(); "
+			+ "\n String tableName = this.frame.getTableName();"
+			+ "\n");
 	int stageNum = 0;
 	// Vector of all the operations for purposes of sequence
 	Vector <String> operationSequence = new Vector <String>();
@@ -49,6 +53,7 @@ public class Stage extends Hashtable <String, Hashtable> {
 		Hashtable codeHash = getOperation(operationName);
 		String inputString = "{";
 		Vector <String> inputs = (Vector<String>)codeHash.get("INPUT_ORDER");
+		Vector <String> asInputs = (Vector<String>)codeHash.get("ALIAS");
 		
 		for(int inputIndex = 0;inputIndex < inputs.size();inputIndex++)
 		{
@@ -56,9 +61,36 @@ public class Stage extends Hashtable <String, Hashtable> {
 				inputString = inputString + "\"" + inputs.elementAt(inputIndex) + "\"";
 			else
 				inputString = inputString + ", \"" + inputs.elementAt(inputIndex) + "\"";
-			addStageInput(inputs.elementAt(inputIndex));
+			addStageInput(inputs.elementAt(inputIndex), asInputs.elementAt(inputIndex));
 		}
 		
+		// take care of filters here
+		Vector <Object> filters = (Vector<Object>)codeHash.get("FILTERS");
+		
+		for(int filterIndex = 0;filters != null && filterIndex < filters.size();filterIndex++)
+		{
+			Object thisFilter = filters.elementAt(filterIndex);
+			if(thisFilter instanceof Join)
+				System.out.println("Instance of join.. ");
+			else
+				System.out.println("Weird.. ");;
+			
+			addStageFilter((Join)thisFilter);
+		}
+
+		Vector <Object> joins = (Vector<Object>)codeHash.get("JOINS");
+		
+		for(int joinIndex = 0;joins != null && joinIndex < joins.size();joinIndex++)
+		{
+			Object thisJoin = joins.elementAt(joinIndex);
+			if(thisJoin instanceof Join)
+				System.out.println("Instance of join.. ");
+			else
+				System.out.println("Weird.. ");;
+			
+			addStageRelation((Join)thisJoin);
+		}
+
 		/*
 		// need to add the derived inputs here as well
 		inputs = (Vector<String>)codeHash.get(this.DERIVED_INPUTS);
@@ -162,24 +194,115 @@ public class Stage extends Hashtable <String, Hashtable> {
 		
 	}
 	
-	public void addStageInput(String input)
+	public void addStageInput(String input, String asInput)
 	{
 		if(stageInputs.indexOf(input) < 0)
+		{
 			stageInputs.add(input);
+			String [] column = input.split("__");
+			if(column.length == 1)
+				queryStructString.append("qs.addSelector(tableName , \"" + input +"\");\n" );
+			else
+				queryStructString.append("qs.addSelector(\"" + column[0] + "\",  \""+ column[1] +"\");\n" );
+		}
 	}
 	
+	// adds all the filters
+	// need to ask maher.. if I need to do the same for the filters i.e. add tablename + column name
+	public void addStageFilter(Join filter)
+	{
+		// need to do this later
+		// the problem is we need to convert this into a number
+		// and convert it back
+		// for now we will assume the type is the same
+		// that is they are all strings or they are all numbers
+		GenRowStruct values = filter.getValues();
+		if(values.size() > 0)
+		{
+			// predict what the type is
+			GenRowStruct.COLUMN_TYPE type = values.metaVector.elementAt(1);
+			String pad = "";
+			StringBuffer filterVectorString = new StringBuffer();
+			if(type == GenRowStruct.COLUMN_TYPE.CONST_STRING)
+			{
+				pad = "\"";
+				filterVectorString.append("strVector = new Vector();\n");
+				// now make this into a vector
+				for(int valIndex = 1;valIndex < values.size();valIndex++)
+					filterVectorString.append("strVector.addElement(" + pad + values.elementAt(valIndex) + pad + ");\n");
+				filterVectorString.append("qs.addFilter(\"" + filter.getSelector() + "\", \"" + filter.getJoinType() + "\" ,strVector);\n");
+			}
+			else
+			{
+				filterVectorString.append("decVector = new Vector();\n");
+				for(int valIndex = 1;valIndex < values.size();valIndex++)
+				{
+					Object doubVal = values.elementAt(valIndex);
+					filterVectorString.append("decVector.addElement(new Double(" + values.elementAt(valIndex) +"));\n");
+				}
+				filterVectorString.append("qs.addFilter(\"" + filter.getSelector() + "\", \"" + filter.getJoinType() + "\",decVector);\n");
+			}
+			System.out.println("FILTER..... " + filterVectorString);
+			queryStructString.append(filterVectorString);
+		}		
+	}
+	
+	// adds the relationship joins
+	public void addStageRelation(Join filter)
+	{
+		// need to do this later
+		// the problem is we need to convert this into a number
+		// and convert it back
+		// for now we will assume the type is the same
+		// that is they are all strings or they are all numbers
+			// predict what the type is
+		String 	pad = "\"";
+		StringBuffer relationString = new StringBuffer();
+		relationString.append("strVector = new Vector();\n");
+		relationString.append("qs.addRelation(\"" + filter.getSelector() + "\", \"" +filter.getQualifier() + "\" ,\"" + filter.getJoinType() + "\");\n");
+		System.out.println("RELATION..... " + relationString);
+		queryStructString.append(relationString);
+	}
+	
+	// really simple
+	// if the table is not there adds the table frame to it
+	// TBD after discussion with maher / rishi
+	public String qualifyColumn(String column)
+	{
+		return null;
+	}
+
 	public String getCode()
 	{
-		System.out.println("====================================");
+		System.out.println("STAGE " + stageNum + "====================================");
 		
-		StringBuffer declarations = new StringBuffer("// STAGE - " + stageNum + "\n { \n");
+		ClassMaker thisClass = new ClassMaker(); // go with dynamic for now
+		thisClass.addSuper("prerna.sablecc2.om.MapFunction");
 		
+		// finish the query block
+		queryStructString.append("\n");
+		queryStructString.append("thisIterator = frame.query(this.qs);\n}\n");
+		
+		StringBuffer executeBlock = new StringBuffer("public void executeCode(IHeadersDataRow row) \n{\n");
+		StringBuffer declareBlock = new StringBuffer("public void addInputs() \n{\n");
+		
+		StringBuffer queryBlock = new StringBuffer("public void iterateAll() \n{\n");
+		queryBlock = queryBlock.append("while(thisIterator.hasNext()) \n{");
+		queryBlock = queryBlock.append("executeFunction(thisIterator.next()); \n");
+		queryBlock = queryBlock.append("};");
+		
+				
 		StringBuffer endBlock = new StringBuffer("");
 
 		StringBuffer retString = new StringBuffer("");
 		
+		//no longer valid
+		/*
 		// print all the inputs as a query
 		String selectors = "";
+		// Fill the query Struct
+		
+		
 		for(int inputIndex =0;inputIndex < stageInputs.size();inputIndex++)
 		{
 			if(selectors.length() == 0)
@@ -191,6 +314,7 @@ public class Stage extends Hashtable <String, Hashtable> {
 		retString = retString.append("\n");
 		retString = retString.append("// QUERY SELECTORS NEEDED for this STAGE " + selectors + "\n");
 		retString = retString.append(selectors);
+		*/
 		
 		for(int opIndex = 0;opIndex < operationSequence.size();opIndex++)
 		{
@@ -201,37 +325,48 @@ public class Stage extends Hashtable <String, Hashtable> {
 				
 				// get the inputs
 				retString = retString.append("\n //----------" + thisOperation + "--------------");
+				// compose a string with all the inputs to be added later
 				retString = retString.append("\n //" + codeHash.get(INPUT_STRING));
-				
-				String inputStringName = Utility.getRandomString(8) + "Inputs";
-				String inputString = (String)codeHash.get(INPUT_STRING);
-				if(inputString.length() > 0 ) //accomodates for {}
-				declarations = declarations.append("\n String [] " + inputStringName + " = " + inputString + "");
-				
-				// I need to do these pieces on for every
-				String rowObjectName = Utility.getRandomString(8) + "RowObject"; 
-				retString = retString.append("\n Object [] " + rowObjectName + " = " + "getRow(" + inputStringName + ", curRow);");
-				
-				// specify them here
-				// get the code
-				// add the code
+
+				// add the declarations into declarations block
+				// inputStore.put
 				String [] code = (String[])codeHash.get(CODE);
 				if(code[0] != null && code[0].length() != 0)
 				{
-					retString = retString.append("\n run" + code[0] + "(" + rowObjectName + ");");
+					String inputStringName = Utility.getRandomString(8) + "Inputs";
+					String inputString = (String)codeHash.get(INPUT_STRING);
+					declareBlock = declareBlock.append("\nString [] " + inputStringName + " = " + inputString + ";");
+					declareBlock = declareBlock.append("\ninputStore.put( \"" + inputStringName + "\", " + inputStringName +");");
+				
+					// I need to do these pieces on for every
+					String rowObjectName = Utility.getRandomString(8) + "RowObject"; 
+					retString = retString.append("\nObject [] " + rowObjectName + " = " + "getRow(\"" + inputStringName + "\", curRow);");
+					
+					// specify them here
+					// get the code
+					// add the code
+					retString = retString.append("\nrun" + code[0] + "(" + rowObjectName + ");");
+					// add all the end blocks
+					thisClass.addMethod(code[1]);
 					endBlock = endBlock.append("\n" + code[1]);
 				}
 				retString = retString.append("\n //---------" + thisOperation + "---------------");				
 			}
 			retString = retString.append("\n\n");
 		}
-		
+		declareBlock.append("}");
 		retString = retString.append("\n } ");
-		retString = retString.insert(0,declarations + "\n"); // insert all tthe declarations upfront
+		System.out.println(declareBlock);
+		thisClass.addMethod(declareBlock.toString());
+		retString = retString.insert(0,declareBlock + "\n"); // insert all tthe declarations upfront
+		System.out.println("Query Struct now.. \n\n" + queryStructString);
+		thisClass.addMethod(queryStructString.toString());
+		retString = retString.insert(0, queryStructString + "\n");
 		retString = retString.append("\n // Other code functions follow ");
 		retString = retString.append("\n" + endBlock);
 		retString.append("====================================\n");
 
+		thisClass.writeClass("C:\\Users\\pkapaleeswaran\\workspacej3\\SemossDev\\Codagen\\Stage" + stageNum + ".java");
 		return retString.toString();
 	}
 		

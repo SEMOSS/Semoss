@@ -5,14 +5,14 @@ package prerna.sablecc2.node;
 import prerna.sablecc2.analysis.*;
 
 @SuppressWarnings("nls")
-public final class TAsOp extends Token
+public final class TRelType extends Token
 {
-    public TAsOp(String text)
+    public TRelType(String text)
     {
         setText(text);
     }
 
-    public TAsOp(String text, int line, int pos)
+    public TRelType(String text, int line, int pos)
     {
         setText(text);
         setLine(line);
@@ -22,12 +22,12 @@ public final class TAsOp extends Token
     @Override
     public Object clone()
     {
-      return new TAsOp(getText(), getLine(), getPos());
+      return new TRelType(getText(), getLine(), getPos());
     }
 
     @Override
     public void apply(Switch sw)
     {
-        ((Analysis) sw).caseTAsOp(this);
+        ((Analysis) sw).caseTRelType(this);
     }
 }
