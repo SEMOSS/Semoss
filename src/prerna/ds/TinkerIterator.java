@@ -27,6 +27,14 @@ public class TinkerIterator implements Iterator {
 		this.propHash = propHash;
 		this.nodeSelector = nodeSelector;
 		this.filters = filters;
+
+		for (String sel : selectors) {
+			if (filters.containsKey(sel)) {
+				if (propHash.containsKey(sel)) {
+					gt = addFilterInPath(this.gt, sel, filters.get(sel));
+				}
+			}
+		}
 	}
 
 	@Override
@@ -40,17 +48,6 @@ public class TinkerIterator implements Iterator {
 		Object data = gt.next();
 		Object[] retObject = new Object[selectors.size()];
 
-		Hashtable<String, Hashtable<String, Vector>> filters = new Hashtable<String, Hashtable<String, Vector>>();
-		// clear filter data
-		for (String s : this.filters.keySet()) {
-			if (s.contains("__")) {
-				Hashtable<String, Vector> vec = this.filters.get(s);
-				s = s.substring(s.indexOf("__") + 2);
-				System.out.println(s);
-				filters.put(s, vec);
-			}
-
-		}
 		// data will be a map for multi columns
 		if (data instanceof Map) {
 			for (int colIndex = 0; colIndex < selectors.size(); colIndex++) {
@@ -115,22 +112,22 @@ public class TinkerIterator implements Iterator {
 				// gt = gt.has(TinkerFrame.TINKER_NAME, P.eq(filterVals.get(0)
 				// ));
 				// } else {
-				gt = gt.has(nameType, P.within(filterVals.toArray()));
+				gt = gt.has(propHash.get(nameType)).has(nameType, P.within(filterVals.toArray()));
 				// }
 			} else if (filterType.equals("<")) {
-				gt = gt.has(nameType, P.lt(filterVals.get(0)));
+				gt = gt.has(propHash.get(nameType)).has(nameType, P.lt(filterVals.get(0)));
 			} else if (filterType.equals(">")) {
-				gt = gt.has(nameType, P.gt(filterVals.get(0)));
+				gt = gt.has(propHash.get(nameType)).has(nameType, P.gt(filterVals.get(0)));
 			} else if (filterType.equals("<=")) {
-				gt = gt.has(nameType, P.lte(filterVals.get(0)));
+				gt = gt.has(propHash.get(nameType)).has(nameType, P.lte(filterVals.get(0)));
 			} else if (filterType.equals(">=")) {
-				gt = gt.has(nameType, P.gte(filterVals.get(0)));
+				gt = gt.has(propHash.get(nameType)).has(nameType, P.gte(filterVals.get(0)));
 			} else if (filterType.equals("!=")) {
 				// if(filterVals.get(0) instanceof Number) {
 				// gt = gt.has(TinkerFrame.TINKER_NAME, P.neq(filterVals.get(0)
 				// ));
 				// } else {
-				gt = gt.has(nameType, P.without(filterVals.toArray()));
+				gt = gt.has(propHash.get(nameType)).has(nameType, P.without(filterVals.toArray()));
 				// }
 			}
 		}

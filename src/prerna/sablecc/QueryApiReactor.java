@@ -65,7 +65,7 @@ public class QueryApiReactor extends AbstractApiReactor {
 				String countQuery = interp.composeQuery();
 				IRawSelectWrapper countIt = WrapperManager.getInstance().getRawWrapper(engine, countQuery);
 				if(countIt.hasNext()) {
-					Object numCells = countIt.next().getValues()[0];
+					Object numCells = new Object[]{1};
 					System.out.println("QUERY CONTAINS NUM_CELLS = " + numCells);
 					
 					this.put("QUERY_NUM_CELLS", numCells);
