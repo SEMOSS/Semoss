@@ -9,6 +9,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.Vector;
 
+import org.apache.tinkerpop.gremlin.process.traversal.P;
 import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.GraphTraversal;
 import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.__;
 import org.apache.tinkerpop.gremlin.structure.Vertex;
@@ -78,8 +79,8 @@ public class TinkerQueryEngineInterpreter extends AbstractTinkerInterpreter impl
 	 * @return
 	 */
 	public Iterator composeIterator() {
-		addFilters();
 		getSelector();
+		addFilters();
 		addJoins();
 		addSelectors();
 		return new TinkerIterator(gt, this.selector, propHash, nodeSelector, this.filters);
@@ -127,9 +128,9 @@ public class TinkerQueryEngineInterpreter extends AbstractTinkerInterpreter impl
 			edgeHash = generateEdgeMap();
 		}
 		
-		if (nodeSelector.size() > 1) {
+//		if (nodeSelector.size() > 1) {
 			addNodeEdge(edgeHash);
-		}
+//		}
 
 	}
 
@@ -169,7 +170,12 @@ public class TinkerQueryEngineInterpreter extends AbstractTinkerInterpreter impl
 		// gt = gt.has(TinkerFrame.TINKER_TYPE, valueType).as(nameType);
 		// there is a boolean at the metamodel level if this type has any
 		// filters
-
+		boolean filterProp = false;
+		for(String s: propHash.keySet()){
+			if(startUniqueName.equals(propHash.get(s))) {
+				addFilterPropertyInPath(gt.has(TinkerFrame.TINKER_TYPE, startUniqueName), startUniqueName, this.filters.get(s));
+			}
+		}
 		if (this.filters.containsKey(startUniqueName)) {
 			addFilterInPath(gt, startUniqueName, this.filters.get(startUniqueName));
 		}
@@ -184,6 +190,33 @@ public class TinkerQueryEngineInterpreter extends AbstractTinkerInterpreter impl
 
 	}
 
+	public void addFilterPropertyInPath(GraphTraversal<Object, Vertex> gt, String nameType, Hashtable<String, Vector> filterInfo) {
+		// TODO: right now, if its a math, assumption that vector only contains one value
+		for(String filterType : filterInfo.keySet()) {
+			Vector filterVals = filterInfo.get(filterType);
+			if(filterType.equals("=")) {
+//				if(filterVals.get(0) instanceof Number) {
+//					gt = gt.has(TinkerFrame.TINKER_NAME, P.eq(filterVals.get(0) ));
+//				} else {
+					gt = gt.has(TinkerFrame.TINKER_NAME, P.within(filterVals.toArray()));
+//				}
+			} else if(filterType.equals("<")) {
+				gt = gt.has(TinkerFrame.TINKER_NAME, P.lt(filterVals.get(0)));
+			} else if(filterType.equals(">")) {
+				gt = gt.has(TinkerFrame.TINKER_NAME, P.gt(filterVals.get(0)));
+			} else if(filterType.equals("<=")) {
+				gt = gt.has(TinkerFrame.TINKER_NAME, P.lte(filterVals.get(0)));
+			} else if(filterType.equals(">=")) {
+				gt = gt.has(TinkerFrame.TINKER_NAME, P.gte(filterVals.get(0)));
+			} else if(filterType.equals("!=")) {
+//				if(filterVals.get(0) instanceof Number) {
+//					gt = gt.has(TinkerFrame.TINKER_NAME, P.neq(filterVals.get(0) ));
+//				} else {
+					gt = gt.has(TinkerFrame.TINKER_NAME, P.without(filterVals.toArray()));
+//				}
+			}
+		}
+	}
 	protected List<GraphTraversal<Object, Vertex>> visitNode(Vertex orig, List<String> travelledEdges,
 			Map<String, Set<String>> edgeMap, List<GraphTraversal<Object, Vertex>> traversals) {
 		// TinkerFrame.TINKER_NAME changes while TinkerFrame.TINKER_VALUE stays
