@@ -22,6 +22,7 @@ public class NounStore {
 	public final static String projector = "p";
 	public final static String filter = "f";
 	public final static String all = "all";
+	public final static String joins = "j";
 	
 	
 	public NounStore(String operationName)
