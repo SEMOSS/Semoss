@@ -85,6 +85,20 @@ public abstract class AbstractTinkerInterpreter {
 		if(this.filters == null) {
 			this.filters = qs.andfilters;
 		}
+		//clean filter headers
+		Hashtable<String, Hashtable<String, Vector>> filters = new Hashtable<String, Hashtable<String, Vector>>();
+		for (String s : this.filters.keySet()) {
+			if (s.contains("__")) {
+				Hashtable<String, Vector> vec = this.filters.get(s);
+				s = s.substring(s.indexOf("__") + 2);
+				System.out.println(s);
+				filters.put(s, vec);
+			}
+			else{
+				filters.put(s, this.filters.get(s));
+			}
+		}
+		this.filters = filters;
 	}
 	
 	protected void addJoins() {
