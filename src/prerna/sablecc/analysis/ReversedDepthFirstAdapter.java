@@ -83,6 +83,10 @@ public class ReversedDepthFirstAdapter extends AnalysisAdapter
         {
             node.getColop().apply(this);
         }
+        if(node.getMetatag() != null)
+        {
+            node.getMetatag().apply(this);
+        }
         outAColopScript(node);
     }
 
@@ -107,6 +111,10 @@ public class ReversedDepthFirstAdapter extends AnalysisAdapter
         if(node.getVarop() != null)
         {
             node.getVarop().apply(this);
+        }
+        if(node.getMetatag() != null)
+        {
+            node.getMetatag().apply(this);
         }
         outAVaropScript(node);
     }
@@ -133,6 +141,10 @@ public class ReversedDepthFirstAdapter extends AnalysisAdapter
         {
             node.getJOp().apply(this);
         }
+        if(node.getMetatag() != null)
+        {
+            node.getMetatag().apply(this);
+        }
         outAJOpScript(node);
     }
 
@@ -157,6 +169,10 @@ public class ReversedDepthFirstAdapter extends AnalysisAdapter
         if(node.getExpr() != null)
         {
             node.getExpr().apply(this);
+        }
+        if(node.getMetatag() != null)
+        {
+            node.getMetatag().apply(this);
         }
         outAExprScript(node);
     }
@@ -183,6 +199,10 @@ public class ReversedDepthFirstAdapter extends AnalysisAdapter
         {
             node.getHelp().apply(this);
         }
+        if(node.getMetatag() != null)
+        {
+            node.getMetatag().apply(this);
+        }
         outAHelpScript(node);
     }
 
@@ -208,6 +228,10 @@ public class ReversedDepthFirstAdapter extends AnalysisAdapter
         {
             node.getPanelop().apply(this);
         }
+        if(node.getMetatag() != null)
+        {
+            node.getMetatag().apply(this);
+        }
         outAPanelopScript(node);
     }
 
@@ -228,6 +252,10 @@ public class ReversedDepthFirstAdapter extends AnalysisAdapter
         if(node.getNewline() != null)
         {
             node.getNewline().apply(this);
+        }
+        if(node.getMetatag() != null)
+        {
+            node.getMetatag().apply(this);
         }
         outAScript(node);
     }
@@ -254,6 +282,10 @@ public class ReversedDepthFirstAdapter extends AnalysisAdapter
         {
             node.getDataop().apply(this);
         }
+        if(node.getMetatag() != null)
+        {
+            node.getMetatag().apply(this);
+        }
         outADataopScript(node);
     }
 
@@ -279,6 +311,10 @@ public class ReversedDepthFirstAdapter extends AnalysisAdapter
         {
             node.getDashboardop().apply(this);
         }
+        if(node.getMetatag() != null)
+        {
+            node.getMetatag().apply(this);
+        }
         outADashboardopScript(node);
     }
 
@@ -303,6 +339,10 @@ public class ReversedDepthFirstAdapter extends AnalysisAdapter
         if(node.getDatabaseop() != null)
         {
             node.getDatabaseop().apply(this);
+        }
+        if(node.getMetatag() != null)
+        {
+            node.getMetatag().apply(this);
         }
         outADatabaseopScript(node);
     }

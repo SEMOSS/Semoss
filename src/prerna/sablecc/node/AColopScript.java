@@ -7,6 +7,7 @@ import prerna.sablecc.analysis.*;
 @SuppressWarnings("nls")
 public final class AColopScript extends PScript
 {
+    private TMetatag _metatag_;
     private PColop _colop_;
     private TSemicolon _semicolon_;
 
@@ -16,10 +17,13 @@ public final class AColopScript extends PScript
     }
 
     public AColopScript(
+        @SuppressWarnings("hiding") TMetatag _metatag_,
         @SuppressWarnings("hiding") PColop _colop_,
         @SuppressWarnings("hiding") TSemicolon _semicolon_)
     {
         // Constructor
+        setMetatag(_metatag_);
+
         setColop(_colop_);
 
         setSemicolon(_semicolon_);
@@ -30,6 +34,7 @@ public final class AColopScript extends PScript
     public Object clone()
     {
         return new AColopScript(
+            cloneNode(this._metatag_),
             cloneNode(this._colop_),
             cloneNode(this._semicolon_));
     }
@@ -38,6 +43,31 @@ public final class AColopScript extends PScript
     public void apply(Switch sw)
     {
         ((Analysis) sw).caseAColopScript(this);
+    }
+
+    public TMetatag getMetatag()
+    {
+        return this._metatag_;
+    }
+
+    public void setMetatag(TMetatag node)
+    {
+        if(this._metatag_ != null)
+        {
+            this._metatag_.parent(null);
+        }
+
+        if(node != null)
+        {
+            if(node.parent() != null)
+            {
+                node.parent().removeChild(node);
+            }
+
+            node.parent(this);
+        }
+
+        this._metatag_ = node;
     }
 
     public PColop getColop()
@@ -94,6 +124,7 @@ public final class AColopScript extends PScript
     public String toString()
     {
         return ""
+            + toString(this._metatag_)
             + toString(this._colop_)
             + toString(this._semicolon_);
     }
@@ -102,6 +133,12 @@ public final class AColopScript extends PScript
     void removeChild(@SuppressWarnings("unused") Node child)
     {
         // Remove child
+        if(this._metatag_ == child)
+        {
+            this._metatag_ = null;
+            return;
+        }
+
         if(this._colop_ == child)
         {
             this._colop_ = null;
@@ -121,6 +158,12 @@ public final class AColopScript extends PScript
     void replaceChild(@SuppressWarnings("unused") Node oldChild, @SuppressWarnings("unused") Node newChild)
     {
         // Replace child
+        if(this._metatag_ == oldChild)
+        {
+            setMetatag((TMetatag) newChild);
+            return;
+        }
+
         if(this._colop_ == oldChild)
         {
             setColop((PColop) newChild);
