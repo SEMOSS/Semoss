@@ -207,6 +207,27 @@ public class DepthFirstAdapter extends AnalysisAdapter
         outAPropColDef(node);
     }
 
+    public void inARelationColDef(ARelationColDef node)
+    {
+        defaultIn(node);
+    }
+
+    public void outARelationColDef(ARelationColDef node)
+    {
+        defaultOut(node);
+    }
+
+    @Override
+    public void caseARelationColDef(ARelationColDef node)
+    {
+        inARelationColDef(node);
+        if(node.getRelationship() != null)
+        {
+            node.getRelationship().apply(this);
+        }
+        outARelationColDef(node);
+    }
+
     public void inARcol(ARcol node)
     {
         defaultIn(node);
@@ -1698,6 +1719,51 @@ public class DepthFirstAdapter extends AnalysisAdapter
         {
             node.getComparator().apply(this);
         }
+        if(node.getLBrac() != null)
+        {
+            node.getLBrac().apply(this);
+        }
+        if(node.getPlainRow() != null)
+        {
+            node.getPlainRow().apply(this);
+        }
+        if(node.getRBrac() != null)
+        {
+            node.getRBrac().apply(this);
+        }
+        if(node.getRPar() != null)
+        {
+            node.getRPar().apply(this);
+        }
+        outAFilter(node);
+    }
+
+    public void inARelationship(ARelationship node)
+    {
+        defaultIn(node);
+    }
+
+    public void outARelationship(ARelationship node)
+    {
+        defaultOut(node);
+    }
+
+    @Override
+    public void caseARelationship(ARelationship node)
+    {
+        inARelationship(node);
+        if(node.getLPar() != null)
+        {
+            node.getLPar().apply(this);
+        }
+        if(node.getLcol() != null)
+        {
+            node.getLcol().apply(this);
+        }
+        if(node.getRelType() != null)
+        {
+            node.getRelType().apply(this);
+        }
         if(node.getRcol() != null)
         {
             node.getRcol().apply(this);
@@ -1706,7 +1772,7 @@ public class DepthFirstAdapter extends AnalysisAdapter
         {
             node.getRPar().apply(this);
         }
-        outAFilter(node);
+        outARelationship(node);
     }
 
     public void inAJavaOp(AJavaOp node)

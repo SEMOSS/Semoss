@@ -8,7 +8,7 @@ public class GenRowStruct extends Vector {
 	// column - name of column
 	// SQL expression - SQL expression - something that can be done in the realm of SQL
 	// Expression - expression that can only be
-	public enum COLUMN_TYPE {CONST, COLUMN, SQLE, E, FILTER}; 
+	public enum COLUMN_TYPE {CONST_DECIMAL, CONST_STRING, COLUMN, SQLE, E, FILTER, JOIN}; 
 	
 	boolean isAllSQL = true;
 	
@@ -18,13 +18,13 @@ public class GenRowStruct extends Vector {
 	public void addLiteral(String literal)
 	{
 		super.addElement(literal);
-		metaVector.add(COLUMN_TYPE.CONST);
+		metaVector.add(COLUMN_TYPE.CONST_STRING);
 	}
 	
 	public void addDecimal(Double literal)
 	{
 		super.addElement(literal);
-		metaVector.add(COLUMN_TYPE.CONST);
+		metaVector.add(COLUMN_TYPE.CONST_DECIMAL);
 	}
 	
 	public void addColumn(String column)
@@ -56,13 +56,34 @@ public class GenRowStruct extends Vector {
 	{
 		return this.isAllSQL;
 	}
-	
-	public void addFilter(String filter)
+
+	public void addFilter(Join join)
 	{
-		super.addElement(filter);
-		metaVector.add(COLUMN_TYPE.FILTER);
+		super.addElement(join);
+		metaVector.add(COLUMN_TYPE.FILTER);		
+		
+		// add this to set of selectors as well. Not sure I need to
+		//super.addElement(join.getSelector());
+		//metaVector.add(COLUMN_TYPE.COLUMN);		
 	}
 	
+
+	public void addRelation(String leftCol, String joinType, String rightCol)
+	{
+		Join filter = new Join(leftCol, joinType, rightCol);
+		super.addElement(filter);
+		metaVector.add(COLUMN_TYPE.JOIN);
+		
+		// I also need to add these to columns
+		// should I parse out the table ?
+		// hmm.. then it becomes an issue
+		// not sure I need this right now
+		/*super.addElement(leftCol);
+		metaVector.add(COLUMN_TYPE.COLUMN);
+		super.addElement(rightCol);
+		metaVector.add(COLUMN_TYPE.COLUMN);*/
+	}
+
 	public void merge(GenRowStruct anotherRow)
 	{
 		super.addAll(anotherRow);
@@ -70,20 +91,37 @@ public class GenRowStruct extends Vector {
 	}
 	
 	// gets all of a particular type
-	public Vector<String> getType(COLUMN_TYPE type)
+	// works only for columns
+	public Vector<String> getAllColumns()
 	{
 		Vector<String> retVector = new Vector<String>();
 		for(int elementIndex = 0;elementIndex < metaVector.size();elementIndex++)
 		{
-			if(metaVector.elementAt(elementIndex) == type)
+			if(metaVector.elementAt(elementIndex) == COLUMN_TYPE.COLUMN)
 				retVector.add(this.elementAt(elementIndex)+"");
 		}
 		return retVector;
 	}
-	// I will turn this into query struct eventually
+	
+	public Vector<Object> getColumnsOfType(COLUMN_TYPE type)
+	{
+		Vector<Object> retVector = new Vector<Object>();
+		for(int elementIndex = 0;elementIndex < metaVector.size();elementIndex++)
+		{
+			if(metaVector.elementAt(elementIndex) == type)
+				retVector.add(this.elementAt(elementIndex));
+		}
+		return retVector;
+	}
+
+	// I will turn this into query struct eventually - nope I never will
+	
+	
 	
 	public String getColumns()
 	{
 		return columns;
 	}
+	
+	
 }

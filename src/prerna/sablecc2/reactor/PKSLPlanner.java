@@ -30,7 +30,7 @@ public class PKSLPlanner {
 	
 	
 	// adds an operation with necessary inputs
-	public void addInputs(String opName, Vector <String> inputs, IReactor.TYPE opType)
+	public void addInputs(String opName, Vector <String> inputs, Vector <String> asInputs, IReactor.TYPE opType)
 	{
 		// find the vertex for each of the input
 		// wonder if this should be a full fledged block of java ?
@@ -38,14 +38,26 @@ public class PKSLPlanner {
 		opVertex.property("OP_TYPE", opType);
 		opVertex.property("CODE", "NONE");
 		opVertex.property("INPUT_ORDER", inputs);
+		Vector <String> aliasVector = new Vector<String>();
 		for(int inputIndex = 0;inputIndex < inputs.size();inputIndex++)
 		{
 			Vertex inpVertex = upsertVertex(NOUN, inputs.elementAt(inputIndex));
+			if(asInputs != null && inputIndex < asInputs.size())
+				aliasVector.add(asInputs.elementAt(inputIndex));
+			else
+				aliasVector.add(inputs.elementAt(inputIndex));
 			String edgeID = inputs.elementAt(inputIndex)+ "_" + opName;
 			Edge retEdge = inpVertex.addEdge(edgeID, opVertex, "ID", edgeID, "COUNT", 1, "INEDGE", inpVertex.property("ID"), "TYPE", "INPUT");
 			
 		}
+		opVertex.property("ALIAS", aliasVector);
 	}
+
+	public void addInputs(String opName, Vector <String> inputs, IReactor.TYPE opType)
+	{
+		addInputs(opName, inputs, null, opType);
+	}
+
 	
 	public void addProperty(String opName, String propertyName, Object value)
 	{
@@ -55,6 +67,16 @@ public class PKSLPlanner {
 			opVertex.property(propertyName, value);
 		}
 	}
+	
+	public void addNounProperty(String nounName, String propertyName, Object value)
+	{
+		Vertex nounVertex = findVertex(NOUN, nounName);
+		if(nounVertex != null)
+		{
+			nounVertex.property(propertyName, value);
+		}
+	}
+
 	
 	
 	// adds an operation with outputs
@@ -72,7 +94,7 @@ public class PKSLPlanner {
 	}
 	
 	// adds a java operation string as input
-	public void addInputs(String opName, CodeBlock codeBlock, Vector <String> inputs, IReactor.TYPE opType)
+	public void addInputs(String opName, CodeBlock codeBlock, Vector <String> inputs, Vector <String> asInputs, IReactor.TYPE opType)
 	{
 		// should this be string ?
 		// it should be a map block
@@ -83,13 +105,25 @@ public class PKSLPlanner {
 		opVertex.property("OP_TYPE", opType);
 		opVertex.property("CODE", codeBlock);
 		opVertex.property("INPUT_ORDER", inputs);
+		Vector <String> aliasVector = new Vector<String>();
 		for(int inputIndex = 0;inputIndex < inputs.size();inputIndex++)
 		{
 			Vertex inpVertex = upsertVertex(NOUN, inputs.elementAt(inputIndex));
+			if(asInputs != null && inputIndex < asInputs.size())
+				aliasVector.add(asInputs.elementAt(inputIndex));
+			else
+				aliasVector.add(inputs.elementAt(inputIndex));
 			String edgeID = inputs.elementAt(inputIndex)+ "_" + opName;
 			Edge retEdge = inpVertex.addEdge(edgeID, opVertex, "ID", edgeID, "COUNT", 1, "INEDGE", inpVertex.property("ID"), "TYPE", "INPUT");			
 		}
+		opVertex.property("ALIAS", aliasVector);
 	}
+
+	public void addInputs(String opName, CodeBlock codeBlock, Vector <String> inputs, IReactor.TYPE opType)
+	{
+		addInputs(opName, codeBlock, inputs, null, opType);
+	}
+
 	
 	protected Vertex upsertVertex(String type, String name)
 	{
@@ -190,6 +224,7 @@ public class PKSLPlanner {
 		Iterator <Vertex> inputs = thisVertex.vertices(Direction.IN);
 
 		Vector <String> opInputs = (Vector<String>)opHash.get(Stage.INPUTS);
+		//Vector <String> asInputs = (Vector<String>)opHash.get(Stage.AS_INPUTS);
 		Vector <String> deInputs = (Vector<String>)opHash.get(Stage.DERIVED_INPUTS);
 		Vector <String> depends = (Vector<String>)opHash.get(Stage.DEPENDS);
 		String curCode = (String)opHash.get(Stage.CODE);
@@ -359,6 +394,15 @@ public class PKSLPlanner {
 		Vector <String> deInputs = (Vector<String>)opHash.get(Stage.DERIVED_INPUTS);
 		Vector <String> depends = (Vector<String>)opHash.get(Stage.DEPENDS);
 		opHash.put("INPUT_ORDER", thisVertex.property("INPUT_ORDER").value());
+		if(thisVertex.property("FILTERS").isPresent())
+		{
+			Vector <Object> filters = (Vector<Object>)thisVertex.property("FILTERS").value(); 
+			opHash.put("FILTERS", filters);
+		}
+		if(thisVertex.property("JOINS").isPresent())
+			opHash.put("JOINS", thisVertex.property("JOINS").value());
+		opHash.put("INPUT_ORDER", thisVertex.property("INPUT_ORDER").value());
+		opHash.put("ALIAS", thisVertex.property("ALIAS").value());
 		//String [] curCode = (String [])opHash.get(Stage.CODE);
 		// we will refine this code piece later
 

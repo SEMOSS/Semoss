@@ -739,4 +739,8 @@ public abstract class AbstractTableDataFrame implements ITableDataFrame {
 		return null;
 	}
 	
+	public String getTableName()
+	{
+		return null;
+	}
 }

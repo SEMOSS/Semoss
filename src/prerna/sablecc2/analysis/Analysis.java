@@ -20,6 +20,7 @@ public interface Analysis extends Switch
     void caseAFrameopColDef(AFrameopColDef node);
     void caseAFilterColDef(AFilterColDef node);
     void caseAPropColDef(APropColDef node);
+    void caseARelationColDef(ARelationColDef node);
     void caseARcol(ARcol node);
     void caseADotcol(ADotcol node);
     void caseALiteral(ALiteral node);
@@ -78,6 +79,7 @@ public interface Analysis extends Switch
     void caseAPimport(APimport node);
     void caseAPnoun(APnoun node);
     void caseAFilter(AFilter node);
+    void caseARelationship(ARelationship node);
     void caseAJavaOp(AJavaOp node);
     void caseAROp(AROp node);
     void caseAApiBlock(AApiBlock node);
@@ -140,6 +142,7 @@ public interface Analysis extends Switch
     void caseTFtype(TFtype node);
     void caseTFrameVerbs(TFrameVerbs node);
     void caseTCustom(TCustom node);
+    void caseTRelType(TRelType node);
     void caseEOF(EOF node);
     void caseInvalidToken(InvalidToken node);
 }
