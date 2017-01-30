@@ -310,6 +310,7 @@ public interface Analysis extends Switch
     void caseTDashboardconfig(TDashboardconfig node);
     void caseTDashboardAddToken(TDashboardAddToken node);
     void caseTWherestr(TWherestr node);
+    void caseTMetatag(TMetatag node);
     void caseEOF(EOF node);
     void caseInvalidToken(InvalidToken node);
 }

@@ -74,6 +74,10 @@ public class DepthFirstAdapter extends AnalysisAdapter
     public void caseAColopScript(AColopScript node)
     {
         inAColopScript(node);
+        if(node.getMetatag() != null)
+        {
+            node.getMetatag().apply(this);
+        }
         if(node.getColop() != null)
         {
             node.getColop().apply(this);
@@ -99,6 +103,10 @@ public class DepthFirstAdapter extends AnalysisAdapter
     public void caseAVaropScript(AVaropScript node)
     {
         inAVaropScript(node);
+        if(node.getMetatag() != null)
+        {
+            node.getMetatag().apply(this);
+        }
         if(node.getVarop() != null)
         {
             node.getVarop().apply(this);
@@ -124,6 +132,10 @@ public class DepthFirstAdapter extends AnalysisAdapter
     public void caseAJOpScript(AJOpScript node)
     {
         inAJOpScript(node);
+        if(node.getMetatag() != null)
+        {
+            node.getMetatag().apply(this);
+        }
         if(node.getJOp() != null)
         {
             node.getJOp().apply(this);
@@ -149,6 +161,10 @@ public class DepthFirstAdapter extends AnalysisAdapter
     public void caseAExprScript(AExprScript node)
     {
         inAExprScript(node);
+        if(node.getMetatag() != null)
+        {
+            node.getMetatag().apply(this);
+        }
         if(node.getExpr() != null)
         {
             node.getExpr().apply(this);
@@ -174,6 +190,10 @@ public class DepthFirstAdapter extends AnalysisAdapter
     public void caseAHelpScript(AHelpScript node)
     {
         inAHelpScript(node);
+        if(node.getMetatag() != null)
+        {
+            node.getMetatag().apply(this);
+        }
         if(node.getHelp() != null)
         {
             node.getHelp().apply(this);
@@ -199,6 +219,10 @@ public class DepthFirstAdapter extends AnalysisAdapter
     public void caseAPanelopScript(APanelopScript node)
     {
         inAPanelopScript(node);
+        if(node.getMetatag() != null)
+        {
+            node.getMetatag().apply(this);
+        }
         if(node.getPanelop() != null)
         {
             node.getPanelop().apply(this);
@@ -224,6 +248,10 @@ public class DepthFirstAdapter extends AnalysisAdapter
     public void caseAScript(AScript node)
     {
         inAScript(node);
+        if(node.getMetatag() != null)
+        {
+            node.getMetatag().apply(this);
+        }
         if(node.getNewline() != null)
         {
             node.getNewline().apply(this);
@@ -245,6 +273,10 @@ public class DepthFirstAdapter extends AnalysisAdapter
     public void caseADataopScript(ADataopScript node)
     {
         inADataopScript(node);
+        if(node.getMetatag() != null)
+        {
+            node.getMetatag().apply(this);
+        }
         if(node.getDataop() != null)
         {
             node.getDataop().apply(this);
@@ -270,6 +302,10 @@ public class DepthFirstAdapter extends AnalysisAdapter
     public void caseADashboardopScript(ADashboardopScript node)
     {
         inADashboardopScript(node);
+        if(node.getMetatag() != null)
+        {
+            node.getMetatag().apply(this);
+        }
         if(node.getDashboardop() != null)
         {
             node.getDashboardop().apply(this);
@@ -295,6 +331,10 @@ public class DepthFirstAdapter extends AnalysisAdapter
     public void caseADatabaseopScript(ADatabaseopScript node)
     {
         inADatabaseopScript(node);
+        if(node.getMetatag() != null)
+        {
+            node.getMetatag().apply(this);
+        }
         if(node.getDatabaseop() != null)
         {
             node.getDatabaseop().apply(this);

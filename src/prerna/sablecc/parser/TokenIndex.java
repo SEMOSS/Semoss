@@ -604,8 +604,14 @@ class TokenIndex extends AnalysisAdapter
     }
 
     @Override
-    public void caseEOF(@SuppressWarnings("unused") EOF node)
+    public void caseTMetatag(@SuppressWarnings("unused") TMetatag node)
     {
         this.index = 99;
+    }
+
+    @Override
+    public void caseEOF(@SuppressWarnings("unused") EOF node)
+    {
+        this.index = 100;
     }
 }
