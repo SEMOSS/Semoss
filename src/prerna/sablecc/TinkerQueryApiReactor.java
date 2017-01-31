@@ -8,7 +8,7 @@ import org.apache.tinkerpop.gremlin.structure.Vertex;
 
 import prerna.ds.GremlinInterpreter;
 import prerna.ds.QueryStruct;
-import prerna.ds.TinkerQueryEngineInterpreter;
+import prerna.ds.TinkerQueryInterpreter;
 import prerna.engine.api.IEngine;
 import prerna.engine.impl.rdf.AbstractApiReactor;
 import prerna.engine.impl.tinker.TinkerEngine;

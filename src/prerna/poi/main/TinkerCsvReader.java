@@ -166,7 +166,6 @@ public class TinkerCsvReader extends AbstractCSVFileReader {
 		this.dataTypes = new String[numCols];
 		// create a map from column name to index
 		// this will be used to help speed up finding the location of values
-		//TODO OWLER
 		this.csvColumnToIndex = new Hashtable<String, Integer>();
 
 		for(int colIndex = 1; colIndex <= numCols; colIndex++) {
@@ -221,10 +220,8 @@ public class TinkerCsvReader extends AbstractCSVFileReader {
 					continue;
 				String concept = relation.substring(0, relation.indexOf("%"));
 				String property = relation.substring(relation.lastIndexOf("%") + 1);
-				// TODO this.owler.addProp(tableName, relation, "STRING")
 				nodePropArrayList.add(relation);
 				owler.addProp(concept, property, dataTypes[csvColumnToIndex.get(property)]);
-
 			}
 		}
 
@@ -244,6 +241,7 @@ public class TinkerCsvReader extends AbstractCSVFileReader {
 					continue;
 
 				relPropArrayList.add(relation);
+				//TODO add relationship Property to owler
 			}
 		}
 	}
@@ -446,22 +444,14 @@ public class TinkerCsvReader extends AbstractCSVFileReader {
 		String semossBaseURI = owler.addConcept(nodeType);
 		String instanceBaseURI = getInstanceURI(nodeType);
 		String subjectNodeURI = instanceBaseURI + "/" + instanceName;
-//		engine.doAction(IEngine.ACTION_TYPE.ADD_STATEMENT, new Object[]{subjectNodeURI, RDF.TYPE, semossBaseURI, true});
-//		engine.doAction(IEngine.ACTION_TYPE.ADD_STATEMENT, new Object[]{subjectNodeURI, RDFS.LABEL, instanceName, false});
 		Vertex vert = (Vertex) engine.doAction(IEngine.ACTION_TYPE.VERTEX_UPSERT, new Object[]{nodeType, instanceName});
-		
 		Set<String> vertProps = vert.keys();
 		for (String key : propHash.keySet()) {
-			//TODO
-//			owler.addProp(key, propHash.get(key) + "", nodeType);
 			if(!vertProps.contains(key)) {
 			vert.property(key, propHash.get(key));
 			}
 		}
-			
-//		engine.doAction(IEngine.ACTION_TYPE.ADD_NODE_PROPERTY, new Object[]{subjectNodeURI, TinkerFrame.LABEL, instanceName, false});
-
-//		addProperties(nodeType, subjectNodeURI, propHash);
+	
 	}
 	
 	public void createRelationship(
@@ -478,16 +468,7 @@ public class TinkerCsvReader extends AbstractCSVFileReader {
 		instanceSubjectName = Utility.cleanString(instanceSubjectName, true);
 		instanceObjectName = Utility.cleanString(instanceObjectName, true);
 
-		// TODO: we should only parse and add to owler at one point in time
-		// below is still RDF version where we need to get the parent base URI
-		// don't need to do this for tinker
-		// TODO: in preParseMetadata -> add nodes and node properties to OWLER
-		
-		// get base URIs for subject node at instance and semoss level
-		String subjectSemossBaseURI = owler.addConcept(subjectNodeType);
-		// get base URIs for object node at instance and semoss level
-		String objectSemossBaseURI = owler.addConcept(objectNodeType);
-		
+
 		// upsert the subject vertex
 		Vertex startV = (Vertex) engine.doAction(IEngine.ACTION_TYPE.VERTEX_UPSERT, new Object[]{subjectNodeType, instanceSubjectName});
 		// upsert the object vertex
@@ -495,8 +476,7 @@ public class TinkerCsvReader extends AbstractCSVFileReader {
 
 		// upsert the edge between them
 		engine.doAction(IEngine.ACTION_TYPE.EDGE_UPSERT, new Object[]{startV, subjectNodeType, endV, objectNodeType, propHash});	
-//		owler.addRelation(fromConcept, toConcept, predicate)
-		// addProperties("", instanceRelURI, propHash);
+
 	}
 	
 

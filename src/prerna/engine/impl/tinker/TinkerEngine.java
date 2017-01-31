@@ -21,7 +21,7 @@ import org.apache.tinkerpop.gremlin.tinkergraph.structure.TinkerGraph;
 
 import prerna.ds.QueryStruct;
 import prerna.ds.TinkerFrame;
-import prerna.ds.TinkerQueryEngineInterpreter;
+import prerna.ds.TinkerQueryInterpreter;
 import prerna.engine.api.IEngine;
 import prerna.engine.impl.AbstractEngine;
 import prerna.engine.impl.rdf.BigDataEngine;
@@ -94,7 +94,6 @@ public class TinkerEngine extends AbstractEngine {
 		// case for concept
 		else {
 			vertIt = g.traversal().V().has(TinkerFrame.TINKER_TYPE, conceptType).values(TinkerFrame.TINKER_NAME);
-
 		}
 		while (vertIt.hasNext()) {
 			columnsFromResult.addElement(vertIt.next());
@@ -110,7 +109,7 @@ public class TinkerEngine extends AbstractEngine {
 
 	@Override
 	public IQueryInterpreter getQueryInterpreter() {
-		return new TinkerQueryEngineInterpreter(this);
+		return new TinkerQueryInterpreter(this);
 	}
 
 	@Override
@@ -188,7 +187,8 @@ public class TinkerEngine extends AbstractEngine {
 		Hashtable<String, Object> propHash = (Hashtable<String, Object>) args[4];
 
 		String type = fromVertexUniqueName + TinkerFrame.EDGE_LABEL_DELIMETER + toVertexUniqueName;
-		String edgeID = type + "/" + fromVertex.value(TinkerFrame.TINKER_NAME) + ":"+ toVertex.value(TinkerFrame.TINKER_NAME);
+		String edgeID = type + "/" + fromVertex.value(TinkerFrame.TINKER_NAME) + ":"
+				+ toVertex.value(TinkerFrame.TINKER_NAME);
 
 		retEdge = fromVertex.addEdge(type, toVertex);
 		retEdge.property(TinkerFrame.TINKER_ID, edgeID);
@@ -198,8 +198,6 @@ public class TinkerEngine extends AbstractEngine {
 				retEdge.property(key, propHash.get(key));
 			}
 		}
-
-		// return retEdge;
 
 		return retEdge;
 	}
