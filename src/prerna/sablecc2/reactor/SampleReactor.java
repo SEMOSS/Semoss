@@ -4,8 +4,10 @@ import java.util.Enumeration;
 import java.util.Hashtable;
 import java.util.Vector;
 
+import prerna.engine.api.IHeadersDataRow;
 import prerna.sablecc2.om.CodeBlock;
 import prerna.sablecc2.om.GenRowStruct;
+import prerna.sablecc2.om.NounMetadata;
 import prerna.sablecc2.om.NounStore;
 
 public class SampleReactor extends AbstractReactor {
@@ -87,7 +89,6 @@ public class SampleReactor extends AbstractReactor {
 	// need a merge nounstore
 	// this logic should sit inside the reactor not in state
 	// this will be abstract eventually
-	@Override
 	public void mergeUp()
 	{
 		// looks at parent and then whatever this needs to do to merge
@@ -124,15 +125,13 @@ public class SampleReactor extends AbstractReactor {
 	
 	// execute it
 	// once again this would be abstract
-	@Override
-	public Object execute()
+	public IHeadersDataRow execute(IHeadersDataRow row)
 	{
 		System.out.println("Execute the method.. " + signature);
 		System.out.println("Printing NOUN Store so far.. " + store);
 		return null;
 	}
 	
-	@Override
 	public void updatePlan()
 	{
 		// add the inputs from the store as well as this operation
