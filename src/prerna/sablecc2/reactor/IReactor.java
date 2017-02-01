@@ -13,6 +13,10 @@ public interface IReactor {
 	// is this a map or a reduce
 	public enum TYPE{MAP, FLATMAP, REDUCE};
 	
+	/**********************************
+	 * To Be implemented by each reactor
+	 * ******************************/
+	
 	// in call
 	public void In();
 	
@@ -20,6 +24,20 @@ public interface IReactor {
 	// for now I would say the return is the object
 	public Object Out();
 	
+	//
+	public void mergeUp();
+	
+	// execute it
+	public Object execute();
+	
+	public void updatePlan();
+	/*******************************************/
+	
+	
+	
+	/*******************************************
+	 * Implemented by the Absract
+	 *******************************************/
 	// sets the name of the operation and the signature
 	// full operation includes the nouns
 	public void setPKSL(String operation, String fullOperation);
@@ -87,7 +105,10 @@ public interface IReactor {
 	public void setProp(String key, Object value);
 	
 	// gets the property
-	public Object getProp(String key);;
+	public Object getProp(String key);
+	
+	public Vector<String> getOutputs();
+
 	
 	/**
 	 * elements <- Generic Row <- Generic Noun <- Reactor

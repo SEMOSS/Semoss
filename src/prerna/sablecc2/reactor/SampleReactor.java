@@ -1,17 +1,14 @@
 package prerna.sablecc2.reactor;
 
-import java.util.Arrays;
 import java.util.Enumeration;
 import java.util.Hashtable;
 import java.util.Vector;
 
 import prerna.sablecc2.om.CodeBlock;
 import prerna.sablecc2.om.GenRowStruct;
-import prerna.sablecc2.om.GenRowStruct.COLUMN_TYPE;
-import prerna.sablecc2.om.NounMetadata;
 import prerna.sablecc2.om.NounStore;
 
-public class SampleReactor implements IReactor {
+public class SampleReactor extends AbstractReactor {
 
 	String operationName = null;
 	String signature = null;
@@ -33,112 +30,6 @@ public class SampleReactor implements IReactor {
 	PKSLPlanner planner = null;
 	
 	@Override
-	public void setPKSL(String operation, String fullOperation) {
-		// TODO Auto-generated method stub
-		this.operationName = operation;
-		this.signature = fullOperation;
-	}
-
-	@Override
-	public void setParentReactor(IReactor parentReactor) {
-		this.parentReactor = parentReactor;
-		
-	}
-	
-	@Override
-	public String getName()
-	{
-		return this.reactorName;
-	}
-	
-	@Override
-	public void setName(String reactorName)
-	{
-		this.reactorName = reactorName;
-	}
-	
-	@Override
-	public IReactor getParentReactor()
-	{
-		return this.parentReactor;
-	}
-
-	@Override
-	public void curNoun(String noun)
-	{
-		this.curNoun = noun;
-		curRow = makeNoun(noun);
-	}
-	
-	// gets the current noun
-	@Override
-	public GenRowStruct getCurRow()
-	{
-		return curRow;
-	}
-
-	@Override
-	public void closeNoun(String noun)
-	{
-		curRow = store.getNoun("all");
-	}
-	
-	@Override
-	public void setChildReactor(IReactor childReactor) {
-		// TODO Auto-generated method stub
-		this.childReactor = childReactor;
-
-	}
-
-	@Override
-	public NounStore getNounStore() {
-		// TODO Auto-generated method stub
-		// I need to see if I have a child
-		// if the child
-		if(this.store == null)
-			store = new NounStore(operationName);
-		return store;
-	}
-
-	@Override
-	public Vector<NounMetadata> getInputs() {
-		// TODO Auto-generated method stub
-		return null;
-	}
-
-	@Override
-	public void getErrorMessage() {
-		// TODO Auto-generated method stub
-
-	}
-
-	@Override
-	public STATUS getStatus() {
-		// TODO Auto-generated method stub
-		return this.status;
-	}
-
-	@Override
-	public TYPE getType() {
-		// TODO Auto-generated method stub
-		Object typeProp = getProp("type");
-		if(typeProp != null && ((String)typeProp).contains("reduce"))
-			this.type = TYPE.REDUCE;
-		return this.type;
-	}
-
-	@Override
-	public void setAs(String [] asName)
-	{
-		this.asName = asName;
-		// need to set this up on planner as well
-		//if(outputFields == null)
-			outputFields = new Vector();
-		outputFields.addAll(Arrays.asList(asName));
-		// re add this to output
-		planner.addOutputs(signature, outputFields, type);
-	}
-	
 	public void In()
 	{
 		// set the stores and such
@@ -147,6 +38,7 @@ public class SampleReactor implements IReactor {
 		//if(parentReactor != null && parentReactor.getName().equalsIgnoreCase("EXPR"))
 	}
 	
+	@Override
 	public Object Out()
 	{
 		System.out.println("Calling the out of" + operationName);
@@ -195,6 +87,7 @@ public class SampleReactor implements IReactor {
 	// need a merge nounstore
 	// this logic should sit inside the reactor not in state
 	// this will be abstract eventually
+	@Override
 	public void mergeUp()
 	{
 		// looks at parent and then whatever this needs to do to merge
@@ -231,6 +124,7 @@ public class SampleReactor implements IReactor {
 	
 	// execute it
 	// once again this would be abstract
+	@Override
 	public Object execute()
 	{
 		System.out.println("Execute the method.. " + signature);
@@ -238,46 +132,7 @@ public class SampleReactor implements IReactor {
 		return null;
 	}
 	
-	public void setPKSLPlanner(PKSLPlanner planner)
-	{
-		this.planner = planner;
-	}
-	
-	public String[] getPKSL()
-	{
-		String [] output = new String[2];
-		output[0] = operationName;
-		output[1] = signature;
-		
-		return output;
-	}
-	
-	public Vector<String> getOutputs()
-	{
-		return this.outputFields;
-	}
-	
 	@Override
-	public void setProp(String key, Object value) {
-		propStore.put(key, value);
-		
-	}
-
-	@Override
-	public Object getProp(String key) {
-		return propStore.get(key);
-	}
-
-	
-	// get noun
-	private GenRowStruct makeNoun(String noun)
-	{
-		GenRowStruct newRow = null;
-		getNounStore();
-		newRow = store.makeNoun(noun);
-		return newRow;
-	}
-	
 	public void updatePlan()
 	{
 		// add the inputs from the store as well as this operation
