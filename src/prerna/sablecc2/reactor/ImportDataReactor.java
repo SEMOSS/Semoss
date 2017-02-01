@@ -7,17 +7,9 @@ import prerna.sablecc2.om.CodeBlock;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.GenRowStruct.COLUMN_TYPE;
 
-public class ImportDataReactor extends SampleReactor {
+public class ImportDataReactor extends AbstractReactor {
 
-//	public Object Out() {
-//		Object x = this.store;
-//		Object y = this.curRow;
-//		Object z = this.propStore;
-//		
-//		System.out.println(x+""+y+z);
-//		return null;
-//		
-//	}
+
 	
 	@Override
 	public void updatePlan()
@@ -117,5 +109,25 @@ public class ImportDataReactor extends SampleReactor {
 		planner.addOutputs(signature, outputFields, type);
 		// also add properties to these outputfields
 		//planner.addProperty(opName, propertyName, value);
+	}
+
+	@Override
+	public void In() {
+		
+	}
+
+	@Override
+	public Object Out() {
+		return null;
+	}
+
+	@Override
+	public void mergeUp() {
+		
+	}
+
+	@Override
+	public Object execute() {
+		return null;
 	}
 }
