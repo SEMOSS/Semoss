@@ -12,6 +12,7 @@ import org.apache.tinkerpop.gremlin.structure.Vertex;
 import org.apache.tinkerpop.gremlin.tinkergraph.structure.TinkerGraph;
 
 import prerna.sablecc2.om.CodeBlock;
+import prerna.ui.components.playsheets.datamakers.IDataMaker;
 
 public class PKSLPlanner {
 	
@@ -27,7 +28,16 @@ public class PKSLPlanner {
 	public static final String TINKER_TYPE = "_T_TYPE";
 	public static final String TINKER_NAME = "_T_NAME";
 	
+	IDataMaker dataMaker;
 	
+	public PKSLPlanner() {
+		
+	}
+	
+	public PKSLPlanner(IDataMaker dataMaker) {
+		addProperty("FRAME", "FRAME", dataMaker);
+		this.dataMaker = dataMaker;
+	}
 	
 	// adds an operation with necessary inputs
 	public void addInputs(String opName, Vector <String> inputs, Vector <String> asInputs, IReactor.TYPE opType)
