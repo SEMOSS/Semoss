@@ -403,16 +403,27 @@ public class PKSLPlanner {
 		Vector <String> opInputs = (Vector<String>)opHash.get(Stage.INPUTS);
 		Vector <String> deInputs = (Vector<String>)opHash.get(Stage.DERIVED_INPUTS);
 		Vector <String> depends = (Vector<String>)opHash.get(Stage.DEPENDS);
+		// set the name as the signature
+		opHash.put("SIGNATURE", operationName);
 		opHash.put("INPUT_ORDER", thisVertex.property("INPUT_ORDER").value());
 		if(thisVertex.property("FILTERS").isPresent())
-		{
-			Vector <Object> filters = (Vector<Object>)thisVertex.property("FILTERS").value(); 
-			opHash.put("FILTERS", filters);
-		}
+			opHash.put("FILTERS", thisVertex.property("FILTERS").value());
 		if(thisVertex.property("JOINS").isPresent())
 			opHash.put("JOINS", thisVertex.property("JOINS").value());
+		// takes the frame if it is available
+		if(thisVertex.property("FRAME").isPresent())
+			opHash.put("FRAME", thisVertex.property("FRAME").value());
+		// while we are at it might as well synchronize the property store
+		if(thisVertex.property("STORE").isPresent())
+			opHash.put("STORE", thisVertex.property("STORE").value());
+		
 		opHash.put("INPUT_ORDER", thisVertex.property("INPUT_ORDER").value());
 		opHash.put("ALIAS", thisVertex.property("ALIAS").value());
+
+		// add reactor to the stage should 1 be present
+		if(thisVertex.property("REACTOR").isPresent())
+			thisStage.stageStore.put("REACTOR", thisVertex.property("REACTOR").value());
+
 		//String [] curCode = (String [])opHash.get(Stage.CODE);
 		// we will refine this code piece later
 
@@ -524,7 +535,13 @@ public class PKSLPlanner {
 			// add this operation to the new stage
 			// recurse
 			thisStage.removeOperation(operationName);
+			// remove the reactor too
+			thisStage.stageStore.remove(operationName);
 			Stage newStage = new Stage();
+			// add the reactor if the user has passed that in
+			if(thisVertex.property("REACTOR").isPresent())
+				newStage.stageStore.put("REACTOR", thisVertex.property("REACTOR").value());
+			
 			int newNum = thisStage.stageNum + 1;
 			newStage.stageNum = newNum;
 			newStage.addOperation(operationName, opHash);			
