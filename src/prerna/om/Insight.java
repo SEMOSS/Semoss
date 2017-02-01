@@ -79,6 +79,7 @@ import prerna.rdf.query.builder.QueryBuilderData;
 import prerna.sablecc.PKQLRunner;
 import prerna.sablecc.meta.FilePkqlMetadata;
 import prerna.sablecc.meta.IPkqlMetadata;
+import prerna.sablecc2.PKSLRunner;
 import prerna.solr.SolrIndexEngine;
 import prerna.ui.components.api.IPlaySheet;
 import prerna.ui.components.playsheets.datamakers.DataMakerComponent;
@@ -131,6 +132,7 @@ public class Insight {
 	private transient Vector<SEMOSSParam> insightParameters;					// the SEMOSSParam objects for the insight
 	private String uiOptions;
 	private PKQLRunner pkqlRunner; // unique to this insight that is responsible for tracking state and variables
+	private PKSLRunner pkslRunner;
 	
 	private static final String IS_DB_INSIGHT_KEY = "isDbInsight";				// is the insight from a db or copy/paste 
 	
@@ -298,6 +300,14 @@ public class Insight {
 		}
 	}
 	
+	public void syncPkslRunnerAndFrame(PKSLRunner pkslRunner) {
+		this.pkslRunner = pkslRunner;
+		IDataMaker frame = pkslRunner.getDataFrame();
+		if(frame != null) {
+			setDataMaker(frame);
+		}
+	}
+	
 	public PKQLRunner getPKQLRunner(){
 		if(this.pkqlRunner != null){
 			return this.pkqlRunner;
@@ -309,6 +319,18 @@ public class Insight {
 			this.pkqlRunner.setVarMap(pkqlVarMap);
 			this.pkqlRunner.setInsightId(this.insightID);
 			return this.pkqlRunner;
+		}
+	}
+	
+	//new method for running pksl's
+	//want to keep this separate for now because we may have differences in the payload
+	public PKSLRunner getPKSLRunner() {
+		if(this.pkslRunner != null) {
+			return this.pkslRunner;
+		} else {
+			this.pkslRunner = new PKSLRunner();
+			this.pkslRunner.setInsightId(this.insightID);
+			return this.pkslRunner;
 		}
 	}
 	

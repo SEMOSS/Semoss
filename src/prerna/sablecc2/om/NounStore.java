@@ -105,4 +105,18 @@ public class NounStore {
 		addNoun(noun, newRow);
 		return newRow;
 	}
+	
+	public String getDataString() {
+		String s = "";
+		if(this.nounRow == null) return s;
+		
+		for(String key : this.nounRow.keySet()) {
+			s += "KEY: "+key;
+			s += "\n";
+			s += "GENROWSTRUCT: "+nounRow.get(key).getDataString();
+			s += "\n";
+		}
+		
+		return s;
+	}
 }

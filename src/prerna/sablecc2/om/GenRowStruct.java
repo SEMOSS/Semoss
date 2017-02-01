@@ -123,5 +123,10 @@ public class GenRowStruct extends Vector {
 		return columns;
 	}
 	
-	
+	public String getDataString() {
+		String s = "";
+		s += "META VECTOR: "+this.metaVector+"\n";
+		s += "DATA VECTOR: "+this;
+		return s;
+	}
 }
