@@ -12,24 +12,25 @@ import prerna.sablecc2.om.NounStore;
 
 public class SampleReactor extends AbstractReactor {
 
-	String operationName = null;
-	String signature = null;
-	String curNoun = null;
-	IReactor parentReactor = null;
-	IReactor childReactor = null;
-	NounStore store = null;
-	IReactor.TYPE type = IReactor.TYPE.FLATMAP;
-	IReactor.STATUS status = null;
-	GenRowStruct curRow = null;
-	
-	String reactorName = "Sample";
-	String [] asName = null;
-	Vector <String> outputFields = null;
-	Vector <String> outputTypes = null;
-	
-	Hashtable <String, Object> propStore = new Hashtable<String, Object>();
-	
-	PKSLPlanner planner = null;
+	//Shifted to abstract reactor
+//	String operationName = null;
+//	String signature = null;
+//	String curNoun = null;
+//	IReactor parentReactor = null;
+//	IReactor childReactor = null;
+//	NounStore store = null;
+//	IReactor.TYPE type = IReactor.TYPE.FLATMAP;
+//	IReactor.STATUS status = null;
+//	GenRowStruct curRow = null;
+//	
+//	String reactorName = "Sample";
+//	String [] asName = null;
+//	Vector <String> outputFields = null;
+//	Vector <String> outputTypes = null;
+//	
+//	Hashtable <String, Object> propStore = new Hashtable<String, Object>();
+//	
+//	PKSLPlanner planner = null;
 	
 	@Override
 	public void In()
