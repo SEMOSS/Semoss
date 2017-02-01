@@ -11,7 +11,6 @@ public class ImportDataReactor extends AbstractReactor {
 
 
 	
-	@Override
 	public void updatePlan()
 	{
 		// add the inputs from the store as well as this operation
@@ -121,13 +120,4 @@ public class ImportDataReactor extends AbstractReactor {
 		return null;
 	}
 
-	@Override
-	public void mergeUp() {
-		
-	}
-
-	@Override
-	public Object execute() {
-		return null;
-	}
 }

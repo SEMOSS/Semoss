@@ -2,6 +2,7 @@ package prerna.sablecc2.reactor;
 
 import java.util.Vector;
 
+import prerna.engine.api.IHeadersDataRow;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.NounMetadata;
 import prerna.sablecc2.om.NounStore;
@@ -25,12 +26,6 @@ public interface IReactor {
 	public Object Out();
 	
 	//
-	public void mergeUp();
-	
-	// execute it
-	public Object execute();
-	
-	public void updatePlan();
 	/*******************************************/
 	
 	
@@ -107,8 +102,9 @@ public interface IReactor {
 	// gets the property
 	public Object getProp(String key);
 	
-	public Vector<String> getOutputs();
-
+	// execute method
+	public IHeadersDataRow execute(IHeadersDataRow row);
+	
 	
 	/**
 	 * elements <- Generic Row <- Generic Noun <- Reactor
