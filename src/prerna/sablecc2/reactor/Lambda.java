@@ -1,5 +1,6 @@
-package prerna.sablecc2.om;
+package prerna.sablecc2.reactor;
 
+import java.util.Enumeration;
 import java.util.Hashtable;
 import java.util.Iterator;
 import java.util.Vector;
@@ -8,7 +9,7 @@ import prerna.algorithm.api.ITableDataFrame;
 import prerna.ds.QueryStruct;
 import prerna.engine.api.IHeadersDataRow;
 
-public class MapFunction {
+public class Lambda {
 	
 	// this is the map class - yeah well no shit
 	// eventually we can make it extend the whole spark stuff
@@ -36,9 +37,39 @@ public class MapFunction {
 	
 	public IHeadersDataRow RESULT = null;
 	
+	public void makeQuery()
+	{
+		// this will be overridden
+	}
+	
+	public void addInputs()
+	{
+		// this will be overridden
+	}
+
+	public void executeCode(IHeadersDataRow row)
+	{
+		// this will be overridden
+	}
+
 	public void setVar(String variableName, Object value)
 	{
 		store.put(variableName, value);
+	}
+	
+	public void addStore(Hashtable <String, Object> newStore)
+	{
+		Enumeration <String> keys = newStore.keys();
+		while(keys.hasMoreElements())
+		{
+			String key = keys.nextElement();
+			this.store.put(key, newStore.get(key));
+		}
+	}
+	
+	public void setFrame(ITableDataFrame frame)
+	{
+		this.frame = frame;
 	}
 
 	public Object getVar(String variableName)
@@ -56,6 +87,7 @@ public class MapFunction {
 		while(thisIterator.hasNext())
 		{
 			IHeadersDataRow row = (IHeadersDataRow)thisIterator.next();
+			executeCode(row);
 		}
 	}
 	
@@ -91,4 +123,8 @@ public class MapFunction {
 		return retRow;
 	}
 	
+	public void test()
+	{
+		System.out.println("Hello Lambda !!");
+	}
 }

@@ -11,19 +11,5 @@ public class QueryReactor extends AbstractReactor {
 		return null;
 	}
 
-	@Override
-	public void mergeUp() {
-
-	}
-
-	@Override
-	public Object execute() {
-		return null;
-	}
-
-	@Override
-	public void updatePlan() {
-		
-	}
 
 }

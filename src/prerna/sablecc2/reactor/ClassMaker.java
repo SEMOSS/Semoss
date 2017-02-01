@@ -26,6 +26,8 @@ public class ClassMaker {
 		pool.importPackage("java.sql");
 		pool.importPackage("java.lang");
 		pool.importPackage("java.util");
+		pool.importPackage("prerna.sablecc2.reactor");
+		pool.importPackage("prerna.engine.api");
 		pool.importPackage("prerna.util");
 		pool.importPackage("org.apache.tinkerpop.gremlin.process.traversal");
 		pool.importPackage("org.apache.tinkerpop.gremlin.structure");
