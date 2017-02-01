@@ -4,6 +4,7 @@ import java.util.Arrays;
 import java.util.Hashtable;
 import java.util.Vector;
 
+import prerna.engine.api.IHeadersDataRow;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.NounMetadata;
 import prerna.sablecc2.om.NounStore;
@@ -85,10 +86,6 @@ public abstract class AbstractReactor implements IReactor {
 		return null;
 	}
 	
-	@Override
-	public Vector<String> getOutputs() {
-		return this.outputFields;
-	}
 
 	@Override
 	public void getErrorMessage() {
@@ -158,4 +155,14 @@ public abstract class AbstractReactor implements IReactor {
 		newRow = store.makeNoun(noun);
 		return newRow;
 	}
+	
+	// execute it
+	// once again this would be abstract
+	public IHeadersDataRow execute(IHeadersDataRow row)
+	{
+		System.out.println("Execute the method.. " + signature);
+		System.out.println("Printing NOUN Store so far.. " + store);
+		return null;
+	}
+
 }

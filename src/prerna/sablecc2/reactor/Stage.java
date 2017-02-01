@@ -4,6 +4,7 @@ import java.util.Enumeration;
 import java.util.Hashtable;
 import java.util.Vector;
 
+import prerna.algorithm.api.ITableDataFrame;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.Join;
 import prerna.util.Utility;
@@ -30,6 +31,9 @@ public class Stage extends Hashtable <String, Hashtable> {
 	Vector <String> opVector = null;
 	
 	int numOps = 1;
+	Lambda runner = null;
+	
+	Hashtable <String, Object> stageStore = new Hashtable<String, Object>();
 	
 	// should keep another hash of lowest dependency just in case things come in later
 	Hashtable <String, Integer> lowestDependency = new Hashtable<String, Integer>();
@@ -90,7 +94,20 @@ public class Stage extends Hashtable <String, Hashtable> {
 			
 			addStageRelation((Join)thisJoin);
 		}
-
+		
+		// get the frame from the codehash and set it up
+		// frame over writes i.e. if you have one operation later setting the frame
+		// that will take precedence
+		// adds the property
+		// and sets the frame
+		if(codeHash.containsKey("FRAME"))
+			stageStore.put("FRAME", codeHash.get("FRAME"));
+		
+		// TODO: need to do the property.. we will do this later
+		
+		
+		
+		
 		/*
 		// need to add the derived inputs here as well
 		inputs = (Vector<String>)codeHash.get(this.DERIVED_INPUTS);
@@ -277,21 +294,27 @@ public class Stage extends Hashtable <String, Hashtable> {
 		System.out.println("STAGE " + stageNum + "====================================");
 		
 		ClassMaker thisClass = new ClassMaker(); // go with dynamic for now
-		thisClass.addSuper("prerna.sablecc2.om.MapFunction");
+		thisClass.addSuper("prerna.sablecc2.reactor.Lambda");
 		
 		// finish the query block
+		// this makes the query
 		queryStructString.append("\n");
 		queryStructString.append("thisIterator = frame.query(this.qs);\n}\n");
 		
-		StringBuffer executeBlock = new StringBuffer("public void executeCode(IHeadersDataRow row) \n{\n");
-		StringBuffer declareBlock = new StringBuffer("public void addInputs() \n{\n");
 		
+		// this creates all the inputs
+		StringBuffer declareBlock = new StringBuffer("public void addInputs() \n{\n");
+
+		// this is the main function for executing the code
+		StringBuffer executeBlock = new StringBuffer("public void executeCode(IHeadersDataRow curRow) \n{\n IReactor thisReactor = null;");
+
 		StringBuffer queryBlock = new StringBuffer("public void iterateAll() \n{\n");
 		queryBlock = queryBlock.append("while(thisIterator.hasNext()) \n{");
 		queryBlock = queryBlock.append("executeFunction(thisIterator.next()); \n");
 		queryBlock = queryBlock.append("};");
 		
 				
+		// this is all the other functions ?
 		StringBuffer endBlock = new StringBuffer("");
 
 		StringBuffer retString = new StringBuffer("");
@@ -341,19 +364,29 @@ public class Stage extends Hashtable <String, Hashtable> {
 					// I need to do these pieces on for every
 					String rowObjectName = Utility.getRandomString(8) + "RowObject"; 
 					retString = retString.append("\nObject [] " + rowObjectName + " = " + "getRow(\"" + inputStringName + "\", curRow);");
-					
+					executeBlock.append("\nObject [] " + rowObjectName + " = " + "getRow(\"" + inputStringName + "\", curRow);");
 					// specify them here
 					// get the code
 					// add the code
 					retString = retString.append("\nrun" + code[0] + "(" + rowObjectName + ");");
+					executeBlock.append("\nrun" + code[0] + "(" + rowObjectName + ");");
 					// add all the end blocks
 					thisClass.addMethod(code[1]);
 					endBlock = endBlock.append("\n" + code[1]);
 				}
+				if(codeHash.containsKey("REACTOR"))
+				{
+					executeBlock.append("thisReactor = (IReactor)store.get(" + codeHash.get("SIGNATURE") + ");\n");
+					executeBlock.append("curRow = thisReactor.execute(curRow);");
+				}
+				
+				
 				retString = retString.append("\n //---------" + thisOperation + "---------------");				
 			}
 			retString = retString.append("\n\n");
 		}
+		executeBlock.append("}");
+		thisClass.addMethod(executeBlock +"");
 		declareBlock.append("}");
 		retString = retString.append("\n } ");
 		System.out.println(declareBlock);
@@ -366,8 +399,46 @@ public class Stage extends Hashtable <String, Hashtable> {
 		retString = retString.append("\n" + endBlock);
 		retString.append("====================================\n");
 
-		thisClass.writeClass("C:\\Users\\pkapaleeswaran\\workspacej3\\SemossDev\\Codagen\\Stage" + stageNum + ".java");
+		try {
+			runner = (Lambda)(thisClass.toClass().newInstance());
+		} catch (InstantiationException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (IllegalAccessException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		runner.test();
+		//thisClass.writeClass("C:\\Users\\pkapaleeswaran\\workspacej3\\SemossDev\\Codagen\\Stage" + stageNum + ".java");
 		return retString.toString();
+		
+	}
+	
+	// need to introduce a pre-process call
+	// where if I have the frame in the operation
+	// I need to set it etc. 
+	public void preProcessStage()
+	{
+		if(stageStore.containsKey("FRAME"))
+		{
+			runner.setFrame((ITableDataFrame)stageStore.get("FRAME"));
+			stageStore.remove("FRAME");
+		}
+		// this will synchronize all the reactors
+		runner.addStore(stageStore);
+	}
+	
+	public void processStage()
+	{
+		runner.makeQuery();
+		runner.addInputs();
+		runner.execute();
+		
+	}
+	
+	public void postProcessStage()
+	{
+		// need to get the data back so we can reset it
 	}
 		
 	public Vector<String> getOperationsInStage()
