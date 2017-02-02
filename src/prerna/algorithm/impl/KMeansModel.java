@@ -44,10 +44,11 @@ public class KMeansModel {
 		List<double[]> pointData = new ArrayList<>();
 		for(DataPoint point : points)
 			pointData.add(point.dimensions);
-		KMeansNumClusters kmeansNumClusters = new KMeansNumClusters();
+		/*KMeansNumClusters kmeansNumClusters = new KMeansNumClusters();
 		int numClusters = kmeansNumClusters.calcNumClusters(pointData);
 		if (maxClusters > 0)
-			numClusters = Math.min(numClusters, maxClusters);
+			numClusters = Math.min(numClusters, maxClusters);*/
+		int numClusters = maxClusters;
 		KMeansInit kmeansInit = new KMeansInit(numClusters);
 		List<double[]>centres = kmeansInit.cluster(pointData);
 		List<Cluster> clusters = new ArrayList<Cluster>(numClusters);
@@ -70,6 +71,14 @@ public class KMeansModel {
 			result.put(p.id, clusters2.headSet(p.cluster).size());
 		}
 		return result;
+	}
+	
+	public double getSSE(){
+		double SSE = 0;
+		for(DataPoint p : points){
+			SSE += DataPoint.EucledianDistance(p, p.cluster.centre);
+		}
+		return SSE;
 	}
 	
 	public Map<String,Object> getMetaData(){
