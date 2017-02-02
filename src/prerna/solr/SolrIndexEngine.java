@@ -84,27 +84,31 @@ public class SolrIndexEngine {
 	
 	// Schema Field Names For Insight Core
 	public static final String ID = "id";
+	
 	public static final String STORAGE_NAME = "name";
 	public static final String INDEX_NAME = "index_name";
-	public static final String DATAMAKER_NAME = "datamaker_name";
+	
 	public static final String CREATED_ON = "created_on";
 	public static final String MODIFIED_ON = "modified_on";
+	public static final String LAST_VIEWED_ON = "last_viewed_on";
+
 	public static final String USER_ID = "user_id";
+	
 	public static final String ENGINES = "engines";
 	public static final String CORE_ENGINE = "core_engine";
-	public static final String PROPERTIES = "properties";
 	public static final String CORE_ENGINE_ID = "core_engine_id";
+
+	public static final String UP_VOTES = "up_votes";
+	public static final String VIEW_COUNT = "view_count";
+	
+	public static final String TAGS = "tags";
+	public static final String INDEXED_TAGS = "indexed_tags";
+
 	public static final String LAYOUT = "layout";
 	public static final String ANNOTATION = "annotation";
-	public static final String FAVORITES_COUNT = "favorites_count";
-	public static final String VIEW_COUNT = "view_count";
-	public static final String TAGS = "tags";
 	public static final String COMMENT = "comment";
 	public static final String USER_SPECIFIED_RELATED = "user_specified_related";
 	public static final String QUERY_PROJECTIONS = "query_projections";
-	public static final String PARAMS = "params";
-	public static final String ALGORITHMS = "algorithms";
-	public static final String NON_DB_INSIGHT = "non_db_insight";
 	public static final String IMAGE = "image";
 
 	// Schema Field Names For Instance Core
@@ -371,6 +375,85 @@ public class SolrIndexEngine {
 		return fieldsToModify;
 	}
 	
+	/**
+	 * Modifies the view count and last viewed time of a document based on its Unique ID
+	 * @param uniqueID              ID to be modified
+	 */
+	public void updateViewedInsight(String uniqueID) throws SolrServerException, IOException {
+		if (serverActive()) {
+			/*
+			 * solr doens't allow you to modify specific fields in a document that is already indexed
+			 * therefore, to modify an existing insight we need to
+			 * 1) query the solr insight core using the specific unique id for the document
+			 * 2) once you have the solr document, get the map containing the field attributes
+			 * 3) override the view count field
+			 * 4) add this new solr document back into insight core
+			 * 
+			 * note: if you add a solr document which has the same id as an existing document that was indexed
+			 * 			solr automatically overrides that index with the new one
+			 */
+			
+			// 1) query to get the existing insight
+			
+			// create a solr query builder and add a filter on the specific ID to get the correct insight
+			SolrIndexEngineQueryBuilder queryBuilder = new SolrIndexEngineQueryBuilder();
+			queryBuilder.setSearchString(QUERY_ALL);
+			Map<String, List<String>> filterForId = new HashMap<String, List<String>>();
+			List<String> idList = new ArrayList<String>();
+			idList.add(uniqueID);
+			filterForId.put(ID, idList);
+			queryBuilder.setFilterOptions(filterForId);
+			// execute the query
+			QueryResponse res = getQueryResponse(queryBuilder.getSolrQuery(), SOLR_PATHS.SOLR_INSIGHTS_PATH);
+			// the results object is defaulted to a list.. but with the ID bind (which is unique) there should
+			// be exactly one solr document returned
+			SolrDocumentList docList = res.getResults();
+			if(docList.size() == 0) {
+				LOGGER.error("COULD NOT FIND QUESITON WITH ID = " + uniqueID + " INSIDE SOLR TO MODIFY");
+				return;
+			}
+			SolrDocument origDoc = docList.get(0);
+			
+			// 2) create an iterator to go through the existing fields
+			Iterator<Entry<String, Object>> iterator = origDoc.iterator();
+			
+			// 3) we need to create a new solr document to combine the existing values and increae the view count
+			SolrInputDocument doc = new SolrInputDocument();
+			
+			boolean hasViewCount = false;
+			// loop through existing values
+			while (iterator.hasNext()) {
+				//get the next field value in the existing map
+				Entry<String, Object> field = iterator.next();
+				// fieldName will correspond to a defined field name in the schema
+				String fieldName = field.getKey();
+				// if field is view count, modify it by increasing the value by 1
+				if (fieldName.equalsIgnoreCase(VIEW_COUNT)) {
+					doc.setField(fieldName, ((Number) field.getValue()).longValue() + 1);
+					hasViewCount = true;
+				} else {
+					// if not modified field, use existing value
+					doc.setField(fieldName, field.getValue());
+				}
+			}
+			
+			// in case there is no view count yet
+			if(!hasViewCount) {
+				doc.setField(VIEW_COUNT, 1);
+			}
+			
+			// get the current time in the right format
+			String currTime = getDateFormat().format(new Date());
+			doc.setField(LAST_VIEWED_ON, currTime);
+			
+			// when committing, automatically overrides existing field values with the new ones
+			LOGGER.info("Modifying document view count and last view time:  " + uniqueID);
+			insightServer.add(doc);
+			insightServer.commit();
+			LOGGER.info("UniqueID " + uniqueID + "'s doc has been modified");
+		}
+	}
+	
 	/////////////////// END MODIFICATION TO INSIGHTS SOLR CORE ///////////////////
 
 	
@@ -541,7 +624,7 @@ public class SolrIndexEngine {
 	 * @throws SolrServerException
 	 * @throws IOException
 	 */
-	public Map<String, Object> executeSearchQuery(String searchString, String sortString, Integer offsetInt, Integer limitInt, Map<String, List<String>> filterData) 
+	public Map<String, Object> executeSearchQuery(String searchString, String sortField, String sortOrder, Integer offsetInt, Integer limitInt, Map<String, List<String>> filterData) 
 			throws KeyManagementException, NoSuchAlgorithmException, KeyStoreException, SolrServerException, IOException 
 	{
 		/*
@@ -563,8 +646,8 @@ public class SolrIndexEngine {
 			queryBuilder.setSearchString(searchString);
 		}
 		// if a order is set to sort based on the insight name
-		if (sortString != null && !sortString.isEmpty()) {
-			queryBuilder.setSort(STORAGE_NAME, sortString.toLowerCase());
+		if (sortField!= null && !sortField.isEmpty() && sortOrder != null && !sortOrder.isEmpty()) {
+			queryBuilder.setSort(sortField, sortOrder.toLowerCase());
 		}
 		// always add sort by score desc
 		queryBuilder.setSort(SCORE, DESC);
@@ -589,14 +672,18 @@ public class SolrIndexEngine {
 		// set the solr field values to return
 		// these are the necessarily fields to view and run a returned insight
 		List<String> retFields = new ArrayList<String>();
+		retFields.add(ID);
 		retFields.add(CORE_ENGINE);
 		retFields.add(CORE_ENGINE_ID);
 		retFields.add(LAYOUT);
 		retFields.add(STORAGE_NAME);
 		retFields.add(CREATED_ON);
+		retFields.add(MODIFIED_ON);
+		retFields.add(LAST_VIEWED_ON);
 		retFields.add(USER_ID);
 		retFields.add(TAGS);
 		retFields.add(SCORE);
+		retFields.add(VIEW_COUNT);
 		retFields.add(IMAGE);
 		queryBuilder.setReturnFields(retFields);
 
@@ -976,14 +1063,18 @@ public class SolrIndexEngine {
 		// set the solr field values to return
 		// these are the necessarily fields to view and run a returned insight
 		List<String> retFields = new ArrayList<String>();
+		retFields.add(ID);
 		retFields.add(CORE_ENGINE);
 		retFields.add(CORE_ENGINE_ID);
 		retFields.add(LAYOUT);
 		retFields.add(STORAGE_NAME);
 		retFields.add(CREATED_ON);
+		retFields.add(MODIFIED_ON);
+		retFields.add(LAST_VIEWED_ON);
 		retFields.add(USER_ID);
 		retFields.add(TAGS);
 		retFields.add(SCORE);
+		retFields.add(VIEW_COUNT);
 		retFields.add(IMAGE);
 		queryBuilder.setReturnFields(retFields);
 
