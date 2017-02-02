@@ -58,12 +58,27 @@ public class UserPermissionsMasterDB {
 	public Boolean addUser(User newUser) {
 		ISelectWrapper sjsw = Utility.processQuery(securityDB, "SELECT NAME FROM USER WHERE ID='" + newUser.getId() + "';");
 		if(!sjsw.hasNext()) {			
-			String query = "INSERT INTO User (id, name, email, type) VALUES ('" + newUser.getId() + "', '"+ newUser.getName() + "', '" + newUser.getEmail() + "', '" + newUser.getLoginType() + "');";
+			String query = "INSERT INTO User (id, name, email, type, admin) VALUES ('" + newUser.getId() + "', '"+ newUser.getName() + "', '" + newUser.getEmail() + "', '" + newUser.getLoginType() + "', '" + newUser.isAdmin() + "');";
 			securityDB.insertData(query);
 			securityDB.commit();
 		}
 		
 		return true;
+	}
+	
+	/**
+	 * Adds a new user to the database. Does not create any relations, simply the node.
+	 * 
+	 * @param userName	String representing the name of the user to add
+	 */
+	public Boolean isUserAdmin(String userId) {
+		String query = "SELECT ADMIN FROM USER WHERE ID='" + userId + "';";
+		ArrayList<String[]> ret = runQuery(query);
+		if(!ret.isEmpty()) {
+			return Boolean.parseBoolean(ret.get(0)[0]);
+		}
+		
+		return false;
 	}
 	
 	/**
@@ -191,12 +206,18 @@ public class UserPermissionsMasterDB {
 		HashSet<String> engines = new HashSet<String>();
 		ArrayList<String[]> ret = new ArrayList<String[]>();
 		
-		String query = "SELECT DISTINCT Engine.name FROM Engine, EnginePermission WHERE EnginePermission.USER='" + userId + "' AND Engine.ID=EnginePermission.ENGINE;";
-		ret = runQuery(query);
-		
-		query = "SELECT DISTINCT e.NAME AS ENGINENAME FROM Engine e, User u, GroupEnginePermission gep, GroupMembers gm, Permission p "
-				+ "WHERE u.ID='" + userId + "' AND gm.MEMBERID=u.ID AND gm.GROUPID=gep.GROUPID AND gep.PERMISSION=p.ID";
-		ret.addAll(runQuery(query));
+		String query = "";
+		if(isUserAdmin(userId)) {
+			query = "SELECT DISTINCT Engine.name FROM Engine";
+			ret = runQuery(query);
+		} else {
+			query = "SELECT DISTINCT Engine.name FROM Engine, EnginePermission WHERE EnginePermission.USER='" + userId + "' AND Engine.ID=EnginePermission.ENGINE;";
+			ret = runQuery(query);
+			
+			query = "SELECT DISTINCT e.NAME AS ENGINENAME FROM Engine e, User u, GroupEnginePermission gep, GroupMembers gm, Permission p "
+					+ "WHERE u.ID='" + userId + "' AND gm.MEMBERID=u.ID AND gm.GROUPID=gep.GROUPID AND gep.PERMISSION=p.ID";
+			ret.addAll(runQuery(query));
+		}
 		
 		for(String[] row : ret) {
 			engines.add(row[0]);
@@ -523,12 +544,121 @@ public class UserPermissionsMasterDB {
 	}
 	
 	/**
+	 * 
+	 */
+	public Boolean createSeed(String seedName, int databaseID, String tableName, String columnName, Object RLSValue, String RLSJavaCode, String userId) {
+		String query = "INSERT INTO Seed VALUES (NULL, '" + seedName + "', " + databaseID + ", " + tableName + ", " + columnName + ", ";
+		
+		if(RLSValue != null) {
+			query += RLSValue + "', " + "NULL, '" + userId + "');";
+		} else if(RLSJavaCode != null && !RLSJavaCode.isEmpty()) {
+			query += "NULL, '" + RLSJavaCode + "', '" + userId + "');";
+		}
+		
+		securityDB.insertData(query);
+		
+		return true;
+	}
+	
+	public Boolean deleteSeed(int seedId, String userId) {
+		String query = "DELETE FROM UserSeedPermission WHERE seedid=" + seedId + " INNER JOIN Seed ON Seed.ID=UserSeedPermission.SEEDID AND Seed.OWNER='" + userId + "';";
+		securityDB.execUpdateAndRetrieveStatement(query, true);
+		
+		query = "DELETE FROM Seed WHERE seedid=" + seedId + " AND owner='" + userId + "';";
+		securityDB.execUpdateAndRetrieveStatement(query, true);
+		
+		securityDB.commit();
+		return true;
+	}
+	
+	public Boolean addSeedToUser(String userId, String seedId) {
+		String query = "INSERT INTO UserSeedPermission VALUES ('" + userId + "', " + seedId + ");";
+		
+		securityDB.insertData(query);
+		
+		return true;
+	}
+	
+	public HashMap<String, HashMap<String, ArrayList<String>>> getMetamodelSeedsForUser(String userId) {
+		String query = "SELECT DISTINCT E.NAME AS DB, S.TABLENAME AS TAB, S.COLUMNNAME AS COL "
+				+ "FROM Seed S "
+				+ "INNER JOIN Engine E ON S.DATABASEID=E.ID "
+				+ "INNER JOIN UserSeedPermission USP ON USP.SEEDID=S.ID "
+				+ "INNER JOIN User U ON U.ID=USP.USERID AND U.ID='" + userId + "' "
+				+ "ORDER BY DB, TAB;";
+		
+		ArrayList<String[]> results = runQuery(query);
+		
+		HashMap<String, HashMap<String, ArrayList<String>>> dbToTables = new HashMap<String, HashMap<String, ArrayList<String>>>();
+		HashMap<String, ArrayList<String>> tableToCols = new HashMap<String, ArrayList<String>>();
+		ArrayList<String> cols = new ArrayList<String>();
+		
+		String currDB = "";
+		String currTable = "";
+		
+		for(String[] row : results) {
+			String rowDB = row[0];
+			String rowTable = row[1];
+			if(currDB.equals(rowDB)) {
+				if(!currTable.equals(rowTable)) {
+					if(!cols.isEmpty()) {
+						tableToCols.put(currTable, cols);
+					}
+					cols = new ArrayList<String>();
+					currTable = rowTable;
+				}
+				
+				cols.add(row[2]);
+			} else {
+				if(!cols.isEmpty()) {
+					tableToCols.put(currTable, cols);
+					dbToTables.put(currDB, tableToCols);
+				}
+				
+				cols = new ArrayList<String>();
+				tableToCols = new HashMap<String, ArrayList<String>>();
+				
+				cols.add(row[2]);
+				currDB = rowDB;
+				currTable = rowTable;
+			}
+		}
+		
+		if(!cols.isEmpty()) {
+			tableToCols.put(currTable, cols);
+			dbToTables.put(currDB, tableToCols);
+			
+		}
+		
+		System.out.println(dbToTables);
+		
+		return dbToTables;
+	}
+	
+	public Boolean addSeedToGroup(String groupId, String seedId) {
+		String query = "INSERT INTO GroupSeedPermission VALUES ('" + groupId + "', " + seedId + ");";
+		
+		securityDB.insertData(query);
+		
+		return true;
+	}
+	
+	
+	
+//	public HashMap<String, HashMap<String, HashMap<String, ArrayList<Object>>>> getRLSSeedsForUser(String userId) {
+//		String query = "";
+//		
+//		return null;
+//	}
+	
+	/**
 	 * Returns a list of values given a query with one column/variable.
 	 * 
 	 * @param query		Query to be executed to retrieve engine names
 	 * @return			List of engine names
 	 */
 	private ArrayList<String[]> runQuery(String query) {
+		System.out.println("Executing security query: " + query);
 		ISelectWrapper sjsw = Utility.processQuery(securityDB, query);
 		String[] names = sjsw.getDisplayVariables();
 		ArrayList<String[]> ret = new ArrayList<String[]>();
@@ -544,7 +674,11 @@ public class UserPermissionsMasterDB {
 		return ret;
 	}
 	
-	// USER TRACKING METHODS BEGIN HERE
+	/*
+	 * 
+	 * USER TRACKING METHODS BEGIN HERE
+	 * 
+	 */
 	
 	public void trackInsightExecution(String user, String db, String insightId, String session) {
 		insightId = insightId.split("_")[1];
