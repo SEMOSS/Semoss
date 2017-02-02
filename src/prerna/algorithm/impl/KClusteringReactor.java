@@ -13,8 +13,6 @@ import prerna.ds.ExpressionIterator;
 import prerna.sablecc.MathReactor;
 import prerna.sablecc.PKQLEnum;
 import prerna.sablecc.PKQLRunner.STATUS;
-import scala.collection.mutable.FlatHashTable.Contents;
-import scala.collection.mutable.HashSet;
 
 public class KClusteringReactor extends MathReactor{
 
@@ -58,6 +56,9 @@ public class KClusteringReactor extends MathReactor{
 		int maxClusters = -1;
 		if(options.containsKey("maxClusters".toUpperCase()))
 			maxClusters = (int)options.get("maxClusters".toUpperCase());
+		
+		if (maxClusters == 0)
+			maxClusters = (int)Math.ceil(Math.log(dataFrame.getNumRows())/Math.log(2));
 
 		String[] columnsArray = columnHeaders.toArray(new String[columnHeaders.size()]);
 		Vector<String> columnsVector = new Vector<String>(columnHeaders);
@@ -66,9 +67,67 @@ public class KClusteringReactor extends MathReactor{
 			clusteringAttributesIndexList.add(columnHeaders.indexOf(clusteringAttr));
 		}
 		
-		Iterator itr = getTinkerData(columnsVector, dataFrame, false);	
-		this.numIterations = 10000;
-		KMeansModel kMeans = new KMeansModel(itr,clusteringAttributesIndexList, this.numIterations, maxClusters);
+		this.numIterations = 1000;
+		KMeansModel kMeans = null;
+		int numClusters = 2, prevNumClusters = 2;
+		double SSERateThreshold = 0.3;
+		double prevSSE = 0.0, orgSSE = -1.0;
+		int markStagnant = 0, stagnantDur = 0, stagnantThreshold = 2;
+		HashMap<Integer,Double> clusterNumToSSE = new HashMap<>();
+		while(true)
+		{
+			if(numClusters > maxClusters)
+				break;
+			Iterator itr = getTinkerData(columnsVector, dataFrame, false);	
+			kMeans = new KMeansModel(itr,clusteringAttributesIndexList, this.numIterations, numClusters);
+			int clusterNumIncrement = 1;
+			double currSSE = kMeans.getSSE();
+			if(orgSSE < 0){
+				orgSSE = currSSE;
+			}else{
+				double SSE = currSSE;
+				double normalizedDeltaSSE = (prevSSE - SSE)/orgSSE;
+				double normalizedDeltaNumClusters = (numClusters - prevNumClusters) * 1.0/numClusters;
+				double SSERate = normalizedDeltaSSE/normalizedDeltaNumClusters;
+				System.out.println("KMeans result: " + numClusters + ", " + SSERate);
+				if (SSERate < SSERateThreshold){
+					if (stagnantDur == 0)
+						markStagnant = numClusters;
+					stagnantDur += 1;
+					if (stagnantDur > stagnantThreshold)
+						break;
+				}else{
+					markStagnant = 0;
+					stagnantDur = 0;
+					clusterNumIncrement = (int)(SSERate * normalizedDeltaNumClusters * numClusters/SSERateThreshold);//(int)(numClusters * numClusters/prevNumClusters) - numClusters;
+					clusterNumIncrement = Math.min((int)Math.sqrt(maxClusters), clusterNumIncrement);
+					clusterNumIncrement = Math.max(clusterNumIncrement, 1);
+				}
+			}
+			clusterNumToSSE.put(numClusters, currSSE);
+			prevNumClusters = numClusters;
+			numClusters += clusterNumIncrement;
+			prevSSE = currSSE;
+		}
+		
+		if (stagnantDur == stagnantThreshold){
+			Iterator itr = getTinkerData(columnsVector, dataFrame, false);	
+			kMeans = new KMeansModel(itr,clusteringAttributesIndexList, this.numIterations, markStagnant);
+		}else{
+			int bestClusterNum = -1;
+			double minClusterScore = Double.MAX_VALUE;
+			for(Integer clusterNum : clusterNumToSSE.keySet()){
+				double SSE = clusterNumToSSE.get(clusterNum);
+				if (minClusterScore > SSE)
+				{
+					minClusterScore = SSE;
+					bestClusterNum = clusterNum;
+				}
+			}
+			Iterator itr = getTinkerData(columnsVector, dataFrame, false);	
+			kMeans = new KMeansModel(itr,clusteringAttributesIndexList, this.numIterations, bestClusterNum);
+		}
+			
 
 		Map<List<Object>,Integer> clusters = kMeans.clusterResult();
 
