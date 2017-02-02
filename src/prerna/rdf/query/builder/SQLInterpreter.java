@@ -219,14 +219,14 @@ public class SQLInterpreter implements IQueryInterpreter{
 		Map<String, String> orderBy = qs.getOrderBy();
 		if(orderBy != null && !orderBy.isEmpty()) {
 			String orderByName = null;
-			for(String key : orderBy.keySet()) {
-				String colName = orderBy.get(key);
-				if(colName.equals(QueryStruct.PRIM_KEY_PLACEHOLDER)){
-					colName = getPrimKey4Table(key);
+			for(String tableConceptualName : orderBy.keySet()) {
+				String columnConceptualName = orderBy.get(tableConceptualName);
+				if(columnConceptualName.equals(QueryStruct.PRIM_KEY_PLACEHOLDER)){
+					columnConceptualName = getPrimKey4Table(tableConceptualName);
 				} else {
-					colName = getPhysicalPropertyNameFromConceptualName(colName);
+					columnConceptualName = getPhysicalPropertyNameFromConceptualName(tableConceptualName, columnConceptualName);
 				}
-				orderByName = getAlias(key) + "." + colName;
+				orderByName = getAlias(tableConceptualName) + "." + columnConceptualName;
 				break; //use first one
 			}
 			if(orderByName != null) {
@@ -294,7 +294,7 @@ public class SQLInterpreter implements IQueryInterpreter{
 		// not sure how we get to the point where table would be null..
 		// but this was here previously so i will just keep it I guess
 		if(table != null) {
-			String tableAlias = getAlias(table);
+			String tableAlias = getAlias(getPhysicalTableNameFromConceptualName(table));
 			// will be getting the physical column name
 			String physicalColName = colName;
 			// TODO: currently assuming the display name is the conceptual
@@ -312,9 +312,8 @@ public class SQLInterpreter implements IQueryInterpreter{
 				} else {
 					// default assumption is the info being passed is the conceptual name
 					// get the physical from the conceptual
-					physicalColName = getPhysicalPropertyNameFromConceptualName(colName);
+					physicalColName = getPhysicalPropertyNameFromConceptualName(table, colName);
 					displayName = colName;
-
 				}
 			}
 			
@@ -339,44 +338,7 @@ public class SQLInterpreter implements IQueryInterpreter{
 		selectorList.add(selectorAddition);
 	}
 	
-//	private String getDisplayName(String table, String colName) {
-//		// not sure how we get to the point where table would be null..
-//		// but this was here previously so i will just keep it I guess
-//		String displayName = null;
-//		
-//		if(table != null) {
-//			// TODO: currently assuming the display name is the conceptual
-//			//		once we have this in the OWL, we need to add this
-//			displayName = colName; 
-//			
-//			// if engine is not null, get the info from the engine
-//			if(engine != null) {
-//				// if the colName is the primary key placeholder
-//				// we will go ahead and grab the primary key from the table
-//				if(colName.equals(QueryStruct.PRIM_KEY_PLACEHOLDER)){
-//					// the display name is defaulted to the table name
-//					displayName = table;
-//				} else {
-//					// default assumption is the info being passed is the conceptual name
-//					displayName = colName;
-//				}
-//			}
-//			
-//			// if we are defining a specific alias to override the defaults
-//			// in the code, use it.  example use is in dashboard
-//			if(this.colAlias != null && this.colAlias.containsKey(table)) {
-//				Hashtable<String, String> tableAliases = colAlias.get(table);
-//				if(tableAliases.containsKey(colName)) {
-//					displayName = tableAliases.get(colName);
-//				}
-//			}
-//		}
-//		return displayName;
-//	}
-	
 	//////////////////////////////////// end adding selectors /////////////////////////////////////
-	
-	
 	
 	
 	/////////////////////////////////// adding from ////////////////////////////////////////////////
@@ -388,7 +350,7 @@ public class SQLInterpreter implements IQueryInterpreter{
 	 */
 	private void addFrom(String conceptualTableName)
 	{
-		String alias = getAlias(conceptualTableName);
+		String alias = getAlias(getPhysicalTableNameFromConceptualName(conceptualTableName));
 		
 		// need to determine if we can have multiple froms or not
 		
@@ -889,17 +851,7 @@ public class SQLInterpreter implements IQueryInterpreter{
 			// since we also have the URI, just store the primary key as well if we haven't already
 			if(!primaryKeyCache.containsKey(conceptualTableName)) {
 				// will most likely be used
-				String primKey = "";
-				// TODO: this is the old OWL
-				// the conceptual nodes do not exist so it just returns the same thing
-				// in this case, the primKey is the same as the table name
-				if(tableURI.equals(conceptualURI)) {
-					primKey = tableName;
-				} else {
-					// default in new OWL is class name is the prim key
-					primKey = Utility.getClassName(tableURI);
-				}
-				
+				String primKey = Utility.getClassName(tableURI);
 				primaryKeyCache.put(conceptualTableName, primKey);
 			}
 			
@@ -917,26 +869,22 @@ public class SQLInterpreter implements IQueryInterpreter{
 	 * @param columnConceptualName					The conceptual name of the property
 	 * @return										The physical name of the property
 	 */
-	private String getPhysicalPropertyNameFromConceptualName(String columnConceptualName) {
+	private String getPhysicalPropertyNameFromConceptualName(String tableConceptualName, String columnConceptualName) {
 		if(engine != null) {
 			// if we already have it, just grab from hash
 			if(conceptualPropertyToPhysicalMap.containsKey(columnConceptualName)) {
 				return conceptualPropertyToPhysicalMap.get(columnConceptualName);
 			}
 			
+			String tablePhysicalName = getPhysicalTableNameFromConceptualName(tableConceptualName);
+			
 			// we don't have it... so query for it
-			String propertyConceptualURI = "http://semoss.org/ontologies/Relation/Contains/" + columnConceptualName;
+			String propertyConceptualURI = "http://semoss.org/ontologies/Relation/Contains/" + columnConceptualName + "/" + tablePhysicalName;
 			String colURI = this.engine.getPhysicalUriFromConceptualUri(propertyConceptualURI);
 			String colName = null;
 			
-			// TODO: this occurs when we have the old version of the OWL file
-			if(propertyConceptualURI.equals(colURI)) {
-				// in this case, just use the instance name
-				colName = Utility.getInstanceName(colURI);
-			} else {
-				// this should be the default case once new OWL is only possibility
-				colName = Utility.getClassName(colURI);
-			}
+			// the class is the name of the column
+			colName = Utility.getClassName(colURI);
 			
 			conceptualPropertyToPhysicalMap.put(columnConceptualName, colName);
 			return colName;
@@ -962,19 +910,8 @@ public class SQLInterpreter implements IQueryInterpreter{
 			
 			// since we also have the URI, just store the primary key as well
 			// will most likely be used
-			String primKey = "";
-			// TODO: this is the old OWL
-			// the conceptual nodes do not exist so it just returns the same thing
-			// in this case, the primKey is the same as the table name
-			if(tableURI.equals(conceptualURI)) {
-				primKey = Utility.getInstanceName(tableURI);
-			} else {
-				// default in new OWL is class name is the prim key
-				primKey = Utility.getClassName(tableURI);
-			}
-			
+			String primKey = Utility.getClassName(tableURI);
 			primaryKeyCache.put(conceptualTableName, primKey);
-			
 			return primKey;
 		}
 		return conceptualTableName;
@@ -1051,25 +988,31 @@ public class SQLInterpreter implements IQueryInterpreter{
 		
 		// see if both the table name and column name are specified for the fromString
 		if(fromString.contains("__")){
-			fromTable = fromString.substring(0, fromString.indexOf("__"));
-			fromCol = fromString.substring(fromString.indexOf("__")+2);
+			String fromConceptualTable = fromString.substring(0, fromString.indexOf("__"));
+			String fromConceptualColumn = fromString.substring(fromString.indexOf("__")+2);
 			
 			// need to make these the physical names
 			if(engine != null) {
-				fromTable = getPhysicalTableNameFromConceptualName(fromTable);
-				fromCol = getPhysicalPropertyNameFromConceptualName(fromCol);
+				fromTable = getPhysicalTableNameFromConceptualName(fromConceptualTable);
+				fromCol = getPhysicalPropertyNameFromConceptualName(fromConceptualTable, fromConceptualColumn);
+			} else {
+				fromTable = fromConceptualTable;
+				fromCol = fromConceptualColumn;
 			}
 		}
 		
 		// see if both the table name and column name are specified for the toString
 		if(toString.contains("__")){
-			toTable = toString.substring(0, toString.indexOf("__"));
-			toCol = toString.substring(toString.indexOf("__")+2);
+			String toConceptualTable = toString.substring(0, toString.indexOf("__"));
+			String toConceptualColumn = toString.substring(toString.indexOf("__")+2);
 			
 			// need to make these the physical names
 			if(engine != null) {
-				toTable = getPhysicalTableNameFromConceptualName(toTable);
-				toCol = getPhysicalPropertyNameFromConceptualName(toCol);
+				toTable = getPhysicalTableNameFromConceptualName(toConceptualTable);
+				toCol = getPhysicalPropertyNameFromConceptualName(toConceptualTable, toConceptualColumn);
+			} else {
+				toTable = toConceptualTable;
+				toCol = toConceptualColumn;
 			}
 		}
 		
@@ -1104,14 +1047,6 @@ public class SQLInterpreter implements IQueryInterpreter{
 			fromURI = this.engine.getPhysicalUriFromConceptualUri(fromConceptual);
 			toURI = this.engine.getPhysicalUriFromConceptualUri(toConceptual);
 
-			// TODO: this occurs for old OWL
-			// should not have to perform this in the future
-			if(fromURI.equals(fromConceptual) && toURI.equals(toConceptual)) {
-				fromURI = this.engine.getConceptUri4PhysicalName(fromString);
-				toURI = this.engine.getConceptUri4PhysicalName(toString);
-
-			}
-			
 			// need to figure out what the predicate is from the owl
 			// also need to determine the direction of the relationship -- if it is forward or backward
 			String query = "SELECT ?relationship WHERE {<" + fromURI + "> ?relationship <" + toURI + "> } ORDER BY DESC(?relationship)";
@@ -1179,7 +1114,7 @@ public class SQLInterpreter implements IQueryInterpreter{
 			String property = concept_property.substring(concept_property.indexOf("__")+2);
 			
 			conceptPhysical = getPhysicalTableNameFromConceptualName(concept);
-			propertyPhysical = getPhysicalPropertyNameFromConceptualName(property);
+			propertyPhysical = getPhysicalPropertyNameFromConceptualName(concept, property);
 		} else {
 			// if it doesn't contain a "__", then it is just a concept
 			// get the physical and the prim key
