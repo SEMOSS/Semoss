@@ -861,7 +861,7 @@ public class Utility {
 
 
 			// 2) execute the query and iterate through the insights
-			String query = "SELECT DISTINCT ID, QUESTION_NAME, QUESTION_LAYOUT, QUESTION_MAKEUP, QUESTION_PERSPECTIVE, QUESTION_DATA_MAKER FROM QUESTION_ID";
+			String query = "SELECT DISTINCT ID, QUESTION_NAME, QUESTION_LAYOUT, QUESTION_MAKEUP, QUESTION_PERSPECTIVE FROM QUESTION_ID";
 			ISelectWrapper wrapper = WrapperManager.getInstance().getSWrapper(engineToAdd.getInsightDatabase(), query);
 			while(wrapper.hasNext()){
 				ISelectStatement ss = wrapper.next();
@@ -874,8 +874,6 @@ public class Utility {
 				String name = (String) ss.getVar("QUESTION_NAME");
 				// get the question layout
 				String layout = (String) ss.getVar("QUESTION_LAYOUT");
-				// get the data maker name
-				String dataMakerName = (String) ss.getVar("QUESTION_DATA_MAKER");
 
 				// get the question perspective to use as a default tag
 				String perspective = (String) ss.getVar("QUESTION_PERSPECTIVE");
@@ -883,8 +881,8 @@ public class Utility {
 				// using the following 3 ways...
 				// remove all 3 if found
 				String perspString1 ="-Perspective";
-				String perspString2 ="Perspective";
-				String perspString3 ="_Perspective";
+				String perspString2 ="_Perspective";
+				String perspString3 ="Perspective";
 				if (perspective.contains(perspString1)) {
 					perspective = perspective.replace(perspString1, "").trim();
 				}
@@ -943,16 +941,6 @@ public class Utility {
 				engineSet.add(engineName);
 				/////// END CLOB PROCESSING TO GET LIST OF ENGINES ///////
 
-				// get the list of params associated with the insight and add that into the paramList
-				// TODO: this will also become out dated just like the list of engines logic above when it is shifted into PKQL
-				List<String> paramList = new ArrayList<String>();
-				List<SEMOSSParam> params = engineToAdd.getParams(id + "");
-				if(params != null && !params.isEmpty()) {
-					for(SEMOSSParam p : params) {
-						paramList.add(p.getName());
-					}
-				}
-
 				// have all the relevant fields now, so store with appropriate schema name
 				// create solr document and add into docs list
 				Map<String, Object>  queryResults = new  HashMap<> ();
@@ -962,12 +950,10 @@ public class Utility {
 				queryResults.put(SolrIndexEngine.MODIFIED_ON, currDate);
 				queryResults.put(SolrIndexEngine.USER_ID, userID);
 				queryResults.put(SolrIndexEngine.ENGINES, engineSet);
-				queryResults.put(SolrIndexEngine.PARAMS, paramList);
 				queryResults.put(SolrIndexEngine.CORE_ENGINE, engineName);
 				queryResults.put(SolrIndexEngine.CORE_ENGINE_ID, id);
 				queryResults.put(SolrIndexEngine.LAYOUT, layout);
 				queryResults.put(SolrIndexEngine.TAGS, perspective);
-				queryResults.put(SolrIndexEngine.DATAMAKER_NAME, dataMakerName);
 				try {
 					docs.add(solrE.createDocument(engineName + "_" + id, queryResults));
 				} catch (Exception e) {
@@ -1074,7 +1060,7 @@ public class Utility {
 				
 				
 				// 2) execute the query and iterate through the insights
-				String query = "SELECT DISTINCT ID, QUESTION_NAME, QUESTION_LAYOUT, QUESTION_MAKEUP, QUESTION_PERSPECTIVE, QUESTION_DATA_MAKER FROM QUESTION_ID";
+				String query = "SELECT DISTINCT ID, QUESTION_NAME, QUESTION_LAYOUT, QUESTION_MAKEUP, QUESTION_PERSPECTIVE FROM QUESTION_ID";
 				ISelectWrapper wrapper = WrapperManager.getInstance().getSWrapper(rne, query);
 				while(wrapper.hasNext()){
 					ISelectStatement ss = wrapper.next();
@@ -1087,8 +1073,6 @@ public class Utility {
 					String name = (String) ss.getVar("QUESTION_NAME");
 					// get the question layout
 					String layout = (String) ss.getVar("QUESTION_LAYOUT");
-					// get the data maker name
-					String dataMakerName = (String) ss.getVar("QUESTION_DATA_MAKER");
 	
 					// get the question perspective to use as a default tag
 					String perspective = (String) ss.getVar("QUESTION_PERSPECTIVE");
@@ -1096,8 +1080,8 @@ public class Utility {
 					// using the following 3 ways...
 					// remove all 3 if found
 					String perspString1 ="-Perspective";
-					String perspString2 ="Perspective";
-					String perspString3 ="_Perspective";
+					String perspString2 ="_Perspective";
+					String perspString3 ="Perspective";
 					if (perspective.contains(perspString1)) {
 						perspective = perspective.replace(perspString1, "").trim();
 					}
@@ -1156,16 +1140,6 @@ public class Utility {
 					engineSet.add(engineName);
 					/////// END CLOB PROCESSING TO GET LIST OF ENGINES ///////
 	
-					// get the list of params associated with the insight and add that into the paramList
-					// TODO: this will also become out dated just like the list of engines logic above when it is shifted into PKQL
-					List<String> paramList = new ArrayList<String>();
-					List<SEMOSSParam> params = helper.getParams(id + "");
-					if(params != null && !params.isEmpty()) {
-						for(SEMOSSParam p : params) {
-							paramList.add(p.getName());
-						}
-					}
-	
 					// have all the relevant fields now, so store with appropriate schema name
 					// create solr document and add into docs list
 					Map<String, Object>  queryResults = new  HashMap<> ();
@@ -1175,12 +1149,10 @@ public class Utility {
 					queryResults.put(SolrIndexEngine.MODIFIED_ON, currDate);
 					queryResults.put(SolrIndexEngine.USER_ID, userID);
 					queryResults.put(SolrIndexEngine.ENGINES, engineSet);
-					queryResults.put(SolrIndexEngine.PARAMS, paramList);
 					queryResults.put(SolrIndexEngine.CORE_ENGINE, engineName);
 					queryResults.put(SolrIndexEngine.CORE_ENGINE_ID, id);
 					queryResults.put(SolrIndexEngine.LAYOUT, layout);
 					queryResults.put(SolrIndexEngine.TAGS, perspective);
-					queryResults.put(SolrIndexEngine.DATAMAKER_NAME, dataMakerName);
 					try {
 						docs.add(solrE.createDocument(engineName + "_" + id, queryResults));
 					} catch (Exception e) {
