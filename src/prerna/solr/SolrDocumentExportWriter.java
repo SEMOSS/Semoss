@@ -13,7 +13,6 @@ import org.apache.solr.common.SolrDocumentList;
 
 public class SolrDocumentExportWriter {
 
-	
 	/*
 	 * This is a class used to write the metadata around the insight
 	 * 

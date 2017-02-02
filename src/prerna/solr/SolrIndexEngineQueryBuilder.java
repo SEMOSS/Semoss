@@ -100,9 +100,9 @@ public class SolrIndexEngineQueryBuilder {
 	 */
 	public void setSort(String sortField, String sort) {
 		switch (sort) {
-			case ASC : this.Q.setSort(sortField, SolrQuery.ORDER.asc);
+			case ASC : this.Q.addSort(sortField, SolrQuery.ORDER.asc);
 			break;
-			case DESC : this.Q.setSort(sortField, SolrQuery.ORDER.desc);
+			case DESC : this.Q.addSort(sortField, SolrQuery.ORDER.desc);
 			break;
 		}
 	}
@@ -364,8 +364,8 @@ public class SolrIndexEngineQueryBuilder {
 		setDefType(DisMaxQParserPlugin.NAME);
 		addDisMax(SolrIndexEngine.INDEX_NAME, 3.5);
 		addDisMax(SolrIndexEngine.TAGS, 1.5);
+		addDisMax(SolrIndexEngine.INDEXED_TAGS, 1.5);
 		addDisMax(SolrIndexEngine.ENGINES, 1.0);
-		addDisMax(SolrIndexEngine.PARAMS, 1.0);
 		// we want to boost the question name field to increase the score when question name contains phrases that match
 		// with the query search 
 		setPhraseBooster(SolrIndexEngine.INDEX_NAME);
