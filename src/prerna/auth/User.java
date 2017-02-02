@@ -39,6 +39,7 @@ public class User {
 	private LOGIN_TYPES loginType;
 	private String email;
 	private String pictureUrl= "";
+	private boolean admin = false;
 	private HashMap<String, HashMap<String, Boolean>> enginePermissions = new HashMap<String, HashMap<String, Boolean>>();
 	private Hashtable<String, String> userParamPreferences = new Hashtable<String, String>();
 	private Hashtable<String, Object> customProps = new Hashtable<String, Object>();
@@ -108,5 +109,13 @@ public class User {
 	
 	public void setCustomProp(String key, Object value) {
 		this.customProps.put(key, value);
+	}
+	
+	public void setAdmin(boolean isAdmin) {
+		this.admin = isAdmin;
+	}
+	
+	public boolean isAdmin() {
+		return this.admin;
 	}
 }

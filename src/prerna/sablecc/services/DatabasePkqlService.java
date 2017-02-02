@@ -1,6 +1,9 @@
 package prerna.sablecc.services;
 
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Hashtable;
 import java.util.List;
 import java.util.Map;
@@ -525,6 +528,84 @@ public class DatabasePkqlService {
 		return finalHash;
 	}
 	
+	public static Map<String, Object[]> getMetamodelSecure(String engineName, HashMap<String, ArrayList<String>> metamodelFilter)
+	{
+		// this needs to be moved to the name server
+		// and this needs to be based on local master database
+		// need this to be a simple OWL data
+		// I dont know if it is worth it to load the engine at this point ?
+		// or should I just load it ?
+		// need to get local master and pump out the metamodel
+		
+		// final map to return
+		// TODO: outline the structure
+		Map<String, Map> edgeAndVertex = new Hashtable<String, Map>();
+		
+		IEngine engine = (IEngine)DIHelper.getInstance().getLocalProp(Constants.LOCAL_MASTER_DB_NAME);
+		
+		// query to get all the concepts and their properties
+		String vertexQuery = "SELECT DISTINCT ?conceptConceptual (COALESCE(?propConceptual, ?noprop) as ?propConceptual) ?propLogical"
+				+ " WHERE "
+				+ "{BIND(<http://semoss.org/ontologies/Relation/contains/noprop/noprop> AS ?noprop)"
+				
+				+ "{?conceptComposite <" + RDFS.subClassOf + "> <http://semoss.org/ontologies/Concept>}"
+				+ "{?conceptComposite <http://semoss.org/ontologies/Relation/presentin> <http://semoss.org/ontologies/meta/engine/" + engineName + ">}"
+				
+				+ "{?conceptComposite <" + RDF.TYPE + "> ?concept}"
+				+ "{?conceptComposite <http://semoss.org/ontologies/Relation/conceptual> ?conceptConceptual}"
+				
+				+ "OPTIONAL{"
+				+ "{?conceptComposite <" + OWL.DATATYPEPROPERTY + "> ?propComposite}"
+				+ "{?propComposite <" + RDF.TYPE + "> ?prop}"
+				+ "{?propComposite <http://semoss.org/ontologies/Relation/conceptual> ?propConceptual}"
+				+ "{?propComposite <http://semoss.org/ontologies/Relation/logical> ?propLogical}"
+				+ "}"
+				
+				+ "FILTER(?concept != <http://semoss.org/ontologies/Concept> "
+				+ " && ?concept != <" + RDFS.Class + "> "
+				+ " && ?concept != <" + RDFS.Resource + "> "
+				+ ")"
+				+ "}";
+
+		// get all the vertices and their properties
+		makeVerticesSecure(engine, vertexQuery, edgeAndVertex, metamodelFilter);
+		
+		// query to get all the edges between nodes
+		String edgeQuery = "SELECT DISTINCT ?fromConceptual ?toConceptual ?someRel WHERE {"
+				+ "{?conceptComposite <" + RDFS.subClassOf + "> <http://semoss.org/ontologies/Concept>}"
+				+ "{?toConceptComposite <" + RDFS.subClassOf + "> <http://semoss.org/ontologies/Concept>}"
+				
+				+ "{?conceptComposite <http://semoss.org/ontologies/Relation/presentin> <http://semoss.org/ontologies/meta/engine/" + engineName + ">}"
+				+ "{?toConceptComposite <http://semoss.org/ontologies/Relation/presentin> <http://semoss.org/ontologies/meta/engine/" + engineName + ">}"
+				
+				+ "{?conceptComposite <" + RDF.TYPE + "> ?fromConcept}"
+				+ "{?toConceptComposite <"+ RDF.TYPE + "> ?toConcept}"
+				+ "{?conceptComposite ?someRel ?toConceptComposite}"
+
+				+ "{?conceptComposite <http://semoss.org/ontologies/Relation/conceptual> ?fromConceptual}"
+				+ "{?toConceptComposite <http://semoss.org/ontologies/Relation/conceptual> ?toConceptual}"			
+				
+				+ "FILTER(?fromConcept != <http://semoss.org/ontologies/Concept> "
+				+ "&& ?toConcept != <http://semoss.org/ontologies/Concept>"
+				+ "&& ?fromConcept != ?toConcept"
+				+ "&& ?fromConcept != <" + RDFS.Class + "> "
+				+ "&& ?toConcept != <" + RDFS.Class + "> "
+				+ "&& ?fromConcept != <" + RDFS.Resource + "> "
+				+ "&& ?toConcept != <" + RDFS.Resource + "> "
+				+ "&& ?someRel != <http://semoss.org/ontologies/Relation>"
+				+ "&& ?someRel != <" + RDFS.subClassOf + ">)}";
+
+		// make the edges
+		makeEdgesSecure(engine, edgeQuery, edgeAndVertex, metamodelFilter.keySet());
+		
+		Map<String, Object[]> finalHash = new Hashtable<String, Object[]>();
+		finalHash.put("nodes", edgeAndVertex.get("nodes").values().toArray());
+		finalHash.put("edges", edgeAndVertex.get("edges").values().toArray());
+
+		// return the map
+		return finalHash;
+	}
+	
 	private static void makeVertices(IEngine engine, String query, Map<String, Map> edgesAndVertices)
 	{		
 		Map<String, MetamodelVertex> nodes = new TreeMap<String, MetamodelVertex>();
@@ -566,6 +647,60 @@ public class DatabasePkqlService {
 		edgesAndVertices.put("nodes", nodes);
 	}
 	
+	private static void makeVerticesSecure(IEngine engine, String query, Map<String, Map> edgesAndVertices, HashMap<String, ArrayList<String>> metamodelFilter)
+	{
+		Set<String> conceptFilter = new HashSet<String>();
+		if(metamodelFilter!= null && !metamodelFilter.isEmpty()) {
+			conceptFilter = metamodelFilter.keySet();
+		}
+		
+		Map<String, MetamodelVertex> nodes = new TreeMap<String, MetamodelVertex>();
+		if(edgesAndVertices.containsKey("nodes")) {
+			nodes = (Map) edgesAndVertices.get("nodes");
+		}
+		
+		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(engine, query);
+		while(wrapper.hasNext())
+		{
+			// based on query being passed in
+			// only 2 values in array
+			// first output is the concept conceptual name
+			// second output is the property conceptual name
+			IHeadersDataRow stmt = wrapper.next();
+			Object[] values = stmt.getValues();
+			// we need the raw values for properties since we need to get the "class name"
+			// as they are all defined (regardless of db type) as propName/parentNamee
+			Object[] rawValues = stmt.getRawValues();
+			
+			String conceptualConceptName = values[0] + "";
+			String concpetualPropertyName = Utility.getClassName(rawValues[1] + "");
+			
+			// Check the concepts and props against the metamodel filter that is set
+			if(conceptFilter != null && !conceptFilter.isEmpty()) {
+				if(!conceptFilter.contains(conceptualConceptName)) {
+					continue;
+				} else if(!metamodelFilter.get(conceptualConceptName).contains(concpetualPropertyName)) {
+					continue;
+				}
+			}
+			
+			// get or create the metamodel vertex
+			MetamodelVertex node = null;
+			if(nodes.containsKey(conceptualConceptName)) {
+				node = nodes.get(conceptualConceptName);
+			} else {
+				node = new MetamodelVertex(conceptualConceptName);
+				// add to the map of nodes
+				nodes.put(conceptualConceptName, node);
+			}
+			
+			// add the property 
+			node.addProperty(concpetualPropertyName);
+		}
+		
+		// add all the nodes back into the main map
+		edgesAndVertices.put("nodes", nodes);
+	}
 	
 	private static void makeEdges(IEngine engine, String query, Map<String, Map> edgesAndVertices)
 	{	
@@ -586,7 +721,46 @@ public class DatabasePkqlService {
 			Object[] values = stmt.getValues();
 			
 			String fromConceptualName = values[0] + "";
+			String toConceptualName = values[1] + "";			
+			String relName = values[2] + "";
+			
+			Map<String, String> edge = new Hashtable<String, String>();
+			edge.put("source", fromConceptualName);
+			edge.put("target", toConceptualName);
+
+			// add to edges map
+			edges.put(relName, edge);
+		}
+		// add to overall map
+		edgesAndVertices.put("edges", edges);
+	}
+	
+	private static void makeEdgesSecure(IEngine engine, String query, Map<String, Map> edgesAndVertices, Set<String> conceptFilter)
+	{	
+		Map<String, Map<String, String>> edges = new Hashtable<String, Map<String, String>>();
+		if(edgesAndVertices.containsKey("edges")) {
+			edges = (Map<String, Map<String, String>>) edgesAndVertices.get("edges");
+		}
+		
+		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(engine, query);
+		while(wrapper.hasNext())
+		{
+			// based on query being passed in
+			// only 3 values in array
+			// first output is the from conceptual name
+			// second output is the to conceptual name
+			// third output is the relationship name
+			IHeadersDataRow stmt = wrapper.next();
+			Object[] values = stmt.getValues();
+			
+			String fromConceptualName = values[0] + "";
 			String toConceptualName = values[1] + "";
+			
+			// Check against the concept filter for both from and to concepts
+			if(conceptFilter != null && !conceptFilter.isEmpty() && (!conceptFilter.contains(fromConceptualName) || !conceptFilter.contains(toConceptualName))) {
+				continue;
+			}
+			
 			String relName = values[2] + "";
 			
 			Map<String, String> edge = new Hashtable<String, String>();
@@ -600,50 +774,3 @@ public class DatabasePkqlService {
 		edgesAndVertices.put("edges", edges);
 	}
 }
-
-
-//******MOVED TO ITS OWN CLASS IN SAME PACKAGE
-///**
-// * Internal class to simplify the implementation
-// * of combining alias names and properties 
-// * on vertices
-// * @author mahkhalil
-// *
-// */
-//class MetamodelVertex {
-//	
-//	// store the property conceptual names
-//	private Set<String> propSet = new TreeSet<String>();
-//	// the conceptual name for the concept
-//	private String conceptualName;
-//	
-//	public MetamodelVertex(String conceptualName) {
-//		this.conceptualName = conceptualName;
-//	}
-//	
-//	/**
-//	 * Add to the properties for the vertex
-//	 * @param propertyConceptual
-//	 * @param propertyAlias
-//	 */
-//	public void addProperty(String propertyConceptual) {
-//		if(propertyConceptual.equals("noprop")) {
-//			return;
-//		}
-//		propSet.add(propertyConceptual);
-//	}
-//	
-//	public Map<String, Object> toMap() {
-//		Map<String, Object> vertexMap = new Hashtable<String, Object>();
-//		vertexMap.put("conceptualName", this.conceptualName);
-//		vertexMap.put("propSet", this.propSet);
-//		return vertexMap;
-//	}
-//	public String toString() {
-//		Map<String, Object> vertexMap = new Hashtable<String, Object>();
-//		vertexMap.put("conceptualName", this.conceptualName);
-//		vertexMap.put("propSet", this.propSet);
-//		return vertexMap.toString();
-//	}
-//}
-
