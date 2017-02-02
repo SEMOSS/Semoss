@@ -1065,31 +1065,7 @@ public abstract class AbstractEngine implements IEngine {
 				}
 				counts.add(i);
 			} catch(NumberFormatException e) {
-				/*
-				 * UPDATE!!!! THIS LOGIC SHOULD NOT BE ENTERED ANYMORE.  THIS USED TO BE THE CASE FOR WHEN
-				 * CSV INSIGHTS WERE CACHED AND NOT SAVED AS PKQL, BUT THAT IS NO LONGER THE CASE.
-				 * 
-				 * This logic was used to get an insight that didn't exist in the engines rdbms insights
-				 * but it was saved with the engine as its "core_engine" in the solr schema.  
-				 * 
-				 * To get the appropriate information regarding the insight:
-				 * 1) create an empty insight object
-				 * 2) set the id within the insight
-				 * 3) use method loadDataFromSolr and it will load the insight metadata from solr
-				 * 
-				 */
-				System.err.println("FAILED TO GET ANY INSIGHT FOR ARRAY :::::: "+ questionIDs[0]);
-				// 1) create an empty insight object
-				Insight in = new Insight(this, "Unknown", "Unknown");
-				// 2) set the insight id
-				in.setInsightID(id);
-				in.setDatabaseID(id);
-				// this is a boolean that is used to determine if the insight is a "drag and drop" insight
-				in.setIsDbInsight(false);
-				// 3) loads insight metadata from the solr core into the insight class
-				in.loadDataFromSolr();
-				insightV.insertElementAt(in, i);
-				logger.debug("Using Label ID Hash ");
+				System.err.println(">>>>>>>> FAILED TO GET ANY INSIGHT FOR ARRAY :::::: "+ questionIDs[i]);
 			}
 		}
 		
