@@ -80,7 +80,7 @@
 		<!-- this will be equal to the created-on field when the insight is originally created -->
 		<field name="modified_on" type="date" indexed="true" stored="true" required="true" multiValued="false" />
 		<!-- this will store the last time this insight was executed -->
-		<field name="last_view_on" type="date" indexed="true" stored="true" required="false" multiValued="false" />
+		<field name="last_viewed_on" type="date" indexed="true" stored="true" required="false" multiValued="false" />
 		
 		<!-- this will contain the user id of the individual who created the insight -->
 		<field name="user_id" type="string" indexed="true" stored="true" required="true" multiValued="false" /> 
@@ -112,10 +112,6 @@
 		<field name="query_projections" type="text_en_splitting" indexed="true" stored="true" required="false" multiValued="true" /> 
 		<!-- this will hold the final visual that the user will see when running the insight -->
 		<field name="layout" type="string" indexed="true" stored="true" required="true" multiValued="false" /> 
-		<!-- this will hold a list of parameters used in the query -->
-		<field name="params" type="text_en_splitting" indexed="true" stored="true" required="false" multiValued="true" /> 
-		<!-- this will hold a list of algorithms used in the query -->
-		<field name="algorithms" type="text_en_splitting" indexed="true" stored="true" required="false" multiValued="true" /> 
 		<!-- need to keep track if this insight exists from a db or is a cached tinkerframe -->
 		<field name="image" type="string" indexed="false" stored="true" required="false" multiValued="false" />
 		
