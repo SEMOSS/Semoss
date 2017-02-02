@@ -21,27 +21,28 @@ public final class SolrImportUtility {
 
 	// search field values in Insight schema
 	private static final String INSIGHT_ID_FINDER = SolrIndexEngine.ID + " : ";
-	private static final String MODIFIED_ON_FINDER = SolrIndexEngine.MODIFIED_ON + " : ";
-	private static final String LAYOUT_FINDER = SolrIndexEngine.LAYOUT + " : ";
-	private static final String CORE_ENGINE_FINDER = SolrIndexEngine.CORE_ENGINE + " : ";
-	private static final String CORE_ENGINE_ID_FINDER = SolrIndexEngine.CORE_ENGINE_ID + " : ";
-	private static final String CREATED_ON_FINDER = SolrIndexEngine.CREATED_ON + " : ";
-	private static final String USERID_FINDER = SolrIndexEngine.USER_ID + " : ";
-	private static final String ENGINES_FINDER = SolrIndexEngine.ENGINES + " : ";
+
 	private static final String STORAGE_NAME_FINDER = SolrIndexEngine.STORAGE_NAME + " : ";
 	private static final String INDEX_NAME_FINDER = SolrIndexEngine.INDEX_NAME + " : ";
-	private static final String DATAMAKER_NAME_FINDER = SolrIndexEngine.DATAMAKER_NAME + " : ";
+	
+	private static final String MODIFIED_ON_FINDER = SolrIndexEngine.MODIFIED_ON + " : ";
+	private static final String CREATED_ON_FINDER = SolrIndexEngine.CREATED_ON + " : ";
+	private static final String LAST_VIEWED_ON_FINDER = SolrIndexEngine.LAST_VIEWED_ON + " : ";
+	
+	private static final String CORE_ENGINE_FINDER = SolrIndexEngine.CORE_ENGINE + " : ";
+	private static final String CORE_ENGINE_ID_FINDER = SolrIndexEngine.CORE_ENGINE_ID + " : ";
+	private static final String ENGINES_FINDER = SolrIndexEngine.ENGINES + " : ";
 
-	private static final String ANNOTATION_FINDER = SolrIndexEngine.ANNOTATION + " : ";
-	private static final String FAVORITES_COUNT_FINDER = SolrIndexEngine.FAVORITES_COUNT + " : ";
+	private static final String UP_VOTES_FINDER = SolrIndexEngine.UP_VOTES + " : ";
 	private static final String VIEW_COUNT_FINDER = SolrIndexEngine.VIEW_COUNT + " : "; 
+	
 	private static final String TAGS_FINDER = SolrIndexEngine.TAGS + " : "; 
+	private static final String LAYOUT_FINDER = SolrIndexEngine.LAYOUT + " : ";
+	private static final String USERID_FINDER = SolrIndexEngine.USER_ID + " : ";
+	private static final String ANNOTATION_FINDER = SolrIndexEngine.ANNOTATION + " : ";
 	private static final String COMMENT_FINDER = SolrIndexEngine.COMMENT + " : "; 
 	private static final String USER_SPECIFIED_RELATED_FINDER = SolrIndexEngine.USER_SPECIFIED_RELATED + " : ";
 	private static final String QUERY_PROJECTIONS_FINDER = SolrIndexEngine.QUERY_PROJECTIONS + " : "; 
-	private static final String PARAMS_FINDER = SolrIndexEngine.PARAMS + " : ";
-	private static final String ALGORITHMS_FINDER = SolrIndexEngine.ALGORITHMS + " : "; 
-	private static final String IS_NON_DB_INSIGHT_FINDER = SolrIndexEngine.NON_DB_INSIGHT + " : ";
 	private static final String IMAGE_FINDER = SolrIndexEngine.IMAGE + " : ";
 
 	// this is a utility class
@@ -134,26 +135,30 @@ public final class SolrImportUtility {
 			
 			///////////////// THIS IS THE START OF ALL THE FIELDS TO COLLECT /////////////////
 			String id = null;
-			String modifiedDate = null;
-			String layout = null;
-			String dataMakerName = null;
-			String coreEngine = null;
-			String coreEngineId = null;
-			String createdOnDate = null;
-			String userID = null;
-			String engineName = null;
+			
 			String storageName = null;
 			String indexName = null;
-			String annotation = null;
-			String favoriteCount = null;
+
+			String modifiedDate = null;
+			String createdOnDate = null;
+			String lastViewedDate = null;
+			
+			String layout = null;
+			String coreEngine = null;
+			String coreEngineId = null;
+			String engineName = null;
+
+			String upVoteCount = null;
 			String viewCount = null;
+			
+			String userID = null;
+			String annotation = null;
 			String tag = null;
 			String comment = null;
 			String userSpecified = null;
 			String queryProjections = null;
 			String params = null;
 			String algorithms = null;
-			Boolean isNonDbInsight = null;
 			String image = null;
 
 			List<String> enginesList = new ArrayList<String>();
@@ -179,6 +184,8 @@ public final class SolrImportUtility {
 					id = currentLine.substring(currentLine.indexOf(':') + 2).trim();
 				} else if (currentLine.startsWith(MODIFIED_ON_FINDER)) {
 					modifiedDate = currentLine.substring(currentLine.indexOf(':') + 2).trim();
+				} else if (currentLine.startsWith(LAST_VIEWED_ON_FINDER)) {
+					lastViewedDate = currentLine.substring(currentLine.indexOf(':') + 2).trim();
 				} else if (currentLine.startsWith(LAYOUT_FINDER)) {
 					layout = currentLine.substring(currentLine.indexOf(':') + 2).trim();
 				} else if (currentLine.startsWith(CORE_ENGINE_FINDER)) {
@@ -196,12 +203,10 @@ public final class SolrImportUtility {
 					storageName = currentLine.substring(currentLine.indexOf(':') + 2).trim();
 				} else if (currentLine.startsWith(INDEX_NAME_FINDER)) {
 					indexName = currentLine.substring(currentLine.indexOf(':') + 2).trim();
-				} else if(currentLine.startsWith(DATAMAKER_NAME_FINDER)) {
-					dataMakerName = currentLine.substring(currentLine.indexOf(':') + 2).trim();
 				} else if (currentLine.startsWith(ANNOTATION_FINDER)) {
 					annotation = currentLine.substring(currentLine.indexOf(':') + 2).trim();
-				} else if (currentLine.startsWith(FAVORITES_COUNT_FINDER)) {
-					favoriteCount = currentLine.substring(currentLine.indexOf(':') + 2).trim();
+				} else if (currentLine.startsWith(UP_VOTES_FINDER)) {
+					upVoteCount = currentLine.substring(currentLine.indexOf(':') + 2).trim();
 				} else if (currentLine.startsWith(VIEW_COUNT_FINDER)) {
 					viewCount = currentLine.substring(currentLine.indexOf(':') + 2).trim();
 				} else if (currentLine.startsWith(TAGS_FINDER)) {
@@ -216,14 +221,6 @@ public final class SolrImportUtility {
 				} else if (currentLine.startsWith(QUERY_PROJECTIONS_FINDER)) {
 					queryProjections = currentLine.substring(currentLine.indexOf(':') + 2).trim();
 					queryProjectionsList.add(queryProjections);
-				} else if (currentLine.startsWith(PARAMS_FINDER)) {
-					params = currentLine.substring(currentLine.indexOf(':') + 2).trim();
-					paramsList.add(params);
-				} else if (currentLine.startsWith(ALGORITHMS_FINDER)) {
-					algorithms = currentLine.substring(currentLine.indexOf(':') + 2).trim();
-					algorithmsList.add(algorithms);
-				} else if (currentLine.startsWith(IS_NON_DB_INSIGHT_FINDER)) {
-					isNonDbInsight = Boolean.parseBoolean(currentLine.substring(currentLine.indexOf(':') + 2).trim());
 				} else if (currentLine.startsWith(IMAGE_FINDER)) {
 					image = currentLine.substring(currentLine.indexOf(':') + 2).trim();
 				}  
@@ -272,13 +269,6 @@ public final class SolrImportUtility {
 			} else {
 				insightQueryResults.put(SolrIndexEngine.CORE_ENGINE_ID, coreEngineId);
 			}
-			// the name of the datamaker is required
-			if(dataMakerName == null || dataMakerName.isEmpty()) {
-				//TODO: will make this mandatory once the insight cache refactor is pushed
-//				throw new IOException("SolrInputDocument does not contain the datamaker name for the insight...");
-			} else {
-				insightQueryResults.put(SolrIndexEngine.DATAMAKER_NAME, dataMakerName);
-			}
 			// user id is required
 			if(userID == null || userID.isEmpty()) {
 				throw new IOException("SolrInputDocument does not contain an userID or userID is empty...");
@@ -307,11 +297,14 @@ public final class SolrImportUtility {
 			///////////////// THIS IS THE END OF FIELDS THAT ARE REQUIRED /////////////////
 			
 			// here we add fields if present that are not required
+			if(lastViewedDate != null && !lastViewedDate.isEmpty()) {
+				insightQueryResults.put(SolrIndexEngine.LAST_VIEWED_ON, lastViewedDate);
+			}
 			if(annotation != null && !annotation.isEmpty()) {
 				insightQueryResults.put(SolrIndexEngine.ANNOTATION, annotation);
 			}
-			if(favoriteCount != null && !favoriteCount.isEmpty()) {
-				insightQueryResults.put(SolrIndexEngine.FAVORITES_COUNT, favoriteCount);
+			if(upVoteCount != null && !upVoteCount.isEmpty()) {
+				insightQueryResults.put(SolrIndexEngine.UP_VOTES, upVoteCount);
 			}
 			if(viewCount != null && !viewCount.isEmpty()) {
 				insightQueryResults.put(SolrIndexEngine.VIEW_COUNT, viewCount);
@@ -327,15 +320,6 @@ public final class SolrImportUtility {
 			}
 			if(queryProjectionsList != null && !queryProjectionsList.isEmpty()) {
 				insightQueryResults.put(SolrIndexEngine.QUERY_PROJECTIONS, queryProjectionsList);
-			}
-			if(paramsList != null && !paramsList.isEmpty()) {
-				insightQueryResults.put(SolrIndexEngine.PARAMS, paramsList);
-			}
-			if(algorithmsList != null && !algorithmsList.isEmpty()) {
-				insightQueryResults.put(SolrIndexEngine.ALGORITHMS, algorithmsList);
-			} 
-			if(isNonDbInsight != null) {
-				insightQueryResults.put(SolrIndexEngine.NON_DB_INSIGHT, isNonDbInsight);
 			}
 			if(image != null && !image.isEmpty()) {
 				insightQueryResults.put(SolrIndexEngine.IMAGE, image);

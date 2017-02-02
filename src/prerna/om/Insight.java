@@ -1636,30 +1636,6 @@ public class Insight {
 //		}
 	}
 	
-	/**
-	 * Loads the metadata around a specific insight from the solr insight core
-	 */
-	public void loadDataFromSolr() {
-		try {
-			// get the solr document from the unique id
-			SolrDocument solrDoc = SolrIndexEngine.getInstance().getInsight(getDatabaseID());
-			if(solrDoc == null || solrDoc.size() == 0) {
-				return;
-			}
-
-			// get the document (insight) metadata from the solr document
-			Map<String, Object> insightMetaData = solrDoc.getFieldValueMap();
-			// get the name of the insight
-			this.setInsightName(insightMetaData.get(SolrIndexEngine.STORAGE_NAME) + "");
-			// get the output of the insight
-			this.setOutput(insightMetaData.get(SolrIndexEngine.LAYOUT) + "");
-			// get the name of the datamaker
-			this.dataMakerName = insightMetaData.get(SolrIndexEngine.DATAMAKER_NAME) + "";
-		} catch (KeyManagementException | NoSuchAlgorithmException | KeyStoreException | SolrServerException
-				| IOException e) {
-			e.printStackTrace();
-		}
-	}
 //
 //	public Map getPKQLData(boolean includeClosed) {
 //		
