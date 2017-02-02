@@ -501,8 +501,9 @@ public class TinkerMetaData implements IMetaData {
 		//check if property
 		if(queryStructName.contains("__")){
 			String parentName = queryStructName.substring(0, queryStructName.indexOf("__"));
+			parentName = engine.getPhysicalUriFromConceptualUri("http://semoss.org/ontologies/Concept/" + parentName);
 			physicalName = queryStructName.substring(queryStructName.indexOf("__")+2);
-			conceptualUri = "http://semoss.org/ontologies/Relation/Contains/" + physicalName + "/" + parentName;
+			conceptualUri = "http://semoss.org/ontologies/Relation/Contains/" + physicalName + "/" + Utility.getInstanceName(parentName);
 			physicalUri = engine.getPhysicalUriFromConceptualUri(conceptualUri);
 			logicalName = physicalName;
 		}

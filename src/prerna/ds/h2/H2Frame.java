@@ -1295,32 +1295,6 @@ public class H2Frame extends AbstractTableDataFrame {
 	}
 
 	@Override
-	public Map[] mergeQSEdgeHash(Map<String, Set<String>> edgeHash, IEngine engine,	Vector<Map<String, String>> joinCols, Map<String, Boolean> makeUniqueNameMap) {
-		// process the meta data
-		Map[] ret = super.mergeQSEdgeHash(edgeHash, engine, joinCols, makeUniqueNameMap);
-
-		// its a bit inefficient to loop through all the headers...
-		// but this is better than looping through the edge hash
-		// at least the logic in the the builder won't re-add columns
-
-		// need to get the types for each of the names
-		String[] types = new String[this.headerNames.length];
-		// grab all the types for each header from the metadata
-		Map<String, IMetaData.DATA_TYPES> typeMap = this.metaData.getColumnTypes();
-		for (int i = 0; i < types.length; i++) {
-			// convert the type to string
-			types[i] = Utility.convertDataTypeToString(typeMap.get(this.headerNames[i]));
-		}
-
-		// alter the table
-		// CHANGE! we do not alter the table in this instance because whenever we go through mergeQSEdgeHash
-		// the flow is determined to be adding new headers in method
-//		builder.alterTableNewColumns(builder.tableName, this.headerNames, types);
-
-		return ret;
-	}
-
-	@Override
 	public void mergeEdgeHash(Map<String, Set<String>> edgeHash, Map<String, String> dataTypeMap) {
 		// merge results with the tinker meta data and store data types'
 		super.mergeEdgeHash(edgeHash, getNode2ValueHash(edgeHash), dataTypeMap);
