@@ -882,7 +882,8 @@ public class Translation extends DepthFirstAdapter {
 
 	@Override
 	public void inAPanelopScript(APanelopScript node) {
-		String nodeString = node.toString();
+		String nodeString = node.getPanelop().toString().trim();
+		
 		String id = "0";
 		if (nodeString.startsWith("panel[")) {
 			nodeString = nodeString.substring(nodeString.indexOf("[") + 1);
