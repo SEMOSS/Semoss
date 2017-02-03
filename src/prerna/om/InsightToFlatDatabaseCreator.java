@@ -26,6 +26,7 @@ import prerna.poi.main.PropFileWriter;
 import prerna.poi.main.RDBMSEngineCreationHelper;
 import prerna.poi.main.helper.ImportOptions;
 import prerna.sablecc.PKQLRunner;
+import prerna.solr.SolrUtility;
 import prerna.test.TestUtilityMethods;
 import prerna.ui.components.playsheets.datamakers.IDataMaker;
 import prerna.util.Constants;
@@ -165,7 +166,7 @@ public class InsightToFlatDatabaseCreator extends AbstractEngineCreator {
 			props.put(engineName + "_" + Constants.STORE, newSmssProp.getAbsolutePath());
 			
 			Utility.synchronizeEngineMetadata(engineName);
-			Utility.addToSolrInsightCore(engine);
+			SolrUtility.addToSolrInsightCore(engineName);
 			// Do we need this?
 			// Commenting it out for now to speed up upload until we find a better way to utilize this
 			// Utility.addToSolrInstanceCore(engine);
@@ -227,7 +228,7 @@ public class InsightToFlatDatabaseCreator extends AbstractEngineCreator {
 					newSmssProp.delete();
 				}
 				// remove from engine from solr in case it was added
-				Utility.deleteFromSolr(engineName);
+				SolrUtility.deleteFromSolr(engineName);
 			}
 		}
 	}
