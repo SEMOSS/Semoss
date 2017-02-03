@@ -6,14 +6,15 @@ import java.nio.charset.StandardCharsets;
 import java.security.KeyManagementException;
 import java.security.KeyStoreException;
 import java.security.NoSuchAlgorithmException;
+import java.text.ParseException;
 import java.util.ArrayList;
-import java.util.HashMap;
+import java.util.Date;
 import java.util.List;
-import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import org.apache.solr.client.solrj.SolrServerException;
+import org.apache.solr.common.SolrInputDocument;
 
 import prerna.poi.main.TextExtractor;
 
@@ -23,19 +24,18 @@ public final class SolrImportUtility {
 	private static final String INSIGHT_ID_FINDER = SolrIndexEngine.ID + " : ";
 
 	private static final String STORAGE_NAME_FINDER = SolrIndexEngine.STORAGE_NAME + " : ";
-	private static final String INDEX_NAME_FINDER = SolrIndexEngine.INDEX_NAME + " : ";
-	
+
 	private static final String MODIFIED_ON_FINDER = SolrIndexEngine.MODIFIED_ON + " : ";
 	private static final String CREATED_ON_FINDER = SolrIndexEngine.CREATED_ON + " : ";
 	private static final String LAST_VIEWED_ON_FINDER = SolrIndexEngine.LAST_VIEWED_ON + " : ";
-	
+
 	private static final String CORE_ENGINE_FINDER = SolrIndexEngine.CORE_ENGINE + " : ";
 	private static final String CORE_ENGINE_ID_FINDER = SolrIndexEngine.CORE_ENGINE_ID + " : ";
 	private static final String ENGINES_FINDER = SolrIndexEngine.ENGINES + " : ";
 
 	private static final String UP_VOTES_FINDER = SolrIndexEngine.UP_VOTES + " : ";
 	private static final String VIEW_COUNT_FINDER = SolrIndexEngine.VIEW_COUNT + " : "; 
-	
+
 	private static final String TAGS_FINDER = SolrIndexEngine.TAGS + " : "; 
 	private static final String DESCRIPTION_FINDER = SolrIndexEngine.DESCRIPTION + " : "; 
 	private static final String LAYOUT_FINDER = SolrIndexEngine.LAYOUT + " : ";
@@ -48,9 +48,9 @@ public final class SolrImportUtility {
 	// note, the file has a very specific format
 	// not intended to be created by hand.. required knowledge of the schema to construct
 	private SolrImportUtility() {
-		
+
 	}
-	
+
 	/**
 	 * Will index the metadata of an insight in the provided filePath into the solr index engine
 	 * @param filePath					The file path where the metadata of the insight sits
@@ -70,22 +70,16 @@ public final class SolrImportUtility {
 		} catch (IOException e1) {
 			e1.printStackTrace();
 		}
-		
+
+		List<SolrInputDocument> docs = new ArrayList<SolrInputDocument>();
+
 		// loop through the string and separate based on each solr input document
 		final Pattern pattern = Pattern.compile(regex, Pattern.DOTALL);
 		final Matcher matcher = pattern.matcher(fileContent);
 		while(matcher.find()) {
 			try {
 				// for each individual document, process it and add it into the solr engine
-				processSolrDocumentString(matcher.group());
-			} catch (KeyManagementException e) {
-				e.printStackTrace();
-			} catch (NoSuchAlgorithmException e) {
-				e.printStackTrace();
-			} catch (KeyStoreException e) {
-				e.printStackTrace();
-			} catch (SolrServerException e) {
-				e.printStackTrace();
+				processSolrDocumentString(matcher.group(), docs);
 			} catch (IOException e) {
 				e.printStackTrace();
 				String message = "";
@@ -95,10 +89,17 @@ public final class SolrImportUtility {
 					message = e.getMessage();
 				}
 				throw new IOException(message);
+			} catch (ParseException e) {
+				e.printStackTrace();
 			}
 		}
+		try {
+			SolrIndexEngine.getInstance().addInsights(docs);
+		} catch (KeyManagementException | NoSuchAlgorithmException | KeyStoreException | SolrServerException e) {
+			e.printStackTrace();
+		}
 	}
-	
+
 	/**
 	 * Splits the input document string for the insight metadata and adds it to the solr engine
 	 * @param solrDocStr					The string containing the insight metadata
@@ -117,36 +118,37 @@ public final class SolrImportUtility {
 													tags : Semoss
 												</SolrInputDocument>
 											Each key corresponds to a schema entry and the value corresponds to the value
+	 * @param docs 
 	 * @throws KeyManagementException
 	 * @throws NoSuchAlgorithmException
 	 * @throws KeyStoreException
 	 * @throws IOException
 	 * @throws SolrServerException
+	 * @throws ParseException 
 	 */
-	private static void processSolrDocumentString(String solrDocStr) throws KeyManagementException, NoSuchAlgorithmException, KeyStoreException, IOException, SolrServerException {
+	private static void processSolrDocumentString(String solrDocStr, List<SolrInputDocument> docs) throws ParseException, IOException {
 		try {
-			SolrIndexEngine solrE = SolrIndexEngine.getInstance();
+			SolrInputDocument doc = new SolrInputDocument();
 
 			// create all field values in schema
 			// need to store all these values associated with the specific insight
-			
+
 			///////////////// THIS IS THE START OF ALL THE FIELDS TO COLLECT /////////////////
 			String id = null;
-			
+
 			String storageName = null;
-			String indexName = null;
 
 			String modifiedDate = null;
 			String createdOnDate = null;
 			String lastViewedDate = null;
-			
+
 			String coreEngine = null;
 			String coreEngineId = null;
 			String engineName = null;
 
 			String upVoteCount = null;
 			String viewCount = null;
-			
+
 			String tag = null;
 			String description = null;
 			String layout = null;
@@ -157,7 +159,7 @@ public final class SolrImportUtility {
 			List<String> tagsList = new ArrayList<String>();
 			///////////////// THIS IS THE END OF ALL THE FIELDS TO COLLECT /////////////////
 
-			
+
 			// here we take the document and go through every line and collect the data to assign/store
 			// into the above fields that have been predefined
 			// split based on new line
@@ -169,18 +171,21 @@ public final class SolrImportUtility {
 				// start of a giant series of if statements to know where to store the appropriate fields
 				if (currentLine.startsWith(INSIGHT_ID_FINDER)) {
 					id = currentLine.substring(currentLine.indexOf(':') + 2).trim();
+				} else if (currentLine.startsWith(CREATED_ON_FINDER)) {
+					Date date = SolrIndexEngine.getSolrDateFormat().parse( currentLine.substring(currentLine.indexOf(':') + 2).trim() );
+					createdOnDate = SolrIndexEngine.getDateFormat().format( date );
 				} else if (currentLine.startsWith(MODIFIED_ON_FINDER)) {
-					modifiedDate = currentLine.substring(currentLine.indexOf(':') + 2).trim();
+					Date date = SolrIndexEngine.getSolrDateFormat().parse( currentLine.substring(currentLine.indexOf(':') + 2).trim() );
+					modifiedDate = SolrIndexEngine.getDateFormat().format( date );
 				} else if (currentLine.startsWith(LAST_VIEWED_ON_FINDER)) {
-					lastViewedDate = currentLine.substring(currentLine.indexOf(':') + 2).trim();
+					Date date = SolrIndexEngine.getSolrDateFormat().parse( currentLine.substring(currentLine.indexOf(':') + 2).trim() );
+					lastViewedDate = SolrIndexEngine.getDateFormat().format( date );
 				} else if (currentLine.startsWith(LAYOUT_FINDER)) {
 					layout = currentLine.substring(currentLine.indexOf(':') + 2).trim();
 				} else if (currentLine.startsWith(CORE_ENGINE_FINDER)) {
 					coreEngine = currentLine.substring(currentLine.indexOf(':') + 2).trim();
 				}  else if (currentLine.startsWith(CORE_ENGINE_ID_FINDER)) {
 					coreEngineId = currentLine.substring(currentLine.indexOf(':') + 2).trim();
-				} else if (currentLine.startsWith(CREATED_ON_FINDER)) {
-					createdOnDate = currentLine.substring(currentLine.indexOf(':') + 2).trim();
 				} else if (currentLine.startsWith(USERID_FINDER)) {
 					userID = currentLine.substring(currentLine.indexOf(':') + 2).trim();
 				} else if (currentLine.startsWith(ENGINES_FINDER)) {
@@ -188,8 +193,6 @@ public final class SolrImportUtility {
 					enginesList.add(engineName);
 				} else if (currentLine.startsWith(STORAGE_NAME_FINDER)) {
 					storageName = currentLine.substring(currentLine.indexOf(':') + 2).trim();
-				} else if (currentLine.startsWith(INDEX_NAME_FINDER)) {
-					indexName = currentLine.substring(currentLine.indexOf(':') + 2).trim();
 				} else if (currentLine.startsWith(UP_VOTES_FINDER)) {
 					upVoteCount = currentLine.substring(currentLine.indexOf(':') + 2).trim();
 				} else if (currentLine.startsWith(VIEW_COUNT_FINDER)) {
@@ -202,62 +205,61 @@ public final class SolrImportUtility {
 				} else if (currentLine.startsWith(IMAGE_FINDER)) {
 					image = currentLine.substring(currentLine.indexOf(':') + 2).trim();
 				}  
-				
+
 			}
-			
+
 			// once we have stored all the values
-			// we need to store it in the appropriate map
+			// add to the solr document
 			// we also perform a check to make sure all the mandatory fields are present
 
-			// the map to store all the information
-			Map<String, Object> insightQueryResults = new HashMap<String, Object>();
-			
 			///////////////// THIS IS THE START OF FIELDS THAT ARE REQUIRED /////////////////
 			// id is required
 			if(id == null || id.isEmpty()) {
 				throw new IOException("SolrInputDocument does not contain an id or id is empty...");
+			} else {
+				doc.addField(SolrIndexEngine.ID, id);
 			}
 			// modified on date is required
 			if(modifiedDate == null || modifiedDate.isEmpty()) {
 				throw new IOException("SolrInputDocument does not contain an modifiedDate or modifiedDate is empty...");
 			} else {
-				insightQueryResults.put(SolrIndexEngine.MODIFIED_ON, modifiedDate);
+				doc.addField(SolrIndexEngine.MODIFIED_ON, modifiedDate);
 			}
 			// created on date is required
 			if(createdOnDate == null || createdOnDate.isEmpty()) {
 				throw new IOException("SolrInputDocument does not contain an createdOnDate or createdOnDate is empty...");
 			} else {
-				insightQueryResults.put(SolrIndexEngine.CREATED_ON, createdOnDate);
+				doc.addField(SolrIndexEngine.CREATED_ON, createdOnDate);
 			}
 			// layout is required
 			if(layout == null || layout.isEmpty()) {
 				throw new IOException("SolrInputDocument does not contain an layout or layout is empty...");
 			} else {
-				insightQueryResults.put(SolrIndexEngine.LAYOUT, layout);
+				doc.addField(SolrIndexEngine.LAYOUT, layout);
 			}
 			// core engine is required
 			if(coreEngine == null || coreEngine.isEmpty()) {
 				throw new IOException("SolrInputDocument does not contain an coreEngine or coreEngine is empty...");
 			} else {
-				insightQueryResults.put(SolrIndexEngine.CORE_ENGINE, coreEngine);
+				doc.addField(SolrIndexEngine.CORE_ENGINE, coreEngine);
 			}
 			// core engine id -> the id of the insight within the core_engine's insight rdbms database, is required
 			if(coreEngineId == null) {
 				throw new IOException("SolrInputDocument does not contain a coreEngineId...");
 			} else {
-				insightQueryResults.put(SolrIndexEngine.CORE_ENGINE_ID, coreEngineId);
+				doc.addField(SolrIndexEngine.CORE_ENGINE_ID, coreEngineId);
 			}
 			// user id is required
 			if(userID == null || userID.isEmpty()) {
 				throw new IOException("SolrInputDocument does not contain an userID or userID is empty...");
 			} else {
-				insightQueryResults.put(SolrIndexEngine.USER_ID, userID);
+				doc.addField(SolrIndexEngine.USER_ID, userID);
 			}
 			// the engines used for this insight are required
 			if(enginesList == null || enginesList.isEmpty()) {
 				throw new IOException("SolrInputDocument does not contain an enginesList or enginesList is empty...");
 			} else {
-				insightQueryResults.put(SolrIndexEngine.ENGINES, enginesList);
+				doc.addField(SolrIndexEngine.ENGINES, enginesList);
 			}
 			// the name of the insight is required
 			// note the name is stored as both a string for exact match and also parsed
@@ -265,41 +267,35 @@ public final class SolrImportUtility {
 			if(storageName == null || storageName.isEmpty()) {
 				throw new IOException("SolrInputDocument does not contain a storage name or storageName name is empty...");
 			} else {
-				insightQueryResults.put(SolrIndexEngine.STORAGE_NAME, storageName);
-			}
-			if(indexName == null || indexName.isEmpty()) {
-				throw new IOException("SolrInputDocument does not contain an index name or index name is empty...");
-			} else {
-				insightQueryResults.put(SolrIndexEngine.INDEX_NAME, indexName);
+				doc.addField(SolrIndexEngine.STORAGE_NAME, storageName);
 			}
 			///////////////// THIS IS THE END OF FIELDS THAT ARE REQUIRED /////////////////
-			
+
 			// here we add fields if present that are not required
 			if(lastViewedDate != null && !lastViewedDate.isEmpty()) {
-				insightQueryResults.put(SolrIndexEngine.LAST_VIEWED_ON, lastViewedDate);
+				doc.addField(SolrIndexEngine.LAST_VIEWED_ON, lastViewedDate);
 			}
 			if(description != null && !description.isEmpty()) {
-				insightQueryResults.put(SolrIndexEngine.DESCRIPTION, description);
+				doc.addField(SolrIndexEngine.DESCRIPTION, description);
 			}
 			if(upVoteCount != null && !upVoteCount.isEmpty()) {
-				insightQueryResults.put(SolrIndexEngine.UP_VOTES, upVoteCount);
+				doc.addField(SolrIndexEngine.UP_VOTES, upVoteCount);
 			}
 			if(viewCount != null && !viewCount.isEmpty()) {
-				insightQueryResults.put(SolrIndexEngine.VIEW_COUNT, viewCount);
+				doc.addField(SolrIndexEngine.VIEW_COUNT, viewCount);
 			}
 			if(tagsList != null && !tagsList.isEmpty()) {
-				insightQueryResults.put(SolrIndexEngine.TAGS, tagsList);
+				doc.addField(SolrIndexEngine.TAGS, tagsList);
 			}
 			if(image != null && !image.isEmpty()) {
-				insightQueryResults.put(SolrIndexEngine.IMAGE, image);
+				doc.addField(SolrIndexEngine.IMAGE, image);
 			}
 			// now we are done with adding all the fields
-			// lets go ahead and add it to the engine
-			solrE.addInsight(id, insightQueryResults);
-			
+			// lets go ahead and add it to the list of documents
+			docs.add(doc);
 		} catch (FileNotFoundException e) {
 			e.printStackTrace();
 		}
 	}
-	
+
 }
