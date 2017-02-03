@@ -47,6 +47,7 @@ import prerna.engine.api.IEngine;
 import prerna.engine.impl.OwlConceptualNameModernizer;
 import prerna.nameserver.DeleteFromMasterDB;
 import prerna.solr.SolrIndexEngine;
+import prerna.solr.SolrUtility;
 
 /**
  * This class opens a thread and watches a specific SMSS file.
@@ -159,7 +160,7 @@ public class SMSSWebWatcher extends AbstractFileWatcher {
 					// get that metadata I say
 					Utility.synchronizeEngineMetadata(engineName);
 					// get the solr too ? :)<-- this is the slow part.. so removing it for now
-					Utility.addToSolrInsightCore2(engineName);
+					SolrUtility.addToSolrInsightCore(engineName);
 					System.out.println("Loaded Engine.. " + fileName);
 					//Utility.loadWebEngine(fileName, prop);
 				}
@@ -302,7 +303,7 @@ public class SMSSWebWatcher extends AbstractFileWatcher {
 						// no reason why this can be done alongside the local master database removal. but sure let us go with this as well
 						for(String engine : engineSet) {
 							if(!ArrayUtilityMethods.arrayContainsValue(engineNames, engine)) {
-								Utility.deleteFromSolr(engine);
+								SolrUtility.deleteFromSolr(engine);
 							}
 						}
 					}
