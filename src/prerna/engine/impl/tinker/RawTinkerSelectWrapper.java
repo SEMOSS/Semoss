@@ -35,7 +35,7 @@ public class RawTinkerSelectWrapper extends AbstractWrapper implements IRawSelec
 
 	@Override
 	public String[] getDisplayVariables() {
-		if (displayVar != null) {
+		if (displayVar == null) {
 			QueryStruct qs = (QueryStruct) ((TinkerEngine) engine).getQueryStruct();
 			Hashtable<String, Vector<String>> selectors = qs.selectors;
 			ArrayList<String> dV = new ArrayList<>();

@@ -9,28 +9,21 @@ import java.util.Map;
 import java.util.Set;
 import java.util.Vector;
 
+import org.apache.log4j.LogManager;
+import org.apache.log4j.Logger;
 import org.apache.tinkerpop.gremlin.process.traversal.P;
 import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.GraphTraversal;
 import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.__;
-import org.apache.tinkerpop.gremlin.structure.Vertex;
-import org.apache.tinkerpop.gremlin.structure.VertexProperty;
 
+import prerna.engine.impl.AbstractEngine;
 import prerna.engine.impl.tinker.TinkerEngine;
 import prerna.rdf.query.builder.IQueryInterpreter;
 
 public class TinkerQueryInterpreter extends AbstractTinkerInterpreter implements IQueryInterpreter {
 
-	private Vector<String> nodeSelector;
-	private HashMap<String, String> propHash;
-	// private Vector<String> propSet;
+	private static final Logger LOGGER = LogManager.getLogger(AbstractEngine.class.getName());
 
-	public Vector<String> getNodeSelector() {
-		return nodeSelector;
-	}
-
-	public void setNodeSelector(Vector<String> nodeSelector) {
-		this.nodeSelector = nodeSelector;
-	}
+	private HashMap<String, List<String>> propHash;
 
 	public TinkerQueryInterpreter(TinkerEngine tinkerEngine) {
 		this.g = tinkerEngine.getGraph();
@@ -52,25 +45,6 @@ public class TinkerQueryInterpreter extends AbstractTinkerInterpreter implements
 	}
 
 	/**
-	 * gets the selectors and adds it to the traversal
-	 */
-	protected void addSelectors() {
-		// cause gremlin interface is weird...
-		// need to determine which method to use based on size of selectors
-		if (nodeSelector.size() == 1) {
-			gt = gt.has(TinkerFrame.TINKER_TYPE, nodeSelector.get(0));
-		} else if (nodeSelector.size() == 2) {
-			gt = gt.select(nodeSelector.get(0), nodeSelector.get(1));
-		} else if (nodeSelector.size() >= 3) {
-			String[] selectorArr = new String[nodeSelector.size() - 2];
-			for (int i = 2; i < nodeSelector.size(); i++) {
-				selectorArr[i - 2] = nodeSelector.get(i);
-			}
-			gt = gt.select(nodeSelector.get(0), nodeSelector.get(1), selectorArr);
-		}
-	}
-
-	/**
 	 * screw returning a string.. i'm going to go ahead and return an iterator..
 	 * 
 	 * @return
@@ -80,7 +54,22 @@ public class TinkerQueryInterpreter extends AbstractTinkerInterpreter implements
 		addFilters();
 		addJoins();
 		addSelectors();
-		return new TinkerIterator(gt, this.selector, propHash, nodeSelector, this.filters);
+		addLimitOffset();
+		return new TinkerIterator(gt, this.selector);
+	}
+
+	/**
+	 * gets the Limit/Offset and adds it to the traversal
+	 */
+	private void addLimitOffset() {
+		Integer limit = qs.getLimit();
+		Integer offset = qs.getOffset();
+		if (limit >= 0 && offset >= 0) {
+			gt = gt.range(offset, offset + limit);
+		} else if (limit >= 0) {
+			gt = gt.range(0, limit);
+		} else {
+		}
 	}
 
 	/**
@@ -92,20 +81,20 @@ public class TinkerQueryInterpreter extends AbstractTinkerInterpreter implements
 	protected List<String> getSelector() {
 		if (this.selector == null) {
 			this.selector = new Vector<String>();
-			this.nodeSelector = new Vector<String>();
-			this.propHash = new HashMap<String, String>();
-
+			this.propHash = new HashMap<String, List<String>>();
 			for (String key : qs.selectors.keySet()) {
-				nodeSelector.add(key);
 				Vector<String> val = qs.selectors.get(key);
-
+				Vector<String> props = new Vector<String>();
 				for (String select : val) {
 					if (!select.equals("PRIM_KEY_PLACEHOLDER")) {
-						propHash.put(select, key);
 						selector.add(select);
+						props.addElement(select);
 					} else {
 						selector.add(key);
 					}
+				}
+				if (props.size() > 0) {
+					propHash.put(key, props);
 				}
 
 			}
@@ -113,131 +102,261 @@ public class TinkerQueryInterpreter extends AbstractTinkerInterpreter implements
 		return this.selector;
 	}
 
+	/**
+	 * Create the edge hash and start traversal
+	 */
 	protected void addJoins() {
 		if (edgeHash == null || edgeHash.isEmpty()) {
 			edgeHash = generateEdgeMap();
 		}
-		addNodeEdge(edgeHash);
-
+		addNodeEdge();
 	}
 
 	/**
 	 * This is the bulk of the class Uses the edgeMap to figure out what things
 	 * are connected
 	 * 
-	 * @param edgeMap
 	 */
-	public void addNodeEdge(Map<String, Set<String>> edgeMap) {
-		if (edgeMap.isEmpty()) {
+	public void addNodeEdge() {
+		// no edges to traverse
+		if (edgeHash.isEmpty()) {
+			// initialize gt based on node or property
+			if (selector.size() == 1) {
+				gt = g.traversal().V();
+				String select = selector.get(0);
+				String selectNode = qs.selectors.keySet().iterator().next();
+				// property
+				GraphTraversal twoStepT = __.as(selectNode);
+
+				// filterNode
+				if (this.filters.containsKey(select)) {
+					addFilterInPath2(twoStepT, select, this.filters.get(select));
+				}
+				// Get properties from startName node
+				if (!selectNode.equals(select)) {
+					List<GraphTraversal<Object, Object>> propTraversals = getProperties(twoStepT, selectNode);
+
+					if (propTraversals.size() > 0) {
+						GraphTraversal[] propArray = new GraphTraversal[propTraversals.size()];
+						twoStepT = twoStepT.match(propTraversals.toArray(propArray)).select(selectNode);
+					}
+					gt = gt.match(twoStepT);
+				} else {
+					gt = gt.has(TinkerFrame.TINKER_TYPE, selectNode);
+					if (this.filters.containsKey(select)) {
+						addFilterInPath2(gt, select, this.filters.get(select));
+					}
+				}
+			}
 			return;
 		}
 
-		List<String> travelledEdges = new Vector<String>();
-		List<GraphTraversal<Object, Vertex>> traversals = new Vector<GraphTraversal<Object, Vertex>>();
+		// start traversal if edgeHash is not empty
+		String startNode = edgeHash.keySet().iterator().next();
+		gt = gt.has(TinkerFrame.TINKER_TYPE, startNode);
 
-		String startUniqueName = edgeMap.keySet().iterator().next();
-
-		Vertex startNode = g.traversal().V().has(TinkerFrame.TINKER_TYPE, startUniqueName).next();
-
-		if (this.filters.containsKey(startUniqueName)) {
-			addFilterInPath(gt, startUniqueName, this.filters.get(startUniqueName));
+		if (this.filters.containsKey(startNode)) {
+			addFilterInPath2(gt, startNode, this.filters.get(startNode));
 		}
 
-		// add the logic to traverse
-		traversals = visitNode(startNode, travelledEdges, edgeMap, traversals);
+		List<String> travelledEdges = new Vector<String>();
+		List<String> travelledNodeProperties = new Vector<String>();
+		List<GraphTraversal<Object, Object>> traversals = new Vector<GraphTraversal<Object, Object>>();
 
+		// add the logic to traverse
+		traversals = visitNode(startNode, travelledEdges, travelledNodeProperties, traversals);
 		if (traversals.size() > 0) {
 			GraphTraversal[] array = new GraphTraversal[traversals.size()];
 			gt = gt.match(traversals.toArray(array));
+		} else {
+			// get the traversal and store the necessary info
+			GraphTraversal twoStepT = __.as(startNode);
+
+			List<GraphTraversal<Object, Object>> propTraversals = getProperties(twoStepT, startNode);
+
+			if (propTraversals.size() > 0) {
+				GraphTraversal[] propArray = new GraphTraversal[propTraversals.size()];
+				twoStepT = twoStepT.match(propTraversals.toArray(propArray)).select(startNode);
+				gt = gt.match(twoStepT);
+
+			}
+
 		}
 
 	}
 
-	protected List<GraphTraversal<Object, Vertex>> visitNode(Vertex orig, List<String> travelledEdges,
-			Map<String, Set<String>> edgeMap, List<GraphTraversal<Object, Vertex>> traversals) {
+	private List<GraphTraversal<Object, Object>> visitNode(String startName, List<String> travelledEdges,
+			List<String> travelledNodeProps, List<GraphTraversal<Object, Object>> traversals) {
+		// first see if there are downstream nodes
+		if (edgeHash.containsKey(startName)) {
+			Iterator<String> downstreamIt = edgeHash.get(startName).iterator();
+			while (downstreamIt.hasNext()) {
+				// for each downstream node of this node
+				String downstreamNodeType = downstreamIt.next();
 
-		String origName = orig.value(TinkerFrame.TINKER_TYPE);
+				String edgeKey = startName + TinkerFrame.EDGE_LABEL_DELIMETER + downstreamNodeType;
+				if (!travelledEdges.contains(edgeKey)) {
+					LOGGER.info("travelling from node = '" + startName + "' to node = '" + downstreamNodeType + "'");
 
-		Set<String> edgesToTraverse = edgeMap.get(origName);
-		if (edgesToTraverse != null) {
-			for (String edge : edgesToTraverse) {
-				String edgeKey = origName + TinkerFrame.EDGE_LABEL_DELIMETER + edge;
-				GraphTraversal<Vertex, Vertex> downstreamIt = g.traversal().V(orig);
+					// get the traversal and store the necessary info
+					GraphTraversal twoStepT = __.as(startName);
 
-				downstreamIt.out(edgeKey);
+					// Get properties from startName node
+					if (!travelledNodeProps.contains(startName)) {
+						List<GraphTraversal<Object, Object>> propTraversals = getProperties(twoStepT, startName);
 
-				while (downstreamIt.hasNext()) {
-					// for each downstream node of this meta node
-					Vertex nodeV = downstreamIt.next();
-
-					String nameNode = nodeV.property(TinkerFrame.TINKER_TYPE).value() + "";
-					String valueNode = nodeV.property(TinkerFrame.TINKER_NAME).value() + "";
-
-					if (!travelledEdges.contains(edgeKey) && edgesToTraverse.contains(nameNode)) {
-
-						GraphTraversal<Object, Vertex> twoStepT = __.as(origName).out(edgeKey);
-
-						if (this.filters.containsKey(nameNode)) {
-							addFilterInPath(twoStepT, nameNode, this.filters.get(nameNode));
+						if (propTraversals.size() > 0) {
+							GraphTraversal[] propArray = new GraphTraversal[propTraversals.size()];
+							twoStepT = twoStepT.match(propTraversals.toArray(propArray)).select(startName);
 						}
-
-						twoStepT = twoStepT.as(nameNode);
-						traversals.add(twoStepT);
-
-						travelledEdges.add(edgeKey);
-						// travel as far downstream as possible
-						traversals = visitNode(nodeV, travelledEdges, edgeMap, traversals);
 					}
+
+					twoStepT = twoStepT.out(edgeKey).has(TinkerFrame.TINKER_TYPE, downstreamNodeType)
+							.as(downstreamNodeType);
+					if (this.filters.containsKey(downstreamNodeType)) {
+						addFilterInPath2(twoStepT, downstreamNodeType, this.filters.get(downstreamNodeType));
+					}
+
+					traversals.add(twoStepT);
+					travelledEdges.add(edgeKey);
+					travelledNodeProps.add(startName);
+
+					// recursively travel as far downstream as possible
+					traversals = visitNode(downstreamNodeType, travelledEdges, travelledNodeProps, traversals);
 				}
 			}
 		}
 
 		// do the same thing for upstream
-		for (String s : edgeMap.keySet()) {
-			Set<String> upEdges = edgeMap.get(s);
-			if (upEdges.contains(origName)) {
+		// slightly more annoying to get upstream nodes...
+		Set<String> upstreamNodes = getUpstreamNodes(startName, edgeHash);
+		if (upstreamNodes != null && !upstreamNodes.isEmpty()) {
+			Iterator<String> upstreamIt = upstreamNodes.iterator();
+			while (upstreamIt.hasNext()) {
+				String upstreamNodeType = upstreamIt.next();
 
-				GraphTraversal<Vertex, Vertex> upstreamIt = g.traversal().V(orig);
-				String edgeKey = s + TinkerFrame.EDGE_LABEL_DELIMETER + origName;
+				String edgeKey = upstreamNodeType + TinkerFrame.EDGE_LABEL_DELIMETER + startName;
+				if (!travelledEdges.contains(edgeKey)) {
+					LOGGER.info("travelling from node = '" + upstreamNodeType + "' to node = '" + startName + "'");
 
-				upstreamIt.in(edgeKey);
+					// get the traversal and store the necessary info
+					GraphTraversal twoStepT = __.as(startName);
 
-				while (upstreamIt.hasNext()) {
-					Vertex nodeV = upstreamIt.next();
+					// Get properties from startName node
+					List<GraphTraversal<Object, Object>> propTraversals = getProperties(twoStepT, startName);
+					if (!travelledNodeProps.contains(startName)) {
 
-					String nameNode = nodeV.property(TinkerFrame.TINKER_TYPE).value() + "";
-					String valueNode = nodeV.property(TinkerFrame.TINKER_NAME).value() + "";
-
-					edgeKey = nameNode + TinkerFrame.EDGE_LABEL_DELIMETER + origName;
-					if (!travelledEdges.contains(edgeKey) && s.equals(nameNode)) {
-
-						GraphTraversal<Object, Vertex> twoStepT = __.as(origName).in(edgeKey)
-								.has(TinkerFrame.TINKER_TYPE, nameNode);
-						if (nodeV.keys().contains(TinkerFrame.TINKER_FILTER)) {
-							Object filtered = nodeV.value(TinkerFrame.TINKER_FILTER);
-							if ((Boolean) filtered == true) {
-								twoStepT = twoStepT.not(
-										__.in(TinkerFrame.TINKER_FILTER + TinkerFrame.EDGE_LABEL_DELIMETER + nameNode)
-												.has(TinkerFrame.TINKER_TYPE, TinkerFrame.TINKER_FILTER));
-							}
-						}
-						if (this.filters.containsKey(nameNode)) {
-							addFilterInPath(twoStepT, nameNode, this.filters.get(nameNode));
-						}
-
-						twoStepT = twoStepT.as(nameNode);
-						traversals.add(twoStepT);
-
-						travelledEdges.add(edgeKey);
-						// travel as far upstream as possible
-						traversals = visitNode(nodeV, travelledEdges, edgeMap, traversals);
+					if (propTraversals.size() > 0) {
+						GraphTraversal[] propArray = new GraphTraversal[propTraversals.size()];
+						twoStepT = twoStepT.match(propTraversals.toArray(propArray)).select(startName);
 					}
-				}
+					}
+					twoStepT = twoStepT.in(edgeKey).has(TinkerFrame.TINKER_TYPE, upstreamNodeType).as(upstreamNodeType);
 
+					if (this.filters.containsKey(upstreamNodeType)) {
+						addFilterInPath2(twoStepT, upstreamNodeType, this.filters.get(upstreamNodeType));
+					}
+
+					traversals.add(twoStepT);
+					travelledEdges.add(edgeKey);
+					travelledNodeProps.add(startName);
+
+					// recursively travel as far upstream as possible
+					traversals = visitNode(upstreamNodeType, travelledEdges, travelledNodeProps, traversals);
+				}
 			}
 		}
 
 		return traversals;
+	}
+
+	// using filters to apply the queried properties to the nodes
+	private List<GraphTraversal<Object, Object>> getProperties(GraphTraversal twoStepT, String startName) {
+		List<GraphTraversal<Object, Object>> propTraversals = new Vector<GraphTraversal<Object, Object>>();
+		List<String> propTraversalSelect = new Vector<String>();
+		// check if filter is in the node
+		if (this.filters.containsKey(startName)) {
+			addFilterInPath2(twoStepT, startName, this.filters.get(startName));
+		}
+
+		// iterate through nodes using propHash
+		for (String node : propHash.keySet()) {
+			Vector<String> propList = (Vector<String>) propHash.get(node);
+			for (String property : propList) { // iterate through properties
+
+				if (startName.equals(node)) {
+					// define the match traversal
+					GraphTraversal matchTraversal = __.as(startName);
+					String qsProperty = node + "__" + property;
+					if (this.filters.containsKey(qsProperty)) {
+						// we impose the filter on the node and then return the
+						// property value
+						Hashtable<String, Vector> comparatorMap = this.filters.get(qsProperty);
+						for (String comparison : comparatorMap.keySet()) {
+							comparison = comparison.trim();
+							Vector values = comparatorMap.get(comparison);
+							if (comparison.equals("=")) {
+								if (values.size() == 1) {
+									matchTraversal = matchTraversal.has(property, P.eq(values.get(0))).values(property)
+											.as(property);
+								} else {
+									matchTraversal = matchTraversal.has(property, P.within(values.toArray()))
+											.values(property).as(property);
+								}
+							} else if (comparison.equals("!=")) {
+								if (values.size() == 1) {
+									matchTraversal = matchTraversal.has(property, P.neq(values.get(0))).values(property)
+											.as(property);
+								} else {
+									matchTraversal = matchTraversal.has(property, P.without(values.toArray()))
+											.values(property).as(property);
+								}
+							} else if (comparison.equals("<")) {
+								matchTraversal = matchTraversal.has(property, P.lt(values.get(0))).values(property)
+										.as(property);
+							} else if (comparison.equals(">")) {
+								matchTraversal = matchTraversal.has(property, P.gt(values.get(0))).values(property)
+										.as(property);
+							} else if (comparison.equals("<=")) {
+								matchTraversal = matchTraversal.has(property, P.lte(values.get(0))).values(property)
+										.as(property);
+							} else if (comparison.equals(">=")) {
+								matchTraversal = matchTraversal.has(property, P.gte(values.get(0))).values(property)
+										.as(property);
+							}
+						}
+					} else {
+						matchTraversal = matchTraversal.values(property).as(property);
+					}
+
+					propTraversals.add(matchTraversal);
+					propTraversalSelect.add(property);
+				}
+			}
+		}
+
+		return propTraversals;
+
+	}
+
+	/**
+	 * Get the upstream nodes for a given downstream node
+	 * 
+	 * @param downstreamNodeToFind
+	 * @param edgeHash
+	 * @return
+	 */
+	private Set<String> getUpstreamNodes(String downstreamNodeToFind, Map<String, Set<String>> edgeHash) {
+		Set<String> upstreamNodes = new HashSet<String>();
+		for (String possibleUpstreamNode : edgeHash.keySet()) {
+			Set<String> downstreamNodes = edgeHash.get(possibleUpstreamNode);
+			if (downstreamNodes.contains(downstreamNodeToFind)) {
+				// the node we want to find is listed as downstream
+				upstreamNodes.add(possibleUpstreamNode);
+			}
+		}
+
+		return upstreamNodes;
 	}
 
 	/**
@@ -312,13 +431,37 @@ public class TinkerQueryInterpreter extends AbstractTinkerInterpreter implements
 			// if returns more than one, the query will return nothing...
 			List<String> selector = getSelector();
 			for (String s : selector) {
-				if (!propHash.containsKey(s)) {
+				if (propHash.containsKey(s)) {
 					edgeMap.put(s, new HashSet<String>());
 				}
 			}
 		}
 
 		return edgeMap;
+	}
+
+	public void addFilterInPath2(GraphTraversal<Object, Object> gt, String nameType,
+			Hashtable<String, Vector> filterInfo) {
+		// TODO: right now, if its a math, assumption that vector only contains
+		// one value
+		for (String filterType : filterInfo.keySet()) {
+			Vector filterVals = filterInfo.get(filterType);
+			if (filterType.equals("=")) {
+				gt = gt.has(TinkerFrame.TINKER_NAME, P.within(filterVals.toArray()));
+			} else if (filterType.equals("<")) {
+				gt = gt.has(TinkerFrame.TINKER_NAME, P.lt(filterVals.get(0)));
+			} else if (filterType.equals(">")) {
+				gt = gt.has(TinkerFrame.TINKER_NAME, P.gt(filterVals.get(0)));
+			} else if (filterType.equals("<=")) {
+				gt = gt.has(TinkerFrame.TINKER_NAME, P.lte(filterVals.get(0)));
+			} else if (filterType.equals(">=")) {
+				gt = gt.has(TinkerFrame.TINKER_NAME, P.gte(filterVals.get(0)));
+			} else if (filterType.equals("!=")) {
+
+				gt = gt.has(TinkerFrame.TINKER_NAME, P.without(filterVals.toArray()));
+
+			}
+		}
 	}
 
 	@Override
