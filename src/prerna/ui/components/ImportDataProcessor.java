@@ -31,7 +31,6 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.Hashtable;
 import java.util.List;
 import java.util.Map;
@@ -61,6 +60,7 @@ import prerna.poi.main.TinkerCsvReader;
 import prerna.poi.main.helper.ImportOptions;
 import prerna.poi.main.helper.ImportOptions.IMPORT_TYPE;
 import prerna.rdf.main.ImportRDBMSProcessor;
+import prerna.solr.SolrUtility;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
 import prerna.util.Utility;
@@ -160,7 +160,7 @@ public class ImportDataProcessor {
 				DIHelper.getInstance().getCoreProp().setProperty(engineName + "_" + Constants.STORE, smssLocation);
 				Utility.synchronizeEngineMetadata(engineName); // replacing this for engine
 				//Utility.addToLocalMaster(engine);
-				Utility.addToSolrInsightCore(engine);
+				SolrUtility.addToSolrInsightCore(engineName);
 				// Do we need this?
 				// Commenting it out for now to speed up upload until we find a better way to utilize this
 //				Utility.addToSolrInstanceCore(engine);
