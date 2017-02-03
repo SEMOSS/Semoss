@@ -168,6 +168,9 @@ public class TinkerQueryInterpreter extends AbstractTinkerInterpreter implements
 		if (traversals.size() > 0) {
 			GraphTraversal[] array = new GraphTraversal[traversals.size()];
 			gt = gt.match(traversals.toArray(array));
+
+			// TODO get properties for final node
+
 		} else {
 			// get the traversal and store the necessary info
 			GraphTraversal twoStepT = __.as(startNode);
@@ -216,6 +219,23 @@ public class TinkerQueryInterpreter extends AbstractTinkerInterpreter implements
 					if (this.filters.containsKey(downstreamNodeType)) {
 						addFilterInPath2(twoStepT, downstreamNodeType, this.filters.get(downstreamNodeType));
 					}
+					if (!travelledNodeProps.contains(downstreamNodeType)) {
+
+						// get properties for the downstream node
+						GraphTraversal downStepT = __.as(downstreamNodeType);
+
+						// Get properties from downstream Node node
+						List<GraphTraversal<Object, Object>> propTraversals = getProperties(downStepT,
+								downstreamNodeType);
+
+						if (propTraversals.size() > 0) {
+							GraphTraversal[] propArray = new GraphTraversal[propTraversals.size()];
+							twoStepT = twoStepT.match(propTraversals.toArray(propArray)).select(downstreamNodeType);
+						}
+
+						travelledNodeProps.add(downstreamNodeType);
+
+					}
 
 					traversals.add(twoStepT);
 					travelledEdges.add(edgeKey);
@@ -243,18 +263,36 @@ public class TinkerQueryInterpreter extends AbstractTinkerInterpreter implements
 					GraphTraversal twoStepT = __.as(startName);
 
 					// Get properties from startName node
-					List<GraphTraversal<Object, Object>> propTraversals = getProperties(twoStepT, startName);
 					if (!travelledNodeProps.contains(startName)) {
+						List<GraphTraversal<Object, Object>> propTraversals = getProperties(twoStepT, startName);
 
-					if (propTraversals.size() > 0) {
-						GraphTraversal[] propArray = new GraphTraversal[propTraversals.size()];
-						twoStepT = twoStepT.match(propTraversals.toArray(propArray)).select(startName);
-					}
+						if (propTraversals.size() > 0) {
+							GraphTraversal[] propArray = new GraphTraversal[propTraversals.size()];
+							twoStepT = twoStepT.match(propTraversals.toArray(propArray)).select(startName);
+						}
 					}
 					twoStepT = twoStepT.in(edgeKey).has(TinkerFrame.TINKER_TYPE, upstreamNodeType).as(upstreamNodeType);
 
 					if (this.filters.containsKey(upstreamNodeType)) {
 						addFilterInPath2(twoStepT, upstreamNodeType, this.filters.get(upstreamNodeType));
+					}
+
+					if (!travelledNodeProps.contains(upstreamNodeType)) {
+
+						// get properties for the upstream node
+						GraphTraversal upStepT = __.as(upstreamNodeType);
+
+						
+						List<GraphTraversal<Object, Object>> propTraversals = getProperties(upStepT,
+								upstreamNodeType);
+
+						if (propTraversals.size() > 0) {
+							GraphTraversal[] propArray = new GraphTraversal[propTraversals.size()];
+							twoStepT = twoStepT.match(propTraversals.toArray(propArray)).select(upstreamNodeType);
+						}
+
+						travelledNodeProps.add(upstreamNodeType);
+
 					}
 
 					traversals.add(twoStepT);
@@ -280,59 +318,57 @@ public class TinkerQueryInterpreter extends AbstractTinkerInterpreter implements
 		}
 
 		// iterate through nodes using propHash
-		for (String node : propHash.keySet()) {
-			Vector<String> propList = (Vector<String>) propHash.get(node);
-			for (String property : propList) { // iterate through properties
 
-				if (startName.equals(node)) {
-					// define the match traversal
-					GraphTraversal matchTraversal = __.as(startName);
-					String qsProperty = node + "__" + property;
-					if (this.filters.containsKey(qsProperty)) {
-						// we impose the filter on the node and then return the
-						// property value
-						Hashtable<String, Vector> comparatorMap = this.filters.get(qsProperty);
-						for (String comparison : comparatorMap.keySet()) {
-							comparison = comparison.trim();
-							Vector values = comparatorMap.get(comparison);
-							if (comparison.equals("=")) {
-								if (values.size() == 1) {
-									matchTraversal = matchTraversal.has(property, P.eq(values.get(0))).values(property)
-											.as(property);
-								} else {
-									matchTraversal = matchTraversal.has(property, P.within(values.toArray()))
-											.values(property).as(property);
-								}
-							} else if (comparison.equals("!=")) {
-								if (values.size() == 1) {
-									matchTraversal = matchTraversal.has(property, P.neq(values.get(0))).values(property)
-											.as(property);
-								} else {
-									matchTraversal = matchTraversal.has(property, P.without(values.toArray()))
-											.values(property).as(property);
-								}
-							} else if (comparison.equals("<")) {
-								matchTraversal = matchTraversal.has(property, P.lt(values.get(0))).values(property)
-										.as(property);
-							} else if (comparison.equals(">")) {
-								matchTraversal = matchTraversal.has(property, P.gt(values.get(0))).values(property)
-										.as(property);
-							} else if (comparison.equals("<=")) {
-								matchTraversal = matchTraversal.has(property, P.lte(values.get(0))).values(property)
-										.as(property);
-							} else if (comparison.equals(">=")) {
-								matchTraversal = matchTraversal.has(property, P.gte(values.get(0))).values(property)
-										.as(property);
-							}
+		Vector<String> propList = (Vector<String>) propHash.get(startName);
+		for (String property : propList) { // iterate through properties
+
+			// define the match traversal
+			GraphTraversal matchTraversal = __.as(startName);
+			String qsProperty = startName + "__" + property;
+			if (this.filters.containsKey(qsProperty)) {
+				// we impose the filter on the node and then return the
+				// property value
+				Hashtable<String, Vector> comparatorMap = this.filters.get(qsProperty);
+				for (String comparison : comparatorMap.keySet()) {
+					comparison = comparison.trim();
+					Vector values = comparatorMap.get(comparison);
+					if (comparison.equals("=")) {
+						if (values.size() == 1) {
+							matchTraversal = matchTraversal.has(property, P.eq(values.get(0))).values(property)
+									.as(property);
+						} else {
+							matchTraversal = matchTraversal.has(property, P.within(values.toArray())).values(property)
+									.as(property);
 						}
-					} else {
-						matchTraversal = matchTraversal.values(property).as(property);
+					} else if (comparison.equals("!=")) {
+						if (values.size() == 1) {
+							matchTraversal = matchTraversal.has(property, P.neq(values.get(0))).values(property)
+									.as(property);
+						} else {
+							matchTraversal = matchTraversal.has(property, P.without(values.toArray())).values(property)
+									.as(property);
+						}
+					} else if (comparison.equals("<")) {
+						matchTraversal = matchTraversal.has(property, P.lt(values.get(0))).values(property)
+								.as(property);
+					} else if (comparison.equals(">")) {
+						matchTraversal = matchTraversal.has(property, P.gt(values.get(0))).values(property)
+								.as(property);
+					} else if (comparison.equals("<=")) {
+						matchTraversal = matchTraversal.has(property, P.lte(values.get(0))).values(property)
+								.as(property);
+					} else if (comparison.equals(">=")) {
+						matchTraversal = matchTraversal.has(property, P.gte(values.get(0))).values(property)
+								.as(property);
 					}
-
-					propTraversals.add(matchTraversal);
-					propTraversalSelect.add(property);
 				}
+			} else {
+				matchTraversal = matchTraversal.values(property).as(property);
 			}
+
+			propTraversals.add(matchTraversal);
+			propTraversalSelect.add(property);
+
 		}
 
 		return propTraversals;
@@ -457,16 +493,13 @@ public class TinkerQueryInterpreter extends AbstractTinkerInterpreter implements
 			} else if (filterType.equals(">=")) {
 				gt = gt.has(TinkerFrame.TINKER_NAME, P.gte(filterVals.get(0)));
 			} else if (filterType.equals("!=")) {
-
 				gt = gt.has(TinkerFrame.TINKER_NAME, P.without(filterVals.toArray()));
-
 			}
 		}
 	}
 
 	@Override
 	public void setPerformCount(int performCount) {
-		// TODO Auto-generated method stub
 
 	}
 
