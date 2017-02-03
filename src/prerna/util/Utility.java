@@ -40,9 +40,6 @@ import java.io.InputStreamReader;
 import java.lang.reflect.InvocationTargetException;
 import java.net.ServerSocket;
 import java.net.URISyntaxException;
-import java.nio.file.Files;
-import java.nio.file.attribute.BasicFileAttributes;
-import java.nio.file.attribute.FileTime;
 import java.security.KeyManagementException;
 import java.security.KeyStoreException;
 import java.security.NoSuchAlgorithmException;
@@ -95,18 +92,8 @@ import org.apache.http.message.BasicNameValuePair;
 import org.apache.log4j.Logger;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import org.apache.solr.client.solrj.SolrServerException;
-import org.apache.solr.common.SolrInputDocument;
-import org.h2.jdbc.JdbcClob;
 import org.openrdf.model.Value;
 import org.openrdf.query.Binding;
-import org.openrdf.repository.Repository;
-import org.openrdf.repository.RepositoryConnection;
-import org.openrdf.repository.RepositoryException;
-import org.openrdf.repository.sail.SailRepository;
-import org.openrdf.rio.RDFFormat;
-import org.openrdf.rio.RDFParseException;
-import org.openrdf.sail.inferencer.fc.ForwardChainingRDFSInferencer;
-import org.openrdf.sail.memory.MemoryStore;
 
 import com.ibm.icu.math.BigDecimal;
 import com.ibm.icu.text.DecimalFormat;
@@ -118,17 +105,15 @@ import prerna.engine.api.IHeadersDataRow;
 import prerna.engine.api.ISelectStatement;
 import prerna.engine.api.ISelectWrapper;
 import prerna.engine.impl.AbstractEngine;
-import prerna.engine.impl.MetaHelper;
 import prerna.engine.impl.QuestionAdministrator;
 import prerna.engine.impl.rdbms.RDBMSNativeEngine;
-import prerna.engine.impl.rdf.InMemorySesameEngine;
 import prerna.nameserver.AddToMasterDB;
 import prerna.nameserver.DeleteFromMasterDB;
 import prerna.om.SEMOSSParam;
 import prerna.poi.main.BaseDatabaseCreator;
 import prerna.rdf.engine.wrappers.WrapperManager;
-import prerna.solr.SolrImportUtility;
 import prerna.solr.SolrIndexEngine;
+import prerna.solr.SolrUtility;
 import prerna.ui.components.api.IPlaySheet;
 import prerna.ui.components.playsheets.datamakers.DataMakerComponent;
 import prerna.ui.components.playsheets.datamakers.IDataMaker;
@@ -674,543 +659,6 @@ public class Utility {
 	}
 
 	/**
-	 * Add the engine instances into the solr index engine
-	 * @param engineToAdd					The IEngine to add into the solr index engine
-	 * @throws KeyManagementException
-	 * @throws NoSuchAlgorithmException
-	 * @throws KeyStoreException
-	 * @throws ParseException
-	 */
-	public static void addToSolrInstanceCore(IEngine engineToAdd) throws KeyManagementException, NoSuchAlgorithmException, KeyStoreException, ParseException{
-		// get the engine name
-		String engineName = engineToAdd.getEngineName();
-		// get the solr index engine
-		SolrIndexEngine solrE = SolrIndexEngine.getInstance();
-		// if the solr is active...
-		if (solrE.serverActive()) {
-
-			List<SolrInputDocument> docs = new ArrayList<SolrInputDocument>();
-			/*
-			 * The unique document is the engineName concatenated with the concept
-			 * BUT for properties it is the engineName concatenated with the concept concatenated with the property 
-			 * Note: we only add properties that are not numeric
-			 * 
-			 * Logic is as follows
-			 * 1) Get the list of all the concepts
-			 * 2) For each concept add the concept with all its instance values to the docs list
-			 * 3) If the concept has properties, perform steps 4 & 5
-			 * 		4) for each property, get the list of values
-			 * 		5) if property is categorical, add the property with all its instance values as a document to the docs list
-			 * 6) Index all the documents that are stored in docs
-			 * 
-			 * There is a very annoying caveat.. we have an annoying bifurcation based on the engine type
-			 * If it is a RDBMS, getting the properties is pretty easy based on the way the IEngine is set up and how RDBMS queries work
-			 * However, for RDF, getting the properties requires us to create a query and execute that query to get the list of values :/
-			 */
-
-			//TODO: WE NOW STORE THE DATA TYPES ON THE OWL!!! NO NEED TO PERFORM THE QUERY BEFORE CHECKING THE TYPE!!!!!
-			//TODO: will come back to this
-
-			// 1) grab all concepts that exist in the database
-			List<String> conceptList = engineToAdd.getConcepts(false);
-			for(String concept : conceptList) {
-				// we ignore the default concept node...
-				if(concept.equals("http://semoss.org/ontologies/Concept")) {
-					continue;
-				}
-
-				// 2) get all the instances for the concept
-				// fieldData will store the instance document information when we add the concept
-				List<Object> instances = engineToAdd.getEntityOfType(concept);
-				if(instances.isEmpty()) {
-					// sometimes this list is empty when users create databases with empty fields that are
-					// meant to filled in via forms 
-					continue;
-				}
-				// create the concept unique id which is the engineName concatenated with the concept
-				String newId = engineName + "_" + concept;
-
-				//use the method that you just made to save the concept
-				Map<String, Object> fieldData = new HashMap<String, Object>();
-				fieldData.put(SolrIndexEngine.CORE_ENGINE, engineName);
-				fieldData.put(SolrIndexEngine.VALUE, concept);
-				// sadly, the instances we get back are URIs.. need to extract the instance values from it
-				List<Object> instancesList = new ArrayList<Object>();
-				for(Object instance : instances) {
-					instancesList.add(Utility.getInstanceName(instance + ""));
-				}
-				fieldData.put(SolrIndexEngine.INSTANCES, instancesList);
-				// add to the docs list
-				docs.add(solrE.createDocument(newId, fieldData));
-
-				// 3) now see if the concept has properties
-				List<String> propName = engineToAdd.getProperties4Concept(concept, false);
-				if(propName.isEmpty()) {
-					// if no properties, go onto the next concept
-					continue;
-				}
-
-				// we found properties, lets try to add those as well
-				// here we have the bifurcation based on the engine type
-				if(engineToAdd.getEngineType().equals(IEngine.ENGINE_TYPE.RDBMS)) {
-					NEXT_PROP : for(String prop : propName) {
-						Vector<Object> propertiesList = engineToAdd.getEntityOfType(prop);
-						boolean isNumeric = false;
-						Iterator<Object> it = propertiesList.iterator();
-						while(it.hasNext()) {
-							Object o = it.next();
-							if(o == null || o.toString().isEmpty()) {
-								it.remove();
-								continue;
-							}
-							if(o instanceof Number || isStringDate(o + "")) {
-								isNumeric = true;
-								continue NEXT_PROP;
-							}
-						}
-
-						// add if the property and its instances to the docs list
-						if(!isNumeric && !propertiesList.isEmpty()) {
-							String propId = newId + "_" + prop; // in case there are properties for the same engine, tie it to the concept
-							Map<String, Object> propFieldData = new HashMap<String, Object>();
-							propFieldData.put(SolrIndexEngine.CORE_ENGINE, engineName);
-							propFieldData.put(SolrIndexEngine.VALUE, prop);
-							propertiesList.add(Utility.getInstanceName(prop));
-							propFieldData.put(SolrIndexEngine.INSTANCES, propertiesList);
-							// add the property document to the docs
-							docs.add(solrE.createDocument(propId, propFieldData));
-						}
-					}
-				} else {
-					for(String prop : propName) {
-						// there is no way to get the list of properties for a specific concept in RDF through the interface
-						// create a query using the concept and the property name
-						String propQuery = "SELECT DISTINCT ?property WHERE { {?x <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <" + concept + "> } { ?x <" + prop + "> ?property} }";
-						ISelectWrapper propWrapper = WrapperManager.getInstance().getSWrapper(engineToAdd, propQuery);
-						List<Object> propertiesList = new ArrayList<Object>();
-						while (propWrapper.hasNext()) {
-							ISelectStatement propSS = propWrapper.next();
-							Object property = propSS.getVar("property");
-							if(property instanceof String && !isStringDate((String)property)){
-								//replace property underscores with space
-								property = property.toString();
-								propertiesList.add(property);
-							}
-						}
-
-						// add if the property and its instances to the docs list
-						if(!propertiesList.isEmpty()) {
-							String propId = newId + "_" + prop; // in case there are properties for the same engine, tie it to the concept
-							Map<String, Object> propFieldData = new HashMap<String, Object>();
-							propFieldData.put(SolrIndexEngine.CORE_ENGINE, engineName);
-							propFieldData.put(SolrIndexEngine.VALUE, prop);
-							propertiesList.add(Utility.getInstanceName(prop));
-							propFieldData.put(SolrIndexEngine.INSTANCES, propertiesList);
-							// add the property document to the docs
-							docs.add(solrE.createDocument(propId, propFieldData));
-						}
-					}
-				}
-			}
-
-			// 6) index all the documents at the same time for efficiency
-			try {
-				solrE.addInstances(docs);
-			} catch (SolrServerException | IOException e) {
-				e.printStackTrace();
-			}
-		}
-	}
-
-	/**
-	 * Add the engine insights into the solr index engine
-	 * @param engineToAdd					The IEngine to add into the solr index engine
-	 * @throws KeyManagementException
-	 * @throws NoSuchAlgorithmException
-	 * @throws KeyStoreException
-	 */
-	public static void addToSolrInsightCore(IEngine engineToAdd) throws KeyManagementException, NoSuchAlgorithmException, KeyStoreException {
-		//		// get the engine name
-		String engineName = engineToAdd.getEngineName();
-		// get the solr index engine
-		SolrIndexEngine solrE = SolrIndexEngine.getInstance();
-		// if the solr is active...
-		if (solrE.serverActive()) {
-
-			List<SolrInputDocument> docs = new ArrayList<SolrInputDocument>();
-			/*
-			 * The unique document is the engineName concatenated with the engine unique rdbms name (which is just a number)
-			 * 
-			 * Logic is as follows
-			 * 1) Delete all existing insights that are tagged by this engine 
-			 * 2) Execute a query to get all relevant information from the engine rdbms insights database
-			 * 3) For each insight, grab the relevant information and store into a solr document and add it to the docs list
-			 * 4) Index all the documents stored in docs list
-			 */
-
-			// 1) delete any existing insights from this engine
-			solrE.deleteEngine(engineName);
-
-			// also going to get some default field values since they are not captured anywhere...
-
-			// get the current date which will be used to store in "created_on" and "modified_on" fields within schema
-			DateFormat dateFormat = SolrIndexEngine.getDateFormat();
-			Date date = new Date();
-			String currDate = dateFormat.format(date);
-			// set all the users to be default...
-			String userID = "default";
-
-
-			// 2) execute the query and iterate through the insights
-			String query = "SELECT DISTINCT ID, QUESTION_NAME, QUESTION_LAYOUT, QUESTION_MAKEUP, QUESTION_PERSPECTIVE FROM QUESTION_ID";
-			ISelectWrapper wrapper = WrapperManager.getInstance().getSWrapper(engineToAdd.getInsightDatabase(), query);
-			while(wrapper.hasNext()){
-				ISelectStatement ss = wrapper.next();
-
-				// 3) start to get all the relevant metadata surrounding the insight
-
-				// get the unique id of the insight within the engine
-				int id = (int) ss.getVar("ID");
-				// get the question name
-				String name = (String) ss.getVar("QUESTION_NAME");
-				// get the question layout
-				String layout = (String) ss.getVar("QUESTION_LAYOUT");
-
-				// get the question perspective to use as a default tag
-				String perspective = (String) ss.getVar("QUESTION_PERSPECTIVE");
-				// sadly, at some point the perspective which we use as a tag has been added 
-				// using the following 3 ways...
-				// remove all 3 if found
-				String perspString1 ="-Perspective";
-				String perspString2 ="_Perspective";
-				String perspString3 ="Perspective";
-				if (perspective.contains(perspString1)) {
-					perspective = perspective.replace(perspString1, "").trim();
-				}
-				if(perspective.contains(perspString2)){
-					perspective = perspective.replace(perspString2, "").trim();
-				}
-				if(perspective.contains(perspString3)){
-					perspective = perspective.replace(perspString3, "").trim();
-				}
-
-				// get the clob containing the question makeup
-				// TODO: we use this to query it and get the list of engines associated with an insight
-				// TODO: however, since the DMC is no longer valid and that logic is placed within the PKQL
-				// TODO: we need to not do this and figure out a way to get the engines that are used in the PKQL
-
-				/////// START CLOB PROCESSING TO GET LIST OF ENGINES ///////
-				JdbcClob obj = (JdbcClob) ss.getVar("QUESTION_MAKEUP"); 
-				InputStream makeup = null;
-				try {
-					makeup = obj.getAsciiStream();
-				} catch (SQLException e) {
-					e.printStackTrace();
-				}
-
-				//load the makeup input stream into a rc
-				RepositoryConnection rc = null;
-				try {
-					Repository myRepository = new SailRepository(new ForwardChainingRDFSInferencer(new MemoryStore()));
-					myRepository.initialize();
-					rc = myRepository.getConnection();
-					rc.add(makeup, "semoss.org", RDFFormat.NTRIPLES);
-				} catch (RuntimeException ignored) {
-					ignored.printStackTrace();
-				} catch (RDFParseException e) {
-					e.printStackTrace();
-				} catch (RepositoryException e) {
-					e.printStackTrace();
-				} catch (IOException e) {
-					e.printStackTrace();
-				}
-				// set the rc in the in-memory engine
-				InMemorySesameEngine myEng = new InMemorySesameEngine();
-				myEng.setRepositoryConnection(rc);
-
-				Set<String> engineSet = new HashSet<String>();
-				// query the in-memory sesame engine to get the list of engines
-				String engineQuery = "SELECT DISTINCT ?EngineName WHERE {{?Engine a <http://semoss.org/ontologies/Concept/Engine>}{?Engine <http://semoss.org/ontologies/Relation/Contains/Name> ?EngineName} }";
-				ISelectWrapper engineWrapper = WrapperManager.getInstance().getSWrapper(myEng, engineQuery);
-				while(engineWrapper.hasNext()) {
-					ISelectStatement engineSS = engineWrapper.next();
-					engineSet.add(engineSS.getVar("EngineName") + "");
-				}
-				// since pkql adds only one dmc with engine being local master... we want to remove that
-				// and set engine into the set
-				engineSet.remove(Constants.LOCAL_MASTER_DB_NAME);
-				engineSet.add(engineName);
-				/////// END CLOB PROCESSING TO GET LIST OF ENGINES ///////
-
-				// have all the relevant fields now, so store with appropriate schema name
-				// create solr document and add into docs list
-				Map<String, Object>  queryResults = new  HashMap<> ();
-				queryResults.put(SolrIndexEngine.STORAGE_NAME, name);
-				queryResults.put(SolrIndexEngine.INDEX_NAME, name);
-				queryResults.put(SolrIndexEngine.CREATED_ON, currDate);
-				queryResults.put(SolrIndexEngine.MODIFIED_ON, currDate);
-				queryResults.put(SolrIndexEngine.USER_ID, userID);
-				queryResults.put(SolrIndexEngine.ENGINES, engineSet);
-				queryResults.put(SolrIndexEngine.CORE_ENGINE, engineName);
-				queryResults.put(SolrIndexEngine.CORE_ENGINE_ID, id);
-				queryResults.put(SolrIndexEngine.LAYOUT, layout);
-				queryResults.put(SolrIndexEngine.TAGS, perspective);
-				try {
-					docs.add(solrE.createDocument(engineName + "_" + id, queryResults));
-				} catch (Exception e) {
-					e.printStackTrace();
-				}
-			}
-
-			// 4) index all the documents at the same time for efficiency
-			try {
-				solrE.addInsights(docs);
-			} catch (SolrServerException | IOException e) {
-				e.printStackTrace();
-			}
-		}
-	}
-
-	
-	public static void addToSolrInsightCore2(String engineName) throws KeyManagementException, NoSuchAlgorithmException, KeyStoreException {
-		// get the engine name		
-		// generate the appropriate query to execute on the local master engine to get the time stamp
-		LOGGER.info("SOLR'ing on " + engineName);
-		
-		String engineFile = DIHelper.getInstance().getCoreProp().getProperty(engineName + "_" + Constants.STORE);
-
-		SolrIndexEngine solrE = SolrIndexEngine.getInstance();
-		Properties prop = new Properties();
-		String baseFolder = DIHelper.getInstance().getProperty("BaseFolder");
-		FileInputStream fis = null;
-		String engineDbTime = null;
-		String dbLocation = null;
-
-		// file is an export of the solr values exist
-		File solrDocFile = null;
-		// boolean is we should be updating the solr values
-		boolean forceUpdateSolr = false;
-		
-		try {
-			fis = new FileInputStream(engineFile);
-			prop.load(fis);
-
-			// see if solr document exists
-			String solrDocLocation = prop.getProperty(Constants.SOLR_EXPORT);
-			if(solrDocLocation != null && !solrDocLocation.isEmpty()) {
-				solrDocLocation = baseFolder + "/" + solrDocLocation;
-				solrDocFile = new File(solrDocLocation);
-			}
-			
-			// see if force update
-			String smssForceUpdateString = prop.getProperty(Constants.SOLR_RELOAD);
-			if (smssForceUpdateString != null && !smssForceUpdateString.isEmpty()) {
-				forceUpdateSolr = Boolean.parseBoolean(smssForceUpdateString);
-			}
-			
-			// find when the database was last modified to see the time
-			dbLocation = (String)prop.get(Constants.RDBMS_INSIGHTS);
-			String dbFileLocation = baseFolder + "/" + dbLocation + ".mv.db";
-			File dbfile = new File(dbFileLocation);
-
-			BasicFileAttributes bfa = Files.readAttributes(dbfile.toPath(), BasicFileAttributes.class);
-			FileTime ft = bfa.lastModifiedTime();
-			DateFormat df = SolrIndexEngine.getDateFormat();
-			engineDbTime = df.format(ft.toMillis());
-		} catch(Exception ex) {
-			ex.printStackTrace();
-		} finally {
-			if(fis != null) {
-				try {
-					fis.close();
-				} catch (IOException e) {
-					e.printStackTrace();
-				}
-			}
-		}
-
-		// make the engine compare if this is valid
-		if(forceUpdateSolr || !solrE.containsEngine(engineName))
-		{
-			// get the solr index engine
-			// if the solr is active...
-			if (solrE.serverActive()) {
-				if(solrDocFile != null && solrDocFile.exists()) {
-					// delete any existing insights from this engine
-					solrE.deleteEngine(engineName);
-
-					LOGGER.info("We have a solr document export to load");
-					try {
-						SolrImportUtility.processSolrTextDocument(solrDocFile.getAbsolutePath());
-					} catch (IOException e) {
-						e.printStackTrace();
-					}
-				} else {
-					// this has all the details
-					// the engine file is primarily the SMSS that is going to be utilized for the purposes of retrieving all the data
-					//jdbc:h2:@BaseFolder@/db/@ENGINE@/database;query_timeout=180000;early_filter=true;query_cache_size=24;cache_size=32768
-					String jdbcURL = "jdbc:h2:" + baseFolder + "/" + dbLocation + ";query_timeout=180000;early_filter=true;query_cache_size=24;cache_size=32768";
-					LOGGER.info("Connecting to URL.. " + jdbcURL);
-					String userName = "sa";
-					String password = "";
-					//			if(prop.containsKey(Constants.USERNAME))
-					//				userName = prop.getProperty(Constants.USERNAME);
-					//			if(prop.containsKey(Constants.PASSWORD))
-					//				password = prop.getProperty(Constants.PASSWORD);
-
-					RDBMSNativeEngine rne = new RDBMSNativeEngine();
-					rne.makeConnection(jdbcURL, userName, password);
-					MetaHelper helper = new MetaHelper(null, null, null, rne);
-					
-					List<SolrInputDocument> docs = new ArrayList<SolrInputDocument>();
-					/*
-					 * The unique document is the engineName concatenated with the engine unique rdbms name (which is just a number)
-					 * 
-					 * Logic is as follows
-					 * 1) Delete all existing insights that are tagged by this engine 
-					 * 2) Execute a query to get all relevant information from the engine rdbms insights database
-					 * 3) For each insight, grab the relevant information and store into a solr document and add it to the docs list
-					 * 4) Index all the documents stored in docs list
-					 */
-
-					// 1) delete any existing insights from this engine
-					solrE.deleteEngine(engineName);
-
-					// also going to get some default field values since they are not captured anywhere...
-
-					// get the current date which will be used to store in "created_on" and "modified_on" fields within schema
-					String currDate = engineDbTime;
-					// set all the users to be default...
-					String userID = "default";
-
-
-					// 2) execute the query and iterate through the insights
-					String query = "SELECT DISTINCT ID, QUESTION_NAME, QUESTION_LAYOUT, QUESTION_MAKEUP, QUESTION_PERSPECTIVE FROM QUESTION_ID";
-					ISelectWrapper wrapper = WrapperManager.getInstance().getSWrapper(rne, query);
-					while(wrapper.hasNext()){
-						ISelectStatement ss = wrapper.next();
-
-						// 3) start to get all the relevant metadata surrounding the insight
-
-						// get the unique id of the insight within the engine
-						int id = (int) ss.getVar("ID");
-						// get the question name
-						String name = (String) ss.getVar("QUESTION_NAME");
-						// get the question layout
-						String layout = (String) ss.getVar("QUESTION_LAYOUT");
-
-						// get the question perspective to use as a default tag
-						String perspective = (String) ss.getVar("QUESTION_PERSPECTIVE");
-						// sadly, at some point the perspective which we use as a tag has been added 
-						// using the following 3 ways...
-						// remove all 3 if found
-						String perspString1 ="-Perspective";
-						String perspString2 ="_Perspective";
-						String perspString3 ="Perspective";
-						if (perspective.contains(perspString1)) {
-							perspective = perspective.replace(perspString1, "").trim();
-						}
-						if(perspective.contains(perspString2)){
-							perspective = perspective.replace(perspString2, "").trim();
-						}
-						if(perspective.contains(perspString3)){
-							perspective = perspective.replace(perspString3, "").trim();
-						}
-
-						// get the clob containing the question makeup
-						// TODO: we use this to query it and get the list of engines associated with an insight
-						// TODO: however, since the DMC is no longer valid and that logic is placed within the PKQL
-						// TODO: we need to not do this and figure out a way to get the engines that are used in the PKQL
-
-						/////// START CLOB PROCESSING TO GET LIST OF ENGINES ///////
-						JdbcClob obj = (JdbcClob) ss.getVar("QUESTION_MAKEUP"); 
-						InputStream makeup = null;
-						try {
-							makeup = obj.getAsciiStream();
-						} catch (SQLException e) {
-							e.printStackTrace();
-						}
-
-						//load the makeup input stream into a rc
-						RepositoryConnection rc = null;
-						try {
-							Repository myRepository = new SailRepository(new ForwardChainingRDFSInferencer(new MemoryStore()));
-							myRepository.initialize();
-							rc = myRepository.getConnection();
-							rc.add(makeup, "semoss.org", RDFFormat.NTRIPLES);
-						} catch (RuntimeException ignored) {
-							ignored.printStackTrace();
-						} catch (RDFParseException e) {
-							e.printStackTrace();
-						} catch (RepositoryException e) {
-							e.printStackTrace();
-						} catch (IOException e) {
-							e.printStackTrace();
-						}
-						// set the rc in the in-memory engine
-						InMemorySesameEngine myEng = new InMemorySesameEngine();
-						myEng.setRepositoryConnection(rc);
-
-						Set<String> engineSet = new HashSet<String>();
-						// query the in-memory sesame engine to get the list of engines
-						String engineQuery = "SELECT DISTINCT ?EngineName WHERE {{?Engine a <http://semoss.org/ontologies/Concept/Engine>}{?Engine <http://semoss.org/ontologies/Relation/Contains/Name> ?EngineName} }";
-						ISelectWrapper engineWrapper = WrapperManager.getInstance().getSWrapper(myEng, engineQuery);
-						while(engineWrapper.hasNext()) {
-							ISelectStatement engineSS = engineWrapper.next();
-							engineSet.add(engineSS.getVar("EngineName") + "");
-						}
-						// since pkql adds only one dmc with engine being local master... we want to remove that
-						// and set engine into the set
-						engineSet.remove(Constants.LOCAL_MASTER_DB_NAME);
-						engineSet.add(engineName);
-						/////// END CLOB PROCESSING TO GET LIST OF ENGINES ///////
-
-						// have all the relevant fields now, so store with appropriate schema name
-						// create solr document and add into docs list
-						Map<String, Object>  queryResults = new  HashMap<> ();
-						queryResults.put(SolrIndexEngine.STORAGE_NAME, name);
-						queryResults.put(SolrIndexEngine.INDEX_NAME, name);
-						queryResults.put(SolrIndexEngine.CREATED_ON, currDate);
-						queryResults.put(SolrIndexEngine.MODIFIED_ON, currDate);
-						queryResults.put(SolrIndexEngine.USER_ID, userID);
-						queryResults.put(SolrIndexEngine.ENGINES, engineSet);
-						queryResults.put(SolrIndexEngine.CORE_ENGINE, engineName);
-						queryResults.put(SolrIndexEngine.CORE_ENGINE_ID, id);
-						queryResults.put(SolrIndexEngine.LAYOUT, layout);
-						queryResults.put(SolrIndexEngine.TAGS, perspective);
-						try {
-							docs.add(solrE.createDocument(engineName + "_" + id, queryResults));
-						} catch (Exception e) {
-							e.printStackTrace();
-						}
-					}
-
-					// 4) index all the documents at the same time for efficiency
-					try {
-						solrE.addInsights(docs);
-						rne.closeDB();
-						fis.close();
-					} catch (SolrServerException | IOException e) {
-						e.printStackTrace();
-					}
-				}
-			}
-			LOGGER.info("Completed " + engineName);
-			
-			if(forceUpdateSolr) {
-				LOGGER.info(engineName + " is changing solr boolean on smss");
-				changePropMapFileValue(engineFile, Constants.SOLR_RELOAD, "false");	
-			}
-		}
-		else
-		{
-			LOGGER.info("Exists !!");
-		}
-	}
-
-	//force solr to load once 
-	//once engine is loaded, set boolean to false
-	/**
 	 * Changes a value within the SMSS file for a given key
 	 * @param smssPath					The path to the SMSS file
 	 * @param keyToAlter				The key to alter
@@ -1337,23 +785,6 @@ public class Utility {
 			}
 		}
 	}
-
-	/**
-	 * Delete all the insights surrounding a specified engine
-	 * @param engineName				
-	 */
-	public static void deleteFromSolr(String engineName) {
-		try {
-			SolrIndexEngine.getInstance().deleteEngine(engineName);
-		} catch (KeyManagementException e) {
-			e.printStackTrace();
-		} catch (NoSuchAlgorithmException e) {
-			e.printStackTrace();
-		} catch (KeyStoreException e) {
-			e.printStackTrace();
-		}
-	}
-
 
 	/**
 	 * Cleans a string based on certain patterns
@@ -2691,18 +2122,18 @@ public class Utility {
 				// alright, we are going to load the engines insights into solr
 				LOGGER.info(engineToAdd.getEngineName() + " has solr force reload value of " + smssProp );
 				LOGGER.info(engineToAdd.getEngineName() + " is reloading solr");
-				try {
-					// add the instances into solr
-					addToSolrInstanceCore(engineToAdd);
+//				try {
+//					// add the instances into solr
+//					addToSolrInstanceCore(engineToAdd);
 					// add the insights into solr
-					addToSolrInsightCore(engineToAdd);
-				} catch (ParseException e) {
-					e.printStackTrace();
-				}
+					SolrUtility.addToSolrInsightCore(engineName);
+//				} catch (ParseException e) {
+//					e.printStackTrace();
+//				}
 			}
 			// if the engine is hidden, delete it from solr
 			else if(hidden){
-				Utility.deleteFromSolr(engineName);
+				SolrUtility.deleteFromSolr(engineName);
 			}
 			// if the smss prop was set to true -> i.e. a hard solr reload for that specific engine
 			// then we want to change the boolean to be false such that this is only a one time solr reload
@@ -2790,7 +2221,7 @@ public class Utility {
 			} else if(!isLocal){ // never add local master to itself...
 				DeleteFromMasterDB deleter = new DeleteFromMasterDB(Constants.LOCAL_MASTER_DB_NAME);
 				deleter.deleteEngine(engineName);
-				Utility.deleteFromSolr(engineName);
+				SolrUtility.deleteFromSolr(engineName);
 			}
 			// still need to find a way to move this forward.. 
 			// but for now I am ignoring

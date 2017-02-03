@@ -23,6 +23,7 @@ import prerna.om.Insight;
 import prerna.poi.main.helper.ImportOptions;
 import prerna.sablecc.PKQLRunner;
 import prerna.sablecc.meta.FilePkqlMetadata;
+import prerna.solr.SolrUtility;
 import prerna.test.TestUtilityMethods;
 import prerna.ui.components.playsheets.datamakers.IDataMaker;
 import prerna.util.Constants;
@@ -168,7 +169,7 @@ public class InsightFilesToDatabaseReader {
 			((AbstractEngine) engine).createInsights(baseDirectory);
 			DIHelper.getInstance().getCoreProp().setProperty(engineName + "_" + Constants.STORE, smssLocation);
 			Utility.synchronizeEngineMetadata(engineName); // replacing this for engine
-			Utility.addToSolrInsightCore(engine);
+			SolrUtility.addToSolrInsightCore(engineName);
 			// Do we need this?
 			// Commenting it out for now to speed up upload until we find a better way to utilize this
 //			Utility.addToSolrInstanceCore(engine);
@@ -241,7 +242,7 @@ public class InsightFilesToDatabaseReader {
 					newSmssProp.delete();
 				}
 				// remove from engine from solr in case it was added
-				Utility.deleteFromSolr(engineName);
+				SolrUtility.deleteFromSolr(engineName);
 				
 				throw new IOException("Error loading files from insight into database");
 			}
