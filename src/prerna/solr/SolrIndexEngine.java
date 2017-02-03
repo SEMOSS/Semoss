@@ -92,8 +92,6 @@ public class SolrIndexEngine {
 	public static final String MODIFIED_ON = "modified_on";
 	public static final String LAST_VIEWED_ON = "last_viewed_on";
 
-	public static final String USER_ID = "user_id";
-	
 	public static final String ENGINES = "engines";
 	public static final String CORE_ENGINE = "core_engine";
 	public static final String CORE_ENGINE_ID = "core_engine_id";
@@ -104,11 +102,11 @@ public class SolrIndexEngine {
 	public static final String TAGS = "tags";
 	public static final String INDEXED_TAGS = "indexed_tags";
 
+	public static final String DESCRIPTION = "description";
+	public static final String INDEXED_DESCRIPTION = "indexed_description";
+	
+	public static final String USER_ID = "user_id";
 	public static final String LAYOUT = "layout";
-	public static final String ANNOTATION = "annotation";
-	public static final String COMMENT = "comment";
-	public static final String USER_SPECIFIED_RELATED = "user_specified_related";
-	public static final String QUERY_PROJECTIONS = "query_projections";
 	public static final String IMAGE = "image";
 
 	// Schema Field Names For Instance Core
@@ -684,6 +682,7 @@ public class SolrIndexEngine {
 		retFields.add(TAGS);
 		retFields.add(SCORE);
 		retFields.add(VIEW_COUNT);
+		retFields.add(DESCRIPTION);
 		retFields.add(IMAGE);
 		queryBuilder.setReturnFields(retFields);
 
@@ -1075,6 +1074,7 @@ public class SolrIndexEngine {
 		retFields.add(TAGS);
 		retFields.add(SCORE);
 		retFields.add(VIEW_COUNT);
+		retFields.add(DESCRIPTION);
 		retFields.add(IMAGE);
 		queryBuilder.setReturnFields(retFields);
 
