@@ -476,9 +476,10 @@ public class Constants {
 	
 	//SOLR specific
 	public static final String SOLR_RELOAD = "SOLR_RELOAD";
+	public static final String SOLR_EXPORT = "SOLR_EXPORT";
 	public static final String SOLR_URL = "SOLR_BASE_URL";
 	public static final String SOLR_SYSTEM_VAR_KEY = "solr.solr.home";
-	public static final String SOLR_HOME_DIR = "solr";
+	public static final String SOLR_HOME_DIR = "Solr";
 	
 	public static final String VALUE = "VALUE";
 	public static final String NAME = "NAME";
