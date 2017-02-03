@@ -77,7 +77,6 @@ public class QuestionAdministrator {
 			String dataMaker,
 			boolean isDbQuery,
 			Map<String, String> dataTableAlign,
-//			boolean multiInsightQuery,
 			List<SEMOSSParam> parameters,
 			String uiOptions
 			) 
