@@ -1621,6 +1621,56 @@ public class SolrIndexEngine {
 			}
 		}
 	}
+	
+	/**
+	 * Deletes all insights related to a specified engine
+	 * @param engineName      engine name to delete
+	 * @throws SolrServerException 
+	 */
+	public SolrDocumentList getEngineInsights(String engineName) throws SolrServerException {
+		if (serverActive()) {
+			LOGGER.info("Getting insights for core_engine = " + engineName);
+			/*
+			 * General steps:
+			 * 1) Create a query builder object
+			 * 2) Add all the various inputs from the user 
+			 * 3) Execute the query on the insight core
+			 */
+			
+			// 1) create the query builder
+			SolrIndexEngineQueryBuilder queryBuilder = new SolrIndexEngineQueryBuilder();
+			
+			// set the solr field values to return
+			// these are the necessarily fields to view and run a returned insight
+			List<String> retFields = new ArrayList<String>();
+			retFields.add(ID);
+			retFields.add(CORE_ENGINE);
+			retFields.add(CORE_ENGINE_ID);
+			retFields.add(ENGINES);
+			retFields.add(LAYOUT);
+			retFields.add(STORAGE_NAME);
+			retFields.add(CREATED_ON);
+			retFields.add(MODIFIED_ON);
+			retFields.add(LAST_VIEWED_ON);
+			retFields.add(USER_ID);
+			retFields.add(TAGS);
+			retFields.add(VIEW_COUNT);
+			retFields.add(DESCRIPTION);
+			retFields.add(IMAGE);
+			queryBuilder.setReturnFields(retFields);
+
+			Map<String, List<String>> filterData = new HashMap<String, List<String>>();
+			List<String> engineList = new Vector<String>();
+			engineList.add(engineName);
+			filterData.put(CORE_ENGINE, engineList);
+			queryBuilder.setFilterOptions(filterData);
+			
+			QueryResponse res = getQueryResponse(queryBuilder.getSolrQuery(), SOLR_PATHS.SOLR_INSIGHTS_PATH);
+			return res.getResults();
+		}
+		return null;
+	}
+	
 
 	/**
 	 * Deletes all insights within Solr
