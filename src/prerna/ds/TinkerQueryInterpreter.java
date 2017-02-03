@@ -320,6 +320,7 @@ public class TinkerQueryInterpreter extends AbstractTinkerInterpreter implements
 		// iterate through nodes using propHash
 
 		Vector<String> propList = (Vector<String>) propHash.get(startName);
+		if(propList != null)
 		for (String property : propList) { // iterate through properties
 
 			// define the match traversal
