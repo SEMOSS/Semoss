@@ -363,6 +363,7 @@ public class SolrIndexEngineQueryBuilder {
 	public void setDefaultDisMaxWeighting() {
 		setDefType(DisMaxQParserPlugin.NAME);
 		addDisMax(SolrIndexEngine.INDEX_NAME, 3.5);
+		addDisMax(SolrIndexEngine.INDEXED_DESCRIPTION, 2.0);
 		addDisMax(SolrIndexEngine.TAGS, 1.5);
 		addDisMax(SolrIndexEngine.INDEXED_TAGS, 1.5);
 		addDisMax(SolrIndexEngine.ENGINES, 1.0);

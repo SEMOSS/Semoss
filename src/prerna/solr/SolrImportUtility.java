@@ -37,13 +37,10 @@ public final class SolrImportUtility {
 	private static final String VIEW_COUNT_FINDER = SolrIndexEngine.VIEW_COUNT + " : "; 
 	
 	private static final String TAGS_FINDER = SolrIndexEngine.TAGS + " : "; 
+	private static final String DESCRIPTION_FINDER = SolrIndexEngine.DESCRIPTION + " : "; 
 	private static final String LAYOUT_FINDER = SolrIndexEngine.LAYOUT + " : ";
-	private static final String USERID_FINDER = SolrIndexEngine.USER_ID + " : ";
-	private static final String ANNOTATION_FINDER = SolrIndexEngine.ANNOTATION + " : ";
-	private static final String COMMENT_FINDER = SolrIndexEngine.COMMENT + " : "; 
-	private static final String USER_SPECIFIED_RELATED_FINDER = SolrIndexEngine.USER_SPECIFIED_RELATED + " : ";
-	private static final String QUERY_PROJECTIONS_FINDER = SolrIndexEngine.QUERY_PROJECTIONS + " : "; 
 	private static final String IMAGE_FINDER = SolrIndexEngine.IMAGE + " : ";
+	private static final String USERID_FINDER = SolrIndexEngine.USER_ID + " : ";
 
 	// this is a utility class
 	// not meant to create an instance
@@ -143,7 +140,6 @@ public final class SolrImportUtility {
 			String createdOnDate = null;
 			String lastViewedDate = null;
 			
-			String layout = null;
 			String coreEngine = null;
 			String coreEngineId = null;
 			String engineName = null;
@@ -151,23 +147,14 @@ public final class SolrImportUtility {
 			String upVoteCount = null;
 			String viewCount = null;
 			
-			String userID = null;
-			String annotation = null;
 			String tag = null;
-			String comment = null;
-			String userSpecified = null;
-			String queryProjections = null;
-			String params = null;
-			String algorithms = null;
+			String description = null;
+			String layout = null;
 			String image = null;
+			String userID = null;
 
 			List<String> enginesList = new ArrayList<String>();
 			List<String> tagsList = new ArrayList<String>();
-			List<String> commentsList = new ArrayList<String>();
-			List<String> userSpecifiedList = new ArrayList<String>();
-			List<String> queryProjectionsList = new ArrayList<String>();
-			List<String> paramsList = new ArrayList<String>();
-			List<String> algorithmsList = new ArrayList<String>();
 			///////////////// THIS IS THE END OF ALL THE FIELDS TO COLLECT /////////////////
 
 			
@@ -203,8 +190,6 @@ public final class SolrImportUtility {
 					storageName = currentLine.substring(currentLine.indexOf(':') + 2).trim();
 				} else if (currentLine.startsWith(INDEX_NAME_FINDER)) {
 					indexName = currentLine.substring(currentLine.indexOf(':') + 2).trim();
-				} else if (currentLine.startsWith(ANNOTATION_FINDER)) {
-					annotation = currentLine.substring(currentLine.indexOf(':') + 2).trim();
 				} else if (currentLine.startsWith(UP_VOTES_FINDER)) {
 					upVoteCount = currentLine.substring(currentLine.indexOf(':') + 2).trim();
 				} else if (currentLine.startsWith(VIEW_COUNT_FINDER)) {
@@ -212,15 +197,8 @@ public final class SolrImportUtility {
 				} else if (currentLine.startsWith(TAGS_FINDER)) {
 					tag = currentLine.substring(currentLine.indexOf(':') + 2).trim();
 					tagsList.add(tag);
-				} else if (currentLine.startsWith(COMMENT_FINDER)) {
-					comment = currentLine.substring(currentLine.indexOf(':') + 2).trim();
-					commentsList.add(comment);
-				} else if (currentLine.startsWith(USER_SPECIFIED_RELATED_FINDER)) {
-					userSpecified = currentLine.substring(currentLine.indexOf(':') + 2).trim();
-					userSpecifiedList.add(userSpecified);
-				} else if (currentLine.startsWith(QUERY_PROJECTIONS_FINDER)) {
-					queryProjections = currentLine.substring(currentLine.indexOf(':') + 2).trim();
-					queryProjectionsList.add(queryProjections);
+				} else if (currentLine.startsWith(DESCRIPTION_FINDER)) {
+					description = currentLine.substring(currentLine.indexOf(':') + 2).trim();
 				} else if (currentLine.startsWith(IMAGE_FINDER)) {
 					image = currentLine.substring(currentLine.indexOf(':') + 2).trim();
 				}  
@@ -300,8 +278,8 @@ public final class SolrImportUtility {
 			if(lastViewedDate != null && !lastViewedDate.isEmpty()) {
 				insightQueryResults.put(SolrIndexEngine.LAST_VIEWED_ON, lastViewedDate);
 			}
-			if(annotation != null && !annotation.isEmpty()) {
-				insightQueryResults.put(SolrIndexEngine.ANNOTATION, annotation);
+			if(description != null && !description.isEmpty()) {
+				insightQueryResults.put(SolrIndexEngine.DESCRIPTION, description);
 			}
 			if(upVoteCount != null && !upVoteCount.isEmpty()) {
 				insightQueryResults.put(SolrIndexEngine.UP_VOTES, upVoteCount);
@@ -311,15 +289,6 @@ public final class SolrImportUtility {
 			}
 			if(tagsList != null && !tagsList.isEmpty()) {
 				insightQueryResults.put(SolrIndexEngine.TAGS, tagsList);
-			}
-			if(commentsList != null && !commentsList.isEmpty()) {
-				insightQueryResults.put(SolrIndexEngine.COMMENT, commentsList);
-			}
-			if(userSpecifiedList != null && !userSpecifiedList.isEmpty()) {
-				insightQueryResults.put(SolrIndexEngine.USER_SPECIFIED_RELATED, userSpecifiedList);
-			}
-			if(queryProjectionsList != null && !queryProjectionsList.isEmpty()) {
-				insightQueryResults.put(SolrIndexEngine.QUERY_PROJECTIONS, queryProjectionsList);
 			}
 			if(image != null && !image.isEmpty()) {
 				insightQueryResults.put(SolrIndexEngine.IMAGE, image);
