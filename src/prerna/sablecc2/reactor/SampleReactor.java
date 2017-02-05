@@ -139,8 +139,6 @@ public class SampleReactor extends AbstractReactor {
 		// first is all the inputs
 		getType();
 		Enumeration <String> keys = store.nounRow.keys();
-		
-		
 		String reactorOutput = reactorName;
 		
 		while(keys.hasMoreElements())
@@ -148,7 +146,8 @@ public class SampleReactor extends AbstractReactor {
 			String singleKey = keys.nextElement();
 			GenRowStruct struct = store.nounRow.get(singleKey);
 			Vector <String> inputs = struct.getAllColumns();
-			Vector <Object> filters = struct.getColumnsOfType(GenRowStruct.COLUMN_TYPE.FILTER);
+			// merge the filters and joins as well
+			Vector <Object> filters = struct.getColumnsOfType(GenRowStruct.COLUMN_TYPE.FILTER); 
 			Vector <Object> joins = struct.getColumnsOfType(GenRowStruct.COLUMN_TYPE.JOIN);
 			
 			// need a better way to do it
@@ -164,6 +163,8 @@ public class SampleReactor extends AbstractReactor {
 					planner.addProperty(signature, "FILTERS", filters);
 				if(joins != null && joins.size() > 0)
 					planner.addProperty(signature, "JOINS", joins);
+				// in this case also add the self
+				planner.addProperty(signature, "REACTOR", this);
 			}
 			else
 			{
@@ -190,16 +191,10 @@ public class SampleReactor extends AbstractReactor {
 					planner.addProperty(signature, "FILTERS", filters);
 				if(joins != null && joins.size() > 0)
 					planner.addProperty(signature, "JOINS", joins);
-			}
-			
-			// also need to take care of filters here
-			// as well as joins
-			// the more I think.. there is no abstraction it is just a spout
-			// GOD  !!
+			}			
 			// may be we should keep query struct at reactor level
 			// may be not
 		}
-		
 		// give it a variable name
 		if(asName == null)
 			asName = new String[]{reactorOutput};

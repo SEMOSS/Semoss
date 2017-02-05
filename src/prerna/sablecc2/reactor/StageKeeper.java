@@ -1,6 +1,7 @@
 package prerna.sablecc2.reactor;
 
 import java.util.Hashtable;
+import java.util.Iterator;
 import java.util.Vector;
 
 public class StageKeeper {
@@ -44,6 +45,31 @@ public class StageKeeper {
 		}
 		// reset it
 		stageSequence = newSequence;
+	}
+	
+	public Iterator processStages()
+	{
+		// I need to process every stage
+		// until I get to the last one
+		// at which point I should just return the iterator
+		// as in the lambda
+		System.out.println("Total Stages.. " + stageSequence.size());
+		Stage lastStage = stageSequence.lastElement();
+		stageSequence.remove(lastStage);
+		Hashtable <String, Object> stageStore = null;
+		for(int stageIndex = 0;stageIndex < stageSequence.size();stageIndex++)
+		{
+			Stage thisStage = stageSequence.elementAt(stageIndex);
+			if(stageStore != null)
+				thisStage.addStore(stageStore);
+			thisStage.preProcessStage();
+			thisStage.processStage();
+			stageStore = thisStage.postProcessStage();
+		}
+		if(stageStore != null)
+			lastStage.addStore(stageStore);
+		lastStage.preProcessStage();
+		return lastStage.runner;		
 	}
 	
 	public void printCode()

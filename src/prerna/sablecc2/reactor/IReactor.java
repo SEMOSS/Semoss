@@ -1,5 +1,6 @@
 package prerna.sablecc2.reactor;
 
+import java.util.Iterator;
 import java.util.Vector;
 
 import prerna.engine.api.IHeadersDataRow;
@@ -105,6 +106,11 @@ public interface IReactor {
 	// execute method
 	public IHeadersDataRow execute(IHeadersDataRow row);
 	
+	// map call implement if your type is map
+	public IHeadersDataRow map(IHeadersDataRow row);
+	
+	// reduce call implement if the type is reduce
+	public Object reduce(Iterator iterator);
 	
 	/**
 	 * elements <- Generic Row <- Generic Noun <- Reactor

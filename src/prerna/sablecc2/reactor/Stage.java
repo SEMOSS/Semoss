@@ -19,9 +19,11 @@ public class Stage extends Hashtable <String, Hashtable> {
 	public static final String OUTPUTS = "OUTPUTS";
 	public static final String DEPENDS = "DEPENDS";
 	public static final String CODE = "CODE";
+	public static final String INPUT_TYPE = "INPUT_TYPE";
 	
 	StringBuffer queryStructString = new StringBuffer("public void makeQuery() \n{ \n qs = new QueryStruct(); "
-			+ "\n String tableName = this.frame.getTableName();"
+			+ "\n String tableName = \"TBD\";\n"
+			+ "if(this.frame != null)\n tableName = this.frame.getTableName();"
 			+ "\n");
 	int stageNum = 0;
 	// Vector of all the operations for purposes of sequence
@@ -55,6 +57,7 @@ public class Stage extends Hashtable <String, Hashtable> {
 	public void synchronizeInput(String operationName)
 	{
 		Hashtable codeHash = getOperation(operationName);
+		Hashtable <String, String> inputTypes = (Hashtable <String, String>)codeHash.get(Stage.INPUT_TYPE);
 		String inputString = "{";
 		Vector <String> inputs = (Vector<String>)codeHash.get("INPUT_ORDER");
 		Vector <String> asInputs = (Vector<String>)codeHash.get("ALIAS");
@@ -65,7 +68,12 @@ public class Stage extends Hashtable <String, Hashtable> {
 				inputString = inputString + "\"" + inputs.elementAt(inputIndex) + "\"";
 			else
 				inputString = inputString + ", \"" + inputs.elementAt(inputIndex) + "\"";
-			addStageInput(inputs.elementAt(inputIndex), asInputs.elementAt(inputIndex));
+			
+			// need to do a quick check here to say
+			// is this a query on input types before adding it
+			// if it is not a query.. there is no point trying to query it
+			if(inputTypes.containsKey(inputs.elementAt(inputIndex)) && inputTypes.get(inputs.elementAt(inputIndex)).equalsIgnoreCase("QUERY"))
+				addStageInput(inputs.elementAt(inputIndex), asInputs.elementAt(inputIndex));
 		}
 		
 		// take care of filters here
@@ -104,10 +112,17 @@ public class Stage extends Hashtable <String, Hashtable> {
 			stageStore.put("FRAME", codeHash.get("FRAME"));
 		
 		// TODO: need to do the property.. we will do this later
-		
-		
-		
-		
+		// not checking for namespace collision
+		if(codeHash.containsKey("STORE"))
+		{
+			Hashtable <String, Object> propStore = (Hashtable <String, Object>)codeHash.get("STORE");
+			Enumeration <String> keys = propStore.keys();
+			while(keys.hasMoreElements())
+			{
+				String key = keys.nextElement();
+				stageStore.put(key, propStore.get(key));
+			}
+		}
 		/*
 		// need to add the derived inputs here as well
 		inputs = (Vector<String>)codeHash.get(this.DERIVED_INPUTS);
@@ -299,14 +314,14 @@ public class Stage extends Hashtable <String, Hashtable> {
 		// finish the query block
 		// this makes the query
 		queryStructString.append("\n");
-		queryStructString.append("thisIterator = frame.query(this.qs);\n}\n");
+		queryStructString.append("if(frame != null) \n thisIterator = frame.query(this.qs);\n else \n\t System.out.println(\"Frame is null\");\n}\n");
 		
 		
 		// this creates all the inputs
 		StringBuffer declareBlock = new StringBuffer("public void addInputs() \n{\n");
 
 		// this is the main function for executing the code
-		StringBuffer executeBlock = new StringBuffer("public void executeCode(IHeadersDataRow curRow) \n{\n IReactor thisReactor = null;");
+		StringBuffer executeBlock = new StringBuffer("public IHeadersDataRow executeCode(IHeadersDataRow curRow) \n{\n IReactor thisReactor = null;");
 
 		StringBuffer queryBlock = new StringBuffer("public void iterateAll() \n{\n");
 		queryBlock = queryBlock.append("while(thisIterator.hasNext()) \n{");
@@ -377,14 +392,21 @@ public class Stage extends Hashtable <String, Hashtable> {
 				if(codeHash.containsKey("REACTOR"))
 				{
 					executeBlock.append("thisReactor = (IReactor)store.get(" + codeHash.get("SIGNATURE") + ");\n");
-					executeBlock.append("curRow = thisReactor.execute(curRow);");
+					if(codeHash.get("OP_TYPE") == IReactor.TYPE.MAP)
+					{
+						executeBlock.append("curRow = thisReactor.execute(curRow);");
+					}
+					else // this is a reduce
+					{
+						// need to do reduce here
+						executeBlock.append("curRow = thisReactor.reduce(thisIterator);");
+					}
 				}
-				
-				
 				retString = retString.append("\n //---------" + thisOperation + "---------------");				
 			}
 			retString = retString.append("\n\n");
 		}
+		executeBlock.append("return curRow;");
 		executeBlock.append("}");
 		thisClass.addMethod(executeBlock +"");
 		declareBlock.append("}");
@@ -436,10 +458,22 @@ public class Stage extends Hashtable <String, Hashtable> {
 		
 	}
 	
-	public void postProcessStage()
+	public Hashtable<String, Object> postProcessStage()
 	{
 		// need to get the data back so we can reset it
+		return stageStore;
 	}
+	
+	public void addStore(Hashtable <String, Object> newStore)
+	{
+		Enumeration <String> keys = newStore.keys();
+		while(keys.hasMoreElements())
+		{
+			String key = keys.nextElement();
+			this.stageStore.put(key, newStore.get(key));
+		}
+	}
+
 		
 	public Vector<String> getOperationsInStage()
 	{
