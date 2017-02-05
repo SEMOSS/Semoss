@@ -98,12 +98,35 @@ public class PKSLPlanner {
 		for(int outputIndex = 0;outputIndex < outputs.size();outputIndex++)
 		{
 			Vertex outpVertex = upsertVertex(NOUN, outputs.elementAt(outputIndex));
+			outpVertex.property("VAR_TYPE", "QUERY"); // by default it is query
 			String edgeID = opName + "_" + outputs.elementAt(outputIndex);
 			Edge retEdge = opVertex.addEdge(edgeID, outpVertex, "ID", edgeID, "COUNT", 1, "INEDGE", opVertex.property("ID"), "TYPE", "OUTPUT");
 		}
 	}
 	
+	// specify what type is the output is going to be sitting in store or is it sitting in query
+	// should I also specify as names here ?
+	public void addOutputs(String opName, Vector <String> outputs, Vector <String> outputTypes, IReactor.TYPE opType)
+	{
+		// find the vertex for each of the input
+		// wonder if this should be a full fledged block of java ?
+		Vertex opVertex = upsertVertex(OPERATION, opName);
+		for(int outputIndex = 0;outputIndex < outputs.size();outputIndex++)
+		{
+			Vertex outpVertex = upsertVertex(NOUN, outputs.elementAt(outputIndex));
+			outpVertex.property("VAR_TYPE", outputTypes.get(outputIndex)); // by default it is query
+			String edgeID = opName + "_" + outputs.elementAt(outputIndex);
+			Edge retEdge = opVertex.addEdge(edgeID, outpVertex, "ID", edgeID, "COUNT", 1, "INEDGE", opVertex.property("ID"), "TYPE", "OUTPUT");
+		}
+	}
+
+	
 	// adds a java operation string as input
+	// this should be more of outputs and not inputs
+	// face palm
+	// in this case the as Name should be used as the main name
+	// I see seems like I have accomodated for multiple as names
+	// no not really it is just as here
 	public void addInputs(String opName, CodeBlock codeBlock, Vector <String> inputs, Vector <String> asInputs, IReactor.TYPE opType)
 	{
 		// should this be string ?
@@ -187,6 +210,7 @@ public class PKSLPlanner {
 		
 		Vector <Object> inputs = new Vector<Object>();
 		Vertex workingVertex = findVertex(OPERATION, output);
+		StageKeeper allStages = new StageKeeper();
 		if(workingVertex != null)
 		{
 			Stack <Hashtable<String, Object>> codeStack = new Stack<Hashtable<String, Object>>();
@@ -204,11 +228,15 @@ public class PKSLPlanner {
 			//Stack <Stage> newStack = new Stack<Stage>();
 			//code = loadVertex2(newStack, verticesToProcess);
 			
-			
-			code = loadVertex3(new StageKeeper(), verticesToProcess);
+			allStages = loadVertex3(allStages, verticesToProcess);
 			// execute the code and return the iterator
-		}		
-		return null;
+		}	
+		
+		// run all the stages
+		// need to do a couple of things
+		// get the stage
+		// if there are no more stages, then return the iterator here
+		return allStages.processStages();
 	}
 	
 	private String loadVertex2(Stack <Stage> codeStack, Vector <Vertex> verticesToProcess)
@@ -377,7 +405,7 @@ public class PKSLPlanner {
 	}
 
 
-	private String loadVertex3(StageKeeper keeper, Vector <Vertex> verticesToProcess)
+	private StageKeeper loadVertex3(StageKeeper keeper, Vector <Vertex> verticesToProcess)
 	{
 		
 		// I need to break this into stages i.e. the codeStack
@@ -396,10 +424,8 @@ public class PKSLPlanner {
 		keeper.addStage(operationName, thisStage);
 		
 		Hashtable opHash = thisStage.addOperation(operationName);
-		// add inputs to these and in the end synchronize
-		// this might get the as so something to be aware of for now
-		Iterator <Vertex> inputs = thisVertex.vertices(Direction.IN);
 
+		Hashtable <String, String> inputTypes = new Hashtable<String, String>();
 		Vector <String> opInputs = (Vector<String>)opHash.get(Stage.INPUTS);
 		Vector <String> deInputs = (Vector<String>)opHash.get(Stage.DERIVED_INPUTS);
 		Vector <String> depends = (Vector<String>)opHash.get(Stage.DEPENDS);
@@ -419,7 +445,7 @@ public class PKSLPlanner {
 		
 		opHash.put("INPUT_ORDER", thisVertex.property("INPUT_ORDER").value());
 		opHash.put("ALIAS", thisVertex.property("ALIAS").value());
-
+		opHash.put("OP_TYPE", thisVertex.property("OP_TYPE").value());
 		// add reactor to the stage should 1 be present
 		if(thisVertex.property("REACTOR").isPresent())
 			thisStage.stageStore.put("REACTOR", thisVertex.property("REACTOR").value());
@@ -452,6 +478,9 @@ public class PKSLPlanner {
 			//curCode = curCode + "\n" + code; // building from the bottom
 			opHash.put(Stage.CODE, code);
 		}
+		// add inputs to these and in the end synchronize
+		// this might get the as so something to be aware of for now
+		Iterator <Vertex> inputs = thisVertex.vertices(Direction.IN);
 
 		// find if this is a reduce operation
 		while(inputs.hasNext())
@@ -467,6 +496,9 @@ public class PKSLPlanner {
 			String nounName = thisNoun.property(TINKER_NAME).value() + "";
 			
 			System.out.println("Adding noun.. " + nounName);
+			
+			if(thisNoun.property("VAR_TYPE").isPresent())
+				inputTypes.put(nounName, thisNoun.property("VAR_TYPE").value() + "");
 			
 			// add if this column is not there already
 			// I should do this at a later point because I dont know when it will be a reduce..
@@ -516,6 +548,7 @@ public class PKSLPlanner {
 		// so I could be retrieving [a,b,c,d,e] and this routine may only require
 		// [a,d,e] so I need to seggregate before passing it on
 		// this is all sit on the input Cols
+		opHash.put(Stage.INPUT_TYPE, inputTypes);
 		opHash.put(Stage.INPUTS, opInputs);
 		opHash.put(Stage.DERIVED_INPUTS, deInputs);
 		//opHash.put(Stage.CODE, curCode);	
@@ -564,7 +597,7 @@ public class PKSLPlanner {
 		
 		System.out.println("Final CODE..\n\n\n\n");
 		//System.out.println(curCode);	
-		return "";
+		return keeper;
 	}
 
 	
