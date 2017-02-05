@@ -9,7 +9,7 @@ import prerna.algorithm.api.ITableDataFrame;
 import prerna.ds.QueryStruct;
 import prerna.engine.api.IHeadersDataRow;
 
-public class Lambda {
+public class Lambda implements Iterator{
 	
 	// this is the map class - yeah well no shit
 	// eventually we can make it extend the whole spark stuff
@@ -47,9 +47,10 @@ public class Lambda {
 		// this will be overridden
 	}
 
-	public void executeCode(IHeadersDataRow row)
+	public IHeadersDataRow executeCode(IHeadersDataRow row)
 	{
 		// this will be overridden
+		return null;
 	}
 
 	public void setVar(String variableName, Object value)
@@ -84,11 +85,27 @@ public class Lambda {
 		// call the map with every headerrow
 		// this iterator needs to be chhanged to something different
 		// need something to get the headers so I know the cardinality eventually
+		if(thisIterator == null)
+		{
+			System.out.println("NOthing to process");
+			return;
+		}
 		while(thisIterator.hasNext())
 		{
 			IHeadersDataRow row = (IHeadersDataRow)thisIterator.next();
 			executeCode(row);
 		}
+	}
+	
+	public boolean hasNext()
+	{
+		return thisIterator.hasNext();
+	}
+	
+	public IHeadersDataRow next()
+	{
+		IHeadersDataRow row = (IHeadersDataRow)thisIterator.next();
+		return executeCode(row);
 	}
 	
 	// for now I am assuming the curRow is a hashtable
