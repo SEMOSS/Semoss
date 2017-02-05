@@ -2,6 +2,7 @@ package prerna.sablecc2.reactor;
 
 import java.util.Arrays;
 import java.util.Hashtable;
+import java.util.Iterator;
 import java.util.Vector;
 
 import prerna.engine.api.IHeadersDataRow;
@@ -164,5 +165,16 @@ public abstract class AbstractReactor implements IReactor {
 		System.out.println("Printing NOUN Store so far.. " + store);
 		return null;
 	}
-
+	
+	// call for map
+	public IHeadersDataRow map(IHeadersDataRow row)
+	{
+		return null;
+	}
+	
+	// call for reeduce
+	public Object reduce(Iterator it)
+	{
+		return null;
+	}
 }
