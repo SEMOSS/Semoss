@@ -1,21 +1,12 @@
 package prerna.sablecc;
 
 import java.io.File;
-import java.io.FileOutputStream;
-import java.io.OutputStream;
-import java.sql.Connection;
 import java.util.Arrays;
 import java.util.Enumeration;
 import java.util.Hashtable;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.Vector;
 
 import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.GraphTraversal;
-import org.apache.tinkerpop.gremlin.structure.Graph;
 import org.apache.tinkerpop.gremlin.structure.Vertex;
-import org.apache.tinkerpop.gremlin.structure.io.IoCore;
 import org.rosuda.JRI.Rengine;
 import org.rosuda.REngine.REXP;
 import org.rosuda.REngine.REXPDouble;
@@ -29,322 +20,33 @@ import org.rosuda.REngine.RList;
 import org.rosuda.REngine.Rserve.RConnection;
 import org.rosuda.REngine.Rserve.RserveException;
 
-import prerna.algorithm.api.IMetaData;
 import prerna.algorithm.api.ITableDataFrame;
-import prerna.ds.DataFrameHelper;
-import prerna.ds.QueryStruct;
 import prerna.ds.TinkerFrame;
-import prerna.ds.TinkerMetaHelper;
-import prerna.ds.h2.H2Frame;
-import prerna.ds.sqlserver.SqlServerFrame;
-import prerna.ds.util.FileIterator;
-import prerna.ds.util.FileIterator.FILE_DATA_TYPE;
-import prerna.engine.api.IEngine;
 import prerna.engine.impl.r.RSingleton;
-import prerna.poi.main.HeadersException;
-import prerna.util.ArrayUtilityMethods;
-import prerna.util.Console;
-import prerna.util.Constants;
-import prerna.util.DIHelper;
 import prerna.util.Utility;
 
-public abstract class BaseJavaReactor extends AbstractReactor{
+public class BaseJavaReactor extends AbstractRJavaReactor{
 
-	ITableDataFrame dataframe = null;
-	PKQLRunner pkql = new PKQLRunner();
-	boolean frameChanged = false;
-	SecurityManager curManager = null;
-	SecurityManager reactorManager = null;
-	public static final String R_CONN = "R_CONN";
-	public static final String R_PORT = "R_PORT";
-	public RConnection rcon = null;
-	String wd = null;
-	String fileName = null;
-	
-	public Console System = new Console();
-	
-	
-	public BaseJavaReactor()
-	{
-		// empty constructor creates a frame
-		dataframe = new H2Frame();
+	public BaseJavaReactor() {
+		super();
 	}
 	
-	public void setCurSecurityManager(SecurityManager curManager)
-	{
-		this.curManager = curManager;
+	public BaseJavaReactor(ITableDataFrame frame) {
+		super(frame);
 	}
 	
-	public void setReactorManager(SecurityManager reactorManager)
-	{
-		this.reactorManager = reactorManager;
-	}
-	
-	
-	public Connection getConnection()
-	{
-		return ((H2Frame)dataframe).getBuilder().getConnection();
-	}
-	
-	public void setConsole()
-	{
-		this.System = new Console();
-	}
-
-	public BaseJavaReactor(ITableDataFrame frame)
-	{
-		// empty constructor creates a frame
-		dataframe = frame;
-	}
-	
-	// set a variable
-	// use this variable if it is needed on the next call
-	public void storeVariable(String varName, Object value)
-	{
-		pkql.setVariableValue(varName, value);
-		
-	}
-	
-	// set a variable
-	// use this variable if it is needed on the next call
-	public void removeVariable(String varName)
-	{
-		pkql.removeVariable(varName);
-		
-	}
-
-	
-	// get the variable back that was set
-	public Object retrieveVariable(String varName)
-	{
-		return pkql.getVariableValue(varName);
-	}
-	
-	// refresh the front end
-	// use this call to indicate that you have manipulated the frame or have worked in terms of creating a newer frame
-	public void refresh()
-	{
-		frameChanged = true;
-		dataframe.updateDataId();
-	}
-
-	public void setPKQLRunner(PKQLRunner pkql)
-	{
-		this.pkql = pkql;
-	}
-	// couple of things I need here
-	// access to the engines
-	public IEngine getEngine(String engineName)
-	{
-		return null;
-	}
-	
-	// sets the data frame
-	public void setDataFrame(ITableDataFrame dataFrame)
-	{
-		this.dataframe = dataFrame;
-	}
-	
-	public void runPKQL(String pkqlString)
-	{
-		// this will run PKQL
-		System.out.println("Running pkql.. " + pkqlString);
-		pkql.runPKQL(pkqlString, dataframe);
-		
-		myStore.put("RESPONSE", System.out.output);
-	}
-		
-	public void preProcess()
-	{
-		
-	}
-	
-	
-	public void postProcess()
-	{
-		
-	}
-
-	public void filterNode(String columnHeader, String [] instances)
-	{
-		List <Object> values = new Vector();
-		for(int instanceIndex = 0;instanceIndex < instances.length;values.add(instances[instanceIndex]), instanceIndex++);
-		dataframe.filter(columnHeader, values);
-	}
-
-	public void filterNode(String columnHeader, String value)
-	{
-		List <Object> values = new Vector();
-		values.add(value);
-		dataframe.filter(columnHeader, values);
-	}
-
-	public void filterNode(String columnHeader, List <Object> instances)
-	{
-		dataframe.filter(columnHeader, instances);		
-	}
-
-	public void runGremlin()
-	{
-		
-	}
-	
+	/**
+	 * Starts the connection to R
+	 */
 	@Override
-	public String[] getParams() {
-		// TODO Auto-generated method stub
-		return null;
-	}
-
-	@Override
-	public void set(String key, Object value) {
-		// TODO Auto-generated method stub
-		
-	}
-
-	@Override
-	public void addReplacer(String pattern, Object value) {
-		// TODO Auto-generated method stub
-		
-	}
-
-	@Override
-	public String[] getValues2Sync(String childName) {
-		// TODO Auto-generated method stub
-		return null;
-	}
-
-	@Override
-	public void removeReplacer(String pattern) {
-		// TODO Auto-generated method stub
-		
-	}
-
-	@Override
-	public Object getValue(String key) {
-		// TODO Auto-generated method stub
-		// return the key for now
-		return myStore.get(key);
-	}
-
-	@Override
-	public void put(String key, Object value) {
-		// TODO Auto-generated method stub
-		myStore.put(key, value);
-		
-	}
-
-	public void degree(String type, String data)
-	{
-		java.lang.System.setSecurityManager(curManager);
-		if(dataframe instanceof TinkerFrame)
-		{
-			Object degree = ((TinkerFrame)dataframe).degree(type, data);
-			String output = "Degrees for  " + data + ":" + degree;
-			System.out.println(output);
-		}
-		java.lang.System.setSecurityManager(reactorManager);
-	}
-	
-	public void removeNode(String type) {
-		java.lang.System.setSecurityManager(curManager);
-		if(dataframe instanceof TinkerFrame)
-		{
-			((TinkerFrame)dataframe).removeColumn(type);
-			String output = "Removed nodes for " + type;
-			System.out.println(output);
-			dataframe.updateDataId();
-		}
-		java.lang.System.setSecurityManager(reactorManager);
-	}
-	
-	public void removeNode(String type, String data) {
-		java.lang.System.setSecurityManager(curManager);
-		if(dataframe instanceof TinkerFrame)
-		{
-			List<Object> removeList = new Vector<Object>();
-			removeList.add(data);
-			((TinkerFrame)dataframe).remove(type, removeList);
-			String output = "Removed nodes for  " + data + " with values " + removeList;
-			System.out.println(output);
-			dataframe.updateDataId();
-			removeNodeFromR(type, removeList);
-		}
-		java.lang.System.setSecurityManager(reactorManager);
-	}
-	
-	public void removeNodeFromR(String type, List nodeList)
-	{
-		RConnection rcon = (RConnection)retrieveVariable(R_CONN);
-		// make sure current connection exists
-		if(rcon != null) {
-			String graphName = (String)retrieveVariable("GRAPH_NAME");
-			for(int nodeIndex = 0;nodeIndex < nodeList.size();nodeIndex++)
-			{
-				String name = type + ":" + nodeList.get(nodeIndex);
-				try{
-					java.lang.System.out.println("Deleting.. " + name);
-					rcon.eval(graphName + " <- delete_vertices(" + graphName + ", V(" + graphName + ")[vertex_attr(" + graphName + ", \"" + TinkerFrame.TINKER_ID + "\") == \"" + name + "\"])");				
-				}catch(Exception ex)
-				{
-					ex.printStackTrace();
-				}
-			}
-		}
-	}
-	
-	public void eigen(String type, String data)
-	{
-		java.lang.System.setSecurityManager(curManager);
-		if(dataframe instanceof TinkerFrame)
-		{
-			Object degree = ((TinkerFrame)dataframe).eigen(type, data);
-			String output = "Eigen for  " + data + ":" +degree;
-			System.out.println(output);
-		}
-		java.lang.System.setSecurityManager(reactorManager);
-	}
-	
-	public void isOrphan(String type, String data)
-	{
-		java.lang.System.setSecurityManager(curManager);
-		if(dataframe instanceof TinkerFrame)
-		{
-			boolean orphan = ((TinkerFrame)dataframe).isOrphan(type, data);
-			String output = data + "  Orphan? " + orphan;
-			System.out.println(output);
-		}		
-		java.lang.System.setSecurityManager(reactorManager);
-	}
-	
-	private String getBaseFolder()
-	{
-		String baseFolder = null;
-		try {
-			baseFolder = DIHelper.getInstance().getProperty("BaseFolder");
-		} catch (Exception ignored) {
-			// TODO Auto-generated catch block
-			
-		}
-		if(baseFolder == null)
-			baseFolder = "C:/users/pkapaleeswaran/workspacej3/SemossWeb";
-		
-		return baseFolder;
-
-	}
-	
-	public void reconnectR(int port)
-	{
-		RSingleton.getConnection(port);
-	}
-	
-	public Object startR()
-	{
-		RConnection retCon = (RConnection)retrieveVariable(R_CONN);
+	protected Object startR() {
+		// we store the connection in the PKQL Runner
+		// retrieve it if it is already defined within the insight
+		RConnection retCon = (RConnection) retrieveVariable(R_CONN);
 		java.lang.System.out.println("Connection right now is set to.. " + retCon);
-		if(retCon == null) // <-- Trying to see if java works right here.. setting it to null and checking it!!
+		if(retCon == null) {
 			try {
 				RConnection masterCon = RSingleton.getConnection();
-	
 				String port = Utility.findOpenPort();
 				
 				java.lang.System.out.println("Starting it on port.. " + port);
@@ -357,313 +59,121 @@ public abstract class BaseJavaReactor extends AbstractReactor{
 				retCon.eval("library(data.table);");
 				// reshape2
 				retCon.eval("library(reshape2);");
-				// rjdbbc
+				// rjdbc
 				retCon.eval("library(RJDBC);");
 
-				// not sure if I need dplyr too I will get to it
 				storeVariable(R_CONN, retCon);
 				storeVariable(R_PORT, port);
 			} catch (Exception e) {
-				// TODO Auto-generated catch block
+				System.out.println("ERROR ::: Could not find connection.\nPlease make sure RServe is running and the following libraries are installed:\n"
+						+ "1)Rserve\n"
+						+ "2)splitstackshape\n"
+						+ "3)data.table\n"
+						+ "4)reshape2"
+						+ "5)RJDBC*\n\n"
+						+ "*Please note RJDBC might require JAVA_HOME environment path to be defined on your system.");
 				e.printStackTrace();
 			}
-		rcon = retCon;
+		}
 		return retCon;
 	}
 	
-	
-	public String writeGraph(String directory)
-	{
-		String absoluteFileName = null;
-		if(dataframe instanceof TinkerFrame)
-		{
-	    	final Graph graph = ((TinkerFrame)dataframe).g;
-	    	absoluteFileName = "output" + java.lang.System.currentTimeMillis() + ".xml";
-	    	
-	    	String fileName = directory + "/" + absoluteFileName; 
-	    	try (final OutputStream os = new FileOutputStream(fileName)) {
-	    	    graph.io(IoCore.graphml()).writer().normalize(true).create().writeGraph(os, graph);
-	    	}catch(Exception ex)
-	    	{
-	    		ex.printStackTrace();
-	    	}
-		}
-		return absoluteFileName;
+	/**
+	 * Reconnect the main R server port
+	 * @param port
+	 */
+	public void reconnectR(int port) {
+		RSingleton.getConnection(port);
 	}
 	
-	private void synchronizeGraphToR(String graphName, String wd)
+	/**
+	 * Execute a rScript
+	 */
+	public Object eval(String script)
 	{
-		java.io.File file = new File(wd);
+		RConnection rcon = (RConnection)startR();
 		try {
+			return rcon.eval(script);
+		} catch (RserveException e) {
+			e.printStackTrace();
+		}
+		return null;
+	}
+	
+	// remove the node on R
+	// get the number of clustered components
+	// perform a layout
+	// color a graph based on a formula
+	public void key()
+	{
+		String graphName = (String)retrieveVariable("GRAPH_NAME");
+		String names = "";
+		RConnection con = (RConnection)startR();
+		try {
+			// get the articulation points
+			int [] vertices = con.eval("articulation.points(" + graphName + ")").asIntegers();
+			// now for each vertex get the name
+			Hashtable <String, String> dataHash = new Hashtable<String, String>();
+			for(int vertIndex = 0;vertIndex < vertices.length;  vertIndex++)
+			{
+				String output = con.eval("vertex_attr(" + graphName + ", \"" + TinkerFrame.TINKER_ID + "\", " + vertices[vertIndex] + ")").asString();
+				String [] typeData = output.split(":");
+				String typeOutput = "";
+				if(dataHash.containsKey(typeData[0]))
+					typeOutput = dataHash.get(typeData[0]);
+				typeOutput = typeOutput + "  " + typeData[1];
+				dataHash.put(typeData[0], typeOutput);
+			}
 			
-			// create this directory
-			file.mkdir();
-			fileName = writeGraph(wd);
+			Enumeration <String> keys = dataHash.keys();
+			while(keys.hasMoreElements())
+			{
+				String thisKey = keys.nextElement();
+				names = names + thisKey + " : " + dataHash.get(thisKey) + "\n";
+			}
+		} catch (RserveException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (REXPMismatchException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		System.out.println(" Key Nodes \n " + names);
+	}
+	
+	public void colorClusters(String clusterName)
+	{
+		String graphName = (String)retrieveVariable("GRAPH_NAME");
+
+		RConnection rcon = (RConnection)startR();
+		// the color is saved as color
+		try
+		{
+			int [] memberships = rcon.eval(clusterName + "$membership").asIntegers();
+			String [] IDs = rcon.eval("vertex_attr(" + graphName + ", \"" + TinkerFrame.TINKER_ID + "\")").asStrings();
 			
-			java.lang.System.out.println("Trying to get Connection.. ");
-			RConnection rconn = (RConnection)startR();
-			java.lang.System.out.println("Successful.. ");
-			
-			wd = wd.replace("\\", "/");
-			
-			// set the working directory
-			rconn.eval("setwd(\"" + wd + "\")");
-			
-			// load the library
-			rconn.eval("library(\"igraph\");");
-			
-			String loadGraphScript = graphName + "<- read_graph(\"" + fileName + "\", \"graphml\");";
-			java.lang.System.out.println(" Load !! " + loadGraphScript);
-			// load the graph
-			rconn.eval(loadGraphScript);
-			
-			System.out.println("successfully synchronized, your graph is now available as " + graphName);
-			
-			//rconn.close();
-			storeVariable("GRAPH_NAME", graphName);	
-		}catch(Exception ex)
+			for(int memIndex = 0;memIndex < memberships.length;memIndex++)
+			{
+				String thisID = IDs[memIndex];
+
+				java.lang.System.out.println("ID...  " + thisID);
+				Vertex retVertex = null;
+				
+				GraphTraversal<Vertex, Vertex>  gt = ((TinkerFrame)dataframe).g.traversal().V().has(TinkerFrame.TINKER_ID, thisID);
+				if(gt.hasNext()) {
+					retVertex = gt.next();
+				}
+				if(retVertex != null)
+				{
+					retVertex.property("CLUSTER", memberships[memIndex]);
+					java.lang.System.out.println("Set the cluster to " + memberships[memIndex]);
+				}
+			}
+		}catch (Exception ex)
 		{
 			ex.printStackTrace();
 		}
-		java.lang.System.setSecurityManager(reactorManager);
-		
 	}
-	
-	
-	public void synchronizeToR(String graphName) // I will get the format later.. for now.. writing graphml
-	{
-		java.lang.System.setSecurityManager(curManager);
-		String baseFolder = getBaseFolder();
-		String randomDir = Utility.getRandomString(22);
-		wd = baseFolder + "/" + randomDir;		
-		if(dataframe instanceof TinkerFrame)
-			synchronizeGraphToR(graphName, wd);
-		else if(dataframe instanceof H2Frame)
-			synchronizeGridToR(graphName);
-	}
-	
-	private void initiateDriver(String url, String username)
-	{
-		String driver = "org.h2.Driver";
-		String jarLocation = "";
-		if(retrieveVariable("H2DRIVER_PATH") == null)
-		{
-			String workingDir = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER).replace("\\", "/");;
-			String library = "RJDBC";
-			String jar = "h2-1.4.185.jar"; // TODO: create an enum of available drivers and the necessary jar for each
-			jarLocation = workingDir + "/RDFGraphLib/" + jar;
-		// line of R that loads database driver and jar
-		}
-		else
-			jarLocation = (String)retrieveVariable("H2DRIVER_PATH");
-		java.lang.System.out.println("Loading driver.. " + jarLocation);
-		String script = "drv <- JDBC('" + driver + "', '" + jarLocation  + "', identifier.quote='`');" 
-			+ "conn <- dbConnect(drv, '" + url + "', '" + username + "', '')"; // line of R script that connects to H2Frame
-		runR(script);
-	}
-		
-	public void setH2Driver(String directory)
-	{
-		storeVariable("H2DRIVER_PATH", directory);
-	}
-	
-	public void synchronizeGridToR(String frameName)
-	{
-		synchronizeGridToR(frameName, null);
-	}
-	
-	private void synchronizeGridToR(String frameName, String cols)
-	{
-		H2Frame gridFrame = (H2Frame)dataframe;
-		String tableName = gridFrame.getBuilder().getTableName();
-		String url = gridFrame.getBuilder().connectFrame();
-		url = url.replace("\\", "/");
-		initiateDriver(url, "sa");
-		
-		String selectors = "*";
-		if(cols != null && cols.length() >= 0)
-		{
-			selectors = "";
-			String [] colSelectors = cols.split(";");
-			for(int selectIndex = 0;selectIndex < colSelectors.length;selectIndex++)
-			{
-				selectors = selectors + colSelectors[selectIndex];
-				if(selectIndex + 1 < colSelectors.length)
-					selectors = selectors + ", ";
-			}
-			
-		}
-		// make a selector based on col csv now
-		//runR(frameName + " <-as.data.table(unclass(dbReadTable(conn,'" + tableName + "')));", false);
-		runR(frameName + " <-as.data.table(unclass(dbGetQuery(conn,'SELECT " + selectors + " FROM " + tableName + "')));", false);
-		// should be dbGetQuery(conn, "Select colNames.. ")
-		runR("setDT(" + frameName + ")", false);
-
-		storeVariable("GRID_NAME", frameName);	
-		
-		System.out.println("Completed synchronization as " + frameName);
-	}
-	
-	public void synchronizeGridFromR()
-	{
-		String frameName = (String)retrieveVariable("GRID_NAME");
-		synchronizeGridFromR(frameName, true);
-	}
-	
-	public void synchronizeGridFromR(String frameName, boolean overrideExistingTable) {
-		// get the necessary information from the r frame
-		// to be able to add the data correclty
-		
-		// get the names and types
-		String[] colNames = getColNames(frameName);
-		// since R has less restrictions than we do regarding header names
-		// we will clean the header names to match what the cleaning would be when we load
-		// in a file
-		// note: the clean routine will only do something if the metadata has changed
-		// otherwise, the headers would already be good to go
-		List<String> cleanColNames = new Vector<String>();
-		HeadersException headerException = HeadersException.getInstance();
-		for(int i = 0; i < colNames.length; i++) {
-			String cleanHeader = headerException.recursivelyFixHeaders(colNames[i], cleanColNames);
-			cleanColNames.add(cleanHeader);
-		}
-		colNames = cleanColNames.toArray(new String[]{});
-		
-		String[] colTypes = getColTypes(frameName);
-		
-		// need to create a data type map and a query struct
-		QueryStruct qs = new QueryStruct();
-		// TODO: REALLY NEED TO CONSOLIDATE THE STRING VS. METADATA TYPE DATAMAPS
-		Map<String, IMetaData.DATA_TYPES> dataTypeMap = new Hashtable<String, IMetaData.DATA_TYPES>();
-		Map<String, String> dataTypeMapStr = new Hashtable<String, String>();
-		for(int i = 0; i < colNames.length; i++) {
-			dataTypeMapStr.put(colNames[i], colTypes[i]);
-			dataTypeMap.put(colNames[i], Utility.convertStringToDataType(colTypes[i]));
-			qs.addSelector(colNames[i], null);
-		}
-		
-		/*
-		 * logic to determine where we are adding this data...
-		 * 1) First, make sure the existing frame is a grid
-		 * 		-> If it is not a grid, we already know we need to make a new h2frame
-		 * 2) Second, if it is a grid, check the meta data and see if it has changed
-		 * 		-> if it has changed, we need to make a new h2frame
-		 * 3) Regardless of #2 -> user can decide what they want to create a new frame
-		 * 			even if the meta data hasn't changed
-		 */
-		
-		boolean frameIsH2 = false;
-		String schemaName = null;
-		String tableName = null;
-		boolean determineNewFrameNeeded = false;
-		
-		// if we dont even have a h2frame currently, make a new one
-		if( !(dataframe instanceof H2Frame) ) {
-			determineNewFrameNeeded = true;
-		} else {
-			frameIsH2 = true;
-			schemaName = ((H2Frame) dataframe).getSchema();
-			tableName = ((H2Frame) dataframe).getTableName();
-			
-			// if we do have an h2frame, look at headers to figure 
-			// out if the metadata has changed
-			
-			String[] currHeaders = dataframe.getColumnHeaders();
-			
-			if(colNames.length != currHeaders.length) {
-				determineNewFrameNeeded = true;
-			} else {
-				for(String currHeader : currHeaders) {
-					if(!ArrayUtilityMethods.arrayContainsValueIgnoreCase(colNames, currHeader)) {
-						determineNewFrameNeeded = true;
-					}
-				}
-			}
-		}
-		
-		H2Frame frameToUse = null;
-		if(!overrideExistingTable || determineNewFrameNeeded) {
-			frameToUse = new H2Frame();
-			
-			// set the correct schema in the new frame
-			// drop the existing table
-			if(frameIsH2) {
-				frameToUse.setUserId(schemaName);
-				((H2Frame) dataframe).dropTable();
-			}
-			
-			Map<String, Set<String>> edgeHash = TinkerMetaHelper.createPrimKeyEdgeHash(colNames);
-			frameToUse.mergeEdgeHash(edgeHash, dataTypeMapStr);
-			
-			// override frame references & table name reference
-			this.put("G", frameToUse);
-			dataframe = frameToUse;
-			tableName = frameToUse.getTableName();
-			
-		} else if(overrideExistingTable && frameIsH2){
-			frameToUse = ((H2Frame) dataframe);
-
-			// can only enter here we are overriding the existing H2Frame
-			// drop any index if altering the existing frame
-			Set<String> columnIndices = frameToUse.getColumnsWithIndexes();
-			if(columnIndices != null) {
-				for(String colName : columnIndices) {
-					frameToUse.removeColumnIndex(colName);
-				}
-			}
-			
-			// drop all existing data
-			frameToUse.deleteAllRows();
-		}
-		
-		// we will make a temp file
-		String tempFileLocation = DIHelper.getInstance().getProperty(Constants.INSIGHT_CACHE_DIR) + "\\" + DIHelper.getInstance().getProperty(Constants.CSV_INSIGHT_CACHE_FOLDER);
-		tempFileLocation += "\\" + Utility.getRandomString(10) + ".csv";
-		tempFileLocation = tempFileLocation.replace("\\", "/");
-		eval("fwrite(" + frameName + ", file='" + tempFileLocation + "')");
-
-		// iterate through file and insert values
-		FileIterator dataIterator = FileIterator.createInstance(FILE_DATA_TYPE.META_DATA_ENUM, tempFileLocation, ',', qs, dataTypeMap);
-		frameToUse.addRowsViaIterator(dataIterator, dataTypeMap);
-		dataIterator.deleteFile();
-		
-		System.out.println("Table Synchronized as " + tableName);
-		frameToUse.updateDataId();
-	}
-
-	public String[] getColNames(String frameName, boolean print)
-	{
-		Rengine engine = (Rengine)startR();
-		String [] colNames = null;
-		try {
-				String script = "matrix(colnames(" + frameName + "));";
-				colNames = engine.eval(script).asStringArray();
-				if(print)
-				{
-					System.out.println("Columns..");
-					for(int colIndex = 0;colIndex < colNames.length;colIndex++)
-						System.out.println(colNames[colIndex] + "\n");
-				}
-		} catch (Exception e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		} 
-		return colNames;
-	}
-	
-	public void filterValues(String frameName, String columnName, String values)
-	{
-		
-	}
-	
-	public void synchronizeCSVToR(String fileName, String frameName)
-	{
-		//runR(frameName + " <-as.data.table(unclass(dbReadTable(conn,'" + tableName + "')));");		
-		String javaFileName = fileName.replace("\\", "/");
-		runR(frameName + " <- fread(\"" + javaFileName + "\")", false);
-		System.out.println("Completed synchronization of CSV " + fileName);
-	}
-	
 	
 	private void getResultAsString(Object output, StringBuilder builder)
 	{
@@ -807,18 +317,6 @@ public abstract class BaseJavaReactor extends AbstractReactor{
 		runR(script, true);
 	}
 	
-	public Object eval(String script)
-	{
-		RConnection rcon = (RConnection)startR();
-		try {
-			return rcon.eval(script);
-		} catch (RserveException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		};
-		return null;
-	}
-	
 	public void runR(String script, boolean result)
 	{
 		RConnection rcon = (RConnection)startR();
@@ -849,34 +347,13 @@ public abstract class BaseJavaReactor extends AbstractReactor{
 				throw new IllegalArgumentException(errorMessage);
 			}
 		}
-//		try {
-//			Object output = rcon.eval(script);
-//			if(result)
-//			{
-//				java.lang.System.out.println("RCon data.. " + output);
-//				StringBuilder builder = new StringBuilder();
-//				getResultAsString(output, builder);
-//				System.out.println("Output : " + builder.toString());
-//			}
-//		} catch (RserveException e) {
-//			// TODO Auto-generated catch block
-//			e.printStackTrace();
-//			System.err.println("Errored.. ");
-//		}
-		// now is where the fun starts
 	}
 
-	public void clusterInfo()
-	{
-		String clusters = "clusters";
-		clusterInfo(clusters);
-	}
-	
 	// replace the column value for a particular column
 	public void replaceColumnValue(String frameName, String columnName, String curValue, String newValue)
 	{
 		// * dt[PY == "hello", PY := "D"] replaces a column conditionally based on the value
-		startR();
+		RConnection rcon = (RConnection) startR();
 		// need to get the type of this
 		try {
 			String condition = " ,";
@@ -906,7 +383,7 @@ public abstract class BaseJavaReactor extends AbstractReactor{
 	public void splitColumn(String frameName, String columnName, String separator, boolean dropColumn, boolean frameReplace)
 	{
 		//  cSplit(dt, "PREFIX", "_")
-		startR();
+		RConnection rcon = (RConnection) startR();
 		// need to get the type of this
 		try {
 			String tempName = Utility.getRandomString(8);
@@ -962,39 +439,61 @@ public abstract class BaseJavaReactor extends AbstractReactor{
 		// this will be done through h2 piece ?
 		
 	}
-	
-	
-	public String[] getColNames(String frameName)
-	{
-		startR();
+
+
+	public String[] getColNames(String frameName) {
+		RConnection rcon = (RConnection) startR();
 		String [] colNames = null;
 		try {
-				String script = "matrix(colnames(" + frameName + "));";
-				colNames = rcon.eval(script).asStrings();
-				
+			String script = "matrix(colnames(" + frameName + "));";
+			colNames = rcon.eval(script).asStrings();
 		} catch (RserveException e) {
-			// TODO Auto-generated catch block
 			e.printStackTrace();
 		} catch (REXPMismatchException e) {
-			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
 		return colNames;
 	}
-	
 
-	public String[] getColTypes(String frameName)
-	{
-		String [] colTypes = null;
+	public String[] getColNames(String frameName, boolean print) {
+		Rengine engine = (Rengine)startR();
+		String [] colNames = null;
 		try {
-				String script = "matrix(sapply(" + frameName + ", class));";
-				colTypes = rcon.eval(script).asStrings();
-				
-		} catch (RserveException e) {
+			String script = "matrix(colnames(" + frameName + "));";
+			colNames = engine.eval(script).asStringArray();
+			if(print)
+			{
+				System.out.println("Columns..");
+				for(int colIndex = 0;colIndex < colNames.length; colIndex++) {
+					System.out.println(colNames[colIndex] + "\n");
+				}
+			}
+		} catch (Exception e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
+		} 
+		return colNames;
+	}
+
+	public String[] getColTypes(String frameName) {
+		return getColTypes(frameName, true);
+	}
+	
+	public String[] getColTypes(String frameName, boolean print) {
+		RConnection rcon = (RConnection) startR();
+		String [] colTypes = null;
+		try {
+			String script = "matrix(sapply(" + frameName + ", class));";
+			colTypes = rcon.eval(script).asStrings();
+			if(print) {
+				System.out.println("Columns..");
+				for(int colIndex = 0; colIndex < colTypes.length; colIndex++) {
+					System.out.println(colTypes[colIndex] + "\n");
+				}
+			}
+		} catch (RserveException e) {
+			e.printStackTrace();
 		} catch (REXPMismatchException e) {
-			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
 		return colTypes;
@@ -1006,7 +505,7 @@ public abstract class BaseJavaReactor extends AbstractReactor{
 	// 4 blank columns etc. 
 	public void getColumnTypeCount(String frameName)
 	{
-		startR();
+		RConnection rcon = (RConnection) startR();
 		Object [][] retOutput = null; // name and the number of items
 		
 		try {
@@ -1062,7 +561,7 @@ public abstract class BaseJavaReactor extends AbstractReactor{
 		// reconstruct the column names
 		//paste(df1$a_1, df1$a_2, sep="$$")
 		try {
-			startR();
+			RConnection rcon = (RConnection) startR();
 			String [] columns = cols.split(";");
 			String concatString = "paste(";
 			for(int colIndex = 0;colIndex < columns.length;colIndex++)
@@ -1099,7 +598,7 @@ public abstract class BaseJavaReactor extends AbstractReactor{
 		 * 
 		 */
 		// start the R first
-		startR();
+		RConnection rcon = (RConnection) startR();
 		Object [][] retOutput = null; // name and the number of items
 		
 		try {
@@ -1146,7 +645,7 @@ public abstract class BaseJavaReactor extends AbstractReactor{
 		//melt(dat, id.vars = "FactorB", measure.vars = c("Group1", "Group2"))
 		
 		String concatString = "";
-		startR();
+		RConnection rcon = (RConnection) startR();
 		String tempName = Utility.getRandomString(8);
 		
 		if(cols != null && cols.length() > 0)
@@ -1189,14 +688,14 @@ public abstract class BaseJavaReactor extends AbstractReactor{
 		//dcast(molten, formula = subject~ variable)
 		// I need columns to keep and columns to pivot
 		
-		startR();
+		RConnection rcon = (RConnection) startR();
 		String newFrame = Utility.getRandomString(8);
 		
 		String replaceString = "";
 		if(replace)
 			replaceString = frameName + " <- " + newFrame;
 		
-		String keepString = ""; 
+		String keepString = ""; 	
 		if(cols != null && cols.length() > 0)
 		{
 			String [] columnsToKeep = cols.split(";");
@@ -1220,180 +719,12 @@ public abstract class BaseJavaReactor extends AbstractReactor{
 			ex.printStackTrace();
 		}
 	}
-	
-	public void sampleR(String frameName)
-	{
-		//> DT[,i := .I][sample(i,3)] <-- number of samples here is 3
-	}
-	
-	public void clusterInfo(String clusterRoutine)
-	{
-		String graphName = (String)retrieveVariable("GRAPH_NAME");
-		
-		RConnection con = (RConnection)startR();
-//		String clusters = "Component Information  \n";
-		try
-		{
-			// set the clusters
-			storeVariable("CLUSTER_NAME", "clus");
-			con.eval("clus <- " + clusterRoutine + "(" + graphName +")");
-			
-//			StringBuilder builder = new StringBuilder();
-			
-			System.out.println("\n No. Of Components :");
-			runR("clus$no");
-//			Object output = con.eval("clus$no");
-//			getResultAsString(output, builder);
-//			clusters = clusters + " No. Of Components : " + builder.toString() + " \n";
 
-			//reset the output string
-//			builder.setLength(0);
-
-			System.out.println("\n Component Sizes :");
-			runR("clus$csize");
-
-//			clusters = clusters + " Component Sizes \n";
-//			output = con.eval("clus$csize");
-//			getResultAsString(output, builder);
-//			clusters = clusters + builder.toString();
-			
-//			System.out.println(clusters);
-			colorClusters();
-		}catch(Exception ex)
-		{
-			ex.printStackTrace();
-		}
-	}
-
-	
-	public void walkInfo()
-	{
-		String graphName = (String)retrieveVariable("GRAPH_NAME");
-		
-		RConnection con = (RConnection)startR();
-		String clusters = "Component Information  \n";
-		try
-		{
-			// set the clusters
-			storeVariable("CLUSTER_NAME", "clus");
-			con.eval("clus <- cluster_walktrap(" + graphName +", membership=TRUE)");
-			/*Object output = con.eval("clus$no");
-			clusters = clusters + " No. Of Components : " + getResultAsString(output) + " \n";
-			output = con.eval("clus$csize");
-			clusters = clusters + " Component Sizes \n";
-			clusters = clusters + getResultAsString(output);*/
-			clusters = clusters + "Completed Walktrap";
-			System.out.println(clusters);
-			colorClusters();
-		}catch(Exception ex)
-		{
-			ex.printStackTrace();
-		}
-	}
-
-	
-	// remove the node on R
-	// get the number of clustered components
-	// perform a layout
-	// color a graph based on a formula
-	public void key()
-	{
-		String graphName = (String)retrieveVariable("GRAPH_NAME");
-		String names = "";
-		RConnection con = (RConnection)startR();
-		try {
-			// get the articulation points
-			int [] vertices = con.eval("articulation.points(" + graphName + ")").asIntegers();
-			// now for each vertex get the name
-			Hashtable <String, String> dataHash = new Hashtable<String, String>();
-			for(int vertIndex = 0;vertIndex < vertices.length;  vertIndex++)
-			{
-				String output = con.eval("vertex_attr(" + graphName + ", \"" + TinkerFrame.TINKER_ID + "\", " + vertices[vertIndex] + ")").asString();
-				String [] typeData = output.split(":");
-				String typeOutput = "";
-				if(dataHash.containsKey(typeData[0]))
-					typeOutput = dataHash.get(typeData[0]);
-				typeOutput = typeOutput + "  " + typeData[1];
-				dataHash.put(typeData[0], typeOutput);
-			}
-			
-			Enumeration <String> keys = dataHash.keys();
-			while(keys.hasMoreElements())
-			{
-				String thisKey = keys.nextElement();
-				names = names + thisKey + " : " + dataHash.get(thisKey) + "\n";
-			}
-		} catch (RserveException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		} catch (REXPMismatchException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
-		System.out.println(" Key Nodes \n " + names);
-	}
-	
-	public void colorClusters(String clusterName)
-	{
-		String graphName = (String)retrieveVariable("GRAPH_NAME");
-
-		RConnection con = (RConnection)startR();
-		// the color is saved as color
-		try
-		{
-			int [] memberships = rcon.eval(clusterName + "$membership").asIntegers();
-			String [] IDs = rcon.eval("vertex_attr(" + graphName + ", \"" + TinkerFrame.TINKER_ID + "\")").asStrings();
-			
-			for(int memIndex = 0;memIndex < memberships.length;memIndex++)
-			{
-				String thisID = IDs[memIndex];
-
-				java.lang.System.out.println("ID...  " + thisID);
-				Vertex retVertex = null;
-				
-				GraphTraversal<Vertex, Vertex>  gt = ((TinkerFrame)dataframe).g.traversal().V().has(TinkerFrame.TINKER_ID, thisID);
-				if(gt.hasNext()) {
-					retVertex = gt.next();
-				}
-				if(retVertex != null)
-				{
-					retVertex.property("CLUSTER", memberships[memIndex]);
-					java.lang.System.out.println("Set the cluster to " + memberships[memIndex]);
-				}
-			}
-		}catch (Exception ex)
-		{
-			ex.printStackTrace();
-		}
-	}
-	
-	public void colorClusters()
-	{
-		String clusterName = (String)retrieveVariable("CLUSTER_NAME");
-		colorClusters(clusterName);
-	}
-	
-	public void doLayout(String layout)
-	{
-		String graphName = (String)retrieveVariable("GRAPH_NAME");
-
-		RConnection con = (RConnection)startR();
-		// the color is saved as color
-		try
-		{
-			con.eval("xy_layout <- " + layout + "(" + graphName +")");
-			synchronizeXY("xy_layout");
-		}catch (Exception ex)
-		{
-			ex.printStackTrace();
-		}
-	}
-	
 	public void synchronizeXY(String rVariable)
 	{
 		String graphName = (String)retrieveVariable("GRAPH_NAME");
 
-		RConnection con = (RConnection)startR();
+		RConnection rcon = (RConnection)startR();
 		try
 		{
 			double [][] memberships = rcon.eval("xy_layout").asDoubleMatrix();
@@ -1430,75 +761,34 @@ public abstract class BaseJavaReactor extends AbstractReactor{
 			ex.printStackTrace();
 		}
 	}
-	
-		
-	public void synchronizeFromR(String graphName)
-	{
-		// get the attributes
-		// and then synchronize all the different properties
-		// vertex_attr_names
-		String names = "";
-		RConnection con = (RConnection)startR();
 
-		// get all the attributes first
-		try {
-			String [] strings = con.eval("vertex_attr_names(" + graphName + ")").asStrings();
-			// the question is do I get everything here and set tinker
-			// or for each get it and so I dont look up tinker many times ?!
-			
-			// now I need to get each of this string and then synchronize
-		} catch (RserveException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		} catch (REXPMismatchException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
-		
-		
-	}
-	
-	// need to figure this out
-	public void synchronizeFromR()
-	{
-		String graphName = (String)retrieveVariable("GRAPH_NAME");
-		synchronizeFromR(graphName);
-	}
-	
 	public void endR()
 	{
 		java.lang.System.setSecurityManager(curManager);
 		RConnection retCon = (RConnection)retrieveVariable(R_CONN);
 		try {
-			if(retCon != null)
+			if(retCon != null) {
 				retCon.shutdown();
-//			System.out.println("R Shutdown!!");
-//			java.lang.System.setSecurityManager(reactorManager);
-/*		String port = (String)retrieveVariable("R_PORT");
-		System.out.println("Trying to connect to port.. " + port);
-		runR("library(RSclient);");
-		runR("library(Rserve);");
-		runR("rsc <- RSconnect(host=\"127.0.0.1\", port = "+ port + ");");
-		runR("RSshutdown(rsc);");
-		runR("RSclose();");
-*/		
-		// clean up other things
-		removeVariable(R_CONN);
-		removeVariable(R_PORT);
-		System.out.println("R Shutdown!!");
-		java.lang.System.setSecurityManager(reactorManager);
+			}
+			// clean up other things
+			removeVariable(R_CONN);
+			removeVariable(R_PORT);
+			System.out.println("R Shutdown!!");
+			java.lang.System.setSecurityManager(reactorManager);
 		} catch (Exception e) {
-	// TODO Auto-generated catch block
-	e.printStackTrace();
+			e.printStackTrace();
+		}
 	}
+
+	public void initR(int port)
+	{
+		RSingleton.getConnection(port);
 	}
 	
-	public void cleanup()
-	{
+	@Override
+	protected void cleanUpR() {
 		// introducing this method to clean up everything 
 		// remove all the stored variables
-		
-		
 		// clean up R connection
 		endR();
 		// cleanup the directory
@@ -1509,306 +799,5 @@ public abstract class BaseJavaReactor extends AbstractReactor{
 		file.delete();
 		java.lang.System.setSecurityManager(reactorManager);
 	}
-	
-	public void initR(int port)
-	{
-		RSingleton.getConnection(port);
-	}
-	
-	public void generateNewGraph(String[] selectors, Map<String, String> edges) {
-		java.lang.System.setSecurityManager(curManager);
-		if(dataframe instanceof TinkerFrame)
-		{
-			TinkerFrame newDataFrame = DataFrameHelper.generateNewGraph((TinkerFrame) dataframe, selectors, edges);
-			myStore.put("G", newDataFrame);
-			System.out.println("Generated new graph data frame");
-		}		
-		java.lang.System.setSecurityManager(reactorManager);
-	}
-	
-	public void findSharedVertices(String type, String[] instances, int degree) {
-		java.lang.System.setSecurityManager(curManager);
-		if(dataframe instanceof TinkerFrame)
-		{	
-			TinkerFrame newDataFrame = DataFrameHelper.findSharedVertices((TinkerFrame) dataframe, type, instances, degree);
-			myStore.put("G", newDataFrame);
-			System.out.println("Filtered to keep only vertices which are shared between defined instances");
-		}		
-		java.lang.System.setSecurityManager(reactorManager);
-	}
-	
-	public void runClustering(int instanceIndex, int numClusters, String[] selectors) {
-		java.lang.System.setSecurityManager(curManager);
-		
-		java.util.Map<String, Object> params = new java.util.Hashtable<String, Object>();
-		params.put(prerna.algorithm.impl.ClusteringReactor.INSTANCE_INDEX.toUpperCase(), instanceIndex);
-		params.put(prerna.algorithm.impl.ClusteringReactor.NUM_CLUSTERS.toUpperCase(), numClusters);
-		
-		prerna.algorithm.impl.ClusteringReactor alg = new prerna.algorithm.impl.ClusteringReactor();
-		alg.put("G", this.dataframe);
-		alg.put(PKQLEnum.MAP_OBJ, params);
-		alg.put(PKQLEnum.COL_DEF, java.util.Arrays.asList(selectors));
-		alg.process();
-		
-		this.dataframe.updateDataId();
-		
-		java.lang.System.setSecurityManager(reactorManager);
-	}
-	
-	public void runClustering(String columnName, int numClusters, String[] selectors) {
-		java.lang.System.setSecurityManager(curManager);
-		
-		int instanceIndex = ArrayUtilityMethods.arrayContainsValueAtIndex(selectors, columnName);
-		
-		java.util.Map<String, Object> params = new java.util.Hashtable<String, Object>();
-		params.put(prerna.algorithm.impl.ClusteringReactor.INSTANCE_INDEX.toUpperCase(), instanceIndex);
-		params.put(prerna.algorithm.impl.ClusteringReactor.NUM_CLUSTERS.toUpperCase(), numClusters);
-		
-		prerna.algorithm.impl.ClusteringReactor alg = new prerna.algorithm.impl.ClusteringReactor();
-		alg.put("G", this.dataframe);
-		alg.put(PKQLEnum.MAP_OBJ, params);
-		alg.put(PKQLEnum.COL_DEF, java.util.Arrays.asList(selectors));
-		alg.process();
-		
-		this.dataframe.updateDataId();
-		
-		java.lang.System.setSecurityManager(reactorManager);
-	}
-	
-	public void runMultiClustering(int instanceIndex, int minNumClusters, int maxNumClusters, String[] selectors) {
-		java.lang.System.setSecurityManager(curManager);
-		
-		java.util.Map<String, Object> params = new java.util.Hashtable<String, Object>();
-		params.put(prerna.algorithm.impl.MultiClusteringReactor.INSTANCE_INDEX.toUpperCase(), instanceIndex);
-		params.put(prerna.algorithm.impl.MultiClusteringReactor.MIN_NUM_CLUSTERS.toUpperCase(), minNumClusters);
-		params.put(prerna.algorithm.impl.MultiClusteringReactor.MAX_NUM_CLUSTERS.toUpperCase(), maxNumClusters);
 
-		prerna.algorithm.impl.MultiClusteringReactor alg = new prerna.algorithm.impl.MultiClusteringReactor();
-		alg.put("G", this.dataframe);
-		alg.put(PKQLEnum.MAP_OBJ, params);
-		alg.put(PKQLEnum.COL_DEF, java.util.Arrays.asList(selectors));
-		alg.process();
-		
-		this.dataframe.updateDataId();
-		
-		java.lang.System.setSecurityManager(reactorManager);
-	}
-	
-	public void runMultiClustering(String columnName, int minNumClusters, int maxNumClusters, String[] selectors) {
-		java.lang.System.setSecurityManager(curManager);
-		
-		int instanceIndex = ArrayUtilityMethods.arrayContainsValueAtIndex(selectors, columnName);
-		
-		java.util.Map<String, Object> params = new java.util.Hashtable<String, Object>();
-		params.put(prerna.algorithm.impl.MultiClusteringReactor.INSTANCE_INDEX.toUpperCase(), instanceIndex);
-		params.put(prerna.algorithm.impl.MultiClusteringReactor.MIN_NUM_CLUSTERS.toUpperCase(), minNumClusters);
-		params.put(prerna.algorithm.impl.MultiClusteringReactor.MAX_NUM_CLUSTERS.toUpperCase(), maxNumClusters);
-
-		prerna.algorithm.impl.MultiClusteringReactor alg = new prerna.algorithm.impl.MultiClusteringReactor();
-		alg.put("G", this.dataframe);
-		alg.put(PKQLEnum.MAP_OBJ, params);
-		alg.put(PKQLEnum.COL_DEF, java.util.Arrays.asList(selectors));
-		alg.process();
-		
-		this.dataframe.updateDataId();
-		
-		java.lang.System.setSecurityManager(reactorManager);
-	}
-	
-	public void runLOF(int instanceIndex, int k, String[] selectors) {
-		java.lang.System.setSecurityManager(curManager);
-		
-		java.util.Map<String, Object> params = new java.util.Hashtable<String, Object>();
-		params.put(prerna.algorithm.impl.LOFReactor.INSTANCE_INDEX.toUpperCase(), instanceIndex);
-		params.put(prerna.algorithm.impl.LOFReactor.K_NEIGHBORS.toUpperCase(), k);
-		
-		prerna.algorithm.impl.LOFReactor alg = new prerna.algorithm.impl.LOFReactor();
-		alg.put("G", this.dataframe);
-		alg.put(PKQLEnum.MAP_OBJ, params);
-		alg.put(PKQLEnum.COL_DEF, java.util.Arrays.asList(selectors));
-		alg.process();
-		
-		this.dataframe.updateDataId();
-		
-		java.lang.System.setSecurityManager(reactorManager);
-	}
-	
-	public void runLOF(String columnName, int k, String[] selectors) {
-		java.lang.System.setSecurityManager(curManager);
-		
-		int instanceIndex = ArrayUtilityMethods.arrayContainsValueAtIndex(selectors, columnName);
-		
-		java.util.Map<String, Object> params = new java.util.Hashtable<String, Object>();
-		params.put(prerna.algorithm.impl.LOFReactor.INSTANCE_INDEX.toUpperCase(), instanceIndex);
-		params.put(prerna.algorithm.impl.LOFReactor.K_NEIGHBORS.toUpperCase(), k);
-		
-		prerna.algorithm.impl.LOFReactor alg = new prerna.algorithm.impl.LOFReactor();
-		alg.put("G", this.dataframe);
-		alg.put(PKQLEnum.MAP_OBJ, params);
-		alg.put(PKQLEnum.COL_DEF, java.util.Arrays.asList(selectors));
-		alg.process();
-		
-		this.dataframe.updateDataId();
-		
-		java.lang.System.setSecurityManager(reactorManager);
-	}
-	
-	public void runOutlier(int instanceIndex, int numSubsetSize, int numRums, String[] selectors) {
-		java.lang.System.setSecurityManager(curManager);
-		
-		java.util.Map<String, Object> params = new java.util.Hashtable<String, Object>();
-		params.put(prerna.algorithm.impl.OutlierReactor.INSTANCE_INDEX.toUpperCase(), instanceIndex);
-		params.put(prerna.algorithm.impl.OutlierReactor.NUM_SAMPLE_SIZE.toUpperCase(), numSubsetSize);
-		params.put(prerna.algorithm.impl.OutlierReactor.NUMBER_OF_RUNS.toUpperCase(), numRums);
-		
-		prerna.algorithm.impl.OutlierReactor alg = new prerna.algorithm.impl.OutlierReactor();
-		alg.put("G", this.dataframe);
-		alg.put(PKQLEnum.MAP_OBJ, params);
-		alg.put(PKQLEnum.COL_DEF, java.util.Arrays.asList(selectors));
-		alg.process();
-		
-		this.dataframe.updateDataId();
-		
-		java.lang.System.setSecurityManager(reactorManager);
-	}	
-	
-	public void runOutlier(String columnName, int numSubsetSize, int numRums, String[] selectors) {
-		java.lang.System.setSecurityManager(curManager);
-		
-		int instanceIndex = ArrayUtilityMethods.arrayContainsValueAtIndex(selectors, columnName);
-
-		java.util.Map<String, Object> params = new java.util.Hashtable<String, Object>();
-		params.put(prerna.algorithm.impl.OutlierReactor.INSTANCE_INDEX.toUpperCase(), instanceIndex);
-		params.put(prerna.algorithm.impl.OutlierReactor.NUM_SAMPLE_SIZE.toUpperCase(), numSubsetSize);
-		params.put(prerna.algorithm.impl.OutlierReactor.NUMBER_OF_RUNS.toUpperCase(), numRums);
-		
-		prerna.algorithm.impl.OutlierReactor alg = new prerna.algorithm.impl.OutlierReactor();
-		alg.put("G", this.dataframe);
-		alg.put(PKQLEnum.MAP_OBJ, params);
-		alg.put(PKQLEnum.COL_DEF, java.util.Arrays.asList(selectors));
-		alg.process();
-		
-		this.dataframe.updateDataId();
-		
-		java.lang.System.setSecurityManager(reactorManager);
-	}
-
-	public void runSimilarity(int instanceIndex, String[] selectors) {
-		java.lang.System.setSecurityManager(curManager);
-		
-		java.util.Map<String, Object> params = new java.util.Hashtable<String, Object>();
-		params.put(prerna.algorithm.impl.SimilarityReactor.INSTANCE_INDEX.toUpperCase(), instanceIndex);
-		
-		prerna.algorithm.impl.SimilarityReactor alg = new prerna.algorithm.impl.SimilarityReactor();
-		alg.put("G", this.dataframe);
-		alg.put(PKQLEnum.MAP_OBJ, params);
-		alg.put(PKQLEnum.COL_DEF, java.util.Arrays.asList(selectors));
-		alg.process();
-		
-		this.dataframe.updateDataId();
-		
-		java.lang.System.setSecurityManager(reactorManager);
-	}
-	
-	public void runSimilarity(String columnName, String[] selectors) {
-		java.lang.System.setSecurityManager(curManager);
-		
-		int instanceIndex = ArrayUtilityMethods.arrayContainsValueAtIndex(selectors, columnName);
-
-		java.util.Map<String, Object> params = new java.util.Hashtable<String, Object>();
-		params.put(prerna.algorithm.impl.SimilarityReactor.INSTANCE_INDEX.toUpperCase(), instanceIndex);
-		
-		prerna.algorithm.impl.SimilarityReactor alg = new prerna.algorithm.impl.SimilarityReactor();
-		alg.put("G", this.dataframe);
-		alg.put(PKQLEnum.MAP_OBJ, params);
-		alg.put(PKQLEnum.COL_DEF, java.util.Arrays.asList(selectors));
-		alg.process();
-		
-		this.dataframe.updateDataId();
-		
-		java.lang.System.setSecurityManager(reactorManager);
-	}
-	
-	public void installR(String packageName)
-	{
-		startR();
-		try {
-			rcon.eval("install.packages('" + packageName + "', repos='http://cran.us.r-project.org');");
-		} catch (RserveException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
-	}
-	
-	/**
-	 * Shifts a tinker node into a node property
-	 * @param conceptName
-	 * @param propertyName
-	 * @param traversal
-	 */
-	public void shiftToNodeProperty(String conceptName, String propertyName, Map<String, Set<String>> traversal) {
-		java.lang.System.setSecurityManager(curManager);
-		if(dataframe instanceof TinkerFrame)
-		{
-			DataFrameHelper.shiftToNodeProperty((TinkerFrame) dataframe, conceptName, propertyName, traversal);
-			dataframe.updateDataId();
-			System.out.println("Modified graph data frame");
-		}		
-		java.lang.System.setSecurityManager(reactorManager);
-	}
-	
-	public void shiftToNodeProperty(String conceptName, String propertyName, String traversal) {
-		java.lang.System.setSecurityManager(curManager);
-		if(dataframe instanceof TinkerFrame)
-		{
-			DataFrameHelper.shiftToNodeProperty((TinkerFrame) dataframe, conceptName, propertyName, traversal);
-			dataframe.updateDataId();
-			System.out.println("Modified graph data frame");
-		}		
-		java.lang.System.setSecurityManager(reactorManager);
-	}
-	
-	/**
-	 * Shifts a tinker node into an edge property
-	 * @param conceptName
-	 * @param propertyName
-	 * @param traversal
-	 */
-	public void shiftToEdgeProperty(String[] relationship, String propertyName, Map<String, Set<String>> traversal) {
-		java.lang.System.setSecurityManager(curManager);
-		if(dataframe instanceof TinkerFrame)
-		{
-			DataFrameHelper.shiftToEdgeProperty((TinkerFrame) dataframe, relationship, propertyName, traversal);
-			dataframe.updateDataId();
-			System.out.println("Modified graph data frame");
-		}		
-		java.lang.System.setSecurityManager(reactorManager);
-	}
-	
-	public void shiftToEdgeProperty(String relationship, String propertyName, String traversal) {
-		java.lang.System.setSecurityManager(curManager);
-		if(dataframe instanceof TinkerFrame)
-		{
-			DataFrameHelper.shiftToEdgeProperty((TinkerFrame) dataframe, relationship, propertyName, traversal);
-			dataframe.updateDataId();
-			System.out.println("Modified graph data frame");
-		}		
-		java.lang.System.setSecurityManager(reactorManager);
-	}
-	
-	public void setSqlServerFrame(String tableName) {
-		java.lang.System.setSecurityManager(curManager);
-		SqlServerFrame frame = new SqlServerFrame();
-		frame.connectToExistingTable(tableName);
-		
-		// ugh... why are there so many references to this thing!!!!!
-		this.dataframe = frame;
-		this.dataframe.updateDataId();
-		this.frameChanged = true;
-		myStore.put("G", frame);
-		
-		System.out.println("Successfully connected to table name = '" + tableName + "'");
-		java.lang.System.setSecurityManager(reactorManager);
-	}
-	
 }
