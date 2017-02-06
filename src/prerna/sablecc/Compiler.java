@@ -7,10 +7,12 @@ import java.io.StringBufferInputStream;
 import prerna.ds.h2.H2Frame;
 import prerna.engine.api.IEngine;
 import prerna.engine.impl.rdbms.RDBMSNativeEngine;
+import prerna.engine.impl.rdf.BigDataEngine;
 import prerna.sablecc.lexer.Lexer;
 import prerna.sablecc.node.Start;
 import prerna.sablecc.parser.Parser;
 import prerna.test.TestUtilityMethods;
+import prerna.util.Constants;
 import prerna.util.DIHelper;
 
 public class Compiler
@@ -27,13 +29,12 @@ public class Compiler
 		//	DIHelper.getInstance().loadCoreProp(propFile);
 
 		TestUtilityMethods.loadDIHelper();
-//		String engineProp = "C:\\workspace\\Semoss_Dev\\db\\LocalMasterDatabase.smss";
-//		IEngine coreEngine = new BigDataEngine();
-//		coreEngine.setEngineName(Constants.LOCAL_MASTER_DB_NAME);
-//		coreEngine.openDB(engineProp);
-//		//TODO: put in correct db name
-//		coreEngine.setEngineName(Constants.LOCAL_MASTER_DB_NAME);
-//		DIHelper.getInstance().setLocalProperty(Constants.LOCAL_MASTER_DB_NAME, coreEngine);
+		String localEngineProp = "C:\\workspace\\Semoss_Dev\\db\\LocalMasterDatabase.smss";
+		IEngine localEngine = new BigDataEngine();
+		localEngine.setEngineName(Constants.LOCAL_MASTER_DB_NAME);
+		localEngine.openDB(localEngineProp);
+		localEngine.setEngineName(Constants.LOCAL_MASTER_DB_NAME);
+		DIHelper.getInstance().setLocalProperty(Constants.LOCAL_MASTER_DB_NAME, localEngine);
 
 		String engineProp = "C:\\workspace\\Semoss_Dev\\db\\Movie_RDBMS.smss";
 		IEngine coreEngine = new RDBMSNativeEngine();
@@ -43,8 +44,6 @@ public class Compiler
 		
 		try
 		{
-
-
 			// Create a Parser instance.
 			Parser p =
 					new Parser(
@@ -120,8 +119,10 @@ public class Compiler
    													+ "rm:(c:colToRemove, c:anotherColToRemove);"*/
 													//+ "jc"
 //													+"database.concepts(Movie_RDBMS)"	
-													+ "data.import( api:Movie_RDBMS.query( <query>SELECT * FROM TITLE</query> ) );"
-													+ "col.filter ( c: TITLE != [null] ) ;")), 1024)));
+//													+ "data.import( api:Movie_RDBMS.query( <query>SELECT * FROM TITLE</query> ) );"
+//													+ "col.filter ( c: TITLE != [null] ) ;"
+													+ "data.import( api:Movie_RDBMS.query( <query>SELECT * FROM DIRECTOR</query> ), ([c:TITLE, inner.join, c:TITLE_FK]))"
+													+ ";" )), 1024)));
 			// new InputStreamReader(System.in), 1024)));
 
 			// Parse the input.

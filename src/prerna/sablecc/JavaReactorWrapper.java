@@ -29,16 +29,6 @@ public class JavaReactorWrapper extends AbstractReactor {
 		String [] thisReacts = {};
 		super.whatIReactTo = thisReacts;
 		super.whoAmI = PKQLEnum.JAVA_OP;
-
-		// setting pkqlMetaData
-//		String title = "Execute java code as a script";
-//		String pkqlCommand = "j:<code>java_code<code>;";
-//		String description = "Executes a piece of java code as a script";
-//		boolean showMenu = true; // need to understand this
-//		boolean pinned = true;
-//		super.setPKQLMetaData(title, pkqlCommand, description, showMenu, pinned);
-//		//super.setPKQLMetaDataInput(populatePKQLMetaDataInput());
-//		super.setPKQLMetaDataInput();
 	}
 	
 	@Override
@@ -115,7 +105,9 @@ public class JavaReactorWrapper extends AbstractReactor {
 					+ "put(\"ERROR\", ex);return null;"
 					+ "}";
 			String content = data;
-			content = content.replace("\n", "\\n").replace("\r", "\\r");
+			if(content.contains("runR")) {
+				content = content.replace("\n", "\\n").replace("\r", "\\r");
+			}
 			// write the response
 			String response = "put(\"RESPONSE\", System.out.output); put(\"STATUS\" , prerna.sablecc.PKQLRunner.STATUS.SUCCESS); return null;";
 			//cc.addMethod(CtNewMethod.make("public void setConsole() { System = new prerna.util.Console();}", cc));
@@ -133,7 +125,7 @@ public class JavaReactorWrapper extends AbstractReactor {
 //			}
 			retClass = cc.toClass();
 			// next step is calling it
-			BaseJavaReactor jR = (BaseJavaReactor)retClass.newInstance();
+			AbstractJavaReactor jR = (AbstractJavaReactor)retClass.newInstance();
 			curManager =  System.getSecurityManager();
 		    //jR.setConsole();
 		    // set the data frame first
@@ -150,6 +142,9 @@ public class JavaReactorWrapper extends AbstractReactor {
 			// reset the frame
 			if(jR.frameChanged) {
 				myStore.put("G", jR.dataframe);
+			}
+			if(jR.hasReturnData) {
+				myStore.put("returnData", jR.returnData);
 			}
 			System.out.println(jR.getValue("ERROR"));
 			daReactor = jR;
