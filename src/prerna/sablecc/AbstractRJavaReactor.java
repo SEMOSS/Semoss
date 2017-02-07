@@ -78,6 +78,8 @@ public abstract class AbstractRJavaReactor extends AbstractJavaReactor {
 
 	protected abstract Object[][] getColumnCount(String frameName, String colName, boolean outputString);
 
+	protected abstract Object[][] getDescriptiveStats(String frameName, String colName, boolean outputString);
+
 	////////////////////////////////////////////////////////////
 	////////////////////////////////////////////////////////////
 	//////////////////////// R Methods /////////////////////////
@@ -334,6 +336,19 @@ public abstract class AbstractRJavaReactor extends AbstractJavaReactor {
 	
 	protected Object[][] getColumnCount(String frameName, String colName) {
 		return getColumnCount(frameName, colName, true);
+	}
+	
+	/**
+	 * Get the column count of a given column
+	 * @param column
+	 */
+	protected Object[][] getDescriptiveStats(String colName) {
+		String frameName = (String)retrieveVariable("GRID_NAME");
+		return getDescriptiveStats(frameName, colName);
+	}
+	
+	protected Object[][] getDescriptiveStats(String frameName, String colName) {
+		return getDescriptiveStats(frameName, colName, true);
 	}
 	
 	////////////////////////////////////////////////////////////

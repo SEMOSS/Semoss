@@ -15,7 +15,10 @@ import org.rosuda.REngine.REXPDouble;
 import org.rosuda.REngine.REXPGenericVector;
 import org.rosuda.REngine.REXPInteger;
 import org.rosuda.REngine.REXPList;
+import org.rosuda.REngine.REXPMismatchException;
 import org.rosuda.REngine.REXPString;
+import org.rosuda.REngine.Rserve.RConnection;
+import org.rosuda.REngine.Rserve.RserveException;
 
 import prerna.algorithm.api.ITableDataFrame;
 import prerna.ds.TinkerFrame;
@@ -616,7 +619,6 @@ public class BaseJavaReactorJRI extends AbstractRJavaReactor {
 		Object [][] retOutput = null; // name and the number of items
 		
 		try {
-			
 			String script = "colData <-  " + frameName + "[, .N, by=\"" + column.toUpperCase() +"\"];";
 			System.out.println("Script is " + script);
 			engine.eval(script);
@@ -652,6 +654,63 @@ public class BaseJavaReactorJRI extends AbstractRJavaReactor {
 		} catch (Exception e) {
 			e.printStackTrace();
 		} 
+		return retOutput;
+	}
+	
+	public Object[][] getDescriptiveStats(String frameName, String column, boolean print)
+	{
+		// start the R first
+		Rengine rcon = (Rengine)startR();
+		Object [][] retOutput = new Object[8][2]; // name and the number of items
+		String frameExpr = frameName + "$" + column;
+		String script = "min(as.numeric(na.omit(" + frameExpr + ")))";
+		double min = rcon.eval(script).asDouble();
+		retOutput[0][0] = "Minimum";
+		retOutput[0][1] = min;
+
+		script = "quantile(" + frameExpr + ", prob = c(0.25, 0.75))";
+		double[] quartiles = rcon.eval(script).asDoubleArray();
+		retOutput[1][0] = "Q1";
+		retOutput[1][1] = quartiles[0];
+		retOutput[2][0] = "Q3";
+		retOutput[2][1] = quartiles[1];
+		
+		script = "max(as.numeric(na.omit(" + frameExpr + ")))";
+		double max = rcon.eval(script).asDouble();
+		retOutput[3][0] = "Maximum";
+		retOutput[3][1] = max;
+
+		script = "mean(as.numeric(na.omit(" + frameExpr + ")))";
+		double mean = rcon.eval(script).asDouble();
+		retOutput[4][0] = "Mean";
+		retOutput[4][1] = mean;
+
+		script = "median(as.numeric(na.omit(" + frameExpr + ")))";
+		double median = rcon.eval(script).asDouble();
+		retOutput[5][0] = "Median";
+		retOutput[5][1] = median;
+
+		script = "sum(as.numeric(na.omit(" + frameExpr + ")))";
+		double sum = rcon.eval(script).asDouble();
+		retOutput[6][0] = "Sum";
+		retOutput[6][1] = sum;
+
+		script = "sd(as.numeric(na.omit(" + frameExpr + ")))";
+		double sd = rcon.eval(script).asDouble();
+		retOutput[7][0] = "Standard Deviation";
+		retOutput[7][1] = sd;
+
+		if(print) {
+			StringBuilder builder = new StringBuilder();
+			builder.append("Summary Stats\n");
+			for(int outputIndex = 0;outputIndex < retOutput.length; outputIndex++) {
+				builder.append(retOutput[outputIndex][0] + "\t" + retOutput[outputIndex][1] + "\n");
+			}
+			System.out.println("Output : " + builder.toString());
+		} else {
+			this.hasReturnData = true;
+			this.returnData = retOutput;
+		}
 		return retOutput;
 	}
 	
