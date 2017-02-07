@@ -2,6 +2,7 @@ package prerna.sablecc2.reactor;
 
 import java.util.Vector;
 
+import prerna.sablecc2.om.Filter;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.Join;
 import prerna.sablecc2.om.NounStore;
@@ -32,7 +33,7 @@ public class FilterReactor extends SampleReactor {
 		String comparator = (String)getProp("COMPARATOR");
 		
 		GenRowStruct allNouns = store.getNoun(NounStore.all);
-		Join thisFilter = new Join(colName, comparator, allNouns);
+		Filter thisFilter = new Filter(colName, comparator, allNouns);
 		
 		GenRowStruct thisStruct = store.makeNoun("f");
 		thisStruct.addFilter(thisFilter);

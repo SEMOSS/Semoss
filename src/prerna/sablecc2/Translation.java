@@ -20,6 +20,7 @@ import prerna.sablecc2.node.AFilter;
 import prerna.sablecc2.node.AFrameop;
 import prerna.sablecc2.node.AFrameopColDef;
 import prerna.sablecc2.node.AFrameopScript;
+import prerna.sablecc2.node.AGeneric;
 import prerna.sablecc2.node.ALiteralColDef;
 import prerna.sablecc2.node.AOpScript;
 import prerna.sablecc2.node.AOperationFormula;
@@ -33,9 +34,13 @@ import prerna.sablecc2.node.ATermExpr;
 import prerna.sablecc2.reactor.AsReactor;
 import prerna.sablecc2.reactor.ExprReactor;
 import prerna.sablecc2.reactor.FilterReactor;
+import prerna.sablecc2.reactor.GenericReactor;
 import prerna.sablecc2.reactor.IReactor;
 import prerna.sablecc2.reactor.ImportDataReactor;
+import prerna.sablecc2.reactor.MergeDataReactor;
 import prerna.sablecc2.reactor.PKSLPlanner;
+import prerna.sablecc2.reactor.QueryReactor;
+import prerna.sablecc2.reactor.RelationReactor;
 import prerna.sablecc2.reactor.SampleReactor;
 import prerna.ui.components.playsheets.datamakers.IDataMaker;
 
@@ -46,7 +51,6 @@ public class Translation extends DepthFirstAdapter {
 	IReactor curReactor = null;
 	IReactor prevReactor = null;
 	
-	private int spacecount = 0;
 	
 	TypeOfOperation operationType = TypeOfOperation.COMPOSITION;
 	
@@ -91,37 +95,35 @@ public class Translation extends DepthFirstAdapter {
 	 * END CONSTRUCTORS
 	 ***************************/
 	
+	private void postProcess() {
+		//grab the frame here
+		IDataMaker frame = (IDataMaker)planner.getProperty("FRAME", "FRAME");
+		if(frame != null) {
+			runner.setDataFrame(frame);
+		}
+	}
 /********************** First is the main level operation, script chain or other script operations ******************/
 	
     public void inAScriptchain(AScriptchain node)
     {
-    	printData(node, "BEGIN");
-    	spacecount++;
     	System.out.println(">>>>>>");
         System.out.println("Called script chain");
         System.out.println("First operation is " + node.getOtherscript());
         if(node.getOtherscript() != null && node.getOtherscript().size() > 0)
         	operationType = TypeOfOperation.PIPELINE;
         
-        spacecount--;
-        printData(node, "END");
     }
     
     public void outAScriptchain(AScriptchain node)
     {
-    	printData(node, "BEGIN");
-    	spacecount++;
     	// this is really where the overall execution should happen
     	System.out.println("<<<<<<<" + node);
-    	planner.runMyPlan(lastOperation);
-    	spacecount--;printData(node, "END");
+//    	planner.runMyPlan(lastOperation);
+    	postProcess();
     }
     
     public void inAOtherscript(AOtherscript node)
     {
-    	printData(node, "BEGIN");
-    	spacecount++;
-    	spacecount--;printData(node, "END");
         System.out.println("Other script.. " + node);
     }
     
@@ -139,35 +141,27 @@ public class Translation extends DepthFirstAdapter {
     // not sure how to keep the output in some kind of no named variable
     public void inAFrameopScript(AFrameopScript node)
     {
-    	printData(node, "BEGIN"); spacecount++;
         System.out.println("In a script frameop");
         // once I am in here I am again in the realm of composition
         this.operationType = TypeOfOperation.COMPOSITION;
-        spacecount--;printData(node, "END");
     }
 
     public void outAFrameopScript(AFrameopScript node)
     {
-    	printData(node, "BEGIN"); spacecount++;
         System.out.println("Out a script frameop");
         this.operationType = TypeOfOperation.PIPELINE;
-        spacecount--;printData(node, "END");
     }
 
     public void inAOpScript(AOpScript node)
     {
-    	printData(node, "BEGIN"); spacecount++;
         System.out.println("In a operational formula script");
         this.operationType = TypeOfOperation.COMPOSITION;
-        spacecount--;printData(node, "END");
     }
 
     public void outAOpScript(AOpScript node)
     {
-    	printData(node, "BEGIN"); spacecount++;
         System.out.println("Out a operational formula script");
         this.operationType = TypeOfOperation.PIPELINE;
-        spacecount--;printData(node, "END");
     }
 
     // still need to accomodate for Java operation, assignment, r operation etc. 
@@ -179,7 +173,6 @@ public class Translation extends DepthFirstAdapter {
     // first of which is a frame operation
     public void inAFrameop(AFrameop node)
     {
-    	printData(node, "BEGIN"); spacecount++;
         System.out.println("Starting a frame operation");
         
         // create a sample reactor
@@ -188,12 +181,10 @@ public class Translation extends DepthFirstAdapter {
         String reactorId = node.getId().toString().trim();
         IReactor frameReactor = getReactor(reactorId, node.toString()); //get the reactor
         initReactor(frameReactor);
-        spacecount--;printData(node, "END");
      }
 
     public void outAFrameop(AFrameop node)
     {
-    	printData(node, "BEGIN"); spacecount++;
         // I realize I am not doing anything with the output.. this will come next
     	
         curReactor.Out();
@@ -201,39 +192,44 @@ public class Translation extends DepthFirstAdapter {
         	curReactor = curReactor.getParentReactor();
         
         this.lastOperation = node + "";
-        spacecount--;printData(node, "END");
         System.out.println("OUT of Frame OP");
     }
     // setting the as value on a frame
     public void inAAsop(AAsop node)
     {
-    	printData(node, "BEGIN"); spacecount++;
         IReactor opReactor = new AsReactor();
         System.out.println("In the AS Component of frame op");
         opReactor.setPKSL("as", node.getAsOp() + "");
         initReactor(opReactor);
-        spacecount--;printData(node, "END");
     }
 
     public void outAAsop(AAsop node)
     {
-    	printData(node, "BEGIN"); spacecount++;
         defaultOut(node);
         System.out.println("OUT the AS Component of frame op");
         deInitReactor();
-        spacecount--;printData(node, "END");
     }
 
+    public void inAGeneric(AGeneric node) {
+        IReactor genReactor = new GenericReactor();
+        genReactor.setPKSL("PKSL",(node + "").trim());
+        genReactor.setProp("KEY", node.getId().toString().trim());
+        initReactor(genReactor);
+    }
+
+    public void outAGeneric(AGeneric node) {
+    	deInitReactor();
+    	System.out.println("outAGeneric: "+node);
+    }
 
     // second is a simpler operation
     // something(a,b,c,d) <-- note the absence of square brackets, really not needed
     public void inAOperationFormula(AOperationFormula node)
     {
-    	printData(node, "BEGIN"); spacecount++;
         System.out.println("Starting a formula operation " + node.getId());
         // I feel like mostly it would be this and not frame op
         // I almost feel I should remove the frame op col def
-        IReactor opReactor = new SampleReactor();
+        IReactor opReactor = getReactor(node.getId().toString().trim(), node.toString());
         //if((node.getId() + "").trim().equalsIgnoreCase("as"))
         //	opReactor = new AsReactor();
         opReactor.setPKSL(node.getId()+"", node+"");
@@ -241,12 +237,10 @@ public class Translation extends DepthFirstAdapter {
         // since there are no square brackets.. there are no nouns
         //opReactor.curNoun("all");
         initReactor(opReactor);
-        spacecount--;printData(node, "END");
     }
 
     public void outAOperationFormula(AOperationFormula node)
     {
-    	printData(node, "BEGIN"); spacecount++;
         deInitReactor();
         System.out.println("Ending a formula operation");
         
@@ -256,14 +250,12 @@ public class Translation extends DepthFirstAdapter {
         	
         }
         this.lastOperation = node + "";
-        spacecount--;printData(node, "END");
     }
 
     // accumulating secondary structures
     // the values of each of these are generic rows
     public void inASelectNoun(ASelectNoun node)
     {
-    	printData(node, "BEGIN"); spacecount++;
         defaultIn(node);
         // in on almost most stuff seems incredibly useless
         
@@ -280,87 +272,68 @@ public class Translation extends DepthFirstAdapter {
         // make this as the current noun on the reactor
         String nounName = "s"; 
         curReactor.curNoun(nounName);
-        spacecount--;printData(node, "END");
     }
 
     public void outASelectNoun(ASelectNoun node)
     {
-    	printData(node, "BEGIN"); spacecount++;
         defaultOut(node);
         // not sure if I need anything else right now
         curReactor.closeNoun("s");
-        spacecount--;printData(node, "END");
     }
 
     
     // all the utility method, which merely accumulate the data in some fashion later to be used by other functions
     public void inARcol(ARcol node)
     {
-    	printData(node, "BEGIN"); spacecount++;
         defaultIn(node);
         // I need to do the work in terms of finding what is the column name
         String column = node.getFrameprefix()+ "." + node.getNumber();
         curReactor.getCurRow().addColumn(column);
-        spacecount--;printData(node, "END");
     }
 
     public void outARcol(ARcol node)
     {
-    	printData(node, "BEGIN"); spacecount++;
         defaultIn(node);
-        spacecount--;printData(node, "END");
     }
 
     public void inALiteralColDef(ALiteralColDef node)
     {
-    	printData(node, "BEGIN"); spacecount++;
     	String thisLiteral = node.getLiteral()+"";
     	thisLiteral = thisLiteral.replace("'","");
     	thisLiteral = thisLiteral.replace("\"","");
     	thisLiteral = thisLiteral.trim();
         curReactor.getCurRow().addLiteral(thisLiteral);
-        spacecount--;printData(node, "END");
     }
 
     public void outALiteralColDef(ALiteralColDef node)
     {
-    	printData(node, "BEGIN"); spacecount++;
         defaultOut(node);
-        spacecount--;printData(node, "END");
     }
 
     // this is a higher level method which is kind of useless
     public void inADotcolColDef(ADotcolColDef node)
     {
-    	printData(node, "BEGIN"); spacecount++;
         defaultIn(node);
-        spacecount--;printData(node, "END");
     }
 
     public void outADotcolColDef(ADotcolColDef node)
     {
-    	printData(node, "BEGIN"); spacecount++;
         defaultOut(node);
-        spacecount--;printData(node, "END");
     }
 
     // need to watch if at thsi point.. I need to start a new one or keep on with the previous one
     // still not clear to me if I do it here or in the frame op
     public void inAFrameopColDef(AFrameopColDef node)
     {
-    	printData(node, "BEGIN"); spacecount++;
         System.out.println("In a Frame op col DEF a.k.a already within a script" + node);
         // so this is where things REALLY get interesting
         // I have to work through here to figure out what to do with it
         // the only difference here is am I adding this to genrowstruct
         // or am I adding it as a full reactor
-    	spacecount--;printData(node, "END");
     }
 
     public void outAFrameopColDef(AFrameopColDef node)
     {
-    	printData(node, "BEGIN"); spacecount++;
-    	spacecount--;printData(node, "END");
         System.out.println("OUT a Frame op col DEF a.k.a already within a script" + node);
     }
 
@@ -372,7 +345,6 @@ public class Translation extends DepthFirstAdapter {
 	// the first one already has all that I need
     public void inAExprColDef(AExprColDef node)
     {
-    	printData(node, "BEGIN"); spacecount++;
         defaultIn(node);
         System.out.println("In a Expr" + node);
         
@@ -388,17 +360,14 @@ public class Translation extends DepthFirstAdapter {
 	        opReactor.setPKSL("EXPR",node.getExpr()+"");
 	        initReactor(opReactor);
         }
-        spacecount--;printData(node, "END");
         // else ignore.. this has been taken care of kind of
     }
 
     public void outAExprColDef(AExprColDef node)
     {
-    	printData(node, "BEGIN"); spacecount++;
         defaultOut(node);
         // TODO need to do the operation of assimilating here
         deInitReactor();
-        spacecount--;printData(node, "END");
     }
 
     // code sits here
@@ -422,105 +391,79 @@ public class Translation extends DepthFirstAdapter {
     
     public void inAEExprExpr(AEExprExpr node)
     {
-    	printData(node, "BEGIN"); spacecount++;
-    	spacecount--;printData(node, "END");
         System.out.println("IN Atomic.. " + "expr" + node);
     }
 
     public void outAEExprExpr(AEExprExpr node)
     {
-    	printData(node, "BEGIN"); spacecount++;
-    	spacecount--;printData(node, "END");
         System.out.println("OUT Atomic.. " + "expr" + node);
     }
 
     
     public void inADecimal(ADecimal node)
     {
-    	printData(node, "BEGIN"); spacecount++;
         System.out.println("Decimal is" + node.getWhole());
         String fraction = "0";
         if(node.getFraction() != null) fraction = (node.getFraction()+"").trim();
         String value = (node.getWhole()+"").trim() +"." + fraction;
         Double adouble = Double.parseDouble(value);
         curReactor.getCurRow().addDecimal(adouble);
-        spacecount--;printData(node, "END");
     }
 
     public void outADecimal(ADecimal node)
     {
-    	printData(node, "BEGIN"); spacecount++;
         defaultOut(node);
-        spacecount--;printData(node, "END");
     }
     
     public void inAColTerm(AColTerm node)
     {
-    	printData(node, "BEGIN"); spacecount++;
         String column = (node.getCol()+"").trim();
         curReactor.getCurRow().addColumn(column);
-        spacecount--;printData(node, "END");
     }
 
     public void outAColTerm(AColTerm node)
     {
-    	printData(node, "BEGIN"); spacecount++;
-    	spacecount--;printData(node, "END");
     }
     
     public void inADotcol(ADotcol node)
     {
-    	printData(node, "BEGIN"); spacecount++;
         // I need to do the work in terms of finding what is the column name
         String column = (node.getFrameid()+ "." + node.getColumnName()).trim();
         curReactor.getCurRow().addColumn(column);
-        spacecount--;printData(node, "END");
     }
 
     public void outADotcol(ADotcol node)
     {
-    	printData(node, "BEGIN"); spacecount++;
         defaultOut(node);
-        spacecount--;printData(node, "END");
     }
     
     public void inATermExpr(ATermExpr node)
     {
-    	printData(node, "BEGIN"); spacecount++;
         System.out.println("Term.. " + node);
-    	spacecount--;printData(node, "END");
     }
 
     public void outATermExpr(ATermExpr node)
     {
-    	printData(node, "BEGIN"); spacecount++;
         defaultOut(node);
-        spacecount--;printData(node, "END");
     }
     
     public void inAProp(AProp node)
     {
-    	printData(node, "BEGIN"); spacecount++;
         curReactor.setProp((node.getId()+"").trim(), node.getNumberOrLiteral()+"");
-        spacecount--;printData(node, "END");
     }
     
     public void inACodeNoun(ACodeNoun node)
     {
-    	printData(node, "BEGIN"); spacecount++;
         defaultIn(node);
         String code = (node.getCodeAlpha() + "");
         code = code.replace("<c>","");
         code = code.trim();
         curReactor.setProp("CODE", code);
-        spacecount--;printData(node, "END");
     }
 
     public void outACodeNoun(ACodeNoun node)
     {
-    	printData(node, "BEGIN"); spacecount++;
         defaultOut(node);
-        spacecount--;printData(node, "END");
     }
 
     // you definitely need the other party to be in a relationship :)
@@ -635,6 +578,14 @@ public class Translation extends DepthFirstAdapter {
     	
     }
     
+    public IDataMaker getDataMaker() {
+    	try {
+    		return (IDataMaker)planner.getProperty("FRAME", "FRAME");
+    	} catch(Exception e) {
+    		return null;
+    	}
+    }
+    
     /**
      * 
      * @param reactorId - reactor id or operation
@@ -645,6 +596,20 @@ public class Translation extends DepthFirstAdapter {
      * Sets the PKSL operations in the reactor
      */
     private IReactor getReactor(String reactorId, String nodeString) {
+		//TODO : turn this into its own class to grab the reactor based on id and frame
+    	if(reactorId.trim().equals("Query")) {
+    		IReactor reactor = new QueryReactor();
+        	reactor.setPKSL(reactorId, nodeString);
+        	return reactor;
+    	} else if(reactorId.trim().equals("Import")) {
+    		IReactor reactor = new ImportDataReactor();
+    		reactor.setPKSL(reactorId, nodeString);
+    		return reactor;
+    	} else if(reactorId.trim().equals("Merge")) {
+    		IReactor reactor = new MergeDataReactor();
+    		reactor.setPKSL(reactorId, nodeString);
+    		return reactor;
+    	}
     	IReactor reactor = new SampleReactor();
     	reactor.setPKSL(reactorId, nodeString);
     	return reactor;
@@ -686,28 +651,25 @@ public class Translation extends DepthFirstAdapter {
     		}
     		
     		else {
-	    		String space = "";
-	    		for(int i = 0; i < spacecount; i++) {
-	    			space += " ";
-	    		}
-		    	LOGGER.info(space+"*********************************************");
-		    	LOGGER.info(space+message);
+
+		    	LOGGER.info("*********************************************");
+		    	LOGGER.info(message);
 		    	StackTraceElement[] ste = Thread.currentThread().getStackTrace();
 		    	if(ste.length > 2)
-		    		LOGGER.info(space+"CURRENT METHOD: "+ste[2].getMethodName());
+		    		LOGGER.info("CURRENT METHOD: "+ste[2].getMethodName());
 		    	else
-		    		LOGGER.info(space+"CURRENT METHOD: UNKNOWN");
-		    	LOGGER.info(space+"CURRENT NODE VALUE: "+node.toString());
+		    		LOGGER.info("CURRENT METHOD: UNKNOWN");
+		    	LOGGER.info("CURRENT NODE VALUE: "+node.toString());
 		    	//print curReactor name
 		    	if(curReactor != null) {
-		    		LOGGER.info(space+"CURRENT REACTOR: "+this.curReactor.getName());
+		    		LOGGER.info("CURRENT REACTOR: "+this.curReactor.getName());
 		    		//print current curRow of curReactor
-		    		LOGGER.info(space+"CURRENT REACTOR'S GENROWSTRUCT: "+this.curReactor.getCurRow());
-		    		LOGGER.info(space+"CURRENT REACTOR'S NOUNSTORE: \n"+curReactor.getNounStore().getDataString());
+		    		LOGGER.info("CURRENT REACTOR'S GENROWSTRUCT: "+this.curReactor.getCurRow());
+		    		LOGGER.info("CURRENT REACTOR'S NOUNSTORE: \n"+curReactor.getNounStore().getDataString());
 		    	} else {
-		    		LOGGER.info(space+"CURRENT REACTOR: null");
+		    		LOGGER.info("CURRENT REACTOR: null");
 		    	}
-		    	LOGGER.info(space+"*********************************************\n");
+		    	LOGGER.info("*********************************************\n");
     		}
     	}
     }
