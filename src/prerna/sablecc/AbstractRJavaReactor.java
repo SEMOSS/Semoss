@@ -394,14 +394,22 @@ public abstract class AbstractRJavaReactor extends AbstractJavaReactor {
 			Object[] arr = (Object[]) values;
 			Object val = arr[0];
 			if(val instanceof String) {
-				script.append(comparator).append("\"").append(val).append("\"");
+				if(val.equals("NULL")) {
+					script.append(" | ").append(frameExpression).append(comparator).append(val);
+				} else {
+					script.append(" | ").append(frameExpression).append(comparator).append("\"").append(val).append("\"");
+				}
 			} else {
 				script.append(comparator).append(val);
 			}
 			for(int i = 1; i < arr.length; i++) {
 				val = arr[i];
 				if(val instanceof String) {
-					script.append(" | ").append(frameExpression).append(comparator).append("\"").append(val).append("\"");
+					if(val.equals("NULL")) {
+						script.append(" | ").append(frameExpression).append(comparator).append(val);
+					} else {
+						script.append(" | ").append(frameExpression).append(comparator).append("\"").append(val).append("\"");
+					}
 				} else {
 					script.append(" | ").append(frameExpression).append(comparator).append(val);
 				}
@@ -448,7 +456,11 @@ public abstract class AbstractRJavaReactor extends AbstractJavaReactor {
 			}
 		} else {
 			if(values instanceof String) {
-				script.append(comparator).append("\"").append(values).append("\"");
+				if(values.toString().equals("NULL")) {
+					script.append(" | ").append(frameExpression).append(comparator).append(values);
+				} else {
+					script.append(" | ").append(frameExpression).append(comparator).append("\"").append(values).append("\"");
+				}
 			} else {
 				script.append(comparator).append(values);
 			}
