@@ -224,4 +224,9 @@ public class SampleReactor extends AbstractReactor {
 		//planner.addProperty(opName, propertyName, value);
 	}
 
+	@Override
+	public Vector<NounMetadata> getInputs() {
+		return null;
+	}
+
 }

@@ -9,10 +9,12 @@ import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.rdf.query.builder.IQueryInterpreter;
 import prerna.sablecc.PKQLEnum;
 import prerna.sablecc2.om.GenRowStruct;
+import prerna.sablecc2.om.Join;
 import prerna.sablecc2.om.NounMetadata;
 import prerna.util.Utility;
 
 import java.util.Enumeration;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.Vector;
 
@@ -20,7 +22,7 @@ import prerna.algorithm.api.ITableDataFrame;
 import prerna.ds.QueryStruct;
 import prerna.ds.h2.H2Frame;
 
-public class ImportDataReactor extends AbstractReactor {
+public class MergeDataReactor extends AbstractReactor {
 
 
 	@Override
@@ -79,8 +81,7 @@ public class ImportDataReactor extends AbstractReactor {
 		String engineName = (String)getProp("db");
 		QueryStruct queryStruct = (QueryStruct)getProp("qs");
 		String query = (String)getProp("query");
-
-		
+		GenRowStruct tableMerge = store.nounRow.get("merge");
 		ITableDataFrame frame = (ITableDataFrame)this.planner.getProperty("FRAME", "FRAME");
 		String className = frame.getScriptReactors().get(PKQLEnum.IMPORT_DATA);
 		
@@ -99,6 +100,11 @@ public class ImportDataReactor extends AbstractReactor {
 			curReactor.put(PKQLEnum.API + "_QUERY_NUM_CELLS", 1.0);
 			curReactor.put(PKQLEnum.API + "_ENGINE", removeQuotes(engineName.trim()));
 			curReactor.put(PKQLEnum.API, iterator);
+			if(tableMerge != null) {
+				Vector<Map<String, String>> joinCols = getJoinCols(tableMerge);
+				curReactor.put(PKQLEnum.JOINS, joinCols);
+				
+			}
 			curReactor.process();
 			ITableDataFrame importedFrame = (ITableDataFrame)curReactor.getValue("G");
 			System.out.println("IMPORTED FRAME CREATED WITH ROW COUNT: "+importedFrame.getNumRows());
@@ -112,16 +118,36 @@ public class ImportDataReactor extends AbstractReactor {
 
 	@Override
 	public Vector<NounMetadata> getInputs() {
+		// TODO Auto-generated method stub
 		return null;
 	}
-	
-
 	
 	private String removeQuotes(String value) {
 		if(value.startsWith("'") || value.startsWith("\"")) {
 			value = value.trim().substring(1, value.length() - 1);
 		}
 		return value;
+	}
+	
+	private Vector<Map<String,String>> getJoinCols(GenRowStruct joins) {
+		
+		Vector<Map<String, String>> joinCols = new Vector<>();
+		for(int i = 0; i < joins.size(); i++) {
+			if(joins.get(i) instanceof Join) {
+				Join join = (Join)joins.get(i);
+				String toCol = join.getQualifier();
+				String fromCol = join.getSelector();
+				String joinType = join.getJoinType();
+				
+				Map<String, String> joinMap = new HashMap<>(1);
+				joinMap.put(PKQLEnum.TO_COL, toCol);
+				joinMap.put(PKQLEnum.FROM_COL, fromCol);
+				joinMap.put(PKQLEnum.REL_TYPE, joinType);
+				
+				joinCols.add(joinMap);
+			}
+		}
+		return joinCols;
 	}
 }
 

@@ -5,6 +5,7 @@ import java.util.Hashtable;
 import java.util.Vector;
 
 import prerna.algorithm.api.ITableDataFrame;
+import prerna.sablecc2.om.Filter;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.Join;
 import prerna.util.Utility;
@@ -87,7 +88,7 @@ public class Stage extends Hashtable <String, Hashtable> {
 			else
 				System.out.println("Weird.. ");;
 			
-			addStageFilter((Join)thisFilter);
+			addStageFilter((Filter)thisFilter);
 		}
 
 		Vector <Object> joins = (Vector<Object>)codeHash.get("JOINS");
@@ -241,7 +242,7 @@ public class Stage extends Hashtable <String, Hashtable> {
 	
 	// adds all the filters
 	// need to ask maher.. if I need to do the same for the filters i.e. add tablename + column name
-	public void addStageFilter(Join filter)
+	public void addStageFilter(Filter filter)
 	{
 		// need to do this later
 		// the problem is we need to convert this into a number
@@ -262,7 +263,7 @@ public class Stage extends Hashtable <String, Hashtable> {
 				// now make this into a vector
 				for(int valIndex = 1;valIndex < values.size();valIndex++)
 					filterVectorString.append("strVector.addElement(" + pad + values.elementAt(valIndex) + pad + ");\n");
-				filterVectorString.append("qs.addFilter(\"" + filter.getSelector() + "\", \"" + filter.getJoinType() + "\" ,strVector);\n");
+				filterVectorString.append("qs.addFilter(\"" + filter.getSelector() + "\", \"" + filter.getComparator() + "\" ,strVector);\n");
 			}
 			else
 			{
@@ -272,7 +273,7 @@ public class Stage extends Hashtable <String, Hashtable> {
 					Object doubVal = values.elementAt(valIndex);
 					filterVectorString.append("decVector.addElement(new Double(" + values.elementAt(valIndex) +"));\n");
 				}
-				filterVectorString.append("qs.addFilter(\"" + filter.getSelector() + "\", \"" + filter.getJoinType() + "\",decVector);\n");
+				filterVectorString.append("qs.addFilter(\"" + filter.getSelector() + "\", \"" + filter.getComparator() + "\",decVector);\n");
 			}
 			System.out.println("FILTER..... " + filterVectorString);
 			queryStructString.append(filterVectorString);
