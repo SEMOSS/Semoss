@@ -40,7 +40,6 @@ import prerna.sablecc2.reactor.ImportDataReactor;
 import prerna.sablecc2.reactor.MergeDataReactor;
 import prerna.sablecc2.reactor.PKSLPlanner;
 import prerna.sablecc2.reactor.QueryReactor;
-import prerna.sablecc2.reactor.RelationReactor;
 import prerna.sablecc2.reactor.SampleReactor;
 import prerna.ui.components.playsheets.datamakers.IDataMaker;
 
@@ -476,6 +475,8 @@ public class Translation extends DepthFirstAdapter {
         // so I can interpret the dot notation etc for frame columns
     }
 
+    //why is relationship implemented differently than filter?
+    //they do very similar things
     public void outARelationship(ARelationship node)
     {
     	curReactor.getCurRow().addRelation((node.getLcol() + "").trim(), (node.getRelType() + "").trim(), (node.getRcol() + "").trim());
@@ -596,7 +597,6 @@ public class Translation extends DepthFirstAdapter {
      * Sets the PKSL operations in the reactor
      */
     private IReactor getReactor(String reactorId, String nodeString) {
-		//TODO : turn this into its own class to grab the reactor based on id and frame
     	if(reactorId.trim().equals("Query")) {
     		IReactor reactor = new QueryReactor();
         	reactor.setPKSL(reactorId, nodeString);
@@ -612,7 +612,7 @@ public class Translation extends DepthFirstAdapter {
     	}
     	IReactor reactor = new SampleReactor();
     	reactor.setPKSL(reactorId, nodeString);
-    	return reactor;
+    	return null;
     }
     
     private void printData(Object node, String message) {
