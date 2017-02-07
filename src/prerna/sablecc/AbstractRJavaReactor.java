@@ -351,6 +351,20 @@ public abstract class AbstractRJavaReactor extends AbstractJavaReactor {
 		return getDescriptiveStats(frameName, colName, true);
 	}
 	
+	/**
+	 * Drop a column within the table
+	 * @param colName
+	 */
+	protected void dropRColumn(String colName) {
+		String frameName = (String)retrieveVariable("GRID_NAME");
+		dropRColumn(frameName, colName);
+	}
+	
+	protected void dropRColumn(String frameName, String colName) {
+		eval(frameName + "[," + colName + ":=NULL]");
+		System.out.println("Successfully removed column = " + colName);
+	}
+	
 	////////////////////////////////////////////////////////////
 	////////////////////////////////////////////////////////////
 	//////////////////// Tinker R Methods //////////////////////
