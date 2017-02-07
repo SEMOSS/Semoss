@@ -13,7 +13,6 @@ import java.util.Vector;
 import org.apache.tinkerpop.gremlin.structure.Graph;
 import org.apache.tinkerpop.gremlin.structure.io.IoCore;
 import org.rosuda.JRI.Rengine;
-import org.rosuda.REngine.Rserve.RConnection;
 
 import prerna.algorithm.api.IMetaData;
 import prerna.algorithm.api.ITableDataFrame;
@@ -77,7 +76,8 @@ public abstract class AbstractRJavaReactor extends AbstractJavaReactor {
 
 	protected abstract String[] getColNames(String frameName, boolean print);
 
-	
+	protected abstract Object[][] getColumnCount(String frameName, String colName, boolean outputString);
+
 	////////////////////////////////////////////////////////////
 	////////////////////////////////////////////////////////////
 	//////////////////////// R Methods /////////////////////////
@@ -321,6 +321,19 @@ public abstract class AbstractRJavaReactor extends AbstractJavaReactor {
 	protected void synchronizeCSVToR(String fileName, String frameName) {
 		eval(frameName + " <- fread(\"" + fileName + "\")");
 		System.out.println("Completed synchronization of CSV " + fileName);
+	}
+	
+	/**
+	 * Get the column count of a given column
+	 * @param column
+	 */
+	protected Object[][] getColumnCount(String colName) {
+		String frameName = (String)retrieveVariable("GRID_NAME");
+		return getColumnCount(frameName, colName);
+	}
+	
+	protected Object[][] getColumnCount(String frameName, String colName) {
+		return getColumnCount(frameName, colName, true);
 	}
 	
 	////////////////////////////////////////////////////////////

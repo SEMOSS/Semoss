@@ -2422,6 +2422,10 @@ public class Translation extends DepthFirstAdapter {
 			if(newFrame != null) {
 				this.frame = newFrame;
 			}
+			Object retData = thisReactor.getValue("returnData");
+			if(retData != null){
+				runner.setReturnData(retData);
+			}
 			runner.setResponse(curReactor.getValue("RESPONSE"));
 			runner.setStatus((STATUS) curReactor.getValue("STATUS"));
 		}

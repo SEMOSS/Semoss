@@ -548,14 +548,6 @@ public class BaseJavaReactor extends AbstractRJavaReactor{
 		}		
 	}
 	
-	
-	public void getColumnCount(String column)
-	{
-		String frame = (String)retrieveVariable("GRID_NAME");
-		getColumnCount(frame, column);
-	}
-
-	
 	public void joinColumns(String frameName, String newColumnName,  String separator, String cols)
 	{
 		// reconstruct the column names
@@ -583,7 +575,7 @@ public class BaseJavaReactor extends AbstractRJavaReactor{
 		}
 	}
 	
-	public Object[][] getColumnCount(String frameName, String column)
+	public Object[][] getColumnCount(String frameName, String column, boolean print)
 	{
 		// get all the column names first
 		/*
@@ -613,20 +605,27 @@ public class BaseJavaReactor extends AbstractRJavaReactor{
 			script = "matrix(colData$N);"; 
 			int [] colCount = rcon.eval(script).asIntegers();
 			retOutput = new Object[uniqueColumns.length][2];
-			StringBuilder builder = new StringBuilder();
-			builder.append(column + "\t Count \n");
-			for(int outputIndex = 0;outputIndex < uniqueColumns.length;outputIndex++)
-			{
+			StringBuilder builder = null;
+			if(print) {
+				builder = new StringBuilder();
+				builder.append(column + "\t Count \n");
+			}
+			for(int outputIndex = 0;outputIndex < uniqueColumns.length; outputIndex++) {
 				retOutput[outputIndex][0] = uniqueColumns[outputIndex];
 				retOutput[outputIndex][1] = colCount[outputIndex];
-				builder.append(retOutput[outputIndex][0] + "\t" + retOutput[outputIndex][1] + "\n");
+				if(print) {
+					builder.append(retOutput[outputIndex][0] + "\t" + retOutput[outputIndex][1] + "\n");
+				}
 			}
-			System.out.println("Output : " + builder.toString());
+			if(print) {
+				System.out.println("Output : " + builder.toString());
+			} else {
+				this.hasReturnData = true;
+				this.returnData = retOutput;
+			}
 		} catch (RserveException e) {
-			// TODO Auto-generated catch block
 			e.printStackTrace();
 		} catch (REXPMismatchException e) {
-			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
 		return retOutput;
