@@ -7,7 +7,6 @@ import java.util.Hashtable;
 
 import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.GraphTraversal;
 import org.apache.tinkerpop.gremlin.structure.Vertex;
-import org.rosuda.JRI.Rengine;
 import org.rosuda.REngine.REXP;
 import org.rosuda.REngine.REXPDouble;
 import org.rosuda.REngine.REXPGenericVector;
@@ -440,27 +439,17 @@ public class BaseJavaReactor extends AbstractRJavaReactor{
 		
 	}
 
-
-	public String[] getColNames(String frameName) {
+	public String[] getColNames(String frameName)
+	{
+		return getColNames(frameName, true);
+	}
+	
+	public String[] getColNames(String frameName, boolean print) {
 		RConnection rcon = (RConnection) startR();
 		String [] colNames = null;
 		try {
 			String script = "matrix(colnames(" + frameName + "));";
 			colNames = rcon.eval(script).asStrings();
-		} catch (RserveException e) {
-			e.printStackTrace();
-		} catch (REXPMismatchException e) {
-			e.printStackTrace();
-		}
-		return colNames;
-	}
-
-	public String[] getColNames(String frameName, boolean print) {
-		Rengine engine = (Rengine)startR();
-		String [] colNames = null;
-		try {
-			String script = "matrix(colnames(" + frameName + "));";
-			colNames = engine.eval(script).asStringArray();
 			if(print)
 			{
 				System.out.println("Columns..");
@@ -468,10 +457,11 @@ public class BaseJavaReactor extends AbstractRJavaReactor{
 					System.out.println(colNames[colIndex] + "\n");
 				}
 			}
-		} catch (Exception e) {
-			// TODO Auto-generated catch block
+		} catch (RserveException e) {
 			e.printStackTrace();
-		} 
+		} catch (REXPMismatchException e) {
+			e.printStackTrace();
+		}
 		return colNames;
 	}
 
