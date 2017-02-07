@@ -570,15 +570,6 @@ public class BaseJavaReactorJRI extends AbstractRJavaReactor {
 		}		
 	}
 	
-	
-	public void getColumnCount(String column)
-	{
-		startR();
-		String frame = (String)retrieveVariable("GRID_NAME");
-		getColumnCount(frame, column);
-	}
-
-	
 	public void joinColumns(String frameName, String newColumnName,  String separator, String cols)
 	{
 		// reconstruct the column names
@@ -606,7 +597,7 @@ public class BaseJavaReactorJRI extends AbstractRJavaReactor {
 		}
 	}
 	
-	public Object[][] getColumnCount(String frameName, String column)
+	public Object[][] getColumnCount(String frameName, String column, boolean print)
 	{
 		// get all the column names first
 		/*
@@ -636,20 +627,29 @@ public class BaseJavaReactorJRI extends AbstractRJavaReactor {
 			int [] colCount = engine.eval(script).asIntArray();
 			int total = 0;
 			retOutput = new Object[uniqueColumns.length][2];
-			StringBuilder builder = new StringBuilder();
-			builder.append(column + "\t Count \n");
+			StringBuilder builder = null;
+			if(print) {
+				builder = new StringBuilder();
+				builder.append(column + "\t Count \n");
+			}
 			for(int outputIndex = 0;outputIndex < uniqueColumns.length;outputIndex++)
 			{
 				retOutput[outputIndex][0] = uniqueColumns[outputIndex];
 				retOutput[outputIndex][1] = colCount[outputIndex];
 				total += colCount[outputIndex];
-				builder.append(retOutput[outputIndex][0] + "\t" + retOutput[outputIndex][1] + "\n");
+				if(print) {
+					builder.append(retOutput[outputIndex][0] + "\t" + retOutput[outputIndex][1] + "\n");
+				}
 			}
-			builder.append("===============\n");
-			builder.append("Total \t " + total);
-			System.out.println("Output : " + builder.toString());
+			if(print) {
+				builder.append("===============\n");
+				builder.append("Total \t " + total);
+				System.out.println("Output : " + builder.toString());
+			} else {
+				this.hasReturnData = true;
+				this.returnData = retOutput;
+			}
 		} catch (Exception e) {
-			// TODO Auto-generated catch block
 			e.printStackTrace();
 		} 
 		return retOutput;
