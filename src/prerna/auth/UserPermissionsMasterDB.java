@@ -546,8 +546,15 @@ public class UserPermissionsMasterDB {
 	/**
 	 * 
 	 */
-	public Boolean createSeed(String seedName, int databaseID, String tableName, String columnName, Object RLSValue, String RLSJavaCode, String userId) {
-		String query = "INSERT INTO Seed VALUES (NULL, '" + seedName + "', " + databaseID + ", " + tableName + ", " + columnName + ", ";
+	public Boolean createSeed(String seedName, String databaseName, String tableName, String columnName, Object RLSValue, String RLSJavaCode, String userId) {
+		String query = "SELECT E.ID FROM Engine E WHERE E.NAME='" + databaseName + "';";
+		ArrayList<String[]> results = runQuery(query);
+		String databaseID = "";
+		if(results != null && !results.isEmpty()) {
+			databaseID = results.get(0)[0];
+		}
+		
+		query = "INSERT INTO Seed VALUES (NULL, '" + seedName + "', " + databaseID + ", " + tableName + ", " + columnName + ", ";
 		
 		if(RLSValue != null) {
 			query += RLSValue + "', " + "NULL, '" + userId + "');";
@@ -560,46 +567,60 @@ public class UserPermissionsMasterDB {
 		return true;
 	}
 	
-	public Boolean deleteSeed(int seedId, String userId) {
-		String query = "DELETE FROM UserSeedPermission WHERE seedid=" + seedId + " INNER JOIN Seed ON Seed.ID=UserSeedPermission.SEEDID AND Seed.OWNER='" + userId + "';";
+	public Boolean deleteSeed(String seedName, String userId) {
+		String query = "DELETE FROM UserSeedPermission INNER JOIN Seed ON Seed.ID=UserSeedPermission.SEEDID WHERE Seed.OWNER='" + userId + "' AND Seed.NAME='" + seedName + "';";
 		securityDB.execUpdateAndRetrieveStatement(query, true);
 		
-		query = "DELETE FROM Seed WHERE seedid=" + seedId + " AND owner='" + userId + "';";
+		query = "DELETE FROM Seed WHERE name=" + seedName + " AND owner='" + userId + "';";
 		securityDB.execUpdateAndRetrieveStatement(query, true);
 		
 		securityDB.commit();
 		return true;
 	}
 	
-	public Boolean addUserToSeed(String userId, String seedId, String loggedInUser) {
-		String query = "INSERT INTO UserSeedPermission VALUES ('" + userId + "', " + seedId + ");";
-		
+	public Boolean addUserToSeed(String userId, String seedName, String loggedInUser) {
 		if(!isUserAdmin(loggedInUser)) {
 			return false;
 		}
 		
-		try {
-			securityDB.insertData(query);
-		} catch(Exception e) {
-			e.printStackTrace();
-			return false;
+		String query = "SELECT S.ID FROM Seed S WHERE S.NAME='" + seedName + "';";
+		ArrayList<String[]> results = runQuery(query);
+		
+		for(String[] s : results) {	
+			query = "INSERT INTO UserSeedPermission VALUES ('" + userId + "', " + s[0] + ");";
+			
+			try {
+				securityDB.insertData(query);
+			} catch(Exception e) {
+				e.printStackTrace();
+				return false;
+			}
 		}
 		
 		return true;
 	}
 	
-	public Boolean deleteUserFromSeed(String userId, String seedId, String loggedInUser) {
-		String query = "DELETE FROM UserSeedPermission WHERE '" + userId + "', " + seedId + ");";
-		
+	public Boolean deleteUserFromSeed(String userId, String seedName, String loggedInUser) {
 		if(!isUserAdmin(loggedInUser)) {
 			return false;
 		}
 		
-		try {
-			securityDB.insertData(query);
-		} catch(Exception e) {
-			e.printStackTrace();
-			return false;
+		String query = "SELECT S.ID FROM Seed S WHERE S.NAME='" + seedName + "';";
+		ArrayList<String[]> results = runQuery(query);
+		
+		for(String[] s : results) {
+			query = "DELETE FROM UserSeedPermission WHERE usedID='" + userId + "' AND seedID=" + s[0] + ";";
+			
+			if(!isUserAdmin(loggedInUser)) {
+				return false;
+			}
+			
+			try {
+				securityDB.insertData(query);
+			} catch(Exception e) {
+				e.printStackTrace();
+				return false;
+			}
 		}
 		
 		return true;
