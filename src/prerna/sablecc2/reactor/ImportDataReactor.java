@@ -29,6 +29,7 @@ public class ImportDataReactor extends AbstractReactor {
 	}
 
 	@Override
+	//greedy execution
 	public Object Out() {
 		importToFrame();
 		if(parentReactor != null) {
@@ -38,29 +39,7 @@ public class ImportDataReactor extends AbstractReactor {
 	}
 	
 	public void updatePlan() {
-		//just need to set the frame to the planner here...that's it
-		getType();
-		Enumeration <String> keys = store.nounRow.keys();
-		
-		String reactorOutput = reactorName;
-		
-		while(keys.hasMoreElements())
-		{
-			String singleKey = keys.nextElement();
-			GenRowStruct struct = store.nounRow.get(singleKey);
-			Vector <String> inputs = struct.getAllColumns();
-			
-			// need a better way to do it
-			if(asName == null)
-				reactorOutput = reactorOutput + "_" + struct.getColumns();
-	
-			// find if code exists
-			if(!propStore.containsKey("CODE"))
-			{
-				if(inputs.size() > 0)
-					planner.addInputs(signature, inputs, type);
-			}
-		}
+
 	}
 
 	@Override
@@ -76,10 +55,17 @@ public class ImportDataReactor extends AbstractReactor {
 	
 	private void importToFrame()  {
 		//get the inputs
-		String engineName = (String)getProp("db");
-		QueryStruct queryStruct = (QueryStruct)getProp("qs");
-		String query = (String)getProp("query");
+//		String engineName = (String)getProp("db");
+//		QueryStruct queryStruct = (QueryStruct)getProp("qs");
+//		String query = (String)getProp("query");
+		
+		
+		GenRowStruct object = store.getNoun("qs");
+		String aliasName = (String)object.get(0);
 
+		Map<String, Object> map = (Map<String, Object>)this.planner.getProperty(aliasName, "STORE");
+		QueryStruct queryStruct = (QueryStruct)map.get("qs");
+		String engineName = (String)map.get("db");
 		
 		ITableDataFrame frame = (ITableDataFrame)this.planner.getProperty("FRAME", "FRAME");
 		String className = frame.getScriptReactors().get(PKQLEnum.IMPORT_DATA);
@@ -114,8 +100,6 @@ public class ImportDataReactor extends AbstractReactor {
 	public Vector<NounMetadata> getInputs() {
 		return null;
 	}
-	
-
 	
 	private String removeQuotes(String value) {
 		if(value.startsWith("'") || value.startsWith("\"")) {
