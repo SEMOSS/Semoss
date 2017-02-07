@@ -78,9 +78,15 @@ public class MergeDataReactor extends AbstractReactor {
 	
 	private void importToFrame()  {
 		//get the inputs
-		String engineName = (String)getProp("db");
-		QueryStruct queryStruct = (QueryStruct)getProp("qs");
-		String query = (String)getProp("query");
+//		String engineName = (String)getProp("db");
+//		QueryStruct queryStruct = (QueryStruct)getProp("qs");
+//		String query = (String)getProp("query");
+		GenRowStruct queryStructAlias = store.nounRow.get("qs");
+		String aliasName = (String)queryStructAlias.get(0);
+		Map<String, Object> map = (Map<String, Object>)this.planner.getProperty(aliasName, "STORE");
+		QueryStruct queryStruct = (QueryStruct)map.get("qs");
+		String engineName = (String)map.get("db");
+		
 		GenRowStruct tableMerge = store.nounRow.get("merge");
 		ITableDataFrame frame = (ITableDataFrame)this.planner.getProperty("FRAME", "FRAME");
 		String className = frame.getScriptReactors().get(PKQLEnum.IMPORT_DATA);
