@@ -31,6 +31,9 @@ public abstract class AbstractReactor implements IReactor {
 	
 	PKSLPlanner planner = null;
 	
+	abstract void mergeUp();
+	abstract void updatePlan();
+	
 	@Override
 	public void setPKSL(String operation, String fullOperation) {
 		this.operationName = operation;
