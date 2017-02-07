@@ -28,15 +28,12 @@ public class PKSLPlanner {
 	public static final String TINKER_TYPE = "_T_TYPE";
 	public static final String TINKER_NAME = "_T_NAME";
 	
-	IDataMaker dataMaker;
-	
 	public PKSLPlanner() {
 		
 	}
 	
 	public PKSLPlanner(IDataMaker dataMaker) {
 		addProperty("FRAME", "FRAME", dataMaker);
-		this.dataMaker = dataMaker;
 	}
 	
 	// adds an operation with necessary inputs
@@ -71,11 +68,20 @@ public class PKSLPlanner {
 	
 	public void addProperty(String opName, String propertyName, Object value)
 	{
-		Vertex opVertex = findVertex(OPERATION, opName);
+		Vertex opVertex = upsertVertex(OPERATION, opName);
 		if(opVertex != null)
 		{
 			opVertex.property(propertyName, value);
 		}
+	}
+	
+	public Object getProperty(String opName, String propertyName) {
+		Vertex opVertex = findVertex(OPERATION, opName);
+		if(opVertex != null) {
+			if(opVertex.property(propertyName) != null)
+			return opVertex.property(propertyName).value();
+		}
+		return null;
 	}
 	
 	public void addNounProperty(String nounName, String propertyName, Object value)
@@ -431,7 +437,8 @@ public class PKSLPlanner {
 		Vector <String> depends = (Vector<String>)opHash.get(Stage.DEPENDS);
 		// set the name as the signature
 		opHash.put("SIGNATURE", operationName);
-		opHash.put("INPUT_ORDER", thisVertex.property("INPUT_ORDER").value());
+		if(thisVertex.property("INPUT_ORDER").isPresent())
+			opHash.put("INPUT_ORDER", thisVertex.property("INPUT_ORDER").value());
 		if(thisVertex.property("FILTERS").isPresent())
 			opHash.put("FILTERS", thisVertex.property("FILTERS").value());
 		if(thisVertex.property("JOINS").isPresent())
@@ -442,9 +449,8 @@ public class PKSLPlanner {
 		// while we are at it might as well synchronize the property store
 		if(thisVertex.property("STORE").isPresent())
 			opHash.put("STORE", thisVertex.property("STORE").value());
-		
-		opHash.put("INPUT_ORDER", thisVertex.property("INPUT_ORDER").value());
-		opHash.put("ALIAS", thisVertex.property("ALIAS").value());
+		if(thisVertex.property("ALIAS").isPresent())
+			opHash.put("ALIAS", thisVertex.property("ALIAS").value());
 		opHash.put("OP_TYPE", thisVertex.property("OP_TYPE").value());
 		// add reactor to the stage should 1 be present
 		if(thisVertex.property("REACTOR").isPresent())
@@ -465,10 +471,17 @@ public class PKSLPlanner {
 		boolean close = false;
 
 		// assimilate the inputs in a single place
-		IReactor.TYPE opType = (IReactor.TYPE)thisVertex.property("OP_TYPE").value();
+		IReactor.TYPE opType = null;
+		Object codeBlock = null;
+		try {
+			codeBlock = thisVertex.property("CODE").value();
+			opType = (IReactor.TYPE)thisVertex.property("OP_TYPE").value();
+		} catch(Exception e) {
+			
+		}
 		
 		// add the code
-		Object codeBlock = thisVertex.property("CODE").value();
+//		Object codeBlock = thisVertex.property("CODE").value();
 		
 		// write the code if you see a piece of code
 		if(codeBlock instanceof CodeBlock)
@@ -554,7 +567,7 @@ public class PKSLPlanner {
 		//opHash.put(Stage.CODE, curCode);	
 		opHash.put(Stage.DEPENDS, depends);
 		
-		if(opType == IReactor.TYPE.REDUCE) // this is a reduce operation
+		if(IReactor.TYPE.REDUCE.equals(opType)) // this is a reduce operation
 		{
 			// couple of things I need to do
 			// I need to add the query to the top of it
