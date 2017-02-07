@@ -23,8 +23,7 @@ public class QueryReactor extends AbstractReactor {
 
 	@Override
 	public Object Out() {
-		updatePlan(); //should do this on the execute
-		mergeUp(); //should do this on the out
+		updatePlan();
 		if(this.parentReactor != null) {
 			return parentReactor;
 		}
@@ -41,8 +40,8 @@ public class QueryReactor extends AbstractReactor {
 
 	@Override
 	void mergeUp() {
-		buildQueryStruct();
 		if(parentReactor != null) {
+			buildQueryStruct();
 			parentReactor.setProp("qs", getProp("qs"));
 			parentReactor.setProp("db", getProp("db"));
 			GenRowStruct joins = store.nounRow.get("merge");
@@ -88,11 +87,11 @@ public class QueryReactor extends AbstractReactor {
 			//b. stores the query struct on this reactor's prop store
 		buildQueryStruct();
 		
-		//2. stores the output objects to the planner
-		storeOutputsToPlanner();
-		
-		//3. establishes the references by which those objects are available elsewhere
+		//2. establishes the references by which those objects are available elsewhere
 		addOutputLinksToPlanner();
+				
+		//3. stores the output objects to the planner
+		storeOutputsToPlanner();		
 	}
 	
 	//upload the outputs to the planner
@@ -102,18 +101,16 @@ public class QueryReactor extends AbstractReactor {
 		if(getProp("db") != null) {
 			outputStore.put("db", getProp("db"));
 		}
-		this.planner.addProperty(operationName, "STORE", outputStore);
+		this.planner.addProperty(asName[0], "STORE", outputStore);
 	}
 	
 	//provide references by which those outputs are available
 	private void addOutputLinksToPlanner() {
 		if(asName == null)
-			asName = new String[]{"QUERY_STRUCT", "ENGINE"};
+			asName = new String[]{"QUERY_STRUCT"};
 		
 		outputFields = new Vector<String>();
 		outputFields.add(asName[0]);//query struct
-		if(asName.length > 1)
-			outputFields.add(asName[1]);// optional engine
 		
 		planner.addOutputs(signature, outputFields, type);
 	}
@@ -181,6 +178,7 @@ public class QueryReactor extends AbstractReactor {
 		setProp("qs", qs);
 		return qs;
 	}
+	
 	@Override
 	public Vector<NounMetadata> getInputs() {
 		return null;
