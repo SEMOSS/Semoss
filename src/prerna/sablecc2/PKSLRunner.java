@@ -24,8 +24,6 @@ import prerna.sablecc2.parser.ParserException;
 import prerna.ui.components.playsheets.datamakers.IDataMaker;
 
 public class PKSLRunner {
-
-	
 	
 	public enum STATUS {SUCCESS, ERROR, INPUT_NEEDED}
 	
@@ -109,5 +107,9 @@ public class PKSLRunner {
 
 	public void setDataFrame(IDataMaker frame) {
 		this.dataMaker = frame;
+	}
+
+	public List<Map> getResults() {
+		return null;
 	}
 }
