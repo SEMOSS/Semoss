@@ -144,6 +144,10 @@ public class JavaReactorWrapper extends AbstractReactor {
 				myStore.put("G", jR.dataframe);
 			}
 			if(jR.hasReturnData) {
+				// ugh... why is there some places where we grab from jR and
+				// some places we grab from java reactor???
+				// inconsistent with above!
+				jR.put("returnData", jR.returnData);
 				myStore.put("returnData", jR.returnData);
 			}
 			System.out.println(jR.getValue("ERROR"));
