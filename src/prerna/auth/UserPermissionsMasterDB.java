@@ -571,10 +571,36 @@ public class UserPermissionsMasterDB {
 		return true;
 	}
 	
-	public Boolean addSeedToUser(String userId, String seedId) {
+	public Boolean addUserToSeed(String userId, String seedId, String loggedInUser) {
 		String query = "INSERT INTO UserSeedPermission VALUES ('" + userId + "', " + seedId + ");";
 		
-		securityDB.insertData(query);
+		if(!isUserAdmin(loggedInUser)) {
+			return false;
+		}
+		
+		try {
+			securityDB.insertData(query);
+		} catch(Exception e) {
+			e.printStackTrace();
+			return false;
+		}
+		
+		return true;
+	}
+	
+	public Boolean deleteUserFromSeed(String userId, String seedId, String loggedInUser) {
+		String query = "DELETE FROM UserSeedPermission WHERE '" + userId + "', " + seedId + ");";
+		
+		if(!isUserAdmin(loggedInUser)) {
+			return false;
+		}
+		
+		try {
+			securityDB.insertData(query);
+		} catch(Exception e) {
+			e.printStackTrace();
+			return false;
+		}
 		
 		return true;
 	}
@@ -587,6 +613,44 @@ public class UserPermissionsMasterDB {
 				+ "INNER JOIN User U ON U.ID=USP.USERID AND U.ID='" + userId + "' "
 				+ "ORDER BY DB, TAB;";
 		
+		return getMetamodelSeedsFromQuery(query);
+	}
+	
+	public ArrayList<StringMap<Object>> getMetamodelSeedsOwnedByUser(String userId) {
+		ArrayList<StringMap<Object>> ret = new ArrayList<StringMap<Object>>();
+		
+		//Get the seed names that this user can see
+		String query = "SELECT DISTINCT S.NAME AS SEEDNAME, S.DATABASEID AS DBID FROM SEED S ";
+		if(!isUserAdmin(userId)) {
+			query += "WHERE S.OWNER='" + userId + "' ";
+		}
+		
+		ArrayList<String[]> seedNames = runQuery(query);
+		StringMap<String> seedNameList = new StringMap<String>();
+		for(String[] seed : seedNames) {
+			seedNameList.put(seed[0], seed[1]);
+		}
+		
+		for(String seedName : seedNameList.keySet()) {
+			StringMap<Object> seedInfo = new StringMap<Object>();
+			HashMap rules = new HashMap();
+			
+			query = "SELECT DISTINCT E.NAME AS DB, S.TABLENAME AS TAB, S.COLUMNNAME AS COL "
+					+ "FROM Seed S "
+					+ "INNER JOIN Engine E ON S.DATABASEID=E.ID "
+					+ "WHERE S.NAME='" + seedName + "' "
+					+ "ORDER BY DB, TAB;";
+			
+			seedInfo.put("seedName", seedName);
+			seedInfo.put("dbId", seedNameList.get(seedName));
+			seedInfo.put("rules", getMetamodelSeedsFromQuery(query));
+			ret.add(seedInfo);
+		}
+		
+		return ret;
+	}
+	
+	public HashMap<String, HashMap<String, ArrayList<String>>> getMetamodelSeedsFromQuery(String query) {
 		ArrayList<String[]> results = runQuery(query);
 		
 		HashMap<String, HashMap<String, ArrayList<String>>> dbToTables = new HashMap<String, HashMap<String, ArrayList<String>>>();
@@ -629,8 +693,6 @@ public class UserPermissionsMasterDB {
 			dbToTables.put(currDB, tableToCols);
 			
 		}
-		
-		System.out.println(dbToTables);
 		
 		return dbToTables;
 	}
