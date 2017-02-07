@@ -365,6 +365,123 @@ public abstract class AbstractRJavaReactor extends AbstractJavaReactor {
 		System.out.println("Successfully removed column = " + colName);
 	}
 	
+	/**
+	 * Drop rows based on a comparator for a set of values
+	 * @param colName
+	 * @param comparator
+	 * @param values
+	 */
+	protected void dropRowsWhereColumnContainsValue(String colName, String comparator, Object values) {
+		String frameName = (String)retrieveVariable("GRID_NAME");
+		dropRowsWhereColumnContainsValue(frameName, colName, comparator, values);
+	}
+	
+	/**
+	 * Filter out rows based on values in a given column
+	 * @param frameName
+	 * @param colName
+	 * @param comparator
+	 * @param values
+	 */
+	protected void dropRowsWhereColumnContainsValue(String frameName, String colName, String comparator, Object values) {
+		// to account for misunderstandings between = and == for normal users
+		if(comparator.equals("=")) {
+			comparator = "==";
+		}
+		String frameExpression = frameName + "$" + colName;
+		StringBuilder script = new StringBuilder(frameName).append("<-").append(frameName).append("[!(").append(frameExpression);
+		if(values instanceof Object[]) {
+			Object[] arr = (Object[]) values;
+			Object val = arr[0];
+			if(val instanceof String) {
+				script.append(comparator).append("\"").append(val).append("\"");
+			} else {
+				script.append(comparator).append(val);
+			}
+			for(int i = 1; i < arr.length; i++) {
+				val = arr[i];
+				if(val instanceof String) {
+					script.append(" | ").append(frameExpression).append(comparator).append("\"").append(val).append("\"");
+				} else {
+					script.append(" | ").append(frameExpression).append(comparator).append(val);
+				}
+			}
+		} else if(values instanceof String[]){
+			String[] arr = (String[]) values;
+			String val = arr[0];
+			script.append(comparator).append("\"").append(val).append("\"");
+			for(int i = 1; i < arr.length; i++) {
+				val = arr[i];
+				script.append(" | ").append(frameExpression).append(comparator).append("\"").append(val).append("\"");
+			}
+		} else if(values instanceof Double[])  {
+			Double[] arr = (Double[]) values;
+			Double val = arr[0];
+			script.append(comparator).append(val);
+			for(int i = 1; i < arr.length; i++) {
+				val = arr[i];
+				script.append(" | ").append(frameExpression).append(comparator).append(val);
+			}
+		} else if(values instanceof Integer[])  {
+			Integer[] arr = (Integer[]) values;
+			Integer val = arr[0];
+			script.append(comparator).append(val);
+			for(int i = 1; i < arr.length; i++) {
+				val = arr[i];
+				script.append(" | ").append(frameExpression).append(comparator).append(val);
+			}
+		} else if(values instanceof double[])  {
+			double[] arr = (double[]) values;
+			double val = arr[0];
+			script.append(comparator).append(val);
+			for(int i = 1; i < arr.length; i++) {
+				val = arr[i];
+				script.append(" | ").append(frameExpression).append(comparator).append(val);
+			}
+		} else if(values instanceof int[])  {
+			int[] arr = (int[]) values;
+			int val = arr[0];
+			script.append(comparator).append(val);
+			for(int i = 1; i < arr.length; i++) {
+				val = arr[i];
+				script.append(" | ").append(frameExpression).append(comparator).append(val);
+			}
+		} else {
+			if(values instanceof String) {
+				script.append(comparator).append("\"").append(values).append("\"");
+			} else {
+				script.append(comparator).append(values);
+			}
+		}
+		script.append("),]");
+		eval(script.toString());
+		System.out.println("Script ran = " + script.toString() + "\nSuccessfully removed rows");
+	}
+	
+	protected void dropRowsWhereColumnContainsValue(String frameName, String colName, String comparator, int value) {
+		// to account for misunderstandings between = and == for normal users
+		if(comparator.equals("=")) {
+			comparator = "==";
+		}
+		String frameExpression = frameName + "$" + colName;
+		StringBuilder script = new StringBuilder(frameName).append("<-").append(frameName).append("[!(")
+				.append(frameExpression).append(comparator).append(value).append("),]");
+		eval(script.toString());
+		System.out.println("Script ran = " + script.toString() + "\nSuccessfully removed rows");
+	}
+	
+	protected void dropRowsWhereColumnContainsValue(String frameName, String colName, String comparator, double value) {
+		// to account for misunderstandings between = and == for normal users
+		if(comparator.equals("=")) {
+			comparator = "==";
+		}
+		String frameExpression = frameName + "$" + colName;
+		StringBuilder script = new StringBuilder(frameName).append("<-").append(frameName).append("[!(")
+				.append(frameExpression).append(comparator).append(value).append("),]");
+		eval(script.toString());
+		System.out.println("Script ran = " + script.toString() + "\nSuccessfully removed rows");
+	}
+	
 	////////////////////////////////////////////////////////////
 	////////////////////////////////////////////////////////////
 	//////////////////// Tinker R Methods //////////////////////
