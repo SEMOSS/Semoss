@@ -547,19 +547,21 @@ public class UserPermissionsMasterDB {
 	 * 
 	 */
 	public Boolean createSeed(String seedName, String databaseName, String tableName, String columnName, Object RLSValue, String RLSJavaCode, String userId) {
-		String query = "SELECT E.ID FROM Engine E WHERE E.NAME='" + databaseName + "';";
+		String query = "SELECT E.ID AS ENGINEID FROM Engine E WHERE E.NAME='" + databaseName + "';";
 		ArrayList<String[]> results = runQuery(query);
 		String databaseID = "";
 		if(results != null && !results.isEmpty()) {
 			databaseID = results.get(0)[0];
 		}
 		
-		query = "INSERT INTO Seed VALUES (NULL, '" + seedName + "', " + databaseID + ", " + tableName + ", " + columnName + ", ";
+		query = "INSERT INTO Seed VALUES (NULL, '" + seedName + "', " + databaseID + ", '" + tableName + "', '" + columnName + "', ";
 		
 		if(RLSValue != null) {
-			query += RLSValue + "', " + "NULL, '" + userId + "');";
+			query += "'" + RLSValue + "', " + "NULL, '" + userId + "');";
 		} else if(RLSJavaCode != null && !RLSJavaCode.isEmpty()) {
 			query += "NULL, '" + RLSJavaCode + "', '" + userId + "');";
+		} else {
+			query += "NULL, NULL, '" + userId + "');";
 		}
 		
 		securityDB.insertData(query);
@@ -583,7 +585,7 @@ public class UserPermissionsMasterDB {
 			return false;
 		}
 		
-		String query = "SELECT S.ID FROM Seed S WHERE S.NAME='" + seedName + "';";
+		String query = "SELECT S.ID AS SEEDID FROM Seed S WHERE S.NAME='" + seedName + "';";
 		ArrayList<String[]> results = runQuery(query);
 		
 		for(String[] s : results) {	
@@ -605,7 +607,7 @@ public class UserPermissionsMasterDB {
 			return false;
 		}
 		
-		String query = "SELECT S.ID FROM Seed S WHERE S.NAME='" + seedName + "';";
+		String query = "SELECT S.ID AS SEEDID FROM Seed S WHERE S.NAME='" + seedName + "';";
 		ArrayList<String[]> results = runQuery(query);
 		
 		for(String[] s : results) {
