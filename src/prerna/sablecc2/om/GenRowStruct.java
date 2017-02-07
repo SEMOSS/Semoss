@@ -57,9 +57,9 @@ public class GenRowStruct extends Vector {
 		return this.isAllSQL;
 	}
 
-	public void addFilter(Join join)
+	public void addFilter(Filter filter)
 	{
-		super.addElement(join);
+		super.addElement(filter);
 		metaVector.add(COLUMN_TYPE.FILTER);		
 		
 		// add this to set of selectors as well. Not sure I need to
