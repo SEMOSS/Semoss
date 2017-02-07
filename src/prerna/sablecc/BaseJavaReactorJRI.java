@@ -657,8 +657,7 @@ public class BaseJavaReactorJRI extends AbstractRJavaReactor {
 		return retOutput;
 	}
 	
-	public Object[][] getDescriptiveStats(String frameName, String column, boolean print)
-	{
+	public Object[][] getDescriptiveStats(String frameName, String column, boolean print) {
 		// start the R first
 		Rengine rcon = (Rengine)startR();
 		Object [][] retOutput = new Object[8][2]; // name and the number of items
