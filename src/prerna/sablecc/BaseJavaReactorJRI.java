@@ -15,10 +15,7 @@ import org.rosuda.REngine.REXPDouble;
 import org.rosuda.REngine.REXPGenericVector;
 import org.rosuda.REngine.REXPInteger;
 import org.rosuda.REngine.REXPList;
-import org.rosuda.REngine.REXPMismatchException;
 import org.rosuda.REngine.REXPString;
-import org.rosuda.REngine.Rserve.RConnection;
-import org.rosuda.REngine.Rserve.RserveException;
 
 import prerna.algorithm.api.ITableDataFrame;
 import prerna.ds.TinkerFrame;
