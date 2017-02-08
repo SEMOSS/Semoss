@@ -174,6 +174,12 @@ public abstract class AbstractRJavaReactor extends AbstractJavaReactor {
 	 * @param rVarName
 	 */
 	protected void synchronizeGridToRDataTable(String rVarName) {
+		RDataTable table = new RDataTable(rVarName);
+		if(table.getConnection() != null && table.getPort() != null) {
+			storeVariable(R_CONN, table.getConnection());
+			storeVariable(R_PORT, table.getPort());
+		}
+	
 		H2Frame gridFrame = (H2Frame)dataframe;
 		String tableName = gridFrame.getBuilder().getTableName();
 		String url = gridFrame.getBuilder().connectFrame();
@@ -182,8 +188,6 @@ public abstract class AbstractRJavaReactor extends AbstractJavaReactor {
 
 		// need to create a new data table
 		// should properly merge the meta data
-		
-		RDataTable table = new RDataTable(rVarName);
 		
 		Map<String, Set<String>> edgeHash = gridFrame.getEdgeHash();
 		
@@ -209,10 +213,6 @@ public abstract class AbstractRJavaReactor extends AbstractJavaReactor {
 		}
 		
 		table.mergeEdgeHash(cleanEdgeHash, dataTypeMap);
-		if(table.getConnection() != null && table.getPort() != null) {
-			storeVariable(R_CONN, table.getConnection());
-			storeVariable(R_PORT, table.getPort());
-		}
 
 		eval(rVarName + " <-as.data.table(unclass(dbGetQuery(conn,'SELECT * FROM " + tableName + "')));");
 		eval("setDT(" + rVarName + ")");
