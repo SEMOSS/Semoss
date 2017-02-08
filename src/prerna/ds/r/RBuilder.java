@@ -44,13 +44,20 @@ public class RBuilder extends AbstractRBuilder {
 		LOGGER.info("Starting it on port.. " + port);
 		// need to find a way to get a common name
 		masterCon.eval("library(Rserve); Rserve(port = " + port + ")");
-		retCon = new RConnection("127.0.0.1", Integer.parseInt(port));
+		this.retCon = new RConnection("127.0.0.1", Integer.parseInt(port));
 		
 		// load in the data.table package
-		retCon.eval("library(data.table)");
-		
+		this.retCon.eval("library(data.table)");
 		// load in the sqldf package to run sql queries
-		retCon.eval("library(sqldf)");
+		this.retCon.eval("library(sqldf)");
+		// load all the libraries
+		this.retCon.eval("library(splitstackshape);");
+		// data table
+		this.retCon.eval("library(data.table);");
+		// reshape2
+		this.retCon.eval("library(reshape2);");
+		// rjdbc
+		this.retCon.eval("library(RJDBC);");
 		
 		// note: modified create flow, not using these methods
 		// load in the R script defining the functions we are using
