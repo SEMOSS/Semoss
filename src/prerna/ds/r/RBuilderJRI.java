@@ -29,9 +29,16 @@ public class RBuilderJRI extends AbstractRBuilder {
 		}
 		// load in the data.table package
 		this.retCon.eval("library(data.table)");
-
 		// load in the sqldf package to run sql queries
 		this.retCon.eval("library(sqldf)");
+		// load all the libraries
+		this.retCon.eval("library(splitstackshape);");
+		// data table
+		this.retCon.eval("library(data.table);");
+		// reshape2
+		this.retCon.eval("library(reshape2);");
+		// rjdbc
+		this.retCon.eval("library(RJDBC);");
 	}
 
 	public RBuilderJRI(String dataTableName) {
