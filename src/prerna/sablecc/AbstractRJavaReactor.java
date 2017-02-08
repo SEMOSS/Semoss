@@ -17,6 +17,7 @@ import org.apache.tinkerpop.gremlin.structure.io.IoCore;
 import org.rosuda.JRI.Rengine;
 
 import prerna.algorithm.api.IMetaData;
+import prerna.algorithm.api.IMetaData.DATA_TYPES;
 import prerna.algorithm.api.ITableDataFrame;
 import prerna.ds.QueryStruct;
 import prerna.ds.TinkerFrame;
@@ -237,7 +238,7 @@ public abstract class AbstractRJavaReactor extends AbstractJavaReactor {
 	 */
 	protected void synchronizeGridFromR(String frameName, boolean overrideExistingTable) {
 		// get the necessary information from the r frame
-		// to be able to add the data correclty
+		// to be able to add the data correctly
 		
 		// get the names and types
 		String[] colNames = getColNames(frameName, false);
@@ -354,6 +355,66 @@ public abstract class AbstractRJavaReactor extends AbstractJavaReactor {
 		
 		System.out.println("Table Synchronized as " + tableName);
 		frameToUse.updateDataId();
+	}
+	
+	/**
+	 * Synchronize a R data table into a H2Frame
+	 * @param frameName
+	 * @param overrideExistingTable
+	 */
+	protected void synchronizeGridFromRDataTable(String frameName) {
+		RDataTable rFrame = (RDataTable) dataframe;
+		Map<String, Set<String>> edgeHash = rFrame.getEdgeHash();
+		
+		// need to create a data type map and a query struct
+		QueryStruct qs = new QueryStruct();
+		// TODO: REALLY NEED TO CONSOLIDATE THE STRING VS. METADATA TYPE DATAMAPS
+		Map<String, Set<String>> cleanEdgeHash = new HashMap<String, Set<String>>();
+		Map<String, IMetaData.DATA_TYPES> dataTypeMap = new HashMap<String, IMetaData.DATA_TYPES>();
+		Map<String, String> dataTypeMapStr = new Hashtable<String, String>();
+		for(String colName : edgeHash.keySet()) {
+			String cleanColName = colName.toUpperCase();
+			if(!dataTypeMap.containsKey(cleanColName)) {
+				DATA_TYPES type = rFrame.getDataType(colName);
+				dataTypeMap.put(cleanColName, type);
+				dataTypeMapStr.put(cleanColName, Utility.convertDataTypeToString(type) );
+				qs.addSelector(cleanColName, null);
+			}
+			
+			Set<String> cleanOtherCols = new HashSet<String>();
+			Set<String> otherCols = edgeHash.get(colName);
+			for(String otherCol : otherCols) {
+				String cleanOtherCol = otherCol.toUpperCase();
+				if(!dataTypeMap.containsKey(cleanOtherCol)) {
+					DATA_TYPES type = rFrame.getDataType(colName);
+					dataTypeMap.put(cleanOtherCol, type );
+					dataTypeMapStr.put(cleanOtherCol, Utility.convertDataTypeToString(type) );
+					qs.addSelector(cleanOtherCol, null);
+				}
+				cleanOtherCols.add(cleanOtherCol);
+			}
+			
+			cleanEdgeHash.put(cleanColName, cleanOtherCols);
+		}
+		
+		// we will make a temp file
+		String tempFileLocation = DIHelper.getInstance().getProperty(Constants.INSIGHT_CACHE_DIR) + "\\" + DIHelper.getInstance().getProperty(Constants.CSV_INSIGHT_CACHE_FOLDER);
+		tempFileLocation += "\\" + Utility.getRandomString(10) + ".csv";
+		tempFileLocation = tempFileLocation.replace("\\", "/");
+		eval("fwrite(" + frameName + ", file='" + tempFileLocation + "')");
+		
+		H2Frame table = new H2Frame();
+		table.mergeEdgeHash(cleanEdgeHash, dataTypeMapStr);
+
+		// iterate through file and insert values
+		FileIterator dataIterator = FileIterator.createInstance(FILE_DATA_TYPE.META_DATA_ENUM, tempFileLocation, ',', qs, dataTypeMap);
+		table.addRowsViaIterator(dataIterator, dataTypeMap);
+		dataIterator.deleteFile();
+		
+		System.out.println("Table Synchronized as " + table.getTableName());
+		
+		this.dataframe = table;
+		this.frameChanged = true;
 	}
 	
 	protected void initiateDriver(String url, String username) {
