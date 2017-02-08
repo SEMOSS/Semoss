@@ -7,7 +7,6 @@ import java.util.Set;
 
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
-import org.rosuda.REngine.REXP;
 import org.rosuda.REngine.Rserve.RConnection;
 import org.rosuda.REngine.Rserve.RserveException;
 
@@ -20,17 +19,32 @@ import prerna.engine.impl.r.RFileWrapper;
 import prerna.sablecc.PKQLEnum;
 import prerna.sablecc.PKQLEnum.PKQLReactor;
 import prerna.ui.components.playsheets.datamakers.DataMakerComponent;
+import prerna.util.Constants;
+import prerna.util.DIHelper;
 
 public class RDataTable extends AbstractTableDataFrame {
 
 	private static final Logger LOGGER = LogManager.getLogger(RDataTable.class.getName());
 	public static final String R_DATA_FRAME = "RDataFrame";
 	
-	private RBuilder builder;
+	private AbstractRBuilder builder;
 	
 	public RDataTable() {
+		this(null);
+	}
+	
+	public RDataTable(String rTableVarName) {
+		String useJriStr = DIHelper.getInstance().getProperty(Constants.R_CONNECTION_JRI);
+		boolean useJri = false;
+		if(useJriStr != null) {
+			useJri = Boolean.valueOf(useJriStr);
+		}
 		try {
-			this.builder = new RBuilder();
+			if(useJri) {
+				this.builder = new RBuilderJRI(rTableVarName);
+			} else {
+				this.builder = new RBuilder(rTableVarName);
+			}
 			this.metaData = new TinkerMetaData();
 		} catch (RserveException e) {
 			e.printStackTrace();
@@ -43,6 +57,10 @@ public class RDataTable extends AbstractTableDataFrame {
 		return this.builder.getConnection();
 	}
 	
+	public String getPort() {
+		return this.builder.getPort();
+	}
+	
 	@Override
 	public Map<String, String> getScriptReactors() {
 		Map<String, String> reactorNames = super.getScriptReactors();
@@ -50,7 +68,8 @@ public class RDataTable extends AbstractTableDataFrame {
 //		reactorNames.put(PKQLEnum.API, "prerna.sablecc.ApiReactor");
 
 		//TODO: need to go through and modify these things so they are not H2 specific
-		
+		reactorNames.put(PKQLEnum.DATA_FRAME_DUPLICATES, "prerna.sablecc.TinkerDuplicatesReactor");
+
 		reactorNames.put(PKQLEnum.EXPR_TERM, "prerna.sablecc.ExprReactor");
 		reactorNames.put(PKQLEnum.EXPR_SCRIPT, "prerna.sablecc.ExprReactor");
 		reactorNames.put(PKQLReactor.MATH_FUN.toString(),"prerna.sablecc.MathReactor");
@@ -107,12 +126,32 @@ public class RDataTable extends AbstractTableDataFrame {
 		this.builder.createTableViaCsvFile(fileWrapper);
 	}
 	
-	public REXP executeRScript(String rScript) {
-		return this.builder.executeR(rScript);
+	public Map<String, Object> getMapReturn(String rScript) {
+		return this.builder.getMapReturn(rScript);
 	}
 	
-	public String getROutput(String rScript) {
-		return this.builder.getROutput(rScript);
+	public Object getScalarValue(String rScript) {
+		return this.builder.getScalarReturn(rScript);
+	}
+	
+	public void executeRScript(String rScript) {
+		this.builder.executeR(rScript);
+	}
+	
+	public String[] getColumnNames() {
+		return this.builder.getColumnNames();
+	}
+	
+	public String[] getColumnTypes() {
+		return this.builder.getColumnTypes();
+	}
+	
+	public String[] getColumnNames(String varName) {
+		return this.builder.getColumnNames(varName);
+	}
+	
+	public String[] getColumnTypes(String varName) {
+		return this.builder.getColumnTypes(varName);
 	}
 	
 	@Override
@@ -127,7 +166,7 @@ public class RDataTable extends AbstractTableDataFrame {
 
 	@Override
 	public Iterator<Object[]> iterator() {
-		return this.builder.iterator(this.headerNames);
+		return this.builder.iterator(this.headerNames, 0, 0);
 	}
 	
 	@Override
@@ -142,7 +181,18 @@ public class RDataTable extends AbstractTableDataFrame {
 			List<String> headerList = (List<String>) options.get(AbstractTableDataFrame.SELECTORS);
 			headers = headerList.toArray(new String[]{});
 		}
-		return this.builder.iterator(headers);
+		
+		int limit = 0;
+		if(options.containsKey(AbstractTableDataFrame.LIMIT)) {
+			limit = (int) options.get(AbstractTableDataFrame.LIMIT);
+		}
+		
+		int offset = 0;
+		if(options.containsKey(AbstractTableDataFrame.OFFSET)) {
+			offset = (int) options.get(AbstractTableDataFrame.OFFSET);
+		}
+		
+		return this.builder.iterator(headers, limit, offset);
 	}
 	
 	@Override
@@ -154,8 +204,14 @@ public class RDataTable extends AbstractTableDataFrame {
 		return this.builder.getTableName();
 	}
 	
+	@Override
+	public int getNumRows() {
+		return this.builder.getNumRows();
+	}
 	
-	
+	public int getNumRows(String varName) {
+		return this.builder.getNumRows(varName);
+	}
 	
 	@Override
 	public void addRow(Object[] rowCleanData) {
@@ -295,5 +351,4 @@ public class RDataTable extends AbstractTableDataFrame {
 		// TODO Auto-generated method stub
 		
 	}
-	
 }
