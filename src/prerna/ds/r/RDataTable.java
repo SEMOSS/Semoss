@@ -48,6 +48,7 @@ public class RDataTable extends AbstractTableDataFrame {
 			this.metaData = new TinkerMetaData();
 		} catch (RserveException e) {
 			e.printStackTrace();
+			closeConnection();
 			throw new IllegalStateException("Could not create valid connection to R. "
 					+ "Please make sure R is installed properly and running on machine.");
 		}
@@ -59,6 +60,12 @@ public class RDataTable extends AbstractTableDataFrame {
 	
 	public String getPort() {
 		return this.builder.getPort();
+	}
+	
+	public void closeConnection() {
+		if(this.builder.getConnection() != null) {
+			this.builder.getConnection().close();
+		}
 	}
 	
 	@Override
@@ -351,4 +358,5 @@ public class RDataTable extends AbstractTableDataFrame {
 		// TODO Auto-generated method stub
 		
 	}
+
 }
