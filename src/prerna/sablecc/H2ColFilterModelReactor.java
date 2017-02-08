@@ -158,7 +158,7 @@ public class H2ColFilterModelReactor extends ColFilterModelReactor {
 			if (word.equalsIgnoreCase("null ")) {
 				query += " WHERE UPPER(" + col + ") IS NULL";
 			} else {
-				query += " WHERE UPPER(" + col + ") = \'" + word.trim().toUpperCase() + "\'";
+				query += " WHERE UPPER(" + col + ") LIKE \'%" + word.trim().toUpperCase() + "%\'";
 			}
 			whereUsed = true;
 		}
@@ -233,7 +233,7 @@ public class H2ColFilterModelReactor extends ColFilterModelReactor {
 				query += " WHERE UPPER(" + col + ") IS NULL";
 
 			} else {
-				query += " WHERE UPPER(" + col + ") LIKE \'" + word.trim().toUpperCase() + "%\'";
+				query += " WHERE UPPER(" + col + ") LIKE \'%" + word.trim().toUpperCase() + "%\'";
 			}
 			whereUsed = true;
 		}
