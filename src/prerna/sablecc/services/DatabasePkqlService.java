@@ -676,10 +676,11 @@ public class DatabasePkqlService {
 			String concpetualPropertyName = Utility.getClassName(rawValues[1] + "");
 			
 			// Check the concepts and props against the metamodel filter that is set
+			// TODO: Better way to represent/check if it's actual node value or a prop rather than checking equality to "noprop"
 			if(conceptFilter != null && !conceptFilter.isEmpty()) {
 				if(!conceptFilter.contains(conceptualConceptName)) {
 					continue;
-				} else if(!metamodelFilter.get(conceptualConceptName).contains(concpetualPropertyName)) {
+				} else if(!concpetualPropertyName.equals("noprop") && !metamodelFilter.get(conceptualConceptName).contains(concpetualPropertyName)) {
 					continue;
 				}
 			}
