@@ -385,7 +385,7 @@ public class BaseJavaReactorJRI extends AbstractRJavaReactor {
 	}
 	
 	// replace the column value for a particular column
-	public void replaceColumnValue(String frameName, String columnName, String curValue, String newValue)
+	public void performReplaceColumnValue(String frameName, String columnName, String curValue, String newValue)
 	{
 		// * dt[PY == "hello", PY := "D"] replaces a column conditionally based on the value
 		Rengine engine = (Rengine)startR();
@@ -409,13 +409,8 @@ public class BaseJavaReactorJRI extends AbstractRJavaReactor {
 		}
 	}
 	
-	public void splitColumn(String frameName, String columnName, String separator)
-	{
-		splitColumn(frameName, columnName, separator, false, true);
-	}
-		
 	// split a column based on a value
-	public void splitColumn(String frameName, String columnName, String separator, boolean dropColumn, boolean frameReplace)
+	public void performSplitColumn(String frameName, String columnName, String separator, boolean dropColumn, boolean frameReplace)
 	{
 		//  cSplit(dt, "PREFIX", "_")
 		Rengine engine = (Rengine)startR();
@@ -570,7 +565,7 @@ public class BaseJavaReactorJRI extends AbstractRJavaReactor {
 		}		
 	}
 	
-	public void joinColumns(String frameName, String newColumnName,  String separator, String cols)
+	public void performJoinColumns(String frameName, String newColumnName,  String separator, String cols)
 	{
 		// reconstruct the column names
 		//paste(df1$a_1, df1$a_2, sep="$$")
