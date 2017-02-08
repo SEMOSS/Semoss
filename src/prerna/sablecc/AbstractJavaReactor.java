@@ -11,6 +11,10 @@ import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
 import prerna.algorithm.api.ITableDataFrame;
+import prerna.algorithm.learning.r.RRoutine;
+import prerna.algorithm.learning.r.RRoutineException;
+import prerna.algorithm.learning.unsupervised.anomaly.AnomalyDetector;
+import prerna.algorithm.learning.unsupervised.anomaly.AnomalyDetector.AnomDirection;
 import prerna.ds.DataFrameHelper;
 import prerna.ds.TinkerFrame;
 import prerna.ds.h2.H2Frame;
@@ -110,6 +114,38 @@ public abstract class AbstractJavaReactor extends AbstractReactor {
 		dataframe.filter(columnHeader, values);
 	}
 
+	public void runAnomalyDetection(String seriesColumn, String timeColumn, double maxAnoms, String direction,
+			double alpha, int period) {
+		java.lang.System.setSecurityManager(curManager);
+
+		// Convert string direction to AnomDirection
+		// Default to both
+		AnomDirection anomDirection;
+		switch (direction) {
+		case ("positive"):
+			anomDirection = AnomDirection.POSITIVE;
+		case ("negative"):
+			anomDirection = AnomDirection.NEGATIVE;
+		default:
+			anomDirection = AnomDirection.BOTH;
+		}
+
+		// Create a new anomaly detector
+		AnomalyDetector anomalyDetector = new AnomalyDetector(dataframe, seriesColumn, timeColumn, maxAnoms,
+				anomDirection, alpha, period);
+
+		// Detect anomalies using the anomaly detector
+		try {
+			dataframe = anomalyDetector.detectAnomalies();
+			dataframe.updateDataId();
+			frameChanged = true;
+			myStore.put("G", dataframe);
+		} catch (RRoutineException e) {
+			e.printStackTrace();
+		}
+		java.lang.System.setSecurityManager(reactorManager);
+	}
+	
 	protected void runClustering(int instanceIndex, int numClusters, String[] selectors) {
 		java.lang.System.setSecurityManager(curManager);
 		
@@ -319,6 +355,90 @@ public abstract class AbstractJavaReactor extends AbstractReactor {
 		
 		this.dataframe.updateDataId();
 		
+		java.lang.System.setSecurityManager(reactorManager);
+	}
+	
+	/**
+	 * Runs a .R file script with the current data frame in Semoss synchronized
+	 * to R as rSyncFrameName. After running the routine, the R frame with name
+	 * rReturnFrameName is synchronized back to Semoss.
+	 * 
+	 * @param scriptName
+	 *            The name of the script in (Semoss base folder)\R\UserScripts
+	 *            to run
+	 * @param rSyncFrameName
+	 *            The name of the R data frame that is synchronized to R
+	 * @param selectedColumns
+	 *            A semicolon-delimited string of columns to select when
+	 *            synchronizing the frame to R
+	 * @param rReturnFrameName
+	 *            The name of the R data frame that is synchronized from R
+	 * @param arguments
+	 *            A semicolon-delimited string of arguments that are
+	 *            synchronized to R as an args list. These arguments can then be
+	 *            accessed in R via args[[i]], where i is the index of the
+	 *            desired argument
+	 */
+	// Example pkql use:
+	// j: <code>runRRoutine("CloudMigrationRoadmap.R", "semossGrid", "*",
+	// "finalRoadMap", "200");<code> ;
+	public void runRRoutine(String scriptName, String rSyncFrameName, String selectedColumns, String rReturnFrameName,
+			String arguments) {
+		java.lang.System.setSecurityManager(curManager);
+		RRoutine rRoutine = new RRoutine.Builder(dataframe, scriptName, rSyncFrameName).selectedColumns(selectedColumns)
+				.rReturnFrameName(rReturnFrameName).arguments(arguments).build();
+		try {
+			dataframe = rRoutine.returnDataFrame();
+			dataframe.updateDataId();
+			frameChanged = true;
+			myStore.put("G", dataframe);
+		} catch (RRoutineException e) {
+			e.printStackTrace();
+		}
+		java.lang.System.setSecurityManager(reactorManager);
+	}
+
+	public void runRRoutine(String scriptName, String rSyncFrameName, String selectedColumns, String rReturnFrameName) {
+		java.lang.System.setSecurityManager(curManager);
+		RRoutine rRoutine = new RRoutine.Builder(dataframe, scriptName, rSyncFrameName).selectedColumns(selectedColumns)
+				.rReturnFrameName(rReturnFrameName).build();
+		try {
+			dataframe = rRoutine.returnDataFrame();
+			dataframe.updateDataId();
+			frameChanged = true;
+			myStore.put("G", dataframe);
+		} catch (RRoutineException e) {
+			e.printStackTrace();
+		}
+		java.lang.System.setSecurityManager(reactorManager);
+	}
+
+	public void runRRoutine(String scriptName, String rSyncFrameName, String selectedColumns) {
+		java.lang.System.setSecurityManager(curManager);
+		RRoutine rRoutine = new RRoutine.Builder(dataframe, scriptName, rSyncFrameName).selectedColumns(selectedColumns)
+				.build();
+		try {
+			dataframe = rRoutine.returnDataFrame();
+			dataframe.updateDataId();
+			frameChanged = true;
+			myStore.put("G", dataframe);
+		} catch (RRoutineException e) {
+			e.printStackTrace();
+		}
+		java.lang.System.setSecurityManager(reactorManager);
+	}
+
+	public void runRRoutine(String scriptName, String rSyncFrameName) {
+		java.lang.System.setSecurityManager(curManager);
+		RRoutine rRoutine = new RRoutine(dataframe, scriptName, rSyncFrameName);
+		try {
+			dataframe = rRoutine.returnDataFrame();
+			dataframe.updateDataId();
+			frameChanged = true;
+			myStore.put("G", dataframe);
+		} catch (RRoutineException e) {
+			e.printStackTrace();
+		}
 		java.lang.System.setSecurityManager(reactorManager);
 	}
 
