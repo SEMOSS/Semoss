@@ -4,6 +4,9 @@ import java.io.File;
 import java.util.Iterator;
 import java.util.StringTokenizer;
 
+import org.apache.log4j.LogManager;
+import org.apache.log4j.Logger;
+
 import javassist.CannotCompileException;
 import javassist.ClassClassPath;
 import javassist.ClassPool;
@@ -12,6 +15,7 @@ import javassist.CtNewMethod;
 import javassist.NotFoundException;
 import prerna.algorithm.api.ITableDataFrame;
 import prerna.ds.h2.H2Frame;
+import prerna.ds.r.RDataTable;
 import prerna.engine.api.IScriptReactor;
 import prerna.sablecc.meta.ExecuteCodePkqlMetadata;
 import prerna.sablecc.meta.IPkqlMetadata;
@@ -19,6 +23,8 @@ import prerna.util.Constants;
 import prerna.util.DIHelper;
 
 public class JavaReactorWrapper extends AbstractReactor {
+	
+	private static final Logger LOGGER = LogManager.getLogger(JavaReactorWrapper.class.getName());
 	
 	SecurityManager securityManager = new ReactorSecurityManager();
 	SecurityManager curManager = null;
@@ -33,11 +39,21 @@ public class JavaReactorWrapper extends AbstractReactor {
 	
 	@Override
 	public Iterator process() {
-
+		PKQLRunner thisRunner = (PKQLRunner)myStore.get("PKQLRunner");
+		
 		String useJriStr = DIHelper.getInstance().getProperty(Constants.R_CONNECTION_JRI);
 		boolean useJri = false;
 		if(useJriStr != null) {
 			useJri = Boolean.valueOf(useJriStr);
+		}
+		ITableDataFrame dataFrame = (ITableDataFrame)myStore.get("G");
+		// hold up, if frame is r data table
+		// use that connection
+		// which is always running on its own Rserve
+		if(!useJri && dataFrame instanceof RDataTable) {
+			LOGGER.info("Utilizing R connection details from RDataTable...");
+			thisRunner.setVariableValue(AbstractRJavaReactor.R_CONN, ((RDataTable) dataFrame).getConnection() );
+			thisRunner.setVariableValue(AbstractRJavaReactor.R_PORT, ((RDataTable) dataFrame).getPort() );
 		}
 		
 		System.out.println(myStore);
@@ -129,10 +145,10 @@ public class JavaReactorWrapper extends AbstractReactor {
 			curManager =  System.getSecurityManager();
 		    //jR.setConsole();
 		    // set the data frame first
-		    jR.setDataFrame((ITableDataFrame)myStore.get("G"));
+		    jR.setDataFrame(dataFrame);
 		    
 		    // set the PKQL Runner as well
-		    jR.setPKQLRunner((PKQLRunner)myStore.get("PKQLRunner"));
+		    jR.setPKQLRunner(thisRunner);
 		    
 		    // call the process
 		    System.setSecurityManager( new ReactorSecurityManager()) ;		    
@@ -141,34 +157,24 @@ public class JavaReactorWrapper extends AbstractReactor {
 			
 			// reset the frame
 			if(jR.frameChanged) {
+				jR.put("G", jR.dataframe);
 				myStore.put("G", jR.dataframe);
 			}
 			if(jR.hasReturnData) {
-				// ugh... why is there some places where we grab from jR and
-				// some places we grab from java reactor???
-				// inconsistent with above!
 				jR.put("returnData", jR.returnData);
 				myStore.put("returnData", jR.returnData);
 			}
 			System.out.println(jR.getValue("ERROR"));
 			daReactor = jR;
 		} catch (RuntimeException e) {
-			// TODO Auto-generated catch block
 			e.printStackTrace();
 		} catch (CannotCompileException e) {
-			// TODO Auto-generated catch block
 			e.printStackTrace();
 		} catch (NotFoundException e) {
-			// TODO Auto-generated catch block
 			e.printStackTrace();
-		} /*catch (IOException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		} */catch (InstantiationException e) {
-			// TODO Auto-generated catch block
+		} catch (InstantiationException e) {
 			e.printStackTrace();
 		} catch (IllegalAccessException e) {
-			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
 		return null;

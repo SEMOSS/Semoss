@@ -8,8 +8,6 @@ import java.util.Vector;
 
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
-import org.rosuda.REngine.REXP;
-import org.rosuda.REngine.REXPMismatchException;
 
 import prerna.ds.r.RDataTable;
 import prerna.sablecc.expressions.IExpressionSelector;
@@ -61,12 +59,7 @@ public class RExpressionIterator implements Iterator<Object[]> {
 			generateExpression();
 		}
 		frame.executeRScript(this.dataTableName + "<-" + rScript);
-		REXP result = frame.executeRScript("nrow(" + this.dataTableName + ")");
-		try {
-			this.numRows = result.asInteger();
-		} catch (REXPMismatchException e) {
-			e.printStackTrace();
-		}
+		this.numRows = frame.getNumRows(this.dataTableName);
 		this.rowIndex = 1;
 		getHeaderTypes();
 		getHeadersString();
@@ -95,16 +88,8 @@ public class RExpressionIterator implements Iterator<Object[]> {
 	@Override
 	public Object[] next() {
 		// grab the rowIndex from the data table
-		REXP result = this.frame.executeRScript(this.dataTableName + "[" + rowIndex + "," + headerString + " , with=FALSE ]");
-		
-		Map<String, Object> data = null;
-		try {
-			// grab as a generic list object
-			data = (Map<String, Object>) result.asNativeJavaObject();
-		} catch (REXPMismatchException e) {
-			e.printStackTrace();
-		}
-		
+		Map<String, Object> data = this.frame.getMapReturn(this.dataTableName + "[" + rowIndex + "," + headerString + " , with=FALSE ]");
+
 		// iterate through the list and fill into an object array to return
 		Object[] retArray = new Object[this.headers.size()];
 		for(int colIndex = 0; colIndex < numCols; colIndex++) {
@@ -133,31 +118,23 @@ public class RExpressionIterator implements Iterator<Object[]> {
 	
 	private void getHeaderTypes() {
 		headerTypes = new HashMap<String, String>();
-		
-		String[] types = null;
-		String[] names = null;
-		REXP typesR = this.frame.executeRScript("sapply(" + dataTableName + " , class)");
-		REXP namesR = this.frame.executeRScript("names(" + dataTableName + ")");
-		try {
-			types = typesR.asStrings();
-			names = namesR.asStrings();
-			
-			int i = 0;
-			for(; i < types.length; i++) {
-				String type = types[i];
-				String name = names[i];
-				
-				if(type.equalsIgnoreCase("character") || type.equalsIgnoreCase("factor")) {
-					headerTypes.put(name, "STRING");
-				} else if(type.equalsIgnoreCase("numeric") | type.equalsIgnoreCase("integer")){
-					headerTypes.put(name, "NUMBER");
-				} else {
-					// ughhh... just assume everything else is date for now..
-					headerTypes.put(name, "DATE");
-				}
+
+		String[] types = this.frame.getColumnTypes(this.dataTableName);
+		String[] names = this.frame.getColumnNames(this.dataTableName);
+
+		int i = 0;
+		for(; i < types.length; i++) {
+			String type = types[i];
+			String name = names[i].toUpperCase();
+
+			if(type.equalsIgnoreCase("character") || type.equalsIgnoreCase("factor")) {
+				headerTypes.put(name, "STRING");
+			} else if(type.equalsIgnoreCase("numeric") | type.equalsIgnoreCase("integer")){
+				headerTypes.put(name, "NUMBER");
+			} else {
+				// ughhh... just assume everything else is date for now..
+				headerTypes.put(name, "DATE");
 			}
-		} catch (REXPMismatchException e) {
-			e.printStackTrace();
 		}
 	}
 	
@@ -178,7 +155,7 @@ public class RExpressionIterator implements Iterator<Object[]> {
 						
 			headMap.put("uri", header);
 			headMap.put("varKey", header);
-			headMap.put("type", headerTypes.get(origHeader.toUpperCase()));
+			headMap.put("type", headerTypes.get(header.toUpperCase()));
 			headMap.put("vizType", vizTypes.get(i).replace("=", ""));
 			
 			// TODO push this on the selector to provide its type
