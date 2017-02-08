@@ -1,7 +1,5 @@
 package prerna.sablecc.expressions.r;
 
-import java.util.Map;
-
 public class RAverageReactor extends RBasicMathReactor {
 
 	/*
