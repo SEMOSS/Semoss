@@ -85,6 +85,12 @@ public abstract class AbstractRJavaReactor extends AbstractJavaReactor {
 
 	protected abstract Object[][] getDescriptiveStats(String frameName, String colName, boolean outputString);
 
+	protected abstract void performSplitColumn(String frameName, String columnName, String separator, boolean dropColumn, boolean frameReplace);
+	
+	protected abstract void performJoinColumns(String frameName, String newColumnName,  String separator, String cols);
+	
+	protected abstract void performReplaceColumnValue(String frameName, String columnName, String curValue, String newValue);
+	
 	////////////////////////////////////////////////////////////
 	////////////////////////////////////////////////////////////
 	//////////////////////// R Methods /////////////////////////
@@ -482,6 +488,7 @@ public abstract class AbstractRJavaReactor extends AbstractJavaReactor {
 	protected void dropRColumn(String frameName, String colName) {
 		eval(frameName + "[," + colName + ":=NULL]");
 		System.out.println("Successfully removed column = " + colName);
+		checkRTableModified(frameName);
 	}
 	
 	/**
@@ -493,6 +500,7 @@ public abstract class AbstractRJavaReactor extends AbstractJavaReactor {
 	protected void dropRowsWhereColumnContainsValue(String colName, String comparator, Object values) {
 		String frameName = (String)retrieveVariable("GRID_NAME");
 		dropRowsWhereColumnContainsValue(frameName, colName, comparator, values);
+		checkRTableModified(frameName);
 	}
 	
 	/**
@@ -599,6 +607,7 @@ public abstract class AbstractRJavaReactor extends AbstractJavaReactor {
 				.append(frameExpression).append(comparator).append(value).append("),]");
 		eval(script.toString());
 		System.out.println("Script ran = " + script.toString() + "\nSuccessfully removed rows");
+		checkRTableModified(frameName);
 	}
 	
 	protected void dropRowsWhereColumnContainsValue(String frameName, String colName, String comparator, double value) {
@@ -611,6 +620,35 @@ public abstract class AbstractRJavaReactor extends AbstractJavaReactor {
 				.append(frameExpression).append(comparator).append(value).append("),]");
 		eval(script.toString());
 		System.out.println("Script ran = " + script.toString() + "\nSuccessfully removed rows");
+		checkRTableModified(frameName);
+	}
+	
+	protected void replaceColumnValue(String frameName, String columnName, String curValue, String newValue) {
+		performReplaceColumnValue(frameName, columnName, curValue, newValue);
+		checkRTableModified(frameName);
+	}
+	
+	protected void splitColumn(String frameName, String columnName, String separator) {
+		splitColumn(frameName, columnName, separator, false, true);
+	}
+	
+	protected void splitColumn(String frameName, String columnName, String separator, boolean dropColumn, boolean frameReplace) {
+		performSplitColumn(frameName, columnName, separator, false, true);
+		checkRTableModified(frameName);
+	}
+	
+	protected void joinColumns(String frameName, String newColumnName, String separator, String cols) {
+		performJoinColumns(frameName, newColumnName, separator, cols);
+		checkRTableModified(frameName);
+	}
+
+	protected void checkRTableModified(String frameName) {
+		if(this.dataframe instanceof RDataTable) {
+			String tableVarName =  ( (RDataTable) this.dataframe).getTableVarName();
+			if(frameName.equals(tableVarName)) {
+				this.dataframe.updateDataId();
+			}
+		}
 	}
 	
 	////////////////////////////////////////////////////////////
