@@ -500,7 +500,6 @@ public abstract class AbstractRJavaReactor extends AbstractJavaReactor {
 	protected void dropRowsWhereColumnContainsValue(String colName, String comparator, Object values) {
 		String frameName = (String)retrieveVariable("GRID_NAME");
 		dropRowsWhereColumnContainsValue(frameName, colName, comparator, values);
-		checkRTableModified(frameName);
 	}
 	
 	/**
@@ -595,6 +594,12 @@ public abstract class AbstractRJavaReactor extends AbstractJavaReactor {
 		script.append("),]");
 		eval(script.toString());
 		System.out.println("Script ran = " + script.toString() + "\nSuccessfully removed rows");
+		checkRTableModified(frameName);
+	}
+	
+	protected void dropRowsWhereColumnContainsValue(String colName, String comparator, int value) {
+		String frameName = (String)retrieveVariable("GRID_NAME");
+		dropRowsWhereColumnContainsValue(frameName, colName, comparator, value);
 	}
 	
 	protected void dropRowsWhereColumnContainsValue(String frameName, String colName, String comparator, int value) {
@@ -610,6 +615,11 @@ public abstract class AbstractRJavaReactor extends AbstractJavaReactor {
 		checkRTableModified(frameName);
 	}
 	
+	protected void dropRowsWhereColumnContainsValue(String colName, String comparator, double value) {
+		String frameName = (String)retrieveVariable("GRID_NAME");
+		dropRowsWhereColumnContainsValue(frameName, colName, comparator, value);
+	}
+	
 	protected void dropRowsWhereColumnContainsValue(String frameName, String colName, String comparator, double value) {
 		// to account for misunderstandings between = and == for normal users
 		if(comparator.equals("=")) {
@@ -623,9 +633,19 @@ public abstract class AbstractRJavaReactor extends AbstractJavaReactor {
 		checkRTableModified(frameName);
 	}
 	
+	protected void replaceColumnValue(String columnName, String curValue, String newValue) {
+		String frameName = (String)retrieveVariable("GRID_NAME");
+		replaceColumnValue(frameName, columnName, curValue, newValue);
+	}
+	
 	protected void replaceColumnValue(String frameName, String columnName, String curValue, String newValue) {
 		performReplaceColumnValue(frameName, columnName, curValue, newValue);
 		checkRTableModified(frameName);
+	}
+	
+	protected void splitColumn(String columnName, String separator) {
+		String frameName = (String)retrieveVariable("GRID_NAME");
+		splitColumn(frameName, columnName, separator, false, true);
 	}
 	
 	protected void splitColumn(String frameName, String columnName, String separator) {
@@ -637,8 +657,34 @@ public abstract class AbstractRJavaReactor extends AbstractJavaReactor {
 		checkRTableModified(frameName);
 	}
 	
+	protected void joinColumns(String newColumnName, String separator, String cols) {
+		String frameName = (String)retrieveVariable("GRID_NAME");
+		joinColumns(frameName, newColumnName, separator, cols);
+	}
+	
 	protected void joinColumns(String frameName, String newColumnName, String separator, String cols) {
 		performJoinColumns(frameName, newColumnName, separator, cols);
+		checkRTableModified(frameName);
+	}
+	
+	protected void transpose() {
+		String frameName = (String)retrieveVariable("GRID_NAME");
+		transpose(frameName);
+	}
+	
+	protected void transpose(String frameName) {
+		String script = frameName + " <- " + frameName + "[, data.table(t(.SD), keep.rownames=TRUE)]";
+		System.out.println("Running script : " + script);
+		eval(script);
+		System.out.println("Successfully transposed data table into existing frame");
+		checkRTableModified(frameName);
+	}
+	
+	protected void transpose(String frameName, String transposeFrameName) {
+		String script = transposeFrameName + " <- " + frameName + "[, data.table(t(.SD), keep.rownames=TRUE)]";
+		System.out.println("Running script : " + script);
+		eval(script);
+		System.out.println("Successfully transposed data table into new frame " + transposeFrameName);
 		checkRTableModified(frameName);
 	}
 
