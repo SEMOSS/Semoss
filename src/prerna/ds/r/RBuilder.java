@@ -1,6 +1,5 @@
 package prerna.ds.r;
 
-import java.io.File;
 import java.util.Iterator;
 import java.util.ListIterator;
 import java.util.Map;
@@ -14,16 +13,11 @@ import org.rosuda.REngine.RList;
 import org.rosuda.REngine.Rserve.RConnection;
 import org.rosuda.REngine.Rserve.RserveException;
 
-import prerna.algorithm.api.IMetaData;
-import prerna.engine.api.IHeadersDataRow;
-import prerna.engine.impl.r.RFileWrapper;
 import prerna.engine.impl.r.RSingleton;
 import prerna.test.TestUtilityMethods;
-import prerna.util.Constants;
-import prerna.util.DIHelper;
 import prerna.util.Utility;
 
-public class RBuilder {
+public class RBuilder extends AbstractRBuilder {
 
 	private static final Logger LOGGER = LogManager.getLogger(RBuilder.class.getName());
 
@@ -33,15 +27,20 @@ public class RBuilder {
 
 	// holds the connection for RDataFrame to the instance of R running
 	private RConnection retCon;
+	private String port;
 	private String dataTableName = "datatable";
 	
 	public RConnection getConnection() {
 		return this.retCon;
 	}
 	
+	public String getPort() {
+		return this.port;
+	}
+	
 	public RBuilder() throws RserveException {
 		RConnection masterCon = RSingleton.getConnection();
-		String port = Utility.findOpenPort();
+		port = Utility.findOpenPort();
 		LOGGER.info("Starting it on port.. " + port);
 		// need to find a way to get a common name
 		masterCon.eval("library(Rserve); Rserve(port = " + port + ")");
@@ -63,7 +62,9 @@ public class RBuilder {
 	
 	public RBuilder(String dataTableName) throws RserveException {
 		this();
-		this.dataTableName = dataTableName;
+		if(this.dataTableName != null && !this.dataTableName.trim().isEmpty()) {
+			this.dataTableName = dataTableName;
+		}
 	}
 	
 	protected String getTableName() {
@@ -99,6 +100,11 @@ public class RBuilder {
 			}
 			throw new IllegalArgumentException(errorMessage);
 		}
+	}
+	
+	@Override
+	protected void evalR(String r) {
+		executeR(r);
 	}
 	
 	protected REXP executeR(String r) {
@@ -148,108 +154,20 @@ public class RBuilder {
 		throw new IllegalArgumentException(defaultMessage);
 	}
 	
-//	/**
-//	 * Creates a new data table from an iterator
-//	 * @param it					The iterator to flush into a r data table
-//	 * @param typesMap				The data type of each column
-//	 */
-//	protected void createTableViaIterator(Iterator<IHeadersDataRow> it, Map<String, IMetaData.DATA_TYPES> typesMap) {
-//		String[] headers = null;
-//		IMetaData.DATA_TYPES[] types = null;
-//		if(it.hasNext()) {
-//			// the first iterator row needs to be processed differently to also create
-//			// the data table
-//			IHeadersDataRow row = it.next();
-//			
-//			// need to create the types array
-//			headers = row.getHeaders();
-//			types = new IMetaData.DATA_TYPES[headers.length];
-//			for(int i = 0; i < headers.length; i++) {
-//				types[i] = typesMap.get(headers[i]);
-//			}
-//			
-//			String r_row = createRColVec(row.getValues(), types);
-//			// the r function is createEmptyDataTable.123456
-//			// it takes in the first list of elements to add into the data frame
-//			executeR( addTryEvalToScript( this.dataTableName + " <- " + CREATE_DATA_TABLE_METHOD + "(" + r_row + ")"  ) );
-//			
-//			String header_row = RSyntaxHelper.createStringRColVec(headers);
-//			executeR( addTryEvalToScript( "setnames(" + this.dataTableName + " , " + header_row + ")" ) );
-//		}
-//		
-//		// now iterate through all the other rows
-//		while(it.hasNext()) {
-//			IHeadersDataRow row = it.next();
-//			String r_row = createRColVec(row.getValues(), types);
-//			// the r function is appendToDataTable.123456
-//			// it takes in the name of data table to append into and the list of elements to also add
-//			executeR( addTryEvalToScript( this.dataTableName + " <- " + ADD_ROW_TO_DATA_TABLE_METHOD + "(datatable, " + r_row + ")"  ) );
-//		}
-//		
-//		// TODO: should i trim automatically?
-//		executeR( addTryEvalToScript( this.dataTableName + " <- " + REMOVE_EMPTY_ROWS + "(datatable)"  ) );
-//		
-//		// modify columns such that they are numeric where needed
-//		alterColumnsToNumeric(typesMap);
-//	}
-	
 	/**
-	 * Creates a new data table from an iterator
-	 * @param it					The iterator to flush into a r data table
-	 * @param typesMap				The data type of each column
+	 * Calculate the number of rows in the data table
+	 * @return
 	 */
-	protected void createTableViaIterator(Iterator<IHeadersDataRow> it, Map<String, IMetaData.DATA_TYPES> typesMap) {
-		// we will flush the iterator results into a file
-		// and then we will read that file in
-		
-		String newFileLoc = DIHelper.getInstance().getProperty(Constants.INSIGHT_CACHE_DIR) + "/" + Utility.getRandomString(6) + ".csv";
-		File newFile = Utility.writeResultToFile(newFileLoc, it, typesMap);
-		
-		String loadFileRScript = RSyntaxHelper.getFReadSyntax(this.dataTableName, newFile.getAbsolutePath());
-		executeR(loadFileRScript);
-		
-		// modify columns such that they are numeric where needed
-		alterColumnsToNumeric(typesMap);
-		
-		newFile.delete();
-	}
-	
-	/**
-	 * Loads a file as the data table
-	 * @param fileWrapper			RFileWrapper used to contain the required information for the load
-	 */
-	protected void createTableViaCsvFile(RFileWrapper fileWrapper) {
-		String loadFileRScript = RSyntaxHelper.getFReadSyntax(this.dataTableName, fileWrapper.getFilePath());
-		executeR(loadFileRScript);
-		// this will modify the csv to contain the specified columns and rows based on selectors and filters
-		String filterScript = fileWrapper.getRScript();
-		if(!filterScript.isEmpty()) {
-			String modifyTableScript = this.dataTableName + "<- " + filterScript;
-			executeR(modifyTableScript);
-		}
-		// now modify column types to ensure they are all good
-		alterColumnsToNumeric(fileWrapper.getDataTypes());
-	}
-	
-	/**
-	 * Modify columns to make sure they are numeric for math operations
-	 * @param typesMap
-	 */
-	private void alterColumnsToNumeric(Map<String, IMetaData.DATA_TYPES> typesMap) {
-		for(String header : typesMap.keySet()) {
-			IMetaData.DATA_TYPES type = typesMap.get(header);
-			if(type == IMetaData.DATA_TYPES.NUMBER) {
-				executeR( addTryEvalToScript( RSyntaxHelper.alterColumnTypeToNumeric(this.dataTableName, header) ) );
-			}
-		}
+	protected int getNumRows() {
+		return getNumRows(this.dataTableName);
 	}
 	
 	/**
 	 * Calculate the number of rows in the data table
 	 * @return
 	 */
-	protected int getNumRows() {
-		REXP result = executeR( addTryEvalToScript( "nrow(datatable)"  ) );
+	protected int getNumRows(String varName) {
+		REXP result = executeR( addTryEvalToScript( "nrow(" + varName + ")"  ) );
 		int numRows = 0;
 		try {
 			numRows = result.asInteger();
@@ -259,8 +177,9 @@ public class RBuilder {
 		return numRows;
 	}
 	
-	protected Iterator<Object[]> iterator(String[] headerNames) {
-		return new RIterator(this, headerNames);
+	
+	protected Iterator<Object[]> iterator(String[] headerNames, int limit, int offset) {
+		return new RIterator(this, headerNames, limit, offset);
 	}
 	
 	/**
@@ -268,7 +187,7 @@ public class RBuilder {
 	 * @return
 	 */
 	public boolean isEmpty() {
-		REXP result = executeR( addTryEvalToScript( "exists(datatable)" ) );
+		REXP result = executeR( addTryEvalToScript( "exists(" + this.dataTableName + ")" ) );
 		try {
 			// we get the boolean expression as an integer
 			// 1 = TRUE, 0 = FALSE
@@ -294,8 +213,76 @@ public class RBuilder {
 		return true;
 	}
 	
+	@Override
+	public String[] getColumnNames() {
+		return getColumnNames(this.dataTableName);
+	}
+
+	@Override
+	public String[] getColumnTypes() {
+		return getColumnTypes(this.dataTableName);
+	}
+
+	@Override
+	public String[] getColumnNames(String varName) {
+		REXP namesR = executeR("names(" + varName + ")");
+		String[] names = null;
+		try {
+			names = namesR.asStrings();
+		} catch (REXPMismatchException e) {
+			e.printStackTrace();
+		}
+		return names;
+	}
+
+	@Override
+	public String[] getColumnTypes(String varName) {
+		REXP typesR = executeR("sapply(" + varName + " , class)");
+		String[] types = null;
+		try {
+			types = typesR.asStrings();
+		} catch (REXPMismatchException e) {
+			e.printStackTrace();
+		}
+		return types;
+	}
 	
 	
+	@Override
+	protected Map<String, Object> getMapReturn(String rScript) {
+		REXP rs = executeR(rScript);
+		Map<String, Object> result = null;
+		try {
+			result = (Map<String, Object>) rs.asNativeJavaObject();
+		} catch (REXPMismatchException e) {
+			e.printStackTrace();
+		}
+		return result;
+	}
+
+	@Override
+	public Object getScalarReturn(String rScript) {
+		REXP rs = executeR(rScript);
+		Object val = null;
+		try {
+			Map<String, Object> result = (Map<String, Object>) rs.asNativeJavaObject();
+			// we assume there is only 1 value to return
+			Object value = result.get(result.keySet().iterator().next());
+			if(value instanceof Object[]) {
+				val = ((Object[]) value)[0];
+			} else if(value instanceof double[]) {
+				val = ((double[]) value)[0];
+			} else if( value instanceof int[]) {
+				val = ((int[]) value)[0];
+			} else {
+				val = value;
+			}
+		} catch (REXPMismatchException e) {
+			e.printStackTrace();
+		}
+		return val;
+	}
+
 	
 	
 	

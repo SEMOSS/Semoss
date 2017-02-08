@@ -3,12 +3,12 @@ package prerna.ds.r;
 import java.util.Iterator;
 import java.util.Map;
 
-import org.rosuda.REngine.REXP;
-import org.rosuda.REngine.REXPMismatchException;
-
 public class RIterator implements Iterator<Object[]>{
 
-	private RBuilder builder;
+	private AbstractRBuilder builder;
+	
+	// keep track of the frame name
+	private String tableName = "datatable";
 	
 	// keep track of current position in the data table
 	// note, R indices start at 1, not 0
@@ -22,17 +22,19 @@ public class RIterator implements Iterator<Object[]>{
 	private String[] headers;
 	private String headerString;
 	
-	public RIterator(RBuilder builder, String[] headers) {
+	public RIterator(AbstractRBuilder builder, String[] headers, int limit, int offset) {
 		this.builder = builder;
+		this.tableName = builder.getTableName();
 		this.headers = headers;
 		this.headerString = RSyntaxHelper.createStringRColVec(headers);
 		this.dataTableSize = this.builder.getNumRows();
 		
-		//TODO: this is because the FE keeps trying to grab the entire grid
-		//TODO: this is because the FE keeps trying to grab the entire grid
-		//TODO: this is because the FE keeps trying to grab the entire grid
-		if(this.dataTableSize > 500) {
-			this.dataTableSize = 500;
+		
+		// we communicate with FE as base 0
+		this.rowIndex = offset + 1;
+		// adjust the size based on the limit and offset
+		if(limit > 0 && this.dataTableSize > (limit + offset) ) {
+			this.dataTableSize = (limit + offset);
 		}
 	}
 	
@@ -48,15 +50,7 @@ public class RIterator implements Iterator<Object[]>{
 	@Override
 	public Object[] next() {
 		// grab the rowIndex from the data table
-		REXP result = this.builder.executeR(   this.builder.addTryEvalToScript( "datatable[" + rowIndex + " , " + headerString + ", with=FALSE]" )   );
-		
-		Map<String, Object> data = null;
-		try {
-			// grab as a generic list object
-			data = (Map<String, Object>) result.asNativeJavaObject();
-		} catch (REXPMismatchException e) {
-			this.builder.handleRException(result, e, "Error grabbing the row number " + rowIndex + " from the datatable");
-		}
+		Map<String, Object> data = this.builder.getMapReturn(this.tableName + "[" + rowIndex + " , " + headerString + ", with=FALSE]");
 		
 		// iterate through the list and fill into an object array to return
 		Object[] retArray = new Object[data.keySet().size()];

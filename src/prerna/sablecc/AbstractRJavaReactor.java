@@ -4,6 +4,8 @@ import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Hashtable;
 import java.util.List;
 import java.util.Map;
@@ -20,6 +22,7 @@ import prerna.ds.QueryStruct;
 import prerna.ds.TinkerFrame;
 import prerna.ds.TinkerMetaHelper;
 import prerna.ds.h2.H2Frame;
+import prerna.ds.r.RDataTable;
 import prerna.ds.util.FileIterator;
 import prerna.ds.util.FileIterator.FILE_DATA_TYPE;
 import prerna.poi.main.HeadersException;
@@ -163,6 +166,60 @@ public abstract class AbstractRJavaReactor extends AbstractJavaReactor {
 
 		storeVariable("GRID_NAME", frameName);	
 		System.out.println("Completed synchronization as " + frameName);
+	}
+	
+	/**
+	 * Synchronize current H2Frame into a R Data Table Frame
+	 * @param rVarName
+	 */
+	protected void synchronizeGridToRDataTable(String rVarName) {
+		H2Frame gridFrame = (H2Frame)dataframe;
+		String tableName = gridFrame.getBuilder().getTableName();
+		String url = gridFrame.getBuilder().connectFrame();
+		url = url.replace("\\", "/");
+		initiateDriver(url, "sa");
+
+		// need to create a new data table
+		// should properly merge the meta data
+		
+		RDataTable table = new RDataTable(rVarName);
+		
+		Map<String, Set<String>> edgeHash = gridFrame.getEdgeHash();
+		
+		Map<String, Set<String>> cleanEdgeHash = new HashMap<String, Set<String>>();
+		Map<String, String> dataTypeMap = new HashMap<String, String>();
+		for(String colName : edgeHash.keySet()) {
+			String cleanColName = colName.toUpperCase();
+			if(!dataTypeMap.containsKey(cleanColName)) {
+				dataTypeMap.put(cleanColName, Utility.convertDataTypeToString(gridFrame.getDataType(colName)) );
+			}
+			
+			Set<String> cleanOtherCols = new HashSet<String>();
+			Set<String> otherCols = edgeHash.get(colName);
+			for(String otherCol : otherCols) {
+				String cleanOtherCol = otherCol.toUpperCase();
+				if(!dataTypeMap.containsKey(cleanOtherCol)) {
+					dataTypeMap.put(cleanOtherCol, Utility.convertDataTypeToString(gridFrame.getDataType(otherCol)) );
+				}
+				cleanOtherCols.add(cleanOtherCol);
+			}
+			
+			cleanEdgeHash.put(cleanColName, cleanOtherCols);
+		}
+		
+		table.mergeEdgeHash(cleanEdgeHash, dataTypeMap);
+		if(table.getConnection() != null && table.getPort() != null) {
+			storeVariable(R_CONN, table.getConnection());
+			storeVariable(R_PORT, table.getPort());
+		}
+
+		eval(rVarName + " <-as.data.table(unclass(dbGetQuery(conn,'SELECT * FROM " + tableName + "')));");
+		eval("setDT(" + rVarName + ")");
+		storeVariable("GRID_NAME", rVarName);
+		System.out.println("Completed synchronization as " + rVarName);
+
+		this.dataframe = table;
+		this.frameChanged = true;
 	}
 	
 	/**
