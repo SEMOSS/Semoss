@@ -2421,6 +2421,7 @@ public class Translation extends DepthFirstAdapter {
 			IDataMaker newFrame = (IDataMaker) thisReactor.getValue("G");
 			if(newFrame != null) {
 				this.frame = newFrame;
+				this.reactorNames = this.frame.getScriptReactors();
 			}
 			Object retData = thisReactor.getValue("returnData");
 			if(retData != null){
