@@ -570,13 +570,14 @@ public class UserPermissionsMasterDB {
 	}
 	
 	public Boolean deleteSeed(String seedName, String userId) {
-		String query = "DELETE FROM UserSeedPermission INNER JOIN Seed ON Seed.ID=UserSeedPermission.SEEDID WHERE Seed.OWNER='" + userId + "' AND Seed.NAME='" + seedName + "';";
+		String query = "DELETE FROM UserSeedPermission WHERE UserSeedPermission.SEEDID IN (SELECT s.ID AS SEEDID FROM Seed s WHERE s.OWNER='" + userId + "' AND s.NAME='" + seedName + "');";
 		securityDB.execUpdateAndRetrieveStatement(query, true);
 		
-		query = "DELETE FROM Seed WHERE name=" + seedName + " AND owner='" + userId + "';";
+		query = "DELETE FROM Seed WHERE name='" + seedName + "' AND owner='" + userId + "';";
 		securityDB.execUpdateAndRetrieveStatement(query, true);
 		
 		securityDB.commit();
+		
 		return true;
 	}
 	
@@ -611,7 +612,7 @@ public class UserPermissionsMasterDB {
 		ArrayList<String[]> results = runQuery(query);
 		
 		for(String[] s : results) {
-			query = "DELETE FROM UserSeedPermission WHERE usedID='" + userId + "' AND seedID=" + s[0] + ";";
+			query = "DELETE FROM UserSeedPermission WHERE userID='" + userId + "' AND seedID=" + s[0] + ";";
 			
 			if(!isUserAdmin(loggedInUser)) {
 				return false;
@@ -639,13 +640,22 @@ public class UserPermissionsMasterDB {
 		return getMetamodelSeedsFromQuery(query);
 	}
 	
-	public ArrayList<StringMap<Object>> getMetamodelSeedsOwnedByUser(String userId) {
+	/**
+	 * Return seeds for a given user.
+	 * 
+	 * @param userId	ID of the user used for search
+	 * @param owner		boolean value if searching for seeds owned by user (true) or applied to user (false)
+	 * @return
+	 */
+	public ArrayList<StringMap<Object>> getMetamodelSeedsForUser(String userId, boolean owner) {
 		ArrayList<StringMap<Object>> ret = new ArrayList<StringMap<Object>>();
 		
 		//Get the seed names that this user can see
 		String query = "SELECT DISTINCT S.NAME AS SEEDNAME, S.DATABASEID AS DBID FROM SEED S ";
-		if(!isUserAdmin(userId)) {
+		if(owner && !isUserAdmin(userId)) {
 			query += "WHERE S.OWNER='" + userId + "' ";
+		} else if(!owner) {
+			query += "INNER JOIN UserSeedPermission USP ON USP.SEEDID=S.ID WHERE USP.USERID='" + userId + "';";
 		}
 		
 		ArrayList<String[]> seedNames = runQuery(query);
