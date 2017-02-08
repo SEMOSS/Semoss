@@ -11,11 +11,14 @@ import java.util.List;
 import java.util.Map;
 import java.util.Vector;
 
+import org.rosuda.REngine.Rserve.RConnection;
+
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.reflect.TypeToken;
 
 import cern.colt.Arrays;
+import prerna.cache.ICache;
 import prerna.ds.h2.H2Frame;
 import prerna.sablecc.expressions.r.builder.RColumnSelector;
 import prerna.sablecc.expressions.r.builder.RExpressionBuilder;
@@ -661,6 +664,22 @@ public class PKQLRunner {
 	
 	public List<IPkqlMetadata> getMetadataResponse() {
 		return this.metadataResponse;
+	}
+	
+	/**
+	 * Used to clean up any files/connections started and still stored within the runner
+	 */
+	public void cleanUp() {
+		if(getVariableValue(AbstractRJavaReactor.R_CONN) != null) {
+			( (RConnection) getVariableValue(AbstractRJavaReactor.R_CONN) ).close();
+		}
+		
+		if(getVariableValue(AbstractRJavaReactor.R_GRAQH_FOLDERS) != null) {
+			List<String> graphDirs = (List<String>) getVariableValue(AbstractRJavaReactor.R_GRAQH_FOLDERS);
+			for(String dir : graphDirs) {
+				ICache.deleteFolder(dir);
+			}
+		}		
 	}
 	
 }

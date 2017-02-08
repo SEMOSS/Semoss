@@ -37,6 +37,7 @@ public abstract class AbstractRJavaReactor extends AbstractJavaReactor {
 	public static final String R_CONN = "R_CONN";
 	public static final String R_PORT = "R_PORT";
 	public static final String R_ENGINE = "R_ENGINE";
+	public static final String R_GRAQH_FOLDERS = "R_GRAQH_FOLDERS";
 	
 	public AbstractRJavaReactor() {
 		super();
@@ -641,7 +642,15 @@ public abstract class AbstractRJavaReactor extends AbstractJavaReactor {
 			
 			System.out.println("Successfully synchronized, your graph is now available as " + graphName);
 			// store the graph name for future use
-			storeVariable("GRAPH_NAME", graphName);	
+			storeVariable("GRAPH_NAME", graphName);
+			
+			// store the directories used for the iGraph
+			List<String> graphLocs = new Vector<String>();
+			if(retrieveVariable(R_GRAQH_FOLDERS) != null) {
+				graphLocs = (List<String>) retrieveVariable(R_GRAQH_FOLDERS);
+			}
+			graphLocs.add(wd);
+			storeVariable(R_GRAQH_FOLDERS, graphLocs);
 		} catch(Exception ex) {
 			ex.printStackTrace();
 			System.out.println("ERROR ::: Could not convert TinkerFrame into iGraph.\nPlease make sure iGraph package is installed.");
