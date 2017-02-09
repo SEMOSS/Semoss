@@ -4,6 +4,7 @@ import java.io.File;
 import java.util.Arrays;
 import java.util.Enumeration;
 import java.util.Hashtable;
+import java.util.Map;
 
 import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.GraphTraversal;
 import org.apache.tinkerpop.gremlin.structure.Vertex;
@@ -674,6 +675,57 @@ public class BaseJavaReactor extends AbstractRJavaReactor{
 			e.printStackTrace();
 		}
 		return retOutput;
+	}
+	
+	public Object[][] getHistogram(String frameName, String column, int numBreaks, boolean print) {
+		Object[][] returnData = null;
+		
+		RConnection rcon = (RConnection) startR();
+		String script = null;
+		if(numBreaks > 1) {
+			script = "hist(" + frameName + "$" + column + ", breaks=" + numBreaks + ", plot=FALSE)";
+		} else {
+			script = "hist(" + frameName + "$" + column + ", plot=FALSE)";
+		}
+		try {
+			REXP histR = rcon.eval(script);
+			Map<String, Object> histJ = (Map<String, Object>) histR.asNativeJavaObject();
+			
+			// so we know a bit about the structure
+			// we can get the following values
+			// 1: breaks
+			// 2: counts
+			// 3: density
+			// 4: mids
+			// 5: xname
+			// 6: equidist
+	
+			// we only need the breaks and counts
+			// format each range to the count value
+			double[] breaks = (double[]) histJ.get("breaks");
+			int[] counts = (int[]) histJ.get("counts");
+			int numBins = counts.length;
+			returnData = new Object[numBins][2];
+	
+			if(print) {
+				System.out.println("Generating histogram for column = " + column);
+			} else {
+				this.returnData = returnData;
+				this.hasReturnData = true;
+			}
+	
+			for(int i = 0; i < numBins; i++) {
+				returnData[i][0] = breaks[i] + " - " + breaks[i+1];
+				returnData[i][1] = counts[i];
+				if(print) {
+					System.out.println(returnData[i][0] + "\t\t" + returnData[i][1]);
+				}
+			}
+		} catch (RserveException | REXPMismatchException e) {
+			e.printStackTrace();
+		}
+		
+		return returnData;
 	}
 	
 	public void unpivot()
