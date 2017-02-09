@@ -23,7 +23,6 @@ import prerna.algorithm.api.ITableDataFrame;
 import prerna.engine.api.IEngine;
 import prerna.engine.api.IHeadersDataRow;
 import prerna.engine.api.ISelectStatement;
-import prerna.engine.api.ISelectWrapper;
 import prerna.math.BarChart;
 import prerna.math.StatisticsUtilityMethods;
 import prerna.sablecc.PKQLEnum;
