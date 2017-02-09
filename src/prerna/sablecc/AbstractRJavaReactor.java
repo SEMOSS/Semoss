@@ -178,7 +178,7 @@ public abstract class AbstractRJavaReactor extends AbstractJavaReactor {
 		// modify the headers to be what they used to be because the query return everything in 
 		// all upper case which may not be accurate
 		String[] currHeaders = getColNames(frameName, false);
-		renameColumn(frameName, currHeaders, colSelectors);
+		renameColumn(frameName, currHeaders, colSelectors, false);
 		storeVariable("GRID_NAME", frameName);	
 		System.out.println("Completed synchronization as " + frameName);
 	}
@@ -234,7 +234,7 @@ public abstract class AbstractRJavaReactor extends AbstractJavaReactor {
 		
 		// modify the headers to be what they used to be because the * will return everything in caps
 		String[] currHeaders = getColNames(rVarName, false);
-		renameColumn(rVarName, currHeaders, colSelectors);
+		renameColumn(rVarName, currHeaders, colSelectors, false);
 		
 		storeVariable("GRID_NAME", rVarName);
 		System.out.println("Completed synchronization as " + rVarName);
@@ -733,7 +733,11 @@ public abstract class AbstractRJavaReactor extends AbstractJavaReactor {
 		renameColumn(frameName, oldNames, newColNames);
 	}
 	
-	private void renameColumn(String frameName, String[] oldNames, String[] newNames) {
+	protected void renameColumn(String frameName, String[] oldNames, String[] newColNames) {
+		renameColumn(frameName, oldNames, newColNames, true);
+	}
+	
+	private void renameColumn(String frameName, String[] oldNames, String[] newNames, boolean print) {
 		int size = oldNames.length;
 		if(size != newNames.length) {
 			throw new IllegalArgumentException("Names arrays do not match in length");
@@ -757,9 +761,12 @@ public abstract class AbstractRJavaReactor extends AbstractJavaReactor {
 		newC.append(")");
 		
 		String script = "setnames(" + frameName + ", old = " + oldC + ", new = " + newC + ")";
-		System.out.println("Running script : " + script);
 		eval(script);
-		System.out.println("Successfully modified old names = " + Arrays.toString(oldNames) + " to new names " + Arrays.toString(newNames));
+
+		if(print) {
+			System.out.println("Running script : " + script);
+			System.out.println("Successfully modified old names = " + Arrays.toString(oldNames) + " to new names " + Arrays.toString(newNames));
+		}
 		boolean change = checkRTableModified(frameName);
 		if(change) {
 			for(i = 0; i < size; i++) {
