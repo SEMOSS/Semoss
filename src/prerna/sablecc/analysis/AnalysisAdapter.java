@@ -285,6 +285,12 @@ public class AnalysisAdapter implements Analysis
     }
 
     @Override
+    public void caseADataInsightidColop(ADataInsightidColop node)
+    {
+        defaultCase(node);
+    }
+
+    @Override
     public void caseAPanelVizPanelop(APanelVizPanelop node)
     {
         defaultCase(node);
@@ -496,6 +502,12 @@ public class AnalysisAdapter implements Analysis
 
     @Override
     public void caseAPanelHandle(APanelHandle node)
+    {
+        defaultCase(node);
+    }
+
+    @Override
+    public void caseADataInsightid(ADataInsightid node)
     {
         defaultCase(node);
     }
@@ -1804,6 +1816,12 @@ public class AnalysisAdapter implements Analysis
 
     @Override
     public void caseTDataconnectdbToken(TDataconnectdbToken node)
+    {
+        defaultCase(node);
+    }
+
+    @Override
+    public void caseTDatainsightidToken(TDatainsightidToken node)
     {
         defaultCase(node);
     }
