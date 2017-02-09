@@ -707,14 +707,19 @@ public class BaseJavaReactorJRI extends AbstractRJavaReactor {
 		return retOutput;
 	}
 	
-	public void getHistogram(String frameName, String column, boolean print) {
+	public Object[][] getHistogram(String frameName, String column, int numBreaks, boolean print) {
 		Rengine rcon = (Rengine)startR();
 
-		String script = "hist(" + frameName + "$" + column + ", plot=FALSE)";
+		String script = null;
+		if(numBreaks > 1) {
+			script = "hist(" + frameName + "$" + column + ", breaks=" + numBreaks + ", plot=FALSE)";
+		} else {
+			script = "hist(" + frameName + "$" + column + ", plot=FALSE)";
+		}
 		REXP histR = rcon.eval(script);
 		// this comes back as a vector
 		RVector vectorR = histR.asVector();
-		
+
 		// so we know a bit about the structure
 		// we can get the following values
 		// 1: breaks
@@ -737,7 +742,7 @@ public class BaseJavaReactorJRI extends AbstractRJavaReactor {
 			this.returnData = returnData;
 			this.hasReturnData = true;
 		}
-		
+
 		for(int i = 0; i < numBins; i++) {
 			returnData[i][0] = breaks[i] + " - " + breaks[i+1];
 			returnData[i][1] = counts[i];
@@ -745,8 +750,9 @@ public class BaseJavaReactorJRI extends AbstractRJavaReactor {
 				System.out.println(returnData[i][0] + "\t\t" + returnData[i][1]);
 			}
 		}
+		
+		return returnData;
 	}
-	
 	
 	public void unpivot()
 	{
