@@ -678,7 +678,7 @@ public class BaseJavaReactor extends AbstractRJavaReactor{
 	}
 	
 	public Object[][] getHistogram(String frameName, String column, int numBreaks, boolean print) {
-		Object[][] returnData = null;
+		Object[][] data = null;
 		
 		RConnection rcon = (RConnection) startR();
 		String script = null;
@@ -705,27 +705,48 @@ public class BaseJavaReactor extends AbstractRJavaReactor{
 			double[] breaks = (double[]) histJ.get("breaks");
 			int[] counts = (int[]) histJ.get("counts");
 			int numBins = counts.length;
-			returnData = new Object[numBins][2];
+			data = new Object[numBins][2];
 	
 			if(print) {
 				System.out.println("Generating histogram for column = " + column);
 			} else {
-				this.returnData = returnData;
+				// create the weird object the FE needs to paint a bar chart
+				Map<String, Object>[] keyMap = new Hashtable[2];
+				Map<String, Object> labelMap = new Hashtable<String, Object>();
+				labelMap.put("vizType", "label");
+				labelMap.put("type", "STRING");
+				labelMap.put("uri", column);
+				labelMap.put("varKey", column);
+				labelMap.put("operation", new Hashtable());
+				keyMap[0] = labelMap;
+				Map<String, Object> frequencyMap = new Hashtable<String, Object>();
+				frequencyMap.put("vizType", "value");
+				frequencyMap.put("type", "NUMBER");
+				frequencyMap.put("uri", "Frequency");
+				frequencyMap.put("varKey", "Frequency");
+				frequencyMap.put("operation", new Hashtable());
+				keyMap[1] = frequencyMap;
+				
+				Map<String, Object> retObj = new Hashtable<String, Object>();
+				retObj.put("dataTableKeys", keyMap);
+				retObj.put("dataTableValues", data);
+				
+				this.returnData = retObj;
 				this.hasReturnData = true;
 			}
 	
 			for(int i = 0; i < numBins; i++) {
-				returnData[i][0] = breaks[i] + " - " + breaks[i+1];
-				returnData[i][1] = counts[i];
+				data[i][0] = breaks[i] + " - " + breaks[i+1];
+				data[i][1] = counts[i];
 				if(print) {
-					System.out.println(returnData[i][0] + "\t\t" + returnData[i][1]);
+					System.out.println(data[i][0] + "\t\t" + data[i][1]);
 				}
 			}
 		} catch (RserveException | REXPMismatchException e) {
 			e.printStackTrace();
 		}
 		
-		return returnData;
+		return data;
 	}
 	
 	public void unpivot()
