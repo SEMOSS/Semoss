@@ -16,8 +16,8 @@ import org.apache.tinkerpop.gremlin.structure.Graph;
 import org.apache.tinkerpop.gremlin.structure.io.IoCore;
 import org.rosuda.JRI.Rengine;
 
+import cern.colt.Arrays;
 import prerna.algorithm.api.IMetaData;
-import prerna.algorithm.api.IMetaData.DATA_TYPES;
 import prerna.algorithm.api.ITableDataFrame;
 import prerna.ds.QueryStruct;
 import prerna.ds.TinkerFrame;
@@ -156,14 +156,19 @@ public abstract class AbstractRJavaReactor extends AbstractJavaReactor {
 		url = url.replace("\\", "/");
 		initiateDriver(url, "sa");
 		
-		String selectors = "*";
-		if(cols != null && cols.length() >= 0) {
-			selectors = "";
-			String [] colSelectors = cols.split(";");
-			for(int selectIndex = 0;selectIndex < colSelectors.length;selectIndex++) {
-				selectors = selectors + colSelectors[selectIndex];
-				if(selectIndex + 1 < colSelectors.length)
-					selectors = selectors + ", ";
+		// note : do not use * since R will not preserve the column order
+		String selectors = "";
+		String [] colSelectors = null;
+		if(cols == null || cols.length() == 0) {
+			colSelectors = gridFrame.getColumnHeaders();
+		} else {
+			colSelectors = cols.split(";");
+		}
+		
+		for(int selectIndex = 0; selectIndex < colSelectors.length; selectIndex++) {
+			selectors = selectors + colSelectors[selectIndex];
+			if(selectIndex + 1 < colSelectors.length) {
+				selectors = selectors + ", ";
 			}
 		}
 		
@@ -171,7 +176,10 @@ public abstract class AbstractRJavaReactor extends AbstractJavaReactor {
 		startR();
 		eval(frameName + " <-as.data.table(unclass(dbGetQuery(conn,'SELECT " + selectors + " FROM " + tableName + "')));");
 		eval("setDT(" + frameName + ")");
-
+		// modify the headers to be what they used to be because the query return everything in 
+		// all upper case which may not be accurate
+		String[] currHeaders = getColNames(frameName, false);
+		renameColumn(frameName, currHeaders, colSelectors);
 		storeVariable("GRID_NAME", frameName);	
 		System.out.println("Completed synchronization as " + frameName);
 	}
@@ -223,6 +231,12 @@ public abstract class AbstractRJavaReactor extends AbstractJavaReactor {
 
 		eval(rVarName + " <-as.data.table(unclass(dbGetQuery(conn,'SELECT * FROM " + tableName + "')));");
 		eval("setDT(" + rVarName + ")");
+		
+		// modify the headers to be what they used to be because the * will return everything in caps
+		String[] properHeaders = gridFrame.getColumnHeaders();
+		String[] currHeaders = getColNames(rVarName, false);
+		renameColumn(rVarName, currHeaders, properHeaders);
+		
 		storeVariable("GRID_NAME", rVarName);
 		System.out.println("Completed synchronization as " + rVarName);
 
@@ -336,7 +350,7 @@ public abstract class AbstractRJavaReactor extends AbstractJavaReactor {
 		} else if(overrideExistingTable && frameIsH2){
 			frameToUse = ((H2Frame) dataframe);
 
-			// can only enter here we are overriding the existing H2Frame
+			// can only enter here when we are overriding the existing H2Frame
 			// drop any index if altering the existing frame
 			Set<String> columnIndices = frameToUse.getColumnsWithIndexes();
 			if(columnIndices != null) {
@@ -362,6 +376,7 @@ public abstract class AbstractRJavaReactor extends AbstractJavaReactor {
 		
 		System.out.println("Table Synchronized as " + tableName);
 		frameToUse.updateDataId();
+		this.frameChanged = true;
 	}
 	
 	/**
@@ -370,58 +385,59 @@ public abstract class AbstractRJavaReactor extends AbstractJavaReactor {
 	 * @param overrideExistingTable
 	 */
 	protected void synchronizeGridFromRDataTable(String frameName) {
-		RDataTable rFrame = (RDataTable) dataframe;
-		Map<String, Set<String>> edgeHash = rFrame.getEdgeHash();
-		
-		// need to create a data type map and a query struct
-		QueryStruct qs = new QueryStruct();
-		// TODO: REALLY NEED TO CONSOLIDATE THE STRING VS. METADATA TYPE DATAMAPS
-		Map<String, Set<String>> cleanEdgeHash = new HashMap<String, Set<String>>();
-		Map<String, IMetaData.DATA_TYPES> dataTypeMap = new HashMap<String, IMetaData.DATA_TYPES>();
-		Map<String, String> dataTypeMapStr = new Hashtable<String, String>();
-		for(String colName : edgeHash.keySet()) {
-			String cleanColName = colName.toUpperCase();
-			if(!dataTypeMap.containsKey(cleanColName)) {
-				DATA_TYPES type = rFrame.getDataType(colName);
-				dataTypeMap.put(cleanColName, type);
-				dataTypeMapStr.put(cleanColName, Utility.convertDataTypeToString(type) );
-				qs.addSelector(cleanColName, null);
-			}
-			
-			Set<String> cleanOtherCols = new HashSet<String>();
-			Set<String> otherCols = edgeHash.get(colName);
-			for(String otherCol : otherCols) {
-				String cleanOtherCol = otherCol.toUpperCase();
-				if(!dataTypeMap.containsKey(cleanOtherCol)) {
-					DATA_TYPES type = rFrame.getDataType(colName);
-					dataTypeMap.put(cleanOtherCol, type );
-					dataTypeMapStr.put(cleanOtherCol, Utility.convertDataTypeToString(type) );
-					qs.addSelector(cleanOtherCol, null);
-				}
-				cleanOtherCols.add(cleanOtherCol);
-			}
-			
-			cleanEdgeHash.put(cleanColName, cleanOtherCols);
-		}
-		
-		// we will make a temp file
-		String tempFileLocation = DIHelper.getInstance().getProperty(Constants.INSIGHT_CACHE_DIR) + "\\" + DIHelper.getInstance().getProperty(Constants.CSV_INSIGHT_CACHE_FOLDER);
-		tempFileLocation += "\\" + Utility.getRandomString(10) + ".csv";
-		tempFileLocation = tempFileLocation.replace("\\", "/");
-		eval("fwrite(" + frameName + ", file='" + tempFileLocation + "')");
-		
-		H2Frame table = new H2Frame();
-		table.mergeEdgeHash(cleanEdgeHash, dataTypeMapStr);
-
-		// iterate through file and insert values
-		FileIterator dataIterator = FileIterator.createInstance(FILE_DATA_TYPE.META_DATA_ENUM, tempFileLocation, ',', qs, dataTypeMap);
-		table.addRowsViaIterator(dataIterator, dataTypeMap);
-		dataIterator.deleteFile();
-		
-		System.out.println("Table Synchronized as " + table.getTableName());
-		
-		this.dataframe = table;
-		this.frameChanged = true;
+		synchronizeGridFromR(frameName, true);
+//		RDataTable rFrame = (RDataTable) dataframe;
+//		Map<String, Set<String>> edgeHash = rFrame.getEdgeHash();
+//		
+//		// need to create a data type map and a query struct
+//		QueryStruct qs = new QueryStruct();
+//		// TODO: REALLY NEED TO CONSOLIDATE THE STRING VS. METADATA TYPE DATAMAPS
+//		Map<String, Set<String>> cleanEdgeHash = new HashMap<String, Set<String>>();
+//		Map<String, IMetaData.DATA_TYPES> dataTypeMap = new HashMap<String, IMetaData.DATA_TYPES>();
+//		Map<String, String> dataTypeMapStr = new Hashtable<String, String>();
+//		for(String colName : edgeHash.keySet()) {
+//			String cleanColName = colName.toUpperCase();
+//			if(!dataTypeMap.containsKey(cleanColName)) {
+//				DATA_TYPES type = rFrame.getDataType(colName);
+//				dataTypeMap.put(cleanColName, type);
+//				dataTypeMapStr.put(cleanColName, Utility.convertDataTypeToString(type) );
+//				qs.addSelector(cleanColName, null);
+//			}
+//			
+//			Set<String> cleanOtherCols = new HashSet<String>();
+//			Set<String> otherCols = edgeHash.get(colName);
+//			for(String otherCol : otherCols) {
+//				String cleanOtherCol = otherCol.toUpperCase();
+//				if(!dataTypeMap.containsKey(cleanOtherCol)) {
+//					DATA_TYPES type = rFrame.getDataType(colName);
+//					dataTypeMap.put(cleanOtherCol, type );
+//					dataTypeMapStr.put(cleanOtherCol, Utility.convertDataTypeToString(type) );
+//					qs.addSelector(cleanOtherCol, null);
+//				}
+//				cleanOtherCols.add(cleanOtherCol);
+//			}
+//			
+//			cleanEdgeHash.put(cleanColName, cleanOtherCols);
+//		}
+//		
+//		// we will make a temp file
+//		String tempFileLocation = DIHelper.getInstance().getProperty(Constants.INSIGHT_CACHE_DIR) + "\\" + DIHelper.getInstance().getProperty(Constants.CSV_INSIGHT_CACHE_FOLDER);
+//		tempFileLocation += "\\" + Utility.getRandomString(10) + ".csv";
+//		tempFileLocation = tempFileLocation.replace("\\", "/");
+//		eval("fwrite(" + frameName + ", file='" + tempFileLocation + "')");
+//		
+//		H2Frame table = new H2Frame();
+//		table.mergeEdgeHash(cleanEdgeHash, dataTypeMapStr);
+//
+//		// iterate through file and insert values
+//		FileIterator dataIterator = FileIterator.createInstance(FILE_DATA_TYPE.META_DATA_ENUM, tempFileLocation, ',', qs, dataTypeMap);
+//		table.addRowsViaIterator(dataIterator, dataTypeMap);
+//		dataIterator.deleteFile();
+//		
+//		System.out.println("Table Synchronized as " + table.getTableName());
+//		
+//		this.dataframe = table;
+//		this.frameChanged = true;
 	}
 	
 	protected void initiateDriver(String url, String username) {
@@ -688,13 +704,71 @@ public abstract class AbstractRJavaReactor extends AbstractJavaReactor {
 		checkRTableModified(frameName);
 	}
 
-	protected void checkRTableModified(String frameName) {
+	protected void renameColumn(String curColName, String newColName) {
+		String frameName = (String)retrieveVariable("GRID_NAME");
+		renameColumn(frameName, curColName, newColName);
+	}
+	
+	private void renameColumn(String frameName, String curColName, String newColName) {
+		String script = "names(" + frameName + ")[names(" + frameName + ") == \"" + curColName + "\"] = \"" + newColName + "\"";
+		System.out.println("Running script : " + script);
+		eval(script);
+		System.out.println("Successfully modified name = " + curColName + " to now be " + newColName);
+		boolean change = checkRTableModified(frameName);
+		if(change) {
+			this.dataframe.modifyColumnName(curColName, newColName);
+		}
+	}
+	
+	protected void renameColumn(String[] oldNames, String[] newColNames) {
+		String frameName = (String)retrieveVariable("GRID_NAME");
+		renameColumn(frameName, oldNames, newColNames);
+	}
+	
+	private void renameColumn(String frameName, String[] oldNames, String[] newNames) {
+		int size = oldNames.length;
+		if(size != newNames.length) {
+			throw new IllegalArgumentException("Names arrays do not match in length");
+		}
+		StringBuilder oldC = new StringBuilder("c(");
+		int i = 0;
+		oldC.append("'").append(oldNames[i]).append("'");
+		i++;
+		for(; i < size; i++) {
+			oldC.append(", '").append(oldNames[i]).append("'");
+		}
+		oldC.append(")");
+		
+		StringBuilder newC = new StringBuilder("c(");
+		i = 0;
+		newC.append("'").append(newNames[i]).append("'");
+		i++;
+		for(; i < size; i++) {
+			newC.append(", '").append(newNames[i]).append("'");
+		}
+		newC.append(")");
+		
+		String script = "setnames(" + frameName + ", old = " + oldC + ", new = " + newC + ")";
+		System.out.println("Running script : " + script);
+		eval(script);
+		System.out.println("Successfully modified old names = " + Arrays.toString(oldNames) + " to new names " + Arrays.toString(newNames));
+		boolean change = checkRTableModified(frameName);
+		if(change) {
+			for(i = 0; i < size; i++) {
+				this.dataframe.modifyColumnName(oldNames[i], newNames[i]);
+			}
+		}
+	}
+
+	protected boolean checkRTableModified(String frameName) {
 		if(this.dataframe instanceof RDataTable) {
 			String tableVarName =  ( (RDataTable) this.dataframe).getTableVarName();
 			if(frameName.equals(tableVarName)) {
 				this.dataframe.updateDataId();
+				return true;
 			}
 		}
+		return false;
 	}
 	
 	////////////////////////////////////////////////////////////
