@@ -114,6 +114,7 @@ Tokens
  datanetworkconnect_token = 'network.connect';
  datanetworkdisconnect_token = 'network.disconnect';
  dataconnectdb_token = 'data.connectdb';
+ datainsightid_token = 'data.getInsightId';
  
  databaselist_token = 'database.list';
  databaseconcepts_token = 'database.concepts';
@@ -173,6 +174,7 @@ colop = // colOp is usually of the form of joinColumn / addColumn / removeColumn
 		| {query_data} query_data
 		| {clear_cache} clear_cache
 		| {use_cache} use_cache
+		| {data_insightid} data_insightid
 		;
 
 panelop = // panelop is usually of the form of viz.change, viz.tools, viz.color
@@ -256,6 +258,10 @@ panel_close = // e.g. panel.close();
 		
 panel_handle = // e.g. panel.handle(['console', 'open']);
 		panelhandle l_par [handlekeys]: csv_row? r_par
+		;
+
+data_insightid = //e.g. data.getInsightId();
+		datainsightid_token l_par r_par
 		;
 		
 data_frame = // e.g. panel.setBuilder('graph');

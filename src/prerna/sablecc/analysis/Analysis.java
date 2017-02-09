@@ -47,6 +47,7 @@ public interface Analysis extends Switch
     void caseAQueryDataColop(AQueryDataColop node);
     void caseAClearCacheColop(AClearCacheColop node);
     void caseAUseCacheColop(AUseCacheColop node);
+    void caseADataInsightidColop(ADataInsightidColop node);
     void caseAPanelVizPanelop(APanelVizPanelop node);
     void caseAPanelCommentPanelop(APanelCommentPanelop node);
     void caseAPanelCommentRemovePanelop(APanelCommentRemovePanelop node);
@@ -83,6 +84,7 @@ public interface Analysis extends Switch
     void caseAPanelClone(APanelClone node);
     void caseAPanelClose(APanelClose node);
     void caseAPanelHandle(APanelHandle node);
+    void caseADataInsightid(ADataInsightid node);
     void caseADataFrame(ADataFrame node);
     void caseADataFrameHeader(ADataFrameHeader node);
     void caseADataFrameDuplicates(ADataFrameDuplicates node);
@@ -302,6 +304,7 @@ public interface Analysis extends Switch
     void caseTDatanetworkconnectToken(TDatanetworkconnectToken node);
     void caseTDatanetworkdisconnectToken(TDatanetworkdisconnectToken node);
     void caseTDataconnectdbToken(TDataconnectdbToken node);
+    void caseTDatainsightidToken(TDatainsightidToken node);
     void caseTDatabaselistToken(TDatabaselistToken node);
     void caseTDatabaseconceptsToken(TDatabaseconceptsToken node);
     void caseTDatabaseconnectedconceptsToken(TDatabaseconnectedconceptsToken node);

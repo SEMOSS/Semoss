@@ -2458,6 +2458,25 @@ public class Translation extends DepthFirstAdapter {
 	public void outADatanetworkdisconnect(ADatanetworkdisconnect node) {
 		deinitReactor(PKQLEnum.NETWORK_DISCONNECT, PKQLEnum.NETWORK_DISCONNECT, null, false);
 	}
+	
+	@Override
+	public void outADataInsightid(ADataInsightid node) {
+		String insightId = runner.getInsightId();
+		
+		List<Map<String, Object>> returnDataList = new ArrayList<>();
+		Map<String, Object> insightIdMap = new HashMap<>();
+		insightIdMap.put("name", insightId);
+		returnDataList.add(insightIdMap);
+		
+		Map returnData = new HashMap();
+		returnData.put("list", returnDataList);
+		
+		runner.setReturnData(returnData);
+		runner.setResponse(runner.getInsightId());
+		runner.setStatus(PKQLRunner.STATUS.SUCCESS);
+    }
+	
+	
 
 	// **************************************** SYNCHRONIZATION OF DATAMAKER
 	// ****************************************//
