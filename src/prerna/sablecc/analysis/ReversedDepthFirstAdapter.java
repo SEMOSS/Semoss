@@ -851,6 +851,27 @@ public class ReversedDepthFirstAdapter extends AnalysisAdapter
         outAUseCacheColop(node);
     }
 
+    public void inADataInsightidColop(ADataInsightidColop node)
+    {
+        defaultIn(node);
+    }
+
+    public void outADataInsightidColop(ADataInsightidColop node)
+    {
+        defaultOut(node);
+    }
+
+    @Override
+    public void caseADataInsightidColop(ADataInsightidColop node)
+    {
+        inADataInsightidColop(node);
+        if(node.getDataInsightid() != null)
+        {
+            node.getDataInsightid().apply(this);
+        }
+        outADataInsightidColop(node);
+    }
+
     public void inAPanelVizPanelop(APanelVizPanelop node)
     {
         defaultIn(node);
@@ -1789,6 +1810,35 @@ public class ReversedDepthFirstAdapter extends AnalysisAdapter
             node.getPanelhandle().apply(this);
         }
         outAPanelHandle(node);
+    }
+
+    public void inADataInsightid(ADataInsightid node)
+    {
+        defaultIn(node);
+    }
+
+    public void outADataInsightid(ADataInsightid node)
+    {
+        defaultOut(node);
+    }
+
+    @Override
+    public void caseADataInsightid(ADataInsightid node)
+    {
+        inADataInsightid(node);
+        if(node.getRPar() != null)
+        {
+            node.getRPar().apply(this);
+        }
+        if(node.getLPar() != null)
+        {
+            node.getLPar().apply(this);
+        }
+        if(node.getDatainsightidToken() != null)
+        {
+            node.getDatainsightidToken().apply(this);
+        }
+        outADataInsightid(node);
     }
 
     public void inADataFrame(ADataFrame node)

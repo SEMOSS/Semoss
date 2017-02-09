@@ -556,62 +556,68 @@ class TokenIndex extends AnalysisAdapter
     }
 
     @Override
-    public void caseTDatabaselistToken(@SuppressWarnings("unused") TDatabaselistToken node)
+    public void caseTDatainsightidToken(@SuppressWarnings("unused") TDatainsightidToken node)
     {
         this.index = 91;
     }
 
     @Override
-    public void caseTDatabaseconceptsToken(@SuppressWarnings("unused") TDatabaseconceptsToken node)
+    public void caseTDatabaselistToken(@SuppressWarnings("unused") TDatabaselistToken node)
     {
         this.index = 92;
     }
 
     @Override
-    public void caseTDatabaseconnectedconceptsToken(@SuppressWarnings("unused") TDatabaseconnectedconceptsToken node)
+    public void caseTDatabaseconceptsToken(@SuppressWarnings("unused") TDatabaseconceptsToken node)
     {
         this.index = 93;
     }
 
     @Override
-    public void caseTDatabaseconceptpropertiesToken(@SuppressWarnings("unused") TDatabaseconceptpropertiesToken node)
+    public void caseTDatabaseconnectedconceptsToken(@SuppressWarnings("unused") TDatabaseconnectedconceptsToken node)
     {
         this.index = 94;
     }
 
     @Override
-    public void caseTDatabasemetamodelToken(@SuppressWarnings("unused") TDatabasemetamodelToken node)
+    public void caseTDatabaseconceptpropertiesToken(@SuppressWarnings("unused") TDatabaseconceptpropertiesToken node)
     {
         this.index = 95;
     }
 
     @Override
-    public void caseTDashboardconfig(@SuppressWarnings("unused") TDashboardconfig node)
+    public void caseTDatabasemetamodelToken(@SuppressWarnings("unused") TDatabasemetamodelToken node)
     {
         this.index = 96;
     }
 
     @Override
-    public void caseTDashboardAddToken(@SuppressWarnings("unused") TDashboardAddToken node)
+    public void caseTDashboardconfig(@SuppressWarnings("unused") TDashboardconfig node)
     {
         this.index = 97;
     }
 
     @Override
-    public void caseTWherestr(@SuppressWarnings("unused") TWherestr node)
+    public void caseTDashboardAddToken(@SuppressWarnings("unused") TDashboardAddToken node)
     {
         this.index = 98;
     }
 
     @Override
-    public void caseTMetatag(@SuppressWarnings("unused") TMetatag node)
+    public void caseTWherestr(@SuppressWarnings("unused") TWherestr node)
     {
         this.index = 99;
     }
 
     @Override
-    public void caseEOF(@SuppressWarnings("unused") EOF node)
+    public void caseTMetatag(@SuppressWarnings("unused") TMetatag node)
     {
         this.index = 100;
+    }
+
+    @Override
+    public void caseEOF(@SuppressWarnings("unused") EOF node)
+    {
+        this.index = 101;
     }
 }
