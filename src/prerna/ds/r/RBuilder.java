@@ -40,12 +40,34 @@ public class RBuilder extends AbstractRBuilder {
 	
 	public RBuilder() throws RserveException {
 		RConnection masterCon = RSingleton.getConnection();
-		port = Utility.findOpenPort();
+		this.port = Utility.findOpenPort();
 		LOGGER.info("Starting it on port.. " + port);
 		// need to find a way to get a common name
 		masterCon.eval("library(Rserve); Rserve(port = " + port + ")");
 		this.retCon = new RConnection("127.0.0.1", Integer.parseInt(port));
-		
+
+		// load required libraries
+		loadDefaultLibraries();		
+	}
+
+	public RBuilder(String dataTableName) throws RserveException {
+		this();
+		if(this.dataTableName != null && !this.dataTableName.trim().isEmpty()) {
+			this.dataTableName = dataTableName;
+		}
+	}
+
+	public RBuilder(String dataTableName, RConnection retCon, String port) throws RserveException {
+		this.retCon = retCon;
+		this.port = port;
+		// load required libraries
+		loadDefaultLibraries();
+		if(this.dataTableName != null && !this.dataTableName.trim().isEmpty()) {
+			this.dataTableName = dataTableName;
+		}
+	}
+
+	private void loadDefaultLibraries() throws RserveException {
 		// load in the data.table package
 		this.retCon.eval("library(data.table)");
 		// load in the sqldf package to run sql queries
@@ -58,20 +80,6 @@ public class RBuilder extends AbstractRBuilder {
 		this.retCon.eval("library(reshape2);");
 		// rjdbc
 		this.retCon.eval("library(RJDBC);");
-		
-		// note: modified create flow, not using these methods
-		// load in the R script defining the functions we are using
-//		String path = (String) DIHelper.getInstance().getProperty(Constants.BASE_FOLDER);
-//		path = path.replace("\\", "/");
-//		path = path  + "/R/RDataTableScripts/baseFunctions.R";
-//		retCon.eval("source('"+ path + "')");
-	}
-	
-	public RBuilder(String dataTableName) throws RserveException {
-		this();
-		if(this.dataTableName != null && !this.dataTableName.trim().isEmpty()) {
-			this.dataTableName = dataTableName;
-		}
 	}
 	
 	protected String getTableName() {
