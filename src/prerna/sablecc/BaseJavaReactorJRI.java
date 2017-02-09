@@ -10,6 +10,7 @@ import org.apache.commons.io.FileUtils;
 import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.GraphTraversal;
 import org.apache.tinkerpop.gremlin.structure.Vertex;
 import org.rosuda.JRI.REXP;
+import org.rosuda.JRI.RVector;
 import org.rosuda.JRI.Rengine;
 import org.rosuda.REngine.REXPDouble;
 import org.rosuda.REngine.REXPGenericVector;
@@ -434,14 +435,14 @@ public class BaseJavaReactorJRI extends AbstractRJavaReactor {
 			System.out.println("Script " + script);
 			// get all the columns that are factors
 			script = "sapply(" + tempName + ", is.factor);";
-			String [] factors = engine.eval(script).asStringArray();			
+			int [] factors = engine.eval(script).asIntArray();			
 			String [] colNames = getColNames(tempName);
 			
 			// now I need to compose a string based on it
 			String conversionString = "";
 			for(int factorIndex = 0;factorIndex < factors.length;factorIndex++)
 			{
-				if(factors[factorIndex].equalsIgnoreCase("TRUE")) // this is a factor
+				if(factors[factorIndex] == 1) // this is a factor
 				{
 					conversionString = conversionString + 
 							tempName + "$" + colNames[factorIndex] + " <- "
@@ -705,6 +706,47 @@ public class BaseJavaReactorJRI extends AbstractRJavaReactor {
 		}
 		return retOutput;
 	}
+	
+	public void getHistogram(String frameName, String column, boolean print) {
+		Rengine rcon = (Rengine)startR();
+
+		String script = "hist(" + frameName + "$" + column + ", plot=FALSE)";
+		REXP histR = rcon.eval(script);
+		// this comes back as a vector
+		RVector vectorR = histR.asVector();
+		
+		// so we know a bit about the structure
+		// we can get the following values
+		// 1: breaks
+		// 2: counts
+		// 3: density
+		// 4: mids
+		// 5: xname
+		// 6: equidist
+
+		// we only need the breaks and counts
+		// format each range to the count value
+		double[] breaks = vectorR.at("breaks").asDoubleArray();
+		int[] counts = vectorR.at("counts").asIntArray();
+		int numBins = counts.length;
+		Object[][] returnData = new Object[numBins][2];
+
+		if(print) {
+			System.out.println("Generating histogram for column = " + column);
+		} else {
+			this.returnData = returnData;
+			this.hasReturnData = true;
+		}
+		
+		for(int i = 0; i < numBins; i++) {
+			returnData[i][0] = breaks[i] + " - " + breaks[i+1];
+			returnData[i][1] = counts[i];
+			if(print) {
+				System.out.println(returnData[i][0] + "\t\t" + returnData[i][1]);
+			}
+		}
+	}
+	
 	
 	public void unpivot()
 	{
