@@ -842,6 +842,31 @@ public abstract class AbstractRJavaReactor extends AbstractJavaReactor {
 		return false;
 	}
 	
+	protected Map<String, Object> getBarChartInfo(String label, String value, Object[][] dataValues) {
+		// create the weird object the FE needs to paint a bar chart
+		Map<String, Object>[] keyMap = new Hashtable[2];
+		Map<String, Object> labelMap = new Hashtable<String, Object>();
+		labelMap.put("vizType", "label");
+		labelMap.put("type", "STRING");
+		labelMap.put("uri", label);
+		labelMap.put("varKey", label);
+		labelMap.put("operation", new Hashtable());
+		keyMap[0] = labelMap;
+		Map<String, Object> frequencyMap = new Hashtable<String, Object>();
+		frequencyMap.put("vizType", "value");
+		frequencyMap.put("type", "NUMBER");
+		frequencyMap.put("uri", value);
+		frequencyMap.put("varKey", value);
+		frequencyMap.put("operation", new Hashtable());
+		keyMap[1] = frequencyMap;
+		
+		Map<String, Object> retObj = new Hashtable<String, Object>();
+		retObj.put("dataTableKeys", keyMap);
+		retObj.put("dataTableValues", dataValues);
+		
+		return retObj;
+	}
+	
 	////////////////////////////////////////////////////////////
 	////////////////////////////////////////////////////////////
 	//////////////////// Tinker R Methods //////////////////////
