@@ -218,6 +218,18 @@ public class RDataTable extends AbstractTableDataFrame {
 	public void removeColumn(String columnHeader) {
 		this.builder.evalR(this.builder.getTableName() + "[," + columnHeader + ":=NULL]");
 		this.metaData.dropVertex(columnHeader);
+
+		// Remove the column from header names
+		String[] newHeaders = new String[this.headerNames.length-1];
+		int newHeaderIdx = 0;
+		for(int i = 0; i < this.headerNames.length; i++){
+			String name = this.headerNames[i];
+			if(!name.equals(columnHeader)){
+				newHeaders[newHeaderIdx] = name;
+				newHeaderIdx ++;
+			}
+		}
+		this.headerNames = newHeaders;
 	}
 	
 	@Override
