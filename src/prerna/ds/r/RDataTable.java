@@ -203,6 +203,12 @@ public class RDataTable extends AbstractTableDataFrame {
 	}
 	
 	@Override
+	public void removeColumn(String columnHeader) {
+		this.builder.evalR(this.builder.getTableName() + "[," + columnHeader + ":=NULL]");
+		this.metaData.dropVertex(columnHeader);
+	}
+	
+	@Override
 	public boolean isEmpty() {
 		return this.builder.isEmpty();
 	}
@@ -270,12 +276,6 @@ public class RDataTable extends AbstractTableDataFrame {
 
 	@Override
 	public void unfilter() {
-		// TODO Auto-generated method stub
-		
-	}
-
-	@Override
-	public void removeColumn(String columnHeader) {
 		// TODO Auto-generated method stub
 		
 	}
