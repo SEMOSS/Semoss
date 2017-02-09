@@ -356,9 +356,8 @@ public class BaseJavaReactor extends AbstractRJavaReactor{
 		// need to get the type of this
 		try {
 			String condition = " ,";
-			columnName = columnName.toUpperCase();
 
-			String output = rcon.eval("sapply(" + frameName + "$" + columnName.toUpperCase() + ", class);").asString();
+			String output = rcon.eval("sapply(" + frameName + "$" + columnName + ", class);").asString();
 			String quote = "";
 			if(output.contains("character"))
 				quote = "\"";
@@ -388,7 +387,7 @@ public class BaseJavaReactor extends AbstractRJavaReactor{
 			String columnReplaceScript = "TRUE";
 			if(!dropColumn)
 				columnReplaceScript = "FALSE";
-			String script = tempName + " <- cSplit(" + frameName + ", \"" + columnName.toUpperCase() + "\", \"" + separator + "\", drop = " + columnReplaceScript+ ");" 
+			String script = tempName + " <- cSplit(" + frameName + ", \"" + columnName + "\", \"" + separator + "\", drop = " + columnReplaceScript+ ");" 
 				//+ tempName +" <- " + tempName + "[,lapply(.SD, as.character)];"  // this ends up converting numeric to factors too
 				//+ frameReplaceScript
 				;
@@ -443,7 +442,7 @@ public class BaseJavaReactor extends AbstractRJavaReactor{
 		RConnection rcon = (RConnection) startR();
 		String [] colNames = null;
 		try {
-			String script = "matrix(colnames(" + frameName + "));";
+			String script = "names(" + frameName + ");";
 			colNames = rcon.eval(script).asStrings();
 			if(print)
 			{
@@ -543,13 +542,13 @@ public class BaseJavaReactor extends AbstractRJavaReactor{
 			String concatString = "paste(";
 			for(int colIndex = 0;colIndex < columns.length;colIndex++)
 			{
-				concatString = concatString + frameName + "$" + columns[colIndex].toUpperCase();
+				concatString = concatString + frameName + "$" + columns[colIndex];
 				if(colIndex + 1 < columns.length)
 					concatString = concatString + ", ";
 			}
 			concatString = concatString + ", sep= \"" + separator + "\")";
 			
-			String script = frameName + "$" + newColumnName.toUpperCase() + " <- " + concatString;
+			String script = frameName + "$" + newColumnName + " <- " + concatString;
 			System.out.println(script);
 			rcon.eval(script);
 			System.out.println("Join Complete ");
@@ -580,11 +579,11 @@ public class BaseJavaReactor extends AbstractRJavaReactor{
 		
 		try {
 			
-			String script = "colData <-  " + frameName + "[, .N, by=\"" + column.toUpperCase() +"\"];";
+			String script = "colData <-  " + frameName + "[, .N, by=\"" + column +"\"];";
 			System.out.println("Script is " + script);
 			rcon.eval(script);
 			
-			script = "colData$" + column.toUpperCase();
+			script = "colData$" + column;
 			String [] uniqueColumns = rcon.eval(script).asStrings();
 			// need to limit this eventually to may be 10-15 and no more
 			script = "matrix(colData$N);"; 
