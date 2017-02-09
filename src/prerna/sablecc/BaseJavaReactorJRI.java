@@ -76,6 +76,9 @@ public class BaseJavaReactorJRI extends AbstractRJavaReactor {
 		Rengine engine = (Rengine)startR();
 		try {
 			REXP rexp = engine.eval(script);
+			if(rexp == null) {
+				LOGGER.info("Hmmm... REXP returned null for script = " + script);
+			}
 			return rexp;
 		} catch (Exception e) {
 			e.printStackTrace();
@@ -392,9 +395,8 @@ public class BaseJavaReactorJRI extends AbstractRJavaReactor {
 		// need to get the type of this
 		try {
 			String condition = " ,";
-			columnName = columnName.toUpperCase();
 
-			String output = engine.eval("sapply(" + frameName + "$" + columnName.toUpperCase() + ", class);").asString();
+			String output = engine.eval("sapply(" + frameName + "$" + columnName + ", class);").asString();
 			String quote = "";
 			if(output.contains("character"))
 				quote = "\"";
@@ -424,7 +426,7 @@ public class BaseJavaReactorJRI extends AbstractRJavaReactor {
 			String columnReplaceScript = "TRUE";
 			if(!dropColumn)
 				columnReplaceScript = "FALSE";
-			String script = tempName + " <- cSplit(" + frameName + ", \"" + columnName.toUpperCase() + "\", \"" + separator + "\", drop = " + columnReplaceScript+ ");" 
+			String script = tempName + " <- cSplit(" + frameName + ", \"" + columnName + "\", \"" + separator + "\", drop = " + columnReplaceScript+ ");" 
 				//+ tempName +" <- " + tempName + "[,lapply(.SD, as.character)];"  // this ends up converting numeric to factors too
 				//+ frameReplaceScript
 				;
@@ -474,7 +476,7 @@ public class BaseJavaReactorJRI extends AbstractRJavaReactor {
 		Rengine engine = (Rengine)startR();
 		String [] colNames = null;
 		try {
-				String script = "matrix(colnames(" + frameName + "));";
+				String script = "names(" + frameName + ");";
 				colNames = engine.eval(script).asStringArray();
 				if(print)
 				{
@@ -483,7 +485,6 @@ public class BaseJavaReactorJRI extends AbstractRJavaReactor {
 						System.out.println(colNames[colIndex] + "\n");
 				}
 		} catch (Exception e) {
-			// TODO Auto-generated catch block
 			e.printStackTrace();
 		} 
 		return colNames;
@@ -575,13 +576,13 @@ public class BaseJavaReactorJRI extends AbstractRJavaReactor {
 			String concatString = "paste(";
 			for(int colIndex = 0;colIndex < columns.length;colIndex++)
 			{
-				concatString = concatString + frameName + "$" + columns[colIndex].toUpperCase();
+				concatString = concatString + frameName + "$" + columns[colIndex];
 				if(colIndex + 1 < columns.length)
 					concatString = concatString + ", ";
 			}
 			concatString = concatString + ", sep= \"" + separator + "\")";
 			
-			String script = frameName + "$" + newColumnName.toUpperCase() + " <- " + concatString;
+			String script = frameName + "$" + newColumnName + " <- " + concatString;
 			System.out.println(script);
 			engine.eval(script);
 			System.out.println("Join Complete ");
@@ -611,10 +612,10 @@ public class BaseJavaReactorJRI extends AbstractRJavaReactor {
 		Object [][] retOutput = null; // name and the number of items
 		
 		try {
-			String script = "colData <-  " + frameName + "[, .N, by=\"" + column.toUpperCase() +"\"];";
+			String script = "colData <-  " + frameName + "[, .N, by=\"" + column +"\"];";
 			System.out.println("Script is " + script);
 			engine.eval(script);
-			script = "colData$" + column.toUpperCase();
+			script = "colData$" + column;
 			String [] uniqueColumns = engine.eval(script).asStringArray();
 			// need to limit this eventually to may be 10-15 and no more
 			script = "matrix(colData$N);"; 
@@ -743,9 +744,11 @@ public class BaseJavaReactorJRI extends AbstractRJavaReactor {
 			replacer = frameName + " <- " + tempName;
 		try {
 			// modifying this to execute single script at a time
-			String script = tempName + "<- melt(" + frameName + concatString + ");" ;
+			String script = tempName + "<- melt(" + frameName + concatString + ")" ;
 			eval(script);
+			String[] colNames = getColNames(tempName);
 			script = tempName + " <- " + tempName + "[,lapply(.SD, as.character)];";
+			String[] colNames2 = getColNames(tempName);
 			eval(script);
 			script = replacer;
 			eval(script);
