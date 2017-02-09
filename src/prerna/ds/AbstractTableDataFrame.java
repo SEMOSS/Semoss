@@ -351,6 +351,14 @@ public abstract class AbstractTableDataFrame implements ITableDataFrame {
 	@Override
 	public void modifyColumnName(String existingName, String newName) {
 		this.metaData.modifyUniqueName(existingName, newName);
+		// rename column in header names
+		for(int i = 0; i < this.headerNames.length; i++){
+			String name = this.headerNames[i];
+			if(name.equals(existingName)){
+				this.headerNames[i] = newName;
+				break;
+			}
+		}
 	}
 	
 	@Override
