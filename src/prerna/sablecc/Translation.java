@@ -28,6 +28,7 @@ import prerna.sablecc.analysis.DepthFirstAdapter;
 import prerna.sablecc.expressions.r.builder.RExpressionBuilder;
 import prerna.sablecc.expressions.sql.builder.ExpressionGenerator;
 import prerna.sablecc.expressions.sql.builder.SqlExpressionBuilder;
+import prerna.sablecc.meta.DataInsightMetaData;
 import prerna.sablecc.meta.IPkqlMetadata;
 import prerna.sablecc.node.*;
 import prerna.sablecc.services.DatabasePkqlService;
@@ -2470,6 +2471,8 @@ public class Translation extends DepthFirstAdapter {
 		
 		Map returnData = new HashMap();
 		returnData.put("list", returnDataList);
+		
+		storePkqlMetadata.add(new DataInsightMetaData());
 		
 		runner.setReturnData(returnData);
 		runner.setResponse(runner.getInsightId());
