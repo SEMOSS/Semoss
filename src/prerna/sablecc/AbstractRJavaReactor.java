@@ -14,6 +14,7 @@ import java.util.Vector;
 import org.apache.tinkerpop.gremlin.structure.Graph;
 import org.apache.tinkerpop.gremlin.structure.io.IoCore;
 import org.rosuda.JRI.Rengine;
+import org.rosuda.REngine.Rserve.RConnection;
 
 import cern.colt.Arrays;
 import prerna.algorithm.api.IMetaData;
@@ -190,12 +191,22 @@ public abstract class AbstractRJavaReactor extends AbstractJavaReactor {
 	 * @param rVarName
 	 */
 	protected void synchronizeGridToRDataTable(String rVarName) {
-		RDataTable table = new RDataTable(rVarName);
-		if(table.getConnection() != null && table.getPort() != null) {
-			storeVariable(R_CONN, table.getConnection());
-			storeVariable(R_PORT, table.getPort());
+		// if there is a current r serve session
+		// use that for the frame so we have all the other variables
+		RDataTable table = null;
+		if(retrieveVariable(R_CONN) != null && retrieveVariable(R_PORT) != null) {
+			table = new RDataTable(rVarName, (RConnection) retrieveVariable(R_CONN), (String) retrieveVariable(R_PORT));
+		} else {
+			// if we dont have a current r session
+			// but when we create the table it makes one
+			// store those variables so we end up using that
+			table = new RDataTable(rVarName);
+			if(table.getConnection() != null && table.getPort() != null) {
+				storeVariable(R_CONN, table.getConnection());
+				storeVariable(R_PORT, table.getPort());
+			}
 		}
-	
+		
 		H2Frame gridFrame = (H2Frame)dataframe;
 		String tableName = gridFrame.getBuilder().getTableName();
 		String url = gridFrame.getBuilder().connectFrame();
@@ -511,8 +522,7 @@ public abstract class AbstractRJavaReactor extends AbstractJavaReactor {
 	}
 	
 	protected void dropRColumn(String frameName, String colName) {
-		boolean modified = checkRTableModified(frameName);
-		if(modified) {
+		if(checkRTableModified(frameName)) {
 			// this R method will do the same evaluation
 			// but it will also drop it from the metadata
 			this.dataframe.removeColumn(colName);
@@ -711,7 +721,9 @@ public abstract class AbstractRJavaReactor extends AbstractJavaReactor {
 		System.out.println("Running script : " + script);
 		eval(script);
 		System.out.println("Successfully transposed data table into existing frame");
-		checkRTableModified(frameName);
+		if(checkRTableModified(frameName)) {
+			recreateMetadata(frameName);
+		}
 	}
 	
 	protected void transpose(String frameName, String transposeFrameName) {
@@ -719,7 +731,43 @@ public abstract class AbstractRJavaReactor extends AbstractJavaReactor {
 		System.out.println("Running script : " + script);
 		eval(script);
 		System.out.println("Successfully transposed data table into new frame " + transposeFrameName);
-		checkRTableModified(frameName);
+		if(checkRTableModified(frameName)) {
+			recreateMetadata(frameName);
+		}
+	}
+	
+	protected void recreateMetadata(String frameName) {
+		// recreate a new frame and set the frame name
+		String[] colNames = getColNames(frameName, false);
+		String[] colTypes = getColTypes(frameName, false);
+		
+		// create the data type map and the edge hash
+		Map<String, String> dataTypeMap = new Hashtable<String, String>();
+		for(int i = 0; i < colNames.length; i++) {
+			dataTypeMap.put(colNames[i], colTypes[i]);
+		}
+		Map<String, Set<String>> edgeHash = TinkerMetaHelper.createPrimKeyEdgeHash(colNames);
+
+		// create a new table using the correct variables
+		// to get into this point
+		// we know there is an existing r table
+		// so if there is no r_conn + port variables
+		// it must be JRI
+		RDataTable newTable = null;
+		if(retrieveVariable(R_CONN) != null && retrieveVariable(R_PORT) != null) {
+			newTable = new RDataTable(frameName, (RConnection) retrieveVariable(R_CONN), (String) retrieveVariable(R_PORT));
+		} else {
+			newTable = new RDataTable(frameName);
+		}
+		newTable.mergeEdgeHash(edgeHash, dataTypeMap);
+		
+		int currDataId = this.dataframe.getDataId();
+		for(int i = 0; i <= currDataId; i++) {
+			newTable.updateDataId();
+		}
+		
+		this.dataframe = newTable;
+		this.frameChanged = true;
 	}
 
 	protected void renameColumn(String curColName, String newColName) {
@@ -732,8 +780,7 @@ public abstract class AbstractRJavaReactor extends AbstractJavaReactor {
 		System.out.println("Running script : " + script);
 		eval(script);
 		System.out.println("Successfully modified name = " + curColName + " to now be " + newColName);
-		boolean change = checkRTableModified(frameName);
-		if(change) {
+		if(checkRTableModified(frameName)) {
 			this.dataframe.modifyColumnName(curColName, newColName);
 		}
 	}
@@ -777,8 +824,7 @@ public abstract class AbstractRJavaReactor extends AbstractJavaReactor {
 			System.out.println("Running script : " + script);
 			System.out.println("Successfully modified old names = " + Arrays.toString(oldNames) + " to new names " + Arrays.toString(newNames));
 		}
-		boolean change = checkRTableModified(frameName);
-		if(change) {
+		if(checkRTableModified(frameName)) {
 			for(i = 0; i < size; i++) {
 				this.dataframe.modifyColumnName(oldNames[i], newNames[i]);
 			}
