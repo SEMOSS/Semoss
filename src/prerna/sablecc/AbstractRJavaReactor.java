@@ -5,7 +5,6 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.Hashtable;
 import java.util.List;
 import java.util.Map;
@@ -157,7 +156,7 @@ public abstract class AbstractRJavaReactor extends AbstractJavaReactor {
 		initiateDriver(url, "sa");
 		
 		// note : do not use * since R will not preserve the column order
-		String selectors = "";
+		StringBuilder selectors = new StringBuilder();
 		String [] colSelectors = null;
 		if(cols == null || cols.length() == 0) {
 			colSelectors = gridFrame.getColumnHeaders();
@@ -166,9 +165,9 @@ public abstract class AbstractRJavaReactor extends AbstractJavaReactor {
 		}
 		
 		for(int selectIndex = 0; selectIndex < colSelectors.length; selectIndex++) {
-			selectors = selectors + colSelectors[selectIndex];
+			selectors.append(colSelectors[selectIndex]);
 			if(selectIndex + 1 < colSelectors.length) {
-				selectors = selectors + ", ";
+				selectors.append(", ");
 			}
 		}
 		
@@ -205,37 +204,37 @@ public abstract class AbstractRJavaReactor extends AbstractJavaReactor {
 		// should properly merge the meta data
 		
 		Map<String, Set<String>> edgeHash = gridFrame.getEdgeHash();
-		
-		Map<String, Set<String>> cleanEdgeHash = new HashMap<String, Set<String>>();
 		Map<String, String> dataTypeMap = new HashMap<String, String>();
 		for(String colName : edgeHash.keySet()) {
-			String cleanColName = colName.toUpperCase();
-			if(!dataTypeMap.containsKey(cleanColName)) {
-				dataTypeMap.put(cleanColName, Utility.convertDataTypeToString(gridFrame.getDataType(colName)) );
+			if(!dataTypeMap.containsKey(colName)) {
+				dataTypeMap.put(colName, Utility.convertDataTypeToString(gridFrame.getDataType(colName)) );
 			}
 			
-			Set<String> cleanOtherCols = new HashSet<String>();
 			Set<String> otherCols = edgeHash.get(colName);
 			for(String otherCol : otherCols) {
-				String cleanOtherCol = otherCol.toUpperCase();
-				if(!dataTypeMap.containsKey(cleanOtherCol)) {
-					dataTypeMap.put(cleanOtherCol, Utility.convertDataTypeToString(gridFrame.getDataType(otherCol)) );
+				if(!dataTypeMap.containsKey(otherCol)) {
+					dataTypeMap.put(otherCol, Utility.convertDataTypeToString(gridFrame.getDataType(otherCol)) );
 				}
-				cleanOtherCols.add(cleanOtherCol);
 			}
-			
-			cleanEdgeHash.put(cleanColName, cleanOtherCols);
 		}
 		
-		table.mergeEdgeHash(cleanEdgeHash, dataTypeMap);
+		table.mergeEdgeHash(edgeHash, dataTypeMap);
 
-		eval(rVarName + " <-as.data.table(unclass(dbGetQuery(conn,'SELECT * FROM " + tableName + "')));");
+		StringBuilder selectors = new StringBuilder();
+		String [] colSelectors = gridFrame.getColumnHeaders();
+		for(int selectIndex = 0; selectIndex < colSelectors.length; selectIndex++) {
+			selectors.append(colSelectors[selectIndex]);
+			if(selectIndex + 1 < colSelectors.length) {
+				selectors.append(", ");
+			}
+		}
+		
+		eval(rVarName + " <-as.data.table(unclass(dbGetQuery(conn,'SELECT " + selectors + " FROM " + tableName + "')));");
 		eval("setDT(" + rVarName + ")");
 		
 		// modify the headers to be what they used to be because the * will return everything in caps
-		String[] properHeaders = gridFrame.getColumnHeaders();
 		String[] currHeaders = getColNames(rVarName, false);
-		renameColumn(rVarName, currHeaders, properHeaders);
+		renameColumn(rVarName, currHeaders, colSelectors);
 		
 		storeVariable("GRID_NAME", rVarName);
 		System.out.println("Completed synchronization as " + rVarName);
@@ -502,9 +501,15 @@ public abstract class AbstractRJavaReactor extends AbstractJavaReactor {
 	}
 	
 	protected void dropRColumn(String frameName, String colName) {
-		eval(frameName + "[," + colName + ":=NULL]");
+		boolean modified = checkRTableModified(frameName);
+		if(modified) {
+			// this R method will do the same evaluation
+			// but it will also drop it from the metadata
+			this.dataframe.removeColumn(colName);
+		} else {
+			eval(frameName + "[," + colName + ":=NULL]");
+		}
 		System.out.println("Successfully removed column = " + colName);
-		checkRTableModified(frameName);
 	}
 	
 	/**
@@ -531,6 +536,9 @@ public abstract class AbstractRJavaReactor extends AbstractJavaReactor {
 			comparator = "==";
 		}
 		String frameExpression = frameName + "$" + colName;
+		// determine the correct comparison to drop values from the frame
+		// .... this is a bunch of casting...
+		// also note that the string NULL is special to remove values that are undefined within the frame
 		StringBuilder script = new StringBuilder(frameName).append("<-").append(frameName).append("[!(").append(frameExpression);
 		if(values instanceof Object[]) {
 			Object[] arr = (Object[]) values;
