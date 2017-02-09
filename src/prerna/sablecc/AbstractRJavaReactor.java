@@ -775,7 +775,7 @@ public abstract class AbstractRJavaReactor extends AbstractJavaReactor {
 		renameColumn(frameName, curColName, newColName);
 	}
 	
-	private void renameColumn(String frameName, String curColName, String newColName) {
+	protected void renameColumn(String frameName, String curColName, String newColName) {
 		String script = "names(" + frameName + ")[names(" + frameName + ") == \"" + curColName + "\"] = \"" + newColName + "\"";
 		System.out.println("Running script : " + script);
 		eval(script);
@@ -794,7 +794,7 @@ public abstract class AbstractRJavaReactor extends AbstractJavaReactor {
 		renameColumn(frameName, oldNames, newColNames, true);
 	}
 	
-	private void renameColumn(String frameName, String[] oldNames, String[] newNames, boolean print) {
+	protected void renameColumn(String frameName, String[] oldNames, String[] newNames, boolean print) {
 		int size = oldNames.length;
 		if(size != newNames.length) {
 			throw new IllegalArgumentException("Names arrays do not match in length");
