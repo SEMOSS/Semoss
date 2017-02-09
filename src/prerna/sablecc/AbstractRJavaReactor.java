@@ -84,6 +84,8 @@ public abstract class AbstractRJavaReactor extends AbstractJavaReactor {
 
 	protected abstract Object[][] getDescriptiveStats(String frameName, String colName, boolean outputString);
 
+	protected abstract Object[][] getHistogram(String frameName, String column, int numBreaks, boolean print);
+	
 	protected abstract void performSplitColumn(String frameName, String columnName, String separator, boolean dropColumn, boolean frameReplace);
 	
 	protected abstract void performJoinColumns(String frameName, String newColumnName,  String separator, String cols);
@@ -489,6 +491,14 @@ public abstract class AbstractRJavaReactor extends AbstractJavaReactor {
 	
 	protected Object[][] getDescriptiveStats(String frameName, String colName) {
 		return getDescriptiveStats(frameName, colName, true);
+	}
+	
+	public void getHistogram(String frameName, String column) {
+		getHistogram(frameName, column, true);
+	}
+	
+	public void getHistogram(String frameName, String column, boolean print) {
+		getHistogram(frameName, column, 0, print);
 	}
 	
 	/**
