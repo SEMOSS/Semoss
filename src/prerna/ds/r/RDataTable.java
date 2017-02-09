@@ -54,6 +54,18 @@ public class RDataTable extends AbstractTableDataFrame {
 		}
 	}
 	
+	public RDataTable(String rTableVarName, RConnection retCon, String port) {
+		try {
+			this.builder = new RBuilder(rTableVarName, retCon, port);
+			this.metaData = new TinkerMetaData();
+		} catch (RserveException e) {
+			e.printStackTrace();
+			closeConnection();
+			throw new IllegalStateException("Could not create valid connection to R. "
+					+ "Please make sure R is installed properly and running on machine.");
+		}
+	}
+	
 	public RConnection getConnection() {
 		return this.builder.getConnection();
 	}
