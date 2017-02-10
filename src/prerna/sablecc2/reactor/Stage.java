@@ -41,6 +41,9 @@ public class Stage extends Hashtable <String, Hashtable> {
 	// should keep another hash of lowest dependency just in case things come in later
 	Hashtable <String, Integer> lowestDependency = new Hashtable<String, Integer>();
 	Hashtable <String, String> fromToDependency = new Hashtable <String, String>();
+	
+	Vector <Object> filters = new Vector<Object>();
+	Vector <Object> joins = new Vector<Object>();
 			
 	public void addOperation(String operationName, Hashtable codeHash)
 	{
@@ -79,8 +82,9 @@ public class Stage extends Hashtable <String, Hashtable> {
 		
 		// take care of filters here
 		Vector <Object> filters = (Vector<Object>)codeHash.get("FILTERS");
+		this.filters.addAll(filters);
 		
-		for(int filterIndex = 0;filters != null && filterIndex < filters.size();filterIndex++)
+		/*for(int filterIndex = 0;filters != null && filterIndex < filters.size();filterIndex++)
 		{
 			Object thisFilter = filters.elementAt(filterIndex);
 			if(thisFilter instanceof Join)
@@ -89,11 +93,12 @@ public class Stage extends Hashtable <String, Hashtable> {
 				System.out.println("Weird.. ");;
 			
 			addStageFilter((Filter)thisFilter);
-		}
+		}*/
 
 		Vector <Object> joins = (Vector<Object>)codeHash.get("JOINS");
+		this.joins.addAll(joins);
 		
-		for(int joinIndex = 0;joins != null && joinIndex < joins.size();joinIndex++)
+		/*for(int joinIndex = 0;joins != null && joinIndex < joins.size();joinIndex++)
 		{
 			Object thisJoin = joins.elementAt(joinIndex);
 			if(thisJoin instanceof Join)
@@ -102,7 +107,7 @@ public class Stage extends Hashtable <String, Hashtable> {
 				System.out.println("Weird.. ");;
 			
 			addStageRelation((Join)thisJoin);
-		}
+		}*/
 		
 		// get the frame from the codehash and set it up
 		// frame over writes i.e. if you have one operation later setting the frame
@@ -416,7 +421,7 @@ public class Stage extends Hashtable <String, Hashtable> {
 		thisClass.addMethod(declareBlock.toString());
 		retString = retString.insert(0,declareBlock + "\n"); // insert all tthe declarations upfront
 		System.out.println("Query Struct now.. \n\n" + queryStructString);
-		thisClass.addMethod(queryStructString.toString());
+		//thisClass.addMethod(queryStructString.toString()); <-- I dont need this anymore
 		retString = retString.insert(0, queryStructString + "\n");
 		retString = retString.append("\n // Other code functions follow ");
 		retString = retString.append("\n" + endBlock);
@@ -456,7 +461,6 @@ public class Stage extends Hashtable <String, Hashtable> {
 		runner.makeQuery();
 		runner.addInputs();
 		runner.execute();
-		
 	}
 	
 	public Hashtable<String, Object> postProcessStage()

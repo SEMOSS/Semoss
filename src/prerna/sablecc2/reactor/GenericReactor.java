@@ -53,10 +53,6 @@ public class GenericReactor extends AbstractReactor {
 		return null;
 	}
 
-	@Override
-	public IHeadersDataRow execute(IHeadersDataRow row) {
-		return null;
-	}
 
 	@Override
 	void mergeUp() {
