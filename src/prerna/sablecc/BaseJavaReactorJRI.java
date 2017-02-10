@@ -650,6 +650,12 @@ public class BaseJavaReactorJRI extends AbstractRJavaReactor {
 		return retOutput;
 	}
 	
+	@Override
+	protected int getNumRows(String frameName) {
+		Rengine rcon = (Rengine)startR();
+		return rcon.eval("nrow(" + frameName + ")").asInt();
+	}
+	
 	public Object[][] getDescriptiveStats(String frameName, String column, boolean print) {
 		// start the R first
 		Rengine rcon = (Rengine)startR();
