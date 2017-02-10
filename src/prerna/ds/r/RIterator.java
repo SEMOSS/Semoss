@@ -1,7 +1,6 @@
 package prerna.ds.r;
 
 import java.util.Iterator;
-import java.util.Map;
 
 public class RIterator implements Iterator<Object[]>{
 
@@ -50,38 +49,14 @@ public class RIterator implements Iterator<Object[]>{
 	@Override
 	public Object[] next() {
 		// grab the rowIndex from the data table
-		Map<String, Object> data = this.builder.getMapReturn(this.tableName + "[" + rowIndex + " , " + headerString + ", with=FALSE]");
-		
-		// iterate through the list and fill into an object array to return
-		Object[] retArray = new Object[data.keySet().size()];
-		for(int colIndex = 0; colIndex < headers.length; colIndex++) {
-			Object val = data.get(headers[colIndex]);
-			if(val instanceof String) {
-				retArray[colIndex] = val;
-			} else if(val instanceof Object[]) {
-				retArray[colIndex] = ((Object[]) val)[0];
-			} else if(val instanceof double[]) {
-				retArray[colIndex] = ((double[]) val)[0];
-			} else if(val instanceof int[]) {
-				retArray[colIndex] = ((int[]) val)[0];
-			} else if(val instanceof org.rosuda.JRI.RFactor) {
-				retArray[colIndex] = ((org.rosuda.JRI.RFactor) val).at(0);
-			} else {
-				retArray[colIndex] = val;
-			}
-			
-			// since FE cannot handle NaN values
-			if(retArray[colIndex].equals(Double.NaN)) {
-				retArray[colIndex] = "";
-			}
-		}
-		
+		// the ordering is only used by the RServe version of R
+		// JRI returns the array in the ordering of the headerString
+		// RServe returns a map which isn't necessarily ordered
+		Object[] retArray = this.builder.getDataRow(this.tableName + "[" + rowIndex + " , " + headerString + ", with=FALSE]", headers);
 		// update the row index
 		this.rowIndex++;
-
+				
 		return retArray;
 	}
-	
-	
 	
 }
