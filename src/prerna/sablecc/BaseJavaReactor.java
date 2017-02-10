@@ -616,6 +616,20 @@ public class BaseJavaReactor extends AbstractRJavaReactor{
 		return retOutput;
 	}
 	
+	@Override
+	protected int getNumRows(String frameName) {
+		RConnection rcon = (RConnection) startR();
+		int numRows = 0;
+		try {
+			numRows = rcon.eval("nrow(" + frameName + ")").asInteger();
+		} catch (RserveException e) {
+			e.printStackTrace();
+		} catch (REXPMismatchException e) {
+			e.printStackTrace();
+		}
+		return numRows;
+	}
+	
 	public Object[][] getDescriptiveStats(String frameName, String column, boolean print) {
 		RConnection rcon = (RConnection) startR();
 		Object [][] retOutput = new Object[8][2]; // name and the number of items
@@ -891,5 +905,4 @@ public class BaseJavaReactor extends AbstractRJavaReactor{
 		file.delete();
 		java.lang.System.setSecurityManager(reactorManager);
 	}
-
 }
