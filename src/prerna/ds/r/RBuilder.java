@@ -28,7 +28,6 @@ public class RBuilder extends AbstractRBuilder {
 	// holds the connection for RDataFrame to the instance of R running
 	private RConnection retCon;
 	private String port;
-	private String dataTableName = "datatable";
 	
 	public RConnection getConnection() {
 		return this.retCon;

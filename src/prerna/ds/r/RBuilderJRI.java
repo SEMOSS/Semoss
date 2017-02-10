@@ -16,7 +16,6 @@ public class RBuilderJRI extends AbstractRBuilder {
 
 	// holds the connection for RDataFrame to the instance of R running
 	private Rengine retCon;
-	private String dataTableName = "datatable";
 
 	public RBuilderJRI() {
 		this.retCon = Rengine.getMainEngine();
