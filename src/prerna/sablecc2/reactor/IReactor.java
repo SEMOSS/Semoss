@@ -3,6 +3,7 @@ package prerna.sablecc2.reactor;
 import java.util.Iterator;
 import java.util.Vector;
 
+import prerna.algorithm.api.ITableDataFrame;
 import prerna.engine.api.IHeadersDataRow;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.NounMetadata;
@@ -104,13 +105,16 @@ public interface IReactor {
 	public Object getProp(String key);
 	
 	// execute method
-	public IHeadersDataRow execute(IHeadersDataRow row);
+	public Object execute();
 	
 	// map call implement if your type is map
 	public IHeadersDataRow map(IHeadersDataRow row);
 	
 	// reduce call implement if the type is reduce
 	public Object reduce(Iterator iterator);
+	
+	// sets the data frame
+	public void setFrame(ITableDataFrame frame);
 	
 	/**
 	 * elements <- Generic Row <- Generic Noun <- Reactor

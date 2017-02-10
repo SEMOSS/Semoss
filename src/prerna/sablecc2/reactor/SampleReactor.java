@@ -1,9 +1,9 @@
 package prerna.sablecc2.reactor;
 
 import java.util.Enumeration;
-import java.util.Hashtable;
 import java.util.Vector;
 
+import prerna.algorithm.api.IMetaData;
 import prerna.engine.api.IHeadersDataRow;
 import prerna.sablecc2.om.CodeBlock;
 import prerna.sablecc2.om.GenRowStruct;
@@ -85,6 +85,92 @@ public class SampleReactor extends AbstractReactor {
 		else if(parentReactor != null) return parentReactor;
 		// else all the merging has already happened
 		return null;
+	}
+	
+	// yes.. that is right make code not war
+	private void makeCode()
+	{
+		if(propStore.containsKey("CODE"))
+		{
+			String code = (String)propStore.get("CODE");
+			String baseClass = "prerna.sablecc2.reactor.Lambda";
+			getType();
+			Enumeration <String> keys = store.nounRow.keys();
+			String reactorOutput = reactorName;
+			
+			Vector <Object> filters = new Vector();
+			Vector <Object> joins = new Vector();
+			Vector <String> inputs = new Vector();
+			
+			while(keys.hasMoreElements())
+			{
+				String singleKey = keys.nextElement();
+				GenRowStruct struct = store.nounRow.get(singleKey);
+				inputs.addAll(struct.getAllColumns());
+				// merge the filters and joins as well
+				filters.addAll(struct.getColumnsOfType(GenRowStruct.COLUMN_TYPE.FILTER)); 
+				joins.addAll(struct.getColumnsOfType(GenRowStruct.COLUMN_TYPE.JOIN));
+			}
+			
+		
+			//CodeBlock.LANG thisLang = null;
+			// need a if loop to convert language to java
+			if(propStore.containsKey("LANGUAGE"))
+			{
+				String language = (String)propStore.get("LANGUAGE");
+				if(language.toLowerCase().contains("python"))
+				{
+					//thisLang = CodeBlock.LANG.PYTHON;
+					baseClass = "LambdaPy";
+				}
+				if(language.toLowerCase().contains("r")) // good luck if you want prolog it will still be R :)
+				{
+					//thisLang = CodeBlock.LANG.R;
+					baseClass = "LambdaR";
+				}
+				else 
+				{	
+					//thisLang = CodeBlock.LANG.JAVA; // default
+					baseClass = "prerna.sablecc2.reactor.Lambda";
+				}
+			}
+			// sets the code
+			// into the main lambda and then calls the execute
+			ClassMaker myClass = new ClassMaker();
+			myClass.addSuper(baseClass);
+			
+			StringBuffer method = new StringBuffer();
+			method.append("public void execute(IHeadersDataRow row) {");
+			
+			// put the fields now
+			// assumes this is java
+			for(int colIndex = 0;colIndex < inputs.size();colIndex++)
+			{
+				String thisCol = inputs.elementAt(colIndex);
+				IMetaData.DATA_TYPES thisType = frame.getDataType(thisCol);
+				if(thisType == IMetaData.DATA_TYPES.STRING)
+					method.append("String " + thisCol + " = (String)row.getField(" + thisCol + "); \n");
+				else if(thisType == IMetaData.DATA_TYPES.NUMBER)
+					method.append("Double " + thisCol + " = (Double)row.getField(" + thisCol + "); \n");
+				else if(thisType == IMetaData.DATA_TYPES.DATE)
+					method.append("Date " + thisCol + " = (Date)row.getField(" + thisCol + "); \n");					
+			}
+			
+			// add the code
+			method.append(code + "\n");
+			method.append("}");
+			
+			myClass.addMethod(method.toString());
+			try {
+				runner = (Lambda)myClass.toClass().newInstance();
+			} catch (InstantiationException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			} catch (IllegalAccessException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+		}	
 	}
 	
 	// need a merge nounstore
@@ -227,6 +313,21 @@ public class SampleReactor extends AbstractReactor {
 	@Override
 	public Vector<NounMetadata> getInputs() {
 		return null;
+	}
+	
+	// execute this
+	public Object execute()
+	{
+		makeCode();
+		// need to do the map or reduce
+		//if(this.type == IReactor.TYPE.REDUCE && runner != null)
+		{
+			runner.makeQuery();
+			runner.addStore(this.propStore);
+			return runner.execute();
+		}
+		//else
+		//	return runner;
 	}
 
 }

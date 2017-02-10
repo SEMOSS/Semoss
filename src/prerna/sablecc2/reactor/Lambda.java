@@ -8,6 +8,9 @@ import java.util.Vector;
 import prerna.algorithm.api.ITableDataFrame;
 import prerna.ds.QueryStruct;
 import prerna.engine.api.IHeadersDataRow;
+import prerna.sablecc2.om.Filter;
+import prerna.sablecc2.om.GenRowStruct;
+import prerna.sablecc2.om.Join;
 
 public class Lambda implements Iterator{
 	
@@ -30,6 +33,9 @@ public class Lambda implements Iterator{
 	public Vector<String> strVector = null;
 	public Vector<Double> decVector = null;
 	
+	public Vector<String> cols = null;
+	public Vector<Object> filters = null;
+	public Vector<Object> joins = null;
 	
 	// all the input strings are stored here
 	public Hashtable <String, String[]> inputStore = new Hashtable<String, String[]>();
@@ -40,6 +46,66 @@ public class Lambda implements Iterator{
 	public void makeQuery()
 	{
 		// this will be overridden
+		System.out.println("Making Query Struct");
+		String tableName = "";
+		if(this.frame != null)
+			tableName = frame.getTableName();
+		
+		// need to think about the as here
+		if(cols != null)
+		{
+			for(int colIndex = 0;cols != null && colIndex < cols.size();colIndex++)
+			{
+				String input = cols.elementAt(colIndex);
+				String [] column = input.split("__");
+				if(column.length == 1)
+					qs.addSelector(tableName , input);
+				else
+					qs.addSelector(tableName , input);
+			}
+		}
+		if(filters != null)
+		{
+			for(int filterIndex = 0;filterIndex < filters.size();filterIndex++)
+			{
+				Filter filter = (Filter)filters.elementAt(filterIndex);
+				GenRowStruct values = filter.getValues();
+				if(values.size() > 0)
+				{
+					// predict what the type is
+					GenRowStruct.COLUMN_TYPE type = values.metaVector.elementAt(1);
+					String pad = "";
+					if(type == GenRowStruct.COLUMN_TYPE.CONST_STRING)
+					{
+						Vector <String> strVector = new Vector<String>();
+						// now make this into a vector
+						for(int valIndex = 1;valIndex < values.size();valIndex++)
+							strVector.addElement(values.elementAt(valIndex)+"");
+						qs.addFilter(filter.getSelector(), filter.getComparator(), strVector);
+					}
+					else
+					{
+						Vector <Double> decVector = new Vector<Double>();
+						for(int valIndex = 1;valIndex < values.size();valIndex++)
+						{
+							Object doubVal = values.elementAt(valIndex);
+							decVector.addElement(new Double(" + values.elementAt(valIndex) +"));
+						}
+						qs.addFilter(filter.getSelector(), filter.getComparator(), decVector);
+					}
+				}		
+			}
+		}
+		if(joins != null)
+		{
+			for(int joinIndex = 0; joinIndex < joins.size();joinIndex++)
+			{
+				Join join = (Join)joins.elementAt(joinIndex);
+				qs.addRelation(join.getSelector() , join.getQualifier(), join.getJoinType());
+			}
+		}
+		if(frame != null)
+			thisIterator = frame.query(qs);
 	}
 	
 	public void addInputs()
@@ -78,7 +144,7 @@ public class Lambda implements Iterator{
 		return store.get(variableName);
 	}
 	
-	public void execute()
+	public Object execute()
 	{
 		// run the query
 		// get the headerrow
@@ -88,13 +154,14 @@ public class Lambda implements Iterator{
 		if(thisIterator == null)
 		{
 			System.out.println("NOthing to process");
-			return;
+			return null;
 		}
 		while(thisIterator.hasNext())
 		{
 			IHeadersDataRow row = (IHeadersDataRow)thisIterator.next();
 			executeCode(row);
 		}
+		return null;
 	}
 	
 	public boolean hasNext()

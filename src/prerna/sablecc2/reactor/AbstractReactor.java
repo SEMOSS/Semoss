@@ -5,6 +5,7 @@ import java.util.Hashtable;
 import java.util.Iterator;
 import java.util.Vector;
 
+import prerna.algorithm.api.ITableDataFrame;
 import prerna.engine.api.IHeadersDataRow;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.NounMetadata;
@@ -28,8 +29,10 @@ public abstract class AbstractReactor implements IReactor {
 	Vector <String> outputTypes = null;
 	
 	Hashtable <String, Object> propStore = new Hashtable<String, Object>();
+	ITableDataFrame frame = null;
 	
 	PKSLPlanner planner = null;
+	Lambda runner = null;
 	
 	abstract void mergeUp();
 	abstract void updatePlan();
@@ -38,6 +41,12 @@ public abstract class AbstractReactor implements IReactor {
 	public void setPKSL(String operation, String fullOperation) {
 		this.operationName = operation;
 		this.signature = fullOperation;
+	}
+	
+	@Override
+	public void setFrame(ITableDataFrame frame)
+	{
+		this.frame = frame;
 	}
 
 	@Override
@@ -162,7 +171,7 @@ public abstract class AbstractReactor implements IReactor {
 	
 	// execute it
 	// once again this would be abstract
-	public IHeadersDataRow execute(IHeadersDataRow row)
+	public Object execute()
 	{
 		System.out.println("Execute the method.. " + signature);
 		System.out.println("Printing NOUN Store so far.. " + store);
