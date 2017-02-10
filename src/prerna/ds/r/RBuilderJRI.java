@@ -1,8 +1,6 @@
 package prerna.ds.r;
 
-import java.util.HashMap;
 import java.util.Iterator;
-import java.util.Map;
 import java.util.Vector;
 
 import org.apache.log4j.LogManager;
@@ -25,7 +23,7 @@ public class RBuilderJRI extends AbstractRBuilder {
 		if(this.retCon == null) {
 			// start the R Engine
 			this.retCon = new Rengine(null, true, null);
-			System.out.println("Successfully created engine.. ");
+			LOGGER.info("Successfully created engine.. ");
 		}
 		// load in the data.table package
 		this.retCon.eval("library(data.table)");
@@ -136,38 +134,42 @@ public class RBuilderJRI extends AbstractRBuilder {
 	}
 
 	@Override
-	protected Map<String, Object> getMapReturn(String rScript) {
+	protected Object[] getDataRow(String rScript, String[] headerOrdering) {
+		// we do not need the header ordering
+		// it is only needed for the RServe version of R
+		// this will return based on the same order as the rScript
+		
 		REXP rs = executeR(rScript);
 		RVector rVec = rs.asVector();
 		Vector names = rVec.getNames();
 		int numReturn = names.size();
 		
-		Map<String, Object> returnData = new HashMap<String, Object>();
+		Object[] retArr = new Object[numReturn];
 		for(int idx = 0; idx < numReturn; idx++) {
 			REXP val = rVec.at(idx);
 			int typeInt = val.getType();
 			if(typeInt == REXP.XT_DOUBLE) {
-				returnData.put(names.get(idx) + "", val.asDouble());
+				retArr[idx] = val.asDouble();
 			} else if(typeInt == REXP.XT_ARRAY_DOUBLE) {
-				returnData.put(names.get(idx) + "", val.asDoubleArray());
+				retArr[idx] = val.asDoubleArray()[0];
 			} else if(typeInt == REXP.XT_INT) {
-				returnData.put(names.get(idx) + "", val.asInt());
+				retArr[idx] = val.asInt();
 			} else if(typeInt == REXP.XT_ARRAY_INT) {
-				returnData.put(names.get(idx) + "", val.asIntArray());
+				retArr[idx] = val.asIntArray()[0];
 			} else if(typeInt == REXP.XT_STR) {
-				returnData.put(names.get(idx) + "", val.asString());
+				retArr[idx] = val.asString();
 			} else if(typeInt == REXP.XT_ARRAY_STR) {
-				returnData.put(names.get(idx) + "", val.asStringArray());
+				retArr[idx] = val.asStringArray()[0];
 			} else if(typeInt == REXP.XT_BOOL) {
-				returnData.put(names.get(idx) + "", val.asBool());
+				retArr[idx] = val.asBool();
 			} else if(typeInt == REXP.XT_FACTOR) {
-				returnData.put(names.get(idx) + "", val.asFactor());
+				retArr[idx] = val.asFactor().at(0);
 			} else {
-				returnData.put(names.get(idx) + "", val);
+				retArr[idx] = val;
 			}
 		}
 		
-		return returnData;
+		return retArr;
 	}
 
 	@Override
