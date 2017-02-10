@@ -77,6 +77,8 @@ public abstract class AbstractRJavaReactor extends AbstractJavaReactor {
 	
 	// h2 specific abstract methods
 	
+	protected abstract String getColType(String frameName, String colName, boolean print);
+	
 	protected abstract String[] getColTypes(String frameName, boolean print);
 
 	protected abstract String[] getColNames(String frameName, boolean print);
@@ -92,6 +94,10 @@ public abstract class AbstractRJavaReactor extends AbstractJavaReactor {
 	protected abstract void performJoinColumns(String frameName, String newColumnName,  String separator, String cols);
 	
 	protected abstract void performReplaceColumnValue(String frameName, String columnName, String curValue, String newValue);
+	
+	protected abstract void unpivot(String frameName, String cols, boolean replace);
+
+	protected abstract void pivot(String frameName, boolean replace, String columnToPivot, String cols);
 	
 	////////////////////////////////////////////////////////////
 	////////////////////////////////////////////////////////////
@@ -114,13 +120,13 @@ public abstract class AbstractRJavaReactor extends AbstractJavaReactor {
 		}
 	}
 	
-	public void synchronizeFromR()
-	{
+	public void synchronizeFromR() {
 		if(dataframe instanceof TinkerFrame) {
 			String graphName = (String)retrieveVariable("GRAPH_NAME");
 			synchronizeGraphFromR(graphName);
 		} else if(dataframe instanceof H2Frame) {
-			
+			String frameName = (String)retrieveVariable("GRID_NAME");
+			synchronizeGridFromR(frameName, true);
 		}
 	}
 	
@@ -207,15 +213,19 @@ public abstract class AbstractRJavaReactor extends AbstractJavaReactor {
 			}
 		}
 		
+		// should pass the user id down to the frame
+		// important when we merge back the frame
+		table.setUserId(dataframe.getUserId());
+		
 		H2Frame gridFrame = (H2Frame)dataframe;
 		String tableName = gridFrame.getBuilder().getTableName();
 		String url = gridFrame.getBuilder().connectFrame();
 		url = url.replace("\\", "/");
 		initiateDriver(url, "sa");
 
+		
 		// need to create a new data table
 		// should properly merge the meta data
-		
 		Map<String, Set<String>> edgeHash = gridFrame.getEdgeHash();
 		Map<String, String> dataTypeMap = new HashMap<String, String>();
 		for(String colName : edgeHash.keySet()) {
@@ -248,7 +258,6 @@ public abstract class AbstractRJavaReactor extends AbstractJavaReactor {
 		// modify the headers to be what they used to be because the * will return everything in caps
 		String[] currHeaders = getColNames(rVarName, false);
 		renameColumn(rVarName, currHeaders, colSelectors, false);
-		
 		storeVariable("GRID_NAME", rVarName);
 		System.out.println("Completed synchronization as " + rVarName);
 
@@ -349,6 +358,10 @@ public abstract class AbstractRJavaReactor extends AbstractJavaReactor {
 			if(frameIsH2) {
 				frameToUse.setUserId(schemaName);
 				((H2Frame) dataframe).dropTable();
+			} else {
+				// this is set when we set the original dataframe
+				// within the reactor
+				frameToUse.setUserId(this.userId);
 			}
 			
 			Map<String, Set<String>> edgeHash = TinkerMetaHelper.createPrimKeyEdgeHash(colNames);
@@ -356,7 +369,8 @@ public abstract class AbstractRJavaReactor extends AbstractJavaReactor {
 			
 			// override frame references & table name reference
 			this.put("G", frameToUse);
-			dataframe = frameToUse;
+			this.dataframe = frameToUse;
+			this.frameChanged = true;
 			tableName = frameToUse.getTableName();
 			
 		} else if(overrideExistingTable && frameIsH2){
@@ -383,12 +397,24 @@ public abstract class AbstractRJavaReactor extends AbstractJavaReactor {
 
 		// iterate through file and insert values
 		FileIterator dataIterator = FileIterator.createInstance(FILE_DATA_TYPE.META_DATA_ENUM, tempFileLocation, ',', qs, dataTypeMap);
+		
+		// keep track of in-mem vs on-disk frames
+		int limitSizeInt = 10_000 / colNames.length;
+		String limitSize = (String) DIHelper.getInstance().getProperty(Constants.H2_IN_MEM_SIZE);
+		if(limitSize != null) {
+			limitSizeInt = Integer.parseInt( limitSize.trim() );
+		}
+		if(dataIterator.numberRowsOverLimit(limitSizeInt) ) {
+			frameToUse.convertToOnDiskFrame(null);
+		}
+		
+		// now that we know if we are adding to disk vs mem
+		// iterate thorugh and add all the data
 		frameToUse.addRowsViaIterator(dataIterator, dataTypeMap);
 		dataIterator.deleteFile();
 		
 		System.out.println("Table Synchronized as " + tableName);
 		frameToUse.updateDataId();
-		this.frameChanged = true;
 	}
 	
 	/**
@@ -478,6 +504,23 @@ public abstract class AbstractRJavaReactor extends AbstractJavaReactor {
 		System.out.println("Completed synchronization of CSV " + fileName);
 	}
 	
+	protected String getColType(String colName) {
+		String frameName = (String)retrieveVariable("GRID_NAME");
+		return getColType(frameName, colName, true);
+	}
+	
+	protected String getColType(String frameName, String colName) {
+		return getColType(frameName, colName, true);
+	}
+	
+	protected String[] getColTypes(String frameName) {
+		return getColTypes(frameName, true);
+	}
+	
+	protected String[] getColNames(String frameName) {
+		return getColNames(frameName, true);
+	}
+	
 	/**
 	 * Get the column count of a given column
 	 * @param column
@@ -510,6 +553,52 @@ public abstract class AbstractRJavaReactor extends AbstractJavaReactor {
 	
 	public void getHistogram(String frameName, String column, boolean print) {
 		getHistogram(frameName, column, 0, print);
+	}
+	
+	/**
+	 * Add an empty column to later insert new values
+	 * @param newColName
+	 */
+	protected void addEmptyColumn(String newColName) {
+		String frameName = (String)retrieveVariable("GRID_NAME");
+		addEmptyColumn(frameName, newColName);
+	}
+	
+	protected void addEmptyColumn(String frameName, String newColName) {
+		String script = frameName + "$" + newColName + " <- NA";
+		eval(script);
+		System.out.println("Successfully added column = " + newColName);
+		if(checkRTableModified(frameName)) {
+			recreateMetadata(frameName);
+		}
+	}
+	
+	/**
+	 * Add an empty column to later insert new values
+	 * @param newColName
+	 */
+	protected void changeColumnType(String colName, String newType) {
+		String frameName = (String)retrieveVariable("GRID_NAME");
+		changeColumnType(frameName, colName, newType);
+	}
+	
+	protected void changeColumnType(String frameName, String colName, String newType) {
+		String script =  frameName + " <- dt[, " + colName;
+		if(newType.equalsIgnoreCase("string")) {
+			script = script + " := as.character(" + colName +")]";
+		} else if(newType.equalsIgnoreCase("number")) {
+			script = script + " := as.numeric(" + colName +")]";
+		} else if(newType.equalsIgnoreCase("date")) {
+			// assuming date means yyyy-MM-dd
+			script = script + " := as.Date(" + colName +", %Y%m%d)]";
+		}
+		eval(script);
+		System.out.println("Successfully changed data type for column = " + colName);
+		if(checkRTableModified(frameName)) {
+			// TODO: should be able to change the data type dynamically!!!
+			// TODO: come back and fix this
+			recreateMetadata(frameName);
+		}
 	}
 	
 	/**
@@ -560,10 +649,11 @@ public abstract class AbstractRJavaReactor extends AbstractJavaReactor {
 		// .... this is a bunch of casting...
 		// also note that the string NULL is special to remove values that are undefined within the frame
 		StringBuilder script = new StringBuilder(frameName).append("<-").append(frameName).append("[!(").append(frameExpression);
+		String dataType = getColType(frameName, colName, false);
 		if(values instanceof Object[]) {
 			Object[] arr = (Object[]) values;
 			Object val = arr[0];
-			if(val instanceof String) {
+			if(dataType.equalsIgnoreCase("character")) {
 				if(val.equals("NULL")) {
 					script.append(" | ").append(frameExpression).append(comparator).append(val);
 				} else {
@@ -574,7 +664,7 @@ public abstract class AbstractRJavaReactor extends AbstractJavaReactor {
 			}
 			for(int i = 1; i < arr.length; i++) {
 				val = arr[i];
-				if(val instanceof String) {
+				if(dataType.equalsIgnoreCase("character")) {
 					if(val.equals("NULL")) {
 						script.append(" | ").append(frameExpression).append(comparator).append(val);
 					} else {
@@ -625,7 +715,7 @@ public abstract class AbstractRJavaReactor extends AbstractJavaReactor {
 				script.append(" | ").append(frameExpression).append(comparator).append(val);
 			}
 		} else {
-			if(values instanceof String) {
+			if(dataType.equalsIgnoreCase("character")) {
 				if(values.toString().equals("NULL")) {
 					script.append(" | ").append(frameExpression).append(comparator).append(values);
 				} else {
@@ -736,6 +826,16 @@ public abstract class AbstractRJavaReactor extends AbstractJavaReactor {
 		}
 	}
 	
+	protected void unpivot() {
+		String frameName = (String)retrieveVariable("GRID_NAME");
+		unpivot(frameName, null, true);
+	}
+	
+	protected void pivot(String columnToPivot, String cols) {
+		String frameName = (String)retrieveVariable("GRID_NAME");
+		pivot(frameName, true, columnToPivot, cols);
+	}
+	
 	protected void recreateMetadata(String frameName) {
 		// recreate a new frame and set the frame name
 		String[] colNames = getColNames(frameName, false);
@@ -744,7 +844,7 @@ public abstract class AbstractRJavaReactor extends AbstractJavaReactor {
 		// create the data type map and the edge hash
 		Map<String, String> dataTypeMap = new Hashtable<String, String>();
 		for(int i = 0; i < colNames.length; i++) {
-			dataTypeMap.put(colNames[i], colTypes[i]);
+			dataTypeMap.put(colNames[i], Utility.getCleanDataType(colTypes[i]));
 		}
 		Map<String, Set<String>> edgeHash = TinkerMetaHelper.createPrimKeyEdgeHash(colNames);
 
@@ -829,6 +929,85 @@ public abstract class AbstractRJavaReactor extends AbstractJavaReactor {
 				this.dataframe.modifyColumnName(oldNames[i], newNames[i]);
 			}
 		}
+	}
+	
+	/**
+	 * Modify the specific cell value in the data frame
+	 * @param colName
+	 * @param rowNum
+	 * @param newVal
+	 */
+	protected void modifyCellValues(String colName, int rowNum, Object newVal) {
+		String frameName = (String)retrieveVariable("GRID_NAME");
+		modifyCellValues(frameName, colName, rowNum, newVal);
+	}
+	
+	protected void modifyCellValues(String colName, int rowNum, int newVal) {
+		String frameName = (String)retrieveVariable("GRID_NAME");
+		modifyCellValues(frameName, colName, rowNum, newVal);
+	}
+	
+	protected void modifyCellValues(String colName, int rowNum, double newVal) {
+		String frameName = (String)retrieveVariable("GRID_NAME");
+		modifyCellValues(frameName, colName, rowNum, newVal);
+	}
+	
+	protected void modifyCellValues(String frameName, String colName, int rowNum, Object newVal) {
+		String type = getColType(frameName, colName, false);
+		if(type.contains("character")) {
+			newVal = "\"" + newVal + "\"";
+		}
+		String script = frameName + "[" + rowNum + "]$" + colName + " <- " + newVal;
+		System.out.println("Running script " + script);
+		eval(script);
+		checkRTableModified(frameName);
+	}
+	
+	protected void modifyCellValues(String frameName, String colName, int rowNum, int newVal) {
+		String type = getColType(frameName, colName, false);
+		String value = newVal + "";
+		if(type.contains("character")) {
+			value = "\"" + newVal + "\"";
+		}
+		String script = frameName + "[" + rowNum + "]$" + colName + " <- " + value;
+		System.out.println("Running script " + script);
+		eval(script);
+		checkRTableModified(frameName);
+	}
+	
+	protected void modifyCellValues(String frameName, String colName, int rowNum, double newVal) {
+		String type = getColType(frameName, colName, false);
+		String value = newVal + "";
+		if(type.contains("character")) {
+			value = "\"" + newVal + "\"";
+		}
+		String script = frameName + "[" + rowNum + "]$" + colName + " <- " + value;
+		System.out.println("Running script " + script);
+		eval(script);
+		checkRTableModified(frameName);
+	}
+
+	/**
+	 * If we order the data, we need to maintain that structure within the entire grid
+	 * If we are to actually be able to replace values based on index
+	 * @param colName
+	 * @param orderDirection
+	 */
+	protected void orderData(String colName, String orderDirection) {
+		String frameName = (String)retrieveVariable("GRID_NAME");
+		orderData(frameName, colName, orderDirection);
+	}
+	
+	private void orderData(String frameName, String colName, String orderDirection) {
+		String script = null;
+		if(orderDirection == null || orderDirection.equalsIgnoreCase("desc")) {
+			script = frameName + " <- " + frameName + "[order(rank(" + colName + "))]";
+		} else if(orderDirection.equalsIgnoreCase("asc")) {
+			script = frameName + " <- " + frameName + "[order(-rank(" + colName + "))]";
+		}
+		System.out.println("Running script " + script);
+		eval(script);
+		checkRTableModified(frameName);
 	}
 
 	protected boolean checkRTableModified(String frameName) {

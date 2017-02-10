@@ -5,7 +5,6 @@ import java.io.IOException;
 import java.util.Arrays;
 import java.util.Enumeration;
 import java.util.Hashtable;
-import java.util.Map;
 
 import org.apache.commons.io.FileUtils;
 import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.GraphTraversal;
@@ -465,14 +464,6 @@ public class BaseJavaReactorJRI extends AbstractRJavaReactor {
 		} 
 	}
 		
-	// change column name
-	public void changeName(String oldName, String newName)
-	{
-		// this will be done through h2 piece ?
-		
-	}
-	
-	
 	public String[] getColNames(String frameName, boolean print)
 	{
 		Rengine engine = (Rengine)startR();
@@ -492,15 +483,21 @@ public class BaseJavaReactorJRI extends AbstractRJavaReactor {
 		return colNames;
 	}
 	
-	public String[] getColNames(String frameName)
-	{
-		return getColNames(frameName, true);
+	public String getColType(String frameName, String colName, boolean print) {
+		Rengine engine = (Rengine)startR();
+		String colType = null;
+		try {
+			String script = "sapply(" + frameName + "$" + colName + ", class);";
+			colType = engine.eval(script).asString();
+			if(print) {
+				System.out.println(colName + "has type " + colType);
+			}
+		} catch (Exception e) {
+			e.printStackTrace();
+		} 
+		return colType;
 	}
 	
-	public String[] getColTypes(String frameName) {
-		return getColTypes(frameName, true);
-	}
-
 	public String[] getColTypes(String frameName, boolean print)
 	{
 		Rengine engine = (Rengine)startR();
@@ -758,17 +755,6 @@ public class BaseJavaReactorJRI extends AbstractRJavaReactor {
 		return data;
 	}
 	
-	public void unpivot()
-	{
-		String frameName = (String)retrieveVariable("GRID_NAME");
-		unpivot(frameName, null, true);
-	}
-	
-	public void cleanColumns()
-	{
-		//colnames(movies)[colnames(movies)=="Hello 1"] <- sub(" ", "_", "Hello 1") // moves the spaces to underscores
-	}
-	
 	public void unpivot(String frameName, String cols, boolean replace)
 	{
 		// makes the columns and converts them into rows
@@ -798,23 +784,18 @@ public class BaseJavaReactorJRI extends AbstractRJavaReactor {
 			// modifying this to execute single script at a time
 			String script = tempName + "<- melt(" + frameName + concatString + ")" ;
 			eval(script);
-			String[] colNames = getColNames(tempName);
-			script = tempName + " <- " + tempName + "[,lapply(.SD, as.character)];";
-			String[] colNames2 = getColNames(tempName);
-			eval(script);
+//			script = tempName + " <- " + tempName + "[,lapply(.SD, as.character)];";
+//			eval(script);
 			script = replacer;
 			eval(script);
 			System.out.println("executing script " + script);
+			if(replace && checkRTableModified(frameName)) {
+				recreateMetadata(frameName);
+			}
 		}catch(Exception ex)
 		{
 			ex.printStackTrace();
 		}
-	}
-
-	public void pivot(String columnToPivot, String cols)
-	{
-		String frameName = (String)retrieveVariable("GRID_NAME");
-		pivot(frameName, true, columnToPivot, cols);
 	}
 
 	public void pivot(String frameName, boolean replace,String columnToPivot, String cols)
@@ -850,6 +831,9 @@ public class BaseJavaReactorJRI extends AbstractRJavaReactor {
 		script = replaceString ;
 		eval(script);
 		System.out.println("Completed Pivoting..");
+		if(replace && checkRTableModified(frameName)) {
+			recreateMetadata(frameName);
+		}
 	}
 	
 	public void synchronizeXY(String rVariable)

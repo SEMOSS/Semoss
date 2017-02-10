@@ -56,12 +56,16 @@ public class RIterator implements Iterator<Object[]>{
 		Object[] retArray = new Object[data.keySet().size()];
 		for(int colIndex = 0; colIndex < headers.length; colIndex++) {
 			Object val = data.get(headers[colIndex]);
-			if(val instanceof Object[]) {
+			if(val instanceof String) {
+				retArray[colIndex] = val;
+			} else if(val instanceof Object[]) {
 				retArray[colIndex] = ((Object[]) val)[0];
 			} else if(val instanceof double[]) {
 				retArray[colIndex] = ((double[]) val)[0];
-			} else if( val instanceof int[]) {
+			} else if(val instanceof int[]) {
 				retArray[colIndex] = ((int[]) val)[0];
+			} else if(val instanceof org.rosuda.JRI.RFactor) {
+				retArray[colIndex] = ((org.rosuda.JRI.RFactor) val).at(0);
 			} else {
 				retArray[colIndex] = val;
 			}
