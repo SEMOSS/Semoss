@@ -68,14 +68,16 @@ public abstract class AbstractRJavaReactor extends AbstractJavaReactor {
 	
 	protected abstract void endR();
 	
-	// tinker specific abstract methods
+	// graph specific abstract methods
 	protected abstract void colorClusters(String clusterName);
 	
 	protected abstract void key();
 	
 	protected abstract void synchronizeXY(String rVarName);
 	
-	// h2 specific abstract methods
+	// table specific abstract methods
+	
+	protected abstract int getNumRows(String frameName);
 	
 	protected abstract String getColType(String frameName, String colName, boolean print);
 	
@@ -998,7 +1000,7 @@ public abstract class AbstractRJavaReactor extends AbstractJavaReactor {
 		orderData(frameName, colName, orderDirection);
 	}
 	
-	private void orderData(String frameName, String colName, String orderDirection) {
+	protected void orderData(String frameName, String colName, String orderDirection) {
 		String script = null;
 		if(orderDirection == null || orderDirection.equalsIgnoreCase("desc")) {
 			script = frameName + " <- " + frameName + "[order(rank(" + colName + "))]";
@@ -1009,7 +1011,48 @@ public abstract class AbstractRJavaReactor extends AbstractJavaReactor {
 		eval(script);
 		checkRTableModified(frameName);
 	}
+	
+	/**
+	 * Insert data at a given index into the frame
+	 * @param index
+	 * @param values
+	 */
+	protected void insertDataAtIndex(int index, Object[] values) {
+		String frameName = (String)retrieveVariable("GRID_NAME");
+		insertDataAtIndex(frameName, index, values);
+	}
 
+	protected void insertDataAtIndex(String frameName, int index, Object[] values) {
+		String[] types = getColTypes(frameName, false);
+		StringBuilder col = new StringBuilder("c(");
+		for(int i = 0; i < values.length; i++) {
+			if(i > 0) {
+				col.append(", ");
+			}
+			if(types[i].equalsIgnoreCase("character")) {
+				col.append("\"").append(values[i]).append("\"");
+			} else {
+				col.append(values[i]);
+			}
+		}
+		col.append(")");
+		
+		String script = null;
+		int totalRows = getNumRows(frameName);
+		if(index == 1) {
+			script = frameName + " <- rbindlist(list( as.list(" + col + "), " + frameName + " ))";
+		} else if(index == (totalRows + 1) ) {
+			script = frameName + " <- rbindlist(list(" + frameName + ", as.list(" + col + ") ))";
+		} else {
+			// ugh... somewhere in the middle
+			script = frameName + " <- rbindlist(list(" + frameName + "[1:" + (index-1) + ",] , as.list(" + col + ") , " 
+					+  frameName + "[" + index + ":" + totalRows + ",] ))";
+		}
+		System.out.println("Running script " + script);
+		eval(script);
+		checkRTableModified(frameName);
+	}
+	
 	protected boolean checkRTableModified(String frameName) {
 		if(this.dataframe instanceof RDataTable) {
 			String tableVarName =  ( (RDataTable) this.dataframe).getTableVarName();
