@@ -264,15 +264,33 @@ public class RBuilder extends AbstractRBuilder {
 	
 	
 	@Override
-	protected Map<String, Object> getMapReturn(String rScript) {
+	protected Object[] getDataRow(String rScript, String[] headerOrdering) {
 		REXP rs = executeR(rScript);
-		Map<String, Object> result = null;
+		Object[] retArray = null;;
 		try {
-			result = (Map<String, Object>) rs.asNativeJavaObject();
+			Map<String, Object> result = (Map<String, Object>) rs.asNativeJavaObject();
+			
+			int retSize = headerOrdering.length;
+			retArray = new Object[retSize];
+			for(int colIndex = 0; colIndex < retSize; colIndex++) {
+				Object val = result.get(headerOrdering[colIndex]);
+				if(val instanceof String) {
+					retArray[colIndex] = val;
+				} else if(val instanceof Object[]) {
+					retArray[colIndex] = ((Object[]) val)[0];
+				} else if(val instanceof double[]) {
+					retArray[colIndex] = ((double[]) val)[0];
+				} else if(val instanceof int[]) {
+					retArray[colIndex] = ((int[]) val)[0];
+				} else {
+					retArray[colIndex] = val;
+				}
+			}
 		} catch (REXPMismatchException e) {
 			e.printStackTrace();
 		}
-		return result;
+		
+		return retArray;
 	}
 
 	@Override
