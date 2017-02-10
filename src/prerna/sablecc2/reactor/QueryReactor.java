@@ -32,11 +32,6 @@ public class QueryReactor extends AbstractReactor {
 		
 	}
 
-	@Override
-	public IHeadersDataRow execute(IHeadersDataRow row) {
-		//don't think this is needed for this reactor...should we require all reactors to implement this?
-		return null;
-	}
 
 	@Override
 	void mergeUp() {
