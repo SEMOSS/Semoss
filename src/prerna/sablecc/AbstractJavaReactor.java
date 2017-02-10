@@ -39,6 +39,7 @@ public abstract class AbstractJavaReactor extends AbstractReactor {
 	public SecurityManager curManager = null;
 	public SecurityManager reactorManager = null;
 	
+	public String userId = null;
 	
 	public String wd = null;
 	public String fileName = null;
@@ -57,6 +58,7 @@ public abstract class AbstractJavaReactor extends AbstractReactor {
 	 */
 	public AbstractJavaReactor(ITableDataFrame dataframe) {
 		this.dataframe = dataframe;
+		this.userId = dataframe.getUserId();
 	}
 	
 	////////////////////////////////////////////////////////////
@@ -758,6 +760,7 @@ public abstract class AbstractJavaReactor extends AbstractReactor {
 	 */
 	protected void setDataFrame(ITableDataFrame dataFrame) {
 		this.dataframe = dataFrame;
+		this.userId = dataframe.getUserId();
 	}
 	
 	/**
