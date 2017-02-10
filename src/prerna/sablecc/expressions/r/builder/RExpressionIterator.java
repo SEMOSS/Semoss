@@ -28,7 +28,7 @@ public class RExpressionIterator implements Iterator<Object[]> {
 	private int numCols;
 	
 	private Map<String, String> headerTypes;
-	private List<String> headers;
+	private String[] headers;
 	private String headerString;
 
 	// This will hold the full sql expression to execute
@@ -50,7 +50,7 @@ public class RExpressionIterator implements Iterator<Object[]> {
 	//	@Override
 	public void generateExpression() {
 		this.rScript = this.builder.toString();
-		this.headers = this.builder.getSelectorNames();
+		this.headers = this.builder.getSelectorNames().toArray(new String[]{});
 	}
 
 //	@Override
@@ -68,9 +68,9 @@ public class RExpressionIterator implements Iterator<Object[]> {
 	private void getHeadersString() {
 		StringBuilder builder = new StringBuilder("c(");
 		int i = 0;
-		builder.append("\"").append(this.headers.get(0)).append("\"");
-		for(i = 1; i < this.headers.size(); i++) {
-			builder.append(" , \"").append(this.headers.get(i)).append("\"");
+		builder.append("\"").append(this.headers[0]).append("\"");
+		for(i = 1; i < this.headers.length; i++) {
+			builder.append(" , \"").append(this.headers[i]).append("\"");
 		}
 		builder.append(")");
 		this.headerString = builder.toString();
@@ -88,23 +88,7 @@ public class RExpressionIterator implements Iterator<Object[]> {
 	@Override
 	public Object[] next() {
 		// grab the rowIndex from the data table
-		Map<String, Object> data = this.frame.getMapReturn(this.dataTableName + "[" + rowIndex + "," + headerString + " , with=FALSE ]");
-
-		// iterate through the list and fill into an object array to return
-		Object[] retArray = new Object[this.headers.size()];
-		for(int colIndex = 0; colIndex < numCols; colIndex++) {
-			Object val = data.get(this.headers.get(colIndex));
-			if(val instanceof Object[]) {
-				retArray[colIndex] = ((Object[]) val)[0];
-			} else if(val instanceof double[]) {
-				retArray[colIndex] = ((double[]) val)[0];
-			} else if( val instanceof int[]) {
-				retArray[colIndex] = ((int[]) val)[0];
-			} else {
-				retArray[colIndex] = val;
-			}
-		}
-		
+		Object[] retArray = this.frame.getDataRow(this.dataTableName + "[" + rowIndex + "," + headerString + " , with=FALSE ]", this.headers);
 		// update the row index
 		this.rowIndex++;
 
