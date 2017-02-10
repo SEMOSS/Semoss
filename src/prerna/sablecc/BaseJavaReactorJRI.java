@@ -40,12 +40,12 @@ public class BaseJavaReactorJRI extends AbstractRJavaReactor {
 	@Override
 	protected Object startR() {
 		Rengine retEngine = Rengine.getMainEngine();
-		java.lang.System.out.println("Connection right now is set to.. " + retEngine);
+		LOGGER.info("Connection right now is set to.. " + retEngine);
 		if(retEngine == null) {
 			try {
 				// start the R Engine
 				retEngine = new Rengine(null, true, null);
-				System.out.println("Successfully created engine.. ");
+				LOGGER.info("Successfully created engine.. ");
 
 				// load all the libraries
 				retEngine.eval("library(splitstackshape);");
