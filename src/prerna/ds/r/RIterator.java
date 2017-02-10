@@ -33,13 +33,13 @@ public class RIterator implements Iterator<Object[]>{
 		this.rowIndex = offset + 1;
 		// adjust the size based on the limit and offset
 		if(limit > 0 && this.dataTableSize > (limit + offset) ) {
-			this.dataTableSize = (limit + offset);
+			this.dataTableSize = (limit + offset) + 1;
 		}
 	}
 	
 	@Override
 	public boolean hasNext() {
-		if(rowIndex < dataTableSize) {
+		if(rowIndex <= dataTableSize) {
 			return true;
 		} else {
 			return false;
