@@ -60,7 +60,7 @@ public abstract class AbstractRBuilder {
 	
 	protected abstract int getNumRows(String varName);
 	
-	protected abstract Map<String, Object> getMapReturn(String rScript);
+	protected abstract Object[] getDataRow(String rScript, String[] headerOrdering);
 
 	protected abstract Object getScalarReturn(String rScript);
 
