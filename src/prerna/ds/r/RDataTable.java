@@ -145,8 +145,8 @@ public class RDataTable extends AbstractTableDataFrame {
 		this.builder.createTableViaCsvFile(fileWrapper);
 	}
 	
-	public Map<String, Object> getMapReturn(String rScript) {
-		return this.builder.getMapReturn(rScript);
+	public Object[] getDataRow(String rScript, String[] headerOrdering) {
+		return this.builder.getDataRow(rScript, headerOrdering);
 	}
 	
 	public Object getScalarValue(String rScript) {

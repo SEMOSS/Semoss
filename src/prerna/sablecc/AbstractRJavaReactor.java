@@ -490,7 +490,7 @@ public abstract class AbstractRJavaReactor extends AbstractJavaReactor {
 		} else {
 			jarLocation = (String)retrieveVariable("H2DRIVER_PATH");
 		}
-		java.lang.System.out.println("Loading driver.. " + jarLocation);
+		LOGGER.info("Loading driver.. " + jarLocation);
 		String script = "drv <- JDBC('" + driver + "', '" + jarLocation  + "', identifier.quote='`');" 
 			+ "conn <- dbConnect(drv, '" + url + "', '" + username + "', '')"; // line of R script that connects to H2Frame
 		runR(script);
