@@ -21,7 +21,7 @@ public abstract class AbstractRBuilder {
 	protected static final Logger LOGGER = LogManager.getLogger(AbstractRBuilder.class.getName());
 
 	// holds the connection for RDataFrame to the instance of R running
-	private String dataTableName = "datatable";
+	protected String dataTableName = "datatable";
 
 	public AbstractRBuilder() {
 	
