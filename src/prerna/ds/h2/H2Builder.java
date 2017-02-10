@@ -945,7 +945,7 @@ public class H2Builder {
 			} else {
 				// if table doesn't exist then create one with headers and types
 				String createTable = RdbmsQueryBuilder.makeCreate(tableName, headers, types);
-				System.out.println("creating table: " + createTable);
+				LOGGER.info("CREATING TABLE: " + createTable);
 				runQuery(createTable);
 			}
 		} catch (Exception e1) {
@@ -2573,7 +2573,7 @@ public class H2Builder {
 				// clean up and remove the script file
 				ICache.deleteFile(inMemScript);
 			}
-
+			
 			this.schema = physicalDbLocation;
 			this.isInMem = false;
 			// close the existing connection if it was a previous on disk

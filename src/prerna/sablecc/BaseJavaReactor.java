@@ -427,18 +427,6 @@ public class BaseJavaReactor extends AbstractRJavaReactor{
 		}
 	}
 		
-	// change column name
-	public void changeName(String oldName, String newName)
-	{
-		// this will be done through h2 piece ?
-		
-	}
-
-	public String[] getColNames(String frameName)
-	{
-		return getColNames(frameName, true);
-	}
-	
 	public String[] getColNames(String frameName, boolean print) {
 		RConnection rcon = (RConnection) startR();
 		String [] colNames = null;
@@ -459,11 +447,22 @@ public class BaseJavaReactor extends AbstractRJavaReactor{
 		}
 		return colNames;
 	}
-
-	public String[] getColTypes(String frameName) {
-		return getColTypes(frameName, true);
-	}
 	
+	public String getColType(String frameName, String colName, boolean print) {
+		RConnection rcon = (RConnection) startR();
+		String colType = null;
+		try {
+			String script = "sapply(" + frameName + "$" + colName + ", class);";
+			colType = rcon.eval(script).asString();
+			if(print) {
+				System.out.println(colName + "has type " + colType);
+			}
+		} catch (Exception e) {
+			e.printStackTrace();
+		} 
+		return colType;
+	}
+
 	public String[] getColTypes(String frameName, boolean print) {
 		RConnection rcon = (RConnection) startR();
 		String [] colTypes = null;
@@ -731,12 +730,6 @@ public class BaseJavaReactor extends AbstractRJavaReactor{
 		return data;
 	}
 	
-	public void unpivot()
-	{
-		String frameName = (String)retrieveVariable("GRID_NAME");
-		unpivot(frameName, null, true);
-	}
-	
 	public void unpivot(String frameName, String cols, boolean replace)
 	{
 		// makes the columns and converts them into rows
@@ -768,16 +761,13 @@ public class BaseJavaReactor extends AbstractRJavaReactor{
 		System.out.println("executing script " + script);
 		try {
 			rcon.eval(script);
+			if(replace && checkRTableModified(frameName)) {
+				recreateMetadata(frameName);
+			}
 		}catch(Exception ex)
 		{
 			ex.printStackTrace();
 		}
-	}
-
-	public void pivot(String columnToPivot, String cols)
-	{
-		String frameName = (String)retrieveVariable("GRID_NAME");
-		pivot(frameName, true, columnToPivot, cols);
 	}
 
 	public void pivot(String frameName, boolean replace,String columnToPivot, String cols)
@@ -813,6 +803,9 @@ public class BaseJavaReactor extends AbstractRJavaReactor{
 		System.out.println("executing script " + script);
 		try {
 			rcon.eval(script);
+			if(replace && checkRTableModified(frameName)) {
+				recreateMetadata(frameName);
+			}
 		}catch(Exception ex)
 		{
 			ex.printStackTrace();
