@@ -1023,33 +1023,44 @@ public abstract class AbstractRJavaReactor extends AbstractJavaReactor {
 	}
 
 	protected void insertDataAtIndex(String frameName, int index, Object[] values) {
+		// we create a string with the correct types of the values array
+		// and then we use that to do the rbindlist
+		// if we use a conventional vector with c
+		// it will require all the same types
+		
+		String[] names = getColNames(frameName, false);
 		String[] types = getColTypes(frameName, false);
-		StringBuilder col = new StringBuilder("c(");
+		
+		String listName = Utility.getRandomString(6);
+		StringBuilder listScript = new StringBuilder(listName).append(" <- list(");
 		for(int i = 0; i < values.length; i++) {
 			if(i > 0) {
-				col.append(", ");
+				listScript.append(", ");
 			}
+			listScript.append(names[i]).append("=");
 			if(types[i].equalsIgnoreCase("character")) {
-				col.append("\"").append(values[i]).append("\"");
+				listScript.append("\"").append(values[i]).append("\"");
 			} else {
-				col.append(values[i]);
+				listScript.append(values[i]);
 			}
 		}
-		col.append(")");
-		
+		listScript.append(")");
+		eval(listScript.toString());
+
 		String script = null;
 		int totalRows = getNumRows(frameName);
 		if(index == 1) {
-			script = frameName + " <- rbindlist(list( as.list(" + col + "), " + frameName + " ))";
+			script = frameName + " <- rbindlist(list( " + listName + ", " + frameName + " ))";
 		} else if(index == (totalRows + 1) ) {
-			script = frameName + " <- rbindlist(list(" + frameName + ", as.list(" + col + ") ))";
+			script = frameName + " <- rbindlist(list( " + frameName + ", " + listName + " ))";
 		} else {
 			// ugh... somewhere in the middle
-			script = frameName + " <- rbindlist(list(" + frameName + "[1:" + (index-1) + ",] , as.list(" + col + ") , " 
+			script = frameName + " <- rbindlist(list(" + frameName + "[1:" + (index-1) + ",] , " + listName + " , " 
 					+  frameName + "[" + index + ":" + totalRows + ",] ))";
 		}
-		System.out.println("Running script " + script);
 		eval(script);
+		System.out.println("Running script :\n" + listScript + "\n" + script);
+
 		checkRTableModified(frameName);
 	}
 	
