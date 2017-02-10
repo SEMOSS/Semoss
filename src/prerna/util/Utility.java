@@ -2010,6 +2010,9 @@ public class Utility {
 				|| dataType.startsWith("CHAR")
 				|| dataType.startsWith("CHARACTER")
 				|| dataType.startsWith("NCHAR")
+				
+				//R TYPE
+				|| dataType.startsWith("FACTOR")
 				) {
 			return true;
 		}

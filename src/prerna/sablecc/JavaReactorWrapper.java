@@ -164,6 +164,8 @@ public class JavaReactorWrapper extends AbstractReactor {
 				jR.put("returnData", jR.returnData);
 				myStore.put("returnData", jR.returnData);
 			}
+			// try again
+			System.out.println("try again");
 			System.out.println(jR.getValue("ERROR"));
 			daReactor = jR;
 		} catch (RuntimeException e) {

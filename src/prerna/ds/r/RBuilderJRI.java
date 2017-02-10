@@ -160,6 +160,8 @@ public class RBuilderJRI extends AbstractRBuilder {
 				returnData.put(names.get(idx) + "", val.asStringArray());
 			} else if(typeInt == REXP.XT_BOOL) {
 				returnData.put(names.get(idx) + "", val.asBool());
+			} else if(typeInt == REXP.XT_FACTOR) {
+				returnData.put(names.get(idx) + "", val.asFactor());
 			} else {
 				returnData.put(names.get(idx) + "", val);
 			}
