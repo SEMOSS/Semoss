@@ -42,11 +42,6 @@ public class ImportDataReactor extends AbstractReactor {
 
 	}
 
-	@Override
-	public IHeadersDataRow execute(IHeadersDataRow row) {
-		//Do nothing, execute row doesn't apply here
-		return null;
-	}
 
 	@Override
 	void mergeUp() {

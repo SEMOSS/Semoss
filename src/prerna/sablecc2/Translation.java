@@ -118,6 +118,7 @@ public class Translation extends DepthFirstAdapter {
     	// this is really where the overall execution should happen
     	System.out.println("<<<<<<<" + node);
 //    	planner.runMyPlan(lastOperation);
+    	
     	postProcess();
     }
     
@@ -185,11 +186,12 @@ public class Translation extends DepthFirstAdapter {
     public void outAFrameop(AFrameop node)
     {
         // I realize I am not doing anything with the output.. this will come next
-    	
+    	deInitReactor();
+    	/*
         curReactor.Out();
         if(curReactor.getParentReactor() != null)
         	curReactor = curReactor.getParentReactor();
-        
+        */
         this.lastOperation = node + "";
         System.out.println("OUT of Frame OP");
     }
@@ -574,6 +576,8 @@ public class Translation extends DepthFirstAdapter {
 	    	
 	    	if(output instanceof IReactor)
 	    		curReactor = (IReactor)output;
+	    	if(output == null)
+	    		curReactor.execute();
     	}
     	// else is the output
     	
@@ -612,7 +616,7 @@ public class Translation extends DepthFirstAdapter {
     	}
     	IReactor reactor = new SampleReactor();
     	reactor.setPKSL(reactorId, nodeString);
-    	return null;
+    	return reactor;
     }
     
     private void printData(Object node, String message) {
