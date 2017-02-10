@@ -43,13 +43,13 @@ public class BaseJavaReactor extends AbstractRJavaReactor{
 		// we store the connection in the PKQL Runner
 		// retrieve it if it is already defined within the insight
 		RConnection retCon = (RConnection) retrieveVariable(R_CONN);
-		java.lang.System.out.println("Connection right now is set to.. " + retCon);
+		LOGGER.info("Connection right now is set to.. " + retCon);
 		if(retCon == null) {
 			try {
 				RConnection masterCon = RSingleton.getConnection();
 				String port = Utility.findOpenPort();
 				
-				java.lang.System.out.println("Starting it on port.. " + port);
+				LOGGER.info("Starting it on port.. " + port);
 				// need to find a way to get a common name
 				masterCon.eval("library(Rserve); Rserve(port = " + port + ")");
 				retCon = new RConnection("127.0.0.1", Integer.parseInt(port));
