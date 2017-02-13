@@ -388,30 +388,6 @@ public class BaseJavaReactorJRI extends AbstractRJavaReactor {
 		}
 	}
 	
-	// replace the column value for a particular column
-	public void performReplaceColumnValue(String frameName, String columnName, String curValue, String newValue)
-	{
-		// * dt[PY == "hello", PY := "D"] replaces a column conditionally based on the value
-		Rengine engine = (Rengine)startR();
-		// need to get the type of this
-		try {
-			String condition = " ,";
-
-			String output = engine.eval("sapply(" + frameName + "$" + columnName + ", class);").asString();
-			String quote = "";
-			if(output.contains("character"))
-				quote = "\"";
-			if(curValue != null)
-				condition = columnName + " == " + quote + curValue + quote + ", ";
-			String script = frameName + "[" + condition + columnName + " := " + quote + newValue + quote + "]";
-			engine.eval(script);
-			System.out.println("Complete ");
-		} catch (Exception e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
-	}
-	
 	// split a column based on a value
 	public void performSplitColumn(String frameName, String columnName, String separator, boolean dropColumn, boolean frameReplace)
 	{
