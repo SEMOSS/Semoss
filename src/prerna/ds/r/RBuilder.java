@@ -1,8 +1,10 @@
 package prerna.ds.r;
 
 import java.util.Iterator;
+import java.util.List;
 import java.util.ListIterator;
 import java.util.Map;
+import java.util.Vector;
 
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
@@ -51,7 +53,7 @@ public class RBuilder extends AbstractRBuilder {
 
 	public RBuilder(String dataTableName) throws RserveException {
 		this();
-		if(this.dataTableName != null && !this.dataTableName.trim().isEmpty()) {
+		if(dataTableName != null && !dataTableName.trim().isEmpty()) {
 			this.dataTableName = dataTableName;
 		}
 	}
@@ -61,7 +63,7 @@ public class RBuilder extends AbstractRBuilder {
 		this.port = port;
 		// load required libraries
 		loadDefaultLibraries();
-		if(this.dataTableName != null && !this.dataTableName.trim().isEmpty()) {
+		if(dataTableName != null && !dataTableName.trim().isEmpty()) {
 			this.dataTableName = dataTableName;
 		}
 	}
@@ -290,6 +292,71 @@ public class RBuilder extends AbstractRBuilder {
 		}
 		
 		return retArray;
+	}
+
+
+	@Override
+	protected List<Object[]> getBulkDataRow(String rScript, String[] headerOrdering) {
+		REXP rs = executeR(rScript);
+		List<Object[]> retArr = new Vector<Object[]>(500);
+		try {
+			Map<String, Object> result = (Map<String, Object>) rs.asNativeJavaObject();
+			int numColumns = headerOrdering.length;
+
+			for(int idx = 0; idx < numColumns; idx++) {
+				Object val = result.get(headerOrdering[idx]);
+
+				if(val instanceof Object[]) {
+					Object[] data = (Object[]) val;
+					if(retArr.size() == 0) {
+						for(int i = 0; i < data.length; i++) {
+							Object[] values = new Object[numColumns];
+							values[idx] = data[i];
+							retArr.add(values);
+						}
+					} else {
+						for(int i = 0; i < data.length; i++) {
+							Object[] values = retArr.get(i);
+							values[idx] = data[i];
+						}
+					}
+				} else if(val instanceof double[]) {
+					double[] data = (double[]) val;
+					if(retArr.size() == 0) {
+						for(int i = 0; i < data.length; i++) {
+							Object[] values = new Object[numColumns];
+							values[idx] = data[i];
+							retArr.add(values);
+						}
+					} else {
+						for(int i = 0; i < data.length; i++) {
+							Object[] values = retArr.get(i);
+							values[idx] = data[i];
+						}
+					}
+				} else if(val instanceof int[]) {
+					int[] data = (int[]) val;
+					if(retArr.size() == 0) {
+						for(int i = 0; i < data.length; i++) {
+							Object[] values = new Object[numColumns];
+							values[idx] = data[i];
+							retArr.add(values);
+						}
+					} else {
+						for(int i = 0; i < data.length; i++) {
+							Object[] values = retArr.get(i);
+							values[idx] = data[i];
+						}
+					}
+				} else {
+					LOGGER.info("ERROR ::: Could not identify the return type for this iterator!!!");
+				}
+			}
+		} catch (REXPMismatchException e) {
+			e.printStackTrace();
+		}
+
+		return retArr;
 	}
 
 	@Override

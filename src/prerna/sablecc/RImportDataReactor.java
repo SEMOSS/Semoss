@@ -6,7 +6,6 @@ import java.util.Map;
 
 import prerna.ds.TinkerMetaHelper;
 import prerna.ds.r.RDataTable;
-import prerna.ds.util.FileIterator;
 import prerna.engine.api.IHeadersDataRow;
 import prerna.engine.impl.r.RFileWrapper;
 import prerna.sablecc.PKQLRunner.STATUS;
