@@ -55,7 +55,7 @@ public class TinkerQueryInterpreter extends AbstractTinkerInterpreter implements
 		addJoins();
 		addSelectors();
 		addLimitOffset();
-		return new TinkerIterator(gt, this.selector);
+		return new TinkerIterator(gt, this.selector, qs);
 	}
 
 	/**
@@ -64,9 +64,9 @@ public class TinkerQueryInterpreter extends AbstractTinkerInterpreter implements
 	private void addLimitOffset() {
 		Integer limit = qs.getLimit();
 		Integer offset = qs.getOffset();
-		if (limit >= 0 && offset >= 0) {
+		if (limit > 0 && offset >= 0) {
 			gt = gt.range(offset, offset + limit);
-		} else if (limit >= 0) {
+		} else if (limit > 0) {
 			gt = gt.range(0, limit);
 		} else {
 		}
@@ -142,7 +142,7 @@ public class TinkerQueryInterpreter extends AbstractTinkerInterpreter implements
 					}
 					gt = gt.match(twoStepT);
 				} else {
-					gt = gt.has(TinkerFrame.TINKER_TYPE, selectNode);
+					gt = gt.has(TinkerFrame.TINKER_TYPE, selectNode).as(selectNode);
 					if (this.filters.containsKey(select)) {
 						addFilterInPath2(gt, select, this.filters.get(select));
 					}
