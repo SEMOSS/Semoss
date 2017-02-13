@@ -81,7 +81,12 @@ public abstract class AbstractTinkerInterpreter {
 					gt = gt.select(select);
 					gt = gt.dedup();
 				} else {
+					if(qs.andfilters != null && !qs.andfilters.isEmpty()) {
+						gt = gt.select(select);
+					}
+					else {
 					gt = gt.has(TinkerFrame.TINKER_TYPE, selector.get(0));
+					}
 
 				}
 
