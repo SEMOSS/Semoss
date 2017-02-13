@@ -95,8 +95,6 @@ public abstract class AbstractRJavaReactor extends AbstractJavaReactor {
 	
 	protected abstract void performJoinColumns(String frameName, String newColumnName,  String separator, String cols);
 	
-	protected abstract void performReplaceColumnValue(String frameName, String columnName, String curValue, String newValue);
-	
 	protected abstract void unpivot(String frameName, String cols, boolean replace);
 
 	protected abstract void pivot(String frameName, boolean replace, String columnToPivot, String cols);
@@ -769,15 +767,72 @@ public abstract class AbstractRJavaReactor extends AbstractJavaReactor {
 		checkRTableModified(frameName);
 	}
 	
+	/**
+	 * Replace a column value with a new value
+	 * @param columnName
+	 * @param curValue
+	 * @param newValue
+	 */
 	protected void replaceColumnValue(String columnName, String curValue, String newValue) {
 		String frameName = (String)retrieveVariable("GRID_NAME");
 		replaceColumnValue(frameName, columnName, curValue, newValue);
 	}
 	
 	protected void replaceColumnValue(String frameName, String columnName, String curValue, String newValue) {
-		performReplaceColumnValue(frameName, columnName, curValue, newValue);
+		// replace the column value for a particular column
+		// dt[PY == "hello", PY := "D"] replaces a column conditionally based on the value
+		// need to get the type of this
+		try {
+			String condition = " ,";
+			String dataType = getColType(columnName);
+			String quote = "";
+			if(dataType.contains("character")) {
+				quote = "\"";
+			}
+			if(curValue != null) {
+				condition = columnName + " == " + quote + curValue + quote + ", ";
+			}
+			String script = frameName + "[" + condition + columnName + " := " + quote + newValue + quote + "]";
+			eval(script);
+			System.out.println("Done replacing value = \"" + curValue + "\" with new value = \"" + newValue + "\"");
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
 		checkRTableModified(frameName);
 	}
+	
+	/**
+	 * Regex replace a column value with a new value
+	 * @param columnName
+	 * @param curValue
+	 * @param newValue
+	 */
+	protected void regexReplaceColumnValue(String columnName, String regex, String newValue) {
+		String frameName = (String)retrieveVariable("GRID_NAME");
+		regexReplaceColumnValue(frameName, columnName, regex, newValue);
+	}
+	
+	protected void regexReplaceColumnValue(String frameName, String columnName, String regex, String newValue) {
+		// replace the column value for a particular column
+		// dt$Title = gsub("regex", "newValue", dt$Title)
+		// need to get the type of this
+		try {
+			String colScript = frameName + "$" + columnName;
+			String script = colScript + " = ";
+			String dataType = getColType(columnName);
+			String quote = "";
+			if(dataType.contains("character")) {
+				quote = "\"";
+			}
+			script += "gsub(" + quote + regex + quote + "," + quote + newValue + quote + ", " + colScript + ")";
+			eval(script);
+			System.out.println("Done replacing value with regex = \"" + regex + "\" with new value = \"" + newValue + "\"");
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+		checkRTableModified(frameName);
+	}
+	
 	
 	protected void splitColumn(String columnName, String separator) {
 		String frameName = (String)retrieveVariable("GRID_NAME");
