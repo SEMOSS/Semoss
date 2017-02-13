@@ -1,6 +1,7 @@
 package prerna.ds.r;
 
 import java.util.Iterator;
+import java.util.List;
 
 public class RIterator implements Iterator<Object[]>{
 
@@ -20,6 +21,12 @@ public class RIterator implements Iterator<Object[]>{
 	// need to keep the headers so we know the order to return
 	private String[] headers;
 	private String headerString;
+	
+	// going back and forth between R is slow
+	// will hold a set inside
+	private List<Object[]> data;
+	private int dataPos = 0;
+	private int bulkRowSize = 500;
 	
 	public RIterator(AbstractRBuilder builder, String[] headers, int limit, int offset) {
 		this.builder = builder;
@@ -52,9 +59,24 @@ public class RIterator implements Iterator<Object[]>{
 		// the ordering is only used by the RServe version of R
 		// JRI returns the array in the ordering of the headerString
 		// RServe returns a map which isn't necessarily ordered
-		Object[] retArray = this.builder.getDataRow(this.tableName + "[" + rowIndex + " , " + headerString + ", with=FALSE]", headers);
+		
+		Object[] retArray = null;
+		if(this.data == null || (this.dataPos + 1) > this.data.size()) {
+			// ugh... need to account for the 1 difference
+			int end = this.rowIndex + this.bulkRowSize - 1;
+			if(end > this.dataTableSize) {
+				end = this.dataTableSize;
+			}
+			this.data = this.builder.getBulkDataRow(this.tableName + "[" + rowIndex + ":" + end + " , " + headerString + ", with=FALSE]", headers);
+			this.dataPos = 0;
+		}
+		
+		retArray = data.get(this.dataPos);
+		
 		// update the row index
 		this.rowIndex++;
+		this.dataPos++;
+
 				
 		return retArray;
 	}

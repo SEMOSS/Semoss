@@ -2,6 +2,7 @@ package prerna.ds.r;
 
 import java.io.File;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
 
 import org.apache.log4j.LogManager;
@@ -61,7 +62,9 @@ public abstract class AbstractRBuilder {
 	protected abstract int getNumRows(String varName);
 	
 	protected abstract Object[] getDataRow(String rScript, String[] headerOrdering);
-
+	
+	protected abstract List<Object[]> getBulkDataRow(String rScript, String[] headerOrdering);
+	
 	protected abstract Object getScalarReturn(String rScript);
 
 	protected abstract String[] getColumnNames();
