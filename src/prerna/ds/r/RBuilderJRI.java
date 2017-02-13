@@ -1,11 +1,13 @@
 package prerna.ds.r;
 
 import java.util.Iterator;
+import java.util.List;
 import java.util.Vector;
 
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 import org.rosuda.JRI.REXP;
+import org.rosuda.JRI.RFactor;
 import org.rosuda.JRI.RVector;
 import org.rosuda.JRI.Rengine;
 import org.rosuda.REngine.Rserve.RConnection;
@@ -40,7 +42,7 @@ public class RBuilderJRI extends AbstractRBuilder {
 
 	public RBuilderJRI(String dataTableName) {
 		this();
-		if(this.dataTableName != null && !this.dataTableName.trim().isEmpty()) {
+		if(dataTableName != null && !dataTableName.trim().isEmpty()) {
 			this.dataTableName = dataTableName;
 		}
 	}
@@ -171,6 +173,87 @@ public class RBuilderJRI extends AbstractRBuilder {
 		return retArr;
 	}
 
+
+	@Override
+	protected List<Object[]> getBulkDataRow(String rScript, String[] headerOrdering) {
+		// we do not need the header ordering
+		// it is only needed for the RServe version of R
+		// this will return based on the same order as the rScript
+		
+		REXP rs = executeR(rScript);
+		RVector rVec = rs.asVector();
+		Vector names = rVec.getNames();
+		int numColumns = names.size();
+		
+		List<Object[]> retArr = new Vector<Object[]>(500);
+		
+		for(int idx = 0; idx < numColumns; idx++) {
+			REXP val = rVec.at(idx);
+			int typeInt = val.getType();
+			if(typeInt == REXP.XT_ARRAY_DOUBLE) {
+				double[] data = val.asDoubleArray();
+				if(retArr.size() == 0) {
+					for(int i = 0; i < data.length; i++) {
+						Object[] values = new Object[numColumns];
+						values[idx] = data[i];
+						retArr.add(values);
+					}
+				} else {
+					for(int i = 0; i < data.length; i++) {
+						Object[] values = retArr.get(i);
+						values[idx] = data[i];
+					}
+				}
+			} else if(typeInt == REXP.XT_ARRAY_INT) {
+				int[] data = val.asIntArray();
+				if(retArr.size() == 0) {
+					for(int i = 0; i < data.length; i++) {
+						Object[] values = new Object[numColumns];
+						values[idx] = data[i];
+						retArr.add(values);
+					}
+				} else {
+					for(int i = 0; i < data.length; i++) {
+						Object[] values = retArr.get(i);
+						values[idx] = data[i];
+					}
+				}
+			} else if(typeInt == REXP.XT_ARRAY_STR) {
+				String[] data = val.asStringArray();
+				if(retArr.size() == 0) {
+					for(int i = 0; i < data.length; i++) {
+						Object[] values = new Object[numColumns];
+						values[idx] = data[i];
+						retArr.add(values);
+					}
+				} else {
+					for(int i = 0; i < data.length; i++) {
+						Object[] values = retArr.get(i);
+						values[idx] = data[i];
+					}
+				}
+			} else if(typeInt == REXP.XT_FACTOR) {
+				RFactor data = val.asFactor();
+				if(retArr.size() == 0) {
+					for(int i = 0; i < data.size(); i++) {
+						Object[] values = new Object[numColumns];
+						values[idx] = data.at(i);
+						retArr.add(values);
+					}
+				} else {
+					for(int i = 0; i < data.size(); i++) {
+						Object[] values = retArr.get(i);
+						values[idx] = data.at(i);
+					}
+				}
+			} else {
+				LOGGER.info("ERROR ::: Could not identify the return type for this iterator!!!");
+			}
+		}
+		
+		return retArr;
+	}
+	
 	@Override
 	public Object getScalarReturn(String rScript) {
 		REXP rs = executeR(rScript);

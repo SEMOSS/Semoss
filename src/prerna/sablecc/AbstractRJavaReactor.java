@@ -411,7 +411,7 @@ public abstract class AbstractRJavaReactor extends AbstractJavaReactor {
 		}
 		
 		// now that we know if we are adding to disk vs mem
-		// iterate thorugh and add all the data
+		// iterate through and add all the data
 		frameToUse.addRowsViaIterator(dataIterator, dataTypeMap);
 		dataIterator.deleteFile();
 		
