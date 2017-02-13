@@ -770,7 +770,7 @@ public class BaseJavaReactor extends AbstractRJavaReactor{
 		if(replace)
 			replacer = frameName + " <- " + tempName;
 		String script = tempName + "<- melt(" + frameName + concatString + ");" 
-						+ tempName + " <- " + tempName + "[,lapply(.SD, as.character)];"
+//						+ tempName + " <- " + tempName + "[,lapply(.SD, as.character)];"
 						+ replacer;
 		System.out.println("executing script " + script);
 		try {
@@ -778,8 +778,7 @@ public class BaseJavaReactor extends AbstractRJavaReactor{
 			if(replace && checkRTableModified(frameName)) {
 				recreateMetadata(frameName);
 			}
-		}catch(Exception ex)
-		{
+		} catch(Exception ex) {
 			ex.printStackTrace();
 		}
 	}
