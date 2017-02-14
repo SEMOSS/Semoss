@@ -69,7 +69,6 @@ public class RBuilder extends AbstractRBuilder {
 	}
 
 	private void loadDefaultLibraries() throws RserveException {
-		
 		// load in the data.table package
 		LOGGER.info("TRYING TO LOAD PACAKGE: data.table");
 		this.retCon.eval("library(data.table)");
@@ -93,6 +92,10 @@ public class RBuilder extends AbstractRBuilder {
 		// rjdbc
 		LOGGER.info("TRYING TO LOAD PACAKGE: RJDBC");
 		this.retCon.eval("library(RJDBC);");
+		LOGGER.info("SUCCESS!");
+		// stringr
+		LOGGER.info("TRYING TO LOAD PACAKGE: stringr");
+		this.retCon.eval("library(stringr);");
 		LOGGER.info("SUCCESS!");
 	}
 	

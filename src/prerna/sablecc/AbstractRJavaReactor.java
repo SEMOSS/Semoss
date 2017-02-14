@@ -778,6 +778,45 @@ public abstract class AbstractRJavaReactor extends AbstractJavaReactor {
 	}
 	
 	/**
+	 * Create a new column by counting the presence of a string within another column
+	 * @param newColName
+	 * @param countColName
+	 * @param strToCount
+	 */
+	protected void insertStrCountColumn(String newColName, String countColName, String strToCount) {
+		String frameName = (String)retrieveVariable("GRID_NAME");
+		insertStrCountColumn(frameName, newColName, countColName, strToCount);
+	}
+	
+	protected void insertStrCountColumn(String newColName, String countColName, int valToCount) {
+		String frameName = (String)retrieveVariable("GRID_NAME");
+		insertStrCountColumn(frameName, newColName, countColName, valToCount + "");
+	}
+	
+	protected void insertStrCountColumn(String newColName, String countColName, double valToCount) {
+		String frameName = (String)retrieveVariable("GRID_NAME");
+		insertStrCountColumn(frameName, newColName, countColName, valToCount + "");
+	}
+	
+	protected void insertStrCountColumn(String frameName, String newColName, String countColName, int valToCount) {
+		insertStrCountColumn(frameName, newColName, countColName, valToCount + "");
+
+	}
+	
+	protected void insertStrCountColumn(String frameName, String newColName, String countColName, double valToCount) {
+		insertStrCountColumn(frameName, newColName, countColName, valToCount + "");
+	}
+	
+	protected void insertStrCountColumn(String frameName, String newColName, String countColName, Object strToCount) {
+		String script = frameName + "$" + newColName + " <- str_count(" + frameName + "$" + countColName + ", \"" + strToCount + "\")";
+		eval(script);
+		System.out.println("Added new column = " + newColName);
+		if(checkRTableModified(frameName)) {
+			recreateMetadata(frameName);
+		}
+	}
+
+	/**
 	 * Replace a column value with a new value
 	 * @param columnName
 	 * @param curValue
