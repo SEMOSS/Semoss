@@ -808,12 +808,58 @@ public abstract class AbstractRJavaReactor extends AbstractJavaReactor {
 	}
 	
 	protected void insertStrCountColumn(String frameName, String newColName, String countColName, Object strToCount) {
+		// dt$new <- str_count(dt$oldCol, "strToFind");
 		String script = frameName + "$" + newColName + " <- str_count(" + frameName + "$" + countColName + ", \"" + strToCount + "\")";
 		eval(script);
 		System.out.println("Added new column = " + newColName);
 		if(checkRTableModified(frameName)) {
 			recreateMetadata(frameName);
 		}
+	}
+	
+	/**
+	 * Turn a string to lower case
+	 * @param colName
+	 */
+	protected void toLowerCase(String colName) {
+		String frameName = (String)retrieveVariable("GRID_NAME");
+		toLowerCase(frameName, colName);
+	}
+	
+	protected void toLowerCase(String frameName, String colName) {
+		String script = frameName + "$" + colName + " <- tolower(" + frameName + "$" + colName + ")";
+		eval(script);
+		checkRTableModified(frameName);
+	}
+	
+	/**
+	 * Turn a string to lower case
+	 * @param colName
+	 */
+	protected void toUpperCase(String colName) {
+		String frameName = (String)retrieveVariable("GRID_NAME");
+		toUpperCase(frameName, colName);
+	}
+	
+	protected void toUpperCase(String frameName, String colName) {
+		String script = frameName + "$" + colName + " <- toupper(" + frameName + "$" + colName + ")";
+		eval(script);
+		checkRTableModified(frameName);
+	}
+	
+	/**
+	 * Turn a string to lower case
+	 * @param colName
+	 */
+	protected void trim(String colName) {
+		String frameName = (String)retrieveVariable("GRID_NAME");
+		trim(frameName, colName);
+	}
+	
+	protected void trim(String frameName, String colName) {
+		String script = frameName + "$" + colName + " <- str_trim(" + frameName + "$" + colName + ")";
+		eval(script);
+		checkRTableModified(frameName);
 	}
 
 	/**
