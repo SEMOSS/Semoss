@@ -424,7 +424,7 @@ col_csv = l_bracket col_def col_group* r_bracket; // this is typically of the fo
 
 col_table = l_bracket col_csv+ r_bracket; //[[c:col1, c:col2][c:col3, c:col4][c:col5, c:col6]]
 
-word_or_num = {empty} null | {num} decimal | {alpha} word | {expr} [formula]:formula ; // I need some way putting an expression here
+word_or_num = {empty} null | {num} decimal | {alpha} word | {expr} [formula]:formula | {variable} var_def ; // I need some way putting an expression here
 
 word_or_num_or_nested_obj = {word_or_num} word_or_num | {nested_map} map_obj | {nested_csv} csv_row;
 
