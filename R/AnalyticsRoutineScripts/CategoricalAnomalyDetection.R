@@ -106,7 +106,7 @@ DetectWithGroups <- function(dt, time.col, event.col, group.col, agg, agg.string
     res <- AnomalyDetectionVec(vec, max_anoms=max.anoms, direction=direction, alpha=alpha, period=period, plot=FALSE)
     
     # Add columns
-    unique.times[, toString(level) := vec]
+    unique.times[, paste0("LEVEL_", level) := vec]
     anom.col <- paste0("ANOM_", level)
     unique.times[, toString(anom.col) := 0]
     unique.times[res$anoms$index, toString(anom.col) := res$anoms$anoms]
