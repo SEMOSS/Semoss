@@ -2317,12 +2317,21 @@ public class Translation extends DepthFirstAdapter {
     	TNull nullVal = (TNull) node.getNull();
 		curReactor.put(PKQLEnum.WORD_OR_NUM, AbstractTableDataFrame.VALUE.NULL);
     }
+    
+    public void outAVariableWordOrNum(AVariableWordOrNum node)
+    {
+       AVarDef node2 = (AVarDef) node.getVarDef();
+       String valName = node2.getValname().toString().trim();
+       Object value = runner.getVariableValue(valName);
+       curReactor.put(PKQLEnum.WORD_OR_NUM, value);
+    }
   
 	@Override
 	public void inAExprWordOrNum(AExprWordOrNum node) {
 
 	}
-
+	
+	
 	@Override
 	public void inADecimal(ADecimal node) {
 		String fraction = node.getFraction() + "";
