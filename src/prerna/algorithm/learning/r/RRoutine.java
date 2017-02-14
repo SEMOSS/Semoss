@@ -3,6 +3,7 @@ package prerna.algorithm.learning.r;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
+import java.util.Arrays;
 import java.util.Hashtable;
 import java.util.List;
 import java.util.Map;
@@ -95,8 +96,8 @@ public class RRoutine {
 		 */
 		public RRoutine build() {
 			RRoutine rRoutine = new RRoutine(dataFrame, scriptName, rSyncFrameName);
-			rRoutine.rReturnFrameName = rReturnFrameName;
 			rRoutine.selectedColumns = selectedColumns;
+			rRoutine.rReturnFrameName = rReturnFrameName;
 			rRoutine.arguments = arguments;
 			rRoutine.routineType = routineType;
 			return rRoutine;
@@ -122,7 +123,7 @@ public class RRoutine {
 		 * was synchronized to R will be returned.
 		 * 
 		 * @param rReturnFrameName
-		 * @return
+		 * @return this Builder
 		 */
 		public Builder rReturnFrameName(String rReturnFrameName) {
 			this.rReturnFrameName = rReturnFrameName;
@@ -187,9 +188,9 @@ public class RRoutine {
 	private String driversDirectory;
 	private String h2ClassPath;
 	private String tempDirectory;
-	private String[] headers;
-	private IMetaData.DATA_TYPES[] types;
-	private String tableName;
+	private String[] originalHeaders;
+	private IMetaData.DATA_TYPES[] originalTypes;
+	private String originalTableName;
 
 	// Rserve connections
 	private RConnection rMasterConnection;
@@ -249,12 +250,12 @@ public class RRoutine {
 		driversDirectory = baseDirectory + "\\" + DRIVERS_FOLDER;
 		h2ClassPath = driversDirectory + "\\" + H2_JAR;
 		tempDirectory = baseDirectory + "\\" + R_BASE_FOLDER + "\\" + TEMP_FOLDER;
-		headers = dataFrame.getColumnHeaders();
-		types = new IMetaData.DATA_TYPES[headers.length];
-		for (int i = 0; i < headers.length; i++) {
-			types[i] = dataFrame.getDataType(headers[i]);
+		originalHeaders = dataFrame.getColumnHeaders();
+		originalTypes = new IMetaData.DATA_TYPES[originalHeaders.length];
+		for (int i = 0; i < originalHeaders.length; i++) {
+			originalTypes[i] = dataFrame.getDataType(originalHeaders[i]);
 		}
-		tableName = dataFrame.getTableName();
+		originalTableName = dataFrame.getTableName();
 		LOGGER.setLevel(Level.INFO);
 	}
 
@@ -357,6 +358,11 @@ public class RRoutine {
 				retrieveFrameFromR();
 				retrieveResultFromR();
 
+				// Now that the routine has been completed, drop the original
+				// table from sql so that it does not persist after the garbage
+				// collector has removed the original data frame object
+				((H2Frame) dataFrame).dropTable();
+
 				// Mark that the routine has already been run
 				runRoutineCompleted = true;
 				LOGGER.info("Successfully ran R routine");
@@ -431,15 +437,10 @@ public class RRoutine {
 		}
 	}
 
-	// Synchronizes the arguments string to R as args (args can be a list,
-	// number, text, etc. depending on the string)
+	// Synchronizes the arguments to R as the list args
 	private void synchronizeArgumentsToR() throws RRoutineException {
 		if (arguments != null && arguments.length > 0) {
-			String argumentsScript = "list(";
-			for (int i = 0; i < arguments.length - 1; i++) {
-				argumentsScript += arguments[i] + ", ";
-			}
-			argumentsScript += arguments[arguments.length - 1] + ")";
+			String argumentsScript = "list(" + Arrays.stream(arguments).reduce((a, b) -> a + ", " + b).get() + ")";
 			try {
 				r(R_ARGS_VAR + " <- " + argumentsScript + ";");
 				LOGGER.info("Syncronized the arguments " + argumentsScript + " to R");
@@ -452,24 +453,43 @@ public class RRoutine {
 	// Synchronizes the frame to R as rSyncFrameName
 	private void synchronizeFrameToR() throws RRoutineException {
 
-		// Select all by default (*)
-		// If there are selected columns, then use them as selectors
-		String selectors = "*";
-		if (selectedColumns != null && selectedColumns.length > 0) {
-			selectors = "";
-			for (int i = 0; i < selectedColumns.length - 1; i++) {
-				selectors += selectedColumns[i] + ", ";
-			}
-			selectors += selectedColumns[selectedColumns.length - 1];
+		// Determine the correct headers to synchronize to R
+		String[] correctHeaders;
+		if (selectedColumns == null || selectedColumns.length == 0 || selectedColumns.equals("*")) {
+
+			// Use all original headers in cases where there are no selected
+			// columns, or in cases where the selected columns are * for all
+			// Note that * is not used as the selectors string, as * may not
+			// preserve column order in R
+			correctHeaders = originalHeaders;
+		} else {
+
+			// Otherwise, use the selected columns
+			correctHeaders = selectedColumns;
 		}
+
+		// Create the string of selectors with which to build the new R frame
+		String selectors = Arrays.stream(correctHeaders).reduce((a, b) -> a + ", " + b).get();
+
+		// Try to synchronize the frame
 		try {
 
 			// R code that synchronizes the frame to R
 			r(rSyncFrameName + " <- as.data.table(unclass(dbGetQuery(" + DRIVER_CONNECTION_VAR + ", 'SELECT "
-					+ selectors + " FROM " + tableName + "')));");
+					+ selectors + " FROM " + originalTableName + "')));");
+
+			// Make sure the frame is a data table
 			r("setDT(" + rSyncFrameName + ");");
+
+			// Make sure the synchronized header names are equivalent to the
+			// original headers
+			String correctNames = "c("
+					+ Arrays.stream(correctHeaders).map(h -> "'" + h + "'").reduce((a, b) -> a + "," + b).get() + ")";
+			String currentNames = "c(" + Arrays.stream(determineRHeaders(rSyncFrameName)).map(h -> "'" + h + "'")
+					.reduce((a, b) -> a + "," + b).get() + ")";
+			r("setnames(" + rSyncFrameName + ", old = " + currentNames + ", new = " + correctNames + ");");
 			LOGGER.info("Synchronized frame to R as " + rSyncFrameName);
-		} catch (RserveException e) {
+		} catch (RserveException | REXPMismatchException e) {
 			throw new RRoutineException("Failed to synchronize dataframe to R", e);
 		}
 	}
@@ -484,7 +504,7 @@ public class RRoutine {
 			// string
 			String script = Files.readAllLines(Paths.get(scriptsDirectory + "\\" + scriptName)).stream()
 					.map(String::trim).map(l -> l.replaceAll(";$", ""))
-					.filter(l -> (!l.startsWith("#") && !l.isEmpty())).reduce((a, b) -> a + ";" + b).get();
+					.filter(l -> (!l.startsWith("#") && !l.isEmpty())).reduce((a, b) -> a + ";" + b).get() + ";";
 			try {
 				r(script);
 				LOGGER.info("Successfully ran the script " + script);
