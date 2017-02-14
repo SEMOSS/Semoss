@@ -235,7 +235,7 @@ public class HeadersException {
 		// match 2 or more consecutive underscores AND
 		// match if starts with underscore AND
 		// match if ends with underscore
-		Pattern p = Pattern.compile("[^a-zA-Z0-9-_]|_{2,}|^_|_$");
+		Pattern p = Pattern.compile("[^a-zA-Z0-9-_]|_{2,}|^_|_$|-");
 		boolean hasIllegalChar = p.matcher(checkHeader).find();
 		return hasIllegalChar;
 	}
