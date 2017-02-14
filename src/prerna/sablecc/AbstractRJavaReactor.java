@@ -565,7 +565,7 @@ public abstract class AbstractRJavaReactor extends AbstractJavaReactor {
 	}
 	
 	protected void addEmptyColumn(String frameName, String newColName) {
-		String script = frameName + "$" + newColName + " <- NA";
+		String script = frameName + "$" + newColName + " <- \"\" ";
 		eval(script);
 		System.out.println("Successfully added column = " + newColName);
 		if(checkRTableModified(frameName)) {
@@ -583,7 +583,7 @@ public abstract class AbstractRJavaReactor extends AbstractJavaReactor {
 	}
 	
 	protected void changeColumnType(String frameName, String colName, String newType) {
-		changeColumnType(frameName, colName, newType, "%m/%d/%Y");
+		changeColumnType(frameName, colName, newType, "%Y/%m/%d");
 	}
 	
 	protected void changeColumnType(String frameName, String colName, String newType, String dateFormat) {
@@ -593,8 +593,14 @@ public abstract class AbstractRJavaReactor extends AbstractJavaReactor {
 		} else if(newType.equalsIgnoreCase("number")) {
 			script = script + " := as.numeric(" + colName +")]";
 		} else if(newType.equalsIgnoreCase("date")) {
-			// assuming date means yyyy-MM-dd
-			script = script + " := as.Date(" + colName +", format = \"" + dateFormat + "\")]";
+			// we have a different script to run if it is a str to date conversion
+			// or a date to new date format conversion
+			String type = getColType(frameName, colName, false);
+			if(type.equalsIgnoreCase("date")) {
+				script = script + " := format(" + colName +", format = \"" + dateFormat + "\")]";
+			} else {
+				script = script + " := as.Date(" + colName +", format = \"" + dateFormat + "\")]";
+			}
 		}
 		eval(script);
 		System.out.println("Successfully changed data type for column = " + colName);
