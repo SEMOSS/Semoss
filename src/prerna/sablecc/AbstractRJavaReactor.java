@@ -583,6 +583,10 @@ public abstract class AbstractRJavaReactor extends AbstractJavaReactor {
 	}
 	
 	protected void changeColumnType(String frameName, String colName, String newType) {
+		changeColumnType(frameName, colName, newType, "%m/%d/%Y");
+	}
+	
+	protected void changeColumnType(String frameName, String colName, String newType, String dateFormat) {
 		String script =  frameName + " <- " + frameName + "[, " + colName;
 		if(newType.equalsIgnoreCase("string")) {
 			script = script + " := as.character(" + colName +")]";
@@ -590,7 +594,7 @@ public abstract class AbstractRJavaReactor extends AbstractJavaReactor {
 			script = script + " := as.numeric(" + colName +")]";
 		} else if(newType.equalsIgnoreCase("date")) {
 			// assuming date means yyyy-MM-dd
-			script = script + " := as.Date(" + colName +", %Y%m%d)]";
+			script = script + " := as.Date(" + colName +", format = \"" + dateFormat + "\")]";
 		}
 		eval(script);
 		System.out.println("Successfully changed data type for column = " + colName);
