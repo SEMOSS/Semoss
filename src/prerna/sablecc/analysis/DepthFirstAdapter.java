@@ -3965,6 +3965,27 @@ public class DepthFirstAdapter extends AnalysisAdapter
         outAExprWordOrNum(node);
     }
 
+    public void inAVariableWordOrNum(AVariableWordOrNum node)
+    {
+        defaultIn(node);
+    }
+
+    public void outAVariableWordOrNum(AVariableWordOrNum node)
+    {
+        defaultOut(node);
+    }
+
+    @Override
+    public void caseAVariableWordOrNum(AVariableWordOrNum node)
+    {
+        inAVariableWordOrNum(node);
+        if(node.getVarDef() != null)
+        {
+            node.getVarDef().apply(this);
+        }
+        outAVariableWordOrNum(node);
+    }
+
     public void inAWordOrNumWordOrNumOrNestedObj(AWordOrNumWordOrNumOrNestedObj node)
     {
         defaultIn(node);
