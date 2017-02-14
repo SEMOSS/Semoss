@@ -583,7 +583,7 @@ public abstract class AbstractRJavaReactor extends AbstractJavaReactor {
 	}
 	
 	protected void changeColumnType(String frameName, String colName, String newType) {
-		String script =  frameName + " <- dt[, " + colName;
+		String script =  frameName + " <- " + frameName + "[, " + colName;
 		if(newType.equalsIgnoreCase("string")) {
 			script = script + " := as.character(" + colName +")]";
 		} else if(newType.equalsIgnoreCase("number")) {
