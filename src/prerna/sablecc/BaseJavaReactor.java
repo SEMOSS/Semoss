@@ -625,7 +625,7 @@ public class BaseJavaReactor extends AbstractRJavaReactor{
 			retOutput[0][0] = "Minimum";
 			retOutput[0][1] = min;
 			
-			script = "quantile(" + frameExpr + ", prob = c(0.25, 0.75))";
+			script = "quantile(as.numeric(na.omit(" + frameExpr + ")), prob = c(0.25, 0.75))";
 			double[] quartiles = rcon.eval(script).asDoubles();
 			retOutput[1][0] = "Q1";
 			retOutput[1][1] = quartiles[0];
