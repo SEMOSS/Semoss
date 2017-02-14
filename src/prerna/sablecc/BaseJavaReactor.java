@@ -62,7 +62,9 @@ public class BaseJavaReactor extends AbstractRJavaReactor{
 				retCon.eval("library(reshape2);");
 				// rjdbc
 				retCon.eval("library(RJDBC);");
-
+				// stringr
+				retCon.eval("library(stringr)");
+				
 				storeVariable(R_CONN, retCon);
 				storeVariable(R_PORT, port);
 			} catch (Exception e) {
@@ -70,8 +72,9 @@ public class BaseJavaReactor extends AbstractRJavaReactor{
 						+ "1)Rserve\n"
 						+ "2)splitstackshape\n"
 						+ "3)data.table\n"
-						+ "4)reshape2"
-						+ "5)RJDBC*\n\n"
+						+ "4)reshape2\n"
+						+ "5)RJDBC*\n"
+						+ "6)stringr\n\n"
 						+ "*Please note RJDBC might require JAVA_HOME environment path to be defined on your system.");
 				e.printStackTrace();
 			}

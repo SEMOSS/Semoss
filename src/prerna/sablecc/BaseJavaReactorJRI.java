@@ -56,13 +56,16 @@ public class BaseJavaReactorJRI extends AbstractRJavaReactor {
 				retEngine.eval("library(reshape2);");
 				// rjdbc
 				retEngine.eval("library(RJDBC);");
+				// stringr
+				retEngine.eval("library(stringr);");
 				storeVariable(R_ENGINE, retEngine);
 			} catch (Exception e) {
 				System.out.println("ERROR ::: Could not find connection.\nPlease make sure RServe is running and the following libraries are installed:\n"
 						+ "1)splitstackshape\n"
 						+ "2)data.table\n"
 						+ "3)reshape2"
-						+ "4)RJDBC\n\n"
+						+ "4)RJDBC\n"
+						+ "5)stringr\n\n"
 						+ "Please note RJDBC might require JAVA_HOME environment path to be defined on your system.");
 				e.printStackTrace();
 			}
