@@ -67,6 +67,16 @@ public class RIterator implements Iterator<Object[]>{
 			if(end > this.dataTableSize) {
 				end = this.dataTableSize;
 			}
+			
+			// account if there is a single row to output
+			if(rowIndex == end) {
+				retArray = this.builder.getDataRow(this.tableName + "[" + rowIndex + " , " + headerString + ", with=FALSE]", headers);
+				// update the row index
+				this.rowIndex++;
+				this.dataPos++;
+				return retArray;
+			}
+			
 			this.data = this.builder.getBulkDataRow(this.tableName + "[" + rowIndex + ":" + end + " , " + headerString + ", with=FALSE]", headers);
 			this.dataPos = 0;
 		}
