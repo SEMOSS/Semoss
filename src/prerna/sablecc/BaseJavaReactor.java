@@ -16,6 +16,7 @@ import org.rosuda.REngine.REXPList;
 import org.rosuda.REngine.REXPMismatchException;
 import org.rosuda.REngine.REXPString;
 import org.rosuda.REngine.REngineException;
+import org.rosuda.REngine.RFactor;
 import org.rosuda.REngine.RList;
 import org.rosuda.REngine.Rserve.RConnection;
 import org.rosuda.REngine.Rserve.RserveException;
@@ -561,6 +562,14 @@ public class BaseJavaReactor extends AbstractRJavaReactor{
 			
 			script = "colData$" + column;
 			String [] uniqueColumns = rcon.eval(script).asStrings();
+			if(uniqueColumns == null) {
+				RFactor factors = rcon.eval(script).asFactor();
+				int numFactors = factors.size();
+				uniqueColumns = new String[numFactors];
+				for(int i = 0; i < numFactors; i++) {
+					uniqueColumns[i] = factors.at(i);
+				}
+			} 
 			// need to limit this eventually to may be 10-15 and no more
 			script = "matrix(colData$N);"; 
 			int [] colCount = rcon.eval(script).asIntegers();
