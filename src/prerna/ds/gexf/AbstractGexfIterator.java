@@ -1,5 +1,6 @@
 package prerna.ds.gexf;
 
+import java.util.HashMap;
 import java.util.Map;
 
 public abstract class AbstractGexfIterator implements IGexfIterator {
@@ -27,6 +28,16 @@ public abstract class AbstractGexfIterator implements IGexfIterator {
 		this.nodeMap = nodeMap;
 		this.edgeMap = edgeMap;
 		this.aliasMap = aliasMap;
+		
+		if(this.nodeMap == null) {
+			this.nodeMap = "";
+		}
+		if(this.edgeMap == null) {
+			this.edgeMap = "";
+		}
+		if(this.aliasMap == null) {
+			this.aliasMap = new HashMap<String, String>();
+		}
 		
 		this.nodeMapSplit = this.nodeMap.split(";");
 		this.edgeMapSplit = this.edgeMap.split(";");
