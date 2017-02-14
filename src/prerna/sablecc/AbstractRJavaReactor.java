@@ -587,22 +587,31 @@ public abstract class AbstractRJavaReactor extends AbstractJavaReactor {
 	}
 	
 	protected void changeColumnType(String frameName, String colName, String newType, String dateFormat) {
-		String script =  frameName + " <- " + frameName + "[, " + colName;
+		String script = null;
 		if(newType.equalsIgnoreCase("string")) {
-			script = script + " := as.character(" + colName +")]";
+			script = frameName + " <- " + frameName + "[, " + colName + " := as.character(" + colName +")]";
+			eval(script);
 		} else if(newType.equalsIgnoreCase("number")) {
-			script = script + " := as.numeric(" + colName +")]";
+			script =  frameName + " <- " + frameName + "[, " + colName + " := as.numeric(" + colName +")]";
+			eval(script);
 		} else if(newType.equalsIgnoreCase("date")) {
 			// we have a different script to run if it is a str to date conversion
 			// or a date to new date format conversion
 			String type = getColType(frameName, colName, false);
+			String tempTable = Utility.getRandomString(6);
 			if(type.equalsIgnoreCase("date")) {
-				script = script + " := format(" + colName +", format = \"" + dateFormat + "\")]";
+				String formatString = ", format = '" + dateFormat + "'";
+				script = tempTable + " <- format(" + frameName + "$" + colName + formatString + ")";
+				eval(script);
+				script = frameName + "$" + colName + " <- " + "as.Date(" + tempTable + formatString + ")";
+				eval(script);
 			} else {
-				script = script + " := as.Date(" + colName +", format = \"" + dateFormat + "\")]";
+				script =  tempTable + " <- as.Date(" + frameName + "$" + colName + ", format='" + dateFormat + "')";
+				eval(script);
+				script = frameName + "$" + colName + " <- " + tempTable;
+				eval(script);
 			}
 		}
-		eval(script);
 		System.out.println("Successfully changed data type for column = " + colName);
 		if(checkRTableModified(frameName)) {
 			// TODO: should be able to change the data type dynamically!!!
@@ -800,7 +809,6 @@ public abstract class AbstractRJavaReactor extends AbstractJavaReactor {
 	
 	protected void insertStrCountColumn(String frameName, String newColName, String countColName, int valToCount) {
 		insertStrCountColumn(frameName, newColName, countColName, valToCount + "");
-
 	}
 	
 	protected void insertStrCountColumn(String frameName, String newColName, String countColName, double valToCount) {
@@ -905,7 +913,7 @@ public abstract class AbstractRJavaReactor extends AbstractJavaReactor {
 	 */
 	protected void updateRowValuesWhereColumnContainsValue(String updateColName, Object updateColValue, String conditionalColName, String comparator, Object conditionalColValue) {
 		String frameName = (String)retrieveVariable("GRID_NAME");
-		updateRowValuesWhereColumnContainsValue(frameName, updateColValue, conditionalColName, comparator, conditionalColValue);
+		updateRowValuesWhereColumnContainsValue(frameName, updateColName, updateColValue, conditionalColName, comparator, conditionalColValue);
 	}
 	
 	protected void updateRowValuesWhereColumnContainsValue(String updateColName, Object updateColValue, String conditionalColName, String comparator, double conditionalColValue) {
