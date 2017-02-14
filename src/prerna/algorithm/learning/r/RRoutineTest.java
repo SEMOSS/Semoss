@@ -16,7 +16,6 @@ import prerna.ds.h2.H2Frame;
 import prerna.ds.util.FileIterator;
 import prerna.ds.util.FileIterator.FILE_DATA_TYPE;
 import prerna.engine.api.IHeadersDataRow;
-import prerna.sablecc.BaseJavaReactor;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
 import prerna.util.Utility;
@@ -28,45 +27,6 @@ public class RRoutineTest {
 
 	// Test case for RRoutine
 	public static void main(String[] args) throws Exception {
-		System.out.println("------------RRoutine Test------------");
-		rRoutineTest();
-		System.out.println("----------Java Reactor Test----------");
-		javaReactorTest();
-	}
-
-	private static void rRoutineTest() throws Exception {
-		ITableDataFrame frame = makeTestFrame();
-		RRoutine rRoutine = new RRoutine.Builder(frame, "AnomalyDetection.R", "df")
-				.selectedColumns("timestamp_1;count_1").arguments("'count_1';0.01;'both';0.05;100;FALSE")
-				.routineType(RRoutineType.ANALYTICS).build();
-
-		ITableDataFrame newFrame = rRoutine.returnDataFrame();
-		REXP result = rRoutine.returnResult();
-
-		// Final frame first row
-		Iterator<IHeadersDataRow> finalData = newFrame.query("SELECT * FROM " + newFrame.getTableName() + ";");
-		System.out.println(finalData.next());
-
-		// Result
-		System.out.println(result.asInteger());
-	}
-
-	private static void javaReactorTest() {
-		ITableDataFrame frame = makeTestFrame();
-
-		// Test javaReactor code
-		BaseJavaReactor javaReactor = new BaseJavaReactor();
-		javaReactor.dataframe = frame;
-		javaReactor.runRRoutine("AnomalyDetection.R", "df", "timestamp_1;count_1", "df",
-				"'COUNT_1';0.01;'both';0.05;100;FALSE");
-
-		// Final frame first row
-		Iterator<IHeadersDataRow> finalData = javaReactor.dataframe
-				.query("SELECT * FROM " + javaReactor.dataframe.getTableName() + ";");
-		System.out.println(finalData.next());
-	}
-
-	private static ITableDataFrame makeTestFrame() {
 		DIHelper.getInstance().loadCoreProp(System.getProperty("user.dir") + "/RDF_Map.prop");
 
 		String baseDirectory = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER);
@@ -111,7 +71,21 @@ public class RRoutineTest {
 		// Original frame first row
 		Iterator<IHeadersDataRow> originalData = frame.query("SELECT * FROM " + frame.getTableName() + ";");
 		System.out.println(originalData.next());
-		return frame;
+
+		// Create a new RRoutine
+		RRoutine rRoutine = new RRoutine.Builder(frame, "AnomalyDetection.R", "dt")
+				.selectedColumns("timestamp_1;count_1").arguments("'timestamp_1';'count_1';'sum';0.01;'both';0.05;1440")
+				.routineType(RRoutineType.ANALYTICS).build();
+
+		ITableDataFrame newFrame = rRoutine.returnDataFrame();
+		REXP result = rRoutine.returnResult();
+
+		// Final frame first row
+		Iterator<IHeadersDataRow> finalData = newFrame.query("SELECT * FROM " + newFrame.getTableName() + ";");
+		System.out.println(finalData.next());
+
+		// Result
+		System.out.println(result.asInteger());
 	}
 
 }
