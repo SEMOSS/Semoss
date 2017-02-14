@@ -1050,12 +1050,12 @@ public abstract class AbstractRJavaReactor extends AbstractJavaReactor {
 	 * @param colName
 	 * @param orderDirection
 	 */
-	protected void orderData(String colName, String orderDirection) {
+	protected void sortData(String colName, String orderDirection) {
 		String frameName = (String)retrieveVariable("GRID_NAME");
-		orderData(frameName, colName, orderDirection);
+		sortData(frameName, colName, orderDirection);
 	}
 	
-	protected void orderData(String frameName, String colName, String orderDirection) {
+	protected void sortData(String frameName, String colName, String orderDirection) {
 		String script = null;
 		if(orderDirection == null || orderDirection.equalsIgnoreCase("desc")) {
 			script = frameName + " <- " + frameName + "[order(rank(" + colName + "))]";
