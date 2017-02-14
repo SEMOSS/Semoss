@@ -26,18 +26,8 @@ public class RBuilderJRI extends AbstractRBuilder {
 			this.retCon = new Rengine(null, true, null);
 			LOGGER.info("Successfully created engine.. ");
 		}
-		// load in the data.table package
-		this.retCon.eval("library(data.table)");
-		// load in the sqldf package to run sql queries
-		this.retCon.eval("library(sqldf)");
-		// load all the libraries
-		this.retCon.eval("library(splitstackshape);");
-		// data table
-		this.retCon.eval("library(data.table);");
-		// reshape2
-		this.retCon.eval("library(reshape2);");
-		// rjdbc
-		this.retCon.eval("library(RJDBC);");
+		loadDefaultLibraries();
+
 	}
 
 	public RBuilderJRI(String dataTableName) {
@@ -45,6 +35,37 @@ public class RBuilderJRI extends AbstractRBuilder {
 		if(dataTableName != null && !dataTableName.trim().isEmpty()) {
 			this.dataTableName = dataTableName;
 		}
+	}
+	
+	private void loadDefaultLibraries() {
+		// load in the data.table package
+		LOGGER.info("TRYING TO LOAD PACAKGE: data.table");
+		this.retCon.eval("library(data.table)");
+		LOGGER.info("SUCCESS!");
+		// load in the sqldf package to run sql queries
+		LOGGER.info("TRYING TO LOAD PACAKGE: sqldf");
+		this.retCon.eval("library(sqldf)");
+		LOGGER.info("SUCCESS!");
+		// load all the libraries
+		LOGGER.info("TRYING TO LOAD PACAKGE: splitstackshape");
+		this.retCon.eval("library(splitstackshape);");
+		LOGGER.info("SUCCESS!");
+		// data table
+		LOGGER.info("TRYING TO LOAD PACAKGE: data.table");
+		this.retCon.eval("library(data.table);");
+		LOGGER.info("SUCCESS!");
+		// reshape2
+		LOGGER.info("TRYING TO LOAD PACAKGE: reshape2");
+		this.retCon.eval("library(reshape2);");
+		LOGGER.info("SUCCESS!");
+		// rjdbc
+		LOGGER.info("TRYING TO LOAD PACAKGE: RJDBC");
+		this.retCon.eval("library(RJDBC);");
+		LOGGER.info("SUCCESS!");
+		// stringr
+		LOGGER.info("TRYING TO LOAD PACAKGE: stringr");
+		this.retCon.eval("library(stringr);");
+		LOGGER.info("SUCCESS!");
 	}
 
 	protected String getTableName() {
