@@ -903,6 +903,12 @@ public class AnalysisAdapter implements Analysis
     }
 
     @Override
+    public void caseAVariableWordOrNum(AVariableWordOrNum node)
+    {
+        defaultCase(node);
+    }
+
+    @Override
     public void caseAWordOrNumWordOrNumOrNestedObj(AWordOrNumWordOrNumOrNestedObj node)
     {
         defaultCase(node);
