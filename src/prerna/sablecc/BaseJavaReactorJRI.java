@@ -10,6 +10,7 @@ import org.apache.commons.io.FileUtils;
 import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.GraphTraversal;
 import org.apache.tinkerpop.gremlin.structure.Vertex;
 import org.rosuda.JRI.REXP;
+import org.rosuda.JRI.RFactor;
 import org.rosuda.JRI.RVector;
 import org.rosuda.JRI.Rengine;
 import org.rosuda.REngine.REXPDouble;
@@ -592,6 +593,14 @@ public class BaseJavaReactorJRI extends AbstractRJavaReactor {
 			engine.eval(script);
 			script = "colData$" + column;
 			String [] uniqueColumns = engine.eval(script).asStringArray();
+			if(uniqueColumns == null) {
+				RFactor factors = engine.eval(script).asFactor();
+				int numFactors = factors.size();
+				uniqueColumns = new String[numFactors];
+				for(int i = 0; i < numFactors; i++) {
+					uniqueColumns[i] = factors.at(i);
+				}
+			} 
 			// need to limit this eventually to may be 10-15 and no more
 			script = "matrix(colData$N);"; 
 			int [] colCount = engine.eval(script).asIntArray();
