@@ -802,6 +802,65 @@ public abstract class AbstractRJavaReactor extends AbstractJavaReactor {
 	}
 	
 	/**
+	 * 
+	 * @param frameName
+	 * @param columnName
+	 * @param curValue
+	 * @param newValue
+	 */
+	protected void updateRowValuesWhereColumnContainsValue(String updateColName, Object updateColValue, String conditionalColName, String comparator, Object conditionalColValue) {
+		String frameName = (String)retrieveVariable("GRID_NAME");
+		updateRowValuesWhereColumnContainsValue(frameName, updateColValue, conditionalColName, comparator, conditionalColValue);
+	}
+	
+	protected void updateRowValuesWhereColumnContainsValue(String updateColName, Object updateColValue, String conditionalColName, String comparator, double conditionalColValue) {
+		String frameName = (String)retrieveVariable("GRID_NAME");
+		updateRowValuesWhereColumnContainsValue(frameName, updateColValue, conditionalColName, comparator, conditionalColValue + "");
+	}
+	
+	protected void updateRowValuesWhereColumnContainsValue(String updateColName, Object updateColValue, String conditionalColName, String comparator, int conditionalColValue) {
+		String frameName = (String)retrieveVariable("GRID_NAME");
+		updateRowValuesWhereColumnContainsValue(frameName, updateColValue, conditionalColName, comparator, conditionalColValue + "");
+	}
+	
+	protected void updateRowValuesWhereColumnContainsValue(String frameName, String updateColName, Object updateColValue, String conditionalColName, String comparator, double conditionalColValue) {
+		updateRowValuesWhereColumnContainsValue(frameName, updateColName, updateColValue, conditionalColName, comparator, conditionalColValue + "");
+	}
+	
+	protected void updateRowValuesWhereColumnContainsValue(String frameName, String updateColName, Object updateColValue, String conditionalColName, String comparator, int conditionalColValue) {
+		updateRowValuesWhereColumnContainsValue(frameName, updateColName, updateColValue, conditionalColName, comparator, conditionalColValue + "");
+	}
+	
+	protected void updateRowValuesWhereColumnContainsValue(String frameName, String updateColName, Object updateColValue, String conditionalColName, String comparator, Object conditionalColValue) {
+		// update values based on other columns
+		// dt$updateColName[dt$conditionalColName == "conditionalColValue] <- updateColValue
+		// need to get the types of this
+		try {
+			comparator = " " + comparator + " ";
+			
+			String updateDataType = getColType(updateColName);
+			String updateQuote = "";
+			if(updateDataType.contains("character")) {
+				updateQuote = "\"";
+			}
+			
+			String conditionColDataType = getColType(conditionalColName);
+			String conditionColQuote = "";
+			if(conditionColDataType.contains("character")) {
+				conditionColQuote = "\"";
+			}
+			
+			String script = frameName + "$" + updateColName + "[" + frameName + "$" + conditionalColName + comparator + 
+					conditionColQuote + conditionalColValue +  conditionColQuote + "] <- " +  updateQuote + updateColValue + updateQuote;
+			eval(script);
+			System.out.println("Done updating column " + updateColName + " where " + conditionalColName + comparator + conditionalColValue);
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+		checkRTableModified(frameName);
+	}
+	
+	/**
 	 * Regex replace a column value with a new value
 	 * @param columnName
 	 * @param curValue
