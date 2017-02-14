@@ -116,8 +116,37 @@ public abstract class AbstractJavaReactor extends AbstractReactor {
 		dataframe.filter(columnHeader, values);
 	}
 
-	public void runAnomalyDetection(String seriesColumn, String timeColumn, double maxAnoms, String direction,
-			double alpha, int period) {
+	/**
+	 * 
+	 * Runs anomaly detection on a numeric series.
+	 * 
+	 * @param timeColumn
+	 *            The column containing time stamps; can be date, string, or
+	 *            numeric representation
+	 * @param seriesColumn
+	 *            The column containing a numeric series with potential
+	 *            anomalies
+	 * @param aggregateFunction
+	 *            The function used to aggregate the series when there are
+	 *            duplicated time stamps
+	 * @param maxAnoms
+	 *            The maximum proportion of the series of counts that can be
+	 *            considered an anomaly, must be between 0 and 1
+	 * @param direction
+	 *            The direction in which anomalies can occur, includes POSITIVE,
+	 *            NEGATIVE, and BOTH
+	 * @param alpha
+	 *            The level of statistical significance, must be between 0 and
+	 *            1, but should generally be less than 0.1
+	 * @param period
+	 *            The number of time stamps per natural cycle; anomalies are
+	 *            sensitive to this input
+	 * @param keepExistingColumns
+	 *            Whether to keep the existing column structure and add to it,
+	 *            or return a simplified data frame
+	 */
+	protected void runAnomaly(String timeColumn, String seriesColumn, String aggregateFunction, double maxAnoms,
+			String direction, double alpha, int period, boolean keepExistingColumns) {
 		java.lang.System.setSecurityManager(curManager);
 
 		// Convert string direction to AnomDirection
@@ -133,8 +162,8 @@ public abstract class AbstractJavaReactor extends AbstractReactor {
 		}
 
 		// Create a new anomaly detector
-		AnomalyDetector anomalyDetector = new AnomalyDetector(dataframe, seriesColumn, timeColumn, maxAnoms,
-				anomDirection, alpha, period);
+		AnomalyDetector anomalyDetector = new AnomalyDetector(dataframe, timeColumn, seriesColumn, aggregateFunction,
+				maxAnoms, anomDirection, alpha, period, keepExistingColumns);
 
 		// Detect anomalies using the anomaly detector
 		try {
@@ -147,7 +176,68 @@ public abstract class AbstractJavaReactor extends AbstractReactor {
 		}
 		java.lang.System.setSecurityManager(reactorManager);
 	}
-	
+
+	/**
+	 * 
+	 * Runs anomaly detection on categorical data. This is done by counting the
+	 * number of events that occur per unit time for each group.
+	 * 
+	 * @param timeColumn
+	 *            The column containing time stamps; can be date, string, or
+	 *            numeric representation
+	 * @param eventColumn
+	 *            The column containing events to count, usually the primary key
+	 *            when counting records
+	 * @param groupColumn
+	 *            The column to group by; the count of events is reported for
+	 *            each level of this group
+	 * @param aggregateFunction
+	 *            The function used to aggregate events, count or count distinct
+	 * @param maxAnoms
+	 *            The maximum proportion of the series of counts that can be
+	 *            considered an anomaly, must be between 0 and 1
+	 * @param direction
+	 *            The direction in which anomalies can occur, includes POSITIVE,
+	 *            NEGATIVE, and BOTH
+	 * @param alpha
+	 *            The level of statistical significance, must be between 0 and
+	 *            1, but should generally be less than 0.1
+	 * @param period
+	 *            The number of time stamps per natural cycle; anomalies are
+	 *            sensitive to this input
+	 */
+	protected void runCategoricalAnomaly(String timeColumn, String eventColumn, String groupColumn,
+			String aggregateFunction, double maxAnoms, String direction, double alpha, int period) {
+		java.lang.System.setSecurityManager(curManager);
+
+		// Convert string direction to AnomDirection
+		// Default to both
+		AnomDirection anomDirection;
+		switch (direction) {
+		case ("positive"):
+			anomDirection = AnomDirection.POSITIVE;
+		case ("negative"):
+			anomDirection = AnomDirection.NEGATIVE;
+		default:
+			anomDirection = AnomDirection.BOTH;
+		}
+
+		// Create a new anomaly detector
+		AnomalyDetector anomalyDetector = new AnomalyDetector(dataframe, timeColumn, eventColumn, groupColumn,
+				aggregateFunction, maxAnoms, anomDirection, alpha, period);
+
+		// Detect anomalies using the anomaly detector
+		try {
+			dataframe = anomalyDetector.detectAnomalies();
+			dataframe.updateDataId();
+			frameChanged = true;
+			myStore.put("G", dataframe);
+		} catch (RRoutineException e) {
+			e.printStackTrace();
+		}
+		java.lang.System.setSecurityManager(reactorManager);
+	}
+		
 	protected void runClustering(int instanceIndex, int numClusters, String[] selectors) {
 		java.lang.System.setSecurityManager(curManager);
 		
@@ -372,7 +462,7 @@ public abstract class AbstractJavaReactor extends AbstractReactor {
 	 *            The name of the R data frame that is synchronized to R
 	 * @param selectedColumns
 	 *            A semicolon-delimited string of columns to select when
-	 *            synchronizing the frame to R
+	 *            synchronizing the frame to R ("*" for all)
 	 * @param rReturnFrameName
 	 *            The name of the R data frame that is synchronized from R
 	 * @param arguments
@@ -381,11 +471,8 @@ public abstract class AbstractJavaReactor extends AbstractReactor {
 	 *            accessed in R via args[[i]], where i is the index of the
 	 *            desired argument
 	 */
-	// Example pkql use:
-	// j: <code>runRRoutine("CloudMigrationRoadmap.R", "semossGrid", "*",
-	// "finalRoadMap", "200");<code> ;
-	public void runRRoutine(String scriptName, String rSyncFrameName, String selectedColumns, String rReturnFrameName,
-			String arguments) {
+	protected void runRRoutine(String scriptName, String rSyncFrameName, String selectedColumns,
+			String rReturnFrameName, String arguments) {
 		java.lang.System.setSecurityManager(curManager);
 		RRoutine rRoutine = new RRoutine.Builder(dataframe, scriptName, rSyncFrameName).selectedColumns(selectedColumns)
 				.rReturnFrameName(rReturnFrameName).arguments(arguments).build();
@@ -400,7 +487,8 @@ public abstract class AbstractJavaReactor extends AbstractReactor {
 		java.lang.System.setSecurityManager(reactorManager);
 	}
 
-	public void runRRoutine(String scriptName, String rSyncFrameName, String selectedColumns, String rReturnFrameName) {
+	protected void runRRoutine(String scriptName, String rSyncFrameName, String selectedColumns,
+			String rReturnFrameName) {
 		java.lang.System.setSecurityManager(curManager);
 		RRoutine rRoutine = new RRoutine.Builder(dataframe, scriptName, rSyncFrameName).selectedColumns(selectedColumns)
 				.rReturnFrameName(rReturnFrameName).build();
@@ -415,7 +503,7 @@ public abstract class AbstractJavaReactor extends AbstractReactor {
 		java.lang.System.setSecurityManager(reactorManager);
 	}
 
-	public void runRRoutine(String scriptName, String rSyncFrameName, String selectedColumns) {
+	protected void runRRoutine(String scriptName, String rSyncFrameName, String selectedColumns) {
 		java.lang.System.setSecurityManager(curManager);
 		RRoutine rRoutine = new RRoutine.Builder(dataframe, scriptName, rSyncFrameName).selectedColumns(selectedColumns)
 				.build();
@@ -430,7 +518,7 @@ public abstract class AbstractJavaReactor extends AbstractReactor {
 		java.lang.System.setSecurityManager(reactorManager);
 	}
 
-	public void runRRoutine(String scriptName, String rSyncFrameName) {
+	protected void runRRoutine(String scriptName, String rSyncFrameName) {
 		java.lang.System.setSecurityManager(curManager);
 		RRoutine rRoutine = new RRoutine(dataframe, scriptName, rSyncFrameName);
 		try {
