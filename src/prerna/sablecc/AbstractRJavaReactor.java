@@ -845,7 +845,9 @@ public abstract class AbstractRJavaReactor extends AbstractJavaReactor {
 	
 	protected void splitColumn(String frameName, String columnName, String separator, boolean dropColumn, boolean frameReplace) {
 		performSplitColumn(frameName, columnName, separator, false, true);
-		checkRTableModified(frameName);
+		if(checkRTableModified(frameName)) {
+			recreateMetadata(frameName);
+		}
 	}
 	
 	protected void joinColumns(String newColumnName, String separator, String cols) {
@@ -855,7 +857,9 @@ public abstract class AbstractRJavaReactor extends AbstractJavaReactor {
 	
 	protected void joinColumns(String frameName, String newColumnName, String separator, String cols) {
 		performJoinColumns(frameName, newColumnName, separator, cols);
-		checkRTableModified(frameName);
+		if(checkRTableModified(frameName)) {
+			recreateMetadata(frameName);
+		}
 	}
 	
 	protected void transpose() {
