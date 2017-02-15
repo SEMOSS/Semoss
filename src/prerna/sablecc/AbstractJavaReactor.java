@@ -61,6 +61,33 @@ public abstract class AbstractJavaReactor extends AbstractReactor {
 		this.userId = dataframe.getUserId();
 	}
 	
+	/**
+	 * Method to be run
+	 */
+	public void doMethod() {
+		
+	}
+
+	@Override
+	public Iterator process() {
+		try {
+			doMethod();
+			put("RESPONSE", System.out.output); 
+			put("STATUS" , prerna.sablecc.PKQLRunner.STATUS.SUCCESS);
+		} catch(Exception ex) {
+			if( ex.getMessage() != null && !ex.getMessage().isEmpty() ) {
+				put("RESPONSE", "ERROR : " + ex.getMessage());
+			} else {
+				put("RESPONSE", "Failed");
+			}
+			put("STATUS", prerna.sablecc.PKQLRunner.STATUS.ERROR);
+			put("ERROR", ex);
+			return null;
+		}
+
+		return null;
+	}
+	
 	////////////////////////////////////////////////////////////
 	////////////////////////////////////////////////////////////
 	////////////////////// Frame Methods ///////////////////////
@@ -906,11 +933,6 @@ public abstract class AbstractJavaReactor extends AbstractReactor {
 
 	@Override
 	public IPkqlMetadata getPkqlMetadata() {
-		return null;
-	}
-
-	@Override
-	public Iterator process() {
 		return null;
 	}
 }

@@ -81,6 +81,8 @@ public class RExpressionIterator implements Iterator<Object[]> {
 		if(rowIndex <= numRows) {
 			return true;
 		} else {
+			// clean up variables
+			this.frame.executeRScript("rm(" + this.dataTableName + "); gc();");
 			return false;
 		}
 	}
