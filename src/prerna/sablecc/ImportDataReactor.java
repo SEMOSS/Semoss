@@ -95,7 +95,7 @@ public abstract class ImportDataReactor extends AbstractReactor {
 	// need a boolean to determine if we should make the other columns
 	// that already exist unique
 	// this will affect all other columns that are not the join column
-//	protected boolean enableLoops = false;
+	protected boolean enableLoops = false;
 	
 	/**
 	 * Constructor for the abstract class
@@ -514,7 +514,7 @@ public abstract class ImportDataReactor extends AbstractReactor {
 		Map<Object, Object> map = (Map<Object, Object>) myStore.get(PKQLEnum.MAP_OBJ);
 		if(map != null) {
 			String enableLoopsVal = (String)map.get("enableLoops");
-			boolean enableLoops = "true".equalsIgnoreCase(enableLoopsVal);
+			this.enableLoops = "true".equalsIgnoreCase(enableLoopsVal);
 			if(enableLoops) {
 				for(Map<String, String> joinCol : joinCols) {
 					for(String j : joinCol.keySet()) {
