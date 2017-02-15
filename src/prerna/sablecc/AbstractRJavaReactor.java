@@ -665,16 +665,23 @@ public abstract class AbstractRJavaReactor extends AbstractJavaReactor {
 		// determine the correct comparison to drop values from the frame
 		// .... this is a bunch of casting...
 		// also note that the string NULL is special to remove values that are undefined within the frame
-		StringBuilder script = new StringBuilder(frameName).append("<-").append(frameName).append("[!(").append(frameExpression);
+		StringBuilder script = new StringBuilder(frameName).append(" <- ").append(frameName).append("[!( ");
 		String dataType = getColType(frameName, colName, false);
+		
+		// accomodate for factors cause they are annoying
+		if(dataType.equals("factor")) {
+			changeColumnType(frameName, colName, "STRING");
+			dataType = "character";
+		}
+		
 		if(values instanceof Object[]) {
 			Object[] arr = (Object[]) values;
 			Object val = arr[0];
 			if(dataType.equalsIgnoreCase("character")) {
-				if(val.equals("NULL")) {
-					script.append(" | ").append(frameExpression).append(comparator).append(val);
+				if(val.toString().equalsIgnoreCase("NULL") || val.toString().equalsIgnoreCase("NA")) {
+					script.append("is.na(").append(frameExpression).append(") ");
 				} else {
-					script.append(" | ").append(frameExpression).append(comparator).append("\"").append(val).append("\"");
+					script.append(frameExpression).append(comparator).append("\"").append(val).append("\"");
 				}
 			} else {
 				script.append(comparator).append(val);
@@ -682,8 +689,8 @@ public abstract class AbstractRJavaReactor extends AbstractJavaReactor {
 			for(int i = 1; i < arr.length; i++) {
 				val = arr[i];
 				if(dataType.equalsIgnoreCase("character")) {
-					if(val.equals("NULL")) {
-						script.append(" | ").append(frameExpression).append(comparator).append(val);
+					if(val.toString().equalsIgnoreCase("NULL") || val.toString().equalsIgnoreCase("NA")) {
+						script.append(" | is.na(").append(frameExpression).append(") ");
 					} else {
 						script.append(" | ").append(frameExpression).append(comparator).append("\"").append(val).append("\"");
 					}
@@ -691,18 +698,10 @@ public abstract class AbstractRJavaReactor extends AbstractJavaReactor {
 					script.append(" | ").append(frameExpression).append(comparator).append(val);
 				}
 			}
-		} else if(values instanceof String[]){
-			String[] arr = (String[]) values;
-			String val = arr[0];
-			script.append(comparator).append("\"").append(val).append("\"");
-			for(int i = 1; i < arr.length; i++) {
-				val = arr[i];
-				script.append(" | ").append(frameExpression).append(comparator).append("\"").append(val).append("\"");
-			}
 		} else if(values instanceof Double[])  {
 			Double[] arr = (Double[]) values;
 			Double val = arr[0];
-			script.append(comparator).append(val);
+			script.append(frameExpression).append(comparator).append(val);
 			for(int i = 1; i < arr.length; i++) {
 				val = arr[i];
 				script.append(" | ").append(frameExpression).append(comparator).append(val);
@@ -710,7 +709,7 @@ public abstract class AbstractRJavaReactor extends AbstractJavaReactor {
 		} else if(values instanceof Integer[])  {
 			Integer[] arr = (Integer[]) values;
 			Integer val = arr[0];
-			script.append(comparator).append(val);
+			script.append(frameExpression).append(comparator).append(val);
 			for(int i = 1; i < arr.length; i++) {
 				val = arr[i];
 				script.append(" | ").append(frameExpression).append(comparator).append(val);
@@ -718,7 +717,7 @@ public abstract class AbstractRJavaReactor extends AbstractJavaReactor {
 		} else if(values instanceof double[])  {
 			double[] arr = (double[]) values;
 			double val = arr[0];
-			script.append(comparator).append(val);
+			script.append(frameExpression).append(comparator).append(val);
 			for(int i = 1; i < arr.length; i++) {
 				val = arr[i];
 				script.append(" | ").append(frameExpression).append(comparator).append(val);
@@ -726,20 +725,20 @@ public abstract class AbstractRJavaReactor extends AbstractJavaReactor {
 		} else if(values instanceof int[])  {
 			int[] arr = (int[]) values;
 			int val = arr[0];
-			script.append(comparator).append(val);
+			script.append(frameExpression).append(comparator).append(val);
 			for(int i = 1; i < arr.length; i++) {
 				val = arr[i];
 				script.append(" | ").append(frameExpression).append(comparator).append(val);
 			}
 		} else {
 			if(dataType.equalsIgnoreCase("character")) {
-				if(values.toString().equals("NULL")) {
-					script.append(" | ").append(frameExpression).append(comparator).append(values);
+				if(values.toString().equalsIgnoreCase("NULL") || values.toString().equalsIgnoreCase("NA")) {
+					script.append("is.na(").append(frameExpression).append(") ");
 				} else {
-					script.append(" | ").append(frameExpression).append(comparator).append("\"").append(values).append("\"");
+					script.append(frameExpression).append(comparator).append("\"").append(values).append("\"");
 				}
 			} else {
-				script.append(comparator).append(values);
+				script.append(frameExpression).append(comparator).append(values);
 			}
 		}
 		script.append("),]");
@@ -889,8 +888,13 @@ public abstract class AbstractRJavaReactor extends AbstractJavaReactor {
 			String quote = "";
 			if(dataType.contains("character")) {
 				quote = "\"";
+			} else if(dataType.equals("factor")) {
+				changeColumnType(frameName, columnName, "STRING");
+				quote = "\"";
 			}
-			if(curValue != null) {
+			if(curValue.equalsIgnoreCase("null") || curValue.equalsIgnoreCase("NA")) {
+				condition = "is.na(" + columnName + ") , ";
+			} else {
 				condition = columnName + " == " + quote + curValue + quote + ", ";
 			}
 			String script = frameName + "[" + condition + columnName + " := " + quote + newValue + quote + "]";
