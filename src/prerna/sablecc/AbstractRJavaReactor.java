@@ -109,11 +109,8 @@ public abstract class AbstractRJavaReactor extends AbstractJavaReactor {
 	 */
 	public void synchronizeToR(String rVarName) {
 		java.lang.System.setSecurityManager(curManager);
-		String baseFolder = getBaseFolder();
-		String randomDir = Utility.getRandomString(22);
-		wd = baseFolder + "/" + randomDir;		
 		if(dataframe instanceof TinkerFrame) {
-			synchronizeGraphToR(rVarName, wd);
+			synchronizeGraphToR(rVarName);
 		}
 		else if(dataframe instanceof H2Frame) {
 			synchronizeGridToR(rVarName);
@@ -1326,6 +1323,13 @@ public abstract class AbstractRJavaReactor extends AbstractJavaReactor {
 	////////////////////////////////////////////////////////////
 	//////////////////// Tinker R Methods //////////////////////
 
+	protected void synchronizeGraphToR(String rVarName) {
+		String baseFolder = getBaseFolder();
+		String randomDir = Utility.getRandomString(22);
+		wd = baseFolder + "/" + randomDir;
+		synchronizeGraphToR(rVarName, wd);
+	}
+	
 	private void synchronizeGraphToR(String graphName, String wd) {
 		java.io.File file = new File(wd);
 		try {
