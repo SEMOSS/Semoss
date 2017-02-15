@@ -11,6 +11,8 @@ public final class AImportData extends PImportData
     private TLPar _lp1_;
     private PImportBlock _import_;
     private PRelationClause _joins_;
+    private TComma _comma1_;
+    private PMapObj _properties_;
     private TRPar _rp2_;
 
     public AImportData()
@@ -23,6 +25,8 @@ public final class AImportData extends PImportData
         @SuppressWarnings("hiding") TLPar _lp1_,
         @SuppressWarnings("hiding") PImportBlock _import_,
         @SuppressWarnings("hiding") PRelationClause _joins_,
+        @SuppressWarnings("hiding") TComma _comma1_,
+        @SuppressWarnings("hiding") PMapObj _properties_,
         @SuppressWarnings("hiding") TRPar _rp2_)
     {
         // Constructor
@@ -33,6 +37,10 @@ public final class AImportData extends PImportData
         setImport(_import_);
 
         setJoins(_joins_);
+
+        setComma1(_comma1_);
+
+        setProperties(_properties_);
 
         setRp2(_rp2_);
 
@@ -46,6 +54,8 @@ public final class AImportData extends PImportData
             cloneNode(this._lp1_),
             cloneNode(this._import_),
             cloneNode(this._joins_),
+            cloneNode(this._comma1_),
+            cloneNode(this._properties_),
             cloneNode(this._rp2_));
     }
 
@@ -155,6 +165,56 @@ public final class AImportData extends PImportData
         this._joins_ = node;
     }
 
+    public TComma getComma1()
+    {
+        return this._comma1_;
+    }
+
+    public void setComma1(TComma node)
+    {
+        if(this._comma1_ != null)
+        {
+            this._comma1_.parent(null);
+        }
+
+        if(node != null)
+        {
+            if(node.parent() != null)
+            {
+                node.parent().removeChild(node);
+            }
+
+            node.parent(this);
+        }
+
+        this._comma1_ = node;
+    }
+
+    public PMapObj getProperties()
+    {
+        return this._properties_;
+    }
+
+    public void setProperties(PMapObj node)
+    {
+        if(this._properties_ != null)
+        {
+            this._properties_.parent(null);
+        }
+
+        if(node != null)
+        {
+            if(node.parent() != null)
+            {
+                node.parent().removeChild(node);
+            }
+
+            node.parent(this);
+        }
+
+        this._properties_ = node;
+    }
+
     public TRPar getRp2()
     {
         return this._rp2_;
@@ -188,6 +248,8 @@ public final class AImportData extends PImportData
             + toString(this._lp1_)
             + toString(this._import_)
             + toString(this._joins_)
+            + toString(this._comma1_)
+            + toString(this._properties_)
             + toString(this._rp2_);
     }
 
@@ -216,6 +278,18 @@ public final class AImportData extends PImportData
         if(this._joins_ == child)
         {
             this._joins_ = null;
+            return;
+        }
+
+        if(this._comma1_ == child)
+        {
+            this._comma1_ = null;
+            return;
+        }
+
+        if(this._properties_ == child)
+        {
+            this._properties_ = null;
             return;
         }
 
@@ -253,6 +327,18 @@ public final class AImportData extends PImportData
         if(this._joins_ == oldChild)
         {
             setJoins((PRelationClause) newChild);
+            return;
+        }
+
+        if(this._comma1_ == oldChild)
+        {
+            setComma1((TComma) newChild);
+            return;
+        }
+
+        if(this._properties_ == oldChild)
+        {
+            setProperties((PMapObj) newChild);
             return;
         }
 

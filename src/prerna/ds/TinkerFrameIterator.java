@@ -100,22 +100,13 @@ public class TinkerFrameIterator implements Iterator<Object[]> {
 		GremlinBuilder builder = GremlinBuilder.prepareGenericBuilder(selectors, g, metaG, cleanTemporalBindings);
 		builder.setOrderBySelector(sortColumn);
 		builder.setOrderByDirection(orderByDirection);
-
-		GraphTraversal gt = null;
-		if(dedup) {
-			gt = builder.executeScript().dedup();
-		} else {
-			gt = (GraphTraversal <Vertex, Map<String, Object>>) builder.executeScript();
+		builder.setDedup(dedup);
+		if(offset != null && offset > -1) {
+			builder.setRange(offset, limit + offset);
+		} else if(limit != null){
+			builder.setRange(0, limit);
 		}
-
-		// set limit and offset
-		if (limit != null && limit != -1) {
-			gt.range(0, limit);
-		}
-		if (offset != null && offset != -1) {
-			gt.range(offset, limit);
-		}
-
+		GraphTraversal gt = (GraphTraversal <Vertex, Map<String, Object>>) builder.executeScript();
 		return gt;
 	}
 	
