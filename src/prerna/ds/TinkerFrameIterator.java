@@ -26,7 +26,7 @@ public class TinkerFrameIterator implements Iterator<Object[]> {
 		GremlinBuilder.DIRECTION dir = null;
 		if(options.containsKey(AbstractTableDataFrame.SORT_BY_DIRECTION)) {
 			String strDir = (String) options.get(AbstractTableDataFrame.SORT_BY_DIRECTION);
-			if(strDir == "desc") {
+			if(strDir.equalsIgnoreCase("desc")) {
 				dir = GremlinBuilder.DIRECTION.DECR;
 			} else {
 				dir = GremlinBuilder.DIRECTION.INCR;
