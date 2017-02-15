@@ -180,12 +180,15 @@ public abstract class AbstractJavaReactor extends AbstractReactor {
 		// Default to both
 		AnomDirection anomDirection;
 		switch (direction) {
-		case ("positive"):
+		case "positive":
 			anomDirection = AnomDirection.POSITIVE;
-		case ("negative"):
+			break;
+		case "negative":
 			anomDirection = AnomDirection.NEGATIVE;
+			break;
 		default:
 			anomDirection = AnomDirection.BOTH;
+			break;
 		}
 
 		// Create a new anomaly detector
@@ -194,8 +197,13 @@ public abstract class AbstractJavaReactor extends AbstractReactor {
 
 		// Detect anomalies using the anomaly detector
 		try {
+			int oldId = dataframe.getDataId();
 			dataframe = anomalyDetector.detectAnomalies();
-			dataframe.updateDataId();
+
+			// Update the data id if it is not already updated
+			if (oldId != 1) {
+				dataframe.updateDataId();
+			}
 			frameChanged = true;
 			myStore.put("G", dataframe);
 		} catch (RRoutineException e) {
@@ -241,12 +249,15 @@ public abstract class AbstractJavaReactor extends AbstractReactor {
 		// Default to both
 		AnomDirection anomDirection;
 		switch (direction) {
-		case ("positive"):
+		case "positive":
 			anomDirection = AnomDirection.POSITIVE;
-		case ("negative"):
+			break;
+		case "negative":
 			anomDirection = AnomDirection.NEGATIVE;
+			break;
 		default:
 			anomDirection = AnomDirection.BOTH;
+			break;
 		}
 
 		// Create a new anomaly detector
@@ -255,8 +266,13 @@ public abstract class AbstractJavaReactor extends AbstractReactor {
 
 		// Detect anomalies using the anomaly detector
 		try {
+			int oldId = dataframe.getDataId();
 			dataframe = anomalyDetector.detectAnomalies();
-			dataframe.updateDataId();
+
+			// Update the data id if it is not already updated
+			if (oldId != 1) {
+				dataframe.updateDataId();
+			}
 			frameChanged = true;
 			myStore.put("G", dataframe);
 		} catch (RRoutineException e) {
@@ -504,8 +520,13 @@ public abstract class AbstractJavaReactor extends AbstractReactor {
 		RRoutine rRoutine = new RRoutine.Builder(dataframe, scriptName, rSyncFrameName).selectedColumns(selectedColumns)
 				.rReturnFrameName(rReturnFrameName).arguments(arguments).build();
 		try {
+			int oldId = dataframe.getDataId();
 			dataframe = rRoutine.returnDataFrame();
-			dataframe.updateDataId();
+
+			// Update the data id if it is not already updated
+			if (oldId != 1) {
+				dataframe.updateDataId();
+			}
 			frameChanged = true;
 			myStore.put("G", dataframe);
 		} catch (RRoutineException e) {
@@ -520,8 +541,13 @@ public abstract class AbstractJavaReactor extends AbstractReactor {
 		RRoutine rRoutine = new RRoutine.Builder(dataframe, scriptName, rSyncFrameName).selectedColumns(selectedColumns)
 				.rReturnFrameName(rReturnFrameName).build();
 		try {
+			int oldId = dataframe.getDataId();
 			dataframe = rRoutine.returnDataFrame();
-			dataframe.updateDataId();
+
+			// Update the data id if it is not already updated
+			if (oldId != 1) {
+				dataframe.updateDataId();
+			}
 			frameChanged = true;
 			myStore.put("G", dataframe);
 		} catch (RRoutineException e) {
@@ -535,8 +561,13 @@ public abstract class AbstractJavaReactor extends AbstractReactor {
 		RRoutine rRoutine = new RRoutine.Builder(dataframe, scriptName, rSyncFrameName).selectedColumns(selectedColumns)
 				.build();
 		try {
+			int oldId = dataframe.getDataId();
 			dataframe = rRoutine.returnDataFrame();
-			dataframe.updateDataId();
+
+			// Update the data id if it is not already updated
+			if (oldId != 1) {
+				dataframe.updateDataId();
+			}
 			frameChanged = true;
 			myStore.put("G", dataframe);
 		} catch (RRoutineException e) {
@@ -549,8 +580,13 @@ public abstract class AbstractJavaReactor extends AbstractReactor {
 		java.lang.System.setSecurityManager(curManager);
 		RRoutine rRoutine = new RRoutine(dataframe, scriptName, rSyncFrameName);
 		try {
+			int oldId = dataframe.getDataId();
 			dataframe = rRoutine.returnDataFrame();
-			dataframe.updateDataId();
+
+			// Update the data id if it is not already updated
+			if (oldId != 1) {
+				dataframe.updateDataId();
+			}
 			frameChanged = true;
 			myStore.put("G", dataframe);
 		} catch (RRoutineException e) {
