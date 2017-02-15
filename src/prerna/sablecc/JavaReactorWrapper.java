@@ -60,21 +60,21 @@ public class JavaReactorWrapper extends AbstractReactor {
 		
 		try {
 			ClassPool pool = ClassPool.getDefault();
-			pool.insertClassPath(new ClassClassPath(this.getClass())); 
+			ClassClassPath ccp = new ClassClassPath(this.getClass());
+			pool.insertClassPath(ccp); 
 			pool.insertClassPath(new ClassClassPath(prerna.util.Console.class)); 
+			
 			//pool.importPackage("java.util");
 			pool.importPackage("java.sql");
 			pool.importPackage("prerna.util");
 			pool.importPackage("org.apache.tinkerpop.gremlin.process.traversal");
 			pool.importPackage("org.apache.tinkerpop.gremlin.structure");
 			
-
 			String data = myStore.get(PKQLEnum.JAVA_OP) + "";
 			data = data.replace("<code>", "");
 			
 			// the imports are sitting in the front
-			while(data.contains("import "))
-			{
+			while(data.contains("import ")) {
 				String importStr = data.substring(data.indexOf("import"), data.indexOf(";") + 1);
 				// remove this from data
 				data = data.replace(importStr, "");
@@ -84,75 +84,55 @@ public class JavaReactorWrapper extends AbstractReactor {
 				StringTokenizer importTokens = new StringTokenizer(importStr, "$");
 				String packageStr = "";
 				int tokenCount = importTokens.countTokens();
-				for(int tokenIndex = 1;tokenIndex < tokenCount;tokenIndex++)
-				{
+				for(int tokenIndex = 1; tokenIndex < tokenCount; tokenIndex++) {
 					packageStr = packageStr + importTokens.nextToken();
-					if(tokenIndex + 1 < tokenCount)
+					if(tokenIndex + 1 < tokenCount) {
 						packageStr = packageStr + ".";
+					}
 				}
 				System.out.println("Importing.. [" + packageStr + "]");
 				pool.importPackage(packageStr);
 			}		
 			
-			String	packageName = "t" + System.currentTimeMillis(); // make it unique
-			//CtClass consoleClass = pool.get("prerna.util.Console");
-			
+			String packageName = "t" + System.currentTimeMillis(); // make it unique
 			CtClass cc = pool.makeClass(packageName + ".c" + System.currentTimeMillis()); // the only reason I do this is if the user wants to do seomthing else
-			// need to find what is the configuration 
+			// need to find what is the R configuration 
 			// and then wrap specific class
 			if(useJri) {
 				cc.setSuperclass(pool.get("prerna.sablecc.BaseJavaReactorJRI"));
 			} else {
 				cc.setSuperclass(pool.get("prerna.sablecc.BaseJavaReactor"));
 			}
-			//cc.addField(new CtField(consoleClass, "System", cc));
-			Class retClass = null;
-			// this is what comes in from the front end
-			//BufferedReader reader = new BufferedReader(new InputStreamReader(System.in));
-			//String data = reader.readLine();
-			String tryStr = "try {";
-			String catchStr = "}catch (Exception ex) { "
-					+ "if( ex.getMessage() != null && !ex.getMessage().isEmpty() ) {"
-						+ "put(\"RESPONSE\", \"ERROR : \" + ex.getMessage()); "
-					+ "} else {"
-						+ "put(\"RESPONSE\", \"Failed\"); "
-					+ "}"
-					+ "put(\"STATUS\" , prerna.sablecc.PKQLRunner.STATUS.ERROR); "
-					+ "put(\"ERROR\", ex);return null;"
-					+ "}";
+			
 			String content = data;
 			if(content.contains("runR")) {
 				content = content.replace("\n", "\\n").replace("\r", "\\r");
 			}
-			// write the response
-			String response = "put(\"RESPONSE\", System.out.output); put(\"STATUS\" , prerna.sablecc.PKQLRunner.STATUS.SUCCESS); return null;";
-			//cc.addMethod(CtNewMethod.make("public void setConsole() { System = new prerna.util.Console();}", cc));
-			cc.addMethod(CtNewMethod.make("public java.util.Iterator process() {" +
-											//"super.process();" + 
-											tryStr + 
-											content+ ";" + 
-											response + 
-											catchStr + "}", cc));
-//			try {
-//				cc.writeFile();
-//			} catch (IOException e) {
-//				// TODO Auto-generated catch block
-//				e.printStackTrace();
-//			}
-			retClass = cc.toClass();
+			
+			// we only need to create the doMethod method
+			// this will be wrapped in a try catch within the process
+			// since for performance reasons, we want to make this method as small
+			// as possible for faster compilation
+			
+			long start = System.currentTimeMillis();
+			cc.addMethod(CtNewMethod.make("public void doMethod() {" + content + ";}", cc));
+			long end = System.currentTimeMillis();
+			LOGGER.info(">>> Time to compile and add new class ::: " + (end-start) + " ms");
+			Class retClass = cc.toClass();
+			
 			// next step is calling it
 			AbstractJavaReactor jR = (AbstractJavaReactor)retClass.newInstance();
 			curManager =  System.getSecurityManager();
-		    //jR.setConsole();
 		    // set the data frame first
 		    jR.setDataFrame(dataFrame);
-		    
 		    // set the PKQL Runner as well
 		    jR.setPKQLRunner(thisRunner);
 		    
+		    // set the security so we cant send some crazy virus into semoss
+		    System.setSecurityManager( new ReactorSecurityManager());
 		    // call the process
-		    System.setSecurityManager( new ReactorSecurityManager()) ;		    
 			jR.process();
+			// set back the original security manager
 		    System.setSecurityManager( curManager) ;			
 			
 			// reset the frame
@@ -160,14 +140,15 @@ public class JavaReactorWrapper extends AbstractReactor {
 				jR.put("G", jR.dataframe);
 				myStore.put("G", jR.dataframe);
 			}
+			// reset any return data the FE needs to paint output
 			if(jR.hasReturnData) {
 				jR.put("returnData", jR.returnData);
 				myStore.put("returnData", jR.returnData);
 			}
-			// try again
-			System.out.println("try again");
-			System.out.println(jR.getValue("ERROR"));
 			daReactor = jR;
+			
+			// clean up so things do not slow down
+			pool.removeClassPath(ccp);
 		} catch (RuntimeException e) {
 			e.printStackTrace();
 		} catch (CannotCompileException e) {
@@ -253,16 +234,10 @@ public class JavaReactorWrapper extends AbstractReactor {
 		    System.setSecurityManager( curManager) ;
 	}
 
-	public static void main(String [] args)
-	{
+	public static void main(String [] args)	{
 		JavaReactorWrapper jr = new JavaReactorWrapper();
-		
 		jr.process();
 		//jr.tryExit();
 		//jr.tryPKQL();
 	}
-	
-	
-
-	
 }
