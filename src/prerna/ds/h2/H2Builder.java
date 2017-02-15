@@ -2099,17 +2099,20 @@ public class H2Builder {
 		}
 
 		if (sortBy != null) {
+			if(sortDir == null) {
+				sortDir = " ASC ";
+			}
 			sortBy = cleanHeader(sortBy);
 			// add an index to the table to make the sort much faster
 			// note h2 view does not support index
 			addColumnIndex(tableName, sortBy);
-			selectQuery += " order by " + sortBy;
+			selectQuery += " ORDER BY " + sortBy + sortDir;
 		}
 		if (limit != null && limit > 0) {
-			selectQuery += " limit " + limit;
+			selectQuery += " LIMIT " + limit;
 		}
 		if (offset != null && offset > 0) {
-			selectQuery += " offset " + offset;
+			selectQuery += " OFFSET " + offset;
 		}
 
 		long startTime = System.currentTimeMillis();
