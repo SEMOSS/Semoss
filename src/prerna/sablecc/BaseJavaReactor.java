@@ -392,6 +392,9 @@ public class BaseJavaReactor extends AbstractRJavaReactor{
 			}
 			rcon.eval(conversionString + frameReplaceScript);
 			
+			// perform variable cleanup
+			rcon.eval("rm(" + tempName + "); gc();");
+
 			System.out.println("Script " + script);
 			System.out.println("Complete ");
 			// once this is done.. I need to find what the original type is and then apply a type to it
@@ -558,12 +561,12 @@ public class BaseJavaReactor extends AbstractRJavaReactor{
 		Object [][] retOutput = null; // name and the number of items
 		
 		try {
-			
-			String script = "colData <-  " + frameName + "[, .N, by=\"" + column +"\"];";
+			String tempName = Utility.getRandomString(6);
+			String script = tempName + " <-  " + frameName + "[, .N, by=\"" + column +"\"];";
 			System.out.println("Script is " + script);
 			rcon.eval(script);
 			
-			script = "colData$" + column;
+			script = tempName + "$" + column;
 			String [] uniqueColumns = rcon.eval(script).asStrings();
 			if(uniqueColumns == null) {
 				RFactor factors = rcon.eval(script).asFactor();
@@ -574,7 +577,7 @@ public class BaseJavaReactor extends AbstractRJavaReactor{
 				}
 			} 
 			// need to limit this eventually to may be 10-15 and no more
-			script = "matrix(colData$N);"; 
+			script = "matrix(" + tempName + "$N);"; 
 			int [] colCount = rcon.eval(script).asIntegers();
 			retOutput = new Object[uniqueColumns.length][2];
 			StringBuilder builder = null;
@@ -596,6 +599,9 @@ public class BaseJavaReactor extends AbstractRJavaReactor{
 				this.returnData = getBarChartInfo(column, "Frequency", retOutput);
 				this.hasReturnData = true;
 			}
+			
+			// perform variable cleanup
+			rcon.eval("rm(" + tempName + "); gc();");
 		} catch (RserveException e) {
 			e.printStackTrace();
 		} catch (REXPMismatchException e) {
