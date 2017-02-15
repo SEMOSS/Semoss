@@ -46,7 +46,7 @@ public abstract class AbstractRJavaReactor extends AbstractJavaReactor {
 	public AbstractRJavaReactor(ITableDataFrame frame) {
 		super(frame);
 	}
-	
+
 	////////////////////////////////////////////////////////////
 	////////////////////////////////////////////////////////////
 	/////////////////// Abstract R Methods /////////////////////
@@ -611,6 +611,7 @@ public abstract class AbstractRJavaReactor extends AbstractJavaReactor {
 				script = frameName + "$" + colName + " <- " + tempTable;
 				eval(script);
 			}
+			eval("rm(" + tempTable + "); gc();");
 		}
 		System.out.println("Successfully changed data type for column = " + colName);
 		if(checkRTableModified(frameName)) {
