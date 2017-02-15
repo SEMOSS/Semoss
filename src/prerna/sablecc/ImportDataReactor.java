@@ -91,12 +91,19 @@ public abstract class ImportDataReactor extends AbstractReactor {
 	// store if the current frame is empty
 	protected boolean isFrameEmpty = false;
 	
+	// for loops
+	// need a boolean to determine if we should make the other columns
+	// that already exist unique
+	// this will affect all other columns that are not the join column
+//	protected boolean enableLoops = false;
+	
 	/**
 	 * Constructor for the abstract class
 	 */
 	public ImportDataReactor()
 	{
-		String [] thisReacts = {PKQLEnum.API, PKQLEnum.JOINS, PKQLEnum.PASTED_DATA};
+		String [] thisReacts = {PKQLEnum.API, PKQLEnum.JOINS, PKQLEnum.PASTED_DATA, PKQLEnum.MAP_OBJ};
+		
 		super.whatIReactTo = thisReacts;
 		super.whoAmI = PKQLEnum.IMPORT_DATA;
 
@@ -229,111 +236,7 @@ public abstract class ImportDataReactor extends AbstractReactor {
 					String[] origNewHeaders = ((IRawSelectWrapper) dataIterator).getDisplayVariables();
 					this.newHeaders = updateNamesForJoins(origNewHeaders, joinCols); 
 					
-					Boolean[] makeHeaderUniqueArr = new Boolean[this.newHeaders.length];
-					Map<String, Boolean> makeUniqueNameMap = new Hashtable<String, Boolean>();
-					if(frame.isEmpty()) {
-						// yeah, everything is new -> make unique
-						for(String header : newHeaders) {
-							makeUniqueNameMap.put(header, true);
-						}
-					} else {
-						// this is the logic we need to figure out how to deal with loops
-						// logic is as follows
-						// for each connection in the edge hash
-						// if the start and end node both exist in the frame currently
-						// and if a connection exists between them already
-						// and the new connection imported is in a different order than the connection currently there
-						// then we need to enforce uniqueness, otherwise, add as is
-						
-						// easier implementation
-						// if there is a connection already between the nodes
-						// set the map to make unique to false
-						// otherwise, keep as true as it won't matter
-						
-						// another note
-						// we know based on the join information which column will actually become unique
-						// and which one will not and will use the existing name from the frame
-						
-						// get the current edge hash
-						Map<String, Set<String>> currentEdgeHash = frame.getEdgeHash();
-						
-						// sadly, will need to clean the edge hash here as well...
-						// this is a pain because i cannot pass it into the mergeQSEdgeHash
-						Map<String, Set<String>> cleanImportEdgeHash = updateEdgeHashForJoin(edgeHash, joinCols);
-						
-						int numHeaders = this.newHeaders.length;
-						for(int index = 0; index < numHeaders; index++) {
-							String headerName = this.newHeaders[index];
-							
-							// see if it exists as a header in the clean import
-							if(cleanImportEdgeHash.containsKey(headerName)) {
-								// must also be a parent in the current edge hash to care
-								if(currentEdgeHash.containsKey(headerName)) {
-									// okay, both are there
-									// need to compare the children
-
-									// get the list of current children
-									Set<String> currentChildren = currentEdgeHash.get(headerName);
-
-									// get the list of children we are adding
-									Set<String> importingChildren = cleanImportEdgeHash.get(headerName);
-
-									// the overlapping children should not be unique
-									if(importingChildren.isEmpty()) {
-										// make sure to note override values set when we go through the
-										// children logic up above
-										if(makeHeaderUniqueArr[index] == null) {
-											// do not care if it is unique or not
-											// just keep as true
-											makeHeaderUniqueArr[index] = true;
-										}
-									} else {
-										for(String importingChild : importingChildren) {
-											if(currentChildren.contains(importingChild)) {
-												// the path in the import already exists
-												// do not make a unique header!!!
-												int importIndex = ArrayUtilityMethods.arrayContainsValueAtIndex(this.newHeaders, importingChild);
-												makeHeaderUniqueArr[importIndex] = false;
-	
-												importIndex = ArrayUtilityMethods.arrayContainsValueAtIndex(this.newHeaders, headerName);
-												makeHeaderUniqueArr[importIndex] = false;
-											} else {
-												// make sure to note override values set when we go through the
-												// children logic up above
-												if(makeHeaderUniqueArr[index] == null) {
-													// do not care if it is unique or not
-													// just keep as true
-													makeHeaderUniqueArr[index] = true;
-												}
-											}
-										}
-									}
-								} else {
-									// make sure to note override values set when we go through the
-									// children logic up above
-									if(makeHeaderUniqueArr[index] == null) {
-										// do not care if it is unique or not
-										// just keep as true
-										makeHeaderUniqueArr[index] = true;
-									}
-								}
-								
-							} else {
-								// make sure to note override values set when we go through the
-								// children logic up above
-								if(makeHeaderUniqueArr[index] == null) {
-									// do not care if it is unique or not
-									// just keep as true
-									makeHeaderUniqueArr[index] = true;
-								}
-							}
-						}
-						
-						// now that i have determined which headers need the unique 
-						for(int index = 0; index < numHeaders; index++) {
-							makeUniqueNameMap.put(origNewHeaders[index], makeHeaderUniqueArr[index]);
-						}
-					}
+					Map<String, Boolean> makeUniqueNameMap = getUniqueNameMap(frame, origNewHeaders);
 					
 					LOGGER.info(" >>> FRAME IS LOADING DATA FROM AN ENGINE!!!!");
 					// update the metadata in the frame
@@ -578,6 +481,130 @@ public abstract class ImportDataReactor extends AbstractReactor {
 		return edgeHash;
 	}
 	
+	private Map<String, Boolean> getUniqueNameMap(ITableDataFrame frame, String[] origNewHeaders) {
+		// this is the logic we need to figure out how to deal with loops
+		// logic is as follows
+		// for each connection in the edge hash
+		// if the start and end node both exist in the frame currently
+		// and if a connection exists between them already
+		// and the new connection imported is in a different order than the connection currently there
+		// then we need to enforce uniqueness, otherwise, add as is
+		
+		// easier implementation
+		// if there is a connection already between the nodes
+		// set the map to make unique to false
+		// otherwise, keep as true as it won't matter
+		
+		// another note
+		// we know based on the join information which column will actually become unique
+		// and which one will not and will use the existing name from the frame
+		
+		Boolean[] makeHeaderUniqueArr = new Boolean[this.newHeaders.length];
+		Map<String, Boolean> makeUniqueNameMap = new Hashtable<String, Boolean>();
+		
+		if(frame.isEmpty()) {
+			// yeah, everything is new -> make unique
+			for(String header : newHeaders) {
+				makeUniqueNameMap.put(header, true);
+			}
+			return makeUniqueNameMap;
+		}
+		
+		//need to determine whether to enable loops or not
+		Map<Object, Object> map = (Map<Object, Object>) myStore.get(PKQLEnum.MAP_OBJ);
+		String enableLoopsVal = (String)map.get("enableLoops");
+		boolean enableLoops = enableLoopsVal.equalsIgnoreCase("true");
+		if(enableLoops) {
+			for(Map<String, String> joinCol : joinCols) {
+				for(String j : joinCol.keySet()) {
+					makeUniqueNameMap.put(j, false);
+				}
+			}
+			return makeUniqueNameMap;
+		}
+		
+		// get the current edge hash
+		Map<String, Set<String>> currentEdgeHash = frame.getEdgeHash();
+		
+		// sadly, will need to clean the edge hash here as well...
+		// this is a pain because i cannot pass it into the mergeQSEdgeHash
+		Map<String, Set<String>> cleanImportEdgeHash = updateEdgeHashForJoin(edgeHash, joinCols);
+		
+		int numHeaders = this.newHeaders.length;
+		for(int index = 0; index < numHeaders; index++) {
+			String headerName = this.newHeaders[index];
+			
+			// see if it exists as a header in the clean import
+			if(cleanImportEdgeHash.containsKey(headerName)) {
+				// must also be a parent in the current edge hash to care
+				if(currentEdgeHash.containsKey(headerName)) {
+					// okay, both are there
+					// need to compare the children
+
+					// get the list of current children
+					Set<String> currentChildren = currentEdgeHash.get(headerName);
+
+					// get the list of children we are adding
+					Set<String> importingChildren = cleanImportEdgeHash.get(headerName);
+
+					// the overlapping children should not be unique
+					if(importingChildren.isEmpty()) {
+						// make sure to note override values set when we go through the
+						// children logic up above
+						if(makeHeaderUniqueArr[index] == null) {
+							// do not care if it is unique or not
+							// just keep as true
+							makeHeaderUniqueArr[index] = true;
+						}
+					} else {
+						for(String importingChild : importingChildren) {
+							if(currentChildren.contains(importingChild)) {
+								// the path in the import already exists
+								// do not make a unique header!!!
+								int importIndex = ArrayUtilityMethods.arrayContainsValueAtIndex(this.newHeaders, importingChild);
+								makeHeaderUniqueArr[importIndex] = false;
+
+								importIndex = ArrayUtilityMethods.arrayContainsValueAtIndex(this.newHeaders, headerName);
+								makeHeaderUniqueArr[importIndex] = false;
+							} else {
+								// make sure to note override values set when we go through the
+								// children logic up above
+								if(makeHeaderUniqueArr[index] == null) {
+									// do not care if it is unique or not
+									// just keep as true
+									makeHeaderUniqueArr[index] = true;
+								}
+							}
+						}
+					}
+				} else {
+					// make sure to note override values set when we go through the
+					// children logic up above
+					if(makeHeaderUniqueArr[index] == null) {
+						// do not care if it is unique or not
+						// just keep as true
+						makeHeaderUniqueArr[index] = true;
+					}
+				}
+				
+			} else {
+				// make sure to note override values set when we go through the
+				// children logic up above
+				if(makeHeaderUniqueArr[index] == null) {
+					// do not care if it is unique or not
+					// just keep as true
+					makeHeaderUniqueArr[index] = true;
+				}
+			}
+		}
+		
+		// now that i have determined which headers need the unique 
+		for(int index = 0; index < numHeaders; index++) {
+			makeUniqueNameMap.put(origNewHeaders[index], makeHeaderUniqueArr[index]);
+		}
+		
+		return makeUniqueNameMap;
+	}
 //	/**
 //	 * Update the edge hash based on the join information
 //	 * @param egdeHash

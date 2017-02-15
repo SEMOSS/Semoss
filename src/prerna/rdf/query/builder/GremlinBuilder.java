@@ -28,7 +28,6 @@ public class GremlinBuilder {
 	private Graph metaGraph;
 	private GraphTraversal gt;
 	private List<String> selector = new Vector<String>();	
-//	private GremlinGroovyScriptEngine engine = new GremlinGroovyScriptEngine();
 	private Hashtable nodeHash = new Hashtable();
 	//the range of the graph to execute on
 	private int startRange = -1;
@@ -37,7 +36,8 @@ public class GremlinBuilder {
 	private String orderBySelector;
 	private DIRECTION orderByDirection = DIRECTION.INCR;
 	private Map<String, List<Object>> temporalFilters = new Hashtable<String, List<Object>>();
-
+	private boolean dedup = false;
+	
 	public enum DIRECTION {INCR, DECR};
 
 	/**
@@ -364,9 +364,8 @@ public class GremlinBuilder {
 	 * Generates the limit for the iterator with the offset being 0
 	 * @param endRange
 	 */
-	public void setRange(int endRange)
-	{
-		setRange(0, endRange);
+	public void setEndRange(int endRange) {
+		this.endRange = endRange;
 	}
 	
 	/**
@@ -374,12 +373,14 @@ public class GremlinBuilder {
 	 * @param startRange				The offset for the iterator
 	 * @param endRange					The limit for the iterator
 	 */
-	public void setRange(int startRange, int endRange)
-	{
+	public void setRange(int startRange, int endRange) {
 		this.startRange = startRange;
 		this.endRange = endRange;
 	}
 	
+	public void setDedup(boolean dedup) {
+		this.dedup = dedup;
+	}
 	
 	/**
 	 * 
@@ -388,11 +389,6 @@ public class GremlinBuilder {
 	 */
 	public GraphTraversal executeScript()
 	{
-		// add the range
-		if(startRange != -1) {
-			gt = gt.range(startRange, endRange);
-		}
-		
 		// add the projections
 		if(selector.size() > 0) { 
 			appendSelectors();
@@ -403,6 +399,24 @@ public class GremlinBuilder {
 		}
 		
 		addGroupBy();
+		
+		if(dedup) {
+			gt = gt.dedup();
+		}
+		
+		// add the range
+		// if they are smart and defined both limit and offset
+		if(startRange > -1 && endRange > -1) {
+			gt = gt.range(startRange, endRange);
+		} else {
+			// if they just defined a limit
+			if(endRange > -1 && startRange <= -1) {
+				gt.range(0, endRange);
+			} 
+			// if you defined a offset with no limit
+			// you are dumb
+			// and you can't do it in gremlin... sorry
+		}
 		
 		LOGGER.info("Returning the graph traversal");
 		LOGGER.info("Script being executed...  " + gt);
