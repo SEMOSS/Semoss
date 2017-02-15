@@ -2,6 +2,7 @@ package prerna.sablecc;
 
 import java.util.Hashtable;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
 import java.util.Vector;
 
@@ -21,7 +22,16 @@ public class H2ImportDataReactor extends MetaH2ImportDataReactor {
 		} else if(allHeadersAccounted(startingHeaders, newHeaders)) {
 			// we can just do a merge
 			joinCols = updateJoinsCols(joinCols);
-			frame.mergeRowsViaIterator(dataIterator, newHeaders, startingHeaders, joinCols);
+			// loop through the join cols and merge based on all overlapping column headers
+			List<String> mergeJoinCols = new Vector<String>();
+			for(String existingHeader : startingHeaders) {
+				for(String newHeader : newHeaders) {
+					if(existingHeader.equals(newHeader)) {
+						mergeJoinCols.add(newHeader);
+					}
+				}
+			}
+			frame.mergeRowsViaIterator(dataIterator, newHeaders, startingHeaders, mergeJoinCols.toArray(new String[]{}));
 		}
 		// we are expanding to new paths not recently traveled
 		else {
