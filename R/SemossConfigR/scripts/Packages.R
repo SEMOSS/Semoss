@@ -5,7 +5,7 @@ install.packages("data.table")
 install.packages("reshape2")
 install.packages("RJDBC")
 install.packages("sqldf")
-install.packageS("stringr")
+install.packages("stringr")
 
 # Anomaly detection packages
 install.packages("devtools")
