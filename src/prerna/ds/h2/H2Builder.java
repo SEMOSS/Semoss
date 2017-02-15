@@ -2101,6 +2101,8 @@ public class H2Builder {
 		if (sortBy != null) {
 			if(sortDir == null) {
 				sortDir = " ASC ";
+			} else {
+				sortDir = " " + sortDir.toUpperCase() + " ";
 			}
 			sortBy = cleanHeader(sortBy);
 			// add an index to the table to make the sort much faster
