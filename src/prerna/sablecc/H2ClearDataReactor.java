@@ -11,21 +11,24 @@ import prerna.util.Utility;
 public class H2ClearDataReactor extends AbstractReactor {
 
 	public H2ClearDataReactor() {
-		String[] thisReacts = {}; 
+		String[] thisReacts = {};
 		super.whatIReactTo = thisReacts;
 		super.whoAmI = PKQLEnum.CLEAR_DATA;
 	}
-	
+
 	@Override
 	public Iterator process() {
-		H2Frame frame = (H2Frame)myStore.get(PKQLEnum.G);
-		if(frame.isJoined()) {
+		H2Frame frame = (H2Frame) myStore.get(PKQLEnum.G);
+		if (frame.isJoined()) {
 			Dashboard dashboard = frame.getJoiner().getDashboard();
 			dashboard.dropDashboard();
 			dashboard.clearData();
 		}
 		ITableDataFrame newFrame = (ITableDataFrame) Utility.getDataMaker(null, frame.getClass().getSimpleName());
 		newFrame.setUserId(frame.getUserId());
+		for (int i = 0; i <= frame.getDataId(); i++) {
+			newFrame.updateDataId();
+		}
 		myStore.put(PKQLEnum.G, newFrame);
 		return null;
 	}
