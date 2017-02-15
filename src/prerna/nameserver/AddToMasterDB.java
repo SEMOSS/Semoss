@@ -485,7 +485,7 @@ public class AddToMasterDB extends ModifyMasterDB {
 	
 		// I need to say this property in this engine is a type of property
 		// and also specify this belongs to this engineConcept
-
+		addData(enginePropertyComposite, RDF.TYPE + "", Constants.BASE_URI + Constants.DEFAULT_PROPERTY_CLASS, true, engine);
 		addData(enginePropertyComposite, RDF.TYPE + "", physicalPropUri, true, engine);
 		
 		// present in the engine
