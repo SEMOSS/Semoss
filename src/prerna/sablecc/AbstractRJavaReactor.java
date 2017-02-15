@@ -668,7 +668,7 @@ public abstract class AbstractRJavaReactor extends AbstractJavaReactor {
 		StringBuilder script = new StringBuilder(frameName).append(" <- ").append(frameName).append("[!( ");
 		String dataType = getColType(frameName, colName, false);
 		
-		// accomodate for factors cause they are annoying
+		// accommodate for factors cause they are annoying
 		if(dataType.equals("factor")) {
 			changeColumnType(frameName, colName, "STRING");
 			dataType = "character";

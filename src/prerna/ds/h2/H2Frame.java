@@ -1588,13 +1588,14 @@ public class H2Frame extends AbstractTableDataFrame {
 		}
 	}
 
+	/**
+	 * Drop the table and drop the server associated with it if it exists
+	 */
 	public void dropTable() {
-		//TODO : need to implement unjoin logic
-//		if(this.isJoined()) {
-//			builder.joiner.unJoinFrame(this);
-//			builder.joiner = null;
-//		}
 		this.builder.dropTable();
+		if(this.builder.server != null) {
+			this.builder.server.shutdown();
+		}
 	}
 
 	@Override
