@@ -890,16 +890,17 @@ public class TinkerMetaData implements IMetaData {
 			 */
 			
 			if(parentName != null) {
-				if(makeUniqueNameMap != null && makeUniqueNameMap.get(parentName) != null && makeUniqueNameMap.get(parentName) ) {
-					myParentName = getUniqueName(parentName, uniqueNames, joins);
-				} else {
+				if(makeUniqueNameMap != null && makeUniqueNameMap.get(parentName) != null && !makeUniqueNameMap.get(parentName) ) {
 					myParentName = getName(parentName, joins);
+				} else {
+					myParentName = getUniqueName(parentName, uniqueNames, joins);
 				}
 			}
-			if(makeUniqueNameMap != null && makeUniqueNameMap.get(nodeName) != null && makeUniqueNameMap.get(nodeName) ) {
-				myNodeName = getUniqueName(nodeName, uniqueNames, joins);
-			} else {
+			if(makeUniqueNameMap != null && makeUniqueNameMap.get(nodeName) != null && !makeUniqueNameMap.get(nodeName) ) {
 				myNodeName = getName(nodeName, joins);
+			} else {
+				myNodeName = getUniqueName(nodeName, uniqueNames, joins);
+				
 			}
 			
             retMap.put(key, new String[]{myNodeName, myParentName});
