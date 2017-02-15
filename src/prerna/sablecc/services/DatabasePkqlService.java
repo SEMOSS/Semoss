@@ -122,16 +122,17 @@ public class DatabasePkqlService {
 	public static Set<String> getAllLogicalNamesFromConceptual(String conceptualName, String parentConceptualName) {
 		IEngine engine = (IEngine) DIHelper.getInstance().getLocalProp(Constants.LOCAL_MASTER_DB_NAME);
 
-		String conceptualUri = "http://semoss.org/ontologies/Concept/" + conceptualName;
+		String conceptualUri = null;;
 		if(parentConceptualName != null && !parentConceptualName.trim().isEmpty()) {
-			conceptualUri += "/" + parentConceptualName;
+			conceptualUri = "http://semoss.org/ontologies/Relation/Contains/" + conceptualName + "/" + parentConceptualName;
+		} else {
+			conceptualUri = "http://semoss.org/ontologies/Concept/" + conceptualName;
 		}
 		
-		String query = "SELECT DISTINCT ?conceptLogical WHERE { "
-				+ "{?conceptComposite <" + RDFS.subClassOf + "> <http://semoss.org/ontologies/Concept>}"
-				+ "{?conceptComposite <http://semoss.org/ontologies/Relation/logical> ?conceptLogical}"
-				+ "{?conceptComposite <http://semoss.org/ontologies/Relation/conceptual> <" + conceptualUri + ">}"
-				+ "} ORDER BY ?conceptLogical";
+		String query = "SELECT DISTINCT ?logical WHERE { "
+				+ "{?composite <http://semoss.org/ontologies/Relation/logical> ?logical}"
+				+ "{?composite <http://semoss.org/ontologies/Relation/conceptual> <" + conceptualUri + ">}"
+				+ "} ORDER BY ?logical";
 		
 		Set<String> logicalNames = new TreeSet<String>();
 
@@ -169,11 +170,10 @@ public class DatabasePkqlService {
 		
 		StringBuilder bindings = createUriBindings("conceptualUri", conceptualUriSuffix);
 		
-		String query = "SELECT DISTINCT ?conceptLogical WHERE { "
-				+ "{?conceptComposite <" + RDFS.subClassOf + "> <http://semoss.org/ontologies/Concept>}"
-				+ "{?conceptComposite <http://semoss.org/ontologies/Relation/logical> ?conceptLogical}"
-				+ "{?conceptComposite <http://semoss.org/ontologies/Relation/conceptual> ?conceptualUri}"
-				+ "} ORDER BY ?conceptLogical " + bindings.toString();
+		String query = "SELECT DISTINCT ?logical WHERE { "
+				+ "{?composite <http://semoss.org/ontologies/Relation/logical> ?logical}"
+				+ "{?composite <http://semoss.org/ontologies/Relation/conceptual> ?conceptualUri}"
+				+ "} ORDER BY ?logical " + bindings.toString();
 		
 		Set<String> logicalNames = new TreeSet<String>();
 
@@ -444,7 +444,13 @@ public class DatabasePkqlService {
 		StringBuilder logicalNameBindings = new StringBuilder(" BINDINGS ?" + varName + " {");
 		int size = nameBindings.size();
 		for(int i = 0; i < size; i++) {
-			logicalNameBindings.append("(<http://semoss.org/ontologies/Concept/").append(nameBindings.get(i)).append(">)");
+			String binding = nameBindings.get(i);
+			// we need to distinguish between a node and a property
+			if(binding.contains("/")) {
+				logicalNameBindings.append("(<http://semoss.org/ontologies/Relation/Contains/").append(binding).append(">)");
+			} else {
+				logicalNameBindings.append("(<http://semoss.org/ontologies/Concept/").append(binding).append(">)");
+			}
 		}
 		logicalNameBindings.append("}");
 		return logicalNameBindings;
