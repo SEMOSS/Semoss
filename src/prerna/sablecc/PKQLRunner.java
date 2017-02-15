@@ -11,7 +11,10 @@ import java.util.List;
 import java.util.Map;
 import java.util.Vector;
 
+import org.apache.log4j.LogManager;
+import org.apache.log4j.Logger;
 import org.rosuda.REngine.Rserve.RConnection;
+import org.rosuda.REngine.Rserve.RserveException;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
@@ -39,6 +42,8 @@ import prerna.util.Constants;
 
 public class PKQLRunner {
 	
+	private static final Logger LOGGER = LogManager.getLogger(PKQLRunner.class.getName());
+
 	public enum STATUS {SUCCESS, ERROR, INPUT_NEEDED}
 	
 	private STATUS currentStatus = PKQLRunner.STATUS.SUCCESS;
@@ -671,7 +676,11 @@ public class PKQLRunner {
 	 */
 	public void cleanUp() {
 		if(getVariableValue(AbstractRJavaReactor.R_CONN) != null) {
-			( (RConnection) getVariableValue(AbstractRJavaReactor.R_CONN) ).close();
+			try {
+				( (RConnection) getVariableValue(AbstractRJavaReactor.R_CONN) ).shutdown();
+			} catch (RserveException e) {
+				LOGGER.info("R Connection is already closed...");
+			}
 		}
 		
 		if(getVariableValue(AbstractRJavaReactor.R_GRAQH_FOLDERS) != null) {
