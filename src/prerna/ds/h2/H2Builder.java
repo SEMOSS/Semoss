@@ -3037,12 +3037,11 @@ public class H2Builder {
 				server = Server.createTcpServer("-tcpPort", port, "-tcpAllowOthers");
 				// server = Server.createPgServer("-baseDir", "~",
 				// "-pgAllowOthers"); //("-tcpPort", "9999");
-				if(isInMem)
+				if(isInMem) {
 					serverURL = "jdbc:h2:" + server.getURL() + "/mem:" + this.schema + options;
-				else
+				} else {
 					serverURL = "jdbc:h2:" + server.getURL() + "/nio:" + this.schema;
-				// System.out.println("URL: jdbc:h2:" + server.getURL() +
-				// "/mem:test");
+				}
 				server.start();
 			} catch (SQLException e) {
 				// TODO Auto-generated catch block
