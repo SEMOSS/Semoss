@@ -132,13 +132,13 @@ public class AnomalyDetector {
 	private String determineDirectionString(AnomDirection direction) {
 		switch (direction) {
 		case POSITIVE:
-			return ("pos");
+			return "pos";
 		case NEGATIVE:
-			return ("neg");
+			return "neg";
 		case BOTH:
-			return ("both");
+			return "both";
 		default:
-			return ("both");
+			return "both";
 		}
 	}
 }
