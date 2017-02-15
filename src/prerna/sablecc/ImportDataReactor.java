@@ -204,7 +204,7 @@ public abstract class ImportDataReactor extends AbstractReactor {
 				
 				// note, this edge hash will need to be cleansed based on the join information
 				// so this is just a local variable, not the class variable
-				Map<String, Set<String>> edgeHash = (Map<String, Set<String>>) this.getValue(PKQLEnum.API + "_EDGE_HASH");
+				Map<String, Set<String>> apiEdgeHash = (Map<String, Set<String>>) this.getValue(PKQLEnum.API + "_EDGE_HASH");
 				
 				// put the edge hash and the logicalToValue maps within the myStore
 				// will be used when the data is actually imported
@@ -216,7 +216,7 @@ public abstract class ImportDataReactor extends AbstractReactor {
 						// information, we need to combine the current qs with the new qs
 						// this method cleans the information based on the join and updates
 						// the frame metadata
-						Map[] mergedMaps = frame.mergeQSEdgeHash(edgeHash, engine, joinCols, null);
+						Map[] mergedMaps = frame.mergeQSEdgeHash(apiEdgeHash, engine, joinCols, null);
 						// set the class edge hash
 						this.edgeHash = mergedMaps[0];
 						// set the class modify names map
@@ -236,11 +236,11 @@ public abstract class ImportDataReactor extends AbstractReactor {
 					String[] origNewHeaders = ((IRawSelectWrapper) dataIterator).getDisplayVariables();
 					this.newHeaders = updateNamesForJoins(origNewHeaders, joinCols); 
 					
-					Map<String, Boolean> makeUniqueNameMap = getUniqueNameMap(frame, origNewHeaders);
+					Map<String, Boolean> makeUniqueNameMap = getUniqueNameMap(frame, origNewHeaders, apiEdgeHash);
 					
 					LOGGER.info(" >>> FRAME IS LOADING DATA FROM AN ENGINE!!!!");
 					// update the metadata in the frame
-					Map[] mergedMaps = frame.mergeQSEdgeHash(edgeHash, engine, joinCols, makeUniqueNameMap);
+					Map[] mergedMaps = frame.mergeQSEdgeHash(apiEdgeHash, engine, joinCols, makeUniqueNameMap);
 					this.edgeHash = mergedMaps[0];
 					// set the class modify names map
 					this.modifyNamesMap = mergedMaps[1];
@@ -481,7 +481,7 @@ public abstract class ImportDataReactor extends AbstractReactor {
 		return edgeHash;
 	}
 	
-	private Map<String, Boolean> getUniqueNameMap(ITableDataFrame frame, String[] origNewHeaders) {
+	private Map<String, Boolean> getUniqueNameMap(ITableDataFrame frame, String[] origNewHeaders, Map<String, Set<String>> apiEdgeHash) {
 		// this is the logic we need to figure out how to deal with loops
 		// logic is as follows
 		// for each connection in the edge hash
@@ -530,7 +530,7 @@ public abstract class ImportDataReactor extends AbstractReactor {
 		
 		// sadly, will need to clean the edge hash here as well...
 		// this is a pain because i cannot pass it into the mergeQSEdgeHash
-		Map<String, Set<String>> cleanImportEdgeHash = updateEdgeHashForJoin(edgeHash, joinCols);
+		Map<String, Set<String>> cleanImportEdgeHash = updateEdgeHashForJoin(apiEdgeHash, joinCols);
 		
 		int numHeaders = this.newHeaders.length;
 		for(int index = 0; index < numHeaders; index++) {
