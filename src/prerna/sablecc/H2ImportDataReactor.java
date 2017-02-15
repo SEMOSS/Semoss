@@ -19,7 +19,7 @@ public class H2ImportDataReactor extends MetaH2ImportDataReactor {
 		if(isFrameEmpty) {
 			frame.addRowsViaIterator(dataIterator);
 		// are we revisiting paths already traveled and need to update existing values?
-		} else if(allHeadersAccounted(startingHeaders, newHeaders)) {
+		} else if(!enableLoops && allHeadersAccounted(startingHeaders, newHeaders) ) {
 			// we can just do a merge
 			joinCols = updateJoinsCols(joinCols);
 			// loop through the join cols and merge based on all overlapping column headers
