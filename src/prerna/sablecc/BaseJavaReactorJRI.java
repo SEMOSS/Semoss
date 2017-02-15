@@ -357,7 +357,7 @@ public class BaseJavaReactorJRI extends AbstractRJavaReactor {
 			System.out.println("Error in writing R script for execution!");
 			e1.printStackTrace();
 		}
-
+		
 		Rengine retEngine = (Rengine)startR();
 		try {
 			REXP output = retEngine.eval("paste( capture.output(print( source(\"" + tempFileLocation + "\")$value ) ), collapse='\n')");
@@ -432,8 +432,11 @@ public class BaseJavaReactorJRI extends AbstractRJavaReactor {
 			engine.eval(conversionString);
 			engine.eval(frameReplaceScript);
 			
+			// perform variable cleanup
+			engine.eval("rm(" + tempName + "); gc();");
 			System.out.println("Script " + script);
 			System.out.println("Complete ");
+			
 			// once this is done.. I need to find what the original type is and then apply a type to it
 			// may be as string
 			// or as numeric
@@ -444,8 +447,7 @@ public class BaseJavaReactorJRI extends AbstractRJavaReactor {
 		} 
 	}
 		
-	public String[] getColNames(String frameName, boolean print)
-	{
+	public String[] getColNames(String frameName, boolean print) {
 		Rengine engine = (Rengine)startR();
 		String [] colNames = null;
 		try {
@@ -591,10 +593,11 @@ public class BaseJavaReactorJRI extends AbstractRJavaReactor {
 		Object [][] retOutput = null; // name and the number of items
 		
 		try {
-			String script = "colData <-  " + frameName + "[, .N, by=\"" + column +"\"];";
+			String tempName = Utility.getRandomString(6);
+			String script = tempName + " <-  " + frameName + "[, .N, by=\"" + column +"\"];";
 			System.out.println("Script is " + script);
 			engine.eval(script);
-			script = "colData$" + column;
+			script = tempName + "$" + column;
 			String [] uniqueColumns = engine.eval(script).asStringArray();
 			if(uniqueColumns == null) {
 				RFactor factors = engine.eval(script).asFactor();
@@ -605,7 +608,7 @@ public class BaseJavaReactorJRI extends AbstractRJavaReactor {
 				}
 			} 
 			// need to limit this eventually to may be 10-15 and no more
-			script = "matrix(colData$N);"; 
+			script = "matrix(" + tempName + "$N);"; 
 			int [] colCount = engine.eval(script).asIntArray();
 			int total = 0;
 			retOutput = new Object[uniqueColumns.length][2];
@@ -632,6 +635,10 @@ public class BaseJavaReactorJRI extends AbstractRJavaReactor {
 				this.returnData = getBarChartInfo(column, "Frequency", retOutput);
 				this.hasReturnData = true;
 			}
+			
+			//variable cleanup
+			engine.eval("rm(" + tempName + "); gc();");
+
 		} catch (Exception e) {
 			e.printStackTrace();
 		} 
@@ -872,8 +879,7 @@ public class BaseJavaReactorJRI extends AbstractRJavaReactor {
 		}
 	}
 	
-	public void endR()
-	{
+	public void endR() {
 		java.lang.System.setSecurityManager(curManager);
 		Rengine retCon = (Rengine)retrieveVariable(R_ENGINE);
 		try {

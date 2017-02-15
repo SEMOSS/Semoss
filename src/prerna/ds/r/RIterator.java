@@ -46,7 +46,7 @@ public class RIterator implements Iterator<Object[]>{
 	
 	@Override
 	public boolean hasNext() {
-		if(rowIndex <= dataTableSize) {
+		if(rowIndex < dataTableSize) {
 			return true;
 		} else {
 			return false;
