@@ -512,15 +512,17 @@ public abstract class ImportDataReactor extends AbstractReactor {
 		
 		//need to determine whether to enable loops or not
 		Map<Object, Object> map = (Map<Object, Object>) myStore.get(PKQLEnum.MAP_OBJ);
-		String enableLoopsVal = (String)map.get("enableLoops");
-		boolean enableLoops = enableLoopsVal.equalsIgnoreCase("true");
-		if(enableLoops) {
-			for(Map<String, String> joinCol : joinCols) {
-				for(String j : joinCol.keySet()) {
-					makeUniqueNameMap.put(j, false);
+		if(map != null) {
+			String enableLoopsVal = (String)map.get("enableLoops");
+			boolean enableLoops = "true".equalsIgnoreCase(enableLoopsVal);
+			if(enableLoops) {
+				for(Map<String, String> joinCol : joinCols) {
+					for(String j : joinCol.keySet()) {
+						makeUniqueNameMap.put(j, false);
+					}
 				}
+				return makeUniqueNameMap;
 			}
-			return makeUniqueNameMap;
 		}
 		
 		// get the current edge hash
