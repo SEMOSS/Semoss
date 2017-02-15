@@ -76,7 +76,11 @@ public class RDataTable extends AbstractTableDataFrame {
 	
 	public void closeConnection() {
 		if(this.builder.getConnection() != null) {
-			this.builder.getConnection().close();
+			try {
+				this.builder.getConnection().shutdown();
+			} catch (RserveException e) {
+				LOGGER.info("R Connection is already closed...");
+			}
 		}
 	}
 	
