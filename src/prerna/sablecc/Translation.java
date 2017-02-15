@@ -502,8 +502,7 @@ public class Translation extends DepthFirstAdapter {
 		// TABLE JOINS TO OPTIMIZE THE QUERY BEING USED
 		if (node.getJoins() != null) {
 			node.getJoins().apply(this);
-		}
-
+		}		
 		// everything else takes the normal execution route
 		if (node.getDataimporttoken() != null) {
 			node.getDataimporttoken().apply(this);
@@ -511,6 +510,9 @@ public class Translation extends DepthFirstAdapter {
 		if (node.getImport() != null) {
 			node.getImport().apply(this);
 		}
+		if(node.getProperties() != null) {
+            node.getProperties().apply(this);
+        }
 		outAImportData(node);
 	}
 
