@@ -23,7 +23,7 @@ public class VizReactor extends AbstractVizReactor {
 
 	@Override
 	public Iterator process() {
-		ITableDataFrame frame = (ITableDataFrame) getValue("G");
+		
 
 		Vector<Object> selectors = (Vector<Object>) getValue("VIZ_SELECTOR");
 		Vector<String> vizTypes = (Vector<String>) getValue("VIZ_TYPE");
@@ -36,6 +36,8 @@ public class VizReactor extends AbstractVizReactor {
 			return null;
 		}
 
+		ITableDataFrame frame = (ITableDataFrame) getValue("G");
+		
 		Vector<String> columns = new Vector<String>();
 
 		List<Map> mergeMaps = new Vector<Map>();
