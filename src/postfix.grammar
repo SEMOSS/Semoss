@@ -325,7 +325,7 @@ split_column = //splits a column based on a delimiter
 		colsplit [lp1]:l_par [col]:col_def comma [delimiter]:word_or_num [rp1]:r_par;
 		
 import_data = // imports from api query commands and other scripts
-		dataimporttoken [lp1]:l_par [import]:import_block [joins]:relation_clause? [rp2]:r_par;
+		dataimporttoken [lp1]:l_par [import]:import_block [joins]:relation_clause? [comma1]:comma? [properties]:map_obj? [rp2]:r_par;
 
 query_data = // imports from api query commands and other scripts
 		dataquerytoken [lp1]:l_par [import]:import_block [joins]:relation_clause? [rp2]:r_par;
