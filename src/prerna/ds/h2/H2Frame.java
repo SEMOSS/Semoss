@@ -1460,21 +1460,15 @@ public class H2Frame extends AbstractTableDataFrame {
 		return reactorNames;
 	}
 	
-	public void mergeRowsViaIterator(Iterator<IHeadersDataRow> iterator, String[] newHeaders, String[] startingHeaders, Vector<Map<String, String>> joinCols) {
+	public void mergeRowsViaIterator(Iterator<IHeadersDataRow> iterator, String[] newHeaders, String[] startingHeaders, String[] joinCols) {
 		int size = newHeaders.length;
 		IMetaData.DATA_TYPES[] types = new IMetaData.DATA_TYPES[size];
 		for (int i = 0; i < newHeaders.length; i++) {
 			types[i] = this.metaData.getDataType(newHeaders[i]);
 		}
 
-		// update column is every column not part of the join
-		List<String> joinHeaders = new Vector<String>();
-		for(Map<String, String> join : joinCols) {
-			joinHeaders.addAll(join.keySet());
-		}
-
 		try {
-			this.builder.mergeRowsViaIterator(iterator, newHeaders, types, startingHeaders, joinHeaders.toArray(new String[]{}));
+			this.builder.mergeRowsViaIterator(iterator, newHeaders, types, startingHeaders, joinCols);
 		} catch (Exception e) {
 			e.printStackTrace();
 		}
