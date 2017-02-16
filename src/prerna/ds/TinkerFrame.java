@@ -2386,14 +2386,14 @@ public class TinkerFrame extends AbstractTableDataFrame {
     {
           LOGGER.warn("<<<<");
           String end = "";
-          
+         
                 while(!end.equalsIgnoreCase("end"))
                 {
                       try {
 	                      BufferedReader reader = new BufferedReader(new InputStreamReader(System.in));
 	                      LOGGER.info("Enter Gremlin");
 	                      String query2 = reader.readLine();   
-	                      if(query2!=null){
+	                      if(query2!=null && !query2.isEmpty()) {
 	                    	  long start = System.currentTimeMillis();
 		                      end = query2;
 		                      LOGGER.info("Gremlin is " + query2);
@@ -2441,6 +2441,8 @@ public class TinkerFrame extends AbstractTableDataFrame {
 
 		                      long time2 = System.currentTimeMillis();
 		                      LOGGER.warn("time to execute : " + (time2 - start )+ " ms");
+	                      } else {
+	                    	  end = "end";
 	                      }
                       } catch (RuntimeException e) {
                             e.printStackTrace();
