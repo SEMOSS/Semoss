@@ -941,6 +941,9 @@ public abstract class AbstractRJavaReactor extends AbstractJavaReactor {
 		// dt$updateColName[dt$conditionalColName == "conditionalColValue] <- updateColValue
 		// need to get the types of this
 		try {
+			if(comparator.equals("=")) {
+				comparator = "==";
+			}
 			comparator = " " + comparator + " ";
 			
 			String updateDataType = getColType(updateColName);
