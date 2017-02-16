@@ -35,12 +35,26 @@ public class H2ImportDataReactor extends MetaH2ImportDataReactor {
 		}
 		// we are expanding to new paths not recently traveled
 		else {
-			
-			// if logicalToValue is null, it will create it within the processIterator method
-			
-			//TODO: figure out processIterator to not have to do this...
+			// join cols is not used
+			// we clean the names such that the headers that we want to join on will match
+			// and the logic inside the h2builder will figure that out...
+			// might not want that in the future, but oh well.. its in now
 			joinCols = updateJoinsCols(joinCols);
-			frame.processIterator(dataIterator, newHeaders, modifyNamesMap, joinCols, joinType);
+			
+			// update the headers to reflect both the join column changes AND the logicalToValueMap
+			int newHeaderSize = newHeaders.length;
+			String[] modifiedNewHeaders = new String[newHeaderSize];
+			for(int i = 0; i < newHeaderSize; i++) {
+				String newHead = newHeaders[i];
+				if(modifyNamesMap.containsKey(newHead)) {
+					modifiedNewHeaders[i] = modifyNamesMap.get(newHead);
+				} else {
+					modifiedNewHeaders[i] = newHead;
+				}
+				
+			}
+			
+			frame.processIterator(dataIterator, startingHeaders, modifiedNewHeaders, joinType);
 		}
 		
 		// store the response string
