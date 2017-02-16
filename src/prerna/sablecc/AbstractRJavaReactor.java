@@ -19,6 +19,7 @@ import org.rosuda.REngine.Rserve.RConnection;
 import cern.colt.Arrays;
 import prerna.algorithm.api.IMetaData;
 import prerna.algorithm.api.ITableDataFrame;
+import prerna.cache.ICache;
 import prerna.ds.QueryStruct;
 import prerna.ds.TinkerFrame;
 import prerna.ds.TinkerMetaHelper;
@@ -64,6 +65,8 @@ public abstract class AbstractRJavaReactor extends AbstractJavaReactor {
 
 	protected abstract void runR(String script, boolean outputResult);
 
+	protected abstract String getWd();
+	
 	protected abstract void cleanUpR();
 	
 	protected abstract void endR();
@@ -1339,14 +1342,20 @@ public abstract class AbstractRJavaReactor extends AbstractJavaReactor {
 	
 	private void synchronizeGraphToR(String graphName, String wd) {
 		java.io.File file = new File(wd);
+		String curWd = null;
 		try {
+			LOGGER.info("Trying to start R.. ");	
+			startR();
+			LOGGER.info("Successfully started R");
+			
+			// get the current directory
+			// we need to switch out of this to write the graph file
+			// but want to go back to this original one
+			curWd = getWd();
+
 			// create this directory
 			file.mkdir();
 			fileName = writeGraph(wd);
-			
-			LOGGER.info("Trying to start R.. ");
-			startR();
-			LOGGER.info("Successfully started R");
 			
 			wd = wd.replace("\\", "/");
 			
@@ -1355,6 +1364,7 @@ public abstract class AbstractRJavaReactor extends AbstractJavaReactor {
 			// load the library
 			Object ret = eval("library(\"igraph\");");
 			if(ret == null) {
+				ICache.deleteFolder(wd);
 				throw new ClassNotFoundException("Package igraph could not be found!");
 			}
 			String loadGraphScript = graphName + "<- read_graph(\"" + fileName + "\", \"graphml\");";
@@ -1376,6 +1386,11 @@ public abstract class AbstractRJavaReactor extends AbstractJavaReactor {
 		} catch(Exception ex) {
 			ex.printStackTrace();
 			System.out.println("ERROR ::: Could not convert TinkerFrame into iGraph.\nPlease make sure iGraph package is installed.");
+		} finally {
+			// reset back to the original wd
+			if(curWd != null) {
+				eval("setwd(\"" + curWd + "\")");
+			}
 		}
 		java.lang.System.setSecurityManager(reactorManager);
 	}
