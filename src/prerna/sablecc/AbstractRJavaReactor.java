@@ -658,8 +658,8 @@ public abstract class AbstractRJavaReactor extends AbstractJavaReactor {
 	 */
 	protected void dropRowsWhereColumnContainsValue(String frameName, String colName, String comparator, Object values) {
 		// to account for misunderstandings between = and == for normal users
-		if(comparator.equals("=")) {
-			comparator = "==";
+		if(comparator.trim().equals("=")) {
+			comparator = " == ";
 		}
 		String frameExpression = frameName + "$" + colName;
 		// determine the correct comparison to drop values from the frame
@@ -754,8 +754,8 @@ public abstract class AbstractRJavaReactor extends AbstractJavaReactor {
 	
 	protected void dropRowsWhereColumnContainsValue(String frameName, String colName, String comparator, int value) {
 		// to account for misunderstandings between = and == for normal users
-		if(comparator.equals("=")) {
-			comparator = "==";
+		if(comparator.trim().equals("=")) {
+			comparator = " == ";
 		}
 		String frameExpression = frameName + "$" + colName;
 		StringBuilder script = new StringBuilder(frameName).append("<-").append(frameName).append("[!(")
@@ -772,8 +772,8 @@ public abstract class AbstractRJavaReactor extends AbstractJavaReactor {
 	
 	protected void dropRowsWhereColumnContainsValue(String frameName, String colName, String comparator, double value) {
 		// to account for misunderstandings between = and == for normal users
-		if(comparator.equals("=")) {
-			comparator = "==";
+		if(comparator.trim().equals("=")) {
+			comparator = " == ";
 		}
 		String frameExpression = frameName + "$" + colName;
 		StringBuilder script = new StringBuilder(frameName).append("<-").append(frameName).append("[!(")
@@ -941,7 +941,7 @@ public abstract class AbstractRJavaReactor extends AbstractJavaReactor {
 		// dt$updateColName[dt$conditionalColName == "conditionalColValue] <- updateColValue
 		// need to get the types of this
 		try {
-			if(comparator.equals("=")) {
+			if(comparator.trim().equals("=")) {
 				comparator = "==";
 			}
 			comparator = " " + comparator + " ";
