@@ -328,7 +328,7 @@ public class H2Frame extends AbstractTableDataFrame {
 						addRow(ss.getValues(), headers);
 					}
 				} else {
-					processIterator(wrapper, wrapper.getDisplayVariables(), retMap[1], joinColList, joinType);
+					dmcProcessIterator(wrapper, wrapper.getDisplayVariables(), retMap[1], joinColList, joinType);
 				}
 
 				List<String> fullNames = this.metaData.getColumnNames();
@@ -358,6 +358,73 @@ public class H2Frame extends AbstractTableDataFrame {
 
 		long time4 = System.currentTimeMillis();
 		LOGGER.info("Component Processed: " + (time4 - startTime) + " ms");
+	}
+	
+	public void dmcProcessIterator(Iterator<IHeadersDataRow> iterator,	String[] newHeaders, Map<String, String> logicalToValue, List<Map<String, String>> joins, String joinType) {
+
+		// convert the new headers into value headers
+		String[] valueHeaders = new String[newHeaders.length];
+		if (logicalToValue == null) {
+			for (int i = 0; i < newHeaders.length; i++) {
+				valueHeaders[i] = this.getValueForUniqueName(newHeaders[i]);
+			}
+		} else {
+			for (int i = 0; i < newHeaders.length; i++) {
+				valueHeaders[i] = logicalToValue.get(newHeaders[i]);
+			}
+		}
+
+		String[] types = new String[newHeaders.length];
+		for (int i = 0; i < newHeaders.length; i++) {
+			types[i] = Utility.convertDataTypeToString(this.metaData.getDataType(newHeaders[i]));
+		}
+
+		String[] columnHeaders = getColumnHeaders();
+
+		// my understanding
+		// need to get the list of columns that are currently inside the frame
+		// this is because mergeEdgeHash has already occured and added the
+		// headers into the metadata
+		// thus, columnHeaders has both the old headers and the new ones that we
+		// want to add
+		// thus, go through and only keep the list of headers that are not in
+		// the new ones
+		// but also need to add those that are in the joinCols in case 2 headers
+		// match
+		List<String> adjustedColHeadersList = new Vector<String>();
+		for (String header : columnHeaders) {
+			if (!ArrayUtilityMethods.arrayContainsValueIgnoreCase(newHeaders,header)) {
+				adjustedColHeadersList.add(this.getValueForUniqueName(header));
+			} else {
+				joinLoop: for (Map<String, String> join : joins) {
+					if (join.keySet().contains(header)) {
+						adjustedColHeadersList.add(this.getValueForUniqueName(header));
+						break joinLoop;
+					}
+				}
+			}
+		}
+		String[] adjustedColHeaders = adjustedColHeadersList.toArray(new String[] {});
+
+		// get the join type
+		Join jType = Join.INNER;
+		if (joinType != null) {
+			if (joinType.toUpperCase().startsWith("INNER")) {
+				jType = Join.INNER;
+			} else if (joinType.toUpperCase().startsWith("OUTER")) {
+				jType = Join.FULL_OUTER;
+			} else if (joinType.toUpperCase().startsWith("LEFT")) {
+				jType = Join.LEFT_OUTER;
+			} else if (joinType.toUpperCase().startsWith("RIGHT")) {
+				jType = Join.RIGHT_OUTER;
+
+				// due to stupid legacy code using partial
+			} else if (joinType.toUpperCase().startsWith("PARTIAL")) {
+				jType = Join.LEFT_OUTER;
+			}
+		}
+
+		this.builder.processIterator(iterator, adjustedColHeaders,valueHeaders, types, jType);
 	}
 
 	/**
@@ -792,11 +859,11 @@ public class H2Frame extends AbstractTableDataFrame {
 					sortBy = name;
 				}
 				if (name.equals(sortBy)) {
-					actualSortBy = this.getValueForUniqueName(name);
+					actualSortBy = name;//this.getValueForUniqueName(name);
 				}
-				String uniqueName = this.getValueForUniqueName(name);
-				if (uniqueName == null)
-					uniqueName = name;
+				String uniqueName = name;//this.getValueForUniqueName(name);
+//				if (uniqueName == null)
+//					uniqueName = name;
 				selectorValues.add(uniqueName);
 			}
 		}
@@ -1316,7 +1383,8 @@ public class H2Frame extends AbstractTableDataFrame {
 	}
 
 	public String getValueForUniqueName(String name) {
-		return this.metaData.getValueForUniqueName(name);
+		return name;
+//		return this.metaData.getValueForUniqueName(name);
 	}
 
 	@Override
@@ -1474,52 +1542,13 @@ public class H2Frame extends AbstractTableDataFrame {
 		}
 		
 	}
-	public void processIterator(Iterator<IHeadersDataRow> iterator,	String[] newHeaders, Map<String, String> logicalToValue, List<Map<String, String>> joins, String joinType) {
-
-		// convert the new headers into value headers
-		String[] valueHeaders = new String[newHeaders.length];
-		if (logicalToValue == null) {
-			for (int i = 0; i < newHeaders.length; i++) {
-				valueHeaders[i] = this.getValueForUniqueName(newHeaders[i]);
-			}
-		} else {
-			for (int i = 0; i < newHeaders.length; i++) {
-				valueHeaders[i] = logicalToValue.get(newHeaders[i]);
-			}
-		}
-
+	
+	public void processIterator(Iterator<IHeadersDataRow> iterator,	String[] origHeaders, String[] newHeaders, String joinType) {
 		String[] types = new String[newHeaders.length];
 		for (int i = 0; i < newHeaders.length; i++) {
 			types[i] = Utility.convertDataTypeToString(this.metaData.getDataType(newHeaders[i]));
 		}
-
-		String[] columnHeaders = getColumnHeaders();
-
-		// my understanding
-		// need to get the list of columns that are currently inside the frame
-		// this is because mergeEdgeHash has already occured and added the
-		// headers into the metadata
-		// thus, columnHeaders has both the old headers and the new ones that we
-		// want to add
-		// thus, go through and only keep the list of headers that are not in
-		// the new ones
-		// but also need to add those that are in the joinCols in case 2 headers
-		// match
-		List<String> adjustedColHeadersList = new Vector<String>();
-		for (String header : columnHeaders) {
-			if (!ArrayUtilityMethods.arrayContainsValueIgnoreCase(newHeaders,header)) {
-				adjustedColHeadersList.add(this.getValueForUniqueName(header));
-			} else {
-				joinLoop: for (Map<String, String> join : joins) {
-					if (join.keySet().contains(header)) {
-						adjustedColHeadersList.add(this.getValueForUniqueName(header));
-						break joinLoop;
-					}
-				}
-			}
-		}
-		String[] adjustedColHeaders = adjustedColHeadersList.toArray(new String[] {});
-
+		
 		// get the join type
 		Join jType = Join.INNER;
 		if (joinType != null) {
@@ -1538,7 +1567,14 @@ public class H2Frame extends AbstractTableDataFrame {
 			}
 		}
 
-		this.builder.processIterator(iterator, adjustedColHeaders,valueHeaders, types, jType);
+		// parameters are
+		// 1) iterator
+		// 2) original columns
+		// 3) new columns for iterator to create -> this can be different from the original iterators headers
+		// 			it will create the table with the correct ones that i want so merging the tables is easier
+		// 4) the types for the new table -> we get this from the meta... hopefully names match up :O
+		// 5) the join type to use
+		this.builder.processIterator(iterator, origHeaders, newHeaders, types, jType);
 	
 	}
 	
