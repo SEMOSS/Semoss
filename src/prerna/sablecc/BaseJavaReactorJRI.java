@@ -89,6 +89,15 @@ public class BaseJavaReactorJRI extends AbstractRJavaReactor {
 	}
 	
 	/**
+	 * Get the current working directory
+	 */
+	@Override
+	protected String getWd() {
+		Rengine retEngine = (Rengine) startR();
+		return retEngine.eval("getwd()").asString();
+	}
+	
+	/**
 	 * Execute a rScript
 	 */
 	public Object eval(String script)
