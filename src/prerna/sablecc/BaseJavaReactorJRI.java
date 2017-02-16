@@ -47,26 +47,41 @@ public class BaseJavaReactorJRI extends AbstractRJavaReactor {
 				// start the R Engine
 				retEngine = new Rengine(null, true, null);
 				LOGGER.info("Successfully created engine.. ");
-
+	
 				// load all the libraries
-				retEngine.eval("library(splitstackshape);");
+				Object ret = retEngine.eval("library(splitstackshape);");
+				if(ret == null) {
+					throw new ClassNotFoundException("Package splitstackshape could not be found!");
+				}
 				// data table
-				retEngine.eval("library(data.table);");
+				ret = retEngine.eval("library(data.table);");
+				if(ret == null) {
+					throw new ClassNotFoundException("Package data.table could not be found!");
+				}
 				// reshape2
-				retEngine.eval("library(reshape2);");
+				ret = retEngine.eval("library(reshape2);");
+				if(ret == null) {
+					throw new ClassNotFoundException("Package reshape2 could not be found!");
+				}
 				// rjdbc
-				retEngine.eval("library(RJDBC);");
+				ret = retEngine.eval("library(RJDBC);");
+				if(ret == null) {
+					throw new ClassNotFoundException("Package RJDBC could not be found!");
+				}
 				// stringr
-				retEngine.eval("library(stringr);");
+				ret = retEngine.eval("library(stringr);");
+				if(ret == null) {
+					throw new ClassNotFoundException("Package stringr could not be found!");
+				}
 				storeVariable(R_ENGINE, retEngine);
-			} catch (Exception e) {
-				System.out.println("ERROR ::: Could not find connection.\nPlease make sure RServe is running and the following libraries are installed:\n"
+			} catch(ClassNotFoundException e) {
+				System.out.println("ERROR ::: " + e.getMessage() + "\nMake sure you have all the following libraries installed:\n"
 						+ "1)splitstackshape\n"
 						+ "2)data.table\n"
-						+ "3)reshape2"
-						+ "4)RJDBC\n"
+						+ "3)reshape2\n"
+						+ "4)RJDBC*\n"
 						+ "5)stringr\n\n"
-						+ "Please note RJDBC might require JAVA_HOME environment path to be defined on your system.");
+						+ "*Please note RJDBC might require JAVA_HOME environment path to be defined on your system.");
 				e.printStackTrace();
 			}
 		}
