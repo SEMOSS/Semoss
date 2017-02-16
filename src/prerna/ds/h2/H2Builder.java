@@ -522,6 +522,7 @@ public class H2Builder {
 	private void generateTable(Iterator<IHeadersDataRow> iterator, String[] headers, String[] types, String tableName) {
 		try {
 			String createTable = RdbmsQueryBuilder.makeCreate(tableName, headers, types);
+			LOGGER.info(" >>> CREATING TABLE : " + createTable);
 			runQuery(createTable);
 
 			PreparedStatement ps = createInsertPreparedStatement(tableName, headers);
