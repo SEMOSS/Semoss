@@ -36,42 +36,70 @@ public class RBuilderJRI extends AbstractRBuilder {
 			this.dataTableName = dataTableName;
 		}
 	}
-	
+
 	private void loadDefaultLibraries() {
 		// load in the data.table package
 		LOGGER.info("TRYING TO LOAD PACAKGE: data.table");
-		this.retCon.eval("library(data.table)");
-		LOGGER.info("SUCCESS!");
+		REXP retObj = this.retCon.eval("library(data.table)");
+		if(retObj == null) {
+			LOGGER.info(">>> FAILURE!");
+		} else {
+			LOGGER.info("SUCCESS!");
+		}
 		// load in the sqldf package to run sql queries
 		LOGGER.info("TRYING TO LOAD PACAKGE: sqldf");
 		this.retCon.eval("library(sqldf)");
-		LOGGER.info("SUCCESS!");
-		// load all the libraries
+		if(retObj == null) {
+			LOGGER.info(">>> FAILURE!");
+		} else {
+			LOGGER.info("SUCCESS!");
+		}		
+		// load all the splitstackshape
 		LOGGER.info("TRYING TO LOAD PACAKGE: splitstackshape");
 		this.retCon.eval("library(splitstackshape);");
-		LOGGER.info("SUCCESS!");
+		if(retObj == null) {
+			LOGGER.info(">>> FAILURE!");
+		} else {
+			LOGGER.info("SUCCESS!");
+		}		
 		// data table
 		LOGGER.info("TRYING TO LOAD PACAKGE: data.table");
 		this.retCon.eval("library(data.table);");
-		LOGGER.info("SUCCESS!");
+		if(retObj == null) {
+			LOGGER.info(">>> FAILURE!");
+		} else {
+			LOGGER.info("SUCCESS!");
+		}		
 		// reshape2
 		LOGGER.info("TRYING TO LOAD PACAKGE: reshape2");
 		this.retCon.eval("library(reshape2);");
-		LOGGER.info("SUCCESS!");
+		if(retObj == null) {
+			LOGGER.info(">>> FAILURE!");
+		} else {
+			LOGGER.info("SUCCESS!");
+		}		
 		// rjdbc
 		LOGGER.info("TRYING TO LOAD PACAKGE: RJDBC");
 		this.retCon.eval("library(RJDBC);");
-		LOGGER.info("SUCCESS!");
+		if(retObj == null) {
+			LOGGER.info(">>> FAILURE!");
+		} else {
+			LOGGER.info("SUCCESS!");
+		}		
 		// stringr
 		LOGGER.info("TRYING TO LOAD PACAKGE: stringr");
 		this.retCon.eval("library(stringr);");
-		LOGGER.info("SUCCESS!");
+		if(retObj == null) {
+			LOGGER.info(">>> FAILURE!");
+		} else {
+			LOGGER.info("SUCCESS!");
+		}	
 	}
 
 	protected String getTableName() {
 		return this.dataTableName;
 	}
-	
+
 	@Override
 	protected void evalR(String r) {
 		executeR(r);

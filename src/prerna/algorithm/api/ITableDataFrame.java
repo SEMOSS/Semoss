@@ -11,7 +11,6 @@ import prerna.ds.QueryStruct;
 import prerna.engine.api.IEngine;
 import prerna.engine.api.IHeadersDataRow;
 import prerna.engine.api.ISelectStatement;
-import prerna.engine.api.ISelectWrapper;
 import prerna.ui.components.playsheets.datamakers.IDataMaker;
 
 public interface ITableDataFrame extends IDataMaker {
