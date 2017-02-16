@@ -83,6 +83,20 @@ public class BaseJavaReactor extends AbstractRJavaReactor{
 	}
 	
 	/**
+	 * Get the current working directory of the R session
+	 */
+	@Override
+	protected String getWd() {
+		RConnection retCon = (RConnection) startR();
+		try {
+			return retCon.eval("getwd()").asString();
+		} catch (RserveException | REXPMismatchException e) {
+			e.printStackTrace();
+		}
+		return null;
+	}
+	
+	/**
 	 * Reconnect the main R server port
 	 * @param port
 	 */
