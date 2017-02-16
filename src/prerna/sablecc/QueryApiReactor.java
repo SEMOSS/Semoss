@@ -56,7 +56,7 @@ public class QueryApiReactor extends AbstractApiReactor {
 		// now also perform a count on the query to determine if it is the right size
 		// currently only use this in H2Importing
 		// TODO: move this logic out
-		if(myStore.get("G") != null) {
+		if(myStore.get("G") != null && (myStore.get("G") instanceof ITableDataFrame)  ) {
 			ITableDataFrame frame = (ITableDataFrame) myStore.get("G");
 			// only need to run query for count if frame is not in memory
 			if(frame instanceof H2Frame && ((H2Frame) frame).isInMem()) {
