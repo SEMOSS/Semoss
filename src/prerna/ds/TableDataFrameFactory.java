@@ -564,8 +564,11 @@ public class TableDataFrameFactory {
 		
 		String[] columnHeaders  = h2frame.getSelectors().toArray(new String[]{});
 		Map<Integer, Set<Integer>> cardinality = Utility.getCardinalityOfValues(columnHeaders, h2frame.getEdgeHash());
-		Map<String, String> uniqueToValue = h2frame.metaData.getAllUniqueNamesToValues();
-
+		Map<String, String> uniqueToValue = new Hashtable<String, String>();
+		for(String header : columnHeaders) {
+			uniqueToValue.put(header, header);
+		}
+		
 		/*
 		 * Create a new TinkerFrame from the existing H2Frame
 		 * Use the metadata from the h2frame and set it into the TinkerFrame
