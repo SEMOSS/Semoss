@@ -1353,8 +1353,10 @@ public abstract class AbstractRJavaReactor extends AbstractJavaReactor {
 			// set the working directory
 			eval("setwd(\"" + wd + "\")");
 			// load the library
-			eval("library(\"igraph\");");
-
+			Object ret = eval("library(\"igraph\");");
+			if(ret == null) {
+				throw new ClassNotFoundException("Package igraph could not be found!");
+			}
 			String loadGraphScript = graphName + "<- read_graph(\"" + fileName + "\", \"graphml\");";
 			java.lang.System.out.println(" Load !! " + loadGraphScript);
 			// load the graph
