@@ -760,6 +760,7 @@ public abstract class AbstractJavaReactor extends AbstractReactor {
 		{	
 			TinkerFrame newDataFrame = DataFrameHelper.findSharedVertices((TinkerFrame) dataframe, type, instances, degree);
 			myStore.put("G", newDataFrame);
+			newDataFrame.updateDataId();
 			System.out.println("Filtered to keep only vertices which are shared between defined instances");
 		}		
 		java.lang.System.setSecurityManager(reactorManager);
