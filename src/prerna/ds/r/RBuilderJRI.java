@@ -48,7 +48,7 @@ public class RBuilderJRI extends AbstractRBuilder {
 		}
 		// load in the sqldf package to run sql queries
 		LOGGER.info("TRYING TO LOAD PACAKGE: sqldf");
-		this.retCon.eval("library(sqldf)");
+		retObj = this.retCon.eval("library(sqldf)");
 		if(retObj == null) {
 			LOGGER.info(">>> FAILURE!");
 		} else {
@@ -56,7 +56,7 @@ public class RBuilderJRI extends AbstractRBuilder {
 		}		
 		// load all the splitstackshape
 		LOGGER.info("TRYING TO LOAD PACAKGE: splitstackshape");
-		this.retCon.eval("library(splitstackshape);");
+		retObj = this.retCon.eval("library(splitstackshape);");
 		if(retObj == null) {
 			LOGGER.info(">>> FAILURE!");
 		} else {
@@ -64,7 +64,7 @@ public class RBuilderJRI extends AbstractRBuilder {
 		}		
 		// data table
 		LOGGER.info("TRYING TO LOAD PACAKGE: data.table");
-		this.retCon.eval("library(data.table);");
+		retObj = this.retCon.eval("library(data.table);");
 		if(retObj == null) {
 			LOGGER.info(">>> FAILURE!");
 		} else {
@@ -72,7 +72,7 @@ public class RBuilderJRI extends AbstractRBuilder {
 		}		
 		// reshape2
 		LOGGER.info("TRYING TO LOAD PACAKGE: reshape2");
-		this.retCon.eval("library(reshape2);");
+		retObj = this.retCon.eval("library(reshape2);");
 		if(retObj == null) {
 			LOGGER.info(">>> FAILURE!");
 		} else {
@@ -80,7 +80,7 @@ public class RBuilderJRI extends AbstractRBuilder {
 		}		
 		// rjdbc
 		LOGGER.info("TRYING TO LOAD PACAKGE: RJDBC");
-		this.retCon.eval("library(RJDBC);");
+		retObj = this.retCon.eval("library(RJDBC);");
 		if(retObj == null) {
 			LOGGER.info(">>> FAILURE!");
 		} else {
@@ -88,7 +88,7 @@ public class RBuilderJRI extends AbstractRBuilder {
 		}		
 		// stringr
 		LOGGER.info("TRYING TO LOAD PACAKGE: stringr");
-		this.retCon.eval("library(stringr);");
+		retObj = this.retCon.eval("library(stringr);");
 		if(retObj == null) {
 			LOGGER.info(">>> FAILURE!");
 		} else {
