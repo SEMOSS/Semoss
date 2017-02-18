@@ -744,7 +744,7 @@ public abstract class AbstractJavaReactor extends AbstractReactor {
 		{
 			TinkerFrame newDataFrame = DataFrameHelper.generateNewGraph((TinkerFrame) dataframe, edgeHashStr, traversalHashStr);
 			if(newDataFrame.isEmpty()) {
-				System.out.println("Generated graph is empty! Please modify inputs to get a frame which has data");
+				System.out.println("ERROR: Generated graph is empty! Please modify inputs to get a frame which has data");
 			} else {
 				myStore.put("G", newDataFrame);
 				System.out.println("Generated new graph data frame");
