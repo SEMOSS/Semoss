@@ -75,6 +75,7 @@ public abstract class AbstractJavaReactor extends AbstractReactor {
 			put("RESPONSE", System.out.output); 
 			put("STATUS" , prerna.sablecc.PKQLRunner.STATUS.SUCCESS);
 		} catch(Exception ex) {
+			ex.printStackTrace();
 			if( ex.getMessage() != null && !ex.getMessage().isEmpty() ) {
 				put("RESPONSE", "ERROR : " + ex.getMessage());
 			} else {
@@ -737,28 +738,32 @@ public abstract class AbstractJavaReactor extends AbstractReactor {
 	 * @param selectors
 	 * @param edges
 	 */
-	protected void generateNewGraph(String[] selectors, Map<String, String> edges) {
+	protected void generateNewGraph(String edgeHashStr, String traversalHashStr) {
 		java.lang.System.setSecurityManager(curManager);
 		if(dataframe instanceof TinkerFrame)
 		{
-			TinkerFrame newDataFrame = DataFrameHelper.generateNewGraph((TinkerFrame) dataframe, selectors, edges);
-			myStore.put("G", newDataFrame);
-			System.out.println("Generated new graph data frame");
+			TinkerFrame newDataFrame = DataFrameHelper.generateNewGraph((TinkerFrame) dataframe, edgeHashStr, traversalHashStr);
+			if(newDataFrame.isEmpty()) {
+				System.out.println("Generated graph is empty! Please modify inputs to get a frame which has data");
+			} else {
+				myStore.put("G", newDataFrame);
+				System.out.println("Generated new graph data frame");
+			}
 		}		
 		java.lang.System.setSecurityManager(reactorManager);
 	}
 	
 	/**
-	 * Find shared vertices between group of instances with a degree of freedom
+	 * Find shared vertices between group of instances with a certain number of traversals away
 	 * @param type
 	 * @param instances
-	 * @param degree
+	 * @param numTraversals
 	 */
-	protected void findSharedVertices(String type, String[] instances, int degree) {
+	protected void findSharedVertices(String type, String[] instances, int numTraversals) {
 		java.lang.System.setSecurityManager(curManager);
 		if(dataframe instanceof TinkerFrame)
 		{	
-			TinkerFrame newDataFrame = DataFrameHelper.findSharedVertices((TinkerFrame) dataframe, type, instances, degree);
+			TinkerFrame newDataFrame = DataFrameHelper.findSharedVertices((TinkerFrame) dataframe, type, instances, numTraversals);
 			myStore.put("G", newDataFrame);
 			newDataFrame.updateDataId();
 			System.out.println("Filtered to keep only vertices which are shared between defined instances");
