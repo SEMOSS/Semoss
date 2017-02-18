@@ -23,7 +23,6 @@ import prerna.algorithm.api.ITableDataFrame;
 import prerna.ds.h2.H2Frame;
 import prerna.engine.api.ISelectStatement;
 import prerna.engine.api.ISelectWrapper;
-import prerna.util.ArrayUtilityMethods;
 import prerna.util.Utility;
 
 public class DataFrameHelper {
@@ -66,226 +65,166 @@ public class DataFrameHelper {
 	}
 	
 	
-	public static TinkerFrame generateNewGraph(TinkerFrame tf, String[] selectors, Map<String, String> edgeTraversals) {
-		// 1) get the paths
-		List<String[]> paths = determineTraversals(selectors, edgeTraversals);
-		
-		// 2) create a new tinkerframe
-		// define the new metadata based on the path end points
-		TinkerFrame newTf = new TinkerFrame();
-		// we need to create an edge hash to do this
-		Map<String, Set<String>> newEdgeHash = new Hashtable<String, Set<String>>();
-		Map<String, String> newDataTypes = new Hashtable<String, String>();
-		
-		for(String[] path : paths) {
-			// the end points for each path because the valid connections for the new edge hash
-			String start = path[0];
-			String end = path[path.length-1];
-			
-			Set<String> endPoints = null;
-			if(newEdgeHash.containsKey(start)) {
-				endPoints = newEdgeHash.get(start);
-			} else {
-				endPoints = new HashSet<String>();
+	public static TinkerFrame generateNewGraph(TinkerFrame tf, String relationshipStr, String traversalStr) {
+		// get the new edge hash
+		Map<String, Set<String>> edgeHash = generateEdgeHashFromStr(relationshipStr);
+		List<Map<String, Set<String>>> traversalHash = generateListOfEdgeHashFromStr(traversalStr);
+		return generateNewGraph(tf, edgeHash, traversalHash);
+	}
+	
+	public static TinkerFrame generateNewGraph(TinkerFrame tf, Map<String, Set<String>> edgeHash, List<Map<String, Set<String>>> traversalHash) {
+		// 1) generate new metadata for a new tf
+		// we need to get the data types
+		Map<String, String> dataTypes = new HashMap<String, String>();
+		for(String col : edgeHash.keySet()) {
+			if(!dataTypes.containsKey(col)) {
+				dataTypes.put(col, Utility.convertDataTypeToString( tf.metaData.getDataType(col) ));
 			}
-			endPoints.add(end);
-			newEdgeHash.put(start, endPoints);
-			
-			newDataTypes.put(start, Utility.convertDataTypeToString(tf.getDataType(start)) );
-			newDataTypes.put(end, Utility.convertDataTypeToString(tf.getDataType(end)) );
+			Set<String> otherCols = edgeHash.get(col);
+			for(String otherCol : otherCols) {
+				if(!dataTypes.containsKey(otherCol)) {
+					dataTypes.put(otherCol, Utility.convertDataTypeToString( tf.metaData.getDataType(otherCol) ));
+				}
+			}
 		}
 		
-		newTf.mergeEdgeHash(newEdgeHash, newDataTypes);
+		// 2) create the new frame and add the types into it
+		TinkerFrame newTf = new TinkerFrame();
+		newTf.mergeEdgeHash(edgeHash, dataTypes);
 		
-		// 3) loop through all the paths to get the required vertices and their connections
-		// will make new edges between the nodes if we are skipping intermediates
+		// to allow for loops
+		// we need the user to pass in the information using the unique names
+		Map<String, String> uniqueNameToValue = tf.metaData.getAllUniqueNamesToValues();
 		
-		// since we are only adding one path at a time
-		// the cardinality will always be the first vertex to the second vertex
-		Map<Integer, Set<Integer>> cardinality = new Hashtable<Integer, Set<Integer>>();
-		Set<Integer> index = new HashSet<Integer>();
-		index.add(1);
-		cardinality.put(0, index);
-		
-		for(String[] path : paths) {
-			String[] headers = {path[0], path[path.length-1]};
-
-			// keep track to ensure names are unique in a given path
-			Set<String> uniqueNames = new HashSet<String>();
-
-			// create the traversal
-			// will go through each vertex in the path for the traversal
-			GraphTraversal gt = tf.g.traversal().V();
-			String startType = path[0];
-			gt = gt.has(TinkerFrame.TINKER_TYPE, startType).as(startType);
-			uniqueNames.add(startType);
-			String[] retVars = new String[2];
-			retVars[0] = startType;
+		// 3) loop through the traversal hash to get the appropriate queries and insert those into the frame
+		for(Map<String, Set<String>> traversal : traversalHash) {
+			// go through the general stuff to create a graph traversal
+			// nothing special, uses the match logic present throughout all the other gremlin iterators
+			List<GraphTraversal<Object, Vertex>> gtTraversals = new Vector<GraphTraversal<Object, Vertex>>();
+			List<String> travelledEdges = new Vector<String>();
 			
-			int i = 1;
-			int numTraverse = path.length;
-			for(; i < numTraverse; i++) {
-				String uniqueName = path[i];
-				int counter = 1;
-				// need to continuously update the last header
-				// since we might have to modify it to be unique
-				while(uniqueNames.contains(uniqueName)) {
-					uniqueName = path[i] + "_" + counter;
-					counter++;
-				}
-				retVars[1] = uniqueName;
-				gt = gt.out().has(TinkerFrame.TINKER_TYPE, path[i]).as(uniqueName);
+			// select an arbitrary start type from the defined edge hash
+			String startName = traversal.keySet().iterator().next();
+			String startType = uniqueNameToValue.get(startName);
+			GraphTraversal gt = tf.g.traversal().V().has(TinkerFrame.TINKER_TYPE, startType).as(uniqueNameToValue.get(startName));
+			
+			// add the logic to traverse the desired path
+			gtTraversals = visitNode(gt, startName, uniqueNameToValue, traversal, travelledEdges, gtTraversals);
+			if(gtTraversals.size()>0){
+				GraphTraversal[] array = new GraphTraversal[gtTraversals.size()];
+				gt = gt.match(gtTraversals.toArray(array));
 			}
-			gt = gt.select(retVars[0], retVars[1]);
-			System.out.println(gt);
 			
+			// okay, now we need to figure out which selectors to return
+			// this is basically going through all the nodes in the traversal map
+			// and comparing it to all the values in the edge hash
+			Set<String> allUsedNodesInTraversal = new HashSet<String>();
+			for(String tNode : traversal.keySet()) {
+				// add the from node
+				allUsedNodesInTraversal.add(tNode);
+				// add its set of to nodes and let the set remove duplicates
+				allUsedNodesInTraversal.addAll(traversal.get(tNode));
+			}
+			
+			// create the appropriate set of selectors
+			// by comparing the traversal return and the edge hash
+			List<String> gSelectors = new Vector<String>();
+			for(String eNode : edgeHash.keySet()) {
+				// if this node hasn't already been added
+				if(!gSelectors.contains(eNode)) {
+					// and this node is returned in this specific traversal
+					if(allUsedNodesInTraversal.contains(eNode)) {
+						// add the node
+						gSelectors.add(eNode);
+					}
+				}
+				
+				Set<String> otherENodes = edgeHash.get(eNode);
+				for(String otherE : otherENodes) {
+					// if this node hasn't already been added
+					if(!gSelectors.contains(otherE)) {
+						// and this node is returned in this specific traversal
+						if(allUsedNodesInTraversal.contains(otherE)) {
+							// add the node
+							gSelectors.add(otherE);
+						}
+					}
+				}
+			}
+			
+			int numGSelectors = gSelectors.size();
+			// now we add the selectors
+			if(numGSelectors == 1) {
+				gt = gt.select(gSelectors.get(0));
+			} else if(numGSelectors == 2) {
+				gt = gt.select(gSelectors.get(0), gSelectors.get(1));
+			} else if(numGSelectors > 2){
+				String ret1 = gSelectors.remove(0);
+				String ret2 = gSelectors.remove(1);
+				gt = gt.select(ret1, ret2, gSelectors.toArray(new String[]{}));
+				
+				// add back the removed columns so we know the headers
+				gSelectors.add(0, ret2);
+				gSelectors.add(0, ret1);
+			} else {
+				LOGGER.info(">>>>>> FOUND 0 SELECTORS!!!");
+			}
+			
+			// now that we have the selectors done
+			// we need to figure out the connections
+			// need to compare all the nodes in the selectors to each other and see if there is a
+			// connection in the edge hash
+			Map<Integer, Set<Integer>> cardinality = new Hashtable<Integer, Set<Integer>>();
+			// loop through all the values in the edge hash
+			for(String eNode : edgeHash.keySet()) {
+				// we need a valid connection to insert into the cardinality
+				if(gSelectors.contains(eNode)) {
+					// we found the from node
+					int toIndex = gSelectors.indexOf(eNode);
+					// now we need to find a to node that is also returned
+					Set<String> otherENodes = edgeHash.get(eNode);
+					for(String otherE : otherENodes) {
+						// now compare and make sure a downstream relationship is there to add
+						if(gSelectors.contains(otherE)) {
+							// we found the to node
+							int fromIndex = gSelectors.indexOf(otherE);
+							
+							// now we add to cardinality
+							if(cardinality.containsKey(toIndex)) {
+								Set<Integer> downstreamSet = cardinality.get(toIndex);
+								downstreamSet.add(fromIndex);
+							} else {
+								Set<Integer> downstreamSet = new HashSet<Integer>();
+								downstreamSet.add(fromIndex);
+								cardinality.put(toIndex, downstreamSet);
+							}
+							
+						}
+					}
+				}
+			}
+			
+			// YAYYY!!! After all of that matching and loop
+			// we can finally insert
+			String[] headers = gSelectors.toArray(new String[]{});
 			Map<String, String> logicalToTypeMap = new Hashtable<String, String>();
-			logicalToTypeMap.put(headers[0], headers[0]);
-			logicalToTypeMap.put(headers[1], headers[1]);
-			
-			// now we have the traversal, so loop through and add in the information
+			for(int i = 0; i < numGSelectors; i++) {
+				logicalToTypeMap.put(headers[i], headers[i]);
+			}
 			while(gt.hasNext()) {
 				Map<String, Object> row = (Map<String, Object>) gt.next();
-				Object[] values = new Object[2];
-				values[0] = ((Vertex) row.get(retVars[0])).property(TinkerFrame.TINKER_NAME).value();
-				values[1] = ((Vertex) row.get(retVars[1])).property(TinkerFrame.TINKER_NAME).value();
+				Object[] values = new Object[gSelectors.size()];
+				for(int i = 0; i < numGSelectors; i++) {
+					values[i] = ((Vertex) row.get(gSelectors.get(i))).property(TinkerFrame.TINKER_NAME).value();
+				}
 				
 				newTf.addRelationship(headers, values, cardinality, logicalToTypeMap);
 			}
 		}
 		
-		// 4) need to also go through and add any "single" vertex of the types in the selectors
-		// we add everything even if the vertex has no edge
-				
-		// modify cardinality to be empty set
-		cardinality = new Hashtable<Integer, Set<Integer>>();
-		cardinality.put(0, new HashSet<Integer>());
-		
-		GraphTraversal<Vertex, Vertex> vertIt = tf.g.traversal().V().has(TinkerFrame.TINKER_TYPE, P.within(selectors));
-		while(vertIt.hasNext()) {
-			Vertex vert = vertIt.next();
-			String type = vert.value(TinkerFrame.TINKER_TYPE);
-			Object value = vert.value(TinkerFrame.TINKER_NAME);
-			
-			String[] headers = {type};
-			Object[] values = {value};
-			Hashtable<String, String> logicalToTypeMap = new Hashtable<String, String>();
-			logicalToTypeMap.put(type, type);
-			
-			newTf.addRelationship(headers, values, cardinality, logicalToTypeMap);
-		}
-		
-		int currId = tf.getDataId();
-		for(int i = 0; i <= currId; i++) {
-			newTf.updateDataId(); // TODO: expose this elsewhere
-		}
-		
 		return newTf;
 	}
-	
-	private static List<String[]> determineTraversals(String[] selectors, Map<String, String> edgeTraversals) {
-		List<String[]> traversals = new Vector<String[]>();
-		
-		for(String startNode : edgeTraversals.keySet()) {
-			// we define the path starting at the current start node
-			// if the start node is not in the selectors, we can skip
-			// if it is, then we need to find the path starting at this
-			// node, going through all intermediate nodes, till we get
-			// to the next node that is returned
-			
-			if(!ArrayUtilityMethods.arrayContainsValue(selectors, startNode)) {
-				continue;
-			}
-			
-			List<String> path = new Vector<String>();
-			recursivelyBuildList(startNode, selectors, edgeTraversals, path);
-			traversals.add(path.toArray(new String[]{}));
-		}
-		
-		for(String startNode : edgeTraversals.values()) {
-			// we define the path starting at the current start node
-			// if the start node is not in the selectors, we can skip
-			// if it is, then we need to find the path starting at this
-			// node, going through all intermediate nodes, till we get
-			// to the next node that is returned
-			
-			if(!ArrayUtilityMethods.arrayContainsValue(selectors, startNode)) {
-				continue;
-			}
-			
-			List<String> path = new Vector<String>();
-			recursivelyBuildList2(startNode, selectors, edgeTraversals, path);
-			traversals.add(path.toArray(new String[]{}));
-		}
-		
-		if(traversals.isEmpty()) {
-			throw new IllegalArgumentException("Invalid edge traversals.  There is no valid start node in the path described.");
-		}
-		
-		return traversals;
-	}
-	
-	private static void recursivelyBuildList(String startNode, String[] selectors, Map<String, String> edgeTraversals, List<String> currentPath) {
-		// the current point is required in the path
-		// i.e. startNode is either the start of a path
-		// or it is a intermediate node
-		currentPath.add(startNode);
-		// regardless if it is a start node or intermediate node
-		// the edge traversal better define the next connection that 
-		// is required
-		String endNode = edgeTraversals.get(startNode);
 
-		// if the edge traversals doesn't lead to a valid end point
-		// then there is an error
-		// this works because i require in main loop that my start is always a valid selector that needs
-		// to be returned
-		if(endNode == null) {
-			throw new IllegalArgumentException("Invalid path. Path does not have a valid end point.");
-		}
-		
-		if(ArrayUtilityMethods.arrayContainsValue(selectors, endNode)) {
-			// we got the end node
-			// we are done
-			currentPath.add(endNode);
-		} else {
-			// we need to recursively loop for the next one
-			recursivelyBuildList(endNode, selectors, edgeTraversals, currentPath);
-		}
-	}
-	
-	private static void recursivelyBuildList2(String startNode, String[] selectors, Map<String, String> edgeTraversals, List<String> currentPath) {
-		// the current point is required in the path
-		// i.e. startNode is either the start of a path
-		// or it is a intermediate node
-		currentPath.add(startNode);
-		// regardless if it is a start node or intermediate node
-		// the edge traversal better define the next connection that 
-		// is required
-		String endNode = null;
-		for(String node : edgeTraversals.keySet()) {
-			if(edgeTraversals.get(node).equals(startNode)) {
-				endNode = node;
-			}
-		}
-
-		// if the edge traversals doesn't lead to a valid end point
-		// then there is an error
-		// this works because i require in main loop that my start is always a valid selector that needs
-		// to be returned
-		if(endNode == null) {
-			throw new IllegalArgumentException("Invalid path. Path does not have a valid end point.");
-		}
-		
-		if(ArrayUtilityMethods.arrayContainsValue(selectors, endNode)) {
-			// we got the end node
-			// we are done
-			currentPath.add(endNode);
-		} else {
-			// we need to recursively loop for the next one
-			recursivelyBuildList2(endNode, selectors, edgeTraversals, currentPath);
-		}
-	}
-	
 	/**
 	 * Used to shift a given node to a property on another node
 	 * @param tf
@@ -527,8 +466,20 @@ public class DataFrameHelper {
 		return edgeHash;
 	}
 
+	
+	private static List<Map<String, Set<String>>> generateListOfEdgeHashFromStr(String listEdgeHashStr) {
+		List<Map<String, Set<String>>> edgeHashList = new Vector<Map<String, Set<String>>>();
+		// the list of edge hash's is delimited by +++
+		String[] edgeHashArr = listEdgeHashStr.split("\\+\\+\\+");
+		for(String edgeHashStr : edgeHashArr) {
+			Map<String, Set<String>> edgeHash = generateEdgeHashFromStr(edgeHashStr);
+			edgeHashList.add(edgeHash);
+		}
+		
+		return edgeHashList;
+	}
 
-	public static TinkerFrame findSharedVertices(TinkerFrame tf, String type, String[] instances, int degree) {
+	public static TinkerFrame findSharedVertices(TinkerFrame tf, String type, String[] instances, int numTraversals) {
 		// keep set of all vertices to keep
 		Set<Vertex> instancesToKeep = new HashSet<Vertex>();
 		
@@ -546,7 +497,7 @@ public class DataFrameHelper {
 			}
 			
 			GraphTraversal t1 = tf.g.traversal().V().has(TinkerFrame.TINKER_TYPE, type).has(TinkerFrame.TINKER_NAME, instance).as("start");
-			for(int i = 0; i < degree; i++) {
+			for(int i = 0; i < numTraversals; i++) {
 				if(i == 0) {
 					t1 = t1.both().as( (char) i + "");
 				} else if(i == 1) {
@@ -556,11 +507,11 @@ public class DataFrameHelper {
 				}
 			}
 			t1 = t1.has(TinkerFrame.TINKER_NAME, P.within(instancesToBind));
-			if(degree == 1) {
+			if(numTraversals == 1) {
 				t1 = t1.select("start", (char) 0 + "");
-			} else if(degree >= 2) {
-				String[] degreesToSelect = new String[degree - 1];
-				for(int degreeCount = 1; degreeCount < degree; degreeCount++) {
+			} else if(numTraversals >= 2) {
+				String[] degreesToSelect = new String[numTraversals - 1];
+				for(int degreeCount = 1; degreeCount < numTraversals; degreeCount++) {
 					degreesToSelect[degreeCount-1] = (char) degreeCount + "";
 				}
 				t1 = t1.select("start", (char) 0 + "", degreesToSelect);
@@ -573,7 +524,7 @@ public class DataFrameHelper {
 					Vertex start = (Vertex) ((Map) data).get("start");
 					instancesToKeep.add(start);
 					linkage.append(start.value(TinkerFrame.TINKER_NAME) + "").append(" ->");
-					for(int i = 0; i < degree; i++) {
+					for(int i = 0; i < numTraversals; i++) {
 						Vertex v = (Vertex) ((Map) data).get( (char) i + "");
 						instancesToKeep.add(v);
 						linkage.append(v.value(TinkerFrame.TINKER_NAME) + "").append(" ->");
