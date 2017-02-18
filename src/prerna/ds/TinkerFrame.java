@@ -1480,6 +1480,43 @@ public class TinkerFrame extends AbstractTableDataFrame {
 		}
 	}
 
+	public void addRelationship(String[] headers, Object[] values, Map<Integer, Set<Integer>> cardinality, String[] logicalToTypeMap) {
+		boolean hasRel = false;
+		
+		for(Integer startIndex : cardinality.keySet()) {
+			Set<Integer> endIndices = cardinality.get(startIndex);
+			if(endIndices==null) continue;
+			
+			for(Integer endIndex : endIndices) {
+				hasRel = true;
+				
+				//get from vertex
+				String startNode = headers[startIndex];
+				String startUniqueName = logicalToTypeMap[startIndex];
+				Object startNodeValue = getParsedValue(values[startIndex]);
+				Vertex fromVertex = upsertVertex(startNode, startNodeValue);
+				
+				//get to vertex	
+				String endNode = headers[endIndex];
+				String endUniqueName = logicalToTypeMap[endIndex];
+				Object endNodeValue = getParsedValue(values[endIndex]);
+				Vertex toVertex = upsertVertex(endNode, endNodeValue);
+				
+				upsertEdge(fromVertex, startUniqueName, toVertex, endUniqueName);
+			}
+		}
+		
+		// this is to replace the addRow method which needs to be called on the first iteration
+		// since edges do not exist yet
+		if(!hasRel) {
+			String singleColName = headers[0];
+			String singleNodeType = logicalToTypeMap[0];
+			Object startNodeValue = getParsedValue(values[0]);
+			upsertVertex(singleNodeType, startNodeValue);
+		}
+	}
+	
+	
 	@Override
 	public void addRelationship(Map<String, Object> rowCleanData) {
 		boolean hasRel = false;
