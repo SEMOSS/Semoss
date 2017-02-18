@@ -73,30 +73,33 @@ public class DataFrameHelper {
 	}
 	
 	public static TinkerFrame generateNewGraph(TinkerFrame tf, Map<String, Set<String>> edgeHash, List<Map<String, Set<String>>> traversalHash) {
-		// 1) generate new metadata for a new tf
+		// generate the new tinker frame and create its metadata
+		TinkerFrame newTf = new TinkerFrame();
+
+		// we need to get the unique names to the values
+		Map<String, String> uniqueNameToValue = tf.metaData.getAllUniqueNamesToValues();
+		
 		// we need to get the data types
-		Map<String, String> dataTypes = new HashMap<String, String>();
+		// and need to get the relationships
+		// we will also store a list of all the selector types for use when we need to insert any node 
+		// that matches the type we want but is not connected to anything
+		Set<String> allTypes = new HashSet<String>();
 		for(String col : edgeHash.keySet()) {
-			if(!dataTypes.containsKey(col)) {
-				dataTypes.put(col, Utility.convertDataTypeToString( tf.metaData.getDataType(col) ));
-			}
+			System.out.println("abc");
+			allTypes.add(uniqueNameToValue.get(col));
+			newTf.metaData.storeVertex(col, uniqueNameToValue.get(col), tf.metaData.getParentValueOfUniqueNode(col));
+			newTf.metaData.storeDataType(col, Utility.convertDataTypeToString( tf.metaData.getDataType(col)));
+			
 			Set<String> otherCols = edgeHash.get(col);
 			for(String otherCol : otherCols) {
-				if(!dataTypes.containsKey(otherCol)) {
-					dataTypes.put(otherCol, Utility.convertDataTypeToString( tf.metaData.getDataType(otherCol) ));
-				}
+				allTypes.add(uniqueNameToValue.get(otherCol));
+				newTf.metaData.storeVertex(otherCol, uniqueNameToValue.get(otherCol), tf.metaData.getParentValueOfUniqueNode(otherCol));
+				newTf.metaData.storeDataType(otherCol, Utility.convertDataTypeToString( tf.metaData.getDataType(otherCol)));
+				newTf.metaData.storeRelation(col, otherCol);
 			}
 		}
 		
-		// 2) create the new frame and add the types into it
-		TinkerFrame newTf = new TinkerFrame();
-		newTf.mergeEdgeHash(edgeHash, dataTypes);
-		
-		// to allow for loops
-		// we need the user to pass in the information using the unique names
-		Map<String, String> uniqueNameToValue = tf.metaData.getAllUniqueNamesToValues();
-		
-		// 3) loop through the traversal hash to get the appropriate queries and insert those into the frame
+		// loop through the traversal hash to get the appropriate queries and insert those into the frame
 		for(Map<String, Set<String>> traversal : traversalHash) {
 			// go through the general stuff to create a graph traversal
 			// nothing special, uses the match logic present throughout all the other gremlin iterators
@@ -106,7 +109,7 @@ public class DataFrameHelper {
 			// select an arbitrary start type from the defined edge hash
 			String startName = traversal.keySet().iterator().next();
 			String startType = uniqueNameToValue.get(startName);
-			GraphTraversal gt = tf.g.traversal().V().has(TinkerFrame.TINKER_TYPE, startType).as(uniqueNameToValue.get(startName));
+			GraphTraversal gt = tf.g.traversal().V().has(TinkerFrame.TINKER_TYPE, startType).as(startName);
 			
 			// add the logic to traverse the desired path
 			gtTraversals = visitNode(gt, startName, uniqueNameToValue, traversal, travelledEdges, gtTraversals);
@@ -206,10 +209,14 @@ public class DataFrameHelper {
 			
 			// YAYYY!!! After all of that matching and loop
 			// we can finally insert
-			String[] headers = gSelectors.toArray(new String[]{});
-			Map<String, String> logicalToTypeMap = new Hashtable<String, String>();
+			
+			// well, we want to pass in the headers as being the logical headers
+			// which are those which are transformed
+			// and the gSelectors are the unqiue names
+			String[] logicalToUnqiueArr = gSelectors.toArray(new String[]{});
+			String[] headers = new String[numGSelectors];
 			for(int i = 0; i < numGSelectors; i++) {
-				logicalToTypeMap.put(headers[i], headers[i]);
+				headers[i] = uniqueNameToValue.get(logicalToUnqiueArr[i]);
 			}
 			while(gt.hasNext()) {
 				Map<String, Object> row = (Map<String, Object>) gt.next();
@@ -218,9 +225,37 @@ public class DataFrameHelper {
 					values[i] = ((Vertex) row.get(gSelectors.get(i))).property(TinkerFrame.TINKER_NAME).value();
 				}
 				
-				newTf.addRelationship(headers, values, cardinality, logicalToTypeMap);
+				newTf.addRelationship(headers, values, cardinality, logicalToUnqiueArr);
 			}
 		}
+		
+		
+		// need to also go through and add any "single" vertex of the types in the selectors
+		// we add everything even if the vertex has no edge
+				
+		// cardinality is just an empty set
+		Hashtable<Integer, Set<Integer>> cardinality = new Hashtable<Integer, Set<Integer>>();
+		cardinality.put(0, new HashSet<Integer>());
+		
+		GraphTraversal<Vertex, Vertex> vertIt = tf.g.traversal().V().has(TinkerFrame.TINKER_TYPE, P.within(allTypes));
+		while(vertIt.hasNext()) {
+			Vertex vert = vertIt.next();
+			String type = vert.value(TinkerFrame.TINKER_TYPE);
+			Object value = vert.value(TinkerFrame.TINKER_NAME);
+			
+			String[] headers = {type};
+			Object[] values = {value};
+			Hashtable<String, String> logicalToTypeMap = new Hashtable<String, String>();
+			logicalToTypeMap.put(type, type);
+			
+			newTf.addRelationship(headers, values, cardinality, logicalToTypeMap);
+		}
+		
+		// update the data id
+		int currId = tf.getDataId();
+		for(int i = 0; i <= currId; i++) {
+			newTf.updateDataId();
+		}		
 		
 		return newTf;
 	}
