@@ -668,13 +668,16 @@ public abstract class AbstractTableDataFrame implements ITableDataFrame {
 
 	public List<String> getSelectors() {
 		List<String> selectors = new ArrayList<String>();
+		if(this.headerNames == null || this.headerNames.length == 0) {
+			this.headerNames = this.metaData.getColumnNames().toArray(new String[]{});
+		}
 		if(this.headerNames != null) {
 			for(int i = 0; i < headerNames.length; i++) {
 				if(!columnsToSkip.contains(headerNames[i])) {
 					selectors.add(headerNames[i]);
 				}
 			}
-		}
+		} 
 		return selectors;
 	}	
 	
