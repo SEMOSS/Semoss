@@ -13,6 +13,7 @@ import prerna.sablecc2.om.NounMetadata;
 import prerna.util.Utility;
 
 import java.util.Enumeration;
+import java.util.Iterator;
 import java.util.Map;
 import java.util.Vector;
 
@@ -39,29 +40,34 @@ public class ImportDataReactor extends AbstractReactor {
 	}
 	
 	public void updatePlan() {
-
+		//there is no
 	}
 
+	
+	public Object reduce(Iterator it) {
+		return Out();
+	}
 
 	@Override
-	void mergeUp() {
+	protected void mergeUp() {
 		//this reactor should not need to merge up
+		if(parentReactor != null) {
+			
+		}
 	}
 	
 	private void importToFrame()  {
-		//get the inputs
-//		String engineName = (String)getProp("db");
-//		QueryStruct queryStruct = (QueryStruct)getProp("qs");
-//		String query = (String)getProp("query");
+		
+//		GenRowStruct object = store.getNoun("qs");
+//		String aliasName = (String)object.get(0);
+//
+//		Map<String, Object> map = (Map<String, Object>)this.planner.getProperty(aliasName, "STORE");
+//		QueryStruct queryStruct = (QueryStruct)map.get("qs");
+//		String engineName = (String)map.get("db");
 		
 		
-		GenRowStruct object = store.getNoun("qs");
-		String aliasName = (String)object.get(0);
-
-		Map<String, Object> map = (Map<String, Object>)this.planner.getProperty(aliasName, "STORE");
-		QueryStruct queryStruct = (QueryStruct)map.get("qs");
-		String engineName = (String)map.get("db");
-		
+		QueryStruct queryStruct = (QueryStruct)this.planner.getProperty("QUERYSTRUCT", "QUERYSTRUCT");
+		String engineName = queryStruct.getEngineName();
 		ITableDataFrame frame = (ITableDataFrame)this.planner.getProperty("FRAME", "FRAME");
 		String className = frame.getScriptReactors().get(PKQLEnum.IMPORT_DATA);
 		
@@ -84,11 +90,10 @@ public class ImportDataReactor extends AbstractReactor {
 			ITableDataFrame importedFrame = (ITableDataFrame)curReactor.getValue("G");
 			System.out.println("IMPORTED FRAME CREATED WITH ROW COUNT: "+importedFrame.getNumRows());
 			this.planner.addProperty("FRAME", "FRAME", importedFrame);
-			
+			this.planner.addProperty("QUERYSTRUCT", "QUERYSTRUCT", new QueryStruct());
 		} catch (InstantiationException | IllegalAccessException | ClassNotFoundException e) {
 			e.printStackTrace();
 		}
-		
 	}
 
 	@Override

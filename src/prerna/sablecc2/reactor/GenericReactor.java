@@ -55,7 +55,7 @@ public class GenericReactor extends AbstractReactor {
 
 
 	@Override
-	void mergeUp() {
+	protected void mergeUp() {
 
 		String key = (String)getProp("KEY");
 		
@@ -73,7 +73,7 @@ public class GenericReactor extends AbstractReactor {
 	}
 
 	@Override
-	void updatePlan() {
+	protected void updatePlan() {
 		
 	}
 	@Override

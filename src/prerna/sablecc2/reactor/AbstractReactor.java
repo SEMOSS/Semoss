@@ -13,29 +13,32 @@ import prerna.sablecc2.om.NounStore;
 
 public abstract class AbstractReactor implements IReactor {
 
-	String operationName = null;
-	String signature = null;
-	String curNoun = null;
-	IReactor parentReactor = null;
-	IReactor childReactor = null;
-	NounStore store = null;
-	IReactor.TYPE type = IReactor.TYPE.FLATMAP;
-	IReactor.STATUS status = null;
-	GenRowStruct curRow = null;
+	protected String operationName = null;
+	protected String signature = null;
+	protected String curNoun = null;
+	protected IReactor parentReactor = null;
+	protected IReactor childReactor = null;
+	protected NounStore store = null;
+	protected IReactor.TYPE type = IReactor.TYPE.FLATMAP;
+	protected IReactor.STATUS status = null;
+	protected GenRowStruct curRow = null;
 	
-	String reactorName = "Sample";
-	String [] asName = null;
-	Vector <String> outputFields = null;
-	Vector <String> outputTypes = null;
+	protected String reactorName = "";
+	protected String [] asName = null;
+	protected Vector <String> outputFields = null;
+	protected Vector <String> outputTypes = null;
 	
-	Hashtable <String, Object> propStore = new Hashtable<String, Object>();
-	ITableDataFrame frame = null;
+	protected Hashtable <String, Object> propStore = new Hashtable<String, Object>();
+	protected ITableDataFrame frame = null;
 	
-	PKSLPlanner planner = null;
-	Lambda runner = null;
+	protected PKSLPlanner planner = null;
+	protected Lambda runner = null;
 	
-	abstract void mergeUp();
-	abstract void updatePlan();
+	protected String[] defaultOutputAlias;
+	boolean evaluate = false;
+	
+	protected abstract void mergeUp();
+	protected abstract void updatePlan();
 	
 	@Override
 	public void setPKSL(String operation, String fullOperation) {
@@ -87,6 +90,11 @@ public abstract class AbstractReactor implements IReactor {
 	@Override
 	public Object getProp(String key) {
 		return propStore.get(key);
+	}
+	
+	@Override
+	public boolean hasProp(String key) {
+		return propStore.containsKey(key);
 	}
 	
 	@Override
@@ -188,5 +196,19 @@ public abstract class AbstractReactor implements IReactor {
 	public Object reduce(Iterator it)
 	{
 		return null;
+	}
+	
+	//provide references by which those outputs are available
+	protected void addOutputLinksToPlanner() {
+		if(asName == null) {
+			asName = defaultOutputAlias;
+		}
+		
+		outputFields = new Vector<String>();
+		for(String alias : asName) {
+			outputFields.add(alias);
+		}
+		
+		planner.addOutputs(signature, outputFields, type);
 	}
 }

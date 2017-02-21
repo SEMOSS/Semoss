@@ -43,6 +43,9 @@ public class Lambda implements Iterator{
 	
 	public IHeadersDataRow RESULT = null;
 	
+	public void mergeQueryStruct(QueryStruct incomingQS) {
+//		if
+	}
 	public void makeQuery()
 	{
 		// this will be overridden
@@ -154,6 +157,7 @@ public class Lambda implements Iterator{
 		if(thisIterator == null)
 		{
 			System.out.println("NOthing to process");
+			executeCode(null);
 			return null;
 		}
 		while(thisIterator.hasNext())
