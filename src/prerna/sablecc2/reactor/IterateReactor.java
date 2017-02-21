@@ -8,6 +8,7 @@ import prerna.engine.api.IScriptReactor;
 import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.rdf.query.builder.IQueryInterpreter;
 import prerna.sablecc.PKQLEnum;
+import prerna.sablecc2.JobStore;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.Join;
 import prerna.sablecc2.om.NounMetadata;
@@ -16,14 +17,14 @@ import prerna.util.Utility;
 
 import java.util.Enumeration;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.Map;
 import java.util.Vector;
 
 import prerna.algorithm.api.ITableDataFrame;
 import prerna.ds.QueryStruct;
-import prerna.ds.h2.H2Frame;
 
-public class MergeDataReactor extends AbstractReactor {
+public class IterateReactor extends AbstractReactor {
 
 
 	@Override
@@ -33,7 +34,7 @@ public class MergeDataReactor extends AbstractReactor {
 
 	@Override
 	public Object Out() {
-		importToFrame();
+		createJob();
 		if(parentReactor != null) {
 			return this.parentReactor;
 		}
@@ -72,44 +73,30 @@ public class MergeDataReactor extends AbstractReactor {
 		//this reactor should not need to merge up
 	}
 	
-	private void importToFrame()  {
+	private void createJob()  {
 		//get the inputs
 		
-		QueryStruct queryStruct = (QueryStruct)this.planner.getProperty("QUERYSTRUCT", "QUERYSTRUCT");
+		//every job should be created via a query struct run either on a database or a frame
+		//or a code block run on a frame --this is done via runMyPlan
+		//we will temporarily introduce handling math operations until those math operations are absorbed by the query struct and interpreted by the query interpreters
+		
+		
+		QueryStruct queryStruct = (QueryStruct)this.planner.getProperty("QUERYSTRUCT", "QUERYSTRUCT"); //this should not be a single query...need to somehow store this with a signature
 		String engineName = queryStruct.getEngineName();
-		
+		//TODO: add tableJoins to query
 		GenRowStruct allNouns = getNounStore().getNoun(NounStore.all); //should be only joins
-		ITableDataFrame frame = (ITableDataFrame)this.planner.getProperty("FRAME", "FRAME");
-		String className = frame.getScriptReactors().get(PKQLEnum.IMPORT_DATA);
-		
-		try {
-			IScriptReactor curReactor = (IScriptReactor) Class.forName(className).newInstance();
-			
+		if(engineName != null) {
 			IEngine engine = Utility.getEngine(removeQuotes(engineName.trim()));
 			IQueryInterpreter interp = engine.getQueryInterpreter();
 			interp.setQueryStruct(queryStruct);
 			String importQuery = interp.composeQuery();
 			IRawSelectWrapper iterator = WrapperManager.getInstance().getRawWrapper(engine, importQuery);
-			
-			//set values into the curReactor
-			curReactor.put("G", frame);
-			curReactor.put(PKQLEnum.API + "_EDGE_HASH", queryStruct.getReturnConnectionsHash());
-			curReactor.put(PKQLEnum.API + "_QUERY_NUM_CELLS", 1.0);
-			curReactor.put(PKQLEnum.API + "_ENGINE", removeQuotes(engineName.trim()));
-			curReactor.put(PKQLEnum.API, iterator);
-			if(allNouns != null) {
-				Vector<Map<String, String>> joinCols = getJoinCols(allNouns);
-				curReactor.put(PKQLEnum.JOINS, joinCols);
-				
-			}
-			curReactor.process();
-			ITableDataFrame importedFrame = (ITableDataFrame)curReactor.getValue("G");
-			System.out.println("IMPORTED FRAME CREATED WITH ROW COUNT: "+importedFrame.getNumRows());
-			this.planner.addProperty("FRAME", "FRAME", importedFrame);
-			
-		} catch (InstantiationException | IllegalAccessException | ClassNotFoundException e) {
-			e.printStackTrace();
-		}
+			JobStore.INSTANCE.addJob("job", iterator);
+		} else {
+			ITableDataFrame frame = (ITableDataFrame)this.planner.getProperty("FRAME", "FRAME");
+			Iterator iterator = frame.query(queryStruct);
+			JobStore.INSTANCE.addJob("job", iterator);
+		}			
 	}
 
 	@Override
