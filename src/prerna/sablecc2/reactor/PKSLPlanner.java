@@ -11,6 +11,7 @@ import org.apache.tinkerpop.gremlin.structure.Edge;
 import org.apache.tinkerpop.gremlin.structure.Vertex;
 import org.apache.tinkerpop.gremlin.tinkergraph.structure.TinkerGraph;
 
+import prerna.ds.h2.H2Frame;
 import prerna.sablecc2.om.CodeBlock;
 import prerna.ui.components.playsheets.datamakers.IDataMaker;
 
@@ -30,6 +31,10 @@ public class PKSLPlanner {
 	
 	public PKSLPlanner() {
 		
+	}
+	
+	public IDataMaker getFrame() {
+		return (IDataMaker)getProperty("FRAME", "FRAME");
 	}
 	
 	public PKSLPlanner(IDataMaker dataMaker) {
@@ -78,8 +83,9 @@ public class PKSLPlanner {
 	public Object getProperty(String opName, String propertyName) {
 		Vertex opVertex = findVertex(OPERATION, opName);
 		if(opVertex != null) {
-			if(opVertex.property(propertyName) != null)
-			return opVertex.property(propertyName).value();
+			if(opVertex.property(propertyName).isPresent()) {
+				return opVertex.property(propertyName).value();
+			}
 		}
 		return null;
 	}
@@ -805,4 +811,6 @@ public class PKSLPlanner {
 		System.out.println(curCode);	
 		return curCode;
 	}
+
+
 }
