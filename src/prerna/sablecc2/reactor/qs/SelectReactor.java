@@ -38,13 +38,14 @@ public class SelectReactor extends QueryStructReactor {
 				if(allNouns.get(selectIndex) instanceof String) {
 					String thisSelector = (String)allNouns.get(selectIndex);				
 					qs.addSelector(tableName, thisSelector);
-				} else if(allNouns.get(selectIndex) instanceof QueryStructSelector) {
+				} 
+//				else if(allNouns.get(selectIndex) instanceof QueryStructSelector) {
 //					QueryStructSelector thisSelector = (QueryStructSelector)allNouns.get(selectIndex);
 //					String column = thisSelector.getColumn();
 //					String math = thisSelector.getMath();
 //					String alias = thisSelector.getAlias();
 //					String mathSelector = math+"("+column+")";
-				}
+//				}
 			}
 		}
 		return qs;
