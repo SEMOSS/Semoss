@@ -104,6 +104,9 @@ public interface IReactor {
 	// gets the property
 	public Object getProp(String key);
 	
+	//returns whether reactor has Prop
+	public boolean hasProp(String key);
+	
 	// execute method
 	public Object execute();
 	

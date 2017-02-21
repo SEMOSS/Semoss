@@ -33,7 +33,7 @@ public class H2FilterHash {
 	 * @param comparator
 	 */
 	public void addFilters(String columnHeader, List<Object> values, String comparator) {
-		if (filterHash.get(columnHeader) == null) {
+		if (filterHash.containsKey(columnHeader)) {
 			setFilters(columnHeader, values, comparator);
 		} else {
 			Map<String, Set<Object>> innerMap = filterHash.get(columnHeader);

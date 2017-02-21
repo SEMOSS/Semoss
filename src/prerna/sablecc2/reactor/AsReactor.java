@@ -35,7 +35,7 @@ public class AsReactor extends SampleReactor {
 			Vector <String> inputs = struct.getAllColumns(); // ideally this should get only one column for now
 
 			asNames = new String[1];
-			asNames[0] = inputs.elementAt(0).trim() + "";
+			asNames[0] = inputs.elementAt(0).trim();
 		}
 		if(this.parentReactor != null && asNames != null)
 		{
