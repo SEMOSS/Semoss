@@ -2,6 +2,7 @@ package prerna.ds;
 
 import java.io.FileInputStream;
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -52,6 +53,10 @@ public class QueryStruct {
 	//tableName -> ColName
 	private Hashtable<String, String> orderBy = new Hashtable<>();
 	
+	//holds the selector(s) we want to group by
+	//tableName -> ColName
+	private Hashtable<String, Set<String>> groupBy = new Hashtable<>();
+	
 	private int limit = -1;
 	private int offset = -1;
 	
@@ -61,8 +66,18 @@ public class QueryStruct {
 	
 	private int performCount = NO_COUNT;
 	
+	private String engineName;
+	
 	public static String PRIM_KEY_PLACEHOLDER = "PRIM_KEY_PLACEHOLDER";
 		
+	public void setEngineName(String engineName) {
+		this.engineName = engineName;
+	}
+	
+	public String getEngineName() {
+		return this.engineName;
+	}
+	
 	public void addCompoundSelector(String selector)
 	{
 		// need to break it and then add it
@@ -155,6 +170,25 @@ public class QueryStruct {
 	
 	public Map<String, String> getOrderBy() {
 		return this.orderBy;
+	}
+	
+	public void addGroupBy(String concept, String property) {
+		if(property == null) {
+			property = PRIM_KEY_PLACEHOLDER;
+		}
+		
+		if(groupBy.containsKey(concept)) {
+			this.groupBy.get(concept).add(property);
+		} else {
+			Set<String> propertyList = new HashSet<>(3);
+			propertyList.add(property);
+			this.groupBy.put(concept, propertyList);
+		}
+		
+	}
+	
+	public Map<String, Set<String>> getGroupBy() {
+		return this.groupBy;
 	}
 	
 	public int getPerformCount() {
@@ -416,7 +450,19 @@ public class QueryStruct {
 	public void merge(QueryStruct incomingQS) {
 		mergeSelectors(incomingQS.selectors);
 		mergeFilters(incomingQS.andfilters);
-		mergeRelations(incomingQS.relations);		
+		mergeRelations(incomingQS.relations);
+		if(incomingQS.limit > -1) {
+			setLimit(incomingQS.limit);
+		}
+		
+		if(incomingQS.offset > -1) {
+			setOffSet(incomingQS.offset);
+		}
+		
+		if(incomingQS.getEngineName() != null) {
+			setEngineName(incomingQS.getEngineName());
+		}
+		
 	}
 	
 	public void mergeSelectors(Hashtable<String, Vector<String>> incomingSelectors) {
@@ -493,6 +539,10 @@ public class QueryStruct {
 				this.relations.put(key, newHash);
 			}
 		}
+	}
+	
+	public void mergeGroupBy(Hashtable<String, List<String>> groupBys) {
+		
 	}
 	
 	public QueryStruct deepCopy() {
