@@ -198,6 +198,9 @@ public class DataFrameJoiner {
 	
 	public void joinInsights(Insight insight1, Insight insight2, List<List<String>>  joinCols) {
 		if(isJoined(insight1) && isJoined(insight2)) {
+			
+			//TODO: if insight1 and insight1 are joined with each other....then its fine
+			//otherwise we wont allow
 			throw new IllegalArgumentException("Frames already joined");
 		}
 		
