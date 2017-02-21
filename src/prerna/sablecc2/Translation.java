@@ -57,7 +57,6 @@ import prerna.sablecc2.reactor.MergeDataReactor;
 import prerna.sablecc2.reactor.PKSLPlanner;
 import prerna.sablecc2.reactor.QueryReactor;
 import prerna.sablecc2.reactor.SampleReactor;
-import prerna.sablecc2.reactor.qs.AverageSelectorReactor;
 import prerna.sablecc2.reactor.qs.DatabaseReactor;
 import prerna.sablecc2.reactor.qs.FrameReactor;
 import prerna.sablecc2.reactor.qs.JoinReactor;
