@@ -140,7 +140,7 @@ public class SampleReactor extends AbstractReactor {
 			myClass.addSuper(baseClass);
 			
 			StringBuffer method = new StringBuffer();
-			method.append("public void execute(IHeadersDataRow row) {");
+			method.append("public IHeadersDataRow executeCode(IHeadersDataRow row) {");
 			
 			// put the fields now
 			// assumes this is java
@@ -158,6 +158,7 @@ public class SampleReactor extends AbstractReactor {
 			
 			// add the code
 			method.append(code + "\n");
+			method.append("return null;");
 			method.append("}");
 			
 			myClass.addMethod(method.toString());
