@@ -216,37 +216,31 @@ public class SQLInterpreter implements IQueryInterpreter{
 		}
 
 		//grab the order by and get the corresponding display name for that order by column
-		Map<String, String> orderBy = qs.getOrderBy();
-		if(orderBy != null && !orderBy.isEmpty()) {
-			String orderByName = null;
-			for(String tableConceptualName : orderBy.keySet()) {
-				String columnConceptualName = orderBy.get(tableConceptualName);
-				if(columnConceptualName.equals(QueryStruct.PRIM_KEY_PLACEHOLDER)){
-					columnConceptualName = getPrimKey4Table(tableConceptualName);
-				} else {
-					columnConceptualName = getPhysicalPropertyNameFromConceptualName(tableConceptualName, columnConceptualName);
-				}
-				orderByName = getAlias(tableConceptualName) + "." + columnConceptualName;
-				break; //use first one
-			}
-			if(orderByName != null) {
-				query.append(" ORDER BY ").append(orderByName);
-			}
-		}
+		query = appendGroupBy(query);
+		query = appendOrderBy(query);
+//		Map<String, String> orderBy = qs.getOrderBy();
+//		if(orderBy != null && !orderBy.isEmpty()) {
+//			String orderByName = null;
+//			for(String tableConceptualName : orderBy.keySet()) {
+//				String columnConceptualName = orderBy.get(tableConceptualName);
+//				if(columnConceptualName.equals(QueryStruct.PRIM_KEY_PLACEHOLDER)){
+//					columnConceptualName = getPrimKey4Table(tableConceptualName);
+//				} else {
+//					columnConceptualName = getPhysicalPropertyNameFromConceptualName(tableConceptualName, columnConceptualName);
+//				}
+//				orderByName = getAlias(tableConceptualName) + "." + columnConceptualName;
+//				break; //use first one
+//			}
+//			if(orderByName != null) {
+//				query.append(" ORDER BY ").append(orderByName);
+//			}
+//		}
 		
 		int limit = qs.getLimit();
 		int offset = qs.getOffset();
 		
-				
-//		if(limit > 0) {
-//			query = new StringBuilder(this.queryUtil.addLimitToQuery(query.toString(), limit));
-//		}
-//		
-//		if (offset > 0) {
-//			query = new StringBuilder(this.queryUtil.addOffsetToQuery(query.toString(), offset));
-//		}
-		
-		query = new StringBuilder(this.queryUtil.addLimitOffsetToQuery(query.toString(), limit, offset));
+//		query = new StringBuilder(this.queryUtil.addLimitOffsetToQuery(query.toString(), limit, offset));
+		query = this.queryUtil.addLimitOffsetToQuery(query, limit, offset);
 		
 		if(query.length() > 500) {
 			System.out.println("QUERY....  " + query.substring(0,  500) + "...");
@@ -823,7 +817,61 @@ public class SQLInterpreter implements IQueryInterpreter{
 
 	
 	//////////////////////////////////////append order by  ////////////////////////////////////////////
-	//////////////////////////////////////end adding filters ////////////////////////////////////////////
+	
+	public StringBuilder appendOrderBy(StringBuilder query) {
+		//grab the order by and get the corresponding display name for that order by column
+		Map<String, String> orderBy = qs.getOrderBy();
+		if(orderBy != null && !orderBy.isEmpty()) {
+			String orderByName = null;
+			for(String tableConceptualName : orderBy.keySet()) {
+				String columnConceptualName = orderBy.get(tableConceptualName);
+				if(columnConceptualName.equals(QueryStruct.PRIM_KEY_PLACEHOLDER)){
+					columnConceptualName = getPrimKey4Table(tableConceptualName);
+				} else {
+					columnConceptualName = getPhysicalPropertyNameFromConceptualName(tableConceptualName, columnConceptualName);
+				}
+				orderByName = getAlias(tableConceptualName) + "." + columnConceptualName;
+				break; //use first one
+			}
+			if(orderByName != null) {
+				query.append(" ORDER BY ").append(orderByName);
+			}
+		}
+		return query;
+	}
+	//////////////////////////////////////end append order by////////////////////////////////////////////
+	
+	
+	//////////////////////////////////////append group by  ////////////////////////////////////////////
+	
+	public StringBuilder appendGroupBy(StringBuilder query) {
+		//grab the order by and get the corresponding display name for that order by column
+		Map<String, Set<String>> groupBy = qs.getGroupBy();
+		if(groupBy != null && !groupBy.isEmpty()) {
+			String groupByName = "";
+			for(String tableConceptualName : groupBy.keySet()) {
+				Set<String> columnConceptualNames = groupBy.get(tableConceptualName);
+				for(String columnConceptualName : columnConceptualNames) {
+					if(columnConceptualName.equals(QueryStruct.PRIM_KEY_PLACEHOLDER)){
+						columnConceptualName = getPrimKey4Table(tableConceptualName);
+					} else {
+						columnConceptualName = getPhysicalPropertyNameFromConceptualName(tableConceptualName, columnConceptualName);
+					}
+					if(groupByName == null) {
+						groupByName = getAlias(tableConceptualName) + "." + columnConceptualName;
+					} else {
+						groupByName += ", "+ getAlias(tableConceptualName) + "." + columnConceptualName;
+					}
+				}
+			}
+			if(groupByName != null) {
+				query.append(" GROUP BY ").append(groupByName);
+			}
+		}
+		return query;
+	}
+	
+	//////////////////////////////////////end append group by////////////////////////////////////////////
 	
 	//////////////////////////////////// caching utility methods /////////////////////////////////////////
 	
