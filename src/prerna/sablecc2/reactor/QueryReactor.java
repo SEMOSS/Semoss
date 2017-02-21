@@ -18,6 +18,7 @@ public class QueryReactor extends AbstractReactor {
 	}
 	@Override
 	public void In() {
+		this.defaultOutputAlias = new String[]{"QUERY_STRUCT"};
 		curNoun("all");
 	}
 
@@ -34,7 +35,7 @@ public class QueryReactor extends AbstractReactor {
 
 
 	@Override
-	void mergeUp() {
+	protected void mergeUp() {
 		if(parentReactor != null) {
 			buildQueryStruct();
 			parentReactor.setProp("qs", getProp("qs"));
@@ -48,7 +49,7 @@ public class QueryReactor extends AbstractReactor {
 	}
 
 	@Override
-	void updatePlan() {
+	protected void updatePlan() {
 		
 		getType();
 		Enumeration <String> keys = store.nounRow.keys();
@@ -97,17 +98,6 @@ public class QueryReactor extends AbstractReactor {
 			outputStore.put("db", getProp("db"));
 		}
 		this.planner.addProperty(asName[0], "STORE", outputStore);
-	}
-	
-	//provide references by which those outputs are available
-	private void addOutputLinksToPlanner() {
-		if(asName == null)
-			asName = new String[]{"QUERY_STRUCT"};
-		
-		outputFields = new Vector<String>();
-		outputFields.add(asName[0]);//query struct
-		
-		planner.addOutputs(signature, outputFields, type);
 	}
 	
 	//build this reactors outputs and store

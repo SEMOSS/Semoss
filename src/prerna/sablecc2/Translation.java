@@ -3,44 +3,68 @@ package prerna.sablecc2;
 import java.io.BufferedWriter;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.util.Map;
 
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
+import prerna.ds.h2.H2Frame;
+import prerna.ds.r.RDataTable;
+import prerna.engine.api.IScriptReactor;
+import prerna.sablecc.expressions.r.builder.RExpressionBuilder;
+import prerna.sablecc.expressions.sql.builder.ExpressionGenerator;
+import prerna.sablecc.expressions.sql.builder.SqlExpressionBuilder;
 import prerna.sablecc2.analysis.DepthFirstAdapter;
 import prerna.sablecc2.node.AAsop;
 import prerna.sablecc2.node.ACodeNoun;
 import prerna.sablecc2.node.AColTerm;
 import prerna.sablecc2.node.ADecimal;
+import prerna.sablecc2.node.ADivExpr;
 import prerna.sablecc2.node.ADotcol;
 import prerna.sablecc2.node.ADotcolColDef;
 import prerna.sablecc2.node.AEExprExpr;
 import prerna.sablecc2.node.AExprColDef;
 import prerna.sablecc2.node.AFilter;
+import prerna.sablecc2.node.AFormula;
 import prerna.sablecc2.node.AFrameop;
 import prerna.sablecc2.node.AFrameopColDef;
 import prerna.sablecc2.node.AFrameopScript;
 import prerna.sablecc2.node.AGeneric;
 import prerna.sablecc2.node.ALiteralColDef;
+import prerna.sablecc2.node.AMinusExpr;
+import prerna.sablecc2.node.AMultExpr;
 import prerna.sablecc2.node.AOpScript;
 import prerna.sablecc2.node.AOperationFormula;
 import prerna.sablecc2.node.AOtherscript;
+import prerna.sablecc2.node.APlusExpr;
 import prerna.sablecc2.node.AProp;
 import prerna.sablecc2.node.ARcol;
 import prerna.sablecc2.node.ARelationship;
 import prerna.sablecc2.node.AScriptchain;
 import prerna.sablecc2.node.ASelectNoun;
 import prerna.sablecc2.node.ATermExpr;
+import prerna.sablecc2.node.Node;
 import prerna.sablecc2.reactor.AsReactor;
 import prerna.sablecc2.reactor.ExprReactor;
 import prerna.sablecc2.reactor.FilterReactor;
 import prerna.sablecc2.reactor.GenericReactor;
+import prerna.sablecc2.reactor.GetDataReactor;
+import prerna.sablecc2.reactor.GroupByReactor;
 import prerna.sablecc2.reactor.IReactor;
 import prerna.sablecc2.reactor.ImportDataReactor;
+import prerna.sablecc2.reactor.IterateReactor;
 import prerna.sablecc2.reactor.MergeDataReactor;
 import prerna.sablecc2.reactor.PKSLPlanner;
 import prerna.sablecc2.reactor.QueryReactor;
 import prerna.sablecc2.reactor.SampleReactor;
+import prerna.sablecc2.reactor.qs.AverageSelectorReactor;
+import prerna.sablecc2.reactor.qs.DatabaseReactor;
+import prerna.sablecc2.reactor.qs.FrameReactor;
+import prerna.sablecc2.reactor.qs.JoinReactor;
+import prerna.sablecc2.reactor.qs.LimitReactor;
+import prerna.sablecc2.reactor.qs.OffsetReactor;
+import prerna.sablecc2.reactor.qs.QueryFilterReactor;
+import prerna.sablecc2.reactor.qs.SelectReactor;
 import prerna.ui.components.playsheets.datamakers.IDataMaker;
 
 public class Translation extends DepthFirstAdapter {
@@ -96,15 +120,24 @@ public class Translation extends DepthFirstAdapter {
 	
 	private void postProcess() {
 		//grab the frame here
-		IDataMaker frame = (IDataMaker)planner.getProperty("FRAME", "FRAME");
+		IDataMaker frame = null;
+		try {
+			frame = (IDataMaker)planner.getProperty("FRAME", "FRAME");
+		} catch(Exception e) {
+			
+		}
 		if(frame != null) {
 			runner.setDataFrame(frame);
 		}
+		curReactor = null;
+		prevReactor = null;
+		lastOperation = null;
 	}
 /********************** First is the main level operation, script chain or other script operations ******************/
 	
     public void inAScriptchain(AScriptchain node)
     {
+    	defaultIn(node);
     	System.out.println(">>>>>>");
         System.out.println("Called script chain");
         System.out.println("First operation is " + node.getOtherscript());
@@ -115,6 +148,7 @@ public class Translation extends DepthFirstAdapter {
     
     public void outAScriptchain(AScriptchain node)
     {
+    	defaultOut(node);
     	// this is really where the overall execution should happen
     	System.out.println("<<<<<<<" + node);
 //    	planner.runMyPlan(lastOperation);
@@ -124,6 +158,7 @@ public class Translation extends DepthFirstAdapter {
     
     public void inAOtherscript(AOtherscript node)
     {
+    	defaultIn(node);
         System.out.println("Other script.. " + node);
     }
     
@@ -141,6 +176,7 @@ public class Translation extends DepthFirstAdapter {
     // not sure how to keep the output in some kind of no named variable
     public void inAFrameopScript(AFrameopScript node)
     {
+    	defaultIn(node);
         System.out.println("In a script frameop");
         // once I am in here I am again in the realm of composition
         this.operationType = TypeOfOperation.COMPOSITION;
@@ -148,18 +184,21 @@ public class Translation extends DepthFirstAdapter {
 
     public void outAFrameopScript(AFrameopScript node)
     {
+    	defaultOut(node);
         System.out.println("Out a script frameop");
         this.operationType = TypeOfOperation.PIPELINE;
     }
 
     public void inAOpScript(AOpScript node)
     {
+    	defaultIn(node);
         System.out.println("In a operational formula script");
         this.operationType = TypeOfOperation.COMPOSITION;
     }
 
     public void outAOpScript(AOpScript node)
     {
+    	defaultOut(node);
         System.out.println("Out a operational formula script");
         this.operationType = TypeOfOperation.PIPELINE;
     }
@@ -173,6 +212,7 @@ public class Translation extends DepthFirstAdapter {
     // first of which is a frame operation
     public void inAFrameop(AFrameop node)
     {
+    	defaultIn(node);
         System.out.println("Starting a frame operation");
         
         // create a sample reactor
@@ -186,6 +226,7 @@ public class Translation extends DepthFirstAdapter {
     public void outAFrameop(AFrameop node)
     {
         // I realize I am not doing anything with the output.. this will come next
+    	defaultOut(node);
     	deInitReactor();
     	/*
         curReactor.Out();
@@ -198,6 +239,7 @@ public class Translation extends DepthFirstAdapter {
     // setting the as value on a frame
     public void inAAsop(AAsop node)
     {
+    	defaultIn(node);
         IReactor opReactor = new AsReactor();
         System.out.println("In the AS Component of frame op");
         opReactor.setPKSL("as", node.getAsOp() + "");
@@ -212,29 +254,39 @@ public class Translation extends DepthFirstAdapter {
     }
 
     public void inAGeneric(AGeneric node) {
-        IReactor genReactor = new GenericReactor();
+    	defaultIn(node);
+    	IReactor genReactor = new GenericReactor();
         genReactor.setPKSL("PKSL",(node + "").trim());
         genReactor.setProp("KEY", node.getId().toString().trim());
         initReactor(genReactor);
     }
 
     public void outAGeneric(AGeneric node) {
+    	defaultOut(node);
     	deInitReactor();
-    	System.out.println("outAGeneric: "+node);
     }
 
     // second is a simpler operation
     // something(a,b,c,d) <-- note the absence of square brackets, really not needed
     public void inAOperationFormula(AOperationFormula node)
     {
+    	defaultIn(node);
         System.out.println("Starting a formula operation " + node.getId());
         // I feel like mostly it would be this and not frame op
         // I almost feel I should remove the frame op col def
+//        IReactor opReactor = getReactor(node.getId().toString().trim(), node.toString());
         IReactor opReactor = getReactor(node.getId().toString().trim(), node.toString());
-        //if((node.getId() + "").trim().equalsIgnoreCase("as"))
-        //	opReactor = new AsReactor();
-        opReactor.setPKSL(node.getId()+"", node+"");
-        opReactor.setName("OPERATION_FORMULA");
+        if(opReactor instanceof SampleReactor) {
+	        opReactor = new ExprReactor();
+	        Map<String, String> scriptReactors = new H2Frame().getScriptReactors();
+	        String reactorName = scriptReactors.get(node.getId().toString().trim().toUpperCase());
+	        
+	        //if((node.getId() + "").trim().equalsIgnoreCase("as"))
+	        //	opReactor = new AsReactor();
+	        opReactor.setPKSL(node.getId().toString().trim(), node.toString().trim());
+	        opReactor.setName("OPERATION_FORMULA");
+	        opReactor.setProp("REACTOR_NAME", reactorName);
+        }
         // since there are no square brackets.. there are no nouns
         //opReactor.curNoun("all");
         initReactor(opReactor);
@@ -242,6 +294,16 @@ public class Translation extends DepthFirstAdapter {
 
     public void outAOperationFormula(AOperationFormula node)
     {
+    	defaultOut(node);
+    	
+    	String nodeKey = node.toString().trim();
+    	String childKey = node.getPlainRow().toString().trim();
+    	Object childOutput = curReactor.getProp(childKey);
+    	
+    	if(childOutput != null) {
+    		curReactor.setProp(nodeKey, childOutput);
+    	}
+    	
         deInitReactor();
         System.out.println("Ending a formula operation");
         
@@ -294,11 +356,12 @@ public class Translation extends DepthFirstAdapter {
 
     public void outARcol(ARcol node)
     {
-        defaultIn(node);
+        defaultOut(node);
     }
 
     public void inALiteralColDef(ALiteralColDef node)
     {
+    	defaultIn(node);
     	String thisLiteral = node.getLiteral()+"";
     	thisLiteral = thisLiteral.replace("'","");
     	thisLiteral = thisLiteral.replace("\"","");
@@ -326,6 +389,7 @@ public class Translation extends DepthFirstAdapter {
     // still not clear to me if I do it here or in the frame op
     public void inAFrameopColDef(AFrameopColDef node)
     {
+    	defaultIn(node);
         System.out.println("In a Frame op col DEF a.k.a already within a script" + node);
         // so this is where things REALLY get interesting
         // I have to work through here to figure out what to do with it
@@ -335,6 +399,7 @@ public class Translation extends DepthFirstAdapter {
 
     public void outAFrameopColDef(AFrameopColDef node)
     {
+    	defaultOut(node);
         System.out.println("OUT a Frame op col DEF a.k.a already within a script" + node);
     }
 
@@ -355,12 +420,14 @@ public class Translation extends DepthFirstAdapter {
         // instead of trying to start a new reactor here
         // this check should happen inside the reactor moving it to the reactor
         //if(curReactor != null && !curReactor.getName().equalsIgnoreCase("EXPR"))
-        {
-	        IReactor opReactor = new ExprReactor();
-	        opReactor.setName("EXPR");
-	        opReactor.setPKSL("EXPR",node.getExpr()+"");
-	        initReactor(opReactor);
-        }
+//        {
+//	        IReactor opReactor = new ExprReactor();
+//	        opReactor.setName("EXPR");
+//	        opReactor.setPKSL("EXPR",node.getExpr()+"");
+//	        
+////	        opReactor.setProp("REACTOR_NAME", reactorName);
+//	        initReactor(opReactor);
+//        }
         // else ignore.. this has been taken care of kind of
     }
 
@@ -368,7 +435,7 @@ public class Translation extends DepthFirstAdapter {
     {
         defaultOut(node);
         // TODO need to do the operation of assimilating here
-        deInitReactor();
+//        deInitReactor();
     }
 
     // code sits here
@@ -392,23 +459,28 @@ public class Translation extends DepthFirstAdapter {
     
     public void inAEExprExpr(AEExprExpr node)
     {
+    	defaultIn(node);
         System.out.println("IN Atomic.. " + "expr" + node);
     }
 
     public void outAEExprExpr(AEExprExpr node)
     {
+    	defaultOut(node);
         System.out.println("OUT Atomic.. " + "expr" + node);
     }
 
     
     public void inADecimal(ADecimal node)
     {
+    	defaultIn(node);
         System.out.println("Decimal is" + node.getWhole());
         String fraction = "0";
         if(node.getFraction() != null) fraction = (node.getFraction()+"").trim();
         String value = (node.getWhole()+"").trim() +"." + fraction;
         Double adouble = Double.parseDouble(value);
         curReactor.getCurRow().addDecimal(adouble);
+        curReactor.setProp(node.toString().trim(), adouble);
+        curReactor.setProp("LAST_VALUE", adouble);
     }
 
     public void outADecimal(ADecimal node)
@@ -418,16 +490,20 @@ public class Translation extends DepthFirstAdapter {
     
     public void inAColTerm(AColTerm node)
     {
+    	defaultIn(node);
         String column = (node.getCol()+"").trim();
         curReactor.getCurRow().addColumn(column);
+        curReactor.setProp(node.toString().trim(), column);
     }
 
     public void outAColTerm(AColTerm node)
     {
+    	defaultOut(node);
     }
     
     public void inADotcol(ADotcol node)
     {
+    	defaultIn(node);
         // I need to do the work in terms of finding what is the column name
         String column = (node.getFrameid()+ "." + node.getColumnName()).trim();
         curReactor.getCurRow().addColumn(column);
@@ -441,6 +517,7 @@ public class Translation extends DepthFirstAdapter {
     public void inATermExpr(ATermExpr node)
     {
         System.out.println("Term.. " + node);
+        defaultIn(node);
     }
 
     public void outATermExpr(ATermExpr node)
@@ -450,7 +527,10 @@ public class Translation extends DepthFirstAdapter {
     
     public void inAProp(AProp node)
     {
-        curReactor.setProp((node.getId()+"").trim(), node.getNumberOrLiteral()+"");
+    	defaultIn(node);
+    	String key = node.getId().toString().trim();
+    	String propValue = node.getNumberOrLiteral().toString().trim();
+        curReactor.setProp(key, propValue);
     }
     
     public void inACodeNoun(ACodeNoun node)
@@ -481,7 +561,10 @@ public class Translation extends DepthFirstAdapter {
     //they do very similar things
     public void outARelationship(ARelationship node)
     {
-    	curReactor.getCurRow().addRelation((node.getLcol() + "").trim(), (node.getRelType() + "").trim(), (node.getRcol() + "").trim());
+    	String leftCol = node.getLcol().toString().trim();
+    	String rightCol = node.getRcol().toString().trim();
+    	String relType = node.getRelType().toString().trim();
+    	curReactor.getCurRow().addRelation(leftCol, relType, rightCol);
         defaultOut(node);
     }
 
@@ -498,13 +581,142 @@ public class Translation extends DepthFirstAdapter {
         // so I can interpret the dot notation etc for frame columns
     }
 
-    public void outAFilter(AFilter node)
-    {
-    	//curReactor.getCurRow().addFilter((node.getLcol() + "").trim(), (node.getComparator() + "").trim(), (node.getRcol() + "").trim());
+    public void outAFilter(AFilter node) {
         defaultOut(node);
         deInitReactor();
     }
+    
+    /**************************************************
+     *	Expression Methods
+     **************************************************/
 
+    public void inAFormula(AFormula node) {
+        defaultIn(node);
+    }
+
+    public void outAFormula(AFormula node) {
+        defaultOut(node);
+        String expr = node.getExpr().toString().trim();
+        if(curReactor.hasProp(expr)) {
+        	curReactor.setProp(node.toString().trim(), curReactor.getProp(expr));
+        }
+        System.out.println(curReactor.getProp("LAST_VALUE"));
+    }
+    
+    public void outAPlusExpr(APlusExpr node)
+    {
+    	defaultOut(node);
+    	
+    	String leftKey = node.getLeft().toString().trim();
+    	String rightKey = node.getRight().toString().trim();
+    	
+    	Object rightObj = curReactor.getProp(rightKey);
+    	Object leftObj = curReactor.getProp(leftKey);
+    	
+    	Object result = null;
+		if (rightObj instanceof Double && leftObj instanceof Double) {
+			result = (Double) (leftObj) + (Double) (rightObj);
+			curReactor.setProp(node.toString().trim(), result);
+			curReactor.setProp("LAST_VALUE", result);
+			System.out.println(result);
+		}
+		else  
+		{
+			//TODO: need to make this generic and get the correct type of expression it
+			if(getDataMaker() instanceof H2Frame) {
+				H2Frame frame = (H2Frame) getDataMaker();
+				SqlExpressionBuilder builder = ExpressionGenerator.sqlGenerateSimpleMathExpressions(frame, leftObj, rightObj, node.getPlus().toString().trim());
+				curReactor.setProp(node.toString().trim(), builder);
+			}
+    	}
+    }
+    
+    public void outAMinusExpr(AMinusExpr node)
+    {
+    	String leftKey = node.getLeft().toString().trim();
+    	String rightKey = node.getRight().toString().trim();
+    	
+    	Object rightObj = curReactor.getProp(rightKey);
+    	Object leftObj = curReactor.getProp(leftKey);
+    	
+    	Object result = null;
+		if (rightObj instanceof Double && leftObj instanceof Double) {
+			result = (Double) (leftObj) + (Double) (rightObj);
+			curReactor.setProp(node.toString().trim(), result);
+			curReactor.setProp("LAST_VALUE", result);
+			System.out.println(result);
+		}
+		else  
+		{
+			//TODO: need to make this generic and get the correct type of expression it
+			if(getDataMaker() instanceof H2Frame) {
+				H2Frame frame = (H2Frame) getDataMaker();
+				SqlExpressionBuilder builder = ExpressionGenerator.sqlGenerateSimpleMathExpressions(frame, leftObj, rightObj, node.getMinus().toString().trim());
+				curReactor.setProp(node.toString().trim(), builder);
+			}
+    	}
+    }
+    
+    @Override
+    public void outADivExpr(ADivExpr node)
+    {
+    	String leftKey = node.getLeft().toString().trim();
+    	String rightKey = node.getRight().toString().trim();
+    	
+    	Object rightObj = curReactor.getProp(rightKey);
+    	Object leftObj = curReactor.getProp(leftKey);
+    	
+    	Object result = null;
+		if (rightObj instanceof Double && leftObj instanceof Double) {
+			result = (Double) (leftObj) + (Double) (rightObj);
+			curReactor.setProp(node.toString().trim(), result);
+			curReactor.setProp("LAST_VALUE", result);
+			System.out.println(result);
+		}
+		else  
+		{
+			//TODO: need to make this generic and get the correct type of expression it
+			if(getDataMaker() instanceof H2Frame) {
+				H2Frame frame = (H2Frame) getDataMaker();
+				SqlExpressionBuilder builder = ExpressionGenerator.sqlGenerateSimpleMathExpressions(frame, leftObj, rightObj, node.getDiv().toString().trim());
+				curReactor.setProp(node.toString().trim(), builder);
+			}
+    	}
+    }
+    
+    @Override
+    public void outAMultExpr(AMultExpr node)
+    {
+    	defaultOut(node);
+    	String leftKey = node.getLeft().toString().trim();
+    	String rightKey = node.getRight().toString().trim();
+    	
+    	Object rightObj = curReactor.getProp(rightKey);
+    	Object leftObj = curReactor.getProp(leftKey);
+    	
+    	Object result = null;
+		if (rightObj instanceof Double && leftObj instanceof Double) {
+			result = (Double) (leftObj) + (Double) (rightObj);
+			curReactor.setProp(node.toString().trim(), result);
+			curReactor.setProp("LAST_VALUE", result);
+			System.out.println(result);
+		}
+		else  
+		{
+			//TODO: need to make this generic and get the correct type of expression it
+			if(getDataMaker() instanceof H2Frame) {
+				H2Frame frame = (H2Frame) getDataMaker();
+				SqlExpressionBuilder builder = ExpressionGenerator.sqlGenerateSimpleMathExpressions(frame, leftObj, rightObj, node.getMult().toString().trim());
+				curReactor.setProp(node.toString().trim(), builder);
+			}
+    	}
+    }
+    
+    
+    
+    /**************************************************
+     *	End Expression Methods
+     **************************************************/
 //----------------------------- Private methods
 
     private void initReactor(IReactor reactor)
@@ -577,7 +789,7 @@ public class Translation extends DepthFirstAdapter {
 	    	if(output instanceof IReactor)
 	    		curReactor = (IReactor)output;
 	    	if(output == null)
-	    		curReactor.execute();
+	    		curReactor.execute(); //need to store this result 
     	}
     	// else is the output
     	
@@ -601,20 +813,36 @@ public class Translation extends DepthFirstAdapter {
      * Sets the PKSL operations in the reactor
      */
     private IReactor getReactor(String reactorId, String nodeString) {
+    	IReactor reactor;
     	if(reactorId.trim().equals("Query")) {
-    		IReactor reactor = new QueryReactor();
-        	reactor.setPKSL(reactorId, nodeString);
-        	return reactor;
+    		reactor = new QueryReactor();
     	} else if(reactorId.trim().equals("Import")) {
-    		IReactor reactor = new ImportDataReactor();
-    		reactor.setPKSL(reactorId, nodeString);
-    		return reactor;
+    		reactor = new ImportDataReactor();
     	} else if(reactorId.trim().equals("Merge")) {
-    		IReactor reactor = new MergeDataReactor();
-    		reactor.setPKSL(reactorId, nodeString);
-    		return reactor;
+    		reactor = new MergeDataReactor();
+    	} else if(reactorId.trim().equals("Group")) {
+    		reactor = new GroupByReactor();
+    	} else if(reactorId.trim().equals("Database")) {
+    		reactor = new DatabaseReactor();
+    	} else if(reactorId.trim().equals("Select")) {
+    		reactor = new SelectReactor();
+    	} else if(reactorId.trim().equals("Limit")) {
+    		reactor = new LimitReactor();
+    	} else if(reactorId.trim().equals("Offset")) {
+    		reactor = new OffsetReactor();
+    	} else if(reactorId.trim().equals("Iterate")) {
+    		reactor = new IterateReactor();
+    	} else if(reactorId.trim().equals("GetData")) {
+    		reactor = new GetDataReactor();
+    	} else if(reactorId.trim().equals("Frame")) {
+    		reactor = new FrameReactor();
+    	} else if(reactorId.trim().equals("Join")) {
+    		reactor = new JoinReactor();
+    	} else if(reactorId.trim().equals("Filter")) {
+    		reactor = new QueryFilterReactor();
+    	} else {
+    		reactor = new SampleReactor();
     	}
-    	IReactor reactor = new SampleReactor();
     	reactor.setPKSL(reactorId, nodeString);
     	return reactor;
     }
@@ -675,6 +903,38 @@ public class Translation extends DepthFirstAdapter {
 		    	}
 		    	LOGGER.info("*********************************************\n");
     		}
+    	}
+    }
+    
+    public void defaultIn(@SuppressWarnings("unused") Node node)
+    {
+        // Do nothing
+    	
+    	StackTraceElement[] ste = Thread.currentThread().getStackTrace();
+    	if(ste.length > 2) {
+    		LOGGER.info("CURRENT METHOD: "+ste[2].getMethodName());
+    		LOGGER.info("CURRENT NODE:" + node.toString() );
+    		if(curReactor != null)
+    		LOGGER.info("CUR REACTOR: "+curReactor.toString()+ "\n");
+    		else LOGGER.info("CUR REACTOR: null");
+    	} else {
+    		LOGGER.info("THIS SHOULD NOT HAPPEN!!!!!!!!!!");
+    	}
+    }
+
+    public void defaultOut(@SuppressWarnings("unused") Node node)
+    {
+        // Do nothing
+    	
+    	StackTraceElement[] ste = Thread.currentThread().getStackTrace();
+    	if(ste.length > 2) {
+    		LOGGER.info("CURRENT METHOD: "+ste[2].getMethodName());
+    		LOGGER.info("CURRENT NODE:" + node.toString());
+    		if(curReactor != null)
+    		LOGGER.info("CUR REACTOR: "+curReactor.toString()+ "\n");
+    		else LOGGER.info("CUR REACTOR: null");
+    	} else {
+    		LOGGER.info("THIS SHOULD NOT HAPPEN!!!!!!!!!!");
     	}
     }
 }
