@@ -104,14 +104,14 @@ public class OracleQueryUtil extends SQLQueryUtil {
 	}
 	
 	@Override
-	public String addLimitOffsetToQuery(String query, int limit, int offset) {
+	public StringBuilder addLimitOffsetToQuery(StringBuilder query, int limit, int offset) {
 		
 		if(offset > 0) {
-			query = query.concat(" OFFSET "+offset+" ROWS ");
+			query = query.append(" OFFSET "+offset+" ROWS ");
 		}
 		
 		if(limit > 0) {
-			query = query.concat(" FETCH NEXT " + limit+" ROWS ONLY ");
+			query = query.append(" FETCH NEXT " + limit+" ROWS ONLY ");
 		}
 		
 		return query;
