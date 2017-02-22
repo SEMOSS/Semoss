@@ -543,6 +543,92 @@ public class UserPermissionsMasterDB {
 		return true;
 	}
 	
+	public StringMap<ArrayList<String>> getInsightPermissionsForUser(String userId) {
+		StringMap<ArrayList<String>> ret = new StringMap<ArrayList<String>>();
+		String query = "SELECT E.NAME AS DBNAME, UIP.INSIGHTID AS INSIGHTID FROM UserInsightPermission UIP INNER JOIN Engine E ON E.ID=UIP.ENGINEID "
+				+ " WHERE UIP.USERID='" + userId + "' ORDER BY E.NAME;";
+		
+		ArrayList<String[]> results = runQuery(query);
+		ArrayList<String> insightIDs = new ArrayList<String>();
+		String currDB = "";
+		for(String[] row : results) {
+			if(!currDB.equals(row[0])) {
+				if(insightIDs.isEmpty()) {
+					ret.put(currDB, insightIDs);
+				}
+				currDB = row[0];
+			}
+			insightIDs.add(row[1]);
+		}
+		ret.put(currDB, insightIDs);
+		
+		return ret;
+	}
+	
+	public ArrayList<StringMap<String>> getUserPermissionsForInsight(String databaseName, String insightId) {
+		ArrayList<StringMap<String>> ret = new ArrayList<StringMap<String>>();
+		String query = "SELECT U.ID AS USERID, U.NAME AS USERNAME FROM UserInsightPermission UIP INNER JOIN Engine E ON E.ID=UIP.ENGINEID "
+				+ " INNER JOIN User U ON UIP.USERID=U.ID WHERE E.NAME='" + databaseName + "' AND UIP.INSIGHTID='" + insightId + "' ORDER BY U.NAME;";
+		
+		ArrayList<String[]> results = runQuery(query);
+		for(String[] userInfo : results) {
+			StringMap<String> user = new StringMap<String>();
+			user.put("id", userInfo[0]);
+			user.put("name", userInfo[1]);
+			ret.add(user);
+		}
+		
+		return ret;
+	}
+	
+	public Boolean addInsightPermissionsForUser(String loggedInUser, String userId, String engineName, String insightId) {
+		String query = "SELECT e.ID AS ID FROM Engine e ";
+		if(!isUserAdmin(loggedInUser)) {
+			query += "INNER JOIN EnginePermission ep ON ep.ENGINE=e.ID WHERE EnginePermission.USER='" + loggedInUser + "' AND EnginePermission.PERMISSION=" 
+					+ EnginePermission.OWNER.getId() + " AND e.NAME='" + engineName + "';";
+		} else {
+			query += " WHERE e.NAME='" + engineName + "' ";
+		}
+		
+		String engineId = "";
+		ArrayList<String[]> ret = runQuery(query);
+		if(!ret.isEmpty()) {
+			engineId = ret.get(0)[0];
+			
+			query = "INSERT INTO UserInsightPermission VALUES ('" + userId + "', " + engineId + ", '" + insightId + "');";
+			securityDB.execUpdateAndRetrieveStatement(query, true);
+			securityDB.commit();
+			
+			return true;
+		}
+		
+		return false;
+	}
+	
+	public Boolean removeInsightPermissionsForUser(String loggedInUser, String userId, String engineName, String insightId) {
+		String query = "SELECT e.ID AS ID FROM Engine e ";
+		if(!isUserAdmin(loggedInUser)) {
+			query += "INNER JOIN EnginePermission ep ON ep.ENGINE=e.ID WHERE EnginePermission.USER='" + loggedInUser + "' AND EnginePermission.PERMISSION=" 
+					+ EnginePermission.OWNER.getId() + " AND e.NAME='" + engineName + "';";
+		} else {
+			query += " WHERE e.NAME='" + engineName + "' ";
+		}
+		
+		String engineId = "";
+		ArrayList<String[]> ret = runQuery(query);
+		if(!ret.isEmpty()) {
+			engineId = ret.get(0)[0];
+			
+			query = "DELETE FROM UserInsightPermission WHERE USERID='" + userId + "' AND ENGINEID=" + engineId + " AND INSIGHTID='" + insightId + "');";
+			securityDB.execUpdateAndRetrieveStatement(query, true);
+			securityDB.commit();
+			
+			return true;
+		}
+		
+		return false;
+	}
+	
 	/**
 	 * 
 	 */
