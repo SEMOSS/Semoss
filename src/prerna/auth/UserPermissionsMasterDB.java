@@ -619,7 +619,7 @@ public class UserPermissionsMasterDB {
 		if(!ret.isEmpty()) {
 			engineId = ret.get(0)[0];
 			
-			query = "DELETE FROM UserInsightPermission WHERE USERID='" + userId + "' AND ENGINEID=" + engineId + " AND INSIGHTID='" + insightId + "');";
+			query = "DELETE FROM UserInsightPermission WHERE USERID='" + userId + "' AND ENGINEID=" + engineId + " AND INSIGHTID='" + insightId + "';";
 			securityDB.execUpdateAndRetrieveStatement(query, true);
 			securityDB.commit();
 			
