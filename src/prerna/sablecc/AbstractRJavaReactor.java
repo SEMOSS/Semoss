@@ -591,6 +591,9 @@ public abstract class AbstractRJavaReactor extends AbstractJavaReactor {
 		if(newType.equalsIgnoreCase("string")) {
 			script = frameName + " <- " + frameName + "[, " + colName + " := as.character(" + colName +")]";
 			eval(script);
+		} else if(newType.equalsIgnoreCase("factor")) { 
+			script = frameName + " <- " + frameName + "[, " + colName + " := as.factor(" + colName +")]";
+			eval(script);
 		} else if(newType.equalsIgnoreCase("number")) {
 			script =  frameName + " <- " + frameName + "[, " + colName + " := as.numeric(" + colName +")]";
 			eval(script);
