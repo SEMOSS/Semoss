@@ -584,7 +584,7 @@ public class UserPermissionsMasterDB {
 	public Boolean addInsightPermissionsForUser(String loggedInUser, String userId, String engineName, String insightId) {
 		String query = "SELECT e.ID AS ID FROM Engine e ";
 		if(!isUserAdmin(loggedInUser)) {
-			query += "INNER JOIN EnginePermission ep ON ep.ENGINE=e.ID WHERE EnginePermission.USER='" + loggedInUser + "' AND EnginePermission.PERMISSION=" 
+			query += "INNER JOIN EnginePermission ep ON ep.ENGINE=e.ID WHERE ep.USER='" + loggedInUser + "' AND ep.PERMISSION=" 
 					+ EnginePermission.OWNER.getId() + " AND e.NAME='" + engineName + "';";
 		} else {
 			query += " WHERE e.NAME='" + engineName + "' ";
@@ -608,7 +608,7 @@ public class UserPermissionsMasterDB {
 	public Boolean removeInsightPermissionsForUser(String loggedInUser, String userId, String engineName, String insightId) {
 		String query = "SELECT e.ID AS ID FROM Engine e ";
 		if(!isUserAdmin(loggedInUser)) {
-			query += "INNER JOIN EnginePermission ep ON ep.ENGINE=e.ID WHERE EnginePermission.USER='" + loggedInUser + "' AND EnginePermission.PERMISSION=" 
+			query += "INNER JOIN EnginePermission ep ON ep.ENGINE=e.ID WHERE ep.USER='" + loggedInUser + "' AND ep.PERMISSION=" 
 					+ EnginePermission.OWNER.getId() + " AND e.NAME='" + engineName + "';";
 		} else {
 			query += " WHERE e.NAME='" + engineName + "' ";
