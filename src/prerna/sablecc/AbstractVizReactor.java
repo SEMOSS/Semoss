@@ -153,10 +153,22 @@ public abstract class AbstractVizReactor extends AbstractReactor {
 		if(myStore.containsKey("commentRemoved")) {
 			commentRemoved(metadata);
 		}
+		if(myStore.containsKey("tools")){
+			tools(metadata);
+		}
 		
 		return metadata;
 	}
 	
+	/**
+	 * Add to metadta a panel.tools operation
+	 * @param metadata
+	 */
+	protected void tools(VizPkqlMetadata metadata) {
+		metadata.addTools();			
+		
+	}
+
 	/**
 	 * Add to metadta a comment removed operation
 	 * @param metadata

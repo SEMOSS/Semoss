@@ -1115,6 +1115,7 @@ public class Translation extends DepthFirstAdapter {
 			tools = new ArrayList();
 		}
 		Map thisTools = new Gson().fromJson(node.getMap().toString(), HashMap.class);
+		curReactor.put("tools", thisTools);
 		PWordOrNum state = node.getState();
 		String stateName;
 		if(state == null) {
