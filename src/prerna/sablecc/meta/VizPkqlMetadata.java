@@ -16,6 +16,7 @@ public class VizPkqlMetadata extends AbstractPkqlMetadata {
 	VizLayout layout;
 	VizLookAndFeel laf;
 	VizConfigMap configMap;
+	VizTool tool;
 	
 	@Override
 	public Map<String, Object> getMetadata() {
@@ -49,6 +50,9 @@ public class VizPkqlMetadata extends AbstractPkqlMetadata {
 		}
 		if(this.commentRemoved != null) {
 			metadata.put("commentRemoved", this.comment);
+		}
+		if(this.tool != null) {
+			metadata.put("tool", this.tool);
 		}
 		
 		return metadata;
@@ -88,6 +92,9 @@ public class VizPkqlMetadata extends AbstractPkqlMetadata {
 		if(this.commentRemoved != null) {
 			msg += generateExplaination(this.commentRemoved.getTemplate(), this.commentRemoved.getTemplateData());
 		}
+		if(this.tool != null) {
+			msg += generateExplaination(this.tool.getTemplate(), this.tool.getTemplateData());
+		}
 			
 
 		return msg;
@@ -118,12 +125,17 @@ public class VizPkqlMetadata extends AbstractPkqlMetadata {
 	}
 
 	public void editVizComment(String commentText) {
-		this.commentEdit = new VizCommentEdit(commentText);		
+		this.commentEdit = new VizCommentEdit(commentText);
 	}
+
 	public void removeVizComment() {
 		this.commentRemoved = new VizCommentRemoved();
 	}
-	
+
+	public void addTools() {
+		this.tool = new VizTool();
+	}
+
 }
 
 /**
@@ -213,6 +225,26 @@ class VizCommentRemoved implements VizComponent{
 	@Override
 	public String getTemplate() {
 		return "Removed comment";
+	}
+
+	@Override
+	public Map<String, Object> getTemplateData() {
+		Map<String, Object> templateData = new Hashtable<String, Object>();
+		return templateData;
+	}
+}
+
+/**
+ * Viz component for changing tools
+ */
+class VizTool implements VizComponent{
+
+	public VizTool() {
+	}
+
+	@Override
+	public String getTemplate() {
+		return "Changed tools";
 	}
 
 	@Override
