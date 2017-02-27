@@ -414,6 +414,10 @@ varop = // variable operation usually takes the form of a given variable taking 
 
 csv_row = l_bracket word_or_num csv_group* r_bracket; 		// [1,3]
 
+map_obj_row = l_bracket word_or_num_or_nested_obj word_or_num_or_nested_obj_group* r_bracket;
+
+word_or_num_or_nested_obj_group = comma word_or_num_or_nested_obj;
+
 easy_row = word_or_num easy_group+ newline;
 
 easy_group = comma word_or_num;
@@ -426,7 +430,7 @@ col_table = l_bracket col_csv+ r_bracket; //[[c:col1, c:col2][c:col3, c:col4][c:
 
 word_or_num = {empty} null | {num} decimal | {alpha} word | {expr} [formula]:formula | {variable} var_def ; // I need some way putting an expression here
 
-word_or_num_or_nested_obj = {word_or_num} word_or_num | {nested_map} map_obj | {nested_csv} csv_row;
+word_or_num_or_nested_obj = {word_or_num} word_or_num | {nested_map} map_obj | {nested_csv} map_obj_row;
 
 flex_selector_row = l_bracket selector_term? selector_group* r_bracket;
 
