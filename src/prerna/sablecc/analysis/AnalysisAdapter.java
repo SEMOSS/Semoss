@@ -939,6 +939,12 @@ public class AnalysisAdapter implements Analysis
     }
 
     @Override
+    public void caseAHtmlWordOrNumOrNestedObj(AHtmlWordOrNumOrNestedObj node)
+    {
+        defaultCase(node);
+    }
+
+    @Override
     public void caseAFlexSelectorRow(AFlexSelectorRow node)
     {
         defaultCase(node);
@@ -1744,6 +1750,12 @@ public class AnalysisAdapter implements Analysis
 
     @Override
     public void caseTFileText(TFileText node)
+    {
+        defaultCase(node);
+    }
+
+    @Override
+    public void caseTHtmlText(THtmlText node)
     {
         defaultCase(node);
     }

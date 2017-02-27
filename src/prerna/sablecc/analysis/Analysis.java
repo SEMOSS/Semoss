@@ -156,6 +156,7 @@ public interface Analysis extends Switch
     void caseAWordOrNumWordOrNumOrNestedObj(AWordOrNumWordOrNumOrNestedObj node);
     void caseANestedMapWordOrNumOrNestedObj(ANestedMapWordOrNumOrNestedObj node);
     void caseANestedCsvWordOrNumOrNestedObj(ANestedCsvWordOrNumOrNestedObj node);
+    void caseAHtmlWordOrNumOrNestedObj(AHtmlWordOrNumOrNestedObj node);
     void caseAFlexSelectorRow(AFlexSelectorRow node);
     void caseASelectorTerm(ASelectorTerm node);
     void caseASelectorGroup(ASelectorGroup node);
@@ -292,6 +293,7 @@ public interface Analysis extends Switch
     void caseTDataframeheader(TDataframeheader node);
     void caseTDataframeduplicates(TDataframeduplicates node);
     void caseTFileText(TFileText node);
+    void caseTHtmlText(THtmlText node);
     void caseTPanelcommentremove(TPanelcommentremove node);
     void caseTPanelcommentedit(TPanelcommentedit node);
     void caseTPanelcommentadd(TPanelcommentadd node);
