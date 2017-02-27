@@ -15,7 +15,7 @@ import prerna.sablecc.meta.VizPkqlMetadata;
 public abstract class AbstractVizReactor extends AbstractReactor {
 
 	public AbstractVizReactor() {
-		String[] thisReacts = {PKQLEnum.WORD_OR_NUM, "VIZ_SELECTOR", "VIZ_TYPE", "VIZ_FORMULA", "MERGE_HEADER_INFO"};
+		String[] thisReacts = {PKQLEnum.WORD_OR_NUM, "VIZ_SELECTOR", "VIZ_TYPE", "VIZ_FORMULA", "MERGE_HEADER_INFO", PKQLEnum.MAP_OBJ};
 		super.whatIReactTo = thisReacts;
 		super.whoAmI = PKQLEnum.VIZ;
 	}
