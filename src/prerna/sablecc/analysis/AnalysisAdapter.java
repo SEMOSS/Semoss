@@ -849,6 +849,18 @@ public class AnalysisAdapter implements Analysis
     }
 
     @Override
+    public void caseAMapObjRow(AMapObjRow node)
+    {
+        defaultCase(node);
+    }
+
+    @Override
+    public void caseAWordOrNumOrNestedObjGroup(AWordOrNumOrNestedObjGroup node)
+    {
+        defaultCase(node);
+    }
+
+    @Override
     public void caseAEasyRow(AEasyRow node)
     {
         defaultCase(node);

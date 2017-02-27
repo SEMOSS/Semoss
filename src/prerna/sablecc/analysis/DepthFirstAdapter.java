@@ -3732,6 +3732,67 @@ public class DepthFirstAdapter extends AnalysisAdapter
         outACsvRow(node);
     }
 
+    public void inAMapObjRow(AMapObjRow node)
+    {
+        defaultIn(node);
+    }
+
+    public void outAMapObjRow(AMapObjRow node)
+    {
+        defaultOut(node);
+    }
+
+    @Override
+    public void caseAMapObjRow(AMapObjRow node)
+    {
+        inAMapObjRow(node);
+        if(node.getLBracket() != null)
+        {
+            node.getLBracket().apply(this);
+        }
+        if(node.getWordOrNumOrNestedObj() != null)
+        {
+            node.getWordOrNumOrNestedObj().apply(this);
+        }
+        {
+            List<PWordOrNumOrNestedObjGroup> copy = new ArrayList<PWordOrNumOrNestedObjGroup>(node.getWordOrNumOrNestedObjGroup());
+            for(PWordOrNumOrNestedObjGroup e : copy)
+            {
+                e.apply(this);
+            }
+        }
+        if(node.getRBracket() != null)
+        {
+            node.getRBracket().apply(this);
+        }
+        outAMapObjRow(node);
+    }
+
+    public void inAWordOrNumOrNestedObjGroup(AWordOrNumOrNestedObjGroup node)
+    {
+        defaultIn(node);
+    }
+
+    public void outAWordOrNumOrNestedObjGroup(AWordOrNumOrNestedObjGroup node)
+    {
+        defaultOut(node);
+    }
+
+    @Override
+    public void caseAWordOrNumOrNestedObjGroup(AWordOrNumOrNestedObjGroup node)
+    {
+        inAWordOrNumOrNestedObjGroup(node);
+        if(node.getComma() != null)
+        {
+            node.getComma().apply(this);
+        }
+        if(node.getWordOrNumOrNestedObj() != null)
+        {
+            node.getWordOrNumOrNestedObj().apply(this);
+        }
+        outAWordOrNumOrNestedObjGroup(node);
+    }
+
     public void inAEasyRow(AEasyRow node)
     {
         defaultIn(node);
@@ -4050,9 +4111,9 @@ public class DepthFirstAdapter extends AnalysisAdapter
     public void caseANestedCsvWordOrNumOrNestedObj(ANestedCsvWordOrNumOrNestedObj node)
     {
         inANestedCsvWordOrNumOrNestedObj(node);
-        if(node.getCsvRow() != null)
+        if(node.getMapObjRow() != null)
         {
-            node.getCsvRow().apply(this);
+            node.getMapObjRow().apply(this);
         }
         outANestedCsvWordOrNumOrNestedObj(node);
     }

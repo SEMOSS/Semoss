@@ -37,8 +37,7 @@ public class H2FilterHash {
 			setFilters(columnHeader, values, comparator);
 		} else {
 			Map<String, Set<Object>> innerMap = filterHash.get(columnHeader);
-			if (innerMap.get(comparator) == null
-					|| (!comparator.equals(AbstractTableDataFrame.Comparator.EQUAL) && !comparator.equals(AbstractTableDataFrame.Comparator.NOT_EQUAL))) {
+			if (innerMap.get(comparator) == null || (!comparator.equals("=") && !comparator.equals("!="))) {
 				innerMap.put(comparator, new HashSet<>(values));
 			} else {
 				innerMap.get(comparator).addAll(values);
@@ -76,7 +75,18 @@ public class H2FilterHash {
 		filterHash.clear();
 	}
 
+	public Map<String, Map<String, Set<Object>>> getFilterHash() {
+		return this.filterHash;
+	}
+	
+	public boolean hasFilter(String column) {
+		return this.filterHash.containsKey(column);
+	}
 
+	public boolean isEmpty() {
+		return this.filterHash.isEmpty();
+	}
+	
 	public String makeFilterSubQuery() {
 		String filterStatement = "";
 		if (filterHash.keySet().size() > 0) {
@@ -142,10 +152,6 @@ public class H2FilterHash {
 		}
 
 		return filterStatement;
-	}
-
-	public Map<String, Map<String, Set<Object>>> getFilterHash() {
-		return this.filterHash;
 	}
 	
 	private String getQueryStringList(Set<Object> values) {

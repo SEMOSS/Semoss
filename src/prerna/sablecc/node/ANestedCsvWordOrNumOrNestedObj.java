@@ -7,7 +7,7 @@ import prerna.sablecc.analysis.*;
 @SuppressWarnings("nls")
 public final class ANestedCsvWordOrNumOrNestedObj extends PWordOrNumOrNestedObj
 {
-    private PCsvRow _csvRow_;
+    private PMapObjRow _mapObjRow_;
 
     public ANestedCsvWordOrNumOrNestedObj()
     {
@@ -15,10 +15,10 @@ public final class ANestedCsvWordOrNumOrNestedObj extends PWordOrNumOrNestedObj
     }
 
     public ANestedCsvWordOrNumOrNestedObj(
-        @SuppressWarnings("hiding") PCsvRow _csvRow_)
+        @SuppressWarnings("hiding") PMapObjRow _mapObjRow_)
     {
         // Constructor
-        setCsvRow(_csvRow_);
+        setMapObjRow(_mapObjRow_);
 
     }
 
@@ -26,7 +26,7 @@ public final class ANestedCsvWordOrNumOrNestedObj extends PWordOrNumOrNestedObj
     public Object clone()
     {
         return new ANestedCsvWordOrNumOrNestedObj(
-            cloneNode(this._csvRow_));
+            cloneNode(this._mapObjRow_));
     }
 
     @Override
@@ -35,16 +35,16 @@ public final class ANestedCsvWordOrNumOrNestedObj extends PWordOrNumOrNestedObj
         ((Analysis) sw).caseANestedCsvWordOrNumOrNestedObj(this);
     }
 
-    public PCsvRow getCsvRow()
+    public PMapObjRow getMapObjRow()
     {
-        return this._csvRow_;
+        return this._mapObjRow_;
     }
 
-    public void setCsvRow(PCsvRow node)
+    public void setMapObjRow(PMapObjRow node)
     {
-        if(this._csvRow_ != null)
+        if(this._mapObjRow_ != null)
         {
-            this._csvRow_.parent(null);
+            this._mapObjRow_.parent(null);
         }
 
         if(node != null)
@@ -57,23 +57,23 @@ public final class ANestedCsvWordOrNumOrNestedObj extends PWordOrNumOrNestedObj
             node.parent(this);
         }
 
-        this._csvRow_ = node;
+        this._mapObjRow_ = node;
     }
 
     @Override
     public String toString()
     {
         return ""
-            + toString(this._csvRow_);
+            + toString(this._mapObjRow_);
     }
 
     @Override
     void removeChild(@SuppressWarnings("unused") Node child)
     {
         // Remove child
-        if(this._csvRow_ == child)
+        if(this._mapObjRow_ == child)
         {
-            this._csvRow_ = null;
+            this._mapObjRow_ = null;
             return;
         }
 
@@ -84,9 +84,9 @@ public final class ANestedCsvWordOrNumOrNestedObj extends PWordOrNumOrNestedObj
     void replaceChild(@SuppressWarnings("unused") Node oldChild, @SuppressWarnings("unused") Node newChild)
     {
         // Replace child
-        if(this._csvRow_ == oldChild)
+        if(this._mapObjRow_ == oldChild)
         {
-            setCsvRow((PCsvRow) newChild);
+            setMapObjRow((PMapObjRow) newChild);
             return;
         }
 
