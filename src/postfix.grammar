@@ -17,7 +17,9 @@ Helpers
  endjson = '</json>';
  startquery = '<query>';
  endquery = '</query>';
-
+ starthtml = '<html>';
+ endhtml = '</html>';
+ 
 Tokens
  number = ['0' .. '9']+;
  boolean = ('TRUE' | 'FALSE' | 'true' | 'false');
@@ -99,6 +101,7 @@ Tokens
  dataframeheader = 'data.frame.getHeaders';
  dataframeduplicates = 'data.frame.hasDuplicates';
  file_text = '<startInput>' alphanumeric* '<endInput>';
+ html_text = quote starthtml alphanumeric* endhtml quote;
  panelcommentremove = panelcommentprefix '.remove';
  panelcommentedit = panelcommentprefix '.edit';
  panelcommentadd = panelcommentprefix '.add';
@@ -430,7 +433,7 @@ col_table = l_bracket col_csv+ r_bracket; //[[c:col1, c:col2][c:col3, c:col4][c:
 
 word_or_num = {empty} null | {num} decimal | {alpha} word | {expr} [formula]:formula | {variable} var_def ; // I need some way putting an expression here
 
-word_or_num_or_nested_obj = {word_or_num} word_or_num | {nested_map} map_obj | {nested_csv} map_obj_row;
+word_or_num_or_nested_obj = {word_or_num} word_or_num | {nested_map} map_obj | {nested_csv} map_obj_row | {html} html_text ;
 
 flex_selector_row = l_bracket selector_term? selector_group* r_bracket;
 
