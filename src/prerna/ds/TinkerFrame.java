@@ -937,7 +937,7 @@ public class TinkerFrame extends AbstractTableDataFrame {
 		TinkerMetaHelper.mergeEdgeHash(this.metaData, primKeyEdgeHash, null);
 	}
 	
-	public TinkerFrame(String[] headerNames, Hashtable<String, Set<String>> edgeHash) {
+	public TinkerFrame(String[] headerNames, Map<String, Set<String>> edgeHash) {
 		this.headerNames = headerNames;
 		g = TinkerGraph.open();
 		g.createIndex(TINKER_TYPE, Vertex.class);

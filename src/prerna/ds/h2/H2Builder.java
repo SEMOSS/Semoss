@@ -628,13 +628,15 @@ public class H2Builder {
 			sql.append(", ");
 			sql.append(columnsToUpdate[colIndex]).append(" = ?");
 		}
-		sql.append(" WHERE ").append(whereColumns[0]).append(" = ?");
-		for (int colIndex = 1; colIndex < whereColumns.length; colIndex++) {
-			sql.append(" AND ");
-			sql.append(whereColumns[colIndex]).append(" = ?");
+		if(whereColumns.length > 0) {
+			sql.append(" WHERE ").append(whereColumns[0]).append(" = ?");
+			for (int colIndex = 1; colIndex < whereColumns.length; colIndex++) {
+				sql.append(" AND ");
+				sql.append(whereColumns[colIndex]).append(" = ?");
+			}
+			sql.append("");
 		}
-		sql.append("");
-
+		
 		PreparedStatement ps = null;
 		try {
 			// create the prepared statement using the sql query defined
