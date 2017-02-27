@@ -172,10 +172,10 @@ public class MhsGenesisSystemDeploymentSavingsPlaySheet extends TablePlaySheet {
 		
 		StringBuilder globallyDeployedSystemCostSavings = new StringBuilder("SELECT SYSTEM ");
 		for(int i = 0; i < numColumns; i++) {
-			globallyDeployedSystemCostSavings.append(", FY" + (15+i) + " / NUM_SITES");
+			globallyDeployedSystemCostSavings.append(", SUM(FY" + (15+i) + " / NUM_SITES) ");
 		}
 		globallyDeployedSystemCostSavings.append(" FROM ").append(mainSustainmentFrame.getTableName());
-		globallyDeployedSystemCostSavings.append(" WHERE Central_Deployment='TRUE';");
+		globallyDeployedSystemCostSavings.append(" WHERE Central_Deployment='TRUE' GROUP BY SYSTEM;");
 		
 		// the cost savings for all of these systems will occur on final year of deployment schedule 
 		updateSystemCostValues(globallyDeployedSystemCostSavings.toString(), "FY" + (15+numColumns-3), 1.0);
