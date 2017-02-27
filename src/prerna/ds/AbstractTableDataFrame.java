@@ -142,7 +142,7 @@ public abstract class AbstractTableDataFrame implements ITableDataFrame {
 	 * Store the data types associated with new headers that are created during mergeEdgeHash
 	 * @param dataTypeMap
 	 */
-	private void mergeDataTypeMap(Map<String, String> dataTypeMap) {
+	public void mergeDataTypeMap(Map<String, String> dataTypeMap) {
 		// sets any missing data type to be a string
 		if(dataTypeMap != null) {
 			for(String key : dataTypeMap.keySet()) {
