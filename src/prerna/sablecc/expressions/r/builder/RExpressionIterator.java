@@ -59,6 +59,22 @@ public class RExpressionIterator implements Iterator<Object[]> {
 			generateExpression();
 		}
 		frame.executeRScript(this.dataTableName + "<-" + rScript);
+		int limit = this.builder.getLimit();
+		int offset = this.builder.getOffset();
+		if(limit > 0) {
+			if(offset > 0) {
+				frame.executeRScript(this.dataTableName + "<-" + this.dataTableName + "[" + offset + ":" + (offset+limit) + ",]");
+			} else {
+				frame.executeRScript(this.dataTableName + "<-" + this.dataTableName + "[1:" + (offset+limit) + ",]");
+			}
+		} else if(offset > 0) {
+			frame.executeRScript(this.dataTableName + "<-" + this.dataTableName + "[" + offset + ":nrow(" + this.dataTableName + "),]");
+		}
+		IExpressionSelector sortBy = this.builder.getSortSelector();
+		if(sortBy != null) {
+			frame.executeRScript(this.dataTableName + "<-" + this.dataTableName + sortBy.toString());
+		}
+		
 		this.numRows = frame.getNumRows(this.dataTableName);
 		this.rowIndex = 1;
 		getHeaderTypes();
