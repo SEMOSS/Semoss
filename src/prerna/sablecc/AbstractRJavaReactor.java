@@ -40,6 +40,7 @@ public abstract class AbstractRJavaReactor extends AbstractJavaReactor {
 	public static final String R_ENGINE = "R_ENGINE";
 	public static final String R_GRAQH_FOLDERS = "R_GRAQH_FOLDERS";
 	
+	private static long counter = 0;
 	public AbstractRJavaReactor() {
 		super();
 	}
@@ -107,6 +108,25 @@ public abstract class AbstractRJavaReactor extends AbstractJavaReactor {
 	//////////////////////// R Methods /////////////////////////
 	
 	/**
+	 * Shift the dataframe into R with a default name
+	 */
+	public void synchronizeToR() {
+		java.lang.System.setSecurityManager(curManager);
+		if(dataframe instanceof TinkerFrame) {
+			synchronizeGraphToR();
+		}
+		else if(dataframe instanceof H2Frame) {
+			synchronizeGridToR();
+		}
+	}
+	
+	private static String getDefaultName() {
+		//TODO: need to check variable names
+		//make sure default name won't override
+		return "df_"+counter++;
+	}
+	
+	/**
 	 * Shift the dataframe into R
 	 * @param rVarName
 	 */
@@ -142,6 +162,11 @@ public abstract class AbstractRJavaReactor extends AbstractJavaReactor {
 	////////////////////////////////////////////////////////////
 	////////////////////////////////////////////////////////////
 	////////////////////// H2 R Methods ////////////////////////
+	
+	protected void synchronizeGridToR() {
+		String defaultName = getDefaultName();
+		synchronizeGridToR(defaultName);
+	}
 	
 	/**
 	 * Synchronize the grid to R
@@ -1336,6 +1361,11 @@ public abstract class AbstractRJavaReactor extends AbstractJavaReactor {
 	////////////////////////////////////////////////////////////
 	//////////////////// Tinker R Methods //////////////////////
 
+	protected void synchronizeGraphToR() {
+		String defaultName = getDefaultName();
+		synchronizeGraphToR(defaultName);
+	}
+	
 	protected void synchronizeGraphToR(String rVarName) {
 		String baseFolder = getBaseFolder();
 		String randomDir = Utility.getRandomString(22);
