@@ -112,7 +112,7 @@ public class MhsGenesisSystemDeploymentSavingsPlaySheet extends TablePlaySheet {
 		Iterator<Object[]> it = this.systemDeploymentSavings.iterator();
 		System.out.println(">>> " + Arrays.toString( headers ) );
 		try{
-			PrintWriter writer = new PrintWriter("C:\\Users\\mahkhalil\\Desktop\\Datasets\\SystemDeploymentSavings.csv", "UTF-8");
+			PrintWriter writer = new PrintWriter("C:\\Users\\mahkhalil\\Desktop\\Datasets\\SAVINGS_SystemView.csv", "UTF-8");
 			for(Object val : headers) {
 				writer.print(val + ",");
 			}
@@ -192,7 +192,7 @@ public class MhsGenesisSystemDeploymentSavingsPlaySheet extends TablePlaySheet {
 		// get all the systems and their cost
 		StringBuilder baseSiteSystemSpecificCost = new StringBuilder("SELECT SYSTEM ");
 		for(int i = 0; i < numColumns; i++) {
-			baseSiteSystemSpecificCost.append(", FY" + (15+i));
+			baseSiteSystemSpecificCost.append(", SUM(FY" + (15+i) + ")");
 		}
 		baseSiteSystemSpecificCost.append(" FROM ").append(systemSiteSustainmentFrame.getTableName());
 		
@@ -222,7 +222,7 @@ public class MhsGenesisSystemDeploymentSavingsPlaySheet extends TablePlaySheet {
 			
 			// so we have the list of sites to filter to in this wave
 			// append that to the base site system specific cost query and then update the values
-			StringBuilder siteSystemSpecificCost = new StringBuilder(baseSiteSystemSpecificCost.toString()).append(siteSystemFilter.toString());
+			StringBuilder siteSystemSpecificCost = new StringBuilder(baseSiteSystemSpecificCost.toString()).append(siteSystemFilter.toString()).append(" GROUP BY SYSTEM;");
 			// update the base site specific costs
 			// this is a different method only because chcs has year of savings pushed by 2 years
 			updateSiteSpecificSystemCostValues(siteSystemSpecificCost.toString(), endYear);
