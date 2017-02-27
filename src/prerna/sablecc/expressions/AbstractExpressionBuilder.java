@@ -13,6 +13,11 @@ public abstract class AbstractExpressionBuilder implements IExpressionBuilder {
 	protected AbstractExpressionSelectorStatement selectors;
 	protected AbstractExpressionGroupBy groups;
 	
+	protected int offset;
+	protected int limit;
+	
+	protected IExpressionSelector sortBy;
+	
 	/*
 	 * Only two methods that the user needs to define within the expression builder
 	 */
@@ -93,5 +98,35 @@ public abstract class AbstractExpressionBuilder implements IExpressionBuilder {
 	@Override
 	public List<String> getAllTableColumnsUsed() {
 		return selectors.getAllTableColumnsUsed();
+	}
+	
+	@Override
+	public void addLimit(int limit) {
+		this.limit = limit;
+	}
+
+	@Override
+	public void addOffset(int offset) {
+		this.offset = offset;
+	}
+	
+	@Override
+	public int getLimit() {
+		return this.limit;
+	}
+	
+	@Override
+	public int getOffset() {
+		return this.offset;
+	}
+
+	@Override
+	public void addSortSelector(IExpressionSelector sortBy) {
+		this.sortBy = sortBy;
+	}
+	
+	@Override
+	public IExpressionSelector getSortSelector() {
+		return this.sortBy;
 	}
 }

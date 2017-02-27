@@ -123,4 +123,42 @@ public interface IExpressionBuilder {
 	 * @return
 	 */
 	Object getScalarValue();
+	
+	/**
+	 * Add a limit to the returned results
+	 * @param limit
+	 */
+	void addLimit(int limit);
+	
+	/**
+	 * Add an offset to the returned results
+	 * @param offset
+	 */
+	void addOffset(int offset);
+	
+	/**
+	 * Get the limit
+	 * @return
+	 */
+	int getLimit();
+	
+	/**
+	 * Get the offset
+	 * @return
+	 */
+	int getOffset();
+	
+	/**
+	 * Add a sort selector
+	 * @param selector
+	 */
+	void addSortSelector(IExpressionSelector selector);
+
+	/**
+	 * Return the sort selector
+	 * @param sortBy
+	 * @return
+	 */
+	IExpressionSelector getSortSelector();
+	
 }
