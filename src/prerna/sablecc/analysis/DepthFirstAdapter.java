@@ -4118,6 +4118,27 @@ public class DepthFirstAdapter extends AnalysisAdapter
         outANestedCsvWordOrNumOrNestedObj(node);
     }
 
+    public void inAHtmlWordOrNumOrNestedObj(AHtmlWordOrNumOrNestedObj node)
+    {
+        defaultIn(node);
+    }
+
+    public void outAHtmlWordOrNumOrNestedObj(AHtmlWordOrNumOrNestedObj node)
+    {
+        defaultOut(node);
+    }
+
+    @Override
+    public void caseAHtmlWordOrNumOrNestedObj(AHtmlWordOrNumOrNestedObj node)
+    {
+        inAHtmlWordOrNumOrNestedObj(node);
+        if(node.getHtmlText() != null)
+        {
+            node.getHtmlText().apply(this);
+        }
+        outAHtmlWordOrNumOrNestedObj(node);
+    }
+
     public void inAFlexSelectorRow(AFlexSelectorRow node)
     {
         defaultIn(node);

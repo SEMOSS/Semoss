@@ -2164,6 +2164,15 @@ public class Translation extends DepthFirstAdapter {
 		curReactor.put(PKQLEnum.KEY_VALUE_PAIR, map);
 	}
 
+    public void outAHtmlWordOrNumOrNestedObj(AHtmlWordOrNumOrNestedObj node)
+    {
+    	String word = node.getHtmlText().toString().trim();
+		String cleaned = word.substring(1, word.length() - 1);// remove the
+																// quotes
+		curReactor.put(PKQLEnum.WORD_OR_NUM, cleaned);
+		curReactor.addReplacer(word, cleaned);
+    }
+
 	@Override
 	public void caseAKeyvalueGroup(AKeyvalueGroup node) {
 		// this code will only go through the key value
