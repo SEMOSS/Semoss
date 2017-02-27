@@ -16,7 +16,6 @@ import prerna.rdf.query.util.SEMOSSQuery;
 import prerna.rdf.query.util.SEMOSSQueryHelper;
 import prerna.rdf.query.util.SPARQLConstants;
 import prerna.rdf.query.util.TriplePart;
-import prerna.util.Constants;
 import prerna.util.Utility;
 
 public class SPARQLInterpreter implements IQueryInterpreter {
@@ -60,7 +59,11 @@ public class SPARQLInterpreter implements IQueryInterpreter {
 		String query = null;
 		semossQuery.createQuery();
 		query = semossQuery.getQuery();
-		System.out.println("QUERY....  " + query);
+		if(query.length() > 500) {
+			System.out.println("QUERY....  " + query.substring(0,  500) + "...");
+		} else {
+			System.out.println("QUERY....  " + query);
+		}
 		return query;
 	}
 
