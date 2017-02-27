@@ -32,6 +32,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Hashtable;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 import prerna.engine.api.IEngine;
@@ -194,7 +195,7 @@ public final class DHMSMDeploymentHelper {
 		return determineLastWaveForInput(waveOrder, inputHash);
 	}
 	
-	public static HashMap<String, String> determineLastWaveForInput(List<String> waveOrder, HashMap<String, List<String>> waveHash) {
+	public static HashMap<String, String> determineLastWaveForInput(List<String> waveOrder, Map<String, List<String>> waveHash) {
 		HashMap<String, String> retHash = new HashMap<String, String>();
 
 		for(String entity : waveHash.keySet()) {
