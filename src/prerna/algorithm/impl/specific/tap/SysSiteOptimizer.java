@@ -100,16 +100,16 @@ public class SysSiteOptimizer extends UnivariateOpt {
 	public double[] deployCostPerYearArr, futureCostPerYearArr, currCostPerYearArr, cummDeployCostArr, cummCostAvoidedArr;
 	public double[][] balanceArr;
 	
-	private final String RECOMMENDED_SUSTAIN = "Recommended Sustain";
-	private final String RECOMMENDED_CONSOLIDATION = "Recommended Consolidation";
-	private final String SUSTAINED_AND_DEPLOYED_SYSTEMS = "Sustained and Deployed Systems";
-	private final String CONSOLIDATED_SYSTEMS = "Consolidated Systems";
+	private final String RECOMMENDED_SUSTAIN = "Recommended_Sustain";
+	private final String RECOMMENDED_CONSOLIDATION = "Recommended_Consolidation";
+	private final String SUSTAINED_AND_DEPLOYED_SYSTEMS = "Sustained_and_Deployed_Systems";
+	private final String CONSOLIDATED_SYSTEMS = "Consolidated_Systems";
 
-	private final String SUSTAINED_HOST_SITE = "Sustained Host Site";
-	private final String PREVIOUSLY_HOSTED_SITE = "Previously Hosted Site";
-	private final String SUSTAINED_ACCESSIBLE_SITE = "Sustained Accessible Site";
-	private final String DEPLOYED_ACCESSIBLE_SITE = "Deployed Accessible Site";
-	private final String PREVIOUSLY_ACCESSIBLE_SITE = "Previously Accessible Site";
+	private final String SUSTAINED_HOST_SITE = "Sustained_Host_Site";
+	private final String PREVIOUSLY_HOSTED_SITE = "Previously_Hosted_Site";
+	private final String SUSTAINED_ACCESSIBLE_SITE = "Sustained_Accessible_Site";
+	private final String DEPLOYED_ACCESSIBLE_SITE = "Deployed_Accessible_Site";
+	private final String PREVIOUSLY_ACCESSIBLE_SITE = "Previously_Accessible_Site";
 	
 	public int startYear = 2015;
 	
@@ -864,13 +864,13 @@ public class SysSiteOptimizer extends UnivariateOpt {
 		siteSavingsFromCentralSystems = calculateSiteSavingsForCentralSystems(centralSysData.systemSiteMatrix, centralSysData.systemCentralMaintenanceCostArr, sustainedCentralSysIndiciesArr);
 		
 		ITableDataFrame data = new H2Frame();
-		String[] names = new String[]{"DCSite", "lat", "lon", "Site Savings", SUSTAINED_AND_DEPLOYED_SYSTEMS, CONSOLIDATED_SYSTEMS};
+		String[] names = new String[]{"DCSite", "lat", "lon", "Site_Savings", SUSTAINED_AND_DEPLOYED_SYSTEMS, CONSOLIDATED_SYSTEMS};
 		Map<String, Set<String>> primKeyEdgeHash = TinkerMetaHelper.createPrimKeyEdgeHash(names);
 		Map<String, String> dataTypeMap = new HashMap<String, String>();
 		dataTypeMap.put("DCSite", "STRING");
 		dataTypeMap.put("lat", "DOUBLE");
 		dataTypeMap.put("lon", "DOUBLE");
-		dataTypeMap.put("Site Savings", "DOUBLE");
+		dataTypeMap.put("Site_Savings", "DOUBLE");
 		dataTypeMap.put(SUSTAINED_AND_DEPLOYED_SYSTEMS, "STRING");
 		dataTypeMap.put(CONSOLIDATED_SYSTEMS, "STRING");
 		data.mergeEdgeHash(primKeyEdgeHash, dataTypeMap);
