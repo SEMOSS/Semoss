@@ -141,6 +141,8 @@ public interface Analysis extends Switch
     void caseAVarDef(AVarDef node);
     void caseAVarop(AVarop node);
     void caseACsvRow(ACsvRow node);
+    void caseAMapObjRow(AMapObjRow node);
+    void caseAWordOrNumOrNestedObjGroup(AWordOrNumOrNestedObjGroup node);
     void caseAEasyRow(AEasyRow node);
     void caseAEasyGroup(AEasyGroup node);
     void caseACsvTable(ACsvTable node);
