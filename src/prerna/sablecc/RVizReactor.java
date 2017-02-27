@@ -13,6 +13,7 @@ import prerna.sablecc.expressions.r.builder.RColumnSelector;
 import prerna.sablecc.expressions.r.builder.RConstantSelector;
 import prerna.sablecc.expressions.r.builder.RExpressionBuilder;
 import prerna.sablecc.expressions.r.builder.RExpressionIterator;
+import prerna.sablecc.expressions.r.builder.RSortSelector;
 import prerna.util.ArrayUtilityMethods;
 
 public class RVizReactor extends AbstractVizReactor{
@@ -25,6 +26,7 @@ public class RVizReactor extends AbstractVizReactor{
 		Vector<Object> selectors = (Vector<Object>) getValue("VIZ_SELECTOR");
 		Vector<String> vizTypes = (Vector<String>) getValue("VIZ_TYPE");
 		Vector<String> vizFormula = (Vector<String>) getValue("VIZ_FORMULA");
+		Map<Object, Object> optionsMap = (Map<Object, Object>) getValue(PKQLEnum.MAP_OBJ);
 
 		if(selectors == null || selectors.size() == 0) {
 			// this is the case when user wants a grid of everything
@@ -106,6 +108,27 @@ public class RVizReactor extends AbstractVizReactor{
 		
 		if(mergeMaps.size() == 0) {
 			// yay, we can just run the query and return it
+			if(optionsMap != null) {
+				if(optionsMap.containsKey("limit")) {
+					mainBuilder.addLimit((int) optionsMap.get("limit"));
+				}
+				if(optionsMap.containsKey("offset")) {
+					mainBuilder.addOffset((int) optionsMap.get("offset"));
+				}
+				if(optionsMap.containsKey("sortVar")) {
+					String sortVar = optionsMap.get("sortVar").toString().trim();
+					String sortDir = "DESC";
+					if(optionsMap.containsKey("sortDir")) {
+						sortDir = optionsMap.get("sortDir") + "";
+					}
+					// this will match the formula used 
+					// i.e. for a column, it is c: Studio
+					// or it is m:Sum( blah blah )
+					int valIndex = vizFormula.indexOf(sortVar);
+					List<IExpressionSelector> builderSelectors = mainBuilder.getSelectors();
+					mainBuilder.addSortSelector(new RSortSelector(builderSelectors.get(valIndex).getName(), sortDir));
+				}
+			}
 			RExpressionIterator it = new RExpressionIterator(mainBuilder);
 			List<Object[]> data = new Vector<Object[]>();
 			while(it.hasNext()) {
