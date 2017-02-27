@@ -13,6 +13,7 @@ import prerna.sablecc.expressions.sql.H2SqlExpressionIterator;
 import prerna.sablecc.expressions.sql.builder.SqlColumnSelector;
 import prerna.sablecc.expressions.sql.builder.SqlConstantSelector;
 import prerna.sablecc.expressions.sql.builder.SqlExpressionBuilder;
+import prerna.sablecc.expressions.sql.builder.SqlSortSelector;
 import prerna.util.ArrayUtilityMethods;
 
 public class H2VizReactor extends AbstractVizReactor {
@@ -25,7 +26,8 @@ public class H2VizReactor extends AbstractVizReactor {
 		Vector<Object> selectors = (Vector<Object>) getValue("VIZ_SELECTOR");
 		Vector<String> vizTypes = (Vector<String>) getValue("VIZ_TYPE");
 		Vector<String> vizFormula = (Vector<String>) getValue("VIZ_FORMULA");
-
+		Map<Object, Object> optionsMap = (Map<Object, Object>) getValue(PKQLEnum.MAP_OBJ);
+		
 		if(selectors == null || selectors.size() == 0) {
 			// this is the case when user wants a grid of everything
 			// we do not send back any data through the pkql
@@ -33,6 +35,8 @@ public class H2VizReactor extends AbstractVizReactor {
 			return null;
 		}
 		
+		// since the BE calculates the column headers for derived columns
+		// determining what the sort column is going to be is annoying
 		List<Map> mergeMaps = new Vector<Map>();
 		List<String> mergeVizTypes = new Vector<String>();
 		List<String> mergeVizFormula = new Vector<String>();
@@ -81,6 +85,7 @@ public class H2VizReactor extends AbstractVizReactor {
 				
 				for(IExpressionSelector selector : builderSelectors) {
 					mainBuilder.addSelector(selector);
+					
 				}
 				
 			} else if(term instanceof Map){
@@ -106,6 +111,29 @@ public class H2VizReactor extends AbstractVizReactor {
 		
 		if(mergeMaps.size() == 0) {
 			// yay, we can just run the query and return it
+			if(optionsMap != null) {
+				if(optionsMap.containsKey("limit")) {
+					mainBuilder.addLimit((int) optionsMap.get("limit"));
+				}
+				if(optionsMap.containsKey("offset")) {
+					mainBuilder.addOffset((int) optionsMap.get("offset"));
+				}
+				
+				if(optionsMap.containsKey("sortVar")) {
+					String sortVar = optionsMap.get("sortVar").toString().trim();
+					String sortDir = "DESC";
+					if(optionsMap.containsKey("sortDir")) {
+						sortDir = optionsMap.get("sortDir") + "";
+					}
+					// this will match the formula used 
+					// i.e. for a column, it is c: Studio
+					// or it is m:Sum( blah blah )
+					int valIndex = vizFormula.indexOf(sortVar);
+					List<IExpressionSelector> builderSelectors = mainBuilder.getSelectors();
+					mainBuilder.addSortSelector(new SqlSortSelector(frame, builderSelectors.get(valIndex).getName(), sortDir));
+				}
+			}
+
 			H2SqlExpressionIterator it = new H2SqlExpressionIterator(mainBuilder);
 			
 			List<Object[]> data = new Vector<Object[]>();

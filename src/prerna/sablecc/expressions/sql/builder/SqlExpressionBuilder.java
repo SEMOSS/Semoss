@@ -42,6 +42,18 @@ public class SqlExpressionBuilder extends AbstractExpressionBuilder {
 		
 		builder.append(" ").append(groups.toString());
 		
+		if(this.sortBy != null) {
+			builder.append(this.sortBy.toString());
+		}
+		
+		if(this.limit > 0) {
+			builder.append(" LIMIT ").append(this.limit);
+		}
+		
+		if(this.offset > 0) {
+			builder.append(" OFFSET ").append(this.offset);
+		}
+		
 		return builder.toString();
 	}
 	
