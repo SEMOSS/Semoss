@@ -23,11 +23,10 @@ public class VizReactor extends AbstractVizReactor {
 
 	@Override
 	public Iterator process() {
-		
-
 		Vector<Object> selectors = (Vector<Object>) getValue("VIZ_SELECTOR");
 		Vector<String> vizTypes = (Vector<String>) getValue("VIZ_TYPE");
 		Vector<String> vizFormula = (Vector<String>) getValue("VIZ_FORMULA");
+		Map<Object, Object> optionsMap = (Map<Object, Object>) getValue(PKQLEnum.MAP_OBJ);
 
 		if(selectors == null || selectors.size() == 0) {
 			// this is the case when user wants a grid of everything
@@ -79,17 +78,15 @@ public class VizReactor extends AbstractVizReactor {
 			tableKeys.add(keyMap);
 		}
 		
+		List<Object[]> data = null;
 		if(mergeMaps.size() == 0) {
-			
-			List<Object[]> data = new Vector<Object[]>();
+			data = new Vector<Object[]>();
 			while(it.hasNext()) {
 				data.add(it.next());
 			}
 			
-			myStore.put("VizTableValues", data);
 			myStore.put("VizTableKeys", tableKeys);
 		} else {
-			
 			Map<Map<String, Object>, Object> map = convertIteratorDataToMap(it, columns, columns);
 
 			// we need to merge some results here
@@ -98,7 +95,7 @@ public class VizReactor extends AbstractVizReactor {
 				map = mergeMap(map, mergeMaps.get(i));
 			}
 			
-			List<Object[]> data = convertMapToGrid(map, columns.toArray(new String[]{}));
+			data = convertMapToGrid(map, columns.toArray(new String[]{}));
 			myStore.put("VizTableValues", data);
 			
 			Vector<Map<String, Object>> mergeTableKeys = (Vector<Map<String, Object>>) getValue("MERGE_HEADER_INFO");
@@ -112,6 +109,9 @@ public class VizReactor extends AbstractVizReactor {
 			
 			myStore.put("VizTableKeys", tableKeys);
 		}
+		
+		// this will also store the data table in myStore
+		performLimitOffsetAndSorting(data, optionsMap, tableKeys);
 		
 		return null;
 	}

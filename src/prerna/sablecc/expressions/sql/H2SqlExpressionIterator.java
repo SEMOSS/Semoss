@@ -101,6 +101,9 @@ public class H2SqlExpressionIterator implements Iterator<Object[]> {
 	}
 	
 	private void getHeaderTypes() {
+		if(rs == null) {
+			runExpression();
+		}
 		this.headerTypes = new HashMap<String, String>();
 		try {
 			ResultSetMetaData rsmd = this.rs.getMetaData();
@@ -119,6 +122,10 @@ public class H2SqlExpressionIterator implements Iterator<Object[]> {
 	}
 	
 	public List<Map<String, Object>> getHeaderInformation(Vector<String> vizTypes, Vector<String> vizFormula) {
+		// need to run this in order to get the types
+		if(rs == null) {
+			runExpression();
+		}
 		List<Map<String, Object>> returnMap = new Vector<Map<String, Object>>();
 		
 		List<IExpressionSelector> selectors = builder.getSelectors();
