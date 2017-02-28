@@ -30,24 +30,31 @@ package prerna.rdf.engine.wrappers;
 import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.util.Hashtable;
+import java.util.Iterator;
+import java.util.Set;
 
 import org.openrdf.query.BindingSet;
 
+import prerna.engine.api.IRawSelectWrapper;
 import prerna.engine.api.ISelectStatement;
 import prerna.engine.api.ISelectWrapper;
 import prerna.util.Utility;
 
-public class RemoteSesameSelectWrapper extends SesameSelectWrapper implements ISelectWrapper {
+public class RemoteSesameSelectWrapper extends SesameSelectWrapper implements ISelectWrapper, IRawSelectWrapper {
 
 	transient SesameSelectWrapper remoteWrapperProxy = null;
 	transient ISelectStatement retSt = null;
 	transient ObjectInputStream ris = null;
+	transient BindingSet bs = null;
 
 
 	@Override
 	public void execute() {
 		System.out.println("Trying to get the wrapper remotely now");
 		remoteWrapperProxy = (SesameSelectWrapper)engine.execQuery(query);
+		this.displayVar = remoteWrapperProxy.displayVar;
+		this.var = remoteWrapperProxy.var;
+				
 //		var = remoteWrapperProxy.getVariables();
 //		System.out.println("Output variables is " + remoteWrapperProxy.getVariables());
 	}
@@ -71,7 +78,8 @@ public class RemoteSesameSelectWrapper extends SesameSelectWrapper implements IS
 			Object myObject = ris.readObject();
 			if(!myObject.toString().equalsIgnoreCase("null"))
 			{
-				BindingSet bs = (BindingSet)myObject;
+				bs = (BindingSet)myObject;
+				//getDisplayVariables();
 				//System.out.println("Proceeded to first");
 				retSt = getSelectFromBinding(bs);			
 				retBool = true;
@@ -100,5 +108,47 @@ public class RemoteSesameSelectWrapper extends SesameSelectWrapper implements IS
 		var = remoteWrapperProxy.getVariables();
 		System.out.println("Output variables is " + remoteWrapperProxy.getVariables());
 		return var;
+	}
+	
+	public String [] getDisplayVariables() {
+		if(displayVar == null)
+		{
+			displayVar = remoteWrapperProxy.displayVar;
+			/*
+			try {
+				ObjectInputStream displayStream;
+				Hashtable params = new Hashtable<String,String>();
+				params.put("id", remoteWrapperProxy.getRemoteID());
+				displayStream = new ObjectInputStream(Utility.getStream(remoteWrapperProxy.getRemoteAPI() + "/getDisplayVariables", params));
+				displayVar = (String [])displayStream.readObject();
+			} catch (ClassNotFoundException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			} catch (IOException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}*/
+		}
+		return displayVar;
+	}
+	
+	protected ISelectStatement getSelectFromBinding(BindingSet bs)
+	{
+		getDisplayVariables();
+		String [] variableArr = displayVar;
+		
+		ISelectStatement sjss = new SelectStatement();
+		for(int colIndex = 0;colIndex < variableArr.length;colIndex++)
+		{
+			Object val = bs.getValue(displayVar[colIndex]);
+			Object parsedVal = getRealValue(val);
+
+			sjss.setVar(variableArr[colIndex], parsedVal);
+			if(val!=null){
+				sjss.setRawVar(variableArr[colIndex], val);
+			}
+			logger.debug("Binding Name " + variableArr[colIndex]);
+		}
+		return sjss;
 	}
 }

@@ -27,21 +27,16 @@
  *******************************************************************************/
 package prerna.engine.impl.rdf;
 
-import java.io.BufferedReader;
-import java.io.ByteArrayInputStream;
 import java.io.File;
-import java.io.FileNotFoundException;
-import java.io.FileOutputStream;
+import java.io.FileWriter;
 import java.io.IOException;
 import java.io.StringBufferInputStream;
-import java.io.StringReader;
 import java.util.Hashtable;
 import java.util.Properties;
 import java.util.Vector;
 
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
-import org.h2.store.fs.FileUtils;
 import org.openrdf.query.MalformedQueryException;
 import org.openrdf.query.QueryEvaluationException;
 import org.openrdf.repository.Repository;
@@ -49,15 +44,17 @@ import org.openrdf.repository.RepositoryConnection;
 import org.openrdf.repository.RepositoryException;
 import org.openrdf.repository.sail.SailRepository;
 import org.openrdf.rio.RDFFormat;
+import org.openrdf.rio.RDFHandlerException;
 import org.openrdf.rio.RDFParseException;
+import org.openrdf.rio.rdfxml.RDFXMLWriter;
 import org.openrdf.sail.inferencer.fc.ForwardChainingRDFSInferencer;
 import org.openrdf.sail.memory.MemoryStore;
 
 import prerna.engine.api.IEngine;
 import prerna.engine.api.ISelectStatement;
 import prerna.engine.impl.AbstractEngine;
-import prerna.engine.impl.InsightsConverter;
 import prerna.engine.impl.rdbms.RDBMSNativeEngine;
+import prerna.rdf.engine.wrappers.RemoteSesameSelectWrapper;
 import prerna.rdf.engine.wrappers.SesameConstructWrapper;
 import prerna.rdf.engine.wrappers.SesameSelectWrapper;
 import prerna.rdf.engine.wrappers.WrapperManager;
@@ -79,6 +76,7 @@ public class RemoteSemossSesameEngine extends AbstractEngine {
 	boolean connected = false;
 	String api = null;
 	String database = null;
+	String insightDatabaseLoc = "";
 	
 	
 	
@@ -91,23 +89,45 @@ public class RemoteSemossSesameEngine extends AbstractEngine {
 			
 				// get the URI for the remote
 				System.err.println("Loading file ENGINE " + propFile);
+				String owlFile = "";
 				
 				
 				if(propFile != null)
 				{
 					String baseFolder = DIHelper.getInstance().getProperty(
 					"BaseFolder");
-					String fileName = baseFolder + "/" + propFile;
-					prop = loadProp(propFile);
+					if(!propFile.contains(baseFolder))
+						propFile = baseFolder + "/db/" + propFile;
 					
+					prop = loadProp(propFile);
+					// need some way to indicate that this is a new database. this will happen later
 					api = prop.getProperty(Constants.URI);
 					database = prop.getProperty("DATABASE");
+					this.engineName = prop.getProperty("ENGINE");
+					try {
+						File dirFolder = new File(baseFolder +"/db/" + prop.getProperty("ENGINE"));
+						if(dirFolder.isDirectory()) // this exists return
+						{
+							super.openDB(propFile); 
+							return;
+						}
+						else
+							dirFolder.mkdir();
+						
+					} catch (Exception e) {
+						// TODO Auto-generated catch block
+						e.printStackTrace();
+					}
+
+					insightDatabaseLoc = prop.getProperty("RDBMS_INSIGHTS");
+					owlFile = prop.getProperty("OWL");
 				}
 				engineName = database;
 				String insights = Utility.retrieveResult(api + "/s-" + database + "/getInsightDefinition", null);
 				logger.info("Have insights string::: " + insights);
 				String[] insightBuilderQueries = insights.split("%!%");
 
+				// need to move this from null to a fully open DB
 				Properties dbProp = writePropFile();
 				this.insightRDBMS = new RDBMSNativeEngine();
 				this.insightRDBMS.setProperties(dbProp);;
@@ -140,6 +160,17 @@ public class RemoteSemossSesameEngine extends AbstractEngine {
 				baseDataEngine = new RDFFileSesameEngine();
 				
 				baseDataEngine.rc = rc;
+				String baseFolder = DIHelper.getInstance().getProperty("BaseFolder");
+
+				try {
+					String owlFileName = baseFolder + "/" + owlFile;
+					FileWriter fw = new FileWriter(owlFileName);
+					RDFXMLWriter writer = new RDFXMLWriter(fw);
+					baseDataEngine.writeData(writer);
+				} catch (RDFHandlerException e1) {
+					// TODO Auto-generated catch block
+					e1.printStackTrace();
+				}
 				
 				try {
 					this.setBaseHash(RDFEngineHelper.createBaseFilterHash(rc));
@@ -169,7 +200,11 @@ public class RemoteSemossSesameEngine extends AbstractEngine {
 	private Properties writePropFile() {
 		H2QueryUtil queryUtil = new H2QueryUtil();
 		Properties prop = new Properties();
-		String connectionURL = "jdbc:h2:mem:temp";
+		String baseFolder = DIHelper.getInstance().getProperty("BaseFolder");
+		String connectionURL = connectionURLStart + baseFolder + "/" + insightDatabaseLoc + connectionURLEnd;
+		// check to see if it exists
+		// if not kill the file
+		
 		prop.put(Constants.CONNECTION_URL, connectionURL);
 		prop.put(Constants.USERNAME, queryUtil.getDefaultDBUserName());
 		prop.put(Constants.PASSWORD, queryUtil.getDefaultDBPassword());
@@ -309,15 +344,20 @@ public class RemoteSemossSesameEngine extends AbstractEngine {
 	public Vector<Object> getCleanSelect(String sparqlQuery)
 	{
 		logger.debug("\nSPARQL: " + sparqlQuery);
-		SesameSelectWrapper ssw = (SesameSelectWrapper) this.execQuery(sparqlQuery);
-		Vector<String> strVector = new Vector<String>();
-		while(ssw.hasNext()){
-			ISelectStatement sss = ssw.next();
+		RemoteSesameSelectWrapper rsw = new RemoteSesameSelectWrapper();
+		rsw.setEngine(this);
+		rsw.setQuery(sparqlQuery);
+
+		rsw.execute();
+		//SesameSelectWrapper ssw = (SesameSelectWrapper) this.execQuery(sparqlQuery);
+		Vector<Object> strVector = new Vector<Object>();
+		while(rsw.hasNext()){
+			ISelectStatement sss = rsw.next();
 			strVector.add(sss.getRawVar(Constants.ENTITY)+ "");
 		}
 		
 		//TODO: why is this always returning null????
-		return null;
+		return strVector;
 	}
 	
 	/**
@@ -363,6 +403,7 @@ public class RemoteSemossSesameEngine extends AbstractEngine {
 	@Override
 	public void closeDB() {
 		// this does nothing
+		this.insightRDBMS.closeDB();
 		logger.info("cannot close remote engine");
 	}
 	

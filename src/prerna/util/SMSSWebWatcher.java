@@ -142,6 +142,30 @@ public class SMSSWebWatcher extends AbstractFileWatcher {
 					DIHelper.getInstance().setLocalProperty(Constants.ENGINES, engineNames);
 				}
 				
+
+				// the issue with remote engines is it needs to be loaded to get the insights and the owl file
+				// TODO need something that will modify this for the remote engines
+				// if the db folder exsits.. nothing to do
+				// else this needs to be open db
+				// and then register this engine
+				if(prop.containsKey(Constants.ENGINE_TYPE) && prop.get(Constants.ENGINE_TYPE).toString().toUpperCase().contains("REMOTE"))
+				{
+					// this is a remote engine which needs to be registered
+					// but need to see if I need to open DB or not
+					// may be this logic is sitting within open DB
+					// or not
+					try {
+						engine = (IEngine) Class.forName(prop.get(Constants.ENGINE_TYPE)+"").newInstance();
+						engine.openDB(newFile);
+						engine.closeDB();
+					} catch (Exception e) {
+						// TODO Auto-generated catch block
+						e.printStackTrace();
+					}
+					
+				}
+
+				
 				if(prop.containsKey(Constants.HIDDEN_DATABASE) && "true".equalsIgnoreCase(prop.get(Constants.HIDDEN_DATABASE).toString().trim()) ) {
 					// if the database is a hidden database
 					// do not add anything

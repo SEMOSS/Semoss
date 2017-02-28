@@ -1139,7 +1139,7 @@ public abstract class AbstractEngine implements IEngine {
 		while(wrap.hasNext()) {
 			ISelectStatement ss = wrap.next();
 			System.out.println(ss.getRPropHash().toString());//
-			stringBuilder.append(ss.getRawVar(names[0]) + "").append("%!%");
+			stringBuilder.append(ss.getVar(names[0]) + "").append("%!%");
 		}
 //		this.insightRDBMS.execQuery("SCRIPT TO 'C:\\Users\\bisutton\\workspace\\script.txt'");
 		return stringBuilder.toString();
