@@ -1,5 +1,6 @@
 package prerna.engine.impl;
 
+import java.io.StringWriter;
 import java.util.HashMap;
 import java.util.Hashtable;
 import java.util.List;
@@ -8,6 +9,9 @@ import java.util.Vector;
 
 import org.apache.log4j.Logger;
 import org.openrdf.model.vocabulary.RDFS;
+import org.openrdf.repository.RepositoryException;
+import org.openrdf.rio.RDFHandlerException;
+import org.openrdf.rio.rdfxml.RDFXMLWriter;
 
 import prerna.ds.QueryStruct;
 import prerna.engine.api.IEngine;
@@ -157,7 +161,17 @@ public class MetaHelper implements IExplorable {
 	@Override
 	public String getOWLDefinition() {
 		// TODO Auto-generated method stub
-		return null;
+		StringWriter output = new StringWriter();
+		try {
+			baseDataEngine.getRc().export(new RDFXMLWriter(output));
+		} catch (RepositoryException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (RDFHandlerException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		return output.toString();
 	}
 
 	@Override
