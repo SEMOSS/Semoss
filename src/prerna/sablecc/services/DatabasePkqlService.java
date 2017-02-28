@@ -181,9 +181,17 @@ public class DatabasePkqlService {
 		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(engine, query);
 		while(wrapper.hasNext()) {
 			IHeadersDataRow ss = wrapper.next();
-			Object[] values = ss.getValues();
+			String uri = ss.getRawValues()[0].toString();
+			if(uri.contains("http://semoss.org/ontologies/Relation/Contains/")) {
+				uri = uri.replace("http://semoss.org/ontologies/Relation/Contains/", "");
+				if(uri.contains("/")) {
+					uri = uri.substring(0, uri.indexOf("/"));
+				}
+			} else {
+				uri = ss.getValues()[0].toString();
+			}
 			// this will be the logical names
-			logicalNames.add(values[0] + "");
+			logicalNames.add(uri + "");
 		}
 		
 		return logicalNames;
