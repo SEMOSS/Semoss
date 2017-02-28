@@ -184,7 +184,6 @@ public abstract class AbstractApiReactor extends AbstractReactor{
 	}
 	
 	public void addTableValuesAsFilter(ITableDataFrame frame, Vector <Hashtable> filters, String fromColumn, String toColumn) {
-		
 		for(Hashtable filter : filters) {
 			try {
 				if(filter.get(PKQLEnum.FROM_COL).equals(toColumn) && filter.get(PKQLEnum.COMPARATOR).equals("=")) {
