@@ -1516,9 +1516,12 @@ public class Utility {
 				"yyyy dd MMM",
 				"dd MMM yyyy",
 				"dd MMM",
+				"MMM dd yyyy",
+				"MMM dd, yyyy",
 				"MMM dd",
 				"dd MMM yyyy",
-		"MMM yyyy"};
+				"MMM yyyy",
+				};
 
 		String output_date = null;
 		boolean itsDate = false;
