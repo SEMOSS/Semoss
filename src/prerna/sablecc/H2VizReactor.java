@@ -165,29 +165,11 @@ public class H2VizReactor extends AbstractVizReactor {
 			}
 			
 			H2SqlExpressionIterator it = new H2SqlExpressionIterator(mainBuilder);
-			
-			Map<Map<String, Object>, Object> map = convertIteratorDataToMap(it, queryHeaders, tableCols);
-			
-			// we need to merge some results here
-			// consolidate all the terms into a single map
-			for(int i = 0; i < mergeMaps.size(); i++) {
-				map = mergeMap(map, mergeMaps.get(i));
-			}
-			
-			List<Object[]> data = convertMapToGrid(map, tableCols.toArray(new String[]{}));
-			myStore.put("VizTableValues", data);
-			
 			List<Map<String, Object>> tableKeys = it.getHeaderInformation(vizTypes, vizFormula);
-			Vector<Map<String, Object>> mergeTableKeys = (Vector<Map<String, Object>>) getValue("MERGE_HEADER_INFO");
-			for(int i = 0; i < mergeMaps.size(); i++) {
-				// map to store the info
-				Map<String, Object> headMap = mergeTableKeys.get(i);
-				headMap.put("vizType", mergeVizTypes.get(i).replace("=", ""));
-				
-				tableKeys.add(headMap);
-			}
 			
-			myStore.put("VizTableKeys", tableKeys);
+			// this will store the table and headers in myStore
+			// this will also add the limit/offset/sortby
+			mergeIteratorWithMapData(mergeMaps, mergeVizTypes, it, tableKeys, queryHeaders, tableCols, optionsMap);
 		}
 			
 		return null;
