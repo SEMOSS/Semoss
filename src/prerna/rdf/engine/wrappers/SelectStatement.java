@@ -32,7 +32,7 @@ import java.util.Map;
 
 import prerna.engine.api.ISelectStatement;
 
-public class SelectStatement implements ISelectStatement {
+public class SelectStatement  implements ISelectStatement {
 	
 	transient public Map propHash = new LinkedHashMap();
 	transient public Map rawPropHash = new LinkedHashMap();
