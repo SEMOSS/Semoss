@@ -207,7 +207,7 @@ public abstract class BaseReducerReactor extends MathReactor implements Expressi
 		operationMap.put("math", this.mathRoutine);
 
 		// add the formula if it is not just a simple column
-		operationMap.put("formula", myStore.get(PKQLEnum.MATH_FUN));
+		operationMap.put("formula", myStore.get(PKQLEnum.FORMULA));
 		
 		// add to main map
 		headMap.put("operation", operationMap);
