@@ -73,7 +73,6 @@ public class BaseJavaReactorJRI extends AbstractRJavaReactor {
 				if(ret == null) {
 					throw new ClassNotFoundException("Package stringr could not be found!");
 				}
-				storeVariable(R_ENGINE, retEngine);
 			} catch(ClassNotFoundException e) {
 				System.out.println("ERROR ::: " + e.getMessage() + "\nMake sure you have all the following libraries installed:\n"
 						+ "1)splitstackshape\n"
@@ -85,6 +84,7 @@ public class BaseJavaReactorJRI extends AbstractRJavaReactor {
 				e.printStackTrace();
 			}
 		}
+		storeVariable(AbstractRJavaReactor.R_ENGINE, retEngine);
 		return retEngine;
 	}
 	

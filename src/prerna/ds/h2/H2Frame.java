@@ -1210,8 +1210,10 @@ public class H2Frame extends AbstractTableDataFrame {
 		
 		String fileNameBase = fileName.substring(0, fileName.lastIndexOf("."));
 		Properties prop = new Properties();
+		BufferedReader reader = null;
 		try {
-			prop.load(new BufferedReader(new FileReader(fileNameBase+"_PROP.properties")));
+			reader = new BufferedReader(new FileReader(fileNameBase+"_PROP.properties"));
+			prop.load(reader);
 			H2Builder builder = new H2Builder();
 			h2Frame.builder = builder;
 			h2Frame.builder.open(fileName, prop);
@@ -1224,6 +1226,14 @@ public class H2Frame extends AbstractTableDataFrame {
 			H2Builder builder = new H2Builder();
 			h2Frame.builder = builder;
 			h2Frame.builder.open(fileName, prop);
+		} finally {
+			if(reader != null) {
+				try {
+					reader.close();
+				} catch (IOException e) {
+					e.printStackTrace();
+				}
+			}
 		}
 		
 		// need to also set the metaData
