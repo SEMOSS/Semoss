@@ -511,6 +511,10 @@ public class SQLInterpreter implements IQueryInterpreter{
 				String thisComparator = comps.nextElement();
 				
 				Vector options = compHash.get(thisComparator);
+				// account for dumb inputs
+				if(options.size() == 0) {
+					continue;
+				}
 				
 				// and the final one goes here					
 				
@@ -592,7 +596,9 @@ public class SQLInterpreter implements IQueryInterpreter{
 		// defining variables for looping
 		int i = 0;
 		int size = objects.size();
-		
+		if(size == 0) {
+			return "";
+		}
 		// if we can get the data type from the OWL, lets just use that
 		// if we dont have it, we will do type casting...
 		if(dataType != null) {
