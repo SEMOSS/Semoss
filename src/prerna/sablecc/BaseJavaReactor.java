@@ -44,11 +44,12 @@ public class BaseJavaReactor extends AbstractRJavaReactor{
 		// we store the connection in the PKQL Runner
 		// retrieve it if it is already defined within the insight
 		RConnection retCon = (RConnection) retrieveVariable(R_CONN);
+		String port = null;
 		LOGGER.info("Connection right now is set to.. " + retCon);
 		if(retCon == null) {
 			try {
 				RConnection masterCon = RSingleton.getConnection();
-				String port = Utility.findOpenPort();
+				port = Utility.findOpenPort();
 				
 				LOGGER.info("Starting it on port.. " + port);
 				// need to find a way to get a common name
@@ -64,9 +65,6 @@ public class BaseJavaReactor extends AbstractRJavaReactor{
 				retCon.eval("library(RJDBC);");
 				// stringr
 				retCon.eval("library(stringr)");
-				
-				storeVariable(R_CONN, retCon);
-				storeVariable(R_PORT, port);
 			} catch (Exception e) {
 				System.out.println("ERROR ::: Could not find connection.\nPlease make sure RServe is running and the following libraries are installed:\n"
 						+ "1)Rserve\n"
@@ -79,6 +77,8 @@ public class BaseJavaReactor extends AbstractRJavaReactor{
 				e.printStackTrace();
 			}
 		}
+		storeVariable(AbstractRJavaReactor.R_CONN, retCon);
+		storeVariable(AbstractRJavaReactor.R_PORT, port);
 		return retCon;
 	}
 	

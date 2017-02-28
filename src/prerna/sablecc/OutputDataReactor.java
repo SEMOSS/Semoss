@@ -84,7 +84,10 @@ public class OutputDataReactor extends AbstractReactor {
 				myStore.put("G", dm);
 				runInsightRecipe = false;
 			}
-		} 
+			
+			// also load the R cache if it is present
+			insightObj.loadRCache();
+		}
 		
 		if(runInsightRecipe) {
 			// insight visualization data has not been cached, run the insight
