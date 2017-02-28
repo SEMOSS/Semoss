@@ -187,12 +187,13 @@ public class WrapperManager {
 		}
 		case SEMOSS_SESAME_REMOTE:{
 			//TODO: need to build out RemoteSesameSelectWrapper
+			/*System.err.println("NEED TO IMPLEMENT RAW QUERY FOR REMOTE SESAME SELECT WRAPPER!!!!!");
 			System.err.println("NEED TO IMPLEMENT RAW QUERY FOR REMOTE SESAME SELECT WRAPPER!!!!!");
 			System.err.println("NEED TO IMPLEMENT RAW QUERY FOR REMOTE SESAME SELECT WRAPPER!!!!!");
 			System.err.println("NEED TO IMPLEMENT RAW QUERY FOR REMOTE SESAME SELECT WRAPPER!!!!!");
-			System.err.println("NEED TO IMPLEMENT RAW QUERY FOR REMOTE SESAME SELECT WRAPPER!!!!!");
-//			returnWrapper = new RemoteSesameSelectWrapper();
-//			break;
+			*/
+			returnWrapper = new RemoteSesameSelectWrapper();
+			break;
 		}
 		case TINKER: {
 			returnWrapper = new RawTinkerSelectWrapper();

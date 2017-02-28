@@ -27,9 +27,9 @@
  *******************************************************************************/
 package prerna.rdf.engine.wrappers;
 
+import java.util.Iterator;
 import java.util.List;
-
-import javax.xml.datatype.XMLGregorianCalendar;
+import java.util.Set;
 
 import org.openrdf.model.Literal;
 import org.openrdf.model.Value;
@@ -90,7 +90,7 @@ public class SesameSelectWrapper extends AbstractWrapper implements ISelectWrapp
 		ISelectStatement sjss = new SelectStatement();
 		for(int colIndex = 0;colIndex < variableArr.length;colIndex++)
 		{
-			Object val = bs.getValue(var[colIndex]);
+			Object val = bs.getValue(displayVar[colIndex]);
 			Object parsedVal = getRealValue(val);
 
 			sjss.setVar(variableArr[colIndex], parsedVal);
@@ -102,7 +102,7 @@ public class SesameSelectWrapper extends AbstractWrapper implements ISelectWrapp
 		return sjss;
 	}
 	
-	private Object getRealValue(Object val){
+	protected Object getRealValue(Object val){
 		try
 		{
 			if(val != null && val instanceof Literal) {
