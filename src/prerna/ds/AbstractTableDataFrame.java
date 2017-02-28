@@ -284,7 +284,6 @@ public abstract class AbstractTableDataFrame implements ITableDataFrame {
 //			this.join(dataFrame, transform.getOptions().get(0).getSelected()+"", transform.getOptions().get(1).getSelected()+"", 1.0, (IAnalyticRoutine)transform);
 //			LOGGER.info("welp... we've got our new table... ");
 		}
-		
 	}
 
 	@Override
@@ -382,6 +381,11 @@ public abstract class AbstractTableDataFrame implements ITableDataFrame {
 	
 	public List<Map<String, Object>> getTableHeaderObjects(){
 		return this.metaData.getTableHeaderObjects();
+	}
+	
+	@Override
+	public String getValueForUniqueName(String name) {
+		return this.metaData.getValueForUniqueName(name);
 	}
 
 	@Override

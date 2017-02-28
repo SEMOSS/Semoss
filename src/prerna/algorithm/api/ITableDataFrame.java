@@ -447,5 +447,7 @@ public interface ITableDataFrame extends IDataMaker {
 	
 	// gets the table name
 	String getTableName();
+
+	String getValueForUniqueName(String uniqueName);
 	
 }
