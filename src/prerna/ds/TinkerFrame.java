@@ -2070,6 +2070,11 @@ public class TinkerFrame extends AbstractTableDataFrame {
 		
 		// we decided to show all vertices, not only the ones you see on a grid
 		
+		// need to account for loops
+		// the value being passed may be the header name of the unique meta name
+		// but need to change it to be the value
+		columnHeader = this.getValueForUniqueName(columnHeader);
+		
 		GraphTraversal<Vertex, Vertex> gt = g.traversal().V().has(TINKER_TYPE, columnHeader);
 		if(!iterateAll) {
 			// this only filters out vertices that are explicitly filtered out
