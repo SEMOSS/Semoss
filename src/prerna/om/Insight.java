@@ -29,9 +29,6 @@ package prerna.om;
 
 import java.io.IOException;
 import java.io.InputStream;
-import java.security.KeyManagementException;
-import java.security.KeyStoreException;
-import java.security.NoSuchAlgorithmException;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -48,8 +45,6 @@ import java.util.Vector;
 import org.apache.commons.io.IOUtils;
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
-import org.apache.solr.client.solrj.SolrServerException;
-import org.apache.solr.common.SolrDocument;
 import org.h2.jdbc.JdbcClob;
 import org.openrdf.model.Literal;
 import org.openrdf.repository.Repository;
@@ -80,7 +75,6 @@ import prerna.sablecc.PKQLRunner;
 import prerna.sablecc.meta.FilePkqlMetadata;
 import prerna.sablecc.meta.IPkqlMetadata;
 import prerna.sablecc2.PKSLRunner;
-import prerna.solr.SolrIndexEngine;
 import prerna.ui.components.api.IPlaySheet;
 import prerna.ui.components.playsheets.datamakers.DataMakerComponent;
 import prerna.ui.components.playsheets.datamakers.FilterTransformation;
@@ -734,6 +728,10 @@ public class Insight {
 		IDataMaker dm = CacheFactory.getInsightCache(CacheFactory.CACHE_TYPE.DB_INSIGHT_CACHE).getDMCache(this);
 		this.dataMaker = dm;
 		return dm;
+	}
+	
+	public void loadRCache() {
+		CacheFactory.getInsightCache(CacheFactory.CACHE_TYPE.DB_INSIGHT_CACHE).getRCache(this);
 	}
 	
 	public boolean hasInstantiatedDataMaker() {
