@@ -193,8 +193,13 @@ public class InsightCreateRunner implements Runnable{
 		// if it is not present, we get the table data align by setting the data maker in the playsheet and grabbing it
 		if((tableDataAlign == null || tableDataAlign.isEmpty()) && !(insight.getDataMaker() instanceof Dashboard) && !insight.getOutput().toLowerCase().equals("ckeditor")) {
 			IPlaySheet playSheet = insight.getPlaySheet();
-			tableDataAlign = (Map<String, String>) (((AbstractPlaySheet) playSheet).getDataTableAlign());
-			insight.setDataTableAlign(tableDataAlign);
+			// as we move towards a more generic FE with many different viz's
+			// we do not want to build out playsheets on the BE 
+			// just keep the view separate
+			if(playSheet != null) {
+				tableDataAlign = (Map<String, String>) (((AbstractPlaySheet) playSheet).getDataTableAlign());
+				insight.setDataTableAlign(tableDataAlign);
+			}
 		}
 		
 		IDataMaker dm = insight.getDataMaker();
