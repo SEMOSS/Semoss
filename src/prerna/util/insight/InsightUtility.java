@@ -5,8 +5,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Vector;
 
-import javax.ws.rs.core.Response;
-
 import prerna.ds.h2.H2Frame;
 import prerna.ds.r.RDataTable;
 import prerna.om.Dashboard;
@@ -109,4 +107,16 @@ public class InsightUtility {
 		return success;
 	}
 	
+	/**
+	 * Creates a new insight
+	 * 
+	 * @return Insight
+	 */
+	public static Insight createInsight() {
+		Insight insight = new Insight(null, "H2Frame", "Grid");
+		insight.setUserID("userid");
+		String uniqueId = InsightStore.getInstance().put(insight);
+		return InsightStore.getInstance().get(uniqueId);
+	}
+
 }
