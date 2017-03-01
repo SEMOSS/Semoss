@@ -909,12 +909,11 @@ public class Translation extends DepthFirstAdapter {
 		Map<String, Object> chartDataObj = new HashMap<String, Object>();
 
 		deinitReactor(PKQLEnum.VIZ, "", "");
-		
 		// this will add in the necessary information around the expressions
 		// that are calculated temporally to return to the FE
 		chartDataObj.put("dataTableKeys", curReactor.getValue("VizTableKeys"));
 		chartDataObj.put("dataTableValues", curReactor.getValue("VizTableValues"));
-		
+
 		/*
 		 * This will hold the UI options that are passed in that do 
 		 * not go through any BE processing
@@ -922,8 +921,23 @@ public class Translation extends DepthFirstAdapter {
 		 */
 		String layout = node.getLayout().toString().trim();
 		chartDataObj.put("layout", layout);
-		if (node.getUioptions() != null) {
-			chartDataObj.put("uiOptions", node.getUioptions().toString().trim());
+		
+		Map<Object, Object> optionsMap = (Map<Object, Object>) curReactor.getValue(PKQLEnum.MAP_OBJ);
+		if (optionsMap != null) {
+			// going to separate out the data table options
+			// vs other tools
+			Map<String, Object> vizTableOptionsMap = new HashMap<String, Object>();
+			vizTableOptionsMap.put("limit", optionsMap.remove("limit"));
+			vizTableOptionsMap.put("offset", optionsMap.remove("offset"));
+			vizTableOptionsMap.put("sortVar", optionsMap.remove("sortVar"));
+			vizTableOptionsMap.put("sortDir", optionsMap.remove("sortDir"));
+			
+			if(!vizTableOptionsMap.isEmpty()) {
+				chartDataObj.put("dataTableOptions", vizTableOptionsMap);
+			}
+			if(!optionsMap.isEmpty()) {
+				chartDataObj.put("uiOptions", optionsMap.toString().trim());
+			}
 		}
 		// set the FE data to create the appropriate panel for the panel state
 		runner.addFeData("chartData", chartDataObj, true);
