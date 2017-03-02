@@ -1,6 +1,7 @@
 package prerna.sablecc;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.Hashtable;
 import java.util.Iterator;
 import java.util.List;
@@ -11,6 +12,7 @@ import prerna.algorithm.api.ITableDataFrame;
 import prerna.ds.QueryStruct;
 import prerna.engine.api.IEngine;
 import prerna.engine.api.IEngineWrapper;
+import prerna.engine.api.IHeadersDataRow;
 import prerna.engine.api.IRawSelectWrapper;
 import prerna.engine.impl.tinker.TinkerEngine;
 import prerna.rdf.engine.wrappers.WrapperManager;
@@ -63,25 +65,48 @@ public class QueryDataReactor extends AbstractReactor {
 //				}
 //			}
 		}
-		
-		IEngine engine = Utility.getEngine((this.getValue(PKQLEnum.API + "_ENGINE")+"").trim());	
-		IQueryInterpreter interp = engine.getQueryInterpreter();
-		interp.setQueryStruct(qs);
-		String query = interp.composeQuery();
-		
-		if(engine instanceof TinkerEngine) {
-			((TinkerEngine) engine).setQueryStruct(qs);
+		String engineName = this.getValue(PKQLEnum.API + "_ENGINE").toString().trim();
+		Iterator<IHeadersDataRow> thisIterator;
+		if(engineName.equals("frame")) {
+			ITableDataFrame frame = (ITableDataFrame)myStore.get("G");
+			thisIterator = frame.query(qs);
+			
+			List searchData = new ArrayList();
+			while(thisIterator.hasNext()) {
+				IHeadersDataRow nextRow = thisIterator.next();
+				String[] headers = nextRow.getHeaders();
+				Object[] values = nextRow.getValues();
+				Map<String, Object> rowMap = new HashMap<>(headers.length);
+				for(int i = 0; i < headers.length; i++) {
+					rowMap.put(headers[i], values[i]);
+				}
+				searchData.add(rowMap);
+			}
+			myStore.put("searchData", searchData);
+			myStore.put("source", "frame");
+		} else {
+			IEngine engine = Utility.getEngine(engineName);	
+			IQueryInterpreter interp = engine.getQueryInterpreter();
+			interp.setQueryStruct(qs);
+			String query = interp.composeQuery();
+			
+			if(engine instanceof TinkerEngine) {
+				((TinkerEngine) engine).setQueryStruct(qs);
+			}
+			thisIterator = WrapperManager.getInstance().getRawWrapper(engine, query);
+			List searchData = new ArrayList();
+			while(thisIterator.hasNext()) {
+				searchData.add(thisIterator.next().getValues()[0]);
+			}
+			myStore.put("searchData", searchData);
+			myStore.put("source", "engine");
 		}
-		IRawSelectWrapper thisIterator = WrapperManager.getInstance().getRawWrapper(engine, query);
 		
-		List searchData = new ArrayList();
-		while(thisIterator.hasNext()) {
-			searchData.add(thisIterator.next().getValues()[0]);
-		}
+		
 		
 		createResponseString(thisIterator);
 		// store the search data
-		myStore.put("searchData", searchData);
+		
 		myStore.put("STATUS", PKQLRunner.STATUS.SUCCESS);
 		return null;
 	}
@@ -101,21 +126,28 @@ public class QueryDataReactor extends AbstractReactor {
 	 * @param it				The iterator used to insert data
 	 * @return					String returning the response
 	 */
-	protected void createResponseString(IEngineWrapper it){
+	protected void createResponseString(Iterator it){
+		
+		
 		String nodeStr = (String)myStore.get(PKQLEnum.EXPR_TERM);
 
-		// get map containing the response metadata from the iterator
-		Map<String, Object> map = it.getResponseMeta();
-		// format fields from meta data map into a string
-		String mssg = "";
-		for(String key : map.keySet()){
-			if(!mssg.isEmpty()){
-				mssg = mssg + " \n";
+		if(it instanceof IEngineWrapper) {
+			// get map containing the response metadata from the iterator
+			Map<String, Object> map = ((IEngineWrapper)it).getResponseMeta();
+			// format fields from meta data map into a string
+			String mssg = "";
+			for(String key : map.keySet()){
+				if(!mssg.isEmpty()){
+					mssg = mssg + " \n";
+				}
+				mssg = mssg + key + ": " + map.get(key).toString();
 			}
-			mssg = mssg + key + ": " + map.get(key).toString();
+			String retStr = "Sucessfully retrieved data using : \n" + mssg;
+			myStore.put(nodeStr, retStr);
+		} else {
+			String retStr = "Successfully retrieved data from the frame";
+			myStore.put(nodeStr, retStr);
 		}
-		String retStr = "Sucessfully retrieved data using : \n" + mssg;
-		myStore.put(nodeStr, retStr);
 	}
 	
 	@Override
