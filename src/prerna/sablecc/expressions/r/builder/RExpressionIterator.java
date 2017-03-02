@@ -23,17 +23,18 @@ public class RExpressionIterator implements Iterator<Object[]> {
 	
 	private String dataTableName;
 
-	private int rowIndex = 1;
+	private int rowIndex;
 	private int numRows;
 	private int numCols;
 	
 	private Map<String, String> headerTypes;
 	private String[] headers;
-	private String headerString;
 
 	// This will hold the full sql expression to execute
 	private String rScript;
 
+	private List<Object[]> rBulkData;
+	
 	public RExpressionIterator(RExpressionBuilder builder) {
 		this.builder = builder;
 		this.frame = builder.getFrame();
@@ -59,13 +60,23 @@ public class RExpressionIterator implements Iterator<Object[]> {
 			generateExpression();
 		}
 		frame.executeRScript(this.dataTableName + "<-" + rScript);
+		this.numRows = frame.getNumRows(this.dataTableName);
 		int limit = this.builder.getLimit();
 		int offset = this.builder.getOffset();
+		
+		// gotta do some error handling so that the values are not too large
+		if(offset > numRows) {
+			offset = numRows;
+		}
+		int endIndex = offset + limit;
+		if(endIndex > numRows) {
+			endIndex = numRows;
+		}
 		if(limit > 0) {
 			if(offset > 0) {
-				frame.executeRScript(this.dataTableName + "<-" + this.dataTableName + "[" + offset + ":" + (offset+limit) + ",]");
+				frame.executeRScript(this.dataTableName + "<-" + this.dataTableName + "[" + offset + ":" + (endIndex) + ",]");
 			} else {
-				frame.executeRScript(this.dataTableName + "<-" + this.dataTableName + "[1:" + (offset+limit) + ",]");
+				frame.executeRScript(this.dataTableName + "<-" + this.dataTableName + "[1:" + (endIndex) + ",]");
 			}
 		} else if(offset > 0) {
 			frame.executeRScript(this.dataTableName + "<-" + this.dataTableName + "[" + offset + ":nrow(" + this.dataTableName + "),]");
@@ -75,26 +86,15 @@ public class RExpressionIterator implements Iterator<Object[]> {
 			frame.executeRScript(this.dataTableName + "<-" + this.dataTableName + sortBy.toString());
 		}
 		
-		this.numRows = frame.getNumRows(this.dataTableName);
-		this.rowIndex = 1;
+		this.rBulkData = frame.getBulkDataRow(this.dataTableName, this.headers);
+		this.numRows = rBulkData.size();
+		this.rowIndex = 0;
 		getHeaderTypes();
-		getHeadersString();
-	}
-
-	private void getHeadersString() {
-		StringBuilder builder = new StringBuilder("c(");
-		int i = 0;
-		builder.append("\"").append(this.headers[0]).append("\"");
-		for(i = 1; i < this.headers.length; i++) {
-			builder.append(" , \"").append(this.headers[i]).append("\"");
-		}
-		builder.append(")");
-		this.headerString = builder.toString();
 	}
 
 	@Override
 	public boolean hasNext() {
-		if(rowIndex <= numRows) {
+		if(rowIndex < numRows) {
 			return true;
 		} else {
 			// clean up variables
@@ -106,7 +106,7 @@ public class RExpressionIterator implements Iterator<Object[]> {
 	@Override
 	public Object[] next() {
 		// grab the rowIndex from the data table
-		Object[] retArray = this.frame.getDataRow(this.dataTableName + "[" + rowIndex + "," + headerString + " , with=FALSE ]", this.headers);
+		Object[] retArray = this.rBulkData.get(rowIndex);
 		// update the row index
 		this.rowIndex++;
 
