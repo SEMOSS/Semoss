@@ -121,7 +121,7 @@ public class H2SqlExpressionIterator implements Iterator<Object[]> {
 		}
 	}
 	
-	public List<Map<String, Object>> getHeaderInformation(Vector<String> vizTypes, Vector<String> vizFormula) {
+	public List<Map<String, Object>> getHeaderInformation(List<String> vizTypes, List<String> vizFormula) {
 		// need to run this in order to get the types
 		if(rs == null) {
 			runExpression();
