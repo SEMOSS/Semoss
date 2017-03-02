@@ -45,6 +45,31 @@
 					</execution>
 				</executions>
 			</plugin>
+			
+			<!-- For Apache Storm -->
+			<plugin>
+      			<artifactId>maven-assembly-plugin</artifactId>
+      			<version>2.2.1</version>
+      			<configuration>
+       				<descriptorRefs>
+         				<descriptorRef>jar-with-dependencies</descriptorRef>
+        			</descriptorRefs>
+        			<archive>
+          				<manifest>
+           					<mainClass />
+          				</manifest>
+        			</archive>
+      			</configuration>
+      			<executions>
+        			<execution>
+			        	<id>make-assembly</id>
+			          	<phase>package</phase>
+			          	<goals>
+			            	<goal>single</goal>
+			          	</goals>
+		        	</execution>
+		      	</executions>
+		    </plugin>
 		</plugins>
 	</build>
 	<repositories>
@@ -100,6 +125,13 @@
 				<enabled>true</enabled>
 			</snapshots>
 		</repository>
+		
+		<!-- repository for Apache Storm -->
+		<repository>
+    		<id>clojars.org</id>
+   			<url>http://clojars.org/repo</url>
+  		</repository>
+  		
 	</repositories>
 	<dependencies>
 		<dependency>
@@ -532,7 +564,7 @@
 		<dependency>
 			<groupId>com.google.guava</groupId>
 			<artifactId>guava</artifactId>
-			<version>13.0.1</version>
+			<version>21.0</version>
 			<exclusions>
 				<exclusion>
 					<groupId>*</groupId>
@@ -898,28 +930,6 @@
 			</exclusions>
 		</dependency>
 		<dependency>
-			<groupId>net.java.dev.jna</groupId>
-			<artifactId>jna</artifactId>
-			<version>4.1.0</version>
-			<exclusions>
-				<exclusion>
-					<groupId>*</groupId>
-					<artifactId>*</artifactId>
-				</exclusion>
-			</exclusions>
-		</dependency>
-		<dependency>
-			<groupId>net.java.dev.jna</groupId>
-			<artifactId>jna-platform</artifactId>
-			<version>4.1.0</version>
-			<exclusions>
-				<exclusion>
-					<groupId>*</groupId>
-					<artifactId>*</artifactId>
-				</exclusion>
-			</exclusions>
-		</dependency>
-		<dependency>
 			<groupId>de.jollyday</groupId>
 			<artifactId>jollyday</artifactId>
 			<version>0.4.7</version>
@@ -1165,17 +1175,6 @@
 			<groupId>com.oracle</groupId>
 			<artifactId>ojdbc6</artifactId>
 			<version>12.1.0.1</version>
-			<exclusions>
-				<exclusion>
-					<groupId>*</groupId>
-					<artifactId>*</artifactId>
-				</exclusion>
-			</exclusions>
-		</dependency>
-		<dependency>
-			<groupId>net.java.dev.jna</groupId>
-			<artifactId>platform</artifactId>
-			<version>3.5.0</version>
 			<exclusions>
 				<exclusion>
 					<groupId>*</groupId>
@@ -1539,13 +1538,22 @@
 		<dependency>
 			<groupId>com.github.dblock.waffle</groupId>
 			<artifactId>waffle-jna</artifactId>
-			<version>1.5</version>
-			<exclusions>
-				<exclusion>
-					<groupId>*</groupId>
-					<artifactId>*</artifactId>
-				</exclusion>
-			</exclusions>
+			<version>1.8.1</version>
+		</dependency>
+		<dependency>
+		    <groupId>javax.servlet</groupId>
+		    <artifactId>javax.servlet-api</artifactId>
+		    <version>3.1.0</version>
+		</dependency>		
+		<dependency>
+		    <groupId>net.java.dev.jna</groupId>
+		    <artifactId>jna</artifactId>
+		    <version>4.3.0</version>
+		</dependency>
+		<dependency>
+		    <groupId>net.java.dev.jna</groupId>
+		    <artifactId>jna-platform</artifactId>
+		    <version>4.3.0</version>
 		</dependency>
 		<dependency>
 			<groupId>nz.ac.waikato.cms.weka</groupId>
@@ -1616,7 +1624,7 @@
 		<dependency>
 			<groupId>org.apache.zookeeper</groupId>
 			<artifactId>zookeeper</artifactId>
-			<version>3.4.5</version>
+			<version>3.4.9</version>
 			<exclusions>
 				<exclusion>
 					<groupId>*</groupId>
@@ -1922,6 +1930,24 @@
 		    <groupId>org.rosuda</groupId>
 		    <artifactId>JRI</artifactId>
 		    <version>0.5.6</version>
+		</dependency>
+		
+		<!-- required for Apache Storm -->
+		<dependency>
+    		<groupId>junit</groupId>
+    		<artifactId>junit</artifactId>
+    		<version>3.8.1</version>
+    		<scope>test</scope>
+  		</dependency>
+		<dependency>
+    		<groupId>org.apache.storm</groupId>
+    		<artifactId>storm-core</artifactId>
+    		<version>1.0.2</version>
+		</dependency>
+		<dependency>
+    		<groupId>org.apache.storm</groupId>
+    		<artifactId>storm-jdbc</artifactId>
+   			<version>1.0.2</version>
 		</dependency>
 	</dependencies>
 </project>
