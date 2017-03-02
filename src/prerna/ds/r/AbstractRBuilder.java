@@ -1,9 +1,12 @@
 package prerna.ds.r;
 
 import java.io.File;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
@@ -11,6 +14,8 @@ import org.rosuda.REngine.Rserve.RConnection;
 import org.rosuda.REngine.Rserve.RserveException;
 
 import prerna.algorithm.api.IMetaData;
+import prerna.ds.AbstractTableDataFrame;
+import prerna.ds.QueryStruct;
 import prerna.engine.api.IHeadersDataRow;
 import prerna.engine.impl.r.RFileWrapper;
 import prerna.util.Constants;
@@ -24,6 +29,8 @@ public abstract class AbstractRBuilder {
 	// holds the connection for RDataFrame to the instance of R running
 	protected String dataTableName = "datatable";
 
+	protected QueryStruct qs = new QueryStruct();
+	
 	public AbstractRBuilder() {
 	
 	}
@@ -135,5 +142,35 @@ public abstract class AbstractRBuilder {
 				evalR( addTryEvalToScript( RSyntaxHelper.alterColumnTypeToNumeric(this.dataTableName, header) ) );
 			}
 		}
+	}
+
+	public void setFilters(String columnHeader, List<Object> filterValues, AbstractTableDataFrame.Comparator equal) {
+		// TODO Auto-generated method stub
+		
+	}
+
+	public void setFilters(String columnHeader, List<Object> filters, String comparator) {
+		// TODO Auto-generated method stub
+		
+	}
+
+	public void addFilters(String columnHeader, List<Object> filters, String comparator) {
+		if(this.qs.andfilters.containsKey(columnHeader)) {
+			if(this.qs.andfilters.get(columnHeader).containsKey(comparator)) {
+				this.qs.andfilters.get(columnHeader).get(comparator).addAll(filters);
+			} else {
+				this.qs.andfilters.get(columnHeader).put(comparator, filters);
+			}
+		} else {
+			
+		}
+	}
+
+	public void removeFilter(String columnHeader) {
+		this.qs.andfilters.remove(columnHeader);
+	}
+
+	public void clearFilters() {
+		this.qs.andfilters.clear();
 	}
 }

@@ -1,8 +1,6 @@
 package prerna.rdf.query.builder;
 
 import java.util.ArrayList;
-import java.util.Enumeration;
-import java.util.Hashtable;
 import java.util.List;
 import java.util.Map;
 import java.util.Vector;
@@ -166,12 +164,9 @@ public class SPARQLInterpreter implements IQueryInterpreter {
 	
 	public void addSelectors()
 	{
-		Enumeration <String> selections = qs.selectors.keys();
-		while(selections.hasMoreElements())
-		{
-			String tableName = selections.nextElement();
-			Vector <String> columns = qs.selectors.get(tableName);
-
+		Map<String, List<String>> selectorMap = qs.selectors;
+		for(String tableName : selectorMap.keySet()) {
+			List <String> columns = selectorMap.get(tableName);
 			for(int colIndex = 0;colIndex < columns.size(); colIndex++){
 				addSelector(tableName, columns.get(colIndex));
 				addFrom(tableName, columns.get(colIndex));
@@ -184,14 +179,11 @@ public class SPARQLInterpreter implements IQueryInterpreter {
 		if(!addedJoins){
 			addJoins();
 		}
-		Enumeration <String> concepts = qs.andfilters.keys();
 		
-		while(concepts.hasMoreElements())
-		{
-			String concept_property = concepts.nextElement();
+		Map<String, Map<String, List>> filterMap = qs.andfilters;
+		for(String concept_property : filterMap.keySet()) {
 			// inside this is a hashtable of all the comparators
-			Hashtable <String, Vector> compHash = qs.andfilters.get(concept_property);
-			Enumeration <String> comps = compHash.keys();
+			Map <String, List> compHash = qs.andfilters.get(concept_property);
 			String concept = concept_property;
 			String property = null;
 			if(concept_property.contains("__")) {
@@ -205,14 +197,10 @@ public class SPARQLInterpreter implements IQueryInterpreter {
 			// say I have > 50
 			// and then  < 80
 			// I need someway to tell the adder that this is an end 
-			while(comps.hasMoreElements())
-			{
-				String thisComparator = comps.nextElement();
-				
-				Vector options = compHash.get(thisComparator);
+			for(String thisComparator : compHash.keySet()) {
+				List options = compHash.get(thisComparator);
 				
 				// and the final one goes here					
-				
 				// now I get all of them and I start adding them
 				// usually these are or ?
 				// so I am saying if something is
@@ -226,7 +214,7 @@ public class SPARQLInterpreter implements IQueryInterpreter {
 		}
 	}
 	
-	private void addRegexFiler(String concept, String property, String thisComparator, Vector objects) {
+	private void addRegexFiler(String concept, String property, String thisComparator, List objects) {
 		// need to tell the FE to not pass this... this currently occurs when you hit on the 
 		// concept when you try to traverse in graph
 		if(objects == null || objects.size() == 0) {
@@ -303,7 +291,7 @@ public class SPARQLInterpreter implements IQueryInterpreter {
 		}
 	}
 
-	private void addFilter(String concept, String property, String thisComparator, Vector objects) {
+	private void addFilter(String concept, String property, String thisComparator, List objects) {
 		// Here are the rules for adding a filter to a sparql query
 		// 1. We want to use bind and bindings rather than filter whenever possible as it speeds up processing
 		// 2. Using bindings at the end of the query is the same as putting filter within the clause for that concept
@@ -428,14 +416,11 @@ public class SPARQLInterpreter implements IQueryInterpreter {
 		}
 		addedJoins = true;
 		// full and final and we are here
-		Enumeration <String> concepts = qs.relations.keys();
 		
-		while(concepts.hasMoreElements())
-		{
-			String concept_property = concepts.nextElement();
+		Map<String, Map<String, List>> relationMap = qs.relations;
+		for(String concept_property : relationMap.keySet()) {
 			// inside this is a hashtable of all the comparators
-			Hashtable <String, Vector> compHash = qs.relations.get(concept_property);
-			Enumeration <String> comps = compHash.keys();
+			Map <String, List> compHash = relationMap.get(concept_property);
 			
 			// the comparator between the concept is an and so block it that way
 			// I need to specify to it that I am doing something new here
@@ -443,11 +428,8 @@ public class SPARQLInterpreter implements IQueryInterpreter {
 			// say I have > 50
 			// and then  < 80
 			// I need someway to tell the adder that this is an end 
-			while(comps.hasMoreElements())
-			{
-				String thisComparator = comps.nextElement();
-				
-				Vector <String> options = compHash.get(thisComparator);
+			for(String thisComparator : compHash.keySet()) {
+				List <String> options = compHash.get(thisComparator);
 				
 				// and the final one goes here					
 				
@@ -459,7 +441,7 @@ public class SPARQLInterpreter implements IQueryInterpreter {
 					addJoin(concept_property, thisComparator, options.get(optIndex));
 				}
 			}
-		}		
+		}
 	}
 	
 	private void addJoin(String fromString, String thisComparator, String toString) {

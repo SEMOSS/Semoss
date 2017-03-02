@@ -707,7 +707,7 @@ public class QuestionAdministrator {
 				String paramPhysName = Utility.getInstanceName(paramURI);
 				QueryStruct builderData = dmc.getQueryStruct();
 				if(builderData != null) {
-					Hashtable<String, Hashtable<String, Vector>> relTriples = builderData.getRelations();
+					Map<String, Map<String, List>> relTriples = builderData.getRelations();
 					boolean containsParam =  false;
 					if(relTriples != null) {
 						for(String subject: relTriples.keySet()) {
@@ -720,8 +720,8 @@ public class QuestionAdministrator {
 								involvedParams.add(param);
 								continue PARAMS_FOR;
 							}
-							Collection<Vector> objectsC = relTriples.get(subject).values();
-							for(Vector objs : objectsC ){
+							Collection<List> objectsC = relTriples.get(subject).values();
+							for(List objs : objectsC ){
 								for(Object obj : objs){
 									//check the objects
 									String checkName = obj +"";
@@ -736,10 +736,10 @@ public class QuestionAdministrator {
 							}
 						}
 					}
-					Hashtable<String, Vector<String>> nodeProps = builderData.getSelectors();
+					Map<String, List<String>> nodeProps = builderData.getSelectors();
 					if(nodeProps != null && !containsParam) {
 						for(String subject: nodeProps.keySet()) {
-							Vector<String> vector = nodeProps.get(subject);
+							List<String> vector = nodeProps.get(subject);
 							for(String prop : vector){
 								if(prop.equals(paramPhysName)) {
 									involvedParams.add(param);

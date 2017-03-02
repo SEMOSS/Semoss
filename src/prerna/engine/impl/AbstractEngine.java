@@ -1359,13 +1359,13 @@ public abstract class AbstractEngine implements IEngine {
 		Map<String, SEMOSSVertex> vertStore = new Hashtable<String, SEMOSSVertex>();
 
 		// first get all the nodes
-		Hashtable<String, Vector<String>> vertices = qs.getSelectors();
+		Map<String, List<String>> vertices = qs.getSelectors();
 		for(String concept : vertices.keySet()) {
 			// grab each vert
 			SEMOSSVertex vert = new SEMOSSVertex("http://semoss.org/ontologies/Concept/" + concept);
 			vert.putProperty("PhysicalName", concept);
 			// grab the properties and add it to the vert
-			Vector<String> props = vertices.get(concept);
+			List<String> props = vertices.get(concept);
 			for(String prop : props) {
 				// ignore the placeholder as it is only used by interpreters for query construction
 				if(prop.equals(QueryStruct.PRIM_KEY_PLACEHOLDER)) {
@@ -1385,17 +1385,17 @@ public abstract class AbstractEngine implements IEngine {
 		// remember, the map is the {fromConcept -> { joinType -> [toConcept1, toConcept2] } }
 		// need to iterate through to get fromConcept -> toConcept and make a unique edge for each
 		// remember the edge names are not every actually used
-		Hashtable<String, Hashtable<String, Vector>> relations = qs.getRelations();
+		Map<String, Map<String, List>> relations = qs.getRelations();
 		for(String fromConcept : relations.keySet()) {
 			// get the from-vertex
 			SEMOSSVertex fromVert = vertStore.get(fromConcept);
 
 			// need to iterate through the join types to get to the toConcpets
-			Hashtable<String, Vector> joinsMap = relations.get(fromConcept);
+			Map<String, List> joinsMap = relations.get(fromConcept);
 			for(String joinType : joinsMap.keySet()) {
-				Vector<String> toConcepts = joinsMap.get(joinType);
+				List<Object> toConcepts = joinsMap.get(joinType);
 				
-				for(String toConcept : toConcepts) {
+				for(Object toConcept : toConcepts) {
 					// get the to-vertex
 					SEMOSSVertex toVert = vertStore.get(toConcept);
 					
