@@ -1,6 +1,5 @@
 package prerna.rdf.query.builder;
 
-import java.util.Enumeration;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Hashtable;
@@ -241,12 +240,12 @@ public class SQLInterpreter implements IQueryInterpreter{
 	 * and considers if the table should be added to the from string
 	 */
 	public void addSelectors() {
-		Hashtable<String, Vector<String>> selectorData = qs.selectors;
+		Map<String, List<String>> selectorData = qs.selectors;
 		
 		// loop through every table name
 		for(String tableName : selectorData.keySet()) {
 			// now get all the column names for the table
-			Vector<String> columns = selectorData.get(tableName);
+			List<String> columns = selectorData.get(tableName);
 			// now loop through and add all the column data
 			for(String col : columns) {
 				// now actually do the column add into the selector string
@@ -358,15 +357,15 @@ public class SQLInterpreter implements IQueryInterpreter{
 	 * Adds the joins for the query
 	 */
 	public void addJoins() {
-		Hashtable<String, Hashtable<String, Vector>> relationsData = qs.relations;
+		Map<String, Map<String, List>> relationsData = qs.relations;
 		// loop through all the relationships
 		// realize we can be joining on properties within a table
 		for(String startConceptProperty : relationsData.keySet() ) {
 			// the key for this object is the specific type of join to be used
 			// between this instance and all the other ones
-			Hashtable<String, Vector> joinMap = relationsData.get(startConceptProperty);
+			Map<String, List> joinMap = relationsData.get(startConceptProperty);
 			for(String comparator : joinMap.keySet()) {
-				Vector<String> joinColumns = joinMap.get(comparator);
+				List<String> joinColumns = joinMap.get(comparator);
 				for(String endConceptProperty : joinColumns) {
 					// go through and perform the actual join
 					addJoin(startConceptProperty, comparator, endConceptProperty);
@@ -453,15 +452,10 @@ public class SQLInterpreter implements IQueryInterpreter{
 
 	public void addFilters()
 	{
-		Enumeration <String> concepts = qs.andfilters.keys();
-		
-		while(concepts.hasMoreElements())
-		{
-			String concept_property = concepts.nextElement();
-			
+		Map<String, Map<String, List>> filterMap = qs.andfilters;
+		for(String concept_property : filterMap.keySet()) {
 			// inside this is a hashtable of all the comparators
-			Hashtable <String, Vector> compHash = qs.andfilters.get(concept_property);
-			Enumeration <String> comps = compHash.keys();
+			Map <String, List> compHash = qs.andfilters.get(concept_property);
 			
 			// when adding implicit filtering from the dataframe as a pretrans that gets appended into the QS
 			// we store the value without the parent__, so need to check here if it is stored as a prop in the engine
@@ -488,11 +482,9 @@ public class SQLInterpreter implements IQueryInterpreter{
 			// say I have > 50
 			// and then  < 80
 			// I need someway to tell the adder that this is an end 
-			while(comps.hasMoreElements())
-			{
-				String thisComparator = comps.nextElement();
-				
-				Vector options = compHash.get(thisComparator);
+			
+			for(String thisComparator : compHash.keySet()) {
+				List options = compHash.get(thisComparator);
 				// account for dumb inputs
 				if(options.size() == 0) {
 					continue;
@@ -553,7 +545,7 @@ public class SQLInterpreter implements IQueryInterpreter{
 	}
 
 	//we want the filter query to be: "... where table.column in ('value1', 'value2', ...) when the comparator is '=' or "!="
-	private void addEqualsFilter(String concept, String property, String thisComparator, String dataType, Vector<Object> object) {
+	private void addEqualsFilter(String concept, String property, String thisComparator, String dataType, List<Object> object) {
 		String key = concept +":::"+ property +":::"+ thisComparator;
 		// this will hold the sql acceptable format for all the objects in the list
 		String thisWhere = getFormatedObject(dataType, object, thisComparator);
@@ -571,7 +563,7 @@ public class SQLInterpreter implements IQueryInterpreter{
 	 * @param comparator
 	 * @return
 	 */
-	private String getFormatedObject(String dataType, Vector<Object> objects, String comparator) {
+	private String getFormatedObject(String dataType, List<Object> objects, String comparator) {
 		// this will hold the sql acceptable format of the object
 		StringBuilder myObj = new StringBuilder();
 		
