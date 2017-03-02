@@ -53,77 +53,78 @@ public abstract class AbstractVizReactor extends AbstractReactor {
 	}
 	
 	protected void performLimitOffsetAndSorting(List<Object[]> data, Map<Object, Object> optionsMap, List<Map<String, Object>> tableKeys) {
-		// we need to manually perform a limit/offset/sort
-		int limit = 0;
-		int offset = 0;
-		int sortIndex = -1;
-		String sortDataType = null;
-		// we will have a default sort direction
-		String sortDir = "DESC";
-		if(optionsMap.containsKey("limit")) {
-			limit = (int) optionsMap.get("limit");
-		}
-		if(optionsMap.containsKey("offset")) {
-			offset = (int) optionsMap.get("offset");
-		}
-		
-		if(optionsMap.containsKey("sortVar")) {
-			String sortVar = optionsMap.get("sortVar").toString().trim();
-			if(optionsMap.containsKey("sortDir")) {
-				sortDir = optionsMap.get("sortDir") + "";
+		if(optionsMap != null) {
+			// we need to manually perform a limit/offset/sort
+			int limit = 0;
+			int offset = 0;
+			int sortIndex = -1;
+			String sortDataType = null;
+			// we will have a default sort direction
+			String sortDir = "DESC";
+			if(optionsMap.containsKey("limit")) {
+				limit = (int) optionsMap.get("limit");
 			}
-			// this will match the formula used 
-			// i.e. for a column, it is c: Studio
-			// or it is m:Sum( blah blah )
+			if(optionsMap.containsKey("offset")) {
+				offset = (int) optionsMap.get("offset");
+			}
 			
-			// first, see if it is a table column
-			
-			for(int i = 0; i < tableKeys.size(); i++) {
-				Map<String, Object> tableKey = tableKeys.get(i);
-				String uri = (String) tableKey.get("uri");
-				if(sortVar.equalsIgnoreCase("c: " + uri)) {
-					sortDataType = (String) tableKey.get("type");
-					sortIndex = i;
-					break;
-				} else {
-					Map<String, Object> operationMap = (Map<String, Object>) tableKey.get("operation");
-					if(!operationMap.isEmpty()) {
-						if(sortVar.equals(operationMap.get("formula"))) {
-							sortDataType = (String) tableKey.get("type");
-							sortIndex = i;
-							break;
+			if(optionsMap.containsKey("sortVar")) {
+				String sortVar = optionsMap.get("sortVar").toString().trim();
+				if(optionsMap.containsKey("sortDir")) {
+					sortDir = optionsMap.get("sortDir") + "";
+				}
+				// this will match the formula used 
+				// i.e. for a column, it is c: Studio
+				// or it is m:Sum( blah blah )
+				
+				// first, see if it is a table column
+				
+				for(int i = 0; i < tableKeys.size(); i++) {
+					Map<String, Object> tableKey = tableKeys.get(i);
+					String uri = (String) tableKey.get("uri");
+					if(sortVar.equalsIgnoreCase("c: " + uri)) {
+						sortDataType = (String) tableKey.get("type");
+						sortIndex = i;
+						break;
+					} else {
+						Map<String, Object> operationMap = (Map<String, Object>) tableKey.get("operation");
+						if(!operationMap.isEmpty()) {
+							if(sortVar.equals(operationMap.get("formula"))) {
+								sortDataType = (String) tableKey.get("type");
+								sortIndex = i;
+								break;
+							}
 						}
 					}
 				}
 			}
-		}
-		
-		if(sortIndex > -1) {
-			data = sortList(data, sortIndex, sortDir, sortDataType);
-		}
-		
-		// need to do some validation here
-		// if the FE has gotten to the point where they have
-		// scrolled far enough
-		// we should just return 0 data
-		// that way they know they have gone to far
-		int dataSize = data.size();
-		if(limit > dataSize) {
-			limit = dataSize;
-		}
-		if(offset > dataSize) {
-			offset = dataSize;
-		}
-		if(limit > 0) {
-			if(offset > 0) {
-				data = data.subList(offset, offset+limit);
-			} else {
-				data = data.subList(0, limit);
+			
+			if(sortIndex > -1) {
+				data = sortList(data, sortIndex, sortDir, sortDataType);
 			}
-		} else if(offset > 0) {
-			data = data.subList(offset, data.size());
+			
+			// need to do some validation here
+			// if the FE has gotten to the point where they have
+			// scrolled far enough
+			// we should just return 0 data
+			// that way they know they have gone to far
+			int dataSize = data.size();
+			if(limit > dataSize) {
+				limit = dataSize;
+			}
+			if(offset > dataSize) {
+				offset = dataSize;
+			}
+			if(limit > 0) {
+				if(offset > 0) {
+					data = data.subList(offset, offset+limit);
+				} else {
+					data = data.subList(0, limit);
+				}
+			} else if(offset > 0) {
+				data = data.subList(offset, data.size());
+			}
 		}
-		
 		myStore.put("VizTableValues", data);
 	}
 
