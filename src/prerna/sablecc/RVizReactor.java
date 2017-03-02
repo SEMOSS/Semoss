@@ -1,6 +1,5 @@
 package prerna.sablecc;
 
-import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
@@ -33,7 +32,7 @@ public class RVizReactor extends AbstractVizReactor{
 			// this is the case when user wants a grid of everything
 			// we do not send back any data through the pkql
 			// they get it in the getNextTableData call
-			selectors = Arrays.asList(frame.getColumnHeaders());
+			return null;
 		}
 		
 		List<Map> mergeMaps = new Vector<Map>();
