@@ -1,11 +1,11 @@
 package prerna.sablecc2.reactor.qs;
 
-import prerna.ds.QueryStruct;
+import prerna.ds.QueryStruct2;
 
 public class FrameReactor extends QueryStructReactor {
 
 	@Override
-	QueryStruct createQueryStruct() {
-		return new QueryStruct();
+	QueryStruct2 createQueryStruct() {
+		return qs;
 	}
 }

@@ -7,6 +7,7 @@ import prerna.engine.api.IRawSelectWrapper;
 import prerna.engine.api.IScriptReactor;
 import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.rdf.query.builder.IQueryInterpreter;
+import prerna.rdf.query.builder.SQLInterpreter2;
 import prerna.sablecc.PKQLEnum;
 import prerna.sablecc2.JobStore;
 import prerna.sablecc2.om.GenRowStruct;
@@ -23,7 +24,9 @@ import java.util.Vector;
 
 import prerna.algorithm.api.ITableDataFrame;
 import prerna.ds.QueryStruct;
+import prerna.ds.QueryStruct2;
 
+//TODO : Hardcoding this to use QueryStruct2 and SQLInterpreter2 to test changes
 public class IterateReactor extends AbstractReactor {
 
 
@@ -81,20 +84,25 @@ public class IterateReactor extends AbstractReactor {
 		//we will temporarily introduce handling math operations until those math operations are absorbed by the query struct and interpreted by the query interpreters
 		
 		
-		QueryStruct queryStruct = (QueryStruct)this.planner.getProperty("QUERYSTRUCT", "QUERYSTRUCT"); //this should not be a single query...need to somehow store this with a signature
+		QueryStruct2 queryStruct = (QueryStruct2)this.planner.getProperty("QUERYSTRUCT", "QUERYSTRUCT"); //this should not be a single query...need to somehow store this with a signature
 		String engineName = queryStruct.getEngineName();
 		//TODO: add tableJoins to query
+		//TODO: remove hard coded classes when we establish querystruct2 and sqlinterpreter2 function properly 
 		GenRowStruct allNouns = getNounStore().getNoun(NounStore.all); //should be only joins
 		if(engineName != null) {
 			IEngine engine = Utility.getEngine(removeQuotes(engineName.trim()));
-			IQueryInterpreter interp = engine.getQueryInterpreter();
+//			IQueryInterpreter interp = engine.getQueryInterpreter();
+			SQLInterpreter2 interp = new SQLInterpreter2(engine);
 			interp.setQueryStruct(queryStruct);
 			String importQuery = interp.composeQuery();
 			IRawSelectWrapper iterator = WrapperManager.getInstance().getRawWrapper(engine, importQuery);
 			JobStore.INSTANCE.addJob("job", iterator);
 		} else {
 			ITableDataFrame frame = (ITableDataFrame)this.planner.getProperty("FRAME", "FRAME");
-			Iterator iterator = frame.query(queryStruct);
+			SQLInterpreter2 interp = new SQLInterpreter2();
+			interp.setQueryStruct(queryStruct);
+			String importQuery = interp.composeQuery();
+			Iterator iterator = frame.query(importQuery);
 			JobStore.INSTANCE.addJob("job", iterator);
 		}			
 	}
