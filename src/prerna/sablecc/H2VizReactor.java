@@ -33,15 +33,7 @@ public class H2VizReactor extends AbstractVizReactor {
 			// this is the case when user wants a grid of everything
 			// we do not send back any data through the pkql
 			// they get it in the getNextTableData call
-			selectors = Arrays.asList(frame.getColumnHeaders());
-			
-			vizTypes = new Vector<String>();
-			vizFormula = new Vector<String>();
-			for(int i = 0; i < selectors.size(); i++) {
-				vizTypes.add("label");
-				vizFormula.add("c: " + selectors.get(i));
-			}
-			
+			return null;
 		}
 		
 		// since the BE calculates the column headers for derived columns

@@ -1,6 +1,5 @@
 package prerna.sablecc;
 
-import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
@@ -35,7 +34,7 @@ public class VizReactor extends AbstractVizReactor {
 			// this is the case when user wants a grid of everything
 			// we do not send back any data through the pkql
 			// they get it in the getNextTableData call
-			selectors = Arrays.asList(frame.getColumnHeaders());
+			return null;
 		}
 		
 		List<String> columns = new Vector<String>();
