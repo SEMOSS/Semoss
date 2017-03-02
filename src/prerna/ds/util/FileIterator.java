@@ -3,12 +3,10 @@ package prerna.ds.util;
 import java.io.File;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.Hashtable;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.Vector;
 
 import prerna.algorithm.api.IMetaData;
 import prerna.ds.QueryStruct;
@@ -234,9 +232,9 @@ public class FileIterator implements Iterator<IHeadersDataRow>{
 		this.nextRow = newRow;
 	}
 	
-	private void setFilters(Hashtable<String, Hashtable<String, Vector>> andfilters) {
+	private void setFilters(Map<String, Map<String, List>> andfilters) {
 		for(String column : andfilters.keySet()) {
-			Hashtable<String, Vector> filterValues = andfilters.get(column);
+			Map<String, List> filterValues = andfilters.get(column);
 			Set<Object> values = new HashSet<>();
 			for(String comparator : filterValues.keySet()) {
 				List vals = filterValues.get(comparator);
@@ -247,7 +245,7 @@ public class FileIterator implements Iterator<IHeadersDataRow>{
 		}
 	}
 	
-	private void setSelectors(Hashtable<String, Vector<String>> selectorSet) {
+	private void setSelectors(Map<String, List<String>> selectorSet) {
 		if(selectorSet.isEmpty()) {
 			return; // if no selectors, return everything
 		}

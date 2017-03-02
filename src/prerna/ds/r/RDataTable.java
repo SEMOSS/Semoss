@@ -11,6 +11,7 @@ import org.rosuda.REngine.Rserve.RConnection;
 import org.rosuda.REngine.Rserve.RserveException;
 
 import prerna.algorithm.api.IMetaData;
+import prerna.algorithm.api.IMetaData.DATA_TYPES;
 import prerna.algorithm.api.ITableDataFrame;
 import prerna.ds.AbstractTableDataFrame;
 import prerna.ds.TinkerMetaData;
@@ -236,6 +237,110 @@ public class RDataTable extends AbstractTableDataFrame {
 		this.headerNames = newHeaders;
 	}
 	
+	/**
+	 * String columnHeader - the column on which to filter on filterValues - the
+	 * values that will remain in the
+	 */
+	@Override
+	public void filter(String columnHeader, List<Object> filterValues) {
+		if (filterValues != null && filterValues.size() > 0) {
+			this.metaData.setFiltered(columnHeader, true);
+			builder.setFilters(columnHeader, filterValues, "=");
+		}
+	}
+	
+	@Override
+	public void filter(String columnHeader, Map<String, List<Object>> filterValues) {
+		if(columnHeader == null || filterValues == null) return;
+
+		DATA_TYPES type = this.metaData.getDataType(columnHeader);
+		boolean isOrdinal = type != null && (type == DATA_TYPES.DATE || type == DATA_TYPES.NUMBER);
+
+
+		String[] comparators = filterValues.keySet().toArray(new String[]{});
+		for(int i = 0; i < comparators.length; i++) {
+			String comparator = comparators[i];
+			boolean override = i == 0;
+			List<Object> filters = filterValues.get(comparator);
+
+			comparator = comparator.trim();
+			if(comparator.equals("=")) {
+
+				if(override) builder.setFilters(columnHeader, filters, comparator);
+				else builder.addFilters(columnHeader, filters, comparator);
+
+			} else if(comparator.equals("!=")) { 
+
+				if(override) builder.setFilters(columnHeader, filters, comparator);
+				else builder.addFilters(columnHeader, filters, comparator);
+
+			} else if(comparator.equals("<")) {
+
+				if(isOrdinal) {
+
+					if(override) builder.setFilters(columnHeader, filters, comparator);
+					else builder.addFilters(columnHeader, filters, comparator);
+
+				} else {
+					throw new IllegalArgumentException(columnHeader
+							+ " is not a numeric column, cannot use operator "
+							+ comparator);
+				}
+
+			} else if(comparator.equals(">")) {
+
+				if(isOrdinal) {
+
+					if(override) builder.setFilters(columnHeader, filters, comparator);
+					else builder.addFilters(columnHeader, filters, comparator);
+
+				} else {
+					throw new IllegalArgumentException(columnHeader
+							+ " is not a numeric column, cannot use operator "
+							+ comparator);
+				}
+
+			} else if(comparator.equals("<=")) {
+				if(isOrdinal) {
+
+					if(override) builder.setFilters(columnHeader, filters, comparator);
+					else builder.addFilters(columnHeader, filters, comparator);
+
+				} else {
+					throw new IllegalArgumentException(columnHeader
+							+ " is not a numeric column, cannot use operator "
+							+ comparator);
+				}
+			} else if(comparator.equals(">=")) {
+				if(isOrdinal) {
+
+					if(override) builder.setFilters(columnHeader, filters, comparator);
+					else builder.addFilters(columnHeader, filters, comparator);
+
+				} else {
+					throw new IllegalArgumentException(columnHeader
+							+ " is not a numeric column, cannot use operator "
+							+ comparator);
+				}
+			} else {
+				// comparator not recognized...do equal by default? or do
+				// nothing? or throw error?
+			}
+			this.metaData.setFiltered(columnHeader, true);
+		}
+	}
+
+	@Override
+	public void unfilter(String columnHeader) {
+		this.metaData.setFiltered(columnHeader, false);
+		builder.removeFilter(columnHeader);
+	}
+
+	@Override
+	public void unfilter() {
+		builder.clearFilters();
+	}
+	
 	@Override
 	public boolean isEmpty() {
 		return this.builder.isEmpty();
@@ -291,24 +396,6 @@ public class RDataTable extends AbstractTableDataFrame {
 	}
 
 	@Override
-	public void filter(String columnHeader, List<Object> filterValues) {
-		// TODO Auto-generated method stub
-		
-	}
-
-	@Override
-	public void unfilter(String columnHeader) {
-		// TODO Auto-generated method stub
-		
-	}
-
-	@Override
-	public void unfilter() {
-		// TODO Auto-generated method stub
-		
-	}
-
-	@Override
 	public Object[] getFilterModel() {
 		// TODO Auto-generated method stub
 		return null;
@@ -324,12 +411,6 @@ public class RDataTable extends AbstractTableDataFrame {
 	public ITableDataFrame open(String fileName, String userId) {
 		// TODO Auto-generated method stub
 		return null;
-	}
-
-	@Override
-	public void filter(String columnHeader, Map<String, List<Object>> filterValues) {
-		// TODO Auto-generated method stub
-		
 	}
 
 	@Override

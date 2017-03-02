@@ -1,9 +1,9 @@
 package prerna.sablecc;
 
 import java.sql.SQLException;
-import java.util.Hashtable;
 import java.util.Iterator;
-import java.util.Vector;
+import java.util.List;
+import java.util.Map;
 
 import org.rosuda.REngine.Rserve.RserveException;
 
@@ -46,7 +46,7 @@ public class RApiReactor extends AbstractApiReactor {
 		} 
 		
 		
-		Hashtable<String, Vector<String>> selectors = this.qs.getSelectors();
+		Map<String, List<String>> selectors = this.qs.getSelectors();
 		String columns = "";
 		for(String column : selectors.keySet()) {
 			columns += column + ",";

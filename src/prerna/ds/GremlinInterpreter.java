@@ -37,7 +37,7 @@ public class GremlinInterpreter implements IQueryInterpreter {
 	private QueryStruct qs = null;
 	Map<String, Set<String>> edgeHash;
 	private List<String> selector;
-	private Hashtable<String, Hashtable<String, Vector>> filters;
+	private Map<String, Map<String, List>> filters;
 	
 	public GremlinInterpreter(Graph g, Graph metaGraph) {
 		this.g = g;
@@ -490,10 +490,10 @@ public class GremlinInterpreter implements IQueryInterpreter {
 		return traversals;
 	}
 
-	public void addFilterInPath(GraphTraversal<Object, Vertex> gt, String nameType, Hashtable<String, Vector> filterInfo) {
+	public void addFilterInPath(GraphTraversal<Object, Vertex> gt, String nameType, Map<String, List> filterInfo) {
 		// TODO: right now, if its a math, assumption that vector only contains one value
 		for(String filterType : filterInfo.keySet()) {
-			Vector filterVals = filterInfo.get(filterType);
+			List filterVals = filterInfo.get(filterType);
 			if(filterType.equals("=")) {
 //				if(filterVals.get(0) instanceof Number) {
 //					gt = gt.has(TinkerFrame.TINKER_NAME, P.eq(filterVals.get(0) ));
@@ -529,20 +529,20 @@ public class GremlinInterpreter implements IQueryInterpreter {
 	public Map<String, Set<String>> generateEdgeMap() {
 		Map<String, Set<String>> edgeMap = new Hashtable<String, Set<String>>();
 		
-		Hashtable<String, Hashtable<String, Vector>> rels = qs.relations;
+		Map<String, Map<String, List>> rels = qs.relations;
 		
 		// add the relationships into the edge map
 		if(!rels.isEmpty()) {
 			Set<String> relKeys = rels.keySet();
 			// looping through the start node of the relationship
 			for(String startNode : relKeys) {
-				Hashtable<String, Vector> comps = rels.get(startNode);
+				Map<String, List> comps = rels.get(startNode);
 				//TODO: currently going to not care about the compKeys and assume everything 
 				// 		is an inner join for simplicity
 				Set<String> compKeys = comps.keySet();
 				for(String comp : compKeys) {
 					// this is the end node of the relationship
-					Vector<String> endNodes = comps.get(comp);
+					List<String> endNodes = comps.get(comp);
 					
 					Set<String> joinSet = new HashSet<String>();
 					for(String node : endNodes) {
@@ -599,7 +599,7 @@ public class GremlinInterpreter implements IQueryInterpreter {
 		if(this.selector == null) {
 			this.selector = new Vector<String>();
 			for(String key : qs.selectors.keySet()) {
-				Vector<String> val = qs.selectors.get(key);
+				List<String> val = qs.selectors.get(key);
 				for(String select : val) {
 					if(select.equals("PRIM_KEY_PLACEHOLDER")) {
 						selector.add(key);
@@ -661,7 +661,7 @@ public class GremlinInterpreter implements IQueryInterpreter {
 		}
 		
 		QueryStruct qs = new QueryStruct();
-		Hashtable <String, Vector<String>> selectors = new Hashtable <String, Vector<String>>();
+		Map <String, List<String>> selectors = new Hashtable <String, List<String>>();
 		Vector<String> v1 = new Vector<String>();
 		v1.add("PRIM_KEY_PLACEHOLDER");
 		v1.add("Title__Movie_Budget");
@@ -669,19 +669,19 @@ public class GremlinInterpreter implements IQueryInterpreter {
 		selectors.put("Title", v1);
 		qs.selectors = selectors;
 		
-		Hashtable <String, Hashtable<String, Vector>> relations = new Hashtable<String, Hashtable<String, Vector>>();
-		Vector<String> v2 = new Vector<String>();
+		Map <String, Map<String, List>> relations = new Hashtable<String, Map<String, List>>();
+		List<String> v2 = new Vector<String>();
 		v2.add("Title__Movie_Budget");
 //		v2.add("Title__Revenue_Domestic");
-		Hashtable<String, Vector> h2 = new Hashtable<String, Vector>();
+		Map<String, List> h2 = new Hashtable<String, List>();
 		h2.put("inner.join", v2);
 		relations.put("Title", h2);
 		qs.relations = relations;
 
-		Hashtable <String, Hashtable<String, Vector>> filters = new Hashtable<String, Hashtable<String, Vector>>();
-		Vector v3 = new Vector();
+		Map <String, Map<String, List>> filters = new Hashtable<String, Map<String, List>>();
+		List v3 = new Vector();
 		v3.add("0");
-		Hashtable<String, Vector> h3 = new Hashtable<String, Vector>();
+		Map<String, List> h3 = new Hashtable<String, List>();
 		h3.put(">", v3);
 		Vector v4 = new Vector();
 		v4.add("5000000");

@@ -1,18 +1,12 @@
 package prerna.engine.impl.tinker;
 
 import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.Hashtable;
-import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
-import java.util.Set;
-import java.util.Vector;
 
-import org.apache.tinkerpop.gremlin.structure.Vertex;
 import org.apache.tinkerpop.gremlin.tinkergraph.structure.TinkerGraph;
 
 import prerna.ds.QueryStruct;
-import prerna.ds.TinkerFrameIterator;
 import prerna.ds.TinkerIterator;
 import prerna.ds.TinkerQueryInterpreter;
 import prerna.engine.api.IHeadersDataRow;
@@ -37,10 +31,10 @@ public class RawTinkerSelectWrapper extends AbstractWrapper implements IRawSelec
 	public String[] getDisplayVariables() {
 		if (displayVar == null) {
 			QueryStruct qs = (QueryStruct) ((TinkerEngine) engine).getQueryStruct();
-			Hashtable<String, Vector<String>> selectors = qs.selectors;
+			Map<String, List<String>> selectors = qs.selectors;
 			ArrayList<String> dV = new ArrayList<>();
 			for (String selectorKey : selectors.keySet()) {
-				Vector<String> props = selectors.get(selectorKey);
+				List<String> props = selectors.get(selectorKey);
 				dV.add(selectorKey);
 				for (String prop : props) {
 					if (!prop.contains("PRIM_KEY_PLACEHOLDER")) {

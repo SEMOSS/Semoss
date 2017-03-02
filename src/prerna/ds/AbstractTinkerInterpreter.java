@@ -25,7 +25,7 @@ public abstract class AbstractTinkerInterpreter {
 	protected QueryStruct qs = null;
 	Map<String, Set<String>> edgeHash;
 	protected List<String> selector;
-	protected Hashtable<String, Hashtable<String, Vector>> filters;
+	protected Map<String, Map<String, List>> filters;
 
 	/**
 	 * Get the list of selectors from the QueryStruct Save it as class variable
@@ -37,7 +37,7 @@ public abstract class AbstractTinkerInterpreter {
 		if (this.selector == null) {
 			this.selector = new Vector<String>();
 			for (String key : qs.selectors.keySet()) {
-				Vector<String> val = qs.selectors.get(key);
+				List<String> val = qs.selectors.get(key);
 				for (String select : val) {
 					if (select.equals("PRIM_KEY_PLACEHOLDER")) {
 						selector.add(key);
@@ -143,21 +143,21 @@ public abstract class AbstractTinkerInterpreter {
 	public Map<String, Set<String>> generateEdgeMap() {
 		Map<String, Set<String>> edgeMap = new Hashtable<String, Set<String>>();
 
-		Hashtable<String, Hashtable<String, Vector>> rels = qs.relations;
+		Map<String, Map<String, List>> rels = qs.relations;
 
 		// add the relationships into the edge map
 		if (!rels.isEmpty()) {
 			Set<String> relKeys = rels.keySet();
 			// looping through the start node of the relationship
 			for (String startNode : relKeys) {
-				Hashtable<String, Vector> comps = rels.get(startNode);
+				Map<String, List> comps = rels.get(startNode);
 				// TODO: currently going to not care about the compKeys and
 				// assume everything
 				// is an inner join for simplicity
 				Set<String> compKeys = comps.keySet();
 				for (String comp : compKeys) {
 					// this is the end node of the relationship
-					Vector<String> endNodes = comps.get(comp);
+					List<String> endNodes = comps.get(comp);
 
 					Set<String> joinSet = new HashSet<String>();
 					for (String node : endNodes) {
@@ -375,12 +375,11 @@ public abstract class AbstractTinkerInterpreter {
 		return traversals;
 	}
 
-	public void addFilterInPath(GraphTraversal<Object, Vertex> gt, String nameType,
-			Hashtable<String, Vector> filterInfo) {
+	public void addFilterInPath(GraphTraversal<Object, Vertex> gt, String nameType, Map<String, List> map) {
 		// TODO: right now, if its a math, assumption that vector only contains
 		// one value
-		for (String filterType : filterInfo.keySet()) {
-			Vector filterVals = filterInfo.get(filterType);
+		for (String filterType : map.keySet()) {
+			List filterVals = map.get(filterType);
 			if (filterType.equals("=")) {
 				// if(filterVals.get(0) instanceof Number) {
 				// gt = gt.has(TinkerFrame.TINKER_NAME, P.eq(filterVals.get(0)
