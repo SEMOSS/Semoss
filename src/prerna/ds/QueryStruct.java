@@ -2,7 +2,6 @@ package prerna.ds;
 
 import java.io.FileInputStream;
 import java.io.IOException;
-import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -31,7 +30,7 @@ public class QueryStruct {
 	// 3. How you want to join
 	// Title.Title Inner_Join Studio.Title_Fk
 		
-	public Hashtable <String, Vector<String>> selectors = new Hashtable<String, Vector<String>>();
+	public Map <String, List<String>> selectors = new Hashtable<String, List<String>>();
 	
 	// there could be multiple comparators for the same thing
 	// for instance I could say
@@ -39,7 +38,7 @@ public class QueryStruct {
 	// so it would go as
 	// | Movie Budget |  > | Vector(200) | // or this could be a whole object / vector
 	//				  |  < | Vector(300) |
-	public Hashtable <String, Hashtable<String, Vector>> andfilters = new Hashtable<String, Hashtable<String, Vector>>();
+	public Map <String, Map<String, List>> andfilters = new Hashtable<String, Map<String, List>>();
 
 	//Hashtable <String, Hashtable<String, Vector>> orfilters = new Hashtable<String, Hashtable<String, Vector>>();
 	// relations are of the form
@@ -47,15 +46,15 @@ public class QueryStruct {
 	// concept = type of join toCol
 	// Movie	 InnerJoin Studio, Genre
 	//			 OuterJoin Nominated
-	public Hashtable <String, Hashtable<String, Vector>> relations = new Hashtable<String, Hashtable<String, Vector>>();
+	public Map <String, Map<String, List>> relations = new Hashtable<String, Map<String, List>>();
 	
 	//holds the selector we want to order by
 	//tableName -> ColName
-	private Hashtable<String, String> orderBy = new Hashtable<>();
+	private Map <String, String> orderBy = new Hashtable<>();
 	
 	//holds the selector(s) we want to group by
 	//tableName -> ColName
-	private Hashtable<String, Set<String>> groupBy = new Hashtable<>();
+	private Map <String, Set<String>> groupBy = new Hashtable<>();
 	
 	private int limit = -1;
 	private int offset = -1;
@@ -100,11 +99,11 @@ public class QueryStruct {
 		
 		// find if this property is there
 		// ok if the logical name stops being unique this will have some weird results
-		Hashtable <String, Vector> compHash = new Hashtable<String, Vector>();
+		Map <String, List> compHash = new Hashtable<String, List>();
 		if(andfilters.containsKey(fromCol))
 			compHash = andfilters.get(fromCol);
 		
-		Vector curData = new Vector();
+		List curData = new Vector();
 		// next piece is to see if we have the comparator
 		if(compHash.containsKey(comparator))
 			curData = compHash.get(comparator);
@@ -126,11 +125,11 @@ public class QueryStruct {
 		// ok if the logical name stops being unique this will have some weird results
 		
 		
-		Hashtable <String, Vector> compHash = new Hashtable<String, Vector>();
+		Map <String, List> compHash = new Hashtable<String, List>();
 		if(relations.containsKey(fromConcept))
 			compHash = relations.get(fromConcept);
 		
-		Vector curData = new Vector();
+		List curData = new Vector();
 		// next piece is to see if we have the comparator
 		if(compHash.containsKey(comparator))
 			curData = compHash.get(comparator);
@@ -199,10 +198,10 @@ public class QueryStruct {
 		this.performCount = performCount;
 	}
 	
-	private void addToHash(String concept, String property, Hashtable <String, Vector<String>> hash)
+	private void addToHash(String concept, String property, Map <String, List<String>> hash)
 	{
 		// group it by table and you are done
-		Vector <String> propList = new Vector<String>();
+		List <String> propList = new Vector<String>();
 		
 		if(hash.containsKey(concept))
 			propList = hash.get(concept);
@@ -219,11 +218,11 @@ public class QueryStruct {
 		System.out.println("RELATIONS.. " + relations);
 	}
 	
-	public Hashtable<String, Hashtable<String, Vector>> getRelations(){
+	public Map<String, Map<String, List>> getRelations(){
 		return this.relations;
 	}
 	
-	public Hashtable<String, Vector<String>> getSelectors(){
+	public Map<String, List<String>> getSelectors(){
 		return this.selectors;
 	}
 
@@ -255,7 +254,7 @@ public class QueryStruct {
 		
 		// 1) iterate through all the selectors
 		for(String selectorKey: this.selectors.keySet()) {
-			Vector<String> props = this.selectors.get(selectorKey);
+			List<String> props = this.selectors.get(selectorKey);
 			Set<String> downNodeTypes = edgeHash.get(selectorKey);
 			// if the props doesn't contain a prim_key_placeholder... then it is actually just a property and not a concept
 			if(!props.contains(PRIM_KEY_PLACEHOLDER)) {
@@ -286,7 +285,7 @@ public class QueryStruct {
 			// get the starting concept
 			for(String startNode : this.relations.keySet()) {
 				// the relMap contains the joinType pointing to a list of columns to be joined to
-				Hashtable<String, Vector> relMap = this.relations.get(startNode);
+				Map<String, List> relMap = this.relations.get(startNode);
 				// else, just doing a normal join
 				// if the edge hash has the start node as a selector
 				// then we need to see if we should connect it
@@ -318,11 +317,11 @@ public class QueryStruct {
 	 * @param relMap				The relationships being observed for the startNode
 	 * @param edgeHash				The existing edge hash to determine what the current selectors are
 	 */
-	private void processRelationship(String startNode, Hashtable<String, Vector> relMap, Map<String, Set<String>> edgeHash) {
+	private void processRelationship(String startNode, Map<String, List> relMap, Map<String, Set<String>> edgeHash) {
 		// grab all the end nodes
 		// the edge hash doesn't care about what kind of join it is
-		Collection<Vector> endNodeValues = relMap.values();
-		for(Vector<String> endNodeList : endNodeValues) {
+		Collection<List> endNodeValues = relMap.values();
+		for(List<String> endNodeList : endNodeValues) {
 			// iterate through all the end nodes
 			for(String endNode : endNodeList) {
 				// need to ignore the prim_key_value...
@@ -386,11 +385,11 @@ public class QueryStruct {
 		// first see if there is a connection for the endNode to traverse to
 		if(this.relations.containsKey(endNode)) {
 			// grab the join map
-			Hashtable<String, Vector> joinMap = this.relations.get(endNode);
+			Map<String, List> joinMap = this.relations.get(endNode);
 			// we do not care at all about the type of join
 			// just go through and get the list of nodes which we care about
-			Collection<Vector> connections = joinMap.values();
-			for(Vector<String> endNodeList :  connections) {
+			Collection<List> connections = joinMap.values();
+			for(List<String> endNodeList :  connections) {
 				for(String possibleNewEndNode : endNodeList) {
 					// if this connection is a selector (i.e. key in the edgeHash), then we need to add it to the newEndNodeList
 					if(edgeHash.containsKey(possibleNewEndNode)) {
@@ -465,7 +464,7 @@ public class QueryStruct {
 		
 	}
 	
-	public void mergeSelectors(Hashtable<String, Vector<String>> incomingSelectors) {
+	public void mergeSelectors(Map<String, List<String>> incomingSelectors) {
 		for(String key : incomingSelectors.keySet()) {
 			
 			Set<String> selectorSet = new HashSet<>();
@@ -487,13 +486,13 @@ public class QueryStruct {
 		}
 	}
 	
-	public void mergeFilters(Hashtable<String, Hashtable<String, Vector>> incomingFilters) {
+	public void mergeFilters(Map<String, Map<String, List>> incomingFilters) {
 		for(String key : incomingFilters.keySet()) {
-			Hashtable<String, Vector> incomingHash = incomingFilters.get(key);
+			Map<String, List> incomingHash = incomingFilters.get(key);
 			if(this.andfilters.containsKey(key)) {
-				Hashtable<String, Vector> thisHash = this.andfilters.get(key);
+				Map<String, List> thisHash = this.andfilters.get(key);
 				for(String relationKey : incomingHash.keySet()) {
-					Vector v;
+					List v;
 					if(thisHash.containsKey(relationKey)) {
 						v = thisHash.get(relationKey);
 					} else {
@@ -503,7 +502,7 @@ public class QueryStruct {
 					thisHash.put(relationKey, v);
 				}
 			} else {
-				Hashtable<String, Vector> newHash = new Hashtable<>();
+				Map<String, List> newHash = new Hashtable<>();
 				for(String relationKey : incomingHash.keySet()) {
 					Vector v = new Vector();
 					v.addAll(incomingHash.get(relationKey));
@@ -514,13 +513,13 @@ public class QueryStruct {
 		}
 	}
 	
-	public void mergeRelations(Hashtable<String, Hashtable<String, Vector>> incomingRelations) {
+	public void mergeRelations(Map<String, Map<String, List>> incomingRelations) {
 		for(String key : incomingRelations.keySet()) {
-			Hashtable<String, Vector> incomingHash = incomingRelations.get(key);
+			Map<String, List> incomingHash = incomingRelations.get(key);
 			if(this.relations.containsKey(key)) {
-				Hashtable<String, Vector> thisHash = this.relations.get(key);
+				Map<String, List> thisHash = this.relations.get(key);
 				for(String relationKey : incomingHash.keySet()) {
-					Vector v;
+					List v;
 					if(thisHash.containsKey(relationKey)) {
 						v = thisHash.get(relationKey);
 					} else {
@@ -530,7 +529,7 @@ public class QueryStruct {
 					thisHash.put(relationKey, v);
 				}
 			} else {
-				Hashtable<String, Vector> newHash = new Hashtable<>();
+				Map<String, List> newHash = new Hashtable<>();
 				for(String relationKey : incomingHash.keySet()) {
 					Vector v = new Vector();
 					v.addAll(incomingHash.get(relationKey));

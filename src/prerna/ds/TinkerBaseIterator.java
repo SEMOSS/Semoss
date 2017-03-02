@@ -1,14 +1,11 @@
 package prerna.ds;
 
-import java.util.Hashtable;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
-import java.util.Vector;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import org.apache.tinkerpop.gremlin.process.traversal.P;
 import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.GraphTraversal;
 import org.apache.tinkerpop.gremlin.structure.Vertex;
 
@@ -18,7 +15,7 @@ public class TinkerBaseIterator implements Iterator {
 	private GraphTraversal gt;
 	private List<String> selectors;
 	private Object[] nextRow;
-	protected Hashtable<String, Hashtable<String, Vector>> filters;
+	protected Map<String, Map<String, List>> filters;
 	private int performCount;
 	private int rowCount;
 
@@ -69,11 +66,11 @@ public class TinkerBaseIterator implements Iterator {
 	 * @param filterInfo
 	 * @return
 	 */
-	public String search(String value, Hashtable<String, Vector> filterInfo) {
+	public String search(String value, Map<String, List> filterInfo) {
 		String match = null;
 		for (String filterType : filterInfo.keySet()) {
 			if (filterType.equals(IQueryInterpreter.SEARCH_COMPARATOR)) {
-				Vector filterVals = filterInfo.get(filterType);
+				List filterVals = filterInfo.get(filterType);
 				String strPattern = (String) filterVals.get(0);
 				String pattern = ".*" + strPattern.toLowerCase() + ".*";
 				Pattern r = Pattern.compile(pattern);

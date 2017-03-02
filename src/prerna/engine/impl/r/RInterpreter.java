@@ -2,6 +2,7 @@ package prerna.engine.impl.r;
 
 import java.util.Hashtable;
 import java.util.LinkedHashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.Vector;
@@ -64,11 +65,11 @@ public class RInterpreter implements IQueryInterpreter {
 
 	
 	private void addSelectors() {
-		Hashtable<String, Vector<String>> selectors = qs.selectors;
+		Map<String, List<String>> selectors = qs.selectors;
 		Set<String> uniqueSet = new LinkedHashSet<String>();
 		for(String col : selectors.keySet()) {
 			uniqueSet.add(col);
-			Vector<String> otherCols = selectors.get(col);
+			List<String> otherCols = selectors.get(col);
 			for(String other : otherCols) {
 				if(other.equals(QueryStruct.PRIM_KEY_PLACEHOLDER)) {
 					continue;
@@ -82,12 +83,12 @@ public class RInterpreter implements IQueryInterpreter {
 
 	private void addFilters() {
 		// iterate through all the filters
-		Hashtable<String, Hashtable<String, Vector>> filterHash = qs.andfilters;
+		Map<String, Map<String, List>> filterHash = qs.andfilters;
 		
 		// grab each column to be filtered
 		for(String colName : filterHash.keySet()) {
 			// grab the comp hash
-			Hashtable<String, Vector> compHash = filterHash.get(colName);
+			Map<String, List> compHash = filterHash.get(colName);
 			for(String comparator : compHash.keySet()) {
 				// actually add the filter logic
 				addFilter(colName, comparator, compHash.get(comparator));
@@ -95,7 +96,7 @@ public class RInterpreter implements IQueryInterpreter {
 		}
 	}
 
-	private void addFilter(String colName, String comparator, Vector vector) {
+	private void addFilter(String colName, String comparator, List vector) {
 		if(filterCriteria.length() > 0) {
 			// need to aggregate the new filter criteria
 			filterCriteria.append(" & ");
@@ -120,7 +121,7 @@ public class RInterpreter implements IQueryInterpreter {
 	 * @param dataType			The data type for each entry in the object[]
 	 * @return					String containing the equivalent r column vector
 	 */
-	private String createRColVec(Vector<Object> row, IMetaData.DATA_TYPES dataType) {
+	private String createRColVec(List<Object> row, IMetaData.DATA_TYPES dataType) {
 		StringBuilder str = new StringBuilder("c(");
 		int i = 0;
 		int size = row.size();
