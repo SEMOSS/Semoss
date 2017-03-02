@@ -27,11 +27,34 @@ public class RExpressionBuilder extends AbstractExpressionBuilder{
 		StringBuilder builder = new StringBuilder();
 		builder.append(this.frame.getTableVarName()).append("[ ").append(this.frame.getFilterString())
 			.append(" , ").append(this.selectors.toString());
+
+		// for R, the group by's end up being returned, so we can get duplicate headers
+		// dont want that.. so going to clear that up here
+		// so keep a list of the headers we want from the main selectors
+		
+		boolean fixHeaders = false;;
 		String groupStr = this.groups.toString();
 		if(groupStr.length() > 0) {
+			fixHeaders = true;
 			builder.append(" , ").append(groupStr);
 		}
 		builder.append(" ]");
+		
+		// gotta make sure we keep the ordering though
+		StringBuilder headerOrdering = new StringBuilder();
+		if(fixHeaders) {
+			List<IExpressionSelector> mainSelectors = this.selectors.getSelectors();
+			for(IExpressionSelector selector : mainSelectors) {
+				if(headerOrdering.length() == 0) {
+					headerOrdering.append("c(\"").append(selector.getName()).append("\"");
+				} else {
+					headerOrdering.append(", \"").append(selector.getName()).append("\"");
+				}
+			}
+			headerOrdering.append(")");
+			builder.append("[,").append(headerOrdering).append("]");
+		}
+		
 		return builder.toString();
 	}
 	
