@@ -49,7 +49,7 @@ import prerna.sablecc2.reactor.ExprReactor;
 import prerna.sablecc2.reactor.FilterReactor;
 import prerna.sablecc2.reactor.GenericReactor;
 import prerna.sablecc2.reactor.GetDataReactor;
-import prerna.sablecc2.reactor.GroupByReactor;
+import prerna.sablecc2.reactor.qs.GroupByReactor;
 import prerna.sablecc2.reactor.IReactor;
 import prerna.sablecc2.reactor.ImportDataReactor;
 import prerna.sablecc2.reactor.IterateReactor;
@@ -57,6 +57,7 @@ import prerna.sablecc2.reactor.MergeDataReactor;
 import prerna.sablecc2.reactor.PKSLPlanner;
 import prerna.sablecc2.reactor.QueryReactor;
 import prerna.sablecc2.reactor.SampleReactor;
+import prerna.sablecc2.reactor.qs.AverageReactor;
 import prerna.sablecc2.reactor.qs.DatabaseReactor;
 import prerna.sablecc2.reactor.qs.FrameReactor;
 import prerna.sablecc2.reactor.qs.JoinReactor;
@@ -64,6 +65,7 @@ import prerna.sablecc2.reactor.qs.LimitReactor;
 import prerna.sablecc2.reactor.qs.OffsetReactor;
 import prerna.sablecc2.reactor.qs.QueryFilterReactor;
 import prerna.sablecc2.reactor.qs.SelectReactor;
+import prerna.sablecc2.reactor.qs.SumReactor;
 import prerna.ui.components.playsheets.datamakers.IDataMaker;
 
 public class Translation extends DepthFirstAdapter {
@@ -839,6 +841,10 @@ public class Translation extends DepthFirstAdapter {
     		reactor = new JoinReactor();
     	} else if(reactorId.trim().equals("Filter")) {
     		reactor = new QueryFilterReactor();
+    	} else if(reactorId.trim().equals("Sum")) {
+    		reactor = new SumReactor();
+    	} else if(reactorId.trim().equals("Average")) {
+    		reactor = new AverageReactor();
     	} else {
     		reactor = new SampleReactor();
     	}

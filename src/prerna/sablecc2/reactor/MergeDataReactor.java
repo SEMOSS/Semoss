@@ -7,6 +7,7 @@ import prerna.engine.api.IRawSelectWrapper;
 import prerna.engine.api.IScriptReactor;
 import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.rdf.query.builder.IQueryInterpreter;
+import prerna.rdf.query.builder.SQLInterpreter2;
 import prerna.sablecc.PKQLEnum;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.Join;
@@ -16,11 +17,13 @@ import prerna.util.Utility;
 
 import java.util.Enumeration;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.Map;
 import java.util.Vector;
 
 import prerna.algorithm.api.ITableDataFrame;
 import prerna.ds.QueryStruct;
+import prerna.ds.QueryStruct2;
 import prerna.ds.h2.H2Frame;
 
 public class MergeDataReactor extends AbstractReactor {
@@ -75,7 +78,7 @@ public class MergeDataReactor extends AbstractReactor {
 	private void importToFrame()  {
 		//get the inputs
 		
-		QueryStruct queryStruct = (QueryStruct)this.planner.getProperty("QUERYSTRUCT", "QUERYSTRUCT");
+		QueryStruct2 queryStruct = (QueryStruct2)this.planner.getProperty("QUERYSTRUCT", "QUERYSTRUCT");
 		String engineName = queryStruct.getEngineName();
 		
 		GenRowStruct allNouns = getNounStore().getNoun(NounStore.all); //should be only joins
@@ -84,12 +87,20 @@ public class MergeDataReactor extends AbstractReactor {
 		
 		try {
 			IScriptReactor curReactor = (IScriptReactor) Class.forName(className).newInstance();
-			
-			IEngine engine = Utility.getEngine(removeQuotes(engineName.trim()));
-			IQueryInterpreter interp = engine.getQueryInterpreter();
-			interp.setQueryStruct(queryStruct);
-			String importQuery = interp.composeQuery();
-			IRawSelectWrapper iterator = WrapperManager.getInstance().getRawWrapper(engine, importQuery);
+			SQLInterpreter2 interp;
+			Iterator<IHeadersDataRow> iterator;
+			if(engineName != null) {
+				IEngine engine = Utility.getEngine(removeQuotes(engineName.trim()));
+				interp = new SQLInterpreter2(engine);
+				interp.setQueryStruct(queryStruct);
+				String importQuery = interp.composeQuery();
+				iterator = WrapperManager.getInstance().getRawWrapper(engine, importQuery);
+			} else {
+				interp = new SQLInterpreter2();
+				interp.setQueryStruct(queryStruct);
+				String query = interp.composeQuery();
+				iterator = frame.query(query);
+			}
 			
 			//set values into the curReactor
 			curReactor.put("G", frame);
