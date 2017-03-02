@@ -1,5 +1,6 @@
 package prerna.sablecc;
 
+import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
@@ -23,16 +24,24 @@ public class H2VizReactor extends AbstractVizReactor {
 		H2Frame frame = (H2Frame) getValue("G");
 		String[] headers = frame.getColumnHeaders();
 		
-		Vector<Object> selectors = (Vector<Object>) getValue("VIZ_SELECTOR");
-		Vector<String> vizTypes = (Vector<String>) getValue("VIZ_TYPE");
-		Vector<String> vizFormula = (Vector<String>) getValue("VIZ_FORMULA");
+		List<Object> selectors = (List<Object>) getValue("VIZ_SELECTOR");
+		List<String> vizTypes = (List<String>) getValue("VIZ_TYPE");
+		List<String> vizFormula = (List<String>) getValue("VIZ_FORMULA");
 		Map<Object, Object> optionsMap = (Map<Object, Object>) getValue(PKQLEnum.MAP_OBJ);
 		
 		if(selectors == null || selectors.size() == 0) {
 			// this is the case when user wants a grid of everything
 			// we do not send back any data through the pkql
 			// they get it in the getNextTableData call
-			return null;
+			selectors = Arrays.asList(frame.getColumnHeaders());
+			
+			vizTypes = new Vector<String>();
+			vizFormula = new Vector<String>();
+			for(int i = 0; i < selectors.size(); i++) {
+				vizTypes.add("label");
+				vizFormula.add("c: " + selectors.get(i));
+			}
+			
 		}
 		
 		// since the BE calculates the column headers for derived columns
