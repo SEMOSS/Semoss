@@ -489,7 +489,12 @@ public class Translation extends DepthFirstAdapter {
 		runner.setStatus((STATUS)previousReactor.getValue("STATUS"));
 		
 		Map<String, List> searchData = new HashMap<>(1);
-		searchData.put("list", convertListToListMaps((List)previousReactor.getValue("searchData")));
+		String source = (String)previousReactor.getValue("source");
+		if("engine".equals(source)) {
+			searchData.put("list", convertListToListMaps((List)previousReactor.getValue("searchData")));
+		} else {
+			searchData.put("list", (List)previousReactor.getValue("searchData"));
+		}
 		runner.setReturnData(searchData);
 		this.frame = (IDataMaker) previousReactor.getValue(PKQLEnum.G);
     }
@@ -558,6 +563,9 @@ public class Translation extends DepthFirstAdapter {
 		} else if (engine.equalsIgnoreCase("R")) {
 			// we have an R api to connect
 			this.reactorNames.put(PKQLEnum.API, this.reactorNames.get(PKQLEnum.R_API));
+		} else if(engine.equalsIgnoreCase("frame")) {
+			//we are querying the frame
+			this.reactorNames.put(PKQLEnum.API, this.reactorNames.get(PKQLEnum.FRAME_API));
 		} else if(this.reactorNames.get(PKQLEnum.API) == null){
 			// default is a query api
 			if(Utility.getEngine(engine).getEngineType() == IEngine.ENGINE_TYPE.TINKER) {

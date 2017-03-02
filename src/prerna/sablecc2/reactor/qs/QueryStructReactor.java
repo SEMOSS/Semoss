@@ -1,17 +1,17 @@
 package prerna.sablecc2.reactor.qs;
 
-import prerna.ds.QueryStruct;
+import prerna.ds.QueryStruct2;
 import prerna.sablecc2.reactor.AbstractReactor;
 
 public abstract class QueryStructReactor extends AbstractReactor {
 
-	QueryStruct qs;
+	QueryStruct2 qs;
 	
 	@Override
 	public void In() {
 		curNoun("all");
 		if(qs == null) {
-			qs = new QueryStruct();
+			qs = new QueryStruct2();
 		}
 	}
 
@@ -24,7 +24,7 @@ public abstract class QueryStructReactor extends AbstractReactor {
 	@Override
 	protected void mergeUp() {
 		if(parentReactor != null) {
-			QueryStruct qs = createQueryStruct();
+			QueryStruct2 qs = createQueryStruct();
 			
 			//merge the query struct with the parent if we can
 			if(parentReactor instanceof QueryStructReactor) {
@@ -44,12 +44,12 @@ public abstract class QueryStructReactor extends AbstractReactor {
 
 	@Override
 	protected void updatePlan() {
-		QueryStruct qs = createQueryStruct();
+		QueryStruct2 qs = createQueryStruct();
 		
 		//push this query struct to the planner
-		QueryStruct mainQueryStruct = null;
+		QueryStruct2 mainQueryStruct = null;
 		try {
-			mainQueryStruct = (QueryStruct)this.planner.getProperty("QUERYSTRUCT", "QUERTYSTRUCT");
+			mainQueryStruct = (QueryStruct2)this.planner.getProperty("QUERYSTRUCT", "QUERTYSTRUCT");
 		}catch(Exception e) {
 			
 		}
@@ -61,7 +61,7 @@ public abstract class QueryStructReactor extends AbstractReactor {
 		this.planner.addProperty("QUERYSTRUCT", "QUERYSTRUCT", mainQueryStruct);
 	}
 	
-	public void mergeQueryStruct(QueryStruct queryStruct) {
+	public void mergeQueryStruct(QueryStruct2 queryStruct) {
 		if(qs == null) {
 			qs = queryStruct;
 		} else {
@@ -69,5 +69,5 @@ public abstract class QueryStructReactor extends AbstractReactor {
 		}
 	}
 	
-	abstract QueryStruct createQueryStruct();
+	abstract QueryStruct2 createQueryStruct();
 }

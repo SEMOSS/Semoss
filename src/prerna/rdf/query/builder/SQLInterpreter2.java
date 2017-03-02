@@ -14,6 +14,8 @@ import org.openrdf.query.TupleQueryResult;
 
 import prerna.algorithm.api.IMetaData;
 import prerna.ds.QueryStruct;
+import prerna.ds.QueryStruct2;
+import prerna.ds.QueryStructSelector;
 import prerna.engine.api.IEngine;
 import prerna.engine.impl.rdbms.RDBMSNativeEngine;
 import prerna.test.TestUtilityMethods;
@@ -21,10 +23,10 @@ import prerna.util.DIHelper;
 import prerna.util.Utility;
 import prerna.util.sql.SQLQueryUtil;
 
-public class SQLInterpreter implements IQueryInterpreter{
+public class SQLInterpreter2 implements IQueryInterpreter{
 	
 	// core class to convert the query struct into a sql query
-	QueryStruct qs = null;
+	QueryStruct2 qs = null;
 	
 	// this keeps the table aliases
 	private Hashtable <String,String> aliases = new Hashtable<String,String>();
@@ -68,17 +70,16 @@ public class SQLInterpreter implements IQueryInterpreter{
 	
 	private SQLQueryUtil queryUtil = SQLQueryUtil.initialize(SQLQueryUtil.DB_TYPE.H2_DB);
 	
-	public SQLInterpreter() {
+	public SQLInterpreter2() {
 		
 	}
 
-	public SQLInterpreter(IEngine engine) {
+	public SQLInterpreter2(IEngine engine) {
 		this.engine = engine;
 		queryUtil = SQLQueryUtil.initialize(((RDBMSNativeEngine) engine).getDbType());
 	}
-
-	@Override
-	public void setQueryStruct(QueryStruct qs) {
+	
+	public void setQueryStruct(QueryStruct2 qs) {
 		this.qs = qs;
 		this.performCount = qs.getPerformCount();
 	}
@@ -241,31 +242,29 @@ public class SQLInterpreter implements IQueryInterpreter{
 	 * and considers if the table should be added to the from string
 	 */
 	public void addSelectors() {
-		Hashtable<String, Vector<String>> selectorData = qs.selectors;
+		List<QueryStructSelector> selectorData = qs.getSelectors();
 		
-		// loop through every table name
-		for(String tableName : selectorData.keySet()) {
-			// now get all the column names for the table
-			Vector<String> columns = selectorData.get(tableName);
-			// now loop through and add all the column data
-			for(String col : columns) {
-				// now actually do the column add into the selector string
-				addSelector(tableName, col);
-				// adds the from if it isn't part of a join
-				if(relationList.isEmpty()) {
-					addFrom(tableName);
-				}
+		
+		for(QueryStructSelector selector : selectorData) {
+			String table = selector.getTable();
+			
+			// now actually do the column add into the selector string
+			addSelector(selector);
+			
+			// adds the from if it isn't part of a join
+			if(relationList.isEmpty()) {
+				addFrom(table);
 			}
 		}
 	}
 	
-	/**
-	 * Adds the selector required for a table and column name
-	 * @param table				The name of the table
-	 * @param colName			The column in the table
-	 */
-	public void addSelector(String table, String colName)
-	{
+	private void addSelector(QueryStructSelector selector) {
+		String table = selector.getTable();
+		String colName = selector.getColumn();
+		String alias = selector.getAlias();
+		String math = selector.getMath();
+		
+		
 		String selectorAddition = colName;
 		// not sure how we get to the point where table would be null..
 		// but this was here previously so i will just keep it I guess
@@ -275,7 +274,6 @@ public class SQLInterpreter implements IQueryInterpreter{
 			String physicalColName = colName;
 			// TODO: currently assuming the display name is the conceptual
 			//		once we have this in the OWL, we need to add this
-			String displayName = colName; 
 			
 			// if engine is not null, get the info from the engine
 			if(engine != null) {
@@ -284,28 +282,20 @@ public class SQLInterpreter implements IQueryInterpreter{
 				if(colName.equals(QueryStruct.PRIM_KEY_PLACEHOLDER)){
 					physicalColName = getPrimKey4Table(table);
 					// the display name is defaulted to the table name
-					displayName = table;
 				} else {
 					// default assumption is the info being passed is the conceptual name
 					// get the physical from the conceptual
 					physicalColName = getPhysicalPropertyNameFromConceptualName(table, colName);
-					displayName = colName;
-				}
-			}
-			
-			// if we are defining a specific alias to override the defaults
-			// in the code, use it.  example use is in dashboard
-			if(this.colAlias != null && this.colAlias.containsKey(table)) {
-				Hashtable<String, String> tableAliases = colAlias.get(table);
-				if(tableAliases.containsKey(colName)) {
-					displayName = tableAliases.get(colName);
 				}
 			}
 
-			selectorAddition = tableAlias + "." + physicalColName + " AS " + displayName;
+			if(!math.isEmpty()) {
+				selectorAddition = math + "(" + tableAlias + "." + physicalColName+ ")" + " AS " + alias;
+			} else {
+				selectorAddition = tableAlias + "." + physicalColName + " AS " + alias;
+			}
 		}
-
-
+		
 		if(selectors.length() == 0) {
 			selectors = selectorAddition;
 		} else {
@@ -453,15 +443,15 @@ public class SQLInterpreter implements IQueryInterpreter{
 
 	public void addFilters()
 	{
-		Enumeration <String> concepts = qs.andfilters.keys();
+		Map<String, Map<String, Set<Object>>> filters = qs.filters.getFilterHash();
+		Set <String> concepts = qs.filters.getFilterHash().keySet();
 		
-		while(concepts.hasMoreElements())
+		for(String concept_property : concepts)
 		{
-			String concept_property = concepts.nextElement();
 			
 			// inside this is a hashtable of all the comparators
-			Hashtable <String, Vector> compHash = qs.andfilters.get(concept_property);
-			Enumeration <String> comps = compHash.keys();
+			Map <String, Set<Object>> compHash = filters.get(concept_property);
+			Set <String> comps = compHash.keySet();
 			
 			// when adding implicit filtering from the dataframe as a pretrans that gets appended into the QS
 			// we store the value without the parent__, so need to check here if it is stored as a prop in the engine
@@ -488,11 +478,11 @@ public class SQLInterpreter implements IQueryInterpreter{
 			// say I have > 50
 			// and then  < 80
 			// I need someway to tell the adder that this is an end 
-			while(comps.hasMoreElements())
+			for(String thisComparator : comps)
 			{
-				String thisComparator = comps.nextElement();
+//				String thisComparator = comps.nextElement();
 				
-				Vector options = compHash.get(thisComparator);
+				Set options = compHash.get(thisComparator);
 				// account for dumb inputs
 				if(options.size() == 0) {
 					continue;
@@ -517,8 +507,8 @@ public class SQLInterpreter implements IQueryInterpreter{
 				if(thisComparator == null || thisComparator.trim().equals("=") || thisComparator.trim().equals("!=")) {
 					addEqualsFilter(concept, property, thisComparator, dataType, options);
 				} else {
-					for(int optIndex = 0;optIndex < options.size(); optIndex++){
-						addFilter(concept, property, thisComparator, dataType, options.get(optIndex));
+					for(Object option : options){
+						addFilter(concept, property, thisComparator, dataType, option);
 					}
 				}
 			}
@@ -553,7 +543,7 @@ public class SQLInterpreter implements IQueryInterpreter{
 	}
 
 	//we want the filter query to be: "... where table.column in ('value1', 'value2', ...) when the comparator is '=' or "!="
-	private void addEqualsFilter(String concept, String property, String thisComparator, String dataType, Vector<Object> object) {
+	private void addEqualsFilter(String concept, String property, String thisComparator, String dataType, Set<Object> object) {
 		String key = concept +":::"+ property +":::"+ thisComparator;
 		// this will hold the sql acceptable format for all the objects in the list
 		String thisWhere = getFormatedObject(dataType, object, thisComparator);
@@ -759,74 +749,36 @@ public class SQLInterpreter implements IQueryInterpreter{
 		}
 		return myObj;
 	}
-	
-//	private String getFormatedObject(String dataType, Object object) {
-//		// this will hold the sql acceptable format of the object
-//		String myObj = null;
-//
-//		// if we can get the data type from the OWL, lets just use that
-//		// if we dont have it, we will do type casting...
-//		if(dataType != null) {
-//			dataType = dataType.toUpperCase();
-//			if(dataType.contains("DOUBLE") || dataType.contains("FLOAT") || dataType.contains("LONG")) {
-//				myObj = object.toString();
-//			} else if(dataType.contains("DATE") || dataType.contains("TIMESTAMP")) {
-//				myObj = object.toString();
-//				myObj = Utility.getDate(myObj);
-//				myObj = "\'" + myObj + "\'";
-//			}else {
-//				myObj = object.toString();
-//				myObj = myObj.replace("\"", ""); // get rid of the space
-//				myObj = myObj.replaceAll("'", "''");
-//				myObj = myObj.trim();
-//				myObj = "\'" + myObj + "\'";
-//			}
-//		} else {
-//			// do it based on type casting
-//			if(object instanceof Number) {
-//				myObj = object.toString();
-//			} else if(object instanceof java.util.Date || object instanceof java.sql.Date) {
-//				myObj = object.toString();
-//				myObj = Utility.getDate(myObj);
-//				myObj = "\'" + myObj + "\'";
-//			} else {
-//				myObj = object.toString();
-//				myObj = myObj.replace("\"", ""); // get rid of the space
-//				myObj = myObj.replaceAll("'", "''");
-//				myObj = myObj.trim();
-//				myObj = "\'" + myObj + "\'";
-//			}
-//		}
-//		
-//		return myObj;
-//	}
-	
+		
 	////////////////////////////////////// end adding filters ////////////////////////////////////////////
 
 	
 	//////////////////////////////////////append order by  ////////////////////////////////////////////
 	
+	//TODO : lets get to this once we determine other things work
 	public StringBuilder appendOrderBy(StringBuilder query) {
 		//grab the order by and get the corresponding display name for that order by column
-		Map<String, String> orderBy = qs.getOrderBy();
-		if(orderBy != null && !orderBy.isEmpty()) {
-			String orderByName = null;
-			for(String tableConceptualName : orderBy.keySet()) {
-				String columnConceptualName = orderBy.get(tableConceptualName);
-				if(columnConceptualName.equals(QueryStruct.PRIM_KEY_PLACEHOLDER)){
-					columnConceptualName = getPrimKey4Table(tableConceptualName);
-				} else {
-					columnConceptualName = getPhysicalPropertyNameFromConceptualName(tableConceptualName, columnConceptualName);
-				}
-				orderByName = getAlias(tableConceptualName) + "." + columnConceptualName;
-				break; //use first one
-			}
-			if(orderByName != null) {
-				query.append(" ORDER BY ").append(orderByName);
-			}
-		}
+//		List<QueryStructSelector> orderBy = qs.getOrderBy();
+//		if(orderBy != null && !orderBy.isEmpty()) {
+//			String orderByName = null;
+//			for(String tableConceptualName : orderBy.keySet()) {
+//				String columnConceptualName = orderBy.get(tableConceptualName);
+//				if(columnConceptualName.equals(QueryStruct.PRIM_KEY_PLACEHOLDER)){
+//					columnConceptualName = getPrimKey4Table(tableConceptualName);
+//				} else {
+//					columnConceptualName = getPhysicalPropertyNameFromConceptualName(tableConceptualName, columnConceptualName);
+//				}
+//				orderByName = getAlias(tableConceptualName) + "." + columnConceptualName;
+//				break; //use first one
+//			}
+//			if(orderByName != null) {
+//				query.append(" ORDER BY ").append(orderByName);
+//			}
+//		}
+//		return query;
 		return query;
 	}
+	
 	//////////////////////////////////////end append order by////////////////////////////////////////////
 	
 	
@@ -834,27 +786,27 @@ public class SQLInterpreter implements IQueryInterpreter{
 	
 	public StringBuilder appendGroupBy(StringBuilder query) {
 		//grab the order by and get the corresponding display name for that order by column
-		Map<String, Set<String>> groupBy = qs.getGroupBy();
-		if(groupBy != null && !groupBy.isEmpty()) {
-			String groupByName = "";
-			for(String tableConceptualName : groupBy.keySet()) {
-				Set<String> columnConceptualNames = groupBy.get(tableConceptualName);
-				for(String columnConceptualName : columnConceptualNames) {
-					if(columnConceptualName.equals(QueryStruct.PRIM_KEY_PLACEHOLDER)){
-						columnConceptualName = getPrimKey4Table(tableConceptualName);
-					} else {
-						columnConceptualName = getPhysicalPropertyNameFromConceptualName(tableConceptualName, columnConceptualName);
-					}
-					if(groupByName == null) {
-						groupByName = getAlias(tableConceptualName) + "." + columnConceptualName;
-					} else {
-						groupByName += ", "+ getAlias(tableConceptualName) + "." + columnConceptualName;
-					}
-				}
+		List<QueryStructSelector> groupBy = qs.getGroupBy();
+		String groupByName = null;
+		for(QueryStructSelector groupBySelector : groupBy) {
+			String tableConceptualName = groupBySelector.getTable();
+			String columnConceptualName = groupBySelector.getColumn();
+			
+			if(columnConceptualName.equals(QueryStruct.PRIM_KEY_PLACEHOLDER)){
+				columnConceptualName = getPrimKey4Table(tableConceptualName);
+			} else {
+				columnConceptualName = getPhysicalPropertyNameFromConceptualName(tableConceptualName, columnConceptualName);
 			}
-			if(groupByName != null) {
-				query.append(" GROUP BY ").append(groupByName);
-			}
+			
+			if(groupByName == null) {
+				groupByName = getAlias(tableConceptualName) + "." + columnConceptualName;
+			} else {
+				groupByName += ", "+ getAlias(tableConceptualName) + "." + columnConceptualName;
+			}	
+		}
+		
+		if(groupByName != null) {
+			query.append(" GROUP BY ").append(groupByName);
 		}
 		return query;
 	}
@@ -1161,14 +1113,6 @@ public class SQLInterpreter implements IQueryInterpreter{
 		return new String[]{conceptPhysical, propertyPhysical};
 	}
 	
-	public void setColAlias(Hashtable<String, Hashtable<String, String>> colAlias) {
-		this.colAlias = colAlias;
-	}
-	
-	public Hashtable<String, Hashtable<String, String>> getColAlias() {
-		return this.colAlias;
-	}
-	
 	public int isPerformCount() {
 		return performCount;
 	}
@@ -1209,6 +1153,11 @@ public class SQLInterpreter implements IQueryInterpreter{
 		String query = qi.composeQuery();
 		
 		System.out.println(query);
+	}
+
+	@Override
+	public void setQueryStruct(QueryStruct qs) {
+		
 	}
 	
 	///////////////////////////////////////// end test methods //////////////////////////////////////////////

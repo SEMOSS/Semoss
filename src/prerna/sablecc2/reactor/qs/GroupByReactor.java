@@ -1,6 +1,6 @@
 package prerna.sablecc2.reactor.qs;
 
-import prerna.ds.QueryStruct;
+import prerna.ds.QueryStruct2;
 import prerna.ds.h2.H2Frame;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.NounStore;
@@ -9,7 +9,7 @@ public class GroupByReactor extends QueryStructReactor
 {
 
 	//TODO : if a type does not match throw syntax exception, we are getting something we are not expecting
-	QueryStruct createQueryStruct() {
+	QueryStruct2 createQueryStruct() {
 		//get the selectors
 		GenRowStruct allNouns = getNounStore().getNoun(NounStore.all); //must only be strings
 		
@@ -38,7 +38,7 @@ public class GroupByReactor extends QueryStructReactor
 	
 	//determine whether this query struct will be built for a database or a frame
 	private boolean isDatabaseQueryStruct() {
-		QueryStruct struct = (QueryStruct)planner.getProperty("QUERYSTRUCT", "QUERYSTRUCT");
+		QueryStruct2 struct = (QueryStruct2)planner.getProperty("QUERYSTRUCT", "QUERYSTRUCT");
 		if(struct == null) {
 			return false;
 		} else {
