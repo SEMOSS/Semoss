@@ -1856,7 +1856,7 @@ public class Translation extends DepthFirstAdapter {
     }
 
 	public void inAColTerm(AColTerm node) {
-		System.out.println("in a col term");
+		
 	}
 
 	@Override
