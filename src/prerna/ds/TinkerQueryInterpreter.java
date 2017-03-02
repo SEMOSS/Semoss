@@ -83,12 +83,12 @@ public class TinkerQueryInterpreter extends AbstractTinkerInterpreter implements
 			this.selector = new Vector<String>();
 			this.propHash = new HashMap<String, List<String>>();
 			for (String key : qs.selectors.keySet()) {
-				Vector<String> val = qs.selectors.get(key);
-				Vector<String> props = new Vector<String>();
+				List<String> val = qs.selectors.get(key);
+				List<String> props = new Vector<String>();
 				for (String select : val) {
 					if (!select.equals("PRIM_KEY_PLACEHOLDER")) {
 						selector.add(select);
-						props.addElement(select);
+						props.add(select);
 					} else {
 						selector.add(key);
 					}
@@ -329,10 +329,10 @@ public class TinkerQueryInterpreter extends AbstractTinkerInterpreter implements
 			if (this.filters.containsKey(qsProperty)) {
 				// we impose the filter on the node and then return the
 				// property value
-				Hashtable<String, Vector> comparatorMap = this.filters.get(qsProperty);
+				Map<String, List> comparatorMap = this.filters.get(qsProperty);
 				for (String comparison : comparatorMap.keySet()) {
 					comparison = comparison.trim();
-					Vector values = comparatorMap.get(comparison);
+					List values = comparatorMap.get(comparison);
 					if (comparison.equals("=")) {
 						if (values.size() == 1) {
 							matchTraversal = matchTraversal.has(property, P.eq(values.get(0))).values(property)
@@ -409,21 +409,21 @@ public class TinkerQueryInterpreter extends AbstractTinkerInterpreter implements
 	public Map<String, Set<String>> generateEdgeMap() {
 		Map<String, Set<String>> edgeMap = new Hashtable<String, Set<String>>();
 
-		Hashtable<String, Hashtable<String, Vector>> rels = qs.relations;
+		Map<String, Map<String, List>> rels = qs.relations;
 
 		// add the relationships into the edge map
 		if (!rels.isEmpty()) {
 			Set<String> relKeys = rels.keySet();
 			// looping through the start node of the relationship
 			for (String startNode : relKeys) {
-				Hashtable<String, Vector> comps = rels.get(startNode);
+				Map<String, List> comps = rels.get(startNode);
 				// TODO: currently going to not care about the compKeys and
 				// assume everything
 				// is an inner join for simplicity
 				Set<String> compKeys = comps.keySet();
 				for (String comp : compKeys) {
 					// this is the end node of the relationship
-					Vector<String> endNodes = comps.get(comp);
+					List<String> endNodes = comps.get(comp);
 
 					Set<String> joinSet = new HashSet<String>();
 					for (String node : endNodes) {
@@ -477,12 +477,11 @@ public class TinkerQueryInterpreter extends AbstractTinkerInterpreter implements
 		return edgeMap;
 	}
 
-	public void addFilterInPath2(GraphTraversal<Object, Object> gt, String nameType,
-			Hashtable<String, Vector> filterInfo) {
+	public void addFilterInPath2(GraphTraversal<Object, Object> gt, String nameType, Map<String, List> filterInfo) {
 		// TODO: right now, if its a math, assumption that vector only contains
 		// one value
 		for (String filterType : filterInfo.keySet()) {
-			Vector filterVals = filterInfo.get(filterType);
+			List filterVals = filterInfo.get(filterType);
 			if (filterType.equals("=")) {
 				gt = gt.has(TinkerFrame.TINKER_NAME, P.within(filterVals.toArray()));
 			} else if (filterType.equals("<")) {

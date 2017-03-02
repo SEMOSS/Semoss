@@ -40,8 +40,8 @@ public class NativeFrameBuilder {
 	Map<String, Map<AbstractTableDataFrame.Comparator, Set<Object>>> filterHash = new HashMap<>();
 	
 	//need to determine which filters are the more narrow filters
-	public Hashtable <String, Hashtable<String, Vector>> temporalFilters = new Hashtable<>();
-	public Hashtable <String, Hashtable<String, Vector>> dbfilters = new Hashtable<>();
+	public Map <String, Map<String, List>> temporalFilters = new Hashtable<>();
+	public Map <String, Map<String, List>> dbfilters = new Hashtable<>();
 	
 	// TODO: this is a horrible variable name
 	// this actually holds a portion of the select query
@@ -85,7 +85,7 @@ public class NativeFrameBuilder {
 	 * 
 	 * This method produces the most restrictive filter object during the merge
 	 */
-	public void mergeDBFilters(Hashtable <String, Hashtable<String, Vector>> filters) {
+	public void mergeDBFilters(Map <String, Map<String, List>> filters) {
 		this.dbfilters = mergeFilters(this.dbfilters, filters);
 		
 		refreshView();
@@ -99,24 +99,24 @@ public class NativeFrameBuilder {
 	 * 
 	 * return the combination of filters1 and filters2 such that it produces the most restrictive filtering
 	 */
-	private Hashtable<String, Hashtable<String, Vector>> mergeFilters(Hashtable <String, Hashtable<String, Vector>> filters1, Hashtable <String, Hashtable<String, Vector>> filters2) {
-		Hashtable<String, Hashtable<String, Vector>> retFilters = new Hashtable<>();
+	private Map<String, Map<String, List>> mergeFilters(Map <String, Map<String, List>> filters1, Map <String, Map<String, List>> filters2) {
+		Map<String, Map<String, List>> retFilters = new Hashtable<>();
 		
 		retFilters.putAll(filters2);
 		
 		for(String key : filters1.keySet()) {
-			Hashtable<String, Vector> hash1 = filters1.get(key);
-			Hashtable<String, Vector> newHash = new Hashtable<String, Vector>();
+			Map<String, List> hash1 = filters1.get(key);
+			Map<String, List> newHash = new Hashtable<String, List>();
 			retFilters.put(key, newHash);
 			//need to determine which set is more restrictive
 			//assumption is that smaller vector is a subset of bigger vector
 			if(filters2.containsKey(key)) {
-				Hashtable<String, Vector> hash2 = filters2.get(key);
+				Map<String, List> hash2 = filters2.get(key);
 				for(String relationKey : hash1.keySet()) {
-					Vector v;
+					List v;
 					if(hash2.containsKey(relationKey)) {
-						Vector v2 = hash2.get(relationKey);
-						Vector v1 = hash1.get(relationKey);
+						List v2 = hash2.get(relationKey);
+						List v1 = hash1.get(relationKey);
 						switch(relationKey) {
 						case "=": {
 							//pick the smaller vector
@@ -237,7 +237,7 @@ public class NativeFrameBuilder {
 		return copy;
 	}
 	
-	public Hashtable<String, Hashtable<String, Vector>> getTempFilters() {
+	public Map<String, Map<String, List>> getTempFilters() {
 		return this.temporalFilters;
 	}
 	
@@ -642,7 +642,7 @@ public class NativeFrameBuilder {
 
 	public void addFilters(String columnHeader, List<Object> values, String comparator) {
 		if(this.temporalFilters.containsKey(columnHeader)) {
-			Hashtable<String, Vector> curFilters = this.temporalFilters.get(columnHeader);
+			Map<String, List> curFilters = this.temporalFilters.get(columnHeader);
 			if(curFilters.containsKey(comparator)) {
 				Set<Object> set = new HashSet<>();
 				set.addAll(curFilters.get(comparator));
@@ -677,9 +677,9 @@ public class NativeFrameBuilder {
 	}
 	
 	public void setFilters(String columnHeader, List<Object> values, String comparator) {
-		Vector newVals = new Vector();
+		List newVals = new Vector();
 		newVals.addAll(values);
-		Hashtable<String, Vector> newTable = new Hashtable<String, Vector>();
+		Map<String, List> newTable = new Hashtable<String, List>();
 		newTable.put(comparator, newVals);
 		this.temporalFilters.put(columnHeader, newTable);
 		

@@ -1764,8 +1764,8 @@ public class H2Builder {
 	 * 
 	 * This method is used to convert the current filter hash to an object that can be used within a querystruct
 	 */
-	private Hashtable<String,Hashtable<String,Vector>> convertToQueryStuctFilter(Map<String, Map<AbstractTableDataFrame.Comparator, Set<Object>>> filters) {
-		Hashtable<String, Hashtable<String, Vector>> qsFilters = new Hashtable<>();
+	private Map<String,Map<String,List>> convertToQueryStuctFilter(Map<String, Map<AbstractTableDataFrame.Comparator, Set<Object>>> filters) {
+		Map<String,Map<String,List>> qsFilters = new Hashtable<>();
 		String tableName = getTableName();
 		for(String key : filters.keySet()) {
 			Map<AbstractTableDataFrame.Comparator, Set<Object>> innerFilters = filters.get(key);
@@ -1792,24 +1792,24 @@ public class H2Builder {
 	 * 
 	 * ASSUMPTION: for equivalent filters such as (Title = list1) in filters1 and (Title = list2) in filters2, list1 is a sublist of list2 or vice versa
 	 */
-	private Hashtable<String, Hashtable<String, Vector>> mergeFilters(Hashtable <String, Hashtable<String, Vector>> filters1, Hashtable <String, Hashtable<String, Vector>> filters2) {
-		Hashtable<String, Hashtable<String, Vector>> retFilters = new Hashtable<>();
+	private Map<String, Map<String, List>> mergeFilters(Map <String, Map<String, List>> filters1, Map <String, Map<String, List>> filters2) {
+		Map<String, Map<String, List>> retFilters = new Hashtable<>();
 		
 		retFilters.putAll(filters2);
 		
 		for(String key : filters1.keySet()) {
-			Hashtable<String, Vector> hash1 = filters1.get(key);
-			Hashtable<String, Vector> newHash = new Hashtable<String, Vector>();
+			Map<String, List> hash1 = filters1.get(key);
+			Map<String, List> newHash = new Hashtable<String, List>();
 			retFilters.put(key, newHash);
 			//need to determine which set is more restrictive
 			//assumption is that smaller vector is a subset of bigger vector
 			if(filters2.containsKey(key)) {
-				Hashtable<String, Vector> hash2 = filters2.get(key);
+				Map<String, List> hash2 = filters2.get(key);
 				for(String relationKey : hash1.keySet()) {
-					Vector v;
+					List v;
 					if(hash2.containsKey(relationKey)) {
-						Vector v2 = hash2.get(relationKey);
-						Vector v1 = hash1.get(relationKey);
+						List v2 = hash2.get(relationKey);
+						List v1 = hash1.get(relationKey);
 						switch(relationKey) {
 						case "=": {
 							//pick the smaller vector
@@ -1919,8 +1919,8 @@ public class H2Builder {
 	}
 	
 	public QueryStruct mergeFilters(QueryStruct queryStruct) {
-		Hashtable<String, Hashtable<String, Vector>> curFilters = convertToQueryStuctFilter(this.filterHash2);
-		Hashtable<String, Hashtable<String, Vector>> mergedFilters = mergeFilters(queryStruct.andfilters, curFilters);
+		Map<String, Map<String, List>> curFilters = convertToQueryStuctFilter(this.filterHash2);
+		Map<String, Map<String, List>> mergedFilters = mergeFilters(queryStruct.andfilters, curFilters);
 		queryStruct.andfilters = mergedFilters;
 		return queryStruct;
 	}

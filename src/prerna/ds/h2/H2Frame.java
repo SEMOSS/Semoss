@@ -845,30 +845,6 @@ public class H2Frame extends AbstractTableDataFrame {
 
 	@Override
 	public Iterator<Object[]> iterator(Map<String, Object> options) {
-		// sort by
-		String sortBy = (String) options.get(AbstractTableDataFrame.SORT_BY);
-		String actualSortBy = null;
-
-		List<String> selectors = (List<String>) options.get(AbstractTableDataFrame.SELECTORS);
-		List<String> selectorValues = new Vector<String>();
-		for (String name : selectors) {
-			if (name.startsWith(TinkerFrame.PRIM_KEY)) {
-				continue;
-			} else {
-				if(sortBy == null) {
-					sortBy = name;
-				}
-				if (name.equals(sortBy)) {
-					actualSortBy = name;//this.getValueForUniqueName(name);
-				}
-				String uniqueName = name;//this.getValueForUniqueName(name);
-//				if (uniqueName == null)
-//					uniqueName = name;
-				selectorValues.add(uniqueName);
-			}
-		}
-		options.put(AbstractTableDataFrame.SELECTORS, selectorValues);
-
 		Map<Object, Object> temporalBindings = (Map<Object, Object>) options.get(AbstractTableDataFrame.TEMPORAL_BINDINGS);
 		// clean values always put into list so bifurcation in logic doesn't
 		// need to exist elsewhere
@@ -923,9 +899,6 @@ public class H2Frame extends AbstractTableDataFrame {
 		// options.put(TinkerFrame.SELECTORS, h2selectors);
 		// }
 
-		if (actualSortBy != null) {
-			options.put(AbstractTableDataFrame.SORT_BY, actualSortBy);
-		}
 		return builder.buildIterator(options);
 	}
 
