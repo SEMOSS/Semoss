@@ -81,7 +81,7 @@ public class PKQLRunner {
 	
 	
 	public static List<String> parsePKQL(String expression) {
-		Parser p = new Parser(new Lexer(new PushbackReader(new InputStreamReader(new StringBufferInputStream(expression)), 1024)));
+		Parser p = new Parser(new Lexer(new PushbackReader(new InputStreamReader(new StringBufferInputStream(expression)), expression.length())));
 		try {
 			Start tree = p.parse();
 			AConfiguration configNode = (AConfiguration)tree.getPConfiguration();
@@ -103,7 +103,7 @@ public class PKQLRunner {
 	 */
 	public void runPKQL(String expression, IDataMaker frame) {
 		
-		Parser p = new Parser(new Lexer(new PushbackReader(new InputStreamReader(new StringBufferInputStream(expression)), 1024)));
+		Parser p = new Parser(new Lexer(new PushbackReader(new InputStreamReader(new StringBufferInputStream(expression)), expression.length())));
 		Start tree;
 		if(translation == null){
 			translation = new Translation(frame, this);
@@ -136,7 +136,7 @@ public class PKQLRunner {
 	 * @param frame					The data maker to run the pkql expression on
 	 */
 	public void runPKQL(String expression) {
-		Parser p = new Parser(new Lexer(new PushbackReader(new InputStreamReader(new StringBufferInputStream(expression)), 1024)));
+		Parser p = new Parser(new Lexer(new PushbackReader(new InputStreamReader(new StringBufferInputStream(expression)), expression.length())));
 		Start tree;
 		if(translation == null){
 			translation = new Translation(this);
