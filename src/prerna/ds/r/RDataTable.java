@@ -154,6 +154,10 @@ public class RDataTable extends AbstractTableDataFrame {
 		return this.builder.getDataRow(rScript, headerOrdering);
 	}
 	
+	public List<Object[]> getBulkDataRow(String rScript, String[] headerOrdering) {
+		return this.builder.getBulkDataRow(rScript, headerOrdering);
+	}
+	
 	public Object getScalarValue(String rScript) {
 		return this.builder.getScalarReturn(rScript);
 	}
