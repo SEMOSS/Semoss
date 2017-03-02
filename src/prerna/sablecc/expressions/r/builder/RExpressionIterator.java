@@ -140,7 +140,7 @@ public class RExpressionIterator implements Iterator<Object[]> {
 		}
 	}
 	
-	public List<Map<String, Object>> getHeaderInformation(Vector<String> vizTypes, Vector<String> vizFormula) {
+	public List<Map<String, Object>> getHeaderInformation(List<String> vizTypes, List<String> vizFormula) {
 		List<Map<String, Object>> returnMap = new Vector<Map<String, Object>>();
 		
 		List<IExpressionSelector> selectors = builder.getSelectors();

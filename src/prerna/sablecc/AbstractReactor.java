@@ -19,7 +19,6 @@ import prerna.algorithm.api.ITableDataFrame;
 import prerna.ds.AbstractTableDataFrame;
 import prerna.engine.api.IScriptReactor;
 import prerna.sablecc.expressions.IExpressionBuilder;
-import prerna.sablecc.meta.IPkqlMetadata;
 
 public abstract class AbstractReactor implements IScriptReactor {
 
@@ -212,12 +211,11 @@ public abstract class AbstractReactor implements IScriptReactor {
 		this.lastKeyAdded = key;
 	}
 
-	protected Iterator getTinkerData(Vector <String> columns, ITableDataFrame frame, boolean dedup)
-	{
+	protected Iterator getTinkerData(List <String> columns, ITableDataFrame frame, boolean dedup) {
 		return getTinkerData(columns, frame, null, dedup);
 	}
 
-	protected Iterator getTinkerData(Vector<String> columns, ITableDataFrame frame, Map<String, Object> valMap, boolean dedup) {
+	protected Iterator getTinkerData(List <String> columns, ITableDataFrame frame, Map<String, Object> valMap, boolean dedup) {
 		//		if(columns != null && columns.size() <= 1)
 		//			columns.add(columns.get(0));
 		// now I need to ask tinker to build me something for this
