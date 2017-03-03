@@ -89,10 +89,7 @@ public class RDataTable extends AbstractTableDataFrame {
 	public Map<String, String> getScriptReactors() {
 		Map<String, String> reactorNames = super.getScriptReactors();
 		reactorNames.put(PKQLEnum.IMPORT_DATA, "prerna.sablecc.RImportDataReactor");
-//		reactorNames.put(PKQLEnum.API, "prerna.sablecc.ApiReactor");
-
-		//TODO: need to go through and modify these things so they are not H2 specific
-		reactorNames.put(PKQLEnum.DATA_FRAME_DUPLICATES, "prerna.sablecc.TinkerDuplicatesReactor");
+		reactorNames.put(PKQLEnum.DATA_FRAME_DUPLICATES, "prerna.sablecc.RDuplicatesReactor");
 
 		reactorNames.put(PKQLEnum.EXPR_TERM, "prerna.sablecc.ExprReactor");
 		reactorNames.put(PKQLEnum.EXPR_SCRIPT, "prerna.sablecc.ExprReactor");
@@ -129,7 +126,6 @@ public class RDataTable extends AbstractTableDataFrame {
 		reactorNames.put(PKQLEnum.QUERY_API, "prerna.sablecc.QueryApiReactor");
 		reactorNames.put(PKQLEnum.CSV_API, "prerna.sablecc.RCsvApiReactor");
 		reactorNames.put(PKQLEnum.WEB_API, "prerna.sablecc.WebApiReactor");
-//		reactorNames.put(PKQLEnum.R_API, "prerna.sablecc.RApiReactor");
 
 		return reactorNames;
 	}
@@ -352,6 +348,10 @@ public class RDataTable extends AbstractTableDataFrame {
 	
 	public String getTableVarName() {
 		return this.builder.getTableName();
+	}
+	
+	public String getTableName() {
+		return this.getTableVarName();
 	}
 	
 	@Override

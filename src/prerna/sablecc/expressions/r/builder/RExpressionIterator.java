@@ -59,7 +59,7 @@ public class RExpressionIterator implements Iterator<Object[]> {
 		if(this.rScript == null) {
 			generateExpression();
 		}
-		frame.executeRScript(this.dataTableName + "<-" + rScript);
+		frame.executeRScript(this.dataTableName + " <- " + rScript);
 		this.numRows = frame.getNumRows(this.dataTableName);
 		int limit = this.builder.getLimit();
 		int offset = this.builder.getOffset();
