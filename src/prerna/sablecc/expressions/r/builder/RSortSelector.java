@@ -25,9 +25,9 @@ public class RSortSelector implements IExpressionSelector {
 	@Override
 	public String toString() {
 		if(sortDir.equalsIgnoreCase("DESC")) {
-			return "[ order(rank(" + columnName + "), ]";
+			return "[ order(-rank(" + columnName + ")), ]";
 		} else {
-			return "[ order(-rank(" + columnName + "), ]";
+			return "[ order(rank(" + columnName + ")), ]";
 		}
 	}
 
