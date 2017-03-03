@@ -639,7 +639,9 @@ public abstract class AbstractRJavaReactor extends AbstractJavaReactor {
 				script = frameName + "$" + colName + " <- " + tempTable;
 				eval(script);
 			}
-			eval("rm(" + tempTable + "); gc();");
+			// perform variable cleanup
+			eval("rm(" + tempTable + ");");
+			eval("gc();");		
 		}
 		System.out.println("Successfully changed data type for column = " + colName);
 		if(checkRTableModified(frameName)) {
