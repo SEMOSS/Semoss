@@ -525,7 +525,9 @@ public class TableDataFrameFactory {
 	}
 
 	private static TinkerFrame convertFlatH2ToTinker(H2Frame h2frame) {
-		TinkerFrame frame;
+		if(h2frame.isEmpty()) {
+			return new TinkerFrame();
+		}
 
 		//get an iterator and skip duplicates
 		Map<String, Object> options = new HashMap<>();
@@ -543,7 +545,7 @@ public class TableDataFrameFactory {
 			i++;
 		}
 		//for each row add that relationship to tinker
-		frame = (TinkerFrame)createDataFrame(columnHeaders, "tinker", types, null);
+		TinkerFrame frame = (TinkerFrame)createDataFrame(columnHeaders, "tinker", types, null);
 		while(iterator.hasNext()) {
 			Object[] row = iterator.next();
 			frame.addRow(row, columnHeaders);
@@ -553,6 +555,9 @@ public class TableDataFrameFactory {
 	}
 	
 	private static TinkerFrame convertH2ToTinker(H2Frame h2frame) {
+		if(h2frame.isEmpty()) {
+			return new TinkerFrame();
+		}
 		
 		//get an iterator and skip duplicates
 		Map<String, Object> options = new HashMap<>();
