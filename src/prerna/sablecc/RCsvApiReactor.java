@@ -1,6 +1,5 @@
 package prerna.sablecc;
 
-import java.io.File;
 import java.util.Hashtable;
 import java.util.Iterator;
 import java.util.List;
@@ -31,6 +30,7 @@ public class RCsvApiReactor extends AbstractApiReactor {
 		// the mapOptions stores all the information being passed from the user
 		// this will contain the fileName and the data types from each column
 		dataTypeMap = new Hashtable<String, String>();
+		List<String> headerNames = (List<String>)myStore.get(PKQLEnum.COL_CSV);
 		
 		this.mapOptions = (Map<Object, Object>) myStore.get(PKQLEnum.MAP_OBJ);
 		for(Object key : this.mapOptions.keySet()) {
@@ -46,7 +46,8 @@ public class RCsvApiReactor extends AbstractApiReactor {
 		// to determine what selectors to send
 		
 		RFileWrapper fileWrapper = new RFileWrapper(this.fileName);
-		fileWrapper.composeRScript(this.qs, this.dataTypeMap);
+		fileWrapper.composeRChangeHeaderNamesScript();
+		fileWrapper.composeRScript(this.qs, this.dataTypeMap, headerNames);
 		
 		this.put((String) getValue(PKQLEnum.API), fileWrapper);
 		this.put("RESPONSE", "success");

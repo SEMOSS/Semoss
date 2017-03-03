@@ -1,12 +1,9 @@
 package prerna.ds.r;
 
 import java.io.File;
-import java.util.HashMap;
-import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
@@ -121,6 +118,12 @@ public abstract class AbstractRBuilder {
 	protected void createTableViaCsvFile(RFileWrapper fileWrapper) {
 		String loadFileRScript = RSyntaxHelper.getFReadSyntax(this.dataTableName, fileWrapper.getFilePath());
 		evalR(loadFileRScript);
+		
+		// since we clean headers
+		// we need to fix the headers from the csv file to match those which are good
+		// thankfully the index is the same
+		evalR("setnames(" + this.dataTableName + ", " + fileWrapper.getModHeadersRVec() + ")");
+		
 		// this will modify the csv to contain the specified columns and rows based on selectors and filters
 		String filterScript = fileWrapper.getRScript();
 		if(!filterScript.isEmpty()) {
