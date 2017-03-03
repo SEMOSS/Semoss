@@ -407,7 +407,15 @@ public class CSVFileHelper {
 
 		return modHeaders;
 	}
-
+	
+	/**
+	 * This will return the original headers of the csv file
+	 * Before we performed any cleaning of data
+	 * @return
+	 */
+	public String[] getFileOriginalHeaders() {
+		return this.allCsvHeaders;
+	}
 
 	///// TESTING CODE STARTS HERE /////
 
