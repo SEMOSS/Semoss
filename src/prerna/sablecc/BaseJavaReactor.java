@@ -44,7 +44,7 @@ public class BaseJavaReactor extends AbstractRJavaReactor{
 		// we store the connection in the PKQL Runner
 		// retrieve it if it is already defined within the insight
 		RConnection retCon = (RConnection) retrieveVariable(R_CONN);
-		String port = null;
+		String port = (String) retrieveVariable(R_PORT);
 		LOGGER.info("Connection right now is set to.. " + retCon);
 		if(retCon == null) {
 			try {
@@ -407,8 +407,10 @@ public class BaseJavaReactor extends AbstractRJavaReactor{
 			rcon.eval(conversionString + frameReplaceScript);
 			
 			// perform variable cleanup
-			rcon.eval("rm(" + tempName + "); gc();");
-
+			// perform variable cleanup
+			rcon.eval("rm(" + tempName + ");");
+			rcon.eval("gc();");
+			
 			System.out.println("Script " + script);
 			System.out.println("Complete ");
 			// once this is done.. I need to find what the original type is and then apply a type to it
@@ -615,7 +617,8 @@ public class BaseJavaReactor extends AbstractRJavaReactor{
 			}
 			
 			// perform variable cleanup
-			rcon.eval("rm(" + tempName + "); gc();");
+			rcon.eval("rm(" + tempName + ");");
+			rcon.eval("gc();");
 		} catch (RserveException e) {
 			e.printStackTrace();
 		} catch (REXPMismatchException e) {
