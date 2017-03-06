@@ -1462,6 +1462,7 @@ public class H2Frame extends AbstractTableDataFrame {
 		reactorNames.put(PKQLEnum.COL_SPLIT, "prerna.sablecc.H2ColSplitReactor");
 		reactorNames.put(PKQLEnum.IMPORT_DATA, "prerna.sablecc.H2ImportDataReactor");
 		reactorNames.put(PKQLEnum.DATA_FRAME_DUPLICATES, "prerna.sablecc.H2DuplicatesReactor");
+		reactorNames.put(PKQLEnum.DATA_FRAME_CHANGE_TYPE, "prerna.sablecc.H2DataframeChangeTypeReactor");
 		reactorNames.put(PKQLEnum.VIZ, "prerna.sablecc.H2VizReactor");
 //		reactorNames.put(PKQLEnum.VIZ, "prerna.sablecc.VizReactor");
 
@@ -1767,6 +1768,12 @@ public class H2Frame extends AbstractTableDataFrame {
 	public void deleteAllRows() {
 		String tableName = getTableName();
 		this.builder.deleteAllRows(tableName);
+	}
+
+	public void changeDataType(String columnName, String newType) {
+		String tableName = getTableName();
+		this.builder.changeDataType(tableName, columnName, newType);
+		this.metaData.modifyDataType(columnName, newType);
 	}
 	
 }

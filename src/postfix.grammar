@@ -97,9 +97,12 @@ Tokens
  panelclone = panelprefix '.clone';
  panelclose = panelprefix '.close';
  panelhandle = panelprefix '.handle';
+ 
  dataframe = 'data.frame';
  dataframeheader = 'data.frame.getHeaders';
  dataframeduplicates = 'data.frame.hasDuplicates';
+ dataframechangetype = 'data.frame.changeType';
+
  file_text = '<startInput>' alphanumeric* '<endInput>';
  html_text = quote starthtml alphanumeric* endhtml quote;
  panelcommentremove = panelcommentprefix '.remove';
@@ -168,6 +171,7 @@ colop = // colOp is usually of the form of joinColumn / addColumn / removeColumn
 		| {remove_data} remove_data
 		| {data_frame} data_frame
 		| {data_frame_header} data_frame_header
+		| {data_frame_change_types} data_frame_change_types
 		| {data_frame_duplicates} data_frame_duplicates
 		| {open_data} open_data
 		| {renamecol} rename_column
@@ -275,6 +279,10 @@ data_frame_header = // e.g. data.frame.getHeaders();
 		;
 data_frame_duplicates = // e.g. data.frame.hasDuplicates(c:Col,); 
 		dataframeduplicates l_par col_csv r_par
+		;
+
+data_frame_change_types = // e.g. data.frame.changeType(c:Col, NUMBER);
+		dataframechangetype l_par col_def comma word_or_num r_par
 		;
 
 dashboard_config = //e.g. dashboard.config(<json>*configuration string*</json>);
