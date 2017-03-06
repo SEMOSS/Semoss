@@ -570,11 +570,9 @@ public class Translation extends DepthFirstAdapter {
 			// default is a query api
 			if(Utility.getEngine(engine).getEngineType() == IEngine.ENGINE_TYPE.TINKER) {
 				this.reactorNames.put(PKQLEnum.API, this.reactorNames.get(PKQLEnum.TINKER_QUERY_API));
-
 			} else {
-			this.reactorNames.put(PKQLEnum.API, this.reactorNames.get(PKQLEnum.QUERY_API));
+				this.reactorNames.put(PKQLEnum.API, this.reactorNames.get(PKQLEnum.QUERY_API));
 			}
-			
 		}
 //		if (reactorNames.containsKey(PKQLEnum.API)) {
 			// this is here because we are overriding the data.import order of
@@ -639,9 +637,16 @@ public class Translation extends DepthFirstAdapter {
     {
 		// make a raw api import block which will
 		// take in a user query and execute it to construct the frame
-		initReactor(PKQLEnum.RAW_API);
-		
 		String engineName = node.getEngineName().getText().trim();
+		if(engineName.equalsIgnoreCase("frame")) {
+			//we are querying the frame
+			this.reactorNames.put(PKQLEnum.RAW_API, this.reactorNames.get(PKQLEnum.FRAME_RAW_API));
+			initReactor(PKQLEnum.RAW_API);
+		} else {
+			initReactor(PKQLEnum.RAW_API);
+		}
+		// set the engine
+		// even if frame, we just use the same key...
 		curReactor.put(RawQueryApiReactor.ENGINE_KEY, engineName);
 		String query = node.getQueryblock().getText().trim().replace("<query>", "").replace("</query>", "");
 		curReactor.put(RawQueryApiReactor.QUERY_KEY, query);
