@@ -13,7 +13,6 @@ import prerna.ds.QueryStruct;
 import prerna.engine.api.IEngine;
 import prerna.engine.api.IEngineWrapper;
 import prerna.engine.api.IHeadersDataRow;
-import prerna.engine.api.IRawSelectWrapper;
 import prerna.engine.impl.tinker.TinkerEngine;
 import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.rdf.query.builder.IQueryInterpreter;
@@ -35,16 +34,25 @@ public class QueryDataReactor extends AbstractReactor {
 		// when the data is coming from an API (i.e. an engine or a file)
 		String [] dataFromApi = {PKQLEnum.COL_CSV, "ENGINE", "EDGE_HASH"};
 		values2SyncHash.put(PKQLEnum.API, dataFromApi);
+		
+		String [] dataFromRawApi = {PKQLEnum.RAW_API, "ENGINE"};
+		values2SyncHash.put(PKQLEnum.RAW_API, dataFromRawApi);
 	}
 	
 	@Override
 	public Iterator process() {
-		
 		modExpression();
 		System.out.println("My Store on IMPORT DATA REACTOR: " + myStore);
 		
-		QueryStruct qs = (QueryStruct)myStore.get(PKQLEnum.API);
-		
+		QueryStruct qs = (QueryStruct) this.getValue(PKQLEnum.API);
+		if(qs != null) {
+			return processApi(qs);
+		} else {
+			return processRawApi();
+		}
+	}
+	
+	public Iterator processApi(QueryStruct qs) {
 		// 2) format and process the join information
 		Vector<Map<String, String>> joins = (Vector<Map<String, String>>) myStore.get(PKQLEnum.JOINS);
 		if(joins != null && !joins.isEmpty()){
@@ -52,19 +60,8 @@ public class QueryDataReactor extends AbstractReactor {
 			if(frame == null) {
 				throw new IllegalArgumentException("Cannot have a table join in a state less PKQL call");
 			}
-//			//do the logic here of getting the filters from the frame
-//			for(Map<String,String> join : joins){
-//				String joinType = join.get(PKQLEnum.REL_TYPE);
-//				if(joinType.contains("inner") || joinType.contains("left")) {
-//					
-//					String toCol = join.get(PKQLEnum.TO_COL);
-//					String fromCol = join.get(PKQLEnum.FROM_COL);
-//				
-//					Object[] bindings = frame.getColumn(fromCol);
-//					qs.addFilter(toCol, "=", Arrays.asList(bindings));
-//				}
-//			}
 		}
+		
 		String engineName = this.getValue(PKQLEnum.API + "_ENGINE").toString().trim();
 		Iterator<IHeadersDataRow> thisIterator;
 		if(engineName.equals("frame")) {
@@ -102,12 +99,33 @@ public class QueryDataReactor extends AbstractReactor {
 			myStore.put("source", "engine");
 		}
 		
-		
-		
 		createResponseString(thisIterator);
-		// store the search data
-		
 		myStore.put("STATUS", PKQLRunner.STATUS.SUCCESS);
+		return null;
+	}
+	
+	public Iterator processRawApi() {
+		Iterator<IHeadersDataRow> thisIterator = (Iterator<IHeadersDataRow>) this.getValue(PKQLEnum.RAW_API);
+		List searchData = new ArrayList();
+		while(thisIterator.hasNext()) {
+			IHeadersDataRow nextRow = thisIterator.next();
+			String[] headers = nextRow.getHeaders();
+			Object[] values = nextRow.getValues();
+			Map<String, Object> rowMap = new HashMap<>(headers.length);
+			for(int i = 0; i < headers.length; i++) {
+				rowMap.put(headers[i], values[i]);
+			}
+			searchData.add(rowMap);
+		}
+		
+		myStore.put("searchData", searchData);
+		String engineName = this.getValue(PKQLEnum.RAW_API + "_ENGINE").toString().trim();
+		if(engineName.equals("frame")) {
+			myStore.put("source", "frame");
+		} else {
+			myStore.put("source", "engine");
+		}
+		
 		return null;
 	}
 	

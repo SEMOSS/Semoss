@@ -81,6 +81,7 @@ public class PKQLEnum {
 	public static final String GROUP_BY = "GROUP_BY";
 	public static final String API = "API";
 	public static final String RAW_API = "RAW_API";
+	public static final String FRAME_RAW_API = "FRAME_RAW_API";
 	public static final String CSV_TABLE = "CSV_TABLE";
 	public static final String PASTED_DATA = "PASTED_DATA";
 	public static final String DASHBOARD_JOIN	 = "DASHBOARD_JOIN";
@@ -137,9 +138,4 @@ public class PKQLEnum {
 	public static final String SOLR_FACET = "SOLR_FACET";
 	public static final String SOLR_GROUP_BY = "SOLR_GROUP_BY";
 
-
-	
-
-
-	
 }
