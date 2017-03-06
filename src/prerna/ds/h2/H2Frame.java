@@ -1507,7 +1507,8 @@ public class H2Frame extends AbstractTableDataFrame {
 		reactorNames.put(PKQLEnum.WEB_API, "prerna.sablecc.WebApiReactor");
 		reactorNames.put(PKQLEnum.R_API, "prerna.sablecc.RApiReactor");
 		reactorNames.put(PKQLEnum.FRAME_API, "prerna.sablecc.H2FrameApiReactor");
-		
+		reactorNames.put(PKQLEnum.FRAME_RAW_API, "prerna.sablecc.H2FrameRawQueryApiReactor");
+
 		reactorNames.put(PKQLEnum.CLEAR_DATA, "prerna.sablecc.H2ClearDataReactor");
 		
 		return reactorNames;
