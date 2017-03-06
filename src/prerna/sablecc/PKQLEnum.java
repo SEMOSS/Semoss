@@ -24,6 +24,7 @@ public class PKQLEnum {
 	public static final String DATA_FRAME = "DATA_FRAME";
 	public static final String DATA_FRAME_HEADER = "DATA_FRAME_HEADER";
 	public static final String DATA_FRAME_DUPLICATES = "DATA_FRAME_DUPLICATES";
+	public static final String DATA_FRAME_CHANGE_TYPE = "DATA_FRAME_CHANGE_TYPE";
 	public static final String DATA_TYPE = "DATA_TYPE";
 	public static final String DATA_CONNECT = "DATA_CONNECT";
 	
