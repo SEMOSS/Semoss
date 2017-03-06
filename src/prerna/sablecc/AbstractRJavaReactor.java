@@ -222,72 +222,76 @@ public abstract class AbstractRJavaReactor extends AbstractJavaReactor {
 	 * @param rVarName
 	 */
 	protected void synchronizeGridToRDataTable(String rVarName) {
-		// if there is a current r serve session
-		// use that for the frame so we have all the other variables
-		RDataTable table = null;
-		if(retrieveVariable(R_CONN) != null && retrieveVariable(R_PORT) != null) {
-			table = new RDataTable(rVarName, (RConnection) retrieveVariable(R_CONN), (String) retrieveVariable(R_PORT));
-		} else {
-			// if we dont have a current r session
-			// but when we create the table it makes one
-			// store those variables so we end up using that
-			table = new RDataTable(rVarName);
-			if(table.getConnection() != null && table.getPort() != null) {
-				storeVariable(R_CONN, table.getConnection());
-				storeVariable(R_PORT, table.getPort());
-			}
-		}
-		
-		// should pass the user id down to the frame
-		// important when we merge back the frame
-		table.setUserId(dataframe.getUserId());
-		
-		H2Frame gridFrame = (H2Frame)dataframe;
-		String tableName = gridFrame.getBuilder().getTableName();
-		String url = gridFrame.getBuilder().connectFrame();
-		url = url.replace("\\", "/");
-		initiateDriver(url, "sa");
-
-		
-		// need to create a new data table
-		// should properly merge the meta data
-		Map<String, Set<String>> edgeHash = gridFrame.getEdgeHash();
-		Map<String, String> dataTypeMap = new HashMap<String, String>();
-		for(String colName : edgeHash.keySet()) {
-			if(!dataTypeMap.containsKey(colName)) {
-				dataTypeMap.put(colName, Utility.convertDataTypeToString(gridFrame.getDataType(colName)) );
-			}
-			
-			Set<String> otherCols = edgeHash.get(colName);
-			for(String otherCol : otherCols) {
-				if(!dataTypeMap.containsKey(otherCol)) {
-					dataTypeMap.put(otherCol, Utility.convertDataTypeToString(gridFrame.getDataType(otherCol)) );
+		if(dataframe instanceof H2Frame) {
+			// if there is a current r serve session
+			// use that for the frame so we have all the other variables
+			RDataTable table = null;
+			if(retrieveVariable(R_CONN) != null && retrieveVariable(R_PORT) != null) {
+				table = new RDataTable(rVarName, (RConnection) retrieveVariable(R_CONN), (String) retrieveVariable(R_PORT));
+			} else {
+				// if we dont have a current r session
+				// but when we create the table it makes one
+				// store those variables so we end up using that
+				table = new RDataTable(rVarName);
+				if(table.getConnection() != null && table.getPort() != null) {
+					storeVariable(R_CONN, table.getConnection());
+					storeVariable(R_PORT, table.getPort());
 				}
 			}
-		}
-		
-		table.mergeEdgeHash(edgeHash, dataTypeMap);
-
-		StringBuilder selectors = new StringBuilder();
-		String [] colSelectors = gridFrame.getColumnHeaders();
-		for(int selectIndex = 0; selectIndex < colSelectors.length; selectIndex++) {
-			selectors.append(colSelectors[selectIndex]);
-			if(selectIndex + 1 < colSelectors.length) {
-				selectors.append(", ");
+			
+			// should pass the user id down to the frame
+			// important when we merge back the frame
+			table.setUserId(dataframe.getUserId());
+			
+			H2Frame gridFrame = (H2Frame)dataframe;
+			String tableName = gridFrame.getBuilder().getTableName();
+			String url = gridFrame.getBuilder().connectFrame();
+			url = url.replace("\\", "/");
+			initiateDriver(url, "sa");
+	
+			
+			// need to create a new data table
+			// should properly merge the meta data
+			Map<String, Set<String>> edgeHash = gridFrame.getEdgeHash();
+			Map<String, String> dataTypeMap = new HashMap<String, String>();
+			for(String colName : edgeHash.keySet()) {
+				if(!dataTypeMap.containsKey(colName)) {
+					dataTypeMap.put(colName, Utility.convertDataTypeToString(gridFrame.getDataType(colName)) );
+				}
+				
+				Set<String> otherCols = edgeHash.get(colName);
+				for(String otherCol : otherCols) {
+					if(!dataTypeMap.containsKey(otherCol)) {
+						dataTypeMap.put(otherCol, Utility.convertDataTypeToString(gridFrame.getDataType(otherCol)) );
+					}
+				}
 			}
+			
+			table.mergeEdgeHash(edgeHash, dataTypeMap);
+	
+			StringBuilder selectors = new StringBuilder();
+			String [] colSelectors = gridFrame.getColumnHeaders();
+			for(int selectIndex = 0; selectIndex < colSelectors.length; selectIndex++) {
+				selectors.append(colSelectors[selectIndex]);
+				if(selectIndex + 1 < colSelectors.length) {
+					selectors.append(", ");
+				}
+			}
+			
+			eval(rVarName + " <-as.data.table(unclass(dbGetQuery(conn,'SELECT " + selectors + " FROM " + tableName + "')));");
+			eval("setDT(" + rVarName + ")");
+			
+			// modify the headers to be what they used to be because the * will return everything in caps
+			String[] currHeaders = getColNames(rVarName, false);
+			renameColumn(rVarName, currHeaders, colSelectors, false);
+			storeVariable("GRID_NAME", rVarName);
+			System.out.println("Completed synchronization as " + rVarName);
+	
+			this.dataframe = table;
+			this.frameChanged = true;
+		} else {
+			throw new IllegalArgumentException("Frame must be of type H2");
 		}
-		
-		eval(rVarName + " <-as.data.table(unclass(dbGetQuery(conn,'SELECT " + selectors + " FROM " + tableName + "')));");
-		eval("setDT(" + rVarName + ")");
-		
-		// modify the headers to be what they used to be because the * will return everything in caps
-		String[] currHeaders = getColNames(rVarName, false);
-		renameColumn(rVarName, currHeaders, colSelectors, false);
-		storeVariable("GRID_NAME", rVarName);
-		System.out.println("Completed synchronization as " + rVarName);
-
-		this.dataframe = table;
-		this.frameChanged = true;
 	}
 	
 	/**
