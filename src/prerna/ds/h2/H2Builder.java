@@ -3527,6 +3527,26 @@ public class H2Builder {
 		this.tableName = tableName;
 		return dataTypeMap;
 	}
+
+	public void changeDataType(String tableName, String columnName, String newType) {
+		String query = "ALTER TABLE " + tableName + " MODIFY COLUMN " + columnName + " " + this.typeConversionMap.get(newType);
+		Connection thisCon = getConnection();
+		Statement stat = null;
+		try {
+			stat = thisCon.createStatement();
+			stat.execute(query);
+		} catch (SQLException e) {
+			e.printStackTrace();
+		} finally {
+			if(stat != null) {
+				try {
+					stat.close();
+				} catch (SQLException e) {
+					e.printStackTrace();
+				}
+			}
+		}
+	}
 	
 	/***************************
 	 * ORIGINAL UNUSED CODE

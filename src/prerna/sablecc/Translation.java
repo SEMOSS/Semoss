@@ -1584,6 +1584,21 @@ public class Translation extends DepthFirstAdapter {
 	}
 	
 	@Override
+    public void inADataFrameChangeTypes(ADataFrameChangeTypes node) {
+		if (reactorNames.containsKey(PKQLEnum.DATA_FRAME_CHANGE_TYPE)) {
+			initReactor(PKQLEnum.DATA_FRAME_CHANGE_TYPE);
+			curReactor.put(PKQLEnum.DATA_FRAME_CHANGE_TYPE, node.toString());
+		}
+    }
+
+	@Override
+    public void outADataFrameChangeTypes(ADataFrameChangeTypes node) {
+		if (reactorNames.containsKey(PKQLEnum.DATA_FRAME_CHANGE_TYPE)) {
+			deinitReactor(PKQLEnum.DATA_FRAME_CHANGE_TYPE, node.toString().trim(), node.toString().trim());
+		}
+    }
+	
+	@Override
 	public void inATermExpr(ATermExpr node) {
 		if (reactorNames.containsKey(PKQLEnum.EXPR_TERM)) {
 			// get the appropriate reactor

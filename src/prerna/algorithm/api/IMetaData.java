@@ -94,6 +94,8 @@ public interface IMetaData {
 	 */
 	void storeDataType(String uniqueName, String dataType);
 	
+	void modifyDataType(String uniqueName, String dataType);
+	
 	void storeDataTypes(String[] uniqueNames, String[] dataTypes);
 	
 	void setFiltered(String uniqueName, boolean filtered);
