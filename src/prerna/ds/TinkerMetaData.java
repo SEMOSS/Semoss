@@ -200,6 +200,15 @@ public class TinkerMetaData implements IMetaData {
 	}
 	
 	@Override
+	public void modifyDataType(String uniqueName, String dataType) {
+		Vertex vert = getExistingVertex(uniqueName);
+		if(vert.property(DATATYPE).isPresent()){
+			vert.property(DATATYPE).remove();
+		}
+		storeDataType(uniqueName, dataType);
+	}
+	
+	@Override
 	public void storeDataType(String uniqueName, String dataType) {
 		Vertex vert = getExistingVertex(uniqueName);
 		if(dataType == null || dataType.isEmpty()) {

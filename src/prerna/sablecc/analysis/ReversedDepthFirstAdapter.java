@@ -662,6 +662,27 @@ public class ReversedDepthFirstAdapter extends AnalysisAdapter
         outADataFrameHeaderColop(node);
     }
 
+    public void inADataFrameChangeTypesColop(ADataFrameChangeTypesColop node)
+    {
+        defaultIn(node);
+    }
+
+    public void outADataFrameChangeTypesColop(ADataFrameChangeTypesColop node)
+    {
+        defaultOut(node);
+    }
+
+    @Override
+    public void caseADataFrameChangeTypesColop(ADataFrameChangeTypesColop node)
+    {
+        inADataFrameChangeTypesColop(node);
+        if(node.getDataFrameChangeTypes() != null)
+        {
+            node.getDataFrameChangeTypes().apply(this);
+        }
+        outADataFrameChangeTypesColop(node);
+    }
+
     public void inADataFrameDuplicatesColop(ADataFrameDuplicatesColop node)
     {
         defaultIn(node);
@@ -1938,6 +1959,47 @@ public class ReversedDepthFirstAdapter extends AnalysisAdapter
             node.getDataframeduplicates().apply(this);
         }
         outADataFrameDuplicates(node);
+    }
+
+    public void inADataFrameChangeTypes(ADataFrameChangeTypes node)
+    {
+        defaultIn(node);
+    }
+
+    public void outADataFrameChangeTypes(ADataFrameChangeTypes node)
+    {
+        defaultOut(node);
+    }
+
+    @Override
+    public void caseADataFrameChangeTypes(ADataFrameChangeTypes node)
+    {
+        inADataFrameChangeTypes(node);
+        if(node.getRPar() != null)
+        {
+            node.getRPar().apply(this);
+        }
+        if(node.getWordOrNum() != null)
+        {
+            node.getWordOrNum().apply(this);
+        }
+        if(node.getComma() != null)
+        {
+            node.getComma().apply(this);
+        }
+        if(node.getColDef() != null)
+        {
+            node.getColDef().apply(this);
+        }
+        if(node.getLPar() != null)
+        {
+            node.getLPar().apply(this);
+        }
+        if(node.getDataframechangetype() != null)
+        {
+            node.getDataframechangetype().apply(this);
+        }
+        outADataFrameChangeTypes(node);
     }
 
     public void inADashboardConfig(ADashboardConfig node)
