@@ -85,6 +85,11 @@ public class FormsDataProcessor extends BaseFormsDataProcessor{
 	public static int DEPLOYMENT_COL_NUM = 23;
 	public static int IS_MOBILE_COL_NUM = 24;
 	public static int SYSTEM_BASED_COL_NUM = 25;
+	public static int COTS_PRODUCT_COL_NUM = 26;
+	public static int COTS_PRODUCT_NAME_COL_NUM = 27;
+	public static int COTS_VENDOR_NAME_COL_NUM = 28;
+	public static int COTS_DOD_MODULES_COL_NUM = 29;
+	public static int COMMENTS_COL_NUM = 30;
 
 	//List of header caches	
 	public static HashMap<String, Integer> PERSONNEL_HEADER_CACHE = null;
@@ -427,6 +432,16 @@ public class FormsDataProcessor extends BaseFormsDataProcessor{
 		  	  return IS_MOBILE_COL_NUM;
 		  case "SystemBased":
 		  	  return SYSTEM_BASED_COL_NUM;
+		  case "COTSProduct":
+		  	  return COTS_PRODUCT_COL_NUM;
+		  case "COTSProductName":
+		  	  return COTS_PRODUCT_NAME_COL_NUM;
+		  case "COTSVendorName":
+		  	  return COTS_VENDOR_NAME_COL_NUM;
+		  case "COTSDoDModules":
+		  	  return COTS_DOD_MODULES_COL_NUM;
+		  case "Comments":
+		  	  return COMMENTS_COL_NUM;
 	      default:
 	          return -1;
 	    }
