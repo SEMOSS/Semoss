@@ -33,6 +33,7 @@ import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.List;
 
 import com.google.gson.internal.StringMap;
 
@@ -40,14 +41,13 @@ import prerna.engine.api.ISelectStatement;
 import prerna.engine.api.ISelectWrapper;
 import prerna.engine.impl.rdbms.RDBMSNativeEngine;
 import prerna.util.Constants;
-import prerna.util.DIHelper;
 import prerna.util.Utility;
 
 public class UserPermissionsMasterDB {
 	private RDBMSNativeEngine securityDB;
 	
 	public UserPermissionsMasterDB() {
-		securityDB = (RDBMSNativeEngine) DIHelper.getInstance().getLocalProp(Constants.SECURITY_DB);
+		securityDB = (RDBMSNativeEngine) Utility.getEngine(Constants.SECURITY_DB);
 	}
 	
 	/**
@@ -840,6 +840,23 @@ public class UserPermissionsMasterDB {
 	 */
 	private ArrayList<String[]> runQuery(String query) {
 		System.out.println("Executing security query: " + query);
+		ISelectWrapper sjsw = Utility.processQuery(securityDB, query);
+		String[] names = sjsw.getDisplayVariables();
+		ArrayList<String[]> ret = new ArrayList<String[]>();
+		while(sjsw.hasNext()) {
+			ISelectStatement sjss = sjsw.next();
+			String[] rowValues = new String[names.length];
+			for(int i = 0; i < names.length; i++) {
+				 rowValues[i] = sjss.getVar(names[i]).toString();
+			}
+			ret.add(rowValues);
+		}
+		
+		return ret;
+	}
+	
+	public List<String[]> getUserReadOnlyInsights(String userId) {
+		String query = "SELECT DISTINCT NAME, INSIGHTID FROM USERINSIGHTPERMISSION INNER JOIN ENGINE ON USERINSIGHTPERMISSION.ENGINEID = ENGINE.ID WHERE USERID = '" + userId +  "'";
 		ISelectWrapper sjsw = Utility.processQuery(securityDB, query);
 		String[] names = sjsw.getDisplayVariables();
 		ArrayList<String[]> ret = new ArrayList<String[]>();
