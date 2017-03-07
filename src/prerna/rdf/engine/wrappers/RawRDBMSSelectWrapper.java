@@ -6,14 +6,12 @@ import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.sql.Types;
-import java.util.Hashtable;
 import java.util.Map;
 
 import prerna.engine.api.IHeadersDataRow;
 import prerna.engine.api.IRawSelectWrapper;
 import prerna.engine.impl.rdbms.RDBMSNativeEngine;
 import prerna.engine.impl.rdf.HeadersDataRow;
-import prerna.rdf.util.SQLQueryParser;
 import prerna.util.ConnectionUtils;
 import prerna.util.Constants;
 import prerna.util.sql.SQLQueryUtil;
@@ -146,43 +144,9 @@ public class RawRDBMSSelectWrapper extends AbstractWrapper implements IRawSelect
 			var = new String[numColumns];
 			displayVar = new String[numColumns];
 
-			// we parse through the query to get the display names
-			// display names are the alias within the query for each return
-			// as defined by the SQLQueryBuilder logic
-			Hashtable<String, Hashtable<String, String>> parserResults = null;
-			if(query.startsWith("SELECT")) {
-				SQLQueryParser parser = new SQLQueryParser(query);
-				parserResults = parser.getReturnVarsFromQuery(query);
-			}
-
-
-			// iterate through each column
-			for(int colIndex = 1;colIndex <= numColumns;colIndex++)
-			{
-				String tableName = rsmd.getTableName(colIndex);
-				String colName = rsmd.getColumnName(colIndex);
-				String logName = colName;
-
-				// if we found aliases defined within the query
-				// we see if it matches and will use that as the display name
-				if(parserResults != null && !parserResults.isEmpty()) {
-					for(String tab : parserResults.keySet()) {
-						if(tab.equalsIgnoreCase(tableName)) {
-							for(String col : parserResults.get(tab).keySet()) {
-								if(parserResults.get(tab).get(col).equalsIgnoreCase(colName)) {
-									logName = col;
-									break;
-								}
-							}
-						}
-					}
-				}
-
-				// set the physical variable name
-				var[colIndex-1] = colName;
-				// set the display name
-				displayVar[colIndex-1] = logName;
-				// set the column type
+			for(int colIndex = 1; colIndex <= numColumns; colIndex++) {
+				var[colIndex-1] = rsmd.getColumnName(colIndex);
+				displayVar[colIndex-1] = rsmd.getColumnLabel(colIndex);
 				colTypes[colIndex-1] = rsmd.getColumnType(colIndex);
 			}
 		} catch (SQLException e) {
