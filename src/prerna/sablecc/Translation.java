@@ -29,6 +29,7 @@ import prerna.sablecc.expressions.r.builder.RExpressionBuilder;
 import prerna.sablecc.expressions.sql.builder.ExpressionGenerator;
 import prerna.sablecc.expressions.sql.builder.SqlExpressionBuilder;
 import prerna.sablecc.meta.DataInsightMetaData;
+import prerna.sablecc.meta.GenericMetaData;
 import prerna.sablecc.meta.IPkqlMetadata;
 import prerna.sablecc.node.*;
 import prerna.sablecc.services.DatabasePkqlService;
@@ -1215,6 +1216,7 @@ public class Translation extends DepthFirstAdapter {
 		runner.setReturnData(json);
 		runner.setResponse("Successfully parsed default widget");
 		runner.setStatus(PKQLRunner.STATUS.SUCCESS);
+		storePkqlMetadata.add(new GenericMetaData("Set Data Model"));
 //		try {
 //			Map object = new Gson().fromJson(json, HashMap.class);
 //			Map<String, Object> returnData = new HashMap<>();
