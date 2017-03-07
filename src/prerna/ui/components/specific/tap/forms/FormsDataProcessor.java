@@ -93,8 +93,6 @@ public class FormsDataProcessor extends BaseFormsDataProcessor{
 	public static HashMap<String, Integer> BUSINESS_PROCESS_HEADER_CACHE = null;
 	public static HashMap<String, Integer> BLU_HEADER_CACHE = null;
 	public static HashMap<String, Integer> DATA_OBJECT_HEADER_CACHE = null;
-	
-	
 
 	public FormsDataProcessor(){
 		
@@ -119,12 +117,14 @@ public class FormsDataProcessor extends BaseFormsDataProcessor{
 			LOGGER.info("********** Begin - updating System Interfaces");
 			new FormsICDDataProcessor().processICDFile(engine, sourceFolder, NONSERVICES_REVIEWED_SYSTEMS_LIST);
 			LOGGER.info("********** Done - updating System Interfaces");
-			LOGGER.info("********** Begin - updating Site Specific System Interfaces");
-			new FormsSiteICDDataProcessor().processICDFile(engine, sourceFolder, NONSERVICES_REVIEWED_SYSTEMS_LIST);
-			LOGGER.info("********** Done - updating Site Specific System Interfaces");
-			LOGGER.info("********** Begin - updating Status of Reviewed Systems to 'Pushed'");
-			changeSystemsStatus(engine, NONSERVICES_REVIEWED_SYSTEMS_LIST, CHANGE_STATUS_QUERY);
-			LOGGER.info("********** Done - updating Status of Reviewed Systems to 'Pushed'");
+			//LOGGER.info("********** Begin - updating Site Specific System Interfaces");
+			//new FormsSiteICDDataProcessor().processICDFile(engine, sourceFolder, NONSERVICES_REVIEWED_SYSTEMS_LIST);
+			//LOGGER.info("********** Done - updating Site Specific System Interfaces");
+
+			//Should not need to un-comment since the data importer will be run off of the pulled database and not the live MESOC version
+			//LOGGER.info("********** Begin - updating Status of Reviewed Systems to 'Pushed'");
+			//changeSystemsStatus(engine, NONSERVICES_REVIEWED_SYSTEMS_LIST, CHANGE_STATUS_QUERY);
+			//LOGGER.info("********** Done - updating Status of Reviewed Systems to 'Pushed'");
 		}
 		LOGGER.info("************* Finished processData");
 	}
