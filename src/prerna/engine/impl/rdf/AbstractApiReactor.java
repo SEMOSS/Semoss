@@ -1,5 +1,7 @@
 package prerna.engine.impl.rdf;
 
+import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.Hashtable;
 import java.util.Iterator;
 import java.util.List;
@@ -7,14 +9,18 @@ import java.util.Map;
 import java.util.Set;
 import java.util.Vector;
 
+import com.google.gson.internal.StringMap;
+
 import prerna.algorithm.api.IMetaData.DATA_TYPES;
 import prerna.algorithm.api.ITableDataFrame;
+import prerna.auth.UserPermissionsMasterDB;
 import prerna.ds.QueryStruct;
 import prerna.engine.api.IEngine;
 import prerna.sablecc.AbstractReactor;
 import prerna.sablecc.PKQLEnum;
 import prerna.ui.components.playsheets.datamakers.IDataMaker;
 import prerna.util.Constants;
+import prerna.util.DIHelper;
 import prerna.util.Utility;
 
 public abstract class AbstractApiReactor extends AbstractReactor{
@@ -37,6 +43,8 @@ public abstract class AbstractApiReactor extends AbstractReactor{
 	
 	// key to determine if api wants to add filters based on existing values within the frame
 	protected static final String ADD_TABLE_FITLERS = "addTableFilters";
+	
+	private StringMap<StringMap<ArrayList>> rowLevelFilters = new StringMap<StringMap<ArrayList>>();
 	
 	/**
 	 * The abstract reactor reacts to the following:
@@ -240,6 +248,60 @@ public abstract class AbstractApiReactor extends AbstractReactor{
 				}
 			}
 		}
+		
+		if(Boolean.parseBoolean(DIHelper.getInstance().getLocalProp(Constants.SECURITY_ENABLED).toString())) {
+			// Look at the selectors to figure out which tables and columns we are grabbing
+			// Get the row-level permissions filters, match them up, and insert/remove as necessary
+			IDataMaker datamaker = (IDataMaker) myStore.get("G");
+			String userId = datamaker.getUserId();
+			UserPermissionsMasterDB permissions = new UserPermissionsMasterDB();
+			rowLevelFilters = permissions.getRowLevelSeedsForUserAndEngine(userId, this.engine);
+			Set<String> addedConcepts = new HashSet<String>();
+			
+			for(String s : selectors) {
+				String table = "";
+				String col = "";
+				if(s.contains("__")) {
+					table = s.split("__")[0];
+					col = s.split("__")[1];
+				} else {
+					table = col = s;
+				}
+				addedConcepts.add(table);
+				
+				//For each selector, see if it exists in the RLS and if it's not in the filter list, add the RLS values as a filter
+				if(rowLevelFilters.containsKey(table)) {
+					StringMap<ArrayList> tableFilters = (StringMap<ArrayList>)rowLevelFilters.get(table);
+					if(tableFilters.containsKey(col)) {
+						boolean filterExists = false;
+						for(int filterIndex = 0;filterIndex < filters.size();filterIndex++)
+						{
+							Hashtable thisFilter = (Hashtable)filters.get(filterIndex);
+							if(thisFilter.get("FROM_COL").toString().equals(s)) {
+								filterExists = true;
+								break;
+							}
+						}
+						if(!filterExists) {
+							ArrayList rlsValues = ((StringMap<ArrayList>)rowLevelFilters.get(table)).get(col);
+							this.qs.addFilter(s, "=", rlsValues);
+						}
+					}
+				}
+			}
+			
+			//For each column in the RLS filters, check to see if the concept/table is being selected
+			//If so, add any property filters to trim down the concept list as a result
+			for(String table : rowLevelFilters.keySet()) {
+				for(String col : rowLevelFilters.get(table).keySet()) {
+					if(!selectors.contains(table + "__" + col)) {
+						ArrayList rlsValues = ((StringMap<ArrayList>)rowLevelFilters.get(table)).get(col);
+						this.qs.addFilter(table + "__" + col, "=", rlsValues);
+					}
+				}
+			}
+		}
+		
 		for(int filterIndex = 0;filterIndex < filters.size();filterIndex++)
 		{
 			Hashtable thisFilter = (Hashtable)filters.get(filterIndex);
@@ -261,6 +323,32 @@ public abstract class AbstractApiReactor extends AbstractReactor{
 				String comparator = (String)thisFilter.get("COMPARATOR");
 				//				String concept = fromCol.substring(0, fromCol.indexOf("__"));
 				//				String property = fromCol.substring(fromCol.indexOf("__")+2);
+				
+				if(Boolean.parseBoolean(DIHelper.getInstance().getLocalProp(Constants.SECURITY_ENABLED).toString())) {
+					// Check filter values against row level security values, if any
+					String table = "";
+					String col = "";
+					if(fromCol.contains("__")) {
+						table = fromCol.split("__")[0];
+						col = fromCol.split("__")[1];
+					} else {
+						table = col = fromCol;
+					}
+					
+					if(rowLevelFilters.containsKey(table) && ((StringMap<ArrayList>)rowLevelFilters.get(table)).containsKey(col)) {
+						ArrayList rlsValues = ((StringMap<ArrayList>)rowLevelFilters.get(table)).get(col);
+						
+						if(comparator.equals("=")) {
+							for(Iterator it = filterData.iterator(); it.hasNext(); ) {
+								if(!rlsValues.contains(it.next())) {
+									it.remove();
+								}
+							}
+						} else {
+							//TODO: Build out applying RLS for other comparators
+						}
+					}
+				}
 				
 				// For this column filter, see if there is a param set that references it
 				// If so, grab it's value and add as a filter to apply that param

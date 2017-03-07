@@ -721,6 +721,7 @@ public class UserPermissionsMasterDB {
 				+ "INNER JOIN Engine E ON S.DATABASEID=E.ID "
 				+ "INNER JOIN UserSeedPermission USP ON USP.SEEDID=S.ID "
 				+ "INNER JOIN User U ON U.ID=USP.USERID AND U.ID='" + userId + "' "
+				+ "WHERE S.RLSVALUE=NULL "
 				+ "ORDER BY DB, TAB;";
 		
 		return getMetamodelSeedsFromQuery(query);
@@ -741,7 +742,7 @@ public class UserPermissionsMasterDB {
 		if(owner && !isUserAdmin(userId)) {
 			query += "WHERE S.OWNER='" + userId + "' ";
 		} else if(!owner) {
-			query += "INNER JOIN UserSeedPermission USP ON USP.SEEDID=S.ID WHERE USP.USERID='" + userId + "';";
+			query += "INNER JOIN UserSeedPermission USP ON USP.SEEDID=S.ID WHERE USP.USERID='" + userId + "' AND S.RLSVALUE=NULL;";
 		}
 		
 		ArrayList<String[]> seedNames = runQuery(query);
@@ -814,6 +815,39 @@ public class UserPermissionsMasterDB {
 		}
 		
 		return dbToTables;
+	}
+	
+	public StringMap<StringMap<ArrayList>> getRowLevelSeedsForUserAndEngine(String userId, String engineName) {
+		StringMap<StringMap<ArrayList>> ret = new StringMap<StringMap<ArrayList>>();
+		String query = "SELECT s.TABLENAME AS TABLENAME, s.COLUMNNAME AS COLUMNNAME, s.RLSVALUE AS RLSVALUE FROM Seed s "
+				+ "INNER JOIN UserSeedPermission usp ON usp.SEEDID=s.ID "
+				+ "INNER JOIN Engine e ON e.ID=s.DATABASEID "
+				+ "WHERE e.NAME='" + engineName + "' AND usp.USERID='" + userId + "' AND s.RLSVALUE IS NOT NULL ORDER BY TABLENAME, COLUMNNAME	;";
+		
+		ArrayList<String[]> results = runQuery(query);
+		for(String[] row : results) {
+			String table = row[0];
+			String col = row[1];
+			String rlsValue = row[2];
+			
+			if(ret.containsKey(table)) {
+				if(ret.get(table).containsKey(col)) {
+					ret.get(table).get(col).add(rlsValue);
+				} else {
+					ArrayList newList = new ArrayList();
+					newList.add(rlsValue);
+					ret.get(table).put(col, newList);
+				}
+			} else {
+				StringMap<ArrayList> newColValues = new StringMap<ArrayList>();
+				ArrayList newList = new ArrayList();
+				newList.add(rlsValue);
+				newColValues.put(col, newList);
+				ret.put(table, newColValues);
+			}
+		}
+		
+		return ret;
 	}
 	
 	public Boolean addSeedToGroup(String groupId, String seedId) {
