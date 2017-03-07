@@ -113,6 +113,20 @@ public class InsightStore extends Hashtable<String, Insight> {
 		return sessionIdHash.get(sessionID);
 	}
 	
+	public Insight getReadOnlyInsight(String engineName, String rdbmsId) {
+		Insight retIn = null;
+		INSIGHT_LOOP : for(String insightKey : this.keySet()) {
+			Insight in = this.get(insightKey);
+			String inEngineName = in.getEngineName();
+			String inRdbmsId = in.getRdbmsId();
+			if(engineName.equals(inEngineName) && rdbmsId.equals(inRdbmsId)) {
+				retIn = in;
+				break INSIGHT_LOOP;
+			}
+		}
+		return retIn;
+	}
+	
 	
 	////////////////CODE FOR THICK CLIENT///////////////////////////
 	public void setActiveInsight(Insight insight) {
