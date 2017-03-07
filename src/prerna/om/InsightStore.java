@@ -113,7 +113,7 @@ public class InsightStore extends Hashtable<String, Insight> {
 		return sessionIdHash.get(sessionID);
 	}
 	
-	public Insight getReadOnlyInsight(String engineName, String rdbmsId) {
+	public Insight findInsightInStore(String engineName, String rdbmsId) {
 		Insight retIn = null;
 		INSIGHT_LOOP : for(String insightKey : this.keySet()) {
 			Insight in = this.get(insightKey);
