@@ -130,7 +130,6 @@ public class SQLInterpreter implements IQueryInterpreter{
 				}
 				String selectorWithoutAlias = selectorArray[i].split(" AS ")[0];
 				query.append(selectorWithoutAlias);
-				
 			}
 			query.append(") AS COUNT FROM ");
 		} else {
@@ -301,7 +300,7 @@ public class SQLInterpreter implements IQueryInterpreter{
 				}
 			}
 
-			selectorAddition = tableAlias + "." + physicalColName + " AS " + displayName;
+			selectorAddition = tableAlias + "." + physicalColName + " AS \"" + displayName + "\" ";
 		}
 
 
