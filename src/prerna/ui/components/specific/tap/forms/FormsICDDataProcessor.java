@@ -85,25 +85,7 @@ public class FormsICDDataProcessor extends BaseFormsICDDataProcessor {
 	public static HashMap<String, Integer> ICD_FORMAT_HEADER_CACHE = null;
 	*/
 	public FormsICDDataProcessor(){
-		INTERFACE_NAME_COL_NUM = 5;
-		PROTOCOL_COL_NUM = 8;
-		FORMAT_COL_NUM = 10;
-		FREQUENCY_COL_NUM = 9;
-		PROVIDER_COL_NUM = 2;
-		CONSUMER_COL_NUM = 3;
-		ICD_DATA_OBJECT_STARTING_COL_NUM = 60;
-		SHEET_LAST_COLUMN = 60;
-		
-		MY_QUERY = SYSTEM_INTERFACE_ENTERPRISE_QUERY;
-		INTERFACES_FILE = "\\ICD Consolidated to Service Mapping_Validated.xlsm";
-		
-		ICD_FREQUENCY_STARTING_COL_NUM = 19;
-		ICD_FREQUENCY_ENDING_COL_NUM = 26;
-		ICD_PROTOCOL_STARTING_COL_NUM = 27;
-		ICD_PROTOCOL_ENDING_COL_NUM = 45;
-		ICD_FORMAT_STARTING_COL_NUM = 46;
-		ICD_FORMAT_ENDING_COL_NUM = 62;
-		
+		//MY_QUERY = SYSTEM_INTERFACE_ENTERPRISE_QUERY;
 	}
 	/*
 	public void processICDFile(IEngine engine, File sourceFolder, ArrayList<String> systemsList){
