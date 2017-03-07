@@ -55,12 +55,23 @@ public class MhsGenesisSiteDeploymentSavingsPlaySheet extends TablePlaySheet {
 		this.percentRealized = processor.percentRealized;
 	}
 
+	public MhsGenesisSiteDeploymentSavingsPlaySheet(H2Frame mainSustainmentFrame, H2Frame systemSiteSustainmentFrame, MhsGenesisDeploymentSavingsProcessor processor) {
+		this.systemSiteSustainmentFrame = systemSiteSustainmentFrame;
+		this.mainSustainmentFrame = mainSustainmentFrame;
+		this.waveStartEndDate = processor.waveStartEndDate;
+		this.numColumns = processor.numColumns;
+		this.percentRealized = processor.percentRealized;
+	}
+
 	@Override
 	public void processDataMakerComponent(DataMakerComponent component) {
 		// generate the necessary data
 		generateSiteDeploymentSavings();
 	}
 
+	public H2Frame getSiteDeploymentSavings() {
+		return siteDeploymentSavings;
+	}
 
 	@Override
 	public Hashtable getDataMakerOutput(String... selectors) {
@@ -74,7 +85,7 @@ public class MhsGenesisSiteDeploymentSavingsPlaySheet extends TablePlaySheet {
 	}
 
 	/**
-	 * Calculate the cost of system deployment savings
+	 * Calculate the cost of site deployment savings
 	 */
 	public void generateSiteDeploymentSavings() {
 		// okay, create the frame that will hold

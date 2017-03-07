@@ -898,4 +898,28 @@ public class MhsGenesisDeploymentSavingsProcessor {
 		}
 	}
 
+	public H2Frame getMainSustainmentFrame() {
+		return mainSustainmentFrame;
+	}
+
+	public H2Frame getSystemSiteSustainmentFrame() {
+		return systemSiteSustainmentFrame;
+	}
+
+	public Map<String, String[]> getWaveStartEndDate() {
+		return waveStartEndDate;
+	}
+
+	public int getNumColumns() {
+		return numColumns;
+	}
+
+	public double getPercentRealized() {
+		return percentRealized;
+	}
+
+	public IEngine getTapSite() {
+		return tapSite;
+	}
+
 }

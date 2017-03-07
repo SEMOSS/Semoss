@@ -200,7 +200,7 @@ public final class DHMSMDeploymentHelper {
 
 		for(String entity : waveHash.keySet()) {
 			List<String> waveList = waveHash.get(entity);
-			int lastWaveIndex = 0;
+			int lastWaveIndex = -1;
 			String lastWave = "";
 			for(String wave : waveList) {
 				int index = waveOrder.indexOf(wave);

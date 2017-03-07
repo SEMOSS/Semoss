@@ -1,15 +1,47 @@
+/*******************************************************************************
+ * Copyright 2015 Defense Health Agency (DHA)
+ *
+ * If your use of this software does not include any GPLv2 components:
+ * 	Licensed under the Apache License, Version 2.0 (the "License");
+ * 	you may not use this file except in compliance with the License.
+ * 	You may obtain a copy of the License at
+ *
+ * 	  http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * 	Unless required by applicable law or agreed to in writing, software
+ * 	distributed under the License is distributed on an "AS IS" BASIS,
+ * 	WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * 	See the License for the specific language governing permissions and
+ * 	limitations under the License.
+ * ----------------------------------------------------------------------------
+ * If your use of this software includes any GPLv2 components:
+ * 	This program is free software; you can redistribute it and/or
+ * 	modify it under the terms of the GNU General Public License
+ * 	as published by the Free Software Foundation; either version 2
+ * 	of the License, or (at your option) any later version.
+ *
+ * 	This program is distributed in the hope that it will be useful,
+ * 	but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * 	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * 	GNU General Public License for more details.
+ *******************************************************************************/
 package prerna.ui.components.specific.tap.genesisdeployment;
+
 
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.text.DecimalFormat;
+import java.text.DecimalFormatSymbols;
+import java.text.NumberFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Hashtable;
 import java.util.Iterator;
 import java.util.Map;
+
 
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
@@ -18,18 +50,30 @@ import prerna.ds.h2.H2Frame;
 import prerna.engine.api.IEngine;
 import prerna.engine.impl.rdf.BigDataEngine;
 import prerna.test.TestUtilityMethods;
-import prerna.ui.components.playsheets.TablePlaySheet;
 import prerna.ui.components.playsheets.datamakers.DataMakerComponent;
 import prerna.ui.components.specific.tap.DHMSMDeploymentHelper;
+import prerna.ui.components.specific.tap.InputPanelPlaySheet;
+import prerna.ui.components.specific.tap.genesisdeployment.MhsGenesisDeploymentSavingsProcessor;
+import prerna.ui.components.specific.tap.genesisdeployment.MhsGenesisSiteDeploymentSavingsPlaySheet;
 import prerna.util.DIHelper;
 
-public class MhsGenesisSystemDeploymentSavingsPlaySheet extends TablePlaySheet { 
 
+/**
+ * This is the playsheet used exclusively for TAP service optimization.
+ */
+@SuppressWarnings("serial")
+public class MHSGenesisDeploymentStrategyPlaySheet extends InputPanelPlaySheet {
+
+		
 	private static final Logger LOGGER = LogManager.getLogger(MhsGenesisDeploymentSavingsProcessor.class.getName());
 
 	// store the system deployment savings over time
 	private H2Frame systemDeploymentSavings;
 
+	// store the s deployment savings over time
+	private H2Frame siteDeploymentSavings;
+
+	
 	// frame to keep track of waves to sites to systems to fys containing inflated costs
 	protected H2Frame mainSustainmentFrame;
 	// frame to keep track of systems to sits to fys containing the inflated costs
@@ -44,22 +88,29 @@ public class MhsGenesisSystemDeploymentSavingsPlaySheet extends TablePlaySheet {
 
 	private int numColumns;
 	private double percentRealized;
-
-	public MhsGenesisSystemDeploymentSavingsPlaySheet(MhsGenesisDeploymentSavingsProcessor processor) {
+	
+	public MHSGenesisDeploymentStrategyPlaySheet(){
+		super();
+		overallAnalysisTitle = "System Analysis";
+		titleText = "Set Deployment Time Frame";
+		MhsGenesisDeploymentSavingsProcessor processor = new MhsGenesisDeploymentSavingsProcessor();
 		processor.runSupportQueries();
 
 		// frame to keep track of waves to sites to systems to fys containing inflated costs
-		this.mainSustainmentFrame = processor.mainSustainmentFrame;
+		this.mainSustainmentFrame = processor.getMainSustainmentFrame();
 		// frame to keep track of systems to sits to fys containing the inflated costs
 		// only for systems which have site level cost information
-		this.systemSiteSustainmentFrame = processor.systemSiteSustainmentFrame;
+		this.systemSiteSustainmentFrame = processor.getSystemSiteSustainmentFrame();
+		this.waveStartEndDate = processor.getWaveStartEndDate();
+		this.numColumns = processor.getNumColumns();
+		this.percentRealized = processor.getPercentRealized();
+		MhsGenesisSiteDeploymentSavingsPlaySheet sitePS = new MhsGenesisSiteDeploymentSavingsPlaySheet(mainSustainmentFrame, systemSiteSustainmentFrame, processor);
+		sitePS.processDataMakerComponent(null);
+		siteDeploymentSavings = sitePS.getSiteDeploymentSavings();
 
 		// need to get the wave start and end
-		this.waveStartEndDate = processor.waveStartEndDate;
 
-		this.numColumns = processor.numColumns;
-		this.percentRealized = processor.percentRealized;
-		this.siteLocationHash= DHMSMDeploymentHelper.getSiteLocation(processor.tapSite);
+		this.siteLocationHash= DHMSMDeploymentHelper.getSiteLocation(processor.getTapSite());
 	}
 
 	@Override
@@ -73,20 +124,31 @@ public class MhsGenesisSystemDeploymentSavingsPlaySheet extends TablePlaySheet {
 	public Hashtable getDataMakerOutput(String... selectors) {
 		//TODO: finish this
 		Hashtable returnHash = new Hashtable();
-		
-		//Site Analysis
+
+		// Site Analysis Data
 		Hashtable siteAnalysis = new Hashtable();
-		ArrayList<String> siteHeaders = createSiteHeaders();
-		siteAnalysis.put("data", siteDataList(siteHeaders));
-		siteAnalysis.put("headers", headerReturnData(siteHeaders));
-		
-		//System Analysis Data
+		ArrayList<String> siteQueryHeaders = createSiteQueryHeaders();
+		siteAnalysis.put("data", siteDataList(siteQueryHeaders));
+		siteAnalysis.put("headers", headerReturnData(siteQueryHeaders));
+		returnHash.put("siteAnalysisData", siteAnalysis);
+
+		// System Analysis Data
 		Hashtable systemAnalysisData = new Hashtable();
 		ArrayList<String> systemHeaders = createSytemHeaders();
 		systemAnalysisData.put("data", systemDataList(systemHeaders));
 		systemAnalysisData.put("headers", headerReturnData(systemHeaders));
+		returnHash.put("systemAnalysisData", systemAnalysisData);
 
 		// map data
+		returnHash.put("mapData", creatMapData());
+
+		Hashtable finalReturnHash = new Hashtable();
+		finalReturnHash.put("data", returnHash);
+
+		return finalReturnHash;
+	}
+
+	private Hashtable creatMapData() {
 		Hashtable mapData = new Hashtable();
 		mapData.put("label", "savings");
 		Hashtable data = new Hashtable();
@@ -97,32 +159,29 @@ public class MhsGenesisSystemDeploymentSavingsPlaySheet extends TablePlaySheet {
 			fysQueryString.add("FY" + i);
 			fysLabel.add("20" + i);
 		}
+
 		// add fiscal year to data
 		for (int j = 0; j < fysLabel.size(); j++) {
+			String fiscalYear = fysQueryString.get(j);
 			Hashtable fysData = new Hashtable();
-
-			fysData.put("site", siteListMapData(fysQueryString.get(j), fysLabel.get(j)));
-
-			fysData.put("system", systemListMapData(fysQueryString.get(j), fysLabel.get(j)));
-
-			// TODO
+			
+			// Site
+			fysData.put("site", createSiteListData(fiscalYear, fysLabel.get(j)));
+			
+			// System
+			fysData.put("system", createSystemListData(fiscalYear, fysLabel.get(j) ));
+			
 			data.put(fysLabel.get(j), fysData);
 		}
 
-		mapData.put("data", data);
-		returnHash.put("mapData", mapData);
-		returnHash.put("siteAnalysisData", siteAnalysis);
-		returnHash.put("systemAnalysisData", systemAnalysisData);
-		Hashtable finalReturnHash = new Hashtable();
-		finalReturnHash.put("data", returnHash);
-		return finalReturnHash;
+		mapData.put("data", data);		
+		return mapData;
 	}
 
-	private Object systemListMapData(String fyQueryString, String fyLabel) {
-		String mapSystemQuery = "SELECT DISTINCT System, Last_Wave_For_System, " + fyQueryString + "  FROM "
+	private Hashtable createSystemListData(String fiscalYear, String fiscalLabel) {
+		String mapSystemQuery = "SELECT DISTINCT System, Last_Wave_For_System, " + fiscalYear + "  FROM "
 				+ mainSustainmentFrame.getTableName();
 		ResultSet mapSystemQS = mainSustainmentFrame.execQuery(mapSystemQuery);
-		LOGGER.info("Executing query for map system data from mainSustainmentFrame" + mapSystemQuery);
 		Hashtable systemListData = new Hashtable();
 
 		try {
@@ -134,64 +193,101 @@ public class MhsGenesisSystemDeploymentSavingsPlaySheet extends TablePlaySheet {
 
 				system = mapSystemQS.getString(1);
 				lastWaveForSystem = mapSystemQS.getString(2);
-				value = mapSystemQS.getDouble(3);
-
+				value = 0;
+				
 				// aggregated status
 				String status = "Not Started";
-					String[] waveDate = waveStartEndDate.get(lastWaveForSystem);
-					if (waveDate != null) {
-						String[] startTime = waveDate[0].split("FY");
-						int startYear = Integer.parseInt(startTime[1]);
-						String[] endTime = waveDate[1].split("FY");
-						int endYear = Integer.parseInt(endTime[1]);
-						int year = Integer.parseInt(fyLabel);
-						if (year >= startYear)
-							status = "In Progress";
-						if (year > endYear)
-							status = "Decommissioned";
+				String[] waveDate = waveStartEndDate.get(lastWaveForSystem);
+				boolean total = false;
+				if (waveDate != null) {
+					String[] startTime = waveDate[0].split("FY");
+					int startYear = Integer.parseInt(startTime[1]);
+					String[] endTime = waveDate[1].split("FY");
+					int endYear = Integer.parseInt(endTime[1]);
+					int year = Integer.parseInt((String) fiscalLabel);
+					if (year >= startYear)
+						status = "In Progress";
+					if (year > endYear) {
+						status = "Decommissioned";
+						total = true;
 					}
-//				else {
-//					System.out.println("MISSING LAST WAVE FOR SYSTEM " + system + " year " + fyLabel);
-//				}
+					if (total) {
+						if (fiscalYear.equals("FY26")) {
+							fiscalYear = "Total";
+						}
+						String systemSavingsQuery = "SELECT DISTINCT System," + fiscalYear + " FROM "
+								+ systemDeploymentSavings.getTableName() + " WHERE System = \'" + system + "\';";
+						ResultSet systemSavingsRS = systemDeploymentSavings.execQuery(systemSavingsQuery);
+						try {
+							while (systemSavingsRS.next()) {
+								if (status.equals("In Progress")) {
+									System.out.println("SHOULD NOT BE HERE");
+								}
+								value = systemSavingsRS.getDouble(2);
+							}
+							systemSavingsRS.close();
+
+						} catch (Exception e) {
+
+						}
+					}
+
+				}
+
+				DecimalFormatSymbols symbols = DecimalFormatSymbols.getInstance();
+				symbols.setGroupingSeparator(',');
+				NumberFormat formatter = new DecimalFormat("'$' ###,##0.00", symbols);
+				systemData.put("TCostSystem", formatter.format(value));
 				systemData.put("AggregatedStatus", status);
-				systemData.put("TCostSystem", value);
 				systemListData.put(system, systemData);
 			}
+			mapSystemQS.close();
 
 		} catch (Exception e) {
 			e.printStackTrace();
-		}		
+		}
 		return systemListData;
 	}
 
-	private Hashtable siteListMapData(String fyQueryString, String fyLabel) {
-		Hashtable siteListData = new Hashtable();
-
-		String mapSiteQuery = "SELECT DISTINCT HostSiteAndFloater, " + fyQueryString + ", Wave FROM "
-				+ mainSustainmentFrame.getTableName();
+	private Hashtable createSiteListData(String fiscalYear, String fiscalLabel) {
+		String mapSiteQuery = "SELECT DISTINCT HostSiteAndFloater, Last_Wave_For_Site, " + fiscalYear
+				+ ", Wave FROM " + mainSustainmentFrame.getTableName();
 		ResultSet mapSiteQS = mainSustainmentFrame.execQuery(mapSiteQuery);
-		LOGGER.info("Executing query for map site data from mainSustainmentFrame" + mapSiteQuery);
-		Hashtable fysData = new Hashtable();
+		Hashtable siteListData = new Hashtable();
 		try {
 			String site = "";
+			double value = 0;
 			while (mapSiteQS.next()) {
 				site = mapSiteQS.getString(1);
-				double value = mapSiteQS.getDouble(2);
-				String wave = mapSiteQS.getString(3);
+				String lastWaveForSite = mapSiteQS.getString(2);
+				value = 0;
+				
+				//get Wave
+				if(lastWaveForSite.equals("-1")) {
+					lastWaveForSite = mapSiteQS.getString(4);
+				}
+				boolean total = false;
 				if (site != null) {
 					Hashtable siteData = new Hashtable();
-					String[] startDate = waveStartEndDate.get(wave);
-					String[] startTime = startDate[0].split("FY");
-					int startYear = Integer.parseInt(startTime[1]);
-					String[] endTime = startDate[1].split("FY");
-					int endYear = Integer.parseInt(endTime[1]);
-					int year = Integer.parseInt(fyLabel);
-					// TODO
 					String status = "Not Started";
-					if (year >= startYear)
-						status = "In Progress";
-					if (year > endYear)
-						status = "Decommissioned";
+					String[] startDate = waveStartEndDate.get(lastWaveForSite);
+					if (startDate != null) {
+						String[] startTime = startDate[0].split("FY");
+						int startYear = Integer.parseInt(startTime[1]);
+						String[] endTime = startDate[1].split("FY");
+						int endYear = Integer.parseInt(endTime[1]);
+						int year = Integer.parseInt((String) fiscalLabel);
+						// TODO
+						if (year >= startYear)
+							status = "In Progress";
+						if (year > endYear) {
+							status = "Decommissioned";
+							total = true;
+						} 
+					}
+					
+					siteData.put("Status", status);
+
 					HashMap<String, Double> latLongHash = siteLocationHash.get(site);
 					double latVal = 0;
 					double longVal = 0;
@@ -199,21 +295,46 @@ public class MhsGenesisSystemDeploymentSavingsPlaySheet extends TablePlaySheet {
 						latVal = latLongHash.get("Lat");
 						longVal = latLongHash.get("Long");
 					}
-//					else {
-//						System.out.println("missing lat and long for site " + site);
-//					}
 
 					siteData.put("Lat", latVal);
 					siteData.put("Long", longVal);
-					siteData.put("Status", status);
-					siteData.put("TCostSite", value);
+
+					if (total) {
+						if (fiscalYear.equals("FY26")) {
+							fiscalYear = "Total";
+						}
+						String siteSavingsQuery = "SELECT DISTINCT Site," + fiscalYear + " FROM "
+								+ siteDeploymentSavings.getTableName() + " WHERE Site = \'" + site + "\';";
+						ResultSet siteSavingsRS = siteDeploymentSavings.execQuery(siteSavingsQuery);
+
+						try {
+							while (siteSavingsRS.next()) {
+								value = siteSavingsRS.getDouble(2);
+							}
+
+						} catch (Exception e) {
+
+						}
+
+					}
+					DecimalFormatSymbols symbols = DecimalFormatSymbols.getInstance();
+					symbols.setGroupingSeparator(',');
+					NumberFormat formatter = new DecimalFormat(" ###,##0.00", symbols);
+
+					if (!status.equals("Decommissioned")) {
+						if(value > 0) {
+							System.out.println("WHY?");
+						}
+					}
+					
+					siteData.put("TCostSite", formatter.format(value));
 					siteListData.put(site, siteData);
 				}
 			}
 
 		} catch (Exception e) {
 			e.printStackTrace();
-		}		
+		}
 		return siteListData;
 	}
 
@@ -227,32 +348,34 @@ public class MhsGenesisSystemDeploymentSavingsPlaySheet extends TablePlaySheet {
 		systemQuery = systemQuery.substring(0, systemQuery.length()-2).toString();
 		systemQuery +=" FROM " + systemDeploymentSavings.getTableName() + ";";
 		
-		ResultSet systemRS = systemDeploymentSavings.execQuery(systemQuery.toString());
 		LOGGER.info("Executing query for system data from systemDeploymentSavings" + systemQuery);
+
+		ResultSet systemRS = systemDeploymentSavings.execQuery(systemQuery.toString());
 		ArrayList systemDataList = new ArrayList();
+		DecimalFormatSymbols symbols = DecimalFormatSymbols.getInstance();
+		symbols.setGroupingSeparator(',');
+		NumberFormat formatter = new DecimalFormat("'$' ###,##0.00", symbols);
 		try {
 			while (systemRS.next()) {
 				Hashtable data = new Hashtable();
-//				double total = 0;
 				for (int i = 0; i < systemHeaders.size(); i++) {
-					if (i == 0 || i == systemHeaders.size() - 1) {
+					if (i == 0) {
 						String string = systemRS.getString(i+1);
 						//TODO HOSTSItie-Floater
 						data.put(systemHeaders.get(i), string);
-					} else {
+					}
+					else {
 						double value = systemRS.getDouble(i+1);
-						data.put(systemHeaders.get(i), value+"");
-//						total += value;
+						data.put(systemHeaders.get(i), formatter.format(value));
 					}
 				}
-//				siteHeaders.add("Total");
-//				data.put("Total", total);
 				systemDataList.add(data);
 			}
 		}
 		catch(Exception e) {
 			e.printStackTrace();
 		}
+		
 		return systemDataList;
 	}
 
@@ -281,32 +404,36 @@ public class MhsGenesisSystemDeploymentSavingsPlaySheet extends TablePlaySheet {
 		return headerData;
 	}
 
-	private ArrayList<String> createSiteHeaders() {
+	private ArrayList<String> createSiteQueryHeaders() {
 		ArrayList siteHeaders = new ArrayList<>();
 		siteHeaders.add("Site");
-		for(int i = 15; i <=26; i++) {
+		for(int i = 15; i <=25; i++) {
 			siteHeaders.add("FY"+i);
 		}
+		siteHeaders.add("Total");
 		return siteHeaders;
 	}
 
 	private ArrayList siteDataList(ArrayList<String> siteHeaders) {
 		String siteQuery = "SELECT ";
 		
+		//ignore fy26
 		for(int i = 0; i < siteHeaders.size(); i++) {
 			siteQuery += siteHeaders.get(i) + ", ";
 		}
 		//remove extra , at the end
 		siteQuery = siteQuery.substring(0, siteQuery.length()-2).toString();
-		siteQuery +=" FROM " + systemSiteSustainmentFrame.getTableName() + ";";
+		siteQuery +=" FROM " + siteDeploymentSavings.getTableName() + ";";
 		
-		ResultSet siteRS = systemSiteSustainmentFrame.execQuery(siteQuery.toString());
-		LOGGER.info("Executing query for site data " + siteQuery);
+		ResultSet siteRS = siteDeploymentSavings.execQuery(siteQuery.toString());
+		LOGGER.info("Executing query for site data from siteDeploymentSavings" + siteQuery);
 		ArrayList siteDataList = new ArrayList();
+		DecimalFormatSymbols symbols = DecimalFormatSymbols.getInstance();
+		symbols.setGroupingSeparator(',');
+		NumberFormat formatter = new DecimalFormat("'$' ###,##0.00", symbols);
 		try {
 			while (siteRS.next()) {
 				Hashtable data = new Hashtable();
-				double total = 0;
 				for (int i = 0; i < siteHeaders.size(); i++) {
 					if (i == 0) {
 						String site = siteRS.getString(i+1);
@@ -314,8 +441,7 @@ public class MhsGenesisSystemDeploymentSavingsPlaySheet extends TablePlaySheet {
 						data.put(siteHeaders.get(i), site);
 					} else {
 						double value = siteRS.getDouble(i+1);
-						data.put(siteHeaders.get(i), value+"");
-						total += value;
+						data.put(siteHeaders.get(i), formatter.format(value));
 					}
 				}
 				siteDataList.add(data);
@@ -366,7 +492,7 @@ public class MhsGenesisSystemDeploymentSavingsPlaySheet extends TablePlaySheet {
 		Iterator<Object[]> it = this.systemDeploymentSavings.iterator();
 		System.out.println(">>> " + Arrays.toString( headers ) );
 		try{
-			PrintWriter writer = new PrintWriter("C:\\Users\\mahkhalil\\Desktop\\Datasets\\SAVINGS_SystemView.csv", "UTF-8");
+			PrintWriter writer = new PrintWriter("C:\\Users\\rramirezjimenez\\Desktop\\Datasets\\SAVINGS_SystemView.csv", "UTF-8");
 			for(Object val : headers) {
 				writer.print(val + ",");
 			}
@@ -469,9 +595,11 @@ public class MhsGenesisSystemDeploymentSavingsPlaySheet extends TablePlaySheet {
 				while(rs.next()) {
 					siteSystemFilter.append(",'").append(rs.getString(1)).append("'");
 				}
+				rs.close();
 			} catch (SQLException e) {
 				e.printStackTrace();
 			}
+		
 			siteSystemFilter.append(")");
 			
 			// so we have the list of sites to filter to in this wave
@@ -618,21 +746,21 @@ public class MhsGenesisSystemDeploymentSavingsPlaySheet extends TablePlaySheet {
 	public static void main(String[] args) {
 		TestUtilityMethods.loadDIHelper();
 
-		String engineProp = "C:\\workspace\\Semoss_Dev\\db\\TAP_Core_Data.smss";
+		String engineProp = "C:\\workspace\\Semoss\\db\\TAP_Core_Data.smss";
 		IEngine coreEngine = new BigDataEngine();
 		coreEngine.setEngineName("TAP_Core_Data");
 		coreEngine.openDB(engineProp);
 		coreEngine.setEngineName("TAP_Core_Data");
 		DIHelper.getInstance().setLocalProperty("TAP_Core_Data", coreEngine);
 
-		engineProp = "C:\\workspace\\Semoss_Dev\\db\\TAP_Site_Data.smss";
+		engineProp = "C:\\workspace\\Semoss\\db\\TAP_Site_Data.smss";
 		coreEngine = new BigDataEngine();
 		coreEngine.setEngineName("TAP_Site_Data");
 		coreEngine.openDB(engineProp);
 		coreEngine.setEngineName("TAP_Site_Data");
 		DIHelper.getInstance().setLocalProperty("TAP_Site_Data", coreEngine);
 
-		engineProp = "C:\\workspace\\Semoss_Dev\\db\\TAP_Portfolio.smss";
+		engineProp = "C:\\workspace\\Semoss\\db\\TAP_Portfolio.smss";
 		coreEngine = new BigDataEngine();
 		coreEngine.setEngineName("TAP_Portfolio");
 		coreEngine.openDB(engineProp);
@@ -640,7 +768,7 @@ public class MhsGenesisSystemDeploymentSavingsPlaySheet extends TablePlaySheet {
 		DIHelper.getInstance().setLocalProperty("TAP_Portfolio", coreEngine);
 
 		MhsGenesisDeploymentSavingsProcessor processor = new MhsGenesisDeploymentSavingsProcessor();
-		MhsGenesisSystemDeploymentSavingsPlaySheet ps = new MhsGenesisSystemDeploymentSavingsPlaySheet(processor);
+		MHSGenesisDeploymentStrategyPlaySheet ps = new MHSGenesisDeploymentStrategyPlaySheet();
 		ps.processDataMakerComponent(null);
 		ps.getDataMakerOutput("");
 	}
