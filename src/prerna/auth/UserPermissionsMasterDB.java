@@ -856,7 +856,7 @@ public class UserPermissionsMasterDB {
 	}
 	
 	public List<String[]> getUserReadOnlyInsights(String userId) {
-		String query = "SELECT DISTINCT NAME, INSIGHTID FROM USERINSIGHTPERMISSION INNER JOIN ENGINE ON USERINSIGHTPERMISSION.ENGINEID = ENGINE.ID WHERE USERID = '" + userId +  "'";
+		String query = "SELECT DISTINCT NAME, INSIGHTID FROM USERINSIGHTPERMISSION INNER JOIN ENGINE ON USERINSIGHTPERMISSION.ENGINEID = ENGINE.ID WHERE USERID = '" + userId +  "' AND PERMISSION='2'";
 		ISelectWrapper sjsw = Utility.processQuery(securityDB, query);
 		String[] names = sjsw.getDisplayVariables();
 		ArrayList<String[]> ret = new ArrayList<String[]>();
