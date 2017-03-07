@@ -54,28 +54,28 @@ import prerna.util.DIHelper;
 import prerna.util.Utility;
 
 public class BaseFormsICDDataProcessor extends BaseFormsDataProcessor {
-	//public static final Logger LOGGER = LogManager.getLogger(BaseFormsICDDataProcessor.class.getName());	
-	public String INTERFACES_FILE = "";
-	
-	public String MY_QUERY = "";
+	//public static final Logger LOGGER = LogManager.getLogger(BaseFormsICDDataProcessor.class.getName());		
+	//public String MY_QUERY = "";
 	
 	//Constants for ICD Tab;
-	public int INTERFACE_NAME_COL_NUM = 0;
-	public int PROTOCOL_COL_NUM = 0;
-	public int FORMAT_COL_NUM = 0;
-	public int FREQUENCY_COL_NUM = 0;
-	public int PROVIDER_COL_NUM = 0;
-	public int CONSUMER_COL_NUM = 0;
-	public int ICD_DATA_OBJECT_STARTING_COL_NUM = 0;
-	public int SHEET_LAST_COLUMN = 0;
-	
-	public int ICD_FREQUENCY_STARTING_COL_NUM = 0;
-	public int ICD_FREQUENCY_ENDING_COL_NUM = 0;
-	public int ICD_PROTOCOL_STARTING_COL_NUM = 0;
-	public int ICD_PROTOCOL_ENDING_COL_NUM = 0;
-	public int ICD_FORMAT_STARTING_COL_NUM = 0;
-	public int ICD_FORMAT_ENDING_COL_NUM = 0;
-	
+	public static int PROVIDER_COL_NUM = 2;
+	public static int CONSUMER_COL_NUM = 3;
+	public static int INTERFACE_NAME_COL_NUM = 5;
+	public static int SITE_COL_NUM = 6;
+	public static int PROTOCOL_COL_NUM = 9;
+	public static int FREQUENCY_COL_NUM = 10;
+	public static int FORMAT_COL_NUM = 11;
+	public static int TRIGGER_COL_NUM = 12;
+	public static int ICD_DATA_OBJECT_STARTING_COL_NUM = 63;
+	public static int SHEET_LAST_COLUMN = 62;
+	public static int ICD_FREQUENCY_STARTING_COL_NUM = 19;
+	public static int ICD_FREQUENCY_ENDING_COL_NUM = 26;
+	public static int ICD_PROTOCOL_STARTING_COL_NUM = 27;
+	public static int ICD_PROTOCOL_ENDING_COL_NUM = 45;
+	public static int ICD_FORMAT_STARTING_COL_NUM = 46;
+	public static int ICD_FORMAT_ENDING_COL_NUM = 63;	
+
+	public static final String INTERFACES_FILE = "\\ICD Consolidated to Service Mapping_Validated.xlsm";
 	public static final String SYSTEM_INTERFACES_SHEET_NAME = "ICD";
 		
 	public HashMap<String, Integer> ICD_DATA_OBJECT_HEADER_CACHE = null;
@@ -89,8 +89,7 @@ public class BaseFormsICDDataProcessor extends BaseFormsDataProcessor {
 	public void processICDFile(IEngine engine, File sourceFolder, ArrayList<String> systemsList){
 		try{
 			LOGGER.info("********** Querying for System Interfaces");
-			HashMap<String, HashMap<String, HashMap<String,String>>> map = 
-					getDataForTables(MY_QUERY, systemsList, engine);
+			HashMap<String, HashMap<String, HashMap<String,String>>> map = getDataForTables(SYSTEM_INTERFACE_QUERY, systemsList, engine);
 			//LOGGER.info("********** interfaces size: " + map.size());
 			
 			//tableToString(map);
@@ -106,20 +105,16 @@ public class BaseFormsICDDataProcessor extends BaseFormsDataProcessor {
 		} 
 	}
 	
-	protected void updateSystemInterfaces(XSSFWorkbook wb, 
-			HashMap<String, HashMap<String, HashMap<String,String>>> map)throws IOException{
+	protected void updateSystemInterfaces(XSSFWorkbook wb, HashMap<String, HashMap<String, HashMap<String,String>>> map)throws IOException{
 
 		XSSFSheet lSheet = getSheet(wb, SYSTEM_INTERFACES_SHEET_NAME);
 		//lSheet = cleanupSheet(lSheet);
+		LOGGER.info("********* Loading ICD Header Caches");
 		ICD_DATA_OBJECT_HEADER_CACHE = updateHeaderCache(wb, lSheet, ICD_DATA_OBJECT_HEADER_CACHE, ICD_DATA_OBJECT_STARTING_COL_NUM);
-		LOGGER.info("********* Laoding ICD_FREQUENCY_HEADER_CACHE");
-		ICD_FREQUENCY_HEADER_CACHE = updateHeaderCache(wb, lSheet, ICD_FREQUENCY_HEADER_CACHE, 
-																ICD_FREQUENCY_STARTING_COL_NUM, ICD_FREQUENCY_ENDING_COL_NUM);
-		LOGGER.info("********* Done Laoding ICD_FREQUENCY_HEADER_CACHE");
-		ICD_PROTOCOL_HEADER_CACHE = updateHeaderCache(wb, lSheet, ICD_PROTOCOL_HEADER_CACHE, 
-																	ICD_PROTOCOL_STARTING_COL_NUM, ICD_PROTOCOL_ENDING_COL_NUM);
-		ICD_FORMAT_HEADER_CACHE = updateHeaderCache(wb, lSheet, ICD_FORMAT_HEADER_CACHE, 
-																			ICD_FORMAT_STARTING_COL_NUM, ICD_FORMAT_ENDING_COL_NUM);
+		ICD_FREQUENCY_HEADER_CACHE = updateHeaderCache(wb, lSheet, ICD_FREQUENCY_HEADER_CACHE, ICD_FREQUENCY_STARTING_COL_NUM, ICD_FREQUENCY_ENDING_COL_NUM);
+		ICD_PROTOCOL_HEADER_CACHE = updateHeaderCache(wb, lSheet, ICD_PROTOCOL_HEADER_CACHE, ICD_PROTOCOL_STARTING_COL_NUM, ICD_PROTOCOL_ENDING_COL_NUM);
+		ICD_FORMAT_HEADER_CACHE = updateHeaderCache(wb, lSheet, ICD_FORMAT_HEADER_CACHE, ICD_FORMAT_STARTING_COL_NUM, ICD_FORMAT_ENDING_COL_NUM);
+		LOGGER.info("********* Done loading ICD Header Caches");
 		
 		// determine number of rows to load
 		int lastRow = lSheet.getLastRowNum();
@@ -161,12 +156,17 @@ public class BaseFormsICDDataProcessor extends BaseFormsDataProcessor {
 		    	XSSFCell cell0 = row.createCell(0);
 				cell0.setCellValue(count-1);
 				
-				//setting interface name in col 5
-		    	//XSSFCell cell = row.createCell(INTERFACE_NAME_COL_NUM);
-				//cell.setCellValue(key1);
-				addInterfaceName(row, key1);
-				
 				HashMap<String,String> valueMap2 = valueMap1.get(key1);
+
+				//setting interface name in col 5
+				//XSSFCell cell = row.createCell(INTERFACE_NAME_COL_NUM);
+				//cell.setCellValue(key1);
+				if (valueMap2.get("Site") == null) {
+					addInterfaceName(row, key1);
+				} else {
+					addSiteSpecificInterfaceName(row, key1);
+				}
+				
 			    for (String key2 : valueMap2.keySet()) {
 			    	//LOGGER.info("********* key2: " + key2);
 			    	HashMap<String,String> valueMap3 = valueMap1.get(key1);
@@ -217,6 +217,18 @@ public class BaseFormsICDDataProcessor extends BaseFormsDataProcessor {
 		XSSFCell cell = row.createCell(INTERFACE_NAME_COL_NUM);
 		cell.setCellValue(key1);
 	}
+
+	public void addSiteSpecificInterfaceName(XSSFRow row, String key1){
+		//LOGGER.info("*********** key1: " + key1);
+		String[] strs = key1.split("%");
+		//LOGGER.info("*********** strs 1: " + strs[0]);
+		//LOGGER.info("*********** strs 2: " + strs[1]);
+		XSSFCell cell = row.createCell(INTERFACE_NAME_COL_NUM);
+		cell.setCellValue(strs[0]);
+		
+		XSSFCell cell1 = row.createCell(SITE_COL_NUM);
+		cell1.setCellValue(strs[1]);
+	}	
 	
 	public int getICDColumnNumber(String name){
 		switch (name)
@@ -231,6 +243,8 @@ public class BaseFormsICDDataProcessor extends BaseFormsDataProcessor {
 	    	  return PROTOCOL_COL_NUM;
 	      case "Provider":
 	    	  return PROVIDER_COL_NUM;
+	      case "Site":
+	      	  return SITE_COL_NUM;
 	      default:
 	          return -1;
 	    }
