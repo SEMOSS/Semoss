@@ -15,6 +15,11 @@ public class H2FrameRawQueryApiReactor extends RawQueryApiReactor {
 		H2Frame frame = (H2Frame) myStore.get("G");
 		String query = (String) myStore.get(QUERY_KEY);
 		
+		// since the user doesn't know the table name
+		// as it is dynamically generated
+		// we will replace a placeholder for it with the frame name
+		query = query.replace("<TABLE_NAME>", frame.getTableName());
+		
 		Iterator<IHeadersDataRow> it = frame.query(query);
 		
 		this.put((String) getValue(PKQLEnum.RAW_API), it);
