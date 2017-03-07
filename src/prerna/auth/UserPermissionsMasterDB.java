@@ -33,7 +33,6 @@ import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.List;
 
 import com.google.gson.internal.StringMap;
 
@@ -889,21 +888,16 @@ public class UserPermissionsMasterDB {
 		return ret;
 	}
 	
-	public List<String[]> getUserReadOnlyInsights(String userId) {
-		String query = "SELECT DISTINCT NAME, INSIGHTID FROM USERINSIGHTPERMISSION INNER JOIN ENGINE ON USERINSIGHTPERMISSION.ENGINEID = ENGINE.ID WHERE USERID = '" + userId +  "' AND PERMISSION='2'";
+	public boolean isUserReadOnlyInsights(String userId, String engineName, String rdbmsId) {
+		String query = "SELECT DISTINCT ENGINE.NAME, USERINSIGHTPERMISSION.INSIGHTID FROM USERINSIGHTPERMISSION INNER JOIN ENGINE ON USERINSIGHTPERMISSION.ENGINEID = ENGINE.ID WHERE USERINSIGHTPERMISSION.USERID = '" + userId +  "' "
+				+ "AND ENGINE.NAME = '" + engineName + "' AND USERINSIGHTPERMISSION.INSIGHTID = '" + rdbmsId + "' AND PERMISSION='2'";
+		
 		ISelectWrapper sjsw = Utility.processQuery(securityDB, query);
-		String[] names = sjsw.getDisplayVariables();
-		ArrayList<String[]> ret = new ArrayList<String[]>();
-		while(sjsw.hasNext()) {
-			ISelectStatement sjss = sjsw.next();
-			String[] rowValues = new String[names.length];
-			for(int i = 0; i < names.length; i++) {
-				 rowValues[i] = sjss.getVar(names[i]).toString();
-			}
-			ret.add(rowValues);
+		if(sjsw.hasNext()) {
+			return true;
 		}
 		
-		return ret;
+		return false;
 	}
 	
 	/*
