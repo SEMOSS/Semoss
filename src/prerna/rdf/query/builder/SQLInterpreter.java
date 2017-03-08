@@ -56,14 +56,12 @@ public class SQLInterpreter implements IQueryInterpreter{
 	
 	private String selectors = "";
 	private Set<String> selectorList = new HashSet<String>();
-//	private String froms = "";
 	private List<String[]> froms = new Vector<String[]>();
 	// store the joins in the object for easy use
 	private SqlJoinList relationList = new SqlJoinList();
 	
 	// boolean to determine the count of the query being executed
 	private int performCount = QueryStruct.NO_COUNT;
-//	private boolean performSelectorCount = false;
 	
 	private SQLQueryUtil queryUtil = SQLQueryUtil.initialize(SQLQueryUtil.DB_TYPE.H2_DB);
 	
@@ -228,8 +226,7 @@ public class SQLInterpreter implements IQueryInterpreter{
 			System.out.println("QUERY....  " + query);
 		}
 
-		query.append(";");
-		return query.toString();
+		return query.toString().trim();
 	}
 
 	//////////////////////////// adding selectors //////////////////////////////////////////
@@ -303,7 +300,6 @@ public class SQLInterpreter implements IQueryInterpreter{
 			selectorAddition = tableAlias + "." + physicalColName + " AS \"" + displayName + "\" ";
 		}
 
-
 		if(selectors.length() == 0) {
 			selectors = selectorAddition;
 		} else {
@@ -336,14 +332,6 @@ public class SQLInterpreter implements IQueryInterpreter{
 			String physicalTableName = getPhysicalTableNameFromConceptualName(conceptualTableName);
 			
 			froms.add(new String[]{physicalTableName, alias});
-			
-			// add the physical table name and define its unique alias into the from statement
-//			String fromText =  physicalTableName + "  " + alias;
-//			if(froms.length() > 0){
-//				froms = froms + " , " + fromText;
-//			} else {
-//				froms = fromText;
-//			}
 		}
 	}
 
@@ -440,15 +428,6 @@ public class SQLInterpreter implements IQueryInterpreter{
 	
 	////////////////////////////////////////// adding filters ////////////////////////////////////////////
 	
-	//TODO: should go back and add comments for filter
-	//TODO: should go back and add comments for filter
-	//TODO: should go back and add comments for filter
-	//TODO: should go back and add comments for filter
-	//TODO: should go back and add comments for filter
-	//TODO: should go back and add comments for filter
-	//TODO: should go back and add comments for filter
-	//TODO: should go back and add comments for filter
-
 	public void addFilters()
 	{
 		Map<String, Map<String, List>> filterMap = qs.andfilters;
@@ -750,47 +729,6 @@ public class SQLInterpreter implements IQueryInterpreter{
 		}
 		return myObj;
 	}
-	
-//	private String getFormatedObject(String dataType, Object object) {
-//		// this will hold the sql acceptable format of the object
-//		String myObj = null;
-//
-//		// if we can get the data type from the OWL, lets just use that
-//		// if we dont have it, we will do type casting...
-//		if(dataType != null) {
-//			dataType = dataType.toUpperCase();
-//			if(dataType.contains("DOUBLE") || dataType.contains("FLOAT") || dataType.contains("LONG")) {
-//				myObj = object.toString();
-//			} else if(dataType.contains("DATE") || dataType.contains("TIMESTAMP")) {
-//				myObj = object.toString();
-//				myObj = Utility.getDate(myObj);
-//				myObj = "\'" + myObj + "\'";
-//			}else {
-//				myObj = object.toString();
-//				myObj = myObj.replace("\"", ""); // get rid of the space
-//				myObj = myObj.replaceAll("'", "''");
-//				myObj = myObj.trim();
-//				myObj = "\'" + myObj + "\'";
-//			}
-//		} else {
-//			// do it based on type casting
-//			if(object instanceof Number) {
-//				myObj = object.toString();
-//			} else if(object instanceof java.util.Date || object instanceof java.sql.Date) {
-//				myObj = object.toString();
-//				myObj = Utility.getDate(myObj);
-//				myObj = "\'" + myObj + "\'";
-//			} else {
-//				myObj = object.toString();
-//				myObj = myObj.replace("\"", ""); // get rid of the space
-//				myObj = myObj.replaceAll("'", "''");
-//				myObj = myObj.trim();
-//				myObj = "\'" + myObj + "\'";
-//			}
-//		}
-//		
-//		return myObj;
-//	}
 	
 	////////////////////////////////////// end adding filters ////////////////////////////////////////////
 
