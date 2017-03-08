@@ -90,9 +90,13 @@ public class BaseFormsICDDataProcessor extends BaseFormsDataProcessor {
 		try{
 			LOGGER.info("********** Querying for System Interfaces");
 			HashMap<String, HashMap<String, HashMap<String,String>>> map = getDataForTables(SYSTEM_INTERFACE_QUERY, systemsList, engine);
-			//LOGGER.info("********** interfaces size: " + map.size());
 			
-			//tableToString(map);
+			//HashMap<String, HashMap<String, HashMap<String,String>>> enterpriseIcdMap = getDataForTables(SYSTEM_INTERFACE_ENTERPRISE_QUERY, systemsList, engine);
+			//HashMap<String, HashMap<String, HashMap<String,String>>> siteSpecificIcdMap = getDataForTables(SYSTEM_INTERFACE_SITE_SPECIFIC_QUERY, systemsList, engine);			
+			//LOGGER.info("********** interfaces size: " + map.size());
+			//map = mergeMaps(enterpriseIcdMap, siteSpecificIcdMap);
+			
+			tableToString(map);
 			String fileName = sourceFolder.getAbsolutePath() + INTERFACES_FILE;
 			XSSFWorkbook wb = getWorkBook(fileName);
 			
@@ -161,45 +165,46 @@ public class BaseFormsICDDataProcessor extends BaseFormsDataProcessor {
 				//setting interface name in col 5
 				//XSSFCell cell = row.createCell(INTERFACE_NAME_COL_NUM);
 				//cell.setCellValue(key1);
-				if (valueMap2.get("Site") == null) {
+				LOGGER.info("Printing ICD Map");
+				mapOfMapStrStrToString(valueMap1);
+				if (valueMap2.containsKey("DCSite")) {
+					LOGGER.info("DCSite == null, key1: " + key1.toString());
 					addInterfaceName(row, key1);
 				} else {
+					LOGGER.info("DCSite != null, key1: " + key1.toString());
 					addSiteSpecificInterfaceName(row, key1);
 				}
 				
 			    for (String key2 : valueMap2.keySet()) {
 			    	//LOGGER.info("********* key2: " + key2);
-			    	HashMap<String,String> valueMap3 = valueMap1.get(key1);
-			    	for (String key3 : valueMap3.keySet()) {
-			    		String value = valueMap3.get(key3);
-			    		if(key3.equalsIgnoreCase("DataObject")){
-			    			int n = getDataObjectColNum(value);
-				    		if(n!= -1){
-				    			XSSFCell cell1 = row.createCell(n);
-				    			//LOGGER.info("********* valueMap3.get(key3): " +value);
-					    		cell1.setCellValue("X");
-				    		}
+		    		String value = valueMap2.get(key2);
+		    		if(key2.equalsIgnoreCase("DataObject")){
+		    			int n = getDataObjectColNum(value);
+			    		if(n!= -1){
+			    			XSSFCell cell1 = row.createCell(n);
+			    			//LOGGER.info("********* valueMap2.get(key2): " +value);
+				    		cell1.setCellValue("X");
 			    		}
-			    		else {
-				    		//String value = valueMap3.get(key3);
-				    		if(key3.equalsIgnoreCase("Frequency")){
-				    			tagValue(row, value, ICD_FREQUENCY_HEADER_CACHE);
-				    		}
-				    		else if(key3.equalsIgnoreCase("Protocol")){
-				    			tagValue(row, value, ICD_PROTOCOL_HEADER_CACHE);
-				    		}
-				    		else if(key3.equalsIgnoreCase("Format")){
-				    			tagValue(row, value, ICD_FORMAT_HEADER_CACHE);
-				    		}
-				    		int n = getICDColumnNumber(key3);
-				    		//LOGGER.info("********* key3: " + key3 + " Col Num: " + n);
-				    		if(n!= -1){
-				    			XSSFCell cell1 = row.createCell(n);
-				    			//LOGGER.info("********* valueMap3.get(key3): " +value);
-					    		cell1.setCellValue(value);
-				    		}
+		    		}
+		    		else {
+			    		//String value = valueMap2.get(key2);
+			    		if(key2.equalsIgnoreCase("Frequency")){
+			    			tagValue(row, value, ICD_FREQUENCY_HEADER_CACHE);
 			    		}
-			    	}
+			    		else if(key2.equalsIgnoreCase("Protocol")){
+			    			tagValue(row, value, ICD_PROTOCOL_HEADER_CACHE);
+			    		}
+			    		else if(key2.equalsIgnoreCase("Format")){
+			    			tagValue(row, value, ICD_FORMAT_HEADER_CACHE);
+			    		}
+			    		int n = getICDColumnNumber(key2);
+			    		//LOGGER.info("********* key2: " + key2 + " Col Num: " + n);
+			    		if(n!= -1){
+			    			XSSFCell cell1 = row.createCell(n);
+			    			//LOGGER.info("********* valueMap2.get(key2): " +value);
+				    		cell1.setCellValue(value);
+			    		}
+		    		}
 			    }
 		    }
 		}
@@ -243,7 +248,7 @@ public class BaseFormsICDDataProcessor extends BaseFormsDataProcessor {
 	    	  return PROTOCOL_COL_NUM;
 	      case "Provider":
 	    	  return PROVIDER_COL_NUM;
-	      case "Site":
+	      case "DCSite":
 	      	  return SITE_COL_NUM;
 	      default:
 	          return -1;

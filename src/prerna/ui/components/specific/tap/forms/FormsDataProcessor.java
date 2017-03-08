@@ -321,8 +321,7 @@ public class FormsDataProcessor extends BaseFormsDataProcessor{
 		LOGGER.info("********** Begin - updating Data Objects");
 		try{
 			//LOGGER.info("********** Querying for System Interfaces");
-			HashMap<String, HashMap<String, HashMap<String,String>>> map = 
-					getDataForTables(DATA_OBJECT_QUERY, NONSERVICES_REVIEWED_SYSTEMS_LIST, engine);
+			HashMap<String, HashMap<String, HashMap<String,String>>> map = getDataForTables(DATA_OBJECT_QUERY, NONSERVICES_REVIEWED_SYSTEMS_LIST, engine);
 			//LOGGER.info("********** interfaces size: " + map.size());
 			if(map.size() > 0){
 							
