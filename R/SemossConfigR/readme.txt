@@ -18,3 +18,15 @@ This will:
 Dev note:
 
 Additional packages can be registered in SemossConfigR/scripts/Packages.R
+
+5) For JRI: Run R-Portable/SemossConfigR/setREnvVars.bat
+
+This will set the necessary user (not system) environment variables for JRI
+
+Note:
+	If you get the following warning:
+		WARNING: The data being saved is truncated to 1024 characters.
+	Then you must edit the PATH manually
+	Just add the values of R_DLL_HOME and JRI_HOME into your PATH variable
+	Usually when I get this warning, both have been added to the PATH,
+	but one has been truncated, so I need to replace it with the full value
