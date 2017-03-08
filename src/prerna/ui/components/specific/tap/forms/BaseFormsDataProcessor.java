@@ -82,13 +82,12 @@ public class BaseFormsDataProcessor {
 	//query for data Objects. Has the ability to take in any number of systems to filter on. Must have a list to filter on though
 	public static String DATA_OBJECT_QUERY = "SELECT DISTINCT ?System ?DataObject ?CRM WHERE { {?System <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System> ;} {?SystemDataObject <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/SystemDataObject> ;} {?System <http://semoss.org/ontologies/Relation/PartOf> ?SystemDataObject} {?SystemDataObject <http://semoss.org/ontologies/Relation/Contains/CRM> ?CRM} BIND(URI(CONCAT('http://semoss.org/ontologies/Concept/SystemDataObject/',STRAFTER(STR(?SystemDataObject), \"%\"))) as ?DataObject) } BINDINGS ?System {@SYSTEM@}";
 	//query for enterprise level system interfaces. Has the ability to take in any number of systems to filter on. Must have a list to filter on though
-	//public static String SYSTEM_INTERFACE_ENTERPRISE_QUERY = "SELECT DISTINCT ?System ?SystemInterface ?Provider ?Consumer ?DataObject ?Format ?Frequency ?Protocol WHERE { {?DataObject <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/DataObject> ;} {?SystemInterface <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/SystemInterface> ;} {?SystemInterface <http://semoss.org/ontologies/Relation/Payload> ?DataObject} {?Protocol <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/DProt> ;} {?Frequency <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/DFreq> ;} {?Format <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/DForm> ;} {?SystemInterface <http://semoss.org/ontologies/Relation/Has> ?Protocol} {?SystemInterface <http://semoss.org/ontologies/Relation/Has> ?Format} {?SystemInterface <http://semoss.org/ontologies/Relation/Has> ?Frequency} {?System <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System> ;} {?Provider <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System> ;} {?Consumer <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System> ;} {BIND(?System as ?Provider)} UNION{ BIND(?System as ?Consumer)} {?Provider <http://semoss.org/ontologies/Relation/Provide> ?SystemInterface} {?SystemInterface <http://semoss.org/ontologies/Relation/Consume> ?Consumer} } BINDINGS ?System {@SYSTEM@}";
 	//public static String SYSTEM_INTERFACE_ENTERPRISE_QUERY = "SELECT DISTINCT ?System ?SystemInterface ?Provider ?Consumer ?DataObject ?Format ?Frequency ?Protocol WHERE { {?DataObject <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/DataObject> ;} {?SystemInterface <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/SystemInterface> ;} {?SystemInterface <http://semoss.org/ontologies/Relation/Payload> ?DataObject} {?Protocol <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/DProt> ;} {?Frequency <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/DFreq> ;} {?Format <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/DForm> ;} {?SystemInterface <http://semoss.org/ontologies/Relation/Has> ?Protocol} {?SystemInterface <http://semoss.org/ontologies/Relation/Has> ?Format} {?SystemInterface <http://semoss.org/ontologies/Relation/Has> ?Frequency} {?System <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System> ;} {?Provider <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System> ;} {?Consumer <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System> ;} MINUS{ {?DCSite <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/DCSite> ;} {?SystemInterface <http://semoss.org/ontologies/Relation/HostedAt> ?DCSite} } {BIND(?System as ?Provider)} UNION{ BIND(?System as ?Consumer)} {?Provider <http://semoss.org/ontologies/Relation/Provide> ?SystemInterface} {?SystemInterface <http://semoss.org/ontologies/Relation/Consume> ?Consumer} } BINDINGS ?System {@SYSTEM@}";
 	//query for site specific level system interfaces. Has the ability to take in any number of systems to filter on. Must have a list to filter on though
 	//public static String SYSTEM_INTERFACE_SITE_SPECIFIC_QUERY = "SELECT DISTINCT ?System ?SystemInterface ?DCSite ?Provider ?Consumer ?DataObject ?Format ?Frequency ?Protocol WHERE { {?DataObject <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/DataObject> ;} {?DCSite <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/DCSite> ;} {?SystemInterface <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/SystemInterface> ;} {?Protocol <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/DProt> ;} {?Frequency <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/DFreq> ;} {?Format <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/DForm> ;} {?SystemInterface <http://semoss.org/ontologies/Relation/Payload> ?DataObject} {?SystemInterface <http://semoss.org/ontologies/Relation/Has> ?Protocol} {?SystemInterface <http://semoss.org/ontologies/Relation/Has> ?Format} {?SystemInterface <http://semoss.org/ontologies/Relation/Has> ?Frequency} {?SystemInterface <http://semoss.org/ontologies/Relation/HostedAt> ?DCSite} {?System <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System> ;} {?Provider <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System> ;} {?Consumer <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System> ;} {BIND(?System as ?Provider)} UNION{ BIND(?System as ?Consumer)} {?Provider <http://semoss.org/ontologies/Relation/Provide> ?SystemInterface} {?SystemInterface <http://semoss.org/ontologies/Relation/Consume> ?Consumer} } BINDINGS ?System {@SYSTEM@}";
 	
 	//queries all of system interface, including DC Site which is optional
-	public static String SYSTEM_INTERFACE_QUERY = "SELECT DISTINCT ?System ?SystemInterface ?DCSite ?Provider ?Consumer ?DataObject ?Format ?Frequency ?Protocol WHERE { {?DataObject <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/DataObject> ;} OPTIONAL {?DCSite <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/DCSite> ;} {?SystemInterface <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/SystemInterface> ;} {?Protocol <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/DProt> ;} {?Frequency <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/DFreq> ;} {?Format <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/DForm> ;} {?SystemInterface <http://semoss.org/ontologies/Relation/Payload> ?DataObject} {?SystemInterface <http://semoss.org/ontologies/Relation/Has> ?Protocol} {?SystemInterface <http://semoss.org/ontologies/Relation/Has> ?Format} {?SystemInterface <http://semoss.org/ontologies/Relation/Has> ?Frequency} {?SystemInterface <http://semoss.org/ontologies/Relation/HostedAt> ?DCSite} {?System <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System> ;} {?Provider <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System> ;} {?Consumer <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System> ;} {BIND(?System as ?Provider)} UNION {BIND(?System as ?Consumer)} {?Provider <http://semoss.org/ontologies/Relation/Provide> ?SystemInterface} {?SystemInterface <http://semoss.org/ontologies/Relation/Consume> ?Consumer} } BINDINGS ?System {@SYSTEM@}"; 
+	public static String SYSTEM_INTERFACE_QUERY = "SELECT DISTINCT ?System ?SystemInterface ?DCSite ?Provider ?Consumer ?DataObject ?Format ?Frequency ?Protocol WHERE { {?DataObject <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/DataObject> ;} {?SystemInterface <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/SystemInterface> ;} {?Protocol <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/DProt> ;} {?Frequency <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/DFreq> ;} {?Format <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/DForm> ;} {?SystemInterface <http://semoss.org/ontologies/Relation/Payload> ?DataObject} {?SystemInterface <http://semoss.org/ontologies/Relation/Has> ?Protocol} {?SystemInterface <http://semoss.org/ontologies/Relation/Has> ?Format} {?SystemInterface <http://semoss.org/ontologies/Relation/Has> ?Frequency} OPTIONAL{{?DCSite <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/DCSite> ;}{?SystemInterface <http://semoss.org/ontologies/Relation/HostedAt> ?DCSite;}} {?System <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System> ;} {?Provider <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System> ;} {?Consumer <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System> ;} {BIND(?System as ?Provider)} UNION{ BIND(?System as ?Consumer)} {?Provider <http://semoss.org/ontologies/Relation/Provide> ?SystemInterface} {?SystemInterface <http://semoss.org/ontologies/Relation/Consume> ?Consumer} } BINDINGS ?System {@SYSTEM@}"; 
 	//query for software and relevant software information. Has the ability to take in any number of systems to filter on. Must have a list to filter on though
 	public static String SOFTWARE_QUERY = "SELECT DISTINCT ?System ?SystemSoftwareVersion ?Software ?Version ?Quantity ?TotalCost WHERE { {?System <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System> ;} {?System <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/SystemSoftwareVersion> ;} {?System <http://semoss.org/ontologies/Relation/Utilizes> ?SystemSoftwareVersion} {?SystemSoftwareVersion <http://semoss.org/ontologies/Relation/Contains/Software> ?Software} OPTIONAL{?SystemSoftwareVersion <http://semoss.org/ontologies/Relation/Contains/Version> ?Version} OPTIONAL{?SystemSoftwareVersion <http://semoss.org/ontologies/Relation/Contains/Quantity> ?Quantity} OPTIONAL{?SystemSoftwareVersion <http://semoss.org/ontologies/Relation/Contains/TotalCost> ?TotalCost} } BINDINGS ?System {@SYSTEM@}";
 	//query for hardware and relevant hardware information. Has the ability to take in any number of systems to filter on. Must have a list to filter on though
@@ -410,9 +409,10 @@ public class BaseFormsDataProcessor {
 
 	/*
 	 * Method 
-	 * param query: A string that contains the query that will be pulled
-	 * param listToFilterOn: The arraylist of values to use to filter for. Each value replaces the generic bind value in the query
-	 * param engine: The database to pull the data from
+	 * @param query: A string that contains the query that will be pulled
+	 * @param listToFilterOn: The arraylist of values to use to filter for. Each value replaces the generic bind value in the query
+	 * @param engine: The database to pull the data from
+	 * @return 
 	 */
 	protected static HashMap<String, HashMap<String, HashMap<String,String>>> getDataForTables(String query, ArrayList<String> listToFilterOn, IEngine engine) {
 		//create a hashmap to return and store the data pulled for chosen systems
@@ -432,6 +432,34 @@ public class BaseFormsDataProcessor {
 		return consolidatedMapping;
 	}
 
+	// /**
+	//  * Take two maps and merge them into one map
+	//  * @param  HashMap<String,String>>> map1 map to merge with
+	//  * @param  HashMap<String,String>>> map2 other map to merge with, this one will be overwritten
+	//  * @return HashMap<String,String>>> the merged map
+	//  */
+	// public static HashMap<String, HashMap<String, HashMap<String,String>>> mergeMaps(HashMap<String, HashMap<String, HashMap<String,String>>>mapA, HashMap<String, HashMap<String, HashMap<String,String>>>mapB) {
+	// 	LOGGER.info("Map A: ");
+	// 	tableToString(mapA);
+	// 	LOGGER.info("Map B: ");
+	// 	tableToString(mapB);
+
+	// 	HashMap<String, HashMap<String, HashMap<String,String>>> mapC = mapB;
+	// 	mapC.putAll(mapA);
+	// 	for (String key: mapC.keySet()){
+	// 		if (mapB.containsKey(key)) {
+	// 			HashMap<String, HashMap<String,String>> mapB1 = mapB.get(key);
+	// 			mapC.get(key).putAll(mapB1);
+	// 		}
+	// 		if (mapA.containsKey(key)) {
+	// 			HashMap<String, HashMap<String,String>> mapA1 = mapA.get(key);
+	// 			mapC.get(key).putAll(mapA1);
+	// 		}
+	// 	}
+	// 	LOGGER.info("Map C: ");
+	// 	tableToString(mapC);
+	// 	return mapC;
+	// }
 	
 	/*
 	 * Method for printing out the contents of a map. This takes the Hashmap with a
@@ -505,7 +533,6 @@ public class BaseFormsDataProcessor {
                 }
             	
             }
-            LOGGER.info("");
 		} 
 	}	
 	
