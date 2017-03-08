@@ -26,9 +26,8 @@ App\R-Portable\bin\Rscript.exe scripts\Packages.R
 @echo App\R-Portable\bin\Rscript.exe scripts\Rserve.R > "startRserve.bat"
 
 :: Configuration completed
-@echo R-Portable has already been configured for Semoss! > "rportableconfigured.txt"
 ECHO ==================================================
-ECHO R-Portable is now configured for Semoss!
+ECHO R-Portable is now configured for SEMOSS!
 GOTO END
 
 :NOPATH
