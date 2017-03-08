@@ -6,6 +6,7 @@ install.packages("reshape2")
 install.packages("RJDBC")
 install.packages("sqldf")
 install.packages("stringr")
+install.packages("rJava")
 
 # Anomaly detection packages
 install.packages("devtools")
