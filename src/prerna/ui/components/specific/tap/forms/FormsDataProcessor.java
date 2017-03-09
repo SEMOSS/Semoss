@@ -242,15 +242,13 @@ public class FormsDataProcessor extends BaseFormsDataProcessor{
 				
 				//Update Software
 				LOGGER.info("********** Begin - updating System Software - Software Tab");
-				new FormsSWDataProcessor().updateData(wb, 
-						getDataForTables(SOFTWARE_QUERY, NONSERVICES_REVIEWED_SYSTEMS_LIST, engine));
+				new FormsSWDataProcessor().updateData(wb, getDataForTables(SOFTWARE_QUERY, NONSERVICES_REVIEWED_SYSTEMS_LIST, engine));
 				LOGGER.info("********** Done - updating System Software - Software Tab");
 				
 				//Update Hardware
 				LOGGER.info("********** Begin - updating System Hardware - Hardware Tab");
 				//tableToString(getDataForTables(HARDWARE_QUERY, NONSERVICES_REVIEWED_SYSTEMS_LIST, engine));
-				new FormsHWDataProcessor().updateData(wb, 
-						getDataForTables(HARDWARE_QUERY, NONSERVICES_REVIEWED_SYSTEMS_LIST, engine));
+				new FormsHWDataProcessor().updateData(wb, getDataForTables(HARDWARE_QUERY, NONSERVICES_REVIEWED_SYSTEMS_LIST, engine));
 				LOGGER.info("********** Done - updating System Hardware - Hardware Tab");
 				
 				Utility.writeWorkbook(wb, fileName);
@@ -306,6 +304,8 @@ public class FormsDataProcessor extends BaseFormsDataProcessor{
 				XSSFSheet mtfSheet = getSheet(wb, MTF_SHEET_NAME);
 				updateFromSite(mtfSheet, getDataForNodes(MTF_QUERY, engine, NONSERVICES_REVIEWED_SYSTEMS_LIST));
 
+				//processSysTestsiteStateNetwork(wb, getSystemInfoForSystems(engine));
+
 				Utility.writeWorkbook(wb, fileName);
 			}
 			
@@ -316,6 +316,28 @@ public class FormsDataProcessor extends BaseFormsDataProcessor{
 		LOGGER.info("********** Done - updating System Deployments");
 		
 	}
+
+//	private void processSysTestsiteStateNetwork(XSSFWorkbook wb, HashMap<String, HashMap<String,String>> systemInfo) {
+//		//for each system in NONSERVICES_REVIEWED_SYSTEMS_LIST
+//		//	get the sys, ts, state, network, method from the hashmap
+//		//		call updateSysTSStateNetwork for .COMMil
+//		//		call updateSysTSStateNetwork for .
+//	}
+//
+//	private void updateSysTestsiteStateNetwork(wb, sys, ts, net as strings) {
+//		//string state = "AsIs"
+//		//get first sheet from wb
+//		//deletesystestsitestatenet(asdfasd f)
+//		//add our value to the bottom
+//		//
+//		//get second sheet from wb
+//		//deletesystestsitestatenet(asdfasd f)
+//		//add our value to the bottom
+//	}
+//
+//	private void deletesystestsitestatenet(sheet, col, int place1, String val1, int place2, String val2) {
+//
+//	}
 	
 	private void processSysDataFile(IEngine engine, File sourceFolder){
 		LOGGER.info("********** Begin - updating Data Objects");

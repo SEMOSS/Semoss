@@ -125,7 +125,7 @@ public class BaseFormsICDDataProcessor extends BaseFormsDataProcessor {
 		//LOGGER.info("********* lastRow: " + lastRow);
 		
 		for (String key : map.keySet()) {
-			//LOGGER.info("********* key: " + key);
+			LOGGER.info("********* key: " + key);
 			int count = 0;
 			LOGGER.info("********* Removing interfaces for .... : " + key);
 			for (int rIndex = 1; rIndex <= lastRow; rIndex++) {
@@ -155,7 +155,7 @@ public class BaseFormsICDDataProcessor extends BaseFormsDataProcessor {
 			
 		    HashMap<String, HashMap<String,String>> valueMap1 = map.get(key);
 		    for (String key1 : valueMap1.keySet()) {
-		    	//LOGGER.info("********* key1: " + key1);
+		    	LOGGER.info("********* key1: " + key1);
 		    	XSSFRow row = lSheet.createRow(count++);
 		    	XSSFCell cell0 = row.createCell(0);
 				cell0.setCellValue(count-1);
@@ -165,18 +165,20 @@ public class BaseFormsICDDataProcessor extends BaseFormsDataProcessor {
 				//setting interface name in col 5
 				//XSSFCell cell = row.createCell(INTERFACE_NAME_COL_NUM);
 				//cell.setCellValue(key1);
-				LOGGER.info("Printing ICD Map");
-				mapOfMapStrStrToString(valueMap1);
-				if (valueMap2.containsKey("DCSite")) {
+				//LOGGER.info("Printing ICD Map");
+				//mapofStrToString(valueMap1);
+				if (valueMap2.get("DCSite") == "" || valueMap2.get("DCSite") == null) {
+					//there is no DC site
 					LOGGER.info("DCSite == null, key1: " + key1.toString());
 					addInterfaceName(row, key1);
 				} else {
+					//there is a DC site
 					LOGGER.info("DCSite != null, key1: " + key1.toString());
 					addSiteSpecificInterfaceName(row, key1);
 				}
 				
 			    for (String key2 : valueMap2.keySet()) {
-			    	//LOGGER.info("********* key2: " + key2);
+			    	LOGGER.info("********* key2: " + key2);
 		    		String value = valueMap2.get(key2);
 		    		if(key2.equalsIgnoreCase("DataObject")){
 		    			int n = getDataObjectColNum(value);
@@ -219,11 +221,16 @@ public class BaseFormsICDDataProcessor extends BaseFormsDataProcessor {
 	}
 	
 	public void addInterfaceName(XSSFRow row, String key1){
+		//TODO: Remove potential numbering on end
+		if(key1.contains("%")){
+			key1 = key1.substring(0, key1.lastIndexOf("%"));
+		}
 		XSSFCell cell = row.createCell(INTERFACE_NAME_COL_NUM);
 		cell.setCellValue(key1);
 	}
 
 	public void addSiteSpecificInterfaceName(XSSFRow row, String key1){
+		//TODO: Remove potential numbering on end
 		//LOGGER.info("*********** key1: " + key1);
 		String[] strs = key1.split("%");
 		//LOGGER.info("*********** strs 1: " + strs[0]);
