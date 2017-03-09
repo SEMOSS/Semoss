@@ -614,16 +614,26 @@ public class BaseFormsDataProcessor {
 					tempBigMap.put(secondKey, tempSmallMap);
 					finalMap.put(firstKey, tempBigMap);
 					//check if the secondKey is already in the map, if not then add it in
-				} else if (!finalMap.get(firstKey).containsKey(secondKey)) {
-					finalMap.get(firstKey).put(secondKey, tempSmallMap);
 				} else {
-					LOGGER.info("You are repeating a value that should be unique. Occuring in:" + firstKey + " ,"+ secondKey);
+					int i = 1;
+					String newSecondKey = secondKey;
+					while (finalMap.get(firstKey).containsKey(newSecondKey)) {
+						LOGGER.info("Hit duplicate value for " + newSecondKey);
+						newSecondKey = secondKey + "%" + i;
+						i++;
+					}
+					secondKey = newSecondKey;
+					//LOGGER.info("Adding <" + firstKey + ", <" + secondKey + ", < , >>> to FinalMap");
+					finalMap.get(firstKey).put(secondKey, tempSmallMap);
+					//LOGGER.info("You are repeating a value that should be unique. Occuring in:" + firstKey + " ,"+ secondKey);
 				}
 				//here is the change not in the QueryProcessor.java file
 				//loops through the column headers from the query and stores everything for the row (except the key) in an arraylist
 				for(int i = 2; i < values.length; i++) {
-					//for each column in the specific MAIN key, add a new key value pair. The new key is the column header and the value is the value for the column
-					finalMap.get(firstKey).get(secondKey).put(values[i], sjss.getVar(values[i]).toString());
+					if (sjss.getVar(values[i]).toString() != "") {
+						//for each column in the specific MAIN key, add a new key value pair. The new key is the column header and the value is the value for the column
+						finalMap.get(firstKey).get(secondKey).put(values[i], sjss.getVar(values[i]).toString());
+					}
 				}
 				
 			}
