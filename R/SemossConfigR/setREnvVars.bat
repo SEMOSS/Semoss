@@ -14,20 +14,20 @@ IF NOT %parent%==R-Portable GOTO NOPATH
 
 :: R_HOME
 :: Must set locally first so that references within this script are up to date
-SET R_HOME=%CD%/App/R-Portable
-ECHO Setting R_HOME to %R_HOME%
+SET R_HOME_LOCAL=%CD%/App/R-Portable
+ECHO Setting R_HOME to %R_HOME_LOCAL%
 
 :: Include quotes in case the path contains spaces
 :: SETX delimits using spaces
-SETX R_HOME "%R_HOME%"
+SETX R_HOME "%R_HOME_LOCAL%"
 ECHO.
 ECHO ==================================================
 ECHO.
 
 :: R_LIBS
-SET R_LIBS=%R_HOME%/library
-ECHO Setting R_LIBS to %R_LIBS%
-SETX R_LIBS "%R_LIBS%"
+SET R_LIBS_LOCAL=%R_HOME_LOCAL%/library
+ECHO Setting R_LIBS to %R_LIBS_LOCAL%
+SETX R_LIBS "%R_LIBS_LOCAL%"
 ECHO.
 ECHO ==================================================
 ECHO.
@@ -37,17 +37,17 @@ IF "%PROCESSOR_ARCHITECTURE%" == "AMD64" SET FOLDER=x64
 IF "%PROCESSOR_ARCHITECTURE%" == "x86" SET FOLDER=i386
 
 :: R_DLL_HOME
-SET R_DLL_HOME=%R_HOME%/bin/%FOLDER%
-ECHO Setting R_DLL_HOME to %R_DLL_HOME%
-SETX R_DLL_HOME "%R_DLL_HOME%"
+SET R_DLL_HOME_LOCAL=%R_HOME_LOCAL%/bin/%FOLDER%
+ECHO Setting R_DLL_HOME to %R_DLL_HOME_LOCAL%
+SETX R_DLL_HOME "%R_DLL_HOME_LOCAL%"
 ECHO.
 ECHO ==================================================
 ECHO.
 
 :: JRI_HOME
-SET JRI_HOME=%R_LIBS%/rJava/jri/%FOLDER%
-ECHO Setting JRI_HOME to %JRI_HOME%
-SETX JRI_HOME "%JRI_HOME%"
+SET JRI_HOME_LOCAL=%R_LIBS_LOCAL%/rJava/jri/%FOLDER%
+ECHO Setting JRI_HOME to %JRI_HOME_LOCAL%
+SETX JRI_HOME "%JRI_HOME_LOCAL%"
 ECHO.
 ECHO ==================================================
 ECHO.
@@ -56,22 +56,22 @@ ECHO.
 
 :: R_DLL_HOME to PATH
 :: See http://superuser.com/questions/601015/how-to-update-the-path-user-environment-variable-from-command-line
-ECHO Adding %R_DLL_HOME% to PATH
+ECHO Adding %R_DLL_HOME_LOCAL% to PATH
 SET ok=0
-FOR /f "skip=2 tokens=3*" %%a IN ('reg query HKCU\Environment /v PATH') DO IF [%%b]==[] ( SETX PATH "%%~a;%R_DLL_HOME%" && SET ok=1 ) else ( SETX PATH "%%~a %%~b;%R_DLL_HOME%" && set ok=1 )
-IF "%ok%" == "0" SETX PATH "%R_DLL_HOME%"
+FOR /f "skip=2 tokens=3*" %%a IN ('reg query HKCU\Environment /v PATH') DO IF [%%b]==[] ( SETX PATH "%%~a;%R_DLL_HOME_LOCAL%" && SET ok=1 ) else ( SETX PATH "%%~a %%~b;%R_DLL_HOME_LOCAL%" && set ok=1 )
+IF "%ok%" == "0" SETX PATH "%R_DLL_HOME_LOCAL%"
 ECHO.
 ECHO ==================================================
 ECHO.
 
 :: JRI_HOME to PATH
-ECHO Adding %JRI_HOME% to PATH
+ECHO Adding %JRI_HOME_LOCAL% to PATH
 SET ok=0
-FOR /f "skip=2 tokens=3*" %%a IN ('reg query HKCU\Environment /v PATH') DO IF [%%b]==[] ( SETX PATH "%%~a;%JRI_HOME%" && SET ok=1 ) else ( SETX PATH "%%~a %%~b;%JRI_HOME%" && set ok=1 )
-IF "%ok%" == "0" SETX PATH "%JRI_HOME%"
+FOR /f "skip=2 tokens=3*" %%a IN ('reg query HKCU\Environment /v PATH') DO IF [%%b]==[] ( SETX PATH "%%~a;%JRI_HOME_LOCAL%" && SET ok=1 ) else ( SETX PATH "%%~a %%~b;%JRI_HOME_LOCAL%" && set ok=1 )
+IF "%ok%" == "0" SETX PATH "%JRI_HOME_LOCAL%"
 ECHO.
 ECHO If you recieved the following warning: WARNING: The data being saved is truncated to 1024 characters
-ECHO (after adding %JRI_HOME% to PATH),
+ECHO (after adding %JRI_HOME_LOCAL% to PATH),
 ECHO then you must edit the PATH to include the directories of R_DLL_HOME and JRI_HOME manually.
 ECHO.
 ECHO This occurs when appending to the PATH causes the PATH to exceed 1024 characters. The PATH can 
