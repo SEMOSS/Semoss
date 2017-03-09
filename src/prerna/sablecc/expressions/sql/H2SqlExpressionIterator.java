@@ -101,9 +101,9 @@ public class H2SqlExpressionIterator implements Iterator<Object[]> {
 	}
 	
 	private void getHeaderTypes() {
-		if(rs == null) {
-			runExpression();
-		}
+//		if(rs == null) {
+//			runExpression();
+//		}
 		this.headerTypes = new HashMap<String, String>();
 		try {
 			ResultSetMetaData rsmd = this.rs.getMetaData();
