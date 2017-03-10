@@ -138,4 +138,8 @@ public class PKQLEnum {
 	public static final String SOLR_FACET = "SOLR_FACET";
 	public static final String SOLR_GROUP_BY = "SOLR_GROUP_BY";
 
+	//Errors
+	public static final String CHILD_ERROR = "CHILD_ERROR";
+	public static final String CHILD_ERROR_MESSAGE = "CHILD_ERROR_MESSAGE";
+	
 }

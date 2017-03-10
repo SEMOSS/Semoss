@@ -20,24 +20,35 @@ public class RImportDataReactor extends ImportDataReactor {
 
 	@Override
 	public Iterator process() {
+		if(myStore.get(PKQLEnum.CHILD_ERROR) != null && (boolean) myStore.get(PKQLEnum.CHILD_ERROR)) {
+			myStore.put("STATUS", STATUS.ERROR);
+			String nodeStr = (String)myStore.get(PKQLEnum.EXPR_TERM);
+			if(myStore.get(PKQLEnum.CHILD_ERROR_MESSAGE) != null) {
+				myStore.put(nodeStr, myStore.get(PKQLEnum.CHILD_ERROR_MESSAGE));
+			}
+			return null;
+		}
+		
 		super.process();
 		
 		RDataTable frame = (RDataTable) myStore.get("G");
-		
 		if(dataIterator == null) {
-			Map<String, String> dataTypes = new HashMap<>();
-
-			this.newHeaders = ((RFileWrapper) myStore.get(PKQLEnum.API)).getHeaders();
-			String[] types = ((RFileWrapper) myStore.get(PKQLEnum.API)).getTypes();
-			for(int i = 0; i < types.length; i++) {
-				dataTypes.put(newHeaders[i], types[i]);
+			if(myStore.get(PKQLEnum.API) != null) {
+				RFileWrapper rFileWrap = (RFileWrapper) myStore.get(PKQLEnum.API);
+				Map<String, String> dataTypes = new HashMap<>();
+	
+				this.newHeaders = rFileWrap.getHeaders();
+				String[] types = rFileWrap.getTypes();
+				for(int i = 0; i < types.length; i++) {
+					dataTypes.put(newHeaders[i], types[i]);
+				}
+				
+				this.edgeHash = TinkerMetaHelper.createPrimKeyEdgeHash(this.newHeaders);
+				frame.mergeEdgeHash(edgeHash, dataTypes);
+	
+				// this only happens when we have a csv file
+				frame.createTableViaCsvFile(rFileWrap);
 			}
-			
-			this.edgeHash = TinkerMetaHelper.createPrimKeyEdgeHash(this.newHeaders);
-			frame.mergeEdgeHash(edgeHash, dataTypes);
-
-			// this only happens when we have a csv file
-			frame.createTableViaCsvFile( (RFileWrapper) myStore.get(PKQLEnum.API));
 		} else if(dataIterator instanceof Iterator) {
 			frame.createTableViaIterator((Iterator<IHeadersDataRow>) dataIterator);
 			inputResponseString((Iterator) dataIterator, newHeaders);
