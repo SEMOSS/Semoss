@@ -6,7 +6,7 @@ import prerna.ds.h2.H2Frame;
 import prerna.engine.api.IHeadersDataRow;
 import prerna.sablecc.meta.IPkqlMetadata;
 
-public class H2FrameRawQueryApiReactor extends RawQueryApiReactor {
+public class H2RawQueryApiReactor extends RawQueryApiReactor {
 
 	public static final String QUERY_KEY = "QUERY";
 

@@ -10,7 +10,7 @@ import prerna.engine.impl.rdf.AbstractApiReactor;
 import prerna.sablecc.meta.IPkqlMetadata;
 import prerna.util.Constants;
 
-public class H2FrameApiReactor extends AbstractApiReactor {
+public class H2ApiReactor extends AbstractApiReactor {
 
 	public Iterator process() {
 		super.process();

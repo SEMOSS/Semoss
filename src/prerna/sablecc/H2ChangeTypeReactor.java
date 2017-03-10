@@ -7,7 +7,7 @@ import prerna.ds.h2.H2Frame;
 import prerna.sablecc.PKQLRunner.STATUS;
 import prerna.util.Utility;
 
-public class H2DataframeChangeTypeReactor extends DataframeChangeTypeReactor {
+public class H2ChangeTypeReactor extends DataframeChangeTypeReactor {
 
 	// abstract layer handles stuff
 	// need to make sure i define 3 things that sit in the abstract
