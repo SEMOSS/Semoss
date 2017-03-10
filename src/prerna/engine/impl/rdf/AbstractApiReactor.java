@@ -193,15 +193,11 @@ public abstract class AbstractApiReactor extends AbstractReactor{
 	
 	public void addTableValuesAsFilter(ITableDataFrame frame, Vector <Hashtable> filters, String fromColumn, String toColumn) {
 		for(Hashtable filter : filters) {
-			try {
-				if(filter.get(PKQLEnum.FROM_COL).equals(toColumn) && filter.get(PKQLEnum.COMPARATOR).equals("=")) {
-					return; //we don't want to add filters if they already exist in the query struct
-				}
-			} catch(Exception e) {
-				//just in case for now
+			if(filter.get(PKQLEnum.FROM_COL).equals(toColumn) && filter.get(PKQLEnum.COMPARATOR).equals("=")) {
+				return; //we don't want to add filters if they already exist in the query struct
 			}
 		}
-		
+
 		//figure out which is the new column and which already exists in the table
 		Iterator<Object> rowIt = frame.uniqueValueIterator(fromColumn, false);
 		List<Object> filterInstances = new Vector<Object>();
@@ -213,7 +209,13 @@ public abstract class AbstractApiReactor extends AbstractReactor{
 				filterInstances.add(val);
 			}
 		}
-		
+
+		if(filterInstances.size() == 0) {
+			// well, you want to join on something that doesn't even exist on the frame
+			// no point in trying to execute this...
+			throw new IllegalArgumentException("Cannot perform this operation since no values exist for column join variable.");
+		}
+
 		Hashtable joinfilter = new Hashtable();
 		joinfilter.put(PKQLEnum.FROM_COL, toColumn);
 		joinfilter.put("TO_DATA", filterInstances);
