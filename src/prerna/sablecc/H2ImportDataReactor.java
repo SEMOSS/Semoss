@@ -12,6 +12,14 @@ public class H2ImportDataReactor extends MetaH2ImportDataReactor {
 	
 	@Override
 	public Iterator process() {
+		if(myStore.get(PKQLEnum.CHILD_ERROR) != null && (boolean) myStore.get(PKQLEnum.CHILD_ERROR)) {
+			myStore.put("STATUS", STATUS.ERROR);
+			String nodeStr = (String)myStore.get(PKQLEnum.EXPR_TERM);
+			if(myStore.get(PKQLEnum.CHILD_ERROR_MESSAGE) != null) {
+				myStore.put(nodeStr, myStore.get(PKQLEnum.CHILD_ERROR_MESSAGE));
+			}
+			return null;
+		}
 		// use the import data reactor to go through the logic to get the necessary data 
 		super.process();
 		

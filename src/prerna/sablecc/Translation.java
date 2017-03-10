@@ -12,6 +12,9 @@ import java.util.Map;
 import java.util.Set;
 import java.util.Vector;
 
+import org.apache.log4j.LogManager;
+import org.apache.log4j.Logger;
+
 import com.google.gson.Gson;
 
 import prerna.algorithm.api.ITableDataFrame;
@@ -39,6 +42,9 @@ import prerna.util.Constants;
 import prerna.util.Utility;
 
 public class Translation extends DepthFirstAdapter {
+	
+	private static final Logger LOGGER = LogManager.getLogger(Translation.class.getName());
+
 	// this is the third version of this shit I am building
 	// I need some way of having logical points for me to know when to start
 	// another reactor
@@ -381,9 +387,21 @@ public class Translation extends DepthFirstAdapter {
 		reactorStack.remove(thisReactorHash);
 		IScriptReactor thisReactor = (IScriptReactor) thisReactorHash.get(myName);
 		// this is still one level up
-		thisReactor.process();
-		Object value = thisReactor.getValue(input);
-		System.out.println("Value is .. " + value);
+		boolean hasError = false;
+		String errorMessage = null;
+		Object value = null;
+		try {
+			thisReactor.process();
+			value = thisReactor.getValue(input);
+			System.out.println("Value is .. " + value);
+		} catch(Exception e) {
+			e.printStackTrace();
+			LOGGER.info("There was an error with deinit for " + myName);
+			hasError = true;
+			if(e.getMessage() != null) {
+				errorMessage = e.getMessage();
+			}
+		}
 
 		if (reactorStack.size() > 0) {
 			reactorHash = reactorStack.lastElement();
@@ -393,10 +411,21 @@ public class Translation extends DepthFirstAdapter {
 			// if the parent is not null
 			if (parent != null && reactorHash.containsKey(parent)) {
 				curReactor = (IScriptReactor) reactorHash.get(parent);
-				if (put) {
-					curReactor.put(output, value);
+				if(!hasError) {
+					if (put) {
+						curReactor.put(output, value);
+					} else {
+						curReactor.set(output, value);
+					}
 				} else {
-					curReactor.set(output, value);
+					// this is for cases where we dont want to completely break execution
+					// which is the case for parameter insights where there are many data.imports
+					// but not all of them will return for every user input
+					// but we need the current parent to not break
+					curReactor.put(PKQLEnum.CHILD_ERROR, true);
+					if(errorMessage != null) {
+						curReactor.put(PKQLEnum.CHILD_ERROR_MESSAGE, errorMessage);
+					}
 				}
 			}
 		} else if (reactorHash.size() > 0) { // if there is no parent reactor
@@ -404,10 +433,18 @@ public class Translation extends DepthFirstAdapter {
 			// String self = (String) thisReactorHash.get("SELF");
 			// if(self != null && reactorHash.containsKey(self)) {
 			// curReactor = (IScriptReactor)reactorHash.get(self);
-			if (put) {
-				curReactor.put(output, value);
+			
+			if(!hasError) {
+				if (put) {
+					curReactor.put(output, value);
+				} else {
+					curReactor.set(output, value);
+				}
 			} else {
-				curReactor.set(output, value);
+				curReactor.put(PKQLEnum.CHILD_ERROR, true);
+				if(errorMessage != null) {
+					curReactor.put(PKQLEnum.CHILD_ERROR_MESSAGE, errorMessage);
+				}
 			}
 		}
 
@@ -619,14 +656,22 @@ public class Translation extends DepthFirstAdapter {
 	public void outAApiBlock(AApiBlock node) {
 		String nodeStr = node.toString().trim();
 		IScriptReactor thisReactor = curReactor;
-		Hashtable<String, Object> thisReactorHash = deinitReactor(PKQLEnum.API, nodeStr, PKQLEnum.API); // I need to make this into a string
-		if (curReactor != null && node.parent() != null
-				&& (node.parent() instanceof AApiImportBlock || node.parent() instanceof AApiTerm)
-				&& !node.getEngineName().toString().equalsIgnoreCase("ImportIO")) {
-			String[] values2Sync = curReactor.getValues2Sync(PKQLEnum.API);
-			if (values2Sync != null) {
-				synchronizeValues(PKQLEnum.API, values2Sync, thisReactor);
+		try {
+			Hashtable<String, Object> thisReactorHash = deinitReactor(PKQLEnum.API, nodeStr, PKQLEnum.API); // I need to make this into a string
+			if (curReactor != null && node.parent() != null
+					&& (node.parent() instanceof AApiImportBlock || node.parent() instanceof AApiTerm)
+					&& !node.getEngineName().toString().equalsIgnoreCase("ImportIO")) {
+				String[] values2Sync = curReactor.getValues2Sync(PKQLEnum.API);
+				if (values2Sync != null) {
+					synchronizeValues(PKQLEnum.API, values2Sync, thisReactor);
+				}
 			}
+		} catch(IllegalArgumentException ex) {
+			ex.printStackTrace();
+			// well, something messed up with the query
+			// however, for saved insights, we probably want to return this error at this step
+			// but still try to do the other steps
+			
 		}
 
 		runner.setResponse(thisReactor.getValue("RESPONSE"));

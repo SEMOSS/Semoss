@@ -14,6 +14,14 @@ public class TinkerImportDataReactor extends ImportDataReactor{
 
 	@Override
 	public Iterator process() {
+		if(myStore.get(PKQLEnum.CHILD_ERROR) != null && (boolean) myStore.get(PKQLEnum.CHILD_ERROR)) {
+			myStore.put("STATUS", STATUS.ERROR);
+			String nodeStr = (String)myStore.get(PKQLEnum.EXPR_TERM);
+			if(myStore.get(PKQLEnum.CHILD_ERROR_MESSAGE) != null) {
+				myStore.put(nodeStr, myStore.get(PKQLEnum.CHILD_ERROR_MESSAGE));
+			}
+			return null;
+		}
 		// get the frame
 		TinkerFrame frame = (TinkerFrame) myStore.get("G");
 
