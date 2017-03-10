@@ -62,10 +62,10 @@ public class BaseFormsICDDataProcessor extends BaseFormsDataProcessor {
 	public static int CONSUMER_COL_NUM = 3;
 	public static int INTERFACE_NAME_COL_NUM = 5;
 	public static int SITE_COL_NUM = 6;
+	public static int TRIGGER_COL_NUM = 7;
 	public static int PROTOCOL_COL_NUM = 9;
 	public static int FREQUENCY_COL_NUM = 10;
 	public static int FORMAT_COL_NUM = 11;
-	public static int TRIGGER_COL_NUM = 12;
 	public static int ICD_DATA_OBJECT_STARTING_COL_NUM = 63;
 	public static int SHEET_LAST_COLUMN = 62;
 	public static int ICD_FREQUENCY_STARTING_COL_NUM = 19;
@@ -221,16 +221,16 @@ public class BaseFormsICDDataProcessor extends BaseFormsDataProcessor {
 	}
 	
 	public void addInterfaceName(XSSFRow row, String key1){
-		//TODO: Remove potential numbering on end
-		if(key1.contains("%")){
-			key1 = key1.substring(0, key1.lastIndexOf("%"));
-		}
+		//Removes potential numbering on end
+		String[] strs = key1.split("%");
+		key1 = strs[0];
+
 		XSSFCell cell = row.createCell(INTERFACE_NAME_COL_NUM);
 		cell.setCellValue(key1);
 	}
 
 	public void addSiteSpecificInterfaceName(XSSFRow row, String key1){
-		//TODO: Remove potential numbering on end
+		//This correctly ignores the potential numbering on end
 		//LOGGER.info("*********** key1: " + key1);
 		String[] strs = key1.split("%");
 		//LOGGER.info("*********** strs 1: " + strs[0]);
@@ -257,6 +257,8 @@ public class BaseFormsICDDataProcessor extends BaseFormsDataProcessor {
 	    	  return PROVIDER_COL_NUM;
 	      case "DCSite":
 	      	  return SITE_COL_NUM;
+	      case "Trigger":
+	      	  return TRIGGER_COL_NUM;
 	      default:
 	          return -1;
 	    }
