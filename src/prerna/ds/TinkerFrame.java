@@ -76,6 +76,7 @@ public class TinkerFrame extends AbstractTableDataFrame {
 	public static final String PRIM_KEY = "_GEN_PRIM_KEY";
 	public static final String EMPTY = "_";
 	public static final String EDGE_LABEL_DELIMETER = "+++";
+	public static final String EDGE_LABEL_DELIMETER_REGEX_SPLIT = "\\+\\+\\+";
 	public static final String PRIM_KEY_DELIMETER = ":::";
 
 	public static final String TINKER_ID = "_T_ID";
@@ -2741,7 +2742,7 @@ public class TinkerFrame extends AbstractTableDataFrame {
 		reactorNames.put(PKQLEnum.JAVA_OP, "prerna.sablecc.JavaReactorWrapper");
 		reactorNames.put(PKQLEnum.DATA_FRAME_DUPLICATES, "prerna.sablecc.TinkerDuplicatesReactor");
 		reactorNames.put(PKQLEnum.COL_FILTER_MODEL, "prerna.sablecc.TinkerColFilterModelReactor");
-
+		reactorNames.put(PKQLEnum.DATA_FRAME_CHANGE_TYPE, "prerna.sablecc.TinkerChangeTypeReactor");
 		reactorNames.put(PKQLEnum.QUERY_API, "prerna.sablecc.QueryApiReactor");
 		reactorNames.put(PKQLEnum.CSV_API, "prerna.sablecc.CsvApiReactor");
 		reactorNames.put(PKQLEnum.WEB_API, "prerna.sablecc.WebApiReactor");
@@ -2758,5 +2759,54 @@ public class TinkerFrame extends AbstractTableDataFrame {
 	@Override
 	public String getDataMakerName() {
 		return "TinkerFrame";
+	}
+
+	public void changeDataType(String columnName, String newType) {
+		String typeName = getValueForUniqueName(columnName);
+		GraphTraversal<Vertex, Vertex> traversal = this.g.traversal().V().has(TinkerFrame.TINKER_TYPE, typeName);
+		if(newType.equalsIgnoreCase("NUMBER")) {
+			// convert the string to a number
+			// if it cannot be cast to a number, make it into an empty node
+			while(traversal.hasNext()) {
+				Vertex v = traversal.next();
+				String currName = v.value(TinkerFrame.TINKER_NAME);
+				try {
+					double numName = Double.parseDouble(currName);
+					v.property(TinkerFrame.TINKER_NAME, numName);
+				} catch(NumberFormatException ex) {
+					// get the empty vertex, and do all the edge connections
+					Vertex emptyVertex = upsertVertex(columnName, TinkerFrame.EMPTY);
+					// first do the out connections
+					Iterator<Edge> outEdges = v.edges(Direction.OUT);
+					while(outEdges.hasNext()) {
+						Edge e = outEdges.next();
+						Vertex inVertex = e.inVertex();
+						String[] label = e.label().split(EDGE_LABEL_DELIMETER_REGEX_SPLIT);
+						upsertEdge(emptyVertex, label[0], inVertex, label[1]);
+					}
+					// now do the in connections
+					Iterator<Edge> inEdges = v.edges(Direction.IN);
+					while(inEdges.hasNext()) {
+						Edge e = inEdges.next();
+						Vertex outVertex = e.inVertex();
+						String[] label = e.label().split(EDGE_LABEL_DELIMETER_REGEX_SPLIT);
+						upsertEdge(outVertex, label[0], emptyVertex, label[1]);
+					}
+					// and now drop the vertex
+					// that was an invalid type
+					v.remove();
+				}
+			}
+		} else if(newType.equalsIgnoreCase("STRING")) {
+			// if converting to a string
+			// just loop through and get the current value and make it into a string type
+			while(traversal.hasNext()) {
+				Vertex v = traversal.next();
+				v.property(TinkerFrame.TINKER_NAME, v.value(TinkerFrame.TINKER_NAME) + "");
+			}
+		} else if(newType.equalsIgnoreCase("DATE")) {
+			LOGGER.info("TINKER FRAME DOES NOT SUPPORT DATE TYPES!!!");
+			throw new IllegalArgumentException("Graphs do not support date as a data type!");
+		}
 	}
 }
