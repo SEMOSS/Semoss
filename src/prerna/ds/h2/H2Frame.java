@@ -1462,7 +1462,7 @@ public class H2Frame extends AbstractTableDataFrame {
 		reactorNames.put(PKQLEnum.COL_SPLIT, "prerna.sablecc.H2ColSplitReactor");
 		reactorNames.put(PKQLEnum.IMPORT_DATA, "prerna.sablecc.H2ImportDataReactor");
 		reactorNames.put(PKQLEnum.DATA_FRAME_DUPLICATES, "prerna.sablecc.H2DuplicatesReactor");
-		reactorNames.put(PKQLEnum.DATA_FRAME_CHANGE_TYPE, "prerna.sablecc.H2DataframeChangeTypeReactor");
+		reactorNames.put(PKQLEnum.DATA_FRAME_CHANGE_TYPE, "prerna.sablecc.H2ChangeTypeReactor");
 		reactorNames.put(PKQLEnum.VIZ, "prerna.sablecc.H2VizReactor");
 //		reactorNames.put(PKQLEnum.VIZ, "prerna.sablecc.VizReactor");
 
@@ -1506,8 +1506,8 @@ public class H2Frame extends AbstractTableDataFrame {
 		reactorNames.put(PKQLEnum.CSV_API, "prerna.sablecc.CsvApiReactor");
 		reactorNames.put(PKQLEnum.WEB_API, "prerna.sablecc.WebApiReactor");
 		reactorNames.put(PKQLEnum.R_API, "prerna.sablecc.RApiReactor");
-		reactorNames.put(PKQLEnum.FRAME_API, "prerna.sablecc.H2FrameApiReactor");
-		reactorNames.put(PKQLEnum.FRAME_RAW_API, "prerna.sablecc.H2FrameRawQueryApiReactor");
+		reactorNames.put(PKQLEnum.FRAME_API, "prerna.sablecc.H2ApiReactor");
+		reactorNames.put(PKQLEnum.FRAME_RAW_API, "prerna.sablecc.H2RawQueryApiReactor");
 
 		reactorNames.put(PKQLEnum.CLEAR_DATA, "prerna.sablecc.H2ClearDataReactor");
 		
