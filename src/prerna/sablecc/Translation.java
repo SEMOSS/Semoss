@@ -120,6 +120,8 @@ public class Translation extends DepthFirstAdapter {
 		defaultReactors.put(PKQLEnum.CLEAR_CACHE, "prerna.sablecc.CacheReactor");
 		// this is used to set whether to use cache
 		defaultReactors.put(PKQLEnum.USE_CACHE, "prerna.sablecc.SetCacheReactor");
+		// for where statements
+		defaultReactors.put(PKQLEnum.WHERE, "prerna.sablecc.ColWhereReactor");
 		return defaultReactors;
 	}
 
