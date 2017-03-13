@@ -521,13 +521,13 @@ public class ServicesAggregationProcessor extends AggregationHelper {
 					returnTriple = processMinMaxDate(sub, prop, value, latest);
 					aggregatedProp = true;
 				}
-				else if(prop.equals(semossPropertyBaseURI + "Availability-Actual"))
+				else if(prop.equals(semossPropertyBaseURI + "AvailabilityActual"))
 				{
 					boolean min = false;
 					returnTriple = processMaxMinDouble(sub, prop, value, min);
 					aggregatedProp = true;
 				}
-				else if(prop.equals(semossPropertyBaseURI + "Availability-Required"))
+				else if(prop.equals(semossPropertyBaseURI + "AvailabilityRequired"))
 				{
 					boolean max = true;
 					returnTriple = processMaxMinDouble(sub, prop, value, max);
@@ -589,6 +589,69 @@ public class ServicesAggregationProcessor extends AggregationHelper {
 					returnTriple = processSystemOfSystems(sub, prop, value);
 					aggregatedProp = true;
 				}
+				
+				//New properties 
+				else if(prop.equals(semossPropertyBaseURI + "IsMobile"))
+				{
+					returnTriple = processConcatString(sub, prop, value, user);
+					aggregatedProp = true;
+				}
+				else if(prop.equals(semossPropertyBaseURI + "SystemBased"))
+				{
+					returnTriple = processConcatString(sub, prop, value, user);
+					aggregatedProp = true;
+				}
+				
+				else if(prop.equals(semossPropertyBaseURI + "DeploymentType"))
+				{
+					returnTriple = processConcatString(sub, prop, value, user);
+					aggregatedProp = true;
+				}
+				
+				else if(prop.equals(semossPropertyBaseURI + "AsIsComLocation"))
+				{
+					returnTriple = processConcatString(sub, prop, value, user);
+					aggregatedProp = true;
+				}
+				
+				else if(prop.equals(semossPropertyBaseURI + "AsIsMilLocation"))
+				{
+					returnTriple = processConcatString(sub, prop, value, user);
+					aggregatedProp = true;
+				}
+				
+				else if(prop.equals(semossPropertyBaseURI + "AsIsComType"))
+				{
+					returnTriple = processConcatString(sub, prop, value, user);
+					aggregatedProp = true;
+				}
+				else if(prop.equals(semossPropertyBaseURI + "AsIsMilType"))
+				{
+					returnTriple = processConcatString(sub, prop, value, user);
+					aggregatedProp = true;
+				}
+				else if(prop.equals(semossPropertyBaseURI + "COTS_Product"))
+				{
+					returnTriple = processConcatString(sub, prop, value, user);
+					aggregatedProp = true;
+				}
+				else if(prop.equals(semossPropertyBaseURI + "COTS_Product_Name"))
+				{
+					returnTriple = processConcatString(sub, prop, value, user);
+					aggregatedProp = true;
+				}
+				else if(prop.equals(semossPropertyBaseURI + "COTS_Vendor_Name"))
+				{
+					returnTriple = processConcatString(sub, prop, value, user);
+					aggregatedProp = true;
+				}
+				else if(prop.equals(semossPropertyBaseURI + "COTS_DoD_Modules"))
+				{
+					returnTriple = processConcatString(sub, prop, value, user);
+					aggregatedProp = true;
+				}
+				
+				
 
 				// if error occurs
 				if(Arrays.equals(returnTriple, new String[]{""}))
