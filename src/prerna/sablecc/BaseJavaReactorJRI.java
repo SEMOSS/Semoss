@@ -823,7 +823,7 @@ public class BaseJavaReactorJRI extends AbstractRJavaReactor {
 		}
 	}
 
-	public void pivot(String frameName, boolean replace,String columnToPivot, String cols)
+	public void pivot(String frameName, boolean replace, String columnToPivot, String cols)
 	{
 		// makes the columns and converts them into rows
 		
@@ -844,7 +844,7 @@ public class BaseJavaReactorJRI extends AbstractRJavaReactor {
 			keepString = ", formula = ";
 			for(int colIndex = 0;colIndex < columnsToKeep.length;colIndex++)
 			{
-				keepString = keepString + "\"" + columnsToKeep[colIndex] + "\"";
+				keepString = keepString + columnsToKeep[colIndex];
 				if(colIndex + 1 < columnsToKeep.length)
 					keepString = keepString + " + ";
 			}
@@ -853,9 +853,11 @@ public class BaseJavaReactorJRI extends AbstractRJavaReactor {
 		
 		String script = newFrame + " <- dcast(" + frameName + keepString + ");";
 		eval(script);
-		script = replaceString ;
+		script = newFrame + " <- as.data.table(" + newFrame + ");";
 		eval(script);
-		System.out.println("Completed Pivoting..");
+		script = replaceString;
+		eval(script);
+		System.out.println("Done pivoting...");
 		if(replace && checkRTableModified(frameName)) {
 			recreateMetadata(frameName);
 		}
