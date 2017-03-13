@@ -815,16 +815,17 @@ public class BaseJavaReactor extends AbstractRJavaReactor{
 			keepString = ", formula = ";
 			for(int colIndex = 0;colIndex < columnsToKeep.length;colIndex++)
 			{
-				keepString = keepString + "\"" + columnsToKeep[colIndex] + "\"";
+				keepString = keepString + columnsToKeep[colIndex];
 				if(colIndex + 1 < columnsToKeep.length)
 					keepString = keepString + " + ";
 			}
 			keepString = keepString + " ~ " + columnToPivot;
 		}
 		
-		String script = newFrame + " <- dcast(" + frameName + keepString + ");"
-						+ replaceString ;
-		System.out.println("executing script " + script);
+		String script = newFrame + " <- dcast(" + frameName + keepString + ");";
+		script += newFrame + " <- as.data.table(" + newFrame + ");";
+		script += replaceString;
+		System.out.println("Executing script " + script);
 		try {
 			rcon.eval(script);
 			if(replace && checkRTableModified(frameName)) {
