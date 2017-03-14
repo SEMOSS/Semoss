@@ -99,10 +99,6 @@ public abstract class AbstractRJavaReactor extends AbstractJavaReactor {
 	
 	protected abstract void performJoinColumns(String frameName, String newColumnName,  String separator, String cols);
 	
-	protected abstract void unpivot(String frameName, String cols, boolean replace);
-
-	protected abstract void pivot(String frameName, boolean replace, String columnToPivot, String cols);
-	
 	////////////////////////////////////////////////////////////
 	////////////////////////////////////////////////////////////
 	//////////////////////// R Methods /////////////////////////
@@ -1096,10 +1092,80 @@ public abstract class AbstractRJavaReactor extends AbstractJavaReactor {
 		unpivot(frameName, null, true);
 	}
 	
+	protected void unpivot(String frameName, String cols, boolean replace)
+	{
+		// makes the columns and converts them into rows
+		//melt(dat, id.vars = "FactorB", measure.vars = c("Group1", "Group2"))
+		startR();
+		String concatString = "";
+		String tempName = Utility.getRandomString(8);
+		
+		if(cols != null && cols.length() > 0) {
+			String [] columnsToPivot = cols.split(";");
+			concatString = ", measure.vars = c(";
+			for(int colIndex = 0;colIndex < columnsToPivot.length;colIndex++)
+			{
+				concatString = concatString + "\"" + columnsToPivot[colIndex] + "\"";
+				if(colIndex + 1 < columnsToPivot.length)
+					concatString = concatString + ", ";
+			}
+			concatString = concatString + ")";
+		}
+		String script = tempName + "<- melt(" + frameName + concatString + ");";
+		// run the first script to unpivot into the temp frame
+		eval(script);
+		// if we are to replace the existing frame
+		if(replace) {
+			script = frameName + " <- " + tempName;
+			eval(script);
+			if(checkRTableModified(frameName)) {
+				recreateMetadata(frameName);
+			}
+		}
+		System.out.println("Done unpivoting...");
+	}
+	
 	protected void pivot(String columnToPivot, String cols) {
 		String frameName = (String)retrieveVariable("GRID_NAME");
 		pivot(frameName, true, columnToPivot, cols);
 	}
+	
+	public void pivot(String frameName, boolean replace, String columnToPivot, String cols)
+	{
+		// makes the columns and converts them into rows
+		//dcast(molten, formula = subject~ variable)
+		// I need columns to keep and columns to pivot
+		startR();
+		String newFrame = Utility.getRandomString(8);
+		
+		String keepString = ""; 
+		if(cols != null && cols.length() > 0)
+		{
+			String [] columnsToKeep = cols.split(";");
+			keepString = ", formula = ";
+			for(int colIndex = 0;colIndex < columnsToKeep.length;colIndex++)
+			{
+				keepString = keepString + columnsToKeep[colIndex];
+				if(colIndex + 1 < columnsToKeep.length)
+					keepString = keepString + " + ";
+			}
+			keepString = keepString + " ~ " + columnToPivot;
+		}
+		
+		String script = newFrame + " <- dcast(" + frameName + keepString + ");";
+		eval(script);
+		script = newFrame + " <- as.data.table(" + newFrame + ");";
+		eval(script);
+		if(replace) {
+			script = frameName + " <- " + newFrame;
+			eval(script);
+			if(checkRTableModified(frameName)) {
+				recreateMetadata(frameName);
+			}
+		}
+		System.out.println("Done pivoting...");
+	}
+	
 	
 	protected void recreateMetadata(String frameName) {
 		// recreate a new frame and set the frame name
