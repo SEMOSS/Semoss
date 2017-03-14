@@ -1199,9 +1199,9 @@ public class ReversedDepthFirstAdapter extends AnalysisAdapter
     public void caseAAssignment(AAssignment node)
     {
         inAAssignment(node);
-        if(node.getColDef() != null)
+        if(node.getScriptchain() != null)
         {
-            node.getColDef().apply(this);
+            node.getScriptchain().apply(this);
         }
         if(node.getEqual() != null)
         {

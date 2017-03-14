@@ -1790,6 +1790,11 @@ public class Insight {
 		return retHash;
 	}
 	
+	public Object getPKSLData(boolean includeClosed) {
+		String insightId = this.getInsightID();
+		return this.pkslRunner.getResults(); 
+	}
+	
 	public Map getJoinedPKQLData(boolean includeClosed) {
 		if(this.hasParent()) {
 			 if(this.parentInsight.getDataMaker() instanceof Dashboard) {				 

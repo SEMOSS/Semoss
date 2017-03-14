@@ -1,6 +1,7 @@
 package prerna.sablecc2.reactor;
 
 import java.util.Iterator;
+import java.util.List;
 import java.util.Vector;
 
 import prerna.algorithm.api.ITableDataFrame;
@@ -27,6 +28,8 @@ public interface IReactor {
 	// for now I would say the return is the object
 	public Object Out();
 	
+
+	public NounMetadata getOutput();
 	//
 	/*******************************************/
 	
@@ -75,8 +78,10 @@ public interface IReactor {
 	// Optional / Mandatory
 	// Single Value or multiple values
 	// are projections the output ?
-	public Vector<NounMetadata> getInputs();
+	public List<NounMetadata> getInputs();
 		
+	public List<NounMetadata> getOutputs();
+	
 	// gets the errored PKQL
 	// alternately can set the error message here
 	public void getErrorMessage();

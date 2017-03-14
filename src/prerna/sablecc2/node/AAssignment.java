@@ -9,7 +9,7 @@ public final class AAssignment extends PAssignment
 {
     private TId _id_;
     private TEqual _equal_;
-    private PColDef _colDef_;
+    private PScriptchain _scriptchain_;
 
     public AAssignment()
     {
@@ -19,14 +19,14 @@ public final class AAssignment extends PAssignment
     public AAssignment(
         @SuppressWarnings("hiding") TId _id_,
         @SuppressWarnings("hiding") TEqual _equal_,
-        @SuppressWarnings("hiding") PColDef _colDef_)
+        @SuppressWarnings("hiding") PScriptchain _scriptchain_)
     {
         // Constructor
         setId(_id_);
 
         setEqual(_equal_);
 
-        setColDef(_colDef_);
+        setScriptchain(_scriptchain_);
 
     }
 
@@ -36,7 +36,7 @@ public final class AAssignment extends PAssignment
         return new AAssignment(
             cloneNode(this._id_),
             cloneNode(this._equal_),
-            cloneNode(this._colDef_));
+            cloneNode(this._scriptchain_));
     }
 
     @Override
@@ -95,16 +95,16 @@ public final class AAssignment extends PAssignment
         this._equal_ = node;
     }
 
-    public PColDef getColDef()
+    public PScriptchain getScriptchain()
     {
-        return this._colDef_;
+        return this._scriptchain_;
     }
 
-    public void setColDef(PColDef node)
+    public void setScriptchain(PScriptchain node)
     {
-        if(this._colDef_ != null)
+        if(this._scriptchain_ != null)
         {
-            this._colDef_.parent(null);
+            this._scriptchain_.parent(null);
         }
 
         if(node != null)
@@ -117,7 +117,7 @@ public final class AAssignment extends PAssignment
             node.parent(this);
         }
 
-        this._colDef_ = node;
+        this._scriptchain_ = node;
     }
 
     @Override
@@ -126,7 +126,7 @@ public final class AAssignment extends PAssignment
         return ""
             + toString(this._id_)
             + toString(this._equal_)
-            + toString(this._colDef_);
+            + toString(this._scriptchain_);
     }
 
     @Override
@@ -145,9 +145,9 @@ public final class AAssignment extends PAssignment
             return;
         }
 
-        if(this._colDef_ == child)
+        if(this._scriptchain_ == child)
         {
-            this._colDef_ = null;
+            this._scriptchain_ = null;
             return;
         }
 
@@ -170,9 +170,9 @@ public final class AAssignment extends PAssignment
             return;
         }
 
-        if(this._colDef_ == oldChild)
+        if(this._scriptchain_ == oldChild)
         {
-            setColDef((PColDef) newChild);
+            setScriptchain((PScriptchain) newChild);
             return;
         }
 

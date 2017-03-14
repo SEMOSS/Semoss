@@ -30,5 +30,12 @@ public class H2HeadersDataRowIterator implements Iterator<IHeadersDataRow>{
 		}
 		throw new NoSuchElementException("No more elements in Array");
 	}
-
+	
+	public String[] getHeaders() {
+		return baseIterator.getHeaders();
+	}
+	
+	public String[] getTypes() {
+		return baseIterator.getTypes();
+	}
 }

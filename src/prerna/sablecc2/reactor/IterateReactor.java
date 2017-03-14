@@ -30,6 +30,8 @@ import prerna.ds.QueryStruct2;
 public class IterateReactor extends AbstractReactor {
 
 
+	private Iterator output;
+	
 	@Override
 	public void In() {
 		curNoun("all");
@@ -84,11 +86,12 @@ public class IterateReactor extends AbstractReactor {
 		//we will temporarily introduce handling math operations until those math operations are absorbed by the query struct and interpreted by the query interpreters
 		
 		
-		QueryStruct2 queryStruct = (QueryStruct2)this.planner.getProperty("QUERYSTRUCT", "QUERYSTRUCT"); //this should not be a single query...need to somehow store this with a signature
+		QueryStruct2 queryStruct = getQueryStruct(); //this should not be a single query...need to somehow store this with a signature
 		String engineName = queryStruct.getEngineName();
 		//TODO: add tableJoins to query
 		//TODO: remove hard coded classes when we establish querystruct2 and sqlinterpreter2 function properly 
 		GenRowStruct allNouns = getNounStore().getNoun(NounStore.all); //should be only joins
+		String id;
 		if(engineName != null) {
 			IEngine engine = Utility.getEngine(removeQuotes(engineName.trim()));
 //			IQueryInterpreter interp = engine.getQueryInterpreter();
@@ -96,20 +99,49 @@ public class IterateReactor extends AbstractReactor {
 			interp.setQueryStruct(queryStruct);
 			String importQuery = interp.composeQuery();
 			IRawSelectWrapper iterator = WrapperManager.getInstance().getRawWrapper(engine, importQuery);
-			JobStore.INSTANCE.addJob("job", iterator);
+			this.output = iterator;
+			id = JobStore.INSTANCE.addJob(iterator);
 		} else {
 			ITableDataFrame frame = (ITableDataFrame)this.planner.getProperty("FRAME", "FRAME");
 			SQLInterpreter2 interp = new SQLInterpreter2();
 			interp.setQueryStruct(queryStruct);
 			String importQuery = interp.composeQuery();
 			Iterator iterator = frame.query(importQuery);
-			JobStore.INSTANCE.addJob("job", iterator);
-		}			
+			this.output = iterator;
+			id = JobStore.INSTANCE.addJob(iterator);
+		}	
+		
+		Map<String, Object> returnData = new HashMap<>();
+		returnData.put("jobId", id);
+		this.planner.addProperty("DATA", "DATA", returnData);
+		this.planner.addProperty("RESULT", "RESULT", getOutput());
+	}
+	
+	@Override
+	public NounMetadata getOutput() {
+		NounMetadata output = new NounMetadata(this.output, "ITERATOR");
+		output.setExplanation("Iterator created from iterate reactor");
+		return output;
 	}
 
 	@Override
 	public Vector<NounMetadata> getInputs() {
 		return null;
+	}
+	
+	private QueryStruct2 getQueryStruct() {
+		GenRowStruct allNouns = getNounStore().getNoun("QUERY");
+		QueryStruct2 queryStruct = null;
+		if(allNouns != null) {
+			NounMetadata object = (NounMetadata)allNouns.get(0);
+			return (QueryStruct2)object.getValue();
+		} else {
+			NounMetadata result = (NounMetadata)this.planner.getProperty("RESULT", "RESULT");
+			if(result.getNounName().equals("QUERYSTRUCT")) {
+				queryStruct = (QueryStruct2)result.getValue();
+			}
+		}
+		return queryStruct;
 	}
 	
 	private String removeQuotes(String value) {
