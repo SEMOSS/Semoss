@@ -104,11 +104,6 @@ public abstract class AbstractReactor implements IReactor {
 	}
 	
 	@Override
-	public List<NounMetadata> getOutputs() {
-		return null;
-	}
-	
-	@Override
 	public void getErrorMessage() {
 
 	}
