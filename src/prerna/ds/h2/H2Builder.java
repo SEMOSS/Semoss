@@ -549,6 +549,9 @@ public class H2Builder {
 						}
 					} else {
 						String value = nextRow[colIndex] + "";
+						if(value.length() > 800) {
+							value = value.substring(0, 796) + "...";
+						}
 						ps.setString(colIndex + 1, value);
 					}
 				}
@@ -1145,6 +1148,9 @@ public class H2Builder {
 						}
 					} else {
 						String value = nextRow[colIndex] + "";
+						if(value.length() > 800) {
+							value = value.substring(0, 796) + "...";
+						}
 						ps.setString(colIndex + 1, value + "");
 					}
 				}
