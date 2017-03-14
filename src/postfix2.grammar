@@ -167,7 +167,7 @@ Productions
  
  // join format
   
- assignment = id equal col_def;
+ assignment = id equal scriptchain;
  
  noun = {select} selectors | {project} projectors | {labels} labels | {tooltips} tooltips | {others} generic | {props} props | {code} code_alpha;
  othernoun =  comma noun;

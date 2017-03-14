@@ -10,6 +10,7 @@ public class H2Iterator implements Iterator<Object[]>{
 
 	ResultSet resultSet;
 	String[] headers;
+	String[] types;
 	Object[] nextRow;
 	
 	public H2Iterator(ResultSet resultSet) {
@@ -66,6 +67,23 @@ public class H2Iterator implements Iterator<Object[]>{
 			setHeaders();
 		}
 		return this.headers;
+	}
+	
+	public String[] getTypes() {
+		if(types == null) {
+			try {
+				ResultSetMetaData rsmd = resultSet.getMetaData();
+		        int NumOfCol = rsmd.getColumnCount();
+		        types = new String[NumOfCol];
+		        for(int i = 1; i <= NumOfCol; i++) {
+		        	types[i-1] = rsmd.getColumnTypeName(i);
+	            }
+			} catch (SQLException e) {
+				e.printStackTrace();
+			}
+		}
+		
+		return types;
 	}
 	
 	private void setHeaders() {
