@@ -79,8 +79,6 @@ public interface IReactor {
 	// Single Value or multiple values
 	// are projections the output ?
 	public List<NounMetadata> getInputs();
-		
-	public List<NounMetadata> getOutputs();
 	
 	// gets the errored PKQL
 	// alternately can set the error message here
