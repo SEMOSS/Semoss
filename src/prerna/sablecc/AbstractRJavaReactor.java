@@ -1127,17 +1127,21 @@ public abstract class AbstractRJavaReactor extends AbstractJavaReactor {
 	
 	protected void pivot(String columnToPivot, String cols) {
 		String frameName = (String)retrieveVariable("GRID_NAME");
-		pivot(frameName, true, columnToPivot, cols);
+		pivot(frameName, true, columnToPivot, cols, null);
 	}
 	
-	public void pivot(String frameName, boolean replace, String columnToPivot, String cols)
+	protected void pivot(String frameName, boolean replace, String columnToPivot, String cols) {
+		pivot(frameName, true, columnToPivot, cols, null);
+	}
+	
+	protected void pivot(String frameName, boolean replace, String columnToPivot, String cols, String aggregateFunction) 
 	{
 		// makes the columns and converts them into rows
 		//dcast(molten, formula = subject~ variable)
 		// I need columns to keep and columns to pivot
 		startR();
 		String newFrame = Utility.getRandomString(8);
-		
+
 		String keepString = ""; 
 		if(cols != null && cols.length() > 0)
 		{
@@ -1151,8 +1155,12 @@ public abstract class AbstractRJavaReactor extends AbstractJavaReactor {
 			}
 			keepString = keepString + " ~ " + columnToPivot;
 		}
-		
-		String script = newFrame + " <- dcast(" + frameName + keepString + ");";
+
+		String aggregateString = "";
+		if(aggregateFunction != null && aggregateFunction.length() > 0) {
+			aggregateString = ", fun.aggregate = " + aggregateFunction + " , na.rm = TRUE";
+		}
+		String script = newFrame + " <- dcast(" + frameName + keepString + aggregateString + ");";
 		eval(script);
 		script = newFrame + " <- as.data.table(" + newFrame + ");";
 		eval(script);
@@ -1165,7 +1173,6 @@ public abstract class AbstractRJavaReactor extends AbstractJavaReactor {
 		}
 		System.out.println("Done pivoting...");
 	}
-	
 	
 	protected void recreateMetadata(String frameName) {
 		// recreate a new frame and set the frame name
