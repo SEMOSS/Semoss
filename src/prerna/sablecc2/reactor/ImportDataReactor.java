@@ -2,24 +2,20 @@ package prerna.sablecc2.reactor;
 
 
 import prerna.engine.api.IEngine;
-import prerna.engine.api.IHeadersDataRow;
 import prerna.engine.api.IRawSelectWrapper;
 import prerna.engine.api.IScriptReactor;
 import prerna.rdf.engine.wrappers.WrapperManager;
-import prerna.rdf.query.builder.IQueryInterpreter;
+import prerna.rdf.query.builder.SQLInterpreter2;
 import prerna.sablecc.PKQLEnum;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.NounMetadata;
 import prerna.util.Utility;
 
-import java.util.Enumeration;
 import java.util.Iterator;
-import java.util.Map;
 import java.util.Vector;
 
 import prerna.algorithm.api.ITableDataFrame;
-import prerna.ds.QueryStruct;
-import prerna.ds.h2.H2Frame;
+import prerna.ds.QueryStruct2;
 
 public class ImportDataReactor extends AbstractReactor {
 
@@ -66,7 +62,7 @@ public class ImportDataReactor extends AbstractReactor {
 //		String engineName = (String)map.get("db");
 		
 		
-		QueryStruct queryStruct = (QueryStruct)this.planner.getProperty("QUERYSTRUCT", "QUERYSTRUCT");
+		QueryStruct2 queryStruct = getQueryStruct();
 		String engineName = queryStruct.getEngineName();
 		ITableDataFrame frame = (ITableDataFrame)this.planner.getProperty("FRAME", "FRAME");
 		String className = frame.getScriptReactors().get(PKQLEnum.IMPORT_DATA);
@@ -75,7 +71,8 @@ public class ImportDataReactor extends AbstractReactor {
 			IScriptReactor curReactor = (IScriptReactor) Class.forName(className).newInstance();
 			
 			IEngine engine = Utility.getEngine(removeQuotes(engineName.trim()));
-			IQueryInterpreter interp = engine.getQueryInterpreter();
+			SQLInterpreter2 interp = new SQLInterpreter2(engine);
+//			IQueryInterpreter interp = engine.getQueryInterpreter();
 			interp.setQueryStruct(queryStruct);
 			String importQuery = interp.composeQuery();
 			IRawSelectWrapper iterator = WrapperManager.getInstance().getRawWrapper(engine, importQuery);
@@ -90,7 +87,7 @@ public class ImportDataReactor extends AbstractReactor {
 			ITableDataFrame importedFrame = (ITableDataFrame)curReactor.getValue("G");
 			System.out.println("IMPORTED FRAME CREATED WITH ROW COUNT: "+importedFrame.getNumRows());
 			this.planner.addProperty("FRAME", "FRAME", importedFrame);
-			this.planner.addProperty("QUERYSTRUCT", "QUERYSTRUCT", new QueryStruct());
+			this.planner.addProperty("QUERYSTRUCT", "QUERYSTRUCT", new QueryStruct2());
 		} catch (InstantiationException | IllegalAccessException | ClassNotFoundException e) {
 			e.printStackTrace();
 		}
@@ -99,6 +96,21 @@ public class ImportDataReactor extends AbstractReactor {
 	@Override
 	public Vector<NounMetadata> getInputs() {
 		return null;
+	}
+	
+	private QueryStruct2 getQueryStruct() {
+		GenRowStruct allNouns = getNounStore().getNoun("QUERY");
+		QueryStruct2 queryStruct = null;
+		if(allNouns != null) {
+			NounMetadata object = (NounMetadata)allNouns.get(0);
+			return (QueryStruct2)object.getValue();
+		} else {
+			NounMetadata result = (NounMetadata)this.planner.getProperty("RESULT", "RESULT");
+			if(result.getNounName().equals("QUERYSTRUCT")) {
+				queryStruct = (QueryStruct2)result.getValue();
+			}
+		}
+		return queryStruct;
 	}
 	
 	private String removeQuotes(String value) {

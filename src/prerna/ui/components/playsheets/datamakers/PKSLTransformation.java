@@ -63,7 +63,7 @@ public class PKSLTransformation extends AbstractTransformation {
 	public void runMethod() {
 
 		// check how long runner response array is
-		int numOldCmds = runner.getResults().size();
+//		int numOldCmds = runner.getResults().size();
 		
 		String expression = props.get(EXPRESSION) + "";		
 		runner.runPKSL(expression, (IDataMaker) this.dm);
@@ -81,23 +81,23 @@ public class PKSLTransformation extends AbstractTransformation {
 //		this.dm = runner.getDataFrame();
 		
 		// store added responses
-		List<Map> allCmds = runner.getResults();
-		for(int i = numOldCmds ; i < allCmds.size(); i++){
-			String cmd = (String) allCmds.get(i).get("command");
-			if(cmd != null){
-				if(cmd.startsWith("v:") || cmd.startsWith("data.query")) {
-					if(!cmd.contains("user.input")) {
-						this.addToRecipe = false;
-					} else {
-						this.recipeIndex = 0;
-					}
-				} 
-				parsedPksls.add(cmd);
-			}
-			else {
-				LOGGER.error("this is weird... my runner response doesn't have a PKSL command stored. Skipping for now in terms of adding to recipe");
-			}
-		}
+//		List<Map> allCmds = runner.getResults();
+//		for(int i = numOldCmds ; i < allCmds.size(); i++){
+//			String cmd = (String) allCmds.get(i).get("command");
+//			if(cmd != null){
+//				if(cmd.startsWith("v:") || cmd.startsWith("data.query")) {
+//					if(!cmd.contains("user.input")) {
+//						this.addToRecipe = false;
+//					} else {
+//						this.recipeIndex = 0;
+//					}
+//				} 
+//				parsedPksls.add(cmd);
+//			}
+//			else {
+//				LOGGER.error("this is weird... my runner response doesn't have a PKSL command stored. Skipping for now in terms of adding to recipe");
+//			}
+//		}
 		
 		// store the metadata list on the post transformation
 		// this will be consolidated at the insight lvl

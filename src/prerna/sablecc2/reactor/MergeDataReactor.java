@@ -78,7 +78,7 @@ public class MergeDataReactor extends AbstractReactor {
 	private void importToFrame()  {
 		//get the inputs
 		
-		QueryStruct2 queryStruct = (QueryStruct2)this.planner.getProperty("QUERYSTRUCT", "QUERYSTRUCT");
+		QueryStruct2 queryStruct = getQueryStruct();
 		String engineName = queryStruct.getEngineName();
 		
 		GenRowStruct allNouns = getNounStore().getNoun(NounStore.all); //should be only joins
@@ -95,6 +95,7 @@ public class MergeDataReactor extends AbstractReactor {
 				interp.setQueryStruct(queryStruct);
 				String importQuery = interp.composeQuery();
 				iterator = WrapperManager.getInstance().getRawWrapper(engine, importQuery);
+				curReactor.put(PKQLEnum.API + "_ENGINE", removeQuotes(engineName.trim()));
 			} else {
 				interp = new SQLInterpreter2();
 				interp.setQueryStruct(queryStruct);
@@ -106,7 +107,7 @@ public class MergeDataReactor extends AbstractReactor {
 			curReactor.put("G", frame);
 			curReactor.put(PKQLEnum.API + "_EDGE_HASH", queryStruct.getReturnConnectionsHash());
 			curReactor.put(PKQLEnum.API + "_QUERY_NUM_CELLS", 1.0);
-			curReactor.put(PKQLEnum.API + "_ENGINE", removeQuotes(engineName.trim()));
+			
 			curReactor.put(PKQLEnum.API, iterator);
 			if(allNouns != null) {
 				Vector<Map<String, String>> joinCols = getJoinCols(allNouns);
@@ -123,8 +124,25 @@ public class MergeDataReactor extends AbstractReactor {
 		}
 	}
 
+	private QueryStruct2 getQueryStruct() {
+		GenRowStruct allNouns = getNounStore().getNoun("QUERY");
+		QueryStruct2 queryStruct = null;
+		if(allNouns != null) {
+			NounMetadata object = (NounMetadata)allNouns.get(0);
+			return (QueryStruct2)object.getValue();
+		} else {
+			NounMetadata result = (NounMetadata)this.planner.getProperty("RESULT", "RESULT");
+			if(result.getNounName().equals("QUERYSTRUCT")) {
+				queryStruct = (QueryStruct2)result.getValue();
+			}
+		}
+		return queryStruct;
+	}
+	
 	@Override
 	public Vector<NounMetadata> getInputs() {
+		//1 query OR 1 queryStruct
+		//n joins
 		return null;
 	}
 	

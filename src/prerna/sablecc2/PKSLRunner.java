@@ -21,6 +21,7 @@ import prerna.sablecc2.lexer.LexerException;
 import prerna.sablecc2.node.Start;
 import prerna.sablecc2.parser.Parser;
 import prerna.sablecc2.parser.ParserException;
+import prerna.sablecc2.reactor.PKSLPlanner;
 import prerna.ui.components.playsheets.datamakers.IDataMaker;
 
 public class PKSLRunner {
@@ -69,12 +70,16 @@ public class PKSLRunner {
 	private Translation translation;
 	private IDataMaker dataMaker;
 	private String insightId;
+	private PKSLPlanner planner;
 	
 	public void runPKSL(String expression, IDataMaker frame) {
 		
 		this.dataMaker = frame;
 		Parser p = new Parser(new Lexer(new PushbackReader(new InputStreamReader(new StringBufferInputStream(expression)), 1024)));
 		Start tree;
+//		if(planner == null) {
+//			planner = new PKSLPlanner();
+//		}
 		if(translation == null){
 			translation = new Translation(frame, this);
 		}
@@ -109,7 +114,12 @@ public class PKSLRunner {
 		this.dataMaker = frame;
 	}
 
-	public List<Map> getResults() {
-		return null;
+	public Object getResults() {
+		int dataId = dataMaker.getDataId();
+		return translation.getResults();
+	}
+	
+	public PKSLPlanner getPlanner() {
+		return this.planner;
 	}
 }

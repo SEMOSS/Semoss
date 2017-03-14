@@ -15,6 +15,7 @@ import org.apache.log4j.Logger;
 import cern.colt.Arrays;
 import prerna.algorithm.api.ITableDataFrame;
 import prerna.ds.TinkerMetaHelper;
+import prerna.ds.h2.H2HeadersDataRowIterator;
 import prerna.ds.nativeframe.NativeFrame;
 import prerna.ds.util.FileIterator;
 import prerna.engine.api.IEngine;
@@ -76,7 +77,7 @@ public abstract class ImportDataReactor extends AbstractReactor {
 	 * 		Movie_Budget -> Movie_Budget
 	 * }
 	 */
-	protected Map<String, String> modifyNamesMap = null;
+	protected Map<String, String> modifyNamesMap = new HashMap<>();
 	// keep track of the headers we are adding
 	// this will be cleaned to take into consideration the join column modifications
 	protected String[] newHeaders = null;
@@ -266,7 +267,29 @@ public abstract class ImportDataReactor extends AbstractReactor {
 				this.isPrimKey = true;
 				// update the metadata in the frame
 				frame.mergeEdgeHash(edgeHash, dataTypes);
-			}
+			}  else if(myStore.get(PKQLEnum.API) instanceof H2HeadersDataRowIterator) {
+				//we are merging data to this from from an iterator/frame
+				LOGGER.info(" >>> FRAME IS LOADING FROM Iterator<IHeadersDataRow>!!!!");
+
+				// grab the iterator to use for importing
+				dataIterator  = (H2HeadersDataRowIterator) myStore.get(PKQLEnum.API);
+				
+				if(dataIterator instanceof H2HeadersDataRowIterator) {
+					String[] types = ((H2HeadersDataRowIterator)dataIterator).getTypes();
+					String[] headers = ((H2HeadersDataRowIterator) dataIterator).getHeaders();
+					Map<String, String> dataTypes = new HashMap<>();
+					for(int i = 0; i < types.length; i++) {
+						dataTypes.put(headers[i], types[i]);
+					}
+					
+					this.newHeaders = updateNamesForJoins(headers, joinCols);
+					dataTypes = updateDataTypesForJoins(dataTypes, joinCols);
+					this.edgeHash = TinkerMetaHelper.createPrimKeyEdgeHash(this.newHeaders);
+					this.isPrimKey = true;
+					// update the metadata in the frame
+					frame.mergeEdgeHash(edgeHash, dataTypes);
+//					frame.
+				}
 		} else if(myStore.containsKey(PKQLEnum.RAW_API)) {
 			LOGGER.info(" >>> FRAME IS LOADING DATA FROM AN INPUT QUERY!!!!");
 
@@ -303,6 +326,7 @@ public abstract class ImportDataReactor extends AbstractReactor {
 			this.isPrimKey = true;
 			// update the metadata in the frame
 			frame.mergeEdgeHash(edgeHash, dataTypes);
+		}
 		}
 		
 		// update the data id on the frame

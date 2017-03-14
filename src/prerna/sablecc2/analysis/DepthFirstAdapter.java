@@ -1204,9 +1204,9 @@ public class DepthFirstAdapter extends AnalysisAdapter
         {
             node.getEqual().apply(this);
         }
-        if(node.getColDef() != null)
+        if(node.getScriptchain() != null)
         {
-            node.getColDef().apply(this);
+            node.getScriptchain().apply(this);
         }
         outAAssignment(node);
     }
