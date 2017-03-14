@@ -1,7 +1,9 @@
 package prerna.sablecc2.reactor;
 
+import java.util.HashMap;
 import java.util.Hashtable;
 import java.util.Iterator;
+import java.util.Map;
 import java.util.Stack;
 import java.util.Vector;
 
@@ -12,6 +14,7 @@ import org.apache.tinkerpop.gremlin.structure.Vertex;
 import org.apache.tinkerpop.gremlin.tinkergraph.structure.TinkerGraph;
 
 import prerna.sablecc2.om.CodeBlock;
+import prerna.sablecc2.om.NounMetadata;
 import prerna.ui.components.playsheets.datamakers.IDataMaker;
 
 public class PKSLPlanner {
@@ -69,6 +72,7 @@ public class PKSLPlanner {
 		addInputs(opName, inputs, null, opType);
 	}
 
+	//**********************PROPERTY METHODS*******************************//
 	
 	public void addProperty(String opName, String propertyName, Object value)
 	{
@@ -89,6 +93,10 @@ public class PKSLPlanner {
 		return null;
 	}
 	
+	public boolean hasProperty(String opName, String propertyName) {
+		return getProperty(opName, propertyName) != null;
+	}
+	
 	public void addNounProperty(String nounName, String propertyName, Object value)
 	{
 		Vertex nounVertex = findVertex(NOUN, nounName);
@@ -98,6 +106,33 @@ public class PKSLPlanner {
 		}
 	}
 
+	//**********************END PROPERTY METHODS*******************************//
+	
+	
+	
+	//**********************VARIABLE METHODS*******************************//
+	
+	public void addVariable(String variableName, NounMetadata value) {
+		if(hasProperty("VARIABLE", "VARIABLE")) {
+			Map<String, NounMetadata> map = (HashMap)getProperty("VARIABLE", "VARIABLE");
+			map.put(variableName.toUpperCase(), value);
+		} else {
+			Map<String, NounMetadata> varMap = new HashMap<>();
+			varMap.put(variableName.toUpperCase(), value);
+			addProperty("VARIABLE", "VARIABLE", varMap);
+		}
+	}
+	
+	public NounMetadata getVariable(String variableName) {
+		if(hasProperty("VARIABLE", "VARIABLE")) {
+			Map<String, NounMetadata> map = (HashMap)getProperty("VARIABLE", "VARIABLE");
+			return map.get(variableName.toUpperCase());
+		}
+		return null;
+	}
+	
+	
+	//**********************VARIABLE METHODS*******************************//
 	
 	
 	// adds an operation with outputs

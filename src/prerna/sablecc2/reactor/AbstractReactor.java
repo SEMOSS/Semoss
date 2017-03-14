@@ -3,6 +3,7 @@ package prerna.sablecc2.reactor;
 import java.util.Arrays;
 import java.util.Hashtable;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Vector;
 
 import prerna.algorithm.api.ITableDataFrame;
@@ -103,11 +104,10 @@ public abstract class AbstractReactor implements IReactor {
 	}
 	
 	@Override
-	public Vector<NounMetadata> getInputs() {
+	public List<NounMetadata> getOutputs() {
 		return null;
 	}
 	
-
 	@Override
 	public void getErrorMessage() {
 
@@ -210,5 +210,25 @@ public abstract class AbstractReactor implements IReactor {
 		}
 		
 		planner.addOutputs(signature, outputFields, type);
+	}
+	
+	protected void printReactorTrace() {
+		System.out.println("THIS REACTOR: ");
+		IReactor parent = this.getParentReactor();
+		while(parent != null) {
+			System.out.println(parent.getName());
+			parent = parent.getParentReactor();
+		}
+		System.out.println();
+	}
+	
+	@Override
+	public List<NounMetadata> getInputs() {
+		return null;
+	}
+	
+	@Override
+	public NounMetadata getOutput() {
+		return null;
 	}
 }

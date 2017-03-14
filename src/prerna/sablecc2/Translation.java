@@ -3,6 +3,8 @@ package prerna.sablecc2;
 import java.io.BufferedWriter;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 import org.apache.log4j.LogManager;
@@ -16,6 +18,7 @@ import prerna.sablecc.expressions.sql.builder.ExpressionGenerator;
 import prerna.sablecc.expressions.sql.builder.SqlExpressionBuilder;
 import prerna.sablecc2.analysis.DepthFirstAdapter;
 import prerna.sablecc2.node.AAsop;
+import prerna.sablecc2.node.AAssignment;
 import prerna.sablecc2.node.ACodeNoun;
 import prerna.sablecc2.node.AColTerm;
 import prerna.sablecc2.node.ADecimal;
@@ -44,28 +47,16 @@ import prerna.sablecc2.node.AScriptchain;
 import prerna.sablecc2.node.ASelectNoun;
 import prerna.sablecc2.node.ATermExpr;
 import prerna.sablecc2.node.Node;
+import prerna.sablecc2.om.NounMetadata;
 import prerna.sablecc2.reactor.AsReactor;
+import prerna.sablecc2.reactor.AssignmentReactor;
 import prerna.sablecc2.reactor.ExprReactor;
 import prerna.sablecc2.reactor.FilterReactor;
 import prerna.sablecc2.reactor.GenericReactor;
-import prerna.sablecc2.reactor.GetDataReactor;
-import prerna.sablecc2.reactor.qs.GroupByReactor;
 import prerna.sablecc2.reactor.IReactor;
-import prerna.sablecc2.reactor.ImportDataReactor;
-import prerna.sablecc2.reactor.IterateReactor;
-import prerna.sablecc2.reactor.MergeDataReactor;
 import prerna.sablecc2.reactor.PKSLPlanner;
-import prerna.sablecc2.reactor.QueryReactor;
+import prerna.sablecc2.reactor.ReactorFactory;
 import prerna.sablecc2.reactor.SampleReactor;
-import prerna.sablecc2.reactor.qs.AverageReactor;
-import prerna.sablecc2.reactor.qs.DatabaseReactor;
-import prerna.sablecc2.reactor.qs.FrameReactor;
-import prerna.sablecc2.reactor.qs.JoinReactor;
-import prerna.sablecc2.reactor.qs.LimitReactor;
-import prerna.sablecc2.reactor.qs.OffsetReactor;
-import prerna.sablecc2.reactor.qs.QueryFilterReactor;
-import prerna.sablecc2.reactor.qs.SelectReactor;
-import prerna.sablecc2.reactor.qs.SumReactor;
 import prerna.ui.components.playsheets.datamakers.IDataMaker;
 
 public class Translation extends DepthFirstAdapter {
@@ -153,8 +144,9 @@ public class Translation extends DepthFirstAdapter {
     	// this is really where the overall execution should happen
     	System.out.println("<<<<<<<" + node);
 //    	planner.runMyPlan(lastOperation);
-    	
-    	postProcess();
+    	if(!(curReactor instanceof AssignmentReactor)) {
+    		postProcess();
+    	}
     }
     
     public void inAOtherscript(AOtherscript node)
@@ -254,6 +246,23 @@ public class Translation extends DepthFirstAdapter {
         deInitReactor();
     }
 
+    public void inAAssignment(AAssignment node)
+    {
+    	defaultIn(node);
+    	if(!this.planner.hasProperty("VARIABLE", "VARIABLE")) {
+    		this.planner.addProperty("VARIABLE", "VARIABLE", new HashMap<String, NounMetadata>());
+    	}
+    	IReactor assignmentReactor = new AssignmentReactor();
+        assignmentReactor.setPKSL(node.getId().toString().trim(), node.toString().trim());
+    	initReactor(assignmentReactor);
+    }
+
+    public void outAAssignment(AAssignment node)
+    {
+    	deInitReactor();
+        defaultOut(node);
+    }
+    
     public void inAGeneric(AGeneric node) {
     	defaultIn(node);
     	IReactor genReactor = new GenericReactor();
@@ -814,42 +823,7 @@ public class Translation extends DepthFirstAdapter {
      * Sets the PKSL operations in the reactor
      */
     private IReactor getReactor(String reactorId, String nodeString) {
-    	IReactor reactor;
-    	if(reactorId.trim().equals("Query")) {
-    		reactor = new QueryReactor();
-    	} else if(reactorId.trim().equals("Import")) {
-    		reactor = new ImportDataReactor();
-    	} else if(reactorId.trim().equals("Merge")) {
-    		reactor = new MergeDataReactor();
-    	} else if(reactorId.trim().equals("Group")) {
-    		reactor = new GroupByReactor();
-    	} else if(reactorId.trim().equals("Database")) {
-    		reactor = new DatabaseReactor();
-    	} else if(reactorId.trim().equals("Select")) {
-    		reactor = new SelectReactor();
-    	} else if(reactorId.trim().equals("Limit")) {
-    		reactor = new LimitReactor();
-    	} else if(reactorId.trim().equals("Offset")) {
-    		reactor = new OffsetReactor();
-    	} else if(reactorId.trim().equals("Iterate")) {
-    		reactor = new IterateReactor();
-    	} else if(reactorId.trim().equals("GetData")) {
-    		reactor = new GetDataReactor();
-    	} else if(reactorId.trim().equals("Frame")) {
-    		reactor = new FrameReactor();
-    	} else if(reactorId.trim().equals("Join")) {
-    		reactor = new JoinReactor();
-    	} else if(reactorId.trim().equals("Filter")) {
-    		reactor = new QueryFilterReactor();
-    	} else if(reactorId.trim().equals("Sum")) {
-    		reactor = new SumReactor();
-    	} else if(reactorId.trim().equals("Average")) {
-    		reactor = new AverageReactor();
-    	} else {
-    		reactor = new SampleReactor();
-    	}
-    	reactor.setPKSL(reactorId, nodeString);
-    	return reactor;
+    	return ReactorFactory.getReactor(reactorId, nodeString);
     }
     
     private void printData(Object node, String message) {
@@ -914,14 +888,19 @@ public class Translation extends DepthFirstAdapter {
     public void defaultIn(@SuppressWarnings("unused") Node node)
     {
         // Do nothing
-    	
     	StackTraceElement[] ste = Thread.currentThread().getStackTrace();
     	if(ste.length > 2) {
     		LOGGER.info("CURRENT METHOD: "+ste[2].getMethodName());
     		LOGGER.info("CURRENT NODE:" + node.toString() );
-    		if(curReactor != null)
-    		LOGGER.info("CUR REACTOR: "+curReactor.toString()+ "\n");
-    		else LOGGER.info("CUR REACTOR: null");
+    		
+    		if(curReactor != null) {
+    			LOGGER.info("CURRENT REACTOR: "+curReactor.getClass().getSimpleName());
+    		}
+    		else LOGGER.info("CURRENT REACTOR: null" + "\n");
+    		
+    		if(curReactor != null && curReactor.getParentReactor() != null) {
+    			LOGGER.info("PARENT REACTOR: "+curReactor.getParentReactor().getClass().getSimpleName() + "\n");
+    		}
     	} else {
     		LOGGER.info("THIS SHOULD NOT HAPPEN!!!!!!!!!!");
     	}
@@ -930,16 +909,25 @@ public class Translation extends DepthFirstAdapter {
     public void defaultOut(@SuppressWarnings("unused") Node node)
     {
         // Do nothing
-    	
     	StackTraceElement[] ste = Thread.currentThread().getStackTrace();
     	if(ste.length > 2) {
     		LOGGER.info("CURRENT METHOD: "+ste[2].getMethodName());
     		LOGGER.info("CURRENT NODE:" + node.toString());
-    		if(curReactor != null)
-    		LOGGER.info("CUR REACTOR: "+curReactor.toString()+ "\n");
-    		else LOGGER.info("CUR REACTOR: null");
+    		
+    		if(curReactor != null) {
+    			LOGGER.info("CURRENT REACTOR: "+curReactor.getClass().getSimpleName());
+    		}
+    		else LOGGER.info("CURRENT REACTOR: null" + "\n");
+    		
+    		if(curReactor != null && curReactor.getParentReactor() != null) {
+    			LOGGER.info("PARENT REACTOR: "+curReactor.getParentReactor().getClass().getSimpleName() + "\n");
+    		}
     	} else {
     		LOGGER.info("THIS SHOULD NOT HAPPEN!!!!!!!!!!");
     	}
     }
+
+	public Object getResults() {
+		return planner.getProperty("DATA", "DATA");
+	}
 }
