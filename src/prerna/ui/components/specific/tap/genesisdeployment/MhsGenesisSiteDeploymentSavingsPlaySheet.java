@@ -115,28 +115,28 @@ public class MhsGenesisSiteDeploymentSavingsPlaySheet extends TablePlaySheet {
 		headers = this.siteDeploymentSavings.getColumnHeaders();
 
 		// iterate through the results for testing
-		LOGGER.info("Testing data...");
-		Iterator<Object[]> it = this.siteDeploymentSavings.iterator();
-		System.out.println(">>> " + Arrays.toString( headers ) );
-		try{
-			PrintWriter writer = new PrintWriter("C:\\Users\\mahkhalil\\Desktop\\Datasets\\SAVINGS_SiteView.csv", "UTF-8");
-			for(Object val : headers) {
-				writer.print(val + ",");
-			}
-			writer.print("\n");
-			while(it.hasNext()) {
-				Object[] values = it.next();
-				for(Object val : values) {
-					writer.print(val + ",");
-				}
-				writer.print("\n");
-				System.out.println(">>> " + Arrays.toString( values ) );
-			}
-			writer.close();
-		} catch (IOException e) {
-			// do something
-		}
-		LOGGER.info("Done iterating through system deployment savings data");
+//		LOGGER.info("Testing data...");
+//		Iterator<Object[]> it = this.siteDeploymentSavings.iterator();
+//		System.out.println(">>> " + Arrays.toString( headers ) );
+//		try{
+//			PrintWriter writer = new PrintWriter("C:\\Users\\mahkhalil\\Desktop\\Datasets\\SAVINGS_SiteView.csv", "UTF-8");
+//			for(Object val : headers) {
+//				writer.print(val + ",");
+//			}
+//			writer.print("\n");
+//			while(it.hasNext()) {
+//				Object[] values = it.next();
+//				for(Object val : values) {
+//					writer.print(val + ",");
+//				}
+//				writer.print("\n");
+//				System.out.println(">>> " + Arrays.toString( values ) );
+//			}
+//			writer.close();
+//		} catch (IOException e) {
+//			// do something
+//		}
+//		LOGGER.info("Done iterating through system deployment savings data");
 	}
 
 	private void addFixedSustainmentCostForAllLocallyDeployedSystems() {
