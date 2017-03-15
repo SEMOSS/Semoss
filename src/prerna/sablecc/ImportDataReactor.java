@@ -290,6 +290,7 @@ public abstract class ImportDataReactor extends AbstractReactor {
 					frame.mergeEdgeHash(edgeHash, dataTypes);
 //					frame.
 				}
+			}
 		} else if(myStore.containsKey(PKQLEnum.RAW_API)) {
 			LOGGER.info(" >>> FRAME IS LOADING DATA FROM AN INPUT QUERY!!!!");
 
@@ -327,7 +328,7 @@ public abstract class ImportDataReactor extends AbstractReactor {
 			// update the metadata in the frame
 			frame.mergeEdgeHash(edgeHash, dataTypes);
 		}
-		}
+		
 		
 		// update the data id on the frame
 		frame.updateDataId();
