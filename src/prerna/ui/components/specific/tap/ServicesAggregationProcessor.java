@@ -1280,12 +1280,13 @@ public class ServicesAggregationProcessor extends AggregationHelper {
 	public Object[] processConcatString(String sub, String prop, Object value, String user) 
 	{
 		// replace any tags for properties that are loaded as other data types but should be strings
-		value = value.toString().replaceAll("^^<http:--www.w3.org-2001-XMLSchema#double","");
-		value = value.toString().replaceAll("^^<http:--www.w3.org-2001-XMLSchema#decimal","");
-		value = value.toString().replaceAll("^^<http:--www.w3.org-2001-XMLSchema#integer","");
-		value = value.toString().replaceAll("^^<http:--www.w3.org-2001-XMLSchema#float","");
-		value = value.toString().replaceAll("^^<http:--www.w3.org-2001-XMLSchema#boolean","");
-		value = value.toString().replaceAll("^^<http:--www.w3.org-2001-XMLSchema#dateTime","");
+		value = value.toString().replace("^^<http://www.w3.org/2001/XMLSchema#double>","");
+		value = value.toString().replace("^^<http://www.w3.org/2001/XMLSchema#decimal>","");
+		value = value.toString().replace("^^<http://www.w3.org/2001/XMLSchema#integer>","");
+		value = value.toString().replace("^^<http://www.w3.org/2001/XMLSchema#float>","");
+		value = value.toString().replace("^^<http://www.w3.org/2001/XMLSchema#boolean>","");
+		value = value.toString().replace("^^<http://www.w3.org/2001/XMLSchema#dateTime>","");
+		
 		if(value.toString().startsWith("\"") || value.toString().endsWith("\""))
 		{
 			value = value.toString().substring(1, value.toString().length()-1); // remove annoying quotes
