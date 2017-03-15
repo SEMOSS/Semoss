@@ -92,7 +92,7 @@ Tokens
  codeblock = code alphanumeric* code;
  jsonblock = startjson alphanumeric* endjson;
  queryblock = startquery alphanumeric* endquery;
- word = quote not_quote+ quote;
+ word = quote not_quote* quote;
  panelviz =  panelprefix '.viz';
  panelclone = panelprefix '.clone';
  panelclose = panelprefix '.close';
