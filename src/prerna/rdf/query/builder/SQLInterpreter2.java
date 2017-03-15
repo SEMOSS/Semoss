@@ -33,7 +33,7 @@ public class SQLInterpreter2 implements IQueryInterpreter{
 	
 	// this keeps the column aliases
 	// contains {tableName -> {colName -> colAliasToUse} }
-	private Hashtable<String, Hashtable<String, String>> colAlias = new Hashtable<String, Hashtable<String, String>>();
+//	private Hashtable<String, Hashtable<String, String>> colAlias = new Hashtable<String, Hashtable<String, String>>();
 	
 	// keep track of processed tables used to ensure we don't re-add tables into the from string
 	private Hashtable <String, String> tableProcessed = new Hashtable<String, String>();
@@ -231,7 +231,6 @@ public class SQLInterpreter2 implements IQueryInterpreter{
 			System.out.println("QUERY....  " + query);
 		}
 
-		query.append(";");
 		return query.toString();
 	}
 
@@ -290,9 +289,9 @@ public class SQLInterpreter2 implements IQueryInterpreter{
 			}
 
 			if(!math.isEmpty()) {
-				selectorAddition = math + "(" + tableAlias + "." + physicalColName+ ")" + " AS " + alias;
+				selectorAddition = math + "(" + tableAlias + "." + physicalColName+ ")" + " AS " + "\""+alias+"\"";
 			} else {
-				selectorAddition = tableAlias + "." + physicalColName + " AS " + alias;
+				selectorAddition = tableAlias + "." + physicalColName + " AS " + "\""+alias+"\"";
 			}
 		}
 		
