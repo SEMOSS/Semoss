@@ -11,6 +11,7 @@ import java.util.Vector;
 
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
+import org.apache.tinkerpop.gremlin.process.traversal.Order;
 import org.apache.tinkerpop.gremlin.process.traversal.P;
 import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.GraphTraversal;
 import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.__;
@@ -53,9 +54,74 @@ public class TinkerQueryInterpreter extends AbstractTinkerInterpreter implements
 		getSelector();
 		addFilters();
 		addJoins();
+		// addOrderBy();
+		// addGroupBy();
 		addSelectors();
 		addLimitOffset();
 		return new TinkerIterator(gt, this.selector, qs);
+	}
+
+	/**
+	 * Add group by to GraphTraversal
+	 */
+	public void addGroupBy() {
+		Map<String, Set<String>> groupBy = qs.getGroupBy();
+		Set<String> propertyList = new HashSet<>(3);
+
+		// TODO property Test
+		groupBy.put("MovieBudget", propertyList);
+
+		// TODO node Test
+		// groupBy.put("Title", propertyList);
+
+		if (groupBy != null && !groupBy.isEmpty()) {
+			String groupByName = "";
+			for (String concept : groupBy.keySet()) {
+				Set<String> properties = groupBy.get(concept);
+				for (String property : properties) {
+					if (property.equals(QueryStruct.PRIM_KEY_PLACEHOLDER)) {
+						// TODO
+						groupByName = concept;
+					} else {
+						// TODO
+						groupByName = property;
+					}
+				}
+			}
+
+			// TODO property Test
+			groupByName = "MovieBudget";
+
+			// TODO node Test
+			// groupByName = "Genre";
+
+			if (groupByName != null && groupByName.length() > 0) {
+				// node
+				// gt =
+				// gt.group().by(__.select(groupByName).values(TinkerFrame.TINKER_NAME)).as("GROUP_BY");
+
+				// property
+				gt = gt.group().by(__.select("Title").values(groupByName)).as("GROUP_BY");
+
+				this.selector.add("GROUP_BY");
+			}
+		}
+	}
+
+	/**
+	 * Add order by to GraphTraversal
+	 */
+	private void addOrderBy() {
+		Map<String, String> orderBy = qs.getOrderBy();
+		orderBy.put("Title", Order.incr + "");
+		if (orderBy != null && !orderBy.isEmpty()) {
+			for (String orderByCol : orderBy.keySet()) {
+				gt = gt.select(orderByCol).order().by(TinkerFrame.TINKER_NAME, Order.incr).as(orderByCol + "ORDERED");
+				this.selector.remove(orderByCol);
+				this.selector.add(orderByCol + "ORDERED");
+			}
+		}
+
 	}
 
 	/**
@@ -103,6 +169,62 @@ public class TinkerQueryInterpreter extends AbstractTinkerInterpreter implements
 	}
 
 	/**
+	 * gets the selectors and adds it to the traversal
+	 */
+	protected void addSelectors() {
+		List<String> selector = getSelector(); // get the selectors
+		// cause gremlin interface is weird...
+		// need to determine which method to use based on size of selectors
+
+		if (selector.contains("GROUP_BY")) {
+			gt = gt.select("GROUP_BY");
+		}
+
+		else if (selector.size() == 1) {
+			String select = selector.get(0);
+			String selectNode = qs.selectors.keySet().iterator().next();
+			// property
+			if (!select.equals(selectNode)) {
+				gt = gt.select(selector.get(0));
+				if (qs.getPerformCount() == 2 || qs.getLimit() > 0) {
+					gt = gt.dedup();
+				}
+
+			}
+			// node
+			else {
+				if (qs.relations.size() > 0) {
+					gt = gt.select(select);
+					gt = gt.dedup();
+				} else {
+					if (qs.andfilters != null && !qs.andfilters.isEmpty()) {
+						gt = gt.select(select);
+					} else {
+						// gt = gt.has(TinkerFrame.TINKER_TYPE,
+						// selector.get(0));
+						gt = gt.select(select);
+
+					}
+
+				}
+
+			}
+
+		}
+
+		else if (selector.size() == 2) {
+			gt = gt.select(selector.get(0), selector.get(1));
+		} else if (selector.size() >= 3) {
+			String[] selectorArr = new String[selector.size() - 2];
+			for (int i = 2; i < selector.size(); i++) {
+				selectorArr[i - 2] = selector.get(i);
+			}
+			gt = gt.select(selector.get(0), selector.get(1), selectorArr);
+
+		}
+	}
+
+	/**
 	 * Create the edge hash and start traversal
 	 */
 	protected void addJoins() {
@@ -115,7 +237,6 @@ public class TinkerQueryInterpreter extends AbstractTinkerInterpreter implements
 	/**
 	 * This is the bulk of the class Uses the edgeMap to figure out what things
 	 * are connected
-	 * 
 	 */
 	public void addNodeEdge() {
 		// no edges to traverse
@@ -282,9 +403,7 @@ public class TinkerQueryInterpreter extends AbstractTinkerInterpreter implements
 						// get properties for the upstream node
 						GraphTraversal upStepT = __.as(upstreamNodeType);
 
-						
-						List<GraphTraversal<Object, Object>> propTraversals = getProperties(upStepT,
-								upstreamNodeType);
+						List<GraphTraversal<Object, Object>> propTraversals = getProperties(upStepT, upstreamNodeType);
 
 						if (propTraversals.size() > 0) {
 							GraphTraversal[] propArray = new GraphTraversal[propTraversals.size()];
@@ -320,57 +439,57 @@ public class TinkerQueryInterpreter extends AbstractTinkerInterpreter implements
 		// iterate through nodes using propHash
 
 		Vector<String> propList = (Vector<String>) propHash.get(startName);
-		if(propList != null)
-		for (String property : propList) { // iterate through properties
+		if (propList != null)
+			for (String property : propList) { // iterate through properties
 
-			// define the match traversal
-			GraphTraversal matchTraversal = __.as(startName);
-			String qsProperty = startName + "__" + property;
-			if (this.filters.containsKey(qsProperty)) {
-				// we impose the filter on the node and then return the
-				// property value
-				Map<String, List> comparatorMap = this.filters.get(qsProperty);
-				for (String comparison : comparatorMap.keySet()) {
-					comparison = comparison.trim();
-					List values = comparatorMap.get(comparison);
-					if (comparison.equals("=")) {
-						if (values.size() == 1) {
-							matchTraversal = matchTraversal.has(property, P.eq(values.get(0))).values(property)
+				// define the match traversal
+				GraphTraversal matchTraversal = __.as(startName);
+				String qsProperty = startName + "__" + property;
+				if (this.filters.containsKey(qsProperty)) {
+					// we impose the filter on the node and then return the
+					// property value
+					Map<String, List> comparatorMap = this.filters.get(qsProperty);
+					for (String comparison : comparatorMap.keySet()) {
+						comparison = comparison.trim();
+						List values = comparatorMap.get(comparison);
+						if (comparison.equals("=")) {
+							if (values.size() == 1) {
+								matchTraversal = matchTraversal.has(property, P.eq(values.get(0))).values(property)
+										.as(property);
+							} else {
+								matchTraversal = matchTraversal.has(property, P.within(values.toArray()))
+										.values(property).as(property);
+							}
+						} else if (comparison.equals("!=")) {
+							if (values.size() == 1) {
+								matchTraversal = matchTraversal.has(property, P.neq(values.get(0))).values(property)
+										.as(property);
+							} else {
+								matchTraversal = matchTraversal.has(property, P.without(values.toArray()))
+										.values(property).as(property);
+							}
+						} else if (comparison.equals("<")) {
+							matchTraversal = matchTraversal.has(property, P.lt(values.get(0))).values(property)
 									.as(property);
-						} else {
-							matchTraversal = matchTraversal.has(property, P.within(values.toArray())).values(property)
+						} else if (comparison.equals(">")) {
+							matchTraversal = matchTraversal.has(property, P.gt(values.get(0))).values(property)
+									.as(property);
+						} else if (comparison.equals("<=")) {
+							matchTraversal = matchTraversal.has(property, P.lte(values.get(0))).values(property)
+									.as(property);
+						} else if (comparison.equals(">=")) {
+							matchTraversal = matchTraversal.has(property, P.gte(values.get(0))).values(property)
 									.as(property);
 						}
-					} else if (comparison.equals("!=")) {
-						if (values.size() == 1) {
-							matchTraversal = matchTraversal.has(property, P.neq(values.get(0))).values(property)
-									.as(property);
-						} else {
-							matchTraversal = matchTraversal.has(property, P.without(values.toArray())).values(property)
-									.as(property);
-						}
-					} else if (comparison.equals("<")) {
-						matchTraversal = matchTraversal.has(property, P.lt(values.get(0))).values(property)
-								.as(property);
-					} else if (comparison.equals(">")) {
-						matchTraversal = matchTraversal.has(property, P.gt(values.get(0))).values(property)
-								.as(property);
-					} else if (comparison.equals("<=")) {
-						matchTraversal = matchTraversal.has(property, P.lte(values.get(0))).values(property)
-								.as(property);
-					} else if (comparison.equals(">=")) {
-						matchTraversal = matchTraversal.has(property, P.gte(values.get(0))).values(property)
-								.as(property);
 					}
+				} else {
+					matchTraversal = matchTraversal.values(property).as(property);
 				}
-			} else {
-				matchTraversal = matchTraversal.values(property).as(property);
+
+				propTraversals.add(matchTraversal);
+				propTraversalSelect.add(property);
+
 			}
-
-			propTraversals.add(matchTraversal);
-			propTraversalSelect.add(property);
-
-		}
 
 		return propTraversals;
 
