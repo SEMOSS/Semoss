@@ -1705,9 +1705,9 @@ public abstract class AbstractRJavaReactor extends AbstractJavaReactor {
 	 * @param refresh
 	 *            Whether or not to refresh the corpus
 	 */
-	public void runSemanticMatching(String engines, boolean refresh) {
+	public void runSemanticMatching(String engines, boolean refresh, boolean compareProperties) {
 		if (refresh) {
-			DomainValues dv = new DomainValues(engines.split(";"));
+			DomainValues dv = new DomainValues(engines.split(";"), compareProperties);
 			dv.exportDomainValues();
 		}
 		String corpusDirectory = getBaseFolder() + "\\" + DomainValues.R_BASE_FOLDER + "\\"
@@ -1717,7 +1717,6 @@ public abstract class AbstractRJavaReactor extends AbstractJavaReactor {
 		int nBands = 40;
 		String rFrameName = "compare";
 		ArrayList<String> rCommands = new ArrayList<String>();
-		rCommands.add("1+1");
 		rCommands.add("library(textreuse)");
 		rCommands.add("corpus_minhash <- minhash_generator(n = " + nMinhash + ", seed = 253)");
 		rCommands.add("corpus <- TextReuseCorpus(dir = \"" + corpusDirectory
@@ -1731,6 +1730,15 @@ public abstract class AbstractRJavaReactor extends AbstractJavaReactor {
 		}
 		storeVariable("GRID_NAME", rFrameName);
 		synchronizeFromR();
+		
+		H2Frame frame =  (H2Frame) myStore.get(PKQLEnum.G);
+		String[] headers = frame.getColumnHeaders();
+		for(String s: headers) {
+			System.out.println(s);
+		}
+		
+		List<Object[]> data = frame.getData();
+		
 	}
 	
 }
