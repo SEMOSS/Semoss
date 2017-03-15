@@ -291,49 +291,51 @@ public class MhsGenesisDeploymentSavingsProcessor {
 		// append the last wave for each system
 		this.mainSustainmentFrame = appendLastWaveForSystem(this.mainSustainmentFrame);
 
-		Iterator<Object[]> it = this.mainSustainmentFrame.iterator();
-		try{
-			PrintWriter writer = new PrintWriter("C:\\Users\\mahkhalil\\Desktop\\Datasets\\mainSustainmentTable.csv", "UTF-8");
-			String[] headers = this.mainSustainmentFrame.getColumnHeaders();
-			for(Object val : headers) {
-				writer.print(val + ",");
-			}
-			writer.print("\n");
-			while(it.hasNext()) {
-				Object[] values = it.next();
-				for(Object val : values) {
-					writer.print(val + ",");
-				}
-				writer.print("\n");
-				System.out.println(">>> " + Arrays.toString( values ) );
-			}
-			writer.close();
-		} catch (IOException e) {
-			// do something
-		}
-		LOGGER.info("Done iterating through system sustainment data");
+//		Iterator<Object[]> it = this.mainSustainmentFrame.iterator();
+		//Printing to csv
+//		try{
+//			PrintWriter writer = new PrintWriter("C:\\Users\\mahkhalil\\Desktop\\Datasets\\mainSustainmentTable.csv", "UTF-8");
+//			String[] headers = this.mainSustainmentFrame.getColumnHeaders();
+//			for(Object val : headers) {
+//				writer.print(val + ",");
+//			}
+//			writer.print("\n");
+//			while(it.hasNext()) {
+//				Object[] values = it.next();
+//				for(Object val : values) {
+//					writer.print(val + ",");
+//				}
+//				writer.print("\n");
+//				System.out.println(">>> " + Arrays.toString( values ) );
+//			}
+//			writer.close();
+//		} catch (IOException e) {
+//			// do something
+//		}
+//		LOGGER.info("Done iterating through system sustainment data");
 		
-		it = this.systemSiteSustainmentFrame.iterator();
-		try{
-			PrintWriter writer = new PrintWriter("C:\\Users\\mahkhalil\\Desktop\\Datasets\\siteSpecificSustainment.csv", "UTF-8");
-			String[] headers = this.systemSiteSustainmentFrame.getColumnHeaders();
-			for(Object val : headers) {
-				writer.print(val + ",");
-			}
-			writer.print("\n");
-			while(it.hasNext()) {
-				Object[] values = it.next();
-				for(Object val : values) {
-					writer.print(val + ",");
-				}
-				writer.print("\n");
-				System.out.println(">>> " + Arrays.toString( values ) );
-			}
-			writer.close();
-		} catch (IOException e) {
-			// do something
-		}
-		LOGGER.info("Done iterating through system sustainment data");
+//		it = this.systemSiteSustainmentFrame.iterator();
+
+//		try{
+//			PrintWriter writer = new PrintWriter("C:\\Users\\mahkhalil\\Desktop\\Datasets\\siteSpecificSustainment.csv", "UTF-8");
+//			String[] headers = this.systemSiteSustainmentFrame.getColumnHeaders();
+//			for(Object val : headers) {
+//				writer.print(val + ",");
+//			}
+//			writer.print("\n");
+//			while(it.hasNext()) {
+//				Object[] values = it.next();
+//				for(Object val : values) {
+//					writer.print(val + ",");
+//				}
+//				writer.print("\n");
+//				System.out.println(">>> " + Arrays.toString( values ) );
+//			}
+//			writer.close();
+//		} catch (IOException e) {
+//			// do something
+//		}
+//		LOGGER.info("Done iterating through system sustainment data");
 	}
 
 	private H2Frame appendLastWaveForSystem(H2Frame mainSustainmentFrame) {
