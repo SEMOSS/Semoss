@@ -220,9 +220,6 @@ public class MHSGenesisDeploymentStrategyPlaySheet extends InputPanelPlaySheet {
 						ResultSet systemSavingsRS = systemDeploymentSavings.execQuery(systemSavingsQuery);
 						try {
 							while (systemSavingsRS.next()) {
-								if (status.equals("In Progress")) {
-									System.out.println("SHOULD NOT BE HERE");
-								}
 								value = systemSavingsRS.getDouble(2);
 							}
 							systemSavingsRS.close();
@@ -320,12 +317,6 @@ public class MHSGenesisDeploymentStrategyPlaySheet extends InputPanelPlaySheet {
 					DecimalFormatSymbols symbols = DecimalFormatSymbols.getInstance();
 					symbols.setGroupingSeparator(',');
 					NumberFormat formatter = new DecimalFormat(" ###,##0.00", symbols);
-
-					if (!status.equals("Decommissioned")) {
-						if(value > 0) {
-							System.out.println("WHY?");
-						}
-					}
 					
 					siteData.put("TCostSite", formatter.format(value));
 					siteListData.put(site, siteData);
@@ -488,28 +479,28 @@ public class MHSGenesisDeploymentStrategyPlaySheet extends InputPanelPlaySheet {
 		// iterate through the results for testing
 		// iterate through the results for testing
 		// iterate through the results for testing
-		LOGGER.info("Testing data...");
-		Iterator<Object[]> it = this.systemDeploymentSavings.iterator();
-		System.out.println(">>> " + Arrays.toString( headers ) );
-		try{
-			PrintWriter writer = new PrintWriter("C:\\Users\\rramirezjimenez\\Desktop\\Datasets\\SAVINGS_SystemView.csv", "UTF-8");
-			for(Object val : headers) {
-				writer.print(val + ",");
-			}
-			writer.print("\n");
-			while(it.hasNext()) {
-				Object[] values = it.next();
-				for(Object val : values) {
-					writer.print(val + ",");
-				}
-				writer.print("\n");
-				System.out.println(">>> " + Arrays.toString( values ) );
-			}
-			writer.close();
-		} catch (IOException e) {
-			// do something
-		}
-		LOGGER.info("Done iterating through system deployment savings data");
+//		LOGGER.info("Testing data...");
+//		Iterator<Object[]> it = this.systemDeploymentSavings.iterator();
+//		System.out.println(">>> " + Arrays.toString( headers ) );
+//		try{
+//			PrintWriter writer = new PrintWriter("C:\\Users\\rramirezjimenez\\Desktop\\Datasets\\SAVINGS_SystemView.csv", "UTF-8");
+//			for(Object val : headers) {
+//				writer.print(val + ",");
+//			}
+//			writer.print("\n");
+//			while(it.hasNext()) {
+//				Object[] values = it.next();
+//				for(Object val : values) {
+//					writer.print(val + ",");
+//				}
+//				writer.print("\n");
+//				System.out.println(">>> " + Arrays.toString( values ) );
+//			}
+//			writer.close();
+//		} catch (IOException e) {
+//			// do something
+//		}
+//		LOGGER.info("Done iterating through system deployment savings data");
 	}
 	
 	private void addLocallyDeployedSystemSavings() {
