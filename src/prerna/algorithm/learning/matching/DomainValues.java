@@ -15,28 +15,26 @@ import prerna.util.DIHelper;
 import prerna.util.Utility;
 
 /**
- * This class is used to print out the unique instance values of every concept/property
- * of an engine to a .txt file
+ * This class is used to print out the unique instance values of every
+ * concept/property of an engine to a .txt file
  */
 public class DomainValues {
-	
+
 	private String baseFolder;
 	private String outputFolder;
 	private String[] engineNames;
-	private  HashSet<String> instancesList;
-	private HashSet<Object> propertiesList;
-	public HashSet<String> getInstancesList() {
-		return instancesList;
-	}
-	
+	private boolean compareProperties;
+
 	public static final String REPOSITORY_FOLDER = "MatchingRepository";
+	// used for separating engine from concept or property names
+	public static final String ENGINE_VALUE_DELIMETER = "+++";
 	public static final String R_BASE_FOLDER = "R";
-		
-	public DomainValues(String[] engineNames) {
+
+	public DomainValues(String[] engineNames, boolean compareProperties) {
 		this.baseFolder = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER);
 		this.outputFolder = baseFolder + "\\" + R_BASE_FOLDER + "\\" + REPOSITORY_FOLDER + "\\";
 		this.engineNames = engineNames;
-
+		this.compareProperties = compareProperties;
 	}
 
 	/**
@@ -58,7 +56,7 @@ public class DomainValues {
 		coreEngine.setEngineName(engineName);
 		DIHelper.getInstance().setLocalProperty(engineName, coreEngine);
 	}
-	
+
 	private void printInstanceValues(IEngine engineToAdd) {
 		String engineName = engineToAdd.getEngineName();
 		Writer fileWriter;
@@ -83,16 +81,15 @@ public class DomainValues {
 				continue;
 			}
 
-			String newId = engineName + "_" + cleanConcept;
+			String newId = engineName + ENGINE_VALUE_DELIMETER + cleanConcept;
 
-
-			instancesList = new HashSet<String>();
+			HashSet<String> instancesList = new HashSet<String>();
 			for (Object instance : instances) {
 				instancesList.add(Utility.getInstanceName(instance + ""));
 			}
 
 			try {
-				//TODO this is what the output for concept files will be named
+				// TODO this is what the output for concept files will be named
 				fileWriter = new FileWriter(outputFolder + newId + ".txt");
 				for (String s : instancesList) {
 					fileWriter.write(s.replaceAll("-", "_") + " ");
@@ -103,48 +100,51 @@ public class DomainValues {
 			}
 
 			// see if the concept has properties
-			List<String> propName = engineToAdd.getProperties4Concept(concept, false);
-			if (propName.isEmpty()) {
-				// if no properties, go onto the next concept
-				continue;
-			}
-
-			for (String prop : propName) {
-				// there is no way to get the list of properties for a
-				// specific concept in RDF through the interface
-				// create a query using the concept and the property
-				// name
-				String propQuery = "SELECT DISTINCT ?property WHERE { {?x <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <"
-						+ concept + "> } { ?x <" + prop + "> ?property} }";
-				ISelectWrapper propWrapper = WrapperManager.getInstance().getSWrapper(engineToAdd, propQuery);
-				propertiesList = new HashSet<Object>();
-				while (propWrapper.hasNext()) {
-					ISelectStatement propSS = propWrapper.next();
-					Object property = propSS.getVar("property");
-					if (property instanceof String && !Utility.isStringDate((String) property)) {
-						// replace property underscores with space
-						property = property.toString();
-						propertiesList.add(property);
-					}
+			if (compareProperties) {
+				List<String> propName = engineToAdd.getProperties4Concept(concept, false);
+				if (propName.isEmpty()) {
+					// if no properties, go onto the next concept
+					continue;
 				}
 
-				if (!propertiesList.isEmpty()) {
-					String cleanProp = prop.substring(prop.lastIndexOf("/") + 1);
-					String propId = newId + "_" + cleanProp;
-
-					propertiesList.add(Utility.getInstanceName(prop));
-
-					// write properties
-					try {
-						//TODO this is what the output for property files will be named
-						fileWriter = new FileWriter(outputFolder + "PROP" + propId + ".txt");
-						for (Object o : propertiesList) {
-							String value = o.toString();
-							fileWriter.write(value.replaceAll("-", "_") + " ");
+				for (String prop : propName) {
+					// there is no way to get the list of properties for a
+					// specific concept in RDF through the interface
+					// create a query using the concept and the property
+					// name
+					String propQuery = "SELECT DISTINCT ?property WHERE { {?x <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <"
+							+ concept + "> } { ?x <" + prop + "> ?property} }";
+					ISelectWrapper propWrapper = WrapperManager.getInstance().getSWrapper(engineToAdd, propQuery);
+					HashSet<Object> propertiesList = new HashSet<Object>();
+					while (propWrapper.hasNext()) {
+						ISelectStatement propSS = propWrapper.next();
+						Object property = propSS.getVar("property");
+						if (property instanceof String && !Utility.isStringDate((String) property)) {
+							// replace property underscores with space
+							property = property.toString();
+							propertiesList.add(property);
 						}
-						fileWriter.close();
-					} catch (IOException e) {
-						e.printStackTrace();
+					}
+
+					if (!propertiesList.isEmpty()) {
+						String cleanProp = prop.substring(prop.lastIndexOf("/") + 1);
+						String propId = newId + ENGINE_VALUE_DELIMETER + cleanProp;
+
+						propertiesList.add(Utility.getInstanceName(prop));
+
+						// write properties
+						try {
+							// TODO this is what the output for property files
+							// will be named
+							fileWriter = new FileWriter(outputFolder + "PROP" + propId + ".txt");
+							for (Object o : propertiesList) {
+								String value = o.toString();
+								fileWriter.write(value.replaceAll("-", "_") + " ");
+							}
+							fileWriter.close();
+						} catch (IOException e) {
+							e.printStackTrace();
+						}
 					}
 				}
 			}
