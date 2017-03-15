@@ -1715,22 +1715,46 @@ public abstract class AbstractRJavaReactor extends AbstractJavaReactor {
 		corpusDirectory = corpusDirectory.replace("\\", "/");
 		int nMinhash = 200;
 		int nBands = 40;
+		double similarityThreshold = 0.8;
 		String rFrameName = "compare";
 		ArrayList<String> rCommands = new ArrayList<String>();
+		
+		// TODO load this when starting R?
 		rCommands.add("library(textreuse)");
+		
+		// Perform locality-sensitive hashing
+		// Create a minhash generator
 		rCommands.add("corpus_minhash <- minhash_generator(n = " + nMinhash + ", seed = 253)");
+		
+		// Hash each txt document in the corpus
 		rCommands.add("corpus <- TextReuseCorpus(dir = \"" + corpusDirectory
 				+ "\", tokenizer = tokenize_ngrams, n = 1, minhash_func = corpus_minhash)");
+		
+		// Divide each hash into buckets
 		rCommands.add("buckets <- lsh(corpus, bands = " + nBands + ")");
+		
+		// Determine which pairs have a matching bucket
 		rCommands.add("candidates <- lsh_candidates(buckets)");
+		
+		// Calculate the jaccard similarity of candidate matches
 		rCommands.add(rFrameName + "<- lsh_compare(candidates, corpus, jaccard_similarity)");
+		
+		// Set the frame as a data table
 		rCommands.add("setDT(" + rFrameName + ");");
-		// TODO pull this delimiter from constant
-		rCommands.add("compare[, c(\"a_engine\", \"a_concept\") := tstrsplit(a, \";\", fixed=TRUE)]");
-		rCommands.add("compare[, c(\"b_engine\", \"b_concept\") := tstrsplit(b, \";\", fixed=TRUE)]");
+		
+		// Only accept matches with a similarity greater than the threshold
+		rCommands.add("compare <- compare[score > " + similarityThreshold + ", ]");
+		
+		// Split engine and concept into individual columns
+		rCommands.add("compare[, c(\"a_engine\", \"a_concept\") := tstrsplit(a, \"" + DomainValues.ENGINE_VALUE_DELIMETER + "\", fixed=TRUE)]");
+		rCommands.add("compare[, c(\"b_engine\", \"b_concept\") := tstrsplit(b, \"" + DomainValues.ENGINE_VALUE_DELIMETER + "\", fixed=TRUE)]");
 		rCommands.add("compare[, a:=NULL]");
 		rCommands.add("compare[, b:=NULL]");
-		rCommands.add("compare$semantic_score <- NA");
+		
+		// Add a column for the semantic score
+		rCommands.add("compare$semantic_score <- 0.0");
+		
+		// Run the r commands
 		for (String rCommand : rCommands) {
 			runR(rCommand);
 		}
