@@ -4,6 +4,7 @@ import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Hashtable;
 import java.util.List;
@@ -19,6 +20,7 @@ import org.rosuda.REngine.Rserve.RConnection;
 import cern.colt.Arrays;
 import prerna.algorithm.api.IMetaData;
 import prerna.algorithm.api.ITableDataFrame;
+import prerna.algorithm.learning.matching.DomainValues;
 import prerna.cache.ICache;
 import prerna.ds.QueryStruct;
 import prerna.ds.TinkerFrame;
@@ -1693,4 +1695,42 @@ public abstract class AbstractRJavaReactor extends AbstractJavaReactor {
 			ex.printStackTrace();
 		}
 	}
+	
+	/**
+	 * Identifies matching concepts for federation from the semicolon-delimited
+	 * list of engines.
+	 * 
+	 * @param engines
+	 *            The semicolon-delimited string of engine names
+	 * @param refresh
+	 *            Whether or not to refresh the corpus
+	 */
+	public void runSemanticMatching(String engines, boolean refresh) {
+		if (refresh) {
+			DomainValues dv = new DomainValues(engines.split(";"));
+			dv.exportDomainValues();
+		}
+		String corpusDirectory = getBaseFolder() + "\\" + DomainValues.R_BASE_FOLDER + "\\"
+				+ DomainValues.REPOSITORY_FOLDER;
+		corpusDirectory = corpusDirectory.replace("\\", "/");
+		int nMinhash = 200;
+		int nBands = 40;
+		String rFrameName = "compare";
+		ArrayList<String> rCommands = new ArrayList<String>();
+		rCommands.add("1+1");
+		rCommands.add("library(textreuse)");
+		rCommands.add("corpus_minhash <- minhash_generator(n = " + nMinhash + ", seed = 253)");
+		rCommands.add("corpus <- TextReuseCorpus(dir = \"" + corpusDirectory
+				+ "\", tokenizer = tokenize_ngrams, n = 1, minhash_func = corpus_minhash)");
+		rCommands.add("buckets <- lsh(corpus, bands = " + nBands + ")");
+		rCommands.add("candidates <- lsh_candidates(buckets)");
+		rCommands.add(rFrameName + "<- lsh_compare(candidates, corpus, jaccard_similarity)");
+		rCommands.add("setDT(" + rFrameName + ");");
+		for (String rCommand : rCommands) {
+			runR(rCommand);
+		}
+		storeVariable("GRID_NAME", rFrameName);
+		synchronizeFromR();
+	}
+	
 }
