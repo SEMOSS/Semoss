@@ -23,19 +23,21 @@ public class VizReactor extends AbstractVizReactor {
 
 	@Override
 	public Iterator process() {
-		ITableDataFrame frame = (ITableDataFrame) getValue("G");
-
+		
+		
 		List<Object> selectors = (List<Object>) getValue("VIZ_SELECTOR");
 		List<String> vizTypes = (List<String>) getValue("VIZ_TYPE");
 		List<String> vizFormula = (List<String>) getValue("VIZ_FORMULA");
 		Map<Object, Object> optionsMap = (Map<Object, Object>) getValue(PKQLEnum.MAP_OBJ);
 		
-		if(selectors == null || selectors.size() == 0) {
+		if(selectors == null || selectors.size() == 0 || !(getValue("G") instanceof ITableDataFrame)) {
 			// this is the case when user wants a grid of everything
 			// we do not send back any data through the pkql
 			// they get it in the getNextTableData call
 			return null;
 		}
+		
+		ITableDataFrame frame = (ITableDataFrame) getValue("G");
 		
 		List<String> columns = new Vector<String>();
 
