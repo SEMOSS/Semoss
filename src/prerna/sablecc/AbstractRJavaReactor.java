@@ -1725,6 +1725,12 @@ public abstract class AbstractRJavaReactor extends AbstractJavaReactor {
 		rCommands.add("candidates <- lsh_candidates(buckets)");
 		rCommands.add(rFrameName + "<- lsh_compare(candidates, corpus, jaccard_similarity)");
 		rCommands.add("setDT(" + rFrameName + ");");
+		// TODO pull this delimiter from constant
+		rCommands.add("compare[, c(\"a_engine\", \"a_concept\") := tstrsplit(a, \";\", fixed=TRUE)]");
+		rCommands.add("compare[, c(\"b_engine\", \"b_concept\") := tstrsplit(b, \";\", fixed=TRUE)]");
+		rCommands.add("compare[, a:=NULL]");
+		rCommands.add("compare[, b:=NULL]");
+		rCommands.add("compare$semantic_score <- NA");
 		for (String rCommand : rCommands) {
 			runR(rCommand);
 		}
