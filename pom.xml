@@ -1932,6 +1932,24 @@
 		    <version>0.5.6</version>
 		</dependency>
 		
+		<!-- required for JAWS Java API for WordNet Searching-->
+		<dependency>
+ 			 <groupId>net.sf.extjwnl</groupId>
+ 			 <artifactId>extjwnl</artifactId>
+ 			 <version>1.9.2</version>
+		</dependency>
+		<dependency>
+ 			 <groupId>net.sf.extjwnl</groupId>
+  			<artifactId>extjwnl-data-wn31</artifactId>
+ 			 <version>1.2</version>
+		</dependency>
+		<dependency>
+    		<groupId>de.sciss</groupId>
+    		<artifactId>ws4j</artifactId>
+    		<version>0.1.0</version>
+		</dependency>  
+		
+		
 		<!-- required for Apache Storm -->
 		<dependency>
     		<groupId>junit</groupId>
