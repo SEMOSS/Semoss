@@ -27,7 +27,7 @@ public class DomainValues {
 
 	public static final String REPOSITORY_FOLDER = "MatchingRepository";
 	// used for separating engine from concept or property names
-	public static final String ENGINE_VALUE_DELIMETER = "+++";
+	public static final String ENGINE_VALUE_DELIMETER = ";";
 	public static final String R_BASE_FOLDER = "R";
 
 	public DomainValues(String[] engineNames, boolean compareProperties) {
