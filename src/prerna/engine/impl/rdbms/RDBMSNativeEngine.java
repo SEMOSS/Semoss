@@ -586,10 +586,12 @@ public class RDBMSNativeEngine extends AbstractEngine {
 		logger.debug("Deleting RDBMS Engine: " + this.engineName);
 
 		// If this DB is not an H2, just delete the schema the data was added into, not the existing DB instance
-		if (this.getDbType() != SQLQueryUtil.DB_TYPE.H2_DB) {
-			String deleteText = SQLQueryUtil.initialize(dbType).getDialectDeleteDBSchema(this.engineName);
-			insertData(deleteText);
-		}
+		//WHY ARE WE DELETING THE SOURCE DATABSE????
+		//COMMENTING THIS OUT FOR NOW
+//		if (this.getDbType() != SQLQueryUtil.DB_TYPE.H2_DB) {
+//			String deleteText = SQLQueryUtil.initialize(dbType).getDialectDeleteDBSchema(this.engineName);
+//			insertData(deleteText);
+//		}
 
 		// Close the Insights RDBMS connection, the actual connection, and delete the folders
 		try {
