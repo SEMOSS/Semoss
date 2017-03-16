@@ -1,14 +1,17 @@
 package prerna.algorithm.learning.matching;
 
+import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.io.Writer;
 import java.util.HashSet;
 import java.util.List;
+
+import org.apache.commons.io.FileUtils;
+
 import prerna.engine.api.IEngine;
 import prerna.engine.api.ISelectStatement;
 import prerna.engine.api.ISelectWrapper;
-import prerna.engine.impl.rdf.BigDataEngine;
 import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
@@ -25,36 +28,30 @@ public class DomainValues {
 	private String[] engineNames;
 	private boolean compareProperties;
 
-	public static final String REPOSITORY_FOLDER = "MatchingRepository";
 	// used for separating engine from concept or property names
 	public static final String ENGINE_VALUE_DELIMETER = ";";
-	public static final String R_BASE_FOLDER = "R";
 
 	public DomainValues(String[] engineNames, boolean compareProperties) {
 		this.baseFolder = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER);
-		this.outputFolder = baseFolder + "\\" + R_BASE_FOLDER + "\\" + REPOSITORY_FOLDER + "\\";
+		this.outputFolder = baseFolder + "\\" + Constants.R_BASE_FOLDER + "\\" + Constants.R_MATCHING_REPO_FOLDER + "\\";
 		this.engineNames = engineNames;
 		this.compareProperties = compareProperties;
 	}
 
 	/**
 	 * Export domain values as text files.
+	 * @throws IOException 
 	 */
-	public void exportDomainValues() {
+	public void exportDomainValues() throws IOException {
+		
+		// Wipe out the old files
+		FileUtils.cleanDirectory(new File(outputFolder));
+		
+		// Refresh the corpus
 		for (String engineName : engineNames) {
-			loadEngine(engineName);
 			IEngine engine = (IEngine) Utility.getEngine(engineName);
 			printInstanceValues(engine);
 		}
-	}
-
-	private void loadEngine(String engineName) {
-		String engineProp = baseFolder + "\\db\\" + engineName + ".smss";
-		IEngine coreEngine = new BigDataEngine();
-		coreEngine.setEngineName(engineName);
-		coreEngine.openDB(engineProp);
-		coreEngine.setEngineName(engineName);
-		DIHelper.getInstance().setLocalProperty(engineName, coreEngine);
 	}
 
 	private void printInstanceValues(IEngine engineToAdd) {
@@ -150,5 +147,5 @@ public class DomainValues {
 			}
 		}
 	}
-
+	
 }

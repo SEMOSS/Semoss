@@ -1785,68 +1785,76 @@ public abstract class AbstractRJavaReactor extends AbstractJavaReactor {
 	public void runSemanticMatching(String engines, boolean refresh, boolean compareProperties) {
 		if (refresh) {
 			DomainValues dv = new DomainValues(engines.split(";"), compareProperties);
-			dv.exportDomainValues();
+			try {
+				dv.exportDomainValues();
+			} catch (IOException e) {
+				LOGGER.error("Failed to refresh corpus");
+				e.printStackTrace();
+			}
 		}
-		String corpusDirectory = getBaseFolder() + "\\" + DomainValues.R_BASE_FOLDER + "\\"
-				+ DomainValues.REPOSITORY_FOLDER;
+		String corpusDirectory = getBaseFolder() + "\\" + Constants.R_BASE_FOLDER + "\\"
+				+ Constants.R_MATCHING_REPO_FOLDER;
 		corpusDirectory = corpusDirectory.replace("\\", "/");
 		int nMinhash = 200;
 		int nBands = 40;
 		double similarityThreshold = 0.8;
-		String rFrameName = "compare";
+		String rFrameName = "dt";
 		ArrayList<String> rCommands = new ArrayList<String>();
 		
-		// TODO load this when starting R?
+		String utilityScriptPath = getBaseFolder() + "\\" + Constants.R_BASE_FOLDER + "\\" + Constants.R_ANALYTICS_SCRIPTS_FOLDER + "\\" + Constants.R_UTILITY_SCRIPT;
+		utilityScriptPath = utilityScriptPath.replace("\\", "/");
+
+		// TODO add this library to the list when starting R
+		// This is also called in the function,
+		// but by calling it here we can see if the use doesn't have the package
 		rCommands.add("library(textreuse)");
+		rCommands.add("source(\"" + utilityScriptPath + "\");");
 		
-		// Perform locality-sensitive hashing
-		// Create a minhash generator
-		rCommands.add("corpus_minhash <- minhash_generator(n = " + nMinhash + ", seed = 253)");
-		
-		// Hash each txt document in the corpus
-		rCommands.add("corpus <- TextReuseCorpus(dir = \"" + corpusDirectory
-				+ "\", tokenizer = tokenize_ngrams, n = 1, minhash_func = corpus_minhash)");
-		
-		// Divide each hash into buckets
-		rCommands.add("buckets <- lsh(corpus, bands = " + nBands + ")");
-		
-		// Determine which pairs have a matching bucket
-		rCommands.add("candidates <- lsh_candidates(buckets)");
-		
-		// Calculate the jaccard similarity of candidate matches
-		rCommands.add(rFrameName + "<- lsh_compare(candidates, corpus, jaccard_similarity)");
-		
-		// Set the frame as a data table
-		rCommands.add("setDT(" + rFrameName + ");");
-		
-		// Only accept matches with a similarity greater than the threshold
-		rCommands.add("compare <- compare[score > " + similarityThreshold + ", ]");
+		// Run locality sensitive hashing to generate matches
+		rCommands.add(rFrameName + " <- " + Constants.R_LSH_MATCHING_FUN + "(\"" + corpusDirectory + "\", " + nMinhash + ", " + nBands + ", " + similarityThreshold + ")");
 		
 		// Split engine and concept into individual columns
-		rCommands.add("compare[, c(\"a_engine\", \"a_concept\") := tstrsplit(a, \"" + DomainValues.ENGINE_VALUE_DELIMETER + "\", fixed=TRUE)]");
-		rCommands.add("compare[, c(\"b_engine\", \"b_concept\") := tstrsplit(b, \"" + DomainValues.ENGINE_VALUE_DELIMETER + "\", fixed=TRUE)]");
-		rCommands.add("compare[, a:=NULL]");
-		rCommands.add("compare[, b:=NULL]");
-		
-		// Add a column for the semantic score
-		rCommands.add("compare$semantic_score <- 0.0");
+		// TODO parameterize all of these names here
+		rCommands.add(rFrameName + "[, c(\"item_engine\", \"item_concept\") := tstrsplit(item, \"" + DomainValues.ENGINE_VALUE_DELIMETER + "\", fixed=TRUE)]");
+		rCommands.add(rFrameName + "[, c(\"match_engine\", \"match_concept\") := tstrsplit(match, \"" + DomainValues.ENGINE_VALUE_DELIMETER + "\", fixed=TRUE)]");
+		rCommands.add(rFrameName + "[, item:=NULL]");
+		rCommands.add(rFrameName + "[, match:=NULL]");
+		rCommands.add("setcolorder(" + rFrameName + ", c(\"item_engine\", \"item_concept\", \"match_engine\", \"match_concept\", \"score\"))");
 		
 		// Run the r commands
 		for (String rCommand : rCommands) {
 			runR(rCommand);
 		}
+		
+		// Synchronize from R
 		storeVariable("GRID_NAME", rFrameName);
 		synchronizeFromR();
-
+				
+		// Calculate the semantic score
 		H2Frame frame = (H2Frame) myStore.get(PKQLEnum.G);
-
 		if (!frame.isEmpty()) {
 			JawsSemanticMatching jaws = new JawsSemanticMatching();
-			Object[] concept1 = frame.getColumn("a_concept");
-			Object[] concept2 = frame.getColumn("b_concept");
+			Object[] concept1 = frame.getColumn("item_concept");
+			Object[] concept2 = frame.getColumn("match_concept");
 			double[] semanticScore = jaws.generateSemanticScore(concept1, concept2);
+			
+			// TODO figure out why huge scores come back
+			// Replace scores greater than 1 that occur when the words are the same
+			for (int i = 0; i < semanticScore.length; i++) {
+				if (semanticScore[i] > 1) {
+					semanticScore[i] = 1;
+				}
+			}
+			String semanticScoreString = Arrays.toString(semanticScore);
+			semanticScoreString = semanticScoreString.replace("[", "(");
+			semanticScoreString = semanticScoreString.replace("]", ")");
+			System.out.println(semanticScoreString);
+						
+			// Add a column for the semantic score
+			runR(rFrameName + "$semantic_score <- list" + semanticScoreString);
+			runR(rFrameName + "[, semantic_score:=as.numeric(semantic_score)]");
+			synchronizeFromR();
 		}
-
 	}
 
 }
