@@ -16,6 +16,7 @@ import prerna.algorithm.learning.r.RRoutineException;
 import prerna.algorithm.learning.unsupervised.anomaly.AnomalyDetector;
 import prerna.algorithm.learning.unsupervised.anomaly.AnomalyDetector.AnomDirection;
 import prerna.ds.DataFrameHelper;
+import prerna.ds.TinkerAlgorithmUtility;
 import prerna.ds.TinkerFrame;
 import prerna.ds.h2.H2Frame;
 import prerna.ds.sqlserver.SqlServerFrame;
@@ -826,6 +827,16 @@ public abstract class AbstractJavaReactor extends AbstractReactor {
 		}		
 		java.lang.System.setSecurityManager(reactorManager);
 	}
+	
+	protected void runLoopIdentifer(int cycleSize) {
+		java.lang.System.setSecurityManager(curManager);
+		if(dataframe instanceof TinkerFrame)
+		{
+			String loops = TinkerAlgorithmUtility.runLoopIdentifer((TinkerFrame) dataframe, cycleSize);
+			System.out.println(loops);
+		}
+		java.lang.System.setSecurityManager(reactorManager);
+	}	
 	
 	////////////////////////////////////////////////////////////////
 	////////////////////////////////////////////////////////////////
