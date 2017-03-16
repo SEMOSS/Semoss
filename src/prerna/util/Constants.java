@@ -502,4 +502,17 @@ public class Constants {
 	
 	//Tinker engine
 	public static final String TINKER_FILE = "TINKER_FILE";
+	
+	// Working directories used for R
+	public static final String R_BASE_FOLDER = "R";
+	public static final String R_ANALYTICS_SCRIPTS_FOLDER = "AnalyticsRoutineScripts";
+	public static final String R_USER_SCRIPTS_FOLDER = "UserScripts";
+	public static final String R_MATCHING_REPO_FOLDER = "MatchingRepository";
+	
+	// Utility script with custom functions for R
+	public static final String R_UTILITY_SCRIPT = "Utility.R";
+	
+	// Function name to calculate locality sensitive hashing
+	public static final String R_LSH_MATCHING_FUN = "run_lsh_matching";
+	
 }
