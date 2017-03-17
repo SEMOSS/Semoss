@@ -4,47 +4,25 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.Arrays;
-import java.util.Hashtable;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
-import java.util.Vector;
 
 import org.apache.log4j.Level;
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
-import org.rosuda.REngine.REXP;
-import org.rosuda.REngine.REXPMismatchException;
-import org.rosuda.REngine.Rserve.RConnection;
-import org.rosuda.REngine.Rserve.RserveException;
 
-import prerna.algorithm.api.IMetaData;
 import prerna.algorithm.api.ITableDataFrame;
-import prerna.algorithm.learning.r.RRoutine.Builder.RRoutineType;
-import prerna.ds.QueryStruct;
-import prerna.ds.TinkerMetaHelper;
-import prerna.ds.h2.H2Frame;
-import prerna.ds.util.FileIterator;
-import prerna.ds.util.FileIterator.FILE_DATA_TYPE;
-import prerna.poi.main.HeadersException;
+import prerna.sablecc.PKQLRunner;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
-import prerna.util.Utility;
 
-/**
- * This class runs an R script on a data frame to produce a new data frame and
- * R-object result.
- * 
- * @author
- *
- */
 public class RRoutine {
 
 	/**
 	 * This builder constructs an RRoutine object with or without optional
 	 * parameters.
 	 * 
-	 * @author
+	 * @author tbanach
 	 *
 	 */
 	public static class Builder {
@@ -62,13 +40,21 @@ public class RRoutine {
 			ANALYTICS, USER
 		}
 
+		// Required parameters
 		private ITableDataFrame dataFrame;
+		private PKQLRunner pkql;
 		private String scriptName;
 		private String rSyncFrameName;
-		private String[] selectedColumns;
+
+		// Optional parameters
+		private String selectedColumns;
 		private String rReturnFrameName;
 		private String[] arguments;
 		private RRoutineType routineType;
+
+		// Derived parameters
+		private String scriptsDirectory;
+		private String utilityScriptPath;
 
 		/**
 		 * Sets the default parameters for an RRoutine.
@@ -76,6 +62,8 @@ public class RRoutine {
 		 * @param dataFrame
 		 *            The ITableDataFrame that is synchronized to R as
 		 *            rSyncFrameName
+		 * @param pkql
+		 *            The PKQLRunner used to execute Java reactor methods
 		 * @param scriptName
 		 *            The name of the script (ending in .R) that will be applied
 		 *            to the data frame. RRoutine will look for this script in
@@ -83,8 +71,9 @@ public class RRoutine {
 		 * @param rSyncFrameName
 		 *            The name of the R frame synchronized to R
 		 */
-		public Builder(ITableDataFrame dataFrame, String scriptName, String rSyncFrameName) {
+		public Builder(ITableDataFrame dataFrame, PKQLRunner pkql, String scriptName, String rSyncFrameName) {
 			this.dataFrame = dataFrame;
+			this.pkql = pkql;
 			this.scriptName = scriptName;
 			this.rSyncFrameName = rSyncFrameName;
 		}
@@ -95,11 +84,34 @@ public class RRoutine {
 		 * @return RRoutine
 		 */
 		public RRoutine build() {
-			RRoutine rRoutine = new RRoutine(dataFrame, scriptName, rSyncFrameName);
+			String scriptFolder;
+			if (routineType == null) {
+				routineType = RRoutineType.USER;
+			}
+			switch (routineType) {
+			case ANALYTICS:
+				scriptFolder = Constants.R_ANALYTICS_SCRIPTS_FOLDER;
+				break;
+			case USER:
+				scriptFolder = Constants.R_USER_SCRIPTS_FOLDER;
+				break;
+			default:
+				scriptFolder = Constants.R_USER_SCRIPTS_FOLDER;
+				break;
+			}
+			scriptsDirectory = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER) + "\\"
+					+ Constants.R_BASE_FOLDER + "\\" + scriptFolder;
+			utilityScriptPath = scriptsDirectory + "\\" + Constants.R_UTILITY_SCRIPT;
+
+			// If there is no return frame name, then use the sync frame name
+			if (rReturnFrameName == null || rReturnFrameName.length() == 0) {
+				rReturnFrameName = rSyncFrameName;
+			}
+			RRoutine rRoutine = new RRoutine(dataFrame, pkql, scriptName, rSyncFrameName, rReturnFrameName,
+					scriptsDirectory, utilityScriptPath);
 			rRoutine.selectedColumns = selectedColumns;
 			rRoutine.rReturnFrameName = rReturnFrameName;
 			rRoutine.arguments = arguments;
-			rRoutine.routineType = routineType;
 			return rRoutine;
 		}
 
@@ -113,7 +125,7 @@ public class RRoutine {
 		 * @return this Builder
 		 */
 		public Builder selectedColumns(String selectedColumns) {
-			this.selectedColumns = selectedColumns.split(";");
+			this.selectedColumns = selectedColumns;
 			return this;
 		}
 
@@ -169,333 +181,65 @@ public class RRoutine {
 		}
 	}
 
-	// User given
 	// Required
 	private ITableDataFrame dataFrame;
+	private PKQLRunner pkql;
 	private String scriptName;
 	private String rSyncFrameName;
-
-	// Optional
-	private String[] selectedColumns;
-	private String rReturnFrameName;
-	private String[] arguments;
-	private RRoutineType routineType;
-
-	// Defined in constructor
-	private String baseDirectory;
 	private String scriptsDirectory;
 	private String utilityScriptPath;
-	private String driversDirectory;
-	private String h2ClassPath;
-	private String tempDirectory;
-	private String[] originalHeaders;
-	private IMetaData.DATA_TYPES[] originalTypes;
-	private String originalTableName;
 
-	// Rserve connections
-	private RConnection rMasterConnection;
-	private RConnection rserveConnection;
+	// Optional
+	private String selectedColumns;
+	private String rReturnFrameName;
+	private String[] arguments;
 
 	// Constants
-	private static final String R_BASE_FOLDER = "R";
-	private static final String ANALYTICS_SCRIPTS_FOLDER = "AnalyticsRoutineScripts";
-	private static final String USER_SCRIPTS_FOLDER = "UserScripts";
-	private static final String UTILITY_SCRIPT = "Utility.R";
-	private static final String DRIVERS_FOLDER = "RDFGraphLib";
-	private static final String TEMP_FOLDER = "Temp";
-	private static final String MASTER_HOST = "127.0.0.1";
-	private static final int MASTER_PORT = 6311; // Default Rserve port
-	private static final String DRIVER_VAR = "driver";
-	private static final String DRIVER_CONNECTION_VAR = "connection";
-	private static final String H2_DRIVER = "org.h2.Driver";
-	private static final String H2_JAR = "h2-1.4.185.jar";
-	private static final String H2_USERNAME = "sa";
 	private static final String R_ARGS_VAR = "args";
-	private static final String R_GET_RESULT_FUN = "GetResult();";
-
-	// Results
-	// Also keep track of whether the routine has been run,
-	// to avoid computing the results more than once
-	private boolean runRoutineCompleted = false;
-	private H2Frame dataFrameResult;
-	private REXP rObjectResult;
-
 	private static final Logger LOGGER = LogManager.getLogger(RRoutine.class.getName());
 
-	/**
-	 * Constructs a new immutable RRoutine object. This constructor only accepts
-	 * required parameters. To add optional parameters, use RRoutine.Builder.
-	 * 
-	 * @param dataFrame
-	 *            The ITableDataFrame that is synchronized to R as
-	 *            rSyncFrameName
-	 * @param scriptName
-	 *            The name of the script (ending in .R) that will be applied to
-	 *            the data frame. RRoutine will look for this script in (Semoss
-	 *            base folder)/R/AnalyticsRoutineScripts/
-	 * @param rSyncFrameName
-	 *            The name of the R frame synchronized to R
-	 */
-	public RRoutine(ITableDataFrame dataFrame, String scriptName, String rSyncFrameName) {
+	private RRoutine(ITableDataFrame dataFrame, PKQLRunner pkql, String scriptName, String rSyncFrameName,
+			String rReturnFrameName, String scriptsDirectory, String utilityScriptPath) {
 		this.dataFrame = dataFrame;
+		this.pkql = pkql;
 		this.scriptName = scriptName;
 		this.rSyncFrameName = rSyncFrameName;
-
-		// Determine variables that are independent of optional parameters
-		// Since optional parameters are set by RRoutine's builder after
-		// constructing the instance, any variables that depend on optional
-		// parameters must be determined after constructing the instance
-		// This is done in determineScriptsDirectory method
-		baseDirectory = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER);
-		driversDirectory = baseDirectory + "\\" + DRIVERS_FOLDER;
-		h2ClassPath = driversDirectory + "\\" + H2_JAR;
-		tempDirectory = baseDirectory + "\\" + R_BASE_FOLDER + "\\" + TEMP_FOLDER;
-		originalHeaders = dataFrame.getColumnHeaders();
-		originalTypes = new IMetaData.DATA_TYPES[originalHeaders.length];
-		for (int i = 0; i < originalHeaders.length; i++) {
-			originalTypes[i] = dataFrame.getDataType(originalHeaders[i]);
-		}
-		originalTableName = dataFrame.getTableName();
+		this.rReturnFrameName = rReturnFrameName;
+		this.scriptsDirectory = scriptsDirectory;
+		this.utilityScriptPath = utilityScriptPath;
 		LOGGER.setLevel(Level.INFO);
 	}
 
 	/**
-	 * Runs this RRoutine's R script on the data frame (if not already
-	 * completed), then returns the transformed frame. The data frame is
-	 * synchronized to R using this RRoutine's rSyncFrameName. The R frame given
-	 * by rReturnFrameName after running the R script is stored in this RRoutine
-	 * instance and returned as a new frame.
+	 * Runs this routine by 1) synchronizing this RRoutine's frame to R, 2)
+	 * sourcing utility functions from Utility.R for use, 3) synchronizing this
+	 * RRoutine's arguments to R as a list, 4) running this RRoutine's .R
+	 * script, 5) synchronizing a frame from R.
 	 * 
-	 * RRoutine will only execute its R script once, to avoid calculating the
-	 * same results more than once (RRoutine is an immutable object; therefore,
-	 * the same RRoutine instance should always produces the same result). If
-	 * returnDataFrame() or returnResult() are called after the script has been
-	 * executed (by a previous call to either of these methods), they will
-	 * return the result stored in this RRoutine instance, rather than
-	 * re-compute it.
-	 * 
-	 * @return ITableDataFrame - The new data frame that is the result of
-	 *         running the R routine
+	 * @return ITableDataFrame - The frame that is synchronized from R
 	 * @throws RRoutineException
 	 */
-	public ITableDataFrame returnDataFrame() throws RRoutineException {
-		if (runRoutineCompleted) {
-			return dataFrameResult;
-		} else {
-			runRoutine();
-			return dataFrameResult;
-		}
-	}
+	public ITableDataFrame runRoutine() throws RRoutineException {
 
-	/**
-	 * Runs this RRoutine's R script on the data frame (if not already
-	 * completed), then returns the transformed frame. The data frame is
-	 * synchronized to R using this RRoutine's rSyncFrameName. If this
-	 * RRoutine's R script defines a GetResult() function that returns the
-	 * result of some analysis on the data frame, then the result is stored in
-	 * this RRoutine instance as an R object (REXP) and returned. A default
-	 * GetResult() function that returns null is also sourced before executing
-	 * this RRoutine's script, in case this RRoutine's script does not define
-	 * (essentially override) this function.
-	 * 
-	 * RRoutine will only execute its R script once, to avoid calculating the
-	 * same results more than once (RRoutine is an immutable object; therefore,
-	 * the same RRoutine instance should always produces the same result). If
-	 * returnDataFrame() or returnResult() are called after the script has been
-	 * executed (by a previous call to either of these methods), they will
-	 * return the result stored in this RRoutine instance, rather than
-	 * re-compute it.
-	 * 
-	 * @return REXP - The R object that is the result of running the R routine
-	 * @throws RRoutineException
-	 */
-	public REXP returnResult() throws RRoutineException {
-		if (runRoutineCompleted) {
-			return rObjectResult;
-		} else {
-			runRoutine();
-			return rObjectResult;
-		}
-	}
+		// Source utility functions
+		String path = utilityScriptPath.replace("\\", "/");
+		LOGGER.info("Sourcing R utility functions from " + utilityScriptPath);
+		r("source(\"" + path + "\");");
 
-	// Runs the routine and stores whether the routine has been completed
-	private void runRoutine() throws RRoutineException {
-
-		// TODO implement other frame types
-		if (!(dataFrame instanceof H2Frame)) {
-			throw new RRoutineException("Data must be an H2Frame");
-		}
-
-		// Cannot be done in constructor, because the scriptsDirectory depends
-		// on the optional parameter routineType
-		determineScriptsDirectory();
-
-		// All the below helper methods throw an RRoutineException and are
-		// uncaught, except for connectToR() and initializeDriver(), which throw
-		// RserveExceptions
-		// They are caught at this level so that a finally block can be used to
-		// close connections in the event of an error
-		try {
-			connectToR();
-			sourceUtilityFunctions();
-			synchronizeArgumentsToR();
-			try {
-
-				// For now, I am enforcing that the frame must be H2
-				// Therefore it is safe to cast the frame as an H2Frame
-				String url1 = ((H2Frame) dataFrame).getBuilder().connectFrame();
-				url1 = url1.replace("\\", "/");
-
-				// Initialize the H2 driver to facilitate synchronization
-				// between Java and R
-				initializeDriver(H2_DRIVER, h2ClassPath, url1, H2_USERNAME);
-
-				// Synchronize to R and run the script
-				synchronizeFrameToR();
-				runScript();
-
-				// Retrieve the results of the routine
-				retrieveFrameFromR();
-				retrieveResultFromR();
-
-				// Now that the routine has been completed, drop the original
-				// table from sql so that it does not persist after the garbage
-				// collector has removed the original data frame object
-				((H2Frame) dataFrame).dropTable();
-
-				// Mark that the routine has already been run
-				runRoutineCompleted = true;
-				LOGGER.info("Successfully ran R routine");
-			} catch (RserveException e) {
-				throw new RRoutineException("Failed to initialize driver", e);
-			} finally {
-
-				// Clean up connections
-				try {
-					disconnectDriver();
-				} catch (RserveException e) {
-					LOGGER.warn("Failed to disconnect driver");
-					e.printStackTrace();
-				}
-
-				// Disconnect the frame but don't close the connection
-				// The thread will disconnect, but the frame will still be
-				// available to connect to in the event of an error
-				// If an error is thrown, RRoutine will not return a new frame,
-				// and the old one should still be available to connect to
-				((H2Frame) dataFrame).getBuilder().disconnectFrame();
-			}
-		} catch (RserveException e) {
-			throw new RRoutineException("Failed to connect to Rserve", e);
-		} finally {
-
-			// Clean up connections
-			try {
-				closeRConnection();
-			} catch (RserveException e) {
-				LOGGER.warn("Failed to close connection to R");
-				e.printStackTrace();
-			}
-		}
-	}
-
-	// Helper methods for runRoutine
-
-	// Set the scripts directory based on the routine type
-	// If routine type is omitted, then use the user scripts folder by
-	// default
-	private void determineScriptsDirectory() {
-		String scriptFolder;
-		if (routineType == null) {
-			routineType = RRoutineType.USER;
-		}
-		switch (routineType) {
-		case ANALYTICS:
-			scriptFolder = ANALYTICS_SCRIPTS_FOLDER;
-			break;
-		case USER:
-			scriptFolder = USER_SCRIPTS_FOLDER;
-			break;
-		default:
-			scriptFolder = USER_SCRIPTS_FOLDER;
-			break;
-		}
-		scriptsDirectory = baseDirectory + "\\" + R_BASE_FOLDER + "\\" + scriptFolder;
-		utilityScriptPath = scriptsDirectory + "\\" + UTILITY_SCRIPT;
-	}
-
-	// Sources an R script with utility functions,
-	// so that they are available when executing the script
-	// Includes default GetResult() function that returns null
-	private void sourceUtilityFunctions() throws RRoutineException {
-		try {
-			String path = utilityScriptPath.replace("\\", "/");
-			r("source(\"" + path + "\");");
-			LOGGER.info("Sourced R utility functions from " + utilityScriptPath);
-		} catch (RserveException e) {
-			throw new RRoutineException("Failed to source R utility functions from " + utilityScriptPath, e);
-		}
-	}
-
-	// Synchronizes the arguments to R as the list args
-	private void synchronizeArgumentsToR() throws RRoutineException {
+		// Synchronize the arguments list as args if there are any arguments
 		if (arguments != null && arguments.length > 0) {
 			String argumentsScript = "list(" + Arrays.stream(arguments).reduce((a, b) -> a + ", " + b).get() + ")";
-			try {
-				r(R_ARGS_VAR + " <- " + argumentsScript + ";");
-				LOGGER.info("Syncronized the arguments " + argumentsScript + " to R");
-			} catch (RserveException e) {
-				throw new RRoutineException("Failed to synchronize the arguments " + argumentsScript + " to R", e);
-			}
-		}
-	}
-
-	// Synchronizes the frame to R as rSyncFrameName
-	private void synchronizeFrameToR() throws RRoutineException {
-
-		// Determine the correct headers to synchronize to R
-		String[] correctHeaders;
-		if (selectedColumns == null || selectedColumns.length == 0 || selectedColumns.equals("*")) {
-
-			// Use all original headers in cases where there are no selected
-			// columns, or in cases where the selected columns are * for all
-			// Note that * is not used as the selectors string, as * may not
-			// preserve column order in R
-			correctHeaders = originalHeaders;
-		} else {
-
-			// Otherwise, use the selected columns
-			correctHeaders = selectedColumns;
+			LOGGER.info("Syncronizing the arguments " + argumentsScript + " to R");
+			r(R_ARGS_VAR + " <- " + argumentsScript);
 		}
 
-		// Create the string of selectors with which to build the new R frame
-		String selectors = Arrays.stream(correctHeaders).reduce((a, b) -> a + ", " + b).get();
-
-		// Try to synchronize the frame
-		try {
-
-			// R code that synchronizes the frame to R
-			r(rSyncFrameName + " <- as.data.table(unclass(dbGetQuery(" + DRIVER_CONNECTION_VAR + ", 'SELECT "
-					+ selectors + " FROM " + originalTableName + "')));");
-
-			// Make sure the frame is a data table
-			r("setDT(" + rSyncFrameName + ");");
-
-			// Make sure the synchronized header names are equivalent to the
-			// original headers
-			String correctNames = "c("
-					+ Arrays.stream(correctHeaders).map(h -> "'" + h + "'").reduce((a, b) -> a + "," + b).get() + ")";
-			String currentNames = "c(" + Arrays.stream(determineRHeaders(rSyncFrameName)).map(h -> "'" + h + "'")
-					.reduce((a, b) -> a + "," + b).get() + ")";
-			r("setnames(" + rSyncFrameName + ", old = " + currentNames + ", new = " + correctNames + ");");
-			LOGGER.info("Synchronized frame to R as " + rSyncFrameName);
-		} catch (RserveException | REXPMismatchException e) {
-			throw new RRoutineException("Failed to synchronize dataframe to R", e);
+		// TODO implement selectors, for now just synchronize the entire frame
+		if (selectedColumns != null && selectedColumns.length() != 0 && !selectedColumns.equals("*")) {
+			// Then safe to use selectors
 		}
-	}
 
-	// Runs the .R script by streaming in the file
-	private void runScript() throws RRoutineException {
+		// Synchronize to R as rSyncFrameName, run the script, and synchronize
+		// back
 		try {
 
 			// Stream the lines, trim white spaces, remove semicolons at the end
@@ -505,173 +249,49 @@ public class RRoutine {
 			String script = Files.readAllLines(Paths.get(scriptsDirectory + "\\" + scriptName)).stream()
 					.map(String::trim).map(l -> l.replaceAll(";$", ""))
 					.filter(l -> (!l.startsWith("#") && !l.isEmpty())).reduce((a, b) -> a + ";" + b).get() + ";";
-			try {
-				r(script);
-				LOGGER.info("Successfully ran the script " + script);
-			} catch (RserveException e) {
-				throw new RRoutineException("Failed to run the script: " + script, e);
-			}
+			LOGGER.info("Running the script " + script);
+			script = script.replaceAll("\"", "\\\\\\\"");
+
+			// synchronizeFromR uses the "GRID_NAME" variable to decide which
+			// frame to push back
+			j("synchronizeToR(\"" + rSyncFrameName + "\");runR(\"" + script + "\");storeVariable(\"GRID_NAME\", \""
+					+ rReturnFrameName + "\");synchronizeFromR();");
 		} catch (IOException e) {
 			throw new RRoutineException("Failed to read " + scriptsDirectory + "\\" + scriptName, e);
 		}
+
+		// Return the output string
+		LOGGER.info("Successfully ran R routine");
+		return (ITableDataFrame) pkql.getDataFrame();
 	}
 
-	// Retrieves the frame given by rReturnFrameName if this parameter is
-	// defined, otherwise returns the frame that was synchronized to R
-	// It is much simpler to create an entirely new frame,
-	// so that is what I am doing here (Occam's Razor)
-	private void retrieveFrameFromR() throws RRoutineException {
+	// Helper methods for runRoutine
+	private void r(String script) throws RRoutineException {
 
-		// If the rReturnFrameName is undefined,
-		// then retrieve the frame that was synchronized to R
-		if (rReturnFrameName == null || rReturnFrameName.length() == 0) {
-			rReturnFrameName = rSyncFrameName;
+		// \\ \\ \\ \" -> \\ \" -> \"
+		script = script.replaceAll("\"", "\\\\\\\"");
+		j("runR(\"" + script + "\");");
+	}
+
+	// Suppress warnings when grabbing the pqkl result
+	@SuppressWarnings({ "unchecked", "rawtypes" })
+	private void j(String java) throws RRoutineException {
+
+		// Run the java code in a pkql
+		pkql.runPKQL("meta.j: <code>" + java + "<code>;", dataFrame);
+
+		// Retrieve the result
+		List<Map> results = pkql.getResults();
+		Map<String, Object> lastResult = results.get(results.size() - 1);
+
+		// Parse the result
+		String command = lastResult.get("command").toString();
+		String status = lastResult.get("status").toString();
+
+		// If there was an error running the pkql, throw a new exception
+		if (status.equals("ERROR")) {
+			throw new RRoutineException("Failed to run the command " + command);
 		}
-
-		try {
-
-			// Get the headers and types from the R frame
-			String[] headers = determineRHeaders(rReturnFrameName);
-			String[] types = determineRStringTypes(rReturnFrameName);
-
-			// Clean the headers
-			// Semoss is more particular than R with frame headers
-			List<String> cleanHeaders = new Vector<String>();
-			HeadersException headerException = HeadersException.getInstance();
-			for (int i = 0; i < headers.length; i++) {
-				String cleanHeader = headerException.recursivelyFixHeaders(headers[i], cleanHeaders);
-				cleanHeaders.add(cleanHeader);
-			}
-			headers = cleanHeaders.toArray(new String[] {});
-
-			// Create a data type map and a query structure
-			QueryStruct qs = new QueryStruct();
-			Map<String, IMetaData.DATA_TYPES> dataTypeMap = new Hashtable<String, IMetaData.DATA_TYPES>();
-			Map<String, String> dataTypeMapStr = new Hashtable<String, String>();
-			for (int i = 0; i < headers.length; i++) {
-				dataTypeMapStr.put(headers[i], types[i]);
-				dataTypeMap.put(headers[i], Utility.convertStringToDataType(types[i]));
-				qs.addSelector(headers[i], null);
-			}
-
-			// Create a new H2Frame with the proper structure
-			Map<String, Set<String>> edgeHash = TinkerMetaHelper.createPrimKeyEdgeHash(headers);
-			dataFrameResult = new H2Frame();
-			dataFrameResult.mergeEdgeHash(edgeHash, dataTypeMapStr);
-
-			// Use a temp file file (faster than in memory synchronization)
-			String tempFileLocation = tempDirectory;
-			tempFileLocation += "\\" + Utility.getRandomString(10) + ".csv";
-			tempFileLocation = tempFileLocation.replace("\\", "/");
-			r("fwrite(" + rReturnFrameName + ", file='" + tempFileLocation + "');");
-
-			// Iterate through the temp file and insert values
-			FileIterator dataIterator = FileIterator.createInstance(FILE_DATA_TYPE.META_DATA_ENUM, tempFileLocation,
-					',', qs, dataTypeMap);
-			dataFrameResult.addRowsViaIterator(dataIterator, dataTypeMap);
-			dataIterator.deleteFile();
-
-			// Update the user id to match the new schema
-			dataFrameResult.setUserId(dataFrameResult.getSchema());
-			LOGGER.info("Retrived the data frame " + rReturnFrameName + " from R");
-		} catch (RserveException | REXPMismatchException e) {
-			throw new RRoutineException("Failed to retrieve data frame from R", e);
-		}
-	}
-
-	// Retrieves the R-object result from R using the GetResult() function
-	private void retrieveResultFromR() throws RRoutineException {
-		try {
-			rObjectResult = r(R_GET_RESULT_FUN);
-			LOGGER.info("Retrieved result from R");
-		} catch (RserveException e) {
-			throw new RRoutineException("Failed to retrieve result from R", e);
-		}
-	}
-
-	// Methods to connect to, and disconnect from, R processes
-
-	// Makes a new Rserve connection on the master
-	private void connectToR() throws RserveException {
-
-		// Connect to an external R process (master)
-		rMasterConnection = new RConnection(MASTER_HOST, MASTER_PORT);
-
-		// Find an open port for Rserve
-		int rservePort = Integer.parseInt(Utility.findOpenPort());
-
-		// Start Rserve on the master (creates a separate workspace)
-		rMasterConnection.eval("library(Rserve); Rserve(port = " + rservePort + ")");
-
-		// Give the master one second to start Rserve
-		try {
-			Thread.sleep(1000);
-		} catch (InterruptedException e) {
-			e.printStackTrace();
-		}
-
-		// Connect to Rserve
-		rserveConnection = new RConnection(MASTER_HOST, rservePort);
-		r("library(splitstackshape);");
-		r("library(data.table);");
-		r("library(reshape2);");
-		r("library(RJDBC);");
-		LOGGER.info("Connected to Rserve on port " + rservePort);
-	}
-
-	// Runs r
-	private REXP r(String script) throws RserveException {
-		LOGGER.debug("Evaluating the script: " + script);
-		return rserveConnection.eval(script);
-	}
-
-	// Closes the Rserve connection when finished running the R routine (or if
-	// there is some other unexpected error)
-	private void closeRConnection() throws RserveException {
-
-		// Gracefully shutdown and close the Rserve connection
-		if (rserveConnection != null && rserveConnection.isConnected()) {
-			rserveConnection.shutdown();
-			rserveConnection.close();
-		}
-
-		// Close the master connection
-		// The master is an external process,
-		// and cannot be shutdown client side
-		if (rMasterConnection != null && rMasterConnection.isConnected()) {
-			rMasterConnection.close();
-		}
-		LOGGER.info("Closed connections to R");
-	}
-
-	// Initializes the driver in R that will facilitate synchronization
-	private void initializeDriver(String driver, String classPath, String url, String username) throws RserveException {
-
-		// Replace backslashes with forward slashes in directories
-		classPath = classPath.replace("\\", "/");
-		url = url.replace("\\", "/");
-
-		// See https://cran.r-project.org/web/packages/RJDBC/RJDBC.pdf
-		r(DRIVER_VAR + " <- JDBC('" + driver + "', '" + classPath + "', identifier.quote='`');");
-		r(DRIVER_CONNECTION_VAR + " <- dbConnect(" + DRIVER_VAR + ", '" + url + "', '" + username + "', '');");
-		LOGGER.info("Initialized driver for " + url);
-	}
-
-	// Disconnects the driver
-	private void disconnectDriver() throws RserveException {
-		r("dbDisconnect(" + DRIVER_CONNECTION_VAR + ");");
-		LOGGER.info("Disconnected driver");
-	}
-
-	// Determines the headers of an R frame
-	private String[] determineRHeaders(String frameName) throws RserveException, REXPMismatchException {
-		return r("matrix(colnames(" + frameName + "));").asStrings();
-	}
-
-	// Determines the types of an R frame (as strings - 'numeric', 'character',
-	// or 'Date')
-	private String[] determineRStringTypes(String frameName) throws RserveException, REXPMismatchException {
-		return r("matrix(sapply(" + frameName + ", class));").asStrings();
 	}
 
 }

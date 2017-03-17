@@ -194,26 +194,18 @@ public abstract class AbstractJavaReactor extends AbstractReactor {
 		}
 
 		// Create a new anomaly detector
-		AnomalyDetector anomalyDetector = new AnomalyDetector(dataframe, timeColumn, seriesColumn, aggregateFunction,
-				maxAnoms, anomDirection, alpha, period, keepExistingColumns);
+		AnomalyDetector anomalyDetector = new AnomalyDetector(dataframe, pkql, timeColumn, seriesColumn,
+				aggregateFunction, maxAnoms, anomDirection, alpha, period, keepExistingColumns);
 
 		// Detect anomalies using the anomaly detector
 		try {
-			int oldId = dataframe.getDataId();
-			dataframe = anomalyDetector.detectAnomalies();
-
-			// Update the data id if it is not already updated
-			if (oldId != 1) {
-				dataframe.updateDataId();
-			}
-			frameChanged = true;
-			myStore.put("G", dataframe);
+			anomalyDetector.detectAnomalies();
 		} catch (RRoutineException e) {
 			e.printStackTrace();
 		}
 		java.lang.System.setSecurityManager(reactorManager);
 	}
-
+	
 	/**
 	 * 
 	 * Runs anomaly detection on categorical data. This is done by counting the
@@ -263,20 +255,12 @@ public abstract class AbstractJavaReactor extends AbstractReactor {
 		}
 
 		// Create a new anomaly detector
-		AnomalyDetector anomalyDetector = new AnomalyDetector(dataframe, timeColumn, eventColumn, groupColumn,
+		AnomalyDetector anomalyDetector = new AnomalyDetector(dataframe, pkql, timeColumn, eventColumn, groupColumn,
 				aggregateFunction, maxAnoms, anomDirection, alpha, period);
 
 		// Detect anomalies using the anomaly detector
 		try {
-			int oldId = dataframe.getDataId();
-			dataframe = anomalyDetector.detectAnomalies();
-
-			// Update the data id if it is not already updated
-			if (oldId != 1) {
-				dataframe.updateDataId();
-			}
-			frameChanged = true;
-			myStore.put("G", dataframe);
+			anomalyDetector.detectAnomalies();
 		} catch (RRoutineException e) {
 			e.printStackTrace();
 		}
@@ -440,7 +424,7 @@ public abstract class AbstractJavaReactor extends AbstractReactor {
 		
 		java.lang.System.setSecurityManager(reactorManager);
 	}
-	
+		
 	protected void runOutlier(int instanceIndex, int numSubsetSize, int numRums, String[] selectors) {
 		java.lang.System.setSecurityManager(curManager);
 		
@@ -519,81 +503,57 @@ public abstract class AbstractJavaReactor extends AbstractReactor {
 	protected void runRRoutine(String scriptName, String rSyncFrameName, String selectedColumns,
 			String rReturnFrameName, String arguments) {
 		java.lang.System.setSecurityManager(curManager);
-		RRoutine rRoutine = new RRoutine.Builder(dataframe, scriptName, rSyncFrameName).selectedColumns(selectedColumns)
-				.rReturnFrameName(rReturnFrameName).arguments(arguments).build();
+		RRoutine rRoutine = new RRoutine.Builder(dataframe, pkql, scriptName, rSyncFrameName)
+				.selectedColumns(selectedColumns).rReturnFrameName(rReturnFrameName).arguments(arguments).build();
 		try {
-			int oldId = dataframe.getDataId();
-			dataframe = rRoutine.returnDataFrame();
-
-			// Update the data id if it is not already updated
-			if (oldId != 1) {
-				dataframe.updateDataId();
-			}
-			frameChanged = true;
-			myStore.put("G", dataframe);
+			rRoutine.runRoutine();
 		} catch (RRoutineException e) {
 			e.printStackTrace();
 		}
+		// Data ID is updated when the frame is synchronized from R
+
 		java.lang.System.setSecurityManager(reactorManager);
 	}
 
 	protected void runRRoutine(String scriptName, String rSyncFrameName, String selectedColumns,
 			String rReturnFrameName) {
 		java.lang.System.setSecurityManager(curManager);
-		RRoutine rRoutine = new RRoutine.Builder(dataframe, scriptName, rSyncFrameName).selectedColumns(selectedColumns)
-				.rReturnFrameName(rReturnFrameName).build();
+		RRoutine rRoutine = new RRoutine.Builder(dataframe, pkql, scriptName, rSyncFrameName)
+				.selectedColumns(selectedColumns).rReturnFrameName(rReturnFrameName).build();
 		try {
-			int oldId = dataframe.getDataId();
-			dataframe = rRoutine.returnDataFrame();
-
-			// Update the data id if it is not already updated
-			if (oldId != 1) {
-				dataframe.updateDataId();
-			}
-			frameChanged = true;
-			myStore.put("G", dataframe);
+			rRoutine.runRoutine();
 		} catch (RRoutineException e) {
 			e.printStackTrace();
 		}
+		// Data ID is updated when the frame is synchronized from R
+
 		java.lang.System.setSecurityManager(reactorManager);
 	}
 
 	protected void runRRoutine(String scriptName, String rSyncFrameName, String selectedColumns) {
 		java.lang.System.setSecurityManager(curManager);
-		RRoutine rRoutine = new RRoutine.Builder(dataframe, scriptName, rSyncFrameName).selectedColumns(selectedColumns)
-				.build();
+		RRoutine rRoutine = new RRoutine.Builder(dataframe, pkql, scriptName, rSyncFrameName)
+				.selectedColumns(selectedColumns).build();
 		try {
-			int oldId = dataframe.getDataId();
-			dataframe = rRoutine.returnDataFrame();
-
-			// Update the data id if it is not already updated
-			if (oldId != 1) {
-				dataframe.updateDataId();
-			}
-			frameChanged = true;
-			myStore.put("G", dataframe);
+			rRoutine.runRoutine();
 		} catch (RRoutineException e) {
 			e.printStackTrace();
 		}
+		// Data ID is updated when the frame is synchronized from R
+
 		java.lang.System.setSecurityManager(reactorManager);
 	}
 
 	protected void runRRoutine(String scriptName, String rSyncFrameName) {
 		java.lang.System.setSecurityManager(curManager);
-		RRoutine rRoutine = new RRoutine(dataframe, scriptName, rSyncFrameName);
+		RRoutine rRoutine = new RRoutine.Builder(dataframe, pkql, scriptName, rSyncFrameName).build();
 		try {
-			int oldId = dataframe.getDataId();
-			dataframe = rRoutine.returnDataFrame();
-
-			// Update the data id if it is not already updated
-			if (oldId != 1) {
-				dataframe.updateDataId();
-			}
-			frameChanged = true;
-			myStore.put("G", dataframe);
+			rRoutine.runRoutine();
 		} catch (RRoutineException e) {
 			e.printStackTrace();
 		}
+		// Data ID is updated when the frame is synchronized from R
+
 		java.lang.System.setSecurityManager(reactorManager);
 	}
 
