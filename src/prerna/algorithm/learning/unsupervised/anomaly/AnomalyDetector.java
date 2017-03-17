@@ -3,6 +3,7 @@ package prerna.algorithm.learning.unsupervised.anomaly;
 import prerna.algorithm.api.ITableDataFrame;
 import prerna.algorithm.learning.r.RRoutine;
 import prerna.algorithm.learning.r.RRoutineException;
+import prerna.sablecc.PKQLRunner;
 import prerna.algorithm.learning.r.RRoutine.Builder.RRoutineType;
 
 public class AnomalyDetector {
@@ -36,6 +37,8 @@ public class AnomalyDetector {
 	 * 
 	 * @param dataFrame
 	 *            The ITableDataFrame containing a numeric series
+	 * @param pkql
+	 *            The PKQLRunner used to execute Java reactor methods
 	 * @param timeColumn
 	 *            The column containing time stamps; can be date, string, or
 	 *            numeric representation
@@ -61,15 +64,16 @@ public class AnomalyDetector {
 	 *            Whether to keep the existing column structure and add to it,
 	 *            or return a simplified data frame
 	 */
-	public AnomalyDetector(ITableDataFrame dataFrame, String timeColumn, String seriesColumn, String aggregateFunction,
-			double maxAnoms, AnomDirection direction, double alpha, int period, boolean keepExistingColumns) {
+	public AnomalyDetector(ITableDataFrame dataFrame, PKQLRunner pkql, String timeColumn, String seriesColumn,
+			String aggregateFunction, double maxAnoms, AnomDirection direction, double alpha, int period,
+			boolean keepExistingColumns) {
 		String arguments = "'" + timeColumn + "';'" + seriesColumn + "';'" + aggregateFunction + "';" + maxAnoms + ";'"
-				+ determineDirectionString(direction) + "';" + alpha + ";" + period;
+				+ determineAnomDirectionString(direction) + "';" + alpha + ";" + period;
 		if (keepExistingColumns) {
-			rRoutine = new RRoutine.Builder(dataFrame, SCRIPT_NAME, R_SYNC_FRAME_NAME).arguments(arguments)
+			rRoutine = new RRoutine.Builder(dataFrame, pkql, SCRIPT_NAME, R_SYNC_FRAME_NAME).arguments(arguments)
 					.routineType(RRoutineType.ANALYTICS).build();
 		} else {
-			rRoutine = new RRoutine.Builder(dataFrame, SCRIPT_NAME, R_SYNC_FRAME_NAME)
+			rRoutine = new RRoutine.Builder(dataFrame, pkql, SCRIPT_NAME, R_SYNC_FRAME_NAME)
 					.rReturnFrameName(R_SIMPLIFIED_FRAME_NAME).arguments(arguments).routineType(RRoutineType.ANALYTICS)
 					.build();
 		}
@@ -82,6 +86,8 @@ public class AnomalyDetector {
 	 * 
 	 * @param dataFrame
 	 *            The ITableDataFrame containing categorical data
+	 * @param pkql
+	 *            The PKQLRunner used to execute Java reactor methods
 	 * @param timeColumn
 	 *            The column containing time stamps; can be date, string, or
 	 *            numeric representation
@@ -106,11 +112,12 @@ public class AnomalyDetector {
 	 *            The number of time stamps per natural cycle; anomalies are
 	 *            sensitive to this input
 	 */
-	public AnomalyDetector(ITableDataFrame dataFrame, String timeColumn, String eventColumn, String groupColumn,
-			String aggregateFunction, double maxAnoms, AnomDirection direction, double alpha, int period) {
+	public AnomalyDetector(ITableDataFrame dataFrame, PKQLRunner pkql, String timeColumn, String eventColumn,
+			String groupColumn, String aggregateFunction, double maxAnoms, AnomDirection direction, double alpha,
+			int period) {
 		String arguments = "'" + timeColumn + "';'" + eventColumn + "';'" + groupColumn + "';'" + aggregateFunction
-				+ "';" + maxAnoms + ";'" + determineDirectionString(direction) + "';" + alpha + ";" + period;
-		rRoutine = new RRoutine.Builder(dataFrame, CATEGORICAL_SCRIPT_NAME, R_SYNC_FRAME_NAME)
+				+ "';" + maxAnoms + ";'" + determineAnomDirectionString(direction) + "';" + alpha + ";" + period;
+		rRoutine = new RRoutine.Builder(dataFrame, pkql, CATEGORICAL_SCRIPT_NAME, R_SYNC_FRAME_NAME)
 				.rReturnFrameName(R_SIMPLIFIED_FRAME_NAME).arguments(arguments).routineType(RRoutineType.ANALYTICS)
 				.build();
 	}
@@ -118,18 +125,18 @@ public class AnomalyDetector {
 	/**
 	 * Detects anomalies using this detector.
 	 * 
-	 * @return ITableDataFrame - The data frame after running anomaly detection
+	 * @return ITableDataFrame - The frame that is synchronized from R
 	 * @throws RRoutineException
 	 */
 	public ITableDataFrame detectAnomalies() throws RRoutineException {
-		return rRoutine.returnDataFrame();
+		return rRoutine.runRoutine();
 	}
 
 	// Determines the proper string to represent the direction in which to
 	// detect anomalies
 	// This string is what is passed into the arguments list that is
 	// synchronized to R
-	private String determineDirectionString(AnomDirection direction) {
+	public static String determineAnomDirectionString(AnomDirection direction) {
 		switch (direction) {
 		case POSITIVE:
 			return "pos";
