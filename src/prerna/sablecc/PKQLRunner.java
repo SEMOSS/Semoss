@@ -65,7 +65,7 @@ public class PKQLRunner {
 	private Translation translation;
 	private List<Map> responseArray = new Vector<Map>();
 	private Map<String, Map<String, Object>> varMap = new HashMap<String, Map<String, Object>>();
-	LinkedList<PScript> pkqlToRun = new LinkedList<PScript>();
+//	private LinkedList<PScript> pkqlToRun = new LinkedList<PScript>();
 	List<String> unassignedVars = new Vector<String>();
 	
 //	private Map<String, Object> dataMap = new HashMap<>();
