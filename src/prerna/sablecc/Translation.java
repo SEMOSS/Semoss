@@ -181,14 +181,15 @@ public class Translation extends DepthFirstAdapter {
 	@Override
 	public void inAConfiguration(AConfiguration node) {
 		System.out.println(node.toString());
-		runner.pkqlToRun.addAll(node.getScript());
+		
+		List<PScript> pkqlToRun = node.getScript();
 
 		int index = 0;
-		while (index < runner.pkqlToRun.size()) {
-			PScript script = runner.pkqlToRun.get(index);
+		while (index < pkqlToRun.size()) {
+			PScript script = pkqlToRun.get(0);
 			if (runner.unassignedVars.isEmpty() || script instanceof AVaropScript) { // if no vars are unassigned.. we are good. otherwise we only look for their assignment
 				// PVarop varop = ((AVaropScript)script).getVarop();
-				PScript pkqlToExecute = runner.pkqlToRun.remove(index);
+				PScript pkqlToExecute = pkqlToRun.remove(0);
 				pkqlToExecute.apply(this);
 				index = 0;
 			} else {
@@ -203,7 +204,7 @@ public class Translation extends DepthFirstAdapter {
 		// make sure we don't re-process everything on the node... set it empty
 		node.setScript(new LinkedList());
 	}
-
+	
 	@Override
 	public void inAExprScript(AExprScript node) {
 		if (reactorNames.containsKey(PKQLEnum.EXPR_SCRIPT)) {
