@@ -2,6 +2,7 @@ package prerna.ds;
 
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
+import org.apache.tinkerpop.gremlin.process.traversal.P;
 import org.apache.tinkerpop.gremlin.process.traversal.Path;
 import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.GraphTraversal;
 import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.__;
@@ -24,7 +25,6 @@ public final class TinkerAlgorithmUtility {
 	 * @return
 	 */
 	public static String runLoopIdentifer(TinkerFrame tf, int cycleSize) {
-		
 		GraphTraversal<Vertex, Path> traversal = tf.g.traversal().V().as("a").repeat(__.out().simplePath()).times(cycleSize)
 				.where(__.out().as("a")).path().dedup().by(__.unfold().order().by(TinkerFrame.TINKER_ID, new StringIgnoreCaseKeyComparator()).dedup().fold());
 		
@@ -42,6 +42,28 @@ public final class TinkerAlgorithmUtility {
 		}
 		
 		return cycles.toString();
+	}
+	
+	/**
+	 * Returns the nodes that are not connected to the provided instance
+	 * @param tf
+	 * @param type
+	 * @param instance
+	 * @return
+	 */
+	public static String runDisconnectedNodesIdentifier(TinkerFrame tf, String type, String instance) {
+		GraphTraversal<Vertex, Object> traversal = tf.g.traversal().V()
+				.or(
+					__.not(__.V().has(TinkerFrame.TINKER_ID, type + ":" + instance).repeat(__.out()).until(__.outE().count().is(0))),
+					__.has(TinkerFrame.TINKER_ID, P.neq(type + ":" + instance)).bothE().count().is(0)
+				).values(TinkerFrame.TINKER_ID).order();
+		
+		StringBuilder islandVertices = new StringBuilder();
+		while(traversal.hasNext()) {
+			islandVertices.append(traversal.next()).append("\n");
+		}
+		
+		return islandVertices.toString();
 	}
 	
 }
