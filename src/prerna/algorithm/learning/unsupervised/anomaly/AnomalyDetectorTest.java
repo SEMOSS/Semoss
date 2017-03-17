@@ -15,6 +15,7 @@ import prerna.ds.h2.H2Frame;
 import prerna.ds.util.FileIterator;
 import prerna.ds.util.FileIterator.FILE_DATA_TYPE;
 import prerna.engine.api.IHeadersDataRow;
+import prerna.sablecc.PKQLRunner;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
 import prerna.util.Utility;
@@ -78,15 +79,18 @@ public class AnomalyDetectorTest {
 		Iterator<IHeadersDataRow> originalData = frame.query("SELECT * FROM " + frame.getTableName() + ";");
 		System.out.println(originalData.next());
 
+		// Create a pkql runner
+		PKQLRunner pkql = new PKQLRunner();
+
 		// Create a new anomaly detector
-		AnomalyDetector anomalyDetector = new AnomalyDetector(frame, "timestamp_1", "count_1", "sum", 0.01,
+		AnomalyDetector anomalyDetector = new AnomalyDetector(frame, pkql, "timestamp_1", "count_1", "sum", 0.01,
 				AnomDirection.BOTH, 0.05, 1440, true);
 
 		// Detect anomalies
-		ITableDataFrame newFrame = anomalyDetector.detectAnomalies();
+		ITableDataFrame finalFrame = anomalyDetector.detectAnomalies();
 
 		// Final frame first row
-		Iterator<IHeadersDataRow> finalData = newFrame.query("SELECT * FROM " + newFrame.getTableName() + ";");
+		Iterator<IHeadersDataRow> finalData = finalFrame.query("SELECT * FROM " + finalFrame.getTableName() + ";");
 		System.out.println(finalData.next());
 	}
 
@@ -136,15 +140,18 @@ public class AnomalyDetectorTest {
 		Iterator<IHeadersDataRow> originalData = frame.query("SELECT * FROM " + frame.getTableName() + ";");
 		System.out.println(originalData.next());
 
+		// Create a pkql runner
+		PKQLRunner pkql = new PKQLRunner();
+
 		// Create a new anomaly detector
-		AnomalyDetector categoricalDetector = new AnomalyDetector(frame, "date_1", "event_1", "group_1",
+		AnomalyDetector categoricalDetector = new AnomalyDetector(frame, pkql, "date_1", "event_1", "group_1",
 				"count distinct", 0.01, AnomDirection.BOTH, 0.05, 7);
 
 		// Detect anomalies
-		ITableDataFrame newFrame = categoricalDetector.detectAnomalies();
+		ITableDataFrame finalFrame = categoricalDetector.detectAnomalies();
 
 		// Final frame first row
-		Iterator<IHeadersDataRow> finalData = newFrame.query("SELECT * FROM " + newFrame.getTableName() + ";");
+		Iterator<IHeadersDataRow> finalData = finalFrame.query("SELECT * FROM " + finalFrame.getTableName() + ";");
 		System.out.println(finalData.next());
 	}
 

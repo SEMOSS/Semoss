@@ -5,8 +5,6 @@ import java.util.Iterator;
 import java.util.Map;
 import java.util.Set;
 
-import org.rosuda.REngine.REXP;
-
 import prerna.algorithm.api.IMetaData;
 import prerna.algorithm.api.ITableDataFrame;
 import prerna.algorithm.learning.r.RRoutine.Builder.RRoutineType;
@@ -16,6 +14,7 @@ import prerna.ds.h2.H2Frame;
 import prerna.ds.util.FileIterator;
 import prerna.ds.util.FileIterator.FILE_DATA_TYPE;
 import prerna.engine.api.IHeadersDataRow;
+import prerna.sablecc.PKQLRunner;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
 import prerna.util.Utility;
@@ -72,20 +71,20 @@ public class RRoutineTest {
 		Iterator<IHeadersDataRow> originalData = frame.query("SELECT * FROM " + frame.getTableName() + ";");
 		System.out.println(originalData.next());
 
+		// Create a pkql runner
+		PKQLRunner pkql = new PKQLRunner();
+
 		// Create a new RRoutine
-		RRoutine rRoutine = new RRoutine.Builder(frame, "AnomalyDetection.R", "dt")
+		RRoutine rRoutine = new RRoutine.Builder(frame, pkql, "AnomalyDetection.R", "dt")
 				.selectedColumns("timestamp_1;count_1").arguments("'timestamp_1';'count_1';'sum';0.01;'both';0.05;1440")
 				.routineType(RRoutineType.ANALYTICS).build();
 
-		ITableDataFrame newFrame = rRoutine.returnDataFrame();
-		REXP result = rRoutine.returnResult();
+		// Run the routine
+		ITableDataFrame finalFrame = rRoutine.runRoutine();
 
 		// Final frame first row
-		Iterator<IHeadersDataRow> finalData = newFrame.query("SELECT * FROM " + newFrame.getTableName() + ";");
+		Iterator<IHeadersDataRow> finalData = finalFrame.query("SELECT * FROM " + finalFrame.getTableName() + ";");
 		System.out.println(finalData.next());
-
-		// Result
-		System.out.println(result.asInteger());
 	}
 
 }
