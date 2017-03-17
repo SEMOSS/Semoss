@@ -1819,7 +1819,7 @@ public abstract class AbstractRJavaReactor extends AbstractJavaReactor {
 		rCommands.add(rFrameName + "[, c(\"match_engine\", \"match_concept\") := tstrsplit(match, \"" + DomainValues.ENGINE_VALUE_DELIMETER + "\", fixed=TRUE)]");
 		rCommands.add(rFrameName + "[, item:=NULL]");
 		rCommands.add(rFrameName + "[, match:=NULL]");
-		rCommands.add("setcolorder(" + rFrameName + ", c(\"item_engine\", \"item_concept\", \"match_engine\", \"match_concept\", \"score\"))");
+		rCommands.add("setcolorder(" + rFrameName + ", c(\"item_engine\", \"item_concept\", \"match_engine\", \"match_concept\", \"score\", \"item_dictionary_word\", \"match_dictionary_word\"))");
 		
 		// Run the r commands
 		for (String rCommand : rCommands) {
@@ -1834,25 +1834,23 @@ public abstract class AbstractRJavaReactor extends AbstractJavaReactor {
 		H2Frame frame = (H2Frame) myStore.get(PKQLEnum.G);
 		if (!frame.isEmpty()) {
 			JawsSemanticMatching jaws = new JawsSemanticMatching();
-			Object[] concept1 = frame.getColumn("item_concept");
-			Object[] concept2 = frame.getColumn("match_concept");
-			double[] semanticScore = jaws.generateSemanticScore(concept1, concept2);
-			
-			// TODO figure out why huge scores come back
-			// Replace scores greater than 1 that occur when the words are the same
-			for (int i = 0; i < semanticScore.length; i++) {
-				if (semanticScore[i] > 1) {
-					semanticScore[i] = 1;
-				}
-			}
-			String semanticScoreString = Arrays.toString(semanticScore);
-			semanticScoreString = semanticScoreString.replace("[", "(");
-			semanticScoreString = semanticScoreString.replace("]", ")");
-			System.out.println(semanticScoreString);
+			Object[] item = frame.getColumn("item_concept");
+			Object[] match = frame.getColumn("match_concept");
+			//unwrap the columns from semanticScore calculation
+			String[] semanticScoreCols = jaws.generateSemanticScore(item, match);
+			String itemDictionaryLookup = semanticScoreCols[0];
+			String matchDictionaryLookup =  semanticScoreCols[1];
+			String semanticScoreColumns =  semanticScoreCols[2];
 						
 			// Add a column for the semantic score
-			runR(rFrameName + "$semantic_score <- list" + semanticScoreString);
+			runR(rFrameName + "$semantic_score <- list" + semanticScoreColumns);
 			runR(rFrameName + "[, semantic_score:=as.numeric(semantic_score)]");
+			
+			//add dictionary match columns
+			runR(rFrameName + "$item_dictionary_word <- list" + itemDictionaryLookup);
+			runR(rFrameName + "$match_dictionary_word <- list" + matchDictionaryLookup);
+
+
 			synchronizeFromR();
 		}
 	}
