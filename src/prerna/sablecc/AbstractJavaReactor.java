@@ -836,7 +836,17 @@ public abstract class AbstractJavaReactor extends AbstractReactor {
 			System.out.println(loops);
 		}
 		java.lang.System.setSecurityManager(reactorManager);
-	}	
+	}
+	
+	protected void runDisconnectedNodesIdentifier(String type, String instance) {
+		java.lang.System.setSecurityManager(curManager);
+		if(dataframe instanceof TinkerFrame)
+		{
+			String disconnectedNodes = TinkerAlgorithmUtility.runDisconnectedNodesIdentifier((TinkerFrame) dataframe, type, instance);
+			System.out.println(disconnectedNodes);
+		}
+		java.lang.System.setSecurityManager(reactorManager);
+	}
 	
 	////////////////////////////////////////////////////////////////
 	////////////////////////////////////////////////////////////////
