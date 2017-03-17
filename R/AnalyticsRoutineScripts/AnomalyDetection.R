@@ -36,7 +36,7 @@ period <- args[[7]]
 setkeyv(dt, time.col)
 
 # Aggregate for each time value using the user-specified aggregate function
-agg.col <- paste0(toupper(agg.string), "_", series.col)
+agg.col <- paste0(agg.string, "_", series.col)
 dt[, toString(agg.col) := as.numeric(agg(get(series.col))), keyby = c(time.col)]
 
 # Detect anomalies on only one value per unique time
@@ -49,7 +49,7 @@ options(device=pdf)
 res <- AnomalyDetectionVec(unique.times[, get(agg.col)], max_anoms=max.anoms, direction=direction, alpha=alpha, period=period, plot=FALSE)
 
 # Add anomaly column
-anom.col <- paste0("ANOM_", agg.col)
+anom.col <- paste0("anom_", agg.col)
 unique.times[, toString(anom.col) := 0]
 unique.times[res$anoms$index, toString(anom.col) := res$anoms$anoms] 
 
@@ -64,6 +64,12 @@ GetResult <- function() {
     return(res$anoms$index[length(res$anoms$index)] == nrow(unique.times))
   }
 }
+
+# Output
+print("Anomalies: ")
+print(unique.times[res$anoms$index, c(time.col, agg.col), with=FALSE])
+print("Was the most recent observation an anomaly? ")
+GetResult()
 
 # For test cases
 # See the final results

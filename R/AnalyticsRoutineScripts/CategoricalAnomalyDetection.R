@@ -46,7 +46,7 @@ DetectWithoutGroups <- function(dt, time.col, event.col, agg, agg.string, max.an
   i <- 1
   
   # Aggregate for each time using the user-specified aggregate function
-  agg.col <- paste0(toupper(agg.string), "_", event.col)
+  agg.col <- paste0(agg.string, "_", event.col)
   dt[, toString(agg.col) := as.numeric(agg(get(event.col))), keyby = time.col]
   
   # Detect anomalies on only one value for each group per unique time
@@ -57,7 +57,7 @@ DetectWithoutGroups <- function(dt, time.col, event.col, agg, agg.string, max.an
   
   # Detect anomalies
   res <- AnomalyDetectionVec(unique.times[, get(agg.col)], max_anoms=max.anoms, direction=direction, alpha=alpha, period=period, plot=FALSE)
-  anom.col <- paste0("ANOM_", agg.col)
+  anom.col <- paste0("anom_", agg.col)
   unique.times[, toString(anom.col) := 0]
   unique.times[res$anoms$index, toString(anom.col) := res$anoms$anoms]
   
@@ -79,7 +79,7 @@ DetectWithGroups <- function(dt, time.col, event.col, group.col, agg, agg.string
   i <- 1
   
   # Aggregate for each group and time using the user-specified aggregate function
-  agg.col <- paste0(toupper(agg.string), "_", event.col, "_BY_", group.col)
+  agg.col <- paste0(agg.string, "_", event.col, "_BY_", group.col)
   dt[, toString(agg.col) := as.numeric(agg(get(event.col))), keyby = c(time.col, group.col)]
   
   # Detect anomalies on only one value for each group per unique time
@@ -106,8 +106,8 @@ DetectWithGroups <- function(dt, time.col, event.col, group.col, agg, agg.string
     res <- AnomalyDetectionVec(vec, max_anoms=max.anoms, direction=direction, alpha=alpha, period=period, plot=FALSE)
     
     # Add columns
-    unique.times[, paste0("LEVEL_", level) := vec]
-    anom.col <- paste0("ANOM_", level)
+    unique.times[, paste0("level_", level) := vec]
+    anom.col <- paste0("anom_", level)
     unique.times[, toString(anom.col) := 0]
     unique.times[res$anoms$index, toString(anom.col) := res$anoms$anoms]
     
