@@ -139,7 +139,7 @@
 			<artifactId>jdk.tools</artifactId>
 			<version>1.8</version>
 			<scope>system</scope>
-			<systemPath>${env.JAVA_HOME}\lib\tools.jar</systemPath>
+			<systemPath>C:\Program Files\Java\jdk1.8.0_111\lib\tools.jar</systemPath>
 		</dependency>
 		<dependency>
 			<groupId>org.antlr</groupId>
@@ -462,8 +462,19 @@
 		</dependency>
 		<dependency>
 			<groupId>org.apache.tinkerpop</groupId>
+			<artifactId>tinkergraph-gremlin</artifactId>
+			<version>3.2.4</version>
+			<exclusions>
+				<exclusion>
+					<groupId>*</groupId>
+					<artifactId>*</artifactId>
+				</exclusion>
+			</exclusions>
+		</dependency>
+		<dependency>
+			<groupId>org.apache.tinkerpop</groupId>
 			<artifactId>gremlin-console</artifactId>
-			<version>3.1.0-incubating</version>
+			<version>3.2.4</version>
 			<exclusions>
 				<exclusion>
 					<groupId>*</groupId>
@@ -474,7 +485,7 @@
 		<dependency>
 			<groupId>org.apache.tinkerpop</groupId>
 			<artifactId>gremlin-core</artifactId>
-			<version>3.1.0-incubating</version>
+			<version>3.2.4</version>
 			<exclusions>
 				<exclusion>
 					<groupId>*</groupId>
@@ -485,7 +496,7 @@
 		<dependency>
 			<groupId>org.apache.tinkerpop</groupId>
 			<artifactId>gremlin-driver</artifactId>
-			<version>3.1.0-incubating</version>
+			<version>3.2.4</version>
 			<exclusions>
 				<exclusion>
 					<groupId>*</groupId>
@@ -496,7 +507,7 @@
 		<dependency>
 			<groupId>org.apache.tinkerpop</groupId>
 			<artifactId>gremlin-groovy</artifactId>
-			<version>3.1.0-incubating</version>
+			<version>3.2.4</version>
 			<exclusions>
 				<exclusion>
 					<groupId>*</groupId>
@@ -507,7 +518,7 @@
 		<dependency>
 			<groupId>org.apache.tinkerpop</groupId>
 			<artifactId>gremlin-shaded</artifactId>
-			<version>3.1.0-incubating</version>
+			<version>3.2.4</version>
 			<exclusions>
 				<exclusion>
 					<groupId>*</groupId>
@@ -515,10 +526,39 @@
 				</exclusion>
 			</exclusions>
 		</dependency>
+		<!-- https://mvnrepository.com/artifact/org.neo4j/neo4j -->
+		<dependency>
+		    <groupId>org.neo4j</groupId>
+		    <artifactId>neo4j</artifactId>
+		    <version>3.0.3</version>
+		</dependency>
+		<!-- https://mvnrepository.com/artifact/org.neo4j/neo4j-enterprise -->
+		<dependency>
+		    <groupId>org.neo4j</groupId>
+		    <artifactId>neo4j-enterprise</artifactId>
+		    <version>3.0.3</version>
+		</dependency>
+		<dependency>
+	 		<groupId>org.apache.tinkerpop</groupId>
+			<artifactId>neo4j-gremlin</artifactId>
+		   	<version>3.2.4</version>
+		</dependency>
+		<!-- https://mvnrepository.com/artifact/org.neo4j/neo4j-tinkerpop-api -->
+		<dependency>
+		    <groupId>org.neo4j</groupId>
+		    <artifactId>neo4j-tinkerpop-api</artifactId>
+		    <version>0.1</version>
+		</dependency>
+		<!-- neo4j-tinkerpop-api-impl is NOT Apache 2 licensed - more information below -->
+		<dependency>
+		  <groupId>org.neo4j</groupId>
+		  <artifactId>neo4j-tinkerpop-api-impl</artifactId>
+		  <version>0.4-3.0.3</version>
+		</dependency>
 		<dependency>
 			<groupId>org.codehaus.groovy</groupId>
 			<artifactId>groovy</artifactId>
-			<version>2.4.1</version>
+			<version>2.4.8</version>
 			<exclusions>
 				<exclusion>
 					<groupId>*</groupId>
@@ -529,7 +569,7 @@
 		<dependency>
 			<groupId>org.codehaus.groovy</groupId>
 			<artifactId>groovy-jsr223</artifactId>
-			<version>2.4.1</version>
+			<version>2.4.8</version>
 			<classifier>indy</classifier>
 			<exclusions>
 				<exclusion>
@@ -541,7 +581,7 @@
 		<dependency>
 			<groupId>org.codehaus.groovy</groupId>
 			<artifactId>groovy-json</artifactId>
-			<version>2.4.1</version>
+			<version>2.4.8</version>
 			<classifier>indy</classifier>
 			<exclusions>
 				<exclusion>
@@ -1503,17 +1543,6 @@
 			</exclusions>
 		</dependency>
 		<dependency>
-			<groupId>org.apache.tinkerpop</groupId>
-			<artifactId>tinkergraph-gremlin</artifactId>
-			<version>3.1.0-incubating</version>
-			<exclusions>
-				<exclusion>
-					<groupId>*</groupId>
-					<artifactId>*</artifactId>
-				</exclusion>
-			</exclusions>
-		</dependency>
-		<dependency>
 			<groupId>com.univocity</groupId>
 			<artifactId>univocity-parsers</artifactId>
 			<version>2.0.0</version>
@@ -1888,7 +1917,7 @@
 		<dependency>
 			<groupId>org.scala-lang</groupId>
 			<artifactId>scala-library</artifactId>
-			<version>2.10.3</version>
+			<version>2.11.7</version>
 		</dependency>
 		<!-- http://mvnrepository.com/artifact/com.databricks/spark-csv_2.10 -->
 		<dependency>
