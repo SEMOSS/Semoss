@@ -120,11 +120,6 @@ public class SparkDataFrame extends AbstractTableDataFrame{
 	}
 
 	@Override
-	public void removeRelationship(Map<String, Object> cleanRow) {
-		//does this apply to spark?
-	}
-
-	@Override
 	public void addRow(Object[] cleanCells, String[] headers) {
 		// TODO Auto-generated method stub
 		
@@ -307,6 +302,11 @@ public class SparkDataFrame extends AbstractTableDataFrame{
 	}
 	@Override
 	public void resetDataId() {
+		// TODO Auto-generated method stub
+		
+	}
+	@Override
+	public void removeRelationship(String[] columns, Object[] values) {
 		// TODO Auto-generated method stub
 		
 	}

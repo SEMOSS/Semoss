@@ -845,21 +845,9 @@ public class H2Frame2 extends AbstractTableDataFrame {
 		dbmdMap.put("schema", builder.getSchema());
 		return dbmdMap;
 	}
-
+	
 	@Override
-	public void removeRelationship(Map<String, Object> cleanRow) {
-		Set<String> columnNames = cleanRow.keySet();
-		String[] columns = new String[columnNames.size()];
-		String[] values = new String[columnNames.size()];
-		int i = 0;
-		for (String column : cleanRow.keySet()) {
-			Object value = cleanRow.get(column);
-			String val = Utility.cleanString(value.toString(), true, true,
-					false);
-			columns[i] = column;
-			values[i] = val;
-			i++;
-		}
+	public void removeRelationship(String[] columns, Object[] values) {
 		builder.deleteRow(columns, values);
 	}
 
@@ -1069,7 +1057,7 @@ public class H2Frame2 extends AbstractTableDataFrame {
 		// nice because you do not need to handle the rs object directly
 		return this.builder.getFlatTableFromQuery(query);
 	}
-	
+
 //	// TODO : this won't with main column table
 //	public String getTableNameForUniqueColumn(String uniqueName) {
 //		return this.metaData.getParentValueOfUniqueNode(uniqueName);

@@ -1421,20 +1421,7 @@ public class H2Frame extends AbstractTableDataFrame {
 	}
 
 	@Override
-	public void removeRelationship(Map<String, Object> cleanRow) {
-		Set<String> columnNames = cleanRow.keySet();
-		String[] columns = new String[columnNames.size()];
-		String[] values = new String[columnNames.size()];
-		int i = 0;
-		for (String column : cleanRow.keySet()) {
-			String col = this.getValueForUniqueName(column);
-			Object value = cleanRow.get(col);
-			String val = Utility.cleanString(value.toString(), true, true,
-					false);
-			columns[i] = col;
-			values[i] = val;
-			i++;
-		}
+	public void removeRelationship(String[] columns, Object[] values) {
 		builder.deleteRow(columns, values);
 	}
 
