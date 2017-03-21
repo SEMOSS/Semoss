@@ -4,7 +4,9 @@ import java.util.List;
 
 import prerna.ds.QueryStruct2;
 import prerna.ds.QueryStructSelector;
+import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.NounMetadata;
+import prerna.sablecc2.om.NounStore;
 import prerna.sablecc2.reactor.AbstractReactor;
 
 public abstract class QueryStructReactor extends AbstractReactor {
@@ -14,69 +16,29 @@ public abstract class QueryStructReactor extends AbstractReactor {
 	@Override
 	public void In() {
 		curNoun("all");
-		if(qs == null) {
-			qs = new QueryStruct2();
-		}
+		
 	}
 
 	@Override
 	public Object Out() {
-		mergeUp();
-		return parentReactor;
+		init();
+		return this.parentReactor;
 	}
 
 	@Override
+	public Object execute() {
+		QueryStruct2 qs = createQueryStruct();
+		NounMetadata noun = new NounMetadata(qs, "QUERYSTRUCT");
+		return noun;
+	}
+	@Override
 	protected void mergeUp() {
-//		if(parentReactor != null) {
-			QueryStruct2 qs = createQueryStruct();
-			
-			if(this.planner.hasProperty("RESULT", "RESULT")) {
-				NounMetadata result = (NounMetadata) this.planner.getProperty("RESULT", "RESULT");
-				if(result.getNounName().equals("QUERYSTRUCT")) {
-					QueryStruct2 storedResult = (QueryStruct2)result.getValue();
-					storedResult.merge(qs);
-				} else {
-					NounMetadata queryStruct = new NounMetadata(qs, "QUERYSTRUCT");
-					this.planner.addProperty("RESULT", "RESULT", queryStruct);
-				}
-			} else {
-				NounMetadata queryStruct = new NounMetadata(qs, "QUERYSTRUCT");
-				this.planner.addProperty("RESULT", "RESULT", queryStruct);
-			}
-			
-//			//merge the query struct with the parent if we can
-//			if(parentReactor instanceof QueryStructReactor) {
-//				((QueryStructReactor) parentReactor).mergeQueryStruct(qs);
-//			} 
-//			
-//			//otherwise just push it
-//			else {
-//				//where though?
-//				updatePlan();
-//			}
-			
-//		} else {
-//			updatePlan();
-//		}
+
 	}
 
 	@Override
 	protected void updatePlan() {
-//		QueryStruct2 qs = createQueryStruct();
-		
-//		//push this query struct to the planner
-//		QueryStruct2 mainQueryStruct = null;
-//		try {
-//			mainQueryStruct = (QueryStruct2)this.planner.getProperty("QUERYSTRUCT", "QUERTYSTRUCT");
-//		}catch(Exception e) {
-//			
-//		}
-//		if(mainQueryStruct != null) {
-//			mainQueryStruct.merge(qs);
-//		} else {
-//			mainQueryStruct = qs;
-//		}
-//		this.planner.addProperty("QUERYSTRUCT", "QUERYSTRUCT", mainQueryStruct);
+
 	}
 	
 	public void mergeQueryStruct(QueryStruct2 queryStruct) {
@@ -91,6 +53,20 @@ public abstract class QueryStructReactor extends AbstractReactor {
 		List<QueryStructSelector> selectors = qs.getSelectors();
 		for(int i = 0; i < asName.length; i++) {
 			selectors.get(i).setAlias(asName[i]);
+		}
+	}
+	
+	private void init() {
+		GenRowStruct qsInputParams = getNounStore().getNoun("QUERYSTRUCT");
+		if(qsInputParams != null) {
+			for(Object qs : qsInputParams) {
+				NounMetadata qsNoun = (NounMetadata)qs;
+				mergeQueryStruct((QueryStruct2)qsNoun.getValue());
+			}
+		}
+		
+		if(qs == null) {
+			qs = new QueryStruct2();
 		}
 	}
 	

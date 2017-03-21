@@ -8,6 +8,7 @@ import java.util.Map;
 
 import prerna.engine.api.IHeadersDataRow;
 import prerna.sablecc2.om.GenRowStruct;
+import prerna.sablecc2.om.NounMetadata;
 import prerna.sablecc2.om.NounStore;
 import prerna.sablecc2.reactor.export.FormatFactory;
 import prerna.sablecc2.reactor.export.Formatter;
@@ -22,10 +23,26 @@ public class CollectReactor extends AbstractReactor{
 
 	@Override
 	public Object Out() {
-		collectData();
 		return parentReactor;
 	}
 
+	public Object execute() {
+		Iterator<IHeadersDataRow> job = getJob();
+		int collectThisMany = getTotalToCollect();
+		
+		List<Object> values = new ArrayList<>(collectThisMany);
+		int i = 0;
+		
+		while(i < collectThisMany && job.hasNext()) {
+			IHeadersDataRow nextData = job.next();
+			values.add(nextData);
+			i++;
+		}
+		
+		NounMetadata result = new NounMetadata(values, "DATA");
+		return result;
+	}
+	
 	@Override
 	protected void mergeUp() {
 		
@@ -36,63 +53,10 @@ public class CollectReactor extends AbstractReactor{
 		
 	}
 	
-	public void collectData() {
-//		if(this.parentReactor != null) {
-			Iterator<IHeadersDataRow> job = getJob();
-//			List<Formatter> formatters = getFormatters();	
-			int collectThisMany = getTotalToCollect();
-			
-			List<Object> values = new ArrayList<>(collectThisMany);
-			int i = 0;
-//			while(i < collectThisMany && job.hasNext()) {
-//				IHeadersDataRow nextData = job.next();
-//				values.add(nextData);
-//				for(Formatter formatter : formatters) {
-//					formatter.addData(nextData);
-//				}
-//				i++;
-//			}
-			
-			while(i < collectThisMany && job.hasNext()) {
-				IHeadersDataRow nextData = job.next();
-				values.add(nextData);
-				i++;
-			}
-			
-			//collect the results
-//			List<Object> values = new ArrayList<>();
-//			for(Formatter formatter : formatters) {
-//				values.add(formatter.getFormattedData());
-//			}
-			
-//			Map retData;
-//			if(this.planner.hasProperty("DATA", "DATA")) {
-//				retData = (Map)this.planner.getProperty("DATA", "DATA");
-//			} else {
-//				retData = new HashMap<>();
-//			}
-//			
-//			retData.put("jobOutput", values);
-			
-			this.planner.addProperty("RESULT", "RESULT", values);
-//		}
-	}
-	
 	private Iterator<IHeadersDataRow> getJob() {
-		return (Iterator<IHeadersDataRow>)this.parentReactor.getProp("JOB");
+		NounMetadata jobNoun = (NounMetadata)getNounStore().getNoun("JOB").get(0);
+		return (Iterator<IHeadersDataRow>)jobNoun.getValue();
 	}
-	
-//	private List<Formatter> getFormatters() {
-//		List<Formatter> formatters;
-//		if(this.parentReactor.hasProp("FORMATTER")) {
-//			formatters = (List<Formatter>)parentReactor.getProp("FORMATTER");
-//		} else {
-//			//one table by default
-//			formatters = new ArrayList<>();
-//			formatters.add(FormatFactory.getFormatter("Table"));
-//		}
-//		return formatters;
-//	}
 	
 	private int getTotalToCollect() {
 		GenRowStruct allNouns = getNounStore().getNoun(NounStore.all);

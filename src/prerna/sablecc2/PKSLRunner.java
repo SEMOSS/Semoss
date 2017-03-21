@@ -92,6 +92,8 @@ public class PKSLRunner {
 			
 		} catch (ParserException | LexerException | IOException | RuntimeException e) {
 			e.printStackTrace();
+		} finally {
+			translation.postProcess();
 		}
 		return;
 	}

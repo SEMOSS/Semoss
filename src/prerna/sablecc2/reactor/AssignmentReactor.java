@@ -22,11 +22,9 @@ public class AssignmentReactor extends AbstractReactor {
 	@Override
 	public Object Out() {
 		
-		if(planner.hasProperty("RESULT", "RESULT")) {
-			NounMetadata result = (NounMetadata)planner.getProperty("RESULT", "RESULT");
-			if(result != null) {
-				planner.addVariable(operationName.toUpperCase(), result);
-			}
+		NounMetadata result = planner.getVariable("$RESULT");
+		if(result != null) {
+			planner.addVariable(operationName.toUpperCase(), result);
 		}
 		
 		return null;

@@ -45,7 +45,6 @@ public interface Analysis extends Switch
     void caseAColTerm(AColTerm node);
     void caseACsvTerm(ACsvTerm node);
     void caseAOthercol(AOthercol node);
-    void caseAComparecol(AComparecol node);
     void caseAGenRow(AGenRow node);
     void caseAPlainRow(APlainRow node);
     void caseAAnotherGenRow(AAnotherGenRow node);
