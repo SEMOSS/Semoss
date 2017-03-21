@@ -4,7 +4,6 @@ import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
-import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Hashtable;
 import java.util.List;
@@ -1780,30 +1779,37 @@ public abstract class AbstractRJavaReactor extends AbstractJavaReactor {
 	 * 
 	 * @param engines
 	 *            The semicolon-delimited string of engine names
-	 * @param refresh
-	 *            Whether or not to refresh the corpus
+	 * @param similarityThreshold
+	 *            Only consider matches above this threshold
+	 * @param compareProperties
+	 *            Whether or not to consider properties as well as concepts
+	 * @param semanticScore
+	 *            Whether or not to include a score measuring the semantic
+	 *            similarity between header names
 	 */
-	public void runSemanticMatching(String[] engines, boolean refresh, boolean compareProperties,
+	public void runSemanticMatching(String[] engines, double similarityThreshold, boolean compareProperties,
 			boolean semanticScore) {
-		DomainValues dv;
-		if (refresh) {
-			dv = new DomainValues(engines, compareProperties);
-			try {
-				dv.exportDomainValues();
-			} catch (IOException e) {
-				LOGGER.error("Failed to refresh corpus");
-				e.printStackTrace();
-			}
+
+		// Refresh the corpus
+		DomainValues dv = new DomainValues(engines, compareProperties);
+		try {
+			dv.exportDomainValues();
+		} catch (IOException e) {
+			LOGGER.error("Failed to refresh corpus");
+			e.printStackTrace();
 		}
+
+		// Grab the corpus directory
 		String corpusDirectory = getBaseFolder() + "\\" + Constants.R_BASE_FOLDER + "\\"
 				+ Constants.R_MATCHING_REPO_FOLDER;
 		corpusDirectory = corpusDirectory.replace("\\", "/");
+
+		// Parameters for R script
 		int nMinhash = 200;
 		int nBands = 40;
-		double similarityThreshold = 0.8;
-		String rFrameName = "dt";
-		ArrayList<String> rCommands = new ArrayList<String>();
+		String rFrameName = "this.dt.name.is.reserved.for.semantic.matching";
 
+		// Grab the utility script
 		String utilityScriptPath = getBaseFolder() + "\\" + Constants.R_BASE_FOLDER + "\\"
 				+ Constants.R_ANALYTICS_SCRIPTS_FOLDER + "\\" + Constants.R_UTILITY_SCRIPT;
 		utilityScriptPath = utilityScriptPath.replace("\\", "/");
@@ -1811,56 +1817,51 @@ public abstract class AbstractRJavaReactor extends AbstractJavaReactor {
 		// TODO add this library to the list when starting R
 		// This is also called in the function,
 		// but by calling it here we can see if the use doesn't have the package
-		rCommands.add("library(textreuse)");
-		rCommands.add("source(\"" + utilityScriptPath + "\");");
+		runR("library(textreuse)");
+
+		// Source the LSH function from the utility script
+		runR("source(\"" + utilityScriptPath + "\");");
 
 		// Run locality sensitive hashing to generate matches
-		rCommands.add(rFrameName + " <- " + Constants.R_LSH_MATCHING_FUN + "(\"" + corpusDirectory + "\", " + nMinhash
-				+ ", " + nBands + ", " + similarityThreshold + ")");
-
-		// Split engine and concept into individual columns
-		// TODO parameterize all of these names here
-		rCommands.add(rFrameName + "[, c(\"item_engine\", \"item_concept\") := tstrsplit(item, \""
-				+ DomainValues.ENGINE_VALUE_DELIMETER + "\", fixed=TRUE)]");
-		rCommands.add(rFrameName + "[, c(\"match_engine\", \"match_concept\") := tstrsplit(match, \""
-				+ DomainValues.ENGINE_VALUE_DELIMETER + "\", fixed=TRUE)]");
-		rCommands.add(rFrameName + "[, item:=NULL]");
-		rCommands.add(rFrameName + "[, match:=NULL]");
-
-		// Run the r commands
-		for (String rCommand : rCommands) {
-			runR(rCommand);
-		}
+		runR(rFrameName + " <- " + Constants.R_LSH_MATCHING_FUN + "(\"" + corpusDirectory + "\", " + nMinhash + ", "
+				+ nBands + ", " + similarityThreshold + ", \"" + DomainValues.ENGINE_VALUE_DELIMETER + "\")");
 
 		// Synchronize from R
 		storeVariable("GRID_NAME", rFrameName);
 		synchronizeFromR();
 
-		// Calculate the semantic score
-		H2Frame frame = (H2Frame) myStore.get(PKQLEnum.G);
-		if (!frame.isEmpty()) {
-			JawsSemanticMatching jaws = new JawsSemanticMatching();
-			Object[] item = frame.getColumn("item_concept");
-			Object[] match = frame.getColumn("match_concept");
-			// unwrap the columns from semanticScore calculation
-			String[] semanticScoreCols = jaws.generateSemanticScore(item, match);
-			String itemDictionaryLookup = semanticScoreCols[0];
-			String matchDictionaryLookup = semanticScoreCols[1];
-			String semanticScoreColumns = semanticScoreCols[2];
+		// Only run semantic score if specified
+		if (semanticScore) {
 
-			if (semanticScore) {
+			// Pull the frame from myStore
+			H2Frame frame = (H2Frame) myStore.get(PKQLEnum.G);
+			if (!frame.isEmpty()) {
+
+				// Run semantic matching
+				JawsSemanticMatching jaws = new JawsSemanticMatching();
+				Object[] item = frame.getColumn("item_concept");
+				Object[] match = frame.getColumn("match_concept");
+
+				// Unwrap the columns from semanticScore calculation
+				String[] semanticScoreCols = jaws.generateSemanticScore(item, match);
+				String itemDictionaryLookup = semanticScoreCols[0];
+				String matchDictionaryLookup = semanticScoreCols[1];
+				String semanticScoreColumns = semanticScoreCols[2];
+
 				// Add a column for the semantic score
 				runR(rFrameName + "$semantic_score <- list" + semanticScoreColumns);
 				runR(rFrameName + "[, semantic_score:=as.numeric(semantic_score)]");
 
-				// add dictionary match columns
+				// Add dictionary match columns
 				runR(rFrameName + "$item_dictionary_word <- list" + itemDictionaryLookup);
 				runR(rFrameName + "$match_dictionary_word <- list" + matchDictionaryLookup);
-			}
 
-			synchronizeFromR();
+				// Sync back
+				synchronizeFromR();
+			}
 		}
-		//Clean directory
+
+		// Clean directory
 		try {
 			FileUtils.cleanDirectory(new File(corpusDirectory));
 		} catch (IOException e) {
