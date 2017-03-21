@@ -355,7 +355,7 @@ public interface ITableDataFrame extends IDataMaker {
 	 * @param cleanRow
 	 * @param rawRow
 	 */
-	void removeRelationship(Map<String, Object> cleanRow);
+	void removeRelationship(String[] columns, Object[] values);
 	
 	/**
 	 * 

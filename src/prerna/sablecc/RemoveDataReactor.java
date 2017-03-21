@@ -8,7 +8,8 @@ import java.util.Vector;
 
 import prerna.algorithm.api.ITableDataFrame;
 import prerna.ds.DataFrameHelper;
-import prerna.engine.api.ISelectWrapper;
+import prerna.engine.api.IEngineWrapper;
+import prerna.engine.api.IHeadersDataRow;
 import prerna.sablecc.PKQLRunner.STATUS;
 import prerna.sablecc.meta.IPkqlMetadata;
 
@@ -33,8 +34,7 @@ public class RemoveDataReactor extends AbstractReactor {
 
 		ITableDataFrame frame = (ITableDataFrame) myStore.get("G");
 
-		ISelectWrapper it = null;
-		Object value = myStore.get(PKQLEnum.API);
+		Iterator<IHeadersDataRow> it = (Iterator<IHeadersDataRow>) myStore.get(PKQLEnum.API);
 
 		// put the joins in a list to feed into merge edge hash
 		Vector<Map<String, String>> joinCols = new Vector<Map<String, String>>();
@@ -46,35 +46,9 @@ public class RemoveDataReactor extends AbstractReactor {
 				joinCols.add(joinMap);
 			}
 		}
-		it = (ISelectWrapper) value;
-
-//		IEngine engine = (IEngine) DIHelper.getInstance().getLocalProp((this.getValue(PKQLEnum.API + "_ENGINE")+"").trim());
-//		QueryStruct qs = (QueryStruct) this.getValue(PKQLEnum.API + "_QUERY_STRUCT");
-		//
-		// Map<String, Set<String>> edgeHash = qs.getReturnConnectionsHash();
-		//
-		// Map[] mergedMaps = frame.mergeQSEdgeHash(edgeHash, engine, joinCols);
-
-		// if(frame instanceof H2Frame) {
-		// while(it.hasNext()){
-		// ISelectStatement ss = (ISelectStatement) it.next();
-		// System.out.println(((ISelectStatement)ss).getPropHash());
-		// frame.removeRelationship(ss.getPropHash(), ss.getRPropHash());
-		// }
-		// } else if(frame instanceof TinkerFrame) {
-		// IMetaData metaData = ((TinkerFrame)frame)
-		// H2Frame tempFrame = TableDataFrameFactory.convertToH2Frame(frame);
-		// while(it.hasNext()){
-		// ISelectStatement ss = (ISelectStatement) it.next();
-		// System.out.println(((ISelectStatement)ss).getPropHash());
-		// tempFrame.removeRelationship(ss.getPropHash(), ss.getRPropHash());
-		// }
-		//
-		// }
 
 		DataFrameHelper.removeData(frame, it);
 		myStore.put("STATUS", STATUS.SUCCESS);
-
 		myStore.put(nodeStr, createResponseString(it));
 
 		return null;
@@ -85,17 +59,22 @@ public class RemoveDataReactor extends AbstractReactor {
 		return values2SyncHash.get(input);
 	}
 
-	private String createResponseString(ISelectWrapper it) {
-		Map<String, Object> map = it.getResponseMeta();
-		String mssg = "";
-		for (String key : map.keySet()) {
-			if (!mssg.isEmpty()) {
-				mssg = mssg + " \n";
+	private String createResponseString(Iterator<IHeadersDataRow> it) {
+		if(it instanceof IEngineWrapper) {
+			Map<String, Object> map = ((IEngineWrapper) it).getResponseMeta();
+			String mssg = "";
+			for (String key : map.keySet()) {
+				if (!mssg.isEmpty()) {
+					mssg = mssg + " \n";
+				}
+				mssg = mssg + key + ": " + map.get(key).toString();
 			}
-			mssg = mssg + key + ": " + map.get(key).toString();
+			String retStr = "Sucessfully deleted data using : \n" + mssg;
+			return retStr;
+		} else {
+			String retStr = "Sucessfully deleted data";
+			return retStr;
 		}
-		String retStr = "Sucessfully deleted data using : \n" + mssg;
-		return retStr;
 	}
 
 	@Override
