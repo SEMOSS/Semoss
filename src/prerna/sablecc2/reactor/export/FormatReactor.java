@@ -18,8 +18,22 @@ public class FormatReactor extends AbstractReactor {
 
 	@Override
 	public Object Out() {
-		formatData();
 		return parentReactor;
+	}
+	
+	public Object execute() {
+		GenRowStruct allNouns = getNounStore().getNoun(NounStore.all); //('EXPORT_FUNCTION_NAME', 'EXPORT_TYPE'), ex: (TABLE, BAR), (JSON, WIDGET)
+		String formatFunction = (String)allNouns.get(0);
+		Formatter formatter = FormatFactory.getFormatter(formatFunction);
+		List<IHeadersDataRow> rawData = getRawData();
+		
+		for(IHeadersDataRow nextData : rawData) {
+			formatter.addData(nextData);
+		}
+		
+		NounMetadata noun = new NounMetadata(formatter.getFormattedData(), "FDATA");
+//		planner.addVariable("$RESULT", noun);
+		return noun;
 	}
 
 	@Override
@@ -31,46 +45,14 @@ public class FormatReactor extends AbstractReactor {
 	protected void updatePlan() {
 		
 	}
-	
-	private void formatData() {
-		GenRowStruct allNouns = getNounStore().getNoun(NounStore.all); //('EXPORT_FUNCTION_NAME', 'EXPORT_TYPE'), ex: (TABLE, BAR), (JSON, WIDGET)
-		String formatFunction = (String)allNouns.get(0);
-		Formatter formatter = FormatFactory.getFormatter(formatFunction);
-		List<IHeadersDataRow> rawData = getRawData();
-		
-		for(IHeadersDataRow nextData : rawData) {
-			formatter.addData(nextData);
-		}
-		
-		NounMetadata noun = new NounMetadata(formatter.getFormattedData(), "DATA");
-		planner.addProperty("RESULT", "RESULT", noun);
-		//grab the data we are working with
-//		List<Formatter> formatters;
-//		boolean hasParent = this.parentReactor != null;
-//		if(hasParent && parentReactor.hasProp("FORMATTER")) {
-//			formatters = (List<Formatter>)parentReactor.getProp("FORMATTER");
-//		} else {
-//			formatters = new ArrayList<>(3);			
-//		}
-//		
-//		this.parentReactor.setProp("FORMATTER", formatters);
-//		
-//		formatters.add(formatter);
-//		this.planner.addProperty("FORMATTER", "FORMATTER", formatters);
-//		if(this.parentReactor != null) {
-//			if(this.parentReactor.hasProp("JOB")) {
-//				this.setProp("JOB", this.parentReactor.getProp("JOB"));
-//			}
-//		}
-	}
 
 	@Override
 	public List<NounMetadata> getInputs() {
-		// TODO Auto-generated method stub
 		return null;
 	}
 	
 	private List<IHeadersDataRow> getRawData() {
-		return (List<IHeadersDataRow>)planner.getProperty("RESULT", "RESULT");
+		NounMetadata dataNoun = (NounMetadata)getNounStore().getNoun("DATA").get(0);
+		return (List<IHeadersDataRow>)dataNoun.getValue();
 	}
 }

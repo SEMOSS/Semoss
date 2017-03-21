@@ -68,14 +68,15 @@ public class SelectReactor extends QueryStructReactor {
 	
 	//determine whether this query struct will be built for a database or a frame
 	private boolean isDatabaseQueryStruct() {
-		QueryStruct2 struct = (QueryStruct2)planner.getProperty("QUERYSTRUCT", "QUERYSTRUCT");
-		if(struct == null) {
-			return false;
-		} else {
-			if(struct.getEngineName() == null) {
+		NounMetadata result = this.planner.getVariable("$RESULT");
+		if(result != null && result.getNounName().equals("QUERYSTRUCT")) {
+			QueryStruct2 storedResult = (QueryStruct2)result.getValue();
+			if(storedResult.getEngineName() == null) {
 				return false;
+			} else {
+				return true;
 			}
 		}
-		return true;
+		return false;
 	}	
 }

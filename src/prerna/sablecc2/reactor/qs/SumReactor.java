@@ -2,7 +2,7 @@ package prerna.sablecc2.reactor.qs;
 
 import prerna.ds.QueryStructSelector;
 
-public class SumReactor extends SelectReactor{
+public class SumReactor extends SelectReactor {
 
 	@Override
 	public QueryStructSelector getSelector(String table, String column) {
