@@ -110,7 +110,7 @@ public interface IReactor {
 	//returns whether reactor has Prop
 	public boolean hasProp(String key);
 	
-	// execute method
+	// execute method - GREEDY translation
 	public Object execute();
 	
 	// map call implement if your type is map

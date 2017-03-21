@@ -18,6 +18,7 @@ import prerna.util.Utility;
 import java.util.Enumeration;
 import java.util.HashMap;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
 import java.util.Vector;
 
@@ -37,9 +38,6 @@ public class MergeDataReactor extends AbstractReactor {
 	@Override
 	public Object Out() {
 		importToFrame();
-		if(parentReactor != null) {
-			return this.parentReactor;
-		}
 		return null;
 	}
 	
@@ -125,25 +123,34 @@ public class MergeDataReactor extends AbstractReactor {
 	}
 
 	private QueryStruct2 getQueryStruct() {
-		GenRowStruct allNouns = getNounStore().getNoun("QUERY");
+		GenRowStruct allNouns = getNounStore().getNoun("QUERYSTRUCT");
 		QueryStruct2 queryStruct = null;
 		if(allNouns != null) {
 			NounMetadata object = (NounMetadata)allNouns.get(0);
 			return (QueryStruct2)object.getValue();
-		} else {
-			NounMetadata result = (NounMetadata)this.planner.getProperty("RESULT", "RESULT");
-			if(result.getNounName().equals("QUERYSTRUCT")) {
-				queryStruct = (QueryStruct2)result.getValue();
-			}
-		}
+		} 
+		
+//		else {
+//			NounMetadata result = (NounMetadata)this.planner.getProperty("RESULT", "RESULT");
+//			if(result.getNounName().equals("QUERYSTRUCT")) {
+//				queryStruct = (QueryStruct2)result.getValue();
+//			}
+//		}
 		return queryStruct;
 	}
 	
 	@Override
-	public Vector<NounMetadata> getInputs() {
+	public List<NounMetadata> getInputs() {
 		//1 query OR 1 queryStruct
 		//n joins
 		return null;
+	}
+	
+	private void setInputs() {
+		List<NounMetadata> inputs = getInputs();
+		for(NounMetadata noun : inputs) {
+			String nounName = noun.getNounName();
+		}
 	}
 	
 	private String removeQuotes(String value) {

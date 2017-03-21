@@ -87,6 +87,34 @@ public class H2FilterHash {
 		return this.filterHash.isEmpty();
 	}
 	
+	public void merge(H2FilterHash mergeFilters) {
+		Map<String, Map<String, Set<Object>>> incomingFilters = mergeFilters.getFilterHash();
+		for(String key : incomingFilters.keySet()) {
+			Map<String, Set<Object>> incomingHash = incomingFilters.get(key);
+			if(this.filterHash.containsKey(key)) {
+				Map<String, Set<Object>> thisHash = this.filterHash.get(key);
+				for(String relationKey : incomingHash.keySet()) {
+					Set<Object> v;
+					if(thisHash.containsKey(relationKey)) {
+						v = thisHash.get(relationKey);
+					} else {
+						v = new HashSet<Object>();
+					}
+					v.addAll(incomingHash.get(relationKey));
+					thisHash.put(relationKey, v);
+				}
+			} else {
+				Map<String, Set<Object>> newHash = new HashMap<>();
+				for(String relationKey : incomingHash.keySet()) {
+					Set<Object> v = new HashSet<Object>();
+					v.addAll(incomingHash.get(relationKey));
+					newHash.put(relationKey, v);
+				}
+				this.filterHash.put(key, newHash);
+			}
+		}
+	}
+	
 	public String makeFilterSubQuery() {
 		String filterStatement = "";
 		if (filterHash.keySet().size() > 0) {

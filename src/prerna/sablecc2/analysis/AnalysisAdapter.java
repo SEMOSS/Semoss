@@ -273,12 +273,6 @@ public class AnalysisAdapter implements Analysis
     }
 
     @Override
-    public void caseAComparecol(AComparecol node)
-    {
-        defaultCase(node);
-    }
-
-    @Override
     public void caseAGenRow(AGenRow node)
     {
         defaultCase(node);

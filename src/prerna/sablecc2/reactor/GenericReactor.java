@@ -60,7 +60,13 @@ public class GenericReactor extends AbstractReactor {
 		String key = (String)getProp("KEY");
 		
 		GenRowStruct allNouns = store.getNoun(NounStore.all);
-		GenRowStruct thisStruct = store.makeNoun(key);
+		GenRowStruct thisStruct;
+		if(store.getNoun(key) == null) {
+			thisStruct = store.makeNoun(key);
+		} else {
+			thisStruct = store.getNoun(key);
+		}
+			
 		for(Object noun : allNouns) {
 			if(noun instanceof String) {
 				NounMetadata value = this.planner.getVariable((String)noun);
@@ -73,7 +79,7 @@ public class GenericReactor extends AbstractReactor {
 				thisStruct.add(noun);
 			}
 		}
-		thisStruct.merge(allNouns);
+//		thisStruct.merge(allNouns);
 
 		// just add this to the parent
 		parentReactor.getNounStore().addNoun(key, thisStruct);

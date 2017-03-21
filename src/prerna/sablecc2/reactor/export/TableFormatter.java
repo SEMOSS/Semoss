@@ -30,5 +30,4 @@ public class TableFormatter implements Formatter {
 		return returnData;
 	}
 	
-	
 }
