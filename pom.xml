@@ -532,6 +532,54 @@
 		    <artifactId>neo4j</artifactId>
 		    <version>3.0.3</version>
 		</dependency>
+		<!-- https://mvnrepository.com/artifact/org.neo4j/neo4j-kernel -->
+		<dependency>
+		    <groupId>org.neo4j</groupId>
+		    <artifactId>neo4j-kernel</artifactId>
+		    <version>3.0.3</version>
+		</dependency>
+		<!-- https://mvnrepository.com/artifact/org.neo4j/neo4j-lucene-index -->
+		<dependency>
+		    <groupId>org.neo4j</groupId>
+		    <artifactId>neo4j-lucene-index</artifactId>
+		    <version>3.0.3</version>
+		</dependency>
+		<!-- https://mvnrepository.com/artifact/org.neo4j/neo4j-graph-algo -->
+		<dependency>
+		    <groupId>org.neo4j</groupId>
+		    <artifactId>neo4j-graph-algo</artifactId>
+		    <version>3.0.3</version>
+		</dependency>
+		<!-- https://mvnrepository.com/artifact/org.neo4j/neo4j-udc -->
+		<dependency>
+		    <groupId>org.neo4j</groupId>
+		    <artifactId>neo4j-udc</artifactId>
+		    <version>3.0.3</version>
+		</dependency>
+		<!-- https://mvnrepository.com/artifact/org.neo4j/neo4j-graph-matching -->
+		<dependency>
+		    <groupId>org.neo4j</groupId>
+		    <artifactId>neo4j-graph-matching</artifactId>
+		    <version>3.0.3</version>
+		</dependency>
+		<!-- https://mvnrepository.com/artifact/org.neo4j/neo4j-cypher -->
+		<dependency>
+		    <groupId>org.neo4j</groupId>
+		    <artifactId>neo4j-cypher</artifactId>
+		    <version>3.0.3</version>
+		</dependency>
+		<!-- https://mvnrepository.com/artifact/org.neo4j/neo4j-jmx -->
+		<dependency>
+		    <groupId>org.neo4j</groupId>
+		    <artifactId>neo4j-jmx</artifactId>
+		    <version>3.0.3</version>
+		</dependency>
+		<!-- https://mvnrepository.com/artifact/org.neo4j/neo4j-consistency-check -->
+		<dependency>
+		    <groupId>org.neo4j</groupId>
+		    <artifactId>neo4j-consistency-check</artifactId>
+		    <version>3.0.3</version>
+		</dependency>
 		<!-- https://mvnrepository.com/artifact/org.neo4j/neo4j-enterprise -->
 		<dependency>
 		    <groupId>org.neo4j</groupId>
