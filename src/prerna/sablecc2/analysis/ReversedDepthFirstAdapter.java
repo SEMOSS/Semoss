@@ -845,43 +845,6 @@ public class ReversedDepthFirstAdapter extends AnalysisAdapter
         outAOthercol(node);
     }
 
-    public void inAComparecol(AComparecol node)
-    {
-        defaultIn(node);
-    }
-
-    public void outAComparecol(AComparecol node)
-    {
-        defaultOut(node);
-    }
-
-    @Override
-    public void caseAComparecol(AComparecol node)
-    {
-        inAComparecol(node);
-        if(node.getRPar() != null)
-        {
-            node.getRPar().apply(this);
-        }
-        if(node.getCol2() != null)
-        {
-            node.getCol2().apply(this);
-        }
-        if(node.getComparator() != null)
-        {
-            node.getComparator().apply(this);
-        }
-        if(node.getCol1() != null)
-        {
-            node.getCol1().apply(this);
-        }
-        if(node.getLPar() != null)
-        {
-            node.getLPar().apply(this);
-        }
-        outAComparecol(node);
-    }
-
     public void inAGenRow(AGenRow node)
     {
         defaultIn(node);
@@ -1716,17 +1679,9 @@ public class ReversedDepthFirstAdapter extends AnalysisAdapter
         {
             node.getRPar().apply(this);
         }
-        if(node.getRBrac() != null)
+        if(node.getColDef() != null)
         {
-            node.getRBrac().apply(this);
-        }
-        if(node.getPlainRow() != null)
-        {
-            node.getPlainRow().apply(this);
-        }
-        if(node.getLBrac() != null)
-        {
-            node.getLBrac().apply(this);
+            node.getColDef().apply(this);
         }
         if(node.getComparator() != null)
         {

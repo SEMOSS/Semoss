@@ -431,7 +431,7 @@ public class QueryStruct2 {
 	
 	public void merge(QueryStruct2 incomingQS) {
 		mergeSelectors(incomingQS.selectors);
-//		mergeFilters(incomingQS.andfilters);
+		mergeFilters(incomingQS.filters);
 		mergeRelations(incomingQS.relations);
 		mergeGroupBy(incomingQS.groupBy);
 		mergeOrderBy(incomingQS.orderBySelectors);
@@ -456,32 +456,9 @@ public class QueryStruct2 {
 		}
 	}
 	
-//	public void mergeFilters(H2FilterHash incomingFilters) {	
-//		for(String key : incomingFilters.keySet()) {
-//			Hashtable<String, Vector> incomingHash = incomingFilters.get(key);
-//			if(this.andfilters.containsKey(key)) {
-//				Hashtable<String, Vector> thisHash = this.andfilters.get(key);
-//				for(String relationKey : incomingHash.keySet()) {
-//					Vector v;
-//					if(thisHash.containsKey(relationKey)) {
-//						v = thisHash.get(relationKey);
-//					} else {
-//						v = new Vector();
-//					}
-//					v.addAll(incomingHash.get(relationKey));
-//					thisHash.put(relationKey, v);
-//				}
-//			} else {
-//				Hashtable<String, Vector> newHash = new Hashtable<>();
-//				for(String relationKey : incomingHash.keySet()) {
-//					Vector v = new Vector();
-//					v.addAll(incomingHash.get(relationKey));
-//					newHash.put(relationKey, v);
-//				}
-//				this.andfilters.put(key, newHash);
-//			}
-//		}
-//	}
+	public void mergeFilters(H2FilterHash incomingFilters) {	
+		this.filters.merge(incomingFilters);
+	}
 	
 	public void mergeRelations(Hashtable<String, Hashtable<String, Vector>> incomingRelations) {
 		for(String key : incomingRelations.keySet()) {

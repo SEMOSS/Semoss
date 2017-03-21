@@ -54,9 +54,7 @@ public class ReactorFactory {
 	
     public static IReactor getReactor(String reactorId, String nodeString) {
     	IReactor reactor;
-    	if(reactorId.trim().equals("Query")) {
-    		reactor = new QueryReactor();
-    	} else if(reactorId.trim().equals("Import")) {
+    	if(reactorId.trim().equals("Import")) {
     		reactor = new ImportDataReactor();
     	} else if(reactorId.trim().equals("Merge")) {
     		reactor = new MergeDataReactor();
@@ -90,6 +88,12 @@ public class ReactorFactory {
     		reactor = new JobReactor();
     	} else if(reactorId.trim().equals("Format")) {
     		reactor = new FormatReactor();
+    	} else if(reactorId.trim().equals("$RReactor")) {
+    		reactor = new RReactor();
+    	} else if(reactorId.trim().equals("If")) {
+    		reactor = new IfReactor();
+    	} else if(reactorId.trim().equals("Export")) {
+    		reactor = new ExportReactor();
     	} else {
     		reactor = new SampleReactor();
     	}

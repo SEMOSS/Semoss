@@ -39,46 +39,22 @@ public class IterateReactor extends AbstractReactor {
 
 	@Override
 	public Object Out() {
-		createJob();
-		if(parentReactor != null) {
-			return this.parentReactor;
-		}
-		return null;
+		return parentReactor;
+	}
+	
+	public Object execute() {
+		return createJob();
 	}
 	
 	public void updatePlan() {
-		//just need to set the frame to the planner here...that's it
-		getType();
-		Enumeration <String> keys = store.nounRow.keys();
-		
-		String reactorOutput = reactorName;
-		
-		while(keys.hasMoreElements())
-		{
-			String singleKey = keys.nextElement();
-			GenRowStruct struct = store.nounRow.get(singleKey);
-			Vector <String> inputs = struct.getAllColumns();
-			
-			// need a better way to do it
-			if(asName == null)
-				reactorOutput = reactorOutput + "_" + struct.getColumns();
-	
-			// find if code exists
-			if(!propStore.containsKey("CODE"))
-			{
-				if(inputs.size() > 0)
-					planner.addInputs(signature, inputs, type);
-			}
-		}
 	}
 
 
 	@Override
 	protected void mergeUp() {
-		//this reactor should not need to merge up
 	}
 	
-	private void createJob()  {
+	private NounMetadata createJob()  {
 		//get the inputs
 		
 		//every job should be created via a query struct run either on a database or a frame
@@ -114,12 +90,14 @@ public class IterateReactor extends AbstractReactor {
 		Map<String, Object> returnData = new HashMap<>();
 		returnData.put("jobId", id);
 		this.planner.addProperty("DATA", "DATA", returnData);
-		this.planner.addProperty("RESULT", "RESULT", getOutput());
+		return getOutput();
+//		this.planner.addVariable("$RESULT", getOutput());
+//		this.planner.addProperty("RESULT", "RESULT", getOutput());
 	}
 	
 	@Override
 	public NounMetadata getOutput() {
-		NounMetadata output = new NounMetadata(this.output, "ITERATOR");
+		NounMetadata output = new NounMetadata(this.output, "JOB");
 		output.setExplanation("Iterator created from iterate reactor");
 		return output;
 	}

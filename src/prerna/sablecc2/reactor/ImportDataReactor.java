@@ -29,10 +29,7 @@ public class ImportDataReactor extends AbstractReactor {
 	//greedy execution
 	public Object Out() {
 		importToFrame();
-		if(parentReactor != null) {
-			return this.parentReactor;
-		}
-		return null;
+		return parentReactor;
 	}
 	
 	public void updatePlan() {
@@ -87,7 +84,7 @@ public class ImportDataReactor extends AbstractReactor {
 			ITableDataFrame importedFrame = (ITableDataFrame)curReactor.getValue("G");
 			System.out.println("IMPORTED FRAME CREATED WITH ROW COUNT: "+importedFrame.getNumRows());
 			this.planner.addProperty("FRAME", "FRAME", importedFrame);
-			this.planner.addProperty("QUERYSTRUCT", "QUERYSTRUCT", new QueryStruct2());
+//			this.planner.addProperty("QUERYSTRUCT", "QUERYSTRUCT", new QueryStruct2());
 		} catch (InstantiationException | IllegalAccessException | ClassNotFoundException e) {
 			e.printStackTrace();
 		}
@@ -99,13 +96,13 @@ public class ImportDataReactor extends AbstractReactor {
 	}
 	
 	private QueryStruct2 getQueryStruct() {
-		GenRowStruct allNouns = getNounStore().getNoun("QUERY");
+		GenRowStruct allNouns = getNounStore().getNoun("QUERYSTRUCT");
 		QueryStruct2 queryStruct = null;
 		if(allNouns != null) {
 			NounMetadata object = (NounMetadata)allNouns.get(0);
 			return (QueryStruct2)object.getValue();
 		} else {
-			NounMetadata result = (NounMetadata)this.planner.getProperty("RESULT", "RESULT");
+			NounMetadata result = this.planner.getVariable("$RESULT");
 			if(result.getNounName().equals("QUERYSTRUCT")) {
 				queryStruct = (QueryStruct2)result.getValue();
 			}
