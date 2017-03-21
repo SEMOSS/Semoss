@@ -275,7 +275,7 @@ public class RdbmsQueryBuilder {
 	
 	
 	// DELETE FROM TABLE_NAME WHERE COLUMN1 = VAL1 AND COLUMN2 = VAL2
-	public static String makeDeleteData(String tableName, String[] columnName, String[] values) {
+	public static String makeDeleteData(String tableName, String[] columnName, Object[] values) {
 		StringBuilder deleteQuery = new StringBuilder("DELETE FROM " + tableName + " WHERE ");
 		for (int i = 0; i < columnName.length; i++) {
 			if (i > 0) {

@@ -467,7 +467,7 @@ public class RDataTable extends AbstractTableDataFrame {
 	}
 
 	@Override
-	public void removeRelationship(Map<String, Object> cleanRow) {
+	public void removeRelationship(String[] columns, Object[] values) {
 		// TODO Auto-generated method stub
 		
 	}
