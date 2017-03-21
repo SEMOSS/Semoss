@@ -16,10 +16,13 @@ public class ExportReactor extends AbstractReactor {
 
 	@Override
 	public Object Out() {
-		exportData();
 		return parentReactor;
 	}
 
+	public Object execute() {
+		return exportData();
+	}
+	
 	@Override
 	protected void mergeUp() {
 		
@@ -30,7 +33,7 @@ public class ExportReactor extends AbstractReactor {
 		
 	}
 
-	private void exportData() {
+	private NounMetadata exportData() {
 		
 		Map<String, Object> exportedData = new HashMap<>();
 		
@@ -47,5 +50,8 @@ public class ExportReactor extends AbstractReactor {
 		}
 		
 		this.planner.addProperty("DATA", "DATA", exportedData);
+		NounMetadata result = new NounMetadata(exportedData, "EXPORT");
+		return result;
+//		this.planner.addVariable("$RESULT", result);
 	}
 }

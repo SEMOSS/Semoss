@@ -112,6 +112,7 @@ public class ExprReactor extends AbstractReactor {
 		this.planner.addProperty(asName[0], "STORE", outputStore);
 	}
 	
+	//TODO : put some comments
 	private IScriptReactor buildReactor() {
 		List<String> columns = this.getCurRow().getAllColumns();
 		String reactorName = (String)this.getProp("REACTOR_NAME");

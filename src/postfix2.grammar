@@ -83,7 +83,7 @@ Productions
  // columns can be a reference column / basic literal or just an expression
  // I have a feeling frame_op should not be part of col def
  // mostly because it is difficult to implement *GRIN*
- col_def = {ref}rcol | {literal}literal | {expr}expr | {dotcol} dotcol | {frameop} frameop  | {filter} filter | {prop} prop | {relation} relationship ; // need to include something for expression
+ col_def = {ref}rcol | {literal}literal | {expr}expr | {dotcol} dotcol | {frameop} frameop  | {filter} filter | {prop} prop | {relation} relationship; // need to include something for expression
  
  // reference - this means the 4th column in the current frame
  rcol = frameprefix number; // f$4
@@ -116,7 +116,7 @@ Productions
  formula = l_par expr r_par;
 
  // example - output of any operation
- operation_formula = id l_par plain_row r_par asop?; // this is the formula with an operation in it. Although one could argue this could be a frameop - this can also be the output
+ operation_formula = id l_par plain_row? r_par asop?; // this is the formula with an operation in it. Although one could argue this could be a frameop - this can also be the output
  
  
  term =
@@ -140,7 +140,9 @@ Productions
  othercol =  comma  col_def;
  //otherliteral =  comma  literal;
  
-  comparecol = l_par [col1]:col_def  comparator  [col2]:col_def r_par;
+ //ifscript = if_start l_par comparason [comma1]:comma [iftrue]:col_def [comma2]:comma [iffalse]:col_def r_par;
+ //comparason = ifscript | comparecol;
+ //  comparecol = [col1]:col_def  comparator  [col2]:col_def;
  // othercomparecol =  comma  comparecol;
  
   // options
@@ -197,10 +199,11 @@ Productions
  
  // filter
  // col_def comparator value[rcol]:col_def
- filter = l_par [lcol]:col_def  comparator  l_brac plain_row r_brac r_par; // need to ask if we should make this multiple or not
+ filter = l_par [lcol]:col_def  comparator  col_def r_par; // need to ask if we should make this multiple or not
  
  relationship = l_par [lcol]:col_def rel_type [rcol]:col_def r_par;
  
+ //comparecol = l_par [col1]:col_def  comparator  [col2]:col_def r_par;
  
  // things I need to worry about in the visual panel
  // s=[MB, Studio, ABCD]

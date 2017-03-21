@@ -3,7 +3,7 @@ package prerna.sablecc2;
 import java.io.BufferedWriter;
 import java.io.FileWriter;
 import java.io.IOException;
-import java.util.HashMap;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
@@ -11,9 +11,6 @@ import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
 import prerna.ds.h2.H2Frame;
-import prerna.ds.r.RDataTable;
-import prerna.engine.api.IScriptReactor;
-import prerna.sablecc.expressions.r.builder.RExpressionBuilder;
 import prerna.sablecc.expressions.sql.builder.ExpressionGenerator;
 import prerna.sablecc.expressions.sql.builder.SqlExpressionBuilder;
 import prerna.sablecc2.analysis.DepthFirstAdapter;
@@ -39,14 +36,19 @@ import prerna.sablecc2.node.AMultExpr;
 import prerna.sablecc2.node.AOpScript;
 import prerna.sablecc2.node.AOperationFormula;
 import prerna.sablecc2.node.AOtherscript;
+import prerna.sablecc2.node.APlainRow;
 import prerna.sablecc2.node.APlusExpr;
 import prerna.sablecc2.node.AProp;
+import prerna.sablecc2.node.AROp;
 import prerna.sablecc2.node.ARcol;
 import prerna.sablecc2.node.ARelationship;
 import prerna.sablecc2.node.AScriptchain;
 import prerna.sablecc2.node.ASelectNoun;
 import prerna.sablecc2.node.ATermExpr;
 import prerna.sablecc2.node.Node;
+import prerna.sablecc2.node.PColDef;
+import prerna.sablecc2.node.POthercol;
+import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.NounMetadata;
 import prerna.sablecc2.reactor.AsReactor;
 import prerna.sablecc2.reactor.AssignmentReactor;
@@ -54,7 +56,9 @@ import prerna.sablecc2.reactor.ExprReactor;
 import prerna.sablecc2.reactor.FilterReactor;
 import prerna.sablecc2.reactor.GenericReactor;
 import prerna.sablecc2.reactor.IReactor;
+import prerna.sablecc2.reactor.IfReactor;
 import prerna.sablecc2.reactor.PKSLPlanner;
+import prerna.sablecc2.reactor.RReactor;
 import prerna.sablecc2.reactor.ReactorFactory;
 import prerna.sablecc2.reactor.SampleReactor;
 import prerna.ui.components.playsheets.datamakers.IDataMaker;
@@ -110,7 +114,7 @@ public class Translation extends DepthFirstAdapter {
 	 * END CONSTRUCTORS
 	 ***************************/
 	
-	private void postProcess() {
+	void postProcess() {
 		//grab the frame here
 		IDataMaker frame = null;
 		try {
@@ -124,6 +128,7 @@ public class Translation extends DepthFirstAdapter {
 		curReactor = null;
 		prevReactor = null;
 		lastOperation = null;
+		this.planner.removeVariable("$RESULT");
 	}
 /********************** First is the main level operation, script chain or other script operations ******************/
 	
@@ -249,9 +254,9 @@ public class Translation extends DepthFirstAdapter {
     public void inAAssignment(AAssignment node)
     {
     	defaultIn(node);
-    	if(!this.planner.hasProperty("VARIABLE", "VARIABLE")) {
-    		this.planner.addProperty("VARIABLE", "VARIABLE", new HashMap<String, NounMetadata>());
-    	}
+//    	if(!this.planner.hasProperty("VARIABLE", "VARIABLE")) {
+//    		this.planner.addProperty("VARIABLE", "VARIABLE", new HashMap<String, NounMetadata>());
+//    	}
     	IReactor assignmentReactor = new AssignmentReactor();
         assignmentReactor.setPKSL(node.getId().toString().trim(), node.toString().trim());
     	initReactor(assignmentReactor);
@@ -307,24 +312,115 @@ public class Translation extends DepthFirstAdapter {
     	defaultOut(node);
     	
     	String nodeKey = node.toString().trim();
-    	String childKey = node.getPlainRow().toString().trim();
-    	Object childOutput = curReactor.getProp(childKey);
+    	if(node.getPlainRow() != null) {
+	    	String childKey = node.getPlainRow().toString().trim();
+	    	Object childOutput = curReactor.getProp(childKey);
+	    	
+	    	if(childOutput != null) {
+	    		curReactor.setProp(nodeKey, childOutput);
+	    	}
+    	}
     	
-    	if(childOutput != null) {
-    		curReactor.setProp(nodeKey, childOutput);
+    	NounMetadata prevResult = this.planner.getVariable("$RESULT");
+    	if(prevResult != null) {
+    		String nounName = prevResult.getNounName();
+    		GenRowStruct genRow = curReactor.getNounStore().makeNoun(nounName);
+    		genRow.add(prevResult);
     	}
     	
         deInitReactor();
         System.out.println("Ending a formula operation");
         
-        if(curReactor.getParentReactor() == null)
-        {
-        	// this is the last stop
-        	
-        }
+//        if(curReactor.getParentReactor() == null)
+//        {
+//        	// this is the last stop
+//        	
+//        }
         this.lastOperation = node + "";
     }
+    
+//    @Override
+//    public void caseAOperationFormula(AOperationFormula node)
+//    {
+//        inAOperationFormula(node);
+//        if(node.getId() != null)
+//        {
+//            node.getId().apply(this);
+//        }
+//
+//        if(node.getPlainRow() != null)
+//        {
+//        	//always run the first one
+//        	//if first is if reactor
+//        	//get the return
+//        	APlainRow apr = (APlainRow)node.getPlainRow();
+//        	PColDef x = apr.getColDef();
+//        	//if x instance of if statement
+//        	
+//            node.getPlainRow().apply(this);
+//        }
+//
+//        if(node.getAsop() != null)
+//        {
+//            node.getAsop().apply(this);
+//        }
+//        outAOperationFormula(node);
+//    }
+    
+    @Override
+    public void caseAPlainRow(APlainRow node)
+    {
+        inAPlainRow(node);
+        if(node.getColDef() != null)
+        {
+            node.getColDef().apply(this); //IF(comparison, truecomparison, falsecomparison)
+        }
+        {
+        	//TODO : EXPLAIN THIS!!!
+        	if(curReactor instanceof IfReactor) {
+        		NounMetadata result = (NounMetadata)curReactor.getNounStore().getNoun("f").get(0);
+        		
+        		//determine the result of the comparison
+        		boolean runFalseCase = result.getValue() == null || result.getValue().equals("FALSE") || result.getValue().equals(0);
+        		
+        		if(runFalseCase) {
+        			List<POthercol> copy = new ArrayList<POthercol>(node.getOthercol());
+    	            if(copy.size() >= 2) {
+    	            	POthercol e = copy.get(1);
+    	            	e.apply(this);
+    	            }
+        		} else {
+        			List<POthercol> copy = new ArrayList<POthercol>(node.getOthercol());
+        			POthercol e = copy.get(0);
+        			e.apply(this);
+        		}
+        	}
+        	
+        	else {
+	            List<POthercol> copy = new ArrayList<POthercol>(node.getOthercol());
+	            for(POthercol e : copy)
+	            {
+	                e.apply(this);
+	            }
+        	}
+        }
+        outAPlainRow(node);
+    }
 
+    public void inAROp(AROp node) {
+//    	if (reactorNames.containsKey(PKQLEnum.JAVA_OP)) {
+    		RReactor reactor = new RReactor();
+			initReactor(reactor);
+//			curReactor.put("PKQLRunner", runner);
+			String nodeExpr = node.getR().toString().trim();
+			NounMetadata noun = new NounMetadata(nodeExpr, "RCODE");
+			curReactor.getNounStore().makeNoun("RCODE").add(noun);
+//		}
+    }
+
+    public void outAROp(AROp node) {
+    	deInitReactor();
+    }
     // accumulating secondary structures
     // the values of each of these are generic rows
     public void inASelectNoun(ASelectNoun node)
@@ -377,6 +473,22 @@ public class Translation extends DepthFirstAdapter {
     	thisLiteral = thisLiteral.replace("\"","");
     	thisLiteral = thisLiteral.trim();
         curReactor.getCurRow().addLiteral(thisLiteral);
+    }
+    
+    private Object getValueFromLiteral(String thisLiteral) {
+    	if(thisLiteral.startsWith("'") || thisLiteral.startsWith("\"")) {
+    		thisLiteral = thisLiteral.replace("'","");
+        	thisLiteral = thisLiteral.replace("\"","");
+        	thisLiteral = thisLiteral.trim();
+        	return thisLiteral;
+    	} else {
+    		//it is either a column header or a variable
+    		if(this.planner.hasVariable(thisLiteral)) {
+    			return this.planner.getVariable(thisLiteral);
+    		} else {
+    			return thisLiteral; //its a column header in this case
+    		}
+    	}
     }
 
     public void outALiteralColDef(ALiteralColDef node)
@@ -794,15 +906,35 @@ public class Translation extends DepthFirstAdapter {
     	
     	if(curReactor != null)
     	{
-	    	Object output = curReactor.Out();
+	    	Object parent = curReactor.Out();
+	    	Object output = curReactor.execute();
 	    	
-	    	if(output instanceof IReactor)
-	    		curReactor = (IReactor)output;
-	    	if(output == null)
-	    		curReactor.execute(); //need to store this result 
-    	}
-    	// else is the output
-    	
+	    	//set the curReactor
+	    	if(parent != null && parent instanceof IReactor) {
+	    		curReactor = (IReactor)parent;
+	    	} else {
+	    		curReactor = null;
+	    	}
+	    	
+	    	//Set the output
+	    	if(output instanceof NounMetadata) {
+	    		if(output instanceof NounMetadata) {
+//	    			if(curReactor != null) {
+//	    				String outputNounName = ((NounMetadata) output).getNounName();
+//	    				GenRowStruct genRow = curReactor.getNounStore().getNoun(outputNounName);
+//	    				if(genRow != null) {
+//	    					genRow.add(output);
+//	    				} else {
+//	    					curReactor.getNounStore().makeNoun(outputNounName).add(output);
+//	    				}
+//	    			} else {
+//	    				this.planner.addVariable("$RESULT", (NounMetadata)output);
+//	    			}
+	    			
+	    			this.planner.addVariable("$RESULT", (NounMetadata)output);
+	    		}
+	    	}
+    	}    	
     }
     
     public IDataMaker getDataMaker() {

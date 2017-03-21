@@ -13,6 +13,7 @@ import org.apache.tinkerpop.gremlin.structure.Edge;
 import org.apache.tinkerpop.gremlin.structure.Vertex;
 import org.apache.tinkerpop.gremlin.tinkergraph.structure.TinkerGraph;
 
+import prerna.sablecc2.VarStore;
 import prerna.sablecc2.om.CodeBlock;
 import prerna.sablecc2.om.NounMetadata;
 import prerna.ui.components.playsheets.datamakers.IDataMaker;
@@ -25,6 +26,7 @@ public class PKSLPlanner {
 	// I need some way to have roots
 	Vector roots = new Vector();
 	
+	VarStore varStore = new VarStore();
 	public static final String NOUN = "NOUN";
 	public static final String OPERATION = "OP";
 	public static final String TINKER_ID = "_T_ID";
@@ -113,22 +115,33 @@ public class PKSLPlanner {
 	//**********************VARIABLE METHODS*******************************//
 	
 	public void addVariable(String variableName, NounMetadata value) {
-		if(hasProperty("VARIABLE", "VARIABLE")) {
-			Map<String, NounMetadata> map = (HashMap)getProperty("VARIABLE", "VARIABLE");
-			map.put(variableName.toUpperCase(), value);
-		} else {
-			Map<String, NounMetadata> varMap = new HashMap<>();
-			varMap.put(variableName.toUpperCase(), value);
-			addProperty("VARIABLE", "VARIABLE", varMap);
-		}
+//		if(hasProperty("VARIABLE", "VARIABLE")) {
+//			Map<String, NounMetadata> map = (HashMap)getProperty("VARIABLE", "VARIABLE");
+//			map.put(variableName.toUpperCase(), value);
+//		} else {
+//			Map<String, NounMetadata> varMap = new HashMap<>();
+//			varMap.put(variableName.toUpperCase(), value);
+//			addProperty("VARIABLE", "VARIABLE", varMap);
+//		}
+		
+		varStore.addVariable(variableName, value);
 	}
 	
 	public NounMetadata getVariable(String variableName) {
-		if(hasProperty("VARIABLE", "VARIABLE")) {
-			Map<String, NounMetadata> map = (HashMap)getProperty("VARIABLE", "VARIABLE");
-			return map.get(variableName.toUpperCase());
-		}
-		return null;
+//		if(hasProperty("VARIABLE", "VARIABLE")) {
+//			Map<String, NounMetadata> map = (HashMap)getProperty("VARIABLE", "VARIABLE");
+//			return map.get(variableName.toUpperCase());
+//		}
+//		return null;
+		return varStore.getVariable(variableName);
+	}
+	
+	public boolean hasVariable(String variableName) {
+		return varStore.hasVariable(variableName);
+	}
+	
+	public NounMetadata removeVariable(String variableName) {
+		return varStore.removeVariable(variableName);
 	}
 	
 	
