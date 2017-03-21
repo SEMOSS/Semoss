@@ -468,10 +468,6 @@ public class NativeFrame extends AbstractTableDataFrame {
 	}
 
 	@Override
-	public void removeRelationship(Map<String, Object> cleanRow) {
-	}
-
-	@Override
 	public void addRelationship(Map<String, Object> rowCleanData, Map<String, Set<String>> edgeHash, Map<String, String> logicalToValMap) {
 	}
 
@@ -498,5 +494,9 @@ public class NativeFrame extends AbstractTableDataFrame {
 
 	@Override
 	public void save(String fileName) {
+	}
+
+	@Override
+	public void removeRelationship(String[] columns, Object[] values) {
 	}
 }

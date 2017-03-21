@@ -2712,7 +2712,7 @@ public class TinkerFrame extends AbstractTableDataFrame {
 	}
 
 	@Override
-	public void removeRelationship(Map<String, Object> cleanRow) {
+	public void removeRelationship(String[] columns, Object[] values) {
 		// TODO Auto-generated method stub
 		
 	}
@@ -2809,4 +2809,5 @@ public class TinkerFrame extends AbstractTableDataFrame {
 			throw new IllegalArgumentException("Graphs do not support date as a data type!");
 		}
 	}
+
 }

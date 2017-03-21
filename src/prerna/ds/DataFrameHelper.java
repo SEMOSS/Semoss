@@ -21,32 +21,26 @@ import org.apache.tinkerpop.gremlin.structure.Vertex;
 import prerna.algorithm.api.IMetaData;
 import prerna.algorithm.api.ITableDataFrame;
 import prerna.ds.h2.H2Frame;
-import prerna.engine.api.ISelectStatement;
-import prerna.engine.api.ISelectWrapper;
+import prerna.engine.api.IHeadersDataRow;
 import prerna.util.Utility;
 
 public class DataFrameHelper {
 
 	private static final Logger LOGGER = LogManager.getLogger(DataFrameHelper.class.getName());
 	
-	public static void removeData(ITableDataFrame frame, ISelectWrapper it) {
+	public static void removeData(ITableDataFrame frame, Iterator<IHeadersDataRow> it) {
 		if(frame instanceof H2Frame) {
-			
 			while(it.hasNext()){
-				ISelectStatement ss = (ISelectStatement) it.next();
-				System.out.println(((ISelectStatement)ss).getPropHash());
-				frame.removeRelationship(ss.getPropHash());
+				IHeadersDataRow row = it.next();
+				frame.removeRelationship(row.getHeaders(), row.getValues());
 			}
-			
 		} else if(frame instanceof TinkerFrame) {
-			
 			IMetaData metaData = ((TinkerFrame)frame).metaData;
 			String[] columnHeaders = frame.getColumnHeaders();
 			H2Frame tempFrame = TableDataFrameFactory.convertToH2Frame(frame);
 			while(it.hasNext()){
-				ISelectStatement ss = (ISelectStatement) it.next();
-				System.out.println(((ISelectStatement)ss).getPropHash());
-				tempFrame.removeRelationship(ss.getPropHash());
+				IHeadersDataRow row = it.next();
+				tempFrame.removeRelationship(row.getHeaders(), row.getValues());
 			}
 			
 			TinkerFrame tframe = new TinkerFrame();
@@ -85,7 +79,6 @@ public class DataFrameHelper {
 		// that matches the type we want but is not connected to anything
 		Set<String> allTypes = new HashSet<String>();
 		for(String col : edgeHash.keySet()) {
-			System.out.println("abc");
 			allTypes.add(uniqueNameToValue.get(col));
 			newTf.metaData.storeVertex(col, uniqueNameToValue.get(col), tf.metaData.getParentValueOfUniqueNode(col));
 			newTf.metaData.storeDataType(col, Utility.convertDataTypeToString( tf.metaData.getDataType(col)));

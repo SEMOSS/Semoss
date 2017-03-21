@@ -1279,7 +1279,7 @@ public class H2Builder {
 	 * @param columns
 	 * @param values
 	 */
-	public void deleteRow(String[] columns, String[] values) {
+	public void deleteRow(String[] columns, Object[] values) {
 		try {
 			columns = cleanHeaders(columns);
 			String deleteRowQuery = RdbmsQueryBuilder.makeDeleteData(tableName, columns, values);
