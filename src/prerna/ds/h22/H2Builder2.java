@@ -1051,7 +1051,7 @@ public class H2Builder2 {
 	 * @param columns
 	 * @param values
 	 */
-	public void deleteRow(String[] columns, String[] values) {
+	public void deleteRow(String[] columns, Object[] values) {
 		try {
 			String deleteRowQuery = RdbmsQueryBuilder.makeDeleteData(getTableName(), columns, values);
 			runQuery(deleteRowQuery);
