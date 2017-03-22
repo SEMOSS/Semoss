@@ -1,25 +1,22 @@
 package prerna.sablecc2.reactor;
 
-import java.util.Vector;
-
 import prerna.sablecc2.om.Filter;
 import prerna.sablecc2.om.GenRowStruct;
-import prerna.sablecc2.om.Join;
-import prerna.sablecc2.om.NounStore;
 
-public class FilterReactor extends SampleReactor {
+public class FilterReactor extends AbstractReactor{
 
 	// keeps the noun store
 	// sets the value for comparator 
 	// and for left col
 	// accumulates the right column and then sets it on join
 	
-	
+	@Override
 	public void In()
 	{
         curNoun("all");
 	}
 	
+	@Override
 	public Object Out()
 	{
 		// get the property called LCOL
@@ -29,19 +26,41 @@ public class FilterReactor extends SampleReactor {
 		// I want to get all the columns from here
 		// and then add it to the parent as a filter
 		
-		String colName = (String)getProp("LCOL");
-		String comparator = (String)getProp("COMPARATOR");
+		GenRowStruct lcol = store.getNoun("LCOL");
+		GenRowStruct comparator = store.getNoun("COMPARATOR");
+		GenRowStruct rcol = store.getNoun("RCOL");
 		
-		GenRowStruct allNouns = store.getNoun(NounStore.all);
-		Filter thisFilter = new Filter(colName, comparator, allNouns);
+//		Filter thisFilter = new Filter(colName, comparator, allNouns);
 		
 		GenRowStruct thisStruct = store.makeNoun("f");
-		thisStruct.addFilter(thisFilter);
+//		thisStruct.addFilter(thisFilter);
 
 		// just add this to the parent
 		parentReactor.getNounStore().addNoun("f", thisStruct);
 		//mergeUp();
 		return parentReactor;
+	}
+	
+	@Override
+	public Object execute()
+	{
+		GenRowStruct struct = store.getNoun("f");
+		Filter filter = (Filter) struct.get(0);
+		filter.getSelector();
+		
+		return true;
+	}
+
+	@Override
+	protected void mergeUp() {
+		// TODO Auto-generated method stub
+		
+	}
+
+	@Override
+	protected void updatePlan() {
+		// TODO Auto-generated method stub
+		
 	}
 	
 }

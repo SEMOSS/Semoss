@@ -401,7 +401,6 @@ public final class SolrUtility {
 						// create solr document and add into docs list
 						Map<String, Object>  queryResults = new  HashMap<> ();
 						queryResults.put(SolrIndexEngine.STORAGE_NAME, name);
-						queryResults.put(SolrIndexEngine.INDEX_NAME, name);
 						queryResults.put(SolrIndexEngine.CREATED_ON, currDate);
 						queryResults.put(SolrIndexEngine.MODIFIED_ON, currDate);
 						queryResults.put(SolrIndexEngine.USER_ID, userID);
