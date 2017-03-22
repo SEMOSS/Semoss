@@ -219,6 +219,7 @@ public class Translation extends DepthFirstAdapter {
         String reactorId = node.getId().toString().trim();
         IReactor frameReactor = getReactor(reactorId, node.toString()); //get the reactor
         initReactor(frameReactor);
+        syncResult();
      }
 
     public void outAFrameop(AFrameop node)
@@ -309,10 +310,14 @@ public class Translation extends DepthFirstAdapter {
         //opReactor.curNoun("all");
         initReactor(opReactor);
         
-        // after we init the new reactor
+        syncResult();
+    }
+
+    private void syncResult() {
+    	// after we init the new reactor
         // we will add the result of the last reactor 
         // into the noun store of this new reactor
-        NounMetadata prevResult = this.planner.getVariable("$RESULT");
+    	NounMetadata prevResult = this.planner.getVariable("$RESULT");
     	if(prevResult != null) {
     		PkslDataTypes nounName = prevResult.getNounName();
     		GenRowStruct genRow = curReactor.getNounStore().makeNoun(nounName.toString());
@@ -321,7 +326,7 @@ public class Translation extends DepthFirstAdapter {
     	// then we will remove the result from the planner
     	this.planner.removeVariable("$RESULT");
     }
-
+    
     public void outAOperationFormula(AOperationFormula node)
     {
     	defaultOut(node);
