@@ -1,9 +1,6 @@
 package prerna.sablecc2.reactor.qs;
 
 
-import java.util.ArrayList;
-import java.util.List;
-
 import prerna.ds.QueryStruct2;
 import prerna.ds.QueryStructSelector;
 import prerna.ds.h2.H2Frame;
@@ -68,13 +65,17 @@ public class SelectReactor extends QueryStructReactor {
 	
 	//determine whether this query struct will be built for a database or a frame
 	private boolean isDatabaseQueryStruct() {
-		NounMetadata result = this.planner.getVariable("$RESULT");
-		if(result != null && result.getNounName().equals("QUERYSTRUCT")) {
-			QueryStruct2 storedResult = (QueryStruct2)result.getValue();
-			if(storedResult.getEngineName() == null) {
-				return false;
+		GenRowStruct result = this.store.getNoun("QUERYSTRUCT");
+		if(result != null && result.getMeta(0).toString().equals("QUERYSTRUCT")) {
+			NounMetadata storedResult = (NounMetadata)result.get(0);
+			if(storedResult.getValue() instanceof QueryStruct2) {
+				if( ((QueryStruct2)storedResult.getValue()).getEngineName() == null) {
+					return false;
+				} else {
+					return true;
+				}
 			} else {
-				return true;
+				return false;
 			}
 		}
 		return false;
