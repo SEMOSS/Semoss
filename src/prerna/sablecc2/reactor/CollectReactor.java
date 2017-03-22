@@ -1,17 +1,14 @@
 package prerna.sablecc2.reactor;
 
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
-import java.util.Map;
 
 import prerna.engine.api.IHeadersDataRow;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.NounMetadata;
 import prerna.sablecc2.om.NounStore;
-import prerna.sablecc2.reactor.export.FormatFactory;
-import prerna.sablecc2.reactor.export.Formatter;
+import prerna.sablecc2.om.PkslDataTypes;
 
 public class CollectReactor extends AbstractReactor{
 
@@ -39,7 +36,7 @@ public class CollectReactor extends AbstractReactor{
 			i++;
 		}
 		
-		NounMetadata result = new NounMetadata(values, "DATA");
+		NounMetadata result = new NounMetadata(values, PkslDataTypes.RAW_DATA_SET);
 		return result;
 	}
 	

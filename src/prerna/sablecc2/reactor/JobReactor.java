@@ -7,6 +7,7 @@ import prerna.sablecc2.JobStore;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.NounMetadata;
 import prerna.sablecc2.om.NounStore;
+import prerna.sablecc2.om.PkslDataTypes;
 
 public class JobReactor extends AbstractReactor {
 
@@ -26,7 +27,7 @@ public class JobReactor extends AbstractReactor {
 		
 		Iterator<IHeadersDataRow> iterator = getIterator(jobId);
 		
-		return new NounMetadata(iterator, "JOB");
+		return new NounMetadata(iterator, PkslDataTypes.JOB);
 	}
 
 	@Override

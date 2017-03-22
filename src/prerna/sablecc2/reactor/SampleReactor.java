@@ -9,6 +9,7 @@ import prerna.sablecc2.om.CodeBlock;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.NounMetadata;
 import prerna.sablecc2.om.NounStore;
+import prerna.sablecc2.om.PkslDataTypes;
 
 public class SampleReactor extends AbstractReactor {
 
@@ -108,8 +109,8 @@ public class SampleReactor extends AbstractReactor {
 				GenRowStruct struct = store.nounRow.get(singleKey);
 				inputs.addAll(struct.getAllColumns());
 				// merge the filters and joins as well
-				filters.addAll(struct.getColumnsOfType(GenRowStruct.COLUMN_TYPE.FILTER)); 
-				joins.addAll(struct.getColumnsOfType(GenRowStruct.COLUMN_TYPE.JOIN));
+				filters.addAll(struct.getColumnsOfType(PkslDataTypes.FILTER)); 
+				joins.addAll(struct.getColumnsOfType(PkslDataTypes.JOIN));
 			}
 			
 		
@@ -234,8 +235,8 @@ public class SampleReactor extends AbstractReactor {
 			GenRowStruct struct = store.nounRow.get(singleKey);
 			Vector <String> inputs = struct.getAllColumns();
 			// merge the filters and joins as well
-			Vector <Object> filters = struct.getColumnsOfType(GenRowStruct.COLUMN_TYPE.FILTER); 
-			Vector <Object> joins = struct.getColumnsOfType(GenRowStruct.COLUMN_TYPE.JOIN);
+			Vector <Object> filters = struct.getColumnsOfType(PkslDataTypes.FILTER); 
+			Vector <Object> joins = struct.getColumnsOfType(PkslDataTypes.JOIN);
 			
 			// need a better way to do it
 			if(asName == null)
