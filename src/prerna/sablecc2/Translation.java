@@ -930,23 +930,28 @@ public class Translation extends DepthFirstAdapter {
 	    		curReactor = null;
 	    	}
 	    	
-	    	//Set the output
+	    	// we will merge up to the parent if one is present
+	    	// otherwise, we will store the result in the planner for future use
+	    	// the beginning of the pksl command the beginning of each pipe is an independent routine and doesn't have a parent
+	    	// these will push their output to the result in the pksl planner
+	    	// if a routine does have children, we will push the to the result directly to the parent
+	    	// so the out of the parent can utilize it for its execution
+	    	// ( ex. Select(Studio, Sum(Movie_Budget) where the Sum is a child of the Select reactor )
+	    	
+	    	// also requiring the output to be noun metadata
 	    	if(output instanceof NounMetadata) {
-	    		if(output instanceof NounMetadata) {
-//	    			if(curReactor != null) {
-//	    				String outputNounName = ((NounMetadata) output).getNounName();
-//	    				GenRowStruct genRow = curReactor.getNounStore().getNoun(outputNounName);
-//	    				if(genRow != null) {
-//	    					genRow.add(output);
-//	    				} else {
-//	    					curReactor.getNounStore().makeNoun(outputNounName).add(output);
-//	    				}
-//	    			} else {
-//	    				this.planner.addVariable("$RESULT", (NounMetadata)output);
-//	    			}
-	    			
-	    			this.planner.addVariable("$RESULT", (NounMetadata)output);
-	    		}
+	    		if(curReactor != null && !(curReactor instanceof AssignmentReactor)) {
+		    		PkslDataTypes nounName = ((NounMetadata)output).getNounName();
+		    		// note, make noun will not override existing values of the same noun
+		    		GenRowStruct exisintNoun = curReactor.getNounStore().getNoun(nounName.toString());
+		    		if(exisintNoun == null) {
+		    			// if it doesn't exist, make a new one
+		    			exisintNoun = curReactor.getNounStore().makeNoun(nounName.toString());
+		    		}
+		    		exisintNoun.add(output, nounName);
+		    	} else {
+		    		this.planner.addVariable("$RESULT", (NounMetadata)output);
+		    	}
 	    	}
     	}    	
     }

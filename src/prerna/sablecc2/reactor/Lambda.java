@@ -73,7 +73,7 @@ public class Lambda implements Iterator{
 			for(int filterIndex = 0;filterIndex < filters.size();filterIndex++)
 			{
 				Filter filter = (Filter)filters.elementAt(filterIndex);
-				GenRowStruct values = filter.getValues();
+				GenRowStruct values = filter.getRComparison();
 				if(values.size() > 0)
 				{
 					// predict what the type is
@@ -85,7 +85,7 @@ public class Lambda implements Iterator{
 						// now make this into a vector
 						for(int valIndex = 1;valIndex < values.size();valIndex++)
 							strVector.addElement(values.get(valIndex)+"");
-						qs.addFilter(filter.getSelector(), filter.getComparator(), strVector);
+						qs.addFilter(filter.getLComparison().get(0).toString(), filter.getComparator(), strVector);
 					}
 					else
 					{
@@ -95,7 +95,7 @@ public class Lambda implements Iterator{
 							Object doubVal = values.get(valIndex);
 							decVector.addElement(new Double(" + values.elementAt(valIndex) +"));
 						}
-						qs.addFilter(filter.getSelector(), filter.getComparator(), decVector);
+						qs.addFilter(filter.getLComparison().get(0).toString(), filter.getComparator(), decVector);
 					}
 				}		
 			}

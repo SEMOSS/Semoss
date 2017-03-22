@@ -255,7 +255,7 @@ public class Stage extends Hashtable <String, Hashtable> {
 		// and convert it back
 		// for now we will assume the type is the same
 		// that is they are all strings or they are all numbers
-		GenRowStruct values = filter.getValues();
+		GenRowStruct values = filter.getRComparison();
 		if(values.size() > 0)
 		{
 			// predict what the type is
@@ -269,7 +269,7 @@ public class Stage extends Hashtable <String, Hashtable> {
 				// now make this into a vector
 				for(int valIndex = 1;valIndex < values.size();valIndex++)
 					filterVectorString.append("strVector.addElement(" + pad + values.get(valIndex) + pad + ");\n");
-				filterVectorString.append("qs.addFilter(\"" + filter.getSelector() + "\", \"" + filter.getComparator() + "\" ,strVector);\n");
+				filterVectorString.append("qs.addFilter(\"" + filter.getLComparison().get(0).toString() + "\", \"" + filter.getComparator() + "\" ,strVector);\n");
 			}
 			else
 			{
@@ -279,7 +279,7 @@ public class Stage extends Hashtable <String, Hashtable> {
 					Object doubVal = values.get(valIndex);
 					filterVectorString.append("decVector.addElement(new Double(" + values.get(valIndex) +"));\n");
 				}
-				filterVectorString.append("qs.addFilter(\"" + filter.getSelector() + "\", \"" + filter.getComparator() + "\",decVector);\n");
+				filterVectorString.append("qs.addFilter(\"" + filter.getLComparison().get(0).toString() + "\", \"" + filter.getComparator() + "\",decVector);\n");
 			}
 			System.out.println("FILTER..... " + filterVectorString);
 			queryStructString.append(filterVectorString);
