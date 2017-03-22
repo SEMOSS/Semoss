@@ -1,5 +1,17 @@
-package prerna.sablecc2.reactor;
+package prerna.sablecc2.reactor.imports;
 
+
+import prerna.engine.api.IEngine;
+import prerna.engine.api.IHeadersDataRow;
+import prerna.rdf.engine.wrappers.WrapperManager;
+import prerna.rdf.query.builder.SQLInterpreter2;
+import prerna.sablecc.PKQLEnum;
+import prerna.sablecc2.om.GenRowStruct;
+import prerna.sablecc2.om.Join;
+import prerna.sablecc2.om.NounMetadata;
+import prerna.sablecc2.om.NounStore;
+import prerna.sablecc2.reactor.AbstractReactor;
+import prerna.util.Utility;
 
 import java.util.Enumeration;
 import java.util.HashMap;
@@ -10,17 +22,6 @@ import java.util.Vector;
 
 import prerna.algorithm.api.ITableDataFrame;
 import prerna.ds.querystruct.QueryStruct2;
-import prerna.engine.api.IEngine;
-import prerna.engine.api.IHeadersDataRow;
-import prerna.engine.api.IScriptReactor;
-import prerna.rdf.engine.wrappers.WrapperManager;
-import prerna.rdf.query.builder.SQLInterpreter2;
-import prerna.sablecc.PKQLEnum;
-import prerna.sablecc2.om.GenRowStruct;
-import prerna.sablecc2.om.Join;
-import prerna.sablecc2.om.NounMetadata;
-import prerna.sablecc2.om.NounStore;
-import prerna.util.Utility;
 
 public class MergeDataReactor extends AbstractReactor {
 
@@ -76,45 +77,42 @@ public class MergeDataReactor extends AbstractReactor {
 		
 		GenRowStruct allNouns = getNounStore().getNoun(NounStore.all); //should be only joins
 		ITableDataFrame frame = (ITableDataFrame)this.planner.getProperty("FRAME", "FRAME");
-		String className = frame.getScriptReactors().get(PKQLEnum.IMPORT_DATA);
 		
-		try {
-			IScriptReactor curReactor = (IScriptReactor) Class.forName(className).newInstance();
-			SQLInterpreter2 interp;
-			Iterator<IHeadersDataRow> iterator;
-			if(engineName != null) {
-				IEngine engine = Utility.getEngine(removeQuotes(engineName.trim()));
-				interp = new SQLInterpreter2(engine);
-				interp.setQueryStruct(queryStruct);
-				String importQuery = interp.composeQuery();
-				iterator = WrapperManager.getInstance().getRawWrapper(engine, importQuery);
-				curReactor.put(PKQLEnum.API + "_ENGINE", removeQuotes(engineName.trim()));
-			} else {
-				interp = new SQLInterpreter2();
-				interp.setQueryStruct(queryStruct);
-				String query = interp.composeQuery();
-				iterator = frame.query(query);
-			}
-			
-			//set values into the curReactor
-			curReactor.put("G", frame);
-			curReactor.put(PKQLEnum.API + "_EDGE_HASH", queryStruct.getReturnConnectionsHash());
-			curReactor.put(PKQLEnum.API + "_QUERY_NUM_CELLS", 1.0);
-			
-			curReactor.put(PKQLEnum.API, iterator);
-			if(allNouns != null) {
-				Vector<Map<String, String>> joinCols = getJoinCols(allNouns);
-				curReactor.put(PKQLEnum.JOINS, joinCols);
-				
-			}
-			curReactor.process();
-			ITableDataFrame importedFrame = (ITableDataFrame)curReactor.getValue("G");
-			System.out.println("IMPORTED FRAME CREATED WITH ROW COUNT: "+importedFrame.getNumRows());
-			this.planner.addProperty("FRAME", "FRAME", importedFrame);
-			
-		} catch (InstantiationException | IllegalAccessException | ClassNotFoundException e) {
-			e.printStackTrace();
+		Importer curReactor = ImportFactory.getImporter(frame);
+		
+		SQLInterpreter2 interp;
+		Iterator<IHeadersDataRow> iterator;
+		if(engineName != null) {
+			IEngine engine = Utility.getEngine(removeQuotes(engineName.trim()));
+			interp = new SQLInterpreter2(engine);
+			interp.setQueryStruct(queryStruct);
+			String importQuery = interp.composeQuery();
+			iterator = WrapperManager.getInstance().getRawWrapper(engine, importQuery);
+			curReactor.put(PKQLEnum.API + "_ENGINE", removeQuotes(engineName.trim()));
+		} else {
+			interp = new SQLInterpreter2();
+			interp.setQueryStruct(queryStruct);
+			String query = interp.composeQuery();
+			iterator = frame.query(query);
 		}
+		
+		//set values into the curReactor
+		curReactor.put("G", frame);
+		curReactor.put(PKQLEnum.API + "_EDGE_HASH", queryStruct.getReturnConnectionsHash());
+		curReactor.put(PKQLEnum.API + "_QUERY_NUM_CELLS", 1.0);
+		
+		curReactor.put(PKQLEnum.API, iterator);
+		if(allNouns != null) {
+			Vector<Map<String, String>> joinCols = getJoinCols(allNouns);
+			curReactor.put(PKQLEnum.JOINS, joinCols);
+			
+		}
+		curReactor.process();
+		ITableDataFrame importedFrame = (ITableDataFrame)curReactor.getValue("G");
+		System.out.println("IMPORTED FRAME CREATED WITH ROW COUNT: "+importedFrame.getNumRows());
+		this.planner.addProperty("FRAME", "FRAME", importedFrame);
+			
+		
 	}
 
 	private QueryStruct2 getQueryStruct() {
@@ -140,6 +138,7 @@ public class MergeDataReactor extends AbstractReactor {
 		//n joins
 		return null;
 	}
+
 	
 	private String removeQuotes(String value) {
 		if(value.startsWith("'") || value.startsWith("\"")) {
