@@ -6,7 +6,6 @@ import java.util.Vector;
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
-import prerna.algorithm.impl.ClusteringReactor;
 import prerna.sablecc.expressions.IExpressionSelector;
 
 public class SqlConstantSelector implements IExpressionSelector {

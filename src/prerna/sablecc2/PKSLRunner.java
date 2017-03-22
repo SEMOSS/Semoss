@@ -11,11 +11,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Vector;
 
-import prerna.sablecc.PKQLRunner;
-import prerna.sablecc.PKQLRunner.STATUS;
 import prerna.sablecc.meta.IPkqlMetadata;
 import prerna.sablecc.node.PScript;
-import prerna.sablecc2.Translation;
 import prerna.sablecc2.lexer.Lexer;
 import prerna.sablecc2.lexer.LexerException;
 import prerna.sablecc2.node.Start;
@@ -75,7 +72,7 @@ public class PKSLRunner {
 	public void runPKSL(String expression, IDataMaker frame) {
 		
 		this.dataMaker = frame;
-		Parser p = new Parser(new Lexer(new PushbackReader(new InputStreamReader(new StringBufferInputStream(expression)), 1024)));
+		Parser p = new Parser(new Lexer(new PushbackReader(new InputStreamReader(new StringBufferInputStream(expression)), expression.length())));
 		Start tree;
 //		if(planner == null) {
 //			planner = new PKSLPlanner();

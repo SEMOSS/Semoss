@@ -199,7 +199,7 @@ Productions
  
  // filter
  // col_def comparator value[rcol]:col_def
- filter = l_par [lcol]:col_def  comparator  col_def r_par; // need to ask if we should make this multiple or not
+ filter = l_par [lcol]:col_def  comparator [rcol]:col_def r_par; // need to ask if we should make this multiple or not
  
  relationship = l_par [lcol]:col_def rel_type [rcol]:col_def r_par;
  
