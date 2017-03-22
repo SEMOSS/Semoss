@@ -3,11 +3,10 @@ package prerna.sablecc2.reactor;
 
 import java.util.Vector;
 
-import prerna.engine.api.IHeadersDataRow;
-import prerna.sablecc2.om.Filter;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.NounMetadata;
 import prerna.sablecc2.om.NounStore;
+import prerna.sablecc2.om.PkslDataTypes;
 
 public class GenericReactor extends AbstractReactor {
 
@@ -66,17 +65,20 @@ public class GenericReactor extends AbstractReactor {
 		} else {
 			thisStruct = store.getNoun(key);
 		}
-			
-		for(Object noun : allNouns) {
+		
+		int numNouns = allNouns.size();
+		for(int nounIdx = 0; nounIdx < numNouns; nounIdx++) {
+			Object noun = allNouns.get(nounIdx);
+			PkslDataTypes nounType = allNouns.getMeta(nounIdx);
 			if(noun instanceof String) {
 				NounMetadata value = this.planner.getVariable((String)noun);
 				if(value != null) {
-					thisStruct.add(value);
+					thisStruct.add(value, nounType);
 				} else {
-					thisStruct.add(noun);
+					thisStruct.add(noun, nounType);
 				}
 			} else {
-				thisStruct.add(noun);
+				thisStruct.add(noun, nounType);
 			}
 		}
 //		thisStruct.merge(allNouns);

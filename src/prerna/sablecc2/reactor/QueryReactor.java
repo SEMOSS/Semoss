@@ -5,7 +5,6 @@ import java.util.Hashtable;
 import java.util.Vector;
 
 import prerna.ds.QueryStruct;
-import prerna.engine.api.IHeadersDataRow;
 import prerna.sablecc2.om.Filter;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.Join;
@@ -129,7 +128,7 @@ public class QueryReactor extends AbstractReactor {
 					GenRowStruct filters = store.nounRow.get(nextNoun);
 					for(int i = 0; i < filters.size(); i++) {
 						Filter nextFilter = (Filter)filters.get(i);
-						qs.addFilter(nextFilter.getSelector(), nextFilter.getComparator(), nextFilter.getValues());
+						qs.addFilter(nextFilter.getSelector(), nextFilter.getComparator(), nextFilter.getValues().vector);
 					}
 					break;
 				}
