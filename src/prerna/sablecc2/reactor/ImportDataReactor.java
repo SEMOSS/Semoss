@@ -15,7 +15,7 @@ import java.util.Iterator;
 import java.util.Vector;
 
 import prerna.algorithm.api.ITableDataFrame;
-import prerna.ds.QueryStruct2;
+import prerna.ds.querystruct.QueryStruct2;
 
 public class ImportDataReactor extends AbstractReactor {
 

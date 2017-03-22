@@ -2,8 +2,8 @@ package prerna.sablecc2.reactor.qs;
 
 import java.util.List;
 
-import prerna.ds.QueryStruct2;
-import prerna.ds.QueryStructSelector;
+import prerna.ds.querystruct.QueryStruct2;
+import prerna.ds.querystruct.QueryStructSelector;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.NounMetadata;
 import prerna.sablecc2.om.PkslDataTypes;
@@ -31,6 +31,7 @@ public abstract class QueryStructReactor extends AbstractReactor {
 		NounMetadata noun = new NounMetadata(qs, PkslDataTypes.QUERY_STRUCT);
 		return noun;
 	}
+	
 	@Override
 	protected void mergeUp() {
 
