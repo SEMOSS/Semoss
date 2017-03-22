@@ -118,8 +118,6 @@ public class GenRowStruct {
 
 	// I will turn this into query struct eventually - nope I never will
 	
-	
-	
 	public String getColumns()
 	{
 		return columns;
@@ -131,4 +129,16 @@ public class GenRowStruct {
 		s += "DATA VECTOR: "+this;
 		return s;
 	}
+	
+	/**
+	 * Override to string method for easier debugging
+	 */
+	public String toString() {
+		StringBuilder builder = new StringBuilder();
+		builder.append(this.vector.toString());
+		builder.append("\n");
+		builder.append(this.metaVector.toString());
+		return builder.toString();
+	}
+
 }
