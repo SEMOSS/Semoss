@@ -10,7 +10,7 @@ public final class AFilter extends PFilter
     private TLPar _lPar_;
     private PColDef _lcol_;
     private TComparator _comparator_;
-    private PColDef _colDef_;
+    private PColDef _rcol_;
     private TRPar _rPar_;
 
     public AFilter()
@@ -22,7 +22,7 @@ public final class AFilter extends PFilter
         @SuppressWarnings("hiding") TLPar _lPar_,
         @SuppressWarnings("hiding") PColDef _lcol_,
         @SuppressWarnings("hiding") TComparator _comparator_,
-        @SuppressWarnings("hiding") PColDef _colDef_,
+        @SuppressWarnings("hiding") PColDef _rcol_,
         @SuppressWarnings("hiding") TRPar _rPar_)
     {
         // Constructor
@@ -32,7 +32,7 @@ public final class AFilter extends PFilter
 
         setComparator(_comparator_);
 
-        setColDef(_colDef_);
+        setRcol(_rcol_);
 
         setRPar(_rPar_);
 
@@ -45,7 +45,7 @@ public final class AFilter extends PFilter
             cloneNode(this._lPar_),
             cloneNode(this._lcol_),
             cloneNode(this._comparator_),
-            cloneNode(this._colDef_),
+            cloneNode(this._rcol_),
             cloneNode(this._rPar_));
     }
 
@@ -130,16 +130,16 @@ public final class AFilter extends PFilter
         this._comparator_ = node;
     }
 
-    public PColDef getColDef()
+    public PColDef getRcol()
     {
-        return this._colDef_;
+        return this._rcol_;
     }
 
-    public void setColDef(PColDef node)
+    public void setRcol(PColDef node)
     {
-        if(this._colDef_ != null)
+        if(this._rcol_ != null)
         {
-            this._colDef_.parent(null);
+            this._rcol_.parent(null);
         }
 
         if(node != null)
@@ -152,7 +152,7 @@ public final class AFilter extends PFilter
             node.parent(this);
         }
 
-        this._colDef_ = node;
+        this._rcol_ = node;
     }
 
     public TRPar getRPar()
@@ -187,7 +187,7 @@ public final class AFilter extends PFilter
             + toString(this._lPar_)
             + toString(this._lcol_)
             + toString(this._comparator_)
-            + toString(this._colDef_)
+            + toString(this._rcol_)
             + toString(this._rPar_);
     }
 
@@ -213,9 +213,9 @@ public final class AFilter extends PFilter
             return;
         }
 
-        if(this._colDef_ == child)
+        if(this._rcol_ == child)
         {
-            this._colDef_ = null;
+            this._rcol_ = null;
             return;
         }
 
@@ -250,9 +250,9 @@ public final class AFilter extends PFilter
             return;
         }
 
-        if(this._colDef_ == oldChild)
+        if(this._rcol_ == oldChild)
         {
-            setColDef((PColDef) newChild);
+            setRcol((PColDef) newChild);
             return;
         }
 

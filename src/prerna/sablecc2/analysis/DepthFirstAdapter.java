@@ -1682,9 +1682,9 @@ public class DepthFirstAdapter extends AnalysisAdapter
         {
             node.getComparator().apply(this);
         }
-        if(node.getColDef() != null)
+        if(node.getRcol() != null)
         {
-            node.getColDef().apply(this);
+            node.getRcol().apply(this);
         }
         if(node.getRPar() != null)
         {
