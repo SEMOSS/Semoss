@@ -1,13 +1,5 @@
 package prerna.sablecc2.reactor;
 
-import java.util.Enumeration;
-import java.util.Vector;
-
-import prerna.sablecc2.om.GenRowStruct;
-import prerna.sablecc2.om.NounMetadata;
-import prerna.sablecc2.om.NounStore;
-import prerna.sablecc2.om.GenRowStruct.COLUMN_TYPE;
-
 public class CodeReactor extends SampleReactor {
 	
 	public Object Out()

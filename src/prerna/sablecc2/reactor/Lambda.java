@@ -11,6 +11,7 @@ import prerna.engine.api.IHeadersDataRow;
 import prerna.sablecc2.om.Filter;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.Join;
+import prerna.sablecc2.om.PkslDataTypes;
 
 public class Lambda implements Iterator{
 	
@@ -76,14 +77,14 @@ public class Lambda implements Iterator{
 				if(values.size() > 0)
 				{
 					// predict what the type is
-					GenRowStruct.COLUMN_TYPE type = values.metaVector.elementAt(1);
+					PkslDataTypes type = values.metaVector.elementAt(1);
 					String pad = "";
-					if(type == GenRowStruct.COLUMN_TYPE.CONST_STRING)
+					if(type == PkslDataTypes.CONST_STRING)
 					{
 						Vector <String> strVector = new Vector<String>();
 						// now make this into a vector
 						for(int valIndex = 1;valIndex < values.size();valIndex++)
-							strVector.addElement(values.elementAt(valIndex)+"");
+							strVector.addElement(values.get(valIndex)+"");
 						qs.addFilter(filter.getSelector(), filter.getComparator(), strVector);
 					}
 					else
@@ -91,7 +92,7 @@ public class Lambda implements Iterator{
 						Vector <Double> decVector = new Vector<Double>();
 						for(int valIndex = 1;valIndex < values.size();valIndex++)
 						{
-							Object doubVal = values.elementAt(valIndex);
+							Object doubVal = values.get(valIndex);
 							decVector.addElement(new Double(" + values.elementAt(valIndex) +"));
 						}
 						qs.addFilter(filter.getSelector(), filter.getComparator(), decVector);

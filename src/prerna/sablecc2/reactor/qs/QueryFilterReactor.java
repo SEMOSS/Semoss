@@ -10,7 +10,7 @@ public class QueryFilterReactor extends QueryStructReactor {
 		GenRowStruct filters = getNounStore().getNoun("f");
 		for(int i = 0; i < filters.size(); i++) {
 			Filter nextFilter = (Filter)filters.get(i);
-			qs.addFilter(nextFilter.getSelector(), nextFilter.getComparator(), nextFilter.getValues());
+			qs.addFilter(nextFilter.getSelector(), nextFilter.getComparator(), nextFilter.getValues().vector);
 		}
 		return qs;
 	}

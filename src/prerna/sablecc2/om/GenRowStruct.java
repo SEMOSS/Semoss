@@ -1,37 +1,41 @@
 package prerna.sablecc2.om;
 
 import java.util.Vector;
-
-public class GenRowStruct extends Vector {
+public class GenRowStruct {
 
 	// string or number - const
 	// column - name of column
 	// SQL expression - SQL expression - something that can be done in the realm of SQL
 	// Expression - expression that can only be
-	public enum COLUMN_TYPE {CONST_DECIMAL, CONST_STRING, COLUMN, SQLE, E, FILTER, JOIN}; 
 	
 	boolean isAllSQL = true;
 	
-	public Vector<COLUMN_TYPE> metaVector = new Vector<COLUMN_TYPE>();
+	public Vector<Object> vector = new Vector<Object>();
+	public Vector<PkslDataTypes> metaVector = new Vector<PkslDataTypes>();
 	String columns = "";
+	
+	public void add(Object value, PkslDataTypes type) {
+		vector.addElement(value);
+		metaVector.add(type);
+	}
 	
 	public void addLiteral(String literal)
 	{
-		super.addElement(literal);
-		metaVector.add(COLUMN_TYPE.CONST_STRING);
+		vector.addElement(literal);
+		metaVector.add(PkslDataTypes.CONST_STRING);
 	}
 	
 	public void addDecimal(Double literal)
 	{
-		super.addElement(literal);
-		metaVector.add(COLUMN_TYPE.CONST_DECIMAL);
+		vector.addElement(literal);
+		metaVector.add(PkslDataTypes.CONST_DECIMAL);
 	}
 	
 	public void addColumn(String column)
 	{
 		column = column.trim();
-		super.addElement(column);
-		metaVector.add(COLUMN_TYPE.COLUMN);
+		vector.addElement(column);
+		metaVector.add(PkslDataTypes.COLUMN);
 		columns = columns + "_" + column;
 	}
 	
@@ -40,14 +44,14 @@ public class GenRowStruct extends Vector {
 	// while, I am doing this for sql expression here, we could replace sql expression and the same story kicks in
 	public void addSQLE(String sqlE, String [] inputColumns)
 	{
-		super.addElement(sqlE);
-		metaVector.add(COLUMN_TYPE.SQLE);
+		vector.addElement(sqlE);
+		metaVector.add(PkslDataTypes.SQLE);
 	}
 
 	public void addE(String E, String [] inputColumns)
 	{
-		super.addElement(E);
-		metaVector.add(COLUMN_TYPE.E);
+		vector.addElement(E);
+		metaVector.add(PkslDataTypes.E);
 		isAllSQL = false;
 	}
 
@@ -59,34 +63,20 @@ public class GenRowStruct extends Vector {
 
 	public void addFilter(Filter filter)
 	{
-		super.addElement(filter);
-		metaVector.add(COLUMN_TYPE.FILTER);		
-		
-		// add this to set of selectors as well. Not sure I need to
-		//super.addElement(join.getSelector());
-		//metaVector.add(COLUMN_TYPE.COLUMN);		
+		vector.addElement(filter);
+		metaVector.add(PkslDataTypes.FILTER);		
 	}
 	
-
 	public void addRelation(String leftCol, String joinType, String rightCol)
 	{
-		Join filter = new Join(leftCol, joinType, rightCol);
-		super.addElement(filter);
-		metaVector.add(COLUMN_TYPE.JOIN);
-		
-		// I also need to add these to columns
-		// should I parse out the table ?
-		// hmm.. then it becomes an issue
-		// not sure I need this right now
-		/*super.addElement(leftCol);
-		metaVector.add(COLUMN_TYPE.COLUMN);
-		super.addElement(rightCol);
-		metaVector.add(COLUMN_TYPE.COLUMN);*/
+		Join join = new Join(leftCol, joinType, rightCol);
+		vector.addElement(join);
+		metaVector.add(PkslDataTypes.JOIN);
 	}
 
 	public void merge(GenRowStruct anotherRow)
 	{
-		super.addAll(anotherRow);
+		vector.addAll(anotherRow.vector);
 		metaVector.addAll(anotherRow.metaVector);
 	}
 	
@@ -97,21 +87,33 @@ public class GenRowStruct extends Vector {
 		Vector<String> retVector = new Vector<String>();
 		for(int elementIndex = 0;elementIndex < metaVector.size();elementIndex++)
 		{
-			if(metaVector.elementAt(elementIndex) == COLUMN_TYPE.COLUMN)
-				retVector.add(this.elementAt(elementIndex)+"");
+			if(metaVector.elementAt(elementIndex) == PkslDataTypes.COLUMN)
+				retVector.add(vector.elementAt(elementIndex)+"");
 		}
 		return retVector;
 	}
 	
-	public Vector<Object> getColumnsOfType(COLUMN_TYPE type)
+	public Vector<Object> getColumnsOfType(PkslDataTypes type)
 	{
 		Vector<Object> retVector = new Vector<Object>();
 		for(int elementIndex = 0;elementIndex < metaVector.size();elementIndex++)
 		{
 			if(metaVector.elementAt(elementIndex) == type)
-				retVector.add(this.elementAt(elementIndex));
+				retVector.add(vector.elementAt(elementIndex));
 		}
 		return retVector;
+	}
+	
+	public int size() {
+		return this.vector.size();
+	}
+	
+	public Object get(int i) {
+		return this.vector.get(i);
+	}
+	
+	public PkslDataTypes getMeta(int i) {
+		return this.metaVector.get(i);
 	}
 
 	// I will turn this into query struct eventually - nope I never will
