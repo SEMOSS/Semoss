@@ -1,20 +1,6 @@
 package prerna.sablecc2.reactor;
 
 
-import prerna.engine.api.IEngine;
-import prerna.engine.api.IHeadersDataRow;
-import prerna.engine.api.IRawSelectWrapper;
-import prerna.engine.api.IScriptReactor;
-import prerna.rdf.engine.wrappers.WrapperManager;
-import prerna.rdf.query.builder.IQueryInterpreter;
-import prerna.rdf.query.builder.SQLInterpreter2;
-import prerna.sablecc.PKQLEnum;
-import prerna.sablecc2.om.GenRowStruct;
-import prerna.sablecc2.om.Join;
-import prerna.sablecc2.om.NounMetadata;
-import prerna.sablecc2.om.NounStore;
-import prerna.util.Utility;
-
 import java.util.Enumeration;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -23,9 +9,18 @@ import java.util.Map;
 import java.util.Vector;
 
 import prerna.algorithm.api.ITableDataFrame;
-import prerna.ds.QueryStruct;
 import prerna.ds.QueryStruct2;
-import prerna.ds.h2.H2Frame;
+import prerna.engine.api.IEngine;
+import prerna.engine.api.IHeadersDataRow;
+import prerna.engine.api.IScriptReactor;
+import prerna.rdf.engine.wrappers.WrapperManager;
+import prerna.rdf.query.builder.SQLInterpreter2;
+import prerna.sablecc.PKQLEnum;
+import prerna.sablecc2.om.GenRowStruct;
+import prerna.sablecc2.om.Join;
+import prerna.sablecc2.om.NounMetadata;
+import prerna.sablecc2.om.NounStore;
+import prerna.util.Utility;
 
 public class MergeDataReactor extends AbstractReactor {
 
@@ -144,13 +139,6 @@ public class MergeDataReactor extends AbstractReactor {
 		//1 query OR 1 queryStruct
 		//n joins
 		return null;
-	}
-	
-	private void setInputs() {
-		List<NounMetadata> inputs = getInputs();
-		for(NounMetadata noun : inputs) {
-			String nounName = noun.getNounName();
-		}
 	}
 	
 	private String removeQuotes(String value) {

@@ -49,6 +49,7 @@ import prerna.sablecc2.node.Node;
 import prerna.sablecc2.node.POthercol;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.NounMetadata;
+import prerna.sablecc2.om.PkslDataTypes;
 import prerna.sablecc2.reactor.AsReactor;
 import prerna.sablecc2.reactor.AssignmentReactor;
 import prerna.sablecc2.reactor.ExprReactor;
@@ -313,9 +314,9 @@ public class Translation extends DepthFirstAdapter {
         // into the noun store of this new reactor
         NounMetadata prevResult = this.planner.getVariable("$RESULT");
     	if(prevResult != null) {
-    		String nounName = prevResult.getNounName();
-    		GenRowStruct genRow = curReactor.getNounStore().makeNoun(nounName);
-    		genRow.add(prevResult);
+    		PkslDataTypes nounName = prevResult.getNounName();
+    		GenRowStruct genRow = curReactor.getNounStore().makeNoun(nounName.toString());
+    		genRow.add(prevResult, nounName);
     	}
     	// then we will remove the result from the planner
     	this.planner.removeVariable("$RESULT");
@@ -345,34 +346,6 @@ public class Translation extends DepthFirstAdapter {
 //        }
         this.lastOperation = node + "";
     }
-    
-//    @Override
-//    public void caseAOperationFormula(AOperationFormula node)
-//    {
-//        inAOperationFormula(node);
-//        if(node.getId() != null)
-//        {
-//            node.getId().apply(this);
-//        }
-//
-//        if(node.getPlainRow() != null)
-//        {
-//        	//always run the first one
-//        	//if first is if reactor
-//        	//get the return
-//        	APlainRow apr = (APlainRow)node.getPlainRow();
-//        	PColDef x = apr.getColDef();
-//        	//if x instance of if statement
-//        	
-//            node.getPlainRow().apply(this);
-//        }
-//
-//        if(node.getAsop() != null)
-//        {
-//            node.getAsop().apply(this);
-//        }
-//        outAOperationFormula(node);
-//    }
     
     @Override
     public void caseAPlainRow(APlainRow node)
@@ -415,14 +388,11 @@ public class Translation extends DepthFirstAdapter {
     }
 
     public void inAROp(AROp node) {
-//    	if (reactorNames.containsKey(PKQLEnum.JAVA_OP)) {
-    		RReactor reactor = new RReactor();
-			initReactor(reactor);
-//			curReactor.put("PKQLRunner", runner);
-			String nodeExpr = node.getR().toString().trim();
-			NounMetadata noun = new NounMetadata(nodeExpr, "RCODE");
-			curReactor.getNounStore().makeNoun("RCODE").add(noun);
-//		}
+		RReactor reactor = new RReactor();
+		initReactor(reactor);
+		String nodeExpr = node.getR().toString().trim();
+		NounMetadata noun = new NounMetadata(nodeExpr, PkslDataTypes.RCODE);
+		curReactor.getNounStore().makeNoun("RCODE").add(noun, PkslDataTypes.RCODE);
     }
 
     public void outAROp(AROp node) {
@@ -482,22 +452,6 @@ public class Translation extends DepthFirstAdapter {
         curReactor.getCurRow().addLiteral(thisLiteral);
     }
     
-    private Object getValueFromLiteral(String thisLiteral) {
-    	if(thisLiteral.startsWith("'") || thisLiteral.startsWith("\"")) {
-    		thisLiteral = thisLiteral.replace("'","");
-        	thisLiteral = thisLiteral.replace("\"","");
-        	thisLiteral = thisLiteral.trim();
-        	return thisLiteral;
-    	} else {
-    		//it is either a column header or a variable
-    		if(this.planner.hasVariable(thisLiteral)) {
-    			return this.planner.getVariable(thisLiteral);
-    		} else {
-    			return thisLiteral; //its a column header in this case
-    		}
-    	}
-    }
-
     public void outALiteralColDef(ALiteralColDef node)
     {
         defaultOut(node);
@@ -705,7 +659,7 @@ public class Translation extends DepthFirstAdapter {
         opReactor.setPKSL("Filter",(node + "").trim());
         initReactor(opReactor);
         GenRowStruct genRow = curReactor.getNounStore().makeNoun("COMPARATOR");
-        genRow.add(node.getComparator().toString().trim());
+        genRow.add(node.getComparator().toString().trim(), PkslDataTypes.COMPARATOR);
         // Need some way to track the state to say all the other things are interim
         // so I can interpret the dot notation etc for frame columns
     }
@@ -735,7 +689,7 @@ public class Translation extends DepthFirstAdapter {
             NounMetadata prevResult = this.planner.getVariable("$RESULT");
         	if(prevResult != null) {
         		GenRowStruct genRow = curReactor.getNounStore().makeNoun("LCOL");
-        		genRow.add(prevResult);
+        		genRow.add(prevResult, prevResult.getNounName());
         		this.planner.removeVariable("$RESULT");
         	}
         }
@@ -757,7 +711,7 @@ public class Translation extends DepthFirstAdapter {
             NounMetadata prevResult = this.planner.getVariable("$RESULT");
         	if(prevResult != null) {
         		GenRowStruct genRow = curReactor.getNounStore().makeNoun("RCOL");
-        		genRow.add(prevResult);
+        		genRow.add(prevResult, prevResult.getNounName());
         		this.planner.removeVariable("$RESULT");
         	}
         }

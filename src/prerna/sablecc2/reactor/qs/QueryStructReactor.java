@@ -6,7 +6,7 @@ import prerna.ds.QueryStruct2;
 import prerna.ds.QueryStructSelector;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.NounMetadata;
-import prerna.sablecc2.om.NounStore;
+import prerna.sablecc2.om.PkslDataTypes;
 import prerna.sablecc2.reactor.AbstractReactor;
 
 public abstract class QueryStructReactor extends AbstractReactor {
@@ -28,7 +28,7 @@ public abstract class QueryStructReactor extends AbstractReactor {
 	@Override
 	public Object execute() {
 		QueryStruct2 qs = createQueryStruct();
-		NounMetadata noun = new NounMetadata(qs, "QUERYSTRUCT");
+		NounMetadata noun = new NounMetadata(qs, PkslDataTypes.QUERY_STRUCT);
 		return noun;
 	}
 	@Override
@@ -57,10 +57,11 @@ public abstract class QueryStructReactor extends AbstractReactor {
 	}
 	
 	private void init() {
-		GenRowStruct qsInputParams = getNounStore().getNoun("QUERYSTRUCT");
+		GenRowStruct qsInputParams = getNounStore().getNoun(PkslDataTypes.QUERY_STRUCT.toString());
 		if(qsInputParams != null) {
-			for(Object qs : qsInputParams) {
-				NounMetadata qsNoun = (NounMetadata)qs;
+			int numInputs = qsInputParams.size();
+			for(int inputIdx = 0; inputIdx < numInputs; inputIdx++) {
+				NounMetadata qsNoun = (NounMetadata)qsInputParams.get(inputIdx);
 				mergeQueryStruct((QueryStruct2)qsNoun.getValue());
 			}
 		}
