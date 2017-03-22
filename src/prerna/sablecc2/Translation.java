@@ -46,7 +46,6 @@ import prerna.sablecc2.node.AScriptchain;
 import prerna.sablecc2.node.ASelectNoun;
 import prerna.sablecc2.node.ATermExpr;
 import prerna.sablecc2.node.Node;
-import prerna.sablecc2.node.PColDef;
 import prerna.sablecc2.node.POthercol;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.NounMetadata;
@@ -291,6 +290,9 @@ public class Translation extends DepthFirstAdapter {
         // I almost feel I should remove the frame op col def
 //        IReactor opReactor = getReactor(node.getId().toString().trim(), node.toString());
         IReactor opReactor = getReactor(node.getId().toString().trim(), node.toString());
+        
+        // this is old code when everything was a sample reactor
+        // should no longer be used...
         if(opReactor instanceof SampleReactor) {
 	        opReactor = new ExprReactor();
 	        Map<String, String> scriptReactors = new H2Frame().getScriptReactors();
@@ -305,6 +307,18 @@ public class Translation extends DepthFirstAdapter {
         // since there are no square brackets.. there are no nouns
         //opReactor.curNoun("all");
         initReactor(opReactor);
+        
+        // after we init the new reactor
+        // we will add the result of the last reactor 
+        // into the noun store of this new reactor
+        NounMetadata prevResult = this.planner.getVariable("$RESULT");
+    	if(prevResult != null) {
+    		String nounName = prevResult.getNounName();
+    		GenRowStruct genRow = curReactor.getNounStore().makeNoun(nounName);
+    		genRow.add(prevResult);
+    	}
+    	// then we will remove the result from the planner
+    	this.planner.removeVariable("$RESULT");
     }
 
     public void outAOperationFormula(AOperationFormula node)
@@ -319,13 +333,6 @@ public class Translation extends DepthFirstAdapter {
 	    	if(childOutput != null) {
 	    		curReactor.setProp(nodeKey, childOutput);
 	    	}
-    	}
-    	
-    	NounMetadata prevResult = this.planner.getVariable("$RESULT");
-    	if(prevResult != null) {
-    		String nounName = prevResult.getNounName();
-    		GenRowStruct genRow = curReactor.getNounStore().makeNoun(nounName);
-    		genRow.add(prevResult);
     	}
     	
         deInitReactor();
@@ -696,9 +703,9 @@ public class Translation extends DepthFirstAdapter {
         IReactor opReactor = new FilterReactor();
         opReactor.setName("Filter");
         opReactor.setPKSL("Filter",(node + "").trim());
-        opReactor.setProp("LCOL", (node.getLcol()+"").trim());
-        opReactor.setProp("COMPARATOR", (node.getComparator()+"").trim());
         initReactor(opReactor);
+        GenRowStruct genRow = curReactor.getNounStore().makeNoun("COMPARATOR");
+        genRow.add(node.getComparator().toString().trim());
         // Need some way to track the state to say all the other things are interim
         // so I can interpret the dot notation etc for frame columns
     }
@@ -706,6 +713,59 @@ public class Translation extends DepthFirstAdapter {
     public void outAFilter(AFilter node) {
         defaultOut(node);
         deInitReactor();
+    }
+    
+    @Override
+    public void caseAFilter(AFilter node)
+    {
+        inAFilter(node);
+        if(node.getLPar() != null)
+        {
+            node.getLPar().apply(this);
+        }
+        if(node.getLcol() != null)
+        {
+        	// we will change the curNoun here
+        	// so when we hit a literal
+        	// it will be cast to the appropriate type
+        	curReactor.curNoun("LCOL");
+        	node.getLcol().apply(this);
+            // we need to account for various expressions being evaluated within a filter
+            // if there is a result, grab the result and set it as a lcol in the filter reactor
+            NounMetadata prevResult = this.planner.getVariable("$RESULT");
+        	if(prevResult != null) {
+        		GenRowStruct genRow = curReactor.getNounStore().makeNoun("LCOL");
+        		genRow.add(prevResult);
+        		this.planner.removeVariable("$RESULT");
+        	}
+        }
+        // we put the comparator into the noun store of the filter
+        // during the init of the filter reactor
+//        if(node.getComparator() != null)
+//        {
+//            node.getComparator().apply(this);
+//        }
+        if(node.getRcol() != null)
+        {
+            // we will change the curNoun here
+        	// so when we hit a literal
+        	// it will be cast to the appropriate type
+        	curReactor.curNoun("RCOL");
+        	node.getRcol().apply(this);
+            // we need to account for various expressions being evaluated within a filter
+            // if there is a result, grab the result and set it as a lcol in the filter reactor
+            NounMetadata prevResult = this.planner.getVariable("$RESULT");
+        	if(prevResult != null) {
+        		GenRowStruct genRow = curReactor.getNounStore().makeNoun("RCOL");
+        		genRow.add(prevResult);
+        		this.planner.removeVariable("$RESULT");
+        	}
+        }
+        if(node.getRPar() != null)
+        {
+            node.getRPar().apply(this);
+        }
+        outAFilter(node);
     }
     
     /**************************************************
