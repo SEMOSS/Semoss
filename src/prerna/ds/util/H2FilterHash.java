@@ -8,8 +8,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import prerna.ds.AbstractTableDataFrame;
-
 public class H2FilterHash {
 
 	Map<String, Map<String, Set<Object>>> filterHash;	
