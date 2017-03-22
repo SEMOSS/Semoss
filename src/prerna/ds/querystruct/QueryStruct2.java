@@ -1,4 +1,4 @@
-package prerna.ds;
+package prerna.ds.querystruct;
 
 import java.io.FileInputStream;
 import java.io.IOException;
@@ -16,6 +16,7 @@ import java.util.Vector;
 import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
 
+import prerna.ds.QueryStruct;
 import prerna.ds.util.H2FilterHash;
 import prerna.util.DIHelper;
 import prerna.util.Utility;

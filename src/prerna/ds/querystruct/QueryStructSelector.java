@@ -1,4 +1,4 @@
-package prerna.ds;
+package prerna.ds.querystruct;
 
 public class QueryStructSelector {
 
@@ -10,7 +10,6 @@ public class QueryStructSelector {
 	public static String PRIM_KEY_PLACEHOLDER = "PRIM_KEY_PLACEHOLDER";
 	
 	public QueryStructSelector() {
-		
 		//default these so that equals/hashcode will work correctly
 		column = "";
 		table = "";
@@ -60,6 +59,7 @@ public class QueryStructSelector {
 	public boolean isPrimKeyColumn() {
 		return PRIM_KEY_PLACEHOLDER.equals(column);
 	}
+	
 	@Override
 	public boolean equals(Object obj) {
 		if(obj instanceof QueryStructSelector) {
