@@ -128,7 +128,7 @@ public class QueryReactor extends AbstractReactor {
 					GenRowStruct filters = store.nounRow.get(nextNoun);
 					for(int i = 0; i < filters.size(); i++) {
 						Filter nextFilter = (Filter)filters.get(i);
-						qs.addFilter(nextFilter.getSelector(), nextFilter.getComparator(), nextFilter.getValues().vector);
+						qs.addFilter(nextFilter.getLComparison().get(0).toString(), nextFilter.getComparator(), nextFilter.getRComparison().vector);
 					}
 					break;
 				}

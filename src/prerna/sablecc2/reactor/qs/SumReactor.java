@@ -1,6 +1,6 @@
 package prerna.sablecc2.reactor.qs;
 
-import prerna.ds.QueryStructSelector;
+import prerna.ds.querystruct.QueryStructSelector;
 
 public class SumReactor extends SelectReactor {
 

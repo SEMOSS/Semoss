@@ -3,8 +3,8 @@ package prerna.sablecc2.om;
 public class Filter {
 
 	private String comparator = null; //'=', '!=', '<', '<=', '>', '>=', '?like'
-	private String selector = null; //the column we want to filter
-	private GenRowStruct values = null; //the values to bind the filter on
+	private GenRowStruct lComparison = null; //the column we want to filter
+	private GenRowStruct rComparison = null; //the values to bind the filter on
 	
 	//should we use standard strings for filter comparators across everywhere? if so we need this somewhere else
 //	public static final String EQUALS = "=";
@@ -15,23 +15,22 @@ public class Filter {
 //	public static final String GREATER_THAN_EQUALS = "=";
 //	public static final String LIKE = "?like";
 	
-	public Filter(String lCol, String comparator, GenRowStruct qualifiers)
+	public Filter(GenRowStruct lComparison, String comparator, GenRowStruct rComparison)
 	{
-		selector = lCol;
-		values = qualifiers;
+		this.lComparison = lComparison;
+		this.rComparison = rComparison;
 		this.comparator = comparator;
 	}
 
-	public String getSelector() {
-		return selector;
+	public GenRowStruct getLComparison() {
+		return lComparison;
 	}
 	
-	public GenRowStruct getValues() {
-		return values;
+	public GenRowStruct getRComparison() {
+		return rComparison;
 	}
 	
 	public String getComparator() {
 		return this.comparator;
 	}
-	
 }

@@ -25,8 +25,8 @@ public class AssignmentReactor extends AbstractReactor {
 		NounMetadata result = planner.getVariable("$RESULT");
 		if(result != null) {
 			planner.addVariable(operationName.toUpperCase(), result);
+			planner.removeVariable("$RESULT");
 		}
-		
 		return null;
 	}
 

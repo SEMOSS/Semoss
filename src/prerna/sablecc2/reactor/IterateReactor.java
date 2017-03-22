@@ -7,7 +7,7 @@ import java.util.Map;
 import java.util.Vector;
 
 import prerna.algorithm.api.ITableDataFrame;
-import prerna.ds.QueryStruct2;
+import prerna.ds.querystruct.QueryStruct2;
 import prerna.engine.api.IEngine;
 import prerna.engine.api.IRawSelectWrapper;
 import prerna.rdf.engine.wrappers.WrapperManager;

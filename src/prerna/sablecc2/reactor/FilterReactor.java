@@ -1,6 +1,5 @@
 package prerna.sablecc2.reactor;
 
-import prerna.sablecc2.om.Filter;
 import prerna.sablecc2.om.GenRowStruct;
 
 public class FilterReactor extends AbstractReactor{
@@ -41,16 +40,6 @@ public class FilterReactor extends AbstractReactor{
 		return parentReactor;
 	}
 	
-	@Override
-	public Object execute()
-	{
-		GenRowStruct struct = store.getNoun("f");
-		Filter filter = (Filter) struct.get(0);
-		filter.getSelector();
-		
-		return true;
-	}
-
 	@Override
 	protected void mergeUp() {
 		// TODO Auto-generated method stub

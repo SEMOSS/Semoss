@@ -14,8 +14,8 @@ import org.openrdf.query.TupleQueryResult;
 
 import prerna.algorithm.api.IMetaData;
 import prerna.ds.QueryStruct;
-import prerna.ds.QueryStruct2;
-import prerna.ds.QueryStructSelector;
+import prerna.ds.querystruct.QueryStruct2;
+import prerna.ds.querystruct.QueryStructSelector;
 import prerna.engine.api.IEngine;
 import prerna.engine.impl.rdbms.RDBMSNativeEngine;
 import prerna.test.TestUtilityMethods;
