@@ -8,6 +8,7 @@ import prerna.algorithm.api.ITableDataFrame;
 import prerna.sablecc2.om.Filter;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.Join;
+import prerna.sablecc2.om.PkslDataTypes;
 import prerna.util.Utility;
 
 public class Stage extends Hashtable <String, Hashtable> {
@@ -258,16 +259,16 @@ public class Stage extends Hashtable <String, Hashtable> {
 		if(values.size() > 0)
 		{
 			// predict what the type is
-			GenRowStruct.COLUMN_TYPE type = values.metaVector.elementAt(1);
+			PkslDataTypes type = values.metaVector.elementAt(1);
 			String pad = "";
 			StringBuffer filterVectorString = new StringBuffer();
-			if(type == GenRowStruct.COLUMN_TYPE.CONST_STRING)
+			if(type == PkslDataTypes.CONST_STRING)
 			{
 				pad = "\"";
 				filterVectorString.append("strVector = new Vector();\n");
 				// now make this into a vector
 				for(int valIndex = 1;valIndex < values.size();valIndex++)
-					filterVectorString.append("strVector.addElement(" + pad + values.elementAt(valIndex) + pad + ");\n");
+					filterVectorString.append("strVector.addElement(" + pad + values.get(valIndex) + pad + ");\n");
 				filterVectorString.append("qs.addFilter(\"" + filter.getSelector() + "\", \"" + filter.getComparator() + "\" ,strVector);\n");
 			}
 			else
@@ -275,8 +276,8 @@ public class Stage extends Hashtable <String, Hashtable> {
 				filterVectorString.append("decVector = new Vector();\n");
 				for(int valIndex = 1;valIndex < values.size();valIndex++)
 				{
-					Object doubVal = values.elementAt(valIndex);
-					filterVectorString.append("decVector.addElement(new Double(" + values.elementAt(valIndex) +"));\n");
+					Object doubVal = values.get(valIndex);
+					filterVectorString.append("decVector.addElement(new Double(" + values.get(valIndex) +"));\n");
 				}
 				filterVectorString.append("qs.addFilter(\"" + filter.getSelector() + "\", \"" + filter.getComparator() + "\",decVector);\n");
 			}

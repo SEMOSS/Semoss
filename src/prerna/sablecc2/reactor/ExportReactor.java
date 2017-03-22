@@ -5,7 +5,7 @@ import java.util.Map;
 
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.NounMetadata;
-import prerna.sablecc2.om.NounStore;
+import prerna.sablecc2.om.PkslDataTypes;
 
 public class ExportReactor extends AbstractReactor {
 
@@ -39,18 +39,20 @@ public class ExportReactor extends AbstractReactor {
 		
 		GenRowStruct chartNouns = getNounStore().getNoun("chart");
 		Map<String, Object> widgetMap = new HashMap<>();
-		for(Object noun : chartNouns) {
-			widgetMap.put(noun.toString(), "data");
+		int numNouns = chartNouns.size();
+		for(int nounIdx = 0; nounIdx < numNouns; nounIdx++) {
+			widgetMap.put(chartNouns.get(nounIdx).toString(), "data");
 		}
 		
 		//assume 1 data for now
 		GenRowStruct dataNouns = getNounStore().getNoun("data");
-		for(Object noun : dataNouns) {
-			exportedData.put("formattedData", ((NounMetadata)noun).getValue());
+		numNouns = dataNouns.size();
+		for(int nounIdx = 0; nounIdx < numNouns; nounIdx++) {
+			exportedData.put("formattedData", ((NounMetadata)dataNouns.get(nounIdx)).getValue());
 		}
 		
 		this.planner.addProperty("DATA", "DATA", exportedData);
-		NounMetadata result = new NounMetadata(exportedData, "EXPORT");
+		NounMetadata result = new NounMetadata(exportedData, PkslDataTypes.EXPORT);
 		return result;
 //		this.planner.addVariable("$RESULT", result);
 	}

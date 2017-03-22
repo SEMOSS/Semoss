@@ -1,12 +1,12 @@
 package prerna.sablecc2.reactor.export;
 
-import java.util.ArrayList;
 import java.util.List;
 
 import prerna.engine.api.IHeadersDataRow;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.NounMetadata;
 import prerna.sablecc2.om.NounStore;
+import prerna.sablecc2.om.PkslDataTypes;
 import prerna.sablecc2.reactor.AbstractReactor;
 
 public class FormatReactor extends AbstractReactor {
@@ -31,7 +31,7 @@ public class FormatReactor extends AbstractReactor {
 			formatter.addData(nextData);
 		}
 		
-		NounMetadata noun = new NounMetadata(formatter.getFormattedData(), "FDATA");
+		NounMetadata noun = new NounMetadata(formatter.getFormattedData(), PkslDataTypes.FORMATTED_DATA_SET);
 //		planner.addVariable("$RESULT", noun);
 		return noun;
 	}
