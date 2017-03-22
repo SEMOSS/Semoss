@@ -1,5 +1,6 @@
 package prerna.sablecc2.reactor;
 
+import prerna.sablecc2.om.Filter;
 import prerna.sablecc2.om.GenRowStruct;
 
 public class FilterReactor extends AbstractReactor{
@@ -29,10 +30,10 @@ public class FilterReactor extends AbstractReactor{
 		GenRowStruct comparator = store.getNoun("COMPARATOR");
 		GenRowStruct rcol = store.getNoun("RCOL");
 		
-//		Filter thisFilter = new Filter(colName, comparator, allNouns);
+		Filter thisFilter = new Filter(lcol, comparator.get(0).toString(), rcol);
 		
 		GenRowStruct thisStruct = store.makeNoun("f");
-//		thisStruct.addFilter(thisFilter);
+		thisStruct.addFilter(thisFilter);
 
 		// just add this to the parent
 		parentReactor.getNounStore().addNoun("f", thisStruct);
