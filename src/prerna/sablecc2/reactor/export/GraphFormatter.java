@@ -19,7 +19,7 @@ public class GraphFormatter implements Formatter {
 	}
 
 	@Override
-	public void addHeader(HashMap<String, Object> header) {
+	public void addHeader(String[] keys) {
 		// TODO Auto-generated method stub
 		
 	}
