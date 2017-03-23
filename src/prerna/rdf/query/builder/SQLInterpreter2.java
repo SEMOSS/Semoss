@@ -1,6 +1,5 @@
 package prerna.rdf.query.builder;
 
-import java.util.Enumeration;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Hashtable;
@@ -18,6 +17,9 @@ import prerna.ds.querystruct.QueryStruct2;
 import prerna.ds.querystruct.QueryStructSelector;
 import prerna.engine.api.IEngine;
 import prerna.engine.impl.rdbms.RDBMSNativeEngine;
+import prerna.sablecc2.om.Filter;
+import prerna.sablecc2.om.GenRowStruct;
+import prerna.sablecc2.om.PkslDataTypes;
 import prerna.test.TestUtilityMethods;
 import prerna.util.DIHelper;
 import prerna.util.Utility;
@@ -53,7 +55,8 @@ public class SQLInterpreter2 implements IQueryInterpreter{
 	// where the wheres are all kept
 	// key is always a combination of concept and comparator
 	// and the values are values
-	private Hashtable <String, String> whereHash = new Hashtable<String, String>();
+	private List<String> whereFilters = new Vector<String>();
+//	private Hashtable <String, String> whereHash = new Hashtable<String, String>();
 
 	private transient Map<String, String[]> relationshipConceptPropertiesMap = new HashMap<String, String[]>();
 	
@@ -88,7 +91,8 @@ public class SQLInterpreter2 implements IQueryInterpreter{
 		this.selectors = "";
 		this.froms.clear();
 		this.relationList.clear();
-		this.whereHash.clear();
+//		this.whereHash.clear();
+		this.whereFilters.clear(); 
 		this.tableProcessed.clear();
 	}
 	
@@ -187,34 +191,43 @@ public class SQLInterpreter2 implements IQueryInterpreter{
 		query.append(relationList.getJoinPath(startPoints));
 		
 		boolean firstTime = true;
-		for (String key : whereHash.keySet())
-		{
-			String value = whereHash.get(key);
-			
-			String[] conceptKey = key.split(":::");
-			String concept = conceptKey[0];
-			String property = conceptKey[1];
-			String comparator = conceptKey[2];
-			
-			String conceptString = "";
-			if(comparator.trim().equals("=")) {
-				conceptString = getAlias(concept) + "." + property +" IN ";
-			} else if(comparator.trim().equals("!=")) {
-				conceptString = getAlias(concept) + "." + property +" NOT IN ";
-			}
-			
-			if(comparator.trim().equals("=") || comparator.trim().equals("!=") || value.contains(" OR ")) {
-				value = " ( " + value + " ) ";
-			}
-			
-			if(firstTime)
-			{
-				query.append(" WHERE ").append(conceptString).append(value);
+		for(String whereStatement : this.whereFilters) {
+			if(firstTime) {
 				firstTime = false;
+				query.append(" WHERE ").append(whereStatement);
+			} else {
+				query.append(" AND ").append(whereStatement);
 			}
-			else
-				query.append(" AND ").append(conceptString).append(value);
 		}
+		
+//		for (String key : whereHash.keySet())
+//		{
+//			String value = whereHash.get(key);
+//			
+//			String[] conceptKey = key.split(":::");
+//			String concept = conceptKey[0];
+//			String property = conceptKey[1];
+//			String comparator = conceptKey[2];
+//			
+//			String conceptString = "";
+//			if(comparator.trim().equals("=")) {
+//				conceptString = getAlias(concept) + "." + property +" IN ";
+//			} else if(comparator.trim().equals("!=")) {
+//				conceptString = getAlias(concept) + "." + property +" NOT IN ";
+//			}
+//			
+//			if(comparator.trim().equals("=") || comparator.trim().equals("!=") || value.contains(" OR ")) {
+//				value = " ( " + value + " ) ";
+//			}
+//			
+//			if(firstTime)
+//			{
+//				query.append(" WHERE ").append(conceptString).append(value);
+//				firstTime = false;
+//			}
+//			else
+//				query.append(" AND ").append(conceptString).append(value);
+//		}
 
 		//grab the order by and get the corresponding display name for that order by column
 		query = appendGroupBy(query);
@@ -442,114 +455,311 @@ public class SQLInterpreter2 implements IQueryInterpreter{
 
 	public void addFilters()
 	{
-		Map<String, Map<String, Set<Object>>> filters = qs.filters.getFilterHash();
-		Set <String> concepts = qs.filters.getFilterHash().keySet();
-		
-		for(String concept_property : concepts)
-		{
+		List<Filter> filters = qs.filters.getFilters();
+		for(Filter filter : filters) {
+			GenRowStruct leftComp = filter.getLComparison();
+			GenRowStruct rightComp = filter.getRComparison();
+			String thisComparator = filter.getComparator();
 			
-			// inside this is a hashtable of all the comparators
-			Map <String, Set<Object>> compHash = filters.get(concept_property);
-			Set <String> comps = compHash.keySet();
-			
-			// when adding implicit filtering from the dataframe as a pretrans that gets appended into the QS
-			// we store the value without the parent__, so need to check here if it is stored as a prop in the engine
-			if(engine != null) {
-				List<String> parents = engine.getParentOfProperty2(concept_property);
-				if(parents != null) {
-					// since we can have 2 tables that have the same column
-					// we need to pick one with the table that already exists
-					for(String parent : parents) {
-						if(aliases.containsKey(Utility.getInstanceName(parent))) {
-							concept_property = Utility.getInstanceName(parent) + "__" + concept_property;
-							break;
+			// loop through all the values compared to each other
+			int numLeft = leftComp.size();
+			int numRight = rightComp.size();
+			LEFT_COMP_TYPE : for(int leftCount = 0; leftCount < numLeft; leftCount++) {
+				// DIFFERENT PROCESSING BASED ON THE TYPE OF VALUE
+				PkslDataTypes lCompType = leftComp.getMeta(leftCount);
+				
+				if(lCompType == PkslDataTypes.COLUMN) {
+					// ON THE LEFT SIDE, WE HAVE A COLUMN!!!
+					String left_concept_property = leftComp.get(leftCount).toString();
+					if(engine != null) {
+						List<String> parents = engine.getParentOfProperty2(left_concept_property);
+						if(parents != null) {
+							// since we can have 2 tables that have the same column
+							// we need to pick one with the table that already exists
+							for(String parent : parents) {
+								if(aliases.containsKey(Utility.getInstanceName(parent))) {
+									left_concept_property = Utility.getInstanceName(parent) + "__" + left_concept_property;
+									break;
+								}
+							}
+						}
+					}
+					String[] leftConProp = getConceptProperty(left_concept_property);
+					String leftConcept = leftConProp[0];
+					String leftProperty = leftConProp[1];
+					
+					String leftDataType = null;
+					if(engine != null) {
+						leftDataType = this.engine.getDataTypes("http://semoss.org/ontologies/Concept/" + leftProperty + "/" + leftConcept);
+						// ugh, need to try if it is a property
+						if(leftDataType == null) {
+							leftDataType = this.engine.getDataTypes("http://semoss.org/ontologies/Relation/Contains/" + leftProperty + "/" + leftConcept);
+						}
+						leftDataType = leftDataType.replace("TYPE:", "");
+					}
+					
+					// get the appropriate left hand where portion based on the table/column
+					StringBuilder startFilterBuilder = new StringBuilder();
+					startFilterBuilder.append(getAlias(leftConcept)).append(".").append(leftProperty);
+
+					RIGHT_COMP_LOOP : for(int rightCount = 0; rightCount < numRight; rightCount++) {
+						PkslDataTypes rCompType = rightComp.getMeta(rightCount);
+						if(rCompType == PkslDataTypes.COLUMN) {
+							// WE ARE COMPARING TWO COLUMNS AGAINST EACH OTHER
+							String right_concept_property = rightComp.get(rightCount).toString();
+							if(engine != null) {
+								List<String> parents = engine.getParentOfProperty2(right_concept_property);
+								if(parents != null) {
+									// since we can have 2 tables that have the same column
+									// we need to pick one with the table that already exists
+									for(String parent : parents) {
+										if(aliases.containsKey(Utility.getInstanceName(parent))) {
+											right_concept_property = Utility.getInstanceName(parent) + "__" + right_concept_property;
+											break;
+										}
+									}
+								}
+							}
+							String[] rightConProp = getConceptProperty(right_concept_property);
+							String rightConcept = rightConProp[0];
+							String rightProperty = rightConProp[1];
+							
+							StringBuilder filterBuilder = new StringBuilder();
+							filterBuilder.append(startFilterBuilder.toString());
+							filterBuilder.append(" ").append(thisComparator).append(" ");
+							filterBuilder.append(getAlias(rightConcept)).append(".").append(rightProperty);
+							
+							this.whereFilters.add(filterBuilder.toString());
+							
+						} else if(rCompType == PkslDataTypes.CONST_DECIMAL || rCompType == PkslDataTypes.CONST_STRING) {
+							// WE ARE COMPARING A COLUMN AGAINST A LIST OF DECIMALS OR STRINGS
+							List<Object> objects = new Vector<Object>();
+							objects.add(rightComp.get(rightCount));
+							String myFilterFormatted = getFormatedObject(leftDataType, objects, thisComparator);
+							
+							StringBuilder filterBuilder = new StringBuilder();
+							filterBuilder.append(startFilterBuilder.toString());
+							filterBuilder.append(" ");
+							
+							if(thisComparator.trim().equals("==")) {
+								filterBuilder.append(" IN ");
+							} else if(thisComparator.trim().equals("!=")) {
+								filterBuilder.append(" NOT IN ");
+							}
+							
+							if(thisComparator.trim().equals("==") || thisComparator.trim().equals("!=") || thisComparator.contains(" OR ")) {
+								filterBuilder.append(" ( ").append(myFilterFormatted).append(" ) ");
+							} else {
+								filterBuilder.append(thisComparator).append(" ").append(myFilterFormatted);
+							}
+							
+							this.whereFilters.add(filterBuilder.toString());
+							
+						}
+					}
+				} else if(lCompType == PkslDataTypes.CONST_DECIMAL || lCompType == PkslDataTypes.CONST_STRING) {
+					// ON THE LEFT SIDE, WE HAVE SOME KIND OF CONSTANT
+					
+					List<Object> leftObjects = new Vector<Object>();
+					leftObjects.add(leftComp.get(leftCount));
+					
+					String leftDataType = null;
+					if(lCompType == PkslDataTypes.CONST_DECIMAL) {
+						leftDataType = "NUMBER";
+					} else {
+						leftDataType = "STRING";
+					}
+					//TODO: NEED TO CONSIDER DATES!!!
+					String leftFilterFormatted = getFormatedObject(leftDataType, leftObjects, thisComparator);
+					
+					RIGHT_COMP_LOOP : for(int rightCount = 0; rightCount < numRight; rightCount++) {
+						PkslDataTypes rCompType = rightComp.getMeta(rightCount);
+						if(rCompType == PkslDataTypes.COLUMN) {
+							// WE ARE COMPARING A CONSTANT TO A COLUMN
+							String right_concept_property = rightComp.get(rightCount).toString();
+							if(engine != null) {
+								List<String> parents = engine.getParentOfProperty2(right_concept_property);
+								if(parents != null) {
+									// since we can have 2 tables that have the same column
+									// we need to pick one with the table that already exists
+									for(String parent : parents) {
+										if(aliases.containsKey(Utility.getInstanceName(parent))) {
+											right_concept_property = Utility.getInstanceName(parent) + "__" + right_concept_property;
+											break;
+										}
+									}
+								}
+							}
+							String[] rightConProp = getConceptProperty(right_concept_property);
+							String rightConcept = rightConProp[0];
+							String rightProperty = rightConProp[1];
+							
+							StringBuilder filterBuilder = new StringBuilder();
+							
+							if(thisComparator.trim().equals("==")) {
+								filterBuilder.append(getAlias(rightConcept)).append(".").append(rightProperty);
+								filterBuilder.append(" IN ");
+							} else if(thisComparator.trim().equals("!=")) {
+								filterBuilder.append(getAlias(rightConcept)).append(".").append(rightProperty);
+								filterBuilder.append(" NOT IN ");
+							}
+							
+							if(thisComparator.trim().equals("==") || thisComparator.trim().equals("!=") || thisComparator.contains(" OR ")) {
+								filterBuilder.append(" ( ").append(leftFilterFormatted).append(" ) ");
+							} else {
+								filterBuilder.append(leftFilterFormatted).append(" ").append(thisComparator).append(" ");
+								filterBuilder.append(getAlias(rightConcept)).append(".").append(rightProperty);
+							}
+							
+							this.whereFilters.add(filterBuilder.toString());
+							
+						} else if(rCompType == PkslDataTypes.CONST_DECIMAL || rCompType == PkslDataTypes.CONST_STRING) {
+							// WE ARE COMPARING A CONSTANT TO ANOTHER CONSTANT
+							// ... what is the point of this... this is a dumb thing... you are dumb
+							
+							List<Object> rightObjects = new Vector<Object>();
+							rightObjects.add(rightComp.get(rightCount));
+							
+							String rightDataType = null;
+							if(rCompType == PkslDataTypes.CONST_DECIMAL) {
+								rightDataType = "NUMBER";
+							} else {
+								rightDataType = "STRING";
+							}
+							//TODO: NEED TO CONSIDER DATES!!!
+							String rightFilterFormatted = getFormatedObject(rightDataType, rightObjects, thisComparator);
+							
+							StringBuilder filterBuilder = new StringBuilder();
+							filterBuilder.append(leftFilterFormatted.toString());
+							filterBuilder.append(" ");
+							
+							if(thisComparator.trim().equals("==")) {
+								filterBuilder.append(" IN ");
+							} else if(thisComparator.trim().equals("!=")) {
+								filterBuilder.append(" NOT IN ");
+							}
+							
+							if(thisComparator.trim().equals("==") || thisComparator.trim().equals("!=") || thisComparator.contains(" OR ")) {
+								filterBuilder.append(" ( ").append(rightFilterFormatted).append(" ) ");
+							} else {
+								filterBuilder.append(thisComparator).append(" ").append(rightFilterFormatted);
+							}
+							
+							this.whereFilters.add(filterBuilder.toString());
 						}
 					}
 				}
+				
 			}
-			String[] conProp = getConceptProperty(concept_property);
-			String concept = conProp[0];
-			String property = conProp[1];
 			
-			// the comparator between the concept is an and so block it that way
-			// I need to specify to it that I am doing something new here
-			// ok.. what I mean is this
-			// say I have > 50
-			// and then  < 80
-			// I need someway to tell the adder that this is an end 
-			for(String thisComparator : comps)
-			{
-//				String thisComparator = comps.nextElement();
-				
-				Set options = compHash.get(thisComparator);
-				// account for dumb inputs
-				if(options.size() == 0) {
-					continue;
-				}
-				
-				// and the final one goes here					
-				
-				// now I get all of them and I start adding them
-				// usually these are or ?
-				// so I am saying if something is
-
-				String dataType = null;
-				if(engine != null) {
-					dataType = this.engine.getDataTypes("http://semoss.org/ontologies/Concept/" + property + "/" + concept);
-					// ugh, need to try if it is a property
-					if(dataType == null) {
-						dataType = this.engine.getDataTypes("http://semoss.org/ontologies/Relation/Contains/" + property + "/" + concept);
-					}
-					dataType = dataType.replace("TYPE:", "");
-				}
-				
-				if(thisComparator == null || thisComparator.trim().equals("=") || thisComparator.trim().equals("!=")) {
-					addEqualsFilter(concept, property, thisComparator, dataType, options);
-				} else {
-					for(Object option : options){
-						addFilter(concept, property, thisComparator, dataType, option);
-					}
-				}
-			}
 		}
+		
+//		Set <String> concepts = qs.filters.getFilterHash().keySet();
+//		for(String concept_property : concepts)
+//		{
+//			
+//			// inside this is a hashtable of all the comparators
+//			Map <String, Set<Object>> compHash = filters.get(concept_property);
+//			Set <String> comps = compHash.keySet();
+//			
+//			// when adding implicit filtering from the dataframe as a pretrans that gets appended into the QS
+//			// we store the value without the parent__, so need to check here if it is stored as a prop in the engine
+//			if(engine != null) {
+//				List<String> parents = engine.getParentOfProperty2(concept_property);
+//				if(parents != null) {
+//					// since we can have 2 tables that have the same column
+//					// we need to pick one with the table that already exists
+//					for(String parent : parents) {
+//						if(aliases.containsKey(Utility.getInstanceName(parent))) {
+//							concept_property = Utility.getInstanceName(parent) + "__" + concept_property;
+//							break;
+//						}
+//					}
+//				}
+//			}
+//			String[] conProp = getConceptProperty(concept_property);
+//			String concept = conProp[0];
+//			String property = conProp[1];
+//			
+//			// the comparator between the concept is an and so block it that way
+//			// I need to specify to it that I am doing something new here
+//			// ok.. what I mean is this
+//			// say I have > 50
+//			// and then  < 80
+//			// I need someway to tell the adder that this is an end 
+//			for(String thisComparator : comps)
+//			{
+////				String thisComparator = comps.nextElement();
+//				
+//				Set options = compHash.get(thisComparator);
+//				// account for dumb inputs
+//				if(options.size() == 0) {
+//					continue;
+//				}
+//				
+//				// and the final one goes here					
+//				
+//				// now I get all of them and I start adding them
+//				// usually these are or ?
+//				// so I am saying if something is
+//
+//				String dataType = null;
+//				if(engine != null) {
+//					dataType = this.engine.getDataTypes("http://semoss.org/ontologies/Concept/" + property + "/" + concept);
+//					// ugh, need to try if it is a property
+//					if(dataType == null) {
+//						dataType = this.engine.getDataTypes("http://semoss.org/ontologies/Relation/Contains/" + property + "/" + concept);
+//					}
+//					dataType = dataType.replace("TYPE:", "");
+//				}
+//				
+//				if(thisComparator == null || thisComparator.trim().equals("=") || thisComparator.trim().equals("!=")) {
+//					addEqualsFilter(concept, property, thisComparator, dataType, options);
+//				} else {
+//					for(Object option : options){
+//						addFilter(concept, property, thisComparator, dataType, option);
+//					}
+//				}
+//			}
+//		}
 	}
 	
 	
 	private void addFilter(String concept, String property, String thisComparator, String dataType, Object object) {
-		String thisWhere = "";
-		String key = concept +":::"+ property +":::"+ thisComparator;
-
-		// this will hold the sql acceptable format of the object
-		String myObj = getFormatedObject(dataType, object, thisComparator);
-
-		// add it to the where statement
-		if(!whereHash.containsKey(key)) {
-			if(thisComparator.equalsIgnoreCase(SEARCH_COMPARATOR)) {
-				thisWhere = "LOWER(" + getAlias(concept) + "." + property + ") LIKE " + myObj.toLowerCase();
-			} else {
-				thisWhere = getAlias(concept) + "." + property + " " + thisComparator + " " + myObj;
-			}
-		} else if (thisComparator.equalsIgnoreCase(SEARCH_COMPARATOR)) {
-			//Search comparator => add a LIKE to the WHERE for the given prop
-			thisWhere = whereHash.get(key);
-			thisWhere = thisWhere + " AND LOWER(" + getAlias(concept) + "." + property + ") LIKE " + myObj.toLowerCase();
-		} else {
-			thisWhere = whereHash.get(key);
-			thisWhere = thisWhere + " OR " + getAlias(concept) + "." + property + " " + thisComparator + " " + myObj;
-		} 
-
-		whereHash.put(key, thisWhere);
+//		String thisWhere = "";
+//		String key = concept +":::"+ property +":::"+ thisComparator;
+//
+//		// this will hold the sql acceptable format of the object
+//		String myObj = getFormatedObject(dataType, object, thisComparator);
+//
+//		// add it to the where statement
+//		if(!whereHash.containsKey(key)) {
+//			if(thisComparator.equalsIgnoreCase(SEARCH_COMPARATOR)) {
+//				thisWhere = "LOWER(" + getAlias(concept) + "." + property + ") LIKE " + myObj.toLowerCase();
+//			} else {
+//				thisWhere = getAlias(concept) + "." + property + " " + thisComparator + " " + myObj;
+//			}
+//		} else if (thisComparator.equalsIgnoreCase(SEARCH_COMPARATOR)) {
+//			//Search comparator => add a LIKE to the WHERE for the given prop
+//			thisWhere = whereHash.get(key);
+//			thisWhere = thisWhere + " AND LOWER(" + getAlias(concept) + "." + property + ") LIKE " + myObj.toLowerCase();
+//		} else {
+//			thisWhere = whereHash.get(key);
+//			thisWhere = thisWhere + " OR " + getAlias(concept) + "." + property + " " + thisComparator + " " + myObj;
+//		} 
+//
+//		whereHash.put(key, thisWhere);
 	}
 
 	//we want the filter query to be: "... where table.column in ('value1', 'value2', ...) when the comparator is '=' or "!="
 	private void addEqualsFilter(String concept, String property, String thisComparator, String dataType, Set<Object> object) {
-		String key = concept +":::"+ property +":::"+ thisComparator;
-		// this will hold the sql acceptable format for all the objects in the list
-		String thisWhere = getFormatedObject(dataType, object, thisComparator);
-
-		// since we are passing in the entire list, there is no chance
-		// that the key will be replicated
-		whereHash.put(key, thisWhere);
+//		String key = concept +":::"+ property +":::"+ thisComparator;
+//		// this will hold the sql acceptable format for all the objects in the list
+//		String thisWhere = getFormatedObject(dataType, object, thisComparator);
+//
+//		// since we are passing in the entire list, there is no chance
+//		// that the key will be replicated
+//		whereHash.put(key, thisWhere);
 	}
 	
 	/**
@@ -560,7 +770,7 @@ public class SQLInterpreter2 implements IQueryInterpreter{
 	 * @param comparator
 	 * @return
 	 */
-	private String getFormatedObject(String dataType, Vector<Object> objects, String comparator) {
+	private String getFormatedObject(String dataType, List<Object> objects, String comparator) {
 		// this will hold the sql acceptable format of the object
 		StringBuilder myObj = new StringBuilder();
 		
