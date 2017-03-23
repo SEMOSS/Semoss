@@ -18,6 +18,7 @@ import com.google.gson.reflect.TypeToken;
 
 import prerna.ds.QueryStruct;
 import prerna.ds.util.H2FilterHash;
+import prerna.sablecc2.om.Filter;
 import prerna.util.DIHelper;
 import prerna.util.Utility;
 
@@ -46,7 +47,8 @@ public class QueryStruct2 {
 	//				  |  < | Vector(300) |
 //	public Hashtable <String, Hashtable<String, Vector>> andfilters = new Hashtable<String, Hashtable<String, Vector>>();
 
-	public H2FilterHash filters = new H2FilterHash();
+//	public H2FilterHash filters = new H2FilterHash();
+	public GenRowFilters filters = new GenRowFilters();
 	
 	//Hashtable <String, Hashtable<String, Vector>> orfilters = new Hashtable<String, Hashtable<String, Vector>>();
 	// relations are of the form
@@ -112,8 +114,8 @@ public class QueryStruct2 {
 	}
 	
 	
-	public void addFilter(String fromCol, String comparator, List filterData) {		
-		this.filters.addFilters(fromCol, filterData, comparator);
+	public void addFilter(Filter newFilter) {		
+		this.filters.addFilters(newFilter);
 	}
 	
 	public void addRelation(String fromConcept, String toConcept, String comparator)
@@ -195,7 +197,7 @@ public class QueryStruct2 {
 	public void print() {
 		// TODO Auto-generated method stub
 		System.out.println("SELECTORS " + selectors);
-		System.out.println("FILTERS.. " + this.filters.getFilterHash());
+		System.out.println("FILTERS.. " + filters);
 		System.out.println("RELATIONS.. " + relations);
 	}
 	
@@ -457,7 +459,13 @@ public class QueryStruct2 {
 		}
 	}
 	
-	public void mergeFilters(H2FilterHash incomingFilters) {	
+	public void mergeFilters(GenRowFilters incomingFilters) {
+		//TODO:
+		//TODO:
+		//TODO:
+		//TODO:
+		//TODO:
+		// actually do a merge... right now just adding all
 		this.filters.merge(incomingFilters);
 	}
 	

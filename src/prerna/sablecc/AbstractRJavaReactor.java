@@ -1787,8 +1787,7 @@ public abstract class AbstractRJavaReactor extends AbstractJavaReactor {
 	 *            Whether or not to include a score measuring the semantic
 	 *            similarity between header names
 	 */
-	public void runSemanticMatching(String[] engines, double similarityThreshold, boolean compareProperties,
-			boolean semanticScore) {
+	public void runSemanticMatching(String[] engines, double similarityThreshold, boolean compareProperties, boolean semanticScore) {
 
 		// Refresh the corpus
 		DomainValues dv = new DomainValues(engines, compareProperties);
