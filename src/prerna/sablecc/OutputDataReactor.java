@@ -99,9 +99,8 @@ public class OutputDataReactor extends AbstractReactor {
 				
 				InsightCreateRunner run = new InsightCreateRunner(insightObj);
 				Map<String, Object> insightOutput = run.runSavedRecipe();
-				run.runSavedRecipe();
 				
-				myStore.put("webData", new HashMap<>());
+				myStore.put("webData", insightOutput);
 				myStore.put("G", insightObj.getDataMaker());
 				
 				//Don't cache dashboards for now...too many issues with that
