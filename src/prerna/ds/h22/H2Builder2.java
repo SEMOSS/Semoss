@@ -121,12 +121,13 @@ public class H2Builder2 {
 	protected H2Builder2() {
 		// //initialize a connection
 		// getConnection();
-		String limitSize = (String) DIHelper.getInstance().getProperty(Constants.H2_IN_MEM_SIZE);
-		if (limitSize == null) {
-			this.LIMIT_SIZE = 10_000;
-		} else {
-			this.LIMIT_SIZE = Integer.parseInt(limitSize.trim());
-		}
+		this.LIMIT_SIZE = Utility.getLimitSize();
+//		String limitSize = (String) DIHelper.getInstance().getProperty(Constants.H2_IN_MEM_SIZE);
+//		if (limitSize == null) {
+//			this.LIMIT_SIZE = 10_000;
+//		} else {
+//			this.LIMIT_SIZE = Integer.parseInt(limitSize.trim());
+//		}
 	}
 
 	/***************************
