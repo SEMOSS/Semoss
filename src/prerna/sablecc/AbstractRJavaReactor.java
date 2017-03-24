@@ -440,11 +440,12 @@ public abstract class AbstractRJavaReactor extends AbstractJavaReactor {
 				qs, dataTypeMap);
 
 		// keep track of in-mem vs on-disk frames
-		int limitSizeInt = 10_000 / colNames.length;
-		String limitSize = (String) DIHelper.getInstance().getProperty(Constants.H2_IN_MEM_SIZE);
-		if (limitSize != null) {
-			limitSizeInt = Integer.parseInt(limitSize.trim());
-		}
+		int limitSizeInt = Utility.getLimitSize();
+//		int limitSizeInt = 10_000 / colNames.length;
+//		String limitSize = (String) DIHelper.getInstance().getProperty(Constants.H2_IN_MEM_SIZE);
+//		if (limitSize != null) {
+//			limitSizeInt = Integer.parseInt(limitSize.trim());
+//		}
 		if (dataIterator.numberRowsOverLimit(limitSizeInt)) {
 			frameToUse.convertToOnDiskFrame(null);
 		}
