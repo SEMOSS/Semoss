@@ -6,11 +6,9 @@ import java.util.Set;
 
 import prerna.ds.h2.H2Frame;
 import prerna.ds.util.FileIterator;
+import prerna.ds.util.RdbmsFrameUtility;
 import prerna.engine.api.IRawSelectWrapper;
 import prerna.util.ArrayUtilityMethods;
-import prerna.util.Constants;
-import prerna.util.DIHelper;
-import prerna.util.Utility;
 
 public class MetaH2ImportDataReactor extends ImportDataReactor{
 
@@ -25,14 +23,7 @@ public class MetaH2ImportDataReactor extends ImportDataReactor{
 		frame = (H2Frame) myStore.get("G");
 				
 		// perform additional logic regarding if the frame should be ported on-disk
-		
-		int LIMIT_SIZE = Utility.getLimitSize();
-//		int LIMIT_SIZE = 10_000;
-//		String limitSize = (String) DIHelper.getInstance().getProperty(Constants.H2_IN_MEM_SIZE);
-//		if(limitSize != null) {
-//			LIMIT_SIZE = Integer.parseInt( limitSize.trim() );
-//		}
-
+		int LIMIT_SIZE = RdbmsFrameUtility.getLimitSize();
 		boolean overLimit = false;
 		int numNewRecords = -1;
 
