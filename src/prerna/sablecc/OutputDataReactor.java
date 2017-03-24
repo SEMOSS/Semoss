@@ -1,6 +1,7 @@
 package prerna.sablecc;
 
 import java.io.File;
+import java.util.HashMap;
 import java.util.Hashtable;
 import java.util.Iterator;
 import java.util.Map;
@@ -98,8 +99,9 @@ public class OutputDataReactor extends AbstractReactor {
 				
 				InsightCreateRunner run = new InsightCreateRunner(insightObj);
 				Map<String, Object> insightOutput = run.runSavedRecipe();
+				run.runSavedRecipe();
 				
-				myStore.put("webData", insightOutput);
+				myStore.put("webData", new HashMap<>());
 				myStore.put("G", insightObj.getDataMaker());
 				
 				//Don't cache dashboards for now...too many issues with that
