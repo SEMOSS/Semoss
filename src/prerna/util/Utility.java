@@ -3041,5 +3041,25 @@ public class Utility {
 			e.printStackTrace();
 		}
 	}
+	
+	public static int getLimitSize() {
+		String limitSize = (String) DIHelper.getInstance().getProperty(Constants.H2_IN_MEM_SIZE);
+		int LIMIT_SIZE;
+		if (limitSize == null) {
+			LIMIT_SIZE = 10_000;
+		} else {
+			try {
+				int val = Integer.parseInt(limitSize.trim());
+				if(val < 0) {
+					LIMIT_SIZE = Integer.MAX_VALUE;
+				} else {
+					LIMIT_SIZE = val;//Integer.parseInt(limitSize.trim());
+				}
+			} catch(Exception e) {
+				LIMIT_SIZE = 10_000;
+			}
+		}
+		return LIMIT_SIZE;
+	}
 
 }
