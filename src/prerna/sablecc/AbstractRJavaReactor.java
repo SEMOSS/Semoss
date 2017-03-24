@@ -1778,13 +1778,17 @@ public abstract class AbstractRJavaReactor extends AbstractJavaReactor {
 	 *            The semicolon-delimited string of engine names
 	 * @param similarityThreshold
 	 *            Only consider matches above this threshold
+	 * @param instancesThreshold
+	 *            Only consider concepts or properties with a number of unique
+	 *            instances above this threshold
 	 * @param compareProperties
 	 *            Whether or not to consider properties as well as concepts
 	 * @param semanticScore
 	 *            Whether or not to include a score measuring the semantic
 	 *            similarity between header names
 	 */
-	public void runSemanticMatching(String[] engines, double similarityThreshold, boolean compareProperties, boolean semanticScore) {
+	public void runSemanticMatching(String[] engines, double similarityThreshold, int instancesThreshold,
+			boolean compareProperties, boolean semanticScore) {
 
 		// Refresh the corpus
 		DomainValues dv = new DomainValues(engines, compareProperties);
@@ -1800,9 +1804,28 @@ public abstract class AbstractRJavaReactor extends AbstractJavaReactor {
 				+ Constants.R_MATCHING_REPO_FOLDER;
 		corpusDirectory = corpusDirectory.replace("\\", "/");
 
+		// Set the number of minhash functions and the number of bands
+		// nMinhash should be divisible by nBands, and the greater the nBands
+		// the slower the performance of the algorithm
+		// These values are meant to optimize the balance between speed and the
+		// probability of a match
+		int nMinhash;
+		int nBands;
+		if (similarityThreshold <= 0.2) {
+			nMinhash = 200;
+			nBands = 100;
+		} else if (similarityThreshold <= 0.4) {
+			nMinhash = 210;
+			nBands = 70;
+		} else if (similarityThreshold <= 0.5) {
+			nMinhash = 200;
+			nBands = 50;
+		} else {
+			nMinhash = 200;
+			nBands = 40;
+		}
+
 		// Parameters for R script
-		int nMinhash = 200;
-		int nBands = 40;
 		String rFrameName = "this.dt.name.is.reserved.for.semantic.matching";
 
 		// Grab the utility script
@@ -1820,7 +1843,8 @@ public abstract class AbstractRJavaReactor extends AbstractJavaReactor {
 
 		// Run locality sensitive hashing to generate matches
 		runR(rFrameName + " <- " + Constants.R_LSH_MATCHING_FUN + "(\"" + corpusDirectory + "\", " + nMinhash + ", "
-				+ nBands + ", " + similarityThreshold + ", \"" + DomainValues.ENGINE_VALUE_DELIMETER + "\")");
+				+ nBands + ", " + similarityThreshold + ", " + instancesThreshold + ", \""
+				+ DomainValues.ENGINE_VALUE_DELIMETER + "\")");
 
 		// Synchronize from R
 		storeVariable("GRID_NAME", rFrameName);

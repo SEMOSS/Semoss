@@ -89,7 +89,11 @@ public class DomainValues {
 				// TODO this is what the output for concept files will be named
 				fileWriter = new FileWriter(outputFolder + newId + ".txt");
 				for (String s : instancesList) {
-					fileWriter.write(s.replaceAll("-", "_") + " ");
+					
+					// Replace everything that is not a letter, number, or space with an underscore
+					// I am not sure which characters are used to delimit instances in the R package
+					// But I do know that underscores are not used
+					fileWriter.write(s.replaceAll("[^A-Za-z0-9 ]", "_") + " ");
 				}
 				fileWriter.close();
 			} catch (IOException e) {
@@ -135,8 +139,7 @@ public class DomainValues {
 							// will be named
 							fileWriter = new FileWriter(outputFolder + "PROP" + propId + ".txt");
 							for (Object o : propertiesList) {
-								String value = o.toString();
-								fileWriter.write(value.replaceAll("-", "_") + " ");
+								fileWriter.write(o.toString().replaceAll("[^A-Za-z0-9 ]", "_") + " ");
 							}
 							fileWriter.close();
 						} catch (IOException e) {
