@@ -67,9 +67,8 @@ public class SQLInterpreter2 implements IQueryInterpreter{
 	// store the joins in the object for easy use
 	private SqlJoinList relationList = new SqlJoinList();
 	
-	// boolean to determine the count of the query being executed
+	// value to determine the count of the query being executed
 	private int performCount = QueryStruct.NO_COUNT;
-//	private boolean performSelectorCount = false;
 	
 	private SQLQueryUtil queryUtil = SQLQueryUtil.initialize(SQLQueryUtil.DB_TYPE.H2_DB);
 	
@@ -200,35 +199,6 @@ public class SQLInterpreter2 implements IQueryInterpreter{
 			}
 		}
 		
-//		for (String key : whereHash.keySet())
-//		{
-//			String value = whereHash.get(key);
-//			
-//			String[] conceptKey = key.split(":::");
-//			String concept = conceptKey[0];
-//			String property = conceptKey[1];
-//			String comparator = conceptKey[2];
-//			
-//			String conceptString = "";
-//			if(comparator.trim().equals("=")) {
-//				conceptString = getAlias(concept) + "." + property +" IN ";
-//			} else if(comparator.trim().equals("!=")) {
-//				conceptString = getAlias(concept) + "." + property +" NOT IN ";
-//			}
-//			
-//			if(comparator.trim().equals("=") || comparator.trim().equals("!=") || value.contains(" OR ")) {
-//				value = " ( " + value + " ) ";
-//			}
-//			
-//			if(firstTime)
-//			{
-//				query.append(" WHERE ").append(conceptString).append(value);
-//				firstTime = false;
-//			}
-//			else
-//				query.append(" AND ").append(conceptString).append(value);
-//		}
-
 		//grab the order by and get the corresponding display name for that order by column
 		query = appendGroupBy(query);
 		query = appendOrderBy(query);
@@ -256,7 +226,6 @@ public class SQLInterpreter2 implements IQueryInterpreter{
 	public void addSelectors() {
 		List<QueryStructSelector> selectorData = qs.getSelectors();
 		
-		
 		for(QueryStructSelector selector : selectorData) {
 			String table = selector.getTable();
 			
@@ -275,7 +244,6 @@ public class SQLInterpreter2 implements IQueryInterpreter{
 		String colName = selector.getColumn();
 		String alias = selector.getAlias();
 		String math = selector.getMath();
-		
 		
 		String selectorAddition = colName;
 		// not sure how we get to the point where table would be null..
@@ -340,14 +308,6 @@ public class SQLInterpreter2 implements IQueryInterpreter{
 			String physicalTableName = getPhysicalTableNameFromConceptualName(conceptualTableName);
 			
 			froms.add(new String[]{physicalTableName, alias});
-			
-			// add the physical table name and define its unique alias into the from statement
-//			String fromText =  physicalTableName + "  " + alias;
-//			if(froms.length() > 0){
-//				froms = froms + " , " + fromText;
-//			} else {
-//				froms = fromText;
-//			}
 		}
 	}
 
@@ -444,15 +404,6 @@ public class SQLInterpreter2 implements IQueryInterpreter{
 	
 	////////////////////////////////////////// adding filters ////////////////////////////////////////////
 	
-	//TODO: should go back and add comments for filter
-	//TODO: should go back and add comments for filter
-	//TODO: should go back and add comments for filter
-	//TODO: should go back and add comments for filter
-	//TODO: should go back and add comments for filter
-	//TODO: should go back and add comments for filter
-	//TODO: should go back and add comments for filter
-	//TODO: should go back and add comments for filter
-
 	public void addFilters()
 	{
 		List<Filter> filters = qs.filters.getFilters();
@@ -526,11 +477,14 @@ public class SQLInterpreter2 implements IQueryInterpreter{
 							
 							StringBuilder filterBuilder = new StringBuilder();
 							filterBuilder.append(startFilterBuilder.toString());
-							filterBuilder.append(" ").append(thisComparator).append(" ");
+							if(thisComparator.equals("==")) {
+								filterBuilder.append(" = ");
+							} else {
+								filterBuilder.append(" ").append(thisComparator).append(" ");
+							}
 							filterBuilder.append(getAlias(rightConcept)).append(".").append(rightProperty);
 							
 							this.whereFilters.add(filterBuilder.toString());
-							
 						} else if(rCompType == PkslDataTypes.CONST_DECIMAL || rCompType == PkslDataTypes.CONST_STRING) {
 							// WE ARE COMPARING A COLUMN AGAINST A LIST OF DECIMALS OR STRINGS
 							List<Object> objects = new Vector<Object>();
@@ -554,12 +508,10 @@ public class SQLInterpreter2 implements IQueryInterpreter{
 							}
 							
 							this.whereFilters.add(filterBuilder.toString());
-							
 						}
 					}
 				} else if(lCompType == PkslDataTypes.CONST_DECIMAL || lCompType == PkslDataTypes.CONST_STRING) {
 					// ON THE LEFT SIDE, WE HAVE SOME KIND OF CONSTANT
-					
 					List<Object> leftObjects = new Vector<Object>();
 					leftObjects.add(leftComp.get(leftCount));
 					
@@ -649,117 +601,8 @@ public class SQLInterpreter2 implements IQueryInterpreter{
 						}
 					}
 				}
-				
 			}
-			
 		}
-		
-//		Set <String> concepts = qs.filters.getFilterHash().keySet();
-//		for(String concept_property : concepts)
-//		{
-//			
-//			// inside this is a hashtable of all the comparators
-//			Map <String, Set<Object>> compHash = filters.get(concept_property);
-//			Set <String> comps = compHash.keySet();
-//			
-//			// when adding implicit filtering from the dataframe as a pretrans that gets appended into the QS
-//			// we store the value without the parent__, so need to check here if it is stored as a prop in the engine
-//			if(engine != null) {
-//				List<String> parents = engine.getParentOfProperty2(concept_property);
-//				if(parents != null) {
-//					// since we can have 2 tables that have the same column
-//					// we need to pick one with the table that already exists
-//					for(String parent : parents) {
-//						if(aliases.containsKey(Utility.getInstanceName(parent))) {
-//							concept_property = Utility.getInstanceName(parent) + "__" + concept_property;
-//							break;
-//						}
-//					}
-//				}
-//			}
-//			String[] conProp = getConceptProperty(concept_property);
-//			String concept = conProp[0];
-//			String property = conProp[1];
-//			
-//			// the comparator between the concept is an and so block it that way
-//			// I need to specify to it that I am doing something new here
-//			// ok.. what I mean is this
-//			// say I have > 50
-//			// and then  < 80
-//			// I need someway to tell the adder that this is an end 
-//			for(String thisComparator : comps)
-//			{
-////				String thisComparator = comps.nextElement();
-//				
-//				Set options = compHash.get(thisComparator);
-//				// account for dumb inputs
-//				if(options.size() == 0) {
-//					continue;
-//				}
-//				
-//				// and the final one goes here					
-//				
-//				// now I get all of them and I start adding them
-//				// usually these are or ?
-//				// so I am saying if something is
-//
-//				String dataType = null;
-//				if(engine != null) {
-//					dataType = this.engine.getDataTypes("http://semoss.org/ontologies/Concept/" + property + "/" + concept);
-//					// ugh, need to try if it is a property
-//					if(dataType == null) {
-//						dataType = this.engine.getDataTypes("http://semoss.org/ontologies/Relation/Contains/" + property + "/" + concept);
-//					}
-//					dataType = dataType.replace("TYPE:", "");
-//				}
-//				
-//				if(thisComparator == null || thisComparator.trim().equals("=") || thisComparator.trim().equals("!=")) {
-//					addEqualsFilter(concept, property, thisComparator, dataType, options);
-//				} else {
-//					for(Object option : options){
-//						addFilter(concept, property, thisComparator, dataType, option);
-//					}
-//				}
-//			}
-//		}
-	}
-	
-	
-	private void addFilter(String concept, String property, String thisComparator, String dataType, Object object) {
-//		String thisWhere = "";
-//		String key = concept +":::"+ property +":::"+ thisComparator;
-//
-//		// this will hold the sql acceptable format of the object
-//		String myObj = getFormatedObject(dataType, object, thisComparator);
-//
-//		// add it to the where statement
-//		if(!whereHash.containsKey(key)) {
-//			if(thisComparator.equalsIgnoreCase(SEARCH_COMPARATOR)) {
-//				thisWhere = "LOWER(" + getAlias(concept) + "." + property + ") LIKE " + myObj.toLowerCase();
-//			} else {
-//				thisWhere = getAlias(concept) + "." + property + " " + thisComparator + " " + myObj;
-//			}
-//		} else if (thisComparator.equalsIgnoreCase(SEARCH_COMPARATOR)) {
-//			//Search comparator => add a LIKE to the WHERE for the given prop
-//			thisWhere = whereHash.get(key);
-//			thisWhere = thisWhere + " AND LOWER(" + getAlias(concept) + "." + property + ") LIKE " + myObj.toLowerCase();
-//		} else {
-//			thisWhere = whereHash.get(key);
-//			thisWhere = thisWhere + " OR " + getAlias(concept) + "." + property + " " + thisComparator + " " + myObj;
-//		} 
-//
-//		whereHash.put(key, thisWhere);
-	}
-
-	//we want the filter query to be: "... where table.column in ('value1', 'value2', ...) when the comparator is '=' or "!="
-	private void addEqualsFilter(String concept, String property, String thisComparator, String dataType, Set<Object> object) {
-//		String key = concept +":::"+ property +":::"+ thisComparator;
-//		// this will hold the sql acceptable format for all the objects in the list
-//		String thisWhere = getFormatedObject(dataType, object, thisComparator);
-//
-//		// since we are passing in the entire list, there is no chance
-//		// that the key will be replicated
-//		whereHash.put(key, thisWhere);
 	}
 	
 	/**
@@ -902,63 +745,6 @@ public class SQLInterpreter2 implements IQueryInterpreter{
 		return myObj.toString();
 	}
 	
-	private String getFormatedObject(String dataType, Object object, String comparator) {
-		// this will hold the sql acceptable format of the object
-		String myObj = null;
-
-		// if we can get the data type from the OWL, lets just use that
-		// if we dont have it, we will do type casting...
-		if(dataType != null) {
-			dataType = dataType.toUpperCase();
-			IMetaData.DATA_TYPES type = Utility.convertStringToDataType(dataType);
-			if(IMetaData.DATA_TYPES.NUMBER.equals(type)) {
-				myObj = object.toString();
-			} else if(IMetaData.DATA_TYPES.DATE.equals(type)) {
-				myObj = object.toString();
-				myObj = Utility.getDate(myObj);
-				if(!comparator.equalsIgnoreCase(SEARCH_COMPARATOR)) {
-					myObj = "\'" + myObj + "\'";
-				} else {
-					myObj = "'%" + myObj + "%'";
-				}
-			}else {
-				myObj = object.toString();
-				myObj = myObj.replace("\"", ""); // get rid of the space
-				myObj = myObj.replaceAll("'", "''");
-				myObj = myObj.trim();
-				if(!comparator.equalsIgnoreCase(SEARCH_COMPARATOR)) {
-					myObj = "\'" + myObj + "\'";
-				} else {
-					myObj = "'%" + myObj + "%'";
-				}
-			}
-		} else {
-			// do it based on type casting
-			if(object instanceof Number) {
-				myObj = object.toString();
-			} else if(object instanceof java.util.Date || object instanceof java.sql.Date) {
-				myObj = object.toString();
-				myObj = Utility.getDate(myObj);
-				if(!comparator.equalsIgnoreCase(SEARCH_COMPARATOR)) {
-					myObj = "\'" + myObj + "\'";
-				} else {
-					myObj = "'%" + myObj + "%'";
-				}
-			} else {
-				myObj = object.toString();
-				myObj = myObj.replace("\"", ""); // get rid of the space
-				myObj = myObj.replaceAll("'", "''");
-				myObj = myObj.trim();
-				if(!comparator.equalsIgnoreCase(SEARCH_COMPARATOR)) {
-					myObj = "\'" + myObj + "\'";
-				} else {
-					myObj = "'%" + myObj + "%'";
-				}
-			}
-		}
-		return myObj;
-	}
-		
 	////////////////////////////////////// end adding filters ////////////////////////////////////////////
 
 	

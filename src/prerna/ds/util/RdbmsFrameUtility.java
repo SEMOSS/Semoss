@@ -3,7 +3,8 @@ package prerna.ds.util;
 import java.util.UUID;
 
 import prerna.ds.AbstractTableDataFrame;
-import prerna.ds.AbstractTableDataFrame.Comparator;
+import prerna.util.Constants;
+import prerna.util.DIHelper;
 
 public class RdbmsFrameUtility {
 
@@ -42,7 +43,6 @@ public class RdbmsFrameUtility {
 	}
 	
 	public static AbstractTableDataFrame.Comparator getStringComparatorValue(String comparator) {
-		
 		if("=".equals(comparator)) {
 			return AbstractTableDataFrame.Comparator.EQUAL;
 		} else if(">".equals(comparator)) {
@@ -71,5 +71,25 @@ public class RdbmsFrameUtility {
 		uuid = uuid.replaceAll("-", "_");
 		// table names will be upper case because that is how it is set in information schema
 		return uuid.toUpperCase();
+	}
+	
+	public static int getLimitSize() {
+		String limitSize = (String) DIHelper.getInstance().getProperty(Constants.H2_IN_MEM_SIZE);
+		int LIMIT_SIZE;
+		if (limitSize == null) {
+			LIMIT_SIZE = 10_000;
+		} else {
+			try {
+				int val = Integer.parseInt(limitSize.trim());
+				if(val < 0) {
+					LIMIT_SIZE = Integer.MAX_VALUE;
+				} else {
+					LIMIT_SIZE = val;//Integer.parseInt(limitSize.trim());
+				}
+			} catch(Exception e) {
+				LIMIT_SIZE = 10_000;
+			}
+		}
+		return LIMIT_SIZE;
 	}
 }
