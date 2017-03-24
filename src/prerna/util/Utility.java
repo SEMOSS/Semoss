@@ -2215,9 +2215,14 @@ public class Utility {
 			}
 
 			// set the engine finally
-			engines = engines + ";" + engineName;
 			DIHelper.getInstance().setLocalProperty(engineName, engine);
-			DIHelper.getInstance().setLocalProperty(Constants.ENGINES, engines);
+
+			// Append the engine name to engines if not already present
+			if(!(engines.startsWith(engineName) || engines.contains(";"+engineName+";") || engines.endsWith(";"+engineName))) 
+			{
+				engines = engines + ";" + engineName;
+				DIHelper.getInstance().setLocalProperty(Constants.ENGINES, engines);
+			}
 
 			// now add or remove based on if it is hidden to local master
 			boolean hidden = (prop.getProperty(Constants.HIDDEN_DATABASE) != null && Boolean.parseBoolean(prop.getProperty(Constants.HIDDEN_DATABASE)));
