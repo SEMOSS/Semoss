@@ -30,6 +30,7 @@ import prerna.ds.h2.H2Frame;
 import prerna.ds.r.RDataTable;
 import prerna.ds.util.FileIterator;
 import prerna.ds.util.FileIterator.FILE_DATA_TYPE;
+import prerna.ds.util.RdbmsFrameUtility;
 import prerna.poi.main.HeadersException;
 import prerna.util.ArrayUtilityMethods;
 import prerna.util.Constants;
@@ -440,12 +441,7 @@ public abstract class AbstractRJavaReactor extends AbstractJavaReactor {
 				qs, dataTypeMap);
 
 		// keep track of in-mem vs on-disk frames
-		int limitSizeInt = Utility.getLimitSize();
-//		int limitSizeInt = 10_000 / colNames.length;
-//		String limitSize = (String) DIHelper.getInstance().getProperty(Constants.H2_IN_MEM_SIZE);
-//		if (limitSize != null) {
-//			limitSizeInt = Integer.parseInt(limitSize.trim());
-//		}
+		int limitSizeInt = RdbmsFrameUtility.getLimitSize();
 		if (dataIterator.numberRowsOverLimit(limitSizeInt)) {
 			frameToUse.convertToOnDiskFrame(null);
 		}

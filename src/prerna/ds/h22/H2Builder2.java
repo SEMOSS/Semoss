@@ -22,20 +22,16 @@ import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
-import java.util.UUID;
 import java.util.Vector;
 
-import org.apache.commons.lang.text.StrSubstitutor;
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 import org.h2.tools.Server;
-import org.stringtemplate.v4.ST;
 
 import com.google.gson.Gson;
 
 import prerna.algorithm.api.IMetaData;
 import prerna.cache.ICache;
-import prerna.ds.AbstractTableDataFrame;
 import prerna.ds.RdbmsTableMetaData;
 import prerna.ds.h2.H2Iterator;
 import prerna.ds.util.RdbmsFrameUtility;
@@ -121,13 +117,7 @@ public class H2Builder2 {
 	protected H2Builder2() {
 		// //initialize a connection
 		// getConnection();
-		this.LIMIT_SIZE = Utility.getLimitSize();
-//		String limitSize = (String) DIHelper.getInstance().getProperty(Constants.H2_IN_MEM_SIZE);
-//		if (limitSize == null) {
-//			this.LIMIT_SIZE = 10_000;
-//		} else {
-//			this.LIMIT_SIZE = Integer.parseInt(limitSize.trim());
-//		}
+		this.LIMIT_SIZE = RdbmsFrameUtility.getLimitSize();
 	}
 
 	/***************************

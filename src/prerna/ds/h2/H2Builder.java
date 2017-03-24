@@ -415,18 +415,7 @@ public class H2Builder {
 		// //initialize a connection
 		// getConnection();
 		tableName = getNewTableName();
-		this.LIMIT_SIZE = Utility.getLimitSize();
-//		String limitSize = (String) DIHelper.getInstance().getProperty(Constants.H2_IN_MEM_SIZE);
-//		if (limitSize == null) {
-//			this.LIMIT_SIZE = 10_000;
-//		} else {
-//			int val = Integer.parseInt(limitSize.trim());
-//			if(val < 0) {
-//				this.LIMIT_SIZE = Integer.MAX_VALUE;
-//			} else {
-//				this.LIMIT_SIZE = val;//Integer.parseInt(limitSize.trim());
-//			}
-//		}
+		this.LIMIT_SIZE = RdbmsFrameUtility.getLimitSize();
 	}
 
 	/***************************
