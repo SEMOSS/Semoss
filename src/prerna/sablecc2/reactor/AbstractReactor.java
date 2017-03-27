@@ -18,7 +18,7 @@ public abstract class AbstractReactor implements IReactor {
 	protected String signature = null;
 	protected String curNoun = null;
 	protected IReactor parentReactor = null;
-	protected IReactor childReactor = null;
+	protected Vector<IReactor> childReactor = new Vector<IReactor>();
 	protected NounStore store = null;
 	protected IReactor.TYPE type = IReactor.TYPE.FLATMAP;
 	protected IReactor.STATUS status = null;
@@ -115,7 +115,7 @@ public abstract class AbstractReactor implements IReactor {
 	
 	@Override
 	public void setChildReactor(IReactor childReactor) {
-		this.childReactor = childReactor;
+		this.childReactor.add(childReactor);
 	}
 	
 	@Override

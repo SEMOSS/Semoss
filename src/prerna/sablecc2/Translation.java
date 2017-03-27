@@ -3,8 +3,6 @@ package prerna.sablecc2;
 import java.io.BufferedWriter;
 import java.io.FileWriter;
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.List;
 import java.util.Map;
 
 import org.apache.log4j.LogManager;
@@ -30,13 +28,13 @@ import prerna.sablecc2.node.AFrameop;
 import prerna.sablecc2.node.AFrameopColDef;
 import prerna.sablecc2.node.AFrameopScript;
 import prerna.sablecc2.node.AGeneric;
+import prerna.sablecc2.node.AIfblock;
 import prerna.sablecc2.node.ALiteralColDef;
 import prerna.sablecc2.node.AMinusExpr;
 import prerna.sablecc2.node.AMultExpr;
 import prerna.sablecc2.node.AOpScript;
 import prerna.sablecc2.node.AOperationFormula;
 import prerna.sablecc2.node.AOtherscript;
-import prerna.sablecc2.node.APlainRow;
 import prerna.sablecc2.node.APlusExpr;
 import prerna.sablecc2.node.AProp;
 import prerna.sablecc2.node.AROp;
@@ -46,12 +44,12 @@ import prerna.sablecc2.node.AScriptchain;
 import prerna.sablecc2.node.ASelectNoun;
 import prerna.sablecc2.node.ATermExpr;
 import prerna.sablecc2.node.Node;
-import prerna.sablecc2.node.POthercol;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.NounMetadata;
 import prerna.sablecc2.om.PkslDataTypes;
 import prerna.sablecc2.reactor.AsReactor;
 import prerna.sablecc2.reactor.AssignmentReactor;
+import prerna.sablecc2.reactor.Assimilator;
 import prerna.sablecc2.reactor.ExprReactor;
 import prerna.sablecc2.reactor.FilterReactor;
 import prerna.sablecc2.reactor.GenericReactor;
@@ -62,6 +60,7 @@ import prerna.sablecc2.reactor.RReactor;
 import prerna.sablecc2.reactor.ReactorFactory;
 import prerna.sablecc2.reactor.SampleReactor;
 import prerna.ui.components.playsheets.datamakers.IDataMaker;
+import prerna.util.Utility;
 
 public class Translation extends DepthFirstAdapter {
 
@@ -137,9 +136,9 @@ public class Translation extends DepthFirstAdapter {
     	defaultIn(node);
     	System.out.println(">>>>>>");
         System.out.println("Called script chain");
-        System.out.println("First operation is " + node.getOtherscript());
-        if(node.getOtherscript() != null && node.getOtherscript().size() > 0)
-        	operationType = TypeOfOperation.PIPELINE;
+        //System.out.println("First operation is " + node.getOtherscript());
+        //if(node.getOtherscript() != null && node.getOtherscript().size() > 0)
+       // 	operationType = TypeOfOperation.PIPELINE;
         
     }
     
@@ -269,6 +268,17 @@ public class Translation extends DepthFirstAdapter {
         defaultOut(node);
     }
     
+    public void inAIfblock(AIfblock node)
+    {
+        System.out.println("In a If Block.. ");
+    }
+
+    public void outAIfblock(AIfblock node)
+    {
+        defaultOut(node);
+    }
+
+    
     public void inAGeneric(AGeneric node) {
     	defaultIn(node);
     	IReactor genReactor = new GenericReactor();
@@ -300,10 +310,14 @@ public class Translation extends DepthFirstAdapter {
 	        Map<String, String> scriptReactors = new H2Frame().getScriptReactors();
 	        String reactorName = scriptReactors.get(node.getId().toString().trim().toUpperCase());
 	        
+	        
 	        //if((node.getId() + "").trim().equalsIgnoreCase("as"))
 	        //	opReactor = new AsReactor();
 	        opReactor.setPKSL(node.getId().toString().trim(), node.toString().trim());
 	        opReactor.setName("OPERATION_FORMULA");
+	        
+	        if(reactorName == null)
+	        	reactorName = Utility.toCamelCase(node.getId().toString().trim());
 	        opReactor.setProp("REACTOR_NAME", reactorName);
         }
         // since there are no square brackets.. there are no nouns
@@ -340,8 +354,13 @@ public class Translation extends DepthFirstAdapter {
 	    		curReactor.setProp(nodeKey, childOutput);
 	    	}
     	}
-    	
-        deInitReactor();
+    	if(curReactor.getParentReactor() instanceof IfReactor)
+    	{
+    		curReactor.getParentReactor().getCurRow().addLambda(curReactor);
+    		curReactor = curReactor.getParentReactor();
+    	}
+    	else if(curReactor.getParentReactor() == null)
+    		deInitReactor();
         System.out.println("Ending a formula operation");
         
 //        if(curReactor.getParentReactor() == null)
@@ -351,8 +370,9 @@ public class Translation extends DepthFirstAdapter {
 //        }
         this.lastOperation = node + "";
     }
-    
+    /*
     @Override
+    
     public void caseAPlainRow(APlainRow node)
     {
         inAPlainRow(node);
@@ -360,6 +380,7 @@ public class Translation extends DepthFirstAdapter {
         {
             node.getColDef().apply(this); //IF(comparison, truecomparison, falsecomparison)
         }
+        
         {
         	//TODO : EXPLAIN THIS!!!
         	if(curReactor instanceof IfReactor) {
@@ -390,8 +411,10 @@ public class Translation extends DepthFirstAdapter {
         	}
         }
         outAPlainRow(node);
+        
     }
-
+	*/
+    
     public void inAROp(AROp node) {
 		RReactor reactor = new RReactor();
 		initReactor(reactor);
@@ -499,12 +522,36 @@ public class Translation extends DepthFirstAdapter {
 	// the first one already has all that I need
     public void inAExprColDef(AExprColDef node)
     {
-        defaultIn(node);
-        System.out.println("In a Expr" + node);
+
         
+        // seems like I should assimilate only if it is a term expression
+        // if the parent is if then I need to find a way to give this over to the if
+        // the problem also is how do I enable this as first vs. second ?
+        // I bet if should keep that cardinality
+        // need a way to say when i should assimilate this..
+        // not everytime - or may be everytime
+    	if(node.getExpr() instanceof AMultExpr || node.getExpr() instanceof APlusExpr || node.getExpr() instanceof AMinusExpr || node.getExpr() instanceof ADivExpr)
+    	{
+	        defaultIn(node);
+			Assimilator assm = new Assimilator();
+			initReactor(assm);
+    	}       
+		/*
+        if(curReactor instanceof IfReactor)
+        {
+        	IReactor expr = new ExprReactor();
+        	expr.setProp("Expr", node.getExpr().toString().trim());
+        	curReactor.setChildReactor(expr);
+        }
+        if(node.getExpr() instanceof AMultExpr)
+        	System.out.println("In a Expr" + node);
+        */
         // this case is very similar to operational formula
         // I need to see if I am already in a parent which is a expr
         // if so.. I should just assimilate
+        
+        
+        
         // instead of trying to start a new reactor here
         // this check should happen inside the reactor moving it to the reactor
         //if(curReactor != null && !curReactor.getName().equalsIgnoreCase("EXPR"))
@@ -521,9 +568,12 @@ public class Translation extends DepthFirstAdapter {
 
     public void outAExprColDef(AExprColDef node)
     {
-        defaultOut(node);
-        // TODO need to do the operation of assimilating here
-//        deInitReactor();
+    	if(node.getExpr() instanceof AMultExpr || node.getExpr() instanceof APlusExpr || node.getExpr() instanceof AMinusExpr || node.getExpr() instanceof ADivExpr)
+    	{
+	        defaultOut(node);
+	        // TODO need to do the operation of assimilating here
+	        deInitReactor();
+    	}
     }
 
     // code sits here

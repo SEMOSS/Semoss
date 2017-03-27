@@ -92,7 +92,7 @@ public class ReactorFactory {
     		reactor = new FormatReactor();
     	} else if(reactorId.trim().equals("$RReactor")) {
     		reactor = new RReactor();
-    	} else if(reactorId.trim().equals("If")) {
+    	} else if(reactorId.trim().equals("if")) {
     		reactor = new IfReactor();
     	} else if(reactorId.trim().equals("Export")) {
     		reactor = new ExportReactor();
