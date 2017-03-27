@@ -120,7 +120,6 @@ public class RdbmsQueryBuilder {
 		return alterString.toString();
 	}
 	
-	
 	// UPDATE TABLE_NAME SET NEWCOL1 = NEWVAL1, NEWCOL2 = NEWVAL2 WHERE JOINCOL1 = JOINVAL1 AND JOINCOL2 = JOINVAL2
 	public static String makeUpdate(String tableName, Object[] joinColumn, Object[] newColumn, Object[] joinValue, Object[] newValue) {
 
@@ -238,12 +237,87 @@ public class RdbmsQueryBuilder {
 	public static String makeRenameColumn(String fromColumn, String toColumn, String tableName) {
 		return "ALTER TABLE " + tableName + " ALTER COLUMN " + fromColumn + " RENAME TO " + toColumn;
 	}
-
 	
 	// ALTER TABLE OLD_TABLE_NAME RENAME TO NEW_TABLE_NAME
 	public static String makeRenameTable(String oldTable, String newTable) {
 		return "ALTER TABLE " + oldTable + " RENAME TO " + newTable;
 	}
+	
+	
+	public static String createInsertPreparedStatementString(final String TABLE_NAME, final String[] columns) {
+		// generate the sql for the prepared statement
+		StringBuilder sql = new StringBuilder("INSERT INTO ");
+		sql.append(TABLE_NAME).append(" (").append(columns[0]);
+		for (int colIndex = 1; colIndex < columns.length; colIndex++) {
+			sql.append(", ");
+			sql.append(columns[colIndex]);
+		}
+		sql.append(") VALUES (?"); // remember, we already assumed one col
+		for (int colIndex = 1; colIndex < columns.length; colIndex++) {
+			sql.append(", ?");
+		}
+		sql.append(")");
+		
+		return sql.toString();
+	}
+	
+	
+	public static String createUpdatePreparedStatementString(final String TABLE_NAME, final String[] columnsToUpdate, final String[] whereColumns) {
+		// generate the sql for the prepared statement
+		StringBuilder sql = new StringBuilder("UPDATE ");
+		sql.append(TABLE_NAME).append(" SET ").append(columnsToUpdate[0]).append(" = ?");
+		for (int colIndex = 1; colIndex < columnsToUpdate.length; colIndex++) {
+			sql.append(", ");
+			sql.append(columnsToUpdate[colIndex]).append(" = ?");
+		}
+		if(whereColumns.length > 0) {
+			sql.append(" WHERE ").append(whereColumns[0]).append(" = ?");
+			for (int colIndex = 1; colIndex < whereColumns.length; colIndex++) {
+				sql.append(" AND ");
+				sql.append(whereColumns[colIndex]).append(" = ?");
+			}
+			sql.append("");
+		}
+		return sql.toString();
+	}
+	
+	
+	public static String createMergePreparedStatementString(final String TABLE_NAME, final String[] keyColumns, final String[] updateColumns) {
+		StringBuilder sql = new StringBuilder("MERGE INTO ");
+		sql.append(TABLE_NAME);
+		
+		//Add update columns
+		sql.append("(");
+		for(int i = 0; i < updateColumns.length; i++) {
+			if(i > 0) {
+				sql.append(", ");
+			}
+			sql.append(updateColumns[i]);
+		}
+		sql.append(") ");
+		
+		//Add key columns
+		if(keyColumns != null && keyColumns.length > 0) {
+			sql.append("KEY(");
+			for(int i = 0; i < keyColumns.length; i++) {
+				if(i > 0) {
+					sql.append(", ");
+				}
+				sql.append(keyColumns[i]);
+				
+			}
+			sql.append(") ");
+		}
+		return sql.toString();
+		
+		//Add values
+//		sql.append("VALUES (?"); // remember, we already assumed one col
+//		for (int colIndex = 0; colIndex < updateColumns.length; colIndex++) {
+//			sql.append(", ?");
+//		}
+//		sql.append(")");
+	}
+	
 	
 	/******************************
 	 * END UPDATE QUERIES
