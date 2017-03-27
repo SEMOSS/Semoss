@@ -92,6 +92,11 @@ public class DataFrameHelper {
 			}
 		}
 		
+		// use this so we know if the traversal is valid
+		// if it is not, just return null so we do not
+		// override the frame
+		boolean validTraversal = false;
+		
 		// loop through the traversal hash to get the appropriate queries and insert those into the frame
 		for(Map<String, Set<String>> traversal : traversalHash) {
 			// go through the general stuff to create a graph traversal
@@ -211,6 +216,9 @@ public class DataFrameHelper {
 			for(int i = 0; i < numGSelectors; i++) {
 				headers[i] = uniqueNameToValue.get(logicalToUnqiueArr[i]);
 			}
+			if(gt.hasNext()) {
+				validTraversal = true;
+			}
 			while(gt.hasNext()) {
 				Map<String, Object> row = (Map<String, Object>) gt.next();
 				Object[] values = new Object[gSelectors.size()];
@@ -222,35 +230,40 @@ public class DataFrameHelper {
 			}
 		}
 		
-		
-		// need to also go through and add any "single" vertex of the types in the selectors
-		// we add everything even if the vertex has no edge
+		if(validTraversal) {
+			// need to also go through and add any "single" vertex of the types in the selectors
+			// we add everything even if the vertex has no edge
+					
+			// cardinality is just an empty set
+			Hashtable<Integer, Set<Integer>> cardinality = new Hashtable<Integer, Set<Integer>>();
+			cardinality.put(0, new HashSet<Integer>());
+			
+			GraphTraversal<Vertex, Vertex> vertIt = tf.g.traversal().V().has(TinkerFrame.TINKER_TYPE, P.within(allTypes));
+			while(vertIt.hasNext()) {
+				Vertex vert = vertIt.next();
+				String type = vert.value(TinkerFrame.TINKER_TYPE);
+				Object value = vert.value(TinkerFrame.TINKER_NAME);
 				
-		// cardinality is just an empty set
-		Hashtable<Integer, Set<Integer>> cardinality = new Hashtable<Integer, Set<Integer>>();
-		cardinality.put(0, new HashSet<Integer>());
-		
-		GraphTraversal<Vertex, Vertex> vertIt = tf.g.traversal().V().has(TinkerFrame.TINKER_TYPE, P.within(allTypes));
-		while(vertIt.hasNext()) {
-			Vertex vert = vertIt.next();
-			String type = vert.value(TinkerFrame.TINKER_TYPE);
-			Object value = vert.value(TinkerFrame.TINKER_NAME);
+				String[] headers = {type};
+				Object[] values = {value};
+				Hashtable<String, String> logicalToTypeMap = new Hashtable<String, String>();
+				logicalToTypeMap.put(type, type);
+				
+				newTf.addRelationship(headers, values, cardinality, logicalToTypeMap);
+			}
 			
-			String[] headers = {type};
-			Object[] values = {value};
-			Hashtable<String, String> logicalToTypeMap = new Hashtable<String, String>();
-			logicalToTypeMap.put(type, type);
+			// update the data id
+			int currId = tf.getDataId();
+			for(int i = 0; i <= currId; i++) {
+				newTf.updateDataId();
+			}		
 			
-			newTf.addRelationship(headers, values, cardinality, logicalToTypeMap);
+			return newTf;
+		} else {
+			// if we dont have a valid traveral, just return null
+			// so the call knows that this wasn't valid
+			return null;
 		}
-		
-		// update the data id
-		int currId = tf.getDataId();
-		for(int i = 0; i <= currId; i++) {
-			newTf.updateDataId();
-		}		
-		
-		return newTf;
 	}
 
 	/**
