@@ -2489,7 +2489,7 @@ public class H2Builder {
 	private void copyTable(Connection fromConnection, String fromTable, Connection toConnection, String toTable) throws Exception {
 
 		//We want to query the fromConnection to collect the columns and types to copy
-		ResultSet rs = fromConnection.createStatement().executeQuery("SHOW COLUMNS FROM "+fromTable);
+		ResultSet rs = fromConnection.createStatement().executeQuery("SELECT * FROM "+fromTable+" LIMIT 1");
 		ResultSetMetaData rmsd = rs.getMetaData();
 		
 		//collect column names and types
@@ -2499,7 +2499,11 @@ public class H2Builder {
 		
 		for(int colCount = 1; colCount <= numOfCols; colCount++) {
 			columns.add(rmsd.getColumnName(colCount));
-			types.add(rmsd.getColumnName(colCount));
+			String type = rmsd.getColumnTypeName(colCount);
+			if(type.equalsIgnoreCase("VARCHAR")) {
+				type = "VARCHAR(800)";
+			}
+			types.add(type);
 		}
 		
 		//generate the toTable using the toConnection with the columns and types we created
@@ -2528,20 +2532,26 @@ public class H2Builder {
 					String type = types.get(i).toUpperCase();
 					if(type.startsWith("VARCHAR")) {
 						insertStatement.setString(i+1, resultSet.getString(i+1));
-					} else if(types.equals("DOUBLE")) {
+					} else if(type.equals("DOUBLE")) {
 						insertStatement.setDouble(i+1, resultSet.getDouble(i+1));
-					} else if(types.equals("DATE")) {
+					} else if(type.equals("DATE")) {
 						insertStatement.setDate(i+1, resultSet.getDate(i+1));
 					}
-					insertStatement.addBatch();
 					
-					if(batchCount == maxBatchSize) {
-						batchCount = 0;
-						insertStatement.executeBatch();
-					}
-					batchCount++;
 				}
+				
+				insertStatement.addBatch();
+				
+				if(batchCount == maxBatchSize) {
+					batchCount = 0;
+					insertStatement.executeBatch();
+				}
+				batchCount++;
+				
 			}
+			
+			insertStatement.executeBatch();
+			insertStatement.close();
  		} catch(Exception e) {
 			
 		}
