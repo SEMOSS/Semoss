@@ -1,6 +1,8 @@
 package prerna.sablecc2.om;
 
 import java.util.Vector;
+
+import prerna.sablecc2.reactor.IReactor;
 public class GenRowStruct {
 
 	// string or number - const
@@ -48,11 +50,22 @@ public class GenRowStruct {
 		metaVector.add(PkslDataTypes.SQLE);
 	}
 
-	public void addE(String E, String [] inputColumns)
+	public void addE(Expression e)
 	{
-		vector.addElement(E);
+		vector.addElement(e);
 		metaVector.add(PkslDataTypes.E);
 		isAllSQL = false;
+	}
+	
+	// this is an operational formula that is being added 
+	// imagine the case of if where this could be a full operational formula that needs to be executed
+	// however this could be the if part or the else part
+	public void addLambda(IReactor reactor)
+	{
+		vector.addElement(reactor);
+		metaVector.add(PkslDataTypes.LAMBDA);
+		isAllSQL = false;
+		
 	}
 
 	// do a check to find which of these can bbe done through SQL vs. which ones need to happen after
