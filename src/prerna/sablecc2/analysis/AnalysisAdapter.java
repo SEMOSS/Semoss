@@ -459,6 +459,30 @@ public class AnalysisAdapter implements Analysis
     }
 
     @Override
+    public void caseAScriptOperationOrVar(AScriptOperationOrVar node)
+    {
+        defaultCase(node);
+    }
+
+    @Override
+    public void caseAVarOperationOrVar(AVarOperationOrVar node)
+    {
+        defaultCase(node);
+    }
+
+    @Override
+    public void caseAScriptOperationOrIfblock(AScriptOperationOrIfblock node)
+    {
+        defaultCase(node);
+    }
+
+    @Override
+    public void caseAIfblock(AIfblock node)
+    {
+        defaultCase(node);
+    }
+
+    @Override
     public void caseTNumber(TNumber node)
     {
         defaultCase(node);
@@ -664,6 +688,12 @@ public class AnalysisAdapter implements Analysis
 
     @Override
     public void caseTR(TR node)
+    {
+        defaultCase(node);
+    }
+
+    @Override
+    public void caseTIf(TIf node)
     {
         defaultCase(node);
     }
