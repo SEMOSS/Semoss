@@ -9,6 +9,20 @@ import prerna.sablecc2.om.NounMetadata;
 import prerna.sablecc2.om.PkslDataTypes;
 import prerna.sablecc2.reactor.AbstractReactor;
 
+/**
+ * 
+ * This is the base class for any reactor responsible for building a querystruct
+ * 
+ * The design of this class is as such:
+ * 		This class holds a query struct, responsible for grabbing input and passing output
+ * 		any subclass is only responsible for building the query struct through method createQueryStruct()
+ * 		Ex:
+ * 			SelectReactor overrides createQueryStruct() build on top of the existing query struct with only Selectors
+ * 			JoinReactor overrides createQueryStruct() builds on top of the existing query struct with only joins
+ * 
+ * 			QueryStructReactor is responsible for grabbing any input querystructs and passing the output
+ *
+ */
 public abstract class QueryStructReactor extends AbstractReactor {
 
 	QueryStruct2 qs;
@@ -27,7 +41,10 @@ public abstract class QueryStructReactor extends AbstractReactor {
 
 	@Override
 	public Object execute() {
+		//build the query struct
 		QueryStruct2 qs = createQueryStruct();
+		
+		//create the output and return
 		NounMetadata noun = new NounMetadata(qs, PkslDataTypes.QUERY_STRUCT);
 		return noun;
 	}
@@ -42,6 +59,7 @@ public abstract class QueryStructReactor extends AbstractReactor {
 
 	}
 	
+	//method to merge an outside query struct with this query struct
 	public void mergeQueryStruct(QueryStruct2 queryStruct) {
 		if(qs == null) {
 			qs = queryStruct;
@@ -57,6 +75,7 @@ public abstract class QueryStructReactor extends AbstractReactor {
 		}
 	}
 	
+	//initialize the reactor with its necessary inputs
 	private void init() {
 		GenRowStruct qsInputParams = getNounStore().getNoun(PkslDataTypes.QUERY_STRUCT.toString());
 		if(qsInputParams != null) {

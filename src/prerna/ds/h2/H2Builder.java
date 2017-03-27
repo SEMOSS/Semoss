@@ -422,70 +422,6 @@ public class H2Builder {
 	 * END CONSTRUCTORS
 	 **********************************/
 
-	/***************************
-	 * JOIN METHODS
-	 **********************************/
-//	protected void setView(String viewTable) {
-//		this.viewTableName = viewTable;
-//		this.joinMode = true;
-//	}
-//
-//	protected void setView(String viewTable, Hashtable<String, String> translationMap) {
-//		this.viewTableName = viewTable;
-//		this.joinMode = true;
-//		this.joinColumnTranslation = translationMap;
-//	}
-//
-//	protected void setTranslationMap(Hashtable<String, String> translationMap) {
-//		this.joinColumnTranslation = translationMap;
-//	}
-//
-//	protected void addTranslation(String nameInTable, String nameInView) {
-//		if (this.joinColumnTranslation == null) {
-//			this.joinColumnTranslation = new Hashtable<>();
-//		}
-//		this.joinColumnTranslation.put(nameInTable, nameInView);
-//	}
-//
-//	protected void unJoin() {
-//		this.viewTableName = null;
-//		this.joinMode = false;
-//		this.joinColumnTranslation = null;
-//		this.joiner = null;
-//	}
-//
-//	protected boolean getJoinMode() {
-//		return this.joinMode;
-//	}
-//
-//	protected List<String> translateColumns(List<String> columns) {
-//		List<String> translatedColumns = new ArrayList<>();
-//		for (String column : columns) {
-//			translatedColumns.add(translateColumn(column));
-//		}
-//		return translatedColumns;
-//	}
-//
-//	protected String[] translateColumns(String[] columns) {
-//		String[] translatedColumns = new String[columns.length];
-//		for (int i = 0; i < translatedColumns.length; i++) {
-//			translatedColumns[i] = translateColumn(columns[i]);
-//		}
-//		return translatedColumns;
-//	}
-//
-//	protected String translateColumn(String column) {
-//		return joinColumnTranslation.get(column);
-//	}
-//
-//	protected void setJoiner(H2Joiner joiner) {
-//		this.joiner = joiner;
-//	}
-
-	/***************************
-	 * END JOIN METHODS
-	 ********************************/
-
 	private Object[] castToType(String input) {
 		return Utility.findTypes(input);
 	}
@@ -594,23 +530,12 @@ public class H2Builder {
 	 * @return The prepared statement
 	 */
 	public PreparedStatement createInsertPreparedStatement(final String TABLE_NAME, final String[] columns) {
-		// generate the sql for the prepared statement
-		StringBuilder sql = new StringBuilder("INSERT INTO ");
-		sql.append(TABLE_NAME).append(" (").append(columns[0]);
-		for (int colIndex = 1; colIndex < columns.length; colIndex++) {
-			sql.append(", ");
-			sql.append(columns[colIndex]);
-		}
-		sql.append(") VALUES (?"); // remember, we already assumed one col
-		for (int colIndex = 1; colIndex < columns.length; colIndex++) {
-			sql.append(", ?");
-		}
-		sql.append(")");
+		String sql = RdbmsQueryBuilder.createInsertPreparedStatementString(TABLE_NAME, columns);
 
 		PreparedStatement ps = null;
 		try {
 			// create the prepared statement using the sql query defined
-			ps = getConnection().prepareStatement(sql.toString());
+			ps = getConnection().prepareStatement(sql);
 		} catch (SQLException e) {
 			e.printStackTrace();
 		}
@@ -620,25 +545,12 @@ public class H2Builder {
 
 	public PreparedStatement createUpdatePreparedStatement(final String TABLE_NAME, final String[] columnsToUpdate, final String[] whereColumns) {
 		// generate the sql for the prepared statement
-		StringBuilder sql = new StringBuilder("UPDATE ");
-		sql.append(TABLE_NAME).append(" SET ").append(columnsToUpdate[0]).append(" = ?");
-		for (int colIndex = 1; colIndex < columnsToUpdate.length; colIndex++) {
-			sql.append(", ");
-			sql.append(columnsToUpdate[colIndex]).append(" = ?");
-		}
-		if(whereColumns.length > 0) {
-			sql.append(" WHERE ").append(whereColumns[0]).append(" = ?");
-			for (int colIndex = 1; colIndex < whereColumns.length; colIndex++) {
-				sql.append(" AND ");
-				sql.append(whereColumns[colIndex]).append(" = ?");
-			}
-			sql.append("");
-		}
+		String sql = RdbmsQueryBuilder.createUpdatePreparedStatementString(TABLE_NAME, columnsToUpdate, whereColumns);
 		
 		PreparedStatement ps = null;
 		try {
 			// create the prepared statement using the sql query defined
-			ps = getConnection().prepareStatement(sql.toString());
+			ps = getConnection().prepareStatement(sql);
 		} catch (SQLException e) {
 			e.printStackTrace();
 		}
@@ -647,42 +559,8 @@ public class H2Builder {
 	}
 	
 	public PreparedStatement createMergePreparedStatement(final String TABLE_NAME, final String[] keyColumns, final String[] updateColumns) {
-		
-		StringBuilder sql = new StringBuilder("MERGE INTO ");
-		sql.append(TABLE_NAME);
-		
-		//Add update columns
-		sql.append("(");
-		for(int i = 0; i < updateColumns.length; i++) {
-			if(i > 0) {
-				sql.append(", ");
-			}
-			sql.append(updateColumns[i]);
-		}
-		sql.append(") ");
-		
-		//Add key columns
-		if(keyColumns != null && keyColumns.length > 0) {
-			sql.append("KEY(");
-			for(int i = 0; i < keyColumns.length; i++) {
-				if(i > 0) {
-					sql.append(", ");
-				}
-				sql.append(keyColumns[i]);
-				
-			}
-			sql.append(") ");
-		}
-		
-		//Add values
-//		sql.append("VALUES (?"); // remember, we already assumed one col
-//		for (int colIndex = 0; colIndex < updateColumns.length; colIndex++) {
-//			sql.append(", ?");
-//		}
-//		sql.append(")");
-		
-		
-		return createPreparedStatement(sql.toString());
+		String sql = RdbmsQueryBuilder.createMergePreparedStatementString(TABLE_NAME, keyColumns, updateColumns);
+		return createPreparedStatement(sql);
 	}
 
 	
@@ -690,7 +568,7 @@ public class H2Builder {
 		PreparedStatement ps = null;
 		try {
 			// create the prepared statement using the sql query defined
-			ps = getConnection().prepareStatement(sql.toString());
+			ps = getConnection().prepareStatement(sql);
 		} catch (SQLException e) {
 			e.printStackTrace();
 		}
@@ -2563,25 +2441,29 @@ public class H2Builder {
 			// we need to save that data and then move it over
 			boolean existingTable = tableExists(this.tableName);
 			if (existingTable) {
-				String saveScript = "SCRIPT TO '" + inMemScript + "' COMPRESSION GZIP TABLE " + this.tableName;
-				runQuery(saveScript);
-
+//				String saveScript = "SCRIPT TO '" + inMemScript + "' COMPRESSION GZIP TABLE " + this.tableName;
+//				runQuery(saveScript);
+				
+				Connection newConnection = DriverManager.getConnection("jdbc:h2:nio:" + physicalDbLocation, "sa", "");
+				copyTable(this.conn, this.tableName, newConnection, this.tableName);
+				
 				// drop the current table from in-memory or from old physical db
 				runQuery(RdbmsQueryBuilder.makeDropTable(this.tableName));
+				this.conn = newConnection;
 			}
 
 			// create the new conneciton
-			this.conn = DriverManager.getConnection("jdbc:h2:nio:" + physicalDbLocation, "sa", "");
+//			this.conn = DriverManager.getConnection("jdbc:h2:nio:" + physicalDbLocation, "sa", "");
 
-			// if previous table existed
-			// we need to load it
-			if (existingTable) {
-				// we run the script
-				runQuery("RUNSCRIPT FROM '" + inMemScript + "' COMPRESSION GZIP ");
-
-				// clean up and remove the script file
-				ICache.deleteFile(inMemScript);
-			}
+//			// if previous table existed
+//			// we need to load it
+//			if (existingTable) {
+//				// we run the script
+//				runQuery("RUNSCRIPT FROM '" + inMemScript + "' COMPRESSION GZIP ");
+//
+//				// clean up and remove the script file
+//				ICache.deleteFile(inMemScript);
+//			}
 			
 			this.schema = physicalDbLocation;
 			this.isInMem = false;
@@ -2603,6 +2485,68 @@ public class H2Builder {
 		return this.conn;
 	}
 
+	//This method copies the table from the 'fromConnection' to the 'toConnection'
+	private void copyTable(Connection fromConnection, String fromTable, Connection toConnection, String toTable) throws Exception {
+
+		//We want to query the fromConnection to collect the columns and types to copy
+		ResultSet rs = fromConnection.createStatement().executeQuery("SHOW COLUMNS FROM "+fromTable);
+		ResultSetMetaData rmsd = rs.getMetaData();
+		
+		//collect column names and types
+		int numOfCols = rmsd.getColumnCount();
+		List<String> columns = new ArrayList<>(numOfCols);
+		List<String> types = new ArrayList<>(numOfCols);
+		
+		for(int colCount = 1; colCount <= numOfCols; colCount++) {
+			columns.add(rmsd.getColumnName(colCount));
+			types.add(rmsd.getColumnName(colCount));
+		}
+		
+		//generate the toTable using the toConnection with the columns and types we created
+		String createTable = RdbmsQueryBuilder.makeCreate(toTable, columns.toArray(new String[]{}), types.toArray(new String[]{}));
+		toConnection.createStatement().execute(createTable);
+		
+		
+		//copy the data from fromTable to toTable
+		String insertPreparedStatement = RdbmsQueryBuilder.createInsertPreparedStatementString(toTable, columns.toArray(new String[columns.size()]));
+		
+		//select the data we want to copy
+		String selectFromTableQuery = RdbmsQueryBuilder.makeSelect(fromTable, columns, false);
+		
+		try {
+			ResultSet resultSet = fromConnection.createStatement().executeQuery(selectFromTableQuery);
+			
+			//update the insert statement with the data we collected
+			PreparedStatement insertStatement = toConnection.prepareStatement(insertPreparedStatement);
+			int maxBatchSize = 500;
+			int batchCount = 0;
+			while(resultSet.next()) {
+				 // Get the values from the table1 record
+				insertStatement.clearParameters();
+				for(int i = 0; i < columns.size(); i++) {
+					String column = columns.get(i);
+					String type = types.get(i).toUpperCase();
+					if(type.startsWith("VARCHAR")) {
+						insertStatement.setString(i+1, resultSet.getString(i+1));
+					} else if(types.equals("DOUBLE")) {
+						insertStatement.setDouble(i+1, resultSet.getDouble(i+1));
+					} else if(types.equals("DATE")) {
+						insertStatement.setDate(i+1, resultSet.getDate(i+1));
+					}
+					insertStatement.addBatch();
+					
+					if(batchCount == maxBatchSize) {
+						batchCount = 0;
+						insertStatement.executeBatch();
+					}
+					batchCount++;
+				}
+			}
+ 		} catch(Exception e) {
+			
+		}
+	}
+	
 	public void closeConnection() {
 		try {
 			this.conn.close();
@@ -2939,7 +2883,7 @@ public class H2Builder {
 	
 	private boolean checkQuery(String query) {
 //		return query.startsWith("CREATE ") || query.startsWith("CREATE OR REPLACE VIEW ") || query.startsWith("DROP VIEW ");
-		return true;
+		return false;
 	}
 
 	// save the main table
