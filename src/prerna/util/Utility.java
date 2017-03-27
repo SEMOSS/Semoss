@@ -3047,4 +3047,9 @@ public class Utility {
 		}
 	}
 
+	public static String toCamelCase(String s) {
+		String output = s.substring(0,1).toUpperCase() + s.substring(1);
+		return output;
+	}
+
 }
