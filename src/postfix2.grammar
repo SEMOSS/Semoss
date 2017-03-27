@@ -48,6 +48,7 @@ Tokens
  output = 'output';
  java = '<j>' alphanumeric* '</j>';
  r = '<j> runR(' alphanumeric* ')</j>';
+ if = 'if';
  as_op = ('.as' | '.out');
  custom = '|';
  rel_type = ('inner.join' | 'outer.join' | 'right.outer.join' | 'left.outer.join' | 'cross.join' | 'self.join' ); 
@@ -70,7 +71,7 @@ Productions
  // scripts are frame operations, opererations, assignments, java operations, or r operations
  // the first 3 are routines that are handled via our translation
  // while the last 2 are scripts are offloaded to other languages
- script = {frameop} frameop | {op} operation_formula | {assign} assignment | {java_op} java_op | {r_op} r_op ;
+ script = {frameop} frameop | {op} operation_formula | {assign} assignment | {java_op} java_op | {r_op} r_op ;//| {condition} ifblock;
  
  otherscript = custom script;
  ///////////////////////////////////////////////////////////////////////
@@ -143,6 +144,10 @@ Productions
  noun = {select} selectors | {project} projectors | {labels} labels | {tooltips} tooltips | {others} generic | {props} props | {code} code_alpha;
  othernoun =  comma noun;
  
+ //script = {frameop} frameop | {java_op} java_op | {r_op} r_op | {op} operation_formula | {make} make_op | {assign} assignment | {condition} ifblock;
+ 
+ //otherscript = custom script;
+
  // assigning an id based on a script evaluation  
  assignment = id equal scriptchain;
 
@@ -161,4 +166,10 @@ Productions
  // future for java and r operations
  java_op = java;
  r_op = r;
+ 
+ // if(some condition, operation | if condition, operation | if condition)
+  operation_or_var = {script} script | {var} id;
+  operation_or_ifblock = {script} script;
+ 
+ ifblock = if l_par operation_or_var [comma1]:comma [op1]:operation_or_ifblock [comma2]:comma [op2]:operation_or_ifblock  r_par;
  
