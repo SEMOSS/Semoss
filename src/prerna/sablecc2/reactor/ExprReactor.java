@@ -89,7 +89,7 @@ public class ExprReactor extends AbstractReactor {
 
 	@Override
 	protected void mergeUp() {
-		if(parentReactor != null) {
+		if(parentReactor != null ) {
 			SqlExpressionBuilder builder = buildSQLExpression(buildReactor());
 			parentReactor.setProp(this.signature, builder);
 		} else {
@@ -119,6 +119,7 @@ public class ExprReactor extends AbstractReactor {
 		
 		try {
 			IScriptReactor reactor = (IScriptReactor)Class.forName(reactorName).newInstance();
+			
 			reactor.put("G", planner.getFrame());
 			if(this.getProp(this.signature) != null && this.getProp(this.signature) instanceof SqlExpressionBuilder) {
 				reactor.put("TERM", this.getProp(this.signature));

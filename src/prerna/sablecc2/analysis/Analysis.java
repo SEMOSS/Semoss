@@ -76,6 +76,10 @@ public interface Analysis extends Switch
     void caseARelationship(ARelationship node);
     void caseAJavaOp(AJavaOp node);
     void caseAROp(AROp node);
+    void caseAScriptOperationOrVar(AScriptOperationOrVar node);
+    void caseAVarOperationOrVar(AVarOperationOrVar node);
+    void caseAScriptOperationOrIfblock(AScriptOperationOrIfblock node);
+    void caseAIfblock(AIfblock node);
 
     void caseTNumber(TNumber node);
     void caseTBoolean(TBoolean node);
@@ -112,6 +116,7 @@ public interface Analysis extends Switch
     void caseTOutput(TOutput node);
     void caseTJava(TJava node);
     void caseTR(TR node);
+    void caseTIf(TIf node);
     void caseTAsOp(TAsOp node);
     void caseTCustom(TCustom node);
     void caseTRelType(TRelType node);

@@ -1647,4 +1647,116 @@ public class ReversedDepthFirstAdapter extends AnalysisAdapter
         }
         outAROp(node);
     }
+
+    public void inAScriptOperationOrVar(AScriptOperationOrVar node)
+    {
+        defaultIn(node);
+    }
+
+    public void outAScriptOperationOrVar(AScriptOperationOrVar node)
+    {
+        defaultOut(node);
+    }
+
+    @Override
+    public void caseAScriptOperationOrVar(AScriptOperationOrVar node)
+    {
+        inAScriptOperationOrVar(node);
+        if(node.getScript() != null)
+        {
+            node.getScript().apply(this);
+        }
+        outAScriptOperationOrVar(node);
+    }
+
+    public void inAVarOperationOrVar(AVarOperationOrVar node)
+    {
+        defaultIn(node);
+    }
+
+    public void outAVarOperationOrVar(AVarOperationOrVar node)
+    {
+        defaultOut(node);
+    }
+
+    @Override
+    public void caseAVarOperationOrVar(AVarOperationOrVar node)
+    {
+        inAVarOperationOrVar(node);
+        if(node.getId() != null)
+        {
+            node.getId().apply(this);
+        }
+        outAVarOperationOrVar(node);
+    }
+
+    public void inAScriptOperationOrIfblock(AScriptOperationOrIfblock node)
+    {
+        defaultIn(node);
+    }
+
+    public void outAScriptOperationOrIfblock(AScriptOperationOrIfblock node)
+    {
+        defaultOut(node);
+    }
+
+    @Override
+    public void caseAScriptOperationOrIfblock(AScriptOperationOrIfblock node)
+    {
+        inAScriptOperationOrIfblock(node);
+        if(node.getScript() != null)
+        {
+            node.getScript().apply(this);
+        }
+        outAScriptOperationOrIfblock(node);
+    }
+
+    public void inAIfblock(AIfblock node)
+    {
+        defaultIn(node);
+    }
+
+    public void outAIfblock(AIfblock node)
+    {
+        defaultOut(node);
+    }
+
+    @Override
+    public void caseAIfblock(AIfblock node)
+    {
+        inAIfblock(node);
+        if(node.getRPar() != null)
+        {
+            node.getRPar().apply(this);
+        }
+        if(node.getOp2() != null)
+        {
+            node.getOp2().apply(this);
+        }
+        if(node.getComma2() != null)
+        {
+            node.getComma2().apply(this);
+        }
+        if(node.getOp1() != null)
+        {
+            node.getOp1().apply(this);
+        }
+        if(node.getComma1() != null)
+        {
+            node.getComma1().apply(this);
+        }
+        if(node.getOperationOrVar() != null)
+        {
+            node.getOperationOrVar().apply(this);
+        }
+        if(node.getLPar() != null)
+        {
+            node.getLPar().apply(this);
+        }
+        if(node.getIf() != null)
+        {
+            node.getIf().apply(this);
+        }
+        outAIfblock(node);
+    }
 }
