@@ -57,7 +57,8 @@ public class IfReactor extends AbstractReactor {
 			GenRowStruct filterGenRowStruct = this.getNounStore().getNoun("f");
         	Filter filter = (Filter) filterGenRowStruct.get(0);
         	// this is if the filter returned true or false
-        	boolean caseEvaluation = filter.evaluate();
+        	// we need to set the pksl planner in case the filter is using variables
+        	boolean caseEvaluation = filter.evaluate(this.planner);
 			
         	// the if will always have 2 values in its curRow
         	// the first value is the true object

@@ -20,6 +20,12 @@ public interface Analysis extends Switch
     void caseAJavaOpScript(AJavaOpScript node);
     void caseAROpScript(AROpScript node);
     void caseAOtherscript(AOtherscript node);
+    void caseAAssignment(AAssignment node);
+    void caseAScriptPossibleVariables(AScriptPossibleVariables node);
+    void caseAConstantPossibleVariables(AConstantPossibleVariables node);
+    void caseAGenRow(AGenRow node);
+    void caseAPlainRow(APlainRow node);
+    void caseAOperationFormula(AOperationFormula node);
     void caseARefColDef(ARefColDef node);
     void caseALiteralColDef(ALiteralColDef node);
     void caseAExprColDef(AExprColDef node);
@@ -51,9 +57,6 @@ public interface Analysis extends Switch
     void caseAEExprExpr(AEExprExpr node);
     void caseAFormula(AFormula node);
     void caseAExtendedExpr(AExtendedExpr node);
-    void caseAOperationFormula(AOperationFormula node);
-    void caseAGenRow(AGenRow node);
-    void caseAPlainRow(APlainRow node);
     void caseASelectors(ASelectors node);
     void caseAProjectors(AProjectors node);
     void caseALabels(ALabels node);
@@ -69,7 +72,6 @@ public interface Analysis extends Switch
     void caseAPropsNoun(APropsNoun node);
     void caseACodeNoun(ACodeNoun node);
     void caseAOthernoun(AOthernoun node);
-    void caseAAssignment(AAssignment node);
     void caseAFrameop(AFrameop node);
     void caseAAsop(AAsop node);
     void caseAFilter(AFilter node);
