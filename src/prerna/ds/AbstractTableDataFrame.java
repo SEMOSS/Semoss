@@ -20,6 +20,7 @@ import prerna.algorithm.api.IAnalyticTransformationRoutine;
 import prerna.algorithm.api.IMetaData;
 import prerna.algorithm.api.IMetaData.DATA_TYPES;
 import prerna.algorithm.api.ITableDataFrame;
+import prerna.ds.querystruct.QueryStruct2;
 import prerna.engine.api.IEngine;
 import prerna.engine.api.IHeadersDataRow;
 import prerna.engine.api.ISelectStatement;
@@ -750,6 +751,10 @@ public abstract class AbstractTableDataFrame implements ITableDataFrame {
 	}
 
 	public Iterator<IHeadersDataRow> query(QueryStruct queryStruct) {
+		return null;
+	}
+	
+	public Iterator<IHeadersDataRow> query(QueryStruct2 queryStruct) {
 		return null;
 	}
 	
