@@ -43,6 +43,7 @@ import prerna.ds.TinkerFrame;
 import prerna.ds.TinkerMetaData;
 import prerna.ds.TinkerMetaHelper;
 import prerna.ds.h2.H2Builder.Join;
+import prerna.ds.querystruct.QueryStruct2;
 import prerna.engine.api.IEngine;
 import prerna.engine.api.IHeadersDataRow;
 import prerna.engine.api.ISelectWrapper;
@@ -50,6 +51,7 @@ import prerna.engine.impl.r.RRunner;
 import prerna.poi.main.RDBMSEngineCreationHelper;
 import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.rdf.query.builder.SQLInterpreter;
+import prerna.rdf.query.builder.SQLInterpreter2;
 import prerna.sablecc.PKQLEnum;
 import prerna.sablecc.PKQLEnum.PKQLReactor;
 import prerna.ui.components.playsheets.datamakers.DataMakerComponent;
@@ -836,12 +838,21 @@ public class H2Frame extends AbstractTableDataFrame {
 		return query(iteratorQuery);
 	}
 	
-	public Iterator<Object[]> iterator(boolean getRawData, boolean ignoreFilters) {
-		if(!ignoreFilters) {
-			return iterator();
-		}
-		else return this.builder.buildIterator(getH2Selectors(), ignoreFilters);
+	@Override
+	public Iterator<IHeadersDataRow> query(QueryStruct2 queryStruct) {
+		SQLInterpreter2 interp = new SQLInterpreter2();//default query util is H2
+//		queryStruct = builder.mergeFilters(queryStruct);
+		interp.setQueryStruct(queryStruct);
+		String iteratorQuery = interp.composeQuery();
+		return query(iteratorQuery);
 	}
+	
+//	public Iterator<Object[]> iterator(boolean getRawData, boolean ignoreFilters) {
+//		if(!ignoreFilters) {
+//			return iterator();
+//		}
+//		else return this.builder.buildIterator(getH2Selectors(), ignoreFilters);
+//	}
 
 	@Override
 	public Iterator<Object[]> iterator(Map<String, Object> options) {
