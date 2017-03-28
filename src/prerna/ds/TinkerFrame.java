@@ -54,6 +54,7 @@ import org.apache.tinkerpop.gremlin.tinkergraph.structure.TinkerGraph;
 
 import prerna.algorithm.api.IMetaData;
 import prerna.engine.api.IEngine;
+import prerna.engine.api.IHeadersDataRow;
 import prerna.engine.api.ISelectStatement;
 import prerna.engine.api.ISelectWrapper;
 import prerna.om.SEMOSSEdge;
@@ -2809,5 +2810,13 @@ public class TinkerFrame extends AbstractTableDataFrame {
 			throw new IllegalArgumentException("Graphs do not support date as a data type!");
 		}
 	}
+	
+	public Iterator<IHeadersDataRow> query(QueryStruct queryStruct) {
+		TinkerQueryInterpreter interpreter = new TinkerQueryInterpreter(this.g, this.metaData.getEdgeHash());
+		interpreter.setQueryStruct(queryStruct);
+		return new TinkerHeadersDataRowIterator(interpreter.composeIterator(), (TinkerMetaData) this.metaData);
+	}
+	
+	
 
 }

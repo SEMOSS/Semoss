@@ -13,6 +13,7 @@ import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 import org.apache.tinkerpop.gremlin.process.traversal.Order;
 import org.apache.tinkerpop.gremlin.process.traversal.P;
+import org.apache.tinkerpop.gremlin.structure.Graph;
 import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.GraphTraversal;
 import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.__;
 
@@ -26,6 +27,21 @@ public class TinkerQueryInterpreter extends AbstractTinkerInterpreter implements
 
 	private HashMap<String, List<String>> propHash;
 
+	/**
+	 * This is used to query the frame
+	 * @param g
+	 * @param map 
+	 */
+	public TinkerQueryInterpreter(Graph g, Map<String, Set<String>> map) {
+		this.g = g;
+		this.gt = g.traversal().V();
+		this.edgeHash = map;
+	}
+	
+	/**
+	 * This is used when for importing data
+	 * @param tinkerEngine
+	 */
 	public TinkerQueryInterpreter(TinkerEngine tinkerEngine) {
 		this.g = tinkerEngine.getGraph();
 		this.gt = g.traversal().V();
@@ -220,7 +236,6 @@ public class TinkerQueryInterpreter extends AbstractTinkerInterpreter implements
 				selectorArr[i - 2] = selector.get(i);
 			}
 			gt = gt.select(selector.get(0), selector.get(1), selectorArr);
-
 		}
 	}
 
