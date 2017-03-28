@@ -77,7 +77,7 @@ public class QueryStruct2 {
 	
 	private int performCount = NO_COUNT;
 	
-	private String engineName;
+	String engineName;
 	
 	public static String PRIM_KEY_PLACEHOLDER = "PRIM_KEY_PLACEHOLDER";
 		
@@ -432,6 +432,12 @@ public class QueryStruct2 {
 		return (!this.selectors.isEmpty() || !this.relations.isEmpty() || !this.filters.isEmpty()) ;
 	}
 	
+	/**
+	 * 
+	 * @param incomingQS
+	 * 
+	 * This method is responsible for merging "incomingQS's" data with THIS querystruct
+	 */
 	public void merge(QueryStruct2 incomingQS) {
 		mergeSelectors(incomingQS.selectors);
 		mergeFilters(incomingQS.filters);
@@ -452,6 +458,7 @@ public class QueryStruct2 {
 	}
 	
 	public void mergeSelectors(List<QueryStructSelector> incomingSelectors) {
+		//add selectors only if we don't aleady have them as selectors
 		for(QueryStructSelector incomingSelector : incomingSelectors) {
 			if(!this.selectors.contains(incomingSelector)) {
 				this.selectors.add(incomingSelector);
@@ -460,20 +467,32 @@ public class QueryStruct2 {
 	}
 	
 	public void mergeFilters(GenRowFilters incomingFilters) {
-		//TODO:
-		//TODO:
-		//TODO:
-		//TODO:
-		//TODO:
-		// actually do a merge... right now just adding all
+		//merge the filters
 		this.filters.merge(incomingFilters);
 	}
 	
+	/**
+	 * 
+	 * @param incomingRelations
+	 * 
+	 * merges incomingRelations with this relations
+	 */
 	public void mergeRelations(Hashtable<String, Hashtable<String, Vector>> incomingRelations) {
-		for(String key : incomingRelations.keySet()) {
-			Hashtable<String, Vector> incomingHash = incomingRelations.get(key);
-			if(this.relations.containsKey(key)) {
-				Hashtable<String, Vector> thisHash = this.relations.get(key);
+		
+		//for each concept in the new relations
+		for(String conceptName : incomingRelations.keySet()) {
+			
+			//Grab the relationships for that concept
+			Hashtable<String, Vector> incomingHash = incomingRelations.get(conceptName);
+			
+			//if we already have relationships for the same concept we need to merge
+			if(this.relations.containsKey(conceptName)) {
+				
+				//grab this relations for concept
+				Hashtable<String, Vector> thisHash = this.relations.get(conceptName);
+				
+				//relationKey is inner.join, outer.join, etc.
+				//so we want to merge relationships that have the same relationKey
 				for(String relationKey : incomingHash.keySet()) {
 					Vector v;
 					if(thisHash.containsKey(relationKey)) {
@@ -481,21 +500,31 @@ public class QueryStruct2 {
 					} else {
 						v = new Vector();
 					}
+					
+					//merge the this vector with new data and add to thisHash
 					v.addAll(incomingHash.get(relationKey));
 					thisHash.put(relationKey, v);
 				}
 			} else {
+				
+				//we don't have the relationship described in the incoming relations so just copy them to this relations
 				Hashtable<String, Vector> newHash = new Hashtable<>();
 				for(String relationKey : incomingHash.keySet()) {
 					Vector v = new Vector();
 					v.addAll(incomingHash.get(relationKey));
 					newHash.put(relationKey, v);
 				}
-				this.relations.put(key, newHash);
+				this.relations.put(conceptName, newHash);
 			}
 		}
 	}
 	
+	/**
+	 * 
+	 * @param groupBys
+	 * 
+	 * Merge the group by selectors
+	 */
 	public void mergeGroupBy(List<QueryStructSelector> groupBys) {
 		for(QueryStructSelector selector : groupBys) {
 			if(!this.groupBy.contains(selector)) {
@@ -504,6 +533,12 @@ public class QueryStruct2 {
 		}
 	}
 	
+	/**
+	 * 
+	 * @param orderBys
+	 * 
+	 * Merge the order by selectors
+	 */
 	public void mergeOrderBy(List<QueryStructSelector> orderBys) {
 		for(QueryStructSelector selector : orderBys) {
 			if(!this.orderBySelectors.contains(selector)) {
