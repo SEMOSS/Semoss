@@ -123,6 +123,42 @@ public class AnalysisAdapter implements Analysis
     }
 
     @Override
+    public void caseAAssignment(AAssignment node)
+    {
+        defaultCase(node);
+    }
+
+    @Override
+    public void caseAScriptPossibleVariables(AScriptPossibleVariables node)
+    {
+        defaultCase(node);
+    }
+
+    @Override
+    public void caseAConstantPossibleVariables(AConstantPossibleVariables node)
+    {
+        defaultCase(node);
+    }
+
+    @Override
+    public void caseAGenRow(AGenRow node)
+    {
+        defaultCase(node);
+    }
+
+    @Override
+    public void caseAPlainRow(APlainRow node)
+    {
+        defaultCase(node);
+    }
+
+    @Override
+    public void caseAOperationFormula(AOperationFormula node)
+    {
+        defaultCase(node);
+    }
+
+    @Override
     public void caseARefColDef(ARefColDef node)
     {
         defaultCase(node);
@@ -309,24 +345,6 @@ public class AnalysisAdapter implements Analysis
     }
 
     @Override
-    public void caseAOperationFormula(AOperationFormula node)
-    {
-        defaultCase(node);
-    }
-
-    @Override
-    public void caseAGenRow(AGenRow node)
-    {
-        defaultCase(node);
-    }
-
-    @Override
-    public void caseAPlainRow(APlainRow node)
-    {
-        defaultCase(node);
-    }
-
-    @Override
     public void caseASelectors(ASelectors node)
     {
         defaultCase(node);
@@ -412,12 +430,6 @@ public class AnalysisAdapter implements Analysis
 
     @Override
     public void caseAOthernoun(AOthernoun node)
-    {
-        defaultCase(node);
-    }
-
-    @Override
-    public void caseAAssignment(AAssignment node)
     {
         defaultCase(node);
     }

@@ -9,7 +9,7 @@ public final class AAssignment extends PAssignment
 {
     private TId _id_;
     private TEqual _equal_;
-    private PScriptchain _scriptchain_;
+    private PPossibleVariables _possibleVariables_;
 
     public AAssignment()
     {
@@ -19,14 +19,14 @@ public final class AAssignment extends PAssignment
     public AAssignment(
         @SuppressWarnings("hiding") TId _id_,
         @SuppressWarnings("hiding") TEqual _equal_,
-        @SuppressWarnings("hiding") PScriptchain _scriptchain_)
+        @SuppressWarnings("hiding") PPossibleVariables _possibleVariables_)
     {
         // Constructor
         setId(_id_);
 
         setEqual(_equal_);
 
-        setScriptchain(_scriptchain_);
+        setPossibleVariables(_possibleVariables_);
 
     }
 
@@ -36,7 +36,7 @@ public final class AAssignment extends PAssignment
         return new AAssignment(
             cloneNode(this._id_),
             cloneNode(this._equal_),
-            cloneNode(this._scriptchain_));
+            cloneNode(this._possibleVariables_));
     }
 
     @Override
@@ -95,16 +95,16 @@ public final class AAssignment extends PAssignment
         this._equal_ = node;
     }
 
-    public PScriptchain getScriptchain()
+    public PPossibleVariables getPossibleVariables()
     {
-        return this._scriptchain_;
+        return this._possibleVariables_;
     }
 
-    public void setScriptchain(PScriptchain node)
+    public void setPossibleVariables(PPossibleVariables node)
     {
-        if(this._scriptchain_ != null)
+        if(this._possibleVariables_ != null)
         {
-            this._scriptchain_.parent(null);
+            this._possibleVariables_.parent(null);
         }
 
         if(node != null)
@@ -117,7 +117,7 @@ public final class AAssignment extends PAssignment
             node.parent(this);
         }
 
-        this._scriptchain_ = node;
+        this._possibleVariables_ = node;
     }
 
     @Override
@@ -126,7 +126,7 @@ public final class AAssignment extends PAssignment
         return ""
             + toString(this._id_)
             + toString(this._equal_)
-            + toString(this._scriptchain_);
+            + toString(this._possibleVariables_);
     }
 
     @Override
@@ -145,9 +145,9 @@ public final class AAssignment extends PAssignment
             return;
         }
 
-        if(this._scriptchain_ == child)
+        if(this._possibleVariables_ == child)
         {
-            this._scriptchain_ = null;
+            this._possibleVariables_ = null;
             return;
         }
 
@@ -170,9 +170,9 @@ public final class AAssignment extends PAssignment
             return;
         }
 
-        if(this._scriptchain_ == oldChild)
+        if(this._possibleVariables_ == oldChild)
         {
-            setScriptchain((PScriptchain) newChild);
+            setPossibleVariables((PPossibleVariables) newChild);
             return;
         }
 

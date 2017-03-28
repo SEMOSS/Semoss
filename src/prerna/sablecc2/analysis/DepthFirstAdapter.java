@@ -222,6 +222,178 @@ public class DepthFirstAdapter extends AnalysisAdapter
         outAOtherscript(node);
     }
 
+    public void inAAssignment(AAssignment node)
+    {
+        defaultIn(node);
+    }
+
+    public void outAAssignment(AAssignment node)
+    {
+        defaultOut(node);
+    }
+
+    @Override
+    public void caseAAssignment(AAssignment node)
+    {
+        inAAssignment(node);
+        if(node.getId() != null)
+        {
+            node.getId().apply(this);
+        }
+        if(node.getEqual() != null)
+        {
+            node.getEqual().apply(this);
+        }
+        if(node.getPossibleVariables() != null)
+        {
+            node.getPossibleVariables().apply(this);
+        }
+        outAAssignment(node);
+    }
+
+    public void inAScriptPossibleVariables(AScriptPossibleVariables node)
+    {
+        defaultIn(node);
+    }
+
+    public void outAScriptPossibleVariables(AScriptPossibleVariables node)
+    {
+        defaultOut(node);
+    }
+
+    @Override
+    public void caseAScriptPossibleVariables(AScriptPossibleVariables node)
+    {
+        inAScriptPossibleVariables(node);
+        if(node.getScriptchain() != null)
+        {
+            node.getScriptchain().apply(this);
+        }
+        outAScriptPossibleVariables(node);
+    }
+
+    public void inAConstantPossibleVariables(AConstantPossibleVariables node)
+    {
+        defaultIn(node);
+    }
+
+    public void outAConstantPossibleVariables(AConstantPossibleVariables node)
+    {
+        defaultOut(node);
+    }
+
+    @Override
+    public void caseAConstantPossibleVariables(AConstantPossibleVariables node)
+    {
+        inAConstantPossibleVariables(node);
+        if(node.getNumberOrLiteral() != null)
+        {
+            node.getNumberOrLiteral().apply(this);
+        }
+        outAConstantPossibleVariables(node);
+    }
+
+    public void inAGenRow(AGenRow node)
+    {
+        defaultIn(node);
+    }
+
+    public void outAGenRow(AGenRow node)
+    {
+        defaultOut(node);
+    }
+
+    @Override
+    public void caseAGenRow(AGenRow node)
+    {
+        inAGenRow(node);
+        if(node.getLBrac() != null)
+        {
+            node.getLBrac().apply(this);
+        }
+        if(node.getColDef() != null)
+        {
+            node.getColDef().apply(this);
+        }
+        {
+            List<POthercol> copy = new ArrayList<POthercol>(node.getOthercol());
+            for(POthercol e : copy)
+            {
+                e.apply(this);
+            }
+        }
+        if(node.getRBrac() != null)
+        {
+            node.getRBrac().apply(this);
+        }
+        outAGenRow(node);
+    }
+
+    public void inAPlainRow(APlainRow node)
+    {
+        defaultIn(node);
+    }
+
+    public void outAPlainRow(APlainRow node)
+    {
+        defaultOut(node);
+    }
+
+    @Override
+    public void caseAPlainRow(APlainRow node)
+    {
+        inAPlainRow(node);
+        if(node.getColDef() != null)
+        {
+            node.getColDef().apply(this);
+        }
+        {
+            List<POthercol> copy = new ArrayList<POthercol>(node.getOthercol());
+            for(POthercol e : copy)
+            {
+                e.apply(this);
+            }
+        }
+        outAPlainRow(node);
+    }
+
+    public void inAOperationFormula(AOperationFormula node)
+    {
+        defaultIn(node);
+    }
+
+    public void outAOperationFormula(AOperationFormula node)
+    {
+        defaultOut(node);
+    }
+
+    @Override
+    public void caseAOperationFormula(AOperationFormula node)
+    {
+        inAOperationFormula(node);
+        if(node.getId() != null)
+        {
+            node.getId().apply(this);
+        }
+        if(node.getLPar() != null)
+        {
+            node.getLPar().apply(this);
+        }
+        if(node.getPlainRow() != null)
+        {
+            node.getPlainRow().apply(this);
+        }
+        if(node.getRPar() != null)
+        {
+            node.getRPar().apply(this);
+        }
+        if(node.getAsop() != null)
+        {
+            node.getAsop().apply(this);
+        }
+        outAOperationFormula(node);
+    }
+
     public void inARefColDef(ARefColDef node)
     {
         defaultIn(node);
@@ -969,107 +1141,6 @@ public class DepthFirstAdapter extends AnalysisAdapter
         outAExtendedExpr(node);
     }
 
-    public void inAOperationFormula(AOperationFormula node)
-    {
-        defaultIn(node);
-    }
-
-    public void outAOperationFormula(AOperationFormula node)
-    {
-        defaultOut(node);
-    }
-
-    @Override
-    public void caseAOperationFormula(AOperationFormula node)
-    {
-        inAOperationFormula(node);
-        if(node.getId() != null)
-        {
-            node.getId().apply(this);
-        }
-        if(node.getLPar() != null)
-        {
-            node.getLPar().apply(this);
-        }
-        if(node.getPlainRow() != null)
-        {
-            node.getPlainRow().apply(this);
-        }
-        if(node.getRPar() != null)
-        {
-            node.getRPar().apply(this);
-        }
-        if(node.getAsop() != null)
-        {
-            node.getAsop().apply(this);
-        }
-        outAOperationFormula(node);
-    }
-
-    public void inAGenRow(AGenRow node)
-    {
-        defaultIn(node);
-    }
-
-    public void outAGenRow(AGenRow node)
-    {
-        defaultOut(node);
-    }
-
-    @Override
-    public void caseAGenRow(AGenRow node)
-    {
-        inAGenRow(node);
-        if(node.getLBrac() != null)
-        {
-            node.getLBrac().apply(this);
-        }
-        if(node.getColDef() != null)
-        {
-            node.getColDef().apply(this);
-        }
-        {
-            List<POthercol> copy = new ArrayList<POthercol>(node.getOthercol());
-            for(POthercol e : copy)
-            {
-                e.apply(this);
-            }
-        }
-        if(node.getRBrac() != null)
-        {
-            node.getRBrac().apply(this);
-        }
-        outAGenRow(node);
-    }
-
-    public void inAPlainRow(APlainRow node)
-    {
-        defaultIn(node);
-    }
-
-    public void outAPlainRow(APlainRow node)
-    {
-        defaultOut(node);
-    }
-
-    @Override
-    public void caseAPlainRow(APlainRow node)
-    {
-        inAPlainRow(node);
-        if(node.getColDef() != null)
-        {
-            node.getColDef().apply(this);
-        }
-        {
-            List<POthercol> copy = new ArrayList<POthercol>(node.getOthercol());
-            for(POthercol e : copy)
-            {
-                e.apply(this);
-            }
-        }
-        outAPlainRow(node);
-    }
-
     public void inASelectors(ASelectors node)
     {
         defaultIn(node);
@@ -1419,35 +1490,6 @@ public class DepthFirstAdapter extends AnalysisAdapter
             node.getNoun().apply(this);
         }
         outAOthernoun(node);
-    }
-
-    public void inAAssignment(AAssignment node)
-    {
-        defaultIn(node);
-    }
-
-    public void outAAssignment(AAssignment node)
-    {
-        defaultOut(node);
-    }
-
-    @Override
-    public void caseAAssignment(AAssignment node)
-    {
-        inAAssignment(node);
-        if(node.getId() != null)
-        {
-            node.getId().apply(this);
-        }
-        if(node.getEqual() != null)
-        {
-            node.getEqual().apply(this);
-        }
-        if(node.getScriptchain() != null)
-        {
-            node.getScriptchain().apply(this);
-        }
-        outAAssignment(node);
     }
 
     public void inAFrameop(AFrameop node)
