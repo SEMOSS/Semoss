@@ -67,7 +67,6 @@ public class Translation extends DepthFirstAdapter {
 	IReactor curReactor = null;
 	IReactor prevReactor = null;
 	
-	
 	TypeOfOperation operationType = TypeOfOperation.COMPOSITION;
 	
 	boolean printTraceData = false;
@@ -223,14 +222,21 @@ public class Translation extends DepthFirstAdapter {
     {
         // I realize I am not doing anything with the output.. this will come next
     	defaultOut(node);
-    	deInitReactor();
-    	/*
-        curReactor.Out();
-        if(curReactor.getParentReactor() != null)
-        	curReactor = curReactor.getParentReactor();
-        */
+    	// if we have an if reactor
+    	// we will not deInit and just add this as a lambda within
+    	// the if statement and only deinit when necessary
+    	if(curReactor.getParentReactor() instanceof IfReactor)
+    	{
+    		curReactor.getParentReactor().getCurRow().addLambda(curReactor);
+    		curReactor = curReactor.getParentReactor();
+    	}
+    	// if this is not a child of an if
+    	// just execute as normal
+    	else
+    	{
+    		deInitReactor();
+    	}
         this.lastOperation = node + "";
-        System.out.println("OUT of Frame OP");
     }
     // setting the as value on a frame
     public void inAAsop(AAsop node)
@@ -342,7 +348,6 @@ public class Translation extends DepthFirstAdapter {
     public void outAOperationFormula(AOperationFormula node)
     {
     	defaultOut(node);
-    	
     	String nodeKey = node.toString().trim();
     	if(node.getPlainRow() != null) {
 	    	String childKey = node.getPlainRow().toString().trim();
@@ -352,20 +357,20 @@ public class Translation extends DepthFirstAdapter {
 	    		curReactor.setProp(nodeKey, childOutput);
 	    	}
     	}
+    	// if we have an if reactor
+    	// we will not deInit and just add this as a lambda within
+    	// the if statement and only deinit when necessary
     	if(curReactor.getParentReactor() instanceof IfReactor)
     	{
     		curReactor.getParentReactor().getCurRow().addLambda(curReactor);
     		curReactor = curReactor.getParentReactor();
     	}
-    	else if(curReactor.getParentReactor() == null)
+    	// if this is not a child of an if
+    	// just execute as normal
+    	else
+    	{
     		deInitReactor();
-        System.out.println("Ending a formula operation");
-        
-//        if(curReactor.getParentReactor() == null)
-//        {
-//        	// this is the last stop
-//        	
-//        }
+    	}
         this.lastOperation = node + "";
     }
     /*

@@ -18,10 +18,14 @@ public class Assimilator extends AbstractReactor {
 
 	@Override
 	public Object Out() {
-		// TODO Auto-generated method stub
-		Vector inputColumns = curRow.getAllColumns();
+		Vector<String> inputColumns = curRow.getAllColumns();
 		String [] allColumns = new String[inputColumns.size()];
-		for(int colIndex = 0;colIndex < inputColumns.size();allColumns[colIndex] = inputColumns.elementAt(colIndex)+"", colIndex++);
+		for(int colIndex = 0;colIndex < inputColumns.size(); colIndex++) {
+			allColumns[colIndex] = inputColumns.elementAt(colIndex)+"";
+		}
+		// the expression will just store the entire signature and the columns
+		// the columns is added because as we keep going through the parsing
+		// columns definitions just get appended into the GenRowStruct curRow 
 		Expression thisExpression = new Expression(signature, allColumns);
 		this.parentReactor.getCurRow().addE(thisExpression);
 		return parentReactor;
