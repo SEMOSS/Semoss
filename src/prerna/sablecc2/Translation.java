@@ -9,8 +9,6 @@ import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
 import prerna.ds.h2.H2Frame;
-import prerna.sablecc.expressions.sql.builder.ExpressionGenerator;
-import prerna.sablecc.expressions.sql.builder.SqlExpressionBuilder;
 import prerna.sablecc2.analysis.DepthFirstAdapter;
 import prerna.sablecc2.node.AAsop;
 import prerna.sablecc2.node.AAssignment;
@@ -534,6 +532,7 @@ public class Translation extends DepthFirstAdapter {
     	{
 	        defaultIn(node);
 			Assimilator assm = new Assimilator();
+			assm.setPKSL("EXPR", node.getExpr().toString().trim());
 			initReactor(assm);
     	}       
 		/*
@@ -575,7 +574,7 @@ public class Translation extends DepthFirstAdapter {
 	        deInitReactor();
     	}
     }
-
+    
     // code sits here
 /*    public void inACodeColDef(ACodeColDef node)
     {
@@ -728,10 +727,10 @@ public class Translation extends DepthFirstAdapter {
     public void caseAFilter(AFilter node)
     {
         inAFilter(node);
-        if(node.getLPar() != null)
-        {
-            node.getLPar().apply(this);
-        }
+//        if(node.getLPar() != null)
+//        {
+//            node.getLPar().apply(this);
+//        }
         if(node.getLcol() != null)
         {
         	// we will change the curNoun here
@@ -770,10 +769,10 @@ public class Translation extends DepthFirstAdapter {
         		this.planner.removeVariable("$RESULT");
         	}
         }
-        if(node.getRPar() != null)
-        {
-            node.getRPar().apply(this);
-        }
+//        if(node.getRPar() != null)
+//        {
+//            node.getRPar().apply(this);
+//        }
         outAFilter(node);
     }
     
@@ -794,113 +793,152 @@ public class Translation extends DepthFirstAdapter {
         System.out.println(curReactor.getProp("LAST_VALUE"));
     }
     
+    public void inAPlusExpr(APlusExpr node) {
+    	defaultIn(node);
+		Assimilator assm = new Assimilator();
+		assm.setPKSL("EXPR", node.toString().trim());
+		initReactor(assm);	
+    }
+    
     public void outAPlusExpr(APlusExpr node)
     {
     	defaultOut(node);
+    	deInitReactor();
     	
-    	String leftKey = node.getLeft().toString().trim();
-    	String rightKey = node.getRight().toString().trim();
-    	
-    	Object rightObj = curReactor.getProp(rightKey);
-    	Object leftObj = curReactor.getProp(leftKey);
-    	
-    	Object result = null;
-		if (rightObj instanceof Double && leftObj instanceof Double) {
-			result = (Double) (leftObj) + (Double) (rightObj);
-			curReactor.setProp(node.toString().trim(), result);
-			curReactor.setProp("LAST_VALUE", result);
-			System.out.println(result);
-		}
-		else  
-		{
-			//TODO: need to make this generic and get the correct type of expression it
-			if(getDataMaker() instanceof H2Frame) {
-				H2Frame frame = (H2Frame) getDataMaker();
-				SqlExpressionBuilder builder = ExpressionGenerator.sqlGenerateSimpleMathExpressions(frame, leftObj, rightObj, node.getPlus().toString().trim());
-				curReactor.setProp(node.toString().trim(), builder);
-			}
-    	}
+//    	String leftKey = node.getLeft().toString().trim();
+//    	String rightKey = node.getRight().toString().trim();
+//    	
+//    	Object rightObj = curReactor.getProp(rightKey);
+//    	Object leftObj = curReactor.getProp(leftKey);
+//    	
+//		Assimilator assm = new Assimilator();
+//		assm.setPKSL("EXPR", node.toString().trim());
+//
+//    	Object result = null;
+//		if (rightObj instanceof Double && leftObj instanceof Double) {
+//			result = (Double) (leftObj) + (Double) (rightObj);
+//			curReactor.setProp(node.toString().trim(), result);
+//			curReactor.setProp("LAST_VALUE", result);
+//			System.out.println(result);
+//		}
+//		else  
+//		{
+//			//TODO: need to make this generic and get the correct type of expression it
+//			if(getDataMaker() instanceof H2Frame) {
+//				H2Frame frame = (H2Frame) getDataMaker();
+//				SqlExpressionBuilder builder = ExpressionGenerator.sqlGenerateSimpleMathExpressions(frame, leftObj, rightObj, node.getPlus().toString().trim());
+//				curReactor.setProp(node.toString().trim(), builder);
+//			}
+//    	}
+    }
+    
+    public void inAMinusExpr(AMinusExpr node) {
+    	defaultIn(node);
+		Assimilator assm = new Assimilator();
+		assm.setPKSL("EXPR", node.toString().trim());
+		initReactor(assm);
     }
     
     public void outAMinusExpr(AMinusExpr node)
     {
-    	String leftKey = node.getLeft().toString().trim();
-    	String rightKey = node.getRight().toString().trim();
+    	defaultOut(node);
+    	deInitReactor();
     	
-    	Object rightObj = curReactor.getProp(rightKey);
-    	Object leftObj = curReactor.getProp(leftKey);
-    	
-    	Object result = null;
-		if (rightObj instanceof Double && leftObj instanceof Double) {
-			result = (Double) (leftObj) + (Double) (rightObj);
-			curReactor.setProp(node.toString().trim(), result);
-			curReactor.setProp("LAST_VALUE", result);
-			System.out.println(result);
-		}
-		else  
-		{
-			//TODO: need to make this generic and get the correct type of expression it
-			if(getDataMaker() instanceof H2Frame) {
-				H2Frame frame = (H2Frame) getDataMaker();
-				SqlExpressionBuilder builder = ExpressionGenerator.sqlGenerateSimpleMathExpressions(frame, leftObj, rightObj, node.getMinus().toString().trim());
-				curReactor.setProp(node.toString().trim(), builder);
-			}
-    	}
+//    	String leftKey = node.getLeft().toString().trim();
+//    	String rightKey = node.getRight().toString().trim();
+//    	
+//    	Object rightObj = curReactor.getProp(rightKey);
+//    	Object leftObj = curReactor.getProp(leftKey);
+//    	
+//    	Object result = null;
+//		if (rightObj instanceof Double && leftObj instanceof Double) {
+//			result = (Double) (leftObj) + (Double) (rightObj);
+//			curReactor.setProp(node.toString().trim(), result);
+//			curReactor.setProp("LAST_VALUE", result);
+//			System.out.println(result);
+//		}
+//		else  
+//		{
+//			//TODO: need to make this generic and get the correct type of expression it
+//			if(getDataMaker() instanceof H2Frame) {
+//				H2Frame frame = (H2Frame) getDataMaker();
+//				SqlExpressionBuilder builder = ExpressionGenerator.sqlGenerateSimpleMathExpressions(frame, leftObj, rightObj, node.getMinus().toString().trim());
+//				curReactor.setProp(node.toString().trim(), builder);
+//			}
+//    	}
     }
     
-    @Override
+    public void inADivExpr(ADivExpr node) {
+    	defaultIn(node);
+		Assimilator assm = new Assimilator();
+		assm.setPKSL("EXPR", node.toString().trim());
+		initReactor(assm);
+    }
+    
     public void outADivExpr(ADivExpr node)
     {
-    	String leftKey = node.getLeft().toString().trim();
-    	String rightKey = node.getRight().toString().trim();
-    	
-    	Object rightObj = curReactor.getProp(rightKey);
-    	Object leftObj = curReactor.getProp(leftKey);
-    	
-    	Object result = null;
-		if (rightObj instanceof Double && leftObj instanceof Double) {
-			result = (Double) (leftObj) + (Double) (rightObj);
-			curReactor.setProp(node.toString().trim(), result);
-			curReactor.setProp("LAST_VALUE", result);
-			System.out.println(result);
-		}
-		else  
-		{
-			//TODO: need to make this generic and get the correct type of expression it
-			if(getDataMaker() instanceof H2Frame) {
-				H2Frame frame = (H2Frame) getDataMaker();
-				SqlExpressionBuilder builder = ExpressionGenerator.sqlGenerateSimpleMathExpressions(frame, leftObj, rightObj, node.getDiv().toString().trim());
-				curReactor.setProp(node.toString().trim(), builder);
-			}
-    	}
+    	defaultOut(node);
+    	deInitReactor();
+    
+//    	String leftKey = node.getLeft().toString().trim();
+//    	String rightKey = node.getRight().toString().trim();
+//    	
+//    	Object rightObj = curReactor.getProp(rightKey);
+//    	Object leftObj = curReactor.getProp(leftKey);
+//    	
+//    	Object result = null;
+//		if (rightObj instanceof Double && leftObj instanceof Double) {
+//			result = (Double) (leftObj) + (Double) (rightObj);
+//			curReactor.setProp(node.toString().trim(), result);
+//			curReactor.setProp("LAST_VALUE", result);
+//			System.out.println(result);
+//		}
+//		else  
+//		{
+//			//TODO: need to make this generic and get the correct type of expression it
+//			if(getDataMaker() instanceof H2Frame) {
+//				H2Frame frame = (H2Frame) getDataMaker();
+//				SqlExpressionBuilder builder = ExpressionGenerator.sqlGenerateSimpleMathExpressions(frame, leftObj, rightObj, node.getDiv().toString().trim());
+//				curReactor.setProp(node.toString().trim(), builder);
+//			}
+//    	}
     }
     
-    @Override
+    public void inAMultExpr(AMultExpr node) {
+    	defaultIn(node);
+		Assimilator assm = new Assimilator();
+		assm.setPKSL("EXPR", node.toString().trim());
+		initReactor(assm);
+    }
+    
     public void outAMultExpr(AMultExpr node)
     {
     	defaultOut(node);
-    	String leftKey = node.getLeft().toString().trim();
-    	String rightKey = node.getRight().toString().trim();
-    	
-    	Object rightObj = curReactor.getProp(rightKey);
-    	Object leftObj = curReactor.getProp(leftKey);
-    	
-    	Object result = null;
-		if (rightObj instanceof Double && leftObj instanceof Double) {
-			result = (Double) (leftObj) + (Double) (rightObj);
-			curReactor.setProp(node.toString().trim(), result);
-			curReactor.setProp("LAST_VALUE", result);
-			System.out.println(result);
-		}
-		else  
-		{
-			//TODO: need to make this generic and get the correct type of expression it
-			if(getDataMaker() instanceof H2Frame) {
-				H2Frame frame = (H2Frame) getDataMaker();
-				SqlExpressionBuilder builder = ExpressionGenerator.sqlGenerateSimpleMathExpressions(frame, leftObj, rightObj, node.getMult().toString().trim());
-				curReactor.setProp(node.toString().trim(), builder);
-			}
-    	}
+    	deInitReactor();
+    
+//    	defaultOut(node);
+//    	String leftKey = node.getLeft().toString().trim();
+//    	String rightKey = node.getRight().toString().trim();
+//    	
+//    	Object rightObj = curReactor.getProp(rightKey);
+//    	Object leftObj = curReactor.getProp(leftKey);
+//    	
+//    	Object result = null;
+//		if (rightObj instanceof Double && leftObj instanceof Double) {
+//			result = (Double) (leftObj) + (Double) (rightObj);
+//			curReactor.setProp(node.toString().trim(), result);
+//			curReactor.setProp("LAST_VALUE", result);
+//			System.out.println(result);
+//		}
+//		else  
+//		{
+//			//TODO: need to make this generic and get the correct type of expression it
+//			if(getDataMaker() instanceof H2Frame) {
+//				H2Frame frame = (H2Frame) getDataMaker();
+//				SqlExpressionBuilder builder = ExpressionGenerator.sqlGenerateSimpleMathExpressions(frame, leftObj, rightObj, node.getMult().toString().trim());
+//				curReactor.setProp(node.toString().trim(), builder);
+//			}
+//    	}
     }
     
     
