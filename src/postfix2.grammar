@@ -78,6 +78,17 @@ Productions
  ///////////////////////// END HIGHEST LEVEL ///////////////////////////
  ///////////////////////////////////////////////////////////////////////
 
+ // assigning an id based on a script evaluation  
+ assignment = id equal possible_variables;
+ possible_variables = {script} scriptchain | {constant} number_or_literal;
+ 
+ // [col, col, col... ]
+ gen_row = l_brac  col_def othercol* r_brac; // generic row
+ plain_row = col_def othercol*;
+ 
+ // example - output of any operation
+ operation_formula = id l_par plain_row? r_par asop?; // this is the formula with an operation in it. Although one could argue this could be a frameop - this can also be the output
+ 
  // Basic definitions for columns
  // columns can be a reference column / basic literal or just an expression
  // I have a feeling frame_op should not be part of col def
@@ -125,13 +136,6 @@ Productions
  // not removing cause seems like PK has an idea about this... 
  extended_expr = l_par [expr]:expr comma? [group]:gen_row r_par; 
 
- // example - output of any operation
- operation_formula = id l_par plain_row? r_par asop?; // this is the formula with an operation in it. Although one could argue this could be a frameop - this can also be the output
- 
- // [col, col, col... ]
- gen_row = l_brac  col_def othercol* r_brac; // generic row
- plain_row = col_def othercol*;
- 
  // s=[col, col, col...]
  selectors = selectorid  gen_row;
  projectors = projectid  gen_row;
@@ -143,13 +147,6 @@ Productions
  
  noun = {select} selectors | {project} projectors | {labels} labels | {tooltips} tooltips | {others} generic | {props} props | {code} code_alpha;
  othernoun =  comma noun;
- 
- //script = {frameop} frameop | {java_op} java_op | {r_op} r_op | {op} operation_formula | {make} make_op | {assign} assignment | {condition} ifblock;
- 
- //otherscript = custom script;
-
- // assigning an id based on a script evaluation  
- assignment = id equal scriptchain;
 
  // operations on a frame with explicit parameters
  frameop = id l_par noun othernoun* r_par asop?; // any operation on the frame. we will pick up the name through reflection
@@ -167,6 +164,9 @@ Productions
  java_op = java;
  r_op = r;
  
+ //script = {frameop} frameop | {java_op} java_op | {r_op} r_op | {op} operation_formula | {make} make_op | {assign} assignment | {condition} ifblock;
+ //otherscript = custom script;
+
  // if(some condition, operation | if condition, operation | if condition)
   operation_or_var = {script} script | {var} id;
   operation_or_ifblock = {script} script;
