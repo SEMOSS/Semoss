@@ -54,13 +54,11 @@ public class ImportDataReactor extends AbstractReactor {
 		QueryStruct2 queryStruct = getQueryStruct();
 		String engineName = queryStruct.getEngineName();
 		ITableDataFrame frame = (ITableDataFrame)this.planner.getProperty("FRAME", "FRAME");
-		String className = frame.getScriptReactors().get(PKQLEnum.IMPORT_DATA);
 		
 		Importer importer = (Importer) ImportFactory.getImporter(frame);
 		
-		IEngine engine = Utility.getEngine(removeQuotes(engineName.trim()));
+		IEngine engine = Utility.getEngine(engineName.trim());
 		SQLInterpreter2 interp = new SQLInterpreter2(engine);
-//			IQueryInterpreter interp = engine.getQueryInterpreter();
 		interp.setQueryStruct(queryStruct);
 		String importQuery = interp.composeQuery();
 		IRawSelectWrapper iterator = WrapperManager.getInstance().getRawWrapper(engine, importQuery);
@@ -69,13 +67,12 @@ public class ImportDataReactor extends AbstractReactor {
 		importer.put("G", frame);
 		importer.put(PKQLEnum.API + "_EDGE_HASH", queryStruct.getReturnConnectionsHash());
 		importer.put(PKQLEnum.API + "_QUERY_NUM_CELLS", 1.0);
-		importer.put(PKQLEnum.API + "_ENGINE", removeQuotes(engineName.trim()));
+		importer.put(PKQLEnum.API + "_ENGINE", engineName.trim());
 		importer.put(PKQLEnum.API, iterator);
 		importer.process();
 		ITableDataFrame importedFrame = (ITableDataFrame)importer.getValue("G");
 		System.out.println("IMPORTED FRAME CREATED WITH ROW COUNT: "+importedFrame.getNumRows());
 		this.planner.addProperty("FRAME", "FRAME", importedFrame);
-//			this.planner.addProperty("QUERYSTRUCT", "QUERYSTRUCT", new QueryStruct2());
 	}
 
 	@Override
@@ -96,13 +93,6 @@ public class ImportDataReactor extends AbstractReactor {
 			}
 		}
 		return queryStruct;
-	}
-	
-	private String removeQuotes(String value) {
-		if(value.startsWith("'") || value.startsWith("\"")) {
-			value = value.trim().substring(1, value.length() - 1);
-		}
-		return value;
 	}
 }
 
