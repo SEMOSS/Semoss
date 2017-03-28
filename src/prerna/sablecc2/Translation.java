@@ -1097,16 +1097,20 @@ public class Translation extends DepthFirstAdapter {
     	StackTraceElement[] ste = Thread.currentThread().getStackTrace();
     	if(ste.length > 2) {
     		LOGGER.info("CURRENT METHOD: "+ste[2].getMethodName());
-    		LOGGER.info("CURRENT NODE:" + node.toString() );
-    		
-    		if(curReactor != null) {
-    			LOGGER.info("CURRENT REACTOR: "+curReactor.getClass().getSimpleName());
-    		}
-    		else LOGGER.info("CURRENT REACTOR: null" + "\n");
+    		LOGGER.info("CURRENT NODE:" + node.toString());
+ 
     		
     		if(curReactor != null && curReactor.getParentReactor() != null) {
+    			LOGGER.info("CURRENT REACTOR: "+curReactor.getClass().getSimpleName());
     			LOGGER.info("PARENT REACTOR: "+curReactor.getParentReactor().getClass().getSimpleName() + "\n");
+    		} 
+    		
+    		else if (curReactor != null) {
+    			LOGGER.info("CURRENT REACTOR: "+curReactor.getClass().getSimpleName() + "\n");
     		}
+    		
+    		else LOGGER.info("CURRENT REACTOR: null" + "\n");
+    		
     	} else {
     		LOGGER.info("THIS SHOULD NOT HAPPEN!!!!!!!!!!");
     	}
@@ -1119,15 +1123,19 @@ public class Translation extends DepthFirstAdapter {
     	if(ste.length > 2) {
     		LOGGER.info("CURRENT METHOD: "+ste[2].getMethodName());
     		LOGGER.info("CURRENT NODE:" + node.toString());
-    		
-    		if(curReactor != null) {
-    			LOGGER.info("CURRENT REACTOR: "+curReactor.getClass().getSimpleName());
-    		}
-    		else LOGGER.info("CURRENT REACTOR: null" + "\n");
+ 
     		
     		if(curReactor != null && curReactor.getParentReactor() != null) {
+    			LOGGER.info("CURRENT REACTOR: "+curReactor.getClass().getSimpleName());
     			LOGGER.info("PARENT REACTOR: "+curReactor.getParentReactor().getClass().getSimpleName() + "\n");
+    		} 
+    		
+    		else if (curReactor != null) {
+    			LOGGER.info("CURRENT REACTOR: "+curReactor.getClass().getSimpleName() + "\n");
     		}
+    		
+    		else LOGGER.info("CURRENT REACTOR: null" + "\n");
+    		
     	} else {
     		LOGGER.info("THIS SHOULD NOT HAPPEN!!!!!!!!!!");
     	}

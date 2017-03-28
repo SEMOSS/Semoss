@@ -64,7 +64,7 @@ public class IterateReactor extends AbstractReactor {
 		GenRowStruct allNouns = getNounStore().getNoun(NounStore.all); //should be only joins
 		String id;
 		if(engineName != null) {
-			IEngine engine = Utility.getEngine(removeQuotes(engineName.trim()));
+			IEngine engine = Utility.getEngine(engineName);
 //			IQueryInterpreter interp = engine.getQueryInterpreter();
 			SQLInterpreter2 interp = new SQLInterpreter2(engine);
 			interp.setQueryStruct(queryStruct);
@@ -77,7 +77,7 @@ public class IterateReactor extends AbstractReactor {
 			SQLInterpreter2 interp = new SQLInterpreter2();
 			interp.setQueryStruct(queryStruct);
 			String importQuery = interp.composeQuery();
-			Iterator iterator = frame.query(importQuery);
+			Iterator iterator = frame.query(queryStruct);
 			this.output = iterator;
 			id = JobStore.INSTANCE.addJob(iterator);
 		}	
@@ -86,8 +86,7 @@ public class IterateReactor extends AbstractReactor {
 		returnData.put("jobId", id);
 		this.planner.addProperty("DATA", "DATA", returnData);
 		return getOutput();
-//		this.planner.addVariable("$RESULT", getOutput());
-//		this.planner.addProperty("RESULT", "RESULT", getOutput());
+
 	}
 	
 	@Override
@@ -115,13 +114,6 @@ public class IterateReactor extends AbstractReactor {
 			}
 		}
 		return queryStruct;
-	}
-	
-	private String removeQuotes(String value) {
-		if(value.startsWith("'") || value.startsWith("\"")) {
-			value = value.trim().substring(1, value.length() - 1);
-		}
-		return value;
 	}
 	
 	private Vector<Map<String,String>> getJoinCols(GenRowStruct joins) {
