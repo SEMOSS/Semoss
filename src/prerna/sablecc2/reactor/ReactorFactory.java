@@ -76,7 +76,7 @@ public class ReactorFactory {
 		reactorHash.put("Offset", OffsetReactor.class);
 		reactorHash.put("Join", JoinReactor.class);
 		reactorHash.put("Filter", QueryFilterReactor.class);
-		reactorHash.put("Query", QueryReactor.class); //takes in a direct query
+//		reactorHash.put("Query", QueryReactor.class); //takes in a direct query
 		
 		//Data Source Reactors
 		reactorHash.put("Database", DatabaseReactor.class); //specifies that our pksl operations after this point are dealing with the specified database
