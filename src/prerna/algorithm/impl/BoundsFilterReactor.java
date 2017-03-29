@@ -29,7 +29,7 @@ public class BoundsFilterReactor extends MathReactor{
 		modExpression();
 		Vector<String> columns = (Vector <String>) myStore.get(PKQLEnum.COL_DEF);
 		String[] columnsArray = convertVectorToArray(columns);
-		Iterator itr = getTinkerData(columns, (ITableDataFrame)myStore.get("G"), true);
+		Iterator itr = getTinkerData(columns, (ITableDataFrame)myStore.get("G"), false);
 		int numRows = ((ITableDataFrame)myStore.get("G")).getNumRows();
 		
 		if(myStore.containsKey(PKQLEnum.MAP_OBJ)) {
@@ -58,7 +58,7 @@ public class BoundsFilterReactor extends MathReactor{
 		this.lRegSlope = (sigmaXY - (sigmaX * sigmaY/numRows))/(sigmaX2 - (sigmaX * sigmaX/numRows));
 		this.lRegIntercept = (sigmaY - (this.lRegSlope * sigmaX))/numRows;
 		
-		Iterator itr2 = getTinkerData(columns, (ITableDataFrame)myStore.get("G"), true);
+		Iterator itr2 = getTinkerData(columns, (ITableDataFrame)myStore.get("G"), false);
 		double[] distance = new double[numRows];
 		double averageDist = 0;
 		//double cosTheta = 1/(Math.sqrt(Math.pow(this.lRegSlope, 2) + 1));
@@ -80,7 +80,7 @@ public class BoundsFilterReactor extends MathReactor{
 		double maxTgtDist = averageDist + (Math.sqrt(variance) * tolerance);
 		double maxSliderVal = maxDist/Math.sqrt(variance);
 		
-		Iterator itr3 = getTinkerData(columns, (ITableDataFrame)myStore.get("G"), true);
+		Iterator itr3 = getTinkerData(columns, (ITableDataFrame)myStore.get("G"), false);
 		HashMap<String,Integer> boundCounts = new HashMap();
 		boundCounts.put("Within Bounds",0);
 		boundCounts.put("Above Bounds",0);

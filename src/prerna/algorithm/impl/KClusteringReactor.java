@@ -78,7 +78,7 @@ public class KClusteringReactor extends MathReactor{
 		{
 			if(numClusters > maxClusters)
 				break;
-			Iterator itr = getTinkerData(columnsVector, dataFrame, false);	
+			Iterator itr = getTinkerData(columnsVector, dataFrame, true);	
 			kMeans = new KMeansModel(itr,clusteringAttributesIndexList, this.numIterations, numClusters);
 			int clusterNumIncrement = 1;
 			double currSSE = kMeans.getSSE();
@@ -111,7 +111,7 @@ public class KClusteringReactor extends MathReactor{
 		}
 		
 		if (stagnantDur == stagnantThreshold){
-			Iterator itr = getTinkerData(columnsVector, dataFrame, false);	
+			Iterator itr = getTinkerData(columnsVector, dataFrame, true);	
 			kMeans = new KMeansModel(itr,clusteringAttributesIndexList, this.numIterations, markStagnant);
 		}else{
 			int bestClusterNum = -1;
@@ -124,7 +124,7 @@ public class KClusteringReactor extends MathReactor{
 					bestClusterNum = clusterNum;
 				}
 			}
-			Iterator itr = getTinkerData(columnsVector, dataFrame, false);	
+			Iterator itr = getTinkerData(columnsVector, dataFrame, true);	
 			kMeans = new KMeansModel(itr,clusteringAttributesIndexList, this.numIterations, bestClusterNum);
 		}
 			
@@ -135,7 +135,7 @@ public class KClusteringReactor extends MathReactor{
 		if(regionColumnPresent){
 			dataFrame.unfilter("Region");
 		}
-		Iterator resultItr = getTinkerData(columnsVector, dataFrame, false);
+		Iterator resultItr = getTinkerData(columnsVector, dataFrame, true);
 		ClusterIterator expItr = new ClusterIterator(resultItr, columnsArray,script, clusters, regionColumnPresent);
 		String nodeStr = myStore.get(whoAmI).toString();
 		myStore.put(nodeStr, expItr);
