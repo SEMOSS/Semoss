@@ -36,7 +36,15 @@ public class SqlArithmeticSelector implements IExpressionSelector{
 	@Override
 	public String toString() {
 		StringBuilder builder = new StringBuilder();
-		builder.append(leftObj.toString()).append(" ").append(arithmetic).append(" ").append(rightObj.toString());
+		builder.append(leftObj.toString()).append(" ").append(arithmetic);
+		
+		//We want to handle the case of dividing by 0, so accounting for this case by creating query
+		// leftObj / NULLIF(rightObj, 0)
+		if(arithmetic.equals("/") || arithmetic.equals("\\")) {
+			builder.append("NULLIF(").append(rightObj.toString()).append(",0)");
+		} else {
+			builder.append(" ").append(rightObj.toString());
+		}
 		return builder.toString();
 	}
 
