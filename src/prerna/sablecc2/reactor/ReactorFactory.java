@@ -19,14 +19,18 @@ import prerna.sablecc2.reactor.qs.JoinReactor;
 import prerna.sablecc2.reactor.qs.LimitReactor;
 import prerna.sablecc2.reactor.qs.OffsetReactor;
 import prerna.sablecc2.reactor.qs.QueryFilterReactor;
-import prerna.sablecc2.reactor.qs.QueryReactor;
+//import prerna.sablecc2.reactor.qs.QueryReactor;
 import prerna.sablecc2.reactor.qs.SelectReactor;
 import prerna.sablecc2.reactor.qs.SumReactor;
-import prerna.util.Utility;
+//import prerna.util.Utility;
 
 public class ReactorFactory {
 
+	//This holds the reactors that are frame agnostic and can be used by pixel
 	private static Map<String, Class> reactorHash;
+	
+	//This holds the list of expressions we have that can be used as operational formulas and reducers
+	//Ex: Sum(), Max(), Min(), etc. 
 	private static Set<String> expressions;
 	static {
 		reactorHash = new HashMap<>();
@@ -36,6 +40,7 @@ public class ReactorFactory {
 		populateExpressionSet(expressions);
 	}
 	
+	//populates the types of expressions we have available (list taken from h2frame)
 	private static void populateExpressionSet(Set<String> expressions) {
 		expressions.add(PKQLEnum.SUM.toString());
 		expressions.add(PKQLEnum.MAX.toString());
@@ -60,6 +65,7 @@ public class ReactorFactory {
 		expressions.add(PKQLEnum.CORRELATION_ALGORITHM.toString());
 	}
 	
+	//populates the frame agnostic reactors used by pixel
 	private static void createReactorHash(Map<String, Class> reactorHash) {
 		
 		//Import Reactors
@@ -96,6 +102,24 @@ public class ReactorFactory {
 		
 	}
 	
+	/**
+	 * 
+	 * @param reactorId - reactor name
+	 * @param nodeString - pixel
+	 * @param frame - frame we will be operating on
+	 * @param parentReactor - the parent reactor
+	 * @return
+	 * 
+	 * This will simply return the IReactor responsible for execution based on the reactorId
+	 * 
+	 * Special case:
+	 * 		if we are dealing with an expression, we determine if this expression is part of a select query or should be reduced
+	 * 		If it is a reducing expression we
+	 * 			1. create an expr reactor
+	 * 			2. grab the reducing expression reactor from the frame
+	 * 			3. set that reactor to the expr reactor and return the expr reactor
+	 * 		The expr reactor when executed will use that reducing expression reactor to evaluate
+	 */
     public static IReactor getReactor(String reactorId, String nodeString, ITableDataFrame frame, IReactor parentReactor) {
     	
     	IReactor reactor;
@@ -108,19 +132,20 @@ public class ReactorFactory {
 				//if this expression is not a selector
 				if(!(parentReactor instanceof SelectReactor)) {
 							
-					//this expression is a reducer so grab it from the frame's expression hash
+					//this expression is a reducer not a selector
+					
+					//so first we create an ExprReactor
 					reactor = new ExprReactor();
+					reactor.setPKSL(reactorId, nodeString);
+			        reactor.setName("OPERATION_FORMULA");
+			        
+			        //grab the expression reducer from the frame
 			        Map<String, String> scriptReactors = new H2Frame().getScriptReactors();
 			        String reactorName = scriptReactors.get(reactorId.toUpperCase());
 			        
-			        
-			        //if((node.getId() + "").trim().equalsIgnoreCase("as"))
-			        //	opReactor = new AsReactor();
-			        reactor.setPKSL(reactorId, nodeString);
-			        reactor.setName("OPERATION_FORMULA");
-			        
-			        if(reactorName == null)
-			        	reactorName = Utility.toCamelCase(reactorId);
+//			        if(reactorName == null)
+//			        	reactorName = Utility.toCamelCase(reactorId);
+			        //set the name of that reducer in the reactor so it can reduce properly
 			        reactor.setProp("REACTOR_NAME", reactorName);
 			        return reactor;
 				}
