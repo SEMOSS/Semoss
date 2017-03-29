@@ -46,7 +46,6 @@ import prerna.sablecc2.node.Node;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.NounMetadata;
 import prerna.sablecc2.om.PkslDataTypes;
-import prerna.sablecc2.reactor.AsReactor;
 import prerna.sablecc2.reactor.AssignmentReactor;
 import prerna.sablecc2.reactor.Assimilator;
 import prerna.sablecc2.reactor.ExprReactor;
@@ -58,6 +57,7 @@ import prerna.sablecc2.reactor.PKSLPlanner;
 import prerna.sablecc2.reactor.RReactor;
 import prerna.sablecc2.reactor.ReactorFactory;
 import prerna.sablecc2.reactor.SampleReactor;
+import prerna.sablecc2.reactor.qs.AsReactor;
 import prerna.ui.components.playsheets.datamakers.IDataMaker;
 import prerna.util.Utility;
 
@@ -115,7 +115,14 @@ public class Translation extends DepthFirstAdapter {
 		//grab the frame here
 		IDataMaker frame = null;
 		try {
-			frame = (IDataMaker)planner.getProperty("FRAME", "FRAME");
+			//get the noun meta result
+			//if it is a frame
+			//then set the frame to the frame result
+			NounMetadata noun = planner.getVariable("$RESULT");
+			Object frameNoun = noun.getValue();
+			if(frameNoun instanceof IDataMaker){
+				frame = (IDataMaker) frameNoun;
+			}
 		} catch(Exception e) {
 			
 		}
