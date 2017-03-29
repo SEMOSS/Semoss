@@ -87,6 +87,7 @@ public class ReactorFactory {
 		//Data Source Reactors
 		reactorHash.put("Database", DatabaseReactor.class); //specifies that our pksl operations after this point are dealing with the specified database
 		reactorHash.put("Frame", FrameReactor.class); //specifes that our pksl operations after this point are dealing with the specified frame
+		reactorHash.put("CreateFrame", CreateFrame.class);
 		
 		//Reducers
 		reactorHash.put("Iterate", IterateReactor.class); //this takes in a query struct and produces an iterator

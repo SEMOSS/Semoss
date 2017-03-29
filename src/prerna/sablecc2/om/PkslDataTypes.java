@@ -19,7 +19,8 @@ public enum PkslDataTypes {
 	ITERATOR ("ITERATOR"),							// iterator
 	EXPORT ("EXPORT"),
 	LAMBDA ("LAMBDA"),
-	ALIAS("ALIAS");
+	ALIAS("ALIAS"),
+	FRAME("FRAME");
 	
 	private final String strValue;
 	
