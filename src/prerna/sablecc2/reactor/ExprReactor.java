@@ -12,6 +12,8 @@ import prerna.sablecc.expressions.sql.H2SqlExpressionIterator;
 import prerna.sablecc.expressions.sql.builder.SqlColumnSelector;
 import prerna.sablecc.expressions.sql.builder.SqlExpressionBuilder;
 import prerna.sablecc2.om.GenRowStruct;
+import prerna.sablecc2.om.NounMetadata;
+import prerna.sablecc2.om.PkslDataTypes;
 
 public class ExprReactor extends AbstractReactor {
 
@@ -82,9 +84,23 @@ public class ExprReactor extends AbstractReactor {
 	public Object Out() {
 		//if we have a parent reactor...execute and push up
 		//if we do not have a parent
-		mergeUp();
-		if(parentReactor != null) return parentReactor;
-		return null;
+//		mergeUp();
+//		if(parentReactor != null) return parentReactor;
+//		return null;
+		
+		return parentReactor;
+	}
+	
+	public Object execute() {
+		
+		SqlExpressionBuilder builder = buildSQLExpression(buildReactor());
+		NounMetadata noun;
+		if(builder.isScalar()) {
+			noun = new NounMetadata(builder.getScalarValue(), PkslDataTypes.CONST_DECIMAL);
+		} else {
+			noun = new NounMetadata(builder, PkslDataTypes.SQLE);
+		}
+		return noun;
 	}
 
 	@Override

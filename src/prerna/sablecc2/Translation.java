@@ -8,6 +8,7 @@ import java.util.Map;
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
+import prerna.algorithm.api.ITableDataFrame;
 import prerna.ds.h2.H2Frame;
 import prerna.sablecc2.analysis.DepthFirstAdapter;
 import prerna.sablecc2.node.AAsop;
@@ -309,21 +310,21 @@ public class Translation extends DepthFirstAdapter {
         
         // this is old code when everything was a sample reactor
         // should no longer be used...
-        if(opReactor instanceof SampleReactor) {
-	        opReactor = new ExprReactor();
-	        Map<String, String> scriptReactors = new H2Frame().getScriptReactors();
-	        String reactorName = scriptReactors.get(node.getId().toString().trim().toUpperCase());
-	        
-	        
-	        //if((node.getId() + "").trim().equalsIgnoreCase("as"))
-	        //	opReactor = new AsReactor();
-	        opReactor.setPKSL(node.getId().toString().trim(), node.toString().trim());
-	        opReactor.setName("OPERATION_FORMULA");
-	        
-	        if(reactorName == null)
-	        	reactorName = Utility.toCamelCase(node.getId().toString().trim());
-	        opReactor.setProp("REACTOR_NAME", reactorName);
-        }
+//        if(opReactor instanceof SampleReactor) {
+//	        opReactor = new ExprReactor();
+//	        Map<String, String> scriptReactors = new H2Frame().getScriptReactors();
+//	        String reactorName = scriptReactors.get(node.getId().toString().trim().toUpperCase());
+//	        
+//	        
+//	        //if((node.getId() + "").trim().equalsIgnoreCase("as"))
+//	        //	opReactor = new AsReactor();
+//	        opReactor.setPKSL(node.getId().toString().trim(), node.toString().trim());
+//	        opReactor.setName("OPERATION_FORMULA");
+//	        
+//	        if(reactorName == null)
+//	        	reactorName = Utility.toCamelCase(node.getId().toString().trim());
+//	        opReactor.setProp("REACTOR_NAME", reactorName);
+//        }
         // since there are no square brackets.. there are no nouns
         //opReactor.curNoun("all");
         initReactor(opReactor);
@@ -1072,7 +1073,7 @@ public class Translation extends DepthFirstAdapter {
      * Sets the PKSL operations in the reactor
      */
     private IReactor getReactor(String reactorId, String nodeString) {
-    	return ReactorFactory.getReactor(reactorId, nodeString);
+    	return ReactorFactory.getReactor(reactorId, nodeString, (ITableDataFrame)getDataMaker(), curReactor);
     }
     
     private void printData(Object node, String message) {
