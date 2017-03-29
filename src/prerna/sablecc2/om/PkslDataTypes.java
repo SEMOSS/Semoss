@@ -18,7 +18,8 @@ public enum PkslDataTypes {
 	JOB ("JOB"),									// job
 	ITERATOR ("ITERATOR"),							// iterator
 	EXPORT ("EXPORT"),
-	LAMBDA ("LAMBDA");
+	LAMBDA ("LAMBDA"),
+	ALIAS("ALIAS");
 	
 	private final String strValue;
 	
