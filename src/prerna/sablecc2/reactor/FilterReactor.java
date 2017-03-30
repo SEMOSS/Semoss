@@ -31,13 +31,8 @@ public class FilterReactor extends AbstractReactor{
 		GenRowStruct rcol = store.getNoun("RCOL");
 		
 		Filter thisFilter = new Filter(lcol, comparator.get(0).toString(), rcol);
-		
-		GenRowStruct thisStruct = store.makeNoun("f");
-		thisStruct.addFilter(thisFilter);
-
 		// just add this to the parent
-		parentReactor.getNounStore().addNoun("f", thisStruct);
-		//mergeUp();
+		parentReactor.getCurRow().addFilter(thisFilter);
 		return parentReactor;
 	}
 	

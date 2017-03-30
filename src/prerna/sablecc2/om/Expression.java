@@ -19,4 +19,11 @@ public class Expression {
 		return inputs;
 	}
 
+	/**
+	 * Used for debugging to easily see what expression is
+	 * being used
+	 */
+	public String toString() {
+		return this.expression;
+	}
 }
