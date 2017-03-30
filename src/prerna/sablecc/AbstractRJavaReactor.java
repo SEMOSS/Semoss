@@ -12,6 +12,7 @@ import java.util.Set;
 import java.util.Vector;
 
 import org.apache.commons.io.FileUtils;
+import org.apache.commons.lang.StringUtils;
 import org.apache.tinkerpop.gremlin.structure.Graph;
 import org.apache.tinkerpop.gremlin.structure.io.IoCore;
 import org.rosuda.JRI.Rengine;
@@ -30,8 +31,11 @@ import prerna.ds.h2.H2Frame;
 import prerna.ds.r.RDataTable;
 import prerna.ds.util.FileIterator;
 import prerna.ds.util.FileIterator.FILE_DATA_TYPE;
+import prerna.engine.api.IEngine;
 import prerna.ds.util.RdbmsFrameUtility;
 import prerna.poi.main.HeadersException;
+import prerna.poi.main.helper.ImportOptions;
+import prerna.ui.components.ImportDataProcessor;
 import prerna.util.ArrayUtilityMethods;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
@@ -1804,6 +1808,16 @@ public abstract class AbstractRJavaReactor extends AbstractJavaReactor {
 				+ Constants.R_MATCHING_REPO_FOLDER;
 		corpusDirectory = corpusDirectory.replace("\\", "/");
 
+		// Grab the csv directory
+		String csvDirectory = getBaseFolder() + "\\" + Constants.R_BASE_FOLDER + "\\"
+				+ Constants.R_MATCHING_CSVS_FOLDER;
+		csvDirectory = csvDirectory.replace("\\", "/");
+
+		// Grab the prop directory
+		String propDirectory = getBaseFolder() + "\\" + Constants.R_BASE_FOLDER + "\\"
+				+ Constants.R_MATCHING_PROP_FOLDER;
+		propDirectory = propDirectory.replace("\\", "/");
+
 		// Set the number of minhash functions and the number of bands
 		// nMinhash should be divisible by nBands, and the greater the nBands
 		// the slower the performance of the algorithm
@@ -1844,7 +1858,7 @@ public abstract class AbstractRJavaReactor extends AbstractJavaReactor {
 		// Run locality sensitive hashing to generate matches
 		runR(rFrameName + " <- " + Constants.R_LSH_MATCHING_FUN + "(\"" + corpusDirectory + "\", " + nMinhash + ", "
 				+ nBands + ", " + similarityThreshold + ", " + instancesThreshold + ", \""
-				+ DomainValues.ENGINE_VALUE_DELIMETER + "\")");
+				+ DomainValues.ENGINE_CONCEPT_PROPERTY_DELIMETER + "\", \"" + csvDirectory + "\")");
 
 		// Synchronize from R
 		storeVariable("GRID_NAME", rFrameName);
@@ -1881,12 +1895,54 @@ public abstract class AbstractRJavaReactor extends AbstractJavaReactor {
 			}
 		}
 
-		// Clean directory
-		try {
-			FileUtils.cleanDirectory(new File(corpusDirectory));
-		} catch (IOException e) {
-			System.out.println("Unable to clean directory");
-			e.printStackTrace();
+		// Persist the data into a database
+		String matchingDbName = "MatchingDatabase";
+		IEngine engine = Utility.getEngine(matchingDbName);
+
+		// Only add to the engine if it is null
+		// TODO gracefully refresh the entire db
+		if (engine == null) {
+
+			// Specify the options necessary to load data from the csv file into
+			// SEMOSS
+			ImportOptions options = new ImportOptions();
+			options.setDbName(matchingDbName);
+			options.setImportType(ImportOptions.IMPORT_TYPE.CSV);
+			options.setDbType(ImportOptions.DB_TYPE.RDF);
+			options.setBaseFolder(getBaseFolder());
+			options.setAutoLoad(false);
+
+			// Improves performance
+			options.setAllowDuplicates(true);
+
+			// Set all the csv files
+			File csvDirectoryFile = new File(csvDirectory);
+			options.setFileLocation(
+					csvDirectory + "/" + StringUtils.join(csvDirectoryFile.list(), ";" + csvDirectory + "/"));
+
+			// Set all the prop files
+			File propDirectoryFile = new File(propDirectory);
+			options.setPropertyFiles(
+					propDirectory + "/" + StringUtils.join(propDirectoryFile.list(), ";" + propDirectory + "/"));
+
+			// Create new if the database does not yet exist, otherwise add to
+			// existing
+			ImportDataProcessor importer = new ImportDataProcessor();
+			options.setImportMethod(ImportOptions.IMPORT_METHOD.CREATE_NEW);
+			try {
+				importer.runProcessor(options);
+			} catch (Exception e) {
+				e.printStackTrace();
+			}
+
+			// Clean directory
+			// TODO clean the directory even when there is an error
+			try {
+				FileUtils.cleanDirectory(new File(corpusDirectory));
+			} catch (IOException e) {
+				System.out.println("Unable to clean directory");
+				e.printStackTrace();
+			}
 		}
 	}
 
