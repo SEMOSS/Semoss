@@ -4,18 +4,15 @@ import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileInputStream;
-import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.OutputStreamWriter;
-import java.io.PrintStream;
 import java.net.ServerSocket;
 import java.nio.file.Files;
 import java.nio.file.StandardCopyOption;
 import java.util.Hashtable;
-import java.util.Properties;
 
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
@@ -28,18 +25,26 @@ import org.w3c.dom.NamedNodeMap;
 import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
 
+import prerna.util.Utility;
+
 public class Me {
 	// the idea here really simple
 	// look at where the batch file is 
 	// and then based on that run configuration
+	public static String os = "";
 	
 	public static void main(String [] args) throws Exception
 	{
+		Me cm = new Me();
+		
+		// Before anything else, see what the OS is
+		cm.os = System.getProperty("os.name").toLowerCase();
+		
 		// get in the args what the base folder is
 		String homePath = null;
 		String rHome = null;
 		String rLib = null;
-		String jriHome = null;
+		String jriDll = null;
 		String rdll = null;
 		
 		if(args == null || args.length < 5) {
@@ -54,15 +59,13 @@ public class Me {
 			rHome = args[1].replace("\\", "/");
 			rLib = args[2].replace("\\", "/");
 			rdll = args[3].replace("\\", "/");
-			jriHome = args[4].replace("\\", "/");
+			jriDll = args[4].replace("\\", "/");
 		}
 		
 		System.out.println("Using home folder: " + homePath);
 		
 //		if(homePath == null)
 //			homePath = "C:/Users/pkapaleeswaran/workspacej3/MonolithDev2";
-
-		Me cm = new Me();
 		
 		
 		// so this si where the batch file is running
@@ -95,13 +98,15 @@ public class Me {
 		
 		cm.writeConfigureFile(homePath, port);
 		
+		cm.writePath(homePath, rHome, rdll, jriDll, rLib);
+		
 		// write base env such as
 		// path
 		//  
 		
 		// need to write classpath and home files
 		// need to change the loadpath on catalina to include the library path
-		cm.writeTomcatEnv(homePath, rdll, jriHome);		
+		cm.writeTomcatEnv(homePath, rdll, jriDll);		
 		
 		System.out.println("------------------------");
 		System.out.println("SEMOSS configured! Run startSEMOSS.bat and point your browser to http://localhost:" + port + "/SemossWeb/ to access SEMOSS!");
@@ -113,22 +118,22 @@ public class Me {
 		String fileName = semossHome + "/setPath.bat";
 		try{
 			BufferedWriter bw = new BufferedWriter(new OutputStreamWriter(new FileOutputStream(fileName)));
-			String path = "set path = %path%"; 
+			String path = "\nset path=%path%"; 
 			path = path + ";" + semossHome;
 			path = path + ";" + rHome;
 			path = path + ";" + rDll;
 			path = path + ";" + jriDll;
 			
-			String rHomePath = "set R_HOME=" + rHome;
-			String rlibPath = "set R_LIBS=" + rLib;
-			bw.write("echo Modifying classpath");
+			String rHomePath = "\nset R_HOME=" + rHome;
+			String rlibPath = "\nset R_LIBS=" + rLib;
+			bw.write("\necho Modifying classpath");
 			bw.write(path);
 			bw.write(rHomePath);
-			bw.write("echo R_HOME IS %R_HOME%");
+			bw.write("\necho R_HOME IS %R_HOME%");
 			bw.write(rlibPath);
-			bw.write("echo R_LIBS IS %R_LIBS%");
-			bw.write("echo:");
-			bw.write("echo:");
+			bw.write("\necho R_LIBS IS %R_LIBS%");
+			bw.flush();
+			bw.close();
 		}catch(Exception ex)
 		{
 			
@@ -138,7 +143,7 @@ public class Me {
 	public void writeTomcatEnv(String semossHome, String rHome, String jriHome)
 	{
 		//-Djava.library.path=C:\Users\pkapaleeswaran\Documents\R\win-library\3.1\rJava\jri\x64;"C:\Program Files\R\R-3.2.4revised\bin\x64"
-		String fileName = semossHome + "/tomcat/bin" + "setenv.bat";
+		String fileName = semossHome + "/../tomcat/bin/" + "setenv.bat";
 		try {
 			//BufferedWriter bw = new BufferedWriter(new OutputStreamWriter(new PrintStream(System.out)));
 			BufferedWriter bw = new BufferedWriter(new OutputStreamWriter(new FileOutputStream(fileName)));
@@ -148,7 +153,8 @@ public class Me {
 			// to get max memory ?
 			//options = options + " " + "-Xms256m -Xmx512m";
 			bw.write("set JAVA_OPTS=" + options);
-			
+			bw.flush();
+			bw.close();
 		} catch (IOException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
@@ -159,7 +165,7 @@ public class Me {
 	public void writeConfigureFile(String homePath, String port)
 	{
 		try {
-			BufferedWriter writer = new BufferedWriter(new FileWriter(homePath + "configured.txt"));
+			BufferedWriter writer = new BufferedWriter(new FileWriter(homePath + "/configured.txt"));
 			writer.write("Port = " + port);
 			writer.write("SEMOSS Web = " + "http://localhost:" + port + "/SemossWeb/");
 			writer.flush();
@@ -175,7 +181,7 @@ public class Me {
 	public void changeTomcatXML(String homePath, String port) throws Exception
 	{
 		// args[0]/conf/server
-		String appFile = homePath + "/../conf/server.xml";
+		String appFile = homePath + "/../tomcat/conf/server.xml";
 		// changing for my current box
 //		appFile = "C:/Users/pkapaleeswaran/Desktop/From C Drive Root/apache-tomcat-8.0.15/conf/server2.xml";
 		System.out.println("Configuring Tomcat.. " + appFile);
@@ -293,7 +299,7 @@ public class Me {
 		
 		System.out.println("Modifying Web Configuration.....");
 		
-		String appPath = homePath + "/../webapps/SemossWeb/app/app.config.js";
+		String appPath = homePath + "/../tomcat/webapps/SemossWeb/core/app.config.js";
 		String altPath = appPath + "temp";
 		
 
@@ -319,14 +325,15 @@ public class Me {
 			inout = br.readLine();
 		}
 		
+		bw.flush();
 		bw.close();
 		br.close();
 		
 		replaceFiles(appPath, altPath);
 		
 		
-		// the old app.config
-		appPath = homePath + "/../webapps/SemossWeb/olddev/app/scripts/config.js";
+		// the embed app.config
+		appPath = homePath + "/../tomcat/webapps/SemossWeb/embed/app.config.js";
 		altPath = appPath + "temp";
 //		appPath = homePath + "/Webcontent/dev/olddev/app/scripts/config.js";
 //		altPath = homePath + "/Webcontent/dev/olddev/app/scripts/config2.js";
@@ -346,13 +353,41 @@ public class Me {
 			
 			inout = br.readLine();
 		}
-		
+		bw.flush();
 		bw.close();
 		br.close();
 
-		replaceFiles(appPath, altPath);		
+		replaceFiles(appPath, altPath);
+		
+		// the playsheet app.config
+		appPath = homePath + "/../tomcat/webapps/SemossWeb/playsheet/app.config.js";
+		altPath = appPath + "temp";
+		//				appPath = homePath + "/Webcontent/dev/olddev/app/scripts/config.js";
+		//				altPath = homePath + "/Webcontent/dev/olddev/app/scripts/config2.js";
+
+		inout = null;
+
+		br = new BufferedReader(new InputStreamReader(new FileInputStream(appPath)));
+		bw = new BufferedWriter(new OutputStreamWriter(new FileOutputStream(altPath)));
+
+		inout = br.readLine();
+
+		while(inout != null)
+		{
+			if(inout.contains(".constant('PORT'"))
+				inout = ".constant('PORT','" + port + "')";
+			bw.write(inout+"\n");
+
+			inout = br.readLine();
+		}
+		
+		bw.flush();
+		bw.close();
+		br.close();
+
+		replaceFiles(appPath, altPath);	
 	}
-	
+
 	public void replaceFiles(String fileToReplace, String fileToReplaceWith) throws Exception
 	{
 		// delete file to replace and replace with file to be replaced
@@ -361,29 +396,11 @@ public class Me {
 		Files.move(tobeRep.toPath(), toRep.toPath(), StandardCopyOption.REPLACE_EXISTING);
 	}
 	
-	private void replaceProp(String fileName, String [] thingsToReplace, String []thingsToReplaceWith)
+	private void replaceProp(String fileName, String [] keysForThingsToReplace, String [] newValuesForReplacement)
 	{
-		try {
-			File readFile = new File(fileName);
-			FileInputStream fis = new FileInputStream(readFile);
-			Properties prop = new Properties();
-			prop.load(fis);
-			for(int repIndex = 0;repIndex < thingsToReplace.length;repIndex++)
-				prop.put(thingsToReplace[repIndex], thingsToReplaceWith[repIndex]);
-			
-			// close the stream
-			fis.close();
-			
-			FileOutputStream fos = new FileOutputStream(readFile);
-			// write it back
-			prop.store(fos, "Complete");
-			fos.close();
-		} catch (FileNotFoundException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		} catch (IOException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
+		int length = keysForThingsToReplace.length;
+		for(int i = 0; i < length; i++) {
+			Utility.changePropMapFileValue(fileName, keysForThingsToReplace[i], newValuesForReplacement[i]);
 		}
 	}
 
@@ -400,7 +417,7 @@ public class Me {
 		
 
 		DocumentBuilder db = DocumentBuilderFactory.newInstance().newDocumentBuilder();
-		String appFile = homePath + "/../webapps/Monolith/WEB-INF/web.xml";
+		String appFile = homePath + "/../tomcat/webapps/Monolith/WEB-INF/web.xml";
 		System.out.println("Configuring web.xml " + appFile);
 		Document d = db.parse(appFile);
 		NodeList nl = d.getElementsByTagName("context-param");
@@ -444,7 +461,7 @@ public class Me {
 	
 	private void genOpenBrowser(String homePath, String port) throws Exception
 	{
-		String browserBat = homePath + "/../semosshome/config/openBrowser.bat";
+		String browserBat = homePath + "/config/openBrowser.bat";
 		BufferedWriter writer = new BufferedWriter(new OutputStreamWriter(new FileOutputStream(browserBat)));
 		
 		writer.write("ECHO Opening browser to http://localhost:" + port + "/SemossWeb/ to access SEMOSS...");
