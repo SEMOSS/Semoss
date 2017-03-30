@@ -67,7 +67,7 @@ public class KClusteringReactor extends MathReactor{
 			clusteringAttributesIndexList.add(columnHeaders.indexOf(clusteringAttr));
 		}
 		
-		this.numIterations = 1000;
+		this.numIterations = 10000;
 		KMeansModel kMeans = null;
 		int numClusters = 2, prevNumClusters = 2;
 		double SSERateThreshold = 0.3;
