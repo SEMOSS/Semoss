@@ -12,5 +12,5 @@ install.packages("rJava")
 install.packages("devtools")
 devtools::install_github("twitter/AnomalyDetection")
 
-# Semantic Matching package
-install.packages("textresuse")
+# Semantic matching package
+install.packages("textreuse")
