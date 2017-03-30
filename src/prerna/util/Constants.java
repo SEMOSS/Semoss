@@ -507,7 +507,10 @@ public class Constants {
 	public static final String R_BASE_FOLDER = "R";
 	public static final String R_ANALYTICS_SCRIPTS_FOLDER = "AnalyticsRoutineScripts";
 	public static final String R_USER_SCRIPTS_FOLDER = "UserScripts";
+	public static final String R_MATCHING_CSVS_FOLDER = "MatchingCsvs";
+	public static final String R_MATCHING_PROP_FOLDER = "MatchingProp";
 	public static final String R_MATCHING_REPO_FOLDER = "MatchingRepository";
+	public static final String R_TEMP_FOLDER = "Temp";
 	
 	// Utility script with custom functions for R
 	public static final String R_UTILITY_SCRIPT = "Utility.R";
