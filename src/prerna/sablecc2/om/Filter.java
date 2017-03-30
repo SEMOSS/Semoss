@@ -7,6 +7,7 @@ import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
 import javassist.CannotCompileException;
+import javassist.ClassClassPath;
 import javassist.ClassPool;
 import javassist.CtClass;
 import javassist.CtNewMethod;
@@ -73,9 +74,9 @@ public class Filter {
 				+ "}"
 				+ "}");
 		
-		boolean evaluteResult = false;
 		String packageName = "t" + System.currentTimeMillis(); // make it unique
 		CtClass cc = pool.makeClass(packageName + ".c" + System.currentTimeMillis());
+		
 		try {
 			// class extends FitlerEvaluator
 			// it is just an abstract class with the method evaluate above
@@ -85,7 +86,13 @@ public class Filter {
 			cc.addMethod(CtNewMethod.make(method.toString(), cc));
 			Class retClass = cc.toClass();
 			FilterEvaluator c = (FilterEvaluator) retClass.newInstance();
-			evaluteResult = c.evaluate();
+			boolean evaluteResult = c.evaluate();
+			
+			// remove the class from the pool
+			ClassClassPath ccp = new ClassClassPath(retClass.getClass());
+			pool.removeClassPath(ccp);
+			
+			return evaluteResult;
 		} catch (CannotCompileException e1) {
 			e1.printStackTrace();
 		} catch (NotFoundException e1) {
@@ -96,7 +103,9 @@ public class Filter {
 			e.printStackTrace();
 		}
 
-		return evaluteResult;
+		// if we got to this point
+		// an error occurred in the evaluation of the filter
+		throw new IllegalArgumentException("Invalid argument/compilation to evaluate filter (" + lString + " " + comparator + " " + rString + ")");
 	}
 	
 	/**
