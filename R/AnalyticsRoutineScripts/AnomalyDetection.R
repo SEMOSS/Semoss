@@ -35,6 +35,9 @@ period <- args[[7]]
 # Set the time column as the key
 setkeyv(dt, time.col)
 
+# Order by the time column
+setorderv(dt, time.col)
+
 # Aggregate for each time value using the user-specified aggregate function
 agg.col <- paste0(agg.string, "_", series.col)
 dt[, toString(agg.col) := as.numeric(agg(get(series.col))), keyby = c(time.col)]
