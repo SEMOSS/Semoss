@@ -36,10 +36,6 @@ public class IfReactor extends AbstractReactor {
 	// once again this would be abstract
 	public Object execute()
 	{
-		System.out.println("Execute the method.. " + signature);
-		System.out.println("Printing NOUN Store so far.. " + store);
-		System.out.println("Children are..." + childReactor);
-		
 		Object ifEvaluatorObject = this.curRow.get(0);
 		PkslDataTypes ifEvaluatorType = this.curRow.getMeta(0);
 		
@@ -67,19 +63,18 @@ public class IfReactor extends AbstractReactor {
 				}
 			}
 		}
-
 		// the if will always have 2 values in its curRow
 		// the first value is the true object
 		// the second value is the false object
 		// based on the case evaluation, we will know which one to evaluate
 		if(caseEvaluation == true) {
-			Object trueObj = this.curRow.get(0);
-			PkslDataTypes trueObjMeta = this.curRow.getMeta(0);
+			Object trueObj = this.curRow.get(1);
+			PkslDataTypes trueObjMeta = this.curRow.getMeta(1);
 			// evaluate the true statement
 			return evaluateStatement(trueObj, trueObjMeta);
 		} else {
-			Object falseObj = this.curRow.get(1);
-			PkslDataTypes falseObjMeta = this.curRow.getMeta(1);
+			Object falseObj = this.curRow.get(2);
+			PkslDataTypes falseObjMeta = this.curRow.getMeta(2);
 			// evaluate the false statement
 			return evaluateStatement(falseObj, falseObjMeta);
 		}
