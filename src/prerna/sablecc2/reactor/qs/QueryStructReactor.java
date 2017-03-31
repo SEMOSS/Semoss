@@ -77,6 +77,8 @@ public abstract class QueryStructReactor extends AbstractReactor {
 	
 	//initialize the reactor with its necessary inputs
 	private void init() {
+		// this will happen when we have an explicit querystruct
+		// or one result piped a query struct to the current reactor
 		GenRowStruct qsInputParams = getNounStore().getNoun(PkslDataTypes.QUERY_STRUCT.toString());
 		if(qsInputParams != null) {
 			int numInputs = qsInputParams.size();
@@ -85,6 +87,13 @@ public abstract class QueryStructReactor extends AbstractReactor {
 				mergeQueryStruct((QueryStruct2)qsNoun.getValue());
 			}
 		}
+		
+		// if it is not piped
+		// but there is a query struct within a query struct
+		// the specific instance of the reactor will handle those types of merges
+		// example
+		// selector ( studio , sum(mb) ) 
+		// the selector reactor will handle putting the studio and the sum(mb)
 		
 		if(qs == null) {
 			qs = new QueryStruct2();
