@@ -199,17 +199,6 @@ run_lsh_matching <- function(path, N, b, similarityThreshold, instancesThreshold
   ##################################################
   match <- dt[, c("match", "score")]
   
-  
-  ##################################################
-  # Create a table that has the properties of 
-  ##################################################
-  
-  
-  ##################################################
-  # Create a table that has just the match and its score
-  ##################################################
-  
-  
   ##################################################
   # Write all the tables
   ##################################################
