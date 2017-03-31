@@ -3,7 +3,6 @@ package prerna.sablecc2;
 import java.io.BufferedWriter;
 import java.io.FileWriter;
 import java.io.IOException;
-import java.util.Map;
 
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
@@ -48,7 +47,6 @@ import prerna.sablecc2.om.NounMetadata;
 import prerna.sablecc2.om.PkslDataTypes;
 import prerna.sablecc2.reactor.AssignmentReactor;
 import prerna.sablecc2.reactor.Assimilator;
-import prerna.sablecc2.reactor.ExprReactor;
 import prerna.sablecc2.reactor.FilterReactor;
 import prerna.sablecc2.reactor.GenericReactor;
 import prerna.sablecc2.reactor.IReactor;
@@ -56,10 +54,8 @@ import prerna.sablecc2.reactor.IfReactor;
 import prerna.sablecc2.reactor.PKSLPlanner;
 import prerna.sablecc2.reactor.RReactor;
 import prerna.sablecc2.reactor.ReactorFactory;
-import prerna.sablecc2.reactor.SampleReactor;
 import prerna.sablecc2.reactor.qs.AsReactor;
 import prerna.ui.components.playsheets.datamakers.IDataMaker;
-import prerna.util.Utility;
 
 public class Translation extends DepthFirstAdapter {
 
@@ -92,15 +88,14 @@ public class Translation extends DepthFirstAdapter {
 	 * CONSTRUCTORS
 	 ***************************/
 	public Translation() {
-		planner = new PKSLPlanner();
-	}
-	
-	public Translation(PKSLRunner runner) {
-		this.runner = runner;
+		this.planner = new PKSLPlanner();
+		this.planner.addProperty("FRAME", "FRAME", new H2Frame());
+		this.runner = new PKSLRunner();
 	}
 	
 	public Translation(IDataMaker dataMaker, PKSLRunner runner) {
-		planner = new PKSLPlanner(dataMaker);
+		this.planner = new PKSLPlanner(dataMaker);
+		this.planner.addProperty("FRAME", "FRAME", dataMaker);
 		this.runner = runner;
 	}
 	
@@ -586,7 +581,7 @@ public class Translation extends DepthFirstAdapter {
 //	        // TODO need to do the operation of assimilating here
 //	        deInitReactor();
 //    	}
-    }
+    	}
     
     // code sits here
 /*    public void inACodeColDef(ACodeColDef node)
@@ -810,7 +805,7 @@ public class Translation extends DepthFirstAdapter {
 //        	curReactor.setProp(node.toString().trim(), curReactor.getProp(expr));
 //        }
 //        System.out.println(curReactor.getProp("LAST_VALUE"));
-    }
+        }
     
     public void inAPlusExpr(APlusExpr node) {
     	defaultIn(node);
@@ -888,10 +883,10 @@ public class Translation extends DepthFirstAdapter {
     private void initExpressionToReactor(IReactor reactor, String left, String right, String operation) {
     	GenRowStruct leftGenRow = reactor.getNounStore().makeNoun("LEFT");
 		leftGenRow.add(left, PkslDataTypes.CONST_STRING);
-    	
+    
     	GenRowStruct rightGenRow = reactor.getNounStore().makeNoun("RIGHT");
     	rightGenRow.add(right, PkslDataTypes.CONST_STRING);
-    	
+    
     	GenRowStruct operator = reactor.getNounStore().makeNoun("OPERATOR");
     	operator.add(operation, PkslDataTypes.CONST_STRING);
     }
@@ -961,7 +956,7 @@ public class Translation extends DepthFirstAdapter {
     	// b. FlatMap operation - This means something else being added
     	// c. It also needs to follow George's logic in terms of breaking it into components
     	
-
+    	
     	
     	if(curReactor != null)
     	{
@@ -1004,24 +999,16 @@ public class Translation extends DepthFirstAdapter {
 	    	
 	    	// also requiring the output to be noun metadata
 	    	if(output instanceof NounMetadata) {
-	    		
-	    		//if our curReactor is not null and not an assignment (x = something | somethingelse | else)
+	    		NounMetadata nounOutput = (NounMetadata) output;
 	    		if(curReactor != null && !(curReactor instanceof AssignmentReactor)) {
-		    		PkslDataTypes nounName = ((NounMetadata)output).getNounName();
-		    		// note, make noun will not override existing values of the same noun
-		    		GenRowStruct exisintNoun = curReactor.getNounStore().getNoun(nounName.toString());
-		    		if(exisintNoun == null) {
-		    			// if it doesn't exist, make a new one
-		    			exisintNoun = curReactor.getNounStore().makeNoun(nounName.toString());
-		    		}
-		    		exisintNoun.add(output, nounName);
+	    			// add the value to the parent's curnoun
+	    			curReactor.getCurRow().add(nounOutput.getValue(), nounOutput.getNounName());
 		    	} else {
-		    		
 		    		//otherwise if we have an assignment reactor or no reactor then add the result to the planner
 		    		this.planner.addVariable("$RESULT", (NounMetadata)output);
 		    	}
 	    	}
-    	}    	
+    	}
     }
     
     public IDataMaker getDataMaker() {

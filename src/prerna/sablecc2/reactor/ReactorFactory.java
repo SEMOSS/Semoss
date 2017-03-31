@@ -23,6 +23,9 @@ import prerna.sablecc2.reactor.qs.QueryFilterReactor;
 import prerna.sablecc2.reactor.qs.SelectReactor;
 import prerna.sablecc2.reactor.qs.SumReactor;
 //import prerna.util.Utility;
+import prerna.sablecc2.reactor.storage.MapStore;
+import prerna.sablecc2.reactor.storage.RetrieveValue;
+import prerna.sablecc2.reactor.storage.StoreValue;
 
 public class ReactorFactory {
 
@@ -82,7 +85,7 @@ public class ReactorFactory {
 		reactorHash.put("Offset", OffsetReactor.class);
 		reactorHash.put("Join", JoinReactor.class);
 		reactorHash.put("Filter", QueryFilterReactor.class);
-//		reactorHash.put("Query", QueryReactor.class); //takes in a direct query
+		reactorHash.put("Query", QueryReactor.class); //takes in a direct query
 		
 		//Data Source Reactors
 		reactorHash.put("Database", DatabaseReactor.class); //specifies that our pksl operations after this point are dealing with the specified database
@@ -101,6 +104,10 @@ public class ReactorFactory {
 		//
 		reactorHash.put("if", IfReactor.class);
 		
+		// in mem storage of data
+		reactorHash.put("MapStore", MapStore.class);
+		reactorHash.put("StoreValue", StoreValue.class);
+		reactorHash.put("RetrieveValue", RetrieveValue.class);
 	}
 	
 	/**
