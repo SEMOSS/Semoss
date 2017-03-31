@@ -221,7 +221,7 @@ public class Translation extends DepthFirstAdapter {
 //        IReactor frameReactor = new SampleReactor();
 //        frameReactor.setPKSL(node.getId()+"", node+"");
         String reactorId = node.getId().toString().trim();
-        IReactor frameReactor = getReactor(reactorId, node.toString()); //get the reactor
+        IReactor frameReactor = getReactor(reactorId, node.toString().trim()); //get the reactor
         initReactor(frameReactor);
         syncResult();
      }
@@ -313,7 +313,7 @@ public class Translation extends DepthFirstAdapter {
         // I feel like mostly it would be this and not frame op
         // I almost feel I should remove the frame op col def
 //        IReactor opReactor = getReactor(node.getId().toString().trim(), node.toString());
-        IReactor opReactor = getReactor(node.getId().toString().trim(), node.toString());
+        IReactor opReactor = getReactor(node.getId().toString().trim(), node.toString().trim());
         
         // this is old code when everything was a sample reactor
         // should no longer be used...
@@ -541,13 +541,13 @@ public class Translation extends DepthFirstAdapter {
         // I bet if should keep that cardinality
         // need a way to say when i should assimilate this..
         // not everytime - or may be everytime
-    	if(node.getExpr() instanceof AMultExpr || node.getExpr() instanceof APlusExpr || node.getExpr() instanceof AMinusExpr || node.getExpr() instanceof ADivExpr)
-    	{
-	        defaultIn(node);
-			Assimilator assm = new Assimilator();
-			assm.setPKSL("EXPR", node.getExpr().toString().trim());
-			initReactor(assm);
-    	}       
+//    	if(node.getExpr() instanceof AMultExpr || node.getExpr() instanceof APlusExpr || node.getExpr() instanceof AMinusExpr || node.getExpr() instanceof ADivExpr)
+//    	{
+//	        defaultIn(node);
+//			Assimilator assm = new Assimilator();
+//			assm.setPKSL("EXPR", node.getExpr().toString().trim());
+//			initReactor(assm);
+//    	}       
 		/*
         if(curReactor instanceof IfReactor)
         {
@@ -580,12 +580,12 @@ public class Translation extends DepthFirstAdapter {
 
     public void outAExprColDef(AExprColDef node)
     {
-    	if(node.getExpr() instanceof AMultExpr || node.getExpr() instanceof APlusExpr || node.getExpr() instanceof AMinusExpr || node.getExpr() instanceof ADivExpr)
-    	{
-	        defaultOut(node);
-	        // TODO need to do the operation of assimilating here
-	        deInitReactor();
-    	}
+//    	if(node.getExpr() instanceof AMultExpr || node.getExpr() instanceof APlusExpr || node.getExpr() instanceof AMinusExpr || node.getExpr() instanceof ADivExpr)
+//    	{
+//	        defaultOut(node);
+//	        // TODO need to do the operation of assimilating here
+//	        deInitReactor();
+//    	}
     }
     
     // code sits here
@@ -799,16 +799,27 @@ public class Translation extends DepthFirstAdapter {
 
     public void outAFormula(AFormula node) {
         defaultOut(node);
-        String expr = node.getExpr().toString().trim();
-        if(curReactor.hasProp(expr)) {
-        	curReactor.setProp(node.toString().trim(), curReactor.getProp(expr));
-        }
-        System.out.println(curReactor.getProp("LAST_VALUE"));
+        
+        String exprString = node.getExpr().toString().trim();
+        String formulaString = node.toString().trim();
+        
+        curReactor.getNounStore().makeNoun(formulaString).add(exprString, PkslDataTypes.NODEKEY);
+        
+//        String expr = node.getExpr().toString().trim();
+//        if(curReactor.hasProp(expr)) {
+//        	curReactor.setProp(node.toString().trim(), curReactor.getProp(expr));
+//        }
+//        System.out.println(curReactor.getProp("LAST_VALUE"));
     }
     
     public void inAPlusExpr(APlusExpr node) {
     	defaultIn(node);
 		Assimilator assm = new Assimilator();
+		
+		String leftKey = node.getLeft().toString().trim();
+		String rightKey = node.getRight().toString().trim();
+		initExpressionToReactor(assm, leftKey, rightKey, "+");
+		
 		assm.setPKSL("EXPR", node.toString().trim());
 		initReactor(assm);	
     }
@@ -817,37 +828,16 @@ public class Translation extends DepthFirstAdapter {
     {
     	defaultOut(node);
     	deInitReactor();
-    	
-//    	String leftKey = node.getLeft().toString().trim();
-//    	String rightKey = node.getRight().toString().trim();
-//    	
-//    	Object rightObj = curReactor.getProp(rightKey);
-//    	Object leftObj = curReactor.getProp(leftKey);
-//    	
-//		Assimilator assm = new Assimilator();
-//		assm.setPKSL("EXPR", node.toString().trim());
-//
-//    	Object result = null;
-//		if (rightObj instanceof Double && leftObj instanceof Double) {
-//			result = (Double) (leftObj) + (Double) (rightObj);
-//			curReactor.setProp(node.toString().trim(), result);
-//			curReactor.setProp("LAST_VALUE", result);
-//			System.out.println(result);
-//		}
-//		else  
-//		{
-//			//TODO: need to make this generic and get the correct type of expression it
-//			if(getDataMaker() instanceof H2Frame) {
-//				H2Frame frame = (H2Frame) getDataMaker();
-//				SqlExpressionBuilder builder = ExpressionGenerator.sqlGenerateSimpleMathExpressions(frame, leftObj, rightObj, node.getPlus().toString().trim());
-//				curReactor.setProp(node.toString().trim(), builder);
-//			}
-//    	}
     }
     
     public void inAMinusExpr(AMinusExpr node) {
     	defaultIn(node);
 		Assimilator assm = new Assimilator();
+		
+		String leftKey = node.getLeft().toString().trim();
+		String rightKey = node.getRight().toString().trim();
+		initExpressionToReactor(assm, leftKey, rightKey, "-");
+		
 		assm.setPKSL("EXPR", node.toString().trim());
 		initReactor(assm);
     }
@@ -856,70 +846,35 @@ public class Translation extends DepthFirstAdapter {
     {
     	defaultOut(node);
     	deInitReactor();
-    	
-//    	String leftKey = node.getLeft().toString().trim();
-//    	String rightKey = node.getRight().toString().trim();
-//    	
-//    	Object rightObj = curReactor.getProp(rightKey);
-//    	Object leftObj = curReactor.getProp(leftKey);
-//    	
-//    	Object result = null;
-//		if (rightObj instanceof Double && leftObj instanceof Double) {
-//			result = (Double) (leftObj) + (Double) (rightObj);
-//			curReactor.setProp(node.toString().trim(), result);
-//			curReactor.setProp("LAST_VALUE", result);
-//			System.out.println(result);
-//		}
-//		else  
-//		{
-//			//TODO: need to make this generic and get the correct type of expression it
-//			if(getDataMaker() instanceof H2Frame) {
-//				H2Frame frame = (H2Frame) getDataMaker();
-//				SqlExpressionBuilder builder = ExpressionGenerator.sqlGenerateSimpleMathExpressions(frame, leftObj, rightObj, node.getMinus().toString().trim());
-//				curReactor.setProp(node.toString().trim(), builder);
-//			}
-//    	}
     }
     
     public void inADivExpr(ADivExpr node) {
     	defaultIn(node);
 		Assimilator assm = new Assimilator();
+		
+		String leftKey = node.getLeft().toString().trim();
+		String rightKey = node.getRight().toString().trim();
+		initExpressionToReactor(assm, leftKey, rightKey, "/");
+		
 		assm.setPKSL("EXPR", node.toString().trim());
 		initReactor(assm);
+		
     }
     
     public void outADivExpr(ADivExpr node)
     {
     	defaultOut(node);
     	deInitReactor();
-    
-//    	String leftKey = node.getLeft().toString().trim();
-//    	String rightKey = node.getRight().toString().trim();
-//    	
-//    	Object rightObj = curReactor.getProp(rightKey);
-//    	Object leftObj = curReactor.getProp(leftKey);
-//    	
-//    	Object result = null;
-//		if (rightObj instanceof Double && leftObj instanceof Double) {
-//			result = (Double) (leftObj) + (Double) (rightObj);
-//			curReactor.setProp(node.toString().trim(), result);
-//			curReactor.setProp("LAST_VALUE", result);
-//			System.out.println(result);
-//		}
-//		else  
-//		{
-//			//TODO: need to make this generic and get the correct type of expression it
-//			if(getDataMaker() instanceof H2Frame) {
-//				H2Frame frame = (H2Frame) getDataMaker();
-//				SqlExpressionBuilder builder = ExpressionGenerator.sqlGenerateSimpleMathExpressions(frame, leftObj, rightObj, node.getDiv().toString().trim());
-//				curReactor.setProp(node.toString().trim(), builder);
-//			}
-//    	}
     }
     
     public void inAMultExpr(AMultExpr node) {
     	defaultIn(node);
 		Assimilator assm = new Assimilator();
+		
+		String leftKey = node.getLeft().toString().trim();
+		String rightKey = node.getRight().toString().trim();
+		initExpressionToReactor(assm, leftKey, rightKey, "*");
+		
 		assm.setPKSL("EXPR", node.toString().trim());
 		initReactor(assm);
     }
@@ -928,33 +883,18 @@ public class Translation extends DepthFirstAdapter {
     {
     	defaultOut(node);
     	deInitReactor();
-    
-//    	defaultOut(node);
-//    	String leftKey = node.getLeft().toString().trim();
-//    	String rightKey = node.getRight().toString().trim();
-//    	
-//    	Object rightObj = curReactor.getProp(rightKey);
-//    	Object leftObj = curReactor.getProp(leftKey);
-//    	
-//    	Object result = null;
-//		if (rightObj instanceof Double && leftObj instanceof Double) {
-//			result = (Double) (leftObj) + (Double) (rightObj);
-//			curReactor.setProp(node.toString().trim(), result);
-//			curReactor.setProp("LAST_VALUE", result);
-//			System.out.println(result);
-//		}
-//		else  
-//		{
-//			//TODO: need to make this generic and get the correct type of expression it
-//			if(getDataMaker() instanceof H2Frame) {
-//				H2Frame frame = (H2Frame) getDataMaker();
-//				SqlExpressionBuilder builder = ExpressionGenerator.sqlGenerateSimpleMathExpressions(frame, leftObj, rightObj, node.getMult().toString().trim());
-//				curReactor.setProp(node.toString().trim(), builder);
-//			}
-//    	}
     }
     
-    
+    private void initExpressionToReactor(IReactor reactor, String left, String right, String operation) {
+    	GenRowStruct leftGenRow = reactor.getNounStore().makeNoun("LEFT");
+		leftGenRow.add(left, PkslDataTypes.CONST_STRING);
+    	
+    	GenRowStruct rightGenRow = reactor.getNounStore().makeNoun("RIGHT");
+    	rightGenRow.add(right, PkslDataTypes.CONST_STRING);
+    	
+    	GenRowStruct operator = reactor.getNounStore().makeNoun("OPERATOR");
+    	operator.add(operation, PkslDataTypes.CONST_STRING);
+    }
     
     /**************************************************
      *	End Expression Methods
@@ -1021,12 +961,30 @@ public class Translation extends DepthFirstAdapter {
     	// b. FlatMap operation - This means something else being added
     	// c. It also needs to follow George's logic in terms of breaking it into components
     	
-    	
-    	
+
     	
     	if(curReactor != null)
     	{
 	    	Object parent = curReactor.Out();
+	    	
+	    	//TODO : i hate these special case checks....how do we make this more elegant
+	    	if(parent instanceof Assimilator) {
+	    		//if our parent is an assimilator
+	    		//we want to not execute but put the curReactor as a lamda
+	    		//the lambda will be stored via its signature as a key
+	    		String signature = curReactor.getPKSL()[1];
+	    		GenRowStruct newLambda = ((Assimilator)parent).getNounStore().makeNoun(signature);
+	    		newLambda.add(curReactor, PkslDataTypes.LAMBDA);
+	    		curReactor = (Assimilator)parent;
+	    		return;
+	    	}
+	    	
+//	    	if(parent instanceof IfReactor)
+//	    	{
+//	    		curReactor.getParentReactor().getCurRow().addLambda(curReactor);
+//	    		curReactor = curReactor.getParentReactor();
+//	    	}
+	    	
 	    	Object output = curReactor.execute();
 	    	
 	    	//set the curReactor
@@ -1046,6 +1004,8 @@ public class Translation extends DepthFirstAdapter {
 	    	
 	    	// also requiring the output to be noun metadata
 	    	if(output instanceof NounMetadata) {
+	    		
+	    		//if our curReactor is not null and not an assignment (x = something | somethingelse | else)
 	    		if(curReactor != null && !(curReactor instanceof AssignmentReactor)) {
 		    		PkslDataTypes nounName = ((NounMetadata)output).getNounName();
 		    		// note, make noun will not override existing values of the same noun
@@ -1056,6 +1016,8 @@ public class Translation extends DepthFirstAdapter {
 		    		}
 		    		exisintNoun.add(output, nounName);
 		    	} else {
+		    		
+		    		//otherwise if we have an assignment reactor or no reactor then add the result to the planner
 		    		this.planner.addVariable("$RESULT", (NounMetadata)output);
 		    	}
 	    	}
