@@ -3,6 +3,7 @@ package prerna.sablecc2.om;
 import java.util.Vector;
 
 import prerna.sablecc2.reactor.IReactor;
+
 public class GenRowStruct {
 
 	// string or number - const
@@ -152,6 +153,10 @@ public class GenRowStruct {
 		builder.append("\n");
 		builder.append(this.metaVector.toString());
 		return builder.toString();
+	}
+
+	public boolean isEmpty() {
+		return this.vector.isEmpty();
 	}
 
 }
