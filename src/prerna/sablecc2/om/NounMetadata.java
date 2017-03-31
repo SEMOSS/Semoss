@@ -42,4 +42,11 @@ public class NounMetadata
 	public Object getValue() {
 		return this.value;
 	}
+	
+	/**
+	 * To help w/ debugging
+	 */
+	public String toString() {
+		return "NOUN META DATA ::: " + this.value.toString();
+	}
 }
