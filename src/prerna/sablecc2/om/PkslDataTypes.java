@@ -20,7 +20,8 @@ public enum PkslDataTypes {
 	EXPORT ("EXPORT"),
 	LAMBDA ("LAMBDA"),
 	ALIAS("ALIAS"),
-	FRAME("FRAME");
+	FRAME("FRAME"),
+	NODEKEY("NODEKEY");								//this is used to redirect keys from formulas to expressions, i.e. (3 + Sum(MB)) has the same meaning as 3 + 
 	
 	private final String strValue;
 	
