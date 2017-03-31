@@ -41,6 +41,9 @@ DetectWithoutGroups <- function(dt, time.col, event.col, agg, agg.string, max.an
   # Set the time column as the key
   setkeyv(dt, time.col)
   
+  # Order by the time column
+  setorderv(dt, time.col)
+  
   # Store the levels of the group that had an anomaly at the most recent time
   anom.levels <- list()
   i <- 1
@@ -73,6 +76,9 @@ DetectWithGroups <- function(dt, time.col, event.col, group.col, agg, agg.string
 
   # Set the time column as the key
   setkeyv(dt, c(time.col, group.col))
+  
+  # Order by the time column then group column
+  setorderv(dt, c(time.col, group.col))
   
   # Store the levels of the group that had an anomaly at the most recent time
   anom.levels <- list()

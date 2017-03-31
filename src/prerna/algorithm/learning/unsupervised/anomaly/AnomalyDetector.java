@@ -68,7 +68,7 @@ public class AnomalyDetector {
 			String aggregateFunction, double maxAnoms, AnomDirection direction, double alpha, int period,
 			boolean keepExistingColumns) {
 		String arguments = "'" + timeColumn + "';'" + seriesColumn + "';'" + aggregateFunction + "';" + maxAnoms + ";'"
-				+ determineAnomDirectionString(direction) + "';" + alpha + ";" + period;
+				+ determineStringDirectionFromAnomDirection(direction) + "';" + alpha + ";" + period;
 		if (keepExistingColumns) {
 			rRoutine = new RRoutine.Builder(dataFrame, pkql, SCRIPT_NAME, R_SYNC_FRAME_NAME).arguments(arguments)
 					.routineType(RRoutineType.ANALYTICS).build();
@@ -116,7 +116,8 @@ public class AnomalyDetector {
 			String groupColumn, String aggregateFunction, double maxAnoms, AnomDirection direction, double alpha,
 			int period) {
 		String arguments = "'" + timeColumn + "';'" + eventColumn + "';'" + groupColumn + "';'" + aggregateFunction
-				+ "';" + maxAnoms + ";'" + determineAnomDirectionString(direction) + "';" + alpha + ";" + period;
+				+ "';" + maxAnoms + ";'" + determineStringDirectionFromAnomDirection(direction) + "';" + alpha + ";"
+				+ period;
 		rRoutine = new RRoutine.Builder(dataFrame, pkql, CATEGORICAL_SCRIPT_NAME, R_SYNC_FRAME_NAME)
 				.rReturnFrameName(R_SIMPLIFIED_FRAME_NAME).arguments(arguments).routineType(RRoutineType.ANALYTICS)
 				.build();
@@ -132,11 +133,8 @@ public class AnomalyDetector {
 		return rRoutine.runRoutine();
 	}
 
-	// Determines the proper string to represent the direction in which to
-	// detect anomalies
-	// This string is what is passed into the arguments list that is
-	// synchronized to R
-	public static String determineAnomDirectionString(AnomDirection direction) {
+	// Methods to switch between string and enum representations of direction
+	public static String determineStringDirectionFromAnomDirection(AnomDirection direction) {
 		switch (direction) {
 		case POSITIVE:
 			return "pos";
@@ -146,6 +144,19 @@ public class AnomalyDetector {
 			return "both";
 		default:
 			return "both";
+		}
+	}
+
+	public static AnomDirection determineAnomDirectionFromStringDirection(String direction) {
+		switch (direction) {
+		case "pos":
+			return AnomDirection.POSITIVE;
+		case "neg":
+			return AnomDirection.NEGATIVE;
+		case "both":
+			return AnomDirection.BOTH;
+		default:
+			return AnomDirection.BOTH;
 		}
 	}
 }
