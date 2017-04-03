@@ -1,14 +1,11 @@
 package prerna.sablecc2.reactor;
 
-import prerna.engine.api.IHeadersDataRow;
-import prerna.sablecc2.JobStore;
-import prerna.sablecc2.om.GenRowStruct;
-import prerna.sablecc2.om.NounMetadata;
-import prerna.sablecc2.om.NounStore;
-
 import java.util.Iterator;
 import java.util.Vector;
 
+import prerna.engine.api.IHeadersDataRow;
+import prerna.sablecc2.JobStore;
+import prerna.sablecc2.om.NounMetadata;
 
 public class GetDataReactor extends AbstractReactor {
 
@@ -30,7 +27,7 @@ public class GetDataReactor extends AbstractReactor {
 
 
 	@Override
-	protected void mergeUp() {
+	public void mergeUp() {
 		//this reactor should not need to merge up
 	}
 	

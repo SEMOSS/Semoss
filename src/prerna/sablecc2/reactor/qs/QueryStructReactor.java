@@ -50,12 +50,12 @@ public abstract class QueryStructReactor extends AbstractReactor {
 	}
 	
 	@Override
-	protected void mergeUp() {
+	public void mergeUp() {
 
 	}
 
 	@Override
-	protected void updatePlan() {
+	public void updatePlan() {
 
 	}
 	
