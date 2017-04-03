@@ -1,6 +1,14 @@
 package prerna.sablecc2.reactor.imports;
 
 
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+import java.util.Vector;
+
+import prerna.algorithm.api.ITableDataFrame;
+import prerna.ds.querystruct.QueryStruct2;
 import prerna.engine.api.IEngine;
 import prerna.engine.api.IHeadersDataRow;
 import prerna.rdf.engine.wrappers.WrapperManager;
@@ -12,16 +20,6 @@ import prerna.sablecc2.om.NounMetadata;
 import prerna.sablecc2.om.NounStore;
 import prerna.sablecc2.reactor.AbstractReactor;
 import prerna.util.Utility;
-
-import java.util.Enumeration;
-import java.util.HashMap;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
-import java.util.Vector;
-
-import prerna.algorithm.api.ITableDataFrame;
-import prerna.ds.querystruct.QueryStruct2;
 
 public class MergeDataReactor extends AbstractReactor {
 
@@ -44,7 +42,7 @@ public class MergeDataReactor extends AbstractReactor {
 
 
 	@Override
-	protected void mergeUp() {
+	public void mergeUp() {
 
 	}
 	

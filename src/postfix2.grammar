@@ -104,7 +104,7 @@ Productions
  literal = word;
  decimal = [whole]:number dot? [fraction]:number?;
  
- number_or_literal = {num} decimal | {str} literal;
+ number_or_literal = {num} decimal | {str} literal | {formula} formula;
  
  prop = id equal number_or_literal;
  
