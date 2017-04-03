@@ -41,6 +41,7 @@ public interface Analysis extends Switch
     void caseADecimal(ADecimal node);
     void caseANumNumberOrLiteral(ANumNumberOrLiteral node);
     void caseAStrNumberOrLiteral(AStrNumberOrLiteral node);
+    void caseAFormulaNumberOrLiteral(AFormulaNumberOrLiteral node);
     void caseAProp(AProp node);
     void caseANumberTerm(ANumberTerm node);
     void caseAFormulaTerm(AFormulaTerm node);
