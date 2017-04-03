@@ -1,16 +1,12 @@
 package prerna.sablecc2.reactor.export;
 
-import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
-import java.util.Vector;
 
 import prerna.algorithm.api.ITableDataFrame;
 import prerna.engine.api.IHeadersDataRow;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.NounMetadata;
-import prerna.sablecc2.om.NounStore;
 import prerna.sablecc2.om.PkslDataTypes;
 import prerna.sablecc2.reactor.AbstractReactor;
 
@@ -33,14 +29,14 @@ public class FormatReactor extends AbstractReactor {
 		GenRowStruct dataStruct = getNounStore().getNoun("dataSource");
 		String dataSource = null;
 		if (dataStruct != null) {
-			NounMetadata dataSourceNoun = (NounMetadata) dataStruct.get(0);
+			NounMetadata dataSourceNoun = (NounMetadata) dataStruct.getNoun(0);
 			dataSource = "";
 		}
 
 		// get data format type
 		GenRowStruct type = getNounStore().getNoun("type");
 		if (type != null) {
-			Vector<String> formatVector = type.getAllColumns();
+			List<String> formatVector = type.getAllColumns();
 			String format = formatVector.get(0);
 			formatter = FormatFactory.getFormatter(format);
 		}
@@ -55,9 +51,9 @@ public class FormatReactor extends AbstractReactor {
 
 		// get chart type
 		GenRowStruct widgetStruct = getNounStore().getNoun("widget");
-		Vector<String> labelValues = null;
-		Vector<String> xAxisValues = null;
-		Vector<String> values = null;
+		List<String> labelValues = null;
+		List<String> xAxisValues = null;
+		List<String> values = null;
 		if (widgetStruct != null) {
 			
 			//TODO get chart labels			
@@ -87,7 +83,7 @@ public class FormatReactor extends AbstractReactor {
 		
 		HashMap<String, Object> formatVals = new HashMap<String, Object>();
 		HashMap<String, Object> widgetVals = new HashMap<String, Object>();
-		Vector<String> widgets = widgetStruct.getAllColumns();
+		List<String> widgets = widgetStruct.getAllColumns();
 		if (widgets != null && dataSource != null) {
 			// TODO: index matching?
 			for (String key : widgets) {
@@ -125,7 +121,7 @@ public class FormatReactor extends AbstractReactor {
 	}
 
 	private List<IHeadersDataRow> getRawData() {
-		NounMetadata dataNoun = (NounMetadata) getNounStore().getNoun("DATA").get(0);
+		NounMetadata dataNoun = (NounMetadata) getNounStore().getNoun("DATA").getNoun(0);
 		return (List<IHeadersDataRow>) dataNoun.getValue();
 	}
 }

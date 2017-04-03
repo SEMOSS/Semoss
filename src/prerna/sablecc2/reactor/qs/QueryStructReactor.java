@@ -83,7 +83,7 @@ public abstract class QueryStructReactor extends AbstractReactor {
 		if(qsInputParams != null) {
 			int numInputs = qsInputParams.size();
 			for(int inputIdx = 0; inputIdx < numInputs; inputIdx++) {
-				NounMetadata qsNoun = (NounMetadata)qsInputParams.get(inputIdx);
+				NounMetadata qsNoun = (NounMetadata)qsInputParams.getNoun(inputIdx);
 				mergeQueryStruct((QueryStruct2)qsNoun.getValue());
 			}
 		}

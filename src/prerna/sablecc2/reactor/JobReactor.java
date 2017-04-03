@@ -22,8 +22,8 @@ public class JobReactor extends AbstractReactor {
 	}
 	
 	public Object execute() {
-		GenRowStruct allNouns = getNounStore().getNoun(NounStore.all); //should be only joins
-		String jobId = (String)allNouns.get(0);
+//		GenRowStruct allNouns = getNounStore().getNoun(NounStore.all); //should be only joins
+		String jobId = (String)curRow.get(0);
 		
 		Iterator<IHeadersDataRow> iterator = getIterator(jobId);
 		
