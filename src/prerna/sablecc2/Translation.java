@@ -1000,11 +1000,11 @@ public class Translation extends DepthFirstAdapter {
 	    	// also requiring the output to be noun metadata
 	    	if(output instanceof NounMetadata) {
 	    		NounMetadata nounOutput = (NounMetadata) output;
-	    		if(curReactor != null && !(curReactor instanceof AssignmentReactor)) {
+	    		if(curReactor != null) {
 	    			// add the value to the parent's curnoun
-	    			curReactor.getCurRow().add(nounOutput.getValue(), nounOutput.getNounName());
+	    			curReactor.getCurRow().add(nounOutput);
 		    	} else {
-		    		//otherwise if we have an assignment reactor or no reactor then add the result to the planner
+		    		//otherwise if we have an no reactor then add the result to the planner
 		    		this.planner.addVariable("$RESULT", (NounMetadata)output);
 		    	}
 	    	}
