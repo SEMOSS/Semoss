@@ -75,8 +75,8 @@ public class Translation extends DepthFirstAdapter {
 	// there really will be 2 versions of this
 	// one for overall and one as the user does it
 	// for now.. this is just how the user does it
-	PKSLPlanner planner;
-	String lastOperation = null;
+	public PKSLPlanner planner;
+	public String lastOperation = null;
 	
 	
 	//The reactor factory associated with this translation
@@ -896,7 +896,7 @@ public class Translation extends DepthFirstAdapter {
      **************************************************/
 //----------------------------- Private methods
 
-    private void initReactor(IReactor reactor)
+    protected void initReactor(IReactor reactor)
     {
         // make a check to see if the curReactor is not null
     	
@@ -930,7 +930,7 @@ public class Translation extends DepthFirstAdapter {
         curReactor.In();
     }
     
-    private void deInitReactor()
+    protected void deInitReactor()
     {
     	// couple of things I need to do here
     	// a. see if this is a reduce operation if so.. execute the reactor at once

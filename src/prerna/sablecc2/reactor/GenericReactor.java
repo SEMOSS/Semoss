@@ -54,8 +54,7 @@ public class GenericReactor extends AbstractReactor {
 
 
 	@Override
-	protected void mergeUp() {
-
+	public void mergeUp() {
 		String key = (String)getProp("KEY");
 		
 		GenRowStruct allNouns = store.getNoun(NounStore.all);
@@ -93,9 +92,10 @@ public class GenericReactor extends AbstractReactor {
 	}
 
 	@Override
-	protected void updatePlan() {
+	public void updatePlan() {
 		
 	}
+	
 	@Override
 	public Vector<NounMetadata> getInputs() {
 		// TODO Auto-generated method stub

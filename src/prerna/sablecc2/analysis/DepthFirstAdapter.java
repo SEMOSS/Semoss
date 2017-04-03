@@ -733,6 +733,27 @@ public class DepthFirstAdapter extends AnalysisAdapter
         outAStrNumberOrLiteral(node);
     }
 
+    public void inAFormulaNumberOrLiteral(AFormulaNumberOrLiteral node)
+    {
+        defaultIn(node);
+    }
+
+    public void outAFormulaNumberOrLiteral(AFormulaNumberOrLiteral node)
+    {
+        defaultOut(node);
+    }
+
+    @Override
+    public void caseAFormulaNumberOrLiteral(AFormulaNumberOrLiteral node)
+    {
+        inAFormulaNumberOrLiteral(node);
+        if(node.getFormula() != null)
+        {
+            node.getFormula().apply(this);
+        }
+        outAFormulaNumberOrLiteral(node);
+    }
+
     public void inAProp(AProp node)
     {
         defaultIn(node);

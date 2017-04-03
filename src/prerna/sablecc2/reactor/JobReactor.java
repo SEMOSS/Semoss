@@ -4,9 +4,7 @@ import java.util.Iterator;
 
 import prerna.engine.api.IHeadersDataRow;
 import prerna.sablecc2.JobStore;
-import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.NounMetadata;
-import prerna.sablecc2.om.NounStore;
 import prerna.sablecc2.om.PkslDataTypes;
 
 public class JobReactor extends AbstractReactor {
@@ -31,12 +29,12 @@ public class JobReactor extends AbstractReactor {
 	}
 
 	@Override
-	protected void mergeUp() {
+	public void mergeUp() {
 		
 	}
 
 	@Override
-	protected void updatePlan() {
+	public void updatePlan() {
 		
 	}
 	

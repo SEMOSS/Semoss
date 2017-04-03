@@ -24,7 +24,6 @@ import prerna.util.Utility;
 //TODO : Hardcoding this to use QueryStruct2 and SQLInterpreter2 to test changes
 public class IterateReactor extends AbstractReactor {
 
-
 	private Iterator output;
 	
 	@Override
@@ -46,7 +45,8 @@ public class IterateReactor extends AbstractReactor {
 
 
 	@Override
-	protected void mergeUp() {
+	public void mergeUp() {
+		
 	}
 	
 	private NounMetadata createJob()  {
