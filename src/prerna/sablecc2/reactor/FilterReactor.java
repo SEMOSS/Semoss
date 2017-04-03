@@ -37,13 +37,13 @@ public class FilterReactor extends AbstractReactor{
 	}
 	
 	@Override
-	protected void mergeUp() {
+	public void mergeUp() {
 		// TODO Auto-generated method stub
 		
 	}
 
 	@Override
-	protected void updatePlan() {
+	public void updatePlan() {
 		// TODO Auto-generated method stub
 		
 	}

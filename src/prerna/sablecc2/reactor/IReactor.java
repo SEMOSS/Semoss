@@ -2,7 +2,6 @@ package prerna.sablecc2.reactor;
 
 import java.util.Iterator;
 import java.util.List;
-import java.util.Vector;
 
 import prerna.algorithm.api.ITableDataFrame;
 import prerna.engine.api.IHeadersDataRow;
@@ -12,24 +11,27 @@ import prerna.sablecc2.om.NounStore;
 
 public interface IReactor {
 	
-	public enum STATUS {STARTED, INPROGRESS, COMPLETED, FAILED};
+	enum STATUS {STARTED, INPROGRESS, COMPLETED, FAILED};
 	
 	// is this a map or a reduce
-	public enum TYPE{MAP, FLATMAP, REDUCE};
+	enum TYPE{MAP, FLATMAP, REDUCE};
 	
 	/**********************************
 	 * To Be implemented by each reactor
 	 * ******************************/
 	
 	// in call
-	public void In();
+	void In();
 	
 	// out call
 	// for now I would say the return is the object
-	public Object Out();
+	Object Out();
 	
-
-	public NounMetadata getOutput();
+	NounMetadata getOutput();
+	
+	void mergeUp();
+	
+	void updatePlan();
 	//
 	/*******************************************/
 	
@@ -40,9 +42,9 @@ public interface IReactor {
 	 *******************************************/
 	// sets the name of the operation and the signature
 	// full operation includes the nouns
-	public void setPKSL(String operation, String fullOperation);
+	void setPKSL(String operation, String fullOperation);
 	
-	public String[] getPKSL();
+	String[] getPKSL();
 	
 	// add previous reactor as its dependency -- is this the same as the parent reactor
 	// assimilated into the composition parent reactor
@@ -50,25 +52,25 @@ public interface IReactor {
 	
 	// set the parent reactor for a composition, we start here
 	// for a pipeline this will become the child
-	public void setParentReactor(IReactor parentReactor);
+	void setParentReactor(IReactor parentReactor);
 	
 	// sets the child reactor
-	public void setChildReactor(IReactor childReactor);
+	void setChildReactor(IReactor childReactor);
 	
 	// // gets the parent reactor
-	public IReactor getParentReactor();
+	IReactor getParentReactor();
 	
 	// sets the current noun it is working through
-	public void curNoun(String noun);
+	void curNoun(String noun);
 	
 	// returns the current row
-	public GenRowStruct getCurRow();
+	GenRowStruct getCurRow();
 	
 	// completes the noun
-	public void closeNoun(String noun);
+	void closeNoun(String noun);
 
 	// gets the nounstore
-	public NounStore getNounStore();
+	NounStore getNounStore();
 	
 	// gets all the inputs i.e. the noun names
 	// the second string is the meaning
@@ -78,49 +80,50 @@ public interface IReactor {
 	// Optional / Mandatory
 	// Single Value or multiple values
 	// are projections the output ?
-	public List<NounMetadata> getInputs();
+	List<NounMetadata> getInputs();
 	
 	// gets the errored PKQL
 	// alternately can set the error message here
-	public void getErrorMessage();
+	void getErrorMessage();
 
 	// gets the status of what happened to this reactor
-	public STATUS getStatus();
+	STATUS getStatus();
 	
-	public TYPE getType();
+	TYPE getType();
 
 	// get name
-	public String getName();
+	String getName();
 	
 	// sets the name
-	public void setName(String name);
+	void setName(String name);
 	
 	// sets the pksl planner
-	public void setPKSLPlanner(PKSLPlanner planner);
+	void setPKSLPlanner(PKSLPlanner planner);
 	
 	// sets the string for alias i.e. as
-	public void setAs(String [] asName);
+	void setAs(String [] asName);
 	
 	// adds a property
-	public void setProp(String key, Object value);
+	void setProp(String key, Object value);
 	
 	// gets the property
-	public Object getProp(String key);
+	Object getProp(String key);
 	
 	//returns whether reactor has Prop
-	public boolean hasProp(String key);
+	boolean hasProp(String key);
 	
 	// execute method - GREEDY translation
-	public Object execute();
+	Object execute();
 	
 	// map call implement if your type is map
-	public IHeadersDataRow map(IHeadersDataRow row);
+	IHeadersDataRow map(IHeadersDataRow row);
 	
 	// reduce call implement if the type is reduce
-	public Object reduce(Iterator iterator);
+	Object reduce(Iterator iterator);
 	
 	// sets the data frame
-	public void setFrame(ITableDataFrame frame);
+	void setFrame(ITableDataFrame frame);
+	
 	
 	/**
 	 * elements <- Generic Row <- Generic Noun <- Reactor

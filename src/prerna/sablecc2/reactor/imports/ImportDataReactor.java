@@ -1,6 +1,11 @@
 package prerna.sablecc2.reactor.imports;
 
 
+import java.util.Iterator;
+import java.util.Vector;
+
+import prerna.algorithm.api.ITableDataFrame;
+import prerna.ds.querystruct.QueryStruct2;
 import prerna.engine.api.IEngine;
 import prerna.engine.api.IRawSelectWrapper;
 import prerna.rdf.engine.wrappers.WrapperManager;
@@ -10,12 +15,6 @@ import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.NounMetadata;
 import prerna.sablecc2.reactor.AbstractReactor;
 import prerna.util.Utility;
-
-import java.util.Iterator;
-import java.util.Vector;
-
-import prerna.algorithm.api.ITableDataFrame;
-import prerna.ds.querystruct.QueryStruct2;
 
 public class ImportDataReactor extends AbstractReactor {
 
@@ -32,6 +31,7 @@ public class ImportDataReactor extends AbstractReactor {
 		return parentReactor;
 	}
 	
+	@Override
 	public void updatePlan() {
 		//there is no
 	}
@@ -42,7 +42,7 @@ public class ImportDataReactor extends AbstractReactor {
 	}
 
 	@Override
-	protected void mergeUp() {
+	public void mergeUp() {
 		//this reactor should not need to merge up
 		if(parentReactor != null) {
 			

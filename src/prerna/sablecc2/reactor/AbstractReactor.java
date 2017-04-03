@@ -38,9 +38,6 @@ public abstract class AbstractReactor implements IReactor {
 	protected String[] defaultOutputAlias;
 	boolean evaluate = false;
 	
-	protected abstract void mergeUp();
-	protected abstract void updatePlan();
-	
 	@Override
 	public void setPKSL(String operation, String fullOperation) {
 		this.operationName = operation;

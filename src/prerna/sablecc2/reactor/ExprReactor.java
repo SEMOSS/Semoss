@@ -11,7 +11,6 @@ import prerna.sablecc.PKQLEnum;
 import prerna.sablecc.expressions.sql.H2SqlExpressionIterator;
 import prerna.sablecc.expressions.sql.builder.SqlColumnSelector;
 import prerna.sablecc.expressions.sql.builder.SqlExpressionBuilder;
-import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.NounMetadata;
 import prerna.sablecc2.om.PkslDataTypes;
 
@@ -104,7 +103,7 @@ public class ExprReactor extends AbstractReactor {
 	}
 
 	@Override
-	protected void mergeUp() {
+	public void mergeUp() {
 		if(parentReactor != null ) {
 			SqlExpressionBuilder builder = buildSQLExpression(buildReactor());
 			parentReactor.setProp(this.signature, builder);
@@ -116,7 +115,7 @@ public class ExprReactor extends AbstractReactor {
 	}
 
 	@Override
-	protected void updatePlan() {
+	public void updatePlan() {
 		addOutputLinksToPlanner();
 		storeOutputsToPlanner(buildReactor());
 	}

@@ -249,6 +249,12 @@ public class AnalysisAdapter implements Analysis
     }
 
     @Override
+    public void caseAFormulaNumberOrLiteral(AFormulaNumberOrLiteral node)
+    {
+        defaultCase(node);
+    }
+
+    @Override
     public void caseAProp(AProp node)
     {
         defaultCase(node);

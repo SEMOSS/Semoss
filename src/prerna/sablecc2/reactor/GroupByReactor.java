@@ -9,7 +9,6 @@ import cern.colt.Arrays;
 import prerna.ds.h2.H2Frame;
 import prerna.engine.api.IScriptReactor;
 import prerna.sablecc.PKQLEnum;
-import prerna.sablecc.expressions.IExpressionSelector;
 import prerna.sablecc.expressions.sql.H2SqlExpressionIterator;
 import prerna.sablecc.expressions.sql.builder.SqlColumnSelector;
 import prerna.sablecc.expressions.sql.builder.SqlExpressionBuilder;
@@ -38,14 +37,14 @@ public class GroupByReactor extends AbstractReactor {
 	}
 
 	@Override
-	protected void mergeUp() {
+	public void mergeUp() {
 		if(parentReactor != null) {
 			
 		}
 	}
 
 	@Override
-	protected void updatePlan() {
+	public void updatePlan() {
 		addOutputLinksToPlanner();
 		storeOutputsToPlanner(addGroupBy());
 	}
