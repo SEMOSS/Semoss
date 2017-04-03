@@ -51,13 +51,13 @@ public class CollectReactor extends AbstractReactor{
 	}
 	
 	private Iterator<IHeadersDataRow> getJob() {
-		NounMetadata jobNoun = (NounMetadata)getNounStore().getNoun("JOB").get(0);
-		return (Iterator<IHeadersDataRow>)jobNoun.getValue();
+		Iterator<IHeadersDataRow> job = (Iterator<IHeadersDataRow>)getNounStore().getNoun("JOB").get(0);
+		return job;//(Iterator<IHeadersDataRow>)jobNoun.getValue();
 	}
 	
 	private int getTotalToCollect() {
-		GenRowStruct allNouns = getNounStore().getNoun(NounStore.all);
-		Double collectThisMany = (Double)allNouns.get(0);
+//		GenRowStruct allNouns = getNounStore().getNoun(NounStore.all);
+		Double collectThisMany = (Double)curRow.get(0);
 		return collectThisMany.intValue();
 	}
 }

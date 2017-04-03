@@ -73,7 +73,7 @@ public class GenericReactor extends AbstractReactor {
 			if(noun instanceof String) {
 				NounMetadata value = this.planner.getVariable((String)noun);
 				if(value != null) {
-					thisStruct.add(value, nounType);
+					thisStruct.add(value);
 				} else {
 					thisStruct.add(noun, nounType);
 				}

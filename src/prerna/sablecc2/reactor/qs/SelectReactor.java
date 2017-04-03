@@ -82,7 +82,7 @@ public class SelectReactor extends QueryStructReactor {
 	private boolean isDatabaseQueryStruct() {
 		GenRowStruct result = this.store.getNoun("QUERYSTRUCT");
 		if(result != null && result.getMeta(0).toString().equals("QUERYSTRUCT")) {
-			NounMetadata storedResult = (NounMetadata)result.get(0);
+			NounMetadata storedResult = (NounMetadata)result.getNoun(0);
 			if(storedResult.getValue() instanceof QueryStruct2) {
 				
 				//if no engine name in query struct, we will use it for a frame
