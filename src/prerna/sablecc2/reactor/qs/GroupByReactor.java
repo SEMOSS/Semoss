@@ -11,7 +11,7 @@ public class GroupByReactor extends QueryStructReactor
 	//TODO : if a type does not match throw syntax exception, we are getting something we are not expecting
 	QueryStruct2 createQueryStruct() {
 		//get the selectors
-		GenRowStruct allNouns = getNounStore().getNoun(NounStore.all); //must only be strings
+		GenRowStruct allNouns = curRow;//getNounStore().getNoun(NounStore.all); //must only be strings
 		
 		if(isDatabaseQueryStruct()) {
 			for(int selectIndex = 0;selectIndex < allNouns.size();selectIndex++) {

@@ -1,6 +1,7 @@
 package prerna.sablecc2.reactor.qs;
 
 import java.util.Enumeration;
+import java.util.List;
 import java.util.Vector;
 
 import prerna.ds.querystruct.QueryStruct2;
@@ -26,10 +27,10 @@ public class AsReactor extends QueryStructReactor {
 		{
 			String singleKey = keys.nextElement();
 			GenRowStruct struct = store.nounRow.get(singleKey);
-			Vector <String> inputs = struct.getAllColumns(); // ideally this should get only one column for now
+			List <String> inputs = struct.getAllColumns(); // ideally this should get only one column for now
 
 			asNames = new String[1];
-			asNames[0] = inputs.elementAt(0).trim();
+			asNames[0] = inputs.get(0).trim();
 		}
 		if(this.parentReactor != null && asNames != null)
 		{

@@ -1,5 +1,7 @@
 package prerna.sablecc2.om;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Vector;
 
 import prerna.sablecc2.reactor.IReactor;
@@ -13,33 +15,35 @@ public class GenRowStruct {
 	
 	boolean isAllSQL = true;
 	
-	public Vector<Object> vector = new Vector<Object>();
-	public Vector<PkslDataTypes> metaVector = new Vector<PkslDataTypes>();
-	String columns = "";
+	public Vector<NounMetadata> vector = new Vector<>();
 	
 	public void add(Object value, PkslDataTypes type) {
-		vector.addElement(value);
-		metaVector.add(type);
+		if(value instanceof NounMetadata) {
+			add((NounMetadata)value);
+		} else {
+			NounMetadata noun = new NounMetadata(value, type);
+			vector.add(noun);
+		}
+	}
+	
+	public void add(NounMetadata noun) {
+		vector.addElement(noun);
 	}
 	
 	public void addLiteral(String literal)
 	{
-		vector.addElement(literal);
-		metaVector.add(PkslDataTypes.CONST_STRING);
+		add(literal, PkslDataTypes.CONST_STRING);
 	}
 	
 	public void addDecimal(Double literal)
 	{
-		vector.addElement(literal);
-		metaVector.add(PkslDataTypes.CONST_DECIMAL);
+		add(literal, PkslDataTypes.CONST_DECIMAL);
 	}
 	
 	public void addColumn(String column)
 	{
-		column = column.trim();
-		vector.addElement(column);
-		metaVector.add(PkslDataTypes.COLUMN);
-		columns = columns + "_" + column;
+		add(column.trim(), PkslDataTypes.COLUMN);
+//		columns = columns + "_" + column;
 	}
 	
 	// other than the actual expression
@@ -47,14 +51,12 @@ public class GenRowStruct {
 	// while, I am doing this for sql expression here, we could replace sql expression and the same story kicks in
 	public void addSQLE(String sqlE, String [] inputColumns)
 	{
-		vector.addElement(sqlE);
-		metaVector.add(PkslDataTypes.SQLE);
+		add(sqlE, PkslDataTypes.SQLE);
 	}
 
 	public void addE(Expression e)
 	{
-		vector.addElement(e);
-		metaVector.add(PkslDataTypes.E);
+		add(e, PkslDataTypes.E);
 		isAllSQL = false;
 	}
 	
@@ -63,8 +65,7 @@ public class GenRowStruct {
 	// however this could be the if part or the else part
 	public void addLambda(IReactor reactor)
 	{
-		vector.addElement(reactor);
-		metaVector.add(PkslDataTypes.LAMBDA);
+		add(reactor, PkslDataTypes.LAMBDA);
 		isAllSQL = false;
 		
 	}
@@ -77,43 +78,40 @@ public class GenRowStruct {
 
 	public void addFilter(Filter filter)
 	{
-		vector.addElement(filter);
-		metaVector.add(PkslDataTypes.FILTER);		
+		add(filter, PkslDataTypes.FILTER);
 	}
 	
 	public void addRelation(String leftCol, String joinType, String rightCol)
 	{
 		Join join = new Join(leftCol, joinType, rightCol);
-		vector.addElement(join);
-		metaVector.add(PkslDataTypes.JOIN);
+		add(join, PkslDataTypes.JOIN);
 	}
 
 	public void merge(GenRowStruct anotherRow)
 	{
 		vector.addAll(anotherRow.vector);
-		metaVector.addAll(anotherRow.metaVector);
 	}
 	
 	// gets all of a particular type
 	// works only for columns
-	public Vector<String> getAllColumns()
+	public List<String> getAllColumns()
 	{
-		Vector<String> retVector = new Vector<String>();
-		for(int elementIndex = 0;elementIndex < metaVector.size();elementIndex++)
-		{
-			if(metaVector.elementAt(elementIndex) == PkslDataTypes.COLUMN)
-				retVector.add(vector.elementAt(elementIndex)+"");
+		List<String> retVector = new ArrayList<>();
+		for(NounMetadata noun : vector) {
+			if(noun.getNounName() == PkslDataTypes.COLUMN) {
+				retVector.add((String)noun.getValue());
+			}
 		}
 		return retVector;
 	}
 	
-	public Vector<Object> getColumnsOfType(PkslDataTypes type)
+	public List<Object> getColumnsOfType(PkslDataTypes type)
 	{
-		Vector<Object> retVector = new Vector<Object>();
-		for(int elementIndex = 0;elementIndex < metaVector.size();elementIndex++)
-		{
-			if(metaVector.elementAt(elementIndex) == type)
-				retVector.add(vector.elementAt(elementIndex));
+		List<Object> retVector = new ArrayList<>();
+		for(NounMetadata noun : vector) {
+			if(noun.getNounName() == type) {
+				retVector.add(noun.getValue());
+			}
 		}
 		return retVector;
 	}
@@ -123,24 +121,29 @@ public class GenRowStruct {
 	}
 	
 	public Object get(int i) {
+		return this.vector.get(i).getValue();
+	}
+	
+	public NounMetadata getNoun(int i) {
 		return this.vector.get(i);
 	}
 	
 	public PkslDataTypes getMeta(int i) {
-		return this.metaVector.get(i);
+		return this.vector.get(i).getNounName();
 	}
 
 	// I will turn this into query struct eventually - nope I never will
 	
 	public String getColumns()
 	{
-		return columns;
+//		return columns;
+		return "";
 	}
 	
 	public String getDataString() {
 		String s = "";
-		s += "META VECTOR: "+this.metaVector+"\n";
-		s += "DATA VECTOR: "+this;
+//		s += "META VECTOR: "+this.metaVector+"\n";
+//		s += "DATA VECTOR: "+this;
 		return s;
 	}
 	
@@ -149,9 +152,9 @@ public class GenRowStruct {
 	 */
 	public String toString() {
 		StringBuilder builder = new StringBuilder();
-		builder.append(this.vector.toString());
-		builder.append("\n");
-		builder.append(this.metaVector.toString());
+//		builder.append(this.vector.toString());
+//		builder.append("\n");
+//		builder.append(this.metaVector.toString());
 		return builder.toString();
 	}
 

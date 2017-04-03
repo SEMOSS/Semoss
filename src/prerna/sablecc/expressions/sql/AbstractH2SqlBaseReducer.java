@@ -6,7 +6,6 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
-import java.util.Vector;
 
 import prerna.ds.h2.H2Frame;
 import prerna.sablecc.AbstractReactor;
@@ -52,7 +51,7 @@ public abstract class AbstractH2SqlBaseReducer extends AbstractReactor {
 				hasGroups = true;
 				groups.addAll(existingGroups);
 				int startSize = groups.size();
-				Vector<String> groupBys = (Vector <String>) myStore.get(PKQLEnum.COL_CSV);
+				List<String> groupBys = (List <String>) myStore.get(PKQLEnum.COL_CSV);
 				// when i remove these new groups, the size better be 0
 				// meaning they are all already accounted for
 				if(groupBys != null && !groupBys.isEmpty()) {
@@ -74,7 +73,7 @@ public abstract class AbstractH2SqlBaseReducer extends AbstractReactor {
 			
 			// only other possibility we account for is a column
 			// the input has to be a set of column as the starting point
-			Vector<String> columns = (Vector<String>) myStore.get(PKQLEnum.COL_DEF);
+			List<String> columns = (List<String>) myStore.get(PKQLEnum.COL_DEF);
 			
 			for(String col : columns) {
 				SqlColumnSelector selector = new SqlColumnSelector(h2Frame, col);
@@ -120,7 +119,7 @@ public abstract class AbstractH2SqlBaseReducer extends AbstractReactor {
 	 */
 	private boolean addGroupBys(H2Frame h2Frame, SqlExpressionBuilder builder) {
 		boolean hasGroups = false;
-		Vector<String> groupBys = (Vector <String>) myStore.get(PKQLEnum.COL_CSV);
+		List<String> groupBys = (List <String>) myStore.get(PKQLEnum.COL_CSV);
 		if(groupBys != null) {
 			for(String groupBy : groupBys) {
 				SqlColumnSelector gSelector = new SqlColumnSelector(h2Frame, groupBy);

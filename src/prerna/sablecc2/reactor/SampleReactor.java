@@ -1,6 +1,7 @@
 package prerna.sablecc2.reactor;
 
 import java.util.Enumeration;
+import java.util.List;
 import java.util.Vector;
 
 import prerna.algorithm.api.IMetaData;
@@ -233,10 +234,10 @@ public class SampleReactor extends AbstractReactor {
 		{
 			String singleKey = keys.nextElement();
 			GenRowStruct struct = store.nounRow.get(singleKey);
-			Vector <String> inputs = struct.getAllColumns();
+			List <String> inputs = struct.getAllColumns();
 			// merge the filters and joins as well
-			Vector <Object> filters = struct.getColumnsOfType(PkslDataTypes.FILTER); 
-			Vector <Object> joins = struct.getColumnsOfType(PkslDataTypes.JOIN);
+			List <Object> filters = struct.getColumnsOfType(PkslDataTypes.FILTER); 
+			List <Object> joins = struct.getColumnsOfType(PkslDataTypes.JOIN);
 			
 			// need a better way to do it
 			if(asName == null)

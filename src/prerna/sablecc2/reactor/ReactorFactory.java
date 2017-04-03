@@ -158,9 +158,11 @@ public class ReactorFactory {
 			        return reactor;
 				}
 			}
-			reactor = (IReactor)reactorHash.get(reactorId).newInstance();
-			reactor.setPKSL(reactorId, nodeString);
-	    	return reactor;
+			if(reactorHash.containsKey(reactorId)) {
+				reactor = (IReactor)reactorHash.get(reactorId).newInstance();
+				reactor.setPKSL(reactorId, nodeString);
+				return reactor;
+			}
 		} catch (InstantiationException | IllegalAccessException e) {
 			e.printStackTrace();
 		}

@@ -50,7 +50,7 @@ public class RetrieveValue extends AbstractReactor {
 	@Override
 	public Object execute()
 	{
-		NounMetadata storeNoun = (NounMetadata) this.store.getNoun(STORE_NOUN).get(0);
+		NounMetadata storeNoun = (NounMetadata) this.store.getNoun(STORE_NOUN).getNoun(0);
 		String key = this.store.getNoun(KEY_NOUN).get(0).toString();
 		
 		// when we update the store noun

@@ -1,17 +1,25 @@
 package prerna.sablecc2.reactor;
 
 import java.util.Enumeration;
+import java.util.List;
 import java.util.Vector;
 
 import prerna.sablecc2.om.GenRowStruct;
+import prerna.sablecc2.om.NounMetadata;
+import prerna.sablecc2.om.PkslDataTypes;
 
 public class AsReactor extends SampleReactor {
 	
 	public Object Out()
 	{
 		updatePlan();
-		System.out.println("Out of as reactor");
 		return parentReactor;
+	}
+	
+	public Object execute() {
+		String alias = (String)curRow.get(0);
+		NounMetadata noun = new NounMetadata(alias, PkslDataTypes.ALIAS);
+		return noun;
 	}
 
 	public void updatePlan()
@@ -29,10 +37,10 @@ public class AsReactor extends SampleReactor {
 		{
 			String singleKey = keys.nextElement();
 			GenRowStruct struct = store.nounRow.get(singleKey);
-			Vector <String> inputs = struct.getAllColumns(); // ideally this should get only one column for now
+			List <String> inputs = struct.getAllColumns(); // ideally this should get only one column for now
 
 			asNames = new String[1];
-			asNames[0] = inputs.elementAt(0).trim();
+			asNames[0] = inputs.get(0).trim();
 		}
 		if(this.parentReactor != null && asNames != null)
 		{

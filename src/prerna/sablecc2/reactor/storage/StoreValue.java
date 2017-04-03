@@ -55,7 +55,7 @@ public class StoreValue extends AbstractReactor {
 	@Override
 	public Object execute()
 	{
-		NounMetadata storeNoun = (NounMetadata) this.store.getNoun(STORE_NOUN).get(0);
+		NounMetadata storeNoun = (NounMetadata) this.store.getNoun(STORE_NOUN).getNoun(0);
 		String key = this.store.getNoun(KEY_NOUN).get(0).toString();
 		Object value = this.store.getNoun(VALUE_NOUN).get(0);
 		PkslDataTypes valueType = this.store.getNoun(VALUE_NOUN).getMeta(0);

@@ -41,7 +41,7 @@ public class ExportReactor extends AbstractReactor {
 		GenRowStruct dataNouns = getNounStore().getNoun("data");
 		int numNouns = dataNouns.size();
 		for(int nounIdx = 0; nounIdx < numNouns; nounIdx++) {
-			exportedData = (Map<String, Object>) ((NounMetadata)dataNouns.get(nounIdx)).getValue();
+			exportedData = (Map<String, Object>) (dataNouns.getNoun(nounIdx)).getValue();
 		}
 		this.planner.addProperty("DATA", "DATA", exportedData);
 		NounMetadata result = new NounMetadata(exportedData, PkslDataTypes.EXPORT);
