@@ -9,8 +9,8 @@ public class DatabaseReactor extends QueryStructReactor {
 	@Override
 	QueryStruct2 createQueryStruct() {
 		//get the selectors
-		GenRowStruct allNouns = getNounStore().getNoun(NounStore.all);
-		String engineName = (String)allNouns.get(0);
+//		GenRowStruct allNouns = getNounStore().getNoun(NounStore.all);
+		String engineName = (String)curRow.get(0);
 		qs.setEngineName(engineName);
 		return qs;
 	}

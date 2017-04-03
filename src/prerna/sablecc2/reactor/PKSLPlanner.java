@@ -3,6 +3,7 @@ package prerna.sablecc2.reactor;
 import java.util.HashMap;
 import java.util.Hashtable;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
 import java.util.Stack;
 import java.util.Vector;
@@ -46,7 +47,7 @@ public class PKSLPlanner {
 	}
 	
 	// adds an operation with necessary inputs
-	public void addInputs(String opName, Vector <String> inputs, Vector <String> asInputs, IReactor.TYPE opType)
+	public void addInputs(String opName, List <String> inputs, List <String> asInputs, IReactor.TYPE opType)
 	{
 		// find the vertex for each of the input
 		// wonder if this should be a full fledged block of java ?
@@ -57,19 +58,19 @@ public class PKSLPlanner {
 		Vector <String> aliasVector = new Vector<String>();
 		for(int inputIndex = 0;inputIndex < inputs.size();inputIndex++)
 		{
-			Vertex inpVertex = upsertVertex(NOUN, inputs.elementAt(inputIndex));
+			Vertex inpVertex = upsertVertex(NOUN, inputs.get(inputIndex));
 			if(asInputs != null && inputIndex < asInputs.size())
-				aliasVector.add(asInputs.elementAt(inputIndex));
+				aliasVector.add(asInputs.get(inputIndex));
 			else
-				aliasVector.add(inputs.elementAt(inputIndex));
-			String edgeID = inputs.elementAt(inputIndex)+ "_" + opName;
+				aliasVector.add(inputs.get(inputIndex));
+			String edgeID = inputs.get(inputIndex)+ "_" + opName;
 			Edge retEdge = inpVertex.addEdge(edgeID, opVertex, "ID", edgeID, "COUNT", 1, "INEDGE", inpVertex.property("ID"), "TYPE", "INPUT");
 			
 		}
 		opVertex.property("ALIAS", aliasVector);
 	}
 
-	public void addInputs(String opName, Vector <String> inputs, IReactor.TYPE opType)
+	public void addInputs(String opName, List <String> inputs, IReactor.TYPE opType)
 	{
 		addInputs(opName, inputs, null, opType);
 	}
@@ -149,32 +150,32 @@ public class PKSLPlanner {
 	
 	
 	// adds an operation with outputs
-	public void addOutputs(String opName, Vector <String> outputs, IReactor.TYPE opType)
+	public void addOutputs(String opName, List <String> outputs, IReactor.TYPE opType)
 	{
 		// find the vertex for each of the input
 		// wonder if this should be a full fledged block of java ?
 		Vertex opVertex = upsertVertex(OPERATION, opName);
 		for(int outputIndex = 0;outputIndex < outputs.size();outputIndex++)
 		{
-			Vertex outpVertex = upsertVertex(NOUN, outputs.elementAt(outputIndex));
+			Vertex outpVertex = upsertVertex(NOUN, outputs.get(outputIndex));
 			outpVertex.property("VAR_TYPE", "QUERY"); // by default it is query
-			String edgeID = opName + "_" + outputs.elementAt(outputIndex);
+			String edgeID = opName + "_" + outputs.get(outputIndex);
 			Edge retEdge = opVertex.addEdge(edgeID, outpVertex, "ID", edgeID, "COUNT", 1, "INEDGE", opVertex.property("ID"), "TYPE", "OUTPUT");
 		}
 	}
 	
 	// specify what type is the output is going to be sitting in store or is it sitting in query
 	// should I also specify as names here ?
-	public void addOutputs(String opName, Vector <String> outputs, Vector <String> outputTypes, IReactor.TYPE opType)
+	public void addOutputs(String opName, List <String> outputs, List <String> outputTypes, IReactor.TYPE opType)
 	{
 		// find the vertex for each of the input
 		// wonder if this should be a full fledged block of java ?
 		Vertex opVertex = upsertVertex(OPERATION, opName);
 		for(int outputIndex = 0;outputIndex < outputs.size();outputIndex++)
 		{
-			Vertex outpVertex = upsertVertex(NOUN, outputs.elementAt(outputIndex));
+			Vertex outpVertex = upsertVertex(NOUN, outputs.get(outputIndex));
 			outpVertex.property("VAR_TYPE", outputTypes.get(outputIndex)); // by default it is query
-			String edgeID = opName + "_" + outputs.elementAt(outputIndex);
+			String edgeID = opName + "_" + outputs.get(outputIndex);
 			Edge retEdge = opVertex.addEdge(edgeID, outpVertex, "ID", edgeID, "COUNT", 1, "INEDGE", opVertex.property("ID"), "TYPE", "OUTPUT");
 		}
 	}
@@ -186,7 +187,7 @@ public class PKSLPlanner {
 	// in this case the as Name should be used as the main name
 	// I see seems like I have accomodated for multiple as names
 	// no not really it is just as here
-	public void addInputs(String opName, CodeBlock codeBlock, Vector <String> inputs, Vector <String> asInputs, IReactor.TYPE opType)
+	public void addInputs(String opName, CodeBlock codeBlock, List <String> inputs, List <String> asInputs, IReactor.TYPE opType)
 	{
 		// should this be string ?
 		// it should be a map block
@@ -197,21 +198,21 @@ public class PKSLPlanner {
 		opVertex.property("OP_TYPE", opType);
 		opVertex.property("CODE", codeBlock);
 		opVertex.property("INPUT_ORDER", inputs);
-		Vector <String> aliasVector = new Vector<String>();
+		List <String> aliasVector = new Vector<String>();
 		for(int inputIndex = 0;inputIndex < inputs.size();inputIndex++)
 		{
-			Vertex inpVertex = upsertVertex(NOUN, inputs.elementAt(inputIndex));
+			Vertex inpVertex = upsertVertex(NOUN, inputs.get(inputIndex));
 			if(asInputs != null && inputIndex < asInputs.size())
-				aliasVector.add(asInputs.elementAt(inputIndex));
+				aliasVector.add(asInputs.get(inputIndex));
 			else
-				aliasVector.add(inputs.elementAt(inputIndex));
-			String edgeID = inputs.elementAt(inputIndex)+ "_" + opName;
+				aliasVector.add(inputs.get(inputIndex));
+			String edgeID = inputs.get(inputIndex)+ "_" + opName;
 			Edge retEdge = inpVertex.addEdge(edgeID, opVertex, "ID", edgeID, "COUNT", 1, "INEDGE", inpVertex.property("ID"), "TYPE", "INPUT");			
 		}
 		opVertex.property("ALIAS", aliasVector);
 	}
 
-	public void addInputs(String opName, CodeBlock codeBlock, Vector <String> inputs, IReactor.TYPE opType)
+	public void addInputs(String opName, CodeBlock codeBlock, List <String> inputs, IReactor.TYPE opType)
 	{
 		addInputs(opName, codeBlock, inputs, null, opType);
 	}
@@ -267,7 +268,7 @@ public class PKSLPlanner {
 		// Multi Stage with reduce - done
 		// Multi stage with reduce 
 		
-		Vector <Object> inputs = new Vector<Object>();
+		List <Object> inputs = new Vector<Object>();
 		Vertex workingVertex = findVertex(OPERATION, output);
 		StageKeeper allStages = new StageKeeper();
 		if(workingVertex != null)
@@ -276,7 +277,7 @@ public class PKSLPlanner {
 			
 			// INPUT inputVector, CODE codeVector, OUTPUT outputVector
 			Hashtable <String, Object> curHash = new Hashtable<String, Object>();
-			Vector <Vertex> verticesToProcess = new Vector<Vertex>();
+			List <Vertex> verticesToProcess = new Vector<Vertex>();
 			verticesToProcess.add(workingVertex);
 			curHash.put("VERTEX_TO_PROCESS", verticesToProcess);
 			codeStack.push(curHash);
@@ -300,7 +301,7 @@ public class PKSLPlanner {
 	
 	
 
-	private StageKeeper loadVertex3(StageKeeper keeper, Vector <Vertex> verticesToProcess)
+	private StageKeeper loadVertex3(StageKeeper keeper, List <Vertex> verticesToProcess)
 	{
 		
 		// I need to break this into stages i.e. the codeStack

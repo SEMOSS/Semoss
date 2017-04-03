@@ -36,11 +36,11 @@ public class GetDataReactor extends AbstractReactor {
 	
 	private void getData()  {
 		//get the inputs
-		GenRowStruct allNouns = getNounStore().getNoun(NounStore.all); //should be only joins
-		String jobId = (String)allNouns.get(0);
+//		GenRowStruct allNouns = getNounStore().getNoun(NounStore.all); //should be only joins
+		String jobId = (String)curRow.get(0);
 		Double limit = 0.0;
-		if(allNouns.size() > 1) {
-			limit = (Double)allNouns.get(1);
+		if(curRow.size() > 1) {
+			limit = (Double)curRow.get(1);
 		}
 		
 		int count = 0;
