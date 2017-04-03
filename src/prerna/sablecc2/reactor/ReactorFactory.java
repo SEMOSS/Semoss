@@ -99,7 +99,7 @@ public class ReactorFactory {
 		reactorHash.put("Format", FormatReactor.class);
 		reactorHash.put("Export", ExportReactor.class);
 		reactorHash.put("Collect", CollectReactor.class);
-		reactorHash.put("Script", ScriptReactor.class);
+//		reactorHash.put("Script", ScriptReactor.class);
 		
 		//
 		reactorHash.put("if", IfReactor.class);
