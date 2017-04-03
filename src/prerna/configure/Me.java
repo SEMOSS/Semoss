@@ -5,6 +5,7 @@ import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
+import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStreamReader;
@@ -12,7 +13,9 @@ import java.io.OutputStreamWriter;
 import java.net.ServerSocket;
 import java.nio.file.Files;
 import java.nio.file.StandardCopyOption;
+import java.util.ArrayList;
 import java.util.Hashtable;
+import java.util.List;
 
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
@@ -24,8 +27,6 @@ import org.w3c.dom.Document;
 import org.w3c.dom.NamedNodeMap;
 import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
-
-import prerna.util.Utility;
 
 public class Me {
 	// the idea here really simple
@@ -398,9 +399,70 @@ public class Me {
 	
 	private void replaceProp(String fileName, String [] keysForThingsToReplace, String [] newValuesForReplacement)
 	{
-		int length = keysForThingsToReplace.length;
-		for(int i = 0; i < length; i++) {
-			Utility.changePropMapFileValue(fileName, keysForThingsToReplace[i], newValuesForReplacement[i]);
+		FileOutputStream fileOut = null;
+		File file = new File(fileName);
+
+		/*
+		 * 1) Loop through the smss file and add each line as a list of strings
+		 * 2) For each line, see if it starts with the key to alter
+		 * 3) if yes, write out the key with the new value passed in
+		 * 4) if no, just write out the line as is
+		 * 
+		 */
+		List<String> content = new ArrayList<String>();
+		BufferedReader reader = null;
+		FileReader fr = null;
+		try{
+			fr = new FileReader(file);
+			reader = new BufferedReader(fr);
+			String line;
+			// 1) add each line as a different string in list
+			while((line = reader.readLine()) != null){
+				content.add(line);
+			}
+
+			fileOut = new FileOutputStream(file);
+			byte[] lineBreak = "\n".getBytes();
+			// 2) iterate through each line if the smss file
+			for(int i = 0; i <content.size(); i++){
+				// 3) if this line starts with the key to alter
+				int length = keysForThingsToReplace.length;
+				
+				boolean foundKeyToAlter = false;
+				KEY_LOOP : for(int keyToAlterIndex = 0; keyToAlterIndex < length; keyToAlterIndex++) {
+					String keyToAlter = keysForThingsToReplace[keyToAlterIndex];
+					if(content.get(i).contains(keyToAlter)){
+						// create new line to write using the key and the new value
+						String newKeyValue = keyToAlter + "\t" + newValuesForReplacement[keyToAlterIndex];
+						fileOut.write(newKeyValue.getBytes());
+						foundKeyToAlter = true;
+						break KEY_LOOP;
+					}
+				}
+				
+				// 4) if it doesn't, just write the next line as is
+				if(!foundKeyToAlter) {
+					byte[] contentInBytes = content.get(i).getBytes();
+					fileOut.write(contentInBytes);
+				}
+				// after each line, write a line break into the file
+				fileOut.write(lineBreak);
+			}
+		} catch(IOException e){
+			e.printStackTrace();
+		} finally{
+			// close the readers
+			try{
+				reader.close();
+			} catch (IOException e) {
+				e.printStackTrace();
+			}
+
+			try{
+				fileOut.close();
+			} catch (IOException e){
+				e.printStackTrace();
+			}
 		}
 	}
 
