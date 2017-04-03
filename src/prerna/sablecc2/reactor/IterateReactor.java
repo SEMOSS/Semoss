@@ -105,7 +105,7 @@ public class IterateReactor extends AbstractReactor {
 		GenRowStruct allNouns = getNounStore().getNoun("QUERYSTRUCT");
 		QueryStruct2 queryStruct = null;
 		if(allNouns != null) {
-			NounMetadata object = (NounMetadata)allNouns.get(0);
+			NounMetadata object = (NounMetadata)allNouns.getNoun(0);
 			return (QueryStruct2)object.getValue();
 		} else {
 			NounMetadata result = (NounMetadata)this.planner.getProperty("RESULT", "RESULT");

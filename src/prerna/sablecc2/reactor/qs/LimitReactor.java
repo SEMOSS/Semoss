@@ -8,8 +8,8 @@ public class LimitReactor extends QueryStructReactor {
 
 	@Override
 	QueryStruct2 createQueryStruct() {
-		GenRowStruct allNouns = getNounStore().getNoun(NounStore.all);
-		Double l = (Double)allNouns.get(0);
+//		GenRowStruct allNouns = getNounStore().getNoun(NounStore.all);
+		Double l = (Double)curRow.get(0);
 		Integer limit = l.intValue();
 		qs.setLimit(limit);
 		return qs;

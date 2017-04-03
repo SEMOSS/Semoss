@@ -61,7 +61,7 @@ public class ImportDataReactor extends AbstractReactor {
 		SQLInterpreter2 interp = new SQLInterpreter2(engine);
 		interp.setQueryStruct(queryStruct);
 		String importQuery = interp.composeQuery();
-		IRawSelectWrapper iterator = WrapperManager.getInstance().getRawWrapper(engine, importQuery);
+		IRawSelectWrapper iterator = WrapperManager.getInstance().getRawWrapper(engine, importQuery); //we can only import from a db...or can we import from a frame?
 		
 		//set values into the curReactor
 		importer.put("G", frame);
@@ -84,7 +84,7 @@ public class ImportDataReactor extends AbstractReactor {
 		GenRowStruct allNouns = getNounStore().getNoun("QUERYSTRUCT");
 		QueryStruct2 queryStruct = null;
 		if(allNouns != null) {
-			NounMetadata object = (NounMetadata)allNouns.get(0);
+			NounMetadata object = (NounMetadata)allNouns.getNoun(0);
 			return (QueryStruct2)object.getValue();
 		} else {
 			NounMetadata result = this.planner.getVariable("$RESULT");

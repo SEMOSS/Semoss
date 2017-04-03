@@ -1,9 +1,11 @@
 package prerna.sablecc2.reactor;
 
+import java.util.List;
 import java.util.Vector;
 
 import prerna.sablecc2.om.Expression;
 import prerna.sablecc2.om.GenRowStruct;
+import prerna.sablecc2.om.NounMetadata;
 import prerna.sablecc2.om.PkslDataTypes;
 
 /**
@@ -28,7 +30,6 @@ import prerna.sablecc2.om.PkslDataTypes;
  *			'X(5)' -> Lambda
  *		
  *		Out() method will produce an expression by iterating recursively through the left and right to produce a single expression which can be executed
- *
  */
 public class Assimilator extends AbstractReactor {
 	
@@ -50,12 +51,19 @@ public class Assimilator extends AbstractReactor {
 		this.parentReactor.getCurRow().addE(thisExpression);
 		return parentReactor;
 	}
+	
+//	@Override
+//	public Object execute() {
+//		Expression thisExpression = getExpression();
+//		NounMetadata noun = new NounMetadata(thisExpression, PkslDataTypes.E);
+//		return null;
+//	}
 
 	private Expression getExpression() {
-		Vector<String> inputColumns = curRow.getAllColumns();
+		List<String> inputColumns = curRow.getAllColumns();
 		String [] allColumns = new String[inputColumns.size()];
 		for(int colIndex = 0;colIndex < inputColumns.size(); colIndex++) {
-			allColumns[colIndex] = inputColumns.elementAt(colIndex)+"";
+			allColumns[colIndex] = inputColumns.get(colIndex);
 		}
 		// the expression will just store the entire signature and the columns
 		// the columns is added because as we keep going through the parsing
