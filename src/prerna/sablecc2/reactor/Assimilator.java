@@ -56,24 +56,28 @@ public class Assimilator extends AbstractReactor {
 	
 	@Override
 	public Object execute() {
-		this.thisExpression = getExpression();
+		if(this.thisExpression == null) {
+			this.thisExpression = getExpression();
+		}
 		NounMetadata noun = new NounMetadata(thisExpression, PkslDataTypes.E);
 		return noun;
 	}
 
 	private Expression getExpression() {
-		List<String> inputColumns = curRow.getAllColumns();
-		String [] allColumns = new String[inputColumns.size()];
-		for(int colIndex = 0;colIndex < inputColumns.size(); colIndex++) {
-			allColumns[colIndex] = inputColumns.get(colIndex);
+		if(this.thisExpression == null) {
+			List<String> inputColumns = curRow.getAllColumns();
+			String [] allColumns = new String[inputColumns.size()];
+			for(int colIndex = 0;colIndex < inputColumns.size(); colIndex++) {
+				allColumns[colIndex] = inputColumns.get(colIndex);
+			}
+			// the expression will just store the entire signature and the columns
+			// the columns is added because as we keep going through the parsing
+			// columns definitions just get appended into the GenRowStruct curRow 
+			thisExpression = new Expression(signature, allColumns);
+			thisExpression.setLeft(getSubExpression("LEFT")); //get the left side and set it
+			thisExpression.setRight(getSubExpression("RIGHT")); //get the right side and set it
+			thisExpression.setOperation(getOperation()); //get the operation string and set it
 		}
-		// the expression will just store the entire signature and the columns
-		// the columns is added because as we keep going through the parsing
-		// columns definitions just get appended into the GenRowStruct curRow 
-		Expression thisExpression = new Expression(signature, allColumns);
-		thisExpression.setLeft(getSubExpression("LEFT")); //get the left side and set it
-		thisExpression.setRight(getSubExpression("RIGHT")); //get the right side and set it
-		thisExpression.setOperation(getOperation()); //get the operation string and set it
 		return thisExpression;
 	}
 	
@@ -146,6 +150,19 @@ public class Assimilator extends AbstractReactor {
 		GenRowStruct operation = this.getNounStore().getNoun("OPERATOR");
 		String op = (String)operation.get(0);
 		return op;
+	}
+	
+	public List<NounMetadata> getInputs() {
+		
+		//TODO : do i need to add a check?
+		List<NounMetadata> inputs = new Vector<>();
+		String[] exprInputs = getExpression().getInputs();
+		for(String exprInput : exprInputs) {
+			NounMetadata noun = new NounMetadata(exprInputs, PkslDataTypes.COLUMN);
+			inputs.add(noun);
+		}
+		
+		return inputs;
 	}
 	
 	@Override
