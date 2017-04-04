@@ -35,7 +35,6 @@ import prerna.sablecc2.node.AOperationFormula;
 import prerna.sablecc2.node.AOtherscript;
 import prerna.sablecc2.node.APlusExpr;
 import prerna.sablecc2.node.AProp;
-import prerna.sablecc2.node.AROp;
 import prerna.sablecc2.node.ARcol;
 import prerna.sablecc2.node.ARelationship;
 import prerna.sablecc2.node.AScriptchain;
@@ -52,7 +51,6 @@ import prerna.sablecc2.reactor.GenericReactor;
 import prerna.sablecc2.reactor.IReactor;
 import prerna.sablecc2.reactor.IfReactor;
 import prerna.sablecc2.reactor.PKSLPlanner;
-import prerna.sablecc2.reactor.RReactor;
 import prerna.sablecc2.reactor.ReactorFactory;
 import prerna.sablecc2.reactor.qs.AsReactor;
 import prerna.ui.components.playsheets.datamakers.IDataMaker;
@@ -216,7 +214,8 @@ public class Translation extends DepthFirstAdapter {
 //        IReactor frameReactor = new SampleReactor();
 //        frameReactor.setPKSL(node.getId()+"", node+"");
         String reactorId = node.getId().toString().trim();
-        IReactor frameReactor = getReactor(reactorId, node.toString().trim()); //get the reactor
+        IReactor frameReactor = getReactor(reactorId, node.toString().trim(), 
+        		"(" + node.getNoun().toString().trim() + node.getOthernoun().toString().trim() + ")");
         initReactor(frameReactor);
         syncResult();
      }
@@ -247,7 +246,7 @@ public class Translation extends DepthFirstAdapter {
     	defaultIn(node);
         IReactor opReactor = new AsReactor();
         System.out.println("In the AS Component of frame op");
-        opReactor.setPKSL("as", node.getAsOp() + "");
+        opReactor.setPKSL("as", node.getAsOp() + "", "(" + node.getGenRow().toString().trim() + ")");
         initReactor(opReactor);
     }
 
@@ -261,11 +260,8 @@ public class Translation extends DepthFirstAdapter {
     public void inAAssignment(AAssignment node)
     {
     	defaultIn(node);
-//    	if(!this.planner.hasProperty("VARIABLE", "VARIABLE")) {
-//    		this.planner.addProperty("VARIABLE", "VARIABLE", new HashMap<String, NounMetadata>());
-//    	}
     	IReactor assignmentReactor = new AssignmentReactor();
-        assignmentReactor.setPKSL(node.getId().toString().trim(), node.toString().trim());
+        assignmentReactor.setPKSL(node.getId().toString().trim(), node.toString().trim(), node.getPossibleVariables().toString().trim());
     	initReactor(assignmentReactor);
     }
 
@@ -289,7 +285,7 @@ public class Translation extends DepthFirstAdapter {
     public void inAGeneric(AGeneric node) {
     	defaultIn(node);
     	IReactor genReactor = new GenericReactor();
-        genReactor.setPKSL("PKSL",(node + "").trim());
+        genReactor.setPKSL("PKSL", (node + "").trim(), node.getGenRow().toString().trim());
         genReactor.setProp("KEY", node.getId().toString().trim());
         initReactor(genReactor);
     }
@@ -307,30 +303,13 @@ public class Translation extends DepthFirstAdapter {
         System.out.println("Starting a formula operation " + node.getId());
         // I feel like mostly it would be this and not frame op
         // I almost feel I should remove the frame op col def
-//        IReactor opReactor = getReactor(node.getId().toString().trim(), node.toString());
-        IReactor opReactor = getReactor(node.getId().toString().trim(), node.toString().trim());
-        
-        // this is old code when everything was a sample reactor
-        // should no longer be used...
-//        if(opReactor instanceof SampleReactor) {
-//	        opReactor = new ExprReactor();
-//	        Map<String, String> scriptReactors = new H2Frame().getScriptReactors();
-//	        String reactorName = scriptReactors.get(node.getId().toString().trim().toUpperCase());
-//	        
-//	        
-//	        //if((node.getId() + "").trim().equalsIgnoreCase("as"))
-//	        //	opReactor = new AsReactor();
-//	        opReactor.setPKSL(node.getId().toString().trim(), node.toString().trim());
-//	        opReactor.setName("OPERATION_FORMULA");
-//	        
-//	        if(reactorName == null)
-//	        	reactorName = Utility.toCamelCase(node.getId().toString().trim());
-//	        opReactor.setProp("REACTOR_NAME", reactorName);
-//        }
-        // since there are no square brackets.. there are no nouns
-        //opReactor.curNoun("all");
+        IReactor opReactor = null;
+        if(node.getPlainRow() != null) {
+        	opReactor = getReactor(node.getId().toString().trim(), node.toString().trim(), node.getPlainRow().toString().trim());
+        } else {
+        	opReactor = getReactor(node.getId().toString().trim(), node.toString().trim(), "");
+        }
         initReactor(opReactor);
-        
         syncResult();
     }
 
@@ -421,17 +400,19 @@ public class Translation extends DepthFirstAdapter {
     }
 	*/
     
-    public void inAROp(AROp node) {
-		RReactor reactor = new RReactor();
-		initReactor(reactor);
-		String nodeExpr = node.getR().toString().trim();
-		NounMetadata noun = new NounMetadata(nodeExpr, PkslDataTypes.RCODE);
-		curReactor.getNounStore().makeNoun("RCODE").add(noun, PkslDataTypes.RCODE);
-    }
-
-    public void outAROp(AROp node) {
-    	deInitReactor();
-    }
+//    public void inAROp(AROp node) {
+//		RReactor reactor = new RReactor();
+//		initReactor(reactor);
+//		String nodeExpr = node.getR().toString().trim();
+//		NounMetadata noun = new NounMetadata(nodeExpr, PkslDataTypes.RCODE);
+//		curReactor.getNounStore().makeNoun("RCODE").add(noun, PkslDataTypes.RCODE);
+//    }
+//
+//    public void outAROp(AROp node) {
+//    	deInitReactor();
+//    }
+    
+    
     // accumulating secondary structures
     // the values of each of these are generic rows
     public void inASelectNoun(ASelectNoun node)
@@ -718,7 +699,7 @@ public class Translation extends DepthFirstAdapter {
         defaultIn(node);
         IReactor opReactor = new FilterReactor();
         opReactor.setName("Filter");
-        opReactor.setPKSL("Filter",(node + "").trim());
+        opReactor.setPKSL("Filter", node.toString().trim(), "(" + node.getLcol().toString().trim() + node.getComparator().toString().trim() + node.getRcol().toString().trim() + ")" );
         initReactor(opReactor);
         GenRowStruct genRow = curReactor.getNounStore().makeNoun("COMPARATOR");
         genRow.add(node.getComparator().toString().trim(), PkslDataTypes.COMPARATOR);
@@ -815,7 +796,7 @@ public class Translation extends DepthFirstAdapter {
 		String rightKey = node.getRight().toString().trim();
 		initExpressionToReactor(assm, leftKey, rightKey, "+");
 		
-		assm.setPKSL("EXPR", node.toString().trim());
+		assm.setPKSL("EXPR", node.toString().trim(), node.toString().trim());
 		initReactor(assm);	
     }
     
@@ -833,7 +814,7 @@ public class Translation extends DepthFirstAdapter {
 		String rightKey = node.getRight().toString().trim();
 		initExpressionToReactor(assm, leftKey, rightKey, "-");
 		
-		assm.setPKSL("EXPR", node.toString().trim());
+		assm.setPKSL("EXPR", node.toString().trim(), node.toString().trim());
 		initReactor(assm);
     }
     
@@ -851,7 +832,7 @@ public class Translation extends DepthFirstAdapter {
 		String rightKey = node.getRight().toString().trim();
 		initExpressionToReactor(assm, leftKey, rightKey, "/");
 		
-		assm.setPKSL("EXPR", node.toString().trim());
+		assm.setPKSL("EXPR", node.toString().trim(), node.toString().trim());
 		initReactor(assm);
 		
     }
@@ -870,7 +851,7 @@ public class Translation extends DepthFirstAdapter {
 		String rightKey = node.getRight().toString().trim();
 		initExpressionToReactor(assm, leftKey, rightKey, "*");
 		
-		assm.setPKSL("EXPR", node.toString().trim());
+		assm.setPKSL("EXPR", node.toString().trim(), node.toString().trim());
 		initReactor(assm);
     }
     
@@ -1028,8 +1009,8 @@ public class Translation extends DepthFirstAdapter {
      * Return the reactor based on the reactorId
      * Sets the PKSL operations in the reactor
      */
-    private IReactor getReactor(String reactorId, String nodeString) {
-    	return ReactorFactory.getReactor(reactorId, nodeString, (ITableDataFrame)getDataMaker(), curReactor);
+    private IReactor getReactor(String reactorId, String nodeString, String inputString) {
+    	return ReactorFactory.getReactor(reactorId, nodeString, inputString, (ITableDataFrame)getDataMaker(), curReactor);
     }
     
     private void printData(Object node, String message) {

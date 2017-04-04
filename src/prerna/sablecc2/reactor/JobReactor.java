@@ -1,9 +1,8 @@
 package prerna.sablecc2.reactor;
 
-import java.util.Iterator;
+import java.util.List;
+import java.util.Vector;
 
-import prerna.engine.api.IHeadersDataRow;
-import prerna.sablecc2.JobStore;
 import prerna.sablecc2.om.NounMetadata;
 import prerna.sablecc2.om.PkslDataTypes;
 
@@ -20,12 +19,9 @@ public class JobReactor extends AbstractReactor {
 	}
 	
 	public Object execute() {
-//		GenRowStruct allNouns = getNounStore().getNoun(NounStore.all); //should be only joins
+		// this just returns the job id
 		String jobId = (String)curRow.get(0);
-		
-		Iterator<IHeadersDataRow> iterator = getIterator(jobId);
-		
-		return new NounMetadata(iterator, PkslDataTypes.JOB);
+		return new NounMetadata(jobId, PkslDataTypes.JOB);
 	}
 
 	@Override
@@ -34,20 +30,21 @@ public class JobReactor extends AbstractReactor {
 	}
 
 	@Override
-	public void updatePlan() {
-		
+	public List<NounMetadata> getOutputs() {
+		List<NounMetadata> outputs = new Vector<NounMetadata>();
+		// since output is lazy
+		// just return the execute
+		outputs.add( (NounMetadata) execute());
+		return outputs;
 	}
-	
-	private Iterator getIterator(String jobId) {
-		Iterator<IHeadersDataRow> iterator = JobStore.INSTANCE.getJob(jobId);
-		if(iterator != null) return iterator;
-		
-		Object varObj = this.planner.getVariable(jobId);
-		if(varObj != null && varObj instanceof Iterator) {
-			return (Iterator)varObj;
-		}
-		
-		else throw new IllegalArgumentException("Argument not an Iterator");
+
+	@Override
+	public List<NounMetadata> getInputs() {
+		// return the job id
+		List<NounMetadata> inputs = new Vector<NounMetadata>();
+		inputs.add(curRow.getNoun(0));
+		return inputs;
 	}
+
 
 }

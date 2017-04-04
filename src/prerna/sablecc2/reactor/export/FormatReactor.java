@@ -104,6 +104,11 @@ public class FormatReactor extends AbstractReactor {
 		// planner.addVariable("$RESULT", noun);
 		return noun;
 	}
+	
+	private List<IHeadersDataRow> getRawData() {
+		NounMetadata dataNoun = (NounMetadata) getNounStore().getNoun("DATA").getNoun(0);
+		return (List<IHeadersDataRow>) dataNoun.getValue();
+	}
 
 	@Override
 	public void mergeUp() {
@@ -111,17 +116,21 @@ public class FormatReactor extends AbstractReactor {
 	}
 
 	@Override
-	public void updatePlan() {
-
-	}
-
-	@Override
 	public List<NounMetadata> getInputs() {
+		// TODO Auto-generated method stub
+		// TODO Auto-generated method stub
+		// TODO Auto-generated method stub
+		// TODO Auto-generated method stub
 		return null;
 	}
 
-	private List<IHeadersDataRow> getRawData() {
-		NounMetadata dataNoun = (NounMetadata) getNounStore().getNoun("DATA").getNoun(0);
-		return (List<IHeadersDataRow>) dataNoun.getValue();
+	@Override
+	public List<NounMetadata> getOutputs() {
+		// TODO Auto-generated method stub
+		// TODO Auto-generated method stub
+		// TODO Auto-generated method stub
+		// TODO Auto-generated method stub
+		// TODO Auto-generated method stub
+		return null;
 	}
 }

@@ -8,11 +8,13 @@ public class PlannerTranslation extends Translation {
 	{
 		if(curReactor != null)
 		{
-			// get the parent
-			Object parent = curReactor.Out();
-			// update the plan
+			// merge up and update the plan
+			curReactor.mergeUp();
 			curReactor.updatePlan();
 
+			// get the parent
+			Object parent = curReactor.Out();
+						
 			// set the parent as the curReactor if it is present
 			if(parent != null && parent instanceof IReactor) {
 				curReactor = (IReactor)parent;
