@@ -32,27 +32,10 @@ public class CreateFrame extends AbstractReactor {
 	}
 
 	@Override
-	public void mergeUp() {
-		// TODO Auto-generated method stub
-		
-	}
-
-	@Override
 	public List<NounMetadata> getOutputs() {
 		List<NounMetadata> outputs = new Vector<NounMetadata>();
 		NounMetadata output = new NounMetadata(this.signature, PkslDataTypes.FRAME);
 		outputs.add(output);
 		return outputs;
 	}
-
-	@Override
-	public List<NounMetadata> getInputs() {
-		// this can only have 1 single input
-		// which will be the noun containing the string
-		// for the specific frame type to use
-		List<NounMetadata> inputs = new Vector<NounMetadata>();
-		inputs.add(this.curRow.getNoun(0));
-		return inputs;
-	}
-
 }

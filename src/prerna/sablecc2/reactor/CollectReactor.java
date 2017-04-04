@@ -60,25 +60,10 @@ public class CollectReactor extends AbstractReactor{
 	}
 	
 	@Override
-	public void mergeUp() {
-		
-	}
-
-	@Override
 	public List<NounMetadata> getOutputs() {
 		List<NounMetadata> outputs = new Vector<NounMetadata>();
 		NounMetadata output = new NounMetadata(this.signature, PkslDataTypes.RAW_DATA_SET);
 		outputs.add(output);
 		return outputs;
-	}
-
-	@Override
-	public List<NounMetadata> getInputs() {
-		List<NounMetadata> inputs = new Vector<NounMetadata>();
-		// we will store the job id
-		// and the number to collect
-		inputs.add(this.curRow.getNounsOfType(PkslDataTypes.JOB).get(0));
-		inputs.add(this.curRow.getNounsOfType(PkslDataTypes.CONST_DECIMAL).get(0));
-		return inputs;
 	}
 }

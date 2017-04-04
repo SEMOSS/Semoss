@@ -149,24 +149,10 @@ public class Assimilator extends AbstractReactor {
 	}
 	
 	@Override
-	public void mergeUp() {
-
-	}
-
-	@Override
 	public List<NounMetadata> getOutputs() {
 		List<NounMetadata> outputs = new Vector<NounMetadata>();
 		NounMetadata output = new NounMetadata(this.thisExpression, PkslDataTypes.E);
 		outputs.add(output);
 		return outputs;
-	}
-
-	@Override
-	public List<NounMetadata> getInputs() {
-		// the two inputs are the left hand side and the right hand side of this expression
-		List<NounMetadata> inputs = new Vector<NounMetadata>();
-		inputs.add(leftExpression);
-		inputs.add(rightExpression);
-		return inputs;
 	}
 }
