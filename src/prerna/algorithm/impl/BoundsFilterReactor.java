@@ -55,8 +55,11 @@ public class BoundsFilterReactor extends MathReactor{
 			sigmaX2 += x * x;
 			sigmaXY += x * y;
 		}
-		this.lRegSlope = (sigmaXY - (sigmaX * sigmaY/numRows))/(sigmaX2 - (sigmaX * sigmaX/numRows));
-		this.lRegIntercept = (sigmaY - (this.lRegSlope * sigmaX))/numRows;
+		//this.lRegSlope = (sigmaXY - (sigmaX * sigmaY/numRows))/(sigmaX2 - (sigmaX * sigmaX/numRows));
+		//this.lRegIntercept = (sigmaY - (this.lRegSlope * sigmaX))/numRows;
+		
+		this.lRegSlope = 1;
+		this.lRegIntercept = 0;
 		
 		Iterator itr2 = getTinkerData(columns, (ITableDataFrame)myStore.get("G"), false);
 		double[] distance = new double[numRows];
