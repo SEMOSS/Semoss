@@ -86,7 +86,10 @@ public class IterateReactor extends AbstractReactor {
 	
 	@Override
 	public List<NounMetadata> getOutputs() {
-		List<NounMetadata> outputs = new Vector<NounMetadata>();
+		List<NounMetadata> outputs = super.getOutputs();
+		if(outputs != null) return outputs;
+		
+		outputs = new Vector<NounMetadata>();
 		NounMetadata output = new NounMetadata(this.output, PkslDataTypes.JOB);
 		output.setExplanation("Iterator created from iterate reactor");
 		outputs.add(output);
