@@ -25,11 +25,6 @@ public class JobReactor extends AbstractReactor {
 	}
 
 	@Override
-	public void mergeUp() {
-		
-	}
-
-	@Override
 	public List<NounMetadata> getOutputs() {
 		List<NounMetadata> outputs = new Vector<NounMetadata>();
 		// since output is lazy
@@ -37,14 +32,4 @@ public class JobReactor extends AbstractReactor {
 		outputs.add( (NounMetadata) execute());
 		return outputs;
 	}
-
-	@Override
-	public List<NounMetadata> getInputs() {
-		// return the job id
-		List<NounMetadata> inputs = new Vector<NounMetadata>();
-		inputs.add(curRow.getNoun(0));
-		return inputs;
-	}
-
-
 }

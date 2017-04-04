@@ -111,20 +111,6 @@ public class FormatReactor extends AbstractReactor {
 	}
 
 	@Override
-	public void mergeUp() {
-
-	}
-
-	@Override
-	public List<NounMetadata> getInputs() {
-		// TODO Auto-generated method stub
-		// TODO Auto-generated method stub
-		// TODO Auto-generated method stub
-		// TODO Auto-generated method stub
-		return null;
-	}
-
-	@Override
 	public List<NounMetadata> getOutputs() {
 		// TODO Auto-generated method stub
 		// TODO Auto-generated method stub

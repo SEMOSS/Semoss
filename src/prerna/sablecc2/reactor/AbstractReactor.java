@@ -4,6 +4,7 @@ import java.util.Arrays;
 import java.util.Hashtable;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Set;
 import java.util.Vector;
 
 import prerna.algorithm.api.ITableDataFrame;
@@ -212,6 +213,21 @@ public abstract class AbstractReactor implements IReactor {
 			NounMetadata data = new NounMetadata(this.signature, PkslDataTypes.LAMBDA);
 			this.parentReactor.getCurRow().add(data);
 		}
+	}
+	
+	@Override
+	public List<NounMetadata> getInputs() {
+		List<NounMetadata> inputs = new Vector<NounMetadata>();
+		// grab all the nouns in the noun store
+		Set<String> nounKeys = this.getNounStore().nounRow.keySet();
+		for(String nounKey : nounKeys) {
+			// grab the genrowstruct for the noun
+			// and add its vector to the inputs list
+			GenRowStruct struct = this.getNounStore().getNoun(nounKey);
+			inputs.addAll(struct.vector);
+		}
+		
+		return inputs;
 	}
 	
 	@Override

@@ -2,7 +2,6 @@ package prerna.sablecc2.reactor.imports;
 
 import java.util.Iterator;
 import java.util.List;
-import java.util.Vector;
 
 import prerna.algorithm.api.ITableDataFrame;
 import prerna.ds.querystruct.QueryStruct2;
@@ -78,20 +77,6 @@ public class ImportDataReactor extends AbstractReactor {
 		return queryStruct;
 	}
 	
-	@Override
-	public void mergeUp() {
-
-	}
-
-	@Override
-	public List<NounMetadata> getInputs() {
-		List<NounMetadata> inputs = new Vector<NounMetadata>();
-		// only possible thing inside the curRow
-		// is a QueryStruct to run
-		inputs.add(curRow.getNoun(0));
-		return inputs;
-	}
-
 	@Override
 	public List<NounMetadata> getOutputs() {
 		// no output

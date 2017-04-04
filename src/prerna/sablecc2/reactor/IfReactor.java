@@ -96,17 +96,4 @@ public class IfReactor extends AbstractReactor {
 		outputs.add(output);
 		return outputs;
 	}
-	
-
-	@Override
-	public List<NounMetadata> getInputs() {
-		// TODO Auto-generated method stub
-		return null;
-	}
-	
-	@Override
-	public void mergeUp() {
-		// TODO Auto-generated method stub
-
-	}
 }

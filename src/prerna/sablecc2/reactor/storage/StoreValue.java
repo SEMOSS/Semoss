@@ -83,12 +83,4 @@ public class StoreValue extends AbstractReactor {
 		// so we will just return null
 		return null;
 	}
-	
-	@Override
-	public void mergeUp() {
-		// TODO Auto-generated method stub
-		
-	}
-	
-	
 }
