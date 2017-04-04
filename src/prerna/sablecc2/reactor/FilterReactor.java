@@ -43,27 +43,10 @@ public class FilterReactor extends AbstractReactor{
 	}
 	
 	@Override
-	public void mergeUp() {
-		// TODO Auto-generated method stub
-		
-	}
-
-	@Override
 	public List<NounMetadata> getOutputs() {
 		List<NounMetadata> outputs = new Vector<NounMetadata>();
 		NounMetadata output = new NounMetadata(this.signature, PkslDataTypes.FILTER);
 		outputs.add(output);
 		return outputs;
 	}
-
-	@Override
-	public List<NounMetadata> getInputs() {
-		List<NounMetadata> inputs = new Vector<NounMetadata>();
-		// store the lcol and the rcol
-		inputs.add(store.getNoun("LCOL").getNoun(0));
-		inputs.add(store.getNoun("RCOL").getNoun(0));
-		inputs.add(store.getNoun("COMPARATOR").getNoun(0));
-		return inputs;
-	}
-	
 }

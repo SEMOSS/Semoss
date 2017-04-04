@@ -53,11 +53,6 @@ public abstract class QueryStructReactor extends AbstractReactor {
 		return noun;
 	}
 	
-	@Override
-	public void mergeUp() {
-
-	}
-	
 	//method to merge an outside query struct with this query struct
 	public void mergeQueryStruct(QueryStruct2 queryStruct) {
 		if(qs == null) {
@@ -111,15 +106,5 @@ public abstract class QueryStructReactor extends AbstractReactor {
 		NounMetadata output = new NounMetadata(qs, PkslDataTypes.QUERY_STRUCT);
 		outputs.add(output);
 		return outputs;
-	}
-	
-	@Override
-	public List<NounMetadata> getInputs() {
-		// this is all the same for every QS class
-		// just go through all the inputs
-		// and add them
-		List<NounMetadata> inputs = new Vector<NounMetadata>();
-		inputs.addAll(this.curRow.vector);
-		return inputs;
 	}
 }
