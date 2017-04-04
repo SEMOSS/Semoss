@@ -1,10 +1,8 @@
 package prerna.sablecc2.reactor;
 
-import java.util.HashMap;
 import java.util.Hashtable;
 import java.util.Iterator;
 import java.util.List;
-import java.util.Map;
 import java.util.Stack;
 import java.util.Vector;
 
@@ -30,6 +28,7 @@ public class PKSLPlanner {
 	VarStore varStore = new VarStore();
 	public static final String NOUN = "NOUN";
 	public static final String OPERATION = "OP";
+	public static final String REACTOR_CLASS = "REACTOR";
 	public static final String TINKER_ID = "_T_ID";
 	public static final String TINKER_TYPE = "_T_TYPE";
 	public static final String TINKER_NAME = "_T_NAME";
