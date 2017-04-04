@@ -247,6 +247,20 @@ public abstract class AbstractReactor implements IReactor {
 	}
 	
 	@Override
+	public List<NounMetadata> getOutputs() {
+		//Default operation for the abstract is to return the asName aliases as the outputs
+		if(this.asName != null) {
+			List<NounMetadata> outputs = new Vector<>();
+			for(String alias : this.asName) {
+				NounMetadata aliasNoun = new NounMetadata(alias, PkslDataTypes.ALIAS);
+				outputs.add(aliasNoun);
+			}
+			return outputs;
+		}
+		return null;
+	}
+	
+	@Override
 	public void updatePlan() {
 		// get the inputs and outputs
 		// and add this to the plan using the signature

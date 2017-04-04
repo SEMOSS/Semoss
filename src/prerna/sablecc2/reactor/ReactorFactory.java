@@ -166,6 +166,8 @@ public class ReactorFactory {
 			e.printStackTrace();
 		}
     	
-		return new SampleReactor();
+		reactor = new SampleReactor();
+		reactor.setPKSL(reactorId, nodeString, inputString);
+		return reactor;
     }
 }
