@@ -61,8 +61,10 @@ public class ExprReactor extends AbstractReactor {
 	
 	@Override
 	public List<NounMetadata> getOutputs() {
-		// TODO Auto-generated method stub
-		List<NounMetadata> outputs = new Vector<>();
+		List<NounMetadata> outputs = super.getOutputs();
+		if(outputs != null) return outputs;
+		
+		outputs = new Vector<>();
 		outputs.add(output);
 		return outputs;
 	}

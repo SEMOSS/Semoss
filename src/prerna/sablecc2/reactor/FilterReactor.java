@@ -62,13 +62,13 @@ public class FilterReactor extends AbstractReactor{
 		return null;
 	}
 	
-	@Override
-	public List<NounMetadata> getOutputs() {
-		// we do not want this to be added to the planner
-		// as its own OP
-		// since a filter is only useful when evaluated 
-		// within another expression
-		// we will have merge up handle this
-		return null;
-	}
+//	@Override
+//	public List<NounMetadata> getOutputs() {
+//		// we do not want this to be added to the planner
+//		// as its own OP
+//		// since a filter is only useful when evaluated 
+//		// within another expression
+//		// we will have merge up handle this
+//		return null;
+//	}
 }

@@ -33,7 +33,10 @@ public class CreateFrame extends AbstractReactor {
 
 	@Override
 	public List<NounMetadata> getOutputs() {
-		List<NounMetadata> outputs = new Vector<NounMetadata>();
+		List<NounMetadata> outputs = super.getOutputs();
+		if(outputs != null) return outputs;
+		
+		outputs = new Vector<NounMetadata>();
 		NounMetadata output = new NounMetadata(this.signature, PkslDataTypes.FRAME);
 		outputs.add(output);
 		return outputs;
