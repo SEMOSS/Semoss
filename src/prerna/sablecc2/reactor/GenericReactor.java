@@ -26,21 +26,10 @@ public class GenericReactor extends AbstractReactor {
 	@Override
 	public Object execute() {
 		// THIS IS A SPECIAL CASE
-		// when we execute, what we really want to do
-		// is store this value into the parent
-		// with the specific key that was used in the pksl
-		// normal flow dictates that the parent's currow
-		// is how this value should be added
-		// but we need to override this for this special case
-
-		// ... this is exactly what mergeUp does
-		mergeUp();
-
-		return null;
-	}
-
-	@Override
-	public void mergeUp() {
+		// we want to merge up into the parent
+		// but unlike the mergeup routine
+		// we want to replace anything that is a varaible
+		// with the actual object
 		String key = (String)getProp("KEY");
 
 		GenRowStruct allNouns = store.getNoun(NounStore.all);
@@ -65,6 +54,33 @@ public class GenericReactor extends AbstractReactor {
 			} else {
 				thisStruct.add(noun, nounType);
 			}
+		}
+
+		// just add this to the parent
+		parentReactor.getNounStore().addNoun(key, thisStruct);
+
+		//push up the props
+		for(String propKey : this.propStore.keySet()) {
+			parentReactor.setProp(propKey, getProp(propKey));
+		}
+		return null;
+	}
+
+	@Override
+	public void mergeUp() {
+		String key = (String)getProp("KEY");
+
+		GenRowStruct allNouns = store.getNoun(NounStore.all);
+		GenRowStruct thisStruct;
+		if(store.getNoun(key) == null) {
+			thisStruct = store.makeNoun(key);
+		} else {
+			thisStruct = store.getNoun(key);
+		}
+
+		int numNouns = allNouns.size();
+		for(int nounIdx = 0; nounIdx < numNouns; nounIdx++) {
+			thisStruct.add(allNouns.getNoun(nounIdx));
 		}
 
 		// just add this to the parent
