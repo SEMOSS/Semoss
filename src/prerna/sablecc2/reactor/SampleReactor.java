@@ -146,7 +146,7 @@ public class SampleReactor extends AbstractReactor {
 			
 			// put the fields now
 			// assumes this is java
-			for(int colIndex = 0;colIndex < inputs.size();colIndex++)
+			for(int colIndex = 0;colIndex < inputs.size() && frame != null;colIndex++)
 			{
 				String thisCol = inputs.elementAt(colIndex);
 				IMetaData.DATA_TYPES thisType = frame.getDataType(thisCol);

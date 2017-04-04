@@ -1,6 +1,7 @@
 package prerna.sablecc2.reactor;
 
 import java.util.List;
+import java.util.Vector;
 
 import prerna.engine.api.IScriptReactor;
 import prerna.sablecc.PKQLEnum;
@@ -10,11 +11,7 @@ import prerna.sablecc2.om.PkslDataTypes;
 
 public class ExprReactor extends AbstractReactor {
 
-	// TODO Auto-generated method stub
-	// TODO Auto-generated method stub
-	// TODO Auto-generated method stub
-	// TODO Auto-generated method stub
-	// implement inputs and outputs
+	NounMetadata output;
 	
 	public void In()
 	{
@@ -34,6 +31,7 @@ public class ExprReactor extends AbstractReactor {
 		} else {
 			noun = new NounMetadata(builder, PkslDataTypes.SQLE);
 		}
+		output = noun;
 		return noun;
 	}
 
@@ -64,7 +62,9 @@ public class ExprReactor extends AbstractReactor {
 	@Override
 	public List<NounMetadata> getOutputs() {
 		// TODO Auto-generated method stub
-		return null;
+		List<NounMetadata> outputs = new Vector<>();
+		outputs.add(output);
+		return outputs;
 	}
 
 	
