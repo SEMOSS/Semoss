@@ -115,24 +115,10 @@ public class PKSLPlanner {
 	//**********************VARIABLE METHODS*******************************//
 	
 	public void addVariable(String variableName, NounMetadata value) {
-//		if(hasProperty("VARIABLE", "VARIABLE")) {
-//			Map<String, NounMetadata> map = (HashMap)getProperty("VARIABLE", "VARIABLE");
-//			map.put(variableName.toUpperCase(), value);
-//		} else {
-//			Map<String, NounMetadata> varMap = new HashMap<>();
-//			varMap.put(variableName.toUpperCase(), value);
-//			addProperty("VARIABLE", "VARIABLE", varMap);
-//		}
-		
 		varStore.addVariable(variableName, value);
 	}
 	
 	public NounMetadata getVariable(String variableName) {
-//		if(hasProperty("VARIABLE", "VARIABLE")) {
-//			Map<String, NounMetadata> map = (HashMap)getProperty("VARIABLE", "VARIABLE");
-//			return map.get(variableName.toUpperCase());
-//		}
-//		return null;
 		return varStore.getVariable(variableName);
 	}
 	
@@ -144,8 +130,7 @@ public class PKSLPlanner {
 		return varStore.removeVariable(variableName);
 	}
 	
-	
-	//**********************VARIABLE METHODS*******************************//
+	//**********************END VARIABLE METHODS*******************************//
 	
 	
 	// adds an operation with outputs
