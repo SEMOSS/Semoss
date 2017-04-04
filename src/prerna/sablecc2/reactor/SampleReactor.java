@@ -313,11 +313,6 @@ public class SampleReactor extends AbstractReactor {
 		//planner.addProperty(opName, propertyName, value);
 	}
 
-	@Override
-	public Vector<NounMetadata> getInputs() {
-		return null;
-	}
-	
 	// execute this
 	public Object execute()
 	{
@@ -331,6 +326,17 @@ public class SampleReactor extends AbstractReactor {
 		}
 		//else
 		//	return runner;
+	}
+	
+	@Override
+	public Vector<NounMetadata> getInputs() {
+		return null;
+	}
+
+	@Override
+	public List<NounMetadata> getOutputs() {
+		// TODO Auto-generated method stub
+		return null;
 	}
 
 }
