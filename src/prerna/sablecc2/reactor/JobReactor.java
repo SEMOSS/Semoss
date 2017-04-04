@@ -26,7 +26,10 @@ public class JobReactor extends AbstractReactor {
 
 	@Override
 	public List<NounMetadata> getOutputs() {
-		List<NounMetadata> outputs = new Vector<NounMetadata>();
+		List<NounMetadata> outputs = super.getOutputs();
+		if(outputs != null) return outputs;
+		
+		outputs = new Vector<NounMetadata>();
 		// since output is lazy
 		// just return the execute
 		outputs.add( (NounMetadata) execute());
