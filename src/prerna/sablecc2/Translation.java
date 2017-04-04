@@ -663,7 +663,8 @@ public class Translation extends DepthFirstAdapter {
     {
         defaultIn(node);
         String code = (node.getCodeAlpha() + "");
-        code = code.replace("<c>","");
+        code = code.replace("<c>",""); 
+        code = code.replace("</c>","");
         code = code.trim();
         curReactor.setProp("CODE", code);
     }
