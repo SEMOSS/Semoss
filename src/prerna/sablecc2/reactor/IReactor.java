@@ -32,6 +32,9 @@ public interface IReactor {
 	void mergeUp();
 	
 	void updatePlan();
+	
+	// execute method - GREEDY translation
+	Object execute();
 	//
 	/*******************************************/
 	
@@ -111,9 +114,6 @@ public interface IReactor {
 	
 	//returns whether reactor has Prop
 	boolean hasProp(String key);
-	
-	// execute method - GREEDY translation
-	Object execute();
 	
 	// map call implement if your type is map
 	IHeadersDataRow map(IHeadersDataRow row);
