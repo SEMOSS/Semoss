@@ -36,25 +36,10 @@ public class ExportReactor extends AbstractReactor {
 	}
 	
 	@Override
-	public void mergeUp() {
-		
-	}
-
-	@Override
 	public List<NounMetadata> getOutputs() {
 		List<NounMetadata> outputs = new Vector<NounMetadata>();
 		NounMetadata output = new NounMetadata(this.signature, PkslDataTypes.EXPORT);
 		outputs.add(output);
 		return outputs;
-	}
-	
-	@Override
-	public List<NounMetadata> getInputs() {
-		// TODO Auto-generated method stub
-		// TODO Auto-generated method stub
-		// TODO Auto-generated method stub
-		// TODO Auto-generated method stub
-		// TODO Auto-generated method stub
-		return null;
 	}
 }

@@ -41,15 +41,6 @@ public class IterateReactor extends AbstractReactor {
 		return createJob();
 	}
 	
-	public void updatePlan() {
-	}
-
-
-	@Override
-	public void mergeUp() {
-		
-	}
-	
 	private NounMetadata createJob()  {
 		//get the inputs
 		
@@ -91,7 +82,6 @@ public class IterateReactor extends AbstractReactor {
 		NounMetadata output = new NounMetadata(this.output, PkslDataTypes.JOB);
 		output.setExplanation("Iterator created from iterate reactor");
 		return output;
-
 	}
 	
 	@Override
@@ -103,11 +93,6 @@ public class IterateReactor extends AbstractReactor {
 		return outputs;
 	}
 
-	@Override
-	public Vector<NounMetadata> getInputs() {
-		return null;
-	}
-	
 	private QueryStruct2 getQueryStruct() {
 		GenRowStruct allNouns = getNounStore().getNoun("QUERYSTRUCT");
 		QueryStruct2 queryStruct = null;

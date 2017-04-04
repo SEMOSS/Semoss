@@ -70,19 +70,4 @@ public class RetrieveValue extends AbstractReactor {
 		outputs.add(output);
 		return outputs;
 	}
-
-	@Override
-	public List<NounMetadata> getInputs() {
-		List<NounMetadata> inputs = new Vector<NounMetadata>();
-		
-		// the two inputs are the store variable name
-		// and the key the value is stored under
-		NounMetadata storeNoun = this.store.getNoun(STORE_NOUN).getNoun(0);;
-		NounMetadata keyNoun = this.store.getNoun(KEY_NOUN).getNoun(0);
-		
-		inputs.add(storeNoun);
-		inputs.add(keyNoun);
-		
-		return inputs;
-	}
 }

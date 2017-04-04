@@ -62,36 +62,11 @@ public class ExprReactor extends AbstractReactor {
 	}
 	
 	@Override
-	public void mergeUp() {
-		//TODO:
-	}
-
-	@Override
 	public List<NounMetadata> getOutputs() {
 		// TODO Auto-generated method stub
 		return null;
 	}
 
-	@Override
-	public List<NounMetadata> getInputs() {
-		// TODO Auto-generated method stub
-		return null;
-	}
-
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
 	
 	
 	// PKS LEGACY CODE... NOT SURE IF NEEDED/WHAT TO DO WITH IT
