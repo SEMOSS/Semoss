@@ -7,7 +7,12 @@ import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.NounMetadata;
 import prerna.sablecc2.om.PkslDataTypes;
 
-public class AsReactor extends SampleReactor {
+public class AsReactor extends AbstractReactor {
+	
+	@Override
+	public void In() {
+		curNoun("all");	
+	}
 	
 	public Object Out()
 	{
@@ -45,6 +50,27 @@ public class AsReactor extends SampleReactor {
 		{
 			// get the columns on as
 			parentReactor.setAs(asNames);
+			
+			NounMetadata asNoun = new NounMetadata(parentReactor, PkslDataTypes.LAMBDA);
+			this.planner.addVariable(asNames[0], asNoun);
 		}		
+	}
+	
+	@Override
+	public List<NounMetadata> getInputs() {
+		// this is used primarily for the planner
+		// we do not need to add these steps since 
+		// the parent will automatically take these 
+		// into consideration
+		return null;
+	}
+	
+	@Override
+	public List<NounMetadata> getOutputs() {
+		// this is used primarily for the planner
+		// we do not need to add these steps since 
+		// the parent will automatically take these 
+		// into consideration
+		return null;
 	}
 }
