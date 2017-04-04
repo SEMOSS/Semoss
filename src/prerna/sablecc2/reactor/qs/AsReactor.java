@@ -2,7 +2,6 @@ package prerna.sablecc2.reactor.qs;
 
 import java.util.Enumeration;
 import java.util.List;
-import java.util.Vector;
 
 import prerna.ds.querystruct.QueryStruct2;
 import prerna.sablecc2.om.GenRowStruct;

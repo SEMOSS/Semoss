@@ -17,7 +17,6 @@ import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.Join;
 import prerna.sablecc2.om.NounMetadata;
 import prerna.sablecc2.om.NounStore;
-import prerna.sablecc2.om.PkslDataTypes;
 import prerna.sablecc2.reactor.AbstractReactor;
 import prerna.util.Utility;
 
@@ -115,31 +114,8 @@ public class MergeDataReactor extends AbstractReactor {
 	}
 
 	@Override
-	public void mergeUp() {
-
-	}
-
-	@Override
-	public List<NounMetadata> getInputs() {
-		List<NounMetadata> inputs = new Vector<NounMetadata>();
-		// only possible things inside the curRow
-		// is a QueryStruct to run
-		// and multiple joins
-		inputs.add(curRow.getNounsOfType(PkslDataTypes.QUERY_STRUCT).get(0));
-		// add all for multiple
-		inputs.addAll(curRow.getNounsOfType(PkslDataTypes.JOIN));
-		return inputs;
-	}
-
-	@Override
 	public List<NounMetadata> getOutputs() {
 		// nothing to return
 		return null;
 	}
-	
-	
-
-
 }
-
-
