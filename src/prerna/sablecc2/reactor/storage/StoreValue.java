@@ -15,9 +15,9 @@ public class StoreValue extends AbstractReactor {
 	private static final Logger LOGGER = LogManager.getLogger(StoreValue.class.getName());
 	
 	//TODO: find a common place to put these
-	private static final String STORE_NOUN = "store";
-	private static final String KEY_NOUN = "key";
-	private static final String VALUE_NOUN = "value";
+	public static final String STORE_NOUN = "store";
+	public static final String KEY_NOUN = "key";
+	public static final String VALUE_NOUN = "value";
 	
 	/**
 	 * This reactor takes in 3 nouns
@@ -63,7 +63,7 @@ public class StoreValue extends AbstractReactor {
 		
 		return null;
 	}
-
+	
 	@Override
 	public List<NounMetadata> getOutputs() {
 		// if we are running this
