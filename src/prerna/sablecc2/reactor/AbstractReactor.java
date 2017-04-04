@@ -227,6 +227,22 @@ public abstract class AbstractReactor implements IReactor {
 			inputs.addAll(struct.vector);
 		}
 		
+		// we also need to account for some special cases
+		// when we have a filter reactor
+		// it doesn't get added as an op
+		// so we need to go through the child of this reactor
+		// and if it has a filter
+		// add its nouns to the inputs for this reactor
+		for(IReactor child : childReactor) {
+			if(child instanceof FilterReactor) {
+				// child nouns should contain LCOL, RCOL, COMPARATOR
+				Set<String> childNouns = child.getNounStore().nounRow.keySet();
+				for(String cNoun : childNouns) {
+					inputs.addAll(child.getNounStore().getNoun(cNoun).vector);
+				}
+			}
+		}
+		
 		return inputs;
 	}
 	
