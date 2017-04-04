@@ -1,7 +1,7 @@
 package prerna.sablecc2.reactor.imports;
 
-
 import java.util.Iterator;
+import java.util.List;
 import java.util.Vector;
 
 import prerna.algorithm.api.ITableDataFrame;
@@ -18,39 +18,25 @@ import prerna.util.Utility;
 
 public class ImportDataReactor extends AbstractReactor {
 
-
 	@Override
 	public void In() {
 		curNoun("all");
 	}
 
 	@Override
-	//greedy execution
 	public Object Out() {
-		importToFrame();
 		return parentReactor;
 	}
-	
-	@Override
-	public void updatePlan() {
-		//there is no
-	}
-
 	
 	public Object reduce(Iterator it) {
 		return Out();
 	}
-
-	@Override
-	public void mergeUp() {
-		//this reactor should not need to merge up
-		if(parentReactor != null) {
-			
-		}
-	}
 	
-	private void importToFrame()  {		
-		
+	@Override
+	public Object execute() {
+		// this is greedy execution
+		// will not return anything
+		// but will update the frame in the pksl planner
 		QueryStruct2 queryStruct = getQueryStruct();
 		String engineName = queryStruct.getEngineName();
 		ITableDataFrame frame = (ITableDataFrame)this.planner.getProperty("FRAME", "FRAME");
@@ -73,13 +59,10 @@ public class ImportDataReactor extends AbstractReactor {
 		ITableDataFrame importedFrame = (ITableDataFrame)importer.getValue("G");
 		System.out.println("IMPORTED FRAME CREATED WITH ROW COUNT: "+importedFrame.getNumRows());
 		this.planner.addProperty("FRAME", "FRAME", importedFrame);
-	}
-
-	@Override
-	public Vector<NounMetadata> getInputs() {
+		
 		return null;
 	}
-	
+
 	private QueryStruct2 getQueryStruct() {
 		GenRowStruct allNouns = getNounStore().getNoun("QUERYSTRUCT");
 		QueryStruct2 queryStruct = null;
@@ -94,6 +77,27 @@ public class ImportDataReactor extends AbstractReactor {
 		}
 		return queryStruct;
 	}
+	
+	@Override
+	public void mergeUp() {
+
+	}
+
+	@Override
+	public List<NounMetadata> getInputs() {
+		List<NounMetadata> inputs = new Vector<NounMetadata>();
+		// only possible thing inside the curRow
+		// is a QueryStruct to run
+		inputs.add(curRow.getNoun(0));
+		return inputs;
+	}
+
+	@Override
+	public List<NounMetadata> getOutputs() {
+		// no output
+		return null;
+	}
+
 }
 
 

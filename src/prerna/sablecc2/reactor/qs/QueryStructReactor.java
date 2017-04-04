@@ -1,6 +1,7 @@
 package prerna.sablecc2.reactor.qs;
 
 import java.util.List;
+import java.util.Vector;
 
 import prerna.ds.querystruct.QueryStruct2;
 import prerna.ds.querystruct.QueryStructSelector;
@@ -26,6 +27,10 @@ import prerna.sablecc2.reactor.AbstractReactor;
 public abstract class QueryStructReactor extends AbstractReactor {
 
 	QueryStruct2 qs;
+
+	// method to override in the specific qs classes
+	abstract QueryStruct2 createQueryStruct();
+
 	
 	@Override
 	public void In() {
@@ -43,7 +48,6 @@ public abstract class QueryStructReactor extends AbstractReactor {
 	public Object execute() {
 		//build the query struct
 		QueryStruct2 qs = createQueryStruct();
-		
 		//create the output and return
 		NounMetadata noun = new NounMetadata(qs, PkslDataTypes.QUERY_STRUCT);
 		return noun;
@@ -51,11 +55,6 @@ public abstract class QueryStructReactor extends AbstractReactor {
 	
 	@Override
 	public void mergeUp() {
-
-	}
-
-	@Override
-	public void updatePlan() {
 
 	}
 	
@@ -100,5 +99,27 @@ public abstract class QueryStructReactor extends AbstractReactor {
 		}
 	}
 	
-	abstract QueryStruct2 createQueryStruct();
+	@Override
+	public List<NounMetadata> getOutputs() {
+		// all of the classes return the same thing
+		// which is a QS
+		// this works because even if execute hasn't occured yet
+		// because the same preference exists for the qs
+		// and since out is called prior to update the planner
+		// the qs cannot be null
+		List<NounMetadata> outputs = new Vector<NounMetadata>();
+		NounMetadata output = new NounMetadata(qs, PkslDataTypes.QUERY_STRUCT);
+		outputs.add(output);
+		return outputs;
+	}
+	
+	@Override
+	public List<NounMetadata> getInputs() {
+		// this is all the same for every QS class
+		// just go through all the inputs
+		// and add them
+		List<NounMetadata> inputs = new Vector<NounMetadata>();
+		inputs.addAll(this.curRow.vector);
+		return inputs;
+	}
 }

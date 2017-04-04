@@ -1,11 +1,14 @@
 package prerna.sablecc2.reactor.storage;
 
+import java.util.List;
 import java.util.Map;
+import java.util.Vector;
 
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
 import prerna.sablecc2.om.NounMetadata;
+import prerna.sablecc2.om.PkslDataTypes;
 import prerna.sablecc2.reactor.AbstractReactor;
 
 public class RetrieveValue extends AbstractReactor {
@@ -36,18 +39,6 @@ public class RetrieveValue extends AbstractReactor {
 	}
 
 	@Override
-	public void mergeUp() {
-		// TODO Auto-generated method stub
-		
-	}
-
-	@Override
-	public void updatePlan() {
-		// TODO Auto-generated method stub
-		
-	}
-	
-	@Override
 	public Object execute()
 	{
 		NounMetadata storeNoun = (NounMetadata) this.store.getNoun(STORE_NOUN).getNoun(0);
@@ -69,5 +60,29 @@ public class RetrieveValue extends AbstractReactor {
 		}
 		
 		return valueData;
+	}
+
+	@Override
+	public List<NounMetadata> getOutputs() {
+		// output is the signature
+		List<NounMetadata> outputs = new Vector<NounMetadata>();
+		NounMetadata output = new NounMetadata(this.signature, PkslDataTypes.LAMBDA);
+		outputs.add(output);
+		return outputs;
+	}
+
+	@Override
+	public List<NounMetadata> getInputs() {
+		List<NounMetadata> inputs = new Vector<NounMetadata>();
+		
+		// the two inputs are the store variable name
+		// and the key the value is stored under
+		NounMetadata storeNoun = this.store.getNoun(STORE_NOUN).getNoun(0);;
+		NounMetadata keyNoun = this.store.getNoun(KEY_NOUN).getNoun(0);
+		
+		inputs.add(storeNoun);
+		inputs.add(keyNoun);
+		
+		return inputs;
 	}
 }

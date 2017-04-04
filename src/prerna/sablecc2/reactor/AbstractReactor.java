@@ -11,11 +11,14 @@ import prerna.engine.api.IHeadersDataRow;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.NounMetadata;
 import prerna.sablecc2.om.NounStore;
+import prerna.sablecc2.om.PkslDataTypes;
 
 public abstract class AbstractReactor implements IReactor {
 
 	protected String operationName = null;
 	protected String signature = null;
+	protected String inputString = null;
+	
 	protected String curNoun = null;
 	protected IReactor parentReactor = null;
 	protected Vector<IReactor> childReactor = new Vector<IReactor>();
@@ -39,9 +42,10 @@ public abstract class AbstractReactor implements IReactor {
 	boolean evaluate = false;
 	
 	@Override
-	public void setPKSL(String operation, String fullOperation) {
+	public void setPKSL(String operation, String fullOperation, String inputString) {
 		this.operationName = operation;
 		this.signature = fullOperation;
+		this.inputString = inputString;
 	}
 	
 	@Override
@@ -52,10 +56,10 @@ public abstract class AbstractReactor implements IReactor {
 
 	@Override
 	public String[] getPKSL() {
-		String [] output = new String[2];
+		String [] output = new String[3];
 		output[0] = operationName;
 		output[1] = signature;
-		
+		output[2] = inputString;
 		return output;
 	}
 	
@@ -190,37 +194,58 @@ public abstract class AbstractReactor implements IReactor {
 		return null;
 	}
 	
-	//provide references by which those outputs are available
-	protected void addOutputLinksToPlanner() {
-		if(asName == null) {
-			asName = defaultOutputAlias;
-		}
+	@Override
+	public void mergeUp() {
+		// need to figure out the best way to do this
+		// i dont want to always just push everything
+		// ... not sure if that is avoidable
 		
-		outputFields = new Vector<String>();
-		for(String alias : asName) {
-			outputFields.add(alias);
-		}
 		
-		planner.addOutputs(signature, outputFields, type);
-	}
-	
-	protected void printReactorTrace() {
-		System.out.println("THIS REACTOR: ");
-		IReactor parent = this.getParentReactor();
-		while(parent != null) {
-			System.out.println(parent.getName());
-			parent = parent.getParentReactor();
+		// but i know for filter statements
+		// children definitely need to be pushed up
+		// based on the curnoun the filter has set
+		// we definitely need to define based on the type
+		
+		// TODO: how do i accurately determine the data type?
+		if(this.parentReactor instanceof FilterReactor ||
+				this.parentReactor instanceof AssignmentReactor ) {
+			NounMetadata data = new NounMetadata(this.signature, PkslDataTypes.LAMBDA);
+			this.parentReactor.getCurRow().add(data);
 		}
-		System.out.println();
 	}
 	
 	@Override
-	public List<NounMetadata> getInputs() {
-		return null;
+	public void updatePlan() {
+		// get the inputs and outputs
+		// and add this to the plan using the signature
+		// of the reactor
+		List<NounMetadata> inputs = this.getInputs();
+		List<NounMetadata> outputs = getOutputs();
+
+		if(inputs != null) {
+			List<String> strInputs = new Vector<String>();
+			for(int inputIndex = 0; inputIndex < inputs.size(); inputIndex++) {
+				strInputs.add(inputs.get(inputIndex).getValue() + "");
+			}
+			
+			this.planner.addInputs(this.signature, strInputs, TYPE.FLATMAP);
+		}
+		
+		if(outputs != null) {
+			List<String> strOutputs = new Vector<String>();
+			for(int outputIndex = 0; outputIndex < outputs.size(); outputIndex++) {
+				strOutputs.add(outputs.get(outputIndex).getValue() + "");
+			}
+			
+			this.planner.addOutputs(this.signature, strOutputs, TYPE.FLATMAP);
+		}
+		
+		// if no input or outputs
+		// no need to add this to the plan
+		if(inputs != null || outputs != null) {
+			// store the reactor itself onto the planner
+			this.planner.addProperty(this.signature, PKSLPlanner.REACTOR_CLASS, this);
+		}
 	}
 	
-	@Override
-	public NounMetadata getOutput() {
-		return null;
-	}
 }

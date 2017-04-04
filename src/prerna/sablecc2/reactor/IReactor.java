@@ -27,7 +27,7 @@ public interface IReactor {
 	// for now I would say the return is the object
 	Object Out();
 	
-	NounMetadata getOutput();
+	List<NounMetadata> getOutputs();
 	
 	void mergeUp();
 	
@@ -42,7 +42,7 @@ public interface IReactor {
 	 *******************************************/
 	// sets the name of the operation and the signature
 	// full operation includes the nouns
-	void setPKSL(String operation, String fullOperation);
+	void setPKSL(String operation, String fullOperation, String inputString);
 	
 	String[] getPKSL();
 	

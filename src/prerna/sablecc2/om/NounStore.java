@@ -113,7 +113,7 @@ public class NounStore {
 		for(String key : this.nounRow.keySet()) {
 			s += "KEY: "+key;
 			s += "\n";
-			s += "GENROWSTRUCT: "+nounRow.get(key).getDataString();
+			s += "GENROWSTRUCT: "+nounRow.get(key);
 			s += "\n";
 		}
 		
