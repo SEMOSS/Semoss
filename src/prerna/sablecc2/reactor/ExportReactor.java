@@ -1,7 +1,9 @@
 package prerna.sablecc2.reactor;
 
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
+import java.util.Vector;
 
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.NounMetadata;
@@ -20,21 +22,6 @@ public class ExportReactor extends AbstractReactor {
 	}
 
 	public Object execute() {
-		return exportData();
-	}
-	
-	@Override
-	public void mergeUp() {
-		
-	}
-
-	@Override
-	public void updatePlan() {
-		
-	}
-
-	private NounMetadata exportData() {	
-		
 		Map<String, Object> exportedData = new HashMap<>();
 		
 		//assume 1 data for now
@@ -46,6 +33,28 @@ public class ExportReactor extends AbstractReactor {
 		this.planner.addProperty("DATA", "DATA", exportedData);
 		NounMetadata result = new NounMetadata(exportedData, PkslDataTypes.EXPORT);
 		return result;
-//		this.planner.addVariable("$RESULT", result);
+	}
+	
+	@Override
+	public void mergeUp() {
+		
+	}
+
+	@Override
+	public List<NounMetadata> getOutputs() {
+		List<NounMetadata> outputs = new Vector<NounMetadata>();
+		NounMetadata output = new NounMetadata(this.signature, PkslDataTypes.EXPORT);
+		outputs.add(output);
+		return outputs;
+	}
+	
+	@Override
+	public List<NounMetadata> getInputs() {
+		// TODO Auto-generated method stub
+		// TODO Auto-generated method stub
+		// TODO Auto-generated method stub
+		// TODO Auto-generated method stub
+		// TODO Auto-generated method stub
+		return null;
 	}
 }

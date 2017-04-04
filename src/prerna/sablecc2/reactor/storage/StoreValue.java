@@ -1,5 +1,6 @@
 package prerna.sablecc2.reactor.storage;
 
+import java.util.List;
 import java.util.Map;
 
 import org.apache.log4j.LogManager;
@@ -41,18 +42,6 @@ public class StoreValue extends AbstractReactor {
 	}
 
 	@Override
-	public void mergeUp() {
-		// TODO Auto-generated method stub
-		
-	}
-
-	@Override
-	public void updatePlan() {
-		// TODO Auto-generated method stub
-		
-	}
-	
-	@Override
 	public Object execute()
 	{
 		NounMetadata storeNoun = (NounMetadata) this.store.getNoun(STORE_NOUN).getNoun(0);
@@ -74,4 +63,32 @@ public class StoreValue extends AbstractReactor {
 		
 		return null;
 	}
+
+	@Override
+	public List<NounMetadata> getOutputs() {
+		// if we are running this
+		// any other situation which tries to change this value in the map
+		// will end up recursively overriding with the existing value
+		// if we add this to the plan
+		// so we will just return null
+		return null;
+	}
+
+	@Override
+	public List<NounMetadata> getInputs() {
+		// if we are running this
+		// any other situation which tries to change this value in the map
+		// will end up recursively overriding with the existing value
+		// if we add this to the plan
+		// so we will just return null
+		return null;
+	}
+	
+	@Override
+	public void mergeUp() {
+		// TODO Auto-generated method stub
+		
+	}
+	
+	
 }

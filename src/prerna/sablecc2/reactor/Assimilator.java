@@ -37,27 +37,29 @@ public class Assimilator extends AbstractReactor {
 	// plug it into the parent
 	// filter is a good example of assimilator for example
 
+	private Expression thisExpression;
+	private NounMetadata leftExpression;
+	private NounMetadata rightExpression;
+	
 	@Override
 	public void In() {
         curNoun("all");
 	}
 
 	@Override
-	/**
-	 * 
-	 */
 	public Object Out() {
-		Expression thisExpression = getExpression();
-		this.parentReactor.getCurRow().addE(thisExpression);
+		// in the translation flow
+		// execute will run and send back
+		// the data to set into the parent
 		return parentReactor;
 	}
 	
-//	@Override
-//	public Object execute() {
-//		Expression thisExpression = getExpression();
-//		NounMetadata noun = new NounMetadata(thisExpression, PkslDataTypes.E);
-//		return null;
-//	}
+	@Override
+	public Object execute() {
+		this.thisExpression = getExpression();
+		NounMetadata noun = new NounMetadata(thisExpression, PkslDataTypes.E);
+		return noun;
+	}
 
 	private Expression getExpression() {
 		List<String> inputColumns = curRow.getAllColumns();
@@ -94,6 +96,8 @@ public class Assimilator extends AbstractReactor {
 		
 		//if we don't return the key, this will be the form of '2' or 'x' or something like that
 		if(expr == null) {
+			// how do i know what this is???
+			setInputs(key, exprNounKey, PkslDataTypes.CONST_STRING);
 			return exprNounKey;
 		}
 		
@@ -109,19 +113,33 @@ public class Assimilator extends AbstractReactor {
 		while(PkslDataTypes.NODEKEY.equals(expr.getMeta(0))) {
 			exprNounKey = (String)expr.get(0);
 			expr = this.getNounStore().getNoun(exprNounKey);
-			if(expr == null) {
-				return exprNounKey;
-			}
 		}
 		
 		//We have found an object, if its an assimilator then return the expression that will be built from that assimilator
 		Object exprObj = expr.get(0);
 		if(exprObj instanceof Assimilator) {
+			setInputs(key, ((Assimilator) exprObj).getExpression(), PkslDataTypes.E);
 			return ((Assimilator) exprObj).getExpression();
 		}
 		
 		//else just return the object which in this case is a lambda
+		setInputs(key, expr.get(0), PkslDataTypes.LAMBDA);
 		return expr.get(0);
+	}
+	
+	/**
+	 * Need to set the inputs so we can do this via the planner!
+	 * @param key
+	 * @param value
+	 * @param datatype
+	 */
+	private void setInputs(String key, Object value, PkslDataTypes datatype) {
+		if(key.equalsIgnoreCase("LEFT")) {
+			this.leftExpression = new NounMetadata(value, datatype);
+		} else {
+			this.rightExpression = new NounMetadata(value, datatype);
+
+		}
 	}
 	
 	private String getOperation() {
@@ -136,7 +154,19 @@ public class Assimilator extends AbstractReactor {
 	}
 
 	@Override
-	public void updatePlan() {
-	
+	public List<NounMetadata> getOutputs() {
+		List<NounMetadata> outputs = new Vector<NounMetadata>();
+		NounMetadata output = new NounMetadata(this.thisExpression, PkslDataTypes.E);
+		outputs.add(output);
+		return outputs;
+	}
+
+	@Override
+	public List<NounMetadata> getInputs() {
+		// the two inputs are the left hand side and the right hand side of this expression
+		List<NounMetadata> inputs = new Vector<NounMetadata>();
+		inputs.add(leftExpression);
+		inputs.add(rightExpression);
+		return inputs;
 	}
 }

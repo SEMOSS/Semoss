@@ -128,8 +128,7 @@ public class ReactorFactory {
 	 * 			3. set that reactor to the expr reactor and return the expr reactor
 	 * 		The expr reactor when executed will use that reducing expression reactor to evaluate
 	 */
-    public static IReactor getReactor(String reactorId, String nodeString, ITableDataFrame frame, IReactor parentReactor) {
-    	
+    public static IReactor getReactor(String reactorId, String nodeString, String inputString, ITableDataFrame frame, IReactor parentReactor) {
     	IReactor reactor;
 		try {
 			
@@ -144,7 +143,7 @@ public class ReactorFactory {
 					
 					//so first we create an ExprReactor
 					reactor = new ExprReactor();
-					reactor.setPKSL(reactorId, nodeString);
+					reactor.setPKSL(reactorId, nodeString, inputString);
 			        reactor.setName("OPERATION_FORMULA");
 			        
 			        //grab the expression reducer from the frame
@@ -160,7 +159,7 @@ public class ReactorFactory {
 			}
 			if(reactorHash.containsKey(reactorId)) {
 				reactor = (IReactor)reactorHash.get(reactorId).newInstance();
-				reactor.setPKSL(reactorId, nodeString);
+				reactor.setPKSL(reactorId, nodeString, inputString);
 				return reactor;
 			}
 		} catch (InstantiationException | IllegalAccessException e) {

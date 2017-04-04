@@ -1,5 +1,8 @@
 package prerna.sablecc2.reactor;
 
+import java.util.List;
+import java.util.Vector;
+
 import prerna.sablecc2.om.Filter;
 import prerna.sablecc2.om.NounMetadata;
 import prerna.sablecc2.om.PkslDataTypes;
@@ -13,25 +16,9 @@ public class IfReactor extends AbstractReactor {
 
 	@Override
 	public Object Out() {
-		// TODO Auto-generated method stub
-		System.out.println("Signature " + signature);
-		System.out.println("Cur Row is >> " + this.curRow);
-		System.out.println("In the out of IF !!");
 		return parentReactor;
 	}
 
-	@Override
-	public void mergeUp() {
-		// TODO Auto-generated method stub
-
-	}
-
-	@Override
-	public void updatePlan() {
-		// TODO Auto-generated method stub
-
-	}
-	
 	// execute it
 	// once again this would be abstract
 	public Object execute()
@@ -57,7 +44,7 @@ public class IfReactor extends AbstractReactor {
 				caseEvaluation = (boolean) ifEvaluatorReactor.execute();
 			} catch(ClassCastException e) {
 				if(ifEvaluatorReactor != null) {
-					throw new IllegalArgumentException("If statement condition (" + ifEvaluatorReactor.getPKSL() + ") could not be evaluated");
+					throw new IllegalArgumentException("If statement condition (" + ifEvaluatorReactor.getPKSL()[1] + ") could not be evaluated");
 				} else {
 					throw new IllegalArgumentException("If statement condition could not be evaluated");
 				}
@@ -98,5 +85,28 @@ public class IfReactor extends AbstractReactor {
 	private NounMetadata getNounDataForConstant(Object obj, PkslDataTypes pkslDataTypes) {
 		NounMetadata data = new NounMetadata(obj, pkslDataTypes);
 		return data;
+	}
+	
+	@Override
+	public List<NounMetadata> getOutputs() {
+		//TODO: need to add both outputs for possible values of if
+		
+		List<NounMetadata> outputs = new Vector<NounMetadata>();
+		NounMetadata output = new NounMetadata(this.signature, PkslDataTypes.FILTER);
+		outputs.add(output);
+		return outputs;
+	}
+	
+
+	@Override
+	public List<NounMetadata> getInputs() {
+		// TODO Auto-generated method stub
+		return null;
+	}
+	
+	@Override
+	public void mergeUp() {
+		// TODO Auto-generated method stub
+
 	}
 }

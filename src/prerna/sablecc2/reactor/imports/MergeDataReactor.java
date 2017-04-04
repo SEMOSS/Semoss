@@ -1,6 +1,5 @@
 package prerna.sablecc2.reactor.imports;
 
-
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
@@ -18,6 +17,7 @@ import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.Join;
 import prerna.sablecc2.om.NounMetadata;
 import prerna.sablecc2.om.NounStore;
+import prerna.sablecc2.om.PkslDataTypes;
 import prerna.sablecc2.reactor.AbstractReactor;
 import prerna.util.Utility;
 
@@ -31,32 +31,23 @@ public class MergeDataReactor extends AbstractReactor {
 
 	@Override
 	public Object Out() {
-		importToFrame();
-		return null;
+		return parentReactor;
 	}
-	
-	@Override
-	public void updatePlan() {
-
-	}
-
 
 	@Override
-	public void mergeUp() {
+	public Object execute()  {
+		// greedy exectuion
+		// will execute and add to the frame
+		// but will not return anything
 
-	}
-	
-	private void importToFrame()  {
-		//get the inputs
-		
 		QueryStruct2 queryStruct = getQueryStruct();
 		String engineName = queryStruct.getEngineName();
-		
+
 		GenRowStruct allNouns = getNounStore().getNoun(NounStore.all); //should be only joins
 		ITableDataFrame frame = (ITableDataFrame)this.planner.getProperty("FRAME", "FRAME");
-		
+
 		Importer curReactor = ImportFactory.getImporter(frame);
-		
+
 		SQLInterpreter2 interp;
 		Iterator<IHeadersDataRow> iterator;
 		if(engineName != null) {
@@ -72,24 +63,24 @@ public class MergeDataReactor extends AbstractReactor {
 			String query = interp.composeQuery();
 			iterator = frame.query(query);
 		}
-		
+
 		//set values into the curReactor
 		curReactor.put("G", frame);
 		curReactor.put(PKQLEnum.API + "_EDGE_HASH", queryStruct.getReturnConnectionsHash());
 		curReactor.put(PKQLEnum.API + "_QUERY_NUM_CELLS", 1.0);
-		
+
 		curReactor.put(PKQLEnum.API, iterator);
 		if(allNouns != null) {
 			Vector<Map<String, String>> joinCols = getJoinCols(allNouns);
 			curReactor.put(PKQLEnum.JOINS, joinCols);
-			
+
 		}
 		curReactor.process();
 		ITableDataFrame importedFrame = (ITableDataFrame)curReactor.getValue("G");
 		System.out.println("IMPORTED FRAME CREATED WITH ROW COUNT: "+importedFrame.getNumRows());
 		this.planner.addProperty("FRAME", "FRAME", importedFrame);
-			
-		
+
+		return null;
 	}
 
 	private QueryStruct2 getQueryStruct() {
@@ -99,17 +90,11 @@ public class MergeDataReactor extends AbstractReactor {
 			NounMetadata object = (NounMetadata)allNouns.getNoun(0);
 			return (QueryStruct2)object.getValue();
 		} 
-		
+
 		return queryStruct;
 	}
-	
-	@Override
-	public List<NounMetadata> getInputs() {
-		return null;
-	}
-	
+
 	private Vector<Map<String,String>> getJoinCols(GenRowStruct joins) {
-		
 		Vector<Map<String, String>> joinCols = new Vector<>();
 		for(int i = 0; i < joins.size(); i++) {
 			if(joins.get(i) instanceof Join) {
@@ -117,17 +102,44 @@ public class MergeDataReactor extends AbstractReactor {
 				String toCol = join.getQualifier();
 				String fromCol = join.getSelector();
 				String joinType = join.getJoinType();
-				
+
 				Map<String, String> joinMap = new HashMap<>(1);
 				joinMap.put(PKQLEnum.TO_COL, toCol);
 				joinMap.put(PKQLEnum.FROM_COL, fromCol);
 				joinMap.put(PKQLEnum.REL_TYPE, joinType);
-				
+
 				joinCols.add(joinMap);
 			}
 		}
 		return joinCols;
 	}
+
+	@Override
+	public void mergeUp() {
+
+	}
+
+	@Override
+	public List<NounMetadata> getInputs() {
+		List<NounMetadata> inputs = new Vector<NounMetadata>();
+		// only possible things inside the curRow
+		// is a QueryStruct to run
+		// and multiple joins
+		inputs.add(curRow.getNounsOfType(PkslDataTypes.QUERY_STRUCT).get(0));
+		// add all for multiple
+		inputs.addAll(curRow.getNounsOfType(PkslDataTypes.JOIN));
+		return inputs;
+	}
+
+	@Override
+	public List<NounMetadata> getOutputs() {
+		// nothing to return
+		return null;
+	}
+	
+	
+
+
 }
 
 

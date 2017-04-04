@@ -107,10 +107,21 @@ public class GenRowStruct {
 	
 	public List<Object> getColumnsOfType(PkslDataTypes type)
 	{
-		List<Object> retVector = new ArrayList<>();
+		List<Object> retVector = new Vector<Object>();
 		for(NounMetadata noun : vector) {
 			if(noun.getNounName() == type) {
 				retVector.add(noun.getValue());
+			}
+		}
+		return retVector;
+	}
+	
+	public List<NounMetadata> getNounsOfType(PkslDataTypes type)
+	{
+		List<NounMetadata> retVector = new Vector<NounMetadata>();
+		for(NounMetadata noun : vector) {
+			if(noun.getNounName() == type) {
+				retVector.add(noun);
 			}
 		}
 		return retVector;
@@ -140,22 +151,11 @@ public class GenRowStruct {
 		return "";
 	}
 	
-	public String getDataString() {
-		String s = "";
-//		s += "META VECTOR: "+this.metaVector+"\n";
-//		s += "DATA VECTOR: "+this;
-		return s;
-	}
-	
 	/**
 	 * Override to string method for easier debugging
 	 */
 	public String toString() {
-		StringBuilder builder = new StringBuilder();
-//		builder.append(this.vector.toString());
-//		builder.append("\n");
-//		builder.append(this.metaVector.toString());
-		return builder.toString();
+		return this.vector.toString();
 	}
 
 	public boolean isEmpty() {

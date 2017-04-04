@@ -3,6 +3,7 @@ package prerna.sablecc2.reactor;
 
 import java.util.HashMap;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
 import java.util.Vector;
 
@@ -85,15 +86,21 @@ public class IterateReactor extends AbstractReactor {
 		Map<String, Object> returnData = new HashMap<>();
 		returnData.put("jobId", id);
 		this.planner.addProperty("DATA", "DATA", returnData);
-		return getOutput();
+		
+		// create the return
+		NounMetadata output = new NounMetadata(this.output, PkslDataTypes.JOB);
+		output.setExplanation("Iterator created from iterate reactor");
+		return output;
 
 	}
 	
 	@Override
-	public NounMetadata getOutput() {
+	public List<NounMetadata> getOutputs() {
+		List<NounMetadata> outputs = new Vector<NounMetadata>();
 		NounMetadata output = new NounMetadata(this.output, PkslDataTypes.JOB);
 		output.setExplanation("Iterator created from iterate reactor");
-		return output;
+		outputs.add(output);
+		return outputs;
 	}
 
 	@Override
