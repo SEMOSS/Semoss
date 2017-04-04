@@ -4,8 +4,10 @@ import java.util.List;
 import java.util.Vector;
 
 import prerna.sablecc2.om.Filter;
+import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.NounMetadata;
 import prerna.sablecc2.om.PkslDataTypes;
+import prerna.sablecc2.reactor.storage.StoreValue;
 
 public class IfReactor extends AbstractReactor {
 
@@ -89,11 +91,19 @@ public class IfReactor extends AbstractReactor {
 	
 	@Override
 	public List<NounMetadata> getOutputs() {
-		//TODO: need to add both outputs for possible values of if
-		
 		List<NounMetadata> outputs = new Vector<NounMetadata>();
-		NounMetadata output = new NounMetadata(this.signature, PkslDataTypes.FILTER);
+		NounMetadata output = new NounMetadata(this.signature, PkslDataTypes.LAMBDA);
 		outputs.add(output);
+		
+		// if the child is a store value reactor
+		// we just need to push its nouns as outputs
+		for(IReactor childReactor : this.childReactor) {
+			if(childReactor instanceof StoreValue) {
+				GenRowStruct keyStruct = childReactor.getNounStore().getNoun(StoreValue.KEY_NOUN);
+				outputs.addAll(keyStruct.vector);
+			}
+		}
+		
 		return outputs;
 	}
 }
