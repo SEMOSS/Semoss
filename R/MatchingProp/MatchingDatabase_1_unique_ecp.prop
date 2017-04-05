@@ -6,7 +6,6 @@ NUM_COLUMNS	6
 5	STRING
 6	STRING
 START_ROW	2
-END_ROW	41
 RELATION	engine@engine.concept_id@concept_id;concept_id@concept_id.property_id@property_id;
 NODE_PROP	concept_id%concept;property_id%property;
 RELATION_PROP	 
