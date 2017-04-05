@@ -19,7 +19,7 @@ import prerna.sablecc2.reactor.qs.JoinReactor;
 import prerna.sablecc2.reactor.qs.LimitReactor;
 import prerna.sablecc2.reactor.qs.OffsetReactor;
 import prerna.sablecc2.reactor.qs.QueryFilterReactor;
-//import prerna.sablecc2.reactor.qs.QueryReactor;
+import prerna.sablecc2.reactor.qs.QueryReactor;
 import prerna.sablecc2.reactor.qs.SelectReactor;
 import prerna.sablecc2.reactor.qs.SumReactor;
 //import prerna.util.Utility;
@@ -85,6 +85,7 @@ public class ReactorFactory {
 		reactorHash.put("Offset", OffsetReactor.class);
 		reactorHash.put("Join", JoinReactor.class);
 		reactorHash.put("Filter", QueryFilterReactor.class);
+		reactorHash.put("Query", QueryReactor.class);
 		
 		//Data Source Reactors
 		reactorHash.put("Database", DatabaseReactor.class); //specifies that our pksl operations after this point are dealing with the specified database

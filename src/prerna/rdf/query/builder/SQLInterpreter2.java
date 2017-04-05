@@ -12,6 +12,7 @@ import org.openrdf.query.QueryEvaluationException;
 import org.openrdf.query.TupleQueryResult;
 
 import prerna.algorithm.api.IMetaData;
+import prerna.ds.HardQueryStruct;
 import prerna.ds.QueryStruct;
 import prerna.ds.querystruct.QueryStruct2;
 import prerna.ds.querystruct.QueryStructSelector;
@@ -100,6 +101,9 @@ public class SQLInterpreter2 implements IQueryInterpreter{
 	 */
 	public String composeQuery()
 	{
+		if(this.qs instanceof HardQueryStruct) {
+			return ((HardQueryStruct)this.qs).getQuery();
+		}
 		/*
 		 * Need to create the query... 
 		 * This to consider:
