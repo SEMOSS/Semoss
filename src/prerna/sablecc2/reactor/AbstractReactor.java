@@ -266,7 +266,7 @@ public abstract class AbstractReactor implements IReactor {
 		// and add this to the plan using the signature
 		// of the reactor
 		List<NounMetadata> inputs = this.getInputs();
-		List<NounMetadata> outputs = getOutputs();
+		List<NounMetadata> outputs = this.getOutputs();
 
 		if(inputs != null) {
 			List<String> strInputs = new Vector<String>();
