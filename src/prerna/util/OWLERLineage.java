@@ -206,8 +206,6 @@ public class OWLERLineage {
 		*/
 
 		TestUtilityMethods.loadDIHelper();
-		
-		TestUtilityMethods.loadDIHelper();
 		String engineProp = "C:\\workspace\\Semoss_Dev\\db\\LocalMasterDatabase.smss";
 		IEngine coreEngine = new BigDataEngine();
 		coreEngine.setEngineName(Constants.LOCAL_MASTER_DB_NAME);
@@ -248,8 +246,9 @@ public class OWLERLineage {
 		String query = "SELECT ?SOURCE ?REL ?TARGET ?PROP ?VALUE WHERE { "
 				+ "{?SOURCE ?REL ?TARGET} "
 				+ "{?REL <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Lineage>} "
-				+ "{?REL ?PROP ?VALUE}"
-				+ "{?PROP <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <LINEAGE:PROPERTY>} "
+				+ "OPTIONAL { {?REL ?PROP ?VALUE}"
+					+ "{?PROP <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <LINEAGE:PROPERTY>} "
+					+ "}"
 				+ "}";
 		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(((AbstractEngine) coreEngine).getBaseDataEngine(), query);
 		while(wrapper.hasNext()) {
