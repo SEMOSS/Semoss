@@ -518,4 +518,8 @@ public class Constants {
 	// Function name to calculate locality sensitive hashing
 	public static final String R_LSH_MATCHING_FUN = "run_lsh_matching";
 	
+	// Composite key constants
+	public static final String COMPOSITE_KEY_SEPARATOR = "~+~";
+	public static final String COMPOSITE_KEY_TYPE = "COMPOSITE";
+	public static final String PRIMARY_META_KEY = "URI:PRIMARY_KEY";	
 }
