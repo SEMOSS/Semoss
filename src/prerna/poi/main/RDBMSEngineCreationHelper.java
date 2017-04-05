@@ -4,7 +4,11 @@ import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.sql.DatabaseMetaData;
+import java.sql.ResultSet;
+import java.sql.SQLException;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Hashtable;
 import java.util.List;
@@ -17,6 +21,7 @@ import prerna.engine.api.ISelectStatement;
 import prerna.engine.api.ISelectWrapper;
 import prerna.engine.impl.AbstractEngine;
 import prerna.engine.impl.QuestionAdministrator;
+import prerna.engine.impl.rdbms.RDBMSNativeEngine;
 import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.ui.components.playsheets.datamakers.DataMakerComponent;
 import prerna.util.Constants;
@@ -180,44 +185,60 @@ public class RDBMSEngineCreationHelper {
 	}
 	
 	public static Map<String, Map<String, String>> getExistingRDBMSStructure(IEngine rdbmsEngine, SQLQueryUtil queryUtil) {
-		Map<String, Map<String, String>> retMap = new Hashtable<String, Map<String, String>>();
-		// get all the tables names in the H2 database
-		String getAllTablesQuery = "SHOW TABLES FROM PUBLIC";
-		// for databases other than H2
-		if(queryUtil != null)
-			getAllTablesQuery = queryUtil.getDialectAllTables();
-		ISelectWrapper wrapper = WrapperManager.getInstance().getSWrapper(rdbmsEngine, getAllTablesQuery);
-		String[] names = wrapper.getVariables();
-		Set<String> tableNames = new HashSet<String>();
-		while(wrapper.hasNext()) {
-			ISelectStatement ss = wrapper.next();
-			String tableName = ss.getVar(names[0]) + "";
-			tableNames.add(tableName);
-		}
-
-		// get all the columns and their types for each table name
-		String defaultColTypesQuery = "SHOW COLUMNS FROM ";
-		/*if(queryUtil != null)
-			defaultColTypesQuery = queryUtil.getDialectAllColumns();*/
-		for(String tableName : tableNames) {
-			String getAllColTypesQuery = defaultColTypesQuery + tableName;
-			if(queryUtil != null)
-				getAllColTypesQuery = queryUtil.getDialectAllColumns(tableName);
-			wrapper = WrapperManager.getInstance().getSWrapper(rdbmsEngine, getAllColTypesQuery);
-			names = wrapper.getVariables();
-			Map<String, String> colTypeHash = new Hashtable<String, String>();
-			while(wrapper.hasNext()) {
-				ISelectStatement ss = wrapper.next();
-				String colName = ss.getVar(names[0]) + "";
-				String colType = ss.getVar(names[1]) + "";
-				colTypeHash.put(colName, colType.toUpperCase());
+		// get the metadata from the connection
+		RDBMSNativeEngine rdbms = (RDBMSNativeEngine) rdbmsEngine;
+		DatabaseMetaData meta = rdbms.getConnectionMetadata();
+		
+		// table that will store 
+		// table_name -> {
+		// 					colname1 -> coltype,
+		//					colname2 -> coltype,
+		//				}
+		Map<String, Map<String, String>> tableColumnMap = new Hashtable<String, Map<String, String>>();
+		
+		// get all the tables
+		ResultSet tables = null;
+		try {
+			tables = meta.getTables(null, null, null, new String[]{"TABLE"});
+			while(tables.next()) {
+				// get the table name
+				String table = tables.getString("table_name");
+				// keep a map of the columns
+				Map<String, String> colDetails = new HashMap<String, String>();
+				// iterate through the columns
+				
+				ResultSet keys = null;
+				try {
+					keys = meta.getColumns(null, null, table, null);
+					while(keys.next()) {
+						colDetails.put(keys.getString("column_name"), keys.getString("type_name").toUpperCase());
+					}
+				} catch(SQLException e) {
+					e.printStackTrace();
+				} finally {
+					try {
+						if(keys != null) {
+							keys.close();
+						}
+					} catch (SQLException e1) {
+						e1.printStackTrace();
+					}
+				}
+				tableColumnMap.put(table, colDetails);
 			}
-
-			// add the table name and column type for the table name
-			retMap.put(tableName, colTypeHash);
+		} catch (SQLException e) {
+			e.printStackTrace();
+		} finally {
+			try {
+				if(tables != null) {
+					tables.close();
+				}
+			} catch (SQLException e1) {
+				e1.printStackTrace();
+			}
 		}
 
-		return retMap;
+		return tableColumnMap;
 	}
 
 	/**
