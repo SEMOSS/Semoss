@@ -2,6 +2,7 @@ package prerna.util;
 
 import java.io.IOException;
 import java.util.Hashtable;
+import java.util.Vector;
 
 import org.openrdf.model.vocabulary.RDF;
 import org.openrdf.model.vocabulary.RDFS;
@@ -9,6 +10,7 @@ import org.openrdf.model.vocabulary.RDFS;
 import com.hp.hpl.jena.vocabulary.OWL;
 
 import prerna.engine.api.IEngine;
+import prerna.engine.impl.rdf.RDFFileSesameEngine;
 import prerna.poi.main.BaseDatabaseCreator;
 
 public class OWLER {
@@ -23,6 +25,7 @@ public class OWLER {
 	public static final String PHYSICAL_TABLE = "http://semoss.org/ontologies/physical/table";
 	public static final String DEFAULT_PROPERTY_CLASS = "Relation/Contains";
 	public static final String CONCEPTUAL_RELATION_NAME = "Conceptual";
+	public static final String DEFAULT_COMPOSITE_CLASS = "Composite";
 	
 //	public static final String PROP_DATATYPE_PREDICATE = OWL.DatatypeProperty.toString();
 //	public static final String DATATYPE_PREDICATE = RDFS.CLASS.toString();
@@ -62,11 +65,17 @@ public class OWLER {
 		engine = new BaseDatabaseCreator(owlPath);
 		String baseSubject = BASE_URI + DEFAULT_NODE_CLASS ;
 		String baseRelation = BASE_URI + DEFAULT_RELATION_CLASS;
-
+		
+		// for composite keys
+		String baseComposite = BASE_URI + DEFAULT_COMPOSITE_CLASS;
+		
 		String predicate = RDF.TYPE.stringValue();
 
 		engine.addToBaseEngine(baseSubject, predicate, RDFS.CLASS.stringValue());
 		engine.addToBaseEngine(baseRelation, predicate, RDF.PROPERTY.stringValue());
+		
+		// for composite keys
+		engine.addToBaseEngine(baseComposite, predicate, RDFS.CLASS.stringValue());
 	}
 	
 	/**
@@ -117,37 +126,57 @@ public class OWLER {
 	 * 1) { <semoss:Concept/C-X> <rdfs:subClassOf> <semoss:Concept> }
 	 * 2) { <semoss:Concept/C-X> <rdfs:Class> 'TYPE:STRING' } <- note that all RDF concepts are type STRING since they are URIs
 	 * 3) { <semoss:Concept/C-X> <semoss:Relation/Conceptual> <semoss:Concept/CX> }
- 	 * TODO: no longer doing 4
-	 * 4) { <semoss:Concept/CX> <rdfs:subClassOf> <semoss:Concept> }
-	 * 
+ 	 * 
 	 * NOTE: IF THE CONCEPT WAS 'CX', #3 would be a self-loop and that's okay
 	 * 
 	 * For a RDBMS concept, say it is 'C1' for column name and sits on 'T1' table name, the following tiples will be added:
 	 * 1) { <semoss:Concept/C1/T1> <rdfs:subClassOf> <semoss:Concept> }
 	 * 2) { <semoss:Concept/C1/T1> <rdfs:Class> 'TYPE:DATA_TYPE_HERE' }
-	 * 3) { <semoss:Concept/C1/T1> <semoss:Relation/Conceptual> <semoss:Concept/T1> }
- 	 * TODO: no longer doing 4
-	 * 4) { <semoss:Concept/C1> <rdfs:subClassOf> <semoss:Concept> }
+	 * 3) { <semoss:Concept/C1/T1> <rdf:type> <semoss:Primkey OR semoss:Composite> } Depending on whether the concept is composite
+	 * 4) { <semoss:Relation/Contains/P/X> <rdf:type> <semoss:Primkey> } If composite, then one for each property that makes up the PK
+	 * 5) { <semoss:Concept/C1/T1> <semoss:Relation/Conceptual> <semoss:Concept/T1> }
 	 */
-	
+
 	/**
 	 * Adding a concept into the OWL
 	 * There are some differences based on how the information is used based on if it is a 
 	 * RDF engine or a RDBMS engine
 	 * @param tableName				For RDF: This is the name of the concept
 	 * 								For RDBMS: This is the name of the table where the concept exists
-	 * @param colName				For RDF: This is NOT used
-	 * 								For RDBMS: This is the name of the column which contains the concept instances
+	 * @param colNames				For RDF: This is NOT used
+	 * 								For RDBMS: This is the name of the columns that contain the concept instances
+	 *								Multiple columns suggest a composite primary key
 	 * @param baseURI				This is the base URI for all the meta URIs
 	 * 								99.99999% of the time this should be the following string "http://semoss.org/ontologies/"
-	 * @param dataType				The dataType for the concept
+	 * @param dataTypes				The dataTypes for the concept, corresponding to the columns in colNames
 	 * @return						Returns the physical URI for the node
 	 * 								The return is only used in RDF databases where the instance URI must be linked
 	 * 								to the meta URI
 	 */
-	public String addConcept(String tableName, String colName, String baseURI, String dataType) {
+	public String addConcept(String tableName, String[] colNames, String baseURI, String[] dataTypes) {
+		
+		// check whether the concept contains a composite key
+		boolean compositeKey = colNames.length > 1;
+		
+		// determine the column name, if there is more than one entry this will add the appropriate separator
+		String colName = String.join(Constants.COMPOSITE_KEY_SEPARATOR, colNames);
+		
+		// since the column name is sometimes null or empty,
+		// need to construct the key in a similar manner to how the subject is created
+		String key = tableName + colName;
+		if(type.equals(IEngine.ENGINE_TYPE.RDBMS)) {
+			// if the column is null or empty, assume table name and col name are the same
+			if(colName == null || colName.isEmpty()) {
+				key = tableName + tableName;
+			} else {
+				// they might be the same, might be diff, don't matter
+				// create it appropriately
+				key = colName + tableName;
+			}
+		}
+		
 		// since RDF uses this multiple times, don't create it each time and just store it in a hash to send back
-		if(!conceptHash.containsKey(tableName + colName)) {
+		if(!conceptHash.containsKey(key)) {
 			// generate the base node uri and base relationship uri
 			// this is going to be using the baseURI passed in and the default node class and the ]
 			// default relationship class
@@ -157,29 +186,28 @@ public class OWLER {
 			String baseNodeURI = baseURI + DEFAULT_NODE_CLASS;
 			String baseRelation = baseURI + DEFAULT_RELATION_CLASS;
 			
+			// also generate the uri for primary key and composite key
+			String baseComposite = baseURI + DEFAULT_COMPOSITE_CLASS;
+
 			// here is the logic to create the physical uri for the concept
 			// the base URI for the concept will be the baseNodeURI
 			String subject = baseNodeURI + "/";
 			// we also want to keep track of what the conceptual name is
 			// jk, this will always be the table name now
-//			String subjectName = null;
 			// if it is an RDBMS engine, we need to account when the table name and column name are not the same
 			if(type.equals(IEngine.ENGINE_TYPE.RDBMS)) {
 				// if the column is null or empty, assume table name and col name are the same
 				if(colName == null || colName.isEmpty()) {
 					subject += tableName + "/" + tableName;
-//					subjectName = tableName;
 				} else {
 					// they might be the same, might be diff, don't matter
 					// create it appropriately
 					subject += colName + "/" + tableName;
-//					subjectName = colName;
 				}
 			} else {
 				// here, it must be RDF
 				// just add the table name since that is supposed to hold the concept name
 				subject += tableName;
-//				subjectName = tableName;
 			}
 			
 			// now lets start to add the triples
@@ -187,11 +215,47 @@ public class OWLER {
 			
 			// 1) adding the physical URI concept as a subClassOf the baseNodeURI
 			engine.addToBaseEngine(subject, RDFS.SUBCLASSOF.stringValue(), baseNodeURI);
+			
 			// 2) now lets add the dataType of the concept
+			// determine the dataType
+			String dataType;
+			if (compositeKey) {
+				// if this is a composite key, then its type is composite
+				dataType = Constants.COMPOSITE_KEY_TYPE;
+			} else if (dataTypes.length > 0) {
+				// if not a composite key, then just pull the single data type
+				dataType = dataTypes[0];
+			} else {
+				// otherwise default to string
+				dataType = "STRING";
+			}
 			String typeObject = "TYPE:" + dataType;
-			String dataTypeUri = RDFS.CLASS.toString();
+			String dataTypeUri = RDFS.CLASS.stringValue();
 			engine.addToBaseEngine(subject, dataTypeUri, typeObject);
-			// 3 & 4) now lets add the physical URI concept to the conceptual concept URI
+			
+			// 3) mark the type of the column as either a composite key or primary key
+			// Only add primary key tag for RDBMS
+			if (compositeKey) {
+				engine.addToBaseEngine(subject, RDF.TYPE.stringValue(), baseComposite);
+			} else if (type.equals(IEngine.ENGINE_TYPE.RDBMS)) {
+				engine.addToBaseEngine(new Object[] {subject, Constants.PRIMARY_META_KEY, subject, false});
+			}
+						
+			// store it in the hash for future use
+			// Needs to be done before adding properties 
+			// (if a composite key, properties are added in the next step)
+			conceptHash.put(key, subject);
+			
+			// 4) if the concept has a composite key, add each individual column as a property as necessary
+			// then add a triple for each
+			if (compositeKey) {
+				for (int i = 0; i < colNames.length; i++) {
+					String propURI = addProp(tableName, colName, colNames[i], dataTypes[i]);
+					engine.addToBaseEngine(new Object[] {subject, Constants.PRIMARY_META_KEY, propURI, false});
+				}
+			}
+			
+			// 5) now lets add the physical URI concept to the conceptual concept URI
 			// one of the advantages of the conceptual URI is that we can specify a concept in a database even
 			// if it contains any of the special characters that are not allowed in PKQL
 			// the conceptual name is the clean version of the name ... for now
@@ -199,12 +263,42 @@ public class OWLER {
 			String conceptualNode = Utility.cleanVariableString(tableName);
 			String conceptualSubject = baseNodeURI + "/" + conceptualNode;
 			engine.addToBaseEngine(subject, conceptualRelationship, conceptualSubject);
-//			engine.addToBaseEngine(conceptualSubject, RDFS.SUBCLASSOF.stringValue(), baseNodeURI);
-
-			// lastly, store it in the hash for future use
-			conceptHash.put(tableName + colName, subject);
 		}		
-		return conceptHash.get(tableName + colName);
+		return conceptHash.get(key);
+	}
+	
+	/**
+	 * Wrapper around the main addConcept method.  Simplifies the call to use only one column name.
+	 * @param tableName				For RDF: This is the name of the concept
+	 * 								For RDBMS: This is the name of the table where the concept exists
+	 * @param colName				For RDF: This is NOT used
+	 * 								For RDBMS: This is the name of the column that contain the concept instances
+	 * @param baseURI				This is the base URI for all the meta URIs
+	 * 								99.99999% of the time this should be the following string "http://semoss.org/ontologies/"
+	 * @param dataType				The dataType for the concept
+	 * @return						Returns the physical URI for the node
+	 * 								The return is only used in RDF databases where the instance URI must be linked
+	 * 								to the meta URI
+	 */
+	public String addConcept(String tableName, String colName, String baseURI, String dataType) {
+		return addConcept(tableName, new String[] {colName}, baseURI, new String[] {dataType});
+	}
+	
+	/**
+	 * Wrapper around the main addConcept method.  Simplifies the call to use the default 
+	 * base SEMOSS_URI.  This version takes in the table name and column names, so it is primarily
+	 * meant to be used for RDBMS engines
+	 * @param tableName				For RDF: This is the name of the concept
+	 * 								For RDBMS: This is the name of the table where the concept exists
+	 * @param colNames				For RDF: This is NOT used
+	 * 								For RDBMS: This is the name of the columns that contain the concept instances
+	 *								Multiple columns suggest a composite primary key
+	 * @param baseURI				This is the base URI for all the meta URIs
+	 * @param dataTypes				The dataTypes for the concept, corresponding to the columns in colNames
+	 * @return						Returns the physical URI for the node
+	 */
+	public String addConcept(String tableName, String[] colNames, String[] dataTypes) {
+		return addConcept(tableName, colNames, SEMOSS_URI, dataTypes);
 	}
 	
 	/**
@@ -221,7 +315,7 @@ public class OWLER {
 	public String addConcept(String tableName, String colName, String dataType) {
 		return addConcept(tableName, colName, SEMOSS_URI, dataType);
 	}
-	
+		
 	/**
 	 * Wrapper around the main addConcept method.  Simplifies the call as the column name is not required 
 	 * and it defaults to use the default base SEMOSS_URI
@@ -391,8 +485,6 @@ public class OWLER {
 	 * 2) { <semoss:Concept/X> <semoss:Relation/Contains> <semoss:Relation/Contains/P-P> }
 	 * 3) { <semoss:Relation/Contains/P-P> <rdfs:Class> TYPE:DATA_TYPE_HERE }
 	 * 4) { <semoss:Relation/Contains/P-P> <semoss:Relation/Conceptual> <semoss:Relation/Contains/PP/X> }
-	 * TODO: no longer doing 5
-	 * 5) { <semoss:Relation/Contains/PP> <owl.DatatypeProperty> <semoss:Relation/Contains> }
 	 * 
 	 * NOTE: IF THE PROPERTY WAS 'PP', #4 would be a self-loop and that's okay
 	 * 
@@ -401,10 +493,8 @@ public class OWLER {
 	 * 2) { <semoss:Concept/Y/X> <semoss:Relation/Contains> <semoss:Relation/Contains/P/X> }
 	 * 3) { <semoss:Relation/Contains/P/X> <rdfs:Class> TYPE:DATA_TYPE_HERE }
 	 * 4) { <semoss:Relation/Contains/P/X> <semoss:Relation/Conceptual> <semoss:Relation/Contains/P/X> }
-	 * TODO: no longer doing 5
-	 * 5) { <semoss:Relation/Contains/P> <owl.DatatypeProperty> <semoss:Relation/Contains> }
 	 */
-	
+
 	/**
 	 * This method will add a property onto a concept in the OWL file
 	 * There are some differences based on how the information is used based on if it is a 
@@ -453,21 +543,22 @@ public class OWLER {
 			
 			// 1) adding the property as type of base property URI
 			engine.addToBaseEngine(property, RDF.TYPE.stringValue(), basePropURI);
+			
 			// 2) adding the property to the concept
 			engine.addToBaseEngine(conceptURI, OWL.DatatypeProperty.toString(), property);
+			
 			// 3) adding the property data type
 			String typeObject = "TYPE:" + dataType;
-			String dataTypeUri = RDFS.CLASS.toString();
+			String dataTypeUri = RDFS.CLASS.stringValue();
 			engine.addToBaseEngine(property, dataTypeUri, typeObject);
-			
-			// 4 & 5) now lets add the physical property to the conceptual property
+						
+			// 4) now lets add the physical property to the conceptual property
 			// one of the advantages of the conceptual URI is that we can specify a property in a database even 
 			// if it contains any of the special characters that are not allowed in PKQL
 			// the conceptual property name is the clean version of the property name ... for now
 			String conceptualRelationship = baseRelation +  "/" + CONCEPTUAL_RELATION_NAME;
 			String conceptualProperty = basePropURI + "/" + conceptualPropertyName;
 			engine.addToBaseEngine(property, conceptualRelationship, conceptualProperty);
-//			engine.addToBaseEngine(conceptualProperty, RDF.TYPE.stringValue(), basePropURI);
 			
 			// lastly, store it in the hash for future use
 			propHash.put(tableName + "%" + propertyCol, property);
@@ -475,8 +566,7 @@ public class OWLER {
 		
 		return propHash.get(tableName + "%" + propertyCol);
 	}
-	
-	
+		
 	/**
 	 * This method will add a property onto a concept in the OWL file
 	 * There are some differences based on how the information is used based on if it is a 
@@ -524,18 +614,39 @@ public class OWLER {
 	
 	///////////////////// TESTING /////////////////////
 	public static void main(String [] args) {
-		OWLER owler = new OWLER("C:\\workspace\\Semoss_Dev\\test.owl", IEngine.ENGINE_TYPE.RDBMS);
-//		owler.addConcept("Movie_Table", "Title", "varchar(800)");
-//		owler.addProp("Movie_Table", "Title", "Revenue-Domestic", "DOUBLE");
-//		owler.addConcept("Genre", "Genre", "varchar(800)");
-//		owler.addRelation("Movie_Table", "Title", "Genre", "Genre", "Movie_Table.Title.Genre.Title_FK");
-
-		owler.addConcept("Title", "varchar(800)");
-		owler.addProp("Title", "Revenue-Domestic", "DOUBLE");
-		owler.addConcept("Genre", "varchar(800)");
-		owler.addRelation("Title", "Genre", null);
+		DIHelper.getInstance().loadCoreProp(System.getProperty("user.dir") + "/RDF_Map.prop");
+		OWLER owler = new OWLER("C:\\Users\\tbanach\\Workspace\\test.owl", IEngine.ENGINE_TYPE.RDBMS);
+		owler.addConcept("Title Table", new String[] {"Title", "Date Released"}, new String[] {"varchar(800)", "varchar(800)"});
+		owler.addConcept("Studio", "Studio", "varchar(800)");
+		owler.addProp("Studio", "Address", "varchar(800)");
+		owler.addRelation("Studio", "Studio", "Title Table", "Title" + Constants.COMPOSITE_KEY_SEPARATOR + "Date Released", "produces");
 		
+		// load the owl into a rfse
+		RDFFileSesameEngine rfse = new RDFFileSesameEngine();
+		try {
+			owler.export();
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
 		owler.getOwlAsString();
+		rfse.openFile(owler.getOwlPath(), "RDF/XML", BASE_URI);
+
+		// get all of the composite keys
+		String baseComposite = BASE_URI + DEFAULT_COMPOSITE_CLASS;	
+		String compositeQuery = "SELECT DISTINCT ?" + Constants.ENTITY + " WHERE {?" + Constants.ENTITY + " <" + RDF.TYPE.stringValue() + "> <" + baseComposite + ">}";
+		Vector<Object> composites = rfse.getCleanSelect(compositeQuery);
+		for (Object composite : composites) {
+			
+			// for each composite list out all the primary keys
+			String compositeURI = composite.toString();
+			System.out.println("Composite URI: " + compositeURI);
+			String query = "SELECT DISTINCT ?" + Constants.ENTITY + " WHERE {<" + compositeURI + "> <" + Constants.PRIMARY_META_KEY + "> ?" + Constants.ENTITY + "}";
+			Vector<Object> primkeys = rfse.getCleanSelect(query);
+			for (Object primkey : primkeys) {
+				String primkeyURI = primkey.toString();
+				System.out.println("Primkey URI: " + primkeyURI);
+			}
+		}		
 	}
 	
 	public String getOwlAsString() {
@@ -600,4 +711,5 @@ public class OWLER {
 		this.propHash = propHash;
 	}
 	///////////////// END SETTERS ///////////////////////
+	
 }
