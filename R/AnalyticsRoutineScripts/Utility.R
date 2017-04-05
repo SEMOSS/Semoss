@@ -155,22 +155,22 @@ run_lsh_matching <- function(path, N, b, similarityThreshold, instancesThreshold
   # concept-match
   c.m <- which(is.na(dt$item_property))
   concept.match <- dt[c.m, c("item_concept", "match")]
-  colnames(concept.match) <- c("concept_id", "match")
+  colnames(concept.match) <- c("concept_id", "match_1")
   
   # match-concept
   m.c <- which(is.na(dt$match_property))
   match.concept <- dt[m.c, c("match", "match_concept")]
-  colnames(match.concept) <- c("match", "concept_id")
+  colnames(match.concept) <- c("match_1", "concept_id")
   
   # property-match
   p.m <- which(!is.na(dt$item_property))
   property.match <- dt[p.m, c("item_property", "match")]
-  colnames(property.match) <- c("property_id", "match")
+  colnames(property.match) <- c("property_id", "match_1")
   
   # match-property
   m.p <-which(!is.na(dt$match_property))
   match.property <- dt[m.p, c("match", "match_property")]
-  colnames(match.property) <- c("match", "property_id")
+  colnames(match.property) <- c("match_1", "property_id")
   
   
   ##################################################
