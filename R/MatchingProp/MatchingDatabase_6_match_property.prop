@@ -2,6 +2,6 @@ NUM_COLUMNS	2
 1	STRING
 2	STRING
 START_ROW	2
-RELATION	match_1@match_1.property_id@property_id;
+RELATION	match_id@match_id.property_id@property_id;
 NODE_PROP	
 RELATION_PROP	 
