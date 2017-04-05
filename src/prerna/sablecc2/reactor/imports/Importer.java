@@ -32,7 +32,6 @@ public abstract class Importer {
 
 	protected static final Logger LOGGER = LogManager.getLogger(Importer.class.getName());
 	
-//	protected enum LOAD_TYPE {ENGINE_IMPORT, FILE_IMPORT}
 
 	// this stores the specific values that need to be aggregated from the child reactors
 	// based on the child, different information is needed in order to properly add the 
@@ -104,24 +103,8 @@ public abstract class Importer {
 	/**
 	 * Constructor for the abstract class
 	 */
-	public Importer()
-	{
-//		String [] thisReacts = {PKQLEnum.API, PKQLEnum.JOINS, PKQLEnum.PASTED_DATA, PKQLEnum.MAP_OBJ};
-		
-//		super.whatIReactTo = thisReacts;
-//		super.whoAmI = PKQLEnum.IMPORT_DATA;
+	public Importer() {
 
-		// when the data is coming from an API (i.e. an engine or a file)
-//		String [] dataFromApi = {PKQLEnum.COL_CSV, "ENGINE", "EDGE_HASH", "QUERY_NUM_CELLS"};
-//		values2SyncHash.put(PKQLEnum.API, dataFromApi);
-//
-//		// when the data is coming from user copy/paste data into the tool
-//		String [] dataFromPastedData = {"EDGE_HASH", PKQLEnum.COL_CSV};
-//		values2SyncHash.put(PKQLEnum.PASTED_DATA, dataFromPastedData);
-//
-//		String [] dataFromRawQuery = {"DATA_TYPE_MAP", "LOGICAL_TO_VALUE"};
-//		// same thing when hard coded query
-//		values2SyncHash.put(PKQLEnum.RAW_API, dataFromRawQuery);
 	}
 
 	/**
@@ -195,7 +178,7 @@ public abstract class Importer {
 			// try to grab the engine
 			// if it is not null, we have a query we are loading
 			// if it is null, we have a file
-			IEngine engine = (IEngine) Utility.getEngine((this.getValue(PKQLEnum.API + "_ENGINE")+"").trim());
+			IEngine engine = (IEngine) Utility.getEngine((this.getValue(PKQLEnum.API + "_ENGINE")+""));
 
 			// this is the first possibility when it is a query
 			if(engine != null) {
@@ -290,7 +273,6 @@ public abstract class Importer {
 					this.isPrimKey = true;
 					// update the metadata in the frame
 					frame.mergeEdgeHash(edgeHash, dataTypes);
-//					frame.
 				}
 			}
 		} else if(myStore.containsKey(PKQLEnum.RAW_API)) {
@@ -338,6 +320,9 @@ public abstract class Importer {
 		return null;
 	}
 
+	
+	/************************* START DATA CLEANING *****************************/
+	
 	/**
 	 * Update the names array based on the join columns
 	 * Modifies 
@@ -641,79 +626,12 @@ public abstract class Importer {
 		
 		return makeUniqueNameMap;
 	}
-//	/**
-//	 * Update the edge hash based on the join information
-//	 * @param egdeHash
-//	 * @param joinCols
-//	 * @return
-//	 */
-//	protected Map<String, Set<String>> updateEdgeHashForJoins(Map<String, Set<String>> egdeHash, Vector<Map<String, String>> joinCols) {
-//		if(joinCols != null && !joinCols.isEmpty()){
-//			Map<String, Set<String>> newEdgeHash = new Hashtable<String, Set<String>>(); // used to add new keys since cannot update existing map while looping
-//			
-//			for(String parentName : edgeHash.keySet()) {
-//				Set<String> childrenName = edgeHash.get(parentName);
-//				
-//				// first edit the children
-//				Set<String> newChildrenName = new HashSet<String>();
-//				for(String child : childrenName) {
-//					boolean foundChild = false;
-//					JOIN_LOOP : for(Map<String, String> join : joinCols) {
-//						for(String otherName : join.keySet()) {
-//							String existingName = join.get(otherName);
-//							
-//							// swap out the name if it is there
-//							if(childrenName.contains(otherName)) {
-//								newChildrenName.add(existingName);
-//								foundChild = true;
-//								break JOIN_LOOP;
-//							}
-//						}
-//					}
-//					// if we didn't find a name change
-//					// add the name as is
-//					if(!foundChild) {
-//						newChildrenName.add(child);
-//					}
-//				}
-//				
-//				// once we got the children
-//				// do the parent
-//				boolean foundParent = false;
-//				JOIN_LOOP : for(Map<String, String> join : joinCols) {
-//					for(String otherName : join.keySet()) {
-//						String existingName = join.get(otherName);
-//						
-//						// swap out the name if it is there
-//						if(parentName.equals(otherName)) {
-//							newEdgeHash.put(existingName, newChildrenName);
-//							foundParent = true;
-//							break JOIN_LOOP;
-//						}
-//					}
-//				}
-//				// if we didn't find a name change for the parent
-//				// add parent in with edited children set
-//				if(!foundParent) {
-//					newEdgeHash.put(parentName, newChildrenName);
-//				}
-//			}
-//			// override the existing reference
-//			edgeHash = newEdgeHash;
-//		}
-//		return edgeHash;
-//	}
 	
-	/**
-	 * Gets the values to load into the reactor
-	 * This is used to synchronize between the various reactors that can feed into this reactor
-	 * @param input			The type of child reactor
-	 */
-	public String[] getValues2Sync(String input)
-	{
-		return values2SyncHash.get(input);
-	}
-
+	/************************* END RESPONSE BUILDER *****************************/
+	
+	
+	/************************* START RESPONSE BUILDER *****************************/
+	
 	/**
 	 * Creates the return response string based on the iterator and the headers
 	 * @param it					The iterator being used to insert data
@@ -794,4 +712,6 @@ public abstract class Importer {
 		}
 		return metadata;
 	}
+	
+	/************************* END RESPONSE BUILDER *****************************/
 }
