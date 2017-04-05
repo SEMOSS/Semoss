@@ -79,9 +79,18 @@ run_lsh_matching <- function(path, N, b, similarityThreshold, instancesThreshold
   df <- df[order(df$item, -df$score, df$match), ]
 
   # Split out the engine and concept
+  # Add a period at the end in case there are no properties
   setDT(df)
-  df[, c("item_engine", "item_concept", "item_property") := tstrsplit(item, delimiter, fixed=TRUE)]
-  df[, c("match_engine", "match_concept", "match_property") := tstrsplit(match, delimiter, fixed=TRUE)]
+  df[, c("item_engine", "item_concept", "item_property") := tstrsplit(paste0(item, "."), delimiter, fixed=TRUE)]
+  df[, c("match_engine", "match_concept", "match_property") := tstrsplit(paste0(match, "."), delimiter, fixed=TRUE)]
+  
+  # Remove the period
+  df$item_property <- substring(df$item_property, 1, nchar(df$item_property) - 1)
+  df$match_property <- substring(df$match_property, 1, nchar(df$match_property) - 1)
+  
+  # If the length of the property is zero, make NA (needed for checks below)
+  df$item_property[which(df$item_property == "")] <- NA
+  df$match_property[which(df$match_property == "")] <- NA
   
   # Delete redundant columns
   df[, item := NULL]
@@ -91,6 +100,7 @@ run_lsh_matching <- function(path, N, b, similarityThreshold, instancesThreshold
   ##################################################
   # Create the files needed to persist the data in the right format
   ##################################################
+  # We return df below, so start working with a new data table
   dt <- setDT(df)
   
   # Save the original concept and property names
@@ -155,22 +165,22 @@ run_lsh_matching <- function(path, N, b, similarityThreshold, instancesThreshold
   # concept-match
   c.m <- which(is.na(dt$item_property))
   concept.match <- dt[c.m, c("item_concept", "match")]
-  colnames(concept.match) <- c("concept_id", "match_1")
+  colnames(concept.match) <- c("concept_id", "match_id")
   
   # match-concept
   m.c <- which(is.na(dt$match_property))
   match.concept <- dt[m.c, c("match", "match_concept")]
-  colnames(match.concept) <- c("match_1", "concept_id")
+  colnames(match.concept) <- c("match_id", "concept_id")
   
   # property-match
   p.m <- which(!is.na(dt$item_property))
   property.match <- dt[p.m, c("item_property", "match")]
-  colnames(property.match) <- c("property_id", "match_1")
+  colnames(property.match) <- c("property_id", "match_id")
   
   # match-property
   m.p <-which(!is.na(dt$match_property))
   match.property <- dt[m.p, c("match", "match_property")]
-  colnames(match.property) <- c("match_1", "property_id")
+  colnames(match.property) <- c("match_id", "property_id")
   
   
   ##################################################
@@ -198,6 +208,7 @@ run_lsh_matching <- function(path, N, b, similarityThreshold, instancesThreshold
   # Create a table that has just the match and its score
   ##################################################
   match <- dt[, c("match", "score")]
+  colnames(match) <- c("match_id", "score")
   
   ##################################################
   # Write all the tables

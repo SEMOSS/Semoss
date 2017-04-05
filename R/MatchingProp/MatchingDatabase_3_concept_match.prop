@@ -2,6 +2,6 @@ NUM_COLUMNS	2
 1	STRING
 2	STRING
 START_ROW	2
-RELATION	concept_id@concept_id.match_1@match_1;
+RELATION	concept_id@concept_id.match_id@match_id;
 NODE_PROP	
 RELATION_PROP	 
