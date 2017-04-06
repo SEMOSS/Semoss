@@ -81,7 +81,37 @@ public class AnalysisAdapter implements Analysis
     }
 
     @Override
-    public void caseAScriptchain(AScriptchain node)
+    public void caseAOutputScriptchain(AOutputScriptchain node)
+    {
+        defaultCase(node);
+    }
+
+    @Override
+    public void caseAAssignScriptchain(AAssignScriptchain node)
+    {
+        defaultCase(node);
+    }
+
+    @Override
+    public void caseARoutine(ARoutine node)
+    {
+        defaultCase(node);
+    }
+
+    @Override
+    public void caseAScriptRoutineOrVar(AScriptRoutineOrVar node)
+    {
+        defaultCase(node);
+    }
+
+    @Override
+    public void caseAConstantRoutineOrVar(AConstantRoutineOrVar node)
+    {
+        defaultCase(node);
+    }
+
+    @Override
+    public void caseAAssignment(AAssignment node)
     {
         defaultCase(node);
     }
@@ -99,7 +129,7 @@ public class AnalysisAdapter implements Analysis
     }
 
     @Override
-    public void caseAAssignScript(AAssignScript node)
+    public void caseAEmbeddedAssignmentScript(AEmbeddedAssignmentScript node)
     {
         defaultCase(node);
     }
@@ -123,19 +153,7 @@ public class AnalysisAdapter implements Analysis
     }
 
     @Override
-    public void caseAAssignment(AAssignment node)
-    {
-        defaultCase(node);
-    }
-
-    @Override
-    public void caseAScriptPossibleVariables(AScriptPossibleVariables node)
-    {
-        defaultCase(node);
-    }
-
-    @Override
-    public void caseAConstantPossibleVariables(AConstantPossibleVariables node)
+    public void caseAEmbeddedAssignment(AEmbeddedAssignment node)
     {
         defaultCase(node);
     }
@@ -472,30 +490,6 @@ public class AnalysisAdapter implements Analysis
 
     @Override
     public void caseAROp(AROp node)
-    {
-        defaultCase(node);
-    }
-
-    @Override
-    public void caseAScriptOperationOrVar(AScriptOperationOrVar node)
-    {
-        defaultCase(node);
-    }
-
-    @Override
-    public void caseAVarOperationOrVar(AVarOperationOrVar node)
-    {
-        defaultCase(node);
-    }
-
-    @Override
-    public void caseAScriptOperationOrIfblock(AScriptOperationOrIfblock node)
-    {
-        defaultCase(node);
-    }
-
-    @Override
-    public void caseAIfblock(AIfblock node)
     {
         defaultCase(node);
     }
