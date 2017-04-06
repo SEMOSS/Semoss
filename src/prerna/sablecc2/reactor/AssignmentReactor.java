@@ -18,9 +18,19 @@ public class AssignmentReactor extends AbstractReactor {
 
 	@Override
 	public Object Out() {
-		NounMetadata result = this.curRow.getNoun(0);
-		planner.addVariable(operationName.toUpperCase(), result);
-		return parentReactor;
+		NounMetadata result = planner.getVariable("$RESULT");
+		if(result != null) {
+			planner.addVariable(operationName.toUpperCase(), result);
+			planner.removeVariable("$RESULT");
+		} else {
+			// if we have a constant value
+			// it is just set within the curRow
+			Object constant = this.curRow.get(0);
+			PkslDataTypes constantType = this.curRow.getMeta(0);
+			result = new NounMetadata(constant, constantType);
+			planner.addVariable(operationName.toUpperCase(), result);
+		}
+		return null;
 	}
 
 	private boolean checkVariable(String variableName) {
