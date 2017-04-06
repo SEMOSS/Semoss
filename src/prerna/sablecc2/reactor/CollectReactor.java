@@ -22,7 +22,7 @@ public class CollectReactor extends AbstractReactor{
 		return parentReactor;
 	}
 
-	public Object execute() {
+	public NounMetadata execute() {
 		// get the iterator corresponding to this job
 		Iterator<IHeadersDataRow> iterator = getIterator(this.curRow.getColumnsOfType(PkslDataTypes.JOB).get(0).toString());
 		// get the number of rows to return

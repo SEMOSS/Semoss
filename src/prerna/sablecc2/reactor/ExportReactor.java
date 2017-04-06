@@ -21,7 +21,7 @@ public class ExportReactor extends AbstractReactor {
 		return parentReactor;
 	}
 
-	public Object execute() {
+	public NounMetadata execute() {
 		Map<String, Object> exportedData = new HashMap<>();
 		
 		//assume 1 data for now

@@ -34,7 +34,7 @@ public class MergeDataReactor extends AbstractReactor {
 	}
 
 	@Override
-	public Object execute()  {
+	public NounMetadata execute()  {
 		// greedy exectuion
 		// will execute and add to the frame
 		// but will not return anything

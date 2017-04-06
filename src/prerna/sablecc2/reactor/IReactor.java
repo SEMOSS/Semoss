@@ -34,7 +34,7 @@ public interface IReactor {
 	void updatePlan();
 	
 	// execute method - GREEDY translation
-	Object execute();
+	NounMetadata execute();
 	//
 	/*******************************************/
 	
