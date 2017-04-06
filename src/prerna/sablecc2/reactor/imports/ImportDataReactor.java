@@ -2,6 +2,7 @@ package prerna.sablecc2.reactor.imports;
 
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 
 import prerna.algorithm.api.ITableDataFrame;
 import prerna.ds.querystruct.QueryStruct2;
@@ -27,34 +28,26 @@ public class ImportDataReactor extends AbstractReactor {
 		return parentReactor;
 	}
 	
-	public Object reduce(Iterator it) {
-		return Out();
-	}
-	
 	@Override
 	public NounMetadata execute() {
 		// this is greedy execution
 		// will not return anything
 		// but will update the frame in the pksl planner
 		QueryStruct2 queryStruct = getQueryStruct();
-		String engineName = queryStruct.getEngineName();
 		ITableDataFrame frame = (ITableDataFrame)this.planner.getProperty("FRAME", "FRAME");
 		
+		Extractor extractor = new Extractor(queryStruct);
+		Map<String, Object> extractedData = extractor.extractData();
 		Importer importer = (Importer) ImportFactory.getImporter(frame);
-		
-		IEngine engine = Utility.getEngine(engineName.trim());
-		SQLInterpreter2 interp = new SQLInterpreter2(engine);
-		interp.setQueryStruct(queryStruct);
-		String importQuery = interp.composeQuery();
-		IRawSelectWrapper iterator = WrapperManager.getInstance().getRawWrapper(engine, importQuery); //we can only import from a db...or can we import from a frame?
 		
 		//set values into the curReactor
 		importer.put("G", frame);
-		importer.put(PKQLEnum.API + "_EDGE_HASH", queryStruct.getReturnConnectionsHash());
-		importer.put(PKQLEnum.API + "_QUERY_NUM_CELLS", 1.0);
-		importer.put(PKQLEnum.API + "_ENGINE", engineName.trim());
-		importer.put(PKQLEnum.API, iterator);
+		for(String key : extractedData.keySet()) {
+			Object data = extractedData.get(key);
+			importer.put(key, data);
+		}
 		importer.process();
+		
 		ITableDataFrame importedFrame = (ITableDataFrame)importer.getValue("G");
 		System.out.println("IMPORTED FRAME CREATED WITH ROW COUNT: "+importedFrame.getNumRows());
 		this.planner.addProperty("FRAME", "FRAME", importedFrame);
@@ -76,13 +69,6 @@ public class ImportDataReactor extends AbstractReactor {
 		}
 		return queryStruct;
 	}
-	
-	@Override
-	public List<NounMetadata> getOutputs() {
-		// no output
-		return null;
-	}
-
 }
 
 

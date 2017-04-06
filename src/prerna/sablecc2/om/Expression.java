@@ -3,7 +3,14 @@ package prerna.sablecc2.om;
 import java.util.HashSet;
 import java.util.Set;
 
+import javassist.CannotCompileException;
+import javassist.ClassClassPath;
+import javassist.ClassPool;
+import javassist.CtClass;
+import javassist.CtNewMethod;
+import javassist.NotFoundException;
 import prerna.sablecc2.reactor.IReactor;
+import prerna.sablecc2.reactor.PKSLPlanner;
 
 public class Expression {
 	
@@ -34,6 +41,10 @@ public class Expression {
 		//build the right side
 		String rightSide = getEvaluatedString(right);
 		return leftSide+" "+operation+" "+rightSide; 
+	}
+	
+	private String getVariablesString(PKSLPlanner planner, String[] inputs) {
+		return "";
 	}
 	
 	/**

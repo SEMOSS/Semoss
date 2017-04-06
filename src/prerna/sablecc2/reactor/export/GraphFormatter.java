@@ -24,4 +24,22 @@ public class GraphFormatter implements Formatter {
 		
 	}
 
+	@Override
+	public void clear() {
+		// TODO Auto-generated method stub
+		
+	}
+
+	@Override
+	public void setIdentifier(String name) {
+		// TODO Auto-generated method stub
+		
+	}
+
+	@Override
+	public String getIdentifier() {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
 }
