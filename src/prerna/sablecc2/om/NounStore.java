@@ -1,6 +1,7 @@
 package prerna.sablecc2.om;
 
 import java.util.Hashtable;
+import java.util.Set;
 
 
 public class NounStore {
@@ -63,6 +64,10 @@ public class NounStore {
 	public int getNounNum()
 	{
 		return nounRow.size();
+	}
+	
+	public Set<String> getNounKeys() {
+		return nounRow.keySet();
 	}
 	
 	// gets all the nouns for a particular noun name

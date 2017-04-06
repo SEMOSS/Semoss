@@ -7,6 +7,8 @@ import java.util.Map;
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
+import prerna.sablecc2.om.Job;
+
 public enum JobStore {
 
 	INSTANCE;
@@ -14,7 +16,7 @@ public enum JobStore {
 	private long count = 0;
 	
 	//TODO : make this thread safe
-	private Map<String, Iterator> jobs = new HashMap<>(); 
+	private Map<String, Job> jobs = new HashMap<>(); 
 	
 
 	/**
@@ -25,17 +27,17 @@ public enum JobStore {
 		return INSTANCE;
 	}
 	
-	public String addJob(String jobId,  Iterator data) {
+	public String addJob(String jobId,  Job data) {
 		jobs.put(jobId, data);
 		return jobId;
 	}
 	
-	public String addJob(Iterator data) {
+	public String addJob(Job data) {
 		String newId = generateID();
 		return addJob(newId, data);
 	}
 	
-	public  Iterator getJob(String jobId) {
+	public Job getJob(String jobId) {
 		return jobs.get(jobId);
 	}
 
