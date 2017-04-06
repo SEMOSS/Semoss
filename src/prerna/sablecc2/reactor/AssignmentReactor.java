@@ -25,6 +25,9 @@ public class AssignmentReactor extends AbstractReactor {
 		} else {
 			// if we have a constant value
 			// it is just set within the curRow
+			// this is because it doesn't produce a result
+			// as it doesn't go through a reactor
+			// and just adds to the currow
 			Object constant = this.curRow.get(0);
 			PkslDataTypes constantType = this.curRow.getMeta(0);
 			result = new NounMetadata(constant, constantType);
