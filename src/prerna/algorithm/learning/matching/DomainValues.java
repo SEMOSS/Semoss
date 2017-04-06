@@ -31,6 +31,12 @@ public class DomainValues {
 	// Used for separating engine from concept or property names
 	public static final String ENGINE_CONCEPT_PROPERTY_DELIMETER = ";";
 
+	/**
+	 * @param engineNames
+	 *            The engines to extract unique values from
+	 * @param compareProperties
+	 *            Whether to extract for properties as well as concepts
+	 */
 	public DomainValues(String[] engineNames, boolean compareProperties) {
 		this.baseFolder = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER);
 		this.outputFolder = baseFolder + "\\" + Constants.R_BASE_FOLDER + "\\" + Constants.R_MATCHING_REPO_FOLDER;
@@ -103,17 +109,16 @@ public class DomainValues {
 					// specific concept in RDF through the interface
 					// Create a query using the concept and the property name
 					if (engineToAdd instanceof BigDataEngine) {
+
+						// TODO simplify query using RDF.TYPE
 						String query = "SELECT DISTINCT ?property WHERE { {?x <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <"
 								+ concept + "> } { ?x <" + property + "> ?property} }";
 						ISelectWrapper wrapper = WrapperManager.getInstance().getSWrapper(engineToAdd, query);
 						while (wrapper.hasNext()) {
 							ISelectStatement selectStatement = wrapper.next();
-							Object value = selectStatement.getVar("property");
 
-							// TODO why ignore dates?
-							if (value instanceof String && !Utility.isStringDate((String) value)) {
-								uniquePropertyValues.add(value.toString());
-							}
+							// TODO test this out for various data types in RDF
+							uniquePropertyValues.add(selectStatement.getVar("property").toString());
 						}
 					} else {
 
@@ -156,7 +161,9 @@ public class DomainValues {
 				// I am not sure which characters are used to delimit instances
 				// in the R package
 				// But I do know that underscores are not used
-				fileWriter.write(s.replaceAll("[^A-Za-z0-9 ]", "_") + " ");
+				if (s != null) {
+					fileWriter.write(s.replaceAll("[^A-Za-z0-9 ]", "_") + " ");
+				}
 			}
 			fileWriter.close();
 		} catch (IOException e) {
