@@ -12,7 +12,7 @@ public class Expression {
 	
 	private Object left; //could be a string, decimal, an expression, or a lambda
 	private Object right; //could be a string, decimal, an expression, or a lamda
-	private String operation; //+, -, *, /, etc.
+	private String operation = ""; //+, -, *, /, etc.
 	
 	public Expression(String expression, String [] inputs)
 	{
@@ -29,18 +29,12 @@ public class Expression {
 	 * Builds the expression by recursively evaluating its left and right sub expressions and returns the string representation which will feed directly to java
 	 */
 	public String getExpression() {
-		
-//		return this.expression;
-		
 		//build the left side
 		String leftSide = getEvaluatedString(left);
-		
 		//build the right side
 		String rightSide = getEvaluatedString(right);
-		
 		return leftSide+" "+operation+" "+rightSide; 
 	}
-	
 	
 	/**
 	 * 

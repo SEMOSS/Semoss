@@ -20,7 +20,7 @@ public class AsReactor extends AbstractReactor {
 		return parentReactor;
 	}
 	
-	public Object execute() {
+	public NounMetadata execute() {
 		String alias = (String)curRow.get(0);
 		NounMetadata noun = new NounMetadata(alias, PkslDataTypes.ALIAS);
 		return noun;

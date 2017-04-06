@@ -176,7 +176,7 @@ public abstract class AbstractReactor implements IReactor {
 	
 	// execute it
 	// once again this would be abstract
-	public Object execute()
+	public NounMetadata execute()
 	{
 		System.out.println("Execute the method.. " + signature);
 		System.out.println("Printing NOUN Store so far.. " + store);
