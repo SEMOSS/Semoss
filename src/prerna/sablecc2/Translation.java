@@ -19,6 +19,7 @@ import prerna.sablecc2.node.ADivExpr;
 import prerna.sablecc2.node.ADotcol;
 import prerna.sablecc2.node.ADotcolColDef;
 import prerna.sablecc2.node.AEExprExpr;
+import prerna.sablecc2.node.AEmbeddedAssignment;
 import prerna.sablecc2.node.AExprColDef;
 import prerna.sablecc2.node.AFilter;
 import prerna.sablecc2.node.AFormula;
@@ -26,7 +27,6 @@ import prerna.sablecc2.node.AFrameop;
 import prerna.sablecc2.node.AFrameopColDef;
 import prerna.sablecc2.node.AFrameopScript;
 import prerna.sablecc2.node.AGeneric;
-import prerna.sablecc2.node.AIfblock;
 import prerna.sablecc2.node.ALiteralColDef;
 import prerna.sablecc2.node.AMinusExpr;
 import prerna.sablecc2.node.AMultExpr;
@@ -261,7 +261,7 @@ public class Translation extends DepthFirstAdapter {
     {
     	defaultIn(node);
     	IReactor assignmentReactor = new AssignmentReactor();
-        assignmentReactor.setPKSL(node.getId().toString().trim(), node.toString().trim(), node.getPossibleVariables().toString().trim());
+        assignmentReactor.setPKSL(node.getId().toString().trim(), node.toString().trim(), node.getRoutineOrVar().toString().trim());
     	initReactor(assignmentReactor);
     }
 
@@ -271,16 +271,19 @@ public class Translation extends DepthFirstAdapter {
         defaultOut(node);
     }
     
-    public void inAIfblock(AIfblock node)
+    public void inAEmbeddedAssignment(AEmbeddedAssignment node)
     {
-        System.out.println("In a If Block.. ");
+    	defaultIn(node);
+    	IReactor assignmentReactor = new AssignmentReactor();
+        assignmentReactor.setPKSL(node.getId().toString().trim(), node.toString().trim(), node.getRoutineOrVar().toString().trim());
+    	initReactor(assignmentReactor);
     }
 
-    public void outAIfblock(AIfblock node)
+    public void outAEmbeddedAssignment(AEmbeddedAssignment node)
     {
+    	deInitReactor();
         defaultOut(node);
     }
-
     
     public void inAGeneric(AGeneric node) {
     	defaultIn(node);

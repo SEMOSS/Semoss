@@ -61,24 +61,70 @@ public class ReversedDepthFirstAdapter extends AnalysisAdapter
         outAConfiguration(node);
     }
 
-    public void inAScriptchain(AScriptchain node)
+    public void inAOutputScriptchain(AOutputScriptchain node)
     {
         defaultIn(node);
     }
 
-    public void outAScriptchain(AScriptchain node)
+    public void outAOutputScriptchain(AOutputScriptchain node)
     {
         defaultOut(node);
     }
 
     @Override
-    public void caseAScriptchain(AScriptchain node)
+    public void caseAOutputScriptchain(AOutputScriptchain node)
     {
-        inAScriptchain(node);
+        inAOutputScriptchain(node);
         if(node.getSemicolon() != null)
         {
             node.getSemicolon().apply(this);
         }
+        if(node.getRoutine() != null)
+        {
+            node.getRoutine().apply(this);
+        }
+        outAOutputScriptchain(node);
+    }
+
+    public void inAAssignScriptchain(AAssignScriptchain node)
+    {
+        defaultIn(node);
+    }
+
+    public void outAAssignScriptchain(AAssignScriptchain node)
+    {
+        defaultOut(node);
+    }
+
+    @Override
+    public void caseAAssignScriptchain(AAssignScriptchain node)
+    {
+        inAAssignScriptchain(node);
+        if(node.getSemicolon() != null)
+        {
+            node.getSemicolon().apply(this);
+        }
+        if(node.getAssignment() != null)
+        {
+            node.getAssignment().apply(this);
+        }
+        outAAssignScriptchain(node);
+    }
+
+    public void inARoutine(ARoutine node)
+    {
+        defaultIn(node);
+    }
+
+    public void outARoutine(ARoutine node)
+    {
+        defaultOut(node);
+    }
+
+    @Override
+    public void caseARoutine(ARoutine node)
+    {
+        inARoutine(node);
         {
             List<POtherscript> copy = new ArrayList<POtherscript>(node.getOtherscript());
             Collections.reverse(copy);
@@ -91,7 +137,78 @@ public class ReversedDepthFirstAdapter extends AnalysisAdapter
         {
             node.getScript().apply(this);
         }
-        outAScriptchain(node);
+        outARoutine(node);
+    }
+
+    public void inAScriptRoutineOrVar(AScriptRoutineOrVar node)
+    {
+        defaultIn(node);
+    }
+
+    public void outAScriptRoutineOrVar(AScriptRoutineOrVar node)
+    {
+        defaultOut(node);
+    }
+
+    @Override
+    public void caseAScriptRoutineOrVar(AScriptRoutineOrVar node)
+    {
+        inAScriptRoutineOrVar(node);
+        if(node.getRoutine() != null)
+        {
+            node.getRoutine().apply(this);
+        }
+        outAScriptRoutineOrVar(node);
+    }
+
+    public void inAConstantRoutineOrVar(AConstantRoutineOrVar node)
+    {
+        defaultIn(node);
+    }
+
+    public void outAConstantRoutineOrVar(AConstantRoutineOrVar node)
+    {
+        defaultOut(node);
+    }
+
+    @Override
+    public void caseAConstantRoutineOrVar(AConstantRoutineOrVar node)
+    {
+        inAConstantRoutineOrVar(node);
+        if(node.getNumberOrLiteral() != null)
+        {
+            node.getNumberOrLiteral().apply(this);
+        }
+        outAConstantRoutineOrVar(node);
+    }
+
+    public void inAAssignment(AAssignment node)
+    {
+        defaultIn(node);
+    }
+
+    public void outAAssignment(AAssignment node)
+    {
+        defaultOut(node);
+    }
+
+    @Override
+    public void caseAAssignment(AAssignment node)
+    {
+        inAAssignment(node);
+        if(node.getRoutineOrVar() != null)
+        {
+            node.getRoutineOrVar().apply(this);
+        }
+        if(node.getEqual() != null)
+        {
+            node.getEqual().apply(this);
+        }
+        if(node.getId() != null)
+        {
+            node.getId().apply(this);
+        }
+        outAAssignment(node);
     }
 
     public void inAFrameopScript(AFrameopScript node)
@@ -136,25 +253,25 @@ public class ReversedDepthFirstAdapter extends AnalysisAdapter
         outAOpScript(node);
     }
 
-    public void inAAssignScript(AAssignScript node)
+    public void inAEmbeddedAssignmentScript(AEmbeddedAssignmentScript node)
     {
         defaultIn(node);
     }
 
-    public void outAAssignScript(AAssignScript node)
+    public void outAEmbeddedAssignmentScript(AEmbeddedAssignmentScript node)
     {
         defaultOut(node);
     }
 
     @Override
-    public void caseAAssignScript(AAssignScript node)
+    public void caseAEmbeddedAssignmentScript(AEmbeddedAssignmentScript node)
     {
-        inAAssignScript(node);
-        if(node.getAssignment() != null)
+        inAEmbeddedAssignmentScript(node);
+        if(node.getEmbeddedAssignment() != null)
         {
-            node.getAssignment().apply(this);
+            node.getEmbeddedAssignment().apply(this);
         }
-        outAAssignScript(node);
+        outAEmbeddedAssignmentScript(node);
     }
 
     public void inAJavaOpScript(AJavaOpScript node)
@@ -224,23 +341,27 @@ public class ReversedDepthFirstAdapter extends AnalysisAdapter
         outAOtherscript(node);
     }
 
-    public void inAAssignment(AAssignment node)
+    public void inAEmbeddedAssignment(AEmbeddedAssignment node)
     {
         defaultIn(node);
     }
 
-    public void outAAssignment(AAssignment node)
+    public void outAEmbeddedAssignment(AEmbeddedAssignment node)
     {
         defaultOut(node);
     }
 
     @Override
-    public void caseAAssignment(AAssignment node)
+    public void caseAEmbeddedAssignment(AEmbeddedAssignment node)
     {
-        inAAssignment(node);
-        if(node.getPossibleVariables() != null)
+        inAEmbeddedAssignment(node);
+        if(node.getRPar() != null)
         {
-            node.getPossibleVariables().apply(this);
+            node.getRPar().apply(this);
+        }
+        if(node.getRoutineOrVar() != null)
+        {
+            node.getRoutineOrVar().apply(this);
         }
         if(node.getEqual() != null)
         {
@@ -250,49 +371,11 @@ public class ReversedDepthFirstAdapter extends AnalysisAdapter
         {
             node.getId().apply(this);
         }
-        outAAssignment(node);
-    }
-
-    public void inAScriptPossibleVariables(AScriptPossibleVariables node)
-    {
-        defaultIn(node);
-    }
-
-    public void outAScriptPossibleVariables(AScriptPossibleVariables node)
-    {
-        defaultOut(node);
-    }
-
-    @Override
-    public void caseAScriptPossibleVariables(AScriptPossibleVariables node)
-    {
-        inAScriptPossibleVariables(node);
-        if(node.getScriptchain() != null)
+        if(node.getLPar() != null)
         {
-            node.getScriptchain().apply(this);
+            node.getLPar().apply(this);
         }
-        outAScriptPossibleVariables(node);
-    }
-
-    public void inAConstantPossibleVariables(AConstantPossibleVariables node)
-    {
-        defaultIn(node);
-    }
-
-    public void outAConstantPossibleVariables(AConstantPossibleVariables node)
-    {
-        defaultOut(node);
-    }
-
-    @Override
-    public void caseAConstantPossibleVariables(AConstantPossibleVariables node)
-    {
-        inAConstantPossibleVariables(node);
-        if(node.getNumberOrLiteral() != null)
-        {
-            node.getNumberOrLiteral().apply(this);
-        }
-        outAConstantPossibleVariables(node);
+        outAEmbeddedAssignment(node);
     }
 
     public void inAGenRow(AGenRow node)
@@ -1709,117 +1792,5 @@ public class ReversedDepthFirstAdapter extends AnalysisAdapter
             node.getR().apply(this);
         }
         outAROp(node);
-    }
-
-    public void inAScriptOperationOrVar(AScriptOperationOrVar node)
-    {
-        defaultIn(node);
-    }
-
-    public void outAScriptOperationOrVar(AScriptOperationOrVar node)
-    {
-        defaultOut(node);
-    }
-
-    @Override
-    public void caseAScriptOperationOrVar(AScriptOperationOrVar node)
-    {
-        inAScriptOperationOrVar(node);
-        if(node.getScript() != null)
-        {
-            node.getScript().apply(this);
-        }
-        outAScriptOperationOrVar(node);
-    }
-
-    public void inAVarOperationOrVar(AVarOperationOrVar node)
-    {
-        defaultIn(node);
-    }
-
-    public void outAVarOperationOrVar(AVarOperationOrVar node)
-    {
-        defaultOut(node);
-    }
-
-    @Override
-    public void caseAVarOperationOrVar(AVarOperationOrVar node)
-    {
-        inAVarOperationOrVar(node);
-        if(node.getId() != null)
-        {
-            node.getId().apply(this);
-        }
-        outAVarOperationOrVar(node);
-    }
-
-    public void inAScriptOperationOrIfblock(AScriptOperationOrIfblock node)
-    {
-        defaultIn(node);
-    }
-
-    public void outAScriptOperationOrIfblock(AScriptOperationOrIfblock node)
-    {
-        defaultOut(node);
-    }
-
-    @Override
-    public void caseAScriptOperationOrIfblock(AScriptOperationOrIfblock node)
-    {
-        inAScriptOperationOrIfblock(node);
-        if(node.getScript() != null)
-        {
-            node.getScript().apply(this);
-        }
-        outAScriptOperationOrIfblock(node);
-    }
-
-    public void inAIfblock(AIfblock node)
-    {
-        defaultIn(node);
-    }
-
-    public void outAIfblock(AIfblock node)
-    {
-        defaultOut(node);
-    }
-
-    @Override
-    public void caseAIfblock(AIfblock node)
-    {
-        inAIfblock(node);
-        if(node.getRPar() != null)
-        {
-            node.getRPar().apply(this);
-        }
-        if(node.getOp2() != null)
-        {
-            node.getOp2().apply(this);
-        }
-        if(node.getComma2() != null)
-        {
-            node.getComma2().apply(this);
-        }
-        if(node.getOp1() != null)
-        {
-            node.getOp1().apply(this);
-        }
-        if(node.getComma1() != null)
-        {
-            node.getComma1().apply(this);
-        }
-        if(node.getOperationOrVar() != null)
-        {
-            node.getOperationOrVar().apply(this);
-        }
-        if(node.getLPar() != null)
-        {
-            node.getLPar().apply(this);
-        }
-        if(node.getIf() != null)
-        {
-            node.getIf().apply(this);
-        }
-        outAIfblock(node);
     }
 }

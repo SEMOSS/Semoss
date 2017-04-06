@@ -5,46 +5,46 @@ package prerna.sablecc2.node;
 import prerna.sablecc2.analysis.*;
 
 @SuppressWarnings("nls")
-public final class AScriptPossibleVariables extends PPossibleVariables
+public final class AConstantRoutineOrVar extends PRoutineOrVar
 {
-    private PEmbeddedscript _embeddedscript_;
+    private PNumberOrLiteral _numberOrLiteral_;
 
-    public AScriptPossibleVariables()
+    public AConstantRoutineOrVar()
     {
         // Constructor
     }
 
-    public AScriptPossibleVariables(
-        @SuppressWarnings("hiding") PEmbeddedscript _embeddedscript_)
+    public AConstantRoutineOrVar(
+        @SuppressWarnings("hiding") PNumberOrLiteral _numberOrLiteral_)
     {
         // Constructor
-        setEmbeddedscript(_embeddedscript_);
+        setNumberOrLiteral(_numberOrLiteral_);
 
     }
 
     @Override
     public Object clone()
     {
-        return new AScriptPossibleVariables(
-            cloneNode(this._embeddedscript_));
+        return new AConstantRoutineOrVar(
+            cloneNode(this._numberOrLiteral_));
     }
 
     @Override
     public void apply(Switch sw)
     {
-        ((Analysis) sw).caseAScriptPossibleVariables(this);
+        ((Analysis) sw).caseAConstantRoutineOrVar(this);
     }
 
-    public PEmbeddedscript getEmbeddedscript()
+    public PNumberOrLiteral getNumberOrLiteral()
     {
-        return this._embeddedscript_;
+        return this._numberOrLiteral_;
     }
 
-    public void setEmbeddedscript(PEmbeddedscript node)
+    public void setNumberOrLiteral(PNumberOrLiteral node)
     {
-        if(this._embeddedscript_ != null)
+        if(this._numberOrLiteral_ != null)
         {
-            this._embeddedscript_.parent(null);
+            this._numberOrLiteral_.parent(null);
         }
 
         if(node != null)
@@ -57,23 +57,23 @@ public final class AScriptPossibleVariables extends PPossibleVariables
             node.parent(this);
         }
 
-        this._embeddedscript_ = node;
+        this._numberOrLiteral_ = node;
     }
 
     @Override
     public String toString()
     {
         return ""
-            + toString(this._embeddedscript_);
+            + toString(this._numberOrLiteral_);
     }
 
     @Override
     void removeChild(@SuppressWarnings("unused") Node child)
     {
         // Remove child
-        if(this._embeddedscript_ == child)
+        if(this._numberOrLiteral_ == child)
         {
-            this._embeddedscript_ = null;
+            this._numberOrLiteral_ = null;
             return;
         }
 
@@ -84,9 +84,9 @@ public final class AScriptPossibleVariables extends PPossibleVariables
     void replaceChild(@SuppressWarnings("unused") Node oldChild, @SuppressWarnings("unused") Node newChild)
     {
         // Replace child
-        if(this._embeddedscript_ == oldChild)
+        if(this._numberOrLiteral_ == oldChild)
         {
-            setEmbeddedscript((PEmbeddedscript) newChild);
+            setNumberOrLiteral((PNumberOrLiteral) newChild);
             return;
         }
 
