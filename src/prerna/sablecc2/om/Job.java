@@ -53,6 +53,15 @@ public class Job {
 		return collectedData;
 	}
 	
+	/**
+	 * Returns structure in this format:
+	 * 		{
+	 * 			"dataKey": {
+	 * 				data : List of Arrays of Data,
+	 * 				headers: headers of my data 
+	 * 			}
+	 * 		}
+	 */
 	private Map<String, Object> getData(int num) {
 		int count = 0;
 		List<Formatter> formatters = getFormatters();
@@ -89,6 +98,15 @@ public class Job {
 		return retMap;
 	}
 	
+	/**
+	 * Returns structure in this format:
+	 * 		{
+	 * 			"optionsKey": {
+	 * 				key : "value",
+	 * 				key2: "value2"
+	 * 			}
+	 * 		}
+	 */
 	private Object getOptions() {
 		options.remove(PkslDataTypes.JOB.toString());
 		options.remove("all");
@@ -100,6 +118,16 @@ public class Job {
 		return retMap;
 	}
 	
+	/**
+	 * 
+	 * Returns structure in this format:
+	 * 		{
+	 * 			"bar": {
+	 * 				data : "dataKey",
+	 * 				options: "optionsKey"
+	 * 			}
+	 * 		}
+	 */
 	private Object getTargets() {
 		return this.targets;
 	}
