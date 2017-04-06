@@ -12,30 +12,46 @@ import prerna.sablecc2.om.GenRowStruct;
 public class TableFormatter implements Formatter {
 
 	private List<Object[]> data;
-	private ArrayList<HashMap<String, Object>> headers;
+	private String[] headers;
+	private String name;
+//	private ArrayList<HashMap<String, Object>> headers;
 	
 	public TableFormatter() {
 		data = new ArrayList<>(100);
-		headers = new ArrayList<>();
 	}
+	
 	public void addData(IHeadersDataRow nextData) {
 		Object[] values = nextData.getValues();
 		this.data.add(values);
 	}
 	
 	public Object getFormattedData() {
-		Map<String, Object> returnData = new HashMap<>();
-		returnData.put("dataTableValues", data);
-		returnData.put("dataTableKeys", headers);
-		return returnData;
-	}
-	@Override
-	public void addHeader(String[] keys) {
-		HashMap<String,Object> header = new HashMap<String,Object>();
-		header.put("varKey", keys[0]);
-		header.put("type", keys[1]);
-		header.put("vizType", keys[2]);
-		headers.add(header);
+//		Map<String, Object> returnData = new HashMap<>();
+//		returnData.put("dataTableValues", data);
+//		returnData.put("dataTableKeys", headers);
+//		return returnData;
+		return data;
 	}
 	
+	@Override
+	public void addHeader(String[] keys) {
+		this.headers = keys;
+	}
+
+	@Override
+	public void clear() {
+		data = new ArrayList<>(100);
+		headers = null;
+	}
+
+	@Override
+	public void setIdentifier(String name) {
+		// TODO Auto-generated method stub
+		this.name = name;
+	}
+	
+	@Override
+	public String getIdentifier() {
+		return this.name;
+	}
 }
