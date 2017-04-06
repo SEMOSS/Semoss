@@ -314,7 +314,7 @@ public class SampleReactor extends AbstractReactor {
 	}
 
 	// execute this
-	public Object execute()
+	public NounMetadata execute()
 	{
 		makeCode();
 		// need to do the map or reduce

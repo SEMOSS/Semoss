@@ -11,6 +11,7 @@ import prerna.engine.api.IHeadersDataRow;
 import prerna.sablecc2.om.Filter;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.Join;
+import prerna.sablecc2.om.NounMetadata;
 import prerna.sablecc2.om.PkslDataTypes;
 
 public class Lambda implements Iterator{
@@ -148,7 +149,7 @@ public class Lambda implements Iterator{
 		return store.get(variableName);
 	}
 	
-	public Object execute()
+	public NounMetadata execute()
 	{
 		// run the query
 		// get the headerrow

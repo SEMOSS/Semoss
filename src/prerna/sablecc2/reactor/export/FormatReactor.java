@@ -22,7 +22,7 @@ public class FormatReactor extends AbstractReactor {
 		return parentReactor;
 	}
 
-	public Object execute() {
+	public NounMetadata execute() {
 		Formatter formatter = null;
 
 		//TODO get data source
