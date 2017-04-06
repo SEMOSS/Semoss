@@ -1773,13 +1773,16 @@ public abstract class AbstractRJavaReactor extends AbstractJavaReactor {
 			ex.printStackTrace();
 		}
 	}
-
+	
 	/**
 	 * Identifies matching concepts for federation from the semicolon-delimited
 	 * list of engines.
 	 * 
 	 * @param engines
 	 *            The semicolon-delimited string of engine names
+	 * @param candidateThreshold
+	 *            Used during LSH hashing to set the number of minhash functions
+	 *            and bands
 	 * @param similarityThreshold
 	 *            Only consider matches above this threshold
 	 * @param instancesThreshold
@@ -1790,17 +1793,21 @@ public abstract class AbstractRJavaReactor extends AbstractJavaReactor {
 	 * @param semanticScore
 	 *            Whether or not to include a score measuring the semantic
 	 *            similarity between header names
+	 * @param refresh
+	 *            Whether or not to refresh the corpus
 	 */
-	public void runSemanticMatching(String[] engines, double similarityThreshold, int instancesThreshold,
-			boolean compareProperties, boolean semanticScore) {
+	public void runSemanticMatching(String[] engines, double candidateThreshold, double similarityThreshold,
+			int instancesThreshold, boolean compareProperties, boolean semanticScore, boolean refresh) {
 
 		// Refresh the corpus
-		DomainValues dv = new DomainValues(engines, compareProperties);
-		try {
-			dv.exportDomainValues();
-		} catch (IOException e) {
-			LOGGER.error("Failed to refresh corpus");
-			e.printStackTrace();
+		if (refresh) {
+			DomainValues dv = new DomainValues(engines, compareProperties);
+			try {
+				dv.exportDomainValues();
+			} catch (IOException e) {
+				LOGGER.error("Failed to refresh corpus");
+				e.printStackTrace();
+			}
 		}
 
 		// Grab the corpus directory
@@ -1825,13 +1832,19 @@ public abstract class AbstractRJavaReactor extends AbstractJavaReactor {
 		// probability of a match
 		int nMinhash;
 		int nBands;
-		if (similarityThreshold <= 0.2) {
+		if (candidateThreshold <= 0.03) {
+			nMinhash = 3640;
+			nBands = 1820;
+		} else if (candidateThreshold <= 0.05) {
+			nMinhash = 1340;
+			nBands = 670;
+		} else if (candidateThreshold <= 0.2) {
 			nMinhash = 200;
 			nBands = 100;
-		} else if (similarityThreshold <= 0.4) {
+		} else if (candidateThreshold <= 0.4) {
 			nMinhash = 210;
 			nBands = 70;
-		} else if (similarityThreshold <= 0.5) {
+		} else if (candidateThreshold <= 0.5) {
 			nMinhash = 200;
 			nBands = 50;
 		} else {
@@ -1937,12 +1950,12 @@ public abstract class AbstractRJavaReactor extends AbstractJavaReactor {
 
 			// Clean directory
 			// TODO clean the directory even when there is an error
-			try {
-				FileUtils.cleanDirectory(new File(corpusDirectory));
-			} catch (IOException e) {
-				System.out.println("Unable to clean directory");
-				e.printStackTrace();
-			}
+//			try {
+//				FileUtils.cleanDirectory(new File(corpusDirectory));
+//			} catch (IOException e) {
+//				System.out.println("Unable to clean directory");
+//				e.printStackTrace();
+//			}
 		}
 	}
 
