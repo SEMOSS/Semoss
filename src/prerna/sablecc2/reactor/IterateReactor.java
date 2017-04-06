@@ -16,6 +16,7 @@ import prerna.rdf.query.builder.SQLInterpreter2;
 import prerna.sablecc.PKQLEnum;
 import prerna.sablecc2.JobStore;
 import prerna.sablecc2.om.GenRowStruct;
+import prerna.sablecc2.om.Job;
 import prerna.sablecc2.om.Join;
 import prerna.sablecc2.om.NounMetadata;
 import prerna.sablecc2.om.NounStore;
@@ -63,7 +64,8 @@ public class IterateReactor extends AbstractReactor {
 			String importQuery = interp.composeQuery();
 			IRawSelectWrapper iterator = WrapperManager.getInstance().getRawWrapper(engine, importQuery);
 			this.output = iterator;
-			id = JobStore.INSTANCE.addJob(iterator);
+			Job job = new Job(iterator, queryStruct);
+			id = JobStore.INSTANCE.addJob(job);
 		} else {
 			ITableDataFrame frame = (ITableDataFrame)this.planner.getProperty("FRAME", "FRAME");
 			SQLInterpreter2 interp = new SQLInterpreter2();
@@ -71,7 +73,8 @@ public class IterateReactor extends AbstractReactor {
 			String importQuery = interp.composeQuery();
 			Iterator iterator = frame.query(queryStruct);
 			this.output = iterator;
-			id = JobStore.INSTANCE.addJob(iterator);
+			Job job = new Job(iterator, queryStruct);
+			id = JobStore.INSTANCE.addJob(job);
 		}	
 		
 		Map<String, Object> returnData = new HashMap<>();
