@@ -25,7 +25,7 @@ public class FilterReactor extends AbstractReactor{
 		return parentReactor;
 	}
 	
-	public Object execute() {
+	public NounMetadata execute() {
 		// the translation will set each component 
 		// under a different noun
 		// we have 3 nouns:

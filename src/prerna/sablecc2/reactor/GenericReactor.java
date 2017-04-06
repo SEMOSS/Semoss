@@ -24,7 +24,7 @@ public class GenericReactor extends AbstractReactor {
 	}
 
 	@Override
-	public Object execute() {
+	public NounMetadata execute() {
 		// THIS IS A SPECIAL CASE
 		// we want to merge up into the parent
 		// but unlike the mergeup routine

@@ -18,7 +18,7 @@ public class JobReactor extends AbstractReactor {
 		return parentReactor;
 	}
 	
-	public Object execute() {
+	public NounMetadata execute() {
 		// this just returns the job id
 		String jobId = (String)curRow.get(0);
 		return new NounMetadata(jobId, PkslDataTypes.JOB);

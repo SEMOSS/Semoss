@@ -45,7 +45,7 @@ public abstract class QueryStructReactor extends AbstractReactor {
 	}
 
 	@Override
-	public Object execute() {
+	public NounMetadata execute() {
 		//build the query struct
 		QueryStruct2 qs = createQueryStruct();
 		//create the output and return

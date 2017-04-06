@@ -32,7 +32,7 @@ public class ImportDataReactor extends AbstractReactor {
 	}
 	
 	@Override
-	public Object execute() {
+	public NounMetadata execute() {
 		// this is greedy execution
 		// will not return anything
 		// but will update the frame in the pksl planner
