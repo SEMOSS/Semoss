@@ -32,12 +32,11 @@ import prerna.sablecc2.node.AMinusExpr;
 import prerna.sablecc2.node.AMultExpr;
 import prerna.sablecc2.node.AOpScript;
 import prerna.sablecc2.node.AOperationFormula;
-import prerna.sablecc2.node.AOtherscript;
+import prerna.sablecc2.node.AOutputScriptchain;
 import prerna.sablecc2.node.APlusExpr;
 import prerna.sablecc2.node.AProp;
 import prerna.sablecc2.node.ARcol;
 import prerna.sablecc2.node.ARelationship;
-import prerna.sablecc2.node.AScriptchain;
 import prerna.sablecc2.node.ASelectNoun;
 import prerna.sablecc2.node.ATermExpr;
 import prerna.sablecc2.node.Node;
@@ -129,34 +128,24 @@ public class Translation extends DepthFirstAdapter {
 	}
 /********************** First is the main level operation, script chain or other script operations ******************/
 	
-    public void inAScriptchain(AScriptchain node)
-    {
-    	defaultIn(node);
+	@Override
+	public void inAOutputScriptchain(AOutputScriptchain node) {
+		defaultIn(node);
     	System.out.println(">>>>>>");
-        System.out.println("Called script chain");
-        //System.out.println("First operation is " + node.getOtherscript());
-        //if(node.getOtherscript() != null && node.getOtherscript().size() > 0)
-       // 	operationType = TypeOfOperation.PIPELINE;
-        
-    }
-    
-    public void outAScriptchain(AScriptchain node)
-    {
-    	defaultOut(node);
-    	// this is really where the overall execution should happen
-    	System.out.println("<<<<<<<" + node);
-//    	planner.runMyPlan(lastOperation);
-    	if(!(curReactor instanceof AssignmentReactor)) {
+        System.out.println("Called in script chain");
+	}
+	
+	@Override
+	public void outAOutputScriptchain(AOutputScriptchain node) {
+		defaultIn(node);
+    	System.out.println(">>>>>>");
+        System.out.println("Called out script chain");
+        // we do this in case someone is dumb and is doing an embedded assignment 
+        // instead of just doing a normal assignment...
+        if(!(curReactor instanceof AssignmentReactor)) {
     		postProcess();
     	}
-    }
-    
-    public void inAOtherscript(AOtherscript node)
-    {
-    	defaultIn(node);
-        System.out.println("Other script.. " + node);
-    }
-    
+	}
     
     // all the operation sits here - these are the script starting points
     // everything from here on is primarily an assimilation
