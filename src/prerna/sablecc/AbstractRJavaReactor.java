@@ -1838,6 +1838,9 @@ public abstract class AbstractRJavaReactor extends AbstractJavaReactor {
 		} else if (candidateThreshold <= 0.05) {
 			nMinhash = 1340;
 			nBands = 670;
+		} else if (candidateThreshold <= 0.1) {
+			nMinhash = 400;
+			nBands = 200;
 		} else if (candidateThreshold <= 0.2) {
 			nMinhash = 200;
 			nBands = 100;
