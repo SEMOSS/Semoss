@@ -1,18 +1,18 @@
 package prerna.sablecc2.reactor.export;
 
-import java.util.ArrayList;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Vector;
 
-import prerna.engine.api.IHeadersDataRow;
-import prerna.sablecc2.JobStore;
-import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.Job;
 import prerna.sablecc2.om.NounMetadata;
 import prerna.sablecc2.om.PkslDataTypes;
 import prerna.sablecc2.reactor.AbstractReactor;
 
+/**
+ * 
+ * This class is responsible for collecting data from a job and returning it
+ *
+ */
 public class CollectReactor extends AbstractReactor{
 
 	@Override
@@ -30,15 +30,18 @@ public class CollectReactor extends AbstractReactor{
 		int collectThisMany = getTotalToCollect();
 		
 		Object data = job.collect(collectThisMany);
-		this.planner.addProperty("DATA", "DATA", data);
-		NounMetadata result = new NounMetadata(data, PkslDataTypes.FORMATTED_DATA_SET); //change this to job
+		this.planner.addProperty("DATA", "DATA", data);//this is the property that translation looks for when grabbing the Response
+		NounMetadata result = new NounMetadata(data, PkslDataTypes.FORMATTED_DATA_SET);
 		return result;
 	}
 	
+	//This gets the Job collect reactor needs to collect from
 	private Job getJob() {
 		Job job;
 		
 		List<Object> jobs = curRow.getColumnsOfType(PkslDataTypes.JOB);
+		
+		//if we don't have jobs in the curRow, check if it exists in genrow under the key job
 		if(jobs == null || jobs.size() == 0) {
 			job = (Job) getNounStore().getNoun(PkslDataTypes.JOB.toString()).get(0);
 		} else {
@@ -47,6 +50,7 @@ public class CollectReactor extends AbstractReactor{
 		return job;
 	}
 	
+	//returns how much do we need to collect
 	private int getTotalToCollect() {
 		Number collectThisMany = (Number) curRow.getColumnsOfType(PkslDataTypes.CONST_DECIMAL).get(0);
 		return collectThisMany.intValue();
