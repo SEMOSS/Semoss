@@ -59,9 +59,7 @@ public class ExprReactor extends AbstractReactor {
 			// okay, we have some kind of math routine to execute
 			// that is some kind of function working as a 
 			// operational formula
-			System.out.println("this should be the max");
 			OpReactor reactor = OpFactory.getOp(this.operationName, this.curRow);
-			Object testExecution = reactor.execute();
 			NounMetadata retNoun = new NounMetadata(reactor, PkslDataTypes.LAMBDA);
 			return retNoun;
 		}
