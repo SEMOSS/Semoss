@@ -13,6 +13,7 @@ public abstract class JobBuilderReactor extends AbstractReactor {
 
 	Job job;
 
+	//This method is implemented by child classes, each class is responsible for building different pieces of the job
 	protected abstract void buildJob();
 	
 	@Override
@@ -26,9 +27,9 @@ public abstract class JobBuilderReactor extends AbstractReactor {
 	}
 	
 	public NounMetadata execute() {
-		init();
-		buildJob();
-		return new NounMetadata(job, PkslDataTypes.JOB);
+		init(); //initialize the job
+		buildJob(); //build the job
+		return new NounMetadata(job, PkslDataTypes.JOB); //return the data
 	}
 	
 	@Override
@@ -46,6 +47,7 @@ public abstract class JobBuilderReactor extends AbstractReactor {
 	}
 	
 	//initialize the reactor with its necessary inputs
+	//We want the abstract to grab the job so the children only are responsible for building on this job
 	private void init() {
 		GenRowStruct jobInputParams = getNounStore().getNoun(PkslDataTypes.JOB.toString());
 		if(jobInputParams != null) {
