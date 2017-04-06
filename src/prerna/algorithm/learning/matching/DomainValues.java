@@ -7,6 +7,7 @@ import java.util.HashSet;
 import java.util.List;
 
 import org.apache.commons.io.FileUtils;
+import org.openrdf.model.vocabulary.RDF;
 
 import prerna.engine.api.IEngine;
 import prerna.engine.api.ISelectStatement;
@@ -109,15 +110,11 @@ public class DomainValues {
 					// specific concept in RDF through the interface
 					// Create a query using the concept and the property name
 					if (engineToAdd instanceof BigDataEngine) {
-
-						// TODO simplify query using RDF.TYPE
-						String query = "SELECT DISTINCT ?property WHERE { {?x <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <"
-								+ concept + "> } { ?x <" + property + "> ?property} }";
+						String query = "SELECT DISTINCT ?property WHERE { {?x <" + RDF.TYPE + "> <" + concept
+								+ "> } { ?x <" + property + "> ?property} }";
 						ISelectWrapper wrapper = WrapperManager.getInstance().getSWrapper(engineToAdd, query);
 						while (wrapper.hasNext()) {
 							ISelectStatement selectStatement = wrapper.next();
-
-							// TODO test this out for various data types in RDF
 							uniquePropertyValues.add(selectStatement.getVar("property").toString());
 						}
 					} else {
@@ -126,9 +123,7 @@ public class DomainValues {
 						uniquePropertyValues = retrieveUniqueValues(engineToAdd, property);
 					}
 					if (!uniquePropertyValues.isEmpty()) {
-						String cleanProperty = property.substring(
-								property.substring(0, property.lastIndexOf("/")).lastIndexOf("/") + 1,
-								property.lastIndexOf("/"));
+						String cleanProperty = property.substring(property.lastIndexOf("/") + 1);
 						String propertyId = conceptId + cleanProperty;
 						writeToFile(outputFolder + "\\" + propertyId + ".txt", uniquePropertyValues);
 					}
