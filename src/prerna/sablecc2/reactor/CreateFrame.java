@@ -19,7 +19,7 @@ public class CreateFrame extends AbstractReactor {
 		return parentReactor;
 	}
 	
-	public Object execute() {
+	public NounMetadata execute() {
 		// get the name of the frame type
 		String frameType = this.curRow.get(0).toString();
 		// use factory to generate the new table

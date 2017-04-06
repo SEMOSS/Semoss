@@ -37,7 +37,7 @@ public class IterateReactor extends AbstractReactor {
 		return parentReactor;
 	}
 	
-	public Object execute() {
+	public NounMetadata execute() {
 		return createJob();
 	}
 	

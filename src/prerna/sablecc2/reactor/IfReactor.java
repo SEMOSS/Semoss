@@ -23,7 +23,7 @@ public class IfReactor extends AbstractReactor {
 
 	// execute it
 	// once again this would be abstract
-	public Object execute()
+	public NounMetadata execute()
 	{
 		Object ifEvaluatorObject = this.curRow.get(0);
 		PkslDataTypes ifEvaluatorType = this.curRow.getMeta(0);
@@ -43,7 +43,7 @@ public class IfReactor extends AbstractReactor {
 			AbstractReactor ifEvaluatorReactor = null;
 			try {
 				ifEvaluatorReactor = (AbstractReactor) ifEvaluatorObject;
-				caseEvaluation = (boolean) ifEvaluatorReactor.execute();
+				caseEvaluation = (boolean) ifEvaluatorReactor.execute().getValue();
 			} catch(ClassCastException e) {
 				if(ifEvaluatorReactor != null) {
 					throw new IllegalArgumentException("If statement condition (" + ifEvaluatorReactor.getPKSL()[1] + ") could not be evaluated");
@@ -69,7 +69,7 @@ public class IfReactor extends AbstractReactor {
 		}
 	}
 	
-	private Object evaluateStatement(Object statementObj, PkslDataTypes statementType) {
+	private NounMetadata evaluateStatement(Object statementObj, PkslDataTypes statementType) {
 		// if it is another reactor
 		// let the reactor execute and handle the returning of its data
 		if(statementObj instanceof AbstractReactor) {

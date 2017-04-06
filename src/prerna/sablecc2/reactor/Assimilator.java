@@ -55,7 +55,7 @@ public class Assimilator extends AbstractReactor {
 	}
 	
 	@Override
-	public Object execute() {
+	public NounMetadata execute() {
 		if(this.thisExpression == null) {
 			this.thisExpression = getExpression();
 		}

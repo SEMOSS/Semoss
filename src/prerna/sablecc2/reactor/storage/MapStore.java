@@ -25,7 +25,7 @@ public class MapStore extends AbstractReactor {
 	}
 
 	@Override
-	public Object execute()
+	public NounMetadata execute()
 	{
 		// create a new empty map for storage
 		NounMetadata storeVar = new NounMetadata(new Hashtable<String, Object>(), PkslDataTypes.IN_MEM_STORE);
