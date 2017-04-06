@@ -5,46 +5,46 @@ package prerna.sablecc2.node;
 import prerna.sablecc2.analysis.*;
 
 @SuppressWarnings("nls")
-public final class AScriptPossibleVariables extends PPossibleVariables
+public final class AEmbeddedAssignmentScript extends PScript
 {
-    private PEmbeddedscript _embeddedscript_;
+    private PEmbeddedAssignment _embeddedAssignment_;
 
-    public AScriptPossibleVariables()
+    public AEmbeddedAssignmentScript()
     {
         // Constructor
     }
 
-    public AScriptPossibleVariables(
-        @SuppressWarnings("hiding") PEmbeddedscript _embeddedscript_)
+    public AEmbeddedAssignmentScript(
+        @SuppressWarnings("hiding") PEmbeddedAssignment _embeddedAssignment_)
     {
         // Constructor
-        setEmbeddedscript(_embeddedscript_);
+        setEmbeddedAssignment(_embeddedAssignment_);
 
     }
 
     @Override
     public Object clone()
     {
-        return new AScriptPossibleVariables(
-            cloneNode(this._embeddedscript_));
+        return new AEmbeddedAssignmentScript(
+            cloneNode(this._embeddedAssignment_));
     }
 
     @Override
     public void apply(Switch sw)
     {
-        ((Analysis) sw).caseAScriptPossibleVariables(this);
+        ((Analysis) sw).caseAEmbeddedAssignmentScript(this);
     }
 
-    public PEmbeddedscript getEmbeddedscript()
+    public PEmbeddedAssignment getEmbeddedAssignment()
     {
-        return this._embeddedscript_;
+        return this._embeddedAssignment_;
     }
 
-    public void setEmbeddedscript(PEmbeddedscript node)
+    public void setEmbeddedAssignment(PEmbeddedAssignment node)
     {
-        if(this._embeddedscript_ != null)
+        if(this._embeddedAssignment_ != null)
         {
-            this._embeddedscript_.parent(null);
+            this._embeddedAssignment_.parent(null);
         }
 
         if(node != null)
@@ -57,23 +57,23 @@ public final class AScriptPossibleVariables extends PPossibleVariables
             node.parent(this);
         }
 
-        this._embeddedscript_ = node;
+        this._embeddedAssignment_ = node;
     }
 
     @Override
     public String toString()
     {
         return ""
-            + toString(this._embeddedscript_);
+            + toString(this._embeddedAssignment_);
     }
 
     @Override
     void removeChild(@SuppressWarnings("unused") Node child)
     {
         // Remove child
-        if(this._embeddedscript_ == child)
+        if(this._embeddedAssignment_ == child)
         {
-            this._embeddedscript_ = null;
+            this._embeddedAssignment_ = null;
             return;
         }
 
@@ -84,9 +84,9 @@ public final class AScriptPossibleVariables extends PPossibleVariables
     void replaceChild(@SuppressWarnings("unused") Node oldChild, @SuppressWarnings("unused") Node newChild)
     {
         // Replace child
-        if(this._embeddedscript_ == oldChild)
+        if(this._embeddedAssignment_ == oldChild)
         {
-            setEmbeddedscript((PEmbeddedscript) newChild);
+            setEmbeddedAssignment((PEmbeddedAssignment) newChild);
             return;
         }
 

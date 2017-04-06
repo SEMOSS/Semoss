@@ -13,16 +13,19 @@ public interface Analysis extends Switch
 
     void caseStart(Start node);
     void caseAConfiguration(AConfiguration node);
-    void caseAScriptchain(AScriptchain node);
+    void caseAOutputScriptchain(AOutputScriptchain node);
+    void caseAAssignScriptchain(AAssignScriptchain node);
+    void caseARoutine(ARoutine node);
+    void caseAScriptRoutineOrVar(AScriptRoutineOrVar node);
+    void caseAConstantRoutineOrVar(AConstantRoutineOrVar node);
+    void caseAAssignment(AAssignment node);
     void caseAFrameopScript(AFrameopScript node);
     void caseAOpScript(AOpScript node);
-    void caseAAssignScript(AAssignScript node);
+    void caseAEmbeddedAssignmentScript(AEmbeddedAssignmentScript node);
     void caseAJavaOpScript(AJavaOpScript node);
     void caseAROpScript(AROpScript node);
     void caseAOtherscript(AOtherscript node);
-    void caseAAssignment(AAssignment node);
-    void caseAScriptPossibleVariables(AScriptPossibleVariables node);
-    void caseAConstantPossibleVariables(AConstantPossibleVariables node);
+    void caseAEmbeddedAssignment(AEmbeddedAssignment node);
     void caseAGenRow(AGenRow node);
     void caseAPlainRow(APlainRow node);
     void caseAOperationFormula(AOperationFormula node);
@@ -79,10 +82,6 @@ public interface Analysis extends Switch
     void caseARelationship(ARelationship node);
     void caseAJavaOp(AJavaOp node);
     void caseAROp(AROp node);
-    void caseAScriptOperationOrVar(AScriptOperationOrVar node);
-    void caseAVarOperationOrVar(AVarOperationOrVar node);
-    void caseAScriptOperationOrIfblock(AScriptOperationOrIfblock node);
-    void caseAIfblock(AIfblock node);
 
     void caseTNumber(TNumber node);
     void caseTBoolean(TBoolean node);

@@ -64,23 +64,29 @@ Productions
  ///////////////////////////////////////////////////////////////////////
  // everything is a configuration
  // this should very very rarely change
+ 
  configuration = scriptchain*;
-
- scriptchain = script otherscript* semicolon;
+ 
+ scriptchain = 
+	{output} routine semicolon 
+	| {assign} assignment semicolon;
+ 
+ routine = script otherscript*;
+ routine_or_var = {script} routine | {constant} number_or_literal;
+ assignment = id equal routine_or_var;
  
  // scripts are frame operations, opererations, assignments, java operations, or r operations
  // the first 3 are routines that are handled via our translation
  // while the last 2 are scripts are offloaded to other languages
- script = {frameop} frameop | {op} operation_formula | {assign} assignment | {java_op} java_op | {r_op} r_op ;//| {condition} ifblock;
+ script = {frameop} frameop | {op} operation_formula | {embedded_assignment} embedded_assignment | {java_op} java_op | {r_op} r_op ;
  
  otherscript = custom script;
  ///////////////////////////////////////////////////////////////////////
  ///////////////////////// END HIGHEST LEVEL ///////////////////////////
  ///////////////////////////////////////////////////////////////////////
-
- // assigning an id based on a script evaluation  
- assignment = id equal possible_variables;
- possible_variables = {script} scriptchain | {constant} number_or_literal;
+ 
+ // if we have an assignment that is embedded
+ embedded_assignment = l_par id equal routine_or_var r_par;
  
  // [col, col, col... ]
  gen_row = l_brac  col_def othercol* r_brac; // generic row
@@ -163,13 +169,4 @@ Productions
  // future for java and r operations
  java_op = java;
  r_op = r;
- 
- //script = {frameop} frameop | {java_op} java_op | {r_op} r_op | {op} operation_formula | {make} make_op | {assign} assignment | {condition} ifblock;
- //otherscript = custom script;
-
- // if(some condition, operation | if condition, operation | if condition)
-  operation_or_var = {script} script | {var} id;
-  operation_or_ifblock = {script} script;
- 
- ifblock = if l_par operation_or_var [comma1]:comma [op1]:operation_or_ifblock [comma2]:comma [op2]:operation_or_ifblock  r_par;
  
