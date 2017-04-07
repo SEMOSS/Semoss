@@ -1,6 +1,5 @@
 package prerna.sablecc;
 
-import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
@@ -131,7 +130,26 @@ public class H2VizReactor extends AbstractVizReactor {
 					// or it is m:Sum( blah blah )
 					int valIndex = vizFormula.indexOf(sortVar);
 					List<IExpressionSelector> builderSelectors = mainBuilder.getSelectors();
-					mainBuilder.addSortSelector(new SqlSortSelector(frame, builderSelectors.get(valIndex).getName(), sortDir));
+					SqlSortSelector sortSelector = new SqlSortSelector(frame, builderSelectors.get(valIndex).getName(), sortDir);
+					mainBuilder.addSortSelector(sortSelector);
+					
+					// want to optimize by using indices
+					// but we can only do this if we are sorting on a column that is not derived
+					String sortName = sortSelector.getName();
+					boolean notTransientHeader = ArrayUtilityMethods.arrayContainsValue(frame.getColumnHeaders(), sortName);
+					if(notTransientHeader) {
+						// does an index already exist for this column?
+						Set<String> indexedCols = frame.getColumnsWithIndexes();
+						boolean alreadyIndexed = indexedCols.contains(sortName);
+						if(!alreadyIndexed) {
+							// first remove existing ones
+							for(String rCol : indexedCols) {
+								frame.removeColumnIndex(rCol);
+							}
+							// now add the new one
+							frame.addColumnIndex(sortName);
+						}
+					}
 				}
 			}
 
