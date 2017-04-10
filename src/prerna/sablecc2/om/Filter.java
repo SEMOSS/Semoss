@@ -126,26 +126,15 @@ public class Filter {
 			// lambda means it is some other reactor (ex. sum) 
 			// that is embedded within this filter
 			// just execute it and get the value
-			// TODO: need to make sure this is a constant value!
-			Object lambdaVal = ((AbstractReactor) type).execute();
-			// ideally this is a noun meta data...
-			// TODO: currently dont know how to test this piece without other modifications
-			// to things like sum... will just keep it like this for now
-			if(lambdaVal instanceof NounMetadata) {
-				PkslDataTypes lambdaType = ((NounMetadata) lambdaVal).getNounName();
-				if(lambdaType == PkslDataTypes.CONST_STRING) {
-					return "\"" + type.toString() + "\"";
-				} else {
-					return type.toString();
-				}
+			
+			// if the type is not a string, then it is assumed to be a number
+			// so we just return it as a string
+			NounMetadata lambdaVal = ((AbstractReactor) type).execute();
+			PkslDataTypes lambdaType = ((NounMetadata) lambdaVal).getNounName();
+			if(lambdaType == PkslDataTypes.CONST_STRING) {
+				return "\"" + type.toString() + "\"";
 			} else {
-				LOGGER.error("ENCOUNTERED A LAMBDA WITHIN THE FILTER THAT DIDN'T RETURN NOUN META DATA OBJECT!!!");
-				LOGGER.error("ENCOUNTERED A LAMBDA WITHIN THE FILTER THAT DIDN'T RETURN NOUN META DATA OBJECT!!!");
-				LOGGER.error("ENCOUNTERED A LAMBDA WITHIN THE FILTER THAT DIDN'T RETURN NOUN META DATA OBJECT!!!");
-				LOGGER.error("ENCOUNTERED A LAMBDA WITHIN THE FILTER THAT DIDN'T RETURN NOUN META DATA OBJECT!!!");
-				// just going to return the value to string
-				// will need to investigate
-				return lambdaVal.toString();
+				return type.toString();
 			}
 		}
 		// any other case is a constant
@@ -175,14 +164,14 @@ public class Filter {
 		// cannot handle vectors/iterators
 		
 		Object ltype = lgrs.get(0);
-		varaibleStringGenerator(planner, ltype, variablesBuilder, definedVars);
+		variableStringGenerator(planner, ltype, variablesBuilder, definedVars);
 		Object rtype = rgrs.get(0);
-		varaibleStringGenerator(planner, rtype, variablesBuilder, definedVars);
+		variableStringGenerator(planner, rtype, variablesBuilder, definedVars);
 
 		return variablesBuilder.toString();
 	}
 	
-	public void varaibleStringGenerator(PKSLPlanner planner, Object genRowValue, StringBuilder variablesBuilder, Set<String> definedVars) {
+	public void variableStringGenerator(PKSLPlanner planner, Object genRowValue, StringBuilder variablesBuilder, Set<String> definedVars) {
 		// currently only handling the case of columns defined within expressions
 		// not sure if there is any other case to look into
 		if(genRowValue instanceof Expression) {
