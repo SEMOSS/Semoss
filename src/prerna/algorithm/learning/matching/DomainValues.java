@@ -132,7 +132,7 @@ public class DomainValues {
 		}
 	}
 
-	private static HashSet<String> retrieveUniqueValues(IEngine engine, String type) {
+	public static HashSet<String> retrieveUniqueValues(IEngine engine, String type) {
 
 		// Get all the instances for the concept
 		List<Object> allValues = engine.getEntityOfType(type);

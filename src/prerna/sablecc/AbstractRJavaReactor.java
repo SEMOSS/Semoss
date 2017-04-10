@@ -1,10 +1,15 @@
 package prerna.sablecc;
 
 import java.io.File;
+import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
+import java.io.PrintWriter;
+import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Hashtable;
 import java.util.List;
 import java.util.Map;
@@ -15,10 +20,10 @@ import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.tinkerpop.gremlin.structure.Graph;
 import org.apache.tinkerpop.gremlin.structure.io.IoCore;
+import org.openrdf.model.vocabulary.RDF;
 import org.rosuda.JRI.Rengine;
 import org.rosuda.REngine.Rserve.RConnection;
 
-import cern.colt.Arrays;
 import prerna.algorithm.api.IMetaData;
 import prerna.algorithm.api.ITableDataFrame;
 import prerna.algorithm.learning.matching.DomainValues;
@@ -32,9 +37,13 @@ import prerna.ds.r.RDataTable;
 import prerna.ds.util.FileIterator;
 import prerna.ds.util.FileIterator.FILE_DATA_TYPE;
 import prerna.engine.api.IEngine;
+import prerna.engine.api.ISelectStatement;
+import prerna.engine.api.ISelectWrapper;
+import prerna.engine.impl.rdf.BigDataEngine;
 import prerna.ds.util.RdbmsFrameUtility;
 import prerna.poi.main.HeadersException;
 import prerna.poi.main.helper.ImportOptions;
+import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.ui.components.ImportDataProcessor;
 import prerna.util.ArrayUtilityMethods;
 import prerna.util.Constants;
@@ -1865,7 +1874,7 @@ public abstract class AbstractRJavaReactor extends AbstractJavaReactor {
 
 		// TODO add this library to the list when starting R
 		// This is also called in the function,
-		// but by calling it here we can see if the use doesn't have the package
+		// but by calling it here we can see if the user doesn't have the package
 		runR("library(textreuse)");
 
 		// Source the LSH function from the utility script
@@ -1960,6 +1969,207 @@ public abstract class AbstractRJavaReactor extends AbstractJavaReactor {
 //				e.printStackTrace();
 //			}
 		}
+	}
+
+	/**
+	 * This method performs fuzzy matching algorithms on instance values.
+	 * 
+	 * @param match
+	 *            String as
+	 *            property1~concept1~engine1%property2~concept2~engine2 property
+	 *            is optional.
+	 */
+	public void runFuzzyMatching(String match) {
+		String engineSource = "";
+		String engineTarget = "";
+		String conceptSource = "";
+		String conceptTarget = "";
+		String propertySource = "";
+		String propertyTarget = "";
+		String sourceUri = "";
+		String targetUri = "";
+		boolean comparingProperty = false;
+		
+		String[] parts = match.split("%");
+		String[] source = parts[0].split("~");
+		String[] target = parts[1].split("~");
+
+		// Change order of the string to get engine-concept-property
+		// first create a list from String array
+		List<String> list = Arrays.asList(source);
+		List<String> list2 = Arrays.asList(target);
+
+		// next, reverse the list using Collections.reverse method
+		Collections.reverse(list2);
+		Collections.reverse(list);
+       
+        //next, convert the list back to String array
+        source = (String[]) list.toArray();
+        target = (String[]) list2.toArray();
+        
+        //grab strings from source
+        engineSource = source[0];
+        conceptSource = source[1];
+        if(source.length > 2) {
+        	propertySource = source[2];
+        	comparingProperty = true;
+        }
+        
+        engineTarget = target[0];
+        conceptTarget = target[1];
+        if(target.length > 2) {
+        	propertyTarget = target[2];
+        }
+        
+        if(comparingProperty) {
+        	sourceUri = "http://semoss.org/ontologies/Relation/Contains/" + propertySource; 
+        	targetUri = "http://semoss.org/ontologies/Relation/Contains/" + propertyTarget;
+        }
+        
+        else {
+        	sourceUri = "http://semoss.org/ontologies/Concept/" + conceptSource;
+        	targetUri = "http://semoss.org/ontologies/Concept/" + conceptTarget;
+        }
+        
+
+        
+		IEngine engine1 = Utility.getEngine(engineSource.replace(" ", "_"));
+		IEngine engine2 = Utility.getEngine(engineTarget.replace(" ", "_"));
+
+		// Property
+
+		DomainValues dvs = new DomainValues(new String[] { engineSource, engineTarget }, comparingProperty);
+		List<Object> allSourceValues = new Vector<Object>();
+		List<Object> allTargetValues = new Vector<Object>();
+		HashSet<String> sourceValues = new HashSet<String>();
+		HashSet<String> targetValues = new HashSet<String>();
+		HashSet<String> uniqueSourcePropertyValues = new HashSet<String>();
+		HashSet<String> uniqueTargetPropertyValues = new HashSet<String>();
+
+
+
+
+		// There is no way to get the list of properties for a
+		// specific concept in RDF through the interface
+		// Create a query using the concept and the property name
+		if (comparingProperty) {
+
+			if (engine1 instanceof BigDataEngine) {
+				String query = "SELECT DISTINCT ?property WHERE { {?x <" + RDF.TYPE + "> <"
+						+ "http://semoss.org/ontologies/Concept/" + conceptSource + "> } { ?x <"
+						+ "http://semoss.org/ontologies/Relation/Contains/" + propertySource + "> ?property} }";
+				System.out.println(engine1.getEngineType());
+				ISelectWrapper wrapper = WrapperManager.getInstance().getSWrapper(engine1, query);
+				while (wrapper.hasNext()) {
+					ISelectStatement selectStatement = wrapper.next();
+					sourceValues.add(selectStatement.getVar("property").toString());
+				}
+			} else {
+				uniqueSourcePropertyValues = dvs.retrieveUniqueValues(engine1,
+						"http://semoss.org/ontologies/Relation/Contains/" + propertySource);
+			}
+			
+			if (engine2 instanceof BigDataEngine) {
+				String query = "SELECT DISTINCT ?property WHERE { {?x <" + RDF.TYPE + "> <"
+						+ "http://semoss.org/ontologies/Concept/" + conceptTarget + "> } { ?x <"
+						+ "http://semoss.org/ontologies/Relation/Contains/" + propertyTarget.replace(" ", "_") + "> ?property} }";
+				System.out.println(engine2.getEngineType());
+				ISelectWrapper wrapper = WrapperManager.getInstance().getSWrapper(engine2, query);
+				while (wrapper.hasNext()) {
+					ISelectStatement selectStatement = wrapper.next();
+					targetValues.add(selectStatement.getVar("property").toString());
+				}
+			} else {
+				uniqueTargetPropertyValues = dvs.retrieveUniqueValues(engine2,
+						"http://semoss.org/ontologies/Relation/Contains/" + propertyTarget);
+			}
+		}
+
+		else {
+			allSourceValues = engine1.getEntityOfType(sourceUri);
+
+			// Push all the instances into a set,
+			// because we are only interested in unique values
+			for (Object value : allSourceValues) {
+				sourceValues.add(Utility.getInstanceName(value + ""));
+				System.out.println(Utility.getInstanceName(value + ""));
+			}
+
+			allTargetValues = engine2.getEntityOfType(targetUri);
+
+			// Push all the instances into a set,
+			// because we are only interested in unique values
+			for (Object value : allTargetValues) {
+				targetValues.add(Utility.getInstanceName(value + ""));
+				System.out.println(Utility.getInstanceName(value + ""));
+			}
+
+		}
+		
+
+		// clear list add unique clean values back
+		allSourceValues.clear();
+		for (String s : sourceValues) {
+			allSourceValues.add(s);
+		}
+
+		allTargetValues.clear();
+		for (String s : targetValues) {
+			allTargetValues.add(s);
+		}
+
+		// Write out values to csv so R Script can read from it add to dataframe
+		String csvPath = getBaseFolder() + "\\" + Constants.R_BASE_FOLDER + "\\" + "Temp\\fuzzyMatching.csv";
+		csvPath = csvPath.replace("\\", "/");
+
+		try {
+			PrintWriter pw = new PrintWriter(new File(csvPath));
+			StringBuilder sb = new StringBuilder();
+			sb.append(parts[0].replaceAll("[^A-Za-z0-9 ]", "_"));
+			sb.append(",");
+			sb.append(parts[1].replaceAll("[^A-Za-z0-9 ]", "_"));
+			sb.append("\n");
+			int max = Math.max(allSourceValues.size(), allTargetValues.size());
+			for (int i = 0; i < max; i++) {
+				String eng1 = "";
+				String eng2 = "";
+				if (i < allSourceValues.size()) {
+					eng1 = (String) allSourceValues.get(i);
+					eng1 = eng1.replaceAll("[^A-Za-z0-9 ]", "_");
+				}
+				if (i < allTargetValues.size()) {
+					eng2 = (String) allTargetValues.get(i);
+					eng2 = eng2.replaceAll("[^A-Za-z0-9 ]", "_");
+				}
+				sb.append(eng1);
+				sb.append(",");
+				sb.append(eng2);
+				sb.append("\n");
+			}
+
+			pw.write(sb.toString());
+			pw.close();
+			System.out.println("done!");
+
+		} catch (FileNotFoundException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+
+		String utilityScriptPath = getBaseFolder() + "\\" + Constants.R_BASE_FOLDER + "\\"
+				+ "FuzzyMatching\\best_match.r";
+		utilityScriptPath = utilityScriptPath.replace("\\", "/");
+		
+//		runR("install.packages(\"stringdist\")");
+		runR("library(stringdist)");
+		runR("source(\"" + utilityScriptPath + "\");");
+		String df = "this.df.name.is.reserved.for.fuzzy.matching";
+		runR(df + " <-read.csv(\"" + csvPath + "\")");
+		runR(df + " <-match_metrics(" + df + ")");
+		
+		storeVariable("GRID_NAME", df);
+		synchronizeFromR();
+
 	}
 
 }
