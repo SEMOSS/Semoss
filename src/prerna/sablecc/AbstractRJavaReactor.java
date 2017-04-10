@@ -2033,8 +2033,8 @@ public abstract class AbstractRJavaReactor extends AbstractJavaReactor {
         
 
         
-		IEngine engine1 = Utility.getEngine(engineSource.replace(" ", "_"));
-		IEngine engine2 = Utility.getEngine(engineTarget.replace(" ", "_"));
+		IEngine engine1 = Utility.getEngine(engineSource.replaceAll(" ", "_"));
+		IEngine engine2 = Utility.getEngine(engineTarget.replaceAll(" ", "_"));
 
 		// Property
 
@@ -2125,9 +2125,9 @@ public abstract class AbstractRJavaReactor extends AbstractJavaReactor {
 		try {
 			PrintWriter pw = new PrintWriter(new File(csvPath));
 			StringBuilder sb = new StringBuilder();
-			sb.append(parts[0].replaceAll("[^A-Za-z0-9 ]", "_"));
+			sb.append(parts[0].replaceAll("[^A-Za-z0-9 ]", "_").replaceAll(" ", "_"));
 			sb.append(",");
-			sb.append(parts[1].replaceAll("[^A-Za-z0-9 ]", "_"));
+			sb.append(parts[1].replaceAll("[^A-Za-z0-9 ]", "_").replaceAll(" ", "_"));
 			sb.append("\n");
 			int max = Math.max(allSourceValues.size(), allTargetValues.size());
 			for (int i = 0; i < max; i++) {
@@ -2136,10 +2136,12 @@ public abstract class AbstractRJavaReactor extends AbstractJavaReactor {
 				if (i < allSourceValues.size()) {
 					eng1 = (String) allSourceValues.get(i);
 					eng1 = eng1.replaceAll("[^A-Za-z0-9 ]", "_");
+					eng1 = eng1.replaceAll(" ", "_");
 				}
 				if (i < allTargetValues.size()) {
 					eng2 = (String) allTargetValues.get(i);
 					eng2 = eng2.replaceAll("[^A-Za-z0-9 ]", "_");
+					eng2 = eng2.replaceAll(" ", "_");
 				}
 				sb.append(eng1);
 				sb.append(",");
