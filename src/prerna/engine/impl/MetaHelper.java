@@ -313,6 +313,40 @@ public class MetaHelper implements IExplorable {
 		return Utility.getVectorOfReturn(query, baseDataEngine, true);
 	}
 
+	/**
+	 * Returns the list of key URIs for the concept
+	 * 
+	 * @param concept The physical concept URI
+	 * @param conceptualNames Whether to return conceptual names
+	 * @return List of key URIs
+	 */
+	public List<String> getKeys4Concept(String concept, Boolean conceptualNames) {
+		
+		// get the physical URI for the concept
+		String conceptPhysical = getPhysicalUriFromConceptualUri(concept);
+		
+		String query = null;
+		if (conceptualNames) {
+			// TODO test for conceptual names
+			query = "SELECT DISTINCT ?keyConceptual WHERE { "
+					+ "BIND(<" + conceptPhysical + "> AS ?concept) "
+					+ "BIND(<" + Constants.META_KEY + "> AS ?keyPredicate) "
+					+ "{?concept <http://www.w3.org/2000/01/rdf-schema#subClassOf> <http://semoss.org/ontologies/Concept>} "
+					+ "{?concept ?keyPredicate ?key} "
+					+ "{?key <http://semoss.org/ontologies/Relation/Conceptual> ?keyConceptual} "
+					+ "}";
+		} else {
+			query = "SELECT DISTINCT ?key WHERE { "
+					+ "BIND(<" + conceptPhysical + "> AS ?concept) "
+					+ "BIND(<" + Constants.META_KEY + "> AS ?keyPredicate) "
+					+ "{?concept <http://www.w3.org/2000/01/rdf-schema#subClassOf> <http://semoss.org/ontologies/Concept>} "
+					+ "{?concept ?keyPredicate ?key} "
+					+ "}";
+		}
+		System.out.println("QUERY ::: " + query);
+		return Utility.getVectorOfReturn(query, baseDataEngine, true);	
+	}
+	
 	@Override
 	public List<String> getProperties4Concept(String concept, Boolean conceptualNames) {
 		// get the physical URI for the concept
