@@ -37,6 +37,10 @@ public class Job {
 		return null;
 	}
 	
+	public Iterator getIterator() {
+		return this.iterator;
+	}
+	
 	/**
 	 * 
 	 * @param num
@@ -90,7 +94,7 @@ public class Job {
 		Map<String, Object> retMap = new HashMap<>(1);
 		for(Formatter formatter : formatters) {
 			Map<String, Object> formattedData = new HashMap<>(2);
-			formattedData.put("data", formatter.getFormattedData());
+			formattedData.put("values", formatter.getFormattedData());
 			formattedData.put("headers", headers);
 			retMap.put(formatter.getIdentifier(), formattedData);
 			formatter.clear();
