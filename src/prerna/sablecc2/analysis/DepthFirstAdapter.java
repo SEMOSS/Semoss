@@ -180,6 +180,48 @@ public class DepthFirstAdapter extends AnalysisAdapter
         outAConstantRoutineOrVar(node);
     }
 
+    public void inAWordWordOrId(AWordWordOrId node)
+    {
+        defaultIn(node);
+    }
+
+    public void outAWordWordOrId(AWordWordOrId node)
+    {
+        defaultOut(node);
+    }
+
+    @Override
+    public void caseAWordWordOrId(AWordWordOrId node)
+    {
+        inAWordWordOrId(node);
+        if(node.getWord() != null)
+        {
+            node.getWord().apply(this);
+        }
+        outAWordWordOrId(node);
+    }
+
+    public void inAIdWordOrId(AIdWordOrId node)
+    {
+        defaultIn(node);
+    }
+
+    public void outAIdWordOrId(AIdWordOrId node)
+    {
+        defaultOut(node);
+    }
+
+    @Override
+    public void caseAIdWordOrId(AIdWordOrId node)
+    {
+        inAIdWordOrId(node);
+        if(node.getId() != null)
+        {
+            node.getId().apply(this);
+        }
+        outAIdWordOrId(node);
+    }
+
     public void inAAssignment(AAssignment node)
     {
         defaultIn(node);
@@ -194,9 +236,9 @@ public class DepthFirstAdapter extends AnalysisAdapter
     public void caseAAssignment(AAssignment node)
     {
         inAAssignment(node);
-        if(node.getId() != null)
+        if(node.getWordOrId() != null)
         {
-            node.getId().apply(this);
+            node.getWordOrId().apply(this);
         }
         if(node.getEqual() != null)
         {
