@@ -651,16 +651,16 @@ public class Translation extends DepthFirstAdapter {
     		initReactor(assm);
         	System.out.println("Capture this");
         }
-        defaultIn(node);
+        //defaultIn(node);
     }
 
     public void outATermExpr(ATermExpr node)
     {
-        defaultOut(node);
+        //defaultOut(node);
         if(curReactor instanceof Assimilator)
         	System.out.println("Ignore this");
-        else if(node.getTerm() instanceof AColTerm)
-        	deInitReactor();
+        else if((node.toString() + "").equalsIgnoreCase(curReactor.getSignature()))
+    		deInitReactor();
     }
     
     public void inAProp(AProp node)
@@ -822,7 +822,7 @@ public class Translation extends DepthFirstAdapter {
     {
     	defaultOut(node);
     	// deinit this only if this is the same node
-    	if((node.toString() + "").equalsIgnoreCase(curReactor.getSignature()))
+    	if((node.toString()).trim().equalsIgnoreCase(curReactor.getSignature()))
   			deInitReactor();
     }
     
@@ -846,7 +846,7 @@ public class Translation extends DepthFirstAdapter {
     public void outAMinusExpr(AMinusExpr node)
     {
     	defaultOut(node);
-    	if((node.toString() + "").equalsIgnoreCase(curReactor.getSignature()))
+    	if((node.toString()).trim().equalsIgnoreCase(curReactor.getSignature()))
     	deInitReactor();
     }
     
@@ -871,7 +871,7 @@ public class Translation extends DepthFirstAdapter {
     public void outADivExpr(ADivExpr node)
     {
     	defaultOut(node);
-    	if((node.toString() + "").equalsIgnoreCase(curReactor.getSignature()))
+    	if((node.toString()).trim().equalsIgnoreCase(curReactor.getSignature()))
     	deInitReactor();
     }
     
@@ -895,8 +895,8 @@ public class Translation extends DepthFirstAdapter {
     public void outAMultExpr(AMultExpr node)
     {
     	defaultOut(node);
-    	if((node.toString() + "").equalsIgnoreCase(curReactor.getSignature()))
-    	deInitReactor();
+    	if((node.toString()).trim().equalsIgnoreCase(curReactor.getSignature()))
+    		deInitReactor();
     }
     
     private void initExpressionToReactor(IReactor reactor, String left, String right, String operation) {
