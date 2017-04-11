@@ -250,7 +250,7 @@ public class Translation extends DepthFirstAdapter {
     {
     	defaultIn(node);
     	IReactor assignmentReactor = new AssignmentReactor();
-        assignmentReactor.setPKSL(node.getId().toString().trim(), node.toString().trim(), node.getRoutineOrVar().toString().trim());
+        assignmentReactor.setPKSL(node.getWordOrId().toString().trim(), node.toString().trim(), node.getRoutineOrVar().toString().trim());
     	initReactor(assignmentReactor);
     }
 
