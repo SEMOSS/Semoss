@@ -636,32 +636,31 @@ public class Translation extends DepthFirstAdapter {
     
     public void inATermExpr(ATermExpr node)
     {
-        System.out.println("Term.. " + node);
+        defaultIn(node);
         // seems like I need to see if this is part of a mult expression etc.
         // else start the assimilator. 
         // this is a special case where it is jsut coming through as a column || variable
         if(curReactor instanceof Assimilator)
         	System.out.println("Ignore this");
-        else if(node.getTerm() instanceof AColTerm)
-        {
-        	// need to see if there are other things to work on
-    		Assimilator assm = new Assimilator();
-    		initExpressionToReactor(assm, node.getTerm()+"", 1+"", "*");
-    		assm.setPKSL("EXPR", node.toString().trim(), node.toString().trim());
-    		initReactor(assm);
-        	System.out.println("Capture this");
-        }
-        //defaultIn(node);
+//        else if(node.getTerm() instanceof AColTerm)
+//        {
+//        	// need to see if there are other things to work on
+//    		Assimilator assm = new Assimilator();
+//    		initExpressionToReactor(assm, node.getTerm()+"", 1+"", "*");
+//    		assm.setPKSL("EXPR", node.toString().trim(), node.toString().trim());
+//    		initReactor(assm);
+//        	System.out.println("Capture this");
+//        }
     }
 
     public void outATermExpr(ATermExpr node)
     {
-        //defaultOut(node);
-        if(curReactor instanceof Assimilator && (node.toString()).trim().equalsIgnoreCase(curReactor.getSignature()))
-        {
-        	System.out.println("Ignore this Term Expression OUT");
-    		deInitReactor();
-        }
+        defaultOut(node);
+//        if(curReactor instanceof Assimilator && (node.toString()).trim().equalsIgnoreCase(curReactor.getSignature()))
+//        {
+//        	System.out.println("Ignore this Term Expression OUT");
+//    		deInitReactor();
+//        }
     }
     
     public void inAProp(AProp node)
