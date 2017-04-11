@@ -18,6 +18,10 @@ public class FormatFactory {
 			return new JsonFormatter();
 		}
 		
+		case "KEYVALUE": {
+			return new KeyValueFormatter();
+		}
+		
 		default : {
 			return new TableFormatter();
 		}
