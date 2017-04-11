@@ -26,7 +26,7 @@ import prerna.util.Utility;
 //TODO : Hardcoding this to use QueryStruct2 and SQLInterpreter2 to test changes
 public class IterateReactor extends AbstractReactor {
 
-	private Iterator output;
+	private Job output;
 	
 	@Override
 	public void In() {
@@ -63,8 +63,8 @@ public class IterateReactor extends AbstractReactor {
 			interp.setQueryStruct(queryStruct);
 			String importQuery = interp.composeQuery();
 			IRawSelectWrapper iterator = WrapperManager.getInstance().getRawWrapper(engine, importQuery);
-			this.output = iterator;
 			Job job = new Job(iterator, queryStruct);
+			this.output = job;
 			id = JobStore.INSTANCE.addJob(job);
 		} else {
 			ITableDataFrame frame = (ITableDataFrame)this.planner.getProperty("FRAME", "FRAME");
@@ -72,8 +72,8 @@ public class IterateReactor extends AbstractReactor {
 			interp.setQueryStruct(queryStruct);
 			String importQuery = interp.composeQuery();
 			Iterator iterator = frame.query(queryStruct);
-			this.output = iterator;
 			Job job = new Job(iterator, queryStruct);
+			this.output = job;
 			id = JobStore.INSTANCE.addJob(job);
 		}	
 		

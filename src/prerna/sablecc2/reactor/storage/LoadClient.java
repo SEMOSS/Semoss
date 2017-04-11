@@ -89,7 +89,7 @@ public class LoadClient extends AbstractReactor {
         String[] headers = iterator.getDisplayVariables();
         int fieldIndex = ArrayUtilityMethods.arrayContainsValueAtIndex(headers, "FiedName");
         int formIndex = ArrayUtilityMethods.arrayContainsValueAtIndex(headers, "FormName");
-        int valueIndex = ArrayUtilityMethods.arrayContainsValueAtIndex(headers, "Value");
+        int valueIndex = ArrayUtilityMethods.arrayContainsValueAtIndex(headers, "Value_1");
         while(iterator.hasNext()) {
           
           IHeadersDataRow nextData = iterator.next();
@@ -106,7 +106,7 @@ public class LoadClient extends AbstractReactor {
 	}
 	
 	private String generatePkslQuery(Object field, Object form, Object value, Object type) {
-        return form+"__"+field+" = "+value;
+        return form+"__"+field+" = "+value+";";
     }
 	
 	private Iterator getIterator() {
