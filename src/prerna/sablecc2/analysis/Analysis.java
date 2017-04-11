@@ -18,6 +18,8 @@ public interface Analysis extends Switch
     void caseARoutine(ARoutine node);
     void caseAScriptRoutineOrVar(AScriptRoutineOrVar node);
     void caseAConstantRoutineOrVar(AConstantRoutineOrVar node);
+    void caseAWordWordOrId(AWordWordOrId node);
+    void caseAIdWordOrId(AIdWordOrId node);
     void caseAAssignment(AAssignment node);
     void caseAFrameopScript(AFrameopScript node);
     void caseAOpScript(AOpScript node);
