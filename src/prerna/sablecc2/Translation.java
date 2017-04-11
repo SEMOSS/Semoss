@@ -657,10 +657,11 @@ public class Translation extends DepthFirstAdapter {
     public void outATermExpr(ATermExpr node)
     {
         //defaultOut(node);
-        if(curReactor instanceof Assimilator)
-        	System.out.println("Ignore this");
-        else if((node.toString() + "").equalsIgnoreCase(curReactor.getSignature()))
+        if(curReactor instanceof Assimilator && (node.toString()).trim().equalsIgnoreCase(curReactor.getSignature()))
+        {
+        	System.out.println("Ignore this Term Expression OUT");
     		deInitReactor();
+        }
     }
     
     public void inAProp(AProp node)
