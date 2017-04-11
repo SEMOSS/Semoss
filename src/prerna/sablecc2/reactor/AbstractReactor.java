@@ -131,6 +131,7 @@ public abstract class AbstractReactor implements IReactor {
 	public GenRowStruct getCurRow() {
 		return curRow;
 	}
+	
 
 	@Override
 	public void closeNoun(String noun) {
@@ -294,4 +295,9 @@ public abstract class AbstractReactor implements IReactor {
 		}
 	}
 	
+	@Override
+	public String getSignature()
+	{
+		return signature;
+	}
 }
