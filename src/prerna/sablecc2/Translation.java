@@ -336,6 +336,8 @@ public class Translation extends DepthFirstAdapter {
     	// the if statement and only deinit when necessary
     	if(curReactor.getParentReactor() instanceof IfReactor)
     	{
+            curReactor.setPKSLPlanner(planner);
+
     		curReactor.getParentReactor().getCurRow().addLambda(curReactor);
     		curReactor = curReactor.getParentReactor();
     	}
@@ -635,12 +637,30 @@ public class Translation extends DepthFirstAdapter {
     public void inATermExpr(ATermExpr node)
     {
         System.out.println("Term.. " + node);
+        // seems like I need to see if this is part of a mult expression etc.
+        // else start the assimilator. 
+        // this is a special case where it is jsut coming through as a column || variable
+        if(curReactor instanceof Assimilator)
+        	System.out.println("Ignore this");
+        else if(node.getTerm() instanceof AColTerm)
+        {
+        	// need to see if there are other things to work on
+    		Assimilator assm = new Assimilator();
+    		initExpressionToReactor(assm, node.getTerm()+"", 1+"", "*");
+    		assm.setPKSL("EXPR", node.toString().trim(), node.toString().trim());
+    		initReactor(assm);
+        	System.out.println("Capture this");
+        }
         defaultIn(node);
     }
 
     public void outATermExpr(ATermExpr node)
     {
         defaultOut(node);
+        if(curReactor instanceof Assimilator)
+        	System.out.println("Ignore this");
+        else if(node.getTerm() instanceof AColTerm)
+        	deInitReactor();
     }
     
     public void inAProp(AProp node)
@@ -782,6 +802,11 @@ public class Translation extends DepthFirstAdapter {
         }
     
     public void inAPlusExpr(APlusExpr node) {
+        if(curReactor instanceof Assimilator)
+        {
+        	System.out.println("Ignore this");
+        	return;
+        }
     	defaultIn(node);
 		Assimilator assm = new Assimilator();
 		
@@ -796,10 +821,17 @@ public class Translation extends DepthFirstAdapter {
     public void outAPlusExpr(APlusExpr node)
     {
     	defaultOut(node);
-    	deInitReactor();
+    	// deinit this only if this is the same node
+    	if((node.toString() + "").equalsIgnoreCase(curReactor.getSignature()))
+  			deInitReactor();
     }
     
     public void inAMinusExpr(AMinusExpr node) {
+        if(curReactor instanceof Assimilator)
+        {
+        	System.out.println("Ignore this");
+        	return;
+        }
     	defaultIn(node);
 		Assimilator assm = new Assimilator();
 		
@@ -814,10 +846,16 @@ public class Translation extends DepthFirstAdapter {
     public void outAMinusExpr(AMinusExpr node)
     {
     	defaultOut(node);
+    	if((node.toString() + "").equalsIgnoreCase(curReactor.getSignature()))
     	deInitReactor();
     }
     
     public void inADivExpr(ADivExpr node) {
+        if(curReactor instanceof Assimilator)
+        {
+        	System.out.println("Ignore this");
+        	return;
+        }
     	defaultIn(node);
 		Assimilator assm = new Assimilator();
 		
@@ -833,10 +871,16 @@ public class Translation extends DepthFirstAdapter {
     public void outADivExpr(ADivExpr node)
     {
     	defaultOut(node);
+    	if((node.toString() + "").equalsIgnoreCase(curReactor.getSignature()))
     	deInitReactor();
     }
     
     public void inAMultExpr(AMultExpr node) {
+        if(curReactor instanceof Assimilator)
+        {
+        	System.out.println("Ignore this");
+        	return;
+        }
     	defaultIn(node);
 		Assimilator assm = new Assimilator();
 		
@@ -851,6 +895,7 @@ public class Translation extends DepthFirstAdapter {
     public void outAMultExpr(AMultExpr node)
     {
     	defaultOut(node);
+    	if((node.toString() + "").equalsIgnoreCase(curReactor.getSignature()))
     	deInitReactor();
     }
     
@@ -960,6 +1005,7 @@ public class Translation extends DepthFirstAdapter {
 	    	if(parent != null && parent instanceof IReactor) {
 	    		curReactor = (IReactor)parent;
 	    	} else {
+	    		System.out.println("OUTPUT is " + output);
 	    		curReactor = null;
 	    	}
 	    	
