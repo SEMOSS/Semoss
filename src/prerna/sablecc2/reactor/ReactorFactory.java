@@ -12,7 +12,6 @@ import prerna.sablecc2.reactor.export.CollectReactor;
 import prerna.sablecc2.reactor.export.job.AddFormatReactor;
 import prerna.sablecc2.reactor.export.job.AddOptionsReactor;
 import prerna.sablecc2.reactor.export.job.ExportReactor;
-import prerna.sablecc2.reactor.export.job.FormatReactor;
 import prerna.sablecc2.reactor.export.job.JobReactor;
 import prerna.sablecc2.reactor.export.job.SetFormatReactor;
 import prerna.sablecc2.reactor.export.job.SetOptionsReactor;
@@ -30,6 +29,7 @@ import prerna.sablecc2.reactor.qs.QueryFilterReactor;
 import prerna.sablecc2.reactor.qs.QueryReactor;
 import prerna.sablecc2.reactor.qs.SelectReactor;
 import prerna.sablecc2.reactor.qs.SumReactor;
+import prerna.sablecc2.reactor.storage.LoadClient;
 //import prerna.util.Utility;
 import prerna.sablecc2.reactor.storage.MapStore;
 import prerna.sablecc2.reactor.storage.RetrieveValue;
@@ -123,6 +123,7 @@ public class ReactorFactory {
 		reactorHash.put("MapStore", MapStore.class);
 		reactorHash.put("StoreValue", StoreValue.class);
 		reactorHash.put("RetrieveValue", RetrieveValue.class);
+		reactorHash.put("LoadClient", LoadClient.class);
 	}
 	
 	/**
