@@ -29,7 +29,6 @@ package prerna.nameserver;
 
 import java.io.File;
 import java.io.FileInputStream;
-import java.io.FileNotFoundException;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.util.Date;
@@ -55,6 +54,8 @@ import prerna.engine.api.IEngine;
 import prerna.engine.api.ISelectStatement;
 import prerna.engine.api.ISelectWrapper;
 import prerna.engine.impl.MetaHelper;
+import prerna.engine.impl.rdbms.RDBMSNativeEngine;
+import prerna.engine.impl.rdf.BigDataEngine;
 import prerna.engine.impl.rdf.RDFFileSesameEngine;
 import prerna.om.SEMOSSEdge;
 import prerna.om.SEMOSSVertex;
@@ -78,6 +79,10 @@ public class AddToMasterDB extends ModifyMasterDB {
 	// http://semoss.org/ontologies/Relation/engineType
 	private String engineType = Constants.BASE_URI + Constants.DEFAULT_RELATION_CLASS + "/engineType";
 
+	// For testing, change to your own local directories
+	private static final String WS_DIRECTORY = "C:/Users/tbanach/Workspace";
+	private static final String DB_DIRECTORY = WS_DIRECTORY + "/SemossDev/db";
+	
 	public AddToMasterDB(String localMasterDbName) {
 		super(localMasterDbName);
 	}
@@ -113,9 +118,6 @@ public class AddToMasterDB extends ModifyMasterDB {
 		// grab the local master engine
 		IEngine localMaster = Utility.getEngine(Constants.LOCAL_MASTER_DB_NAME);
 
-		// we want to load in the OWL for the engine we want to synchronize into the
-		// the local master
-
 		// get the base folder
 		String baseFolder = null;
 		try {
@@ -126,11 +128,15 @@ public class AddToMasterDB extends ModifyMasterDB {
 			baseFolder = "C:/workspace/Semoss_Dev";
 		}
 
+		// we want to load in the OWL for the engine we want to synchronize into the
+		// the local master
 		// get the owl relative path from the base folder to get the full path
 		String owlFile = baseFolder + "/" + prop.getProperty(Constants.OWL);
+		
 		// owl is stored as RDF/XML file
 		RDFFileSesameEngine rfse = new RDFFileSesameEngine();
 		rfse.openFile(owlFile, null, null);
+		
 		// we create the meta helper to facilitate querying the engine OWL
 		MetaHelper helper = new MetaHelper(rfse, null, null);
 
@@ -144,6 +150,7 @@ public class AddToMasterDB extends ModifyMasterDB {
 		// keep the engine URI
 		String engineName = prop.getProperty(Constants.ENGINE);
 		LOGGER.info("Starting to synchronize engine ::: " + engineName);
+		
 		// create the engine URI
 		// http://semoss.org/ontologies/meta/engine/ENGINE_NAME
 		String engineUri = Constants.BASE_URI +"" + "meta/engine/" + engineName;
@@ -174,7 +181,6 @@ public class AddToMasterDB extends ModifyMasterDB {
 		// if it is RDBMS vs RDF
 		IEngine.ENGINE_TYPE engineType = null;
 		String engineTypeString = null;
-
 		if(prop.getProperty("ENGINE_TYPE").contains("RDBMS")) {
 			engineType = IEngine.ENGINE_TYPE.RDBMS;
 			engineTypeString = "TYPE:RDBMS";
@@ -198,7 +204,6 @@ public class AddToMasterDB extends ModifyMasterDB {
 		 */
 		addData(engineUri, this.engineType, engineTypeString, true, localMaster);
 
-
 		// get the list of all the physical names
 		// false denotes getting the physical names
 		Vector <String> concepts = helper.getConcepts(false);
@@ -213,24 +218,7 @@ public class AddToMasterDB extends ModifyMasterDB {
 			LOGGER.debug("Processing concept ::: " + conceptToInsert);
 			masterConcept(conceptToInsert, engineUri, physicalComposite, localMaster, helper, engineType);
 		}
-
-		//		FileInputStream fis = null;
-		//		try {
-		//			fis = (FileInputStream)prop.get("fis");
-		//		} finally {
-		//			if(fis != null) {
-		//				try {
-		//					fis.close();
-		//				} catch (IOException e) {
-		//					e.printStackTrace();
-		//				}
-		//			}
-		//		}
-		// write the engine to a file
-		//		tryQueries(rfse);
-
-		//testMaster(rfse);
-
+		
 		return true;
 	}
 	
@@ -290,8 +278,6 @@ public class AddToMasterDB extends ModifyMasterDB {
 		 * }
 		 */
 		addData(physicalConceptUri, RDFS.subClassOf+ "", semossConcept, true, engine);
-		// add composite as a concept
-
 
 		/*
 		 * Add the engine composite as a subclass of concept
@@ -305,7 +291,6 @@ public class AddToMasterDB extends ModifyMasterDB {
 		 * }
 		 */
 		addData(engineComposite, RDFS.subClassOf+ "", semossConcept, true, engine);
-
 
 		/*
 		 * Add engine composite to be present in the engine
@@ -338,7 +323,6 @@ public class AddToMasterDB extends ModifyMasterDB {
 		 * }
 		 */
 		addData(engineComposite, RDF.TYPE+"", physicalConceptUri, true, engine);
-
 
 		/*
 		 * Add physical uri to conceptual uri
@@ -392,6 +376,29 @@ public class AddToMasterDB extends ModifyMasterDB {
 		 * } 
 		 */
 		addData(engineComposite, logical, conceptualUri, true, engine);
+		
+		// now get all the keys for the concept
+		List<String> keys = helper.getKeys4Concept(physicalConceptUri, false);
+		
+		/*
+		 * Add all the keys for the concept
+		 * TRIPLE INSERTION EXAMPLE
+		 * {
+		 * 		<http://semoss.org/ontologies/Concept/Movie_Title>
+		 * 		<URI:KEY>
+		 * 		<http://semoss.org/ontologies/Relation/Contains/Movie_Title/Movie_Title>
+		 * }
+		 * or
+		 * {
+		 * 		<http://semoss.org/ontologies/Concept/Movie_TABLE_NAME>
+		 * 		<URI:KEY>
+		 * 		<http://semoss.org/ontologies/Relation/Contains/Movie_Title/Movie_TABLE_NAME>
+		 * }
+		 */
+		// iterate through and add all the keys		
+		for (String physicalKeyUri : keys) {
+			addData(engineComposite, Constants.META_KEY, physicalKeyUri, true, engine);
+		}
 		
 		// adding the physical URI to the engine composite
 		previousConcepts.put(physicalConceptUri, engineComposite);
@@ -523,85 +530,151 @@ public class AddToMasterDB extends ModifyMasterDB {
 		engine.doAction(IEngine.ACTION_TYPE.ADD_STATEMENT, statement);
 	}
 	
-	
-	
 	// LOTS OF TESTING CODE BELOW...
 	
-	public void testMaster(IEngine inputEngine)
+	public void testMaster(IEngine engine)
 	{
-		IEngine engine = inputEngine;
-		try {
-			if(engine != null)
-				((RDFFileSesameEngine)engine).writeData(new RDFXMLWriter(new FileWriter("C:/users/pkapaleeswaran/workspacej3/SemossWeb/db/SubLocalMaster.xml")));
-		} catch (RepositoryException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		} catch (RDFHandlerException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		} catch (IOException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
-		if(inputEngine == null)
-		{
-			RDFFileSesameEngine rfse = new RDFFileSesameEngine();
-			String file = "C:/users/pkapaleeswaran/workspacej3/SemossWeb/db/SubLocalMaster.xml";
-			file = "C:/users/pkapaleeswaran/workspacej3/SemossWeb/db/LocalMasterDatabase/FileLocalMaster.xml";
-			file = "C:/users/pkapaleeswaran/workspacej3/SemossWeb/localMaster.xml";
-			rfse.openFile(file, null, null);
-			
-			engine = (IEngine)rfse;
-		}
 		
+		/*
+		// write the engine's meta data to a file
+		File engineMetadataFile = new File(WS_DIRECTORY + "/testEngineMetadata.xml");
+		writeEngine(engine, engineMetadataFile);
 		
-		String conceptURI = "http://semoss.org/ontologies/Concept/Studio";
-		// try connected
-		String downstreamQuery = "SELECT DISTINCT ?someEngine ?fromConcept ?fromLogical WHERE {"
-				+ "{?conceptComposite <http://semoss.org/ontologies/Relation/presentin> ?someEngine}"
-				+ "{?toConceptComposite <http://semoss.org/ontologies/Relation/presentin> ?someEngine}"
-				+ "{?conceptComposite <" + RDF.TYPE + "> ?fromConcept}"
-				+ "{?conceptComposite <http://semoss.org/ontologies/Relation/logical> ?fromLogical}"
-				+ "{?toConceptComposite <http://semoss.org/ontologies/Relation/logical> <" + conceptURI + ">}" // logical
-				+ "{?conceptComposite ?someRel ?toConceptComposite}"
-				+ "{?someRel <" + RDFS.subPropertyOf + "> <http://semoss.org/ontologies/Relation>}"
-				+ "{?conceptComposite <" + RDFS.subClassOf + "> <http://semoss.org/ontologies/Concept>}"
-				+ "{?toConceptComposite <" + RDFS.subClassOf + "> <http://semoss.org/ontologies/Concept>}"
-				+ "{?fromConcept <" + RDFS.subClassOf + "> <http://semoss.org/ontologies/Concept>}"
-				+ "{?toConcept <" + RDFS.subClassOf + "> <http://semoss.org/ontologies/Concept>}"
-				+ "FILTER(?fromConcept != <http://semoss.org/ontologies/Concept> "
-				+ "&& ?toConcept != <http://semoss.org/ontologies/Concept>"
-				+ "&& ?someRel != <http://semoss.org/ontologies/Relation>"
-				+ "&& ?toConcept != ?someEngine)}";
+		// the meta data is in rdf/xml format
+		RDFFileSesameEngine rfse = new RDFFileSesameEngine();
+		rfse.openFile(engineMetadataFile.getAbsolutePath(), "RDF/XML", OWLER.BASE_URI);
 		
-		System.out.println("Downstream.. ");
-		printQueryResult(engine,downstreamQuery);
+		tryQueries(rfse);
+		*/
 		
-		String upstreamQuery = "SELECT DISTINCT ?someEngine ?fromConcept ?fromLogical WHERE {"
-				+ "{?conceptComposite <http://semoss.org/ontologies/Relation/presentin> ?someEngine}"
-				+ "{?toConceptComposite <http://semoss.org/ontologies/Relation/presentin> ?someEngine}"
-				+ "{?conceptComposite <" + RDF.TYPE + "> ?fromConcept}"
-				+ "{?conceptComposite <http://semoss.org/ontologies/Relation/logical> ?fromLogical}"
-				+ "{?toConceptComposite <http://semoss.org/ontologies/Relation/logical> <" + conceptURI + ">}" // change this back to logical
-				+ "{?toConceptComposite ?someRel ?conceptComposite}"
-				+ "{?someRel <" + RDFS.subPropertyOf + "> <http://semoss.org/ontologies/Relation>}"
-				+ "{?conceptComposite <" + RDFS.subClassOf + "> <http://semoss.org/ontologies/Concept>}"
-				+ "{?toConceptComposite <" + RDFS.subClassOf + "> <http://semoss.org/ontologies/Concept>}"
-				+ "{?fromConcept <" + RDFS.subClassOf + "> <http://semoss.org/ontologies/Concept>}"
-				+ "{?toConcept <" + RDFS.subClassOf + "> <http://semoss.org/ontologies/Concept>}"
-				+ "FILTER(?fromConcept != <http://semoss.org/ontologies/Concept> "
-				+ "&& ?toConcept != <http://semoss.org/ontologies/Concept>"
-				+ "&& ?someRel != <http://semoss.org/ontologies/Relation>"
-				+ "&& ?toConcept != ?someEngine"
-				+ "&& ?fromLogical != <" + conceptURI + ">"
-				+")}";
+		tryQueries(engine);
+							
+		/*
+		String engineName = "Mov4";
+		
+		// first get rid of concept with properties
+		String deleteQuery = "DELETE "
+				+ "{"
+				+ "?concept ?prop ?conceptProp."
+				+ "?conceptProp ?type ?semossProp. "
+				+ "?concept ?type ?semossConcept."
+				+ "?concept ?subclass ?rdfConcept."
+				+ "} "
+				+ "WHERE"
+				+ "{"
+				+ "{?concept <http://semoss.org/ontologies/Relation/presentin>  <http://semoss.org/ontologies/meta/engine/" + engineName + ">}"
+				+ "{?concept ?in ?engine}"
+				+ "{?concept ?prop ?conceptProp}"
+				+ "{?concept ?type ?semossConcept}"
+				+ "{?concept ?subclass ?rdfConcept}"
+				+ "{?conceptProp ?type ?semossProp}"
+				+ "FILTER(?in = <http://semoss.org/ontologies/Relation/presentin> &&"
+				+ "		  ?prop = <http://www.w3.org/2002/07/owl#DatatypeProperty> &&"
+				+ "		  ?type = <" + RDF.TYPE + "> &&"
+				+ "		  ?subclass = <" + RDFS.subClassOf + ">"
+				+ ")"
+				+"}";
 
-			System.out.println("Upstream... ");
-			printQueryResult(engine,upstreamQuery);
-			
+		engine.insertData(deleteQuery);
 
-			String propQuery = "SELECT DISTINCT ?conceptProp ?engine WHERE {"
-				+ "{?conceptComposite <" + RDF.TYPE + "> <" + conceptURI + ">}"
+		// cool now without
+		deleteQuery = "DELETE "
+				+ "{"
+				+ "?concept ?type ?semossConcept."
+				+ "?concept ?subclass ?rdfConcept."
+				+ "} "
+				+ "WHERE"
+				+ "{"
+				+ "{?concept <http://semoss.org/ontologies/Relation/presentin>  <http://semoss.org/ontologies/meta/engine/" + engineName + ">}"
+				+ "{?concept ?in ?engine}"
+				+ "{?concept ?type ?semossConcept}"
+				+ "{?concept ?subclass ?rdfConcept}"
+				+ "FILTER(?in = <http://semoss.org/ontologies/Relation/presentin> &&"
+				+ "		  ?type = <" + RDF.TYPE + "> &&"
+				+ "		  ?subclass = <" + RDFS.subClassOf + ">"
+				+ ")"
+				+"}";
+
+		engine.insertData(deleteQuery);
+		
+		// relationships
+		deleteQuery = "DELETE "
+				+ "{"
+				+ "?concept ?rel ?anotherConcept."
+				+ "?rel ?subprop ?semRel."
+				+ "} "
+				+ "WHERE"
+				+ "{"
+				+ "{?concept <http://semoss.org/ontologies/Relation/presentin>  <http://semoss.org/ontologies/meta/engine/" + engineName + ">}"
+				+ "{?anotherConcept <http://semoss.org/ontologies/Relation/presentin>  <http://semoss.org/ontologies/meta/engine/" + engineName + ">}"
+				+ "{?rel <" + RDFS.subPropertyOf + "> <http://semoss.org/ontologies/Relation>}"
+				+ "{?rel ?subprop ?semRel}"
+				+ "FILTER(?subprop = <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> &&"
+				+ "		  ?semRel = <http://semoss.org/ontologies/Relation>"
+				+ ")"
+				+"}";
+			
+		engine.insertData(deleteQuery);
+		
+		// last delete everything else
+		deleteQuery = "DELETE "
+				+ "{"
+				+ "?concept ?in ?engine;"
+				+ "} "
+				+ "WHERE"
+				+ "{"
+				+ "{?concept ?in  <http://semoss.org/ontologies/meta/engine/" + engineName + ">}"
+				+ "{?concept ?in ?engine}"
+				+ "FILTER(?in = <http://semoss.org/ontologies/Relation/presentin>"
+				+ ")"
+				+"}";
+
+		engine.insertData(deleteQuery);
+			
+		// last delete modified
+		deleteQuery = "DELETE {?engine ?anyPred ?anyObj} WHERE {"
+				+ "{<http://semoss.org/ontologies/meta/engine/" + engineName + "> ?anyPred ?anyObj}"
+				+ "{?engine ?anyPred ?anyObj}"
+				+ "}";
+
+		engine.insertData(deleteQuery);
+		
+		writeEngine(engine, new File("C:/users/pkapaleeswaran/workspacej3/SemossWeb/db/LocalMasterDatabase/NFileLocalMaster.xml"));
+		*/
+	}
+	
+	private void tryQueries(IEngine engine)
+	{
+		// show all the engines
+		String engineQuery = "SELECT DISTINCT ?engine WHERE {"
+				+ "{?engine <" + RDF.TYPE + "> <http://semoss.org/ontologies/meta/engine>}"
+				+ "}";
+		
+		System.out.println("Engines... ");
+		printQueryResult(engine, engineQuery, new String[] {"engine"});
+		
+		// show all the concepts
+		String conceptQuery = "SELECT DISTINCT ?concept WHERE {"
+				+ "{?concept <" + RDFS.subClassOf + "> <http://semoss.org/ontologies/Concept>}"
+				+ "FILTER(?concept != <http://semoss.org/ontologies/Concept>)"
+				+ "}";
+		
+		System.out.println("Concepts... ");
+		printQueryResult(engine, conceptQuery, new String[] {"concept"});
+	
+		// show all the concepts for a given engine
+		String engineURI = "http://semoss.org/ontologies/meta/engine/Movie_DB";
+		String conceptEngineQuery = "SELECT DISTINCT ?concept WHERE {"
+				+ "{?concept <http://semoss.org/ontologies/Relation/presentin> <" + engineURI + ">}"
+				+ "}";
+		
+		System.out.println("Concepts for " + engineURI + "... ");
+		printQueryResult(engine, conceptEngineQuery, new String[] {"concept"});
+		
+		// show all the properties for a given concept
+		String physicalConceptURI = "http://semoss.org/ontologies/Concept/Title/Title";
+		String propQuery = "SELECT DISTINCT ?conceptProp ?engine WHERE {"
+				+ "{?conceptComposite <" + RDF.TYPE + "> <" + physicalConceptURI + ">}"
 				+ "{?conceptComposite <" + RDFS.subClassOf + "> <http://semoss.org/ontologies/Concept>}"
 				+ "{?concept <" + RDFS.subClassOf + "> <http://semoss.org/ontologies/Concept>}"
 				+ "{?conceptComposite <" + OWL.DATATYPEPROPERTY + "> ?propComposite}"
@@ -609,140 +682,17 @@ public class AddToMasterDB extends ModifyMasterDB {
 				+ "{?propComposite <" + RDF.TYPE + "> ?conceptProp}"
 				+ "FILTER(?concept != <http://semoss.org/ontologies/Concept>)"
 				+"}";
-
-			
-			/*
-			tryQueries(null);
 		
-			String engineName = "Mov4";
-			
-			// first get rid of concept with properties
-			String deleteQuery = "DELETE "
-					+ "{"
-					+ "?concept ?prop ?conceptProp."
-					+ "?conceptProp ?type ?semossProp. "
-					+ "?concept ?type ?semossConcept."
-					+ "?concept ?subclass ?rdfConcept."
-					+ "} "
-					+ "WHERE"
-					+ "{"
-					+ "{?concept <http://semoss.org/ontologies/Relation/presentin>  <http://semoss.org/ontologies/meta/engine/" + engineName + ">}"
-					+ "{?concept ?in ?engine}"
-					+ "{?concept ?prop ?conceptProp}"
-					+ "{?concept ?type ?semossConcept}"
-					+ "{?concept ?subclass ?rdfConcept}"
-					+ "{?conceptProp ?type ?semossProp}"
-					+ "FILTER(?in = <http://semoss.org/ontologies/Relation/presentin> &&"
-					+ "		  ?prop = <http://www.w3.org/2002/07/owl#DatatypeProperty> &&"
-					+ "		  ?type = <" + RDF.TYPE + "> &&"
-					+ "		  ?subclass = <" + RDFS.subClassOf + ">"
-					+ ")"
-					+"}";
-
-			engine.insertData(deleteQuery);
-
-			// cool now without
-			deleteQuery = "DELETE "
-					+ "{"
-					+ "?concept ?type ?semossConcept."
-					+ "?concept ?subclass ?rdfConcept."
-					+ "} "
-					+ "WHERE"
-					+ "{"
-					+ "{?concept <http://semoss.org/ontologies/Relation/presentin>  <http://semoss.org/ontologies/meta/engine/" + engineName + ">}"
-					+ "{?concept ?in ?engine}"
-					+ "{?concept ?type ?semossConcept}"
-					+ "{?concept ?subclass ?rdfConcept}"
-					+ "FILTER(?in = <http://semoss.org/ontologies/Relation/presentin> &&"
-					+ "		  ?type = <" + RDF.TYPE + "> &&"
-					+ "		  ?subclass = <" + RDFS.subClassOf + ">"
-					+ ")"
-					+"}";
-
-			engine.insertData(deleteQuery);
-			// relationships
-			deleteQuery = "DELETE "
-					+ "{"
-					+ "?concept ?rel ?anotherConcept."
-					+ "?rel ?subprop ?semRel."
-					+ "} "
-					+ "WHERE"
-					+ "{"
-					+ "{?concept <http://semoss.org/ontologies/Relation/presentin>  <http://semoss.org/ontologies/meta/engine/" + engineName + ">}"
-					+ "{?anotherConcept <http://semoss.org/ontologies/Relation/presentin>  <http://semoss.org/ontologies/meta/engine/" + engineName + ">}"
-					+ "{?rel <" + RDFS.subPropertyOf + "> <http://semoss.org/ontologies/Relation>}"
-					+ "{?rel ?subprop ?semRel}"
-					+ "FILTER(?subprop = <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> &&"
-					+ "		  ?semRel = <http://semoss.org/ontologies/Relation>"
-					+ ")"
-					+"}";
-			
-			
-			engine.insertData(deleteQuery);
-			
-			// last delete everything else
-			deleteQuery = "DELETE "
-					+ "{"
-					+ "?concept ?in ?engine;"
-					+ "} "
-					+ "WHERE"
-					+ "{"
-					+ "{?concept ?in  <http://semoss.org/ontologies/meta/engine/" + engineName + ">}"
-					+ "{?concept ?in ?engine}"
-					+ "FILTER(?in = <http://semoss.org/ontologies/Relation/presentin>"
-					+ ")"
-					+"}";
-
-			engine.insertData(deleteQuery);
-			
-			
-			
-			// last delete modified
-			deleteQuery = "DELETE {?engine ?anyPred ?anyObj} WHERE {"
-					+ "{<http://semoss.org/ontologies/meta/engine/" + engineName + "> ?anyPred ?anyObj}"
-					+ "{?engine ?anyPred ?anyObj}"
-					+ "}";
-
-			engine.insertData(deleteQuery);
-			
-			writeEngine(engine, new File("C:/users/pkapaleeswaran/workspacej3/SemossWeb/db/LocalMasterDatabase/NFileLocalMaster.xml"));
-		//printQueryResult(engine, propQuery);
-		 */
+		System.out.println("Properties for " + physicalConceptURI + "... ");
+		printQueryResult(engine, propQuery, new String[] {"conceptProp", "engine"});
 		
-		// query to get all the engines
-//		String engineQuery = "SELECT DISTINCT ?engine WHERE {?engine <" + RDF.TYPE + "> <http://semoss.org/ontologies/meta/engine>}";
-		//printQueryResult(engine, engineQuery);
-		
-		//tryQueries(null);
-		
-	}
-	
-	private void tryQueries(IEngine engine)
-	{
-		String fileName = "C:/workspace/Semoss/localmaster.xml";
-		File file = new File(fileName);
-
-		writeEngine(engine, file);
-		
-		engine = new RDFFileSesameEngine();
-		((RDFFileSesameEngine)engine).openFile("C:/workspace/Semoss/localmaster.xml", null, null);
-
-		//fileName = "C:/users/pkapaleeswaran/workspacej3/SemossWeb/localMaster.xml";
-		//((RDFFileSesameEngine)engine).openFile(fileName, null, null);
-
-		// first write it to a file 
-		
-		
-
-		/**
+		/*
 		 * How the engines are related
 		 * so I have some physical concept present in a engine
 		 * which is of a particular type
 		 * and now this type needs to have a a different physical concept in a different engine
-		 * 
-		 * 
 		 */
-		String engineQuery = "SELECT DISTINCT ?someEngine ?fromConcept ?anotherEngine WHERE {"
+		String engineRelationsQuery = "SELECT DISTINCT ?someEngine ?fromConcept ?anotherEngine WHERE {"
 				+ "{?conceptComposite <http://semoss.org/ontologies/Relation/presentin> ?someEngine}"
 				+ "{?conceptComposite <" + RDF.TYPE + "> ?fromConcept}"
 				+ "{?fromConcept <" + RDFS.subClassOf + "> <http://semoss.org/ontologies/Concept>}"
@@ -753,22 +703,55 @@ public class AddToMasterDB extends ModifyMasterDB {
 				+ "&& ?conceptComposite != ?anotherConceptComposite"
 				+ ")}";
 		
-		//printQueryResult(engine, engineQuery);
+		System.out.println("How the engines are related... ");
+		printQueryResult(engine, engineRelationsQuery, new String[] {"someEngine", "fromConcept", "anotherEngine"});
+
+		// base query to get engine and concepts
+		/*
+		String baseQuery = "SELECT ?engine ?conceptLogical ?concept WHERE {{?conceptComposite <http://semoss.org/ontologies/Relation/presentin> ?engine}"
+				//+ "{?conceptComposite ?rel2 <" + Constants.CONCEPT_URI + ">}"
+				+ "{?conceptComposite <" + RDF.TYPE + "> ?concept}"
+				+ "{?concept <http://semoss.org/ontologies/Relation/conceptual> ?conceptLogical}"
+				+ "}";
 		
+		printQueryResult(engine, baseQuery, new String[] {"engine", "conceptLogical", "concept"});
+		*/
 		
-		
-		String query = query = "SELECT DISTINCT (COALESCE(?conceptual, ?concept) AS ?retConcept) WHERE { "
+		// show conceptual names if present
+		String conceptualQuery = "SELECT DISTINCT (COALESCE(?conceptual, ?concept) AS ?retConcept) WHERE { "
 				+ "{?concept <http://www.w3.org/2000/01/rdf-schema#subClassOf> <http://semoss.org/ontologies/Concept> }"
 				+ "OPTIONAL {"
 					+ "{?concept <http://semoss.org/ontologies/Relation/Conceptual> ?conceptual }"
-				+ "}" // end optional for conceputal names if present
-			+ "}";
+				+ "}" // end optional for conceptual names if present
+				+ "}";
 		
-			printQueryResult(engine, query);
+		System.out.println("Conceptual names... ");
+		printQueryResult(engine, conceptualQuery, new String[] {"retConcept"});
+				
+		// show all the keys for a concept
+		// note that this is an engine composite
+		// one with mutiple
+		String multipleKeyURI = "http://semoss.org/ontologies/Concept/Songs_Table_Song_COMPOSITE_ArtistColumn_Song_COMPOSITE_Artist";
+		String keyQueryMultiple = "SELECT DISTINCT ?key WHERE { "
+				+ "{<" + multipleKeyURI + "> <" + Constants.META_KEY + "> ?key}"
+				+ "}";
 		
+		System.out.println("Keys for " + multipleKeyURI + "... ");
+		printQueryResult(engine, keyQueryMultiple, new String[] {"key"});
+		
+		// one with a single key
+		String singleKeyURI = "http://semoss.org/ontologies/Concept/Movie_DB_Table_TitleColumn_Title";
+		String keyQuerySingle = "SELECT DISTINCT ?key WHERE { "
+				+ "{<" + singleKeyURI + "> <" + Constants.META_KEY + "> ?key}"
+				+ "}";
+		
+		System.out.println("Keys for " + singleKeyURI + "... ");
+		printQueryResult(engine, keyQuerySingle, new String[] {"key"});
+				
+		// the concept to use from movies
 		String conceptURI = "http://semoss.org/ontologies/Concept/Title";
 		
-		// try connected
+		// downstream
 		String downstreamQuery = "SELECT DISTINCT ?someEngine ?fromConcept ?fromLogical WHERE {"
 				+ "{?conceptComposite <http://semoss.org/ontologies/Relation/presentin> ?someEngine}"
 				+ "{?toConceptComposite <http://semoss.org/ontologies/Relation/presentin> ?someEngine}"
@@ -786,10 +769,10 @@ public class AddToMasterDB extends ModifyMasterDB {
 				+ "&& ?someRel != <http://semoss.org/ontologies/Relation>"
 				+ "&& ?toConcept != ?someEngine)}";
 		
-		System.out.println("Downstream.. ");
-		printQueryResult(engine,downstreamQuery);
+		System.out.println("Downstream... ");
+		printQueryResult(engine, downstreamQuery, new String[] {"someEngine", "fromConcept", "fromLogical"});
 		
-		
+		// upstream
 		String upstreamQuery = "SELECT DISTINCT ?someEngine ?fromConcept ?fromLogical WHERE {"
 				+ "{?conceptComposite <http://semoss.org/ontologies/Relation/presentin> ?someEngine}"
 				+ "{?toConceptComposite <http://semoss.org/ontologies/Relation/presentin> ?someEngine}"
@@ -809,33 +792,15 @@ public class AddToMasterDB extends ModifyMasterDB {
 				//+ "&& ?fromLogical != <" + conceptURI + ">"
 				+")}";
 		
-			System.out.println("Upstream... ");
-			printQueryResult(engine,upstreamQuery);
-			
-			System.out.println("Hello");
+		System.out.println("Upstream... ");
+		printQueryResult(engine, upstreamQuery, new String[] {"someEngine", "fromConcept", "fromLogical"});
 		
-		
-		
-		
-		
-		// base query to get engine and concepts
-		/*String query = "SELECT ?engine ?conceptLogical ?concept WHERE {{?conceptComposite <http://semoss.org/ontologies/Relation/presentin> ?engine}"
-				//+ "{?conceptComposite ?rel2 <" + Constants.CONCEPT_URI + ">}"
-				+ "{?conceptComposite <" + RDF.TYPE + "> ?concept}"
-				+ "{?concept <http://semoss.org/ontologies/Relation/conceptual> ?conceptLogical}"
-				+ "}";
-		*/
-		//printQueryResult(engine, query);
-		 
 		// get vertex and edges in a given engine
-		// engine comes in
-		String engineName = "Mov2";
+		String engineName = "Movie_DB";
 		
 		// gets the concepts and properties
-		
 		Hashtable <String, Hashtable> edgeAndVertex = new Hashtable<String, Hashtable>();
-		//String query = null;
-		query = "SELECT DISTINCT ?concept (COALESCE(?prop, ?noprop) as ?conceptProp) (COALESCE(?propLogical, ?noprop) as ?propLogicalF) ?conceptLogical WHERE "
+		String verticesQuery = "SELECT DISTINCT ?concept (COALESCE(?prop, ?noprop) as ?conceptProp) (COALESCE(?propLogical, ?noprop) as ?propLogicalF) ?conceptLogical WHERE "
 				+ "{BIND(<http://semoss.org/ontologies/Relation/contains/noprop> AS ?noprop)"
 				+ "{?conceptComposite <http://semoss.org/ontologies/Relation/presentin> <http://semoss.org/ontologies/meta/engine/" + engineName + ">}"
 				+ "{?conceptComposite <" + RDF.TYPE + "> ?concept}"
@@ -848,11 +813,11 @@ public class AddToMasterDB extends ModifyMasterDB {
 				+ "}"
 				+ "}";
 		
-		makeVertices(engine, query, edgeAndVertex);
+		makeVertices(engine, verticesQuery, edgeAndVertex);
 		
 		// get all the relationships
 		// in a given database
-		query = "SELECT DISTINCT ?fromConcept ?someRel ?toConcept WHERE {"
+		String relationshipsQuery = "SELECT DISTINCT ?fromConcept ?someRel ?toConcept WHERE {"
 				+ "{?conceptComposite <http://semoss.org/ontologies/Relation/presentin> <http://semoss.org/ontologies/meta/engine/" + engineName + ">}"
 				+ "{?toConceptComposite <http://semoss.org/ontologies/Relation/presentin> <http://semoss.org/ontologies/meta/engine/" + engineName + ">}"
 				+ "{?conceptComposite <" + RDF.TYPE + "> ?fromConcept}"
@@ -862,8 +827,11 @@ public class AddToMasterDB extends ModifyMasterDB {
 				+ "{?toConceptComposite <" + RDFS.subClassOf + "> <http://semoss.org/ontologies/Concept>}"
 				+ "}";
 		
+		System.out.println("Relationships... ");
+		printQueryResult(engine, relationshipsQuery, new String[] {"fromConcept", "someRel", "toConcept"});
+
 		// all concepts with no database
-		query = "SELECT DISTINCT ?fromConcept ?someRel ?toConcept WHERE {"
+		String edgesQuery = "SELECT DISTINCT ?fromConcept ?someRel ?toConcept WHERE {"
 				+ "{?conceptComposite <http://semoss.org/ontologies/Relation/presentin> <http://semoss.org/ontologies/meta/engine/" + engineName + ">}"
 				+ "{?toConceptComposite <http://semoss.org/ontologies/Relation/presentin> <http://semoss.org/ontologies/meta/engine/" + engineName + ">}"
 				+ "{?conceptComposite <" + RDF.TYPE + "> ?fromConcept}"
@@ -876,53 +844,43 @@ public class AddToMasterDB extends ModifyMasterDB {
 				+ "&& ?someRel != <http://semoss.org/ontologies/Relation>)"
 				+ "}";
 		
-
 		// make the edges
-		makeEdges(engine, query, edgeAndVertex);
+		makeEdges(engine, edgesQuery, edgeAndVertex);
+		
 		// get everything linked to a keyword
 		// so I dont have a logical concept
 		// I cant do this
-		
-		Object [] vertArray = (Object[])edgeAndVertex.get("nodes").values().toArray();
-		Object [] edgeArray = (Object[])edgeAndVertex.get("edges").values().toArray();
-		Hashtable finalArray = new Hashtable();
+		Object[] vertArray = (Object[])edgeAndVertex.get("nodes").values().toArray();
+		Object[] edgeArray = (Object[])edgeAndVertex.get("edges").values().toArray();
+		Hashtable<String, Object[]> finalArray = new Hashtable<String, Object[]>();
 		finalArray.put("nodes", vertArray);
 		finalArray.put("edges", edgeArray);
-		
-        Gson gson = new GsonBuilder().disableHtmlEscaping().serializeSpecialFloatingPointValues().setPrettyPrinting().create();
+		Gson gson = new GsonBuilder().disableHtmlEscaping().serializeSpecialFloatingPointValues().setPrettyPrinting().create();
         String output = gson.toJson(finalArray);
 		System.out.println("Output is..++++++++++++++++++++");
 		System.out.println(output);
 		System.out.println("Output is..++++++++++++++++++++");
-		
 	}
 	
-	private void printQueryResult(IEngine engine, String query)
-	{
+	private void printQueryResult(IEngine engine, String query, String[] bindings) {
 		System.out.println("Running Query " + query);
 		TupleQueryResult tqr = (TupleQueryResult)engine.execQuery(query);
-		
 		try {
 			while(tqr.hasNext())
 			{
 				BindingSet bs = tqr.next();
-				//System.out.println("Engine " + bs.getBinding("engine") + "<>" + bs.getBinding("from") + "<>" + bs.getBinding("fromLogical"));
-				//System.out.println("Engine " + bs.getBinding("conceptProp") + "<>" + bs.getBinding("concept"));
-				System.out.println("Engine " + bs.getBinding("someEngine") + bs.getBinding("fromConcept") + "<>" + bs.getBinding("fromLogical"));
-				//System.out.println("Engine " + bs.getBinding("fromConcept") + "<>" + bs.getBinding("someEngine") + bs.getBinding("physical"));
-				//System.out.println("Engine " + bs.getBinding("conceptProp") + "<>" + bs.getBinding("engine") + bs.getBinding("physical"));
-				//System.out.println("Engine " + bs.getBinding("someEngine") + bs.getBinding("fromConcept") + bs.getBinding("anotherEngine"));
-
+				for (String binding : bindings) {
+					System.out.println(bs.getBinding(binding));
+				}
+				System.out.println();
 			}
 		} catch (QueryEvaluationException e) {
-			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
-		
 	}
 	
 	// need to migrate to a different method eventually
-	private void makeVertices(IEngine engine, String query, Hashtable <String, Hashtable>edgesAndVertices)
+	private void makeVertices(IEngine engine, String query, Hashtable<String, Hashtable> edgesAndVertices)
 	{		
 		ISelectWrapper wrapper = WrapperManager.getInstance().getSWrapper(engine, query);
 		Hashtable nodes = new Hashtable();
@@ -958,8 +916,7 @@ public class AddToMasterDB extends ModifyMasterDB {
 		edgesAndVertices.put("nodes", nodes);
 	}
 	
-	
-	private void makeEdges(IEngine engine, String query, Hashtable <String, Hashtable> edgesAndVertices)
+	private void makeEdges(IEngine engine, String query, Hashtable<String, Hashtable> edgesAndVertices)
 	{
 		Hashtable nodes = new Hashtable();
 		Hashtable edges = new Hashtable();
@@ -986,65 +943,62 @@ public class AddToMasterDB extends ModifyMasterDB {
 		edgesAndVertices.put("edges", edges);
 	}
 	
-	private void writeEngine(IEngine engine, File file)
+	private static void writeEngine(IEngine engine, File file)
 	{
 		try {
-			RDFFileSesameEngine rfse = (RDFFileSesameEngine)engine;
+			RDFFileSesameEngine rfse;
+			if (engine instanceof BigDataEngine) {
+				rfse = ((BigDataEngine) engine).getBaseDataEngine();
+			} else if (engine instanceof RDBMSNativeEngine) {
+				rfse = ((RDBMSNativeEngine) engine).getBaseDataEngine();
+			} else {
+				rfse = (RDFFileSesameEngine) engine;
+			}
 			RDFXMLWriter writer = new RDFXMLWriter(new FileWriter(file));
 			rfse.writeData(writer);
-		} catch (RepositoryException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		} catch (RDFHandlerException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		} catch (IOException e) {
-			// TODO Auto-generated catch block
+		} catch (RepositoryException | RDFHandlerException | IOException e) {
 			e.printStackTrace();
 		}
 
 	}
 	
-	
-	
-	
-	public static void main(String [] args)
-	{
-		// get an SMSS file and try to generate this
-		String smssFile = "C:/workspace/Semoss_Dev/db/TAP_Core_Data.smss";
-		//String smssFile2 = "C:/users/pkapaleeswaran/workspacej3/SemossWeb/db/Churn.smss";
-		Properties prop = new Properties();
-		
-		FileInputStream fis  = null;
-		try {
-			fis = new FileInputStream(new File(smssFile));
+	private static Properties loadEngineProp(String engineName) throws IOException {
+		try (FileInputStream fis = new FileInputStream(new File(determineSmssPath(engineName)))) {
+			Properties prop = new Properties();
 			prop.load(fis);
-			prop.put("fis", fis);
-			
-			AddToMasterDB atm = new AddToMasterDB();
-
-			atm.registerEngineLocal(prop);
-
-			//atm.testMaster(null);
-			//atm.tryQueries(null);
-			//fis = new FileInputStream(new File(smssFile2));
-			//prop.load(fis);
-			//atm.registerEngineLocal2(prop);
-			
-		} catch (FileNotFoundException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		} catch (IOException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		} finally {
-			if(fis != null) {
-				try {
-					fis.close();
-				} catch (IOException e) {
-					e.printStackTrace();
-				}
-			}
+			return prop;
 		}
+	}
+	
+	private static String determineSmssPath(String engineName) {
+		return DB_DIRECTORY + "/" + engineName + ".smss";
+	}
+	
+	public static void main(String [] args) throws IOException
+	{
+		// load the RDF map for testing purposes
+		DIHelper.getInstance().loadCoreProp(System.getProperty("user.dir") + "/RDF_Map.prop");
+				
+		// load the local master database
+		Properties localMasterProp = loadEngineProp(Constants.LOCAL_MASTER_DB_NAME);
+		IEngine localMaster = Utility.loadEngine(determineSmssPath(Constants.LOCAL_MASTER_DB_NAME), localMasterProp);	
+		
+		// test loading in a new engine to the master database
+		
+		// get the new engine
+		String engineName = "Songs";
+		Properties engineProp = loadEngineProp(engineName);
+		Utility.loadEngine(determineSmssPath(engineName), engineProp);
+		
+		// delete the engine from the master db so that we can re-add it fresh for testing purposes
+		DeleteFromMasterDB deleter = new DeleteFromMasterDB();
+		deleter.deleteEngine(engineName);
+		
+		// test registering the engine
+		AddToMasterDB adder = new AddToMasterDB();
+		adder.registerEngineLocal(engineProp);
+		
+		// test the master db
+		adder.testMaster(localMaster);
 	}
 }

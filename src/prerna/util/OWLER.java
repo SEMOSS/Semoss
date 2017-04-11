@@ -132,8 +132,9 @@ public class OWLER {
 	 * For a RDBMS concept, say it is 'C1' for column name and sits on 'T1' table name, the following tiples will be added:
 	 * 1) { <semoss:Concept/C1/T1> <rdfs:subClassOf> <semoss:Concept> }
 	 * 2) { <semoss:Concept/C1/T1> <rdfs:Class> 'TYPE:DATA_TYPE_HERE' }
-	 * 3) { <semoss:Concept/C1/T1> <rdf:type> <semoss:Primkey OR semoss:Composite> } Depending on whether the concept is composite
-	 * 4) { <semoss:Relation/Contains/P/X> <rdf:type> <semoss:Primkey> } If composite, then one for each property that makes up the PK
+	 * 3) { <semoss:Concept/C1/T1> <rdf:type> <semoss:Composite> } Depending on whether the concept is composite
+	 * 4) { <semoss:Concept/C1/T1> <URI:KEY> <semoss:Relation/Contains/P/X> } If composite,
+	 *    then one for each property that makes up the composite key
 	 * 5) { <semoss:Concept/C1/T1> <semoss:Relation/Conceptual> <semoss:Concept/T1> }
 	 */
 
@@ -238,7 +239,7 @@ public class OWLER {
 			if (compositeKey) {
 				engine.addToBaseEngine(subject, RDF.TYPE.stringValue(), baseComposite);
 			} else if (type.equals(IEngine.ENGINE_TYPE.RDBMS)) {
-				engine.addToBaseEngine(new Object[] {subject, Constants.PRIMARY_META_KEY, subject, false});
+				engine.addToBaseEngine(new Object[] {subject, Constants.META_KEY, subject, false});
 			}
 						
 			// store it in the hash for future use
@@ -251,7 +252,7 @@ public class OWLER {
 			if (compositeKey) {
 				for (int i = 0; i < colNames.length; i++) {
 					String propURI = addProp(tableName, colName, colNames[i], dataTypes[i]);
-					engine.addToBaseEngine(new Object[] {subject, Constants.PRIMARY_META_KEY, propURI, false});
+					engine.addToBaseEngine(new Object[] {subject, Constants.META_KEY, propURI, false});
 				}
 			}
 			
@@ -616,10 +617,13 @@ public class OWLER {
 	public static void main(String [] args) {
 		DIHelper.getInstance().loadCoreProp(System.getProperty("user.dir") + "/RDF_Map.prop");
 		OWLER owler = new OWLER("C:\\Users\\tbanach\\Workspace\\test.owl", IEngine.ENGINE_TYPE.RDBMS);
-		owler.addConcept("Title Table", new String[] {"Title", "Date Released"}, new String[] {"varchar(800)", "varchar(800)"});
-		owler.addConcept("Studio", "Studio", "varchar(800)");
-		owler.addProp("Studio", "Address", "varchar(800)");
-		owler.addRelation("Studio", "Studio", "Title Table", "Title" + Constants.COMPOSITE_KEY_SEPARATOR + "Date Released", "produces");
+//		owler.addConcept("Title Table", new String[] {"Title", "Date Released"}, new String[] {"varchar(800)", "varchar(800)"});
+//		owler.addConcept("Studio", "Studio", "varchar(800)");
+//		owler.addProp("Studio", "Address", "varchar(800)");
+//		owler.addRelation("Studio", "Studio", "Title Table", "Title" + Constants.COMPOSITE_KEY_SEPARATOR + "Date Released", "produces");
+		owler.addConcept("Song" + Constants.COMPOSITE_KEY_SEPARATOR + "Artist", new String[] {"Song", "Artist"}, new String[] {"varchar(800)", "varchar(800)"});
+		owler.addProp("Song" + Constants.COMPOSITE_KEY_SEPARATOR + "Artist", "Length_1", "varchar(800)");
+		owler.addProp("Song" + Constants.COMPOSITE_KEY_SEPARATOR + "Artist", "Year", "varchar(800)");
 		
 		// load the owl into a rfse
 		RDFFileSesameEngine rfse = new RDFFileSesameEngine();
@@ -640,8 +644,8 @@ public class OWLER {
 			// for each composite list out all the primary keys
 			String compositeURI = composite.toString();
 			System.out.println("Composite URI: " + compositeURI);
-			String query = "SELECT DISTINCT ?" + Constants.ENTITY + " WHERE {<" + compositeURI + "> <" + Constants.PRIMARY_META_KEY + "> ?" + Constants.ENTITY + "}";
-			Vector<Object> primkeys = rfse.getCleanSelect(query);
+			String keyQuery = "SELECT DISTINCT ?" + Constants.ENTITY + " WHERE {<" + compositeURI + "> <" + Constants.META_KEY + "> ?" + Constants.ENTITY + "}";
+			Vector<Object> primkeys = rfse.getCleanSelect(keyQuery);
 			for (Object primkey : primkeys) {
 				String primkeyURI = primkey.toString();
 				System.out.println("Primkey URI: " + primkeyURI);
