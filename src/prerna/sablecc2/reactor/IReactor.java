@@ -124,6 +124,9 @@ public interface IReactor {
 	// sets the data frame
 	void setFrame(ITableDataFrame frame);
 	
+	// gets the signature
+	String getSignature();
+	
 	
 	/**
 	 * elements <- Generic Row <- Generic Noun <- Reactor
