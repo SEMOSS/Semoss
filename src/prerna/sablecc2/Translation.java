@@ -27,6 +27,7 @@ import prerna.sablecc2.node.AFrameop;
 import prerna.sablecc2.node.AFrameopColDef;
 import prerna.sablecc2.node.AFrameopScript;
 import prerna.sablecc2.node.AGeneric;
+import prerna.sablecc2.node.ALiteral;
 import prerna.sablecc2.node.ALiteralColDef;
 import prerna.sablecc2.node.AMinusExpr;
 import prerna.sablecc2.node.AMultExpr;
@@ -451,14 +452,31 @@ public class Translation extends DepthFirstAdapter {
         defaultOut(node);
     }
 
-    public void inALiteralColDef(ALiteralColDef node)
+//    public void inALiteralColDef(ALiteralColDef node)
+//    {
+//    	
+//    	defaultIn(node);
+//    	String thisLiteral = node.getLiteral()+"";
+//    	thisLiteral = thisLiteral.replace("'","");
+//    	thisLiteral = thisLiteral.replace("\"","");
+//    	thisLiteral = thisLiteral.trim();
+//        curReactor.getCurRow().addLiteral(thisLiteral);
+////        if(thisLiteral.contains("1120_Pg_1_Impact__28._Taxable_income_before_net_operating_loss_deduction")) {
+////        	System.out.println("here");
+////        }
+//    }
+    
+    public void inALiteral(ALiteral node)
     {
     	defaultIn(node);
-    	String thisLiteral = node.getLiteral()+"";
+    	String thisLiteral = node.toString().trim();
     	thisLiteral = thisLiteral.replace("'","");
     	thisLiteral = thisLiteral.replace("\"","");
     	thisLiteral = thisLiteral.trim();
         curReactor.getCurRow().addLiteral(thisLiteral);
+//        if(thisLiteral.contains("1120_Pg_1_Impact__28._Taxable_income_before_net_operating_loss_deduction")) {
+//        	System.out.println("here");
+//        }
     }
     
     public void outALiteralColDef(ALiteralColDef node)

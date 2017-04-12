@@ -97,7 +97,7 @@ public class ExprReactor extends AbstractReactor {
 		}
 		
 		outputs = new Vector<>();
-		outputs.add(output);
+		outputs.add(new NounMetadata(this.signature, PkslDataTypes.CONST_DECIMAL));
 		return outputs;
 	}
 
