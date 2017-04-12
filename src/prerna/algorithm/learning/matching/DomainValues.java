@@ -1,10 +1,12 @@
 package prerna.algorithm.learning.matching;
 
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Properties;
 
 import org.apache.commons.io.FileUtils;
 import org.openrdf.model.vocabulary.RDF;
@@ -76,7 +78,7 @@ public class DomainValues {
 			}
 
 			// Grab the unique values for the concept
-			HashSet<String> uniqueConceptValues = retrieveUniqueValues(engineToAdd, concept);
+			HashSet<String> uniqueConceptValues = retrieveConceptUniqueValues(concept, engineToAdd);
 
 			// Sometimes this list is empty when users create databases with
 			// empty fields that are meant to filled in via forms
@@ -85,7 +87,7 @@ public class DomainValues {
 			}
 
 			// Write the unique instances to a file
-			String cleanConcept = concept.substring(concept.lastIndexOf("/") + 1);
+			String cleanConcept = determineCleanConceptName(concept, engineToAdd);
 			String conceptId = engineName + ENGINE_CONCEPT_PROPERTY_DELIMETER + cleanConcept
 					+ ENGINE_CONCEPT_PROPERTY_DELIMETER;
 			writeToFile(outputFolder + "\\" + conceptId + ".txt", uniqueConceptValues);
@@ -104,46 +106,15 @@ public class DomainValues {
 
 				// Process each property
 				for (String property : properties) {
-					HashSet<String> uniquePropertyValues = new HashSet<String>();
-
-					// There is no way to get the list of properties for a
-					// specific concept in RDF through the interface
-					// Create a query using the concept and the property name
-					if (engineToAdd instanceof BigDataEngine) {
-						String query = "SELECT DISTINCT ?property WHERE { {?x <" + RDF.TYPE + "> <" + concept
-								+ "> } { ?x <" + property + "> ?property} }";
-						ISelectWrapper wrapper = WrapperManager.getInstance().getSWrapper(engineToAdd, query);
-						while (wrapper.hasNext()) {
-							ISelectStatement selectStatement = wrapper.next();
-							uniquePropertyValues.add(selectStatement.getVar("property").toString());
-						}
-					} else {
-
-						// Grab the unique values for the property
-						uniquePropertyValues = retrieveUniqueValues(engineToAdd, property);
-					}
+					HashSet<String> uniquePropertyValues = retrievePropertyUniqueValues(concept, property, engineToAdd);
 					if (!uniquePropertyValues.isEmpty()) {
-						String cleanProperty = property.substring(property.lastIndexOf("/") + 1);
+						String cleanProperty = determineCleanPropertyName(property, engineToAdd);
 						String propertyId = conceptId + cleanProperty;
 						writeToFile(outputFolder + "\\" + propertyId + ".txt", uniquePropertyValues);
 					}
 				}
 			}
 		}
-	}
-
-	public static HashSet<String> retrieveUniqueValues(IEngine engine, String type) {
-
-		// Get all the instances for the concept
-		List<Object> allValues = engine.getEntityOfType(type);
-
-		// Push all the instances into a set,
-		// because we are only interested in unique values
-		HashSet<String> uniqueValues = new HashSet<String>();
-		for (Object value : allValues) {
-			uniqueValues.add(Utility.getInstanceName(value + ""));
-		}
-		return uniqueValues;
 	}
 
 	private static void writeToFile(String filePath, HashSet<String> domainValues) {
@@ -164,5 +135,91 @@ public class DomainValues {
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
+	}
+
+	public static HashSet<String> retrieveConceptUniqueValues(String uri, IEngine engine) {
+
+		// This works for concepts for both RDF and RDBMS
+		return getUniqueEntityOfType(uri, engine);
+	}
+
+	public static HashSet<String> retrievePropertyUniqueValues(String conceptURI, String propertyURI, IEngine engine) {
+		HashSet<String> uniquePropertyValues = new HashSet<String>();
+
+		// There is no way to get the list of properties for a
+		// specific concept in RDF through the interface
+		// Create a query using the concept and the property name
+		// TODO fix this through the interface
+		if (engine instanceof BigDataEngine) {
+			String query = "SELECT DISTINCT ?property WHERE { {?x <" + RDF.TYPE + "> <" + conceptURI + "> } { ?x <"
+					+ propertyURI + "> ?property} }";
+			ISelectWrapper wrapper = WrapperManager.getInstance().getSWrapper(engine, query);
+			while (wrapper.hasNext()) {
+				ISelectStatement selectStatement = wrapper.next();
+				uniquePropertyValues.add(selectStatement.getVar("property").toString());
+			}
+		} else {
+			uniquePropertyValues = getUniqueEntityOfType(propertyURI, engine);
+		}
+		return uniquePropertyValues;
+	}
+
+	public static HashSet<String> getUniqueEntityOfType(String type, IEngine engine) {
+
+		// Get all the instances for the concept
+		List<Object> allValues = engine.getEntityOfType(type);
+
+		// Push all the instances into a set,
+		// because we are only interested in unique values
+		HashSet<String> uniqueValues = new HashSet<String>();
+		for (Object value : allValues) {
+			uniqueValues.add(Utility.getInstanceName(value.toString()));
+		}
+		return uniqueValues;
+	}
+
+	private static String determineCleanConceptName(String uri, IEngine engine) {
+		String conceptualURI = engine.getConceptualUriFromPhysicalUri(uri);
+		return conceptualURI.substring(conceptualURI.lastIndexOf("/") + 1);
+	}
+
+	private static String determineCleanPropertyName(String uri, IEngine engine) {
+		String conceptualURI = engine.getConceptualUriFromPhysicalUri(uri);
+		String withoutConcept = conceptualURI.substring(0, conceptualURI.lastIndexOf("/"));
+		return withoutConcept.substring(withoutConcept.lastIndexOf("/") + 1);
+	}
+
+	// Test case
+	public static void main(String[] args) {
+
+		// Load the RDF map for testing purposes
+		DIHelper.getInstance().loadCoreProp(System.getProperty("user.dir") + "/RDF_Map.prop");
+
+		// Load the engines that will be tested and the local master database
+		String[] engines = new String[] { Constants.LOCAL_MASTER_DB_NAME, "TAP_Core_Data", "Movie_DB" };
+
+		// Load the engines for this test case
+		String dbDirectory = "C:\\Users\\tbanach\\Workspace\\SemossDev\\db\\";
+		for (String engineName : engines) {
+			String smssPath = dbDirectory + engineName + ".smss";
+			try (FileInputStream fis = new FileInputStream(new File(smssPath))) {
+				Properties prop = new Properties();
+				prop.load(fis);
+				Utility.loadEngine(smssPath, prop);
+			} catch (IOException e) {
+				e.printStackTrace();
+			}
+		}
+
+		// For debugging, use both an RDF and a RDBMS
+		DomainValues dv = new DomainValues(new String[] { "TAP_Core_Data", "Movie_DB" }, true);
+
+		// Test out the export
+		try {
+			dv.exportDomainValues();
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+
 	}
 }
