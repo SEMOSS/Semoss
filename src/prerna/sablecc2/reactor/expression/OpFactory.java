@@ -16,6 +16,7 @@ public class OpFactory {
 	private static void fillOpMap() {
 		opMap.put("max", OpMax.class);
 		opMap.put("min", OpMin.class);
+		opMap.put("sum", OpSum.class);
 	}
 	
 	public static OpReactor getOp(String operationName, GenRowStruct curRow) {
