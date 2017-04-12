@@ -20,7 +20,7 @@ import prerna.ui.components.playsheets.datamakers.IDataMaker;
 public class PKSLPlanner {
 	
 	// this is primarily the tinker graph that would be used for planning the operation
-	TinkerGraph g = TinkerGraph.open();
+	public TinkerGraph g = TinkerGraph.open();
 	
 	// I need some way to have roots
 	Vector roots = new Vector();
