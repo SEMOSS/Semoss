@@ -1,7 +1,11 @@
 package prerna.sablecc2.reactor.expression;
 
+import java.util.List;
+import java.util.Vector;
+
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.NounMetadata;
+import prerna.sablecc2.om.PkslDataTypes;
 import prerna.sablecc2.reactor.AbstractReactor;
 import prerna.sablecc2.reactor.IReactor;
 
@@ -63,5 +67,17 @@ public abstract class OpReactor extends AbstractReactor {
 		}
 		
 		return retValues;
+	}
+	
+	@Override
+	public List<NounMetadata> getOutputs() {
+		//Default operation for the abstract is to return the asName aliases as the outputs
+		List<NounMetadata> outputs = super.getOutputs();
+		if(outputs == null || outputs.size() == 0) {
+			outputs = new Vector<NounMetadata>();
+			NounMetadata output = new NounMetadata(this.signature, PkslDataTypes.CONST_DECIMAL);
+			outputs.add(output);
+		}
+		return outputs;
 	}
 }

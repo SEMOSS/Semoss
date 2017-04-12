@@ -106,7 +106,7 @@ public class LoadClient extends AbstractReactor {
 	}
 	
 	private String generatePkslQuery(Object field, Object form, Object value, Object type) {
-        return form+"__"+field+" = "+value+";";
+        return "\""+form+"__"+field+"\" = "+value+";";
     }
 	
 	private Iterator getIterator() {
