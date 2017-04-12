@@ -2065,8 +2065,7 @@ public abstract class AbstractRJavaReactor extends AbstractJavaReactor {
 					sourceValues.add(selectStatement.getVar("property").toString());
 				}
 			} else {
-				uniqueSourcePropertyValues = dvs.retrieveUniqueValues(engine1,
-						"http://semoss.org/ontologies/Relation/Contains/" + propertySource);
+				uniqueSourcePropertyValues = DomainValues.getUniqueEntityOfType("http://semoss.org/ontologies/Relation/Contains/" + propertySource, engine1);
 			}
 			
 			if (engine2 instanceof BigDataEngine) {
@@ -2080,8 +2079,7 @@ public abstract class AbstractRJavaReactor extends AbstractJavaReactor {
 					targetValues.add(selectStatement.getVar("property").toString());
 				}
 			} else {
-				uniqueTargetPropertyValues = dvs.retrieveUniqueValues(engine2,
-						"http://semoss.org/ontologies/Relation/Contains/" + propertyTarget);
+				uniqueTargetPropertyValues = DomainValues.getUniqueEntityOfType("http://semoss.org/ontologies/Relation/Contains/" + propertyTarget, engine2);
 			}
 		}
 
