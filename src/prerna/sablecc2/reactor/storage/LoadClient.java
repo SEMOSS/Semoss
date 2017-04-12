@@ -10,6 +10,10 @@ import java.util.List;
 
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
+import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.GraphTraversal;
+import org.apache.tinkerpop.gremlin.structure.Direction;
+import org.apache.tinkerpop.gremlin.structure.Edge;
+import org.apache.tinkerpop.gremlin.structure.Vertex;
 
 import prerna.engine.api.IHeadersDataRow;
 import prerna.engine.api.IRawSelectWrapper;
@@ -58,6 +62,12 @@ public class LoadClient extends AbstractReactor {
 		 //Run them through a PlannerTranslation
 		 //Grab the planner
 		 PKSLPlanner newPlan = createPlanner(pkslQueries);
+		 
+		 
+		 //Print the plan to verify results
+		 printPlan(newPlan);
+		 
+		 
 		 
 		 //replace this planner with generated planner
          this.planner = newPlan;
@@ -121,8 +131,36 @@ public class LoadClient extends AbstractReactor {
 	}
 	
 	//method to see the structure of the plan
-	private void printPlan() {
-		
+	private void printPlan(PKSLPlanner planner) {
+		System.out.println(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>");
+        System.out.println(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>");
+        System.out.println(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>");
+        System.out.println(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>");
+        System.out.println(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>");
+        System.out.println(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>");
+        System.out.println(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>");
+        GraphTraversal<Vertex, Vertex> getAllV = planner.g.traversal().V().has(PKSLPlanner.TINKER_TYPE, PKSLPlanner.OPERATION);
+        while(getAllV.hasNext()) {
+                        // get the vertex
+                        Vertex v = getAllV.next();
+                        System.out.println(">> " + v.property(PKSLPlanner.TINKER_ID).value().toString());
+                        
+                        // all of the vertex inputs
+                        Iterator<Edge> inputEdges = v.edges(Direction.IN);
+                        while(inputEdges.hasNext()) {
+                                        Edge inputE = inputEdges.next();
+                                        Vertex inputV = inputE.outVertex();
+                                        System.out.println("\tinput >> " + inputV.property(PKSLPlanner.TINKER_ID).value().toString());
+                        }
+                        
+                        // all of the vertex inputs
+                        Iterator<Edge> outputEdges = v.edges(Direction.OUT);
+                        while(outputEdges.hasNext()) {
+                                        Edge outputE = outputEdges.next();
+                                        Vertex outputV = outputE.inVertex();
+                                        System.out.println("\toutput >> " + outputV.property(PKSLPlanner.TINKER_ID).value().toString());
+                        }
+        }
 	}
 
 
