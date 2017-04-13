@@ -8,8 +8,6 @@ public interface Formatter {
 	
 	public Object getFormattedData();
 	
-	void addHeader(String[] keys);
-	
 	void setIdentifier(String name);
 	
 	String getIdentifier();
