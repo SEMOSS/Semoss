@@ -1,7 +1,6 @@
 package prerna.sablecc2.reactor.storage;
 
 import java.util.List;
-import java.util.Map;
 import java.util.Vector;
 
 import org.apache.log4j.LogManager;
@@ -47,18 +46,8 @@ public class RetrieveValue extends AbstractReactor {
 		// when we update the store noun
 		// it will update the reference for all future use
 	
-		// TODO: build a common interface when we get different types of IN_MEM storage data structures
-		Object storeVariable = storeNoun.getValue();
-		
-		NounMetadata valueData = null;
-		
-		if(storeVariable instanceof Map) {
-			valueData = (NounMetadata) ((Map) storeVariable).get(key);
-			LOGGER.info("Found value = " + valueData + " from key = " + key);
-		} else {
-			throw new IllegalArgumentException("Unable to get value in store = " + store + " with key = " + key);
-		}
-		
+		InMemStore storeVariable = (InMemStore) storeNoun.getValue();
+		NounMetadata valueData = storeVariable.get(key);
 		return valueData;
 	}
 
