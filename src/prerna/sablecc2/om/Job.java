@@ -13,11 +13,11 @@ import prerna.sablecc2.reactor.export.Formatter;
 
 public class Job {
 
-	final Iterator iterator;
-	QueryStruct2 queryStruct; //this is the query struct that was used to generate this job
-	Map<String, List<Object>> options; //this holds the options object for the FE
-	Map<String, Map<String, String>> targets; //map of maps
-	List<Formatter> formatters;
+	private final Iterator iterator;
+	private QueryStruct2 queryStruct; //this is the query struct that was used to generate this job
+	private Map<String, List<Object>> options; //this holds the options object for the FE
+	private Map<String, Map<String, String>> targets; //map of maps
+	private List<Formatter> formatters;
 	//need to specify a format type
 	
 	public Job(Iterator iterator, QueryStruct2 queryStruct) {
@@ -28,7 +28,6 @@ public class Job {
 	
 	private void setDefaults() {
 		targets = new HashMap<>();
-		
 		options = new HashMap<>();
 		formatters = new ArrayList<>();
 	}
