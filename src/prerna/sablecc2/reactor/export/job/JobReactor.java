@@ -1,6 +1,5 @@
 package prerna.sablecc2.reactor.export.job;
 
-
 import prerna.sablecc2.JobStore;
 
 public class JobReactor extends JobBuilderReactor {
