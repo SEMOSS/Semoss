@@ -1,29 +1,31 @@
 package prerna.sablecc2.reactor.export;
 
 import java.util.ArrayList;
+import java.util.Hashtable;
 import java.util.List;
+import java.util.Map;
 
 import prerna.engine.api.IHeadersDataRow;
 
 public class TableFormatter extends AbstractFormatter {
 
 	private List<Object[]> data;
-
+	private String[] headers;
+	
 	public TableFormatter() {
 		data = new ArrayList<>(100);
 	}
 	
 	public void addData(IHeadersDataRow nextData) {
-		Object[] values = nextData.getValues();
-		this.data.add(values);
+		headers = nextData.getHeaders();
+		this.data.add(nextData.getValues());
 	}
 	
 	public Object getFormattedData() {
-//		Map<String, Object> returnData = new HashMap<>();
-//		returnData.put("dataTableValues", data);
-//		returnData.put("dataTableKeys", headers);
-//		return returnData;
-		return data;
+		Map<String, Object> returnData = new Hashtable<String, Object>();
+		returnData.put("values", data);
+		returnData.put("headers", headers);
+		return returnData;
 	}
 
 	@Override
