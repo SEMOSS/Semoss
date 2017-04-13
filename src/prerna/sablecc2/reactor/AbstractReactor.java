@@ -36,7 +36,7 @@ public abstract class AbstractReactor implements IReactor {
 	protected Hashtable <String, Object> propStore = new Hashtable<String, Object>();
 	protected ITableDataFrame frame = null;
 	
-	protected PKSLPlanner planner = null;
+	public PKSLPlanner planner = null;
 	protected Lambda runner = null;
 	
 	protected String[] defaultOutputAlias;
