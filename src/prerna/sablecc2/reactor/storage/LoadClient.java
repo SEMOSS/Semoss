@@ -96,6 +96,9 @@ public class LoadClient extends AbstractReactor {
 				tree.apply(plannerT);
 			} catch (ParserException | LexerException | IOException e) {
 				e.printStackTrace();
+				System.out.println(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>");
+				System.out.println(pkslString);
+				System.out.println(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>");
 			}
 		}
 		
@@ -104,8 +107,14 @@ public class LoadClient extends AbstractReactor {
 	}
 	
 	private String generatePKSLString(Object[] values, int[] assignmentIndices, int valIndex, String separator) {
+		
+//		if(values[valIndex].toString().toUpperCase().startsWith("IF")) {
+//			return values[valIndex].toString();
+//		}
+		
+		
 		StringBuilder pkslBuilder = new StringBuilder();
-		pkslBuilder.append("\"");
+//		pkslBuilder.append("\"");
 		
 		// add the assignment
 		int numAssignments = assignmentIndices.length;
@@ -118,7 +127,7 @@ public class LoadClient extends AbstractReactor {
 			}
 		}
 		// add the equals and value
-		pkslBuilder.append("\"=").append(values[valIndex]).append(";");
+		pkslBuilder.append(" = ").append(values[valIndex]).append(";");
 		
 		// return the new pksl
 		return pkslBuilder.toString();

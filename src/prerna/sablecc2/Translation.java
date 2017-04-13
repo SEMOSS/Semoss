@@ -1018,6 +1018,7 @@ public class Translation extends DepthFirstAdapter {
 //	    	}
 	    	
 	    	Object output = curReactor.execute();
+	    	this.planner = ((AbstractReactor)curReactor).planner;
 	    	
 	    	//set the curReactor
 	    	if(parent != null && parent instanceof IReactor) {
