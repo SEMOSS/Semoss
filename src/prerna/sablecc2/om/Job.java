@@ -32,10 +32,6 @@ public class Job {
 		formatters = new ArrayList<>();
 	}
 	
-	public Object collect() {
-		return null;
-	}
-	
 	public Iterator getIterator() {
 		return this.iterator;
 	}
@@ -46,13 +42,10 @@ public class Job {
 	 * @return
 	 */
 	public Object collect(int num) {
-		
 		Map<String, Object> collectedData = new HashMap<String, Object>(3);
-		
 		collectedData.put("data", getData(num));
 		collectedData.put("options", getOptions());
 		collectedData.put("targets", getTargets());
-		
 		return collectedData;
 	}
 	
@@ -68,34 +61,24 @@ public class Job {
 	private Map<String, Object> getData(int num) {
 		int count = 0;
 		List<Formatter> formatters = getFormatters();
-		String[] headers = null;
 		while(iterator.hasNext() && count < num) {
-			
 			Object next = iterator.next();
 			
 			if(next instanceof IHeadersDataRow) {
 				IHeadersDataRow nextData = (IHeadersDataRow)next;
-				
-				if(headers == null) {
-					headers = nextData.getHeaders();
-				}
-				
 				for(Formatter formatter : formatters) {
 					formatter.addData(nextData);
 				}
-			} else{
+			} else {
 				//i don't know what to do :(
+				throw new IllegalArgumentException("Unsupported format for output...");
 			}
-			
 			count++;
 		}
 		
 		Map<String, Object> retMap = new HashMap<>(1);
 		for(Formatter formatter : formatters) {
-			Map<String, Object> formattedData = new HashMap<>(2);
-			formattedData.put("values", formatter.getFormattedData());
-			formattedData.put("headers", headers);
-			retMap.put(formatter.getIdentifier(), formattedData);
+			retMap.put(formatter.getIdentifier(), formatter.getFormattedData());
 			formatter.clear();
 		}
 		return retMap;
