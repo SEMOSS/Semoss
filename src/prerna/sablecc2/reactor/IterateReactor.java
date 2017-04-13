@@ -1,6 +1,5 @@
 package prerna.sablecc2.reactor;
 
-
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
@@ -10,6 +9,7 @@ import java.util.Vector;
 import prerna.algorithm.api.ITableDataFrame;
 import prerna.ds.querystruct.QueryStruct2;
 import prerna.engine.api.IEngine;
+import prerna.engine.api.IHeadersDataRow;
 import prerna.engine.api.IRawSelectWrapper;
 import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.rdf.query.builder.SQLInterpreter2;
@@ -19,14 +19,14 @@ import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.Job;
 import prerna.sablecc2.om.Join;
 import prerna.sablecc2.om.NounMetadata;
-import prerna.sablecc2.om.NounStore;
 import prerna.sablecc2.om.PkslDataTypes;
+import prerna.sablecc2.reactor.storage.InMemStore;
 import prerna.util.Utility;
 
-//TODO : Hardcoding this to use QueryStruct2 and SQLInterpreter2 to test changes
 public class IterateReactor extends AbstractReactor {
 
 	private Job output;
+	private String IN_MEM_STORE = "store";
 	
 	@Override
 	public void In() {
@@ -43,42 +43,67 @@ public class IterateReactor extends AbstractReactor {
 	}
 	
 	private NounMetadata createJob()  {
-		//get the inputs
+		// the iterator is what creates a job
+		// we need to take into consideration when we want to output
+		// the following data sources
 		
-		//every job should be created via a query struct run either on a database or a frame
-		//or a code block run on a frame --this is done via runMyPlan
-		//we will temporarily introduce handling math operations until those math operations are absorbed by the query struct and interpreted by the query interpreters
+		// 1) data from an engine
+		// 2) data from a frame
+		// 3) data from a in-memory source
 		
+		String jobId;
 		
-		QueryStruct2 queryStruct = getQueryStruct(); //this should not be a single query...need to somehow store this with a signature
-		String engineName = queryStruct.getEngineName();
-		//TODO: add tableJoins to query
-		//TODO: remove hard coded classes when we establish querystruct2 and sqlinterpreter2 function properly 
-		GenRowStruct allNouns = getNounStore().getNoun(NounStore.all); //should be only joins
-		String id;
-		if(engineName != null) {
-			IEngine engine = Utility.getEngine(engineName);
-//			IQueryInterpreter interp = engine.getQueryInterpreter();
-			SQLInterpreter2 interp = new SQLInterpreter2(engine);
-			interp.setQueryStruct(queryStruct);
-			String importQuery = interp.composeQuery();
-			IRawSelectWrapper iterator = WrapperManager.getInstance().getRawWrapper(engine, importQuery);
+		// try to get a QS
+		// ... not everything has a qs
+		// ... primarily a key-value pair
+		// ... TODO: should figure out a better way to bifurcate
+		QueryStruct2 queryStruct = getQueryStruct();
+		
+		// try to get an in memory store being used
+		InMemStore inMemStore = getInMemoryStore();
+		
+		if(inMemStore != null) 
+		{
+			// TODO: figure out how to use a QS if present with this query
+			Iterator<IHeadersDataRow> iterator = inMemStore.getIterator();
 			Job job = new Job(iterator, queryStruct);
 			this.output = job;
-			id = JobStore.INSTANCE.addJob(job);
-		} else {
-			ITableDataFrame frame = (ITableDataFrame)this.planner.getProperty("FRAME", "FRAME");
-			SQLInterpreter2 interp = new SQLInterpreter2();
-			interp.setQueryStruct(queryStruct);
-			String importQuery = interp.composeQuery();
-			Iterator iterator = frame.query(queryStruct);
-			Job job = new Job(iterator, queryStruct);
-			this.output = job;
-			id = JobStore.INSTANCE.addJob(job);
-		}	
+			jobId = JobStore.INSTANCE.addJob(job);
+			
+		} 
+		else 
+		{
+			//TODO: add tableJoins to query
+			//TODO: remove hard coded classes when we establish querystruct2 and sqlinterpreter2 function properly 
+			//TODO : Hard coding this to use QueryStruct2 and SQLInterpreter2 to test changes
+
+			// okay, we want to query an engine or a frame
+			// do this based on if the key is defined in the QS
+			String engineName = queryStruct.getEngineName();
+			if(engineName != null) {
+				IEngine engine = Utility.getEngine(engineName);
+				SQLInterpreter2 interp = new SQLInterpreter2(engine);
+				interp.setQueryStruct(queryStruct);
+				String importQuery = interp.composeQuery();
+				IRawSelectWrapper iterator = WrapperManager.getInstance().getRawWrapper(engine, importQuery);
+				Job job = new Job(iterator, queryStruct);
+				this.output = job;
+				jobId = JobStore.INSTANCE.addJob(job);
+			} else {
+				ITableDataFrame frame = (ITableDataFrame)this.planner.getProperty("FRAME", "FRAME");
+				SQLInterpreter2 interp = new SQLInterpreter2();
+				interp.setQueryStruct(queryStruct);
+				Iterator iterator = frame.query(queryStruct);
+				Job job = new Job(iterator, queryStruct);
+				this.output = job;
+				jobId = JobStore.INSTANCE.addJob(job);
+			}	
+		}
 		
+		// TODO : WHAT IS THIS PORTION USED FOR???
+		// is this just legacy????
 		Map<String, Object> returnData = new HashMap<>();
-		returnData.put("jobId", id);
+		returnData.put("jobId", jobId);
 		this.planner.addProperty("DATA", "DATA", returnData);
 		
 		// create the return
@@ -99,15 +124,18 @@ public class IterateReactor extends AbstractReactor {
 		return outputs;
 	}
 
+	/**
+	 * Get the query struct that is defined 
+	 * @return
+	 */
 	private QueryStruct2 getQueryStruct() {
 		GenRowStruct allNouns = getNounStore().getNoun("QUERYSTRUCT");
 		QueryStruct2 queryStruct = null;
 		if(allNouns != null) {
-			NounMetadata object = (NounMetadata)allNouns.getNoun(0);
-			return (QueryStruct2)object.getValue();
+			queryStruct = (QueryStruct2) allNouns.get(0);
 		} else {
 			NounMetadata result = (NounMetadata)this.planner.getProperty("RESULT", "RESULT");
-			if(result.getNounName().equals("QUERYSTRUCT")) {
+			if(result != null && result.getNounName().equals("QUERYSTRUCT")) {
 				queryStruct = (QueryStruct2)result.getValue();
 			}
 		}
@@ -115,7 +143,6 @@ public class IterateReactor extends AbstractReactor {
 	}
 	
 	private Vector<Map<String,String>> getJoinCols(GenRowStruct joins) {
-		
 		Vector<Map<String, String>> joinCols = new Vector<>();
 		for(int i = 0; i < joins.size(); i++) {
 			if(joins.get(i) instanceof Join) {
@@ -133,6 +160,17 @@ public class IterateReactor extends AbstractReactor {
 			}
 		}
 		return joinCols;
+	}
+	
+
+	private InMemStore getInMemoryStore() {
+		InMemStore inMemStore = null;
+		GenRowStruct grs = getNounStore().getNoun(this.IN_MEM_STORE);
+		if(grs != null) {
+			inMemStore = (InMemStore) grs.get(0);
+		}
+		
+		return inMemStore;
 	}
 }
 

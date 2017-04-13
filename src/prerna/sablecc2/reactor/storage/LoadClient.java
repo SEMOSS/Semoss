@@ -86,6 +86,10 @@ public class LoadClient extends AbstractReactor {
 			IHeadersDataRow nextData = iterator.next();
 			String pkslString = generatePKSLString(nextData.getValues(), assignmentIndices, valIndex, separator);
 			
+			if(pkslString.contains("IF")) {
+				System.out.println("");
+			}
+			
 			try {
 				Parser p = new Parser(new Lexer(new PushbackReader(new InputStreamReader(new ByteArrayInputStream(pkslString.getBytes("UTF-8"))))));
 				Start tree = p.parse();
