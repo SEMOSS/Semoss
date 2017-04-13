@@ -125,6 +125,7 @@ public class ReactorFactory {
 		reactorHash.put("StoreValue", StoreValue.class);
 		reactorHash.put("RetrieveValue", RetrieveValue.class);
 		reactorHash.put("LoadClient", LoadClient.class);
+		reactorHash.put("RunPlan", RunPlannerReactor.class);
 		reactorHash.put("UpdateValues", UpdateValues.class);
 	}
 	
