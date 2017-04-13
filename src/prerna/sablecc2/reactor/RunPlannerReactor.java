@@ -51,26 +51,55 @@ public class RunPlannerReactor extends AbstractReactor {
 		
 		//this grabs the end nouns
 		//give me all the start nouns, i.e. no incoming dependencies
-		GraphTraversal<Vertex, Vertex> getAllRootNouns = planner.g.traversal().V().has(PKSLPlanner.TINKER_TYPE, PKSLPlanner.NOUN).where(__.inE().count().is(0)); 
+//		GraphTraversal<Vertex, Vertex> getAllRootNouns = planner.g.traversal().V().has(PKSLPlanner.TINKER_TYPE, PKSLPlanner.NOUN).where(__.inE().count().is(0)); 
+		
+		
+		//I want a traversal where ALL of the operation's inVerts have 0 inEdges
+		GraphTraversal<Vertex, Vertex> getAllRootOps = planner.g.traversal().V().has(PKSLPlanner.TINKER_TYPE, PKSLPlanner.OPERATION); 
 		
 		
 		Set<Vertex> vertsToRun = new HashSet<>();
 		List<String> pkslsToRun = new ArrayList<>();
 		
-		
-		//add all the leaf nouns, this is our starting point
-		while(getAllRootNouns.hasNext()) {
-			Vertex nextNoun = getAllRootNouns.next();
-			Iterator<Vertex> opIterator = nextNoun.vertices(Direction.OUT);
-			while(opIterator.hasNext()) {
-				Vertex nextRoot = opIterator.next();
-				nextRoot.property("PROCESSED", false);
-				String pkslOperation = nextRoot.property(PKSLPlanner.TINKER_ID).value().toString().substring(3);
+		while(getAllRootOps.hasNext()) {
+			Vertex nextOp = getAllRootOps.next();
+			Iterator<Vertex> nounIterator = nextOp.vertices(Direction.IN);
+			boolean isRoot = true;
+			while(nounIterator.hasNext() && isRoot) {
+				Vertex nextRootNoun = nounIterator.next();
+				Iterator<Vertex> inOps = nextRootNoun.vertices(Direction.IN);
+				if(inOps.hasNext()) {
+					isRoot = false;
+				}
+				
+//				String pkslOperation = nextRoot.property(PKSLPlanner.TINKER_ID).value().toString().substring(3);
+//				System.out.println(pkslOperation);
+//				vertsToRun.add(nextRoot);
+			}
+			
+			if(isRoot) {
+				nextOp.property("PROCESSED", false);
+				String pkslOperation = nextOp.property(PKSLPlanner.TINKER_ID).value().toString().substring(3);
 				System.out.println(pkslOperation);
-				vertsToRun.add(nextRoot);
+				//TODO : what is this operation? need take it out
+				if(!pkslOperation.equals("FRAME")) {
+					vertsToRun.add(nextOp);
+				}
 			}
 		}
-		
+		//add all the leaf nouns, this is our starting point
+//		while(getAllRootNouns.hasNext()) {
+//			Vertex nextNoun = getAllRootNouns.next();
+//			Iterator<Vertex> opIterator = nextNoun.vertices(Direction.OUT);
+//			while(opIterator.hasNext()) {
+//				Vertex nextRoot = opIterator.next();
+//				nextRoot.property("PROCESSED", false);
+//				String pkslOperation = nextRoot.property(PKSLPlanner.TINKER_ID).value().toString().substring(3);
+//				System.out.println(pkslOperation);
+//				vertsToRun.add(nextRoot);
+//			}
+//		}
+//		
 		runVerts(vertsToRun, pkslsToRun);
 		
 		return pkslsToRun;
