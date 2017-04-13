@@ -34,6 +34,7 @@ import prerna.sablecc2.reactor.storage.LoadClient;
 import prerna.sablecc2.reactor.storage.MapStore;
 import prerna.sablecc2.reactor.storage.RetrieveValue;
 import prerna.sablecc2.reactor.storage.StoreValue;
+import prerna.sablecc2.reactor.storage.UpdateValues;
 
 public class ReactorFactory {
 
@@ -124,6 +125,7 @@ public class ReactorFactory {
 		reactorHash.put("StoreValue", StoreValue.class);
 		reactorHash.put("RetrieveValue", RetrieveValue.class);
 		reactorHash.put("LoadClient", LoadClient.class);
+		reactorHash.put("UpdateValues", UpdateValues.class);
 	}
 	
 	/**
