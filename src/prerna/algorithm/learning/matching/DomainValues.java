@@ -173,7 +173,9 @@ public class DomainValues {
 		// because we are only interested in unique values
 		HashSet<String> uniqueValues = new HashSet<String>();
 		for (Object value : allValues) {
-			uniqueValues.add(Utility.getInstanceName(value.toString()));
+			if (value != null) {
+				uniqueValues.add(Utility.getInstanceName(value.toString()));
+			}
 		}
 		return uniqueValues;
 	}
