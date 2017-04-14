@@ -397,7 +397,9 @@ public class AddToMasterDB extends ModifyMasterDB {
 		 */
 		// iterate through and add all the keys		
 		for (String physicalKeyUri : keys) {
-			addData(engineComposite, Constants.META_KEY, physicalKeyUri, true, engine);
+			String iKey = Utility.getInstanceName(physicalKeyUri, engineType);
+			String engineKeyComposite = Constants.BASE_URI + Constants.DEFAULT_PROPERTY_CLASS + "/" + engineInstance + "_" + iKey;
+			addData(engineComposite, Constants.META_KEY, engineKeyComposite, true, engine);
 		}
 		
 		// adding the physical URI to the engine composite
