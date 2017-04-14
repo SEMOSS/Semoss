@@ -6,9 +6,7 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.io.PrintWriter;
-import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Hashtable;
@@ -17,11 +15,10 @@ import java.util.Map;
 import java.util.Set;
 import java.util.Vector;
 
-import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang.StringUtils;
+import org.apache.commons.lang3.ArrayUtils;
 import org.apache.tinkerpop.gremlin.structure.Graph;
 import org.apache.tinkerpop.gremlin.structure.io.IoCore;
-import org.openrdf.model.vocabulary.RDF;
 import org.rosuda.JRI.Rengine;
 import org.rosuda.REngine.Rserve.RConnection;
 
@@ -38,13 +35,9 @@ import prerna.ds.r.RDataTable;
 import prerna.ds.util.FileIterator;
 import prerna.ds.util.FileIterator.FILE_DATA_TYPE;
 import prerna.engine.api.IEngine;
-import prerna.engine.api.ISelectStatement;
-import prerna.engine.api.ISelectWrapper;
-import prerna.engine.impl.rdf.BigDataEngine;
 import prerna.ds.util.RdbmsFrameUtility;
 import prerna.poi.main.HeadersException;
 import prerna.poi.main.helper.ImportOptions;
-import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.ui.components.ImportDataProcessor;
 import prerna.util.ArrayUtilityMethods;
 import prerna.util.Constants;
@@ -1973,62 +1966,98 @@ public abstract class AbstractRJavaReactor extends AbstractJavaReactor {
 	}
 
 	/**
-	 * This method performs fuzzy matching algorithms on instance values.
+	 * Displays the best fuzzy match between the instances values of a match for
+	 * different algorithms
 	 * 
-	 * @param engine, concepts, and properties for both target and source from user 
-	 *            
-	 *            
-	 *            
+	 * @param match
+	 *            The match id in the format
+	 *            (sourceProperty~)sourceConcept~sourceEngine%(targetProperty~)
+	 *            targetConcept~targetEngine
 	 */
-	public void runFuzzyMatching(String engineSource, String conceptSource, String propertySource, String engineTarget, String conceptTarget, String propertyTarget) {
-				
-		// Check if properties exist 
-		boolean sourceIsProperty = !propertySource.equals("none");
-		boolean targetIsProperty = !propertyTarget.equals("none"); 
-       
-        // Initialize Engines 
+	public void runFuzzyMatching(String match) {
+
+		// Parse input string
+		// (sourceProperty~)sourceConcept~sourceEngine%(targetProperty~)targetConcept~targetEngine
+		String[] parts = match.split("%");
+		String[] source = parts[0].split("~");
+		String[] target = parts[1].split("~");
+
+		// Change order of the string to get engine-concept-property
+		ArrayUtils.reverse(source);
+		ArrayUtils.reverse(target);
+
+		// Initialize
+		String engineSource = "";
+		String engineTarget = "";
+		String conceptSource = "";
+		String conceptTarget = "";
+		String propertySource = "";
+		String propertyTarget = "";
+
+		boolean sourceIsProperty = false;
+		boolean targetIsProperty = false;
+
+		// Populate the values for source
+		engineSource = source[0];
+		conceptSource = source[1];
+		if (source.length > 2) {
+			propertySource = source[2];
+			sourceIsProperty = true;
+		}
+
+		// Populate the values for target
+		engineTarget = target[0];
+		conceptTarget = target[1];
+		if (target.length > 2) {
+			propertyTarget = target[2];
+			targetIsProperty = true;
+		}
+
+		// Initialize Engines
 		IEngine iEngineSource = Utility.getEngine(engineSource.replaceAll(" ", "_"));
 		IEngine iEngineTarget = Utility.getEngine(engineTarget.replaceAll(" ", "_"));
 
 		// Get the source and target values
-		
+
 		// Source
 		HashSet<String> sourceValues = new HashSet<String>();
 		String conceptUriSource = "http://semoss.org/ontologies/Concept/" + conceptSource;
-        if (sourceIsProperty) {
-        	String propertyUriSource = "http://semoss.org/ontologies/Relation/Contains/" + propertySource;
-        	sourceValues = DomainValues.retrievePropertyUniqueValues(conceptUriSource, propertyUriSource, iEngineSource);
-        } else {
-        	sourceValues = DomainValues.retrieveConceptUniqueValues(conceptUriSource, iEngineSource);
-        }
-        
-        // Target
+		if (sourceIsProperty) {
+			String propertyUriSource = "http://semoss.org/ontologies/Relation/Contains/" + propertySource;
+			sourceValues = DomainValues.retrievePropertyUniqueValues(conceptUriSource, propertyUriSource,
+					iEngineSource);
+		} else {
+			sourceValues = DomainValues.retrieveConceptUniqueValues(conceptUriSource, iEngineSource);
+		}
+
+		// Target
 		HashSet<String> targetValues = new HashSet<String>();
-        String conceptUriTarget = "http://semoss.org/ontologies/Concept/" + conceptTarget;
-        if (targetIsProperty) {
-        	String propertyUriTarget = "http://semoss.org/ontologies/Relation/Contains/" + propertyTarget;
-        	targetValues = DomainValues.retrievePropertyUniqueValues(conceptUriTarget, propertyUriTarget, iEngineTarget);
-        } else {
-        	targetValues = DomainValues.retrieveConceptUniqueValues(conceptUriTarget, iEngineTarget);
-        }
+		String conceptUriTarget = "http://semoss.org/ontologies/Concept/" + conceptTarget;
+		if (targetIsProperty) {
+			String propertyUriTarget = "http://semoss.org/ontologies/Relation/Contains/" + propertyTarget;
+			targetValues = DomainValues.retrievePropertyUniqueValues(conceptUriTarget, propertyUriTarget,
+					iEngineTarget);
+		} else {
+			targetValues = DomainValues.retrieveConceptUniqueValues(conceptUriTarget, iEngineTarget);
+		}
 
 		// Write out values to csv so R Script can read from it add to dataframe
 		String csvPath = getBaseFolder() + "\\" + Constants.R_BASE_FOLDER + "\\" + "Temp\\fuzzyMatching.csv";
 		csvPath = csvPath.replace("\\", "/");
-		
-		// Construct headers based on existence of properties 
-		
+
+		// Construct headers based on existence of properties
+
 		// Source
 		String sourceHeader = "";
-		if (sourceIsProperty) { 
+		if (sourceIsProperty) {
 			sourceHeader = propertySource + "_" + conceptSource + "_" + engineSource.replace(" ", "_");
 		} else {
-			sourceHeader =  conceptSource + "_" + engineSource.replace(" ", "_");
+			sourceHeader = conceptSource + "_" + engineSource.replace(" ", "_");
 		}
-		
+
 		// Target
 		String targetHeader = "";
-		if(targetIsProperty) {
+		if (targetIsProperty) {
 			targetHeader = propertyTarget + "_" + conceptTarget + "_" + engineTarget.replace(" ", "_");
 		} else {
 			targetHeader = conceptTarget + "_" + engineTarget.replace(" ", "_");
@@ -2068,19 +2097,19 @@ public abstract class AbstractRJavaReactor extends AbstractJavaReactor {
 		} catch (FileNotFoundException e) {
 			e.printStackTrace();
 		}
-				
+
 		// Run Fuzzy Matching in R
 		String utilityScriptPath = getBaseFolder() + "\\" + Constants.R_BASE_FOLDER + "\\"
 				+ "FuzzyMatching\\best_match.r";
 		utilityScriptPath = utilityScriptPath.replace("\\", "/");
-		
+
 		runR("library(stringdist)");
 		runR("source(\"" + utilityScriptPath + "\");");
 		String df = "this.df.name.is.reserved.for.fuzzy.matching";
-		runR(df + " <-read.csv(\"" + csvPath + "\")");
+		runR(df + " <-read.csv(\"" + csvPath + "\", na.strings=\"\")");
 		runR(df + " <-match_metrics(" + df + ")");
-		
-		// Retrieve 
+
+		// Retrieve
 		storeVariable("GRID_NAME", df);
 		synchronizeFromR();
 	}
