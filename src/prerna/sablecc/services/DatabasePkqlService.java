@@ -480,10 +480,12 @@ public class DatabasePkqlService {
 		
 		IEngine engine = (IEngine)DIHelper.getInstance().getLocalProp(Constants.LOCAL_MASTER_DB_NAME);
 		
-		// query to get all the concepts and their properties
-		String vertexQuery = "SELECT DISTINCT ?conceptConceptual (COALESCE(?propConceptual, ?noprop) as ?propConceptual) "
+		// query to get all the concepts, their properties, and their keys
+		String vertexQuery = "SELECT DISTINCT ?conceptConceptual (COALESCE(?propConceptual, ?noprop) as ?propConceptual) (COALESCE(?keyConceptual, ?nokey) as ?keyConceptual) "
 				+ " WHERE "
 				+ "{BIND(<http://semoss.org/ontologies/Relation/contains/noprop/noprop> AS ?noprop)"
+				
+				+ "BIND(<http://semoss.org/ontologies/Relation/contains/nokey/nokey> AS ?nokey)"
 				
 				+ "{?conceptComposite <" + RDFS.subClassOf + "> <http://semoss.org/ontologies/Concept>}"
 				+ "{?conceptComposite <http://semoss.org/ontologies/Relation/presentin> <http://semoss.org/ontologies/meta/engine/" + engineName + ">}"
@@ -497,12 +499,17 @@ public class DatabasePkqlService {
 				+ "{?propComposite <http://semoss.org/ontologies/Relation/conceptual> ?propConceptual}"
 				+ "}"
 				
+				+ "OPTIONAL{"
+				+ "{?conceptComposite <" + Constants.META_KEY + "> ?keyComposite}"
+				+ "{?keyComposite <http://semoss.org/ontologies/Relation/conceptual> ?keyConceptual}"				
+				+ "}"
+				
 				+ "FILTER(?concept != <http://semoss.org/ontologies/Concept> "
 				+ " && ?concept != <" + RDFS.Class + "> "
 				+ " && ?concept != <" + RDFS.Resource + "> "
 				+ ")"
 				+ "}";
-
+		
 		// get all the vertices and their properties
 		makeVertices(engine, vertexQuery, edgeAndVertex);
 		
@@ -631,9 +638,10 @@ public class DatabasePkqlService {
 		while(wrapper.hasNext())
 		{
 			// based on query being passed in
-			// only 2 values in array
+			// only 3 values in array
 			// first output is the concept conceptual name
 			// second output is the property conceptual name
+			// third output is the key conceptual name
 			IHeadersDataRow stmt = wrapper.next();
 			Object[] values = stmt.getValues();
 			// we need the raw values for properties since we need to get the "class name"
@@ -642,7 +650,8 @@ public class DatabasePkqlService {
 			
 			String conceptualConceptName = values[0] + "";
 			String concpetualPropertyName = Utility.getClassName(rawValues[1] + "");
-
+			String conceptualKeyName = Utility.getClassName(rawValues[2] + "");
+			
 			// get or create the metamodel vertex
 			MetamodelVertex node = null;
 			if(nodes.containsKey(conceptualConceptName)) {
@@ -655,6 +664,9 @@ public class DatabasePkqlService {
 			
 			// add the property 
 			node.addProperty(concpetualPropertyName);
+			
+			// add the key
+			node.addKey(conceptualKeyName);
 		}
 		
 		// add all the nodes back into the main map
