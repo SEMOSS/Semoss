@@ -2,6 +2,7 @@ package prerna.sablecc2;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Set;
 
 import prerna.sablecc2.om.NounMetadata;
 
@@ -39,5 +40,9 @@ public class VarStore {
 	
 	private String cleanVarName(String varName) {
 		return varName.trim().toUpperCase();
+	}
+	
+	public Set<String> getVariables() {
+		return varMap.keySet();
 	}
 }
