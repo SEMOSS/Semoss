@@ -210,6 +210,60 @@ run_lsh_matching <- function(path, N, b, similarityThreshold, instancesThreshold
   match <- dt[, c("match", "score")]
   colnames(match) <- c("match_id", "score")
   
+  
+  ##################################################
+  # Add dummy nodes to make sure there is data to generate the metamodel properly
+  ##################################################
+  s.e <- "SourceEngineExample"
+  s.c <- "SourceConcept"
+  s.c.id <- paste0(s.c, ecp.separator, s.e)
+  s.p <- "SourceProperty"
+  s.p.id <- paste0(s.p, ecp.separator, s.c.id)
+  t.e <- "TargetEngineExample"
+  t.c <- "TargetConcept"
+  t.c.id <- paste0(t.c, ecp.separator, t.e)
+  t.p <- "TargetProperty"
+  t.p.id <- paste0(t.p, ecp.separator, t.c.id)
+  c.c <- paste0(s.c.id, match.separator, t.c.id)
+  c.p <- paste0(s.c.id, match.separator, t.p.id)
+  p.c <- paste0(s.p.id, match.separator, t.c.id)
+  p.p <- paste0(s.p.id, match.separator, s.p.id)
+  
+  # unique.ecp
+  # ("engine", "concept_id", "concept", "property_id", "property", "instances")
+  unique.ecp <- rbindlist(list(unique.ecp, list(s.e, s.c.id, s.c, NA, NA, 0)))
+  unique.ecp <- rbindlist(list(unique.ecp, list(t.e, t.c.id, t.c, NA, NA, 0)))
+  unique.ecp <- rbindlist(list(unique.ecp, list(s.e, s.c.id, s.c, s.p.id, s.p, 0)))
+  unique.ecp <- rbindlist(list(unique.ecp, list(t.e, t.c.id, t.c, t.p.id, t.p, 0)))
+  
+  # match
+  # ("match_id", "score")
+  match <- rbindlist(list(match, list(c.c, 1)))
+  match <- rbindlist(list(match, list(c.p, 1)))
+  match <- rbindlist(list(match, list(p.c, 1)))
+  match <- rbindlist(list(match, list(p.p, 1)))
+  
+  # concept.match
+  # ("concept_id", "match_id")
+  concept.match <- rbindlist(list(concept.match, list(s.c.id, c.c)))
+  concept.match <- rbindlist(list(concept.match, list(s.c.id, c.p)))
+  
+  # match.concept
+  # ("match_id", "concept_id")
+  match.concept <- rbindlist(list(match.concept, list(c.c, t.c.id)))
+  match.concept <- rbindlist(list(match.concept, list(p.c, t.c.id)))
+  
+  # property.match
+  # ("property_id", "match_id")
+  property.match <- rbindlist(list(property.match, list(s.p.id, p.c)))
+  property.match <- rbindlist(list(property.match, list(s.p.id, p.p)))
+  
+  # match.property
+  # ("match_id", "property_id")
+  match.property <- rbindlist(list(match.property, list(c.p, t.p.id)))
+  match.property <- rbindlist(list(match.property, list(p.p, t.p.id)))
+  
+  
   ##################################################
   # Write all the tables
   ##################################################
