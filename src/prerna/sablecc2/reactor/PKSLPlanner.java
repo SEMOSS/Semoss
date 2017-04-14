@@ -3,6 +3,7 @@ package prerna.sablecc2.reactor;
 import java.util.Hashtable;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Set;
 import java.util.Stack;
 import java.util.Vector;
 
@@ -130,20 +131,25 @@ public class PKSLPlanner {
 		return varStore.removeVariable(variableName);
 	}
 	
+	public Set<String> getVariables() {
+		return varStore.getVariables();
+	}
+	
 	//**********************END VARIABLE METHODS*******************************//
 	
 	
 	// adds an operation with outputs
 	public void addOutputs(String opName, List <String> outputs, IReactor.TYPE opType)
 	{
+		opName = opName.trim();
 		// find the vertex for each of the input
 		// wonder if this should be a full fledged block of java ?
 		Vertex opVertex = upsertVertex(OPERATION, opName);
 		for(int outputIndex = 0;outputIndex < outputs.size();outputIndex++)
 		{
-			Vertex outpVertex = upsertVertex(NOUN, outputs.get(outputIndex));
+			Vertex outpVertex = upsertVertex(NOUN, outputs.get(outputIndex).trim());
 			outpVertex.property("VAR_TYPE", "QUERY"); // by default it is query
-			String edgeID = opName + "_" + outputs.get(outputIndex);
+			String edgeID = opName + "_" + outputs.get(outputIndex).trim();
 			Edge retEdge = opVertex.addEdge(edgeID, outpVertex, "ID", edgeID, "COUNT", 1, "INEDGE", opVertex.property("ID"), "TYPE", "OUTPUT");
 		}
 	}
@@ -152,14 +158,15 @@ public class PKSLPlanner {
 	// should I also specify as names here ?
 	public void addOutputs(String opName, List <String> outputs, List <String> outputTypes, IReactor.TYPE opType)
 	{
+		opName = opName.trim();
 		// find the vertex for each of the input
 		// wonder if this should be a full fledged block of java ?
 		Vertex opVertex = upsertVertex(OPERATION, opName);
 		for(int outputIndex = 0;outputIndex < outputs.size();outputIndex++)
 		{
-			Vertex outpVertex = upsertVertex(NOUN, outputs.get(outputIndex));
+			Vertex outpVertex = upsertVertex(NOUN, outputs.get(outputIndex).trim());
 			outpVertex.property("VAR_TYPE", outputTypes.get(outputIndex)); // by default it is query
-			String edgeID = opName + "_" + outputs.get(outputIndex);
+			String edgeID = opName + "_" + outputs.get(outputIndex).trim();
 			Edge retEdge = opVertex.addEdge(edgeID, outpVertex, "ID", edgeID, "COUNT", 1, "INEDGE", opVertex.property("ID"), "TYPE", "OUTPUT");
 		}
 	}
@@ -178,6 +185,7 @@ public class PKSLPlanner {
 		// or it should be a reduce block
 		// at a minimum it should say what type of block it is
 		// 
+		opName = opName.trim();
 		Vertex opVertex = upsertVertex(OPERATION, opName);
 		opVertex.property("OP_TYPE", opType);
 		opVertex.property("CODE", codeBlock);
@@ -185,12 +193,12 @@ public class PKSLPlanner {
 		List <String> aliasVector = new Vector<String>();
 		for(int inputIndex = 0;inputIndex < inputs.size();inputIndex++)
 		{
-			Vertex inpVertex = upsertVertex(NOUN, inputs.get(inputIndex));
+			Vertex inpVertex = upsertVertex(NOUN, inputs.get(inputIndex).trim());
 			if(asInputs != null && inputIndex < asInputs.size())
-				aliasVector.add(asInputs.get(inputIndex));
+				aliasVector.add(asInputs.get(inputIndex).trim());
 			else
-				aliasVector.add(inputs.get(inputIndex));
-			String edgeID = inputs.get(inputIndex)+ "_" + opName;
+				aliasVector.add(inputs.get(inputIndex).trim());
+			String edgeID = inputs.get(inputIndex).trim()+ "_" + opName;
 			Edge retEdge = inpVertex.addEdge(edgeID, opVertex, "ID", edgeID, "COUNT", 1, "INEDGE", inpVertex.property("ID"), "TYPE", "INPUT");			
 		}
 		opVertex.property("ALIAS", aliasVector);
@@ -204,6 +212,9 @@ public class PKSLPlanner {
 	
 	protected Vertex upsertVertex(String type, String name)
 	{
+		name = name.trim();
+		type = type.trim();
+		
 		Vertex retVertex = null;
 		// try to find the vertex
 		//			GraphTraversal<Vertex, Vertex> gt = g.traversal().V().has(TINKER_TYPE, type).has(TINKER_ID, type + ":" + data);
@@ -215,6 +226,9 @@ public class PKSLPlanner {
 	
 	private Vertex findVertex(String type, String name)
 	{
+		
+		name = name.trim();
+		type = type.trim();
 		Vertex retVertex = null;
 		GraphTraversal<Vertex, Vertex> gt = g.traversal().V().has(TINKER_ID, type + ":" + name);
 		if(gt.hasNext())
