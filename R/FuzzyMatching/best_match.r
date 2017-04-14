@@ -48,6 +48,5 @@ r<-r[order(r$item,-r$similarity,r$match,r$appliedmethod),]
 return(r)
 }
 
-df<-read.csv("C:/fuzzyMatching.csv")
-match_metrics(df)
-
+# df<-read.csv("C:/fuzzyMatching.csv", na.strings="")
+# match_metrics(df)
