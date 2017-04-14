@@ -57,7 +57,7 @@ public class LoadClient extends AbstractReactor {
 
 		// for debugging
 		// right now just print the plan
-		printPlan(newPlan);
+//		printPlan(newPlan);
 
 
 		//replace this planner with generated planner
@@ -86,9 +86,7 @@ public class LoadClient extends AbstractReactor {
 			IHeadersDataRow nextData = iterator.next();
 			String pkslString = generatePKSLString(nextData.getValues(), assignmentIndices, valIndex, separator);
 			
-			if(pkslString.contains("IF")) {
-				System.out.println("");
-			}
+			
 			
 			try {
 				Parser p = new Parser(new Lexer(new PushbackReader(new InputStreamReader(new ByteArrayInputStream(pkslString.getBytes("UTF-8"))))));
@@ -168,7 +166,7 @@ public class LoadClient extends AbstractReactor {
 	 * @return
 	 */
 	private String getSeparator() {
-		String separator = null;
+		String separator = "";
 		// this is an optional key
 		// if we need to concatenate multiple things together
 		if(this.store.getNounKeys().contains(SEPARATOR_NOUN)) {

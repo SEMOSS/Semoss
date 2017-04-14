@@ -1,19 +1,27 @@
 package prerna.sablecc2.reactor;
 
+import java.io.ByteArrayInputStream;
+import java.io.IOException;
+import java.io.InputStreamReader;
+import java.io.PushbackReader;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
-import java.util.Stack;
 
 import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.GraphTraversal;
-import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.__;
 import org.apache.tinkerpop.gremlin.structure.Direction;
-import org.apache.tinkerpop.gremlin.structure.Edge;
 import org.apache.tinkerpop.gremlin.structure.Vertex;
 
+import prerna.sablecc2.Translation;
+import prerna.sablecc2.lexer.Lexer;
+import prerna.sablecc2.lexer.LexerException;
+import prerna.sablecc2.node.Start;
 import prerna.sablecc2.om.NounMetadata;
+import prerna.sablecc2.parser.Parser;
+import prerna.sablecc2.parser.ParserException;
+import prerna.sablecc2.reactor.storage.MapStore;
 
 public class RunPlannerReactor extends AbstractReactor {
 
@@ -31,11 +39,43 @@ public class RunPlannerReactor extends AbstractReactor {
 	public NounMetadata execute()
 	{
 		List<String> pksls = getPksls();
+//		for(String pksl : pksls) {
+//			System.out.println(pksl);
+//		}
+		//run the pksls through a fresh translation
+		Translation translation = new Translation();	
+		for(String pkslString : pksls) {
+			
+			try {
+				Parser p = new Parser(new Lexer(new PushbackReader(new InputStreamReader(new ByteArrayInputStream(pkslString.getBytes("UTF-8"))))));
+				
+				Start tree = p.parse();
+				tree.apply(translation);
+			} catch (Exception e) {
+				System.out.println(">>>>>>>>>>>>>>>>FAIL!!!!!!>>>>>>>>>>>>>>>>>>>>");
+				System.out.println(e.getMessage());
+				System.out.println(pkslString);
+				System.out.println(">>>>>>>>>>>>>>>>FAIL!!!!!!>>>>>>>>>>>>>>>>>>>>");
+			}
+		}
 		
-		for(String pksl : pksls) 
-		System.out.println(pksl);
-		//what i want to do with the pksls is run them through the translation
+		MapStore mapStore = getMapStore();
+		Set<String> variables = translation.planner.getVariables();
+		for(String variable : variables) {
+			System.out.println(variable +"::::::");
+			System.out.println(translation.planner.getVariable(variable) +"::::::");
+			mapStore.put(variable, translation.planner.getVariable(variable));
+		}
+		
+		
+		
+		
 		return null;
+	}
+	
+	
+	private MapStore getMapStore() {
+		return new MapStore();
 	}
 	
 	private List<String> getPksls() {
@@ -79,8 +119,8 @@ public class RunPlannerReactor extends AbstractReactor {
 			
 			if(isRoot) {
 				nextOp.property("PROCESSED", false);
-				String pkslOperation = nextOp.property(PKSLPlanner.TINKER_ID).value().toString().substring(3);
-				System.out.println(pkslOperation);
+				String pkslOperation = nextOp.property(PKSLPlanner.TINKER_ID).value().toString().substring(3) + ";";
+//				System.out.println(pkslOperation);
 				//TODO : what is this operation? need take it out
 				if(!pkslOperation.equals("FRAME")) {
 					vertsToRun.add(nextOp);
@@ -134,7 +174,7 @@ public class RunPlannerReactor extends AbstractReactor {
 			}
 			
 			if(add) {
-				String pkslOperation = nextVert.property(PKSLPlanner.TINKER_ID).value().toString().substring(3);
+				String pkslOperation = nextVert.property(PKSLPlanner.TINKER_ID).value().toString().substring(3) + ";";
 				nextVert.property("PROCESSED", true);
 				pkslsToRun.add(pkslOperation);
 				
