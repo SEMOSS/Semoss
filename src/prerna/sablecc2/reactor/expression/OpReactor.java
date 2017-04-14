@@ -49,6 +49,12 @@ public abstract class OpReactor extends AbstractReactor {
 			if(value instanceof IReactor) {
 				NounMetadata nounOutput = ((IReactor) value).execute();
 				retValues[cIndex] = nounOutput.getValue();
+			} else if(value instanceof String) {
+				NounMetadata noun = this.planner.getVariable((String)value);
+				if(noun != null)
+					retValues[cIndex] = noun.getValue();
+				else
+					retValues[cIndex] = value;
 			}
 			// CURRENTLY, THE SQL EXPRESSION WOULD HAVE ALREADY BEEN
 			// EVALUATED SO THIS IS NOT NECESSARY
