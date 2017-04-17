@@ -26,6 +26,7 @@ import prerna.sablecc2.node.AFrameop;
 import prerna.sablecc2.node.AFrameopColDef;
 import prerna.sablecc2.node.AFrameopScript;
 import prerna.sablecc2.node.AGeneric;
+import prerna.sablecc2.node.AIdWordOrId;
 import prerna.sablecc2.node.AMinusExpr;
 import prerna.sablecc2.node.AMultExpr;
 import prerna.sablecc2.node.AOpScript;
@@ -37,6 +38,7 @@ import prerna.sablecc2.node.ARcol;
 import prerna.sablecc2.node.ARelationship;
 import prerna.sablecc2.node.ASelectNoun;
 import prerna.sablecc2.node.ATermExpr;
+import prerna.sablecc2.node.AWordWordOrId;
 import prerna.sablecc2.node.Node;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.NounMetadata;
@@ -448,6 +450,31 @@ public class Translation extends DepthFirstAdapter {
     public void outARcol(ARcol node)
     {
         defaultOut(node);
+    }
+    
+    public void inAIdWordOrId(AIdWordOrId node)
+    {
+    	defaultIn(node);
+    	String column = (node.getId()+"").trim();
+    	curReactor.getCurRow().addColumn(column);
+    	curReactor.setProp(node.toString().trim(), column);
+    }
+    
+    public void inAWordWordOrId(AWordWordOrId node)
+    {
+        defaultIn(node);
+        String word = null;
+        String trimedWord = node.getWord().toString().trim();
+        if(trimedWord.length() == 2) {
+        	// this is when you have an empty string
+        	// so we will just add an empty string
+        	word = "";
+        } else {
+        	// return values between the quotes
+        	word = trimedWord.substring(1, trimedWord.length()-1).trim();
+        }
+        curReactor.getCurRow().addLiteral(word);
+        curReactor.setProp(node.toString().trim(), word);
     }
 
     // this is a higher level method which is kind of useless
