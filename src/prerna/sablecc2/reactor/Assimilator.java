@@ -62,6 +62,14 @@ public class Assimilator extends AbstractReactor {
 		try {
 			AssimilatorEvaluator newInstance = (AssimilatorEvaluator) newClass.newInstance();
 			Object retVal = newInstance.execute();
+			// to avoid java error which cannot be caught
+			// if the return is null
+			// we will throw the exception here
+			// which means we could not evaluate the signature
+			if(retVal == null) {
+				throw new IllegalArgumentException("Error!!! Could not properly evaluate expression = " + this.signature);
+			}
+			
 			if(this.containsStringValue) {
 				noun = new NounMetadata(retVal.toString(), PkslDataTypes.CONST_STRING);
 			} else {
