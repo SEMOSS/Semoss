@@ -5,46 +5,46 @@ package prerna.sablecc2.node;
 import prerna.sablecc2.analysis.*;
 
 @SuppressWarnings("nls")
-public final class AStrNumberOrLiteral extends PNumberOrLiteral
+public final class ANumberOrStringTerm extends PTerm
 {
-    private PLiteral _literal_;
+    private PNumberOrString _numberOrString_;
 
-    public AStrNumberOrLiteral()
+    public ANumberOrStringTerm()
     {
         // Constructor
     }
 
-    public AStrNumberOrLiteral(
-        @SuppressWarnings("hiding") PLiteral _literal_)
+    public ANumberOrStringTerm(
+        @SuppressWarnings("hiding") PNumberOrString _numberOrString_)
     {
         // Constructor
-        setLiteral(_literal_);
+        setNumberOrString(_numberOrString_);
 
     }
 
     @Override
     public Object clone()
     {
-        return new AStrNumberOrLiteral(
-            cloneNode(this._literal_));
+        return new ANumberOrStringTerm(
+            cloneNode(this._numberOrString_));
     }
 
     @Override
     public void apply(Switch sw)
     {
-        ((Analysis) sw).caseAStrNumberOrLiteral(this);
+        ((Analysis) sw).caseANumberOrStringTerm(this);
     }
 
-    public PLiteral getLiteral()
+    public PNumberOrString getNumberOrString()
     {
-        return this._literal_;
+        return this._numberOrString_;
     }
 
-    public void setLiteral(PLiteral node)
+    public void setNumberOrString(PNumberOrString node)
     {
-        if(this._literal_ != null)
+        if(this._numberOrString_ != null)
         {
-            this._literal_.parent(null);
+            this._numberOrString_.parent(null);
         }
 
         if(node != null)
@@ -57,23 +57,23 @@ public final class AStrNumberOrLiteral extends PNumberOrLiteral
             node.parent(this);
         }
 
-        this._literal_ = node;
+        this._numberOrString_ = node;
     }
 
     @Override
     public String toString()
     {
         return ""
-            + toString(this._literal_);
+            + toString(this._numberOrString_);
     }
 
     @Override
     void removeChild(@SuppressWarnings("unused") Node child)
     {
         // Remove child
-        if(this._literal_ == child)
+        if(this._numberOrString_ == child)
         {
-            this._literal_ = null;
+            this._numberOrString_ = null;
             return;
         }
 
@@ -84,9 +84,9 @@ public final class AStrNumberOrLiteral extends PNumberOrLiteral
     void replaceChild(@SuppressWarnings("unused") Node oldChild, @SuppressWarnings("unused") Node newChild)
     {
         // Replace child
-        if(this._literal_ == oldChild)
+        if(this._numberOrString_ == oldChild)
         {
-            setLiteral((PLiteral) newChild);
+            setNumberOrString((PNumberOrString) newChild);
             return;
         }
 

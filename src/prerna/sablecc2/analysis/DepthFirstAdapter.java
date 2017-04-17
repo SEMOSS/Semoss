@@ -173,53 +173,32 @@ public class DepthFirstAdapter extends AnalysisAdapter
     public void caseAConstantRoutineOrVar(AConstantRoutineOrVar node)
     {
         inAConstantRoutineOrVar(node);
-        if(node.getNumberOrLiteral() != null)
+        if(node.getNumberOrString() != null)
         {
-            node.getNumberOrLiteral().apply(this);
+            node.getNumberOrString().apply(this);
         }
         outAConstantRoutineOrVar(node);
     }
 
-    public void inAWordWordOrId(AWordWordOrId node)
+    public void inABaseFormulaRoutineOrVar(ABaseFormulaRoutineOrVar node)
     {
         defaultIn(node);
     }
 
-    public void outAWordWordOrId(AWordWordOrId node)
+    public void outABaseFormulaRoutineOrVar(ABaseFormulaRoutineOrVar node)
     {
         defaultOut(node);
     }
 
     @Override
-    public void caseAWordWordOrId(AWordWordOrId node)
+    public void caseABaseFormulaRoutineOrVar(ABaseFormulaRoutineOrVar node)
     {
-        inAWordWordOrId(node);
-        if(node.getWord() != null)
+        inABaseFormulaRoutineOrVar(node);
+        if(node.getFormula() != null)
         {
-            node.getWord().apply(this);
+            node.getFormula().apply(this);
         }
-        outAWordWordOrId(node);
-    }
-
-    public void inAIdWordOrId(AIdWordOrId node)
-    {
-        defaultIn(node);
-    }
-
-    public void outAIdWordOrId(AIdWordOrId node)
-    {
-        defaultOut(node);
-    }
-
-    @Override
-    public void caseAIdWordOrId(AIdWordOrId node)
-    {
-        inAIdWordOrId(node);
-        if(node.getId() != null)
-        {
-            node.getId().apply(this);
-        }
-        outAIdWordOrId(node);
+        outABaseFormulaRoutineOrVar(node);
     }
 
     public void inAAssignment(AAssignment node)
@@ -540,27 +519,6 @@ public class DepthFirstAdapter extends AnalysisAdapter
         outARefColDef(node);
     }
 
-    public void inALiteralColDef(ALiteralColDef node)
-    {
-        defaultIn(node);
-    }
-
-    public void outALiteralColDef(ALiteralColDef node)
-    {
-        defaultOut(node);
-    }
-
-    @Override
-    public void caseALiteralColDef(ALiteralColDef node)
-    {
-        inALiteralColDef(node);
-        if(node.getLiteral() != null)
-        {
-            node.getLiteral().apply(this);
-        }
-        outALiteralColDef(node);
-    }
-
     public void inAExprColDef(AExprColDef node)
     {
         defaultIn(node);
@@ -766,27 +724,6 @@ public class DepthFirstAdapter extends AnalysisAdapter
         outADotcol(node);
     }
 
-    public void inALiteral(ALiteral node)
-    {
-        defaultIn(node);
-    }
-
-    public void outALiteral(ALiteral node)
-    {
-        defaultOut(node);
-    }
-
-    @Override
-    public void caseALiteral(ALiteral node)
-    {
-        inALiteral(node);
-        if(node.getWord() != null)
-        {
-            node.getWord().apply(this);
-        }
-        outALiteral(node);
-    }
-
     public void inADecimal(ADecimal node)
     {
         defaultIn(node);
@@ -816,67 +753,88 @@ public class DepthFirstAdapter extends AnalysisAdapter
         outADecimal(node);
     }
 
-    public void inANumNumberOrLiteral(ANumNumberOrLiteral node)
+    public void inAWordWordOrId(AWordWordOrId node)
     {
         defaultIn(node);
     }
 
-    public void outANumNumberOrLiteral(ANumNumberOrLiteral node)
+    public void outAWordWordOrId(AWordWordOrId node)
     {
         defaultOut(node);
     }
 
     @Override
-    public void caseANumNumberOrLiteral(ANumNumberOrLiteral node)
+    public void caseAWordWordOrId(AWordWordOrId node)
     {
-        inANumNumberOrLiteral(node);
+        inAWordWordOrId(node);
+        if(node.getWord() != null)
+        {
+            node.getWord().apply(this);
+        }
+        outAWordWordOrId(node);
+    }
+
+    public void inAIdWordOrId(AIdWordOrId node)
+    {
+        defaultIn(node);
+    }
+
+    public void outAIdWordOrId(AIdWordOrId node)
+    {
+        defaultOut(node);
+    }
+
+    @Override
+    public void caseAIdWordOrId(AIdWordOrId node)
+    {
+        inAIdWordOrId(node);
+        if(node.getId() != null)
+        {
+            node.getId().apply(this);
+        }
+        outAIdWordOrId(node);
+    }
+
+    public void inANumNumberOrString(ANumNumberOrString node)
+    {
+        defaultIn(node);
+    }
+
+    public void outANumNumberOrString(ANumNumberOrString node)
+    {
+        defaultOut(node);
+    }
+
+    @Override
+    public void caseANumNumberOrString(ANumNumberOrString node)
+    {
+        inANumNumberOrString(node);
         if(node.getDecimal() != null)
         {
             node.getDecimal().apply(this);
         }
-        outANumNumberOrLiteral(node);
+        outANumNumberOrString(node);
     }
 
-    public void inAStrNumberOrLiteral(AStrNumberOrLiteral node)
+    public void inAWordOrIdNumberOrString(AWordOrIdNumberOrString node)
     {
         defaultIn(node);
     }
 
-    public void outAStrNumberOrLiteral(AStrNumberOrLiteral node)
+    public void outAWordOrIdNumberOrString(AWordOrIdNumberOrString node)
     {
         defaultOut(node);
     }
 
     @Override
-    public void caseAStrNumberOrLiteral(AStrNumberOrLiteral node)
+    public void caseAWordOrIdNumberOrString(AWordOrIdNumberOrString node)
     {
-        inAStrNumberOrLiteral(node);
-        if(node.getLiteral() != null)
+        inAWordOrIdNumberOrString(node);
+        if(node.getWordOrId() != null)
         {
-            node.getLiteral().apply(this);
+            node.getWordOrId().apply(this);
         }
-        outAStrNumberOrLiteral(node);
-    }
-
-    public void inAFormulaNumberOrLiteral(AFormulaNumberOrLiteral node)
-    {
-        defaultIn(node);
-    }
-
-    public void outAFormulaNumberOrLiteral(AFormulaNumberOrLiteral node)
-    {
-        defaultOut(node);
-    }
-
-    @Override
-    public void caseAFormulaNumberOrLiteral(AFormulaNumberOrLiteral node)
-    {
-        inAFormulaNumberOrLiteral(node);
-        if(node.getFormula() != null)
-        {
-            node.getFormula().apply(this);
-        }
-        outAFormulaNumberOrLiteral(node);
+        outAWordOrIdNumberOrString(node);
     }
 
     public void inAProp(AProp node)
@@ -901,32 +859,32 @@ public class DepthFirstAdapter extends AnalysisAdapter
         {
             node.getEqual().apply(this);
         }
-        if(node.getNumberOrLiteral() != null)
+        if(node.getNumberOrString() != null)
         {
-            node.getNumberOrLiteral().apply(this);
+            node.getNumberOrString().apply(this);
         }
         outAProp(node);
     }
 
-    public void inANumberTerm(ANumberTerm node)
+    public void inANumberOrStringTerm(ANumberOrStringTerm node)
     {
         defaultIn(node);
     }
 
-    public void outANumberTerm(ANumberTerm node)
+    public void outANumberOrStringTerm(ANumberOrStringTerm node)
     {
         defaultOut(node);
     }
 
     @Override
-    public void caseANumberTerm(ANumberTerm node)
+    public void caseANumberOrStringTerm(ANumberOrStringTerm node)
     {
-        inANumberTerm(node);
-        if(node.getDecimal() != null)
+        inANumberOrStringTerm(node);
+        if(node.getNumberOrString() != null)
         {
-            node.getDecimal().apply(this);
+            node.getNumberOrString().apply(this);
         }
-        outANumberTerm(node);
+        outANumberOrStringTerm(node);
     }
 
     public void inAFormulaTerm(AFormulaTerm node)
@@ -990,27 +948,6 @@ public class DepthFirstAdapter extends AnalysisAdapter
             node.getBoolean().apply(this);
         }
         outABooleanTerm(node);
-    }
-
-    public void inAColTerm(AColTerm node)
-    {
-        defaultIn(node);
-    }
-
-    public void outAColTerm(AColTerm node)
-    {
-        defaultOut(node);
-    }
-
-    @Override
-    public void caseAColTerm(AColTerm node)
-    {
-        inAColTerm(node);
-        if(node.getCol() != null)
-        {
-            node.getCol().apply(this);
-        }
-        outAColTerm(node);
     }
 
     public void inACsvTerm(ACsvTerm node)
