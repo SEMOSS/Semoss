@@ -5,6 +5,7 @@ import prerna.sablecc.expressions.sql.H2SqlExpressionIterator;
 import prerna.sablecc.expressions.sql.builder.SqlColumnSelector;
 import prerna.sablecc.expressions.sql.builder.SqlExpressionBuilder;
 import prerna.sablecc.expressions.sql.builder.SqlMathSelector;
+import prerna.sablecc2.om.NounMetadata;
 import prerna.ui.components.playsheets.datamakers.IDataMaker;
 
 public abstract class OpBasicMath extends OpReactor{
@@ -25,10 +26,11 @@ public abstract class OpBasicMath extends OpReactor{
 	 * @param val				The name of the column to execute on
 	 * @return
 	 */
-	protected double evaluateString(String operation, String frameColName) {
+	protected double evaluateString(String operation, NounMetadata frameColNoun) {
 		// to enter here
 		// it is assumed that the value is a string within the frame
 		IDataMaker frameToEvaluate = this.planner.getFrame();
+		String frameColName = frameColNoun.getValue().toString();
 		
 		// TODO: make this generic
 		// at the moment, just going to assume this is sql
