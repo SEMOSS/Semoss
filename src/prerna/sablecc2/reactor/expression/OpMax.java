@@ -3,7 +3,7 @@ package prerna.sablecc2.reactor.expression;
 import prerna.sablecc2.om.NounMetadata;
 import prerna.sablecc2.om.PkslDataTypes;
 
-public class OpMax extends OpReactor {
+public class OpMax extends OpBasicMath {
 
 	@Override
 	public NounMetadata execute() {
@@ -17,6 +17,11 @@ public class OpMax extends OpReactor {
 			Object val = values[i];
 			if(val instanceof Number) {
 				maxValue = performComp(maxValue, ((Number) val).doubleValue()); 
+			} else if(val instanceof String) {
+				// at this point, we have already checked if this is a 
+				// variable, so it better exist on the frame
+				// also, you can only have one of these
+				maxValue = performComp(maxValue, evaluateString("max", val + "")); 
 			} else {
 				throw new IllegalArgumentException("Invalid input for Max. Require all values to be numeric");
 			}
