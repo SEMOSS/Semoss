@@ -243,6 +243,18 @@ public class AnalysisAdapter implements Analysis
     }
 
     @Override
+    public void caseAMinusPosOrNeg(AMinusPosOrNeg node)
+    {
+        defaultCase(node);
+    }
+
+    @Override
+    public void caseAPlusPosOrNeg(APlusPosOrNeg node)
+    {
+        defaultCase(node);
+    }
+
+    @Override
     public void caseADecimal(ADecimal node)
     {
         defaultCase(node);
