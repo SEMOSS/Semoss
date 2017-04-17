@@ -55,22 +55,12 @@ public abstract class OpReactor extends AbstractReactor {
 				// TODO: need to figure out when people want string replacements
 				// vs. the input is actually a literal
 				NounMetadata noun = this.planner.getVariable((String)value);
-				if(noun != null)
+				if(noun != null) {
 					retValues[cIndex] = noun.getValue();
-				else
+				} else {
 					retValues[cIndex] = value;
+				}
 			}
-			// CURRENTLY, THE SQL EXPRESSION WOULD HAVE ALREADY BEEN
-			// EVALUATED SO THIS IS NOT NECESSARY
-//			else if(value instanceof SqlExpressionBuilder) {
-//				SqlExpressionBuilder builder = (SqlExpressionBuilder) value;
-//				if(builder.isScalar()) {
-//					retValues[cIndex] = builder.getScalarValue();
-//				} else {
-//					// what to do in this case....
-//					retValues[cIndex] = null;
-//				}
-//			}
 			else {
 				retValues[cIndex] = value;
 			}
