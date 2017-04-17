@@ -111,13 +111,7 @@ public class AnalysisAdapter implements Analysis
     }
 
     @Override
-    public void caseAWordWordOrId(AWordWordOrId node)
-    {
-        defaultCase(node);
-    }
-
-    @Override
-    public void caseAIdWordOrId(AIdWordOrId node)
+    public void caseABaseFormulaRoutineOrVar(ABaseFormulaRoutineOrVar node)
     {
         defaultCase(node);
     }
@@ -195,12 +189,6 @@ public class AnalysisAdapter implements Analysis
     }
 
     @Override
-    public void caseALiteralColDef(ALiteralColDef node)
-    {
-        defaultCase(node);
-    }
-
-    @Override
     public void caseAExprColDef(AExprColDef node)
     {
         defaultCase(node);
@@ -255,31 +243,31 @@ public class AnalysisAdapter implements Analysis
     }
 
     @Override
-    public void caseALiteral(ALiteral node)
-    {
-        defaultCase(node);
-    }
-
-    @Override
     public void caseADecimal(ADecimal node)
     {
         defaultCase(node);
     }
 
     @Override
-    public void caseANumNumberOrLiteral(ANumNumberOrLiteral node)
+    public void caseAWordWordOrId(AWordWordOrId node)
     {
         defaultCase(node);
     }
 
     @Override
-    public void caseAStrNumberOrLiteral(AStrNumberOrLiteral node)
+    public void caseAIdWordOrId(AIdWordOrId node)
     {
         defaultCase(node);
     }
 
     @Override
-    public void caseAFormulaNumberOrLiteral(AFormulaNumberOrLiteral node)
+    public void caseANumNumberOrString(ANumNumberOrString node)
+    {
+        defaultCase(node);
+    }
+
+    @Override
+    public void caseAWordOrIdNumberOrString(AWordOrIdNumberOrString node)
     {
         defaultCase(node);
     }
@@ -291,7 +279,7 @@ public class AnalysisAdapter implements Analysis
     }
 
     @Override
-    public void caseANumberTerm(ANumberTerm node)
+    public void caseANumberOrStringTerm(ANumberOrStringTerm node)
     {
         defaultCase(node);
     }
@@ -310,12 +298,6 @@ public class AnalysisAdapter implements Analysis
 
     @Override
     public void caseABooleanTerm(ABooleanTerm node)
-    {
-        defaultCase(node);
-    }
-
-    @Override
-    public void caseAColTerm(AColTerm node)
     {
         defaultCase(node);
     }

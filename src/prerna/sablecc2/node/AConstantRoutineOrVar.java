@@ -7,7 +7,7 @@ import prerna.sablecc2.analysis.*;
 @SuppressWarnings("nls")
 public final class AConstantRoutineOrVar extends PRoutineOrVar
 {
-    private PNumberOrLiteral _numberOrLiteral_;
+    private PNumberOrString _numberOrString_;
 
     public AConstantRoutineOrVar()
     {
@@ -15,10 +15,10 @@ public final class AConstantRoutineOrVar extends PRoutineOrVar
     }
 
     public AConstantRoutineOrVar(
-        @SuppressWarnings("hiding") PNumberOrLiteral _numberOrLiteral_)
+        @SuppressWarnings("hiding") PNumberOrString _numberOrString_)
     {
         // Constructor
-        setNumberOrLiteral(_numberOrLiteral_);
+        setNumberOrString(_numberOrString_);
 
     }
 
@@ -26,7 +26,7 @@ public final class AConstantRoutineOrVar extends PRoutineOrVar
     public Object clone()
     {
         return new AConstantRoutineOrVar(
-            cloneNode(this._numberOrLiteral_));
+            cloneNode(this._numberOrString_));
     }
 
     @Override
@@ -35,16 +35,16 @@ public final class AConstantRoutineOrVar extends PRoutineOrVar
         ((Analysis) sw).caseAConstantRoutineOrVar(this);
     }
 
-    public PNumberOrLiteral getNumberOrLiteral()
+    public PNumberOrString getNumberOrString()
     {
-        return this._numberOrLiteral_;
+        return this._numberOrString_;
     }
 
-    public void setNumberOrLiteral(PNumberOrLiteral node)
+    public void setNumberOrString(PNumberOrString node)
     {
-        if(this._numberOrLiteral_ != null)
+        if(this._numberOrString_ != null)
         {
-            this._numberOrLiteral_.parent(null);
+            this._numberOrString_.parent(null);
         }
 
         if(node != null)
@@ -57,23 +57,23 @@ public final class AConstantRoutineOrVar extends PRoutineOrVar
             node.parent(this);
         }
 
-        this._numberOrLiteral_ = node;
+        this._numberOrString_ = node;
     }
 
     @Override
     public String toString()
     {
         return ""
-            + toString(this._numberOrLiteral_);
+            + toString(this._numberOrString_);
     }
 
     @Override
     void removeChild(@SuppressWarnings("unused") Node child)
     {
         // Remove child
-        if(this._numberOrLiteral_ == child)
+        if(this._numberOrString_ == child)
         {
-            this._numberOrLiteral_ = null;
+            this._numberOrString_ = null;
             return;
         }
 
@@ -84,9 +84,9 @@ public final class AConstantRoutineOrVar extends PRoutineOrVar
     void replaceChild(@SuppressWarnings("unused") Node oldChild, @SuppressWarnings("unused") Node newChild)
     {
         // Replace child
-        if(this._numberOrLiteral_ == oldChild)
+        if(this._numberOrString_ == oldChild)
         {
-            setNumberOrLiteral((PNumberOrLiteral) newChild);
+            setNumberOrString((PNumberOrString) newChild);
             return;
         }
 
