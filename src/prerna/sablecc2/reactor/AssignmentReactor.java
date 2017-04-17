@@ -27,9 +27,12 @@ public class AssignmentReactor extends AbstractReactor {
 			// it is just set within the curRow
 			// this is because it doesn't produce a result
 			// as it doesn't go through a reactor
-			// and just adds to the currow
-			Object constant = this.curRow.get(0);
-			PkslDataTypes constantType = this.curRow.getMeta(0);
+			// and just adds to the cur row
+			
+			// we use position 1 because position 0 is a constant 
+			// which is stored in curRow and matches operationName
+			Object constant = this.curRow.get(1);
+			PkslDataTypes constantType = this.curRow.getMeta(1);
 			result = new NounMetadata(constant, constantType);
 			planner.addVariable(operationName.toUpperCase(), result);
 		}
