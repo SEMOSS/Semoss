@@ -13,7 +13,6 @@ import prerna.sablecc2.analysis.DepthFirstAdapter;
 import prerna.sablecc2.node.AAsop;
 import prerna.sablecc2.node.AAssignment;
 import prerna.sablecc2.node.ACodeNoun;
-import prerna.sablecc2.node.AColTerm;
 import prerna.sablecc2.node.ADecimal;
 import prerna.sablecc2.node.ADivExpr;
 import prerna.sablecc2.node.ADotcol;
@@ -27,8 +26,6 @@ import prerna.sablecc2.node.AFrameop;
 import prerna.sablecc2.node.AFrameopColDef;
 import prerna.sablecc2.node.AFrameopScript;
 import prerna.sablecc2.node.AGeneric;
-import prerna.sablecc2.node.ALiteral;
-import prerna.sablecc2.node.ALiteralColDef;
 import prerna.sablecc2.node.AMinusExpr;
 import prerna.sablecc2.node.AMultExpr;
 import prerna.sablecc2.node.AOpScript;
@@ -453,21 +450,6 @@ public class Translation extends DepthFirstAdapter {
         defaultOut(node);
     }
 
-    public void inALiteral(ALiteral node)
-    {
-    	defaultIn(node);
-    	String thisLiteral = node.toString().trim();
-    	thisLiteral = thisLiteral.replace("'","");
-    	thisLiteral = thisLiteral.replace("\"","");
-    	thisLiteral = thisLiteral.trim();
-        curReactor.getCurRow().addLiteral(thisLiteral);
-    }
-    
-    public void outALiteralColDef(ALiteralColDef node)
-    {
-        defaultOut(node);
-    }
-
     // this is a higher level method which is kind of useless
     public void inADotcolColDef(ADotcolColDef node)
     {
@@ -610,19 +592,6 @@ public class Translation extends DepthFirstAdapter {
         defaultOut(node);
     }
     
-    public void inAColTerm(AColTerm node)
-    {
-    	defaultIn(node);
-        String column = (node.getCol()+"").trim();
-        curReactor.getCurRow().addColumn(column);
-        curReactor.setProp(node.toString().trim(), column);
-    }
-
-    public void outAColTerm(AColTerm node)
-    {
-    	defaultOut(node);
-    }
-    
     public void inADotcol(ADotcol node)
     {
     	defaultIn(node);
@@ -669,7 +638,7 @@ public class Translation extends DepthFirstAdapter {
     {
     	defaultIn(node);
     	String key = node.getId().toString().trim();
-    	String propValue = node.getNumberOrLiteral().toString().trim();
+    	String propValue = node.getNumberOrString().toString().trim();
         curReactor.setProp(key, propValue);
     }
     
@@ -812,7 +781,17 @@ public class Translation extends DepthFirstAdapter {
     	defaultIn(node);
 		Assimilator assm = new Assimilator();
 		
-		String leftKey = node.getLeft().toString().trim();
+		String leftKey = null;
+		if(node.getLeft() == null) {
+			// if no left key is defined
+			// then what we really have is a weird way of defining a
+			// positive number.. weird cause it is obviously that by default
+			// but the rightKey could be something a lot more complex
+			// so for now, we will just pretend the leftKey is 0
+			leftKey = "0.0";
+		} else {
+			leftKey = node.getLeft().toString().trim();
+		}
 		String rightKey = node.getRight().toString().trim();
 		initExpressionToReactor(assm, leftKey, rightKey, "+");
 		
@@ -837,7 +816,16 @@ public class Translation extends DepthFirstAdapter {
     	defaultIn(node);
 		Assimilator assm = new Assimilator();
 		
-		String leftKey = node.getLeft().toString().trim();
+		String leftKey = null;
+		if(node.getLeft() == null) {
+			// if no left key is defined
+			// then what we really have is a negative number
+			// but the rightKey could be something a lot more complex
+			// so for now, we will just pretend the leftKey is 0
+			leftKey = "0.0";
+		} else {
+			leftKey = node.getLeft().toString().trim();
+		}
 		String rightKey = node.getRight().toString().trim();
 		initExpressionToReactor(assm, leftKey, rightKey, "-");
 		

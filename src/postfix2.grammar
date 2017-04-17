@@ -128,8 +128,8 @@ Productions
   
  expr =
   {term} term
-  | {plus} [left]:term plus [right]:expr
-  | {minus} [left]:term minus [right]:expr
+  | {plus} [left]:term? plus [right]:expr
+  | {minus} [left]:term? minus [right]:expr
   | {mult} [left]:term mult [right]:expr 
   | {div} [left]:term div [right]:expr 
   | {mod} [left]:term mod [right]:expr

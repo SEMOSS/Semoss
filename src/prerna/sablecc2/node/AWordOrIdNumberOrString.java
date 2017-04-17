@@ -5,46 +5,46 @@ package prerna.sablecc2.node;
 import prerna.sablecc2.analysis.*;
 
 @SuppressWarnings("nls")
-public final class AFormulaNumberOrLiteral extends PNumberOrLiteral
+public final class AWordOrIdNumberOrString extends PNumberOrString
 {
-    private PFormula _formula_;
+    private PWordOrId _wordOrId_;
 
-    public AFormulaNumberOrLiteral()
+    public AWordOrIdNumberOrString()
     {
         // Constructor
     }
 
-    public AFormulaNumberOrLiteral(
-        @SuppressWarnings("hiding") PFormula _formula_)
+    public AWordOrIdNumberOrString(
+        @SuppressWarnings("hiding") PWordOrId _wordOrId_)
     {
         // Constructor
-        setFormula(_formula_);
+        setWordOrId(_wordOrId_);
 
     }
 
     @Override
     public Object clone()
     {
-        return new AFormulaNumberOrLiteral(
-            cloneNode(this._formula_));
+        return new AWordOrIdNumberOrString(
+            cloneNode(this._wordOrId_));
     }
 
     @Override
     public void apply(Switch sw)
     {
-        ((Analysis) sw).caseAFormulaNumberOrLiteral(this);
+        ((Analysis) sw).caseAWordOrIdNumberOrString(this);
     }
 
-    public PFormula getFormula()
+    public PWordOrId getWordOrId()
     {
-        return this._formula_;
+        return this._wordOrId_;
     }
 
-    public void setFormula(PFormula node)
+    public void setWordOrId(PWordOrId node)
     {
-        if(this._formula_ != null)
+        if(this._wordOrId_ != null)
         {
-            this._formula_.parent(null);
+            this._wordOrId_.parent(null);
         }
 
         if(node != null)
@@ -57,23 +57,23 @@ public final class AFormulaNumberOrLiteral extends PNumberOrLiteral
             node.parent(this);
         }
 
-        this._formula_ = node;
+        this._wordOrId_ = node;
     }
 
     @Override
     public String toString()
     {
         return ""
-            + toString(this._formula_);
+            + toString(this._wordOrId_);
     }
 
     @Override
     void removeChild(@SuppressWarnings("unused") Node child)
     {
         // Remove child
-        if(this._formula_ == child)
+        if(this._wordOrId_ == child)
         {
-            this._formula_ = null;
+            this._wordOrId_ = null;
             return;
         }
 
@@ -84,9 +84,9 @@ public final class AFormulaNumberOrLiteral extends PNumberOrLiteral
     void replaceChild(@SuppressWarnings("unused") Node oldChild, @SuppressWarnings("unused") Node newChild)
     {
         // Replace child
-        if(this._formula_ == oldChild)
+        if(this._wordOrId_ == oldChild)
         {
-            setFormula((PFormula) newChild);
+            setWordOrId((PWordOrId) newChild);
             return;
         }
 
