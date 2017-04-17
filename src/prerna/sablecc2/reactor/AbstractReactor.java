@@ -183,8 +183,7 @@ public abstract class AbstractReactor implements IReactor {
 	{
 		System.out.println("Execute the method.. " + signature);
 		System.out.println("Printing NOUN Store so far.. " + store);
-		GenRowStruct thisRow = store.getNoun("all");
-		List <NounMetadata> lamList = thisRow.getNounsOfType(PkslDataTypes.LAMBDA);
+		List <NounMetadata> lamList = curRow.getNounsOfType(PkslDataTypes.LAMBDA);
 		// replace all the values that is inside this. this could be a recursive call
 		for(int lamIndex = 0;lamIndex < lamList.size();lamIndex++)
 		{
