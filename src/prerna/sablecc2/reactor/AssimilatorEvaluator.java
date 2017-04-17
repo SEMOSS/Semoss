@@ -18,5 +18,7 @@ public abstract class AssimilatorEvaluator {
 	 * the signature
 	 * @return
 	 */
-	public abstract Object execute();
+	public Object execute() {
+		return null;
+	}
 }
