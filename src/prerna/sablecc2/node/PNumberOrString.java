@@ -2,7 +2,7 @@
 
 package prerna.sablecc2.node;
 
-public abstract class PLiteral extends Node
+public abstract class PNumberOrString extends Node
 {
     // Empty body
 }

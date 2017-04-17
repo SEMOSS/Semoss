@@ -5,46 +5,46 @@ package prerna.sablecc2.node;
 import prerna.sablecc2.analysis.*;
 
 @SuppressWarnings("nls")
-public final class AColTerm extends PTerm
+public final class ANumNumberOrString extends PNumberOrString
 {
-    private TId _col_;
+    private PDecimal _decimal_;
 
-    public AColTerm()
+    public ANumNumberOrString()
     {
         // Constructor
     }
 
-    public AColTerm(
-        @SuppressWarnings("hiding") TId _col_)
+    public ANumNumberOrString(
+        @SuppressWarnings("hiding") PDecimal _decimal_)
     {
         // Constructor
-        setCol(_col_);
+        setDecimal(_decimal_);
 
     }
 
     @Override
     public Object clone()
     {
-        return new AColTerm(
-            cloneNode(this._col_));
+        return new ANumNumberOrString(
+            cloneNode(this._decimal_));
     }
 
     @Override
     public void apply(Switch sw)
     {
-        ((Analysis) sw).caseAColTerm(this);
+        ((Analysis) sw).caseANumNumberOrString(this);
     }
 
-    public TId getCol()
+    public PDecimal getDecimal()
     {
-        return this._col_;
+        return this._decimal_;
     }
 
-    public void setCol(TId node)
+    public void setDecimal(PDecimal node)
     {
-        if(this._col_ != null)
+        if(this._decimal_ != null)
         {
-            this._col_.parent(null);
+            this._decimal_.parent(null);
         }
 
         if(node != null)
@@ -57,23 +57,23 @@ public final class AColTerm extends PTerm
             node.parent(this);
         }
 
-        this._col_ = node;
+        this._decimal_ = node;
     }
 
     @Override
     public String toString()
     {
         return ""
-            + toString(this._col_);
+            + toString(this._decimal_);
     }
 
     @Override
     void removeChild(@SuppressWarnings("unused") Node child)
     {
         // Remove child
-        if(this._col_ == child)
+        if(this._decimal_ == child)
         {
-            this._col_ = null;
+            this._decimal_ = null;
             return;
         }
 
@@ -84,9 +84,9 @@ public final class AColTerm extends PTerm
     void replaceChild(@SuppressWarnings("unused") Node oldChild, @SuppressWarnings("unused") Node newChild)
     {
         // Replace child
-        if(this._col_ == oldChild)
+        if(this._decimal_ == oldChild)
         {
-            setCol((TId) newChild);
+            setDecimal((PDecimal) newChild);
             return;
         }
 

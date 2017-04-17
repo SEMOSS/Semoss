@@ -9,7 +9,7 @@ public final class AProp extends PProp
 {
     private TId _id_;
     private TEqual _equal_;
-    private PNumberOrLiteral _numberOrLiteral_;
+    private PNumberOrString _numberOrString_;
 
     public AProp()
     {
@@ -19,14 +19,14 @@ public final class AProp extends PProp
     public AProp(
         @SuppressWarnings("hiding") TId _id_,
         @SuppressWarnings("hiding") TEqual _equal_,
-        @SuppressWarnings("hiding") PNumberOrLiteral _numberOrLiteral_)
+        @SuppressWarnings("hiding") PNumberOrString _numberOrString_)
     {
         // Constructor
         setId(_id_);
 
         setEqual(_equal_);
 
-        setNumberOrLiteral(_numberOrLiteral_);
+        setNumberOrString(_numberOrString_);
 
     }
 
@@ -36,7 +36,7 @@ public final class AProp extends PProp
         return new AProp(
             cloneNode(this._id_),
             cloneNode(this._equal_),
-            cloneNode(this._numberOrLiteral_));
+            cloneNode(this._numberOrString_));
     }
 
     @Override
@@ -95,16 +95,16 @@ public final class AProp extends PProp
         this._equal_ = node;
     }
 
-    public PNumberOrLiteral getNumberOrLiteral()
+    public PNumberOrString getNumberOrString()
     {
-        return this._numberOrLiteral_;
+        return this._numberOrString_;
     }
 
-    public void setNumberOrLiteral(PNumberOrLiteral node)
+    public void setNumberOrString(PNumberOrString node)
     {
-        if(this._numberOrLiteral_ != null)
+        if(this._numberOrString_ != null)
         {
-            this._numberOrLiteral_.parent(null);
+            this._numberOrString_.parent(null);
         }
 
         if(node != null)
@@ -117,7 +117,7 @@ public final class AProp extends PProp
             node.parent(this);
         }
 
-        this._numberOrLiteral_ = node;
+        this._numberOrString_ = node;
     }
 
     @Override
@@ -126,7 +126,7 @@ public final class AProp extends PProp
         return ""
             + toString(this._id_)
             + toString(this._equal_)
-            + toString(this._numberOrLiteral_);
+            + toString(this._numberOrString_);
     }
 
     @Override
@@ -145,9 +145,9 @@ public final class AProp extends PProp
             return;
         }
 
-        if(this._numberOrLiteral_ == child)
+        if(this._numberOrString_ == child)
         {
-            this._numberOrLiteral_ = null;
+            this._numberOrString_ = null;
             return;
         }
 
@@ -170,9 +170,9 @@ public final class AProp extends PProp
             return;
         }
 
-        if(this._numberOrLiteral_ == oldChild)
+        if(this._numberOrString_ == oldChild)
         {
-            setNumberOrLiteral((PNumberOrLiteral) newChild);
+            setNumberOrString((PNumberOrString) newChild);
             return;
         }
 
