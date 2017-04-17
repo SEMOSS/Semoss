@@ -12,16 +12,17 @@ public class OpSum extends OpBasicMath {
 		// get the values
 		// this evaluated any lambda that 
 		// was stored in currow
-		Object[] values = getValues();
+		NounMetadata[] values = getValues();
 		for(int i = 0; i < values.length; i++) {
-			Object val = values[i];
-			if(val instanceof Number) {
-				sum += ((Number) val).doubleValue(); 
-			} else if(val instanceof String) {
+			NounMetadata val = values[i];
+			PkslDataTypes valType = val.getNounName();
+			if(valType == PkslDataTypes.CONST_DECIMAL) {
+				sum += ((Number) val.getValue()).doubleValue(); 
+			} else if(valType == PkslDataTypes.COLUMN) {
 				// at this point, we have already checked if this is a 
 				// variable, so it better exist on the frame
 				// also, you can only have one of these
-				sum += evaluateString("sum", val + "");
+				sum += evaluateString("sum", val);
 			} else {
 				throw new IllegalArgumentException("Invalid input for Sum. Require all values to be numeric or column names");
 			}
