@@ -7,7 +7,7 @@ public class OpMax extends OpBasicMath {
 
 	@Override
 	public NounMetadata execute() {
-		double maxValue = Double.MIN_VALUE;
+		double maxValue = -1.0 * Double.MAX_VALUE;
 		
 		// get the values
 		// this evaluated any lambda that 
@@ -38,10 +38,10 @@ public class OpMax extends OpBasicMath {
 	 * @return
 	 */
 	public double performComp(double curMax, double newMax) {
-		if(curMax > newMax) {
-			return curMax;
-		} else {
+		if(curMax < newMax) {
 			return newMax;
+		} else {
+			return curMax;
 		}
 	}
 	
