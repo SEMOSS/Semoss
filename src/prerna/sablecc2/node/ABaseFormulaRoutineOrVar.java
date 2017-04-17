@@ -5,46 +5,46 @@ package prerna.sablecc2.node;
 import prerna.sablecc2.analysis.*;
 
 @SuppressWarnings("nls")
-public final class ALiteral extends PLiteral
+public final class ABaseFormulaRoutineOrVar extends PRoutineOrVar
 {
-    private TWord _word_;
+    private PFormula _formula_;
 
-    public ALiteral()
+    public ABaseFormulaRoutineOrVar()
     {
         // Constructor
     }
 
-    public ALiteral(
-        @SuppressWarnings("hiding") TWord _word_)
+    public ABaseFormulaRoutineOrVar(
+        @SuppressWarnings("hiding") PFormula _formula_)
     {
         // Constructor
-        setWord(_word_);
+        setFormula(_formula_);
 
     }
 
     @Override
     public Object clone()
     {
-        return new ALiteral(
-            cloneNode(this._word_));
+        return new ABaseFormulaRoutineOrVar(
+            cloneNode(this._formula_));
     }
 
     @Override
     public void apply(Switch sw)
     {
-        ((Analysis) sw).caseALiteral(this);
+        ((Analysis) sw).caseABaseFormulaRoutineOrVar(this);
     }
 
-    public TWord getWord()
+    public PFormula getFormula()
     {
-        return this._word_;
+        return this._formula_;
     }
 
-    public void setWord(TWord node)
+    public void setFormula(PFormula node)
     {
-        if(this._word_ != null)
+        if(this._formula_ != null)
         {
-            this._word_.parent(null);
+            this._formula_.parent(null);
         }
 
         if(node != null)
@@ -57,23 +57,23 @@ public final class ALiteral extends PLiteral
             node.parent(this);
         }
 
-        this._word_ = node;
+        this._formula_ = node;
     }
 
     @Override
     public String toString()
     {
         return ""
-            + toString(this._word_);
+            + toString(this._formula_);
     }
 
     @Override
     void removeChild(@SuppressWarnings("unused") Node child)
     {
         // Remove child
-        if(this._word_ == child)
+        if(this._formula_ == child)
         {
-            this._word_ = null;
+            this._formula_ = null;
             return;
         }
 
@@ -84,9 +84,9 @@ public final class ALiteral extends PLiteral
     void replaceChild(@SuppressWarnings("unused") Node oldChild, @SuppressWarnings("unused") Node newChild)
     {
         // Replace child
-        if(this._word_ == oldChild)
+        if(this._formula_ == oldChild)
         {
-            setWord((TWord) newChild);
+            setFormula((PFormula) newChild);
             return;
         }
 
