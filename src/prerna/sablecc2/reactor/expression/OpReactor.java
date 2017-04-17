@@ -40,29 +40,29 @@ public abstract class OpReactor extends AbstractReactor {
 	 * Takes into consideration the lambdas that still need to be executed
 	 * @return
 	 */
-	public Object[] getValues() {
+	public NounMetadata[] getValues() {
 		int numVals = curRow.size();
-		Object[] retValues = new Object[numVals];
+		NounMetadata[] retValues = new NounMetadata[numVals];
 		
 		for(int cIndex = 0; cIndex < numVals; cIndex++) {
-			Object value = curRow.get(cIndex);
-			if(value instanceof IReactor) {
-				NounMetadata nounOutput = ((IReactor) value).execute();
-				retValues[cIndex] = nounOutput.getValue();
-			} else if(value instanceof String) {
-				// if its a string
-				// also do a check if it is a variable and do the replacement
-				// TODO: need to figure out when people want string replacements
-				// vs. the input is actually a literal
-				NounMetadata noun = this.planner.getVariable((String)value);
-				if(noun != null) {
-					retValues[cIndex] = noun.getValue();
+			NounMetadata curNoun = curRow.getNoun(cIndex);
+			PkslDataTypes curType = curNoun.getNounName();
+			if(curType == PkslDataTypes.LAMBDA) {
+				NounMetadata nounOutput = ((IReactor) curNoun.getValue()).execute();
+				retValues[cIndex] = nounOutput;
+			} else if(curType == PkslDataTypes.COLUMN) {
+				// column might be a variable that is already stored
+				// if it is, do a replacement with the assignment noun
+				NounMetadata assignmentNoun = this.planner.getVariable((String)curNoun.getValue());
+				if(assignmentNoun != null) {
+					retValues[cIndex] = assignmentNoun;
 				} else {
-					retValues[cIndex] = value;
+					retValues[cIndex] = curNoun;
 				}
-			}
-			else {
-				retValues[cIndex] = value;
+			} else {
+				// if not a lambda or a column
+				// just return it
+				retValues[cIndex] = curNoun;
 			}
 		}
 		
