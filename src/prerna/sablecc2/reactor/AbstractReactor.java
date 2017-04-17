@@ -1,11 +1,14 @@
 package prerna.sablecc2.reactor;
 
+import java.math.BigDecimal;
 import java.util.Arrays;
 import java.util.Hashtable;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
 import java.util.Vector;
+
+import org.codehaus.plexus.util.StringUtils;
 
 import prerna.algorithm.api.ITableDataFrame;
 import prerna.engine.api.IHeadersDataRow;
@@ -176,14 +179,38 @@ public abstract class AbstractReactor implements IReactor {
 	}
 	
 	// execute it
-	// once again this would be abstract
 	public NounMetadata execute()
 	{
 		System.out.println("Execute the method.. " + signature);
 		System.out.println("Printing NOUN Store so far.. " + store);
+		GenRowStruct thisRow = store.getNoun("all");
+		List <NounMetadata> lamList = thisRow.getNounsOfType(PkslDataTypes.LAMBDA);
+		// replace all the values that is inside this. this could be a recursive call
+		for(int lamIndex = 0;lamIndex < lamList.size();lamIndex++)
+		{
+			NounMetadata thisLambdaMeta = lamList.get(lamIndex);
+			IReactor thisReactor = (IReactor)thisLambdaMeta.getValue();
+			String rSignature = thisReactor.getSignature();
+			NounMetadata result = thisReactor.execute();// this might further trigger other things
+
+			// for compilation reasons
+			// if we have a double
+			// we dont want it to print with the exponential
+			Object replaceValue = result.getValue();
+			PkslDataTypes replaceType = result.getNounName();
+			if(replaceType == PkslDataTypes.CONST_DECIMAL) {
+				// big decimal is easiest way i have seen to do this formatting
+				replaceValue = new BigDecimal((double) replaceValue).toPlainString();
+			} else {
+				replaceValue = replaceValue + "";
+			}
+			System.out.println("Original signature value = " + this.signature);
+			this.signature = StringUtils.replaceOnce( this.signature, rSignature, replaceValue.toString());
+			System.out.println("New signature value = " + this.signature);
+		}
 		return null;
 	}
-	
+
 	// call for map
 	public IHeadersDataRow map(IHeadersDataRow row)
 	{

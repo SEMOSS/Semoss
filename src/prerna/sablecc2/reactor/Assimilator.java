@@ -31,6 +31,7 @@ public class Assimilator extends AbstractReactor {
 
 	@Override
 	public NounMetadata execute() {
+		super.execute();
 		// evaluate the assimilator as an object
 		ClassMaker maker = new ClassMaker();
 		// keep a string to generate the method to execute that will
@@ -44,7 +45,10 @@ public class Assimilator extends AbstractReactor {
 		if(this.containsStringValue) {
 			expressionBuilder.append("return new String(").append(this.signature).append(");}");
 		} else {
-			expressionBuilder.append("return new Double(").append(this.signature).append(");}");
+			// multiply by 1.0 to make sure everything is a double...
+			// TODO: really need to expose integer as different from double
+			// as a pksl data type
+			expressionBuilder.append("return new Double(1.0 * ( ").append(this.signature).append("));}");
 		}
 		maker.addMethod(expressionBuilder.toString());
 		// add a super so we have a base method to execute
