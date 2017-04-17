@@ -453,20 +453,6 @@ public class Translation extends DepthFirstAdapter {
         defaultOut(node);
     }
 
-//    public void inALiteralColDef(ALiteralColDef node)
-//    {
-//    	
-//    	defaultIn(node);
-//    	String thisLiteral = node.getLiteral()+"";
-//    	thisLiteral = thisLiteral.replace("'","");
-//    	thisLiteral = thisLiteral.replace("\"","");
-//    	thisLiteral = thisLiteral.trim();
-//        curReactor.getCurRow().addLiteral(thisLiteral);
-////        if(thisLiteral.contains("1120_Pg_1_Impact__28._Taxable_income_before_net_operating_loss_deduction")) {
-////        	System.out.println("here");
-////        }
-//    }
-    
     public void inALiteral(ALiteral node)
     {
     	defaultIn(node);
@@ -475,9 +461,6 @@ public class Translation extends DepthFirstAdapter {
     	thisLiteral = thisLiteral.replace("\"","");
     	thisLiteral = thisLiteral.trim();
         curReactor.getCurRow().addLiteral(thisLiteral);
-//        if(thisLiteral.contains("1120_Pg_1_Impact__28._Taxable_income_before_net_operating_loss_deduction")) {
-//        	System.out.println("here");
-//        }
     }
     
     public void outALiteralColDef(ALiteralColDef node)
@@ -1002,21 +985,16 @@ public class Translation extends DepthFirstAdapter {
 	    	
 	    	//TODO : i hate these special case checks....how do we make this more elegant
 	    	if(parent instanceof Assimilator) {
-	    		//if our parent is an assimilator
-	    		//we want to not execute but put the curReactor as a lamda
-	    		//the lambda will be stored via its signature as a key
-	    		String signature = curReactor.getPKSL()[1];
-	    		GenRowStruct newLambda = ((Assimilator)parent).getNounStore().makeNoun(signature);
-	    		newLambda.add(curReactor, PkslDataTypes.LAMBDA);
+	    		// if our parent is an assimilator
+	    		// we want to not execute but put the curReactor as a lamda
+	    		((Assimilator) parent).getCurRow().add(new NounMetadata(curReactor, PkslDataTypes.LAMBDA));
+	    		// when the assimilator executes
+	    		// it will call super.execute
+	    		// which will evaluate this reactor and do a string replace
+	    		// on the signature
 	    		curReactor = (Assimilator)parent;
 	    		return;
 	    	}
-	    	
-//	    	if(parent instanceof IfReactor)
-//	    	{
-//	    		curReactor.getParentReactor().getCurRow().addLambda(curReactor);
-//	    		curReactor = curReactor.getParentReactor();
-//	    	}
 	    	
 	    	Object output = curReactor.execute();
 	    	this.planner = ((AbstractReactor)curReactor).planner;
