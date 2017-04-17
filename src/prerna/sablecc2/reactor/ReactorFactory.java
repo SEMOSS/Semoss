@@ -66,7 +66,7 @@ public class ReactorFactory {
 		expressionHash.put("AVG", OpMean.class);
 		expressionHash.put("MEAN", OpMean.class);
 		expressionHash.put("MIN", OpMin.class);
-		expressionHash.put("MAX	", OpMax.class);
+		expressionHash.put("MAX", OpMax.class);
 	}
 	
 	//populates the frame agnostic reactors used by pixel
