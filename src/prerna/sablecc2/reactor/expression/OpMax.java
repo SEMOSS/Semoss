@@ -12,16 +12,17 @@ public class OpMax extends OpBasicMath {
 		// get the values
 		// this evaluated any lambda that 
 		// was stored in currow
-		Object[] values = getValues();
+		NounMetadata[] values = getValues();
 		for(int i = 0; i < values.length; i++) {
-			Object val = values[i];
-			if(val instanceof Number) {
-				maxValue = performComp(maxValue, ((Number) val).doubleValue()); 
-			} else if(val instanceof String) {
+			NounMetadata val = values[i];
+			PkslDataTypes valType = val.getNounName();
+			if(valType == PkslDataTypes.CONST_DECIMAL) {
+				maxValue = performComp(maxValue, ((Number) val.getValue()).doubleValue()); 
+			} else if(valType == PkslDataTypes.COLUMN) {
 				// at this point, we have already checked if this is a 
 				// variable, so it better exist on the frame
 				// also, you can only have one of these
-				maxValue = performComp(maxValue, evaluateString("max", val + "")); 
+				maxValue = performComp(maxValue, evaluateString("max", val)); 
 			} else {
 				throw new IllegalArgumentException("Invalid input for Max. Require all values to be numeric");
 			}
