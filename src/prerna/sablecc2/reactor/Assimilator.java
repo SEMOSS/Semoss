@@ -96,12 +96,18 @@ public class Assimilator extends AbstractReactor {
 		for(String input : uniqueInputs) {
 			NounMetadata data = planner.getVariable(input);
 			PkslDataTypes dataType = data.getNounName();
+			// we have a number that is stored
 			if(dataType == PkslDataTypes.CONST_DECIMAL) {
 				expressionBuilder.append("double ").append(input).append(" = ").append(data.getValue()).append(";");
-			} else if(dataType == PkslDataTypes.CONST_STRING) {
+			}
+			// we have a word that is stored
+			else if(dataType == PkslDataTypes.CONST_STRING) {
 				this.containsStringValue = true;
 				expressionBuilder.append("String ").append(input).append(" = \"").append(data.getValue()).append("\";");
-			} else if(dataType == PkslDataTypes.LAMBDA){
+			}
+			// we have a lambda
+			// so we execute and return the operation output
+			else if(dataType == PkslDataTypes.LAMBDA){
 				// in case the variable points to another reactor
 				// that we need to get the value from
 				// evaluate the lambda
