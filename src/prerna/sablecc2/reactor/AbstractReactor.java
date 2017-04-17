@@ -263,13 +263,13 @@ public abstract class AbstractReactor implements IReactor {
 		for(IReactor child : childReactor) {
 			if(child instanceof FilterReactor) {
 				// child nouns should contain LCOL, RCOL, COMPARATOR
-				Set<String> childNouns = child.getNounStore().nounRow.keySet();
-				for(String cNoun : childNouns) {
-					inputs.addAll(child.getNounStore().getNoun(cNoun).vector);
-				}
+				inputs.addAll(child.getNounStore().getNoun("LCOL").vector);
+				inputs.addAll(child.getNounStore().getNoun("RCOL").vector);
+			} else if(child instanceof Assimilator) {
+				inputs.addAll(child.getNounStore().getNoun("all").vector);
 			}
 		}
-		
+
 		return inputs;
 	}
 	
