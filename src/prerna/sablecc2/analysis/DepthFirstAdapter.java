@@ -724,6 +724,48 @@ public class DepthFirstAdapter extends AnalysisAdapter
         outADotcol(node);
     }
 
+    public void inAMinusPosOrNeg(AMinusPosOrNeg node)
+    {
+        defaultIn(node);
+    }
+
+    public void outAMinusPosOrNeg(AMinusPosOrNeg node)
+    {
+        defaultOut(node);
+    }
+
+    @Override
+    public void caseAMinusPosOrNeg(AMinusPosOrNeg node)
+    {
+        inAMinusPosOrNeg(node);
+        if(node.getMinus() != null)
+        {
+            node.getMinus().apply(this);
+        }
+        outAMinusPosOrNeg(node);
+    }
+
+    public void inAPlusPosOrNeg(APlusPosOrNeg node)
+    {
+        defaultIn(node);
+    }
+
+    public void outAPlusPosOrNeg(APlusPosOrNeg node)
+    {
+        defaultOut(node);
+    }
+
+    @Override
+    public void caseAPlusPosOrNeg(APlusPosOrNeg node)
+    {
+        inAPlusPosOrNeg(node);
+        if(node.getPlus() != null)
+        {
+            node.getPlus().apply(this);
+        }
+        outAPlusPosOrNeg(node);
+    }
+
     public void inADecimal(ADecimal node)
     {
         defaultIn(node);
@@ -738,6 +780,10 @@ public class DepthFirstAdapter extends AnalysisAdapter
     public void caseADecimal(ADecimal node)
     {
         inADecimal(node);
+        if(node.getPosOrNeg() != null)
+        {
+            node.getPosOrNeg().apply(this);
+        }
         if(node.getWhole() != null)
         {
             node.getWhole().apply(this);
