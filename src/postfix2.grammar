@@ -72,8 +72,9 @@ Productions
 	| {assign} assignment semicolon;
  
  routine = script otherscript*;
- routine_or_var = {script} routine | {constant} number_or_literal;
- assignment = id equal routine_or_var;
+ routine_or_var = {script} routine | {constant} number_or_string | {base_formula} formula;
+ 
+ assignment = word_or_id equal routine_or_var;
  
  // scripts are frame operations, opererations, assignments, java operations, or r operations
  // the first 3 are routines that are handled via our translation
@@ -99,7 +100,7 @@ Productions
  // columns can be a reference column / basic literal or just an expression
  // I have a feeling frame_op should not be part of col def
  // mostly because it is difficult to implement *GRIN*
- col_def = {ref}rcol | {literal}literal | {expr}expr | {dotcol} dotcol | {frameop} frameop  | {filter} filter | {prop} prop | {relation} relationship; // need to include something for expression
+ col_def = {ref} rcol | {expr} expr | {dotcol} dotcol | {frameop} frameop  | {filter} filter | {prop} prop | {relation} relationship; // need to include something for expression
  
   // creating another column
  othercol =  comma  col_def;
@@ -107,19 +108,20 @@ Productions
  // reference - this means the 4th column in the current frame
  rcol = frameprefix number; // f$4
  dotcol = frameid dot [column_name]:id;
- literal = word;
  decimal = [whole]:number dot? [fraction]:number?;
  
- number_or_literal = {num} decimal | {str} literal | {formula} formula;
+ // word or an id
+ word_or_id = {word} word | {id} id;
+ // word or id or number
+ number_or_string = {num} decimal | {word_or_id} word_or_id;
  
- prop = id equal number_or_literal;
+ prop = id equal number_or_string;
  
  term =
-    {number} decimal 
+    {number_or_string} number_or_string
 	| {formula} formula
 	| {opformula} operation_formula
 	| {boolean} boolean
-	| {col} [col]:id 
 	| {csv} gen_row
   //| null <- todo, will need to redefine this
   ;
