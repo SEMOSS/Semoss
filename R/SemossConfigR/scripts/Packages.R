@@ -14,3 +14,6 @@ devtools::install_github("twitter/AnomalyDetection")
 
 # Semantic matching package
 install.packages("textreuse")
+
+# Fuzzy Join
+install.packages("fuzzyjoin")
