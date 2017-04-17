@@ -108,7 +108,9 @@ Productions
  // reference - this means the 4th column in the current frame
  rcol = frameprefix number; // f$4
  dotcol = frameid dot [column_name]:id;
- decimal = [whole]:number dot? [fraction]:number?;
+ 
+ pos_or_neg = {minus}minus | {plus}plus;
+ decimal = [pos_or_neg]:pos_or_neg? [whole]:number dot? [fraction]:number?;
  
  // word or an id
  word_or_id = {word} word | {id} id;
@@ -128,8 +130,8 @@ Productions
   
  expr =
   {term} term
-  | {plus} [left]:term? plus [right]:expr
-  | {minus} [left]:term? minus [right]:expr
+  | {plus} [left]:term plus [right]:expr
+  | {minus} [left]:term minus [right]:expr
   | {mult} [left]:term mult [right]:expr 
   | {div} [left]:term div [right]:expr 
   | {mod} [left]:term mod [right]:expr
