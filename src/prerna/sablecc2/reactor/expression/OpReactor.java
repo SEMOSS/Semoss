@@ -50,6 +50,10 @@ public abstract class OpReactor extends AbstractReactor {
 				NounMetadata nounOutput = ((IReactor) value).execute();
 				retValues[cIndex] = nounOutput.getValue();
 			} else if(value instanceof String) {
+				// if its a string
+				// also do a check if it is a variable and do the replacement
+				// TODO: need to figure out when people want string replacements
+				// vs. the input is actually a literal
 				NounMetadata noun = this.planner.getVariable((String)value);
 				if(noun != null)
 					retValues[cIndex] = noun.getValue();
