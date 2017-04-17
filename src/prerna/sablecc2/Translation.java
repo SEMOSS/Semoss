@@ -604,19 +604,30 @@ public class Translation extends DepthFirstAdapter {
     public void inADecimal(ADecimal node)
     {
     	defaultIn(node);
-        System.out.println("Decimal is" + node.getWhole());
-        String fraction = "0";
-        if(node.getFraction() != null) fraction = (node.getFraction()+"").trim();
-        String value = (node.getWhole()+"").trim() +"." + fraction;
-        Double adouble = Double.parseDouble(value);
-        curReactor.getCurRow().addDecimal(adouble);
-        curReactor.setProp(node.toString().trim(), adouble);
-        curReactor.setProp("LAST_VALUE", adouble);
+    	System.out.println("Decimal is" + node.getWhole());
+    	String fraction = "0";
+    	if(node.getFraction() != null) {
+    		fraction = (node.getFraction()+"").trim();
+    	}
+    	String value = (node.getWhole()+"").trim() +"." + fraction;
+    	Double adouble = Double.parseDouble(value);
+    	// determine if it is a negative
+    	// in which case, multiply by -1
+    	if(node.getPosOrNeg() != null) {
+    		String posOrNeg = node.getPosOrNeg().toString().trim();
+    		if(posOrNeg.equals("-")) {
+    			adouble = -1.0 * adouble;
+    		}
+    	}
+    	// add the decimal to the cur row
+    	curReactor.getCurRow().addDecimal(adouble);
+    	curReactor.setProp(node.toString().trim(), adouble);
+    	curReactor.setProp("LAST_VALUE", adouble);
     }
 
     public void outADecimal(ADecimal node)
     {
-        defaultOut(node);
+    	defaultOut(node);
     }
     
     public void inADotcol(ADotcol node)

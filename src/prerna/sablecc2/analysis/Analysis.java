@@ -40,6 +40,8 @@ public interface Analysis extends Switch
     void caseAOthercol(AOthercol node);
     void caseARcol(ARcol node);
     void caseADotcol(ADotcol node);
+    void caseAMinusPosOrNeg(AMinusPosOrNeg node);
+    void caseAPlusPosOrNeg(APlusPosOrNeg node);
     void caseADecimal(ADecimal node);
     void caseAWordWordOrId(AWordWordOrId node);
     void caseAIdWordOrId(AIdWordOrId node);
