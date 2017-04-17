@@ -3,12 +3,11 @@ package prerna.sablecc2.reactor.expression;
 import prerna.sablecc2.om.NounMetadata;
 import prerna.sablecc2.om.PkslDataTypes;
 
-public class OpSum extends OpBasicMath {
+public class OpMean extends OpBasicMath {
 
 	@Override
 	public NounMetadata execute() {
 		double sum = 0;
-		
 		// get the values
 		// this evaluated any lambda that 
 		// was stored in currow
@@ -21,12 +20,12 @@ public class OpSum extends OpBasicMath {
 				// at this point, we have already checked if this is a 
 				// variable, so it better exist on the frame
 				// also, you can only have one of these
-				sum += evaluateString("sum", val + "");
+				sum += evaluateString("avg", val + ""); 
 			} else {
-				throw new IllegalArgumentException("Invalid input for Sum. Require all values to be numeric or column names");
+				throw new IllegalArgumentException("Invalid input for Average. Require all values to be numeric");
 			}
 		}
-		NounMetadata maxNoun = new NounMetadata(sum, PkslDataTypes.CONST_DECIMAL);
+		NounMetadata maxNoun = new NounMetadata(sum / values.length, PkslDataTypes.CONST_DECIMAL);
 		return maxNoun;
 	}
 }

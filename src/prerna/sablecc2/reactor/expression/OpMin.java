@@ -3,7 +3,7 @@ package prerna.sablecc2.reactor.expression;
 import prerna.sablecc2.om.NounMetadata;
 import prerna.sablecc2.om.PkslDataTypes;
 
-public class OpMin extends OpReactor{
+public class OpMin extends OpBasicMath {
 
 	@Override
 	public NounMetadata execute() {
@@ -17,8 +17,13 @@ public class OpMin extends OpReactor{
 			Object val = values[i];
 			if(val instanceof Number) {
 				minValue = performComp(minValue, ((Number) val).doubleValue()); 
+			} else if(val instanceof String) {
+				// at this point, we have already checked if this is a 
+				// variable, so it better exist on the frame
+				// also, you can only have one of these
+				minValue = performComp(minValue, evaluateString("min", val + "")); 
 			} else {
-				throw new IllegalArgumentException("Invalid input for Max. Require all values to be numeric");
+				throw new IllegalArgumentException("Invalid input for Min. Require all values to be numeric or column names");
 			}
 		}
 		NounMetadata maxNoun = new NounMetadata(minValue, PkslDataTypes.CONST_DECIMAL);
