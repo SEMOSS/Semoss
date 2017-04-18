@@ -798,10 +798,10 @@ public class Translation extends DepthFirstAdapter {
     public void outAFormula(AFormula node) {
         defaultOut(node);
         
-        String exprString = node.getExpr().toString().trim();
-        String formulaString = node.toString().trim();
+//        String exprString = node.getExpr().toString().trim();
+//        String formulaString = node.toString().trim();
         
-        curReactor.getNounStore().makeNoun(formulaString).add(exprString, PkslDataTypes.NODEKEY);
+//        curReactor.getNounStore().makeNoun(formulaString).add(exprString, PkslDataTypes.NODEKEY);
         
 //        String expr = node.getExpr().toString().trim();
 //        if(curReactor.hasProp(expr)) {

@@ -16,6 +16,7 @@ import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.NounMetadata;
 import prerna.sablecc2.om.NounStore;
 import prerna.sablecc2.om.PkslDataTypes;
+import prerna.sablecc2.reactor.expression.OpReactor;
 
 public abstract class AbstractReactor implements IReactor {
 
@@ -266,7 +267,9 @@ public abstract class AbstractReactor implements IReactor {
 				inputs.addAll(child.getNounStore().getNoun("LCOL").vector);
 				inputs.addAll(child.getNounStore().getNoun("RCOL").vector);
 			} else if(child instanceof Assimilator) {
-				inputs.addAll(child.getNounStore().getNoun("all").vector);
+				inputs.addAll(child.getInputs());
+			} else if(child instanceof OpReactor) {
+				inputs.addAll(child.getInputs());
 			}
 		}
 
