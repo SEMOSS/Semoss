@@ -54,19 +54,22 @@ public class Filter {
 		// string that will contain the new method to execute
 		StringBuilder method = new StringBuilder();
 		
+		NounMetadata lNoun = lComparison.getNoun(0);
+		NounMetadata rNoun = rComparison.getNoun(0);
+		
 		// get the left hand expression
-		String lString = getIfExpressionString(lComparison);
+		String lString = getIfExpressionString(planner, lNoun);
 		// get the right hand expression
-		String rString = getIfExpressionString(rComparison);
+		String rString = getIfExpressionString(planner, rNoun);
 		
 		// if variables are used
 		// we will create a string and define them at the top of the method
 		// this is simpler than having to replace values within the expression
-		String variablesToDefineString = getVariablesString(planner, lComparison, rComparison);
+//		String variablesToDefineString = getVariablesString(planner, rNoun, rNoun);
 		
 		// generate the method evaluate
 		method.append("public boolean evaluate() {");
-		method.append(variablesToDefineString);
+//		method.append(variablesToDefineString);
 		method.append("if(" + lString + this.comparator + rString + ") {"
 				+ "return true;"
 				+ "} else {"
@@ -114,15 +117,10 @@ public class Filter {
 	 * @param grs
 	 * @return
 	 */
-	private String getIfExpressionString(GenRowStruct grs) {
-		Object type = grs.get(0);
-		PkslDataTypes metaType = grs.getMeta(0);
-		if(type instanceof Expression) {
-			// if the expression depends on a variable
-			// that variable is defined in the getVariablesString method
-			// and added at the beginning of the class
-			return ((Expression) type).getExpression();
-		} else if(metaType == PkslDataTypes.LAMBDA) {
+	private String getIfExpressionString(PKSLPlanner planner, NounMetadata noun) {
+		Object type = noun.getValue();
+		PkslDataTypes metaType = noun.getNounName();
+		if(metaType == PkslDataTypes.LAMBDA) {
 			// lambda means it is some other reactor (ex. sum) 
 			// that is embedded within this filter
 			// just execute it and get the value
@@ -140,66 +138,72 @@ public class Filter {
 		// any other case is a constant
 		else if(metaType == PkslDataTypes.CONST_STRING) {
 			return "\"" + type.toString() + "\"";
-		} else {
+		} 
+		// in case it is a column
+		// need to check if this is actually a variable
+		else if(metaType == PkslDataTypes.COLUMN) {
+			if(planner.hasVariable(type.toString())) {
+				NounMetadata varNoun = planner.getVariableValue(type.toString());
+				// in case the variable itself points to a lambda
+				// just re-run this method with the varNoun as input
+				return getIfExpressionString(planner, varNoun);
+			} else {
+				return "\"" + type.toString() + "\"";
+			}
+		}
+		else {
 			return type.toString();
 		}
 	}
 	
-	/**
-	 * Method to get the variables to properly evaluate the comparison
-	 * @param planner
-	 * @param lgrs
-	 * @param rgrs
-	 * @return
-	 */
-	private String getVariablesString(PKSLPlanner planner, GenRowStruct lgrs, GenRowStruct rgrs) {
-		StringBuilder variablesBuilder = new StringBuilder();
-		// need to make sure we do not define the same variable twice
-		// so we don't get compilation errors
-		Set<String> definedVars = new HashSet<String>();
-		
-		// right now, we are only taking into consideration
-		// expressions... TODO: figure out lambda for everything...
-		// also making assumption these inputs lead to constant values
-		// cannot handle vectors/iterators
-		
-		Object ltype = lgrs.get(0);
-		variableStringGenerator(planner, ltype, variablesBuilder, definedVars);
-		Object rtype = rgrs.get(0);
-		variableStringGenerator(planner, rtype, variablesBuilder, definedVars);
-
-		return variablesBuilder.toString();
-	}
-	
-	public void variableStringGenerator(PKSLPlanner planner, Object genRowValue, StringBuilder variablesBuilder, Set<String> definedVars) {
-		// currently only handling the case of columns defined within expressions
-		// not sure if there is any other case to look into
-		if(genRowValue instanceof Expression) {
-			// grab the inputs
-			String[] inputs = ((Expression) genRowValue).getInputs();
-			for(String input : inputs) {
-				// only append new inputs that haven't already been defined
-				// the java method will not compile if defining the same variable twice
-				if(definedVars.contains(input)) {
-					continue;
-				}
-				// based on type of variable
-				// make sure to define it correctly
-				// currently only handling doubles and strings
-				// ... not sure how a string will be used yet...
-				NounMetadata data = planner.getVariableValue(input);
-				if(data.getNounName() == PkslDataTypes.CONST_DECIMAL) {
-					variablesBuilder.append("double ").append(input).append(" = ").append(data.getValue()).append(";");
-				} else if(data.getNounName() == PkslDataTypes.CONST_STRING) {
-					variablesBuilder.append("String ").append(input).append(" = \"").append(data.getValue()).append("\";");
-				} else {
-					throw new IllegalArgumentException("Filter can only handle scalar variables");
-				}
-				
-				// after defining the variable
-				// add it to the set so we do not define it again
-				definedVars.add(input);
-			}
-		}
-	}
+//	/**
+//	 * Method to get the variables to properly evaluate the comparison
+//	 * @param planner
+//	 * @param lgrs
+//	 * @param rgrs
+//	 * @return
+//	 */
+//	private String getVariablesString(PKSLPlanner planner, NounMetadata lNoun, NounMetadata rNoun) {
+//		StringBuilder variablesBuilder = new StringBuilder();
+//		// need to make sure we do not define the same variable twice
+//		// so we don't get compilation errors
+//		Set<String> definedVars = new HashSet<String>();
+//		
+//		variableStringGenerator(planner, lNoun, variablesBuilder, definedVars);
+//		variableStringGenerator(planner, rNoun, variablesBuilder, definedVars);
+//
+//		return variablesBuilder.toString();
+//	}
+//	
+//	public void variableStringGenerator(PKSLPlanner planner, Object genRowValue, StringBuilder variablesBuilder, Set<String> definedVars) {
+//		// currently only handling the case of columns defined within expressions
+//		// not sure if there is any other case to look into
+//		if(genRowValue instanceof Expression) {
+//			// grab the inputs
+//			String[] inputs = ((Expression) genRowValue).getInputs();
+//			for(String input : inputs) {
+//				// only append new inputs that haven't already been defined
+//				// the java method will not compile if defining the same variable twice
+//				if(definedVars.contains(input)) {
+//					continue;
+//				}
+//				// based on type of variable
+//				// make sure to define it correctly
+//				// currently only handling doubles and strings
+//				// ... not sure how a string will be used yet...
+//				NounMetadata data = planner.getVariableValue(input);
+//				if(data.getNounName() == PkslDataTypes.CONST_DECIMAL) {
+//					variablesBuilder.append("double ").append(input).append(" = ").append(data.getValue()).append(";");
+//				} else if(data.getNounName() == PkslDataTypes.CONST_STRING) {
+//					variablesBuilder.append("String ").append(input).append(" = \"").append(data.getValue()).append("\";");
+//				} else {
+//					throw new IllegalArgumentException("Filter can only handle scalar variables");
+//				}
+//				
+//				// after defining the variable
+//				// add it to the set so we do not define it again
+//				definedVars.add(input);
+//			}
+//		}
+//	}
 }
