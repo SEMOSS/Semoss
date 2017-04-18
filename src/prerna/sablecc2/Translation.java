@@ -3,6 +3,7 @@ package prerna.sablecc2;
 import java.io.BufferedWriter;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.math.BigDecimal;
 
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
@@ -621,6 +622,9 @@ public class Translation extends DepthFirstAdapter {
     	}
     	// add the decimal to the cur row
     	curReactor.getCurRow().addDecimal(adouble);
+    	// modify the parent such that the signature has the correct
+    	// value of the numerical without any extra spaces
+    	curReactor.modifySignature(node.toString().trim(), new BigDecimal(adouble).toPlainString());
     	curReactor.setProp(node.toString().trim(), adouble);
     	curReactor.setProp("LAST_VALUE", adouble);
     }
