@@ -53,7 +53,7 @@ public abstract class OpReactor extends AbstractReactor {
 			} else if(curType == PkslDataTypes.COLUMN) {
 				// column might be a variable that is already stored
 				// if it is, do a replacement with the assignment noun
-				NounMetadata assignmentNoun = this.planner.getVariable((String)curNoun.getValue());
+				NounMetadata assignmentNoun = this.planner.getVariableValue((String)curNoun.getValue());
 				if(assignmentNoun != null) {
 					retValues[cIndex] = assignmentNoun;
 				} else {

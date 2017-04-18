@@ -94,7 +94,7 @@ public class Assimilator extends AbstractReactor {
 		Set<String> uniqueInputs = new HashSet<String>();
 		uniqueInputs.addAll(inputColumns);
 		for(String input : uniqueInputs) {
-			NounMetadata data = planner.getVariable(input);
+			NounMetadata data = planner.getVariableValue(input);
 			PkslDataTypes dataType = data.getNounName();
 			// we have a number that is stored
 			if(dataType == PkslDataTypes.CONST_DECIMAL) {
