@@ -8,6 +8,7 @@ import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Properties;
+import java.util.Vector;
 
 import org.apache.commons.io.FileUtils;
 import org.openrdf.model.vocabulary.RDF;
@@ -145,6 +146,25 @@ public class DomainValues {
 	}
 	public static List<Object> retrieveConceptValues(String uri, IEngine engine) {
 		return engine.getEntityOfType(uri);
+	}
+	
+	public static List<Object> retrieveCleanPropertyValues(String conceptURI, String propertyURI, IEngine engine) {
+		List<Object> allPropValues = new Vector<Object>();
+		if (engine instanceof BigDataEngine) {
+			String query = "SELECT DISTINCT ?property WHERE { {?x <" + RDF.TYPE + "> <" + conceptURI + "> } { ?x <"
+					+ propertyURI + "> ?property} }";
+			ISelectWrapper wrapper = WrapperManager.getInstance().getSWrapper(engine, query);
+			while (wrapper.hasNext()) {
+				ISelectStatement selectStatement = wrapper.next();
+				//clean property
+				String propertyUri = selectStatement.getVar("property").toString();
+//				propertyUri =  determineCleanPropertyName(propertyUri, engine);
+				allPropValues.add(propertyUri);
+			}
+		} else {
+			allPropValues = engine.getEntityOfType(propertyURI);
+		}
+		return allPropValues;
 	}
 	public static List<Object> retrievePropertyValues(String conceptURI, String propertyURI, IEngine engine) {
 		List<Object> allPropValues = new ArrayList<Object>();

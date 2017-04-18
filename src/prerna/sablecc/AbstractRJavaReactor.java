@@ -1778,7 +1778,7 @@ public abstract class AbstractRJavaReactor extends AbstractJavaReactor {
 			ex.printStackTrace();
 		}
 	}
-	
+
 	/**
 	 * Identifies matching concepts for federation from the semicolon-delimited
 	 * list of engines.
@@ -1870,7 +1870,8 @@ public abstract class AbstractRJavaReactor extends AbstractJavaReactor {
 
 		// TODO add this library to the list when starting R
 		// This is also called in the function,
-		// but by calling it here we can see if the user doesn't have the package
+		// but by calling it here we can see if the user doesn't have the
+		// package
 		runR("library(textreuse)");
 
 		// Source the LSH function from the utility script
@@ -1958,12 +1959,12 @@ public abstract class AbstractRJavaReactor extends AbstractJavaReactor {
 
 			// Clean directory
 			// TODO clean the directory even when there is an error
-//			try {
-//				FileUtils.cleanDirectory(new File(corpusDirectory));
-//			} catch (IOException e) {
-//				System.out.println("Unable to clean directory");
-//				e.printStackTrace();
-//			}
+			// try {
+			// FileUtils.cleanDirectory(new File(corpusDirectory));
+			// } catch (IOException e) {
+			// System.out.println("Unable to clean directory");
+			// e.printStackTrace();
+			// }
 		}
 	}
 
@@ -2042,8 +2043,9 @@ public abstract class AbstractRJavaReactor extends AbstractJavaReactor {
 		} else {
 			targetValues = DomainValues.retrieveConceptUniqueValues(conceptUriTarget, iEngineTarget);
 		}
-		//write two csvs source and target
-		String csvSourcePath = getBaseFolder() + "\\" + Constants.R_BASE_FOLDER + "\\" + "FuzzyMatching\\Temp\\fuzzySourceMatching.csv";
+		// write two csvs source and target
+		String csvSourcePath = getBaseFolder() + "\\" + Constants.R_BASE_FOLDER + "\\"
+				+ "FuzzyMatching\\Temp\\fuzzySourceMatching.csv";
 		csvSourcePath = csvSourcePath.replace("\\", "/");
 
 		String csvTargetPath = getBaseFolder() + "\\" + Constants.R_BASE_FOLDER + "\\"
@@ -2127,15 +2129,17 @@ public abstract class AbstractRJavaReactor extends AbstractJavaReactor {
 		storeVariable("GRID_NAME", df);
 		synchronizeFromR();
 	}
-	
+
 	/**
 	 * 
 	 * @param match
 	 *            The match id in the format
 	 *            (sourceProperty~)sourceConcept~sourceEngine%(targetProperty~)
 	 *            targetConcept~targetEngine
-	 * @param join join type inner, outer...
-	 * @param method matching method 
+	 * @param join
+	 *            join type inner, outer...
+	 * @param method
+	 *            matching method
 	 * @param maxdist
 	 * @param gramsize
 	 * @param penalty
@@ -2195,18 +2199,31 @@ public abstract class AbstractRJavaReactor extends AbstractJavaReactor {
 
 		// Source
 		List<Object> sourceValues = new ArrayList<Object>();
+		List<String> sourceProperties = new ArrayList<>();
+		ArrayList<Vector<Object>> allSourceInstances = new ArrayList<Vector<Object>>();
+		int[] sourceColumnSize;
+
 		String conceptUriSource = "http://semoss.org/ontologies/Concept/" + conceptSource;
 		if (sourceIsProperty) {
 			String propertyUriSource = "http://semoss.org/ontologies/Relation/Contains/" + propertySource;
-			sourceValues = DomainValues.retrievePropertyValues(conceptUriSource, propertyUriSource,
-					iEngineSource);
+			sourceValues = DomainValues.retrievePropertyValues(conceptUriSource, propertyUriSource, iEngineSource);
+			sourceColumnSize = new int[]{sourceValues.size()};
+			allSourceInstances.add((Vector<Object>) sourceValues);
+
 		} else {
 			sourceValues = DomainValues.retrieveConceptValues(conceptUriSource, iEngineSource);
-			//TODO query properties for concept
-			
-			//TODO get property instance values
-			System.out.println("Need to get property values");
-			
+			allSourceInstances.add((Vector<Object>) sourceValues);			
+			sourceProperties = iEngineSource.getProperties4Concept(conceptUriSource, false);
+			sourceColumnSize = new int[sourceProperties.size() + 1];
+			sourceColumnSize[0] = sourceValues.size();
+			for (int i = 0; i < sourceProperties.size(); i++) {
+
+				List<Object> sourcePropertyInstances = DomainValues.retrieveCleanPropertyValues(conceptUriSource,
+						(String) sourceProperties.get(i), iEngineSource);
+				sourceColumnSize[i+1] = sourcePropertyInstances.size();
+				allSourceInstances.add((Vector<Object>) sourcePropertyInstances);
+			}
+
 		}
 
 		// Target
@@ -2214,10 +2231,17 @@ public abstract class AbstractRJavaReactor extends AbstractJavaReactor {
 		String conceptUriTarget = "http://semoss.org/ontologies/Concept/" + conceptTarget;
 		if (targetIsProperty) {
 			String propertyUriTarget = "http://semoss.org/ontologies/Relation/Contains/" + propertyTarget;
-			targetValues = DomainValues.retrievePropertyValues(conceptUriTarget, propertyUriTarget,
-					iEngineTarget);
+			targetValues = DomainValues.retrievePropertyValues(conceptUriTarget, propertyUriTarget, iEngineTarget);
 		} else {
 			targetValues = DomainValues.retrieveConceptValues(conceptUriTarget, iEngineTarget);
+			List<String> targetProperties = iEngineTarget.getProperties4Concept(conceptUriTarget, false);
+			ArrayList<ArrayList<Object>> allTargetPropertyInstances = new ArrayList<ArrayList<Object>>();
+			for (int i = 0; i < targetProperties.size(); i++) {
+				List<Object> targetPropertyInstances = DomainValues.retrievePropertyValues(conceptUriTarget,
+						(String) targetProperties.get(i), iEngineTarget);
+				allTargetPropertyInstances.add((ArrayList<Object>) targetPropertyInstances);
+			}
+
 		}
 
 		String csvPathSource = getBaseFolder() + "\\" + Constants.R_BASE_FOLDER + "\\"
@@ -2255,13 +2279,33 @@ public abstract class AbstractRJavaReactor extends AbstractJavaReactor {
 			// write source values to csv
 			PrintWriter sv = new PrintWriter(new File(csvPathSource));
 			StringBuilder ssb = new StringBuilder();
+			//csv headers
 			ssb.append(sourceHeader);
+			//property headers
+			for(int i = 0; i < sourceProperties.size(); i++) {
+				ssb.append(" , " + sourceProperties.get(i));
+			}
 			ssb.append("\n");
-			for (int i = 0; i < sourceArray.length; i++) {
-				String sourceInstance = (String) sourceArray[i];
-				sourceInstance = sourceInstance.replaceAll("[^A-Za-z0-9 ]", "_");
-				ssb.append(sourceInstance);
+			
+	        List b = Arrays.asList(ArrayUtils.toObject(sourceColumnSize));
+	        int maxRow = (int) Collections.max(b);
+			for(int row = 0; row < maxRow; row++) {
+			for (int i = 0; i < allSourceInstances.size(); i++) {
+				Vector<Object> col = allSourceInstances.get(i);
+					String sourceInstance = "";
+					if(row < col.size()) {
+						//TODO clean?????
+						sourceInstance = col.get(row).toString();
+					}
+					ssb.append(sourceInstance + " ,");
+				}
 				ssb.append("\n");
+				
+				
+//				String sourceInstance = (String) sourceArray[i];
+//				sourceInstance = sourceInstance.replaceAll("[^A-Za-z0-9 ]", "_");
+//				ssb.append(sourceInstance);
+//				ssb.append("\n");
 			}
 			sv.write(ssb.toString());
 			sv.close();
@@ -2287,42 +2331,40 @@ public abstract class AbstractRJavaReactor extends AbstractJavaReactor {
 		}
 
 		// Run Fuzzy Matching in R
-		String utilityScriptPath = getBaseFolder() + "\\" + Constants.R_BASE_FOLDER + "\\" + "FuzzyJoin\\fuzzy_join.r";
-		utilityScriptPath = utilityScriptPath.replace("\\", "/");
-
-		runR("library(fuzzyjoin)");
-		runR("source(\"" + utilityScriptPath + "\");");
-		String df1 = "this.df.name.is.reserved.for.fuzzy.join.source";
-		String df2 = "this.df.name.is.reserved.for.fuzzy.join.target";
-		String df = "this.df.name.is.reserved.for.fuzzy.join.output";
-		runR(df1 + " <-read.csv(\"" + csvPathSource + "\")");
-		runR(df2 + " <-read.csv(\"" + csvPathTarget + "\")");
-
-		// parse data types
-		double maxdist_value = Double.parseDouble(maxdist);
-		int gramsize_value = Integer.parseInt(gramsize);
-		double penalty_value = Double.parseDouble(penalty);
-
-		// build the R command
-		StringBuilder rCommand = new StringBuilder();
-		rCommand.append(df);
-		rCommand.append("<-fuzzy_join(");
-		rCommand.append(df1 + ",");
-		rCommand.append(df2 + ",");
-		rCommand.append("\"" + sourceHeader + "\"" + ",");
-		rCommand.append("\"" + targetHeader + "\"" + ",");
-		rCommand.append("\"" + join + "\"" + ",");
-		rCommand.append(maxdist + ",");
-		rCommand.append("method=" + "\"" + method + "\"" + ",");
-		rCommand.append("q=" + gramsize + ",");
-		rCommand.append("p=" + penalty + ")");
-		System.out.println(rCommand.toString());
-		runR(rCommand.toString());
-		runR(df);
-		storeVariable("GRID_NAME", df);
-		synchronizeFromR();
-  }
-
-
+//		String utilityScriptPath = getBaseFolder() + "\\" + Constants.R_BASE_FOLDER + "\\" + "FuzzyJoin\\fuzzy_join.r";
+//		utilityScriptPath = utilityScriptPath.replace("\\", "/");
+//
+//		runR("library(fuzzyjoin)");
+//		runR("source(\"" + utilityScriptPath + "\");");
+//		String df1 = "this.df.name.is.reserved.for.fuzzy.join.source";
+//		String df2 = "this.df.name.is.reserved.for.fuzzy.join.target";
+//		String df = "this.df.name.is.reserved.for.fuzzy.join.output";
+//		runR(df1 + " <-read.csv(\"" + csvPathSource + "\")");
+//		runR(df2 + " <-read.csv(\"" + csvPathTarget + "\")");
+//
+//		// parse data types
+//		double maxdist_value = Double.parseDouble(maxdist);
+//		int gramsize_value = Integer.parseInt(gramsize);
+//		double penalty_value = Double.parseDouble(penalty);
+//
+//		// build the R command
+//		StringBuilder rCommand = new StringBuilder();
+//		rCommand.append(df);
+//		rCommand.append("<-fuzzy_join(");
+//		rCommand.append(df1 + ",");
+//		rCommand.append(df2 + ",");
+//		rCommand.append("\"" + sourceHeader + "\"" + ",");
+//		rCommand.append("\"" + targetHeader + "\"" + ",");
+//		rCommand.append("\"" + join + "\"" + ",");
+//		rCommand.append(maxdist + ",");
+//		rCommand.append("method=" + "\"" + method + "\"" + ",");
+//		rCommand.append("q=" + gramsize + ",");
+//		rCommand.append("p=" + penalty + ")");
+//		System.out.println(rCommand.toString());
+//		runR(rCommand.toString());
+//		runR(df);
+//		storeVariable("GRID_NAME", df);
+//		synchronizeFromR();
+	}
 
 }
