@@ -95,6 +95,10 @@ public class Assimilator extends AbstractReactor {
 		uniqueInputs.addAll(inputColumns);
 		for(String input : uniqueInputs) {
 			NounMetadata data = planner.getVariableValue(input);
+			if(data == null) {
+				// this only happens when a variable is being used but isn't defined
+				throw new IllegalArgumentException("Undefined variable : " + input);
+			}
 			PkslDataTypes dataType = data.getNounName();
 			// we have a number that is stored
 			if(dataType == PkslDataTypes.CONST_DECIMAL) {
