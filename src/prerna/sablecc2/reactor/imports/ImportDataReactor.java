@@ -1,20 +1,12 @@
 package prerna.sablecc2.reactor.imports;
 
-import java.util.Iterator;
-import java.util.List;
 import java.util.Map;
 
 import prerna.algorithm.api.ITableDataFrame;
 import prerna.ds.querystruct.QueryStruct2;
-import prerna.engine.api.IEngine;
-import prerna.engine.api.IRawSelectWrapper;
-import prerna.rdf.engine.wrappers.WrapperManager;
-import prerna.rdf.query.builder.SQLInterpreter2;
-import prerna.sablecc.PKQLEnum;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.NounMetadata;
 import prerna.sablecc2.reactor.AbstractReactor;
-import prerna.util.Utility;
 
 public class ImportDataReactor extends AbstractReactor {
 
@@ -62,7 +54,7 @@ public class ImportDataReactor extends AbstractReactor {
 			NounMetadata object = (NounMetadata)allNouns.getNoun(0);
 			return (QueryStruct2)object.getValue();
 		} else {
-			NounMetadata result = this.planner.getVariable("$RESULT");
+			NounMetadata result = this.planner.getVariableValue("$RESULT");
 			if(result.getNounName().equals("QUERYSTRUCT")) {
 				queryStruct = (QueryStruct2)result.getValue();
 			}

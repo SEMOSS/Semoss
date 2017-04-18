@@ -123,6 +123,10 @@ public class PKSLPlanner {
 		return varStore.getVariable(variableName);
 	}
 	
+	public NounMetadata getVariableValue(String variableName) {
+		return varStore.getVariableValue(variableName);
+	}
+	
 	public boolean hasVariable(String variableName) {
 		return varStore.hasVariable(variableName);
 	}
