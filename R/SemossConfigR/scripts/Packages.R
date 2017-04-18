@@ -17,3 +17,6 @@ install.packages("textreuse")
 
 # Fuzzy Join
 install.packages("fuzzyjoin")
+
+# fuzzy matching
+install.packages("stringdist")

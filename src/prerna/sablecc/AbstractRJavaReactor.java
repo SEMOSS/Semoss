@@ -1977,7 +1977,7 @@ public abstract class AbstractRJavaReactor extends AbstractJavaReactor {
 	 *            (sourceProperty~)sourceConcept~sourceEngine%(targetProperty~)
 	 *            targetConcept~targetEngine
 	 */
-	public void runFuzzyMatching(String match) {
+	public void runFuzzyMatching(String match, int sampleSize) {
 
 		// Parse input string
 		// (sourceProperty~)sourceConcept~sourceEngine%(targetProperty~)targetConcept~targetEngine
@@ -2088,7 +2088,6 @@ public abstract class AbstractRJavaReactor extends AbstractJavaReactor {
 			}
 			pw.write(sb.toString());
 			pw.close();
-			System.out.println("done!");
 		} catch (FileNotFoundException e) {
 			e.printStackTrace();
 		}
@@ -2109,7 +2108,6 @@ public abstract class AbstractRJavaReactor extends AbstractJavaReactor {
 			}
 			pw.write(sb.toString());
 			pw.close();
-			System.out.println("done!");
 		} catch (FileNotFoundException e) {
 			e.printStackTrace();
 		}
@@ -2121,10 +2119,14 @@ public abstract class AbstractRJavaReactor extends AbstractJavaReactor {
 
 		runR("library(stringdist)");
 		runR("source(\"" + utilityScriptPath + "\");");
-		String df = "this.df.name.is.reserved.for.fuzzy.matching";
+		//create 2 frames from source and target csvs
+		String df = "this.df.name.is.reserved.for.fuzzy.source.matching";
 		runR(df + " <-read.csv(\"" + csvSourcePath + "\", na.strings=\"\")");
-		runR(df + " <-match_metrics(" + df + ")");
-
+		String df2 = "this.df.name.is.reserved.for.fuzzy.target.matching";
+		runR(df2 + " <-read.csv(\"" + csvTargetPath + "\", na.strings=\"\")");
+		
+		runR(df + " <-match_metrics(" + df +  " , " + df2+ " , \"" + sourceHeader + "\" , \""+ targetHeader + "\" , " + sampleSize + ")");
+		
 		// Retrieve
 		storeVariable("GRID_NAME", df);
 		synchronizeFromR();
@@ -2147,7 +2149,6 @@ public abstract class AbstractRJavaReactor extends AbstractJavaReactor {
 	public void runFuzzyJoin(String match, String join, String method, String maxdist, String gramsize,
 			String penalty) {
 
-		System.out.println(">>>Executing fuzzy join...");
 		// Initialize
 		String engineSource = "";
 		String engineTarget = "";
