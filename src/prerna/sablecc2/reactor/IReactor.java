@@ -126,6 +126,8 @@ public interface IReactor {
 	
 	// gets the signature
 	String getSignature();
+
+	void modifySignature(String string, String plainString);
 	
 	
 	/**

@@ -204,11 +204,16 @@ public abstract class AbstractReactor implements IReactor {
 			} else {
 				replaceValue = replaceValue + "";
 			}
-			System.out.println("Original signature value = " + this.signature);
-			this.signature = StringUtils.replaceOnce( this.signature, rSignature, replaceValue.toString());
-			System.out.println("New signature value = " + this.signature);
+			modifySignature(rSignature, replaceValue.toString());
 		}
 		return null;
+	}
+	
+	@Override
+	public void modifySignature(String stringToFind, String stringReplacement) {
+		System.out.println("Original signature value = " + this.signature);
+		this.signature = StringUtils.replaceOnce( this.signature, stringToFind, stringReplacement);
+		System.out.println("New signature value = " + this.signature);
 	}
 
 	// call for map
