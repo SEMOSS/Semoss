@@ -21,6 +21,7 @@ import prerna.sablecc2.lexer.Lexer;
 import prerna.sablecc2.lexer.LexerException;
 import prerna.sablecc2.node.Start;
 import prerna.sablecc2.om.NounMetadata;
+import prerna.sablecc2.om.PkslDataTypes;
 import prerna.sablecc2.parser.Parser;
 import prerna.sablecc2.parser.ParserException;
 import prerna.sablecc2.reactor.storage.MapStore;
@@ -102,18 +103,18 @@ public class RunPlannerReactor extends AbstractReactor {
 		System.out.println("****************    "+total+"      *************************");
 		System.out.println("****************    "+count+"      *************************");
 		
-//		MapStore mapStore = getMapStore();
-//		Set<String> variables = translation.planner.getVariables();
-//		for(String variable : variables) {
+		MapStore mapStore = getMapStore();
+		Set<String> variables = translation.planner.getVariables();
+		for(String variable : variables) {
 //			System.out.println(variable +"::::::");
 //			System.out.println(translation.planner.getVariable(variable) +"::::::");
-//			mapStore.put(variable, translation.planner.getVariable(variable));
-//		}
+			mapStore.put(variable, translation.planner.getVariableValue(variable));
+		}
 		
 		long end = System.currentTimeMillis();
 		System.out.println("****************    "+(end - start)+"      *************************");
 		
-		return null;
+		return new NounMetadata(mapStore, PkslDataTypes.IN_MEM_STORE);
 	}
 	
 	
