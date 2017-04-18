@@ -111,7 +111,7 @@ public class Translation extends DepthFirstAdapter {
 			//get the noun meta result
 			//if it is a frame
 			//then set the frame to the frame result
-			NounMetadata noun = planner.getVariable("$RESULT");
+			NounMetadata noun = planner.getVariableValue("$RESULT");
 			Object frameNoun = noun.getValue();
 			if(frameNoun instanceof IDataMaker){
 				frame = (IDataMaker) frameNoun;
@@ -310,7 +310,7 @@ public class Translation extends DepthFirstAdapter {
     	// after we init the new reactor
         // we will add the result of the last reactor 
         // into the noun store of this new reactor
-    	NounMetadata prevResult = this.planner.getVariable("$RESULT");
+    	NounMetadata prevResult = this.planner.getVariableValue("$RESULT");
     	if(prevResult != null) {
     		PkslDataTypes nounName = prevResult.getNounName();
     		GenRowStruct genRow = curReactor.getNounStore().makeNoun(nounName.toString());
@@ -751,7 +751,7 @@ public class Translation extends DepthFirstAdapter {
         	node.getLcol().apply(this);
             // we need to account for various expressions being evaluated within a filter
             // if there is a result, grab the result and set it as a lcol in the filter reactor
-            NounMetadata prevResult = this.planner.getVariable("$RESULT");
+            NounMetadata prevResult = this.planner.getVariableValue("$RESULT");
         	if(prevResult != null) {
         		GenRowStruct genRow = curReactor.getNounStore().makeNoun("LCOL");
         		genRow.add(prevResult, prevResult.getNounName());
@@ -773,7 +773,7 @@ public class Translation extends DepthFirstAdapter {
         	node.getRcol().apply(this);
             // we need to account for various expressions being evaluated within a filter
             // if there is a result, grab the result and set it as a lcol in the filter reactor
-            NounMetadata prevResult = this.planner.getVariable("$RESULT");
+            NounMetadata prevResult = this.planner.getVariableValue("$RESULT");
         	if(prevResult != null) {
         		GenRowStruct genRow = curReactor.getNounStore().makeNoun("RCOL");
         		genRow.add(prevResult, prevResult.getNounName());
