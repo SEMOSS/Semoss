@@ -1,9 +1,24 @@
-match_metrics <- function(df){
+match_metrics <- function(df1,df2,col1,col2,samplesize){
+# df1 is the dataframe of the first concept (only first column will be used)
+# df2 is the dataframe of the first concept  (only first column will be used)
+# col1 is the column name from df1 to match
+# col2 is column name from df12 to match
+# samplesize is the sample size randomly selected from df1
 library(stringdist)
-c<-ncol(df)
-c1<-as.character(unique(df[,1]))
-c2<-unique(df[,2])
-d<-as.character(c2)
+
+if(samplesize < nrow(df1)) {
+  idx<-sample(1:nrow(df1),samplesize)
+  df1 <- df1[idx,]
+}
+cmd1<-paste("c1<-as.character(unique(df1$",col1,"))",sep="")
+eval(parse(text=cmd1))
+cmd2<-paste("d<-as.character(unique(df2$",col2,"))",sep="")
+eval(parse(text=cmd2))
+
+#c<-ncol(df)
+#c1<-as.character(unique(df[,1]))
+#c2<-unique(df[,2])
+#d<-as.character(c2)
 
 r <- data.frame(item=character(), match=character(),similarity=numeric(),appliedmethod = character(),stringsAsFactors=FALSE)
 r<-best_match(r,c1,d,method="lv",q=1,p=0)
@@ -47,6 +62,3 @@ r$similarity<-round(r$similarity,2)
 r<-r[order(r$item,-r$similarity,r$match,r$appliedmethod),]
 return(r)
 }
-
-# df<-read.csv("C:/fuzzyMatching.csv", na.strings="")
-# match_metrics(df)
