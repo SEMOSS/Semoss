@@ -129,15 +129,10 @@ public class IterateReactor extends AbstractReactor {
 	 * @return
 	 */
 	private QueryStruct2 getQueryStruct() {
-		GenRowStruct allNouns = getNounStore().getNoun("QUERYSTRUCT");
+		GenRowStruct allNouns = getNounStore().getNoun(PkslDataTypes.QUERY_STRUCT.toString());
 		QueryStruct2 queryStruct = null;
 		if(allNouns != null) {
 			queryStruct = (QueryStruct2) allNouns.get(0);
-		} else {
-			NounMetadata result = (NounMetadata)this.planner.getProperty("RESULT", "RESULT");
-			if(result != null && result.getNounName().equals("QUERYSTRUCT")) {
-				queryStruct = (QueryStruct2)result.getValue();
-			}
 		}
 		return queryStruct;
 	}
@@ -168,6 +163,11 @@ public class IterateReactor extends AbstractReactor {
 		GenRowStruct grs = getNounStore().getNoun(this.IN_MEM_STORE);
 		if(grs != null) {
 			inMemStore = (InMemStore) grs.get(0);
+		} else {
+			grs = getNounStore().getNoun(PkslDataTypes.IN_MEM_STORE.toString());
+			if(grs != null) {
+				inMemStore = (InMemStore) grs.get(0);
+			}
 		}
 		
 		return inMemStore;
