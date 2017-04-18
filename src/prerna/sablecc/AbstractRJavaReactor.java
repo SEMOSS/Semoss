@@ -1803,7 +1803,7 @@ public abstract class AbstractRJavaReactor extends AbstractJavaReactor {
 	 */
 	public void runSemanticMatching(String[] engines, double candidateThreshold, double similarityThreshold,
 			int instancesThreshold, boolean compareProperties, boolean semanticScore, boolean refresh) {
-
+		System.out.println("");
 		// Refresh the corpus
 		if (refresh) {
 			DomainValues dv = new DomainValues(engines, compareProperties);
@@ -2042,11 +2042,13 @@ public abstract class AbstractRJavaReactor extends AbstractJavaReactor {
 		} else {
 			targetValues = DomainValues.retrieveConceptUniqueValues(conceptUriTarget, iEngineTarget);
 		}
+		//write two csvs source and target
+		String csvSourcePath = getBaseFolder() + "\\" + Constants.R_BASE_FOLDER + "\\" + "FuzzyMatching\\Temp\\fuzzySourceMatching.csv";
+		csvSourcePath = csvSourcePath.replace("\\", "/");
 
-		// Write out values to csv so R Script can read from it add to dataframe
-		String csvPath = getBaseFolder() + "\\" + Constants.R_BASE_FOLDER + "\\" + "FuzzyMatching\\Temp\\fuzzyMatching.csv";
-		csvPath = csvPath.replace("\\", "/");
-
+		String csvTargetPath = getBaseFolder() + "\\" + Constants.R_BASE_FOLDER + "\\"
+				+ "FuzzyMatching\\Temp\\fuzzyTargetMatching.csv";
+		csvTargetPath = csvTargetPath.replace("\\", "/");
 		// Construct headers based on existence of properties
 
 		// Source
@@ -2070,26 +2072,36 @@ public abstract class AbstractRJavaReactor extends AbstractJavaReactor {
 		Object[] sourceArray = sourceValues.toArray();
 		Object[] targetArray = targetValues.toArray();
 		try {
-			PrintWriter pw = new PrintWriter(new File(csvPath));
+			PrintWriter pw = new PrintWriter(new File(csvSourcePath));
 			StringBuilder sb = new StringBuilder();
 			sb.append(sourceHeader);
-			sb.append(",");
+
+			sb.append("\n");
+			for (int i = 0; i < sourceArray.length; i++) {
+				String sourceInstance = "";
+				sourceInstance = (String) sourceArray[i];
+				sourceInstance = sourceInstance.replaceAll("[^A-Za-z0-9 ]", "_");
+				sb.append(sourceInstance);
+				sb.append("\n");
+			}
+			pw.write(sb.toString());
+			pw.close();
+			System.out.println("done!");
+		} catch (FileNotFoundException e) {
+			e.printStackTrace();
+		}
+
+		try {
+			PrintWriter pw = new PrintWriter(new File(csvTargetPath));
+			StringBuilder sb = new StringBuilder();
 			sb.append(targetHeader);
 			sb.append("\n");
-			int max = Math.max(sourceArray.length, targetArray.length);
-			for (int i = 0; i < max; i++) {
-				String sourceInstance = "";
+			for (int i = 0; i < sourceArray.length; i++) {
 				String targetInstance = "";
-				if (i < sourceArray.length) {
-					sourceInstance = (String) sourceArray[i];
-					sourceInstance = sourceInstance.replaceAll("[^A-Za-z0-9 ]", "_");
-				}
-				if (i < targetArray.length) {
-					targetInstance = (String) targetArray[i];
-					targetInstance = targetInstance.replaceAll("[^A-Za-z0-9 ]", "_");
-				}
-				sb.append(sourceInstance);
-				sb.append(",");
+
+				targetInstance = (String) targetArray[i];
+				targetInstance = targetInstance.replaceAll("[^A-Za-z0-9 ]", "_");
+
 				sb.append(targetInstance);
 				sb.append("\n");
 			}
@@ -2108,7 +2120,7 @@ public abstract class AbstractRJavaReactor extends AbstractJavaReactor {
 		runR("library(stringdist)");
 		runR("source(\"" + utilityScriptPath + "\");");
 		String df = "this.df.name.is.reserved.for.fuzzy.matching";
-		runR(df + " <-read.csv(\"" + csvPath + "\", na.strings=\"\")");
+		runR(df + " <-read.csv(\"" + csvSourcePath + "\", na.strings=\"\")");
 		runR(df + " <-match_metrics(" + df + ")");
 
 		// Retrieve
@@ -2309,7 +2321,6 @@ public abstract class AbstractRJavaReactor extends AbstractJavaReactor {
 		runR(df);
 		storeVariable("GRID_NAME", df);
 		synchronizeFromR();
-  
   }
 
 
