@@ -10,6 +10,7 @@ import javassist.ClassPool;
 import javassist.CtClass;
 import javassist.CtNewMethod;
 import javassist.NotFoundException;
+import prerna.util.Utility;
 
 public class ClassMaker {
 
@@ -36,12 +37,12 @@ public class ClassMaker {
 		//packageName = "t" + System.currentTimeMillis(); // make it unique
 		//CtClass consoleClass = pool.get("prerna.util.Console");
 		
-		cc = pool.makeClass(packageName + ".c" + System.currentTimeMillis()); // the only reason I do this is if the user wants to do seomthing else
+		cc = pool.makeClass(packageName + ".c" + Utility.getRandomString(12)); // the only reason I do this is if the user wants to do seomthing else
 	}
 	
 	public ClassMaker()
 	{
-		this("t" + System.currentTimeMillis());
+		this("t" + Utility.getRandomString(12));
 	}
 	
 	//sets the interface

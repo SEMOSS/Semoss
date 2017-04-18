@@ -1,8 +1,5 @@
 package prerna.sablecc2.om;
 
-import java.util.HashSet;
-import java.util.Set;
-
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
@@ -14,6 +11,7 @@ import javassist.CtNewMethod;
 import javassist.NotFoundException;
 import prerna.sablecc2.reactor.AbstractReactor;
 import prerna.sablecc2.reactor.PKSLPlanner;
+import prerna.util.Utility;
 
 public class Filter {
 
@@ -62,11 +60,6 @@ public class Filter {
 		// get the right hand expression
 		String rString = getIfExpressionString(planner, rNoun);
 		
-		// if variables are used
-		// we will create a string and define them at the top of the method
-		// this is simpler than having to replace values within the expression
-//		String variablesToDefineString = getVariablesString(planner, rNoun, rNoun);
-		
 		// generate the method evaluate
 		method.append("public boolean evaluate() {");
 //		method.append(variablesToDefineString);
@@ -77,9 +70,7 @@ public class Filter {
 				+ "}"
 				+ "}");
 		
-		String packageName = "t" + System.currentTimeMillis(); // make it unique
-		CtClass cc = pool.makeClass(packageName + ".c" + System.currentTimeMillis());
-		
+		CtClass cc = pool.makeClass("t" + Utility.getRandomString(12) + ".c" + Utility.getRandomString(12));
 		try {
 			// class extends FitlerEvaluator
 			// it is just an abstract class with the method evaluate above
@@ -155,55 +146,4 @@ public class Filter {
 			return type.toString();
 		}
 	}
-	
-//	/**
-//	 * Method to get the variables to properly evaluate the comparison
-//	 * @param planner
-//	 * @param lgrs
-//	 * @param rgrs
-//	 * @return
-//	 */
-//	private String getVariablesString(PKSLPlanner planner, NounMetadata lNoun, NounMetadata rNoun) {
-//		StringBuilder variablesBuilder = new StringBuilder();
-//		// need to make sure we do not define the same variable twice
-//		// so we don't get compilation errors
-//		Set<String> definedVars = new HashSet<String>();
-//		
-//		variableStringGenerator(planner, lNoun, variablesBuilder, definedVars);
-//		variableStringGenerator(planner, rNoun, variablesBuilder, definedVars);
-//
-//		return variablesBuilder.toString();
-//	}
-//	
-//	public void variableStringGenerator(PKSLPlanner planner, Object genRowValue, StringBuilder variablesBuilder, Set<String> definedVars) {
-//		// currently only handling the case of columns defined within expressions
-//		// not sure if there is any other case to look into
-//		if(genRowValue instanceof Expression) {
-//			// grab the inputs
-//			String[] inputs = ((Expression) genRowValue).getInputs();
-//			for(String input : inputs) {
-//				// only append new inputs that haven't already been defined
-//				// the java method will not compile if defining the same variable twice
-//				if(definedVars.contains(input)) {
-//					continue;
-//				}
-//				// based on type of variable
-//				// make sure to define it correctly
-//				// currently only handling doubles and strings
-//				// ... not sure how a string will be used yet...
-//				NounMetadata data = planner.getVariableValue(input);
-//				if(data.getNounName() == PkslDataTypes.CONST_DECIMAL) {
-//					variablesBuilder.append("double ").append(input).append(" = ").append(data.getValue()).append(";");
-//				} else if(data.getNounName() == PkslDataTypes.CONST_STRING) {
-//					variablesBuilder.append("String ").append(input).append(" = \"").append(data.getValue()).append("\";");
-//				} else {
-//					throw new IllegalArgumentException("Filter can only handle scalar variables");
-//				}
-//				
-//				// after defining the variable
-//				// add it to the set so we do not define it again
-//				definedVars.add(input);
-//			}
-//		}
-//	}
 }
