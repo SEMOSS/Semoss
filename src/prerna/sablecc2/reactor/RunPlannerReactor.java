@@ -127,6 +127,7 @@ public class RunPlannerReactor extends AbstractReactor {
 	 * @return
 	 */
 	private List<String> getPksls() {
+		List<String> pkslsToRun = new ArrayList<>();
 		GraphTraversal<Vertex, Long> standAloneNounCount = planner.g.traversal().V().has(PKSLPlanner.TINKER_TYPE, PKSLPlanner.NOUN).count(); 
 		if(standAloneNounCount.hasNext()) {
 			System.out.println("FOUND " + standAloneNounCount.next() + " NOUNS VERTICES!");
@@ -141,10 +142,12 @@ public class RunPlannerReactor extends AbstractReactor {
 			} else {
 				// you are a noun which is a logical end point or a variable that wasn't defined
 				// you should be a string or a number
-				// if you are a "column", you fucked up
 				String w = vertNoun.property(PKSLPlanner.TINKER_ID).value().toString();
 				if(w.startsWith("NOUN:a") && !w.contains(" ")) {
-					System.out.println(w);
+					String pksl = w.replaceFirst("NOUN:", "");
+					pksl += " = 0;";
+//					System.out.println(pksl);
+					pkslsToRun.add(pksl);
 				}
 			}
 		}
@@ -156,7 +159,7 @@ public class RunPlannerReactor extends AbstractReactor {
 		// of roots and so forth
 		Set<Vertex> vertsToRun = new HashSet<>();
 		// pksls to run will hold all the other operations to execute
-		List<String> pkslsToRun = new ArrayList<>();
+//		List<String> pkslsToRun = new ArrayList<>();
 		
 		GraphTraversal<Vertex, Long> getAllRootOpsCount = planner.g.traversal().V().has(PKSLPlanner.TINKER_TYPE, PKSLPlanner.OPERATION).count(); 
 		if(getAllRootOpsCount.hasNext()) {
