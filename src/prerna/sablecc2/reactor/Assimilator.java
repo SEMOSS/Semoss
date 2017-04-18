@@ -132,16 +132,16 @@ public class Assimilator extends AbstractReactor {
 		}
 	}
 	
-	public List<NounMetadata> getInputs() {
-		List<NounMetadata> inputs = new Vector<>();
-		List<String> exprInputs = curRow.getAllColumns();
-		for(String exprInput : exprInputs) {
-			NounMetadata noun = new NounMetadata(exprInput, PkslDataTypes.COLUMN);
-			inputs.add(noun);
-		}
-
-		return inputs;
-	}
+//	public List<NounMetadata> getInputs() {
+//		List<NounMetadata> inputs = new Vector<>();
+//		List<String> exprInputs = curRow.getAllColumns();
+//		for(String exprInput : exprInputs) {
+//			NounMetadata noun = new NounMetadata(exprInput, PkslDataTypes.COLUMN);
+//			inputs.add(noun);
+//		}
+//
+//		return inputs;
+//	}
 
 	@Override
 	public List<NounMetadata> getOutputs() {
