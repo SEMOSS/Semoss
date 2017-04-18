@@ -28,7 +28,7 @@ public class GenericReactor extends AbstractReactor {
 		// THIS IS A SPECIAL CASE
 		// we want to merge up into the parent
 		// but unlike the mergeup routine
-		// we want to replace anything that is a varaible
+		// we want to replace anything that is a variable
 		// with the actual object
 		String key = (String)getProp("KEY");
 
@@ -45,7 +45,7 @@ public class GenericReactor extends AbstractReactor {
 			Object noun = allNouns.get(nounIdx);
 			PkslDataTypes nounType = allNouns.getMeta(nounIdx);
 			if(noun instanceof String) {
-				NounMetadata value = this.planner.getVariable((String)noun);
+				NounMetadata value = this.planner.getVariableValue((String)noun);
 				if(value != null) {
 					thisStruct.add(value);
 				} else {

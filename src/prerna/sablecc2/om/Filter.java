@@ -187,7 +187,7 @@ public class Filter {
 				// make sure to define it correctly
 				// currently only handling doubles and strings
 				// ... not sure how a string will be used yet...
-				NounMetadata data = planner.getVariable(input);
+				NounMetadata data = planner.getVariableValue(input);
 				if(data.getNounName() == PkslDataTypes.CONST_DECIMAL) {
 					variablesBuilder.append("double ").append(input).append(" = ").append(data.getValue()).append(";");
 				} else if(data.getNounName() == PkslDataTypes.CONST_STRING) {
