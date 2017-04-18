@@ -241,8 +241,7 @@ public abstract class AbstractReactor implements IReactor {
 		// we definitely need to define based on the type
 		
 		// TODO: how do i accurately determine the data type?
-		if(this.parentReactor instanceof FilterReactor ||
-				this.parentReactor instanceof AssignmentReactor ) {
+		if(this.parentReactor instanceof FilterReactor || this.parentReactor instanceof AssignmentReactor ) {
 			NounMetadata data = new NounMetadata(this.signature, PkslDataTypes.LAMBDA);
 			this.parentReactor.getCurRow().add(data);
 		}
@@ -267,15 +266,15 @@ public abstract class AbstractReactor implements IReactor {
 		// and if it has a filter
 		// add its nouns to the inputs for this reactor
 		for(IReactor child : childReactor) {
-			if(child instanceof FilterReactor) {
-				// child nouns should contain LCOL, RCOL, COMPARATOR
-				inputs.addAll(child.getNounStore().getNoun("LCOL").vector);
-				inputs.addAll(child.getNounStore().getNoun("RCOL").vector);
-			} else if(child instanceof Assimilator) {
+//			if(child instanceof FilterReactor) {
+//				// child nouns should contain LCOL, RCOL, COMPARATOR
+//				inputs.addAll(child.getNounStore().getNoun("LCOL").vector);
+//				inputs.addAll(child.getNounStore().getNoun("RCOL").vector);
+//			} else if(child instanceof Assimilator) {
+//				inputs.addAll(child.getInputs());
+//			} else {
 				inputs.addAll(child.getInputs());
-			} else if(child instanceof OpReactor) {
-				inputs.addAll(child.getInputs());
-			}
+//			}
 		}
 
 		return inputs;
@@ -297,6 +296,13 @@ public abstract class AbstractReactor implements IReactor {
 	
 	@Override
 	public void updatePlan() {
+		// at this point, the inner child is still just part of a 
+		// larger parent
+		// we only need to update the plan when the full pksl
+		// is loaded
+		if(this.parentReactor != null) {
+			return;
+		}
 		// get the inputs and outputs
 		// and add this to the plan using the signature
 		// of the reactor
