@@ -4,6 +4,7 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Properties;
@@ -142,6 +143,26 @@ public class DomainValues {
 		// This works for concepts for both RDF and RDBMS
 		return getUniqueEntityOfType(uri, engine);
 	}
+	public static List<Object> retrieveConceptValues(String uri, IEngine engine) {
+		return engine.getEntityOfType(uri);
+	}
+	public static List<Object> retrievePropertyValues(String conceptURI, String propertyURI, IEngine engine) {
+		List<Object> allPropValues = new ArrayList<Object>();
+		if (engine instanceof BigDataEngine) {
+			String query = "SELECT DISTINCT ?property WHERE { {?x <" + RDF.TYPE + "> <" + conceptURI + "> } { ?x <"
+					+ propertyURI + "> ?property} }";
+			ISelectWrapper wrapper = WrapperManager.getInstance().getSWrapper(engine, query);
+			while (wrapper.hasNext()) {
+				ISelectStatement selectStatement = wrapper.next();
+				allPropValues.add(selectStatement.getVar("property").toString());
+			}
+		} else {
+			allPropValues = engine.getEntityOfType(propertyURI);
+		}
+		return allPropValues;
+	}
+
+	
 
 	public static HashSet<String> retrievePropertyUniqueValues(String conceptURI, String propertyURI, IEngine engine) {
 		HashSet<String> uniquePropertyValues = new HashSet<String>();
