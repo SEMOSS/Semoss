@@ -48,7 +48,7 @@ public class UpdatePlannerReactor extends AbstractPlannerReactor {
 		// we need to reset the "PROCESSED" property
 		// that are currently set on the planner
 		// when we first executed the plan
-		resetProcessedBoolean(planner);
+		resetProcessedBoolean(myPlanner);
 		
 		// grab all the pksls
 		GenRowStruct pksls = this.store.getNoun(PKSL_NOUN);
@@ -85,32 +85,30 @@ public class UpdatePlannerReactor extends AbstractPlannerReactor {
 		// traverse downstream and get all the other values we need to update
 		getAllDownstreamVertsBasedOnTraverseOrder(newRoots, pkslsToRun);
 		
-		// now run through all the pksls and execute
-		executePKSLs(pkslsToRun, myPlanner);
+		// get the current in memory store
+		// flush out all these variables to the translation
+		PKSLPlanner executionPlanner = new PKSLPlanner();
 		
-		Set<String> variables = myPlanner.getVariables();
+		// add all the variables
 		InMemStore memStore = getInMemoryStore();
-		for(String variable : variables) {
-//			System.out.println("VARIABLE " + variable + " ::: " + this.planner.getVariableValue(variable).getValue());
-			memStore.put(variable, myPlanner.getVariable(variable));
+		Set<Object> varNames = memStore.getStoredKeys();
+		for(Object var : varNames) {
+			executionPlanner.addVariable(var.toString(), memStore.get(var));
 		}
+
+		// now run through all the new pksls to run
+		executePKSLs(pkslsToRun, executionPlanner);
 		
-		return new NounMetadata(memStore, PkslDataTypes.IN_MEM_STORE);
-	}
-	
-	private InMemStore getMapStore() {
-		InMemStore inMemStore = null;
-		GenRowStruct grs = getNounStore().getNoun(IN_STORE_NOUN);
-		if(grs != null) {
-			inMemStore = (InMemStore) grs.get(0);
-		} else {
-			grs = getNounStore().getNoun(PkslDataTypes.IN_MEM_STORE.toString());
-			if(grs != null) {
-				inMemStore = (InMemStore) grs.get(0);
+		Set<String> variables = executionPlanner.getVariables();
+		for(String variable : variables) {
+			try {
+				memStore.put(variable, executionPlanner.getVariableValue(variable));
+			} catch(Exception e) {
+				e.printStackTrace();
 			}
 		}
 		
-		return inMemStore;
+		return new NounMetadata(memStore, PkslDataTypes.IN_MEM_STORE);
 	}
 	
 	/**
@@ -135,17 +133,12 @@ public class UpdatePlannerReactor extends AbstractPlannerReactor {
 	
 	private InMemStore getInMemoryStore() {
 		InMemStore inMemStore = null;
-//		GenRowStruct grs = getNounStore().getNoun(this.IN_MEM_STORE);
-//		if(grs != null) {
-//			inMemStore = (InMemStore) grs.get(0);
-//		} else {
-			GenRowStruct grs = getNounStore().getNoun(PkslDataTypes.IN_MEM_STORE.toString());
-			if(grs != null) {
-				inMemStore = (InMemStore) grs.get(0);
-			} else {
-				inMemStore = new MapStore();
-			}
-//		}
+		GenRowStruct grs = getNounStore().getNoun(PkslDataTypes.IN_MEM_STORE.toString());
+		if(grs != null) {
+			inMemStore = (InMemStore) grs.get(0);
+		} else {
+			inMemStore = new MapStore();
+		}
 		
 		return inMemStore;
 	}
@@ -155,10 +148,10 @@ public class UpdatePlannerReactor extends AbstractPlannerReactor {
 		PKSLPlanner planner = null;
 		if(allNouns != null) {
 			planner = (PKSLPlanner) allNouns.get(0);
-			return planner;
 		} else {
-			return this.planner;
+			planner = this.planner;
 		}
+		return planner;
 	}
 
 }

@@ -94,6 +94,7 @@ public class RunPlannerReactor extends AbstractPlannerReactor {
 				count++;
 				e.printStackTrace();
 				System.out.println(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>");
+				System.out.println(e.getMessage());
 				System.out.println(pkslString);
 				try {
 					bw.write("EVAL ERROR:::: " + e.getMessage()+"\n");
@@ -141,6 +142,9 @@ public class RunPlannerReactor extends AbstractPlannerReactor {
 			}
 //		}
 		
+		if(inMemStore == null) {
+			return new MapStore();
+		}
 		return inMemStore;
 	}
 	
