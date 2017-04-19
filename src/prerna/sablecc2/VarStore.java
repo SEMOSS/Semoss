@@ -38,7 +38,8 @@ public class VarStore {
 				if(hasVariable(valName)) {
 					return getVariableValue(valName);
 				}
-			} else if(valType == PkslDataTypes.LAMBDA) {
+			}
+			else if(valType == PkslDataTypes.LAMBDA) {
 				NounMetadata retNoun = ((IReactor) valueNoun.getValue()).execute();
 				return retNoun;
 			}
