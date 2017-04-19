@@ -1,8 +1,5 @@
 package prerna.sablecc2;
 
-import java.io.BufferedWriter;
-import java.io.FileWriter;
-import java.io.IOException;
 import java.math.BigDecimal;
 
 import org.apache.log4j.LogManager;
@@ -18,13 +15,10 @@ import prerna.sablecc2.node.ADecimal;
 import prerna.sablecc2.node.ADivExpr;
 import prerna.sablecc2.node.ADotcol;
 import prerna.sablecc2.node.ADotcolColDef;
-import prerna.sablecc2.node.AEExprExpr;
 import prerna.sablecc2.node.AEmbeddedAssignment;
-import prerna.sablecc2.node.AExprColDef;
 import prerna.sablecc2.node.AFilter;
 import prerna.sablecc2.node.AFormula;
 import prerna.sablecc2.node.AFrameop;
-import prerna.sablecc2.node.AFrameopColDef;
 import prerna.sablecc2.node.AFrameopScript;
 import prerna.sablecc2.node.AGeneric;
 import prerna.sablecc2.node.AIdWordOrId;
@@ -133,15 +127,11 @@ public class Translation extends DepthFirstAdapter {
 	@Override
 	public void inAOutputScriptchain(AOutputScriptchain node) {
 		defaultIn(node);
-    	System.out.println(">>>>>>");
-        System.out.println("Called in script chain");
 	}
 	
 	@Override
 	public void outAOutputScriptchain(AOutputScriptchain node) {
 		defaultIn(node);
-    	System.out.println(">>>>>>");
-        System.out.println("Called out script chain");
         // we do this in case someone is dumb and is doing an embedded assignment 
         // instead of just doing a normal assignment...
         if(!(curReactor instanceof AssignmentReactor)) {
@@ -163,7 +153,7 @@ public class Translation extends DepthFirstAdapter {
     public void inAFrameopScript(AFrameopScript node)
     {
     	defaultIn(node);
-        System.out.println("In a script frameop");
+    	LOGGER.debug("In a script frameop");
         // once I am in here I am again in the realm of composition
         this.operationType = TypeOfOperation.COMPOSITION;
     }
@@ -171,21 +161,21 @@ public class Translation extends DepthFirstAdapter {
     public void outAFrameopScript(AFrameopScript node)
     {
     	defaultOut(node);
-        System.out.println("Out a script frameop");
+    	LOGGER.debug("Out a script frameop");
         this.operationType = TypeOfOperation.PIPELINE;
     }
 
     public void inAOpScript(AOpScript node)
     {
     	defaultIn(node);
-        System.out.println("In a operational formula script");
+    	LOGGER.debug("In a operational formula script");
         this.operationType = TypeOfOperation.COMPOSITION;
     }
 
     public void outAOpScript(AOpScript node)
     {
     	defaultOut(node);
-        System.out.println("Out a operational formula script");
+        LOGGER.debug("Out a operational formula script");
         this.operationType = TypeOfOperation.PIPELINE;
     }
 
@@ -199,7 +189,7 @@ public class Translation extends DepthFirstAdapter {
     public void inAFrameop(AFrameop node)
     {
     	defaultIn(node);
-        System.out.println("Starting a frame operation");
+        LOGGER.debug("Starting a frame operation");
         
         // create a sample reactor
 //        IReactor frameReactor = new SampleReactor();
@@ -236,7 +226,7 @@ public class Translation extends DepthFirstAdapter {
     {
     	defaultIn(node);
         IReactor opReactor = new AsReactor();
-        System.out.println("In the AS Component of frame op");
+        LOGGER.debug("In the AS Component of frame op");
         opReactor.setPKSL("as", node.getAsOp() + "", "(" + node.getGenRow().toString().trim() + ")");
         initReactor(opReactor);
     }
@@ -244,7 +234,7 @@ public class Translation extends DepthFirstAdapter {
     public void outAAsop(AAsop node)
     {
         defaultOut(node);
-        System.out.println("OUT the AS Component of frame op");
+        LOGGER.debug("OUT the AS Component of frame op");
         deInitReactor();
     }
 
@@ -294,7 +284,7 @@ public class Translation extends DepthFirstAdapter {
     public void inAOperationFormula(AOperationFormula node)
     {
     	defaultIn(node);
-        System.out.println("Starting a formula operation " + node.getId());
+        LOGGER.debug("Starting a formula operation " + node.getId());
         // I feel like mostly it would be this and not frame op
         // I almost feel I should remove the frame op col def
         IReactor opReactor = null;
@@ -489,123 +479,11 @@ public class Translation extends DepthFirstAdapter {
         defaultOut(node);
     }
 
-    // need to watch if at thsi point.. I need to start a new one or keep on with the previous one
-    // still not clear to me if I do it here or in the frame op
-    public void inAFrameopColDef(AFrameopColDef node)
-    {
-    	defaultIn(node);
-        System.out.println("In a Frame op col DEF a.k.a already within a script" + node);
-        // so this is where things REALLY get interesting
-        // I have to work through here to figure out what to do with it
-        // the only difference here is am I adding this to genrowstruct
-        // or am I adding it as a full reactor
-    }
-
-    public void outAFrameopColDef(AFrameopColDef node)
-    {
-    	defaultOut(node);
-        System.out.println("OUT a Frame op col DEF a.k.a already within a script" + node);
-    }
-
-    
-    // I am still not sure if an expression qualifies but.. 
-    // I also think at this point if we should just make it where the expressions are being printed out 
-    // into the no named class for us to evaluate ?
-	// things I should avoid.. if I am already in a expr and I keep coming into expression.. just ignore each one of those
-	// the first one already has all that I need
-    public void inAExprColDef(AExprColDef node)
-    {
-
-        
-        // seems like I should assimilate only if it is a term expression
-        // if the parent is if then I need to find a way to give this over to the if
-        // the problem also is how do I enable this as first vs. second ?
-        // I bet if should keep that cardinality
-        // need a way to say when i should assimilate this..
-        // not everytime - or may be everytime
-//    	if(node.getExpr() instanceof AMultExpr || node.getExpr() instanceof APlusExpr || node.getExpr() instanceof AMinusExpr || node.getExpr() instanceof ADivExpr)
-//    	{
-//	        defaultIn(node);
-//			Assimilator assm = new Assimilator();
-//			assm.setPKSL("EXPR", node.getExpr().toString().trim());
-//			initReactor(assm);
-//    	}       
-		/*
-        if(curReactor instanceof IfReactor)
-        {
-        	IReactor expr = new ExprReactor();
-        	expr.setProp("Expr", node.getExpr().toString().trim());
-        	curReactor.setChildReactor(expr);
-        }
-        if(node.getExpr() instanceof AMultExpr)
-        	System.out.println("In a Expr" + node);
-        */
-        // this case is very similar to operational formula
-        // I need to see if I am already in a parent which is a expr
-        // if so.. I should just assimilate
-        
-        
-        
-        // instead of trying to start a new reactor here
-        // this check should happen inside the reactor moving it to the reactor
-        //if(curReactor != null && !curReactor.getName().equalsIgnoreCase("EXPR"))
-//        {
-//	        IReactor opReactor = new ExprReactor();
-//	        opReactor.setName("EXPR");
-//	        opReactor.setPKSL("EXPR",node.getExpr()+"");
-//	        
-////	        opReactor.setProp("REACTOR_NAME", reactorName);
-//	        initReactor(opReactor);
-//        }
-        // else ignore.. this has been taken care of kind of
-    }
-
-    public void outAExprColDef(AExprColDef node)
-    {
-//    	if(node.getExpr() instanceof AMultExpr || node.getExpr() instanceof APlusExpr || node.getExpr() instanceof AMinusExpr || node.getExpr() instanceof ADivExpr)
-//    	{
-//	        defaultOut(node);
-//	        // TODO need to do the operation of assimilating here
-//	        deInitReactor();
-//    	}
-    	}
-    
-    // code sits here
-/*    public void inACodeColDef(ACodeColDef node)
-    {
-        IReactor codeReactor = new CodeReactor();
-        String code = (node.getCode2()+"").trim();
-        codeReactor.setName("Code");
-        codeReactor.setPKSL("code", code);
-        initReactor(codeReactor);
-    }
-
-    public void outACodeColDef(ACodeColDef node)
-    {
-        defaultOut(node);
-        deInitReactor();
-    }
-*/
-    
     // atomic level stuff goes in here
-    
-    public void inAEExprExpr(AEExprExpr node)
-    {
-    	defaultIn(node);
-        System.out.println("IN Atomic.. " + "expr" + node);
-    }
-
-    public void outAEExprExpr(AEExprExpr node)
-    {
-    	defaultOut(node);
-        System.out.println("OUT Atomic.. " + "expr" + node);
-    }
-
     
     public void inADecimal(ADecimal node)
     {
     	defaultIn(node);
-    	System.out.println("Decimal is" + node.getWhole());
     	String fraction = "0";
     	if(node.getFraction() != null) {
     		fraction = (node.getFraction()+"").trim();
@@ -654,7 +532,7 @@ public class Translation extends DepthFirstAdapter {
         // else start the assimilator. 
         // this is a special case where it is jsut coming through as a column || variable
         if(curReactor instanceof Assimilator)
-        	System.out.println("Ignore this");
+        	LOGGER.debug("Ignore this");
 //        else if(node.getTerm() instanceof AColTerm)
 //        {
 //        	// need to see if there are other things to work on
@@ -662,7 +540,7 @@ public class Translation extends DepthFirstAdapter {
 //    		initExpressionToReactor(assm, node.getTerm()+"", 1+"", "*");
 //    		assm.setPKSL("EXPR", node.toString().trim(), node.toString().trim());
 //    		initReactor(assm);
-//        	System.out.println("Capture this");
+//        	LOGGER.debug("Capture this");
 //        }
     }
 
@@ -671,7 +549,7 @@ public class Translation extends DepthFirstAdapter {
         defaultOut(node);
 //        if(curReactor instanceof Assimilator && (node.toString()).trim().equalsIgnoreCase(curReactor.getSignature()))
 //        {
-//        	System.out.println("Ignore this Term Expression OUT");
+//        	LOGGER.debug("Ignore this Term Expression OUT");
 //    		deInitReactor();
 //        }
     }
@@ -811,13 +689,12 @@ public class Translation extends DepthFirstAdapter {
 //        if(curReactor.hasProp(expr)) {
 //        	curReactor.setProp(node.toString().trim(), curReactor.getProp(expr));
 //        }
-//        System.out.println(curReactor.getProp("LAST_VALUE"));
+//        LOGGER.debug(curReactor.getProp("LAST_VALUE"));
         }
     
     public void inAPlusExpr(APlusExpr node) {
         if(curReactor instanceof Assimilator)
         {
-        	System.out.println("Ignore this");
         	return;
         }
     	defaultIn(node);
@@ -852,7 +729,6 @@ public class Translation extends DepthFirstAdapter {
     public void inAMinusExpr(AMinusExpr node) {
         if(curReactor instanceof Assimilator)
         {
-        	System.out.println("Ignore this");
         	return;
         }
     	defaultIn(node);
@@ -885,7 +761,6 @@ public class Translation extends DepthFirstAdapter {
     public void inADivExpr(ADivExpr node) {
         if(curReactor instanceof Assimilator)
         {
-        	System.out.println("Ignore this");
         	return;
         }
     	defaultIn(node);
@@ -910,7 +785,6 @@ public class Translation extends DepthFirstAdapter {
     public void inAMultExpr(AMultExpr node) {
         if(curReactor instanceof Assimilator)
         {
-        	System.out.println("Ignore this");
         	return;
         }
     	defaultIn(node);
@@ -950,30 +824,16 @@ public class Translation extends DepthFirstAdapter {
     protected void initReactor(IReactor reactor)
     {
         // make a check to see if the curReactor is not null
-    	
-    	// TODO : make decision on wether to execute the parent here or some place else
-    	LOGGER.info("INIT REACTOR");
-    	LOGGER.info("INCOMING REACTOR IS: "+reactor.getName());
-    	
         if(curReactor != null)
         {
-        	LOGGER.info("CURRENT REACTOR IS: "+curReactor.getName());
     		// yes I know they do the same thing.. 
         	// but I am atleast checking the operation type before doing it
-        	if(operationType == TypeOfOperation.COMPOSITION)
-        	{
+        	if(operationType == TypeOfOperation.COMPOSITION) {
 	        	reactor.setParentReactor(curReactor);
 	        	curReactor.setChildReactor(reactor);
-	        	// in this case evaluation happens on out
-        	}
-        	else
-        	{
+        	} else {
 	        	reactor.setParentReactor(curReactor);
 	        	curReactor.setChildReactor(reactor);
-	        	/*
-	        	reactor.setChildReactor(curReactor);
-	        	curReactor.setParentReactor(reactor);
-	        	*/// in this case evaluation happens on in ?
         	}
         }
         curReactor = reactor;
@@ -1077,113 +937,54 @@ public class Translation extends DepthFirstAdapter {
     	return ReactorFactory.getReactor(reactorId, nodeString, inputString, (ITableDataFrame)getDataMaker(), curReactor);
     }
     
-    private void printData(Object node, String message) {
-    	if(this.printTraceData) {
-    		
-    		if(this.logToFile) {
-	    		try (BufferedWriter bw = new BufferedWriter(new FileWriter(FILENAME, true))) {
-	
-	
-	    	    	bw.write("*********************************************");bw.write("\n");
-	    	    	bw.write(message);bw.write("\n");
-	    	    	StackTraceElement[] ste = Thread.currentThread().getStackTrace();
-	    	    	if(ste.length > 2) {
-	    	    		bw.write("CURRENT METHOD: "+ste[2].getMethodName());bw.write("\n");
-	    	    	}
-	    	    	else {
-	    	    		bw.write("CURRENT METHOD: UNKNOWN");bw.write("\n");
-	    	    	}
-	    	    	bw.write("CURRENT NODE VALUE: "+node.toString());bw.write("\n");
-	    	    	//print curReactor name
-	    	    	if(curReactor != null) {
-	    	    		bw.write("CURRENT REACTOR: "+this.curReactor.getName());bw.write("\n");
-	    	    		//print current curRow of curReactor
-	    	    		bw.write("CURRENT REACTOR'S GENROWSTRUCT: "+this.curReactor.getCurRow());bw.write("\n");
-	    	    		bw.write("CURRENT REACTOR'S NOUNSTORE: \n"+curReactor.getNounStore().getDataString());bw.write("\n");
-	    	    	} else {
-	    	    		bw.write("CURRENT REACTOR: null");bw.write("\n");
-	    	    	}
-	    	    	bw.write("*********************************************\n");
-	
-	    			System.out.println("Done");
-	
-	    		} catch (IOException e) {
-	    			e.printStackTrace();
-	    		}
-    		}
-    		
-    		else {
-
-		    	LOGGER.info("*********************************************");
-		    	LOGGER.info(message);
-		    	StackTraceElement[] ste = Thread.currentThread().getStackTrace();
-		    	if(ste.length > 2)
-		    		LOGGER.info("CURRENT METHOD: "+ste[2].getMethodName());
-		    	else
-		    		LOGGER.info("CURRENT METHOD: UNKNOWN");
-		    	LOGGER.info("CURRENT NODE VALUE: "+node.toString());
-		    	//print curReactor name
-		    	if(curReactor != null) {
-		    		LOGGER.info("CURRENT REACTOR: "+this.curReactor.getName());
-		    		//print current curRow of curReactor
-		    		LOGGER.info("CURRENT REACTOR'S GENROWSTRUCT: "+this.curReactor.getCurRow());
-		    		LOGGER.info("CURRENT REACTOR'S NOUNSTORE: \n"+curReactor.getNounStore().getDataString());
-		    	} else {
-		    		LOGGER.info("CURRENT REACTOR: null");
-		    	}
-		    	LOGGER.info("*********************************************\n");
-    		}
-    	}
-    }
-    
-    public void defaultIn(@SuppressWarnings("unused") Node node)
+    public void defaultIn(Node node)
     {
         // Do nothing
-    	StackTraceElement[] ste = Thread.currentThread().getStackTrace();
-    	if(ste.length > 2) {
-    		LOGGER.info("CURRENT METHOD: "+ste[2].getMethodName());
-    		LOGGER.info("CURRENT NODE:" + node.toString());
- 
-    		
-    		if(curReactor != null && curReactor.getParentReactor() != null) {
-    			LOGGER.info("CURRENT REACTOR: "+curReactor.getClass().getSimpleName());
-    			LOGGER.info("PARENT REACTOR: "+curReactor.getParentReactor().getClass().getSimpleName() + "\n");
-    		} 
-    		
-    		else if (curReactor != null) {
-    			LOGGER.info("CURRENT REACTOR: "+curReactor.getClass().getSimpleName() + "\n");
-    		}
-    		
-    		else LOGGER.info("CURRENT REACTOR: null" + "\n");
-    		
-    	} else {
-    		LOGGER.info("THIS SHOULD NOT HAPPEN!!!!!!!!!!");
-    	}
+//    	StackTraceElement[] ste = Thread.currentThread().getStackTrace();
+//    	if(ste.length > 2) {
+//    		LOGGER.info("CURRENT METHOD: "+ste[2].getMethodName());
+//    		LOGGER.info("CURRENT NODE:" + node.toString());
+// 
+//    		
+//    		if(curReactor != null && curReactor.getParentReactor() != null) {
+//    			LOGGER.info("CURRENT REACTOR: "+curReactor.getClass().getSimpleName());
+//    			LOGGER.info("PARENT REACTOR: "+curReactor.getParentReactor().getClass().getSimpleName() + "\n");
+//    		} 
+//    		
+//    		else if (curReactor != null) {
+//    			LOGGER.info("CURRENT REACTOR: "+curReactor.getClass().getSimpleName() + "\n");
+//    		}
+//    		
+//    		else LOGGER.info("CURRENT REACTOR: null" + "\n");
+//    		
+//    	} else {
+//    		LOGGER.info("THIS SHOULD NOT HAPPEN!!!!!!!!!!");
+//    	}
     }
 
-    public void defaultOut(@SuppressWarnings("unused") Node node)
+    public void defaultOut(Node node)
     {
         // Do nothing
-    	StackTraceElement[] ste = Thread.currentThread().getStackTrace();
-    	if(ste.length > 2) {
-    		LOGGER.info("CURRENT METHOD: "+ste[2].getMethodName());
-    		LOGGER.info("CURRENT NODE:" + node.toString());
- 
-    		
-    		if(curReactor != null && curReactor.getParentReactor() != null) {
-    			LOGGER.info("CURRENT REACTOR: "+curReactor.getClass().getSimpleName());
-    			LOGGER.info("PARENT REACTOR: "+curReactor.getParentReactor().getClass().getSimpleName() + "\n");
-    		} 
-    		
-    		else if (curReactor != null) {
-    			LOGGER.info("CURRENT REACTOR: "+curReactor.getClass().getSimpleName() + "\n");
-    		}
-    		
-    		else LOGGER.info("CURRENT REACTOR: null" + "\n");
-    		
-    	} else {
-    		LOGGER.info("THIS SHOULD NOT HAPPEN!!!!!!!!!!");
-    	}
+//    	StackTraceElement[] ste = Thread.currentThread().getStackTrace();
+//    	if(ste.length > 2) {
+//    		LOGGER.info("CURRENT METHOD: "+ste[2].getMethodName());
+//    		LOGGER.info("CURRENT NODE:" + node.toString());
+// 
+//    		
+//    		if(curReactor != null && curReactor.getParentReactor() != null) {
+//    			LOGGER.info("CURRENT REACTOR: "+curReactor.getClass().getSimpleName());
+//    			LOGGER.info("PARENT REACTOR: "+curReactor.getParentReactor().getClass().getSimpleName() + "\n");
+//    		} 
+//    		
+//    		else if (curReactor != null) {
+//    			LOGGER.info("CURRENT REACTOR: "+curReactor.getClass().getSimpleName() + "\n");
+//    		}
+//    		
+//    		else LOGGER.info("CURRENT REACTOR: null" + "\n");
+//    		
+//    	} else {
+//    		LOGGER.info("THIS SHOULD NOT HAPPEN!!!!!!!!!!");
+//    	}
     }
 
 	public Object getResults() {
