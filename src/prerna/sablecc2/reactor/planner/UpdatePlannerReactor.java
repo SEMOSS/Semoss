@@ -17,8 +17,12 @@ import prerna.sablecc2.lexer.LexerException;
 import prerna.sablecc2.node.Start;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.NounMetadata;
+import prerna.sablecc2.om.PkslDataTypes;
 import prerna.sablecc2.parser.Parser;
 import prerna.sablecc2.parser.ParserException;
+import prerna.sablecc2.reactor.PKSLPlanner;
+import prerna.sablecc2.reactor.storage.InMemStore;
+import prerna.sablecc2.reactor.storage.MapStore;
 
 public class UpdatePlannerReactor extends AbstractPlannerReactor {
 
@@ -81,24 +85,47 @@ public class UpdatePlannerReactor extends AbstractPlannerReactor {
 		getAllDownstreamVertsBasedOnTraverseOrder(newRoots, pkslsToRun);
 		
 		// now run through all the pksls and execute
-		executePKSLs(pkslsToRun);
+		executePKSLs(pkslsToRun, this.planner);
 		
-		Set<String> variables = this.planner.getVariables();
-		for(String variable : variables) {
-			System.out.println("VARIABLE " + variable + " ::: " + this.planner.getVariableValue(variable).getValue());
+		System.out.println("ORIGINAL VALUSE!!!!");
+		InMemStore mapStore = getMapStore();
+		Set<Object> variables = mapStore.getStoredKeys();
+		for(Object variable : variables) {
+			mapStore.get(variable);
 		}
 		
-		return null;
+		System.out.println("NEW VALUSE!!!!");
+		MapStore newMapStore = new MapStore();
+		for(String var : this.planner.getVariables()) {
+			newMapStore.put(var, this.planner.getVariableValue(var));
+		}
+		
+		return new NounMetadata(newMapStore, PkslDataTypes.IN_MEM_STORE);
+	}
+	
+	private InMemStore getMapStore() {
+		InMemStore inMemStore = null;
+		GenRowStruct grs = getNounStore().getNoun(IN_STORE_NOUN);
+		if(grs != null) {
+			inMemStore = (InMemStore) grs.get(0);
+		} else {
+			grs = getNounStore().getNoun(PkslDataTypes.IN_MEM_STORE.toString());
+			if(grs != null) {
+				inMemStore = (InMemStore) grs.get(0);
+			}
+		}
+		
+		return inMemStore;
 	}
 	
 	/**
 	 * Greedy execution of pksls
 	 * @param pkslsToRun
 	 */
-	private void executePKSLs(List<String> pkslsToRun) {
+	private void executePKSLs(List<String> pkslsToRun, PKSLPlanner planner) {
 		// now run through all the pksls and execute
 		Translation translation = new Translation();
-		translation.planner = this.planner;
+		translation.planner = planner;
 				
 		for(String pkslString : pkslsToRun) {
 			try {

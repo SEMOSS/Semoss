@@ -1026,7 +1026,7 @@ public class Translation extends DepthFirstAdapter {
 	    		return;
 	    	}
 	    	
-	    	Object output = curReactor.execute();
+	    	NounMetadata output = curReactor.execute();
 	    	this.planner = ((AbstractReactor)curReactor).planner;
 	    	
 	    	//set the curReactor
@@ -1044,15 +1044,13 @@ public class Translation extends DepthFirstAdapter {
 	    	// so the out of the parent can utilize it for its execution
 	    	// ( ex. Select(Studio, Sum(Movie_Budget) where the Sum is a child of the Select reactor )
 	    	
-	    	// also requiring the output to be noun metadata
-	    	if(output instanceof NounMetadata) {
-	    		NounMetadata nounOutput = (NounMetadata) output;
+	    	if(output != null) {
 	    		if(curReactor != null && !(curReactor instanceof AssignmentReactor)) {
 	    			// add the value to the parent's curnoun
-	    			curReactor.getCurRow().add(nounOutput);
+	    			curReactor.getCurRow().add(output);
 		    	} else {
 		    		//otherwise if we have an assignment reactor or no reactor then add the result to the planner
-		    		this.planner.addVariable("$RESULT", (NounMetadata)output);
+		    		this.planner.addVariable("$RESULT", output);
 		    	}
 	    	}
     	}
