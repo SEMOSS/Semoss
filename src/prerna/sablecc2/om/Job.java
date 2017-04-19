@@ -97,10 +97,13 @@ public class Job {
 		options.remove(PkslDataTypes.JOB.toString());
 		options.remove("all");
 		
-		String optionsName = (String)options.remove("optionsName").get(0);
-		
 		Map<String, Object> retMap = new HashMap<>();
-		retMap.put(optionsName, options);
+
+		List<Object> optionsList = options.remove("optionsName");
+		if(optionsList != null && !optionsList.isEmpty()) {
+			retMap.put(optionsList.get(0).toString(), options);
+		}
+		
 		return retMap;
 	}
 	
@@ -141,8 +144,12 @@ public class Job {
 	
 	public void addOutput(String target, String formatKey, String optionsKey) {
 		Map<String, String> targetMap = new HashMap<>(2);
-		targetMap.put("data", formatKey);
-		targetMap.put("options", optionsKey);
+		if(formatKey != null) {
+			targetMap.put("data", formatKey);
+		}
+		if(optionsKey != null) {
+			targetMap.put("options", optionsKey);
+		}
 		this.targets.put(target, targetMap);
 	}
 	
