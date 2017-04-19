@@ -21,7 +21,7 @@ import prerna.ui.components.playsheets.datamakers.IDataMaker;
 public class PKSLPlanner {
 	
 	// this is primarily the tinker graph that would be used for planning the operation
-	public TinkerGraph g = TinkerGraph.open();
+	public TinkerGraph g = null;
 	
 	// I need some way to have roots
 	Vector roots = new Vector();
@@ -39,15 +39,19 @@ public class PKSLPlanner {
 
 	
 	public PKSLPlanner() {
-		
+		TinkerGraph g = TinkerGraph.open();
+		g.createIndex(PKSLPlanner.TINKER_TYPE, Vertex.class);
+		g.createIndex(PKSLPlanner.TINKER_ID, Vertex.class);
+		this.g = g;
+	}
+	
+	public PKSLPlanner(IDataMaker dataMaker) {
+		this();
+		addProperty("FRAME", "FRAME", dataMaker);
 	}
 	
 	public IDataMaker getFrame() {
 		return (IDataMaker)getProperty("FRAME", "FRAME");
-	}
-	
-	public PKSLPlanner(IDataMaker dataMaker) {
-		addProperty("FRAME", "FRAME", dataMaker);
 	}
 	
 	// adds an operation with necessary inputs
