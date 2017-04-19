@@ -26,7 +26,7 @@ public abstract class AbstractPlannerReactor extends AbstractReactor {
 	 * @param pkslsToRun			The list of pksls that are being added in an order
 	 * 								where dependents are executed first
 	 */	
-	protected void getAllDownstreamVertsBasedOnTraverseOrder(Set<Vertex> vertsToRun, List<String> pkslsToRun) {
+	protected void getAllDownstreamVertsBasedOnTraverseOrder(PKSLPlanner planner, Set<Vertex> vertsToRun, List<String> pkslsToRun) {
 		// if there are no vertices to execute
 		// just return
 		if(vertsToRun.isEmpty()) {
@@ -41,7 +41,6 @@ public abstract class AbstractPlannerReactor extends AbstractReactor {
 			String vertId = nextVert.property(PKSLPlanner.TINKER_ID).value().toString();
 			// get the pksl operation
 			String pkslOperation = vertId.substring(3) + ";";
-			
 			// set the property PROCESSED so we can now properly traverse
 			nextVert.property(PKSLPlanner.PROCESSED, true);
 			
@@ -57,16 +56,14 @@ public abstract class AbstractPlannerReactor extends AbstractReactor {
 			while(outNounsIt.hasNext()) {
 				// grab the noun
 				Vertex outNoun = outNounsIt.next();
-				String outNounId = outNoun.value(PKSLPlanner.TINKER_ID);
-				
-				// now, search in the planner and find if this outNoun is present
-				// and grab all the OPs that have this as an input
-				// these will get added to the new verts to run
-				GraphTraversal<Vertex, Vertex> newRootsTraversal = planner.g.traversal().V().has(PKSLPlanner.TINKER_ID, outNounId).out()
-						.has(PKSLPlanner.PROCESSED, false); // make sure it hasn't been already added
-				while(newRootsTraversal.hasNext()) {
-					Vertex vert = newRootsTraversal.next();
-					downstreamNodeIds.add(vert.value(TinkerFrame.TINKER_ID));
+				// get all ops that use this node
+				Iterator<Vertex> outOpsIt = outNoun.vertices(Direction.OUT);
+				while(outOpsIt.hasNext()) {
+					Vertex outOp = outOpsIt.next();
+					boolean processed = (boolean) outOp.value(PKSLPlanner.PROCESSED);
+					if(!processed) {
+						downstreamNodeIds.add(outOp.value(TinkerFrame.TINKER_ID).toString());
+					}
 				}
 			}
 			
@@ -86,7 +83,7 @@ public abstract class AbstractPlannerReactor extends AbstractReactor {
 		}
 		
 		// run through the method with the new set of vertices
-		getAllDownstreamVertsBasedOnTraverseOrder(nextVertsToRun, pkslsToRun);
+		getAllDownstreamVertsBasedOnTraverseOrder(planner, nextVertsToRun, pkslsToRun);
 	}
 	
 	/**
@@ -258,7 +255,6 @@ public abstract class AbstractPlannerReactor extends AbstractReactor {
 	 */
 	protected Set<Vertex> getDownstreamEffectsInPlanner(Set<Vertex> roots, PKSLPlanner planner) {
 		Set<Vertex> newRoots = new LinkedHashSet<Vertex>();
-		
 		for(Vertex v : roots) {
 			// for this root
 			// find all the out nouns
@@ -267,7 +263,6 @@ public abstract class AbstractPlannerReactor extends AbstractReactor {
 				// grab the noun
 				Vertex outNoun = outNounsIt.next();
 				String outNounId = outNoun.value(PKSLPlanner.TINKER_ID);
-				
 				// now, search in the planner and find if this outNoun is present
 				// and grab all the OPs that have this as an input
 				// these will get added to the newRoots

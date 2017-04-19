@@ -82,7 +82,7 @@ public class UpdatePlannerReactor extends AbstractPlannerReactor {
 		Set<Vertex> newRoots = getDownstreamEffectsInPlanner(roots, myPlanner);
 		
 		// traverse downstream and get all the other values we need to update
-		getAllDownstreamVertsBasedOnTraverseOrder(newRoots, pkslsToRun);
+		getAllDownstreamVertsBasedOnTraverseOrder(myPlanner, newRoots, pkslsToRun);
 		
 		// get the current in memory store
 		// flush out all these variables to the translation
