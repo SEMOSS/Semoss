@@ -42,6 +42,8 @@ public class UpdatePlannerReactor extends AbstractPlannerReactor {
 	@Override
 	public NounMetadata execute()
 	{
+		long start = System.currentTimeMillis();
+		
 		PKSLPlanner myPlanner = getPlanner();
 		// to properly update
 		// we need to reset the "PROCESSED" property
@@ -81,8 +83,14 @@ public class UpdatePlannerReactor extends AbstractPlannerReactor {
 		// that we are updating
 		Set<Vertex> newRoots = getDownstreamEffectsInPlanner(roots, myPlanner);
 		
+		List<String> downstreamVertIds = new Vector<String>();
 		// traverse downstream and get all the other values we need to update
-		getAllDownstreamVertsBasedOnTraverseOrder(myPlanner, newRoots, pkslsToRun);
+		getAllDownstreamVertsBasedOnTraverseOrder(newRoots, downstreamVertIds);
+		
+		// since we have the order based on the first execution
+		// use that in order to add these pksls in the correct order
+		// for the execution
+		pkslsToRun.addAll(orderVertsAndGetPksls(myPlanner, downstreamVertIds));
 		
 		// get the current in memory store
 		// flush out all these variables to the translation
@@ -107,9 +115,12 @@ public class UpdatePlannerReactor extends AbstractPlannerReactor {
 			}
 		}
 		
+		long end = System.currentTimeMillis();
+		System.out.println("****************    "+(end - start)+"      *************************");
+		
 		return new NounMetadata(memStore, PkslDataTypes.IN_MEM_STORE);
 	}
-	
+
 	/**
 	 * Greedy execution of pksls
 	 * @param pkslsToRun
