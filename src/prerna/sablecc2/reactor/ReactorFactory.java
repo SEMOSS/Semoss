@@ -17,6 +17,9 @@ import prerna.sablecc2.reactor.expression.OpMin;
 import prerna.sablecc2.reactor.expression.OpSum;
 import prerna.sablecc2.reactor.imports.ImportDataReactor;
 import prerna.sablecc2.reactor.imports.MergeDataReactor;
+import prerna.sablecc2.reactor.planner.LoadClient;
+import prerna.sablecc2.reactor.planner.RunPlannerReactor;
+import prerna.sablecc2.reactor.planner.UpdatePlannerReactor;
 import prerna.sablecc2.reactor.qs.AverageReactor;
 import prerna.sablecc2.reactor.qs.DatabaseReactor;
 import prerna.sablecc2.reactor.qs.FrameReactor;
@@ -28,12 +31,10 @@ import prerna.sablecc2.reactor.qs.QueryFilterReactor;
 import prerna.sablecc2.reactor.qs.QueryReactor;
 import prerna.sablecc2.reactor.qs.SelectReactor;
 import prerna.sablecc2.reactor.qs.SumReactor;
-import prerna.sablecc2.reactor.storage.LoadClient;
 //import prerna.util.Utility;
 import prerna.sablecc2.reactor.storage.MapStore;
 import prerna.sablecc2.reactor.storage.RetrieveValue;
 import prerna.sablecc2.reactor.storage.StoreValue;
-import prerna.sablecc2.reactor.storage.UpdateValues;
 
 public class ReactorFactory {
 
@@ -116,7 +117,7 @@ public class ReactorFactory {
 		reactorHash.put("RetrieveValue", RetrieveValue.class);
 		reactorHash.put("LoadClient", LoadClient.class);
 		reactorHash.put("RunPlan", RunPlannerReactor.class);
-		reactorHash.put("UpdateValues", UpdateValues.class);
+		reactorHash.put("UpdatePlan", UpdatePlannerReactor.class);
 	}
 	
 	/**

@@ -50,38 +50,6 @@ public class AssignmentReactor extends AbstractReactor {
 	@Override
 	public List<NounMetadata> getInputs() {
 		List<NounMetadata> inputs = super.getInputs();
-//		List<NounMetadata> inputs = new Vector<NounMetadata>();
-//		// grab all the nouns in the noun store
-//		Set<String> nounKeys = this.getNounStore().nounRow.keySet();
-//		for(String nounKey : nounKeys) {
-//			// grab the genrowstruct for the noun
-//			// and add its vector to the inputs list
-//			GenRowStruct struct = this.getNounStore().getNoun(nounKey);
-//			
-//			// add everything except the variable name
-//			for(NounMetadata noun : struct.vector) {
-//				if(!noun.getValue().toString().equals(this.operationName)) {
-//					inputs.add(noun);
-//				}
-//			}
-//		}
-//		
-//		// we also need to account for some special cases
-//		// when we have a filter reactor
-//		// it doesn't get added as an op
-//		// so we need to go through the child of this reactor
-//		// and if it has a filter
-//		// add its nouns to the inputs for this reactor
-//		for(IReactor child : childReactor) {
-//			if(child instanceof FilterReactor) {
-//				// child nouns should contain LCOL, RCOL, COMPARATOR
-//				Set<String> childNouns = child.getNounStore().nounRow.keySet();
-//				for(String cNoun : childNouns) {
-//					inputs.addAll(child.getNounStore().getNoun(cNoun).vector);
-//				}
-//			}
-//		}
-//		
 		
 		// remove the operation name from the inputs
 		for(NounMetadata noun : inputs) {
