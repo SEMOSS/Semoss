@@ -16,7 +16,6 @@ import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.NounMetadata;
 import prerna.sablecc2.om.NounStore;
 import prerna.sablecc2.om.PkslDataTypes;
-import prerna.sablecc2.reactor.expression.OpReactor;
 
 public abstract class AbstractReactor implements IReactor {
 
@@ -266,15 +265,10 @@ public abstract class AbstractReactor implements IReactor {
 		// and if it has a filter
 		// add its nouns to the inputs for this reactor
 		for(IReactor child : childReactor) {
-//			if(child instanceof FilterReactor) {
-//				// child nouns should contain LCOL, RCOL, COMPARATOR
-//				inputs.addAll(child.getNounStore().getNoun("LCOL").vector);
-//				inputs.addAll(child.getNounStore().getNoun("RCOL").vector);
-//			} else if(child instanceof Assimilator) {
-//				inputs.addAll(child.getInputs());
-//			} else {
-				inputs.addAll(child.getInputs());
-//			}
+			List<NounMetadata> childInputs = child.getInputs();
+			if(childInputs != null) {
+				inputs.addAll(childInputs);
+			}
 		}
 
 		return inputs;
