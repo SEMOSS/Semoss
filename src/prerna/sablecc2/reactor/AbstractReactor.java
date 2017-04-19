@@ -8,6 +8,8 @@ import java.util.List;
 import java.util.Set;
 import java.util.Vector;
 
+import org.apache.log4j.LogManager;
+import org.apache.log4j.Logger;
 import org.codehaus.plexus.util.StringUtils;
 
 import prerna.algorithm.api.ITableDataFrame;
@@ -19,6 +21,8 @@ import prerna.sablecc2.om.PkslDataTypes;
 
 public abstract class AbstractReactor implements IReactor {
 
+	private static final Logger LOGGER = LogManager.getLogger(AbstractReactor.class.getName());
+	
 	protected String operationName = null;
 	protected String signature = null;
 	protected String inputString = null;
@@ -181,8 +185,6 @@ public abstract class AbstractReactor implements IReactor {
 	// execute it
 	public NounMetadata execute()
 	{
-		System.out.println("Execute the method.. " + signature);
-		System.out.println("Printing NOUN Store so far.. " + store);
 		List <NounMetadata> lamList = curRow.getNounsOfType(PkslDataTypes.LAMBDA);
 		// replace all the values that is inside this. this could be a recursive call
 		for(int lamIndex = 0;lamIndex < lamList.size();lamIndex++)
@@ -210,9 +212,9 @@ public abstract class AbstractReactor implements IReactor {
 	
 	@Override
 	public void modifySignature(String stringToFind, String stringReplacement) {
-		System.out.println("Original signature value = " + this.signature);
+		LOGGER.debug("Original signature value = " + this.signature);
 		this.signature = StringUtils.replaceOnce( this.signature, stringToFind, stringReplacement);
-		System.out.println("New signature value = " + this.signature);
+		LOGGER.debug("New signature value = " + this.signature);
 	}
 
 	// call for map
