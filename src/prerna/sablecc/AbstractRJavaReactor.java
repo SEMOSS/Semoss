@@ -2251,21 +2251,16 @@ public abstract class AbstractRJavaReactor extends AbstractJavaReactor {
                   List<Object> targetPropertyInstances = DomainValues.retrieveCleanPropertyValues(conceptUriTarget, (String) targetProperties.get(i), iEngineTarget);
                   targetColumnSize[i+1] = targetPropertyInstances.size();
                    allTargetInstances.add((Vector<Object>) targetPropertyInstances);
-                  
-                  
             }
-
-            
-
      }
 
-     String csvPathSource = getBaseFolder() + "\\" + Constants.R_BASE_FOLDER + "\\"
-                  + "FuzzyJoin\\Temp\\sourceDataFrame.csv";
-     csvPathSource = csvPathSource.replace("\\", "/");
+     String filePathSource = getBaseFolder() + "\\" + Constants.R_BASE_FOLDER + "\\"
+                  + "FuzzyJoin\\Temp\\sourceDataFrame.txt";
+     filePathSource = filePathSource.replace("\\", "/");
 
-     String csvPathTarget = getBaseFolder() + "\\" + Constants.R_BASE_FOLDER + "\\"
-                  + "FuzzyJoin\\Temp\\targetDataFrame.csv";
-     csvPathTarget = csvPathTarget.replace("\\", "/");
+     String filePathTarget = getBaseFolder() + "\\" + Constants.R_BASE_FOLDER + "\\"
+                  + "FuzzyJoin\\Temp\\targetDataFrame.txt";
+     filePathTarget = filePathTarget.replace("\\", "/");
 
      // Construct headers based on existence of properties
 
@@ -2292,55 +2287,55 @@ public abstract class AbstractRJavaReactor extends AbstractJavaReactor {
 
      try {
             // write source values to csv
-            PrintWriter sv = new PrintWriter(new File(csvPathSource));
+            PrintWriter sv = new PrintWriter(new File(filePathSource));
             StringBuilder ssb = new StringBuilder();
             // csv headers
             ssb.append(sourceHeader);
             // property headers
             for (int i = 0; i < sourceProperties.size(); i++) {
-                  ssb.append(" , " + DomainValues.determineCleanPropertyName((sourceProperties.get(i)), iEngineSource));
+                  ssb.append(" \t " + DomainValues.determineCleanPropertyName((sourceProperties.get(i)), iEngineSource));
             }
             ssb.append(" \n");
 
-			List b = Arrays.asList(ArrayUtils.toObject(sourceColumnSize));
-			int maxRow = (int) Collections.max(b);
-			for (int row = 0; row < maxRow; row++) {
-				int columnIndex = -1;
-				for (int i = 0; i < allSourceInstances.size(); i++) {
-					columnIndex++;
-					Vector<Object> col = allSourceInstances.get(i);
-					String sourceInstance = "";
-					if (row < col.size()) {
+                    List b = Arrays.asList(ArrayUtils.toObject(sourceColumnSize));
+                    int maxRow = (int) Collections.max(b);
+                    for (int row = 0; row < maxRow; row++) {
+                          int columnIndex = -1;
+                          for (int i = 0; i < allSourceInstances.size(); i++) {
+                                 columnIndex++;
+                                 Vector<Object> col = allSourceInstances.get(i);
+                                 String sourceInstance = "";
+                                 if (row < col.size()) {
 
-						sourceInstance = col.get(row).toString();
-					}
-					ssb.append(sourceInstance);
-					if (columnIndex < sourceColumnSize.length - 1) {
-						ssb.append(" ,");
-					}
-				}
-				ssb.append("\n");
-			}
-			sv.write(ssb.toString());
-			sv.close();
+                                       sourceInstance = col.get(row).toString();
+                                 }
+                                 ssb.append(sourceInstance);
+                                 if (columnIndex < sourceColumnSize.length - 1) {
+                                       ssb.append(" \t");
+                                 }
+                          }
+                          ssb.append("\n");
+                    }
+                    sv.write(ssb.toString());
+                    sv.close();
 
             // write target values to csv
-            PrintWriter tv = new PrintWriter(new File(csvPathTarget));
+            PrintWriter tv = new PrintWriter(new File(filePathTarget));
             StringBuilder tsb = new StringBuilder();
             // csv headers
             tsb.append(targetHeader);
             // property headers
             for (int i = 0; i < targetProperties.size(); i++) {
-                  tsb.append(" , " + DomainValues.determineCleanPropertyName((targetProperties.get(i)), iEngineTarget));
+                  tsb.append(" \t " + DomainValues.determineCleanPropertyName((targetProperties.get(i)), iEngineTarget));
             }
             tsb.append("\n");
 
             List c = Arrays.asList(ArrayUtils.toObject(targetColumnSize));
             int maxRowTarget = (int) Collections.max(c);
             for (int row = 0; row < maxRowTarget; row++) {
-				int columnIndex = -1;
+                          int columnIndex = -1;
                   for (int i = 0; i < allTargetInstances.size(); i++) {
-  					columnIndex++;
+                                 columnIndex++;
                          Vector<Object> col = allTargetInstances.get(i);
                          String targetInstance = "";
                          if (row < col.size()) {
@@ -2348,35 +2343,46 @@ public abstract class AbstractRJavaReactor extends AbstractJavaReactor {
                                targetInstance = col.get(row).toString();
                          }
                          tsb.append(targetInstance);
-     					if (columnIndex < targetColumnSize.length - 1) {
-     						tsb.append(" ,");
-    					}
+                                 if (columnIndex < targetColumnSize.length - 1) {
+                                       tsb.append(" \t");
+                                 }
                   }
                   tsb.append("\n");
             }
             tv.write(tsb.toString());
             tv.close();
+            
+            /* for source and target, change csv -> txt, change delimiter to tab, change r script to read table */ 
 
      } catch (FileNotFoundException e) {
             e.printStackTrace();
      }
 
+
      // Run Fuzzy Matching in R
      String utilityScriptPath = getBaseFolder() + "\\" + Constants.R_BASE_FOLDER + "\\" + "FuzzyJoin\\fuzzy_join.r";
      utilityScriptPath = utilityScriptPath.replace("\\", "/");
-
+     
      runR("library(fuzzyjoin)");
      runR("source(\"" + utilityScriptPath + "\");");
+    
      String df1 = "this.df.name.is.reserved.for.fuzzy.join.source";
      String df2 = "this.df.name.is.reserved.for.fuzzy.join.target";
+     
+     StringBuilder sourceRead = new StringBuilder();
+     sourceRead.append(df1 + "<-read.table(\"" + filePathSource+ "\"");
+     sourceRead.append(", header = TRUE, sep = \"\\t\", quote = \"\", na.strings = \"\", check.names = FALSE, strip.white = TRUE, comment.char = \"\", fill = TRUE)");
+     System.out.println(sourceRead.toString());
+     
+     StringBuilder targetRead = new StringBuilder();
+     targetRead.append(df2 + "<-read.table(\"" + filePathTarget + "\"");
+     targetRead.append(", header = TRUE, sep = \"\\t\", quote = \"\", na.strings = \"\", check.names = FALSE, strip.white = TRUE, comment.char = \"\", fill = TRUE)");
+     
+     
      String df = "this.df.name.is.reserved.for.fuzzy.join.output";
-     runR(df1 + " <-read.csv(\"" + csvPathSource + "\")");
-     runR(df2 + " <-read.csv(\"" + csvPathTarget + "\")");
-
-     // parse data types
-     double maxdist_value = Double.parseDouble(maxdist);
-     int gramsize_value = Integer.parseInt(gramsize);
-     double penalty_value = Double.parseDouble(penalty);
+     runR(sourceRead.toString());
+     runR(targetRead.toString());
+     System.out.println(targetRead.toString());
 
      // build the R command
      StringBuilder rCommand = new StringBuilder();
@@ -2397,6 +2403,7 @@ public abstract class AbstractRJavaReactor extends AbstractJavaReactor {
      storeVariable("GRID_NAME", df);
      synchronizeFromR();
 }
+
 
 
 }
