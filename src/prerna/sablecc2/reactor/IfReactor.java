@@ -52,6 +52,7 @@ public class IfReactor extends AbstractReactor {
 				}
 			}
 		}
+		
 		// the if will always have 2 values in its curRow
 		// the first value is the true object
 		// the second value is the false object
