@@ -34,6 +34,7 @@ public class Assimilator extends AbstractReactor {
 		super.execute();
 		// evaluate the assimilator as an object
 		ClassMaker maker = new ClassMaker();
+		maker.addInterface("java.io.Serializable");
 		// keep a string to generate the method to execute that will
 		// return an object that runs the expression
 		StringBuilder expressionBuilder = new StringBuilder();
@@ -111,6 +112,7 @@ public class Assimilator extends AbstractReactor {
 			}
 			// we have a lambda
 			// so we execute and return the operation output
+			// TODO: this should no longer be needed since getVariableValue will evaluate a lambda
 			else if(dataType == PkslDataTypes.LAMBDA){
 				// in case the variable points to another reactor
 				// that we need to get the value from
@@ -136,17 +138,6 @@ public class Assimilator extends AbstractReactor {
 		}
 	}
 	
-//	public List<NounMetadata> getInputs() {
-//		List<NounMetadata> inputs = new Vector<>();
-//		List<String> exprInputs = curRow.getAllColumns();
-//		for(String exprInput : exprInputs) {
-//			NounMetadata noun = new NounMetadata(exprInput, PkslDataTypes.COLUMN);
-//			inputs.add(noun);
-//		}
-//
-//		return inputs;
-//	}
-
 	@Override
 	public List<NounMetadata> getOutputs() {
 		List<NounMetadata> outputs = super.getOutputs();

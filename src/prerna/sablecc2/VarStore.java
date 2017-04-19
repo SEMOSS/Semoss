@@ -6,6 +6,7 @@ import java.util.Set;
 
 import prerna.sablecc2.om.NounMetadata;
 import prerna.sablecc2.om.PkslDataTypes;
+import prerna.sablecc2.reactor.IReactor;
 
 public class VarStore {
 
@@ -37,6 +38,9 @@ public class VarStore {
 				if(hasVariable(valName)) {
 					return getVariableValue(valName);
 				}
+			} else if(valType == PkslDataTypes.LAMBDA) {
+				NounMetadata retNoun = ((IReactor) valueNoun.getValue()).execute();
+				return retNoun;
 			}
 		}
 		// once we are done with the whole recursive
