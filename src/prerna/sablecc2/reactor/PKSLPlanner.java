@@ -34,6 +34,10 @@ public class PKSLPlanner {
 	public static final String TINKER_TYPE = "_T_TYPE";
 	public static final String TINKER_NAME = "_T_NAME";
 	
+	public static final String PROCESSED = "PROCESSED";
+	public static final String ORDER = "ORDER";
+
+	
 	public PKSLPlanner() {
 		
 	}

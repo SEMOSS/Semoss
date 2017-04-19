@@ -19,7 +19,6 @@ import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.NounMetadata;
 import prerna.sablecc2.parser.Parser;
 import prerna.sablecc2.parser.ParserException;
-import prerna.sablecc2.reactor.PKSLPlanner;
 
 public class UpdatePlannerReactor extends AbstractPlannerReactor {
 
@@ -40,9 +39,15 @@ public class UpdatePlannerReactor extends AbstractPlannerReactor {
 	@Override
 	public NounMetadata execute()
 	{
-		GenRowStruct pksls = this.store.getNoun(PKSL_NOUN);
+		// to properly update
+		// we need to reset the "PROCESSED" property
+		// that are currently set on the planner
+		// when we first executed the plan
+		resetProcessedBoolean(this.planner);
 		
 		// grab all the pksls
+		GenRowStruct pksls = this.store.getNoun(PKSL_NOUN);
+		
 		// store them in a list
 		// and also keep a builder with all the executions
 		List<String> pkslsToRun = new Vector<String>();
@@ -72,19 +77,29 @@ public class UpdatePlannerReactor extends AbstractPlannerReactor {
 		// that we are updating
 		Set<Vertex> newRoots = getDownstreamEffectsInPlanner(roots, this.planner);
 		
-		// found the following roots
-		for(Vertex vert : newRoots) {
-			System.out.println("ROOT ::: " + vert.value(PKSLPlanner.TINKER_ID));
-		}
 		// traverse downstream and get all the other values we need to update
-		traverseDownstreamVerts(newRoots, pkslsToRun);
+		getAllDownstreamVertsBasedOnTraverseOrder(newRoots, pkslsToRun);
 		
+		// now run through all the pksls and execute
+		executePKSLs(pkslsToRun);
+		
+		Set<String> variables = this.planner.getVariables();
+		for(String variable : variables) {
+			System.out.println("VARIABLE " + variable + " ::: " + this.planner.getVariableValue(variable).getValue());
+		}
+		
+		return null;
+	}
+	
+	/**
+	 * Greedy execution of pksls
+	 * @param pkslsToRun
+	 */
+	private void executePKSLs(List<String> pkslsToRun) {
 		// now run through all the pksls and execute
 		Translation translation = new Translation();
 		translation.planner = this.planner;
-		
-		System.out.println(this.planner.getVariables());
-		
+				
 		for(String pkslString : pkslsToRun) {
 			try {
 				Parser p = new Parser(new Lexer(new PushbackReader(new InputStreamReader(new ByteArrayInputStream(pkslString.getBytes("UTF-8"))))));
@@ -94,13 +109,6 @@ public class UpdatePlannerReactor extends AbstractPlannerReactor {
 				e.printStackTrace();
 			}
 		}
-		
-		Set<String> variables = translation.planner.getVariables();
-		for(String variable : variables) {
-			System.out.println("VARIABLE " + variable + " ::: " + translation.planner.getVariableValue(variable).getValue());
-		}
-		
-		return null;
 	}
 
 }

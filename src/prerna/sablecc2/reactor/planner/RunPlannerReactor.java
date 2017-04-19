@@ -52,7 +52,7 @@ public class RunPlannerReactor extends AbstractPlannerReactor {
 		// for the desired travels in the appropriate order
 		// note: this is adding to the list of undefined variables
 		// calculated at beginning of class 
-		traverseDownstreamVerts(rootVertices, pksls);
+		traverseDownstreamVertsAndOrderProcessing(rootVertices, pksls);
 		
 		Translation translation = new Translation();
 		
