@@ -31,6 +31,8 @@ import prerna.sablecc2.parser.Parser;
 import prerna.sablecc2.parser.ParserException;
 import prerna.sablecc2.reactor.AbstractReactor;
 import prerna.sablecc2.reactor.PKSLPlanner;
+import prerna.sablecc2.reactor.storage.InMemStore;
+import prerna.sablecc2.reactor.storage.MapStore;
 import prerna.util.ArrayUtilityMethods;
 
 public class LoadClient extends AbstractReactor {
@@ -58,10 +60,11 @@ public class LoadClient extends AbstractReactor {
 		// and append them into a new plan
 		PKSLPlanner newPlan = createPlanner();
 		//replace this planner with generated planner
-		this.planner = newPlan;
+//		this.planner = newPlan;
 
-		return null;
+		return new NounMetadata(newPlan, PkslDataTypes.PLANNER);
 	}
+	
 	
 	private PKSLPlanner createPlanner() {
 		// generate our lazy translation
@@ -336,7 +339,23 @@ public class LoadClient extends AbstractReactor {
 		return job.getIterator();
 	}
 
-	/*****************END GET VALUES********************/
+	private InMemStore getInMemoryStore() {
+		InMemStore inMemStore = null;
+//		GenRowStruct grs = getNounStore().getNoun(this.IN_MEM_STORE);
+//		if(grs != null) {
+//			inMemStore = (InMemStore) grs.get(0);
+//		} else {
+			GenRowStruct grs = getNounStore().getNoun(PkslDataTypes.IN_MEM_STORE.toString());
+			if(grs != null) {
+				inMemStore = (InMemStore) grs.get(0);
+			} else {
+				inMemStore = new MapStore();
+			}
+//		}
+		
+		return inMemStore;
+	}
+	/*****************END GET PARAMETERS********************/
 	
 	
 	/*****************DEBUG METHODS********************/

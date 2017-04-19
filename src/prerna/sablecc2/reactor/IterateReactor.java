@@ -100,8 +100,6 @@ public class IterateReactor extends AbstractReactor {
 			}	
 		}
 		
-		// TODO : WHAT IS THIS PORTION USED FOR???
-		// is this just legacy????
 		Map<String, Object> returnData = new HashMap<>();
 		returnData.put("jobId", jobId);
 		this.planner.addProperty("DATA", "DATA", returnData);
