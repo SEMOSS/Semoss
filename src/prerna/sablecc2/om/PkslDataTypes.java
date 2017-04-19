@@ -21,7 +21,7 @@ public enum PkslDataTypes {
 	LAMBDA ("LAMBDA"),
 	ALIAS("ALIAS"),
 	FRAME("FRAME"),
-	IN_MEM_STORE("IN_MEM_STORE"),
+	IN_MEM_STORE("STORE"),
 	PLANNER("PLANNER");
 	
 	private final String strValue;
