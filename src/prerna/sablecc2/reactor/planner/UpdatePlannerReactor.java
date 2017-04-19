@@ -27,8 +27,7 @@ import prerna.sablecc2.reactor.storage.MapStore;
 public class UpdatePlannerReactor extends AbstractPlannerReactor {
 
 	public static final String PKSL_NOUN = "pksls";
-	public static final String OUT_STORE_NOUN = "out_store";
-	public static final String IN_STORE_NOUN = "in_store";
+	public static final String STORE_NOUN = "store";
 	
 	@Override
 	public void In() {
@@ -137,7 +136,12 @@ public class UpdatePlannerReactor extends AbstractPlannerReactor {
 		if(grs != null) {
 			inMemStore = (InMemStore) grs.get(0);
 		} else {
-			inMemStore = new MapStore();
+			GenRowStruct storeGrs = store.getNoun(STORE_NOUN);
+			if(storeGrs != null) {
+				return (InMemStore) storeGrs.get(0);
+			} else {
+				inMemStore = new MapStore();
+			}
 		}
 		
 		return inMemStore;
