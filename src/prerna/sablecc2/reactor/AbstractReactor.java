@@ -241,7 +241,7 @@ public abstract class AbstractReactor implements IReactor {
 		
 		// TODO: how do i accurately determine the data type?
 		if(this.parentReactor instanceof FilterReactor || this.parentReactor instanceof AssignmentReactor ) {
-			NounMetadata data = new NounMetadata(this.signature, PkslDataTypes.LAMBDA);
+			NounMetadata data = new NounMetadata(this, PkslDataTypes.LAMBDA);
 			this.parentReactor.getCurRow().add(data);
 		}
 	}
