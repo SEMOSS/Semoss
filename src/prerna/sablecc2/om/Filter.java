@@ -121,9 +121,9 @@ public class Filter {
 			NounMetadata lambdaVal = ((AbstractReactor) type).execute();
 			PkslDataTypes lambdaType = ((NounMetadata) lambdaVal).getNounName();
 			if(lambdaType == PkslDataTypes.CONST_STRING) {
-				return "\"" + type.toString() + "\"";
+				return "\"" + lambdaVal.getValue() + "\"";
 			} else {
-				return type.toString();
+				return lambdaVal.getValue().toString();
 			}
 		}
 		// any other case is a constant
