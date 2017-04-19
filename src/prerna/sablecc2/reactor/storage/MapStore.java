@@ -82,7 +82,9 @@ public class MapStore extends AbstractReactor implements InMemStore {
 
 	@Override
 	public NounMetadata get(Object key) {
-		return thisStore.get(key);
+		NounMetadata retNoun = thisStore.get(key);
+		LOGGER.info("Retrieving ::: " + key + " with value ( " + retNoun + " )");
+		return retNoun;
 	}
 
 	@Override

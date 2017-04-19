@@ -2,27 +2,115 @@ package prerna.sablecc2.reactor.planner;
 
 import java.util.HashSet;
 import java.util.Iterator;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.Vector;
 
+import org.apache.tinkerpop.gremlin.process.traversal.Order;
+import org.apache.tinkerpop.gremlin.process.traversal.P;
 import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.GraphTraversal;
 import org.apache.tinkerpop.gremlin.structure.Direction;
 import org.apache.tinkerpop.gremlin.structure.Vertex;
 
+import prerna.ds.TinkerFrame;
 import prerna.sablecc2.reactor.AbstractReactor;
 import prerna.sablecc2.reactor.PKSLPlanner;
 
 public abstract class AbstractPlannerReactor extends AbstractReactor {
 
 	/**
+	 * Runs through and get all downstream vertices based on the execution order
+	 * and will continue to traverse down and get downstream vertices that it can execute
+	 * @param vertsToRun			The starting set of vertices to execute
+	 * @param pkslsToRun			The list of pksls that are being added in an order
+	 * 								where dependents are executed first
+	 */	
+	protected void getAllDownstreamVertsBasedOnTraverseOrder(Set<Vertex> vertsToRun, List<String> pkslsToRun) {
+		// if there are no vertices to execute
+		// just return
+		if(vertsToRun.isEmpty()) {
+			return;
+		}
+		
+		// keep a set of the next vertices to try to execute
+		Set<Vertex> nextVertsToRun = new LinkedHashSet<Vertex>();
+		
+		// we want to iterate through all the vertices we have defined
+		for(Vertex nextVert : vertsToRun) {
+			String vertId = nextVert.property(PKSLPlanner.TINKER_ID).value().toString();
+			// get the pksl operation
+			String pkslOperation = vertId.substring(3) + ";";
+			
+			// set the property PROCESSED so we can now properly traverse
+			nextVert.property(PKSLPlanner.PROCESSED, true);
+			
+			// add this operation to the pkslToRun
+			pkslsToRun.add(pkslOperation);
+			
+			// store the list so we can order them together
+			List<String> downstreamNodeIds = new Vector<String>();
+
+			// for this root
+			// find all the out nouns
+			Iterator<Vertex> outNounsIt = nextVert.vertices(Direction.OUT);
+			while(outNounsIt.hasNext()) {
+				// grab the noun
+				Vertex outNoun = outNounsIt.next();
+				String outNounId = outNoun.value(PKSLPlanner.TINKER_ID);
+				
+				// now, search in the planner and find if this outNoun is present
+				// and grab all the OPs that have this as an input
+				// these will get added to the new verts to run
+				GraphTraversal<Vertex, Vertex> newRootsTraversal = planner.g.traversal().V().has(PKSLPlanner.TINKER_ID, outNounId).out()
+						.has(PKSLPlanner.PROCESSED, false); // make sure it hasn't been already added
+				while(newRootsTraversal.hasNext()) {
+					Vertex vert = newRootsTraversal.next();
+					downstreamNodeIds.add(vert.value(TinkerFrame.TINKER_ID));
+				}
+			}
+			
+			// using the list of ids
+			// use this in another query such that we can properly order
+			// the execution
+			GraphTraversal<Vertex, Vertex> newRootsTraversal = planner.g.traversal().V().has(PKSLPlanner.TINKER_ID, P.within(downstreamNodeIds))
+					.has(PKSLPlanner.PROCESSED, false) // make sure it hasn't been already added
+					.order().by(PKSLPlanner.ORDER, Order.incr);
+			while(newRootsTraversal.hasNext()) {
+				Vertex vert = newRootsTraversal.next();
+				downstreamNodeIds.add(vert.value(TinkerFrame.TINKER_ID));
+				// modify the PROCESSED key to be true so we dont get this vert again
+				vert.property(PKSLPlanner.PROCESSED, true);
+				nextVertsToRun.add(vert);
+			}
+		}
+		
+		// run through the method with the new set of vertices
+		getAllDownstreamVertsBasedOnTraverseOrder(nextVertsToRun, pkslsToRun);
+	}
+	
+	/**
 	 * Runs through and sees if it is possible to execute a set of vertices
 	 * and will continue to traverse down and get downstream vertices that it can execute
 	 * @param vertsToRun			The starting set of vertices to execute
 	 * @param pkslsToRun			The list of pksls that are being added in an order
 	 * 								where dependents are executed first
+	 */	
+	protected void traverseDownstreamVertsAndOrderProcessing(Set<Vertex> vertsToRun, List<String> pkslsToRun) {
+		int startOrder = 0; // start at 1 and set the order as we itereate
+		traverseDownstreamVertsProcessor(vertsToRun, pkslsToRun, true, startOrder);
+	}
+	
+	/**
+	 * Runs through and sees if it is possible to execute a set of vertices
+	 * and will continue to traverse down and get downstream vertices that it can execute
+	 * @param vertsToRun			The starting set of vertices to execute
+	 * @param pkslsToRun			The list of pksls that are being added in an order
+	 * 								where dependents are executed first
+	 * @param orderNum				Integer to set the order of execution as a property on
+	 * 								each operation vertex
 	 */
-	protected void traverseDownstreamVerts(Set<Vertex> vertsToRun, List<String> pkslsToRun) {
+	private void traverseDownstreamVertsProcessor(Set<Vertex> vertsToRun, List<String> pkslsToRun, boolean setOrder, int orderNum) {
 		// if there are no vertices to execute
 		// just return
 		if(vertsToRun.isEmpty()) {
@@ -49,8 +137,8 @@ public abstract class AbstractPlannerReactor extends AbstractReactor {
 					// we can add it
 					// otherwise, we cannot
 					Vertex inputOp = inputOps.next();
-					if(inputOp.property("PROCESSED").isPresent()) {
-						Boolean isProcessed = inputOp.value("PROCESSED");
+					if(inputOp.property(PKSLPlanner.PROCESSED).isPresent()) {
+						Boolean isProcessed = inputOp.value(PKSLPlanner.PROCESSED);
 						if(!isProcessed) {
 							// well, we can't use you now
 							// continue to next vertex
@@ -69,7 +157,14 @@ public abstract class AbstractPlannerReactor extends AbstractReactor {
 			// so we can now add this :)
 
 			// set the property PROCESSED so we can now properly traverse
-			nextVert.property("PROCESSED", true);
+			nextVert.property(PKSLPlanner.PROCESSED, true);
+			
+			// if we are setting the order
+			// update here
+			if(setOrder) {
+				nextVert.property(PKSLPlanner.ORDER, orderNum);
+				orderNum++;
+			}
 			
 			// add this operation to the pkslToRun
 			pkslsToRun.add(pkslOperation);
@@ -86,8 +181,9 @@ public abstract class AbstractPlannerReactor extends AbstractReactor {
 		}
 		
 		// run through the method with the new set of vertices
-		traverseDownstreamVerts(nextVertsToRun, pkslsToRun);
+		traverseDownstreamVertsProcessor(nextVertsToRun, pkslsToRun, setOrder, orderNum);
 	}
+	
 	
 	/**
 	 * Get the list of pksls to run
@@ -137,7 +233,7 @@ public abstract class AbstractPlannerReactor extends AbstractReactor {
 				System.out.println("ROOT : " + pkslOperation);
 
 				// set a property "PROCESSED" to be false
-				nextOp.property("PROCESSED", false);
+				nextOp.property(PKSLPlanner.PROCESSED, false);
 				pkslOperation = nextOp.property(PKSLPlanner.TINKER_ID).value().toString().substring(3) + ";";
 				
 				// we ignore this stupid thing....
@@ -161,7 +257,7 @@ public abstract class AbstractPlannerReactor extends AbstractReactor {
 	 * @return
 	 */
 	protected Set<Vertex> getDownstreamEffectsInPlanner(Set<Vertex> roots, PKSLPlanner planner) {
-		Set<Vertex> newRoots = new HashSet<Vertex>();
+		Set<Vertex> newRoots = new LinkedHashSet<Vertex>();
 		
 		for(Vertex v : roots) {
 			// for this root
@@ -170,19 +266,41 @@ public abstract class AbstractPlannerReactor extends AbstractReactor {
 			while(outNounsIt.hasNext()) {
 				// grab the noun
 				Vertex outNoun = outNounsIt.next();
-				String outNounID = outNoun.value(PKSLPlanner.TINKER_ID);
+				String outNounId = outNoun.value(PKSLPlanner.TINKER_ID);
 				
 				// now, search in the planner and find if this outNoun is present
 				// and grab all the OPs that have this as an input
 				// these will get added to the newRoots
-				GraphTraversal<Vertex, Vertex> newRootsTraversal = planner.g.traversal().V().has(PKSLPlanner.TINKER_ID, outNounID).out();
+				GraphTraversal<Vertex, Vertex> newRootsTraversal = planner.g.traversal().V().has(PKSLPlanner.TINKER_ID, outNounId).out()
+						.has(PKSLPlanner.PROCESSED, false) // make sure it hasn't been already added
+						.order().by(PKSLPlanner.ORDER, Order.incr).dedup(); // return in the order of the original execution in run planner
 				while(newRootsTraversal.hasNext()) {
-					newRoots.add(newRootsTraversal.next());
+					Vertex vert = newRootsTraversal.next();
+					// modify the PROCESSED key to be true so we dont get this vert again
+					vert.property(PKSLPlanner.PROCESSED, true);
+					newRoots.add(vert);
 				}
 			}
 		}
 		return newRoots;
 	}
+	
+	/**
+	 * Reset the processed boolean to be false
+	 * This is required to properly determine which nodes/how nodes need to be updated
+	 * @param planner
+	 */
+	protected void resetProcessedBoolean(PKSLPlanner planner) {
+		// grab all op nodes
+		GraphTraversal<Vertex, Vertex> allOpsIt = planner.g.traversal().V().has(PKSLPlanner.TINKER_TYPE, PKSLPlanner.OPERATION);
+		// iterate through and set the propertys
+		while(allOpsIt.hasNext()) {
+			Vertex opNode = allOpsIt.next();
+			// set a property "PROCESSED" to be false
+			opNode.property(PKSLPlanner.PROCESSED, false);
+		}
+	}
+	
 	
 	/*
 	 * For debugging purposes, will also create new pksls to define variables that should be defined
