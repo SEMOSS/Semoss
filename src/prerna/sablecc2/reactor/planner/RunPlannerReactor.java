@@ -15,10 +15,13 @@ import prerna.sablecc2.Translation;
 import prerna.sablecc2.lexer.Lexer;
 import prerna.sablecc2.lexer.LexerException;
 import prerna.sablecc2.node.Start;
+import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.NounMetadata;
 import prerna.sablecc2.om.PkslDataTypes;
 import prerna.sablecc2.parser.Parser;
 import prerna.sablecc2.parser.ParserException;
+import prerna.sablecc2.reactor.PKSLPlanner;
+import prerna.sablecc2.reactor.storage.InMemStore;
 import prerna.sablecc2.reactor.storage.MapStore;
 
 public class RunPlannerReactor extends AbstractPlannerReactor {
@@ -38,15 +41,16 @@ public class RunPlannerReactor extends AbstractPlannerReactor {
 	{
 		long start = System.currentTimeMillis();
 		
+		PKSLPlanner planner = getPlanner();
 		// we use this just for debugging
 		// this will get undefined variables and set them to 0
 		// ideally, we should never have to do this...
-		List<String> pksls = getUndefinedVariablesPksls(this.planner);
+		List<String> pksls = getUndefinedVariablesPksls(planner);
 		
 		// get the list of the root vertices
 		// these are the vertices we can run right away
 		// and are the starting point for the plan execution
-		Set<Vertex> rootVertices = getRootPksls(this.planner);
+		Set<Vertex> rootVertices = getRootPksls(planner);
 		// using the root vertices
 		// iterate down all the other vertices and add the signatures
 		// for the desired travels in the appropriate order
@@ -113,7 +117,7 @@ public class RunPlannerReactor extends AbstractPlannerReactor {
 		System.out.println("****************    "+total+"      *************************");
 		System.out.println("****************    "+count+"      *************************");
 		
-		MapStore mapStore = getMapStore();
+		InMemStore mapStore = getInMemoryStore();
 		Set<String> variables = translation.planner.getVariables();
 		for(String variable : variables) {
 			mapStore.put(variable, translation.planner.getVariableValue(variable));
@@ -125,8 +129,29 @@ public class RunPlannerReactor extends AbstractPlannerReactor {
 		return new NounMetadata(mapStore, PkslDataTypes.IN_MEM_STORE);
 	}
 	
+	private InMemStore getInMemoryStore() {
+		InMemStore inMemStore = null;
+//		GenRowStruct grs = getNounStore().getNoun(this.IN_MEM_STORE);
+//		if(grs != null) {
+//			inMemStore = (InMemStore) grs.get(0);
+//		} else {
+			GenRowStruct grs = getNounStore().getNoun(PkslDataTypes.IN_MEM_STORE.toString());
+			if(grs != null) {
+				inMemStore = (InMemStore) grs.get(0);
+			}
+//		}
+		
+		return inMemStore;
+	}
 	
-	private MapStore getMapStore() {
-		return new MapStore();
+	private PKSLPlanner getPlanner() {
+		GenRowStruct allNouns = getNounStore().getNoun(PkslDataTypes.PLANNER.toString());
+		PKSLPlanner planner = null;
+		if(allNouns != null) {
+			planner = (PKSLPlanner) allNouns.get(0);
+			return planner;
+		} else {
+			return this.planner;
+		}
 	}
 }
