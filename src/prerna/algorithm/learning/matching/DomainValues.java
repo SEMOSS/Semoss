@@ -221,17 +221,28 @@ public class DomainValues {
 		return uniqueValues;
 	}
 
-	private static String determineCleanConceptName(String uri, IEngine engine) {
+	public static String determineCleanConceptName(String uri, IEngine engine) {
 		String conceptualURI = engine.getConceptualUriFromPhysicalUri(uri);
 		return conceptualURI.substring(conceptualURI.lastIndexOf("/") + 1);
 	}
 
-	private static String determineCleanPropertyName(String uri, IEngine engine) {
+	public static String determineCleanPropertyName(String uri, IEngine engine) {
 		String conceptualURI = engine.getConceptualUriFromPhysicalUri(uri);
 		String withoutConcept = conceptualURI.substring(0, conceptualURI.lastIndexOf("/"));
 		return withoutConcept.substring(withoutConcept.lastIndexOf("/") + 1);
 	}
 
+	public static Vector<Object> retrieveCleanConceptValues(String uri, IEngine engine) {
+		Vector<Object> conceptValues = engine.getEntityOfType(uri);
+		Vector<Object> cleanConceptValues = new Vector<Object>();
+		for(Object concept : conceptValues) {
+			String[] splitConcept = ((String)concept).split("/");
+			String cleanConcept = splitConcept[splitConcept.length-1];
+			cleanConceptValues.add(cleanConcept);
+		}
+		
+		return cleanConceptValues;
+	} 
 	// Test case
 	public static void main(String[] args) {
 
