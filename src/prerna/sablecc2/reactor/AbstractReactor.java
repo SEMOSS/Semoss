@@ -241,8 +241,9 @@ public abstract class AbstractReactor implements IReactor {
 		// based on the curnoun the filter has set
 		// we definitely need to define based on the type
 		
-		// TODO: how do i accurately determine the data type?
-		if(this.parentReactor instanceof FilterReactor || this.parentReactor instanceof AssignmentReactor ) {
+		if(this.parentReactor instanceof FilterReactor 
+				|| this.parentReactor instanceof AssignmentReactor 
+				|| this.parentReactor instanceof IfReactor ) {
 			NounMetadata data = new NounMetadata(this, PkslDataTypes.LAMBDA);
 			this.parentReactor.getCurRow().add(data);
 		}
