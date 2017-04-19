@@ -9,6 +9,8 @@ import java.io.PushbackReader;
 import java.util.List;
 import java.util.Set;
 
+import org.apache.log4j.LogManager;
+import org.apache.log4j.Logger;
 import org.apache.tinkerpop.gremlin.structure.Vertex;
 
 import prerna.sablecc2.Translation;
@@ -25,6 +27,8 @@ import prerna.sablecc2.reactor.storage.InMemStore;
 import prerna.sablecc2.reactor.storage.MapStore;
 
 public class RunPlannerReactor extends AbstractPlannerReactor {
+
+	private static final Logger LOGGER = LogManager.getLogger(LoadClient.class.getName());
 
 	@Override
 	public void In() {
@@ -75,20 +79,19 @@ public class RunPlannerReactor extends AbstractPlannerReactor {
 		for(String pkslString : pksls) {
 			try {
 				Parser p = new Parser(new Lexer(new PushbackReader(new InputStreamReader(new ByteArrayInputStream(pkslString.getBytes("UTF-8"))))));
-				
 				Start tree = p.parse();
 				tree.apply(translation);
 				bw.write("COMPLETE::: "+pkslString+"\n");
 			} catch (ParserException | LexerException | IOException e) {
 				count++;
 				e.printStackTrace();
-				System.out.println(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>");
-				System.out.println(pkslString);
-				try {
-					bw.write("PARSE ERROR::::   "+pkslString+"\n");
-				} catch (IOException e1) {
-					e1.printStackTrace();
-				}
+//				System.out.println(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>");
+//				System.out.println(pkslString);
+//				try {
+//					bw.write("PARSE ERROR::::   "+pkslString+"\n");
+//				} catch (IOException e1) {
+//					e1.printStackTrace();
+//				}
 //				System.out.println(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>");
 			} catch(Exception e) {
 				count++;
@@ -115,8 +118,8 @@ public class RunPlannerReactor extends AbstractPlannerReactor {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
-		System.out.println("****************    "+total+"      *************************");
-		System.out.println("****************    "+count+"      *************************");
+		LOGGER.info("****************    "+total+"      *************************");
+		LOGGER.info("****************    "+count+"      *************************");
 		
 		InMemStore mapStore = getInMemoryStore();
 		Set<String> variables = translation.planner.getVariables();
@@ -132,15 +135,10 @@ public class RunPlannerReactor extends AbstractPlannerReactor {
 	
 	private InMemStore getInMemoryStore() {
 		InMemStore inMemStore = null;
-//		GenRowStruct grs = getNounStore().getNoun(this.IN_MEM_STORE);
-//		if(grs != null) {
-//			inMemStore = (InMemStore) grs.get(0);
-//		} else {
-			GenRowStruct grs = getNounStore().getNoun(PkslDataTypes.IN_MEM_STORE.toString());
-			if(grs != null) {
-				inMemStore = (InMemStore) grs.get(0);
-			}
-//		}
+		GenRowStruct grs = getNounStore().getNoun(PkslDataTypes.IN_MEM_STORE.toString());
+		if(grs != null) {
+			inMemStore = (InMemStore) grs.get(0);
+		}
 		
 		if(inMemStore == null) {
 			return new MapStore();

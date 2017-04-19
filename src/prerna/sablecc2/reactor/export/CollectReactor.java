@@ -1,14 +1,7 @@
 package prerna.sablecc2.reactor.export;
 
-import java.io.BufferedWriter;
-import java.io.File;
-import java.io.FileWriter;
-import java.io.IOException;
 import java.util.List;
 import java.util.Vector;
-
-import com.google.gson.Gson;
-import com.google.gson.GsonBuilder;
 
 import prerna.sablecc2.om.Job;
 import prerna.sablecc2.om.NounMetadata;
@@ -37,35 +30,8 @@ public class CollectReactor extends AbstractReactor{
 		int collectThisMany = getTotalToCollect();
 		
 		Object data = job.collect(collectThisMany);
-		this.planner.addProperty("DATA", "DATA", data);//this is the property that translation looks for when grabbing the Response
+		this.planner.addProperty("DATA", "DATA", data); //this is the property that translation looks for when grabbing the Response
 		NounMetadata result = new NounMetadata(data, PkslDataTypes.FORMATTED_DATA_SET);
-		
-		
-//		Gson gson = new GsonBuilder().setPrettyPrinting().create();
-//		String fileName = "C:\\Workspace\\Semoss_Dev\\exampleOutput.txt";
-//		if(new File(fileName).exists()) {
-//			new File(fileName).delete();
-//		}
-//		BufferedWriter bw = null;
-//		FileWriter fw = null;
-//		try {
-//			fw = new FileWriter(fileName);
-//			bw = new BufferedWriter(fw);
-//			bw.write(gson.toJson(result.getValue()));
-//		} catch (IOException e1) {
-//			e1.printStackTrace();
-//		} finally {
-//			try {
-//				if(bw != null) {
-//					bw.close();
-//				}
-//				if(fw != null) {
-//					fw.close();
-//				}
-//			} catch (IOException e) {
-//				e.printStackTrace();
-//			}
-//		}
 		
 		return result;
 	}

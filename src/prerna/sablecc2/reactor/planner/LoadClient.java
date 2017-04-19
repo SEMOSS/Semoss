@@ -1,8 +1,6 @@
 package prerna.sablecc2.reactor.planner;
 
-import java.io.BufferedWriter;
 import java.io.ByteArrayInputStream;
-import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.PushbackReader;
@@ -29,13 +27,12 @@ import prerna.sablecc2.om.NounMetadata;
 import prerna.sablecc2.om.PkslDataTypes;
 import prerna.sablecc2.parser.Parser;
 import prerna.sablecc2.parser.ParserException;
-import prerna.sablecc2.reactor.AbstractReactor;
 import prerna.sablecc2.reactor.PKSLPlanner;
 import prerna.sablecc2.reactor.storage.InMemStore;
 import prerna.sablecc2.reactor.storage.MapStore;
 import prerna.util.ArrayUtilityMethods;
 
-public class LoadClient extends AbstractReactor {
+public class LoadClient extends AbstractPlannerReactor {
 
 	private static final Logger LOGGER = LogManager.getLogger(LoadClient.class.getName());
 
@@ -59,9 +56,6 @@ public class LoadClient extends AbstractReactor {
 		// run through all the results in the iterator
 		// and append them into a new plan
 		PKSLPlanner newPlan = createPlanner();
-		//replace this planner with generated planner
-//		this.planner = newPlan;
-
 		return new NounMetadata(newPlan, PkslDataTypes.PLANNER);
 	}
 	
@@ -82,16 +76,16 @@ public class LoadClient extends AbstractReactor {
 		
 		// as we iterate through
 		// run the values through the planner
-		String fileName = "C:\\Workspace\\Semoss_Dev\\failedToAddpksls.txt";
-		BufferedWriter bw = null;
-		FileWriter fw = null;
-		
-		try {
-			fw = new FileWriter(fileName);
-		} catch (IOException e1) {
-			e1.printStackTrace();
-		}
-		bw = new BufferedWriter(fw);
+//		String fileName = "C:\\Workspace\\Semoss_Dev\\failedToAddpksls.txt";
+//		BufferedWriter bw = null;
+//		FileWriter fw = null;
+//		
+//		try {
+//			fw = new FileWriter(fileName);
+//		} catch (IOException e1) {
+//			e1.printStackTrace();
+//		}
+//		bw = new BufferedWriter(fw);
 		
 		int count = 0;
 		int total = 0;
@@ -103,72 +97,64 @@ public class LoadClient extends AbstractReactor {
 				Start tree = p.parse();
 				tree.apply(plannerT);
 			} catch (ParserException | LexerException | IOException e) {
-				e.printStackTrace();
+//				e.printStackTrace();
 				count++;
-				System.out.println(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>");
-				System.out.println(pkslString);
-				System.out.println(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>");
-				try {
-					bw.write("PARSE ERROR::::   "+pkslString+"\n");
-				} catch (IOException e1) {
-					e1.printStackTrace();
-				}
+//				System.out.println(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>");
+//				System.out.println(pkslString);
+//				System.out.println(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>");
+//				try {
+//					bw.write("PARSE ERROR::::   "+pkslString+"\n");
+//				} catch (IOException e1) {
+//					e1.printStackTrace();
+//				}
 			} catch(Exception e) {
-				e.printStackTrace();
+//				e.printStackTrace();
 				count++;
-				System.out.println(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>");
-				System.out.println(pkslString);
-				System.out.println(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>");
-				try {
-					bw.write("EVAL ERROR::::   "+pkslString+"\n");
-				} catch (IOException e1) {
-					e1.printStackTrace();
-				}
+//				System.out.println(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>");
+//				System.out.println(pkslString);
+//				System.out.println(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>");
+//				try {
+//					bw.write("EVAL ERROR::::   "+pkslString+"\n");
+//				} catch (IOException e1) {
+//					e1.printStackTrace();
+//				}
 			}
 			total++;
 		}
 		
-		for (String pkslString : getRemainingPksls()) {
+		for(String pkslString : getUndefinedVariablesPksls(plannerT.planner)) {
 			try {
 				Parser p = new Parser(new Lexer(new PushbackReader(new InputStreamReader(new ByteArrayInputStream(pkslString.getBytes("UTF-8"))))));
 				Start tree = p.parse();
 				tree.apply(plannerT);
 			} catch (ParserException | LexerException | IOException e) {
 				e.printStackTrace();
-				count++;
-				System.out.println(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>");
-				System.out.println(pkslString);
-				System.out.println(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>");
-				try {
-					bw.write("PARSE ERROR::::   "+pkslString+"\n");
-				} catch (IOException e1) {
-					e1.printStackTrace();
-				}
-			} catch(Exception e) {
-				e.printStackTrace();
-				count++;
-				System.out.println(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>");
-				System.out.println(pkslString);
-				System.out.println(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>");
-				try {
-					bw.write("EVAL ERROR::::   "+pkslString+"\n");
-				} catch (IOException e1) {
-					e1.printStackTrace();
-				}
 			}
 			total++;
 		}
 		
-		try {
-			bw.close();
-			fw.close();
-		} catch (IOException e) {
-			e.printStackTrace();
+		for(String pkslString : getRemainingPksls()) {
+			try {
+				Parser p = new Parser(new Lexer(new PushbackReader(new InputStreamReader(new ByteArrayInputStream(pkslString.getBytes("UTF-8"))))));
+				Start tree = p.parse();
+				tree.apply(plannerT);
+			} catch (ParserException | LexerException | IOException e) {
+				e.printStackTrace();
+			}
+			total++;
 		}
 		
+//		try {
+//			bw.close();
+//			fw.close();
+//		} catch (IOException e) {
+//			e.printStackTrace();
+//		}
+		
 		// grab the planner from the new translation
-		System.out.println("****************    "+total+"      *************************");
-		System.out.println("****************    "+count+"      *************************");
+		LOGGER.info("****************    "+total+"      *************************");
+		LOGGER.info("****************    "+count+"      *************************");
+		
 		return plannerT.planner;
 	}
 	
