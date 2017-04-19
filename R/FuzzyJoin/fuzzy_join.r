@@ -18,16 +18,16 @@ eval(parse(text=c))
 return(r)
 }
 
-df1<-read.csv("C:/fuzzy1.csv")
-df2<-read.csv("C:/fuzzy2.csv")
+#df1<-read.csv("C:\\workspace\\Semoss\\R\\FuzzyJoin\\Temp\\sourceDataFrame.csv")
+#df2<-read.csv("C:\\workspace\\Semoss\\R\\FuzzyJoin\\Temp\\targetDataFrame.csv")
 # Jaro - Winkler
-df<-fuzzy_join(df1,df2,"t1c1","t2c1","inner",0.1,method="jw",q=1,p=0.1)
+#df<-fuzzy_join(df1,df2,"t1c1","t2c1","inner",0.1,method="jw",q=1,p=0.1)
 # Damirau - Levenshtein
-df<-fuzzy_join(df1,df2,"t1c1","t2c1","inner",1,method="dl",q=1,p=0.1)
+#df<-fuzzy_join(df1,df2,"t1c1","t2c1","inner",1,method="dl",q=1,p=0.1)
 # qgram
-df<-fuzzy_join(df1,df2,"t1c1","t2c1","inner",2,method="qgram",q=2,p=0)
+#df<-fuzzy_join(df1,df2,"t1c1","t2c1","inner",2,method="qgram",q=2,p=0)
 # cosine
-df<-fuzzy_join(df1,df2,"t1c1","t2c1","inner",0.1,method="cosine",q=2,p=0)
+#df<-fuzzy_join(df1,df2,"t1c1","t2c1","inner",0.1,method="cosine",q=2,p=0)
 # osa
-df<-fuzzy_join(df1,df2,"t1c1","t2c1","inner",2,method="osa",q=1,p=0)
+#df<-fuzzy_join(df1,df2,"t1c1","t2c1","inner",2,method="osa",q=1,p=0)
 
