@@ -167,7 +167,7 @@ public class DomainValues {
 		return allPropValues;
 	}
 	public static List<Object> retrievePropertyValues(String conceptURI, String propertyURI, IEngine engine) {
-		List<Object> allPropValues = new ArrayList<Object>();
+		List<Object> allPropValues = new Vector<Object>();
 		if (engine instanceof BigDataEngine) {
 			String query = "SELECT DISTINCT ?property WHERE { {?x <" + RDF.TYPE + "> <" + conceptURI + "> } { ?x <"
 					+ propertyURI + "> ?property} }";
