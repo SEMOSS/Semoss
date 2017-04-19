@@ -62,12 +62,12 @@ public class PKSLPlanner {
 		Vector <String> aliasVector = new Vector<String>();
 		for(int inputIndex = 0;inputIndex < inputs.size();inputIndex++)
 		{
-			Vertex inpVertex = upsertVertex(NOUN, inputs.get(inputIndex));
+			Vertex inpVertex = upsertVertex(NOUN, inputs.get(inputIndex).trim().toUpperCase());
 			if(asInputs != null && inputIndex < asInputs.size())
 				aliasVector.add(asInputs.get(inputIndex));
 			else
-				aliasVector.add(inputs.get(inputIndex));
-			String edgeID = inputs.get(inputIndex)+ "_" + opName;
+				aliasVector.add(inputs.get(inputIndex).trim().toUpperCase());
+			String edgeID = inputs.get(inputIndex).trim().toUpperCase() + "_" + opName;
 			Edge retEdge = inpVertex.addEdge(edgeID, opVertex, "ID", edgeID, "COUNT", 1, "INEDGE", inpVertex.property("ID"), "TYPE", "INPUT");
 			
 		}
@@ -155,9 +155,9 @@ public class PKSLPlanner {
 		Vertex opVertex = upsertVertex(OPERATION, opName);
 		for(int outputIndex = 0;outputIndex < outputs.size();outputIndex++)
 		{
-			Vertex outpVertex = upsertVertex(NOUN, outputs.get(outputIndex).trim());
+			Vertex outpVertex = upsertVertex(NOUN, outputs.get(outputIndex).trim().toUpperCase());
 			outpVertex.property("VAR_TYPE", "QUERY"); // by default it is query
-			String edgeID = opName + "_" + outputs.get(outputIndex).trim();
+			String edgeID = opName + "_" + outputs.get(outputIndex).trim().toUpperCase();
 			Edge retEdge = opVertex.addEdge(edgeID, outpVertex, "ID", edgeID, "COUNT", 1, "INEDGE", opVertex.property("ID"), "TYPE", "OUTPUT");
 		}
 	}
@@ -172,9 +172,9 @@ public class PKSLPlanner {
 		Vertex opVertex = upsertVertex(OPERATION, opName);
 		for(int outputIndex = 0;outputIndex < outputs.size();outputIndex++)
 		{
-			Vertex outpVertex = upsertVertex(NOUN, outputs.get(outputIndex).trim());
+			Vertex outpVertex = upsertVertex(NOUN, outputs.get(outputIndex).trim().toUpperCase());
 			outpVertex.property("VAR_TYPE", outputTypes.get(outputIndex)); // by default it is query
-			String edgeID = opName + "_" + outputs.get(outputIndex).trim();
+			String edgeID = opName + "_" + outputs.get(outputIndex).trim().toUpperCase();
 			Edge retEdge = opVertex.addEdge(edgeID, outpVertex, "ID", edgeID, "COUNT", 1, "INEDGE", opVertex.property("ID"), "TYPE", "OUTPUT");
 		}
 	}
@@ -201,12 +201,12 @@ public class PKSLPlanner {
 		List <String> aliasVector = new Vector<String>();
 		for(int inputIndex = 0;inputIndex < inputs.size();inputIndex++)
 		{
-			Vertex inpVertex = upsertVertex(NOUN, inputs.get(inputIndex).trim());
+			Vertex inpVertex = upsertVertex(NOUN, inputs.get(inputIndex).trim().toUpperCase());
 			if(asInputs != null && inputIndex < asInputs.size())
 				aliasVector.add(asInputs.get(inputIndex).trim());
 			else
-				aliasVector.add(inputs.get(inputIndex).trim());
-			String edgeID = inputs.get(inputIndex).trim()+ "_" + opName;
+				aliasVector.add(inputs.get(inputIndex).trim().toUpperCase());
+			String edgeID = inputs.get(inputIndex).trim().toUpperCase()+ "_" + opName;
 			Edge retEdge = inpVertex.addEdge(edgeID, opVertex, "ID", edgeID, "COUNT", 1, "INEDGE", inpVertex.property("ID"), "TYPE", "INPUT");			
 		}
 		opVertex.property("ALIAS", aliasVector);
