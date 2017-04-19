@@ -1033,7 +1033,6 @@ public class Translation extends DepthFirstAdapter {
 	    	if(parent != null && parent instanceof IReactor) {
 	    		curReactor = (IReactor)parent;
 	    	} else {
-	    		System.out.println("OUTPUT is " + output);
 	    		curReactor = null;
 	    	}
 	    	
