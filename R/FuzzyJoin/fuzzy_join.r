@@ -10,11 +10,13 @@ fuzzy_join <- function(df1,df2,col1,col2,mode,max_dist,method, q, p){
 # p - penalty for some methods for fuzzy matching
 # 
 library(fuzzyjoin)
-
+#write.csv(df1,"C:\\workspace\\Semoss\\R\\FuzzyJoin\\Temp\\sourceDataFrame.csv")
+#write.csv(df2,"C:\\workspace\\Semoss\\R\\FuzzyJoin\\Temp\\targetDataFrame.csv")
 a<-paste(col1,"=","\"",col2,"\")",sep="")
 b<-paste(",mode=\"",mode,"\",max_dist=",max_dist,",method=\"",method,"\",q=",q,",p=",p,")",sep="")
 c<-paste("r<-","stringdist_join(df1,df2,by=c(",a,b,sep="")
 eval(parse(text=c))
+#write.csv(r,"C:\\workspace\\Semoss\\R\\FuzzyJoin\\Temp\\final.csv")
 return(r)
 }
 
