@@ -1815,20 +1815,35 @@ public abstract class AbstractRJavaReactor extends AbstractJavaReactor {
 			}
 		}
 
+		// base folder Semoss/R/Matching
+		String baseMatchingFolder = getBaseFolder() + "\\" + Constants.R_BASE_FOLDER + "\\"
+				+ Constants.R_MATCHING_FOLDER;
+		baseMatchingFolder = baseMatchingFolder.replace("\\", "/");
+
 		// Grab the corpus directory
-		String corpusDirectory = getBaseFolder() + "\\" + Constants.R_BASE_FOLDER + "\\"
+		String corpusDirectory = baseMatchingFolder + "\\" + Constants.R_TEMP_FOLDER + "\\"
 				+ Constants.R_MATCHING_REPO_FOLDER;
 		corpusDirectory = corpusDirectory.replace("\\", "/");
+		System.out.println(corpusDirectory);
 
-		// Grab the csv directory
-		String csvDirectory = getBaseFolder() + "\\" + Constants.R_BASE_FOLDER + "\\"
-				+ Constants.R_MATCHING_CSVS_FOLDER;
-		csvDirectory = csvDirectory.replace("\\", "/");
+		// Grab the csv directory Semoss/R/Matching/Temp/rdf
+		String baseRDFDirectory = baseMatchingFolder + "\\" + Constants.R_TEMP_FOLDER + "\\rdf";
+		baseRDFDirectory = baseRDFDirectory.replace("\\", "/");
+		System.out.println(baseRDFDirectory);
 
-		// Grab the prop directory
-		String propDirectory = getBaseFolder() + "\\" + Constants.R_BASE_FOLDER + "\\"
+		// Semoss/R/Matching/Temp/rdf/MatchingCsvs
+		String rdfCsvDirectory = baseRDFDirectory + "\\" + Constants.R_MATCHING_CSVS_FOLDER;
+		rdfCsvDirectory = rdfCsvDirectory.replace("\\", "/");
+
+		// Grab the prop directory Semoss/R/Matching/Temp/rdf/MatchingProp
+		String rdfPropDirectory = baseRDFDirectory + "\\" + Constants.R_BASE_FOLDER + "\\"
 				+ Constants.R_MATCHING_PROP_FOLDER;
-		propDirectory = propDirectory.replace("\\", "/");
+		rdfPropDirectory = rdfPropDirectory.replace("\\", "/");
+		
+		//Semoss/R/Matching/Temp/rdbms
+		String rdbmsDirectory = baseMatchingFolder + "\\" + Constants.R_TEMP_FOLDER + "\\rdbms";
+		rdbmsDirectory = rdbmsDirectory.replace("\\", "/");
+
 
 		// Set the number of minhash functions and the number of bands
 		// nMinhash should be divisible by nBands, and the greater the nBands
@@ -1864,8 +1879,7 @@ public abstract class AbstractRJavaReactor extends AbstractJavaReactor {
 		String rFrameName = "this.dt.name.is.reserved.for.semantic.matching";
 
 		// Grab the utility script
-		String utilityScriptPath = getBaseFolder() + "\\" + Constants.R_BASE_FOLDER + "\\"
-				+ Constants.R_ANALYTICS_SCRIPTS_FOLDER + "\\" + Constants.R_UTILITY_SCRIPT;
+		String utilityScriptPath = baseMatchingFolder + "\\" + Constants.R_MATCHING_SCRIPT;
 		utilityScriptPath = utilityScriptPath.replace("\\", "/");
 
 		// TODO add this library to the list when starting R
@@ -1880,7 +1894,7 @@ public abstract class AbstractRJavaReactor extends AbstractJavaReactor {
 		// Run locality sensitive hashing to generate matches
 		runR(rFrameName + " <- " + Constants.R_LSH_MATCHING_FUN + "(\"" + corpusDirectory + "\", " + nMinhash + ", "
 				+ nBands + ", " + similarityThreshold + ", " + instancesThreshold + ", \""
-				+ DomainValues.ENGINE_CONCEPT_PROPERTY_DELIMETER + "\", \"" + csvDirectory + "\")");
+				+ DomainValues.ENGINE_CONCEPT_PROPERTY_DELIMETER + "\", \"" + rdfCsvDirectory + "\", \"" +rdbmsDirectory +"\" )");
 
 		// Synchronize from R
 		storeVariable("GRID_NAME", rFrameName);
