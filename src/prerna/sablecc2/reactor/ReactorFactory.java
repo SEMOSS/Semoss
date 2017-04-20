@@ -13,7 +13,9 @@ import prerna.sablecc2.reactor.export.job.SetFormatReactor;
 import prerna.sablecc2.reactor.export.job.SetOptionsReactor;
 import prerna.sablecc2.reactor.expression.OpMax;
 import prerna.sablecc2.reactor.expression.OpMean;
+import prerna.sablecc2.reactor.expression.OpMedian;
 import prerna.sablecc2.reactor.expression.OpMin;
+import prerna.sablecc2.reactor.expression.OpPower;
 import prerna.sablecc2.reactor.expression.OpSum;
 import prerna.sablecc2.reactor.imports.ImportDataReactor;
 import prerna.sablecc2.reactor.imports.MergeDataReactor;
@@ -68,6 +70,8 @@ public class ReactorFactory {
 		expressionHash.put("MEAN", OpMean.class);
 		expressionHash.put("MIN", OpMin.class);
 		expressionHash.put("MAX", OpMax.class);
+		expressionHash.put("MEDIAN", OpMedian.class);
+		expressionHash.put("POWER", OpPower.class);
 	}
 	
 	//populates the frame agnostic reactors used by pixel
