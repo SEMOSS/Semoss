@@ -60,34 +60,46 @@ public class MatchingDB {
 		if (dbType.equals(ImportOptions.DB_TYPE.RDF.toString())) {
 			String matchingDbName = "MatchingRDFDatabase";
 			options.setDbName(matchingDbName);
-			String csvDirectory = baseFolder + "\\" + Constants.R_BASE_FOLDER + "\\" + Constants.R_MATCHING_CSVS_FOLDER;
-			csvDirectory = csvDirectory.replace("\\", "/");
-
-			// Grab the prop directory
-			String propDirectory = baseFolder + "\\" + Constants.R_BASE_FOLDER + "\\"
-					+ Constants.R_MATCHING_PROP_FOLDER;
-			propDirectory = propDirectory.replace("\\", "/");
-
 			options.setDbType(ImportOptions.DB_TYPE.RDF);
+			
+			String baseMatchingFolder = baseFolder + "\\" + Constants.R_BASE_FOLDER + "\\"
+					+ Constants.R_MATCHING_FOLDER;
+			baseMatchingFolder = baseMatchingFolder.replace("\\", "/");
+			
+			// Grab the csv directory Semoss/R/Matching/Temp/rdf
+			String baseRDFDirectory = baseMatchingFolder + "\\" + Constants.R_TEMP_FOLDER + "\\rdf";
+			baseRDFDirectory = baseRDFDirectory.replace("\\", "/");
+
+			// Semoss/R/Matching/Temp/rdf/MatchingCsvs
+			String rdfCsvDirectory = baseRDFDirectory + "\\" + Constants.R_MATCHING_CSVS_FOLDER;
+			rdfCsvDirectory = rdfCsvDirectory.replace("\\", "/");
+
+			// Grab the prop directory Semoss/R/Matching/Temp/rdf/MatchingProp
+			String rdfPropDirectory = baseRDFDirectory  + "\\"
+					+ Constants.R_MATCHING_PROP_FOLDER;
+			rdfPropDirectory = rdfPropDirectory.replace("\\", "/");
 
 			// Set all the csv files
-			File csvDirectoryFile = new File(csvDirectory);
+			File csvDirectoryFile = new File(rdfCsvDirectory);
 			options.setFileLocation(
-					csvDirectory + "/" + StringUtils.join(csvDirectoryFile.list(), ";" + csvDirectory + "/"));
+					rdfCsvDirectory + "/" + StringUtils.join(csvDirectoryFile.list(), ";" + rdfCsvDirectory + "/"));
 
 			// Set all the prop files
-			File propDirectoryFile = new File(propDirectory);
+			File propDirectoryFile = new File(rdfPropDirectory);
 			options.setPropertyFiles(
-					propDirectory + "/" + StringUtils.join(propDirectoryFile.list(), ";" + propDirectory + "/"));
+					rdfPropDirectory + "/" + StringUtils.join(propDirectoryFile.list(), ";" + rdfPropDirectory + "/"));
 		}
 		if (dbType.equals(ImportOptions.DB_TYPE.RDBMS.toString())) {
-			String matchingDbName = "MatchingRDMBSDatabase";
+			String matchingDbName = "MatchingRDBMSDatabase";
 			options.setDbName(matchingDbName);
-			String h2Directory = baseFolder + "\\" + Constants.R_BASE_FOLDER + "\\h2Matching\\";
-			h2Directory = h2Directory.replace("\\", "/");
+			String baseMatchingFolder = baseFolder + "\\" + Constants.R_BASE_FOLDER + "\\"
+					+ Constants.R_MATCHING_FOLDER;
+			baseMatchingFolder = baseMatchingFolder.replace("\\", "/");
+			String rdbmsDirectory = baseMatchingFolder + "\\" + Constants.R_TEMP_FOLDER + "\\rdbms";
+			rdbmsDirectory = rdbmsDirectory.replace("\\", "/");
 			options.setDbType(ImportOptions.DB_TYPE.RDBMS);
-			options.setFileLocation(h2Directory + "/0_flat_table.csv");
-			options.setPropertyFiles(h2Directory + "/MatchingDatabase_0_flath2.prop");
+			options.setFileLocation(rdbmsDirectory + "/0_flat_table.csv");
+			options.setPropertyFiles(rdbmsDirectory + "/MatchingDatabase_0_flath2.prop");
 		}
 		return options;
 	}
