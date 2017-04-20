@@ -2144,6 +2144,14 @@ public abstract class AbstractRJavaReactor extends AbstractJavaReactor {
 		String conceptTarget = "";
 		String propertySource = "";
 		String propertyTarget = "";
+		
+		//clean method for r script
+		if(method.equals("Jaro - Winkler")) {
+			method = "jw";
+		}
+		if(method.equals("Damirau - Levenshtein")) {
+			method = "dl";
+		}
 
 		boolean sourceIsProperty = false;
 		boolean targetIsProperty = false;
@@ -2170,14 +2178,18 @@ public abstract class AbstractRJavaReactor extends AbstractJavaReactor {
 		conceptSource = source[1];
 		if (source.length > 2) {
 			propertySource = source[2];
+			if(!propertySource.equals("none")) {
 			sourceIsProperty = true;
+			}
 		}
 
 		engineTarget = target[0];
 		conceptTarget = target[1];
 		if (target.length > 2) {
 			propertyTarget = target[2];
+			if(!propertyTarget.equals("none")) {
 			targetIsProperty = true;
+			}
 		}
 
 		// Initialize Engines
