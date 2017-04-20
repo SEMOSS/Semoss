@@ -64,16 +64,16 @@ public class RunPlannerReactor extends AbstractPlannerReactor {
 		
 		Translation translation = new Translation();
 		
-		String fileName = "C:\\Workspace\\Semoss_Dev\\failedpksls.txt";
-		BufferedWriter bw = null;
-		FileWriter fw = null;
-		
-		try {
-			fw = new FileWriter(fileName);
-		} catch (IOException e1) {
-			e1.printStackTrace();
-		}
-		bw = new BufferedWriter(fw);
+//		String fileName = "C:\\Workspace\\Semoss_Dev\\failedpksls.txt";
+//		BufferedWriter bw = null;
+//		FileWriter fw = null;
+//		
+//		try {
+//			fw = new FileWriter(fileName);
+//		} catch (IOException e1) {
+//			e1.printStackTrace();
+//		}
+//		bw = new BufferedWriter(fw);
 		int count = 0;
 		int total = 0;
 		for(String pkslString : pksls) {
@@ -81,7 +81,7 @@ public class RunPlannerReactor extends AbstractPlannerReactor {
 				Parser p = new Parser(new Lexer(new PushbackReader(new InputStreamReader(new ByteArrayInputStream(pkslString.getBytes("UTF-8"))))));
 				Start tree = p.parse();
 				tree.apply(translation);
-				bw.write("COMPLETE::: "+pkslString+"\n");
+//				bw.write("COMPLETE::: "+pkslString+"\n");
 			} catch (ParserException | LexerException | IOException e) {
 				count++;
 				e.printStackTrace();
@@ -96,28 +96,28 @@ public class RunPlannerReactor extends AbstractPlannerReactor {
 			} catch(Exception e) {
 				count++;
 				e.printStackTrace();
-				System.out.println(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>");
-				System.out.println(e.getMessage());
-				System.out.println(pkslString);
-				try {
-					bw.write("EVAL ERROR:::: " + e.getMessage()+"\n");
-					bw.write("EVAL ERROR:::: "+pkslString+"\n");
-					bw.write("\n");
-				} catch (IOException e1) {
-					e1.printStackTrace();
-				}
-				System.out.println(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>");
+//				System.out.println(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>");
+//				System.out.println(e.getMessage());
+//				System.out.println(pkslString);
+//				try {
+//					bw.write("EVAL ERROR:::: " + e.getMessage()+"\n");
+//					bw.write("EVAL ERROR:::: "+pkslString+"\n");
+//					bw.write("\n");
+//				} catch (IOException e1) {
+//					e1.printStackTrace();
+//				}
+//				System.out.println(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>");
 			}
 			total++;
 		}
 		
-		try {
-			bw.close();
-			fw.close();
-		} catch (IOException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
+//		try {
+//			bw.close();
+//			fw.close();
+//		} catch (IOException e) {
+//			// TODO Auto-generated catch block
+//			e.printStackTrace();
+//		}
 		LOGGER.info("****************    "+total+"      *************************");
 		LOGGER.info("****************    "+count+"      *************************");
 		
