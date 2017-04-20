@@ -17,6 +17,9 @@ public class OpFactory {
 		opMap.put("max", OpMax.class);
 		opMap.put("min", OpMin.class);
 		opMap.put("sum", OpSum.class);
+		opMap.put("mean", OpMean.class);
+		opMap.put("average", OpMean.class);
+		opMap.put("median", OpMedian.class);
 	}
 	
 	public static OpReactor getOp(String operationName, GenRowStruct curRow) {
