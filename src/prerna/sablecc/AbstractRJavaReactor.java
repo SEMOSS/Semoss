@@ -2113,7 +2113,7 @@ public abstract class AbstractRJavaReactor extends AbstractJavaReactor {
 
 		runR(df + " <-match_metrics(" + df + " , " + df2 + " , \"" + sourceHeader + "\" , \"" + targetHeader + "\" , "
 				+ sampleSize + ")");
-
+		runR(df.toString());
 		// Retrieve
 		storeVariable("GRID_NAME", df);
 		synchronizeFromR();
@@ -2145,12 +2145,33 @@ public abstract class AbstractRJavaReactor extends AbstractJavaReactor {
 		String propertySource = "";
 		String propertyTarget = "";
 		
-		//clean method for r script
-		if(method.equals("Jaro - Winkler")) {
+		// clean method for r script
+		if (method.equals("Levenshtein")) {
+			method = "lv";
+		}
+		if (method.equals("Damerau-Levenshtein")) {
+			method = "dl";
+		}
+		if (method.equals("q-gram")) {
+			method = "qgram";
+		}
+		if (method.equals("Cosine q-gram")) {
+			method = "cosine";
+		}
+		if (method.equals("Optimal String Alignment")) {
+			method = "osa";
+		}
+		if (method.equals("Jaro-Winker")) {
 			method = "jw";
 		}
-		if(method.equals("Damirau - Levenshtein")) {
-			method = "dl";
+		if (method.equals("Longest common substring")) {
+			method = "lcs";
+		}
+		if (method.equals("Jaccard q-gram")) {
+			method = "jaccard";
+		}
+		if (method.equals("Soundex")) {
+			method = "soundex";
 		}
 
 		boolean sourceIsProperty = false;
