@@ -14,7 +14,6 @@ public class MatchingDB {
 
 	public MatchingDB(String baseFolder) {
 		this.baseFolder = baseFolder;
-
 	}
 
 	public void saveDB(String dbType) {
@@ -82,7 +81,6 @@ public class MatchingDB {
 					propDirectory + "/" + StringUtils.join(propDirectoryFile.list(), ";" + propDirectory + "/"));
 		}
 		if (dbType.equals(ImportOptions.DB_TYPE.RDBMS.toString())) {
-
 			String matchingDbName = "MatchingRDMBSDatabase";
 			options.setDbName(matchingDbName);
 			String h2Directory = baseFolder + "\\" + Constants.R_BASE_FOLDER + "\\h2Matching\\";
