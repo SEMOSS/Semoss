@@ -1932,7 +1932,7 @@ public abstract class AbstractRJavaReactor extends AbstractJavaReactor {
 		}
 
 		// Persist the data into a database
-		String matchingDbName = "MatchingH2Database";
+		String matchingDbName = "MatchingRDBMSDatabase";
 		IEngine engine = Utility.getEngine(matchingDbName);
 
 		// Only add to the engine if it is null
