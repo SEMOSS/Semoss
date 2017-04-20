@@ -44,7 +44,7 @@ public class DomainValues {
 	 */
 	public DomainValues(String[] engineNames, boolean compareProperties) {
 		this.baseFolder = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER);
-		this.outputFolder = baseFolder + "\\" + Constants.R_BASE_FOLDER + "\\" + Constants.R_MATCHING_REPO_FOLDER;
+		this.outputFolder = baseFolder + "\\" + Constants.R_BASE_FOLDER + "\\" + Constants.R_MATCHING_FOLDER + "\\" + Constants.R_TEMP_FOLDER + "\\" + Constants.R_MATCHING_REPO_FOLDER;
 		this.engineNames = engineNames;
 		this.compareProperties = compareProperties;
 	}
