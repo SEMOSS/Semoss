@@ -1,0 +1,7 @@
+NUM_COLUMNS	2
+1	STRING
+2	STRING
+START_ROW	2
+RELATION	match_id@match_id.concept_id@concept_id;
+NODE_PROP	
+RELATION_PROP	 

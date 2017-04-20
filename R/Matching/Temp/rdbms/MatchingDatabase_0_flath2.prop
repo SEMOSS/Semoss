@@ -1,0 +1,20 @@
+NUM_COLUMNS	14
+1	NUMBER
+2	NUMBER
+3	NUMBER
+4	STRING
+5	STRING
+6	STRING
+7	STRING
+8	STRING
+9	STRING
+10	STRING
+11	STRING
+12	STRING
+13	STRING
+14	STRING
+START_ROW	2
+END_ROW	14
+RELATION	
+NODE_PROP	match_id%score;match_id%match_instances;match_id%item_instances;match_id%item_concept_id;match_id%match_concept_id;match_id%match_property_id;match_id%item_property_id;match_id%item_property;match_id%match_property;match_id%match_concept;match_id%match_engine;match_id%item_engine;match_id%item_concept;
+RELATION_PROP	 
