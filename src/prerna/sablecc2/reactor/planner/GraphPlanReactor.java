@@ -54,8 +54,9 @@ public class GraphPlanReactor extends AbstractReactor {
 			SEMOSSVertex outVert = getSEMOSSVertex(vertStore, outV);
 			SEMOSSVertex inVert = getSEMOSSVertex(vertStore, inV);
 			
-			SEMOSSEdge semossE = new SEMOSSEdge(outVert, inVert, "https://semoss.org/Relation/"+e.property("ID").value() + "");
-			edgeStore.put("https://semoss.org/Relation/"+e.property("ID").value() + "", semossE);
+			String edgeString = "EDGE/"+e.property("ID").value() + "";
+			SEMOSSEdge semossE = new SEMOSSEdge(outVert, inVert, edgeString);
+			edgeStore.put(edgeString, semossE);
 			
 			// need to add edge properties
 			Iterator<Property<Object>> edgeProperties = e.properties();
@@ -93,21 +94,25 @@ public class GraphPlanReactor extends AbstractReactor {
 		String type = tinkerVert.property(TINKER_TYPE).value() + "";
 		
 		// New logic to construct URI - don't need to take into account base URI beacuse it sits on OWL and is used upon query creation
+		if(!(value instanceof String || value instanceof Number)) {
+			System.out.println("here");
+		}
 		String newValue = Utility.getInstanceName(value.toString());
-		String uri = "http://semoss.org/ontologies/Concept/" + type + "/" + newValue;
+		String uri = "NODE/"+type+"/"+newValue;
+//		String uri = "http://semoss.org/ontologies/Concept/" + type + "/" + newValue;
 		
 		SEMOSSVertex semossVert = vertStore.get(uri);
 		if(semossVert == null){
 			semossVert = new SEMOSSVertex(uri);
 			// generic - move anything that is a property on the node
-			Iterator<VertexProperty<Object>> vertexProperties = tinkerVert.properties();
-			while(vertexProperties.hasNext()) {
-				VertexProperty<Object> prop = vertexProperties.next();
-				String propName = prop.key();
-				if(!propName.equals(TINKER_ID) && !propName.equals(TINKER_NAME) && !propName.equals(TINKER_TYPE)) {
-					semossVert.propHash.put(propName, prop.value());
-				}
-			}
+//			Iterator<VertexProperty<Object>> vertexProperties = tinkerVert.properties();
+//			while(vertexProperties.hasNext()) {
+//				VertexProperty<Object> prop = vertexProperties.next();
+//				String propName = prop.key();
+//				if(!propName.equals(TINKER_ID) && !propName.equals(TINKER_NAME) && !propName.equals(TINKER_TYPE)) {
+//					semossVert.propHash.put(propName, prop.value());
+//				}
+//			}
 			vertStore.put(uri, semossVert);
 		}
 		return semossVert;
