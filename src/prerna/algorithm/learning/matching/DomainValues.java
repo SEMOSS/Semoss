@@ -5,6 +5,7 @@ import java.io.FileInputStream;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Properties;
@@ -65,13 +66,62 @@ public class DomainValues {
 			process(engine);
 		}
 	}
-
+	/**
+	 * This method gets the list of concepts uri 
+	 * @param engine
+	 * @return concept uri
+	 */
+	public List<String> getConceptList(IEngine engine){
+		return engine.getConcepts(false);
+	}
+	
+	
+	/**
+	 * Returns the physical uri 
+	 * @param conceptName
+	 * @param engine
+	 * @return
+	 */
+	public static String getConceptURI(String conceptName, IEngine engine, boolean conceptual) {
+		List<String> concepts = engine.getConcepts(conceptual);
+		String conceptURI = "";
+		for (String concept : concepts) {
+			if (determineCleanConceptName(concept, engine).equals(conceptName)) {
+				conceptURI = concept;
+			}
+		}
+		return conceptURI;
+	}
+	
+	// TODO getConcepts with false, should return physical - then we pass into getProps, which assumes conceptual
+	public static String getPropertyURI(String propertyName, String conceptName, IEngine engine, boolean conceptual) {
+		String conceptURI = getConceptURI(conceptName, engine, conceptual);
+		List<String> properties = engine.getProperties4Concept(conceptURI, conceptual);
+		String propertyURI = "";
+		for (String property : properties) {
+			if (determineCleanPropertyName(property, engine).equals(propertyName)) {
+				propertyURI = property;
+			}
+		}
+		return propertyURI;
+	}
+	
+	/**
+	 * This method gets the list of properties for a concept
+	 * @param engine
+	 * @param concept uri
+	 * @return properties
+	 */
+	public List<String> getPropertyList(IEngine engine, String concept) {
+		return engine.getProperties4Concept(concept, false);
+	}
+	
 	private void process(IEngine engineToAdd) {
 		String engineName = engineToAdd.getEngineName();
 
 		// Grab all the concepts that exist in the database
 		// Process each concept
-		List<String> concepts = engineToAdd.getConcepts(false);
+		List<String> concepts = getConceptList(engineToAdd);
 		for (String concept : concepts) {
 
 			// Ignore the default concept node...
@@ -88,6 +138,7 @@ public class DomainValues {
 				continue;
 			}
 
+			System.out.println("test");
 			// Write the unique instances to a file
 			String cleanConcept = determineCleanConceptName(concept, engineToAdd);
 			String conceptId = engineName + ENGINE_CONCEPT_PROPERTY_DELIMETER + cleanConcept
@@ -99,14 +150,15 @@ public class DomainValues {
 			if (compareProperties) {
 
 				// Grab all the properties that exist for the concept
-				List<String> properties = engineToAdd.getProperties4Concept(concept, false);
+
+				List<String> properties = getPropertyList(engineToAdd, concept);
 
 				// If there are no properties, go onto the next concept
 				if (properties.isEmpty()) {
 					continue;
 				}
 
-				// Process each property
+				// Process each property uri
 				for (String property : properties) {
 					HashSet<String> uniquePropertyValues = retrievePropertyUniqueValues(concept, property, engineToAdd);
 					if (!uniquePropertyValues.isEmpty()) {
@@ -138,12 +190,18 @@ public class DomainValues {
 			e.printStackTrace();
 		}
 	}
-
+	/**
+	 * This method gets unique concept instance values
+	 *  
+	 * @param uri
+	 * @param engine
+	 * @return
+	 */
 	public static HashSet<String> retrieveConceptUniqueValues(String uri, IEngine engine) {
-
 		// This works for concepts for both RDF and RDBMS
 		return getUniqueEntityOfType(uri, engine);
 	}
+	
 	public static List<Object> retrieveConceptValues(String uri, IEngine engine) {
 		return engine.getEntityOfType(uri);
 	}
@@ -209,7 +267,7 @@ public class DomainValues {
 
 		// Get all the instances for the concept
 		List<Object> allValues = engine.getEntityOfType(type);
-
+		System.out.println("test");
 		// Push all the instances into a set,
 		// because we are only interested in unique values
 		HashSet<String> uniqueValues = new HashSet<String>();
@@ -221,11 +279,23 @@ public class DomainValues {
 		return uniqueValues;
 	}
 
+	/**
+	 * This method cleans the concept uri
+	 * @param uri concept uri
+	 * @param engine
+	 * @return clean concept
+	 */
 	public static String determineCleanConceptName(String uri, IEngine engine) {
 		String conceptualURI = engine.getConceptualUriFromPhysicalUri(uri);
 		return conceptualURI.substring(conceptualURI.lastIndexOf("/") + 1);
 	}
 
+	/**
+	 * This method cleans the property uri
+	 * @param uri concept uri
+	 * @param engine
+	 * @return clean property
+	 */
 	public static String determineCleanPropertyName(String uri, IEngine engine) {
 		String conceptualURI = engine.getConceptualUriFromPhysicalUri(uri);
 		String withoutConcept = conceptualURI.substring(0, conceptualURI.lastIndexOf("/"));
