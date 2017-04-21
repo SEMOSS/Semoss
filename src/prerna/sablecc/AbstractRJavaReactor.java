@@ -2110,12 +2110,12 @@ public abstract class AbstractRJavaReactor extends AbstractJavaReactor {
 		runR(df + " <-read.csv(\"" + csvSourcePath + "\", na.strings=\"\")");
 		String df2 = "this.df.name.is.reserved.for.fuzzy.target.matching";
 		runR(df2 + " <-read.csv(\"" + csvTargetPath + "\", na.strings=\"\")");
-
-		runR(df + " <-match_metrics(" + df + " , " + df2 + " , \"" + sourceHeader + "\" , \"" + targetHeader + "\" , "
+		String outputDF = "this.df.name.is.reserved.for.fuzzy.output.matching";
+		runR(outputDF + " <-match_metrics(" + df + " , " + df2 + " , \"" + sourceHeader + "\" , \"" + targetHeader + "\" , "
 				+ sampleSize + ")");
-		runR(df.toString());
+		runR(outputDF.toString());
 		// Retrieve
-		storeVariable("GRID_NAME", df);
+		storeVariable("GRID_NAME", outputDF);
 		synchronizeFromR();
 	}
 
