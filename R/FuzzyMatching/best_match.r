@@ -9,16 +9,16 @@ library(stringdist)
 if(samplesize < nrow(df1)) {
   idx<-sample(1:nrow(df1),samplesize)
   df1 <- df1[idx,]
+  df1<-as.data.frame(df1)
+}
+if(ncol(df1) == 1){
+	names(df1)[1]<-col1
 }
 cmd1<-paste("c1<-as.character(unique(df1$",col1,"))",sep="")
 eval(parse(text=cmd1))
+
 cmd2<-paste("d<-as.character(unique(df2$",col2,"))",sep="")
 eval(parse(text=cmd2))
-
-#c<-ncol(df)
-#c1<-as.character(unique(df[,1]))
-#c2<-unique(df[,2])
-#d<-as.character(c2)
 
 r <- data.frame(item=character(), match=character(),similarity=numeric(),appliedmethod = character(),stringsAsFactors=FALSE)
 r<-best_match(r,c1,d,method="lv",q=1,p=0)
