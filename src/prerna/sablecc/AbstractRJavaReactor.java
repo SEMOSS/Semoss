@@ -2232,9 +2232,9 @@ public abstract class AbstractRJavaReactor extends AbstractJavaReactor {
 		ArrayList<Vector<Object>> allSourceInstances = new ArrayList<Vector<Object>>();
 		int[] sourceColumnSize;
 
-		String conceptUriSource = "http://semoss.org/ontologies/Concept/" + conceptSource;
+		String conceptUriSource = DomainValues.getConceptURI(conceptSource, iEngineSource, false);
 		if (sourceIsProperty) {
-			String propertyUriSource = "http://semoss.org/ontologies/Relation/Contains/" + propertySource;
+			String propertyUriSource = DomainValues.getPropertyURI(propertySource, conceptSource, iEngineSource, false);
 			sourceValues = (Vector<Object>) DomainValues.retrievePropertyValues(conceptUriSource, propertyUriSource,
 					iEngineSource);
 			sourceColumnSize = new int[] { sourceValues.size() };
@@ -2265,9 +2265,9 @@ public abstract class AbstractRJavaReactor extends AbstractJavaReactor {
 		ArrayList<Vector<Object>> allTargetInstances = new ArrayList<Vector<Object>>();
 		int[] targetColumnSize;
 
-		String conceptUriTarget = "http://semoss.org/ontologies/Concept/" + conceptTarget;
+		String conceptUriTarget = DomainValues.getConceptURI(conceptTarget, iEngineTarget, false);
 		if (targetIsProperty) {
-			String propertyUriTarget = "http://semoss.org/ontologies/Relation/Contains/" + propertyTarget;
+			String propertyUriTarget = DomainValues.getPropertyURI(propertyTarget, conceptTarget, iEngineTarget, false);
 			targetValues = DomainValues.retrievePropertyValues(conceptUriTarget, propertyUriTarget, iEngineTarget);
 			targetColumnSize = new int[] { targetValues.size() };
 			allTargetInstances.add((Vector<Object>) targetValues);
