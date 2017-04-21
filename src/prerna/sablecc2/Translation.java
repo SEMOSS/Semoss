@@ -447,6 +447,10 @@ public class Translation extends DepthFirstAdapter {
     {
     	defaultIn(node);
     	String column = (node.getId()+"").trim();
+    	
+    	//how do we determine the difference between a column and a variable?
+    	//something could be a column but not loaded into a frame yet...i.e. select pksl in import
+    	//something could be a variable but not be loaded as a variable yet...i.e. loadclient when loading pksls one by one into the graph in any order
     	curReactor.getCurRow().addColumn(column);
     	curReactor.setProp(node.toString().trim(), column);
     }

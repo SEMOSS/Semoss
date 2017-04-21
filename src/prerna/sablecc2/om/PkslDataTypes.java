@@ -11,7 +11,7 @@ public enum PkslDataTypes {
 	COMPARATOR ("COMPARATOR"),						// comparator by itself
 	JOIN ("JOIN"),									// join object
 	RCODE ("RCODE"),								// r code block
-	VARIABLE_NAME ("VARIABLE_NAME"),				// name of existing variable
+	VARIABLE ("VARIABLE"),							// name of existing variable
 	QUERY_STRUCT ("QUERYSTRUCT"),					// qs
 	RAW_DATA_SET ("DATA"),							// raw data - usually from job
 	FORMATTED_DATA_SET ("FDATA"),					// formatted data - for FE
@@ -22,7 +22,8 @@ public enum PkslDataTypes {
 	ALIAS("ALIAS"),
 	FRAME("FRAME"),
 	IN_MEM_STORE("STORE"),
-	PLANNER("PLANNER");
+	PLANNER("PLANNER"), 
+	CACHED_CLASS("CACHED_CLASS");
 	
 	private final String strValue;
 	
