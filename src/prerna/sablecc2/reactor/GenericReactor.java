@@ -44,7 +44,8 @@ public class GenericReactor extends AbstractReactor {
 		for(int nounIdx = 0; nounIdx < numNouns; nounIdx++) {
 			Object noun = allNouns.get(nounIdx);
 			PkslDataTypes nounType = allNouns.getMeta(nounIdx);
-			if(noun instanceof String) {
+//			if(noun instanceof String) {
+			if(nounType == PkslDataTypes.COLUMN) {
 				NounMetadata value = this.planner.getVariableValue((String)noun);
 				if(value != null) {
 					thisStruct.add(value);
