@@ -1991,7 +1991,9 @@ public abstract class AbstractRJavaReactor extends AbstractJavaReactor {
 		conceptSource = source[1];
 		if (source.length > 2) {
 			propertySource = source[2];
+			if(!propertySource.equals("none")) {
 			sourceIsProperty = true;
+			}
 		}
 
 		// Populate the values for target
@@ -1999,7 +2001,9 @@ public abstract class AbstractRJavaReactor extends AbstractJavaReactor {
 		conceptTarget = target[1];
 		if (target.length > 2) {
 			propertyTarget = target[2];
+			if(!propertyTarget.equals("none")) {
 			targetIsProperty = true;
+			}
 		}
 
 		// Initialize Engines
@@ -2007,12 +2011,13 @@ public abstract class AbstractRJavaReactor extends AbstractJavaReactor {
 		IEngine iEngineTarget = Utility.getEngine(engineTarget.replaceAll(" ", "_"));
 
 		// Get the source and target values
-
+		
 		// Source
 		HashSet<String> sourceValues = new HashSet<String>();
-		String conceptUriSource = "http://semoss.org/ontologies/Concept/" + conceptSource;
+		String conceptUriSource = DomainValues.getConceptURI(conceptSource, iEngineSource, false);
 		if (sourceIsProperty) {
-			String propertyUriSource = "http://semoss.org/ontologies/Relation/Contains/" + propertySource;
+			String propertyUriSource = DomainValues.getPropertyURI(propertySource, conceptSource, iEngineSource, false);
+			System.out.println("tesssssst" + propertyUriSource);
 			sourceValues = DomainValues.retrievePropertyUniqueValues(conceptUriSource, propertyUriSource,
 					iEngineSource);
 		} else {
@@ -2021,9 +2026,9 @@ public abstract class AbstractRJavaReactor extends AbstractJavaReactor {
 
 		// Target
 		HashSet<String> targetValues = new HashSet<String>();
-		String conceptUriTarget = "http://semoss.org/ontologies/Concept/" + conceptTarget;
+		String conceptUriTarget = DomainValues.getConceptURI(conceptTarget, iEngineTarget, false);
 		if (targetIsProperty) {
-			String propertyUriTarget = "http://semoss.org/ontologies/Relation/Contains/" + propertyTarget;
+			String propertyUriTarget = DomainValues.getPropertyURI(propertyTarget, conceptTarget, iEngineTarget, false);
 			targetValues = DomainValues.retrievePropertyUniqueValues(conceptUriTarget, propertyUriTarget,
 					iEngineTarget);
 		} else {
@@ -2067,8 +2072,10 @@ public abstract class AbstractRJavaReactor extends AbstractJavaReactor {
 			sb.append("\n");
 			for (int i = 0; i < sourceArray.length; i++) {
 				String sourceInstance = "";
-				sourceInstance = (String) sourceArray[i];
+				if(sourceArray[i] != null) {
+				sourceInstance = (String) sourceArray[i].toString();
 				sourceInstance = sourceInstance.replaceAll("[^A-Za-z0-9 ]", "_");
+				}
 				sb.append(sourceInstance);
 				sb.append("\n");
 			}
@@ -2085,10 +2092,10 @@ public abstract class AbstractRJavaReactor extends AbstractJavaReactor {
 			sb.append("\n");
 			for (int i = 0; i < sourceArray.length; i++) {
 				String targetInstance = "";
-
+				if(targetArray[i] != null) {
 				targetInstance = (String) targetArray[i];
 				targetInstance = targetInstance.replaceAll("[^A-Za-z0-9 ]", "_");
-
+				}
 				sb.append(targetInstance);
 				sb.append("\n");
 			}
