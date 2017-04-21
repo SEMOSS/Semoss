@@ -4,7 +4,6 @@ import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
 import javassist.CannotCompileException;
-import javassist.ClassClassPath;
 import javassist.ClassPool;
 import javassist.CtClass;
 import javassist.CtNewMethod;
@@ -20,6 +19,7 @@ public class Filter {
 	private String comparator = null; //'=', '!=', '<', '<=', '>', '>=', '?like'
 	private GenRowStruct lComparison = null; //the column we want to filter
 	private GenRowStruct rComparison = null; //the values to bind the filter on
+	private PKSLPlanner planner = null;
 	
 	public Filter(GenRowStruct lComparison, String comparator, GenRowStruct rComparison)
 	{
@@ -47,7 +47,89 @@ public class Filter {
 	 * @return
 	 */
 	public boolean evaluate(PKSLPlanner planner) {
+		this.planner = planner;
+		FilterEvaluator c = getFilterEvaluator();
+		//set left var
+		//set right var
+		NounMetadata lNoun = lComparison.getNoun(0);
+		setIfExpression(c, lNoun, "LEFT");
+		NounMetadata rNoun = rComparison.getNoun(0);
+		setIfExpression(c, rNoun, "RIGHT");
+		boolean evaluateResult = c.evaluate();
+		return evaluateResult;
+	}
+	
+	/**
+	 * 
+	 * @return
+	 * 
+	 * Creates new and stores, OR retrieves existing filter evaluator class we need
+	 */
+	private FilterEvaluator getFilterEvaluator() {
+		FilterEvaluator evaluator;
+		
+		//the method string
+		String stringMethod = buildMethodString();
+		
+		//the id associated with this filter evaluator
+		String classId = "$Filter"+stringMethod.hashCode();
+		
+		//if exists, use it
+		if(this.planner.hasVariable(classId)) {
+			evaluator = (FilterEvaluator)this.planner.getVariable(classId).getValue();
+		} 
+		
+		//else create a new one, store it, return
+		else {
+			evaluator = buildFilterEvaluator(stringMethod);
+			NounMetadata newEvaluator = new NounMetadata(evaluator, PkslDataTypes.CACHED_CLASS);
+			this.planner.addVariable(classId, newEvaluator);
+		}
+		
+		return evaluator;
+	}
+	
+	/**
+	 * 
+	 * @param stringMethod
+	 * @return
+	 * 
+	 * This method is responsible for creating a new filter evaluator from a stringified method
+	 */
+	private FilterEvaluator buildFilterEvaluator(String stringMethod) {
 		ClassPool pool = ClassPool.getDefault();
+		
+		CtClass cc = pool.makeClass("t" + Utility.getRandomString(12) + ".c" + Utility.getRandomString(12));
+		try {
+			// class extends FitlerEvaluator
+			// it is just an abstract class with the method evaluate above
+			// so when we create a new instance
+			// we can just cast it and run the method
+			cc.setSuperclass(pool.get("prerna.sablecc2.om.FilterEvaluator"));
+			cc.addMethod(CtNewMethod.make(stringMethod, cc));
+			Class retClass = cc.toClass();
+			FilterEvaluator c = (FilterEvaluator) retClass.newInstance();
+			return c;
+		} catch (CannotCompileException e1) {
+			e1.printStackTrace();
+		} catch (NotFoundException e1) {
+			e1.printStackTrace();
+		} catch (InstantiationException e) {
+			e.printStackTrace();
+		} catch (IllegalAccessException e) {
+			e.printStackTrace();
+		}
+		return null;
+	}
+	
+	
+	/**
+	 * 
+	 * @return
+	 * 
+	 * This method builds the stringified method we will need for the filter evaluator
+	 */
+	private String buildMethodString() {
 		
 		// string that will contain the new method to execute
 		StringBuilder method = new StringBuilder();
@@ -56,9 +138,11 @@ public class Filter {
 		NounMetadata rNoun = rComparison.getNoun(0);
 		
 		// get the left hand expression
-		String lString = getIfExpressionString(planner, lNoun);
+//		String lString = getIfExpressionString(planner, lNoun);
+		String lString = getIfExpressionString(lNoun, "LEFT");
 		// get the right hand expression
-		String rString = getIfExpressionString(planner, rNoun);
+//		String rString = getIfExpressionString(planner, rNoun);
+		String rString = getIfExpressionString(rNoun, "RIGHT");
 		
 		// generate the method evaluate
 		method.append("public boolean evaluate() {");
@@ -70,45 +154,18 @@ public class Filter {
 				+ "}"
 				+ "}");
 		
-		CtClass cc = pool.makeClass("t" + Utility.getRandomString(12) + ".c" + Utility.getRandomString(12));
-		try {
-			// class extends FitlerEvaluator
-			// it is just an abstract class with the method evaluate above
-			// so when we create a new instance
-			// we can just cast it and run the method
-			cc.setSuperclass(pool.get("prerna.sablecc2.om.FilterEvaluator"));
-			cc.addMethod(CtNewMethod.make(method.toString(), cc));
-			Class retClass = cc.toClass();
-			FilterEvaluator c = (FilterEvaluator) retClass.newInstance();
-			boolean evaluteResult = c.evaluate();
-			
-			// remove the class from the pool
-			ClassClassPath ccp = new ClassClassPath(retClass.getClass());
-			pool.removeClassPath(ccp);
-			
-			return evaluteResult;
-		} catch (CannotCompileException e1) {
-			e1.printStackTrace();
-		} catch (NotFoundException e1) {
-			e1.printStackTrace();
-		} catch (InstantiationException e) {
-			e.printStackTrace();
-		} catch (IllegalAccessException e) {
-			e.printStackTrace();
-		}
-
-		// if we got to this point
-		// an error occurred in the evaluation of the filter
-		throw new IllegalArgumentException("Invalid argument/compilation to evaluate filter (" + lString + " " + comparator + " " + rString + ")");
+		return method.toString();
 	}
 	
 	/**
 	 * Method to get the left hand or right hand side of the filter
 	 * Currently only handles expressions or constant values
+	 * 
+	 * key is 'LEFT' or 'RIGHT'
 	 * @param grs
 	 * @return
 	 */
-	private String getIfExpressionString(PKSLPlanner planner, NounMetadata noun) {
+	private String getIfExpressionString(NounMetadata noun, String key) {
 		Object type = noun.getValue();
 		PkslDataTypes metaType = noun.getNounName();
 		if(metaType == PkslDataTypes.LAMBDA) {
@@ -121,14 +178,17 @@ public class Filter {
 			NounMetadata lambdaVal = ((AbstractReactor) type).execute();
 			PkslDataTypes lambdaType = ((NounMetadata) lambdaVal).getNounName();
 			if(lambdaType == PkslDataTypes.CONST_STRING) {
-				return "\"" + lambdaVal.getValue() + "\"";
+//				return "\"" + lambdaVal.getValue() + "\"";
+				return getStringExpression(key);
 			} else {
-				return lambdaVal.getValue().toString();
+				return getDoubleExpression(key);
+//				return lambdaVal.getValue().toString();
 			}
 		}
 		// any other case is a constant
 		else if(metaType == PkslDataTypes.CONST_STRING) {
-			return "\"" + type.toString() + "\"";
+//			return "\"" + type.toString() + "\"";
+			return getStringExpression(key);
 		} 
 		// in case it is a column
 		// need to check if this is actually a variable
@@ -137,13 +197,82 @@ public class Filter {
 				NounMetadata varNoun = planner.getVariableValue(type.toString());
 				// in case the variable itself points to a lambda
 				// just re-run this method with the varNoun as input
-				return getIfExpressionString(planner, varNoun);
+				return getIfExpressionString(varNoun, key);
 			} else {
-				return "\"" + type.toString() + "\"";
+//				return "\"" + type.toString() + "\"";
+				return getStringExpression(key);
 			}
 		}
 		else {
-			return type.toString();
+			//TODO: this could also be a boolean?
+			return getDoubleExpression(key);
+		}
+	}
+	
+	/**
+	 * 
+	 * @param key
+	 * @return
+	 * 
+	 * Stringified code bit to get a string value from the abstract
+	 */
+	public String getStringExpression(String key) {
+		return "(String)super.vars.get(\""+key+"\")";
+	}
+	
+	/**
+	 * 
+	 * @param key
+	 * @return
+	 * 
+	 * Stringified code bit to get a double value from the abstract
+	 */
+	public String getDoubleExpression(String key) {
+		return "((Number)super.vars.get(\""+key+"\")).doubleValue()";
+	}
+	/**
+	 * 
+	 * @param grs
+	 * @return
+	 * 
+	 * This method sets the values to the evaluator (specifically through the abstract)
+	 */
+	private void setIfExpression(FilterEvaluator evaluator, NounMetadata noun, String key) {
+		Object type = noun.getValue();
+		PkslDataTypes metaType = noun.getNounName();
+		if(metaType == PkslDataTypes.LAMBDA) {
+			// lambda means it is some other reactor (ex. sum) 
+			// that is embedded within this filter
+			// just execute it and get the value
+			
+			// if the type is not a string, then it is assumed to be a number
+			// so we just return it as a string
+			NounMetadata lambdaVal = ((AbstractReactor) type).execute();
+			PkslDataTypes lambdaType = ((NounMetadata) lambdaVal).getNounName();
+			if(lambdaType == PkslDataTypes.CONST_STRING) {
+				evaluator.setVar(key, lambdaVal.getValue().toString());
+			} else {
+				evaluator.setVar(key, lambdaVal.getValue());
+			}
+		}
+		// any other case is a constant
+		else if(metaType == PkslDataTypes.CONST_STRING) {
+			evaluator.setVar(key, type.toString());
+		} 
+		// in case it is a column
+		// need to check if this is actually a variable
+		else if(metaType == PkslDataTypes.COLUMN) {
+			if(planner.hasVariable(type.toString())) {
+				NounMetadata varNoun = planner.getVariableValue(type.toString());
+				// in case the variable itself points to a lambda
+				// just re-run this method with the varNoun as input
+				setIfExpression(evaluator, varNoun, key);
+			} else {
+				evaluator.setVar(key, type.toString());
+			}
+		}
+		else {
+			evaluator.setVar(key, type);
 		}
 	}
 }
