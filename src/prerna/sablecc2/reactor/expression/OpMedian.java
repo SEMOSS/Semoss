@@ -7,36 +7,13 @@ import prerna.sablecc2.om.PkslDataTypes;
 
 public class OpMedian extends OpBasicMath {
 
+	public OpMedian() {
+		this.operation = "median";
+	}
+
 	@Override
-	public NounMetadata execute() {
-		// get the values
-		// this evaluated any lambda that 
-		// was stored in currow
-		NounMetadata[] values = getValues();
-
-		// we need to calculate all of the values
-		// and then order them
-		// and then find the middle one
-		double[] evals = new double[values.length];
-
-		for(int i = 0; i < values.length; i++) {
-			NounMetadata val = values[i];
-			PkslDataTypes valType = val.getNounName();
-			if(valType == PkslDataTypes.CONST_DECIMAL) {
-				evals[i] = ((Number) val.getValue()).doubleValue(); 
-			} else if(valType == PkslDataTypes.COLUMN) {
-				// at this point, we have already checked if this is a 
-				// variable, so it better exist on the frame
-				// also, you can only have one of these
-				
-				//TODO: need to figure out how to do this
-				// since H2 doesn't have median as a function!!!
-				evals[i] = evaluateString("median", val);
-			} else {
-				throw new IllegalArgumentException("Invalid input for Median. Require all values to be numeric or column names");
-			}
-		}
-		
+	protected NounMetadata evaluate(Object[] values) {
+		double[] evals = convertToDoubleArray(values);
 		double medianValue = performComp(evals);
 		NounMetadata medianNoun = new NounMetadata(medianValue, PkslDataTypes.CONST_DECIMAL);
 		return medianNoun;
@@ -69,6 +46,16 @@ public class OpMedian extends OpBasicMath {
 			// and return their average
 			return (evals[ (numValues + 1)/2 ] + evals[ (numValues - 1)/2 ]) / 2.0;
 		}
+	}
+	
+	private double[] convertToDoubleArray(Object[] values) {
+		
+		double[] dblArray = new double[values.length-1];
+		for(int i = 0; i < values.length-1; i++) {
+			dblArray[i] = ((Number)values[i]).doubleValue();
+		}
+		
+		return dblArray;
 	}
 	
 }
