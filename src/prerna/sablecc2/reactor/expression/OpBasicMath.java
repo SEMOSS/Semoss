@@ -7,11 +7,13 @@ import prerna.sablecc.expressions.sql.builder.SqlColumnSelector;
 import prerna.sablecc.expressions.sql.builder.SqlExpressionBuilder;
 import prerna.sablecc.expressions.sql.builder.SqlMathSelector;
 import prerna.sablecc2.om.NounMetadata;
+import prerna.sablecc2.om.PkslDataTypes;
 import prerna.ui.components.playsheets.datamakers.IDataMaker;
 import prerna.util.ArrayUtilityMethods;
 
-public abstract class OpBasicMath extends OpReactor{
+public abstract class OpBasicMath extends OpReactor {
 
+	protected String operation;
 	/*
 	 * This class is to be extended for basic math operations
 	 * To deal with string inputs that need to be evaluated
@@ -22,6 +24,34 @@ public abstract class OpBasicMath extends OpReactor{
 	 * 		existing classes
 	 */
 	
+	@Override
+	public NounMetadata execute() {
+		NounMetadata[] nouns = getValues();
+		Object[] values = evaluateNouns(nouns);
+		NounMetadata result = evaluate(values);
+		return result;
+	}
+	
+	protected abstract NounMetadata evaluate(Object[] values);
+	
+	protected Object[] evaluateNouns(NounMetadata[] nouns) {
+		Object[] evaluatedNouns = new Object[nouns.length];
+		for(int i = 0; i < nouns.length; i++) {
+			NounMetadata val = nouns[i];
+			PkslDataTypes valType = val.getNounName();
+			if(valType == PkslDataTypes.CONST_DECIMAL) {
+				evaluatedNouns[i] = ((Number) val.getValue()).doubleValue(); 
+			} else if(valType == PkslDataTypes.COLUMN) {
+				// at this point, we have already checked if this is a 
+				// variable, so it better exist on the frame
+				// also, you can only have one of these
+				evaluatedNouns[i] = evaluateString(this.operation, val);
+			} else {
+				throw new IllegalArgumentException("Invalid input for "+this.operation+". Require all values to be numeric or column names");
+			}
+		}
+		return evaluatedNouns;
+	}
 	
 	protected double evaluateString(String operation, NounMetadata frameColNoun) {
 		// to enter here
