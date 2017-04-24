@@ -1804,6 +1804,10 @@ public abstract class AbstractRJavaReactor extends AbstractJavaReactor {
 	 */
 	public void runSemanticMatching(String[] engines, double candidateThreshold, double similarityThreshold,
 			int instancesThreshold, boolean compareProperties, boolean semanticScore, boolean refresh) {
+		if(engines.length < 2) {
+			System.out.println("matching engine to itself");
+			engines = new String[]{engines[0], engines[0]};
+		}
 		// Refresh the corpus
 		if (refresh) {
 			DomainValues dv = new DomainValues(engines, compareProperties);
@@ -1991,8 +1995,8 @@ public abstract class AbstractRJavaReactor extends AbstractJavaReactor {
 		conceptSource = source[1];
 		if (source.length > 2) {
 			propertySource = source[2];
-			if(!propertySource.equals("none")) {
-			sourceIsProperty = true;
+			if (!propertySource.equals("none") && propertySource.length() > 0) {
+				sourceIsProperty = true;
 			}
 		}
 
@@ -2001,8 +2005,8 @@ public abstract class AbstractRJavaReactor extends AbstractJavaReactor {
 		conceptTarget = target[1];
 		if (target.length > 2) {
 			propertyTarget = target[2];
-			if(!propertyTarget.equals("none")) {
-			targetIsProperty = true;
+			if (!propertyTarget.equals("none") && propertyTarget.length() > 0) {
+				targetIsProperty = true;
 			}
 		}
 
@@ -2206,8 +2210,8 @@ public abstract class AbstractRJavaReactor extends AbstractJavaReactor {
 		conceptSource = source[1];
 		if (source.length > 2) {
 			propertySource = source[2];
-			if(!propertySource.equals("none")) {
-			sourceIsProperty = true;
+			if (!propertySource.equals("none") && propertySource.length() > 0) {
+				sourceIsProperty = true;
 			}
 		}
 
@@ -2215,8 +2219,8 @@ public abstract class AbstractRJavaReactor extends AbstractJavaReactor {
 		conceptTarget = target[1];
 		if (target.length > 2) {
 			propertyTarget = target[2];
-			if(!propertyTarget.equals("none")) {
-			targetIsProperty = true;
+			if (!propertyTarget.equals("none") && propertyTarget.length() > 0) {
+				targetIsProperty = true;
 			}
 		}
 
