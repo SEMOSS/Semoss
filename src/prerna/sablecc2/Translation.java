@@ -88,6 +88,12 @@ public class Translation extends DepthFirstAdapter {
 		this.runner = new PKSLRunner();
 	}
 	
+	public Translation(PKSLRunner runner) {
+		this.planner = new PKSLPlanner();
+		this.planner.addProperty("FRAME", "FRAME", new H2Frame());
+		this.runner = runner;
+	}
+	
 	public Translation(IDataMaker dataMaker, PKSLRunner runner) {
 		this.planner = new PKSLPlanner(dataMaker);
 		this.planner.addProperty("FRAME", "FRAME", dataMaker);
