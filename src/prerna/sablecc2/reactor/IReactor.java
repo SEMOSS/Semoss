@@ -45,7 +45,7 @@ public interface IReactor {
 	 *******************************************/
 	// sets the name of the operation and the signature
 	// full operation includes the nouns
-	void setPKSL(String operation, String fullOperation, String inputString);
+	void setPKSL(String operation, String fullOperation);
 	
 	String[] getPKSL();
 	
@@ -127,7 +127,10 @@ public interface IReactor {
 	// gets the signature
 	String getSignature();
 
+	String getOriginalSignature();
+
 	void modifySignature(String string, String plainString);
+
 	
 	
 	/**
