@@ -25,8 +25,8 @@ public abstract class AbstractReactor implements IReactor {
 	
 	protected String operationName = null;
 	protected String signature = null;
-	protected String inputString = null;
-	
+	protected String originalSignature = null;
+
 	protected String curNoun = null;
 	protected IReactor parentReactor = null;
 	protected Vector<IReactor> childReactor = new Vector<IReactor>();
@@ -50,10 +50,10 @@ public abstract class AbstractReactor implements IReactor {
 	boolean evaluate = false;
 	
 	@Override
-	public void setPKSL(String operation, String fullOperation, String inputString) {
+	public void setPKSL(String operation, String fullOperation) {
 		this.operationName = operation;
 		this.signature = fullOperation;
-		this.inputString = inputString;
+		this.originalSignature = signature;
 	}
 	
 	@Override
@@ -67,7 +67,6 @@ public abstract class AbstractReactor implements IReactor {
 		String [] output = new String[3];
 		output[0] = operationName;
 		output[1] = signature;
-		output[2] = inputString;
 		return output;
 	}
 	
@@ -199,9 +198,10 @@ public abstract class AbstractReactor implements IReactor {
 			// we dont want it to print with the exponential
 			Object replaceValue = result.getValue();
 			PkslDataTypes replaceType = result.getNounName();
-			if(replaceType == PkslDataTypes.CONST_DECIMAL) {
+			if(replaceType == PkslDataTypes.CONST_DECIMAL || 
+					replaceType == PkslDataTypes.CONST_INT) {
 				// big decimal is easiest way i have seen to do this formatting
-				replaceValue = new BigDecimal((double) replaceValue).toPlainString();
+				replaceValue = new BigDecimal( ((Number) replaceValue).doubleValue()).toPlainString();
 			} else {
 				replaceValue = replaceValue + "";
 			}
@@ -333,8 +333,12 @@ public abstract class AbstractReactor implements IReactor {
 	}
 	
 	@Override
-	public String getSignature()
-	{
-		return signature;
+	public String getSignature() {
+		return this.signature;
+	}
+	
+	@Override
+	public String getOriginalSignature() {
+		return this.originalSignature;
 	}
 }
