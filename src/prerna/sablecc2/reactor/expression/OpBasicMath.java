@@ -14,6 +14,8 @@ import prerna.util.ArrayUtilityMethods;
 public abstract class OpBasicMath extends OpReactor {
 
 	protected String operation;
+	protected boolean allIntValue = true;
+	
 	/*
 	 * This class is to be extended for basic math operations
 	 * To deal with string inputs that need to be evaluated
@@ -40,11 +42,15 @@ public abstract class OpBasicMath extends OpReactor {
 			NounMetadata val = nouns[i];
 			PkslDataTypes valType = val.getNounName();
 			if(valType == PkslDataTypes.CONST_DECIMAL) {
-				evaluatedNouns[i] = ((Number) val.getValue()).doubleValue(); 
+				this.allIntValue = false;
+				evaluatedNouns[i] = ((Number) val.getValue()).doubleValue();
+			} else if(valType == PkslDataTypes.CONST_INT) {
+				evaluatedNouns[i] = ((Number) val.getValue()).intValue(); 
 			} else if(valType == PkslDataTypes.COLUMN) {
 				// at this point, we have already checked if this is a 
 				// variable, so it better exist on the frame
-				// also, you can only have one of these
+				// TODO: expose int vs. double on the frame
+				this.allIntValue = false;	
 				evaluatedNouns[i] = evaluateString(this.operation, val);
 			} else {
 				throw new IllegalArgumentException("Invalid input for "+this.operation+". Require all values to be numeric or column names");
