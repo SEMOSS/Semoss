@@ -17,7 +17,13 @@ public class OpMin extends OpBasicMath {
 			Double nextNumber = ((Number) val).doubleValue();
 			min = min > nextNumber ? nextNumber : min;
 		}
-		NounMetadata minNoun = new NounMetadata(min, PkslDataTypes.CONST_DECIMAL);
+		
+		NounMetadata minNoun = null;
+		if(this.allIntValue) {
+			minNoun = new NounMetadata((int) min, PkslDataTypes.CONST_INT);
+		} else {
+			minNoun = new NounMetadata(min, PkslDataTypes.CONST_DECIMAL);
+		}
 		return minNoun;
 	}	
 }
