@@ -15,7 +15,13 @@ public class OpMean extends OpBasicMath {
 			sum += ((Number) val).doubleValue();
 		}
 		double mean = sum/values.length;
-		NounMetadata maxNoun = new NounMetadata(mean, PkslDataTypes.CONST_DECIMAL);
-		return maxNoun;
+
+		NounMetadata meanNoun = null;
+		if(this.allIntValue) {
+			meanNoun = new NounMetadata((int) mean, PkslDataTypes.CONST_INT);
+		} else {
+			meanNoun = new NounMetadata(mean, PkslDataTypes.CONST_DECIMAL);
+		}
+		return meanNoun;
 	}
 }
