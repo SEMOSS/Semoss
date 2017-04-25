@@ -176,37 +176,15 @@ public abstract class AbstractEngine implements IEngine {
 					prop.put(Constants.USERNAME, insightUsername);
 					insightRDBMS.setProperties(prop);
 					insightRDBMS.openDB(null);
-//					insightRDBMS.insertData("UPDATE QUESTION_ID p SET QUESTION_LAYOUT = 'Graph' WHERE p.QUESTION_DATA_MAKER = 'GraphDataModel'");
-					insightRDBMS.insertData("UPDATE QUESTION_ID p SET QUESTION_DATA_MAKER = REPLACE(QUESTION_DATA_MAKER, 'BTreeDataFrame', 'TinkerFrame')");
-//					insightRDBMS.insertData("UPDATE QUESTION_ID SET QUESTION_MAKEUP=REGEXP_REPLACE ( QUESTION_MAKEUP , '\\\\\\\"' , '''' )");
-					insightRDBMS.insertData("UPDATE QUESTION_ID p SET QUESTION_MAKEUP = REPLACE(QUESTION_MAKEUP, 'SELECT @Concept-Concept:Concept@, ''http://www.w3.org/1999/02/22-rdf-syntax-ns#type'', ''http://semoss.org/ontologies/Concept''', 'SELECT @Concept-Concept:Concept@') WHERE p.QUESTION_DATA_MAKER = 'TinkerFrame'");
-					insightRDBMS.insertData("UPDATE QUESTION_ID SET QUESTION_DATA_MAKER='TinkerFrame' WHERE QUESTION_NAME='Explore a concept from the database' OR QUESTION_NAME='Explore an instance of a selected node type'"); 
-					// Update existing dbs to not include QUESTION_ID column if it is there. Can remove this once everyone has updated their dbs
-//					ITableDataFrame f = WrapperManager.getInstance().getSWrapper(insightRDBMS, "select count(*) from information_schema.columns where table_name = 'QUESTION_ID' and column_name = 'QUESTION_ID'").getTableDataFrame();
-//					if((Double)f.getData().get(0)[0] != 0 ){
-//						insightRDBMS.insertData("UPDATE PARAMETER_ID p SET QUESTION_ID_FK = (SELECT ID FROM QUESTION_ID q WHERE q.QUESTION_ID = p.QUESTION_ID_FK)");
-//						insightRDBMS.insertData("ALTER TABLE QUESTION_ID DROP COLUMN IF EXISTS QUESTION_ID");
-//					}
-					// Update existing dbs that do not have the UI table and have Question_ID_FK as a varchar
-//					ITableDataFrame f = WrapperManager.getInstance().getSWrapper(insightRDBMS, "select count(*) from information_schema.tables where table_name = 'UI'").getTableDataFrame(); 
-//					if((Double)f.getData().get(0)[0] == 0 ) {
-//						//this is so we do not modify the form builder engine db -- make sure that it has the parameter id table
-//						ITableDataFrame f2 = WrapperManager.getInstance().getSWrapper(insightRDBMS, "select count(*) from information_schema.tables where table_name = 'PARAMETER_ID'").getTableDataFrame(); 
-//						if((Double)f2.getData().get(0)[0] != 0 ) {
-//							insightRDBMS.insertData("CREATE TABLE UI (QUESTION_ID_FK INT, UI_DATA CLOB)");
-//							insightRDBMS.insertData("ALTER TABLE PARAMETER_ID ALTER COLUMN QUESTION_ID_FK INT");
-//						}
-//					}
 				} 
 				else { // RDBMS Question engine has not been made. Must do conversion
 					// set the necessary fun stuff
 					createInsights(baseFolder);
 				}
-				// UPDATE INSIGHTS EXPLORE INSTANCE QUERY
-				// TO BE A PKQL DEFAULT WIDGET INSTEAD OF 
-				// HARD CODED QUERY
-				Utility.updateExploreInstanceInsight(this);
-				
+				// this is for some legacy insights
+				// hope this doesn't stay here forever...
+				Utility.updateOldInsights(this);
+
 				// load the rdf owl db
 				String owlFile = prop.getProperty(Constants.OWL);
 				if (owlFile != null) {
