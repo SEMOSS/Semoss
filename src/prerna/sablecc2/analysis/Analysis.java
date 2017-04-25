@@ -59,8 +59,8 @@ public interface Analysis extends Switch
     void caseAMultExpr(AMultExpr node);
     void caseADivExpr(ADivExpr node);
     void caseAModExpr(AModExpr node);
-    void caseAEExprExpr(AEExprExpr node);
     void caseAFormula(AFormula node);
+    void caseAOtherExpr(AOtherExpr node);
     void caseAExtendedExpr(AExtendedExpr node);
     void caseASelectors(ASelectors node);
     void caseAProjectors(AProjectors node);
