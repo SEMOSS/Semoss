@@ -807,28 +807,28 @@ public class Utility {
 		String retString = original;
 
 		retString = retString.trim();
-		retString = retString.replaceAll("\t", " ");//replace tabs with spaces
-		while (retString.contains("  ")){
-			retString = retString.replace("  ", " ");
-		}
-		retString = retString.replaceAll("\\{", "(");
-		retString = retString.replaceAll("\\}", ")");
-		retString = retString.replaceAll("'", "");//remove apostrophe
-		if(replaceForRDF){
-			retString = retString.replaceAll("\"", "'");//replace double quotes with single quotes
-		}
+//		retString = retString.replaceAll("\t", " ");//replace tabs with spaces
+//		while (retString.contains("  ")){
+//			retString = retString.replace("  ", " ");
+//		}
+//		retString = retString.replaceAll("\\{", "(");
+//		retString = retString.replaceAll("\\}", ")");
+//		retString = retString.replaceAll("'", "");//remove apostrophe
+//		if(replaceForRDF){
+//			retString = retString.replaceAll("\"", "'");//replace double quotes with single quotes
+//		}
 		retString = retString.replaceAll(" ", "_");//replace spaces with underscores
-		if(!property) {
-			if(replaceForwardSlash) {
-				retString = retString.replaceAll("/", "-");//replace forward slashes with dashes
-			}
-			retString = retString.replaceAll("\\\\", "-");//replace backslashes with dashes
-		}
-
-		retString = retString.replaceAll("\\|", "-");//replace vertical lines with dashes
-		retString = retString.replaceAll("\n", " ");
-		retString = retString.replaceAll("<", "(");
-		retString = retString.replaceAll(">", ")");
+//		if(!property) {
+//			if(replaceForwardSlash) {
+//				retString = retString.replaceAll("/", "-");//replace forward slashes with dashes
+//			}
+//			retString = retString.replaceAll("\\\\", "-");//replace backslashes with dashes
+//		}
+//
+//		retString = retString.replaceAll("\\|", "-");//replace vertical lines with dashes
+//		retString = retString.replaceAll("\n", " ");
+//		retString = retString.replaceAll("<", "(");
+//		retString = retString.replaceAll(">", ")");
 
 		return retString;
 	}
@@ -2952,6 +2952,56 @@ public class Utility {
 	}
 	
 	
+	/**
+	 * Update old insights... hope we get rid of this soon
+	 * @param insightRDBMS
+	 * @param engineName
+	 */
+	public static void updateOldInsights(IEngine engine) {
+		String query = "SELECT * FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_NAME = 'QUESTION_ID'";
+
+		// need to get the insight
+		IEngine insightRDBMS = engine.getInsightDatabase();
+		if(insightRDBMS == null) {
+			LOGGER.info(engine.getEngineName() + " does not have an insight rdbms");
+			return;
+		}
+		
+		Map<String, Object> mapRet = (Map<String, Object>) insightRDBMS.execQuery(query);
+		Statement stat = (Statement) mapRet.get(RDBMSNativeEngine.STATEMENT_OBJECT);
+		ResultSet rs = (ResultSet) mapRet.get(RDBMSNativeEngine.RESULTSET_OBJECT);
+		try {
+			if (rs.next()) {
+				insightRDBMS.insertData("UPDATE QUESTION_ID p SET QUESTION_LAYOUT = 'Graph' WHERE p.QUESTION_DATA_MAKER = 'GraphDataModel'");
+				insightRDBMS.insertData("UPDATE QUESTION_ID p SET QUESTION_DATA_MAKER = REPLACE(QUESTION_DATA_MAKER, 'BTreeDataFrame', 'TinkerFrame')");
+				insightRDBMS.insertData("UPDATE QUESTION_ID p SET QUESTION_MAKEUP = REPLACE(QUESTION_MAKEUP, 'SELECT @Concept-Concept:Concept@, ''http://www.w3.org/1999/02/22-rdf-syntax-ns#type'', ''http://semoss.org/ontologies/Concept''', 'SELECT @Concept-Concept:Concept@') WHERE p.QUESTION_DATA_MAKER = 'TinkerFrame'");
+				insightRDBMS.insertData("UPDATE QUESTION_ID SET QUESTION_DATA_MAKER='TinkerFrame' WHERE QUESTION_NAME='Explore a concept from the database' OR QUESTION_NAME='Explore an instance of a selected node type'"); 
+				
+				// also update the base explore instance query
+				Utility.updateExploreInstanceInsight(engine);
+			} else {
+				LOGGER.error("COULD NOT FIND INSIGHTS QUESTION_ID TABLE FOR ENGINE = " + engine.getEngineName());
+			}
+		} catch (SQLException e) {
+			e.printStackTrace();
+		} finally {
+			if (rs != null) {
+				try {
+					rs.close();
+				} catch (SQLException e) {
+					e.printStackTrace();
+				}
+			}
+			if(stat != null) {
+				try {
+					stat.close();
+				} catch (SQLException e) {
+					e.printStackTrace();
+				}
+			}
+		}
+	}
+	
 	// i hope this doesn't need to stay here for long
 	// only because we have a dumb way of passing insights as old question file
 	// instead of keeping what is in the insights rdbms
@@ -2973,7 +3023,6 @@ public class Utility {
 			LOGGER.info(engineName + " does not have an insight rdbms");
 			return;
 		}
-		
 		
 		// to delete from solr, we need to get the insight id
 		Map<String, Object> queryMap = (Map<String, Object>) insightRDBMS.execQuery("SELECT ID FROM QUESTION_ID p WHERE p.QUESTION_NAME = 'Explore an instance of a selected node type' OR p.QUESTION_NAME = 'Explore a concept from the database'");
@@ -3045,11 +3094,6 @@ public class Utility {
 				| IOException e) {
 			e.printStackTrace();
 		}
-	}
-
-	public static String toCamelCase(String s) {
-		String output = s.substring(0,1).toUpperCase() + s.substring(1);
-		return output;
 	}
 
 }
