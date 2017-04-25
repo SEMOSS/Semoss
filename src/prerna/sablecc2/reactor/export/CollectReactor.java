@@ -53,7 +53,7 @@ public class CollectReactor extends AbstractReactor{
 	
 	//returns how much do we need to collect
 	private int getTotalToCollect() {
-		Number collectThisMany = (Number) curRow.getColumnsOfType(PkslDataTypes.CONST_DECIMAL).get(0);
+		Number collectThisMany = (Number) curRow.getAllNumericColumns().get(0);
 		return collectThisMany.intValue();
 	}
 	
