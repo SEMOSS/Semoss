@@ -321,6 +321,12 @@ public class AnalysisAdapter implements Analysis
     }
 
     @Override
+    public void caseAListTerm(AListTerm node)
+    {
+        defaultCase(node);
+    }
+
+    @Override
     public void caseATermExpr(ATermExpr node)
     {
         defaultCase(node);
@@ -363,13 +369,13 @@ public class AnalysisAdapter implements Analysis
     }
 
     @Override
-    public void caseAOtherExpr(AOtherExpr node)
+    public void caseAList(AList node)
     {
         defaultCase(node);
     }
 
     @Override
-    public void caseAExtendedExpr(AExtendedExpr node)
+    public void caseAOtherExpr(AOtherExpr node)
     {
         defaultCase(node);
     }
