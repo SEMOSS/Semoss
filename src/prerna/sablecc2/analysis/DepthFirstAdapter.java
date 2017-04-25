@@ -447,6 +447,10 @@ public class DepthFirstAdapter extends AnalysisAdapter
     public void caseAPlainRow(APlainRow node)
     {
         inAPlainRow(node);
+        if(node.getLPar() != null)
+        {
+            node.getLPar().apply(this);
+        }
         if(node.getColDef() != null)
         {
             node.getColDef().apply(this);
@@ -457,6 +461,10 @@ public class DepthFirstAdapter extends AnalysisAdapter
             {
                 e.apply(this);
             }
+        }
+        if(node.getRPar() != null)
+        {
+            node.getRPar().apply(this);
         }
         outAPlainRow(node);
     }
@@ -479,17 +487,9 @@ public class DepthFirstAdapter extends AnalysisAdapter
         {
             node.getId().apply(this);
         }
-        if(node.getLPar() != null)
-        {
-            node.getLPar().apply(this);
-        }
         if(node.getPlainRow() != null)
         {
             node.getPlainRow().apply(this);
-        }
-        if(node.getRPar() != null)
-        {
-            node.getRPar().apply(this);
         }
         if(node.getAsop() != null)
         {
@@ -1183,27 +1183,6 @@ public class DepthFirstAdapter extends AnalysisAdapter
         outAModExpr(node);
     }
 
-    public void inAEExprExpr(AEExprExpr node)
-    {
-        defaultIn(node);
-    }
-
-    public void outAEExprExpr(AEExprExpr node)
-    {
-        defaultOut(node);
-    }
-
-    @Override
-    public void caseAEExprExpr(AEExprExpr node)
-    {
-        inAEExprExpr(node);
-        if(node.getExtendedExpr() != null)
-        {
-            node.getExtendedExpr().apply(this);
-        }
-        outAEExprExpr(node);
-    }
-
     public void inAFormula(AFormula node)
     {
         defaultIn(node);
@@ -1226,11 +1205,43 @@ public class DepthFirstAdapter extends AnalysisAdapter
         {
             node.getExpr().apply(this);
         }
+        {
+            List<POtherExpr> copy = new ArrayList<POtherExpr>(node.getOtherExpr());
+            for(POtherExpr e : copy)
+            {
+                e.apply(this);
+            }
+        }
         if(node.getRPar() != null)
         {
             node.getRPar().apply(this);
         }
         outAFormula(node);
+    }
+
+    public void inAOtherExpr(AOtherExpr node)
+    {
+        defaultIn(node);
+    }
+
+    public void outAOtherExpr(AOtherExpr node)
+    {
+        defaultOut(node);
+    }
+
+    @Override
+    public void caseAOtherExpr(AOtherExpr node)
+    {
+        inAOtherExpr(node);
+        if(node.getComma() != null)
+        {
+            node.getComma().apply(this);
+        }
+        if(node.getExpr() != null)
+        {
+            node.getExpr().apply(this);
+        }
+        outAOtherExpr(node);
     }
 
     public void inAExtendedExpr(AExtendedExpr node)

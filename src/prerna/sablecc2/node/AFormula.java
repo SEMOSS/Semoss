@@ -2,6 +2,7 @@
 
 package prerna.sablecc2.node;
 
+import java.util.*;
 import prerna.sablecc2.analysis.*;
 
 @SuppressWarnings("nls")
@@ -9,6 +10,7 @@ public final class AFormula extends PFormula
 {
     private TLPar _lPar_;
     private PExpr _expr_;
+    private final LinkedList<POtherExpr> _otherExpr_ = new LinkedList<POtherExpr>();
     private TRPar _rPar_;
 
     public AFormula()
@@ -19,12 +21,15 @@ public final class AFormula extends PFormula
     public AFormula(
         @SuppressWarnings("hiding") TLPar _lPar_,
         @SuppressWarnings("hiding") PExpr _expr_,
+        @SuppressWarnings("hiding") List<?> _otherExpr_,
         @SuppressWarnings("hiding") TRPar _rPar_)
     {
         // Constructor
         setLPar(_lPar_);
 
         setExpr(_expr_);
+
+        setOtherExpr(_otherExpr_);
 
         setRPar(_rPar_);
 
@@ -36,6 +41,7 @@ public final class AFormula extends PFormula
         return new AFormula(
             cloneNode(this._lPar_),
             cloneNode(this._expr_),
+            cloneList(this._otherExpr_),
             cloneNode(this._rPar_));
     }
 
@@ -95,6 +101,32 @@ public final class AFormula extends PFormula
         this._expr_ = node;
     }
 
+    public LinkedList<POtherExpr> getOtherExpr()
+    {
+        return this._otherExpr_;
+    }
+
+    public void setOtherExpr(List<?> list)
+    {
+        for(POtherExpr e : this._otherExpr_)
+        {
+            e.parent(null);
+        }
+        this._otherExpr_.clear();
+
+        for(Object obj_e : list)
+        {
+            POtherExpr e = (POtherExpr) obj_e;
+            if(e.parent() != null)
+            {
+                e.parent().removeChild(e);
+            }
+
+            e.parent(this);
+            this._otherExpr_.add(e);
+        }
+    }
+
     public TRPar getRPar()
     {
         return this._rPar_;
@@ -126,6 +158,7 @@ public final class AFormula extends PFormula
         return ""
             + toString(this._lPar_)
             + toString(this._expr_)
+            + toString(this._otherExpr_)
             + toString(this._rPar_);
     }
 
@@ -142,6 +175,11 @@ public final class AFormula extends PFormula
         if(this._expr_ == child)
         {
             this._expr_ = null;
+            return;
+        }
+
+        if(this._otherExpr_.remove(child))
+        {
             return;
         }
 
@@ -168,6 +206,24 @@ public final class AFormula extends PFormula
         {
             setExpr((PExpr) newChild);
             return;
+        }
+
+        for(ListIterator<POtherExpr> i = this._otherExpr_.listIterator(); i.hasNext();)
+        {
+            if(i.next() == oldChild)
+            {
+                if(newChild != null)
+                {
+                    i.set((POtherExpr) newChild);
+                    newChild.parent(this);
+                    oldChild.parent(null);
+                    return;
+                }
+
+                i.remove();
+                oldChild.parent(null);
+                return;
+            }
         }
 
         if(this._rPar_ == oldChild)

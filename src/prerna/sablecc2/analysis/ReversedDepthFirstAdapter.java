@@ -450,6 +450,10 @@ public class ReversedDepthFirstAdapter extends AnalysisAdapter
     public void caseAPlainRow(APlainRow node)
     {
         inAPlainRow(node);
+        if(node.getRPar() != null)
+        {
+            node.getRPar().apply(this);
+        }
         {
             List<POthercol> copy = new ArrayList<POthercol>(node.getOthercol());
             Collections.reverse(copy);
@@ -461,6 +465,10 @@ public class ReversedDepthFirstAdapter extends AnalysisAdapter
         if(node.getColDef() != null)
         {
             node.getColDef().apply(this);
+        }
+        if(node.getLPar() != null)
+        {
+            node.getLPar().apply(this);
         }
         outAPlainRow(node);
     }
@@ -483,17 +491,9 @@ public class ReversedDepthFirstAdapter extends AnalysisAdapter
         {
             node.getAsop().apply(this);
         }
-        if(node.getRPar() != null)
-        {
-            node.getRPar().apply(this);
-        }
         if(node.getPlainRow() != null)
         {
             node.getPlainRow().apply(this);
-        }
-        if(node.getLPar() != null)
-        {
-            node.getLPar().apply(this);
         }
         if(node.getId() != null)
         {
@@ -1187,27 +1187,6 @@ public class ReversedDepthFirstAdapter extends AnalysisAdapter
         outAModExpr(node);
     }
 
-    public void inAEExprExpr(AEExprExpr node)
-    {
-        defaultIn(node);
-    }
-
-    public void outAEExprExpr(AEExprExpr node)
-    {
-        defaultOut(node);
-    }
-
-    @Override
-    public void caseAEExprExpr(AEExprExpr node)
-    {
-        inAEExprExpr(node);
-        if(node.getExtendedExpr() != null)
-        {
-            node.getExtendedExpr().apply(this);
-        }
-        outAEExprExpr(node);
-    }
-
     public void inAFormula(AFormula node)
     {
         defaultIn(node);
@@ -1226,6 +1205,14 @@ public class ReversedDepthFirstAdapter extends AnalysisAdapter
         {
             node.getRPar().apply(this);
         }
+        {
+            List<POtherExpr> copy = new ArrayList<POtherExpr>(node.getOtherExpr());
+            Collections.reverse(copy);
+            for(POtherExpr e : copy)
+            {
+                e.apply(this);
+            }
+        }
         if(node.getExpr() != null)
         {
             node.getExpr().apply(this);
@@ -1235,6 +1222,31 @@ public class ReversedDepthFirstAdapter extends AnalysisAdapter
             node.getLPar().apply(this);
         }
         outAFormula(node);
+    }
+
+    public void inAOtherExpr(AOtherExpr node)
+    {
+        defaultIn(node);
+    }
+
+    public void outAOtherExpr(AOtherExpr node)
+    {
+        defaultOut(node);
+    }
+
+    @Override
+    public void caseAOtherExpr(AOtherExpr node)
+    {
+        inAOtherExpr(node);
+        if(node.getExpr() != null)
+        {
+            node.getExpr().apply(this);
+        }
+        if(node.getComma() != null)
+        {
+            node.getComma().apply(this);
+        }
+        outAOtherExpr(node);
     }
 
     public void inAExtendedExpr(AExtendedExpr node)
