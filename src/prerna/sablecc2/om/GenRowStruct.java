@@ -40,6 +40,11 @@ public class GenRowStruct {
 		add(literal, PkslDataTypes.CONST_DECIMAL);
 	}
 	
+	public void addInteger(Integer literal)
+	{
+		add(literal, PkslDataTypes.CONST_INT);
+	}
+	
 	public void addColumn(String column)
 	{
 		add(column.trim(), PkslDataTypes.COLUMN);

@@ -144,7 +144,7 @@ public class ReactorFactory {
 	 * 			3. set that reactor to the expr reactor and return the expr reactor
 	 * 		The expr reactor when executed will use that reducing expression reactor to evaluate
 	 */
-    public static IReactor getReactor(String reactorId, String nodeString, String inputString, ITableDataFrame frame, IReactor parentReactor) {
+    public static IReactor getReactor(String reactorId, String nodeString, ITableDataFrame frame, IReactor parentReactor) {
     	IReactor reactor;
 		try {
 			//is this an expression?
@@ -154,29 +154,15 @@ public class ReactorFactory {
 				//if this expression is not a selector
 				if(!(parentReactor instanceof SelectReactor)) {
 					reactor = (IReactor)expressionHash.get(reactorId.toUpperCase()).newInstance();
-					reactor.setPKSL(reactorId, nodeString, inputString);
+					reactor.setPKSL(reactorId, nodeString);
 					return reactor;
-					
-//					//this expression is a reducer not a selector
-//					//so first we create an ExprReactor
-//					reactor = new ExprReactor();
-//					reactor.setPKSL(reactorId, nodeString, inputString);
-//			        reactor.setName("OPERATION_FORMULA");
-//			        
-//			        //grab the expression reducer from the frame
-//			        Map<String, String> scriptReactors = new H2Frame().getScriptReactors();
-//			        String reactorName = scriptReactors.get(reactorId.toUpperCase());
-//			        
-//			        //set the name of that reducer in the reactor so it can reduce properly
-//			        reactor.setProp("REACTOR_NAME", reactorName);
-//			        return reactor;
 				}
 			}
 			// if not an expression
 			// search in the normal reactor hash
 			if(reactorHash.containsKey(reactorId)) {
 				reactor = (IReactor)reactorHash.get(reactorId).newInstance();
-				reactor.setPKSL(reactorId, nodeString, inputString);
+				reactor.setPKSL(reactorId, nodeString);
 				return reactor;
 			}
 		} catch (InstantiationException | IllegalAccessException e) {
@@ -184,7 +170,7 @@ public class ReactorFactory {
 		}
     	
 		reactor = new SampleReactor();
-		reactor.setPKSL(reactorId, nodeString, inputString);
+		reactor.setPKSL(reactorId, nodeString);
 		return reactor;
     }
 }
