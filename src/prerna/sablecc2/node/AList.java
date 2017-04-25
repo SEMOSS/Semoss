@@ -2,27 +2,26 @@
 
 package prerna.sablecc2.node;
 
+import java.util.*;
 import prerna.sablecc2.analysis.*;
 
 @SuppressWarnings("nls")
-public final class AExtendedExpr extends PExtendedExpr
+public final class AList extends PList
 {
     private TLPar _lPar_;
     private PExpr _expr_;
-    private TComma _comma_;
-    private PGenRow _group_;
+    private final LinkedList<POtherExpr> _otherExpr_ = new LinkedList<POtherExpr>();
     private TRPar _rPar_;
 
-    public AExtendedExpr()
+    public AList()
     {
         // Constructor
     }
 
-    public AExtendedExpr(
+    public AList(
         @SuppressWarnings("hiding") TLPar _lPar_,
         @SuppressWarnings("hiding") PExpr _expr_,
-        @SuppressWarnings("hiding") TComma _comma_,
-        @SuppressWarnings("hiding") PGenRow _group_,
+        @SuppressWarnings("hiding") List<?> _otherExpr_,
         @SuppressWarnings("hiding") TRPar _rPar_)
     {
         // Constructor
@@ -30,9 +29,7 @@ public final class AExtendedExpr extends PExtendedExpr
 
         setExpr(_expr_);
 
-        setComma(_comma_);
-
-        setGroup(_group_);
+        setOtherExpr(_otherExpr_);
 
         setRPar(_rPar_);
 
@@ -41,18 +38,17 @@ public final class AExtendedExpr extends PExtendedExpr
     @Override
     public Object clone()
     {
-        return new AExtendedExpr(
+        return new AList(
             cloneNode(this._lPar_),
             cloneNode(this._expr_),
-            cloneNode(this._comma_),
-            cloneNode(this._group_),
+            cloneList(this._otherExpr_),
             cloneNode(this._rPar_));
     }
 
     @Override
     public void apply(Switch sw)
     {
-        ((Analysis) sw).caseAExtendedExpr(this);
+        ((Analysis) sw).caseAList(this);
     }
 
     public TLPar getLPar()
@@ -105,54 +101,30 @@ public final class AExtendedExpr extends PExtendedExpr
         this._expr_ = node;
     }
 
-    public TComma getComma()
+    public LinkedList<POtherExpr> getOtherExpr()
     {
-        return this._comma_;
+        return this._otherExpr_;
     }
 
-    public void setComma(TComma node)
+    public void setOtherExpr(List<?> list)
     {
-        if(this._comma_ != null)
+        for(POtherExpr e : this._otherExpr_)
         {
-            this._comma_.parent(null);
+            e.parent(null);
         }
+        this._otherExpr_.clear();
 
-        if(node != null)
+        for(Object obj_e : list)
         {
-            if(node.parent() != null)
+            POtherExpr e = (POtherExpr) obj_e;
+            if(e.parent() != null)
             {
-                node.parent().removeChild(node);
+                e.parent().removeChild(e);
             }
 
-            node.parent(this);
+            e.parent(this);
+            this._otherExpr_.add(e);
         }
-
-        this._comma_ = node;
-    }
-
-    public PGenRow getGroup()
-    {
-        return this._group_;
-    }
-
-    public void setGroup(PGenRow node)
-    {
-        if(this._group_ != null)
-        {
-            this._group_.parent(null);
-        }
-
-        if(node != null)
-        {
-            if(node.parent() != null)
-            {
-                node.parent().removeChild(node);
-            }
-
-            node.parent(this);
-        }
-
-        this._group_ = node;
     }
 
     public TRPar getRPar()
@@ -186,8 +158,7 @@ public final class AExtendedExpr extends PExtendedExpr
         return ""
             + toString(this._lPar_)
             + toString(this._expr_)
-            + toString(this._comma_)
-            + toString(this._group_)
+            + toString(this._otherExpr_)
             + toString(this._rPar_);
     }
 
@@ -207,15 +178,8 @@ public final class AExtendedExpr extends PExtendedExpr
             return;
         }
 
-        if(this._comma_ == child)
+        if(this._otherExpr_.remove(child))
         {
-            this._comma_ = null;
-            return;
-        }
-
-        if(this._group_ == child)
-        {
-            this._group_ = null;
             return;
         }
 
@@ -244,16 +208,22 @@ public final class AExtendedExpr extends PExtendedExpr
             return;
         }
 
-        if(this._comma_ == oldChild)
+        for(ListIterator<POtherExpr> i = this._otherExpr_.listIterator(); i.hasNext();)
         {
-            setComma((TComma) newChild);
-            return;
-        }
+            if(i.next() == oldChild)
+            {
+                if(newChild != null)
+                {
+                    i.set((POtherExpr) newChild);
+                    newChild.parent(this);
+                    oldChild.parent(null);
+                    return;
+                }
 
-        if(this._group_ == oldChild)
-        {
-            setGroup((PGenRow) newChild);
-            return;
+                i.remove();
+                oldChild.parent(null);
+                return;
+            }
         }
 
         if(this._rPar_ == oldChild)

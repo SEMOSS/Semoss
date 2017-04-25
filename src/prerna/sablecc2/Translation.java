@@ -22,6 +22,7 @@ import prerna.sablecc2.node.AFrameop;
 import prerna.sablecc2.node.AFrameopScript;
 import prerna.sablecc2.node.AGeneric;
 import prerna.sablecc2.node.AIdWordOrId;
+import prerna.sablecc2.node.AList;
 import prerna.sablecc2.node.AMinusExpr;
 import prerna.sablecc2.node.AMultExpr;
 import prerna.sablecc2.node.AOpScript;
@@ -45,6 +46,7 @@ import prerna.sablecc2.reactor.FilterReactor;
 import prerna.sablecc2.reactor.GenericReactor;
 import prerna.sablecc2.reactor.IReactor;
 import prerna.sablecc2.reactor.IfReactor;
+import prerna.sablecc2.reactor.VectorReactor;
 import prerna.sablecc2.reactor.PKSLPlanner;
 import prerna.sablecc2.reactor.ReactorFactory;
 import prerna.sablecc2.reactor.qs.AsReactor;
@@ -677,6 +679,22 @@ public class Translation extends DepthFirstAdapter {
      *	Expression Methods
      **************************************************/
 
+    public void inAList(AList node)
+    {
+        defaultIn(node);
+        IReactor opReactor = new VectorReactor();
+        opReactor.setName("Vector");
+        opReactor.setPKSL("Vector", node.toString().trim(), node.toString().trim());
+        initReactor(opReactor);
+        
+    }
+
+    public void outAList(AList node)
+    {
+    	deInitReactor();
+        defaultOut(node);
+    }
+    
     public void inAFormula(AFormula node) {
         defaultIn(node);
     }
