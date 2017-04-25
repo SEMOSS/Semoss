@@ -1017,6 +1017,27 @@ public class DepthFirstAdapter extends AnalysisAdapter
         outACsvTerm(node);
     }
 
+    public void inAListTerm(AListTerm node)
+    {
+        defaultIn(node);
+    }
+
+    public void outAListTerm(AListTerm node)
+    {
+        defaultOut(node);
+    }
+
+    @Override
+    public void caseAListTerm(AListTerm node)
+    {
+        inAListTerm(node);
+        if(node.getList() != null)
+        {
+            node.getList().apply(this);
+        }
+        outAListTerm(node);
+    }
+
     public void inATermExpr(ATermExpr node)
     {
         defaultIn(node);
@@ -1205,6 +1226,35 @@ public class DepthFirstAdapter extends AnalysisAdapter
         {
             node.getExpr().apply(this);
         }
+        if(node.getRPar() != null)
+        {
+            node.getRPar().apply(this);
+        }
+        outAFormula(node);
+    }
+
+    public void inAList(AList node)
+    {
+        defaultIn(node);
+    }
+
+    public void outAList(AList node)
+    {
+        defaultOut(node);
+    }
+
+    @Override
+    public void caseAList(AList node)
+    {
+        inAList(node);
+        if(node.getLPar() != null)
+        {
+            node.getLPar().apply(this);
+        }
+        if(node.getExpr() != null)
+        {
+            node.getExpr().apply(this);
+        }
         {
             List<POtherExpr> copy = new ArrayList<POtherExpr>(node.getOtherExpr());
             for(POtherExpr e : copy)
@@ -1216,7 +1266,7 @@ public class DepthFirstAdapter extends AnalysisAdapter
         {
             node.getRPar().apply(this);
         }
-        outAFormula(node);
+        outAList(node);
     }
 
     public void inAOtherExpr(AOtherExpr node)
@@ -1242,43 +1292,6 @@ public class DepthFirstAdapter extends AnalysisAdapter
             node.getExpr().apply(this);
         }
         outAOtherExpr(node);
-    }
-
-    public void inAExtendedExpr(AExtendedExpr node)
-    {
-        defaultIn(node);
-    }
-
-    public void outAExtendedExpr(AExtendedExpr node)
-    {
-        defaultOut(node);
-    }
-
-    @Override
-    public void caseAExtendedExpr(AExtendedExpr node)
-    {
-        inAExtendedExpr(node);
-        if(node.getLPar() != null)
-        {
-            node.getLPar().apply(this);
-        }
-        if(node.getExpr() != null)
-        {
-            node.getExpr().apply(this);
-        }
-        if(node.getComma() != null)
-        {
-            node.getComma().apply(this);
-        }
-        if(node.getGroup() != null)
-        {
-            node.getGroup().apply(this);
-        }
-        if(node.getRPar() != null)
-        {
-            node.getRPar().apply(this);
-        }
-        outAExtendedExpr(node);
     }
 
     public void inASelectors(ASelectors node)
