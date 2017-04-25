@@ -16,7 +16,13 @@ public class OpSum extends OpBasicMath {
 		for(Object val : values) {
 			sum += ((Number) val).doubleValue();
 		}
-		NounMetadata sumNoun = new NounMetadata(sum, PkslDataTypes.CONST_DECIMAL);
+		
+		NounMetadata sumNoun = null;
+		if(this.allIntValue) {
+			sumNoun = new NounMetadata((int) sum, PkslDataTypes.CONST_INT);
+		} else {
+			sumNoun = new NounMetadata(sum, PkslDataTypes.CONST_DECIMAL);
+		}
 		return sumNoun;
 	}
 }
