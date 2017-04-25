@@ -46,9 +46,9 @@ import prerna.sablecc2.reactor.FilterReactor;
 import prerna.sablecc2.reactor.GenericReactor;
 import prerna.sablecc2.reactor.IReactor;
 import prerna.sablecc2.reactor.IfReactor;
-import prerna.sablecc2.reactor.VectorReactor;
 import prerna.sablecc2.reactor.PKSLPlanner;
 import prerna.sablecc2.reactor.ReactorFactory;
+import prerna.sablecc2.reactor.VectorReactor;
 import prerna.sablecc2.reactor.qs.AsReactor;
 import prerna.ui.components.playsheets.datamakers.IDataMaker;
 
@@ -203,8 +203,7 @@ public class Translation extends DepthFirstAdapter {
 //        IReactor frameReactor = new SampleReactor();
 //        frameReactor.setPKSL(node.getId()+"", node+"");
         String reactorId = node.getId().toString().trim();
-        IReactor frameReactor = getReactor(reactorId, node.toString().trim(), 
-        		"(" + node.getNoun().toString().trim() + node.getOthernoun().toString().trim() + ")");
+        IReactor frameReactor = getReactor(reactorId, node.toString().trim());
         initReactor(frameReactor);
         syncResult();
      }
@@ -235,7 +234,7 @@ public class Translation extends DepthFirstAdapter {
     	defaultIn(node);
         IReactor opReactor = new AsReactor();
         LOGGER.debug("In the AS Component of frame op");
-        opReactor.setPKSL("as", node.getAsOp() + "", "(" + node.getGenRow().toString().trim() + ")");
+        opReactor.setPKSL("as", node.getAsOp() + "");
         initReactor(opReactor);
     }
 
@@ -250,7 +249,7 @@ public class Translation extends DepthFirstAdapter {
     {
     	defaultIn(node);
     	IReactor assignmentReactor = new AssignmentReactor();
-        assignmentReactor.setPKSL(node.getWordOrId().toString().trim(), node.toString().trim(), node.getRoutineOrVar().toString().trim());
+        assignmentReactor.setPKSL(node.getWordOrId().toString().trim(), node.toString().trim());
     	initReactor(assignmentReactor);
     }
 
@@ -264,7 +263,7 @@ public class Translation extends DepthFirstAdapter {
     {
     	defaultIn(node);
     	IReactor assignmentReactor = new AssignmentReactor();
-        assignmentReactor.setPKSL(node.getId().toString().trim(), node.toString().trim(), node.getRoutineOrVar().toString().trim());
+        assignmentReactor.setPKSL(node.getId().toString().trim(), node.toString().trim());
     	initReactor(assignmentReactor);
     }
 
@@ -277,7 +276,7 @@ public class Translation extends DepthFirstAdapter {
     public void inAGeneric(AGeneric node) {
     	defaultIn(node);
     	IReactor genReactor = new GenericReactor();
-        genReactor.setPKSL("PKSL", (node + "").trim(), node.getGenRow().toString().trim());
+        genReactor.setPKSL("PKSL", (node + "").trim());
         genReactor.setProp("KEY", node.getId().toString().trim());
         initReactor(genReactor);
     }
@@ -295,12 +294,7 @@ public class Translation extends DepthFirstAdapter {
         LOGGER.debug("Starting a formula operation " + node.getId());
         // I feel like mostly it would be this and not frame op
         // I almost feel I should remove the frame op col def
-        IReactor opReactor = null;
-        if(node.getPlainRow() != null) {
-        	opReactor = getReactor(node.getId().toString().trim(), node.toString().trim(), node.getPlainRow().toString().trim());
-        } else {
-        	opReactor = getReactor(node.getId().toString().trim(), node.toString().trim(), "");
-        }
+        IReactor opReactor = getReactor(node.getId().toString().trim(), node.toString().trim());
         initReactor(opReactor);
         syncResult();
     }
@@ -496,27 +490,42 @@ public class Translation extends DepthFirstAdapter {
     public void inADecimal(ADecimal node)
     {
     	defaultIn(node);
-    	String fraction = "0";
+    	Number retNum = null;
+    	boolean isDouble = false;
+    	// we to separate between
+    	// an integer and a double
     	if(node.getFraction() != null) {
-    		fraction = (node.getFraction()+"").trim();
+    		isDouble = true;
+    		String fraction = (node.getFraction()+"").trim();
+    		String value = (node.getWhole()+"").trim() +"." + fraction;
+    		retNum = Double.parseDouble(value);
+    	} else {
+    		String value = (node.getWhole()+"").trim();
+    		retNum = Integer.parseInt(value);
     	}
-    	String value = (node.getWhole()+"").trim() +"." + fraction;
-    	Double adouble = Double.parseDouble(value);
+    	
     	// determine if it is a negative
     	// in which case, multiply by -1
     	if(node.getPosOrNeg() != null) {
     		String posOrNeg = node.getPosOrNeg().toString().trim();
     		if(posOrNeg.equals("-")) {
-    			adouble = -1.0 * adouble;
+    			if(isDouble) {
+        			retNum = -1.0 * retNum.doubleValue();
+    			} else {
+        			retNum = -1 * retNum.intValue();
+    			}
     		}
     	}
     	// add the decimal to the cur row
-    	curReactor.getCurRow().addDecimal(adouble);
+    	if(isDouble) {
+        	curReactor.getCurRow().addDecimal(retNum.doubleValue());
+    	} else {
+        	curReactor.getCurRow().addInteger(retNum.intValue());
+    	}
     	// modify the parent such that the signature has the correct
     	// value of the numerical without any extra spaces
-    	curReactor.modifySignature(node.toString().trim(), new BigDecimal(adouble).toPlainString());
-    	curReactor.setProp(node.toString().trim(), adouble);
-    	curReactor.setProp("LAST_VALUE", adouble);
+    	// plain string will always modify to a integer even if we return double value
+    	curReactor.modifySignature(node.toString().trim(), new BigDecimal(retNum.doubleValue()).toPlainString());
     }
 
     public void outADecimal(ADecimal node)
@@ -615,7 +624,7 @@ public class Translation extends DepthFirstAdapter {
         defaultIn(node);
         IReactor opReactor = new FilterReactor();
         opReactor.setName("Filter");
-        opReactor.setPKSL("Filter", node.toString().trim(), "(" + node.getLcol().toString().trim() + node.getComparator().toString().trim() + node.getRcol().toString().trim() + ")" );
+        opReactor.setPKSL("Filter", node.toString().trim());
         initReactor(opReactor);
         GenRowStruct genRow = curReactor.getNounStore().makeNoun("COMPARATOR");
         genRow.add(node.getComparator().toString().trim(), PkslDataTypes.COMPARATOR);
@@ -690,7 +699,7 @@ public class Translation extends DepthFirstAdapter {
         defaultIn(node);
         IReactor opReactor = new VectorReactor();
         opReactor.setName("Vector");
-        opReactor.setPKSL("Vector", node.toString().trim(), node.toString().trim());
+        opReactor.setPKSL("Vector", node.toString().trim());
         initReactor(opReactor);
         
     }
@@ -742,7 +751,7 @@ public class Translation extends DepthFirstAdapter {
 		String rightKey = node.getRight().toString().trim();
 		initExpressionToReactor(assm, leftKey, rightKey, "+");
 		
-		assm.setPKSL("EXPR", node.toString().trim(), node.toString().trim());
+		assm.setPKSL("EXPR", node.toString().trim());
 		initReactor(assm);	
     }
     
@@ -750,7 +759,7 @@ public class Translation extends DepthFirstAdapter {
     {
     	defaultOut(node);
     	// deinit this only if this is the same node
-    	if((node.toString()).trim().equalsIgnoreCase(curReactor.getSignature()))
+    	if((node.toString()).trim().equalsIgnoreCase(curReactor.getOriginalSignature()))
   			deInitReactor();
     }
     
@@ -775,14 +784,14 @@ public class Translation extends DepthFirstAdapter {
 		String rightKey = node.getRight().toString().trim();
 		initExpressionToReactor(assm, leftKey, rightKey, "-");
 		
-		assm.setPKSL("EXPR", node.toString().trim(), node.toString().trim());
+		assm.setPKSL("EXPR", node.toString().trim());
 		initReactor(assm);
     }
     
     public void outAMinusExpr(AMinusExpr node)
     {
     	defaultOut(node);
-    	if((node.toString()).trim().equalsIgnoreCase(curReactor.getSignature()))
+    	if((node.toString()).trim().equalsIgnoreCase(curReactor.getOriginalSignature()))
     	deInitReactor();
     }
     
@@ -798,7 +807,7 @@ public class Translation extends DepthFirstAdapter {
 		String rightKey = node.getRight().toString().trim();
 		initExpressionToReactor(assm, leftKey, rightKey, "/");
 		
-		assm.setPKSL("EXPR", node.toString().trim(), node.toString().trim());
+		assm.setPKSL("EXPR", node.toString().trim());
 		initReactor(assm);
 		
     }
@@ -806,7 +815,7 @@ public class Translation extends DepthFirstAdapter {
     public void outADivExpr(ADivExpr node)
     {
     	defaultOut(node);
-    	if((node.toString()).trim().equalsIgnoreCase(curReactor.getSignature()))
+    	if((node.toString()).trim().equalsIgnoreCase(curReactor.getOriginalSignature()))
     	deInitReactor();
     }
     
@@ -822,14 +831,14 @@ public class Translation extends DepthFirstAdapter {
 		String rightKey = node.getRight().toString().trim();
 		initExpressionToReactor(assm, leftKey, rightKey, "*");
 		
-		assm.setPKSL("EXPR", node.toString().trim(), node.toString().trim());
+		assm.setPKSL("EXPR", node.toString().trim());
 		initReactor(assm);
     }
     
     public void outAMultExpr(AMultExpr node)
     {
     	defaultOut(node);
-    	if((node.toString()).trim().equalsIgnoreCase(curReactor.getSignature()))
+    	if((node.toString()).trim().equalsIgnoreCase(curReactor.getOriginalSignature()))
     		deInitReactor();
     }
     
@@ -961,8 +970,8 @@ public class Translation extends DepthFirstAdapter {
      * Return the reactor based on the reactorId
      * Sets the PKSL operations in the reactor
      */
-    private IReactor getReactor(String reactorId, String nodeString, String inputString) {
-    	return ReactorFactory.getReactor(reactorId, nodeString, inputString, (ITableDataFrame)getDataMaker(), curReactor);
+    private IReactor getReactor(String reactorId, String nodeString) {
+    	return ReactorFactory.getReactor(reactorId, nodeString, (ITableDataFrame)getDataMaker(), curReactor);
     }
     
     public void defaultIn(Node node)
