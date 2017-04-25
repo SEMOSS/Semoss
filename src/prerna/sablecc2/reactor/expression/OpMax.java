@@ -17,7 +17,12 @@ public class OpMax extends OpBasicMath {
 			Double nextDouble = ((Number) val).doubleValue();
 			max = max < nextDouble ? nextDouble : max;
 		}
-		NounMetadata maxNoun = new NounMetadata(max, PkslDataTypes.CONST_DECIMAL);
+		NounMetadata maxNoun = null;
+		if(this.allIntValue) {
+			maxNoun = new NounMetadata((int) max, PkslDataTypes.CONST_INT);
+		} else {
+			maxNoun = new NounMetadata(max, PkslDataTypes.CONST_DECIMAL);
+		}
 		return maxNoun;
 	}	
 }

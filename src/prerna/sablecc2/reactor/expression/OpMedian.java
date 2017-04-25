@@ -49,7 +49,6 @@ public class OpMedian extends OpBasicMath {
 	}
 	
 	private double[] convertToDoubleArray(Object[] values) {
-		
 		double[] dblArray = new double[values.length-1];
 		for(int i = 0; i < values.length-1; i++) {
 			dblArray[i] = ((Number)values[i]).doubleValue();
