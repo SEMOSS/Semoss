@@ -121,6 +121,18 @@ public class GenRowStruct {
 		return retVector;
 	}
 	
+	public List<Object> getAllNumericColumns() {
+		List<Object> retVector = new Vector<Object>();
+		for(NounMetadata noun : vector) {
+			if(noun.getNounName() == PkslDataTypes.CONST_DECIMAL || 
+					noun.getNounName() == PkslDataTypes.CONST_INT) {
+				retVector.add(noun.getValue());
+			}
+		}
+		return retVector;
+	}
+	
+	
 	public List<NounMetadata> getNounsOfType(PkslDataTypes type)
 	{
 		List<NounMetadata> retVector = new Vector<NounMetadata>();
