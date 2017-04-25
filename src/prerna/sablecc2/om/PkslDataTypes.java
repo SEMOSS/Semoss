@@ -23,7 +23,8 @@ public enum PkslDataTypes {
 	FRAME("FRAME"),
 	IN_MEM_STORE("STORE"),
 	PLANNER("PLANNER"), 
-	CACHED_CLASS("CACHED_CLASS");
+	CACHED_CLASS("CACHED_CLASS"), 
+	VECTOR("VECTOR");
 	
 	private final String strValue;
 	

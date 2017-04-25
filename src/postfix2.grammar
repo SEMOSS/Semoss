@@ -125,6 +125,7 @@ Productions
 	| {opformula} operation_formula
 	| {boolean} boolean
 	| {csv} gen_row
+	| {list} list
   //| null <- todo, will need to redefine this
   	;
   
@@ -135,18 +136,14 @@ Productions
   | {mult} [left]:term mult [right]:expr 
   | {div} [left]:term div [right]:expr 
   | {mod} [left]:term mod [right]:expr
-//  | {e_expr} extended_expr
   ;
  
  // formula is typically being used when there are other things within it example
  // (2 *3) - 13
  // EDIT: a formula is now a list of exprs instead of a single expr
- formula = l_par expr other_expr* r_par;
+ formula = l_par expr r_par;
+ list = l_par expr other_expr+ r_par;
  other_expr = comma expr;
- 
- // I have no idea why I need this.. but !!
- // not removing cause seems like PK has an idea about this... 
- extended_expr = l_par [expr]:expr comma? [group]:gen_row r_par; 
 
  // s=[col, col, col...]
  selectors = selectorid  gen_row;
