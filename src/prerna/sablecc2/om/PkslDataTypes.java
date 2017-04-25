@@ -2,7 +2,8 @@ package prerna.sablecc2.om;
 
 public enum PkslDataTypes {
 	
-	CONST_DECIMAL ("CONST_DECIMAL"), 				// constant number
+	CONST_DECIMAL ("CONST_DECIMAL"), 				// constant double
+	CONST_INT ("CONST_INT"), 						// constant int
 	CONST_STRING ("CONST_STRING"), 					// constant string
 	COLUMN ("COLUMN"), 								// column name in table
 	SQLE ("SQLE"), 									// sql expression
