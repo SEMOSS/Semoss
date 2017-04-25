@@ -357,13 +357,13 @@ public class AnalysisAdapter implements Analysis
     }
 
     @Override
-    public void caseAEExprExpr(AEExprExpr node)
+    public void caseAFormula(AFormula node)
     {
         defaultCase(node);
     }
 
     @Override
-    public void caseAFormula(AFormula node)
+    public void caseAOtherExpr(AOtherExpr node)
     {
         defaultCase(node);
     }

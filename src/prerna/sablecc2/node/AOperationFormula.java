@@ -8,9 +8,7 @@ import prerna.sablecc2.analysis.*;
 public final class AOperationFormula extends POperationFormula
 {
     private TId _id_;
-    private TLPar _lPar_;
     private PPlainRow _plainRow_;
-    private TRPar _rPar_;
     private PAsop _asop_;
 
     public AOperationFormula()
@@ -20,19 +18,13 @@ public final class AOperationFormula extends POperationFormula
 
     public AOperationFormula(
         @SuppressWarnings("hiding") TId _id_,
-        @SuppressWarnings("hiding") TLPar _lPar_,
         @SuppressWarnings("hiding") PPlainRow _plainRow_,
-        @SuppressWarnings("hiding") TRPar _rPar_,
         @SuppressWarnings("hiding") PAsop _asop_)
     {
         // Constructor
         setId(_id_);
 
-        setLPar(_lPar_);
-
         setPlainRow(_plainRow_);
-
-        setRPar(_rPar_);
 
         setAsop(_asop_);
 
@@ -43,9 +35,7 @@ public final class AOperationFormula extends POperationFormula
     {
         return new AOperationFormula(
             cloneNode(this._id_),
-            cloneNode(this._lPar_),
             cloneNode(this._plainRow_),
-            cloneNode(this._rPar_),
             cloneNode(this._asop_));
     }
 
@@ -80,31 +70,6 @@ public final class AOperationFormula extends POperationFormula
         this._id_ = node;
     }
 
-    public TLPar getLPar()
-    {
-        return this._lPar_;
-    }
-
-    public void setLPar(TLPar node)
-    {
-        if(this._lPar_ != null)
-        {
-            this._lPar_.parent(null);
-        }
-
-        if(node != null)
-        {
-            if(node.parent() != null)
-            {
-                node.parent().removeChild(node);
-            }
-
-            node.parent(this);
-        }
-
-        this._lPar_ = node;
-    }
-
     public PPlainRow getPlainRow()
     {
         return this._plainRow_;
@@ -128,31 +93,6 @@ public final class AOperationFormula extends POperationFormula
         }
 
         this._plainRow_ = node;
-    }
-
-    public TRPar getRPar()
-    {
-        return this._rPar_;
-    }
-
-    public void setRPar(TRPar node)
-    {
-        if(this._rPar_ != null)
-        {
-            this._rPar_.parent(null);
-        }
-
-        if(node != null)
-        {
-            if(node.parent() != null)
-            {
-                node.parent().removeChild(node);
-            }
-
-            node.parent(this);
-        }
-
-        this._rPar_ = node;
     }
 
     public PAsop getAsop()
@@ -185,9 +125,7 @@ public final class AOperationFormula extends POperationFormula
     {
         return ""
             + toString(this._id_)
-            + toString(this._lPar_)
             + toString(this._plainRow_)
-            + toString(this._rPar_)
             + toString(this._asop_);
     }
 
@@ -201,21 +139,9 @@ public final class AOperationFormula extends POperationFormula
             return;
         }
 
-        if(this._lPar_ == child)
-        {
-            this._lPar_ = null;
-            return;
-        }
-
         if(this._plainRow_ == child)
         {
             this._plainRow_ = null;
-            return;
-        }
-
-        if(this._rPar_ == child)
-        {
-            this._rPar_ = null;
             return;
         }
 
@@ -238,21 +164,9 @@ public final class AOperationFormula extends POperationFormula
             return;
         }
 
-        if(this._lPar_ == oldChild)
-        {
-            setLPar((TLPar) newChild);
-            return;
-        }
-
         if(this._plainRow_ == oldChild)
         {
             setPlainRow((PPlainRow) newChild);
-            return;
-        }
-
-        if(this._rPar_ == oldChild)
-        {
-            setRPar((TRPar) newChild);
             return;
         }
 

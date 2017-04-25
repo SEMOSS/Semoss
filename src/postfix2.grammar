@@ -91,10 +91,10 @@ Productions
  
  // [col, col, col... ]
  gen_row = l_brac  col_def othercol* r_brac; // generic row
- plain_row = col_def othercol*;
+ plain_row = l_par col_def? othercol* r_par;
  
  // example - output of any operation
- operation_formula = id l_par plain_row? r_par asop?; // this is the formula with an operation in it. Although one could argue this could be a frameop - this can also be the output
+ operation_formula = id plain_row asop?; // this is the formula with an operation in it. Although one could argue this could be a frameop - this can also be the output
  
  // Basic definitions for columns
  // columns can be a reference column / basic literal or just an expression
@@ -103,7 +103,7 @@ Productions
  col_def = {ref} rcol | {expr} expr | {dotcol} dotcol | {frameop} frameop  | {filter} filter | {prop} prop | {relation} relationship; // need to include something for expression
  
   // creating another column
- othercol =  comma  col_def;
+ othercol =  comma col_def;
  
  // reference - this means the 4th column in the current frame
  rcol = frameprefix number; // f$4
@@ -126,7 +126,7 @@ Productions
 	| {boolean} boolean
 	| {csv} gen_row
   //| null <- todo, will need to redefine this
-  ;
+  	;
   
  expr =
   {term} term
@@ -135,12 +135,14 @@ Productions
   | {mult} [left]:term mult [right]:expr 
   | {div} [left]:term div [right]:expr 
   | {mod} [left]:term mod [right]:expr
-  | {e_expr} extended_expr
+//  | {e_expr} extended_expr
   ;
  
  // formula is typically being used when there are other things within it example
  // (2 *3) - 13
- formula = l_par expr r_par;
+ // EDIT: a formula is now a list of exprs instead of a single expr
+ formula = l_par expr other_expr* r_par;
+ other_expr = comma expr;
  
  // I have no idea why I need this.. but !!
  // not removing cause seems like PK has an idea about this... 
