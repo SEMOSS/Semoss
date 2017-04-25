@@ -12,9 +12,11 @@ import java.util.Map;
 import java.util.Vector;
 
 import prerna.sablecc.meta.IPkqlMetadata;
-import prerna.sablecc.node.PScript;
+import prerna.sablecc2.node.AConfiguration;
 import prerna.sablecc2.lexer.Lexer;
 import prerna.sablecc2.lexer.LexerException;
+import prerna.sablecc2.node.PConfiguration;
+import prerna.sablecc2.node.PScriptchain;
 import prerna.sablecc2.node.Start;
 import prerna.sablecc2.parser.Parser;
 import prerna.sablecc2.parser.ParserException;
@@ -42,7 +44,6 @@ public class PKSLRunner {
 	private Map<String, Object> activeFeMap; // temporally grabbed out of master
 	private List<Map> responseArray = new Vector<Map>();
 	private Map<String, Map<String, Object>> varMap = new HashMap<String, Map<String, Object>>();
-	LinkedList<PScript> pkqlToRun = new LinkedList<PScript>();
 	List<String> unassignedVars = new Vector<String>();
 	
 //	private Map<String, Object> dataMap = new HashMap<>();
@@ -68,6 +69,32 @@ public class PKSLRunner {
 	private IDataMaker dataMaker;
 	private String insightId;
 	private PKSLPlanner planner;
+	
+	public static void main(String[] args) throws Exception {
+		String pksl = "A = 10; B = \"Apple\";";
+		List<String> x = parsePKSL(pksl);
+		System.out.println(x);
+	}
+	
+	/**
+	 * 
+	 * @param expression
+	 * @return
+	 * 
+	 * Method to take a string and return the parsed value of the pksl
+	 */
+	public static List<String> parsePKSL(String expression) throws ParserException, LexerException, IOException {
+		Parser p = new Parser(new Lexer(new PushbackReader(new InputStreamReader(new StringBufferInputStream(expression)), expression.length())));
+		Start tree = p.parse();
+		
+		AConfiguration configNode = (AConfiguration)tree.getPConfiguration();
+		
+		List<String> pksls = new ArrayList<>();
+		for(PScriptchain script : configNode.getScriptchain()) {
+			pksls.add(script.toString());
+		}
+		return pksls;
+	}
 	
 	public void runPKSL(String expression, IDataMaker frame) {
 		
