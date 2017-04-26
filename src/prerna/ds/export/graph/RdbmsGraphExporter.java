@@ -85,6 +85,11 @@ public class RdbmsGraphExporter implements IGraphExporter {
 				// still have more
 				return true;
 			} else {
+				try {
+					this.edgeRs.close();
+				} catch (SQLException e) {
+					e.printStackTrace();
+				}
 				// okay, we are done with this one
 				// got to see if there is another relationship to try
 				if(this.relationshipIterator.hasNext()) {
@@ -152,6 +157,11 @@ public class RdbmsGraphExporter implements IGraphExporter {
 				// still have more
 				return true;
 			} else {
+				try {
+					this.nodeRs.close();
+				} catch (SQLException e) {
+					e.printStackTrace();
+				}
 				// okay, we are done with this one
 				// got to see if there is another vertex to try
 				if(this.verticesIterator.hasNext()) {
