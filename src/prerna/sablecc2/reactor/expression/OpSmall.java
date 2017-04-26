@@ -16,7 +16,8 @@ public class OpSmall extends OpBasicMath {
 		double[] doubleValues = convertToDoubleArray(values, 0, values.length-1);
 		// sort in ascending order
 		Arrays.sort(doubleValues);
-		// return the index
-		return doubleValues[valIndex];
+		// return the index - 1
+		// remember, excel is 1 based
+		return doubleValues[valIndex-1];
 	}
 }
