@@ -22,8 +22,6 @@ public class OWLERLineage {
 	public static String BASE_URI = "http://semoss.org/ontologies/";
 	public static final String SEMOSS_URI = BASE_URI;
 	public static final String DEFAULT_LINEAGE_CLASS = "Lineage";
-	public static final String TRANSFORMATION_RELATION_NAME = "Transformation";
-	public static final String LAYER_RELATION_NAME = "Layer";
 	public static final String DEFAULT_NODE_CLASS = "Concept";
 	public static final String DEFAULT_RELATION_CLASS = "Relation";
  
@@ -159,7 +157,7 @@ public class OWLERLineage {
 	 * @param layer							lineage layer				 
 	 */
 	
-	public String addLineageProp(String tableNameSource, String tableNameTarget, String trans, String layer)
+	public String addLineageProp(String tableNameSource, String tableNameTarget, String prop, String value)
 	{
 		// since RDF uses this multiple times, don't create it each time and just store it in a hash to send back
 		if(!lineagePropHash.containsKey(tableNameSource + "%" + tableNameTarget)) {
@@ -169,25 +167,15 @@ public class OWLERLineage {
 			// create the lineage relationship as tableNameSource.tableNameTarget
 			String lineageRelationship = baseLineageURI + "/" + tableNameSource + "." + tableNameTarget;
 			
-			// Added the transformation of a pair of lineage relation
-			if(trans != null && !trans.isEmpty()) {
-				String transformationRelationship = baseLineageProp + TRANSFORMATION_RELATION_NAME;
-				engine.addToBaseEngine(transformationRelationship, RDF.TYPE + "", "LINEAGE:PROPERTY");
-				engine.addToBaseEngine(lineageRelationship, transformationRelationship, "LINEAGE:" + trans);
-				
-			}
-			// Added the layer of a pair of lineage relation
-			if(layer!= null && !layer.isEmpty()) {
-				String layerRelationship = baseLineageProp + LAYER_RELATION_NAME;
-				engine.addToBaseEngine(layerRelationship, RDF.TYPE + "", "LINEAGE:PROPERTY");
-				engine.addToBaseEngine(lineageRelationship, layerRelationship, "LINEAGE:" + layer);
-			}
-			lineagePropHash.put(tableNameSource + "%" + tableNameTarget, lineageRelationship);
+			// Added the property w/ its value
+			String propRelationship = baseLineageProp + prop;
+			engine.addToBaseEngine(propRelationship, RDF.TYPE + "", "LINEAGE:PROPERTY");
+			engine.addToBaseEngine(lineageRelationship, propRelationship, "LINEAGE:" + value);
 			
+			lineagePropHash.put(tableNameSource + "%" + tableNameTarget, lineageRelationship);
 		}
 		return lineagePropHash.get(tableNameSource + "%" + tableNameTarget);
 	}
-	
  
   
 	/////////////////// END ADDITIONAL METHODS TO INSERT INTO THE OWL /////////////////////////////////
