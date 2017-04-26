@@ -2,16 +2,8 @@ package prerna.sablecc2.reactor.expression;
 
 import java.util.List;
 
-import prerna.algorithm.api.ITableDataFrame;
-import prerna.ds.h2.H2Frame;
-import prerna.sablecc.expressions.sql.H2SqlExpressionIterator;
-import prerna.sablecc.expressions.sql.builder.SqlColumnSelector;
-import prerna.sablecc.expressions.sql.builder.SqlExpressionBuilder;
-import prerna.sablecc.expressions.sql.builder.SqlMathSelector;
 import prerna.sablecc2.om.NounMetadata;
 import prerna.sablecc2.om.PkslDataTypes;
-import prerna.ui.components.playsheets.datamakers.IDataMaker;
-import prerna.util.ArrayUtilityMethods;
 
 public abstract class OpBasic extends OpReactor {
 
