@@ -1,6 +1,4 @@
-package prerna.ds;
-
-import prerna.ds.querystruct.QueryStruct2;
+package prerna.ds.querystruct;
 
 public class HardQueryStruct extends QueryStruct2{
 
