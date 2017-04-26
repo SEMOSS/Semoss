@@ -299,22 +299,17 @@ public class TypeColorShapeTable {
 				}
 			}
 			if (retColor == null){
-//				//if all of the colors have already been used, just grab a random color
-//		        Object[] keys = colorHash.keySet().toArray();
-//		        Object key = keys[new Random().nextInt(keys.length)];
-//		        retColor = colorHash.get(key);
-//		        String colorString = colorStringHash.get(key);
-//				addColor(type, colorString);
-				
+				//if all of the colors have already been used
 				// just create a random color
 				Random rnd = new Random(); 
-				Color newColor = new Color(rnd.nextInt(256), rnd.nextInt(256), rnd.nextInt(256));
-				addColor(type, newColor);
+				retColor = new Color(rnd.nextInt(256), rnd.nextInt(256), rnd.nextInt(256));
+				addColor(type, retColor);
 			}
 		}
-		if(colorStringHash.containsKey(vertName) && colorStringHash.get(vertName).equalsIgnoreCase(Constants.TRANSPARENT))
+		if(colorStringHash.containsKey(vertName) && colorStringHash.get(vertName).equalsIgnoreCase(Constants.TRANSPARENT)) {
 			retColor = null;
-		//colorHash.put(type, retColor);
+		}
+		
 		return retColor;
 	}
 	
