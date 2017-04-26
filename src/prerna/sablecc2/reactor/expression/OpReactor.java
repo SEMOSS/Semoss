@@ -48,32 +48,19 @@ public abstract class OpReactor extends AbstractReactor {
 		for(int cIndex = 0; cIndex < numVals; cIndex++) {
 			NounMetadata curNoun = curRow.getNoun(cIndex);
 			retValues[cIndex] = executeNoun(curNoun);
-//			PkslDataTypes curType = curNoun.getNounName();
-//			if(curType == PkslDataTypes.LAMBDA) {
-//				NounMetadata nounOutput = ((IReactor) curNoun.getValue()).execute();
-//				retValues[cIndex] = nounOutput;
-//			} else if(curType == PkslDataTypes.COLUMN) {
-//				// column might be a variable that is already stored
-//				// if it is, do a replacement with the assignment noun
-//				NounMetadata assignmentNoun = this.planner.getVariableValue((String)curNoun.getValue());
-//				if(assignmentNoun != null) {
-//					retValues[cIndex] = assignmentNoun;
-//				} else {
-//					retValues[cIndex] = curNoun;
-//				}
-//			} else if(curType == PkslDataTypes.VECTOR) { 
-//				//we have a vector of nounmetas
-//				
-//			} else {
-//				// if not a lambda or a column
-//				// just return it
-//				retValues[cIndex] = curNoun;
-//			}
 		}
 		
 		return retValues;
 	}
 	
+	/**
+	 * 
+	 * @param noun
+	 * @return
+	 * 
+	 * The method will take the noun, evaluate the noun if necessary or grab the variable value
+	 * If the noun is a list, it will recursively execute each noun in that list
+	 */
 	private NounMetadata executeNoun(NounMetadata noun) {
 		PkslDataTypes nounType = noun.getNounName();
 		NounMetadata evaluatedNoun;
@@ -89,6 +76,8 @@ public abstract class OpReactor extends AbstractReactor {
 				evaluatedNoun = noun;
 			}
 		} else if(nounType == PkslDataTypes.VECTOR) {
+			
+			//For each noun in the list we also want to execute
 			List<NounMetadata> nounVector = (List<NounMetadata>)noun.getValue();
 			List<NounMetadata> evaluatedNounVector = new ArrayList<>(nounVector.size());
 			for(NounMetadata nextNoun : nounVector) {
