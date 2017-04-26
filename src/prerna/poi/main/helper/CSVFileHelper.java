@@ -56,8 +56,8 @@ public class CSVFileHelper {
 	private boolean propFileExists = false;
 
 	// api stores max values for security reasons
-	private int maxColumns = 100_000;
-	private int maxCharsPerColumn = 100_000;
+	private int maxColumns = 1_000_000;
+	private int maxCharsPerColumn = 1_000_000;
 	
 	/**
 	 * Parse the new file passed
