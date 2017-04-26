@@ -173,4 +173,9 @@ public class ReactorFactory {
 		reactor.setPKSL(reactorId, nodeString);
 		return reactor;
     }
+
+	public static boolean hasReactor(String reactorId) {
+		// TODO Auto-generated method stub
+		return false;
+	}
 }
