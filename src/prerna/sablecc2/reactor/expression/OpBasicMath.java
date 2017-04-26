@@ -14,7 +14,7 @@ import prerna.util.ArrayUtilityMethods;
 public abstract class OpBasicMath extends OpReactor {
 
 	protected String operation;
-	protected boolean allIntValue = true;
+	protected boolean returnInteger = true;
 	
 	/*
 	 * This class is to be extended for basic math operations
@@ -30,11 +30,28 @@ public abstract class OpBasicMath extends OpReactor {
 	public NounMetadata execute() {
 		NounMetadata[] nouns = getValues();
 		Object[] values = evaluateNouns(nouns);
-		NounMetadata result = evaluate(values);
-		return result;
+		
+		NounMetadata retNoun = null;
+		double result = evaluate(values);
+		if(returnInteger) {
+			// even if all the inputs are integers
+			// it is possible that the return is a double
+			// example is median when you need to compute an 
+			// average between entity at index i and i+1
+			if(result == Math.rint(result)) {
+				retNoun = new NounMetadata((int) result, PkslDataTypes.CONST_INT);
+			} else {
+				// not a valid integer
+				// return as a double
+				retNoun = new NounMetadata(result, PkslDataTypes.CONST_DECIMAL);
+			}
+		} else {
+			retNoun = new NounMetadata(result, PkslDataTypes.CONST_DECIMAL);
+		}
+		return retNoun;
 	}
 	
-	protected abstract NounMetadata evaluate(Object[] values);
+	protected abstract double evaluate(Object[] values);
 	
 	protected Object[] evaluateNouns(NounMetadata[] nouns) {
 		Object[] evaluatedNouns = new Object[nouns.length];
@@ -42,7 +59,7 @@ public abstract class OpBasicMath extends OpReactor {
 			NounMetadata val = nouns[i];
 			PkslDataTypes valType = val.getNounName();
 			if(valType == PkslDataTypes.CONST_DECIMAL) {
-				this.allIntValue = false;
+				this.returnInteger = false;
 				evaluatedNouns[i] = ((Number) val.getValue()).doubleValue();
 			} else if(valType == PkslDataTypes.CONST_INT) {
 				evaluatedNouns[i] = ((Number) val.getValue()).intValue(); 
@@ -50,7 +67,7 @@ public abstract class OpBasicMath extends OpReactor {
 				// at this point, we have already checked if this is a 
 				// variable, so it better exist on the frame
 				// TODO: expose int vs. double on the frame
-				this.allIntValue = false;	
+				this.returnInteger = false;	
 				evaluatedNouns[i] = evaluateString(this.operation, val);
 			} else {
 				throw new IllegalArgumentException("Invalid input for "+this.operation+". Require all values to be numeric or column names");
