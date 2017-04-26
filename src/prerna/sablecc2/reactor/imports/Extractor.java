@@ -7,8 +7,8 @@ import java.util.Iterator;
 import java.util.Map;
 import java.util.Set;
 
-import prerna.ds.HardQueryStruct;
 import prerna.ds.TinkerMetaHelper;
+import prerna.ds.querystruct.HardQueryStruct;
 import prerna.ds.querystruct.QueryStruct2;
 import prerna.engine.api.IEngine;
 import prerna.engine.api.IRawSelectWrapper;
