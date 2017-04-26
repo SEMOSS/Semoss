@@ -43,14 +43,4 @@ public class OpMedian extends OpBasicMath {
 			return (evals[ (numValues + 1)/2 ] + evals[ (numValues - 1)/2 ]) / 2.0;
 		}
 	}
-	
-	private double[] convertToDoubleArray(Object[] values) {
-		double[] dblArray = new double[values.length-1];
-		for(int i = 0; i < values.length-1; i++) {
-			dblArray[i] = ((Number)values[i]).doubleValue();
-		}
-		
-		return dblArray;
-	}
-	
 }
