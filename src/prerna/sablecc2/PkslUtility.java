@@ -2,6 +2,7 @@ package prerna.sablecc2;
 
 import java.io.IOException;
 import java.util.List;
+import java.util.Set;
 
 import prerna.sablecc2.lexer.LexerException;
 import prerna.sablecc2.parser.ParserException;
@@ -15,18 +16,13 @@ public class PkslUtility {
 	 * 
 	 * Returns true if the pksl is a valid pksl that can be executed
 	 * Returns false otherwise
+	 * @throws IOException 
+	 * @throws LexerException 
+	 * @throws ParserException 
 	 */
-	public static boolean validatePksl(String pkslExpression) {
-		try {
-			parsePksl(pkslExpression);
-		} catch (ParserException | LexerException | IOException e) {
-			//exception thrown, this is not a valid pksl
-			e.printStackTrace();
-			return false;
-		}
-		
-		//if no exception we were able to parse
-		return true;
+	public static Set<String> validatePksl(String pkslExpression) throws ParserException, LexerException, IOException {
+		Set<String> set = PKSLRunner.validatePKSL(pkslExpression);
+		return set;
 	}
 	
 	/**
