@@ -1,4 +1,4 @@
-package prerna.ds;
+package prerna.ds.export.graph;
 
 import java.awt.Color;
 import java.util.HashMap;
@@ -13,10 +13,11 @@ import org.apache.tinkerpop.gremlin.structure.Vertex;
 import org.apache.tinkerpop.gremlin.structure.VertexProperty;
 import org.apache.tinkerpop.gremlin.tinkergraph.structure.TinkerGraph;
 
+import prerna.ds.TinkerFrame;
 import prerna.ui.helpers.TypeColorShapeTable;
 import prerna.util.Constants;
 
-public class TinkerFrameGraphExporter {
+public class TinkerFrameGraphExporter implements IGraphExporter{
 
 	// the tinker frame we are operating on
 	private TinkerFrame tf;
@@ -35,6 +36,7 @@ public class TinkerFrameGraphExporter {
 	 * Boolean if there are more edges to return
 	 * @return
 	 */
+	@Override
 	public boolean hasNextEdge() {
 		if(this.edgesIt == null) {
 			createEdgesIt();
@@ -42,6 +44,7 @@ public class TinkerFrameGraphExporter {
 		return this.edgesIt.hasNext();
 	}
 	
+	@Override
 	public Map<String, Object> getNextEdge() {
 		if(this.edgesIt == null) {
 			createEdgesIt();
@@ -80,6 +83,7 @@ public class TinkerFrameGraphExporter {
 	 * Boolean if there are more vertices to return
 	 * @return
 	 */
+	@Override
 	public boolean hasNextVert() {
 		if(this.vertsIt == null) {
 			createVertsIt();
@@ -87,6 +91,7 @@ public class TinkerFrameGraphExporter {
 		return this.vertsIt.hasNext();
 	}
 	
+	@Override
 	public Map<String, Object> getNextVert() {
 		if(this.vertsIt == null) {
 			createVertsIt();
@@ -120,13 +125,9 @@ public class TinkerFrameGraphExporter {
 		
 		// need to add in color
 		Color color = TypeColorShapeTable.getInstance().getColor(type, value.toString());
-		vertexMap.put("VERTEX_COLOR_PROPERTY", getRgb(color));
+		vertexMap.put("VERTEX_COLOR_PROPERTY", IGraphExporter.getRgb(color));
 		
 		return vertexMap;
-	}
-	
-	private String getRgb(Color c) {
-		return c.getRed() + "," + c.getGreen() + "," +c.getBlue();
 	}
 	
 	/**
