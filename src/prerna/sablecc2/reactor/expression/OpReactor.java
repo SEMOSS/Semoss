@@ -1,5 +1,6 @@
 package prerna.sablecc2.reactor.expression;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Vector;
 
@@ -46,27 +47,59 @@ public abstract class OpReactor extends AbstractReactor {
 		
 		for(int cIndex = 0; cIndex < numVals; cIndex++) {
 			NounMetadata curNoun = curRow.getNoun(cIndex);
-			PkslDataTypes curType = curNoun.getNounName();
-			if(curType == PkslDataTypes.LAMBDA) {
-				NounMetadata nounOutput = ((IReactor) curNoun.getValue()).execute();
-				retValues[cIndex] = nounOutput;
-			} else if(curType == PkslDataTypes.COLUMN) {
-				// column might be a variable that is already stored
-				// if it is, do a replacement with the assignment noun
-				NounMetadata assignmentNoun = this.planner.getVariableValue((String)curNoun.getValue());
-				if(assignmentNoun != null) {
-					retValues[cIndex] = assignmentNoun;
-				} else {
-					retValues[cIndex] = curNoun;
-				}
-			} else {
-				// if not a lambda or a column
-				// just return it
-				retValues[cIndex] = curNoun;
-			}
+			retValues[cIndex] = executeNoun(curNoun);
+//			PkslDataTypes curType = curNoun.getNounName();
+//			if(curType == PkslDataTypes.LAMBDA) {
+//				NounMetadata nounOutput = ((IReactor) curNoun.getValue()).execute();
+//				retValues[cIndex] = nounOutput;
+//			} else if(curType == PkslDataTypes.COLUMN) {
+//				// column might be a variable that is already stored
+//				// if it is, do a replacement with the assignment noun
+//				NounMetadata assignmentNoun = this.planner.getVariableValue((String)curNoun.getValue());
+//				if(assignmentNoun != null) {
+//					retValues[cIndex] = assignmentNoun;
+//				} else {
+//					retValues[cIndex] = curNoun;
+//				}
+//			} else if(curType == PkslDataTypes.VECTOR) { 
+//				//we have a vector of nounmetas
+//				
+//			} else {
+//				// if not a lambda or a column
+//				// just return it
+//				retValues[cIndex] = curNoun;
+//			}
 		}
 		
 		return retValues;
+	}
+	
+	private NounMetadata executeNoun(NounMetadata noun) {
+		PkslDataTypes nounType = noun.getNounName();
+		NounMetadata evaluatedNoun;
+		if(nounType == PkslDataTypes.LAMBDA) {
+			evaluatedNoun = ((IReactor) noun.getValue()).execute();
+		} else if(nounType == PkslDataTypes.COLUMN) {
+			// column might be a variable that is already stored
+			// if it is, do a replacement with the assignment noun
+			NounMetadata assignmentNoun = this.planner.getVariableValue((String)noun.getValue());
+			if(assignmentNoun != null) {
+				evaluatedNoun = assignmentNoun;
+			} else {
+				evaluatedNoun = noun;
+			}
+		} else if(nounType == PkslDataTypes.VECTOR) {
+			List<NounMetadata> nounVector = (List<NounMetadata>)noun.getValue();
+			List<NounMetadata> evaluatedNounVector = new ArrayList<>(nounVector.size());
+			for(NounMetadata nextNoun : nounVector) {
+				evaluatedNounVector.add(executeNoun(nextNoun));
+			}
+			evaluatedNoun = new NounMetadata(evaluatedNounVector, PkslDataTypes.VECTOR);
+		} else {
+			evaluatedNoun = noun;
+		}
+		
+		return evaluatedNoun;
 	}
 	
 	@Override
