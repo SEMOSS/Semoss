@@ -16,6 +16,8 @@ public abstract class OpBasicMath extends OpReactor {
 	protected String operation;
 	protected boolean returnInteger = true;
 	
+	protected abstract double evaluate(Object[] values);
+	
 	/*
 	 * This class is to be extended for basic math operations
 	 * To deal with string inputs that need to be evaluated
@@ -50,8 +52,6 @@ public abstract class OpBasicMath extends OpReactor {
 		}
 		return retNoun;
 	}
-	
-	protected abstract double evaluate(Object[] values);
 	
 	protected Object[] evaluateNouns(NounMetadata[] nouns) {
 		Object[] evaluatedNouns = new Object[nouns.length];
@@ -123,5 +123,33 @@ public abstract class OpBasicMath extends OpReactor {
 		} else {
 			throw new IllegalArgumentException("Cannot execute " + operation + " of " + frameColName + " with the given frame");
 		}
+	}
+	
+	/**
+	 * Convert the object array to a double array
+	 * This should only be used when running a required sort
+	 * @param values
+	 * @return
+	 */
+	protected double[] convertToDoubleArray(Object[] values) {
+		return convertToDoubleArray(values, 0, values.length);
+	}
+	
+	
+	/**
+	 * Convert the object array to a double array
+	 * This is done based on the start/end index passed in
+	 * @param values
+	 * @param startIndex
+	 * @param lastIndex
+	 * @return
+	 */
+	protected double[] convertToDoubleArray(Object[] values, int startIndex, int lastIndex) {
+		double[] dblArray = new double[values.length-1];
+		for(int i = startIndex; i < lastIndex; i++) {
+			dblArray[i] = ((Number)values[i]).doubleValue();
+		}
+		
+		return dblArray;
 	}
 }
