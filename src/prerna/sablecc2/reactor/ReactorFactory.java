@@ -13,6 +13,7 @@ import prerna.sablecc2.reactor.export.job.SetFormatReactor;
 import prerna.sablecc2.reactor.export.job.SetOptionsReactor;
 import prerna.sablecc2.reactor.expression.OpAbsolute;
 import prerna.sablecc2.reactor.expression.OpLarge;
+import prerna.sablecc2.reactor.expression.OpMatch;
 import prerna.sablecc2.reactor.expression.OpMax;
 import prerna.sablecc2.reactor.expression.OpMean;
 import prerna.sablecc2.reactor.expression.OpMedian;
@@ -67,7 +68,7 @@ public class ReactorFactory {
 	}
 	
 	private static void populateExpressionSet(Map<String, Class> expressionHash) {
-		//Mathematical operations
+		// excel like operations
 		expressionHash.put("SUM", OpSum.class);
 		expressionHash.put("AVERAGE", OpMean.class);
 		expressionHash.put("AVG", OpMean.class);
@@ -81,6 +82,7 @@ public class ReactorFactory {
 		expressionHash.put("ROUND", OpRound.class);
 		expressionHash.put("ABS", OpAbsolute.class);
 		expressionHash.put("ABSOLUTE", OpAbsolute.class);
+		expressionHash.put("MATCH", OpMatch.class);
 	}
 	
 	//populates the frame agnostic reactors used by pixel
