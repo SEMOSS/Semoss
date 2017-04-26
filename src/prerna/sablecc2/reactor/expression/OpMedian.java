@@ -2,9 +2,6 @@ package prerna.sablecc2.reactor.expression;
 
 import java.util.Arrays;
 
-import prerna.sablecc2.om.NounMetadata;
-import prerna.sablecc2.om.PkslDataTypes;
-
 public class OpMedian extends OpBasicMath {
 
 	public OpMedian() {
@@ -12,11 +9,10 @@ public class OpMedian extends OpBasicMath {
 	}
 
 	@Override
-	protected NounMetadata evaluate(Object[] values) {
+	protected double evaluate(Object[] values) {
 		double[] evals = convertToDoubleArray(values);
 		double medianValue = performComp(evals);
-		NounMetadata medianNoun = new NounMetadata(medianValue, PkslDataTypes.CONST_DECIMAL);
-		return medianNoun;
+		return medianValue;
 	}
 	
 	/**
