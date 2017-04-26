@@ -1,4 +1,4 @@
-package prerna.ds.gexf;
+package prerna.ds.export.gexf;
 
 import java.util.HashMap;
 import java.util.Map;
