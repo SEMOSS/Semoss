@@ -8,6 +8,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.Vector;
 
 import prerna.sablecc.meta.IPkqlMetadata;
@@ -92,6 +93,24 @@ public class PKSLRunner {
 			pksls.add(script.toString());
 		}
 		return pksls;
+	}
+	
+	/**
+	 * 
+	 * @param expression
+	 * @return
+	 * 
+	 * returns set of reactors that are not implemented
+	 * throws exception if pksl cannot be parsed
+	 */
+	public static Set<String> validatePKSL(String expression) throws ParserException, LexerException, IOException {
+		Parser p = new Parser(new Lexer(new PushbackReader(new InputStreamReader(new StringBufferInputStream(expression)), expression.length())));
+		ValidatorTranslation translation = new ValidatorTranslation();
+		// parsing the pkql - this process also determines if expression is syntactically correct
+		Start tree = p.parse();
+		// apply the translation.
+		tree.apply(translation);
+		return translation.getUnimplementedReactors();
 	}
 
 	public void runPKSL(String expression) {
