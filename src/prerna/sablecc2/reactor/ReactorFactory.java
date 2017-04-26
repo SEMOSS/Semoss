@@ -11,11 +11,15 @@ import prerna.sablecc2.reactor.export.job.ExportReactor;
 import prerna.sablecc2.reactor.export.job.JobReactor;
 import prerna.sablecc2.reactor.export.job.SetFormatReactor;
 import prerna.sablecc2.reactor.export.job.SetOptionsReactor;
+import prerna.sablecc2.reactor.expression.OpAbsolute;
+import prerna.sablecc2.reactor.expression.OpLarge;
 import prerna.sablecc2.reactor.expression.OpMax;
 import prerna.sablecc2.reactor.expression.OpMean;
 import prerna.sablecc2.reactor.expression.OpMedian;
 import prerna.sablecc2.reactor.expression.OpMin;
 import prerna.sablecc2.reactor.expression.OpPower;
+import prerna.sablecc2.reactor.expression.OpRound;
+import prerna.sablecc2.reactor.expression.OpSmall;
 import prerna.sablecc2.reactor.expression.OpSum;
 import prerna.sablecc2.reactor.imports.ImportDataReactor;
 import prerna.sablecc2.reactor.imports.MergeDataReactor;
@@ -34,7 +38,6 @@ import prerna.sablecc2.reactor.qs.QueryFilterReactor;
 import prerna.sablecc2.reactor.qs.QueryReactor;
 import prerna.sablecc2.reactor.qs.SelectReactor;
 import prerna.sablecc2.reactor.qs.SumReactor;
-//import prerna.util.Utility;
 import prerna.sablecc2.reactor.storage.MapStore;
 import prerna.sablecc2.reactor.storage.RetrieveValue;
 import prerna.sablecc2.reactor.storage.StoreValue;
@@ -73,6 +76,11 @@ public class ReactorFactory {
 		expressionHash.put("MAX", OpMax.class);
 		expressionHash.put("MEDIAN", OpMedian.class);
 		expressionHash.put("POWER", OpPower.class);
+		expressionHash.put("LARGE", OpLarge.class);
+		expressionHash.put("SMALL", OpSmall.class);
+		expressionHash.put("ROUND", OpRound.class);
+		expressionHash.put("ABS", OpAbsolute.class);
+		expressionHash.put("ABSOLUTE", OpAbsolute.class);
 	}
 	
 	//populates the frame agnostic reactors used by pixel
