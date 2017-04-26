@@ -1,8 +1,5 @@
 package prerna.sablecc2.reactor.expression;
 
-import prerna.sablecc2.om.NounMetadata;
-import prerna.sablecc2.om.PkslDataTypes;
-
 public class OpMax extends OpBasicMath {	
 	
 	public OpMax() {
@@ -10,19 +7,13 @@ public class OpMax extends OpBasicMath {
 	}
 	
 	@Override
-	protected NounMetadata evaluate(Object[] values) {
+	protected double evaluate(Object[] values) {
 		double max = -1.0 * Double.MAX_VALUE;
 		
 		for(Object val : values) {
 			Double nextDouble = ((Number) val).doubleValue();
 			max = max < nextDouble ? nextDouble : max;
 		}
-		NounMetadata maxNoun = null;
-		if(this.allIntValue) {
-			maxNoun = new NounMetadata((int) max, PkslDataTypes.CONST_INT);
-		} else {
-			maxNoun = new NounMetadata(max, PkslDataTypes.CONST_DECIMAL);
-		}
-		return maxNoun;
+		return max;
 	}	
 }
