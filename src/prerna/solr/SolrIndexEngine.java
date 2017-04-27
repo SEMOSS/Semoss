@@ -39,12 +39,12 @@ import org.apache.solr.client.solrj.response.QueryResponse;
 import org.apache.solr.client.solrj.response.SpellCheckResponse;
 import org.apache.solr.client.solrj.response.SpellCheckResponse.Collation;
 import org.apache.solr.client.solrj.response.SpellCheckResponse.Correction;
-import org.apache.solr.client.solrj.response.SpellCheckResponse.Suggestion;
 import org.apache.solr.common.SolrDocument;
 import org.apache.solr.common.SolrDocumentList;
 import org.apache.solr.common.SolrInputDocument;
 import org.apache.solr.common.params.CommonParams;
 import org.apache.solr.common.params.ModifiableSolrParams;
+import org.apache.solr.common.util.SimpleOrderedMap;
 
 import prerna.util.Constants;
 import prerna.util.DIHelper;
@@ -1440,15 +1440,11 @@ public class SolrIndexEngine {
 		if(term != null && !term.isEmpty()) {
 			// generate a solr query
 			SolrIndexEngineQueryBuilder queryBuilder = new SolrIndexEngineQueryBuilder();
-			// this is what tells the search to use the input term as a "prefix" for the results to return
-			queryBuilder.setPreFixSearch(true);
 			// uses the suggest path and set the spellcheck query value to contain the term
 			// the auto-complete suggestions exist within the spellcheckresponse on the QueryResponse
 			// 		once the query is executed
 			queryBuilder.setQueryType("/suggest");
-			queryBuilder.setSpellCheck(true);
-			queryBuilder.setSpellCheckBuild(true);
-			queryBuilder.setSpellCheckQuery(term);
+			queryBuilder.setSearchString(term);
 			// sort the return based on name
 			queryBuilder.setSort(STORAGE_NAME, DESC);
 			// get the solr query
@@ -1471,20 +1467,16 @@ public class SolrIndexEngine {
 	private List<String> getAutoSuggestResponse(QueryResponse res) {
 		List<String> autoSuggestRet = new ArrayList<String>();
 		// the auto-complete suggestions are contained within the spell check response
-		SpellCheckResponse spellRes = res.getSpellCheckResponse();
-		if(spellRes != null) {
+		SimpleOrderedMap suggestResponse = (SimpleOrderedMap) ((Map<Object, Object>) res.getResponse().get("suggest")).get("mySuggester");
+		if(suggestResponse != null && suggestResponse.size() == 1) {
 			// get the suggestions
-			List<Suggestion> suggestions = res.getSpellCheckResponse().getSuggestions();
-			if (suggestions != null && !suggestions.isEmpty()) {
-				// iterate through each suggestion
-				for (Suggestion suggestion : suggestions) {
-					List<String> alternativeList = suggestion.getAlternatives();
-					for (String alternative : alternativeList) {
-						// there is a really annoying thing where the portion that matches appends
-						// html bold tags in the insight name
-						// currently just replacing them out, but should go back and figure out 
-						// the configuration to never add them
-						autoSuggestRet.add(alternative.replace("<b>", "").replace("</b>", ""));
+			SimpleOrderedMap terms = (SimpleOrderedMap) suggestResponse.getVal(0);
+			if(terms != null) {
+				List<SimpleOrderedMap> valueArr = (List<SimpleOrderedMap>) terms.getVal(1);
+				if(valueArr != null) {
+					for(int i = 0; i < valueArr.size(); i++) {
+						SimpleOrderedMap inner = valueArr.get(i);
+						autoSuggestRet.add(inner.get("term").toString());
 					}
 				}
 			}

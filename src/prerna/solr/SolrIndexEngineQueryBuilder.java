@@ -20,7 +20,6 @@ public class SolrIndexEngineQueryBuilder {
 	private static final Logger LOGGER = LogManager.getLogger(SolrIndexEngineQueryBuilder.class.getName());
 	private SolrQuery Q;
 	private String searchString;
-	private boolean preFixSearch;
 	
 	public static final String DESC = "desc";
 	public static final String ASC = "asc";
@@ -45,11 +44,7 @@ public class SolrIndexEngineQueryBuilder {
 			// since regex needs to be added as special characters on the search string
 			// we append the search string at the end when we get the solr query so the user has an option
 			// to also set regex parameters
-			if(preFixSearch) {
-				this.Q.set(CommonParams.Q, this.searchString + "*");
-			} else {
-				this.Q.set(CommonParams.Q, this.searchString);
-			}
+			this.Q.set(CommonParams.Q, this.searchString);
 //			this.Q.set(CommonParams.Q, "*" + this.searchString + "*");
 		}
 		
@@ -67,14 +62,6 @@ public class SolrIndexEngineQueryBuilder {
 	 */
 	public void setSearchString(String searchString) {
 		this.searchString = escapeSpecialCharacters(searchString.trim());
-	}
-	
-	/**
-	 * Set if the search string is to be used a prefex search
-	 * @param preFixSearch
-	 */
-	public void setPreFixSearch(boolean preFixSearch) {
-		this.preFixSearch = preFixSearch;
 	}
 	
 	/**
@@ -127,15 +114,20 @@ public class SolrIndexEngineQueryBuilder {
 			// generate the filter string for the values
 			// this assumes an OR logic
 			// i.e. the filter will return things that are bar OR pie
-			for (int i = 0; i < filterValuesList.size(); i++) {
-				if (i == filterValuesList.size() - 1) {
-					filterStr.append( "\"" + filterValuesList.get(i) + "\"" );
-				} else {
-					filterStr.append( "\"" + filterValuesList.get(i) + "\""  + " OR ");
+			int size = filterValuesList.size();
+			if(size == 1) {
+				this.Q.addFilterQuery(fieldName + ":" + "\"" + filterValuesList.get(0) + "\"");
+			} else {
+				for (int i = 0; i < filterValuesList.size(); i++) {
+					if (i == filterValuesList.size() - 1) {
+						filterStr.append( "\"" + filterValuesList.get(i) + "\"" );
+					} else {
+						filterStr.append( "\"" + filterValuesList.get(i) + "\""  + " OR ");
+					}
 				}
+				// set the filter
+				this.Q.addFilterQuery(fieldName + ":" + "(" + filterStr.toString() + ")");
 			}
-			// set the filter
-			this.Q.addFilterQuery(fieldName + ":" + "(" + filterStr.toString() + ")");
 		}
 	}
 
