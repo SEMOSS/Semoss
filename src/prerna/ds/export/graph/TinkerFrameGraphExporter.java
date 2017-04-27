@@ -17,10 +17,9 @@ import prerna.ds.TinkerFrame;
 import prerna.ui.helpers.TypeColorShapeTable;
 import prerna.util.Constants;
 
-public class TinkerFrameGraphExporter implements IGraphExporter{
+public class TinkerFrameGraphExporter extends AbstractGraphExporter{
 
 	// the tinker frame we are operating on
-	private TinkerFrame tf;
 	private TinkerGraph g;
 	// the edge iterator
 	private GraphTraversal<Edge, Edge> edgesIt;
@@ -28,7 +27,6 @@ public class TinkerFrameGraphExporter implements IGraphExporter{
 	private GraphTraversal<Vertex, Vertex> vertsIt;
 	
 	public TinkerFrameGraphExporter(TinkerFrame tf) {
-		this.tf = tf;
 		this.g = tf.g;
 	}
 	
@@ -126,6 +124,9 @@ public class TinkerFrameGraphExporter implements IGraphExporter{
 		// need to add in color
 		Color color = TypeColorShapeTable.getInstance().getColor(type, value.toString());
 		vertexMap.put("VERTEX_COLOR_PROPERTY", IGraphExporter.getRgb(color));
+		
+		// add to the meta count
+		addVertCount(type);
 		
 		return vertexMap;
 	}

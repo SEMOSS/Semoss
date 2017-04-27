@@ -13,7 +13,7 @@ import prerna.ds.h2.H2Frame;
 import prerna.ui.helpers.TypeColorShapeTable;
 import prerna.util.Constants;
 
-public class RdbmsGraphExporter implements IGraphExporter {
+public class RdbmsGraphExporter extends AbstractGraphExporter {
 
 	private H2Frame frame;
 
@@ -205,6 +205,9 @@ public class RdbmsGraphExporter implements IGraphExporter {
 		Map<String, Object> propMap = new HashMap<String, Object>();
 		vertexMap.put("propHash", propMap);
 
+		// add to the meta count
+		addVertCount(this.curVertex);
+		
 		return vertexMap;
 	}
 

@@ -22,6 +22,12 @@ public interface IGraphExporter {
 	Map<String, Object> getNextVert();
 	
 	/**
+	 * Return the count of each vert type
+	 * @return
+	 */
+	Map<String, Integer> getVertCounts();
+	
+	/**
 	 * Get a string representation of the node color
 	 * @param c
 	 * @return
