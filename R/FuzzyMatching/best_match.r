@@ -23,13 +23,13 @@ eval(parse(text=cmd2))
 r <- data.frame(item=character(), match=character(),similarity=numeric(),appliedmethod = character(),stringsAsFactors=FALSE)
 r<-best_match(r,c1,d,method="lv",q=1,p=0)
 r<-best_match(r,c1,d,method="dl",q=1,p=0)
-r<-best_match(r,c1,d,method="qgram",q=2,p=0)
-r<-best_match(r,c1,d,method="cosine",q=2,p=0)
+r<-best_match(r,c1,d,method="qgram",q=3,p=0)
+r<-best_match(r,c1,d,method="cosine",q=3,p=0)
 r<-best_match(r,c1,d,method="osa",q=1,p=0)
 r<-best_match(r,c1,d,method="jw",q=1,p=0.1)
 r<-best_match(r,c1,d,method="lcs",q=1,p=0)
 r<-best_match(r,c1,d,method="soundex",q=1,p=0)
-r<-best_match(r,c1,d,method="jaccard",q=2,p=0)
+r<-best_match(r,c1,d,method="jaccard",q=3,p=0)
 return(r)
 }
 
@@ -45,7 +45,7 @@ methods[["lcs"]]<-"Longest common substring"
 methods[["jaccard"]]<-"Jaccard q-gram"
 methods[["soundex"]]<-"Soundex"
 n<-length(c1)
-m<-stringdistmatrix(c1,d,method=method,q=q,p=p)
+m<-stringdistmatrix(c1,d,method=method,q=q,p=p,weight=c(d=1,i=0.95,s=0.9,t=0.85))
 
 j<-nrow(r)
 for (i in 1:n){
