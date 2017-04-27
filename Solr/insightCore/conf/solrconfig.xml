@@ -1384,33 +1384,29 @@
     </arr>
   </requestHandler>
 
-  
-  
-  <searchComponent name="suggest" class="solr.SpellCheckComponent">
-  	<lst name="spellchecker">
-      <str name="name">suggest</str>
-	  <str name="field">insight_suggest</str>
-	  <str name="classname">Suggester</str>
+  <searchComponent name="suggest" class="solr.SuggestComponent">
+	<lst name="suggester">
+	  <str name="name">mySuggester</str>
 	  <str name="lookupImpl">org.apache.solr.spelling.suggest.jaspell.JaspellLookupFactory</str>
-	  <str name="suggestAnalyzerFieldType">text_en_splitting</str>  
-      <str name="queryAnalyzerFieldType">text_suggest</str>   
-      <float name="threshold">0</float>
+	  <str name="field">name</str>
+	  <str name="suggestAnalyzerFieldType">string</str>
+	  <str name="payloadField">id</str> 
+	  <str name="buildOnStartup">false</str>
 	  <str name="buildOnCommit">false</str>
-	  <bool name="exactMatchFirst">true</bool>
-    </lst>
+	</lst>
   </searchComponent>
 
-  <requestHandler name="/suggest" class="org.apache.solr.handler.component.SearchHandler">
-    <lst name="defaults">
-	  <str name="spellcheck">true</str>
-	  <str name="spellcheck.dictionary">suggest</str>
-	  <str name="spellcheck.onlyMorePopular">true</str>
-	  <str name="spellcheck.count">10</str>
-    </lst>
-    <arr name="components">
-      <str>suggest</str>
-    </arr>
+  <requestHandler name="/suggest" class="solr.SearchHandler" startup="lazy" >
+	<lst name="defaults">
+	  <str name="suggest">true</str>
+	  <str name="suggest.count">10</str>
+	  <str name="suggest.dictionary">mySuggester</str>
+	</lst>
+	<arr name="components">
+	  <str>suggest</str>
+	</arr>
   </requestHandler>
+  
   <!-- Term Vector Component
 
        http://wiki.apache.org/solr/TermVectorComponent
