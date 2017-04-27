@@ -17,7 +17,6 @@ import java.util.Map;
 import java.util.Set;
 import java.util.Vector;
 
-import org.apache.commons.lang.StringUtils;
 import org.apache.commons.lang3.ArrayUtils;
 import org.apache.tinkerpop.gremlin.structure.Graph;
 import org.apache.tinkerpop.gremlin.structure.io.IoCore;
@@ -37,11 +36,9 @@ import prerna.ds.h2.H2Frame;
 import prerna.ds.r.RDataTable;
 import prerna.ds.util.FileIterator;
 import prerna.ds.util.FileIterator.FILE_DATA_TYPE;
-import prerna.engine.api.IEngine;
 import prerna.ds.util.RdbmsFrameUtility;
+import prerna.engine.api.IEngine;
 import prerna.poi.main.HeadersException;
-import prerna.poi.main.helper.ImportOptions;
-import prerna.ui.components.ImportDataProcessor;
 import prerna.util.ArrayUtilityMethods;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
@@ -2094,7 +2091,7 @@ public abstract class AbstractRJavaReactor extends AbstractJavaReactor {
 			StringBuilder sb = new StringBuilder();
 			sb.append(targetHeader);
 			sb.append("\n");
-			for (int i = 0; i < sourceArray.length; i++) {
+			for (int i = 0; i < targetArray.length; i++) {
 				String targetInstance = "";
 				if(targetArray[i] != null) {
 				targetInstance = (String) targetArray[i];
