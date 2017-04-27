@@ -10,13 +10,17 @@ fuzzy_join <- function(df1,df2,col1,col2,mode,max_dist,method, q, p){
 # p - penalty for some methods for fuzzy matching
 # 
 library(fuzzyjoin)
-#write.csv(df1,"C:\\workspace\\Semoss\\R\\FuzzyJoin\\Temp\\sourceDataFrame.csv")
-#write.csv(df2,"C:\\workspace\\Semoss\\R\\FuzzyJoin\\Temp\\targetDataFrame.csv")
+#write.csv(df1,"C:\\Users\\gmordinson\\workspace\\Semoss_Dev\\R\\FuzzyJoin\\Temp\\sourceDataFrame.csv")
+#write.csv(df2,"C:\\Users\\gmordinson\\workspace\\Semoss_Dev\\R\\FuzzyJoin\\Temp\\targetDataFrame.csv")
 a<-paste(col1,"=","\"",col2,"\")",sep="")
-b<-paste(",mode=\"",mode,"\",max_dist=",max_dist,",method=\"",method,"\",q=",q,",p=",p,")",sep="")
+b<-paste(",mode=\"",mode,"\",max_dist=",max_dist,",method=\"",method,"\",q=",q,",p=",p,",weight=c(d=1,i=0.95,s=0.9,t=0.85))",sep="")
 c<-paste("r<-","stringdist_join(df1,df2,by=c(",a,b,sep="")
 eval(parse(text=c))
-#write.csv(r,"C:\\workspace\\Semoss\\R\\FuzzyJoin\\Temp\\final.csv")
+#write.csv(r,"C:\\Users\\gmordinson\\workspace\\Semoss_Dev\\R\\FuzzyJoin\\Temp\\final.csv")
+if(ncol(df1) == 1){
+r<-as.data.frame(r)
+names(r)[1]<-col1
+}
 return(r)
 }
 
