@@ -181,13 +181,10 @@ public abstract class AbstractReactor implements IReactor {
 		return newRow;
 	}
 	
-	// execute it
-	public NounMetadata execute()
-	{
+	public void modifySignatureFromLambdas() {
 		List <NounMetadata> lamList = curRow.getNounsOfType(PkslDataTypes.LAMBDA);
 		// replace all the values that is inside this. this could be a recursive call
-		for(int lamIndex = 0;lamIndex < lamList.size();lamIndex++)
-		{
+		for(int lamIndex = 0;lamIndex < lamList.size();lamIndex++) {
 			NounMetadata thisLambdaMeta = lamList.get(lamIndex);
 			IReactor thisReactor = (IReactor)thisLambdaMeta.getValue();
 			String rSignature = thisReactor.getSignature();
@@ -207,7 +204,6 @@ public abstract class AbstractReactor implements IReactor {
 			}
 			modifySignature(rSignature, replaceValue.toString());
 		}
-		return null;
 	}
 	
 	@Override
