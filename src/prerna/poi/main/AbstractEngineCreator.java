@@ -218,8 +218,8 @@ public class AbstractEngineCreator {
 	protected void createSQLTypes() {
 		sqlHash.put("DECIMAL", "FLOAT");
 		sqlHash.put("DOUBLE", "FLOAT");
-		sqlHash.put("STRING", "VARCHAR(18000)"); // 8000 was chosen because this is the max for SQL Server; needs more permanent fix
-		sqlHash.put("TEXT", "VARCHAR(18000)"); // 8000 was chosen because this is the max for SQL Server; needs more permanent fix
+		sqlHash.put("STRING", "VARCHAR(2000)"); // 8000 was chosen because this is the max for SQL Server; needs more permanent fix
+		sqlHash.put("TEXT", "VARCHAR(2000)"); // 8000 was chosen because this is the max for SQL Server; needs more permanent fix
 		//TODO: the FE needs to differentiate between "dates with times" vs. "dates"
 		sqlHash.put("DATE", "DATE");
 		sqlHash.put("SIMPLEDATE", "DATE");
