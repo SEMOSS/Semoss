@@ -15,7 +15,7 @@ import prerna.sablecc.meta.IPkqlMetadata;
 import prerna.sablecc2.lexer.Lexer;
 import prerna.sablecc2.lexer.LexerException;
 import prerna.sablecc2.node.AConfiguration;
-import prerna.sablecc2.node.PScriptchain;
+import prerna.sablecc2.node.PRoutine;
 import prerna.sablecc2.node.Start;
 import prerna.sablecc2.parser.Parser;
 import prerna.sablecc2.parser.ParserException;
@@ -89,7 +89,7 @@ public class PKSLRunner {
 		AConfiguration configNode = (AConfiguration)tree.getPConfiguration();
 
 		List<String> pksls = new ArrayList<>();
-		for(PScriptchain script : configNode.getScriptchain()) {
+		for(PRoutine script : configNode.getRoutine()) {
 			pksls.add(script.toString());
 		}
 		return pksls;
