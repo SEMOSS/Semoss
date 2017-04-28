@@ -129,7 +129,7 @@ public interface IReactor {
 
 	String getOriginalSignature();
 
-	void modifySignature(String string, String plainString);
+	void modifySignature(String stringToFind, String stringReplacement);
 
 	void modifySignatureFromLambdas();
 	
